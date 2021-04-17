@@ -22,6 +22,10 @@ export const TaskState = new class TaskState {
     onApiMessage(taskReporterApi.taskDeleted, this.deleteTask);
   }
 
+  public get values(): TaskData[] {
+    return this.tasks;
+  }
+
   public ack() {
     sendApiMessage(taskReporterApi.ackTasks);
   }

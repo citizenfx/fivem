@@ -1,4 +1,4 @@
-import { ResourceManifest } from "backend/project/asset/asset-contributions/resource/resource-manifest";
+import { ResourceManifest } from "assets/resource/resource-manifest";
 import { AssetCreateRequest } from "shared/api.requests";
 
 export interface ResourceTemplateDescriptor {

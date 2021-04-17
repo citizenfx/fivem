@@ -1,30 +1,47 @@
+import { DisposableContainer, DisposableObject } from "backend/disposable-container";
 import { makeAutoObservable, reaction } from "mobx";
-import { projectApi } from "shared/api.events";
+import { assetApi, projectApi } from "shared/api.events";
 import { ProjectBuildRequest } from "shared/api.requests";
 import { FilesystemEntry, FilesystemEntryMap } from "shared/api.types";
-import { ProjectData, ProjectFsUpdate, ProjectManifest, ProjectResources, RecentProject } from "shared/project.types";
+import { AssetType } from "shared/asset.types";
+import { ProjectAssetBaseConfig, ProjectData, ProjectFsUpdate, ProjectManifest, RecentProject } from "shared/project.types";
 import { onApiMessage, sendApiMessage } from "utils/api";
 import { getProjectBuildPathVar, getProjectDeployArtifactVar, getProjectSteamWebApiKeyVar, getProjectTebexSecretVar, getProjectUseVersioningVar } from "utils/projectStorage";
 import { onWindowEvent } from "utils/windowMessages";
 import { ShellState } from "./ShellState";
-import { TheiaState } from "./TheiaState";
+import { TheiaState } from "../personalities/TheiaPersonality/TheiaState";
 
 
-class ProjectObject implements ProjectData {
+class ProjectObject implements ProjectData, DisposableObject {
   public fs: FilesystemEntryMap;
 
   public path: string;
+  public assets: {
+    [path: string]: ProjectAssetBaseConfig,
+  };
   public manifest: ProjectManifest;
 
-  public resources: ProjectResources;
+  public assetTypes: Record<string, AssetType | void> = {};
+
+  private disposableContainer: DisposableContainer;
 
   constructor(projectData: ProjectData) {
     this.fs = projectData.fs;
     this.path = projectData.path;
+    this.assets = projectData.assets;
     this.manifest = projectData.manifest;
-    this.resources = projectData.resources;
+    this.assetTypes = projectData.assetTypes;
 
     makeAutoObservable(this);
+
+    this.disposableContainer = new DisposableContainer();
+
+    this.disposableContainer.add(
+      onApiMessage(projectApi.update, this.update),
+      onApiMessage(projectApi.fsUpdate, this.updateFs),
+      onApiMessage(assetApi.setConfig, this.setAssetConfig),
+      onApiMessage(assetApi.setType, this.setAssetType),
+    );
   }
 
   get entry(): FilesystemEntry {
@@ -50,7 +67,18 @@ class ProjectObject implements ProjectData {
     };
   }
 
-  update(projectData: Partial<ProjectData>) {
+  dispose() {
+    this.disposableContainer.dispose();
+  }
+
+  getAssetConfig<AssetConfigType extends ProjectAssetBaseConfig>(assetPath: string, defaults: AssetConfigType): AssetConfigType {
+    return {
+      ...defaults,
+      ...this.assets[assetPath],
+    };
+  }
+
+  private update = (projectData: Partial<ProjectData>) => {
     if (projectData.fs) {
       this.fs = projectData.fs;
     }
@@ -58,13 +86,9 @@ class ProjectObject implements ProjectData {
     if (projectData.manifest) {
       this.manifest = projectData.manifest;
     }
+  };
 
-    if (projectData.resources) {
-      this.resources = projectData.resources;
-    }
-  }
-
-  updateFs(update: ProjectFsUpdate) {
+  private updateFs = (update: ProjectFsUpdate) => {
     if (update.replace) {
       Object.entries(update.replace).forEach(([key, value]) => {
         this.fs[key] = value;
@@ -76,11 +100,17 @@ class ProjectObject implements ProjectData {
         delete this.fs[key];
       });
     }
-  }
+  };
 
-  updateResources(resources: ProjectResources) {
-    this.resources = resources;
-  }
+  private setAssetType = (assetTypes: Record<string, AssetType | void>) => {
+    for (const [assetPath, assetType] of Object.entries(assetTypes)) {
+      this.assetTypes[assetPath] = assetType;
+    }
+  };
+
+  private setAssetConfig = ([assetPath, config]) => {
+    this.assets[assetPath] = config;
+  };
 }
 export const ProjectState = new class ProjectState {
   constructor() {
@@ -99,9 +129,6 @@ export const ProjectState = new class ProjectState {
 
     onApiMessage(projectApi.open, this.setOpenProject);
     onApiMessage(projectApi.close, this.closeProject);
-    onApiMessage(projectApi.update, this.updateProject);
-    onApiMessage(projectApi.fsUpdate, this.updateFs);
-    onApiMessage(projectApi.resourcesUpdate, this.updateResources);
 
     onApiMessage(projectApi.freePendingFolderDeletion, this.freePendingFolderDeletion);
 
@@ -198,25 +225,22 @@ export const ProjectState = new class ProjectState {
   }
 
   private setOpenProject = (projectData: ProjectData) => {
+    if (this.projectObject) {
+      this.projectObject.dispose();
+      this.projectObject = null;
+    }
+
     this.projectAlreadyOpening = false;
     this.projectObject = new ProjectObject(projectData);
+
     localStorage.setItem('last-project-path', this.project.path);
   };
 
-  private updateProject = (projectData) => {
-    this.project?.update(projectData);
-  };
-
-  private updateFs = (fs) => {
-    this.project?.updateFs(fs);
-  };
-
-  private updateResources = (resources) => {
-    this.project?.updateResources(resources);
-  };
-
   private closeProject = () => {
-    this.projectObject = null;
+    if (this.projectObject) {
+      this.projectObject.dispose();
+      this.projectObject = null;
+    }
   };
 
   buildProject(overrides?: Partial<ProjectBuildRequest>) {

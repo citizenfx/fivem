@@ -1,3 +1,4 @@
+import { ResourceStatus } from "assets/resource/resource-types";
 import { makeAutoObservable } from "mobx";
 import { statusesApi } from "shared/api.events";
 import { featuresStatuses } from "shared/api.statuses";
@@ -5,6 +6,10 @@ import { Feature } from "shared/api.types";
 import { onApiMessage, sendApiMessage } from "utils/api";
 
 const defaultFeaturesStatusContent = Object.create(null);
+
+const defaultResourceStatusContent: ResourceStatus = {
+  watchCommands: {},
+};
 
 export const StatusState = new class StatusState {
   private statuses: Record<string, any> = Object.create(null);
@@ -28,6 +33,10 @@ export const StatusState = new class StatusState {
     }
 
     return content;
+  }
+
+  getResourceStatus(resourcePath: string): ResourceStatus {
+    return this.get(`resource-${resourcePath}`, defaultResourceStatusContent);
   }
 
   getFeature(feature: Feature): boolean | void {

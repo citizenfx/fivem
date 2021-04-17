@@ -2,6 +2,7 @@
 #include <CefOverlay.h>
 
 #include <ICoreGameInit.h>
+#include <CL2LaunchMode.h>
 
 #include <Hooking.h>
 #include <StatusText.h>
@@ -65,6 +66,14 @@ static void InvokeNUIScript(const std::string& eventName, rapidjson::Document& j
 	
 	if (json.Accept(writer))
 	{
+		// For SDK we will also send that as SDK_MESSAGE
+		if (launch::IsSDKGuest())
+		{
+			static constexpr uint32_t SEND_SDK_MESSAGE = HashString("SEND_SDK_MESSAGE");
+
+			NativeInvoke::Invoke<SEND_SDK_MESSAGE, const char*>(sb.GetString());
+		}
+
 		nui::PostFrameMessage("loadingScreen", sb.GetString());
 	}
 }

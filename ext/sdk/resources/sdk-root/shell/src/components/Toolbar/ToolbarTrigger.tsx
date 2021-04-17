@@ -27,7 +27,7 @@ export const ToolbarTrigger = observer(function ToolbarTrigger() {
   React.useEffect(() => {
     const handleMouseUp = () => {
       if (mouseStateRef.current.down) {
-        window.document.body.classList.remove('reszie-sentinel-active');
+        window.document.body.classList.remove('resize-sentinel-active');
         setToolbarResizingRef.current(false);
 
         mouseStateRef.current.down = false;
@@ -36,6 +36,10 @@ export const ToolbarTrigger = observer(function ToolbarTrigger() {
     };
 
     const handleMouseMove = (e) => {
+      if (!ToolbarState.isOpen) {
+        return;
+      }
+
       if (!mouseStateRef.current.down) {
         return;
       }
@@ -54,14 +58,14 @@ export const ToolbarTrigger = observer(function ToolbarTrigger() {
     window.addEventListener('mousemove', handleMouseMove);
 
     return () => {
-      window.document.body.classList.remove('reszie-sentinel-active');
+      window.document.body.classList.remove('resize-sentinel-active');
       window.removeEventListener('mouseup', handleMouseUp);
       window.removeEventListener('mousemove', handleMouseMove);
     };
   }, []);
 
   const handleMouseDown = React.useCallback((e: React.MouseEvent) => {
-    window.document.body.classList.add('reszie-sentinel-active');
+    window.document.body.classList.add('resize-sentinel-active');
 
     setToolbarResizing(true);
 

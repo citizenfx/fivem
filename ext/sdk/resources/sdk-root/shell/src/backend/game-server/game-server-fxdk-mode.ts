@@ -296,13 +296,19 @@ export class GameServerFxdkMode implements GameServerMode {
     this.pipeAppendix = await this.ipc.start('test');
   }
 
-  private async serverInitSequence({ fxserverCwd, steamWebApiKey, tebexSecret }: ServerStartRequest) {
-    const blankContent = (await this.fsService.readFile(this.fsService.joinPath(fxserverCwd, 'blank.cfg'))).toString().trim();
-    if (blankContent) {
-      const lines = blankContent.split('\n');
-
-      for (const line of lines) {
+  private async serverInitSequence({ fxserverCwd, steamWebApiKey, tebexSecret, cmdList }: ServerStartRequest) {
+    if (Array.isArray(cmdList)) {
+      for (const line of cmdList) {
         this.ipc.event('cmd', line.trim());
+      }
+    } else {
+      const blankContent = (await this.fsService.readFile(this.fsService.joinPath(fxserverCwd, 'blank.cfg'))).toString().trim();
+      if (blankContent) {
+        const lines = blankContent.split('\n');
+
+        for (const line of lines) {
+          this.ipc.event('cmd', line.trim());
+        }
       }
     }
 

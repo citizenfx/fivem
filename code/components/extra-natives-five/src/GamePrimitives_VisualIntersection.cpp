@@ -10,6 +10,10 @@
 #include <EntitySystem.h>
 #include <MinHook.h>
 
+#include <CL2LaunchMode.h>
+#include <HostSharedData.h>
+#include <WorldEditorControls.h>
+
 #include <ScriptEngine.h>
 
 #include <im3d.h>
@@ -375,10 +379,23 @@ static InitFunction initFunctionScript([]()
 {
 	fx::ScriptEngine::RegisterNativeHandler("SELECT_ENTITY_AT_CURSOR", [](fx::ScriptContext& context)
 	{
-		const auto& io = ImGui::GetIO();
+		float xp;
+		float yp;
 
-		float xp = io.MousePos.x - ImGui::GetMainViewport()->Pos.x;
-		float yp = io.MousePos.y - ImGui::GetMainViewport()->Pos.y;
+		if (launch::IsSDKGuest())
+		{
+			static HostSharedData<WorldEditorControls> wec("CfxWorldEditorControls");
+
+			xp = wec->mouseX * GetViewportW();
+			yp = wec->mouseY * GetViewportH();
+		}
+		else
+		{
+			const auto& io = ImGui::GetIO();
+
+			xp = io.MousePos.x - ImGui::GetMainViewport()->Pos.x;
+			yp = io.MousePos.y - ImGui::GetMainViewport()->Pos.y;
+		}
 
 		HitFlags hf;
 		hf.entityTypeMask = context.GetArgument<int>(0);

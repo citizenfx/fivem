@@ -14,6 +14,8 @@ import { TaskState } from 'store/TaskState';
 import { ServerState } from 'store/ServerState';
 import { ProjectState } from 'store/ProjectState';
 import s from './Shell.module.scss';
+import { WorldEditorPersonality } from 'personalities/WorldEditorPersonality/WorldEditorPersonality';
+import { NotificationState } from 'store/NotificationState';
 
 
 export const Shell = observer(function Shell() {
@@ -32,6 +34,7 @@ export const Shell = observer(function Shell() {
     StatusState.ack();
     TaskState.ack();
     ServerState.ack();
+    NotificationState.ack();
   }, []);
 
   return (
@@ -53,6 +56,10 @@ export const Shell = observer(function Shell() {
       )}
 
       <TheiaPersonality />
+
+      {ShellState.isWorldEditor && (
+        <WorldEditorPersonality />
+      )}
     </div>
   );
 });

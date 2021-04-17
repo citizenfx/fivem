@@ -1,5 +1,5 @@
 import React from 'react';
-import { ANY_MESSAGE, ApiMessageCallback, ApiMessageListener, onApiMessage, sendApiMessageCallback } from './api';
+import { ANY_MESSAGE, ApiMessageCallback, ApiMessageListener, onApiMessage, onApiMessageScoped, sendApiMessageCallback } from './api';
 import { fastRandomId } from './random';
 import { onWindowEvent, WindowEventListener } from './windowMessages';
 
@@ -16,6 +16,12 @@ export const useSid = (watchers: React.DependencyList = []) => {
 
 export const useApiMessage = (type: string | typeof ANY_MESSAGE, cb: ApiMessageListener, deps: React.DependencyList = []) => {
   React.useEffect(() => onApiMessage(type, cb), deps); // eslint-disable-line react-hooks/exhaustive-deps
+};
+
+export const useApiMessageScoped = (type: string, scope: string, cb: ApiMessageListener, deps: React.DependencyList = []) => {
+  React.useEffect(() => {
+    return onApiMessageScoped(type, scope, cb);
+  }, [...deps, scope]);
 };
 
 export const useWindowEvent = <T>(type: string, cb: WindowEventListener<T>, deps: React.DependencyList = []) => {
@@ -167,4 +173,21 @@ export const useSendApiMessageCallback = <Data, ResponseData>(type: string, call
       callbackRef.current?.(error, response as any);
     });
   }, [type]);
+};
+
+export const useOutsideClick = (ref, callback) => {
+  const callbackRef = React.useRef<Function>();
+  callbackRef.current = callback;
+
+  const handleClick = (e) => {
+    if (ref.current && !ref.current.contains(e.target)) {
+      callbackRef.current();
+    }
+  };
+
+  React.useEffect(() => {
+    document.addEventListener("click", handleClick);
+
+    return () => document.removeEventListener("click", handleClick);
+  });
 };

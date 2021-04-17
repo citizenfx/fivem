@@ -49,6 +49,9 @@ export const assetApi = {
   import: 'asset:import',
   rename: 'asset:rename',
   delete: 'asset:delete',
+
+  setConfig: 'asset:setConfig',
+  setType: 'asset:setType',
 };
 
 export const githubApi = {
@@ -133,4 +136,10 @@ export const gameApi = {
   start: 'game:start',
   stop: 'game:stop',
   restart: 'game:restart',
+};
+
+export const worldEditorApi = {
+  start: 'world-editor:start',
+  stop: 'world-editor:stop',
+  stopped: 'world-editor:stopped',
 };

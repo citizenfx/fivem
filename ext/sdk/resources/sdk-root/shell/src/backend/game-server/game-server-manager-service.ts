@@ -332,7 +332,7 @@ export class GameServerManagerService implements AppContribution, ApiContributio
       } catch (e) {
         // Ready as unpacked thing still exist, right?
         this.setUpdateChannelState(updateChannel, ServerUpdateStates.ready);
-        this.notificationService.error(`Failed to download server artifact: ${e.toString()}`);
+        this.notificationService.error(`Failed to download "${updateChannel}" server artifact: ${e.toString()}`);
         return;
       } finally {
         downloadTask.done();

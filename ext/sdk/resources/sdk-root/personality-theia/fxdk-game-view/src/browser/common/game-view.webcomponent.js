@@ -576,8 +576,6 @@ class GameView extends HTMLElement {
       e.preventDefault();
       e.stopPropagation();
 
-      console.log('Propagation stopped');
-
       // Handling pointer unlock
       if (e.key === 'Escape' && e.shiftKey) {
         if (this._fullscreenActive) {

@@ -96,4 +96,17 @@ export class FxdkDataService {
   sendMessageToShell(type: string, data?: any) {
     window.parent.postMessage({ type, data }, '*');
   }
+
+  private theiaIsActive = false;
+  private theiaIsActiveEvent = new SingleEventEmitter<boolean>();
+  onTheiaIsActiveChange(cb: (isActive: boolean) => void): Disposable {
+    return this.theiaIsActiveEvent.on(cb);
+  }
+  setTheiaIsActive(isActive: boolean) {
+    this.theiaIsActive = isActive;
+    this.theiaIsActiveEvent.emit(isActive);
+  }
+  getTheiaIsActive(): boolean {
+    return this.theiaIsActive;
+  }
 }

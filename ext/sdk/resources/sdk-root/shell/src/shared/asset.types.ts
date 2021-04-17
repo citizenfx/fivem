@@ -6,6 +6,7 @@ export type KeysOf<T> = T[keyof T];
 
 export const assetTypes = {
   resource: 'resource',
+  fxworld: 'fxworld',
 };
 export type AssetType = KeysOf<typeof assetTypes>;
 

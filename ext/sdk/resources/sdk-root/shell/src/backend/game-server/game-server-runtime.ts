@@ -7,6 +7,10 @@ import { ServerUpdateChannel } from "shared/api.types";
 export interface ServerStartRequest {
   fxserverCwd: string,
   updateChannel: ServerUpdateChannel,
+
+  // Will force game server to not load blank.cfg but use this list instead
+  cmdList?: string[],
+
   licenseKey?: string,
   steamWebApiKey?: string,
   tebexSecret?: string,

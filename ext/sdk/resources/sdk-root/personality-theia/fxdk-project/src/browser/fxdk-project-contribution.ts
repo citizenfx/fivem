@@ -1,7 +1,6 @@
 import { inject, injectable } from 'inversify';
 import { WorkspaceService } from '@theia/workspace/lib/browser';
 import { FrontendApplicationContribution, OpenerService, open, WidgetManager } from '@theia/core/lib/browser';
-import { EditorWidget } from '@theia/editor/lib/browser/editor-widget';
 
 import { FxdkWorkspaceService } from './rebindWorkspaceService';
 import URI from '@theia/core/lib/common/uri';
@@ -52,7 +51,7 @@ export class FxdkProjectContribution implements FrontendApplicationContribution 
     window.parent.postMessage({ type: 'theia:ready' }, '*');
 
     window.addEventListener('message', (e) => {
-      if (typeof e.data !== 'object' || e.data === null) {
+      if (typeof e.data !== 'object' || e.data === null || (typeof e.data.type !== 'string')) {
         return;
       }
 
@@ -100,6 +99,10 @@ export class FxdkProjectContribution implements FrontendApplicationContribution 
   private handleAddFolders(folders: string[]) {
     console.log('adding folders', folders);
     return this.fxdkWorkspaceService.addFolders(folders.map(mapFxdkFolderToTheiaFolder));
+  }
+
+  private handleSetIsActive(isActive: boolean) {
+    this.dataService.setTheiaIsActive(isActive);
   }
 
   private handleOpenFile(file: string) {

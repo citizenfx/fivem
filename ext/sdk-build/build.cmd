@@ -10,11 +10,19 @@ set CacheRoot=C:\f\save
 set BuildRoot=%~dp0\sdk-root
 
 set FXDK=..\sdk\resources
+set FXDKGame=..\sdk\resources\sdk-game
 set FXDKRoot=..\sdk\resources\sdk-root
 
 set FXDKTheia=%FXDKRoot%\personality-theia
 set FXDKShell=%FXDKRoot%\shell
 
+
+:: build sdk-game
+pushd %FXDKGame%
+call yarn install --frozen-lockfile
+call yarn build
+popd
+:: /build sdk-game
 
 
 :: build shell

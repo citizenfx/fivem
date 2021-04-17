@@ -5,9 +5,12 @@ import { bindLogProvider } from "backend/logger/log-provider";
 import { ApiClient } from "./api-client";
 import { ApiClientLogger } from "./api-client-logger";
 import { ApiContribution, ApiContributionFactory, ApiService } from "./api-contribution";
+import { ApiClientScoped } from "./api-client-scoped";
 
 export const bindApi = (container: interfaces.Container) => {
   container.bind(ApiClient).toSelf().inSingletonScope();
+
+  container.bind(ApiClientScoped).toDynamicValue((ctx) => ctx.container.resolve(ApiClientScoped));
 
   container.bind(ApiClientLogger).toSelf().inSingletonScope();
   bindLogProvider(container, ApiClientLogger);

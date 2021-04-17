@@ -10,12 +10,15 @@ import { Shell } from './components/Shell';
 import { enableLogger } from 'utils/logger';
 import { TitleManager } from 'managers/TitleManager';
 import { TheiaProjectManager } from 'managers/TheiaProjectManager';
-import { NotificationsManager } from 'managers/NotificationsManager/NotificationsManager';
 import { GameConnectionManager } from 'managers/GameConnectionManager';
 import { onApiMessage } from 'utils/api';
 import { stateApi } from 'shared/api.events';
+import { GameLoadingState } from 'store/GameLoadingState';
 
 enableLogger('shell,shell:*,host');
+
+window.openDevTools();
+console.log(GameLoadingState);
 
 if (process.env.CI_PIPELINE_ID !== 'dev') {
   Sentry.init({
@@ -61,7 +64,6 @@ ReactDOM.render(
     <GameConnectionManager />
     <TitleManager />
     <TheiaProjectManager />
-    <NotificationsManager />
 
     <Shell />
 

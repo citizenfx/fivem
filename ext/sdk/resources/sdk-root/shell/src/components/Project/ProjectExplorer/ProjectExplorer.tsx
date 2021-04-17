@@ -9,30 +9,41 @@ import { newDirectoryIcon, newResourceIcon } from 'constants/icons';
 import { Directory } from './Directory/Directory';
 import { File } from './File/File';
 import { DirectoryCreator } from './Directory/DirectoryCreator/DirectoryCreator';
-import { Resource } from './Resource/Resource';
 import { entriesSorter, ProjectItemProps, ProjectItemRenderer } from './item';
 import { ProjectExplorerContextProvider } from './ProjectExplorer.context';
-import { ScrollContainer } from 'components/ScrollContainer/ScrollContainer';
 import { isAssetMetaFile } from 'utils/project';
 import { ProjectState } from 'store/ProjectState';
+import { ENABLED_ASSET_RENDERERS } from 'assets/enabled-renderers';
+import { StatusState } from 'store/StatusState';
+import { Feature } from 'shared/api.types';
+import { assetTypes } from 'shared/asset.types';
 import s from './ProjectExplorer.module.scss';
 
 
 const itemRenderer: ProjectItemRenderer = (props: ProjectItemProps) => {
   const { entry } = props;
+  const worldEditorEnabled = StatusState.getFeature(Feature.worldEditor);
+
+  const itemAssetType = ProjectState.project.assetTypes[entry.path];
+  const canUseAssetRenderer = itemAssetType === assetTypes.fxworld
+    ? worldEditorEnabled
+    : true;
+
+  if (itemAssetType && canUseAssetRenderer) {
+    const AssetRenderer = ENABLED_ASSET_RENDERERS[itemAssetType];
+    if (AssetRenderer) {
+      return (
+        <AssetRenderer
+          key={entry.path}
+          {...props}
+        />
+      );
+    }
+  }
 
   if (entry.isFile) {
     return (
       <File
-        key={entry.path}
-        {...props}
-      />
-    );
-  }
-
-  if (entry.meta.isResource) {
-    return (
-      <Resource
         key={entry.path}
         {...props}
       />
@@ -122,17 +133,15 @@ export const ProjectExplorer = observer(function ProjectExplorer() {
         className={s.root}
         items={contextItems}
       >
-        <ScrollContainer>
-          {ProjectState.directoryCreatorOpen && (
-            <DirectoryCreator
-              className={s.creator}
-              onCreate={handleDirectoryCreate}
-            />
-          )}
-          <DndProvider backend={HTML5Backend}>
-            {nodes}
-          </DndProvider>
-        </ScrollContainer>
+        {ProjectState.directoryCreatorOpen && (
+          <DirectoryCreator
+            className={s.creator}
+            onCreate={handleDirectoryCreate}
+          />
+        )}
+        <DndProvider backend={HTML5Backend}>
+          {nodes}
+        </DndProvider>
       </ContextMenu>
     </ProjectExplorerContextProvider>
   );

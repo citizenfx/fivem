@@ -4,6 +4,11 @@ import { stateApi } from 'shared/api.events';
 import { AppStates } from 'shared/api.types';
 import { onApiMessage, sendApiMessage } from 'utils/api';
 
+export enum ShellPersonality {
+  THEIA,
+  WORLD_EDITOR,
+}
+
 export const ShellState = new class ShellState {
   constructor() {
     makeAutoObservable(this);
@@ -13,6 +18,18 @@ export const ShellState = new class ShellState {
 
   public ack() {
     sendApiMessage(stateApi.ackState);
+  }
+
+  public personality = ShellPersonality.THEIA;
+  setPersonality(personality: ShellPersonality) {
+    this.personality = personality;
+  }
+
+  get isTheia(): boolean {
+    return this.personality === ShellPersonality.THEIA;
+  }
+  get isWorldEditor(): boolean {
+    return this.personality === ShellPersonality.WORLD_EDITOR;
   }
 
   public appState = AppStates.booting;

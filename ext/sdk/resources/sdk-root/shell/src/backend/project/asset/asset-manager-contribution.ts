@@ -2,7 +2,7 @@ import { interfaces } from "inversify";
 import { AssetCreateRequest } from "shared/api.requests";
 import { FilesystemEntry } from "shared/api.types";
 import { AssetType } from "shared/asset.types";
-import { AssetInterface } from "./asset-types";
+import { AssetInterface } from "assets/core/asset-interface";
 
 
 export const AssetManagerContribution = Symbol('AssetManagerContribution');

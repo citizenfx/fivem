@@ -4,8 +4,8 @@ import { AppStates } from 'shared/api.types';
 import { ShellState } from 'store/ShellState';
 import { ToolbarState } from 'store/ToolbarState';
 import { observer } from 'mobx-react-lite';
-import { TheiaState } from 'store/TheiaState';
 import { ProjectState } from 'store/ProjectState';
+import { TheiaState } from './TheiaState';
 import s from './TheiaPersonality.module.scss';
 
 

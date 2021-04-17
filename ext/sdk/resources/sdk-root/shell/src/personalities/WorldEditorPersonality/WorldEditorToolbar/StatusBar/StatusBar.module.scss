@@ -1,0 +1,45 @@
+@import "../../vars.scss";
+
+.root {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: $weToolbarHeight;
+  height: $weToolbarHeight;
+
+  color: rgba($fgColor, .75);
+
+  cursor: pointer;
+  user-select: none;
+
+  &:hover {
+    background-color: rgba($acColor, 1);
+  }
+}
+
+.status-center {
+  position: fixed;
+
+  top: $weToolbarHeight;
+  right: 0;
+
+  width: 25vw;
+  min-height: $q*10;
+
+  background-color: rgba($bgColor, .75);
+  box-shadow: 0 0 10px 5px rgba($bgColor, .5), 0 0 30px 10px rgba($bgColor, .25);
+
+  z-index: 4000;
+}
+
+.status-center-decorator {
+  position: fixed;
+
+  top: calc(#{$weToolbarHeight} - 11px);
+  right: $weToolbarHeight/3.25;
+
+  color: rgba($fgColor, .5);
+
+  z-index: 4000;
+}

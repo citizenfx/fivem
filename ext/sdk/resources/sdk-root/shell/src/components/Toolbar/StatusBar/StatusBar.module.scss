@@ -1,0 +1,57 @@
+@import "variables";
+
+ // matching theia's status bar height
+ $statusBarHeight: 18px;
+
+.root {
+  position: absolute;
+
+  left: 0;
+  bottom: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+
+  width: var(--toolbar-width);
+  height: $statusBarHeight;
+
+  padding: 0 $q*2;
+
+  color: rgba($fgColor, .75);
+
+  cursor: pointer;
+  user-select: none;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  &:hover {
+    background-color: rgba($fgColor, .05);
+  }
+
+  .icon {
+    margin-right: $q*2;
+  }
+}
+
+.status-center {
+  position: absolute;
+
+  left: 0;
+  bottom: 23px;
+
+  min-height: $q*10;
+
+  z-index: 4000;
+}
+
+.status-center-decorator {
+  position: absolute;
+
+  left: $q*2;
+  bottom: 12px;
+
+  color: rgba($fgColor, .5);
+}

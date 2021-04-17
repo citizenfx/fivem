@@ -1,0 +1,167 @@
+@import "../vars.scss";
+
+.root {
+  position: absolute;
+
+  display: flex;
+  justify-content: stretch;
+
+  top: 0;
+  left: 0;
+  right: 0;
+
+  height: $weToolbarHeight;
+
+  > div {
+    width: 33%;
+    height: 100%;
+
+    flex-grow: 1;
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+
+    &:first-child {
+      justify-content: flex-start;
+    }
+
+    justify-content: center;
+
+    &:last-child {
+      justify-content: flex-end;
+    }
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    height: 100%;
+
+    .name {
+      flex-grow: 1;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      height: 100%;
+
+      padding: $q*2.5;
+
+      background-color: rgba($fgColor, .1);
+
+      svg {
+        margin-right: $q;
+      }
+    }
+
+    .close {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      width: $weToolbarHeight;
+      height: 100%;
+
+      color: $fgColor;
+      background: transparent;
+      border: none;
+
+      svg {
+        font-size: $fs2;
+      }
+
+      @include interactiveTransition;
+
+      &:hover {
+        background-color: $acColor;
+      }
+    }
+  }
+
+  .modes {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    height: 100%;
+
+    gap: 1px;
+
+    .mode {
+      flex-grow: 0;
+
+      position: relative;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      gap: $q*2;
+
+      user-select: none;
+
+      height: $weToolbarHeight;
+
+      padding: 0 $q*5;
+
+      background-color: rgba($fgColor, .2);
+
+      font-weight: 100;
+      letter-spacing: 1px;
+
+      svg {
+        font-size: $fs2;
+      }
+
+      span {
+        position: absolute;
+
+        top: $weToolbarHeight + $q;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        padding: $q $q*2;
+
+        color: $fgColor;
+        background-color: rgba($bgColor, .75);
+        backdrop-filter: blur(20px);
+        border-radius: 2px;
+
+        @include fontPrimary;
+        font-size: $fs08;
+        font-weight: 100;
+        text-transform: lowercase;
+
+        opacity: 0;
+        pointer-events: none;
+
+        z-index: 1;
+
+        :global(.shortcut) {
+          margin-left: $q;
+        }
+      }
+
+      @include interactiveTransition;
+
+      &:hover {
+        background-color: $acColor;
+
+        span {
+          opacity: 1;
+        }
+      }
+
+      &.active {
+        background-color: mix(rgba($acColor, .6), rgba($fgColor, .2));
+        box-shadow: 0 -2px 0 0 $acColor inset;
+      }
+    }
+  }
+}

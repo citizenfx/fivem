@@ -2,7 +2,7 @@ import React from 'react';
 import { observer } from 'mobx-react-lite';
 import { getFoldersForTheia } from 'utils/project';
 import { logger } from 'utils/logger';
-import { TheiaState } from 'store/TheiaState';
+import { TheiaState } from 'personalities/TheiaPersonality/TheiaState';
 import { ProjectState } from 'store/ProjectState';
 
 const log = logger('TheiaProjectManager');

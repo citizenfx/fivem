@@ -27,7 +27,6 @@ import s from './ProjectBuilder.module.scss';
 
 const buildSteps: Record<ProjectBuildTaskStage, React.ReactNode> = {
   [ProjectBuildTaskStage.VerifyingBuildSite]: 'Verifying build site',
-  [ProjectBuildTaskStage.StoppingWatchCommands]: 'Stopping watch commands',
   [ProjectBuildTaskStage.RunningBuildCommands]: 'Running builds commands',
   [ProjectBuildTaskStage.PreparingBuildSite]: 'Preparing build site',
   [ProjectBuildTaskStage.DeployingToBuildSite]: 'Deploying to build site',

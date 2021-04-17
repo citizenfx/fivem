@@ -7,7 +7,7 @@ import { NetLibraryConnectionState } from 'shared/native.enums';
 import { observer } from 'mobx-react-lite';
 import { GameState } from 'store/GameState';
 import { ServerState } from 'store/ServerState';
-import { TheiaState } from 'store/TheiaState';
+import { TheiaState } from 'personalities/TheiaPersonality/TheiaState';
 
 const log = logger('GameConnectionManager');
 const RECONNECT_INTERVAL = 1000;

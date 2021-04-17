@@ -3,17 +3,16 @@ import { observer } from 'mobx-react-lite';
 import classnames from 'classnames';
 import { BsCardHeading, BsGear, BsList } from 'react-icons/bs';
 import { devtoolsIcon, newProjectIcon, openProjectIcon, projectBuildIcon, mapIcon } from 'constants/icons';
-import { ProjectCreator } from 'components/Project/ProjectCreator/ProjectCreator';
-import { ProjectOpener } from 'components/Project/ProjectOpener/ProjectOpener';
 import { Project } from 'components/Project/Project';
 import { ContextMenu, ContextMenuItemsCollection, ContextMenuItemSeparator } from 'components/controls/ContextMenu/ContextMenu';
-import { TaskReporter } from 'components/TaskReporter/TaskReporter';
-import { ProjectToolbar } from 'components/Project/ProjectToolbar/ProjectToolbar';
+import { ProjectControls } from 'components/Project/ProjectControls/ProjectControls';
 import { ToolbarTrigger } from './ToolbarTrigger';
 import { Tour } from 'components/Tour/Tour';
 import { ToolbarState } from 'store/ToolbarState';
 import { ShellState } from 'store/ShellState';
 import { ProjectState } from 'store/ProjectState';
+import { ScrollContainer } from 'components/ScrollContainer/ScrollContainer';
+import { StatusBar } from './StatusBar/StatusBar';
 import s from './Toolbar.module.scss';
 
 const handleMenuClick = (openMenu) => openMenu();
@@ -22,8 +21,26 @@ const handleGetMenuCoords = () => ({
   left: 0,
 });
 
-export const Toolbar = observer(function Toolbar() {
+const useTour = () => {
   const [tourVisible, setTourVisible] = React.useState(false);
+
+  React.useEffect(() => {
+    const firstLaunch = localStorage.getItem('firstLaunch');
+
+    if (!firstLaunch && ProjectState.hasProject) {
+      setTourVisible(true);
+      localStorage.setItem('firstLaunch', 'false');
+    }
+  }, [ProjectState.hasProject]);
+
+  return {
+    tourVisible,
+    setTourVisible,
+  };
+};
+
+export const Toolbar = observer(function Toolbar() {
+  const { tourVisible, setTourVisible } = useTour();
 
   const toolbarClasses = classnames(s.root, {
     [s.active]: ToolbarState.isOpen,
@@ -87,14 +104,9 @@ export const Toolbar = observer(function Toolbar() {
     '--toolbar-width': `${ToolbarState.width}px`,
   } as any;
 
-  React.useEffect(() => {
-    // localStorage.removeItem('firstLaunch');
-    const firstLaunch = localStorage.getItem('firstLaunch');
-    if (!firstLaunch && ProjectState.hasProject) {
-      setTourVisible(true);
-      localStorage.setItem('firstLaunch', 'false');
-    }
-  }, [ProjectState.hasProject]);
+  const projectToolbarClassName = classnames(s.pane, {
+    [s.active]: ShellState.isTheia,
+  });
 
   return (
     <div
@@ -104,7 +116,7 @@ export const Toolbar = observer(function Toolbar() {
     >
       <ToolbarTrigger />
 
-      <div className={s.bar}>
+      <div className={s['tools-bar']}>
         <div className={s.controls}>
           <ContextMenu
             items={contextMenuItems}
@@ -122,17 +134,19 @@ export const Toolbar = observer(function Toolbar() {
             </span>
           </div>
 
-          {ProjectState.hasProject && (
-            <ProjectToolbar />
+          {ProjectState.hasProject && ShellState.isTheia && (
+            <ProjectControls />
           )}
         </div>
 
-        {ProjectState.creatorOpen && <ProjectCreator />}
-        {ProjectState.openerOpen && <ProjectOpener />}
+        <div className={projectToolbarClassName} title="">
+          <ScrollContainer>
+            <Project />
+          </ScrollContainer>
+        </div>
 
-        <Project />
+        <StatusBar />
 
-        <TaskReporter />
         <Tour tourVisible={tourVisible} setTourVisible={setTourVisible} />
       </div>
     </div>

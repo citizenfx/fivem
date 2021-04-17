@@ -1,5 +1,8 @@
 @import 'variables';
 
+ // matching theia's status bar height
+$statusBarHeight: 18px;
+
 .root {
   position: fixed;
   top: 0;
@@ -47,12 +50,10 @@
     }
   }
 
-  .bar {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    justify-content: stretch;
+  .tools-bar {
+    position: relative;
 
+    width: var(--toolbar-width);
     height: 100%;
 
     overflow: hidden;
@@ -65,14 +66,17 @@
     z-index: 2;
 
     .controls {
-      flex-grow: 0;
-      flex-shrink: 0;
+      position: absolute;
+
+      top: 0;
+      left: 0;
+
+      width: var(--toolbar-width);
+      height: $toolbarHeight;
 
       display: flex;
       align-items: stretch;
       justify-content: stretch;
-
-      // background-color: rgba($fgColor, .1);
 
       .project-name {
         flex-grow: 1;
@@ -132,6 +136,73 @@
         &:disabled {
           opacity: .5;
           pointer-events: none;
+        }
+      }
+    }
+
+    .pane {
+      position: absolute;
+
+      top: $toolbarHeight;
+      left: 0;
+      bottom: $statusBarHeight;
+
+      width: var(--toolbar-width);
+
+      opacity: 0;
+      pointer-events: none;
+
+      transition: opacity .1s ease;
+
+      &.active {
+        opacity: 1;
+        pointer-events: all;
+      }
+    }
+  }
+
+  .status-bar {
+    position: absolute;
+
+    left: 0;
+    bottom: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+
+    width: var(--toolbar-width);
+    height: $statusBarHeight;
+
+    padding: 0 $q*1.5;
+
+    .item {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      height: 100%;
+
+      padding: $q;
+
+      color: rgba($fgColor, .75);
+
+      cursor: pointer;
+      user-select: none;
+
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+
+      &:hover {
+        background-color: rgba($fgColor, .05);
+      }
+
+      & > * {
+        margin-left: $q;
+
+        &:first-child {
+          margin-left: 0;
         }
       }
     }

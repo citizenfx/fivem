@@ -1,6 +1,5 @@
-import { ServerUpdateChannel } from "./api.types";
 import { AssetImporterType, AssetMetaFlags, AssetType } from "./asset.types";
-import { ProjectManifestResource } from "./project.types";
+import { ProjectAssetBaseConfig } from "./project.types";
 
 
 export interface ProjectCreateRequest {
@@ -8,9 +7,9 @@ export interface ProjectCreateRequest {
   projectPath: string,
 }
 
-export interface ProjectSetResourceConfigRequest {
-  resourceName: string,
-  config: Partial<ProjectManifestResource>,
+export interface ProjectSetAssetConfigRequest<AssetConfigType extends ProjectAssetBaseConfig = ProjectAssetBaseConfig> {
+  assetPath: string,
+  config: Partial<AssetConfigType>,
 }
 
 export interface ProjectCreateDirectoryRequest {

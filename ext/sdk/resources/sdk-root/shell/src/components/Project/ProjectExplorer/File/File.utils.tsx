@@ -2,6 +2,7 @@ import * as React from 'react';
 import { BiFile } from 'react-icons/bi';
 import { BsCardChecklist } from 'react-icons/bs';
 import { SiJavascript, SiJson, SiLua, SiTypescript } from 'react-icons/si';
+import { BiWorld } from 'react-icons/bi';
 import { FilesystemEntry } from 'shared/api.types';
 
 export const getFileIcon = (entry: FilesystemEntry): React.ReactNode => {
@@ -21,6 +22,7 @@ export const getFileIcon = (entry: FilesystemEntry): React.ReactNode => {
     case 'lua': return <SiLua />;
     case 'json': return <SiJson />;
     case 'ts': return <SiTypescript />;
+    case 'fxworld': return <BiWorld />;
 
     case 'generic':
     default: {
