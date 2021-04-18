@@ -2760,6 +2760,16 @@ static HookFunction hookFunctionWorldGrid([]()
 
 	// this should apply to both 1s and non-1s (as participants are - hopefully? - not used by anyone in regular net)
 	hook::jump(hook::get_pattern("84 C0 74 06 0F BF 43 38", -0x18), GetScriptParticipantIndexForPlayer);
+
+	// don't add 'maybe enough to give all our vehicles drivers' as a constraint for even creating one ped
+	// (applies to non-1s too: generally safe)
+
+	// b2060+ seem to have this obfuscated, sorry guys
+	// #TODO: figure out a way to touch this w/o breaking guards
+	if (!xbr::IsGameBuildOrGreater<2060>())
+	{
+		hook::put<uint16_t>(hook::get_pattern("F3 0F 59 C8 F3 48 0F 2C C9 03 CF E8", 9), 0xF989);
+	}
 });
 
 int ObjectToEntity(int objectId)
