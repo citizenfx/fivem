@@ -42,7 +42,7 @@ const char* GetUpdateChannel();
 
 #include <array>
 
-bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::array<uint8_t, 20>>& validHashes, uint64_t* fileStart, uint64_t fileTotal, std::array<uint8_t, 20>* foundHash = nullptr);
+bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::array<uint8_t, 20>>& validHashes, uint64_t* fileStart, uint64_t fileTotal, std::array<uint8_t, 20>* foundHash = nullptr, size_t checkSize = -1);
 
 #include "LauncherConfig.h"
 
