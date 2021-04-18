@@ -2350,7 +2350,7 @@ void V8ScriptGlobals::Initialize()
 				trace("failed to exit: %d\n", GetLastError());
 			}
 
-			_wunlink(MakeRelativeCitPath(L"caches.xml").c_str());
+			_wunlink(MakeRelativeCitPath(L"content_index.xml").c_str());
 			TerminateProcess(GetCurrentProcess(), 0);
 		}
 #else

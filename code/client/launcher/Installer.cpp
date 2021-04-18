@@ -227,6 +227,8 @@ bool Install_PerformInstallation()
 		// at least re-verify the game, if the user 'tried' to reinstall
 		DeleteFileW((rootPath + L"\\caches.xml").c_str());
 		DeleteFileW((rootPath + L"\\" PRODUCT_NAME L".app\\caches.xml").c_str());
+		DeleteFileW((rootPath + L"\\content_index.xml").c_str());
+		DeleteFileW((rootPath + L"\\" PRODUCT_NAME L".app\\content_index.xml").c_str());
 
 		// hand off to the actual game
 		if (!doHandoff())
