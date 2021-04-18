@@ -494,6 +494,7 @@ bool Updater_RunUpdate(std::initializer_list<std::string> wantedCachesList)
 
 		cachesDoc.InsertEndChild(root);
 		
+		_wunlink(MakeRelativeCitPath(L"caches.xml").c_str());
 		FILE* outCachesFile = _wfopen(MakeRelativeCitPath(L"content_index.xml").c_str(), L"wb");
 
 		if (outCachesFile)
