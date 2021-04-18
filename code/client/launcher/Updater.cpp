@@ -286,7 +286,11 @@ bool Updater_RunUpdate(std::initializer_list<std::string> wantedCachesList)
 		size_t len = ftell(cachesReader);
 		fseek(cachesReader, 0, SEEK_SET);
 
-		cachesFile.resize(len + 1);
+		if (cachesFile.size() < (len + 1))
+		{
+			cachesFile.resize(len + 1);
+		}
+
 		int length = fread(cachesFile.data(), 1, cachesFile.size(), cachesReader);
 		fclose(cachesReader);
 
