@@ -13,6 +13,7 @@
 
 #include <stdint.h>
 
+#include <optional>
 #include <list>
 #include <unordered_set>
 #include <string>
