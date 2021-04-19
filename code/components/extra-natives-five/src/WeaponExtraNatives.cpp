@@ -5,11 +5,76 @@
 
 #include <Resource.h>
 #include <fxScripting.h>
+#include <ICoreGameInit.h>
 
 static int WeaponDamageModifierOffset;
 
 static uint16_t* g_weaponCount;
 static uint64_t** g_weaponList;
+
+enum flashlightFlags_t : uint8_t
+{
+	FLASHLIGHT_ON				= (1 << 0),
+	FLASHLIGHT_UNK				= (1 << 1), // always seems to be set
+	FLASHLIGHT_TURN_ON_NEXT_AIM = (1 << 2), // set when gun is lowered while flashlight was On. Used to remember state for the next time gun is aimed.
+	FLASHLIGHT_UNK2				= (1 << 3),
+	FLASHLIGHT_UNK3				= (1 << 4), // Spammed On/Off, unsure what it's for.
+};
+
+class CWeaponComponentFlashlight
+{
+public:
+	virtual void m_0() = 0;
+	virtual void m_1() = 0;
+	virtual void m_2() = 0;
+	virtual void DESTROY() = 0;
+	virtual bool Process(CPed* ped) = 0;
+	virtual bool PostPreRender(CPed* ped) = 0;
+	virtual void m_6() = 0;
+	virtual void m_7() = 0;
+	virtual void m_8() = 0;
+
+	void* pFlashlightInfo; //0x0008
+	class CWeapon* pParentWeapon; //0x0010
+	void* pObject; //0x0018 CObject
+	char pad_0020[20]; //0x0020
+	uint32_t N000001A8; //0x0034 used in code, uint32, -1 = invalid
+	char pad_0038[8]; //0x0038
+	float aimFraction; //0x0040 -4 when standing, 500 while aiming. Used in code - if( x<=0 )
+	float N000001A4; //0x0044
+	char pad_0048[1]; //0x0048
+	uint8_t flashlightFlags; //0x0049
+};
+
+// stolen from devtools-five
+static hook::cdecl_stub<CPed*()> getLocalPlayerPed([]()
+{
+	static const auto addr = hook::get_pattern("E8 ? ? ? ? 48 85 C0 0F 84 C3 00 00 00 0F");
+	return hook::get_call( addr );
+});
+
+typedef void (*flashlightProcessFn)(CWeaponComponentFlashlight*, CPed*);
+static flashlightProcessFn origFlashlightProcess;
+
+static std::atomic_bool g_SET_FLASH_LIGHT_KEEP_ON_WHILE_MOVING = false;
+
+static void Flashlight_Process(CWeaponComponentFlashlight* thisptr, CPed* ped)
+{
+	if (!g_SET_FLASH_LIGHT_KEEP_ON_WHILE_MOVING)
+	{
+		goto original;
+	}
+	if (getLocalPlayerPed() != ped)
+	{
+		goto original;
+	}
+
+	// spoof this float so it thinks we're aimed in.
+	thisptr->aimFraction = 500.0f;
+
+original:
+	origFlashlightProcess(thisptr, ped);
+}
 
 static HookFunction hookFunction([]()
 {
@@ -43,4 +108,29 @@ static HookFunction hookFunction([]()
 
 		context.SetResult<float>(result);
 	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_FLASH_LIGHT_KEEP_ON_WHILE_MOVING", [](fx::ScriptContext& context) 
+	{
+		bool value = context.GetArgument<bool>(0);
+		g_SET_FLASH_LIGHT_KEEP_ON_WHILE_MOVING = value;
+
+		fx::OMPtr<IScriptRuntime> runtime;
+		if (FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+		{
+			fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
+
+			resource->OnStop.Connect([]()
+			{
+				g_SET_FLASH_LIGHT_KEEP_ON_WHILE_MOVING = false;
+			});
+		}
+	});
+	Instance<ICoreGameInit>::Get()->OnShutdownSession.Connect([]()
+	{
+		g_SET_FLASH_LIGHT_KEEP_ON_WHILE_MOVING = false;
+	});
+
+	flashlightProcessFn* flashlightVtable = hook::get_address<flashlightProcessFn*>(hook::get_pattern<unsigned char>("83 CD FF 48 8D 05 ? ? ? ? 33 DB", 6));
+	origFlashlightProcess = flashlightVtable[4];
+	flashlightVtable[4] = Flashlight_Process;
 });
