@@ -2257,8 +2257,10 @@ int V8ScriptRuntime::GetInstanceId()
 int32_t V8ScriptRuntime::HandlesFile(char* fileName, IScriptHostWithResourceData* metadata)
 {
 	bool areWeThis =
-#ifdef IS_V8_NEXT
-	!UseNode()
+#if defined(IS_V8_NEXT) && !defined(IS_FXSERVER)
+	!launch::IsSDK()
+#elif defined(IS_V8_NEXT) && defined(IS_FXSERVER)
+	false
 #else
 	UseNode()
 #endif
