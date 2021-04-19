@@ -11,6 +11,4 @@ namespace game
 	GAMEINPUT_EXPORT void SetBindingTagActive(const std::string& tag, bool active);
 
 	GAMEINPUT_EXPORT void RegisterBindingForTag(const std::string& tag, const std::string& command, const std::string& languageDesc, const std::string& ioms, const std::string& ioParam);
-
-	GAMEINPUT_EXPORT bool IsControlKeyDown(int control);
 }
