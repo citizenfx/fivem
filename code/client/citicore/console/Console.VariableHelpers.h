@@ -23,11 +23,6 @@ public:
 	{
 	}
 
-	ConVar(ConsoleVariableManager* manager, const std::string& name, int flags, const TVariable& defaultValue)
-	    : ConVar(manager, name, flags, defaultValue, nullptr, nullptr)
-	{
-	}
-
 	ConVar(const std::string& name, int flags, const TVariable& defaultValue, TVariable* trackingVar)
 	    : ConVar(ConsoleVariableManager::GetDefaultInstance(), name, flags, defaultValue, trackingVar)
 	{
