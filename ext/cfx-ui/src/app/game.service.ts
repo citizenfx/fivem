@@ -539,23 +539,28 @@ export class CfxGameService extends GameService {
 
 		this.history = JSON.parse(localStorage.getItem('history')) || [];
 
-		if (localStorage.getItem('nickOverride')) {
-			this.nickname = localStorage.getItem('nickOverride');
-		}
 
-		if (localStorage.getItem('darkThemeNew')) {
-			this.darkTheme = localStorage.getItem('darkThemeNew') !== 'no';
-		}
+		this.getConvar('nickOverride').subscribe(value => {
+			this.realNickname = value;
+			this.invokeNicknameChanged(value);
+			this.updateNickname();
+		});
 
-		if (localStorage.getItem('localhostPort')) {
-			this.localhostPort = localStorage.getItem('localhostPort');
-		}
+		this.getConvar('ui_darkTheme').subscribe(value => {
+			this._darkTheme = value === 'true';
+			this.invokeDarkThemeChanged(value === 'true');
+		});
 
-		if (localStorage.getItem('language')) {
-			const lang = localStorage.getItem('language');
-			(<any>window).invokeNative('setLocale', lang);
-			this.language = lang;
-		}
+		this.getConvar('localhostPort').subscribe(value => {
+			this._localhostPort = value;
+			this.invokeLocalhostPortChanged(value);
+		});
+
+		this.getConvar('ui_language').subscribe( value => {
+			(<any>window).invokeNative('setLocale', value);
+			this._language = value;
+			this.invokeLanguageChanged(value);
+		});
 
 		this.getConvar('ui_streamerMode').subscribe(value => {
 			this._streamerMode = value === 'true';
@@ -746,11 +751,7 @@ export class CfxGameService extends GameService {
 	}
 
 	set nickname(name: string) {
-		this.realNickname = name;
-		localStorage.setItem('nickOverride', name);
-		this.invokeNicknameChanged(name);
-
-		this.updateNickname();
+		this.setArchivedConvar('nickOverride', name);
 	}
 
 	updateNickname() {
@@ -764,9 +765,7 @@ export class CfxGameService extends GameService {
 	}
 
 	set darkTheme(value: boolean) {
-		this._darkTheme = value;
-		localStorage.setItem('darkThemeNew', value ? 'yes' : 'no');
-		this.invokeDarkThemeChanged(value);
+		this.setArchivedConvar('ui_darkTheme', value ? 'true' : 'false');
 	}
 
 	get streamerMode(): boolean {
@@ -797,9 +796,7 @@ export class CfxGameService extends GameService {
 	}
 
 	set localhostPort(port: string) {
-		this._localhostPort = port;
-		localStorage.setItem('localhostPort', port);
-		this.invokeLocalhostPortChanged(port);
+		this.setArchivedConvar('localhostPort', port);
 	}
 
 	get language(): string {
@@ -807,9 +804,7 @@ export class CfxGameService extends GameService {
 	}
 
 	set language(lang: string) {
-		this._language = lang;
-		localStorage.setItem('language', lang);
-		this.invokeLanguageChanged(lang);
+		this.setArchivedConvar('ui_language', lang);
 	}
 
 	private saveHistory() {
@@ -1204,23 +1199,20 @@ export class DummyGameService extends GameService {
 	}
 
 	get nickname(): string {
-		return this.localStorage.getItem('nickOverride') || 'UnknownPlayer';
+		return this.getConvarValue('nickOverride') || 'UnknownPlayer';
 	}
 
 	set nickname(name: string) {
-		this.localStorage.setItem('nickOverride', name);
+		this.setArchivedConvar('nickOverride', name);
 
-		this.invokeNicknameChanged(name);
 	}
 
 	get localhostPort(): string {
-		return this._localhostPort;
+		return this.getConvarValue('localhostPort');
 	}
 
 	set localhostPort(port: string) {
-		this.localStorage.setItem('localhostPort', port);
-
-		this.invokeLocalhostPortChanged(port);
+		this.setArchivedConvar('localhostPort', port);
 	}
 
 	get streamerMode(): boolean {
@@ -1245,12 +1237,10 @@ export class DummyGameService extends GameService {
 	}
 
 	get language(): string {
-		return this.localStorage.getItem('language') || navigator.language;
+		return this.getConvarValue('ui_language') || navigator.language;
 	}
 
 	set language(lang: string) {
-		this.localStorage.setItem('language', lang);
-
-		this.invokeLanguageChanged(lang);
+		this.setArchivedConvar('ui_language', lang);
 	}
 }

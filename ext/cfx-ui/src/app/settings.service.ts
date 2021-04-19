@@ -45,8 +45,8 @@ export class SettingsService {
 			name: '#Settings_Nickname',
 			description: '#Settings_Nickname',
 			type: 'text',
-			getCb: () => this.gameService.nicknameChange,
-			setCb: (value) => this.gameService.nickname = value,
+			getCb: () => this.gameService.getConvar('nickOverride'),
+			setCb: (value) => this.gameService.setArchivedConvar('nickOverride', value),
 			category: '#SettingsCat_Connection',
 		});
 
@@ -55,8 +55,8 @@ export class SettingsService {
 				name: '#Settings_DarkTheme',
 				description: '#Settings_DarkThemeDesc',
 				type: 'checkbox',
-				getCb: () => this.gameService.darkThemeChange.map(a => a ? 'true' : 'false'),
-				setCb: (value) => this.gameService.darkTheme = (value === 'true'),
+				getCb: () => this.gameService.getConvar('ui_darkTheme'),
+				setCb: (value) => this.gameService.setArchivedConvar('ui_darkTheme', value),
 				category: '#SettingsCat_Interface',
 			});
 		}
@@ -89,16 +89,16 @@ export class SettingsService {
 			name: '#Settings_LocalhostPort2',
 			description: '#Settings_LocalhostPort2',
 			type: 'text',
-			getCb: () => this.gameService.localhostPortChange,
-			setCb: (value) => this.gameService.localhostPort = value,
+			getCb: () => this.gameService.getConvar('localhostPort'),
+			setCb: (value) =>  this.gameService.setArchivedConvar('localhostPort', value),
 			category: '#SettingsCat_Interface',
 		});
 
 		this.addSetting('language', {
 			name: '#Settings_Language',
 			type: 'select',
-			getCb: () => this.gameService.languageChange,
-			setCb: (value) => this.gameService.language = value,
+			getCb: () => this.gameService.getConvar('ui_language'),
+			setCb: (value) => this.gameService.setArchivedConvar('ui_language', value),
 			options: Languages.toSettingsOptions(),
 			category: '#SettingsCat_Interface',
 		});

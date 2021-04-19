@@ -210,9 +210,9 @@ export class AppComponent implements OnInit, AfterViewInit {
 	) {
 		this.gameService.init();
 
-		this.gameService.languageChange.subscribe(value => {
+		this.gameService.getConvar('ui_language').subscribe((value: string) => {
 			this.l10nService.setLocale({ language: value });
-		})
+		});
 
 		this.gameService.minModeChanged.subscribe((value: boolean) => {
 			if (value) {
@@ -339,7 +339,7 @@ export class AppComponent implements OnInit, AfterViewInit {
 		this.classes['theRoot'] = true;
 		this.classes['no-header-safe-zone'] = !getNavConfigFromUrl(this.router.url).withHomeButton;
 
-		this.gameService.darkThemeChange.subscribe(value => {
+		this.gameService.getConvar('ui_darkTheme').subscribe(value => {
 			if (this.gameService.gameName !== 'rdr3' && this.gameService.gameName !== 'ny') {
 				const overlayElement = this.overlayContainer.getContainerElement();
 
@@ -349,12 +349,12 @@ export class AppComponent implements OnInit, AfterViewInit {
 				delete this.classes['theme-light'];
 				delete this.classes['theme-dark'];
 
-				const themeName = value
+				const newThemeName = (value === 'true')
 					? 'theme-dark'
 					: 'theme-light';
 
-				this.classes[themeName] = true;
-				overlayElement.classList.add(themeName);
+				this.classes[newThemeName] = true;
+				overlayElement.classList.add(newThemeName);
 
 				this.classes = {
 					...this.classes
