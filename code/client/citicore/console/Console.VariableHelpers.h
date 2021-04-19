@@ -14,17 +14,17 @@ private:
 
 public:
 	ConVar(const std::string& name, int flags, const TVariable& defaultValue)
-	    : ConVar(ConsoleVariableManager::GetDefaultInstance(), name, flags, defaultValue, nullptr)
+	    : ConVar(ConsoleVariableManager::GetDefaultInstance(), name, flags, defaultValue, nullptr, nullptr)
 	{
 	}
 
 	ConVar(console::Context* context, const std::string& name, int flags, const TVariable& defaultValue)
-	    : ConVar(context->GetVariableManager(), name, flags, defaultValue, nullptr)
+	    : ConVar(context->GetVariableManager(), name, flags, defaultValue)
 	{
 	}
 
 	ConVar(ConsoleVariableManager* manager, const std::string& name, int flags, const TVariable& defaultValue)
-	    : ConVar(manager, name, flags, defaultValue, nullptr)
+	    : ConVar(manager, name, flags, defaultValue, nullptr, nullptr)
 	{
 	}
 
@@ -38,7 +38,17 @@ public:
 	{
 	}
 
-	ConVar(ConsoleVariableManager* manager, const std::string& name, int flags, const TVariable& defaultValue, TVariable* trackingVar)
+	ConVar(const std::string& name, int flags, const TVariable& defaultValue, void (*changeCallback)(internal::ConsoleVariableEntry<TVariable>*))
+		: ConVar(ConsoleVariableManager::GetDefaultInstance(), name, flags, defaultValue, nullptr, changeCallback)
+	{
+	}
+
+	ConVar(console::Context* context, const std::string& name, int flags, const TVariable& defaultValue, void (*changeCallback)(internal::ConsoleVariableEntry<TVariable>*))
+		: ConVar(context->GetVariableManager(), name, flags, defaultValue, nullptr, changeCallback)
+	{
+	}
+
+	ConVar(ConsoleVariableManager* manager, const std::string& name, int flags, const TVariable& defaultValue, TVariable* trackingVar = nullptr, void (*changeCallback)(internal::ConsoleVariableEntry<TVariable>*) = nullptr)
 	    : m_manager(manager)
 	{
 		m_helper = CreateVariableEntry<TVariable>(manager, name, defaultValue);
@@ -47,6 +57,10 @@ public:
 		if (trackingVar)
 		{
 			m_helper->SetTrackingVar(trackingVar);
+		}
+		if (changeCallback)
+		{
+			m_helper->SetChangeCallback(changeCallback);
 		}
 	}
 
