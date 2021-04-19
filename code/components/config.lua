@@ -66,6 +66,7 @@ else
 
 	if _OPTIONS['game'] ~= 'ny' then
 		component 'citizen-scripting-v8'
+		component 'citizen-scripting-v8next'
 	end
 
 	--component 'n19ui'

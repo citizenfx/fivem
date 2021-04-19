@@ -44,6 +44,7 @@
 	"citizen:scripting:lua",
 	"citizen:scripting:lua54",
 	"citizen:scripting:v8",
+	"citizen:scripting:v8next",
 	"scripting:gta",
 	"citizen:resources:client",
 	"citizen:legacy-net:resources",
