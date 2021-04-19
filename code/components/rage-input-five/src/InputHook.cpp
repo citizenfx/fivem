@@ -8,6 +8,7 @@
 #include <CfxState.h>
 
 #include <CrossBuildRuntime.h>
+#include <timeapi.h> // timeGetTime()
 
 static WNDPROC origWndProc;
 
@@ -280,6 +281,11 @@ struct ReverseGameInputState
 	}
 };
 
+static hook::cdecl_stub<bool(wchar_t, int)> ProcessWMChar([]()
+{
+	return hook::get_pattern("44 8B 0D ? ? ? ? 41 83 F9 1E 73");
+});
+
 static ReverseGameInputState lastInput;
 static ReverseGameInputState curInput;
 
@@ -372,6 +378,32 @@ static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
 			{
 				target->KeyUp(i, 0);
 			});
+		}
+	}
+
+	// keys typed
+	{
+		static uint16_t lastInputChar = 0;
+		static uint32_t inputCharChangedAt = timeGetTime();
+
+		auto currentInputChar = rgd->inputChar;
+		bool inputCharChanged = currentInputChar != lastInputChar;
+
+		lastInputChar = currentInputChar;
+
+		if (currentInputChar > 0)
+		{
+			auto vkey = VkKeyScanW(lastInputChar);
+
+			if (inputCharChanged)
+			{
+				inputCharChangedAt = timeGetTime();
+				ProcessWMChar(currentInputChar, vkey);
+			}
+			else if (timeGetTime() - inputCharChangedAt > 300)
+			{
+				ProcessWMChar(currentInputChar, vkey);
+			}
 		}
 	}
 
