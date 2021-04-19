@@ -156,11 +156,11 @@ LRESULT APIENTRY grcWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
 					{
 						if (uMsg == WM_LBUTTONUP || uMsg == WM_MBUTTONUP || uMsg == WM_RBUTTONUP || uMsg == WM_XBUTTONUP)
 						{
-							*g_mouseButtons &= ~buttonIdx;
+							g_input->m_Buttons() &= ~buttonIdx;
 						}
 						else
 						{
-							*g_mouseButtons |= buttonIdx;
+							g_input->m_Buttons() |= buttonIdx;
 						}
 
 						break;
@@ -433,20 +433,20 @@ static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
 		memcpy(g_gameKeyArray, rgd->keyboardState, 256);
 		if (off)
 		{
-			g_input->m_lastDX = curInput.mouseX;
-			g_input->m_lastDY = curInput.mouseY;
+			g_input->m_lastDX() = curInput.mouseX;
+			g_input->m_lastDY() = curInput.mouseY;
 		}
 		else
 		{
-			g_input->m_dX = curInput.mouseX;
-			g_input->m_dY = curInput.mouseY;
+			g_input->m_dX() = curInput.mouseX;
+			g_input->m_dY() = curInput.mouseY;
 		}
 
-		g_input->cursorAbsX = std::clamp(g_input->cursorAbsX + curInput.mouseX, 0, rgd->twidth);
-		g_input->cursorAbsY = std::clamp(g_input->cursorAbsY + curInput.mouseY, 0, rgd->theight);
+		g_input->cursorAbsX() = std::clamp(g_input->cursorAbsX() + curInput.mouseX, 0, rgd->twidth);
+		g_input->cursorAbsY() = std::clamp(g_input->cursorAbsY() + curInput.mouseY, 0, rgd->theight);
 
-		g_input->m_Buttons = rgd->mouseButtons;
-		g_input->m_dZ = rgd->mouseWheel;
+		g_input->m_Buttons() = rgd->mouseButtons;
+		g_input->m_dZ() = rgd->mouseWheel;
 
 		origSetInput(a1, a2, a3, a4);
 
@@ -455,16 +455,16 @@ static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
 		memcpy(rgd->keyboardState, g_gameKeyArray, 256);
 		if (off)
 		{
-			rgd->mouseX = g_input->m_lastDX;
-			rgd->mouseY = g_input->m_lastDY;
+			rgd->mouseX = g_input->m_lastDX();
+			rgd->mouseY = g_input->m_lastDY();
 		}
 		else
 		{
-			rgd->mouseX = g_input->m_dX;
-			rgd->mouseY = g_input->m_dY;
+			rgd->mouseX = g_input->m_dX();
+			rgd->mouseY = g_input->m_dY();
 		}
-		rgd->mouseButtons = g_input->m_Buttons;
-		rgd->mouseWheel = g_input->m_dZ;
+		rgd->mouseButtons = g_input->m_Buttons();
+		rgd->mouseWheel = g_input->m_dZ();
 	}
 
 	ReleaseMutex(rgd->inputMutex);
@@ -593,10 +593,10 @@ static HookFunction hookFunction([]()
 		hook::call(location, SetInputWrap);
 
 		// NOP these out in ReverseGame so the cursor will work
-		// Cursor X
+		// Cursor X(Raw Input)
 		char* loc = hook::pattern("89 0D ? ? ? ? 8B 85").count(1).get(0).get<char>(0);
 		hook::nop(loc, 6);
-		// Cursor Y
+		// Cursor Y(Raw Input)
 		loc += 31;
 		hook::nop(loc, 6);
 
@@ -604,6 +604,10 @@ static HookFunction hookFunction([]()
 		auto ioPadUpdate = hook::get_pattern("41 8A D6 48 8B CF E8 ? ? FF FF 48 83 C7 60", 6);
 		hook::set_call(&origIOPadUpdate, ioPadUpdate);
 		hook::call(ioPadUpdate, rage__ioPad__Update);
+
+		// NOP the function that changes mouse Input methods, this forces raw input
+		auto changeMouseInput = hook::get_pattern("0F 84 ? ? ? ? 8B CB E8 ? ? ? ? E9", 8);
+		hook::nop(changeMouseInput, 5);
 	}
 });
 
