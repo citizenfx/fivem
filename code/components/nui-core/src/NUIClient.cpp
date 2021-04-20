@@ -87,9 +87,12 @@ void NUIClient::OnLoadStart(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> f
 	}
 }
 
+extern void TriggerLoadEnd(const std::string& name);
+
 void NUIClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int httpStatusCode)
 {
 	auto url = frame->GetURL();
+	TriggerLoadEnd((url == "nui://game/ui/root.html") ? "__root" : frame->GetName());
 
 #ifndef USE_NUI_ROOTLESS
 	if (url == "nui://game/ui/root.html")
