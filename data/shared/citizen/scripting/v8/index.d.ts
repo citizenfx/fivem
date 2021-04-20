@@ -91,6 +91,8 @@ declare function TriggerLatentServerEvent(eventName: string, bps: number, ...arg
 declare function getPlayerIdentifiers(player: number|string): string[]
 declare function getPlayers(): number[]
 
+declare function SendNUIMessage(data: any): void
+
 declare function emitNet(eventName: string, target: number|string, ...args: any[]): void
 declare function TriggerClientEvent(eventName: string, target: number|string, ...args: any[]): void
 declare function TriggerLatentClientEvent(eventName: string, target: number|string, bps: number, ...args: any[]): void

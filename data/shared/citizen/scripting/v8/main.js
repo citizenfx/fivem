@@ -235,6 +235,11 @@ const EXT_LOCALFUNCREF = 11;
 			return t;
 		};
 	} else {
+		global.SendNUIMessage = (data) => {
+			const dataJson = JSON.stringify(data)
+			SendNuiMessage(dataJson)
+		}
+
 		global.emitNet = (name, ...args) => {
 			const dataSerialized = pack(args);
 
