@@ -418,13 +418,15 @@ uint32_t ServerGameState::MakeScriptHandle(const fx::sync::SyncEntityPtr& ptr)
 	}
 }
 
-glm::vec3 GetPlayerFocusPos(const fx::sync::SyncEntityPtr& entity)
+using FocusResult = eastl::fixed_vector<glm::vec3, 5>;
+
+FocusResult GetPlayerFocusPos(const fx::sync::SyncEntityPtr& entity)
 {
 	auto syncTree = entity->syncTree;
 
 	if (!syncTree)
 	{
-		return { 0, 0, 0 };
+		return {};
 	}
 
 	float playerPos[3];
@@ -434,18 +436,24 @@ glm::vec3 GetPlayerFocusPos(const fx::sync::SyncEntityPtr& entity)
 
 	if (!camData)
 	{
-		return { playerPos[0], playerPos[1], playerPos[2] };
+		return { { playerPos[0], playerPos[1], playerPos[2] } };
 	}
 
 	switch (camData->camMode)
 	{
 	case 0:
 	default:
-		return { playerPos[0], playerPos[1], playerPos[2] };
+		return { { playerPos[0], playerPos[1], playerPos[2] } };
 	case 1:
-		return { camData->freeCamPosX, camData->freeCamPosY, camData->freeCamPosZ };
+		return {
+			{ playerPos[0], playerPos[1], playerPos[2] },
+			{ camData->freeCamPosX, camData->freeCamPosY, camData->freeCamPosZ }
+		};
 	case 2:
-		return { playerPos[0] + camData->camOffX, playerPos[1] + camData->camOffY, playerPos[2] + camData->camOffZ };
+		return {
+			{ playerPos[0], playerPos[1], playerPos[2] },
+			{ playerPos[0] + camData->camOffX, playerPos[1] + camData->camOffY, playerPos[2] + camData->camOffZ }
+		};
 	}
 }
 
@@ -797,11 +805,11 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			playerEntity = clientDataUnlocked->playerEntity.lock();
 		}
 
-		glm::vec3 playerPos;
+		FocusResult playerPosns;
 
 		if (playerEntity)
 		{
-			playerPos = GetPlayerFocusPos(playerEntity);
+			playerPosns = GetPlayerFocusPos(playerEntity);
 		}
 
 		auto slotId = client->GetSlotId();
@@ -835,15 +843,20 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			{
 				if (playerEntity)
 				{
-					float diffX = entityPos.x - playerPos.x;
-					float diffY = entityPos.y - playerPos.y;
-
-					float distSquared = (diffX * diffX) + (diffY * diffY);
-					if (distSquared < entity->GetDistanceCullingRadius(clientDataUnlocked->GetPlayerCullingRadius())) 
+					for (auto& playerPos : playerPosns)
 					{
-						isRelevant = true;
+						float diffX = entityPos.x - playerPos.x;
+						float diffY = entityPos.y - playerPos.y;
+
+						float distSquared = (diffX * diffX) + (diffY * diffY);
+						if (distSquared < entity->GetDistanceCullingRadius(clientDataUnlocked->GetPlayerCullingRadius()))
+						{
+							isRelevant = true;
+							break;
+						}
 					}
-					else
+					
+					if (!isRelevant)
 					{
 						// are we owning the world grid in which this entity exists?
 						int sectorX = std::max(entityPos.x + 8192.0f, 0.0f) / 150;
@@ -1017,7 +1030,13 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 					if (playerEntity)
 					{
-						auto dist = glm::distance2(position, playerPos);
+						float dist = std::numeric_limits<float>::max();
+
+						for (const auto& playerPos : playerPosns)
+						{
+							auto thisDist = glm::distance2(position, playerPos);
+							dist = std::min(thisDist, dist);
+						}
 
 						if (dist > 500.0f * 500.0f)
 						{
@@ -1038,7 +1057,13 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			{
 				if (playerEntity)
 				{
-					auto dist = glm::distance2(entityPos, playerPos);
+					float dist = std::numeric_limits<float>::max();
+
+					for (const auto& playerPos : playerPosns)
+					{
+						auto thisDist = glm::distance2(entityPos, playerPos);
+						dist = std::min(thisDist, dist);
+					}
 
 					if (dist < 35.0f * 35.0f)
 					{
@@ -1138,11 +1163,11 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			playerEntity = clientDataUnlocked->playerEntity.lock();
 		}
 
-		glm::vec3 playerPos;
+		FocusResult playerPosns;
 
 		if (playerEntity)
 		{
-			playerPos = GetPlayerFocusPos(playerEntity);
+			playerPosns = GetPlayerFocusPos(playerEntity);
 		}
 
 	
@@ -2056,7 +2081,15 @@ void ServerGameState::UpdateWorldGrid(fx::ServerInstanceBase* instance)
 			return;
 		}
 
-		auto pos = GetPlayerFocusPos(playerEntity);
+		auto posns = GetPlayerFocusPos(playerEntity);
+
+		if (posns.empty())
+		{
+			return;
+		}
+
+		// only set world grid for the most focused position
+		const auto& pos = posns[0];
 
 		int minSectorX = std::max((pos.x - 299.0f) + 8192.0f, 0.0f) / 150;
 		int maxSectorX = std::max((pos.x + 299.0f) + 8192.0f, 0.0f) / 150;
@@ -2352,11 +2385,11 @@ bool ServerGameState::MoveEntityToCandidate(const fx::sync::SyncEntityPtr& entit
 
 				if (playerEntity)
 				{
-					auto tgt = GetPlayerFocusPos(playerEntity);
+					auto tgts = GetPlayerFocusPos(playerEntity);
 
-					if (pos.x != 0.0f)
+					if (pos.x != 0.0f && !tgts.empty())
 					{
-						distance = glm::distance2(tgt, pos);
+						distance = glm::distance2(tgts[0], pos);
 					}
 				}
 

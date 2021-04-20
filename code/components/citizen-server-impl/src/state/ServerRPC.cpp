@@ -42,7 +42,7 @@ inline uint32_t MakeEntityHandle(uint16_t objectId)
 
 namespace fx
 {
-	glm::vec3 GetPlayerFocusPos(const fx::sync::SyncEntityPtr& entity);
+eastl::fixed_vector<glm::vec3, 5> GetPlayerFocusPos(const fx::sync::SyncEntityPtr& entity);
 }
 
 static tbb::concurrent_unordered_map<uint32_t, std::list<std::tuple<uint64_t, net::Buffer>>> g_replayList;
@@ -291,9 +291,13 @@ static InitFunction initFunction([]()
 
 								if (playerEntity)
 								{
-									auto tgt = fx::GetPlayerFocusPos(playerEntity);
+									auto tgts = fx::GetPlayerFocusPos(playerEntity);
 
-									distance = glm::distance2(tgt, pos);
+									// use first position, which is the most focus-related position
+									if (!tgts.empty())
+									{
+										distance = glm::distance2(tgts[0], pos);
+									}
 								}
 							}
 							catch (std::bad_any_cast&)
