@@ -13,7 +13,8 @@ function Invoke-CacheGen {
 	curl.exe -Lo $env:TEMP\bcm.tar.gz $BuildCacheMeta
 	& "$env:WINDIR\system32\tar.exe" -C "$env:TEMP" -xvf "$env:TEMP\bcm.tar.gz"
 	& "$env:TEMP\buildcachemeta-go" -s3-endpoint $env:CACHE_S3_ENDPOINT -s3-key-id $env:CACHE_S3_KEY_ID -s3-key $env:CACHE_S3_KEY -s3-name $env:CACHE_S3_BUCKET `
-		-source "$Source" -branch-name "$BranchName" -branch-version "$BranchVersion" -bootstrap-executable "$BootstrapName" -bootstrap-version "$BootstrapVersion"
+		-source "$Source" -cache-name $CacheName -branch-name "$BranchName" -branch-version "$BranchVersion" -bootstrap-executable "$BootstrapName" `
+		-bootstrap-version "$BootstrapVersion"
 
 	if (!$?) {
 		throw "Failed to upload!"
