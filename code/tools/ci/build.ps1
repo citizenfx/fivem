@@ -599,6 +599,9 @@ if (!$DontUpload) {
         $CacheName = "launcher"
     }
 
+	# for xz.exe
+	$env:PATH += ";$WorkRootDir\tools\ci"
+
 	Invoke-CacheGen -Source $CacheDir\fivereborn -CacheName $CacheName -BranchName $UploadBranch -BranchVersion $GameVersion -BootstrapName CitizenFX.exe -BootstrapVersion $LauncherVersion
 
     Set-Location $CacheDir
