@@ -594,9 +594,9 @@ if (!$DontUpload) {
     if (!$IsLauncher -and !$IsRDR) {
         $CacheName = "fivereborn"
     } elseif ($IsLauncher) {
-        $CacheName = "redm"
-    } elseif ($IsRDR) {
         $CacheName = "launcher"
+    } elseif ($IsRDR) {
+        $CacheName = "redm"
     }
 
 	# for xz.exe
