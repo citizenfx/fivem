@@ -252,11 +252,19 @@ bool Updater_RunUpdate(std::initializer_list<std::string> wantedCachesList)
 
 		success = true;
 
+		auto v = contentHeaders->find("x-amz-meta-branch-version");
+		auto m = contentHeaders->find("x-amz-meta-branch-manifest");
+
+		if (v == contentHeaders->end() || m == contentHeaders->end())
+		{
+			continue;
+		}
+
 		// get the caches we want to update
 		cache_ptr cache = std::make_shared<cache_t>();
 		cache->name = cacheName;
-		cache->version = std::stoi((*contentHeaders)["x-amz-meta-branch-version"]);
-		cache->manifestUrl = GetObjectURL((*contentHeaders)["x-amz-meta-branch-manifest"]);
+		cache->version = std::stoi(v->second);
+		cache->manifestUrl = GetObjectURL(m->second);
 
 		cacheFile.GetCaches().push_back(cache);
 	}

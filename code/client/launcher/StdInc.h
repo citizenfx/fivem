@@ -9,6 +9,7 @@
 #include "../shared/StdInc.h"
 #endif
 
+#if !defined(COMPILING_GLUE)
 struct HttpIgnoreCaseLess
 {
 	inline bool operator()(const std::string& left, const std::string& right) const
@@ -19,6 +20,9 @@ struct HttpIgnoreCaseLess
 
 using HttpHeaderList = std::map<std::string, std::string, HttpIgnoreCaseLess>;
 using HttpHeaderListPtr = std::shared_ptr<HttpHeaderList>;
+#else
+#include <HttpClient.h>
+#endif
 
 int DL_RequestURL(const char* url, char* buffer, size_t bufSize, HttpHeaderListPtr responseHeaders = {});
 const char* DL_RequestURLError();
