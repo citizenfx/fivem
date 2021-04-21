@@ -872,14 +872,16 @@ private:
 
 #include "UserLibrary.h"
 
+extern "C" IMAGE_DOS_HEADER __ImageBase;
+
 static LPTHREAD_START_ROUTINE GetFunc(HANDLE hProcess, const char* name)
 {
-	HMODULE modules[1] = { 0 };
-	DWORD cbNeeded;
-	EnumProcessModules(hProcess, modules, sizeof(modules), &cbNeeded);
-
 	wchar_t modPath[MAX_PATH];
-	GetModuleFileNameExW(hProcess, modules[0], modPath, std::size(modPath));
+	DWORD modPathSize = MAX_PATH;
+	if (!QueryFullProcessImageNameW(hProcess, 0, modPath, &modPathSize))
+	{
+		return NULL;
+	}
 
 	UserLibrary lib(modPath);
 	auto off = lib.GetExportCode(name);
@@ -889,7 +891,7 @@ static LPTHREAD_START_ROUTINE GetFunc(HANDLE hProcess, const char* name)
 		return NULL;
 	}
 
-	return (LPTHREAD_START_ROUTINE)((char*)modules[0] + off);
+	return (LPTHREAD_START_ROUTINE)((char*)&__ImageBase + off);
 }
 
 extern nlohmann::json SymbolicateCrash(HANDLE hProcess, HANDLE hThread, PEXCEPTION_RECORD er, PCONTEXT ctx);
@@ -1145,24 +1147,29 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 											}
 
 											// try getting exception data as well
-											HANDLE hThread = CreateRemoteThread(process_handle, NULL, 0, GetFunc(process_handle, "RemoteExceptionFunc"), (void*)(ex.ExceptionInformation[1] + type.thisDisplacement), 0, NULL);
-											WaitForSingleObject(hThread, 5000);
+											auto func = GetFunc(process_handle, "RemoteExceptionFunc");
 
-											DWORD ret = 0;
-											
-											if (GetExitCodeThread(hThread, &ret))
+											if (func)
 											{
-												void* exPtr = (void*)ret;
+												HANDLE hThread = CreateRemoteThread(process_handle, NULL, 0, func, (void*)(ex.ExceptionInformation[1] + type.thisDisplacement), 0, NULL);
+												WaitForSingleObject(hThread, 5000);
 
-												ExceptionBuffer buf;
+												DWORD ret = 0;
 
-												if (exPtr && readClient(exPtr, &buf))
+												if (GetExitCodeThread(hThread, &ret))
 												{
-													exWhat = buf.data;
-												}
-											}											
+													void* exPtr = (void*)ret;
 
-											CloseHandle(hThread);
+													ExceptionBuffer buf;
+
+													if (exPtr && readClient(exPtr, &buf))
+													{
+														exWhat = buf.data;
+													}
+												}
+
+												CloseHandle(hThread);
+											}
 										}
 									}
 								}
@@ -1379,12 +1386,17 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 						WriteProcessMemory(gameProcess, memPtr, friendlyReason.data(), friendlyReason.size() + 1, NULL);
 					}
 
-					HANDLE hThread = CreateRemoteThread(gameProcess, NULL, 0, GetFunc(gameProcess, "BeforeTerminateHandler"), memPtr, 0, NULL);
+					auto func = GetFunc(gameProcess, "BeforeTerminateHandler");
 
-					if (hThread)
+					if (func)
 					{
-						WaitForSingleObject(hThread, 7500);
-						CloseHandle(hThread);
+						HANDLE hThread = CreateRemoteThread(gameProcess, NULL, 0, func, memPtr, 0, NULL);
+
+						if (hThread)
+						{
+							WaitForSingleObject(hThread, 7500);
+							CloseHandle(hThread);
+						}
 					}
 				}
 
