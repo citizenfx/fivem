@@ -25,6 +25,8 @@ param (
 
 $CefName = "cef_binary_83.0.0-shared-textures.2175+g5430a8e+chromium-83.0.4103.0_windows64_20210210_minimal"
 
+Import-Module $PSScriptRoot\cache_build.psm1
+
 # from http://stackoverflow.com/questions/2124753/how-i-can-use-powershell-with-the-visual-studio-command-prompt
 function Invoke-BatchFile
 {
@@ -162,6 +164,9 @@ $GameVersion = ((git rev-list HEAD | measure-object).Count * 10) + 1100000
 
 $LauncherCommit = (git rev-list -1 HEAD code/client/launcher/ code/shared/ code/client/shared/ code/tools/dbg/ vendor/breakpad/ vendor/tinyxml2/ vendor/xz/ vendor/curl/ vendor/cpr/ vendor/minizip/ code/premake5.lua)
 $LauncherVersion = ((git rev-list $LauncherCommit | measure-object).Count * 10) + 1100000
+
+$SDKCommit = (git rev-list -1 HEAD ext/sdk-build/ ext/sdk/ code/tools/ci/build_sdk.ps1)
+$SDKVersion = ((git rev-list $SDKCommit | measure-object).Count * 10) + 1100000
 Pop-Location
 
 if (!$DontBuild)
@@ -568,15 +573,33 @@ if (!$DontBuild -and !$IsServer) {
     $LauncherLength = (Get-ItemProperty CitizenFX.exe.xz).Length
     "$LauncherVersion $LauncherLength" | Out-File -Encoding ascii version.txt
 
-    #if (!(Test-Path $WorkDir\caches)) {
-    #    New-Item -ItemType SymbolicLink -Force -Path $WorkDir -Name caches -Value $CacheDir
-    #}
+    # build bootstrap executable
+    if (!$IsLauncher -and !$IsRDR) {
+        Copy-Item -Force $BinRoot\five\release\FiveM.exe $CacheDir\fivereborn\CitizenFX.exe
+    } elseif ($IsLauncher) {
+        Copy-Item -Force $BinRoot\launcher\release\CfxLauncher.exe $CacheDir\fivereborn\CitizenFX.exe
+    } elseif ($IsRDR) {
+        Copy-Item -Force $BinRoot\rdr3\release\CitiLaunch.exe $CacheDir\fivereborn\CitizenFX.exe
+    }
+
     Remove-Item -Recurse -Force $WorkDir\caches
     Copy-Item -Recurse -Force $CacheDir $WorkDir\caches
 }
 
 if (!$DontUpload) {
     $UploadBranch = $env:CI_ENVIRONMENT_NAME
+
+	$CacheName = "eh"
+
+    if (!$IsLauncher -and !$IsRDR) {
+        $CacheName = "fivereborn"
+    } elseif ($IsLauncher) {
+        $CacheName = "redm"
+    } elseif ($IsRDR) {
+        $CacheName = "launcher"
+    }
+
+	Invoke-CacheGen -Source $CacheDir\fivereborn -CacheName $CacheName -BranchName $UploadBranch -BranchVersion $GameVersion -BootstrapName CitizenFX.exe -BootstrapVersion $LauncherVersion
 
     Set-Location $CacheDir
 
@@ -594,6 +617,8 @@ if (!$DontUpload) {
     if (!$IsLauncher -and !$IsRDR) {
         Copy-Item -Force $WorkDir\caches\caches_sdk.xml $WorkDir\upload\$Branch\content
         Copy-Item -Recurse -Force $WorkDir\caches\diff\fxdk-five\ $WorkDir\upload\$Branch\content\
+
+		Invoke-CacheGen -Source $CacheDir\fxdk-five -CacheName "fxdk-five" -BranchName $UploadBranch -BranchVersion $SDKVersion -BootstrapName CitizenFX.exe -BootstrapVersion $LauncherVersion
     }
 
     Copy-Item -Recurse -Force diff\fivereborn\ $WorkDir\upload\$Branch\content\

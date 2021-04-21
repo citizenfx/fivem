@@ -41,7 +41,7 @@ build_sdk:
     - sdk
   artifacts:
     paths:
-      - caches/diff/
+      - caches/
       - caches/caches_sdk.xml
   cache:
     key: sdk

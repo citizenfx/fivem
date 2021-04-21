@@ -9,7 +9,18 @@
 #include "../shared/StdInc.h"
 #endif
 
-int DL_RequestURL(const char* url, char* buffer, size_t bufSize);
+struct HttpIgnoreCaseLess
+{
+	inline bool operator()(const std::string& left, const std::string& right) const
+	{
+		return _stricmp(left.c_str(), right.c_str()) < 0;
+	}
+};
+
+using HttpHeaderList = std::map<std::string, std::string, HttpIgnoreCaseLess>;
+using HttpHeaderListPtr = std::shared_ptr<HttpHeaderList>;
+
+int DL_RequestURL(const char* url, char* buffer, size_t bufSize, HttpHeaderListPtr responseHeaders = {});
 const char* DL_RequestURLError();
 
 // bootstrapper functions

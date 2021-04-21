@@ -21,13 +21,23 @@
 #include <sstream>
 
 #include <openssl/sha.h>
+#include <boost/algorithm/string.hpp>
 
 struct cache_t
 {
 	std::string name;
 	int version;
 	std::string manifest;
+	std::string manifestUrl;
 };
+
+std::string GetObjectURL(std::string_view objectHash, std::string_view suffix = "")
+{
+	auto url = fmt::sprintf("%s/%s/%s/%s%s", CONTENT_URL, objectHash.substr(0, 2), objectHash.substr(2, 2), objectHash, suffix);
+	boost::algorithm::to_lower(url);
+
+	return url;
+}
 
 using cache_ptr = std::shared_ptr<cache_t>;
 
@@ -227,9 +237,12 @@ bool Updater_RunUpdate(std::initializer_list<std::string> wantedCachesList)
 	static std::vector<char> cachesFile(131072);
 
 	bool success = false;
-	for (auto& caches : { "caches.xml", "caches_sdk.xml" })
+	for (auto& cacheName : wantedCachesList)
 	{
-		int result = DL_RequestURL(va(CONTENT_URL "/%s/content/%s?timeStamp=%lld", GetUpdateChannel(), caches, _time64(NULL)), cachesFile.data(), cachesFile.size());
+		char bootstrapVersion[256];
+
+		auto contentHeaders = std::make_shared<HttpHeaderList>();
+		int result = DL_RequestURL(va(CONTENT_URL "/heads/%s/%s?time=%lld", cacheName, GetUpdateChannel(), _time64(NULL)), bootstrapVersion, sizeof(bootstrapVersion), contentHeaders);
 
 		if (result != 0 && !success)
 		{
@@ -240,7 +253,12 @@ bool Updater_RunUpdate(std::initializer_list<std::string> wantedCachesList)
 		success = true;
 
 		// get the caches we want to update
-		cacheFile.Parse(cachesFile.data());
+		cache_ptr cache = std::make_shared<cache_t>();
+		cache->name = cacheName;
+		cache->version = std::stoi((*contentHeaders)["x-amz-meta-branch-version"]);
+		cache->manifestUrl = GetObjectURL((*contentHeaders)["x-amz-meta-branch-manifest"]);
+
+		cacheFile.GetCaches().push_back(cache);
 	}
 
 	// error out if the remote caches file is empty
@@ -331,7 +349,7 @@ bool Updater_RunUpdate(std::initializer_list<std::string> wantedCachesList)
 
 	for (auto& [localCache, cache] : needsUpdate)
 	{
-		int result = DL_RequestURL(va(CONTENT_URL "/%s/content/%s/info.xml?version=%d&timeStamp=%lld", GetUpdateChannel(), cache->name, cache->version, _time64(NULL)), cachesFile.data(), cachesFile.size());
+		int result = DL_RequestURL(cache->manifestUrl.c_str(), cachesFile.data(), cachesFile.size());
 
 		manifest_t manifest(cache);
 		manifest.Parse(cachesFile.data());
@@ -421,11 +439,16 @@ bool Updater_RunUpdate(std::initializer_list<std::string> wantedCachesList)
 
 		if (fileOutdated)
 		{
-			const char* url = va(CONTENT_URL "/%s/content/%s/%s%s?hash=%s", GetUpdateChannel(), cache->name.c_str(), file.name.c_str(), (file.compressed) ? ".xz" : "", formattedHash.str());
+			std::stringstream hashString;
+			for (uint8_t b : file.hash256)
+			{
+				hashString << fmt::sprintf("%02x", b);
+			}
 
+			std::string url = GetObjectURL(hashString.str(), (file.compressed) ? ".xz" : "");
 			std::string outPath = converter.to_bytes(MakeRelativeCitPath(converter.from_bytes(file.name)));
 
-			CL_QueueDownload(url, outPath.c_str(), file.downloadSize, file.compressed);
+			CL_QueueDownload(url.c_str(), outPath.c_str(), file.downloadSize, file.compressed);
 		}
 	}
 
