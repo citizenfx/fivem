@@ -621,7 +621,7 @@ if (!$DontUpload) {
         Copy-Item -Force $WorkDir\caches\caches_sdk.xml $WorkDir\upload\$Branch\content
         Copy-Item -Recurse -Force $WorkDir\caches\diff\fxdk-five\ $WorkDir\upload\$Branch\content\
 
-		Invoke-CacheGen -Source $CacheDir\fxdk-five -CacheName "fxdk-five" -BranchName $UploadBranch -BranchVersion $SDKVersion -BootstrapName CitizenFX.exe -BootstrapVersion $LauncherVersion
+		Invoke-CacheGen -Source $WorkDir\caches\fxdk-five -CacheName "fxdk-five" -BranchName $UploadBranch -BranchVersion $SDKVersion -BootstrapName CitizenFX.exe -BootstrapVersion $LauncherVersion
     }
 
     Copy-Item -Recurse -Force diff\fivereborn\ $WorkDir\upload\$Branch\content\
