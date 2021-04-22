@@ -439,9 +439,8 @@ static InitFunction initFunction([]()
 				ImGui::Text(resourceTimeWarningText.c_str());
 				ImGui::Separator();
 				ImGui::Text("Please contact the server owner to resolve this issue.");
-				ImGui::End();
 			}
-
+			ImGui::End();
 			ImGui::PopFont();
 		}
 #endif

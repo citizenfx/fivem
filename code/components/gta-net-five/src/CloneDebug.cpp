@@ -1108,9 +1108,7 @@ static InitFunction initFunction([]()
 
 		if (timeWindowEnabled)
 		{
-			static bool timeOpen = true;
-
-			if (ImGui::Begin("Time", &timeOpen))
+			if (ImGui::Begin("Time", &timeWindowEnabled))
 			{
 				auto inst = rage::netInterface_queryFunctions::GetInstance();
 
@@ -1125,11 +1123,9 @@ static InitFunction initFunction([]()
 			return;
 		}
 
-		static bool novOpen = true;
-
 		ImGui::SetNextWindowSizeConstraints(ImVec2(1020.0f, 400.0f), ImVec2(1020.0f, 2000.0f));
 
-		if (ImGui::Begin("Network Object Viewer", &novOpen) && rage::netObjectMgr::GetInstance())
+		if (ImGui::Begin("Network Object Viewer", &netViewerEnabled) && rage::netObjectMgr::GetInstance())
 		{
 			static float treeSize = 400.f;
 			static float detailSize = 600.f;

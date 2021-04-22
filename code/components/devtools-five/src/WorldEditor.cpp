@@ -362,6 +362,7 @@ static InitFunction initFunction([]()
 				ImGui::Selectable(txd.c_str());
 			}
 		}
+		ImGui::End();
 	});
 });
 

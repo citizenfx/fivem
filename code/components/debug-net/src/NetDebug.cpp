@@ -278,80 +278,81 @@ NetOverlayMetricSink::NetOverlayMetricSink()
 
 	ConHost::OnDrawGui.Connect([this]()
 	{
-		if (m_enabledCommands)
+		if (!m_enabledCommands)
 		{
-			if (ImGui::Begin("Network Metrics"))
+			return;
+		}
+
+		if (ImGui::Begin("Network Metrics", &m_enabledCommands))
+		{
+			std::unique_lock<std::mutex> lock(m_metricMutex);
+
+			static bool showIncoming = true;
+			static bool showOutgoing = true;
+			static bool showLog = true;
+
+			auto showList = [](const decltype(m_lastIncomingMetrics)& list, const decltype(m_incomingReliable)& reliable)
 			{
-				std::unique_lock<std::mutex> lock(m_metricMutex);
+				ImGui::Columns(3);
 
-				static bool showIncoming = true;
-				static bool showOutgoing = true;
-				static bool showLog = true;
-
-				auto showList = [](const decltype(m_lastIncomingMetrics)& list, const decltype(m_incomingReliable)& reliable)
+				for (auto& entry : list)
 				{
-					ImGui::Columns(3);
+					ImGui::Text("%s", (reliable.find(entry.first)->second ? "R" : "U"));
+					ImGui::NextColumn();
 
-					for (auto& entry : list)
-					{
-						ImGui::Text("%s", (reliable.find(entry.first)->second ? "R" : "U"));
-						ImGui::NextColumn();
+					ImGui::Text("%s", g_hashes.LookupHash(entry.first));
+					ImGui::NextColumn();
 
-						ImGui::Text("%s", g_hashes.LookupHash(entry.first));
-						ImGui::NextColumn();
-
-						ImGui::Text("%d B", entry.second);
-						ImGui::NextColumn();
-					}
-
-					ImGui::Columns(1);
-				};
-
-				if (ImGui::CollapsingHeader("Incoming", &showIncoming))
-				{
-					showList(m_lastIncomingMetrics, m_incomingReliable);
+					ImGui::Text("%d B", entry.second);
+					ImGui::NextColumn();
 				}
 
-				if (ImGui::CollapsingHeader("Outgoing", &showOutgoing))
-				{
-					showList(m_lastOutgoingMetrics, m_outgoingReliable);
-				}
+				ImGui::Columns(1);
+			};
 
-				if (ImGui::CollapsingHeader("Log", &showLog))
-				{
-					ImGui::Columns(2);
-
-					for (int i = 0; i < std::max(m_lastIncomingData.size(), m_lastOutgoingData.size()); i++)
-					{
-						if (i < m_lastIncomingData.size())
-						{
-							ImGui::Text("%d. %s (%d)", i + 1, g_hashes.LookupHash(std::get<0>(m_lastIncomingData[i])), std::get<1>(m_lastIncomingData[i]));
-						}
-						else
-						{
-							ImGui::Text("");
-						}
-
-						ImGui::NextColumn();
-
-						if (i < m_lastOutgoingData.size())
-						{
-							ImGui::Text("%d. %s (%d)", i + 1, g_hashes.LookupHash(std::get<0>(m_lastOutgoingData[i])), std::get<1>(m_lastOutgoingData[i]));
-						}
-						else
-						{
-							ImGui::Text("");
-						}
-
-						ImGui::NextColumn();
-					}
-
-					ImGui::Columns(1);
-				}
+			if (ImGui::CollapsingHeader("Incoming", &showIncoming))
+			{
+				showList(m_lastIncomingMetrics, m_incomingReliable);
 			}
 
-			ImGui::End();
+			if (ImGui::CollapsingHeader("Outgoing", &showOutgoing))
+			{
+				showList(m_lastOutgoingMetrics, m_outgoingReliable);
+			}
+
+			if (ImGui::CollapsingHeader("Log", &showLog))
+			{
+				ImGui::Columns(2);
+
+				for (int i = 0; i < std::max(m_lastIncomingData.size(), m_lastOutgoingData.size()); i++)
+				{
+					if (i < m_lastIncomingData.size())
+					{
+						ImGui::Text("%d. %s (%d)", i + 1, g_hashes.LookupHash(std::get<0>(m_lastIncomingData[i])), std::get<1>(m_lastIncomingData[i]));
+					}
+					else
+					{
+						ImGui::Text("");
+					}
+
+					ImGui::NextColumn();
+
+					if (i < m_lastOutgoingData.size())
+					{
+						ImGui::Text("%d. %s (%d)", i + 1, g_hashes.LookupHash(std::get<0>(m_lastOutgoingData[i])), std::get<1>(m_lastOutgoingData[i]));
+					}
+					else
+					{
+						ImGui::Text("");
+					}
+
+					ImGui::NextColumn();
+				}
+
+				ImGui::Columns(1);
+			}
 		}
+		ImGui::End();
 	});
 }
 

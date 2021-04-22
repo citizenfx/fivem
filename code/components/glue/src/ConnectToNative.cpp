@@ -1609,9 +1609,8 @@ static InitFunction mediaRequestInit([]()
 					ImGui::Separator();
 					ImGui::Text("Press ^2F8^7 to accept/deny.");
 				}
-
-				ImGui::End();
 			}
+			ImGui::End();
 		}
 	});
 });
