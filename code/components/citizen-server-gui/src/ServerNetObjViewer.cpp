@@ -137,7 +137,7 @@ static const char* TypeToString(fx::sync::NetObjEntityType type)
 	}
 }
 
-static SvGuiModule netobjviewer("Network Object Viewer", "netobjviewer", [](fx::ServerInstanceBase* instance)
+static SvGuiModule netobjviewer("Network Object Viewer", "netobjviewer", 0, [](fx::ServerInstanceBase* instance)
 {
 	const auto& entityData = CollectEntities(instance);
 	static std::tuple<uint16_t, EntityMetaData> curObj;
