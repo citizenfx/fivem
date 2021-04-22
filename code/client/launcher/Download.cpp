@@ -161,7 +161,7 @@ void CL_QueueDownload(const char* url, const char* file, int64_t size, bool comp
 	{
 		for (int i = 0; i <= 9; i++)
 		{
-			CL_QueueDownload(va("https://mirrors.fivem.net/emergency_mirror/GTAV1604.exe%02d", i), va("%s.%d", file, i), i == 9 ? 87584200 : 104857600, false, 1);
+			CL_QueueDownload(va("https://content.cfx.re/mirrors/emergency_mirror/GTAV1604.exe%02d", i), va("%s.%d", file, i), i == 9 ? 87584200 : 104857600, false, 1);
 		}
 
 		return;
