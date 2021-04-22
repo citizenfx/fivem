@@ -602,6 +602,7 @@ if (!$DontUpload) {
 	# for xz.exe
 	$env:PATH += ";$WorkRootDir\tools\ci"
 
+    Remove-Item -Force $CacheDir\fivereborn\info.xml
 	Invoke-CacheGen -Source $CacheDir\fivereborn -CacheName $CacheName -BranchName $UploadBranch -BranchVersion $GameVersion -BootstrapName CitizenFX.exe -BootstrapVersion $LauncherVersion
 
     Set-Location $CacheDir
@@ -621,6 +622,7 @@ if (!$DontUpload) {
         Copy-Item -Force $WorkDir\caches\caches_sdk.xml $WorkDir\upload\$Branch\content
         Copy-Item -Recurse -Force $WorkDir\caches\diff\fxdk-five\ $WorkDir\upload\$Branch\content\
 
+		Remove-Item -Force $WorkDir\caches\fxdk-five\info.xml
 		Invoke-CacheGen -Source $WorkDir\caches\fxdk-five -CacheName "fxdk-five" -BranchName $UploadBranch -BranchVersion $SDKVersion -BootstrapName CitizenFX.exe -BootstrapVersion $LauncherVersion
     }
 
