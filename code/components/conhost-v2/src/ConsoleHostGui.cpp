@@ -287,7 +287,8 @@ struct CfxBigConsole : FiveMConsoleBase
 			ImGuiWindowFlags_NoScrollbar |
 			ImGuiWindowFlags_NoMove |
 			ImGuiWindowFlags_NoResize |
-			ImGuiWindowFlags_NoSavedSettings;
+			ImGuiWindowFlags_NoSavedSettings | 
+			ImGuiWindowFlags_NoBringToFrontOnFocus;
 
 		if (!ImGui::Begin(title, nullptr, flags))
 		{
