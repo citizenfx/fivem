@@ -709,17 +709,23 @@ const char* GetUpdateChannel()
 
 		if (GetFileAttributes(fpath.c_str()) == INVALID_FILE_ATTRIBUTES)
 		{
-			updateChannel = "prod";
+			updateChannel = "production";
 			return updateChannel.c_str();
 		}
 
 		wchar_t channel[512];
-		GetPrivateProfileString(L"Game", L"UpdateChannel", L"prod", channel, _countof(channel), fpath.c_str());
+		GetPrivateProfileString(L"Game", L"UpdateChannel", L"production", channel, _countof(channel), fpath.c_str());
 
 		char channelS[512];
 		wcstombs(channelS, channel, sizeof(channelS));
 
 		updateChannel = channelS;
+
+		// map prod -> production
+		if (updateChannel == "prod")
+		{
+			updateChannel = "production";
+		}
 	}
 
 	return updateChannel.c_str();
