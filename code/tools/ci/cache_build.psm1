@@ -1,4 +1,4 @@
-$BuildCacheMeta = "https://github.com/citizenfx/buildcachemeta-go/releases/download/v0.0.2/buildcachemeta-go_0.0.2_win32_amd64.tar.gz"
+$BuildCacheMeta = "https://github.com/citizenfx/buildcachemeta-go/releases/download/v0.0.4/buildcachemeta-go_0.0.4_win32_amd64.tar.gz"
 
 function Invoke-CacheGen {
 	param(
