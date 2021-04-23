@@ -341,9 +341,9 @@ RuntimeTex* RuntimeTxd::CreateTextureFromImage(const char* name, const char* fil
 			}
 
 			// create a pixel data buffer
-			uint32_t* pixelData = new uint32_t[width * height];
+			std::unique_ptr<uint32_t[]> pixelData(new uint32_t[width * height]);
 
-			hr = source->CopyPixels(nullptr, width * 4, width * height * 4, reinterpret_cast<BYTE*>(pixelData));
+			hr = source->CopyPixels(nullptr, width * 4, width * height * 4, reinterpret_cast<BYTE*>(pixelData.get()));
 
 			if (SUCCEEDED(hr))
 			{
@@ -354,9 +354,9 @@ RuntimeTex* RuntimeTxd::CreateTextureFromImage(const char* name, const char* fil
 				reference.depth = 1;
 				reference.stride = width * 4;
 				reference.format = 11; // should correspond to DXGI_FORMAT_B8G8R8A8_UNORM
-				reference.pixelData = (uint8_t*)pixelData;
+				reference.pixelData = (uint8_t*)pixelData.get();
 
-				auto tex = std::make_shared<RuntimeTex>(rage::grcTextureFactory::getInstance()->createImage(&reference, nullptr), pixelData, width * height * 4);
+				auto tex = std::make_shared<RuntimeTex>(rage::grcTextureFactory::getInstance()->createImage(&reference, nullptr), pixelData.get(), width * height * 4);
 				m_txd->Add(name, tex->GetTexture());
 
 				m_textures[name] = tex;
