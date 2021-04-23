@@ -287,7 +287,8 @@ struct CfxBigConsole : FiveMConsoleBase
 			ImGuiWindowFlags_NoScrollbar |
 			ImGuiWindowFlags_NoMove |
 			ImGuiWindowFlags_NoResize |
-			ImGuiWindowFlags_NoSavedSettings;
+			ImGuiWindowFlags_NoSavedSettings | 
+			ImGuiWindowFlags_NoBringToFrontOnFocus;
 
 		if (!ImGui::Begin(title, nullptr, flags))
 		{
@@ -349,6 +350,7 @@ struct CfxBigConsole : FiveMConsoleBase
 		ImGui::Separator();
 
 		// Command-line
+		ImGui::PushItemWidth(-1.0f);
 		if (ImGui::InputText("_", InputBuf, _countof(InputBuf), ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CallbackCompletion | ImGuiInputTextFlags_CallbackHistory, &TextEditCallbackStub, (void*)this))
 		{
 			char* input_end = InputBuf + strlen(InputBuf);
@@ -357,6 +359,7 @@ struct CfxBigConsole : FiveMConsoleBase
 				ExecCommand(InputBuf);
 			strcpy(InputBuf, "");
 		}
+		ImGui::PopItemWidth();
 
 		// Demonstrate keeping auto focus on the input box
 		if (ImGui::IsItemHovered() || (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && !ImGui::IsAnyItemActive() && !ImGui::IsMouseClicked(0)))

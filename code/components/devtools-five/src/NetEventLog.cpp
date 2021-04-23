@@ -50,11 +50,9 @@ static InitFunction initFunction([]()
 			return;
 		}
 
-		static bool eventLogOpen;
-
 		ImGui::SetNextWindowSize(ImVec2(500.0f, 300.0f), ImGuiCond_FirstUseEver);
 
-		if (ImGui::Begin("Network Event Log", &eventLogOpen))
+		if (ImGui::Begin("Network Event Log", &eventLogEnabled))
 		{
 			ImGui::Columns(3);
 
