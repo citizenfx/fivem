@@ -324,7 +324,7 @@ if (!$DontBuild)
         throw "Failed to build the code."
     }
 
-    if ((($env:COMPUTERNAME -eq "BUILDVM") -or ($env:COMPUTERNAME -eq "AVALON") -or ($env:COMPUTERNAME -eq "OMNITRON")) -and (!$IsServer)) {
+    if ((($env:COMPUTERNAME -eq "AVALON2") -or ($env:COMPUTERNAME -eq "AVALON") -or ($env:COMPUTERNAME -eq "OMNITRON")) -and (!$IsServer)) {
         Start-Process -NoNewWindow powershell -ArgumentList "-ExecutionPolicy unrestricted .\tools\ci\dump_symbols.ps1 -BinRoot $BinRoot -GameName $GameName"
     } elseif ($IsServer -and (Test-Path C:\h\debuggers)) {
 		Start-Process -NoNewWindow powershell -ArgumentList "-ExecutionPolicy unrestricted .\tools\ci\dump_symbols_server.ps1 -BinRoot $BinRoot"
@@ -510,7 +510,7 @@ if (!$DontBuild -and !$IsServer) {
         }
 
         # build compliance stuff
-        if (($env:COMPUTERNAME -eq "AVALON") -or ($env:COMPUTERNAME -eq "OMNITRON")) {
+        if (($env:COMPUTERNAME -eq "AVALON") -or ($env:COMPUTERNAME -eq "OMNITRON") -or ($env:COMPUTERNAME -eq "AVALON2")) {
             Copy-Item -Force $WorkDir\..\fivem-private\components\adhesive\adhesive.vmp.dll $CacheDir\fivereborn\adhesive.dll
 
             Push-Location C:\f\bci\
@@ -520,7 +520,7 @@ if (!$DontBuild -and !$IsServer) {
     } 
     
 	if (!$IsLauncher) {
-		if (($env:COMPUTERNAME -eq "AVALON") -or ($env:COMPUTERNAME -eq "OMNITRON")) {
+        if (($env:COMPUTERNAME -eq "AVALON") -or ($env:COMPUTERNAME -eq "OMNITRON") -or ($env:COMPUTERNAME -eq "AVALON2")) {
 			Push-Location C:\f\bci\
 			.\BuildComplianceInfo.exe $CacheDir\fivereborn\ C:\f\bci-list.txt
 			Pop-Location
