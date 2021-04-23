@@ -143,6 +143,12 @@ static void BindGameRenderHandle()
 
 	static HostSharedData<GameRenderData> handleData(launch::IsSDK() ? "CfxGameRenderHandleFxDK" : "CfxGameRenderHandle");
 
+	// not existent yet, but we will retry this later on
+	if (!handleData->handle)
+	{
+		return;
+	}
+
 	EGLint pbuffer_attributes[] = {
 		EGL_WIDTH, handleData->width,
 		EGL_HEIGHT, handleData->height,
@@ -244,8 +250,6 @@ static void glTexParameterfHook(GLenum target, GLenum pname, GLfloat param)
 
 	if (stage == 3)
 	{
-		BindGameRenderHandle();
-
 		stage = 0;
 
 		g_backBufferTextures.insert(g_curGlTexture);
