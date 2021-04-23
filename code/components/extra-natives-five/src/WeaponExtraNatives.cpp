@@ -26,13 +26,12 @@ class CWeaponComponentFlashlight
 public:
 	virtual void m_0() = 0;
 	virtual void m_1() = 0;
-	virtual void m_2() = 0;
-	virtual void DESTROY() = 0;
+	virtual void New(void *memory, bool option) = 0;
 	virtual bool Process(CPed* ped) = 0;
 	virtual bool PostPreRender(CPed* ped) = 0;
+	virtual void m_5() = 0;
 	virtual void m_6() = 0;
 	virtual void m_7() = 0;
-	virtual void m_8() = 0;
 
 	void* pFlashlightInfo; //0x0008
 	class CWeapon* pParentWeapon; //0x0010
@@ -60,20 +59,30 @@ static std::atomic_bool g_SET_FLASH_LIGHT_KEEP_ON_WHILE_MOVING = false;
 
 static void Flashlight_Process(CWeaponComponentFlashlight* thisptr, CPed* ped)
 {
+	// Copy every flag except for FLASHLIGHT_ON which is 1
+	// 80 63 49 FE          and     byte ptr [rbx+49h], 0FEh
+	// change to 0xFF so it copies the ON flag as well
+	// (This byte is located in the original Flashlight::Process() function.)
+	static unsigned char* g_flashlightAndByte = hook::get_pattern<unsigned char>("80 63 49 FE EB", 3);
+
 	if (!g_SET_FLASH_LIGHT_KEEP_ON_WHILE_MOVING)
 	{
-		goto original;
+		return origFlashlightProcess(thisptr, ped);
 	}
 	if (getLocalPlayerPed() != ped)
 	{
-		goto original;
+		return origFlashlightProcess(thisptr, ped);
+	}
+	
+	// Flashlight can be destroyed when climbing over terrain, etc, it will save this flag when recreated
+	if (thisptr->flashlightFlags & FLASHLIGHT_TURN_ON_NEXT_AIM)
+	{
+		thisptr->flashlightFlags |= FLASHLIGHT_ON;
 	}
 
-	// spoof this float so it thinks we're aimed in.
-	thisptr->aimFraction = 500.0f;
-
-original:
+	*g_flashlightAndByte = 0xFF;
 	origFlashlightProcess(thisptr, ped);
+	*g_flashlightAndByte = 0xFE;
 }
 
 static HookFunction hookFunction([]()
@@ -130,7 +139,7 @@ static HookFunction hookFunction([]()
 		g_SET_FLASH_LIGHT_KEEP_ON_WHILE_MOVING = false;
 	});
 
-	flashlightProcessFn* flashlightVtable = hook::get_address<flashlightProcessFn*>(hook::get_pattern<unsigned char>("83 CD FF 48 8D 05 ? ? ? ? 33 DB", 6));
-	origFlashlightProcess = flashlightVtable[4];
-	flashlightVtable[4] = Flashlight_Process;
+	uintptr_t* flashlightVtable = hook::get_address<uintptr_t*>(hook::get_pattern<unsigned char>("83 CD FF 48 8D 05 ? ? ? ? 33 DB", 6));
+	origFlashlightProcess = (flashlightProcessFn)flashlightVtable[3];
+	flashlightVtable[3] = (uintptr_t)Flashlight_Process;
 });
