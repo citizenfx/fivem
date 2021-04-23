@@ -53,7 +53,10 @@ static InitFunction initFunction([]()
 
 				setNucleusTimeout = msec() + authDelay;
 
-				httpClient->DoPostRequest("https://cfx.re/api/register/?v=2", jsonData.dump(), [instance, tlm](bool success, const char* data, size_t length)
+				HttpRequestOptions opts;
+				opts.ipv4 = true;
+
+				httpClient->DoPostRequest("https://cfx.re/api/register/?v=2", jsonData.dump(), opts, [instance, tlm](bool success, const char* data, size_t length)
 				{
 					if (!success)
 					{
