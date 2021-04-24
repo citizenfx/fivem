@@ -70,6 +70,7 @@ struct GameRenderData
 
 static GLuint g_curGlTexture;
 static std::set<GLuint> g_backBufferTextures;
+static std::set<GLuint> g_newBackBufferTextures;
 
 static void BindGameRenderHandle();
 
@@ -83,10 +84,8 @@ static void glDeleteTexturesHook(GLsizei n, const GLuint* textures)
 	{
 		GLuint texture = textures[i];
 
-		if (g_backBufferTextures.find(texture) != g_backBufferTextures.end())
-		{
-			g_backBufferTextures.erase(texture);
-		}
+		g_backBufferTextures.erase(texture);
+		g_newBackBufferTextures.erase(texture);
 
 		if (g_pbuffers.find(texture) != g_pbuffers.end())
 		{
@@ -124,6 +123,19 @@ static void glBindTextureHook(GLenum target, GLuint texture)
 			g_origglBindTexture(GL_TEXTURE_2D, textureId);
 			BindGameRenderHandle();
 		}
+	}
+
+	if (!g_newBackBufferTextures.empty())
+	{
+		for (auto textureId : g_newBackBufferTextures)
+		{
+			g_origglBindTexture(GL_TEXTURE_2D, textureId);
+			BindGameRenderHandle();
+
+			g_backBufferTextures.insert(textureId);
+		}
+
+		g_newBackBufferTextures.clear();
 	}
 
 	g_origglBindTexture(target, texture);
@@ -252,7 +264,7 @@ static void glTexParameterfHook(GLenum target, GLenum pname, GLfloat param)
 	{
 		stage = 0;
 
-		g_backBufferTextures.insert(g_curGlTexture);
+		g_newBackBufferTextures.insert(g_curGlTexture);
 	}
 	else if (stage <= 1)
 	{
