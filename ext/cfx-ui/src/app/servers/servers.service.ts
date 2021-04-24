@@ -4,8 +4,6 @@ import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 
 import { Observable, Subject } from 'rxjs';
 
-import { applyPatch } from 'fast-json-patch';
-
 import { concat, from, BehaviorSubject } from 'rxjs';
 
 import 'rxjs/add/observable/fromPromise';
@@ -15,8 +13,6 @@ import 'rxjs/add/operator/toPromise';
 import 'rxjs/add/operator/mergeMap';
 import 'rxjs/add/operator/filter';
 import 'rxjs/add/operator/map';
-
-import ReconnectingWebSocket from 'reconnecting-websocket';
 
 import { Server, ServerHistoryEntry } from './server';
 import { PinConfig } from './pins';
@@ -63,8 +59,6 @@ export class ServersService {
 	private internalServerEvent: Subject<master.IServer>;
 
 	private worker: Worker;
-
-	private webSocket: ReconnectingWebSocket;
 
 	public servers: { [addr: string]: Server } = {};
 	public serversLoadedUpdate: Subject<boolean> = new BehaviorSubject(false);
@@ -118,8 +112,6 @@ export class ServersService {
 				.subscribe(url => {
 					this.worker.postMessage({ type: 'queryServers', url: url + `streamRedir/` });
 				});
-
-			this.subscribeWebSocket();
 		}
 
 		this.serversSource
@@ -259,47 +251,6 @@ export class ServersService {
 		});
 
 		return true;
-	}
-
-	private subscribeWebSocket() {
-		const ws = new ReconnectingWebSocket('wss://servers-frontend.fivem.net/api/servers/socket/v1/');
-		ws.addEventListener('message', (ev) => {
-			const data = JSON.parse(ev.data);
-
-			switch (data.op) {
-				case 'ADD_SERVER':
-					const server = {
-						Data: data.data.data,
-						EndPoint: data.id
-					};
-
-					if (this.matchesGame(server)) {
-						this.internalServerEvent.next(server);
-					}
-					break;
-				case 'UPDATE_SERVER':
-					const old = this.servers[data.id];
-
-					if (old) {
-						const patch = data.data;
-						const result = applyPatch({ data: old.data }, patch).newDocument;
-
-						const ping = old.ping;
-						result.data.vars.ping = ping;
-
-						this.internalServerEvent.next({
-							Data: result.data,
-							EndPoint: data.id
-						});
-					}
-					break;
-				case 'REMOVE_SERVER':
-					// not impl'd
-					break;
-			}
-		});
-
-		this.webSocket = ws;
 	}
 
 	private refreshServers() {
