@@ -149,5 +149,28 @@ void SteamLoader::LoadGameOverlayRenderer(const std::wstring& baseDllPath)
 {
 	std::wstring overlayDllPath = baseDllPath.substr(0, baseDllPath.rfind(L'\\')) + L"\\" OVERLAYRENDERER_DLL;
 
+	// store kernel32!CreateProcessW to unpatch it, as gameoverlayrenderer is very nested and malicious
+	auto kernel32 = GetModuleHandleW(L"kernel32.dll");
+
+	if (!kernel32)
+	{
+		return;
+	}
+
+	auto createProcessW = ::GetProcAddress(kernel32, "CreateProcessW");
+	uint8_t copyStub[5];
+	memcpy(copyStub, createProcessW, 5);
+
+	// load the actual overlay dll
 	LoadLibrary(overlayDllPath.c_str());
+
+	// unprotect
+	DWORD oldProtect;
+	VirtualProtect(createProcessW, 5, PAGE_EXECUTE_READWRITE, &oldProtect);
+
+	// copy original code
+	memcpy(createProcessW, copyStub, 5);
+
+	// and reprotect
+	VirtualProtect(createProcessW, 5, oldProtect, &oldProtect);
 }
