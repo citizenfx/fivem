@@ -1014,6 +1014,9 @@ void Component_RunPreInit()
 		if (*network__SetFetchMetadataHeaders == 0x41)
 		{
 			hook::putVP<uint8_t>(network__SetFetchMetadataHeaders, 0xC3);
+
+			// GL robust error handling
+			hook::putVP<uint32_t>((char*)libcef + 0x26C818A, 0x90C3C033);
 		}
 	}
 
