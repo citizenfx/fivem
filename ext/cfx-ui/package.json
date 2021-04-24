@@ -64,6 +64,7 @@
     "ngx-linky": "^3.0.0",
     "nl2br-pipe": "^1.2.3",
     "node-forge": "^0.10.0",
+    "p-limit": "^3.1.0",
     "path": "^0.12.7",
     "protobufjs": "^6.10.2",
     "query-string": "^6.13.6",

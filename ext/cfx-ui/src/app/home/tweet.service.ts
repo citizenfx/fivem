@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { DomSanitizer } from '@angular/platform-browser';
+import pLimit from 'p-limit';
 
 import * as unicodeSubstring from 'unicode-substring';
 
@@ -104,9 +105,9 @@ export class TweetService {
         const subject = new Subject<Tweet>();
         this.sentMap.clear();
 
-        for (const pub of pubs) {
-            this.fetchPub(pub, subject);
-        }
+        const pubSet = new Set<string>(pubs);
+        const limiter = pLimit(2);
+        [...pubSet.values()].forEach(pub => limiter(() => this.fetchPub(pub, subject)));
 
         return subject;
     }
@@ -146,6 +147,10 @@ export class TweetService {
         const outbox = actResponse.outbox;
 
         await this.fetchOutbox(actResponse, outbox, subject);
+
+        await new Promise(function(resolve) {
+            setTimeout(resolve, 150);
+        });
     }
 
     private async fetchOutbox(account: any, url: string, subject: Subject<Tweet>) {
