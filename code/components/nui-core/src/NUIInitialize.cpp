@@ -83,16 +83,18 @@ static void glDeleteTexturesHook(GLsizei n, const GLuint* textures)
 	for (int i = 0; i < n; i++)
 	{
 		GLuint texture = textures[i];
-
 		g_backBufferTextures.erase(texture);
 		g_newBackBufferTextures.erase(texture);
 
 		if (g_pbuffers.find(texture) != g_pbuffers.end())
 		{
-			auto _eglGetCurrentDisplay = (decltype(&eglGetCurrentDisplay))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglGetCurrentDisplay"));
-			auto _eglDestroySurface = (decltype(&eglDestroySurface))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglDestroySurface"));
+			static auto _eglGetCurrentDisplay = (decltype(&eglGetCurrentDisplay))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglGetCurrentDisplay"));
+			static auto _eglDestroySurface = (decltype(&eglDestroySurface))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglDestroySurface"));
+			static auto _eglReleaseTexImage = (decltype(&eglReleaseTexImage))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglReleaseTexImage"));
+			static auto _eglGetError = (decltype(&eglGetError))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglGetError"));
 
 			auto m_display = _eglGetCurrentDisplay();
+			_eglReleaseTexImage(m_display, g_pbuffers[texture], EGL_BACK_BUFFER);
 			_eglDestroySurface(m_display, g_pbuffers[texture]);
 			g_pbuffers.erase(texture);
 		}
@@ -105,11 +107,6 @@ static void (*g_origglBindTexture)(GLenum target, GLuint texture);
 
 static void glBindTextureHook(GLenum target, GLuint texture)
 {
-	if (target == GL_TEXTURE_2D)
-	{
-		g_curGlTexture = texture;
-	}
-
 	// this gets called really frequently but do we want to do so here?
 	static HANDLE lastBackbufHandle;
 	static HostSharedData<GameRenderData> handleData(launch::IsSDK() ? "CfxGameRenderHandleFxDK" : "CfxGameRenderHandle");
@@ -120,6 +117,8 @@ static void glBindTextureHook(GLenum target, GLuint texture)
 
 		for (auto textureId : g_backBufferTextures)
 		{
+			g_curGlTexture = textureId;
+
 			g_origglBindTexture(GL_TEXTURE_2D, textureId);
 			BindGameRenderHandle();
 		}
@@ -129,6 +128,8 @@ static void glBindTextureHook(GLenum target, GLuint texture)
 	{
 		for (auto textureId : g_newBackBufferTextures)
 		{
+			g_curGlTexture = textureId;
+
 			g_origglBindTexture(GL_TEXTURE_2D, textureId);
 			BindGameRenderHandle();
 
@@ -138,18 +139,84 @@ static void glBindTextureHook(GLenum target, GLuint texture)
 		g_newBackBufferTextures.clear();
 	}
 
+	if (target == GL_TEXTURE_2D)
+	{
+		g_curGlTexture = texture;
+	}
+
 	g_origglBindTexture(target, texture);
+}
+
+EGLConfig ChooseCompatibleConfig()
+{
+	static auto _eglChooseConfig = (decltype(&eglChooseConfig))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglChooseConfig"));
+	static auto _eglGetConfigAttrib = (decltype(&eglGetConfigAttrib))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglGetConfigAttrib"));
+	static auto _eglGetCurrentDisplay = (decltype(&eglGetCurrentDisplay))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglGetCurrentDisplay"));
+
+	const EGLint buffer_bind_to_texture = EGL_BIND_TO_TEXTURE_RGBA;
+	const EGLint buffer_size = 32;
+	EGLint const attrib_list[] = { EGL_RED_SIZE,
+		8,
+		EGL_GREEN_SIZE,
+		8,
+		EGL_BLUE_SIZE,
+		8,
+		EGL_SURFACE_TYPE,
+		EGL_PBUFFER_BIT,
+		buffer_bind_to_texture,
+		EGL_TRUE,
+		EGL_BUFFER_SIZE,
+		buffer_size,
+		EGL_NONE };
+
+	EGLint num_config;
+	EGLDisplay display = _eglGetCurrentDisplay();
+	EGLBoolean result = _eglChooseConfig(display, attrib_list, nullptr, 0, &num_config);
+	if (result != EGL_TRUE)
+		return nullptr;
+	std::vector<EGLConfig> all_configs(num_config);
+	result = _eglChooseConfig(display, attrib_list,
+	all_configs.data(), num_config, &num_config);
+	if (result != EGL_TRUE)
+		return nullptr;
+	for (EGLConfig config : all_configs)
+	{
+		EGLint bits;
+		if (!_eglGetConfigAttrib(display, config, EGL_RED_SIZE, &bits) || bits != 8)
+		{
+			continue;
+		}
+
+		if (!_eglGetConfigAttrib(display, config, EGL_BLUE_SIZE, &bits) || bits != 8)
+		{
+			continue;
+		}
+
+		if (!_eglGetConfigAttrib(display, config, EGL_GREEN_SIZE, &bits) || bits != 8)
+		{
+			continue;
+		}
+
+		if (!_eglGetConfigAttrib(display, config, EGL_ALPHA_SIZE, &bits) || bits != 8)
+		{
+			continue;
+		}
+
+		return config;
+	}
+	return nullptr;
 }
 
 static void BindGameRenderHandle()
 {
-	auto _eglGetCurrentDisplay = (decltype(&eglGetCurrentDisplay))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglGetCurrentDisplay"));
-	auto _eglDestroySurface = (decltype(&eglDestroySurface))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglDestroySurface"));
-	auto _eglChooseConfig = (decltype(&eglChooseConfig))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglChooseConfig"));
-	auto _eglGetConfigs = (decltype(&eglGetConfigs))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglGetConfigs"));
-	auto _eglCreatePbufferFromClientBuffer = (decltype(&eglCreatePbufferFromClientBuffer))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglCreatePbufferFromClientBuffer"));
-	auto _eglBindTexImage = (decltype(&eglBindTexImage))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglBindTexImage"));
-	auto _eglGetError = (decltype(&eglGetError))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglGetError"));
+	static auto _eglGetCurrentDisplay = (decltype(&eglGetCurrentDisplay))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglGetCurrentDisplay"));
+	static auto _eglDestroySurface = (decltype(&eglDestroySurface))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglDestroySurface"));
+	static auto _eglChooseConfig = (decltype(&eglChooseConfig))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglChooseConfig"));
+	static auto _eglGetConfigs = (decltype(&eglGetConfigs))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglGetConfigs"));
+	static auto _eglCreatePbufferFromClientBuffer = (decltype(&eglCreatePbufferFromClientBuffer))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglCreatePbufferFromClientBuffer"));
+	static auto _eglBindTexImage = (decltype(&eglBindTexImage))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglBindTexImage"));
+	static auto _eglGetError = (decltype(&eglGetError))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglGetError"));
+	static auto _eglReleaseTexImage = (decltype(&eglReleaseTexImage))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglReleaseTexImage"));
 
 	auto m_display = _eglGetCurrentDisplay();
 
@@ -169,38 +236,23 @@ static void BindGameRenderHandle()
 		EGL_NONE
 	};
 
-	EGLConfig configs;
-	EGLint numConfigs = 0;
+	auto config = ChooseCompatibleConfig();
 
-	EGLint config_attributes[] = {
-		EGL_RED_SIZE,
-		8,
-		EGL_GREEN_SIZE,
-		8,
-		EGL_BLUE_SIZE,
-		8,
-		EGL_ALPHA_SIZE,
-		8,
-		EGL_NONE,
-		EGL_NONE,
-	};
-
-	_eglChooseConfig(m_display, config_attributes, &configs, 1, &numConfigs);
-
-	if (numConfigs == 0)
+	if (!config)
 	{
-		_eglGetConfigs(m_display, &configs, 1, &numConfigs);
+		return;
 	}
 
 	EGLSurface pbuffer = _eglCreatePbufferFromClientBuffer(
 	m_display,
 	EGL_D3D_TEXTURE_2D_SHARE_HANDLE_ANGLE,
 	(EGLClientBuffer)handleData->handle,
-	configs,
+	config,
 	pbuffer_attributes);
 
 	if (g_pbuffers.find(g_curGlTexture) != g_pbuffers.end())
 	{
+		_eglReleaseTexImage(m_display, g_pbuffers[g_curGlTexture], EGL_BACK_BUFFER);
 		_eglDestroySurface(m_display, g_pbuffers[g_curGlTexture]);
 		g_pbuffers.erase(g_curGlTexture);
 	}
