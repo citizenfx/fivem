@@ -2740,8 +2740,32 @@ static int GetScriptParticipantIndexForPlayer(CNetGamePlayer* player)
 	return player->physicalPlayerIndex();
 }
 
+static int DoesLocalPlayerOwnWorldGridWrapForInline(float* pos)
+{
+	return (DoesLocalPlayerOwnWorldGrid(pos)) ? 0 : 1;
+}
+
 static HookFunction hookFunctionWorldGrid([]()
 {
+	// inline turntaking for ped creation
+	{
+		auto location = hook::get_pattern<char>("45 33 C9 44 88 74 24 20 E8 ? ? ? ? 44 8B E0", 8);
+		hook::call(location, DoesLocalPlayerOwnWorldGridWrapForInline);
+
+		// if '1', instantly fail, don't try to iterate that one player
+		hook::jump(location + 12, location - 0x16D);
+	}
+
+	// second variant of the same
+	{
+		auto location = hook::get_pattern<char>("48 8B CE 44 88 6C 24 20 E8 ? ? ? ? 45 8B FD", 8);
+		hook::call(location, DoesLocalPlayerOwnWorldGridWrapForInline);
+
+		// if '1', instantly fail, don't try to iterate that one player
+		hook::jump(location + 15, location - 0xD5);
+	}
+
+	// turntaking
 	hook::jump(hook::get_pattern("48 8D 4C 24 30 45 33 C9 C6", -0x30), DoesLocalPlayerOwnWorldGrid);
 	
 	hook::jump(hook::get_pattern(((xbr::IsGameBuildOrGreater<2060>()) ? "BE 01 00 00 00 8B E8 85 C0 0F 84 B8" : "BE 01 00 00 00 45 33 C9 40 88 74 24 20"), ((xbr::IsGameBuildOrGreater<2060>()) ? -0x3A : -0x2D)), DoesLocalPlayerOwnWorldGrid);
