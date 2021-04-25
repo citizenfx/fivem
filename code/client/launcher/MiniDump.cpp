@@ -874,11 +874,33 @@ private:
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
+#include <winternl.h>
+
 static LPTHREAD_START_ROUTINE GetFunc(HANDLE hProcess, const char* name)
 {
 	wchar_t modPath[MAX_PATH];
 	DWORD modPathSize = MAX_PATH;
 	if (!QueryFullProcessImageNameW(hProcess, 0, modPath, &modPathSize))
+	{
+		return NULL;
+	}
+
+	PROCESS_BASIC_INFORMATION pbi;
+	DWORD pbil = sizeof(pbi);
+	if (FAILED(NtQueryInformationProcess(hProcess, ProcessBasicInformation, &pbi, pbil, NULL)))
+	{
+		return NULL;
+	}
+
+#ifdef _WIN64
+	size_t baseOffset = 0x10;
+#else
+	size_t baseOffset = 0x08;
+#endif
+
+	uintptr_t imageBase = 0;
+	size_t memRead = 0;
+	if (!ReadProcessMemory(hProcess, (char*)pbi.PebBaseAddress + baseOffset, &imageBase, sizeof(imageBase), &memRead) || memRead != sizeof(imageBase))
 	{
 		return NULL;
 	}
@@ -891,7 +913,7 @@ static LPTHREAD_START_ROUTINE GetFunc(HANDLE hProcess, const char* name)
 		return NULL;
 	}
 
-	return (LPTHREAD_START_ROUTINE)((char*)&__ImageBase + off);
+	return (LPTHREAD_START_ROUTINE)((char*)imageBase + off);
 }
 
 extern nlohmann::json SymbolicateCrash(HANDLE hProcess, HANDLE hThread, PEXCEPTION_RECORD er, PCONTEXT ctx);
