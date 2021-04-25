@@ -117,8 +117,13 @@ public:
 
 			if (!NativeInvoke::Invoke<0x9DE624D2FC4B603F, bool>())
 			{
-				color = CRGBA(200, 0, 0, 180);
-				TheFonts->DrawRectangle(rect, color);
+				static auto icgi = Instance<ICoreGameInit>::Get();
+
+				if (!icgi->HasVariable("storyMode"))
+				{
+					color = CRGBA(200, 0, 0, 180);
+					TheFonts->DrawRectangle(rect, color);
+				}
 			}
 			else
 			{
