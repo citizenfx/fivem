@@ -1347,6 +1347,20 @@ static void OnCtrlInit()
 	g_origCtrlInit();
 }
 
+static bool (*g_origParamToInt)(void* param, int* value);
+
+static bool ParamToInt_Threads(void* param, int* value)
+{
+	bool rv = g_origParamToInt(param, value);
+
+	if (!rv)
+	{
+		*value = std::min(*value, 4);
+	}
+
+	return rv;
+}
+
 static HookFunction hookFunction([] ()
 {
 	// continue on
@@ -1795,6 +1809,14 @@ static HookFunction hookFunction([] ()
 		hook::nop(location, 6);
 		hook::nop(location + 9, 6);
 		hook::nop(location + 18, 6);
+	}
+
+	// limit max worker threads to 4 (since on high-core-count systems this leads
+	// to a lot of overhead when there's a blocking wait)
+	{
+		auto location = hook::get_pattern("89 05 ? ? ? ? E8 ? ? ? ? 48 8D 3D ? ? ? ? 48 63", 6);
+		hook::set_call(&g_origParamToInt, location);
+		hook::call(location, ParamToInt_Threads);
 	}
 });
 // C7 05 ? ? ? ? 07 00  00 00 E9
