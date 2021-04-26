@@ -160,6 +160,8 @@ struct gameserveritemext_t
 	bool responded;
 	bool queried;
 	std::string m_hostName;
+	std::string m_qa;
+	std::string m_attribution;
 	int m_clients;
 	int m_maxClients;
 	int m_ping;
@@ -172,7 +174,7 @@ static struct
 
 	// the list relies on sorting, so using a concurrent_unordered_map won't work
 	std::recursive_mutex serversMutex;
-	std::map<std::tuple<int, net::PeerAddress>, std::shared_ptr<gameserveritemext_t>> queryServers;
+	std::map<std::tuple<int, net::PeerAddress, std::string, std::string>, std::shared_ptr<gameserveritemext_t>> queryServers;
 	std::map<net::PeerAddress, std::shared_ptr<gameserveritemext_t>> servers;
 	DWORD lastQueryStep;
 
@@ -379,6 +381,9 @@ void replaceAll(std::string& str, const std::string& from, const std::string& to
 static std::mutex g_queryArgMutex;
 static std::string g_queryArg;
 
+// the original query argument, used for correlation
+static std::string g_queryArgOrig;
+
 void GSClient_HandleInfoResponse(const char* bufferx, int len, const net::PeerAddress& from)
 {
 	std::shared_ptr<gameserveritemext_t> server;
@@ -429,26 +434,26 @@ void GSClient_HandleInfoResponse(const char* bufferx, int len, const net::PeerAd
 	std::string addressStr = server->m_Address.ToString();
 
 	const char* infoBlobVersionString = Info_ValueForKey(buffer, "iv");
+	bool isThisOneQuery = !server->m_qa.empty();
 
 	auto onLoadCB = [=](const std::string& infoBlobJson)
 	{
 		rapidjson::Document doc;
 		doc.Parse(infoBlobJson.c_str(), infoBlobJson.size());
 
-		bool isThisOneQuery = (g_cls.isOneQuery && from == g_cls.oneQueryAddress);
-
 		std::string host, port;
+
+		if (!server->m_qa.empty())
 		{
-			std::unique_lock _(g_queryArgMutex);
-			host = g_queryArg.substr(0, g_queryArg.find_last_of(':'));
-			port = g_queryArg.substr(g_queryArg.find_last_of(':') + 1);
+			host = server->m_qa.substr(0, server->m_qa.find_last_of(':'));
+			port = server->m_qa.substr(server->m_qa.find_last_of(':') + 1);
 		}
 
 		if (!doc.HasParseError() && nui::HasFrame("mpMenu"))
 		{
 			nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "%s", "name": "%s",)"
 				R"("mapname": "%s", "gametype": "%s", "clients": "%d", "maxclients": %d, "ping": %d,)"
-				R"("addr": "%s", "infoBlob": %s, "address": "%s", "port": "%s" })",
+				R"("addr": "%s", "infoBlob": %s, "address": "%s", "port": "%s", "queryCorrelation": "%s" })",
 				(isThisOneQuery) ? "serverQueried" : "serverAdd",
 				server->m_hostName,
 				mapname,
@@ -459,17 +464,12 @@ void GSClient_HandleInfoResponse(const char* bufferx, int len, const net::PeerAd
 				addressStr,
 				infoBlobJson,
 				host,
-				port));
-		}
-
-		if (isThisOneQuery)
-		{
-			g_cls.isOneQuery = false;
-			g_cls.oneQueryAddress = net::PeerAddress();
+				port,
+				server->m_attribution));
 		}
 	};
 
-	if (g_cls.isOneQuery && infoBlobVersionString && infoBlobVersionString[0])
+	if (isThisOneQuery && infoBlobVersionString && infoBlobVersionString[0])
 	{
 		std::string serverId = fmt::sprintf("%s", addressStr);
 		int infoBlobVersion = atoi(infoBlobVersionString);
@@ -592,6 +592,8 @@ void GSClient_QueryAddresses(const TContainer& addrs)
 		auto server = std::make_shared<gameserveritemext_t>();
 		server->queried = false;
 		server->m_Address = std::get<net::PeerAddress>(na);
+		server->m_qa = std::get<2>(na);
+		server->m_attribution = std::get<3>(na);
 
 		std::unique_lock<std::recursive_mutex> lock(g_cls.serversMutex);
 		g_cls.queryServers[na] = server;
@@ -599,21 +601,15 @@ void GSClient_QueryAddresses(const TContainer& addrs)
 	}
 }
 
-static void ContinueLanQuery()
+static void ContinueLanQuery(const std::string& qarg, const std::string& attribution)
 {
-	std::string qarg;
-	{
-		std::unique_lock _(g_queryArgMutex);
-		qarg = g_queryArg;
-	}
-
 	auto peerAddress = net::PeerAddress::FromString(qarg);
 
 	if (peerAddress)
 	{
 		g_cls.isOneQuery = true;
 		g_cls.oneQueryAddress = peerAddress.get();
-		GSClient_QueryAddresses(std::vector<std::tuple<int, net::PeerAddress>>{ { 0, peerAddress.get() } });
+		GSClient_QueryAddresses(std::vector<std::tuple<int, net::PeerAddress, std::string, std::string>>{ { 0, peerAddress.get(), qarg, attribution } });
 	}
 	else
 	{
@@ -672,7 +668,7 @@ void GSClient_QueryOneServer(const std::wstring& arg)
 
 										nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "%s", "name": "%s",)"
 											R"("mapname": "%s", "gametype": "%s", "clients": "%d", "maxclients": %d, "ping": %d,)"
-											R"("addr": "%s", "infoBlob": %s })",
+											R"("addr": "%s", "infoBlob": %s, "queryCorrelation": "%s" })",
 											"serverQueried",
 											hostname,
 											mapname,
@@ -681,7 +677,8 @@ void GSClient_QueryOneServer(const std::wstring& arg)
 											atoi(dynDoc["sv_maxclients"].GetString()),
 											42,
 											narrowArg,
-											infoBlobJson));
+											infoBlobJson,
+											narrowArg));
 									}
 								}
 							});
@@ -705,9 +702,16 @@ void GSClient_QueryOneServer(const std::wstring& arg)
 
 		g_inLanQuery = true;
 
+		std::string qa;
+		std::string qao;
+
 		{
 			std::unique_lock _(g_queryArgMutex);
 			g_queryArg = "localhost" + narrowArg.substr(strlen("localhost_sentinel"));
+			g_queryArgOrig = narrowArg;
+
+			qa = g_queryArg;
+			qao = g_queryArgOrig;
 		}
 
 		// try hunting down a LAN server, maybe?
@@ -715,8 +719,8 @@ void GSClient_QueryOneServer(const std::wstring& arg)
 
 		if (dnslib)
 		{
-			auto _DnsServiceBrowse = (decltype(&DnsServiceBrowse))GetProcAddress(dnslib, "DnsServiceBrowse");
-			auto _DnsServiceBrowseCancel = (decltype(&DnsServiceBrowseCancel))GetProcAddress(dnslib, "DnsServiceBrowseCancel");
+			static auto _DnsServiceBrowse = (decltype(&DnsServiceBrowse))GetProcAddress(dnslib, "DnsServiceBrowse");
+			static auto _DnsServiceBrowseCancel = (decltype(&DnsServiceBrowseCancel))GetProcAddress(dnslib, "DnsServiceBrowseCancel");
 
 			if (_DnsServiceBrowse)
 			{
@@ -731,6 +735,8 @@ void GSClient_QueryOneServer(const std::wstring& arg)
 										  PVOID pQueryContext,
 										  PDNS_RECORD pDnsRecord)
 				{
+					std::string qa, qao;
+
 					if (Status == ERROR_SUCCESS)
 					{
 						result = true;
@@ -743,33 +749,39 @@ void GSClient_QueryOneServer(const std::wstring& arg)
 								{
 									{
 										std::unique_lock _(g_queryArgMutex);
-										g_queryArg = fmt::sprintf("%s:%d", ToNarrow(rec->Data.Srv.pNameTarget), rec->Data.Srv.wPort);
+										qa = g_queryArg = fmt::sprintf("%s:%d", ToNarrow(rec->Data.Srv.pNameTarget), rec->Data.Srv.wPort);
+										qao = g_queryArgOrig;
 									}
 
-									ContinueLanQuery();
+									ContinueLanQuery(qa, qao);
 									break;
 								}
 							}
 
-							DnsRecordListFree(pDnsRecord);
+							DnsRecordListFree(pDnsRecord, DnsFreeRecordList);
 							return;
 						}
 					}
 
-					ContinueLanQuery();
+					{
+						std::unique_lock _(g_queryArgMutex);
+						qa = g_queryArg;
+						qao = g_queryArgOrig;
+					}
+
+					ContinueLanQuery(qa, qao);
 				};
 
 				static DNS_SERVICE_CANCEL cancel;
+
 				if (_DnsServiceBrowse(&request, &cancel) == DNS_REQUEST_PENDING)
 				{
 					Sleep(2000);
 					g_inLanQuery = false;
 
-					if (!result)
-					{
-						_DnsServiceBrowseCancel(&cancel);
-					}
-					else
+					_DnsServiceBrowseCancel(&cancel);
+
+					if (result)
 					{
 						return;
 					}
@@ -779,16 +791,11 @@ void GSClient_QueryOneServer(const std::wstring& arg)
 
 		g_inLanQuery = false;
 
-		ContinueLanQuery();
+		ContinueLanQuery(qa, qao);
 		return;
 	}
 
-	{
-		std::unique_lock _(g_queryArgMutex);
-		g_queryArg = narrowArg;
-	}
-
-	ContinueLanQuery();
+	ContinueLanQuery(narrowArg, narrowArg);
 }
 
 DWORD WINAPI GSClient_QueryOneServerWrap(LPVOID ctx)
@@ -819,7 +826,7 @@ void GSClient_Ping(const std::wstring& arg)
 		return;
 	}
 
-	std::vector<std::tuple<int, net::PeerAddress>> addresses;
+	std::vector<std::tuple<int, net::PeerAddress, std::string, std::string>> addresses;
 
 	for (auto it = doc.Begin(); it != doc.End(); it++)
 	{
@@ -857,7 +864,7 @@ void GSClient_Ping(const std::wstring& arg)
 		auto port = portVal.GetInt();
 
 		auto netAddr = net::PeerAddress::FromString(addr, port);
-		addresses.push_back({ 1000 - weight, netAddr.get() });
+		addresses.push_back({ 1000 - weight, netAddr.get(), "", "" });
 	}
 
 	GSClient_QueryAddresses(addresses);

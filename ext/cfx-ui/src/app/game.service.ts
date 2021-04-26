@@ -945,13 +945,15 @@ export class CfxGameService extends GameService {
 
 			for (const addrString of tries) {
 				const promise = new Promise<Server>((queryResolve, queryReject) => {
+                    let messageHandler: any = null;
+
 					const timeoutTimer = window.setTimeout(() => {
 						queryReject(new Error('#DirectConnect_TimedOut'));
 
 						window.removeEventListener('message', messageHandler);
-					}, 2500);
+					}, 7500);
 
-					const messageHandler = (event) => {
+					messageHandler = (event) => {
 						if (event.data.type === 'queryingFailed') {
 							if (event.data.arg === addrString) {
 								queryReject(new Error('#DirectConnect_Failed'));
@@ -959,9 +961,11 @@ export class CfxGameService extends GameService {
 								window.clearTimeout(timeoutTimer);
 							}
 						} else if (event.data.type === 'serverQueried') {
-							queryResolve(Server.fromNative(this.sanitizer, event.data));
-							window.removeEventListener('message', messageHandler);
-							window.clearTimeout(timeoutTimer);
+                            if (event.data.queryCorrelation === addrString) {
+                                queryResolve(Server.fromNative(this.sanitizer, event.data));
+                                window.removeEventListener('message', messageHandler);
+                                window.clearTimeout(timeoutTimer);
+                            }
 						}
 					};
 
