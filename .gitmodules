@@ -1,7 +1,6 @@
 [submodule "vendor/jitasm"]
 	path = vendor/jitasm
-	url = http://tohjo.eu/citidev/jitasm.git
-	branch = master
+	url = https://github.com/citizenfx/jitasm.git
 [submodule "vendor/yaml-cpp"]
 	path = vendor/yaml-cpp
 	url = https://github.com/jbeder/yaml-cpp.git
