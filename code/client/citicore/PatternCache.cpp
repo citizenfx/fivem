@@ -65,6 +65,14 @@ extern "C" CORE_EXPORT auto CoreGetPatternHints()
 
 static InitFunction initFunction([]()
 {
+	if (wcsstr(GetCommandLineW(), L"_ROSLauncher") || wcsstr(GetCommandLineW(), L"_ROSService"))
+	{
+		if (getenv("CitizenFX_ToolMode"))
+		{
+			g_currentStub = 0x140000000 + 0x02E23600;
+		}
+	}
+
 	std::wstring hintsFile = MakeRelativeCitPath(L"citizen\\hints.dat");
 	FILE* hints = _wfopen(hintsFile.c_str(), L"rb");
 
