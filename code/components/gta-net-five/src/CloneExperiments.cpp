@@ -2818,14 +2818,12 @@ static HookFunction hookFunctionWorldGrid([]()
 	dword_1427EA288 = hook::get_address<int*>(hook::get_pattern("F3 0F 2C C0 2B 05 ? ? ? ? 85 C0 0F", 6));
 	dword_141D56E08 = hook::get_address<int*>(hook::get_pattern("3B C7 0F 42 F8 83 3D ? ? ? ? 01 75", -4));
 
-	// VS debugger seems to need this to be patched still
-#ifdef _DEBUG
+	// sometimes it seems to need this to be patched still - hope that won't fail on 2060+
 	// b2060+ seem to have this obfuscated, sorry guys
 	if (!xbr::IsGameBuildOrGreater<2060>())
 	{
 		hook::put<uint16_t>(hook::get_pattern("F3 0F 59 C8 F3 48 0F 2C C9 03 CF E8", 9), 0xF989);
 	}
-#endif
 });
 
 int ObjectToEntity(int objectId)
