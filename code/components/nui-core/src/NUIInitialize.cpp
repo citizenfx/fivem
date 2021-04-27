@@ -404,6 +404,8 @@ public:
 		m_texture.As(&m_resource);
 		m_texture.As(&m_resource1);
 		m_texture.As(&m_keyedMutex);
+
+		InitializeDeleter();
 	}
 
 	~Texture2DWrap();
@@ -524,15 +526,19 @@ public:
 	}
 
 	HANDLE m_handle = NULL;
+
+private:
+	static void InitializeDeleter();
+
+	static concurrency::concurrent_queue<std::tuple<uint64_t, HANDLE>> deletionQueue;
 };
 
 static std::mutex g_textureLock;
-static std::map<HANDLE, WRL::ComPtr<Texture2DWrap>> g_textureHacks;
+static std::map<HANDLE, WRL::ComPtr<ID3D11Texture2D>> g_textureHacks;
+concurrency::concurrent_queue<std::tuple<uint64_t, HANDLE>> Texture2DWrap::deletionQueue;
 
-Texture2DWrap::~Texture2DWrap()
+void Texture2DWrap::InitializeDeleter()
 {
-	static concurrency::concurrent_queue<std::tuple<uint64_t, HANDLE>> deletionQueue;
-
 	static std::thread* deletionThread = new std::thread([]()
 	{
 		SetThreadName(-1, "GPU Deletion Workaround");
@@ -563,7 +569,10 @@ Texture2DWrap::~Texture2DWrap()
 			}
 		}
 	});
+}
 
+Texture2DWrap::~Texture2DWrap()
+{
 	if (m_handle)
 	{
 		deletionQueue.push({ GetTickCount64(), m_handle });
@@ -585,7 +594,7 @@ HRESULT Texture2DWrap::GetSharedHandle(HANDLE* pSharedHandle)
 		CloseHandle(proc);
 
 		m_handle = *pSharedHandle;
-		g_textureHacks.insert({ *pSharedHandle, this });
+		g_textureHacks.insert({ *pSharedHandle, m_texture });
 	}
 
 	return hr;
@@ -595,7 +604,7 @@ HRESULT Texture2DWrap::GetSharedHandle(HANDLE* pSharedHandle)
 	if (SUCCEEDED(hr))
 	{
 		*pSharedHandle = m_handle;
-		g_textureHacks.insert({ m_handle, this });
+		g_textureHacks.insert({ m_handle, m_texture });
 	}
 
 	return hr;
@@ -673,10 +682,7 @@ static HRESULT OpenSharedResourceHook(ID3D11Device* device, HANDLE hRes, REFIID 
 
 	if (it != g_textureHacks.end())
 	{
-		ID3D11Resource* orig;
-		it->second->GetOriginal(&orig);
-
-		return orig->QueryInterface(iid, ppRes);
+		return it->second->QueryInterface(iid, ppRes);
 	}
 
 	return g_origOpenSharedResourceHook(device, hRes, iid, ppRes);
