@@ -131,7 +131,7 @@ workspace "CitizenMP"
 
 		-- allow one level of inlining
 		if os.istarget('windows') then
-			buildoptions '/Ob1'
+			buildoptions { '/Ob1', '/JMC-' }
 		end
 
 	-- release output
