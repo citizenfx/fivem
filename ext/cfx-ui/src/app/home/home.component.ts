@@ -33,6 +33,8 @@ export class HomeComponent implements OnInit, OnDestroy {
 
 	streamerMode = false;
 	devMode = false;
+	localhost = false;
+	localhostName = '';
 	localhostPort = '';
 	nickname = '';
 
@@ -78,6 +80,15 @@ export class HomeComponent implements OnInit, OnDestroy {
 		gameService.streamerModeChange.subscribe(value => this.streamerMode = value);
 		gameService.devModeChange.subscribe(value => this.devMode = value);
 		gameService.localhostPortChange.subscribe(value => this.localhostPort = value);
+		gameService.localServerChange.subscribe(value => {
+			if (value.available) {
+				this.localhost = true;
+				this.localhostName = value.host;
+				this.localhostPort = value.port;
+			} else {
+				this.localhost = false;
+			}
+		});
 	}
 
 	ngOnInit() {
@@ -121,27 +132,33 @@ export class HomeComponent implements OnInit, OnDestroy {
 			};
 
 			const isAddressServer = this.lastServer.historyEntry.address.includes(':');
+			const done = () => {
+				this.changeDetectorRef.markForCheck();
+			};
 
 			if (!isAddressServer) {
 				try {
 					this.lastServer.server = await this.serversService.getServer(this.lastServer.historyEntry.address);
 					this.lastServer.status = HistoryServerStatus.Online;
-				} catch (e) {
-					this.lastServer.status = HistoryServerStatus.Offline;
-				}
-			} else {
-				try {
-					this.lastServer.server = await this.gameService.queryAddress(
-						this.serversService.parseAddress(this.lastServer.historyEntry.address),
-					);
 
-					this.lastServer.status = HistoryServerStatus.Online;
+					done();
+					return;
 				} catch (e) {
 					this.lastServer.status = HistoryServerStatus.Offline;
 				}
 			}
 
-			this.changeDetectorRef.markForCheck();
+			try {
+				this.lastServer.server = await this.gameService.queryAddress(
+					this.serversService.parseAddress(this.lastServer.historyEntry.address),
+				);
+
+				this.lastServer.status = HistoryServerStatus.Online;
+			} catch (e) {
+				this.lastServer.status = HistoryServerStatus.Offline;
+			}
+
+			done();
 		}
 	}
 
@@ -232,7 +249,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 	}
 
 	connectToLocal() {
-		(<any>window).invokeNative('connectTo', '127.0.0.1:' + (this.localhostPort || '30120'));
+		(<any>window).invokeNative('connectTo', (this.localhostName || '127.0.0.1') + ':' + (this.localhostPort || '30120'));
 	}
 
 	attemptConnectTo(entry: HistoryServer) {

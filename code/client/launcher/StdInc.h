@@ -9,7 +9,22 @@
 #include "../shared/StdInc.h"
 #endif
 
-int DL_RequestURL(const char* url, char* buffer, size_t bufSize);
+#if !defined(COMPILING_GLUE)
+struct HttpIgnoreCaseLess
+{
+	inline bool operator()(const std::string& left, const std::string& right) const
+	{
+		return _stricmp(left.c_str(), right.c_str()) < 0;
+	}
+};
+
+using HttpHeaderList = std::map<std::string, std::string, HttpIgnoreCaseLess>;
+using HttpHeaderListPtr = std::shared_ptr<HttpHeaderList>;
+#else
+#include <HttpClient.h>
+#endif
+
+int DL_RequestURL(const char* url, char* buffer, size_t bufSize, HttpHeaderListPtr responseHeaders = {});
 const char* DL_RequestURLError();
 
 // bootstrapper functions
@@ -42,7 +57,7 @@ const char* GetUpdateChannel();
 
 #include <array>
 
-bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::array<uint8_t, 20>>& validHashes, uint64_t* fileStart, uint64_t fileTotal, std::array<uint8_t, 20>* foundHash = nullptr);
+bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::array<uint8_t, 20>>& validHashes, uint64_t* fileStart, uint64_t fileTotal, std::array<uint8_t, 20>* foundHash = nullptr, size_t checkSize = -1);
 
 #include "LauncherConfig.h"
 
@@ -82,6 +97,10 @@ bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::arr
 #ifdef LAUNCHER_PERSONALITY_GAME_1311
 #define LAUNCHER_PERSONALITY_GAME
 #elif defined(LAUNCHER_PERSONALITY_GAME_1355)
+#define LAUNCHER_PERSONALITY_GAME
+#endif
+#elif defined(GTA_NY)
+#ifdef LAUNCHER_PERSONALITY_GAME_43
 #define LAUNCHER_PERSONALITY_GAME
 #endif
 #endif

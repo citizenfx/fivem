@@ -98,7 +98,7 @@
 				if not opensslimpl.library_excluded(cfg, libname, "crypto/") then
 					if string.sub(libname, 0, 6) == "crypto"  or libname == "" then
 						for _, filename in ipairs(desc.source) do
-							if filename:match('%.s$') then
+							if filename:match('%.s$') and _OPTIONS["game"] ~= "ny" then
 								files {
 									'vendor/openssl/asm/' .. libname .. '/' .. filename:gsub('%.s$', '.asm')
 								}
@@ -141,7 +141,7 @@
 				if libname == "ssl" or libname == "crypto"  or libname == "" then
 					if libname == "ssl" then
 						for _, filename in ipairs(desc.source) do
-							if filename:match('%.s$') then
+							if filename:match('%.s$') and _OPTIONS["game"] ~= "ny" then
 								files {
 									'vendor/openssl/asm/' .. libname .. '/' .. filename:gsub('%.s$', '.asm')
 								}
@@ -219,8 +219,10 @@
 			keccak1600_asm_src	= "keccak1600-x86_64.s",
 		}
 		
-		for k, v in pairs(other_templates) do
-			opensslimpl.templates[k] = v
+		if  _OPTIONS["game"] ~= "ny" then
+			for k, v in pairs(other_templates) do
+				opensslimpl.templates[k] = v
+			end
 		end
 		
 		opensslimpl.format_templates = function(line)
@@ -241,30 +243,33 @@
 					"OPENSSL_SYSNAME_WIN32",
 					"OPENSSL_NO_EC_NISTP_64_GCC_128",
 					"OPENSSLDIR=\"C:\\Program Files\\Common Files\\SSL\"",
-					
-					--'AES_ASM',
-					'CPUID_ASM',
-					'OPENSSL_BN_ASM_MONT',
-					'OPENSSL_CPUID_OBJ',
-					'SHA1_ASM',
-					'SHA256_ASM',
-					'SHA512_ASM',
-					'GHASH_ASM',
-
-					'VPAES_ASM',
-					'BN_ASM',
-					'BF_ASM',
-					'BNCO_ASM',
-					'DES_ASM',
-					'LIB_BN_ASM',
-					'MD5_ASM',
-					'OPENSSL_BN_ASM',
-					'RIP_ASM',
-					'RMD160_ASM',
-					'WHIRLPOOL_ASM',
-					'WP_ASM',
-
 				}
+
+				if _OPTIONS["game"] ~= "ny" then
+					defines {
+						--'AES_ASM',
+						'CPUID_ASM',
+						'OPENSSL_BN_ASM_MONT',
+						'OPENSSL_CPUID_OBJ',
+						'SHA1_ASM',
+						'SHA256_ASM',
+						'SHA512_ASM',
+						'GHASH_ASM',
+
+						'VPAES_ASM',
+						'BN_ASM',
+						'BF_ASM',
+						'BNCO_ASM',
+						'DES_ASM',
+						'LIB_BN_ASM',
+						'MD5_ASM',
+						'OPENSSL_BN_ASM',
+						'RIP_ASM',
+						'RMD160_ASM',
+						'WHIRLPOOL_ASM',
+						'WP_ASM',
+					}
+				end
 
 			filter {"architecture:x32 or architecture:x64"}
 				defines {

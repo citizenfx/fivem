@@ -184,6 +184,12 @@ namespace hook
 		{
 			Initialize(pattern, Len);
 		}
+
+		module_pattern(void* module, std::string_view p)
+			: pattern(module)
+		{
+			Initialize(p.data(), p.size());
+		}
 	};
 
 	class range_pattern
@@ -195,6 +201,12 @@ namespace hook
 			: pattern(begin, end)
 		{
 			Initialize(pattern, Len);
+		}
+
+		range_pattern(uintptr_t begin, uintptr_t end, std::string_view p)
+			: pattern(begin, end)
+		{
+			Initialize(p.data(), p.size());
 		}
 	};
 

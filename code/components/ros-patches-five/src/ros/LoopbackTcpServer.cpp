@@ -537,7 +537,7 @@ void LoopbackTcpServerManager::TriggerSocketEvent(SOCKET socket, long event, siz
 			{
 				auto& readEvent = readIt->second;
 
-				Recv(socket, reinterpret_cast<char*>(std::get<void*>(readEvent)), std::get<size_t>(readEvent), 0, reinterpret_cast<int*>(std::get<size_t*>(readEvent)));
+				Recv(socket, reinterpret_cast<char*>(std::get<void*>(readEvent)), std::get<size_t>(readEvent), 0, reinterpret_cast<int*>(std::get<ULONG_PTR*>(readEvent)));
 
 				m_threadpoolReadRequests.erase(readIt);
 			}
@@ -598,7 +598,7 @@ void LoopbackTcpServerManager::SetThreadpoolIo(SOCKET s, DWORD mask, LPOVERLAPPE
 
 void LoopbackTcpServerManager::SetThreadpoolRecv(SOCKET s, LPOVERLAPPED overlapped, void* outBuffer, size_t outSize)
 {
-	m_threadpoolReadRequests[s] = std::tuple<void*, size_t, size_t*>{ outBuffer, outSize, &overlapped->InternalHigh };
+	m_threadpoolReadRequests[s] = std::tuple<void*, size_t, ULONG_PTR*>{ outBuffer, outSize, &overlapped->InternalHigh };
 	m_threadpoolIoCallbacks[{s, FD_READ}] = overlapped;
 }
 
@@ -1162,7 +1162,7 @@ static BOOL __stdcall EP_CallbackMayRunLong(PTP_CALLBACK_INSTANCE cb)
 
 #include <EnvironmentBlockHelpers.h>
 
-static BOOL(*g_oldCreateProcessW)(const wchar_t* applicationName, wchar_t* commandLine, SECURITY_ATTRIBUTES* processAttributes, SECURITY_ATTRIBUTES* threadAttributes,
+static BOOL(__stdcall *g_oldCreateProcessW)(const wchar_t* applicationName, wchar_t* commandLine, SECURITY_ATTRIBUTES* processAttributes, SECURITY_ATTRIBUTES* threadAttributes,
 								  BOOL inheritHandles, DWORD creationFlags, void* environment, const wchar_t* currentDirectory, STARTUPINFOW* startupInfo,
 								  PROCESS_INFORMATION* information);
 
@@ -1668,7 +1668,7 @@ static HANDLE __stdcall CreateFileAStub(
 {
 	if (strcmp(lpFileName, PIPE_NAME_NARROW) == 0)
 	{
-		trace("^2Opening GTAVLauncher_Pipe, waiting for launcher to load...\n");
+		trace("^2Opening %s, waiting for launcher to load...\n", PIPE_NAME_NARROW);
 
 		lpFileName = va("%s%s", lpFileName, IsCL2() ? "_CL2" : "");
 
@@ -1676,7 +1676,7 @@ static HANDLE __stdcall CreateFileAStub(
 
 		trace("^2Launcher gave all-clear - waiting for pipe.\n");
 
-		WaitNamedPipeA(lpFileName, INFINITE);
+		WaitNamedPipeA(lpFileName, NMPWAIT_WAIT_FOREVER);
 
 		trace("^2Launcher is fine, continuing to initialize!\n");
 	}
@@ -1685,10 +1685,11 @@ static HANDLE __stdcall CreateFileAStub(
 		lpFileName = va("\\\\.\\pipe\\MTLService_Pipe_CFX%s", IsCL2() ? "_CL2" : "");
 	}
 
+	
 	return g_oldCreateFileA(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
 }
 
-HANDLE CreateNamedPipeAHookL(_In_ LPCSTR lpName, _In_ DWORD dwOpenMode, _In_ DWORD dwPipeMode, _In_ DWORD nMaxInstances, _In_ DWORD nOutBufferSize, _In_ DWORD nInBufferSize, _In_ DWORD nDefaultTimeOut, _In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes)
+HANDLE _stdcall CreateNamedPipeAHookL(_In_ LPCSTR lpName, _In_ DWORD dwOpenMode, _In_ DWORD dwPipeMode, _In_ DWORD nMaxInstances, _In_ DWORD nOutBufferSize, _In_ DWORD nInBufferSize, _In_ DWORD nDefaultTimeOut, _In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes)
 {
 	if (strcmp(lpName, PIPE_NAME_NARROW) == 0)
 	{
@@ -1698,9 +1699,9 @@ HANDLE CreateNamedPipeAHookL(_In_ LPCSTR lpName, _In_ DWORD dwOpenMode, _In_ DWO
 	return CreateNamedPipeA(lpName, dwOpenMode, dwPipeMode, nMaxInstances, nOutBufferSize, nInBufferSize, nDefaultTimeOut, lpSecurityAttributes);
 }
 
-static HANDLE(*g_oldOpenFileMappingA)(_In_ DWORD dwDesiredAccess, _In_ BOOL bInheritHandle, _In_ LPCSTR lpName);
+static HANDLE(__stdcall *g_oldOpenFileMappingA)(_In_ DWORD dwDesiredAccess, _In_ BOOL bInheritHandle, _In_ LPCSTR lpName);
 
-static HANDLE OpenFileMappingAStub(_In_ DWORD dwDesiredAccess, _In_ BOOL bInheritHandle, _In_ LPCSTR lpName)
+static HANDLE __stdcall OpenFileMappingAStub(_In_ DWORD dwDesiredAccess, _In_ BOOL bInheritHandle, _In_ LPCSTR lpName)
 {
 	if (lpName && strstr(lpName, "MTLService_FileMapping"))
 	{
@@ -1710,7 +1711,7 @@ static HANDLE OpenFileMappingAStub(_In_ DWORD dwDesiredAccess, _In_ BOOL bInheri
 	return g_oldOpenFileMappingA(dwDesiredAccess, bInheritHandle, lpName);
 }
 
-static BOOL(*g_oldWriteFile)(_In_ HANDLE hFile, _In_reads_bytes_opt_(nNumberOfBytesToWrite) LPCVOID lpBuffer, _In_ DWORD nNumberOfBytesToWrite, _Out_opt_ LPDWORD lpNumberOfBytesWritten, _Inout_opt_ LPOVERLAPPED lpOverlapped);
+static BOOL(__stdcall *g_oldWriteFile)(_In_ HANDLE hFile, _In_reads_bytes_opt_(nNumberOfBytesToWrite) LPCVOID lpBuffer, _In_ DWORD nNumberOfBytesToWrite, _Out_opt_ LPDWORD lpNumberOfBytesWritten, _Inout_opt_ LPOVERLAPPED lpOverlapped);
 
 static BOOL __stdcall WriteFileStub(_In_ HANDLE hFile, _In_reads_bytes_opt_(nNumberOfBytesToWrite) LPCVOID lpBuffer, _In_ DWORD nNumberOfBytesToWrite, _Out_opt_ LPDWORD lpNumberOfBytesWritten, _Inout_opt_ LPOVERLAPPED lpOverlapped)
 {
@@ -1756,10 +1757,12 @@ void OnPreInitHook()
 	DO_HOOK(L"ws2_32.dll", "GetAddrInfoExW", EP_GetAddrInfoExW, g_oldGetAddrInfoExW);
 //	DO_HOOK(L"ws2_32.dll", "FreeAddrInfoW", EP_FreeAddrInfoW, g_oldFreeAddrInfoW); // these three are hook-checked
 
+#ifndef _M_IX86
 	if (CfxIsWine() || GetProcAddress(GetModuleHandle(L"kernel32.dll"), "EnterUmsSchedulingMode") == nullptr) // ARM64X 21277 doesn't expose EnterUmsSchedulingMode
 	{
 		DO_HOOK(L"ws2_32.dll", "getaddrinfo", EP_GetAddrInfo, g_oldGetAddrInfo); // enabled because wine, probably going to fail
 	}
+#endif
 
 //	DO_HOOK(L"ws2_32.dll", "freeaddrinfo", EP_FreeAddrInfo, g_oldFreeAddrInfo);
  	DO_HOOK(L"ws2_32.dll", "WSALookupServiceBeginW", EP_WSALookupServiceBeginW, g_oldLookupService);

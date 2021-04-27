@@ -2,4 +2,6 @@ natives_*.lua
 natives_*.zip
 rdr3_*.lua
 rdr3_*.zip
+ny_*.lua
+ny*.zip
 natives_gta/

@@ -176,11 +176,17 @@ static InitFunction initFunction([]()
 	{
 		if (arguments.size() == 1)
 		{
+			// "x", "X", "y", "Y"
 			if (arguments[0]->IsString())
 			{
 				auto charString = arguments[0]->GetStringValue();
-				
 				rgd->inputChar = charString.c_str()[0];
+			} 
+			// big keys in JS are processed as "BackSpace", "Shift", "Alt", ... The charcode is sent instead in this case.
+			else
+			{
+				auto charCode = arguments[0]->GetIntValue();
+				rgd->inputChar = (wchar_t)charCode;
 			}
 		}
 

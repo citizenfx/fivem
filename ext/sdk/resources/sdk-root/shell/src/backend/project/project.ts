@@ -38,7 +38,7 @@ import {
 import { debounce, getResourceConfig, notNull } from 'shared/utils';
 import { ContributionProvider } from 'backend/contribution-provider';
 import { AssetManagerContribution } from './asset/asset-manager-contribution';
-import { GameServerService, ServerStartRequest } from 'backend/game-server/game-server-service';
+import { GameServerService } from 'backend/game-server/game-server-service';
 import { FsJsonFileMapping, FsJsonFileMappingOptions } from 'backend/fs/fs-json-file-mapping';
 import { FsMapping } from 'backend/fs/fs-mapping';
 import { ChangeAwareContainer } from 'backend/change-aware-container';
@@ -51,9 +51,9 @@ import { AssetImporterType, AssetMeta, assetMetaFileExt, AssetType } from 'share
 import { AssetImporterContribution } from './asset/asset-importer-contribution';
 import { AssetInterface } from './asset/asset-types';
 import { ProjectData, ProjectManifest, ProjectManifestResource, ProjectPathsState, ProjectResources } from 'shared/project.types';
-import { isAssetMetaFile, stripAssetMetaExt } from 'utils/project';
+import { isAssetMetaFile, isChildAssetPath, isParentAssetPath, stripAssetMetaExt } from 'utils/project';
 import { ProjectUpgrade } from './project-upgrade';
-import { ProjectResourcesMaintainer } from './project-resources-maintainer';
+import { ServerStartRequest } from 'backend/game-server/game-server-runtime';
 
 interface Silentable {
   silent?: boolean,
@@ -118,9 +118,6 @@ export class Project implements ApiContribution {
 
   @inject(FsMapping)
   public readonly fsMapping: FsMapping;
-
-  @inject(ProjectResourcesMaintainer)
-  protected readonly resourcesMaintainer: ProjectResourcesMaintainer;
 
   private state: ProjectState = ProjectState.Development;
 
@@ -370,7 +367,7 @@ export class Project implements ApiContribution {
   private async initFs() {
     this.log('Initializing project fs...');
 
-    this.fsMapping.setShouldProcessUpdate((type, path) => path !== this.manifestPath);
+    this.fsMapping.setShouldProcessUpdate((path) => path !== this.manifestPath);
     this.fsMapping.setEntryMetaExtras({
       assetMeta: (entryPath: string) => this.getAssetMeta(entryPath, { silent: true }),
     });
@@ -381,14 +378,18 @@ export class Project implements ApiContribution {
       this.gcManifestResources();
 
       // Now notify related assets
-      for (const asset of this.findAssetsForPath(updatedPath)) {
-        asset.onFsUpdate(updateType, updatedEntry);
+      for (const asset of this.findAssetWithParents(updatedPath)) {
+        asset.onFsUpdate(updateType, updatedEntry, updatedPath);
       }
     });
 
-    this.fsMapping.setOnUnlink((entryPath) => this.releaseAsset(entryPath));
+    this.fsMapping.setOnDeleted((entryPath) => {
+      this.releaseAssetWithChildren(entryPath);
+    });
 
-    this.fsMapping.setOnUnlinkDir((entryPath) => this.releaseAsset(entryPath));
+    this.fsMapping.setOnRenamed((entry, oldEntryPath) => {
+      this.releaseAssetWithChildren(oldEntryPath);
+    });
 
     await this.fsMapping.init(this.path, this.storagePath);
   }
@@ -601,7 +602,7 @@ export class Project implements ApiContribution {
     const { newAssetName, assetPath } = request;
     const oldAssetName = this.fsService.basename(request.assetPath);
 
-    await this.releaseAsset(assetPath);
+    await this.releaseAssetWithChildren(assetPath);
 
     const resourceConfig = this.getManifest().resources[oldAssetName];
     if (resourceConfig) {
@@ -644,7 +645,7 @@ export class Project implements ApiContribution {
       return AssetDeleteResponse.Ok;
     }
 
-    await this.releaseAsset(assetPath);
+    await this.releaseAssetWithChildren(assetPath);
 
     try {
       if (request.hardDelete) {
@@ -676,14 +677,23 @@ export class Project implements ApiContribution {
     }
   }
 
-  private async releaseAsset(assetPath: string) {
+  async releaseAsset(assetPath: string) {
     const asset = this.assets.get(assetPath);
     if (!asset) {
       return;
     }
 
+    this.logService.log(`Releasing ${assetPath}`);
+
     this.assets.delete(assetPath);
     await asset.dispose?.();
+  }
+
+  private async releaseAssetWithChildren(entryPath: string) {
+    for (const asset of this.findAssetWithChildren(entryPath)) {
+      this.assets.delete(asset.getPath());
+      await asset.dispose?.();
+    }
   }
 
   //#endregion assets
@@ -703,7 +713,7 @@ export class Project implements ApiContribution {
       return DeleteDirectoryResponse.Ok;
     }
 
-    await this.releaseAsset(directoryPath);
+    await this.releaseAssetWithChildren(directoryPath);
 
     try {
       if (hardDelete) {
@@ -731,7 +741,7 @@ export class Project implements ApiContribution {
   async renameDirectory({ directoryPath, newDirectoryName }: ProjectRenameDirectoryRequest) {
     const newDirectoryPath = this.fsService.joinPath(this.fsService.dirname(directoryPath), newDirectoryName);
 
-    await this.releaseAsset(directoryPath);
+    await this.releaseAssetWithChildren(directoryPath);
     await this.fsService.rename(directoryPath, newDirectoryPath);
   }
   // /Directory methods
@@ -850,29 +860,36 @@ export class Project implements ApiContribution {
     });
   }, 100);
 
-  private *findAssetsForPath(entryPath: string): IterableIterator<AssetInterface> {
+  private *findAssetWithChildren(entryPath: string): IterableIterator<AssetInterface> {
     for (const [assetPath, asset] of this.assets.entries()) {
-      if (entryPath.indexOf(assetPath) !== 0) {
+      if (assetPath === entryPath) {
+        yield asset;
         continue;
       }
 
-      // Distinguish /a/b/cc from /a/b/c assetPath for entryPath like /a/b/cc/test.txt
-      // as it effectively starts with /a/b/c as well as /a/b/cc but /a/b/c is wrong asset
-      // if paths lengths are equal - no need for additional check
-      if (assetPath.length !== entryPath.length) {
-        const nextChar = entryPath.charAt(assetPath.length);
+      if (isChildAssetPath(entryPath, assetPath)) {
+        yield asset;
+      }
+    }
+  }
 
-        // if entry's next char after matching asset path isn't path separator - wrong asset
-        if (nextChar !== '/' && nextChar !== '\\') {
-          continue;
-        }
+  private *findAssetWithParents(entryPath: string): IterableIterator<AssetInterface> {
+    for (const [assetPath, asset] of this.assets.entries()) {
+      if (assetPath === entryPath) {
+        yield asset;
+        continue;
       }
 
-      yield asset;
+      if (isParentAssetPath(entryPath, assetPath)) {
+        yield asset;
+      }
     }
   }
 
   private refreshEnabledResources() {
-    this.resourcesMaintainer.refreshEnabledResources();
+    this.gameServerService.setResources(this.getEnabledResourcesAssets().map((asset) => ({
+      name: asset.getName(),
+      path: asset.getPath(),
+    })));
   }
 }

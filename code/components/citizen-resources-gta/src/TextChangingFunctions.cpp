@@ -29,6 +29,7 @@ static bool AddTextEntryForResource(fx::Resource* resource, uint32_t hashKey, co
 	if (it == g_owners.end())
 	{
 		g_owners.insert({ hashKey, resource->GetName() });
+
 		game::AddCustomText(hashKey, textValue);
 
 		// on-stop handler, as well, to remove from the list when the resource stops
@@ -37,7 +38,6 @@ static bool AddTextEntryForResource(fx::Resource* resource, uint32_t hashKey, co
 			if (g_owners[hashKey] == resource->GetName())
 			{
 				game::RemoveCustomText(hashKey);
-
 				g_owners.erase(hashKey);
 			}
 		});

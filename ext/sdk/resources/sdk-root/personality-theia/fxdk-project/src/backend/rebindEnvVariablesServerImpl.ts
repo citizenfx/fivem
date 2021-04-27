@@ -5,8 +5,6 @@ import { injectable, interfaces } from 'inversify';
 import { EnvVariable, EnvVariablesServer } from '@theia/core/lib/common/env-variables';
 import { FileUri } from '@theia/core/lib/node/file-uri';
 
-// process.env['VSCODE_API_VERSION'] = '1.52.0';
-
 const invariant = (s: string | void, err: string) => {
   if (!s) {
     throw new Error(err);

@@ -27,6 +27,8 @@
 
 #include <concurrent_queue.h>
 
+bool IsNonProduction();
+
 DLL_EXPORT console::Context* g_customConsoleContext;
 
 console::Context* GetConsoleContext()
@@ -263,10 +265,12 @@ struct CfxBigConsole : FiveMConsoleBase
 
 	void Draw(const char* title, bool* p_open) override
 	{
+#ifndef IS_FXSERVER
 		if (GetKeyState(VK_CONTROL) & 0x8000 && GetKeyState(VK_MENU) & 0x8000)
 		{
 			return;
 		}
+#endif
 
 		ImGui::SetNextWindowPos(ImVec2(ImGui::GetMainViewport()->Pos.x + 0, ImGui::GetMainViewport()->Pos.y + g_menuHeight));
 		ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, 
@@ -283,7 +287,8 @@ struct CfxBigConsole : FiveMConsoleBase
 			ImGuiWindowFlags_NoScrollbar |
 			ImGuiWindowFlags_NoMove |
 			ImGuiWindowFlags_NoResize |
-			ImGuiWindowFlags_NoSavedSettings;
+			ImGuiWindowFlags_NoSavedSettings | 
+			ImGuiWindowFlags_NoBringToFrontOnFocus;
 
 		if (!ImGui::Begin(title, nullptr, flags))
 		{
@@ -345,6 +350,7 @@ struct CfxBigConsole : FiveMConsoleBase
 		ImGui::Separator();
 
 		// Command-line
+		ImGui::PushItemWidth(-1.0f);
 		if (ImGui::InputText("_", InputBuf, _countof(InputBuf), ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CallbackCompletion | ImGuiInputTextFlags_CallbackHistory, &TextEditCallbackStub, (void*)this))
 		{
 			char* input_end = InputBuf + strlen(InputBuf);
@@ -353,6 +359,7 @@ struct CfxBigConsole : FiveMConsoleBase
 				ExecCommand(InputBuf);
 			strcpy(InputBuf, "");
 		}
+		ImGui::PopItemWidth();
 
 		// Demonstrate keeping auto focus on the input box
 		if (ImGui::IsItemHovered() || (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && !ImGui::IsAnyItemActive() && !ImGui::IsMouseClicked(0)))
@@ -424,9 +431,25 @@ struct CfxBigConsole : FiveMConsoleBase
 			// Build a list of candidates
 			std::set<std::string> candidates;
 
+			auto hasAccess = [](const std::string& command)
+			{
+				if (IsNonProduction())
+				{
+					return true;
+				}
+
+				se::ScopedPrincipalReset reset;
+				se::ScopedPrincipal principal{
+					se::Principal{
+					"system.extConsole" }
+				};
+
+				return seCheckPrivilege(fmt::sprintf("command.%s", command));
+			};
+
 			GetConsoleContext()->GetCommandManager()->ForAllCommands([&](const std::string& command)
 			{
-				if (Strnicmp(command.c_str(), word_start, (int)(word_end - word_start)) == 0)
+				if (Strnicmp(command.c_str(), word_start, (int)(word_end - word_start)) == 0 && hasAccess(command))
 				{
 					candidates.insert(command);
 				}
@@ -434,7 +457,7 @@ struct CfxBigConsole : FiveMConsoleBase
 
 			console::GetDefaultContext()->GetCommandManager()->ForAllCommands([&](const std::string& command)
 			{
-				if (Strnicmp(command.c_str(), word_start, (int)(word_end - word_start)) == 0)
+				if (Strnicmp(command.c_str(), word_start, (int)(word_end - word_start)) == 0 && hasAccess(command))
 				{
 					candidates.insert(command);
 				}
@@ -529,12 +552,32 @@ struct CfxBigConsole : FiveMConsoleBase
 
 		while (CommandQueue.try_pop(command_line))
 		{
-			se::ScopedPrincipal scope(se::Principal{ "system.console" });
+			se::ScopedPrincipal scope(se::Principal{ (IsNonProduction()) ? "system.console" : "system.extConsole" });
 
 			GetConsoleContext()->AddToBuffer(command_line);
 			GetConsoleContext()->AddToBuffer("\n");
 			GetConsoleContext()->ExecuteBuffer();
 		}
+	}
+
+	virtual bool FilterLog(const std::string& channel) override
+	{
+		if (IsNonProduction())
+		{
+			return true;
+		}
+
+		if (channel == "script:game:nui")
+		{
+			return false;
+		}
+
+		if (channel == "cmd")
+		{
+			return true;
+		}
+
+		return channel.find("script:") == 0;
 	}
 };
 
@@ -714,6 +757,26 @@ static void EnsureConsoles()
 	}
 }
 
+bool IsNonProduction()
+{
+#if !defined(GTA_FIVE) || defined(_DEBUG)
+	return true;
+#else
+	static ConVar<int> moo("moo", ConVar_None, 0);
+
+	static auto isProd = ([]()
+	{
+		wchar_t resultPath[1024];
+		static std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+		GetPrivateProfileString(L"Game", L"UpdateChannel", L"production", resultPath, std::size(resultPath), fpath.c_str());
+
+		return _wcsicmp(resultPath, L"production") == 0 || _wcsicmp(resultPath, L"prod") == 0;
+	})();
+
+	return !isProd || moo.GetValue() == 31337;
+#endif
+}
+
 void DrawConsole()
 {
 	EnsureConsoles();
@@ -831,6 +894,14 @@ static InitFunction initFunction([]()
 		}
 	}, 999);
 
-	OnGameFrame.Connect([] { RunConsoleGameFrame(); });
+	OnCriticalGameFrame.Connect([] { RunConsoleGameFrame(); });
 });
 #endif
+
+static InitFunction initFunctionCon([]()
+{
+	for (auto& command : { "connect", "quit", "cl_drawFPS", "bind", "rbind", "unbind", "disconnect", "storymode", "loadlevel", "cl_drawPerf" })
+	{
+		seGetCurrentContext()->AddAccessControlEntry(se::Principal{ "system.extConsole" }, se::Object{ fmt::sprintf("command.%s", command) }, se::AccessType::Allow);
+	}
+});

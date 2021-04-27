@@ -56,7 +56,7 @@ static CURL* curl_easy_init_cfx()
 
 	if (curlHandle)
 	{
-		curl_easy_setopt(curlHandle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+		curl_easy_setopt(curlHandle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2TLS);
 		curl_easy_setopt(curlHandle, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2 | CURL_SSLVERSION_MAX_TLSv1_2);
 
 		static mbedtls_x509_crt cacert;
@@ -161,7 +161,7 @@ void CL_QueueDownload(const char* url, const char* file, int64_t size, bool comp
 	{
 		for (int i = 0; i <= 9; i++)
 		{
-			CL_QueueDownload(va("https://mirrors.fivem.net/emergency_mirror/GTAV1604.exe%02d", i), va("%s.%d", file, i), i == 9 ? 87584200 : 104857600, false, 1);
+			CL_QueueDownload(va("https://content.cfx.re/mirrors/emergency_mirror/GTAV1604.exe%02d", i), va("%s.%d", file, i), i == 9 ? 87584200 : 104857600, false, 1);
 		}
 
 		return;
@@ -941,7 +941,32 @@ static struct CurlInit
 	}
 } curlInit;
 
-int DL_RequestURL(const char* url, char* buffer, size_t bufSize)
+static size_t CurlHeaderInfo(char* buffer, size_t size, size_t nitems, void* userdata)
+{
+	auto cdPtr = reinterpret_cast<HttpHeaderList*>(userdata);
+
+	if (cdPtr)
+	{
+		std::string str(buffer, size * nitems);
+
+		// reset HTTP headers if we followed a Location and got a new HTTP response
+		if (str.find("HTTP/") == 0)
+		{
+			cdPtr->clear();
+		}
+
+		auto colonPos = str.find(": ");
+
+		if (colonPos != std::string::npos)
+		{
+			cdPtr->emplace(str.substr(0, colonPos), str.substr(colonPos + 2, str.length() - 2 - colonPos - 2));
+		}
+	}
+
+	return size * nitems;
+}
+
+int DL_RequestURL(const char* url, char* buffer, size_t bufSize, HttpHeaderListPtr responseHeaders)
 {
 	CURL* curl = curl_easy_init_cfx();
 
@@ -964,6 +989,12 @@ int DL_RequestURL(const char* url, char* buffer, size_t bufSize)
 		{
 			curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
 			curl_easy_setopt(curl, CURLOPT_DEBUGFUNCTION, DL_CurlDebug);
+		}
+
+		if (responseHeaders)
+		{
+			curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, CurlHeaderInfo);
+			curl_easy_setopt(curl, CURLOPT_HEADERDATA, responseHeaders.get());
 		}
 
 		CURLcode code = curl_easy_perform(curl);

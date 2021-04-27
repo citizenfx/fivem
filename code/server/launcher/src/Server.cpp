@@ -41,6 +41,7 @@ namespace fx
 		}
 
 		std::string argStr = args.str();
+		bool isFxdkMode = false;
 
 		// get the right component
 		auto compName = "citizen:server:main";
@@ -50,10 +51,23 @@ namespace fx
 			compName = "citizen:server:monitor";
 		}
 
+#ifdef _WIN32
+		if (argStr.find("-fxdk") != std::string::npos)
+		{
+			isFxdkMode = true;
+			compName = "citizen:server:fxdk";
+		}
+#endif
+
 		fwRefContainer<ComponentData> serverComponent = loader->LoadComponent(compName);
 
 		ComponentLoader::GetInstance()->ForAllComponents([&](fwRefContainer<ComponentData> componentData)
 		{
+			if (isFxdkMode && componentData->GetName() == "svadhesive")
+			{
+				return;
+			}
+
 			for (auto& instance : componentData->GetInstances())
 			{
 				instance->SetCommandLine(argc, argv);

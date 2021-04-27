@@ -104,15 +104,23 @@ public:
 			// NETWORK_IS_SESSION_ACTIVE (NETWORK_IS_SESSION_STARTED in redm always return false)
 			constexpr const auto sessionActve = 0xD83C2B94E7508980;
 #endif
-			
+#ifdef GTA_FIVE		
 			if (!NativeInvoke::Invoke<sessionActve, bool>())
 			{
-#ifdef GTA_FIVE
-				color = CRGBA(200, 0, 0, 180);
-				TheFonts->DrawRectangle(rect, color);
-#endif
+
+				static auto icgi = Instance<ICoreGameInit>::Get();
+
+				if (!icgi->HasVariable("storyMode"))
+				{
+					color = CRGBA(200, 0, 0, 180);
+					TheFonts->DrawRectangle(rect, color);
+				}
+
 			}
 			else
+#elif defined(IS_RDR3)
+if (NativeInvoke::Invoke<sessionActve, bool>())
+#endif
 			{
 				auto steam = GetSteam();
 

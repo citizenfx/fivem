@@ -255,6 +255,6 @@ static HookFunction initFunction([] ()
 		return true;
 	}, -100);
 
-	CefRegisterSchemeHandlerFactory("http", "nui-internal", Instance<NUISchemeHandlerFactory>::Get());
-	CefRegisterSchemeHandlerFactory("https", "nui-internal", Instance<NUISchemeHandlerFactory>::Get());
+	nui::RegisterSchemeHandlerFactory("http", "nui-internal", Instance<NUISchemeHandlerFactory>::Get());
+	nui::RegisterSchemeHandlerFactory("https", "nui-internal", Instance<NUISchemeHandlerFactory>::Get());
 });

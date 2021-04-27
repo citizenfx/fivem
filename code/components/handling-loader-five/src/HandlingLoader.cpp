@@ -9,6 +9,7 @@
 #include <ScriptEngine.h>
 #include <atArray.h>
 
+#include <jitasm.h>
 #include <Hooking.h>
 
 #include <HandlingLoader.h>

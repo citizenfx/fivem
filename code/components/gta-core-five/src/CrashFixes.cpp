@@ -6,6 +6,8 @@
  */
 
 #include <StdInc.h>
+
+#include <jitasm.h>
 #include <Hooking.h>
 
 #include <Error.h>
@@ -1004,6 +1006,10 @@ static HookFunction hookFunction{[] ()
 	{
 		hook::put<uint16_t>(hook::get_pattern("FF C8 0F 84 85 00 00 00 83 E8 12 75 6A", 13), 0x7EEB);
 	}
+	else
+	{
+		hook::put<uint16_t>(hook::get_pattern("83 E8 12 75 6A 48 8B 03 48 8B CB", 5), 0x76EB);
+	}
 
 	// vehicles.meta explosionInfo field invalidity
 	MH_Initialize();
@@ -1123,6 +1129,9 @@ static HookFunction hookFunction{[] ()
 		hook::set_call(&g_origPoolInit, location);
 		hook::call(location, PoolInitX<3>);
 	}
+
+	// unloading crash: CConditionalAnimManager::ShutdownSession double-free
+	hook::nop(hook::get_pattern("74 08 41 8B D6 E8 ? ? ? ? 44 8B 07 EB 15", 5), 5);
 
 	// validate dlDrawListMgr cloth entries on flush
 	MH_CreateHook(hook::get_pattern("66 44 3B A9 50 06 00 00 0F 83", -0x25), CDrawListMgr_ClothCleanup, (void**)&g_origDrawListMgr_ClothFlush);

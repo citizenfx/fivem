@@ -102,14 +102,14 @@ workspace "CitizenMP"
 	if _OPTIONS['game'] == 'server' then
 		binroot = (_OPTIONS['bindir'] or "bin/") .. 'server/' .. os.target() .. '/'
 	end
-	
+
 	if _OPTIONS['with-asan'] then
 		toolset 'msc-llvm'
-		
+
 		libdirs { _OPTIONS['with-asan'] }
-		
+
 		links { 'clang_rt.asan_dynamic-x86_64', 'clang_rt.asan_dynamic_runtime_thunk-x86_64' }
-		
+
 		filter 'language:C or language:C++'
 			buildoptions '-mpclmul -maes -mssse3 -mavx2 -mrtm'
 			buildoptions '-fsanitize=address -fsanitize-recover=address'
@@ -131,7 +131,7 @@ workspace "CitizenMP"
 
 		-- allow one level of inlining
 		if os.istarget('windows') then
-			buildoptions '/Ob1'
+			buildoptions { '/Ob1', '/JMC-' }
 		end
 
 	-- release output
@@ -140,30 +140,40 @@ workspace "CitizenMP"
 		defines "NDEBUG"
 		optimize "Speed"
 
-	configuration "game=five"
-		defines "GTA_FIVE"
+	if _OPTIONS["game"] == "ny" then
+		filter { "configurations:Release*", "kind:SharedLib or kind:ConsoleApp or kind:WindowedApp" }
+			linkoptions "/SAFESEH:NO"
 
-		filter 'language:C or language:C++'
-			architecture 'x64'
-			
-	configuration "game=rdr3"
-		defines "IS_RDR3"
+		configuration "game=ny"
+			defines "GTA_NY"
 
-		filter 'language:C or language:C++'
-			architecture 'x64'
-			
-	configuration "game=launcher"
-		defines "IS_LAUNCHER"
+			architecture 'x86'
+	elseif _OPTIONS["game"] == "five" then
+		configuration "game=five"
+			defines "GTA_FIVE"
 
-		filter 'language:C or language:C++'
-			architecture 'x64'
+			filter 'language:C or language:C++'
+				architecture 'x64'
+	elseif _OPTIONS["game"] == "rdr3" then
+		configuration "game=rdr3"
+			defines "IS_RDR3"
+
+			filter 'language:C or language:C++'
+				architecture 'x64'
+	elseif _OPTIONS["game"] == "launcher" then
+		configuration "game=launcher"
+			defines "IS_LAUNCHER"
+
+			filter 'language:C or language:C++'
+				architecture 'x64'
+	end
 
 	configuration "windows"
 		links { "winmm" }
 
 	filter { 'system:not windows', 'language:C or language:C++' }
 		architecture 'x64'
-		
+
 		links { 'stdc++' }
 
 		buildoptions {
@@ -228,6 +238,12 @@ premake.override(premake.vstudio.vc2010, 'ignoreImportLibrary', function(base, c
 	end
 end)
 
+premake.override(premake.vstudio.vc2010, 'buildCommands', function(base, cfg, cond)
+	base(cfg, cond)
+
+	premake.vstudio.vc2010.element("BuildInParallel", cond, "true")
+end)
+
 premake.override(premake.vstudio.vc2010, 'importLanguageTargets', function(base, prj)
 	base(prj)
 
@@ -278,14 +294,14 @@ local function WriteDocumentationFileXml(_premake, _cfg)
 		))
 		_premake.w('<SignAssembly>true</SignAssembly>')
 		_premake.w('<DelaySign>true</DelaySign>')
-	
+
 		return
 	end
 
 	if _cfg.project.name ~= 'CitiMono' then
 		return
 	end
-	
+
     _premake.w('<DocumentationFile>' .. string.gsub(_cfg.buildtarget.relpath, ".dll", ".xml") .. '</DocumentationFile>')
 end
 
@@ -298,7 +314,7 @@ end)
 
 premake.override(premake.vstudio.cs2005, "targets", function(base, prj)
     base(prj)
-    
+
     if prj.name == 'CitiMono' then
 		_p(1, '<PropertyGroup>')
 		_p(2, '<GenAPITargetDir>%s</GenAPITargetDir>', path.getabsolute("client/clrref/" .. _OPTIONS['game']))
@@ -332,7 +348,7 @@ premake.override(premake.vstudio.dotnetbase, "nuGetReferences", function(base, p
 	if prj.name == 'CitiMono' then
 		return
 	end
-	
+
 	return base(prj)
 end)
 
@@ -344,15 +360,15 @@ if _OPTIONS['game'] ~= 'launcher' then
 
 		-- Missing XML comment for publicly visible type or member
 		disablewarnings 'CS1591'
-		
+
 		dotnetframework '4.6'
-		
+
 		clr 'Unsafe'
-		
+
 		csversion '7.3'
 
 		files { "client/clrcore/*.cs", "client/clrcore/Math/*.cs" }
-		
+
 		files { "../vendor/ben-demystifier/src/Ben.Demystifier/**.cs" }
 		
 		if _OPTIONS['game'] == 'five' then
@@ -361,11 +377,13 @@ if _OPTIONS['game'] ~= 'launcher' then
 			files { "client/clrcore/NativesRDR3.cs" }
 		elseif _OPTIONS['game'] == 'server' then
 			files { "client/clrcore/NativesServer.cs" }
+		elseif _OPTIONS['game'] == 'ny' then
+			files { "client/clrcore/NativesNY.cs" }
 		end
 
 		if _OPTIONS['game'] ~= 'server' then
 			defines { 'USE_HYPERDRIVE' }
-			
+
 			if _OPTIONS['game'] == 'five' then
 				files { "client/clrcore/External/*.cs" }
 			end
@@ -404,26 +422,26 @@ if _OPTIONS['game'] ~= 'launcher' then
 
 		configuration "Release*"
 			targetdir (binroot .. '/release/citizen/clr2/lib/mono/4.5/')
-			
+
 	if _OPTIONS['game'] ~= 'server' then
 		project "CitiMonoSystemDrawingStub"
 			targetname "System.Drawing"
 			language "C#"
 			kind "SharedLib"
-			
+
 			links { "CitiMono" }
-			
+
 			files {
 				"client/clrref/System.Drawing.cs"
 			}
-			
+
 			configuration "Debug*"
 				targetdir (binroot .. '/debug/citizen/clr2/lib/mono/4.5/')
 
 			configuration "Release*"
 				targetdir (binroot .. '/release/citizen/clr2/lib/mono/4.5/')
 	end
-			
+
 	if os.istarget('windows') then
 		project "CitiMonoRef"
 			if _OPTIONS['game'] == 'server' then
@@ -431,16 +449,16 @@ if _OPTIONS['game'] ~= 'launcher' then
 			else
 				targetname "CitizenFX.Core.Client"
 			end
-			
+
 			language "C#"
 			kind "SharedLib"
-			
+
 			dependson "CitiMono"
-			
+
 			dotnetframework '4.6'
 			clr 'Unsafe'
 			csversion '7.3'
-			
+
 			links { "System.dll", "System.Drawing.dll" }
 			
 			files { "client/clrref/" .. _OPTIONS['game'] .. "/CitizenFX.Core.cs" }
@@ -473,15 +491,21 @@ if _OPTIONS['game'] ~= 'server' then
 
 		flags { "NoIncrementalLink", "NoMinimalRebuild" }
 
-		includedirs { ".", "../vendor/cef" }
+		local cefRoot = "../vendor/cef/"
+
+		if _OPTIONS['game'] == 'ny' then
+			cefRoot = "../vendor/cef32/"
+		end
+
+		includedirs { ".", cefRoot }
 
 		buildoptions "/MP"
 
-		files
+		files_project(cefRoot)
 		{
-			"../vendor/cef/libcef_dll/**.cc",
-			"../vendor/cef/libcef_dll/**.cpp",
-			"../vendor/cef/libcef_dll/**.h"
+			"libcef_dll/**.cc",
+			"libcef_dll/**.cpp",
+			"libcef_dll/**.h"
 		}
 end
 

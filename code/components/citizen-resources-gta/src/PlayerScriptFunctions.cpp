@@ -8,6 +8,9 @@
 #include <StdInc.h>
 
 #include <ScriptEngine.h>
+
+// #TODOLIBERTY: counterpart?
+#if __has_include(<NetworkPlayerMgr.h>)
 #include <NetworkPlayerMgr.h>
 
 #include <CrossBuildRuntime.h>
@@ -76,3 +79,47 @@ static InitFunction initFunction([] ()
 		}
 	});
 });
+#else
+#include <CoreNetworking.h>
+#include <CPlayerInfo.h>
+
+static InitFunction initFunction([]()
+{
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_FROM_SERVER_ID", [](fx::ScriptContext& context)
+	{
+		int serverId = context.GetArgument<int>(0);
+
+		for (int i = 0; i < 32; i++)
+		{
+			auto player = CPlayerInfo::GetPlayer(i);
+
+			int netId = (player->GetGamerInfo()->peerAddress.localAddr.ip.addr & 0xFFFF) ^ 0xFEED;
+
+			if (serverId == netId)
+			{
+				context.SetResult(player);
+				return;
+			}
+		}
+
+		context.SetResult(-1);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_SERVER_ID", [](fx::ScriptContext& context)
+	{
+		int playerId = context.GetArgument<int>(0);
+		auto player = CPlayerInfo::GetPlayer(playerId);
+
+		if (player)
+		{
+			int netId = (player->GetGamerInfo()->peerAddress.localAddr.ip.addr & 0xFFFF) ^ 0xFEED;
+
+			context.SetResult(netId);
+		}
+		else
+		{
+			context.SetResult(0);
+		}
+	});
+});
+#endif

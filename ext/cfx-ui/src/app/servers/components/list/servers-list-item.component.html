@@ -34,7 +34,7 @@
     <div *ngIf="!server.data.vars?.sv_projectName" class="name" [innerHTML]="server.hostname | allowify | escape | colorize:{trust: true}"></div>
 	<div *ngIf="server.data.vars?.sv_projectName" class="name projectName">
 		<strong [innerHTML]="server.data.vars?.sv_projectName | allowify | escape | colorize:{trust: true}"></strong>
-		<span [innerHTML]="server.data.vars?.sv_projectDesc | allowify | escape"></span>
+		<span [innerHTML]="(server.data.vars?.sv_projectDesc || '') | allowify | escape"></span>
 	</div>
 
 	<div class="tags">

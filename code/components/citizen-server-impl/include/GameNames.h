@@ -6,6 +6,7 @@ namespace fx
 {
 enum class GameName
 {
+	GTA4,
 	GTA5,
 	RDR3
 };
@@ -18,6 +19,8 @@ struct ConsoleArgumentType<fx::GameName>
 	{
 		switch (input)
 		{
+		case fx::GameName::GTA4:
+			return "gta4";
 		case fx::GameName::GTA5:
 			return "gta5";
 		case fx::GameName::RDR3:
@@ -29,14 +32,19 @@ struct ConsoleArgumentType<fx::GameName>
 
 	static bool Parse(const std::string& input, fx::GameName* out)
 	{
-		if (_stricmp(input.c_str(), "rdr3") == 0)
+		if (_stricmp(input.c_str(), "gta4") == 0)
 		{
-			*out = fx::GameName::RDR3;
+			*out = fx::GameName::GTA4;
 			return true;
 		}
 		else if (_stricmp(input.c_str(), "gta5") == 0)
 		{
 			*out = fx::GameName::GTA5;
+			return true;
+		}
+		else if (_stricmp(input.c_str(), "rdr3") == 0)
+		{
+			*out = fx::GameName::RDR3;
 			return true;
 		}
 

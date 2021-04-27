@@ -6,6 +6,7 @@
  */
 
 #include "StdInc.h"
+#include "LauncherConfig.h"
 
 #ifdef LAUNCHER_PERSONALITY_GAME
 // dummy TLS variables to allocate TLS for the game to use
@@ -7117,14 +7118,12 @@ void InitializeDummies()
 
 // dummy game memory to overwrite with, well, the game
 #if defined(GTA_NY)
-#pragma bss_seg(".ctext")
-char text[EXE_TEXT_SIZE];
+#define EXE_TEXT_SIZE 0xA7181A
+#define EXE_RDATA_SIZE 0x1BCD03
+#define EXE_DATA_SIZE 0xC6B50C
 
-#pragma bss_seg(".crdata")
-char rdata[EXE_RDATA_SIZE];
-
-#pragma bss_seg(".cdata")
-char data[EXE_DATA_SIZE];
+#pragma bss_seg(".crkstr")
+char rkstr[0x000FC000 + 0x00135B4A + 0x00115D28 + 0x2000 + 0x00400000 + EXE_TEXT_SIZE + EXE_RDATA_SIZE + EXE_DATA_SIZE];
 #elif defined(PAYNE)
 #pragma bss_seg(".ctext")
 char text[0x123FC000];

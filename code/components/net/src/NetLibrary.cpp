@@ -336,20 +336,14 @@ void NetLibrary::ProcessOOB(const NetAddress& from, const char* oob, size_t leng
 
 				StripColors(hostname, cleaned, 8192);
 
-#ifdef GTA_FIVE
-				SetWindowText(FindWindow(
-#ifdef GTA_FIVE
-					L"grcWindow"
-#elif defined(IS_RDR3)
-					L"sgaWindow"
-#else
-					L"UNKNOWN_WINDOW"
-#endif
-				, nullptr), va(
+#if defined(GTA_FIVE) || defined(GTA_NY)
+				SetWindowText(FindWindow(xbr::GetGameWndClass(), nullptr), va(
 #ifdef GTA_FIVE
 					L"FiveM"
 #elif defined(IS_RDR3)
 					L"RedM"
+#elif defined(GTA_NY)
+					L"LibertyM"
 #endif
 					L" - %s", ToWide(cleaned)));
 #endif
@@ -924,6 +918,8 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 	postMap["gameName"] = "rdr3";
 #elif defined(GTA_FIVE)
 	postMap["gameName"] = "gta5";
+#elif defined(GTA_NY)
+	postMap["gameName"] = "gta4";
 #endif
 
 	static std::function<void()> performRequest;
@@ -1358,6 +1354,15 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 											if (!val.empty())
 											{
+												try
+												{
+													auto targetContext = val.substr(val.find_first_of('_') + 1);
+													m_targetContext = targetContext.substr(0, targetContext.find_first_of(':'));
+												}
+												catch (std::exception& e)
+												{
+												}
+
 												m_httpClient->DoGetRequest(fmt::sprintf("https://policy-live.fivem.net/api/policy/%s", val), [=](bool success, const char* data, size_t size)
 												{
 													std::string fact;
@@ -2020,6 +2025,16 @@ int32_t NetLibrary::GetPing()
 	if (m_impl)
 	{
 		return m_impl->GetPing();
+	}
+
+	return -1;
+}
+
+int32_t NetLibrary::GetVariance()
+{
+	if (m_impl)
+	{
+		return m_impl->GetVariance();
 	}
 
 	return -1;

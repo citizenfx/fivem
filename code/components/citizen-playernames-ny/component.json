@@ -1,0 +1,14 @@
+{
+	"name": "citizen:playernames:ny",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+		"net",
+		"citizen:resources:core",
+		"font-renderer",
+		"vendor:msgpack-c",
+		"gta:game:ny",
+		"gta:net:ny"
+	],
+	"provides": []
+}

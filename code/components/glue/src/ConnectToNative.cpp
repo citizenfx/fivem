@@ -410,6 +410,17 @@ static void UpdateJumpList(const std::vector<ServerLink>& links)
 
 void DLL_IMPORT UiDone();
 
+static void UpdatePendingAuthPayload()
+{
+	if (!g_pendingAuthPayload.empty())
+	{
+		auto pendingAuthPayload = g_pendingAuthPayload;
+		g_pendingAuthPayload = "";
+
+		HandleAuthPayload(pendingAuthPayload);
+	}
+}
+
 static InitFunction initFunction([] ()
 {
 	static std::function<void()> g_onYesCallback;
@@ -734,13 +745,13 @@ static InitFunction initFunction([] ()
 	curChannel = ToNarrow(resultPath);
 
 	static ConVar<bool> uiPremium("ui_premium", ConVar_None, false);
-	static ConVar<std::string> uiUpdateChannel("ui_updateChannel", ConVar_None, curChannel);
 
-	OnGameFrame.Connect([]()
+	static ConVar<std::string> uiUpdateChannel("ui_updateChannel", ConVar_None, curChannel,
+	[](internal::ConsoleVariableEntry<std::string>* convar)
 	{
-		if (uiUpdateChannel.GetValue() != curChannel)
+		if (convar->GetValue() != curChannel)
 		{
-			curChannel = uiUpdateChannel.GetValue();
+			curChannel = convar->GetValue();
 
 			WritePrivateProfileString(L"Game", L"UpdateChannel", ToWide(curChannel).c_str(), fpath.c_str());
 
@@ -766,7 +777,11 @@ static InitFunction initFunction([] ()
 
 	nui::OnInvokeNative.Connect([](const wchar_t* type, const wchar_t* arg)
 	{
-		if (!_wcsicmp(type, L"getMinModeInfo"))
+		if (!_wcsicmp(type, L"getFavorites"))
+		{
+			UpdatePendingAuthPayload();
+		}
+		else if (!_wcsicmp(type, L"getMinModeInfo"))
 		{
 #ifdef GTA_FIVE
 			static bool done = ([]
@@ -898,14 +913,7 @@ static InitFunction initFunction([] ()
 				netLibrary->SetPlayerName(newusername.c_str());
 			}
 
-			if (!g_pendingAuthPayload.empty())
-			{
-				auto pendingAuthPayload = g_pendingAuthPayload;
-
-				g_pendingAuthPayload = "";
-
-				HandleAuthPayload(pendingAuthPayload);
-			}
+			UpdatePendingAuthPayload();
 		}
 		else if (!_wcsicmp(type, L"exit"))
 		{
@@ -1064,12 +1072,15 @@ static InitFunction initFunction([] ()
 		ep.Call("disconnected");
 
 		nui::SetMainUI(true);
+		nui::SwitchContext("");
 
 		nui::CreateFrame("mpMenu", console::GetDefaultContext()->GetVariableManager()->FindEntryRaw("ui_url")->GetValue());
 	});
 });
 
+#ifndef GTA_NY
 #include <gameSkeleton.h>
+#endif
 #include <shellapi.h>
 
 #include <nng/nng.h>
@@ -1197,6 +1208,8 @@ void Component_RunPreInit()
 	{
 		if (hostData->IsMasterProcess() || hostData->IsGameProcess())
 		{
+// #TODOLIBERTY: ?
+#ifndef GTA_NY
 			rage::OnInitFunctionStart.Connect([](rage::InitFunctionType type)
 			{
 				if (type == rage::InitFunctionType::INIT_CORE)
@@ -1206,6 +1219,7 @@ void Component_RunPreInit()
 					connectParams = "";
 				}
 			}, 999999);
+#endif
 		}
 		else
 		{
@@ -1236,6 +1250,8 @@ void Component_RunPreInit()
 	{
 		if (hostData->IsMasterProcess() || hostData->IsGameProcess())
 		{
+// #TODOLIBERTY: ?
+#ifndef GTA_NY
 			rage::OnInitFunctionStart.Connect([](rage::InitFunctionType type)
 			{
 				if (type == rage::InitFunctionType::INIT_CORE)
@@ -1244,6 +1260,7 @@ void Component_RunPreInit()
 					authPayload = "";
 				}
 			}, 999999);
+#endif
 		}
 		else
 		{
@@ -1592,9 +1609,8 @@ static InitFunction mediaRequestInit([]()
 					ImGui::Separator();
 					ImGui::Text("Press ^2F8^7 to accept/deny.");
 				}
-
-				ImGui::End();
 			}
+			ImGui::End();
 		}
 	});
 });

@@ -176,6 +176,8 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 						"gta5"
 #elif defined(IS_RDR3)
 						"rdr2"
+#elif defined(GTA_NY)
+						"gta4"
 #else
 						""
 #endif
@@ -276,8 +278,16 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 				}
 			}
 		}
+		else if (type == 0x1000c) // ViewMsg_AddBindOnStartLoading
+		{
+			std::wstring js;
+			iter.ReadString16(&js);
+			bool b;
+			iter.ReadBool(&b);
+		}
 		else if (type == 0xfffffff0)
 		{
+
 			int replyId;
 			iter.ReadInt(&replyId);
 
@@ -477,7 +487,7 @@ static MyListener* RunListener(const std::wstring& a)
 		{
 			DWORD bytesRead = 0;
 			uint8_t data[2048];
-
+			
 			OVERLAPPED overlapped = { 0 };
 			overlapped.hEvent = ev;
 

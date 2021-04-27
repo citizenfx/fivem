@@ -217,6 +217,7 @@ private:
 	std::thread m_thread;
 
 	bool m_initialized;
+	bool m_initializeSignaled = false;
 
 	std::mutex m_initializeMutex;
 

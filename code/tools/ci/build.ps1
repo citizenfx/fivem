@@ -25,6 +25,8 @@ param (
 
 $CefName = "cef_binary_83.0.0-shared-textures.2175+g5430a8e+chromium-83.0.4103.0_windows64_20210210_minimal"
 
+Import-Module $PSScriptRoot\cache_build.psm1
+
 # from http://stackoverflow.com/questions/2124753/how-i-can-use-powershell-with-the-visual-studio-command-prompt
 function Invoke-BatchFile
 {
@@ -162,6 +164,9 @@ $GameVersion = ((git rev-list HEAD | measure-object).Count * 10) + 1100000
 
 $LauncherCommit = (git rev-list -1 HEAD code/client/launcher/ code/shared/ code/client/shared/ code/tools/dbg/ vendor/breakpad/ vendor/tinyxml2/ vendor/xz/ vendor/curl/ vendor/cpr/ vendor/minizip/ code/premake5.lua)
 $LauncherVersion = ((git rev-list $LauncherCommit | measure-object).Count * 10) + 1100000
+
+$SDKCommit = (git rev-list -1 HEAD ext/sdk-build/ ext/sdk/ code/tools/ci/build_sdk.ps1)
+$SDKVersion = ((git rev-list $SDKCommit | measure-object).Count * 10) + 1100000
 Pop-Location
 
 if (!$DontBuild)
@@ -304,20 +309,22 @@ if (!$DontBuild)
     #define GIT_TAG ""$GlobalTag""" | Out-File -Force shared\cfx_version.h
 
     remove-item env:\platform
+	$env:UseMultiToolTask = "true"
+	$env:EnforceProcessCountAcrossBuilds = "true"
 
 	# restore nuget packages
 	Invoke-Expression "& $WorkRootDir\tools\ci\nuget.exe restore $BuildPath\CitizenMP.sln"
 
     #echo $env:Path
     #/logger:C:\f\customlogger.dll /noconsolelogger
-    msbuild /p:preferredtoolarchitecture=x64 /p:configuration=release /fl /m:4 $BuildPath\CitizenMP.sln
+    msbuild /p:preferredtoolarchitecture=x64 /p:configuration=release /v:q /fl /m $BuildPath\CitizenMP.sln
 
     if (!$?) {
         Invoke-WebHook "Building Cfx/$GameName failed :("
         throw "Failed to build the code."
     }
 
-    if ((($env:COMPUTERNAME -eq "BUILDVM") -or ($env:COMPUTERNAME -eq "AVALON") -or ($env:COMPUTERNAME -eq "OMNITRON")) -and (!$IsServer)) {
+    if ((($env:COMPUTERNAME -eq "AVALON2") -or ($env:COMPUTERNAME -eq "AVALON") -or ($env:COMPUTERNAME -eq "OMNITRON")) -and (!$IsServer)) {
         Start-Process -NoNewWindow powershell -ArgumentList "-ExecutionPolicy unrestricted .\tools\ci\dump_symbols.ps1 -BinRoot $BinRoot -GameName $GameName"
     } elseif ($IsServer -and (Test-Path C:\h\debuggers)) {
 		Start-Process -NoNewWindow powershell -ArgumentList "-ExecutionPolicy unrestricted .\tools\ci\dump_symbols_server.ps1 -BinRoot $BinRoot"
@@ -350,7 +357,9 @@ if (!$DontBuild -and $IsServer) {
 
     Copy-Item -Force -Recurse $WorkDir\data\shared\* $WorkDir\out\server\
     Copy-Item -Force -Recurse $WorkDir\data\client\v8* $WorkDir\out\server\
+    Remove-Item -Force $WorkDir\out\server\v8_next.dll
     Copy-Item -Force -Recurse $WorkDir\data\client\bin\icu* $WorkDir\out\server\
+    Copy-Item -Force -Recurse $WorkDir\data\redist\crt\* $WorkDir\out\server\
     Copy-Item -Force -Recurse $WorkDir\data\server\* $WorkDir\out\server\
     Copy-Item -Force -Recurse $WorkDir\data\server_windows\* $WorkDir\out\server\
 
@@ -451,16 +460,19 @@ if (!$DontBuild -and !$IsServer) {
     if (!$IsLauncher -and !$IsRDR) {
         Copy-Item -Force -Recurse $WorkDir\data\shared\* $CacheDir\fivereborn\
         Copy-Item -Force -Recurse $WorkDir\data\client\* $CacheDir\fivereborn\
+        Copy-Item -Force -Recurse $WorkDir\data\redist\crt\* $CacheDir\fivereborn\bin\
         
         Copy-Item -Force -Recurse C:\f\grpc-ipfs.dll $CacheDir\fivereborn\
     } elseif ($IsLauncher) {
         Copy-Item -Force -Recurse $WorkDir\data\launcher\* $CacheDir\fivereborn\
         Copy-Item -Force -Recurse $WorkDir\data\client\bin\* $CacheDir\fivereborn\bin\
+        Copy-Item -Force -Recurse $WorkDir\data\redist\crt\* $CacheDir\fivereborn\bin\
         Copy-Item -Force -Recurse $WorkDir\data\client\citizen\resources\* $CacheDir\fivereborn\citizen\resources\
     } elseif ($IsRDR) {
         Copy-Item -Force -Recurse $WorkDir\data\shared\* $CacheDir\fivereborn\
         Copy-Item -Force -Recurse $WorkDir\data\client\*.dll $CacheDir\fivereborn\
         Copy-Item -Force -Recurse $WorkDir\data\client\bin\* $CacheDir\fivereborn\bin\
+        Copy-Item -Force -Recurse $WorkDir\data\redist\crt\* $CacheDir\fivereborn\bin\
         Copy-Item -Force -Recurse $WorkDir\data\client\citizen\clr2 $CacheDir\fivereborn\citizen\
         Copy-Item -Force -Recurse $WorkDir\data\client\citizen\*.ttf $CacheDir\fivereborn\citizen\
         Copy-Item -Force -Recurse $WorkDir\data\client\citizen\ros $CacheDir\fivereborn\citizen\
@@ -498,7 +510,7 @@ if (!$DontBuild -and !$IsServer) {
         }
 
         # build compliance stuff
-        if (($env:COMPUTERNAME -eq "AVALON") -or ($env:COMPUTERNAME -eq "OMNITRON")) {
+        if (($env:COMPUTERNAME -eq "AVALON") -or ($env:COMPUTERNAME -eq "OMNITRON") -or ($env:COMPUTERNAME -eq "AVALON2")) {
             Copy-Item -Force $WorkDir\..\fivem-private\components\adhesive\adhesive.vmp.dll $CacheDir\fivereborn\adhesive.dll
 
             Push-Location C:\f\bci\
@@ -508,7 +520,7 @@ if (!$DontBuild -and !$IsServer) {
     } 
     
 	if (!$IsLauncher) {
-		if (($env:COMPUTERNAME -eq "AVALON") -or ($env:COMPUTERNAME -eq "OMNITRON")) {
+        if (($env:COMPUTERNAME -eq "AVALON") -or ($env:COMPUTERNAME -eq "OMNITRON") -or ($env:COMPUTERNAME -eq "AVALON2")) {
 			Push-Location C:\f\bci\
 			.\BuildComplianceInfo.exe $CacheDir\fivereborn\ C:\f\bci-list.txt
 			Pop-Location
@@ -561,15 +573,37 @@ if (!$DontBuild -and !$IsServer) {
     $LauncherLength = (Get-ItemProperty CitizenFX.exe.xz).Length
     "$LauncherVersion $LauncherLength" | Out-File -Encoding ascii version.txt
 
-    #if (!(Test-Path $WorkDir\caches)) {
-    #    New-Item -ItemType SymbolicLink -Force -Path $WorkDir -Name caches -Value $CacheDir
-    #}
+    # build bootstrap executable
+    if (!$IsLauncher -and !$IsRDR) {
+        Copy-Item -Force $BinRoot\five\release\FiveM.exe $CacheDir\fivereborn\CitizenFX.exe
+    } elseif ($IsLauncher) {
+        Copy-Item -Force $BinRoot\launcher\release\CfxLauncher.exe $CacheDir\fivereborn\CitizenFX.exe
+    } elseif ($IsRDR) {
+        Copy-Item -Force $BinRoot\rdr3\release\CitiLaunch.exe $CacheDir\fivereborn\CitizenFX.exe
+    }
+
     Remove-Item -Recurse -Force $WorkDir\caches
     Copy-Item -Recurse -Force $CacheDir $WorkDir\caches
 }
 
 if (!$DontUpload) {
     $UploadBranch = $env:CI_ENVIRONMENT_NAME
+
+	$CacheName = "eh"
+
+    if (!$IsLauncher -and !$IsRDR) {
+        $CacheName = "fivereborn"
+    } elseif ($IsLauncher) {
+        $CacheName = "launcher"
+    } elseif ($IsRDR) {
+        $CacheName = "redm"
+    }
+
+	# for xz.exe
+	$env:PATH += ";$WorkRootDir\tools\ci"
+
+    Remove-Item -Force $CacheDir\fivereborn\info.xml
+	Invoke-CacheGen -Source $CacheDir\fivereborn -CacheName $CacheName -BranchName $UploadBranch -BranchVersion $GameVersion -BootstrapName CitizenFX.exe -BootstrapVersion $LauncherVersion
 
     Set-Location $CacheDir
 
@@ -587,40 +621,24 @@ if (!$DontUpload) {
     if (!$IsLauncher -and !$IsRDR) {
         Copy-Item -Force $WorkDir\caches\caches_sdk.xml $WorkDir\upload\$Branch\content
         Copy-Item -Recurse -Force $WorkDir\caches\diff\fxdk-five\ $WorkDir\upload\$Branch\content\
+
+		Remove-Item -Force $WorkDir\caches\fxdk-five\info.xml
+		Invoke-CacheGen -Source $WorkDir\caches\fxdk-five -CacheName "fxdk-five" -BranchName $UploadBranch -BranchVersion $SDKVersion -BootstrapName CitizenFX.exe -BootstrapVersion $LauncherVersion
     }
 
     Copy-Item -Recurse -Force diff\fivereborn\ $WorkDir\upload\$Branch\content\
 
-    $BaseRoot = (Split-Path -Leaf $WorkDir)
     Set-Location (Split-Path -Parent $WorkDir)
 
     if ($IsLauncher) {
-        rsync -r -a -v -e "$env:RSH_COMMAND" $BaseRoot/upload/ $env:SSH_TARGET_LAUNCHER
-
         Invoke-WebHook "Built and uploaded a new CfxGL version ($GameVersion) to $UploadBranch! Go and test it!"
     } elseif ($IsRDR) {
-        rsync -r -a -v -e "$env:RSH_COMMAND" $BaseRoot/upload/ $env:SSH_TARGET_RDR
-
         Invoke-WebHook "Built and uploaded a new RedM version ($GameVersion) to $UploadBranch! Go and test it!"
     } else {
-        rsync -r -a -v -e "$env:RSH_COMMAND" $BaseRoot/upload/ $env:SSH_TARGET
-
         Invoke-WebHook "Built and uploaded a new $env:CI_PROJECT_NAME version ($GameVersion) to $UploadBranch! Go and test it!"
     }
 
 	[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-	iwr -UseBasicParsing -Uri $env:REFRESH_URL -Method GET | out-null
-
-    # clear cloudflare cache
-    $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
-    $headers.Add("X-Auth-Email", $env:CLOUDFLARE_EMAIL)
-    $headers.Add("X-Auth-Key", $env:CLOUDFLARE_KEY)
-
-    $uri = 'https://api.cloudflare.com/client/v4/zones/783470409082113ad973c9bb845b62e5/purge_cache'
-    $json = @{
-        purge_everything=$true
-    } | ConvertTo-Json
-
-    #Invoke-RestMethod -Uri $uri -Method Delete -Headers $headers -Body $json -ContentType 'application/json'
+	Invoke-WebRequest -UseBasicParsing -Uri $env:REFRESH_URL -Method GET | out-null
 }

@@ -58,13 +58,15 @@ void XBR_EarlySelect()
 		1604
 #elif defined(IS_RDR3)
 		1311
+#elif defined(GTA_NY)
+		43
 #else
 		0
 #endif
 		;
 
 	// we *can't* call xbr:: APIs here since they'll `static`-initialize and break GameCache later
-	uint32_t builds[] = { 372, 1604, 2060, 2189, 1311, 1355 };
+	uint32_t builds[] = { 372, 1604, 2060, 2189, 1311, 1355, 43 };
 	uint32_t requestedBuild = defaultBuild;
 
 	auto realCli = GetCommandLineW();

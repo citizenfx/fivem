@@ -6,6 +6,7 @@
  */
 
 #include <StdInc.h>
+#include <jitasm.h>
 #include <Hooking.h>
 
 #include <Pool.h>
@@ -345,6 +346,55 @@ extern std::unordered_map<int, std::string> g_handlesToTag;
 
 fwEvent<> OnReloadMapStore;
 
+#ifdef GTA_FIVE
+static hook::cdecl_stub<void()> _reloadMapIfNeeded([]()
+{
+	return hook::get_pattern("74 1F 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? C6 05", -0xB);
+});
+
+static void ReloadMapStoreNative()
+{
+	static auto loadChangeSet = hook::get_pattern<char>("48 81 EC 50 03 00 00 49 8B F0 4C", -0x18);
+	uint8_t origCode[0x4F3];
+	memcpy(origCode, loadChangeSet, sizeof(origCode));
+
+	// nop a call before the r13d load
+	hook::nop(loadChangeSet + 0x28, 5);
+
+	// jump straight into the right block
+	hook::put<uint8_t>(loadChangeSet + 0x41, 0xE9);
+	hook::put<int32_t>(loadChangeSet + 0x42, 0x116);
+
+	// don't load CS
+	hook::nop(loadChangeSet + 0x300, 5);
+
+	// don't use cache state
+	hook::nop(loadChangeSet + 0x356, 10);
+	hook::put<uint16_t>(loadChangeSet + 0x356, 0x00B3);
+
+	// ignore staticboundsstore too (crashes in release, thanks stack)
+	hook::nop(loadChangeSet + 0x434, 5);
+
+	// and the array fill/clear for this fake array
+	hook::nop(loadChangeSet + 0x395, 5);
+	hook::nop(loadChangeSet + 0x489, 5);
+
+	// ignore trailer
+	hook::nop(loadChangeSet + 0x4A3, 54);
+
+	// call
+	uint32_t hash = 0xDEADBDEF;
+	uint8_t csBuf[512] = { 0 };
+	uint8_t unkBuf[512] = { 0 };
+	((void (*)(void*, void*, void*))loadChangeSet)(csBuf, unkBuf, &hash);
+
+	memcpy(loadChangeSet, origCode, sizeof(origCode));
+
+	// reload map stuff
+	_reloadMapIfNeeded();
+}
+#endif
+
 static void ReloadMapStore()
 {
 	if (!g_reloadMapStore)
@@ -396,13 +446,23 @@ static void ReloadMapStore()
 
 	OnReloadMapStore();
 
-	// workaround by unloading/reloading MP map group
-	g_disableContentGroup(*g_extraContentManager, 0xBCC89179); // GROUP_MAP
+#ifdef GTA_FIVE
+	// needs verification for newer builds
+	if (!xbr::IsGameBuildOrGreater<2189 + 1>())
+	{
+		ReloadMapStoreNative();
+	}
+	else
+#endif
+	{
+		// workaround by unloading/reloading MP map group
+		g_disableContentGroup(*g_extraContentManager, 0xBCC89179); // GROUP_MAP
 
-	// again for enablement
-	OnReloadMapStore();
+		// again for enablement
+		OnReloadMapStore();
 
-	g_enableContentGroup(*g_extraContentManager, 0xBCC89179);
+		g_enableContentGroup(*g_extraContentManager, 0xBCC89179);
+	}
 
 #ifdef GTA_FIVE
 	g_clearContentCache(0);
@@ -946,6 +1006,10 @@ namespace rage
 	});
 }
 
+#ifdef GTA_FIVE
+extern bool GetRawStreamerForFile(const char* fileName, rage::fiCollection** collection);
+#endif
+
 static void LoadStreamingFiles(LoadType loadType)
 {
 	// register any custom streaming assets
@@ -1040,17 +1104,24 @@ static void LoadStreamingFiles(LoadType loadType)
 			{
 				// get the raw streamer and make an entry in there
 				auto rawStreamer = getRawStreamer();
+				int collectionId = 0;
+
+#ifdef GTA_FIVE
+				rage::fiCollection* customRawStreamer;
+
+				if (GetRawStreamerForFile(file.c_str(), &customRawStreamer))
+				{
+					rawStreamer = customRawStreamer;
+					collectionId = 1;
+				}
+#endif
+
 				uint32_t idx = rawStreamer->GetEntryByName(file.c_str());
 
 				if (strId != -1)
 				{
 					auto& entry = cstreaming->Entries[strId + strModule->baseIdx];
-
-#ifdef GTA_FIVE
-					console::DPrintf("gta:streaming:five", "overriding handle for %s (was %x) -> %x\n", baseName, entry.handle, (rawStreamer->GetCollectionId() << 16) | idx);
-#elif IS_RDR3
-					console::DPrintf("gta:streaming:rdr3", "overriding handle for %s (was %x) -> %x\n", baseName, entry.handle, (rawStreamer->GetCollectionId() << 16) | idx);
-#endif
+					console::DPrintf("gta:streaming", "overriding handle for %s (was %x) -> %x\n", baseName, entry.handle, (collectionId << 16) | idx);
 
 					// if no old handle was saved, save the old handle
 					auto& hs = g_handleStack[strId + strModule->baseIdx];
@@ -1060,7 +1131,7 @@ static void LoadStreamingFiles(LoadType loadType)
 						hs.push_front(entry.handle);
 					}
 
-					entry.handle = (rawStreamer->GetCollectionId() << 16) | idx;
+					entry.handle = (collectionId << 16) | idx;
 					g_handlesToTag[entry.handle] = tag;
 
 					// save the new handle
@@ -1077,7 +1148,11 @@ static void LoadStreamingFiles(LoadType loadType)
 					auto& entry = cstreaming->Entries[fileId];
 					g_handleStack[fileId].push_front(entry.handle);
 
-					rage::pgRawStreamerInvalidateEntry(entry.handle & 0xFFFF);
+					// only for 'real' rawStreamer (mod variant likely won't reregister)
+					if ((entry.handle >> 16) == 0)
+					{
+						rage::pgRawStreamerInvalidateEntry(entry.handle & 0xFFFF);
+					}
 
 					g_handlesToTag[entry.handle] = tag;
 				}

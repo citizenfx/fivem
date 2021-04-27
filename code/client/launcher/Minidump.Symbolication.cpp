@@ -192,12 +192,21 @@ nlohmann::json SymbolicateCrash(HANDLE hProcess, HANDLE hThread, PEXCEPTION_RECO
 	}
 
 	STACKFRAME64 frame = { 0 };
+#ifdef _M_AMD64
 	frame.AddrPC.Mode = AddrModeFlat;
 	frame.AddrPC.Offset = ctx->Rip;
 	frame.AddrStack.Mode = AddrModeFlat;
 	frame.AddrStack.Offset = ctx->Rsp;
 	frame.AddrFrame.Mode = AddrModeFlat;
 	frame.AddrFrame.Offset = ctx->Rbp;
+#elif defined(_M_IX86)
+	frame.AddrPC.Mode = AddrModeFlat;
+	frame.AddrPC.Offset = ctx->Eip;
+	frame.AddrStack.Mode = AddrModeFlat;
+	frame.AddrStack.Offset = ctx->Esp;
+	frame.AddrFrame.Mode = AddrModeFlat;
+	frame.AddrFrame.Offset = ctx->Ebp;
+#endif
 
 	auto frames = nlohmann::json::array();
 	auto ctx2 = *ctx;
@@ -212,6 +221,7 @@ nlohmann::json SymbolicateCrash(HANDLE hProcess, HANDLE hThread, PEXCEPTION_RECO
 	threads.push_back(nlohmann::json::object({ 
 		{ "registers", 
 			nlohmann::json::object({ 
+#ifdef _M_AMD64
 				{ "rip", fmt::sprintf("0x%x", ctx->Rip) },
 				{ "rsp", fmt::sprintf("0x%x", ctx->Rsp) },
 				{ "rbp", fmt::sprintf("0x%x", ctx->Rbp) },
@@ -229,6 +239,9 @@ nlohmann::json SymbolicateCrash(HANDLE hProcess, HANDLE hThread, PEXCEPTION_RECO
 				{ "r13", fmt::sprintf("0x%x", ctx->R13) },
 				{ "r14", fmt::sprintf("0x%x", ctx->R14) },
 				{ "r15", fmt::sprintf("0x%x", ctx->R14) },
+#elif defined(_M_IX86)
+				// #TODOLIBERTY
+#endif
 			})
 		},
 		{ "frames", frames }

@@ -98,7 +98,8 @@ const wchar_t* vva(std::wstring_view string, fmt::wprintf_args formatList)
 
 void DoNtRaiseException(EXCEPTION_RECORD* record)
 {
-	typedef NTSTATUS(*NtRaiseExceptionType)(PEXCEPTION_RECORD record, PCONTEXT context, BOOL firstChance);
+#ifdef _M_AMD64
+	typedef NTSTATUS(WINAPI* NtRaiseExceptionType)(PEXCEPTION_RECORD record, PCONTEXT context, BOOL firstChance);
 
 	bool threw = false;
 
@@ -117,6 +118,9 @@ void DoNtRaiseException(EXCEPTION_RECORD* record)
 		// force 'threw' to be stack-allocated by messing with it from here (where it won't execute)
 		OutputDebugStringA((char*)&threw);
 	}
+#else
+	RaiseException(record->ExceptionCode, record->ExceptionFlags, record->NumberParameters, record->ExceptionInformation);
+#endif
 }
 
 static void RaiseDebugException(const char* buffer, size_t length)
@@ -186,6 +190,7 @@ void TraceRealV(const char* channel, const char* func, const char* file, int lin
 		InitializeCriticalSectionAndSpinCount(&dbgCritSec, 100);
 	}
 
+#if not defined(GTA_NY)
 	if (CoreIsDebuggerPresent())
 	{
 		// thanks to anti-debug workarounds (IsBeingDebugged == FALSE), we'll have to raise the exception to the debugger ourselves.
@@ -196,6 +201,7 @@ void TraceRealV(const char* channel, const char* func, const char* file, int lin
 		RaiseDebugException(buffer.c_str(), buffer.length());
 	}
 	else
+#endif
 	{
 		OutputDebugStringA(buffer.c_str());
 	}

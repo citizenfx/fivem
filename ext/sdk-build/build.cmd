@@ -50,7 +50,7 @@ call yarn --cwd build install --frozen-lockfile --production
 xcopy /y /e node_modules\fxdk-project\lib\*.*      build\node_modules\fxdk-project\lib\
 xcopy /y    node_modules\fxdk-project\package.json build\node_modules\fxdk-project\
 
-for %%m in (nsfw, find-git-repositories, drivelist, @theia/node-pty, native-keymap) do (
+for %%m in (find-git-repositories, drivelist, @theia/node-pty, native-keymap) do (
 	call yarn electron-rebuild -f -m build\node_modules\%%m
 )
 call yarn autoclean --force

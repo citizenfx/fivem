@@ -27,12 +27,12 @@ namespace rage
 	class STREAMING_EXPORT fwRefAwareBase
 	{
 	public:
-		~fwRefAwareBase() = default;
+		virtual ~fwRefAwareBase() = default;
 
 	public:
-		void AddKnownRef(void** ref) const;
+		void AddKnownRef(void** ref);
 
-		void RemoveKnownRef(void** ref) const;
+		void RemoveKnownRef(void** ref);
 	};
 
 	class STREAMING_EXPORT fwScriptGuid

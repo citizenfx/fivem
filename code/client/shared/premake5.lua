@@ -34,8 +34,12 @@
 
 			files
 			{
-				"../../shared/**.cpp", "../../shared/**.h", "**.cpp", "**.h", "**.asm"
+				"../../shared/**.cpp", "../../shared/**.h", "**.cpp", "**.h"
 			}
+
+			if _OPTIONS["game"] ~= "ny" then
+				files("**.asm")
+			end
 
 			configuration "not windows"
 				excludes { "Hooking.*", "*.asm" }

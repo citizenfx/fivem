@@ -820,8 +820,9 @@ void netSyncTree::AckCfx(netObject* object, uint32_t timestamp)
 
 static bool g_recordingDrilldown;
 static bool g_recordedDrilldown;
-static uint64_t g_drilldownEnd;
-static uint32_t g_drilldownIdx;
+static std::chrono::milliseconds g_drilldownEnd;
+static size_t g_drilldownIdx;
+static size_t g_drilldownIdxOut;
 
 struct ClonePacketMsg
 {
@@ -839,11 +840,16 @@ struct ClonePacketData
 
 #include <nutsnbolts.h>
 
+static auto msec()
+{
+	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
+}
+
 static InitFunction initFunctionDrilldown([]() 
 {
 	OnGameFrame.Connect([]()
 	{
-		if (g_recordingDrilldown && GetTickCount64() >= g_drilldownEnd)
+		if (g_recordingDrilldown && msec() >= g_drilldownEnd)
 		{
 			g_recordingDrilldown = false;
 			g_recordedDrilldown = true;
@@ -852,6 +858,7 @@ static InitFunction initFunctionDrilldown([]()
 });
 
 static std::map<uint32_t, ClonePacketData> g_drilldownData;
+static std::map<uint32_t, ClonePacketData> g_drilldownDataOut;
 
 namespace sync
 {
@@ -860,7 +867,7 @@ bool IsDrilldown()
 	return g_recordingDrilldown;
 }
 
-void AddDrilldown(uint64_t frameIdx, std::vector<std::tuple<std::string_view, std::string>>&& data)
+void AddDrilldown(uint64_t frameIdx, std::vector<std::tuple<std::string_view, std::string>>&& data, bool isIn)
 {
 	ClonePacketData bit;
 	bit.frameIdx = frameIdx;
@@ -874,9 +881,9 @@ void AddDrilldown(uint64_t frameIdx, std::vector<std::tuple<std::string_view, st
 		bit.messages.push_back(std::move(msg));
 	}
 
-	bit.ts = 1500 - (g_drilldownEnd - GetTickCount64());
+	bit.ts = 1500 - (g_drilldownEnd - msec()).count();
 
-	g_drilldownData[g_drilldownIdx++] = std::move(bit);
+	(isIn ? g_drilldownData : g_drilldownDataOut)[(isIn ? g_drilldownIdx : g_drilldownIdxOut)++] = std::move(bit);
 }
 }
 
@@ -891,13 +898,15 @@ void RenderNetDrilldownWindow()
 		if (!g_recordingDrilldown && ImGui::Button("Record"))
 		{
 			g_drilldownData.clear();
+			g_drilldownDataOut.clear();
 			g_drilldownIdx = 0;
+			g_drilldownIdxOut = 0;
 			g_recordedDrilldown = false;
 
 			g_recordingDrilldown = true;
-			g_drilldownEnd = GetTickCount64() + 1500;
+			g_drilldownEnd = msec() + std::chrono::milliseconds{ 1500 };
 		}
-		
+
 		if (g_recordingDrilldown)
 		{
 			ImGui::ButtonEx("Recording", {}, ImGuiButtonFlags_Disabled);
@@ -905,19 +914,42 @@ void RenderNetDrilldownWindow()
 
 		if (g_recordedDrilldown)
 		{
-			for (auto& [id, node] : g_drilldownData)
+			if (ImGui::TreeNode("In"))
 			{
-				sync::FrameIndex fi{ node.frameIdx };
-
-				if (ImGui::TreeNode(va("Packet %d @+%d (%d:%d)", id, node.ts, fi.frameIndex, fi.currentFragment)))
+				for (auto& [id, node] : g_drilldownData)
 				{
-					for (auto& message : node.messages)
-					{
-						ImGui::TreeNodeEx(va("%s: %s", message.what, message.why), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen);
-					}
+					sync::FrameIndex fi{ node.frameIdx };
 
-					ImGui::TreePop();
+					if (ImGui::TreeNode(va("Packet %d @+%d (%d:%d)", id, node.ts, fi.frameIndex, fi.currentFragment)))
+					{
+						for (auto& message : node.messages)
+						{
+							ImGui::TreeNodeEx(va("%s: %s", message.what, message.why), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen);
+						}
+
+						ImGui::TreePop();
+					}
 				}
+
+				ImGui::TreePop();
+			}
+
+			if (ImGui::TreeNode("Out"))
+			{
+				for (auto& [id, node] : g_drilldownDataOut)
+				{
+					if (ImGui::TreeNode(va("Tick %d @+%d (%d)", id, node.ts, node.frameIdx)))
+					{
+						for (auto& message : node.messages)
+						{
+							ImGui::TreeNodeEx(va("%s: %s", message.what, message.why), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen);
+						}
+
+						ImGui::TreePop();
+					}
+				}
+
+				ImGui::TreePop();
 			}
 		}
 	}
@@ -1076,9 +1108,7 @@ static InitFunction initFunction([]()
 
 		if (timeWindowEnabled)
 		{
-			static bool timeOpen = true;
-
-			if (ImGui::Begin("Time", &timeOpen))
+			if (ImGui::Begin("Time", &timeWindowEnabled))
 			{
 				auto inst = rage::netInterface_queryFunctions::GetInstance();
 
@@ -1093,11 +1123,9 @@ static InitFunction initFunction([]()
 			return;
 		}
 
-		static bool novOpen = true;
-
 		ImGui::SetNextWindowSizeConstraints(ImVec2(1020.0f, 400.0f), ImVec2(1020.0f, 2000.0f));
 
-		if (ImGui::Begin("Network Object Viewer", &novOpen) && rage::netObjectMgr::GetInstance())
+		if (ImGui::Begin("Network Object Viewer", &netViewerEnabled) && rage::netObjectMgr::GetInstance())
 		{
 			static float treeSize = 400.f;
 			static float detailSize = 600.f;

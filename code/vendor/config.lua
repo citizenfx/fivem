@@ -44,14 +44,18 @@ if os.target() == 'windows' then
 	vendor_component 'discord-rpc'
 	vendor_component 'minhook'
 	vendor_component 'minhook-crt'
+	vendor_component 'fx11'
+	vendor_component 'im3d'
 end
 
 vendor_component 'hdiffpatch'
+vendor_component 'hdiffpatch-crt'
 vendor_component 'libfvad'
 vendor_component 'webrtc-audio-processing'
 vendor_component 'pplx'
 vendor_component 'linenoise'
 vendor_component 'nghttp2'
+vendor_component 'nghttp2-crt'
 vendor_component 'lz4'
 vendor_component 'node'
 vendor_component 'openssl_crypto'

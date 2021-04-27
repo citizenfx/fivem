@@ -1,6 +1,6 @@
 -- setup environment for the codegen'd file to execute in
 local codeEnvironment = {
-	
+
 }
 
 types = {}
@@ -9,6 +9,7 @@ rpcNatives = {}
 local curType
 local curNative
 
+local json = require('dkjson')
 local cfx = require('cfx')
 
 function codeEnvironment.type(typeName)
@@ -22,10 +23,17 @@ function codeEnvironment.type(typeName)
 
 	-- set a closure named after the type in the code environment
 	codeEnvironment[typeName] = function(argumentName)
-		return {
+		local t = {
 			type = typeEntry,
 			name = argumentName
 		}
+
+		return setmetatable(t, {
+			__call = function(t, list)
+				t.annotations = json.decode(list)
+				return t
+			end
+		})
 	end
 
 	codeEnvironment[typeName .. 'Ptr'] = function(argumentName)
@@ -117,6 +125,14 @@ function codeEnvironment.returns(typeName)
 	end
 end
 
+function codeEnvironment.game(gameName)
+	curNative.game = gameName
+end
+
+function codeEnvironment.annotations(list)
+	curNative.annotations = json.decode(list)
+end
+
 function codeEnvironment.apiset(setName)
 	table.insert(curNative.apiset, setName)
 end
@@ -152,7 +168,7 @@ end
 local function getNative(nativeName)
 	-- get the native
 	local n
-	
+
 	for k, v in ipairs(natives) do
 		if v.name == nativeName and (#v.apiset == 0 or v.apiset[1] == 'client') then
 			n = v
@@ -250,7 +266,7 @@ function rpcEnvironment.context_rpc(nativeName)
 
 	rn.ctx = ctx
 	rn.args = args
-	
+
 	codeEnvironment.native(nativeName)
 		codeEnvironment.arguments(n.arguments)
 		codeEnvironment.apiset('server')
@@ -356,7 +372,7 @@ function rpcEnvironment.entity_rpc(nativeName)
 	end
 
 	rn.args = args
-	
+
 	codeEnvironment.native(nativeName)
 		codeEnvironment.arguments(n.arguments)
 		codeEnvironment.apiset('server')
@@ -462,7 +478,7 @@ function parseDocString(native)
 	if not summary then
 		return nil
 	end
-	
+
 	summary = trim(summary:gsub('^```(.+)```$', '%1'))
 
 	local paramsData = {}
@@ -482,8 +498,15 @@ function parseDocString(native)
 end
 
 local gApiSet = 'server'
+local ourGame = 'gta5'
 
 function matchApiSet(native)
+	local game = native.game
+
+	if ourGame and native.game and native.game ~= ourGame then
+		return false
+	end
+
 	local apisets = native.apiset
 
 	if #apisets == 0 then
@@ -508,14 +531,26 @@ if #arg > 0 then
 	if arg[1]:match('gta_universal') then
 		arg[1] = 'inp/natives_global.lua'
 	end
-	
+
 	if arg[1]:match('rdr3_universal') then
 		arg[1] = 'inp/natives_rdr3.lua'
 	end
-	
+
+	if arg[1]:match('ny_universal') then
+		arg[1] = 'inp/natives_ny.lua'
+	end
+
+	if arg[1]:match('rdr3') then
+		ourGame = 'rdr3'
+	end
+
+	if arg[1]:match('_ny') then
+		ourGame = 'ny'
+	end
+
 	loadDefinition(arg[1])
-	
-	if arg[1]:match('natives_global') or arg[1]:match('natives_rdr3') then
+
+	if arg[1]:match('natives_global') or arg[1]:match('natives_rdr3') or arg[1]:match('natives_ny') then
 		globalNatives = true
 	end
 

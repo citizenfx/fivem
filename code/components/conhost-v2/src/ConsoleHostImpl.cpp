@@ -41,6 +41,7 @@
 
 static bool g_conHostInitialized = false;
 extern bool g_consoleFlag;
+extern bool g_cursorFlag;
 int g_scrollTop;
 int g_bufferHeight;
 
@@ -50,6 +51,14 @@ static rage::grcTexture* g_fontTexture;
 
 static void RenderDrawListInternal(ImDrawList* drawList, ImDrawData* refData)
 {
+#ifndef _HAVE_GRCORE_NEWSTATES
+	SetRenderState(0, grcCullModeNone);
+	SetRenderState(2, 0); // alpha blending m8
+
+	GetD3D9Device()->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_POINT);
+	GetD3D9Device()->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_POINT);
+	GetD3D9Device()->SetRenderState(D3DRS_SCISSORTESTENABLE, TRUE);
+#else
 	auto oldRasterizerState = GetRasterizerState();
 	SetRasterizerState(GetStockStateIdentifier(RasterizerStateNoCulling));
 
@@ -58,6 +67,7 @@ static void RenderDrawListInternal(ImDrawList* drawList, ImDrawData* refData)
 
 	auto oldDepthStencilState = GetDepthStencilState();
 	SetDepthStencilState(GetStockStateIdentifier(DepthStencilStateNoDepth));
+#endif
 
 	size_t idxOff = 0;
 
@@ -84,6 +94,11 @@ static void RenderDrawListInternal(ImDrawList* drawList, ImDrawData* refData)
 				{
 					auto& vertex = drawList->VtxBuffer.Data[drawList->IdxBuffer.Data[i + idxOff]];
 					auto color = vertex.col;
+					
+					if (!rage::grcTexture::IsRenderSystemColorSwapped())
+					{
+						color = (color & 0xFF00FF00) | _rotl(color & 0x00FF00FF, 16);
+					}
 
 					rage::grcVertex(vertex.pos.x - refData->DisplayPos.x, vertex.pos.y - refData->DisplayPos.y, 0.0f, 0.0f, 0.0f, -1.0f, color, vertex.uv.x, vertex.uv.y);
 				}
@@ -110,11 +125,17 @@ static void RenderDrawListInternal(ImDrawList* drawList, ImDrawData* refData)
 		}
 	}
 
+#ifdef _HAVE_GRCORE_NEWSTATES
 	SetRasterizerState(oldRasterizerState);
 
 	SetBlendState(oldBlendState);
 
 	SetDepthStencilState(oldDepthStencilState);
+#else
+	GetD3D9Device()->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_ANISOTROPIC);
+	GetD3D9Device()->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_ANISOTROPIC);
+	GetD3D9Device()->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
+#endif
 
 	delete drawList;
 
@@ -176,7 +197,11 @@ static void CreateFontTexture()
 	reference.height = height;
 	reference.depth = 1;
 	reference.stride = width * 4;
+#ifdef GTA_NY
+	reference.format = 1;
+#else
 	reference.format = 11;
+#endif
 	reference.pixelData = (uint8_t*)pixels;
 
 	rage::grcTexture* texture = rage::grcTextureFactory::getInstance()->createImage(&reference, nullptr);
@@ -257,7 +282,7 @@ DLL_EXPORT void OnConsoleFrameDraw(int width, int height)
 
 	ConHost::OnShouldDrawGui(&shouldDrawGui);
 
-	if (!g_consoleFlag && !shouldDrawGui)
+	if (!g_cursorFlag && !g_consoleFlag && !shouldDrawGui)
 	{
 		lastDrawTime = timeGetTime();
 
@@ -269,7 +294,7 @@ DLL_EXPORT void OnConsoleFrameDraw(int width, int height)
 
 	HandleFxDKInput(io);
 
-	io.MouseDrawCursor = g_consoleFlag;
+	io.MouseDrawCursor = g_consoleFlag || g_cursorFlag;
 
 	{
 		io.DisplaySize = ImVec2(width, height);
@@ -343,7 +368,7 @@ static void OnConsoleWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, 
 
 	ConHost::OnShouldDrawGui(&shouldDrawGui);
 
-	if (!g_consoleFlag || !pass)
+	if ((!g_consoleFlag && !g_cursorFlag) || !pass)
 	{
 		return;
 	}
@@ -411,8 +436,12 @@ static void OnConsoleWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, 
 
 	ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam);
 	
-	if (msg == WM_INPUT || (msg >= WM_KEYFIRST && msg <= WM_KEYLAST) ||
-		(msg >= WM_MOUSEFIRST && msg <= WM_MOUSELAST) || msg == WM_CHAR)
+	if (msg == WM_INPUT || (msg >= WM_MOUSEFIRST && msg <= WM_MOUSELAST))
+	{
+		pass = false;
+	}
+
+	if (g_consoleFlag && ((msg >= WM_KEYFIRST && msg <= WM_KEYLAST) || msg == WM_CHAR))
 	{
 		pass = false;
 	}
@@ -551,8 +580,8 @@ static HookFunction initFunction([]()
 	ImColor hiliteBlue = ImColor(81, 179, 236);
 	ImColor hiliteBlueTransparent = ImColor(81, 179, 236, 180);
 	ImColor backgroundBlue = ImColor(22, 24, 28, 200);
-	ImColor semiTransparentBg = ImColor(255, 255, 255, 0.6);
-	ImColor semiTransparentBgHover = ImColor(255, 255, 255, 0.8);
+	ImColor semiTransparentBg = ImColor(50, 50, 50, 0.6 * 255);
+	ImColor semiTransparentBgHover = ImColor(80, 80, 80, 0.6 * 255);
 
 	style.Colors[ImGuiCol_WindowBg] = backgroundBlue;
 	style.Colors[ImGuiCol_TitleBg] = hiliteBlue;
@@ -592,6 +621,7 @@ static HookFunction initFunction([]()
 #ifndef IS_LAUNCHER
 	OnGrcCreateDevice.Connect([=]()
 	{
+#ifdef _HAVE_GRCORE_NEWSTATES
 #ifndef IS_RDR3
 		D3D11_SAMPLER_DESC samplerDesc = CD3D11_SAMPLER_DESC(CD3D11_DEFAULT());
 		samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
@@ -601,11 +631,12 @@ static HookFunction initFunction([]()
 #else
 		g_pointSamplerState = GetStockStateIdentifier(SamplerStatePoint);
 #endif
+#endif
 	});
 
 	InputHook::QueryInputTarget.Connect([](std::vector<InputTarget*>& targets)
 	{
-		if (!g_consoleFlag)
+		if (!g_consoleFlag && !g_cursorFlag)
 		{
 			return true;
 		}
@@ -690,7 +721,7 @@ static HookFunction initFunction([]()
 
 	InputHook::QueryMayLockCursor.Connect([](int& may)
 	{
-		if (g_consoleFlag)
+		if (g_consoleFlag || g_cursorFlag)
 		{
 			may = 0;
 		}
@@ -746,7 +777,7 @@ static decltype(&ReleaseCapture) g_origReleaseCapture;
 
 static void WINAPI ReleaseCaptureStub()
 {
-	if (g_consoleFlag)
+	if (g_consoleFlag || g_cursorFlag)
 	{
 		return;
 	}

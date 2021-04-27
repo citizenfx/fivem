@@ -4,13 +4,13 @@ return {
 	
 		includedirs { '../vendor/bx/include/', '../vendor/bgfx/include/' }
 	end,
-	
+
 	run = function()
 		language "C++"
 		kind "StaticLib"
-		
+
 		buildoptions '/MP'
-		
+
 		defines {
             "__STDC_LIMIT_MACROS",
             "__STDC_FORMAT_MACROS",

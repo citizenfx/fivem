@@ -201,22 +201,26 @@ export class ExplorerService implements ApiContribution {
   }
 
   async readDir(dir: string, extras?: EntryMetaExtras, onEntry?: (entry: FilesystemEntry) => void | Promise<void>): Promise<FilesystemEntry[]> {
-    const entries = await fs.promises.readdir(dir);
-    const entriesStats = await Promise.all(
-      entries.map(async (file) => {
-        const entry = await this.getEntry(path.join(dir, file), extras);
+    try {
+      const entries = await fs.promises.readdir(dir);
+      const entriesStats = await Promise.all(
+        entries.map(async (file) => {
+          const entry = await this.getEntry(path.join(dir, file), extras);
 
-        if (entry && onEntry) {
-          await onEntry(entry);
-        }
+          if (entry && onEntry) {
+            await onEntry(entry);
+          }
 
-        return entry;
-      }),
-    );
+          return entry;
+        }),
+      );
 
-    return entriesStats
-      .filter(notNull)
-      .sort(dirComparator);
+      return entriesStats
+        .filter(notNull)
+        .sort(dirComparator);
+    } catch (e) {
+      return [];
+    }
   }
 
   async readDirRecursively(dir: string, extras?: EntryMetaExtras, onEntry?: (entry: FilesystemEntry) => void | Promise<void>): Promise<ExplorerChildsMap> {

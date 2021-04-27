@@ -34,7 +34,7 @@ static hook::cdecl_stub<streaming::strStreamingModule*(void*, const char*)> g_ge
 	return hook::get_call(hook::get_pattern("74 15 48 8D 50 01 48 8D", 13));
 });
 
-static hook::cdecl_stub<uint32_t(uint32_t*, const char*, bool, const char*, bool)> g_registerRawStreamingFile([]()
+static hook::cdecl_stub<uint32_t*(uint32_t*, const char*, bool, const char*, bool)> g_registerRawStreamingFile([]()
 {
 	return hook::get_pattern("B2 01 48 8B CD 45 8A E0 4D 0F 45 F9 E8", -0x25);
 });
@@ -82,6 +82,57 @@ namespace rage
 	{
 		return g_streamingAllocator;
 	}
+
+	class strStreamingInfoManager
+	{
+	public:
+		void RegisterObject(uint32_t* fileIdx, const char* registerName, uint32_t handle, uint32_t collectionId, void* unk, bool unk2, void* unk3, bool unk4);
+	};
+
+	class strStreamingEngine
+	{
+	public:
+		static strStreamingInfoManager* GetInfo();
+	};
+
+	static hook::cdecl_stub<void(strStreamingInfoManager*, uint32_t* fileIdx, const char* registerName, uint32_t handle, uint32_t collectionId, void* unk, bool unk2, void* unk3, bool unk4)> _strStreamingInfoManager_RegisterObject([]() -> void*
+	{
+		return hook::get_call(hook::get_pattern<char>("B2 01 48 8B CD 45 8A E0 4D 0F 45 F9 E8", -0x25) + 0xE9);
+	});
+
+	void strStreamingInfoManager::RegisterObject(uint32_t* fileIdx, const char* registerName, uint32_t handle, uint32_t collectionId, void* unk, bool unk2, void* unk3, bool unk4)
+	{
+		return _strStreamingInfoManager_RegisterObject(this, fileIdx, registerName, handle, collectionId, unk, unk2, unk3, unk4);
+	}
+
+	strStreamingInfoManager* strStreamingEngine::GetInfo()
+	{
+		static auto mgr = hook::get_address<strStreamingInfoManager*>(hook::get_pattern<char>("B2 01 48 8B CD 45 8A E0 4D 0F 45 F9 E8", -0x25) + 0xBA);
+		return mgr;
+	}
+}
+
+static rage::fiCollection* (__thiscall* _rage_pgStreamer_ctor)(void*);
+
+bool GetRawStreamerForFile(const char* fileName, rage::fiCollection** collection)
+{
+	if (strncmp(fileName, "faux_pack", 9) == 0 || strncmp(fileName, "addons:/", 8) == 0)
+	{
+		static auto fakeStreamer = ([]()
+		{
+			auto alloc8ed = rage::GetAllocator()->Allocate(2048, 16, 0);
+			auto stat = (char*)_rage_pgStreamer_ctor;
+			hook::put<int>(stat + 0x3F, *(int*)(stat + 0x3F) + 8);
+
+			return _rage_pgStreamer_ctor(alloc8ed);
+		})();
+
+		*collection = fakeStreamer;
+		return true;
+	}
+
+	*collection = nullptr;
+	return false;
 }
 
 namespace streaming
@@ -155,8 +206,29 @@ namespace streaming
 		return (Manager*)g_storeMgr;
 	}
 
-	uint32_t RegisterRawStreamingFile(uint32_t* fileId, const char* fileName, bool unkTrue, const char* registerAs, bool errorIfFailed)
+	uint32_t* RegisterRawStreamingFile(uint32_t* fileId, const char* fileName, bool unkTrue, const char* registerAs, bool errorIfFailed)
 	{
+		rage::fiCollection* rawStreamer = nullptr;
+
+		if (GetRawStreamerForFile(fileName, &rawStreamer))
+		{
+			auto fileIdx = rawStreamer->GetEntryByName(fileName);
+			if (fileIdx != uint16_t(-1))
+			{
+				const char* registerName = fileName;
+
+				if (registerAs)
+				{
+					registerName = registerAs;
+				}
+
+				uint8_t unkVal;
+				rage::strStreamingEngine::GetInfo()->RegisterObject(fileId, registerName, fileIdx | (1 << 16), 1, &unkVal, unkTrue, nullptr, false);
+			}
+
+			return fileId;
+		}
+
 		return g_registerRawStreamingFile(fileId, fileName, unkTrue, registerAs, errorIfFailed);
 	}
 }
@@ -172,4 +244,9 @@ static HookFunction hookFunction([] ()
 	{
 		g_streamingAllocator = hook::get_address<decltype(g_streamingAllocator)>(hook::get_pattern("44 8B 46 04 48 8D 0D ? ? ? ? 49 8B D2 44", 7));
 	}
+
+	_rage_pgStreamer_ctor = (decltype(_rage_pgStreamer_ctor))hook::get_pattern("48 8B CB 33 D2 41 B8 00 02 00 00 E8", -0x29);
+
+	// start off fiCollection packfiles at 2, not 1
+	hook::put<uint32_t>(hook::get_pattern("41 0F B7 D2 4C 8D"), 0x01528D41); // lea    edx,[r10+0x1]
 });

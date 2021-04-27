@@ -2,4 +2,3 @@ EXPORTS
 	malloc
 	free
 	realloc
-	DllCanUnloadNow

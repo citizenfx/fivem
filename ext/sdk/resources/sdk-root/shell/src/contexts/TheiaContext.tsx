@@ -34,7 +34,7 @@ export const TheiaContextProvider = React.memo(function TheiaContextProvider({ c
 
   const sendTheiaMessage = React.useCallback((message: any) => {
     if (ref.current !== null) {
-      (ref.current as any).contentWindow.postMessage(message, '*');
+      (ref.current as any).contentWindow?.postMessage(message, '*');
     }
   }, []);
 

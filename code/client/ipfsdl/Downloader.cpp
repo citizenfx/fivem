@@ -1,4 +1,6 @@
 #include <StdInc.h>
+
+#ifdef _M_AMD64
 #include <ipfs_lite.grpc.pb.h>
 
 #include <grpcpp/channel.h>
@@ -140,3 +142,4 @@ extern "C" DLL_EXPORT void ipfsdlPoll()
 {
 	return ipfsdl::Poll();
 }
+#endif

@@ -23,7 +23,7 @@
 		targetextension '.com'
 
 		configuration "game=ny"
-			targetname "CitizenFX"
+			targetname "LibertyM"
 
 		configuration "game=payne"
 			targetname "CitizenPayne"

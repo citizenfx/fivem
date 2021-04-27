@@ -341,8 +341,6 @@ static InitFunction initFunction([]()
 			return;
 		}
 
-		static bool streamingMemoryOpen;
-
 		auto streaming = streaming::Manager::GetInstance();
 		auto streamingAllocator = rage::strStreamingAllocator::GetInstance();
 
@@ -383,7 +381,7 @@ static InitFunction initFunction([]()
 
 		auto avMem = 0x40000000;//streamingAllocator->GetMemoryAvailable()
 
-		if (ImGui::Begin("Streaming Memory", &streamingMemoryOpen))
+		if (ImGui::Begin("Streaming Memory", &streamingMemoryEnabled))
 		{
 			static std::vector<StreamingMemoryInfo> entryList(streaming->numEntries);
 			entryList.resize(streaming->numEntries);
@@ -487,13 +485,11 @@ static InitFunction initFunction([]()
 			return;
 		}
 
-		static bool streamingStatsOpen;
-
 		auto streaming = streaming::Manager::GetInstance();
 
 		ImGui::SetNextWindowSize(ImVec2(500.0f, 300.0f), ImGuiCond_FirstUseEver);
 
-		if (ImGui::Begin("Streaming List", &streamingStatsOpen))
+		if (ImGui::Begin("Streaming List", &streamingListEnabled))
 		{
 			static StreamingListView lv(streaming);
 
@@ -544,11 +540,9 @@ static InitFunction initFunction([]()
 			return;
 		}
 
-		static bool streamingStatsOpen;
-
 		auto streaming = streaming::Manager::GetInstance();
 		
-		if (ImGui::Begin("Streaming Stats", &streamingStatsOpen))
+		if (ImGui::Begin("Streaming Stats", &streamingDebugEnabled))
 		{
 			ImGui::Text("Pending requests: %d", streaming->NumPendingRequests);
 

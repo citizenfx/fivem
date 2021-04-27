@@ -3,6 +3,7 @@
 
 #include <gameSkeleton.h>
 
+#include <jitasm.h>
 #include <Hooking.h>
 
 #include <sysAllocator.h>
@@ -1218,12 +1219,29 @@ void MumbleAudioEntity::PreUpdateService(uint32_t)
 		if (m_overrideVolume >= 0.0f)
 		{
 			settings->SetVolume(rage::GetDbForLinear(m_overrideVolume));
-			*((char*)settings + 369) &= ~8;
+
+			if (xbr::IsGameBuildOrGreater<2189>())
+			{
+				// see initial set around "48 C7 41 68 00 00 80 3F"
+				*((char*)settings + 377) &= ~8;
+			}
+			else
+			{
+				*((char*)settings + 369) &= ~8;
+			}
 		}
 		else
 		{
 			settings->SetVolume(rage::GetDbForLinear(1.0f));
-			*((char*)settings + 369) |= 8;
+
+			if (xbr::IsGameBuildOrGreater<2189>())
+			{
+				*((char*)settings + 377) |= 8;
+			}
+			else
+			{
+				*((char*)settings + 369) |= 8;
+			}
 		}
 
 		if (m_overrideVolume >= 0.0f)
@@ -1246,7 +1264,7 @@ void MumbleAudioEntity::PreUpdateService(uint32_t)
 			m_positionForce = {};
 		}
 
-		settings->SetEnvironmentalLoudness(60);
+		settings->SetEnvironmentalLoudness(25);
 	}
 
 	// debugging position logic

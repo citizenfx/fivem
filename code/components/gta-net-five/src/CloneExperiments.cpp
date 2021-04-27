@@ -1,5 +1,6 @@
 #include <StdInc.h>
 #include <CoreConsole.h>
+#include <jitasm.h>
 #include <Hooking.h>
 #include <ScriptEngine.h>
 
@@ -2739,10 +2740,59 @@ static int GetScriptParticipantIndexForPlayer(CNetGamePlayer* player)
 	return player->physicalPlayerIndex();
 }
 
+static int DoesLocalPlayerOwnWorldGridWrapForInline(float* pos)
+{
+	return (DoesLocalPlayerOwnWorldGrid(pos)) ? 0 : 1;
+}
+
+static int* dword_1427EA288;
+static int* dword_141D56E08;
+
+static hook::cdecl_stub<float(void*, void*, void*, void*, void*, void*, void*)> _countPopVehiclesForSpace([]()
+{
+	return hook::get_call(hook::get_pattern("40 38 3D ? ? ? ? F3 0F 2C C0 89", -5));
+});
+
+static hook::cdecl_stub<bool(int peds, int cars, int n5s, int n8s, int n3s, bool)> _checkForObjectSpace([]()
+{
+	return hook::get_call(hook::get_pattern("45 33 C9 45 33 C0 33 C9 40 88", 17));
+});
+
+static bool PopulationPedCheck(int num)
+{
+	int count = (int)_countPopVehiclesForSpace(nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr) - *dword_1427EA288;
+
+	if (count > 0)
+	{
+		return _checkForObjectSpace(num, 0, 0, 0, 0, false);
+	}
+
+	return true;
+}
+
 static HookFunction hookFunctionWorldGrid([]()
 {
+	// inline turntaking for ped creation
+	{
+		auto location = hook::get_pattern<char>("45 33 C9 44 88 74 24 20 E8 ? ? ? ? 44 8B E0", 8);
+		hook::call(location, DoesLocalPlayerOwnWorldGridWrapForInline);
+
+		// if '1', instantly fail, don't try to iterate that one player
+		hook::jump(location + 12, location - 0x16D);
+	}
+
+	// second variant of the same
+	{
+		auto location = hook::get_pattern<char>("48 8B CE 44 88 6C 24 20 E8 ? ? ? ? 45 8B FD", 8);
+		hook::call(location, DoesLocalPlayerOwnWorldGridWrapForInline);
+
+		// if '1', instantly fail, don't try to iterate that one player
+		hook::jump(location + 15, location - 0xD5);
+	}
+
+	// turntaking
 	hook::jump(hook::get_pattern("48 8D 4C 24 30 45 33 C9 C6", -0x30), DoesLocalPlayerOwnWorldGrid);
-	
+
 	hook::jump(hook::get_pattern(((xbr::IsGameBuildOrGreater<2060>()) ? "BE 01 00 00 00 8B E8 85 C0 0F 84 B8" : "BE 01 00 00 00 45 33 C9 40 88 74 24 20"), ((xbr::IsGameBuildOrGreater<2060>()) ? -0x3A : -0x2D)), DoesLocalPlayerOwnWorldGrid);
 
 	MH_Initialize();
@@ -2759,6 +2809,21 @@ static HookFunction hookFunctionWorldGrid([]()
 
 	// this should apply to both 1s and non-1s (as participants are - hopefully? - not used by anyone in regular net)
 	hook::jump(hook::get_pattern("84 C0 74 06 0F BF 43 38", -0x18), GetScriptParticipantIndexForPlayer);
+
+	// don't add 'maybe enough to give all our vehicles drivers' as a constraint for even creating one ped
+	// (applies to non-1s too: generally safe)
+	hook::call(hook::get_pattern("0F 28 F1 74 15 8D 48 01 E8", 8), PopulationPedCheck);
+	hook::call(hook::get_pattern("48 8B D9 74 4C B9 01 00 00 00 E8", 10), PopulationPedCheck);
+
+	dword_1427EA288 = hook::get_address<int*>(hook::get_pattern("F3 0F 2C C0 2B 05 ? ? ? ? 85 C0 0F", 6));
+	dword_141D56E08 = hook::get_address<int*>(hook::get_pattern("3B C7 0F 42 F8 83 3D ? ? ? ? 01 75", -4));
+
+	// sometimes it seems to need this to be patched still - hope that won't fail on 2060+
+	// b2060+ seem to have this obfuscated, sorry guys
+	if (!xbr::IsGameBuildOrGreater<2060>())
+	{
+		hook::put<uint16_t>(hook::get_pattern("F3 0F 59 C8 F3 48 0F 2C C9 03 CF E8", 9), 0xF989);
+	}
 });
 
 int ObjectToEntity(int objectId)

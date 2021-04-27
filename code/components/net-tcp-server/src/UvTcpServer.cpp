@@ -325,9 +325,32 @@ void UvTcpServerStream::CloseClient()
 			writeTimeout->close();
 		}
 
+		auto clientPtr = std::make_shared<decltype(client)>(client);
+
+		auto onShutdown = [clientPtr]()
+		{
+			(*clientPtr)->once<uvw::CloseEvent>([clientPtr](const uvw::CloseEvent& e, uvw::TCPHandle& h)
+			{
+				*clientPtr = {};
+			});
+
+			(*clientPtr)->close();
+		};
+
+		// if uv_shutdown() fails, we still need to close the handle!
+		// therefore also trip on ErrorEvent.
+		client->once<uvw::ErrorEvent>([onShutdown](const uvw::ErrorEvent& e, uvw::TCPHandle& h)
+		{
+			onShutdown();
+		});
+
+		client->once<uvw::ShutdownEvent>([onShutdown](const uvw::ShutdownEvent& e, uvw::TCPHandle& h)
+		{
+			onShutdown();
+		});
+
 		client->stop();
 		client->shutdown();
-		client->close();
 
 		m_client = {};
 	}
@@ -560,14 +583,6 @@ void UvTcpServerStream::WriteInternal(std::unique_ptr<char[]> data, size_t size,
 
 			client->once<uvw::WriteEvent>([clientWeak, cb, c1 = std::move(c1), c2 = std::move(c2)](const uvw::WriteEvent& e, uvw::TCPHandle& h) mutable
 			{
-				auto client = clientWeak.lock();
-
-				if (client)
-				{
-					client->erase<uvw::EndEvent>(c1);
-					client->erase<uvw::ErrorEvent>(c2);
-				}
-
 				auto c = *cb;
 
 				if (c)

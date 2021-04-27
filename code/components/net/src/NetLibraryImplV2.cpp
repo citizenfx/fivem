@@ -40,6 +40,8 @@ public:
 
 	virtual int32_t GetPing() override;
 
+	virtual int32_t GetVariance() override;
+
 private:
 	void ProcessPacket(const uint8_t* data, size_t size, NetPacketMetrics& metrics, ENetPacketFlag flags);
 
@@ -446,6 +448,16 @@ int32_t NetLibraryImplV2::GetPing()
 	if (m_serverPeer)
 	{
 		return int32_t(m_serverPeer->roundTripTime);
+	}
+
+	return -1;
+}
+
+int32_t NetLibraryImplV2::GetVariance()
+{
+	if (m_serverPeer)
+	{
+		return int32_t(m_serverPeer->roundTripTimeVariance);
 	}
 
 	return -1;

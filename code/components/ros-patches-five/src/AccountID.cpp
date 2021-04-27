@@ -86,7 +86,7 @@ std::string GetROSEmail()
 	return (const char*)&accountBlob[8];
 }
 
-#if defined(IS_RDR3) || defined(GTA_FIVE)
+#if defined(IS_RDR3) || defined(GTA_FIVE) || defined(GTA_NY)
 static uint8_t* accountBlob;
 
 static DWORD GetMTLPid()
@@ -142,7 +142,7 @@ bool GetMTLSessionInfo(std::string& ticket, std::string& sessionTicket, std::arr
 {
 	if (!accountBlob)
 	{
-#if defined(GTA_FIVE)
+#if defined(GTA_FIVE) || defined(GTA_NY)
 		if (!InitAccountRemote())
 #endif
 		{
@@ -172,7 +172,7 @@ static bool InitAccountSteam()
 
 	if (!blob->tried)
 	{
-#ifndef GTA_FIVE
+#ifdef IS_RDR3
 		if (!getenv("CitizenFX_ToolMode"))
 #endif
 		{
@@ -200,7 +200,7 @@ static bool InitAccountEOS()
 
 	if (!blob->triedEpic)
 	{
-#ifndef GTA_FIVE
+#ifdef IS_RDR3
 		if (!getenv("CitizenFX_ToolMode"))
 #endif
 		{
@@ -545,6 +545,8 @@ void ValidateSteam(int parentPid)
 	271590
 #elif defined(IS_RDR3)
 	1174180
+#elif defined(GTA_NY)
+	12210
 #else
 	0
 #endif
@@ -555,8 +557,10 @@ void ValidateSteam(int parentPid)
 	"gta5"
 #elif defined(IS_RDR3)
 	"rdr2"
+#elif defined(GTA_NY)
+	"gta4"
 #else
-	0
+	""
 #endif
 	;
 
@@ -586,11 +590,9 @@ void ValidateSteam(int parentPid)
 	auto r = cpr::Post(
 		cpr::Url{ "https://rgl.rockstargames.com/api/launcher/autologinsteam" },
 		cpr::Header{
-			{
-				{"Content-Type", "application/json; charset=utf-8"},
-				{"Accept", "application/json"},
-				{"X-Requested-With", "XMLHttpRequest"}
-			}
+			{"Content-Type", "application/json; charset=utf-8"},
+			{"Accept", "application/json"},
+			{"X-Requested-With", "XMLHttpRequest"}
 		},
 		cpr::Body{
 			j.dump()
@@ -644,12 +646,10 @@ void ValidateSteam(int parentPid)
 	r = cpr::Post(
 		cpr::Url{ "https://rgl.rockstargames.com/api/launcher/bindsteamaccount" },
 		cpr::Header{
-			{
-				{"Content-Type", "application/json; charset=utf-8"},
-				{"Accept", "application/json"},
-				{"X-Requested-With", "XMLHttpRequest"},
-				{"Authorization", fmt::sprintf("SCAUTH val=\"%s\"", tick) },
-			}
+			{"Content-Type", "application/json; charset=utf-8"},
+			{"Accept", "application/json"},
+			{"X-Requested-With", "XMLHttpRequest"},
+			{"Authorization", fmt::sprintf("SCAUTH val=\"%s\"", tick) },
 		},
 		cpr::Body{
 			j.dump()
@@ -676,6 +676,7 @@ void ValidateSteam(int parentPid)
 
 static bool InitAccountMTL()
 {
+#if defined(_M_AMD64)
 	auto pid = GetMTLPid();
 
 	if (pid == -1)
@@ -778,6 +779,10 @@ static bool InitAccountMTL()
 	trace("MTL says it's signed in: %s\n", (const char*)&accountBlob[8]);
 
 	return true;
+#else
+	// #TODOLIBERTY
+	return false;
+#endif
 }
 
 void PreInitGameSpec()

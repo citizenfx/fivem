@@ -146,6 +146,21 @@
 			height: var(--header-height);
 
 			background-size: cover;
+			position: relative;
+
+			span {
+				position: absolute;
+				font-size: var(--q1);
+				bottom: calc(((var(--q1) + var(--qh) / 2) / 2) * -1);
+				right: calc(((var(--q1) + var(--qh) / 2) / 2) * -1);
+
+				@include theme() using ($theme) {
+					background-color: rgba(gtv($theme, accentColor1), 1);
+				}
+
+				border-radius: 100%;
+				padding: calc(var(--qh) / 2);
+			}
 		}
 	}
 
@@ -451,7 +466,7 @@
 					// Make it point to the correct direction
 					transform: rotateY(180deg);
 
-					:host-context(.game-rdr3) & {
+					:host-context(.game-rdr3) &, :host-context(.game-ny) & {
 						transform: none;
 						width: var(--q2);
 						height: var(--q2);
@@ -734,5 +749,11 @@
 
 	::ng-deep a {
 		color: inherit;
+	}
+
+	.subnav-item span+span {
+		white-space: nowrap;
+		text-overflow: ellipsis;
+		overflow-x: hidden;
 	}
 }

@@ -375,6 +375,18 @@ static InitFunction initFunction([]()
 
 	OnPostFrontendRender.Connect([]()
 	{
+		using namespace std::chrono_literals;
+
+		static auto last = std::chrono::high_resolution_clock::now().time_since_epoch();
+		auto now = std::chrono::high_resolution_clock::now().time_since_epoch();
+
+		if ((now - last) < 33333us)
+		{
+			return;
+		}
+
+		last = now;
+
 		auto dev = GetD3D11Device();
 		ID3D11Device1* dev1;
 		if (FAILED(dev->QueryInterface(&dev1)))

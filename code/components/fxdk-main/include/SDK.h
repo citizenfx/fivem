@@ -14,6 +14,7 @@
 #include "include/cef_parser.h"
 #include "include/wrapper/cef_closure_task.h"
 
+#include <msgpack.hpp>
 
 namespace fxdk
 {
@@ -27,10 +28,48 @@ namespace fxdk
 
 namespace fxdk::ioUtils
 {
+	enum EventType {
+		CREATED = 0,
+		DELETED = 1,
+		MODIFIED = 2,
+		RENAMED = 3
+	};
+
+	struct Event {
+		Event(
+			const EventType type,
+			const std::string& fromDirectory,
+			const std::string& fromFile,
+			const std::string& toDirectory,
+			const std::string& toFile
+		) :
+			type(type),
+			fromDirectory(fromDirectory),
+			toDirectory(toDirectory),
+			fromFile(fromFile),
+			toFile(toFile)
+		{}
+
+		EventType type;
+		std::string fromDirectory, toDirectory, fromFile, toFile;
+
+		MSGPACK_DEFINE(type, fromDirectory, fromFile, toDirectory, toFile);
+	};
+
 	typedef std::function<void(const std::string& error)> RecycleShellItemsCallback;
 
+	typedef std::unique_ptr<std::vector<std::unique_ptr<Event>>> FileEvents;
+
+	typedef std::function<void(uint32_t watcherId, const std::string& error)> ErrorCallback;
+	typedef std::function<void(uint32_t watcherId, const FileEvents& events)> EventCallback;
+
 	void RecycleShellItems(const std::vector<std::string> items, const RecycleShellItemsCallback cb);
+
+	uint32_t StartFileWatcher(const std::string& path, const EventCallback& eventCallback, const ErrorCallback& errorCallback);
+	void StopFileWatcher(uint32_t watcherId);
 }
+
+MSGPACK_ADD_ENUM(fxdk::ioUtils::EventType);
 
 class SDKInit : public ICoreGameInit
 {

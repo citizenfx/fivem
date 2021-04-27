@@ -408,7 +408,7 @@ static InitFunction initFunction([]()
 
 			if (fx::IsOneSync())
 			{
-				if (protocol < 9)
+				if (protocol < 11)
 				{
 					sendError("Client/server version mismatch.");
 					return;
@@ -421,6 +421,14 @@ static InitFunction initFunction([]()
 
 			switch (instance->GetComponent<fx::GameServer>()->GetGameName())
 			{
+			case fx::GameName::GTA4:
+				intendedGameName = "gta4";
+
+				if (gameName == "gta4")
+				{
+					validGameName = true;
+				}
+				break;
 			case fx::GameName::GTA5:
 				intendedGameName = "gta5";
 
@@ -493,7 +501,7 @@ static InitFunction initFunction([]()
 
 			json data = json::object();
 			data["protocol"] = 5;
-			data["bitVersion"] = 0x202103030422;
+			data["bitVersion"] = 0x202103292050;
 			data["sH"] = shVar->GetValue();
 			data["enhancedHostSupport"] = ehVar->GetValue() && !fx::IsOneSync();
 			data["onesync"] = fx::IsOneSync();
@@ -769,6 +777,8 @@ static InitFunction initFunction([]()
 
 				gscomms_execute_callback_on_main_thread([=]
 				{
+					auto deferralsRef = *deferrals;
+
 					/*NETEV playerConnecting SERVER
 					/#*
 					 * A server-side event that is triggered when a player is trying to connect.
@@ -826,7 +836,7 @@ static InitFunction initFunction([]()
 						handover(data: { [key: string]: any }): void,
 					}, source: string): void;
 					*/
-					bool shouldAllow = eventManager->TriggerEvent2("playerConnecting", { fmt::sprintf("internal-net:%d", lockedClient->GetNetId()) }, lockedClient->GetName(), cbComponent->CreateCallback([noReason](const msgpack::unpacked& unpacked)
+					bool shouldAllow = (deferralsRef) ? (eventManager->TriggerEvent2("playerConnecting", { fmt::sprintf("internal-net:%d", lockedClient->GetNetId()) }, lockedClient->GetName(), cbComponent->CreateCallback([noReason](const msgpack::unpacked& unpacked)
 					{
 						auto obj = unpacked.get().as<std::vector<msgpack::object>>();
 
@@ -835,7 +845,7 @@ static InitFunction initFunction([]()
 							**noReason = obj[0].as<std::string>();
 						}
 					}),
-					(*deferrals)->GetCallbacks());
+					deferralsRef->GetCallbacks())) : false;
 
 					if (!shouldAllow)
 					{
@@ -854,8 +864,6 @@ static InitFunction initFunction([]()
 					}
 
 					// was the deferral already completed/canceled this frame? if so, just don't respond at all
-					auto deferralsRef = *deferrals;
-
 					if (!deferralsRef)
 					{
 						return;

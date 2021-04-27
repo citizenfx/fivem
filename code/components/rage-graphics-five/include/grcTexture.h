@@ -5,12 +5,12 @@
 #define _HAS_GRCTEXTURE_MAP 1
 
 #ifdef COMPILING_RAGE_GRAPHICS_FIVE
-#define GAMESPEC_EXPORT_VMT __declspec(dllexport) __declspec(novtable)
-#define GAMESPEC_EXPORT __declspec(dllexport)
+#define GFX_EXPORT_VMT __declspec(dllexport) __declspec(novtable)
+#define GFX_EXPORT __declspec(dllexport)
 #else
 // no dllimport for importing a vtable as it will be translated to a local vtable
-#define GAMESPEC_EXPORT_VMT __declspec(novtable)
-#define GAMESPEC_EXPORT __declspec(dllimport)
+#define GFX_EXPORT_VMT __declspec(novtable)
+#define GFX_EXPORT __declspec(dllimport)
 #endif
 
 namespace rage
@@ -97,7 +97,7 @@ public:
 	virtual void Unmap(grcLockedTexture* lockedTexture) = 0;
 
 public:
-	static bool GAMESPEC_EXPORT IsRenderSystemColorSwapped();
+	static bool GFX_EXPORT IsRenderSystemColorSwapped();
 
 	// D3D11 specific
 private:
@@ -111,6 +111,11 @@ private:
 
 public:
 	ID3D11ShaderResourceView* srv;
+};
+
+class grcRenderTarget : public grcTexture
+{
+
 };
 
 #define FORMAT_A8R8G8B8 40
@@ -180,13 +185,19 @@ private:
 public:
 	virtual grcTexture* createFromNativeTexture(const char* name, ID3D11Resource* nativeResource, void* a3) = 0;
 
-public:
-	static GAMESPEC_EXPORT grcTexture* GetNoneTexture();
+	virtual void v12() = 0;
 
-	static GAMESPEC_EXPORT grcTextureFactory* getInstance();
+	virtual void PushRenderTarget(void* a2, grcRenderTarget* rt, void* a4, int a5, bool a6, int a7) = 0;
+
+	virtual void PopRenderTarget(void* a2, void* a3_clear) = 0;
+
+public:
+	static GFX_EXPORT grcTexture* GetNoneTexture();
+
+	static GFX_EXPORT grcTextureFactory* getInstance();
 };
 
-class GAMESPEC_EXPORT grcResourceCache
+class GFX_EXPORT grcResourceCache
 {
 public:
 	static grcResourceCache* GetInstance();
@@ -197,4 +208,5 @@ public:
 };
 }
 
-void GAMESPEC_EXPORT ClearRenderTarget(bool a1, int value1, bool a2, float value2, bool a3, int value3);
+void GFX_EXPORT ClearRenderTarget(bool a1, int value1, bool a2, float value2, bool a3, int value3);
+GFX_EXPORT rage::grcRenderTarget* CreateRenderTarget(int idx, const char* name, int usage3, int width, int height, int format /* or bit count */, void* metadata, uint8_t a, rage::grcRenderTarget* last);

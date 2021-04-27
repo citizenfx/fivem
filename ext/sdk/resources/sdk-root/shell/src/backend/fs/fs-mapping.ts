@@ -1,25 +1,20 @@
-import chokidar from 'chokidar';
 import { EntryMetaExtras, ExplorerService } from "backend/explorer/explorer-service";
 import { inject, injectable } from "inversify";
 import { FilesystemEntry, FilesystemEntryMap } from "shared/api.types";
 import { FsService } from "./fs-service";
 import { ProjectFsUpdate } from 'shared/project.types';
 import { LogService } from 'backend/logger/log-service';
+import { FsWatcher, FsWatcherEvent, FsWatcherEventType } from './fs-watcher';
+import { Queue } from "backend/queue";
 
-
-export enum FsUpdateType {
-  add,
-  addDir,
-  change,
-  unlink,
-  unlinkDir,
-}
+export type FsMappingCreatedHandler = (entry: FilesystemEntry) => void | Promise<void>;
+export type FsMappingDeletedHandler = (entryPath: string) => void | Promise<void>;
+export type FsMappingModifiedHandler = (entry: FilesystemEntry) => void | Promise<void>;
+export type FsMappingRenamedHandler = (entry: FilesystemEntry, oldEntryPath: string) => void | Promise<void>;
 
 export type FsMappingProcessEntry = (entry: FilesystemEntry) => void | Promise<void>;
-export type FsMappingAddOrChangeHandler = (entry: FilesystemEntry) => void | Promise<void>;
-export type FsMappingUnlinkHandler = (entryPath: string) => void | Promise<void>;
-export type FsMappingShouldProcessUpdate = (type: FsUpdateType, path: string) => boolean;
-export type FsMappingAfterUpdateHandler = (type: FsUpdateType, path: string, entry: FilesystemEntry | null) => void | Promise<void>;
+export type FsMappingShouldProcessUpdate = (path: string) => boolean;
+export type FsMappingAfterUpdateHandler = (type: FsWatcherEventType, path: string, entry: FilesystemEntry | null) => void | Promise<void>;
 
 @injectable()
 export class FsMapping {
@@ -37,8 +32,11 @@ export class FsMapping {
     return this.map;
   }
 
-  protected watcher: chokidar.FSWatcher;
+  // protected watcher: chokidar.FSWatcher;
+  protected watcher: FsWatcher;
+
   protected rootPath: string;
+  protected ignoredPath: string = '';
 
   protected processEntry: FsMappingProcessEntry = () => {};
   setProcessEntry(fn: FsMappingProcessEntry) {
@@ -50,29 +48,24 @@ export class FsMapping {
     this.entryMetaExtras = extras;
   }
 
-  protected onAdd: FsMappingAddOrChangeHandler = () => {};
-  setOnAdd(fn: FsMappingAddOrChangeHandler) {
-    this.onAdd = fn;
+  protected onCreated: FsMappingCreatedHandler = () => {};
+  setOnCreated(fn: FsMappingCreatedHandler) {
+    this.onCreated = fn;
   }
 
-  protected onAddDir: FsMappingAddOrChangeHandler = () => {};
-  setOnAddDir(fn: FsMappingAddOrChangeHandler) {
-    this.onAddDir = fn;
+  protected onDeleted: FsMappingDeletedHandler = () => {};
+  setOnDeleted(fn: FsMappingDeletedHandler) {
+    this.onDeleted = fn;
   }
 
-  protected onChange: FsMappingAddOrChangeHandler = () => {};
-  setOnChange(fn: FsMappingAddOrChangeHandler) {
-    this.onChange = fn;
+  protected onModified: FsMappingModifiedHandler = () => {};
+  setOnModified(fn: FsMappingModifiedHandler) {
+    this.onModified = fn;
   }
 
-  protected onUnlink: FsMappingUnlinkHandler = () => {};
-  setOnUnlink(fn: FsMappingUnlinkHandler) {
-    this.onUnlink = fn;
-  }
-
-  protected onUnlinkDir: FsMappingUnlinkHandler = () => {};
-  setOnUnlinkDir(fn: FsMappingUnlinkHandler) {
-    this.onUnlinkDir = fn;
+  protected onRenamed: FsMappingRenamedHandler = () => {};
+  setOnRenamed(fn: FsMappingRenamedHandler) {
+    this.onRenamed = fn;
   }
 
   protected shouldProcessUpdate: FsMappingShouldProcessUpdate = () => true;
@@ -90,6 +83,8 @@ export class FsMapping {
     replace: {},
   };
 
+  protected queue: Queue<FsWatcherEvent>;
+
   hasUpdates(): boolean {
     return this.pendingUpdates.delete.length > 0 && Object.keys(this.pendingUpdates.replace).length > 0;
   }
@@ -104,33 +99,26 @@ export class FsMapping {
     return update;
   }
 
-  async init(rootPath: string, ignored: any) {
+  async init(rootPath: string, ignored: string) {
     this.rootPath = rootPath;
+    this.ignoredPath = ignored;
 
-    this.watcher = chokidar.watch(rootPath, {
-      ignored,
-      persistent: true,
-      ignoreInitial: true,
-      disableGlobbing: true,
-      ignorePermissionErrors: true,
+    this.queue = new Queue(([action, entryPath, oldEntryPath]) => this.processFsUpdate(action, entryPath, oldEntryPath));
+
+    this.watcher = new FsWatcher({
+      path: rootPath,
+      ignoredPaths: [ignored],
+      logger: (...args) => this.logService.log(...args),
+
+      onEvent: (event) => this.queue.append(event),
     });
 
-    this.watcher
-      .on('add', (updatedPath: string) => this.processFsUpdate(FsUpdateType.add, updatedPath))
-      .on('addDir', (updatedPath: string) => this.processFsUpdate(FsUpdateType.addDir, updatedPath))
-      .on('change', (updatedPath: string) => this.processFsUpdate(FsUpdateType.change, updatedPath))
-      .on('unlink', (updatedPath: string) => this.processFsUpdate(FsUpdateType.unlink, updatedPath))
-      .on('unlinkDir', (updatedPath: string) => this.processFsUpdate(FsUpdateType.unlinkDir, updatedPath));
-
-    this.map = await this.explorerService.readDirRecursively(
-      rootPath,
-      this.entryMetaExtras,
-      this.processEntry,
-    );
+    this.map = await this.scanDir(rootPath);
   }
 
   async deinit() {
-    await this.watcher.close();
+    this.queue.dispose();
+    this.watcher.dispose();
   }
 
   async forceEntryScan(entryPath: string) {
@@ -146,47 +134,53 @@ export class FsMapping {
         parent[entryIndexInParent] = entry;
         this.pendingUpdates.replace[parentPath] = parent;
 
-        this.onChange(entry);
+        this.onModified(entry);
       }
     }
   }
 
-  protected async processFsUpdate(type: FsUpdateType, path: string) {
-    this.logService.log('AAA', { type: FsUpdateType[type], path });
+  protected scanDir(path: string): Promise<FilesystemEntryMap> {
+    return this.explorerService.readDirRecursively(
+      path,
+      this.entryMetaExtras,
+      this.doProcessEntry,
+    );
+  }
 
-    if (!this.shouldProcessUpdate(type, path)) {
+  protected doProcessEntry = (entry: FilesystemEntry) => {
+    if (!entry) {
       return;
     }
 
-    const parentPath = this.fsService.dirname(path);
-    const entry = await this.explorerService.getEntry(path, this.entryMetaExtras);
+    if (this.ignoredPath && entry.path.indexOf(this.ignoredPath) > -1) {
+      return;
+    }
+
+    return this.processEntry(entry);
+  };
+
+  protected async processFsUpdate(type: FsWatcherEventType, entryPath: string, oldEntryPath?: string) {
+    if (!this.shouldProcessUpdate(entryPath)) {
+      return;
+    }
+
+    const parentPath = this.fsService.dirname(entryPath);
+    const entry = await this.explorerService.getEntry(entryPath, this.entryMetaExtras);
 
     // First apply changes
     const parent = this.map[parentPath];
     const promises = [];
 
     switch (type) {
-      case FsUpdateType.addDir: {
+      case FsWatcherEventType.CREATED: {
         if (!entry) {
-          break;
+          this.logService.error(new Error(`FS entry was created but stat has failed`), { entryPath, entry });
+          return;
         }
 
-        this.map[path] = [];
-        this.pendingUpdates.replace[path] = [];
-
-        if (parent) {
-          parent.push(entry);
-          this.pendingUpdates.replace[parentPath] = parent;
-        }
-
-        this.onAddDir(entry);
-        promises.push(this.processEntry(entry));
-
-        break;
-      }
-      case FsUpdateType.add: {
-        if (!entry) {
-          break;
+        if (entry.isDirectory) {
+          this.map[entryPath] = [];
+          this.pendingUpdates.replace[entryPath] = [];
         }
 
         if (parent) {
@@ -194,19 +188,41 @@ export class FsMapping {
           this.pendingUpdates.replace[parentPath] = parent;
         }
 
-        this.onAdd(entry);
-        promises.push(this.processEntry(entry));
+        this.onCreated(entry);
+        promises.push(this.doProcessEntry(entry));
 
         break;
       }
+      case FsWatcherEventType.DELETED: {
+        this.logService.log('DELETED!', entryPath);
 
-      case FsUpdateType.change: {
-        if (!entry) {
-          break;
+        if (this.map[entryPath]) {
+          this.pendingUpdates.delete.push(entryPath);
+          delete this.map[entryPath];
         }
 
         if (parent) {
-          const updatedEntryIndex = parent.findIndex((entry) => entry.path === path);
+          const updatedEntryIndex = parent.findIndex((entry) => entry.path === entryPath);
+
+          if (updatedEntryIndex > -1) {
+            parent.splice(updatedEntryIndex, 1);
+            this.pendingUpdates.replace[parentPath] = parent;
+          }
+        }
+
+        this.onDeleted(entryPath);
+
+        break;
+      }
+      case FsWatcherEventType.MODIFIED: {
+        // Modified emptiness?
+        if (!entry) {
+          this.logService.error(new Error(`FS entry was modified but stat has failed`), { entryPath, entry });
+          return;
+        }
+
+        if (parent) {
+          const updatedEntryIndex = parent.findIndex((entry) => entry.path === entryPath);
 
           if (updatedEntryIndex > -1) {
             parent[updatedEntryIndex] = entry;
@@ -214,40 +230,38 @@ export class FsMapping {
           }
         }
 
-        this.onChange(entry);
-        promises.push(this.processEntry(entry));
+        this.onModified(entry);
+        promises.push(this.doProcessEntry(entry));
 
         break;
       }
+      case FsWatcherEventType.RENAMED: {
+        if (!entry) {
+          this.logService.error(new Error(`FS entry was renamed but stat has failed`), { entryPath, entry, oldEntryPath });
+          return;
+        }
 
-      case FsUpdateType.unlinkDir: {
-        this.pendingUpdates.delete.push(path);
-        delete this.map[path];
+        // If that was a dir - scan it
+        if (this.map[oldEntryPath]) {
+          delete this.map[oldEntryPath];
+
+          Object.assign(this.map, await this.scanDir(entryPath));
+
+          this.pendingUpdates.delete.push(oldEntryPath);
+          this.pendingUpdates.replace[entryPath] = this.map[entryPath];
+        }
 
         if (parent) {
-          const updatedEntryIndex = parent.findIndex((entry) => entry.path === path);
+          const updatedEntryIndex = parent.findIndex((entry) => entry.path === oldEntryPath);
 
           if (updatedEntryIndex > -1) {
-            parent.splice(updatedEntryIndex, 1);
+            parent[updatedEntryIndex] = entry;
             this.pendingUpdates.replace[parentPath] = parent;
           }
         }
 
-        this.onUnlinkDir(path);
-
-        break;
-      }
-      case FsUpdateType.unlink: {
-        if (parent) {
-          const updatedEntryIndex = parent.findIndex((entry) => entry.path === path);
-
-          if (updatedEntryIndex > -1) {
-            parent.splice(updatedEntryIndex, 1);
-            this.pendingUpdates.replace[parentPath] = parent;
-          }
-        }
-
-        this.onUnlink(path);
+        this.onRenamed(entry, oldEntryPath);
+        promises.push(this.doProcessEntry(entry));
 
         break;
       }
@@ -255,6 +269,6 @@ export class FsMapping {
 
     await Promise.all(promises);
 
-    this.afterUpdate(type, path, entry);
+    this.afterUpdate(type, entryPath, entry);
   }
 }

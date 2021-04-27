@@ -33,6 +33,29 @@ extern std::shared_mutex g_nuiFocusStackMutex;
 extern std::list<std::string> g_nuiFocusStack;
 #endif
 
+static std::map<std::string, std::vector<CefRefPtr<CefProcessMessage>>> g_processMessageQueue;
+static std::mutex g_processMessageQueueMutex;
+
+void TriggerLoadEnd(const std::string& name)
+{
+	auto rootWindow = Instance<NUIWindowManager>::Get()->GetRootWindow();
+
+	if (rootWindow.GetRef() && rootWindow->GetBrowser() && rootWindow->GetBrowser()->GetMainFrame())
+	{
+		std::unique_lock _(g_processMessageQueueMutex);
+
+		if (auto it = g_processMessageQueue.find(name); it != g_processMessageQueue.end())
+		{
+			for (auto& processMessage : it->second)
+			{
+				rootWindow->GetBrowser()->GetMainFrame()->SendProcessMessage(PID_RENDERER, processMessage);
+			}
+
+			g_processMessageQueue.erase(it);
+		}
+	}
+}
+
 namespace nui
 {
 #ifndef USE_NUI_ROOTLESS
@@ -87,23 +110,28 @@ namespace nui
 	{
 		auto rootWindow = Instance<NUIWindowManager>::Get()->GetRootWindow();
 
+		auto processMessage = CefProcessMessage::Create("pushEvent");
+		auto argumentList = processMessage->GetArgumentList();
+
+		argumentList->SetString(0, type);
+
+		int argIdx = 1;
+
+		for (auto arg : args)
+		{
+			argumentList->SetString(argIdx, arg.get());
+
+			argIdx++;
+		}
+
 		if (rootWindow.GetRef() && rootWindow->GetBrowser() && rootWindow->GetBrowser()->GetMainFrame())
 		{
-			auto processMessage = CefProcessMessage::Create("pushEvent");
-			auto argumentList = processMessage->GetArgumentList();
-
-			argumentList->SetString(0, type);
-
-			int argIdx = 1;
-
-			for (auto arg : args)
-			{
-				argumentList->SetString(argIdx, arg.get());
-
-				argIdx++;
-			}
-
 			rootWindow->GetBrowser()->GetMainFrame()->SendProcessMessage(PID_RENDERER, processMessage);
+		}
+		else
+		{
+			std::unique_lock _(g_processMessageQueueMutex);
+			g_processMessageQueue[(type != "rootCall") ? argumentList->GetString(0) : "__root"].push_back(processMessage);
 		}
 	}
 
@@ -191,9 +219,11 @@ namespace nui
 		g_shouldHideCursor = hide;
 	}
 
+	extern std::string GetContext();
+
 	fwRefContainer<NUIWindow> CreateNUIWindow(fwString windowName, int width, int height, fwString windowURL, bool rawBlit/* = false*/, bool instant)
 	{
-		auto window = NUIWindow::Create(rawBlit, width, height, windowURL, instant);
+		auto window = NUIWindow::Create(rawBlit, width, height, windowURL, instant, nui::GetContext());
 
 		std::unique_lock<std::shared_mutex> lock(windowListMutex);
 		windowList[windowName] = window;

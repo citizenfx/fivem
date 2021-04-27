@@ -45,6 +45,18 @@ class ConvarWrapper {
 	}
 }
 
+export class LocalhostAvailability {
+	available: boolean;
+	host: string;
+	port: string;
+
+	constructor(available: boolean, host?: string, port?: string) {
+		this.available = available;
+		this.host = host ?? '';
+		this.port = port ?? '';
+	}
+}
+
 @Injectable()
 export abstract class GameService {
 	connectFailed = new EventEmitter<[Server, string]>();
@@ -61,6 +73,7 @@ export abstract class GameService {
 	darkThemeChange = new BehaviorSubject<boolean>(true);
 	nicknameChange = new BehaviorSubject<string>('');
 	localhostPortChange = new BehaviorSubject<string>('');
+	localServerChange = new BehaviorSubject<LocalhostAvailability>(new LocalhostAvailability(false));
 	languageChange = new BehaviorSubject<string>('en');
 
 	signinChange = new EventEmitter<Profile>();
@@ -101,6 +114,8 @@ export abstract class GameService {
 				return 'Cfx.re';
 			case 'gta5':
 				return 'FiveM';
+			case 'ny':
+				return 'LibertyM';
 			default:
 				return 'CitizenFX';
 		}
@@ -454,7 +469,7 @@ export class CfxGameService extends GameService {
 						const address: string = event.data.hostnameStr;
 						const connectParams = query.parse(event.data.connectParams);
 
-						(<any>window).invokeNative('checkNickname', this.realNickname);
+						this.updateNickname();
 
 						if (!this.inConnecting) {
 							if ('streamerMode' in connectParams) {
@@ -495,15 +510,26 @@ export class CfxGameService extends GameService {
 
 			const requestLocalhost = async () => {
 				try {
-					const localhostServer = await this.queryAddress(['localhost', parseInt(this.localhostPort, 10) || 30120]);
+					const localhostServer = await this.queryAddress(['localhost_sentinel', parseInt(this.localhostPort, 10) || 30120]);
 
 					if (localhostServer) {
+						this.localServerChange.next(
+							new LocalhostAvailability(
+								true,
+								localhostServer.data?.address ?? 'localhost',
+								localhostServer.data?.port ?? (this.localhostPort || '30120')
+							)
+						);
 						this.devMode = true;
 					} else {
 						this.devMode = false;
+
+						this.localServerChange.next(new LocalhostAvailability(false));
 					}
 				} catch {
 					this.devMode = false;
+
+					this.localServerChange.next(new LocalhostAvailability(false));
 				}
 			};
 			requestLocalhost();
@@ -724,7 +750,13 @@ export class CfxGameService extends GameService {
 		localStorage.setItem('nickOverride', name);
 		this.invokeNicknameChanged(name);
 
-		(<any>window).invokeNative('checkNickname', name);
+		this.updateNickname();
+	}
+
+	updateNickname() {
+		if (this.realNickname && this.realNickname !== '') {
+			(<any>window).invokeNative('checkNickname', this.realNickname);
+		}
 	}
 
 	get darkTheme(): boolean {
@@ -792,6 +824,8 @@ export class CfxGameService extends GameService {
 		if (this.inConnecting) {
 			return;
 		}
+
+		this.updateNickname();
 
 		this.inConnecting = true;
 
@@ -911,13 +945,15 @@ export class CfxGameService extends GameService {
 
 			for (const addrString of tries) {
 				const promise = new Promise<Server>((queryResolve, queryReject) => {
+                    let messageHandler: any = null;
+
 					const timeoutTimer = window.setTimeout(() => {
 						queryReject(new Error('#DirectConnect_TimedOut'));
 
 						window.removeEventListener('message', messageHandler);
-					}, 2500);
+					}, 7500);
 
-					const messageHandler = (event) => {
+					messageHandler = (event) => {
 						if (event.data.type === 'queryingFailed') {
 							if (event.data.arg === addrString) {
 								queryReject(new Error('#DirectConnect_Failed'));
@@ -925,9 +961,11 @@ export class CfxGameService extends GameService {
 								window.clearTimeout(timeoutTimer);
 							}
 						} else if (event.data.type === 'serverQueried') {
-							queryResolve(Server.fromNative(this.sanitizer, event.data));
-							window.removeEventListener('message', messageHandler);
-							window.clearTimeout(timeoutTimer);
+                            if (event.data.queryCorrelation === addrString) {
+                                queryResolve(Server.fromNative(this.sanitizer, event.data));
+                                window.removeEventListener('message', messageHandler);
+                                window.clearTimeout(timeoutTimer);
+                            }
 						}
 					};
 

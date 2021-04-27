@@ -26,6 +26,7 @@
 	"citizen:scripting:lua54",
 	"citizen:scripting:mono",
 	"citizen:scripting:v8",
+	"citizen:scripting:v8next",
 	"gta:core:rdr3",
 	"http-client",
 	"debug:net",

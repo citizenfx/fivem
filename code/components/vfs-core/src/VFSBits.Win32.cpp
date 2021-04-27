@@ -17,18 +17,18 @@ public:
 	}
 
 	// Inherited via RuntimeClass
-	virtual HRESULT Read(void* pv, ULONG cb, ULONG* pcbRead) override
+	virtual HRESULT STDMETHODCALLTYPE Read(void* pv, ULONG cb, ULONG* pcbRead) override
 	{
 		*pcbRead = m_stream->Read(pv, cb);
 
 		return S_OK;
 	}
-	virtual HRESULT Write(const void* pv, ULONG cb, ULONG* pcbWritten) override
+	virtual HRESULT STDMETHODCALLTYPE Write(const void* pv, ULONG cb, ULONG* pcbWritten) override
 	{
 		*pcbWritten = m_stream->Write(pv, cb);
 		return S_OK;
 	}
-	virtual HRESULT Seek(LARGE_INTEGER dlibMove, DWORD dwOrigin, ULARGE_INTEGER* plibNewPosition) override
+	virtual HRESULT STDMETHODCALLTYPE Seek(LARGE_INTEGER dlibMove, DWORD dwOrigin, ULARGE_INTEGER* plibNewPosition) override
 	{
 		auto p = m_stream->Seek(dlibMove.QuadPart, dwOrigin);
 
@@ -40,31 +40,31 @@ public:
 		return S_OK;
 	}
 
-	virtual HRESULT SetSize(ULARGE_INTEGER libNewSize) override
+	virtual HRESULT STDMETHODCALLTYPE SetSize(ULARGE_INTEGER libNewSize) override
 	{
 		return E_NOTIMPL;
 	}
-	virtual HRESULT CopyTo(IStream* pstm, ULARGE_INTEGER cb, ULARGE_INTEGER* pcbRead, ULARGE_INTEGER* pcbWritten) override
+	virtual HRESULT STDMETHODCALLTYPE CopyTo(IStream* pstm, ULARGE_INTEGER cb, ULARGE_INTEGER* pcbRead, ULARGE_INTEGER* pcbWritten) override
 	{
 		return E_NOTIMPL;
 	}
-	virtual HRESULT Commit(DWORD grfCommitFlags) override
+	virtual HRESULT STDMETHODCALLTYPE Commit(DWORD grfCommitFlags) override
 	{
 		return E_NOTIMPL;
 	}
-	virtual HRESULT Revert(void) override
+	virtual HRESULT STDMETHODCALLTYPE Revert(void) override
 	{
 		return E_NOTIMPL;
 	}
-	virtual HRESULT LockRegion(ULARGE_INTEGER libOffset, ULARGE_INTEGER cb, DWORD dwLockType) override
+	virtual HRESULT STDMETHODCALLTYPE LockRegion(ULARGE_INTEGER libOffset, ULARGE_INTEGER cb, DWORD dwLockType) override
 	{
 		return E_NOTIMPL;
 	}
-	virtual HRESULT UnlockRegion(ULARGE_INTEGER libOffset, ULARGE_INTEGER cb, DWORD dwLockType) override
+	virtual HRESULT STDMETHODCALLTYPE UnlockRegion(ULARGE_INTEGER libOffset, ULARGE_INTEGER cb, DWORD dwLockType) override
 	{
 		return E_NOTIMPL;
 	}
-	virtual HRESULT Stat(STATSTG* pstatstg, DWORD grfStatFlag) override
+	virtual HRESULT STDMETHODCALLTYPE Stat(STATSTG* pstatstg, DWORD grfStatFlag) override
 	{
 		pstatstg->cbSize.QuadPart = m_stream->GetLength();
 		pstatstg->type = STGTY_STREAM;
@@ -72,7 +72,7 @@ public:
 
 		return S_OK;
 	}
-	virtual HRESULT Clone(IStream** ppstm) override
+	virtual HRESULT STDMETHODCALLTYPE Clone(IStream** ppstm) override
 	{
 		return E_NOTIMPL;
 	}

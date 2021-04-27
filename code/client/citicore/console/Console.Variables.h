@@ -166,7 +166,7 @@ class ConsoleVariableEntry : public ConsoleVariableEntryBase
 {
 public:
 	ConsoleVariableEntry(ConsoleVariableManager* manager, const std::string& name, const T& defaultValue)
-		: m_manager(manager), m_name(name), m_trackingVar(nullptr), m_defaultValue(defaultValue), m_curValue(defaultValue), m_hasConstraints(false)
+		: m_manager(manager), m_name(name), m_trackingVar(nullptr), m_defaultValue(defaultValue), m_curValue(defaultValue), m_hasConstraints(false), m_onChangeCallback(nullptr)
 	{
 		m_getCommand = std::make_unique<ConsoleCommand>(manager->GetParentContext(), name, [=] ()
 		{
@@ -207,7 +207,12 @@ public:
 		}
 	}
 
-	virtual std::string GetValue() override
+	inline void SetChangeCallback(void (*callback)(ConsoleVariableEntry*))
+	{
+		m_onChangeCallback = callback;
+	}
+
+	virtual std::string GetValue() override 
 	{
 		// update from a tracking variable
 		if (m_trackingVar)
@@ -277,6 +282,11 @@ public:
 			*m_trackingVar = m_curValue;
 		}
 
+		if (m_onChangeCallback)
+		{
+			m_onChangeCallback(this);
+		}
+
 		// update modified flags and trigger change events
 		if (!typename ConsoleArgumentTraits<T>::Equal()(oldValue, m_curValue))
 		{
@@ -298,6 +308,8 @@ private:
 	T m_defaultValue;
 
 	T* m_trackingVar;
+
+	void (*m_onChangeCallback)(ConsoleVariableEntry<T>*);
 
 	bool m_hasConstraints;
 

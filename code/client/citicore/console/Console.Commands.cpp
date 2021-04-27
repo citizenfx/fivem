@@ -95,7 +95,7 @@ void ConsoleCommandManager::InvokeDirect(const std::string& commandName, const P
 				return fallbackContext->GetCommandManager()->InvokeDirect(commandName, arguments, executionContext);
 			}
 
-			console::Printf("cmd", "No such command %s.\n", commandName.c_str());
+			console::Printf("cmdsys", "No such command %s.\n", commandName.c_str());
 			return;
 		}
 

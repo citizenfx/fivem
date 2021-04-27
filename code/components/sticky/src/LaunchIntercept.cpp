@@ -16,7 +16,7 @@ void Component_RunPreInit()
 
 	bool debugMode = false;
 
-#if defined(GTA_FIVE) || defined(IS_RDR3)
+#if defined(GTA_FIVE) || defined(IS_RDR3) || defined(GTA_NY)
 #ifdef _DEBUG
 	debugMode = true;
 #endif

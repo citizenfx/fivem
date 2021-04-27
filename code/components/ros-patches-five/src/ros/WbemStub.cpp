@@ -1,4 +1,8 @@
 #include <StdInc.h>
+
+#include <Shlwapi.h>
+
+#if !defined(_M_IX86)
 #include <wrl.h>
 #include <wbemidl.h>
 #include <propvarutil.h>
@@ -439,9 +443,12 @@ public:
 		return S_OK;
 	}
 };
+#endif
 
 HRESULT WINAPI CoCreateInstanceStub(_In_ REFCLSID rclsid, _In_opt_ LPUNKNOWN pUnkOuter, _In_ DWORD dwClsContext, _In_ REFIID riid, _COM_Outptr_ _At_(*ppv, _Post_readable_size_(_Inexpressible_(varies))) LPVOID FAR* ppv)
 {
+
+#if !GTA_NY
 	if (riid == __uuidof(IWbemLocator))
 	{
 		auto locator = WRL::Make<WbemLocator>();
@@ -449,11 +456,12 @@ HRESULT WINAPI CoCreateInstanceStub(_In_ REFCLSID rclsid, _In_opt_ LPUNKNOWN pUn
 
 		return S_OK;
 	}
+#endif
 
 	return CoCreateInstance(rclsid, pUnkOuter, dwClsContext, riid, ppv);
 }
 
-BOOL CreateProcessAStub(_In_opt_ LPCSTR lpApplicationName, _Inout_opt_ LPSTR lpCommandLine, _In_opt_ LPSECURITY_ATTRIBUTES lpProcessAttributes, _In_opt_ LPSECURITY_ATTRIBUTES lpThreadAttributes, _In_ BOOL bInheritHandles, _In_ DWORD dwCreationFlags, _In_opt_ LPVOID lpEnvironment, _In_opt_ LPCSTR lpCurrentDirectory, _In_ LPSTARTUPINFOA lpStartupInfo, _Out_ LPPROCESS_INFORMATION lpProcessInformation)
+BOOL __stdcall CreateProcessAStub(_In_opt_ LPCSTR lpApplicationName, _Inout_opt_ LPSTR lpCommandLine, _In_opt_ LPSECURITY_ATTRIBUTES lpProcessAttributes, _In_opt_ LPSECURITY_ATTRIBUTES lpThreadAttributes, _In_ BOOL bInheritHandles, _In_ DWORD dwCreationFlags, _In_opt_ LPVOID lpEnvironment, _In_opt_ LPCSTR lpCurrentDirectory, _In_ LPSTARTUPINFOA lpStartupInfo, _Out_ LPPROCESS_INFORMATION lpProcessInformation)
 {
 	std::string fakeData;
 
@@ -475,7 +483,7 @@ BOOL CreateProcessAStub(_In_opt_ LPCSTR lpApplicationName, _Inout_opt_ LPSTR lpC
 			fakeData = R"(phone-ngnfjs\admin
 )";
 		}
-		else if (StrStrIA(lpCommandLine, "dxdiag.exe") != nullptr)
+		else if (StrStrIA(lpCommandLine, "dxdiag") != nullptr)
 		{
 			fakeData = R"(
 )";
@@ -498,4 +506,35 @@ BOOL CreateProcessAStub(_In_opt_ LPCSTR lpApplicationName, _Inout_opt_ LPSTR lpC
 	}
 
 	return CreateProcessA(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
+}
+
+BOOL __stdcall CreateProcessWStub(_In_opt_ LPCWSTR lpApplicationName, _Inout_opt_ LPWSTR lpCommandLine, _In_opt_ LPSECURITY_ATTRIBUTES lpProcessAttributes, _In_opt_ LPSECURITY_ATTRIBUTES lpThreadAttributes, _In_ BOOL bInheritHandles, _In_ DWORD dwCreationFlags, _In_opt_ LPVOID lpEnvironment, _In_opt_ LPCWSTR lpCurrentDirectory, _In_ LPSTARTUPINFOW lpStartupInfo, _Out_ LPPROCESS_INFORMATION lpProcessInformation)
+{
+	std::string fakeData;
+
+	if (lpCommandLine)
+	{
+		if (StrStrIW(lpCommandLine, L"dxdiag") != nullptr)
+		{
+			fakeData = R"(
+)";
+		}
+	}
+
+	if (!fakeData.empty())
+	{
+		DWORD bw;
+		WriteFile(lpStartupInfo->hStdOutput, fakeData.data(), fakeData.size() * sizeof(fakeData[0]), &bw, NULL);
+
+		HANDLE hEvent = CreateEventW(NULL, TRUE, TRUE, NULL);
+		HANDLE hEvent2 = CreateEventW(NULL, TRUE, TRUE, NULL);
+
+		lpProcessInformation->hProcess = hEvent;
+		lpProcessInformation->hThread = hEvent2;
+		lpProcessInformation->dwProcessId = 8;
+		lpProcessInformation->dwThreadId = 12;
+		return TRUE;
+	}
+
+	return CreateProcessW(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
 }

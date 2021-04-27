@@ -8,5 +8,6 @@ return function()
 
 	files {
 		'components/extra-natives-five/src/VisualSettingsNatives.cpp',
+		'components/extra-natives-five/src/PoolTraversalNatives.cpp',
 	}
 end

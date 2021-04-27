@@ -477,6 +477,9 @@ static HRESULT CreateD3D11DeviceWrapOrig(_In_opt_ IDXGIAdapter* pAdapter, D3D_DR
 					continue;
 				}
 
+				AddCrashometry("gpu_name", "%s", ToNarrow(desc.Description));
+				AddCrashometry("gpu_id", "%04x:%04x", desc.VendorId, desc.DeviceId);
+
 				adapter.CopyTo(&pAdapter);
 				break;
 			}

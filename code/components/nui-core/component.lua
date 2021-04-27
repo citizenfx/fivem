@@ -1,9 +1,15 @@
 linkoptions "/DELAYLOAD:libcef.dll"
 
-libdirs { "../../../vendor/cef/Release/" }
 
-includedirs { "../../../vendor/cef/" }
+if _OPTIONS["game"] ~= "ny" then
+	libdirs { "../../../vendor/cef/Release/" }
 
+	includedirs { "../../../vendor/cef/" }
+else
+	libdirs { "../../../vendor/cef32/Release/" }
+
+	includedirs { "../../../vendor/cef32/" }
+end
 links { "libcef_dll", "delayimp", "libGLESv2" }
 
 links { "libcef" }

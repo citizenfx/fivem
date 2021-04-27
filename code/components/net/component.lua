@@ -4,8 +4,16 @@ return function()
 	filter {}
 	configuration {}
 	
-	add_dependencies {
-		"vendor:citizen_enet",
-		"vendor:citizen_util",
-	}
+	if _OPTIONS["game"] == 'ny' then
+		add_dependencies {
+			'ros-patches',
+			'vendor:enet',
+		}
+	else
+		add_dependencies {
+			'ros-patches',
+			"vendor:citizen_enet",
+			"vendor:citizen_util",
+		}
+	end
 end

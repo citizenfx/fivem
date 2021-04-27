@@ -2,8 +2,6 @@ return {
 	include = function()
 		if not os.istarget('windows') then
 			defines { "BOTAN_DLL=" }
-		else
-			defines { "BOTAN_DLL=__declspec(dllimport)" }
 		end
 
 		if _OPTIONS['game'] == 'server' then

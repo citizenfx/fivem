@@ -8,6 +8,7 @@
 #include "StdInc.h"
 #include <ScriptEngine.h>
 
+#include <jitasm.h>
 #include "Hooking.h"
 
 #include <optick.h>
@@ -245,6 +246,49 @@ namespace fx
 					jmp(rax);
 				}
 			}* callStub = new StubGenerator(handler, [](void* handlerData, rage::scrNativeCallContext* context)
+			{
+				// get the handler
+				TNativeHandler* handler = reinterpret_cast<TNativeHandler*>(handlerData);
+
+				// turn into a native context
+				ScriptContextRaw cfxContext(context->GetArgumentBuffer(), context->GetArgumentCount());
+
+				// call the native
+				(*handler)(cfxContext);
+			});
+
+			rage::scrEngine::RegisterNativeHandler(nativeIdentifier, reinterpret_cast<rage::scrEngine::NativeHandler>(callStub->GetCode()));
+#elif defined(_M_IX86)
+			TNativeHandler* handler = new TNativeHandler(function);
+
+			struct StubGenerator : public jitasm::Frontend
+			{
+				typedef void(*TFunction)(void*, rage::scrNativeCallContext*);
+
+			private:
+				void* m_handlerData;
+
+				TFunction m_function;
+
+			public:
+				StubGenerator(void* handlerData, TFunction function)
+					: m_handlerData(handlerData), m_function(function)
+				{
+
+				}
+
+				virtual void InternalMain() override
+				{
+					push(dword_ptr[esp + 4]);
+					push(reinterpret_cast<uintptr_t>(m_handlerData));
+					
+					mov(eax, reinterpret_cast<uintptr_t>(m_function));
+					call(eax);
+
+					add(esp, 8);
+					ret();
+				}
+			}*callStub = new StubGenerator(handler, [](void* handlerData, rage::scrNativeCallContext* context)
 			{
 				// get the handler
 				TNativeHandler* handler = reinterpret_cast<TNativeHandler*>(handlerData);

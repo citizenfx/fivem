@@ -39,9 +39,11 @@ private:
 	concurrency::concurrent_queue<std::function<void()>> m_onLoadQueue;
 
 public:
-	NUIWindow(bool primary, int width, int height);
+	NUIWindow(bool primary, int width, int height, const std::string& windowContext);
 
 private:
+	std::string m_windowContext;
+
 	bool m_rawBlit;
 	int m_width;
 	int m_height;
@@ -54,7 +56,7 @@ private:
 
 	unsigned long m_dirtyFlag;
 	RECT m_lastDirtyRect;
-	CRITICAL_SECTION m_renderBufferLock;
+	std::shared_mutex m_renderBufferLock;
 	char* m_renderBuffer;
 
 	std::queue<CefRect> m_dirtyRects;
@@ -88,6 +90,11 @@ private:
 public:
 	inline int		GetWidth() { return m_width; }
 	inline int		GetHeight() { return m_height; }
+
+	inline auto GetRenderBufferLock()
+	{
+		return std::unique_lock{ m_renderBufferLock };
+	}
 
 	inline void*	GetRenderBuffer() { return m_renderBuffer; }
 	inline int		GetRoundedWidth() { return m_roundedWidth; }
@@ -135,7 +142,7 @@ public:
 	inline void		MarkRenderBufferDirty() { InterlockedIncrement(&m_dirtyFlag); }
 
 public:
-	static fwRefContainer<NUIWindow> Create(bool primary, int width, int height, CefString url, bool instant);
+	static fwRefContainer<NUIWindow> Create(bool primary, int width, int height, CefString url, bool instant, const std::string& context = {});
 
 	void DeferredCreate();
 

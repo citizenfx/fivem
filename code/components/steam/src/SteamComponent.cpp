@@ -283,8 +283,8 @@ void SteamComponent::RemoveSteamCallback(int registeredID)
 }
 
 #if defined(GTA_NY)
-#define PARENT_APP_ID 12210
-#define PRODUCT_DISPLAY_NAME "CitizenFX:IV \xF0\x9F\x92\x8A"
+#define PARENT_APP_ID 218
+#define PRODUCT_DISPLAY_NAME "LibertyM \xF0\x9F\x92\x8A"
 #elif defined(PAYNE)
 #define PARENT_APP_ID 204100
 #define PRODUCT_DISPLAY_NAME "CitizenPayne \xF0\x9F\x92\x8A"

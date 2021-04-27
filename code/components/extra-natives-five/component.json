@@ -14,7 +14,8 @@
 		"citizen:resources:client",
 		"net",
 		"voip:mumble",
-		"vendor:directxtex"
+		"vendor:directxtex",
+		"vendor:im3d"
 	],
 	"provides": []
 }

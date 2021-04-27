@@ -556,7 +556,7 @@ void MumbleAudioOutput::HandleClientConnect(const MumbleUser& user)
 	{
 		std::unique_lock<std::mutex> initLock(m_initializeMutex);
 
-		if (!m_initialized)
+		if (!m_initialized && !m_initializeSignaled)
 		{
 			m_initializeVar.wait(initLock);
 		}
@@ -1330,14 +1330,6 @@ void MumbleAudioOutput::ThreadFunc()
 	// initialize COM for the current thread
 	CoInitialize(nullptr);
 
-	HRESULT hr = CoCreateInstance(CLSID_MMDeviceEnumerator, nullptr, CLSCTX_INPROC_SERVER, IID_IMMDeviceEnumerator, (void**)m_mmDeviceEnumerator.GetAddressOf());
-
-	if (FAILED(hr))
-	{
-		trace("%s: failed MMDeviceEnumerator\n", __func__);
-		return;
-	}
-
 	InitializeAudioDevice();
 }
 
@@ -1472,10 +1464,22 @@ void MumbleAudioOutput::InitializeAudioDevice()
 		{
 			std::unique_lock<std::mutex> lock(self->m_initializeMutex);
 			self->m_initializeVar.notify_all();
+			self->m_initializeSignaled = true;
 		}
 
 		MumbleAudioOutput* self;
 	} unlocker(this);
+
+	if (!m_mmDeviceEnumerator)
+	{
+		HRESULT hr = CoCreateInstance(CLSID_MMDeviceEnumerator, nullptr, CLSCTX_INPROC_SERVER, IID_IMMDeviceEnumerator, (void**)m_mmDeviceEnumerator.GetAddressOf());
+
+		if (FAILED(hr))
+		{
+			trace("%s: failed MMDeviceEnumerator (%08x)\n", __func__, hr);
+			return;
+		}
+	}
 
 	while (!device.Get())
 	{

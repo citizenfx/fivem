@@ -69,6 +69,9 @@ inline uintptr_t GetTriggerEP()
 }
 
 #define TRIGGER_EP (GetTriggerEP())
+#elif defined(GTA_NY)
+// .43
+#define TRIGGER_EP 0xDF8F2B
 #else
 #define TRIGGER_EP 0xDECEA5ED
 #endif
@@ -111,7 +114,13 @@ static void SetDebugBits(std::function<void(CONTEXT*)> cb, CONTEXT* curContext)
 template<typename T>
 static inline T* GetTargetRVA(uint32_t rva)
 {
-	return (T*)((uint8_t*)hook::get_adjusted(0x140000000 + rva));
+	return (T*)((uint8_t*)hook::get_adjusted(
+#ifdef _M_AMD64
+	0x140000000
+#else
+	0x400000
+#endif
+		+ rva));
 }
 
 static void UnapplyRelocations(bool a);
@@ -172,7 +181,7 @@ void DoCreateSnapshot()
 		context->Dr7 |= (1 << 6) | (0 << 28) | (0 << 30);
 
 		// set the address for bp 4
-		context->Dr3 = (DWORD64)hook::get_adjusted(TRIGGER_EP);
+		context->Dr3 = (DWORD_PTR)hook::get_adjusted(TRIGGER_EP);
 	}, nullptr);
 }
 
@@ -181,7 +190,15 @@ static std::wstring g_dumpFileName;
 
 static void UnapplyRelocations(bool a)
 {
-	IMAGE_DOS_HEADER* dosHeader = reinterpret_cast<IMAGE_DOS_HEADER*>(hook::get_adjusted(0x140000000));
+	constexpr uintptr_t base =
+#ifdef _M_AMD64
+	0x140000000
+#else
+	0x400000
+#endif
+	;
+
+	IMAGE_DOS_HEADER* dosHeader = reinterpret_cast<IMAGE_DOS_HEADER*>(hook::get_adjusted(base));
 
 	IMAGE_NT_HEADERS* ntHeader = GetTargetRVA<IMAGE_NT_HEADERS>(dosHeader->e_lfanew);
 
@@ -190,7 +207,7 @@ static void UnapplyRelocations(bool a)
 	IMAGE_BASE_RELOCATION* relocation = GetTargetRVA<IMAGE_BASE_RELOCATION>(relocationDirectory->VirtualAddress);
 	IMAGE_BASE_RELOCATION* endRelocation = reinterpret_cast<IMAGE_BASE_RELOCATION*>((char*)relocation + relocationDirectory->Size);
 
-	intptr_t relocOffset = static_cast<intptr_t>(hook::get_adjusted(0x140000000)) - 0x140000000;
+	intptr_t relocOffset = static_cast<intptr_t>(hook::get_adjusted(base)) - base;
 
 	if (relocOffset == 0)
 	{
@@ -350,7 +367,7 @@ void DoCreateDump(void* ep, const wchar_t* fileName)
 		context->Dr7 |= (1 << 6) | (0 << 28) | (0 << 30);
 
 		// set the address for bp 4
-		context->Dr3 = (DWORD64)ep;
+		context->Dr3 = (DWORD_PTR)ep;
 	}, nullptr);
 }
 
@@ -389,5 +406,11 @@ void ExecutableLoader::LoadSnapshot(IMAGE_NT_HEADERS* ntHeader)
 	VirtualProtect(ntHeader, 0x1000, PAGE_READWRITE, &oldProtect);
 
 	// no-adjust
-	ntHeader->OptionalHeader.AddressOfEntryPoint = TRIGGER_EP - 0x140000000;
+	ntHeader->OptionalHeader.AddressOfEntryPoint = TRIGGER_EP - 
+#ifdef _M_AMD64
+		0x140000000
+#else
+		0x400000
+#endif
+		;
 }

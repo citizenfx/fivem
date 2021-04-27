@@ -141,7 +141,7 @@ namespace hook
 			PIMAGE_DOS_HEADER dosHeader = getRVA<IMAGE_DOS_HEADER>(0);
 			PIMAGE_NT_HEADERS ntHeader = getRVA<IMAGE_NT_HEADERS>(dosHeader->e_lfanew);
 
-			m_end = m_begin + ntHeader->OptionalHeader.SizeOfCode;
+			m_end = m_begin + ntHeader->OptionalHeader.SizeOfImage;
 		}
 
 		executable_meta(uintptr_t begin, uintptr_t end)

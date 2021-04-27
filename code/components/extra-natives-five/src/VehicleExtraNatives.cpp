@@ -10,7 +10,7 @@
 #include <ScriptEngine.h>
 #include <atArray.h>
 
-#include <Local.h>
+#include <jitasm.h>
 #include <Hooking.h>
 #include <GameInit.h>
 #include <nutsnbolts.h>

@@ -280,7 +280,7 @@ static HookFunction hookFunction([]()
 {
 	OnGrcCreateDevice.Connect([]()
 	{
-		CefRegisterSchemeHandlerFactory("http", "nui-img", Instance<NUISchemeHandlerFactory>::Get());
-		CefRegisterSchemeHandlerFactory("https", "nui-img", Instance<NUISchemeHandlerFactory>::Get());
+		nui::RegisterSchemeHandlerFactory("http", "nui-img", Instance<NUISchemeHandlerFactory>::Get());
+		nui::RegisterSchemeHandlerFactory("https", "nui-img", Instance<NUISchemeHandlerFactory>::Get());
 	});
 });

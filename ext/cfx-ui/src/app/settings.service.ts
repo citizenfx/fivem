@@ -50,7 +50,7 @@ export class SettingsService {
 			category: '#SettingsCat_Connection',
 		});
 
-		if (this.gameService.gameName !== 'rdr3') {
+		if (this.gameService.gameName !== 'rdr3' && this.gameService.gameName !== 'ny') {
 			this.addSetting('darkTheme', {
 				name: '#Settings_DarkTheme',
 				description: '#Settings_DarkThemeDesc',
@@ -103,7 +103,7 @@ export class SettingsService {
 			category: '#SettingsCat_Interface',
 		});
 
-		if (this.gameService.gameName !== 'rdr3') {
+		if (this.gameService.gameName !== 'rdr3' && this.gameService.gameName !== 'ny') {
 			this.addSetting('menuAudio', {
 				name: '#Settings_MenuAudio',
 				description: '#Settings_MenuAudioDesc',
@@ -111,6 +111,15 @@ export class SettingsService {
 				getCb: () => this.gameService.getConvar('ui_disableMusicTheme').pipe(map(a => a === 'true' ? 'false' : 'true')),
 				setCb: (value) => this.gameService.setConvar('ui_disableMusicTheme', value === 'true' ? 'false' : 'true'),
 				category: '#SettingsCat_Interface',
+			});
+
+			this.addSetting('inProcessGpu', {
+				name: '#Settings_InProcessGpu',
+				description: '#Settings_InProcessGpuDesc',
+				type: 'checkbox',
+				getCb: () => this.gameService.getConvar('nui_useInProcessGpu').pipe(map(a => a === 'true' ? 'true' : 'false')),
+				setCb: (value) => this.gameService.setConvar('nui_useInProcessGpu', value),
+				category: '#SettingsCat_Game',
 			});
 
 			this.addSetting('streamingProgress', {
@@ -171,7 +180,7 @@ export class SettingsService {
 			category: '#SettingsCat_Account',
 		});
 
-		if (this.gameService.gameName !== 'rdr3') {
+		if (this.gameService.gameName !== 'rdr3' && this.gameService.gameName !== 'ny') {
 			this.addSetting('accountButton', {
 				name: '#Settings_Account',
 				type: 'button',

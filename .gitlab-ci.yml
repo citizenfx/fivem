@@ -41,7 +41,7 @@ build_sdk:
     - sdk
   artifacts:
     paths:
-      - caches/diff/
+      - caches/
       - caches/caches_sdk.xml
   cache:
     key: sdk
@@ -125,7 +125,7 @@ build_server_windows:
 
 build_proot_linux:
   stage: build
-  image: mcr.microsoft.com/dotnet/core/sdk:2.1-alpine3.11
+  image: mcr.microsoft.com/dotnet/core/sdk:3.1-alpine3.13
   variables:
     GIT_SUBMODULE_STRATEGY: normal
     # workaround gitlab-ci-multi-runner#2148
