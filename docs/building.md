@@ -12,7 +12,7 @@ To build FiveM, RedM or FXServer on Windows you need the following dependencies:
   You can install these workloads by going to "Tools" -> "Get Tools and Features..." -> Check the checkboxes -> Click "Modify" in the bottom right corner.
   
 * [Boost 1.71.0](https://dl.bintray.com/boostorg/release/1.71.0/source/boost_1_71_0.7z), extracted to a path defined by the environment variable `BOOST_ROOT`.
-* [Modified CEF](https://runtime.fivem.net/build/cef/cef_binary_83.0.0-shared-textures.2175+g5430a8e+chromium-83.0.4103.0_windows64_20210210_minimal.zip), extracted to `vendor/cef` in the build tree.
+* [Modified CEF](https://runtime.fivem.net/build/cef/cef_binary_83.0.0-shared-textures.2175+g5430a8e+chromium-83.0.4103.0_windows64_20210428_minimal.zip), extracted to `vendor/cef` in the build tree.
 * [Python 2.7.x](https://python.org/) in your PATH as `python`. This is still Python 2 due to a dependency on Mozilla `xpidl`, which hasn't been ported to Python 3.
 * [MSYS2](https://www.msys2.org/) at `C:\msys64\` which is where the installer places it.
 * [Node.js](https://nodejs.org/en/download/) and [Yarn](https://classic.yarnpkg.com/en/docs/install/) in your PATH as `yarn`.
