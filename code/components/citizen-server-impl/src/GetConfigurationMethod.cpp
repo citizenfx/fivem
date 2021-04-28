@@ -72,8 +72,6 @@ static InitFunction initFunction([]()
 
 		auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
 
-		instance->SetComponent(new fx::TokenRateLimiter(1.0f, 3.0f));
-
 		instance->GetComponent<fx::ClientMethodRegistry>()->AddHandler("getConfiguration", [=](const std::map<std::string, std::string>& postMap, const fwRefContainer<net::HttpRequest>& request, const fx::ClientMethodRegistry::TCallbackFast& cb)
 		{
 			auto ra = request->GetRemoteAddress();

@@ -314,6 +314,9 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 		trace("^2Found %d resources.^7\n", newResources);
 	}
 
+	auto trl = instance->GetComponent<fx::TokenRateLimiter>();
+	trl->Update(1.0, std::max(double(newResources + reloadedResources), 3.0));
+
 	// check for outdated
 	std::set<std::string> nonManifestResources;
 
@@ -422,6 +425,7 @@ static InitFunction initFunction([]()
 	{
 		instance->SetComponent(fx::CreateResourceManager());
 		instance->SetComponent(new fx::ServerEventComponent());
+		instance->SetComponent(new fx::TokenRateLimiter(1.0f, 3.0f));
 
 		fwRefContainer<fx::ResourceManager> resman = instance->GetComponent<fx::ResourceManager>();
 		resman->SetComponent(new fx::ServerInstanceBaseRef(instance));
