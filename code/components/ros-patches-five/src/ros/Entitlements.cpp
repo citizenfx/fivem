@@ -539,13 +539,20 @@ static InitFunction initFunction([] ()
 							h,
 							cpr::Body{ b.dump() });
 
-						trace("posted: %s\n", post.text);
+						if (!post.error && post.status_code < 400)
+						{
+							trace("posted: %s\n", post.text);
+
+							res->WriteHead(200);
+							res->End("OK!");
+							return;
+						}
 					}
 				}
 			}
 
-			res->WriteHead(200);
-			res->End("OK!");
+			res->WriteHead(400);
+			res->End("Failed to upload.");
 		});
 	}));
 
