@@ -338,18 +338,21 @@ namespace nui
 		{
 #ifndef USE_NUI_ROOTLESS
 			auto rootWindow = Instance<NUIWindowManager>::Get()->GetRootWindow();
-			auto browser = rootWindow->GetBrowser();
-
-			if (browser)
+			if (rootWindow.GetRef())
 			{
-				auto procMessage = CefProcessMessage::Create("createFrame");
-				auto argumentList = procMessage->GetArgumentList();
+				auto browser = rootWindow->GetBrowser();
 
-				argumentList->SetSize(2);
-				argumentList->SetString(0, frameName.c_str());
-				argumentList->SetString(1, frameURL.c_str());
+				if (browser)
+				{
+					auto procMessage = CefProcessMessage::Create("createFrame");
+					auto argumentList = procMessage->GetArgumentList();
 
-				browser->GetMainFrame()->SendProcessMessage(PID_RENDERER, procMessage);
+					argumentList->SetSize(2);
+					argumentList->SetString(0, frameName.c_str());
+					argumentList->SetString(1, frameURL.c_str());
+
+					browser->GetMainFrame()->SendProcessMessage(PID_RENDERER, procMessage);
+				}
 			}
 #else
 			int resX, resY;

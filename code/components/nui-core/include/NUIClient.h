@@ -47,7 +47,16 @@ private:
 public:
 	NUIClient(NUIWindow* window);
 
-	inline NUIWindow*	GetWindow()					{ return m_window;		}
+	inline NUIWindow* GetWindow()
+	{
+		return m_window;
+	}
+
+	inline void ClearWindow()
+	{
+		m_window = nullptr;
+	}
+
 	inline CefBrowser*	GetBrowser()				{ return m_browser.get();		}
 
 	inline bool			GetWindowValid()			{ return m_windowValid;			}

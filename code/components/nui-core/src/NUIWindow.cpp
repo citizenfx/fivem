@@ -56,11 +56,10 @@ NUIWindow::~NUIWindow()
 
 	if (nuiClient)
 	{
-		auto& mutex = nuiClient->GetWindowLock();
-
-		mutex.lock();
 		nuiClient->SetWindowValid(false);
+		nuiClient->ClearWindow();
 
+		std::unique_lock _(nuiClient->GetWindowLock());
 		if (nuiClient->GetBrowser() && nuiClient->GetBrowser()->GetHost())
 		{
 			if (!CefCurrentlyOn(TID_UI))
@@ -72,8 +71,6 @@ NUIWindow::~NUIWindow()
 				nuiClient->GetBrowser()->GetHost()->CloseBrowser(true);
 			}
 		}
-
-		mutex.unlock();
 	}
 
 	if (m_swapTexture)
