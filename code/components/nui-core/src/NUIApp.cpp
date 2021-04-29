@@ -46,7 +46,8 @@ bool NUIApp::GetLocalizedString(int messageID, CefString& string)
 void NUIApp::OnContextInitialized()
 {
 	auto manager = CefCookieManager::GetGlobalManager(nullptr);
-	manager->SetSupportedSchemes({ "nui" }, true, nullptr);
+	// #TODO: ??
+	//manager->SetSupportedSchemes({ "nui" }, true, nullptr);
 }
 
 void NUIApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context)
