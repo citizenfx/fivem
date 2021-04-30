@@ -196,6 +196,7 @@ static int TurboBoostOffset; // = 0x8D8;
 static int ClutchOffset; // = 0x8C0;
 //static int VisualHeightGetOffset = 0x080; // There is a vanilla native for this.
 static int VisualHeightSetOffset = 0x07C;
+static int LightMultiplierGetOffset;
 
 // TODO: Wheel class.
 static int WheelYRotOffset = 0x008;
@@ -363,6 +364,7 @@ static HookFunction initFunction([]()
 		VehicleCheatPowerIncreaseOffset = *hook::get_pattern<uint32_t>("E8 ? ? ? ? 8B 83 ? ? ? ? C7 83", 23);
 		WheelSurfaceMaterialOffset = *hook::get_pattern<uint32_t>("48 8B 4A 10 0F 28 CF F3 0F 59 05", -4);
 		WheelHealthOffset = *hook::get_pattern<uint32_t>("75 24 F3 0F 10 ? ? ? 00 00 F3 0F", 6);
+		LightMultiplierGetOffset = *hook::get_pattern<uint32_t>("00 00 48 8B CE F3 0F 59 ? ? ? 00 00 F3 41", 9);
 	}
 
 	{
@@ -943,6 +945,8 @@ static HookFunction initFunction([]()
 	fx::ScriptEngine::RegisterNativeHandler("IS_VEHICLE_INTERIOR_LIGHT_ON", std::bind(readVehicleMemoryBit<&IsInteriorLightOnOffset, 6>, _1, "IS_VEHICLE_INTERIOR_LIGHT_ON"));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_INDICATOR_LIGHTS", std::bind(readVehicleMemory<unsigned char, &BlinkerStateOffset>, _1, "GET_VEHICLE_INDICATOR_LIGHTS"));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_LIGHT_MULTIPLIER", std::bind(readVehicleMemory<float, &LightMultiplierGetOffset>, _1, "GET_VEHICLE_LIGHT_MULTIPLIER"));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_WHEELIE_STATE", std::bind(readVehicleMemory<unsigned char, &WheelieStateOffset>, _1, "GET_VEHICLE_WHEELIE_STATE"));
 	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_WHEELIE_STATE", std::bind(writeVehicleMemory<unsigned char, &WheelieStateOffset>, _1, "SET_VEHICLE_WHEELIE_STATE"));
