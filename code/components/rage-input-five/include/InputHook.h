@@ -125,4 +125,8 @@ extern INPUT_DECL fwEvent<int&> QueryMayLockCursor;
 INPUT_DECL void SetGameMouseFocus(bool focus);
 
 INPUT_DECL void EnableSetCursorPos(bool enabled);
+
+INPUT_DECL bool IsMouseButtonDown(int buttonFlag);
+
+INPUT_DECL bool IsKeyDown(int vk_keycode);
 }
