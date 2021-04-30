@@ -88,15 +88,19 @@ static InitFunction initFunction([]()
 				return;
 			}
 
+			HttpRequestOptions opts;
+			opts.addErrorBody = true;
+
 			httpClient->DoGetRequest(
 				fmt::format("https://api.steampowered.com/ISteamUserAuth/AuthenticateUserTicket/v1/?key={0}&appid={1}&ticket={2}", g_steamApiKey->GetValue(), STEAM_APPID, it->second),
-				[this, cb, clientPtr](bool result, const char* data, size_t size)
+				opts,
+				[this, cb, clientPtr](bool success, const char* data, size_t size)
 				{
 					std::string response{ data, size };
 
 					try
 					{
-						if (result)
+						if (success)
 						{
 							json object = json::parse(response)["response"];
 
@@ -112,6 +116,10 @@ static InitFunction initFunction([]()
 						else
 						{
 							trace("Steam authentication for %s^7 failed: %s\n", clientPtr->GetName(), response);
+							if (response.find("<pre>key=</pre>") != std::string::npos)
+							{
+								trace("^2Your Steam Web API key may be invalid. This can happen if you've changed your Steam password, Steam Guard details or changed/reverted your server's .cfg file. Please re-register a key on ^4https://steamcommunity.com/dev/apikey^2 and insert it in your server startup file.^7\n");
+							}
 						}
 
 						cb({});

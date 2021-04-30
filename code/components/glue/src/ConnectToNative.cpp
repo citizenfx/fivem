@@ -459,21 +459,47 @@ static InitFunction initFunction([] ()
 			g_connected = false;
 		});
 
-		netLibrary->OnConnectionError.Connect([] (const char* error)
+		netLibrary->OnConnectionError.Connect([] (const char* errorStr)
 		{
+			std::string error(errorStr);
 #ifdef GTA_FIVE
-			if (strstr(error, "This server requires a different game build"))
+			if (strstr(error.c_str(), "This server requires a different game build"))
 			{
 				RestartGameToOtherBuild();
 			}
 #endif
+
+			if (strstr(error.c_str(), "steam") || strstr(error.c_str(), "Steam"))
+			{
+				if (auto steam = GetSteam())
+				{
+					if (steam->IsSteamRunning())
+					{
+						if (IClientEngine* steamClient = steam->GetPrivateClient())
+						{
+							InterfaceMapper steamUser(steamClient->GetIClientUser(steam->GetHSteamUser(), steam->GetHSteamPipe(), "CLIENTUSER_INTERFACE_VERSION001"));
+
+							if (steamUser.IsValid())
+							{
+								uint64_t steamID = 0;
+								steamUser.Invoke<void>("GetSteamID", &steamID);
+
+								if ((steamID & 0xFFFFFFFF00000000) != 0)
+								{
+									error += "\nThis is a Steam authentication failure, but you are running Steam and it is signed in. The server owner can find more information in their server console.";
+								}
+							}
+						}
+					}
+				}
+			}
 
 			console::Printf("no_console", "OnConnectionError: %s\n", error);
 
 			g_connected = false;
 
 			rapidjson::Document document;
-			document.SetString(error, document.GetAllocator());
+			document.SetString(error.c_str(), document.GetAllocator());
 
 			rapidjson::StringBuffer sbuffer;
 			rapidjson::Writer<rapidjson::StringBuffer> writer(sbuffer);
@@ -482,7 +508,7 @@ static InitFunction initFunction([] ()
 
 			nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "connectFailed", "message": %s })", sbuffer.GetString()));
 
-			ep.Call("connectionError", std::string(error));
+			ep.Call("connectionError", error);
 		});
 
 		netLibrary->OnConnectionProgress.Connect([] (const std::string& message, int progress, int totalProgress)
