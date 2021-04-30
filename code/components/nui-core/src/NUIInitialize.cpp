@@ -45,6 +45,8 @@
 #include <VFSManager.h>
 #include <VFSZipFile.h>
 
+#include <include/cef_version.h>
+
 #include <Error.h>
 
 namespace nui
@@ -1215,6 +1217,22 @@ void Initialize(nui::GameInterface* gi)
 	cSettings.windowless_rendering_enabled = true;
 	cSettings.log_severity = LOGSEVERITY_DEFAULT;
 	cSettings.background_color = 0;
+
+	// read the platform version
+	FILE* f = _wfopen(MakeRelativeCitPath(L"citizen/release.txt").c_str(), L"r");
+	int version = 0;
+
+	if (f)
+	{
+		char ver[128];
+
+		fgets(ver, sizeof(ver), f);
+		fclose(f);
+
+		version = atoi(ver);
+	}
+
+	CefString(&cSettings.user_agent_product).FromWString(fmt::sprintf(L"Chrome/%d.%d.%d.%d CitizenFX/1.0.0.%d", cef_version_info(4), cef_version_info(5), cef_version_info(6), cef_version_info(7), version));
 	
 	CefString(&cSettings.log_file).FromWString(MakeRelativeCitPath(L"cef.log"));
 	
