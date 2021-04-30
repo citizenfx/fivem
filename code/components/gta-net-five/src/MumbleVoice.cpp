@@ -361,7 +361,18 @@ static void Mumble_RunFrame()
 		g_mumbleClient->SetActivationLikelihood(MumbleVoiceLikelihood::HighLikelihood);
 	}
 
-	g_mumbleClient->SetPTTButtonState(game::IsControlKeyDown(249/* INPUT_PUSH_TO_TALK */));
+	{
+		// handle PTT
+		auto isControlPressed = fx::ScriptEngine::GetNativeHandler(0xF3A21BCD95725A4A);
+		fx::ScriptContextBuffer cxt;
+
+		cxt.Push(0);
+		cxt.Push(249); // INPUT_PUSH_TO_TALK
+
+		(*isControlPressed)(cxt);
+
+		g_mumbleClient->SetPTTButtonState(cxt.GetResult<bool>() || game::IsControlKeyDown(249 /* INPUT_PUSH_TO_TALK */));
+	}
 
 	// handle device changes
 	static int curInDevice = -1;
