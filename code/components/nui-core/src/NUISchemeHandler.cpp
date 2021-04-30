@@ -162,6 +162,10 @@ public:
 			map.insert({ "content-type", mimeType_ + "; charset=utf-8" });
 		}
 
+		map.emplace("access-control-allow-origin", "*");
+		map.emplace("access-control-allow-methods", "GET, OPTIONS");
+
+		// #TODO: maybe handle caching based on actual resource-related metadata
 		map.insert({ "cache-control", "no-cache, must-revalidate" });
 		response->SetHeaderMap(map);
 
