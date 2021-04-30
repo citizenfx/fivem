@@ -2778,7 +2778,10 @@ static HookFunction hookFunctionWorldGrid([]()
 		hook::call(location, DoesLocalPlayerOwnWorldGridWrapForInline);
 
 		// if '1', instantly fail, don't try to iterate that one player
-		hook::jump(location + 12, location - 0x16D);
+		hook::jump(location + 12 + 4, location - 0x16D);
+
+		// precede it with moving the iterator back in `edx`, or this will loop for a *long* time sometimes
+		hook::put<uint32_t>(location + 12, 0x6424548B);
 	}
 
 	// second variant of the same
