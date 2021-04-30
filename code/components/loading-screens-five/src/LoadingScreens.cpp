@@ -500,6 +500,17 @@ static InitFunction initFunction([] ()
 				{
 					autoShutdownNui = false;
 				}
+
+				static ConVar<bool> uiLoadingCursor("ui_loadingCursor", ConVar_None, false);
+				auto useCursor = mdComponent->GetEntries("loadscreen_cursor");
+				if (useCursor.begin() != useCursor.end())
+				{
+					uiLoadingCursor.GetHelper()->SetRawValue(true);
+				}
+				else
+				{
+					uiLoadingCursor.GetHelper()->SetRawValue(false);
+				}
 			}
 		});
 

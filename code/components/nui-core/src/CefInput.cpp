@@ -16,6 +16,7 @@
 #include <ReverseGameData.h>
 
 #include <windowsx.h>
+#include <console/Console.VariableHelpers.h>
 
 extern nui::GameInterface* g_nuiGi;
 
@@ -25,6 +26,8 @@ bool g_keepInput = false;
 static bool g_hasOverriddenFocus = false;
 extern bool g_mainUIFlag;
 POINT g_cursorPos;
+
+static ConVar<bool> uiLoadingCursor("ui_loadingCursor", ConVar_None, false);
 
 bool isKeyDown(WPARAM wparam)
 {
@@ -176,6 +179,11 @@ namespace nui
 		}
 
 		g_hasOverriddenFocus = hasFocus;
+
+		if (uiLoadingCursor.GetValue())
+		{
+			g_hasCursor = hasFocus;
+		}
 	}
 
 	void KeepInput(bool keepInput)
