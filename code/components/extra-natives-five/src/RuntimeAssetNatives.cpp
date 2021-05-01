@@ -1178,13 +1178,14 @@ static InitFunction initFunction([]()
 				if (it == headerList->end())
 				{
 					it = headerList->find("content-length");
-					length = atoi(it->second.c_str());
 
 					if (it == headerList->end())
 					{
 						trace("Invalid HTTP response from %s.\n", sourceUrl);
 						return;
 					}
+
+					length = atoi(it->second.c_str());
 				}
 				else
 				{
