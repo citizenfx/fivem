@@ -505,54 +505,54 @@ void MountModStream(const std::shared_ptr<fx::ModPackage>& modPackage)
 				}
 			}
 		}
+	}
 
-		std::stable_sort(dlcs.begin(), dlcs.end(), [](const DlcEntry& left, const DlcEntry& right)
-		{
-			return (left.order < right.order);
-		});
+	std::stable_sort(dlcs.begin(), dlcs.end(), [](const DlcEntry& left, const DlcEntry& right)
+	{
+		return (left.order < right.order);
+	});
 
-		for (const auto& dlc : dlcs)
+	for (const auto& dlc : dlcs)
+	{
+		const auto& packfile = dlc.angryZip;
+		const auto& devName = dlc.deviceName;
+
 		{
-			const auto& packfile = dlc.angryZip;
-			const auto& devName = dlc.deviceName;
+			vfs::Mount(packfile, devName + ":/");
 
 			{
-				vfs::Mount(packfile, devName + ":/");
+				auto contentFile = vfs::OpenRead(devName + ":/content.xml");
 
+				auto text = contentFile->ReadToEnd();
+
+				tinyxml2::XMLDocument doc;
+				if (doc.Parse(reinterpret_cast<char*>(text.data()), text.size()) == tinyxml2::XML_SUCCESS)
 				{
-					auto contentFile = vfs::OpenRead(devName + ":/content.xml");
-
-					auto text = contentFile->ReadToEnd();
-
-					tinyxml2::XMLDocument doc;
-					if (doc.Parse(reinterpret_cast<char*>(text.data()), text.size()) == tinyxml2::XML_SUCCESS)
+					for (auto item = doc.RootElement()->FirstChildElement("dataFiles")->FirstChildElement("Item"); item; item = item->NextSiblingElement("Item"))
 					{
-						for (auto item = doc.RootElement()->FirstChildElement("dataFiles")->FirstChildElement("Item"); item; item = item->NextSiblingElement("Item"))
+						std::string filename = item->FirstChildElement("filename")->GetText();
+						std::string fileType = item->FirstChildElement("fileType")->GetText();
+
+						auto platform = filename.find("%PLATFORM%");
+
+						if (platform != std::string::npos)
 						{
-							std::string filename = item->FirstChildElement("filename")->GetText();
-							std::string fileType = item->FirstChildElement("fileType")->GetText();
+							filename.replace(platform, 10, "x64");
+						}
 
-							auto platform = filename.find("%PLATFORM%");
-
-							if (platform != std::string::npos)
-							{
-								filename.replace(platform, 10, "x64");
-							}
-
-							if (fileType == "RPF_FILE")
-							{
-								MountFauxStreamingRpf(filename);
-							}
-							else
-							{
-								streaming::AddDataFileToLoadList(fileType, filename);
-							}
+						if (fileType == "RPF_FILE")
+						{
+							MountFauxStreamingRpf(filename);
+						}
+						else
+						{
+							streaming::AddDataFileToLoadList(fileType, filename);
 						}
 					}
 				}
-
-				g_devices.push_back(packfile);
 			}
+
+			g_devices.push_back(packfile);
 		}
 	}
 }
