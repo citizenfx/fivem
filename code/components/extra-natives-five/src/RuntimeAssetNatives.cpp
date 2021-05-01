@@ -38,6 +38,8 @@
 
 #include <atPool.h>
 
+#include <skyr/url.hpp>
+
 #include <concurrent_unordered_set.h>
 
 using Microsoft::WRL::ComPtr;
@@ -1148,6 +1150,29 @@ static InitFunction initFunction([]()
 		if (FX_FAILED(fx::GetCurrentScriptRuntime(&runtime)))
 		{
 			throw std::runtime_error("no current script runtime");
+		}
+
+		// anonymize query string parameters in case these are used for anything malign
+		try
+		{
+			auto uri = skyr::make_url(sourceUrl);
+			
+			if (uri)
+			{
+				if (!uri->search().empty())
+				{
+					uri->set_search(fmt::sprintf("hash=%08x", HashString(uri->search().c_str())));
+					sourceUrl = uri->href();
+				}
+			}
+			else
+			{
+				throw std::runtime_error("invalid streaming URL");
+			}
+		}
+		catch (std::exception& e)
+		{
+			throw std::runtime_error(va("invalid streaming URL: %s", e.what()));
 		}
 
 		auto resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
