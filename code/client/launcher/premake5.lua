@@ -99,6 +99,8 @@ local function launcherpersonality(name)
 						path.getabsolute(('../../tools/dbg/dump_%s.txt'):format(gameBuild))
 					)
 				}
+
+				resign()
 			elseif _OPTIONS['game'] == 'rdr3' then
 				local gameBuild = '1311'
 				
@@ -116,6 +118,8 @@ local function launcherpersonality(name)
 						gameDump, gameDump
 					),
 				}
+
+				resign()
 			end
 		end
 		
