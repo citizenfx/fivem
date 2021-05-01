@@ -458,15 +458,15 @@
 						</Item>
 						<Item>
 							<PoolName>CNetObjVehicle</PoolName>
-							<PoolSize value="250"/>
+							<PoolSize value="500"/>
 						</Item>
 						<Item>
 							<PoolName>CVehicleSyncData</PoolName>
-							<PoolSize value="255"/>
+							<PoolSize value="510"/>
 						</Item>
 						<Item>
 							<PoolName>Vehicles</PoolName>
-							<PoolSize value="300"/>
+							<PoolSize value="600"/>
 						</Item>
 						<Item>
 							<PoolName>VehicleStreamRequest</PoolName>
