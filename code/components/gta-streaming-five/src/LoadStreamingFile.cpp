@@ -872,6 +872,7 @@ enum class LoadType
 {
 	BeforeMapLoad,
 	BeforeSession,
+	AfterSessionEarlyStage,
 	AfterSession
 };
 
@@ -917,6 +918,7 @@ namespace streaming
 
 		if (Instance<ICoreGameInit>::Get()->GetGameLoaded() && !Instance<ICoreGameInit>::Get()->HasVariable("gameKilled"))
 		{
+			LoadStreamingFiles(LoadType::AfterSessionEarlyStage);
 			LoadStreamingFiles();
 			LoadDataFiles();
 		}
@@ -1017,10 +1019,12 @@ static void LoadStreamingFiles(LoadType loadType)
 	{
 		auto [file, tag] = *it;
 
-		if (loadType == LoadType::BeforeMapLoad)
+		bool isMod = tag.find("mod_") == 0 || tag.find("faux_pack") == 0;
+
+		if (loadType == LoadType::BeforeMapLoad || loadType == LoadType::AfterSessionEarlyStage)
 		{
 			// only support tags mod_ and faux_pack
-			if (tag.find("mod_") != 0 && tag.find("faux_pack") != 0)
+			if (!isMod)
 			{
 				++it;
 				continue;
@@ -1065,7 +1069,7 @@ static void LoadStreamingFiles(LoadType loadType)
 			continue;
 		}
 
-		if (loadType != LoadType::AfterSession)
+		if (loadType != LoadType::AfterSession && loadType != LoadType::AfterSessionEarlyStage)
 		{
 			if (ext == "ymap" || ext == "ytyp" || ext == "ybn")
 			{
@@ -2040,6 +2044,7 @@ static void LoadReplayDlc(void* ecw)
 
 	g_origLoadReplayDlc(ecw);
 
+	LoadStreamingFiles(LoadType::AfterSessionEarlyStage);
 	LoadStreamingFiles(LoadType::AfterSession);
 	LoadDataFiles();
 }
@@ -2550,6 +2555,7 @@ static HookFunction hookFunction([]()
 #endif
 		)
 		{
+			LoadStreamingFiles(LoadType::AfterSessionEarlyStage);
 			LoadStreamingFiles(LoadType::AfterSession);
 
 			g_reloadStreamingFiles = false;
@@ -2605,6 +2611,7 @@ static HookFunction hookFunction([]()
 		}
 		else if (type == rage::INIT_SESSION)
 		{
+			LoadStreamingFiles(LoadType::AfterSessionEarlyStage);
 			LoadStreamingFiles(LoadType::AfterSession);
 			LoadDataFiles();
 		}
