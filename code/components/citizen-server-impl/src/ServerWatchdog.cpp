@@ -406,7 +406,7 @@ static InitFunction initFunction([]()
 							PlatformAbort();
 						}
 
-						if ((msec() - pair.second) > 90s)
+						if ((msec() - pair.second) > 45s)
 						{
 							bark(pair.first);
 						}
