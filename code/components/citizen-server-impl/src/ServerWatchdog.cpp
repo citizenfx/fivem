@@ -311,26 +311,27 @@ static InitFunction initFunction([]()
 			using namespace std::chrono_literals;
 
 			static tbb::concurrent_unordered_map<std::string, std::chrono::milliseconds> bites;
-			static tbb::concurrent_unordered_map<std::string, bool> barks;
+			static tbb::concurrent_unordered_map<std::string, int> barks;
 
 			auto bite = [](const char* name)
 			{
 				bites[name] = msec();
 			};
 
-			auto bark = [](const std::string& name)
+			auto bark = [](const std::string& name, int stage)
 			{
-				if (barks[name])
+				if (barks[name] >= stage)
 				{
 					return;
 				}
 
-				barks[name] = true;
+				barks[name] = stage;
 
 				auto dur = std::chrono::duration_cast<std::chrono::seconds>(msec() - bites[name]);
 
-				console::PrintError("server", "Loop %s seems hung! (last checkin %d seconds ago)\n",
+				console::PrintError("server", "Loop %s%s seems hung! (last checkin %d seconds ago)\n",
 					name,
+					stage == 2 ? " STILL" : "",
 					dur.count()
 				);
 
@@ -406,9 +407,14 @@ static InitFunction initFunction([]()
 							PlatformAbort();
 						}
 
+						if ((msec() - pair.second) > 45s)
+						{
+							bark(pair.first, 1);
+						}
+
 						if ((msec() - pair.second) > 90s)
 						{
-							bark(pair.first);
+							bark(pair.first, 2);
 						}
 					}
 				});
