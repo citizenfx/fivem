@@ -13,6 +13,9 @@
 #include <MumbleClientImpl.h>
 #include <ksmedia.h>
 
+#include <ICoreGameInit.h>
+#include <ScriptEngine.h>
+
 #pragma comment(lib, "avrt.lib")
 
 extern "C"
@@ -26,6 +29,14 @@ MumbleAudioInput::MumbleAudioInput()
 {
 
 }
+
+enum class InputIntentMode {
+	SPEECH,
+	MUSIC
+};
+
+static InputIntentMode g_curInputIntentMode = InputIntentMode::SPEECH;
+static InputIntentMode g_lastIntentMode = InputIntentMode::SPEECH;
 
 void MumbleAudioInput::Initialize()
 {
@@ -117,6 +128,28 @@ void MumbleAudioInput::ThreadFunc()
 
 			lastLikelihood = m_likelihood;
 		}
+
+		if (g_curInputIntentMode != g_lastIntentMode)
+		{
+			switch (g_curInputIntentMode)
+			{
+			case InputIntentMode::MUSIC:
+			{
+				m_apm->noise_suppression()->Enable(false);
+				m_apm->high_pass_filter()->Enable(false);
+				break;
+			}
+			case InputIntentMode::SPEECH:
+			default:
+			{
+				m_apm->noise_suppression()->Enable(true);
+				m_apm->high_pass_filter()->Enable(true);
+				break;
+			}
+			};
+			g_lastIntentMode = g_curInputIntentMode;
+		}
+
 
 		if (lastDevice != m_deviceId)
 		{
@@ -637,3 +670,31 @@ void MumbleAudioInput::ThreadStart(MumbleAudioInput* instance)
 	mmcssHandle = AvSetMmThreadCharacteristics(L"Pro Audio", &mmcssTaskIndex);
 	instance->ThreadFunc();
 }
+
+static InitFunction initFunction([]()
+{
+	fx::ScriptEngine::RegisterNativeHandler("MUMBLE_SET_AUDIO_INPUT_INTENT", [](fx::ScriptContext& scriptContext)
+	{
+		uint32_t intent = scriptContext.GetArgument<uint32_t>(0);
+
+		switch (intent)
+		{
+		case HashString("music"):
+		{
+			g_curInputIntentMode = InputIntentMode::MUSIC;
+			break;
+		}
+		case HashString("speech"):
+		default:
+		{
+			g_curInputIntentMode = InputIntentMode::SPEECH;
+			break;
+		}
+		};
+	});
+
+	Instance<ICoreGameInit>::Get()->OnShutdownSession.Connect([]()
+	{
+		g_curInputIntentMode = InputIntentMode::SPEECH;
+	});
+});
