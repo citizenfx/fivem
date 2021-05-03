@@ -282,12 +282,25 @@ bool Updater_RunUpdate(std::initializer_list<std::string> wantedCachesList)
 	cacheFile_t localCacheFile;
 	std::list<std::tuple<std::optional<cache_ptr>, cache_ptr>> needsUpdate;
 
-	FILE* cachesReader = _wfopen(MakeRelativeCitPath(L"content_index.xml").c_str(), L"rb");
+	// workaround: if the user removed citizen/, make sure we re-verify, as that's just silly
+	bool shouldVerify = false;
 
-	if (!cachesReader)
+	if (GetFileAttributesW(MakeRelativeCitPath(L"citizen/").c_str()) == INVALID_FILE_ATTRIBUTES)
 	{
-		// old?
-		cachesReader = _wfopen(MakeRelativeCitPath(L"caches.xml").c_str(), L"rb");
+		shouldVerify = true;
+	}
+
+	FILE* cachesReader = NULL;
+	
+	if (!shouldVerify)
+	{
+		cachesReader = _wfopen(MakeRelativeCitPath(L"content_index.xml").c_str(), L"rb");
+
+		if (!cachesReader)
+		{
+			// old?
+			cachesReader = _wfopen(MakeRelativeCitPath(L"caches.xml").c_str(), L"rb");
+		}
 	}
 
 	// ------------------------------------
