@@ -11,7 +11,9 @@ import s from './ProjectOpener.module.scss';
 
 
 export const ProjectOpener = observer(function ProjectOpener() {
-  const project = ProjectState.project;
+  const project = ProjectState.hasProject
+    ? ProjectState.project
+    : null;
 
   const [projectPath, setProjectPath] = React.useState<string>();
 
