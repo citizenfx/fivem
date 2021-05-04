@@ -1,6 +1,8 @@
 #include "StdInc.h"
 #include <rocksdb/db.h>
 
+#include <CoreConsole.h>
+
 #include <ScriptEngine.h>
 
 #include <msgpack.hpp>
@@ -17,6 +19,8 @@ struct DatabaseHolder
 {
 	DatabaseHolder(fx::ServerInstanceBase* instance)
 	{
+		nameVar = instance->AddVariable<std::string>("sv_kvsName", ConVar_None, "default");
+
 		rocksdb::DB* dbPointer;
 
 		rocksdb::Options options;
@@ -25,7 +29,7 @@ struct DatabaseHolder
 		options.keep_log_file_num = 10;
 
 		auto instanceRoot = std::filesystem::u8path(instance->GetRootPath());
-		auto dbRoot = (instanceRoot / "db" / "default").lexically_normal();
+		auto dbRoot = (instanceRoot / "db" / nameVar->GetValue()).lexically_normal();
 
 		std::error_code err;
 		std::filesystem::create_directories(dbRoot, err);
@@ -69,6 +73,8 @@ struct DatabaseHolder
 	}
 
 private:
+	std::shared_ptr<ConVar<std::string>> nameVar;
+
 	std::unique_ptr<rocksdb::DB> db;
 };
 
