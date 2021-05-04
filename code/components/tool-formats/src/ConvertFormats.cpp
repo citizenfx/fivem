@@ -113,8 +113,15 @@ static bool AutoConvert(TBlockMap blockMap, const std::wstring& fileName, int fi
 		fileExt = fileExtOverride;
 	}
 
+	std::wstring suffix;
+
+	if (fileExt[1] == L'y')
+	{
+		suffix = L"_nya";
+	}
+
 	std::wstring outFileName(fileName);
-	outFileName = outFileName.substr(0, outFileName.find_last_of('.')) + L".y" + fileExt.substr(2);
+	outFileName = outFileName.substr(0, outFileName.find_last_of('.')) + suffix + L".y" + fileExt.substr(2);
 	
 	return OutputFile([&]()
 	{
@@ -212,7 +219,7 @@ static void ConvertFile(const boost::filesystem::path& path)
 
 	int fileVersion = 0;
 
-	if (fileExt == L".wbn" || fileExt == L".obn")
+	if (fileExt == L".wbn" || fileExt == L".obn" || fileExt == L".ybn")
 	{
 		wprintf(L"converting bound %s...\n", path.filename().c_str());
 
@@ -231,7 +238,7 @@ static void ConvertFile(const boost::filesystem::path& path)
 
 		AutoConvert<rage::five::gtaDrawable, rage::ny::fragType>(bm, fileName, 162, L".ydr");
 	}
-	else if (fileExt == L".wdr" || fileExt == L".odr")
+	else if (fileExt == L".wdr" || fileExt == L".odr" || fileExt == L".ydr")
 	{
 		wprintf(L"converting drawable %s...\n", path.filename().c_str());
 

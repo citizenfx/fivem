@@ -872,14 +872,20 @@ five::grmShaderGroup* convert(rdr3::grmShaderGroup* shaderGroup)
 				newShader->SetParameter("TextureSampler_layer3", texRef4->GetName());
 
 				texRef = (rage::rdr3::grcTextureRef*)(*oldShader->m_textureRefs)[2].GetValue();
+
+#if 0
 				texRef2 = (rage::rdr3::grcTextureRef*)(*oldShader->m_textureRefs)[2 + 3].GetValue();
 				texRef3 = (rage::rdr3::grcTextureRef*)(*oldShader->m_textureRefs)[2 + 3 + 3].GetValue();
 				texRef4 = (rage::rdr3::grcTextureRef*)(*oldShader->m_textureRefs)[2 + 3 + 3 + 3].GetValue();
+#endif
 
 				newShader->SetParameter("BumpSampler_layer0", texRef->GetName());
+
+#if 0
 				newShader->SetParameter("BumpSampler_layer1", texRef2->GetName());
 				newShader->SetParameter("BumpSampler_layer2", texRef3->GetName());
 				newShader->SetParameter("BumpSampler_layer3", texRef4->GetName());
+#endif
 
 				/*texRef = (rage::rdr3::grcTextureRef*)(*oldShader->m_textureRefs)[3].GetValue();
 				texRef2 = (rage::rdr3::grcTextureRef*)(*oldShader->m_textureRefs)[3 + 3].GetValue();
