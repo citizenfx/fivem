@@ -19,7 +19,7 @@ if ($Game -eq "server") {
 }
 
 if (!(Test-Path $BuildPath\CitizenMP.sln)) {
-	.\gen.ps1 -Game $Game
+	& "$PSScriptRoot\gen.ps1" -Game $Game
 }
 
 Invoke-Expression "& $PSScriptRoot\..\ci\nuget.exe restore $BuildPath\CitizenMP.sln"
