@@ -919,7 +919,29 @@ namespace fx
 
 			for (auto& client : toRemove)
 			{
-				DropClient(client, "Server->client connection timed out. Last seen %d msec ago.", (msec() - client->GetLastSeen()).count());
+				auto lastSeen = (msec() - client->GetLastSeen());
+
+				// if this happened fairly early, try to find out why
+				if (lastSeen < 1500ms)
+				{
+					auto timeoutInfo = m_net->GatherTimeoutInfo(client->GetPeer());
+
+					if (!timeoutInfo.bigCommandList.empty())
+					{
+						std::stringstream commandListFormat;
+						for (const auto& bigCmd : timeoutInfo.bigCommandList)
+						{
+							std::string name = (bigCmd.eventName.empty()) ? fmt::sprintf("%08x", bigCmd.type) : bigCmd.eventName;
+
+							commandListFormat << fmt::sprintf("%s (%d B, %d msec ago)\n", name, bigCmd.size, bigCmd.timeAgo);
+						}
+
+						DropClient(client, "Server->client connection timed out. Pending commands: %d.\nCommand list:\n%s", timeoutInfo.pendingCommands, commandListFormat.str());
+						continue;
+					}
+				}
+
+				DropClient(client, "Server->client connection timed out. Last seen %d msec ago.", lastSeen.count());
 			}
 		}
 

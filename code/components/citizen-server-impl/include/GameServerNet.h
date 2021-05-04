@@ -36,6 +36,20 @@ namespace fx
 	class GameServerNetBase : public fwRefCountable
 	{
 	public:
+		struct OutgoingCommandInfo
+		{
+			uint32_t type;
+			uint32_t timeAgo;
+			size_t size;
+			std::string eventName;
+		};
+
+		struct TimeoutInfo
+		{
+			std::vector<OutgoingCommandInfo> bigCommandList;
+			size_t pendingCommands = 0;
+		};
+
 		virtual void Process() = 0;
 
 		virtual void Select(const std::vector<uintptr_t>& fds, int timeout) = 0;
@@ -53,6 +67,8 @@ namespace fx
 		virtual void AddRawInterceptor(const std::function<bool(const uint8_t*, size_t, const net::PeerAddress&)>& interceptor) = 0;
 
 		virtual int GetClientVersion() = 0;
+
+		virtual TimeoutInfo GatherTimeoutInfo(int peer) = 0;
 
 		virtual bool SupportsUvUdp()
 		{

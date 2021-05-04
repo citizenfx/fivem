@@ -225,6 +225,71 @@ namespace fx
 			}
 		}
 
+		void OnTimeout(ENetHost* host, ENetPeer* peer)
+		{
+			auto currentCommand = enet_list_begin(&peer->sentReliableCommands);
+			auto currentTime = host->serviceTime;
+
+			std::map<ENetPacket*, OutgoingCommandInfo> outgoingCommandsMap;
+			size_t pendingCommandCount = 0;
+
+			while (currentCommand != enet_list_end(&peer->sentReliableCommands))
+			{
+				auto outgoingCommand = (ENetOutgoingCommand*)currentCommand;
+				currentCommand = enet_list_next(currentCommand);
+
+				OutgoingCommandInfo info;
+				info.size = outgoingCommand->packet->dataLength;
+				info.timeAgo = currentTime - outgoingCommand->sentTime;
+				info.type = *(uint32_t*)outgoingCommand->packet->data;
+
+				if (info.type == HashRageString("msgNetEvent"))
+				{
+					info.eventName = std::string{ (const char*)outgoingCommand->packet->data + 8 };
+				}
+
+				if (auto outIt = outgoingCommandsMap.find(outgoingCommand->packet); outIt != outgoingCommandsMap.end())
+				{
+					if (outIt->second.timeAgo < info.timeAgo)
+					{
+						outIt->second = std::move(info);
+					}
+				}
+				else
+				{
+					outgoingCommandsMap[outgoingCommand->packet] = std::move(info);
+				}
+
+				pendingCommandCount++;
+			}
+
+			std::vector<OutgoingCommandInfo> outgoingCommands;
+
+			for (const auto& cmd : outgoingCommandsMap)
+			{
+				outgoingCommands.push_back(cmd.second);
+			}
+
+			std::sort(outgoingCommands.begin(), outgoingCommands.end(), [](const OutgoingCommandInfo& left, const OutgoingCommandInfo& right)
+			{
+				return right.size < left.size;
+			});
+
+			if (outgoingCommands.size() > 7)
+			{
+				outgoingCommands.resize(7);
+			}
+
+			TimeoutInfo info;
+			info.bigCommandList = std::move(outgoingCommands);
+			info.pendingCommands = pendingCommandCount;
+
+			auto peerId = static_cast<int>(reinterpret_cast<uintptr_t>(peer->data));
+			m_timeoutInfo[peerId] = std::move(info);
+		}
+
+		std::unordered_map<int, TimeoutInfo> m_timeoutInfo;
+
 	public:
 
 		virtual void Select(const std::vector<uintptr_t>& addFds, int timeout) override
@@ -273,6 +338,21 @@ namespace fx
 			}
 
 			enet_peer_reset(peerPair->second);
+		}
+
+		virtual TimeoutInfo GatherTimeoutInfo(int peerId) override
+		{
+			auto timeoutData = m_timeoutInfo.find(peerId);
+
+			if (timeoutData == m_timeoutInfo.end())
+			{
+				return {};
+			}
+
+			auto info = std::move(timeoutData->second);
+			m_timeoutInfo.erase(peerId);
+
+			return std::move(info);
 		}
 
 		virtual void SendPacket(int peer, int channel, const net::Buffer& buffer, NetPacketType type) override
@@ -349,6 +429,11 @@ namespace fx
 			host->intercept = [](ENetHost* host, ENetEvent* event)
 			{
 				return g_hostInstances[host]->OnIntercept(host);
+			};
+
+			host->peerTimeoutCb = [](ENetHost* host, ENetPeer* peer)
+			{
+				return g_hostInstances[host]->OnTimeout(host, peer);
 			};
 
 			this->hosts.push_back(THostPtr{ host });
