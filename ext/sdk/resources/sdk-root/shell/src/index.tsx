@@ -13,12 +13,10 @@ import { TheiaProjectManager } from 'managers/TheiaProjectManager';
 import { GameConnectionManager } from 'managers/GameConnectionManager';
 import { onApiMessage } from 'utils/api';
 import { stateApi } from 'shared/api.events';
-import { GameLoadingState } from 'store/GameLoadingState';
 
 enableLogger('shell,shell:*,host');
 
-window.openDevTools();
-console.log(GameLoadingState);
+// window.openDevTools();
 
 if (process.env.CI_PIPELINE_ID !== 'dev') {
   Sentry.init({

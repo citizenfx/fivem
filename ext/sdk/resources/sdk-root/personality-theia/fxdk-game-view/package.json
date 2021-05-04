@@ -10,7 +10,8 @@
     "src"
   ],
   "dependencies": {
-    "@theia/core": "1.12.1"
+    "@theia/core": "1.12.1",
+    "fxdk-services": "0.0.0"
   },
   "devDependencies": {
     "rimraf": "latest",

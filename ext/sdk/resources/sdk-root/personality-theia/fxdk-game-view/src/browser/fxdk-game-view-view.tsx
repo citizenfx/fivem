@@ -2,7 +2,7 @@ import * as React from 'react';
 import { ReactWidget } from '@theia/core/lib/browser';
 import { AbstractViewContribution } from '@theia/core/lib/browser';
 import { inject, injectable, postConstruct } from 'inversify';
-import { FxdkDataService } from 'fxdk-project/lib/browser/fxdk-data-service';
+import { FxdkDataService } from 'fxdk-services/lib/browser/fxdk-data-service';
 
 import './common/game-view.webcomponent.js';
 

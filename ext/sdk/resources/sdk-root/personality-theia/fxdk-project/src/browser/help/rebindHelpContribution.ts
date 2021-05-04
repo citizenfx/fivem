@@ -6,7 +6,7 @@ import { FxdkFAQWidget } from './fxdk-faq-widget';
 import { FrontendApplicationStateService } from '@theia/core/lib/browser/frontend-application-state';
 import { FxdkWorkspaceService } from '../rebindWorkspaceService';
 import { Command, CommandRegistry, MenuModelRegistry } from '@theia/core';
-import { FxdkDataService } from '../fxdk-data-service';
+import { FxdkDataService } from 'fxdk-services/lib/browser/fxdk-data-service';
 
 export namespace FxdkHelpCommands {
   export const DOCUMENTATION_LINK: Command = {

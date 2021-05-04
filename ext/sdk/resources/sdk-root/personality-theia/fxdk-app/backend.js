@@ -52,6 +52,7 @@ module.exports = (port, host, argv) => main.start(Promise.resolve()
     .then(function () { return Promise.resolve(require('@theia/plugin-ext-vscode/lib/node/plugin-vscode-backend-module')).then(load) })
     .then(function () { return Promise.resolve(require('@theia/plugin-metrics/lib/node/plugin-metrics-backend-module')).then(load) })
     .then(function () { return Promise.resolve(require('@theia/vsx-registry/lib/node/vsx-registry-backend-module')).then(load) })
+    .then(function () { return Promise.resolve(require('fxdk-services/lib/backend/fxdk-services-backend-module')).then(load) })
     .then(function () { return Promise.resolve(require('fxdk-project/lib/backend/fxdk-project-backend-module')).then(load) })
     .then(() => start(port, host, argv)).catch(reason => {
         console.error('personality-thiea has failed to start backend application');

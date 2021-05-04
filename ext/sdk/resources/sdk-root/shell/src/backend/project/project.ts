@@ -464,6 +464,14 @@ export class Project implements ApiContribution {
     this.refreshEnabledResources();
   }
 
+  deleteAssetConfig(assetPath: string) {
+    const assetRelativePath = this.fsService.relativePath(this.path, assetPath);
+
+    this.applyManifest((manifest) => {
+      delete manifest.assets[assetRelativePath];
+    });
+  }
+
   @handlesClientEvent(projectApi.setPathsState)
   setPathsState(pathsState: ProjectPathsState) {
     this.applyManifest((manifest) => {
@@ -575,6 +583,8 @@ export class Project implements ApiContribution {
 
     const assetConfig = this.getAssetConfig(assetPath);
     if (assetConfig) {
+      this.deleteAssetConfig(assetPath);
+
       this.setAssetConfig({
         assetPath: newAssetPath,
         config: assetConfig,

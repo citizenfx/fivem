@@ -5,10 +5,10 @@ import { FrontendApplicationContribution, OpenerService, open, WidgetManager } f
 import { FxdkWorkspaceService } from './rebindWorkspaceService';
 import URI from '@theia/core/lib/common/uri';
 import { CommandService } from '@theia/core';
-import { FxdkDataService, StructuredMessage } from './fxdk-data-service';
 
 import { FxdkGameView, FxdkGameViewContribution } from 'fxdk-game-view/lib/browser/fxdk-game-view-view';
 import { FrontendApplicationState, FrontendApplicationStateService } from '@theia/core/lib/browser/frontend-application-state';
+import { FxdkDataService, StructuredMessage } from 'fxdk-services/lib/browser/fxdk-data-service';
 
 const stateToNumber: Record<FrontendApplicationState, number> = {
   init: 0,
