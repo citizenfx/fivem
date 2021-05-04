@@ -203,7 +203,7 @@
 	url = https://github.com/cameron314/concurrentqueue.git
 [submodule "vendor/xenium"]
 	path = vendor/xenium
-	url = https://github.com/mpoeter/xenium
+	url = https://github.com/citizenfx/xenium.git
 [submodule "vendor/re3"]
 	path = vendor/re3
 	url = https://git.gta.re/blattersturm/re3.git
