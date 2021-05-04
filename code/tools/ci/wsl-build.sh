@@ -28,3 +28,6 @@ sed -i -e '1,/^## SETUP-CUTOFF/d' -e '/^## BUILD-CUTOFF/,$ d' -e 's/.*make clean
 
 export BOOST_ROOT=/tmp/boost/
 JOB_SLOTS=$(nproc) sh -e /tmp/build_server.sh
+
+echo '------------------'
+echo 'Finished building.'
