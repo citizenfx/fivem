@@ -405,6 +405,8 @@ typedef struct _ENetHost
    size_t               duplicatePeers;              /**< optional number of allowed peers from duplicate IPs, defaults to ENET_PROTOCOL_MAXIMUM_PEER_ID */
    size_t               maximumPacketSize;           /**< the maximum allowable packet size that may be sent or received on a peer */
    size_t               maximumWaitingData;          /**< the maximum aggregate amount of buffer space a peer may use waiting for packets to be delivered */
+
+   void                 (*peerTimeoutCb)(_ENetHost* host, ENetPeer* peer);
 } ENetHost;
 
 /**

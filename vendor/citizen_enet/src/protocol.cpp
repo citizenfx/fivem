@@ -1459,6 +1459,11 @@ enet_protocol_check_timeouts (ENetHost * host, ENetPeer * peer, ENetEvent * even
                (outgoingCommand -> roundTripTimeout >= outgoingCommand -> roundTripTimeoutLimit &&
                  ENET_TIME_DIFFERENCE (host -> serviceTime, peer -> earliestTimeout) >= peer -> timeoutMinimum)))
        {
+          if (host -> peerTimeoutCb)
+          {
+              host -> peerTimeoutCb (host, peer);
+          }
+
           enet_protocol_notify_disconnect (host, peer, event);
 
           return 1;
