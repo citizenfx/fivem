@@ -507,6 +507,7 @@ static InitFunction initFunction([]()
 			}
 		}
 
+#ifndef IS_FXSERVER
 		if (launch::IsSDKGuest() && resourceDatas.size() >= 2)
 		{
 			static std::chrono::microseconds lastSendTime;
@@ -526,6 +527,7 @@ static InitFunction initFunction([]()
 				lastSendTime = usec();
 			}
 		}
+#endif
 
 		if (taskMgrEnabled)
 		{
