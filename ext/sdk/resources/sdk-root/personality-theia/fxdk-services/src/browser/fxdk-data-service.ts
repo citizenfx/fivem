@@ -21,9 +21,19 @@ export interface StructuredMessage {
   message: string;
 }
 
+// resourceDatas.emplace_back(resource->GetName(), avgTickMs, avgFrameFraction, memorySize, streamingSize);
+export type ResourceName = string;
+export type ResourceAvgTickMs = number;
+export type ResourceAvgFrameFraction = number;
+export type ResourceMemorySize = number;
+export type ResourceStreamingSize = number;
+export type ClientResourceData = [ResourceName, ResourceAvgTickMs, ResourceAvgFrameFraction, ResourceMemorySize, ResourceStreamingSize];
+
 @injectable()
 export class FxdkDataService {
   public data: { [key: string]: any } = {};
+
+  private clientResourcesData: ClientResourceData[] = [];
 
   private bufferedServerOutput: string = '';
   private structuredServerMessages: StructuredMessage[] = [];
@@ -41,6 +51,21 @@ export class FxdkDataService {
   private readonly clearAllServerOutputsEvent = new SingleEventEmitter<void>();
   public onClearAllServerOutputs(cb: () => void): Disposable {
     return this.clearAllServerOutputsEvent.on(cb);
+  }
+
+  private readonly clientResourcesDataEvent = new SingleEventEmitter<ClientResourceData[]>();
+  public onClientResourcesData(cb: (data: ClientResourceData[]) => void): Disposable {
+    return this.clientResourcesDataEvent.on(cb);
+  }
+
+  getClientResourcesData(): ClientResourceData[] {
+    return this.clientResourcesData;
+  }
+
+  setClientResourcesData(data: ClientResourceData[]) {
+    this.clientResourcesData = data;
+
+    this.clientResourcesDataEvent.emit(data);
   }
 
   getBufferedServerOutput(): string {

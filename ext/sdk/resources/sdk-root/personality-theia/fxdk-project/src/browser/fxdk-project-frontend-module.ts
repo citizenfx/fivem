@@ -1,4 +1,5 @@
 import '../../src/browser/styles/console.css';
+import '../../src/browser/styles/resmon.css';
 import '../../src/browser/styles/faq.css';
 
 import { ContainerModule, interfaces } from 'inversify';
@@ -15,6 +16,7 @@ import { FxdkMenuContribution } from './fxdk-menu-contribution';
 import { CommandContribution, MenuContribution } from '@theia/core';
 import { ServerConsole, ServerConsoleViewContribution, SERVER_CONSOLE_WIDGET_ID } from './console/server-console';
 import { ClientConsole, ClientConsoleViewContribution, CLIENT_CONSOLE_WIDGET_ID } from './console/client-console';
+import { ClientResmon, ClientResmonViewContribution, CLIENT_RESMON_WIDGET_ID } from './resmon/client-resmon';
 import { rebindHelpContribution } from './help/rebindHelpContribution';
 import { rebindVsxEnvironment } from './rebindVsxEnvironment';
 
@@ -49,5 +51,11 @@ export default new ContainerModule((bind: interfaces.Bind, unbind: interfaces.Un
   bind(WidgetFactory).toDynamicValue((ctx) => ({
     id: CLIENT_CONSOLE_WIDGET_ID,
     createWidget: () => ctx.container.resolve(ClientConsole),
+  }));
+
+  bindViewContribution(bind, ClientResmonViewContribution);
+  bind(WidgetFactory).toDynamicValue((ctx) => ({
+    id: CLIENT_RESMON_WIDGET_ID,
+    createWidget: () => ctx.container.resolve(ClientResmon),
   }));
 });

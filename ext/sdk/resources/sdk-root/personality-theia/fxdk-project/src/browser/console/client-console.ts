@@ -39,7 +39,7 @@ export class ClientConsoleViewContribution extends AbstractViewContribution<Clie
   constructor() {
     super({
       widgetId: CLIENT_CONSOLE_WIDGET_ID,
-      widgetName: 'Server console',
+      widgetName: 'Client console',
       toggleCommandId: ClientConsoleViewContribution.TOGGLE_COMMAND_ID,
       defaultWidgetOptions: {
         area: 'bottom',

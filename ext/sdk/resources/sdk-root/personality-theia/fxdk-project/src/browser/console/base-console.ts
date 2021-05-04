@@ -115,7 +115,11 @@ export abstract class BaseConsole extends BaseWidget {
           const removedNodes = this.removeNodeQueue;
           this.removeNodeQueue = [];
           removedNodes.forEach((removedNode) => {
-            this.outputStructuredNode.removeChild(removedNode);
+            try {
+              this.outputStructuredNode.removeChild(removedNode);
+            } catch (e) {
+              // don't care
+            }
           });
         }
 

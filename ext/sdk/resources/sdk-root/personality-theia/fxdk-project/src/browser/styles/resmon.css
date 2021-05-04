@@ -1,0 +1,52 @@
+.fxdk-resmon-widget table {
+  width: 100%;
+
+  font-family: monospace;
+}
+
+.fxdk-resmon-widget table thead th {
+  position: sticky;
+  top: 0;
+  border-bottom: solid 1px var(--theia-focusBorder);
+  background-color: var(--theia-input-background);
+}
+
+.fxdk-resmon-widget table th,
+.fxdk-resmon-widget table td {
+  padding: 4px;
+
+  font-weight: 400;
+}
+
+.fxdk-resmon-widget table th:first-child,
+.fxdk-resmon-widget table td:first-child {
+  padding-left: 12px;
+}
+.fxdk-resmon-widget table th:last-child,
+.fxdk-resmon-widget table td:last-child {
+  padding-right: 12px;
+}
+
+.fxdk-resmon-widget table tbody tr:nth-child(2n) {
+  background-color: var(--theia-input-background);
+}
+
+.fxdk-resmon-widget table .align-left {
+  text-align: left;
+}
+.fxdk-resmon-widget table .align-center {
+  text-align: center;
+}
+.fxdk-resmon-widget table .align-right {
+  text-align: right;
+}
+
+.fxdk-resmon-widget .resource-name {
+  padding: 2px 4px;
+  line-height: 1;
+
+  border-radius: 4px;
+
+  color: black;
+  mix-blend-mode: difference;
+}

@@ -8,7 +8,7 @@ import { CommandService } from '@theia/core';
 
 import { FxdkGameView, FxdkGameViewContribution } from 'fxdk-game-view/lib/browser/fxdk-game-view-view';
 import { FrontendApplicationState, FrontendApplicationStateService } from '@theia/core/lib/browser/frontend-application-state';
-import { FxdkDataService, StructuredMessage } from 'fxdk-services/lib/browser/fxdk-data-service';
+import { ClientResourceData, FxdkDataService, StructuredMessage } from 'fxdk-services/lib/browser/fxdk-data-service';
 
 const stateToNumber: Record<FrontendApplicationState, number> = {
   init: 0,
@@ -26,6 +26,8 @@ function mapStateToNumber(state: FrontendApplicationState): number {
 function mapFxdkFolderToTheiaFolder(folder: string): string {
   return folder.replace(/\\/g, '/');
 }
+
+const eventHandlersCache: Record<string, string | null> = {};
 
 @injectable()
 export class FxdkProjectContribution implements FrontendApplicationContribution {
@@ -57,16 +59,26 @@ export class FxdkProjectContribution implements FrontendApplicationContribution 
 
       const { type, data } = e.data;
 
-      if (type.indexOf('fxdk:') !== 0) {
+      let method = eventHandlersCache[type];
+      if (method === undefined) {
+        if (type.indexOf('fxdk:') !== 0) {
+          return;
+        }
+
+        const methodBase = type.substr(5);
+        method = 'handle' + methodBase[0].toUpperCase() + methodBase.substr(1);
+
+        if (typeof this[method] === 'undefined') {
+          eventHandlersCache[type] = null;
+          return;
+        } else {
+          eventHandlersCache[type] = method;
+        }
+      } else if (method === null) {
         return;
       }
 
-      const methodBase = type.substr(5);
-      const method = 'handle' + methodBase[0].toUpperCase() + methodBase.substr(1);
-
-      if (typeof this[method] !== 'undefined') {
-        return this[method](data);
-      }
+      return this[method](data);
     });
 
     document.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -163,6 +175,10 @@ export class FxdkProjectContribution implements FrontendApplicationContribution 
 
   private handleClearGameOutput() {
     this.dataService.clearGameOutput();
+  }
+
+  private handleClientResourcesData(data: ClientResourceData[]) {
+    this.dataService.setClientResourcesData(data);
   }
 
   private reachedState(state: FrontendApplicationState) {

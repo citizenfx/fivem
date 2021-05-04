@@ -5,6 +5,9 @@
 #include <ConsoleHost.h>
 #include <ResourceScriptingComponent.h>
 
+#include <CL2LaunchMode.h>
+#include <json.hpp>
+
 #if __has_include(<ResourceGameLifetimeEvents.h>)
 #include <ResourceGameLifetimeEvents.h>
 #endif
@@ -445,6 +448,85 @@ static InitFunction initFunction([]()
 		}
 #endif
 
+		auto avgScriptTime = scriptFrameMetrics.GetAverage();
+		double avgScriptMs = (avgScriptTime.count() / 1000.0);
+
+		std::vector<std::tuple<std::string, double, double, int64_t, int64_t>> resourceDatas;
+
+		if (launch::IsSDKGuest() || taskMgrEnabled)
+		{
+			std::map<std::string, fwRefContainer<fx::Resource>> resourceList;
+
+			fx::ResourceManager::GetCurrent()->ForAllResources([&resourceList](fwRefContainer<fx::Resource> resource)
+			{
+				resourceList.insert({ resource->GetName(), resource });
+			});
+
+			if (resourceList.size() < 2)
+			{
+				return;
+			}
+
+			for (const auto& [resourceName, resource] : resourceList)
+			{
+				auto metric = metrics.find(resourceName);
+				double avgTickMs = -1.0;
+				double avgFrameFraction = -1.0f;
+				int64_t memorySize = -1;
+				int64_t streamingSize = -1;
+
+				if (metric != metrics.end() && metric->second)
+				{
+					const auto& [key, valueRef] = *metric;
+					auto value = *valueRef;
+
+					auto avgTickTime = value.ticks.GetAverage();
+					avgTickMs = (avgTickTime.count() / 1000.0);
+
+					if (avgScriptMs != 0.0f)
+					{
+						avgFrameFraction = (avgTickMs / avgScriptMs);
+					}
+
+					if (value.memorySize != 0)
+					{
+						memorySize = value.memorySize;
+					}
+
+#ifdef GTA_FIVE
+					auto streamingUsage = GetStreamingUsageForThread(value.gtaThread);
+
+					if (streamingUsage > 0)
+					{
+						streamingSize = streamingUsage;
+					}
+#endif
+
+					resourceDatas.emplace_back(resource->GetName(), avgTickMs, avgFrameFraction, memorySize, streamingSize);
+				}
+			}
+		}
+
+		if (launch::IsSDKGuest() && resourceDatas.size() >= 2)
+		{
+			static std::chrono::microseconds lastSendTime;
+			static std::chrono::milliseconds maxPause(333);
+
+			// only send data twice a second
+			if (usec() - lastSendTime >= maxPause)
+			{
+				static constexpr uint32_t SEND_SDK_MESSAGE = HashString("SEND_SDK_MESSAGE");
+
+				nlohmann::json resourceDatasJson;
+				resourceDatasJson["type"] = "fxdk:clientResourcesData";
+				resourceDatasJson["data"] = resourceDatas;
+
+				NativeInvoke::Invoke<SEND_SDK_MESSAGE, const char*>(resourceDatasJson.dump().c_str());
+
+				lastSendTime = usec();
+			}
+		}
+
 		if (taskMgrEnabled)
 		{
 			if (ImGui::Begin("Resource Monitor", &taskMgrEnabled) && ImGui::BeginTable("##resmon", 5, ImGuiTableFlags_Resizable | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Sortable))
@@ -456,22 +538,12 @@ static InitFunction initFunction([]()
 				ImGui::TableSetupColumn("Streaming", ImGuiTableColumnFlags_PreferSortDescending);
 				ImGui::TableHeadersRow();
 
-				std::map<std::string, fwRefContainer<fx::Resource>> resourceList;
-
-				fx::ResourceManager::GetCurrent()->ForAllResources([&resourceList](fwRefContainer<fx::Resource> resource)
-				{
-					resourceList.insert({ resource->GetName(), resource });
-				});
-
-				if (resourceList.size() < 2)
+				if (resourceDatas.size() < 2)
 				{
 					ImGui::EndTable();
 					ImGui::End();
 					return;
 				}
-
-				auto avgScriptTime = scriptFrameMetrics.GetAverage();
-				double avgScriptMs = (avgScriptTime.count() / 1000.0);
 
 				auto avgFrameTime = gameFrameMetrics.GetAverage();
 				double avgFrameMs = (avgFrameTime.count() / 1000.0);
@@ -494,47 +566,6 @@ static InitFunction initFunction([]()
 				else
 				{
 					ImGui::Text("%.1f%%", (avgScriptMs / avgFrameMs) * 100.0);
-				}
-
-				std::vector<std::tuple<std::string, double, double, int64_t, int64_t>> resourceDatas;
-
-				for (const auto& [ resourceName, resource ] : resourceList)
-				{
-					auto metric = metrics.find(resourceName);
-					double avgTickMs = -1.0;
-					double avgFrameFraction = -1.0f;
-					int64_t memorySize = -1;
-					int64_t streamingSize = -1;
-
-					if (metric != metrics.end() && metric->second)
-					{
-						const auto& [key, valueRef] = *metric;
-						auto value = *valueRef;
-
-						auto avgTickTime = value.ticks.GetAverage();
-						avgTickMs = (avgTickTime.count() / 1000.0);
-
-						if (avgScriptMs != 0.0f)
-						{
-							avgFrameFraction = (avgTickMs / avgScriptMs);
-						}
-
-						if (value.memorySize != 0)
-						{
-							memorySize = value.memorySize;
-						}
-
-#ifdef GTA_FIVE
-						auto streamingUsage = GetStreamingUsageForThread(value.gtaThread);
-
-						if (streamingUsage > 0)
-						{
-							streamingSize = streamingUsage;
-						}
-#endif
-
-						resourceDatas.emplace_back(resource->GetName(), avgTickMs, avgFrameFraction, memorySize, streamingSize);
-					}
 				}
 
 				{
