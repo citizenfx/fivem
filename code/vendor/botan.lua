@@ -47,7 +47,7 @@ return {
 			end
 		elseif os.istarget('linux') then
 			prebuildcommands {
-				('cp %s %s'):format(
+				('cp -a %s %s'):format(
 					path.getabsolute('vendor/botan_sv/include/build_linux.h'),
 					path.getabsolute('vendor/botan_sv/include/botan/build.h')
 				)
