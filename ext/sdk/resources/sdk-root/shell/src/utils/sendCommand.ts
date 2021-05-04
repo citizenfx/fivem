@@ -1,3 +1,3 @@
-export const sendCommand = (cmd: string) => {
+export const sendCommandToGameClient = (cmd: string) => {
   window.invokeNative('sendCommand', cmd);
 };

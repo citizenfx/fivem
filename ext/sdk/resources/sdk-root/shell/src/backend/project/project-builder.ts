@@ -146,10 +146,6 @@ export class ProjectBuilder implements ApiContribution {
     task.setStage(ProjectBuildTaskStage.VerifyingBuildSite)
     await this.checkBuildSite(buildInfo);
 
-    task.setStage(ProjectBuildTaskStage.StoppingWatchCommands);
-    task.setText('Stopping all watch commands');
-    await project.suspendWatchCommands();
-
     task.setStage(ProjectBuildTaskStage.RunningBuildCommands);
     task.setText('Running build commands');
     await project.runBuildCommands();
@@ -165,9 +161,8 @@ export class ProjectBuilder implements ApiContribution {
     await this.deployMiscFiles(project, buildInfo);
 
     task.setStage(ProjectBuildTaskStage.Done);
-    task.setText('Starting watch commands');
+    task.setText('Done');
     project.enterState(ProjectState.Development);
-    project.resumeWatchCommands();
 
     this.notificationService.info('Project build completed', 5000);
   }
@@ -232,7 +227,7 @@ export class ProjectBuilder implements ApiContribution {
 
   protected async deployResources(project: Project, buildInfo: ProjectBuildInfo) {
     const { resourcesDeployPath: deployPath } = buildInfo;
-    const deployableResources = project.getEnabledResourcesAssets();
+    const deployableResources = project.getEnabledAssets().filter((asset) => asset.getResourceDescriptor?.());
 
     const resourcesCount = deployableResources.length;
     if (!resourcesCount) {
@@ -241,10 +236,9 @@ export class ProjectBuilder implements ApiContribution {
     }
 
     await Promise.all(
-      deployableResources.map(async (resourceAsset) => {
-        const resourceName = resourceAsset.getName();
-        const resourcePath = resourceAsset.getPath();
-        const deployablePaths = await resourceAsset.getDeployablePaths();
+      deployableResources.map(async (asset) => {
+        const { name: resourceName, path: resourcePath } = asset.getResourceDescriptor();
+        const deployablePaths = await asset.getDeployablePaths();
 
         const copyTasks: [string, string][] = [];
         const foldersToCreate: Set<string> = new Set();
@@ -253,7 +247,7 @@ export class ProjectBuilder implements ApiContribution {
           const relativePath = this.fsService.dirname(this.fsService.relativePath(resourcePath, deployablePath));
           const deploySitePath = this.fsService.joinPath(deployPath, resourceName, relativePath);
 
-          // Remember, that it goes like so: /a/b/c.txt -> /a/d, so it will get copied to /a/d/c.txt
+          // Remember, that it goes like so: /a/beef/c.txt -> /a/milk, so it will get copied to /a/milk/c.txt
           copyTasks.push([deployablePath, deploySitePath]);
           foldersToCreate.add(deploySitePath);
         });
@@ -278,7 +272,7 @@ export class ProjectBuilder implements ApiContribution {
     // Create resources.cfg
     {
       const resourceConfigPath = this.fsService.joinPath(buildInfo.resourcesDeployPath, 'resources.cfg');
-      const resourceConfigContent = deployableResources.map((resource) => `ensure ${resource.getName()}`).join('\n');
+      const resourceConfigContent = deployableResources.map((resource) => `ensure ${resource.getResourceDescriptor().name}`).join('\n');
 
       await this.fsService.writeFile(resourceConfigPath, resourceConfigContent);
     }

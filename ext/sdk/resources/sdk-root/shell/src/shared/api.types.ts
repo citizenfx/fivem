@@ -72,6 +72,7 @@ export type FilesystemEntryMap = {
 export enum Feature {
   windowsDevModeEnabled,
   dotnetAvailable,
+  worldEditor,
 }
 
 export type FeaturesMap = Partial<Record<Feature, boolean>>;

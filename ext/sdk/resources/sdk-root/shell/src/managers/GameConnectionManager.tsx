@@ -1,33 +1,30 @@
-import { GameContext } from 'contexts/GameContext';
-import { ServerContext } from 'contexts/ServerContext';
-import { TheiaContext } from 'contexts/TheiaContext';
-import { ServerStates } from 'shared/api.types';
-import { useSdkMessage } from 'utils/hooks';
-import { sendCommand } from 'utils/sendCommand';
 import * as React from 'react';
+import { ServerStates } from 'shared/api.types';
+import { useWindowEvent } from 'utils/hooks';
+import { sendCommandToGameClient } from 'utils/sendCommand';
 import { logger } from 'utils/logger';
 import { NetLibraryConnectionState } from 'shared/native.enums';
+import { observer } from 'mobx-react-lite';
+import { GameState } from 'store/GameState';
+import { ServerState } from 'store/ServerState';
+import { TheiaState } from 'personalities/TheiaPersonality/TheiaState';
 
 const log = logger('GameConnectionManager');
 const RECONNECT_INTERVAL = 1000;
 
-export const GameConnectionManager = React.memo(function GameConnectionManager() {
-  const { serverState, clientConnected, setClientConnected } = React.useContext(ServerContext);
-  const { sendTheiaMessage } = React.useContext(TheiaContext);
-  const { gameLaunched, connectionState } = React.useContext(GameContext);
-
+export const GameConnectionManager = observer(function GameConnectionManager() {
   const pendingClientConnect = React.useRef(false);
   const pendingClientReconnectTimer = React.useRef(null);
 
   // Clear reconnect interval if connection state transitioned from idle
   React.useEffect(() => {
     if (pendingClientReconnectTimer.current !== null) {
-      if (connectionState !== NetLibraryConnectionState.CS_IDLE) {
+      if (GameState.connectionState !== NetLibraryConnectionState.CS_IDLE) {
         clearInterval(pendingClientReconnectTimer.current);
         pendingClientReconnectTimer.current = null;
       }
     }
-  }, [connectionState]);
+  }, [GameState.connectionState]);
 
   // Cleanup on unmount
   React.useEffect(() => () => {
@@ -38,21 +35,21 @@ export const GameConnectionManager = React.memo(function GameConnectionManager()
 
   React.useEffect(() => {
     log({
-      serverState: ServerStates[serverState],
-      clientConnected,
-      gameLaunched,
-      connectionState: NetLibraryConnectionState[connectionState],
+      serverState: ServerStates[ServerState.state],
+      clientConnected: ServerState.clientConnected,
+      gameLaunched: GameState.launched,
+      connectionState: NetLibraryConnectionState[GameState.connectionState],
       pendingClientConnect: pendingClientConnect.current,
     });
 
-    if (clientConnected && !gameLaunched) {
-      return setClientConnected(false);
+    if (ServerState.clientConnected && !GameState.launched) {
+      return ServerState.setClientConnected(false);
     }
 
-    switch (serverState) {
-      case ServerStates.up: {
-        const shouldIssueConnectCommand = !clientConnected
-          && gameLaunched
+    switch (true) {
+      case ServerState.isUp: {
+        const shouldIssueConnectCommand = !ServerState.clientConnected
+          && GameState.launched
           && !pendingClientConnect.current;
 
         if (shouldIssueConnectCommand) {
@@ -60,42 +57,40 @@ export const GameConnectionManager = React.memo(function GameConnectionManager()
 
           pendingClientConnect.current = true;
 
-          sendCommand('connect 127.0.0.1:30120');
+          sendCommandToGameClient('connect 127.0.0.1:30120');
 
-          sendTheiaMessage({
-            type: 'fxdk:openGameView',
-          });
+          TheiaState.openGameView();
 
           pendingClientReconnectTimer.current = setInterval(() => {
-            sendCommand('connect 127.0.0.1:30120');
+            sendCommandToGameClient('connect 127.0.0.1:30120');
           }, RECONNECT_INTERVAL);
         }
 
         break;
       }
 
-      case ServerStates.down: {
-        if (gameLaunched && (clientConnected || pendingClientConnect.current)) {
+      case ServerState.isDown: {
+        if (GameState.launched && (ServerState.clientConnected || pendingClientConnect.current)) {
           log('Disconnecting game from server');
 
           pendingClientConnect.current = false;
           window.setFPSLimit(60);
-          sendCommand('disconnect');
-          setClientConnected(false);
+          sendCommandToGameClient('disconnect');
+          ServerState.setClientConnected(false);
         }
 
         break;
       }
     }
-  }, [serverState, gameLaunched, clientConnected, connectionState, setClientConnected, sendTheiaMessage]);
+  }, [GameState.launched, ServerState.state, ServerState.clientConnected, GameState.connectionState]);
 
-  useSdkMessage('connected', () => {
+  useWindowEvent('connected', () => {
     pendingClientConnect.current = false;
     window.setFPSLimit(0);
-    setClientConnected(true);
+    ServerState.setClientConnected(true);
 
     console.log('Client connected!');
-  }, [setClientConnected]);
+  }, []);
 
   return null;
 });

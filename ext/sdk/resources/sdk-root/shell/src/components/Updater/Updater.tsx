@@ -1,13 +1,14 @@
 import * as React from 'react';
 import classnames from 'classnames';
-import { useStatus } from 'contexts/StatusContext';
+import { observer } from 'mobx-react-lite';
 import { updaterStatuses } from 'shared/api.statuses';
 import { Changelog } from 'components/Changelog/Changelog';
-import { StateContext } from 'contexts/StateContext';
 import { AppStates } from 'shared/api.types';
 import { BsArrowRepeat } from 'react-icons/bs';
 import { Button } from 'components/controls/Button/Button';
 import { setLatestChangelogEntryAsSeen } from 'components/Changelog/Changelog.utils';
+import { ShellState } from 'store/ShellState';
+import { StatusState } from 'store/StatusState';
 import s from './Updater.module.scss';
 
 const defaultStatus = {
@@ -36,16 +37,15 @@ const readyTitleNode = (
   </ul>
 );
 
-export const Updater = React.memo(function Update() {
-  const { state, closeUpdater } = React.useContext(StateContext);
-  const status = useStatus(updaterStatuses.state, defaultStatus);
+export const Updater = observer(function Update() {
+  const status = StatusState.get(updaterStatuses.state, defaultStatus);
 
   const handleContinue = React.useCallback(() => {
-    closeUpdater();
+    ShellState.closeUpdater();
     setLatestChangelogEntryAsSeen();
-  }, [closeUpdater]);
+  }, []);
 
-  const isReady = state === AppStates.ready;
+  const isReady = ShellState.appState === AppStates.ready;
   const rootClassName = classnames(s.root, {
     [s.shrimp]: isReady,
   });

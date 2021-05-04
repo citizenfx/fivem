@@ -9,7 +9,7 @@
   "scripts": {
     "lerna": "lerna",
     "watch": "lerna run watch",
-    "build": "yarn --cwd fxdk-game-view run build && yarn --cwd fxdk-project run build && yarn --cwd fxdk-app run build",
+    "build": "yarn --cwd fxdk-services run build && yarn --cwd fxdk-game-view run build && yarn --cwd fxdk-project run build && yarn --cwd fxdk-app run build",
     "rebuild:browser": "theia rebuild:browser",
     "rebuild:fxdk": "theia rebuild:electron"
   },
@@ -19,7 +19,8 @@
   "workspaces": [
     "fxdk-game-view",
     "fxdk-app",
-    "fxdk-project"
+    "fxdk-project",
+    "fxdk-services"
   ],
   "dependencies": {
     "find-git-repositories": "0.1.3",

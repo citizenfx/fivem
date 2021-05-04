@@ -1,8 +1,7 @@
 import React from 'react';
+import { observer } from 'mobx-react-lite';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { ProjectContext } from 'contexts/ProjectContext';
-import { invariant } from 'utils/invariant';
 import { sendApiMessage } from 'utils/api';
 import { projectApi } from 'shared/api.events';
 import { ContextMenu, ContextMenuItem } from 'components/controls/ContextMenu/ContextMenu';
@@ -10,29 +9,41 @@ import { newDirectoryIcon, newResourceIcon } from 'constants/icons';
 import { Directory } from './Directory/Directory';
 import { File } from './File/File';
 import { DirectoryCreator } from './Directory/DirectoryCreator/DirectoryCreator';
-import { Resource } from './Resource/Resource';
 import { entriesSorter, ProjectItemProps, ProjectItemRenderer } from './item';
 import { ProjectExplorerContextProvider } from './ProjectExplorer.context';
-import { ScrollContainer } from 'components/ScrollContainer/ScrollContainer';
-import s from './ProjectExplorer.module.scss';
 import { isAssetMetaFile } from 'utils/project';
+import { ProjectState } from 'store/ProjectState';
+import { ENABLED_ASSET_RENDERERS } from 'assets/enabled-renderers';
+import { StatusState } from 'store/StatusState';
+import { Feature } from 'shared/api.types';
+import { assetTypes } from 'shared/asset.types';
+import s from './ProjectExplorer.module.scss';
 
 
 const itemRenderer: ProjectItemRenderer = (props: ProjectItemProps) => {
   const { entry } = props;
+  const worldEditorEnabled = StatusState.getFeature(Feature.worldEditor);
+
+  const itemAssetType = ProjectState.project.assetTypes[entry.path];
+  const canUseAssetRenderer = itemAssetType === assetTypes.fxworld
+    ? worldEditorEnabled
+    : true;
+
+  if (itemAssetType && canUseAssetRenderer) {
+    const AssetRenderer = ENABLED_ASSET_RENDERERS[itemAssetType];
+    if (AssetRenderer) {
+      return (
+        <AssetRenderer
+          key={entry.path}
+          {...props}
+        />
+      );
+    }
+  }
 
   if (entry.isFile) {
     return (
       <File
-        key={entry.path}
-        {...props}
-      />
-    );
-  }
-
-  if (entry.meta.isResource) {
-    return (
-      <Resource
         key={entry.path}
         {...props}
       />
@@ -69,19 +80,11 @@ const fsTreeFilter = (entry) => {
   return true;
 };
 
-export const ProjectExplorer = React.memo(function ProjectExplorer() {
-  const {
-    project,
-    directoryCreatorOpen,
-    closeDirectoryCreator,
-    setResourceCreatorDir,
-    openResourceCreator,
-    openDirectoryCreator,
-  } = React.useContext(ProjectContext);
-  invariant(project, `ProjectExplorer was rendered without project set`);
+export const ProjectExplorer = observer(function ProjectExplorer() {
+  const project = ProjectState.project;
 
   const handleDirectoryCreate = React.useCallback((directoryName: string) => {
-    closeDirectoryCreator();
+    ProjectState.closeDirectoryCreator();
 
     if (directoryName) {
       sendApiMessage(projectApi.createDirectory, {
@@ -89,12 +92,12 @@ export const ProjectExplorer = React.memo(function ProjectExplorer() {
         directoryName,
       });
     }
-  }, [project.path, closeDirectoryCreator]);
+  }, [project.path]);
 
   const handleOpenResourceCreator = React.useCallback(() => {
-    setResourceCreatorDir(project.path);
-    openResourceCreator();
-  }, [project.path, setResourceCreatorDir, openResourceCreator]);
+    ProjectState.setResourceCreatorDir(project.path);
+    ProjectState.openResourceCreator();
+  }, [project.path]);
 
   const nodes = project.fs[project.path]
     .filter(fsTreeFilter)
@@ -119,10 +122,10 @@ export const ProjectExplorer = React.memo(function ProjectExplorer() {
         id: 'new-directory',
         icon: newDirectoryIcon,
         text: 'New directory',
-        onClick: openDirectoryCreator,
+        onClick: ProjectState.openDirectoryCreator,
       },
     ];
-  }, [handleOpenResourceCreator, openDirectoryCreator]);
+  }, [handleOpenResourceCreator]);
 
   return (
     <ProjectExplorerContextProvider>
@@ -130,17 +133,15 @@ export const ProjectExplorer = React.memo(function ProjectExplorer() {
         className={s.root}
         items={contextItems}
       >
-        <ScrollContainer>
-          {directoryCreatorOpen && (
-            <DirectoryCreator
-              className={s.creator}
-              onCreate={handleDirectoryCreate}
-            />
-          )}
-          <DndProvider backend={HTML5Backend}>
-            {nodes}
-          </DndProvider>
-        </ScrollContainer>
+        {ProjectState.directoryCreatorOpen && (
+          <DirectoryCreator
+            className={s.creator}
+            onCreate={handleDirectoryCreate}
+          />
+        )}
+        <DndProvider backend={HTML5Backend}>
+          {nodes}
+        </DndProvider>
       </ContextMenu>
     </ProjectExplorerContextProvider>
   );

@@ -1,7 +1,7 @@
 import { injectable, inject } from 'inversify';
 import { BaseConsole } from './base-console';
 import { AbstractViewContribution } from '@theia/core/lib/browser';
-import { FxdkDataService } from '../fxdk-data-service';
+import { FxdkDataService } from 'fxdk-services/lib/browser/fxdk-data-service';
 
 export const CLIENT_CONSOLE_WIDGET_ID = 'fxdk-client-console';
 export const CLIENT_CONSOLE_WIDGET_ICON = 'fa fa-terminal';

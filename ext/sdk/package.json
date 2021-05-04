@@ -6,8 +6,13 @@
   "license": "MIT",
   "private": true,
   "scripts": {
-    "postinstall": "yarn --cwd resources/sdk-root/shell install --pure-lockfile && yarn --cwd resources/sdk-root/personality-theia install --pure-lockfile",
-    "start": "yarn --cwd resources/sdk-root/shell run start"
+    "install:shell": "yarn --cwd resources/sdk-root/shell install --pure-lockfile",
+    "install:theia": "yarn --cwd resources/sdk-root/personality-theia install --pure-lockfile",
+    "install:game": "yarn --cwd resources/sdk-game install --pure-lockfile",
+    "postinstall": "yarn run install:shell && yarn run install:theia && yarn run install:game",
+    "start:shell": "yarn --cwd resources/sdk-root/shell run start",
+    "start:game": "yarn --cwd resources/sdk-game run start",
+    "start": "concurrently --names \"shell,sdk-game\" \"yarn run start:shell --norebuild\" \"yarn run start:game\""
   },
   "devDependencies": {
     "concurrently": "^5.3.0"

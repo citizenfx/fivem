@@ -11,7 +11,6 @@ import { rebindWorkspaceFrontendContribution } from './rebindWorkspaceFrontendCo
 import { rebindApplicationShell } from './rebindApplicationShell';
 import { rebindNavigator } from './rebindNavigator';
 import { FxdkProjectContribution } from './fxdk-project-contribution';
-import { FxdkDataService } from './fxdk-data-service';
 import { FxdkMenuContribution } from './fxdk-menu-contribution';
 import { CommandContribution, MenuContribution } from '@theia/core';
 import { ServerConsole, ServerConsoleViewContribution, SERVER_CONSOLE_WIDGET_ID } from './console/server-console';
@@ -21,8 +20,6 @@ import { rebindVsxEnvironment } from './rebindVsxEnvironment';
 
 
 export default new ContainerModule((bind: interfaces.Bind, unbind: interfaces.Unbind, isBound: interfaces.IsBound, rebind: interfaces.Rebind) => {
-  bind(FxdkDataService).toSelf().inSingletonScope();
-
   bind(FxdkMenuContribution).toSelf().inSingletonScope();
   bind(MenuContribution).toService(FxdkMenuContribution);
   bind(CommandContribution).toService(FxdkMenuContribution);

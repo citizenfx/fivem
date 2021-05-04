@@ -1,26 +1,36 @@
 import React from 'react';
-import { ProjectContext } from 'contexts/ProjectContext';
-import { ResourceCreator } from './ProjectExplorer/Resource/ResourceCreator/ResourceCreator';
+import { observer } from 'mobx-react-lite';
+import { ResourceCreator } from 'assets/resource/renderer/ResourceCreator/ResourceCreator';
 import { ProjectExplorer } from './ProjectExplorer/ProjectExplorer';
 import { ProjectSettings } from './ProjectSettings/ProjectSettings';
 import { ProjectBuilder } from './ProjectBuilder/ProjectBuilder';
 import { Importer } from './Importer/Importer';
+import { ProjectState } from 'store/ProjectState';
+import { ProjectCreator } from './ProjectCreator/ProjectCreator';
+import { ProjectOpener } from './ProjectOpener/ProjectOpener';
 import s from './Project.module.scss';
 
 
-export const Project = React.memo(function Project() {
+export const Project = observer(function Project() {
   const {
-    project,
     builderOpen,
     settingsOpen,
     importerOpen,
+    creatorOpen,
+    openerOpen,
     resourceCreatorOpen,
-  } = React.useContext(ProjectContext);
-
-  const showProjectExplorer = !!project?.fs[project?.path];
+  } = ProjectState;
 
   return (
     <>
+      {creatorOpen && (
+        <ProjectCreator />
+      )}
+
+      {openerOpen && (
+        <ProjectOpener />
+      )}
+
       {settingsOpen && (
         <ProjectSettings />
       )}
@@ -38,7 +48,7 @@ export const Project = React.memo(function Project() {
       )}
 
       <div className={s.root}>
-        {showProjectExplorer && (
+        {ProjectState.hasProject && (
           <ProjectExplorer />
         )}
       </div>

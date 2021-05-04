@@ -83,6 +83,7 @@ module.exports = Promise.resolve()
     .then(function () { return import('@theia/preview/lib/browser/preview-frontend-module').then(load) })
     .then(function () { return import('@theia/typehierarchy/lib/browser/typehierarchy-frontend-module').then(load) })
     .then(function () { return import('@theia/vsx-registry/lib/browser/vsx-registry-frontend-module').then(load) })
+    .then(function () { return import('fxdk-services/lib/browser/fxdk-services-frontend-module').then(load) })
     .then(function () { return import('fxdk-game-view/lib/browser/fxdk-game-view-frontend-module').then(load) })
     .then(function () { return import('fxdk-project/lib/browser/fxdk-project-frontend-module').then(load) })
     .then(start).catch(reason => {

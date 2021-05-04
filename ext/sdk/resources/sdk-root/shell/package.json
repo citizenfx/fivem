@@ -26,6 +26,8 @@
     "isomorphic-git": "^1.8.1",
     "minimatch": "^3.0.4",
     "mkdirp": "^1.0.4",
+    "mobx": "^6.2.0",
+    "mobx-react-lite": "^3.2.0",
     "node-fetch": "^2.6.1",
     "react": "^16.13.1",
     "react-dnd": "^11.1.3",

@@ -1,20 +1,18 @@
 import React from 'react';
 import { Button } from 'components/controls/Button/Button';
-import { Checkbox } from 'components/controls/Checkbox/Checkbox';
 import { Input } from 'components/controls/Input/Input';
-import { RootsExplorer } from 'components/Explorer/Explorer';
 import { Modal } from 'components/Modal/Modal';
 import { projectNamePattern } from 'constants/patterns';
-import { ProjectContext } from 'contexts/ProjectContext';
 import { projectApi } from 'shared/api.events';
 import { sendApiMessage } from 'utils/api';
-import { useApiMessage, useDebouncedCallback, useFeature } from 'utils/hooks';
-import { Feature } from 'shared/api.types';
-import s from './ProjectCreator.module.scss';
+import { useApiMessage, useDebouncedCallback } from 'utils/hooks';
 import { ProjectCreateRequest } from 'shared/api.requests';
 import { ProjectCreateCheckResult } from 'shared/project.types';
 import { PathSelector } from 'components/controls/PathSelector/PathSelector';
 import { BsBoxArrowUpRight } from 'react-icons/bs';
+import { observer } from 'mobx-react-lite';
+import { ProjectState } from 'store/ProjectState';
+import s from './ProjectCreator.module.scss';
 
 
 function formatProjectPathHint(projectPath: string, projectName: string) {
@@ -31,15 +29,13 @@ function formatProjectPathHint(projectPath: string, projectName: string) {
   return hint;
 }
 
-export const ProjectCreator = React.memo(function ProjectCreator() {
-  const { closeCreator } = React.useContext(ProjectContext);
-
+export const ProjectCreator = observer(function ProjectCreator() {
   const [projectName, setProjectName] = React.useState('');
   const [projectPath, setProjectPath] = React.useState('');
   const [checkResult, setCheckResult] = React.useState<ProjectCreateCheckResult>({});
 
   // Whenever we see project open - close creator
-  useApiMessage(projectApi.open, closeCreator);
+  useApiMessage(projectApi.open, ProjectState.closeCreator);
 
   useApiMessage(projectApi.checkCreateResult, (results) => {
     setCheckResult(results);
@@ -83,7 +79,7 @@ export const ProjectCreator = React.memo(function ProjectCreator() {
   const canCreate = projectPath && projectName;
 
   return (
-    <Modal fullWidth onClose={closeCreator}>
+    <Modal fullWidth onClose={ProjectState.closeCreator}>
       <div className={s.root}>
         <h3 className="modal-header">
           Create New Project
@@ -122,7 +118,7 @@ export const ProjectCreator = React.memo(function ProjectCreator() {
             onClick={handleCreateProject}
           />
 
-          <Button text="Cancel" onClick={closeCreator} />
+          <Button text="Cancel" onClick={ProjectState.closeCreator} />
         </div>
       </div>
     </Modal>

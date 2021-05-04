@@ -1,11 +1,12 @@
 import * as React from 'react';
-import { ProjectContext } from 'contexts/ProjectContext';
+import { observer } from 'mobx-react-lite';
 import { FilesystemEntry } from 'shared/api.types';
 import { projectApi } from 'shared/api.events';
 import { sendApiMessage } from 'utils/api';
 import { useApiMessage } from 'utils/hooks';
 import { CopyEntryRequest, MoveEntryRequest } from 'shared/api.requests';
 import { ProjectPathsState } from 'shared/project.types';
+import { ProjectState } from 'store/ProjectState';
 
 
 export enum EntryRelocateOperation {
@@ -37,8 +38,8 @@ const defaultValues: ProjectExplorerContext = {
 
 export const ProjectExplorerContext = React.createContext<ProjectExplorerContext>(defaultValues);
 
-export const ProjectExplorerContextProvider = React.memo(function ProjectExplorerContextProvider({ children }) {
-  const { project } = React.useContext(ProjectContext);
+export const ProjectExplorerContextProvider = observer(function ProjectExplorerContextProvider({ children }) {
+  const project = ProjectState.project;
   const [pathsState, setPathsState] = React.useState<ProjectPathsState>(defaultValues.pathsState);
 
   React.useEffect(() => {

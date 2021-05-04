@@ -1,23 +1,19 @@
 import * as React from 'react';
 import classnames from 'classnames';
 import { BsArrowBarLeft, BsArrowBarRight } from 'react-icons/bs';
-import { StateContext } from 'contexts/StateContext';
+import { ToolbarState } from 'store/ToolbarState';
+import { observer } from 'mobx-react-lite';
 import s from './Toolbar.module.scss';
 
-export const ToolbarTrigger = React.memo(function ToolbarTrigger() {
-  const { toolbarWidth, setToolbarWidth, toolbarOpen, openToolbar, closeToolbar } = React.useContext(StateContext);
-
+export const ToolbarTrigger = observer(function ToolbarTrigger() {
   const [toolbarResizing, setToolbarResizing] = React.useState(false);
 
-  const triggerTitle = toolbarOpen
+  const triggerTitle = ToolbarState.isOpen
     ? 'Collapse FxDK toolbar'
     : 'Expand FxDK toolbar';
-  const triggerIcon = toolbarOpen
+  const triggerIcon = ToolbarState.isOpen
     ? <BsArrowBarLeft />
     : <BsArrowBarRight />;
-
-  const toolbarWidthRef = React.useRef(toolbarWidth);
-  toolbarWidthRef.current = toolbarWidth;
 
   const setToolbarResizingRef = React.useRef(setToolbarResizing);
   setToolbarResizingRef.current = setToolbarResizing;
@@ -31,7 +27,7 @@ export const ToolbarTrigger = React.memo(function ToolbarTrigger() {
   React.useEffect(() => {
     const handleMouseUp = () => {
       if (mouseStateRef.current.down) {
-        window.document.body.classList.remove('reszie-sentinel-active');
+        window.document.body.classList.remove('resize-sentinel-active');
         setToolbarResizingRef.current(false);
 
         mouseStateRef.current.down = false;
@@ -40,6 +36,10 @@ export const ToolbarTrigger = React.memo(function ToolbarTrigger() {
     };
 
     const handleMouseMove = (e) => {
+      if (!ToolbarState.isOpen) {
+        return;
+      }
+
       if (!mouseStateRef.current.down) {
         return;
       }
@@ -50,7 +50,7 @@ export const ToolbarTrigger = React.memo(function ToolbarTrigger() {
 
       mouseStateRef.current.moved = true;
 
-      setToolbarWidth(toolbarWidthRef.current + (e.screenX - mouseStateRef.current.x));
+      ToolbarState.setWidth(ToolbarState.width + (e.screenX - mouseStateRef.current.x));
       mouseStateRef.current.x = e.screenX;
     };
 
@@ -58,14 +58,14 @@ export const ToolbarTrigger = React.memo(function ToolbarTrigger() {
     window.addEventListener('mousemove', handleMouseMove);
 
     return () => {
-      window.document.body.classList.remove('reszie-sentinel-active');
+      window.document.body.classList.remove('resize-sentinel-active');
       window.removeEventListener('mouseup', handleMouseUp);
       window.removeEventListener('mousemove', handleMouseMove);
     };
   }, []);
 
   const handleMouseDown = React.useCallback((e: React.MouseEvent) => {
-    window.document.body.classList.add('reszie-sentinel-active');
+    window.document.body.classList.add('resize-sentinel-active');
 
     setToolbarResizing(true);
 
@@ -75,13 +75,9 @@ export const ToolbarTrigger = React.memo(function ToolbarTrigger() {
 
   const handleMouseUp = React.useCallback(() => {
     if (mouseStateRef.current.down && !mouseStateRef.current.moved) {
-      if (toolbarOpen) {
-        closeToolbar();
-      } else {
-        openToolbar();
-      }
+      ToolbarState.toggle();
     }
-  }, [toolbarOpen, openToolbar, closeToolbar]);
+  }, []);
 
   const triggerClassName = classnames(s.trigger, {
     [s.resizing]: toolbarResizing,

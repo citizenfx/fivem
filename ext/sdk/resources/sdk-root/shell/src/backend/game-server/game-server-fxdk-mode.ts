@@ -6,7 +6,7 @@ import { FsService } from 'backend/fs/fs-service';
 import { GameService } from 'backend/game/game-service';
 import { LogService } from 'backend/logger/log-service';
 import { ShellCommand } from 'backend/process/ShellCommand';
-import { SingleEventEmitter } from 'backend/single-event-emitter';
+import { SingleEventEmitter } from 'utils/singleEventEmitter';
 import { Task } from 'backend/task/task-reporter-service';
 import { Ticker } from 'backend/ticker';
 import { inject, injectable } from 'inversify';
@@ -276,7 +276,9 @@ export class GameServerFxdkMode implements GameServerMode {
     this.ipc.onEvent('ready', () => this.readyDeferred.resolve());
 
     this.ipc.onEvent('stdout', ([channel, message]: [string, string]) => {
-      this.apiClient.emit(serverApi.structuredOutputMessage, { channel, message });
+      if (message.trim()) {
+        this.apiClient.emit(serverApi.structuredOutputMessage, { channel, message });
+      }
     });
 
     this.ipc.onEvent('resource-start', (resourceName: string) => {
@@ -294,13 +296,19 @@ export class GameServerFxdkMode implements GameServerMode {
     this.pipeAppendix = await this.ipc.start('test');
   }
 
-  private async serverInitSequence({ fxserverCwd, steamWebApiKey, tebexSecret }: ServerStartRequest) {
-    const blankContent = (await this.fsService.readFile(this.fsService.joinPath(fxserverCwd, 'blank.cfg'))).toString().trim();
-    if (blankContent) {
-      const lines = blankContent.split('\n');
-
-      for (const line of lines) {
+  private async serverInitSequence({ fxserverCwd, steamWebApiKey, tebexSecret, cmdList }: ServerStartRequest) {
+    if (Array.isArray(cmdList)) {
+      for (const line of cmdList) {
         this.ipc.event('cmd', line.trim());
+      }
+    } else {
+      const blankContent = (await this.fsService.readFile(this.fsService.joinPath(fxserverCwd, 'blank.cfg'))).toString().trim();
+      if (blankContent) {
+        const lines = blankContent.split('\n');
+
+        for (const line of lines) {
+          this.ipc.event('cmd', line.trim());
+        }
       }
     }
 

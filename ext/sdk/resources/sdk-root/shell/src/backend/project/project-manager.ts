@@ -15,20 +15,7 @@ import { Project } from "./project";
 import { ProjectAccess } from "./project-access";
 import { assetImporterTypes } from "shared/asset.types";
 import { GitAssetImportRequest } from "./asset/importer-contributions/git-importer/git-importer.types";
-
-export const cfxServerDataEnabledResources = [
-  'basic-gamemode',
-  'fivem-map-skater',
-  'chat',
-  'playernames',
-  'mapmanager',
-  'spawnmanager',
-  'sessionmanager',
-  'baseevents',
-  'hardcap',
-  'webpack',
-  'yarn',
-];
+import { DEFAULT_ENABLED_ASSETS } from "assets/core/contants";
 
 @injectable()
 export class ProjectManager implements ApiContribution {
@@ -227,7 +214,7 @@ export class ProjectManager implements ApiContribution {
           repoUrl: 'https://github.com/citizenfx/cfx-server-data.git',
         },
         callback: () => {
-          this.project?.setResourcesEnabled(cfxServerDataEnabledResources, true);
+          this.project?.setAssetsEnabled(DEFAULT_ENABLED_ASSETS, true);
         },
       };
 

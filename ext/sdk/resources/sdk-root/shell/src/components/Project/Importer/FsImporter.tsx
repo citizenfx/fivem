@@ -4,7 +4,6 @@ import { Button } from 'components/controls/Button/Button';
 import { Input } from 'components/controls/Input/Input';
 import { Explorer } from 'components/Explorer/Explorer';
 import { combineVisibilityFilters, visibilityFilters } from 'components/Explorer/Explorer.filters';
-import { ProjectContext } from 'contexts/ProjectContext';
 import { assetApi } from 'shared/api.events';
 import { FilesystemEntry } from 'shared/api.types';
 import { assetImporterTypes } from 'shared/asset.types';
@@ -15,6 +14,8 @@ import { FsAssetImportRequest } from 'backend/project/asset/importer-contributio
 import { PathSelector } from 'components/controls/PathSelector/PathSelector';
 import { inferAssetName } from './Importer.utils';
 import s from './Importer.module.scss';
+import { observer } from 'mobx-react-lite';
+import { ProjectState } from 'store/ProjectState';
 
 const resourceFolderSelectableFilter = (entry: FilesystemEntry) => {
   return entry.isDirectory && !entry.meta.isResource;
@@ -25,8 +26,8 @@ const resourceFolderVisibilityFilter = combineVisibilityFilters(
   visibilityFilters.hideDotFilesAndDirs,
 );
 
-export const FsImporter = React.memo(function FsImporter({ onClose }: ImporterProps) {
-  const { project, projectEntry } = React.useContext(ProjectContext);
+export const FsImporter = observer(function FsImporter({ onClose }: ImporterProps) {
+  const project = ProjectState.project;
 
   const [sourcePath, setSourcePath] = React.useState('');
   const [assetName, setAssetName] = React.useState('');
@@ -91,7 +92,7 @@ export const FsImporter = React.memo(function FsImporter({ onClose }: ImporterPr
       </div>
       <Explorer
         className={classnames(s.explorer, 'modal-block')}
-        baseEntry={projectEntry}
+        baseEntry={project.entry}
         pathsMap={project.fs}
         selectedPath={assetBasePath}
         onSelectPath={setAssetBasePath}

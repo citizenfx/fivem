@@ -19,6 +19,8 @@
 #include <ICoreGameInit.h>
 #include <GameInit.h>
 #include <ScriptEngine.h>
+#include <ResourceManager.h>
+#include <ResourceEventComponent.h>
 //New libs needed for saveSettings
 #include <fstream>
 #include <sstream>
@@ -678,6 +680,14 @@ static InitFunction initFunction([] ()
 		console::CoreAddPrintListener([](ConsoleChannel channel, const char* msg)
 		{
 			ep.Call("sdk:consoleMessage", channel, std::string(msg));
+		});
+
+		ep.Bind("sdk:clientEvent", [](const std::string& eventName, const std::string& payload)
+		{
+			fwRefContainer<fx::ResourceManager> resman = Instance<fx::ResourceManager>::Get();
+			fwRefContainer<fx::ResourceEventManagerComponent> resevman = resman->GetComponent<fx::ResourceEventManagerComponent>();
+
+			resevman->QueueEvent2(eventName, {}, payload);
 		});
 	}
 

@@ -5,7 +5,6 @@ import { Button } from 'components/controls/Button/Button';
 import { Input } from 'components/controls/Input/Input';
 import { Explorer } from 'components/Explorer/Explorer';
 import { combineVisibilityFilters, visibilityFilters } from 'components/Explorer/Explorer.filters';
-import { ProjectContext } from 'contexts/ProjectContext';
 import { assetApi, githubApi } from 'shared/api.events';
 import { FilesystemEntry } from 'shared/api.types';
 import { assetImporterTypes } from 'shared/asset.types';
@@ -18,8 +17,10 @@ import { useSendApiMessageCallback } from 'utils/hooks';
 import { Checkbox } from 'components/controls/Checkbox/Checkbox';
 import { ReleaseAssetImportRequest } from 'backend/project/asset/importer-contributions/release-importer/release-importer.types';
 import { Release } from './Release';
-import s from './Importer.module.scss';
 import { ScrollContainer } from 'components/ScrollContainer/ScrollContainer';
+import { ProjectState } from 'store/ProjectState';
+import { observer } from 'mobx-react-lite';
+import s from './Importer.module.scss';
 
 const resourceFolderSelectableFilter = (entry: FilesystemEntry) => {
   return entry.isDirectory && !entry.meta.isResource;
@@ -37,8 +38,8 @@ const noReleaseInfo: ReleaseInfo = {
   downloadUrl: '',
 };
 
-export const GitImporter = React.memo(function GitImporter({ onClose }: ImporterProps) {
-  const { project, projectEntry } = React.useContext(ProjectContext);
+export const GitImporter = observer(function GitImporter({ onClose }: ImporterProps) {
+  const project = ProjectState.project;
 
   const [repository, setRepository] = React.useState('');
   const [assetName, setAssetName] = React.useState('');
@@ -193,7 +194,7 @@ export const GitImporter = React.memo(function GitImporter({ onClose }: Importer
       </div>
       <Explorer
         className={classnames(s.explorer, 'modal-block')}
-        baseEntry={projectEntry}
+        baseEntry={project.entry}
         pathsMap={project.fs}
         selectedPath={assetBasePath}
         onSelectPath={setAssetBasePath}

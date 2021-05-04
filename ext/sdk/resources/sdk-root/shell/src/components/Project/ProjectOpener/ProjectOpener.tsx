@@ -1,16 +1,18 @@
 import React from 'react';
+import { observer } from 'mobx-react-lite';
 import { Button } from 'components/controls/Button/Button';
 import { Modal } from 'components/Modal/Modal';
-import { ProjectContext } from 'contexts/ProjectContext';
 import { RecentProjectItem } from 'components/RecentProjectItem/RecentProjectItem';
 import { useSendApiMessageCallback } from 'utils/hooks';
 import { projectApi } from 'shared/api.events';
 import { PathSelector } from 'components/controls/PathSelector/PathSelector';
+import { ProjectState } from 'store/ProjectState';
 import s from './ProjectOpener.module.scss';
 
 
-export const ProjectOpener = React.memo(function ProjectOpener() {
-  const { project, recentProjects, closeOpener, openProject: baseOpenProject } = React.useContext(ProjectContext);
+export const ProjectOpener = observer(function ProjectOpener() {
+  const project = ProjectState.project;
+
   const [projectPath, setProjectPath] = React.useState<string>();
 
   const [projectPathChecking, setProjectPathChecking] = React.useState(false);
@@ -23,10 +25,9 @@ export const ProjectOpener = React.memo(function ProjectOpener() {
 
   const openSelectedProject = React.useCallback(() => {
     if (projectPath && projectPathOpenable) {
-      baseOpenProject(projectPath);
-      closeOpener();
+      ProjectState.openProject(projectPath);
     }
-  }, [closeOpener, projectPath, baseOpenProject, projectPathOpenable]);
+  }, [projectPath, projectPathOpenable]);
 
   const handleProjectPathChange = React.useCallback((newProjectPath) => {
     setProjectPathChecking(true);
@@ -34,7 +35,7 @@ export const ProjectOpener = React.memo(function ProjectOpener() {
     checkProjectPath(newProjectPath);
   }, [setProjectPath, checkProjectPath, setProjectPathChecking]);
 
-  const recents = recentProjects
+  const recents = ProjectState.recentProjects
     // No need to show current open porject
     .filter((recentProject) => project?.path !== recentProject.path)
     .map((recentProject) => (
@@ -45,7 +46,7 @@ export const ProjectOpener = React.memo(function ProjectOpener() {
     ));
 
   return (
-    <Modal fullWidth onClose={closeOpener}>
+    <Modal fullWidth onClose={ProjectState.closeOpener}>
       <div className={s.root}>
         <div className="modal-header">
           Open project
@@ -84,7 +85,7 @@ export const ProjectOpener = React.memo(function ProjectOpener() {
           />
           <Button
             text="Cancel"
-            onClick={closeOpener}
+            onClick={ProjectState.closeOpener}
           />
         </div>
       </div>

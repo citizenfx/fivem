@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { ReactWidget } from '@theia/core/lib/browser';
 import { AbstractViewContribution } from '@theia/core/lib/browser';
-import { injectable, postConstruct } from 'inversify';
+import { inject, injectable, postConstruct } from 'inversify';
+import { FxdkDataService } from 'fxdk-services/lib/browser/fxdk-data-service';
 
 import './common/game-view.webcomponent.js';
 
@@ -53,6 +54,11 @@ const GameView = React.memo(() => {
 export class FxdkGameView extends ReactWidget {
   static readonly ID = 'fxdkGameView';
 
+  @inject(FxdkDataService)
+  protected readonly dataService: FxdkDataService;
+
+  private theiaIsActive = false;
+
   @postConstruct()
   init(): void {
     this.id = FxdkGameView.ID;
@@ -61,6 +67,12 @@ export class FxdkGameView extends ReactWidget {
     this.title.label = 'Game view';
     this.title.iconClass = 'fa fa-gamepad';
     this.update();
+
+    this.theiaIsActive = this.dataService.getTheiaIsActive();
+    this.toDispose.push(this.dataService.onTheiaIsActiveChange((theiaIsActive) => {
+      this.theiaIsActive = theiaIsActive;
+      this.update();
+    }));
   }
 
   protected onActivateRequest() {
@@ -68,6 +80,14 @@ export class FxdkGameView extends ReactWidget {
   }
 
   protected render(): React.ReactNode {
+    if (!this.theiaIsActive) {
+      return (
+        <div>
+          Theia is in inactive state now, and you definitely shouldn't have seen this.
+        </div>
+      );
+    }
+
     return (
       <GameView />
     );

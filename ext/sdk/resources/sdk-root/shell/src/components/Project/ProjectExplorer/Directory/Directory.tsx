@@ -1,4 +1,5 @@
 import React from 'react';
+import { observer } from 'mobx-react-lite';
 import classnames from 'classnames';
 import { BsFolder, BsFolderFill, BsPuzzle } from 'react-icons/bs';
 import { DirectoryDeleteConfirmation } from './DirectoryDeleteConfirmation/DirectoryDeleteConfirmation';
@@ -29,7 +30,7 @@ export interface DirectoryProps extends ProjectItemProps {
   icon?: React.ReactNode,
 }
 
-export const Directory = React.memo(function Directory(props: DirectoryProps) {
+export const Directory = observer(function Directory(props: DirectoryProps) {
   const { entry, pathsMap } = props;
   const { icon } = props;
 

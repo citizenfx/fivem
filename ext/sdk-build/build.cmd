@@ -10,11 +10,19 @@ set CacheRoot=C:\f\save
 set BuildRoot=%~dp0\sdk-root
 
 set FXDK=..\sdk\resources
+set FXDKGame=..\sdk\resources\sdk-game
 set FXDKRoot=..\sdk\resources\sdk-root
 
 set FXDKTheia=%FXDKRoot%\personality-theia
 set FXDKShell=%FXDKRoot%\shell
 
+
+:: build sdk-game
+pushd %FXDKGame%
+call yarn install --frozen-lockfile
+call yarn build
+popd
+:: /build sdk-game
 
 
 :: build shell
@@ -47,8 +55,11 @@ echo F|xcopy /y    build.yarnclean               build\.yarnclean
 
 call yarn --cwd build install --frozen-lockfile --production
 
-xcopy /y /e node_modules\fxdk-project\lib\*.*      build\node_modules\fxdk-project\lib\
-xcopy /y    node_modules\fxdk-project\package.json build\node_modules\fxdk-project\
+:: copy these as they have backend parts, other exts will end up bundled in theia frontend
+xcopy /y /e node_modules\fxdk-project\lib\*.*       build\node_modules\fxdk-project\lib\
+xcopy /y    node_modules\fxdk-project\package.json  build\node_modules\fxdk-project\
+xcopy /y /e node_modules\fxdk-services\lib\*.*      build\node_modules\fxdk-services\lib\
+xcopy /y    node_modules\fxdk-services\package.json build\node_modules\fxdk-services\
 
 for %%m in (find-git-repositories, drivelist, @theia/node-pty, native-keymap) do (
 	call yarn electron-rebuild -f -m build\node_modules\%%m

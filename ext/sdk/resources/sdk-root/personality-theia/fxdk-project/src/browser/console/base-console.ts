@@ -4,11 +4,11 @@ import { Widget, Message } from '@theia/core/lib/browser';
 import { BaseWidget } from '@theia/core/lib/browser/widgets/widget';
 import { TerminalThemeService } from '@theia/terminal/lib/browser/terminal-theme-service';
 import { TerminalPreferences } from '@theia/terminal/lib/browser/terminal-preferences';
-import { StructuredMessage } from '../fxdk-data-service';
 import { colorizeString, rgbForKey } from '../utils/color';
 import { Deferred } from '@theia/core/lib/common/promise-util';
 import { FixedLengthBuffer } from '../utils/fixed-length-buffer';
 import { Disposable } from '@theia/core';
+import { StructuredMessage } from 'fxdk-services/lib/browser/fxdk-data-service';
 
 const asIs = x => x;
 const asPx = x => `${x}px`;

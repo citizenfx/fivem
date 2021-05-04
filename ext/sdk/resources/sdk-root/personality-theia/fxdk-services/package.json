@@ -1,0 +1,32 @@
+{
+  "name": "fxdk-services",
+  "version": "0.0.0",
+  "private": true,
+  "description": "FxDK Services extension",
+  "dependencies": {
+    "@theia/core": "1.12.1"
+  },
+  "devDependencies": {
+    "rimraf": "latest",
+    "typescript": "^4.0.2"
+  },
+  "theiaExtensions": [
+    {
+      "frontend": "lib/browser/fxdk-services-frontend-module",
+      "backend": "lib/backend/fxdk-services-backend-module"
+    }
+  ],
+  "keywords": [
+    "theia-extension"
+  ],
+  "license": "MIT",
+  "files": [
+    "lib",
+    "src"
+  ],
+  "scripts": {
+    "clean": "rimraf lib",
+    "build": "yarn clean && tsc",
+    "watch": "tsc -w"
+  }
+}

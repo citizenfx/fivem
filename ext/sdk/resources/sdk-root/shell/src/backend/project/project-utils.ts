@@ -1,10 +1,8 @@
-import { AssetInterface } from "./asset/asset-types";
-
 type AssetPath = string;
 type AssetPathsTree = { [key: string]: AssetPathsTree | null };
 
-export function getAssetsPriorityQueue(assets: Map<AssetPath, AssetInterface>): string[][] {
-  const assetPaths = [...assets.keys()].sort((a, b) => a.length - b.length);
+export function getAssetsPriorityQueue(assetPathsUnsorted: AssetPath[]): string[][] {
+  const assetPaths = assetPathsUnsorted.sort((a, b) => a.length - b.length);
 
   const pathsTree: AssetPathsTree = {};
   const pathsPriorities = {};

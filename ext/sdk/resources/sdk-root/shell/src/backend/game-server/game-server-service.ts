@@ -1,7 +1,7 @@
 import { inject, injectable } from "inversify";
 import { ApiContribution } from "backend/api/api-contribution";
 import { AppContribution } from "backend/app/app-contribution";
-import { ServerStates } from 'shared/api.types';
+import { ServerStates, ServerUpdateStates } from 'shared/api.types';
 import { handlesClientEvent } from 'backend/api/api-decorators';
 import { serverApi } from 'shared/api.events';
 import { FsService } from 'backend/fs/fs-service';
@@ -18,6 +18,8 @@ import { GameServerMode } from './game-server-interface';
 import { GameServerRuntime, ServerResourceDescriptor, ServerStartRequest } from "./game-server-runtime";
 import { GameServerFxdkMode } from './game-server-fxdk-mode';
 import { GameServerLegacyMode } from "./game-server-legacy-mode";
+import { SingleEventEmitter } from "utils/singleEventEmitter";
+import { Disposable } from "backend/disposable-container";
 
 @injectable()
 export class GameServerService implements AppContribution, ApiContribution {
@@ -62,6 +64,11 @@ export class GameServerService implements AppContribution, ApiContribution {
   protected serverLock = new Deferred<void>();
   protected serverLocked = false;
 
+  private readonly serverStopEvent = new SingleEventEmitter<Error | void>();
+  onServerStop(cb: (error: Error | void) => void): Disposable {
+    return this.serverStopEvent.addListener(cb);
+  }
+
   private disposeServer() {
     if (this.server) {
       this.server.dispose();
@@ -80,6 +87,10 @@ export class GameServerService implements AppContribution, ApiContribution {
 
   getState(): ServerStates {
     return this.state;
+  }
+
+  isUp() {
+    return this.state === ServerStates.up;
   }
 
   @handlesClientEvent(serverApi.ackState)
@@ -116,6 +127,8 @@ export class GameServerService implements AppContribution, ApiContribution {
 
     this.lock();
 
+    await this.gameServerManagerService.getUpdateChannelPromise(request.updateChannel, ServerUpdateStates.ready);
+
     // Check if port is available
     if (!await isPortAvailable(30120)) {
       this.notificationService.error(`Port 30120 is already taken, make sure nothing is using it`);
@@ -145,6 +158,8 @@ export class GameServerService implements AppContribution, ApiContribution {
           this.notificationService.error(`Server error: ${error.toString()}`);
         }
         this.toState(ServerStates.down);
+
+        this.serverStopEvent.emit(error);
       });
 
       await this.server.start(request, this.startTask);
@@ -207,6 +222,10 @@ export class GameServerService implements AppContribution, ApiContribution {
 
   setResources(resources: ServerResourceDescriptor[]) {
     this.gameServerRuntime.setResources(resources);
+  }
+
+  getResources(): ServerResourceDescriptor[] {
+    return this.gameServerRuntime.getResources();
   }
 
   @handlesClientEvent(serverApi.sendCommand)

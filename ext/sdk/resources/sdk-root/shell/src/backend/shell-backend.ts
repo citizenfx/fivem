@@ -3,7 +3,7 @@ import express from 'express';
 import expressWs from 'express-ws';
 import { Container, inject, injectable } from 'inversify';
 import { ConfigService } from './config-service';
-import { SingleEventEmitter } from './single-event-emitter';
+import { SingleEventEmitter } from '../utils/singleEventEmitter';
 import { LogService } from './logger/log-service';
 import { AppContribution, bindAppContribution } from './app/app-contribution';
 import { Deferred } from './deferred';

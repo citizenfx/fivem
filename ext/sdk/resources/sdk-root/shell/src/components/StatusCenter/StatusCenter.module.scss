@@ -1,0 +1,14 @@
+@import "variables";
+
+.root {
+  width: 100%;
+  max-height: 15vh;
+
+  padding: 0;
+
+  overflow-y: auto;
+
+  border: solid 2px rgba($fgColor, .5);
+  backdrop-filter: blur(10px);
+  background-color: rgba($bgColor, .5);
+}

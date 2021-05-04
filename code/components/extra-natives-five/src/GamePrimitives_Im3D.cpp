@@ -2,6 +2,9 @@
 
 #include <CoreConsole.h>
 #include <GamePrimitives.h>
+#include <CL2LaunchMode.h>
+#include <HostSharedData.h>
+#include <WorldEditorControls.h>
 
 #include <DrawCommands.h>
 #include <fiAssetManager.h>
@@ -122,6 +125,8 @@ void gz::Begin()
 	Im3d::NewFrame();
 
 	auto& ad = Im3d::GetAppData();
+	auto& ctx = Im3d::GetContext();
+
 	const auto& viewport = (*g_viewportGame)->viewport;
 
 	DirectX::XMVECTOR sc, qu, tr;
@@ -147,10 +152,40 @@ void gz::Begin()
 
 	lastTime = time;
 
-	const auto& io = ImGui::GetIO();
+	float x;
+	float y;
 
-	float x = (io.MousePos.x - ImGui::GetMainViewport()->Pos.x) / (float)GetViewportW();
-	float y = (io.MousePos.y - ImGui::GetMainViewport()->Pos.y) / (float)GetViewportH();
+	if (launch::IsSDKGuest())
+	{
+		static HostSharedData<WorldEditorControls> wec("CfxWorldEditorControls");
+
+		x = wec->mouseX;
+		y = wec->mouseY;
+
+		ad.m_keyDown[Im3d::Action_Select] = wec->gizmoSelect;
+
+		ctx.m_gizmoMode = (Im3d::GizmoMode)wec->gizmoMode;
+		ctx.m_gizmoLocal = wec->gizmoLocal;
+	}
+	else
+	{
+		const auto& io = ImGui::GetIO();
+
+		x = (io.MousePos.x - ImGui::GetMainViewport()->Pos.x) / (float)GetViewportW();
+		y = (io.MousePos.y - ImGui::GetMainViewport()->Pos.y) / (float)GetViewportH();
+
+		static RegisteredControl gizmoSelect("gizmoSelect");
+		static RegisteredControl gizmoLocal("gizmoLocal");
+		static RegisteredControl gizmoTranslation("gizmoTranslation");
+		static RegisteredControl gizmoRotation("gizmoRotation");
+		static RegisteredControl gizmoScale("gizmoScale");
+
+		ad.m_keyDown[Im3d::Action_Select] = gizmoSelect.IsDown();
+		ad.m_keyDown[Im3d::Action_GizmoLocal] = gizmoLocal.IsDown();
+		ad.m_keyDown[Im3d::Action_GizmoTranslation] = gizmoTranslation.IsDown();
+		ad.m_keyDown[Im3d::Action_GizmoRotation] = gizmoRotation.IsDown();
+		ad.m_keyDown[Im3d::Action_GizmoScale] = gizmoScale.IsDown();
+	}
 
 	auto rayStart = Unproject(viewport, rage::Vec3V{ x, y, 0.0f });
 	auto rayEnd = Unproject(viewport, rage::Vec3V{ x, y, 1.0f });
@@ -166,18 +201,6 @@ void gz::Begin()
 		DirectX::XMVectorGetY(d),
 		DirectX::XMVectorGetZ(d)
 	};
-
-	static RegisteredControl gizmoSelect("gizmoSelect");
-	static RegisteredControl gizmoLocal("gizmoLocal");
-	static RegisteredControl gizmoTranslation("gizmoTranslation");
-	static RegisteredControl gizmoRotation("gizmoRotation");
-	static RegisteredControl gizmoScale("gizmoScale");
-
-	ad.m_keyDown[Im3d::Action_Select] = gizmoSelect.IsDown();
-	ad.m_keyDown[Im3d::Action_GizmoLocal] = gizmoLocal.IsDown();
-	ad.m_keyDown[Im3d::Action_GizmoTranslation] = gizmoTranslation.IsDown();
-	ad.m_keyDown[Im3d::Action_GizmoRotation] = gizmoRotation.IsDown();
-	ad.m_keyDown[Im3d::Action_GizmoScale] = gizmoScale.IsDown();
 }
 
 void gz::Draw(const RemoteDrawLists* lists)

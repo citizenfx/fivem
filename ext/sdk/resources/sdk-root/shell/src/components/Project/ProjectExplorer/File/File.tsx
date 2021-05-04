@@ -1,6 +1,6 @@
 import * as React from 'react';
+import { observer } from 'mobx-react-lite';
 import classnames from 'classnames';
-import { ProjectContext } from 'contexts/ProjectContext';
 import { useOpenFlag } from 'utils/hooks';
 import { ContextMenu, ContextMenuItemsCollection, ContextMenuItemSeparator } from 'components/controls/ContextMenu/ContextMenu';
 import { deleteIcon, renameIcon } from 'constants/icons';
@@ -13,12 +13,12 @@ import { ProjectItemProps } from '../item';
 import { useItemDrag, useItemRelocateSourceContextMenu } from '../ProjectExplorer.hooks';
 import { itemsStyles } from '../item.styles';
 import { BsBoxArrowUpRight } from 'react-icons/bs';
+import { ProjectState } from 'store/ProjectState';
 
 
-export const File = React.memo(function File(props: ProjectItemProps) {
+export const File = observer(function File(props: ProjectItemProps) {
   const { entry } = props;
 
-  const { openFile } = React.useContext(ProjectContext);
   const options = React.useContext(ProjectExplorerItemContext);
 
   const relocateSourceContextMenu = useItemRelocateSourceContextMenu(entry);
@@ -28,9 +28,9 @@ export const File = React.memo(function File(props: ProjectItemProps) {
 
   const handleClick = React.useCallback(() => {
     if (!options.disableFileOpen) {
-      openFile(entry);
+      ProjectState.openFile(entry);
     }
-  }, [entry, options, openFile]);
+  }, [entry, options]);
 
   const contextMenuItems: ContextMenuItemsCollection = React.useMemo(() => [
     ...relocateSourceContextMenu,
