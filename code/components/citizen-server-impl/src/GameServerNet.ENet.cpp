@@ -238,26 +238,29 @@ namespace fx
 				auto outgoingCommand = (ENetOutgoingCommand*)currentCommand;
 				currentCommand = enet_list_next(currentCommand);
 
-				OutgoingCommandInfo info;
-				info.size = outgoingCommand->packet->dataLength;
-				info.timeAgo = currentTime - outgoingCommand->sentTime;
-				info.type = *(uint32_t*)outgoingCommand->packet->data;
-
-				if (info.type == HashRageString("msgNetEvent"))
+				if (auto packet = outgoingCommand->packet)
 				{
-					info.eventName = std::string{ (const char*)outgoingCommand->packet->data + 8 };
-				}
+					OutgoingCommandInfo info;
+					info.size = packet->dataLength;
+					info.timeAgo = currentTime - outgoingCommand->sentTime;
+					info.type = *(uint32_t*)packet->data;
 
-				if (auto outIt = outgoingCommandsMap.find(outgoingCommand->packet); outIt != outgoingCommandsMap.end())
-				{
-					if (outIt->second.timeAgo < info.timeAgo)
+					if (info.type == HashRageString("msgNetEvent"))
 					{
-						outIt->second = std::move(info);
+						info.eventName = std::string{ (const char*)packet->data + 8 };
 					}
-				}
-				else
-				{
-					outgoingCommandsMap[outgoingCommand->packet] = std::move(info);
+
+					if (auto outIt = outgoingCommandsMap.find(packet); outIt != outgoingCommandsMap.end())
+					{
+						if (outIt->second.timeAgo < info.timeAgo)
+						{
+							outIt->second = std::move(info);
+						}
+					}
+					else
+					{
+						outgoingCommandsMap[packet] = std::move(info);
+					}
 				}
 
 				pendingCommandCount++;
