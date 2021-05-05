@@ -393,7 +393,7 @@ static HookFunction initFunction([] ()
 			{
 				keyEvent.type = KEYEVENT_RAWKEYDOWN;
 
-				if (vKey == VK_RETURN)
+				if (vKey == VK_RETURN && launch::IsSDKGuest())
 				{
 					keyEvent.character = '\r';
 					keyEvent.unmodified_character = '\r';
