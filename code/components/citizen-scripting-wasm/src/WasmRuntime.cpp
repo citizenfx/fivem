@@ -33,21 +33,13 @@ void ScriptTrace(const char* string, const TArgs&... args)
 	ScriptTraceV(string, fmt::make_printf_args(args...));
 }
 
-// TODO: Invoking natives
-/*
-static void Invoke(fxNativeContext* ctx)
-{
-	auto host = WasmRuntime::GetCurrent()->GetScriptHost();
-	host->InvokeNative(*ctx);
-}*/
-
-static void HostLog(const char* string)
-{
-	ScriptTrace(string);
-}
-
 namespace fx
 {
+
+// TODO: Return result
+
+static void Invoke(fxNativeContext* ctx);
+static void HostLog(const char* string);
 
 class WasmRuntime : public OMClass<WasmRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntime, IScriptEventRuntime, IScriptMemInfoRuntime>
 {
@@ -69,6 +61,7 @@ public:
 		m_runtime = wasm_create_runtime();
 
 		wasm_set_logger_function((void (*)(const int8_t*))HostLog);
+		wasm_set_invoke_native((void (*)(void*))Invoke);
 	}
 
 	~WasmRuntime()
@@ -163,6 +156,8 @@ void WasmRuntime::SetParentObject(void* parentObject)
 
 result_t WasmRuntime::LoadFile(char* scriptName)
 {
+	WasmPushEnvironment pushed(this);
+
 	OMPtr<fxIStream> stream;
 
 	result_t result = m_scriptHost->OpenHostFile(scriptName, stream.GetAddressOf());
@@ -234,6 +229,17 @@ result_t WasmRuntime::GetMemoryUsage(int64_t* memoryUsage)
 	*memoryUsage = wasm_runtime_memory_usage(m_runtime);
 
 	return FX_S_OK;
+}
+
+static void Invoke(fxNativeContext* ctx)
+{
+	auto host = WasmRuntime::GetCurrent()->GetScriptHost();
+	host->InvokeNative(*ctx);
+}
+
+static void HostLog(const char* string)
+{
+	ScriptTrace(string);
 }
 
 static InitFunction initFunction([]()
