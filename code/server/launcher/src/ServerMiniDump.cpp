@@ -356,6 +356,11 @@ void InitializeDumpServer(int serverFd, int pipeFd)
 	}
 }
 
+#include <elf.h>
+#include <link.h>
+#include <sys/auxv.h>
+
+extern "C" int __ehdr_start;
 
 bool InitializeExceptionHandler(int argc, char* argv[])
 {
@@ -417,6 +422,78 @@ bool InitializeExceptionHandler(int argc, char* argv[])
 		args.push_back(strdup(va("-dumpserver:%d", server_fd)));
 		args.push_back(strdup(va("-parentppe:%d", fds[1])));
 		args.push_back(nullptr);
+	}
+
+	// move our DT_DEBUG on top of the ldso's DT_DEBUG
+	ElfW(Phdr)* phdr = reinterpret_cast<ElfW(Phdr)*>(getauxval(AT_PHDR));
+	char* base;
+	int phnum = getauxval(AT_PHNUM);
+	if (phnum && phdr)
+	{
+		// Assume the program base is at the beginning of the same page as the PHDR
+		base = reinterpret_cast<char*>(reinterpret_cast<uintptr_t>(phdr) & ~0xfff);
+		auto base_src = (char*)&__ehdr_start;
+
+		// Search for the program PT_DYNAMIC segment
+		ElfW(Addr) dyn_addr = 0;
+		for (; phnum >= 0; phnum--, phdr++)
+		{
+			// Adjust base address with the virtual address of the PT_LOAD segment
+			// corresponding to offset 0
+			if (phdr->p_type == PT_LOAD && phdr->p_offset == 0)
+				base -= phdr->p_vaddr;
+			if (phdr->p_type == PT_DYNAMIC)
+				dyn_addr = phdr->p_vaddr;
+		}
+
+		ElfW(Ehdr)* ehdr = (ElfW(Ehdr)*)base_src;
+
+		phdr = (ElfW(Phdr)*)(base_src + ehdr->e_phoff);
+		ElfW(Addr) dyn_addr_src = 0;
+		int e_phnum = ehdr->e_phnum;
+
+		for (; e_phnum >= 0; e_phnum--, phdr++)
+		{
+			// Adjust base address with the virtual address of the PT_LOAD segment
+			// corresponding to offset 0
+			if (phdr->p_type == PT_DYNAMIC)
+				dyn_addr_src = phdr->p_vaddr;
+		}
+
+		if (dyn_addr && dyn_addr_src)
+		{
+			ElfW(Dyn)* dynamic = reinterpret_cast<ElfW(Dyn)*>(dyn_addr + base);
+			ElfW(Dyn)* dynamic_src = reinterpret_cast<ElfW(Dyn)*>(dyn_addr_src + base_src);
+
+			ElfW(Dyn)* tgtDyn = NULL;
+
+			for (int i = 0;; i++)
+			{
+				if (dynamic[i].d_tag == DT_BIND_NOW)
+				{
+					tgtDyn = &dynamic[i];
+					continue;
+				}
+				else if (dynamic[i].d_tag == DT_NULL)
+				{
+					break;
+				}
+			}
+
+			for (int i = 0;; i++)
+			{
+				if (dynamic_src[i].d_tag == DT_DEBUG)
+				{
+					mprotect((void*)tgtDyn, sizeof(void*) * 2, PROT_READ | PROT_WRITE);
+					*tgtDyn = dynamic_src[i];
+					continue;
+				}
+				else if (dynamic_src[i].d_tag == DT_NULL)
+				{
+					break;
+				}
+			}
+		}
 	}
 
 	posix_spawn(nullptr, args[0], nullptr, nullptr, args.data(), nullptr);

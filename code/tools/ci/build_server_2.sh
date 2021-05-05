@@ -96,7 +96,7 @@ curl --http1.1 -sLo /tmp/boost.tar.bz2 https://runtime.fivem.net/client/deps/boo
 tar xf boost.tar.bz2
 rm boost.tar.bz2
 
-mv boost_* boost
+mv boost_* boost || true
 
 export BOOST_ROOT=/tmp/boost/
 
