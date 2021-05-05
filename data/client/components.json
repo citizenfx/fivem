@@ -62,5 +62,6 @@
 	"citizen:game:ipc",
 	"legacy-game:re3",
 	"fxdk:main",
-	"citizen:devtools"
+	"citizen:devtools",
+	"citizen:scripting:wasm"
 ]
