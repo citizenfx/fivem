@@ -130,7 +130,15 @@ static InitFunction initFunction([]()
 		auto consoleCtx = console::GetDefaultContext();
 
 		consoleCtx->AddToBuffer(std::string(reinterpret_cast<char*>(&data[0]), data.size()));
-		consoleCtx->ExecuteBuffer();
+
+		try
+		{
+			consoleCtx->ExecuteBuffer();
+		}
+		catch (std::exception& e)
+		{
+			trace("initial console execution failed: %s\n");
+		}
 	});
 
 	execRoot();
