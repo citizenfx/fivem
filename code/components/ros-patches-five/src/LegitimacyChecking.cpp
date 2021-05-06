@@ -936,6 +936,11 @@ void LoadOwnershipEarly()
 	}
 }
 
+static InitFunction initFunction([]()
+{
+	LoadOwnershipTicket();
+});
+
 static HookFunction hookFunction([]()
 {
 	LoadOwnershipTicket();
