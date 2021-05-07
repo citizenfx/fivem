@@ -1767,9 +1767,94 @@ struct CDoorCreationDataNode
 	}
 };
 
-struct CDoorMovementDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CDoorScriptInfoDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CDoorScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CDoorMovementDataNode
+{
+	bool Parse(SyncParseState& state)
+	{
+		// Can be changed by N_0xa85a21582451e951. Guessed name
+		bool isManualDoor = state.buffer.ReadBit();
+		if (isManualDoor)
+		{
+			float openRatio = state.buffer.ReadSignedFloat(8, 1.0f);
+		}
+		else
+		{
+			bool hasDetectedPlayer = state.buffer.ReadBit();
+
+			// Not accurate for all gates. Only checks '.m128_f32[0] > 0.99000001', some may be -1.0 when open
+			bool isOpen = state.buffer.ReadBit();
+
+			bool isClosed = state.buffer.ReadBit();
+		}
+
+		return true;
+	}
+};
+
+struct CDoorScriptInfoDataNode
+{
+	bool Parse(SyncParseState& state)
+	{
+		bool hasScript = state.buffer.ReadBit();
+		if (hasScript)
+		{
+			uint32_t scriptHash = state.buffer.Read<uint32_t>(32);
+			uint32_t timestamp = state.buffer.Read<uint32_t>(32);
+
+			if (state.buffer.ReadBit())
+			{
+				uint32_t positionHash = state.buffer.Read<uint32_t>(32);
+			}
+
+			if (state.buffer.ReadBit())
+			{
+				uint32_t instanceId = state.buffer.Read<uint32_t>(7);
+			}
+
+			uint32_t scriptObjectId = state.buffer.Read<uint32_t>(32);
+
+			int hostTokenLength = state.buffer.ReadBit() ? 16 : 3;
+			uint32_t hostToken = state.buffer.Read<uint32_t>(hostTokenLength);
+
+			uint32_t doorHash = state.buffer.Read<uint32_t>(32);
+			bool unk6 = state.buffer.ReadBit();
+		}
+
+		return true;
+	}
+};
+
+struct CDoorScriptGameStateDataNode
+{
+	bool Parse(SyncParseState& state)
+	{
+		uint32_t doorState = state.buffer.Read<uint32_t>(3);
+
+		bool hasAutomaticInfo = state.buffer.ReadBit();
+		if (hasAutomaticInfo)
+		{
+			float automaticDistance = state.buffer.ReadSignedFloat(9, 100.0f);
+			float automaticRate = state.buffer.ReadSignedFloat(9, 30.0f);
+		}
+
+		bool unk5 = state.buffer.ReadBit();
+		if (unk5)
+		{
+			int unk6 = state.buffer.Read<int>(18);
+		}
+
+		bool unk6 = state.buffer.ReadBit();
+		if (unk6)
+		{
+			int unk7 = state.buffer.Read<int>(18);
+		}
+
+		bool holdDoorOpen = state.buffer.ReadBit();
+
+		return true;
+	}
+};
+
 struct CHeliHealthDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CHeliControlDataNode { bool Parse(SyncParseState& state) { return true; } };
 
