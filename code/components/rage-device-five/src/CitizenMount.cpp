@@ -141,21 +141,22 @@ struct RelativeRedirection
 {
 	std::string mount;
 	std::string targetPath;
-	rage::fiPackfile* fiPackfile;
+	bool relativeFlag = false;
+	rage::fiPackfile* fiPackfile = nullptr;
 	fwRefContainer<vfs::Device> cfxDevice;
 
-	inline RelativeRedirection(const std::string& mount, const std::string& relativePath)
-		: mount(mount), targetPath(relativePath), fiPackfile(nullptr)
+	inline RelativeRedirection(const std::string& mount, const std::string& relativePath, bool relativeFlag = true)
+		: mount(mount), targetPath(relativePath), relativeFlag(relativeFlag)
 	{
 	}
 
 	inline RelativeRedirection(const std::string& mount, const fwRefContainer<vfs::Device>& cfxDevice)
-		: mount(mount), cfxDevice(cfxDevice), fiPackfile(nullptr)
+		: mount(mount), cfxDevice(cfxDevice)
 	{
 	}
 
-	inline RelativeRedirection(const std::string& mount, rage::fiPackfile* fiDevice)
-		: mount(mount), fiPackfile(fiDevice)
+	inline RelativeRedirection(const std::string& mount, rage::fiPackfile* fiPackfile)
+		: mount(mount), fiPackfile(fiPackfile)
 	{
 	}
 
@@ -172,7 +173,7 @@ struct RelativeRedirection
 		else
 		{
 			rage::fiDeviceRelative* device = new rage::fiDeviceRelative();
-			device->SetPath(targetPath.c_str(), true);
+			device->SetPath(targetPath.c_str(), relativeFlag);
 			device->Mount(mount.c_str());
 		}
 	}
@@ -285,7 +286,7 @@ static InitFunction initFunction([] ()
 				CreateDirectory(cfxPath.c_str(), nullptr);
 
 				std::wstring profilePath = cfxPath + L"\\";
-				relativePaths.emplace_back("fxd:/", ToNarrow(profilePath));
+				relativePaths.emplace_back("fxd:/", ToNarrow(profilePath), false);
 
 				CoTaskMemFree(appDataPath);
 			}
