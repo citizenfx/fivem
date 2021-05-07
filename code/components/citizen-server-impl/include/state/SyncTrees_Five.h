@@ -2228,7 +2228,105 @@ struct CPickupScriptGameStateNode { bool Parse(SyncParseState& state) { return t
 struct CPickupSectorPosNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPickupPlacementCreationDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPickupPlacementStateDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPlaneGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
+
+struct CPlaneGameStateDataNode
+{
+	bool Parse(SyncParseState& state)
+	{
+		uint32_t landingGearState = state.buffer.Read<uint32_t>(3);
+
+		bool hasDamage = state.buffer.ReadBit();
+		bool hasBrokenParts = state.buffer.ReadBit();
+		bool hasDestroyedPropellers = state.buffer.ReadBit();
+		bool hasPropellers = state.buffer.ReadBit();
+
+		float unk6 = state.buffer.ReadSignedFloat(7, 1.0f);
+
+		bool unk7 = state.buffer.ReadBit();
+		if (unk7)
+		{
+			float unk8[13];
+			for (int i = 0; i < 13; i++)
+			{
+				unk8[i] = state.buffer.ReadSignedFloat(7, 1.0f);
+			}
+		}
+
+		bool unk9 = state.buffer.ReadBit();
+		if (unk9)
+		{
+			float unk10[13];
+			for (int i = 0; i < 13; i++)
+			{
+				unk10[i] = state.buffer.ReadSignedFloat(7, 1.0f);
+			}
+		}
+
+		if (hasDamage)
+		{
+			int damagedParts = state.buffer.Read<int>(13);
+
+			float damagedPartsHealth[13];
+			for (int i = 0; i < 13; i++)
+			{
+				if ((damagedParts >> i) & 1)
+				{
+					damagedPartsHealth[i] = state.buffer.ReadSignedFloat(6, 1.0f);
+				}
+			}
+		}
+
+		if (hasBrokenParts)
+		{
+			/*
+				1: Left Wing
+				2: Right Wing
+				4: Vertical Stabiliser
+				32: Left Elevator
+				64: Right Elevator
+				128: Left Aileron
+				256: Right Aileron
+				512: Rudder
+			*/
+			int brokenParts = state.buffer.Read<int>(13);
+		}
+
+		if (hasDestroyedPropellers)
+		{
+			// Bitfield
+			int destroyedPropellers = state.buffer.Read<int>(8);
+		}
+
+		if (hasPropellers)
+		{
+			// Bitfield
+			int enabledPropellers = state.buffer.Read<int>(8);
+		}
+
+		bool unk16 = state.buffer.ReadBit();
+		bool unk17 = state.buffer.ReadBit();
+		bool unk18 = state.buffer.ReadBit();
+
+		if (unk16)
+		{
+			uint16_t unk19 = state.buffer.Read<uint16_t>(13);
+			uint32_t unk20 = state.buffer.Read<uint32_t>(2);
+		}
+
+		bool isVisible = state.buffer.ReadBit();
+		if (isVisible)
+		{
+			uint32_t visibleDistance = state.buffer.Read<uint32_t>(12);
+		}
+
+		bool unk23 = state.buffer.ReadBit();
+		bool unk24 = state.buffer.ReadBit();
+		bool unk25 = state.buffer.ReadBit();
+		bool unk26 = state.buffer.ReadBit();
+
+		return true;
+	}
+};
 
 struct CPlaneControlDataNode
 {
