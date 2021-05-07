@@ -856,7 +856,7 @@ static void ErrorDo(uint32_t error)
 	trace("error function called from %p for code 0x%08x\n", _ReturnAddress(), error);
 
 	// provide pickup file for minidump handler to use
-	FILE* dbgFile = _wfopen(MakeRelativeCitPath(L"cache\\error_out").c_str(), L"wb");
+	FILE* dbgFile = _wfopen(MakeRelativeCitPath(L"data\\cache\\error_out").c_str(), L"wb");
 
 	if (dbgFile)
 	{
@@ -1364,7 +1364,7 @@ static bool ParamToInt_Threads(void* param, int* value)
 static HookFunction hookFunction([] ()
 {
 	// continue on
-	_wunlink(MakeRelativeCitPath(L"cache\\error_out").c_str());
+	_wunlink(MakeRelativeCitPath(L"data\\cache\\error_out").c_str());
 
 	InitializeCriticalSectionAndSpinCount(&g_allocCS, 1000);
 

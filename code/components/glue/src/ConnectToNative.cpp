@@ -333,7 +333,7 @@ static WRL::ComPtr<IShellLink> MakeShellLink(const ServerLink& link)
 
 		if (!link.rawIcon.empty())
 		{
-			auto iconPath = MakeRelativeCitPath(fmt::sprintf(L"cache/browser/%08x.ico", HashString(link.rawIcon.c_str())));
+			auto iconPath = MakeRelativeCitPath(fmt::sprintf(L"data/cache/browser/%08x.ico", HashString(link.rawIcon.c_str())));
 			
 			FILE* f = _wfopen(iconPath.c_str(), L"wb");
 

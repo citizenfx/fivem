@@ -568,7 +568,7 @@ void RunLegitimacyNui()
 
 	std::wstring resPath = MakeRelativeCitPath(L"bin/cef/");
 
-	std::wstring cachePath = MakeRelativeCitPath(L"cache\\authbrowser\\");
+	std::wstring cachePath = MakeRelativeCitPath(L"data\\cache\\authbrowser\\");
 	CreateDirectory(cachePath.c_str(), nullptr);
 
 	CefString(&settings.resources_dir_path).FromWString(resPath);

@@ -222,7 +222,7 @@ void AddCrashometryV(const std::string& key, const std::string& format, fmt::pri
 {
 	std::string formatted = fmt::vsprintf(format, value);
 
-	FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\crashometry").c_str(), L"ab");
+	FILE* f = _wfopen(MakeRelativeCitPath(L"data\\cache\\crashometry").c_str(), L"ab");
 
 	if (f)
 	{

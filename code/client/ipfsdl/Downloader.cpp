@@ -34,7 +34,7 @@ namespace ipfsdl
 fdb4684a58cda3f34aa289e603751631e6526f4ca332e876eca163b6b91a37d7)";
 
 		auto start = (decltype(&::Start))GetProcAddress(hModule, "Start");
-		auto rv = start(ToNarrow(MakeRelativeCitPath(L"cache/ipfs_data/")).data(), swarmKeyRaw.data(), swarmKeyRaw.size(), 0);
+		auto rv = start(ToNarrow(MakeRelativeCitPath(L"data/ipfs/")).data(), swarmKeyRaw.data(), swarmKeyRaw.size(), 0);
 
 		if (rv.r1)
 		{

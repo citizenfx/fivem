@@ -34,7 +34,10 @@ inline const wchar_t* MakeCfxSubProcess(const std::wstring& processType, const s
 	}
 
 	// make the out directory
-	std::wstring outPath = MakeRelativeCitPath(L"cache\\");
+	std::wstring outPath = MakeRelativeCitPath(L"data\\");
+	CreateDirectory(outPath.c_str(), nullptr);
+
+	outPath += L"cache\\";
 	CreateDirectory(outPath.c_str(), nullptr);
 
 	outPath += L"subprocess\\";

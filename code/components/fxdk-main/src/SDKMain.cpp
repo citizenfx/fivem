@@ -392,7 +392,7 @@ void SdkMain()
 
 	std::wstring resPath = MakeRelativeCitPath(L"bin/cef/");
 
-	std::wstring cachePath = MakeRelativeCitPath(L"cache\\browser\\");
+	std::wstring cachePath = MakeRelativeCitPath(ToWide(fmt::sprintf("data\\nui-storage%s\\", launch::GetPrefixedLaunchModeKey("-"))));
 	CreateDirectory(cachePath.c_str(), nullptr);
 
 	CefString(&settings.resources_dir_path).FromWString(resPath);

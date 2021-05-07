@@ -1209,7 +1209,7 @@ void Initialize(nui::GameInterface* gi)
         return;
     }
 
-	std::wstring cachePath = MakeRelativeCitPath(fmt::sprintf(L"cache\\browser%s", ToWide(launch::GetPrefixedLaunchModeKey("-"))));
+	std::wstring cachePath = MakeRelativeCitPath(fmt::sprintf(L"data\\nui-storage%s", ToWide(launch::GetPrefixedLaunchModeKey("-"))));
 	CreateDirectory(cachePath.c_str(), nullptr);
 
 	// delete any old CEF logs

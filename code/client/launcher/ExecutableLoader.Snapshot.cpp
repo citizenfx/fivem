@@ -145,7 +145,7 @@ static LONG CALLBACK SnapshotVEH(PEXCEPTION_POINTERS pointers)
 		IMAGE_NT_HEADERS* ntHeader = GetTargetRVA<IMAGE_NT_HEADERS>(header->e_lfanew);
 		IMAGE_SECTION_HEADER* section = IMAGE_FIRST_SECTION(ntHeader);
 
-		FILE* f = _wfopen(MakeRelativeCitPath(fmt::sprintf(L"cache\\game\\executable_snapshot_%x.bin", ntHeader->OptionalHeader.AddressOfEntryPoint)).c_str(), L"wb");
+		FILE* f = _wfopen(MakeRelativeCitPath(fmt::sprintf(L"data\\cache\\executable_snapshot_%x.bin", ntHeader->OptionalHeader.AddressOfEntryPoint)).c_str(), L"wb");
 
 		for (int i = 0; i < ntHeader->FileHeader.NumberOfSections; i++)
 		{
@@ -373,7 +373,7 @@ void DoCreateDump(void* ep, const wchar_t* fileName)
 
 void ExecutableLoader::LoadSnapshot(IMAGE_NT_HEADERS* ntHeader)
 {
-	std::wstring snapBaseName = MakeRelativeCitPath(fmt::sprintf(L"cache\\game\\executable_snapshot_%x.bin", ntHeader->OptionalHeader.AddressOfEntryPoint));
+	std::wstring snapBaseName = MakeRelativeCitPath(fmt::sprintf(L"data\\cache\\executable_snapshot_%x.bin", ntHeader->OptionalHeader.AddressOfEntryPoint));
 
 	if (GetFileAttributesW(snapBaseName.c_str()) == INVALID_FILE_ATTRIBUTES)
 	{

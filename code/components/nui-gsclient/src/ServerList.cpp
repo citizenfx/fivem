@@ -100,7 +100,7 @@ void RequestInfoBlob(const std::string& server, const TFunc& cb)
 				cb(sbuffer.GetString());
 
 				uint64_t infoBlobKey = fnv1a_t<8>()(server);
-				std::wstring blobPath = MakeRelativeCitPath(fmt::sprintf(L"cache\\servers\\%016llx.json", infoBlobKey));
+				std::wstring blobPath = MakeRelativeCitPath(fmt::sprintf(L"data\\cache\\servers\\%016llx.json", infoBlobKey));
 
 				FILE* blobFile = _wfopen(blobPath.c_str(), L"w");
 
@@ -118,7 +118,7 @@ template<typename TFunc>
 void LoadInfoBlob(const std::string& server, int expectedVersion, const TFunc& cb)
 {
 	uint64_t infoBlobKey = fnv1a_t<8>()(server);
-	std::wstring blobPath = MakeRelativeCitPath(fmt::sprintf(L"cache\\servers\\%016llx.json", infoBlobKey));
+	std::wstring blobPath = MakeRelativeCitPath(fmt::sprintf(L"data\\cache\\servers\\%016llx.json", infoBlobKey));
 	
 	FILE* blobFile = _wfopen(blobPath.c_str(), L"r");
 
@@ -991,7 +991,7 @@ static InitFunction initFunction([] ()
 
 	ui_maxQueriesPerMinute = std::make_unique<ConVar<int>>("ui_maxQueriesPerMinute", ConVar_Archive, 5000);
 
-	CreateDirectory(MakeRelativeCitPath(L"cache\\servers\\").c_str(), nullptr);
+	CreateDirectory(MakeRelativeCitPath(L"data\\cache\\servers\\").c_str(), nullptr);
 
 	nui::OnInvokeNative.Connect([] (const wchar_t* type, const wchar_t* arg)
 	{

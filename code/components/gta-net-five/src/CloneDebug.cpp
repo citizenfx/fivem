@@ -738,7 +738,7 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 #if 0
 					if (length >= (1 << 13))
 					{
-						auto extraDumpPath = MakeRelativeCitPath(L"cache\\extra_dump_info.bin");
+						auto extraDumpPath = MakeRelativeCitPath(L"data\\cache\\extra_dump_info.bin");
 
 						auto f = _wfopen(extraDumpPath.c_str(), L"wb");
 

@@ -161,6 +161,53 @@ void DoPreLaunchTasks()
 	}
 }
 
+void MigrateCacheFromat202105()
+{
+	// execute the big cache emigration
+	CreateDirectoryW(MakeRelativeCitPath(L"data/").c_str(), NULL);
+	CreateDirectoryW(MakeRelativeCitPath(L"data/server-cache/").c_str(), NULL);
+
+	std::vector<std::tuple<std::string, std::string>> moveList = {
+		{ "cache/game/", "data/game-storage/" },
+		{ "cache/priv/", "data/server-cache-priv/" },
+		{ "cache/browser/", "data/nui-storage/" },
+		{ "cache/db/", "data/server-cache/db/" },
+		{ "cache/ipfs_data/", "data/ipfs/" },
+		{ "cache/", "data/cache/" },
+	};
+
+	for (const auto& entry : moveList)
+	{
+		auto src = MakeRelativeCitPath(ToWide(std::get<0>(entry)));
+		auto dest = MakeRelativeCitPath(ToWide(std::get<1>(entry)));
+
+		if (GetFileAttributesW(src.c_str()) != INVALID_FILE_ATTRIBUTES && GetFileAttributesW(dest.c_str()) == INVALID_FILE_ATTRIBUTES)
+		{
+			if (!MoveFileW(src.c_str(), dest.c_str()))
+			{
+				// #TODO: warn user? log it?
+			}
+		}
+	}
+
+	// enumerate cache_* files
+	{
+		auto cacheRoot = MakeRelativeCitPath(L"data/cache/");
+		auto cacheDest = MakeRelativeCitPath(L"data/server-cache/");
+
+		WIN32_FIND_DATAW findData;
+		if (HANDLE hFind = FindFirstFileW((cacheRoot + L"cache_*").c_str(), &findData); hFind != INVALID_HANDLE_VALUE)
+		{
+			do 
+			{
+				MoveFileW((cacheRoot + findData.cFileName).c_str(), (cacheDest + findData.cFileName).c_str());
+			} while (FindNextFile(hFind, &findData));
+
+			FindClose(hFind);
+		}
+	}
+}
+
 bool CheckGraphicsLibrary(const std::wstring& path)
 {
 	DWORD versionInfoSize = GetFileVersionInfoSize(path.c_str(), nullptr);

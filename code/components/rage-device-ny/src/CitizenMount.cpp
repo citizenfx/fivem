@@ -42,7 +42,7 @@ static InitFunction initFunction([] ()
 		cfxDevice->SetPath(fxRoot.c_str(), true);
 		cfxDevice->Mount("cfx:/");
 
-		std::wstring cachePath = MakeRelativeCitPath(L"cache");
+		std::wstring cachePath = MakeRelativeCitPath(L"data\\server-cache");
 
 		if (GetFileAttributes(cachePath.c_str()) == INVALID_FILE_ATTRIBUTES)
 		{

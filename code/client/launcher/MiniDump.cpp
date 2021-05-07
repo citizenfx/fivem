@@ -100,7 +100,7 @@ static void UpdateSession(json& session)
 
 	session["init"] = false;
 
-	FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\session").c_str(), L"wb");
+	FILE* f = _wfopen(MakeRelativeCitPath(L"data\\cache\\session").c_str(), L"wb");
 
 	if (f)
 	{
@@ -114,14 +114,14 @@ static void UpdateSession(json& session)
 
 static void OnStartSession()
 {
-	auto oldSession = load_json_file(L"cache\\session");
+	auto oldSession = load_json_file(L"data\\cache\\session");
 
 	if (!oldSession.is_null())
 	{
 		oldSession["status"] = "abnormal";
 		send_sentry_session(oldSession);
 
-		_wunlink(MakeRelativeCitPath(L"cache\\session").c_str());
+		_wunlink(MakeRelativeCitPath(L"data\\cache\\session").c_str());
 	}
 
 	UUID uuid;
@@ -184,14 +184,14 @@ static void OnStartSession()
 
 static json load_error_pickup()
 {
-	return load_json_file(L"cache\\error-pickup");
+	return load_json_file(L"data\\cache\\error-pickup");
 }
 
 static std::map<std::string, std::string> load_crashometry()
 {
 	std::map<std::string, std::string> rv;
 
-	FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\crashometry").c_str(), L"rb");
+	FILE* f = _wfopen(MakeRelativeCitPath(L"data\\cache\\crashometry").c_str(), L"rb");
 
 	if (f)
 	{
@@ -226,7 +226,7 @@ static std::wstring HashCrash(const std::wstring& key);
 static void add_crashometry(json& data)
 {
 	auto map = load_crashometry();
-	_wunlink(MakeRelativeCitPath(L"cache\\crashometry").c_str());
+	_wunlink(MakeRelativeCitPath(L"data\\cache\\crashometry").c_str());
 
 	for (const auto& pair : map)
 	{
@@ -289,7 +289,7 @@ static GameErrorData LookupError(uint32_t hash)
 
 static std::optional<std::tuple<GameErrorData, uint64_t>> LoadErrorData()
 {
-	FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\error_out").c_str(), L"rb");
+	FILE* f = _wfopen(MakeRelativeCitPath(L"data\\cache\\error_out").c_str(), L"rb");
 
 	if (f)
 	{
@@ -326,7 +326,7 @@ static void OverloadCrashData(TASKDIALOGCONFIG* config)
 
 		if (data)
 		{
-			_wunlink(MakeRelativeCitPath(L"cache\\error_out").c_str());
+			_wunlink(MakeRelativeCitPath(L"data\\cache\\error_out").c_str());
 
 			static GameErrorData errData = std::get<GameErrorData>(*data);
 			static uint64_t retAddr = std::get<uint64_t>(*data);
@@ -358,7 +358,7 @@ static void OverloadCrashData(TASKDIALOGCONFIG* config)
 
 		if (!pickup.is_null())
 		{
-			_wunlink(MakeRelativeCitPath(L"cache\\error-pickup").c_str());
+			_wunlink(MakeRelativeCitPath(L"data\\cache\\error-pickup").c_str());
 
 			static std::wstring errTitle = fmt::sprintf(PRODUCT_NAME L" has encountered an error");
 			static std::wstring errDescription = ToWide(ParseLinks(pickup["message"].get<std::string>()));
@@ -701,11 +701,11 @@ static void GatherCrashInformation()
 			if (err == MZ_OK)
 			{
 				auto extraDumpFiles = {
-					L"cache\\extra_dump_info.bin",
-					L"cache\\extra_dump_info2.bin",
-					L"cache\\game\\ros_launcher_documents2\\launcher.log",
-					L"cache\\game\\ros_documents2\\socialclub.log",
-					L"cache\\game\\ros_documents2\\socialclub_launcher.log"
+					L"data\\cache\\extra_dump_info.bin",
+					L"data\\cache\\extra_dump_info2.bin",
+					L"data\\game-storage\\ros_launcher_documents2\\launcher.log",
+					L"data\\game-storage\\ros_documents2\\socialclub.log",
+					L"data\\game-storage\\ros_documents2\\socialclub_launcher.log"
 				};
 
 				for (auto path : extraDumpFiles)
@@ -1594,8 +1594,8 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 			saveThread.join();
 		}
 
-		_wunlink(MakeRelativeCitPath(L"cache\\extra_dump_info.bin").c_str());
-		_wunlink(MakeRelativeCitPath(L"cache\\extra_dump_info2.bin").c_str());
+		_wunlink(MakeRelativeCitPath(L"data\\cache\\extra_dump_info.bin").c_str());
+		_wunlink(MakeRelativeCitPath(L"data\\cache\\extra_dump_info2.bin").c_str());
 	};
 
 	CrashGenerationServer::OnClientExitedCallback exitCallback = [] (void*, const ClientInfo* info)
@@ -1631,7 +1631,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 	g_session["status"] = "exited";
 	UpdateSession(g_session);
 
-	_wunlink(MakeRelativeCitPath(L"cache\\session").c_str());
+	_wunlink(MakeRelativeCitPath(L"data\\cache\\session").c_str());
 #endif
 
 	// delete steam_appid.txt on last process exit to curb paranoia about MTL mod checks

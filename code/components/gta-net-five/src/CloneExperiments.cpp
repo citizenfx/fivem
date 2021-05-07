@@ -1140,7 +1140,7 @@ static void CPedGameStateDataNode__access(char* dataNode, void* accessor)
 	// if on mount/mount ID is set
 	if (*(uint16_t*)(dataNode + 310) && icgi->OneSyncEnabled)
 	{
-		auto extraDumpPath = MakeRelativeCitPath(L"cache\\extra_dump_info.bin");
+		auto extraDumpPath = MakeRelativeCitPath(L"data\\cache\\extra_dump_info.bin");
 
 		auto f = _wfopen(extraDumpPath.c_str(), L"wb");
 
@@ -1150,7 +1150,7 @@ static void CPedGameStateDataNode__access(char* dataNode, void* accessor)
 			fclose(f);
 		}
 
-		extraDumpPath = MakeRelativeCitPath(L"cache\\extra_dump_info2.bin");
+		extraDumpPath = MakeRelativeCitPath(L"data\\cache\\extra_dump_info2.bin");
 
 		f = _wfopen(extraDumpPath.c_str(), L"wb");
 

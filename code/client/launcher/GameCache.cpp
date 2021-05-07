@@ -40,7 +40,7 @@ struct DeltaEntry
 
 	inline std::wstring GetLocalFileName() const
 	{
-		return MakeRelativeCitPath(ToWide("cache\\game\\" + GetFileName()));
+		return MakeRelativeCitPath(ToWide("data\\game-storage\\" + GetFileName()));
 	}
 
 	DeltaEntry(std::string_view fromChecksum, std::string_view toChecksum, const std::string& remoteFile, uint64_t dlSize);
@@ -112,12 +112,12 @@ struct GameCacheEntry
 
 		if (IsPrimitiveFile())
 		{
-			return MakeRelativeCitPath(ToWide(va("cache\\game\\%s", filenameBase.c_str())));
+			return MakeRelativeCitPath(ToWide(va("data\\game-storage\\%s", filenameBase.c_str())));
 		}
 
 		std::replace(filenameBase.begin(), filenameBase.end(), '/', '+');
 
-		return MakeRelativeCitPath(ToWide(va("cache\\game\\%s_%s", filenameBase.c_str(), checksums[0])));
+		return MakeRelativeCitPath(ToWide(va("data\\game-storage\\%s_%s", filenameBase.c_str(), checksums[0])));
 	}
 
 	std::wstring GetRemoteBaseName() const
@@ -126,7 +126,7 @@ struct GameCacheEntry
 
 		size_t slashIndex = remoteNameBase.find_last_of('/') + 1;
 
-		return MakeRelativeCitPath(ToWide("cache\\game\\" + remoteNameBase.substr(slashIndex)));
+		return MakeRelativeCitPath(ToWide("data\\game-storage\\" + remoteNameBase.substr(slashIndex)));
 	}
 
 	std::wstring GetLocalFileName() const
@@ -555,8 +555,8 @@ DeltaEntry::DeltaEntry(std::string_view fromChecksum, std::string_view toChecksu
 static std::vector<GameCacheStorageEntry> LoadCacheStorage()
 {
 	// create the cache directory if needed
-	CreateDirectory(MakeRelativeCitPath(L"cache").c_str(), nullptr);
-	CreateDirectory(MakeRelativeCitPath(L"cache\\game").c_str(), nullptr);
+	CreateDirectory(MakeRelativeCitPath(L"data").c_str(), nullptr);
+	CreateDirectory(MakeRelativeCitPath(L"data\\game-storage").c_str(), nullptr);
 
 	// output buffer
 	std::vector<GameCacheStorageEntry> cacheStorage;
@@ -564,7 +564,7 @@ static std::vector<GameCacheStorageEntry> LoadCacheStorage()
 	// iterate over files in cache
 	WIN32_FIND_DATA findData;
 
-	HANDLE hFind = FindFirstFile(MakeRelativeCitPath(L"cache\\game\\*.*").c_str(), &findData);
+	HANDLE hFind = FindFirstFile(MakeRelativeCitPath(L"data\\game-storage\\*.*").c_str(), &findData);
 
 	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
 
@@ -598,7 +598,7 @@ static std::vector<GameCacheStorageEntry> LoadCacheStorage()
 
 	// load on-disk storage as well
 	{
-		if (FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\game\\cache.dat").c_str(), L"rb"))
+		if (FILE* f = _wfopen(MakeRelativeCitPath(L"data\\game-storage\\game_files.dat").c_str(), L"rb"))
 		{
 			// get file length
 			int length;
@@ -917,7 +917,7 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 			if (_strnicmp(entry.remotePath, "nope:", 5) == 0)
 			{
 				// *does* start with nope:
-				if (FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\game\\cache.dat").c_str(), L"ab"))
+				if (FILE* f = _wfopen(MakeRelativeCitPath(L"data\\game-storage\\game_files.dat").c_str(), L"ab"))
 				{
 					auto hash = outHash;
 
@@ -1278,7 +1278,7 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 					// append entries to cache storage if it succeeded
 					if (retval)
 					{
-						if (FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\game\\cache.dat").c_str(), L"ab"))
+						if (FILE* f = _wfopen(MakeRelativeCitPath(L"data\\game-storage\\game_files.dat").c_str(), L"ab"))
 						{
 							for (auto& entry : lastEntries)
 							{
@@ -1434,8 +1434,8 @@ std::map<std::string, std::string> UpdateGameCache()
 
 	// delete bad migration on 2019-01-10 (incorrect update.rpf download URL caused Steam users to fetch 1493.1 instead of 1604.0)
 	{
-		auto dataPath = MakeRelativeCitPath(L"cache\\game\\cache.dat");
-		auto failPath = MakeRelativeCitPath(L"cache\\game\\update+update.rpf_fc941d698834e30e40a06a40f6a35b1b18e1c50c");
+		auto dataPath = MakeRelativeCitPath(L"data\\game-storage\\game_files.dat");
+		auto failPath = MakeRelativeCitPath(L"data\\game-storage\\update+update.rpf_fc941d698834e30e40a06a40f6a35b1b18e1c50c");
 
 		struct _stat64i32 statData;
 		if (_wstat(failPath.c_str(), &statData) == 0)
@@ -1481,7 +1481,7 @@ std::map<std::string, std::string> UpdateGameCache()
 				if (memcmp(hash, origCheck.data(), 20) != 0)
 				{
 					// delete both the cache metadata and the corrupted file itself
-					auto dataPath = MakeRelativeCitPath(L"cache\\game\\cache.dat");
+					auto dataPath = MakeRelativeCitPath(L"data\\game-storage\\game_files.dat");
 
 					_wunlink(dataPath.c_str());
 					_wunlink(cacheName.c_str());

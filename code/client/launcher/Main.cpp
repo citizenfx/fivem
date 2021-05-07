@@ -91,6 +91,7 @@ HANDLE g_uiDoneEvent;
 HANDLE g_uiExitEvent;
 
 bool IsUnsafeGraphicsLibrary();
+void MigrateCacheFromat202105();
 
 int RealMain()
 {
@@ -301,6 +302,12 @@ int RealMain()
 	// add DLL directories post-installer (in case we moved into a Product.app directory)
 	addDllDirs();
 
+	// we have to migrate *before* launching the crash handler as that will otherwise create data/cache/
+	if (initState->IsMasterProcess())
+	{
+		MigrateCacheFromat202105();
+	}
+
 	if (InitializeExceptionHandler())
 	{
 		return 0;
@@ -357,7 +364,8 @@ int RealMain()
 		}
 
 		// delete crashometry
-		_wunlink(MakeRelativeCitPath(L"cache\\crashometry").c_str());
+		_wunlink(MakeRelativeCitPath(L"data\\cache\\crashometry").c_str());
+		_wunlink(MakeRelativeCitPath(L"data\\cache\\error_out").c_str());
 
 		if (GetFileAttributesW(MakeRelativeCitPath(L"permalauncher").c_str()) == INVALID_FILE_ATTRIBUTES)
 		{

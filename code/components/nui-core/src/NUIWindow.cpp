@@ -395,7 +395,7 @@ void NUIWindow::Initialize(CefString url)
 	}
 	else
 	{
-		auto cachePath = MakeRelativeCitPath(fmt::sprintf(L"cache\\browser%s\\context-%s", ToWide(launch::GetPrefixedLaunchModeKey("-")), ToWide(m_windowContext)));
+		auto cachePath = MakeRelativeCitPath(fmt::sprintf(L"data\\nui-storage%s\\context-%s", ToWide(launch::GetPrefixedLaunchModeKey("-")), ToWide(m_windowContext)));
 		CreateDirectory(cachePath.c_str(), nullptr);
 
 		CefRequestContextSettings rcConfig;

@@ -32,7 +32,7 @@
 
 bool CanSafelySkipLauncher()
 {
-	FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\launcher_skip_mtl2").c_str(), L"rb");
+	FILE* f = _wfopen(MakeRelativeCitPath(L"data\\cache\\launcher_skip_mtl2").c_str(), L"rb");
 
 	if (f)
 	{
@@ -48,7 +48,7 @@ void SetCanSafelySkipLauncher(bool value)
 {
 	if (value)
 	{
-		FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\launcher_skip_mtl2").c_str(), L"wb");
+		FILE* f = _wfopen(MakeRelativeCitPath(L"data\\cache\\launcher_skip_mtl2").c_str(), L"wb");
 
 		if (f)
 		{
@@ -57,7 +57,7 @@ void SetCanSafelySkipLauncher(bool value)
 	}
 	else
 	{
-		_wunlink(MakeRelativeCitPath(L"cache\\launcher_skip_mtl2").c_str());
+		_wunlink(MakeRelativeCitPath(L"data\\cache\\launcher_skip_mtl2").c_str());
 	}
 }
 
@@ -466,8 +466,8 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 {
 	// make firstrun.dat so the launcher won't whine/crash
 	{
-		CreateDirectoryW(MakeRelativeCitPath(L"cache\\game\\ros_launcher_appdata3").c_str(), NULL);
-		FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\game\\ros_launcher_appdata3\\firstrun.dat").c_str(), L"wb");
+		CreateDirectoryW(MakeRelativeCitPath(L"data\\game-storage\\ros_launcher_appdata3").c_str(), NULL);
+		FILE* f = _wfopen(MakeRelativeCitPath(L"data\\game-storage\\ros_launcher_appdata3\\firstrun.dat").c_str(), L"wb");
 
 		if (f)
 		{
@@ -481,7 +481,7 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 	boost::filesystem::path programPath(args[0]);
 
 	auto parentPath = programPath.parent_path();
-	SetCurrentDirectory(MakeRelativeCitPath(L"cache\\game\\launcher").c_str());
+	SetCurrentDirectory(MakeRelativeCitPath(L"data\\game-storage\\launcher").c_str());
 
 	trace("launcher! %s\n", GetCommandLineA());
 

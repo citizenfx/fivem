@@ -83,7 +83,7 @@ static int SysError(const char* buffer)
 	o["line"] = std::get<1>(g_thisError);
 	o["sigHash"] = std::get<2>(g_thisError);
 
-	FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\error-pickup").c_str(), L"wb");
+	FILE* f = _wfopen(MakeRelativeCitPath(L"data\\cache\\error-pickup").c_str(), L"wb");
 
 	if (f)
 	{
@@ -289,7 +289,7 @@ int FatalErrorNoExceptRealV(const char* file, int line, uint32_t stringHash, con
 	o["line"] = line;
 	o["sigHash"] = stringHash;
 
-	FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\error-pickup").c_str(), L"wb");
+	FILE* f = _wfopen(MakeRelativeCitPath(L"data\\cache\\error-pickup").c_str(), L"wb");
 
 	if (f)
 	{
