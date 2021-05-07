@@ -5,6 +5,8 @@
 
 #include <CrossBuildRuntime.h>
 
+#include <openssl/sha.h>
+
 #if defined(GTA_FIVE) || defined(IS_RDR3)
 inline static uintptr_t GetLauncherTriggerEP()
 {
@@ -147,18 +149,33 @@ static LONG CALLBACK SnapshotVEH(PEXCEPTION_POINTERS pointers)
 
 		FILE* f = _wfopen(MakeRelativeCitPath(fmt::sprintf(L"data\\cache\\executable_snapshot_%x.bin", ntHeader->OptionalHeader.AddressOfEntryPoint)).c_str(), L"wb");
 
-		for (int i = 0; i < ntHeader->FileHeader.NumberOfSections; i++)
+		SHA256_CTX sha;
+		SHA256_Init(&sha);
+
+		auto write = [&f, &sha](const void* data, size_t size)
 		{
 			if (f)
 			{
-				fwrite(GetTargetRVA<void>(section->VirtualAddress), 1, section->SizeOfRawData, f);
+				fwrite(data, 1, size, f);
 			}
+
+			SHA256_Update(&sha, data, size);
+		};
+
+		for (int i = 0; i < ntHeader->FileHeader.NumberOfSections; i++)
+		{
+			write(GetTargetRVA<void>(section->VirtualAddress), section->SizeOfRawData);
 
 			++section;
 		}
 
 		if (f)
 		{
+			uint8_t endHash[256 / 8];
+			SHA256_Final(endHash, &sha);
+
+			fwrite(endHash, 1, sizeof(endHash), f);
+
 			fclose(f);
 		}
 
@@ -387,16 +404,60 @@ void ExecutableLoader::LoadSnapshot(IMAGE_NT_HEADERS* ntHeader)
 
 	if (!f)
 	{
+		DoCreateSnapshot();
 		return;
 	}
+
+	size_t sectionSize = 0;
+
+	for (int i = 0; i < ntHeader->FileHeader.NumberOfSections; i++)
+	{
+		sectionSize += section[i].SizeOfRawData;
+	}
+
+	std::vector<uint8_t> fileData(sectionSize);
+	if (fread(fileData.data(), 1, sectionSize, f) != sectionSize)
+	{
+		fclose(f);
+
+		DoCreateSnapshot();
+		return;
+	}
+
+	uint8_t md[256 / 8];
+	if (fread(md, 1, sizeof(md), f) != sizeof(md))
+	{
+		fclose(f);
+
+		DoCreateSnapshot();
+		return;
+	}
+
+	uint8_t rmd[256 / 8];
+
+	SHA256_CTX sha;
+	SHA256_Init(&sha);
+	SHA256_Update(&sha, fileData.data(), sectionSize);
+	SHA256_Final(rmd, &sha);
+
+	if (memcmp(rmd, md, sizeof(md)) != 0)
+	{
+		fclose(f);
+
+		DoCreateSnapshot();
+		return;
+	}
+
+	size_t off = 0;
 
 	for (int i = 0; i < ntHeader->FileHeader.NumberOfSections; i++)
 	{
 		DWORD oldProtect;
 		VirtualProtect(GetTargetRVA<void>(section->VirtualAddress), section->SizeOfRawData, PAGE_EXECUTE_READWRITE, &oldProtect);
 
-		fread(GetTargetRVA<void>(section->VirtualAddress), 1, section->SizeOfRawData, f);
+		memcpy(GetTargetRVA<void>(section->VirtualAddress), &fileData[off], section->SizeOfRawData);
 
+		off += section->SizeOfRawData;
 		++section;
 	}
 
