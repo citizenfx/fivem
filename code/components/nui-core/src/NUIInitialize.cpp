@@ -1250,6 +1250,8 @@ void Initialize(nui::GameInterface* gi)
 
 	CefString(&cSettings.locale).FromASCII("en-US");
 
+	CefString(&cSettings.cookieable_schemes_list).FromString("nui");
+
 	std::wstring resPath = MakeRelativeCitPath(L"bin/cef/");
 
 	CefString(&cSettings.resources_dir_path).FromWString(resPath);
