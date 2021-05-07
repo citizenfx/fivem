@@ -1,0 +1,361 @@
+@import "variables";
+
+.modal {
+	display: grid;
+	place-items: center;
+	@include fontRubik;
+	position: fixed;
+	z-index: 101;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 100%;
+	@include theme() using ($theme) {
+		background-color: rgba(gtv($theme, bgColor), .6)
+	}
+	// background-color: rgba(16, 16, 17, 0.8);
+
+	.content {
+		@include theme() using ($theme) {
+			background-color: rgba(gtv($theme, bgColor), 1);
+			background-image: url('../../assets/images/bgpat.png');
+			color: gtv($theme, textColor)
+		}
+
+		display: grid;
+		place-items: center;
+		max-width: 870px;
+		max-height: 705px;
+		width: 65vw;
+		height: 65vw;
+		padding: 45px;
+
+		.header {
+			text-align: center;
+			align-self: flex-end;
+
+			.title {
+				// font-weight: bold;
+				font-size: 2.2rem;
+				font-weight: 400;
+				margin-bottom: 5px;
+			}
+
+			.description {
+				font-size: 1.1rem;
+			}
+		}
+
+		.header--left {
+			text-align: left;
+		}
+
+		.form {
+			display: flex;
+			flex-direction: column;
+			.routes {
+				display: flex;
+				flex-direction: column;
+				.cfxlogo {
+					margin-top: 10px;
+				}
+			}
+		}
+
+		.close {
+			font-size: 1rem;
+			text-decoration: underline;
+			align-self: flex-end;
+			@include theme() using ($theme) {
+				color: gtv($theme, textColor)
+			}
+			opacity: 0.4;
+			&:hover {
+				opacity: 0.9;
+			}
+		}
+
+		.login {
+			// background-color: blue;
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
+
+			.login__oneclick {
+				display: flex;
+				flex-direction: column;
+				justify-content: center;
+				align-items: center;
+				// margin-top: -60%;
+			}
+
+			.oneclick__info {
+				font-size: 0.9rem;
+				opacity: 0.8;
+				margin-bottom: 10px;
+			}
+
+			.oneclick__btntext {
+				font-weight: normal;
+			}
+
+			.forgotpassword {
+				margin-top: -4px;
+				font-size: 0.8rem;
+				font-weight: bold;
+				margin-bottom: 20px;
+				width: fit-content;
+				@include theme() using ($theme) {
+					color: gtv($theme, accentColor1)
+				}
+				opacity: 0.6;
+				&:hover {
+					text-decoration: underline;
+				}
+			}
+		}
+
+		.login__traditional {
+			width: 300px;
+		}
+
+		.otherroute {
+			margin-top: 15px;
+			font-size: 0.9rem;
+			opacity: 0.7;
+			@include theme() using ($theme) {
+				color: gtv($theme, textColor)
+			}
+			.otherroute__btn {
+				text-decoration: underline;
+				width: fit-content;
+				margin-top: 3px;
+				&:hover {
+					opacity: 0.6;
+				}
+			}
+		}
+
+		input {
+			border: unset;
+			width: 100%;
+			padding: 10px;
+			margin-bottom: 10px;
+			background-color: #79797A;
+			box-sizing: border-box;
+			@include theme() using ($theme) {
+				color: gtv($theme, textColor)
+			}
+
+			&:focus{
+				@include theme() using ($theme) {
+					outline: 2px solid gtv($theme, textColor)
+				}
+			}
+
+			&::-webkit-input-placeholder {
+				@include theme() using ($theme) {
+					color: gtv($theme, textColor)
+				}
+				opacity: 0.6;
+				font-size: 0.9rem;
+			  }
+
+			&::placeholder {
+				@include theme() using ($theme) {
+					color: gtv($theme, textColor)
+				}
+				opacity: 0.6;
+				font-size: 0.9rem;
+			}
+		}
+
+		.passwordinput {
+			-webkit-text-security: disc;
+		}
+
+		.input__container {
+			display: flex;
+			flex-direction: column;
+			align-items: flex-end;
+			.input__info {
+				font-size: 0.8rem;
+				font-weight: bold;
+				// margin-top: -5px;
+				margin-bottom: 10px;
+				@include theme() using ($theme) {
+					color: gtv($theme, textColor)
+				}
+				opacity: 0.6;
+			}
+		}
+
+		.cfxlogo {
+			background-image: url('../../assets/images/cfxre.png');
+			background-repeat: no-repeat;
+			background-size: contain;
+			background-position: center;
+			min-width: 10px;
+			min-height: 25px;
+			margin-left: -7px;
+		}
+
+		.cfxlogo--left {
+			background-position: left;
+		}
+
+		.btns {
+			// margin-top: -40%;
+			// margin-bottom: 60%;
+			display: flex;
+			flex-direction: column;
+		}
+
+		.btn {
+			box-shadow: unset;
+			border: unset;
+			margin-bottom: 12px;
+			text-transform: uppercase;
+			font-weight: bold;
+			font-size: 1rem;
+			// &:active {
+			// 	opacity: 0.5;
+			// }
+			&:disabled {
+				color: #79797A;
+				background-color: #3E4046;
+			}
+		}
+
+		.btn--primary {
+			transition: 0.5s;
+			@include theme() using ($theme) {
+				background-color: rgba(gtv($theme, accentColor1), 1);
+				color: gtv($theme, textColor)
+			}
+		}
+
+		.btn--secondary {
+			transition: 0.5s;
+			@include theme() using ($theme) {
+				background-color: rgba(gtv($theme, bgColor), 1);
+				border: 2px solid gtv($theme, accentColor1);
+				color: gtv($theme, accentColor1)
+			}
+		}
+
+		.btn--normal {
+			width: 225px;
+			height: 40px;
+		}
+
+		.btn--large {
+			width: 225px;
+			height: 60px;
+		}
+
+		.btn--skinny {
+			height: 35px;
+		}
+
+		.btn--wide {
+			width: 260px;
+		}
+
+		.btn--fit {
+			width: fit-content;
+			padding: 0px 15px;
+		}
+
+		.line {
+			width: 400px;
+			height: 1px;
+			background-color: #C4C4C4;
+			margin: 30px 0px;
+			opacity: 0.7;
+		}
+
+		.userpic {
+			width: 100px;
+			height: 100px;
+			background-size: cover;
+			margin-bottom: 10px;
+		}
+
+		.complete {
+			display: grid;
+			place-items: center;
+			margin-top: 10%;
+			.complete__user {
+				display: flex;
+				flex-direction: column;
+				justify-content: center;
+				align-items: center;
+				margin: 45px 0px;
+				font-size: 1.2rem;
+                text-align: center;
+			}
+		}
+
+		.complete__register {
+			display: grid;
+			// flex-direction: column;
+			// justify-content: flex-start;
+			// align-items: flex-start;
+			min-width: 450px;
+			margin-top: 10%;
+			// margin-left: 35px;
+			.complete__register__information {
+				margin: 20px 0px;
+				opacity: 0.7;
+				font-size: 1.1rem;
+				@include theme() using ($theme) {
+					color: gtv($theme, textColor)
+				}
+
+				p {
+					&:first-child {
+						margin-bottom: 5px;
+					}
+				}
+
+			}
+
+			.complete__register__email {
+				font-weight: bold;
+				text-decoration: underline;
+			}
+		}
+	}
+  }
+
+.input_tip--bad {
+	opacity: 1 !important;
+	@include theme() using ($theme) {
+		color: #f44336 !important;
+	}
+}
+
+.input_tip--good {
+	opacity: 1 !important;
+	@include theme() using ($theme) {
+		color: #4caf50 !important;
+	}
+}
+
+.notification {
+	padding: 5px;
+	font-size: 0.8rem;
+    margin: 5px 0px;
+	@include theme() using ($theme) {
+		color: gtv($theme, textColor) !important;
+		background-color: gtv($theme, accentColor1) !important;
+	}
+	max-width: 450px;
+}
+
+.hidden {
+	display: none;
+}
+

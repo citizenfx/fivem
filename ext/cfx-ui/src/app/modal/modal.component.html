@@ -1,0 +1,149 @@
+<div *ngIf="modalVisible && modalVisibleDelayComplete" class="modal">
+    <div *ngIf="!completeRegister && !completeAuth" class="content">
+        <div class="header">
+            <div class="title">Link Account</div>
+            <div class="description">Connect your Cfx.re Forum account</div>
+        </div>
+        <div class="form">
+            <div class="routes" *ngIf="!login && !register">
+                <div class="btns">
+                    <button class="btn btn--normal btn--primary btn--hover" (click)="setLoginView()">Login</button>
+                    <button class="btn btn--normal btn--secondary btn--hover"
+                        (click)="setRegisterView()">Register</button>
+                </div>
+                <div class="cfxlogo"></div>
+            </div>
+
+            <!-- login route -->
+            <div class="login" *ngIf="login && !register">
+                <div class="login__oneclick">
+                    <p class="oneclick__info">Already signed in on the browser?</p>
+                    <button class="btn btn--primary btn--large" (click)="oneClickDiscourseLogin()">
+                        <div class="cfxlogo"></div>
+                        <div class="oneclick__btntext">ONE CLICK LOGIN</div>
+                    </button>
+                </div>
+                <div class="line"></div>
+                <div class="login__traditional">
+                    <form class="form" (submit)="traditionalDiscourseLogin()">
+                        <input placeholder="Email Address" id="email" name="email" [(ngModel)]="typedEmail">
+                        <input placeholder="Password" id="password" name="password" [(ngModel)]="typedPassword"
+                            class="passwordinput">
+                        <button [disabled]="typedEmail === '' || typedPassword === ''" class="btn btn--skinny"
+                            [ngClass]="{'btn--primary': typedEmail !== '' && typedPassword !== ''}" type="submit">Sign
+                            In</button>
+
+                        <div class="forgotpassword" (click)="forgotDiscoursePassword()">Forgot Password?</div>
+                        <div *ngIf="notification !== '' || notification !== null" class="notification"
+                            [ngClass]="{'hidden': notification === null}">
+                            {{ notification }}
+                        </div>
+                    </form>
+                    <div class="otherroute">
+                        <p>Don't have a forum.cfx.re account?</p>
+                        <div class="otherroute__btn" (click)="setRegisterView()">Register</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- register route -->
+            <div class="register" *ngIf="!login && register">
+                <div class="login__traditional">
+                    <form class="form" (submit)="registerDiscourseAccount()">
+                        <div class="input__container">
+                            <input placeholder="Email Address" id="email" name="email" [(ngModel)]="typedEmail"
+                                (ngModelChange)="onEmailChange()">
+                            <p class="input__info"
+                                [ngClass]="{'input_tip--bad': !emailValid && typedEmail !== '', 'input_tip--good': emailValid}">
+                                {{ emailHint }}
+                            </p>
+                        </div>
+                        <div class="input__container">
+                            <input placeholder="Username" id="username" name="username" [(ngModel)]="typedUserName"
+                                (ngModelChange)="onUsernameChange()">
+                            <p class="input__info"
+                                [ngClass]="{'input_tip--bad': !usernameValid && typedUserName !== '', 'input_tip--good': usernameValid}">
+                                {{ usernameHint }}</p>
+                        </div>
+                        <div class="input__container">
+                            <input placeholder="Password" id="password" name="password" [(ngModel)]="typedPassword"
+                                class="passwordinput" (ngModelChange)="onPasswordChange()">
+                            <p class=" input__info"
+                                [ngClass]="{'input_tip--bad': !passwordValid && typedPassword !== '', 'input_tip--good': passwordValid}">
+                                {{ passwordHint }}</p>
+                        </div>
+                        <div *ngIf="notification !== '' || notification !== null" class="notification"
+                            [ngClass]="{'hidden': notification === null}">
+                            {{ notification }}
+                        </div>
+                        <button
+                            [disabled]="typedEmail === '' || typedPassword === '' || typedUsername === '' || !emailValid || !usernameValid || !passwordValid"
+                            class="btn btn--skinny"
+                            [ngClass]="{'btn--primary': emailValid && usernameValid && passwordValid}"
+                            type="submit">Create Account</button>
+                    </form>
+                    <div class="otherroute">
+                        <p>Already have an account?</p>
+                        <div class="otherroute__btn" (click)="setLoginView()">Login</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="close" (click)="toggleModalVisiblity()">Skip</div>
+    </div>
+
+    <div *ngIf="completeAuth" class="content">
+        <div class="complete">
+            <div class="header">
+                <div class="cfxlogo"></div>
+                <div *ngIf="completeAuth && currentAccount" class="title">Account Linked</div>
+                <div *ngIf="completeAuth && authOnWeb && !currentAccount" class="title">Almost done!</div>
+            </div>
+            <div class="complete__user">
+                <div *ngIf="currentAccount && !streamerMode"
+                    [style.backgroundImage]="currentAccount.getAvatarUrlForCss()" class="userpic"></div>
+                <div *ngIf="completeAuth && currentAccount" class="info">Welcome {{ currentAccount.username }}!</div>
+                <div *ngIf="completeAuth && authOnWeb && !currentAccount" class="info">Click Authorize in Browser
+                    <br>May need to click "Authorize" multiple times
+                </div>
+
+            </div>
+        </div>
+        <div class="close" (click)="toggleModalVisiblity()">Close</div>
+    </div>
+
+    <div *ngIf="completeRegister" class="content">
+        <div class="complete__register">
+            <div class="header header--left">
+                <div class="cfxlogo cfxlogo--left"></div>
+                <div class="title">You're almost Done!</div>
+            </div>
+            <div class="complete__register__information">
+                <p>We sent an activation email
+                    <span *ngIf="!streamerMode">to
+                        <span class="complete__register__email" *ngIf="typedEmail !== ''">{{ typedEmail }}.</span>
+                        <span class="complete__register__email" *ngIf="typedEmail === ''">your email.</span>
+                    </span>
+                </p>
+                <p>If it doesn't arrive, check your spam folder.</p>
+            </div>
+            <button class="btn btn--normal btn--secondary btn--hover btn--skinny btn--fit"
+                (click)="resendDiscourseActivationEmail()">Resend
+                Activation
+                Email</button>
+            <button class="btn btn--normal btn--primary btn--hover btn--skinny btn--fit"
+                (click)="traditionalDiscourseLogin()">Connect Activated Account to FiveM</button>
+            <div *ngIf="notification !== '' || notification !== null" class="notification"
+                [ngClass]="{'hidden': notification === null}">
+                {{ notification }}
+            </div>
+            <div class="otherroute">
+                <p>Already have an account?</p>
+                <div class="otherroute__btn" (click)="setLoginView()">Login</div>
+            </div>
+        </div>
+        <div class="close" (click)="toggleModalVisiblity()">Close</div>
+    </div>
+</div>
