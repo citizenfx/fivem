@@ -39,7 +39,7 @@
 					data-balloon-pos="left"
 				><span class="material-icons-outlined trending">trending_up</span> {{playerStats[2]}}k</div>
 			</div>
-			<button *ngIf="!currentAccount" class="cfx-button primary account-link" (click)="linkAccount()">
+			<button *ngIf="!currentAccount" class="cfx-button primary account-link" (click)="appModal.toggleModalVisiblity()()">
 				Link account
 			</button>
 			<div
@@ -202,5 +202,6 @@
 			<app-home-tweet class="message" [actuallyTweet]="true" *ngFor="let tweet of officialTweets" [tweet]="tweet">
 			</app-home-tweet>
 		</div>
+        <app-modal #appModal [currentAccount]="currentAccount" [streamerMode]="streamerMode"></app-modal>
 	</div>
 </div>
