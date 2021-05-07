@@ -88,11 +88,8 @@ export class ClientResmon extends BaseResmon {
             }
 
             const intensityColor = `rgba(244, 5, 82, ${cell})`;
-            const color = cell > .3
-              ? '#fff'
-              : 'inherit';
 
-            return `<span style="padding: 0 2px;background:${intensityColor}"><b style="mix-blend-mode: difference;">${(cell * 100).toFixed(2)}%</b></span>`;
+            return `<span style="padding: 0 2px;border: solid 2px ${intensityColor}">${(cell * 100).toFixed(2)}%</span>`;
           }
 
           return cell;
