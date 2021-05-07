@@ -155,7 +155,7 @@ struct RelativeRedirection
 	}
 
 	inline RelativeRedirection(const std::string& mount, rage::fiPackfile* fiDevice)
-		: mount(mount), fiPackfile(fiPackfile)
+		: mount(mount), fiPackfile(fiDevice)
 	{
 	}
 
