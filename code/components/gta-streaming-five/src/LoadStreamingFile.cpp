@@ -397,52 +397,73 @@ static void ReloadMapStoreNative()
 
 static void ReloadMapStore()
 {
+	// filename, streamingIndex
+	std::vector<std::pair<std::string, uint32_t>> collisionFiles;
+
 	if (!g_reloadMapStore)
 	{
 		return;
 	}
 
-	// preload collisions for the world
+	auto mgr = streaming::Manager::GetInstance();
+
+
+	// Find collision files that need reloading
 	ForAllStreamingFiles([&](const std::string& file)
 	{
-		if (file.find(".ybn") != std::string::npos)
+		if (file.find(".ybn") == std::string::npos)
 		{
-			if (loadedCollisions.find(file) == loadedCollisions.end())
-			{
-				auto obj = streaming::GetStreamingIndexForName(file);
+			return;
+		}
+		if (loadedCollisions.find(file) != loadedCollisions.end())
+		{
+			return;
+		}
 
-				if (obj == 0)
-				{
-					return;
-				}
+		auto obj = streaming::GetStreamingIndexForName(file);
 
-				auto mgr = streaming::Manager::GetInstance();
-				auto relId = obj - streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ybn")->baseIdx;
+		if (obj == 0)
+		{
+			return;
+		}
 
-				if (
-					_isResourceNotCached(mgr, obj)
+		auto relId = obj - streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ybn")->baseIdx;
+
+		if (
+			_isResourceNotCached(mgr, obj)
 #ifdef GTA_FIVE
-					|| GetDummyCollectionIndexByTag(g_handlesToTag[mgr->Entries[obj].handle]) == -1
+			|| GetDummyCollectionIndexByTag(g_handlesToTag[mgr->Entries[obj].handle]) == -1
 #endif
-				)
-				{
-					mgr->RequestObject(obj, 0);
-
-					streaming::LoadObjectsNow(0);
-
-					mgr->ReleaseObject(obj);
-
-					loadedCollisions.insert(file);
-
-					trace("Loaded %s (id %d)\n", file, relId);
-				}
-				else
-				{
-					trace("Skipped %s - it's cached! (id %d)\n", file, relId);
-				}
-			}
+		   )
+		{
+			collisionFiles.push_back(std::make_pair(file, obj));
+		}
+		else
+		{
+			trace("Skipped %s - it's cached! (id %d)\n", file.c_str(), relId);
 		}
 	});
+
+
+	static constexpr uint8_t batchSize = 4;
+
+	for (int count = 0; count < collisionFiles.size(); count += batchSize)
+	{
+		int end = std::min((count + batchSize), (int)collisionFiles.size());
+
+		for (int i = count; i < end; i++)
+		{
+			mgr->RequestObject(collisionFiles[i].second, 0);
+			trace("Loaded %s (id %d)\n", collisionFiles[i].first.c_str(), (collisionFiles[i].second - mgr->moduleMgr.GetStreamingModule("ybn")->baseIdx));
+		}
+
+		streaming::LoadObjectsNow(0);
+
+		for (int i = count; i < end; i++)
+		{
+			mgr->ReleaseObject(collisionFiles[i].second);
+		}
+	}
 
 	OnReloadMapStore();
 
