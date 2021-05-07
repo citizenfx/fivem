@@ -1856,7 +1856,37 @@ struct CDoorScriptGameStateDataNode
 };
 
 struct CHeliHealthDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CHeliControlDataNode { bool Parse(SyncParseState& state) { return true; } };
+
+struct CHeliControlDataNode
+{
+	bool Parse(SyncParseState& state)
+	{
+		float yaw = state.buffer.ReadSignedFloat(8, 1.0f);
+		float pitch = state.buffer.ReadSignedFloat(8, 1.0f);
+		float roll = state.buffer.ReadSignedFloat(8, 1.0f);
+		float throttle = state.buffer.ReadFloat(8, 2.0f);
+
+		bool engineSpeedZero = state.buffer.ReadBit();
+
+		bool hasLandingGear = state.buffer.ReadBit();
+		if (hasLandingGear)
+		{
+			uint32_t landingGearState = state.buffer.Read<uint32_t>(3);
+		}
+
+		bool isThrusterModel = state.buffer.ReadBit();
+		if (isThrusterModel)
+		{
+			float thrusterSideRCSThrottle = state.buffer.ReadSignedFloat(9, 1.0f);
+			float thrusterThrottle = state.buffer.ReadSignedFloat(9, 1.0f);
+		}
+
+		bool hasVehicleTask = state.buffer.ReadBit();
+		bool unk8 = state.buffer.ReadBit();
+
+		return true;
+	}
+};
 
 struct CObjectCreationDataNode
 {
@@ -2199,9 +2229,47 @@ struct CPickupSectorPosNode { bool Parse(SyncParseState& state) { return true; }
 struct CPickupPlacementCreationDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPickupPlacementStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPlaneGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPlaneControlDataNode { bool Parse(SyncParseState& state) { return true; } };
+
+struct CPlaneControlDataNode
+{
+	bool Parse(SyncParseState& state)
+	{
+		float yaw = state.buffer.ReadSignedFloat(8, 1.0f);
+		float pitch = state.buffer.ReadSignedFloat(8, 1.0f);
+		float roll = state.buffer.ReadSignedFloat(8, 1.0f);
+		float throttleUp = state.buffer.ReadFloat(8, 2.0f);
+
+		bool hasVehicleTask = state.buffer.ReadBit();
+
+		bool isThrottleDown = state.buffer.ReadBit();
+		if (isThrottleDown)
+		{
+			float throttleDown = state.buffer.ReadSignedFloat(8, 1.0f);
+		}
+
+		bool isNozzleChanged = state.buffer.ReadBit();
+		if (isNozzleChanged)
+		{
+			float nozzlePosition = state.buffer.ReadFloat(8, 1.0f);
+		}
+
+		return true;
+	}
+};
+
 struct CSubmarineGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CSubmarineControlDataNode { bool Parse(SyncParseState& state) { return true; } };
+
+struct CSubmarineControlDataNode
+{
+	bool Parse(SyncParseState& state)
+	{
+		float yaw = state.buffer.ReadSignedFloat(8, 1.0f);
+		float pitch = state.buffer.ReadSignedFloat(8, 1.0f);
+		float ascent = state.buffer.ReadSignedFloat(8, 1.0f);
+
+		return true;
+	}
+};
 
 struct CTrainGameStateDataNode
 {
