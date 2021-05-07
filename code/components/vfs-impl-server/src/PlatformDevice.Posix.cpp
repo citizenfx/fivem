@@ -1,6 +1,8 @@
 #include <StdInc.h>
 #include <LocalDevice.h>
 
+#include <VFSLinkExtension.h>
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
