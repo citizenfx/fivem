@@ -170,6 +170,8 @@ void MigrateCacheFromat202105()
 	std::vector<std::tuple<std::string, std::string>> moveList = {
 		{ "cache/game/", "data/game-storage/" },
 		{ "cache/priv/", "data/server-cache-priv/" },
+		{ "cache/fxdk/", "data/server-cache-fxdk/" },
+		{ "cache/browser-fxdk/", "data/nui-storage-fxdk/" },
 		{ "cache/browser/", "data/nui-storage/" },
 		{ "cache/db/", "data/server-cache/db/" },
 		{ "cache/ipfs_data/", "data/ipfs/" },
