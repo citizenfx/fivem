@@ -141,16 +141,16 @@ struct RelativeRedirection
 {
 	std::string mount;
 	std::string targetPath;
-	rage::fiPackfile* fiPackfile = nullptr;
+	rage::fiPackfile* fiPackfile;
 	fwRefContainer<vfs::Device> cfxDevice;
 
 	inline RelativeRedirection(const std::string& mount, const std::string& relativePath)
-		: mount(mount), targetPath(relativePath)
+		: mount(mount), targetPath(relativePath), fiPackfile(nullptr)
 	{
 	}
 
 	inline RelativeRedirection(const std::string& mount, const fwRefContainer<vfs::Device>& cfxDevice)
-		: mount(mount), cfxDevice(cfxDevice)
+		: mount(mount), cfxDevice(cfxDevice), fiPackfile(nullptr)
 	{
 	}
 
@@ -254,14 +254,16 @@ static InitFunction initFunction([] ()
 							std::string addonRoot = "addons:/" + fn.substr(0, fn.find_last_of('.')) + "/";
 
 							rage::fiPackfile* addonPack = new rage::fiPackfile();
-							addonPack->OpenPackfile(fullFn.c_str(), true, false, 0);
-							relativePaths.emplace_back(addonRoot, addonPack);
+							if (addonPack->OpenPackfile(fullFn.c_str(), true, 3, 0))
+							{
+								relativePaths.emplace_back(addonRoot, addonPack);
 
-							relativePaths.emplace_back("platform:/", addonRoot + "platform/");
-							relativePaths.emplace_back("platformcrc:/", addonRoot + "platform/");
+								relativePaths.emplace_back("platform:/", addonRoot + "platform/");
+								relativePaths.emplace_back("platformcrc:/", addonRoot + "platform/");
 
-							relativePaths.emplace_back("common:/", addonRoot + "common/");
-							relativePaths.emplace_back("commoncrc:/", addonRoot + "common/");
+								relativePaths.emplace_back("common:/", addonRoot + "common/");
+								relativePaths.emplace_back("commoncrc:/", addonRoot + "common/");
+							}
 						}
 					}
 				} while (cfxDevice->FindNext(handle, &findData));
