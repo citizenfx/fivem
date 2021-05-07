@@ -196,7 +196,11 @@ static InitFunction initFunction([] ()
 		std::vector<RelativeRedirection> relativePaths;
 		relativePaths.emplace_back("citizen:/", ToNarrow(MakeRelativeCitPath("citizen/")));
 		relativePaths.emplace_back("cfx:/", ToNarrow(MakeRelativeCitPath("")));
-		relativePaths.emplace_back("rescache:/", ToNarrow(MakeRelativeCitPath(fmt::sprintf(L"data/server-cache%s/", ToWide(launch::GetPrefixedLaunchModeKey("-"))))));
+
+		auto cacheRoot = MakeRelativeCitPath(fmt::sprintf(L"data/server-cache%s/", ToWide(launch::GetPrefixedLaunchModeKey("-"))));
+		CreateDirectoryW(cacheRoot.c_str(), NULL);
+
+		relativePaths.emplace_back("rescache:/", ToNarrow(cacheRoot));
 
 		if (!Is372())
 		{
