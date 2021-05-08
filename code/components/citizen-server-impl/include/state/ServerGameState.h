@@ -143,7 +143,7 @@ struct CHeliControlDataNodeData
 	bool engineOff;
 
 	bool hasLandingGear;
-	bool landingGearState;
+	uint32_t landingGearState;
 };
 
 struct CPlayerCameraNodeData
