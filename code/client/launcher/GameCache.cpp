@@ -724,12 +724,15 @@ static bool ShowDownloadNotification(const std::vector<std::pair<GameCacheEntry,
 
 	bool shouldAllow = true;
 
+	std::string badEntries;
 	for (auto& entry : entries)
 	{
 		// is the file allowed?
 		if (_strnicmp(entry.first.remotePath, "nope:", 5) == 0)
 		{
 			shouldAllow = false;
+			badEntries += entry.first.filename;
+			badEntries += "\n";
 		}
 
 		// if it's a local file...
@@ -744,6 +747,8 @@ static bool ShowDownloadNotification(const std::vector<std::pair<GameCacheEntry,
 			if (entry.first.remoteSize == SIZE_MAX)
 			{
 				shouldAllow = false;
+				badEntries += entry.first.filename;
+				badEntries += "\n";
 			}
 
 			remoteSize += entry.first.remoteSize;
@@ -779,7 +784,9 @@ static bool ShowDownloadNotification(const std::vector<std::pair<GameCacheEntry,
 			{ 42, L"Close" }
 		};
 
-		taskDialogConfig.pszContent = va(gettext(L"DLC files are missing (or corrupted) in your game installation. Please update or verify the game using Steam or the Social Club launcher and try again. See http://rsg.ms/verify step 4 for more info."));
+		std::wstring badEntriesWide(badEntries.begin(), badEntries.end());
+
+		taskDialogConfig.pszContent = va(gettext(L"DLC files are missing (or corrupted) in your game installation. Please update or verify the game using Steam or the Social Club launcher and try again. See http://rsg.ms/verify step 4 for more info.\nRelevant files: \n%s"), badEntriesWide.c_str());
 
 		taskDialogConfig.cButtons = 1;
 		taskDialogConfig.dwCommonButtons = 0;
