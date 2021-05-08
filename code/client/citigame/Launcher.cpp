@@ -14,6 +14,7 @@
 #include "Hooking.Aux.h"
 
 #include <ComponentLoader.h>
+#include <CrossBuildRuntime.h>
 
 #include <HostSharedData.h>
 #include <CfxState.h>
@@ -139,4 +140,9 @@ static LauncherInterface g_launcherInterface;
 extern "C" __declspec(dllexport) ILauncherInterface* GetLauncherInterface()
 {
 	return &g_launcherInterface;
+}
+
+extern "C" __declspec(dllexport) int GetGameVersion()
+{
+	return xbr::GetGameBuild();
 }
