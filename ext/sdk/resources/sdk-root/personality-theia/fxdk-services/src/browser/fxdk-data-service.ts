@@ -28,12 +28,14 @@ export type ResourceAvgFrameFraction = number;
 export type ResourceMemorySize = number;
 export type ResourceStreamingSize = number;
 export type ClientResourceData = [ResourceName, ResourceAvgTickMs, ResourceAvgFrameFraction, ResourceMemorySize, ResourceStreamingSize];
+export type ServerResourceData = ClientResourceData;
 
 @injectable()
 export class FxdkDataService {
   public data: { [key: string]: any } = {};
 
   private clientResourcesData: ClientResourceData[] = [];
+  private serverResourcesData: ServerResourceData[] = [];
 
   private bufferedServerOutput: string = '';
   private structuredServerMessages: StructuredMessage[] = [];
@@ -53,6 +55,7 @@ export class FxdkDataService {
     return this.clearAllServerOutputsEvent.on(cb);
   }
 
+  //#region client-resources-data
   private readonly clientResourcesDataEvent = new SingleEventEmitter<ClientResourceData[]>();
   public onClientResourcesData(cb: (data: ClientResourceData[]) => void): Disposable {
     return this.clientResourcesDataEvent.on(cb);
@@ -67,6 +70,24 @@ export class FxdkDataService {
 
     this.clientResourcesDataEvent.emit(data);
   }
+  //#endregion
+
+  //#region server-resources-data
+  private readonly serverResourcesDataEvent = new SingleEventEmitter<ServerResourceData[]>();
+  public onServerResourcesData(cb: (data: ServerResourceData[]) => void): Disposable {
+    return this.serverResourcesDataEvent.on(cb);
+  }
+
+  getServerResourcesData(): ServerResourceData[] {
+    return this.serverResourcesData;
+  }
+
+  setServerResourcesData(data: ServerResourceData[]) {
+    this.serverResourcesData = data;
+
+    this.serverResourcesDataEvent.emit(data);
+  }
+  //#endregion
 
   getBufferedServerOutput(): string {
     return this.bufferedServerOutput;

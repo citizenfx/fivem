@@ -290,6 +290,10 @@ export class GameServerFxdkMode implements GameServerMode {
       delete this.resourcesState[resourceName];
       this.ackResourcesState();
     });
+
+    this.ipc.onEvent('resource-datas', (resourceDatas) => {
+      this.apiClient.emit(serverApi.resourceDatas, resourceDatas);
+    });
   }
 
   private async startIpc() {

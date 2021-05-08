@@ -4,6 +4,7 @@
 #include <chrono>
 
 #include <Resource.h>
+#include <ResourceMonitor.h>
 #include <ResourceMetaDataComponent.h>
 
 #include <CoreConsole.h>
@@ -15,6 +16,8 @@
 
 #include <skyr/url.hpp>
 #include <json.hpp>
+
+using namespace std::chrono_literals;
 
 static std::function<void(const ConsoleChannel&, const std::string&)> g_consoleMessageHandler;
 static std::vector<std::pair<ConsoleChannel, std::string>> g_messagesQueue;
@@ -42,6 +45,11 @@ static uint32_t readJsonSize(std::deque<uint8_t>& buffer)
 	return *(uint32_t*)(size);
 }
 
+inline static std::shared_ptr<uvw::Loop> GetSdkIpcLoop()
+{
+	return Instance<net::UvLoopManager>::Get()->GetOrCreate("sdkIpc")->Get();
+}
+
 namespace fxdk
 {
 	using json = nlohmann::json;
@@ -61,12 +69,6 @@ namespace fxdk
 		std::shared_ptr<uvw::PipeHandle> m_pipe;
 		std::shared_ptr<uvw::AsyncHandle> m_asyncEmitPackets;
 		tbb::concurrent_queue<std::pair<std::unique_ptr<char[]>, size_t>> m_packetsQueue;
-
-	private:
-		inline std::shared_ptr<uvw::Loop> Loop()
-		{
-			return Instance<net::UvLoopManager>::Get()->GetOrCreate("sdkIpc")->Get();
-		}
 
 	public:
 		typedef std::function<void(const json&, const uint32_t, fwRefContainer<IpcConnection>)> TRpcHandler;
@@ -105,7 +107,7 @@ namespace fxdk
 		{
 			fwRefContainer<IpcConnection> thisRef(this);
 
-			m_asyncEmitPackets = Loop()->resource<uvw::AsyncHandle>();
+			m_asyncEmitPackets = GetSdkIpcLoop()->resource<uvw::AsyncHandle>();
 
 			m_asyncEmitPackets->on<uvw::AsyncEvent>([this](const uvw::AsyncEvent& evt, uvw::AsyncHandle& loop)
 			{
@@ -117,7 +119,7 @@ namespace fxdk
 				}
 			});
 
-			m_pipe = Loop()->resource<uvw::PipeHandle>();
+			m_pipe = GetSdkIpcLoop()->resource<uvw::PipeHandle>();
 
 			m_pipe->on<uvw::ErrorEvent>([thisRef](const uvw::ErrorEvent& evt, uvw::PipeHandle& handle)
 			{
@@ -709,10 +711,18 @@ namespace fxdk
 		}
 
 		g_messagesQueue.clear();
+
+		m_timer = GetSdkIpcLoop()->resource<uvw::TimerHandle>();
+
+		m_timer->on<uvw::TimerEvent>([ipc](const uvw::TimerEvent& evt, uvw::TimerHandle&)
+		{
+			ipc->EmitEvent("resource-datas", fx::ResourceMonitor::GetCurrent()->GetResourceDatas());
+		});
 	}
 
 	SdkIpc::~SdkIpc()
 	{
+		m_timer->stop();
 		m_inited.signal();
 	}
 
@@ -789,6 +799,7 @@ namespace fxdk
 
 	void SdkIpc::NotifyReady()
 	{
+		m_timer->start(0ms, 333ms);
 		m_instance->GetComponent<IpcConnection>()->EmitEvent("ready");
 	}
 

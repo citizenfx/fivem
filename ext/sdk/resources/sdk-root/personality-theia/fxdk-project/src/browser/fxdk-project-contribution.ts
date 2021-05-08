@@ -8,7 +8,7 @@ import { CommandService } from '@theia/core';
 
 import { FxdkGameView, FxdkGameViewContribution } from 'fxdk-game-view/lib/browser/fxdk-game-view-view';
 import { FrontendApplicationState, FrontendApplicationStateService } from '@theia/core/lib/browser/frontend-application-state';
-import { ClientResourceData, FxdkDataService, StructuredMessage } from 'fxdk-services/lib/browser/fxdk-data-service';
+import { ClientResourceData, FxdkDataService, ServerResourceData, StructuredMessage } from 'fxdk-services/lib/browser/fxdk-data-service';
 
 const stateToNumber: Record<FrontendApplicationState, number> = {
   init: 0,
@@ -179,6 +179,10 @@ export class FxdkProjectContribution implements FrontendApplicationContribution 
 
   private handleClientResourcesData(data: ClientResourceData[]) {
     this.dataService.setClientResourcesData(data);
+  }
+
+  private handleServerResourcesData(data: ServerResourceData[]) {
+    this.dataService.setServerResourcesData(data);
   }
 
   private reachedState(state: FrontendApplicationState) {

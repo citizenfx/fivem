@@ -6,7 +6,7 @@ import { TextEditor } from '@theia/editor/lib/browser/editor';
 import { ServerConsoleViewContribution, SERVER_CONSOLE_WIDGET_ICON } from './console/server-console';
 import { ClientConsoleViewContribution, CLIENT_CONSOLE_WIDGET_ICON } from './console/client-console';
 import { FxdkDataService } from 'fxdk-services/lib/browser/fxdk-data-service';
-import { ClientResmonViewContribution, CLIENT_RESMON_WIDGET_ICON } from './resmon/client-resmon';
+import { ResmonWidgetViewContribution, RESMON_WIDGET_ICON } from './resmon/combined-resmon';
 
 function formatArrayOfFloats(arr: number[]): string {
   return arr.map((coord) => coord.toFixed(3)).join(', ');
@@ -98,9 +98,9 @@ export class FxdkMenuContribution implements MenuContribution, CommandContributi
         icon: CLIENT_CONSOLE_WIDGET_ICON,
       });
       registry.registerMenuAction(FxdkMenus.FXDK_TOGGLES, {
-        commandId: ClientResmonViewContribution.TOGGLE_COMMAND_ID,
-        label: 'Toggle Client Resource Monitor',
-        icon: CLIENT_RESMON_WIDGET_ICON,
+        commandId: ResmonWidgetViewContribution.TOGGLE_COMMAND_ID,
+        label: 'Toggle Resource Monitor',
+        icon: RESMON_WIDGET_ICON,
       });
     }
 

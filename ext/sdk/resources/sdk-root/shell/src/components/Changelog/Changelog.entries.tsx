@@ -8,6 +8,24 @@ export interface ChangelogEntry {
 
 export const changelogEntries: ChangelogEntry[] = [
   {
+    id: '2021-05-08',
+    title: 'May 8, 2021',
+    content: (
+      <>
+        <ul>
+          <li>
+            Removed client resource monitor theia widget 😭
+          </li>
+          <li>
+            Added combined (both client and server) resource monitor theia widget 🎉
+            <br/>
+            Do note that server data will only be available if using latest server artifact ⚠️
+          </li>
+        </ul>
+      </>
+    ),
+  },
+  {
     id: '2021-05-04',
     title: 'May 4, 2021',
     content: (

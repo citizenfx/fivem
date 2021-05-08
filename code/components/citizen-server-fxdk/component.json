@@ -3,6 +3,7 @@
 	"version": "0.1.0",
 	"dependencies": [
 		"fx[2]",
+		"citizen:devtools",
 		"citizen:resources:core",
 		"citizen:server:instance",
 		"citizen:server:net",

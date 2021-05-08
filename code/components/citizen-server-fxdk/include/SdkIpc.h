@@ -98,6 +98,8 @@ namespace fxdk
 		bool RestartResource(const std::string& resourceName, std::string& error);
 
 	private:
+		std::shared_ptr<uvw::TimerHandle> m_timer;
+
 		fwRefContainer<fx::ServerInstanceBase> m_instance;
 
 		SingleshotSemaphore m_inited;

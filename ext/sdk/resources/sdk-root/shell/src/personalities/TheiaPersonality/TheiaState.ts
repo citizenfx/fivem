@@ -38,6 +38,10 @@ export const TheiaState = new class TheiaState {
       this.sendMessage({ type: 'fxdk:clearServerOutput' });
     });
 
+    onApiMessage(serverApi.resourceDatas, (data) => {
+      this.sendMessage({ type: 'fxdk:serverResourcesData', data });
+    });
+
     onWindowEvent('theia:ready', () => this.setIsReady(true));
     onWindowEvent('theia:notReady', () => this.setIsReady(false));
 
