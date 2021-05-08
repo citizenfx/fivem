@@ -770,13 +770,13 @@ static bool ShowDownloadNotification(const std::vector<std::pair<GameCacheEntry,
 	taskDialogConfig.hInstance = GetModuleHandle(nullptr);
 	taskDialogConfig.dwFlags = TDF_EXPAND_FOOTER_AREA;
 	taskDialogConfig.dwCommonButtons = TDCBF_YES_BUTTON | TDCBF_NO_BUTTON;
-	taskDialogConfig.pszWindowTitle = PRODUCT_NAME L": Game cache outdated";
+	taskDialogConfig.pszWindowTitle = PRODUCT_NAME L": Game data outdated";
 	taskDialogConfig.pszMainIcon = TD_INFORMATION_ICON;
-	taskDialogConfig.pszMainInstruction = PRODUCT_NAME L" needs to update the game cache";
+	taskDialogConfig.pszMainInstruction = PRODUCT_NAME L" needs to update the local game data";
 
 	if (shouldAllow)
 	{
-		taskDialogConfig.pszContent = va(gettext(L"The local %s game cache is outdated, and needs to be updated. This will copy %.2f MB of data from the local disk, and download %.2f MB of data from the internet.\nDo you wish to continue?"), PRODUCT_NAME, (localSize / 1024.0 / 1024.0), (remoteSize / 1024.0 / 1024.0));
+		taskDialogConfig.pszContent = va(gettext(L"The local %s game data is outdated, and needs to be updated. This will copy %.2f MB of data from the local disk, and download %.2f MB of data from the internet.\nDo you wish to continue?"), PRODUCT_NAME, (localSize / 1024.0 / 1024.0), (remoteSize / 1024.0 / 1024.0));
 	}
 	else
 	{
@@ -784,9 +784,10 @@ static bool ShowDownloadNotification(const std::vector<std::pair<GameCacheEntry,
 			{ 42, L"Close" }
 		};
 
-		std::wstring badEntriesWide(badEntries.begin(), badEntries.end());
+		std::wstring badEntriesWide = ToWide(badEntries);
 
-		taskDialogConfig.pszContent = va(gettext(L"DLC files are missing (or corrupted) in your game installation. Please update or verify the game using Steam or the Social Club launcher and try again. See http://rsg.ms/verify step 4 for more info.\nRelevant files: \n%s"), badEntriesWide.c_str());
+		taskDialogConfig.pszMainInstruction = L"Game files missing";
+		taskDialogConfig.pszContent = va(gettext(L"DLC files are missing (or corrupted) in your game installation. Please update or verify the game using Steam, Epic Games Launcher or Rockstar Games Launcher and try again. See http://rsg.ms/verify step 4 for more info.\nRelevant files: \n%s"), badEntriesWide.c_str());
 
 		taskDialogConfig.cButtons = 1;
 		taskDialogConfig.dwCommonButtons = 0;
