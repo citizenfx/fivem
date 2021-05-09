@@ -9,4 +9,4 @@ game: gta5
 void LEAVE_CURSOR_MODE();
 ```
 
-Leaves cursor mode.
+Leaves cursor mode. This function supports SDK infrastructure and is not intended to be used directly from your code.
