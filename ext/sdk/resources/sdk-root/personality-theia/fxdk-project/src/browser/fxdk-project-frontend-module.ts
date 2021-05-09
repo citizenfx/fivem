@@ -16,7 +16,7 @@ import { FxdkMenuContribution } from './fxdk-menu-contribution';
 import { CommandContribution, MenuContribution } from '@theia/core';
 import { ServerConsole, ServerConsoleViewContribution, SERVER_CONSOLE_WIDGET_ID } from './console/server-console';
 import { ClientConsole, ClientConsoleViewContribution, CLIENT_CONSOLE_WIDGET_ID } from './console/client-console';
-import { ClientResmon, ClientResmonViewContribution, CLIENT_RESMON_WIDGET_ID } from './resmon/client-resmon';
+import { ResmonWidget, ResmonWidgetViewContribution, RESMON_WIDGET_ID } from './resmon/combined-resmon';
 import { rebindHelpContribution } from './help/rebindHelpContribution';
 import { rebindVsxEnvironment } from './rebindVsxEnvironment';
 
@@ -53,9 +53,9 @@ export default new ContainerModule((bind: interfaces.Bind, unbind: interfaces.Un
     createWidget: () => ctx.container.resolve(ClientConsole),
   }));
 
-  bindViewContribution(bind, ClientResmonViewContribution);
+  bindViewContribution(bind, ResmonWidgetViewContribution);
   bind(WidgetFactory).toDynamicValue((ctx) => ({
-    id: CLIENT_RESMON_WIDGET_ID,
-    createWidget: () => ctx.container.resolve(ClientResmon),
+    id: RESMON_WIDGET_ID,
+    createWidget: () => ctx.container.resolve(ResmonWidget),
   }));
 });

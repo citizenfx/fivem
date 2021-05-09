@@ -3,9 +3,9 @@ import * as React from 'react';
 import { changelogEntries, ChangelogEntry } from './Changelog.entries';
 import s from './Changelog.module.scss';
 
-const ChangelogNode = React.memo(function ChangelogNode(props: ChangelogEntry) {
+const ChangelogNode = React.memo(function ChangelogNode(props: ChangelogEntry & { old?: boolean }) {
   return (
-    <div className={s.entry}>
+    <div className={s.entry} style={{ opacity: props.old ? .5 : 1 }}>
       <div className={s.title}>
         {props.title}
       </div>
@@ -33,6 +33,7 @@ export const Changelog = React.memo(function Changelog() {
 
     return (
       <ChangelogNode
+        old
         key={entry.id}
         {...entry}
       />

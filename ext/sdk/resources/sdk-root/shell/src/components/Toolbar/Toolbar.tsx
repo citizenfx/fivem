@@ -1,7 +1,7 @@
 import React from 'react';
 import { observer } from 'mobx-react-lite';
 import classnames from 'classnames';
-import { BsCardHeading, BsGear, BsList } from 'react-icons/bs';
+import { BsCardHeading, BsGear, BsHash, BsList } from 'react-icons/bs';
 import { devtoolsIcon, newProjectIcon, openProjectIcon, projectBuildIcon, mapIcon } from 'constants/icons';
 import { Project } from 'components/Project/Project';
 import { ContextMenu, ContextMenuItemsCollection, ContextMenuItemSeparator } from 'components/controls/ContextMenu/ContextMenu';
@@ -14,6 +14,8 @@ import { ProjectState } from 'store/ProjectState';
 import { ScrollContainer } from 'components/ScrollContainer/ScrollContainer';
 import { StatusBar } from './StatusBar/StatusBar';
 import s from './Toolbar.module.scss';
+import { useOpenFlag } from 'utils/hooks';
+import { Hasher } from './Hasher/Hasher';
 
 const handleMenuClick = (openMenu) => openMenu();
 const handleGetMenuCoords = () => ({
@@ -41,6 +43,7 @@ const useTour = () => {
 
 export const Toolbar = observer(function Toolbar() {
   const { tourVisible, setTourVisible } = useTour();
+  const [hasherOpen, openHasher, closeHasher] = useOpenFlag(false);
 
   const toolbarClasses = classnames(s.root, {
     [s.active]: ToolbarState.isOpen,
@@ -84,6 +87,13 @@ export const Toolbar = observer(function Toolbar() {
       text: 'Changelog',
       icon: <BsCardHeading />,
       onClick: ShellState.openChangelog,
+    },
+    ContextMenuItemSeparator,
+    {
+      id: 'hasher',
+      text: 'Hasher',
+      icon: <BsHash />,
+      onClick: openHasher,
     },
     {
       id: 'dev-tools',
@@ -148,6 +158,10 @@ export const Toolbar = observer(function Toolbar() {
         <StatusBar />
 
         <Tour tourVisible={tourVisible} setTourVisible={setTourVisible} />
+
+        {hasherOpen && (
+          <Hasher close={closeHasher} />
+        )}
       </div>
     </div>
   );

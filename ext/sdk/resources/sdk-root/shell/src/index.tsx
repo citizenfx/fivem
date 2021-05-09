@@ -16,7 +16,7 @@ import { stateApi } from 'shared/api.events';
 
 enableLogger('shell,shell:*,host');
 
-window.openDevTools();
+// window.openDevTools();
 
 if (process.env.CI_PIPELINE_ID !== 'dev') {
   Sentry.init({

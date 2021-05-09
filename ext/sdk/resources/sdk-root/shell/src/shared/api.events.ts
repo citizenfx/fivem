@@ -84,6 +84,7 @@ export const serverApi = {
   ackState: 'server:ackState',
   state: 'server:state',
 
+  resourceDatas: 'server:resourceDatas',
   bufferedOutput: 'server:output',
   structuredOutputMessage: 'server:outputStructured',
   clearOutput: 'server:clearOutput',
