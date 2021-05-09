@@ -213,6 +213,8 @@ local function parseArgument(argument, native)
 		argType = 'float'
 	elseif argument.type.nativeType == 'bool' then
 		argType = 'bool'
+	elseif argument.type.nativeType == 'object' then
+		argType = 'object'
 	elseif argument.type.nativeType == 'vector3' then
 		argType = 'Vector3'
 	end
@@ -376,7 +378,9 @@ local function formatImpl(native, baseAppendix)
 				appendix = appendix .. t .. '\t' .. name .. ' = ref_' .. name .. ';\n'
 			elseif type == 'string' then
 				body = body .. t .. '\tScriptContext.PushString(cxt, ' .. name .. ');\n'
-			elseif type == 'InputArgument' or type == 'object' then
+			elseif type == 'object' then
+				body = body .. t .. '\tScriptContext.PushObject(cxt, ' .. name .. ');\n'
+			elseif type == 'InputArgument' then
 				body = body .. t .. '\tScriptContext.Push(cxt, ' .. name .. ');\n'
 			else
 				body = body .. t .. '\tScriptContext.PushFast(cxt, ' .. name .. ');\n'

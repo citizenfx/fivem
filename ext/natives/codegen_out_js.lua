@@ -101,6 +101,11 @@ print("\t}\n")
 print("\treturn hash;")
 print("}\n")
 
+print("function _obj(obj) {")
+print("\tconst s = msgpack_pack(obj);")
+print("\treturn [s, s.length];")
+print("}\n")
+
 print("function _ts(num) {")
 print("\tif (num === 0 || num === null || num === undefined || num === false) { // workaround for users calling string parameters with '0', also nil being translated")
 print("\t\treturn null;")
@@ -175,6 +180,8 @@ local function printArgument(argument, native)
 		return '_fv(' .. printArgumentName(argument.name) .. ')'
 	elseif argument.type.name == 'Hash' then
 		return '_ch(' .. printArgumentName(argument.name) .. ')'
+	elseif argument.type.nativeType == 'object' then
+		return '...(_obj(' .. printArgumentName(argument.name) .. '))'
 	elseif argument.type.nativeType == 'string' then
 		return '_ts(' .. printArgumentName(argument.name) .. ')'
 	end

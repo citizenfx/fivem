@@ -180,6 +180,8 @@ local function printArgument(argument, native)
 		argType = 'number'
 	elseif argument.type.nativeType == 'bool' then
 		argType = 'boolean'
+	elseif argument.type.nativeType == 'object' then
+		argType = 'any'
 	end
 
 	local name = argument.name

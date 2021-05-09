@@ -43,6 +43,11 @@ print("\tend")
 print("\treturn _tostring(num)")
 print("end")
 
+print("local function _obj(obj)")
+print("\tlocal s = msgpack.pack(obj)")
+print("\treturn s, #s")
+print("end")
+
 print("local function _ch(hash)")
 print("\tif g.type(hash) == 'string' then")
 print("\t\treturn g.GetHashKey(hash)")
@@ -106,6 +111,8 @@ local function printArgument(argument, native)
 		else
 			return '_i --[[ actually ' .. argument.type.nativeType .. ' ]]'
 		end
+	elseif argument.type.name == 'object' then
+		return '_obj(' .. printArgumentName(argument.name) .. ')'
 	elseif argument.type.name == 'func' then
 		return '_mfr(' .. printArgumentName(argument.name) .. ')'
 	elseif argument.type.name == 'Hash' then
