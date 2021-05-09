@@ -175,3 +175,67 @@ export class RotDeg3 {
     return this;
   }
 }
+
+export function getScale(mat: Float32Array): [number, number, number] {
+  return [
+    vectorLength([mat[0], mat[1], mat[2], mat[3]]),
+    vectorLength([mat[4], mat[5], mat[6], mat[7]]),
+    vectorLength([mat[8], mat[9], mat[10], mat[11]]),
+  ];
+}
+
+export function applyScale(mat: Float32Array, scale: [number, number, number]) {
+  const nscale = getScale(mat);
+  const [x, y, z] = [scale[0] / nscale[0], scale[1] / nscale[1], scale[2] / nscale[2]]
+
+  mat[0] *= x;
+  mat[1] *= x;
+  mat[2] *= x;
+  mat[3] *= x;
+
+  mat[4] *= y;
+  mat[5] *= y;
+  mat[6] *= y;
+  mat[7] *= y;
+
+  mat[8] *= z;
+  mat[9] *= z;
+  mat[10] *= z;
+  mat[11] *= z;
+}
+
+export function vectorLength([x, y, z = 0, w = 0]: number[]): number {
+  return 1/Q_rsqrt(x**2 + y**2 + z**2 + w**2);
+}
+
+function normalize([x, y, z, w]: number[]): [number, number, number, number] {
+  const inverseLength = Q_rsqrt(x**2 + y**2 + z**2 + w**2);
+
+  return [
+    x * inverseLength,
+    y * inverseLength,
+    z * inverseLength,
+    w * inverseLength,
+  ];
+}
+
+export function makeEntityMatrix(entity: number): Float32Array {
+  const [f, r, u, a] = GetEntityMatrix(entity);
+
+  return new Float32Array([
+    r[0], r[1], r[2], 0,
+    f[0], f[1], f[2], 0,
+    u[0], u[1], u[2], 0,
+    a[0], a[1], a[2], 1,
+  ]);
+}
+
+export function applyEntityMatrix(entity: number, mat: Float32Array) {
+  SetEntityMatrix(
+    entity,
+    mat[4], mat[5], mat[6], // r
+    mat[0], mat[1], mat[2], // f
+    mat[8], mat[9], mat[10], // u
+    mat[12], mat[13], mat[14], // a
+  );
+}

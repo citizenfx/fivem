@@ -16,8 +16,10 @@ export interface InputProps {
   placeholder?: string,
   description?: React.ReactNode,
   value: string,
-  onChange: (string) => void,
+
+  onChange: (value: string) => void,
   onSubmit?: () => void,
+  onKeyDown?(event: React.KeyboardEvent<HTMLInputElement>): void | boolean,
 
   showLoader?: boolean,
   noSpellCheck?: boolean,
@@ -29,6 +31,7 @@ export const Input = React.memo(function Input(props: InputProps) {
     value,
     onChange,
     onSubmit,
+    onKeyDown = () => false,
     pattern,
     tabIndex,
     showLoader = false,
@@ -55,10 +58,14 @@ export const Input = React.memo(function Input(props: InputProps) {
   }, [onChange, pattern]);
 
   const handleKeyDown = React.useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (onKeyDown(event)) {
+      return;
+    }
+
     if (event.key === 'Enter' && onSubmit) {
       onSubmit();
     }
-  }, [onSubmit]);
+  }, [onSubmit, onKeyDown]);
 
   const loaderNode = showLoader
     ? (

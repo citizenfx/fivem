@@ -32,7 +32,6 @@ export class FsMapping {
     return this.map;
   }
 
-  // protected watcher: chokidar.FSWatcher;
   protected watcher: FsWatcher;
 
   protected rootPath: string;

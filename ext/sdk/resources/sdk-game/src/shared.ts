@@ -24,7 +24,7 @@ export function getServerMode(): ServerMode {
   return ServerMode.LEGACY;
 }
 
-export function joaat(key): string {
+export function joaatUint32(key): number {
   key = key.toLowerCase();
 
   const hash = new Uint32Array(1);
@@ -39,5 +39,9 @@ export function joaat(key): string {
   hash[0] ^= hash[0] >>> 11;
   hash[0] += hash[0] << 15;
 
-  return '0x' + hash[0].toString(16).toUpperCase();
+  return hash[0];
+}
+
+export function joaat(key): string {
+  return '0x' + joaatUint32(key).toString(16).toUpperCase();
 }

@@ -1,4 +1,5 @@
 import { sendSdkMessage } from "../client/sendSdkMessage";
+import { applyEntityMatrix, makeEntityMatrix } from "./math";
 import { useKeyMapping } from "./utils";
 
 export const SelectionController = new class SelectionController {
@@ -45,22 +46,10 @@ export const SelectionController = new class SelectionController {
       return;
     }
 
-    const [f, r, u, a] = GetEntityMatrix(this.selectedEntity);
-    const data = new Float32Array([
-      r[0], r[1], r[2], 0,
-      f[0], f[1], f[2], 0,
-      u[0], u[1], u[2], 0,
-      a[0], a[1], a[2], 1,
-    ]);
+    const data = makeEntityMatrix(this.selectedEntity);
 
     if (DrawGizmo(data as any, this.selectedEntity.toString())) {
-      SetEntityMatrix(
-        this.selectedEntity,
-        data[4], data[5], data[6], // r
-        data[0], data[1], data[2], // f
-        data[8], data[9], data[10], // u
-        data[12], data[13], data[14], // a
-      );
+      applyEntityMatrix(this.selectedEntity, data);
     }
   }
 };

@@ -45,7 +45,7 @@ export function isRMB(e: MouseEvent): boolean {
   return e.button === 2;
 }
 
-export type ShortcutHandler = (active: boolean, key: number) => void;
+export type ShortcutHandler = (active: boolean, key: number, isCtrl: boolean, isShift: boolean, isAlt: boolean) => void;
 
 export class InputController {
   private readonly activeKeys: Record<number, boolean> = {};
@@ -54,6 +54,8 @@ export class InputController {
   private cameraControlActive = false;
 
   private shortcutHandlers: Record<string, ShortcutHandler> = {};
+
+  private inputOverrides = 0;
 
   constructor(
     private readonly container: React.RefObject<HTMLDivElement>,
@@ -68,6 +70,12 @@ export class InputController {
     }
   }
 
+  overrideInput() {
+    this.inputOverrides++;
+
+    return () => this.inputOverrides--;
+  }
+
   setKeyboardShortcut(code: string, handler: ShortcutHandler) {
     this.shortcutHandlers[code] = handler;
 
@@ -75,7 +83,7 @@ export class InputController {
   }
 
   setActiveKeyboardShortcut(code: string, handler: ShortcutHandler) {
-    return this.setKeyboardShortcut(code, (active, key) => active && handler(active, key));
+    return this.setKeyboardShortcut(code, (active, ...args) => active && handler(active, ...args));
   }
 
   destroy() {
@@ -89,6 +97,10 @@ export class InputController {
   }
 
   private handleContainerMouseMove = (event: MouseEvent) => {
+    if (this.inputOverrides > 0) {
+      return;
+    }
+
     if (this.cameraControlActive) {
       sendMousePos(event.movementX, event.movementY);
 
@@ -104,12 +116,16 @@ export class InputController {
   };
 
   private handleKeyState(event: KeyboardEvent, active: boolean) {
+    if (this.inputOverrides > 0) {
+      return;
+    }
+
     event.preventDefault();
     event.stopPropagation();
 
     const key = mapKey(event.which, event.location);
 
-    this.shortcutHandlers[event.code]?.(active, key);
+    this.shortcutHandlers[event.code]?.(active, key, event.ctrlKey, event.shiftKey, event.altKey);
 
     switch (event.code) {
       case 'KeyW':
@@ -143,6 +159,10 @@ export class InputController {
     }
   }
   private handleMouseButtonState(event: MouseEvent, active: boolean) {
+    if (this.inputOverrides > 0) {
+      return;
+    }
+
     event.preventDefault();
     event.stopPropagation();
 

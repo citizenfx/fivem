@@ -125,7 +125,13 @@ export const useDebouncedCallback = <T extends any[], U extends any, R = (...arg
     }, timeout);
   };
 
-  return React.useCallback<any>(realCb, [...watchers]);
+  React.useEffect(() => () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+  }, []);
+
+  return React.useCallback<any>(realCb, []);
 };
 
 export interface UseOpenFolderSelectDialogOptions {

@@ -6,6 +6,8 @@ import { InputController } from "./InputController";
 import { onWindowEvent } from 'utils/windowMessages';
 import { ShellPersonality, ShellState } from 'store/ShellState';
 
+const noop = () => {};
+
 type WESelection = null | {
   id: number,
   type: number,
@@ -24,6 +26,8 @@ export const WorldEditorState = new class WorldEditorState {
   public editorSelect = false;
   public editorMode = EditorMode.TRANSLATE;
   public editorLocal = false;
+
+  public objectsBrowserOpen = false;
 
   public selection: WESelection = null;
 
@@ -50,6 +54,18 @@ export const WorldEditorState = new class WorldEditorState {
     sendApiMessage(worldEditorApi.stop);
 
     ShellState.setPersonality(ShellPersonality.THEIA);
+  };
+
+  toggleObjectsBrowser = () => {
+    this.objectsBrowserOpen = !this.objectsBrowserOpen;
+  };
+
+  openObjectsBrowser = () => {
+    this.objectsBrowserOpen = true;
+  };
+
+  closeObjectsBrowser = () => {
+    this.objectsBrowserOpen = false;
   };
 
   enableTranslation = () => {
@@ -89,7 +105,8 @@ export const WorldEditorState = new class WorldEditorState {
       .setActiveKeyboardShortcut('Digit1', this.enableTranslation)
       .setActiveKeyboardShortcut('Digit2', this.enableRotation)
       .setActiveKeyboardShortcut('Digit3', this.enableScaling)
-      .setActiveKeyboardShortcut('Backquote', this.toggleEditorLocal);
+      .setActiveKeyboardShortcut('Backquote', this.toggleEditorLocal)
+      .setActiveKeyboardShortcut('KeyA', (_active, _key, isCtrl) => isCtrl && this.openObjectsBrowser());
   }
 
   destroyInputController() {
@@ -97,6 +114,14 @@ export const WorldEditorState = new class WorldEditorState {
       this.inputController.destroy();
       this.inputController = undefined;
     }
+  }
+
+  overrideInput() {
+    if (!this.inputController) {
+      return noop;
+    }
+
+    return this.inputController.overrideInput();
   }
 
   private updateEditorControls() {

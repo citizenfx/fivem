@@ -13,6 +13,8 @@
   cursor: pointer;
   user-select: none;
 
+  @include interactiveTransition;
+
   &:hover {
     background-color: rgba($acColor, 1);
   }
@@ -27,10 +29,7 @@
   width: 25vw;
   min-height: $q*10;
 
-  background-color: rgba($bgColor, .75);
-  box-shadow: 0 0 10px 5px rgba($bgColor, .5), 0 0 30px 10px rgba($bgColor, .25);
-
-  z-index: 4000;
+  @include overlayPanel;
 }
 
 .status-center-decorator {

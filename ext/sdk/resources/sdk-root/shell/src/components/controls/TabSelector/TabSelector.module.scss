@@ -22,7 +22,10 @@
     &.active {
       padding-bottom: $q*2 + 2px;
 
-      border: solid 2px;
+      // expanded as something is messing up order of these rules in prod build :\
+      // like, `border: solid 2px` ALL OF A SUDDEN appears after `border-image-*` rules, which, of course, breaks border-image
+      border-width: 2px;
+      border-style: solid;
       border-image-slice: 1;
       border-image-source: linear-gradient(to bottom, $acColor, rgba($fgColor, .2));
       border-bottom: none;
