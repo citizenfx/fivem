@@ -388,7 +388,7 @@ static hook::cdecl_stub<void(fwArchetype*)> registerArchetype([]()
 	return hook::get_pattern("48 8B D9 8A 49 60 80 F9", -11);
 });
 
-static void* MakeStructFromMsgPack(uint32_t hash, const std::map<std::string, msgpack::object>& data, void* old = nullptr);
+static void* MakeStructFromMsgPack(uint32_t hash, const std::map<std::string, msgpack::object>& data, void* old = nullptr, bool keep = false);
 
 static bool FillStructure(rage::parStructure* structure, const std::function<bool(rage::parMember* member)>& fn)
 {
@@ -485,6 +485,26 @@ static bool SetVector(void* ptr, const msgpack::object& obj)
 			y = *(float*)(obj.via.ext.data() + 4);
 			z = *(float*)(obj.via.ext.data() + 8);
 			w = *(float*)(obj.via.ext.data() + 12);
+		}
+	}
+	else if (obj.type == msgpack::type::ARRAY)
+	{
+		std::vector<float> floats = obj.as<std::vector<float>>();
+
+		if (floats.size() >= 2)
+		{
+			x = floats[0];
+			y = floats[1];
+		}
+
+		if (floats.size() >= 3)
+		{
+			z = floats[2];
+		}
+
+		if (floats.size() >= 4)
+		{
+			w = floats[3];
 		}
 	}
 
@@ -652,9 +672,9 @@ static bool SetArray(void* ptr, const msgpack::object& value, rage::parMember* m
 	return true;
 }
 
-static void* MakeStructFromMsgPack(const char* structType, const std::map<std::string, msgpack::object>& data, void* old = nullptr)
+void* MakeStructFromMsgPack(const char* structType, const std::map<std::string, msgpack::object>& data, void* old = nullptr, bool keep = false)
 {
-	return MakeStructFromMsgPack(HashRageString(structType), data, old);
+	return MakeStructFromMsgPack(HashRageString(structType), data, old, keep);
 }
 
 static bool SetFromMsgPack(rage::parMember* memberBase, void* structVal, const msgpack::object& value)
@@ -739,7 +759,7 @@ static bool SetFromMsgPack(rage::parMember* memberBase, void* structVal, const m
 	return true;
 }
 
-static void* MakeStructFromMsgPack(uint32_t hash, const std::map<std::string, msgpack::object>& data, void* old)
+static void* MakeStructFromMsgPack(uint32_t hash, const std::map<std::string, msgpack::object>& data, void* old, bool keep)
 {
 	std::string structTypeReal;
 
@@ -764,13 +784,29 @@ static void* MakeStructFromMsgPack(uint32_t hash, const std::map<std::string, ms
 		return nullptr;
 	}
 
-	auto retval = (!old) ? structDef->m_new() : structDef->m_placementNew(old);
+	void* retval = nullptr;
 
-	std::map<uint32_t, msgpack::object> mappedData;
+	if (old)
+	{
+		if (keep)
+		{
+			retval = old;
+		}
+		else
+		{
+			retval = structDef->m_placementNew(old);
+		}
+	}
+	else
+	{
+		retval = structDef->m_new();
+	}
+
+	std::map<uint32_t, std::reference_wrapper<const msgpack::object>> mappedData;
 
 	for (auto& entry : data)
 	{
-		mappedData[HashRageString(entry.first.c_str())] = std::move(entry.second);
+		mappedData.emplace(HashRageString(entry.first.c_str()), entry.second);
 	}
 
 	if (retval)
@@ -922,8 +958,7 @@ static InitFunction initFunction([]()
 				CMapData* mapData = new CMapData();
 
 				// 1604, temp
-				// #TODOXBUILD: block 1868
-				assert(!Is2060());
+				assert(!xbr::IsGameBuildOrGreater<1868>());
 
 				*(uintptr_t*)mapData = 0x1419343E0;
 				mapData->name = HashString(nameRef.c_str());
