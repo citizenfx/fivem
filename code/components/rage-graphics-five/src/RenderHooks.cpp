@@ -580,6 +580,11 @@ static HRESULT CreateD3D11DeviceWrapOrig(_In_opt_ IDXGIAdapter* pAdapter, D3D_DR
 		else if (!pSwapChainDesc->Windowed)
 		{
 			auto sc = WRL::Make<DeferredFullscreenSwapChain>(*ppSwapChain);
+
+			// release the original swapchain
+			(*ppSwapChain)->Release();
+			*ppSwapChain = NULL;
+
 			sc.CopyTo(ppSwapChain);
 		}
 	}
