@@ -845,13 +845,15 @@ static void PatchCreateResults(ID3D11Device** ppDevice, ID3D11DeviceContext** pp
 
 static HRESULT (*g_origD3D11CreateDeviceAndSwapChain)(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _In_opt_ CONST DXGI_SWAP_CHAIN_DESC* pSwapChainDesc, _COM_Outptr_opt_ IDXGISwapChain** ppSwapChain, _COM_Outptr_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _COM_Outptr_opt_ ID3D11DeviceContext** ppImmediateContext);
 
+#include <variant>
+
 struct ModuleData
 {
 	using TSet = std::map<uintptr_t, uintptr_t>;
 
 	const TSet dataSet;
 
-	ModuleData(std::initializer_list<std::wstring> moduleNames)
+	ModuleData(std::initializer_list<std::variant<std::wstring, HMODULE>> moduleNames)
 		: dataSet(CreateSet(moduleNames))
 	{
 	}
@@ -876,14 +878,14 @@ struct ModuleData
 	}
 
 private:
-	TSet CreateSet(std::initializer_list<std::wstring> moduleNames)
+	TSet CreateSet(std::initializer_list<std::variant<std::wstring, HMODULE>> moduleNames)
 	{
 		TSet set;
 
 		for (auto& name : moduleNames)
 		{
-			HMODULE hMod = GetModuleHandle(name.c_str());
-
+			HMODULE hMod = (name.index() == 0) ? GetModuleHandle(std::get<0>(name).c_str()) : std::get<1>(name);
+			
 			if (hMod)
 			{
 				MODULEINFO mi;
@@ -898,6 +900,8 @@ private:
 };
 
 static std::unique_ptr<ModuleData> g_libgl;
+static std::unique_ptr<ModuleData> g_d3d11;
+static HMODULE g_sysD3D11;
 
 static HRESULT D3D11CreateDeviceAndSwapChainHook(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _In_opt_ CONST DXGI_SWAP_CHAIN_DESC* pSwapChainDesc, _COM_Outptr_opt_ IDXGISwapChain** ppSwapChain, _COM_Outptr_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _COM_Outptr_opt_ ID3D11DeviceContext** ppImmediateContext)
 {
@@ -918,6 +922,47 @@ static HRESULT D3D11CreateDeviceAndSwapChainHook(_In_opt_ IDXGIAdapter* pAdapter
 
 static HRESULT D3D11CreateDeviceHook(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _COM_Outptr_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _COM_Outptr_opt_ ID3D11DeviceContext** ppImmediateContext)
 {
+	// if this is the OS calling us, we need to be special and *somehow* convince any hook to give up their true colors
+	// since D3D11CoreCreateDevice is super obscure, we'll use *that*
+	if (g_d3d11->IsInSet(_ReturnAddress()))
+	{
+		static auto D3D11CoreCreateDevice = (HRESULT(WINAPI*)(IDXGIFactory * pFactory,
+		IDXGIAdapter * pAdapter,
+		D3D_DRIVER_TYPE DriverType,
+		HMODULE Software, UINT Flags,
+		const D3D_FEATURE_LEVEL* pFeatureLevels,
+		UINT FeatureLevels,
+		UINT SDKVersion,
+		ID3D11Device** ppDevice,
+		D3D_FEATURE_LEVEL* pFeatureLevel)) GetProcAddress(g_sysD3D11, "D3D11CoreCreateDevice");
+
+		if (D3D11CoreCreateDevice)
+		{
+			if (!pFeatureLevels)
+			{
+				static const D3D_FEATURE_LEVEL fls[] = 
+				{
+					D3D_FEATURE_LEVEL_11_0
+				};
+
+				pFeatureLevels = fls;
+				FeatureLevels = 1;
+			}
+
+			HRESULT hr = D3D11CoreCreateDevice(NULL, pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion, ppDevice, pFeatureLevel);
+
+			if (SUCCEEDED(hr))
+			{
+				if (ppDevice && *ppDevice && ppImmediateContext)
+				{
+					(*ppDevice)->GetImmediateContext(ppImmediateContext);
+				}
+				
+				return hr;
+			}
+		}
+	}
+
 	PatchAdapter(&pAdapter);
 
 	if (pAdapter)
@@ -984,6 +1029,9 @@ void HookLibGL(HMODULE libGL)
 			}
 		}
 	}
+
+	g_sysD3D11 = realSysDll;
+	g_d3d11 = std::unique_ptr<ModuleData>(new ModuleData{ realSysDll });
 
 	// maybe
 	g_reshit = true;
