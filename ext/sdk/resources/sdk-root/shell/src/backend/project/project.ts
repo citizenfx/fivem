@@ -148,8 +148,6 @@ export class Project implements ApiContribution {
     return disposableFromFunction(() => delete this.assetConfigChangeListeners[assetPath]);
   }
 
-  private readonly resourceConfigChangeListeners: Record<string, Array<(cfg: ProjectAssetBaseConfig) => void>> = {};
-
   applyManifest(fn: (manifest: ProjectManifest) => void) {
     this.manifestMapping.apply(fn);
   }
@@ -457,7 +455,7 @@ export class Project implements ApiContribution {
       manifest.assets[assetRelativePath] = newConfig;
     });
 
-    (this.resourceConfigChangeListeners[request.assetPath] || []).forEach((listener) => listener(newConfig));
+    this.assetConfigChangeListeners[request.assetPath]?.(newConfig);
 
     this.apiClient.emit(assetApi.setConfig, [request.assetPath, newConfig]);
 
