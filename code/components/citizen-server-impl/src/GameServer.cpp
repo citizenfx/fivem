@@ -1067,15 +1067,21 @@ namespace fx
 		// ensure mono thread attachment (if this was a worker thread)
 		MonoEnsureThreadAttached();
 
-		// trigger a event signaling the player's drop
-		m_instance
-			->GetComponent<fx::ResourceManager>()
-			->GetComponent<fx::ResourceEventManagerComponent>()
-			->TriggerEvent2(
-				"playerDropped",
-				{ fmt::sprintf("internal-net:%d", client->GetNetId()) },
-				realReason
-			);
+		// verify if the client is still using a TempID
+		bool isFinal = (client->GetNetId() < 0xFFFF);
+
+		// trigger a event signaling the player's drop, if final
+		if (isFinal)
+		{
+			m_instance
+				->GetComponent<fx::ResourceManager>()
+				->GetComponent<fx::ResourceEventManagerComponent>()
+				->TriggerEvent2(
+					"playerDropped",
+					{ fmt::sprintf("internal-net:%d", client->GetNetId()) },
+					realReason
+				);
+		}
 
 		// remove the host if this was the host
 		if (m_clientRegistry->GetHost() == client)
@@ -1098,7 +1104,7 @@ namespace fx
 			// for name handling, send player state
 			fwRefContainer<ServerEventComponent> events = m_instance->GetComponent<ServerEventComponent>();
 
-			if (!fx::IsBigMode())
+			if (!fx::IsBigMode() && isFinal)
 			{
 				// send every player information about the dropping client
 				events->TriggerClientEventReplayed("onPlayerDropped", std::optional<std::string_view>(), client->GetNetId(), client->GetName(), client->GetSlotId());
