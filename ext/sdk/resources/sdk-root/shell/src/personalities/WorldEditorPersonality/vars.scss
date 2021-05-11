@@ -6,3 +6,13 @@ $zToolbar: 2;
 $editorToolbarHeight: $q*10;
 
 $weToolbarHeight: $q*10;
+
+@mixin overlayPanel {
+  backdrop-filter: blur(20px);
+
+  background-color: rgba($bgColor, .95);
+  box-shadow: 0 0 10px 5px rgba($bgColor, .5), 0 0 30px 10px rgba($bgColor, .25);
+  border: solid 2px rgba($fgColor, .5);
+
+  z-index: 4000;
+}

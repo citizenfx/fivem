@@ -4,6 +4,7 @@
 #define CNL_ENDPOINT "https://lambda.fivem.net"
 
 #include <LegitimacyAPI.h>
+#include <CL2LaunchMode.h>
 
 #include <json.hpp>
 
@@ -79,7 +80,7 @@ static HookFunction initFunction([]()
 						},
 						[writePipe, closeConnection](bool success, const char* data, size_t length)
 					{
-						if (!success && strstr(data, "HTTP 4") != nullptr)
+						if (!success && strstr(data, "HTTP 4") != nullptr && !launch::IsSDKGuest())
 						{
 							writePipe(1 /* FRAME */, json::object({
 								{ "cmd", "AUTHORIZE" },

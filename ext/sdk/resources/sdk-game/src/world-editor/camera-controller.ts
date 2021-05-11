@@ -8,6 +8,8 @@ export const CameraController = new class CameraController {
   private pos = new Vec3(0, 0, 100);
   private rot = RotDeg3.zero();
 
+  private forwardVector = Vec3.zero();
+
   private move = {
     x: 0,
     y: 0,
@@ -56,6 +58,10 @@ export const CameraController = new class CameraController {
     return this.pos;
   }
 
+  getForwardVector(): Vec3 {
+    return this.forwardVector;
+  }
+
   getSpeedMultiplier(): number {
     const fastNormal = getSmartControlNormal(CONTROLS.MOVE_FAST);
     const slowNormal = getSmartControlNormal(CONTROLS.MOVE_SLOW);
@@ -74,6 +80,8 @@ export const CameraController = new class CameraController {
     const speedMultiplier = this.getSpeedMultiplier();
 
     const [forward, left] = this.rot.directions();
+
+    this.forwardVector = forward.copy();
 
     forward.mult(dx * speedMultiplier);
     left.mult(dy * speedMultiplier);

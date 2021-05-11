@@ -44,3 +44,16 @@ export function useKeyMapping(cmd: string, desc: string, device: string, key: st
 
   return state;
 }
+
+export function drawDebugText(text: string, x: number = .5, y: number = 0) {
+  SetTextFont(4);
+  SetTextProportional(true);
+  SetTextScale(0, 0.5);
+  SetTextColour(255, 255, 255, 255);
+  SetTextDropShadow();
+  SetTextOutline();
+  SetTextEntry('STRING');
+  AddTextComponentString(text);
+
+  DrawText(x, y);
+}

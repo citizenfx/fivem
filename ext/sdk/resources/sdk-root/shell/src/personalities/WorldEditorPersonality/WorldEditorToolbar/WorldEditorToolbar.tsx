@@ -1,15 +1,18 @@
 import React from 'react';
 import classnames from 'classnames';
 import { observer } from "mobx-react-lite";
-import { ShellPersonality, ShellState } from 'store/ShellState';
 import { EditorMode, WorldEditorState } from '../WorldEditorState';
 import { BsBoundingBoxCircles, BsX } from 'react-icons/bs';
 import { CgArrowsExpandUpRight } from 'react-icons/cg';
 import { GiResize } from 'react-icons/gi';
 import { AiOutlineRotateRight } from 'react-icons/ai';
 import { BiWorld } from 'react-icons/bi';
-import s from './WorldEditorToolbar.module.scss';
 import { StatusBar } from './StatusBar/StatusBar';
+import { ObjectsBrowser } from './ObjectsBrowser/ObjectsBrowser';
+import s from './WorldEditorToolbar.module.scss';
+
+// import { serverApi } from 'shared/api.events';
+// import { sendApiMessage } from 'utils/api';
 
 export const WorldEditorToolbar = observer(function WorldEditorToolbar() {
   return (
@@ -27,6 +30,10 @@ export const WorldEditorToolbar = observer(function WorldEditorToolbar() {
             {WorldEditorState.mapFile}
           </div>
         </div>
+
+        {/* <button onClick={() => sendApiMessage(serverApi.restartResource, 'sdk-game')}>
+          restart sdk-game
+        </button> */}
       </div>
 
       <div>
@@ -73,9 +80,7 @@ export const WorldEditorToolbar = observer(function WorldEditorToolbar() {
       </div>
 
       <div>
-        <div>
-          Selection: {JSON.stringify(WorldEditorState.selection)}
-        </div>
+        <ObjectsBrowser />
 
         <StatusBar />
       </div>

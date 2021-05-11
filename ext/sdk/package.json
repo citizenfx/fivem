@@ -12,7 +12,9 @@
     "postinstall": "yarn run install:shell && yarn run install:theia && yarn run install:game",
     "start:shell": "yarn --cwd resources/sdk-root/shell run start",
     "start:game": "yarn --cwd resources/sdk-game run start",
-    "start": "concurrently --names \"shell,sdk-game\" \"yarn run start:shell --norebuild\" \"yarn run start:game\""
+    "start": "concurrently --names \"shell,sdk-game\" \"yarn run start:shell --norebuild\" \"yarn run start:game\"",
+
+    "we:build-archetypes": "node resources/sdk-root/shell/scripts/build-archetypes"
   },
   "devDependencies": {
     "concurrently": "^5.3.0"

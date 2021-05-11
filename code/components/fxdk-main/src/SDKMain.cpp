@@ -381,6 +381,8 @@ void SdkMain()
 	CefSettings settings;
 	settings.no_sandbox = true;
 
+	settings.background_color = 0xFF161923;
+
 	settings.remote_debugging_port = 13173;
 	settings.log_severity = LOGSEVERITY_DEFAULT;
 

@@ -1,5 +1,6 @@
 import { CameraController } from './camera-controller';
 import './environment-manager';
+import { PreviewManager } from './preview-manager';
 import { SelectionController } from './selection-controller';
 
 setTimeout(() => {
@@ -9,6 +10,7 @@ setTimeout(() => {
   setTick(() => {
     CameraController.update();
     SelectionController.update();
+    PreviewManager.update();
   });
 
   ShutdownLoadingScreen();
