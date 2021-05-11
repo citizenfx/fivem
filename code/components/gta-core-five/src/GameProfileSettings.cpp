@@ -283,4 +283,33 @@ static HookFunction hookFunction([]()
 {
 	g_prefs = hook::get_address<int*>(hook::get_pattern("8D 0C 9B 8B 14 AA 8D 3C 4A 83 F8 FF 0F 84", -4));
 	g_profileSettings = hook::get_address<void**>(hook::get_pattern("44 38 7B 20 0F 84 ? ? 00 00 41 8D 7F 02", -4));
+
+	
+	// Patches enabling ShadowQuality=OFF in pausemenu
+	// 
+    // 8D 4B 42      lea     ecx, [rbx+42h]
+    // FF CA         dec     edx    <---------------
+	hook::nop(hook::get_pattern<unsigned char>("8D 4B 42 FF CA", 3), 2);
+
+	// 8B 45 88      mov     eax, [rbp+0D0h+var_148]
+    // FF C8         dec     eax   <--------------
+    // 3B C1         cmp     eax, ecx
+	hook::nop(hook::get_pattern<unsigned char>("8B 45 ? FF C8 3B C1", 3), 2);
+
+	// 8B 44 24 68   mov     eax, [rsp+300h+var_298]
+    // FF C8         dec     eax   <----------------
+    // 3B C1         cmp     eax, ecx
+	hook::nop(hook::get_pattern<unsigned char>("8B 44 ? ? FF C8 3B C1", 4), 2);
+
+	// *This is where the Game converts the value from profile/preferences in the pausemenu to the CGraphicsSettings in the CSettingsManager*
+	// 89 43 5C             mov     [rbx+5Ch], eax
+    // 8B 05 04 E3 ED 01    mov     eax, cs:pref_shadowQuality
+    // FF C0                inc     eax  <---------------
+	hook::nop(hook::get_pattern<unsigned char>("89 43 ? 8B 05 ? ? ? ? FF C0 89", 9), 2);
+
+	// Most of the checks are done via the game's internal settings, but there is one here in the pausemenu for another option(#93)
+	// 83 3D 92 A2 EC 01 02   cmp     cs:pref_shadowQuality, 2  <--------------- (this should be 3 now)
+	// 41 0F 9D C4            setnl   r12b
+	unsigned char *cmp2 = hook::get_pattern<unsigned char>("83 3D ? ? ? ? 02 41 0F 9D C4", 6);
+	*cmp2 = 0x03;
 });
