@@ -74,6 +74,9 @@ static void Flashlight_Process(CWeaponComponentFlashlight* thisptr, CPed* ped)
 		return origFlashlightProcess(thisptr, ped);
 	}
 	
+	// spoof this float so it thinks we're aimed in. ( This needed is for the `weapon_flashlight` )
+	thisptr->aimFraction = 500.0f;
+
 	// Flashlight can be destroyed when climbing over terrain, etc, it will save this flag when recreated
 	if (thisptr->flashlightFlags & FLASHLIGHT_TURN_ON_NEXT_AIM)
 	{
