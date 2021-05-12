@@ -1469,7 +1469,26 @@ static void DisplayD3DCrashMessage(HRESULT hr)
 		errorString = va(L"0x%08x", hr);
 	}
 
-	FatalError("DirectX encountered an unrecoverable error: %s - %s", ToNarrow(errorString), ToNarrow(errorBuffer));
+	std::string removedError;
+
+	if (hr == DXGI_ERROR_DEVICE_REMOVED)
+	{
+		HRESULT removedReason = GetD3D11Device()->GetDeviceRemovedReason();
+
+		wchar_t errorBuffer[8192] = { 0 };
+		DXGetErrorDescriptionW(removedReason, errorBuffer, _countof(errorBuffer));
+
+		auto removedString = DXGetErrorStringW(removedReason);
+
+		if (!removedString)
+		{
+			removedString = va(L"0x%08x", hr);
+		}
+
+		removedError = ToNarrow(fmt::sprintf(L"\nGetDeviceRemovedReason returned %s - %s", removedString, errorBuffer));
+	}
+
+	FatalError("DirectX encountered an unrecoverable error: %s - %s%s", ToNarrow(errorString), ToNarrow(errorBuffer), removedError);
 }
 
 static HRESULT D3DGetData(ID3D11DeviceContext* dc, ID3D11Asynchronous* async, void* data, UINT dataSize, UINT flags)
