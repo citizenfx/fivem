@@ -2189,7 +2189,9 @@
 
 				<Item> <cTextId>GFX_TXTQ</cTextId>			<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_GFX_TEXTURE_QUALITY</MenuPref> 		<MenuOption>MENU_OPTION_GFX_NIGHTLIGHTS</MenuOption>	<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
 				<Item> <cTextId>GFX_SHADERQ</cTextId>		<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_GFX_SHADER_QUALITY</MenuPref> 		<MenuOption>MENU_OPTION_GFX_SHADERQ</MenuOption>		<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
-				<Item> <cTextId>GFX_SHADOWQ</cTextId>		<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_GFX_SHADOW_QUALITY</MenuPref> 		<MenuOption>MENU_OPTION_GFX_NIGHTLIGHTS</MenuOption>	<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
+		<!--Changed to allow Shadows=OFF-->
+		<!--<Item> <cTextId>GFX_SHADOWQ</cTextId>		<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_GFX_SHADOW_QUALITY</MenuPref> 		<MenuOption>MENU_OPTION_GFX_NIGHTLIGHTS</MenuOption>	<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>-->
+				<Item> <cTextId>GFX_SHADOWQ</cTextId>		<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_GFX_SHADOW_QUALITY</MenuPref> 		<MenuOption>MENU_OPTION_GFX_SHADOWS</MenuOption>		<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
 				<Item> <cTextId>GFX_REFELECTIONQ</cTextId>	<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_GFX_REFLECTION_QUALITY</MenuPref>	<MenuOption>MENU_OPTION_GFX_REFLECTION</MenuOption>		<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
 				<Item> <cTextId>GFX_REFLECTION_MSAA</cTextId><MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>	<MenuPref>PREF_GFX_REFLECTION_MSAA</MenuPref>		<MenuOption>MENU_OPTION_GFX_MSAA</MenuOption>			<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
 				<Item> <cTextId>GFX_WATERQ</cTextId>		<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_GFX_WATER_QUALITY</MenuPref> 		<MenuOption>MENU_OPTION_GFX_SHADERQ</MenuOption>		<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
