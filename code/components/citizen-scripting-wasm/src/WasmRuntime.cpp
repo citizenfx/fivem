@@ -171,7 +171,12 @@ result_t WasmRuntime::LoadFile(char* scriptName)
 		return hr;
 	}
 
-	wasm_runtime_create_module(m_runtime, fileData.data(), length);
+	bool success = wasm_runtime_create_module(m_runtime, fileData.data(), length);
+
+	if (!success)
+	{
+		return FX_E_INVALIDARG;
+	}
 
 	return FX_S_OK;
 }
@@ -253,7 +258,7 @@ result_t WasmRuntime::GetMemoryUsage(int64_t* memoryUsage)
 void ScriptTraceV(const char* string, fmt::printf_args formatList)
 {
 	auto t = fmt::vsprintf(string, formatList);
-	console::Printf(fmt::sprintf("script:%s", WasmRuntime::GetCurrent()->GetResourceName()), "%s", t);
+	console::Printf(fmt::sprintf("script:%s", WasmRuntime::GetCurrent()->GetResourceName()), "%s\n", t);
 
 	WasmRuntime::GetCurrent()->GetScriptHost()->ScriptTrace(const_cast<char*>(t.c_str()));
 }
