@@ -45,6 +45,13 @@ static void Print(const char* str)
 static auto g_printf = &Print;
 static thread_local std::string g_printChannel;
 static bool g_startOfLine = true;
+static int lastColor = 7;
+
+template<typename Stream>
+inline void WriteColor(Stream& buf, int color)
+{
+	buf << fmt::sprintf("\x1B[%dm", g_colors[color]);
+}
 
 template<typename Stream>
 inline void WriteChannel(Stream& buf, const std::string& channelName)
@@ -82,6 +89,7 @@ static void CfxPrintf(const std::string& str)
 		if (g_startOfLine)
 		{
 			WriteChannel(buf, g_printChannel);
+			WriteColor(buf, lastColor);
 			g_startOfLine = false;
 		}
 
@@ -89,7 +97,8 @@ static void CfxPrintf(const std::string& str)
 		{
 			if (g_allowVt)
 			{
-				buf << fmt::sprintf("\x1B[%dm", g_colors[str[i + 1] - '0']);
+				lastColor = str[i + 1] - '0';
+				WriteColor(buf, lastColor);
 			}
 
 			i += 1;
