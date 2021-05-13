@@ -16,32 +16,19 @@
 #include <om/OMComponent.h>
 #include <Resource.h>
 
-// TODO: Better tracing
-void ScriptTraceV(const char* string, fmt::printf_args formatList)
-{
-	auto t = fmt::vsprintf(string, formatList);
-	console::Printf(fmt::sprintf("script:%s", "WASM"), "%s\n", t);
-
-	// console::Printf(fmt::sprintf("script:%s", WasmRuntime::GetCurrent()->GetResourceName()), "%s", t);
-
-	// WasmRuntime::GetCurrent()->GetScriptHost()->ScriptTrace(const_cast<char*>(t.c_str()));
-}
-
-template<typename... TArgs>
-void ScriptTrace(const char* string, const TArgs&... args)
-{
-	ScriptTraceV(string, fmt::make_printf_args(args...));
-}
-
 namespace fx
 {
 
-// TODO: Return result
-
-static void Invoke(fxNativeContext* ctx);
+static result_t Invoke(fxNativeContext* ctx);
 static void HostLog(const char* string);
+static result_t CanonicalizeRef(uint32_t ref_idx, char** canon);
 
-class WasmRuntime : public OMClass<WasmRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntime, IScriptEventRuntime, IScriptMemInfoRuntime>
+void ScriptTraceV(const char* string, fmt::printf_args formatList);
+
+template<typename... TArgs>
+void ScriptTrace(const char* string, const TArgs&... args);
+
+class WasmRuntime : public OMClass<WasmRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptRefRuntime, IScriptTickRuntime, IScriptEventRuntime, IScriptMemInfoRuntime>
 {
 private:
 	int m_instanceId;
@@ -61,7 +48,8 @@ public:
 		m_runtime = wasm_create_runtime();
 
 		wasm_set_logger_function((void (*)(const int8_t*))HostLog);
-		wasm_set_invoke_native((void (*)(void*))Invoke);
+		wasm_set_invoke_native((uint32_t (*)(void*))Invoke);
+		wasm_set_canonicalize_ref((uint32_t(*)(uint32_t, int8_t* const*))CanonicalizeRef);
 	}
 
 	~WasmRuntime()
@@ -86,6 +74,7 @@ public:
 
 	NS_DECL_ISCRIPTRUNTIME;
 	NS_DECL_ISCRIPTFILEHANDLINGRUNTIME;
+	NS_DECL_ISCRIPTREFRUNTIME;
 	NS_DECL_ISCRIPTTICKRUNTIME;
 	NS_DECL_ISCRIPTEVENTRUNTIME;
 	NS_DECL_ISCRIPTMEMINFORUNTIME;
@@ -164,7 +153,6 @@ result_t WasmRuntime::LoadFile(char* scriptName)
 
 	if (FX_FAILED(result))
 	{
-		ScriptTrace("WASM couldn't load %s file", scriptName);
 		return result;
 	}
 
@@ -218,6 +206,37 @@ result_t WasmRuntime::TriggerEvent(char* eventName, char* eventPayload, uint32_t
 	return FX_S_OK;
 }
 
+// TODO: some checks
+result_t WasmRuntime::CallRef(int32_t refIdx, char* argsSerialized, uint32_t argsLength, char** retvalSerialized, uint32_t* retvalLength)
+{
+	*retvalLength = 0;
+	*retvalSerialized = nullptr;
+
+	WasmPushEnvironment pushed(this);
+
+	wasm_runtime_call_ref(m_runtime, refIdx, (const uint8_t*)argsSerialized, argsLength, (const uint8_t**)retvalSerialized, retvalLength);
+
+	return FX_S_OK;
+}
+
+result_t WasmRuntime::DuplicateRef(int32_t refIdx, int32_t* outRefIdx)
+{
+	*outRefIdx = -1;
+
+	WasmPushEnvironment pushed(this);
+	*outRefIdx = wasm_runtime_duplicate_ref(m_runtime, refIdx);
+
+	return FX_S_OK;
+}
+
+result_t WasmRuntime::RemoveRef(int32_t refIdx)
+{
+	WasmPushEnvironment pushed(this);
+	wasm_runtime_remove_ref(m_runtime, refIdx);
+
+	return FX_S_OK;
+}
+
 result_t WasmRuntime::RequestMemoryUsage()
 {
 	return FX_S_OK;
@@ -231,15 +250,37 @@ result_t WasmRuntime::GetMemoryUsage(int64_t* memoryUsage)
 	return FX_S_OK;
 }
 
-static void Invoke(fxNativeContext* ctx)
+void ScriptTraceV(const char* string, fmt::printf_args formatList)
+{
+	auto t = fmt::vsprintf(string, formatList);
+	console::Printf(fmt::sprintf("script:%s", WasmRuntime::GetCurrent()->GetResourceName()), "%s", t);
+
+	WasmRuntime::GetCurrent()->GetScriptHost()->ScriptTrace(const_cast<char*>(t.c_str()));
+}
+
+template<typename... TArgs>
+void ScriptTrace(const char* string, const TArgs&... args)
+{
+	ScriptTraceV(string, fmt::make_printf_args(args...));
+}
+
+static result_t Invoke(fxNativeContext* ctx)
 {
 	auto host = WasmRuntime::GetCurrent()->GetScriptHost();
-	host->InvokeNative(*ctx);
+	return host->InvokeNative(*ctx);
 }
 
 static void HostLog(const char* string)
 {
 	ScriptTrace(string);
+}
+
+static result_t CanonicalizeRef(uint32_t ref_idx, char** canon)
+{
+	auto runtime = WasmRuntime::GetCurrent();
+	auto host = runtime->GetScriptHost();
+
+	return host->CanonicalizeRef(ref_idx, runtime->GetInstanceId(), canon);
 }
 
 static InitFunction initFunction([]()
