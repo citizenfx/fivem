@@ -897,14 +897,6 @@ FORMATS_EXPORT rage::RAGE_FORMATS_GAME::BlockMap* UnwrapRSC5(const wchar_t* file
 	uint32_t version;
 	fread(&version, 1, sizeof(version), f);
 
-	if (version != 110 && version != 32 && version != 8)
-	{
-		printf("not actually a supported file...\n");
-
-		//fclose(f);
-		//return nullptr;
-	}
-
 	uint32_t flags;
 	fread(&flags, 1, sizeof(flags), f);
 
