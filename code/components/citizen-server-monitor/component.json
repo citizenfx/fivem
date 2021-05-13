@@ -8,6 +8,7 @@
 		"citizen:server:instance",
 		"citizen:server:net",
 		"vendor:boost_filesystem",
+		"vendor:boost_random",
 		"vfs:impl:server"
 	],
 	"provides": []
