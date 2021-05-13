@@ -21,7 +21,7 @@ namespace fx
 
 static result_t Invoke(fxNativeContext* ctx);
 static void HostLog(const char* string);
-static result_t CanonicalizeRef(uint32_t ref_idx, char** canon);
+static int32_t CanonicalizeRef(uint32_t ref_idx, char* buffer, uint32_t buffer_size);
 
 void ScriptTraceV(const char* string, fmt::printf_args formatList);
 
@@ -49,7 +49,7 @@ public:
 
 		wasm_set_logger_function((void (*)(const int8_t*))HostLog);
 		wasm_set_invoke_native((uint32_t (*)(void*))Invoke);
-		wasm_set_canonicalize_ref((uint32_t(*)(uint32_t, int8_t* const*))CanonicalizeRef);
+		wasm_set_canonicalize_ref((int32_t(*)(uint32_t ref_idx, int8_t * buffer, uint32_t buffer_size))CanonicalizeRef);
 	}
 
 	~WasmRuntime()
@@ -275,12 +275,26 @@ static void HostLog(const char* string)
 	ScriptTrace(string);
 }
 
-static result_t CanonicalizeRef(uint32_t ref_idx, char** canon)
+static int32_t CanonicalizeRef(uint32_t ref_idx, char* buffer, uint32_t buffer_size)
 {
 	auto runtime = WasmRuntime::GetCurrent();
 	auto host = runtime->GetScriptHost();
 
-	return host->CanonicalizeRef(ref_idx, runtime->GetInstanceId(), canon);
+	char* refstr = nullptr;
+	host->CanonicalizeRef(ref_idx, runtime->GetInstanceId(), &refstr);
+	
+	auto length = strlen(refstr);
+
+	if (length + 1 > buffer_size)
+	{
+		return -(length + 1);
+	}
+
+	strcpy(buffer, refstr);
+
+	fwFree(refstr);
+
+	return length + 1;
 }
 
 static InitFunction initFunction([]()
