@@ -248,6 +248,12 @@ void ProfileSettingsInit()
 					continue;
 				}
 
+				// profile_gfx* is also a pretty bad one
+				if (name.find("profile_gfx") == 0)
+				{
+					continue;
+				}
+
 				auto setting = g_prefs[field->index];
 				_profileConVars[field->index] = std::make_shared<ProfileConVar>(name, setting);
 			}
