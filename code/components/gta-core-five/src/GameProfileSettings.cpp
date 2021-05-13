@@ -285,11 +285,36 @@ void ProfileSettingsInit()
 	});
 }
 
+static bool (*g_orig_parSettingsLoad)(void* parManager, const char* filename, const char* ext, void* outStruct, void* handle);
+
+static bool parser_SettingsLoad(void* parManager, const char* filename, const char* ext, char* outStruct, void* handle)
+{
+	bool rv = g_orig_parSettingsLoad(parManager, filename, ext, outStruct, handle);
+
+	if (rv)
+	{
+		int& shadowQuality = *(int*)(outStruct + 40);
+
+		if (shadowQuality < 0 || shadowQuality > 3)
+		{
+			shadowQuality = 1;
+		}
+	}
+
+	return rv;
+}
+
 static HookFunction hookFunction([]()
 {
 	g_prefs = hook::get_address<int*>(hook::get_pattern("8D 0C 9B 8B 14 AA 8D 3C 4A 83 F8 FF 0F 84", -4));
 	g_profileSettings = hook::get_address<void**>(hook::get_pattern("44 38 7B 20 0F 84 ? ? 00 00 41 8D 7F 02", -4));
 
+	// reset shadow quality to 'normal' if it has had -1 saved
+	{
+		auto location = hook::get_pattern("4C 8B C7 48 89 44 24 20 E8 ? ? ? ? 84 C0 75 14", 8);
+		hook::set_call(&g_orig_parSettingsLoad, location);
+		hook::call(location, parser_SettingsLoad);
+	}
 	
 	// Patches enabling ShadowQuality=OFF in pausemenu
 	// 
