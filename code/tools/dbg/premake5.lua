@@ -30,6 +30,15 @@ if _OPTIONS["game"] ~= "ny" then
 			"pe_debug/**.h",
 		}
 
+		postbuildcommands {
+			("if not exist \"%%{cfg.buildtarget.directory}\\msobj140.dll\" ( copy /y \"%s\" \"%%{cfg.buildtarget.directory}\" )"):format(
+				path.getabsolute('../../tools/dbg/bin/msobj140.dll'):gsub('/', '\\')
+			),
+			("if not exist \"%%{cfg.buildtarget.directory}\\mspdbcore.dll\" ( copy /y \"%s\" \"%%{cfg.buildtarget.directory}\" )"):format(
+				path.getabsolute('../../tools/dbg/bin/mspdbcore.dll'):gsub('/', '\\')
+			),
+		}
+
 	project "retarget_pe"
 		language "C++"
 		kind "ConsoleApp"
