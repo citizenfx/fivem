@@ -44,6 +44,14 @@ struct FlyThroughWindscreenParam
 	float* defaultPtr;
 };
 
+struct TrainDoor
+{
+	char pad_0[0x2C];
+	float ratio;
+	char pad_30[0x40];
+};
+static_assert(sizeof(TrainDoor) == 0x70);
+
 static std::unordered_set<fwEntity*> g_skipRepairVehicles{};
 
 static std::vector<FlyThroughWindscreenParam> g_flyThroughWindscreenParams{};
@@ -218,6 +226,10 @@ static int WheelFlagsOffset;
 static char* VehicleTopSpeedModifierPtr;
 static int VehicleCheatPowerIncreaseOffset;
 
+static bool* g_trainsForceDoorsOpen;
+static int TrainDoorCountOffset;
+static int TrainDoorArrayPointerOffset;
+
 static std::unordered_set<fwEntity*> g_deletionTraces;
 static std::unordered_set<void*> g_deletionTraces2;
 
@@ -345,6 +357,11 @@ static bool CanPedStandOnVehicleWrap(CVehicle* vehicle)
 	return g_origCanPedStandOnVehicle(vehicle);
 }
 
+TrainDoor* GetTrainDoor(fwEntity* train, uint32_t index)
+{
+	return &(*((TrainDoor**)(((char*)train) + TrainDoorArrayPointerOffset)))[index];
+}
+
 static HookFunction initFunction([]()
 {
 	{
@@ -470,6 +487,32 @@ static HookFunction initFunction([]()
 
 		DrawHandlerPtrOffset = *(uint8_t*)(location + 4);
 		HandlingDataPtrOffset = *(uint32_t*)(location - 35);
+	}
+
+	{
+		// replace netgame check for train doors with our own
+		g_trainsForceDoorsOpen = (bool*)hook::AllocateStubMemory(1);
+		*g_trainsForceDoorsOpen = true;
+
+		auto location = hook::get_pattern<uint32_t>("74 56 40 38 BB ? ? ? ? 74 49 48 8B CB E8", -8);
+		*location = (intptr_t)g_trainsForceDoorsOpen - (intptr_t)location - 4;
+	}
+
+	{
+		auto location = hook::get_pattern<char>("44 8B 91 ? ? ? ? 45 33 C0 45 8B C8 45 85 D2");
+
+		TrainDoorCountOffset = *(uint32_t*)(location + 3);
+		TrainDoorArrayPointerOffset = *(uint32_t*)(location + 33);
+	}
+
+	{
+		// allow door collisions to be changed at any train stage, not just at the station so remove check
+		// mov     eax, [rdi+1548h]       <-- train stage
+		// sub     eax, 2
+		// cmp     eax, 2
+		// ja      short loc_140F634B9
+		auto location = hook::get_pattern<char>("8B 87 ? ? ? ? 83 E8 02 83 F8 02 77 04");
+		hook::nop(location, 14);
 	}
 
 	{
@@ -966,6 +1009,51 @@ static HookFunction initFunction([]()
 		context.SetResult<int>(trackNode);
 	});
 
+	auto makeTrainFunction = [](auto cb)
+	{
+		return [=](fx::ScriptContext& context)
+		{
+			if (fwEntity* vehicle = getAndCheckVehicle(context, "makeTrainFunction"))
+			{
+				if (vehicle->IsOfType<CVehicle>() && readValue<int>(vehicle, VehicleTypeOffset) == 14)
+				{
+					cb(context, vehicle);
+				}
+			}
+		};
+	};
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_TRAINS_FORCE_DOORS_OPEN", [](fx::ScriptContext& context)
+	{
+		bool forceOpen = context.GetArgument<bool>(0);
+		*g_trainsForceDoorsOpen = forceOpen;
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_TRAIN_DOOR_COUNT", makeTrainFunction([](fx::ScriptContext& context, fwEntity* train)
+	{
+		context.SetResult(readValue<int>(train, TrainDoorCountOffset));
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_TRAIN_DOOR_OPEN_RATIO", makeTrainFunction([](fx::ScriptContext& context, fwEntity* train)
+	{
+		int doorIndex = context.GetArgument<int>(1);
+		if (doorIndex < 0 || doorIndex >= readValue<int>(train, TrainDoorCountOffset)) return;
+
+		float ratio = GetTrainDoor(train, doorIndex)->ratio;
+		context.SetResult(ratio);
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_TRAIN_DOOR_OPEN_RATIO", makeTrainFunction([](fx::ScriptContext& context, fwEntity* train)
+	{
+		int doorIndex = context.GetArgument<int>(1);
+		if (doorIndex < 0 || doorIndex >= readValue<int>(train, TrainDoorCountOffset)) return;
+
+		float ratio = context.GetArgument<float>(2);
+		if (ratio < 0.0f || ratio > 1.0f) return;
+
+		GetTrainDoor(train, doorIndex)->ratio = ratio;
+	}));
+
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_WHEEL_X_OFFSET", makeWheelFunction([](fx::ScriptContext& context, fwEntity* vehicle, uintptr_t wheelAddr)
 	{
 		context.SetResult<float>(*reinterpret_cast<float*>(wheelAddr + WheelXOffsetOffset));
@@ -1097,6 +1185,7 @@ static HookFunction initFunction([]()
 	{
 		g_skipRepairVehicles.clear();
 		ResetFlyThroughWindscreenParams();
+		*g_trainsForceDoorsOpen = true;
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_AUTO_REPAIR_DISABLED", [](fx::ScriptContext& context) {
