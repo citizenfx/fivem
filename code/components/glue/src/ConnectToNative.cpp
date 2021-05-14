@@ -237,7 +237,7 @@ static void ConnectTo(const std::string& hostnameStr, bool fromUI = false, const
 				{ "connectParams", connectParamsReal }
 			});
 			nui::PostFrameMessage("mpMenu", j.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace));
-
+	
 			return;
 		}
 	}
@@ -513,7 +513,7 @@ static InitFunction initFunction([] ()
 			ep.Call("connectionError", error);
 		});
 
-		netLibrary->OnConnectionProgress.Connect([] (const std::string& message, int progress, int totalProgress)
+		netLibrary->OnConnectionProgress.Connect([] (const std::string& message, int progress, int totalProgress, bool cancelable)
 		{
 			console::Printf("no_console", "OnConnectionProgress: %s\n", message);
 
@@ -522,6 +522,7 @@ static InitFunction initFunction([] ()
 			document.AddMember("message", rapidjson::Value(message.c_str(), message.size(), document.GetAllocator()), document.GetAllocator());
 			document.AddMember("count", progress, document.GetAllocator());
 			document.AddMember("total", totalProgress, document.GetAllocator());
+			document.AddMember("cancelable", cancelable, document.GetAllocator());
 
 			rapidjson::StringBuffer sbuffer;
 			rapidjson::Writer<rapidjson::StringBuffer> writer(sbuffer);
@@ -563,15 +564,15 @@ static InitFunction initFunction([] ()
 		});
 
 		static std::function<void()> finishConnectCb;
-		static bool disconnected;
+		static bool gameUnloaded;
 
 		netLibrary->OnInterceptConnection.Connect([](const std::string& url, const std::function<void()>& cb)
 		{
 			if (Instance<ICoreGameInit>::Get()->GetGameLoaded() || Instance<ICoreGameInit>::Get()->HasVariable("killedGameEarly"))
 			{
-				if (!disconnected)
+				if (!gameUnloaded)
 				{
-					netLibrary->OnConnectionProgress("Waiting for game to shut down...", 0, 100);
+					netLibrary->OnConnectionProgress("Waiting for game to shut down...", 0, 100, true);
 
 					finishConnectCb = cb;
 
@@ -580,7 +581,7 @@ static InitFunction initFunction([] ()
 			}
 			else
 			{
-				disconnected = false;
+				gameUnloaded = false;
 			}
 
 			return true;
@@ -588,19 +589,19 @@ static InitFunction initFunction([] ()
 
 		Instance<ICoreGameInit>::Get()->OnGameFinalizeLoad.Connect([]()
 		{
-			disconnected = false;
+			gameUnloaded = false;
 		});
 
 		Instance<ICoreGameInit>::Get()->OnShutdownSession.Connect([]()
 		{
-			if (finishConnectCb)
+			if (finishConnectCb && g_connected)
 			{
 				auto cb = std::move(finishConnectCb);
 				cb();
 			}
 			else
 			{
-				disconnected = true;
+				gameUnloaded = true;
 			}
 		}, 5000);
 
@@ -860,6 +861,7 @@ static InitFunction initFunction([] ()
 			{
 				netLibrary->CancelDeferredConnection();
 			}
+			netLibrary->FinalizeDisconnect();
 
 			g_connected = false;
 		}

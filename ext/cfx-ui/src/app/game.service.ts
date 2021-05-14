@@ -15,6 +15,7 @@ export class ConnectStatus {
 	public message: string;
 	public count: number;
 	public total: number;
+	public cancelable: boolean;
 }
 
 export class ConnectCard {
@@ -234,12 +235,13 @@ export abstract class GameService {
 		this.connecting.emit(server);
 	}
 
-	protected invokeConnectStatus(server: Server, message: string, count: number, total: number) {
+	protected invokeConnectStatus(server: Server, message: string, count: number, total: number, cancelable: boolean) {
 		this.connectStatus.emit({
 			server: server,
 			message: message,
 			count: count,
-			total: total
+			total: total,
+            cancelable: cancelable
 		});
 	}
 
@@ -404,7 +406,7 @@ export class CfxGameService extends GameService {
 					case 'connectStatus':
 						this.zone.run(() =>
 							this.invokeConnectStatus(
-								this.lastServer, event.data.data.message, event.data.data.count, event.data.data.total));
+								this.lastServer, event.data.data.message, event.data.data.count, event.data.data.total, event.data.data.cancelable));
 						break;
 					case 'connectCard':
 						this.zone.run(() =>
@@ -1134,7 +1136,7 @@ export class DummyGameService extends GameService {
 		this.invokeConnecting(server);
 
 		setTimeout(() => {
-			this.invokeConnectStatus(server, 'hey!', 12, 12)
+			this.invokeConnectStatus(server, 'hey!', 12, 12, false)
 
 			setTimeout(() => {
 				this.invokeConnectFailed(server, 'Sorry, we\'re closed. :(');
