@@ -116,6 +116,36 @@ public:
 	virtual bool IsAdditional() = 0;
 };
 
+struct CDoorMovementDataNodeData
+{
+	bool isManualDoor;
+	float openRatio;
+
+	bool opening;
+	bool fullyOpen;
+	bool closed;
+};
+
+struct CDoorScriptInfoDataNodeData
+{
+	uint32_t scriptHash;
+	uint32_t doorSystemHash;
+};
+
+struct CDoorScriptGameStateDataNodeData
+{
+	uint32_t doorSystemState;
+	bool holdOpen;
+};
+
+struct CHeliControlDataNodeData
+{
+	bool engineOff;
+
+	bool hasLandingGear;
+	uint32_t landingGearState;
+};
+
 struct CPlayerCameraNodeData
 {
 	int camMode;
@@ -295,6 +325,21 @@ struct CPedOrientationNodeData
 	float desiredHeading;
 };
 
+struct CPlaneGameStateDataNodeData
+{
+	uint32_t landingGearState;
+
+	uint16_t lockOnEntity;
+	uint32_t lockOnState;
+
+	uint32_t visibleDistance;
+};
+
+struct CPlaneControlDataNodeData
+{
+	float nozzlePosition;
+};
+
 struct CDynamicEntityGameStateNodeData
 {
 	std::map<int, int> decors;
@@ -367,6 +412,14 @@ public:
 public:
 	virtual void GetPosition(float* posOut) = 0;
 
+	virtual CDoorMovementDataNodeData* GetDoorMovement() = 0;
+
+	virtual CDoorScriptInfoDataNodeData* GetDoorScriptInfo() = 0;
+
+	virtual CDoorScriptGameStateDataNodeData* GetDoorScriptGameState() = 0;
+
+	virtual CHeliControlDataNodeData* GetHeliControl() = 0;
+
 	virtual CPlayerCameraNodeData* GetPlayerCamera() = 0;
 
 	virtual CPlayerWantedAndLOSNodeData* GetPlayerWantedAndLOS() = 0;
@@ -378,6 +431,10 @@ public:
 	virtual CVehicleGameStateNodeData* GetVehicleGameState() = 0;
 
 	virtual CVehicleAppearanceNodeData* GetVehicleAppearance() = 0;
+
+	virtual CPlaneGameStateDataNodeData* GetPlaneGameState() = 0;
+
+	virtual CPlaneControlDataNodeData* GetPlaneControl() = 0;
 
 	virtual CTrainGameStateDataNodeData* GetTrainState() = 0;
 

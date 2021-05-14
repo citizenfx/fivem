@@ -1767,11 +1767,132 @@ struct CDoorCreationDataNode
 	}
 };
 
-struct CDoorMovementDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CDoorScriptInfoDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CDoorScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CDoorMovementDataNode
+{
+	CDoorMovementDataNodeData data;
+
+	bool Parse(SyncParseState& state)
+	{
+		// Can be changed by N_0xa85a21582451e951. Guessed name
+		data.isManualDoor = state.buffer.ReadBit();
+		if (data.isManualDoor)
+		{
+			data.openRatio = state.buffer.ReadSignedFloat(8, 1.0f);
+		}
+		else
+		{
+			data.opening = state.buffer.ReadBit();
+			// Not accurate for all gates. Only checks '.m128_f32[0] > 0.99000001', some may be -1.0 when open
+			data.fullyOpen = state.buffer.ReadBit();
+			data.closed = state.buffer.ReadBit();
+		}
+
+		return true;
+	}
+};
+
+struct CDoorScriptInfoDataNode
+{
+	CDoorScriptInfoDataNodeData data;
+
+	bool Parse(SyncParseState& state)
+	{
+		bool hasScript = state.buffer.ReadBit();
+		if (hasScript)
+		{
+			data.scriptHash = state.buffer.Read<uint32_t>(32);
+			uint32_t timestamp = state.buffer.Read<uint32_t>(32);
+
+			if (state.buffer.ReadBit())
+			{
+				uint32_t positionHash = state.buffer.Read<uint32_t>(32);
+			}
+
+			if (state.buffer.ReadBit())
+			{
+				uint32_t instanceId = state.buffer.Read<uint32_t>(7);
+			}
+
+			uint32_t scriptObjectId = state.buffer.Read<uint32_t>(32);
+
+			int hostTokenLength = state.buffer.ReadBit() ? 16 : 3;
+			uint32_t hostToken = state.buffer.Read<uint32_t>(hostTokenLength);
+
+			data.doorSystemHash = state.buffer.Read<uint32_t>(32);
+			bool existingDoorSystemEntry = state.buffer.ReadBit();
+		}
+
+		return true;
+	}
+};
+
+struct CDoorScriptGameStateDataNode
+{
+	CDoorScriptGameStateDataNodeData data;
+
+	bool Parse(SyncParseState& state)
+	{
+		data.doorSystemState = state.buffer.Read<uint32_t>(3);
+
+		bool hasAutomaticInfo = state.buffer.ReadBit();
+		if (hasAutomaticInfo)
+		{
+			float automaticDistance = state.buffer.ReadSignedFloat(9, 100.0f);
+			float slideRate = state.buffer.ReadSignedFloat(9, 30.0f);
+		}
+
+		bool hasBrokenFlags = state.buffer.ReadBit();
+		if (hasBrokenFlags)
+		{
+			int brokenFlags = state.buffer.Read<int>(18);
+		}
+
+		bool hasDamagedFlags = state.buffer.ReadBit();
+		if (hasDamagedFlags)
+		{
+			int damagedFlags = state.buffer.Read<int>(18);
+		}
+
+		data.holdOpen = state.buffer.ReadBit();
+
+		return true;
+	}
+};
+
 struct CHeliHealthDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CHeliControlDataNode { bool Parse(SyncParseState& state) { return true; } };
+
+struct CHeliControlDataNode
+{
+	CHeliControlDataNodeData data;
+
+	bool Parse(SyncParseState& state)
+	{
+		float yawControl = state.buffer.ReadSignedFloat(8, 1.0f);
+		float pitchControl = state.buffer.ReadSignedFloat(8, 1.0f);
+		float rollControl = state.buffer.ReadSignedFloat(8, 1.0f);
+		float throttleControl = state.buffer.ReadFloat(8, 2.0f);
+
+		data.engineOff = state.buffer.ReadBit();
+
+		data.hasLandingGear = state.buffer.ReadBit();
+		if (data.hasLandingGear)
+		{
+			data.landingGearState = state.buffer.Read<uint32_t>(3);
+		}
+
+		bool isThrusterModel = state.buffer.ReadBit();
+		if (isThrusterModel)
+		{
+			float thrusterSideRCSThrottle = state.buffer.ReadSignedFloat(9, 1.0f);
+			float thrusterThrottle = state.buffer.ReadSignedFloat(9, 1.0f);
+		}
+
+		bool hasVehicleTask = state.buffer.ReadBit();
+		bool unk8 = state.buffer.ReadBit();
+
+		return true;
+	}
+};
 
 struct CObjectCreationDataNode
 {
@@ -2113,10 +2234,163 @@ struct CPickupScriptGameStateNode { bool Parse(SyncParseState& state) { return t
 struct CPickupSectorPosNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPickupPlacementCreationDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPickupPlacementStateDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPlaneGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPlaneControlDataNode { bool Parse(SyncParseState& state) { return true; } };
+
+struct CPlaneGameStateDataNode
+{
+	CPlaneGameStateDataNodeData data;
+
+	bool Parse(SyncParseState& state)
+	{
+		data.landingGearState = state.buffer.Read<uint32_t>(3);
+
+		bool hasDamagedSections = state.buffer.ReadBit();
+		bool hasBrokenSections = state.buffer.ReadBit();
+		bool hasBrokenRotors = state.buffer.ReadBit();
+		bool hasRotors = state.buffer.ReadBit();
+
+		float unk6 = state.buffer.ReadSignedFloat(7, 1.0f);
+
+		bool unk7 = state.buffer.ReadBit();
+		if (unk7)
+		{
+			float unk8[13];
+			for (int i = 0; i < 13; i++)
+			{
+				unk8[i] = state.buffer.ReadSignedFloat(7, 1.0f);
+			}
+		}
+
+		bool unk9 = state.buffer.ReadBit();
+		if (unk9)
+		{
+			float unk10[13];
+			for (int i = 0; i < 13; i++)
+			{
+				unk10[i] = state.buffer.ReadSignedFloat(7, 1.0f);
+			}
+		}
+
+		if (hasDamagedSections)
+		{
+			int damagedSections = state.buffer.Read<int>(13);
+
+			float damagedSectionsHealth[13];
+			for (int i = 0; i < 13; i++)
+			{
+				if ((damagedSections >> i) & 1)
+				{
+					damagedSectionsHealth[i] = state.buffer.ReadSignedFloat(6, 1.0f);
+				}
+			}
+		}
+
+		if (hasBrokenSections)
+		{
+			/*
+				1: Left Wing
+				2: Right Wing
+				4: Vertical Stabiliser
+				32: Left Elevator
+				64: Right Elevator
+				128: Left Aileron
+				256: Right Aileron
+				512: Rudder
+			*/
+			int brokenSections = state.buffer.Read<int>(13);
+		}
+
+		if (hasBrokenRotors)
+		{
+			// Bitfield
+			int brokenRotors = state.buffer.Read<int>(8);
+		}
+
+		if (hasRotors)
+		{
+			// Bitfield
+			int enabledRotors = state.buffer.Read<int>(8);
+		}
+
+		bool isLockedOn = state.buffer.ReadBit();
+		bool unk17 = state.buffer.ReadBit();
+		bool unk18 = state.buffer.ReadBit();
+
+		if (isLockedOn)
+		{
+			data.lockOnEntity = state.buffer.Read<uint16_t>(13);
+			data.lockOnState = state.buffer.Read<uint32_t>(2);
+		}
+		else
+		{
+			data.lockOnEntity = 0;
+			data.lockOnState = 0;
+		}
+
+		bool isVisible = state.buffer.ReadBit();
+		if (isVisible)
+		{
+			data.visibleDistance = state.buffer.Read<uint32_t>(12);
+		}
+		else
+		{
+			data.visibleDistance = 0;
+		}
+
+		bool unk23 = state.buffer.ReadBit();
+		bool unk24 = state.buffer.ReadBit();
+		bool unk25 = state.buffer.ReadBit();
+		bool unk26 = state.buffer.ReadBit();
+
+		return true;
+	}
+};
+
+struct CPlaneControlDataNode
+{
+	CPlaneControlDataNodeData data;
+
+	bool Parse(SyncParseState& state)
+	{
+		float yawControl = state.buffer.ReadSignedFloat(8, 1.0f);
+		float pitchControl = state.buffer.ReadSignedFloat(8, 1.0f);
+		float rollControl = state.buffer.ReadSignedFloat(8, 1.0f);
+		float throttleControl = state.buffer.ReadFloat(8, 2.0f);
+
+		bool hasVehicleTask = state.buffer.ReadBit();
+
+		bool isThrottleReversed = state.buffer.ReadBit();
+		if (isThrottleReversed)
+		{
+			float reverseThrottleControl = state.buffer.ReadSignedFloat(8, 1.0f);
+		}
+
+		bool hasModifiedNozzelPosition = state.buffer.ReadBit();
+		if (hasModifiedNozzelPosition)
+		{
+			data.nozzlePosition = state.buffer.ReadFloat(8, 1.0f);
+		}
+		else
+		{
+			data.nozzlePosition = 0.0f;
+		}
+
+		return true;
+	}
+};
+
 struct CSubmarineGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CSubmarineControlDataNode { bool Parse(SyncParseState& state) { return true; } };
+
+struct CSubmarineControlDataNode
+{
+	bool Parse(SyncParseState& state)
+	{
+		float yawControl = state.buffer.ReadSignedFloat(8, 1.0f);
+		float pitchControl = state.buffer.ReadSignedFloat(8, 1.0f);
+		float ascentControl = state.buffer.ReadSignedFloat(8, 1.0f);
+
+		return true;
+	}
+};
 
 struct CTrainGameStateDataNode
 {
@@ -2816,6 +3090,34 @@ struct SyncTree : public SyncTreeBase
 		}
 	}
 
+	virtual CDoorMovementDataNodeData* GetDoorMovement() override
+	{
+		auto [hasNode, node] = GetData<CDoorMovementDataNode>();
+
+		return (hasNode) ? &node->data : nullptr;
+	}
+
+	virtual CDoorScriptInfoDataNodeData* GetDoorScriptInfo() override
+	{
+		auto [hasNode, node] = GetData<CDoorScriptInfoDataNode>();
+
+		return (hasNode) ? &node->data : nullptr;
+	}
+
+	virtual CDoorScriptGameStateDataNodeData* GetDoorScriptGameState() override
+	{
+		auto [hasNode, node] = GetData<CDoorScriptGameStateDataNode>();
+
+		return (hasNode) ? &node->data : nullptr;
+	}
+
+	virtual CHeliControlDataNodeData* GetHeliControl() override
+	{
+		auto [hasNode, node] = GetData<CHeliControlDataNode>();
+
+		return (hasNode) ? &node->data : nullptr;
+	}
+
 	virtual CPlayerCameraNodeData* GetPlayerCamera() override
 	{
 		auto [hasCdn, cameraNode] = GetData<CPlayerCameraDataNode>();
@@ -2849,6 +3151,20 @@ struct SyncTree : public SyncTreeBase
 		auto[hasVdn, vehNode] = GetData<CVehicleGameStateDataNode>();
 
 		return (hasVdn) ? &vehNode->data : nullptr;
+	}
+
+	virtual CPlaneGameStateDataNodeData* GetPlaneGameState() override
+	{
+		auto [hasNode, node] = GetData<CPlaneGameStateDataNode>();
+
+		return (hasNode) ? &node->data : nullptr;
+	}
+
+	virtual CPlaneControlDataNodeData* GetPlaneControl() override
+	{
+		auto [hasNode, node] = GetData<CPlaneControlDataNode>();
+
+		return (hasNode) ? &node->data : nullptr;
 	}
 
 	virtual CTrainGameStateDataNodeData* GetTrainState()
