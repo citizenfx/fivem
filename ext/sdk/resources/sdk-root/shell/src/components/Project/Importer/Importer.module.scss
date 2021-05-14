@@ -38,3 +38,39 @@
   padding: 0 $q*4;
   margin: $q 0;
 }
+
+.examples {
+  display: flex;
+  flex-direction: column;
+
+  gap: $q*4;
+
+  .example-resource {
+    display: flex;
+    flex-direction: column;
+
+    padding: $q*3;
+
+    background-color: rgba($fgColor, .05);
+
+    cursor: pointer;
+    user-select: none;
+
+    @include interactiveTransition;
+
+    .description {
+      margin-top: $q*2;
+
+      font-size: $fs08;
+      color: rgba($fgColor, .75);
+    }
+
+    &:hover {
+      box-shadow: 0 0 0 2px rgba($fgColor, .5) inset;
+    }
+
+    &.active {
+      box-shadow: 0 0 0 2px $acColor inset;
+    }
+  }
+}

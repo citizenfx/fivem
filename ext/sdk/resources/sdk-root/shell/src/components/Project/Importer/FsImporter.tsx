@@ -31,7 +31,7 @@ export const FsImporter = observer(function FsImporter({ onClose }: ImporterProp
 
   const [sourcePath, setSourcePath] = React.useState('');
   const [assetName, setAssetName] = React.useState('');
-  const [assetBasePath, setAssetBasePath] = React.useState('');
+  const [assetBasePath, setAssetBasePath] = React.useState(project.path);
 
   const canImport = sourcePath && assetName && assetBasePath;
 

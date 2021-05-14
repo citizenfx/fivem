@@ -7,6 +7,7 @@ import { GameServerManagerService } from 'backend/game-server/game-server-manage
 import { GameServerService } from 'backend/game-server/game-server-service';
 import { LogService } from 'backend/logger/log-service';
 import { NotificationService } from 'backend/notification/notification-service';
+import { SystemResourcesService } from 'backend/system-resources/system-resources-service';
 import { Task, TaskReporterService } from 'backend/task/task-reporter-service';
 import { Stats } from 'fs';
 import { injectable, inject } from 'inversify';
@@ -80,6 +81,9 @@ export class ProjectBuilder implements ApiContribution {
   @inject(GameServerManagerService)
   protected readonly gameServerManagerService: GameServerManagerService;
 
+  @inject(SystemResourcesService)
+  protected systemResourcesService: SystemResourcesService;
+
   @handlesClientEvent(projectApi.build)
   public async build(request: ProjectBuildRequest) {
     if (!this.projectAccess.hasInstance()) {
@@ -125,6 +129,10 @@ export class ProjectBuilder implements ApiContribution {
 
   protected async doBuildProject(request: ProjectBuildRequest, project: Project, task: Task<ProjectBuildTaskStage>) {
     const { useVersioning, buildPath, deployArtifact, steamWebApiKey, tebexSecret } = request;
+
+    if (project.getManifest().systemResources.length > 0 && !(await this.systemResourcesService.getAvailablePromise())) {
+      throw new Error(`System resources unavailable, can't build project`);
+    }
 
     this.logService.log('Deploying project', request);
 
@@ -226,53 +234,71 @@ export class ProjectBuilder implements ApiContribution {
   }
 
   protected async deployResources(project: Project, buildInfo: ProjectBuildInfo) {
-    const { resourcesDeployPath: deployPath } = buildInfo;
+    const { resourcesDeployPath } = buildInfo;
     const deployableResources = project.getEnabledAssets().filter((asset) => asset.getResourceDescriptor?.());
 
-    const resourcesCount = deployableResources.length;
-    if (!resourcesCount) {
-      this.logService.log('Skipping resources deployment as no enabled resources');
-      return;
+    const resourceConfig: string[] = [];
+
+    if (project.getManifest().systemResources.length > 0) {
+      const systemResourcesDeployPath = this.fsService.joinPath(resourcesDeployPath, '[system]');
+      const systemResourcesDescriptors = this.systemResourcesService.getResourceDescriptors(project.getManifest().systemResources);
+
+      await this.fsService.mkdirp(systemResourcesDeployPath);
+
+      await Promise.all(
+        systemResourcesDescriptors.map(({ name, path }) => this.fsService.copyDirContent(
+          path,
+          this.fsService.joinPath(systemResourcesDeployPath, name),
+        )),
+      );
+
+      resourceConfig.push('ensure [system]');
     }
 
-    await Promise.all(
-      deployableResources.map(async (asset) => {
-        const { name: resourceName, path: resourcePath } = asset.getResourceDescriptor();
-        const deployablePaths = await asset.getDeployablePaths();
+    const resourcesCount = deployableResources.length;
+    if (resourcesCount) {
+      await Promise.all(
+        deployableResources.map(async (asset) => {
+          const { name: resourceName, path: resourcePath } = asset.getResourceDescriptor();
+          const deployablePaths = await asset.getDeployablePaths();
 
-        const copyTasks: [string, string][] = [];
-        const foldersToCreate: Set<string> = new Set();
+          const copyTasks: [string, string][] = [];
+          const foldersToCreate: Set<string> = new Set();
 
-        deployablePaths.forEach((deployablePath: string) => {
-          const relativePath = this.fsService.dirname(this.fsService.relativePath(resourcePath, deployablePath));
-          const deploySitePath = this.fsService.joinPath(deployPath, resourceName, relativePath);
+          deployablePaths.forEach((deployablePath: string) => {
+            const relativePath = this.fsService.dirname(this.fsService.relativePath(resourcePath, deployablePath));
+            const deploySitePath = this.fsService.joinPath(resourcesDeployPath, resourceName, relativePath);
 
-          // Remember, that it goes like so: /a/beef/c.txt -> /a/milk, so it will get copied to /a/milk/c.txt
-          copyTasks.push([deployablePath, deploySitePath]);
-          foldersToCreate.add(deploySitePath);
-        });
+            // Remember, that it goes like so: /a/beef/c.txt -> /a/milk, so it will get copied to /a/milk/c.txt
+            copyTasks.push([deployablePath, deploySitePath]);
+            foldersToCreate.add(deploySitePath);
+          });
 
-        // Create folders in a sequence rather than in parallel as mkdirp is misbehaving if run in parallel and overlapses in paths present
-        for (const folderToCreate of foldersToCreate) {
-          await this.fsService.mkdirp(folderToCreate);
-        }
+          // Create folders in a sequence rather than in parallel as mkdirp is misbehaving if run in parallel and overlapses in paths present
+          for (const folderToCreate of foldersToCreate) {
+            await this.fsService.mkdirp(folderToCreate);
+          }
 
-        const progressQuant = (1 / resourcesCount) / copyTasks.length;
-        const copyOptions: CopyOptions = {
-          onProgress: (progress) => buildInfo.task.setProgress(progress * progressQuant),
-        };
+          const progressQuant = (1 / resourcesCount) / copyTasks.length;
+          const copyOptions: CopyOptions = {
+            onProgress: (progress) => buildInfo.task.setProgress(progress * progressQuant),
+          };
 
-        // Now copy files
-        await Promise.all(
-          copyTasks.map(([sourcePath, target]) => this.fsService.copy(sourcePath, target, copyOptions)),
-        );
-      }),
-    );
+          // Now copy files
+          await Promise.all(
+            copyTasks.map(([sourcePath, target]) => this.fsService.copy(sourcePath, target, copyOptions)),
+          );
 
-    // Create resources.cfg
-    {
-      const resourceConfigPath = this.fsService.joinPath(buildInfo.resourcesDeployPath, 'resources.cfg');
-      const resourceConfigContent = deployableResources.map((resource) => `ensure ${resource.getResourceDescriptor().name}`).join('\n');
+          resourceConfig.push(`ensure ${resourceName}`);
+        }),
+      );
+    }
+
+    if (resourceConfig.length) {
+      // Create resources.cfg
+
+      const resourceConfigPath = this.fsService.joinPath(resourcesDeployPath, 'resources.cfg');
+      const resourceConfigContent = resourceConfig.join('\n');
 
       await this.fsService.writeFile(resourceConfigPath, resourceConfigContent);
     }

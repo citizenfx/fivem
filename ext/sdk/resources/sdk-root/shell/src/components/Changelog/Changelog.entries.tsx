@@ -8,6 +8,32 @@ export interface ChangelogEntry {
 
 export const changelogEntries: ChangelogEntry[] = [
   {
+    id: '2021-05-14',
+    title: 'May 14, 2021',
+    content: (
+      <>
+        <ul>
+          <li>
+            ⚠️ If you were using <kbd>.fxdkignore</kbd> files in your project they were treated wrong as it was <kbd>.fxdkinclude</kbd>, this has been fixed.
+            <br/>
+            These files actually must contain list of rules for files to actually ignore during build.
+          </li>
+          <li>
+            ⚠️ In-project <kbd>system-resources</kbd> has been <strong>deprecated</strong>, we'll do our best to upgrade your project when it opens.
+            <br/>
+            Though, if you did modify that folder we will not remove it, but only rename, <em>shame on you</em>!
+          </li>
+          <li>
+            System resources needed for project can now be tweaked in <strong>Project Settings</strong>
+          </li>
+          <li>
+            You can now import some example resources from cfx-server-data
+          </li>
+        </ul>
+      </>
+    ),
+  },
+  {
     id: '2021-05-08',
     title: 'May 8, 2021',
     content: (

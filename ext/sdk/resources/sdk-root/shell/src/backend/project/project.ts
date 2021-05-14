@@ -56,6 +56,9 @@ import { ProjectAssets } from './project-assets';
 import { ProjectAssetManagers } from './project-asset-managers';
 import { disposableFromFunction, DisposableObject } from 'backend/disposable-container';
 import { WorldEditorService } from 'backend/world-editor/world-editor-service';
+import { SystemResource } from 'backend/system-resources/system-resources-constants';
+import { SystemResourcesService } from 'backend/system-resources/system-resources-service';
+import { DEFAULT_PROJECT_SYSTEM_RESOURCES } from './project-constants';
 
 interface Silentable {
   silent?: boolean,
@@ -131,6 +134,9 @@ export class Project implements ApiContribution {
 
   @inject(FsMapping)
   public readonly fsMapping: FsMapping;
+
+  @inject(SystemResourcesService)
+  protected readonly systemResourcesService: SystemResourcesService;
 
   private state: ProjectState = ProjectState.Development;
 
@@ -269,6 +275,7 @@ export class Project implements ApiContribution {
         updatedAt: new Date().toISOString(),
         pathsState: {},
         serverUpdateChannel: serverUpdateChannels.recommended,
+        systemResources: DEFAULT_PROJECT_SYSTEM_RESOURCES,
       };
 
       // This will create this.path as well
@@ -345,6 +352,7 @@ export class Project implements ApiContribution {
         assets: {},
         pathsState: {},
         serverUpdateChannel: serverUpdateChannels.recommended,
+        systemResources: [],
       },
       onApply: () => this.notifyProjectUpdated(),
       beforeApply: (snapshot) => snapshot.updatedAt = new Date().toISOString(),
@@ -496,6 +504,15 @@ export class Project implements ApiContribution {
         manifest.serverUpdateChannel = updateChannel;
       });
     }
+  }
+
+  @handlesClientEvent(projectApi.setSystemResources)
+  setSystemResources(systemResources: SystemResource[]) {
+    this.applyManifest((manifest) => {
+      manifest.systemResources = systemResources;
+    });
+
+    this.refreshEnabledResources();
   }
 
   //#region assets
@@ -782,6 +799,15 @@ export class Project implements ApiContribution {
 
   @handlesClientEvent(projectApi.startServer)
   async startServer(request: ProjectStartServerRequest = {}) {
+    // If we have system resources enabled and they're unavailable - no server, rip
+    if (this.getManifest().systemResources.length > 0) {
+      const systemResourcesAvailable = await this.systemResourcesService.getAvailablePromise();
+      if (!systemResourcesAvailable) {
+        this.notificationService.error('System resources unavailable, unable to start server');
+        return;
+      }
+    }
+
     const serverStartRequest: ServerStartRequest = {
       fxserverCwd: this.fxserverCwd,
       updateChannel: this.manifestMapping.get().serverUpdateChannel,
@@ -819,11 +845,18 @@ export class Project implements ApiContribution {
       return;
     }
 
-    const resourceDescriptors: ServerResourceDescriptor[] = [];
+    const enabledSystemResources = this.getManifest().systemResources;
+
+    const resourceDescriptors: ServerResourceDescriptor[] = this.systemResourcesService.getResourceDescriptors(enabledSystemResources).slice();
 
     for (const asset of this.getEnabledAssets()) {
       if (asset.getResourceDescriptor) {
-        resourceDescriptors.push(asset.getResourceDescriptor());
+        const descriptor = asset.getResourceDescriptor();
+
+        // Only if it doesn't conflict with enabled system resource name
+        if (enabledSystemResources.indexOf(descriptor.name as SystemResource) === -1) {
+          resourceDescriptors.push();
+        }
       }
     }
 

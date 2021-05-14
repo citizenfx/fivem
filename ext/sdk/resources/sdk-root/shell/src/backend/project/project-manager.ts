@@ -13,9 +13,6 @@ import { ProjectCreateCheckResult, RecentProject } from "shared/project.types";
 import { notNull } from "shared/utils";
 import { Project } from "./project";
 import { ProjectAccess } from "./project-access";
-import { assetImporterTypes } from "shared/asset.types";
-import { GitAssetImportRequest } from "./asset/importer-contributions/git-importer/git-importer.types";
-import { DEFAULT_ENABLED_ASSETS } from "assets/core/contants";
 
 @injectable()
 export class ProjectManager implements ApiContribution {
@@ -160,11 +157,6 @@ export class ProjectManager implements ApiContribution {
       return finish();
     }
 
-    const serverDataPath = this.fsService.joinPath(projectPath, 'cfx-server-data');
-    if (await this.fsService.statSafe(serverDataPath)) {
-      result.ignoreCfxServerData = true;
-    }
-
     return finish();
   }
 
@@ -200,25 +192,6 @@ export class ProjectManager implements ApiContribution {
       throw e;
     } finally {
       this.projectLock = false;
-    }
-
-    if (!checkResult.ignoreCfxServerData) {
-      const assetImportRequest: GitAssetImportRequest = {
-        importerType: assetImporterTypes.git,
-        assetName: 'system-resources',
-        assetBasePath: this.project.getPath(),
-        assetMetaFlags: {
-          readOnly: true,
-        },
-        data: {
-          repoUrl: 'https://github.com/citizenfx/cfx-server-data.git',
-        },
-        callback: () => {
-          this.project?.setAssetsEnabled(DEFAULT_ENABLED_ASSETS, true);
-        },
-      };
-
-      this.project.importAsset(assetImportRequest);
     }
   }
 

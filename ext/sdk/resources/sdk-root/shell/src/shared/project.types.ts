@@ -1,3 +1,4 @@
+import { SystemResource } from "backend/system-resources/system-resources-constants";
 import { FilesystemEntry, FilesystemEntryMap, ServerUpdateChannel } from "./api.types";
 import { AssetType } from "./asset.types";
 
@@ -29,6 +30,7 @@ export interface ProjectManifest {
   assets: {
     [path: string]: ProjectAssetBaseConfig,
   },
+  systemResources: SystemResource[],
 }
 
 export interface ProjectFsUpdate {
@@ -45,7 +47,6 @@ export interface RecentProject {
 
 export interface ProjectCreateCheckResult {
   openProject?: boolean,
-  ignoreCfxServerData?: boolean,
 }
 
 export type ProjectBuildError =

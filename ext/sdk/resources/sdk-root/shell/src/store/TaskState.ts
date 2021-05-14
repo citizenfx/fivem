@@ -7,14 +7,10 @@ import { logger } from "utils/logger";
 const log = logger('TaskState');
 
 export const TaskState = new class TaskState {
-  private tasks: TaskData[] = [];
-  private indices: Record<TaskId, number>;
+  private tasks: Record<TaskId, TaskData> = {};
 
   constructor() {
     makeAutoObservable(this);
-
-    // So mobx don't even attempt to make this object observable
-    this.indices = Object.create(null);
 
     onApiMessage(taskReporterApi.tasks, this.setTasks);
     onApiMessage(taskReporterApi.taskAdded, this.addTask);
@@ -23,7 +19,7 @@ export const TaskState = new class TaskState {
   }
 
   public get values(): TaskData[] {
-    return this.tasks;
+    return Object.values(this.tasks);
   }
 
   public ack() {
@@ -31,47 +27,44 @@ export const TaskState = new class TaskState {
   }
 
   get(taskId: TaskId): TaskData | null {
-    return this.tasks[this.indices[taskId]] || null;
+    return this.tasks[taskId] || null;
   }
 
   getAll(): TaskData[] {
-    return this.tasks;
+    return this.values;
   }
 
   private setTasks = (tasks: TaskData[]) => {
-    this.indices = tasks.reduce((acc, task, index) => {
-      acc[task.id] = index;
-      return acc;
-    }, Object.create(null));
+    this.tasks = tasks.reduce((acc, task) => {
+      acc[task.id] = task;
 
-    this.tasks = tasks;
+      return acc;
+    }, {});
   };
 
   private addTask = (task: TaskData) => {
-    if (this.indices[task.id] > -1) {
+    if (this.tasks[task.id]) {
       return log('Attempt to add task that already exist', task, this.tasks);
     }
 
-    this.indices[task.id] = this.tasks.length;
-    this.tasks.push(task);
+    this.tasks[task.id] = task;
   };
 
   private updateTask = (task: TaskData) => {
-    const index = this.indices[task.id];
-    if (index > -1) {
-      this.tasks[index] = task;
-    } else {
+    if (!this.tasks[task.id]) {
       log('Can not update task as its index is unknown', task.id);
+      return;
     }
+
+    this.tasks[task.id] = task;
   };
 
   private deleteTask = (taskId: TaskId) => {
-    const index = this.indices[taskId];
-    if (index > -1) {
-      this.tasks.splice(index, 1);
-      delete this.indices[taskId];
-    } else {
+    if (!this.tasks[taskId]) {
       log('Can not delete task as its index is unknown', taskId);
+      return;
     }
+
+    delete this.tasks[taskId];
   };
 };

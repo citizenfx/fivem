@@ -9,6 +9,9 @@ export const projectApi = {
   build: 'project:build',
   buildError: 'project:buildError',
   setServerUpdateChannel: 'project:setServerUpdateChannel',
+  setSystemResources: 'project:setSystemResources',
+
+  upgradeRecommendations: 'project.upgradeRecommendations',
 
   getRecents: 'project:getRecents',
   recents: 'project:recents',
