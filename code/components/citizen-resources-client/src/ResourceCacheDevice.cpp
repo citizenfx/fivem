@@ -310,7 +310,7 @@ auto ResourceCacheDevice::AllocateHandle(THandle* idx) -> HandleData*
 	return nullptr;
 }
 
-static int GetWeightForFileName(const std::string& fileName)
+int GetWeightForFileName(const std::string& fileName)
 {
 	auto ext = fileName.substr(fileName.find_last_of('.'));
 

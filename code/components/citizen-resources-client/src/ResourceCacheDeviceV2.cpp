@@ -35,6 +35,8 @@
 extern tbb::concurrent_unordered_map<std::string, bool> g_stuffWritten;
 extern std::unordered_multimap<std::string, std::pair<std::string, std::string>> g_referenceHashList;
 
+int GetWeightForFileName(const std::string& fileName);
+
 namespace resources
 {
 size_t RcdBaseStream::GetLength()
@@ -310,7 +312,7 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::FetchEntry(const std::s
 	{
 		lock.unlock();
 
-		auto retTask = concurrency::create_task(std::bind(&ResourceCacheDeviceV2::DoFetch, this, *entry));
+		auto retTask = DoFetch(*entry);
 
 		lock.lock();
 
@@ -455,7 +457,7 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::DoFetch(const ResourceC
 				}
 			};
 
-			//options.weight = GetWeightForFileName(handleData->entry.basename);
+			options.weight = ::GetWeightForFileName(entry.basename);
 
 			std::string connectionToken;
 			if (Instance<ICoreGameInit>::Get()->GetData("connectionToken", &connectionToken))
