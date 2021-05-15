@@ -205,6 +205,35 @@ static void SceneLoaderScan(char* loader, uint8_t flags1, uint8_t flags2, uint8_
 	}
 }
 
+struct MinMax
+{
+	float mins[4];
+	float maxs[4];
+};
+
+struct fwBoxStreamerVariable
+{
+	char pad[256];
+	atArray<MinMax> extents;
+};
+
+static void (*g_orig_fwBoxStreamerVariable_PostProcess)(fwBoxStreamerVariable* self);
+static void (*g_orig_fwBoxStreamerVariable_PostProcessPending)(fwBoxStreamerVariable* self);
+
+static void fwBoxStreamerVariable_PostProcess(fwBoxStreamerVariable* self)
+{
+	auto extents = self->extents;
+	g_orig_fwBoxStreamerVariable_PostProcess(self);
+	self->extents = extents;
+}
+
+static void fwBoxStreamerVariable_PostProcessPending(fwBoxStreamerVariable* self)
+{
+	auto extents = self->extents;
+	g_orig_fwBoxStreamerVariable_PostProcessPending(self);
+	self->extents = extents;
+}
+
 static HookFunction hookFunction([]()
 {
 	// crash fix: popgroup unloading does an unknown streaming flush, which we don't want
@@ -332,5 +361,9 @@ static HookFunction hookFunction([]()
 	// misc fix: pause menu control delay on exit
 	hook::put<uint32_t>(hook::get_pattern("BA ? ? ? ? 48 8B C8 E8 ? ? ? ? 8B 05", 1), 0);
 
-	//HookStereo();
+	// fwBoxStreamerVariable: back up and restore extents list in PostProcess/PostProcessPending so we won't ruin it if run twice
+	MH_Initialize();
+	MH_CreateHook(hook::get_pattern("48 8B 43 30 4C 8B 4B 20 41 8B D0", -0x48), fwBoxStreamerVariable_PostProcess, (void**)&g_orig_fwBoxStreamerVariable_PostProcess);
+	MH_CreateHook(hook::get_pattern("48 8B 43 30 0F B7 0C 50 48 C1 E2 05", -0x5D), fwBoxStreamerVariable_PostProcessPending, (void**)&g_orig_fwBoxStreamerVariable_PostProcessPending);
+	MH_EnableHook(MH_ALL_HOOKS);
 });
