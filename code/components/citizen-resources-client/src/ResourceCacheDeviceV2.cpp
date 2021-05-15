@@ -310,11 +310,7 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::FetchEntry(const std::s
 
 	if (it == ms_entries.end() || !it->second)
 	{
-		lock.unlock();
-
-		auto retTask = DoFetch(*entry);
-
-		lock.lock();
+		auto retTask = concurrency::create_task(std::bind(&ResourceCacheDeviceV2::DoFetch, this, *entry));
 
 		if (it != ms_entries.end())
 		{
