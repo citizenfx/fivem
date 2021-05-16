@@ -565,7 +565,7 @@ void NetLibrary::RunFrame()
 			m_connectionState = CS_DOWNLOADING;
 
 			// trigger task event
-			OnConnectionProgress("Downloading content", 0, 1, false);
+			OnConnectionProgress("Downloading content", 0, 1);
 			OnInitReceived(m_currentServer);
 
 			break;
@@ -575,7 +575,7 @@ void NetLibrary::RunFrame()
 			m_lastConnect = 0;
 			m_connectAttempts = 0;
 
-			OnConnectionProgress("Downloading completed", 1, 1, false);
+			OnConnectionProgress("Downloading completed", 1, 1);
 
 			break;
 
@@ -591,7 +591,7 @@ void NetLibrary::RunFrame()
 				// advertise status
 				auto specStatus = (m_connectAttempts > 1) ? fmt::sprintf(" (attempt %d)", m_connectAttempts) : "";
 
-				OnConnectionProgress(fmt::sprintf("Fetching info from server...%s", specStatus), 1, 1, true);
+				OnConnectionProgress(fmt::sprintf("Fetching info from server...%s", specStatus), 1, 1);
 			}
 
 			if (m_connectAttempts > 3)
@@ -617,7 +617,7 @@ void NetLibrary::RunFrame()
 				// advertise status
 				auto specStatus = (m_connectAttempts > 1) ? fmt::sprintf(" (attempt %d)", m_connectAttempts) : "";
 
-				OnConnectionProgress(fmt::sprintf("Connecting to server...%s", specStatus), 1, 1, false);
+				OnConnectionProgress(fmt::sprintf("Connecting to server...%s", specStatus), 1, 1);
 			}
 
 			if (m_connectAttempts > 3)
@@ -1069,7 +1069,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 						// new deferral system
 						if (!node["message"].is_null())
 						{
-							OnConnectionProgress(node["message"].get<std::string>(), 5, 100, true);
+							OnConnectionProgress(node["message"].get<std::string>(), 133, 133);
 						}
 						else if (!node["card"].is_null())
 						{
@@ -1081,7 +1081,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 					isLegacyDeferral = true;
 
-					OnConnectionProgress(node["status"].get<std::string>(), 5, 100, true);
+					OnConnectionProgress(node["status"].get<std::string>(), 133, 133);
 
 					static fwMap<fwString, fwString> newMap;
 					newMap["method"] = "getDeferState";
@@ -1346,7 +1346,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 										policies.clear();
 
-										OnConnectionProgress("Requesting server feature policy...", 0, 100, false);
+										OnConnectionProgress("Requesting server feature policy...", 0, 100);
 
 										if (info.is_object() && info["vars"].is_object())
 										{
@@ -1501,7 +1501,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 							continueAfterAllowance();
 						};
 
-						OnConnectionProgress("Requesting server permissions...", 0, 100, false);
+						OnConnectionProgress("Requesting server permissions...", 0, 100);
 
 						HttpRequestOptions options;
 						options.timeoutNoResponse = std::chrono::seconds(5);
@@ -1541,7 +1541,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 					epMap["method"] = "getEndpoints";
 					epMap["token"] = m_token;
 
-					OnConnectionProgress("Requesting server endpoints...", 0, 100, false);
+					OnConnectionProgress("Requesting server endpoints...", 0, 100);
 
 					m_httpClient->DoPostRequest(fmt::sprintf("%sclient", url), m_httpClient->BuildPostString(epMap), [rawEndpoints, continueAfterEndpoints](bool success, const char* data, size_t size)
 					{
@@ -1580,7 +1580,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 	performRequest = [=]()
 	{
-		OnConnectionProgress("Handshaking with server...", 0, 100, false);
+		OnConnectionProgress("Handshaking with server...", 0, 100);
 
 		HttpRequestOptions options;
 		options.streamingCallback = handleAuthResultData;
@@ -1657,7 +1657,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 				steamUser.Invoke<int>("GetAuthSessionTicket", ticketBuffer, (int)sizeof(ticketBuffer), &ticketLength);
 
-				OnConnectionProgress("Obtaining Steam ticket...", 0, 100, false);
+				OnConnectionProgress("Obtaining Steam ticket...", 0, 100);
 			}
 			else
 			{
@@ -1672,79 +1672,69 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 	
 	auto initiateRequest = [=]()
 	{
-		OnConnectionProgress("Requesting server variables...", 0, 100, true);
-		
+		OnConnectionProgress("Requesting server variables...", 0, 100);
+
 		m_httpClient->DoGetRequest(fmt::sprintf("%sinfo.json", url), [=](bool success, const char* data, size_t size)
 		{
 			using json = nlohmann::json;
 
 			std::string licenseKeyToken;
 
-			// We got a response way later than we wanted - user has canceled connection or joined another server
-			if (m_connectionState != CS_INITING)
+			if (success)
 			{
-				return;
-			}
-
-			if (!success)
-			{
-				OnConnectionError("Server failed to send server variables.");
-				m_connectionState = CS_IDLE;
-				return;
-			}
-
-			try
-			{
-				json info = json::parse(data, data + size);
-#if defined(GTA_FIVE) || defined(IS_RDR3)
-				if (info.is_object() && info["vars"].is_object())
+				try
 				{
-					auto val = info["vars"].value("sv_enforceGameBuild", "");
-					int buildRef = 0;
-
-					if (!val.empty())
+					json info = json::parse(data, data + size);
+#if defined(GTA_FIVE) || defined(IS_RDR3)
+					if (info.is_object() && info["vars"].is_object())
 					{
-						buildRef = std::stoi(val);
+						auto val = info["vars"].value("sv_enforceGameBuild", "");
+						int buildRef = 0;
 
-						if (buildRef != 0 && buildRef != xbr::GetGameBuild())
+						if (!val.empty())
 						{
-#if defined(GTA_FIVE)
-							if (buildRef != 1604 && buildRef != 2060 && buildRef != 2189)
-#else
-							if (buildRef != 1311 && buildRef != 1355)
-#endif
+							buildRef = std::stoi(val);
+
+							if (buildRef != 0 && buildRef != xbr::GetGameBuild())
 							{
-								OnConnectionError(va("Server specified an invalid game build enforcement (%d).", buildRef));
+#if defined(GTA_FIVE)
+								if (buildRef != 1604 && buildRef != 2060 && buildRef != 2189)
+#else
+								if (buildRef != 1311 && buildRef != 1355)
+#endif
+								{
+									OnConnectionError(va("Server specified an invalid game build enforcement (%d).", buildRef));
+									m_connectionState = CS_IDLE;
+									return;
+								}
+
+								OnRequestBuildSwitch(buildRef);
 								m_connectionState = CS_IDLE;
 								return;
 							}
+						}
 
-							OnRequestBuildSwitch(buildRef);
+#if defined(GTA_FIVE)
+						if (xbr::GetGameBuild() != 1604 && buildRef == 0)
+						{
+							OnRequestBuildSwitch(1604);
 							m_connectionState = CS_IDLE;
 							return;
 						}
-					}
-
-#if defined(GTA_FIVE)
-					if (xbr::GetGameBuild() != 1604 && buildRef == 0)
-					{
-						OnRequestBuildSwitch(1604);
-						m_connectionState = CS_IDLE;
-						return;
-					}
 #endif
 
-					auto ival = info["vars"].value("sv_licenseKeyToken", "");
+						auto ival = info["vars"].value("sv_licenseKeyToken", "");
 
-					if (!ival.empty())
-					{
-						licenseKeyToken = ival;
+						if (!ival.empty())
+						{
+							licenseKeyToken = ival;
+						}
 					}
+#endif
 				}
-#endif
-			}
-			catch (std::exception& e)
-			{
+				catch (std::exception& e)
+				{
+				}
 			}
 
 			if (OnInterceptConnectionForAuth(url, licenseKeyToken, [this, continueRequest](bool success, const std::map<std::string, std::string>& additionalPostData)

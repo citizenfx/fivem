@@ -54,7 +54,7 @@ export class ConnectingPopupComponent implements OnInit {
 			};
 			this.showOverlay = true;
 			this.gameService.showConnectingOverlay = true;
-			this.overlayClosable = true;
+			this.overlayClosable = false;
 
 			this.overlayBg = a?.data?.vars?.banner_connecting || '';
 			this.serverData = a?.data;
@@ -87,7 +87,7 @@ export class ConnectingPopupComponent implements OnInit {
 			};
 			this.showOverlay = true;
 			this.gameService.showConnectingOverlay = true;
-			this.overlayClosable = a.cancelable;
+			this.overlayClosable = (a.count === 133 && a.total === 133); // magic numbers, yeah :(
 
 			if (this.overlayClosable) {
 				this.closeLabel = "#Servers_CancelOverlay";

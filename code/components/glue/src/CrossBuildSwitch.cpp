@@ -161,7 +161,7 @@ static void UpdateProgressUX()
 {
 	auto text = fmt::sprintf("%s (%.0f%s)\n%s", g_topText, round(g_percentage), "%", g_bottomText);
 
-	netLibrary->OnConnectionProgress(text, 0, 100, true);
+	netLibrary->OnConnectionProgress(text, 133, 133);
 }
 
 void UI_UpdateProgress(double percentage)

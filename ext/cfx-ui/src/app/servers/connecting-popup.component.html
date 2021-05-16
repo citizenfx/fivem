@@ -12,7 +12,6 @@
 		<div class="card" #card></div>
 		<button
 			class="cfx-button primary"
-            [style.opacity]="overlayClosable === true ? 1.0 : 0.0"
 			[class.active]="overlayClosable"
 			(click)="closeOverlay(); false"
 		>
