@@ -216,6 +216,31 @@ inline bool HasDefaultName()
 NetLibrary* netLibrary;
 static bool g_connected;
 
+static void UpdatePendingAuthPayload();
+
+static void SetNickname(const std::string& name)
+{
+	if (!netLibrary)
+	{
+		NetLibrary::OnNetLibraryCreate.Connect([name](NetLibrary*)
+		{
+			SetNickname(name);
+		}, INT32_MAX);
+
+		return;
+	}
+
+	const char* text = netLibrary->GetPlayerName();
+
+	if (text != name && !HasDefaultName())
+	{
+		trace("Loaded nickname: %s\n", name);
+		netLibrary->SetPlayerName(name.c_str());
+	}
+
+	UpdatePendingAuthPayload();
+}
+
 static void ConnectTo(const std::string& hostnameStr, bool fromUI = false, const std::string& connectParams = "")
 {
 	auto connectParamsReal = connectParams;
@@ -934,22 +959,14 @@ static InitFunction initFunction([] ()
 		}
 		else if (!_wcsicmp(type, L"checkNickname"))
 		{
-			if (!arg || !arg[0] || !netLibrary)
+			if (!arg || !arg[0])
 			{
 				trace("Failed to set nickname\n");
 				return;
 			}
 
-			const char* text = netLibrary->GetPlayerName();
 			std::string newusername = ToNarrow(arg);
-
-			if (text != newusername && !HasDefaultName()) // one's a string, two's a char, string meets char, string::operator== exists
-			{
-				trace("Loaded nickname: %s\n", newusername.c_str());
-				netLibrary->SetPlayerName(newusername.c_str());
-			}
-
-			UpdatePendingAuthPayload();
+			SetNickname(newusername);
 		}
 		else if (!_wcsicmp(type, L"exit"))
 		{
