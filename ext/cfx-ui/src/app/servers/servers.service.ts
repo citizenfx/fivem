@@ -2,7 +2,7 @@ import { Injectable, NgZone, Inject, PLATFORM_ID } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 
-import { Observable, Subject } from 'rxjs';
+import {Observable, of, Subject} from 'rxjs';
 
 import { concat, from, BehaviorSubject } from 'rxjs';
 
@@ -21,6 +21,7 @@ import { master } from './master';
 import { isPlatformBrowser } from '@angular/common';
 import { GameService } from '../game.service';
 import { FilterRequest } from './filter-request';
+import {catchError, timeout} from 'rxjs/operators';
 
 const serversWorker = new Worker('./workers/servers.worker', { type: 'module' });
 
@@ -136,8 +137,13 @@ export class ServersService {
 		this.gameService.tryConnecting.subscribe(async (serverHost: string) => {
 			let server: Server = null;
 
-			this.gameService.connecting.emit(Server.fromObject(this.domSanitizer, serverHost, {}));
-
+            this.gameService.connectStatus.emit({
+                server: Server.fromObject(this.domSanitizer, serverHost, {}),
+                message: 'Connecting to ' + serverHost + '...',
+                count: 0,
+                total: 0,
+                cancelable: false
+            });
 			// strip join URL portion
 			if (serverHost.startsWith('cfx.re/join/')) {
 				serverHost = serverHost.substring(12);
@@ -152,27 +158,39 @@ export class ServersService {
 				} catch {}
 			}
 
-			// not found yet? try finding the join ID at least
+            // not found yet? try finding the join ID at least
 			if (!server) {
 				// fetch it
 				const serverID = await this.httpClient.post('https://nui-internal/gsclient/url', `url=${serverHost}`, {
 					responseType: 'text'
-				}).toPromise();
+				}).pipe(
+                    timeout(2000),
+                    catchError(e => {
+                        // timeout
+                        return of(null);
+                    })
+                ).toPromise();
 
 				if (serverID && serverID !== '') {
 					try {
 						server = await this.getServer(serverID, false);
 					} catch {}
 				}
-			}
+            }
 
-			// meh, no progress at all. probably private/unlisted
+            // meh, no progress at all. probably private/unlisted
 			// try getting dynamic.json to at least populate basic details
 			if (!server) {
 				try {
-					const serverData = await this.httpClient.post('https://nui-internal/gsclient/dynamic', `url=${serverHost}`, {
-						responseType: 'text'
-					}).toPromise();
+				    const serverData = await this.httpClient.post('https://nui-internal/gsclient/dynamic', `url=${serverHost}`, {
+                        responseType: 'text'
+                    }).pipe(
+                        timeout(2000),
+                        catchError(e => {
+                            // timeout
+                            return of(null);
+                        })
+                    ).toPromise();
 
 					if (serverData) {
 						const sd = JSON.parse(serverData);
@@ -181,9 +199,8 @@ export class ServersService {
 
 						server = Server.fromNative(this.domSanitizer, sd);
 					}
-				} catch { }
+                } catch { }
 			}
-
 			if (server) {
 				server.connectEndPoints = [serverHost];
 
