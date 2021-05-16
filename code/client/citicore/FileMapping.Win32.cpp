@@ -340,6 +340,42 @@ static bool IsMappedFilename(const std::wstring& fileName)
 	return false;
 }
 
+static DWORD(WINAPI* g_origGetFileVersionInfoSizeW)(_In_ LPCWSTR lptstrFilename, _Out_opt_ LPDWORD lpdwHandle);
+
+static DWORD WINAPI GetFileVersionInfoSizeWStub(_In_ LPCWSTR lptstrFilename, _Out_opt_ LPDWORD lpdwHandle)
+{
+	std::wstring fileName = MapRedirectedFilename(lptstrFilename);
+
+	return g_origGetFileVersionInfoSizeW(fileName.c_str(), lpdwHandle);
+}
+
+static BOOL(WINAPI* g_origGetFileVersionInfoW)(_In_ LPCWSTR lptstrFilename, _Reserved_ DWORD dwHandle, _In_ DWORD dwLen, _Out_writes_bytes_(dwLen) LPVOID lpData);
+
+static BOOL WINAPI GetFileVersionInfoWStub(_In_ LPCWSTR lptstrFilename, _Reserved_ DWORD dwHandle, _In_ DWORD dwLen, _Out_writes_bytes_(dwLen) LPVOID lpData)
+{
+	std::wstring fileName = MapRedirectedFilename(lptstrFilename);
+
+	return g_origGetFileVersionInfoW(fileName.c_str(), dwHandle, dwLen, lpData);
+}
+
+static DWORD(WINAPI* g_origGetFileVersionInfoSizeA)(_In_ LPCSTR lptstrFilename, _Out_opt_ LPDWORD lpdwHandle);
+
+static DWORD WINAPI GetFileVersionInfoSizeAStub(_In_ LPCSTR lptstrFilename, _Out_opt_ LPDWORD lpdwHandle)
+{
+	std::wstring fileName = MapRedirectedFilename(ToWide(lptstrFilename).c_str());
+
+	return g_origGetFileVersionInfoSizeA(ToNarrow(fileName).c_str(), lpdwHandle);
+}
+
+static BOOL(WINAPI* g_origGetFileVersionInfoA)(_In_ LPCSTR lptstrFilename, _Reserved_ DWORD dwHandle, _In_ DWORD dwLen, _Out_writes_bytes_(dwLen) LPVOID lpData);
+
+static BOOL WINAPI GetFileVersionInfoAStub(_In_ LPCSTR lptstrFilename, _Reserved_ DWORD dwHandle, _In_ DWORD dwLen, _Out_writes_bytes_(dwLen) LPVOID lpData)
+{
+	std::wstring fileName = MapRedirectedFilename(ToWide(lptstrFilename).c_str());
+
+	return g_origGetFileVersionInfoA(ToNarrow(fileName).c_str(), dwHandle, dwLen, lpData);
+}
+
 static HANDLE(WINAPI* g_origCreateFileW)(_In_ LPCWSTR lpFileName, _In_ DWORD dwDesiredAccess, _In_ DWORD dwShareMode, _In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes, _In_ DWORD dwCreationDisposition, _In_ DWORD dwFlagsAndAttributes, _In_opt_ HANDLE hTemplateFile);
 
 static HANDLE WINAPI CreateFileWStub(_In_ LPCWSTR lpFileName, _In_ DWORD dwDesiredAccess, _In_ DWORD dwShareMode, _In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes, _In_ DWORD dwCreationDisposition, _In_ DWORD dwFlagsAndAttributes, _In_opt_ HANDLE hTemplateFile)
@@ -894,6 +930,10 @@ extern "C" DLL_EXPORT void CoreSetMappingFunction(MappingFunctionType function)
 	MH_CreateHookApi(L"ntdll.dll", "NtQueryAttributesFile", NtQueryAttributesFileStub, (void**)&g_origNtQueryAttributesFile);
 	MH_CreateHookApi(L"ntdll.dll", "LdrLoadDll", LdrLoadDllStub, (void**)&g_origLoadDll);
 	MH_CreateHookApi(L"ntdll.dll", "LdrGetProcedureAddress", LdrGetProcedureAddressStub, (void**)&g_origGetProcedureAddress);
+	MH_CreateHookApi(L"version.dll", "GetFileVersionInfoSizeW", GetFileVersionInfoSizeWStub, (void**)&g_origGetFileVersionInfoSizeW);
+	MH_CreateHookApi(L"version.dll", "GetFileVersionInfoSizeA", GetFileVersionInfoSizeAStub, (void**)&g_origGetFileVersionInfoSizeA);
+	MH_CreateHookApi(L"version.dll", "GetFileVersionInfoW", GetFileVersionInfoWStub, (void**)&g_origGetFileVersionInfoW);
+	MH_CreateHookApi(L"version.dll", "GetFileVersionInfoA", GetFileVersionInfoAStub, (void**)&g_origGetFileVersionInfoA);
 	MH_CreateHookApi(L"kernelbase.dll", "RegOpenKeyExW", RegOpenKeyExWStub, (void**)&g_origRegOpenKeyExW);
 	MH_CreateHookApi(L"kernelbase.dll", "GetFileAttributesExW", GetFileAttributesExWStub, (void**)&g_origGetFileAttributesExW);
 	MH_CreateHookApi(L"kernelbase.dll", "GetProcAddressForCaller", GetProcAddressStub, (void**)&g_origGetProcAddress);
