@@ -343,4 +343,18 @@ static HookFunction hookFunction([]()
 	// 41 0F 9D C4            setnl   r12b
 	unsigned char *cmp2 = hook::get_pattern<unsigned char>("83 3D ? ? ? ? 02 41 0F 9D C4", 6);
 	*cmp2 = 0x03;
+
+
+	// Crash fix (connecticut-texas-carbon) for `_updatePref()` (settings->display->safezone-size)
+    //
+	// The game doesn't check for nullptr here, but does in other places...
+	// 48 8B 05 EB 74 E7 01    mov     rax, cs:qword_14206E448
+	// 40 88 B8 AC 00 00 00    mov     [rax+0ACh], dil(value=1)
+	unsigned char* crashAddr = hook::get_pattern<unsigned char>("48 8B 05 ? ? ? ? 40 88 B8 AC 00 00 00");
+
+	// Conveniently, there is a function [1604]sub_14018014C() that checks null and sets=1 for us
+	unsigned char* checkAndSetFuncAddr = hook::get_pattern<unsigned char>("48 8B 05 ? ? ? ? 48 85 C0 74 ? C6 80 AC 00 00 00 01 C3");
+
+	hook::nop(crashAddr, 14);
+	hook::call(crashAddr, checkAndSetFuncAddr);
 });
