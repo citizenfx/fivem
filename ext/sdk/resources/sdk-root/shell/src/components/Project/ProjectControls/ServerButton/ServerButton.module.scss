@@ -1,0 +1,44 @@
+@import "variables";
+
+.root {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: $toolbarHeight*1.5 !important;
+
+  // background-color: rgba($fgColor, .1);
+
+  @include interactiveTransition;
+
+  svg {
+    font-size: $fs4 !important;
+    color: rgba($fgColor, .75);
+  }
+
+  &:hover svg {
+    color: rgba($fgColor, 1);
+  }
+
+  &.up {
+    background-color: $scColor;
+
+    svg {
+      color: $bgColor;
+    }
+
+    &:hover {
+      background-color: $erColor;
+    }
+  }
+
+  &.down {
+    &:hover {
+      background-color: $scColor !important;
+    }
+  }
+
+  &.error {
+    background-color: $erColor;
+  }
+}

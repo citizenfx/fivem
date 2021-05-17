@@ -2,7 +2,7 @@ import React from 'react';
 import { observer } from 'mobx-react-lite';
 import classnames from 'classnames';
 import { NativeTypes } from 'react-dnd-html5-backend';
-import { BsCheckBox, BsFillEyeFill, BsSquare } from 'react-icons/bs';
+import { BsCheckBox, BsExclamationCircle, BsFillEyeFill, BsSquare } from 'react-icons/bs';
 import { useOpenFlag } from 'utils/hooks';
 import { sendApiMessage } from 'utils/api';
 import { projectApi, serverApi } from 'shared/api.events';
@@ -23,6 +23,7 @@ import { ProjectItemProps } from 'components/Project/ProjectExplorer/item';
 import { FilesystemEntry } from 'shared/api.types';
 import { ProjectState } from 'store/ProjectState';
 import s from './Resource.module.scss';
+import { SystemResource, SYSTEM_RESOURCES_NAMES } from 'backend/system-resources/system-resources-constants';
 
 
 const contextOptions: Partial<ProjectExplorerItemContext> = {
@@ -40,10 +41,11 @@ export interface ResourceProps {
 };
 
 export const Resource = observer(function Resource(props: ProjectItemProps) {
-  const { entry } = props;
+  const { entry, project } = props;
 
   const resourceConfig: ResourceAssetConfig = ProjectState.project.getAssetConfig(entry.path, defaultResourceConfig);
   const resourceStatus = StatusState.getResourceStatus(entry.path);
+  const conflictingWithSystemResource = project.manifest.systemResources.includes(entry.name as SystemResource);
 
   const options = React.useContext(ProjectExplorerItemContext);
 
@@ -62,7 +64,7 @@ export const Resource = observer(function Resource(props: ProjectItemProps) {
     lifecycleContextMenuItems,
     commandsOutputOpen,
     closeCommandsOutput,
-  } = useResourceLifecycle(entry, resourceConfig, resourceStatus);
+  } = useResourceLifecycle(entry, resourceConfig, resourceStatus, conflictingWithSystemResource);
 
   const relocateTargetContextMenu = useItemRelocateTargetContextMenu(entry);
 
@@ -109,7 +111,11 @@ export const Resource = observer(function Resource(props: ProjectItemProps) {
 
   const rootClassName = classnames(itemsStyles.wrapper, {
     [itemsStyles.dropping]: isDropping,
-  })
+  });
+
+  const rootTitle = conflictingWithSystemResource
+    ? `"${SYSTEM_RESOURCES_NAMES[entry.name as SystemResource]}" is enabled, this resource will be ignored. Either rename this resource or disable "${SYSTEM_RESOURCES_NAMES[entry.name as SystemResource]}" in Project Settings`
+    : entry.name;
 
   return (
     <div className={rootClassName} ref={dropRef}>
@@ -122,8 +128,9 @@ export const Resource = observer(function Resource(props: ProjectItemProps) {
         <ResourceIcon
           enabled={resourceIsEnabled}
           running={resourceIsRunning}
+          conflictingWithSystemResource={conflictingWithSystemResource}
         />
-        <div className={itemsStyles.itemTitle} title={entry.name}>
+        <div className={itemsStyles.itemTitle} title={rootTitle}>
           {entry.name}
         </div>
         <ResourceStatusNode
@@ -178,7 +185,20 @@ const ResourceStatusNode = React.memo(function ResourceStatusNode({ resourceStat
   );
 });
 
-const ResourceIcon = React.memo(function ResourceIcon({ enabled, running }: { enabled: boolean, running: boolean }) {
+interface ResourceIconProps {
+  enabled: boolean,
+  running: boolean,
+  conflictingWithSystemResource: boolean,
+}
+const ResourceIcon = React.memo(function ResourceIcon({ enabled, running, conflictingWithSystemResource }: ResourceIconProps) {
+  if (conflictingWithSystemResource) {
+    return (
+      <span className={classnames(itemsStyles.itemIcon, s.conflicting)} title="Ignored">
+        <BsExclamationCircle />
+      </span>
+    );
+  }
+
   const icon = enabled
     ? enabledResourceIcon
     : resourceIcon;
@@ -198,7 +218,12 @@ const ResourceIcon = React.memo(function ResourceIcon({ enabled, running }: { en
   );
 });
 
-function useResourceLifecycle(entry: FilesystemEntry, resourceConfig: ResourceAssetConfig, resourceStatus: ResourceStatus) {
+function useResourceLifecycle(
+  entry: FilesystemEntry,
+  resourceConfig: ResourceAssetConfig,
+  resourceStatus: ResourceStatus,
+  conflictingWithSystemResource: boolean,
+) {
   const resourceName = entry.name;
   const resourcePath = entry.path;
 
@@ -250,13 +275,13 @@ function useResourceLifecycle(entry: FilesystemEntry, resourceConfig: ResourceAs
         id: 'stop',
         icon: stopIcon,
         text: 'Stop',
-        disabled: serverIsNotUp,
+        disabled: serverIsNotUp || conflictingWithSystemResource,
         onClick: handleStop,
       }, {
         id: 'restart',
         icon: refreshIcon,
         text: 'Restart',
-        disabled: serverIsNotUp,
+        disabled: serverIsNotUp || conflictingWithSystemResource,
         onClick: handleRestart,
       });
     } else {
@@ -264,7 +289,7 @@ function useResourceLifecycle(entry: FilesystemEntry, resourceConfig: ResourceAs
         id: 'Start',
         icon: startIcon,
         text: 'Start',
-        disabled: serverIsNotUp,
+        disabled: serverIsNotUp || conflictingWithSystemResource,
         onClick: handleStart,
       });
     }
@@ -290,6 +315,7 @@ function useResourceLifecycle(entry: FilesystemEntry, resourceConfig: ResourceAs
         text: isEnabled
           ? 'Disable resource'
           : 'Enable resource',
+        disabled: conflictingWithSystemResource,
         onClick: handleToggleEnabled,
       },
       {
@@ -300,6 +326,7 @@ function useResourceLifecycle(entry: FilesystemEntry, resourceConfig: ResourceAs
         text: isAutorestartOnChangeEnabled
           ? 'Disable restart on change'
           : 'Enable restart on change',
+        disabled: conflictingWithSystemResource,
         onClick: handleToggleAutorestartEnabled,
       },
       ...fxdkCommandsItems,
@@ -315,6 +342,7 @@ function useResourceLifecycle(entry: FilesystemEntry, resourceConfig: ResourceAs
     handleRestart,
     handleStart,
     openCommandsOutput,
+    conflictingWithSystemResource,
   ]);
 
   return {

@@ -1,10 +1,9 @@
-import { combineVisibilityFilters, VisibilityFilter, visibilityFilters } from 'components/Explorer/Explorer.filters';
-import * as React from 'react';
+import React from 'react';
+import { combineVisibilityFilters, VisibilityFilter } from 'components/Explorer/Explorer.filters';
 import { assetMetaFileExt } from 'shared/asset.types';
 
 
 export const ProjectExplorerVisibilityFilter = combineVisibilityFilters(
-  visibilityFilters.hideDotFilesAndDirs,
   (entry) => !entry.name.endsWith(assetMetaFileExt),
 );
 

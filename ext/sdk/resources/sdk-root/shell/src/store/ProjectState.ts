@@ -10,6 +10,7 @@ import { getProjectBuildPathVar, getProjectDeployArtifactVar, getProjectSteamWeb
 import { onWindowEvent } from "utils/windowMessages";
 import { ShellState } from "./ShellState";
 import { TheiaState } from "../personalities/TheiaPersonality/TheiaState";
+import { SystemResource } from "backend/system-resources/system-resources-constants";
 
 
 class ProjectObject implements ProjectData, DisposableObject {
@@ -76,6 +77,18 @@ class ProjectObject implements ProjectData, DisposableObject {
       ...defaults,
       ...this.assets[assetPath],
     };
+  }
+
+  toggleSystemResource(resource: SystemResource) {
+    const index = this.manifest.systemResources.indexOf(resource);
+
+    if (index !== -1) {
+      this.manifest.systemResources.splice(index, 1);
+    } else {
+      this.manifest.systemResources.push(resource);
+    }
+
+    sendApiMessage(projectApi.setSystemResources, this.manifest.systemResources);
   }
 
   private update = (projectData: Partial<ProjectData>) => {
@@ -230,6 +243,7 @@ export const ProjectState = new class ProjectState {
       this.projectObject = null;
     }
 
+    this.resourceCreatorDir = projectData.path;
     this.projectAlreadyOpening = false;
     this.projectObject = new ProjectObject(projectData);
 

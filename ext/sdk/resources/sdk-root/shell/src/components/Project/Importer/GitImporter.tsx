@@ -43,7 +43,7 @@ export const GitImporter = observer(function GitImporter({ onClose }: ImporterPr
 
   const [repository, setRepository] = React.useState('');
   const [assetName, setAssetName] = React.useState('');
-  const [assetBasePath, setAssetBasePath] = React.useState('');
+  const [assetBasePath, setAssetBasePath] = React.useState(project.path);
 
   const inferredAssetNameRef = React.useRef('');
 

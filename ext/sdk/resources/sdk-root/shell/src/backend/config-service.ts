@@ -38,6 +38,9 @@ export class ConfigService {
   readonly serverContainer: string;
   readonly serverDataPath: string;
 
+  readonly systemResourcesRoot: string;
+  readonly systemResourcesPath: string;
+
   readonly nativesDocluaPath: string;
   readonly recentProjectsFilePath: string;
   readonly featuresFilePath: string;
@@ -83,5 +86,8 @@ export class ConfigService {
     this.featuresFilePath = path.join(this.sdkStorage, 'features.json');
 
     this.wellKnownPathsPath = path.join(this.sdkStorage, 'well-known-paths.json');
+
+    this.systemResourcesRoot = path.join(this.sdkStorage, 'system-resources');
+    this.systemResourcesPath = path.join(this.systemResourcesRoot, 'resources');
   }
 }

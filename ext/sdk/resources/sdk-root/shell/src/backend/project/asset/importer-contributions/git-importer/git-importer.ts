@@ -64,7 +64,7 @@ export class GitImporter implements AssetImporterContribution {
 
       importTask.setText(`Cloning repository ${repoUrl}`);
 
-      await this.gitService.clone(request.assetBasePath, assetName, repoUrl);
+      await this.gitService.clone(this.fsService.joinPath(request.assetBasePath, assetName), repoUrl);
 
       this.logService.log('Done: Importing git asset', request);
 

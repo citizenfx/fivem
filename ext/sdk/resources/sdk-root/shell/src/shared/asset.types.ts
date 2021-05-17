@@ -14,6 +14,7 @@ export const assetImporterTypes = {
   git: 'git',
   release: 'release',
   fs: 'fs',
+  example: 'example',
 };
 export type AssetImporterType = KeysOf<typeof assetImporterTypes>;
 

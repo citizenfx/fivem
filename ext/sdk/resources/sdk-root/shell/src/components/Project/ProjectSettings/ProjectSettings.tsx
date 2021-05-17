@@ -10,6 +10,7 @@ import { useProjectSteamWebApiKeyVar, useProjectTebexSecretVar } from 'utils/pro
 import { Input } from 'components/controls/Input/Input';
 import { ProjectState } from 'store/ProjectState';
 import s from './ProjectSettings.module.scss';
+import { ProjectSystemResources } from './ProjectSystemResources/ProjectSystemResources';
 
 const updateChannelOptions: SwitchOption[] = [
   {
@@ -74,6 +75,8 @@ export const ProjectSettings = observer(function ProjectSettings() {
             description={<a href="https://server.tebex.io/settings/servers">Get Tebex secret</a>}
           />
         </div>
+
+        <ProjectSystemResources />
 
         <div className="modal-actions">
           <Button

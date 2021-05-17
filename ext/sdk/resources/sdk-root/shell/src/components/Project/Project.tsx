@@ -31,19 +31,19 @@ export const Project = observer(function Project() {
         <ProjectOpener />
       )}
 
-      {settingsOpen && (
+      {ProjectState.hasProject && settingsOpen && (
         <ProjectSettings />
       )}
 
-      {builderOpen && (
+      {ProjectState.hasProject && builderOpen && (
         <ProjectBuilder />
       )}
 
-      {importerOpen && (
+      {ProjectState.hasProject && importerOpen && (
         <Importer />
       )}
 
-      {resourceCreatorOpen && (
+      {ProjectState.hasProject && resourceCreatorOpen && (
         <ResourceCreator />
       )}
 

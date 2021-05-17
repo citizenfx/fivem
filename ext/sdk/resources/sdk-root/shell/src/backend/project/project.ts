@@ -56,6 +56,9 @@ import { ProjectAssets } from './project-assets';
 import { ProjectAssetManagers } from './project-asset-managers';
 import { disposableFromFunction, DisposableObject } from 'backend/disposable-container';
 import { WorldEditorService } from 'backend/world-editor/world-editor-service';
+import { SystemResource } from 'backend/system-resources/system-resources-constants';
+import { SystemResourcesService } from 'backend/system-resources/system-resources-service';
+import { DEFAULT_PROJECT_SYSTEM_RESOURCES } from './project-constants';
 
 interface Silentable {
   silent?: boolean,
@@ -132,6 +135,9 @@ export class Project implements ApiContribution {
   @inject(FsMapping)
   public readonly fsMapping: FsMapping;
 
+  @inject(SystemResourcesService)
+  protected readonly systemResourcesService: SystemResourcesService;
+
   private state: ProjectState = ProjectState.Development;
 
   private path: string;
@@ -147,8 +153,6 @@ export class Project implements ApiContribution {
 
     return disposableFromFunction(() => delete this.assetConfigChangeListeners[assetPath]);
   }
-
-  private readonly resourceConfigChangeListeners: Record<string, Array<(cfg: ProjectAssetBaseConfig) => void>> = {};
 
   applyManifest(fn: (manifest: ProjectManifest) => void) {
     this.manifestMapping.apply(fn);
@@ -271,6 +275,7 @@ export class Project implements ApiContribution {
         updatedAt: new Date().toISOString(),
         pathsState: {},
         serverUpdateChannel: serverUpdateChannels.recommended,
+        systemResources: DEFAULT_PROJECT_SYSTEM_RESOURCES,
       };
 
       // This will create this.path as well
@@ -291,15 +296,17 @@ export class Project implements ApiContribution {
       creatingTask.done();
     }
 
-    return this.load();
+    return this.load(false);
   }
 
-  async load(path?: string): Promise<Project> {
-    if (path) {
-      this.path = this.fsService.resolvePath(path);
-    }
+  open(projectPath: string): Promise<Project> {
+    this.path = this.fsService.resolvePath(projectPath);
 
-    const loadTask = this.taskReporterService.createNamed(projectLoadingTaskName, `Loading project ${path}`);
+    return this.load(true);
+  }
+
+  private async load(runUpgradeRoutines: boolean): Promise<Project> {
+    const loadTask = this.taskReporterService.createNamed(projectLoadingTaskName, `Loading project ${this.path}`);
 
     this.manifestPath = this.fsService.joinPath(this.path, fxdkProjectFilename);
     this.storagePath = this.fsService.joinPath(this.path, '.fxdk');
@@ -308,12 +315,14 @@ export class Project implements ApiContribution {
     try {
       this.log('loading project...');
 
-      await this.projectUpgrade.maybeUpgradeProject({
-        task: loadTask,
-        projectPath: path,
-        manifestPath: this.manifestPath,
-        storagePath: this.storagePath,
-      });
+      if (runUpgradeRoutines) {
+        await this.projectUpgrade.maybeUpgradeProject({
+          task: loadTask,
+          projectPath: this.path,
+          manifestPath: this.manifestPath,
+          storagePath: this.storagePath,
+        });
+      }
 
       loadTask.setText('Ensuring fxserver cwd exists...');
       if (!await this.fsService.statSafe(this.fxserverCwd)) {
@@ -347,6 +356,7 @@ export class Project implements ApiContribution {
         assets: {},
         pathsState: {},
         serverUpdateChannel: serverUpdateChannels.recommended,
+        systemResources: [],
       },
       onApply: () => this.notifyProjectUpdated(),
       beforeApply: (snapshot) => snapshot.updatedAt = new Date().toISOString(),
@@ -457,7 +467,7 @@ export class Project implements ApiContribution {
       manifest.assets[assetRelativePath] = newConfig;
     });
 
-    (this.resourceConfigChangeListeners[request.assetPath] || []).forEach((listener) => listener(newConfig));
+    this.assetConfigChangeListeners[request.assetPath]?.(newConfig);
 
     this.apiClient.emit(assetApi.setConfig, [request.assetPath, newConfig]);
 
@@ -498,6 +508,15 @@ export class Project implements ApiContribution {
         manifest.serverUpdateChannel = updateChannel;
       });
     }
+  }
+
+  @handlesClientEvent(projectApi.setSystemResources)
+  setSystemResources(systemResources: SystemResource[]) {
+    this.applyManifest((manifest) => {
+      manifest.systemResources = systemResources;
+    });
+
+    this.refreshEnabledResources();
   }
 
   //#region assets
@@ -784,6 +803,15 @@ export class Project implements ApiContribution {
 
   @handlesClientEvent(projectApi.startServer)
   async startServer(request: ProjectStartServerRequest = {}) {
+    // If we have system resources enabled and they're unavailable - no server, rip
+    if (this.getManifest().systemResources.length > 0) {
+      const systemResourcesAvailable = await this.systemResourcesService.getAvailablePromise();
+      if (!systemResourcesAvailable) {
+        this.notificationService.error('System resources unavailable, unable to start server');
+        return;
+      }
+    }
+
     const serverStartRequest: ServerStartRequest = {
       fxserverCwd: this.fxserverCwd,
       updateChannel: this.manifestMapping.get().serverUpdateChannel,
@@ -821,11 +849,18 @@ export class Project implements ApiContribution {
       return;
     }
 
-    const resourceDescriptors: ServerResourceDescriptor[] = [];
+    const enabledSystemResources = this.getManifest().systemResources;
+
+    const resourceDescriptors: ServerResourceDescriptor[] = this.systemResourcesService.getResourceDescriptors(enabledSystemResources).slice();
 
     for (const asset of this.getEnabledAssets()) {
       if (asset.getResourceDescriptor) {
-        resourceDescriptors.push(asset.getResourceDescriptor());
+        const descriptor = asset.getResourceDescriptor();
+
+        // Only if it doesn't conflict with enabled system resource name
+        if (enabledSystemResources.indexOf(descriptor.name as SystemResource) === -1) {
+          resourceDescriptors.push();
+        }
       }
     }
 

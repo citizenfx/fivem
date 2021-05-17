@@ -133,7 +133,7 @@ export class Resource implements AssetInterface {
     const ignorePatterns = await this.getIgnorePatterns();
 
     const patternPaths = ignorePatterns.concat('**/*')
-      .map((pattern) => pattern.replace(/\\/g, '/'));
+      .map((pattern) => '!' + pattern.replace(/\\/g, '/'));
 
     const allPaths = await this.fsService.glob(
       patternPaths,

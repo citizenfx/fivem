@@ -11,7 +11,7 @@ $statusBarHeight: 18px;
 
   width: var(--toolbar-width);
 
-  z-index: 1000;
+  z-index: $zToolbar;
 
   transform: translateX(calc(-1 * var(--toolbar-width)));
 
@@ -56,8 +56,6 @@ $statusBarHeight: 18px;
     width: var(--toolbar-width);
     height: 100%;
 
-    overflow: hidden;
-
     font-size: 13px;
 
     background-color: $bgColor;
@@ -101,8 +99,6 @@ $statusBarHeight: 18px;
       }
 
       button {
-        flex-grow: 1;
-
         display: flex;
         align-items: center;
         justify-content: center;
@@ -119,7 +115,7 @@ $statusBarHeight: 18px;
         transition: all .2s ease;
 
         svg {
-          font-size: $fs1;
+          // font-size: $fs1;
           color: rgba($fgColor, .75);
         }
 
@@ -136,6 +132,18 @@ $statusBarHeight: 18px;
         &:disabled {
           opacity: .5;
           pointer-events: none;
+        }
+
+        &.menu {
+          cursor: pointer;
+
+          @include data-label {
+            left: 0;
+          }
+
+          svg {
+            font-size: $fs1;
+          }
         }
       }
     }
