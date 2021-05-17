@@ -13,14 +13,14 @@ export const steps = [
     highlightClass: 'highlightClass'
   },
   {
-    element: 'button[title="New Resource"]',
+    element: 'button[data-tour-id="new-resource"]',
     title: 'Create New Resources',
     intro: 'Create new resources for your server. Try one of our starting templates for Lua, JS, or C#.',
     tooltipClass: 'customTooltip',
     highlightClass: 'highlightClass'
   },
   {
-    element: 'div[title="Toolbar"]',
+    element: 'div[data-tour-id="toolbar"]',
     title: 'File Explorer',
     intro: 'When you create a new resource they will appear here in the file directory. Click here to open files to edit or create new files. Right click on resource folders to start, stop, or restart the game asset.',
     tooltipClass: 'customTooltip',
@@ -41,7 +41,7 @@ export const steps = [
     highlightClass: 'highlightClass'
   },
   {
-    element: 'button[title="Build project"]',
+    element: 'button[data-tour-id="project-build"]',
     title: 'Build Project',
     intro: 'When you are done editing your resources, build your server. Add Tebex store keys and Steam API keys. This will export everything you need to launch your customized server on FiveM!',
     tooltipClass: 'customTooltip',

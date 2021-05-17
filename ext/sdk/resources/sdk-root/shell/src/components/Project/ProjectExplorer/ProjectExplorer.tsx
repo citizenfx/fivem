@@ -5,7 +5,7 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import { sendApiMessage } from 'utils/api';
 import { projectApi } from 'shared/api.events';
 import { ContextMenu, ContextMenuItem } from 'components/controls/ContextMenu/ContextMenu';
-import { newDirectoryIcon, newResourceIcon } from 'constants/icons';
+import { importAssetIcon, newDirectoryIcon, newResourceIcon } from 'constants/icons';
 import { Directory } from './Directory/Directory';
 import { File } from './File/File';
 import { DirectoryCreator } from './Directory/DirectoryCreator/DirectoryCreator';
@@ -18,6 +18,7 @@ import { StatusState } from 'store/StatusState';
 import { Feature } from 'shared/api.types';
 import { assetTypes } from 'shared/asset.types';
 import s from './ProjectExplorer.module.scss';
+import { WiWindy } from 'react-icons/wi';
 
 
 const itemRenderer: ProjectItemRenderer = (props: ProjectItemProps) => {
@@ -141,6 +142,33 @@ export const ProjectExplorer = observer(function ProjectExplorer() {
         )}
         <DndProvider backend={HTML5Backend}>
           {nodes}
+
+          {!nodes.length && (
+            <>
+              <div className={s.empty}>
+                <WiWindy />
+
+                <div>
+                  Looks pretty empty here :(
+                  <br />
+                  Start by creating something new
+                  <br />
+                  or import existing stuff!
+                </div>
+              </div>
+              <div className={s['quick-access']}>
+                <button onClick={() => ProjectState.openResourceCreator()}>
+                  {newResourceIcon}
+                  New resource
+                </button>
+
+                <button onClick={() => ProjectState.openImporter()}>
+                  {importAssetIcon}
+                  Import asset
+                </button>
+              </div>
+            </>
+          )}
         </DndProvider>
       </ContextMenu>
     </ProjectExplorerContextProvider>

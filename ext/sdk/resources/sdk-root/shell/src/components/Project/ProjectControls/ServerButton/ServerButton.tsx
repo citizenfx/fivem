@@ -9,11 +9,11 @@ import { ProjectState } from 'store/ProjectState';
 import s from './ServerButton.module.scss';
 
 
-export const ServerButton = observer(function Server() {
+export const ServerButton = observer(function Server({ className }: { className: string }) {
   const project = ProjectState.project;
   const updateChannelState = ServerState.getUpdateChannelState(project.manifest.serverUpdateChannel);
 
-  const rootClassName = classnames(s.root, {
+  const rootClassName = classnames(s.root, className, {
     [s.up]: ServerState.isUp,
     [s.down]: ServerState.isDown,
     [s.booting]: ServerState.isBooting,
@@ -83,14 +83,12 @@ export const ServerButton = observer(function Server() {
   }, [project, updateChannelState]);
 
   return (
-    <div className={rootClassName}>
-      <div
-        className={s.button}
-        onClick={handleClick}
-        title={title}
-      >
-        {icon}
-      </div>
-    </div>
+    <button
+      className={rootClassName}
+      onClick={handleClick}
+      data-label={title}
+    >
+      {icon}
+    </button>
   );
 });

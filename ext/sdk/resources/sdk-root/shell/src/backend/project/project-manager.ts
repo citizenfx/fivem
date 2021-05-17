@@ -127,7 +127,7 @@ export class ProjectManager implements ApiContribution {
         this.projectAccess.setInstance(null);
       }
 
-      this.project = await this.createProjectBoundToPath().load(projectPath);
+      this.project = await this.createProjectBoundToPath().open(projectPath);
 
       this.emitProjectOpen();
       this.setCurrentProjectInstanceAsMostRecent();

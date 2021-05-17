@@ -11,7 +11,7 @@ export const NewDirectory = React.memo(function NewDirectory({ className }: NewD
     <button
       className={className}
       onClick={ProjectState.openDirectoryCreator}
-      title="New Directory"
+      data-label="New directory"
     >
       {newDirectoryIcon}
     </button>

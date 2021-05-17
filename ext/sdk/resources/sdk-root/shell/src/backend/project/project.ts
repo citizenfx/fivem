@@ -296,15 +296,17 @@ export class Project implements ApiContribution {
       creatingTask.done();
     }
 
-    return this.load();
+    return this.load(false);
   }
 
-  async load(path?: string): Promise<Project> {
-    if (path) {
-      this.path = this.fsService.resolvePath(path);
-    }
+  open(projectPath: string): Promise<Project> {
+    this.path = this.fsService.resolvePath(projectPath);
 
-    const loadTask = this.taskReporterService.createNamed(projectLoadingTaskName, `Loading project ${path}`);
+    return this.load(true);
+  }
+
+  private async load(runUpgradeRoutines: boolean): Promise<Project> {
+    const loadTask = this.taskReporterService.createNamed(projectLoadingTaskName, `Loading project ${this.path}`);
 
     this.manifestPath = this.fsService.joinPath(this.path, fxdkProjectFilename);
     this.storagePath = this.fsService.joinPath(this.path, '.fxdk');
@@ -313,12 +315,14 @@ export class Project implements ApiContribution {
     try {
       this.log('loading project...');
 
-      await this.projectUpgrade.maybeUpgradeProject({
-        task: loadTask,
-        projectPath: path,
-        manifestPath: this.manifestPath,
-        storagePath: this.storagePath,
-      });
+      if (runUpgradeRoutines) {
+        await this.projectUpgrade.maybeUpgradeProject({
+          task: loadTask,
+          projectPath: this.path,
+          manifestPath: this.manifestPath,
+          storagePath: this.storagePath,
+        });
+      }
 
       loadTask.setText('Ensuring fxserver cwd exists...');
       if (!await this.fsService.statSafe(this.fxserverCwd)) {

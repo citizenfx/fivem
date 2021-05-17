@@ -22,7 +22,8 @@ export const NewResource = observer(function NewResource({ className }: NewResou
     <button
       className={className}
       onClick={handleClick}
-      title="New Resource"
+      data-label="New resource"
+      data-tour-id="new-resource"
     >
       {newResourceIcon}
     </button>

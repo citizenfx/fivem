@@ -20,22 +20,22 @@ export const systemResourcesDescriptors: Record<Category, Partial<Record<SystemR
     },
   },
 
-  'Basics': {
-    [SystemResource.BASIC_GAMEMODE]: {
-      name: 'Basic gamemode',
-      description: 'A basic freeroam gametype that uses the default spawn logic from spawnmanager',
+  'Builders': {
+    [SystemResource.WEBPACK]: {
+      name: 'Webpack builder',
+      description: (
+        <>
+          Builds resources with webpack. To learn more: <a href="https://webpack.js.org">https://webpack.js.org</a>
+        </>
+      ),
     },
-    [SystemResource.BASE_EVENTS]: {
-      name: 'Base events',
-      description: 'Adds basic events for developers to use in their scripts. Some third party resources may depend on this resource',
-    },
-    [SystemResource.PLAYER_DATA]: {
-      name: 'Player data',
-      description: 'A basic resource for storing player identifiers',
-    },
-    [SystemResource.PLAYER_NAMES]: {
-      name: 'Player names',
-      description: 'A basic resource for displaying player names',
+    [SystemResource.YARN]: {
+      name: 'Yarn builder',
+      description: (
+        <>
+          Builds resources with yarn. To learn more: <a href="https://classic.yarnpkg.com">https://classic.yarnpkg.com</a>
+        </>
+      ),
     },
   },
 
@@ -65,26 +65,26 @@ export const systemResourcesDescriptors: Record<Category, Partial<Record<SystemR
     },
   },
 
-  'Builders': {
-    [SystemResource.WEBPACK]: {
-      name: 'Webpack builder',
-      description: (
-        <>
-          Builds resources with webpack. To learn more: <a href="https://webpack.js.org">https://webpack.js.org</a>
-        </>
-      ),
+  'Basics': {
+    [SystemResource.BASIC_GAMEMODE]: {
+      name: 'Basic gamemode',
+      description: 'A basic freeroam gametype that uses the default spawn logic from spawnmanager',
     },
-    [SystemResource.YARN]: {
-      name: 'Yarn builder',
-      description: (
-        <>
-          Builds resources with yarn. To learn more: <a href="https://classic.yarnpkg.com">https://classic.yarnpkg.com</a>
-        </>
-      ),
+    [SystemResource.BASE_EVENTS]: {
+      name: 'Base events',
+      description: 'Adds basic events for developers to use in their scripts. Some third party resources may depend on this resource',
+    },
+    [SystemResource.PLAYER_DATA]: {
+      name: 'Player data',
+      description: 'A basic resource for storing player identifiers',
+    },
+    [SystemResource.PLAYER_NAMES]: {
+      name: 'Player names',
+      description: 'A basic resource for displaying player names',
     },
   },
 
-  'System extras': {
+  'Others': {
     [SystemResource.RCON_LOG]: {
       name: 'RCON log',
       description: 'Handles old-style server player management commands',
@@ -99,9 +99,6 @@ export const systemResourcesDescriptors: Record<Category, Partial<Record<SystemR
         </>
       ),
     },
-  },
-
-  'You better not disable this, right': {
     [SystemResource.HARD_CAP]: {
       name: 'Hard cap',
       description: 'Limits the number of players to the amount set by sv_maxclients in your server.cfg',

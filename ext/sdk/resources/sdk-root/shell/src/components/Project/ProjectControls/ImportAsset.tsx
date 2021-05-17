@@ -1,5 +1,5 @@
 import React from 'react';
-import { BsBoxArrowInDownRight } from 'react-icons/bs';
+import { importAssetIcon } from 'constants/icons';
 import { ProjectState } from 'store/ProjectState';
 
 export interface ImportAssetProps {
@@ -9,11 +9,11 @@ export interface ImportAssetProps {
 export const ImportAsset = React.memo(function ImportAsset({ className }: ImportAssetProps) {
   return (
     <button
-      title="Import asset"
       className={className}
       onClick={ProjectState.openImporter}
+      data-label="Import asset"
     >
-      <BsBoxArrowInDownRight />
+      {importAssetIcon}
     </button>
   );
 });

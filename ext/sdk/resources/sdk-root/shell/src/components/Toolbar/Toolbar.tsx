@@ -2,7 +2,7 @@ import React from 'react';
 import { observer } from 'mobx-react-lite';
 import classnames from 'classnames';
 import { BsCardHeading, BsGear, BsHash, BsList } from 'react-icons/bs';
-import { devtoolsIcon, newProjectIcon, openProjectIcon, projectBuildIcon, mapIcon } from 'constants/icons';
+import { devtoolsIcon, newProjectIcon, openProjectIcon, projectBuildIcon, mapIcon, projectSettingsIcon } from 'constants/icons';
 import { Project } from 'components/Project/Project';
 import { ContextMenu, ContextMenuItemsCollection, ContextMenuItemSeparator } from 'components/controls/ContextMenu/ContextMenu';
 import { ProjectControls } from 'components/Project/ProjectControls/ProjectControls';
@@ -69,7 +69,7 @@ export const Toolbar = observer(function Toolbar() {
           {
             id: 'project-settings',
             text: 'Project settings',
-            icon: <BsGear />,
+            icon: projectSettingsIcon,
             onClick: ProjectState.openSettings,
           },
           {
@@ -122,7 +122,7 @@ export const Toolbar = observer(function Toolbar() {
     <div
       style={rootStyles}
       className={toolbarClasses}
-      title="Toolbar"
+      data-tour-id="toolbar"
     >
       <ToolbarTrigger />
 
@@ -133,7 +133,7 @@ export const Toolbar = observer(function Toolbar() {
             onClick={handleMenuClick}
             getCoords={handleGetMenuCoords}
           >
-            <button title="FxDK Menu">
+            <button className={s.menu} data-label="Menu">
               <BsList />
             </button>
           </ContextMenu>

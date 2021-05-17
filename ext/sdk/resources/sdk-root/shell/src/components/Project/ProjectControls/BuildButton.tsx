@@ -13,7 +13,8 @@ export const BuildButton = observer(function BuildButton({ className }: BuildBut
       className={className}
       disabled={!ProjectState.hasProject}
       onClick={() => ProjectState.buildProject()}
-      title="Build project"
+      data-label="Build project"
+      data-tour-id="project-build"
     >
       {projectBuildIcon}
     </button>

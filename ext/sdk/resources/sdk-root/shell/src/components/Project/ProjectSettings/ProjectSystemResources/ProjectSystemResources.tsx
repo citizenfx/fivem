@@ -31,20 +31,24 @@ export const ProjectSystemResources = observer(function ProjectSystemResources()
     });
 
     return (
-      <React.Fragment key={categoryName}>
+      <div key={categoryName} className={s.category}>
         <div className="modal-label">
           {categoryName}:
         </div>
         <div className="modal-block">
-          <div className={s.root}>
+          <div className={s.list}>
             {resourcesNodes}
           </div>
         </div>
-      </React.Fragment>
+      </div>
     );
   });
 
 
 
-  return <>{nodes}</>;
+  return (
+    <div className={s.wrapper}>
+      {nodes}
+    </div>
+  );
 });

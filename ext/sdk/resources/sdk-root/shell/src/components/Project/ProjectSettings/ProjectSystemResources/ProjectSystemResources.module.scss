@@ -1,64 +1,71 @@
 @import "variables";
 
-.root {
+.wrapper {
   display: flex;
   flex-wrap: wrap;
 
-  gap: $q*2;
+  .category {
+    width: 33%;
 
-  .resource {
-    flex-grow: 1;
-
-    display: flex;
-    flex-direction: column;
-
-    max-width: calc(33% - #{$q*2});
-
-    padding: $q*3;
-
-    background-color: rgba($fgColor, .05);
-
-    cursor: pointer;
-    user-select: none;
-
-    .row {
+    .list {
       display: flex;
+      flex-direction: column;
 
       gap: $q*2;
-    }
 
-    .check {
-      flex-shrink: 0;
+      .resource {
+        flex-grow: 1;
 
-      width: $fs08;
-      height: $fs08;
-      background-color: rgba($fgColor, .5);
-    }
+        display: flex;
+        flex-direction: column;
 
-    .name {
-      display: block;
-    }
+        padding: $q*3;
 
-    .description {
-      display: block;
+        background-color: rgba($fgColor, .05);
 
-      margin-top: $q*2;
+        cursor: pointer;
+        user-select: none;
 
-      color: rgba($fgColor, .75);
-      font-size: $fs08;
-    }
+        .row {
+          display: flex;
 
-    @include interactiveTransition;
+          gap: $q*2;
+        }
 
-    &:hover {
-      box-shadow: 0 0 0 2px rgba($fgColor, .5) inset;
-    }
+        .check {
+          flex-shrink: 0;
 
-    &.active {
-      box-shadow: 0 0 0 2px $acColor inset;
+          width: $fs08;
+          height: $fs08;
+          background-color: rgba($fgColor, .5);
+        }
 
-      .check {
-        background-color: $acColor;
+        .name {
+          display: block;
+        }
+
+        .description {
+          display: block;
+
+          margin-top: $q*2;
+
+          color: rgba($fgColor, .75);
+          font-size: $fs08;
+        }
+
+        @include interactiveTransition;
+
+        &:hover {
+          box-shadow: 0 0 0 2px rgba($fgColor, .5) inset;
+        }
+
+        &.active {
+          box-shadow: 0 0 0 2px $acColor inset;
+
+          .check {
+            background-color: $acColor;
+          }
+        }
       }
     }
   }

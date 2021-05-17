@@ -243,6 +243,7 @@ export const ProjectState = new class ProjectState {
       this.projectObject = null;
     }
 
+    this.resourceCreatorDir = projectData.path;
     this.projectAlreadyOpening = false;
     this.projectObject = new ProjectObject(projectData);
 
