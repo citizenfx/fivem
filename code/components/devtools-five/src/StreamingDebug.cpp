@@ -204,9 +204,6 @@ void StreamingListView::getCellData(size_t row, size_t column, CellData& cellDat
 	}
 	case 1:
 	{
-		// icon
-		// ^ not yet
-
 		auto type = std::string(typeid(*strModule).name());
 
 		cellDataOut.customText = va("%s", type.substr(6));
@@ -214,15 +211,20 @@ void StreamingListView::getCellData(size_t row, size_t column, CellData& cellDat
 	}
 	case 2:
 	{
+		cellDataOut.customText = va("%d (+%d)", relativeIndex, strModule->baseIdx);
+		break;
+	}
+	case 3:
+	{
 		const auto& entryName = streaming::GetStreamingNameForIndex(num);
 
 		cellDataOut.customText = entryName.c_str();
 		break;
 	}
-	case 3:
+	case 4:
 		cellDataOut.fieldPtr = &entry.flags;
 		break;
-	case 4:
+	case 5:
 	{
 		static int refCount;
 		refCount = strModule->GetNumRefs(relativeIndex);
@@ -254,10 +256,15 @@ void StreamingListView::getHeaderData(size_t column, HeaderData& headerDataOut) 
 		break;
 	case 2:
 		headerDataOut.sorting.sortable = false;
-		headerDataOut.name = "Name";
+		headerDataOut.name = "Index";
 		headerDataOut.type.headerType = ImGui::ListViewBase::HT_CUSTOM;
 		break;
 	case 3:
+		headerDataOut.sorting.sortable = false;
+		headerDataOut.name = "Name";
+		headerDataOut.type.headerType = ImGui::ListViewBase::HT_CUSTOM;
+		break;
+	case 4:
 		headerDataOut.sorting.sortable = false;
 		headerDataOut.name = "State";
 		headerDataOut.type.headerType = ImGui::ListViewBase::HT_ENUM;
@@ -283,7 +290,7 @@ void StreamingListView::getHeaderData(size_t column, HeaderData& headerDataOut) 
 		};
 		headerDataOut.formatting.columnWidth = 200;
 		break;
-	case 4:
+	case 5:
 		headerDataOut.sorting.sortable = false;
 		headerDataOut.name = "Refs";
 		headerDataOut.type.headerType = ImGui::ListViewBase::HT_INT;
@@ -294,7 +301,7 @@ void StreamingListView::getHeaderData(size_t column, HeaderData& headerDataOut) 
 
 size_t StreamingListView::getNumColumns() const
 {
-	return 5;
+	return 6;
 }
 
 size_t StreamingListView::getNumRows() const
