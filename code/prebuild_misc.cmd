@@ -1,8 +1,8 @@
 @echo off
 setlocal
 :: TODO: make mojo wrappers that use this from deps
-python -m easy_install  MarkupSafe==1.1.1 jinja2==2.11.1 ply
-set PYTHONPATH=code\tools\idl\deps\
-mkdir code\tools\idl\deps
-python -m easy_install -d code\tools\idl\deps\ MarkupSafe==1.1.1 ply jinja2==2.11.1
+for %%i in (%~dp0\tools\build\deps\*.whl) do python -m easy_install "%%i"
+set PYTHONPATH=%~dp0\tools\idl\deps\
+mkdir "%~dp0\tools\idl\deps"
+for %%i in (%~dp0\tools\build\deps\*.whl) do python -m easy_install -d "%~dp0\tools\idl\deps" "%%i"
 endlocal
