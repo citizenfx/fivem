@@ -463,7 +463,7 @@ static InitFunction initFunction([]()
 						break;
 					case RpcConfiguration::ArgumentType::String:
 					{
-						const char* str = ctx.GetArgument<const char*>(i);
+						const char* str = ctx.CheckArgument<const char*>(i);
 						buffer.Write<uint16_t>(strlen(str));
 						buffer.Write(str, strlen(str));
 						break;
