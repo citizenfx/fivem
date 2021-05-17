@@ -1,4 +1,5 @@
 import React from 'react';
+import { ShellState } from 'store/ShellState';
 import { ANY_MESSAGE, ApiMessageCallback, ApiMessageListener, onApiMessage, onApiMessageScoped, sendApiMessageCallback } from './api';
 import { fastRandomId } from './random';
 import { onWindowEvent, WindowEventListener } from './windowMessages';
@@ -196,4 +197,12 @@ export const useOutsideClick = (ref, callback) => {
 
     return () => document.removeEventListener("click", handleClick);
   });
+};
+
+export const useIframeCover = () => {
+  React.useEffect(() => {
+    ShellState.enableIframeCover();
+
+    return () => ShellState.disableIframeCover();
+  }, []);
 };

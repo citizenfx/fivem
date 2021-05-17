@@ -25,3 +25,16 @@
     width: 100%;
   }
 }
+
+.cover {
+  position: fixed;
+  top: 0;
+  left: var(--toolbar-width);
+  right: 0;
+  bottom: 0;
+
+  width: calc(100% - var(--toolbar-width));
+  height: 100%;
+
+  z-index: $zTheia+1;
+}

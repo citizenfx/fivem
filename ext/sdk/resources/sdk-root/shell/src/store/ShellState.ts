@@ -46,4 +46,17 @@ export const ShellState = new class ShellState {
   public changelogOpen = false;
   openChangelog = () => this.changelogOpen = true;
   closeChangelog = () => this.changelogOpen = false;
+
+  private coverIframes = 0;
+
+  get isIframeCovered(): boolean {
+    return this.coverIframes > 0;
+  }
+
+  enableIframeCover() {
+    this.coverIframes++;
+  }
+  disableIframeCover() {
+    this.coverIframes--;
+  }
 };

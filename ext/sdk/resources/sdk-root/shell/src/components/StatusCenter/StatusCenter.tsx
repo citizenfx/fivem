@@ -2,7 +2,7 @@ import React from 'react';
 import classnames from 'classnames'
 import { observer } from 'mobx-react-lite';
 import { NotificationState } from 'store/NotificationState';
-import { useOutsideClick } from 'utils/hooks';
+import { useIframeCover, useOutsideClick } from 'utils/hooks';
 import { TaskState } from 'store/TaskState';
 import { TaskItem } from './TaskItem/TaskItem';
 import { NotificationItem } from './NotificationItem/NotificationItem';
@@ -18,6 +18,8 @@ export interface StatusCenterProps {
 const OutsideClickSentinel = React.forwardRef(({ onClose }: { onClose(): void }, ref) => {
   useOutsideClick(ref, onClose);
 
+  useIframeCover();
+
   return null;
 });
 
@@ -30,16 +32,6 @@ export const StatusCenter = observer(function StatusCenter(props: StatusCenterPr
   const notifications = NotificationState.values;
 
   const open = props.open || notifications.length > 0;
-
-  React.useEffect(() => {
-    if (open) {
-      window.document.body.classList.add('resize-sentinel-active');
-    } else {
-      window.document.body.classList.remove('resize-sentinel-active');
-    }
-
-    return () => window.document.body.classList.remove('resize-sentinel-active');
-  }, [open]);
 
   if (!open) {
     ref.current = null;

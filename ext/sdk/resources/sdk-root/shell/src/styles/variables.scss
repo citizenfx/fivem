@@ -67,6 +67,8 @@ $zWorldEditor: 4000;
     opacity: 0;
     pointer-events: none;
 
+    z-index: 1000;
+
     @content;
   }
 

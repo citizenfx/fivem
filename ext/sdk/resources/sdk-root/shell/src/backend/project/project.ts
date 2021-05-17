@@ -859,7 +859,7 @@ export class Project implements ApiContribution {
 
         // Only if it doesn't conflict with enabled system resource name
         if (enabledSystemResources.indexOf(descriptor.name as SystemResource) === -1) {
-          resourceDescriptors.push();
+          resourceDescriptors.push(descriptor);
         }
       }
     }
