@@ -71,20 +71,28 @@ export class GameServerFxdkMode implements GameServerMode {
     this.setupIpcEvents();
     task.setText('IPC events set up');
 
-    await this.startIpc();
-    task.setText('IPC started');
+    try {
+      await this.startIpc();
+      task.setText('IPC started');
 
-    await this.startServer(request);
-    task.setText('Server started');
+      await this.startServer(request);
+      task.setText('Server started');
 
-    await this.ipc.connection.promise;
-    task.setText('IPC connection');
+      await this.ipc.connection.promise;
+      task.setText('IPC connection');
 
-    await this.serverInitSequence(request);
-    task.setText('Server initied');
+      await this.serverInitSequence(request);
+      task.setText('Server initied');
 
-    await this.readyDeferred.promise;
-    task.setText('Server ready');
+      await this.readyDeferred.promise;
+      task.setText('Server ready');
+    } catch (e) {
+      if (this.shellCommand) {
+        await this.shellCommand.stop();
+      }
+
+      throw e;
+    }
   }
 
   async stop(task: Task) {

@@ -46,14 +46,20 @@ export const TheiaPersonality = observer(function TheiaPersonality() {
   } as any;
 
   return (
-    <iframe
-      ref={TheiaState.ref}
-      style={rootStyles}
-      className={className}
-      title="Theia personality"
-      src={`http://${address.hostname}:${address.port}`}
-      frameBorder="0"
-      allowFullScreen={true}
-    ></iframe>
+    <>
+      <iframe
+        ref={TheiaState.ref}
+        style={rootStyles}
+        className={className}
+        title="Theia personality"
+        src={`http://${address.hostname}:${address.port}`}
+        frameBorder="0"
+        allowFullScreen={true}
+      ></iframe>
+
+      {ShellState.isIframeCovered && (
+        <div className={s.cover} style={rootStyles} />
+      )}
+    </>
   );
 });

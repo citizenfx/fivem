@@ -181,6 +181,7 @@ const ObjectsBrowserDropdown = React.memo(function ObjectsBrowserDropdown() {
 
                 return (
                   <ObjectItem
+                    key={index}
                     active={activeIndex === index}
                     name={name}
                     style={style}
