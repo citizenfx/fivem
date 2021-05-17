@@ -132,8 +132,10 @@ export class Resource implements AssetInterface {
     const resourcePath = this.getPath();
     const ignorePatterns = await this.getIgnorePatterns();
 
-    const patternPaths = ignorePatterns.concat('**/*')
-      .map((pattern) => '!' + pattern.replace(/\\/g, '/'));
+    // Mark all patterns from `.fxdkignore` as exclusions and add others
+    const patternPaths = ignorePatterns
+      .map((pattern) => '!' + pattern.replace(/\\/g, '/'))
+      .concat('**/*');
 
     const allPaths = await this.fsService.glob(
       patternPaths,
