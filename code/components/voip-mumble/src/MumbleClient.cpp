@@ -864,6 +864,7 @@ void MumbleClient::HandleVoice(const uint8_t* data, size_t size)
 	{
 		pds >> packetLength;
 
+		bool hasTerminator = (packetLength & 0x2000) != 0;
 		size_t len = (packetLength & 0x1FFF);
 		std::vector<uint8_t> bytes(len);
 
@@ -888,7 +889,7 @@ void MumbleClient::HandleVoice(const uint8_t* data, size_t size)
 			break;
 		}
 
-		this->GetOutput().HandleClientVoiceData(*user, sequenceNumber, bytes.data(), bytes.size());
+		this->GetOutput().HandleClientVoiceData(*user, sequenceNumber, bytes.data(), bytes.size(), hasTerminator);
 
 		break;
 	} while ((packetLength & 0x2000) == 0);

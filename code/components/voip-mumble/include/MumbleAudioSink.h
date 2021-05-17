@@ -3,6 +3,8 @@
 class IMumbleAudioSink : public fwRefCountable
 {
 public:
+	virtual void SetResetHandler(const std::function<void()>& resetter) = 0;
+
 	virtual void SetPollHandler(const std::function<void(int)>& poller) = 0;
 
 	virtual void SetPosition(float position[3], float distance, float overrideVolume) = 0;

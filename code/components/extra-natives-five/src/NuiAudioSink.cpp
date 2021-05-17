@@ -1332,8 +1332,11 @@ public:
 	virtual ~MumbleAudioSink() override;
 
 	virtual void SetPollHandler(const std::function<void(int)>& poller) override;
+	virtual void SetResetHandler(const std::function<void()>& resetti) override;
 	virtual void SetPosition(float position[3], float distance, float overrideVolume) override;
 	virtual void PushAudio(int16_t* pcm, int len) override;
+
+	void Reset();
 
 private:
 	std::wstring m_name;
@@ -1349,6 +1352,7 @@ private:
 	int m_lastPed = -1;
 
 	std::function<void(int)> m_poller;
+	std::function<void()> m_resetti;
 };
 
 static std::mutex g_sinksMutex;
@@ -1379,9 +1383,22 @@ MumbleAudioSink::~MumbleAudioSink()
 	g_sinks.erase(this);
 }
 
+void MumbleAudioSink::Reset()
+{
+	if (m_resetti)
+	{
+		m_resetti();
+	}
+}
+
 void MumbleAudioSink::SetPollHandler(const std::function<void(int)>& poller)
 {
 	m_poller = poller;
+}
+
+void MumbleAudioSink::SetResetHandler(const std::function<void()>& resetti)
+{
+	m_resetti = resetti;
 }
 
 void MumbleAudioSink::SetPosition(float position[3], float distance, float overrideVolume)
@@ -1477,6 +1494,8 @@ void MumbleAudioSink::Process()
 
 		if (!m_entity)
 		{
+			Reset();
+
 			m_entity = std::make_shared<MumbleAudioEntity>(m_name);
 			m_entity->SetPoller(m_poller);
 			m_entity->SetSubmixId(submixId);
@@ -1489,6 +1508,8 @@ void MumbleAudioSink::Process()
 			submixId != m_lastSubmixId ||
 			ped != m_lastPed)
 		{
+			Reset();
+
 			m_lastOverrideVolume = m_overrideVolume;
 			m_lastSubmixId = submixId;
 			m_lastPed = ped;
