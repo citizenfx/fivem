@@ -60,15 +60,10 @@ private:
 	{
 		struct PerTargetData
 		{
-			std::chrono::milliseconds lastSend;
+			std::chrono::milliseconds lastSend{ 0 };
+			std::chrono::milliseconds delayNextSend{ 0 };
 			eastl::bitvector<> ackBits;
-			size_t lastBit;
-
-			PerTargetData()
-				: lastBit(0)
-			{
-
-			}
+			size_t lastBit = 0;
 		};
 
 		std::set<int> targets;
@@ -303,6 +298,7 @@ void EventReassemblyComponentImpl::HandleReceivedPacket(int source, const std::s
 
 	uint16_t nameLength = buffer.Read<uint16_t>(16);
 	buffer.ReadBits(eventName, nameLength * 8);
+	eventName[nameLength] = '\0';
 
 	// convert the source net ID to a string
 	std::string sourceStr = "net:" + std::to_string(source);
@@ -349,11 +345,12 @@ void EventReassemblyComponentImpl::NetworkTick()
 			{
 				auto targetData = sendPacket->targetData[target];
 
-				if (targetData && (targetData->lastSend + latency) < timeNow)
+				if (targetData && (targetData->lastSend + latency) < timeNow && targetData->delayNextSend < timeNow)
 				{
 					// burst loop so we don't 'slow down' too much at a lower tick rate
 					auto resTime = dT;
 					auto& ackBits = targetData->ackBits;
+					auto startBit = targetData->lastBit;
 
 					do
 					{
@@ -402,8 +399,20 @@ void EventReassemblyComponentImpl::NetworkTick()
 						{
 							resTime -= latency;
 						}
+
+						// if we've cycled around fully, set next send time and break out
+						if (targetData->lastBit == startBit)
+						{
+							targetData->delayNextSend = timeNow + std::chrono::milliseconds(500);
+							break;
+						}
 					} while (resTime > latency);
 
+					targetData->lastSend = timeNow;
+				}
+				// update send timer if we are delaying (to prevent oversize bursts)
+				else if (targetData && targetData->delayNextSend >= timeNow)
+				{
 					targetData->lastSend = timeNow;
 				}
 			}
