@@ -348,7 +348,8 @@ public:
 	// a1: status message
 	// a2: current progress
 	// a3: total progress
-	fwEvent<const std::string&, int, int> OnConnectionProgress;
+	// a4: cancelable/closable UI
+	fwEvent<const std::string&, int, int, bool> OnConnectionProgress;
 
 	// a1: detailed progress message
 	fwEvent<const std::string&> OnConnectionSubProgress;

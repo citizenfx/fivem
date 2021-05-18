@@ -2,7 +2,7 @@ import { Injectable, NgZone, Inject, PLATFORM_ID } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 
-import { Observable, Subject } from 'rxjs';
+import {Observable, of, Subject} from 'rxjs';
 
 import { concat, from, BehaviorSubject } from 'rxjs';
 
@@ -21,6 +21,7 @@ import { master } from './master';
 import { isPlatformBrowser } from '@angular/common';
 import { GameService } from '../game.service';
 import { FilterRequest } from './filter-request';
+import {catchError, timeout} from 'rxjs/operators';
 
 const serversWorker = new Worker('./workers/servers.worker', { type: 'module' });
 
@@ -157,7 +158,13 @@ export class ServersService {
 				// fetch it
 				const serverID = await this.httpClient.post('https://nui-internal/gsclient/url', `url=${serverHost}`, {
 					responseType: 'text'
-				}).toPromise();
+				}).pipe(
+                    timeout(5000),
+                    catchError(e => {
+                        console.log('https://nui-internal/gsclient/url timed out');
+                        return of(null);
+                    })
+                ).toPromise();
 
 				if (serverID && serverID !== '') {
 					try {
@@ -170,9 +177,15 @@ export class ServersService {
 			// try getting dynamic.json to at least populate basic details
 			if (!server) {
 				try {
-					const serverData = await this.httpClient.post('https://nui-internal/gsclient/dynamic', `url=${serverHost}`, {
-						responseType: 'text'
-					}).toPromise();
+				    const serverData = await this.httpClient.post('https://nui-internal/gsclient/dynamic', `url=${serverHost}`, {
+                        responseType: 'text'
+                    }).pipe(
+                        timeout(5000),
+                        catchError(e => {
+                            console.log('https://nui-internal/gsclient/dynamic timed out');
+                            return of(null);
+                        })
+                    ).toPromise();
 
 					if (serverData) {
 						const sd = JSON.parse(serverData);
