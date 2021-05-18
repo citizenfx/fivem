@@ -100,6 +100,7 @@ public:
 		m_instance->GetComponent<console::Context>()->AddToBuffer(R"(
 devgui_convar "Tools/Performance/Resource Monitor" resmon
 devgui_convar "Tools/Network/State/Network Object Viewer" netobjviewer
+devgui_convar "Tools/Network/State/Player List" svplayerlist
 )");
 
 		Initialize();
@@ -205,7 +206,7 @@ private:
 						{
 							if (module->toggleVar)
 							{
-								if (ImGui::Begin(module->name.c_str(), &module->toggleVar))
+								if (ImGui::Begin(module->name.c_str(), &module->toggleVar, module->flags))
 								{
 									module->Render(m_instance);
 								}

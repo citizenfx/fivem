@@ -766,6 +766,10 @@ namespace fx
 			m_packetHandler(msgType, client, msg);
 		}
 
+		if (client->GetNetworkMetricsRecvCallback())
+		{
+			client->GetNetworkMetricsRecvCallback()(client.get(), msgType, msg);
+		}
 		client->Touch();
 	}
 

@@ -5,7 +5,8 @@
 namespace fx
 {
 	Client::Client(const std::string& guid)
-		: m_guid(guid), m_netId(0xFFFF), m_netBase(-1), m_lastSeen(0), m_hasRouted(false), m_slotId(-1), m_dropping(false)
+	: m_guid(guid), m_netId(0xFFFF), m_netBase(-1), m_lastSeen(0), m_hasRouted(false), m_slotId(-1), m_dropping(false), 
+	  m_firstSeen(msec()), m_clientNetworkMetricsSendCallback(nullptr), m_clientNetworkMetricsRecvCallback(nullptr)
 	{
 
 	}
@@ -70,6 +71,15 @@ namespace fx
 		return (msec() - m_lastSeen) > CLIENT_DEAD_TIMEOUT;
 	}
 
+	int Client::GetPing()
+	{
+		fx::NetPeerStackBuffer stackBuffer;
+		gscomms_get_peer(GetPeer(), stackBuffer);
+		auto peer = stackBuffer.GetBase();
+
+		return peer->GetPing();
+	}
+
 	void Client::SetData(const std::string& key, const std::any& data)
 	{
 		m_userData[key] = data;
@@ -93,6 +103,10 @@ namespace fx
 		if (m_peer)
 		{
 			gscomms_send_packet(this, *m_peer, channel, buffer, type);
+			if (m_clientNetworkMetricsSendCallback)
+			{
+				m_clientNetworkMetricsSendCallback(this, channel, buffer, type);
+			}
 		}
 	}
 }
