@@ -114,7 +114,7 @@ static const auto& CollectPlayers(fx::ServerInstanceBase* instance)
 	// Skips Dropping clients.
 	clientRegistry->ForAllClients([](fx::ClientSharedPtr client)
 	{
-		std::shared_lock lock(g_playerListDataMutex);
+		std::unique_lock lock(g_playerListDataMutex);
 		auto& entry = g_playerListData[client->GetGuid()];
 		entry.name = fmt::sprintf("[%d] %s", client->GetNetId(), client->GetName());
 		unsigned int secondsTotalOnline = std::chrono::duration_cast<std::chrono::seconds>(client->GetLastSeen() - client->GetFirstSeen()).count();
@@ -139,9 +139,14 @@ static const auto& CollectPlayers(fx::ServerInstanceBase* instance)
 				float positionFloat[3];
 				entity->syncTree->GetPosition(positionFloat);
 
+				std::unique_lock lock(g_playerListDataMutex);
 				g_playerListData[owner->GetGuid()].position = { positionFloat[0], positionFloat[1], positionFloat[2] };
 			}
-			g_playerListData[owner->GetGuid()].connectionState = "SPAWNED";
+
+			{
+				std::unique_lock lock(g_playerListDataMutex);
+				g_playerListData[owner->GetGuid()].connectionState = "SPAWNED";
+			}
 		}
 	}
 
@@ -151,6 +156,8 @@ static const auto& CollectPlayers(fx::ServerInstanceBase* instance)
 
 void RecvFromClient_Callback(fx::Client* client, uint32_t packetId, net::Buffer& buffer)
 {
+	// only a shared lock: we assume g_playerListData already contains our data
+	std::shared_lock lock(g_playerListDataMutex);
 	auto& entry = g_playerListData[client->GetGuid()];
 
 	if (!entry.showPopout)
@@ -176,6 +183,7 @@ void RecvFromClient_Callback(fx::Client* client, uint32_t packetId, net::Buffer&
 
 void SendToClient_Callback(fx::Client* client, int channel, const net::Buffer& buffer, NetPacketType flags)
 {
+	std::shared_lock lock(g_playerListDataMutex);
 	auto& entry = g_playerListData[client->GetGuid()];
 
 	if (!entry.showPopout)
@@ -209,19 +217,19 @@ static InitFunction initFunction([]()
 
 		clientRegistry->OnClientCreated.Connect([](const fx::ClientSharedPtr& client)
 		{
-			std::shared_lock lock(g_playerListDataMutex);
+			std::unique_lock lock(g_playerListDataMutex);
 			g_playerListData[client->GetGuid()].connectionState = "CONNECTING";
 			client->SetNetworkMetricsRecvCallback(RecvFromClient_Callback);
 			client->SetNetworkMetricsSendCallback(SendToClient_Callback);
 		});
 		clientRegistry->OnConnectedClient.Connect([](fx::Client* client)
 		{
-			std::shared_lock lock(g_playerListDataMutex);
+			std::unique_lock lock(g_playerListDataMutex);
 			g_playerListData[client->GetGuid()].connectionState = "LOADING";
 
 			client->OnDrop.Connect([client]()
 			{
-				std::shared_lock lock(g_playerListDataMutex);
+				std::unique_lock lock(g_playerListDataMutex);
 				g_playerListData.erase(client->GetGuid());
 			});
 		});
@@ -363,16 +371,14 @@ static SvGuiModule svplayerlist("Player List", "svplayerlist", ImGuiWindowFlags_
 
 		ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImGui::GetColorU32(ImVec4(0.7f, 0.3f, 0.3f, 0.65f)));
 
-		for (std::map<std::string, PlayerListData>::iterator it = g_playerListData.begin(); it != g_playerListData.end(); it++)
+		for (auto& [guid, data] : g_playerListData)
 		{
-			auto& guid = it->first;
-			auto& data = it->second;
-
 			ImGui::TableNextRow();
 
 			ImGui::TableSetColumnIndex(0);
 			if (ImGui::Selectable(data.name.c_str(), false, ImGuiSelectableFlags_SpanAllColumns))
 			{
+				// no need to lock-unique here, safe value
 				data.showPopout = true;
 				// Bring to front when opening
 				ImGui::SetWindowFocus(guid.c_str());
