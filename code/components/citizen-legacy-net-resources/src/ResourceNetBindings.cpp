@@ -599,7 +599,7 @@ static InitFunction initFunction([] ()
 				if (nextProgress)
 				{
 					auto [string, count, total] = *nextProgress;
-					g_netLibrary->OnConnectionProgress(string, count, total);
+					g_netLibrary->OnConnectionProgress(string, count, total, false);
 
 					nextProgress = {};
 				}
