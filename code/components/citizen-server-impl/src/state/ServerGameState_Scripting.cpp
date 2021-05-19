@@ -1510,4 +1510,59 @@ static InitFunction initFunction([]()
 
 		return true;
 	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_LANDING_GEAR_STATE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		int gearState = 0;
+
+		if (entity->type == fx::sync::NetObjEntityType::Heli)
+		{
+			auto state = entity->syncTree->GetHeliControl();
+			if (state->hasLandingGear)
+			{
+				gearState = state->landingGearState;
+			}
+		}
+		else if (entity->type == fx::sync::NetObjEntityType::Plane)
+		{
+			auto state = entity->syncTree->GetPlaneGameState();
+			gearState = state->landingGearState;
+		}
+
+		return gearState;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_LOCK_ON_TARGET", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		int lockOnHandle = 0;
+
+		if (auto state = entity->syncTree->GetPlaneGameState())
+		{
+			auto resourceManager = fx::ResourceManager::GetCurrent();
+
+			auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+			auto gameState = instance->GetComponent<fx::ServerGameState>();
+
+			auto lockOnEntity = gameState->GetEntity(0, state->lockOnEntity);
+
+			lockOnHandle = lockOnEntity ? gameState->MakeScriptHandle(lockOnEntity) : 0;
+		}
+
+		return lockOnHandle;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_HOMING_LOCKON_STATE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto state = entity->syncTree->GetPlaneGameState();
+
+		return state ? state->lockOnState : 0;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_FLIGHT_NOZZLE_POSITION", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto state = entity->syncTree->GetPlaneControl();
+
+		return state ? state->nozzlePosition : 0.0f;
+	}));
 });
