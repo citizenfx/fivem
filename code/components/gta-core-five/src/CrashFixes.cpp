@@ -523,8 +523,30 @@ void ShiftWeaponInfoBlobsDown(CWeaponInfoBlob* pArray[], uint16_t startIndex)
 	}
 }
 
+static const uint64_t* (*origMILookup)(void* archetype);
+
+static const uint64_t* SafeMILookup(void* archetype)
+{
+	auto mi = origMILookup(archetype);
+
+	if (!mi)
+	{
+		static const uint64_t noArchetype = 0xFFFFFFFFFFFFFFFF;
+		mi = &noArchetype;
+	}
+
+	return mi;
+}
+
 static HookFunction hookFunction{[] ()
 {
+	// CModelInfoStreamingModule LookupModelId null return
+	{
+		auto location = hook::get_pattern("48 85 C0 74 2D 48 8B C8 E8 ? ? ? ? 8B 00", 8);
+		hook::set_call(&origMILookup, location);
+		hook::call(location, SafeMILookup);
+	}
+
 	// Clear out unused CWeaponInfoBlob when the array is shifted. This leads to a crash when another blob inserts in to the unused position
 	{
 		auto location = hook::get_pattern<char>("E8 ? ? ? ? FF CD 0F B7 05 ? ? ? ?");
