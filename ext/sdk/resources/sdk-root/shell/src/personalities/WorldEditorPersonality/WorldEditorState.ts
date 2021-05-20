@@ -5,6 +5,8 @@ import { sendApiMessage } from "utils/api";
 import { InputController } from "./InputController";
 import { onWindowEvent } from 'utils/windowMessages';
 import { ShellPersonality, ShellState } from 'store/ShellState';
+import { FilesystemEntry } from 'shared/api.types';
+import { FXWORLD_FILE_EXT } from 'assets/fxworld/fxworld-types';
 
 const noop = () => {};
 
@@ -23,6 +25,8 @@ export enum EditorMode {
 export const WorldEditorState = new class WorldEditorState {
   private inputController: InputController;
 
+  public ready = false;
+
   public editorSelect = false;
   public editorMode = EditorMode.TRANSLATE;
   public editorLocal = false;
@@ -31,17 +35,30 @@ export const WorldEditorState = new class WorldEditorState {
 
   public selection: WESelection = null;
 
+  private mapEntry: FilesystemEntry | null = null;
+
   constructor() {
     makeAutoObservable(this);
 
     onWindowEvent('we:selection', (selection: WESelection) => runInAction(() => {
       this.selection = selection;
     }));
+
+    onWindowEvent('we:ready', () => {
+      this.ready = true;
+    });
   }
 
-  public mapFile: string = 'C:\\dev\\test\\ves\\candy-land.fxworld';
-  openMap = (mapFile: string) => {
-    this.mapFile = mapFile;
+  get mapName(): string {
+    if (this.mapEntry) {
+      return this.mapEntry.name.replace(FXWORLD_FILE_EXT, '');
+    }
+
+    return '';
+  }
+
+  openMap = (entry: FilesystemEntry) => {
+    this.mapEntry = entry;
 
     sendApiMessage(worldEditorApi.start);
 
@@ -49,7 +66,8 @@ export const WorldEditorState = new class WorldEditorState {
   };
 
   closeMap = () => {
-    this.mapFile = '';
+    this.ready = false;
+    this.mapEntry = null;
 
     sendApiMessage(worldEditorApi.stop);
 

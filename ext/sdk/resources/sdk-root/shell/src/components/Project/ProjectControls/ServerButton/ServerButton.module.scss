@@ -21,14 +21,14 @@
   }
 
   &.up {
-    background-color: $scColor;
+    background-color: $scColor !important;
 
     svg {
-      color: $bgColor;
+      color: $bgColor !important;
     }
 
     &:hover {
-      background-color: $erColor;
+      background-color: $erColor !important;
     }
   }
 
@@ -39,6 +39,6 @@
   }
 
   &.error {
-    background-color: $erColor;
+    background-color: $erColor !important;
   }
 }

@@ -1,3 +1,4 @@
+import { sendSdkMessage } from '../client/sendSdkMessage';
 import { CameraController } from './camera-controller';
 import './environment-manager';
 import { PreviewManager } from './preview-manager';
@@ -14,7 +15,14 @@ setTimeout(() => {
   });
 
   ShutdownLoadingScreen();
+  DoScreenFadeIn(0);
+
+  sendSdkMessage('we:ready');
 }, 0);
+
+on('disconnecting', () => {
+  CameraController.destroy();
+});
 
 on('onResourceStop', (resourceName: string) => {
   if (resourceName === GetCurrentResourceName()) {

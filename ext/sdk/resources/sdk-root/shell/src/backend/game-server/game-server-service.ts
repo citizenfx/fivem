@@ -69,6 +69,11 @@ export class GameServerService implements AppContribution, ApiContribution {
     return this.serverStopEvent.addListener(cb);
   }
 
+  private readonly serverStateChangeEvent = new SingleEventEmitter<ServerStates>();
+  onServerStateChange(cb: (serverStart: ServerStates) => void): Disposable {
+    return this.serverStateChangeEvent.addListener(cb);
+  }
+
   private disposeServer() {
     if (this.server) {
       this.server.dispose();
@@ -183,6 +188,8 @@ export class GameServerService implements AppContribution, ApiContribution {
     if (this.server) {
       this.lock();
 
+      this.gameService.beginUnloading();
+
       try {
         this.stopTask = this.taskReporterService.create('Stopping server');
         await this.server.stop(this.stopTask);
@@ -197,7 +204,12 @@ export class GameServerService implements AppContribution, ApiContribution {
   }
 
   toState(newState: ServerStates) {
+    if (this.state === newState) {
+      return;
+    }
+
     this.state = newState;
+    this.serverStateChangeEvent.emit(this.state);
     this.ackState();
   }
 

@@ -1,0 +1,84 @@
+@import "../../vars.scss";
+
+.root {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  height: 100%;
+
+  gap: $q;
+
+  .mode {
+    flex-grow: 0;
+
+    position: relative;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: $q*2;
+
+    user-select: none;
+
+    height: $weToolbarHeight;
+
+    padding: 0 $q*5;
+
+    @include backdrop-blur;
+
+    font-weight: 100;
+    letter-spacing: 1px;
+
+    svg {
+      font-size: $fs2;
+    }
+
+    span {
+      position: absolute;
+
+      top: $weToolbarHeight + $q;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      padding: $q $q*2;
+
+      color: $fgColor;
+      background-color: rgba($bgColor, .75);
+      backdrop-filter: blur(20px);
+      border-radius: 2px;
+
+      @include fontPrimary;
+      font-size: $fs08;
+      font-weight: 100;
+      text-transform: lowercase;
+
+      opacity: 0;
+      pointer-events: none;
+
+      z-index: 1;
+
+      :global(.shortcut) {
+        margin-left: $q;
+      }
+    }
+
+    @include interactiveTransition;
+
+    &:hover {
+      background-color: $acColor;
+
+      span {
+        opacity: 1;
+      }
+    }
+
+    &.active {
+      background-color: mix(rgba($acColor, .6), rgba($fgColor, .2));
+      box-shadow: 0 -2px 0 0 $acColor inset;
+    }
+  }
+}

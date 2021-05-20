@@ -1,6 +1,13 @@
 import { Disposable } from '@theia/core';
 import { injectable } from 'inversify';
 
+export enum GameStates {
+  NOT_RUNNING,
+  READY,
+  LOADING,
+  CONNECTED,
+  UNLOADING,
+}
 
 export class SingleEventEmitter<T> {
   private listeners: Set<(arg: T) => void> = new Set();
@@ -154,5 +161,21 @@ export class FxdkDataService {
   }
   getTheiaIsActive(): boolean {
     return this.theiaIsActive;
+  }
+
+  private gameState = GameStates.NOT_RUNNING;
+  private gameStateChangeEvent = new SingleEventEmitter<GameStates>();
+
+  onGameStateChange(cb: (gameState: GameStates) => void): Disposable {
+    return this.gameStateChangeEvent.on(cb);
+  }
+
+  getGameState(): GameStates {
+    return this.gameState;
+  }
+
+  setGameState(gameState: GameStates) {
+    this.gameState = gameState;
+    this.gameStateChangeEvent.emit(this.gameState);
   }
 }

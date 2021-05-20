@@ -173,7 +173,7 @@ const ObjectsBrowserDropdown = React.memo(function ObjectsBrowserDropdown() {
               width={width}
               height={height}
               itemCount={activeSet.length}
-              itemSize={32}
+              itemSize={28}
             >
               {({ index, style }) => {
                 const name = activeSet[index];

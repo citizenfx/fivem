@@ -10,7 +10,6 @@ import { Shell } from './components/Shell';
 import { enableLogger } from 'utils/logger';
 import { TitleManager } from 'managers/TitleManager';
 import { TheiaProjectManager } from 'managers/TheiaProjectManager';
-import { GameConnectionManager } from 'managers/GameConnectionManager';
 import { onApiMessage } from 'utils/api';
 import { stateApi } from 'shared/api.events';
 
@@ -59,7 +58,6 @@ document.addEventListener('contextmenu', (event) => {
 
 ReactDOM.render(
   <React.StrictMode>
-    <GameConnectionManager />
     <TitleManager />
     <TheiaProjectManager />
 

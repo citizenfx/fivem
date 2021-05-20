@@ -15,25 +15,39 @@
     user-select: none;
 
     @include interactiveTransition;
+    @include backdrop-blur;
+
+    color: $fgColor;
 
     &:hover {
       background-color: $acColor;
+    }
+
+    svg {
+      font-size: $fs4;
     }
   }
 
   .browser {
     position: absolute;
 
-    top: $weToolbarHeight;
-    right: 0;
+    top: 0;
+    left: 0;
 
     display: flex;
     flex-direction: column;
 
     width: 15vw;
-    height: calc(100vh - #{$weToolbarHeight});
+    // height: calc(100vh - #{$weToolbarHeight});
+    height: 100vh;
 
-    @include overlayPanel;
+    backdrop-filter: blur(20px);
+
+    background-color: rgba($bgColor, .95);
+    // box-shadow: 0 0 0 2px rgba($fgColor, .5) inset;
+    border: solid 2px rgba($fgColor, .25);
+
+    z-index: 4000;
 
     .loader {
       display: flex;
@@ -46,7 +60,8 @@
     }
 
     .filter {
-      margin: $q;
+      // margin: $q;
+      height: auto;
     }
 
     .list {
@@ -55,9 +70,12 @@
       .item {
         width: 100%;
 
-        padding: $q*2;
+        padding: $q*2 $q*4;
 
         cursor: default;
+
+        font-size: $fs08;
+        font-weight: 100;
 
         @include ellipsis;
 
