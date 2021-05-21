@@ -297,7 +297,7 @@ static InitFunction initFunction([]()
 				}
 			}
 
-			auto tree = MakePed(ctx.GetArgument<uint32_t>(1), ctx.GetArgument<float>(2), ctx.GetArgument<float>(3), ctx.GetArgument<float>(4), resourceHash, ctx.GetArgument<float>(5));
+			auto tree = MakePed(ctx.GetArgument<uint32_t>(0), ctx.GetArgument<float>(1), ctx.GetArgument<float>(2), ctx.GetArgument<float>(3), resourceHash, ctx.GetArgument<float>(4));
 
 			auto sgs = ref->GetComponent<fx::ServerGameState>();
 			auto entity = sgs->CreateEntityFromTree(sync::NetObjEntityType::Ped, tree);
