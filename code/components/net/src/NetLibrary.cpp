@@ -1815,6 +1815,11 @@ void NetLibrary::Disconnect(const char* reason)
 
 	std::unique_lock<std::mutex> lock(g_disconnectionMutex);
 
+	if (m_connectionState == CS_DOWNLOADING)
+	{
+		OnFinalizeDisconnect(m_currentServer);
+	}
+
 	if (m_connectionState == CS_CONNECTING || m_connectionState == CS_ACTIVE)
 	{
 		SendReliableCommand("msgIQuit", g_disconnectReason.c_str(), g_disconnectReason.length() + 1);
