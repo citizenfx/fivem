@@ -209,9 +209,7 @@ public:
 
 	virtual concurrency::task<void> ConnectToServer(const std::string& rootUrl);
 
-	virtual void Disconnect(const char* reason) override;
-
-	virtual void FinalizeDisconnect() override;
+	virtual void Disconnect(const char* reason = "[not set]") override;
 
 	virtual bool DequeueRoutedPacket(char* buffer, size_t* length, uint16_t* netID) override;
 

@@ -908,7 +908,7 @@ static InitFunction initFunction([] ()
 			{
 				netLibrary->CancelDeferredConnection();
 			}
-			netLibrary->FinalizeDisconnect();
+			netLibrary->Disconnect();
 
 			g_connected = false;
 		}
