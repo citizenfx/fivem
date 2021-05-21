@@ -10,3 +10,4 @@ int GET_NUM_PLAYER_INDICES();
 
 
 ## Return value
+Returns the player count on the server.
