@@ -10,7 +10,7 @@ export const FXWorld = observer(function FXWorld(props: ProjectItemProps) {
   const assetPath = props.entry.path;
 
   const handleOpen = React.useCallback(() => {
-    WorldEditorState.openMap(assetPath);
+    WorldEditorState.openMap(props.entry);
   }, [assetPath]);
 
   return (

@@ -607,6 +607,7 @@ static InitFunction initFunction([] ()
 			else
 			{
 				gameUnloaded = false;
+				ep.Call("unloading");
 			}
 
 			return true;
@@ -615,6 +616,7 @@ static InitFunction initFunction([] ()
 		Instance<ICoreGameInit>::Get()->OnGameFinalizeLoad.Connect([]()
 		{
 			gameUnloaded = false;
+			ep.Call("unloading");
 		});
 
 		Instance<ICoreGameInit>::Get()->OnShutdownSession.Connect([]()
@@ -627,6 +629,7 @@ static InitFunction initFunction([] ()
 			else
 			{
 				gameUnloaded = true;
+				ep.Call("unloaded");
 			}
 		}, 5000);
 
@@ -701,6 +704,11 @@ static InitFunction initFunction([] ()
 		fx::ScriptEngine::RegisterNativeHandler("SEND_SDK_MESSAGE", [](fx::ScriptContext& context)
 		{
 			ep.Call("sdk:message", std::string(context.GetArgument<const char*>(0)));
+		});
+
+		fx::ScriptEngine::RegisterNativeHandler("SEND_SDK_MESSAGE_TO_BACKEND", [](fx::ScriptContext& context)
+		{
+			ep.Call("sdk:backendMessage", std::string(context.GetArgument<const char*>(0)));
 		});
 
 		console::CoreAddPrintListener([](ConsoleChannel channel, const char* msg)
@@ -785,6 +793,20 @@ static InitFunction initFunction([] ()
 		{
 			se::ScopedPrincipal ps{ se::Principal{"system.console"} };
 			console::GetDefaultContext()->ExecuteSingleCommand(argumentData);
+		}
+	});
+
+	ep.Bind("disconnect", []()
+	{
+		if (netLibrary->GetConnectionState() != 0)
+		{
+			fwRefContainer<fx::ResourceManager> resman = Instance<fx::ResourceManager>::Get();
+			fwRefContainer<fx::ResourceEventManagerComponent> resevman = resman->GetComponent<fx::ResourceEventManagerComponent>();
+
+			resevman->TriggerEvent2("disconnecting", {});
+
+			OnKillNetwork("Disconnected.");
+			OnMsgConfirm();
 		}
 	});
 

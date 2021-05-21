@@ -36,14 +36,17 @@ export const CameraController = new class CameraController {
     });
   }
 
+  private destroyed = false;
   destroy() {
-    if (IsCamActive(this.handle)) {
-      DestroyCam(this.handle, false);
-      ClearFocus();
-      SetPlayerControl(PlayerId(), true, 0);
-
-      RenderScriptCams(false, false, 0, false, false);
+    if (this.destroyed) {
+      return;
     }
+
+    RenderScriptCams(false, false, 0, false, false);
+    SetPlayerControl(PlayerId(), true, 0);
+    ClearFocus();
+
+    DestroyCam(this.handle, false);
   }
 
   setMoveX(x: number) {

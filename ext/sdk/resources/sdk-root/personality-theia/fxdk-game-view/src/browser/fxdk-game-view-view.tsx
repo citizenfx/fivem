@@ -2,11 +2,19 @@ import * as React from 'react';
 import { ReactWidget } from '@theia/core/lib/browser';
 import { AbstractViewContribution } from '@theia/core/lib/browser';
 import { inject, injectable, postConstruct } from 'inversify';
-import { FxdkDataService } from 'fxdk-services/lib/browser/fxdk-data-service';
+import { FxdkDataService, GameStates } from 'fxdk-services/lib/browser/fxdk-data-service';
 
 import './common/game-view.webcomponent.js';
 
-const GameView = React.memo(() => {
+const gameStateToCaption: Record<GameStates, string> = {
+  [GameStates.NOT_RUNNING]: 'not running',
+  [GameStates.READY]: 'ready',
+  [GameStates.LOADING]: 'loading',
+  [GameStates.UNLOADING]: 'unloading',
+  [GameStates.CONNECTED]: 'active'
+};
+
+const GameView = React.memo(({ gameState }: { gameState: GameStates }) => {
   const [pointerLocked, setPointerLocked] = React.useState(false);
   const gameViewRef = React.useRef<any>(null);
 
@@ -58,21 +66,39 @@ export class FxdkGameView extends ReactWidget {
   protected readonly dataService: FxdkDataService;
 
   private theiaIsActive = false;
+  private gameState = GameStates.NOT_RUNNING;
 
   @postConstruct()
   init(): void {
     this.id = FxdkGameView.ID;
     this.title.closable = true;
     this.title.caption = 'Game view';
-    this.title.label = 'Game view';
     this.title.iconClass = 'fa fa-gamepad';
-    this.update();
 
     this.theiaIsActive = this.dataService.getTheiaIsActive();
     this.toDispose.push(this.dataService.onTheiaIsActiveChange((theiaIsActive) => {
       this.theiaIsActive = theiaIsActive;
       this.update();
     }));
+
+    this.gameState = this.dataService.getGameState();
+    this.title.label = 'Game - ' + gameStateToCaption[this.gameState];
+
+    this.toDispose.push(this.dataService.onGameStateChange((gameState) => {
+      this.title.label = 'Game - ' + gameStateToCaption[gameState];
+      this.title.caption = gameStateToCaption[gameState];
+
+      if (gameState === GameStates.LOADING || gameState === GameStates.UNLOADING) {
+        this.title.iconClass = 'fa fa-spinner fa-spin';
+      } else {
+        this.title.iconClass = 'fa fa-gamepad';
+      }
+
+      this.gameState = gameState;
+      this.update();
+    }));
+
+    this.update();
   }
 
   protected onActivateRequest() {
@@ -89,7 +115,7 @@ export class FxdkGameView extends ReactWidget {
     }
 
     return (
-      <GameView />
+      <GameView gameState={this.gameState} />
     );
   }
 }

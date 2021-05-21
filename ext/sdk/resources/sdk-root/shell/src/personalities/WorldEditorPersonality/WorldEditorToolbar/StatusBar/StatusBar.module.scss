@@ -8,15 +8,20 @@
   width: $weToolbarHeight;
   height: $weToolbarHeight;
 
-  color: rgba($fgColor, .75);
+  color: $fgColor;
 
   cursor: pointer;
   user-select: none;
 
   @include interactiveTransition;
+  @include backdrop-blur;
 
   &:hover {
     background-color: rgba($acColor, 1);
+  }
+
+  svg {
+    font-size: $fs2;
   }
 }
 
@@ -24,7 +29,7 @@
   position: fixed;
 
   top: $weToolbarHeight;
-  right: 0;
+  right: $weToolbarHeight;
 
   width: 25vw;
   min-height: $q*10;
@@ -36,7 +41,7 @@
   position: fixed;
 
   top: calc(#{$weToolbarHeight} - 11px);
-  right: $weToolbarHeight/3.25;
+  right: $weToolbarHeight + $weToolbarHeight/3.25;
 
   color: rgba($fgColor, .5);
 

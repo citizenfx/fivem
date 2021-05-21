@@ -6,6 +6,7 @@ import { GameView } from './GameView/GameView';
 import { WorldEditorState } from './WorldEditorState';
 import { WorldEditorToolbar } from './WorldEditorToolbar/WorldEditorToolbar';
 import s from './WorldEditorPersonality.module.scss';
+import { LoadScreen } from './LoadScreen/LoadScreen';
 
 export const WorldEditorPersonality = observer(function WorldEditorPersonality() {
   const gameViewRef = React.useRef<HTMLDivElement>();
@@ -37,6 +38,10 @@ export const WorldEditorPersonality = observer(function WorldEditorPersonality()
       >
         <GameView />
       </div>
+
+      {!WorldEditorState.ready && (
+        <LoadScreen />
+      )}
     </div>
   );
 });

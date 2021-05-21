@@ -14,11 +14,14 @@ export enum InitFunctionType {
 }
 
 export const GameLoadingState = new class GameLoadingState {
+  public loadingProgress = 0;
+
   constructor() {
     makeAutoObservable(this);
 
     onLoadingEvent('loadProgress', ({ loadFraction }) => {
       log('loadProgress', loadFraction);
+      this.loadingProgress = loadFraction;
     });
 
     onLoadingEvent('startInitFunction', ({ type }) => {
@@ -71,5 +74,9 @@ export const GameLoadingState = new class GameLoadingState {
     onLoadingEvent('onLogLine', ({ message }) => {
       log('onLogLine', message);
     });
+  }
+
+  resetLoadingProgress() {
+    this.loadingProgress = 0;
   }
 }

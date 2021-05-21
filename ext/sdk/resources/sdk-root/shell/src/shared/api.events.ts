@@ -134,6 +134,7 @@ export const outputApi = {
 
 export const gameApi = {
   ack: 'game:ack',
+  gameState: 'game:gameState',
   gameLaunched: 'game:gameLaunched',
   gameProcessStateChanged: 'game:gameStateChanged',
   connectionStateChanged: 'game:connectionStateChanged',

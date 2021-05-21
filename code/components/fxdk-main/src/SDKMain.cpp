@@ -174,6 +174,10 @@ void SdkMain()
 	{
 		ExecuteJavascriptOnMainFrame(fmt::sprintf("window.postMessage(%s, '*')", message), "fxdk://sdk-message");
 	});
+	launcherTalk.Bind("sdk:backendMessage", [resman](const std::string& message)
+	{
+		resman->GetComponent<fx::ResourceEventManagerComponent>()->QueueEvent2("sdk:backendMessage", {}, message);
+	});
 	launcherTalk.Bind("sdk:consoleMessage", [](const std::string& channel, const std::string& message)
 	{
 		auto msg = nlohmann::json::object({
@@ -193,6 +197,33 @@ void SdkMain()
 		ExecuteJavascriptOnMainFrame(
 			fmt::sprintf("window.postMessage({type: 'connection-state-changed', data: {current:%d, previous:%d}}, '*')", currentState, previousState),
 			"fxdk://connection-state-changed"
+		);
+	});
+	launcherTalk.Bind("loading", [resman]()
+	{
+		resman->GetComponent<fx::ResourceEventManagerComponent>()->QueueEvent2("sdk:gameLoading", {});
+
+		ExecuteJavascriptOnMainFrame(
+			"window.postMessage({type: 'game-loading'}, '*')",
+			"fxdk://game-loading"
+		);
+	});
+	launcherTalk.Bind("unloading", [resman]()
+	{
+		resman->GetComponent<fx::ResourceEventManagerComponent>()->QueueEvent2("sdk:gameUnloading", {});
+
+		ExecuteJavascriptOnMainFrame(
+			"window.postMessage({type: 'game-unloading'}, '*')",
+			"fxdk://game-loading"
+		);
+	});
+	launcherTalk.Bind("unloaded", [resman]()
+	{
+		resman->GetComponent<fx::ResourceEventManagerComponent>()->QueueEvent2("sdk:gameUnloaded", {});
+
+		ExecuteJavascriptOnMainFrame(
+			"window.postMessage({type: 'game-unloaded'}, '*')",
+			"fxdk://game-loading"
 		);
 	});
 
@@ -267,6 +298,39 @@ void SdkMain()
 							resman->RemoveResource(resource);
 						});
 			}
+		}
+		else if (eventName == "sdk:setFPSLimit")
+		{
+			static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");
+
+			// deserialize the arguments
+			msgpack::unpacked msg;
+			msgpack::unpack(msg, eventPayload.c_str(), eventPayload.size());
+
+			msgpack::object obj = msg.get();
+			auto fpsLimit = obj.as<std::vector<int32_t>>()[0];
+
+			if (fpsLimit < 0)
+			{
+				return;
+			}
+
+			rgd->fpsLimit = fpsLimit;
+		}
+		else if (eventName == "sdk:disconnectClient")
+		{
+			fxdk::GetLauncherTalk().Call("disconnect");
+		}
+		else if (eventName == "sdk:connectClientTo")
+		{
+			// deserialize the arguments
+			msgpack::unpacked msg;
+			msgpack::unpack(msg, eventPayload.c_str(), eventPayload.size());
+
+			msgpack::object obj = msg.get();
+			std::string connectTo = obj.as<std::vector<std::string>>()[0];
+
+			fxdk::GetLauncherTalk().Call("connectTo", connectTo);
 		}
 		else if (eventName == "sdk:startGame")
 		{

@@ -5,6 +5,7 @@ import { serverApi } from "shared/api.events";
 import { onWindowEvent, onWindowMessage } from "utils/windowMessages";
 import { GameState } from "store/GameState";
 import { ShellPersonality, ShellState } from "store/ShellState";
+import { GameStates } from "backend/game/game-contants";
 
 const theiaRef = React.createRef<HTMLIFrameElement>();
 
@@ -74,6 +75,17 @@ export const TheiaState = new class TheiaState {
       },
     );
 
+    reaction(
+      () => GameState.state,
+      (gameState: GameStates) => {
+        this.setGameState(gameState);
+
+        if (gameState === GameStates.LOADING) {
+          this.openGameView();
+        }
+      },
+    );
+
     // Also proxying all window messages to theia
     onWindowMessage((data) => this.sendMessage(data));
   }
@@ -83,6 +95,7 @@ export const TheiaState = new class TheiaState {
     this.isReady = ready;
     if (ready) {
       this.setIsActive(ShellState.personality === ShellPersonality.THEIA);
+      this.setGameState(GameState.state);
     }
   };
 
@@ -116,6 +129,13 @@ export const TheiaState = new class TheiaState {
     this.sendMessage({
       type: 'fxdk:setIsActive',
       data: isActive,
+    });
+  }
+
+  setGameState(gameState: GameStates) {
+    this.sendMessage({
+      type: 'fxdk:setGameState',
+      data: gameState,
     });
   }
 
