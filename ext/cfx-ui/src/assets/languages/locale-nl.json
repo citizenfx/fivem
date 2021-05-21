@@ -33,7 +33,7 @@
     "#Settings_DarkThemeDesc": "Toon de interface met een \"donker\" \"thema\"",
     "#Settings_DevMode": "Ontwikkelaarsmodus",
     "#Settings_DevModeDesc": "Schakel de \"localhost\"-menuoptie in of uit",
-    "#Settings_Account": "Verbonden FiveM-account",
+    "#Settings_Account": "Verbonden Cfx.re-account",
     "#Settings_AccountLink": "Koppelen",
     "#Settings_AccountLinked": "Gekoppeld: {{ username }}",
     "#Settings_Boost": "Huidige server-BOOST™",

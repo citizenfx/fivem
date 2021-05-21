@@ -40,7 +40,7 @@
     "#Settings_DarkThemeDesc": "Activează tema întunecată",
     "#Settings_DevMode": "Mod Dezvoltator",
     "#Settings_DevModeDesc": "Activează meniul Localhost",
-    "#Settings_Account": "Cont FiveM Conectat",
+    "#Settings_Account": "Cont Cfx.re Conectat",
     "#Settings_AccountLink": "Conectează",
     "#Settings_AccountLinked": "Conectat: {{ username }}",
     "#Settings_Boost": "Current Server BOOST™",

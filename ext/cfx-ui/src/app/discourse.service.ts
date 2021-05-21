@@ -58,6 +58,14 @@ export class BoostData {
 	address: string;
 }
 
+export enum DiscourseAuthModalState {
+    INITIAL = 'initial',
+    SHOWN = 'shown',
+    IGNORE = 'ignore',
+}
+
+const DISCOURSE_AUTH_MODAL_STATE = 'discourseAuthModalState';
+
 @Injectable()
 export class DiscourseService {
 	private static BASE_URL = 'https://forum.cfx.re';
@@ -73,13 +81,30 @@ export class DiscourseService {
 
 	public messageEvent = new EventEmitter<string>();
 	public signinChange = new BehaviorSubject<any>(null);
+    public initialAuthComplete = new BehaviorSubject(false);
 
 	public currentUser: any;
 
 	public currentBoost: BoostData;
 	public noCurrentBoost = false;
 
+    public authModalState: BehaviorSubject<DiscourseAuthModalState>;
+    public authModalOpenChange = new BehaviorSubject<boolean>(true);
+    public authModalClosedEvent = new EventEmitter<{ where?: string, ignored?: boolean }>();
+
 	public constructor(private serversService: ServersService, private gameService: GameService) {
+        const storedAuthModalState = window.localStorage.getItem(DISCOURSE_AUTH_MODAL_STATE) as any;
+
+        this.authModalState = new BehaviorSubject(
+            Object.values(DiscourseAuthModalState).includes(storedAuthModalState)
+                ? storedAuthModalState
+                : DiscourseAuthModalState.INITIAL,
+        );
+
+        if (this.authModalState.getValue() === DiscourseAuthModalState.IGNORE) {
+            this.authModalOpenChange.next(false);
+        }
+
 		this.authToken = window.localStorage.getItem('discourseAuthToken');
 
 		if (this.authToken && this.authToken.length > 0) {
@@ -87,10 +112,18 @@ export class DiscourseService {
 				this.signinChange.next(user);
 
 				this.currentUser = user;
-			});
-		}
 
-		this.signinChange.subscribe(user => {
+                if (user) {
+                    this.closeAuthModal();
+                }
+
+                this.initialAuthComplete.next(true);
+			});
+		} else {
+            this.initialAuthComplete.next(true);
+        }
+
+		this.signinChange.subscribe(() => {
 			if (environment.web) {
 				return;
 			}
@@ -118,7 +151,7 @@ export class DiscourseService {
 			});
 		});
 
-		this.signinChange.subscribe(identity => {
+		this.signinChange.subscribe(() => {
 			this.gameService.setDiscourseIdentity(this.getToken(), this.getExtClientId());
 		});
 
@@ -365,7 +398,7 @@ export class DiscourseService {
 
 				const payload = authKeyRes.url.split("?").pop();
 				this.handleAuthPayload(payload);
-				
+
 				return user;
 
 			} catch (err) {
@@ -470,6 +503,38 @@ export class DiscourseService {
 	public getExtClientId() {
 		return this.clientId;
 	}
+
+    public openAuthModal() {
+        this.authModalOpenChange.next(true);
+    }
+
+    public closeAuthModal(analyticsName?: string) {
+        this.authModalOpenChange.next(false);
+
+        if (this.authModalState.getValue() === DiscourseAuthModalState.INITIAL) {
+            this.setAuthModalState(DiscourseAuthModalState.SHOWN);
+        }
+
+        if (analyticsName) {
+            this.authModalClosedEvent.next({
+                where: analyticsName,
+            });
+        }
+    }
+
+    public closeAuthModalAndIgnore() {
+        this.authModalOpenChange.next(false);
+        this.setAuthModalState(DiscourseAuthModalState.IGNORE);
+
+        this.authModalClosedEvent.next({
+            ignored: true,
+        });
+    }
+
+    private setAuthModalState(state: DiscourseAuthModalState) {
+        this.authModalState.next(state);
+        window.localStorage.setItem(DISCOURSE_AUTH_MODAL_STATE, state);
+    }
 
 	private async generateNonce() {
 		this.nonce = randomBytes(16);

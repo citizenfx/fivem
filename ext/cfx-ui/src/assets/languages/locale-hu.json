@@ -40,7 +40,7 @@
 	"#Settings_DarkThemeDesc": "Átállítja a felületet, hogy a \"sötét\" \"témát\" használja",
 	"#Settings_DevMode": "Fejlesztői mód",
 	"#Settings_DevModeDesc": "\"localhost\" menü engedélyezése",
-	"#Settings_Account": "Csatlakoztatott FiveM fiók",
+	"#Settings_Account": "Csatlakoztatott Cfx.re fiók",
 	"#Settings_AccountLink": "Összekapcsolás",
 	"#Settings_AccountLinked": "Csatlakoztatott fiók: {{ username }}",
 	"#Settings_Boost": "Current Server BOOST™",
