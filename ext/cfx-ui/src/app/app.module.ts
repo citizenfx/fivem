@@ -86,7 +86,7 @@ import { StoryHomeComponent } from './story/story-home/story-home.component';
 import { CreateEditorComponent } from './create/create-editor/create-editor.component';
 import { DirectConnectBackendComponent } from './servers/direct/direct-connect-backend.component';
 import { FiltersService } from './servers/filters.service';
-import { ModalComponent } from './modal/modal.component';
+import { AuthModalComponent } from './auth-modal/auth-modal.component';
 
 const localePrefix = (environment.web) ? '/' : './';
 
@@ -212,7 +212,7 @@ export function metaFactory(): MetaLoader {
 		CreateHomeComponent,
 		StoryHomeComponent,
 		CreateEditorComponent,
-		ModalComponent,
+		AuthModalComponent,
 	],
 	imports: [
 		NgDompurifyModule,

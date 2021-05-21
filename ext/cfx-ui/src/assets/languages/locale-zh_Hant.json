@@ -43,7 +43,7 @@
     "#Settings_Boost": "目前伺服器加成™",
     "#Settings_AccountLinked": "已連結: {{ username }}",
     "#Settings_AccountLink": "連結",
-    "#Settings_Account": "已連接FiveM帳號",
+    "#Settings_Account": "已連接Cfx.re帳號",
     "#Settings_DevModeDesc": "啟用 \"localhost(連接本地)\" 在選單項目中",
     "#Settings_DevMode": "開發模式",
     "#Settings_DarkThemeDesc": "將介面變成黑色背景",

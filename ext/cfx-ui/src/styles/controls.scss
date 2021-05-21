@@ -1,10 +1,12 @@
 input[type="text"],
+input[type="email"],
 input[type="search"],
 input[type="password"] {
 	@include backdropPane;
 
 	@include themeNoHost() using ($theme) {
 		color: gtv($theme, fgColor);
+        background-color: rgba(gtv($theme, fgColor), .1);
 		box-shadow: 0 -2px 0 rgba(gtv($theme, fgColor), .5) inset, 0 0 0 2px transparent inset;
 	};
 
@@ -64,7 +66,7 @@ input[type="password"] {
 	@include backdropPane;
 
 	@include fontRubik;
-	font-size: var(--fs-1);
+	font-size: var(--fs-075);
 	font-weight: 300;
 	line-height: 1;
 	letter-spacing: 1px;

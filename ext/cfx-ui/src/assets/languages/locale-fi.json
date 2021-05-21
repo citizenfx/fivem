@@ -36,7 +36,7 @@
     "#Settings_DarkThemeDesc": "Käytä \"tummaa\" \"teemaa\"",
     "#Settings_DevMode": "Dev-tila",
     "#Settings_DevModeDesc": "Kytke \"localhost\" valikkoon",
-    "#Settings_Account": "Yhdistetty FiveM-käyttäjä",
+    "#Settings_Account": "Yhdistetty Cfx.re-käyttäjä",
     "#Settings_AccountLink": "Liitä",
     "#Settings_AccountLinked": "Liitetty: {{ username }}",
     "#Settings_Boost": "Nykyinen Server BOOST™",

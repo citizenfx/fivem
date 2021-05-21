@@ -33,7 +33,7 @@
     "#Settings_DarkThemeDesc": "usa un \"tema\" \"scuro\" per l'interfaccia",
     "#Settings_DevMode": "Modalità Sviluppatore",
     "#Settings_DevModeDesc": "Abilita l'opzione menu \"localhost\"",
-    "#Settings_Account": "Account FiveM connesso",
+    "#Settings_Account": "Account Cfx.re connesso",
     "#Settings_AccountLink": "Collega",
     "#Settings_AccountLinked": "Collegato: {{ username }}",
     "#Settings_Boost": "BOOST™ Del Server Corrente",

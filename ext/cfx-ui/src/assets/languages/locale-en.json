@@ -46,7 +46,7 @@
     "#Settings_StreamerModeDesc": "Hide sensitive information (e.g. IP addresses) from screen",
     "#Settings_DevMode": "Dev mode",
     "#Settings_DevModeDesc": "Enable the \"localhost\" menu item",
-    "#Settings_Account": "Connected FiveM account",
+    "#Settings_Account": "Connected Cfx.re account",
     "#Settings_AccountLink": "Link",
     "#Settings_AccountLinked": "Linked: {{ username }}",
     "#Settings_Boost": "Current Server BOOST™",

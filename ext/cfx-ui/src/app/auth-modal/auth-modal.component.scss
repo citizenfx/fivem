@@ -1,0 +1,417 @@
+@import "variables";
+
+.modal {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+	position: fixed;
+
+	top: 0;
+	left: 0;
+
+	width: 100%;
+	height: 100%;
+
+	@include fontRubik;
+
+	z-index: 101;
+
+	@include theme() using ($theme) {
+		background-color: rgba(gtv($theme, bgColor), .6);
+	}
+
+	.modal-content {
+        position: relative;
+
+        display: flex;
+        flex-direction: column;
+
+		@include theme() using ($theme) {
+			background-color: rgba(gtv($theme, bgColor), 1);
+			background-image: url('../../assets/images/bgpat.png');
+            background-size: 250px;
+            border: solid 2px rgba(gtv($theme, fgColor), .2);
+			color: gtv($theme, textColor)
+		}
+
+		max-width: 870px;
+		max-height: 705px;
+		width: 65vw;
+		height: 65vw;
+		padding: calc(var(--quant) * 2);
+
+        .loader {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+
+            width: 100%;
+            height: 100%;
+
+            > div {
+                margin-top: var(--qh);
+                font-size: var(--fs-075);
+            }
+        }
+
+        .cfx-button {
+            width: calc(var(--quant) * 12);
+        }
+
+        .linky-button {
+            @include theme() using ($theme) {
+                color: rgba(gtv($theme, fgColor), .75);
+                text-decoration-color: rgba(gtv($theme, fgColor), .5);
+            }
+            font-size: var(--fs-075);
+
+            text-align: right;
+            text-decoration: underline;
+
+            cursor: pointer;
+
+            &:hover {
+                @include theme() using ($theme) {
+                    color: rgba(gtv($theme, fgColor), 1);
+                    text-decoration-color: rgba(gtv($theme, fgColor), .75);
+                }
+            }
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="password"] {
+            padding: var(--qh) var(--quant);
+            font-size: var(--fs-075);
+        }
+
+		.header {
+			text-align: center;
+
+			.title {
+                @include fontMontserrat;
+				font-size: var(--fs-2);
+			}
+
+			.description {
+                margin-top: var(--qh);
+
+				font-size: var(--fs-075);
+			}
+		}
+
+		.header--left {
+			text-align: left;
+		}
+
+        .content {
+            flex-grow: 1;
+
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+		.form {
+			display: flex;
+			flex-direction: column;
+
+            gap: var(--qh);
+
+			width: calc(var(--quant) * 16);
+
+            input,
+            .input-wrapper {
+                width: 100%;
+            }
+
+            .cfx-button {
+                width: 100%;
+                margin-top: var(--qh);
+            }
+		}
+
+		.close {
+            position: absolute;
+            top: 0;
+            right: 0;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            padding: var(--qh);
+
+			font-size: var(--fs-1);
+
+			@include theme() using ($theme) {
+				color: gtv($theme, textColor);
+			}
+
+			opacity: 0.4;
+
+			&:hover {
+                opacity: 1;
+
+                @include theme() using ($theme) {
+                    background-color: gtv($theme, accentColor1);
+                }
+			}
+		}
+
+		.login {
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
+
+			.login__oneclick {
+				display: flex;
+				flex-direction: column;
+				justify-content: center;
+				align-items: center;
+
+                .cfx-button {
+                    align-items: center;
+                    justify-content: center;
+                    flex-direction: column;
+
+                    margin-top: var(--qh);
+                    height: calc(var(--quant) * 4);
+
+                    svg {
+                        flex-grow: 0;
+                        flex-shrink: 0;
+
+                        @include theme() using ($theme) {
+                            fill: gtv($theme, fgColor);
+                        }
+
+                        width: calc(var(--quant) * 4);
+                        height: var(--quant);
+
+                        margin-bottom: var(--qh);
+
+                        transition: fill .2s ease;
+                    }
+
+                    &:hover {
+                        svg {
+                            @include theme() using ($theme) {
+                                fill: gtv($theme, bgColor);
+                            }
+                        }
+                    }
+                }
+			}
+
+			.oneclick__info {
+                @include theme() using ($theme) {
+					color: rgba(gtv($theme, fgColor), .75);
+				}
+				font-size: var(--fs-075);
+			}
+
+			.forgotpassword {
+                margin-top: calc(-1 * var(--qh));
+
+                @include theme() using ($theme) {
+                    color: rgba(gtv($theme, fgColor), .5);
+                    text-decoration-color: rgba(gtv($theme, fgColor), .25);
+                }
+
+                &:hover {
+                    @include theme() using ($theme) {
+                        color: rgba(gtv($theme, fgColor), .75);
+                        text-decoration-color: rgba(gtv($theme, fgColor), .5);
+                    }
+                }
+			}
+		}
+
+		.otherroute {
+			width: calc(var(--quant) * 16);
+
+            margin-top: var(--quant);
+
+            text-align: center;
+            font-weight: 100;
+            font-size: var(--fs-075);
+
+			@include theme() using ($theme) {
+				color: rgba(gtv($theme, textColor), .75);
+			}
+
+			.otherroute__btn {
+				@include theme() using ($theme) {
+					color: rgba(gtv($theme, fgColor), .75);
+                    text-decoration-color: rgba(gtv($theme, fgColor), .5);
+				}
+				font-size: var(--fs-075);
+
+                text-align: right;
+				text-decoration: underline;
+
+                cursor: pointer;
+
+                &:hover {
+                    @include theme() using ($theme) {
+                        color: rgba(gtv($theme, fgColor), 1);
+                        text-decoration-color: rgba(gtv($theme, fgColor), .75);
+                    }
+                }
+			}
+		}
+
+		.passwordinput {
+			-webkit-text-security: disc;
+		}
+
+		.input-wrapper {
+			display: flex;
+			flex-direction: column;
+			align-items: flex-end;
+
+			.input__info {
+                margin-top: 2px;
+                margin-bottom: 2px;
+
+				font-size: var(--fs-075);
+                line-height: 1;
+
+				@include theme() using ($theme) {
+					color: gtv($theme, textColor);
+				}
+
+				opacity: 0.6;
+			}
+		}
+
+		.btns {
+			display: flex;
+			flex-direction: column;
+
+            gap: var(--quant);
+		}
+
+		.line {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            gap: var(--qh);
+
+			width: calc(var(--quant) * 16);
+			margin: calc(var(--quant) * 2) 0px;
+
+            font-size: var(--fs-075);
+            line-height: var(--fs-05);
+			opacity: 0.75;
+
+            &::before,
+            &::after {
+                flex-grow: 1;
+
+                display: block;
+                content: '';
+
+                height: 1px;
+                background-color: #C4C4C4;
+            }
+		}
+
+		.userpic {
+			width: calc(var(--quant) * 5);
+			height: calc(var(--quant) * 5);
+			background-size: cover;
+
+            @include theme() using ($theme) {
+                $c: gtv($theme, accentColor1);
+
+                background-color: gtv($theme, bgColor);
+                box-shadow:
+                    0 0 200px 0 rgba($c, .25),
+                    0 0 150px 0 rgba($c, .5),
+                    0 0 50px 0 rgba($c, .75),
+                    0 0 2px 0 rgba($c, 1);
+            }
+		}
+
+		.welcome-user {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+
+            font-size: var(--fs-2);
+            text-align: center;
+
+            .info {
+                margin-top: var(--quant);
+
+                >span {
+                    font-weight: bold;
+                }
+            }
+        }
+
+		.registration-information {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+
+            gap: var(--quant);
+
+            font-size: var(--fs-075);
+            text-align: center;
+
+            .lead {
+                font-size: var(--fs-1);
+                margin-bottom: var(--qh);
+            }
+        }
+	}
+
+    .cfxre-logo {
+        height: calc(var(--quant) * 1);
+        opacity: .75;
+
+        @include theme() using ($theme) {
+            fill: gtv($theme, fgColor);
+        }
+    }
+}
+
+.input_tip--bad {
+	opacity: 1 !important;
+	@include theme() using ($theme) {
+		color: #f44336 !important;
+	}
+}
+
+.input_tip--good {
+	opacity: 1 !important;
+	@include theme() using ($theme) {
+		color: #4caf50 !important;
+	}
+}
+
+.notification {
+	padding: 5px;
+	font-size: 0.8rem;
+    margin: 5px 0px;
+	@include theme() using ($theme) {
+		color: gtv($theme, textColor) !important;
+		background-color: gtv($theme, inactiveColor) !important;
+	}
+	max-width: 450px;
+}
+
+.hidden {
+	display: none;
+}
+

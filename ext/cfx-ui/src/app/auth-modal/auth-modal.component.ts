@@ -1,69 +1,92 @@
-import { Component, OnInit, Input } from '@angular/core';
+import { Component } from '@angular/core';
 import { GameService } from '../game.service';
-import { DiscourseService, DiscourseUser } from '../discourse.service';
+import { DiscourseAuthModalState, DiscourseService, DiscourseUser } from '../discourse.service';
 
 @Component({
-    selector: 'app-modal',
-    templateUrl: './modal.component.html',
-    styleUrls: ['./modal.component.scss']
+    selector: 'auth-modal',
+    templateUrl: './auth-modal.component.html',
+    styleUrls: ['./auth-modal.component.scss']
 })
-export class ModalComponent implements OnInit {
-    modalVisible = false;
-    modalVisibleDelayComplete: boolean = false;
-    initialLoad: boolean = true;
-    login: boolean = false;
-    register: boolean = false;
-    completeRegister: boolean = false;
-    completeAuth: boolean = false;
-    authOnWeb: boolean = false;
-    notification: string = null;
-    btnActive: boolean = false;
+export class AuthModalComponent {
+    modalVisible: boolean;
 
-    typedEmail: string = '';
-    typedPassword: string = '';
-    typedUserName: string = '';
+    accountInfoLoaded = false;
 
-    emailHint: string = 'Never shown to the public';
-    usernameHint: string = 'Unique, No Spaces, Short';
-    passwordHint: string = 'At least 8 characters';
-    emailValid: boolean = false;
-    usernameValid: boolean = false;
-    passwordValid: boolean = false;
+    login = true;
+    register = false;
+    completeRegister = false;
+    completeAuth = false;
+    authOnWeb = false;
+    notification: string | null = null;
+    btnActive = false;
 
-    @Input()
-    streamerMode: boolean;
+    typedEmail = '';
+    typedPassword = '';
+    typedUserName = '';
 
-    @Input()
-    currentAccount: DiscourseUser;
+    emailHint = 'Never shown to the public';
+    usernameHint = 'Unique, No Spaces, Short';
+    passwordHint = 'At least 8 characters';
+    emailValid = false;
+    usernameValid = false;
+    passwordValid = false;
+
+    streamerMode: boolean = true;
+    showIgnoreButton: boolean = false;
+
+    currentAccount: DiscourseUser | null = null;
+
+    get isLoginScreen(): boolean {
+        return this.accountInfoLoaded && !this.completeAuth && !this.completeRegister && !this.register && this.login;
+    }
+
+    get isRegisterScreen(): boolean {
+        return this.accountInfoLoaded && !this.completeAuth && !this.completeRegister && !this.login && this.register;
+    }
+
+    get isAuthCompleteScreen(): boolean {
+        return this.accountInfoLoaded && this.completeAuth;
+    }
+
+    get isRegistrationCompleteScreen(): boolean {
+        return this.accountInfoLoaded && this.completeRegister;
+    }
 
     constructor(
         private gameService: GameService,
         private discourseService: DiscourseService,
     ) {
-        this.discourseService.signinChange.subscribe(user => {
-            //prevents already signed in users from seeing modal
-            //shows modal auth complete page if user signs in within fivem
-            if (user) {
-                if (this.initialLoad) {
-                    this.modalVisible = false;
-                } else {
-                    this.modalVisible = true;
-                }
-            } else {
-                this.modalVisible = true;
+		this.streamerMode = gameService.streamerMode;
+        this.showIgnoreButton = discourseService.authModalState.getValue() === DiscourseAuthModalState.SHOWN;
+
+        this.discourseService.authModalOpenChange.subscribe((authModalOpen) => this.modalVisible = authModalOpen);
+        this.gameService.streamerModeChange.subscribe((streamerMode) => this.streamerMode = streamerMode);
+        this.discourseService.authModalState.subscribe((state) => {
+            if (state === DiscourseAuthModalState.SHOWN) {
+                this.showIgnoreButton = true;
             }
+        });
+
+        this.discourseService.signinChange.subscribe((user) => this.currentAccount = user);
+        this.discourseService.initialAuthComplete.subscribe((complete) => {
+            this.accountInfoLoaded = complete;
         });
     }
 
-    ngOnInit(): void {
-        setTimeout(() => {
-            this.modalVisibleDelayComplete = true;
-            this.initialLoad = false;
-        }, 2000);
+    toggleModalVisiblity(): void {
+        let analyticsName: string;
+
+        if (this.isLoginScreen) {
+            analyticsName = 'LoginScreen';
+        } else if (this.isRegisterScreen) {
+            analyticsName = 'RegistrationScreen';
+        }
+
+        this.discourseService.closeAuthModal(analyticsName);
     }
 
-    toggleModalVisiblity(): void {
-        this.modalVisible = !this.modalVisible;
+    dontAskAgain() {
+        this.discourseService.closeAuthModalAndIgnore();
     }
 
     setLoginView(): void {
@@ -90,7 +113,7 @@ export class ModalComponent implements OnInit {
     }
 
     validateEmail(email: string) {
-        const re = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+        const re = /^[a-zA-Z0-9!#\$%&'*+\/=?\^_`{|}~\-]+(?:\.[a-zA-Z0-9!#\$%&'\*+\/=?\^_`{|}~\-]+)*@(?:[a-zA-Z0-9](?:[a-zA-Z0-9\-]*[a-zA-Z0-9])?\.)+[a-zA-Z0-9](?:[a-zA-Z0-9\-]*[a-zA-Z0-9])?$/;
         return re.test(email);
     }
 
@@ -168,7 +191,7 @@ export class ModalComponent implements OnInit {
     forgotDiscoursePassword(): void {
         this.preventBtnSpam(async () => {
             if (this.typedEmail === '' || !this.validateEmail(this.typedEmail)) {
-                this.setNotification('Please enter a valid email to reset', 7000);
+                this.setNotification('Please enter a valid email to reset password', 7000);
                 return;
             }
             try {
