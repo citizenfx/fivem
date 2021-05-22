@@ -1,7 +1,7 @@
 <div [class]="classes">
-	<div id="bg" class="acrylicBlur">
+	<div id="bg" class="acrylicBlur" [style.background-image]="stylish">
 		<canvas
-			*ngIf="!showSiteNavbar && gameName != 'rdr3' && gameName != 'ny'"
+			*ngIf="!showSiteNavbar && gameName != 'rdr3' && gameName != 'ny' && customBackdrop == ''"
 			#gameCanvas
 		>
 		</canvas>

@@ -11,6 +11,7 @@ import { ServersService } from './servers/servers.service';
 import { L10N_LOCALE, L10nLocale, L10nTranslationService } from 'angular-l10n';
 import { OverlayContainer } from '@angular/cdk/overlay';
 import { getNavConfigFromUrl } from './nav/helpers';
+import { DomSanitizer } from '@angular/platform-browser';
 
 // from fxdk
 const vertexShaderSrc = `
@@ -185,6 +186,8 @@ export class AppComponent implements OnInit, AfterViewInit {
 	@ViewChild('gameCanvas')
 	gameCanvas: ElementRef;
 
+    customBackdrop = '';
+
 	gameView: ReturnType<typeof createGameView>;
 
 	get minMode() {
@@ -207,6 +210,7 @@ export class AppComponent implements OnInit, AfterViewInit {
 		private zone: NgZone,
 		private serversService: ServersService,
 		private overlayContainer: OverlayContainer,
+        private sanitizer: DomSanitizer,
 	) {
 		this.gameService.init();
 
@@ -226,6 +230,10 @@ export class AppComponent implements OnInit, AfterViewInit {
 
 			this.minModeSetUp = true;
 		});
+
+        this.gameService.getConvar('ui_customBackdrop').subscribe((value: string) => {
+            this.customBackdrop = value;
+        });
 
 		this.gameService.getConvar('ui_blurPerfMode').subscribe((value: string) => {
 			delete this.classes['blur-noBackdrop'];
@@ -306,6 +314,14 @@ export class AppComponent implements OnInit, AfterViewInit {
 				).subscribe();
 		});
 	}
+
+    get stylish() {
+        if (this.customBackdrop) {
+            return this.sanitizer.bypassSecurityTrustUrl(`url(https://nui-backdrop/user.png?${this.customBackdrop})`);
+        }
+
+        return null;
+    }
 
 	ngAfterViewInit(): void {
 		if (!this.gameCanvas) {

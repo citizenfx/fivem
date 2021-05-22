@@ -79,7 +79,14 @@ static void RenderDrawListInternal(ImDrawList* drawList, ImDrawData* refData)
 		}
 		else
 		{
-			SetTextureGtaIm(*(rage::grcTexture**)cmd.TextureId);
+			if (cmd.TextureId)
+			{
+				SetTextureGtaIm(*(rage::grcTexture**)cmd.TextureId);
+			}
+			else
+			{
+				SetTextureGtaIm(rage::grcTextureFactory::GetNoneTexture());
+			}
 
 			PushDrawBlitImShader();
 

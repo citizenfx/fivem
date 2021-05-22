@@ -183,6 +183,10 @@ export abstract class GameService {
 
 	abstract toggleListEntry(type: string, server: Server, isInList: boolean): void;
 
+    async selectFile(key: string): Promise<string> {
+        throw new Error('not on web');
+    }
+
 	sayHello() {}
 
 	getProfile(): Profile {
@@ -394,6 +398,9 @@ export class CfxGameService extends GameService {
 					case 'exitGameplay':
 						document.body.style.visibility = 'visible';
 						break;
+                    case 'fileDialogResult':
+                        this.zone.run(() => this.invokeFileDialogResult(event.data.dialogKey, event.data.result));
+                        break;
 					case 'connectFailed':
 						this.zone.run(() => this.invokeConnectFailed(this.lastServer, event.data.message));
 						break;
@@ -589,6 +596,22 @@ export class CfxGameService extends GameService {
 			);
 		}
 	}
+
+    private fileSelectReqs: { [key: string]: (result: string) => void } = {};
+
+    private invokeFileDialogResult(key: string, result?: string) {
+        if (this.fileSelectReqs[key]) {
+            this.fileSelectReqs[key](result ?? '');
+        }
+    }
+
+    async selectFile(key: string): Promise<string> {
+        return new Promise<string>((resolve) => {
+            (window as any).invokeNative('openFileDialog', key);
+
+            this.fileSelectReqs[key] = resolve;
+        });
+    }
 
 	protected invokeBuildSwitchRequest(server: Server, build: number) {
 		this.card = true;

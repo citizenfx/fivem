@@ -70,6 +70,14 @@ export class SettingsService {
 			category: '#SettingsCat_Interface',
 		});
 
+        this.addSetting('customBackdropButton', {
+            name: '#Settings_CustomBackdrop',
+            type: 'button',
+            setCb: (value) => this.setCustomBackdrop(),
+            category: '#SettingsCat_Interface',
+            description: '#Settings_CustomBackdropSelect',
+        });
+
 		this.addSetting('uiPerformance', {
 			name: '#Settings_LowPerfMode',
 			description: '#Settings_LowPerfModeDesc',
@@ -282,4 +290,9 @@ export class SettingsService {
 		const url = await this.discourseService.generateAuthURL();
 		this.gameService.openUrl(url);
 	}
+
+    private async setCustomBackdrop() {
+        const fileName = await this.gameService.selectFile('backdrop');
+        this.gameService.setArchivedConvar('ui_customBackdrop', fileName);
+    }
 }
