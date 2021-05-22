@@ -13,6 +13,8 @@ import { OverlayContainer } from '@angular/cdk/overlay';
 import { getNavConfigFromUrl } from './nav/helpers';
 import { DomSanitizer } from '@angular/platform-browser';
 
+import * as md5 from 'js-md5';
+
 // from fxdk
 const vertexShaderSrc = `
   attribute vec2 a_position;
@@ -317,7 +319,7 @@ export class AppComponent implements OnInit, AfterViewInit {
 
     get stylish() {
         if (this.customBackdrop) {
-            return this.sanitizer.bypassSecurityTrustUrl(`url(https://nui-backdrop/user.png?${this.customBackdrop})`);
+            return this.sanitizer.bypassSecurityTrustUrl(`url(https://nui-backdrop/user.png?${md5(this.customBackdrop)})`);
         }
 
         return null;
