@@ -209,12 +209,21 @@ struct MinMax
 {
 	float mins[4];
 	float maxs[4];
+
+	inline MinMax()
+	{
+		mins[0] = mins[1] = mins[2] = mins[3] = FLT_MAX;
+		maxs[0] = maxs[1] = maxs[2] = maxs[3] = 0.0f - FLT_MAX;
+	}
 };
 
 struct fwBoxStreamerVariable
 {
-	char pad[256];
+	char pad[32];
+	atArray<MinMax> innerExtents;
+	char pad2[256 - 32 - 16];
 	atArray<MinMax> extents;
+	atArray<uint32_t> pendingList;
 };
 
 static void (*g_orig_fwBoxStreamerVariable_PostProcess)(fwBoxStreamerVariable* self);
@@ -222,16 +231,18 @@ static void (*g_orig_fwBoxStreamerVariable_PostProcessPending)(fwBoxStreamerVari
 
 static void fwBoxStreamerVariable_PostProcess(fwBoxStreamerVariable* self)
 {
-	auto extents = self->extents;
+	for (size_t index = 0; index < self->extents.GetCount(); index++)
+	{
+		self->extents[index] = self->innerExtents[index];
+	}
+
 	g_orig_fwBoxStreamerVariable_PostProcess(self);
-	self->extents = extents;
 }
 
 static void fwBoxStreamerVariable_PostProcessPending(fwBoxStreamerVariable* self)
 {
-	auto extents = self->extents;
+	// backup/restore logic when used here ends up breaking some other map data
 	g_orig_fwBoxStreamerVariable_PostProcessPending(self);
-	self->extents = extents;
 }
 
 static HookFunction hookFunction([]()
