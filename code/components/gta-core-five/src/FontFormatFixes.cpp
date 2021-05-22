@@ -285,17 +285,6 @@ struct GSizeF
 	float y;
 };
 
-static GSizeF (*getHtmlTextExtent)(void* self, const char* putf8Str, float width, const void* ptxtParams);
-
-static GSizeF GetHtmlTextExtentWrap(void* self, const char* putf8Str, float width, const void* ptxtParams)
-{
-	// escape (since this is actually non-HTML text extent)
-	//std::string textRef = putf8Str;
-	//EscapeXml<char>(textRef);
-
-	return getHtmlTextExtent(self, putf8Str, width, ptxtParams);
-}
-
 static void(*g_origFormatGtaText)(const char* in, char* out, bool a3, void* a4, float size, bool* html, int maxLength, bool a8);
 
 static std::regex condRe{"&lt;(/?C)&gt;"};
@@ -352,10 +341,6 @@ static HookFunction hookFunction([]()
 	hook::jump(hook::get_pattern("49 8B D8  45 33 C0 49 8B E9 FF 50", -0x31), ParseHtmlUtf8);
 
 	// GFxDrawTextImpl(?)
-
-	// GetTextExtent
-	hook::set_call(&getHtmlTextExtent, hook::get_pattern("48 8B 55 60 45 33 E4 4C 89", -0x5B));
-	hook::jump(hook::get_pattern("0F 29 70 D8 4D 8B F0 48 8B F2 0F 28 F3", -0x1F), GetHtmlTextExtentWrap);
 
 	OnGameFrame.Connect([]()
 	{
