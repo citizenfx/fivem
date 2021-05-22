@@ -69,7 +69,7 @@ static InitFunction initFunction([]()
 		}
 	});
 
-	OnGameFrame.Connect([]()
+	OnPostFrontendRender.Connect([]()
 	{
 		auto deleteThat = [](uintptr_t, uintptr_t)
 		{
@@ -91,12 +91,6 @@ static InitFunction initFunction([]()
 		if (IsOnRenderThread())	
 		{
 			deleteThat(0, 0);
-		}
-		else
-		{
-			// can we even do this from anywhere else?
-			uintptr_t a, b;
-			EnqueueGenericDrawCommand(deleteThat, &a, &b);
 		}
 	});
 
