@@ -1,6 +1,6 @@
 import {
 	Component, Input, ViewChild, ChangeDetectionStrategy,
-	OnDestroy, OnInit, ElementRef, AfterViewInit, NgZone, Renderer2, OnChanges
+	OnDestroy, OnInit, ElementRef, AfterViewInit, NgZone, Renderer2, OnChanges, ChangeDetectorRef
 } from '@angular/core';
 import { Router } from '@angular/router';
 
@@ -14,6 +14,7 @@ import { ServersService } from '../../servers.service';
 
 import parseAPNG, { isNotAPNG } from '@citizenfx/apng-js';
 import { ServerTagsService } from 'app/servers/server-tags.service';
+import { Subscription } from 'rxjs';
 
 @Component({
 	moduleId: module.id,
@@ -40,9 +41,12 @@ export class ServersListItemComponent implements OnInit, OnChanges, OnDestroy, A
 
 	private upvoting = false;
 
+    private tagSubscription: Subscription;
+
 	constructor(private gameService: GameService, private discourseService: DiscourseService, private tagService: ServerTagsService,
 		private serversService: ServersService, private router: Router, private elementRef: ElementRef,
-		private zone: NgZone, private renderer: Renderer2) { }
+		private zone: NgZone, private renderer: Renderer2, private cdr: ChangeDetectorRef) {
+    }
 
 	get premium() {
 		if (!this.server.data.vars) {
@@ -60,10 +64,14 @@ export class ServersListItemComponent implements OnInit, OnChanges, OnDestroy, A
 		this.hoverIntent.options({
 			interval: 50
 		});
+
+        this.tagSubscription = this.tagService.onUpdate.subscribe(() => this.cdr.detectChanges());
 	}
 
 	public ngOnDestroy() {
 		this.hoverIntent.remove();
+
+        this.tagSubscription.unsubscribe();
 	}
 
 	public ngAfterViewInit() {
