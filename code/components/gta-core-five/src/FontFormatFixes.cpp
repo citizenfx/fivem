@@ -306,7 +306,7 @@ static bool ContainsHtml(const char* in)
 	}
 
 	std::string inStr = in;
-	bool has = inStr.find('<') != std::string::npos || std::regex_search(ToWide(inStr), emojiRegEx);
+	bool has = inStr.find_first_of("&<") != std::string::npos || std::regex_search(ToWide(inStr), emojiRegEx);
 	emojiCache[inStr] = has;
 
 	return has;
