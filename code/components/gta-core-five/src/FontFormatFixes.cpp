@@ -267,11 +267,11 @@ static void GfxLog(void* sfLog, int messageType, const char* pfmt, va_list argLi
 
 static void(*g_origGFxEditTextCharacterDef__SetTextValue)(void* self, const char* newText, bool html, bool notifyVariable);
 
-static bool ContainsEmoji(const char* in);
+static bool ContainsHtml(const char* in);
 
 static void GFxEditTextCharacterDef__SetTextValue(void* self, const char* newText, bool html, bool notifyVariable)
 {
-	if (!html && ContainsEmoji(newText))
+	if (!html && ContainsHtml(newText))
 	{
 		html = true;
 	}
@@ -289,7 +289,7 @@ static void(*g_origFormatGtaText)(const char* in, char* out, bool a3, void* a4, 
 
 static std::regex condRe{"&lt;(/?C)&gt;"};
 
-static bool ContainsEmoji(const char* in)
+static bool ContainsHtml(const char* in)
 {
 	static thread_local std::map<std::string, bool, std::less<>> emojiCache;
 	static thread_local uint32_t nextClear;
@@ -305,8 +305,9 @@ static bool ContainsEmoji(const char* in)
 		return it->second;
 	}
 
-	bool has = std::regex_search(ToWide(in), emojiRegEx);
-	emojiCache[in] = has;
+	std::string inStr = in;
+	bool has = inStr.find('<') != std::string::npos || std::regex_search(ToWide(inStr), emojiRegEx);
+	emojiCache[inStr] = has;
 
 	return has;
 }
@@ -315,7 +316,7 @@ static void FormatGtaTextWrap(const char* in, char* out, bool a3, void* a4, floa
 {
 	g_origFormatGtaText(in, out, a3, a4, size, html, maxLength, a8);
 
-	if (!*html && ContainsEmoji(in))
+	if (!*html && ContainsHtml(in))
 	{
 		*html = true;
 	}
