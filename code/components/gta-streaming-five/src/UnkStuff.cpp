@@ -205,46 +205,6 @@ static void SceneLoaderScan(char* loader, uint8_t flags1, uint8_t flags2, uint8_
 	}
 }
 
-struct MinMax
-{
-	float mins[4];
-	float maxs[4];
-
-	inline MinMax()
-	{
-		mins[0] = mins[1] = mins[2] = mins[3] = FLT_MAX;
-		maxs[0] = maxs[1] = maxs[2] = maxs[3] = 0.0f - FLT_MAX;
-	}
-};
-
-struct fwBoxStreamerVariable
-{
-	char pad[32];
-	atArray<MinMax> innerExtents;
-	char pad2[256 - 32 - 16];
-	atArray<MinMax> extents;
-	atArray<uint32_t> pendingList;
-};
-
-static void (*g_orig_fwBoxStreamerVariable_PostProcess)(fwBoxStreamerVariable* self);
-static void (*g_orig_fwBoxStreamerVariable_PostProcessPending)(fwBoxStreamerVariable* self);
-
-static void fwBoxStreamerVariable_PostProcess(fwBoxStreamerVariable* self)
-{
-	for (size_t index = 0; index < self->extents.GetCount(); index++)
-	{
-		self->extents[index] = self->innerExtents[index];
-	}
-
-	g_orig_fwBoxStreamerVariable_PostProcess(self);
-}
-
-static void fwBoxStreamerVariable_PostProcessPending(fwBoxStreamerVariable* self)
-{
-	// backup/restore logic when used here ends up breaking some other map data
-	g_orig_fwBoxStreamerVariable_PostProcessPending(self);
-}
-
 static HookFunction hookFunction([]()
 {
 	// crash fix: popgroup unloading does an unknown streaming flush, which we don't want
@@ -372,9 +332,21 @@ static HookFunction hookFunction([]()
 	// misc fix: pause menu control delay on exit
 	hook::put<uint32_t>(hook::get_pattern("BA ? ? ? ? 48 8B C8 E8 ? ? ? ? 8B 05", 1), 0);
 
-	// fwBoxStreamerVariable: back up and restore extents list in PostProcess/PostProcessPending so we won't ruin it if run twice
-	MH_Initialize();
-	MH_CreateHook(hook::get_pattern("48 8B 43 30 4C 8B 4B 20 41 8B D0", -0x48), fwBoxStreamerVariable_PostProcess, (void**)&g_orig_fwBoxStreamerVariable_PostProcess);
-	MH_CreateHook(hook::get_pattern("48 8B 43 30 0F B7 0C 50 48 C1 E2 05", -0x5D), fwBoxStreamerVariable_PostProcessPending, (void**)&g_orig_fwBoxStreamerVariable_PostProcessPending);
-	MH_EnableHook(MH_ALL_HOOKS);
+	// fwBoxStreamerVariable: relocate internal multi-node BVH traversal list and make it bigger (1000 limit is not enough
+	// if having lots of mapdata with 'full-map-size' extents loaded that will always pass)
+	auto mnbvhList = hook::AllocateStubMemory(4096 * 8);
+	
+	{
+		// GetIntersectingAABB
+		auto location = hook::get_pattern<char>("0F 28 0A 48 8B 49 08 4C 8D 25", 10);
+		hook::put<int32_t>(location, (char*)mnbvhList - location + 4);
+		hook::put<int32_t>(location + 31, 4004);
+	}
+
+	{
+		// GetIntersectingLine
+		auto location = hook::get_pattern<char>("48 8B 49 08 4C 8D 3D", 7);
+		hook::put<int32_t>(location, (char*)mnbvhList - location + 4);
+		hook::put<int32_t>(location + 8, 4004);
+	}
 });
