@@ -7,6 +7,8 @@
 #include <EASTL/bitvector.h>
 #include <state/RlMessageBuffer.h>
 
+#include <shared_mutex>
+
 void* operator new[](size_t size, const char* pName, int flags, unsigned debugFlags, const char* file, int line)
 {
 	return ::operator new[](size);
@@ -91,7 +93,7 @@ private:
 
 	std::set<int> m_targets;
 
-	std::mutex m_listMutex;
+	std::shared_mutex m_listMutex;
 
 	ResourceManager* m_resourceManager;
 
@@ -193,14 +195,14 @@ void EventReassemblyComponentImpl::SetSink(EventReassemblySink* sink)
 
 void EventReassemblyComponentImpl::RegisterTarget(int id)
 {
-	std::unique_lock<std::mutex> lock(m_listMutex);
+	std::unique_lock lock(m_listMutex);
 
 	m_targets.insert(id);
 }
 
 void EventReassemblyComponentImpl::UnregisterTarget(int id)
 {
-	std::unique_lock<std::mutex> lock(m_listMutex);
+	std::unique_lock lock(m_listMutex);
 
 	if (m_targets.find(id) != m_targets.end())
 	{
@@ -235,10 +237,18 @@ void EventReassemblyComponentImpl::TriggerEvent(int target, std::string_view eve
 
 	if (target == -1)
 	{
+		std::shared_lock _(m_listMutex);
 		targets = m_targets;
 	}
 	else
 	{
+		std::shared_lock _(m_listMutex);
+
+		if (m_targets.find(target) == m_targets.end())
+		{
+			return;
+		}
+
 		targets.insert(target);
 	}
 
@@ -270,7 +280,7 @@ void EventReassemblyComponentImpl::TriggerEvent(int target, std::string_view eve
 		sendPacket->targetData[target] = targetData;
 	}
 
-	std::unique_lock<std::mutex> lock(m_listMutex);
+	std::unique_lock lock(m_listMutex);
 	m_sendList.insert({ m_eventId++, sendPacket });
 }
 
@@ -330,7 +340,7 @@ void EventReassemblyComponentImpl::NetworkTick()
 
 	// handle the send list
 	{
-		std::unique_lock<std::mutex> lock(m_listMutex);
+		std::unique_lock lock(m_listMutex);
 
 		std::set<EventId> dones;
 
@@ -343,6 +353,13 @@ void EventReassemblyComponentImpl::NetworkTick()
 
 			for (int target : sendPacket->targets)
 			{
+				// if the target is gone, get rid of them
+				if (m_targets.find(target) == m_targets.end())
+				{
+					doneTargets.insert(target);
+					continue;
+				}
+
 				auto targetData = sendPacket->targetData[target];
 
 				if (targetData && (targetData->lastSend + latency) < timeNow && targetData->delayNextSend < timeNow)
@@ -449,7 +466,7 @@ void EventReassemblyComponentImpl::HandlePacket(int source, std::string_view dat
 
 	if (packet.IsAck())
 	{
-		std::unique_lock<std::mutex> lock(m_listMutex);
+		std::unique_lock lock(m_listMutex);
 		auto entryIt = m_sendList.find(packet.eventId);
 
 		if (entryIt != m_sendList.end())
@@ -471,7 +488,7 @@ void EventReassemblyComponentImpl::HandlePacket(int source, std::string_view dat
 	}
 	else
 	{
-		std::unique_lock<std::mutex> lock(m_listMutex);
+		std::unique_lock lock(m_listMutex);
 		auto entryIt = m_receiveList.find({ source, packet.eventId });
 
 		std::shared_ptr<ReceiveEvent> receiveData;
