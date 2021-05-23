@@ -167,8 +167,8 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 	auto systemResourceRootPath = std::filesystem::u8path(systemResourceRoot).lexically_normal();
 
 	std::queue<std::string> pathsToIterate;
-	pathsToIterate.push(resourceRoot);
 	pathsToIterate.push(systemResourceRoot);
+	pathsToIterate.push(resourceRoot);
 
 	std::vector<pplx::task<fwRefContainer<fx::Resource>>> tasks;
 
