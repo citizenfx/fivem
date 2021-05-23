@@ -418,9 +418,9 @@ void EventReassemblyComponentImpl::NetworkTick()
 						}
 
 						// if we've cycled around fully, set next send time and break out
-						if (targetData->lastBit == startBit)
+						if (targetData->lastBit <= startBit)
 						{
-							targetData->delayNextSend = timeNow + std::chrono::milliseconds(500);
+							targetData->delayNextSend = timeNow + std::chrono::milliseconds(250);
 							break;
 						}
 					} while (resTime > latency);
