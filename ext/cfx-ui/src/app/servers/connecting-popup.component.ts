@@ -24,7 +24,7 @@ export class ConnectingPopupComponent implements OnInit {
 	closeLabel = "#Servers_CloseOverlay";
 	retryLabel = "#Servers_Retry";
 	submitting = false;
-	closeKeys = ["Escape", "Backspace", "Delete"];
+	closeKeys = ["Escape"];
 	serverData: any = null;
 
 	@Output()
