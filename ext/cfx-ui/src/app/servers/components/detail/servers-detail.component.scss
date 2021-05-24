@@ -276,10 +276,27 @@
 							// .cfx-button {
 							// 	margin-right: var(--qh);
 							// }
+
+                            button {
+                                &:after {
+                                    text-transform: none;
+                                }
+                            }
 						}
+
+                        .warning {
+                            margin: var(--qh);
+                            margin-left: 0;
+
+                            p {
+                                display: inline-block;
+                                padding-left: calc(var(--qh) / 2);
+                            }
+                        }
 
 						.address {
 							padding: var(--qh);
+                            margin-right: var(--q1);
 
 							line-height: 1;
 

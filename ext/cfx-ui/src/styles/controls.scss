@@ -92,6 +92,12 @@ input[type="password"] {
 				background-color: gtv($theme, accentColor1);
 			}
 		}
+
+        &[disabled] {
+            box-shadow: 0 0 0 2px darken(gtv($theme, accentColor1), 30%) inset !important;
+            color: rgba(gtv($theme, fgColor), .3) !important;
+            background-color: inherit !important;
+        }
 	}
 
 	.material-icons-outlined {

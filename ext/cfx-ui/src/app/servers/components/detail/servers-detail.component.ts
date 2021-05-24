@@ -15,7 +15,7 @@ import { ServersService } from '../../servers.service';
 
 import { isPlatformBrowser } from '@angular/common';
 import { MetaService } from '@ngx-meta/core';
-import { L10N_LOCALE, L10nLocale } from 'angular-l10n';
+import { L10N_LOCALE, L10nLocale, L10nTranslationService } from 'angular-l10n';
 import { ServerTagsService } from '../../server-tags.service';
 
 class VariablePair {
@@ -117,10 +117,35 @@ export class ServersDetailComponent implements OnInit, OnDestroy {
 		return players.sort((a, b) => this.collator.compare(a.name, b.name));
 	}
 
+    get eol() {
+        const now = new Date().getTime();
+
+        // Tue Jun 01 2021 00:00:00 GMT+0200
+        // Servers can't be EOL until this date.
+        if (now < 1622498400000) {
+            return false;
+        }
+
+        const supportStatus = (this.server.data.support_status ?? 'supported');
+
+        return (supportStatus === 'unknown' || supportStatus === 'end_of_life');
+    }
+
+    get eolLabel() {
+        return this.translation.translate('#ServerDetail_EOLDisable', null, this.locale.language);
+    }
+
+    get eos() {
+        const supportStatus = (this.server.data.support_status ?? 'supported');
+
+        return (supportStatus === 'end_of_support' || (!this.eol && supportStatus === 'end_of_life'));
+    }
+
 	constructor(private gameService: GameService, private serversService: ServersService,
 		private route: ActivatedRoute, private cdRef: ChangeDetectorRef, private sanitizer: DomSanitizer,
 		private router: Router, @Inject(PLATFORM_ID) private platformId: any, private meta: MetaService,
 		private tagService: ServerTagsService, private tweetService: TweetService,
+        private translation: L10nTranslationService,
 		@Inject(L10N_LOCALE) public locale: L10nLocale) {
 		this.filterFuncs['sv_scriptHookAllowed'] = (pair) => {
 			return {
@@ -211,6 +236,10 @@ export class ServersDetailComponent implements OnInit, OnDestroy {
 	}
 
 	attemptConnect() {
+        if (this.eol) {
+            return;
+        }
+
 		this.gameService.connectTo(this.server);
 	}
 
