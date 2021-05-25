@@ -137,9 +137,7 @@ module.exports = function(webpackEnv) {
     // Stop compilation early in production
     bail: isEnvProduction,
     devtool: isEnvProduction
-      ? shouldUseSourceMap
-        ? 'source-map'
-        : false
+      ? false
       : isEnvDevelopment && 'cheap-module-source-map',
     // These are the "entry points" to our application.
     // This means they will be the "root" imports that are included in JS bundle.
@@ -658,6 +656,10 @@ module.exports = function(webpackEnv) {
           silent: false,
           // The formatter is invoked directly in WebpackDevServerUtils during development
           formatter: isEnvProduction ? typescriptFormatter : undefined,
+        }),
+        isEnvProduction && shouldUseSourceMap && new webpack.SourceMapDevToolPlugin({
+          exclude: /\.worker\.js$/,
+          filename: '[file].map',
         }),
         sentryAuthToken && new SentryWebpackPlugin({
           url: 'https://sentry.fivem.net/',
