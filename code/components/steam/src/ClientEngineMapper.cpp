@@ -87,6 +87,13 @@ void ClientEngineMapper::LookupMethods()
 
 bool ClientEngineMapper::IsMethodAnInterface(void* methodPtr, bool* isUser, bool child)
 {
+	// 2021-05 Steam removes strings entirely from user interfaces
+	if (!child && hook::range_pattern((uintptr_t)methodPtr, (uintptr_t)methodPtr + 128, "42 3B 74 11 10 4A 8D 14 11 7C").count_hint(1).size() > 0)
+	{
+		*isUser = true;
+		return true;
+	}
+
 	// output variable
 	const char* name = nullptr;
 
