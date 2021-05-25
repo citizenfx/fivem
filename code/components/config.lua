@@ -5,7 +5,6 @@ component 'font-renderer'
 component 'debug-net'
 component 'scrbind-formats'
 component 'scrbind-base'
-component 'steam'
 component 'nui-profiles'
 component 'profiles'
 
@@ -34,6 +33,7 @@ else
 	component 'citizen-devtools'
 	component 'legacy-game-re3'
 	component 'sticky'
+	component 'steam'
 
 	if _OPTIONS["game"] ~= 'ny' then
 		component 'tool-formats'
