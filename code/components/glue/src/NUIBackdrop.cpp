@@ -25,11 +25,21 @@ public:
 
 			if (e)
 			{
-				auto file = vfs::OpenRead(e->GetValue());
-				if (file.GetRef())
+				FILE* f = _wfopen(ToWide(e->GetValue()).c_str(), L"rb");
+
+				if (f)
 				{
+					fseek(f, 0, SEEK_END);
+					m_result.resize(ftell(f));
+					fseek(f, 0, SEEK_SET);
+					fread(&m_result[0], 1, m_result.size(), f);
+					fclose(f);
+
 					m_found = true;
-					m_result = file->ReadToEnd();
+				}
+				else
+				{
+					e->SetValue("");
 				}
 			}
 		}
