@@ -262,7 +262,7 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 								{
 									for (const auto& component : relPath)
 									{
-										auto name = component.filename().string();
+										auto name = component.filename().u8string();
 
 										if (name[0] == '[' && name[name.size() - 1] == ']')
 										{
