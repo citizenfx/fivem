@@ -35,10 +35,8 @@
 			color: gtv($theme, textColor)
 		}
 
-		max-width: 870px;
-		max-height: 705px;
-		width: 65vw;
-		height: 65vw;
+		max-width: 80vh;
+		max-height: 65vh;
 		padding: calc(var(--quant) * 2);
 
         .loader {
@@ -74,9 +72,12 @@
 
             &:hover {
                 @include theme() using ($theme) {
-                    color: rgba(gtv($theme, fgColor), 1);
-                    text-decoration-color: rgba(gtv($theme, fgColor), .75);
+                    color :gtv($theme, accentContrastColor);
+                    background-color: gtv($theme, accentColor1);
+                    box-shadow: 0 0 0 4px gtv($theme, accentColor1);
                 }
+
+                transition: none;
             }
         }
 
@@ -89,6 +90,7 @@
 
 		.header {
 			text-align: center;
+            z-index: 20;
 
 			.title {
                 @include fontMontserrat;
@@ -167,6 +169,20 @@
 			flex-direction: column;
 			justify-content: center;
 			align-items: center;
+
+            .login__totp {
+                display: flex;
+				flex-direction: column;
+                margin-top: var(--quant);
+
+                p, h3 {
+                    margin-bottom: var(--qh);
+                }
+
+                form {
+                    width: auto;
+                }
+            }
 
 			.login__oneclick {
 				display: flex;
@@ -333,11 +349,13 @@
 
                 background-color: gtv($theme, bgColor);
                 box-shadow:
-                    0 0 200px 0 rgba($c, .25),
-                    0 0 150px 0 rgba($c, .5),
-                    0 0 50px 0 rgba($c, .75),
+                    0 0 18vh 0 rgba($c, .25),
+                    0 0 13vh 0 rgba($c, .5),
+                    0 0 4vh 0 rgba($c, .75),
                     0 0 2px 0 rgba($c, 1);
             }
+
+            margin-top: var(--quant);
 		}
 
 		.welcome-user {
@@ -355,6 +373,10 @@
                 >span {
                     font-weight: bold;
                 }
+            }
+
+            button {
+                margin-top: var(--quant);
             }
         }
 

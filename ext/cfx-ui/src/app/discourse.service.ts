@@ -118,7 +118,10 @@ export class DiscourseService {
                 }
 
                 this.initialAuthComplete.next(true);
-			});
+			}).catch(() => {
+                // failed, perhaps as user revoked token?
+                this.initialAuthComplete.next(true);
+            });
 		} else {
             this.initialAuthComplete.next(true);
         }
@@ -334,7 +337,7 @@ export class DiscourseService {
 
 	}
 
-	public async login(login: string, pw: string) {
+	public async login(login: string, pw: string, totp?: string) {
 		if (login === '' || pw === '') {
 			return { error: 'Enter a valid email and password' };
 		}
@@ -344,7 +347,11 @@ export class DiscourseService {
 		const loggingInFormData = new FormData();
 		loggingInFormData.append('login', login);
 		loggingInFormData.append('password', pw);
-		loggingInFormData.append('second_factor_method', '1');
+        loggingInFormData.append('second_factor_method', '1');
+
+        if (totp && totp !== '') {
+            loggingInFormData.append('second_factor_token', totp);
+        }
 
 		const loggingUserIn = await window.fetch('https://forum.cfx.re/session', {
 			method: 'POST',

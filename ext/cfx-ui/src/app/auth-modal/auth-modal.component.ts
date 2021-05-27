@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ElementRef, ViewChild } from '@angular/core';
 import { GameService } from '../game.service';
 import { DiscourseAuthModalState, DiscourseService, DiscourseUser } from '../discourse.service';
 
@@ -17,12 +17,14 @@ export class AuthModalComponent {
     completeRegister = false;
     completeAuth = false;
     authOnWeb = false;
+    displayTOTP = false;
     notification: string | null = null;
     btnActive = false;
 
     typedEmail = '';
     typedPassword = '';
     typedUserName = '';
+    typedTOTP = '';
 
     emailHint = 'Never shown to the public';
     usernameHint = 'Unique, No Spaces, Short';
@@ -33,6 +35,9 @@ export class AuthModalComponent {
 
     streamerMode: boolean = true;
     showIgnoreButton: boolean = false;
+
+    @ViewChild('modal')
+    modal: ElementRef;
 
     currentAccount: DiscourseUser | null = null;
 
@@ -71,6 +76,12 @@ export class AuthModalComponent {
         this.discourseService.initialAuthComplete.subscribe((complete) => {
             this.accountInfoLoaded = complete;
         });
+    }
+
+    toggleModalVisiblityOuter(event: MouseEvent) {
+        if (event.target === this.modal?.nativeElement) {
+            this.toggleModalVisiblity();
+        }
     }
 
     toggleModalVisiblity(): void {
@@ -122,7 +133,7 @@ export class AuthModalComponent {
             this.emailValid = false;
             this.emailHint = 'Never shown to the public';
         } else if (this.validateEmail(this.typedEmail)) {
-            let emailAvailable = await this.discourseService.checkValidEmail(this.typedEmail);
+            const emailAvailable = await this.discourseService.checkValidEmail(this.typedEmail);
             if (emailAvailable.success) {
                 this.emailValid = true;
                 this.emailHint = 'Valid Email Address';
@@ -175,8 +186,14 @@ export class AuthModalComponent {
     async traditionalDiscourseLogin() {
         this.preventBtnSpam(async () => {
             try {
-                const user = await this.discourseService.login(this.typedEmail, this.typedPassword);
+                const user = await this.discourseService.login(this.typedEmail, this.typedPassword, this.typedTOTP);
                 if (user.error) {
+                    if (user.reason === 'invalid_second_factor' && this.typedTOTP == '') {
+                        if (this.handleTFA(user)) {
+                            return;
+                        }
+                    }
+
                     this.setNotification(user.error, 7000);
                     return;
                 }
@@ -186,6 +203,15 @@ export class AuthModalComponent {
                 this.setNotification('Error signing In - Try again later', 7000);
             }
         }, 2000);
+    }
+
+    handleTFA(error: any) {
+        if (error.totp_enabled) {
+            this.displayTOTP = true;
+            return true;
+        }
+
+        return false;
     }
 
     forgotDiscoursePassword(): void {
