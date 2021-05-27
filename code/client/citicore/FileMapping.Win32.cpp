@@ -907,6 +907,13 @@ static HANDLE WINAPI CreateThreadStub( _In_opt_ LPSECURITY_ATTRIBUTES lpThreadAt
 	return (*Orig)(lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags, lpThreadId);
 }
 
+static void(WINAPI* g_origCoUninitialize)();
+
+static void WINAPI CoUninitializeStub()
+{
+	
+}
+
 extern "C" DLL_EXPORT void CoreSetMappingFunction(MappingFunctionType function)
 {
 	DisableToolHelpScope scope;
@@ -942,6 +949,7 @@ extern "C" DLL_EXPORT void CoreSetMappingFunction(MappingFunctionType function)
 	MH_CreateHookApi(L"kernelbase.dll", "GetProcAddressForCaller", GetProcAddressStub, (void**)&g_origGetProcAddress);
 	MH_CreateHookApi(L"kernel32.dll", "CreateThread", CreateThreadStub<&g_origCreateThread32>, (void**)&g_origCreateThread32);
 	MH_CreateHookApi(L"kernelbase.dll", "CreateThread", CreateThreadStub<&g_origCreateThread>, (void**)&g_origCreateThread);
+	MH_CreateHookApi(L"combase.dll", "CoUninitialize", CoUninitializeStub, (void**)&g_origCoUninitialize);
 	MH_EnableHook(MH_ALL_HOOKS);
 
 	static auto _LdrRegisterDllNotification = (decltype(&LdrRegisterDllNotification))GetProcAddress(GetModuleHandle(L"ntdll.dll"), "LdrRegisterDllNotification");
