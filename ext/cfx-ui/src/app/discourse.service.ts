@@ -58,6 +58,14 @@ export class BoostData {
 	address: string;
 }
 
+export enum DiscourseAuthModalState {
+    INITIAL = 'initial',
+    SHOWN = 'shown',
+    IGNORE = 'ignore',
+}
+
+const DISCOURSE_AUTH_MODAL_STATE = 'discourseAuthModalState';
+
 @Injectable()
 export class DiscourseService {
 	private static BASE_URL = 'https://forum.cfx.re';
@@ -73,13 +81,30 @@ export class DiscourseService {
 
 	public messageEvent = new EventEmitter<string>();
 	public signinChange = new BehaviorSubject<any>(null);
+    public initialAuthComplete = new BehaviorSubject(false);
 
 	public currentUser: any;
 
 	public currentBoost: BoostData;
 	public noCurrentBoost = false;
 
+    public authModalState: BehaviorSubject<DiscourseAuthModalState>;
+    public authModalOpenChange = new BehaviorSubject<boolean>(true);
+    public authModalClosedEvent = new EventEmitter<{ where?: string, ignored?: boolean }>();
+
 	public constructor(private serversService: ServersService, private gameService: GameService) {
+        const storedAuthModalState = window.localStorage.getItem(DISCOURSE_AUTH_MODAL_STATE) as any;
+
+        this.authModalState = new BehaviorSubject(
+            Object.values(DiscourseAuthModalState).includes(storedAuthModalState)
+                ? storedAuthModalState
+                : DiscourseAuthModalState.INITIAL,
+        );
+
+        if (this.authModalState.getValue() === DiscourseAuthModalState.IGNORE) {
+            this.authModalOpenChange.next(false);
+        }
+
 		this.authToken = window.localStorage.getItem('discourseAuthToken');
 
 		if (this.authToken && this.authToken.length > 0) {
@@ -87,10 +112,18 @@ export class DiscourseService {
 				this.signinChange.next(user);
 
 				this.currentUser = user;
-			});
-		}
 
-		this.signinChange.subscribe(user => {
+                if (user) {
+                    this.closeAuthModal();
+                }
+
+                this.initialAuthComplete.next(true);
+			});
+		} else {
+            this.initialAuthComplete.next(true);
+        }
+
+		this.signinChange.subscribe(() => {
 			if (environment.web) {
 				return;
 			}
@@ -118,7 +151,7 @@ export class DiscourseService {
 			});
 		});
 
-		this.signinChange.subscribe(identity => {
+		this.signinChange.subscribe(() => {
 			this.gameService.setDiscourseIdentity(this.getToken(), this.getExtClientId());
 		});
 
@@ -257,7 +290,7 @@ export class DiscourseService {
 		try {
 			const userInfo = await this.getCurrentUser();
 
-			this.messageEvent.emit(`Thanks for linking your FiveM user account, ${userInfo.username}.`);
+			// this.messageEvent.emit(`Thanks for linking your FiveM user account, ${userInfo.username}.`);
 			this.signinChange.next(userInfo);
 
 			this.currentUser = userInfo;
@@ -287,6 +320,182 @@ export class DiscourseService {
 		return `${DiscourseService.BASE_URL}/user-api-key/new?${this.serializeParams(params)}`;
 	}
 
+    private async createCSRFToken() {
+		const csrfRes = await window.fetch('https://forum.cfx.re/session/csrf.json', {
+			method: 'GET',
+			headers: {
+				"x-requested-with": 'XMLHttpRequest',
+				"discourse-present": 'true',
+			},
+			credentials: 'include',
+		});
+
+		return await csrfRes.json();
+
+	}
+
+	public async login(login: string, pw: string) {
+		if (login === '' || pw === '') {
+			return { error: 'Enter a valid email and password' };
+		}
+
+		const csrf = await this.createCSRFToken();
+
+		const loggingInFormData = new FormData();
+		loggingInFormData.append('login', login);
+		loggingInFormData.append('password', pw);
+		loggingInFormData.append('second_factor_method', '1');
+
+		const loggingUserIn = await window.fetch('https://forum.cfx.re/session', {
+			method: 'POST',
+			headers: {
+				"x-requested-with": 'XMLHttpRequest',
+				"discourse-present": 'true',
+				"x-csrf-token": csrf.csrf,
+			},
+			credentials: 'include',
+			body: loggingInFormData
+		});
+
+		let user = await loggingUserIn.json();
+
+		if (user.error) {
+			return user;
+		} else {
+
+			try {
+				const authURL = await this.generateAuthURL();
+				const authRes = await window.fetch(authURL, {
+					method: 'GET',
+					headers: {
+						"x-requested-with": 'XMLHttpRequest',
+						"discourse-present": 'true',
+					},
+					credentials: 'include',
+				});
+
+				const authHTML = await authRes.text();
+				const parser = new DOMParser();
+				const authDoc = parser.parseFromString(authHTML, 'text/html');
+				const authFormData = new FormData();
+				authFormData.append('authenticity_token', (<HTMLInputElement>authDoc.querySelector('input[name="authenticity_token"]')).value);
+				authFormData.append('application_name', (<HTMLInputElement>authDoc.querySelector('input[name="application_name"]')).value);
+				authFormData.append('nonce', (<HTMLInputElement>authDoc.querySelector('input[name="nonce"]')).value);
+				authFormData.append('client_id', (<HTMLInputElement>authDoc.querySelector('input[name="client_id"]')).value);
+				authFormData.append('auth_redirect', 'https://nui-game-internal/ui/app/index.html');
+				authFormData.append('public_key', (<HTMLInputElement>authDoc.querySelector('input[name="public_key"]')).value);
+				authFormData.append('scopes', (<HTMLInputElement>authDoc.querySelector('input[name="scopes"]')).value);
+				authFormData.append('commit', 'Authorize');
+
+				const authKeyRes = await fetch('https://forum.cfx.re/user-api-key', {
+					method: 'POST',
+					headers: {
+						"x-requested-with": 'XMLHttpRequest',
+						"discourse-present": 'true',
+					},
+					body: authFormData
+				});
+
+				const payload = authKeyRes.url.split("?").pop();
+				this.handleAuthPayload(payload);
+
+				return user;
+
+			} catch (err) {
+				return { error: 'Failed to Authenticate - Try Again Later' };
+			}
+
+		}
+
+	}
+
+	public async registerNewUser(newUserInfo) {
+		const { email, username, password } = newUserInfo;
+		const secrectStrings = await (await window.fetch('https://forum.cfx.re/session/hp.json', {
+			method: 'GET',
+			headers: {
+				"x-requested-with": 'XMLHttpRequest',
+				"discourse-present": 'true',
+			},
+			credentials: 'include',
+		})).json();
+
+		const newAccountFormData = new FormData();
+		newAccountFormData.append('email', email);
+		newAccountFormData.append('password', password);
+		newAccountFormData.append('username', username);
+		newAccountFormData.append('password_confirmation', secrectStrings.value);
+		newAccountFormData.append('challenge', [...secrectStrings.challenge].reverse().join(''));
+
+		const csrf = await this.createCSRFToken();
+
+		const newUser = await window.fetch('https://forum.cfx.re/u', {
+			method: 'POST',
+			headers: {
+				"x-requested-with": 'XMLHttpRequest',
+				"discourse-present": 'true',
+				"x-csrf-token": csrf.csrf,
+			},
+			credentials: 'include',
+			body: newAccountFormData
+		});
+
+		return await newUser.json();
+	}
+
+	public async resendActivationEmail(username: string) {
+		const csrf = await this.createCSRFToken();
+
+		const newUserForm = new FormData();
+		newUserForm.append('username', username);
+
+		await window.fetch('https://forum.cfx.re/u/action/send_activation_email', {
+			method: 'POST',
+			headers: {
+				"x-requested-with": 'XMLHttpRequest',
+				"discourse-present": 'true',
+				"x-csrf-token": csrf.csrf,
+			},
+			credentials: 'include',
+			body: newUserForm
+		});
+
+		return;
+
+	}
+
+	public async resetPassword(email: string) {
+		try {
+			const csrf = await this.createCSRFToken();
+			const passwordResetForm = new FormData();
+			passwordResetForm.append('login', email);
+
+			await window.fetch('https://forum.cfx.re/session/forgot_password', {
+				method: 'POST',
+				headers: {
+					"x-requested-with": 'XMLHttpRequest',
+					"discourse-present": 'true',
+					"x-csrf-token": csrf.csrf,
+				},
+				credentials: 'include',
+				body: passwordResetForm
+			});
+
+			return;
+
+		} catch (err) {
+			return { error: true };
+		}
+	}
+
+	public async checkValidEmail(email: string) {
+		return await (await window.fetch(`https://forum.cfx.re/u/check_email.json?email=${email}`)).json();
+	}
+
+	public async checkValidUsername(username: string) {
+		return await (await window.fetch(`https://forum.cfx.re/u/check_username.json?username=${username}`)).json();
+	}
+
 	public getToken() {
 		return this.authToken;
 	}
@@ -294,6 +503,38 @@ export class DiscourseService {
 	public getExtClientId() {
 		return this.clientId;
 	}
+
+    public openAuthModal() {
+        this.authModalOpenChange.next(true);
+    }
+
+    public closeAuthModal(analyticsName?: string) {
+        this.authModalOpenChange.next(false);
+
+        if (this.authModalState.getValue() === DiscourseAuthModalState.INITIAL) {
+            this.setAuthModalState(DiscourseAuthModalState.SHOWN);
+        }
+
+        if (analyticsName) {
+            this.authModalClosedEvent.next({
+                where: analyticsName,
+            });
+        }
+    }
+
+    public closeAuthModalAndIgnore() {
+        this.authModalOpenChange.next(false);
+        this.setAuthModalState(DiscourseAuthModalState.IGNORE);
+
+        this.authModalClosedEvent.next({
+            ignored: true,
+        });
+    }
+
+    private setAuthModalState(state: DiscourseAuthModalState) {
+        this.authModalState.next(state);
+        window.localStorage.setItem(DISCOURSE_AUTH_MODAL_STATE, state);
+    }
 
 	private async generateNonce() {
 		this.nonce = randomBytes(16);

@@ -39,8 +39,11 @@ export class SettingsService {
 	private settings: { [key: string]: Setting } = {};
 	private settingOrder: string[] = [];
 
-	constructor(private translation: L10nTranslationService, private gameService: GameService,
-		private discourseService: DiscourseService) {
+	constructor(
+        private translation: L10nTranslationService,
+        private gameService: GameService,
+		private discourseService: DiscourseService,
+    ) {
 		this.addSetting('nickname', {
 			name: '#Settings_Nickname',
 			description: '#Settings_Nickname',
@@ -287,8 +290,7 @@ export class SettingsService {
 	}
 
 	private async linkAccount() {
-		const url = await this.discourseService.generateAuthURL();
-		this.gameService.openUrl(url);
+        this.discourseService.openAuthModal();
 	}
 
     private async setCustomBackdrop() {

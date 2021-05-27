@@ -33,7 +33,7 @@
     "#Settings_DarkThemeDesc": "Применяет \"темную\" \"тему\"",
     "#Settings_DevMode": "Режим разработчика",
     "#Settings_DevModeDesc": "Добавить пункт \"localhost\" в меню (быстрое подключение к локальному серверу)",
-    "#Settings_Account": "Подключенный аккаунт FiveM",
+    "#Settings_Account": "Подключенный аккаунт Cfx.re",
     "#Settings_AccountLink": "Привязать",
     "#Settings_AccountLinked": "FiveM аккаунт: {{ username }}",
     "#Settings_Boost": "Текущий сервер BOOST™",

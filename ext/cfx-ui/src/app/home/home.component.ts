@@ -220,6 +220,10 @@ export class HomeComponent implements OnInit, OnDestroy {
 			});
 	}
 
+    toggleAuthModal() {
+        this.discourseService.openAuthModal();
+    }
+
 	clickContent(event: MouseEvent) {
 		const srcElement = event.srcElement as HTMLElement;
 

@@ -35,7 +35,7 @@
     "#Settings_DarkThemeDesc": "Změnit rozhraní na \"tmavé\" \"téma\"",
     "#Settings_DevMode": "Výv. režim",
     "#Settings_DevModeDesc": "Povolit \"localhost\" v menu",
-    "#Settings_Account": "Propojení s FiveM účtem",
+    "#Settings_Account": "Propojení s Cfx.re účtem",
     "#Settings_AccountLink": "Propojit",
     "#Settings_AccountLinked": "Propojeno: {{ username }}",
     "#Settings_Boost": "Momentální ZVIDITELNĚNÍ serveru",

@@ -35,7 +35,7 @@
     "#Settings_DarkThemeDesc": "Pritaikyti programai \"tamsią\" \"temą\"",
     "#Settings_DevMode": "Kūrėjo režimas",
     "#Settings_DevModeDesc": "Įjungti \"localhost\" meniu pasirinkimą",
-    "#Settings_Account": "Sujungta FiveM paskyra",
+    "#Settings_Account": "Sujungta Cfx.re paskyra",
     "#Settings_AccountLink": "Prijungti",
     "#Settings_AccountLinked": "Prijungtas: {{ username }}",
     "#Settings_Boost": "Dabartinis remiamas serveris",
