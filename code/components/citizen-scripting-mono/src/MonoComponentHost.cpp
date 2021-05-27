@@ -190,7 +190,14 @@ static void gc_event(MonoProfiler* profiler, MonoProfilerGCEvent event, uint32_t
 {
 #if defined(_WIN32)
 	switch (event) {
-	case MONO_GC_EVENT_PRE_STOP_WORLD:
+	// a comment above mono_gc_walk_heap says the following:
+	// 'heap walking is only valid in the pre-stop-world event callback'
+	// however, this is actually wrong: pre-stop-world isn't locked, and walking the heap there is not thread-safe
+	// more importantly, mono itself uses this in MONO_GC_EVENT_PRE_START_WORLD:
+	// https://github.com/mono/mono/blob/bdd772531d379b4e78593587d15113c37edd4a64/mono/profiler/log.c#L1456
+	//
+	// therefore, we assume the comment is wrong (a typo?) and the implementation is correct, and this should indeed be pre-start-world
+	case MONO_GC_EVENT_PRE_START_WORLD:
 		if (g_requestedMemoryUsage)
 		{
 			std::unique_lock<std::shared_mutex> lock(g_memoryUsagesMutex);
