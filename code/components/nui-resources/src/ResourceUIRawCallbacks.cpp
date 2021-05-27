@@ -60,18 +60,21 @@ static ResUICallback MakeUICallback(fx::Resource* resource, const std::string& t
 				
 				if (auto hit = outObj.find("headers"); hit != outObj.end())
 				{
-					for (auto& pair : hit->second.as<std::map<std::string, msgpack::object>>())
+					if (hit->second.type != msgpack::type::ARRAY)
 					{
-						if (pair.second.type == msgpack::type::ARRAY)
+						for (auto& pair : hit->second.as<std::map<std::string, msgpack::object>>())
 						{
-							for (const auto& value : pair.second.as<std::vector<std::string>>())
+							if (pair.second.type == msgpack::type::ARRAY)
 							{
-								headers.emplace(boost::algorithm::to_lower_copy(pair.first), value);
+								for (const auto& value : pair.second.as<std::vector<std::string>>())
+								{
+									headers.emplace(boost::algorithm::to_lower_copy(pair.first), value);
+								}
 							}
-						}
-						else
-						{
-							headers.emplace(boost::algorithm::to_lower_copy(pair.first), pair.second.as<std::string>());
+							else
+							{
+								headers.emplace(boost::algorithm::to_lower_copy(pair.first), pair.second.as<std::string>());
+							}
 						}
 					}
 				}
