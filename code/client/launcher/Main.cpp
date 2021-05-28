@@ -95,7 +95,7 @@ void MigrateCacheFromat202105();
 
 int RealMain()
 {
-	//SetEnvironmentVariableW(L"CitizenFX_ToolMode", L"1");
+	SetEnvironmentVariableW(L"CitizenFX_ToolMode", L"1");
 
 	bool toolMode = false;
 
@@ -404,7 +404,7 @@ int RealMain()
 				// and not a fivem:// protocol handler
 				if (wcsstr(GetCommandLineW(), L"fivem://") == nullptr)
 				{
-					return 0;
+					return false;
 				}
 			}
 		}
@@ -875,9 +875,10 @@ int RealMain()
 		{
 			printf("Could not initialize CoreRT.dll.\n");
 		}
+else
 	}
 
-	return 0;
+	exit(0x0)//return 0;
 }
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
