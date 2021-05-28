@@ -124,6 +124,12 @@ export class Resource implements AssetInterface {
     return this.resourceDescriptor;
   }
 
+  getDefinition() {
+    return {
+      convarCategories: this.manifest.convarCategories
+    }
+  }
+
   async getIgnorePatterns(): Promise<string[]> {
     return this.fsService.readIgnorePatterns(this.getPath());
   }
@@ -472,6 +478,7 @@ export class Resource implements AssetInterface {
 
           this.rebuildRestartInducingPatterns();
           this.ensureWatchCommandsRunning();
+          this.projectAccess.getInstance().getAssets().resolveMetadata(this);
 
           return resolve();
         }

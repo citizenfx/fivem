@@ -10,6 +10,7 @@ export const projectApi = {
   buildError: 'project:buildError',
   setServerUpdateChannel: 'project:setServerUpdateChannel',
   setSystemResources: 'project:setSystemResources',
+  setVariable: 'project:setVariable',
 
   upgradeRecommendations: 'project.upgradeRecommendations',
 
@@ -55,6 +56,7 @@ export const assetApi = {
 
   setConfig: 'asset:setConfig',
   setType: 'asset:setType',
+  setDefinition: 'asset:setDefinition',
 };
 
 export const githubApi = {

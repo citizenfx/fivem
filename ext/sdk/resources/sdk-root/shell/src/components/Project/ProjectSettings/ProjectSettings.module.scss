@@ -5,6 +5,9 @@
   flex-direction: column;
 
   overflow: hidden;
+  max-height: 100%;
+
+  position: relative;
 
   .update-channel {
     display: flex;
@@ -14,4 +17,28 @@
     padding: 0 $q*4;
     padding-bottom: $q*4;
   }
+}
+
+.prime {
+  display: flex;
+  flex-direction: row;
+  flex-grow: 1;
+  max-height: 100%;
+  overflow: hidden;
+
+  &>div:first-of-type {
+    border-right: solid 2px rgba($fgColor, .2);
+  }
+
+  &>div+div {
+    flex-grow: 1;
+    overflow: auto;
+    margin-right: 2px;
+  }
+}
+
+.actions {
+  position: absolute;
+  bottom: $q*4;
+  left: $q*4;
 }

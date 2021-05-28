@@ -5,7 +5,7 @@ import { Indicator } from 'components/Indicator/Indicator';
 
 
 export interface InputProps {
-  type?: 'text' | 'password' | 'search',
+  type?: 'text' | 'password' | 'search' | 'range',
   tabIndex?: number,
   disabled?: boolean,
   autofocus?: boolean,
@@ -16,6 +16,11 @@ export interface InputProps {
   placeholder?: string,
   description?: React.ReactNode,
   value: string,
+
+  // for 'range' inputs
+  combi?: boolean,
+  min?: string,
+  max?: string,
 
   onChange: (value: string) => void,
   onSubmit?: () => void,
@@ -43,6 +48,9 @@ export const Input = React.memo(function Input(props: InputProps) {
     inputClassName = '',
     description = '',
     type = 'text',
+    combi,
+    min,
+    max
   } = props;
 
   const handleChange = React.useCallback((event) => {
@@ -51,6 +59,13 @@ export const Input = React.memo(function Input(props: InputProps) {
     if (pattern && value) {
       if (pattern.test(value)) {
         onChange(value);
+      }
+    } else if (type === 'range') {
+      if (/^[0-9]*$/.test(value)) {
+        const intValue = value | 0;
+        if (value === '' || (intValue >= (parseInt(min, 10)) && intValue <= (parseInt(max, 10)))) {
+          onChange(value);
+        }
       }
     } else {
       onChange(value);
@@ -75,6 +90,26 @@ export const Input = React.memo(function Input(props: InputProps) {
     )
     : null;
 
+  const curNode = (!combi && type === 'range')
+    ? (
+      <span>{value}</span>
+    )
+    : null;
+
+  const textNode = (combi && type === 'range')
+    ? (
+        <input
+        type='text'
+        className={inputClassName}
+        value={value}
+        disabled={disabled}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown}
+        spellCheck={false}
+      />
+    )
+    : null;
+
   const inputNode = (
     <div className={s.input}>
       <input
@@ -88,7 +123,11 @@ export const Input = React.memo(function Input(props: InputProps) {
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         spellCheck={!noSpellCheck}
+        min={min}
+        max={max}
       />
+      {curNode}
+      {textNode}
       {loaderNode}
     </div>
   );

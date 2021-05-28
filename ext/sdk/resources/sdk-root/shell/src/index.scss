@@ -82,10 +82,25 @@ h6 {
 
   user-select: none;
 }
-.modal-label {
+.modal-label, .modal-category {
   padding: $q*2 $q*4;
 
-  color: rgba($fgColor, .5);
+  &.modal-label {
+    color: rgba($fgColor, .5);
+  }
+
+  h1 {
+    text-transform: uppercase;
+    font-weight: 400;
+
+    margin-bottom: $q*2;
+  }
+
+  h2 {
+    margin-bottom: 0;
+    color: rgba($fgColor, .5);
+    font-style: italic;
+  }
 
   @include fontPrimary;
   font-size: $fs08;
@@ -119,6 +134,8 @@ h6 {
   justify-content: space-between;
 
   padding: $q*4;
+
+  justify-self: flex-end;
 }
 .modal-combine {
   display: flex;
@@ -206,7 +223,7 @@ kbd {
 }
 ::-webkit-scrollbar-thumb {
   width: 2px;
-  background-color: rgba($fgColor, .1);
+  background-color: rgba($fgColor, .2);
 }
 ::selection {
   background-color: $acColor;

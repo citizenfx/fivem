@@ -32,6 +32,7 @@ import {
 import {
   FilesystemEntry,
   FilesystemEntryMap,
+  ServerStates,
   ServerUpdateChannel,
   serverUpdateChannels,
 } from "shared/api.types";
@@ -181,15 +182,18 @@ export class Project implements ApiContribution {
   getProjectData(): ProjectData {
     const assets = {};
     const assetTypes = {};
+    const assetDefs = {};
 
     for (const assetPath of this.getAssets().getAllPaths()) {
       assets[assetPath] = this.getAssetConfig(assetPath);
       assetTypes[assetPath] = this.assets.get(assetPath).type;
+      assetDefs[assetPath] = this.assets.get(assetPath).getDefinition?.() ?? {};
     }
 
     return {
       assets,
       assetTypes,
+      assetDefs,
       fs: this.getFs(),
       path: this.getPath(),
       manifest: this.getManifest(),
@@ -276,6 +280,7 @@ export class Project implements ApiContribution {
         pathsState: {},
         serverUpdateChannel: serverUpdateChannels.recommended,
         systemResources: DEFAULT_PROJECT_SYSTEM_RESOURCES,
+        variables: {},
       };
 
       // This will create this.path as well
@@ -367,6 +372,12 @@ export class Project implements ApiContribution {
 
   private async initFs() {
     this.log('Initializing project fs...');
+
+    this.gameServerService.onServerStateChange(state => {
+      if (state === ServerStates.up) {
+        this.refreshVariables();
+      }
+    });
 
     this.fsMapping.setShouldProcessUpdate((path) => path !== this.manifestPath);
     this.fsMapping.setEntryMetaExtras({
@@ -517,6 +528,19 @@ export class Project implements ApiContribution {
     });
 
     this.refreshEnabledResources();
+  }
+
+  @handlesClientEvent(projectApi.setVariable)
+  setVariable({ key, value }: { key: string, value: string }) {
+    this.applyManifest((manifest) => {
+      if (!manifest.variables) {
+        manifest.variables = {};
+      }
+
+      manifest.variables[key] = value;
+    });
+
+    this.refreshVariables();
   }
 
   //#region assets
@@ -844,6 +868,57 @@ export class Project implements ApiContribution {
     });
   }, 100);
 
+  private refreshVariables() {
+    if (this.worldEditorService.isRunning()) {
+      return;
+    }
+
+    for (const cmd of this.getAssetVariables()) {
+      this.gameServerService.sendCommand(cmd);
+    }
+  }
+
+  *getAssetVariables() {
+    const enabledAssets = this.getEnabledAssets();
+    const convarMap = enabledAssets
+      .filter(asset => asset.type === 'resource')
+      .map(asset => asset.getDefinition() ?? {})
+      .map(definition =>
+        (definition.convarCategories ?? [])
+          .map(data => data[1])
+          .map(data => data[1]))
+      .flat(2);
+
+    for (const setting of convarMap) {
+      const [title, id, type, def, ...more]: [string, string, string, any, any[]] = setting;
+      const value = this.getManifest().variables?.[id] ?? mapDefault(def);
+      let setType = 'set';
+      let finalId = id;
+
+      if (id[0] == '#') {
+        setType = 'sets';
+        finalId = id.substring(1);
+      } else if (id[0] == '$') {
+        setType = 'setr';
+        finalId = id.substring(1);
+      }
+
+      yield `${setType} "${escapeCmd(finalId)}" "${escapeCmd(value)}"`;
+    }
+
+    function escapeCmd(value: string) {
+      return value.replace(/\\/g, "\\\\").replace(/"/g, "\\\"");
+    }
+
+    function mapDefault(def: any) {
+      if (Array.isArray(def)) {
+        return def[0][1] + '';
+      }
+
+      return def + '';
+    }
+  }
+
   private refreshEnabledResources() {
     if (this.worldEditorService.isRunning()) {
       return;
@@ -865,5 +940,8 @@ export class Project implements ApiContribution {
     }
 
     this.gameServerService.setResources(resourceDescriptors);
+
+    // also update variables as resource config may have changed
+    this.refreshVariables();
   }
 }

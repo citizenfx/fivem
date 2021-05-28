@@ -43,8 +43,11 @@ export const useProjectBuildPathVar = (project: ProjectData | null) => {
 export const getProjectUseVersioningVar = (project: ProjectData | null) => getProjectClientStorageItem(project, 'useVersioning', true);
 export const useProjectUseVersioningVar = (project: ProjectData | null) => useProjectClientStorageItem(project, 'useVersioning', true);
 
-export const getProjectDeployArtifactVar = (project: ProjectData | null) => getProjectClientStorageItem(project, 'deployArtifact', false);
-export const useProjectDeployArtifactVar = (project: ProjectData | null) => useProjectClientStorageItem(project, 'deployArtifact', false);
+export const getProjectDeployArtifactVar = (project: ProjectData | null) => getProjectClientStorageItem(project, 'deployArtifact', true);
+export const useProjectDeployArtifactVar = (project: ProjectData | null) => useProjectClientStorageItem(project, 'deployArtifact', true);
+
+export const getProjectUseTxAdminVar = (project: ProjectData | null) => getProjectClientStorageItem(project, 'useTxAdmin', true);
+export const useProjectUseTxAdminVar = (project: ProjectData | null) => useProjectClientStorageItem(project, 'useTxAdmin', true);
 
 export const getProjectSteamWebApiKeyVar = (project: ProjectData | null) => getProjectClientStorageItem(project, 'steamWebApiKey', '');
 export const useProjectSteamWebApiKeyVar = (project: ProjectData | null) => useProjectClientStorageItem(project, 'steamWebApiKey', '');

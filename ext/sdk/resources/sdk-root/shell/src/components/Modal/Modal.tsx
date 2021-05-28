@@ -11,6 +11,7 @@ export interface ModalProps {
   children: React.ReactNode,
 
   fullWidth?: boolean,
+  fullHeight?: boolean,
 }
 
 export const Modal = React.memo(function Modal(props: ModalProps) {
@@ -18,6 +19,7 @@ export const Modal = React.memo(function Modal(props: ModalProps) {
     children,
     onClose = noop,
     fullWidth = false,
+    fullHeight = false,
   } = props;
 
   const [modalOutlet, setModalOutlet] = React.useState<HTMLElement | null>(null);
@@ -41,6 +43,7 @@ export const Modal = React.memo(function Modal(props: ModalProps) {
   if (modalOutlet) {
     const rootClassName = classnames(s.root, {
       [s['full-width']]: fullWidth,
+      [s['full-height']]: fullHeight,
     });
 
     return ReactDOM.createPortal(

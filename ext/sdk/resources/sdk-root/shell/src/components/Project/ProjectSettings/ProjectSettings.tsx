@@ -6,11 +6,16 @@ import { projectApi } from 'shared/api.events';
 import { sendApiMessage } from 'utils/api';
 import { Modal } from 'components/Modal/Modal';
 import { Button } from 'components/controls/Button/Button';
-import { useProjectSteamWebApiKeyVar, useProjectTebexSecretVar } from 'utils/projectStorage';
+import { useProjectDeployArtifactVar, useProjectSteamWebApiKeyVar, useProjectTebexSecretVar, useProjectUseTxAdminVar, useProjectUseVersioningVar } from 'utils/projectStorage';
 import { Input } from 'components/controls/Input/Input';
 import { ProjectState } from 'store/ProjectState';
 import s from './ProjectSettings.module.scss';
 import { ProjectSystemResources } from './ProjectSystemResources/ProjectSystemResources';
+import { TabItem, TabSelector } from 'components/controls/TabSelector/TabSelector';
+import { VscSymbolProperty } from 'react-icons/vsc';
+import { enabledResourceIcon, projectBuildIcon } from 'constants/icons';
+import { Checkbox } from 'components/controls/Checkbox/Checkbox';
+import { ProjectResourceSettings } from './ProjectResourceSettings/ProjectResourceSettings';
 
 const updateChannelOptions: SwitchOption[] = [
   {
@@ -30,6 +35,34 @@ const updateChannelOptions: SwitchOption[] = [
   },
 ];
 
+type KeysOf<T> = T[keyof T];
+
+const projectSettingsTabs = {
+  resources: 'resources',
+  variables: 'variables',
+  buildOptions: 'buildOptions',
+};
+
+type ProjectSettingsTab = KeysOf<typeof projectSettingsTabs>;
+
+const settingsTabOptions: TabItem[] = [
+  {
+    label: 'Variables',
+    value: projectSettingsTabs.variables,
+    icon: <VscSymbolProperty />,
+  },
+  {
+    label: 'Resources',
+    value: projectSettingsTabs.resources,
+    icon: enabledResourceIcon,
+  },
+  {
+    label: 'Build Options',
+    value: projectSettingsTabs.buildOptions,
+    icon: projectBuildIcon,
+  },
+];
+
 export const ProjectSettings = observer(function ProjectSettings() {
   const project = ProjectState.project;
 
@@ -40,45 +73,93 @@ export const ProjectSettings = observer(function ProjectSettings() {
 
   const [steamWebApiKey, setSteamWebApiKey] = useProjectSteamWebApiKeyVar(project);
   const [tebexSecret, setTebexSecret] = useProjectTebexSecretVar(project);
+  const [useVersioning, setUseVersioning] = useProjectUseVersioningVar(project);
+  const [deployArtifact, setDeployArtifact] = useProjectDeployArtifactVar(project);
+  const [useTxAdmin, setUseTxAdmin] = useProjectUseTxAdminVar(project);
+
+  const [currentTab, setCurrentTab] = React.useState<ProjectSettingsTab>(projectSettingsTabs.variables);
 
   return (
-    <Modal fullWidth onClose={ProjectState.closeSettings}>
+    <Modal fullWidth fullHeight onClose={ProjectState.closeSettings}>
       <div className={s.root}>
-        <div className="modal-header">
-          Project settings
+        <div className={s.prime}>
+          <div>
+            <div className="modal-header">Project settings</div>
+            <TabSelector
+              value={currentTab}
+              items={settingsTabOptions}
+              onChange={setCurrentTab}
+              vertical
+            />
+          </div>
+
+          <div>
+            {currentTab === projectSettingsTabs.variables && <>
+              <div className="modal-label">
+                Server update channel:
+              </div>
+              <div className="modal-block">
+                <Switch
+                  value={updateChannel}
+                  options={updateChannelOptions}
+                  onChange={handleUpdateChannelChange}
+                />
+              </div>
+
+              <div className="modal-block modal-combine">
+                <Input
+                  type="password"
+                  label="Steam API key:"
+                  value={steamWebApiKey}
+                  onChange={setSteamWebApiKey}
+                  description={<>Used only for build. If you want to use Steam authentication — <a href="https://steamcommunity.com/dev/apikey">get a key</a></>}
+                />
+                <Input
+                  type="password"
+                  label="Tebex secret:"
+                  value={tebexSecret}
+                  onChange={setTebexSecret}
+                  description={<a href="https://server.tebex.io/settings/servers">Get Tebex secret</a>}
+                />
+              </div>
+
+              <ProjectResourceSettings />
+            </>}
+
+            {currentTab === projectSettingsTabs.resources && <>
+              <ProjectSystemResources />
+            </>}
+
+            {currentTab === projectSettingsTabs.buildOptions && <>
+              <div className="modal-label">
+                Deploy options:
+              </div>
+              <div className="modal-block">
+                <Checkbox
+                  value={useVersioning}
+                  onChange={setUseVersioning}
+                  label="If possible, save previous build allowing build rollback"
+                />
+              </div>
+              <div className="modal-block">
+                <Checkbox
+                  value={deployArtifact}
+                  onChange={setDeployArtifact}
+                  label={`Include ${serverUpdateChannels[project.manifest.serverUpdateChannel]} server artifact`}
+                />
+              </div>
+              {/*<div className="modal-block">
+                <Checkbox
+                  value={useTxAdmin}
+                  onChange={setUseTxAdmin}
+                  label="Use txAdmin to manage the server"
+                />
+              </div>*/}
+            </>}
+          </div>
         </div>
 
-        <div className="modal-label">
-          Server update channel:
-        </div>
-        <div className="modal-block">
-          <Switch
-            value={updateChannel}
-            options={updateChannelOptions}
-            onChange={handleUpdateChannelChange}
-          />
-        </div>
-
-        <div className="modal-block modal-combine">
-          <Input
-            type="password"
-            label="Steam API key:"
-            value={steamWebApiKey}
-            onChange={setSteamWebApiKey}
-            description={<>Used only for build. If you want to use Steam authentication — <a href="https://steamcommunity.com/dev/apikey">get a key</a></>}
-          />
-          <Input
-            type="password"
-            label="Tebex secret:"
-            value={tebexSecret}
-            onChange={setTebexSecret}
-            description={<a href="https://server.tebex.io/settings/servers">Get Tebex secret</a>}
-          />
-        </div>
-
-        <ProjectSystemResources />
-
-        <div className="modal-actions">
+        <div className={s.actions}>
           <Button
             text="Close"
             onClick={ProjectState.closeSettings}

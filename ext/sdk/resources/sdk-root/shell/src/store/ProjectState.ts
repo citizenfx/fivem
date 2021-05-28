@@ -20,6 +20,9 @@ class ProjectObject implements ProjectData, DisposableObject {
   public assets: {
     [path: string]: ProjectAssetBaseConfig,
   };
+  public assetDefs: {
+    [path: string]: any,
+  };
   public manifest: ProjectManifest;
 
   public assetTypes: Record<string, AssetType | void> = {};
@@ -32,6 +35,7 @@ class ProjectObject implements ProjectData, DisposableObject {
     this.assets = projectData.assets;
     this.manifest = projectData.manifest;
     this.assetTypes = projectData.assetTypes;
+    this.assetDefs = projectData.assetDefs;
 
     makeAutoObservable(this);
 
@@ -42,6 +46,7 @@ class ProjectObject implements ProjectData, DisposableObject {
       onApiMessage(projectApi.fsUpdate, this.updateFs),
       onApiMessage(assetApi.setConfig, this.setAssetConfig),
       onApiMessage(assetApi.setType, this.setAssetType),
+      onApiMessage(assetApi.setDefinition, this.setAssetDefinition),
     );
   }
 
@@ -123,6 +128,12 @@ class ProjectObject implements ProjectData, DisposableObject {
 
   private setAssetConfig = ([assetPath, config]) => {
     this.assets[assetPath] = config;
+  };
+
+  private setAssetDefinition = (assetDefs: Record<string, any>) => {
+    for (const [assetPath, def] of Object.entries(assetDefs)) {
+      this.assetDefs[assetPath] = def;
+    }
   };
 }
 export const ProjectState = new class ProjectState {

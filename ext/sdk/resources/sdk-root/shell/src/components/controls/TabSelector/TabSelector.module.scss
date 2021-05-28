@@ -31,4 +31,25 @@
       border-bottom: none;
     }
   }
+
+  &.vertical {
+    flex-direction: column;
+    width: auto;
+    min-width: 250px;
+
+    .item {
+      width: 100%;
+      padding: $q*2 $q*4;
+      border: none;
+
+      svg {
+        margin-right: $q;
+        height: 0.8em;
+      }
+
+      &.active {
+        background-color: rgba($fgColor, .2);
+      }
+    }
+  }
 }

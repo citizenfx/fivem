@@ -67,6 +67,7 @@ export class ProjectUpgrade {
         systemResources: DEFAULT_PROJECT_SYSTEM_RESOURCES,
         pathsState: {},
         assets: {},
+        variables: {},
       };
 
       await this.fsService.writeFileJson(request.manifestPath, manifest, true);

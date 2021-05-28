@@ -14,6 +14,9 @@ export interface ProjectData {
     [path: string]: ProjectAssetBaseConfig,
   },
   assetTypes: Record<string, AssetType | void>,
+  assetDefs: {
+    [path: string]: any,
+  },
   manifest: ProjectManifest,
 }
 
@@ -31,6 +34,9 @@ export interface ProjectManifest {
     [path: string]: ProjectAssetBaseConfig,
   },
   systemResources: SystemResource[],
+  variables?: {
+    [key: string]: string
+  },
 }
 
 export interface ProjectFsUpdate {

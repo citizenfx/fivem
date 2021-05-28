@@ -24,6 +24,7 @@ const messageCallbacks: Record<string, ApiMessageCallback<any>> = {};
 
 let pendingMessages: string[] = [];
 let connected = false;
+const backlog: { [type: string]: any[] } = {};
 
 const ws = new ReconnectingWebScoket('ws://localhost:35419/api');
 ws.addEventListener('open', () => {
@@ -72,6 +73,14 @@ ws.addEventListener('message', (event: MessageEvent) => {
 
     if (typeListeners) {
       typeListeners.forEach((listener) => listener(data, type));
+    }
+
+    if (typeListeners?.size === 0) {
+      if (!backlog[type]) {
+        backlog[type] = [];
+      }
+
+      backlog[type].push(data);
     }
 
     if (anyListeners) {
@@ -159,6 +168,14 @@ export const onApiMessage = (type: string | typeof ANY_MESSAGE, cb: ApiMessageLi
   const listeners = messageListeners[type as any] || (messageListeners[type as any] = new Set());
 
   listeners.add(cb);
+
+  if (type !== ANY_MESSAGE && backlog[type]) {
+    for (const entry of backlog[type]) {
+      cb(entry, type);
+    }
+
+    delete backlog[type];
+  }
 
   return () => offApiMessage(type, cb);
 };

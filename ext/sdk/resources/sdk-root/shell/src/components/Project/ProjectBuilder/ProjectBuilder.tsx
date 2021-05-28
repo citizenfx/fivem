@@ -163,24 +163,7 @@ export const ProjectBuilder = observer(function ProjectBuilder() {
           <Checkbox
             value={deployArtifact}
             onChange={setDeployArtifact}
-            label={`Include server ${serverUpdateChannels[project.manifest.serverUpdateChannel]} artifact`}
-          />
-        </div>
-
-        <div className="modal-block modal-combine">
-          <Input
-            type="password"
-            label="Steam API key:"
-            value={steamWebApiKey}
-            onChange={setSteamWebApiKey}
-            description={<>If you want to use Steam authentication — <a href="https://steamcommunity.com/dev/apikey">get a key</a></>}
-          />
-          <Input
-            type="password"
-            label="Tebex secret:"
-            value={tebexSecret}
-            onChange={setTebexSecret}
-            description={<a href="https://server.tebex.io/settings/servers">Get Tebex secret</a>}
+            label={`Include ${serverUpdateChannels[project.manifest.serverUpdateChannel]} server artifact`}
           />
         </div>
 

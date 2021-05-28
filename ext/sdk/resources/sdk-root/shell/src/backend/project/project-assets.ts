@@ -26,6 +26,7 @@ export class ProjectAssets implements DisposableObject {
 
   private assetTypeSetTicker = new Ticker();
   private pendingAssetTypesSet: Record<string, AssetType | void> | void;
+  private pendingAssetDefsSet: Record<string, any> | void;
 
   get(assetPath: string): AssetInterface {
     return this.assets[assetPath];
@@ -41,7 +42,7 @@ export class ProjectAssets implements DisposableObject {
 
       if (asset) {
         this.assets[assetEntry.path] = asset;
-        this.setAssetType(assetEntry.path, asset.type);
+        this.setAssetInformation(assetEntry.path, asset.type, asset.getDefinition?.() ?? {});
         return true;
       }
     }
@@ -51,7 +52,7 @@ export class ProjectAssets implements DisposableObject {
 
   async dispose() {
     for (const asset of Object.values(this.assets)) {
-      this.setAssetType(asset.getPath(), undefined);
+      this.setAssetInformation(asset.getPath(), undefined, undefined);
       await asset.dispose?.();
     }
   }
@@ -63,7 +64,7 @@ export class ProjectAssets implements DisposableObject {
     }
 
     for (const asset of this.findAssetWithChildren(assetPath)) {
-      this.setAssetType(asset.getPath(), undefined);
+      this.setAssetInformation(asset.getPath(), undefined, undefined);
       delete this.assets[assetPath];
       await asset.dispose?.();
     }
@@ -75,19 +76,30 @@ export class ProjectAssets implements DisposableObject {
     }
   }
 
-  private setAssetType(assetPath: string, assetType: AssetType | void) {
+  resolveMetadata(asset: AssetInterface) {
+    this.setAssetInformation(asset.getPath(), asset.type, asset.getDefinition?.() ?? {});
+  }
+
+  private setAssetInformation(assetPath: string, assetType: AssetType | void, assetDef: any) {
     if (!this.pendingAssetTypesSet) {
       this.pendingAssetTypesSet = {};
     }
 
-    this.logService.log('Queueing asset type set', { assetPath, assetType });
+    if (!this.pendingAssetDefsSet) {
+      this.pendingAssetDefsSet = {};
+    }
+
+    this.logService.log('Queueing asset info set', { assetPath, assetType, assetDef });
 
     this.pendingAssetTypesSet[assetPath] = assetType;
+    this.pendingAssetDefsSet[assetPath] = assetDef;
 
     this.assetTypeSetTicker.whenTickEnds(() => {
-      this.logService.log('Setting asset types', this.pendingAssetTypesSet);
+      this.logService.log('Setting asset infos', this.pendingAssetTypesSet, this.pendingAssetDefsSet);
       this.apiClient.emit(assetApi.setType, this.pendingAssetTypesSet);
+      this.apiClient.emit(assetApi.setDefinition, this.pendingAssetDefsSet);
       this.pendingAssetTypesSet = undefined;
+      this.pendingAssetDefsSet = undefined;
     });
   }
 

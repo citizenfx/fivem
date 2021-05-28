@@ -108,6 +108,8 @@ export class ResourceManifest {
    */
   clrDisableTaskScheduler: boolean = false;
 
+  convarCategories: ResourceManifestRecord = [];
+
   fxdkWatchCommands: ResourceManifestRecord = [];
   fxdkBuildCommands: ResourceManifestRecord = [];
 
@@ -141,6 +143,7 @@ export class ResourceManifest {
       metaFromArrayOrString('version', this.version),
       metaFromArrayOrString('description', this.description),
       nl,
+      ...metaFromRecord('convar_category', this.convarCategories),
       ...metaFromRecord('fxdk_watch_command', this.fxdkWatchCommands),
       ...metaFromRecord('fxdk_build_command', this.fxdkBuildCommands),
       nl,
@@ -192,6 +195,7 @@ export class ResourceManifest {
     this.version = stringFromMeta(obj, 'version', '1.0.0');
     this.description = stringFromMeta(obj, 'description', '');
 
+    this.convarCategories = recordFromMeta(obj, 'convar_category', []);
     this.fxdkWatchCommands = recordFromMeta(obj, 'fxdk_watch_command', []);
     this.fxdkBuildCommands = recordFromMeta(obj, 'fxdk_build_command', []);
 

@@ -16,6 +16,7 @@ export interface AssetInterface extends DisposableObject {
   getDeployablePaths?(): Promise<string[]>;
 
   getResourceDescriptor?(): ServerResourceDescriptor;
+  getDefinition?(): any;
 
   build?(): Promise<void> | void;
 }
