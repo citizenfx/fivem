@@ -55,10 +55,29 @@ static hook::cdecl_stub<fwEntity*(int handle)> getScriptEntity([]()
 	return hook::pattern("44 8B C1 49 8B 41 08 41 C1 F8 08 41 38 0C 00").count(1).get(0).get<void>(-12);
 });
 
-static hook::cdecl_stub<void(fwEntity*)> deletePed([]()
+static hook::cdecl_stub<void(fwEntity*)> deletePedReal([]()
 {
 	return hook::get_pattern("48 83 EC 28 48 85 C9 74 12 48 8B D1");
 });
+
+struct CPedFactory
+{
+	virtual ~CPedFactory() = 0;
+
+	CPed* localPlayerPed;
+};
+
+static CPedFactory** g_pedFactory;
+
+static void deletePed(fwEntity* entity)
+{
+	if (*g_pedFactory && (*g_pedFactory)->localPlayerPed == entity)
+	{
+		return;
+	}
+
+	return deletePedReal(entity);
+}
 
 static hook::cdecl_stub<void(fwEntity*)> deleteVehicle([]()
 {
@@ -108,6 +127,8 @@ static fwEntity* GetNetworkObject(void* scriptHandler, int objectId)
 
 static HookFunction hookFunction([] ()
 {
+	g_pedFactory = hook::get_address<decltype(g_pedFactory)>(hook::get_pattern("E8 ? ? ? ? 48 8B 05 ? ? ? ? 48 8B 58 08 48 8B CB E8", 8));
+
 	// netObject getters
 
 	// get entity by network ID
