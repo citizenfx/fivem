@@ -133,6 +133,10 @@
 							<PoolSize value="256"/>
 						</Item>
 						<Item>
+							<PoolName>CBullet::sBulletInstance</PoolName>
+							<PoolSize value="192"/>
+						</Item>
+						<Item>
 							<PoolName>AnimStore</PoolName>
 							<PoolSize value="21000"/>
 						</Item>
