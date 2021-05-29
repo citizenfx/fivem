@@ -259,7 +259,7 @@ DECLARE_INSTANCE_TYPE(ResourceUICallbackComponent);
 
 static ResUICallback MakeUICallback(fx::Resource* resource, const std::string& type)
 {
-	return [resource, type](const std::string& path, const std::multimap<std::string, std::string>& headers, const std::string& postData, ResUIResultCallback cb)
+	return [resource, type](const std::string& path, const std::string&, const std::multimap<std::string, std::string>& headers, const std::string& postData, ResUIResultCallback cb)
 	{
 		// get the event component
 		fwRefContainer<fx::ResourceEventComponent> eventComponent = resource->GetComponent<fx::ResourceEventComponent>();

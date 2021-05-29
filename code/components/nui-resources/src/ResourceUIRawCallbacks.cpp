@@ -30,7 +30,7 @@ struct RequestWrap
 
 static ResUICallback MakeUICallback(fx::Resource* resource, const std::string& type, const std::string& ref)
 {
-	return [resource, type, ref](const std::string& path, const std::multimap<std::string, std::string>& headers, const std::string& postData, ResUIResultCallback cb)
+	return [resource, type, ref](const std::string& path, const std::string& query, const std::multimap<std::string, std::string>& headers, const std::string& postData, ResUIResultCallback cb)
 	{
 		RequestWrap req;
 		req.method = (postData.empty()) ? "GET" : "POST";
@@ -44,6 +44,11 @@ static ResUICallback MakeUICallback(fx::Resource* resource, const std::string& t
 		}
 
 		req.path = path.substr(type.length());
+
+		if (!query.empty())
+		{
+			req.path += "?" + query;
+		}
 
 		auto cbComponent = resource->GetManager()->GetComponent<fx::ResourceCallbackComponent>();
 
