@@ -45,6 +45,29 @@ static ImVec4 GetColorForRange(float min, float max, float num)
 	}
 }
 
+// tuple slice from https://stackoverflow.com/a/40836163/10995747
+namespace detail
+{
+template<std::size_t Ofst, class Tuple, std::size_t... I>
+constexpr auto slice_impl(Tuple&& t, std::index_sequence<I...>)
+{
+	return std::forward_as_tuple(
+	std::get<I + Ofst>(std::forward<Tuple>(t))...);
+}
+}
+
+template<std::size_t I1, std::size_t I2, class Cont>
+constexpr auto tuple_slice(Cont&& t)
+{
+	static_assert(I2 >= I1, "invalid slice");
+	static_assert(std::tuple_size<std::decay_t<Cont>>::value >= I2,
+	"slice index out of bounds");
+
+	return detail::slice_impl<I1>(std::forward<Cont>(t),
+	std::make_index_sequence<I2 - I1>{});
+}
+
+
 static InitFunction initFunction([]()
 {
 	static auto* resourceMonitor = fx::ResourceMonitor::GetCurrent();
@@ -121,7 +144,7 @@ static InitFunction initFunction([]()
 #ifndef IS_FXSERVER
 		if (launch::IsSDKGuest())
 		{
-			auto& resourceDatas = resourceMonitor->GetResourceDatas();
+			const auto& resourceDatas = resourceMonitor->GetResourceDatas();
 
 			if (resourceDatas.size() >= 2)
 			{
@@ -133,9 +156,15 @@ static InitFunction initFunction([]()
 				{
 					static constexpr uint32_t SEND_SDK_MESSAGE = HashString("SEND_SDK_MESSAGE");
 
+					std::vector<std::tuple<std::string, double, double, int64_t, int64_t>> resourceDatasClean;
+					for (const auto& data : resourceDatas)
+					{
+						resourceDatasClean.push_back(tuple_slice<0, std::tuple_size_v<decltype(resourceDatasClean)::value_type>>(data));
+					}
+
 					nlohmann::json resourceDatasJson;
 					resourceDatasJson["type"] = "fxdk:clientResourcesData";
-					resourceDatasJson["data"] = resourceDatas;
+					resourceDatasJson["data"] = resourceDatasClean;
 
 					NativeInvoke::Invoke<SEND_SDK_MESSAGE, const char*>(resourceDatasJson.dump().c_str());
 
@@ -234,12 +263,12 @@ static InitFunction initFunction([]()
 									return (sortSpec->SortDirection == ImGuiSortDirection_Ascending) ? true : false;
 							}
 
-							return (left < right);
+							return std::get<0>(left) < std::get<0>(right);
 						});
 					}
 				}
 
-				for (const auto& [resourceName, avgTickMs, avgFrameFraction, memorySize, streamingUsage] : resourceDatas)
+				for (const auto& [resourceName, avgTickMs, avgFrameFraction, memorySize, streamingUsage, recentTicks] : resourceDatas)
 				{
 					ImGui::TableNextRow();
 
@@ -250,7 +279,29 @@ static InitFunction initFunction([]()
 
 					if (avgTickMs >= 0.0)
 					{
+						using TTick = decltype(recentTicks.get().tickTimes);
+						static constexpr const size_t sampleCount = 2;
+
 						ImGui::TextColored(GetColorForRange(1.0f, 8.0f, avgTickMs), "%.2f ms", avgTickMs);
+						ImGui::SameLine();
+						ImGui::PlotLines(
+						"", [](void* data, int idx) {
+							auto dataRef = (const std::chrono::microseconds*)data;
+							float curSample = 0.0f;
+							for (int i = 0; i < sampleCount; i++)
+							{
+								curSample += static_cast<float>(
+									std::chrono::duration_cast<std::chrono::microseconds>(
+										dataRef[
+											((size_t(idx) * sampleCount) + i) % std::size(TTick{})
+										]
+									).count()
+								) / 1000.0f;
+							}
+
+							return curSample / float(sampleCount);
+						},
+						(void*)recentTicks.get().tickTimes, std::size(TTick{}) / sampleCount, recentTicks.get().curTickTime / sampleCount, nullptr, 0.0f, 2.5f, ImVec2(100.0f, 0.0f));
 					}
 					else
 					{

@@ -18,17 +18,17 @@
 #define DEVTOOLS_EXPORT DLL_IMPORT
 #endif
 
-template<int SampleCount>
+template<int SampleCount, int MaxSampleCount = SampleCount>
 struct TickMetrics
 {
 	int curTickTime = 0;
-	std::chrono::microseconds tickTimes[SampleCount];
+	std::chrono::microseconds tickTimes[MaxSampleCount];
 
 	inline void Append(std::chrono::microseconds time)
 	{
 		tickTimes[curTickTime++] = time;
 
-		if (curTickTime >= _countof(tickTimes))
+		if (curTickTime >= std::size(tickTimes))
 		{
 			curTickTime = 0;
 		}
@@ -38,12 +38,14 @@ struct TickMetrics
 	{
 		std::chrono::microseconds avgTickTime(0);
 
-		for (auto tickTime : tickTimes)
+		for (size_t i = 0; i < SampleCount; i++)
 		{
-			avgTickTime += tickTime;
+			// to prevent inducing underflow, we start off by std::size(tickTimes)
+			size_t tickIdx = (std::size(tickTimes) + size_t(curTickTime) - i) % std::size(tickTimes);
+			avgTickTime += tickTimes[tickIdx];
 		}
 
-		avgTickTime /= std::size(tickTimes);
+		avgTickTime /= SampleCount;
 
 		return avgTickTime;
 	}
@@ -60,7 +62,7 @@ struct TickMetrics
 struct ResourceMetrics
 {
 	std::chrono::microseconds tickStart;
-	TickMetrics<64> ticks;
+	TickMetrics<64, 200> ticks;
 
 	std::chrono::microseconds memoryLastFetched;
 
@@ -76,11 +78,10 @@ namespace fx
 	class ResourceMonitor
 	{
 	public:
-		typedef std::vector<std::tuple<std::string, double, double, int64_t, int64_t>> ResourceDatas;
+		typedef std::vector<std::tuple<std::string, double, double, int64_t, int64_t, std::reference_wrapper<const TickMetrics<64, 200>>>> ResourceDatas;
 
 	public:
 		ResourceMonitor();
-		~ResourceMonitor();
 
 		virtual ResourceDatas& GetResourceDatas();
 		virtual double GetAvgScriptMs();

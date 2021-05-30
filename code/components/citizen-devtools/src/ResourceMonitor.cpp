@@ -130,7 +130,7 @@ static void RecalculateResourceDatas()
 		if (metric != g_metrics.end() && metric->second)
 		{
 			const auto& [key, valueRef] = *metric;
-			auto value = *valueRef;
+			const auto& value = *valueRef;
 
 			auto avgTickTime = value.ticks.GetAverage();
 			avgTickMs = (avgTickTime.count() / 1000.0);
@@ -154,7 +154,7 @@ static void RecalculateResourceDatas()
 			}
 #endif
 
-			g_resourceDatas.emplace_back(resource->GetName(), avgTickMs, avgFrameFraction, memorySize, streamingSize);
+			g_resourceDatas.emplace_back(resource->GetName(), avgTickMs, avgFrameFraction, memorySize, streamingSize, value.ticks);
 		}
 	}
 }
