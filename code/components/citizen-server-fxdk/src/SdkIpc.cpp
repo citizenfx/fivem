@@ -50,6 +50,28 @@ inline static std::shared_ptr<uvw::Loop> GetSdkIpcLoop()
 	return Instance<net::UvLoopManager>::Get()->GetOrCreate("sdkIpc")->Get();
 }
 
+// tuple slice from https://stackoverflow.com/a/40836163/10995747
+namespace detail
+{
+template<std::size_t Ofst, class Tuple, std::size_t... I>
+constexpr auto slice_impl(Tuple&& t, std::index_sequence<I...>)
+{
+	return std::forward_as_tuple(
+	std::get<I + Ofst>(std::forward<Tuple>(t))...);
+}
+}
+
+template<std::size_t I1, std::size_t I2, class Cont>
+constexpr auto tuple_slice(Cont&& t)
+{
+	static_assert(I2 >= I1, "invalid slice");
+	static_assert(std::tuple_size<std::decay_t<Cont>>::value >= I2,
+	"slice index out of bounds");
+
+	return detail::slice_impl<I1>(std::forward<Cont>(t),
+	std::make_index_sequence<I2 - I1>{});
+}
+
 namespace fxdk
 {
 	using json = nlohmann::json;
@@ -716,7 +738,15 @@ namespace fxdk
 
 		m_timer->on<uvw::TimerEvent>([ipc](const uvw::TimerEvent& evt, uvw::TimerHandle&)
 		{
-			ipc->EmitEvent("resource-datas", fx::ResourceMonitor::GetCurrent()->GetResourceDatas());
+			const auto& resourceDatas = fx::ResourceMonitor::GetCurrent()->GetResourceDatas();
+
+			std::vector<std::tuple<std::string, double, double, int64_t, int64_t>> resourceDatasClean;
+			for (const auto& data : resourceDatas)
+			{
+				resourceDatasClean.push_back(tuple_slice<0, std::tuple_size_v<decltype(resourceDatasClean)::value_type>>(data));
+			}
+
+			ipc->EmitEvent("resource-datas", resourceDatasClean);
 		});
 	}
 
