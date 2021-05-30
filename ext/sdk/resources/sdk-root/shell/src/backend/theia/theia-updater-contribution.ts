@@ -136,6 +136,7 @@ export class TheiaUpdaterContribution implements UpdaterContribution {
     // Waiting for unpack to finish
     await unpackDefer.promise;
 
+    unpackedSize = archiveSize;
     currentFileName = 'Finishing...';
     sendStatus();
 
