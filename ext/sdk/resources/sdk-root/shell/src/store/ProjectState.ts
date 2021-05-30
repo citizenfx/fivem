@@ -241,6 +241,8 @@ export const ProjectState = new class ProjectState {
   private projectAlreadyOpening = false;
   openProject(path: string) {
     if (!this.projectAlreadyOpening) {
+      this.closeProject();
+
       this.openerOpen = false;
       this.projectAlreadyOpening = true;
 
@@ -249,10 +251,7 @@ export const ProjectState = new class ProjectState {
   }
 
   private setOpenProject = (projectData: ProjectData) => {
-    if (this.projectObject) {
-      this.projectObject.dispose();
-      this.projectObject = null;
-    }
+    this.closeProject();
 
     this.resourceCreatorDir = projectData.path;
     this.projectAlreadyOpening = false;

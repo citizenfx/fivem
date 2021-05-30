@@ -426,9 +426,8 @@ export class Resource implements AssetInterface {
 
   private rebuildRestartInducingPatterns() {
     const scripts = new Set([
-      ...this.manifest.clientScripts,
-      ...this.manifest.serverScripts,
-      ...this.manifest.sharedScripts,
+      ...this.manifest.getAllScripts(),
+      ...this.manifest.getFiles(),
     ]);
 
     this.restartInducingPatterns = {};
@@ -470,11 +469,9 @@ export class Resource implements AssetInterface {
           }
 
           this.metaData = metaData;
-          this.restartInducingPaths = this.manifest.getAllScripts().map(
-            (relativePath) => this.fsService.joinPath(this.path, relativePath),
-          );
-
           this.metaDataLoading = false;
+
+          this.logService.log(`#${this.getName()} restart inducing files:`, this.restartInducingPaths);
 
           this.rebuildRestartInducingPatterns();
           this.ensureWatchCommandsRunning();

@@ -17,6 +17,9 @@
 #include <scrBind.h>
 #include <IteratorView.h>
 
+#include <CL2LaunchMode.h>
+#include <HostSharedData.h>
+#include <ReverseGameData.h>
 #include <CrossBuildRuntime.h>
 
 #include <sstream>
@@ -412,15 +415,28 @@ static InitFunction initFunction([] ()
 		}
 	});
 
-	fx::ScriptEngine::RegisterNativeHandler("GET_NUI_CURSOR_POSITION", [](fx::ScriptContext& context)
+	if (launch::IsSDKGuest())
 	{
-		POINT cursorPos;
-		GetCursorPos(&cursorPos);
-		ScreenToClient(FindWindow(xbr::GetGameWndClass(), nullptr), &cursorPos);
+		fx::ScriptEngine::RegisterNativeHandler("GET_NUI_CURSOR_POSITION", [](fx::ScriptContext& context)
+		{
+			static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");
 
-		*context.GetArgument<int*>(0) = cursorPos.x;
-		*context.GetArgument<int*>(1) = cursorPos.y;
-	});
+			*context.GetArgument<int*>(0) = rgd->mouseX;
+			*context.GetArgument<int*>(1) = rgd->mouseY;
+		});
+	}
+	else
+	{
+		fx::ScriptEngine::RegisterNativeHandler("GET_NUI_CURSOR_POSITION", [](fx::ScriptContext& context)
+		{
+			POINT cursorPos;
+			GetCursorPos(&cursorPos);
+			ScreenToClient(FindWindow(xbr::GetGameWndClass(), nullptr), &cursorPos);
+
+			*context.GetArgument<int*>(0) = cursorPos.x;
+			*context.GetArgument<int*>(1) = cursorPos.y;
+		});
+	}
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_NUI_FOCUS_KEEP_INPUT", [](fx::ScriptContext& context)
 	{
