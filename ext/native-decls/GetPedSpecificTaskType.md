@@ -8,7 +8,7 @@ apiset: server
 int GET_PED_SPECIFIC_TASK_TYPE(Ped ped, int index);
 ```
 
-Gets the type of a ped's specific task given an index of the CPedTaskSpecificDataNode nodes. Types: https://alloc8or.re/gta5/doc/enums/eTaskTypeIndex.txt
+Gets the type of a ped's specific task given an index of the CPedTaskSpecificDataNode nodes.
 A ped will typically have a task at index 0, if a ped has multiple tasks at once they will be in the order 0, 1, 2, etc.
 
 ## Parameters
