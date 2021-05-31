@@ -496,7 +496,7 @@ static InitFunction initFunction([] ()
 			}
 #endif
 
-			if (strstr(error.c_str(), "steam") || strstr(error.c_str(), "Steam"))
+			if ((strstr(error.c_str(), "steam") || strstr(error.c_str(), "Steam")) && !strstr(error.c_str(), ".ms/verify"))
 			{
 				if (auto steam = GetSteam())
 				{
