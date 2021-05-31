@@ -193,7 +193,9 @@ end
 local function parseArgument(argument, native)
 	local argType
 
-	if argument.type.name == 'func' then
+	if argument.annotations and argument.annotations['cs_type'] then
+		argType = argument.annotations['cs_type']
+	elseif argument.type.name == 'func' then
 		argType = 'InputArgument'
 	elseif argument.type.name == 'Hash' then
 		argType = 'uint'
