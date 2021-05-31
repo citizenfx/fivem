@@ -2159,8 +2159,19 @@ struct CPedHealthDataNode
 	}
 };
 
-struct CPedMovementGroupDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPedAIDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CPedMovementGroupDataNode { bool Parse(SyncParseState& state) { return true; } 
+
+struct CPedAIDataNode
+{
+	bool Parse(SyncParseState& state)
+	{
+		int relationshipGroupHash = state.buffer.Read<int>(32);
+		int decisionMakerType = state.buffer.Read<int>(32);
+
+		return true;
+	}
+};
+	
 struct CPedAppearanceDataNode { bool Parse(SyncParseState& state) { return true; } };
 
 struct CPedOrientationDataNode : GenericSerializeDataNode<CPedOrientationDataNode>
