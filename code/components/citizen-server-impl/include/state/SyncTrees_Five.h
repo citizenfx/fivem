@@ -2178,7 +2178,48 @@ struct CPedOrientationDataNode : GenericSerializeDataNode<CPedOrientationDataNod
 };
 
 struct CPedMovementDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPedTaskTreeDataNode { bool Parse(SyncParseState& state) { return true; } };
+
+struct CPedTaskTreeDataNode
+{
+	CPedTaskTreeDataNodeData data;
+
+	bool Parse(SyncParseState& state)
+	{
+		bool hasScriptTask = state.buffer.ReadBit();
+		if (hasScriptTask)
+		{
+			data.scriptCommand = state.buffer.Read<uint32_t>(32);
+			data.scriptTaskStage = state.buffer.Read<uint32_t>(3);
+		}
+		else
+		{
+			data.scriptCommand = 0x811E343C;
+			data.scriptTaskStage = 3;
+		}
+
+		data.specifics = state.buffer.Read<int>(8);
+		for (int i = 0; i < 8; i++)
+		{
+			auto& task = data.tasks[i];
+
+			if ((data.specifics >> i) & 1)
+			{
+				task.type = state.buffer.Read<uint32_t>(10);
+				task.active = state.buffer.ReadBit();
+				task.priority = state.buffer.Read<uint32_t>(3);
+				task.treeDepth = state.buffer.Read<uint32_t>(3);
+				task.sequenceId = state.buffer.Read<uint32_t>(5);
+			}
+			else
+			{
+				task.type = Is2060() ? 531 : 530;
+			}
+		}
+
+		return true;
+	}
+};
+
 struct CPedTaskSpecificDataNode { bool Parse(SyncParseState& state) { return true; } };
 
 struct CPedSectorPosMapNode : GenericSerializeDataNode<CPedSectorPosMapNode>
@@ -3151,6 +3192,13 @@ struct SyncTree : public SyncTreeBase
 		auto[hasVdn, vehNode] = GetData<CVehicleGameStateDataNode>();
 
 		return (hasVdn) ? &vehNode->data : nullptr;
+	}
+
+	virtual CPedTaskTreeDataNodeData* GetPedTaskTree() override
+	{
+		auto [hasNode, node] = GetData<CPedTaskTreeDataNode>();
+
+		return (hasNode) ? &node->data : nullptr;
 	}
 
 	virtual CPlaneGameStateDataNodeData* GetPlaneGameState() override

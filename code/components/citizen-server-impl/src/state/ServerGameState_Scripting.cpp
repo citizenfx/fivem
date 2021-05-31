@@ -1565,4 +1565,36 @@ static InitFunction initFunction([]()
 
 		return state ? state->nozzlePosition : 0.0f;
 	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PED_SCRIPT_TASK_COMMAND", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto tree = entity->syncTree->GetPedTaskTree();
+
+		return tree ? tree->scriptCommand : 0x811E343C;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PED_SCRIPT_TASK_STAGE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto tree = entity->syncTree->GetPedTaskTree();
+
+		return tree ? tree->scriptTaskStage : 3;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PED_SPECIFIC_TASK_TYPE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto tree = entity->syncTree->GetPedTaskTree();
+		if (!tree)
+		{
+			return Is2060() ? 531 : 530;
+		}
+
+		int index = context.GetArgument<int>(1);
+		if (index < 0 || index > 7)
+		{
+			return Is2060() ? 531 : 530;
+		}
+
+		auto& task = tree->tasks[index];
+		return static_cast<int>(task.type);
+	}));
 });
