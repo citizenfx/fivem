@@ -310,8 +310,8 @@ function useResourceLifecycle(
       {
         id: 'toggle-enabled',
         icon: isEnabled
-          ? disabledResourceIcon
-          : enabledResourceIcon,
+          ? enabledResourceIcon
+          : disabledResourceIcon,
         text: isEnabled
           ? 'Disable resource'
           : 'Enable resource',
@@ -321,8 +321,8 @@ function useResourceLifecycle(
       {
         id: 'toggle-autorestart-enabled',
         icon: isAutorestartOnChangeEnabled
-          ? <BsSquare />
-          : <BsCheckBox />,
+          ? <BsCheckBox />
+          : <BsSquare />,
         text: isAutorestartOnChangeEnabled
           ? 'Disable restart on change'
           : 'Enable restart on change',
