@@ -111,6 +111,7 @@
     "lodash": "^4.17.21",
     "postcss": "^8.2.10",
     "multicast-dns": "^7.2.3",
-    "resolve-url-loader": "^5.0.0-alpha.1"
+    "resolve-url-loader": "^5.0.0-alpha.1",
+    "ws": "^7.4.6"
   }
 }
