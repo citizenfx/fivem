@@ -1,5 +1,5 @@
 -- setup environment for the codegen'd file to execute in
-local codeEnvironment = {
+codeEnvironment = {
 
 }
 
@@ -8,6 +8,7 @@ natives = {}
 rpcNatives = {}
 local curType
 local curNative
+local codeEnvironment = codeEnvironment
 
 local json = require('dkjson')
 local cfx = require('cfx')
