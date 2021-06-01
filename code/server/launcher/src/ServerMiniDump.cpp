@@ -484,8 +484,12 @@ bool InitializeExceptionHandler(int argc, char* argv[])
 			{
 				if (dynamic_src[i].d_tag == DT_DEBUG)
 				{
-					mprotect((void*)tgtDyn, sizeof(void*) * 2, PROT_READ | PROT_WRITE);
-					*tgtDyn = dynamic_src[i];
+					if (tgtDyn)
+					{
+						mprotect((void*)tgtDyn, sizeof(void*) * 2, PROT_READ | PROT_WRITE);
+						*tgtDyn = dynamic_src[i];
+					}
+
 					continue;
 				}
 				else if (dynamic_src[i].d_tag == DT_NULL)
