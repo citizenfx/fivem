@@ -8,6 +8,7 @@
 #include <CoreConsole.h>
 
 #include <imgui.h>
+#include <imgui_internal.h>
 
 #include <chrono>
 
@@ -301,7 +302,16 @@ static InitFunction initFunction([]()
 
 							return curSample / float(sampleCount);
 						},
-						(void*)recentTicks.get().tickTimes, std::size(TTick{}) / sampleCount, recentTicks.get().curTickTime / sampleCount, nullptr, 0.0f, 2.5f, ImVec2(100.0f, 0.0f));
+						(void*)recentTicks.get().tickTimes,
+						std::size(TTick{}) / sampleCount,
+						recentTicks.get().curTickTime / sampleCount,
+						nullptr,
+						0.0f,
+						2.5f,
+						ImVec2(
+							100.0f,
+							ImGui::GetTextLineHeight()
+						));
 					}
 					else
 					{
