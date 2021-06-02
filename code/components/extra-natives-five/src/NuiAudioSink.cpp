@@ -1299,9 +1299,12 @@ void MumbleAudioEntity::PreUpdateService(uint32_t)
 			// if this isn't an interior, reset the interior pointer thing
 			if (interiorLocation.GetInteriorIndex() == 0xFFFF)
 			{
+				// xbuild: SetInteriorLocation provides a hint as to the voff
+				size_t voff = (xbr::IsGameBuildOrGreater<2189>()) ? 8 : 0;
+
 				char* envGroup = (char*)m_environmentGroup;
-				*(void**)(envGroup + 240) = nullptr;
-				*(void**)(envGroup + 248) = nullptr;
+				*(void**)(envGroup + 240 + voff) = nullptr;
+				*(void**)(envGroup + 248 + voff) = nullptr;
 			}
 
 			m_environmentGroup->SetInteriorLocation(interiorLocation);
