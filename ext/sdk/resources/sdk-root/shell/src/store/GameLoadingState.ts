@@ -1,4 +1,4 @@
-import { makeAutoObservable } from "mobx"
+import { makeAutoObservable, runInAction } from "mobx"
 import { logger } from "utils/logger";
 import { onLoadingEvent } from "utils/windowMessages";
 
@@ -21,7 +21,10 @@ export const GameLoadingState = new class GameLoadingState {
 
     onLoadingEvent('loadProgress', ({ loadFraction }) => {
       log('loadProgress', loadFraction);
-      this.loadingProgress = loadFraction;
+
+      runInAction(() => {
+        this.loadingProgress = loadFraction;
+      });
     });
 
     onLoadingEvent('startInitFunction', ({ type }) => {

@@ -1,31 +1,34 @@
-import { sendSdkMessage } from '../client/sendSdkMessage';
-import { CameraController } from './camera-controller';
 import './environment-manager';
+import { CameraManager } from './camera-manager';
+import { MapManager } from './map-manager';
 import { PreviewManager } from './preview-manager';
-import { SelectionController } from './selection-controller';
+
+MapManager.preinit();
 
 setTimeout(() => {
   SetPlayerControl(PlayerId(), false, 0);
-  CameraController.init();
+
+  CameraManager.init();
+  MapManager.init();
 
   setTick(() => {
-    CameraController.update();
-    SelectionController.update();
+    CameraManager.update();
     PreviewManager.update();
+    MapManager.update();
   });
 
   ShutdownLoadingScreen();
   DoScreenFadeIn(0);
-
-  sendSdkMessage('we:ready');
 }, 0);
 
 on('disconnecting', () => {
-  CameraController.destroy();
+  CameraManager.destroy();
+  MapManager.destroy();
 });
 
 on('onResourceStop', (resourceName: string) => {
   if (resourceName === GetCurrentResourceName()) {
-    CameraController.destroy();
+    CameraManager.destroy();
+    MapManager.destroy();
   }
 });

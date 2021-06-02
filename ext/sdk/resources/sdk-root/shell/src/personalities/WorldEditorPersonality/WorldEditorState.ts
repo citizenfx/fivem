@@ -7,6 +7,7 @@ import { onWindowEvent } from 'utils/windowMessages';
 import { ShellPersonality, ShellState } from 'store/ShellState';
 import { FilesystemEntry } from 'shared/api.types';
 import { FXWORLD_FILE_EXT } from 'assets/fxworld/fxworld-types';
+import { WorldEditorStartRequest } from 'shared/api.requests';
 
 const noop = () => {};
 
@@ -44,9 +45,9 @@ export const WorldEditorState = new class WorldEditorState {
       this.selection = selection;
     }));
 
-    onWindowEvent('we:ready', () => {
+    onWindowEvent('we:ready', () => runInAction(() => {
       this.ready = true;
-    });
+    }));
   }
 
   get mapName(): string {
@@ -60,7 +61,9 @@ export const WorldEditorState = new class WorldEditorState {
   openMap = (entry: FilesystemEntry) => {
     this.mapEntry = entry;
 
-    sendApiMessage(worldEditorApi.start);
+    sendApiMessage(worldEditorApi.start, {
+      mapPath: entry.path,
+    } as WorldEditorStartRequest);
 
     ShellState.setPersonality(ShellPersonality.WORLD_EDITOR);
   };

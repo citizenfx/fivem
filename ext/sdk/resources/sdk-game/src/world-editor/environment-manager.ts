@@ -1,4 +1,4 @@
-import { CameraController } from "./camera-controller";
+import { CameraManager } from "./camera-manager";
 
 setTimeout(() => {
   SetOverrideWeather('EXTRASUNNY');
@@ -10,7 +10,7 @@ setTimeout(() => {
 }, 0);
 
 setTick(() => {
-  const camPos = CameraController.getPosition();
+  const camPos = CameraManager.getPosition();
 
   SetRandomVehicleDensityMultiplierThisFrame(0);
   SetParkedVehicleDensityMultiplierThisFrame(0);

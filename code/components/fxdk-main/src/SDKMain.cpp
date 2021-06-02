@@ -436,6 +436,19 @@ void SdkMain()
 
 			fxdk::ioUtils::StopFileWatcher(watcherId);
 		}
+		else if (eventName == "sdk:sendGameClientEvent")
+		{
+			// deserialize the arguments
+			msgpack::unpacked msg;
+			msgpack::unpack(msg, eventPayload.c_str(), eventPayload.size());
+
+			msgpack::object obj = msg.get();
+
+			std::string clientEventName = obj.as<std::vector<std::string>>()[0];
+			std::string clientEventPayload = obj.as<std::vector<std::string>>()[1];
+
+			fxdk::GetLauncherTalk().Call("sdk:clientEvent", clientEventName, clientEventPayload);
+		}
 	});
 
 	// Provide CEF with command-line arguments.
