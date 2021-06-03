@@ -11,7 +11,7 @@ To build FiveM, RedM or FXServer on Windows you need the following dependencies:
   
   You can install these workloads by going to "Tools" -> "Get Tools and Features..." -> Check the checkboxes -> Click "Modify" in the bottom right corner.
   
-* [Boost 1.71.0](https://dl.bintray.com/boostorg/release/1.71.0/source/boost_1_71_0.7z), extracted to a path defined by the environment variable `BOOST_ROOT`.
+* [Boost 1.71.0](https://boostorg.jfrog.io/artifactory/main/release/1.71.0/source/boost_1_71_0.7z), extracted to a path defined by the environment variable `BOOST_ROOT`.
 * [Modified CEF](https://runtime.fivem.net/build/cef/cef_binary_91.0.0-cfx-m91.2362+g336445d+chromium-91.0.4472.48_windows64_minimal.zip), extracted to `vendor/cef` in the build tree.
 * [Python 2.7.x](https://python.org/) in your PATH as `python`. This is still Python 2 due to a dependency on Mozilla `xpidl`, which hasn't been ported to Python 3.
 * [MSYS2](https://www.msys2.org/) at `C:\msys64\` which is where the installer places it.
@@ -38,25 +38,20 @@ cd code
 
 After building the FiveM client, you should be having files such as `/code/bin/five/debug/v8.dll` exist automatically. Manual copying is no longer required.
 
-**Symlink `cache` directory** (optional)
+**Symlink `data` directory** (optional)
 
-The `/code/bin/five/debug/cache` directory can get quite large and is equivalent to the `%LocalAppData%/FiveM/FiveM.app/cache` directory, so you should use a **symlink** to save disk space.
+The `/code/bin/five/debug/data` directory can get quite large and is equivalent to the `%LocalAppData%/FiveM/FiveM.app/data` directory, so you should use a **symlink** to save disk space.
 
 If you don't know how to do that, here's how:
 
 1. Navigate to `/code/bin/five/debug`.
-2. Delete the `cache` folder if it already exists.
+2. Delete the `data` folder if it already exists.
 3. Hold <kbd>Shift</kbd>, right click empty space in `/code/bin/five/debug`, and select "Open PowerShell window here".
-4. Type this: `New-Item -ItemType SymbolicLink -Path "cache" -Target "$env:localappdata/FiveM/FiveM.app/cache"`.
-5. You should now see a `cache` folder inside `/code/bin/five/debug`.
+4. Type this: `New-Item -ItemType SymbolicLink -Path "data" -Target "$env:localappdata/FiveM/FiveM.app/data"`.
+5. You should now see a `data` folder inside `/code/bin/five/debug`.
 
 **Known issues**
 
-- Game starts but all I see is the main menu background, my cursor and (when I press F8) a console!
-  
-  This directory is probably missing: `/code/bin/five/debug/citizen/ui`.
-  
-  UI building might have failed, but you can copy this directory `%LocalAppData%/FiveM/FiveM.app/citizen/ui` from your main installation of FiveM.
 - Windows error code 126, or some issues with other DLLs.
 
   It's possible that you accidentally missed a step or skipped a file that should have been copied. Start this section over from scratch; do not pass go, do not collect £200.
