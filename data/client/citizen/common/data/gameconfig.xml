@@ -886,7 +886,7 @@
 					<MaxWeaponModelInfos value="115"/>
 					<MaxExtraPedModelInfos value="1024"/>
 					<MaxExtraVehicleModelInfos value="2048"/>
-					<MaxExtraWeaponModelInfos value="1024"/>
+					<MaxExtraWeaponModelInfos value="2048"/>
 				</ConfigModelInfo>
 
 				<ConfigExtensions>
