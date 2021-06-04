@@ -325,6 +325,23 @@ struct CPedOrientationNodeData
 	float desiredHeading;
 };
 
+struct CPedTaskTreeDataNodeData
+{
+	uint32_t scriptCommand;
+	uint32_t scriptTaskStage;
+
+	uint32_t specifics;
+
+	struct
+	{
+		uint32_t type;
+		bool active;
+		uint32_t priority;
+		uint32_t treeDepth;
+		uint32_t sequenceId;
+	} tasks[8];
+};
+
 struct CPlaneGameStateDataNodeData
 {
 	uint32_t landingGearState;
@@ -431,6 +448,8 @@ public:
 	virtual CVehicleGameStateNodeData* GetVehicleGameState() = 0;
 
 	virtual CVehicleAppearanceNodeData* GetVehicleAppearance() = 0;
+
+	virtual CPedTaskTreeDataNodeData* GetPedTaskTree() = 0;
 
 	virtual CPlaneGameStateDataNodeData* GetPlaneGameState() = 0;
 
