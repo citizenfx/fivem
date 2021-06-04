@@ -15,6 +15,7 @@
   padding: $q*2;
   padding-left: $q*2.5;
 
+  font-weight: 300;
   color: rgba($fgColor, .5);
   cursor: pointer;
 
@@ -42,12 +43,17 @@
 
   .icon {
     flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
     color: rgba($fgColor, .5);
 
     svg {
       font-size: $fs08;
 
-      margin-right: $q*2;
+      margin-right: $q;
     }
   }
 

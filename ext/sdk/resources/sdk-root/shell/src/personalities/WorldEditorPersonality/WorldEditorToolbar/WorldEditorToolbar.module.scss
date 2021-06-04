@@ -35,35 +35,6 @@
     }
   }
 
-  .header {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    height: 100%;
-
-    @include backdrop-blur;
-
-    .name {
-      flex-grow: 1;
-
-      display: flex;
-      align-items: center;
-      justify-content: center;
-
-      height: 100%;
-
-      padding: $q*2;
-      margin-right: $q;
-
-      // background-color: rgba($fgColor, .1);
-
-      svg {
-        margin-right: $q*2;
-      }
-    }
-  }
-
   .close {
     display: flex;
     align-items: center;
