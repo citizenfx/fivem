@@ -6,6 +6,7 @@
 #include <Resource.h>
 #include <fxScripting.h>
 #include <ICoreGameInit.h>
+#include <rageVectors.h>
 
 static int WeaponDamageModifierOffset;
 
@@ -43,6 +44,48 @@ public:
 	float N000001A4; //0x0044
 	char pad_0048[1]; //0x0048
 	uint8_t flashlightFlags; //0x0049
+};
+class WeaponInfo
+{
+public:
+	char pad_0000[16]; //0x0000
+	uint32_t hash; //0x0010
+	char pad_0014[76]; //0x0014
+	void* ammoInfo; //0x0060
+	char pad_0068[8]; //0x0068
+	uint32_t maxClipSize; //0x0070
+	//...
+};
+struct CPedInventory
+{
+	virtual ~CPedInventory() = default;
+	void* unk;
+	CPed* ped;
+	//...
+};
+struct CWeapon
+{
+	virtual ~CWeapon() = default;
+	void* extensions;
+	rage::Vector4 muzzleOffset;
+	rage::Vector4 worldPosition;
+	char pad0[0x10]; //0x30-0x40
+	WeaponInfo* info; //0x40-0x48
+	int activeTime; //0x48-0x4C
+	int lastFiredTime; //0x4C-0x50
+	int activeTime2; //0x50-0x54
+	uint16_t ammoTotal;
+	uint16_t ammoInClip; //0x56-0x58
+	__int64 pWeaponObject;
+	CPedInventory* pInventoryPed; //0x60-=0x68
+	CWeapon* pUnkWeapon; //self? //0x68-0x70
+	char pad2[0xB0]; //0x70-0x120
+	void* clipComponent; //0x120-0x128
+	char pad3[0x30];
+	void* pUnk; //0x158-0x160
+	char pad4[0x60];
+	char ammoState; //0x1C0
+	DWORD weaponStateFlags; // 0x80 = silenced
 };
 
 // stolen from devtools-five
@@ -86,6 +129,54 @@ static void Flashlight_Process(CWeaponComponentFlashlight* thisptr, CPed* ped)
 	*g_flashlightAndByte = 0xFF;
 	origFlashlightProcess(thisptr, ped);
 	*g_flashlightAndByte = 0xFE;
+}
+
+
+static std::atomic_bool g_SET_WEAPONS_NO_AUTOSWAP = false;
+
+static bool (*origCPedWeapMgr_AutoSwap)(unsigned char*, bool, bool);
+static bool __fastcall CPedWeaponManager_AutoSwap(unsigned char* thisptr, bool opt1, bool opt2)
+{
+	if (!g_SET_WEAPONS_NO_AUTOSWAP || *(CPed**)(thisptr + 16) != getLocalPlayerPed())
+	{
+		return origCPedWeapMgr_AutoSwap(thisptr, opt1, opt2);
+	}
+
+	// Don't do the autoswap
+	return false;
+}
+
+typedef void* (*CTaskAimGunOnFootProcessStagesFn)(unsigned char*, int, int);
+static CTaskAimGunOnFootProcessStagesFn origCTaskAimGunOnFoot_ProcessStages;
+static void* CTaskAimGunOnFoot_ProcessStages(unsigned char* thisptr, int stage, int substage)
+{
+	// Borrow the GetWeapon() and offset into Ped from another vfunc in this class.
+	static unsigned char* addr = hook::get_pattern<unsigned char>("0F 84 ? ? ? ? 48 8B 8F ? ? ? ? E8 ? ? ? ? 48 8B F0");
+	static uint32_t pedOffsetToWeapon = *(uint32_t*)(addr + 9);
+	typedef CWeapon* (*GetWeaponFn)(void*);
+	static GetWeaponFn GetWeapon = hook::get_address<GetWeaponFn>((uintptr_t)addr + 13, 1, 5);
+
+	CPed* ped = *(CPed**)(thisptr + 16);
+
+	if (!g_SET_WEAPONS_NO_AUTOSWAP || ped != getLocalPlayerPed())
+	{
+		return origCTaskAimGunOnFoot_ProcessStages(thisptr, stage, substage);
+	}
+
+	if (stage == 2 && substage == 1)
+	{
+		CWeapon* pWeap = GetWeapon(*(void**)(uintptr_t(ped) + pedOffsetToWeapon));
+		if (pWeap && !pWeap->ammoInClip)
+		{
+			// Gradual state step-down from shooting to idle. (return value is unused)
+			// this is to fix a spasm when running out of ammo
+			origCTaskAimGunOnFoot_ProcessStages(thisptr, 2, 2);
+			origCTaskAimGunOnFoot_ProcessStages(thisptr, 1, 0);
+			return origCTaskAimGunOnFoot_ProcessStages(thisptr, 1, 1);
+		}
+	}
+
+	return origCTaskAimGunOnFoot_ProcessStages(thisptr, stage, substage);
 }
 
 static HookFunction hookFunction([]()
@@ -137,12 +228,47 @@ static HookFunction hookFunction([]()
 			});
 		}
 	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_WEAPONS_NO_AUTOSWAP", [](fx::ScriptContext& context)
+	{
+		bool value = context.GetArgument<bool>(0);
+		g_SET_WEAPONS_NO_AUTOSWAP = value;
+
+		fx::OMPtr<IScriptRuntime> runtime;
+		if (FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+		{
+			fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
+
+			resource->OnStop.Connect([]()
+			{
+				g_SET_WEAPONS_NO_AUTOSWAP = false;
+			});
+		}
+	});
+
 	Instance<ICoreGameInit>::Get()->OnShutdownSession.Connect([]()
 	{
 		g_SET_FLASH_LIGHT_KEEP_ON_WHILE_MOVING = false;
+		g_SET_WEAPONS_NO_AUTOSWAP = false;
 	});
 
 	uintptr_t* flashlightVtable = hook::get_address<uintptr_t*>(hook::get_pattern<unsigned char>("83 CD FF 48 8D 05 ? ? ? ? 33 DB", 6));
 	origFlashlightProcess = (flashlightProcessFn)flashlightVtable[3];
 	flashlightVtable[3] = (uintptr_t)Flashlight_Process;
+
+	uintptr_t* cTaskAimGun_vtable = hook::get_address<uintptr_t*>(hook::get_pattern<unsigned char>("48 89 44 24 20 E8 ? ? ? ? 48 8D 05 ? ? ? ? 48 8D 8B 20 01", 13));
+	origCTaskAimGunOnFoot_ProcessStages = (CTaskAimGunOnFootProcessStagesFn)cTaskAimGun_vtable[14];
+	cTaskAimGun_vtable[14] = (uintptr_t)CTaskAimGunOnFoot_ProcessStages;
+
+	void* autoswap;
+	if (xbr::IsGameBuildOrGreater<2060>())
+	{
+		autoswap = hook::pattern("48 8B 8B ? ? 00 00 45 33 C0 33 D2 E8 ? ? ? ? EB").count(3).get(1).get<void>(12);
+	}
+	else
+	{
+		autoswap = hook::get_pattern("48 8B 8B ? ? 00 00 45 33 C0 33 D2 E8 ? ? ? ? EB", 12);
+	}
+	hook::set_call(&origCPedWeapMgr_AutoSwap, autoswap);
+	hook::call(autoswap, CPedWeaponManager_AutoSwap);
 });
