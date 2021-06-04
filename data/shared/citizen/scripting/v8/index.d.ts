@@ -89,6 +89,7 @@ declare function TriggerServerEvent(eventName: string, ...args: any[]): void
 declare function TriggerLatentServerEvent(eventName: string, bps: number, ...args: any[]): void
 
 declare function getPlayerIdentifiers(player: number|string): string[]
+declare function getPlayerTokens(player: number|string): string[]
 declare function getPlayers(): number[]
 
 declare function emitNet(eventName: string, target: number|string, ...args: any[]): void

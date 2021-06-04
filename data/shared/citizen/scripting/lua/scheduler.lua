@@ -493,6 +493,17 @@ if isDuplicityVersion then
 		return t
 	end
 
+	function GetPlayerTokens(player)
+		local numIds = GetNumPlayerTokens(player)
+		local t = {}
+
+		for i = 0, numIds - 1 do
+			table.insert(t, GetPlayerToken(player, i))
+		end
+
+		return t
+	end
+
 	function GetPlayers()
 		local num = GetNumPlayerIndices()
 		local t = {}
