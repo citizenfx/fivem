@@ -90,7 +90,7 @@ declare function TriggerLatentServerEvent(eventName: string, bps: number, ...arg
 
 declare function getPlayerIdentifiers(player: number|string): string[]
 declare function getPlayerTokens(player: number|string): string[]
-declare function getPlayers(): number[]
+declare function getPlayers(): string[]
 
 declare function SendNUIMessage(data: any): void
 
@@ -110,4 +110,4 @@ declare function Player(entity: number|string): EntityInterface
 
 declare var exports: any;
 
-declare var source: string;
+declare var source: number;
