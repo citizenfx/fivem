@@ -20,7 +20,7 @@ To build FiveM, RedM or FXServer on Windows you need the following dependencies:
 Then, execute the following commands in a `cmd.exe` shell to set up the build environment:
 
 ```bat
-set BOOST_ROOT=C:\libraries\boost_1_63_0
+set BOOST_ROOT=C:\libraries\boost_1_71_0
 set PATH=%path%;C:\tools\python27amd64
 git clone https://github.com/citizenfx/fivem.git
 cd fivem
