@@ -38,17 +38,17 @@ cd code
 
 After building the FiveM client, you should be having files such as `/code/bin/five/debug/v8.dll` exist automatically. Manual copying is no longer required.
 
-**Symlink `cache` directory** (optional)
+**Symlink `data` directory** (optional)
 
-The `/code/bin/five/debug/cache` directory can get quite large and is equivalent to the `%LocalAppData%/FiveM/FiveM.app/cache` directory, so you should use a **symlink** to save disk space.
+The `/code/bin/five/debug/data` directory can get quite large and is equivalent to the `%LocalAppData%/FiveM/FiveM.app/data` directory, so you should use a **symlink** to save disk space.
 
 If you don't know how to do that, here's how:
 
 1. Navigate to `/code/bin/five/debug`.
-2. Delete the `cache` folder if it already exists.
+2. Delete the `data` folder if it already exists.
 3. Hold <kbd>Shift</kbd>, right click empty space in `/code/bin/five/debug`, and select "Open PowerShell window here".
-4. Type this: `New-Item -ItemType SymbolicLink -Path "cache" -Target "$env:localappdata/FiveM/FiveM.app/cache"`.
-5. You should now see a `cache` folder inside `/code/bin/five/debug`.
+4. Type this: `New-Item -ItemType SymbolicLink -Path "data" -Target "$env:localappdata/FiveM/FiveM.app/data"`.
+5. You should now see a `data` folder inside `/code/bin/five/debug`.
 
 **Known issues**
 
