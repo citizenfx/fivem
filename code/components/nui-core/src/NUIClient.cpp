@@ -94,6 +94,27 @@ void NUIClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> fra
 	auto url = frame->GetURL();
 	TriggerLoadEnd((url == "nui://game/ui/root.html") ? "__root" : frame->GetName());
 
+	if (auto parent = frame->GetParent(); parent && parent->IsMain())
+	{
+		frame->ExecuteJavaScript(R"(
+const oldConsoleLog = console.log;
+
+Object.defineProperty(console, 'log', {
+    get: () => {
+        return (...args) => {
+            for (const arg of args) {
+                if (arg instanceof HTMLElement) {
+                    globalThis.dummy = arg.id + '';
+                }
+            }
+            return oldConsoleLog(...args);
+        };
+    }
+});
+)",
+		"nui://patches", 0);
+	}
+
 #ifndef USE_NUI_ROOTLESS
 	if (url == "nui://game/ui/root.html")
 	{
