@@ -128,3 +128,7 @@ export interface ProjectBuildRequest {
   steamWebApiKey: string,
   tebexSecret: string,
 }
+
+export interface WorldEditorStartRequest {
+  mapPath: string,
+}

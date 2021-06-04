@@ -1,5 +1,4 @@
 import { sendSdkMessage } from "../client/sendSdkMessage";
-import { applyEntityMatrix, makeEntityMatrix } from "./math";
 import { useKeyMapping } from "./utils";
 
 export const SelectionController = new class SelectionController {
@@ -41,16 +40,8 @@ export const SelectionController = new class SelectionController {
     }
   }
 
-  update() {
-    if (this.selectedEntity === null) {
-      return;
-    }
-
-    const data = makeEntityMatrix(this.selectedEntity);
-
-    if (DrawGizmo(data as any, this.selectedEntity.toString())) {
-      applyEntityMatrix(this.selectedEntity, data);
-    }
+  getSelectedEntity(): number | null {
+    return this.selectedEntity;
   }
 };
 

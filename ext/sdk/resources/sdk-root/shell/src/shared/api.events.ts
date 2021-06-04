@@ -149,4 +149,7 @@ export const worldEditorApi = {
   start: 'world-editor:start',
   stop: 'world-editor:stop',
   stopped: 'world-editor:stopped',
+
+  setCam: 'world-editor:setCam',
+  applyPatch: 'world-editor:applyPatch',
 };
