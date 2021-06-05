@@ -234,12 +234,18 @@ namespace rage
 rage::netObject* g_curNetObjectSelection;
 static rage::netSyncNodeBase* g_curSyncNodeSelection;
 
+// tripping typeid(..) to use RTTI
+struct VirtualBase
+{
+	virtual ~VirtualBase() = 0;
+};
+
 static std::string GetClassTypeName(void* ptr)
 {
 	std::string name;
 
 #ifdef GTA_FIVE
-	name = typeid(*(uint64_t*)ptr).name();
+	name = typeid(*(VirtualBase*)ptr).name();
 	name = name.substr(6);
 #elif IS_RDR3
 	name = fmt::sprintf("%016llx", *(uint64_t*)ptr);
