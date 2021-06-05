@@ -51,11 +51,18 @@ static InitFunction initFunction([]()
 {
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* ref)
 	{
-		auto rpcConfiguration = RpcConfiguration::Load("citizen:/scripting/rpc_natives.json");
+		if (!IsStateGame())
+		{
+			return;
+		}
+
+		// REDM1S: _rdr3
+		auto rpcSuffix = "";
+		auto rpcConfiguration = RpcConfiguration::Load(fmt::sprintf("citizen:/scripting/rpc_natives%s.json", rpcSuffix));
 
 		if (!rpcConfiguration)
 		{
-			console::PrintWarning("server", "Could not load rpc_natives.json. Is the server running from the correct directory, and is citizen_dir set?\n");
+			console::PrintWarning("server", "Could not load rpc_natives%s.json. Is the server running from the correct directory, and is citizen_dir set?\n", rpcSuffix);
 			return;
 		}
 
@@ -124,10 +131,12 @@ static InitFunction initFunction([]()
 		for (auto& native : rpcConfiguration->GetNatives())
 		{
 			// deprecated by ServerSetters
+#ifdef STATE_FIVE
 			if (native->GetName() == "CREATE_PED" || native->GetName() == "CREATE_OBJECT_NO_OFFSET")
 			{
 				continue;
 			}
+#endif
 
 			// RPC NATIVE
 			fx::ScriptEngine::RegisterNativeHandler(native->GetName(), [=](fx::ScriptContext& ctx)

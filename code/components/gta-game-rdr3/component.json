@@ -3,7 +3,7 @@
 	"version": "0.1.0",
 	"dependencies": [
 		"fx[2]",
-		"gta:net:rdr3"
+		"gta:core"
 	],
 	"provides": []
 }

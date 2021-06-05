@@ -23,4 +23,8 @@ return function()
 		
 		includedirs { path.getabsolute(jexlEvalDir .. '/../../') }
 	end
+
+	removefiles {
+		'components/citizen-server-impl/src/state/**'
+	}
 end

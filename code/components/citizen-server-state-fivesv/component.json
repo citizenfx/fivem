@@ -1,0 +1,9 @@
+{
+	"name": "citizen:server:state:fivesv",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+		"citizen:server:impl"
+	],
+	"provides": []
+}

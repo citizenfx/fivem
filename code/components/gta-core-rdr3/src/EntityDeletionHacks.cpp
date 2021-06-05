@@ -12,7 +12,9 @@ struct netObject
 	char pad[64]; // +0
 	uint16_t objectType; // +64
 	uint16_t objectId; // +66
-	char pad2[3]; // +68 
+	char pad2[1]; // +68 
+	uint8_t ownerId; // +69
+	uint8_t nextOwnerId; // +70
 	bool isRemote; // +71
 	char pad3[16]; // +72
 	fwEntity* gameObject; // +88

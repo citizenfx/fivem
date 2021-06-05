@@ -5,6 +5,9 @@
 * Modified for the CitizenFX framework, removing GTA III dependencies.
 */
 #pragma once
+
+#include "StateGuard.h"
+
 #include <algorithm>
 #include <limits>
 #include <cassert>

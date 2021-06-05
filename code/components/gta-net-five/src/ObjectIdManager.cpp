@@ -244,8 +244,17 @@ static HookFunction hookFunction([]()
 	});
 
 	MH_Initialize();
+
+
+#ifdef GTA_FIVE
 	MH_CreateHook(hook::get_pattern("FF 89 C4 3E 00 00 33 D2", -12), AssignObjectId, (void**)&g_origAssignObjectId);
 	MH_CreateHook(hook::get_pattern("44 8B 91 C4 3E 00 00", -0x14), ReturnObjectId, (void**)&g_origReturnObjectId);
 	MH_CreateHook(hook::get_pattern("48 83 EC 20 8B B1 C4 3E 00 00", -0xB), HasSpaceForObjectId, (void**)&g_origHasSpaceForObjectId);
+#elif IS_RDR3
+	MH_CreateHook(hook::get_pattern("0F B7 08 66 FF C9 66 3B CA 76", -0x1C), AssignObjectId, (void**)&g_origAssignObjectId);
+	MH_CreateHook(hook::get_pattern("45 8B D9 85 DB 7E ? 8B B9", -0x1A), ReturnObjectId, (void**)&g_origReturnObjectId);
+	MH_CreateHook(hook::get_pattern("48 83 EC 20 8B B9 ? ? ? ? 8B DA", -0x6), HasSpaceForObjectId, (void**)&g_origHasSpaceForObjectId);
+#endif
+
 	MH_EnableHook(MH_ALL_HOOKS);
 });

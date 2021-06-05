@@ -24,6 +24,8 @@ if _OPTIONS['game'] == 'server' then
 	component 'citizen-scripting-mono'
 	component 'citizen-server-instance'
 	component 'citizen-server-impl'
+	component 'citizen-server-state-fivesv'
+	component 'citizen-server-state-rdr3sv'
 	component 'conhost-server'
 	component 'scripting-server'
 	component 'voip-server-mumble'

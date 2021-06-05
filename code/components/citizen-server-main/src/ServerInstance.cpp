@@ -35,7 +35,8 @@ static std::set<std::string> setList =
 	"onesync_population",
 	"netlib",
 	"onesync_enableInfinity",
-	"onesync_enableBeyond"
+	"onesync_enableBeyond",
+	"gamename"
 };
 
 namespace fx
@@ -111,7 +112,7 @@ namespace fx
 			for (const auto& set : optionParser->GetSetList())
 			{
 				// save this in the default context so V8ScriptRuntime can read this
-				if (set.first == "txAdminServerMode")
+				if (set.first == "txAdminServerMode" || set.first == "gamename")
 				{
 					console::GetDefaultContext()->ExecuteSingleCommandDirect(ProgramArguments{ "set", set.first, set.second });
 				}
@@ -139,6 +140,7 @@ namespace fx
 					}
 
 					consoleCtxRef->ExecuteSingleCommandDirect(ProgramArguments{ argList });
+					console::GetDefaultContext()->ExecuteSingleCommandDirect(ProgramArguments{ argList });
 				};
 
 				execContext->GetCommandManager()->FallbackEvent.Connect([consoleCtxRef, forwardArgs](const std::string& cmd, const ProgramArguments& args, const std::any& context)

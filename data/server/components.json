@@ -11,6 +11,8 @@
   "citizen:server:instance",
   "citizen:server:impl",
   "citizen:server:monitor",
+  "citizen:server:state:fivesv",
+  "citizen:server:state:rdr3sv",
   "citizen:resources:core",
   "citizen:resources:metadata:lua",
   "vfs:core",

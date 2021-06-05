@@ -25,9 +25,15 @@
 
 #include <Hooking.h>
 
+// REDM1S: not all data from nodes is printed
+
 inline size_t GET_NIDX(rage::netSyncTree* tree, void* node)
 {
+#ifdef GTA_FIVE
 	return *((uint8_t*)node + 66);
+#elif IS_RDR3
+	return *((uint8_t*)node + 68);
+#endif
 }
 
 static bool Splitter(bool split_vertically, float thickness, float* size1, float* size2, float min_size1, float min_size2, float splitter_long_axis_size = -1.0f)
@@ -42,6 +48,18 @@ static bool Splitter(bool split_vertically, float thickness, float* size1, float
 	return SplitterBehavior(bb, id, split_vertically ? ImGuiAxis_X : ImGuiAxis_Y, size1, size2, min_size1, min_size2, 0.0f);
 }
 
+#ifdef IS_RDR3
+struct LogVector
+{
+	float x;
+	char pad1[4];
+	float y;
+	char pad2[4];
+	float z;
+	char pad3[4];
+};
+#endif
+
 namespace rage
 {
 	class netLogStub
@@ -49,6 +67,7 @@ namespace rage
 	public:
 		virtual ~netLogStub() = default;
 
+#ifdef GTA_FIVE
 		virtual void m_8() = 0;
 
 		virtual void m_10() = 0;
@@ -64,6 +83,29 @@ namespace rage
 		virtual void m_38() = 0;
 
 		virtual void m_40() = 0;
+#elif IS_RDR3
+		virtual void m_8(const char* prefix, uint64_t value) = 0;
+
+		virtual void m_10(const char* prefix, uint64_t value) = 0;
+
+		virtual void m_18(const char* prefix, uint64_t value) = 0;
+
+		virtual void m_20(const char* prefix, uint64_t value) = 0;
+
+		virtual void m_28(const char* prefix, LogVector* value) = 0; // log vector?
+
+		virtual void m_30(const char* prefix, uint64_t value) = 0;
+
+		virtual void m_38(const char* prefix, uint64_t value) = 0;
+
+		virtual void m_40(const char* prefix, uint32_t value) = 0; // log hash
+
+		virtual void m_48(const char* prefix, uint64_t value) = 0;
+
+		virtual void m_50(const char* prefix, uint8_t value) = 0; // log boolean?
+
+		virtual void LogString(const char* prefix, const char* fmt, ...) = 0;
+#endif
 
 		// ?
 	};
@@ -86,6 +128,7 @@ namespace rage
 
 		virtual bool IsParentNode() = 0;
 
+#ifdef GTA_FIVE
 		virtual void m_18() = 0;
 		virtual void m_20() = 0;
 		virtual void m_28() = 0;
@@ -114,6 +157,45 @@ namespace rage
 		virtual void m_D8() = 0;
 		virtual void m_E0() = 0;
 		virtual void LogObject(rage::netObject* object, rage::netLogStub* stub) = 0;
+#elif IS_RDR3
+		virtual void m_18() = 0; // InitialiseNode
+		virtual void m_20() = 0; // ShutdownNode
+		virtual void m_28() = 0;
+		virtual void m_30() = 0;
+		virtual void m_added1311() = 0;
+		virtual void m_38() = 0;
+		virtual void m_something() = 0; // calls calculatesize, added in a patch
+		virtual void m_40() = 0;
+		virtual void m_48() = 0;
+		virtual void m_50() = 0;
+		virtual void m_58() = 0;
+		virtual void m_60() = 0;
+		virtual void m_68() = 0;
+		virtual void m_70() = 0;
+		virtual uint8_t GetUpdateFrequency(UpdateLevel level) = 0;
+		virtual void m_80() = 0;
+		virtual void m_88() = 0;
+		virtual void m_90() = 0;
+		virtual void m_98() = 0;
+		virtual void m_A0() = 0;
+		virtual void m_unk1() = 0;
+		virtual void m_unk2() = 0;
+		virtual void m_unk3() = 0;
+		virtual void m_unk4() = 0;
+		virtual void m_unk5() = 0;
+		virtual void m_unk6() = 0;
+		virtual void m_unk7() = 0;
+		virtual void m_unk8() = 0;
+		virtual void m_B0() = 0;
+		virtual void WriteObject(rage::netObject* object, rage::datBitBuffer* buffer, rage::netLogStub* logger, bool readFromObject) = 0;
+		virtual void m_D8() = 0;
+		virtual void m_E832() = 0;
+		virtual void LogNode(rage::netLogStub* stub) = 0;
+		virtual void GetUsesCurrentStateBuffer() = 0;
+		virtual void m_E328() = 0;
+		virtual void m_E321() = 0;
+		virtual void LogObject(rage::netObject* object, rage::netLogStub* stub) = 0;
+#endif
 
 		// data node
 
@@ -136,8 +218,12 @@ namespace rage
 	public:
 		uint32_t flags;
 		uint32_t pad3;
+
+#ifdef GTA_FIVE
 		uint64_t pad4;
-		netSyncDataNodeBase* externalDependentNodeRoot; //0x50
+#endif
+
+		netSyncDataNodeBase* externalDependentNodeRoot; // 0x50
 		uint32_t externalDependencyCount;
 		netSyncDataNodeBase* externalDependencies[8];
 		uint8_t syncFrequencies[8];
@@ -148,10 +234,23 @@ namespace rage
 rage::netObject* g_curNetObjectSelection;
 static rage::netSyncNodeBase* g_curSyncNodeSelection;
 
+static std::string GetClassTypeName(void* ptr)
+{
+	std::string name;
+
+#ifdef GTA_FIVE
+	name = typeid(*(uint64_t*)ptr).name();
+	name = name.substr(6);
+#elif IS_RDR3
+	name = fmt::sprintf("%016llx", *(uint64_t*)ptr);
+#endif
+
+	return name;
+}
+
 static void RenderSyncNode(rage::netObject* object, rage::netSyncNodeBase* node)
 {
-	std::string objectName = typeid(*node).name();
-	objectName = objectName.substr(6);
+	std::string objectName = GetClassTypeName(node);
 
 	if (node->IsParentNode())
 	{
@@ -181,7 +280,7 @@ static void RenderSyncNode(rage::netObject* object, rage::netSyncNodeBase* node)
 
 static void RenderSyncTree(rage::netObject* object, rage::netSyncTree* syncTree)
 {
-	RenderSyncNode(object, *(rage::netSyncNodeBase**)((char*)syncTree + 16));
+	RenderSyncNode(object, syncTree->syncNode);
 }
 
 static void RenderNetObjectTree()
@@ -203,16 +302,19 @@ static void RenderNetObjectTree()
 				{
 					try
 					{
-						std::string objectName = typeid(*object).name();
-						objectName = objectName.substr(6);
+#ifdef GTA_FIVE
+						std::string objectName = GetClassTypeName(object);
+#elif IS_RDR3
+						std::string objectName = GetNetObjEntityName(object->GetObjectType());
+#endif
 
 						if (ImGui::TreeNodeEx(object,
 							ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ((g_curNetObjectSelection == object) ? ImGuiTreeNodeFlags_Selected : 0),
-							"%s - %d", objectName.c_str(), object->objectId))
+							"%s - %d", objectName.c_str(), object->GetObjectId()))
 						{
 							if (ImGui::IsItemClicked())
 							{
-								bool isDifferent = !g_curNetObjectSelection || g_curNetObjectSelection->objectType != object->objectType;
+								bool isDifferent = !g_curNetObjectSelection || g_curNetObjectSelection->GetObjectType() != object->GetObjectType();
 
 								g_curNetObjectSelection = object;
 
@@ -257,18 +359,16 @@ public:
 
 	}
 
-	virtual void m_8()
-	{
+#ifdef GTA_FIVE
+	virtual void m_8() { }
 
-	}
+	virtual void m_10() { }
 
-	virtual void m_10() {}
+	virtual void m_18() { }
 
-	virtual void m_18() {}
+	virtual void m_20() { }
 
-	virtual void m_20() {}
-
-	virtual void m_28() {}
+	virtual void m_28() { }
 
 	virtual void LogString(const char* prefix, const char* fmt, ...)
 	{
@@ -282,9 +382,72 @@ public:
 		m_logger(fmt::sprintf("%s%s%s", prefix ? prefix : "", prefix ? ": " : "", buf));
 	}
 
-	virtual void m_38() {}
+	virtual void m_38() { }
 
-	virtual void m_40() {}
+	virtual void m_40() { }
+#elif IS_RDR3
+	virtual void m_8(const char* prefix, uint64_t value)
+	{
+		trace("m_8 %d\n", value);
+	}
+
+	virtual void m_10(const char* prefix, uint64_t value)
+	{
+		trace("m_10 %d\n", value);
+	}
+
+	virtual void m_18(const char* prefix, uint64_t value)
+	{
+		trace("m_18 %d\n", value);
+	}
+
+	virtual void m_20(const char* prefix, uint64_t value)
+	{
+		trace("m_20 %d\n", value);
+	}
+
+	virtual void m_28(const char* prefix, LogVector* value)
+	{
+		m_logger(fmt::sprintf("%s%s%f %f %f", prefix ? prefix : "", prefix ? ": " : "", value->x, value->y, value->z));
+	}
+
+	virtual void m_30(const char* prefix, uint64_t value)
+	{
+		trace("m_30 %d\n", value);
+	}
+
+	virtual void m_38(const char* prefix, uint64_t value)
+	{
+		trace("m_38 %d\n", value);
+	}
+
+	virtual void m_40(const char* prefix, uint32_t value)
+	{
+		m_logger(fmt::sprintf("%s%s%d", prefix ? prefix : "", prefix ? ": " : "", value));
+	}
+
+	virtual void m_48(const char* prefix, uint64_t value)
+	{
+		m_logger(fmt::sprintf("%s%s%d", prefix ? prefix : "", prefix ? ": " : "", value));
+	}
+
+	virtual void m_50(const char* prefix, uint8_t value)
+	{
+		m_logger(fmt::sprintf("%s%s%d", prefix ? prefix : "", prefix ? ": " : "", value));
+	}
+
+	virtual void LogString(const char* prefix, const char* fmt, ...)
+	{
+		char buf[512];
+
+		va_list ap;
+		va_start(ap, fmt);
+		vsnprintf(buf, sizeof(buf), fmt, ap);
+		va_end(ap);
+
+		m_logger(fmt::sprintf("%s%s%s", prefix ? prefix : "", prefix ? ": " : "", buf));
+	}
+#endif
 
 private:
 	std::function<void(const std::string&)> m_logger;
@@ -328,7 +491,7 @@ static void TraverseSyncNode(TSyncLog& retval, TSyncLog* old, int oldId, rage::n
 static TSyncLog TraverseSyncTree(TSyncLog* old, int oldId, rage::netSyncTree* syncTree, rage::netObject* object = nullptr)
 {
 	TSyncLog retval;
-	TraverseSyncNode(retval, old, oldId, *(rage::netSyncNodeBase**)((char*)syncTree + 16), object);
+	TraverseSyncNode(retval, old, oldId, syncTree->syncNode, object);
 
 	return retval;
 }
@@ -365,7 +528,7 @@ struct NetObjectNodeData
 	{
 		std::array<uint8_t, 1024> dummyData;
 		memset(dummyData.data(), 0, dummyData.size());
-		
+
 		lastData = { dummyData, 0 };
 		currentData = { dummyData, 0 };
 
@@ -407,13 +570,17 @@ static bool TraverseTreeInternal(rage::netSyncNodeBase* node, T& state, const st
 template<typename T>
 static void TraverseTree(rage::netSyncTree* tree, T& state, const std::function<bool(T&, rage::netSyncNodeBase*, const std::function<bool()>&)>& cb)
 {
-	TraverseTreeInternal(*(rage::netSyncNodeBase**)((char*)tree + 16), state, cb);
+	TraverseTreeInternal(tree->syncNode, state, cb);
 }
 
 static void InitTree(rage::netSyncTree* tree)
 {
-	// unused padding in GTA5
+	// unused padding in GTA5/RDR3
+#ifdef GTA_FIVE
 	auto didStuff = (uint16_t*)((char*)tree + 1222);
+#elif IS_RDR3
+	auto didStuff = (uint16_t*)((char*)tree + 1990);
+#endif
 
 	if (*didStuff != 0xCFCF)
 	{
@@ -426,7 +593,11 @@ static void InitTree(rage::netSyncTree* tree)
 			}
 			else if (node->IsDataNode())
 			{
+#ifdef GTA_FIVE
 				*((uint8_t*)node + 66) = idx++;
+#elif IS_RDR3
+				*((uint8_t*)node + 68) = idx++;
+#endif
 			}
 
 			return true;
@@ -474,8 +645,10 @@ static void AddNodeAndExternalDependentNodes(netSyncDataNodeBase* node, rage::ne
 	}
 }
 
+#ifdef GTA_FIVE
 static void LoadPlayerAppearanceDataNode(rage::netSyncNodeBase* node);
 static void StorePlayerAppearanceDataNode(rage::netSyncNodeBase* node);
+#endif
 
 bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object, rage::datBitBuffer* buffer, uint32_t time, void* logger, uint8_t targetPlayer, void* outNull, uint32_t* lastChangeTime)
 {
@@ -502,11 +675,15 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 		buffer->WriteBit(objFlags & 1);
 	}
 
+#ifdef IS_RDR3
+	buffer->WriteBit(0);
+#endif
+
 	// #NETVER: 2018-12-27 17:41 -> increased maximum packet size to 768 from 256 to account for large CPlayerAppearanceDataNode
 	static auto icgi = Instance<ICoreGameInit>::Get();
 
 	int sizeLength = 13;
-	
+
 	if (icgi->OneSyncBigIdEnabled)
 	{
 		sizeLength = 16;
@@ -542,7 +719,9 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 				// write Cfx length placeholder
 				if (node->IsDataNode())
 				{
+#ifndef ONESYNC_CLONING_NATIVES
 					buffer->WriteUns(0, sizeLength);
+#endif
 				}
 			}
 
@@ -553,8 +732,7 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 			else
 			{
 				// compare last data for the node
-				auto nodeData = &g_syncData[state.object->objectId]->nodes[nodeIdx];
-
+				auto nodeData = &g_syncData[state.object->GetObjectId()]->nodes[nodeIdx];
 				uint32_t nodeSyncDelay = GetDelayForUpdateFrequency(node->GetUpdateFrequency(UpdateLevel::VERY_HIGH));
 
 				// throttle sends by waiting for the requested node delay
@@ -565,7 +743,7 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 					auto updateNode = [this, &state, &processedNodes, sizeLength](rage::netSyncDataNodeBase* dataNode, bool force) -> bool
 					{
 						size_t dataNodeIdx = GET_NIDX(this, dataNode);
-						auto nodeData = &g_syncData[state.object->objectId]->nodes[dataNodeIdx];
+						auto nodeData = &g_syncData[state.object->GetObjectId()]->nodes[dataNodeIdx];
 
 						if (processedNodes.test(dataNodeIdx))
 						{
@@ -576,12 +754,16 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 						std::array<uint8_t, 1024> tempData;
 						memset(tempData.data(), 0, tempData.size());
 
+#ifdef GTA_FIVE
 						LoadPlayerAppearanceDataNode(dataNode);
+#endif
 
 						rage::datBitBuffer tempBuf(tempData.data(), (sizeLength == 11) ? 256 : tempData.size());
 						dataNode->WriteObject(state.object, &tempBuf, state.logger, true);
 
+#ifdef GTA_FIVE
 						StorePlayerAppearanceDataNode(dataNode);
+#endif
 
 						if (force || tempBuf.m_curBit != std::get<1>(nodeData->lastData) || memcmp(tempData.data(), std::get<0>(nodeData->lastData).data(), tempData.size()) != 0)
 						{
@@ -601,7 +783,11 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 
 					auto dataNode = (rage::netSyncDataNodeBase*)node;
 
+#ifdef GTA_FIVE
 					static_assert(offsetof(rage::netSyncDataNodeBase, externalDependentNodeRoot) == 0x50, "parentData off");
+#elif IS_RDR3
+					static_assert(offsetof(rage::netSyncDataNodeBase, externalDependentNodeRoot) == 0x48, "parentData off");
+#endif
 
 					// if we are a data node, we will have to ensure external-dependent nodes are sent as a bundle at all times
 					// this means:
@@ -632,7 +818,7 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 							for (int child = 0; child < childCount; child++)
 							{
 								size_t childIdx = GET_NIDX(this, children[child]);
-								auto childData = &g_syncData[state.object->objectId]->nodes[childIdx];
+								auto childData = &g_syncData[state.object->GetObjectId()]->nodes[childIdx];
 
 								written |= updateNode(children[child], nodeData->manuallyDirtied || childData->manuallyDirtied || written);
 							}
@@ -711,7 +897,7 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 
 				if (state.object)
 				{
-					g_netObjectNodeMapping[state.object->objectId][node] = { 1, rage::netInterface_queryFunctions::GetInstance()->GetTimestamp() };
+					g_netObjectNodeMapping[state.object->GetObjectId()][node] = { 1, rage::netInterface_queryFunctions::GetInstance()->GetTimestamp() };
 				}
 
 				uint32_t endPos = buffer->GetPosition();
@@ -757,7 +943,9 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 
 					if (state.pass == 2)
 					{
+#ifndef ONESYNC_CLONING_NATIVES
 						buffer->WriteUns(length, sizeLength);
+#endif
 					}
 				}
 
@@ -807,9 +995,9 @@ void netSyncTree::AckCfx(netObject* object, uint32_t timestamp)
 		{
 			size_t nodeIdx = GET_NIDX(this, node);
 
-			if (state.time > g_syncData[state.object->objectId]->nodes[nodeIdx].lastAck)
+			if (state.time > g_syncData[state.object->GetObjectId()]->nodes[nodeIdx].lastAck)
 			{
-				g_syncData[state.object->objectId]->nodes[nodeIdx].lastAck = state.time;
+				g_syncData[state.object->GetObjectId()]->nodes[nodeIdx].lastAck = state.time;
 			}
 		}
 
@@ -834,7 +1022,7 @@ struct ClonePacketData
 {
 	uint64_t frameIdx;
 	uint32_t ts;
-	
+
 	std::vector<ClonePacketMsg> messages;
 };
 
@@ -845,7 +1033,7 @@ static auto msec()
 	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
 }
 
-static InitFunction initFunctionDrilldown([]() 
+static InitFunction initFunctionDrilldown([]()
 {
 	OnGameFrame.Connect([]()
 	{
@@ -965,7 +1153,7 @@ void DirtyNode(rage::netObject* object, rage::netSyncDataNodeBase* node)
 	InitTree(tree);
 
 	size_t nodeIdx = GET_NIDX(tree, node);
-	const auto& sd = rage::g_syncData[((rage::netObject*)object)->objectId];
+	const auto& sd = rage::g_syncData[((rage::netObject*)object)->GetObjectId()];
 
 	if (!sd)
 	{
@@ -998,21 +1186,19 @@ static const char* DescribeGameObject(void* object)
 
 	auto vObject = (VirtualBase*)object;
 
-	static std::string objectName;
-	objectName = typeid(*vObject).name();
-	objectName = objectName.substr(6);
+	static std::string objectName = GetClassTypeName(vObject);
 
 	return objectName.c_str();
 }
 
 void RenderNetObjectDetail(rage::netObject* netObject)
 {
-	ImGui::Text("Object ID: %d", netObject->objectId);
-	ImGui::Text("Object type: %d", netObject->objectType);
+	ImGui::Text("Object ID: %d", netObject->GetObjectId());
+	ImGui::Text("Object type: %d", netObject->GetObjectType());
 	ImGui::Text("Object owner: %d", netObject->syncData.ownerId);
 	ImGui::Text("Is remote: %s", netObject->syncData.isRemote ? "true" : "false");
 	ImGui::Text("Game object: %s", netObject->GetGameObject() ? DescribeGameObject(netObject->GetGameObject()) : "NULL");
-	
+
 	if (ImGui::Button("Force blend"))
 	{
 		auto blender = netObject->GetBlender();
@@ -1033,16 +1219,22 @@ void RenderSyncNodeDetail(rage::netObject* netObject, rage::netSyncNodeBase* nod
 		left.push_back(line);
 	});
 
+#ifdef GTA_FIVE
 	LoadPlayerAppearanceDataNode(node);
+#endif
+
 	node->LogObject(netObject, &logger);
+
+#ifdef GTA_FIVE
 	StorePlayerAppearanceDataNode(node);
+#endif
 
-	std::vector<std::string> right = syncLog[netObject->objectId][node];
+	std::vector<std::string> right = syncLog[netObject->GetObjectId()][node];
 
-	auto t = g_netObjectNodeMapping[netObject->objectId][node];
-	
+	auto t = g_netObjectNodeMapping[netObject->GetObjectId()][node];
+
 	InitTree(netObject->GetSyncTree());
-	auto& sd = rage::g_syncData[netObject->objectId]->nodes[GET_NIDX(netObject->GetSyncTree(), node)];
+	auto& sd = rage::g_syncData[netObject->GetObjectId()]->nodes[GET_NIDX(netObject->GetSyncTree(), node)];
 
 	ImGui::Text("Last %s: %d ms ago", std::get<int>(t) ? "written" : "read", rage::netInterface_queryFunctions::GetInstance()->GetTimestamp() - std::get<uint32_t>(t));
 	ImGui::Text("Last ack: %d ms ago", rage::netInterface_queryFunctions::GetInstance()->GetTimestamp() - sd.lastAck);
@@ -1055,7 +1247,9 @@ void RenderSyncNodeDetail(rage::netObject* netObject, rage::netSyncNodeBase* nod
 	ImGui::Text("Saved");
 	ImGui::NextColumn();
 
-	for (int i = 0; i < std::max(left.size(), right.size()); i++)
+	auto maxSize = std::max(left.size(), right.size());
+
+	for (int i = 0; i < maxSize; i++)
 	{
 		if (i < left.size())
 		{
@@ -1129,7 +1323,7 @@ static InitFunction initFunction([]()
 		{
 			static float treeSize = 400.f;
 			static float detailSize = 600.f;
-			
+
 			Splitter(true, 8.0f, &treeSize, &detailSize, 8.0f, 8.0f);
 
 			if (ImGui::BeginChild("tree", ImVec2(treeSize, -1.0f), true))
@@ -1169,8 +1363,7 @@ static InitFunction initFunction([]()
 #if _DEBUG
 static void DumpSyncNode(rage::netSyncNodeBase* node, std::string indent = "\t", bool last = true)
 {
-	std::string objectName = typeid(*node).name();
-	objectName = objectName.substr(6);
+	std::string objectName = GetClassTypeName(node);
 
 	if (node->IsParentNode())
 	{
@@ -1192,17 +1385,17 @@ static void DumpSyncNode(rage::netSyncNodeBase* node, std::string indent = "\t",
 
 static void DumpSyncTree(rage::netSyncTree* syncTree)
 {
-	std::string objectName = typeid(*syncTree).name();
-	objectName = objectName.substr(6);
+	std::string objectName = GetClassTypeName(syncTree);
 
 	trace("using %s = SyncTree<\n", objectName);
 
-	DumpSyncNode(*(rage::netSyncNodeBase**)((char*)syncTree + 16));
+	DumpSyncNode(syncTree->syncNode);
 
 	trace(">;\n");
 }
 #endif
 
+#ifdef GTA_FIVE
 static uintptr_t g_vtbl_playerAppearanceDataNode;
 static uint32_t g_offset_playerAppearanceDataNode_hasDecorations;
 
@@ -1226,13 +1419,15 @@ static void StorePlayerAppearanceDataNode(rage::netSyncNodeBase* node)
 	}
 }
 }
+#endif
 
 static HookFunction hookFunction([]()
 {
+
 #if _DEBUG
 	static ConsoleCommand dumpSyncTreesCmd("dumpSyncTrees", []()
 	{
-		for (int i = 0; i <= 13; i++)
+		for (int i = 0; i < (int)NetObjEntityType::Max; i++)
 		{
 			auto obj = rage::CreateCloneObject((NetObjEntityType)i, i + 204, 0, 0, 32);
 			auto tree = obj->GetSyncTree();
@@ -1242,6 +1437,7 @@ static HookFunction hookFunction([]()
 	});
 #endif
 
+#if GTA_FIVE
 	// CPlayerAppearanceDataNode decorations uninitialized value
 	{
 		g_vtbl_playerAppearanceDataNode = hook::get_address<uintptr_t>(hook::pattern("48 89 BB B8 00 00 00 48 89 83 B0 00 00 00").count(2).get(1).get<void*>(-0xE));
@@ -1280,6 +1476,59 @@ static HookFunction hookFunction([]()
 	hook::nop(hook::get_pattern("48 85 D2 74 38 F3 41", 3), 2);
 	hook::nop(hook::get_pattern("4D 85 C9 74 46 F3", 3), 2);
 	hook::nop(hook::get_pattern("4D 85 C9 74 11 48 85", 3), 2);
+#elif IS_RDR3
+	{
+		auto p = hook::pattern("48 85 D2 74 09 48 8B 01 4D").count(2);
+
+		for (int i = 0; i < p.size(); i++)
+		{
+			hook::nop(p.get(i).get<void>(3), 2);
+		}
+	}
+
+	{
+		auto p = hook::pattern("48 85 D2 74 09 48 8B 01 45 8B").count(2);
+
+		for (int i = 0; i < p.size(); i++)
+		{
+			hook::nop(p.get(i).get<void>(3), 2);
+		}
+	}
+
+	{
+		auto p = hook::pattern("48 85 D2 74 0A 48 8B 01 45 0F B7").count(2);
+
+		for (int i = 0; i < p.size(); i++)
+		{
+			hook::nop(p.get(i).get<void>(3), 2);
+		}
+	}
+
+	{
+		auto p = hook::pattern("48 85 D2 74 0A 48 8B 01 45 0F B6").count(2);
+
+		for (int i = 0; i < p.size(); i++)
+		{
+			hook::nop(p.get(i).get<void>(3), 2);
+		}
+	}
+
+	hook::nop(hook::get_pattern("4D 85 C9 74 0C 44 8A 02", 3), 2);
+	hook::nop(hook::get_pattern("48 85 D2 74 0A 48 8B 01 45 0F BF", 3), 2);
+	hook::nop(hook::get_pattern("48 85 D2 74 0A 48 8B 01 45 0F BE", 3), 2);
+	hook::nop(hook::get_pattern("48 85 D2 74 06 48 8B 01 FF 50 30", 3), 2);
+	hook::nop(hook::get_pattern("48 85 D2 74 06 48 8B 01 FF 50 40", 3), 2);
+	hook::nop(hook::get_pattern("48 85 D2 74 0B 48 8B 01 F3 41", 3), 2);
+	hook::nop(hook::get_pattern("4D 85 C9 74 0D 44 0F B6 02", 3), 2);
+	hook::nop(hook::get_pattern("48 85 DB 74 34 44 0F B7 0A", 3), 2);
+	hook::nop(hook::get_pattern("4D 85 C9 74 38 F3 0F 10 42 08", 3), 2);
+	hook::nop(hook::get_pattern("48 85 DB 74 4C 48 8D 54 24 30 48 8B C8", 3), 2);
+	hook::nop(hook::get_pattern("48 85 D2 74 38 F3 41 0F 10 40 08", 3), 2);
+	hook::nop(hook::get_pattern("48 85 D2 74 47 F3 41 0F 10 40 0C", 3), 2);
+	hook::nop(hook::get_pattern("4D 85 C9 74 0D 48 8B 01 4C", 3), 2);
+	hook::nop(hook::get_pattern("4D 85 C9 74 1B 8B 42 04 4C", 3), 2);
+	hook::nop(hook::get_pattern("4D 85 C9 74 13 44 8B 0A 4C", 3), 2);
+#endif
 });
 
 

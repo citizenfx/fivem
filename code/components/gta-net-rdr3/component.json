@@ -3,14 +3,22 @@
 	"version": "0.1.0",
 	"dependencies": [
 		"fx[2]",
+		"net:base",
 		"net",
 		"gta:core",
-		"rage:nutsnbolts",
+		"gta:game",
 		"rage:scripting",
+		"gta:streaming",
+		"rage:nutsnbolts",
+		"citizen:resources:core",
+		"citizen:scripting:core",
+		"ros-patches",
 		"vendor:websocketpp",
 		"vendor:protobuf_lite",
-		"citizen:resources:core",
-		"ros-patches"
+		"vendor:msgpack-c",
+		"vendor:lz4",
+		"vendor:imgui",
+		"conhost"
 	],
 	"provides": []
 }

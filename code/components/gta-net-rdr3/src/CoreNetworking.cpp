@@ -182,9 +182,19 @@ static hook::cdecl_stub<bool()> isNetworkHost([]()
 	return hook::get_pattern("33 DB 38 1D ? ? ? ? 75 1B 38 1D", -6);
 });
 
+void ObjectIds_BindNetLibrary(NetLibrary*);
+
+#include <CloneManager.h>
+
 static HookFunction initFunction([]()
 {
 	g_netLibrary = NetLibrary::Create();
+
+	Instance<NetLibrary>::Set(g_netLibrary);
+
+	TheClones->BindNetLibrary(g_netLibrary);
+
+	ObjectIds_BindNetLibrary(g_netLibrary);
 
 	g_netLibrary->OnBuildMessage.Connect([](const std::function<void(uint32_t, const char*, int)>& writeReliable)
 	{
@@ -210,6 +220,42 @@ static HookFunction initFunction([]()
 			lastHostState = false;
 			lastHostSend = timeGetTime();
 		}
+	});
+
+	g_netLibrary->AddReliableHandler("msgFrame", [](const char* data, size_t len)
+	{
+		net::Buffer buffer(reinterpret_cast<const uint8_t*>(data), len);
+		auto idx = buffer.Read<uint32_t>();
+
+		auto icgi = Instance<ICoreGameInit>::Get();
+
+		uint8_t strictLockdown = 0;
+
+		if (icgi->NetProtoVersion >= 0x202002271209)
+		{
+			strictLockdown = buffer.Read<uint8_t>();
+		}
+
+		static uint8_t lastStrictLockdown;
+
+		if (strictLockdown != lastStrictLockdown)
+		{
+			if (!strictLockdown)
+			{
+				icgi->ClearVariable("strict_entity_lockdown");
+			}
+			else
+			{
+				icgi->SetVariable("strict_entity_lockdown");
+			}
+
+			lastStrictLockdown = strictLockdown;
+		}
+	}, true);
+
+	OnMainGameFrame.Connect([]()
+	{
+		g_netLibrary->RunMainFrame();
 	});
 
 	OnGameFrame.Connect([]()
@@ -662,6 +708,8 @@ struct LoggedInt
 	int value;
 };
 
+bool IsWaitingForTimeSync();
+
 static HookFunction hookFunction([]()
 {
 	static ConsoleCommand quitCommand("quit", [](const std::string& message)
@@ -739,6 +787,8 @@ static HookFunction hookFunction([]()
 		gameLoaded = true;
 	});
 
+	static ICoreGameInit* cgi = Instance<ICoreGameInit>::Get();
+
 	OnKillNetwork.Connect([](const char*)
 	{
 		gameLoaded = false;
@@ -812,6 +862,14 @@ static HookFunction hookFunction([]()
 			break;
 
 		case 5:
+			if (cgi->OneSyncEnabled)
+			{
+				if (IsWaitingForTimeSync())
+				{
+					return;
+				}
+			}
+
 			static char sessionIdPtr[48];
 			memset(sessionIdPtr, 0, sizeof(sessionIdPtr));
 			joinOrHost(1, nullptr, sessionIdPtr);

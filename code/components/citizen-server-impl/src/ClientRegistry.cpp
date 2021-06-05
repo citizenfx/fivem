@@ -13,8 +13,6 @@
 
 namespace fx
 {
-	extern bool IsOneSync();
-
 	ClientRegistry::ClientRegistry()
 		: m_hostNetId(-1), m_curNetId(1), m_instance(nullptr)
 	{
@@ -167,8 +165,9 @@ namespace fx
 			fwRefContainer<ServerEventComponent> events = m_instance->GetComponent<ServerEventComponent>();
 
 			std::string target = fmt::sprintf("%d", client->GetNetId());
+			uint32_t bigModeSlot = (m_instance->GetComponent<fx::GameServer>()->GetGameName() == fx::GameName::GTA5) ? 128 : 16;
 
-			events->TriggerClientEventReplayed("onPlayerJoining", target, client->GetNetId(), client->GetName(), 128);
+			events->TriggerClientEventReplayed("onPlayerJoining", target, client->GetNetId(), client->GetName(), bigModeSlot);
 		}
 
 		// trigger connection handlers
