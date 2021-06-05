@@ -947,6 +947,8 @@ export class CfxGameService extends GameService {
 	}
 
 	cancelNativeConnect(): void {
+        this.card = false;
+
 		(<any>window).invokeNative('cancelDefer', '');
 	}
 

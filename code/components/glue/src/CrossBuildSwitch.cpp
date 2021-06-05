@@ -120,6 +120,12 @@ bool XBR_InterceptCancelDefer()
 {
 	if (g_cancelable)
 	{
+		if (g_submitFn)
+		{
+			g_submitFn("cancel");
+			g_submitFn = {};
+		}
+
 		g_canceled = true;
 		g_cancelable = false;
 		return true;
