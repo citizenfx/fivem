@@ -59,12 +59,17 @@ static CURL* curl_easy_init_cfx()
 		curl_easy_setopt(curlHandle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2TLS);
 		curl_easy_setopt(curlHandle, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2 | CURL_SSLVERSION_MAX_TLSv1_2);
 
-		static mbedtls_x509_crt cacert;
-		mbedtls_x509_crt_init(&cacert);
-		mbedtls_x509_crt_parse(&cacert, sslRoots, sizeof(sslRoots));
+		char* curlVer = curl_version();
 
-		curl_easy_setopt(curlHandle, CURLOPT_SSL_CTX_DATA, &cacert);
-		curl_easy_setopt(curlHandle, CURLOPT_SSL_CTX_FUNCTION, ssl_ctx_callback);
+		if (strstr(curlVer, "mbedTLS/") != nullptr)
+		{
+			static mbedtls_x509_crt cacert;
+			mbedtls_x509_crt_init(&cacert);
+			mbedtls_x509_crt_parse(&cacert, sslRoots, sizeof(sslRoots));
+
+			curl_easy_setopt(curlHandle, CURLOPT_SSL_CTX_DATA, &cacert);
+			curl_easy_setopt(curlHandle, CURLOPT_SSL_CTX_FUNCTION, ssl_ctx_callback);
+		}
 	}
 
 	return curlHandle;
