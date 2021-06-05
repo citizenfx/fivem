@@ -2200,7 +2200,7 @@ static void EventManager_Update()
 	}
 #endif
 
-	if (!*g_netGameEventPool)
+	if (!g_netGameEventPool || !*g_netGameEventPool)
 	{
 		return;
 	}
