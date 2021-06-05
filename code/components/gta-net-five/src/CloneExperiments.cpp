@@ -4183,12 +4183,25 @@ static void SendCloneSync(void* a1, void* a2, void* a3, void* a4, void* a5, void
 	*rage__s_NetworkTimeThisFrameStart = t;
 }
 
+static void* (*g_origCPickupPlacement_ctor)(void* self, int a2, void* a3, void* a4, uint32_t flags, int a6);
+
+static void* CPickupPlacement_ctor(void* self, int a2, void* a3, void* a4, uint32_t flags, int a6)
+{
+	if ((flags & 0xCF00000) == 0xCF00000)
+	{
+		flags &= ~0xCF00001;
+	}
+
+	return g_origCPickupPlacement_ctor(self, a2, a3, a4, flags, a6);
+}
+
 static HookFunction hookFunctionNative([]()
 {
 	MH_Initialize();
 
 #ifdef GTA_FIVE
 	MH_CreateHook(hook::get_pattern("41 56 41 57 48 83 EC 40 0F B6 72 ? 4D 8B E1", -0x14), SendCloneSync, (void**)&g_origSendCloneSync);
+	MH_CreateHook(hook::get_pattern("89 41 70 41 8B 40 04 89 41 74 41 8B", -0x64), CPickupPlacement_ctor, (void**)&g_origCPickupPlacement_ctor);
 #elif IS_RDR3
 	MH_CreateHook(hook::get_pattern("48 8B 06 41 B0 01 41 0F B6 5E", -0x50), SendCloneSync, (void**)&g_origSendCloneSync);
 #endif
