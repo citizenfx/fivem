@@ -2476,6 +2476,22 @@ void ServerGameState::ReassignEntity(uint32_t entityHandle, const fx::ClientShar
 
 bool ServerGameState::MoveEntityToCandidate(const fx::sync::SyncEntityPtr& entity, const fx::ClientSharedPtr& client)
 {
+	// pickup placements at 0,0,0 are transient and shouldn't migrate
+	if (entity->type == sync::NetObjEntityType::PickupPlacement)
+	{
+		float position[3] = { 0 };
+
+		if (entity->syncTree)
+		{
+			entity->syncTree->GetPosition(position);
+		}
+
+		if (position[0] == 0.0f && position[1] == 0.0f)
+		{
+			return false;
+		}
+	}
+
 	const auto& clientRegistry = m_instance->GetComponent<fx::ClientRegistry>();
 	bool hasClient = true;
 

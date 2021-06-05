@@ -1753,7 +1753,30 @@ struct CPedTaskSequenceDataNode { bool Parse(SyncParseState& state) { return tru
 struct CPickupCreationDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPickupScriptGameStateNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPickupSectorPosNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPickupPlacementCreationDataNode { bool Parse(SyncParseState& state) { return true; } };
+
+struct CPickupPlacementCreationDataNode
+{
+	float posX = 0.0f;
+	float posY = 0.0f;
+	float posZ = 0.0f;
+
+	bool Parse(SyncParseState& state)
+	{
+		// omit flag
+		if (!state.buffer.ReadBit())
+		{
+			// Pickup pos
+			posX = state.buffer.ReadSignedFloat(19, 27648.0f);
+			posY = state.buffer.ReadSignedFloat(19, 27648.0f);
+			posZ = state.buffer.ReadFloat(19, 4416.0f) - 1700.0f;
+
+			// TODO: read more node including fwScriptId
+		}
+
+		return true;
+	}
+};
+
 struct CPickupPlacementStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 
 struct CPlaneGameStateDataNode
@@ -2541,6 +2564,7 @@ struct SyncTree : public SyncTreeBase
 		auto [hasOspdn, objectSecPosDataNode] = GetData<CObjectSectorPosNode>();
 		auto [hasPspmdn, pedSecPosMapDataNode] = GetData<CPedSectorPosMapNode>();
 		auto [hasDoor, doorCreationDataNode] = GetData<CDoorCreationDataNode>();
+		auto [hasPickupPlacement, pickupPlacementCreationDataNode] = GetData<CPickupPlacementCreationDataNode>();
 		auto [hasPgsdn, pedGameStateDataNode] = GetData<CPedGameStateDataNode>();
 
 		auto sectorX = (hasSdn) ? secDataNode->m_sectorX : 512;
@@ -2577,6 +2601,13 @@ struct SyncTree : public SyncTreeBase
 			posOut[0] = doorCreationDataNode->m_posX;
 			posOut[1] = doorCreationDataNode->m_posY;
 			posOut[2] = doorCreationDataNode->m_posZ;
+		}
+
+		if (hasPickupPlacement)
+		{
+			posOut[0] = pickupPlacementCreationDataNode->posX;
+			posOut[1] = pickupPlacementCreationDataNode->posY;
+			posOut[2] = pickupPlacementCreationDataNode->posZ;
 		}
 
 		if (hasPspdn)
