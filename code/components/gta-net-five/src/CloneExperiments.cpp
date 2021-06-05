@@ -2191,7 +2191,7 @@ static void EventManager_Update()
 #ifdef IS_RDR3
 	if (!g_netGameEventPool)
 	{
-		auto pool = rage::GetPoolBase(0xF4794A41);
+		static auto pool = rage::GetPoolBase(0xF4794A41);
 
 		if (pool)
 		{
@@ -2200,7 +2200,7 @@ static void EventManager_Update()
 	}
 #endif
 
-	if (!g_netGameEventPool)
+	if (!*g_netGameEventPool)
 	{
 		return;
 	}
