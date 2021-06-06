@@ -182,9 +182,9 @@ namespace fx
 
 					fwRefContainer<vfs::Stream> stream = vfs::OpenRead(e);
 
-					if (!stream.GetRef())
+					if (!stream.GetRef() && e[0] != '@')
 					{
-						console::Printf("cmd", "No such config file: %s\n", e.c_str());
+						console::Printf("cmd", "No such config file: %s\n", e);
 						continue;
 					}
 
