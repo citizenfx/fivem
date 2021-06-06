@@ -622,7 +622,7 @@ static InitFunction initFunction([] ()
 
 		netLibrary->AddReliableHandler("msgNetEvent", [] (const char* buf, size_t len)
 		{
-			if (!Instance<ICoreGameInit>::Get()->HasVariable("networkInited"))
+			if (!Instance<ICoreGameInit>::Get()->GetGameLoaded())
 			{
 				return;
 			}
