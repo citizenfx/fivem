@@ -622,6 +622,11 @@ static InitFunction initFunction([] ()
 
 		netLibrary->AddReliableHandler("msgNetEvent", [] (const char* buf, size_t len)
 		{
+			if (!Instance<ICoreGameInit>::Get()->HasVariable("networkInited"))
+			{
+				return;
+			}
+
 			net::Buffer buffer(reinterpret_cast<const uint8_t*>(buf), len);
 
 			// get the source net ID
