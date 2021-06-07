@@ -20,6 +20,8 @@ build_script:
 #################
 # windows steps #
 #################
+- ps: git config core.symlinks true
+- ps: git reset --hard
 - ps: Install-Product node 12 x64
 - ps: .\code\tools\ci\build.ps1 -DontUpload $true -SaveDir C:\save
 
