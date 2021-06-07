@@ -247,12 +247,43 @@ bool NUIClient::OnConsoleMessage(CefRefPtr<CefBrowser> browser, cef_log_severity
 	return false;
 }
 
+auto NUIClient::OnBeforePopup(CefRefPtr<CefBrowser> browser,
+	CefRefPtr<CefFrame> frame,
+	const CefString& target_url,
+	const CefString& target_frame_name,
+	CefLifeSpanHandler::WindowOpenDisposition target_disposition,
+	bool user_gesture,
+	const CefPopupFeatures& popupFeatures,
+	CefWindowInfo& windowInfo,
+	CefRefPtr<CefClient>& client,
+	CefBrowserSettings& settings,
+	CefRefPtr<CefDictionaryValue>& extra_info,
+	bool* no_javascript_access) -> bool
+{
+	if (target_disposition == WOD_NEW_FOREGROUND_TAB || target_disposition == WOD_NEW_BACKGROUND_TAB || target_disposition == WOD_NEW_POPUP || target_disposition == WOD_NEW_WINDOW )
+	{
+		return true;
+	}
+	return false;
+}
+
 auto NUIClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefRequestCallback> callback) -> ReturnValue
 {
+	auto url = request->GetURL().ToString();
+
+#ifndef USE_NUI_ROOTLESS
+	if (frame->IsMain())
+	{
+		if (frame->GetURL().ToString().find("nui://game/ui/") == 0 && url.find("nui://game/ui/") != 0)
+		{
+			trace("Blocked a request for root breaking URI %s\n", url);
+			return RV_CANCEL;
+		}
+	}
+#endif
+
 	for (auto& reg : m_requestBlacklist)
 	{
-		std::string url = request->GetURL().ToString();
-
 		try
 		{
 			if (std::regex_search(url, reg))
