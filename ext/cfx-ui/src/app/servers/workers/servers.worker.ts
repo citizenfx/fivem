@@ -8,6 +8,10 @@ import { PinConfigCached, PinConfig } from '../pins';
 import { ServerFilterContainer } from '../components/filters/server-filter-container';
 import { getCanonicalLocale } from '../components/utils';
 
+function softSlice(arr: Uint8Array, start: number, end?: number) {
+    return new Uint8Array(arr.buffer, arr.byteOffset + start, end && end - start);
+}
+
 // this class loosely based on https://github.com/rkusa/frame-stream
 class FrameReader {
 	private reader: ReadableStreamReader;
@@ -67,7 +71,7 @@ class FrameReader {
 					return;
 				}
 
-				const bit = array.slice(start, end);
+				const bit = softSlice(array, start, end);
 				this.framePos += (end - start);
 
 				if (this.framePos === this.frameLength) {
@@ -80,7 +84,7 @@ class FrameReader {
 
 				// more in the array?
 				if (array.length > end) {
-					array = array.slice(end);
+					array = softSlice(array, end);
 				} else {
 					// continue reading
 					this.beginRead();
@@ -335,7 +339,7 @@ function queryServers(e: MessageEvent) {
 
 				return subject;
 			}),
-			bufferTime(250, null, 50),
+			bufferTime(250, null, 250),
 			retryWhen(errors =>
 				errors.pipe(
 					tap(err => console.log(`Fetching server list failed: ${err}`)),
@@ -346,9 +350,9 @@ function queryServers(e: MessageEvent) {
 		)
 		.subscribe((servers: master.IServer[]) => {
 			if (servers.length) {
-				servers.forEach(({ EndPoint, Data }) => {
-					cachedServers[EndPoint] = Data;
-				});
+                for (const server of servers) {
+					cachedServers[server.EndPoint] = server.Data;
+				}
 
 				(<any>postMessage)({ type: 'addServers', servers })
 			}
