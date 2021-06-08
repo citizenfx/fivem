@@ -49,7 +49,7 @@ namespace fx
 		}
 	};
 
-	inline object_pool<GameServerPacket> m_packetPool;
+	extern SVIMP_EXPORT object_pool<GameServerPacket> m_packetPool;
 
 	class GameServer : public fwRefCountable, public IAttached<ServerInstanceBase>, public ComponentHolderImpl<GameServer>
 	{

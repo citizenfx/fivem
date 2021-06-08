@@ -47,6 +47,8 @@ extern fwEvent<> OnEnetReceive;
 
 namespace fx
 {
+	DLL_EXPORT object_pool<GameServerPacket> m_packetPool;
+
 	GameServer::GameServer()
 		: m_residualTime(0), m_serverTime(msec().count()), m_nextHeartbeatTime(0), m_hasSettled(false)
 	{
