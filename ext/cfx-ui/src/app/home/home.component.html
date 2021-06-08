@@ -27,6 +27,15 @@
 				[innerHTML]="serviceMessage"
 			>
 			</div>
+            <div class="right" id="statuspage_indicator"
+                 (click)="openLink('https://status.cfx.re/')"
+                 *ngIf="statusLevel"
+            >
+                <div
+                    aria-label="Server Status"
+                    data-balloon-pos="right"
+                ><span class="material-icons-outlined" [ngClass]="{'status-good': this.statusLevel === 1, 'status-warn': this.statusLevel === 2, 'status-bad': this.statusLevel === 3}">fiber_manual_record</span></div>
+            </div>
 		</div>
 		<div class="right" *ngIf="gameName != 'rdr3' && gameName != 'ny'">
 			<div class="player-stats" *ngIf="playerStats">
