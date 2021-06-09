@@ -27,6 +27,8 @@ export class HomeComponent implements OnInit, OnDestroy {
 
 	serviceMessage: SafeHtml;
 	welcomeMessage: SafeHtml;
+	statusLevel = 0; // 0 = [unset], 1 = good, 2 = warn, 3 = bad
+    statusInterval;
 
 	brandingName: string;
 	language = '';
@@ -99,12 +101,16 @@ export class HomeComponent implements OnInit, OnDestroy {
 		this.fetchWelcome();
 		this.fetchPlayerStats();
 		this.fetchServiceMessage();
+		this.updateStatus();
+		this.statusInterval = this.startStatusCheckerLoop();
 
 		this.loadLastServer();
 		this.loadTopServer();
 	}
 
-	ngOnDestroy() {}
+	ngOnDestroy() {
+	    clearInterval(this.statusInterval);
+    }
 
 	async loadTopServer() {
 		if (this.currentAccount) {
@@ -170,6 +176,30 @@ export class HomeComponent implements OnInit, OnDestroy {
 				}
 			});
 	}
+
+	updateStatus() {
+        window.fetch('https://status.cfx.re/api/v2/status.json')
+            .then(async (res) => {
+                const status = (await res.json());
+                switch (status['status']['description']) {
+                    case 'All Systems Operational':
+                        this.statusLevel = 1
+                        break;
+                    case 'Partial System Outage':
+                        this.statusLevel = 2;
+                        break;
+                    case 'Major Service Outage':
+                        this.statusLevel = 3;
+                        break;
+                    default:
+                        this.statusLevel = 0;
+                        break;
+                }
+            })
+    }
+	startStatusCheckerLoop() {
+        return setInterval(() => { this.updateStatus(); }, 1000 * 20 );
+    }
 
 	fetchWelcome() {
 		window.fetch((this.gameService.gameName === 'gta5') ?
