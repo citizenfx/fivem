@@ -109,21 +109,26 @@
 			}
 		}
 
-        .status-good {
-            @include theme() using ($theme) {
-                color: gtv($theme, activeColor);
-            }
-        }
-        .status-warn {
-            @include theme() using ($theme) {
-                color: gtv($theme, yellowColor);
-            }
-        }
-        .status-bad {
-            @include theme() using ($theme) {
-                color: gtv($theme,  redColor);
-            }
-        }
+		.status-indicator {
+			font-size: var(--fs-2);
+		}
+
+		.status-good {
+			@include theme() using ($theme) {
+				color: gtv($theme, activeColor);
+			}
+		}
+		.status-warn {
+			@include theme() using ($theme) {
+				color: gtv($theme, yellowColor);
+			}
+		}
+		.status-bad {
+			@include theme() using ($theme) {
+				color: gtv($theme,  redColor);
+			}
+		}
+
 		.player-stats {
 			display: flex;
 			flex-direction: column;
