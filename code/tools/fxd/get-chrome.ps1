@@ -13,5 +13,5 @@ if (!(Test-Path "$SaveDir\$CefName.zip")) {
 }
 
 & $env:WINDIR\system32\tar.exe -C $WorkDir\vendor\cef -xf "$SaveDir\$CefName.zip"
-Copy-Item -Force $WorkDir\vendor\cef\$CefName\* $WorkDir\vendor\cef\
+Copy-Item -Force -Recurse $WorkDir\vendor\cef\$CefName\* $WorkDir\vendor\cef\
 Remove-Item -Recurse $WorkDir\vendor\cef\$CefName\
