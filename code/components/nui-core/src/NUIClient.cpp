@@ -97,20 +97,30 @@ void NUIClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> fra
 	if (auto parent = frame->GetParent(); parent && parent->IsMain())
 	{
 		frame->ExecuteJavaScript(R"(
-const oldConsoleLog = console.log;
+const doHook = () => {
+	const oldConsoleLog = console.log;
 
-Object.defineProperty(console, 'log', {
-    get: () => {
-        return (...args) => {
-            for (const arg of args) {
-                if (arg instanceof HTMLElement) {
-                    globalThis.dummy = arg.id + '';
-                }
-            }
-            return oldConsoleLog(...args);
-        };
-    }
-});
+	Object.defineProperty(console, 'log', {
+		get: () => {
+			return (...args) => {
+				for (const arg of args) {
+					if (arg instanceof HTMLElement) {
+						globalThis.dummy = arg.id + '';
+					}
+				}
+				return oldConsoleLog(...args);
+			};
+		}
+	});
+};
+
+const oldDefineGetter = Object.prototype.__defineGetter__;
+Object.prototype.__defineGetter__ = function(prop, func) {
+	if (prop === 'id') {
+		doHook();
+	}
+	return oldDefineGetter.call(this, prop, func);
+};
 )",
 		"nui://patches", 0);
 	}
