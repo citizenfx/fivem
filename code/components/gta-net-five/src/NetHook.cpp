@@ -1479,7 +1479,6 @@ static void WINAPI ExitProcessReplacement(UINT exitCode)
 	if (g_netLibrary)
 	{
 		g_netLibrary->Disconnect((g_quitMsg.empty()) ? "Exiting" : g_quitMsg.c_str());
-		g_netLibrary->FinalizeDisconnect();
 	}
 
 	TerminateProcess(GetCurrentProcess(), exitCode);
@@ -1540,7 +1539,6 @@ static bool BeforeReplayLoadHook()
 	}
 
 	g_netLibrary->Disconnect("Entering Rockstar Editor");
-	g_netLibrary->FinalizeDisconnect();
 
 	// stop scripts from this point
 	Instance<ICoreGameInit>::Get()->SetVariable("networkTimedOut");

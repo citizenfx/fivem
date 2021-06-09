@@ -75,14 +75,13 @@ static std::string CrackResourceName(const std::string& uri)
 }
 
 static std::mutex progressMutex;
-static std::optional<std::tuple<std::string, int, int>> nextProgress;
+static std::optional<std::tuple<std::string, int, int, bool>> nextProgress;
+static pplx::cancellation_token_source cts;
 
-static void ThrottledConnectionProgress(const std::string& string, int count, int total)
+static void ThrottledConnectionProgress(const std::string& string, int count, int total, bool cancelable)
 {
 	std::lock_guard<std::mutex> _(progressMutex);
-	nextProgress = { string,
-		count,
-		total };
+	nextProgress = { string, count, total, cancelable };
 }
 
 static pplx::task<std::vector<ResultTuple>> DownloadResources(std::vector<std::string> requiredResources, NetLibrary* netLibrary)
@@ -103,6 +102,10 @@ static pplx::task<std::vector<ResultTuple>> DownloadResources(std::vector<std::s
 
 	for (auto& resourceUri : requiredResources)
 	{
+		if (cts.get_token().is_canceled())
+		{
+			break;
+		}
 		auto resourceName = CrackResourceName(resourceUri);
 
 		{
@@ -117,17 +120,25 @@ static pplx::task<std::vector<ResultTuple>> DownloadResources(std::vector<std::s
 		auto mounterRef = manager->GetMounterForUri(resourceUri);
 		static_cast<fx::CachedResourceMounter*>(mounterRef.GetRef())->AddStatusCallback(resourceName, [=](fx::CachedResourceMounter::StatusType statusType, int downloadCurrent, int downloadTotal)
 		{
+			if (cts.get_token().is_canceled())
+			{
+				return;
+			}
 			std::string_view statusTypeString = (statusType == fx::CachedResourceMounter::StatusType::Downloading) ? "Downloading" : "Verifying";
 
 			ThrottledConnectionProgress(fmt::sprintf("%s %s (%d of %d - %.2f/%.2f MiB)", statusTypeString, resourceName, progressCounter->current, progressCounter->total,
-				downloadCurrent / 1024.0f / 1024.0f, downloadTotal / 1024.0f / 1024.0f), progressCounter->current, progressCounter->total);
+				downloadCurrent / 1024.0f / 1024.0f, downloadTotal / 1024.0f / 1024.0f), progressCounter->current, progressCounter->total, true);
 		});
 
 		auto resource = co_await manager->AddResourceWithError(resourceUri);
 
+		if (cts.get_token().is_canceled())
+		{
+			break;
+		}
 		// report progress
 		int currentCount = progressCounter->current.fetch_add(1) + 1;
-		ThrottledConnectionProgress(fmt::sprintf("Mounted %s (%d of %d)", resourceName, currentCount, progressCounter->total), currentCount, progressCounter->total);
+		ThrottledConnectionProgress(fmt::sprintf("Mounted %s (%d of %d)", resourceName, currentCount, progressCounter->total), currentCount, progressCounter->total, true);
 
 		// return tuple
 		list.emplace_back(resource, resourceName);
@@ -236,17 +247,17 @@ static InitFunction initFunction([] ()
 				{
 					ThrottledConnectionProgress(fmt::sprintf("Downloading content manifest (%.2f/%.2f kB)",
 						progress.downloadNow / 1000.0, progress.downloadTotal / 1000.0),
-						0, 1);
+						0, 1, false);
 				}
 				else if (progress.downloadNow != 0)
 				{
 					ThrottledConnectionProgress(fmt::sprintf("Downloading content manifest (%.2f kB)",
 						progress.downloadNow / 1000.0),
-						0, 1);
+						0, 1, false);
 				}
 			};
 
-			ThrottledConnectionProgress("Downloading content manifest...", 0, 1);
+			ThrottledConnectionProgress("Downloading content manifest...", 0, 1, false);
 
 			httpClient->DoPostRequest(fmt::sprintf("%sclient", curServerUrlNonTls), httpClient->BuildPostString(postMap), options, [=](bool result, const char* data, size_t size)
 			{
@@ -262,7 +273,7 @@ static InitFunction initFunction([] ()
 					return;
 				}
 
-				ThrottledConnectionProgress("Loading content manifest...", 0, 1);
+				ThrottledConnectionProgress("Loading content manifest...", 0, 1, false);
 
 				// 'get' the server host
 				std::string serverHost = addressClone.GetAddress() + va(":%d", addressClone.GetPort());
@@ -459,6 +470,9 @@ static InitFunction initFunction([] ()
 					g_resourceStartRequestSet.erase(updateList);
 				}
 
+				// create download task cancellation token, so we can cancel downloads if we want
+				cts = pplx::cancellation_token_source();
+
 				DownloadResources(requiredResources, netLibrary).then([=] (std::vector<ResultTuple> resources)
 				{
 					for (auto& resourceData : resources)
@@ -510,7 +524,7 @@ static InitFunction initFunction([] ()
 					});
 
 					doneCb();
-				});
+				}, cts.get_token());
 			});
 		};
 
@@ -541,7 +555,7 @@ static InitFunction initFunction([] ()
 		{
 			g_netAddress = address;
 
-			ThrottledConnectionProgress("Unloading content...", 0, 1);
+			ThrottledConnectionProgress("Unloading content...", 0, 1, false);
 
 			fx::ResourceManager* resourceManager = Instance<fx::ResourceManager>::Get();
 			resourceManager->ResetResources();
@@ -598,8 +612,8 @@ static InitFunction initFunction([] ()
 
 				if (nextProgress)
 				{
-					auto [string, count, total] = *nextProgress;
-					g_netLibrary->OnConnectionProgress(string, count, total, false);
+					auto [string, count, total, cancelable] = *nextProgress;
+					g_netLibrary->OnConnectionProgress(string, count, total, cancelable);
 
 					nextProgress = {};
 				}
@@ -740,6 +754,9 @@ static InitFunction initFunction([] ()
 
 		netLibrary->OnFinalizeDisconnect.Connect([=](NetAddress)
 		{
+			// cancel download tasks
+			cts.cancel();
+
 			executeNextGameFrame.push([]()
 			{
 				Instance<fx::ResourceManager>::Get()->ForAllResources([](fwRefContainer<fx::Resource> resource)

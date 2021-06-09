@@ -597,8 +597,7 @@ void NetLibrary::RunFrame()
 
 			if (m_connectAttempts > 3)
 			{
-				g_disconnectReason = "Fetching info timed out.";
-				FinalizeDisconnect();
+				Disconnect("Fetching info timed out.");
 
 				OnConnectionTimedOut();
 
@@ -623,8 +622,7 @@ void NetLibrary::RunFrame()
 
 			if (m_connectAttempts > 3)
 			{
-				g_disconnectReason = "Connection timed out.";
-				FinalizeDisconnect();
+				Disconnect("Connection timed out.");
 
 				OnConnectionTimedOut();
 
@@ -669,8 +667,7 @@ void NetLibrary::RunFrame()
 
 				if (m_reconnectAttempts > 10)
 				{
-					g_disconnectReason = "Connection timed out.";
-					FinalizeDisconnect();
+					Disconnect("Connection timed out.");
 
 					OnConnectionTimedOut();
 
@@ -856,7 +853,6 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 	if (m_connectionState != CS_IDLE)
 	{
 		Disconnect("Connecting to another server.");
-		FinalizeDisconnect();
 	}
 
 	// late-initialize error state in ICoreGameInit
@@ -888,7 +884,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 					if (!Instance<ICoreGameInit>::Get()->GetGameLoaded())
 					{
-						lib->FinalizeDisconnect();
+						lib->Disconnect();
 					}
 				}
 
@@ -1808,19 +1804,21 @@ void NetLibrary::CancelDeferredConnection()
 	}
 }
 
+static std::mutex g_disconnectionMutex;
+
 void NetLibrary::Disconnect(const char* reason)
 {
 	g_disconnectReason = reason;
 
 	OnAttemptDisconnect(reason);
 	//GameInit::KillNetwork((const wchar_t*)1);
-}
 
-static std::mutex g_disconnectionMutex;
-
-void NetLibrary::FinalizeDisconnect()
-{
 	std::unique_lock<std::mutex> lock(g_disconnectionMutex);
+
+	if (m_connectionState == CS_DOWNLOADING)
+	{
+		OnFinalizeDisconnect(m_currentServer);
+	}
 
 	if (m_connectionState == CS_CONNECTING || m_connectionState == CS_ACTIVE)
 	{
@@ -2032,7 +2030,6 @@ NetLibrary* NetLibrary::Create()
 		if (lib->GetConnectionState() != NetLibrary::CS_IDLE)
 		{
 			lib->Disconnect((const char*)reason);
-			lib->FinalizeDisconnect();
 		}
 	});
 

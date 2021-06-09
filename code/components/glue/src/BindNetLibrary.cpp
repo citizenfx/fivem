@@ -95,7 +95,7 @@ static InitFunction initFunction([] ()
 
 		OnKillNetworkDone.Connect([=]()
 		{
-			library->FinalizeDisconnect();
+			library->Disconnect();
 
 			console::GetDefaultContext()->GetVariableManager()->RemoveVariablesWithFlag(ConVar_Replicated);
 		});
