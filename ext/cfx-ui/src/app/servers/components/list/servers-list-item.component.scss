@@ -201,6 +201,8 @@
 		flex-shrink: 0;
 		justify-content: flex-end;
 
+        padding-right: calc(var(--qh) * 0.5);
+
 		span {
 			display: inline-block;
 			font-size: calc(var(--fs-1) * 0.75);
@@ -269,6 +271,11 @@
 				position: relative;
 
 				width: var(--q3);
+
+                &.web {
+                    width: auto;
+                    cursor: default;
+                }
 
 				justify-content: space-between;
 
@@ -359,6 +366,10 @@
 		.actions {
 			width: var(--q6);
 			display: flex;
+
+            &.web {
+                width: auto;
+            }
 		}
 
 		.actions button {

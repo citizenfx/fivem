@@ -43,10 +43,11 @@
 		</span>
 	</div>
 
-    <div class="actions" *ngIf="!isPinList">
+    <div class="actions" *ngIf="!isPinList" [class.web]="isWeb">
 		<button
 			(click)="enableBoost($event)"
-			[class.active]="isBoost()"
+			[class.active]="isBoost() && !isWeb"
+            [class.web]="isWeb"
 			aria-label="Give this server a BOOST™!"
 			data-balloon-pos="left"
 			class="boost"
@@ -57,7 +58,7 @@
 				{{server.upvotePower}}
 			</span>
 
-			<div class="booster">
+			<div class="booster" *ngIf="!isWeb">
 				BOOST™!
 			</div>
 		</button>
@@ -67,6 +68,7 @@
 			[class.active]="isFavorite()"
 			class="fav"
 			tabindex="-1"
+            *ngIf="!isWeb"
 		>
 			<span *ngIf="!isFavorite()" class="material-icons-outlined">star_bordered</span>
 			<span *ngIf="isFavorite()" class="material-icons-outlined">star</span>

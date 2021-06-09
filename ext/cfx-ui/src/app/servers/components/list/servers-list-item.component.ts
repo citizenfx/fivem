@@ -15,6 +15,7 @@ import { ServersService } from '../../servers.service';
 import parseAPNG, { isNotAPNG } from '@citizenfx/apng-js';
 import { ServerTagsService } from 'app/servers/server-tags.service';
 import { Subscription } from 'rxjs';
+import { environment } from 'environments/environment';
 
 @Component({
 	moduleId: module.id,
@@ -46,6 +47,10 @@ export class ServersListItemComponent implements OnInit, OnChanges, OnDestroy, A
 	constructor(private gameService: GameService, private discourseService: DiscourseService, private tagService: ServerTagsService,
 		private serversService: ServersService, private router: Router, private elementRef: ElementRef,
 		private zone: NgZone, private renderer: Renderer2, private cdr: ChangeDetectorRef) {
+    }
+
+    get isWeb() {
+        return environment.web;
     }
 
 	get premium() {
@@ -201,7 +206,9 @@ export class ServersListItemComponent implements OnInit, OnChanges, OnDestroy, A
 	}
 
 	enableBoost(event: Event) {
-		this.addBoost();
+        if (!environment.web) {
+		    this.addBoost();
+        }
 
 		event.stopPropagation();
 	}

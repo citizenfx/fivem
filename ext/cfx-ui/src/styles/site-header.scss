@@ -33,7 +33,7 @@ header {
 				display: block;
 				width: var(--q2);
 				height: var(--q2);
-				transform: rotateY(180deg);
+				transform: gtv($theme, logoTransform);
 				fill: currentColor;
 			}
 

@@ -6,7 +6,6 @@
 				class="nav-item subnav-item"
 				routerLinkActive="active"
 				[routerLinkActiveOptions]="{exact: true}"
-				*ngIf="gameName !== 'rdr3'"
 			>
 				<span class="material-icons-outlined">reorder</span>
 				<span class="label" l10nTranslate>
@@ -43,8 +42,8 @@
 	</div>
 
     <section class="filter stretch" [class.disabled]="type === 'history'">
-		<input class="name" id="searchBox" [type]="streamerMode ? 'password' : 'search'" placeholder="Search or enter an IP address" [(ngModel)]="filters.searchText"
-			(ngModelChange)="updateFiltersDebounced()" (focus)="onSearchFocus()" (blur)="onSearchBlur()" (keydown)="onKeyPress($event)">
+		<input class="name" id="searchBox" [type]="streamerMode ? 'password' : 'search'" [placeholder]="searchHint | translate:locale.language" [(ngModel)]="filters.searchText"
+			(ngModelChange)="updateFiltersDebounced()" (focus)="onSearchFocus()" (blur)="onSearchBlur()" (keydown)="onKeyPress($event)" autocomplete="off">
 
 		<div class="search-dropdown" [class.active]="searchFocused" tabindex="-1">
 			<ul>

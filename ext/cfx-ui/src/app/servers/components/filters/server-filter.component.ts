@@ -14,6 +14,8 @@ import { ServerFilters, ServerSorting, ServerSortBy, ServerSortDirection } from 
 import { DirectConnectBackendComponent } from '../../direct/direct-connect-backend.component';
 import { LocalStorage } from '../../../local-storage';
 import { FiltersService, ServerAutocompleteEntry, SearchAutocompleteIndex } from '../../filters.service';
+import { L10nLocale, L10N_LOCALE } from 'angular-l10n';
+import { environment } from 'environments/environment';
 
 @Component({
 	moduleId: module.id,
@@ -97,6 +99,7 @@ export class ServerFilterComponent implements OnInit, OnDestroy {
 		private gameService: GameService,
 		private cdr: ChangeDetectorRef,
 		private filtersService: FiltersService,
+        @Inject(L10N_LOCALE) public locale: L10nLocale,
 	) {
 		this.gameName = gameService.gameName;
 		this.streamerMode = gameService.streamerMode;
@@ -141,6 +144,10 @@ export class ServerFilterComponent implements OnInit, OnDestroy {
 			this.cdr.markForCheck();
 		});
 	}
+
+    get searchHint() {
+        return (environment.web) ? '#ServerList_SearchHintWeb' : '#ServerList_SearchHint';
+    }
 
 	updateSort(sortBy: ServerSortBy) {
 		const [currentSortBy, currentSortDirection] = this.sortOrder;

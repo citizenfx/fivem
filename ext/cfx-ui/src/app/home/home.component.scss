@@ -479,7 +479,7 @@
 					margin-right: var(--q1);
 
 					// Make it point to the correct direction
-					transform: rotateY(180deg);
+					transform: scaleX(-1);
 
 					:host-context(.game-rdr3) &, :host-context(.game-ny) & {
 						transform: none;

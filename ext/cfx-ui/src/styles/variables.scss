@@ -17,7 +17,8 @@ $colorsLight: (
 	blueColor: hsl(180, 100%, 40%),
     textColor: hsl(226, 23%, 11%),
     acrylicBlur: url(#acrylicBlur),
-    backgroundImage: none
+    backgroundImage: none,
+    logoTransform: scaleX(-1),
 );
 
 $colorsDark: (
@@ -39,7 +40,8 @@ $colorsDark: (
 	blueColor: hsl(180, 100%, 40%),
     textColor: hsl(60, 100%, 97%),
     acrylicBlur: url(#acrylicBlurDark),
-    backgroundImage: none
+    backgroundImage: none,
+    logoTransform: scaleX(-1),
 );
 
 $colorsRdr: (
@@ -60,7 +62,8 @@ $colorsRdr: (
 	blueColor: hsl(180, 100%, 40%),
     textColor: rgb(240, 240, 240),
     acrylicBlur: url(#acrylicBlurDark),
-    backgroundImage: url(https://cdn.discordapp.com/attachments/644430138276184066/645339402847125504/Red_Dead_Redemption_2_Screenshot_2019.11.16_-_20.07.53.92.png) /* temp placeholder */
+    backgroundImage: url(https://cdn.discordapp.com/attachments/644430138276184066/645339402847125504/Red_Dead_Redemption_2_Screenshot_2019.11.16_-_20.07.53.92.png), /* temp placeholder */
+    logoTransform: none,
 );
 
 $colorsNy: (
@@ -82,7 +85,8 @@ $colorsNy: (
 	blueColor: #0F97FF,
     textColor: rgb(240, 240, 240),
     acrylicBlur: url(#acrylicBlurDark),
-    backgroundImage: url(https://mirrors.fivem.net/iv_pic.jpg)
+    backgroundImage: url(https://mirrors.fivem.net/iv_pic.jpg),
+    logoTransform: none,
 );
 
 

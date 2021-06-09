@@ -12,14 +12,16 @@ div.theRoot {
 	}
 }
 
-.acrylicBlur {
-	@include themeNoHost() using ($theme) {
-		filter: gtv($theme, acrylicBlur);
-	}
+@supports (filter: url(a.svg#a)) {
+    .acrylicBlur {
+        @include themeNoHost() using ($theme) {
+            filter: gtv($theme, acrylicBlur);
+        }
 
-	.blur-noBlur & {
-		filter: none;
-	}
+        .blur-noBlur & {
+            filter: none;
+        }
+    }
 }
 
 :host {
@@ -57,7 +59,7 @@ div.theRoot {
 	z-index: 100;
 }
 
-.webapp ::ng-deep .ping, .webapp ::ng-deep .actions, .webapp ::ng-deep .max-ping, .webapp ::ng-deep app-servers-detail .favorite {
+.webapp ::ng-deep .ping, .webapp ::ng-deep .max-ping, .webapp ::ng-deep app-servers-detail .favorite {
 	display: none !important;
 }
 

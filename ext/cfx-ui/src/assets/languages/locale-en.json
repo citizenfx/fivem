@@ -11,6 +11,8 @@
     "#ServerList_DirectConnect": "Direct Connect",
     "#ServerList_Tags": "Tags",
     "#ServerList_StreamerModeWarning": "Streamer Mode is enabled - input is hidden",
+    "#ServerList_SearchHint": "Search or enter an IP address",
+    "#ServerList_SearchHintWeb": "Search",
     "#Home_AdDetail": "top upvoted server in your region",
     "#BottomNav_Home": "Home",
     "#BottomNav_Servers": "Servers",

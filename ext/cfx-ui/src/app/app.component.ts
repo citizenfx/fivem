@@ -204,6 +204,10 @@ export class AppComponent implements OnInit, AfterViewInit {
 		return this.router.url === '/';
 	}
 
+    get isWeb() {
+        return environment.web;
+    }
+
 	constructor(@Inject(L10N_LOCALE) public locale: L10nLocale,
 		public l10nService: L10nTranslationService,
 		public gameService: GameService,

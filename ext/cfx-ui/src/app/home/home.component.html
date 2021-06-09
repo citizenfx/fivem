@@ -29,7 +29,7 @@
 			</div>
             <div class="right" id="statuspage_indicator"
                  (click)="openLink('https://status.cfx.re/')"
-                 *ngIf="statusLevel"
+                 *ngIf="statusLevel && gameName != 'rdr3'"
             >
                 <div
                     aria-label="Server Status"
