@@ -27,8 +27,9 @@ export class HomeComponent implements OnInit, OnDestroy {
 
 	serviceMessage: SafeHtml;
 	welcomeMessage: SafeHtml;
+	statusMessage = '';
 	statusLevel = 0; // 0 = [unset], 1 = good, 2 = warn, 3 = bad
-    statusInterval;
+	statusInterval;
 
 	brandingName: string;
 	language = '';
@@ -109,8 +110,8 @@ export class HomeComponent implements OnInit, OnDestroy {
 	}
 
 	ngOnDestroy() {
-	    clearInterval(this.statusInterval);
-    }
+		clearInterval(this.statusInterval);
+	}
 
 	async loadTopServer() {
 		if (this.currentAccount) {
@@ -178,28 +179,29 @@ export class HomeComponent implements OnInit, OnDestroy {
 	}
 
 	updateStatus() {
-        window.fetch('https://status.cfx.re/api/v2/status.json')
-            .then(async (res) => {
-                const status = (await res.json());
-                switch (status['status']['description']) {
-                    case 'All Systems Operational':
-                        this.statusLevel = 1
-                        break;
-                    case 'Partial System Outage':
-                        this.statusLevel = 2;
-                        break;
-                    case 'Major Service Outage':
-                        this.statusLevel = 3;
-                        break;
-                    default:
-                        this.statusLevel = 0;
-                        break;
-                }
-            })
-    }
+		window.fetch('https://status.cfx.re/api/v2/status.json')
+			.then(async (res) => {
+				const status = (await res.json());
+				this.statusMessage = status['status']['description'] || '';
+				switch (status['status']['description']) {
+					case 'All Systems Operational':
+						this.statusLevel = 1;
+						break;
+					case 'Partial System Outage':
+						this.statusLevel = 2;
+						break;
+					case 'Major Service Outage':
+						this.statusLevel = 3;
+						break;
+					default:
+						this.statusLevel = 0;
+						break;
+				}
+			})
+	}
 	startStatusCheckerLoop() {
-        return setInterval(() => { this.updateStatus(); }, 1000 * 20 );
-    }
+		return setInterval(() => { this.updateStatus(); }, 1000 * 20 );
+	}
 
 	fetchWelcome() {
 		window.fetch((this.gameService.gameName === 'gta5') ?
@@ -250,9 +252,9 @@ export class HomeComponent implements OnInit, OnDestroy {
 			});
 	}
 
-    toggleAuthModal() {
-        this.discourseService.openAuthModal();
-    }
+	toggleAuthModal() {
+		this.discourseService.openAuthModal();
+	}
 
 	clickContent(event: MouseEvent) {
 		const srcElement = event.srcElement as HTMLElement;
