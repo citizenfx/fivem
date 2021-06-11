@@ -1145,3 +1145,43 @@ end
 if not isDuplicityVersion then
 	LocalPlayer = Player(-1)
 end
+
+local requireCached = {}
+
+-- lua's require function to load script at runtime.
+-- note: for client, scripts should be added to `file` entries in the fx manifest
+-- ex script path : resource-name.dir.file
+function require(scriptPath)
+
+	if type(scriptPath) ~= 'string' then
+		error('Expected script path to be a string')
+	end
+
+	if requireCached[scriptPath] then
+		return
+	end
+
+	local dotIndex = string.find(scriptPath, '%.')
+	local resource = string.sub(scriptPath, 1, dotIndex - 1)
+	local file     = string.sub(scriptPath, dotIndex + 1)
+	file           = string.gsub(file, '%.', '/')
+	local content  = LoadResourceFile(resource, string.format('%s.lua', file))
+
+	if not content then
+		error('Specified script is not found.')
+	end
+
+	local func, err = load(content)
+
+	if not func then
+		error(err)
+	end
+
+	local res                 = func()
+	requireCached[scriptPath] = true
+	return res
+
+end
+
+-- for cfx naming convention
+Require = require
