@@ -1148,9 +1148,6 @@ end
 
 local requireCached = {}
 
--- lua's require function to load script at runtime.
--- note: for client, scripts should be added to `file` entries in the fx manifest
--- ex script path : resource-name.dir.file
 function require(scriptPath)
 
 	if type(scriptPath) ~= 'string' then
