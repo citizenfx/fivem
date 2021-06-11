@@ -1158,7 +1158,7 @@ function require(scriptPath)
 	end
 
 	if requireCached[scriptPath] then
-		return
+		return requireCached[scriptPath]
 	end
 
 	local dotIndex = string.find(scriptPath, '%.')
@@ -1178,7 +1178,7 @@ function require(scriptPath)
 	end
 
 	local res                 = func()
-	requireCached[scriptPath] = true
+	requireCached[scriptPath] = res
 	return res
 
 end
