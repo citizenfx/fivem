@@ -6,7 +6,6 @@ input[type="password"] {
 
 	@include themeNoHost() using ($theme) {
 		color: gtv($theme, fgColor);
-        background-color: rgba(gtv($theme, fgColor), .1);
 		box-shadow: 0 -2px 0 rgba(gtv($theme, fgColor), .5) inset, 0 0 0 2px transparent inset;
 	};
 
