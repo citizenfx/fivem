@@ -363,15 +363,15 @@ static void Mumble_RunFrame()
 
 	{
 		// handle PTT
-		auto isControlPressed = fx::ScriptEngine::GetNativeHandler(0xF3A21BCD95725A4A);
-		fx::ScriptContextBuffer cxt;
+		constexpr const uint32_t PLAYER_CONTROL = 0;
+		constexpr const uint32_t INPUT_PUSH_TO_TALK = 249;
+		static auto isControlPressed = fx::ScriptEngine::GetNativeHandler(0xF3A21BCD95725A4A);
+		static auto isControlEnabled = fx::ScriptEngine::GetNativeHandler(0x1CEA6BFDF248E5D9);
+		bool pushToTalkPressed = FxNativeInvoke::Invoke<bool>(isControlPressed, PLAYER_CONTROL, INPUT_PUSH_TO_TALK);
+		bool pushToTalkEnabled = FxNativeInvoke::Invoke<bool>(isControlEnabled, PLAYER_CONTROL, INPUT_PUSH_TO_TALK);
 
-		cxt.Push(0);
-		cxt.Push(249); // INPUT_PUSH_TO_TALK
-
-		(*isControlPressed)(cxt);
-
-		g_mumbleClient->SetPTTButtonState(cxt.GetResult<bool>() || game::IsControlKeyDown(249 /* INPUT_PUSH_TO_TALK */));
+		// game::IsControlKeyDown doesn't take enabled/disabled state into account, so we manually check enabled state
+		g_mumbleClient->SetPTTButtonState(pushToTalkEnabled && (pushToTalkPressed || game::IsControlKeyDown(249 /* INPUT_PUSH_TO_TALK */)));
 	}
 
 	// handle device changes
