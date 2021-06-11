@@ -73,12 +73,12 @@ export class ServerFilterComponent implements OnInit, OnDestroy {
 		return this.sortOrder[0] === ServerSortBy.Name;
 	}
 	get sortByNameAsc() {
-		return this.sortOrder[0] === ServerSortBy.Name && this.sortOrder[1] === ServerSortDirection.Asc;
+		return this.sortOrder[0] !== ServerSortBy.Name || (
+            this.sortOrder[0] === ServerSortBy.Name && this.sortOrder[1] === ServerSortDirection.Asc
+        );
 	}
 	get sortByNameDesc() {
-		return this.sortOrder[0] !== ServerSortBy.Name || (
-			this.sortOrder[0] === ServerSortBy.Name && this.sortOrder[1] === ServerSortDirection.Desc
-		);
+		return this.sortOrder[0] === ServerSortBy.Name && this.sortOrder[1] === ServerSortDirection.Desc;
 	}
 
 	get sortByPlayers() {
@@ -164,14 +164,13 @@ export class ServerFilterComponent implements OnInit, OnDestroy {
 				break;
 			}
 			case currentSortDirection === ServerSortDirection.Asc: {
-				newSortOrder[0] = ServerSortBy.Boosts;
 				newSortOrder[1] = ServerSortDirection.Desc;
 
 				break;
 			}
 			case sortBy !== currentSortBy: {
 				newSortOrder[0] = sortBy;
-				newSortOrder[1] = ServerSortDirection.Desc;
+				newSortOrder[1] = (sortBy === ServerSortBy.Name) ? ServerSortDirection.Asc : ServerSortDirection.Desc;
 
 				break;
 			}

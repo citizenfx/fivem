@@ -105,8 +105,8 @@
 				</div>
 				<div class="sort-by" (click)="updateSort(sortBy.Name)" [class.active]="sortByName" tabindex="0">
 					Server name:
-					<span *ngIf="sortByNameDesc">A-Z</span>
-					<span *ngIf="sortByNameAsc">Z-A</span>
+					<span *ngIf="sortByNameAsc">A-Z</span>
+					<span *ngIf="sortByNameDesc">Z-A</span>
 				</div>
 				<div class="sort-by" (click)="updateSort(sortBy.Players)" [class.active]="sortByPlayers" tabindex="0">
 					Players:
