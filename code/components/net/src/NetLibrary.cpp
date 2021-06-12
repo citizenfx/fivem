@@ -1430,9 +1430,9 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 													}
 
 													// add forced policies
-													if (maxClients <= 8)
+													if (maxClients <= 10)
 													{
-														// development/testing servers (<= 8 clients max) get subdir_file_mapping granted
+														// development/testing servers (<= 10 clients max - see ZAP defaults) get subdir_file_mapping granted
 														policies.insert("subdir_file_mapping");
 													}
 
