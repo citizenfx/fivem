@@ -6282,11 +6282,6 @@ map-visit@^1.0.0:
   dependencies:
     object-visit "^1.0.0"
 
-material-icons@^0.7.2:
-  version "0.7.2"
-  resolved "https://registry.yarnpkg.com/material-icons/-/material-icons-0.7.2.tgz#cfcb9b8247c624df4fca59661e914b81ad4deceb"
-  integrity sha512-IrMBh/aFr2YRDHmM/gUoGB9Kq0DzmEkn/qcKcc/B4lG1FGQzG1Zs+kQyR5b5EXjAVEnTsi0fs+s7iDsiX3Indg==
-
 md5.js@^1.3.4:
   version "1.3.5"
   resolved "https://registry.yarnpkg.com/md5.js/-/md5.js-1.3.5.tgz#b5d07b8e3216e3e27cd728d72f70d1e6a342005f"

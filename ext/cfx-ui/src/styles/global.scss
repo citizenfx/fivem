@@ -11,11 +11,16 @@
 @import "~@fortawesome/fontawesome-free/css/brands.css";
 @import "~@fortawesome/fontawesome-free/css/solid.css";
 
-@import "~material-icons/iconfont/outlined.scss";
-
 @import '~@angular/material/theming';
 
 @include mat-core();
+
+@font-face {
+       font-family: 'Material Icons Outlined';
+       font-style: normal;
+       font-weight: 400;
+       src: url(../assets/fonts/material-icons-outlined.woff2) format('woff2');
+}
 
 @font-face
 {
