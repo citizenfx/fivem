@@ -7,6 +7,7 @@
 #include <fxScripting.h>
 #include <ICoreGameInit.h>
 #include <rageVectors.h>
+#include <MinHook.h>
 
 static int WeaponDamageModifierOffset;
 
@@ -132,6 +133,8 @@ static void Flashlight_Process(CWeaponComponentFlashlight* thisptr, CPed* ped)
 }
 
 
+static std::unordered_map<uint32_t /*Weapon Hash*/, short /*Ammo In Clip*/> g_LocalWeaponClipAmounts;
+static std::atomic_bool g_SET_WEAPONS_NO_AUTORELOAD = false;
 static std::atomic_bool g_SET_WEAPONS_NO_AUTOSWAP = false;
 
 static bool (*origCPedWeapMgr_AutoSwap)(unsigned char*, bool, bool);
@@ -146,6 +149,67 @@ static bool __fastcall CPedWeaponManager_AutoSwap(unsigned char* thisptr, bool o
 	return false;
 }
 
+static bool ( *origWantsReload )( CWeapon*, bool );
+static bool WantsReload( CWeapon* thisptr, bool reloadWhenZero /*normally 1 - 0 means reload at 75% magazine capacity*/ )
+{
+	if( !g_SET_WEAPONS_NO_AUTORELOAD || !thisptr->pInventoryPed || thisptr->pInventoryPed->ped != getLocalPlayerPed() )
+	{
+		return origWantsReload( thisptr, reloadWhenZero );
+	}
+
+	return false;
+}
+
+typedef void* ( *Weapon_DtorFn )( void*, bool );
+static Weapon_DtorFn origWeaponDtor;
+static void* Weapon_DESTROY( CWeapon* thisptr, bool option )
+{
+	// This can be turned off while a weapon is still active.
+	if( g_SET_WEAPONS_NO_AUTORELOAD )
+	{
+		g_LocalWeaponClipAmounts[thisptr->info->hash] = thisptr->ammoInClip;
+	}
+
+	return origWeaponDtor( thisptr, option );
+}
+
+typedef void* ( *CPed_DtorFn )( void*, bool );
+static CPed_DtorFn origCPedDtor;
+static void* CPed_DESTROY( CPed* thisptr, bool option )
+{
+	g_LocalWeaponClipAmounts.clear();
+	return origCPedDtor( thisptr, option );
+}
+
+struct CWeapon_Vtable_Hook
+{
+	void* vfuncs[2];
+} g_CWeapon_Vtable;
+
+static bool ( *origSetupAsWeapon )( unsigned char*, WeaponInfo*, int, bool, CPed*, int64_t, bool, bool );
+static bool __fastcall CPedEquippedWeapon_SetupAsWeapon( unsigned char* thisptr, WeaponInfo* weapInfo, int totalAmmo, bool a4, CPed* targetPed, int64_t weaponAddr, bool a7, bool a8 )
+{
+	if( !g_SET_WEAPONS_NO_AUTORELOAD || targetPed != getLocalPlayerPed() ) 	{
+		return origSetupAsWeapon( thisptr, weapInfo, totalAmmo, a4, targetPed, weaponAddr, a7, a8 );
+	}
+
+	if( g_LocalWeaponClipAmounts.find( weapInfo->hash ) != g_LocalWeaponClipAmounts.end() ) 	{
+		// Restore the saved ammo count from when the gun was destroyed
+		totalAmmo = g_LocalWeaponClipAmounts[weapInfo->hash];
+	}
+
+	auto result = origSetupAsWeapon( thisptr, weapInfo, totalAmmo, a4, targetPed, weaponAddr, a7, a8 );
+
+	// Original Function will call CreateWeapon()->CWeapon::CWeapon() if weaponAddr is NULL(which it is most of the time).
+	// Afterwards it will store it in this+0x340[ver: 1604-2189]
+	// Hook the CWeapon's that we own, when they are destroyed(by one of 100+ different ways), we will remember the ammo count in the clip and restore it.
+	CWeapon* pWeap = *( CWeapon** )( thisptr + 0x340 );
+	uintptr_t* vtable = ( uintptr_t* )pWeap;
+	*vtable = ( uintptr_t )&g_CWeapon_Vtable;
+
+	return result;
+}
+
 typedef void* (*CTaskAimGunOnFootProcessStagesFn)(unsigned char*, int, int);
 static CTaskAimGunOnFootProcessStagesFn origCTaskAimGunOnFoot_ProcessStages;
 static void* CTaskAimGunOnFoot_ProcessStages(unsigned char* thisptr, int stage, int substage)
@@ -158,7 +222,7 @@ static void* CTaskAimGunOnFoot_ProcessStages(unsigned char* thisptr, int stage, 
 
 	CPed* ped = *(CPed**)(thisptr + 16);
 
-	if (!g_SET_WEAPONS_NO_AUTOSWAP || ped != getLocalPlayerPed())
+	if (!(g_SET_WEAPONS_NO_AUTOSWAP || g_SET_WEAPONS_NO_AUTORELOAD) || ped != getLocalPlayerPed())
 	{
 		return origCTaskAimGunOnFoot_ProcessStages(thisptr, stage, substage);
 	}
@@ -246,29 +310,77 @@ static HookFunction hookFunction([]()
 		}
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("SET_WEAPONS_NO_AUTORELOAD", [](fx::ScriptContext& context) 
+	{
+		bool value = context.GetArgument<bool>(0);
+		g_SET_WEAPONS_NO_AUTORELOAD = value;
+
+		fx::OMPtr<IScriptRuntime> runtime;
+		if (FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+		{
+			fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
+
+			resource->OnStop.Connect([]()
+			{
+				g_SET_WEAPONS_NO_AUTORELOAD = false;
+				g_LocalWeaponClipAmounts.clear();
+			});
+		}
+	});
+
 	Instance<ICoreGameInit>::Get()->OnShutdownSession.Connect([]()
 	{
 		g_SET_FLASH_LIGHT_KEEP_ON_WHILE_MOVING = false;
+		g_SET_WEAPONS_NO_AUTORELOAD = false;
 		g_SET_WEAPONS_NO_AUTOSWAP = false;
+		g_LocalWeaponClipAmounts.clear();
 	});
 
 	uintptr_t* flashlightVtable = hook::get_address<uintptr_t*>(hook::get_pattern<unsigned char>("83 CD FF 48 8D 05 ? ? ? ? 33 DB", 6));
 	origFlashlightProcess = (flashlightProcessFn)flashlightVtable[3];
 	flashlightVtable[3] = (uintptr_t)Flashlight_Process;
 
+
+	// Disable auto-swaps
+	{
+		void* autoswap;
+		if (xbr::IsGameBuildOrGreater<2060>())
+		{
+			autoswap = hook::pattern("48 8B 8B ? ? 00 00 45 33 C0 33 D2 E8 ? ? ? ? EB").count(3).get(1).get<void>(12);
+		}
+		else
+		{
+			autoswap = hook::get_pattern("48 8B 8B ? ? 00 00 45 33 C0 33 D2 E8 ? ? ? ? EB", 12);
+		}
+		hook::set_call(&origCPedWeapMgr_AutoSwap, autoswap);
+		hook::call(autoswap, CPedWeaponManager_AutoSwap);
+	}
+
+	// Disable auto-reloads
+	{
+		MH_Initialize();
+		MH_CreateHook(hook::get_pattern("40 53 48 83 EC 20 4C 8B 49 40 33 DB"), WantsReload, (void**)&origWantsReload);
+		MH_CreateHook(hook::get_pattern("48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 41 56 41 57 48 83 EC 30 48 8B 44 24 78 41 8A"), CPedEquippedWeapon_SetupAsWeapon, (void**)&origSetupAsWeapon);
+		MH_EnableHook(MH_ALL_HOOKS);
+
+		// Get the original CWeapon vtable - We will plant a vmt-hook on weapons that we own so we can track their destruction.
+		uintptr_t* cWeapon_vtable = hook::get_address<uintptr_t*>(hook::get_pattern<unsigned char>("45 33 FF 0F 57 C9 48 8D 05 ? ? ? ? 48 89 01", 9));
+		origWeaponDtor = (Weapon_DtorFn)cWeapon_vtable[0];
+		g_CWeapon_Vtable.vfuncs[0] = Weapon_DESTROY;
+		g_CWeapon_Vtable.vfuncs[1] = (void*)cWeapon_vtable[1];
+
+		// Get the original CPed vtable - we'll plant a hook here just on the destructor - this is for clearing the weapon clip history on death
+		uintptr_t* cPed_vtable = hook::get_address<uintptr_t*>(hook::get_pattern<unsigned char>("4D 8B F8 48 8B F9 E8 ? ? ? ? 48 8D 05", 14));
+		origCPedDtor = (CPed_DtorFn)cPed_vtable[0];
+		cPed_vtable[0] = (uintptr_t)CPed_DESTROY;
+
+		// this fix requires another fix, otherwise you get stuck zoomed in.
+		auto zoomFix = hook::get_pattern<unsigned char>("0F BA AF ? ? ? ? 09 E9");
+		hook::nop(zoomFix, 8);
+	}
+
+	// Hook used by auto-reload/auto-swaps to fix a spasm when running out of ammo with the current weapon still held.
 	uintptr_t* cTaskAimGun_vtable = hook::get_address<uintptr_t*>(hook::get_pattern<unsigned char>("48 89 44 24 20 E8 ? ? ? ? 48 8D 05 ? ? ? ? 48 8D 8B 20 01", 13));
 	origCTaskAimGunOnFoot_ProcessStages = (CTaskAimGunOnFootProcessStagesFn)cTaskAimGun_vtable[14];
 	cTaskAimGun_vtable[14] = (uintptr_t)CTaskAimGunOnFoot_ProcessStages;
-
-	void* autoswap;
-	if (xbr::IsGameBuildOrGreater<2060>())
-	{
-		autoswap = hook::pattern("48 8B 8B ? ? 00 00 45 33 C0 33 D2 E8 ? ? ? ? EB").count(3).get(1).get<void>(12);
-	}
-	else
-	{
-		autoswap = hook::get_pattern("48 8B 8B ? ? 00 00 45 33 C0 33 D2 E8 ? ? ? ? EB", 12);
-	}
-	hook::set_call(&origCPedWeapMgr_AutoSwap, autoswap);
-	hook::call(autoswap, CPedWeaponManager_AutoSwap);
 });
