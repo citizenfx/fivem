@@ -1525,10 +1525,9 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 							if (!hasCreatedPlayer)
 							{
-								// #REDM1S: 17..30 slots?
 								constexpr const int kSlotIdStart = 
 #ifdef STATE_RDR3
-									15
+									30
 #else
 									127
 #endif
@@ -1542,6 +1541,13 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 									{
 										slotId--;
 									}
+
+#ifdef STATE_RDR3
+									if (slotId == 16)
+									{
+										slotId--;
+									}
+#endif
 
 									if (!clientData->playersInScope.test(slotId))
 									{
