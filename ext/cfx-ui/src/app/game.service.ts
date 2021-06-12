@@ -60,7 +60,7 @@ export class LocalhostAvailability {
 
 @Injectable()
 export abstract class GameService {
-	connectFailed = new EventEmitter<[Server, string]>();
+	connectFailed = new EventEmitter<[Server, string, any]>();
 	connectStatus = new EventEmitter<ConnectStatus>();
 	connectCard = new EventEmitter<ConnectCard>();
 	connecting = new EventEmitter<Server>();
@@ -226,8 +226,8 @@ export abstract class GameService {
 		win.focus();
 	}
 
-	protected invokeConnectFailed(server: Server, message: string) {
-		this.connectFailed.emit([server, message]);
+	protected invokeConnectFailed(server: Server, message: string, extra?: any) {
+		this.connectFailed.emit([server, message, extra || {}]);
 	}
 
 	public invokeError(message: string) {
@@ -402,7 +402,7 @@ export class CfxGameService extends GameService {
                         this.zone.run(() => this.invokeFileDialogResult(event.data.dialogKey, event.data.result));
                         break;
 					case 'connectFailed':
-						this.zone.run(() => this.invokeConnectFailed(this.lastServer, event.data.message));
+						this.zone.run(() => this.invokeConnectFailed(this.lastServer, event.data.message, event.data.extra));
 						break;
 					case 'setWarningMessage':
 						this.zone.run(() => this.invokeError(event.data.message));

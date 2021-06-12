@@ -1,0 +1,55 @@
+@import 'variables';
+
+:host {
+    display: inline-flex;
+    flex-grow: 1;
+
+    position: relative;
+
+    justify-content: space-between;
+
+    --element-size: calc(var(--font-size) * 1.5);
+
+    hr {
+        border: 0;
+        @include theme() using ($theme) {
+            border-top: 0.27vh dashed gtv($theme, fgColor);
+        }
+
+        width: calc(50% - (var(--element-size) / 2) - (var(--qh) / 1.5));
+    }
+
+    span {
+        font-size: var(--element-size);
+        line-height: var(--element-size);
+
+        /* absolute positioning instead of flex here as `align-items: center;` would actually be misaligned */
+        position: absolute;
+        top: calc((0.27vh / 2) - (var(--element-size) / 2));
+        left: calc(50% - (var(--element-size) / 2));
+
+        &.status-wave {
+			@include theme() using ($theme) {
+				color: gtv($theme, accentColor1);
+			}
+		}
+        &.status-good {
+			@include theme() using ($theme) {
+				color: gtv($theme, activeColor);
+			}
+		}
+		&.status-bad {
+			@include theme() using ($theme) {
+				color: gtv($theme, redColor);
+			}
+		}
+		&.status-unknown {
+			@include theme() using ($theme) {
+				color: gtv($theme, blueColor);
+			}
+		}
+    }
+
+    height: fit-content;
+    align-self: center;
+}

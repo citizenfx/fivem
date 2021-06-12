@@ -486,9 +486,10 @@ static InitFunction initFunction([] ()
 			g_connected = false;
 		});
 
-		netLibrary->OnConnectionError.Connect([] (const char* errorStr)
+		netLibrary->OnConnectionErrorRichEvent.Connect([] (const std::string& errorOrig, const std::string& metaData)
 		{
-			std::string error(errorStr);
+			std::string error = errorOrig;
+
 #ifdef GTA_FIVE
 			if (strstr(error.c_str(), "This server requires a different game build"))
 			{
@@ -533,7 +534,7 @@ static InitFunction initFunction([] ()
 
 			document.Accept(writer);
 
-			nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "connectFailed", "message": %s })", sbuffer.GetString()));
+			nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "connectFailed", "message": %s, "extra": %s })", sbuffer.GetString(), metaData));
 
 			ep.Call("connectionError", error);
 		});

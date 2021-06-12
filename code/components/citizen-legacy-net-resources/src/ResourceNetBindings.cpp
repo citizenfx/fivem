@@ -41,6 +41,8 @@
 #include <pplawait.h>
 #include <experimental/resumable>
 
+#include <json.hpp>
+
 static bool IsBlockedResource(const std::string& resourceName, std::string* why)
 {
 	if (resourceName == "xrp" || resourceName == "xrp_skin" || resourceName == "xrp_identity" || resourceName == "xrp_respawn")
@@ -268,6 +270,11 @@ static InitFunction initFunction([] ()
 				// handle failure
 				if (!result)
 				{
+					netLibrary->SetRichError(nlohmann::json::object({
+						{ "fault", "server" },
+						{ "action", "#ErrorAction_TryAgainContactOwner" },
+					}).dump());
+
 					GlobalError("Obtaining configuration from server failed. Error state: %s", std::string{ data, size });
 
 					return;
@@ -286,6 +293,11 @@ static InitFunction initFunction([] ()
 				{
 					auto err = node.GetParseError();
 
+					netLibrary->SetRichError(nlohmann::json::object({
+						{ "fault", "server" },
+						{ "action", "#ErrorAction_TryAgainContactOwner" },
+					}).dump());
+
 					trace("Failed to parse content manifest:\n%s\nError code: %s (offset: %d)\n", data, rapidjson::GetParseError_En(err), node.GetErrorOffset());
 					GlobalError("Failed to parse content manifest: %s (at offset %d) - see the console log for details", rapidjson::GetParseError_En(err), node.GetErrorOffset());
 
@@ -301,6 +313,11 @@ static InitFunction initFunction([] ()
 
 				if (node.HasMember("error") && node["error"].IsString())
 				{
+					netLibrary->SetRichError(nlohmann::json::object({
+						{ "fault", "server" },
+						{ "action", "#ErrorAction_TryAgainContactOwner" },
+					}).dump());
+
 					GlobalError("Obtaining configuration from server failed. Error text: %s", node["error"].GetString());
 
 					return;
@@ -481,6 +498,11 @@ static InitFunction initFunction([] ()
 
 						if (!resource)
 						{
+							netLibrary->SetRichError(nlohmann::json::object({
+								{ "fault", "server" },
+								{ "action", "#ErrorAction_TryAgainContactOwner" },
+							}).dump());
+
 							GlobalError("Couldn't load resource %s: %s", std::get<std::string>(resourceData), resource.error().Get());
 
 							executeNextGameFrame.push([]
@@ -504,6 +526,11 @@ static InitFunction initFunction([] ()
 							{
 								if (!resource->Start())
 								{
+									netLibrary->SetRichError(nlohmann::json::object({
+										{ "fault", "server" },
+										{ "action", "#ErrorAction_TryAgainContactOwner" },
+									}).dump());
+
 									GlobalError("Couldn't start resource %s.", resourceName.c_str());
 								}
 							});
@@ -570,7 +597,7 @@ static InitFunction initFunction([] ()
 			reassembler->RegisterTarget(0);
 		});
 
-		netLibrary->OnConnectionError.Connect([](const char* error)
+		netLibrary->OnConnectionErrorEvent.Connect([](const char* error)
 		{
 			{
 				std::lock_guard<std::mutex> _(progressMutex);

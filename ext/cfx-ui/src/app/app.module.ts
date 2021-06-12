@@ -29,6 +29,7 @@ import { AppComponent } from './app.component';
 
 import { AppNavComponent } from './nav/app-nav.component';
 import { ConnectingPopupComponent } from './servers/connecting-popup.component';
+import { ConnectionBoundaryComponent } from './servers/connection-boundary.component';
 import { HomeComponent } from './home/home.component';
 import { HomeTweetComponent } from './home/home-tweet.component';
 import { SettingsComponent } from './settings/settings.component';
@@ -184,6 +185,7 @@ export function metaFactory(): MetaLoader {
 		AppComponent,
 		AppNavComponent,
 		ConnectingPopupComponent,
+        ConnectionBoundaryComponent,
 		ChangelogPopupComponent,
 		ChangelogEntryComponent,
 		HomeComponent,

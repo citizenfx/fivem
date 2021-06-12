@@ -117,5 +117,18 @@
     "#BuildSwitch_OK": "OK ({{seconds}})",
 	"#EmptyServers_History": "Servers you have played on before will appear here. Check out the server list and join one now!",
 	"#EmptyServers_Favorites": "Your favorite servers will appear here, just click the star icon next to your favorite server!",
-	"#RentServer": "Rent a server"
+	"#RentServer": "Rent a server",
+    "#ErrorActions": "What can you do?",
+    "#ErrorDetails": "Error details",
+    "#ErrorAction_ContactOwner": "- Contact [OWNER].",
+    "#ErrorAction_SeeDetailsContactOwner": "- Read the error details and take action.\n- If the issue persists, contact [OWNER].",
+    "#ErrorAction_TryAgainContactOwner": "- Try again at a later time.\n- Check your network connection.\n- If the issue persists, contact [OWNER].",
+    "#ErrorAction_TryAgainCheckStatus": "- Try again at a later time.\n- Check your network connection and the [STATUSPAGE] page.\n- If the issue persists, contact [SUPPORT].",
+    "#ErrorNoOutage": "Platform status",
+    "#NoOutage": "There is no current service alert on the <a href=\"https://status.cfx.re/\">Cfx.re</a> status page. This may be an issue on your end.",
+    "#ErrorOutage": "Service Alert",
+    "#ServiceAlert": "<span class=\"material-icons-outlined status-indicator status-warn\">error_outline</span> There is currently a service alert on <a href=\"https://status.cfx.re/\">Cfx.re Status</a>.",
+    "#Error_You": "You",
+    "#Error_Server": "Server",
+    "#Error_Cfx": "Cfx.re"
 }

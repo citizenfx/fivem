@@ -3,9 +3,6 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { DomSanitizer } from '@angular/platform-browser';
 import { Subject } from 'rxjs';
 
-import 'rxjs/add/operator/debounceTime';
-import 'rxjs/add/operator/distinctUntilChanged';
-
 import { Server } from '../../server';
 
 import { GameService } from '../../../game.service';
@@ -65,9 +62,6 @@ export class ServersDetailComponent implements OnInit, OnDestroy {
 	communityTweets: Tweet[] = [];
 
 	collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'});
-
-	@ViewChildren('input')
-	private inputBox;
 
 	get serverAddress() {
 		if (this.server) {

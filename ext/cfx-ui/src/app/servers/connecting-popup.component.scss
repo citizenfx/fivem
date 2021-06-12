@@ -61,7 +61,7 @@
 		flex-direction: column;
 		align-items: flex-start;
 
-		width: 40%;
+		width: 60%;
 		max-height: calc(100vh - 4px);
 
 		padding: var(--q1);
@@ -72,16 +72,24 @@
 			box-shadow: 0 0 0 2px rgba(gtv($theme, fgColor), .5);
 		}
 
-		.content {
+		.content, .action p {
 			user-select: text;
 
 			::ng-deep * {
 				user-select: text;
 			}
 
+            ::ng-deep .status-warn {
+                color: hsl(53, 100%, 50%);
+            }
+
 			&:not(:empty) {
 				margin-top: var(--qh);
 			}
+
+            &:not(.content) {
+                margin-bottom: var(--qh);
+            }
 		}
 
 		.card {
@@ -111,5 +119,74 @@
 		.cfx-button {
 			margin-top: var(--q1);
 		}
+
+        .friendly {
+            width: 100%;
+
+            h2:not(:first-of-type) {
+                margin-top: var(--q1);
+            }
+
+            div:first-of-type {
+                .connection {
+                    display: flex;
+                    justify-content: space-between;
+
+                    flex-basis: 49%;
+                    flex-grow: 1;
+                    font-weight: 200;
+
+                    padding: var(--qh);
+
+                    &:last-child {
+                        border-right: none;
+                    }
+
+                    .source, .other {
+                        display: block;
+                        flex-grow: initial;
+                        position: relative;
+                        margin: var(--qh);
+                        padding-top: calc(var(--q4) + var(--qh));
+                        background-image: var(--logo);
+                        background-size: var(--q4);
+                        background-position: top center;
+                        background-repeat: no-repeat;
+                        width: var(--q8);
+                        text-align: center;
+
+                        span {
+                            display: block;
+                            font-size: 90%;
+                            text-overflow: ellipsis;
+                            overflow-x: hidden;
+
+                            @include theme() using ($theme) {
+                                color: rgba(gtv($theme, fgColor), .8);
+                            }
+                        }
+
+                        .logo {
+                            position: absolute;
+                            top: 0px;
+                            left: 0px;
+                            right: 0px;
+                            height: var(--q4);
+                            text-align: center;
+
+                            svg {
+                                fill: currentColor;
+                                max-width: var(--q4);
+                                height: var(--q4);
+
+                                &.game-gta5 {
+                                    transform: scaleX(-1);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
 	}
 }
