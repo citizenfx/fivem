@@ -660,8 +660,12 @@ static void Init()
 		if (entity->type == fx::sync::NetObjEntityType::Player || entity->type == fx::sync::NetObjEntityType::Ped)
 		{
 			auto pn = entity->syncTree->GetPedOrientation();
-			float heading = pn->desiredHeading * 180.0 / pi;
-			return (heading < 0) ? 360.0f + heading : heading;
+
+			if (pn)
+			{
+				float heading = pn->desiredHeading * 180.0 / pi;
+				return (heading < 0) ? 360.0f + heading : heading;
+			}
 		}
 
 		return 0.0f;
@@ -705,7 +709,7 @@ static void Init()
 		case fx::sync::NetObjEntityType::Ped:
 		{
 			auto pn = entity->syncTree->GetPedHealth();
-			return pn->maxHealth;
+			return pn ? pn->maxHealth : 0;
 		}
 		default:
 			return 0;
@@ -720,7 +724,7 @@ static void Init()
 		case fx::sync::NetObjEntityType::Ped:
 		{
 			auto pn = entity->syncTree->GetPedHealth();
-			return pn->health;
+			return pn ? pn->health : 0;
 		}
 		default:
 			return 0;
@@ -735,7 +739,6 @@ static void Init()
 
 			*context.GetArgument<int*>(1) = vn ? vn->primaryColour : 0;
 			*context.GetArgument<int*>(2) = vn ? vn->secondaryColour : 0;
-
 		}
 
 		return 1;
@@ -1540,7 +1543,7 @@ static void Init()
 		else if (entity->type == fx::sync::NetObjEntityType::Plane)
 		{
 			auto state = entity->syncTree->GetPlaneGameState();
-			gearState = state->landingGearState;
+			gearState = state ? state->landingGearState : 0;
 		}
 
 		return gearState;
