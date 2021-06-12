@@ -17,6 +17,16 @@
 #include <ResourceManager.h>
 #include <ResourceMetaDataComponent.h>
 
+#include <VFSManager.h>
+#include <boost/algorithm/string.hpp>
+
+void DLL_IMPORT CfxCollection_AddStreamingFileByTag(const std::string& tag, const std::string& fileName, rage::ResourceFlags flags);
+
+namespace streaming
+{
+void AddDataFileToLoadList(const std::string& type, const std::string& path);
+}
+
 #include <skyr/url.hpp>
 
 #include "Hooking.h"
@@ -302,6 +312,15 @@ private:
 	fx::ResourceManager* m_manager;
 };
 
+#define VFS_GET_RAGE_PAGE_FLAGS 0x20001
+
+struct GetRagePageFlagsExtension
+{
+	const char* fileName; // in
+	int version;
+	rage::ResourceFlags flags; // out
+};
+
 static InitFunction initFunction([] ()
 {
 	rage::fiDevice::OnInitialMount.Connect([] ()
@@ -348,10 +367,66 @@ static InitFunction initFunction([] ()
 		url.set_hash(resourceDir);
 
 		resourceManager->AddResource(url.href())
-			.then([](fwRefContainer<fx::Resource> resource)
+			.then([resourceDir, resourceRoot](fwRefContainer<fx::Resource> resource)
 		{
 			resource->Start();
 		});
+
+		// also tag with streaming files, wahoo!
+		// #TODO: make recursive!
+		// #TODO: maybe share this code once it does support recursion?
+		vfs::FindData findData;
+		auto mount = resourceRoot + "/stream/";
+		auto device = vfs::GetDevice(mount);
+
+		if (device.GetRef())
+		{
+			auto findHandle = device->FindFirst(mount, &findData);
+
+			if (findHandle != INVALID_DEVICE_HANDLE)
+			{
+				bool shouldUseCache = false;
+				bool shouldUseMapStore = false;
+
+				do
+				{
+					if (!(findData.attributes & FILE_ATTRIBUTE_DIRECTORY))
+					{
+						std::string tfn = mount + findData.name;
+
+						GetRagePageFlagsExtension data;
+						data.fileName = tfn.c_str();
+						device->ExtensionCtl(VFS_GET_RAGE_PAGE_FLAGS, &data, sizeof(data));
+
+						CfxCollection_AddStreamingFileByTag(resourceDir, tfn, data.flags);
+
+						if (boost::algorithm::ends_with(tfn, ".ymf"))
+						{
+							shouldUseCache = true;
+						}
+
+						if (boost::algorithm::ends_with(tfn, ".ybn") || boost::algorithm::ends_with(tfn, ".ymap"))
+						{
+							shouldUseMapStore = true;
+						}
+					}
+				} while (device->FindNext(findHandle, &findData));
+
+				device->FindClose(findHandle);
+
+				// in case of .#mf file
+				if (shouldUseCache)
+				{
+					streaming::AddDataFileToLoadList("CFX_PSEUDO_CACHE", resourceDir);
+				}
+
+				// in case of .#bn/.#map file
+				if (shouldUseMapStore)
+				{
+					streaming::AddDataFileToLoadList("CFX_PSEUDO_ENTRY", "RELOAD_MAP_STORE");
+				}
+			}
+		}
 
 		static ConsoleCommand localRestartCommand("localRestart", [resourceRoot, resourceDir, resourceManager]()
 		{
