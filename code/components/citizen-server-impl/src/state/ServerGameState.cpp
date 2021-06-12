@@ -1093,7 +1093,8 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 					entity->wantsReassign = true;
 
 					// but don't force it to exist for ourselves if it's not script-owned
-					if (entity->IsOwnedByClientScript() && entity->routingBucket == clientDataUnlocked->routingBucket)
+					// (also, if not hasSynced, we can't tell if a script owns it or not, so we may delete early)
+					if ((!entity->hasSynced || entity->IsOwnedByClientScript()) && entity->routingBucket == clientDataUnlocked->routingBucket)
 					{
 						isRelevant = true;
 					}
