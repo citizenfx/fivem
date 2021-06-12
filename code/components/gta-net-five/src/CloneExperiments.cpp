@@ -2191,7 +2191,7 @@ static void EventManager_Update()
 #ifdef IS_RDR3
 	if (!g_netGameEventPool)
 	{
-		static auto pool = rage::GetPoolBase(0xF4794A41);
+		auto pool = rage::GetPoolBase("netGameEvent");
 
 		if (pool)
 		{
@@ -2531,6 +2531,7 @@ static void SendAlterWantedLevelEvent2Hook(void* a1, void* a2, void* a3, void* a
 
 	g_origSendAlterWantedLevelEvent2(a1, a2, a3, a4);
 }
+#endif
 
 std::string GetType(void* d);
 
@@ -2571,7 +2572,6 @@ static void NetEventError()
 
 	FatalError("Ran out of rage::netGameEvent pool space.\n\nPool usage:\n%s", poolSummary);
 }
-#endif
 
 #ifdef IS_RDR3
 static void*(*g_origRegisterNetGameEvent)(void*, uint16_t, void*, const char*);
@@ -2632,6 +2632,8 @@ static HookFunction hookFunctionEv([]()
 	// CheckForSpaceInPool error display
 #ifdef GTA_FIVE
 	hook::call(hook::get_pattern("33 C9 E8 ? ? ? ? E9 FD FE FF FF", 2), NetEventError);
+#elif IS_RDR3
+	hook::call(hook::get_pattern("BA 01 00 00 00 FF ? ? BA 5B 52 1C A4", 22), NetEventError);
 #endif
 
 	MH_EnableHook(MH_ALL_HOOKS);
