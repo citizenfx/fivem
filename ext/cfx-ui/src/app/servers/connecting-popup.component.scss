@@ -129,11 +129,11 @@
 
             div:first-of-type {
                 .connection {
-                    display: flex;
-                    justify-content: space-between;
-
-                    flex-basis: 49%;
-                    flex-grow: 1;
+                    display: grid;
+                    grid-template-columns: auto 1fr auto 1fr auto;
+                    grid-template-rows: repeat(2, auto);
+                    grid-column-gap: 0px;
+                    grid-row-gap: 0px;
                     font-weight: 200;
 
                     padding: var(--qh);
@@ -142,31 +142,40 @@
                         border-right: none;
                     }
 
-                    .source, .other {
+                    .logo, app-connection-boundary {
+                        grid-row: 1;
+                    }
+
+                    .text {
+                        grid-row: 2;
+                    }
+
+                    .cfx {
+                        grid-column: 3;
+                    }
+
+                    .you {
+                        grid-column: 1;
+                    }
+
+                    .server {
+                        grid-column: 5;
+                    }
+
+                    .logo {
                         display: block;
                         flex-grow: initial;
                         position: relative;
                         margin: var(--qh);
+                        margin-bottom: 0;
                         padding-top: calc(var(--q4) + var(--qh));
                         background-image: var(--logo);
                         background-size: var(--q4);
                         background-position: top center;
                         background-repeat: no-repeat;
                         width: var(--q8);
-                        text-align: center;
 
-                        span {
-                            display: block;
-                            font-size: 90%;
-                            text-overflow: ellipsis;
-                            overflow-x: hidden;
-
-                            @include theme() using ($theme) {
-                                color: rgba(gtv($theme, fgColor), .8);
-                            }
-                        }
-
-                        .logo {
+                        .ilogo {
                             position: absolute;
                             top: 0px;
                             left: 0px;
@@ -182,6 +191,21 @@
                                 &.game-gta5 {
                                     transform: scaleX(-1);
                                 }
+                            }
+                        }
+                    }
+
+                    .text {
+                        text-align: center;
+
+                        span {
+                            display: block;
+                            font-size: 90%;
+                            text-overflow: ellipsis;
+                            overflow-x: hidden;
+
+                            @include theme() using ($theme) {
+                                color: rgba(gtv($theme, fgColor), .8);
                             }
                         }
                     }

@@ -7,26 +7,32 @@
         <div class="friendly" *ngIf="extraData.fault">
             <div>
                 <div class="connection" [class.broken]="isCfx(extraData.fault)">
-                    <div class="source you" [style.--logo]="userLogo">
+                    <div class="logo you" [style.--logo]="userLogo"></div>
+                    <div class="text you">
                         {{ '#Error_You' | translate:locale.language:mergedData }}
                         <span>{{ youName }}</span>
                     </div>
 
                     <app-connection-boundary [state]="extraData.fault === 'you' ? 'bye' : (extraData.fault === 'either' ? 'unknown' : (isCfx(extraData.fault) ? 'broken' : 'ok'))"></app-connection-boundary>
 
-                    <div class="other cfx">
-                        <div class="logo">
+                    <div class="logo cfx">
+                        <div class="ilogo">
                             <svg [class.game-gta5]="gameName == 'gta5'">
                                 <use [attr.xlink:href]="'#logo-' + gameName"></use>
                             </svg>
                         </div>
+                    </div>
+
+                    <div class="text cfx">
                         {{ '#Error_Cfx' | translate:locale.language:mergedData }}
                         <span>{{ gameBrand }}</span>
                     </div>
 
                     <app-connection-boundary [state]="extraData.fault === 'you' ? 'bye' : (extraData.fault === 'either' || isCfx(extraData.fault) ? 'unknown' : 'broken')"></app-connection-boundary>
 
-                    <div class="other server" [style.--logo]="serverLogo">
+                    <div class="logo server" [style.--logo]="serverLogo"></div>
+
+                    <div class="text server">
                         {{ '#Error_Server' | translate:locale.language:mergedData }}
                         <span>{{ serverName }}</span>
                     </div>

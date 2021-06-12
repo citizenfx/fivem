@@ -104,7 +104,7 @@ export class ConnectingPopupComponent implements OnInit {
     }
 
 	ngOnInit() {
-    	this.gameService.connecting.subscribe(a => {
+		this.gameService.connecting.subscribe(a => {
 			this.overlayTitle = '#Servers_Connecting';
 			this.overlayMessage = this.gameService.streamerMode
 				? '#Servers_ConnectingToServer'
