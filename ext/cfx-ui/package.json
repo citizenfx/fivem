@@ -42,7 +42,8 @@
     "angulartics2": "^10.0.0",
     "autolinker": "^3.14.3",
     "balloon-css": "^1.2.0",
-    "cldr-data": "^36.0.0",
+    "cldr-core": "^39.0.0",
+    "cldr-localenames-modern": "^39.0.0",
     "cldrjs": "^0.5.5",
     "color": "^3.1.3",
     "core-js": "^3.9.1",
@@ -80,7 +81,6 @@
     "typeface-rubik": "^1.1.13",
     "unicode-substring": "^1.0.0",
     "webpack": "4",
-    "webpack-dev-server": "^3.11.2",
     "webpack-extended-import-glob-loader": "^1.6.6",
     "xml-js": "^1.6.11",
     "zone.js": "~0.11.4"
@@ -112,6 +112,14 @@
     "postcss": "^8.2.10",
     "multicast-dns": "^7.2.3",
     "resolve-url-loader": "^5.0.0-alpha.1",
-    "ws": "^7.4.6"
+    "ws": "^7.4.6",
+    "cssnano": "^5.0.6",
+    "glob-parent": "^5.1.2",
+    "browserslist": "^4.16.5",
+    "url-parse": "^1.5.0",
+    "hosted-git-info": "^3.0.8",
+    "y18n": "^5.0.5",
+    "minimist": "^1.2.3",
+    "css-what": "^5.0.1"
   }
 }

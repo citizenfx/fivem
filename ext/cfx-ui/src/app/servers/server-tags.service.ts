@@ -2,10 +2,10 @@ import { Injectable, EventEmitter } from '@angular/core';
 import { ServersService } from './servers.service';
 
 import { Server } from './server';
-import cldrLocales from 'cldr-data/main/en/localeDisplayNames.json';
-import cldrLanguages from 'cldr-data/main/en/languages.json';
-import cldrTerritories from 'cldr-data/main/en/territories.json';
-import cldrSubTags from 'cldr-data/supplemental/likelySubtags.json';
+import cldrLocales from 'cldr-localenames-modern/main/en/localeDisplayNames.json';
+import cldrLanguages from 'cldr-localenames-modern/main/en/languages.json';
+import cldrTerritories from 'cldr-localenames-modern/main/en/territories.json';
+import cldrSubTags from 'cldr-core/supplemental/likelySubtags.json';
 import * as cldrjs from 'cldrjs';
 import { getCanonicalLocale } from './components/utils';
 
