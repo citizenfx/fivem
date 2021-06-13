@@ -110,4 +110,4 @@ declare function Player(entity: number|string): EntityInterface
 
 declare var exports: any;
 
-declare var source: number;
+declare var source: string;
