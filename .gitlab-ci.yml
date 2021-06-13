@@ -19,10 +19,7 @@ build_client:
     GIT_CLONE_PATH: $CI_BUILDS_DIR\$CI_BUILD_REF_NAME\fivem
   artifacts:
     paths:
-      - caches/diff/
-      - caches/caches.xml
-      - caches/CitizenFX.exe.xz
-      - caches/version.txt
+      - caches/
       - ext/native-doc-gen/natives_cfx.json
     expire_in: 1 month
   cache:
@@ -61,10 +58,7 @@ build_client_rdr3:
     IS_RDR3: '1'
   artifacts:
     paths:
-      - caches/diff/
-      - caches/caches.xml
-      - caches/CitizenFX.exe.xz
-      - caches/version.txt
+      - caches/
     expire_in: 1 month
   cache:
     key: rdr3
