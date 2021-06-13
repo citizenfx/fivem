@@ -1596,6 +1596,19 @@ static HookFunction hookFunction([]()
 		hook::call(location, netObject__GetPlayerOwnerId);
 	}
 
+	// ped texture overriding natives
+#ifdef IS_RDR3
+	{
+		auto location = hook::get_pattern("48 85 C9 74 09 E8 ? ? ? ? 8A D8 EB 02", 5);
+		hook::call(location, netObject__GetPlayerOwnerId);
+	}
+
+	{
+		auto location = hook::get_pattern("4C 8D 67 08 48 69 C8 ? ? ? ? 4C 03 E1 45", 52);
+		hook::call(location, netObject__GetPlayerOwnerId);
+	}
+#endif
+
 #ifdef GTA_FIVE
 	hook::jump(hook::get_pattern("C6 41 4A FF C3", 0), netObject__ClearPendingPlayerIndex);
 #elif IS_RDR3
