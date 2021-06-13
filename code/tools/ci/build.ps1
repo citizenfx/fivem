@@ -418,6 +418,7 @@ if (!$DontBuild -and !$IsServer) {
     # prepare caches
     New-Item -ItemType Directory -Force $CacheDir | Out-Null
     New-Item -ItemType Directory -Force $CacheDir\fivereborn | Out-Null
+	New-Item -ItemType Directory -Force $CacheDir\fivereborn\citizen | Out-Null
     Set-Location $CacheDir
 
     if ($true) {
@@ -445,7 +446,9 @@ if (!$DontBuild -and !$IsServer) {
     Copy-Item -Force $SaveDir\re3.rpf $CacheDir\fivereborn\citizen\re3.rpf
 
     # copy output files
-    Copy-Item -Force -Recurse $WorkDir\vendor\cef\Release\*.dll $CacheDir\fivereborn\bin\
+    New-Item -ItemType Directory -Force $CacheDir\fivereborn\bin
+
+	Copy-Item -Force -Recurse $WorkDir\vendor\cef\Release\*.dll $CacheDir\fivereborn\bin\
     Copy-Item -Force -Recurse $WorkDir\vendor\cef\Release\*.bin $CacheDir\fivereborn\bin\
 
     New-Item -ItemType Directory -Force $CacheDir\fivereborn\bin\cef
