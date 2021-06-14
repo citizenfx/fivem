@@ -1161,6 +1161,24 @@ if not isDuplicityVersion then
 		RegisterNuiCallbackType(type)
 
 		AddEventHandler('__cfx_nui:' .. type, function(body, resultCallback)
+--[[
+			-- Lua 5.4: Create a to-be-closed variable to monitor the NUI callback handle.
+			local hasCallback = false
+			local _ <close> = defer(function()
+				if not hasCallback then
+					local di = debug_getinfo(callback, 'S')
+					local name = ('function %s[%d..%d]'):format(di.short_src, di.linedefined, di.lastlinedefined)
+					Citizen.Trace(("No NUI callback captured: %s\n"):format(name))
+				end
+			end)
+
+			local status, err = pcall(function()
+				callback(body, function(...)
+					hasCallback = true
+					resultCallback(...)
+				end)
+			end)
+--]]			
 			local status, err = pcall(function()
 				callback(body, resultCallback)
 			end)
