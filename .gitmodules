@@ -226,8 +226,8 @@
 	branch = grit
 [submodule "vendor/lua"]
 	path = vendor/lua
-	url = https://github.com/citizenfx/lua.git
-	branch = grit
+	url = https://github.com/gottfriedleibniz/lua.git
+	branch = luaglm-dev/cfx
 [submodule "vendor/tinygltf"]
 	path = vendor/tinygltf
 	url = https://github.com/syoyo/tinygltf.git

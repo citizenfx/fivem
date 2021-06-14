@@ -22,7 +22,8 @@ extern LUA_INTERNAL_LINKAGE
 #include <lapi.h>
 #if LUA_VERSION_NUM == 504
 #include <lstate.h>
-#include <lgrit_lib.h>
+#include <lglm.hpp>
+#include <lglmlib.hpp>
 #endif
 }
 
@@ -243,32 +244,42 @@ static int SAFE_BUFFERS Lua_PushContextArgument(lua_State* L, int idx, fxLuaNati
 			break;
 		case LUA_VVECTOR2:
 		{
-			const lua_Float4* v2 = &(val_(value).f4);
+			const glmVector& v = vvalue(value);
 
-			fxLuaNativeContext_PushArgument(context, static_cast<float>(v2->x));
-			fxLuaNativeContext_PushArgument(context, static_cast<float>(v2->y));
+			fxLuaNativeContext_PushArgument(context, static_cast<float>(v.v4.x));
+			fxLuaNativeContext_PushArgument(context, static_cast<float>(v.v4.y));
 
 			break;
 		}
 		case LUA_VVECTOR3:
 		{
-			const lua_Float4* v3 = &(val_(value).f4);
+			const glmVector& v = vvalue(value);
 
-			fxLuaNativeContext_PushArgument(context, static_cast<float>(v3->x));
-			fxLuaNativeContext_PushArgument(context, static_cast<float>(v3->y));
-			fxLuaNativeContext_PushArgument(context, static_cast<float>(v3->z));
+			fxLuaNativeContext_PushArgument(context, static_cast<float>(v.v4.x));
+			fxLuaNativeContext_PushArgument(context, static_cast<float>(v.v4.y));
+			fxLuaNativeContext_PushArgument(context, static_cast<float>(v.v4.z));
 
 			break;
 		}
 		case LUA_VVECTOR4:
-		case LUA_VQUAT:
 		{
-			const lua_Float4* v4 = &(val_(value).f4);
+			const glmVector& v = vvalue(value);
 
-			fxLuaNativeContext_PushArgument(context, static_cast<float>(v4->x));
-			fxLuaNativeContext_PushArgument(context, static_cast<float>(v4->y));
-			fxLuaNativeContext_PushArgument(context, static_cast<float>(v4->z));
-			fxLuaNativeContext_PushArgument(context, static_cast<float>(v4->w));
+			fxLuaNativeContext_PushArgument(context, static_cast<float>(v.v4.x));
+			fxLuaNativeContext_PushArgument(context, static_cast<float>(v.v4.y));
+			fxLuaNativeContext_PushArgument(context, static_cast<float>(v.v4.z));
+			fxLuaNativeContext_PushArgument(context, static_cast<float>(v.v4.w));
+
+			break;
+		}
+		case LUA_VQUAT: // Support (NOT) GLM_FORCE_QUAT_DATA_XYZW
+		{
+			const glmVector& v = vvalue(value);
+
+			fxLuaNativeContext_PushArgument(context, static_cast<float>(v.q.x));
+			fxLuaNativeContext_PushArgument(context, static_cast<float>(v.q.y));
+			fxLuaNativeContext_PushArgument(context, static_cast<float>(v.q.z));
+			fxLuaNativeContext_PushArgument(context, static_cast<float>(v.q.w));
 
 			break;
 		}
@@ -605,8 +616,12 @@ static int SAFE_BUFFERS __Lua_InvokeNative(lua_State* L)
 			}
 			case LuaMetaFields::ResultAsVector:
 			{
-				scrVector vector = *reinterpret_cast<scrVector*>(&context.arguments[0]);
+				const scrVector& vector = *reinterpret_cast<scrVector*>(&context.arguments[0]);
+#if LUA_VERSION_NUM == 504
+				glm_pushvec3(L, glm::vec<3, glm_Float>(vector.x, vector.y, vector.z));
+#else
 				lua_pushvector3(L, vector.x, vector.y, vector.z);
+#endif
 				break;
 			}
 			case LuaMetaFields::ResultAsObject:
@@ -664,8 +679,12 @@ static int SAFE_BUFFERS __Lua_InvokeNative(lua_State* L)
 				}
 				case LuaMetaFields::PointerValueVector:
 				{
-					scrVector vector = *reinterpret_cast<scrVector*>(&result.retvals[i]);
+					const scrVector& vector = *reinterpret_cast<scrVector*>(&result.retvals[i]);
+#if LUA_VERSION_NUM == 504
+					glm_pushvec3(L, glm::vec<3, glm_Float>(vector.x, vector.y, vector.z));
+#else
 					lua_pushvector3(L, vector.x, vector.y, vector.z);
+#endif
 
 					i += 3;
 					break;
@@ -996,9 +1015,12 @@ static LUA_INLINE scrVectorLua Lua_ToScrVector(lua_State* L, int idx)
 #if LUA_VERSION_NUM == 504
 	luaL_checktype(L, idx, LUA_TVECTOR);
 	const TValue* o = lua_getvalue(L, idx);
-	const lua_Float4 f4 = vvalue(o);
+	const glmVector& v = vvalue(o);
 
-	return scrVectorLua{ f4.x, f4.y, f4.z };
+	if (ttisquat(o)) // Support (NOT) GLM_FORCE_QUAT_DATA_XYZW
+		return scrVectorLua{ v.q.x, v.q.y, v.q.z };
+	else
+		return scrVectorLua{ v.v4.x, v.v4.y, v.v4.z };
 #else
 	auto f4 = lua_valuetofloat4(L, lua_getvalue(L, idx));
 
@@ -1008,9 +1030,14 @@ static LUA_INLINE scrVectorLua Lua_ToScrVector(lua_State* L, int idx)
 
 static LUA_INLINE void Lua_PushScrVector(lua_State* L, const scrVectorLua& val)
 {
+#if LUA_VERSION_NUM == 504
+	glm_pushvec3(L, glm::vec<3, glm_Float>(val.x, val.y, val.z));
+#else
 	lua_pushvector3(L, val.x, val.y, val.z);
+#endif
 }
 
+#include <lua_cmsgpacklib.h>
 static LUA_INLINE void Lua_PushScrObject(lua_State* L, const scrObject& val)
 {
 	// @NOTE: Prevent scripts that override msgpack.unpack() from manipulating

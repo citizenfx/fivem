@@ -21,7 +21,12 @@
 
 // Linkage specified in lua.hpp to include/link-against internal structure
 // definitions. Note, for ELF builds LUAI_FUNC will mark the function as hidden.
+// Lua5.4 is compiled as a C++ library.
+#if LUA_VERSION_NUM == 504
+#define LUA_INTERNAL_LINKAGE "C++"
+#else
 #define LUA_INTERNAL_LINKAGE "C"
+#endif
 
 // Utility macro for the constexpr if statement
 #define LUA_IF_CONSTEXPR if constexpr

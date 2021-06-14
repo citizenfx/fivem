@@ -19,6 +19,9 @@
 #include <lua.hpp>
 #include <lua_cmsgpacklib.h>
 #include <lua_rapidjsonlib.h>
+#if LUA_VERSION_NUM == 504
+#include <lglmlib.hpp>
+#endif
 
 extern LUA_INTERNAL_LINKAGE
 {
@@ -767,6 +770,18 @@ result_t LuaScriptRuntime::Create(IScriptHost* scriptHost)
 		luaL_requiref(m_state, lib->name, lib->func, 1);
 		lua_pop(m_state, 1);
 	}
+
+#if LUA_VERSION_NUM >= 504
+	{
+		int glm = 0;
+		result_t hr = m_resourceHost->GetNumResourceMetaData("glm", &glm);
+		if (FX_SUCCEEDED(hr) && glm > 0)
+		{
+			luaL_requiref(m_state, LUA_GLMLIBNAME, luaopen_glm, 1);
+			lua_pop(m_state, 1);
+		}
+	}
+#endif
 
 	{
 		// 0
