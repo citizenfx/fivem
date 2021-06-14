@@ -853,7 +853,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 	if (!urlRef)
 	{
 		OnConnectionError(fmt::sprintf("Couldn't resolve URL %s.", ruRef), json::object({
-			{ "fault", "cfx/nucleus" },
+			{ "fault", "either" },
 			{ "status", true },
 			{ "action", "#ErrorAction_TryAgainCheckStatus" },
 		}).dump());
