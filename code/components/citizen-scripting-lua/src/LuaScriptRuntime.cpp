@@ -70,6 +70,74 @@ static fx::OMPtr<fx::LuaScriptRuntime> g_currentLuaRuntime;
 /// </summary>
 static IScriptHost* g_lastScriptHost;
 
+#if defined(LUA_USE_RPMALLOC)
+#include "rpmalloc/rpmalloc.h"
+
+// Global static object handling rpmalloc initializing and finalizing
+struct rpmalloc_GlobalGuard
+{
+	rpmalloc_GlobalGuard() { rpmalloc_initialize(); }
+	~rpmalloc_GlobalGuard() { rpmalloc_finalize(); }
+} static rp_global_guard;
+
+lua_State* fx::LuaStateHolder::lua_rpmalloc_state(void*& opaque)
+{
+	static auto lua_rpmalloc = [](void* ud, void* ptr, size_t osize, size_t nsize) -> void*
+	{
+		heap_t* heap = static_cast<heap_t*>(ud);
+		if (nsize == 0)
+		{
+			rpmalloc_heap_free(heap, ptr);
+			return NULL;
+		}
+		else if (ptr == NULL)
+		{
+			return rpmalloc_heap_aligned_alloc(heap, 16, nsize);
+		}
+		else
+		{
+			return rpmalloc_heap_aligned_realloc(heap, ptr, 16, nsize, osize, 0);
+		}
+	};
+
+	static auto lua_panic = [](lua_State* L) -> int
+	{
+		const char* msg = lua_tostring(L, -1);
+		if (msg == NULL)
+		{
+			msg = "error object is not a string";
+		}
+
+		lua_writestringerror("PANIC: unprotected error in call to Lua API (%s)\n", msg);
+		return 0; /* return to Lua to abort */
+	};
+
+	heap_t* rpmalloc_heap = rpmalloc_heap_acquire();
+	if (rpmalloc_heap != nullptr)
+	{
+		lua_State* L = lua_newstate(lua_rpmalloc, static_cast<void*>(rpmalloc_heap));
+		if (L != nullptr)
+		{
+			opaque = static_cast<void*>(rpmalloc_heap);
+			lua_atpanic(L, lua_panic);
+		}
+		else
+		{
+			rpmalloc_heap_release(rpmalloc_heap);
+		}
+		return L;
+	}
+	return nullptr;
+}
+
+void fx::LuaStateHolder::lua_rpmalloc_free(void* opaque)
+{
+	rpmalloc_heap_free_all(static_cast<heap_t*>(opaque));
+	rpmalloc_heap_release(static_cast<heap_t*>(opaque));
+}
+
+#endif
+
 // luaL_openlibs version without io/os libs
 static const luaL_Reg lualibs[] = {
 	{ "_G", luaopen_base },

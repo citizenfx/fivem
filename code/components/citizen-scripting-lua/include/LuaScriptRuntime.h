@@ -87,15 +87,41 @@ struct PointerField
 	PointerFieldEntry data[64];
 };
 
+#if LUA_VERSION_NUM >= 504 && defined(_WIN32)
+#define LUA_USE_RPMALLOC
+#endif
+
 class LuaStateHolder
 {
 private:
 	lua_State* m_state;
 
+#if defined(LUA_USE_RPMALLOC)
+	/// <summary>
+	/// Create a lua_State instance with a rpmalloc allocator.
+	/// </summary>
+	static lua_State* lua_rpmalloc_state(void*& opaque);
+
+	/// <summary>
+	/// Free/Dispose any additional resources associated with the Lua state.
+	/// </summary>
+	static void lua_rpmalloc_free(void* opaque);
+
+	/// <summary>
+	/// Reference to the heap_t pointer. At the time of destruction lua_getallocf
+	/// may point to the profiler allocator hook.
+	/// </summary>
+	void* rpmalloc_data = nullptr;
+#endif
+
 public:
 	LuaStateHolder()
 	{
+#if defined(LUA_USE_RPMALLOC)
+		m_state = lua_rpmalloc_state(rpmalloc_data);
+#else
 		m_state = luaL_newstate();
+#endif
 #if LUA_VERSION_NUM >= 504
 		lua_gc(m_state, LUA_GCGEN, 0, 0);  /* GC in generational mode */
 #endif
@@ -112,6 +138,10 @@ public:
 		{
 			lua_close(m_state);
 
+#if defined(LUA_USE_RPMALLOC)
+			lua_rpmalloc_free(rpmalloc_data);
+			rpmalloc_data = nullptr;
+#endif
 			m_state = nullptr;
 		}
 	}

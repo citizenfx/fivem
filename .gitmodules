@@ -271,3 +271,7 @@
 	path = vendor/lmprof
 	url = https://github.com/gottfriedleibniz/lmprof.git
 	branch = grit
+[submodule "vendor/rpmalloc"]
+	path = vendor/rpmalloc
+	url = https://github.com/gottfriedleibniz/rpmalloc.git
+	branch = lua
