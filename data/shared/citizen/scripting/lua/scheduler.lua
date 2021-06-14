@@ -69,7 +69,6 @@ local threads = setmetatable({}, {
 })
 
 local boundaryIdx = 1
-local runningThread
 
 local function dummyUseBoundary(idx)
 	return nil
@@ -77,8 +76,11 @@ end
 
 local function getBoundaryFunc(bfn, bid)
 	return function(fn, ...)
-		local boundary = bid or (boundaryIdx + 1)
-		boundaryIdx = boundaryIdx + 1
+		local boundary = bid
+		if not boundary then
+			boundary = boundaryIdx + 1
+			boundaryIdx = boundary
+		end
 		
 		bfn(boundary, coroutine_running())
 
@@ -101,37 +103,176 @@ local runWithBoundaryStart = getBoundaryFunc(Citizen.SubmitBoundaryStart)
 local runWithBoundaryEnd = getBoundaryFunc(Citizen.SubmitBoundaryEnd)
 
 --[[
+	The system implements a simple Single Level Queue (SLQ) system with two
+	queues:
+
+		1. A "new" queue which contains newly created or re-inserted coroutines
+		that are to be executed during the "next" tick event.
+
+		2. A "active" queue which contains all active threads to be executed
+		each tick event.
+
+	Each queue is modeled by a doubly linked list with synthetic "records" for
+	the head and tail nodes. Each thread "record" is modeled with a Lua array
+	for size & lookup efficiency.
+--]]
+
+--[[  Create a thread record  --]]
+local function SLQ_Record(name, thread, bid)
+	bid = bid or 0
+	name = name or "thread"
+	return {
+		--[[ [SLQ_CORO] = ]] thread,
+		--[[ [SLQ_NAME] = ]] name,
+		--[[ [SLQ_WAKE] = ]] 0,
+		--[[ [SLQ_BOUNDARY] = ]] bid,
+		--[[ [SLQ_NEXT] = ]] nil,
+		--[[ [SLQ_PREV] = ]] nil,
+	}
+end
+
+--[[ Return true if the SLQ record already has linked elements --]]
+local function SLQ_isAttached(record)
+	return record[5 --[[SLQ_NEXT]]] ~= nil
+		or record[6 --[[SLQ_PREV]]] ~= nil
+end
+
+--[[ Link two records --]]
+local function SLQ_Attach(head, tail)
+	head[5 --[[SLQ_NEXT]]] = tail
+	tail[6 --[[SLQ_PREV]]] = head
+end
+
+--[[ Create a queue --]]
+local function SLQ_Queue(name)
+	local head = SLQ_Record(("%s_head"):format(name))
+	local tail = SLQ_Record(("%s_tail"):format(name))
+	SLQ_Attach(head, tail)
+
+	return { head = head, tail = tail }
+end
+
+--[[ Append a SLQ record to the tail of a queue --]]
+local function SLQ_AppendTail(queue, record)
+	if SLQ_isAttached(record) then
+		error("Unexpected SLQ state; record.{prev|next} is non-nil")
+	else
+		SLQ_Attach(queue.tail[6 --[[SLQ_PREV]]], record)
+		SLQ_Attach(record, queue.tail)
+	end
+end
+
+--[[ Remove a SLQ record from a queue, connecting its next & previous records --]]
+local function SLQ_RemoveRecord(record)
+	-- head = the queue head or another coroutine record;
+	-- tail = the queue tail or another coroutine record;
+	SLQ_Attach(record[6 --[[SLQ_PREV]]], record[5 --[[SLQ_NEXT]]])
+
+	record[5 --[[SLQ_NEXT]]] = nil
+	record[6 --[[SLQ_PREV]]] = nil
+end
+
+--[[
 
 	Thread handling
 
 ]]
-local function resumeThread(coro) -- Internal utility
+local runningThread = nil -- Current active thread.
+local thread_lu = { } -- coroutine to thread record lookup
+local thread_queue = {
+	-- A queue of threads created "this" TickRoutine whose execution does not
+	-- resume/begin until the next TickRoutine.
+	new = SLQ_Queue("new"),
+
+	-- A linked list of all coroutines to be iterated through the next
+	-- TickRoutine.
+	slq = SLQ_Queue("slq"),
+
+	-- A linked list of recycled record tables.
+	recycle = nil, recycle_count = 0,
+}
+
+--[[ Creates a new coroutine and SLQ record, with body f. --]]
+local function thread_createRecord(f, name)
+	boundaryIdx = boundaryIdx + 1
+
+	local bid = boundaryIdx
+	local coro = coroutine_create(function()
+		return runWithBoundaryStart(f, bid)
+	end)
+
+	local record = nil
+	if thread_queue.recycle ~= nil then
+		record = thread_queue.recycle
+
+		-- Ensure recycle list is initialized
+		thread_queue.recycle = record[5 --[[SLQ_NEXT]]]
+		thread_queue.recycle_count = thread_queue.recycle_count - 1
+
+		-- Initialize data
+		record[1 --[[SLQ_CORO]]] = coro
+		record[2 --[[SLQ_NAME]]] = name or "thread"
+		record[3 --[[SLQ_WAKE]]] = 0
+		record[4 --[[SLQ_BOUNDARY]]] = bid
+		record[5 --[[SLQ_NEXT]]] = nil
+		record[6 --[[SLQ_PREV]]] = nil
+	else
+		record = SLQ_Record(name, coro, bid)
+	end
+
+	thread_lu[coro] = record
+	return record
+end
+
+local function resumeThread(thread, coro) -- Internal utility
 	if coroutine_status(coro) == "dead" then
-		threads[coro] = nil
+
+		-- Citizen.Await: 'thread' has the potential to be nil as it references
+		-- a coroutine not bound to the scheduler.
+		if thread ~= nil then
+			SLQ_RemoveRecord(thread)
+
+			-- Cleanup coroutine references.
+			thread_lu[coro] = nil
+			thread[1 --[[SLQ_CORO]]] = nil
+
+			-- Coroutine has died: attempt to recycle the linked list node to
+			-- handle the case of many shortly lived threads being created on a
+			-- per-frame basis.
+			local rc = thread_queue.recycle_count
+			if rc < 16 then -- Append recycled record to root of 'recycle' chain.
+				thread[2 --[[SLQ_NAME]]] = ""
+				--thread[3 --[[SLQ_WAKE]]] = 0
+				--thread[4 --[[SLQ_BOUNDARY]]] = 0
+				thread[5 --[[SLQ_NEXT]]] = nil
+				thread[6 --[[SLQ_PREV]]] = nil
+				if thread_queue.recycle then
+					SLQ_Attach(thread, thread_queue.recycle)
+				end
+
+				thread_queue.recycle = thread
+				thread_queue.recycle_count = rc + 1
+			end
+		end
+
 		coroutine_close(coro)
 		return false
 	end
 
 	runningThread = coro
 	
-	local thread = threads[coro]
-
 	if thread then
-		if thread.name then
-			ProfilerEnterScope(thread.name)
-		else
-			ProfilerEnterScope('thread')
-		end
+		ProfilerEnterScope(thread[2 --[[SLQ_NAME]]])
 
-		Citizen_SubmitBoundaryStart(thread.boundary, coro)
+		Citizen_SubmitBoundaryStart(thread[4 --[[SLQ_BOUNDARY]]], coro)
 	end
 	
 	local ok, wakeTimeOrErr = coroutine_resume(coro)
 	
 	if ok then
-		thread = threads[coro]
+		thread = thread_lu[coro]
 		if thread then
-			thread.wakeTime = wakeTimeOrErr or 0
+			thread[3 --[[SLQ_WAKE]]] = wakeTimeOrErr or 0
 			hadThread = true
 		end
 	else
@@ -153,21 +294,12 @@ local function resumeThread(coro) -- Internal utility
 end
 
 function Citizen.CreateThread(threadFunction)
-	local bid = boundaryIdx + 1
-	boundaryIdx = boundaryIdx + 1
-
-	local tfn = function()
-		return runWithBoundaryStart(threadFunction, bid)
-	end
-	
 	local di = debug_getinfo(threadFunction, 'S')
-	
-	threads[coroutine_create(tfn)] = {
-		wakeTime = 0,
-		boundary = bid,
-		name = ('thread %s[%d..%d]'):format(di.short_src, di.linedefined, di.lastlinedefined)
-	}
 
+	local name = ('thread %s[%d..%d]'):format(di.short_src, di.linedefined, di.lastlinedefined)
+	local record = thread_createRecord(threadFunction, name)
+
+	SLQ_AppendTail(thread_queue.new, record)
 	hadThread = true
 end
 
@@ -180,25 +312,15 @@ Wait = Citizen.Wait
 CreateThread = Citizen.CreateThread
 
 function Citizen.CreateThreadNow(threadFunction, name)
-	local bid = boundaryIdx + 1
-	boundaryIdx = boundaryIdx + 1
 	curTime = GetGameTimer()
-	
+
 	local di = debug_getinfo(threadFunction, 'S')
-	name = name or ('thread_now %s[%d..%d]'):format(di.short_src, di.linedefined, di.lastlinedefined)
+	local name = name or ('thread_now %s[%d..%d]'):format(di.short_src, di.linedefined, di.lastlinedefined)
+	local record = thread_createRecord(threadFunction, name)
 
-	local tfn = function()
-		return runWithBoundaryStart(threadFunction, bid)
-	end
-
-	local coro = coroutine_create(tfn)
-	threads[coro] = {
-		wakeTime = 0,
-		boundary = bid,
-		name = name
-	}
-
-	return resumeThread(coro)
+	-- Worst case scenario the record removes itself from the 'new' queue.
+	SLQ_AppendTail(thread_queue.new, record)
+	return resumeThread(record, record[1 --[[SLQ_CORO]]])
 end
 
 function Citizen.Await(promise)
@@ -220,12 +342,17 @@ function Citizen.Await(promise)
 	end)
 
 	if not isDone then
-		local threadData = threads[coro]
-		threads[coro] = nil
+		local threadData = thread_lu[coro]
+		if threadData ~= nil then
+			SLQ_RemoveRecord(threadData)
+		end
 
 		local function reattach()
-			threads[coro] = threadData
-			resumeThread(coro)
+			if threadData ~= nil and not SLQ_isAttached(threadData) then
+				SLQ_AppendTail(thread_queue.new, threadData)
+			end
+
+			resumeThread(threadData, coro)
 		end
 
 		promise:next(reattach, reattach)
@@ -240,19 +367,10 @@ function Citizen.Await(promise)
 end
 
 function Citizen.SetTimeout(msec, callback)
-	local bid = boundaryIdx + 1
-	boundaryIdx = boundaryIdx + 1
+	local record = thread_createRecord(callback)
+	record[3 --[[SLQ_WAKE]]] = curTime + msec
 
-	local tfn = function()
-		return runWithBoundaryStart(callback, bid)
-	end
-
-	local coro = coroutine_create(tfn)
-	threads[coro] = {
-		wakeTime = curTime + msec,
-		boundary = bid
-	}
-
+	SLQ_AppendTail(thread_queue.new, record)
 	hadThread = true
 end
 
@@ -267,18 +385,31 @@ Citizen.SetTickRoutine(function()
 	local thisHadThread = false
 	curTime = GetGameTimer()
 
-	for coro, thread in pairs(newThreads) do
-		rawset(threads, coro, thread)
-		newThreads[coro] = nil
+	local queue,queue_new = thread_queue.slq,thread_queue.new
+	local head_record,tail_record = queue.head,queue.tail
+
+	-- Append new threads to the end of the execution queue.
+	if queue_new.head[5 --[[SLQ_NEXT]]] ~= queue_new.tail then
+		SLQ_Attach(tail_record[6 --[[SLQ_PREV]]], queue_new.head[5 --[[SLQ_NEXT]]])
+		SLQ_Attach(queue_new.tail[6 --[[SLQ_PREV]]], tail_record)
+
+		-- Clear the new queue
+		queue_new.head[5 --[[SLQ_NEXT]]] = queue_new.tail
+		queue_new.tail[6 --[[SLQ_PREV]]] = queue_new.head
 
 		thisHadThread = true
 	end
 
-	for coro, thread in pairs(threads) do
-		if curTime >= thread.wakeTime then
-			resumeThread(coro)
+	-- Iterate over each thread in the queue. Caching "next" in case the
+	-- coroutine dies or is temporarily removed from the execution queue.
+	local record = head_record[5 --[[SLQ_NEXT]]]
+	while record ~= tail_record do
+		local record_next = record[5 --[[SLQ_NEXT]]]
+		if curTime >= record[3 --[[SLQ_WAKE]]] then
+			resumeThread(record, record[1 --[[SLQ_CORO]]])
 		end
 
+		record = record_next
 		thisHadThread = true
 	end
 
