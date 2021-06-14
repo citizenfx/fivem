@@ -207,6 +207,35 @@ static SAFE_BUFFERS LUA_INLINE void fxLuaNativeContext_PushUserdata(lua_State* L
 	}
 }
 
+#if LUA_VERSION_NUM == 504
+/*
+**
+** Convert an acceptable index to a pointer to its respective value.
+** Non-valid indices return the special nil value 'G(L)->nilvalue'.
+*/
+static LUA_INLINE const TValue* __index2value(lua_State* L, int idx)
+{
+	const CallInfo* ci = L->ci;
+	if (idx > 0)
+	{
+		const StkId o = ci->func + idx;
+		api_check(L, idx <= L->ci->top - (ci->func + 1), "unacceptable index");
+		return (o >= L->top) ? &G(L)->nilvalue : s2v(o);
+	}
+	else /* negative index */
+	{
+		api_check(L, idx != 0 && -idx <= L->top - (ci->func + 1), "invalid index");
+		return s2v(L->top + idx);
+	}
+}
+#endif
+
+#if LUA_VERSION_NUM == 504
+#define LUA_VALUE(L, I) __index2value((L), (I))
+#else
+#define LUA_VALUE(L, I) lua_getvalue((L), (I))
+#endif
+
 /// <summary>
 /// Consider the possibly converting SHRSTR's to VLNGSTR's to avoid the handler
 /// from invalidating internalized strings.
@@ -219,7 +248,7 @@ template<bool IsPtr>
 static int SAFE_BUFFERS Lua_PushContextArgument(lua_State* L, int idx, fxLuaNativeContext<IsPtr>& context, fxLuaResult& result)
 {
 #if LUA_VERSION_NUM == 504
-	const TValue* value = lua_getvalue(L, idx);
+	const TValue* value = LUA_VALUE(L, idx);
 	switch (ttypetag(value))
 	{
 		case LUA_VNIL:
@@ -300,7 +329,7 @@ static int SAFE_BUFFERS Lua_PushContextArgument(lua_State* L, int idx, fxLuaNati
 	}
 #else
 	// get the type and decide what to do based on it
-	const auto* value = lua_getvalue(L, idx);
+	const auto* value = LUA_VALUE(L, idx);
 	int type = lua_valuetype(L, value);
 
 	// nil: add '0'
@@ -791,7 +820,258 @@ LUA_SCRIPT_LINKAGE int Lua_LoadNative(lua_State* L)
 #pragma endregion
 
 #pragma region LuaGetNative
+
+#include <lua_cmsgpacklib.h>
+#define sc_nvalue(o, T) (ttisinteger(o) ? static_cast<T>(ivalue(o)) : static_cast<T>(fltvalue(o)))
+
 using Lua_NativeMap = std::map<std::string, lua_CFunction, std::less<>>;
+
+struct LuaArgumentParser
+{
+	// Parsing function arguments.
+	template<typename T, size_t S = sizeof(T)>
+	static LUA_INLINE T ParseArgument(lua_State* L, int idx)
+	{
+		static_assert(sizeof(T) == 0, "Invalid ParseArgument");
+	}
+
+	template<typename T, size_t S = sizeof(T)>
+	static LUA_INLINE void PushObject(lua_State* L, const T val)
+	{
+		static_assert(sizeof(T) == 0, "Invalid PushObject");
+	}
+
+	static LUA_INLINE const char* ParseFunctionReference(lua_State* L, int idx)
+	{
+		return lua_tostring(L, idx); // @TODO: maybe?
+	}
+
+	static LUA_INLINE const char* ParseObject(lua_State* L, int idx)
+	{
+		lua_pushcfunction(L, mp_pack); // [..., idx, ..., mp_pack]
+		lua_pushvalue(L, idx); // [..., idx, ..., mp_pack, object]
+		lua_call(L, 1, 1); // [..., idx, ..., encoding]
+		lua_replace(L, idx); // [..., encoding, ...]
+		return lua_tostring(L, idx);
+	}
+
+	static LUA_INLINE void PushStringObject(lua_State* L, const char* val, size_t len)
+	{
+		lua_pushlstring(L, val, len);
+	}
+};
+
+template<>
+LUA_INLINE bool LuaArgumentParser::ParseArgument<bool>(lua_State* L, int idx)
+{
+	const TValue* value = LUA_VALUE(L, idx);
+	if (ttisinteger(value))
+		return ivalue(value) != 0;
+	return l_isfalse(value) ? false : true;
+}
+
+template<>
+LUA_INLINE float LuaArgumentParser::ParseArgument<float>(lua_State* L, int idx)
+{
+	const TValue* value = LUA_VALUE(L, idx);
+	return ttisnumber(value) ? sc_nvalue(value, float) : 0.f;
+}
+
+template<>
+LUA_INLINE double LuaArgumentParser::ParseArgument<double>(lua_State* L, int idx)
+{
+	const TValue* value = LUA_VALUE(L, idx);
+	return ttisnumber(value) ? sc_nvalue(value, double) : 0.0;
+}
+
+template<>
+LUA_INLINE int16_t LuaArgumentParser::ParseArgument<int16_t>(lua_State* L, int idx)
+{
+	const TValue* value = LUA_VALUE(L, idx);
+	return ttisnumber(value) ? sc_nvalue(value, int16_t) : (!l_isfalse(value) ? 1 : 0);
+}
+
+template<>
+LUA_INLINE int32_t LuaArgumentParser::ParseArgument<int32_t>(lua_State* L, int idx)
+{
+	const TValue* value = LUA_VALUE(L, idx);
+	return ttisnumber(value) ? sc_nvalue(value, int32_t) : (!l_isfalse(value) ? 1 : 0);
+}
+
+template<>
+LUA_INLINE int64_t LuaArgumentParser::ParseArgument<int64_t>(lua_State* L, int idx)
+{
+	const TValue* value = LUA_VALUE(L, idx);
+	return ttisnumber(value) ? sc_nvalue(value, int64_t) : (!l_isfalse(value) ? 1 : 0);
+}
+
+#if defined(__GNUC__)
+template<>
+LUA_INLINE lua_Integer LuaArgumentParser::ParseArgument<lua_Integer>(lua_State* L, int idx)
+{
+	const TValue* value = LUA_VALUE(L, idx);
+	return ttisnumber(value) ? sc_nvalue(value, lua_Integer) : (!l_isfalse(value) ? 1 : 0);
+}
+#endif
+
+/// <summary>
+/// Codegen uses unsigned integer types to denote hashes.
+/// </summary>
+template<>
+LUA_INLINE uint32_t LuaArgumentParser::ParseArgument<uint32_t>(lua_State* L, int idx)
+{
+	const TValue* o = LUA_VALUE(L, idx);
+#if LUA_VERSION_NUM == 504
+	if (ttisstring(o))
+		return HashString(svalue(o));
+	else if (ttisinteger(o))
+		return ivalue(o);
+	return 0;
+#else
+	if (lua_valuetype(L, o) == LUA_TSTRING)
+	{
+		return HashString(lua_valuetostring(L, o));
+	}
+
+	return lua_valuetointeger(L, o);
+#endif
+}
+
+/// <summary>
+/// _ts: Workaround for users calling string parameters with '0' and also nil
+/// being translated.
+///
+/// @NOTE lua_tolstring also changes the actual value in the stack to a string
+/// </summary>
+template<>
+LUA_INLINE const char* LuaArgumentParser::ParseArgument<const char*>(lua_State* L, int idx)
+{
+	const TValue* value = LUA_VALUE(L, idx);
+	switch (ttype(value))
+	{
+		case LUA_TNIL: return NULL;
+		case LUA_TSTRING: return svalue(value);
+		case LUA_TNUMBER:
+		{
+			if ((ttisinteger(value) && ivalue(value) == 0)
+				|| (ttisnumber(value) && nvalue(value) == 0.0))
+				return NULL;
+
+			return lua_tostring(L, idx);
+		}
+		default:
+		{
+			return lua_tostring(L, idx);
+		}
+	}
+}
+
+template<>
+LUA_INLINE scrVectorLua LuaArgumentParser::ParseArgument<scrVectorLua>(lua_State* L, int idx)
+{
+	const TValue* o = LUA_VALUE(L, idx);
+#if LUA_VERSION_NUM == 504
+	if (ttisvector(o))
+	{
+		const glmVector& v = vvalue(o);
+		if (ttisquat(o)) // Support (NOT) GLM_FORCE_QUAT_DATA_XYZW
+			return scrVectorLua{ v.q.x, v.q.y, v.q.z };
+		else
+			return scrVectorLua{ v.v4.x, v.v4.y, v.v4.z };
+	}
+	return scrVectorLua{ 0.f, 0.f, 0.f };
+#else
+	auto f4 = lua_valuetofloat4(L, o);
+	return scrVectorLua{ f4.x, f4.y, f4.z };
+#endif
+}
+
+template<>
+LUA_INLINE void LuaArgumentParser::PushObject<bool>(lua_State* L, bool val)
+{
+	lua_pushboolean(L, val);
+}
+
+template<>
+LUA_INLINE void LuaArgumentParser::PushObject<float>(lua_State* L, float val)
+{
+	lua_pushnumber(L, static_cast<lua_Number>(val));
+}
+
+template<>
+LUA_INLINE void LuaArgumentParser::PushObject<double>(lua_State* L, double val)
+{
+	lua_pushnumber(L, static_cast<lua_Number>(val));
+}
+
+template<>
+LUA_INLINE void LuaArgumentParser::PushObject<int32_t>(lua_State* L, int32_t val)
+{
+	lua_pushinteger(L, static_cast<lua_Integer>(val));
+}
+
+template<>
+LUA_INLINE void LuaArgumentParser::PushObject<int64_t>(lua_State* L, int64_t val)
+{
+	lua_pushinteger(L, static_cast<lua_Integer>(val));
+}
+
+#if defined(__GNUC__)
+template<>
+LUA_INLINE void LuaArgumentParser::PushObject<lua_Integer>(lua_State* L, lua_Integer val)
+{
+	lua_pushinteger(L, static_cast<lua_Integer>(val));
+}
+#endif
+
+template<>
+LUA_INLINE void LuaArgumentParser::PushObject<uint32_t>(lua_State* L, uint32_t val)
+{
+	lua_pushinteger(L, static_cast<lua_Integer>(val));
+}
+
+template<>
+LUA_INLINE void LuaArgumentParser::PushObject<uint64_t>(lua_State* L, uint64_t val)
+{
+	lua_pushinteger(L, static_cast<lua_Integer>(val));
+}
+
+template<>
+LUA_INLINE void LuaArgumentParser::PushObject<const char*>(lua_State* L, const char* val)
+{
+	lua_pushstring(L, val);
+}
+
+template<>
+LUA_INLINE void LuaArgumentParser::PushObject<const scrVectorLua&>(lua_State* L, const scrVectorLua& val)
+{
+#if LUA_VERSION_NUM == 504
+	glm_pushvec3(L, glm::vec<3, glm_Float>(val.x, val.y, val.z));
+#else
+	lua_pushvector3(L, val.x, val.y, val.z);
+#endif
+}
+
+template<>
+LUA_INLINE void LuaArgumentParser::PushObject<const scrObject&>(lua_State* L, const scrObject& val)
+{
+	// @NOTE: Prevent scripts that override msgpack.unpack() from
+	// manipulating data internally.
+	lua_pushcfunction(L, mp_unpack_compat);
+	lua_pushlstring(L, val.data, val.length);
+	lua_call(L, 1, 1);
+}
+
+template<>
+LUA_INLINE void LuaArgumentParser::PushObject<const scrString&>(lua_State* L, const scrString& val)
+{
+	if (val.magic == SCRSTRING_MAGIC_BINARY)
+		lua_pushlstring(L, val.str, val.len);
+	else if (val.str)
+		lua_pushstring(L, val.str);
+	else
+		lua_pushnil(L);
+}
 
 #if defined(IS_FXSERVER)
 #define LUA_EXC_WRAP_START(hash)
@@ -983,69 +1263,11 @@ struct LuaNativeContext
 };
 #endif
 
-static LUA_INLINE const char* Lua_ToFuncRef(lua_State* L, int idx)
-{
-	// TODO: maybe?
-	return lua_tostring(L, idx);
-}
-
-static LUA_INLINE uint32_t Lua_ToHash(lua_State* L, int idx)
-{
 #if LUA_VERSION_NUM == 504
-	const TValue* o = lua_getvalue(L, idx);
-	if (ttisstring(o))
-		return HashString(svalue(o));
-	else if (ttisinteger(o))
-		return ivalue(o);
-	return 0;
+#define INCLUDE_FXV2_NATIVES 1
 #else
-	const auto value = lua_getvalue(L, idx);
-
-	if (lua_valuetype(L, value) == LUA_TSTRING)
-	{
-		return HashString(lua_valuetostring(L, value));
-	}
-
-	return lua_valuetointeger(L, value);
+#define INCLUDE_FXV2_NATIVES 0
 #endif
-}
-
-static LUA_INLINE scrVectorLua Lua_ToScrVector(lua_State* L, int idx)
-{
-#if LUA_VERSION_NUM == 504
-	luaL_checktype(L, idx, LUA_TVECTOR);
-	const TValue* o = lua_getvalue(L, idx);
-	const glmVector& v = vvalue(o);
-
-	if (ttisquat(o)) // Support (NOT) GLM_FORCE_QUAT_DATA_XYZW
-		return scrVectorLua{ v.q.x, v.q.y, v.q.z };
-	else
-		return scrVectorLua{ v.v4.x, v.v4.y, v.v4.z };
-#else
-	auto f4 = lua_valuetofloat4(L, lua_getvalue(L, idx));
-
-	return scrVectorLua{ f4.x, f4.y, f4.z };
-#endif
-}
-
-static LUA_INLINE void Lua_PushScrVector(lua_State* L, const scrVectorLua& val)
-{
-#if LUA_VERSION_NUM == 504
-	glm_pushvec3(L, glm::vec<3, glm_Float>(val.x, val.y, val.z));
-#else
-	lua_pushvector3(L, val.x, val.y, val.z);
-#endif
-}
-
-#include <lua_cmsgpacklib.h>
-static LUA_INLINE void Lua_PushScrObject(lua_State* L, const scrObject& val)
-{
-	// @NOTE: Prevent scripts that override msgpack.unpack() from manipulating
-	// data internally.
-	lua_pushcfunction(L, mp_unpack_compat);
-	lua_pushlstring(L, val.data, val.length);
-	lua_call(L, 1, 1);
-}
 
 #if INCLUDE_FXV2_NATIVES
 #if !defined(IS_FXSERVER) && defined(GTA_FIVE)
