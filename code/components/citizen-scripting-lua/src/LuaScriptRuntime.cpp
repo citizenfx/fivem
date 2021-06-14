@@ -607,6 +607,36 @@ static int Lua_GetPointerField(lua_State* L)
 	return 1;
 }
 
+static int Lua_Require(lua_State* L)
+{
+	const char* name = luaL_checkstring(L, 1);
+	lua_settop(L, 1); /* LOADED table will be at index 2 */
+#if LUA_VERSION_NUM >= 504
+	lua_getfield(L, LUA_REGISTRYINDEX, LUA_LOADED_TABLE);
+#else
+	lua_getfield(L, LUA_REGISTRYINDEX, "_LOADED");
+#endif
+	lua_getfield(L, 2, name); /* LOADED[name] */
+	if (lua_toboolean(L, -1)) /* is it there? */
+	{
+		return 1; /* package is already loaded */
+	}
+
+#if LUA_VERSION_NUM >= 504
+	if (strcmp(name, LUA_GLMLIBNAME) == 0)
+	{
+		luaL_requiref(L, LUA_GLMLIBNAME, luaopen_glm, 1);
+		return 1;
+	}
+#endif
+
+	// @TODO: Consider implementing a custom 'loadlib' module that uses VFS,
+	// for example, LoadSystemFile("citizen:/scripting/lua/json.lua"). Server
+	// side luarocks integration would be pretty neat.
+
+	return 0;
+}
+
 static const struct luaL_Reg g_citizenLib[] = {
 	{ "SetTickRoutine", Lua_SetTickRoutine },
 	{ "SetEventRoutine", Lua_SetEventRoutine },
@@ -771,18 +801,6 @@ result_t LuaScriptRuntime::Create(IScriptHost* scriptHost)
 		lua_pop(m_state, 1);
 	}
 
-#if LUA_VERSION_NUM >= 504
-	{
-		int glm = 0;
-		result_t hr = m_resourceHost->GetNumResourceMetaData("glm", &glm);
-		if (FX_SUCCEEDED(hr) && glm > 0)
-		{
-			luaL_requiref(m_state, LUA_GLMLIBNAME, luaopen_glm, 1);
-			lua_pop(m_state, 1);
-		}
-	}
-#endif
-
 	{
 		// 0
 		lua_getglobal(m_state, "debug");
@@ -828,6 +846,9 @@ result_t LuaScriptRuntime::Create(IScriptHost* scriptHost)
 
 	lua_pushcfunction(m_state, Lua_Print);
 	lua_setglobal(m_state, "print");
+
+	lua_pushcfunction(m_state, Lua_Require);
+	lua_setglobal(m_state, "require");
 
 	return FX_S_OK;
 }
