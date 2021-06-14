@@ -455,6 +455,10 @@ static InitFunction initFunction([]()
 
 			ImGui::Text("Physical memory: %.2f MiB", usedPhys / 1024.0 / 1024.0);
 
+			ImGui::Text("grcore/ResourceCache usage: %.2f / %.2f MiB",
+				rage::grcResourceCache::GetInstance()->GetUsedPhysicalMemory() / 1024.0 / 1024.0,
+				rage::grcResourceCache::GetInstance()->GetTotalPhysicalMemory() / 1024.0 / 1024.0);
+
 			static ImGui::ListView lv;
 
 			if (lv.headers.empty())
