@@ -15,6 +15,7 @@
 #include <json.hpp>
 
 #include <CoreConsole.h>
+#include <Profiler.h>
 
 #include <lua.hpp>
 #include <lua_cmsgpacklib.h>
@@ -27,6 +28,11 @@
 extern LUA_INTERNAL_LINKAGE
 {
 #include <lobject.h>
+
+#include <lmprof_state.h>
+#include <collections/lmprof_record.h>
+#include <collections/lmprof_traceevent.h>
+#include <collections/lmprof_stack.h>
 }
 
 #if defined(GTA_FIVE)
@@ -48,6 +54,9 @@ static constexpr std::pair<const char*, ManifestVersion> g_scriptVersionPairs[] 
 	{ "natives_server.lua", guid_t{ 0 } }
 };
 #endif
+
+// Additional flag to denote the profiler was created by IScriptProfiler
+#define LMPROF_STATE_FX_PROFILER 0x80000000
 
 /// <summary>
 /// </summary>
@@ -135,6 +144,35 @@ struct LuaBoundary
 	lua_State* thread;
 };
 
+class LuaProfilerScope
+{
+private:
+	fx::LuaScriptRuntime* luaRuntime;
+	const bool begin;
+	bool requiresClose;
+
+public:
+	LuaProfilerScope(fx::LuaScriptRuntime* luaRuntime_, bool begin_ = true)
+		: luaRuntime(luaRuntime_), begin(begin_), requiresClose(false)
+	{
+		requiresClose = luaRuntime->IScriptProfiler_Tick(begin) != 0;
+	}
+
+	~LuaProfilerScope()
+	{
+		Close();
+	}
+
+	void LUA_INLINE Close()
+	{
+		if (requiresClose)
+		{
+			requiresClose = false;
+			luaRuntime->IScriptProfiler_Tick(!begin);
+		}
+	}
+};
+
 static int Lua_Trace(lua_State* L)
 {
 	ScriptTrace("%s", luaL_checkstring(L, 1));
@@ -153,6 +191,8 @@ static int Lua_SetTickRoutine(lua_State* L)
 
 	luaRuntime->SetTickRoutine([=]()
 	{
+		LuaProfilerScope _profile(luaRuntime);
+
 		// set the error handler
 		lua_pushcfunction(L, luaRuntime->GetDbTraceback());
 
@@ -192,6 +232,7 @@ static int Lua_SetStackTraceRoutine(lua_State* L)
 	{
 		// static array for retval output (sadly)
 		static std::vector<char> retvalArray(32768);
+		LuaProfilerScope _profile(luaRuntime);
 
 		// set the error handler
 		lua_pushcfunction(L, luaRuntime->GetDbTraceback());
@@ -289,6 +330,8 @@ static int Lua_SetEventRoutine(lua_State* L)
 
 	luaRuntime->SetEventRoutine([=](const char* eventName, const char* eventPayload, size_t payloadSize, const char* eventSource)
 	{
+		LuaProfilerScope _profile(luaRuntime);
+
 		// set the error handler
 		lua_pushcfunction(L, luaRuntime->GetDbTraceback());
 
@@ -331,6 +374,7 @@ static int Lua_SetCallRefRoutine(lua_State* L)
 	{
 		// static array for retval output (sadly)
 		static std::vector<char> retvalArray(32768);
+		LuaProfilerScope _profile(luaRuntime);
 
 		// set the error handler
 		lua_pushcfunction(L, luaRuntime->GetDbTraceback());
@@ -389,6 +433,8 @@ static int Lua_SetDeleteRefRoutine(lua_State* L)
 
 	luaRuntime->SetDeleteRefRoutine([=](int32_t refId)
 	{
+		LuaProfilerScope _profile(luaRuntime);
+
 		// set the error handler
 		lua_pushcfunction(L, luaRuntime->GetDbTraceback());
 
@@ -427,6 +473,8 @@ static int Lua_SetDuplicateRefRoutine(lua_State* L)
 
 	luaRuntime->SetDuplicateRefRoutine([=](int32_t refId)
 	{
+		LuaProfilerScope _profile(luaRuntime);
+
 		// set the error handler
 		lua_pushcfunction(L, luaRuntime->GetDbTraceback());
 
@@ -481,6 +529,7 @@ static int Lua_InvokeFunctionReference(lua_State* L)
 	// get required entries
 	auto& luaRuntime = LuaScriptRuntime::GetCurrent();
 	auto scriptHost = luaRuntime->GetScriptHost();
+	LuaProfilerScope _profile(luaRuntime.GetRef(), false);
 
 	// variables to hold state
 	fxNativeContext context = { 0 };
@@ -508,8 +557,9 @@ static int Lua_InvokeFunctionReference(lua_State* L)
 		char* error = "Unknown";
 		scriptHost->GetLastErrorText(&error);
 
+		_profile.Close();
 		lua_pushstring(L, va("Execution of native %016x in script host failed: %s", 0xe3551879, error));
-		lua_error(L);
+		return lua_error(L);
 	}
 
 	// get return values
@@ -1219,6 +1269,214 @@ void* LuaScriptRuntime::GetParentObject()
 void LuaScriptRuntime::SetParentObject(void* object)
 {
 	m_parentObject = object;
+}
+
+/// <summary>
+/// Helper function for initializing the fx::ProfilerComponent bridge.
+/// </summary>
+static LuaProfilingMode IScriptProfiler_Initialize(lua_State* L, int m_profilingId);
+
+bool LuaScriptRuntime::IScriptProfiler_Tick(bool begin)
+{
+	// Preempt
+	if (m_profilingMode == LuaProfilingMode::None)
+	{
+		return false;
+	}
+
+	lua_State* L = m_state.Get();
+	switch (m_profilingMode)
+	{
+		case LuaProfilingMode::None:
+			break;
+
+		// Flagged to initialize the fx::ProfilerComponent bridge.
+		case LuaProfilingMode::Setup:
+		{
+			m_profilingMode = IScriptProfiler_Initialize(L, m_profilingId);
+			return begin && m_profilingMode == LuaProfilingMode::Profiling; // Requires an 'exit' scope.
+		}
+
+		// The Lua runtime is either resuming execution or yielding until the
+		// next Tick/Event/CallRef routine.
+		//
+		// To improve clarity of the DevTools timeline: artificial ENTER_SCOPE/EXIT_SCOPE
+		// events are generated to ensure DevTools only renders timeline bars
+		// while the script runtime is active.
+		case LuaProfilingMode::Profiling:
+		{
+			lmprof_State* st = lmprof_singleton(L);
+			return begin ? lmprof_resume_execution(L, st)
+						 : lmprof_pause_execution(L, st);
+		}
+
+		// Flagged to shutdown the profiler.
+		case LuaProfilingMode::Shutdown:
+		{
+			m_profilingId = 0;
+			m_profilingMode = LuaProfilingMode::None;
+
+			// Ensure the profiler was initialized by IScriptProfiler. Must also
+			// consider the edge-case of it being preempted by the exposed
+			// lmprof.quit script function.
+			lmprof_State* st = lmprof_singleton(L);
+			if (st != l_nullptr && BITFIELD_TEST(st->state, LMPROF_STATE_FX_PROFILER))
+			{
+				lmprof_finalize_profiler(L, st, 0);
+				lmprof_shutdown_profiler(L, st);
+				if (lua_gc(L, LUA_GCISRUNNING, 0))
+				{
+					// Force collect & restart the garbage collection, ensuring
+					// all profiler overheads have been managed.
+					lua_gc(L, LUA_GCCOLLECT, 0);
+					lua_gc(L, LUA_GCRESTART, 0);
+				}
+			}
+			break;
+		}
+		default:
+		{
+			break;
+		}
+	}
+	return false;
+}
+
+result_t LuaScriptRuntime::SetupFxProfiler(void* obj, int32_t resourceId)
+{
+	lua_State* L = m_state.Get();
+	if (L != l_nullptr
+		&& lua_gethook(L) == l_nullptr // will be replacing debug.sethook: avoid it
+		&& lmprof_singleton(L) == l_nullptr) // Invalid profiler state: already being profiled.
+	{
+		m_profilingId = resourceId;
+		m_profilingMode = LuaProfilingMode::Setup; // @TODO: See comment in ShutdownFxProfiler.
+		return FX_S_OK;
+	}
+
+	return FX_E_INVALIDARG; // @TODO: Eventually create a unique error code.
+}
+
+result_t LuaScriptRuntime::ShutdownFxProfiler()
+{
+	if (m_profilingMode == LuaProfilingMode::Profiling)
+		m_profilingMode = LuaProfilingMode::Shutdown;
+	else
+		m_profilingMode = LuaProfilingMode::None;
+
+	return FX_S_OK;
+}
+
+/// <summary>
+/// Data required by lmprof to forward/bridge events to fx::ProfilerComponent.
+/// </summary>
+struct ProfilerState
+{
+	const fwRefContainer<fx::ProfilerComponent>& profiler;
+};
+
+static LuaProfilingMode IScriptProfiler_Initialize(lua_State* L, int m_profilingId)
+{
+	const fwRefContainer<fx::ProfilerComponent>& profiler = fx::ResourceManager::GetCurrent(true)->GetComponent<fx::ProfilerComponent>();
+	lmprof_clock_init();
+
+	lmprof_State* st = lmprof_new(L, LMPROF_MODE_EXT_CALLBACK | LMPROF_MODE_INSTRUMENT | LMPROF_MODE_MEMORY, lmprof_default_error);
+	st->state |= LMPROF_STATE_FX_PROFILER;
+	st->conf = LMPROF_OPT_COMPRESS_GRAPH | LMPROF_OPT_LOAD_STACK | LMPROF_OPT_STACK_MISMATCH | LMPROF_OPT_GC_COUNT_INIT;
+	st->thread.mainproc.pid = TRACE_PROCESS_MAIN;
+	st->thread.mainproc.tid = m_profilingId;
+	st->i.counterFrequency = 1;
+
+	// fx::ProfilerComponent uses std::chrono::[...].time_since_epoch(). Timing
+	// function requires hooking.
+	st->time = []() -> lu_time
+	{
+		return static_cast<lu_time>(fx::usec().count());
+	};
+
+	/// Initialize profiler state
+	st->i.trace.arg = new ProfilerState{ profiler };
+	st->i.trace.free = [](lua_State* L, void* args)
+	{
+		ProfilerState* state = static_cast<ProfilerState*>(args);
+		if (state != nullptr)
+		{
+			delete state;
+		}
+	};
+
+	/// Entering/Exiting a function: map to ENTER_SCOPE/EXIT_SCOPE.
+	st->i.trace.scope = [](lua_State* L, lmprof_State* st, struct lmprof_StackInst* inst, int enter) -> int
+	{
+		ProfilerState* state = static_cast<ProfilerState*>(st->i.trace.arg);
+
+		// Measurements
+		const fx::ProfilerEvent::thread_t tid(st->thread.mainproc.tid);
+		const std::chrono::microseconds when = std::chrono::microseconds(inst->trace.call.s.time);
+
+		// To reduce bloat within the fx::Profiler output, periodically report
+		// memory events.
+		fx::ProfilerEvent::memory_t much = 0;
+		if (--st->i.counterFrequency <= 0)
+		{
+			much = unit_allocated(&inst->trace.call.s);
+			st->i.counterFrequency = 16;
+		}
+
+		// Do not report the 'root' (dummy) record: That timeline event will be
+		// covered by trace.routine.
+		if (BITFIELD_TEST(inst->trace.record->info.event, LMPROF_RECORD_IGNORED | LMPROF_RECORD_ROOT))
+		{
+		}
+		else if (enter)
+		{
+			const char* source = inst->trace.record->info.source;
+			const std::string name = (source == NULL) ? "?" : source;
+			state->profiler->PushEvent(tid, ProfilerEventType::ENTER_SCOPE, when, name, "", much);
+		}
+		else
+		{
+			state->profiler->PushEvent(tid, ProfilerEventType::EXIT_SCOPE, when, much);
+		}
+
+		return TRACE_EVENT_OK;
+	};
+
+	/// Resuming/Yielding a coroutine. In lmprof these callbacks have their own
+	/// specialized TraceEvent format. This implementation will treat them as
+	/// scope events.
+	st->i.trace.routine = [](lua_State* L, lmprof_State* st, lmprof_EventProcess thread, int begin) -> int
+	{
+		ProfilerState* state = static_cast<ProfilerState*>(st->i.trace.arg);
+
+		// Measurements
+		const std::chrono::microseconds when = std::chrono::microseconds(st->thread.r.s.time);
+		const fx::ProfilerEvent::memory_t much(unit_allocated(&st->thread.r.s));
+		const fx::ProfilerEvent::thread_t tid(st->thread.mainproc.tid);
+
+		if (begin)
+		{
+			const std::string name = lmprof_thread_name(L, thread.tid, "Thread");
+			state->profiler->PushEvent(tid, ProfilerEventType::ENTER_SCOPE, when, name, "", much);
+		}
+		else
+		{
+			state->profiler->PushEvent(tid, ProfilerEventType::EXIT_SCOPE, when, much);
+		}
+
+		return TRACE_EVENT_OK;
+	};
+
+	// If hook initialization failed the profiler userdata will be thrown to the
+	// garbage collector.
+	LuaProfilingMode result = LuaProfilingMode::None;
+	if (lmprof_initialize_only_hooks(L, st, -1))
+	{
+		result = LuaProfilingMode::Profiling;
+	}
+
+	lua_pop(L, 1);
+	return result;
 }
 
 #if LUA_VERSION_NUM == 504

@@ -42,6 +42,17 @@
 #endif
 #endif
 
+/// <summary>
+/// Active Lua profiler state; see IScriptProfiler_Tick documentation
+/// </summary>
+enum class LuaProfilingMode : uint8_t
+{
+	None,
+	Setup,
+	Profiling,
+	Shutdown,
+};
+
 enum class LuaMetaFields : uint8_t
 {
 	PointerValueInt,
@@ -116,7 +127,7 @@ public:
 	}
 };
 
-class LuaScriptRuntime : public OMClass<LuaScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntime, IScriptEventRuntime, IScriptRefRuntime, IScriptMemInfoRuntime, IScriptStackWalkingRuntime, IScriptDebugRuntime>
+class LuaScriptRuntime : public OMClass<LuaScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntime, IScriptEventRuntime, IScriptRefRuntime, IScriptMemInfoRuntime, IScriptStackWalkingRuntime, IScriptDebugRuntime, IScriptProfiler>
 {
 private:
 	typedef std::function<void(const char*, const char*, size_t, const char*)> TEventRoutine;
@@ -163,6 +174,10 @@ private:
 	std::string m_nativesDir;
 
 	std::unordered_map<std::string, int> m_scriptIds;
+
+	int m_profilingId = 0; // Timeline identifier from fx::ProfilerComponent
+
+	LuaProfilingMode m_profilingMode = LuaProfilingMode::None; // Current fx::ProfilerComponent state.
 
 public:
 	LuaScriptRuntime()
@@ -244,6 +259,16 @@ public:
 		return m_dbTraceback;
 	}
 
+	/// <summary>
+	/// Manage the fx::ProfilerComponent state while the script runtime is active
+	///
+	/// Profiler initialization may require additional Lua allocations, e.g.,
+	/// placing tables into the registry, and in turn may generate a garbage
+	/// collection step/cycle. As finalizers are allowed to use script natives,
+	/// e.g., DeleteFunctionReference, it requires an active script runtime.
+	/// </summary>
+	bool IScriptProfiler_Tick(bool begin);
+
 private:
 	result_t LoadFileInternal(OMPtr<fxIStream> stream, char* scriptFile);
 
@@ -273,5 +298,7 @@ public:
 	NS_DECL_ISCRIPTSTACKWALKINGRUNTIME;
 
 	NS_DECL_ISCRIPTDEBUGRUNTIME;
+
+	NS_DECL_ISCRIPTPROFILER;
 };
 }

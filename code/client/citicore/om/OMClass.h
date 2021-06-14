@@ -33,6 +33,7 @@ DECLARE_OM_PARENT(5)
 DECLARE_OM_PARENT(6)
 DECLARE_OM_PARENT(7)
 DECLARE_OM_PARENT(8)
+DECLARE_OM_PARENT(9)
 
 template<class TClass, class... TInterface>
 class OMClass : public OMClassParent<TInterface...>

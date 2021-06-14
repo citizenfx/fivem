@@ -137,6 +137,14 @@ interface IScriptMemInfoRuntime : fxIBase
 	int64_t GetMemoryUsage();
 };
 
+[uuid(782A4496-2AE3-4C70-B54A-FAD8FD8AEEFD)]
+interface IScriptProfiler : fxIBase
+{
+	void SetupFxProfiler(in voidPtr obj, in int32_t resourceId);
+
+	void ShutdownFxProfiler();
+};
+
 [uuid(08E68541-A1C9-4F51-8737-3C77F8AB5B21)]
 interface IDebugEventListener : fxIBase
 {
