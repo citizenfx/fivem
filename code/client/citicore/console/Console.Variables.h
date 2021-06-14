@@ -13,6 +13,8 @@ public:
 	virtual std::string GetValue() = 0;
 
 	virtual bool SetValue(const std::string& value) = 0;
+
+	virtual void UpdateTrackingVariable() = 0;
 };
 
 template <typename T, typename TConstraint = void>
@@ -246,6 +248,17 @@ public:
 		}
 
 		return false;
+	}
+
+	virtual void UpdateTrackingVariable() override
+	{
+		if (m_trackingVar)
+		{
+			if (!(typename ConsoleArgumentTraits<T>::Equal()(*m_trackingVar, m_curValue)))
+			{
+				SetRawValue(*m_trackingVar);
+			}
+		}
 	}
 
 	inline const T& GetRawValue()
