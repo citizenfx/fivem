@@ -18,6 +18,26 @@ for _, v in ipairs(unsupList) do
 	unsup[v] = true
 end
 
+--[[ from codegen_out_lua.lua --]]
+local function isSinglePointerNative(native)
+	local foundPointer = false
+
+	for _, v in ipairs(native.arguments) do
+		if v.pointer then
+			if foundPointer then
+				return false
+			else
+				foundPointer = true
+			end
+		end
+	end
+
+	if #native.arguments > 0 then
+		return native.arguments[#native.arguments].pointer
+	end
+	return false
+end
+
 --[[ Safe parameter types for fxv2 native invocation --]]
 local safeArguments = {
 	int = true,
@@ -46,6 +66,9 @@ local safeResults = {
 
 	Known compatibility changes:
 		1. Native handler will not implicitly unroll vectors arguments.	
+		2. In the old native handler, natives with boolean 'out' pointers will 
+			convert the boolean type to an int, e.g., GetShapeTestResult: 
+			"_i --\[\[ actually bool \]\]". This value will now remain boolean.
 --]]
 local function isSafeNative(native)
 	if native.name:sub(1, 2) == '0x' then
@@ -53,15 +76,18 @@ local function isSafeNative(native)
 	end
 
 	local safe = true
+	local singlePointer = isSinglePointerNative(native)
 	for argn=1,#native.arguments do
 		local arg = native.arguments[argn]
 		local nativeType = arg.type.nativeType or 'Any'
 
-		if not safeArguments[nativeType] then
-			safe = false
-		end
-
 		if arg.pointer then
+			if singlePointer then
+				safe = false
+			elseif nativeType ~= "vector3" and not safeArguments[nativeType] then
+				safe = false
+			end
+		elseif not safeArguments[nativeType] then
 			safe = false
 		end
 	end
