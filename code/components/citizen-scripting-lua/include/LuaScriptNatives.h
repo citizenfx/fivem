@@ -9,6 +9,8 @@
 #include "StdInc.h"
 #include "LuaScriptRuntime.h"
 
+#include <lua.hpp>
+
 // scrString corresponds to a binary string: may contain null-terminators, i.e,
 // lua_pushlstring != lua_pushstring, and/or non-UTF valid characters.
 #define SCRSTRING_MAGIC_BINARY 0xFEED1212
@@ -122,3 +124,36 @@ typedef struct alignas(16) fxLuaResult
 		}
 	}
 } fxLuaResult;
+
+#if defined(_DEBUG)
+#define LUA_SCRIPT_LINKAGE LUA_API
+#else
+#define LUA_SCRIPT_LINKAGE static LUA_INLINE
+#endif
+
+#ifdef _WIN32
+#define SAFE_BUFFERS __declspec(safebuffers)
+#else
+#define SAFE_BUFFERS
+#endif
+
+/// <summary>
+/// </summary>
+LUA_SCRIPT_LINKAGE int Lua_LoadNative(lua_State* L);
+
+/// <summary>
+/// </summary>
+LUA_SCRIPT_LINKAGE lua_CFunction Lua_GetNative(lua_State* L, const char* name);
+
+/// <summary>
+/// </summary>
+LUA_SCRIPT_LINKAGE int Lua_GetNativeHandler(lua_State* L);
+
+/// <summary>
+/// </summary>
+LUA_SCRIPT_LINKAGE int SAFE_BUFFERS Lua_InvokeNative(lua_State* L);
+
+#ifndef IS_FXSERVER
+LUA_SCRIPT_LINKAGE int SAFE_BUFFERS Lua_InvokeNative2(lua_State* L);
+#endif
+
