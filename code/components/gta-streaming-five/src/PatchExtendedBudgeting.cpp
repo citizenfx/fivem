@@ -43,9 +43,28 @@ static HookFunction hookFunction([]()
 	// the full code will 100% break 4/4GB systems
 	if (extRamMode == 0)
 	{
-		// but we can lower the 'low' quality setting a bit so it doesn't ruin 8/8 systems entirely
+		// but we can lower the 'normal' and 'low' quality setting a bit so it doesn't ruin 8/8 systems entirely
+		//
+		// externally, there are 4 texture settings:
+		// 0: 'normal'
+		// 1: 'high'
+		// 2: 'very high'
+		// 3: no override
+		//
+		// however, these are implemented by means of an internal flag which is the amount of mips to cut off, as follows:
+		// 0: 'low' (non-existent setting, cut off 2 mips)
+		// 1: 'normal' (cut off 1 mip)
+		// 2: 'high' (cut off no mips)
+		// x: 'very high' (cut off no mips, and allow +hi TXDs)
+		//
+		// the issue is R* seems to have thought in a few cases that the internal texture setting flag mapped to normal, high, very high,
+		// and not unused, normal, high/very high, where 'very high' is just 'high' with the +hi loading flag enabled.
+		//
+		// instead, we'll just keep high and very high the same, but move the 'low' flag to 'normal' and lower the 'low' size some more in case
+		// anyone feels like enabling the real 'low'
 		for (int i = 0; i < 80; i += 4)
 		{
+			vramLocation[i + 1] = vramLocation[i] * 0.9; // bit of extra fiddling to help <12 GB systems
 			vramLocation[i] *= 0.75;
 		}
 
@@ -77,8 +96,9 @@ static HookFunction hookFunction([]()
 
 		for (int i = 0; i < 80; i += 4)
 		{
+			// fix R* vision of the texture quality weirdness
+			vramLocation[i + 1] = vramLocation[i];
 			vramLocation[i] *= 0.75;
-			vramLocation[i + 1] = maxBudget;
 			vramLocation[i + 2] = maxBudget;
 			vramLocation[i + 3] = maxBudget;
 		}
