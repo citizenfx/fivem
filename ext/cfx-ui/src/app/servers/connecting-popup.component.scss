@@ -197,6 +197,7 @@
 
                     .text {
                         text-align: center;
+                        width: calc(var(--q8) + var(--qh) * 2);
 
                         span {
                             display: block;

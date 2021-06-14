@@ -68,7 +68,7 @@ export class Server {
             gametype: object.gametype
         };
 
-        const server = new Server(sanitizer, object.addr, { ...object, ...mappedData });
+        const server = new Server(sanitizer, object.addr, { ...object.infoBlob || {}, ...object, ...mappedData });
 
         if (object.infoBlob) {
             if (object.infoBlob.icon) {
