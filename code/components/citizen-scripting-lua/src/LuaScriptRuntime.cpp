@@ -19,6 +19,7 @@
 #include <lua.hpp>
 #include <lua_cmsgpacklib.h>
 #include <lua_rapidjsonlib.h>
+#include <lmprof_lib.h>
 #if LUA_VERSION_NUM == 504
 #include <lglmlib.hpp>
 #endif
@@ -622,8 +623,13 @@ static int Lua_Require(lua_State* L)
 		return 1; /* package is already loaded */
 	}
 
+	if (strcmp(name, LUA_LMPROF_LIBNAME) == 0)
+	{
+		luaL_requiref(L, LUA_LMPROF_LIBNAME, luaopen_lmprof, 1);
+		return 1;
+	}
 #if LUA_VERSION_NUM >= 504
-	if (strcmp(name, LUA_GLMLIBNAME) == 0)
+	else if (strcmp(name, LUA_GLMLIBNAME) == 0)
 	{
 		luaL_requiref(L, LUA_GLMLIBNAME, luaopen_glm, 1);
 		return 1;
@@ -834,6 +840,13 @@ result_t LuaScriptRuntime::Create(IScriptHost* scriptHost)
 	}
 
 	if (FX_FAILED(hr = LoadSystemFile("citizen:/scripting/lua/scheduler.lua")))
+	{
+		return hr;
+	}
+
+	// Graph script loaded into Citizen.Graph
+	// @TODO: Only load graphing utility on Lua_Require
+	if (FX_FAILED(hr = LoadSystemFile("citizen:/scripting/lua/graph.lua")))
 	{
 		return hr;
 	}

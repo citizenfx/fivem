@@ -4,6 +4,7 @@ return {
 		includedirs { "../vendor/lua/libs/glm-binding/" }
 		includedirs { "../vendor/lua-cmsgpack/src" }
 		includedirs { "../vendor/lua-rapidjson/src" }
+		includedirs { "../vendor/lmprof/src" }
 		
 		-- Dependencies
 		add_dependencies 'vendor:msgpack-c'
@@ -19,6 +20,8 @@ return {
 		if os.istarget('windows') then
 			flags { "LinkTimeOptimization" }
 			defines { "LUA_BUILD_AS_DLL" }
+		elseif os.istarget('linux') then
+			defines { "LUA_USE_POSIX" }
 		end
 
 		defines {
@@ -65,8 +68,13 @@ return {
 			'LUA_RAPIDJSON_SANITIZE_KEYS',
 			'LUA_RAPIDJSON_ALLOCATOR', -- Use lua_getallocf binding for the rapidjson allocator class; otherwise uses default CRT allocator
 
-			--[[ 
-				Experimental Intrinsics  
+			--[[ Profiler Library --]]
+			'LMPROF_BUILTIN', -- Use internal headers: lobject.h/lstate.h
+			'LMPROF_HASH_SPLITMIX', -- Use splitmix record hashing
+			'LMPROF_DISABLE_OUTPUT_PATH', -- Disable 'output_path' argument handling.
+
+			--[[
+				Experimental Intrinsics
 				See: citizen-server-impl/include/state/ServerGameState.h
 			--]]
 			'GLM_FORCE_DEFAULT_ALIGNED_GENTYPES',
@@ -78,6 +86,7 @@ return {
 			"../vendor/lua/onelua.c",
 			"../vendor/lua-cmsgpack/src/**",
 			"../vendor/lua-rapidjson/src/**",
+			"../vendor/lmprof/src/**",
 		}
 
 		filter { "files:**.c" }

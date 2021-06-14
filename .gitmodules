@@ -267,3 +267,7 @@
 [submodule "vendor/im3d"]
 	path = vendor/im3d
 	url = https://github.com/john-chapman/im3d.git
+[submodule "vendor/lmprof"]
+	path = vendor/lmprof
+	url = https://github.com/gottfriedleibniz/lmprof.git
+	branch = grit
