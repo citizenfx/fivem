@@ -13,6 +13,10 @@
 	#define FX_PROFILER_LINKAGE DLL_IMPORT
 #endif
 
+#define TRACE_PROCESS_MAIN fx::ProfilerEvent::thread_t(1)
+#define TRACE_THREAD_MAIN fx::ProfilerEvent::thread_t(1)
+#define TRACE_THREAD_BROWSER fx::ProfilerEvent::thread_t(2)
+
 namespace fx {
 	enum class ProfilerEventType {
 		BEGIN_TICK,     // BEGIN_TICK(µs when)
@@ -34,33 +38,45 @@ namespace fx {
 	struct ProfilerEvent {
 		// DevTools supports negative HeapUsage values
 		using memory_t = int64_t;
+		using thread_t = int;
 
-		inline ProfilerEvent(ProfilerEventType what, std::string where, std::string why, memory_t much)
-			: what(what), where(where), why(why), much(much)
+		inline ProfilerEvent(thread_t who, ProfilerEventType what, std::chrono::microseconds when, const std::string& where, const std::string& why, memory_t much)
+			: who(who), what(what), when(when), where(where), why(why), much(much)
+		{
+		};
+
+		inline ProfilerEvent(thread_t who, ProfilerEventType what, const std::string& where, const std::string& why, memory_t much)
+			: who(who), what(what), where(where), why(why), much(much)
 		{
 			when = (g_recordProfilerTime) ? usec() : std::chrono::microseconds{ 0 };
 		};
 
-		inline ProfilerEvent(ProfilerEventType what, std::string where, std::string why)
-			: what(what), where(where), why(why), much(0)
+		inline ProfilerEvent(thread_t who, ProfilerEventType what, const std::string& where, const std::string& why)
+			: what(what), who(who), where(where), why(why), much(0)
 		{
 			when = (g_recordProfilerTime) ? usec() : std::chrono::microseconds{ 0 };
 		};
 
-		inline ProfilerEvent(ProfilerEventType what, memory_t much)
-			: what(what), much(much)
+		inline ProfilerEvent(thread_t who, ProfilerEventType what, std::chrono::microseconds when, memory_t much)
+			: what(what), who(who), when(when), much(much)
+		{
+		};
+
+		inline ProfilerEvent(thread_t who, ProfilerEventType what, memory_t much)
+			: what(what), who(who), much(much)
 		{
 			when = (g_recordProfilerTime) ? usec() : std::chrono::microseconds{ 0 };
 		};
 
-		inline ProfilerEvent(ProfilerEventType what)
-			: what(what), much(0)
+		inline ProfilerEvent(thread_t who, ProfilerEventType what)
+			: what(what), who(who), much(0)
 		{
 			when = (g_recordProfilerTime) ? usec() : std::chrono::microseconds{ 0 };
 		};
 
-		std::chrono::microseconds when;
+		thread_t who;
 		ProfilerEventType what;
+		std::chrono::microseconds when;
 		std::string where;
 		std::string why;
 		memory_t much;  /* fxScripting::GetMemoryUsage() */

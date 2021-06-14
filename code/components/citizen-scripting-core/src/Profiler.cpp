@@ -17,13 +17,14 @@ using json = nlohmann::json;
 MSGPACK_ADD_ENUM(fx::ProfilerEventType);
 
 struct ProfilerRecordingEvent {
-	uint64_t when;
+	int who;
 	int what;
+	uint64_t when;
 	std::string where;
 	std::string why;
 	fx::ProfilerEvent::memory_t much;
 
-	MSGPACK_DEFINE_ARRAY(when, what, where, why, much)
+	MSGPACK_DEFINE_ARRAY(who, what, when, where, why, much)
 };
 
 struct ProfilerRecording {
@@ -33,9 +34,11 @@ struct ProfilerRecording {
 	MSGPACK_DEFINE_MAP(ticks, events)
 };
 
-template<typename TContainer>
-auto ConvertToStorage(const TContainer& evs) -> ProfilerRecording
+auto ConvertToStorage(fwRefContainer<fx::ProfilerComponent>& r_profiler) -> ProfilerRecording
 {
+	fx::ProfilerComponent *profiler = r_profiler.GetRef();
+	const tbb::concurrent_vector<fx::ProfilerEvent>& evs = profiler->Get();
+
 	std::vector<uint64_t> ticks;
 	std::vector<ProfilerRecordingEvent> events;
 	events.reserve(evs.size());
@@ -43,7 +46,7 @@ auto ConvertToStorage(const TContainer& evs) -> ProfilerRecording
 	for (auto i = 0; i < evs.size(); i++)
 	{
 		const fx::ProfilerEvent& ev = evs[i];
-		events.push_back({ (uint64_t)ev.when.count(), (int)ev.what, ev.where, ev.why, ev.much });
+		events.push_back({ ev.who, (int)ev.what, (uint64_t)ev.when.count(), ev.where, ev.why, ev.much });
 
 
 		if (start_of_tick)
@@ -77,8 +80,8 @@ auto ConvertToJSON(const ProfilerRecording& recording) -> json
 				{ "ph", "I" },
 				{ "s", "g" },
 				{ "ts", event.when },
-				{ "pid", 1 },
-				{ "tid", 2 },
+				{ "pid", TRACE_PROCESS_MAIN },
+				{ "tid", event.who },
 				{ "args",
 					{{
 						"data",
@@ -96,8 +99,8 @@ auto ConvertToJSON(const ProfilerRecording& recording) -> json
 		{ "name", "process_name" },
 		{ "ph", "M" },
 		{ "ts", 0 },
-		{ "pid", 1 },
-		{ "tid", 1 },
+		{ "pid", TRACE_PROCESS_MAIN },
+		{ "tid", TRACE_THREAD_MAIN },
 		{ "args", json::object({
 			{ "name", "Browser" }
 		}) }
@@ -108,8 +111,8 @@ auto ConvertToJSON(const ProfilerRecording& recording) -> json
 		{ "name", "thread_name" },
 		{ "ph", "M" },
 		{ "ts", 0 },
-		{ "pid", 1 },
-		{ "tid", 1 },
+		{ "pid", TRACE_PROCESS_MAIN },
+		{ "tid", TRACE_THREAD_MAIN },
 		{ "args", json::object({
 			{ "name", "CrBrowserMain" }
 		}) }
@@ -120,8 +123,8 @@ auto ConvertToJSON(const ProfilerRecording& recording) -> json
 		{ "name", "thread_name" },
 		{ "ph", "M" },
 		{ "ts", 0 },
-		{ "pid", 1 },
-		{ "tid", 2 },
+		{ "pid", TRACE_PROCESS_MAIN },
+		{ "tid", TRACE_THREAD_BROWSER },
 		{ "args", json::object({
 			{ "name", "CrRendererMain" }
 		}) }
@@ -133,8 +136,8 @@ auto ConvertToJSON(const ProfilerRecording& recording) -> json
 		{ "name", "TracingStartedInBrowser" },
 		{ "ph", "I" },
 		{ "ts", 0 },
-		{ "pid", 1 },
-		{ "tid", 1 },
+		{ "pid", TRACE_PROCESS_MAIN },
+		{ "tid", TRACE_THREAD_MAIN },
 		{ "args", json::object({
 			{ "data", json::object({
 				{ "frameTreeNodeId", 1 },
@@ -153,10 +156,11 @@ auto ConvertToJSON(const ProfilerRecording& recording) -> json
 
 	size_t frameNum = 0;
 
-	std::stack<ProfilerRecordingEvent> eventStack;
+	std::map<fx::ProfilerEvent::thread_t, std::stack<ProfilerRecordingEvent>> eventMap;
 
 	for (const auto& event : recording.events)
 	{
+		std::stack<ProfilerRecordingEvent>& eventStack = eventMap[event.who];
 		switch ((fx::ProfilerEventType)event.what)
 		{
 		case fx::ProfilerEventType::BEGIN_TICK:
@@ -166,8 +170,8 @@ auto ConvertToJSON(const ProfilerRecording& recording) -> json
 				{ "s", "t" },
 				{ "ph", "I" },
 				{ "ts", event.when },
-				{ "pid", 1 },
-				{ "tid", 1 },
+				{ "pid", TRACE_PROCESS_MAIN },
+				{ "tid", event.who },
 				{ "args", json::object({
 					{ "layerTreeId", nullptr }
 				}) }
@@ -182,8 +186,8 @@ auto ConvertToJSON(const ProfilerRecording& recording) -> json
 				{ "s", "t" },
 				{ "ph", "I" },
 				{ "ts", event.when },
-				{ "pid", 1 },
-				{ "tid", 1 },
+				{ "pid", TRACE_PROCESS_MAIN },
+				{ "tid", event.who },
 				{ "args", json::object({
 					{ "layerTreeId", nullptr },
 					{ "frameId", frameNum },
@@ -196,8 +200,8 @@ auto ConvertToJSON(const ProfilerRecording& recording) -> json
 				{ "s", "t" },
 				{ "ph", "I" },
 				{ "ts", event.when },
-				{ "pid", 1 },
-				{ "tid", 1 },
+				{ "pid", TRACE_PROCESS_MAIN },
+				{ "tid", event.who },
 				{ "args", json::object({
 					{ "layerTreeId", nullptr }
 				}) }
@@ -209,8 +213,8 @@ auto ConvertToJSON(const ProfilerRecording& recording) -> json
 				{ "id", frameNum },
 				{ "ph", "O" },
 				{ "ts", event.when },
-				{ "pid", 1 },
-				{ "tid", 1 },
+				{ "pid", TRACE_PROCESS_MAIN },
+				{ "tid", event.who },
 				{ "args", json::object({
 					// TODO: screenshot if client?
 					{ "snapshot", 
@@ -233,8 +237,8 @@ auto ConvertToJSON(const ProfilerRecording& recording) -> json
 					: event.where },
 				{ "ph", "B" },
 				{ "ts", event.when },
-				{ "pid", 1 },
-				{ "tid", 2 },
+				{ "pid", TRACE_PROCESS_MAIN },
+				{ "tid", event.who },
 			}));
 
 			eventStack.push(event);
@@ -245,6 +249,8 @@ auto ConvertToJSON(const ProfilerRecording& recording) -> json
 		case fx::ProfilerEventType::EXIT_RESOURCE:
 		case fx::ProfilerEventType::EXIT_SCOPE:
 		{
+			ProfilerRecordingEvent exitEvent;
+
 			if (eventStack.size() != 0)
 			{
 				auto thisExit = eventStack.top();
@@ -257,8 +263,8 @@ auto ConvertToJSON(const ProfilerRecording& recording) -> json
 						: thisExit.where },
 					{ "ph", "E" },
 					{ "ts", event.when },
-					{ "pid", 1 },
-					{ "tid", 2 },
+					{ "pid", TRACE_PROCESS_MAIN },
+					{ "tid", event.who },
 					}));
 
 				UpdateCounters(event);
@@ -453,7 +459,7 @@ namespace profilerCommand {
 				vfs::Stream& stream;
 			} writeWrapper(writeStream);
 
-			msgpack::pack(writeWrapper, ConvertToStorage(profiler->Get()));
+			msgpack::pack(writeWrapper, ConvertToStorage(profiler));
 		});
 
 		static ConsoleCommand dumpCmd(profilerCtx.GetRef(), "dump", []() {
@@ -463,7 +469,7 @@ namespace profilerCommand {
 
 		static ConsoleCommand viewCmd0(profilerCtx.GetRef(), "view", []() {
 			auto profiler = fx::ResourceManager::GetCurrent(true)->GetComponent<fx::ProfilerComponent>();
-			auto jsonData = ConvertToJSON(ConvertToStorage(profiler->Get()));
+			auto jsonData = ConvertToJSON(ConvertToStorage(profiler));
 
 			ViewProfile(jsonData);
 		});
@@ -551,23 +557,23 @@ namespace fx {
 
 	void ProfilerComponent::EnterResource(const std::string& resource, const std::string& cause)
 	{
-		PushEvent(ProfilerEventType::ENTER_RESOURCE, resource, cause);
+		PushEvent(TRACE_THREAD_BROWSER, ProfilerEventType::ENTER_RESOURCE, resource, cause);
 	}
 	void ProfilerComponent::ExitResource()
 	{
-		PushEvent(ProfilerEventType::EXIT_RESOURCE);
+		PushEvent(TRACE_THREAD_BROWSER, ProfilerEventType::EXIT_RESOURCE);
 	}
 	void ProfilerComponent::EnterScope(const std::string& scope, ProfilerEvent::memory_t memoryUsage)
 	{
-		PushEvent(ProfilerEventType::ENTER_SCOPE, scope, std::string{}, memoryUsage);
+		PushEvent(TRACE_THREAD_BROWSER, ProfilerEventType::ENTER_SCOPE, scope, std::string{}, memoryUsage);
 	}
 	void ProfilerComponent::ExitScope(ProfilerEvent::memory_t memoryUsage)
 	{
-		PushEvent(ProfilerEventType::EXIT_SCOPE, memoryUsage);
+		PushEvent(TRACE_THREAD_BROWSER, ProfilerEventType::EXIT_SCOPE, memoryUsage);
 	}
 	void ProfilerComponent::BeginTick(ProfilerEvent::memory_t memoryUsage)
 	{
-		PushEvent(fx::ProfilerEventType::BEGIN_TICK, memoryUsage);
+		PushEvent(TRACE_THREAD_MAIN, fx::ProfilerEventType::BEGIN_TICK, memoryUsage);
 		EnterScope("Resource Tick", memoryUsage);
 
 		if (--m_frames == 0) {
@@ -579,9 +585,9 @@ namespace fx {
 	{
 		ExitScope(memoryUsage);
 #ifndef IS_FXSERVER
-		PushEvent(fx::ProfilerEventType::END_TICK, "", m_screenshot);
+		PushEvent(TRACE_THREAD_MAIN, fx::ProfilerEventType::END_TICK, "", m_screenshot);
 #else
-		PushEvent(fx::ProfilerEventType::END_TICK);
+		PushEvent(TRACE_THREAD_MAIN, fx::ProfilerEventType::END_TICK);
 #endif
 	}
 	
