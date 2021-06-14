@@ -7,6 +7,12 @@
 
 #include <json.hpp>
 
+#ifdef COMPILING_CITIZEN_SCRIPTING_CORE
+	#define FX_PROFILER_LINKAGE DLL_EXPORT
+#else
+	#define FX_PROFILER_LINKAGE DLL_IMPORT
+#endif
+
 namespace fx {
 	enum class ProfilerEventType {
 		BEGIN_TICK,     // BEGIN_TICK(µs when)
@@ -23,39 +29,44 @@ namespace fx {
 		return duration_cast<microseconds>(high_resolution_clock::now().time_since_epoch());
 	}
 
-	extern
-#ifdef COMPILING_CITIZEN_SCRIPTING_CORE
-		DLL_EXPORT
-#else
-		DLL_IMPORT
-#endif
-		bool g_recordProfilerTime;
+	extern FX_PROFILER_LINKAGE bool g_recordProfilerTime;
 
 	struct ProfilerEvent {
+		// DevTools supports negative HeapUsage values
+		using memory_t = int64_t;
+
+		inline ProfilerEvent(ProfilerEventType what, std::string where, std::string why, memory_t much)
+			: what(what), where(where), why(why), much(much)
+		{
+			when = (g_recordProfilerTime) ? usec() : std::chrono::microseconds{ 0 };
+		};
 
 		inline ProfilerEvent(ProfilerEventType what, std::string where, std::string why)
-			: what(what), where(where), why(why)
+			: what(what), where(where), why(why), much(0)
 		{
 			when = (g_recordProfilerTime) ? usec() : std::chrono::microseconds{ 0 };
 		};
+
+		inline ProfilerEvent(ProfilerEventType what, memory_t much)
+			: what(what), much(much)
+		{
+			when = (g_recordProfilerTime) ? usec() : std::chrono::microseconds{ 0 };
+		};
+
 		inline ProfilerEvent(ProfilerEventType what)
-			: what(what)
+			: what(what), much(0)
 		{
 			when = (g_recordProfilerTime) ? usec() : std::chrono::microseconds{ 0 };
 		};
+
 		std::chrono::microseconds when;
 		ProfilerEventType what;
 		std::string where;
 		std::string why;
+		memory_t much;  /* fxScripting::GetMemoryUsage() */
 	};
 
-	class
-#ifdef COMPILING_CITIZEN_SCRIPTING_CORE
-		DLL_EXPORT
-#else
-		DLL_IMPORT
-#endif
-		ProfilerComponent : public fwRefCountable {
+	class FX_PROFILER_LINKAGE ProfilerComponent : public fwRefCountable {
 	public:
 		template<typename... TArgs>
 		inline void PushEvent(TArgs&&... args)
@@ -71,10 +82,10 @@ namespace fx {
 		
 		void EnterResource(const std::string& resource, const std::string& cause);
 		void ExitResource();
-		void EnterScope(const std::string& scope);
-		void ExitScope();
-		void BeginTick();
-		void EndTick();
+		void EnterScope(const std::string& scope, ProfilerEvent::memory_t memoryUsage = 0);
+		void ExitScope(ProfilerEvent::memory_t memoryUsage = 0);
+		void BeginTick(ProfilerEvent::memory_t memoryUsage = 0);
+		void EndTick(ProfilerEvent::memory_t memoryUsage = 0);
 
 		void SubmitScreenshot(const void* imageRgb, size_t width, size_t height);
 
@@ -89,7 +100,9 @@ namespace fx {
 		fwEvent<const nlohmann::json&> OnRequestView;
 
 	private:
+#ifndef IS_FXSERVER
 		std::string m_screenshot;
+#endif
 
 		tbb::concurrent_vector<ProfilerEvent> m_events;
 		bool m_recording = false;

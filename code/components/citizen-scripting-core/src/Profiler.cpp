@@ -21,8 +21,9 @@ struct ProfilerRecordingEvent {
 	int what;
 	std::string where;
 	std::string why;
+	fx::ProfilerEvent::memory_t much;
 
-	MSGPACK_DEFINE_ARRAY(when, what, where, why)
+	MSGPACK_DEFINE_ARRAY(when, what, where, why, much)
 };
 
 struct ProfilerRecording {
@@ -42,7 +43,7 @@ auto ConvertToStorage(const TContainer& evs) -> ProfilerRecording
 	for (auto i = 0; i < evs.size(); i++)
 	{
 		const fx::ProfilerEvent& ev = evs[i];
-		events.push_back({ (uint64_t)ev.when.count(), (int)ev.what, ev.where, ev.why });
+		events.push_back({ (uint64_t)ev.when.count(), (int)ev.what, ev.where, ev.why, ev.much });
 
 
 		if (start_of_tick)
@@ -67,6 +68,28 @@ auto ConvertToJSON(const ProfilerRecording& recording) -> json
 {
 	auto obj = json::object();
 	auto traceEvents = json::array();
+
+	auto UpdateCounters = [&traceEvents](const ProfilerRecordingEvent &event) -> void {
+		if (event.much != 0) {
+			traceEvents.push_back(json::object({
+				{ "cat", "disabled-by-default-devtools.timeline" },
+				{ "name", "UpdateCounters" },
+				{ "ph", "I" },
+				{ "s", "g" },
+				{ "ts", event.when },
+				{ "pid", 1 },
+				{ "tid", 2 },
+				{ "args",
+					{{
+						"data",
+						{
+							{ "jsHeapSizeUsed", event.much },
+						}
+					}}
+				}
+			}));
+		}
+	};
 
 	traceEvents.push_back(json::object({
 		{ "cat", "__metadata" },
@@ -149,6 +172,7 @@ auto ConvertToJSON(const ProfilerRecording& recording) -> json
 					{ "layerTreeId", nullptr }
 				}) }
 			}));
+			UpdateCounters(event);
 
 			break;
 		case fx::ProfilerEventType::END_TICK:
@@ -196,6 +220,7 @@ auto ConvertToJSON(const ProfilerRecording& recording) -> json
 				}) }
 			}));
 
+			UpdateCounters(event);
 			frameNum++;
 			break;
 		case fx::ProfilerEventType::ENTER_RESOURCE:
@@ -213,6 +238,7 @@ auto ConvertToJSON(const ProfilerRecording& recording) -> json
 			}));
 
 			eventStack.push(event);
+			UpdateCounters(event);
 
 			break;
 		}
@@ -234,6 +260,8 @@ auto ConvertToJSON(const ProfilerRecording& recording) -> json
 					{ "pid", 1 },
 					{ "tid", 2 },
 					}));
+
+				UpdateCounters(event);
 			}
 			break;
 		}
@@ -263,6 +291,7 @@ std::string LookupName(fx::ProfilerEventType ty) {
 	case EvType::EXIT_RESOURCE:  return "<RES";
 	case EvType::ENTER_SCOPE:    return ">SCO";
 	case EvType::EXIT_SCOPE:     return "<SCO";
+	default:					 return "";
 	}
 }
 
@@ -497,6 +526,7 @@ namespace profilerCommand {
 namespace fx {
 	DLL_EXPORT bool g_recordProfilerTime;
 
+#ifndef IS_FXSERVER
 	void ProfilerComponent::SubmitScreenshot(const void* imageRgb, size_t width, size_t height)
 	{
 		if (!IsRecording())
@@ -517,6 +547,7 @@ namespace fx {
 			m_screenshot = Botan::base64_encode(bbuf, bbufIdx % sizeof(bbuf));
 		}
 	}
+#endif
 
 	void ProfilerComponent::EnterResource(const std::string& resource, const std::string& cause)
 	{
@@ -526,25 +557,32 @@ namespace fx {
 	{
 		PushEvent(ProfilerEventType::EXIT_RESOURCE);
 	}
-	void ProfilerComponent::EnterScope(const std::string& scope)
+	void ProfilerComponent::EnterScope(const std::string& scope, ProfilerEvent::memory_t memoryUsage)
 	{
-		PushEvent(ProfilerEventType::ENTER_SCOPE, scope, std::string{});
+		PushEvent(ProfilerEventType::ENTER_SCOPE, scope, std::string{}, memoryUsage);
 	}
-	void ProfilerComponent::ExitScope()
+	void ProfilerComponent::ExitScope(ProfilerEvent::memory_t memoryUsage)
 	{
-		PushEvent(ProfilerEventType::EXIT_SCOPE);
+		PushEvent(ProfilerEventType::EXIT_SCOPE, memoryUsage);
 	}
-	void ProfilerComponent::BeginTick()
+	void ProfilerComponent::BeginTick(ProfilerEvent::memory_t memoryUsage)
 	{
-		PushEvent(fx::ProfilerEventType::BEGIN_TICK);
-		EnterScope("Resource Tick");
+		PushEvent(fx::ProfilerEventType::BEGIN_TICK, memoryUsage);
+		EnterScope("Resource Tick", memoryUsage);
 
-		if (--m_frames == 0) { ProfilerComponent::StopRecording(); }
+		if (--m_frames == 0) {
+			ProfilerComponent::StopRecording();
+			console::Printf("cmd", "Stopped the recording\n");
+		}
 	}
-	void ProfilerComponent::EndTick()
+	void ProfilerComponent::EndTick(ProfilerEvent::memory_t memoryUsage)
 	{
-		ExitScope();
+		ExitScope(memoryUsage);
+#ifndef IS_FXSERVER
 		PushEvent(fx::ProfilerEventType::END_TICK, "", m_screenshot);
+#else
+		PushEvent(fx::ProfilerEventType::END_TICK);
+#endif
 	}
 	
 	void ProfilerComponent::StartRecording(const int frames)
