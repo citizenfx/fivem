@@ -38,9 +38,17 @@ static HookFunction hookFunction([]()
 		extRamMode = 1;
 	}
 
-	// this code will 100% break 4/4GB systems
+	auto vramLocation = hook::get_address<uint64_t*>(hook::get_pattern("4C 63 C0 48 8D 05 ? ? ? ? 48 8D 14", 6));
+
+	// the full code will 100% break 4/4GB systems
 	if (extRamMode == 0)
 	{
+		// but we can lower the 'low' quality setting a bit so it doesn't ruin 8/8 systems entirely
+		for (int i = 0; i < 80; i += 4)
+		{
+			vramLocation[i] *= 0.75;
+		}
+
 		return;
 	}
 
@@ -60,7 +68,6 @@ static HookFunction hookFunction([]()
 	}
 
 	auto totalPhys = msex.ullTotalPhys;
-	auto vramLocation = hook::get_address<uint64_t*>(hook::get_pattern("4C 63 C0 48 8D 05 ? ? ? ? 48 8D 14", 6));
 
 	auto changeBudget = [vramLocation, totalPhys](uint64_t budget)
 	{
@@ -68,9 +75,12 @@ static HookFunction hookFunction([]()
 
 		console::DPrintf("graphics", "VRAM budget change: patching game to use %d byte budget (clamped to %d due to system RAM)\n", budget, maxBudget);
 
-		for (int i = 0; i < 80; i++)
+		for (int i = 0; i < 80; i += 4)
 		{
-			vramLocation[i] = maxBudget;
+			vramLocation[i] *= 0.75;
+			vramLocation[i + 1] = maxBudget;
+			vramLocation[i + 2] = maxBudget;
+			vramLocation[i + 3] = maxBudget;
 		}
 	};
 
