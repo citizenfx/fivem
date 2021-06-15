@@ -413,15 +413,20 @@ NTSTATUS NTAPI LdrLoadDllStub(const wchar_t* fileName, uint32_t* flags, UNICODE_
 		moduleName = &newString;
 	}
 
-	std::transform(moduleNameStr.begin(), moduleNameStr.end(), moduleNameStr.begin(), ::tolower);
+	std::transform(moduleNameStr.begin(), moduleNameStr.end(), moduleNameStr.begin(), ::ToLower);
 
+	// anything in this if statement **has to be lowercase**, see line above
 	if (moduleNameStr.find(L"fraps64.dll") != std::string::npos || moduleNameStr.find(L"avghooka.dll") != std::string::npos ||
 		// apparently crashes NUI
 		moduleNameStr.find(L"bdcam64.dll") != std::string::npos ||
 		// ASUS/A-Volute/Nahimic audio software
-		moduleNameStr.find(L"A-Volute") != std::string::npos || moduleNameStr.find(L"AudioDevProps") != std::string::npos ||
+		moduleNameStr.find(L"a-volute") != std::string::npos || moduleNameStr.find(L"audiodevprops") != std::string::npos ||
 		// Canon camera software
-		moduleNameStr.find(L"EDSDK.dll") != std::string::npos ||
+		moduleNameStr.find(L"edsdk.dll") != std::string::npos ||
+		// Microsoft camera software
+		moduleNameStr.find(L"lcproxy.ax") != std::string::npos ||
+		// 'PlayClaw' recently started becoming top crasher, no symbols so away with it
+		moduleNameStr.find(L"playclawhook64.dll") != std::string::npos ||
 		// lots of crashes occur in the DiscordApp overlay
 		//moduleNameStr.find(L"overlay.x64.dll") != std::string::npos ||
 		// new DiscordApp overlay name :/
@@ -431,8 +436,8 @@ NTSTATUS NTAPI LdrLoadDllStub(const wchar_t* fileName, uint32_t* flags, UNICODE_
 		// NVIDIA SHARE/ShadowPlay capture DLL, high correlation with ERR_GFX_D3D_INIT failures
 		moduleNameStr.find(L"nvspcap") != std::string::npos ||
 		// Proxifier, causes LoopbackTcpServer crashes
-		moduleNameStr.find(L"PrxerNsp.dll") != std::string::npos ||
-		moduleNameStr.find(L"PrxerDrv.dll") != std::string::npos ||
+		moduleNameStr.find(L"prxernsp.dll") != std::string::npos ||
+		moduleNameStr.find(L"prxerdrv.dll") != std::string::npos ||
 		// Steam 'crashhandler64.dll', optional library that has a broken GetProcessHeap call
 		moduleNameStr.find(L"crashhandler64.dll") != std::string::npos ||
 		// Ad Muncher, causes LoopbackTcpServer to crash
