@@ -97,5 +97,18 @@
     "#EmptyServers_Favorites": "Je favoriete servers verschijnen hier, klik op de ster naast een server om deze hier toe te voegen!",
     "#ServerList_StreamerModeWarning": "Streamermodus is ingeschakeld - Invoerveld verborgen",
     "#EmptyServers_History": "Eerder gespeelde servers verschijnen hier. Bekijk de serverlijst en vind een server!",
-    "#Settings_LowPerfModeDesc": "[blank]"
+    "#Settings_LowPerfModeDesc": "[blank]",
+    "#ErrorActions": "Wat kun je doen?",
+    "#ErrorDetails": "Details",
+    "#ErrorAction_ContactOwner": "- Contacteer [OWNER].",
+    "#ErrorAction_SeeDetailsContactOwner": "- Lees de foutmelding door en voer de gegeven stappen uit.\n- Als dit probleem zich blijft voordoen, contacteer dan [OWNER].",
+    "#ErrorAction_TryAgainContactOwner": "- Probeer het later opnieuw.\n- Controleer je netwerkconnectie.\n- Als dit probleem zich blijft voordoen, contacteer dan [OWNER].",
+    "#ErrorAction_TryAgainCheckStatus": "- Probeer het later opnieuw.\n- Controleer je netwerkconnectie [STATUSPAGE] pagina.\n- Als dit probleem zich blijft voordoen, contacteer dan [SUPPORT].",
+    "#ErrorNoOutage": "Platform status",
+    "#NoOutage": "Er is momenteel geen service alert op de <a href=\"https://status.cfx.re/\">Cfx.re</a> status-pagina. Dit probleem kan aan jou liggen.",
+    "#ErrorOutage": "Service Alert",
+    "#ServiceAlert": "<span class=\"material-icons-outlined status-indicator status-warn\">error_outline</span> Er is momenteel een service alert op de <a href=\"https://status.cfx.re/\">Cfx.re status-pagina</a>.",
+    "#Error_You": "Jij",
+    "#Error_Server": "Server",
+    "#Error_Cfx": "Cfx.re"
 }
