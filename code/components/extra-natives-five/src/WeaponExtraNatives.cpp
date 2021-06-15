@@ -373,10 +373,6 @@ static HookFunction hookFunction([]()
 		uintptr_t* cPed_vtable = hook::get_address<uintptr_t*>(hook::get_pattern<unsigned char>("4D 8B F8 48 8B F9 E8 ? ? ? ? 48 8D 05", 14));
 		origCPedDtor = (CPed_DtorFn)cPed_vtable[0];
 		cPed_vtable[0] = (uintptr_t)CPed_DESTROY;
-
-		// this fix requires another fix, otherwise you get stuck zoomed in.
-		auto zoomFix = hook::get_pattern<unsigned char>("0F BA AF ? ? ? ? 09 E9");
-		hook::nop(zoomFix, 8);
 	}
 
 	// Hook used by auto-reload/auto-swaps to fix a spasm when running out of ammo with the current weapon still held.
