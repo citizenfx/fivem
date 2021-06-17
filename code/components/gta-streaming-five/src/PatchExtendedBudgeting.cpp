@@ -119,7 +119,7 @@ static HookFunction hookFunction([]()
 		auto location = hook::get_pattern<char>("84 C0 0F 84 4A 01 00 00 0F B6", -0x46);
 		hook::nop(location + 0x48, 6);
 		hook::put<int32_t>(location + 0xA6, (intptr_t)_budgetScale - ((intptr_t)location + 0xA6 + 4));
-		hook::put<int32_t>(location + 0xBC, (intptr_t)isStereo - ((intptr_t)location + 0xBC + 4));
+		hook::put<int32_t>(location + 0xBA, (intptr_t)isStereo - ((intptr_t)location + 0xBA + 5));
 		hook::call(location + 0x101, bigUpdate);
 	}
 
