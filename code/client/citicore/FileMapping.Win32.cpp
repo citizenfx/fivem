@@ -452,7 +452,9 @@ NTSTATUS NTAPI LdrLoadDllStub(const wchar_t* fileName, uint32_t* flags, UNICODE_
 		false
 	)
 	{
-		return 0xC0000135;
+		// STATUS_INVALID_IMAGE_HASH will be handled in win32kfull.sys!xxxLoadHmodIndex as a 'don't even try again'
+		// without this, any module loaded as windows hook or such will forever load, slowing down win32k system-wide
+		return 0xC0000428;
 	}
 
 	return g_origLoadDll(fileName, flags, moduleName, handle);
