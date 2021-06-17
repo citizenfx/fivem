@@ -2074,6 +2074,28 @@ static void EventMgr_AddEvent(void* eventMgr, rage::netGameEvent* ev)
 			return;
 		}
 	}
+#elif IS_RDR3
+	// speech events (PED_SPEECH_*_EVENT) in RDR3 are very spammy sometimes and can cause pool overflow
+	if (strcmp(ev->GetName(), "PED_SPEECH_") != -1)
+	{
+		int count = 0;
+
+		for (auto& eventPair : g_events)
+		{
+			auto [key, tup] = eventPair;
+
+			if (tup.ev && strcmp(tup.ev->GetName(), "PED_SPEECH_") != -1)
+			{
+				count++;
+			}
+		}
+
+		if (count >= 50)
+		{
+			delete ev;
+			return;
+		}
+	}
 #endif
 
 	// is this a duplicate event?
