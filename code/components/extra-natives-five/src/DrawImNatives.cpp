@@ -102,9 +102,7 @@ void DrawEntry::Render() const
 	}
 	else
 	{
-		// #TODO: some white texture
-		SetTextureGtaIm(nullptr);
-		//SetTextureGtaIm(LookupTexture(txd, txn));
+		SetTextureGtaIm(rage::grcTextureFactory::GetNoneTexture());
 	}
 
 	PushDrawBlitImShader();
@@ -119,12 +117,12 @@ void DrawEntry::Render() const
 	if (rect.IsEmpty())
 	{
 		D3D11_RECT scissorRect;
-		scissorRect.left = 0.0f;
-		scissorRect.top = 0.0f;
-		scissorRect.right = 1.0f;
-		scissorRect.bottom = 1.0f;
+		scissorRect.left = 0;
+		scissorRect.top = 0;
+		scissorRect.right = 8191;
+		scissorRect.bottom = 8191;
 
-		GetD3D11DeviceContext()->RSSetScissorRects(0, NULL);
+		GetD3D11DeviceContext()->RSSetScissorRects(1, &scissorRect);
 	}
 	else
 	{
@@ -220,10 +218,13 @@ static void DoDrawCommands()
 
 static void(*g_origThing)(void*);
 
+static void DoCrosshairDraw();
+
 static void WrapThing(void* a1)
 {
 	g_origThing(a1);
 
+	DoCrosshairDraw();
 	DoDrawCommands();
 }
 
@@ -3234,3 +3235,266 @@ static InitFunction initFunctionSceneExperiment([]()
 	}, 99999);
 });
 #endif
+
+static void DoCrosshairDraw()
+{
+	// a hacky custom crosshair (no game integration yet)
+	// taken from ipfs://QmV2XyHMEnG73yevDZXJ4e7PFzQ6RvGqhUnjtmCcaxpqFE (also on github)
+	static ConVar<bool> crosshair("cl_customCrosshair", ConVar_Archive, false);
+	static ConVar<int> cl_crosshaircolor("cl_crosshaircolor", ConVar_Archive, 1);
+	static ConVar<float> cl_crosshairgap("cl_crosshairgap", ConVar_Archive, 1);
+	static ConVar<float> cl_crosshairsize("cl_crosshairsize", ConVar_Archive, 5);
+	static ConVar<float> cl_crosshairthickness("cl_crosshairthickness", ConVar_Archive, 0.5f);
+	static ConVar<int> cl_crosshaircolor_r("cl_crosshaircolor_r", ConVar_Archive, 50);
+	static ConVar<int> cl_crosshaircolor_g("cl_crosshaircolor_g", ConVar_Archive, 250);
+	static ConVar<int> cl_crosshaircolor_b("cl_crosshaircolor_b", ConVar_Archive, 50);
+	static ConVar<int> cl_crosshairalpha("cl_crosshairalpha", ConVar_Archive, 200);
+	static ConVar<int> cl_crosshairstyle("cl_crosshairstyle", ConVar_Archive, 0);
+	static ConVar<float> cl_crosshair_dynamic_splitdist("cl_crosshair_dynamic_splitdist", ConVar_Archive, 7.f);
+	static ConVar<bool> cl_crosshairusealpha("cl_crosshairusealpha", ConVar_Archive, true);
+	static ConVar<bool> cl_crosshair_drawoutline("cl_crosshair_drawoutline", ConVar_Archive, true);
+	static ConVar<float> cl_crosshair_outlinethickness("cl_crosshair_outlinethickness", ConVar_Archive, 1.f);
+	static ConVar<bool> cl_crosshairdot("cl_crosshairdot", ConVar_Archive, true);
+	static ConVar<float> cl_crosshair_dynamic_splitalpha_innermod("cl_crosshair_dynamic_splitalpha_innermod", ConVar_Archive, 1.f);
+	static ConVar<float> cl_crosshair_dynamic_splitalpha_outermod("cl_crosshair_dynamic_splitalpha_outermod", ConVar_Archive, 0.5f);
+	static ConVar<float> cl_crosshair_dynamic_maxdist_splitratio("cl_crosshair_dynamic_maxdist_splitratio", ConVar_Archive, 0.35f);
+
+	static auto m_flCrosshairDistance = 1.0f;
+
+	if (!crosshair.GetValue())
+		return;
+
+	std::vector<VertexPosition> vertices;
+	std::vector<uint32_t> colors;
+	std::vector<VertexUv> uvs;
+
+	auto addRect = [&](float x1, float y1, float x2, float y2, int r, int g, int b, int a)
+	{
+		auto color = (a << 24) | (b << 16) | (g << 8) | r;
+
+		for (int i = 0; i < 6; i++)
+		{
+			colors.push_back(color);
+		}
+
+		vertices.push_back(VertexPosition{ x1, y1 });
+		vertices.push_back(VertexPosition{ x2, y1 });
+		vertices.push_back(VertexPosition{ x1, y2 });
+		vertices.push_back(VertexPosition{ x2, y1 });
+		vertices.push_back(VertexPosition{ x1, y2 });
+		vertices.push_back(VertexPosition{ x2, y2 });
+
+		uvs.push_back(VertexUv{ 0.0f, 0.0f });
+		uvs.push_back(VertexUv{ 1.0f, 0.0f });
+		uvs.push_back(VertexUv{ 0.0f, 1.0f });
+		uvs.push_back(VertexUv{ 1.0f, 1.0f });
+		uvs.push_back(VertexUv{ 0.0f, 0.0f });
+		uvs.push_back(VertexUv{ 1.0f, 1.0f });
+	};
+
+	auto DrawCrosshairRect = [&](int r, int g, int b, int a, int x0, int y0, int x1, int y1, bool bAdditive)
+	{
+		if (cl_crosshair_drawoutline.GetValue())
+		{
+			float flThick = cl_crosshair_outlinethickness.GetValue();
+			addRect(x0 - flThick, y0 - flThick, x1 + flThick, y1 + flThick, 0, 0, 0, a);
+		}
+
+		addRect(x0, y0, x1, y1, r, g, b, a);
+	};
+
+	auto finishBatch = [&]()
+	{
+		DoDrawImCommand(vertices.size(), vertices.data(), colors.data());
+	};
+
+	int r, g, b;
+	switch (cl_crosshaircolor.GetValue())
+	{
+		case 0:
+			r = 250;
+			g = 50;
+			b = 50;
+			break;
+		case 1:
+			r = 50;
+			g = 250;
+			b = 50;
+			break;
+		case 2:
+			r = 250;
+			g = 250;
+			b = 50;
+			break;
+		case 3:
+			r = 50;
+			g = 50;
+			b = 250;
+			break;
+		case 4:
+			r = 50;
+			g = 250;
+			b = 250;
+			break;
+		case 5:
+			r = cl_crosshaircolor_r.GetValue();
+			g = cl_crosshaircolor_g.GetValue();
+			b = cl_crosshaircolor_b.GetValue();
+			break;
+		default:
+			r = 50;
+			g = 250;
+			b = 50;
+			break;
+	}
+
+	int alpha = std::clamp(cl_crosshairalpha.GetValue(), 0, 255);
+
+	bool bAdditive = !cl_crosshairusealpha.GetValue();
+	if (bAdditive)
+	{
+		// #TODO: set additive blend?
+		alpha = 200;
+	}
+	float fHalfFov = 85.0f * 0.0174533f * 0.5f;
+	float flInaccuracy = 0.1f;
+	float flSpread = 0.1f;
+
+	float fSpreadDistance = ((flInaccuracy + flSpread) * 320.0f / tanf(fHalfFov)) /* * flCrossDistanceScale*/;
+	float flCappedSpreadDistance = fSpreadDistance;
+	float flMaxCrossDistance = cl_crosshair_dynamic_splitdist.GetValue();
+	if (fSpreadDistance > flMaxCrossDistance)
+	{
+		flCappedSpreadDistance = flMaxCrossDistance;
+	}
+
+	int iSpreadDistance = cl_crosshairstyle.GetValue() < 4 ? (int)roundf(fSpreadDistance) : 2;
+	int iCappedSpreadDistance = cl_crosshairstyle.GetValue() < 4 ? (int)roundf(flCappedSpreadDistance) : 2;
+
+	float flAccuracyFishtail = 0.0f;
+
+	int iDeltaDistance = 0;
+	float fCrosshairDistanceGoal = 4;
+
+	if (cl_crosshairstyle.GetValue() != 4 && (cl_crosshairstyle.GetValue() == 2 || cl_crosshairstyle.GetValue() == 3))
+	{
+		/* fCrosshairDistanceGoal multiplier? */
+	}
+
+	// shooting stuff
+
+	// distance goal adaptation
+	if (m_flCrosshairDistance > fCrosshairDistanceGoal)
+	{
+		m_flCrosshairDistance = fCrosshairDistanceGoal;
+	}
+
+	// clamp max crosshair expansion
+	m_flCrosshairDistance = std::clamp(m_flCrosshairDistance, fCrosshairDistanceGoal, 25.0f);
+
+	int iCrosshairDistance;
+	int iCappedCrosshairDistance = 0;
+	int iBarSize;
+	int iBarThickness;
+
+	int w, h;
+	GetGameResolution(w, h);
+
+	iCrosshairDistance = (int)roundf((m_flCrosshairDistance * h / 1200.0f) + cl_crosshairgap.GetValue());
+	iBarSize = (int)roundf(cl_crosshairsize.GetValue() * (h / 480.0f));
+	iBarThickness = std::max(1, (int)roundf(cl_crosshairthickness.GetValue() * (h / 480.0f)));
+
+	// spread stuff
+	if (cl_crosshairstyle.GetValue() == 4)
+	{
+		iCrosshairDistance = fCrosshairDistanceGoal + cl_crosshairgap.GetValue();
+		iCappedCrosshairDistance = 4 + cl_crosshairgap.GetValue();
+	}
+
+	int iCenterX = w / 2;
+	int iCenterY = h / 2;
+
+	float flAngleToScreenPixel = 0;
+	int nFishTaleShift = (flAccuracyFishtail * (h / 500.0f));
+
+	//0 = default
+	//1 = default static
+	//2 = classic standard
+	//3 = classic dynamic
+	//4 = classic static
+	if (cl_crosshairstyle.GetValue() == 4)
+	{
+		nFishTaleShift = 0;
+	}
+
+	float flAlphaSplitInner = cl_crosshair_dynamic_splitalpha_innermod.GetValue();
+	float flAlphaSplitOuter = cl_crosshair_dynamic_splitalpha_outermod.GetValue();
+	float flSplitRatio = cl_crosshair_dynamic_maxdist_splitratio.GetValue();
+	int iInnerCrossDist = iCrosshairDistance;
+	float flLineAlphaInner = alpha;
+	float flLineAlphaOuter = alpha;
+	int iBarSizeInner = iBarSize;
+	int iBarSizeOuter = iBarSize;
+
+	// draw the crosshair that splits off from the main xhair
+	if (cl_crosshairstyle.GetValue() == 2 && fSpreadDistance > flMaxCrossDistance)
+	{
+		iInnerCrossDist = iCappedCrosshairDistance;
+		flLineAlphaInner = alpha * flAlphaSplitInner;
+		flLineAlphaOuter = alpha * flAlphaSplitOuter;
+		iBarSizeInner = ceil((float)iBarSize * (1.0f - flSplitRatio));
+		iBarSizeOuter = floor((float)iBarSize * flSplitRatio);
+
+		// draw horizontal crosshair lines
+		int iInnerLeft = (iCenterX - iCrosshairDistance - iBarThickness / 2 + nFishTaleShift) - iBarSizeInner;
+		int iInnerRight = iInnerLeft + 2 * (iCrosshairDistance + iBarSizeInner) + iBarThickness + nFishTaleShift;
+		int iOuterLeft = iInnerLeft - iBarSizeOuter;
+		int iOuterRight = iInnerRight + iBarSizeOuter;
+		int y0 = iCenterY - iBarThickness / 2;
+		int y1 = y0 + iBarThickness;
+		DrawCrosshairRect(r, g, b, flLineAlphaOuter, iOuterLeft, y0, iInnerLeft, y1, bAdditive);
+		DrawCrosshairRect(r, g, b, flLineAlphaOuter, iInnerRight, y0, iOuterRight, y1, bAdditive);
+
+		// draw vertical crosshair lines
+		int iInnerTop = (iCenterY - iCrosshairDistance - iBarThickness / 2) - iBarSizeInner;
+		int iInnerBottom = iInnerTop + 2 * (iCrosshairDistance + iBarSizeInner) + iBarThickness;
+		int iOuterTop = iInnerTop - iBarSizeOuter;
+		int iOuterBottom = iInnerBottom + iBarSizeOuter;
+		int x0 = iCenterX - iBarThickness / 2;
+		int x1 = x0 + iBarThickness;
+		DrawCrosshairRect(r, g, b, flLineAlphaOuter, x0, iOuterTop, x1, iInnerTop, bAdditive);
+		DrawCrosshairRect(r, g, b, flLineAlphaOuter, x0, iInnerBottom, x1, iOuterBottom, bAdditive);
+	}
+
+	// draw horizontal crosshair lines
+	int iInnerLeft = iCenterX - iInnerCrossDist - iBarThickness / 2 + nFishTaleShift;
+	int iInnerRight = iInnerLeft + 2 * iInnerCrossDist + iBarThickness + nFishTaleShift;
+	int iOuterLeft = iInnerLeft - iBarSizeInner;
+	int iOuterRight = iInnerRight + iBarSizeInner;
+	int y0 = iCenterY - iBarThickness / 2;
+	int y1 = y0 + iBarThickness;
+	DrawCrosshairRect(r, g, b, flLineAlphaInner, iOuterLeft, y0, iInnerLeft, y1, bAdditive);
+	DrawCrosshairRect(r, g, b, flLineAlphaInner, iInnerRight, y0, iOuterRight, y1, bAdditive);
+
+	// draw vertical crosshair lines
+	int iInnerTop = iCenterY - iInnerCrossDist - iBarThickness / 2;
+	int iInnerBottom = iInnerTop + 2 * iInnerCrossDist + iBarThickness;
+	int iOuterTop = iInnerTop - iBarSizeInner;
+	int iOuterBottom = iInnerBottom + iBarSizeInner;
+	int x0 = iCenterX - iBarThickness / 2;
+	int x1 = x0 + iBarThickness;
+	DrawCrosshairRect(r, g, b, flLineAlphaInner, x0, iOuterTop, x1, iInnerTop, bAdditive);
+	DrawCrosshairRect(r, g, b, flLineAlphaInner, x0, iInnerBottom, x1, iOuterBottom, bAdditive);
+
+	// draw dot
+	if (cl_crosshairdot.GetValue())
+	{
+		int x0 = iCenterX - iBarThickness / 2;
+		int x1 = x0 + iBarThickness;
+		int y0 = iCenterY - iBarThickness / 2;
+		int y1 = y0 + iBarThickness;
+		DrawCrosshairRect(r, g, b, alpha, x0, y0, x1, y1, bAdditive);
+	}
+
+	finishBatch();
+}
