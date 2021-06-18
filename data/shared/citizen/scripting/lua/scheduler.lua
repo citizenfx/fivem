@@ -861,7 +861,7 @@ funcref_mt = msgpack.extend({
 				return table.unpack(Citizen.Await(p))
 			end
 
-			return table.unpack(rvs)
+			return rvs and table.unpack(rvs) or nil
 		else
 			return InvokeRpcEvent(tonumber(netSource.source:sub(5)), ref, {...})
 		end
