@@ -188,6 +188,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 						this.statusLevel = 1;
 						break;
 					case 'Partial System Outage':
+					case 'Minor Service Outage':
 						this.statusLevel = 2;
 						break;
 					case 'Major Service Outage':
