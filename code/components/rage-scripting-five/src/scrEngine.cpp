@@ -21,6 +21,8 @@
 
 #include <unordered_set>
 
+extern void PointerArgumentSafety();
+
 #if __has_include("scrEngineStubs.h")
 #include <scrEngineStubs.h>
 #else
@@ -411,13 +413,22 @@ static InitFunction initFunction([] ()
 {
 	scrEngine::OnScriptInit.Connect([] ()
 	{
-		for (auto& handler : g_nativeHandlers)
+		auto doReg = []()
 		{
-			RegisterNative(handler.first, handler.second);
-		}
+			for (auto& handler : g_nativeHandlers)
+			{
+				RegisterNative(handler.first, handler.second);
+			}
 
-		// to prevent double registration resulting in a game error
-		g_nativeHandlers.clear();
+			// to prevent double registration resulting in a game error
+			g_nativeHandlers.clear();
+		};
+
+		doReg();
+
+		PointerArgumentSafety();
+		g_fastPathMap.clear();
+		doReg();
 
 		for (auto& entry : g_onScriptInitQueue)
 		{
