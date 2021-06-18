@@ -33,8 +33,12 @@ local function isGamePersonality(name)
 	return false
 end
 
-local function launcherpersonality(name)
+local function launcherpersonality_inner(name, aslr)
 	local projectName = name == 'main' and 'CitiLaunch' or ('CitiLaunch_' .. name)
+
+	if aslr then
+		projectName = projectName .. '_aslr'
+	end
 
 	project(projectName)
 		language "C++"
@@ -155,13 +159,15 @@ local function launcherpersonality(name)
 		filter {}
 			
 		if name ~= 'main' then
-			targetname("CitizenFX_SubProcess_" .. name)
+			targetname("CitizenFX_SubProcess_" .. name .. (aslr and "_aslr" or ""))
 		end
 		
 		linkoptions "/IGNORE:4254 /LARGEADDRESSAWARE" -- 4254 is the section type warning we tend to get
 		
 		if isGamePersonality(name) then
-			linkoptions "/SAFESEH:NO /DYNAMICBASE:NO"
+			if not aslr and not isLauncherPersonality(name) then
+				linkoptions { "/SAFESEH:NO", "/DYNAMICBASE:NO" }
+			end
 
 			-- VS14 linker behavior change causes the usual workaround to no longer work, use an undocumented linker switch instead
 			-- note that pragma linker directives ignore these (among other juicy arguments like /WBRDDLL, /WBRDTESTENCRYPT and other
@@ -181,12 +187,20 @@ local function launcherpersonality(name)
 			linkoptions "/DELAYLOAD:d3d11.dll /DELAYLOAD:d2d1.dll /DELAYLOAD:d3dcompiler_47.dll /DELAYLOAD:dwrite.dll /DELAYLOAD:ole32.dll /DELAYLOAD:shcore.dll /DELAYLOAD:api-ms-win-core-winrt-error-l1-1-1.dll /DELAYLOAD:api-ms-win-core-winrt-l1-1-0.dll /DELAYLOAD:api-ms-win-core-winrt-error-l1-1-0.dll /DELAYLOAD:api-ms-win-core-winrt-string-l1-1-0.dll /DELAYLOAD:api-ms-win-shcore-stream-winrt-l1-1-0.dll"
 end
 
+local function launcherpersonality(name)
+	launcherpersonality_inner(name, false)
+
+	if name:sub(1, 5) == 'game_' and _OPTIONS['game'] ~= 'ny' and name ~= 'game_mtl' then
+		launcherpersonality_inner(name, true)
+	end
+end
+
 launcherpersonality 'main'
 launcherpersonality 'chrome'
 
 if _OPTIONS['game'] == 'five' then
 	launcherpersonality 'game_1604'
-	launcherpersonality 'game_372'
+	--launcherpersonality 'game_372'
 	launcherpersonality 'game_2060'
 	launcherpersonality 'game_2189'
 	launcherpersonality 'game_mtl'

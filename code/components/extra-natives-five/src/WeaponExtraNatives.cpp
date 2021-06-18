@@ -338,7 +338,7 @@ static HookFunction hookFunction([]()
 
 	uintptr_t* flashlightVtable = hook::get_address<uintptr_t*>(hook::get_pattern<unsigned char>("83 CD FF 48 8D 05 ? ? ? ? 33 DB", 6));
 	origFlashlightProcess = (flashlightProcessFn)flashlightVtable[3];
-	flashlightVtable[3] = (uintptr_t)Flashlight_Process;
+	hook::put(&flashlightVtable[3], (uintptr_t)Flashlight_Process);
 
 
 	// Disable auto-swaps
@@ -372,11 +372,11 @@ static HookFunction hookFunction([]()
 		// Get the original CPed vtable - we'll plant a hook here just on the destructor - this is for clearing the weapon clip history on death
 		uintptr_t* cPed_vtable = hook::get_address<uintptr_t*>(hook::get_pattern<unsigned char>("4D 8B F8 48 8B F9 E8 ? ? ? ? 48 8D 05", 14));
 		origCPedDtor = (CPed_DtorFn)cPed_vtable[0];
-		cPed_vtable[0] = (uintptr_t)CPed_DESTROY;
+		hook::put(&cPed_vtable[0], (uintptr_t)CPed_DESTROY);
 	}
 
 	// Hook used by auto-reload/auto-swaps to fix a spasm when running out of ammo with the current weapon still held.
 	uintptr_t* cTaskAimGun_vtable = hook::get_address<uintptr_t*>(hook::get_pattern<unsigned char>("48 89 44 24 20 E8 ? ? ? ? 48 8D 05 ? ? ? ? 48 8D 8B 20 01", 13));
 	origCTaskAimGunOnFoot_ProcessStages = (CTaskAimGunOnFootProcessStagesFn)cTaskAimGun_vtable[14];
-	cTaskAimGun_vtable[14] = (uintptr_t)CTaskAimGunOnFoot_ProcessStages;
+	hook::put(&cTaskAimGun_vtable[14], (uintptr_t)CTaskAimGunOnFoot_ProcessStages);
 });

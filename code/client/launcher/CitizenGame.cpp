@@ -137,6 +137,8 @@ int ReturnInt()
 
 static void* DeleteVideo(void*, char* videoName)
 {
+	DWORD oldProtect;
+	VirtualProtect(videoName, 4, PAGE_READWRITE, &oldProtect);
 	strcpy(videoName, "nah");
 	return nullptr;
 }
@@ -606,6 +608,13 @@ void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 	});
 
 	exeLoader.LoadIntoModule(exeModule);
+
+#if defined(GTA_FIVE) && defined(RWX_TEST)
+	if (!getenv("CitizenFX_ToolMode"))
+	{
+		exeLoader.Protect();
+	}
+#endif
 
 	// overwrite our header
 #if defined(PAYNE)

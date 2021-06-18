@@ -388,7 +388,10 @@ static void ReloadMapStoreNative()
 	uint8_t unkBuf[512] = { 0 };
 	((void (*)(void*, void*, void*))loadChangeSet)(csBuf, unkBuf, &hash);
 
+	DWORD oldProtect;
+	VirtualProtect(loadChangeSet, sizeof(origCode), PAGE_EXECUTE_READWRITE, &oldProtect);
 	memcpy(loadChangeSet, origCode, sizeof(origCode));
+	VirtualProtect(loadChangeSet, sizeof(origCode), oldProtect, &oldProtect);
 
 	// reload map stuff
 	_reloadMapIfNeeded();
@@ -2343,9 +2346,9 @@ static HookFunction hookFunction([]()
 
 	// process streamer-loaded resource: check 'free instantly' flag even if no dependencies exist (change jump target)
 #ifdef GTA_FIVE
-	* hook::get_pattern<int8_t>("4C 63 C0 85 C0 7E 54 48 8B", 6) = 0x25;
+	hook::put<int8_t>(hook::get_pattern<int8_t>("4C 63 C0 85 C0 7E 54 48 8B", 6), 0x25);
 #elif IS_RDR3
-	* hook::get_pattern<int8_t>("4C 63 C8 85 C0 7E 62 4C 8B", 21) = 0x2E;
+	hook::put<int8_t>(hook::get_pattern<int8_t>("4C 63 C8 85 C0 7E 62 4C 8B", 21), 0x2E);
 #endif
 
 	// same function: stub to change free-instantly flag if needed by bypass streaming

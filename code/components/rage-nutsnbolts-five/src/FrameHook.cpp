@@ -185,7 +185,7 @@ static HookFunction hookFunction([] ()
 	void** vt = (void**)location;
 
 	g_appState = (decltype(g_appState))vt[0];
-	vt[0] = DoAppState;
+	hook::put(&vt[0], DoAppState);
 
 	// loading screen render thread function, to 'safely' handle game frames while loading (as a kind of watchdog)
 	void* func = hook::pattern("83 FB 0A 0F 85 80 00 00 00 8B").count(1).get(0).get<void>(-17);

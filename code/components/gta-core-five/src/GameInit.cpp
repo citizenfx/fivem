@@ -194,7 +194,10 @@ static InitFunction initFunction([] ()
 				_textInputBox_loadGfx(*g_textInputBox);
 
 				// unhook
+				DWORD oldProtect;
+				VirtualProtect(func + 0x6E, sizeof(oldCode), PAGE_EXECUTE_READWRITE, &oldProtect);
 				memcpy(func + 0x6E, oldCode, sizeof(oldCode));
+				VirtualProtect(func + 0x6E, sizeof(oldCode), oldProtect, &oldProtect);
 			}
 
 			g_gameInit.SetGameLoaded();

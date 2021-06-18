@@ -289,7 +289,7 @@ static hook::cdecl_stub<void(int, int, int)> hostGame([] () -> void*
 	if (xbr::IsGameBuild<2189>())
 	{
 		// 2189
-		return (void*)0x14105DFE8;
+		return (void*)hook::get_adjusted(0x14105DFE8);
 	}
 
 	// 1737
@@ -299,7 +299,7 @@ static hook::cdecl_stub<void(int, int, int)> hostGame([] () -> void*
 	//return (void*)0x141037BCC;
 
 	// 2060
-	return (void*)0x1410494F8;
+	return (void*)hook::get_adjusted(0x1410494F8);
 });
 
 static void* getNetworkManager()

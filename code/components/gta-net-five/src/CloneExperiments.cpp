@@ -1485,7 +1485,7 @@ static HookFunction hookFunction([]()
 		{
 			auto location = hook::get_pattern<int32_t>(std::get<0>(bit), std::get<1>(bit));
 
-			*location = (intptr_t)damageArrayReplacement - (intptr_t)location - 4;
+			hook::put<int32_t>(location, (intptr_t)damageArrayReplacement - (intptr_t)location - 4);
 		}
 
 		// 128

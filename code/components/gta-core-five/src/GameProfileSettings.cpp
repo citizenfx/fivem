@@ -342,7 +342,7 @@ static HookFunction hookFunction([]()
 	// 83 3D 92 A2 EC 01 02   cmp     cs:pref_shadowQuality, 2  <--------------- (this should be 3 now)
 	// 41 0F 9D C4            setnl   r12b
 	unsigned char *cmp2 = hook::get_pattern<unsigned char>("83 3D ? ? ? ? 02 41 0F 9D C4", 6);
-	*cmp2 = 0x03;
+	hook::put<uint8_t>(cmp2, 0x03);
 
 
 	// Crash fix (connecticut-texas-carbon) for `_updatePref()` (settings->display->safezone-size)

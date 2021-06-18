@@ -12,7 +12,7 @@ static HookFunction hookFunction([]()
 
 	// replace ADD_ROPE native net game check whether to create CNetworkRopeWorldStateData
 	auto location = hook::get_pattern<uint32_t>("80 3D ? ? ? ? ? 74 71 E8 ? ? ? ? 48", 2);
-	*location = (intptr_t)g_ropesCreateNetworkWorldState - (intptr_t)location - 5;
+	hook::put<int32_t>(location, (intptr_t)g_ropesCreateNetworkWorldState - (intptr_t)location - 5);
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_ROPES_CREATE_NETWORK_WORLD_STATE", [](fx::ScriptContext& context)
 	{

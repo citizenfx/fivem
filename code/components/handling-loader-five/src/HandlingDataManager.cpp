@@ -30,7 +30,7 @@ static void PatchHandlingMounter()
 	void* mounter = g_dataFileMounters[6];
 	void** vmt = *(void***)mounter;
 
-	vmt[2] = UnloadHandlingFileEntry;
+	hook::put(&vmt[2], UnloadHandlingFileEntry);
 }
 
 class Parser;

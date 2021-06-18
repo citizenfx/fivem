@@ -24,6 +24,8 @@ private:
 
 	std::function<bool(const IMAGE_TLS_DIRECTORY*)> m_tlsInitializer;
 
+	std::vector<std::tuple<void*, DWORD, DWORD>> m_targetProtections;
+
 private:
 	void LoadSection(IMAGE_SECTION_HEADER* section);
 	void LoadSections(IMAGE_NT_HEADERS* ntHeader);
@@ -77,6 +79,8 @@ public:
 	{
 		return m_entryPoint;
 	}
+
+	void Protect();
 
 	void LoadIntoModule(HMODULE module);
 

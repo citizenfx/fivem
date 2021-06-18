@@ -176,8 +176,8 @@ void LimitPatch(void *address)
 
 	// replace the original code with a call to our Stub
 	// E9 XX XX XX XX ( 5 bytes required in the original code )
-	*(uint8_t*)addrStart = 0xE9;
-	*(uint32_t*)(addrStart + 1) = (uint64_t)payload - (uint64_t)(addrStart + 5);
+	hook::put<uint8_t>(addrStart, 0xE9);
+	hook::put<uint32_t>(addrStart + 1, (uint64_t)payload - (uint64_t)(addrStart + 5));
 }
 
 struct PatternPair
@@ -306,8 +306,8 @@ static HookFunction hookFunction([]()
 
 		*(uint32_t *)(&stub[11]) = (addr + 3 + 4) - ((uint64_t)&stub[11] + 4);
 
-		*(uint8_t *)addr = 0xE9;
-		*(uint32_t *)(addr + 1) = (uint64_t)stub - (addr + 5);
+		hook::put<uint8_t>(addr, 0xE9);
+		hook::put<uint32_t>(addr + 1, (uint64_t)stub - (addr + 5));
 	}
 
 	LimitPatch(hook::get_pattern("66 83 FF 34 7C E0 48 8B C3 48 8B 9C 24 ? ? ? ? 48"));
@@ -345,8 +345,8 @@ static HookFunction hookFunction([]()
 
 		*(uint32_t *)(&stub[12]) = (addr + 4 + 4) - ((uint64_t)&stub[12] + 4);
 
-		*(uint8_t *)addr = 0xE9;
-		*(uint32_t *)(addr + 1) = (uint64_t)stub - (addr + 5);
+		hook::put<uint8_t>(addr, 0xE9);
+		hook::put<uint32_t>(addr + 1, (uint64_t)stub - (addr + 5));
 	}
 
 	LimitPatch(hook::get_pattern("66 83 FA ? 0F 8C"));
