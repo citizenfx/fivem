@@ -1582,7 +1582,15 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		}
 		else
 		{
-			crashIdError = fmt::sprintf(L"Error uploading: HTTP %d%s", responseCode, !responseBody.empty() ? L" (" + responseBody + L")" : L"");
+			if (shouldUpload)
+			{
+				crashIdError = fmt::sprintf(L"Error uploading: HTTP %d%s", responseCode, !responseBody.empty() ? L" (" + responseBody + L")" : L"");
+			}
+			else
+			{
+				crashIdError = L"Crash reporting is disabled for this crash type.";
+			}
+
 			crashId = L"";
 		}
 #else
