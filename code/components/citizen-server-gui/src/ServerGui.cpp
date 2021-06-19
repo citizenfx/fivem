@@ -91,7 +91,7 @@ public:
 	void AttachToObject(ServerInstanceBase* object) override
 	{
 		m_instance = object;
-		m_disableVar = m_instance->AddVariable<bool>("svgui_disable", ConVar_None, !IsUserConnected());
+		m_disableVar = m_instance->AddVariable<bool>("svgui_disable", ConVar_None, true);
 		m_enableCmd = m_instance->AddCommand("svgui", [this]()
 		{
 			m_runConsoleHost = !m_runConsoleHost;
