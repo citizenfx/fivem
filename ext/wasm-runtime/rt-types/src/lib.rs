@@ -1,4 +1,4 @@
-#[cfg(feature = "full")]
+#[cfg(feature = "in-module")]
 use serde::de::DeserializeOwned;
 
 #[repr(u32)]
@@ -63,12 +63,12 @@ pub struct ScrObject {
     pub length: u64,
 }
 
-#[cfg(feature = "full")]
+#[cfg(feature = "in-module")]
 pub struct Packed<T: DeserializeOwned> {
     inner: T,
 }
 
-#[cfg(feature = "full")]
+#[cfg(feature = "in-module")]
 impl<T: DeserializeOwned> Packed<T> {
     pub fn payload(&self) -> &T {
         &self.inner
@@ -104,7 +104,7 @@ unsafe impl RetVal for Vector3 {
     }
 }
 
-#[cfg(feature = "full")]
+#[cfg(feature = "in-module")]
 unsafe impl<T: DeserializeOwned> RetVal for Packed<T> {
     const IDENT: ReturnType = ReturnType::MsgPack;
 
@@ -114,7 +114,7 @@ unsafe impl<T: DeserializeOwned> RetVal for Packed<T> {
     }
 }
 
-#[cfg(feature = "full")]
+#[cfg(feature = "in-module")]
 impl<T: Default + DeserializeOwned> Default for Packed<T> {
     fn default() -> Packed<T> {
         Packed {

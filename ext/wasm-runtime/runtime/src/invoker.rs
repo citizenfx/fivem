@@ -1,4 +1,4 @@
-use fivem_core::types::{call_result::*, GuestArg, ReturnType, ReturnValue, ScrObject, Vector3};
+use cfx_wasm_rt_types::{call_result::*, GuestArg, ReturnType, ReturnValue, ScrObject, Vector3};
 use std::ffi::CStr;
 use wasmtime::{Caller, Func, Memory, Val};
 

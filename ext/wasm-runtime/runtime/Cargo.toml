@@ -7,5 +7,5 @@ edition = "2018"
 [dependencies]
 wasmtime = "0.27.0"
 wasmtime-wasi = "0.27.0"
-fivem-core = { path = "../bindings/core", default-features = false, features = ["types"] }
+cfx-wasm-rt-types = { path = "../rt-types", default-features = false }
 anyhow = "1.0"

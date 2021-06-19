@@ -1,6 +1,6 @@
 use std::ffi::CStr;
 
-use fivem_core::types::{call_result::CRITICAL_ERROR, ScrObject};
+use cfx_wasm_rt_types::{call_result::CRITICAL_ERROR, ScrObject};
 
 use wasmtime::*;
 use wasmtime_wasi::{sync::WasiCtxBuilder, Wasi};
