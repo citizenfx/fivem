@@ -1034,10 +1034,17 @@ namespace rage
 
 #ifdef GTA_FIVE
 extern bool GetRawStreamerForFile(const char* fileName, rage::fiCollection** collection);
+
+static hook::cdecl_stub<void(int, const char*)> initGfxTexture([]()
+{
+	return hook::get_pattern("4C 23 C0 41 83 78 10 FF", -0x57);
+});
 #endif
 
 static void LoadStreamingFiles(LoadType loadType)
 {
+	std::vector<std::tuple<int, std::string>> newGfx;
+
 	// register any custom streaming assets
 	for (auto it = g_customStreamingFiles.begin(); it != g_customStreamingFiles.end(); )
 	{
@@ -1119,6 +1126,11 @@ static void LoadStreamingFiles(LoadType loadType)
 			if (strId == -1)
 			{
 				strModule->FindSlotFromHashKey(&strId, nameWithoutExt.c_str());
+
+				if (ext == "gfx")
+				{
+					newGfx.push_back({ strId, nameWithoutExt });
+				}
 			}
 #elif IS_RDR3
 			strModule->FindSlotFromHashKey(&strId, HashString(nameWithoutExt.c_str()));
@@ -1203,6 +1215,16 @@ static void LoadStreamingFiles(LoadType loadType)
 		}
 #endif
 	}
+
+#ifdef GTA_FIVE
+	if (!newGfx.empty())
+	{
+		for (const auto& [id, name] : newGfx)
+		{
+			initGfxTexture(id, name.c_str());
+		}
+	}
+#endif
 }
 
 static std::multimap<std::string, std::string, std::less<>> g_manifestNames;
