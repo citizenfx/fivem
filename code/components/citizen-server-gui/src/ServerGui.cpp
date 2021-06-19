@@ -130,12 +130,89 @@ private:
 		std::string lastHostname;
 	};
 
+#ifdef _WIN32
+	static void DecodeServerIcon(const std::string& iconBase64, const std::function<void(HICON hIcon, HICON hLargeIcon)>& cb)
+	{
+		auto iconData = Botan::base64_decode(iconBase64);
+
+		static auto init = ([]()
+		{
+			ULONG_PTR gdiplusToken;
+
+			Gdiplus::GdiplusStartupInput gdiplusStartupInput;
+			Gdiplus::GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
+
+			return true;
+		})();
+
+		WRL::ComPtr<IStream> stream(SHCreateMemStream(iconData.data(), iconData.size()));
+		if (stream.Get())
+		{
+			HICON hIcon, hSmallIcon;
+
+			Gdiplus::Bitmap bitmap{ stream.Get() };
+			Gdiplus::Bitmap smallBmp{ 16, 16 };
+			Gdiplus::Graphics g{ &smallBmp };
+
+			g.SetInterpolationMode(Gdiplus::InterpolationMode::InterpolationModeHighQualityBicubic);
+			g.DrawImage(&bitmap, Gdiplus::Rect{ 0, 0, 16, 16 }, 0, 0, bitmap.GetWidth(), bitmap.GetHeight(), Gdiplus::UnitPixel);
+			g.Flush();
+
+			if (SUCCEEDED(bitmap.GetHICON(&hIcon)) && SUCCEEDED(smallBmp.GetHICON(&hSmallIcon)))
+			{
+				cb(hIcon, hSmallIcon);
+			}
+		}
+	}
+#endif
+
 	void MainLoop()
 	{
+		SvGuiState consoleWindowState;
+
 		// outer loop: check whether we have to run
 		while (true)
 		{
 			std::this_thread::sleep_for(500ms);
+
+#ifdef _WIN32
+			{
+				auto conCtx = m_instance->GetComponent<console::Context>();
+				auto hostNameVar = conCtx->GetVariableManager()->FindEntryRaw("sv_hostname");
+				auto iconVar = conCtx->GetVariableManager()->FindEntryRaw("sv_icon");
+				auto gameNameVar = conCtx->GetVariableManager()->FindEntryRaw("gamename");
+
+				if (hostNameVar && consoleWindowState.lastHostname != hostNameVar->GetValue())
+				{
+					consoleWindowState.lastHostname = hostNameVar->GetValue();
+
+					SetConsoleTitle(fmt::sprintf(L"Cfx.re Server (FXServer/%s) - %s", ToWide((gameNameVar) ? gameNameVar->GetValue() : "unknown"), ToWide(consoleWindowState.lastHostname)).c_str());
+				}
+
+				if (iconVar && consoleWindowState.lastIcon != iconVar->GetValue())
+				{
+					consoleWindowState.lastIcon = iconVar->GetValue();
+
+					DecodeServerIcon(consoleWindowState.lastIcon, [](HICON hIcon, HICON hSmallIcon)
+					{
+						static auto k32 = GetModuleHandleW(L"kernel32.dll");
+
+						if (k32)
+						{
+							static auto SetConsoleIcon = (void(WINAPI*)(HICON))GetProcAddress(k32, "SetConsoleIcon");
+							if (SetConsoleIcon)
+							{
+								SetConsoleIcon(hIcon);
+							}
+						}
+
+						auto hWnd = GetConsoleWindow();
+						SendMessageW(hWnd, WM_SETICON, ICON_SMALL, (LPARAM)hSmallIcon);
+						SendMessageW(hWnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
+					});
+				}
+			}
+#endif
 
 			if (m_runConsoleHost)
 			{
@@ -165,38 +242,12 @@ private:
 						state.lastIcon = iconVar->GetValue();
 
 #ifdef _WIN32
-						auto iconData = Botan::base64_decode(state.lastIcon);
-
-						static auto init = ([]()
+						DecodeServerIcon(state.lastIcon, [&consoleHost](HICON hIcon, HICON hSmallIcon)
 						{
-							ULONG_PTR gdiplusToken;
-
-							Gdiplus::GdiplusStartupInput gdiplusStartupInput;
-							Gdiplus::GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
-
-							return true;
-						})();
-
-						WRL::ComPtr<IStream> stream(SHCreateMemStream(iconData.data(), iconData.size()));
-						if (stream.Get())
-						{
-							HICON hIcon, hSmallIcon;
-
-							Gdiplus::Bitmap bitmap{ stream.Get() };
-							Gdiplus::Bitmap smallBmp{ 16, 16 };
-							Gdiplus::Graphics g{ &smallBmp };
-
-							g.SetInterpolationMode(Gdiplus::InterpolationMode::InterpolationModeHighQualityBicubic);
-							g.DrawImage(&bitmap, Gdiplus::Rect{ 0, 0, 16, 16 }, 0, 0, bitmap.GetWidth(), bitmap.GetHeight(), Gdiplus::UnitPixel);
-							g.Flush();
-
-							if (SUCCEEDED(bitmap.GetHICON(&hIcon)) && SUCCEEDED(smallBmp.GetHICON(&hSmallIcon)))
-							{
-								auto hWnd = (HWND)consoleHost.GetPlatformWindowHandle();
-								SendMessageW(hWnd, WM_SETICON, ICON_SMALL, (LPARAM)hSmallIcon);
-								SendMessageW(hWnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
-							}
-						}
+							auto hWnd = (HWND)consoleHost.GetPlatformWindowHandle();
+							SendMessageW(hWnd, WM_SETICON, ICON_SMALL, (LPARAM)hSmallIcon);
+							SendMessageW(hWnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
+						});
 #endif
 					}
 
