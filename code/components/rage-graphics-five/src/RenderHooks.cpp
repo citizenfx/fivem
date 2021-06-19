@@ -82,6 +82,11 @@ static void InvokeCreateCB(const char* arg)
 static void CaptureBufferOutput();
 static void CaptureInternalScreenshot();
 
+static hook::cdecl_stub<void()> flushRenderStates([]()
+{
+	return hook::get_pattern("F6 C2 01 74 30 8B", -10);
+});
+
 static void InvokeRender()
 {
 	static std::once_flag of;
@@ -90,6 +95,12 @@ static void InvokeRender()
 	{
 		OnGrcCreateDevice();
 	});
+
+	SetBlendState(GetStockStateIdentifier(BlendStateDefault));
+	SetDepthStencilState(GetStockStateIdentifier(DepthStencilStateNoDepth));
+	SetRasterizerState(GetStockStateIdentifier(RasterizerStateNoCulling));
+
+	flushRenderStates();
 
 	OnPostFrontendRender();
 }
