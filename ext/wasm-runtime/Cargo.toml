@@ -1,0 +1,8 @@
+[workspace]
+members = [
+    "runtime",
+    "glue",
+]
+
+# [profile.release]
+# lto = true

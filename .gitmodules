@@ -267,6 +267,3 @@
 [submodule "vendor/im3d"]
 	path = vendor/im3d
 	url = https://github.com/john-chapman/im3d.git
-[submodule "vendor/fivem-wasm"]
-	path = vendor/fivem-wasm
-	url = https://github.com/zottce/fivem-wasm
