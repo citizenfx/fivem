@@ -43,6 +43,9 @@ python2 -m easy_install ply
 
 # build natives
 if [ "$SKIP_NATIVES" == "" ]; then
+	cd /src/ext/natives
+	gcc -O2 -shared -fpic -o cfx.so -I/usr/include/lua5.3/ lua_cfx.c
+
 	cd /src/ext/native-doc-gen
 	sh build.sh
 
@@ -50,8 +53,6 @@ if [ "$SKIP_NATIVES" == "" ]; then
 
 	mkdir -p out
 	curl --http1.1 -sLo out/natives_global.lua http://runtime.fivem.net/doc/natives.lua
-
-	gcc -O2 -shared -fpic -o cfx.so -I/usr/include/lua5.3/ lua_cfx.c
 
 	mkdir -p /opt/cfx-server/citizen/scripting/lua/
 	mkdir -p /opt/cfx-server/citizen/scripting/v8/

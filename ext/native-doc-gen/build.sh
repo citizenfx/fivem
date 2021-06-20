@@ -3,10 +3,17 @@
 set -xe
 
 ROOT=$(pwd)
+LUA53=lua5.3
+
+[ "x$OS" == "xWindows_NT" ] && LUA53=./lua53
 
 # install yarn deps
 cd $ROOT/../native-doc-tooling/
 yarn
+
+cd $ROOT/../natives/
+
+NATIVES_MD_DIR=$ROOT/../native-decls/native_md/ $LUA53 codegen.lua inp/natives_global.lua markdown server rpc
 
 # make out dir
 cd $ROOT

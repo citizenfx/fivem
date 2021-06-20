@@ -272,6 +272,8 @@ function rpcEnvironment.context_rpc(nativeName)
 		codeEnvironment.arguments(n.arguments)
 		codeEnvironment.apiset('server')
 		codeEnvironment.returns('void')
+		curNative.rpc = true
+		curNative.ogHash = n.hash
 
 		if n.doc then
 			codeEnvironment.doc(n.doc)
@@ -378,6 +380,8 @@ function rpcEnvironment.entity_rpc(nativeName)
 		codeEnvironment.arguments(n.arguments)
 		codeEnvironment.apiset('server')
 		codeEnvironment.returns('Entity')
+		curNative.rpc = true
+		curNative.ogHash = n.hash
 
 		if n.doc then
 			codeEnvironment.doc(n.doc)
@@ -438,6 +442,8 @@ function rpcEnvironment.object_rpc(nativeName)
 		codeEnvironment.arguments(n.arguments)
 		codeEnvironment.apiset('server')
 		codeEnvironment.returns(n.returns)
+		curNative.rpc = true
+		curNative.ogHash = n.hash
 
 		if n.doc then
 			codeEnvironment.doc(n.doc)
@@ -498,6 +504,7 @@ function parseDocString(native)
 	}
 end
 
+local gFilterRpc = false
 local gApiSet = 'server'
 local ourGame = 'gta5'
 
@@ -505,6 +512,10 @@ function matchApiSet(native)
 	local game = native.game
 
 	if ourGame and native.game and native.game ~= ourGame then
+		return false
+	end
+
+	if gFilterRpc and not native.rpc then
 		return false
 	end
 
@@ -564,6 +575,12 @@ end
 
 if #arg > 2 then
 	gApiSet = arg[3]
+end
+
+if #arg > 3 then
+	if arg[4] == 'rpc' then
+		gFilterRpc = true
+	end
 end
 
 -- server has Player be charPtr, not int

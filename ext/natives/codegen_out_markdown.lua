@@ -132,6 +132,14 @@ local function printIdentifier(n)
     return n
 end
 
+local function platformThing(str)
+    if os.getenv('OS') and os.getenv('OS') == 'Windows_NT' then
+        return str:gsub('/', '\\')
+    else
+        return str:gsub('\\', '/')
+    end
+end
+
 local function printNative(native)
     local function saveThis(name, str)
         local function tryOpen()
@@ -141,7 +149,7 @@ local function printNative(native)
         local f = tryOpen()
 
         if not f then
-            os.execute(('mkdir %s\\%s'):format(os.getenv('NATIVES_MD_DIR'), native.ns or 'cfx'))
+            os.execute(platformThing(('mkdir %s\\%s'):format(os.getenv('NATIVES_MD_DIR'), native.ns or 'cfx')))
 
             f = tryOpen()
         end
@@ -207,6 +215,10 @@ local function printNative(native)
             end
         end
 
+        if native.rpc then
+            str = str .. ('\n**This is the server-side RPC native equivalent of the client native [%s](?_%s).**\n'):format(printCName(native):gsub('_', '\\_'), native.ogHash)
+        end
+
         str = str .. '\n'
 
         args = {}
@@ -242,9 +254,7 @@ local function printNative(native)
 end
 
 for _, v in pairs(_natives) do
-    --if v.name == 'CALL_MINIMAP_SCALEFORM_FUNCTION' then
+    if matchApiSet(v) then
         printNative(v)
-
-        --return
-    --end
+    end
 end
