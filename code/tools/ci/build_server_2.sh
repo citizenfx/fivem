@@ -46,8 +46,8 @@ if [ "$SKIP_NATIVES" == "" ]; then
 	cd /src/ext/natives
 	gcc -O2 -shared -fpic -o cfx.so -I/usr/include/lua5.3/ lua_cfx.c
 
-	mkdir -p out
-	curl --http1.1 -sLo out/natives_global.lua http://runtime.fivem.net/doc/natives.lua
+	mkdir -p inp out
+	curl --http1.1 -sLo inp/natives_global.lua http://runtime.fivem.net/doc/natives.lua
 
 	cd /src/ext/native-doc-gen
 	sh build.sh
@@ -57,10 +57,10 @@ if [ "$SKIP_NATIVES" == "" ]; then
 	mkdir -p /opt/cfx-server/citizen/scripting/lua/
 	mkdir -p /opt/cfx-server/citizen/scripting/v8/
 
-	lua5.3 codegen.lua out/natives_global.lua native_lua server > /src/code/components/citizen-scripting-lua/include/NativesServer.h
-	lua5.3 codegen.lua out/natives_global.lua lua server > /opt/cfx-server/citizen/scripting/lua/natives_server.lua
-	lua5.3 codegen.lua out/natives_global.lua js server > /opt/cfx-server/citizen/scripting/v8/natives_server.js
-	lua5.3 codegen.lua out/natives_global.lua dts server > /opt/cfx-server/citizen/scripting/v8/natives_server.d.ts
+	lua5.3 codegen.lua inp/natives_global.lua native_lua server > /src/code/components/citizen-scripting-lua/include/NativesServer.h
+	lua5.3 codegen.lua inp/natives_global.lua lua server > /opt/cfx-server/citizen/scripting/lua/natives_server.lua
+	lua5.3 codegen.lua inp/natives_global.lua js server > /opt/cfx-server/citizen/scripting/v8/natives_server.js
+	lua5.3 codegen.lua inp/natives_global.lua dts server > /opt/cfx-server/citizen/scripting/v8/natives_server.d.ts
 
 
 	cat > /src/code/client/clrcore/NativesServer.cs << EOF
