@@ -225,7 +225,10 @@ namespace fx
 
 				// start standard resources
 				//consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "webadmin" });
-				consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "monitor" });
+				if (console::GetDefaultContext()->GetVariableManager()->FindEntryRaw("txAdminServerMode"))
+				{
+					consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "monitor" });
+				}
 
 				// add system console access
 				seGetCurrentContext()->AddAccessControlEntry(se::Principal{ "system.console" }, se::Object{ "webadmin" }, se::AccessType::Allow);
