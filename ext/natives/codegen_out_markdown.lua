@@ -140,6 +140,12 @@ local function platformThing(str)
     end
 end
 
+local parentArg = ''
+
+if not os.getenv('OS') or os.getenv('OS') ~= 'Windows_NT' then
+    parentArg = '-p'
+end
+
 local function printNative(native)
     local function saveThis(name, str)
         local function tryOpen()
@@ -149,7 +155,7 @@ local function printNative(native)
         local f = tryOpen()
 
         if not f then
-            os.execute(platformThing(('mkdir %s\\%s'):format(os.getenv('NATIVES_MD_DIR'), native.ns or 'cfx')))
+            os.execute(platformThing(('mkdir %s %s\\%s'):format(parentArg, os.getenv('NATIVES_MD_DIR'), native.ns or 'cfx')))
 
             f = tryOpen()
         end
