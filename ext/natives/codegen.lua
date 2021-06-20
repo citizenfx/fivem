@@ -588,7 +588,9 @@ if gApiSet == 'server' then
 	types['Player'].nativeType = 'string'
 end
 
-loadDefinition 'inp/natives_cfx.lua'
+if not gFilterRpc then
+	loadDefinition 'inp/natives_cfx.lua'
+end
 
 if not globalNatives then
 	loadDefinition 'codegen_dlc_natives.lua'
