@@ -46,13 +46,13 @@ if [ "$SKIP_NATIVES" == "" ]; then
 	cd /src/ext/natives
 	gcc -O2 -shared -fpic -o cfx.so -I/usr/include/lua5.3/ lua_cfx.c
 
+	mkdir -p out
+	curl --http1.1 -sLo out/natives_global.lua http://runtime.fivem.net/doc/natives.lua
+
 	cd /src/ext/native-doc-gen
 	sh build.sh
 
 	cd /src/ext/natives
-
-	mkdir -p out
-	curl --http1.1 -sLo out/natives_global.lua http://runtime.fivem.net/doc/natives.lua
 
 	mkdir -p /opt/cfx-server/citizen/scripting/lua/
 	mkdir -p /opt/cfx-server/citizen/scripting/v8/
