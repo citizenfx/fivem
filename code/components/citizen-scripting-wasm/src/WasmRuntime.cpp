@@ -211,7 +211,6 @@ result_t WasmRuntime::TriggerEvent(char* eventName, char* eventPayload, uint32_t
 	return FX_S_OK;
 }
 
-// TODO: some checks
 result_t WasmRuntime::CallRef(int32_t refIdx, char* argsSerialized, uint32_t argsLength, char** retvalSerialized, uint32_t* retvalLength)
 {
 	*retvalLength = 0;
@@ -219,7 +218,12 @@ result_t WasmRuntime::CallRef(int32_t refIdx, char* argsSerialized, uint32_t arg
 
 	WasmPushEnvironment pushed(this);
 
-	wasm_runtime_call_ref(m_runtime, refIdx, (const uint8_t*)argsSerialized, argsLength, (const uint8_t**)retvalSerialized, retvalLength);
+	bool success = wasm_runtime_call_ref(m_runtime, refIdx, (const uint8_t*)argsSerialized, argsLength, (const uint8_t**)retvalSerialized, retvalLength);
+
+	if (!success)
+	{
+		return FX_E_INVALIDARG;
+	}
 
 	return FX_S_OK;
 }

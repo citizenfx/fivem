@@ -70,8 +70,17 @@ impl Runtime {
         Ok(())
     }
 
+    pub fn unload_module(&mut self) {
+        self.script = None;
+    }
+
     #[inline]
-    pub fn trigger_event(&mut self, event_name: &CStr, args: &[u8], source: &CStr) {
+    pub fn trigger_event(
+        &mut self,
+        event_name: &CStr,
+        args: &[u8],
+        source: &CStr,
+    ) -> anyhow::Result<()> {
         if let Some(script) = self.script.as_mut() {
             let mut wrapper = || -> anyhow::Result<()> {
                 if let Some(func) = script.on_event.clone() {
@@ -94,11 +103,15 @@ impl Runtime {
             if let Err(err) = wrapper() {
                 self.script = None;
                 script_log(format!("{} error: {:?}", CFX_ON_EVENT, err));
+
+                return Err(err);
             }
         }
+
+        Ok(())
     }
 
-    pub fn tick(&mut self) {
+    pub fn tick(&mut self) -> anyhow::Result<()> {
         if let Some(func) = self
             .script
             .as_ref()
@@ -107,23 +120,34 @@ impl Runtime {
             if let Err(err) = func.call(&[]) {
                 self.script = None;
                 script_log(format!("{} error: {:?}", CFX_ON_TICK, err));
+
+                return Err(err);
             }
         }
+
+        Ok(())
     }
 
-    pub fn call_ref(&mut self, ref_idx: u32, args: &[u8], ret_buf: &mut Vec<u8>) -> u32 {
+    pub fn call_ref(
+        &mut self,
+        ref_idx: u32,
+        args: &[u8],
+        ret_buf: &mut Vec<u8>,
+    ) -> anyhow::Result<u32> {
         if let Some(script) = self.script.as_ref() {
             match call_call_ref(script, ref_idx, args, ret_buf) {
                 Err(err) => {
                     self.script = None;
                     script_log(format!("{} error: {:?}", CFX_CALL_REF, err));
+
+                    return Err(err);
                 }
 
-                Ok(val) => return val,
+                Ok(val) => return Ok(val),
             }
         }
 
-        0
+        Ok(0)
     }
 
     pub fn duplicate_ref(&mut self, ref_idx: u32) -> u32 {
@@ -332,7 +356,7 @@ impl ScriptModule {
             let new = self.alloc_bytes(bytes)?;
 
             if name.0 != 0 {
-                self.free_bytes(name);
+                self.free_bytes(name)?;
             }
 
             return Ok(new);
@@ -353,7 +377,7 @@ impl ScriptModule {
             let new = self.alloc_bytes(bytes)?;
 
             if args.0 != 0 {
-                self.free_bytes(args);
+                self.free_bytes(args)?;
             }
 
             return Ok(new);
@@ -374,7 +398,7 @@ impl ScriptModule {
             let new = self.alloc_bytes(bytes)?;
 
             if source.0 != 0 {
-                self.free_bytes(source);
+                self.free_bytes(source)?;
             }
 
             return Ok(new);

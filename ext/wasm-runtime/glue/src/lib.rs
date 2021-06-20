@@ -39,12 +39,15 @@ pub unsafe extern "C" fn wasm_runtime_create_module(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn wasm_runtime_destroy_module(runtime: *mut c_void) {}
+pub unsafe extern "C" fn wasm_runtime_destroy_module(runtime: *mut c_void) {
+    let runtime = &mut *(runtime as *mut cfx_wasm_runtime::Runtime);
+    runtime.unload_module();
+}
 
 #[no_mangle]
-pub unsafe extern "C" fn wasm_runtime_tick(runtime: *mut c_void) {
+pub unsafe extern "C" fn wasm_runtime_tick(runtime: *mut c_void) -> bool {
     let runtime = &mut *(runtime as *mut cfx_wasm_runtime::Runtime);
-    runtime.tick();
+    runtime.tick().is_ok()
 }
 
 #[no_mangle]
@@ -54,14 +57,14 @@ pub unsafe extern "C" fn wasm_runtime_trigger_event(
     args: *const u8,
     args_len: u32,
     source: *const i8,
-) {
+) -> bool {
     let runtime = &mut *(runtime as *mut cfx_wasm_runtime::Runtime);
 
     let event = CStr::from_ptr(event_name);
     let args = std::slice::from_raw_parts(args, args_len as _);
     let source = CStr::from_ptr(source);
 
-    runtime.trigger_event(event, args, source);
+    runtime.trigger_event(event, args, source).is_ok()
 }
 
 #[no_mangle]
@@ -94,7 +97,7 @@ pub unsafe extern "C" fn wasm_runtime_call_ref(
     args_len: u32,
     ret: *mut *const u8,
     ret_size: *mut u32,
-) -> u32 {
+) -> bool {
     use std::cell::RefCell;
 
     thread_local! {
@@ -107,10 +110,16 @@ pub unsafe extern "C" fn wasm_runtime_call_ref(
     RETVAL.with(|retval| {
         let written = { runtime.call_ref(ref_idx, args, &mut retval.borrow_mut()) };
 
-        *ret = retval.borrow().as_ptr();
-        *ret_size = written;
+        match written {
+            Ok(bytes) => {
+                *ret = retval.borrow().as_ptr();
+                *ret_size = bytes;
+            }
 
-        written
+            Err(_) => return false,
+        }
+
+        true
     })
 }
 

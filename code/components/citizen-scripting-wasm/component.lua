@@ -1,17 +1,26 @@
 return function()
-	filter {}
 	configuration {}
 
 	local wasmRuntime = path.getabsolute(_ROOTPATH .. '/../ext/wasm-runtime')
 
-	-- TODO: no --release flag in debug builds
-	prebuildcommands {
-		('cargo build --release --manifest-path "%s/Cargo.toml"'):format(
-			wasmRuntime
-		)
-	}
+	filter { "configurations:Debug" }
+		prebuildcommands {
+			('cargo build --manifest-path "%s/Cargo.toml"'):format(
+				wasmRuntime
+			)
+		}
+		libdirs { wasmRuntime .. '/target/debug' }
 
-	libdirs { wasmRuntime .. '/target/release' }
+	filter { "configurations:Release" }
+		prebuildcommands {
+			('cargo build --release --manifest-path "%s/Cargo.toml"'):format(
+				wasmRuntime
+			)
+		}
+		libdirs { wasmRuntime .. '/target/release' }
+
+	filter {}
+
 	links { 'cfx_component_glue' }
 		
 	includedirs { wasmRuntime .. '/glue/' }
