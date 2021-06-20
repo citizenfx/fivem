@@ -1871,12 +1871,15 @@ void NetLibrary::Disconnect(const char* reason)
 		OnFinalizeDisconnect(m_currentServer);
 	}
 
-	if (m_connectionState == CS_CONNECTING || m_connectionState == CS_ACTIVE)
+	if (m_connectionState == CS_CONNECTING || m_connectionState == CS_ACTIVE || m_connectionState == CS_FETCHING)
 	{
 		SendReliableCommand("msgIQuit", g_disconnectReason.c_str(), g_disconnectReason.length() + 1);
 
-		m_impl->Flush();
-		m_impl->Reset();
+		if (m_impl)
+		{
+			m_impl->Flush();
+			m_impl->Reset();
+		}
 
 		OnFinalizeDisconnect(m_currentServer);
 
