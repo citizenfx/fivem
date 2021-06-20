@@ -71,15 +71,15 @@ namespace CitizenFX.Core.Native
 {
 EOF
 
-lua5.3 codegen.lua out/natives_global.lua enum server >> /src/code/client/clrcore/NativesServer.cs
-lua5.3 codegen.lua out/natives_global.lua cs server >> /src/code/client/clrcore/NativesServer.cs
+	lua5.3 codegen.lua inp/natives_global.lua enum server >> /src/code/client/clrcore/NativesServer.cs
+	lua5.3 codegen.lua inp/natives_global.lua cs server >> /src/code/client/clrcore/NativesServer.cs
 
-cat >> /src/code/client/clrcore/NativesServer.cs << EOF
+	cat >> /src/code/client/clrcore/NativesServer.cs << EOF
 }
 #endif
 EOF
 
-	lua5.3 codegen.lua out/natives_global.lua rpc server > /opt/cfx-server/citizen/scripting/rpc_natives.json
+	lua5.3 codegen.lua inp/natives_global.lua rpc server > /opt/cfx-server/citizen/scripting/rpc_natives.json
 
 	# build rusty bits
 	cd /src/ext/jexl-eval
