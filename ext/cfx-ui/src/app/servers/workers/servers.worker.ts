@@ -7,6 +7,7 @@ import { FilterRequest } from '../filter-request';
 import { PinConfigCached, PinConfig } from '../pins';
 import { ServerFilterContainer } from '../components/filters/server-filter-container';
 import { getCanonicalLocale } from '../components/utils';
+import { filterProjectDesc, filterProjectName } from '../server-utils';
 
 function softSlice(arr: Uint8Array, start: number, end?: number) {
     return new Uint8Array(arr.buffer, arr.byteOffset + start, end && end - start);
@@ -112,7 +113,17 @@ const sortNames: { [key: string]: string } = {};
 const stripNames: { [key: string]: string } = {};
 
 function stripName(server: master.IServerData) {
-	return (server.hostname || '').replace(/\^[0-9]/g, '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+	let name = server.hostname || '';
+
+	if (server.vars?.sv_projectName) {
+		name = filterProjectName(server.vars?.sv_projectName) + ' ' + filterProjectDesc(server.vars?.sv_projectDesc ?? '');
+	} else {
+		if (name.length >= 100) {
+			name = name.substring(0, 100);
+		}
+	}
+
+	return (name).replace(/\^[0-9]/g, '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 }
 
 function sortName(server: master.IServerData) {

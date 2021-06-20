@@ -4,10 +4,7 @@ import { EventEmitter } from '@angular/core';
 import { master } from './master';
 
 import { Avatar } from './avatar';
-
-import emojiRegex from 'emoji-regex';
-
-const emojiPreRe = new RegExp('^' + emojiRegex().source);
+import { filterProjectDesc, filterProjectName } from './server-utils';
 
 export class Server {
     readonly hostname: string;
@@ -139,25 +136,12 @@ export class Server {
         this.int = object;
         this.connectEndPoints = object.connectEndPoints;
 
-		if (this.data?.vars?.sv_projectName?.length >= 50) {
-			this.data.vars.sv_projectName = this.data.vars.sv_projectName.substring(0, 50);
-		}
-
-		if (this.data?.vars?.sv_projectDesc?.length >= 125) {
-			this.data.vars.sv_projectDesc = this.data.vars.sv_projectDesc.substring(0, 125);
-		}
-
-		const filterSplit = (a: string) => a.split(/(\s\/+\s|\||\s-+\s)/)[0].trim();
-
 		if (this.data?.vars?.sv_projectName) {
-			this.data.vars.sv_projectName = filterSplit(this.data.vars.sv_projectName)
-				.replace(/(.)\^[0-9]/g, '$1') // any non-prefixed color codes
-				.replace(/^\[..\]/, '') // country prefixes
-				.replace(emojiPreRe, ''); // emoji prefixes
+			this.data.vars.sv_projectName = filterProjectName(this.data.vars.sv_projectName);
 		}
 
 		if (this.data?.vars?.sv_projectDesc) {
-			this.data.vars.sv_projectDesc = filterSplit(this.data.vars.sv_projectDesc).replace(/\^[0-9]/g, '');
+			this.data.vars.sv_projectDesc = filterProjectDesc(this.data.vars.sv_projectDesc);
 		}
 
         if (!object.iconVersion && sanitizer) {
