@@ -87,6 +87,60 @@ static hook::cdecl_stub<void()> flushRenderStates([]()
 	return hook::get_pattern("F6 C2 01 74 30 8B", -10);
 });
 
+static hook::cdecl_stub<void(bool)> _grcLighting([]()
+{
+	return hook::get_call(hook::get_pattern("48 83 EC 38 B1 01 E8 ? ? ? ? 48 8B", 6));
+});
+
+static hook::cdecl_stub<void(rage::grcTexture*)> _grcBindTexture([]()
+{
+	return hook::get_call(hook::get_pattern("48 8B D9 33 C9 E8 ? ? ? ? E8 ? ? ? ? 33 C9 E8", 5));
+});
+
+static hook::cdecl_stub<void()> _grcWorldIdentity([]()
+{
+	return hook::get_call(hook::get_pattern("48 8B D9 33 C9 E8 ? ? ? ? E8 ? ? ? ? 33 C9 E8", 10));
+});
+
+namespace rage
+{
+void grcLighting(bool enable)
+{
+	return _grcLighting(enable);
+}
+
+void grcBindTexture(rage::grcTexture* texture)
+{
+	return _grcBindTexture(texture);
+}
+
+void grcWorldIdentity()
+{
+	return _grcWorldIdentity();
+}
+
+struct grcViewport
+{
+};
+
+struct spdViewport : grcViewport
+{
+	static spdViewport* GetCurrent();
+};
+}
+
+static rage::spdViewport** rage__spdViewport__sm_Current;
+
+rage::spdViewport* rage::spdViewport::GetCurrent()
+{
+	return *rage__spdViewport__sm_Current;
+}
+
+static HookFunction hookFunctionSafe([]()
+{
+	rage__spdViewport__sm_Current = hook::get_address<rage::spdViewport**>(hook::get_pattern("48 8B 3D ? ? ? ? 40 8A F2 48 8B D9 75 14", 3));
+});
+
 static void InvokeRender()
 {
 	static std::once_flag of;
@@ -100,7 +154,23 @@ static void InvokeRender()
 	SetDepthStencilState(GetStockStateIdentifier(DepthStencilStateNoDepth));
 	SetRasterizerState(GetStockStateIdentifier(RasterizerStateNoCulling));
 
+	rage::grcLighting(false);
+
+	if (rage::spdViewport::GetCurrent())
+	{
+		rage::grcWorldIdentity();
+	}
+
+	rage::grcBindTexture(nullptr);
+
 	flushRenderStates();
+
+	// run a no-op draw call to flush other grcore states
+	rage::grcBegin(3, 3);
+	rage::grcVertex(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0, 0.0f, 0.0f);
+	rage::grcVertex(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0, 0.0f, 0.0f);
+	rage::grcVertex(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0, 0.0f, 0.0f);
+	rage::grcEnd();
 
 	OnPostFrontendRender();
 }
