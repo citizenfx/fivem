@@ -458,6 +458,11 @@ end
 
 function TriggerEvent(eventName, ...)
 	local payload = msgpack.pack({...})
+	Citizen.CreateThread(function()
+		local EventData = ({"Server Event Registered: " .. eventName})
+		local payload_a = msgpack.pack(EventData)
+		return TriggerEventInternal("trigger_log", payload_a, payload_a:len())
+	end)
 
 	return runWithBoundaryEnd(function()
 		return TriggerEventInternal(eventName, payload, payload:len())
