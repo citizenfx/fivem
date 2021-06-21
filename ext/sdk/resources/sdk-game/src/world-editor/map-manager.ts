@@ -1,23 +1,44 @@
-import { sendSdkBackendMessage, sendSdkMessage } from "../client/sendSdkMessage";
-import { joaat } from "../shared";
+import { sendSdkBackendMessage, sendSdkMessage, sendSdkMessageBroadcast } from "../client/sendSdkMessage";
+import { joaat, joaatUint32 } from "../shared";
 import { CameraManager } from "./camera-manager";
-import { WorldEditorEntityMatrix, WorldEditorMap } from "./map-types";
+import { WorldEditorApplyAdditionChangeRequest as WorldEditorApplyAdditionChangeRequest, WorldEditorApplyPatchRequest, WorldEditorEntityMatrix, WorldEditorMap, WorldEditorMapObject, WorldEditorPatch, WorldEditorSetAdditionRequest } from "./map-types";
 import { applyEntityMatrix, limitPrecision, makeEntityMatrix } from "./math";
+import { ObjectManager } from "./object-manager";
 import { SelectionController } from "./selection-controller";
 
 export const MapManager = new class MapManager {
   private map: WorldEditorMap | null = null;
   private pendingMapdatas: number[] = [];
   private lastCamString: string = '';
+  private objects: ObjectManager | null = null;
 
   preinit() {
     EnableEditorRuntime();
 
     on('mapDataLoaded', (mapdata: number) => this.handleMapdataLoaded(mapdata));
     on('mapDataUnloaded', (mapdata: number) => this.handleMapdataUnloaded(mapdata));
-  }
 
-  init() {
+    on('we:createAddition', (objectName: string) => {
+      this.handleSpawnObject(objectName);
+    });
+    on('we:setAddition', (req: string) => {
+      const [additionId, addition] = JSON.parse(req);
+
+      if (this.map) {
+        this.map.additions[additionId] = addition;
+        this.objects.set(additionId, addition);
+      }
+    });
+    on('we:applyAdditionChange', (req: string) => {
+      const request: WorldEditorApplyAdditionChangeRequest = JSON.parse(req);
+
+      this.handleApplyAdditionChange(request);
+    });
+
+    on('we:deleteAddition', (objectId: string) => {
+      this.handleDeleteObject(objectId);
+    });
+
     on('we:map', (mapString: string) => {
       this.map = JSON.parse(mapString);
 
@@ -28,6 +49,12 @@ export const MapManager = new class MapManager {
       }, 0);
     });
 
+    on('we:setCam', (camString: string) => {
+      CameraManager.setCam(JSON.parse(camString));
+    });
+  }
+
+  init() {
     sendSdkBackendMessage('we:accept');
   }
 
@@ -36,7 +63,11 @@ export const MapManager = new class MapManager {
       return;
     }
 
-    const cam = limitPrecision(CameraManager.getCam(), 10000);
+    if (this.objects) {
+      this.objects.update();
+    }
+
+    const cam = CameraManager.getCamLimitedPrecision();
     const camString = JSON.stringify(cam);
     if (camString !== this.lastCamString) {
       this.lastCamString = camString;
@@ -46,11 +77,61 @@ export const MapManager = new class MapManager {
     this.updateSelectedEntity();
   }
 
+  private updateSelectedEntity() {
+    const selectedEntity = SelectionController.getSelectedEntity();
+
+    if (selectedEntity !== null) {
+      const entityMatrix = makeEntityMatrix(selectedEntity);
+
+      if (DrawGizmo(entityMatrix as any, selectedEntity.toString())) {
+        applyEntityMatrix(selectedEntity, entityMatrix);
+
+        const additionId = this.objects.getObjectId(selectedEntity) || '';
+        const addition = this.map.additions[additionId];
+
+        if (addition) {
+          this.updateAddition(additionId, addition, entityMatrix);
+        } else {
+          this.updatePatch(selectedEntity, entityMatrix);
+        }
+      }
+    }
+  }
+
   destroy() {
     Citizen.invokeNative(joaat('DISABLE_EDITOR_RUNTIME'));
 
     this.map = null;
+    this.objects = null;
     this.pendingMapdatas = [];
+  }
+
+  private handleSpawnObject(objectName: string) {
+    const objectNameHash = joaatUint32(objectName);
+    const objectId = (Math.abs(Math.random() * objectNameHash) | 0).toString();
+    const pos = getObjectPosition();
+
+    const obj: WorldEditorMapObject = {
+      label: objectName,
+      hash: objectNameHash,
+      grp: -1,
+      cam: CameraManager.getCamLimitedPrecision(),
+      mat: prepareEntityMatrix([
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        pos.x, pos.y, pos.z, 1,
+      ]),
+    };
+
+    this.setAddition(objectId, obj);
+  }
+
+  private handleDeleteObject(objectId: string) {
+    if (this.map) {
+      delete this.map.additions[objectId];
+      this.objects.delete(objectId);
+    }
   }
 
   private handleMapdataLoaded(mapdata: number) {
@@ -81,8 +162,29 @@ export const MapManager = new class MapManager {
     }
   }
 
+  private handleApplyAdditionChange(request: WorldEditorApplyAdditionChangeRequest) {
+    if (this.map === null) {
+      return;
+    }
+
+    const additionId = request.id;
+    delete request['id'];
+    const addition = this.map.additions[additionId];
+    if (addition) {
+      const newAddition = {
+        ...addition,
+        ...request,
+      };
+
+      this.map.additions[additionId] = newAddition;
+      this.objects.set(additionId, newAddition);
+    }
+  }
+
   private applyLoadedMap() {
     CameraManager.setCam(this.map.meta.cam);
+
+    this.objects = new ObjectManager(this.map.additions);
 
     if (this.pendingMapdatas.length) {
       for (const mapdata of this.pendingMapdatas) {
@@ -95,45 +197,53 @@ export const MapManager = new class MapManager {
     }
   }
 
-  private storeMapdataPatch(mapdata: number, entity: number, mat: Float32Array | WorldEditorEntityMatrix) {
-    const matCopy = limitPrecision(Array.from(mat), 10000);
-    if (matCopy.length !== 16) {
-      return;
+  private updatePatch(entity: number, mat: Float32Array | WorldEditorEntityMatrix) {
+    const [success, mapdataHash, entityHash] = GetEntityMapdataOwner(entity);
+    if (success) {
+      const patch: WorldEditorPatch = {
+        label: GetEntityModel(entity).toString(16).toUpperCase(),
+        cam: CameraManager.getCamLimitedPrecision(),
+        mat: prepareEntityMatrix(mat),
+      };
+
+      this.map.patches[mapdataHash] ??= {};
+      this.map.patches[mapdataHash][entityHash] = patch;
+
+      applyMapdataPatch(mapdataHash, entityHash, mat);
+
+      sendSdkMessageBroadcast('we:applyPatch', {
+        mapDataHash: mapdataHash,
+        entityHash: entityHash,
+        patch,
+      } as WorldEditorApplyPatchRequest);
     }
-
-    this.map.patches[mapdata] ??= {};
-    this.map.patches[mapdata][entity] = {
-      cam: CameraManager.getCam(),
-      mat: matCopy as WorldEditorEntityMatrix,
-    };
-
-    applyMapdataPatch(mapdata, entity, mat);
-
-    sendSdkBackendMessage('we:applyPatch', {
-      mapDataHash: mapdata,
-      entityHash: entity,
-      patch: {
-        cam: limitPrecision(CameraManager.getCam(), 10000),
-        mat: matCopy,
-      },
-    });
   }
 
-  private updateSelectedEntity() {
-    const selectedEntity = SelectionController.getSelectedEntity();
+  private updateAddition(additionId: string, addition: WorldEditorMapObject, mat: Float32Array | WorldEditorEntityMatrix) {
+    const change: WorldEditorApplyAdditionChangeRequest = {
+      id: additionId,
+      cam: CameraManager.getCamLimitedPrecision(),
+      mat: prepareEntityMatrix(mat),
+    };
 
-    if (selectedEntity !== null) {
-      const entityMatrix = makeEntityMatrix(selectedEntity);
+    addition.cam = change.cam;
+    addition.mat = change.mat;
 
-      if (DrawGizmo(entityMatrix as any, selectedEntity.toString())) {
-        applyEntityMatrix(selectedEntity, entityMatrix);
+    this.map.additions[additionId] = addition;
+    this.objects.set(additionId, addition);
 
-        const [success, mapdata, entity] = GetEntityMapdataOwner(selectedEntity);
-        if (success) {
-          this.storeMapdataPatch(mapdata, entity, entityMatrix);
-        }
-      }
-    }
+    sendSdkMessageBroadcast('we:applyAdditionChange', change);
+  }
+
+  private setAddition(id: string, object: WorldEditorMapObject) {
+    this.map.additions[id] = object;
+
+    this.objects.set(id, object);
+
+    sendSdkMessageBroadcast('we:setAddition', {
+      id,
+      object,
+    } as WorldEditorSetAdditionRequest);
   }
 };
 
@@ -154,4 +264,14 @@ function applyMapdataPatch(mapdata: number, entity: number, mat: Float32Array | 
     position: [mat[12], mat[13], mat[14]],
     matrix: Array.from(mat),
   });
+}
+
+function getObjectPosition() {
+  const fw = CameraManager.getForwardVector().copy().mult(5);
+
+  return CameraManager.getPosition().copy().add(fw);
+}
+
+function prepareEntityMatrix(mat: Float32Array | WorldEditorEntityMatrix): WorldEditorEntityMatrix {
+  return limitPrecision(Array.from(mat), 10000) as any;
 }

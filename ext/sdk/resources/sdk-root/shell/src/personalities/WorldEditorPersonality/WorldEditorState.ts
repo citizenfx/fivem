@@ -1,13 +1,15 @@
 import React from 'react';
 import { makeAutoObservable, runInAction } from "mobx";
 import { worldEditorApi } from "shared/api.events";
-import { sendApiMessage } from "utils/api";
+import { onApiMessage, sendApiMessage } from "utils/api";
 import { InputController } from "./InputController";
 import { onWindowEvent } from 'utils/windowMessages';
 import { ShellPersonality, ShellState } from 'store/ShellState';
 import { FilesystemEntry } from 'shared/api.types';
 import { FXWORLD_FILE_EXT } from 'assets/fxworld/fxworld-types';
 import { WorldEditorStartRequest } from 'shared/api.requests';
+import { WorldEditorApplyAdditionChangeRequest, WorldEditorApplyPatchRequest, WorldEditorMap, WorldEditorSetAdditionRequest } from 'backend/world-editor/world-editor-types';
+import { WorldEditorMapState } from './WorldEditorMapState';
 
 const noop = () => {};
 
@@ -36,7 +38,10 @@ export const WorldEditorState = new class WorldEditorState {
 
   public selection: WESelection = null;
 
+  public map: WorldEditorMapState | null = null;
   private mapEntry: FilesystemEntry | null = null;
+
+  public mapExplorerOpen = false;
 
   constructor() {
     makeAutoObservable(this);
@@ -48,6 +53,14 @@ export const WorldEditorState = new class WorldEditorState {
     onWindowEvent('we:ready', () => runInAction(() => {
       this.ready = true;
     }));
+
+    onWindowEvent('we:applyPatch', (request: WorldEditorApplyPatchRequest) => this.map?.handleApplyPatchRequest(request));
+    onWindowEvent('we:setAddition', (request: WorldEditorSetAdditionRequest) => this.map?.handleSetAdditionRequest(request));
+    onWindowEvent('we:applyAdditionChange', (request: WorldEditorApplyAdditionChangeRequest) => this.map?.handleApplyAdditionChangeRequest(request));
+
+    onApiMessage(worldEditorApi.mapLoaded, (map: WorldEditorMap) => runInAction(() => {
+      this.map = new WorldEditorMapState(map);
+    }));
   }
 
   get mapName(): string {
@@ -58,7 +71,12 @@ export const WorldEditorState = new class WorldEditorState {
     return '';
   }
 
+  setCam(cam: number[]) {
+    sendGameClientEvent('we:setCam', JSON.stringify(cam));
+  }
+
   openMap = (entry: FilesystemEntry) => {
+    this.map = null;
     this.mapEntry = entry;
 
     sendApiMessage(worldEditorApi.start, {
@@ -69,7 +87,8 @@ export const WorldEditorState = new class WorldEditorState {
   };
 
   closeMap = () => {
-    this.ready = false;
+    // this.ready = false;
+    this.map = null;
     this.mapEntry = null;
 
     sendApiMessage(worldEditorApi.stop);
@@ -87,6 +106,18 @@ export const WorldEditorState = new class WorldEditorState {
 
   closeObjectsBrowser = () => {
     this.objectsBrowserOpen = false;
+  };
+
+  toggleMapExplorer = () => {
+    this.mapExplorerOpen = !this.mapExplorerOpen;
+  };
+
+  openMapExplorer = () => {
+    this.mapExplorerOpen = true;
+  };
+
+  closeMapExplorer = () => {
+    this.mapExplorerOpen = false;
   };
 
   enableTranslation = () => {

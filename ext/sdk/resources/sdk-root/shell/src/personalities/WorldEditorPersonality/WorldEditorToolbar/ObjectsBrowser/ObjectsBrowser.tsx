@@ -139,9 +139,9 @@ const ObjectsBrowserDropdown = React.memo(function ObjectsBrowserDropdown() {
     }
   }, [activeIndex, activeSet]);
 
-  const handleSpawnObject = React.useCallback((objectName: string) => {
+  const handleCreateAddition = React.useCallback((objectName: string) => {
     if (objectName) {
-      sendGameClientEvent('spawnObject', objectName)
+      sendGameClientEvent('we:createAddition', objectName);
     }
 
     WorldEditorState.closeObjectsBrowser();
@@ -150,7 +150,7 @@ const ObjectsBrowserDropdown = React.memo(function ObjectsBrowserDropdown() {
   const handleFilterSubmit = React.useCallback(() => {
     const name = activeSet[activeIndex];
 
-    handleSpawnObject(name);
+    handleCreateAddition(name);
   }, [activeSet, activeIndex]);
 
   return (
@@ -185,7 +185,7 @@ const ObjectsBrowserDropdown = React.memo(function ObjectsBrowserDropdown() {
                     active={activeIndex === index}
                     name={name}
                     style={style}
-                    spawn={handleSpawnObject}
+                    spawn={handleCreateAddition}
                     activate={activate}
                   />
                 );

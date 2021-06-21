@@ -134,6 +134,7 @@ export class WorldEditorService implements ApiContribution {
       return;
     }
 
+    // this.running = false;
     await this.gameServerService.stop();
   }
 

@@ -1,6 +1,5 @@
-import { sendSdkBackendMessage } from "../client/sendSdkMessage";
 import { CONTROLS, SETTINGS } from "./config";
-import { RotDeg3, Vec3 } from "./math";
+import { limitPrecision, RotDeg3, Vec3 } from "./math";
 import { getSmartControlNormal, useKeyMapping } from "./utils";
 
 export const CameraManager = new class CameraManager {
@@ -27,14 +26,6 @@ export const CameraManager = new class CameraManager {
     this.updateCamRotation();
 
     RenderScriptCams(true, false, 1, false, false);
-
-    on('setCamRot', (payload: string) => {
-      try {
-        [this.rot.x, this.rot.y, this.rot.z] = JSON.parse(payload);
-      } catch (e) {
-        console.error(e);
-      }
-    });
   }
 
   private destroyed = false;
@@ -67,6 +58,10 @@ export const CameraManager = new class CameraManager {
       this.pos.x, this.pos.y, this.pos.z,
       this.rot.x, this.rot.y, this.rot.z,
     ];
+  }
+
+  getCamLimitedPrecision(): [number, number, number, number, number, number] {
+    return limitPrecision(this.getCam(), 10000) as any;
   }
 
   setCam([px, py, pz, rx, ry, rz]) {

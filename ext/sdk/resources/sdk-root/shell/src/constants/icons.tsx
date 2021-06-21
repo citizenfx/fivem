@@ -9,7 +9,6 @@ import {
   BsFileEarmark,
   BsPuzzle,
   BsTrash,
-  BsGear,
   BsTerminal,
   BsLayersHalf,
   BsArrowRepeat,

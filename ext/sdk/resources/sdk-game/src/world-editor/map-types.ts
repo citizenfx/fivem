@@ -2,13 +2,22 @@
 export type WorldEditorCam = [number, number, number, number, number, number];
 
 export type WorldEditorEntityMatrix = [
-  number, number, number, number, // r
-  number, number, number, number, // f
-  number, number, number, number, // u
-  number, number, number, number, // a
+  number, number, number, number, // right
+  number, number, number, number, // forward
+  number, number, number, number, // up
+  number, number, number, number, // at
 ];
 
 export interface WorldEditorPatch {
+  label: string,
+  mat: WorldEditorEntityMatrix,
+  cam: WorldEditorCam,
+}
+
+export interface WorldEditorMapObject {
+  label: string,
+  hash: number,
+  grp: number,
   mat: WorldEditorEntityMatrix,
   cam: WorldEditorCam,
 }
@@ -19,7 +28,33 @@ export interface WorldEditorApplyPatchRequest {
   entityHash: number,
 }
 
+export interface WorldEditorSetAdditionRequest {
+  id: string,
+  object: WorldEditorMapObject,
+}
+
+export type WorldEditorApplyAdditionChangeRequest = { id: string } & Partial<WorldEditorMapObject>;
+
+export interface WorldEditorSetAdditionGroupRequest {
+  id: string,
+  group: number,
+}
+
+export interface WorldEditorSetAdditionGroupNameRequest {
+  additionIndex: number,
+  name: string,
+}
+
+export interface WorldEditorDeleteAdditionRequest {
+  id: string,
+}
+
+export enum WorldEditorMapVersion {
+  V1 = 1,
+}
+
 export interface WorldEditorMap {
+  version: WorldEditorMapVersion,
   meta: {
     cam: WorldEditorCam,
   },
@@ -27,5 +62,9 @@ export interface WorldEditorMap {
     [mapDataHash: number]: {
       [entityHash: number]: WorldEditorPatch,
     },
+  },
+  additionGroups: string[],
+  additions: {
+    [entityId: string]: WorldEditorMapObject,
   },
 }
