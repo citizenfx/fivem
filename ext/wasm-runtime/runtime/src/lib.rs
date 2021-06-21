@@ -4,7 +4,7 @@ use anyhow::anyhow;
 use cfx_wasm_rt_types::{call_result::CRITICAL_ERROR, ScrObject};
 
 use wasmtime::*;
-use wasmtime_wasi::{sync::WasiCtxBuilder, Wasi};
+use wasmtime_wasi::{sync::WasiCtxBuilder, WasiCtx};
 
 mod invoker;
 
@@ -50,21 +50,17 @@ impl Runtime {
         }
     }
 
-    pub fn load_module(&mut self, bytes: &[u8], wasi: bool) -> anyhow::Result<()> {
-        let script = if wasi {
-            ScriptModule::new_with_wasi(&self.engine, bytes)?
-        } else {
-            ScriptModule::new(&self.engine, bytes)?
-        };
-
+    pub fn load_module(&mut self, bytes: &[u8], _wasi: bool) -> anyhow::Result<()> {
+        let script = ScriptModule::new(&self.engine, bytes)?;
         self.script = Some(script);
 
-        if let Some(start) = self
-            .script
-            .as_ref()
-            .and_then(|script| script.instance.get_func(CFX_START))
-        {
-            start.call(&[])?;
+        if let Some((start, store)) = self.script.as_mut().and_then(|script| {
+            Some((
+                script.instance.get_func(&mut script.store, CFX_START)?,
+                &mut script.store,
+            ))
+        }) {
+            start.call(store, &[])?;
         }
 
         Ok(())
@@ -89,12 +85,15 @@ impl Runtime {
                     let src = script.copy_event_source(source)?;
 
                     // event, args, args_len, src
-                    func.call(&[
-                        Val::I32(ev.0 as _),
-                        Val::I32(args.0 as _),
-                        Val::I32(args.1 as _),
-                        Val::I32(src.0 as _),
-                    ])?;
+                    func.call(
+                        &mut script.store,
+                        &[
+                            Val::I32(ev.0 as _),
+                            Val::I32(args.0 as _),
+                            Val::I32(args.1 as _),
+                            Val::I32(src.0 as _),
+                        ],
+                    )?;
                 }
 
                 Ok(())
@@ -112,12 +111,13 @@ impl Runtime {
     }
 
     pub fn tick(&mut self) -> anyhow::Result<()> {
-        if let Some(func) = self
-            .script
-            .as_ref()
-            .and_then(|script| script.instance.get_func(CFX_ON_TICK))
-        {
-            if let Err(err) = func.call(&[]) {
+        if let Some((func, store)) = self.script.as_mut().and_then(|script| {
+            Some((
+                script.instance.get_func(&mut script.store, CFX_ON_TICK)?,
+                &mut script.store,
+            ))
+        }) {
+            if let Err(err) = func.call(store, &[]) {
                 self.script = None;
                 script_log(format!("{} error: {:?}", CFX_ON_TICK, err));
 
@@ -134,7 +134,7 @@ impl Runtime {
         args: &[u8],
         ret_buf: &mut Vec<u8>,
     ) -> anyhow::Result<u32> {
-        if let Some(script) = self.script.as_ref() {
+        if let Some(script) = self.script.as_mut() {
             match call_call_ref(script, ref_idx, args, ret_buf) {
                 Err(err) => {
                     self.script = None;
@@ -151,13 +151,16 @@ impl Runtime {
     }
 
     pub fn duplicate_ref(&mut self, ref_idx: u32) -> u32 {
-        if let Some(func) = self.script.as_ref().and_then(|script| {
-            script
-                .instance
-                .get_typed_func::<i32, i32>(CFX_DUPLICATE_REF)
-                .ok()
+        if let Some((func, store)) = self.script.as_mut().and_then(|script| {
+            Some((
+                script
+                    .instance
+                    .get_typed_func::<i32, i32, _>(&mut script.store, CFX_DUPLICATE_REF)
+                    .ok()?,
+                &mut script.store,
+            ))
         }) {
-            match func.call(ref_idx as _).map(|idx| idx as _) {
+            match func.call(store, ref_idx as _).map(|idx| idx as _) {
                 Err(err) => {
                     self.script = None;
                     script_log(format!("{} error: {:?}", CFX_DUPLICATE_REF, err));
@@ -171,30 +174,38 @@ impl Runtime {
     }
 
     pub fn remove_ref(&mut self, ref_idx: u32) {
-        if let Some(func) = self.script.as_ref().and_then(|script| {
-            script
-                .instance
-                .get_typed_func::<i32, i32>(CFX_REMOVE_REF)
-                .ok()
+        if let Some((func, store)) = self.script.as_mut().and_then(|script| {
+            Some((
+                script
+                    .instance
+                    .get_typed_func::<i32, i32, _>(&mut script.store, CFX_REMOVE_REF)
+                    .ok()?,
+                &mut script.store,
+            ))
         }) {
-            if let Err(err) = func.call(ref_idx as _) {
+            if let Err(err) = func.call(store, ref_idx as _) {
                 self.script = None;
                 script_log(format!("{} error: {:?}", CFX_REMOVE_REF, err));
             }
         }
     }
 
-    pub fn memory_size(&self) -> u32 {
+    pub fn memory_size(&mut self) -> u32 {
         self.script
-            .as_ref()
-            .and_then(|script| script.instance.get_memory("memory"))
-            .map(|memory| memory.size())
+            .as_mut()
+            .and_then(|script| {
+                Some((
+                    script.instance.get_memory(&mut script.store, "memory")?,
+                    &mut script.store,
+                ))
+            })
+            .map(|(memory, store)| memory.size(store))
             .unwrap_or(0)
     }
 }
 
 struct ScriptModule {
-    store: Store,
+    store: Store<WasiCtx>,
     instance: Instance,
     on_event: Option<Func>,
     event_allocs: EventAlloc,
@@ -210,49 +221,30 @@ struct EventAlloc {
 
 impl ScriptModule {
     fn new(engine: &Engine, bytes: &[u8]) -> anyhow::Result<ScriptModule> {
-        let store = Store::new(&engine);
-        let module = Module::new(engine, bytes)?;
+        let mut linker = Linker::new(&engine);
 
-        let instance = Instance::new(&store, &module, &[])?;
-        let on_event = instance.get_func(CFX_ON_EVENT);
-        let memory = instance.get_memory("memory").ok_or(anyhow!("No memory"))?;
+        wasmtime_wasi::add_to_linker(&mut linker, |cx| cx)?;
 
-        let mut module = ScriptModule {
-            store,
-            instance,
-            on_event,
-            memory,
-            event_allocs: EventAlloc::default(),
-        };
+        let wasi_ctx = WasiCtxBuilder::new()
+            .inherit_stdout()
+            .inherit_stdio()
+            .inherit_stderr()
+            .build();
 
-        module.make_startup_allocs()?;
+        let mut store = Store::new(&engine, wasi_ctx);
 
-        Ok(module)
-    }
+        linker.func_wrap(
+            HOST,
+            HOST_LOG,
+            |caller: Caller<'_, _>, ptr: i32, len: i32| {
+                let _ = log(caller, ptr, len);
+            },
+        )?;
 
-    fn new_with_wasi(engine: &Engine, bytes: &[u8]) -> anyhow::Result<ScriptModule> {
-        let store = Store::new(&engine);
-        let mut linker = Linker::new(&store);
-
-        let wasi = Wasi::new(
-            &store,
-            WasiCtxBuilder::new()
-                .inherit_stdout()
-                .inherit_stdio()
-                .inherit_stderr()
-                .build(),
-        );
-
-        wasi.add_to_linker(&mut linker)?;
-
-        linker.func(HOST, HOST_LOG, |caller: Caller, ptr: i32, len: i32| {
-            log(caller, ptr, len);
-        })?;
-
-        linker.func(
+        linker.func_wrap(
             HOST,
             HOST_INVOKE,
-            |caller: Caller, hash: u64, ptr: i32, len: i32, retval: i32| -> i32 {
+            |caller: Caller<'_, _>, hash: u64, ptr: i32, len: i32, retval: i32| -> i32 {
                 match crate::invoker::call_native_wrapper(caller, hash, ptr, len, retval) {
                     Ok(result) => result.into(),
                     Err(err) => {
@@ -264,18 +256,18 @@ impl ScriptModule {
             },
         )?;
 
-        linker.func(
+        linker.func_wrap(
             HOST,
             HOST_CANONICALIZE_REF,
-            |caller: Caller, ref_idx: i32, ptr: i32, len: i32| {
+            |caller: Caller<'_, _>, ref_idx: i32, ptr: i32, len: i32| {
                 canonicalize_ref(caller, ref_idx, ptr, len).unwrap_or(0)
             },
         )?;
 
-        linker.func(
+        linker.func_wrap(
             HOST,
             HOST_INVOKE_REF_FUNC,
-            |caller: Caller,
+            |caller: Caller<'_, _>,
              ref_name: i32,
              args: i32,
              len: i32,
@@ -299,9 +291,11 @@ impl ScriptModule {
         )?;
 
         let module = Module::new(engine, bytes)?;
-        let instance = linker.instantiate(&module)?;
-        let on_event = instance.get_func(CFX_ON_EVENT);
-        let memory = instance.get_memory("memory").ok_or(anyhow!("No memory"))?;
+        let instance = linker.instantiate(&mut store, &module)?;
+        let on_event = instance.get_func(&mut store, CFX_ON_EVENT);
+        let memory = instance
+            .get_memory(&mut store, "memory")
+            .ok_or(anyhow!("No memory"))?;
 
         let mut module = ScriptModule {
             store,
@@ -317,24 +311,26 @@ impl ScriptModule {
     }
 
     #[inline]
-    fn alloc_bytes(&self, bytes: &[u8]) -> anyhow::Result<(u32, usize)> {
-        let malloc = self.instance.get_typed_func::<(i32, u32), u32>(CFX_ALLOC)?;
+    fn alloc_bytes(&mut self, bytes: &[u8]) -> anyhow::Result<(u32, usize)> {
+        let malloc = self
+            .instance
+            .get_typed_func::<(i32, u32), u32, _>(&mut self.store, CFX_ALLOC)?;
 
-        let data_ptr = malloc.call((bytes.len() as _, 1))?;
+        let data_ptr = malloc.call(&mut self.store, (bytes.len() as _, 1))?;
         let mem = &self.memory;
 
-        mem.write(data_ptr as _, bytes)?;
+        mem.write(&mut self.store, data_ptr as _, bytes)?;
 
         Ok((data_ptr, bytes.len()))
     }
 
     #[inline]
-    fn free_bytes(&self, (offset, length): (u32, usize)) -> anyhow::Result<()> {
+    fn free_bytes(&mut self, (offset, length): (u32, usize)) -> anyhow::Result<()> {
         let free = self
             .instance
-            .get_typed_func::<(u32, u32, u32), ()>(CFX_FREE)?;
+            .get_typed_func::<(u32, u32, u32), (), _>(&mut self.store, CFX_FREE)?;
 
-        free.call((offset as _, length as _, 1))?;
+        free.call(&mut self.store, (offset as _, length as _, 1))?;
 
         Ok(())
     }
@@ -363,7 +359,7 @@ impl ScriptModule {
         }
 
         let mem = &self.memory;
-        mem.write(name.0 as _, bytes)?;
+        mem.write(&mut self.store, name.0 as _, bytes)?;
 
         Ok((name.0, bytes.len()))
     }
@@ -384,7 +380,7 @@ impl ScriptModule {
         }
 
         let mem = &self.memory;
-        mem.write(args.0 as _, bytes)?;
+        mem.write(&mut self.store, args.0 as _, bytes)?;
 
         Ok((args.0, bytes.len()))
     }
@@ -405,7 +401,7 @@ impl ScriptModule {
         }
 
         let mem = &self.memory;
-        mem.write(source.0 as _, bytes)?;
+        mem.write(&mut self.store, source.0 as _, bytes)?;
 
         Ok((source.0, bytes.len()))
     }
@@ -430,24 +426,27 @@ pub fn set_canonicalize_ref(canonicalize_ref: CanonicalizeRefFunc) {
 }
 
 fn call_call_ref(
-    script: &ScriptModule,
+    script: &mut ScriptModule,
     ref_idx: u32,
     args: &[u8],
     ret_buf: &mut Vec<u8>,
 ) -> anyhow::Result<u32> {
     let memory = script
         .instance
-        .get_memory("memory")
+        .get_memory(&mut script.store, "memory")
         .ok_or(anyhow!("No memory"))?;
 
     let cfx_call_ref = script
         .instance
-        .get_typed_func::<(i32, i32, i32), i32>(CFX_CALL_REF)?;
+        .get_typed_func::<(i32, i32, i32), i32, _>(&mut script.store, CFX_CALL_REF)?;
 
     let args_guest = script.alloc_bytes(args)?;
 
     let scrobj = {
-        let result = cfx_call_ref.call((ref_idx as _, args_guest.0 as _, args.len() as _));
+        let result = cfx_call_ref.call(
+            &mut script.store,
+            (ref_idx as _, args_guest.0 as _, args.len() as _),
+        );
         script.free_bytes(args_guest)?;
 
         result?
@@ -458,7 +457,7 @@ fn call_call_ref(
     }
 
     let scrobj = unsafe {
-        let ptr = memory.data_ptr().add(scrobj as _) as *const ScrObject;
+        let ptr = memory.data_ptr(&mut script.store).add(scrobj as _) as *const ScrObject;
         &*ptr
     };
 
@@ -471,7 +470,7 @@ fn call_call_ref(
     }
 
     let slice = unsafe {
-        let ptr = memory.data_ptr().add(scrobj.data as _);
+        let ptr = memory.data_ptr(&mut script.store).add(scrobj.data as _);
         std::slice::from_raw_parts(ptr, scrobj.length as _)
     };
 
@@ -480,14 +479,14 @@ fn call_call_ref(
     Ok(ret_buf.len() as _)
 }
 
-fn log(caller: Caller, ptr: i32, len: i32) -> anyhow::Result<()> {
+fn log<'a, T>(mut caller: Caller<'a, T>, ptr: i32, len: i32) -> anyhow::Result<()> {
     let mut buf = vec![0u8; len as usize];
     let mem = caller
         .get_export("memory")
         .and_then(|export| export.into_memory())
         .ok_or(anyhow!("No memory"))?;
 
-    mem.read(ptr as _, buf.as_mut())?;
+    mem.read(&mut caller, ptr as _, buf.as_mut())?;
 
     unsafe {
         if let Some(logger) = LOGGER {
@@ -498,14 +497,19 @@ fn log(caller: Caller, ptr: i32, len: i32) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn canonicalize_ref(caller: Caller, ref_idx: i32, ptr: i32, len: i32) -> anyhow::Result<i32> {
+fn canonicalize_ref<'a, T>(
+    mut caller: Caller<'a, T>,
+    ref_idx: i32,
+    ptr: i32,
+    len: i32,
+) -> anyhow::Result<i32> {
     let mem = caller
         .get_export("memory")
         .and_then(|export| export.into_memory())
         .ok_or(anyhow!("No memory"))?;
 
     unsafe {
-        let ptr = mem.data_ptr().add(ptr as _) as *mut _;
+        let ptr = mem.data_ptr(&mut caller).add(ptr as _) as *mut _;
 
         if let Some(canonicalize_ref) = CANONICALIZE_REF {
             return Ok(canonicalize_ref(ref_idx as _, ptr, len as _));

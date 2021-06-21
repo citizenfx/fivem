@@ -5,5 +5,5 @@ members = [
     "rt-types",
 ]
 
-# [profile.release]
-# lto = true
+[profile.release]
+lto = true

@@ -66,8 +66,8 @@ impl Into<i32> for CallResult {
 }
 
 #[inline]
-pub fn call_native_wrapper(
-    caller: Caller,
+pub fn call_native_wrapper<'a, T>(
+    mut caller: Caller<'a, T>,
     hash: u64,
     ptr: i32,
     len: i32,
@@ -82,7 +82,7 @@ pub fn call_native_wrapper(
 
     if len > 0 && ptr != 0 {
         unsafe {
-            let ptr = mem.data_ptr().add(ptr as _) as *const GuestArg;
+            let ptr = mem.data_ptr(&mut caller).add(ptr as _) as *const GuestArg;
             args = Some(std::slice::from_raw_parts(ptr, len as _));
         }
     }
@@ -91,7 +91,7 @@ pub fn call_native_wrapper(
         None
     } else {
         Some(unsafe {
-            let ptr = mem.data_ptr().add(retval as _) as *const ReturnValue;
+            let ptr = mem.data_ptr(&mut caller).add(retval as _) as *const ReturnValue;
             (&*ptr).clone()
         })
     };
@@ -100,13 +100,21 @@ pub fn call_native_wrapper(
         .get_export(CFX_EXTEND_RETVAL_BUFFER)
         .and_then(|export| export.into_func());
 
-    let call_result = call_native(hash, args.unwrap_or_else(|| &[]), mem, retval, resize_func)?;
+    let call_result = call_native(
+        caller,
+        hash,
+        args.unwrap_or_else(|| &[]),
+        mem,
+        retval,
+        resize_func,
+    )?;
 
     Ok(call_result)
 }
 
 #[inline]
-fn call_native(
+fn call_native<'a, T>(
+    mut caller: Caller<'a, T>,
     hash: u64,
     args: &[GuestArg],
     memory: Memory,
@@ -118,7 +126,7 @@ fn call_native(
     ctx.native_identifier = hash;
     ctx.num_arguments = args.len() as _;
 
-    let mem_start = unsafe { memory.data_unchecked().as_ptr() };
+    let mem_start = memory.data_ptr(&mut caller);
     let ctx_args = ctx.arguments.as_mut_ptr() as *mut u8;
 
     let mut idx = 0;
@@ -155,23 +163,23 @@ fn call_native(
             return Ok(CallResult::Ok);
         }
 
-        let resize_buffer = |new_size: usize| -> Option<*mut u8> {
+        let mut buffer = unsafe { memory.data_ptr(&mut caller).add(retval.buffer as _) };
+
+        let mut resize_buffer = |new_size: usize| -> Option<*mut u8> {
             if let Some(resizer) = resize_func.as_ref() {
-                let ptr = resizer.call(&[Val::I32(new_size as _)]).ok()?;
+                let ptr = resizer.call(&mut caller, &[Val::I32(new_size as _)]).ok()?;
 
                 ptr.get(0).and_then(|val| val.i32()).and_then(|ptr| {
                     if ptr == 0 {
                         None
                     } else {
-                        Some(unsafe { memory.data_ptr().add(ptr as _) })
+                        Some(unsafe { memory.data_ptr(&mut caller).add(ptr as _) })
                     }
                 })
             } else {
                 None
             }
         };
-
-        let mut buffer = unsafe { memory.data_ptr().add(retval.buffer as _) };
 
         match retval.rettype {
             ReturnType::Empty => return Ok(CallResult::Ok),
@@ -272,8 +280,8 @@ fn call_native(
 }
 
 #[inline]
-pub fn invoke_ref_func_wrapper(
-    caller: Caller,
+pub fn invoke_ref_func_wrapper<'a, T>(
+    mut caller: Caller<'a, T>,
     ref_name: i32,
     args: i32,
     args_len: i32,
@@ -301,8 +309,8 @@ pub fn invoke_ref_func_wrapper(
     let mut retval_length = 0usize;
 
     unsafe {
-        ctx.arguments[0] = mem.data_ptr().add(ref_name as _) as _; // char* referenceIdentity
-        ctx.arguments[1] = mem.data_ptr().add(args as _) as _; // char* argsSerialized
+        ctx.arguments[0] = mem.data_ptr(&mut caller).add(ref_name as _) as _; // char* referenceIdentity
+        ctx.arguments[1] = mem.data_ptr(&mut caller).add(args as _) as _; // char* argsSerialized
         ctx.arguments[2] = args_len as _; // int argsLength
         ctx.arguments[3] = &mut retval_length as *mut _ as _; // int* retvalLength
 
@@ -317,15 +325,15 @@ pub fn invoke_ref_func_wrapper(
         return Ok(CallResult::NullResult);
     }
 
-    let resize_buffer = |new_size: usize| -> Option<*mut u8> {
+    let mut resize_buffer = |new_size: usize| -> Option<*mut u8> {
         if let Some(resizer) = resize_func.as_ref() {
-            let ptr = resizer.call(&[Val::I32(new_size as _)]).ok()?;
+            let ptr = resizer.call(&mut caller, &[Val::I32(new_size as _)]).ok()?;
 
             ptr.get(0).and_then(|val| val.i32()).and_then(|ptr| {
                 if ptr == 0 {
                     None
                 } else {
-                    Some(unsafe { mem.data_ptr().add(ptr as _) })
+                    Some(unsafe { mem.data_ptr(&mut caller).add(ptr as _) })
                 }
             })
         } else {
@@ -336,7 +344,7 @@ pub fn invoke_ref_func_wrapper(
     let buffer = if buffer == 0 || (buffer_cap as usize) < retval_length {
         resize_buffer(retval_length)
     } else {
-        unsafe { Some(mem.data_ptr().add(buffer as _)) }
+        unsafe { Some(mem.data_ptr(&mut caller).add(buffer as _)) }
     };
 
     if let Some(buffer) = buffer {
