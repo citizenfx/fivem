@@ -3405,6 +3405,32 @@ bool ServerGameState::ValidateEntity(EntityLockdownMode entityLockdownMode, cons
 		}
 	}
 
+	// Networked CDummyObjects are used to ensure map objects, e.g., gas pumps
+	// and propane tanks, stay in an destroyed/exploded state. When lockdown
+	// mode is enabled, infinite explosions may occur if the exploded objects
+	// are not validated.
+	//
+	// This logic will require refactoring for CDoor instances
+#if !defined(STATE_RDR3)
+	if (!allowed)
+	{
+		sync::CDummyObjectCreationNodeData* dummy = entity->syncTree->GetDummyObjectState();
+		if (dummy)
+		{
+			allowed = dummy->_hasRelatedDummy && ((dummy->hasFragGroup && dummy->hasExploded) || (dummy->_explodingEntityExploded));
+			if (entityLockdownMode == EntityLockdownMode::Dummy)
+			{
+				return allowed;
+			}
+		}
+		// "Dummy" mode allows everything except dummy objects.
+		else if (entityLockdownMode == EntityLockdownMode::Dummy)
+		{
+			allowed = true;
+		}
+	}
+#endif
+
 	// Allow gamestate and task generated entities when in entity lockdown.
 	//
 	// @NOTE Missing CVehicleGadgetPickUpRopeWithMagnet.

@@ -3133,6 +3133,20 @@ struct SyncTree : public SyncTreeBase
 		return (hasNode) ? &node->data : nullptr;
 	}
 
+	virtual CDummyObjectCreationNodeData* GetDummyObjectState() override
+	{
+		auto [hasObject, objectCreationNode] = GetData<CObjectCreationDataNode>();
+		if (hasObject)
+		{
+			if (objectCreationNode->m_createdBy == 0 || objectCreationNode->m_createdBy == 2)
+			{
+				return &objectCreationNode->dummy;
+			}
+		}
+
+		return nullptr;
+	}
+
 	virtual CBaseAttachNodeData* GetAttachment() override
 	{
 		auto [hasPed, pedAttachNode] = GetData<CPedAttachDataNode>();

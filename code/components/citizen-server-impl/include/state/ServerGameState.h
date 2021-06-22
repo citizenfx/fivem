@@ -531,6 +531,8 @@ public:
 
 	virtual CObjectGameStateNodeData* GetObjectGameState() = 0;
 
+	virtual CDummyObjectCreationNodeData* GetDummyObjectState() = 0;
+
 	virtual void CalculatePosition() = 0;
 
 	virtual bool GetPopulationType(ePopType* popType) = 0;

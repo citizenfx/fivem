@@ -421,6 +421,10 @@ static void Init()
 		{
 			gameState->SetEntityLockdownMode(bucket, fx::EntityLockdownMode::Strict);
 		}
+		else if (sv == "no_dummy")
+		{
+			gameState->SetEntityLockdownMode(bucket, fx::EntityLockdownMode::Dummy);
+		}
 		else if (sv == "relaxed")
 		{
 			gameState->SetEntityLockdownMode(bucket, fx::EntityLockdownMode::Relaxed);
@@ -447,6 +451,10 @@ static void Init()
 		if (sv == "strict")
 		{
 			gameState->SetEntityLockdownMode(fx::EntityLockdownMode::Strict);
+		}
+		else if (sv == "no_dummy")
+		{
+			gameState->SetEntityLockdownMode(fx::EntityLockdownMode::Dummy);
 		}
 		else if (sv == "relaxed")
 		{
