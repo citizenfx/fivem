@@ -97,6 +97,7 @@ export class TweetService {
         return this.http.get(uri)
             .toPromise()
             .then((result: any) => result
+                .filter(t => t)
                 .filter(t => !t.in_reply_to_user_id)
                 .map(t => new Tweet(t)));
     }
