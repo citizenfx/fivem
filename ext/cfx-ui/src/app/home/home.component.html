@@ -148,7 +148,7 @@
 
 		<a class="card ad"
 			[routerLink]="[(this.topServer) ? '/servers/detail/' + this.topServer.address : '']"
-			style="--banner-image: url({{this.topServer?.data?.vars?.banner_detail || 'nah'}})">
+			style="--banner-image: url({{this.topServer?.data?.vars?.banner_detail || 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='}})">
 			<div *ngIf="this.topServer">
 				<h3 class="card_title">
 					<span class="material-icons-outlined">trending_up</span>

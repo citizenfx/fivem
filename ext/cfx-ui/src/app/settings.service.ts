@@ -27,7 +27,7 @@ export class Setting {
 	id?: string;
 }
 
-function fromEntries<TValue>(iterable: [string, TValue][]): { [key: string]: TValue } {
+export function fromEntries<TValue>(iterable: [string, TValue][]): { [key: string]: TValue } {
 	return [...iterable].reduce<{ [key: string]: TValue }>((obj, [key, val]) => {
 		(obj as any)[key] = val;
 		return obj;

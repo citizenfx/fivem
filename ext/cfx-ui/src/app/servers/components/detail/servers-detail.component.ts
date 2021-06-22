@@ -180,14 +180,14 @@ export class ServersDetailComponent implements OnInit, OnDestroy {
 
 				this.fetchApFeed();
 
-				const resources = (<string[]>a.data.resources)
+				const resources = (<string[]>(a?.data?.resources ?? []))
 					.filter(res => res !== '_cfx_internal' && res !== 'hardcap' && res !== 'sessionmanager');
 
 				this.resources = resources.sort(this.collator.compare);
 
 				this.resourceCount = resources.length;
 
-				this.serverVariables = Object.entries(a.data.vars as { [key: string]: string })
+				this.serverVariables = Object.entries((a?.data.vars ?? {}) as { [key: string]: string })
 					.map(([key, value]) => ({ key, value }))
 					.filter(({ key }) => this.disallowedVars.indexOf(key) < 0)
 					.filter(({ key }) => key.indexOf('banner_') < 0)
@@ -198,7 +198,7 @@ export class ServersDetailComponent implements OnInit, OnDestroy {
 					.filter(({ key, value }) => key !== 'sv_scriptHookAllowed' || value === 'true')
 					.map(pair => this.filterFuncs[pair.key] ? this.filterFuncs[pair.key](pair) : pair);
 
-				this.meta.setTag('og:image', this.server.iconUri);
+				this.meta.setTag('og:image', this.server?.iconUri);
 				this.meta.setTag('og:type', 'website');
 				this.meta.setTitle(this.server.hostname.replace(/\^[0-9]/g, ''));
 				this.meta.setTag('og:description', `${this.server.currentPlayers} players on ${this.server.data.mapname}`);
@@ -207,7 +207,7 @@ export class ServersDetailComponent implements OnInit, OnDestroy {
 	}
 
 	openOwner() {
-		this.gameService.openUrl(this.server.data?.ownerProfile ?? '');
+		this.gameService.openUrl(this.server?.data?.ownerProfile ?? '');
 	}
 
 	trackPlayer(index: number, player: any) {

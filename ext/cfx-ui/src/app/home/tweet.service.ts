@@ -6,7 +6,8 @@ import pLimit from 'p-limit';
 import * as unicodeSubstring from 'unicode-substring';
 
 import 'rxjs/add/operator/toPromise';
-import { Observable, Subject } from 'rxjs';
+import { EMPTY, Observable, Subject } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 export class Tweet {
     readonly user_displayname: string;
@@ -95,6 +96,7 @@ export class TweetService {
 
     public getTweets(uri: string): Promise<Tweet[]> {
         return this.http.get(uri)
+			.pipe(catchError(() => EMPTY))
             .toPromise()
             .then((result: any) => result
                 .filter(t => t)
@@ -125,7 +127,9 @@ export class TweetService {
         try {
             const response: any = await this.http.get(`https://${part}/.well-known/webfinger?resource=${pub}`, {
                 responseType: 'json'
-            }).toPromise();
+            })
+			.pipe(catchError(() => EMPTY))
+			.toPromise();
 
             if (!response || !response.links) {
                 return;
@@ -142,7 +146,9 @@ export class TweetService {
                 headers: {
                     Accept: 'application/activity+json'
                 }
-            }).toPromise();
+            })
+			.pipe(catchError(() => EMPTY))
+			.toPromise();
 
             if (!actResponse.type || actResponse.type !== 'Person') {
                 return;
@@ -166,7 +172,9 @@ export class TweetService {
             headers: {
                 Accept: 'application/activity+json'
             }
-        }).toPromise();
+        })
+		.pipe(catchError(() => EMPTY))
+		.toPromise();
 
         if (actResponse.orderedItems) {
             for (const item of actResponse.orderedItems) {
