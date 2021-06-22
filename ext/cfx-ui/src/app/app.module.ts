@@ -1,10 +1,12 @@
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { NgModule, Injectable, Optional, APP_INITIALIZER, Injector, Inject } from '@angular/core';
+import { NgModule, Injectable, Optional, APP_INITIALIZER, Injector, Inject, ErrorHandler } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpClientModule, HttpHeaders, HttpClient } from '@angular/common/http';
 import { NgSelectModule } from '@ng-select/ng-select';
 import { Nl2BrPipeModule } from 'nl2br-pipe';
+import { Router } from '@angular/router';
+import * as Sentry from '@sentry/angular';
 
 import { NgDompurifyModule } from '@tinkoff/ng-dompurify';
 
@@ -248,6 +250,16 @@ export function metaFactory(): MetaLoader {
 		Nl2BrPipeModule,
 	],
 	providers: [
+		{
+			provide: ErrorHandler,
+			useValue: Sentry.createErrorHandler({
+				showDialog: false,
+			}),
+		},
+		{
+			provide: Sentry.TraceService,
+			deps: [Router],
+		},
 		FiltersService,
 		ServersService,
 		ServerTagsService,
@@ -269,7 +281,8 @@ export function metaFactory(): MetaLoader {
 		{
 			provide: APP_INITIALIZER,
 			useFactory: initL10n,
-			deps: [L10nLoader],
+			// L10nLoader must be first so that initL10n will be called with the right arg
+			deps: [L10nLoader, Sentry.TraceService],
 			multi: true
 		},
 		ModsService,
