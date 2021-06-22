@@ -24,11 +24,11 @@ export class ServerTagFilterComponent {
 	}
 
 	get tagsCanReset() {
-		return Object.keys(this.filtersTags.tagList).length > 0;
+		return Object.keys(this.filtersTags?.tagList ?? {}).length > 0;
 	}
 
 	get localesCanReset() {
-		return Object.keys(this.filtersTags.localeList).length > 0;
+		return Object.keys(this.filtersTags?.localeList ?? {}).length > 0;
 	}
 
 	constructor(

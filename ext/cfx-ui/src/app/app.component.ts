@@ -327,7 +327,7 @@ export class AppComponent implements OnInit, AfterViewInit {
 
     get stylish() {
         if (this.customBackdrop) {
-            return this.sanitizer.bypassSecurityTrustUrl(`url(https://nui-backdrop/user.png?${md5(this.customBackdrop)})`);
+            return this.sanitizer.bypassSecurityTrustUrl(`url(https://nui-backdrop/user.png?${md5(this.customBackdrop ?? '')})`);
         }
 
         return null;

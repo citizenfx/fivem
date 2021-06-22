@@ -275,13 +275,20 @@ export class ServersService {
 			return this.serverCache[address].server;
 		}
 
-		const server = await this.httpClient.get('https://servers-frontend.fivem.net/api/servers/single/' + address)
-			.toPromise()
-			.then((data: master.IServer) => Server.fromObject(this.domSanitizer, data.EndPoint, data.Data));
+		try {
+			const server = await this.httpClient.get('https://servers-frontend.fivem.net/api/servers/single/' + address)
+				.toPromise()
+				.then((data: master.IServer) => Server.fromObject(this.domSanitizer, data.EndPoint, data.Data))
+				.catch(() => null);
 
-		this.serverCache[address] = new ServerCacheEntry(server);
+			if (server) {
+				this.serverCache[address] = new ServerCacheEntry(server);
+			}
 
-		return server;
+			return server;
+		} catch {
+			return null;
+		}
 	}
 
 	public async getTopServer() {
