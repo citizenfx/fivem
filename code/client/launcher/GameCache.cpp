@@ -1146,8 +1146,18 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 					doClose(&deltaFile);
 					doClose(&outFile);
 
-					_wunlink(theFile.c_str());
-					_wrename(tmpFile.c_str(), theFile.c_str());
+					if (retval)
+					{
+						_wunlink(theFile.c_str());
+						_wrename(tmpFile.c_str(), theFile.c_str());
+					}
+					else
+					{
+						MessageBoxW(NULL, va(L"Could not patch %s. Do you have enough free disk space on all drives? (~2 GB)", ToWide(entry.filename)), L"Error", MB_OK | MB_ICONSTOP);
+
+						_wunlink(tmpFile.c_str());
+					}
+
 					_wunlink(deltaEntry.GetLocalFileName().c_str());
 				}
 			}
