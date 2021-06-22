@@ -320,6 +320,29 @@ struct CEntityOrientationNodeData
 	compressed_quaternion<11> quat;
 };
 
+struct CDummyObjectCreationNodeData
+{
+	float dummyPosX, dummyPosY, dummyPosZ;
+
+	bool playerWantsControl;
+	bool hasFragGroup;
+	bool isBroken;
+	bool unk11;
+	bool hasExploded;
+	bool _explodingEntityExploded; // Estimated name from CExplosionEvent.
+	bool keepRegistered;
+
+	uint16_t fragGroupIndex;
+
+	// Other unused fields...
+
+	/// <summary>
+	/// Estimated name from CExplosionEvent. When false the dummy object has an
+	/// ownership token, position, and orientation.
+	/// </summary>
+	bool _hasRelatedDummy;
+};
+
 struct CObjectOrientationNodeData
 {
 	bool highRes;

@@ -1616,15 +1616,17 @@ struct CHeliControlDataNode
 
 struct CObjectCreationDataNode
 {
+	int m_createdBy;
 	uint32_t m_model;
-	bool m_dynamic;
+	bool m_hasInitPhysics;
+	CDummyObjectCreationNodeData dummy;
 
 	// #TODO: universal serializer
 	bool Unparse(SyncUnparseState& state)
 	{
 		state.buffer.Write<int>(5, 4); // ENTITY_OWNEDBY_SCRIPT
 		state.buffer.Write<uint32_t>(32, m_model);
-		state.buffer.WriteBit(m_dynamic);
+		state.buffer.WriteBit(m_hasInitPhysics);
 		state.buffer.WriteBit(false);
 		state.buffer.WriteBit(false);
 
@@ -1661,13 +1663,12 @@ struct CObjectCreationDataNode
 			16: ENTITY_OWNEDBY_INTERIOR
 			17: ENTITY_OWNEDBY_COMPENTITY
 		*/
-		int createdBy = state.buffer.Read<int>(5);
-		if (createdBy != 0 && createdBy != 2)
+		m_createdBy = state.buffer.Read<int>(5);
+		if (m_createdBy != 0 && m_createdBy != 2)
 		{
-			uint32_t model = state.buffer.Read<uint32_t>(32);
-			m_model = model;
+			m_model = state.buffer.Read<uint32_t>(32);
 
-			bool hasInitPhysics = state.buffer.ReadBit();
+			m_hasInitPhysics = state.buffer.ReadBit();
 			bool scriptGrabbedFromWorld = state.buffer.ReadBit();
 			bool noReassign = state.buffer.ReadBit();
 
@@ -1677,40 +1678,40 @@ struct CObjectCreationDataNode
 				float scriptGrabPosY = state.buffer.ReadSignedFloat(19, 27648.0f);
 				float scriptGrabPosZ = state.buffer.ReadFloat(19, 4416.0f) - 1700.0f;
 
-				auto scriptGrabRadius = state.buffer.ReadFloat(8, 20); // wrong divisor
+				auto scriptGrabRadius = state.buffer.ReadFloat(8, 20.f); // 0x41A00000
 			}
 		}
 		else
 		{
-			float dummyPosX = state.buffer.ReadSignedFloat(31, 27648.0f);
-			float dummyPosY = state.buffer.ReadSignedFloat(31, 27648.0f);
-			float dummyPosZ = state.buffer.ReadFloat(31, 4416.0f) - 1700.0f;
+			dummy.dummyPosX = state.buffer.ReadSignedFloat(31, 27648.0f);
+			dummy.dummyPosY = state.buffer.ReadSignedFloat(31, 27648.0f);
+			dummy.dummyPosZ = state.buffer.ReadFloat(31, 4416.0f) - 1700.0f;
 
-			auto playerWantsControl = state.buffer.ReadBit();
-			auto unk9 = state.buffer.ReadBit();
-			auto unk10 = state.buffer.ReadBit();
-			auto unk11 = state.buffer.ReadBit();
-			auto unk12 = state.buffer.ReadBit();
-			auto unk13 = state.buffer.ReadBit();
-			auto unk14 = state.buffer.ReadBit();
+			dummy.playerWantsControl = state.buffer.ReadBit();
+			dummy.hasFragGroup = state.buffer.ReadBit();
+			dummy.isBroken = state.buffer.ReadBit();
+			dummy.unk11 = state.buffer.ReadBit();
+			dummy.hasExploded = state.buffer.ReadBit();
+			dummy._explodingEntityExploded = state.buffer.ReadBit();
+			dummy.keepRegistered = state.buffer.ReadBit();
 
-			if (unk9)
+			if (dummy.hasFragGroup)
 			{
-				auto fragGroupIndex = state.buffer.Read<int>(5);
+				dummy.fragGroupIndex = state.buffer.Read<int>(5);
 			}
 
-			auto unk16 = state.buffer.ReadBit();
+			dummy._hasRelatedDummy = state.buffer.ReadBit();
 
-			if (!unk16)
+			if (!dummy._hasRelatedDummy)
 			{
 				auto ownershipToken = state.buffer.Read<int>(10);
 				float objectPosX = state.buffer.ReadSignedFloat(19, 27648.0f);
 				float objectPosY = state.buffer.ReadSignedFloat(19, 27648.0f);
 				float objectPosZ = state.buffer.ReadFloat(19, 4416.0f) - 1700.0f;
 				
-				auto rotX = state.buffer.ReadSigned<int>(9) * 0.015625f;
-				auto rotY = state.buffer.ReadSigned<int>(9) * 0.015625f;
-				auto rotZ = state.buffer.ReadSigned<int>(9) * 0.015625f;
+				auto objectRotX = state.buffer.ReadSigned<int>(9) * 0.015625f;
+				auto objectRotY = state.buffer.ReadSigned<int>(9) * 0.015625f;
+				auto objectRotZ = state.buffer.ReadSigned<int>(9) * 0.015625f;
 			}
 		}
 
@@ -1718,7 +1719,7 @@ struct CObjectCreationDataNode
 
 		if (unk20)
 		{
-			auto unk21 = state.buffer.ReadBit();
+			auto unk21 = state.buffer.Read<uint16_t>(13);
 		}
 
 		bool unk22 = state.buffer.ReadBit();

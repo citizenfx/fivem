@@ -167,7 +167,7 @@ std::shared_ptr<sync::SyncTreeBase> MakeObject(uint32_t model, float posX, float
 	SetupNode(tree, [model, dynamic](sync::CObjectCreationDataNode& cdn)
 	{
 		cdn.m_model = model;
-		cdn.m_dynamic = dynamic;
+		cdn.m_hasInitPhysics = dynamic;
 	});
 
 	SetupNode(tree, [resourceHash](sync::CObjectSectorPosNode& cdn)
