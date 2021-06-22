@@ -94,6 +94,10 @@ export class HomeComponent implements OnInit, OnDestroy {
 		});
 	}
 
+	get topFlagCountry() {
+		return this.topServer?.data?.vars?.locale?.split('-')[1]?.toLowerCase() ?? 'aq';
+	}
+
 	ngOnInit() {
 		this.brandingName = this.gameService.brandingName;
 		this.currentAccount = this.discourseService.currentUser;
