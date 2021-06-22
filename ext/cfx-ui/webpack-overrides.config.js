@@ -11,6 +11,7 @@ module.exports = (config, options) => {
 			release: `cfx-${process.env.CI_PIPELINE_ID}`,
 			org: "citizenfx",
 			project: "cfx-ui",
+			urlPrefix: "~/ui/app/",
 
 			include: "./dist",
 			ignore: ["node_modules", "webpack.config.js"],

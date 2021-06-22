@@ -425,6 +425,7 @@ export class ConnectingPopupComponent implements OnInit {
 						break;
 				}
 			})
+			.catch(a => {});
 	}
 
 	clearElements() {

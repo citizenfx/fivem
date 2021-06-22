@@ -121,6 +121,10 @@ function createGameView(canvas: HTMLCanvasElement) {
 		failIfMajorPerformanceCaveat: false
 	}) as WebGLRenderingContext;
 
+	if (!gl) {
+		return null;
+	}
+
 	let render = () => { };
 
 	function createStuff() {
@@ -335,10 +339,10 @@ export class AppComponent implements OnInit, AfterViewInit {
 		}
 
 		this.gameView = createGameView(this.gameCanvas.nativeElement);
-		this.gameView.resize(window.innerWidth, window.innerHeight);
+		this.gameView?.resize(window.innerWidth, window.innerHeight);
 
 		window.addEventListener('resize', () => {
-			this.gameView.resize(window.innerWidth, window.innerHeight);
+			this.gameView?.resize(window.innerWidth, window.innerHeight);
 		});
 	}
 

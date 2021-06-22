@@ -199,6 +199,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 						break;
 				}
 			})
+			.catch(a => {});
 	}
 	startStatusCheckerLoop() {
 		return setInterval(() => { this.updateStatus(); }, 1000 * 20 );

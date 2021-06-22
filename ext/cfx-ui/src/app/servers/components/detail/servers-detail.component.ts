@@ -238,15 +238,23 @@ export class ServersDetailComponent implements OnInit, OnDestroy {
 	}
 
 	isFavorite() {
-		return this.gameService.isMatchingServer('favorites', this.server);
+		if (this.server) {
+			return this.gameService.isMatchingServer('favorites', this.server);
+		}
+
+		return false;
 	}
 
 	addFavorite() {
-		this.gameService.toggleListEntry('favorites', this.server, true);
+		if (this.server) {
+			this.gameService.toggleListEntry('favorites', this.server, true);
+		}
 	}
 
 	removeFavorite() {
-		this.gameService.toggleListEntry('favorites', this.server, false);
+		if (this.server) {
+			this.gameService.toggleListEntry('favorites', this.server, false);
+		}
 	}
 
 	ngOnInit() {

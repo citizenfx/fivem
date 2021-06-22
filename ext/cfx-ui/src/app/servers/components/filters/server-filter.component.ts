@@ -293,7 +293,7 @@ export class ServerFilterComponent implements OnInit, OnDestroy {
 	}
 
 	acceptAutocomplete(entry: ServerAutocompleteEntry) {
-		if (entry?.completion !== '') {
+		if ((entry?.completion ?? '') !== '') {
 			this.filters.searchText = this.filters.searchText.replace(/(\s?)([^\s]*)$/, (str, space) => space + entry.completion) + ' ';
 			this.filtersService.setFilters(this.filters);
 

@@ -158,7 +158,7 @@
 
 				<section>
 					<div>
-						<span [class]="'flag-icon flag-icon-' + this.topServer.data.vars.locale.split('-')[1].toLowerCase()"></span>
+						<span [class]="'flag-icon flag-icon-' + this.topServer?.data?.vars?.locale?.split('-')[1]?.toLowerCase() ?? 'aq'"></span>
 					</div>
 
 					<div>
