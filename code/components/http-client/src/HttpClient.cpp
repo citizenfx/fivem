@@ -747,9 +747,7 @@ HttpRequestPtr HttpClient::DoFileGetRequest(const std::string& urlStr, fwRefCont
 
 	curlData->writeFunction = [=] (const void* data, size_t length)
 	{
-		outDevice->Write(handle, data, length);
-
-		return length;
+		return outDevice->Write(handle, data, length);
 	};
 
 	curlData->preCallback = [=] ()
