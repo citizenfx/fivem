@@ -787,7 +787,7 @@ static bool ShowDownloadNotification(const std::vector<std::pair<GameCacheEntry,
 		std::wstring badEntriesWide = ToWide(badEntries);
 
 		taskDialogConfig.pszMainInstruction = L"Game files missing";
-		taskDialogConfig.pszContent = va(gettext(L"DLC files are missing (or corrupted) in your game installation. Please update or verify the game using Steam, Epic Games Launcher or Rockstar Games Launcher and try again. See http://rsg.ms/verify step 4 for more info.\nRelevant files: \n%s"), badEntriesWide.c_str());
+		taskDialogConfig.pszContent = va(gettext(L"DLC files are missing (or corrupted) in your game installation. Please update or verify the game using Steam, Epic Games Launcher or Rockstar Games Launcher and try again. See http://rsg.ms/verify step 4 for more info.\nCurrently, the game installation in '%s' is being used.\nRelevant files: \n%s"), MakeRelativeGamePath(L""), badEntriesWide.c_str());
 
 		taskDialogConfig.cButtons = 1;
 		taskDialogConfig.dwCommonButtons = 0;
@@ -1146,8 +1146,18 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 					doClose(&deltaFile);
 					doClose(&outFile);
 
-					_wunlink(theFile.c_str());
-					_wrename(tmpFile.c_str(), theFile.c_str());
+					if (retval)
+					{
+						_wunlink(theFile.c_str());
+						_wrename(tmpFile.c_str(), theFile.c_str());
+					}
+					else
+					{
+						MessageBoxW(NULL, va(L"Could not patch %s. Do you have enough free disk space on all drives? (~2 GB)", ToWide(entry.filename)), L"Error", MB_OK | MB_ICONSTOP);
+
+						_wunlink(tmpFile.c_str());
+					}
+
 					_wunlink(deltaEntry.GetLocalFileName().c_str());
 				}
 			}

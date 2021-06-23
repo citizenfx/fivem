@@ -1524,6 +1524,12 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 		OverloadCrashData(&taskDialogConfig);
 
+		// don't upload the 'launched directly' error
+		if (taskDialogConfig.pszContent && wcsstr(taskDialogConfig.pszContent, L"This application should be launched directly from the shell or a web browser."))
+		{
+			shouldUpload = false;
+		}
+
 		trace("Process crash captured. Crash dialog content:\n%s\n%s\n", ToNarrow(taskDialogConfig.pszMainInstruction), ToNarrow(taskDialogConfig.pszContent));
 
 		g_dumpPath = *filePath;
@@ -1576,7 +1582,15 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		}
 		else
 		{
-			crashIdError = fmt::sprintf(L"Error uploading: HTTP %d%s", responseCode, !responseBody.empty() ? L" (" + responseBody + L")" : L"");
+			if (shouldUpload)
+			{
+				crashIdError = fmt::sprintf(L"Error uploading: HTTP %d%s", responseCode, !responseBody.empty() ? L" (" + responseBody + L")" : L"");
+			}
+			else
+			{
+				crashIdError = L"Crash reporting is disabled for this crash type.";
+			}
+
 			crashId = L"";
 		}
 #else

@@ -71,6 +71,27 @@ void* HandleEventWrap(void* group, rage::fwEvent* event)
 
 #include <sstream>
 
+namespace rage
+{
+class netObject;
+}
+
+typedef void (*OnEntityTakeDmgFn)(rage::netObject*, void*, uint8_t);
+static OnEntityTakeDmgFn origOnEntityTakeDmg;
+
+static void OnEntityTakeDmg(rage::netObject* thisptr, void* dmgInfo, uint8_t unk)
+{
+	if (xbr::IsGameBuildOrGreater<2060>())
+	{
+		// Hack: 2060+ does not set the damageSource for fall damage. This is checked != 0 before sending the event
+		if (*((DWORD*)dmgInfo + 8) == 0)
+		{
+			*((DWORD*)dmgInfo + 8) = 0xCDC174B0; // damageSource = WORLD (hash)
+		}
+	}
+	return origOnEntityTakeDmg(thisptr, dmgInfo, unk);
+}
+
 static HookFunction hookFunction([]()
 {
 	MH_Initialize();
@@ -87,6 +108,18 @@ static HookFunction hookFunction([]()
 
 	{
 		MH_CreateHook(hook::get_pattern("81 BF ? ? 00 00 ? ?  00 00 75 ? 48 8B CF E8", -0x36), HandleEventWrap<&g_eventCall3>, (void**)&g_eventCall3);
+	}
+
+
+	// fix for invalid damage sources in events
+	uintptr_t* cNetObjPhys_vtable = hook::get_address<uintptr_t*>(hook::get_pattern<unsigned char>("88 44 24 20 E8 ? ? ? ? 33 C9 48 8D 05", 14));
+	if (xbr::IsGameBuildOrGreater<2189>())
+	{
+		MH_CreateHook((LPVOID)cNetObjPhys_vtable[128], OnEntityTakeDmg, (void**)&origOnEntityTakeDmg);
+	}
+	else if (xbr::IsGameBuildOrGreater<2060>())
+	{
+		MH_CreateHook((LPVOID)cNetObjPhys_vtable[127], OnEntityTakeDmg, (void**)&origOnEntityTakeDmg);
 	}
 
 	MH_EnableHook(MH_ALL_HOOKS);

@@ -205,6 +205,12 @@ public:
 	void QueueDelete(void* graphicsResource);
 
 	void FlushQueue();
+
+	size_t GetUsedPhysicalMemory();
+
+	size_t GetTotalPhysicalMemory();
+
+	size_t _getAndUpdateAvailableMemory(bool virt, bool spare);
 };
 }
 

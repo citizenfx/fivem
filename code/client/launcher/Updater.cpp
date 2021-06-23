@@ -237,7 +237,7 @@ bool Updater_RunUpdate(std::initializer_list<std::string> wantedCachesList)
 	static std::vector<char> cachesFile(131072);
 
 	bool success = false;
-	for (auto& cacheName : wantedCachesList)
+	for (auto& cacheName : wantedCaches)
 	{
 		char bootstrapVersion[256];
 

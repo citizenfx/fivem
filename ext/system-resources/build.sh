@@ -8,7 +8,7 @@ mkdir -p data
 
 cd ../txAdmin/
 npm ci
-./node_modules/.bin/webpack --config webpack.config.js --progress
+npm run build
 cd ../system-resources/
 
 cp -a ../txAdmin/dist data/monitor

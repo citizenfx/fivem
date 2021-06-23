@@ -182,7 +182,11 @@ std::map<int, uint32_t> g_objectIdToCreationToken;
 
 static hook::cdecl_stub<void*(int handle)> getScriptEntity([]()
 {
+#if GTA_FIVE
 	return hook::pattern("44 8B C1 49 8B 41 08 41 C1 F8 08 41 38 0C 00").count(1).get(0).get<void>(-12);
+#elif IS_RDR3
+	return hook::pattern("45 8B C1 41 C1 F8 08 45 38 0C 00 75 ? 8B 42 ? 41 0F AF C0").count(1).get(0).get<void>(-81);
+#endif
 });
 
 extern int getPlayerId();
@@ -211,7 +215,12 @@ static InitFunction initFunction([]()
 			{
 				g_se.AddRef();
 
+				// REDM1S: implement rpc natives
+//#ifdef GTA_FIVE
 				g_rpcConfiguration = RpcConfiguration::Load("citizen:/scripting/rpc_natives.json");
+//#elif IS_RDR3
+				//g_rpcConfiguration = RpcConfiguration::Load("citizen:/scripting/rpc_natives_rdr3.json");
+//#endif
 
 				g_netLibrary->AddReliableHandler("msgRpcEntityCreation", [](const char* data, size_t len)
 				{
@@ -360,34 +369,46 @@ static InitFunction initFunction([]()
 								{
 									ntq->Enqueue([=]()
 									{
-										const uint64_t REQUEST_MODEL_GTA5 = 0x963D27A58DF860AC;
+#ifdef GTA_FIVE
+										const uint64_t REQUEST_MODEL = 0x963D27A58DF860AC;
+#elif IS_RDR3
+										const uint64_t REQUEST_MODEL = 0xFA28FE3A6246FC30;
+#endif
 
 										fx::ScriptContextBuffer reqCtx;
 										reqCtx.Push(hash);
 
-										(*fx::ScriptEngine::GetNativeHandler(REQUEST_MODEL_GTA5))(reqCtx);
+										(*fx::ScriptEngine::GetNativeHandler(REQUEST_MODEL))(reqCtx);
 									});
 
 									conditions.push_back([=]()
 									{
-										const uint64_t HAS_MODEL_LOADED_GTA5 = 0x98A4EB5D89A0C952;
+#ifdef GTA_FIVE
+										const uint64_t HAS_MODEL_LOADED = 0x98A4EB5D89A0C952;
+#elif IS_RDR3
+										const uint64_t HAS_MODEL_LOADED = 0x1283B8B89DD5D1B6;
+#endif
 
 										fx::ScriptContextBuffer loadedCtx;
 										loadedCtx.Push(hash);
 
-										(*fx::ScriptEngine::GetNativeHandler(HAS_MODEL_LOADED_GTA5))(loadedCtx);
+										(*fx::ScriptEngine::GetNativeHandler(HAS_MODEL_LOADED))(loadedCtx);
 
 										return loadedCtx.GetResult<bool>();
 									});
 
 									afterCallbacks.push_back([=]()
 									{
-										const uint64_t SET_MODEL_AS_NO_LONGER_NEEDED_GTA5 = 0xE532F5D78798DAAB;
+#ifdef GTA_FIVE
+										const uint64_t SET_MODEL_AS_NO_LONGER_NEEDED = 0xE532F5D78798DAAB;
+#elif IS_RDR3
+										const uint64_t SET_MODEL_AS_NO_LONGER_NEEDED = 0x4AD96EF928BD4F9A;
+#endif
 
 										fx::ScriptContextBuffer releaseCtx;
 										releaseCtx.Push(hash);
 
-										(*fx::ScriptEngine::GetNativeHandler(SET_MODEL_AS_NO_LONGER_NEEDED_GTA5))(releaseCtx);
+										(*fx::ScriptEngine::GetNativeHandler(SET_MODEL_AS_NO_LONGER_NEEDED))(releaseCtx);
 									});
 								}
 
@@ -538,7 +559,7 @@ static InitFunction initFunction([]()
 
 										if (object)
 										{
-											auto obj = object->objectId;
+											auto obj = object->GetObjectId();
 
 											g_creationTokenToObjectId[creationToken] = (1 << 16) | obj;
 

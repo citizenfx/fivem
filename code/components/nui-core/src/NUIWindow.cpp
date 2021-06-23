@@ -780,10 +780,11 @@ void NUIWindow::UpdateFrame()
 						D3D11_VIEWPORT oldVp;
 						UINT numVPs = 1;
 
-						deviceContext->RSGetViewports(&numVPs, &oldVp);
+						D3D11_RECT oldSr;
+						UINT numSRs = 1;
 
-						CD3D11_VIEWPORT vp = CD3D11_VIEWPORT(0.0f, 0.0f, m_width, m_height);
-						deviceContext->RSSetViewports(1, &vp);
+						deviceContext->RSGetScissorRects(&numSRs, &oldSr);
+						deviceContext->RSGetViewports(&numVPs, &oldVp);
 
 						deviceContext->OMGetBlendState(&oldBs, nullptr, nullptr);
 
@@ -795,6 +796,12 @@ void NUIWindow::UpdateFrame()
 
 						deviceContext->OMSetRenderTargets(1, &m_swapRtv, nullptr);
 						deviceContext->OMSetBlendState(bs, nullptr, 0xffffffff);
+
+						CD3D11_VIEWPORT vp = CD3D11_VIEWPORT(0.0f, 0.0f, m_width, m_height);
+						deviceContext->RSSetViewports(1, &vp);
+
+						CD3D11_RECT sr = CD3D11_RECT(0, 0, m_width, m_height);
+						deviceContext->RSSetScissorRects(1, &sr);
 
 						deviceContext->PSSetShader(ps, nullptr, 0);
 						deviceContext->PSSetSamplers(0, 1, &ss);
@@ -826,6 +833,7 @@ void NUIWindow::UpdateFrame()
 						deviceContext->PSSetShaderResources(0, 1, &oldSrv);
 						deviceContext->OMSetBlendState(oldBs, nullptr, 0xffffffff);
 						deviceContext->RSSetViewports(1, &oldVp);
+						deviceContext->RSSetScissorRects(numSRs, &oldSr);
 
 						if (oldVs)
 						{

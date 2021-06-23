@@ -122,8 +122,22 @@ table.sort(_natives, function(a, b)
 	return printFunctionName(a) < printFunctionName(b)
 end)
 
-local function printReturnType(type)
-	if type.nativeType == 'string' then
+local function printReturnType(native)
+	local type = native.returns
+	
+	-- If the native has a cs_type annotation, determine if it references a
+	-- codegen type, native type, or nothing.
+	local cs_type = (native.annotations and native.annotations['cs_type']) or nil
+	if cs_type then
+		type = types[cs_type]
+		if not type then
+			return cs_type -- cs native type
+		end
+	end
+
+	if not type then
+		return 'void'
+	elseif type.nativeType == 'string' then
 		return 'string'
 	elseif type.nativeType == 'bool' then
 		return 'bool'
@@ -193,7 +207,16 @@ end
 local function parseArgument(argument, native)
 	local argType
 
-	if argument.type.name == 'func' then
+	-- Check if the cs_type annotation references a codegen type. Note, pointer
+	-- arguments must use the "${Type}Ptr" naming convention.
+	local cs_type = (argument.annotations and argument.annotations['cs_type']) or nil
+	if cs_type and codeEnvironment[cs_type] then
+		argument = codeEnvironment[cs_type](argument.name)
+	end
+
+	if argument.annotations and argument.annotations['cs_type'] then
+		argType = argument.annotations['cs_type']
+	elseif argument.type.name == 'func' then
 		argType = 'InputArgument'
 	elseif argument.type.name == 'Hash' then
 		argType = 'uint'
@@ -226,7 +249,7 @@ local function parseArgument(argument, native)
 		name = langWords[name]
 	end
 
-	return name, argType
+	return argument, name, argType
 end
 
 local function formatArgs(native)
@@ -235,8 +258,9 @@ local function formatArgs(native)
 	local nativeArgs = {}
 
 	if native.arguments then
-		for _, argument in pairs(native.arguments) do
-			local argumentName, argType = parseArgument(argument, native)
+		for _, argument in ipairs(native.arguments) do
+			-- cs_type may replace the argument
+			local argument, argumentName, argType = parseArgument(argument, native)
 
 			if (argType == nil) then
 				io.stderr:write("argType is nil for: " .. native.name .. "\n")
@@ -265,7 +289,7 @@ local function formatWrapper(native, fnName)
 
 	local argNames = {}
 
-	for argn, arg in pairs(args) do
+	for argn, arg in ipairs(args) do
 		local name, type, ptr = table.unpack(arg)
 
 		if ptr then
@@ -278,10 +302,7 @@ local function formatWrapper(native, fnName)
 	body = body .. '(' .. table.concat(argsDefs, ', ') .. ')\n'
 	body = body .. '\t\t{\n'
 
-	local retType = 'void'
-	if native.returns then
-		retType = printReturnType(native.returns)
-	end
+	local retType = printReturnType(native)
 
 	body = body .. t
 
@@ -306,17 +327,14 @@ local function formatImpl(native, baseAppendix)
 	body = body .. '(' .. table.concat(argsDefs, ', ') .. ')\n'
 	body = body .. '\t\t{\n'
 
-	local retType = 'void'
-	if native.returns then
-		retType = printReturnType(native.returns)
-	end
+	local retType = printReturnType(native)
 
 	-- First lets make output args containers if needed
 	local hyperDriveSafe = true
 
 	local refValNum = 0
 	local refToArg = {}
-	for argn, arg in pairs(args) do
+	for argn, arg in ipairs(args) do
 		local name, type, ptr = table.unpack(arg)
 
 		if ptr == true then
@@ -349,7 +367,7 @@ local function formatImpl(native, baseAppendix)
 	local fastEligible = true
 	local pushFree = true
 
-	for argn, arg in pairs(args) do
+	for argn, arg in ipairs(args) do
 		local _, type = table.unpack(arg)
 
 		if type == 'InputArgument' or type == 'object' then
@@ -370,7 +388,7 @@ local function formatImpl(native, baseAppendix)
 	body = body .. t .. '\tlong* _fnPtr = (long*)&cxt->functionData[0];\n'
 
 	if not fastEligible then
-		for argn, arg in pairs(args) do
+		for argn, arg in ipairs(args) do
 			local name, type, ptr = table.unpack(arg)
 
 			if ptr then
@@ -389,7 +407,7 @@ local function formatImpl(native, baseAppendix)
 	else
 		local numArgs = 0
 
-		for argn, arg in pairs(args) do
+		for argn, arg in ipairs(args) do
 			local name, type, ptr = table.unpack(arg)
 
 			local val = name

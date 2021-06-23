@@ -26,6 +26,12 @@
 #include <citizen_util/detached_queue.h>
 #include <citizen_util/object_pool.h>
 
+#ifdef COMPILING_CITIZEN_SERVER_IMPL
+#define SVIMP_EXPORT DLL_EXPORT
+#else
+#define SVIMP_EXPORT DLL_IMPORT
+#endif
+
 namespace fx
 {
 	struct GameServerPacket
@@ -43,7 +49,7 @@ namespace fx
 		}
 	};
 
-	inline object_pool<GameServerPacket> m_packetPool;
+	extern SVIMP_EXPORT object_pool<GameServerPacket> m_packetPool;
 
 	class GameServer : public fwRefCountable, public IAttached<ServerInstanceBase>, public ComponentHolderImpl<GameServer>
 	{
@@ -62,7 +68,7 @@ namespace fx
 
 		std::string GetVariable(const std::string& key);
 
-		void DropClientv(const fx::ClientSharedPtr& client, const std::string& reason, fmt::printf_args args);
+		virtual void DropClientv(const fx::ClientSharedPtr& client, const std::string& reason, fmt::printf_args args);
 
 		template<typename... TArgs>
 		inline void DropClient(const fx::ClientSharedPtr& client, const std::string& reason, const TArgs&... args)
@@ -341,7 +347,12 @@ namespace fx
 		}
 	};
 
-	bool IsBigMode();
+	SVIMP_EXPORT bool IsBigMode();
+	SVIMP_EXPORT bool IsOneSync();
+	SVIMP_EXPORT bool IsLengthHack();
+	SVIMP_EXPORT void SetOneSyncGetCallback(bool (*cb)());
+	SVIMP_EXPORT void SetBigModeHack(bool bigMode, bool lengthHack);
+	SVIMP_EXPORT std::string_view GetEnforcedGameBuild();
 }
 
 DECLARE_INSTANCE_TYPE(fx::GameServer);

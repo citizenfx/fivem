@@ -2175,7 +2175,6 @@
 		<Item> <cTextId>GFX_TXAA</cTextId>			<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_GFX_TXAA</MenuPref> 					<MenuOption>MENU_OPTION_DISPLAY_ON_OFF</MenuOption>		<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> <Contexts>*ALL*,GFX_SUPPORT_TXAA</Contexts> </Item>
 				<Item> <cTextId>VID_VSYNC</cTextId>			<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_VID_VSYNC</MenuPref> 				<MenuOption>MENU_OPTION_VID_VSYNC</MenuOption>			<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
 				<Item> <cTextId>MO_STER</cTextId>			<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_VID_STEREO</MenuPref>				<MenuOption>MENU_OPTION_DISPLAY_ON_OFF</MenuOption>		<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> <Contexts>*ANY*,VID_STEREO</Contexts></Item>
-        <Item> <cTextId>STE_CONVERGE</cTextId>		<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_VID_STEREO_CONVERGENCE</MenuPref>	<MenuOption>MENU_OPTION_SLIDER</MenuOption>				<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> <Contexts>*ANY*,VID_STEREO</Contexts></Item>
 				<!--<Item> <cTextId>STE_SEPAR</cTextId>			<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_VID_STEREO_SEPARATION</MenuPref>		<MenuOption>MENU_OPTION_SLIDER</MenuOption>				<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> <Contexts>*ANY*,VID_STEREO</Contexts></Item>-->
 				<Item> <cTextId>VID_FOCUS</cTextId>			<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_VID_PAUSE_ON_FOCUS_LOSS</MenuPref> 	<MenuOption>MENU_OPTION_DISPLAY_ON_OFF</MenuOption>			<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
 
@@ -2187,6 +2186,8 @@
 
 				<Item> <MenuAction>MENU_OPTION_ACTION_SEPARATOR</MenuAction> </Item>
 
+				<!-- move this once the uniqueid is advanced gfx for the requirements -->
+				<Item> <cTextId>GFX_BUDGET</cTextId>		<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_VID_STEREO_CONVERGENCE</MenuPref>	<MenuOption>MENU_OPTION_SLIDER</MenuOption>				<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
 				<Item> <cTextId>GFX_TXTQ</cTextId>			<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_GFX_TEXTURE_QUALITY</MenuPref> 		<MenuOption>MENU_OPTION_GFX_NIGHTLIGHTS</MenuOption>	<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
 				<Item> <cTextId>GFX_SHADERQ</cTextId>		<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_GFX_SHADER_QUALITY</MenuPref> 		<MenuOption>MENU_OPTION_GFX_SHADERQ</MenuOption>		<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
 		<!--Changed to allow Shadows=OFF-->

@@ -236,7 +236,7 @@ static HookFunction hookFunctionVtbl([]()
 		auto vtable = hook::get_address<uintptr_t*>(hook::get_pattern("41 83 C8 FF 48 89 03 89 53 70 88 53 74 4C 89 4B", -11));
 
 		g_origDetachScript = ((decltype(g_origDetachScript))vtable[11]);
-		vtable[11] = (uintptr_t)WrapDetachScript;
+		hook::put<uintptr_t>(&vtable[11], (uintptr_t)WrapDetachScript);
 	}
 
 	CTheScripts__ms_bUpdatingScriptThreads = hook::get_address<bool*>(hook::get_pattern("45 33 F6 41 8A F0 8B EA 44 38 35", 11));

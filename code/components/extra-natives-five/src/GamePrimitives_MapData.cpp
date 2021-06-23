@@ -143,7 +143,7 @@ public:
 	Matrix4x4 mat44;
 };
 
-static bool g_isEditorRuntime;
+static bool g_isEditorRuntime = false;
 
 static rage::fwEntity* ConstructEntity(fwEntityDef* entityDef, int mapDataIdx, rage::fwArchetype* archetype, void* unkId)
 {
@@ -178,6 +178,25 @@ static void MapDataContents_Create(CMapDataContents* contents, void* a2, CMapDat
 
 	// #TODO: use fast listener elision when we implement it
 	fx::ResourceManager::GetCurrent()->GetComponent<fx::ResourceEventManagerComponent>()->QueueEvent2("mapDataLoaded", {}, mapData->name);
+}
+
+static void* (*g_origMapDataContents_Remove)(CMapDataContents* contents, void* a2);
+
+static void* MapDataContents_Remove(CMapDataContents* contents, void* a2)
+{
+	if (contents->mapData)
+	{
+		uint32_t mapDataName = contents->mapData->name;
+
+		void* result = g_origMapDataContents_Remove(contents, a2);
+
+		// #TODO: use fast listener elision when we implement it
+		fx::ResourceManager::GetCurrent()->GetComponent<fx::ResourceEventManagerComponent>()->QueueEvent2("mapDataUnloaded", {}, mapDataName);
+
+		return result;
+	}
+
+	return g_origMapDataContents_Remove(contents, a2);
 }
 
 static bool GetEntityMapDataOwner(int entityHandle, uint32_t* mapData, uint32_t* index)
@@ -215,7 +234,7 @@ static int GetEntityDefFromMapData(int mapData, uint32_t internalIndex)
 	if (auto entry = pool->GetAt<char>(mapData))
 	{
 		auto mapDataContents = *(CMapDataContents**)(entry);
-		
+
 		// try finding the entity by guid
 		for (size_t i = 0; i < mapDataContents->numEntities; i++)
 		{
@@ -248,6 +267,11 @@ extern void* MakeStructFromMsgPack(const char* structType, const std::map<std::s
 
 static int UpdateMapdataEntity(int mapDataIdx, int entityIdx, const char* msgData, size_t msgLen)
 {
+	if (entityIdx == -1)
+	{
+		return 0;
+	}
+
 	// unpack the fwMapData
 	auto obj = msgpack::unpack(msgData, msgLen);
 	auto data = obj->as<std::map<std::string, msgpack::object>>();
@@ -260,6 +284,7 @@ static int UpdateMapdataEntity(int mapDataIdx, int entityIdx, const char* msgDat
 	{
 		auto mapDataContents = *(CMapDataContents**)(entry);
 		auto mapData = mapDataContents->mapData;
+
 		if (entityIdx < mapData->entities.GetCount())
 		{
 			auto entityDef = mapData->entities.Get(entityIdx);
@@ -306,6 +331,11 @@ static void EnableEditorRuntime()
 	g_isEditorRuntime = true;
 }
 
+static void DisableEditorRuntime()
+{
+	g_isEditorRuntime = false;
+}
+
 static InitFunction initFunction([]()
 {
 	scrBindGlobal("GET_ENTITY_MAPDATA_OWNER", &GetEntityMapDataOwner);
@@ -313,6 +343,7 @@ static InitFunction initFunction([]()
 	scrBindGlobal("GET_ENTITY_INDEX_FROM_MAPDATA", &GetEntityDefFromMapData);
 	scrBindGlobal("UPDATE_MAPDATA_ENTITY", &UpdateMapdataEntity);
 	scrBindGlobal("ENABLE_EDITOR_RUNTIME", &EnableEditorRuntime);
+	scrBindGlobal("DISABLE_EDITOR_RUNTIME", &DisableEditorRuntime);
 
 	OnKillNetworkDone.Connect([]
 	{
@@ -366,6 +397,7 @@ static HookFunction hookFunction([]()
 	{
 		MH_Initialize();
 		MH_CreateHook(hook::get_pattern("F7 42 24 A0 05 00 00 49 8B D8", -0x18), MapDataContents_Create, (void**)&g_origMapDataContents_Create);
+		MH_CreateHook(hook::get_pattern("49 8B 47 08 0F B6 0C 28", -0x6E), MapDataContents_Remove, (void**)&g_origMapDataContents_Remove);
 		MH_EnableHook(MH_ALL_HOOKS);
 	}
 

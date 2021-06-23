@@ -407,17 +407,18 @@ if (!$DontBuild -and $IsServer) {
 $CacheDir = "$SaveDir\caches\$Branch"
 
 if ($IsLauncher) {
-    $CacheDir = "$SaveDir\lcaches"
+    $CacheDir = "$SaveDir\lcaches\$Branch"
 }
 
 if ($IsRDR) {
-    $CacheDir = "$SaveDir\rcaches"
+    $CacheDir = "$SaveDir\rcaches\$Branch"
 }
 
 if (!$DontBuild -and !$IsServer) {
     # prepare caches
     New-Item -ItemType Directory -Force $CacheDir | Out-Null
     New-Item -ItemType Directory -Force $CacheDir\fivereborn | Out-Null
+	New-Item -ItemType Directory -Force $CacheDir\fivereborn\citizen | Out-Null
     Set-Location $CacheDir
 
     if ($true) {
@@ -445,7 +446,9 @@ if (!$DontBuild -and !$IsServer) {
     Copy-Item -Force $SaveDir\re3.rpf $CacheDir\fivereborn\citizen\re3.rpf
 
     # copy output files
-    Copy-Item -Force -Recurse $WorkDir\vendor\cef\Release\*.dll $CacheDir\fivereborn\bin\
+    New-Item -ItemType Directory -Force $CacheDir\fivereborn\bin
+
+	Copy-Item -Force -Recurse $WorkDir\vendor\cef\Release\*.dll $CacheDir\fivereborn\bin\
     Copy-Item -Force -Recurse $WorkDir\vendor\cef\Release\*.bin $CacheDir\fivereborn\bin\
 
     New-Item -ItemType Directory -Force $CacheDir\fivereborn\bin\cef
@@ -587,6 +590,9 @@ if (!$DontBuild -and !$IsServer) {
 }
 
 if (!$DontUpload) {
+    Remove-Item -Recurse -Force $CacheDir
+    Copy-Item -Recurse -Force $WorkDir\caches $CacheDir
+
     $UploadBranch = $env:CI_ENVIRONMENT_NAME
 
 	$CacheName = "eh"
@@ -611,22 +617,10 @@ if (!$DontUpload) {
 
     $env:Path = "C:\msys64\usr\bin;$env:Path"
 
-    New-Item -ItemType Directory -Force $WorkDir\upload\$Branch\bootstrap | Out-Null
-    New-Item -ItemType Directory -Force $WorkDir\upload\$Branch\content | Out-Null
-
-    Copy-Item -Force CitizenFX.exe.xz $WorkDir\upload\$Branch\bootstrap
-    Copy-Item -Force version.txt $WorkDir\upload\$Branch\bootstrap
-    Copy-Item -Force caches.xml $WorkDir\upload\$Branch\content
-
     if (!$IsLauncher -and !$IsRDR) {
-        Copy-Item -Force $WorkDir\caches\caches_sdk.xml $WorkDir\upload\$Branch\content
-        Copy-Item -Recurse -Force $WorkDir\caches\diff\fxdk-five\ $WorkDir\upload\$Branch\content\
-
-		Remove-Item -Force $WorkDir\caches\fxdk-five\info.xml
+        Remove-Item -Force $WorkDir\caches\fxdk-five\info.xml
 		Invoke-CacheGen -Source $WorkDir\caches\fxdk-five -CacheName "fxdk-five" -BranchName $UploadBranch -BranchVersion $SDKVersion -BootstrapName CitizenFX.exe -BootstrapVersion $LauncherVersion
     }
-
-    Copy-Item -Recurse -Force diff\fivereborn\ $WorkDir\upload\$Branch\content\
 
     Set-Location (Split-Path -Parent $WorkDir)
 

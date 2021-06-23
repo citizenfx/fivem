@@ -1,5 +1,5 @@
 #include <StdInc.h>
-#include <state/ServerGameState.h>
+#include <state/ServerGameStatePublic.h>
 #include <ClientRegistry.h>
 #include <GameServer.h>
 #include <UdpInterceptor.h>
@@ -109,7 +109,7 @@ static const auto& CollectPlayers(fx::ServerInstanceBase* instance)
 	}
 
 	auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
-	auto sgs = instance->GetComponent<fx::ServerGameState>();
+	auto sgs = instance->GetComponent<fx::ServerGameStatePublic>();
 
 	// Skips Dropping clients.
 	clientRegistry->ForAllClients([](fx::ClientSharedPtr client)
@@ -124,31 +124,21 @@ static const auto& CollectPlayers(fx::ServerInstanceBase* instance)
 		entry.currentPing = client->GetPing();
 	});
 
+	sgs->ForAllEntities([](fx::sync::Entity* entity)
 	{
-		std::shared_lock lock2(sgs->m_entityListMutex);
-		for (auto& entity : sgs->m_entityList)
+		auto owner = entity->GetOwner();
+		if (!owner || !entity->IsPlayer())
 		{
-			auto owner = entity->GetClient();
-			if (!owner || entity->type != fx::sync::NetObjEntityType::Player)
-			{
-				continue;
-			}
-
-			if (entity->syncTree)
-			{
-				float positionFloat[3];
-				entity->syncTree->GetPosition(positionFloat);
-
-				std::unique_lock lock(g_playerListDataMutex);
-				g_playerListData[owner->GetGuid()].position = { positionFloat[0], positionFloat[1], positionFloat[2] };
-			}
-
-			{
-				std::unique_lock lock(g_playerListDataMutex);
-				g_playerListData[owner->GetGuid()].connectionState = "SPAWNED";
-			}
+			return;
 		}
-	}
+
+		{
+			std::unique_lock lock(g_playerListDataMutex);
+			auto& pld = g_playerListData[owner->GetGuid()];
+			pld.position = entity->GetPosition();
+			pld.connectionState = "SPAWNED";
+		}
+	});
 
 	lastListCollect = msec();
 	return g_playerListData;

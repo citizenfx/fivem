@@ -17,6 +17,12 @@ enableLogger('shell,shell:*,host');
 
 // window.openDevTools();
 
+// try {
+//   (CSS as any).paintWorklet.addModule('paintlet.js');
+// } catch (e) {
+//   console.error('No paintlets for you :<', e);
+// }
+
 if (process.env.CI_PIPELINE_ID !== 'dev') {
   Sentry.init({
     dsn: "https://e3b160e20aa24ffd9b74a222a4d5c07a@sentry.fivem.net/7",

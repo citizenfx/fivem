@@ -26,9 +26,15 @@ void Component_RunPreInit()
 		debugMode = false;
 	}
 
+	bool five = false;
+
+#ifdef GTA_FIVE
+	five = true;
+#endif
+
 	if (hostData->IsMasterProcess() && !debugMode)
 	{
-		auto processName = MakeCfxSubProcess(L"GameProcess.exe", fmt::sprintf(L"game_%d", xbr::GetGameBuild()));
+		auto processName = MakeCfxSubProcess(L"GameProcess.exe", fmt::sprintf(L"game_%d%s", xbr::GetGameBuild(), (IsWindows8Point1OrGreater() && five) ? L"_aslr" : L""));
 
 		STARTUPINFOW si = { 0 };
 		si.cb = sizeof(si);

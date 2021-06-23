@@ -103,7 +103,7 @@ static HookFunction initFunction([]()
 			auto curTarget = hook::get_address<void*>(location);
 			assert(curTarget == oldAddress);
 
-			*location = (intptr_t)decalDefStore - (intptr_t)location - 4;
+			hook::put<int32_t>(location, (intptr_t)decalDefStore - (intptr_t)location - 4);
 		}
 	}
 
@@ -111,6 +111,6 @@ static HookFunction initFunction([]()
 	{
 		auto location = hook::pattern("4C 8D 3D ? ? ? ? 48 03 F6 49 8B 1C").count(1).get(0).get<int32_t>(3);
 
-		*location = ((intptr_t)decalDefStore + 8) - (intptr_t)location - 4;
+		hook::put<int32_t>(location, ((intptr_t)decalDefStore + 8) - (intptr_t)location - 4);
 	}
 });

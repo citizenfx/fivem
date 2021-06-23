@@ -289,7 +289,7 @@ static hook::cdecl_stub<void(int, int, int)> hostGame([] () -> void*
 	if (xbr::IsGameBuild<2189>())
 	{
 		// 2189
-		return (void*)0x14105DFE8;
+		return (void*)hook::get_adjusted(0x14105DFE8);
 	}
 
 	// 1737
@@ -299,7 +299,7 @@ static hook::cdecl_stub<void(int, int, int)> hostGame([] () -> void*
 	//return (void*)0x141037BCC;
 
 	// 2060
-	return (void*)0x1410494F8;
+	return (void*)hook::get_adjusted(0x1410494F8);
 });
 
 static void* getNetworkManager()
@@ -1479,7 +1479,6 @@ static void WINAPI ExitProcessReplacement(UINT exitCode)
 	if (g_netLibrary)
 	{
 		g_netLibrary->Disconnect((g_quitMsg.empty()) ? "Exiting" : g_quitMsg.c_str());
-		g_netLibrary->FinalizeDisconnect();
 	}
 
 	TerminateProcess(GetCurrentProcess(), exitCode);
@@ -1540,7 +1539,6 @@ static bool BeforeReplayLoadHook()
 	}
 
 	g_netLibrary->Disconnect("Entering Rockstar Editor");
-	g_netLibrary->FinalizeDisconnect();
 
 	// stop scripts from this point
 	Instance<ICoreGameInit>::Get()->SetVariable("networkTimedOut");

@@ -66,6 +66,11 @@ static hook::cdecl_stub<void(rage::grcResourceCache*)> grcResourceCache_flushQue
 	return hook::get_call(hook::get_pattern("8B 45 07 4C 8B 17 44 8B 4D FB", -5));
 });
 
+static hook::thiscall_stub<size_t(rage::grcResourceCache*, bool, bool)> grcResourceCache_getAndUpdateAvailableMemory([]()
+{
+	return hook::get_pattern("48 8B 04 C8 8B 3C 02 83 FF 03", -0x53);
+});
+
 rage::grcResourceCache* rage::grcResourceCache::GetInstance()
 {
 	return _getResourceCache();
@@ -79,6 +84,21 @@ void rage::grcResourceCache::QueueDelete(void* graphicsResource)
 void rage::grcResourceCache::FlushQueue()
 {
 	grcResourceCache_flushQueue(this);
+}
+
+size_t rage::grcResourceCache::_getAndUpdateAvailableMemory(bool virt, bool spare)
+{
+	return grcResourceCache_getAndUpdateAvailableMemory(this, virt, spare);
+}
+
+size_t rage::grcResourceCache::GetTotalPhysicalMemory()
+{
+	return GetUsedPhysicalMemory() + _getAndUpdateAvailableMemory(false, false);
+}
+
+size_t rage::grcResourceCache::GetUsedPhysicalMemory()
+{
+	return *(size_t*)((char*)this + 131432);
 }
 
 static hook::cdecl_stub<rage::grcRenderTarget*(int idx, const char* name, int usage3, int width, int height, int format, void* metadata, uint8_t a, rage::grcRenderTarget* last)> _createRenderTarget([]()

@@ -407,6 +407,10 @@ export class Project implements ApiContribution {
   async unload() {
     this.log('Unloading...');
 
+    if (this.worldEditorService.isRunning()) {
+      await this.worldEditorService.stop();
+    }
+
     this.apiClient.emit(projectApi.close);
 
     await this.assets.dispose();

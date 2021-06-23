@@ -233,9 +233,17 @@ export function makeEntityMatrix(entity: number): Float32Array {
 export function applyEntityMatrix(entity: number, mat: Float32Array) {
   SetEntityMatrix(
     entity,
-    mat[4], mat[5], mat[6], // r
-    mat[0], mat[1], mat[2], // f
-    mat[8], mat[9], mat[10], // u
-    mat[12], mat[13], mat[14], // a
+    mat[4], mat[5], mat[6], // right
+    mat[0], mat[1], mat[2], // forward
+    mat[8], mat[9], mat[10], // up
+    mat[12], mat[13], mat[14], // at
   );
+}
+
+export function toPrecision(n: number, precision: number): number {
+  return (n * precision | 0) / precision;
+}
+
+export function limitPrecision(data: number[], precision: number): number[] {
+  return data.map((n) => toPrecision(n, precision));
 }

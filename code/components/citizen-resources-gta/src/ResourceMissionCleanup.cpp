@@ -28,6 +28,27 @@
 
 #include <stack>
 
+void CoreRT_SetHardening(bool hardened)
+{
+#ifdef GTA_FIVE
+	using TCoreFunc = decltype(&CoreRT_SetHardening);
+
+	static TCoreFunc func;
+
+	if (!func)
+	{
+		auto hCore = GetModuleHandleW(L"CoreRT.dll");
+
+		if (hCore)
+		{
+			func = (TCoreFunc)GetProcAddress(hCore, "CoreRT_SetHardening");
+		}
+	}
+
+	return (func) ? func(hardened) : 0;
+#endif
+}
+
 struct DummyThread : public GtaThread
 {
 	DummyThread(fx::Resource* resource)
@@ -137,6 +158,8 @@ static InitFunction initFunction([] ()
 
 		resource->OnActivate.Connect([=] ()
 		{
+			CoreRT_SetHardening(true);
+
 			if (!Instance<ICoreGameInit>::Get()->GetGameLoaded())
 			{
 				return;
@@ -193,6 +216,8 @@ static InitFunction initFunction([] ()
 
 		resource->OnDeactivate.Connect([=] ()
 		{
+			CoreRT_SetHardening(false);
+
 			if (!Instance<ICoreGameInit>::Get()->GetGameLoaded())
 			{
 				return;

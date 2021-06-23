@@ -45,7 +45,7 @@ export function isRMB(e: MouseEvent): boolean {
   return e.button === 2;
 }
 
-export type ShortcutHandler = (active: boolean, key: number, isCtrl: boolean, isShift: boolean, isAlt: boolean) => void;
+export type ShortcutHandler = (active: boolean, key: number, isCtrl: boolean, isShift: boolean, isAlt: boolean) => void | boolean;
 
 export class InputController {
   private readonly activeKeys: Record<number, boolean> = {};
@@ -125,7 +125,9 @@ export class InputController {
 
     const key = mapKey(event.which, event.location);
 
-    this.shortcutHandlers[event.code]?.(active, key, event.ctrlKey, event.shiftKey, event.altKey);
+    if (this.shortcutHandlers[event.code]?.(active, key, event.ctrlKey, event.shiftKey, event.altKey)) {
+      return;
+    }
 
     switch (event.code) {
       case 'KeyW':

@@ -149,6 +149,12 @@ private:
 	} impl;
 
 public:
+	void* GetPlayerInfo()
+	{
+		return (xbr::IsGameBuildOrGreater<2060>()) ? impl.m2060.playerInfo : impl.m1604.playerInfo;
+	}
+
+public:
 	DECLARE_ACCESSOR(nonPhysicalPlayerData);
 	DECLARE_ACCESSOR(activePlayerIndex);
 	DECLARE_ACCESSOR(physicalPlayerIndex);

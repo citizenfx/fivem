@@ -6,7 +6,8 @@ import pLimit from 'p-limit';
 import * as unicodeSubstring from 'unicode-substring';
 
 import 'rxjs/add/operator/toPromise';
-import { Observable, Subject } from 'rxjs';
+import { EMPTY, Observable, Subject } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 export class Tweet {
     readonly user_displayname: string;
@@ -95,8 +96,10 @@ export class TweetService {
 
     public getTweets(uri: string): Promise<Tweet[]> {
         return this.http.get(uri)
+			.pipe(catchError(() => EMPTY))
             .toPromise()
             .then((result: any) => result
+                .filter(t => t)
                 .filter(t => !t.in_reply_to_user_id)
                 .map(t => new Tweet(t)));
     }
@@ -121,32 +124,42 @@ export class TweetService {
 
         const part = domainPart[1];
 
-        const response: any = await this.http.get(`https://${part}/.well-known/webfinger?resource=${pub}`, {
-            responseType: 'json'
-        }).toPromise();
+        try {
+            const response: any = await this.http.get(`https://${part}/.well-known/webfinger?resource=${pub}`, {
+                responseType: 'json'
+            })
+			.pipe(catchError(() => EMPTY))
+			.toPromise();
 
-        const activityDesc = response.links.find((a: any) => a.rel === 'self' && a.type === 'application/activity+json');
-
-        if (!activityDesc) {
-            return;
-        }
-
-        const actResponse: any = await this.http.get(activityDesc.href, {
-            responseType: 'json',
-            headers: {
-                Accept: 'application/activity+json'
+            if (!response || !response.links) {
+                return;
             }
-        }).toPromise();
 
-        if (!actResponse.type || actResponse.type !== 'Person') {
-            return;
-        }
+            const activityDesc = response.links.find((a: any) => a.rel === 'self' && a.type === 'application/activity+json');
 
-        actResponse._pub = pub;
+            if (!activityDesc) {
+                return;
+            }
 
-        const outbox = actResponse.outbox;
+            const actResponse: any = await this.http.get(activityDesc.href, {
+                responseType: 'json',
+                headers: {
+                    Accept: 'application/activity+json'
+                }
+            })
+			.pipe(catchError(() => EMPTY))
+			.toPromise();
 
-        await this.fetchOutbox(actResponse, outbox, subject);
+            if (!actResponse.type || actResponse.type !== 'Person') {
+                return;
+            }
+
+            actResponse._pub = pub;
+
+            const outbox = actResponse.outbox;
+
+            await this.fetchOutbox(actResponse, outbox, subject);
+        } catch {}
 
         await new Promise(function(resolve) {
             setTimeout(resolve, 150);
@@ -159,7 +172,9 @@ export class TweetService {
             headers: {
                 Accept: 'application/activity+json'
             }
-        }).toPromise();
+        })
+		.pipe(catchError(() => EMPTY))
+		.toPromise();
 
         if (actResponse.orderedItems) {
             for (const item of actResponse.orderedItems) {

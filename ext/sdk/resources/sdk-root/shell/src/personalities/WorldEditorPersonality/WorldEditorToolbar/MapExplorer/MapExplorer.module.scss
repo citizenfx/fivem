@@ -1,0 +1,190 @@
+@import "../../vars.scss";
+
+.root {
+  position: relative;
+
+  .trigger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    height: $weToolbarHeight;
+
+    @include backdrop-blur;
+
+    padding: $q*2;
+
+    user-select: none;
+    cursor: pointer;
+
+    @include interactiveTransition;
+
+    svg {
+      margin-right: $q*2;
+    }
+
+    &:hover {
+      background-color: $acColor;
+    }
+
+    &.active {
+      background-color: mix(rgba($bgColor, .95), rgba($fgColor, .25));
+    }
+  }
+
+  .explorer {
+    position: absolute;
+
+    top: $weToolbarHeight;
+    left: 0;
+    bottom: 0;
+
+    width: 25vw;
+    height: calc(100vh - #{$weToolbarHeight});
+
+    backdrop-filter: blur(20px);
+
+    background-color: rgba($bgColor, .95);
+    border: solid 2px rgba($fgColor, .25);
+
+    @keyframes appearance {
+      0% {
+        opacity: 0;
+        transform: translateX(-25%);
+      }
+      100% {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+    animation: appearance .2s ease;
+
+    .patches, .additions {
+      font-size: $fs08;
+      font-weight: 300;
+    }
+
+    .patches, .additions {
+      > header {
+        .icon, .name {
+          transition: color .2s ease;
+        }
+
+        .controls {
+          transition: opacity .2s ease;
+        }
+      }
+
+      &:hover {
+        > header {
+          .icon, .name {
+            color: rgba($fgColor, .75);
+          }
+
+          .controls {
+            opacity: 1;
+          }
+        }
+      }
+
+      .children {
+        margin-left: $q*4;
+        box-shadow: -1px 0 0 0 rgba($fgColor, .05);
+
+        transition: box-shadow .2s ease;
+
+        &:hover {
+          box-shadow: -1px 0 0 0 rgba($fgColor, .15);
+        }
+
+        .item {
+          height: $q*7;
+
+          padding: $q*2;
+          padding-left: $q*2.5;
+
+          color: rgba($fgColor, .5);
+          cursor: default;
+
+          &:hover {
+            color: $fgColor;
+          }
+
+          &.editing {
+            padding: 0;
+
+            input {
+              width: 100%;
+              height: 100%;
+
+              padding-left: $q*2.5;
+
+              border: none;
+
+              @include fontPrimary;
+              font-size: $fs08;
+              font-weight: 300;
+              color: $fgColor;
+              background-color: transparent;
+
+              box-shadow: 0 0 0 2px $acColor inset;
+            }
+          }
+        }
+      }
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+
+      padding: $q*2;
+      padding-left: $q*2.5;
+
+      cursor: pointer;
+
+      .icon {
+        flex-shrink: 0;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        color: rgba($fgColor, .5);
+
+        margin-right: $q;
+
+        svg {
+          font-size: $fs08;
+        }
+      }
+
+      .name {
+        flex-grow: 1;
+        color: rgba($fgColor, .5);
+
+        user-select: none;
+      }
+
+      .controls {
+        opacity: 0;
+      }
+
+      &:hover {
+        .icon, .name {
+          color: $fgColor;
+        }
+      }
+    }
+
+    .additions {
+      .group {
+        // margin-left: $q*4;
+      }
+    }
+
+    .patches {
+      margin-top: $q*2;
+    }
+  }
+}

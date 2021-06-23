@@ -49,18 +49,6 @@ static void* PostScriptInit(void* arg, uint32_t a2, uint32_t a3)
 
 bool ComponentInstance::DoGameLoad(void* module)
 {
-	/*static hook::inject_call<void, bool> scriptInit(0x4201B0);
-
-	scriptInit.inject([] (bool dontStartScripts)
-	{
-		scriptInit.call(dontStartScripts);
-
-		rage::scrEngine::OnScriptInit();
-	})*/
-
-	// PREPARE FOR PATTERN HELL
-	//auto match = hook::pattern("89 1D ? ? ? ? E8 ? ? ? ? 48 8D 0D ? ? ? ? 48  83 C4 20 5B E9 ? ? ? ? 83 F9 08").count(1).get(0);
-
 	// 372 obfuscated (tier 1, mutation/jumpception) script core with a fair depth level, now we'll have to hook this internally...
 	auto match = hook::pattern("BA 2F 7B 2E 30 41 B8 0A").count(1).get(0);
 

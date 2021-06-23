@@ -162,6 +162,8 @@ private:
 
 	std::string m_targetContext;
 
+	std::string m_richError;
+
 	HANDLE m_receiveEvent;
 
 	concurrency::concurrent_queue<std::function<void()>> m_mainFrameQueue;
@@ -209,9 +211,7 @@ public:
 
 	virtual concurrency::task<void> ConnectToServer(const std::string& rootUrl);
 
-	virtual void Disconnect(const char* reason) override;
-
-	virtual void FinalizeDisconnect() override;
+	virtual void Disconnect(const char* reason = "[not set]") override;
 
 	virtual bool DequeueRoutedPacket(char* buffer, size_t* length, uint16_t* netID) override;
 
@@ -259,6 +259,8 @@ public:
 	uint64_t GetGUID();
 
 	void SendNetEvent(const std::string& eventName, const std::string& argsSerialized, int target);
+
+	void SetRichError(const std::string& data = "{}");
 
 	inline uint32_t GetServerBase() { return m_serverBase; }
 
@@ -339,7 +341,11 @@ public:
 
 	fwEvent<NetAddress> OnFinalizeDisconnect;
 
-	fwEvent<const char*> OnConnectionError;
+	fwEvent<const char*> OnConnectionErrorEvent;
+
+	fwEvent<const std::string&, const std::string&> OnConnectionErrorRichEvent;
+
+	virtual void OnConnectionError(const std::string& errorString, const std::string& metaData = "{}");
 
 	// a1: adaptive card JSON
 	// a2: connection token

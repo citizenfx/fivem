@@ -94,6 +94,37 @@ void NUIClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> fra
 	auto url = frame->GetURL();
 	TriggerLoadEnd((url == "nui://game/ui/root.html") ? "__root" : frame->GetName());
 
+	if (auto parent = frame->GetParent(); parent && parent->IsMain())
+	{
+		frame->ExecuteJavaScript(R"(
+const doHook = () => {
+	const oldConsoleLog = console.log;
+
+	Object.defineProperty(console, 'log', {
+		get: () => {
+			return (...args) => {
+				for (const arg of args) {
+					if (arg instanceof HTMLElement) {
+						globalThis.dummy = arg.id + '';
+					}
+				}
+				return oldConsoleLog(...args);
+			};
+		}
+	});
+};
+
+const oldDefineGetter = Object.prototype.__defineGetter__;
+Object.prototype.__defineGetter__ = function(prop, func) {
+	if (prop === 'id') {
+		doHook();
+	}
+	return oldDefineGetter.call(this, prop, func);
+};
+)",
+		"nui://patches", 0);
+	}
+
 #ifndef USE_NUI_ROOTLESS
 	if (url == "nui://game/ui/root.html")
 	{
@@ -226,12 +257,43 @@ bool NUIClient::OnConsoleMessage(CefRefPtr<CefBrowser> browser, cef_log_severity
 	return false;
 }
 
+auto NUIClient::OnBeforePopup(CefRefPtr<CefBrowser> browser,
+	CefRefPtr<CefFrame> frame,
+	const CefString& target_url,
+	const CefString& target_frame_name,
+	CefLifeSpanHandler::WindowOpenDisposition target_disposition,
+	bool user_gesture,
+	const CefPopupFeatures& popupFeatures,
+	CefWindowInfo& windowInfo,
+	CefRefPtr<CefClient>& client,
+	CefBrowserSettings& settings,
+	CefRefPtr<CefDictionaryValue>& extra_info,
+	bool* no_javascript_access) -> bool
+{
+	if (target_disposition == WOD_NEW_FOREGROUND_TAB || target_disposition == WOD_NEW_BACKGROUND_TAB || target_disposition == WOD_NEW_POPUP || target_disposition == WOD_NEW_WINDOW )
+	{
+		return true;
+	}
+	return false;
+}
+
 auto NUIClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefRequestCallback> callback) -> ReturnValue
 {
+	auto url = request->GetURL().ToString();
+
+#ifndef USE_NUI_ROOTLESS
+	if (frame->IsMain())
+	{
+		if (frame->GetURL().ToString().find("nui://game/ui/") == 0 && url.find("nui://game/ui/") != 0)
+		{
+			trace("Blocked a request for root breaking URI %s\n", url);
+			return RV_CANCEL;
+		}
+	}
+#endif
+
 	for (auto& reg : m_requestBlacklist)
 	{
-		std::string url = request->GetURL().ToString();
-
 		try
 		{
 			if (std::regex_search(url, reg))
@@ -243,6 +305,17 @@ auto NUIClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<Ce
 		catch (std::exception& e)
 		{
 		}
+	}
+
+	// to whoever may read this in charge of blocking `https://nui-game-internal*` as referrer on the `mastodon.social` instance:
+	// -> instead of outright blocking, it would've been possible to contact us as well (hydrogen@fivem.net et al.) before resorting to
+	//    outright oddity affecting actual users. even if server load is the issue.
+	// -> maybe don't pretend to support some open protocol if you block anyone using the API on your federated instance?
+	if (url.find("mastodon.social/") != std::string::npos)
+	{
+		request->SetReferrer("", CefRequest::ReferrerPolicy::REFERRER_POLICY_NO_REFERRER);
+		request->SetHeaderByName("origin", "http://localhost", true);
+		request->SetHeaderByName("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.48 Safari/537.36", true);
 	}
 
 	return RV_CONTINUE;

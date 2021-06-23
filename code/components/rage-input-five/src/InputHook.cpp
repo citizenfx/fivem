@@ -570,7 +570,7 @@ static HookFunction hookFunction([]()
 
 	origWndProc = (WNDPROC)(location + *(int32_t*)location + 4);
 
-	*(int32_t*)location = (intptr_t)(hook::AllocateFunctionStub(grcWindowProcedure)) - (intptr_t)location - 4;
+	hook::put<int32_t>(location, (intptr_t)(hook::AllocateFunctionStub(grcWindowProcedure)) - (intptr_t)location - 4);
 
 	// disable mouse focus function
 	void* patternMatch = hook::pattern("74 0D 38 1D ? ? ? ? 74 05 E8 ? ? ? ? 48 39").count(1).get(0).get<void>(10);

@@ -8,21 +8,32 @@
 #include "StdInc.h"
 #include "fxScripting.h"
 
-#include <Resource.h>
-#include <ManifestVersion.h>
+#include "LuaScriptRuntime.h"
+#include "LuaScriptNatives.h"
 
 #include <msgpack.hpp>
 #include <json.hpp>
 
 #include <CoreConsole.h>
+#include <Profiler.h>
 
-using json = nlohmann::json;
-
-#ifdef _WIN32
-#define SAFE_BUFFERS __declspec(safebuffers)
-#else
-#define SAFE_BUFFERS
+#include <lua.hpp>
+#include <lua_cmsgpacklib.h>
+#include <lua_rapidjsonlib.h>
+#include <lmprof_lib.h>
+#if LUA_VERSION_NUM == 504
+#include <lglmlib.hpp>
 #endif
+
+extern LUA_INTERNAL_LINKAGE
+{
+#include <lobject.h>
+
+#include <lmprof_state.h>
+#include <collections/lmprof_record.h>
+#include <collections/lmprof_traceevent.h>
+#include <collections/lmprof_stack.h>
+}
 
 #if defined(GTA_FIVE)
 static constexpr std::pair<const char*, ManifestVersion> g_scriptVersionPairs[] = {
@@ -30,341 +41,102 @@ static constexpr std::pair<const char*, ManifestVersion> g_scriptVersionPairs[] 
 	{ "natives_0193d0af.lua", "f15e72ec-3972-4fe4-9c7d-afc5394ae207" },
 	{ "natives_universal.lua", "44febabe-d386-4d18-afbe-5e627f4af937" }
 };
-
-// we fast-path non-FXS using direct RAGE calls
-#include <scrEngine.h>
 #elif defined(IS_RDR3)
 static constexpr std::pair<const char*, ManifestVersion> g_scriptVersionPairs[] = {
 	{ "rdr3_universal.lua", guid_t{ 0 } }
 };
-
-// we fast-path non-FXS using direct RAGE calls
-#include <scrEngine.h>
 #elif defined(GTA_NY)
 static constexpr std::pair<const char*, ManifestVersion> g_scriptVersionPairs[] = {
 	{ "ny_universal.lua", guid_t{ 0 } }
 };
-
-// we fast-path non-FXS using direct RAGE calls
-#include <scrEngine.h>
 #else
 static constexpr std::pair<const char*, ManifestVersion> g_scriptVersionPairs[] = {
 	{ "natives_server.lua", guid_t{ 0 } }
 };
 #endif
 
-#include <lua.hpp>
-
-extern "C" {
-#include <lobject.h>
-#include <lua_cmsgpacklib.h>
-#include <lua_rapidjsonlib.h>
-#if LUA_VERSION_NUM == 504
-#include <lauxlib.h>
-#include <lstate.h>
-#include <lgrit_lib.h>
-#endif
-}
-
-#include <om/OMComponent.h>
-
-#define lua_rel_index(idx, n) (((idx) < 0) ? ((idx) - (n)) : (idx))
-
-#undef LuaScriptRuntime
-#if LUA_VERSION_NUM == 504
-#define cast_float(v) static_cast<float>(v)
-#else
-#if !defined(LUA_INLINE)
-	#if defined(__GNUC__)
-		#define LUA_INLINE inline __attribute__((__always_inline__))
-	#elif defined(__CLANG__)
-		#if defined(__has_attribute(__always_inline__))
-			#define LUA_INLINE inline __attribute__((__always_inline__))
-		#else
-			#define LUA_INLINE inline
-		#endif
-	#elif defined(LUA_USE_WINDOWS)
-		#define LUA_INLINE __forceinline
-	#else
-		#define LUA_INLINE inline
-	#endif
-#endif
-#endif
-
-namespace fx
-{
-class LuaStateHolder
-{
-private:
-	lua_State* m_state;
-
-public:
-	LuaStateHolder()
-	{
-		m_state = luaL_newstate();
-	}
-
-	~LuaStateHolder()
-	{
-		Close();
-	}
-
-	void Close()
-	{
-		if (m_state)
-		{
-			lua_close(m_state);
-
-			m_state = nullptr;
-		}
-	}
-
-	operator lua_State*()
-	{
-		return m_state;
-	}
-
-	LUA_INLINE lua_State* Get()
-	{
-		return m_state;
-	}
-};
-
-struct PointerFieldEntry
-{
-	bool empty;
-	uintptr_t value;
-
-	PointerFieldEntry()
-	{
-		empty = true;
-	}
-};
-
-struct PointerField
-{
-	PointerFieldEntry data[64];
-};
-
-class LuaScriptRuntime : public OMClass<LuaScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntime, IScriptEventRuntime, IScriptRefRuntime, IScriptMemInfoRuntime, IScriptStackWalkingRuntime, IScriptDebugRuntime>
-{
-private:
-	typedef std::function<void(const char*, const char*, size_t, const char*)> TEventRoutine;
-
-	typedef std::function<void(int32_t, const char*, size_t, char**, size_t*)> TCallRefRoutine;
-
-	typedef std::function<int32_t(int32_t)> TDuplicateRefRoutine;
-
-	typedef std::function<void(int32_t)> TDeleteRefRoutine;
-
-	typedef std::function<void(void*, void*, char**, size_t*)> TStackTraceRoutine;
-
-private:
-	LuaStateHolder m_state;
-
-	lua_CFunction m_dbTraceback;
-
-	IScriptHost* m_scriptHost;
-
-	IScriptHostWithResourceData* m_resourceHost;
-
-	IScriptHostWithManifest* m_manifestHost;
-
-	OMPtr<IDebugEventListener> m_debugListener;
-
-	std::function<void()> m_tickRoutine;
-
-	TEventRoutine m_eventRoutine;
-
-	TCallRefRoutine m_callRefRoutine;
-
-	TDuplicateRefRoutine m_duplicateRefRoutine;
-
-	TDeleteRefRoutine m_deleteRefRoutine;
-
-	TStackTraceRoutine m_stackTraceRoutine;
-
-	void* m_parentObject;
-
-	PointerField m_pointerFields[3];
-
-	int m_instanceId;
-
-	std::string m_nativesDir;
-
-	std::unordered_map<std::string, int> m_scriptIds;
-
-public:
-	inline LuaScriptRuntime()
-	{
-		m_instanceId = rand();
-	}
-
-	virtual ~LuaScriptRuntime() override;
-
-	static const OMPtr<LuaScriptRuntime>& GetCurrent();
-
-	void SetTickRoutine(const std::function<void()>& tickRoutine);
-
-	void SetEventRoutine(const TEventRoutine& eventRoutine);
-
-	inline void SetCallRefRoutine(const TCallRefRoutine& routine)
-	{
-		if (!m_callRefRoutine)
-		{
-			m_callRefRoutine = routine;
-		}
-	}
-
-	inline void SetDuplicateRefRoutine(const TDuplicateRefRoutine& routine)
-	{
-		if (!m_duplicateRefRoutine)
-		{
-			m_duplicateRefRoutine = routine;
-		}
-	}
-
-	inline void SetDeleteRefRoutine(const TDeleteRefRoutine& routine)
-	{
-		if (!m_deleteRefRoutine)
-		{
-			m_deleteRefRoutine = routine;
-		}
-	}
-
-	inline void SetStackTraceRoutine(const TStackTraceRoutine& routine)
-	{
-		if (!m_stackTraceRoutine)
-		{
-			m_stackTraceRoutine = routine;
-		}
-	}
-
-	inline IScriptHost* GetScriptHost()
-	{
-		return m_scriptHost;
-	}
-
-	inline IScriptHostWithResourceData* GetScriptHost2()
-	{
-		return m_resourceHost;
-	}
-
-	inline PointerField* GetPointerFields()
-	{
-		return m_pointerFields;
-	}
-
-	inline const char* GetResourceName()
-	{
-		char* resourceName = "";
-		m_resourceHost->GetResourceName(&resourceName);
-
-		return resourceName;
-	}
-
-	inline std::string GetNativesDir()
-	{
-		return m_nativesDir;
-	}
-
-	inline lua_CFunction GetDbTraceback()
-	{
-		return m_dbTraceback;
-	}
-
-private:
-	result_t LoadFileInternal(OMPtr<fxIStream> stream, char* scriptFile);
-
-	result_t LoadHostFileInternal(char* scriptFile);
-
-	result_t LoadSystemFileInternal(char* scriptFile);
-
-	result_t RunFileInternal(char* scriptFile, std::function<result_t(char*)> loadFunction);
-
-	result_t LoadSystemFile(char* scriptFile);
-
-	result_t LoadNativesBuild(const std::string& nativeBuild);
-
-public:
-	NS_DECL_ISCRIPTRUNTIME;
-
-	NS_DECL_ISCRIPTFILEHANDLINGRUNTIME;
-
-	NS_DECL_ISCRIPTTICKRUNTIME;
-
-	NS_DECL_ISCRIPTEVENTRUNTIME;
-
-	NS_DECL_ISCRIPTREFRUNTIME;
-
-	NS_DECL_ISCRIPTMEMINFORUNTIME;
-
-	NS_DECL_ISCRIPTSTACKWALKINGRUNTIME;
-
-	NS_DECL_ISCRIPTDEBUGRUNTIME;
-};
-
-static OMPtr<LuaScriptRuntime> g_currentLuaRuntime;
-
+// Additional flag to denote the profiler was created by IScriptProfiler
+#define LMPROF_STATE_FX_PROFILER 0x80000000
+
+/// <summary>
+/// </summary>
+uint8_t g_metaFields[(size_t)LuaMetaFields::Max];
+
+/// <summary>
+/// </summary>
+static fx::OMPtr<fx::LuaScriptRuntime> g_currentLuaRuntime;
+
+/// <summary>
+/// </summary>
 static IScriptHost* g_lastScriptHost;
 
-class LuaPushEnvironment
+#if defined(LUA_USE_RPMALLOC)
+#include "rpmalloc/rpmalloc.h"
+
+// Global static object handling rpmalloc initializing and finalizing
+struct rpmalloc_GlobalGuard
 {
-private:
-	fx::PushEnvironment m_pushEnvironment;
+	rpmalloc_GlobalGuard() { rpmalloc_initialize(); }
+	~rpmalloc_GlobalGuard() { rpmalloc_finalize(); }
+} static rp_global_guard;
 
-	OMPtr<LuaScriptRuntime> m_lastLuaRuntime;
-
-public:
-	inline LuaPushEnvironment(LuaScriptRuntime* runtime)
-		: m_pushEnvironment(runtime)
-	{
-		g_lastScriptHost = runtime->GetScriptHost();
-
-		m_lastLuaRuntime = g_currentLuaRuntime;
-		g_currentLuaRuntime = runtime;
-	}
-
-	inline ~LuaPushEnvironment()
-	{
-		g_currentLuaRuntime = m_lastLuaRuntime;
-	}
-};
-
-LuaScriptRuntime::~LuaScriptRuntime()
+lua_State* fx::LuaStateHolder::lua_rpmalloc_state(void*& opaque)
 {
+	static auto lua_rpmalloc = [](void* ud, void* ptr, size_t osize, size_t nsize) -> void*
+	{
+		heap_t* heap = static_cast<heap_t*>(ud);
+		if (nsize == 0)
+		{
+			rpmalloc_heap_free(heap, ptr);
+			return NULL;
+		}
+		else if (ptr == NULL)
+		{
+			return rpmalloc_heap_aligned_alloc(heap, 16, nsize);
+		}
+		else
+		{
+			return rpmalloc_heap_aligned_realloc(heap, ptr, 16, nsize, osize, 0);
+		}
+	};
+
+	static auto lua_panic = [](lua_State* L) -> int
+	{
+		const char* msg = lua_tostring(L, -1);
+		if (msg == NULL)
+		{
+			msg = "error object is not a string";
+		}
+
+		lua_writestringerror("PANIC: unprotected error in call to Lua API (%s)\n", msg);
+		return 0; /* return to Lua to abort */
+	};
+
+	heap_t* rpmalloc_heap = rpmalloc_heap_acquire();
+	if (rpmalloc_heap != nullptr)
+	{
+		lua_State* L = lua_newstate(lua_rpmalloc, static_cast<void*>(rpmalloc_heap));
+		if (L != nullptr)
+		{
+			opaque = static_cast<void*>(rpmalloc_heap);
+			lua_atpanic(L, lua_panic);
+		}
+		else
+		{
+			rpmalloc_heap_release(rpmalloc_heap);
+		}
+		return L;
+	}
+	return nullptr;
 }
 
-lua_CFunction Lua_GetNative(lua_State* L, const char* name);
-
-const OMPtr<LuaScriptRuntime>& LuaScriptRuntime::GetCurrent()
+void fx::LuaStateHolder::lua_rpmalloc_free(void* opaque)
 {
-#if _DEBUG
-	LuaScriptRuntime* luaRuntime;
-	OMPtr<IScriptRuntime> runtime;
+	rpmalloc_heap_free_all(static_cast<heap_t*>(opaque));
+	rpmalloc_heap_release(static_cast<heap_t*>(opaque));
+}
 
-	assert(FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)));
-	assert(luaRuntime = static_cast<LuaScriptRuntime*>(runtime.GetRef()));
-
-	assert(luaRuntime == g_currentLuaRuntime.GetRef());
 #endif
-
-	return g_currentLuaRuntime;
-}
-
-void ScriptTraceV(const char* string, fmt::printf_args formatList)
-{
-	auto t = fmt::vsprintf(string, formatList);
-	console::Printf(fmt::sprintf("script:%s", LuaScriptRuntime::GetCurrent()->GetResourceName()), "%s", t);
-
-	LuaScriptRuntime::GetCurrent()->GetScriptHost()->ScriptTrace(const_cast<char*>(t.c_str()));
-}
-
-template<typename... TArgs>
-void ScriptTrace(const char* string, const TArgs&... args)
-{
-	ScriptTraceV(string, fmt::make_printf_args(args...));
-}
 
 // luaL_openlibs version without io/os libs
 static const luaL_Reg lualibs[] = {
@@ -384,14 +156,95 @@ static const luaL_Reg lualibs[] = {
 	{ NULL, NULL }
 };
 
-LUALIB_API void safe_openlibs(lua_State* L)
+/// <summary>
+/// Console
+/// </summary>
+namespace fx
 {
-	const luaL_Reg* lib = lualibs;
-	for (; lib->func; lib++)
+void ScriptTraceV(const char* string, fmt::printf_args formatList)
+{
+	auto t = fmt::vsprintf(string, formatList);
+	console::Printf(fmt::sprintf("script:%s", LuaScriptRuntime::GetCurrent()->GetResourceName()), "%s", t);
+
+	LuaScriptRuntime::GetCurrent()->GetScriptHost()->ScriptTrace(const_cast<char*>(t.c_str()));
+}
+
+template<typename... TArgs>
+void ScriptTrace(const char* string, const TArgs&... args)
+{
+	ScriptTraceV(string, fmt::make_printf_args(args...));
+}
+
+static int Lua_Print(lua_State* L)
+{
+	const int n = lua_gettop(L); /* number of arguments */
+
+	lua_getglobal(L, "tostring");
+	for (int i = 1; i <= n; i++)
 	{
-		luaL_requiref(L, lib->name, lib->func, 1);
-		lua_pop(L, 1);
+		lua_pushvalue(L, -1); /* function to be called */
+		lua_pushvalue(L, i); /* value to print */
+		lua_call(L, 1, 1);
+
+		size_t l = 0;
+		const char* s = lua_tolstring(L, -1, &l); /* get result */
+		if (s == NULL)
+			return luaL_error(L, "'tostring' must return a string to 'print'");
+
+		if (i > 1)
+			ScriptTrace("%s", std::string("\t", 1));
+		ScriptTrace("%s", std::string(s, l));
+		lua_pop(L, 1); /* pop result */
 	}
+	ScriptTrace("\n");
+	return 0;
+}
+}
+
+/// <summary>
+/// CitizenLib
+/// </summary>
+namespace fx
+{
+struct LuaBoundary
+{
+	lua_Integer hint;
+	lua_State* thread;
+};
+
+class LuaProfilerScope
+{
+private:
+	fx::LuaScriptRuntime* luaRuntime;
+	const bool begin;
+	bool requiresClose;
+
+public:
+	LuaProfilerScope(fx::LuaScriptRuntime* luaRuntime_, bool begin_ = true)
+		: luaRuntime(luaRuntime_), begin(begin_), requiresClose(false)
+	{
+		requiresClose = luaRuntime->IScriptProfiler_Tick(begin) != 0;
+	}
+
+	~LuaProfilerScope()
+	{
+		Close();
+	}
+
+	void LUA_INLINE Close()
+	{
+		if (requiresClose)
+		{
+			requiresClose = false;
+			luaRuntime->IScriptProfiler_Tick(!begin);
+		}
+	}
+};
+
+static int Lua_Trace(lua_State* L)
+{
+	ScriptTrace("%s", luaL_checkstring(L, 1));
+	return 0;
 }
 
 static int Lua_SetTickRoutine(lua_State* L)
@@ -399,17 +252,19 @@ static int Lua_SetTickRoutine(lua_State* L)
 	// push the routine to reference and add a reference
 	lua_pushvalue(L, 1);
 
-	int ref = luaL_ref(L, LUA_REGISTRYINDEX);
+	const int ref = luaL_ref(L, LUA_REGISTRYINDEX);
 
 	// set the tick callback in the current routine
 	auto luaRuntime = LuaScriptRuntime::GetCurrent().GetRef();
 
 	luaRuntime->SetTickRoutine([=]()
 	{
+		LuaProfilerScope _profile(luaRuntime);
+
 		// set the error handler
 		lua_pushcfunction(L, luaRuntime->GetDbTraceback());
 
-		int eh = lua_gettop(L);
+		const int eh = lua_gettop(L);
 
 		// get the referenced function
 		lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
@@ -417,6 +272,8 @@ static int Lua_SetTickRoutine(lua_State* L)
 		// invoke the tick routine
 		if (lua_pcall(L, 0, 0, eh) != 0)
 		{
+			// Copies the contents of the string, ensuring the pointer remains
+			// valid after lua_pop()
 			std::string err = luaL_checkstring(L, -1);
 			lua_pop(L, 1);
 
@@ -429,26 +286,12 @@ static int Lua_SetTickRoutine(lua_State* L)
 	return 0;
 }
 
-void LuaScriptRuntime::SetTickRoutine(const std::function<void()>& tickRoutine)
-{
-	if (!m_tickRoutine)
-	{
-		m_tickRoutine = tickRoutine;
-	}
-}
-
-struct LuaBoundary
-{
-	int hint;
-	lua_State* thread;
-};
-
 static int Lua_SetStackTraceRoutine(lua_State* L)
 {
 	// push the routine to reference and add a reference
 	lua_pushvalue(L, 1);
 
-	int ref = luaL_ref(L, LUA_REGISTRYINDEX);
+	const int ref = luaL_ref(L, LUA_REGISTRYINDEX);
 
 	// set the tick callback in the current routine
 	auto luaRuntime = LuaScriptRuntime::GetCurrent().GetRef();
@@ -457,11 +300,12 @@ static int Lua_SetStackTraceRoutine(lua_State* L)
 	{
 		// static array for retval output (sadly)
 		static std::vector<char> retvalArray(32768);
+		LuaProfilerScope _profile(luaRuntime);
 
 		// set the error handler
 		lua_pushcfunction(L, luaRuntime->GetDbTraceback());
 
-		int eh = lua_gettop(L);
+		const int eh = lua_gettop(L);
 
 		// get the referenced function
 		lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
@@ -554,6 +398,8 @@ static int Lua_SetEventRoutine(lua_State* L)
 
 	luaRuntime->SetEventRoutine([=](const char* eventName, const char* eventPayload, size_t payloadSize, const char* eventSource)
 	{
+		LuaProfilerScope _profile(luaRuntime);
+
 		// set the error handler
 		lua_pushcfunction(L, luaRuntime->GetDbTraceback());
 
@@ -582,20 +428,12 @@ static int Lua_SetEventRoutine(lua_State* L)
 	return 0;
 }
 
-void LuaScriptRuntime::SetEventRoutine(const TEventRoutine& eventRoutine)
-{
-	if (!m_eventRoutine)
-	{
-		m_eventRoutine = eventRoutine;
-	}
-}
-
 static int Lua_SetCallRefRoutine(lua_State* L)
 {
 	// push the routine to reference and add a reference
 	lua_pushvalue(L, 1);
 
-	int ref = luaL_ref(L, LUA_REGISTRYINDEX);
+	const int ref = luaL_ref(L, LUA_REGISTRYINDEX);
 
 	// set the event callback in the current routine
 	auto luaRuntime = LuaScriptRuntime::GetCurrent().GetRef();
@@ -604,11 +442,12 @@ static int Lua_SetCallRefRoutine(lua_State* L)
 	{
 		// static array for retval output (sadly)
 		static std::vector<char> retvalArray(32768);
+		LuaProfilerScope _profile(luaRuntime);
 
 		// set the error handler
 		lua_pushcfunction(L, luaRuntime->GetDbTraceback());
 
-		int eh = lua_gettop(L);
+		const int eh = lua_gettop(L);
 
 		// get the referenced function
 		lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
@@ -655,17 +494,19 @@ static int Lua_SetDeleteRefRoutine(lua_State* L)
 	// push the routine to reference and add a reference
 	lua_pushvalue(L, 1);
 
-	int ref = luaL_ref(L, LUA_REGISTRYINDEX);
+	const int ref = luaL_ref(L, LUA_REGISTRYINDEX);
 
 	// set the event callback in the current routine
 	auto luaRuntime = LuaScriptRuntime::GetCurrent().GetRef();
 
 	luaRuntime->SetDeleteRefRoutine([=](int32_t refId)
 	{
+		LuaProfilerScope _profile(luaRuntime);
+
 		// set the error handler
 		lua_pushcfunction(L, luaRuntime->GetDbTraceback());
 
-		int eh = lua_gettop(L);
+		const int eh = lua_gettop(L);
 
 		// get the referenced function
 		lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
@@ -693,17 +534,19 @@ static int Lua_SetDuplicateRefRoutine(lua_State* L)
 	// push the routine to reference and add a reference
 	lua_pushvalue(L, 1);
 
-	int ref = luaL_ref(L, LUA_REGISTRYINDEX);
+	const int ref = luaL_ref(L, LUA_REGISTRYINDEX);
 
 	// set the event callback in the current routine
 	auto luaRuntime = LuaScriptRuntime::GetCurrent().GetRef();
 
 	luaRuntime->SetDuplicateRefRoutine([=](int32_t refId)
 	{
+		LuaProfilerScope _profile(luaRuntime);
+
 		// set the error handler
 		lua_pushcfunction(L, luaRuntime->GetDbTraceback());
 
-		int eh = lua_gettop(L);
+		const int eh = lua_gettop(L);
 
 		// get the referenced function
 		lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
@@ -754,6 +597,7 @@ static int Lua_InvokeFunctionReference(lua_State* L)
 	// get required entries
 	auto& luaRuntime = LuaScriptRuntime::GetCurrent();
 	auto scriptHost = luaRuntime->GetScriptHost();
+	LuaProfilerScope _profile(luaRuntime.GetRef(), false);
 
 	// variables to hold state
 	fxNativeContext context = { 0 };
@@ -781,8 +625,9 @@ static int Lua_InvokeFunctionReference(lua_State* L)
 		char* error = "Unknown";
 		scriptHost->GetLastErrorText(&error);
 
+		_profile.Close();
 		lua_pushstring(L, va("Execution of native %016x in script host failed: %s", 0xe3551879, error));
-		lua_error(L);
+		return lua_error(L);
 	}
 
 	// get return values
@@ -798,7 +643,7 @@ static int Lua_SubmitBoundaryStart(lua_State* L)
 	auto& luaRuntime = LuaScriptRuntime::GetCurrent();
 	auto scriptHost = luaRuntime->GetScriptHost();
 
-	auto val = lua_tointeger(L, 1);
+	lua_Integer val = lua_tointeger(L, 1);
 	lua_State* thread = lua_tothread(L, 2);
 
 	LuaBoundary b;
@@ -816,7 +661,7 @@ static int Lua_SubmitBoundaryEnd(lua_State* L)
 	auto& luaRuntime = LuaScriptRuntime::GetCurrent();
 	auto scriptHost = luaRuntime->GetScriptHost();
 
-	auto val = lua_tointeger(L, 1);
+	lua_Integer val = lua_tointeger(L, 1);
 	lua_State* thread = lua_tothread(L, 2);
 
 	LuaBoundary b;
@@ -828,830 +673,8 @@ static int Lua_SubmitBoundaryEnd(lua_State* L)
 	return 0;
 }
 
-int Lua_Trace(lua_State* L)
-{
-	ScriptTrace("%s", luaL_checkstring(L, 1));
-
-	return 0;
-}
-
-enum class LuaMetaFields : uint8_t
-{
-	PointerValueInt,
-	PointerValueFloat,
-	PointerValueVector,
-	ReturnResultAnyway,
-	ResultAsInteger,
-	ResultAsLong,
-	ResultAsFloat,
-	ResultAsString,
-	ResultAsVector,
-	ResultAsObject,
-	Max
-};
-
-static uint8_t g_metaFields[(size_t)LuaMetaFields::Max];
-
-struct scrObject
-{
-	const char* data;
-	uintptr_t length;
-};
-
-// padded vector struct
-struct scrVector
-{
-	float x;
-
-private:
-	uint32_t pad0;
-
-public:
-	float y;
-
-private:
-	uint32_t pad1;
-
-public:
-	float z;
-
-private:
-	uint32_t pad2;
-};
-
-typedef struct alignas(16) fxLuaResult
-{
-	PointerField* pointerFields;
-
-	int numReturnValues; // return values and their types
-	uintptr_t retvals[16];
-	LuaMetaFields rettypes[16];
-	LuaMetaFields returnValueCoercion; // coercion for the result value
-	bool returnResultAnyway; // flag to return a result even if a pointer return value is passed
-
-	LUA_INLINE fxLuaResult(PointerField* _fields)
-		: pointerFields(_fields), numReturnValues(0), returnValueCoercion(LuaMetaFields::Max), returnResultAnyway(false)
-	{
-		auto* const __restrict rv = retvals;
-		auto* const __restrict rt = rettypes;
-
-		for (size_t i = 0; i < std::size(retvals); ++i)
-		{
-			rv[i] = 0;
-		}
-
-		for (size_t i = 0; i < std::size(rettypes); ++i)
-		{
-			rt[i] = LuaMetaFields::Max;
-		}
-	}
-} fxLuaResult;
-
-/// <summary>
-/// Consider the possibly converting SHRSTR's to VLNGSTR's to avoid the handler
-/// from invalidating internalized strings.
-/// </summary>
-/// <param name="L"></param>
-/// <param name="idx"></param>
-/// <param name="context"></param>
-/// <returns></returns>
-template<typename TIdx, typename TContext>
-static int SAFE_BUFFERS Lua_PushContextArgument(lua_State* L, TIdx idx, TContext& context, fxLuaResult& result)
-{
-	// pushing function
-	auto push = [&](const auto& value)
-	{
-		using TVal = std::decay_t<decltype(value)>;
-		auto na = context.numArguments;
-
-		if constexpr (sizeof(TVal) < sizeof(uintptr_t))
-		{
-			if constexpr (std::is_integral_v<TVal>)
-			{
-				if constexpr (std::is_signed_v<TVal>)
-				{
-					*reinterpret_cast<uintptr_t*>(&context.arguments[na]) = (uintptr_t)(uint32_t)value;
-				}
-				else
-				{
-					*reinterpret_cast<uintptr_t*>(&context.arguments[na]) = (uintptr_t)value;
-				}
-			}
-			else
-			{
-				*reinterpret_cast<uintptr_t*>(&context.arguments[na]) = *reinterpret_cast<const uint32_t*>(&value);
-			}
-		}
-		else
-		{
-			*reinterpret_cast<TVal*>(&context.arguments[na]) = value;
-		}
-
-		context.numArguments = na + 1;
-	};
-
-	auto pushPtr = [&](LuaMetaFields metaField)
-	{
-		if (result.numReturnValues >= _countof(result.retvals))
-		{
-			lua_pushstring(L, "too many return value arguments");
-			return lua_error(L);
-		}
-
-		// push the offset and set the type
-		push(&result.retvals[result.numReturnValues]);
-		result.rettypes[result.numReturnValues] = metaField;
-
-		// increment the counter
-		if (metaField == LuaMetaFields::PointerValueVector)
-		{
-			result.numReturnValues += 3;
-		}
-		else
-		{
-			result.numReturnValues += 1;
-		}
-		return 1;
-	};
-
-	// table parsing implementation
-	auto pushTable = [&]()
-	{
-		luaL_checkstack(L, 2, "table arguments");
-		lua_pushstring(L, "__data");
-
-		// get the type and decide what to do based on it
-#if LUA_VERSION_NUM == 504
-		auto validType = [](int t)
-		{
-			return t == LUA_TBOOLEAN || t == LUA_TNUMBER || t == LUA_TSTRING || t == LUA_TVECTOR;
-		};
-#else
-		auto validType = [](int t)
-		{
-			return t == LUA_TBOOLEAN || t == LUA_TNUMBER || t == LUA_TSTRING || t == LUA_TVECTOR2 || t == LUA_TVECTOR3 || t == LUA_TVECTOR4 || t == LUA_TQUAT;
-		};
-#endif
-
-		if (validType(lua_rawget(L, lua_rel_index(idx, 1)))) // Account for pushstring if idx < 0
-		{
-			Lua_PushContextArgument(L, -1, context, result);
-			lua_pop(L, 1);
-		}
-		else
-		{
-			lua_pop(L, 1); // [...]
-			if (luaL_getmetafield(L, idx, "__data") == LUA_TFUNCTION) // [..., metafield]
-			{
-				// The __data function can only allow one return value (no LUA_MULTRET)
-				// to avoid additional implicitly expanded types during native execution.
-				lua_pushvalue(L, lua_rel_index(idx, 1)); // [..., function, argument]
-				lua_call(L, 1, 1); // [..., value]
-			}
-
-			if (validType(lua_type(L, -1)))
-			{
-				Lua_PushContextArgument(L, -1, context, result);
-				lua_pop(L, 1); // [...]
-			}
-			else
-			{
-				lua_pop(L, 1);
-				lua_pushstring(L, "Invalid Lua type in __data");
-				return lua_error(L);
-			}
-		}
-		return 1;
-	};
-
-	auto pushUserData = [&](uint8_t* ptr)
-	{
-		// if the pointer is a metafield
-		if (ptr >= g_metaFields && ptr < &g_metaFields[(int)LuaMetaFields::Max])
-		{
-			LuaMetaFields metaField = static_cast<LuaMetaFields>(ptr - g_metaFields);
-
-			// switch on the metafield
-			switch (metaField)
-			{
-				case LuaMetaFields::PointerValueInt:
-				case LuaMetaFields::PointerValueFloat:
-				case LuaMetaFields::PointerValueVector:
-				{
-					result.retvals[result.numReturnValues] = 0;
-
-					if (metaField == LuaMetaFields::PointerValueVector)
-					{
-						result.retvals[result.numReturnValues + 1] = 0;
-						result.retvals[result.numReturnValues + 2] = 0;
-					}
-
-					pushPtr(metaField);
-
-					break;
-				}
-				case LuaMetaFields::ReturnResultAnyway:
-					result.returnResultAnyway = true;
-					break;
-				case LuaMetaFields::ResultAsInteger:
-				case LuaMetaFields::ResultAsLong:
-				case LuaMetaFields::ResultAsString:
-				case LuaMetaFields::ResultAsFloat:
-				case LuaMetaFields::ResultAsVector:
-				case LuaMetaFields::ResultAsObject:
-					result.returnResultAnyway = true;
-					result.returnValueCoercion = metaField;
-					break;
-				default:
-					break;
-			}
-		}
-		// or if the pointer is a runtime pointer field
-		else if (ptr >= reinterpret_cast<uint8_t*>(result.pointerFields) && ptr < (reinterpret_cast<uint8_t*>(result.pointerFields) + (sizeof(PointerField) * 2)))
-		{
-			// guess the type based on the pointer field type
-			intptr_t ptrField = ptr - reinterpret_cast<uint8_t*>(result.pointerFields);
-			LuaMetaFields metaField = static_cast<LuaMetaFields>(ptrField / sizeof(PointerField));
-
-			if (metaField == LuaMetaFields::PointerValueInt || metaField == LuaMetaFields::PointerValueFloat)
-			{
-				auto ptrFieldEntry = reinterpret_cast<PointerFieldEntry*>(ptr);
-
-				result.retvals[result.numReturnValues] = ptrFieldEntry->value;
-				ptrFieldEntry->empty = true;
-
-				pushPtr(metaField);
-			}
-		}
-		else
-		{
-			push(ptr);
-		}
-	};
-
-#if LUA_VERSION_NUM == 504
-	const TValue* value = lua_getvalue(L, idx);
-	switch (ttypetag(value))
-	{
-		case LUA_VNIL:
-		case LUA_VFALSE:
-			push(0);
-			break;
-		case LUA_VTRUE:
-			push(1);
-			break;
-		case LUA_VNUMINT:
-			push(ivalue(value));
-			break;
-		case LUA_VNUMFLT:
-			push(cast_float(fltvalue(value)));
-			break;
-		case LUA_VSHRSTR:
-		case LUA_VLNGSTR:
-			push(svalue(value));
-			break;
-		case LUA_VVECTOR2:
-		{
-			const lua_Float4* v2 = &(val_(value).f4);
-
-			push(cast_float(v2->x));
-			push(cast_float(v2->y));
-
-			break;
-		}
-		case LUA_VVECTOR3:
-		{
-			const lua_Float4* v2 = &(val_(value).f4);
-
-			push(cast_float(v2->x));
-			push(cast_float(v2->y));
-			push(cast_float(v2->z));
-
-			break;
-		}
-		case LUA_VVECTOR4:
-		case LUA_VQUAT:
-		{
-			const lua_Float4* v2 = &(val_(value).f4);
-
-			push(cast_float(v2->x));
-			push(cast_float(v2->y));
-			push(cast_float(v2->z));
-			push(cast_float(v2->w));
-
-			break;
-		}
-		case LUA_VTABLE: // table (high-level class with __data field)
-		{
-			pushTable();
-			break;
-		}
-		case LUA_TLIGHTUSERDATA:
-		{
-			// lapi.c: touserdata
-			uint8_t* ptr;
-			switch (ttype(value))
-			{
-				case LUA_TUSERDATA:
-					ptr = reinterpret_cast<uint8_t*>(getudatamem(uvalue(value)));
-					break;
-				case LUA_TLIGHTUSERDATA:
-					ptr = reinterpret_cast<uint8_t*>(pvalue(value));
-					break;
-				default:
-					return luaL_typeerror(L, idx, "invalid userdata type");
-			}
-
-			pushUserData(ptr);
-			break;
-		}
-		default:
-		{
-			lua_pushstring(L, va("Invalid Lua type: %s", lua_typename(L, ttype(value))));
-			return lua_error(L);
-		}
-	}
-#else
-	// get the type and decide what to do based on it
-	const auto* value = lua_getvalue(L, idx);
-	int type = lua_valuetype(L, value);
-
-	// nil: add '0'
-	switch (type)
-	{
-		// nil
-		case LUA_TNIL:
-		{
-			push(0);
-			break;
-		}
-		// integer/float
-		case LUA_TNUMBER:
-		{
-			if (lua_valueisinteger(L, value))
-			{
-				push(lua_valuetointeger(L, value));
-			}
-			else if (lua_valueisfloat(L, value))
-			{
-				push(static_cast<float>(lua_valuetonumber(L, value)));
-			}
-			break;
-		}
-		// boolean
-		case LUA_TBOOLEAN:
-			push(lua_valuetoboolean(L, value));
-			break;
-		// table (high-level class with __data field)
-		case LUA_TTABLE:
-		{
-			pushTable();
-
-			break;
-		}
-		// string
-		case LUA_TSTRING:
-		{
-			push(lua_valuetostring(L, value));
-			break;
-		}
-		// vectors
-		case LUA_TVECTOR2:
-		{
-			auto f4 = lua_valuetofloat4(L, value);
-
-			push(f4.x);
-			push(f4.y);
-
-			break;
-		}
-		case LUA_TVECTOR3:
-		{
-			auto f4 = lua_valuetofloat4(L, value);
-
-			push(f4.x);
-			push(f4.y);
-			push(f4.z);
-
-			break;
-		}
-		case LUA_TVECTOR4:
-		case LUA_TQUAT:
-		{
-			auto f4 = lua_valuetofloat4(L, value);
-
-			push(f4.x);
-			push(f4.y);
-			push(f4.z);
-			push(f4.w);
-
-			break;
-		}
-		// metafield
-		case LUA_TLIGHTUSERDATA:
-		{
-			uint8_t* ptr = reinterpret_cast<uint8_t*>(lua_valuetolightuserdata(L, value));
-			pushUserData(ptr);
-
-			break;
-		}
-		default:
-		{
-			lua_pushstring(L, va("Invalid Lua type: %s", lua_typename(L, type)));
-			return lua_error(L);
-		}
-	}
-#endif
-	return 1;
-}
-
-template<bool IsPtr>
-struct alignas(16) fxLuaNativeContext : fxNativeContext
-{
-	fxLuaNativeContext()
-		: fxNativeContext()
-	{
-		memset(arguments, 0, sizeof(arguments));
-		numArguments = 0;
-		numResults = 0;
-	}
-};
-
-#ifndef IS_FXSERVER
-template<>
-struct alignas(16) fxLuaNativeContext<true> : NativeContextRaw
-{
-	int numArguments;
-	alignas(16) uintptr_t arguments[32];
-
-	fxLuaNativeContext()
-		: NativeContextRaw(arguments, 0), numArguments(0)
-	{
-	}
-};
-
-static LONG ShouldHandleUnwind(DWORD exceptionCode, uint64_t identifier);
-
-static inline void CallHandler(void* handler, uint64_t nativeIdentifier, rage::scrNativeCallContext& rageContext)
-{
-	// call the original function
-	static void* exceptionAddress;
-
-	__try
-	{
-		auto rageHandler = (rage::scrEngine::NativeHandler)handler;
-		rageHandler(&rageContext);
-	}
-	__except (exceptionAddress = (GetExceptionInformation())->ExceptionRecord->ExceptionAddress, ShouldHandleUnwind((GetExceptionInformation())->ExceptionRecord->ExceptionCode, nativeIdentifier))
-	{
-		throw std::exception(va("Error executing native 0x%016llx at address %p.", nativeIdentifier, exceptionAddress));
-	}
-}
-
-struct FastNativeHandler
-{
-	uint64_t hash;
-	rage::scrEngine::NativeHandler handler;
-};
-
-#include <CL2LaunchMode.h>
-
-int SAFE_BUFFERS Lua_GetNativeHandler(lua_State* L)
-{
-	auto hash = lua_tointeger(L, 1);
-	auto handler = (!launch::IsSDK()) ? rage::scrEngine::GetNativeHandler(hash) : nullptr;
-
-	auto nativeHandler = (FastNativeHandler*)lua_newuserdata(L, sizeof(FastNativeHandler));
-	nativeHandler->hash = hash;
-	nativeHandler->handler = handler;
-
-	return 1;
-}
-
-static void __declspec(safebuffers) CallHandlerSdk(void* handler, uint64_t nativeIdentifier, rage::scrNativeCallContext& rageContext)
-{
-	fxNativeContext context;
-	memcpy(context.arguments, rageContext.GetArgumentBuffer(), sizeof(void*) * rageContext.GetArgumentCount());
-
-	auto& luaRuntime = LuaScriptRuntime::GetCurrent();
-	auto scriptHost = luaRuntime->GetScriptHost();
-
-	HRESULT hr = scriptHost->InvokeNative(context);
-
-	if (!FX_SUCCEEDED(hr))
-	{
-		char* error = "Unknown";
-		scriptHost->GetLastErrorText(&error);
-
-		throw std::runtime_error(va("%s", error));
-	}
-
-	memcpy(rageContext.GetArgumentBuffer(), context.arguments, sizeof(void*) * 3);
-}
-
-static void __declspec(safebuffers) CallHandlerUniversal(void* handler, uint64_t nativeIdentifier, rage::scrNativeCallContext& rageContext);
-static decltype(&CallHandlerUniversal) g_callHandler = &CallHandlerUniversal;
-
-static void __declspec(safebuffers) CallHandlerUniversal(void* handler, uint64_t nativeIdentifier, rage::scrNativeCallContext& rageContext)
-{
-	if (launch::IsSDK())
-	{
-		g_callHandler = &CallHandlerSdk;
-	}
-	else
-	{
-		g_callHandler = &CallHandler;
-	}
-
-	return g_callHandler(handler, nativeIdentifier, rageContext);
-}
-#endif
-
-template<bool IsPtr>
-int SAFE_BUFFERS Lua_InvokeNative(lua_State* L)
-{
-	std::conditional_t<IsPtr, void*, uint64_t> hash;
-	uint64_t origHash;
-
-	if constexpr (!IsPtr)
-	{
-		// get the hash
-		origHash = hash = lua_tointeger(L, 1);
-	}
-#ifndef IS_FXSERVER
-	else
-	{
-		auto handlerRef = (FastNativeHandler*)lua_touserdata(L, 1);
-		hash = handlerRef->handler;
-		origHash = handlerRef->hash;
-	}
-#endif
-
-#ifdef GTA_FIVE
-	// hacky super fast path for 323 GET_HASH_KEY in GTA
-	if (origHash == 0xD24D37CC275948CC)
-	{
-		// if NULL or an integer, return 0
-		if (lua_isnil(L, 2) || lua_type(L, 2) == LUA_TNUMBER)
-		{
-			lua_pushinteger(L, 0);
-
-			return 1;
-		}
-
-		const char* str = luaL_checkstring(L, 2);
-		lua_pushinteger(L, static_cast<lua_Integer>(static_cast<int32_t>(HashString(str))));
-
-		return 1;
-	}
-#endif
-
-	// get required entries
-	auto& luaRuntime = LuaScriptRuntime::GetCurrent();
-	auto scriptHost = luaRuntime->GetScriptHost();
-
-	// variables to hold state
-	fxLuaNativeContext<IsPtr> context;
-	fxLuaResult result(luaRuntime->GetPointerFields());
-
-	if constexpr (!IsPtr)
-	{
-		context.nativeIdentifier = (uint64_t)hash;
-	}
-
-	// get argument count for the loop
-	size_t numArgs = lua_gettop(L);
-
-	// the big argument loop
-	for (size_t arg = 2; arg <= numArgs; arg++)
-	{
-		if (!Lua_PushContextArgument(L, arg, context, result))
-		{
-			return luaL_error(L, "Unexpected context result");
-		}
-	}
-
-	// invoke the native on the script host
-#ifndef IS_FXSERVER
-	if constexpr (IsPtr)
-	{
-		// zero out two following arguments
-		if (context.numArguments <= 30)
-		{
-			context.arguments[context.numArguments + 0] = 0;
-			context.arguments[context.numArguments + 1] = 0;
-		}
-
-		auto handler = hash;
-		context.SetArgumentCount(context.numArguments);
-
-		try
-		{
-			if (handler)
-			{
-				g_callHandler(handler, origHash, context);
-			}
-
-			// append vector3 result components
-			context.SetVectorResults();
-		}
-		catch (std::exception& e)
-		{
-			trace("%s: execution failed: %s\n", __func__, e.what());
-			lua_pushstring(L, va("Execution of native %016llx in script host failed: %s", origHash, e.what()));
-			lua_error(L);
-		}
-	}
-	else
-#endif
-	{
-		result_t hr = scriptHost->InvokeNative(context);
-
-		if (!FX_SUCCEEDED(hr))
-		{
-			char* error = "Unknown";
-			scriptHost->GetLastErrorText(&error);
-
-			lua_pushstring(L, va("Execution of native %016llx in script host failed: %s", origHash, error));
-			lua_error(L);
-		}
-	}
-
-	// number of Lua results
-	int numResults = 0;
-
-	// if no other result was requested, or we need to return the result anyway, push the result
-	if (result.numReturnValues == 0 || result.returnResultAnyway)
-	{
-		// increment the result count
-		numResults++;
-
-		// handle the type coercion
-		switch (result.returnValueCoercion)
-		{
-			case LuaMetaFields::ResultAsString:
-			{
-				struct scrString
-				{
-					const char* str;
-					size_t len;
-					uint32_t magic;
-				};
-
-				auto strString = reinterpret_cast<scrString*>(&context.arguments[0]);
-
-				if (strString->magic == 0xFEED1212)
-				{
-					lua_pushlstring(L, strString->str, strString->len);
-				}
-				else if (strString->str)
-				{
-					lua_pushstring(L, strString->str);
-				}
-				else
-				{
-					lua_pushnil(L);
-				}
-
-				break;
-			}
-			case LuaMetaFields::ResultAsFloat:
-				lua_pushnumber(L, *reinterpret_cast<float*>(&context.arguments[0]));
-				break;
-			case LuaMetaFields::ResultAsVector:
-			{
-				scrVector vector = *reinterpret_cast<scrVector*>(&context.arguments[0]);
-				lua_pushvector3(L, vector.x, vector.y, vector.z);
-				break;
-			}
-			case LuaMetaFields::ResultAsObject:
-			{
-				scrObject object = *reinterpret_cast<scrObject*>(&context.arguments[0]);
-				lua_pushlstring(L, object.data, object.length);
-
-				break;
-			}
-			case LuaMetaFields::ResultAsInteger:
-				lua_pushinteger(L, *reinterpret_cast<int32_t*>(&context.arguments[0]));
-				break;
-			case LuaMetaFields::ResultAsLong:
-				lua_pushinteger(L, *reinterpret_cast<int64_t*>(&context.arguments[0]));
-				break;
-			default:
-			{
-				int32_t integer = *reinterpret_cast<int32_t*>(&context.arguments[0]);
-
-				if ((integer & 0xFFFFFFFF) == 0)
-				{
-					lua_pushboolean(L, false);
-				}
-				else
-				{
-					lua_pushinteger(L, integer);
-				}
-			}
-		}
-	}
-
-	// loop over the return value pointers
-	{
-		int i = 0;
-
-		while (i < result.numReturnValues)
-		{
-			switch (result.rettypes[i])
-			{
-				case LuaMetaFields::PointerValueInt:
-					lua_pushinteger(L, *reinterpret_cast<int32_t*>(&result.retvals[i]));
-					i++;
-					break;
-
-				case LuaMetaFields::PointerValueFloat:
-					lua_pushnumber(L, *reinterpret_cast<float*>(&result.retvals[i]));
-					i++;
-					break;
-
-				case LuaMetaFields::PointerValueVector:
-				{
-					scrVector vector = *reinterpret_cast<scrVector*>(&result.retvals[i]);
-					lua_pushvector3(L, vector.x, vector.y, vector.z);
-
-					i += 3;
-					break;
-				}
-			}
-
-			numResults++;
-		}
-	}
-
-	// and return with the 'desired' amount of results
-	return numResults;
-}
-
-int Lua_LoadNative(lua_State* L)
-{
-	const char* fn = luaL_checkstring(L, 1);
-
-	auto& runtime = LuaScriptRuntime::GetCurrent();
-
-	int isCfxv2 = 0;
-	runtime->GetScriptHost2()->GetNumResourceMetaData("is_cfxv2", &isCfxv2);
-
-	// TODO/TEMPORARY: fxv2 oal is disabled by default for now
-	if (isCfxv2)
-	{
-		runtime->GetScriptHost2()->GetNumResourceMetaData("use_fxv2_oal", &isCfxv2);
-	}
-
-//#if !defined(GTA_FIVE) || (LUA_VERSION_NUM == 504)
-	if (isCfxv2)
-//#endif
-	{
-		auto nativeImpl = Lua_GetNative(L, fn);
-
-		if (nativeImpl)
-		{
-			lua_pushcfunction(L, nativeImpl);
-			return 1;
-		}
-	}
-
-	OMPtr<fxIStream> stream;
-
-	result_t hr = runtime->GetScriptHost()->OpenSystemFile(const_cast<char*>(va("%s0x%08x.lua", runtime->GetNativesDir(), HashRageString(fn))), stream.GetAddressOf());
-
-	if (!FX_SUCCEEDED(hr))
-	{
-		lua_pushnil(L);
-		return 1;
-	}
-
-	// read file data
-	uint64_t length;
-
-	if (FX_FAILED(hr = stream->GetLength(&length)))
-	{
-		lua_pushnil(L);
-		return 1;
-	}
-
-	std::vector<char> fileData(length + 1);
-	if (FX_FAILED(hr = stream->Read(&fileData[0], length, nullptr)))
-	{
-		lua_pushnil(L);
-		return 1;
-	}
-
-	fileData[length] = '\0';
-
-	lua_pushlstring(L, fileData.data(), length);
-
-	return 1;
-}
-
 template<LuaMetaFields metaField>
-int Lua_GetMetaField(lua_State* L)
+static int Lua_GetMetaField(lua_State* L)
 {
 	lua_pushlightuserdata(L, &g_metaFields[(int)metaField]);
 
@@ -1659,7 +682,7 @@ int Lua_GetMetaField(lua_State* L)
 }
 
 template<LuaMetaFields MetaField>
-int Lua_GetPointerField(lua_State* L)
+static int Lua_GetPointerField(lua_State* L)
 {
 	auto& runtime = LuaScriptRuntime::GetCurrent();
 
@@ -1677,7 +700,8 @@ int Lua_GetPointerField(lua_State* L)
 			pointerField->empty = false;
 
 			// to prevent accidental passing of arguments like _r, we check if this is a userdata
-			if (lua_isnil(L, 1) || lua_islightuserdata(L, 1) || lua_isuserdata(L, 1))
+			const int type = lua_type(L, 1);
+			if (type == LUA_TNIL || type == LUA_TLIGHTUSERDATA || type == LUA_TUSERDATA)
 			{
 				pointerField->value = 0;
 			}
@@ -1702,14 +726,49 @@ int Lua_GetPointerField(lua_State* L)
 	return 1;
 }
 
+static int Lua_Require(lua_State* L)
+{
+	const char* name = luaL_checkstring(L, 1);
+	lua_settop(L, 1); /* LOADED table will be at index 2 */
+#if LUA_VERSION_NUM >= 504
+	lua_getfield(L, LUA_REGISTRYINDEX, LUA_LOADED_TABLE);
+#else
+	lua_getfield(L, LUA_REGISTRYINDEX, "_LOADED");
+#endif
+	lua_getfield(L, 2, name); /* LOADED[name] */
+	if (lua_toboolean(L, -1)) /* is it there? */
+	{
+		return 1; /* package is already loaded */
+	}
+
+	if (strcmp(name, LUA_LMPROF_LIBNAME) == 0)
+	{
+		luaL_requiref(L, LUA_LMPROF_LIBNAME, luaopen_lmprof, 1);
+		return 1;
+	}
+#if LUA_VERSION_NUM >= 504
+	else if (strcmp(name, LUA_GLMLIBNAME) == 0)
+	{
+		luaL_requiref(L, LUA_GLMLIBNAME, luaopen_glm, 1);
+		return 1;
+	}
+#endif
+
+	// @TODO: Consider implementing a custom 'loadlib' module that uses VFS,
+	// for example, LoadSystemFile("citizen:/scripting/lua/json.lua"). Server
+	// side luarocks integration would be pretty neat.
+
+	return 0;
+}
+
 static const struct luaL_Reg g_citizenLib[] = {
 	{ "SetTickRoutine", Lua_SetTickRoutine },
 	{ "SetEventRoutine", Lua_SetEventRoutine },
 	{ "Trace", Lua_Trace },
-	{ "InvokeNative", Lua_InvokeNative<false> },
+	{ "InvokeNative", Lua_InvokeNative },
 #ifndef IS_FXSERVER
 	{ "GetNative", Lua_GetNativeHandler },
-	{ "InvokeNative2", Lua_InvokeNative<true> },
+	{ "InvokeNative2", Lua_InvokeNative2 },
 #endif
 	{ "LoadNative", Lua_LoadNative },
 	// ref things
@@ -1737,29 +796,75 @@ static const struct luaL_Reg g_citizenLib[] = {
 	{ "ResultAsObject", Lua_GetMetaField<LuaMetaFields::ResultAsObject> },
 	{ nullptr, nullptr }
 };
+}
 
-static int Lua_Print(lua_State* L)
+/// <summary>
+/// LuaScriptRuntime
+/// </summary>
+namespace fx
 {
-	int n = lua_gettop(L); /* number of arguments */
-	int i;
-	lua_getglobal(L, "tostring");
-	for (i = 1; i <= n; i++)
+class LuaPushEnvironment
+{
+private:
+	fx::PushEnvironment m_pushEnvironment;
+
+	OMPtr<LuaScriptRuntime> m_lastLuaRuntime;
+
+public:
+	LUA_INLINE LuaPushEnvironment(LuaScriptRuntime* runtime)
+		: m_pushEnvironment(runtime)
 	{
-		const char* s;
-		size_t l;
-		lua_pushvalue(L, -1); /* function to be called */
-		lua_pushvalue(L, i); /* value to print */
-		lua_call(L, 1, 1);
-		s = lua_tolstring(L, -1, &l); /* get result */
-		if (s == NULL)
-			return luaL_error(L, "'tostring' must return a string to 'print'");
-		if (i > 1)
-			ScriptTrace("%s", std::string("\t", 1));
-		ScriptTrace("%s", std::string(s, l));
-		lua_pop(L, 1); /* pop result */
+		g_lastScriptHost = runtime->GetScriptHost();
+
+		m_lastLuaRuntime = g_currentLuaRuntime;
+		g_currentLuaRuntime = runtime;
 	}
-	ScriptTrace("\n");
-	return 0;
+
+	LUA_INLINE ~LuaPushEnvironment()
+	{
+		g_currentLuaRuntime = m_lastLuaRuntime;
+	}
+};
+
+LuaScriptRuntime::~LuaScriptRuntime()
+{
+	// If == g_lastScriptHost
+}
+
+const OMPtr<LuaScriptRuntime>& LuaScriptRuntime::GetCurrent()
+{
+#if _DEBUG
+	LuaScriptRuntime* luaRuntime;
+	OMPtr<IScriptRuntime> runtime;
+
+	assert(FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)));
+	assert(luaRuntime = static_cast<LuaScriptRuntime*>(runtime.GetRef()));
+
+	assert(luaRuntime == g_currentLuaRuntime.GetRef());
+#endif
+
+	return g_currentLuaRuntime;
+}
+
+IScriptHost* LuaScriptRuntime::GetLastHost()
+{
+	return g_lastScriptHost;
+}
+
+void LuaScriptRuntime::SetTickRoutine(const std::function<void()>& tickRoutine)
+{
+	if (!m_tickRoutine)
+	{
+		m_tickRoutine = tickRoutine;
+	}
+}
+
+void LuaScriptRuntime::SetEventRoutine(const TEventRoutine& eventRoutine)
+{
+	if (!m_eventRoutine)
+	{
+		m_eventRoutine = eventRoutine;
+	}
 }
 
 result_t LuaScriptRuntime::Create(IScriptHost* scriptHost)
@@ -1812,7 +917,13 @@ result_t LuaScriptRuntime::Create(IScriptHost* scriptHost)
 		}
 	}
 
-	safe_openlibs(m_state);
+	// safe_openlibs
+	const luaL_Reg* lib = lualibs;
+	for (; lib->func; lib++)
+	{
+		luaL_requiref(m_state, lib->name, lib->func, 1);
+		lua_pop(m_state, 1);
+	}
 
 	{
 		// 0
@@ -1851,6 +962,13 @@ result_t LuaScriptRuntime::Create(IScriptHost* scriptHost)
 		return hr;
 	}
 
+	// Graph script loaded into Citizen.Graph
+	// @TODO: Only load graphing utility on Lua_Require
+	if (FX_FAILED(hr = LoadSystemFile("citizen:/scripting/lua/graph.lua")))
+	{
+		return hr;
+	}
+
 	lua_pushnil(m_state);
 	lua_setglobal(m_state, "dofile");
 
@@ -1859,6 +977,9 @@ result_t LuaScriptRuntime::Create(IScriptHost* scriptHost)
 
 	lua_pushcfunction(m_state, Lua_Print);
 	lua_setglobal(m_state, "print");
+
+	lua_pushcfunction(m_state, Lua_Require);
+	lua_setglobal(m_state, "require");
 
 	return FX_S_OK;
 }
@@ -1979,7 +1100,7 @@ result_t LuaScriptRuntime::LoadFileInternal(OMPtr<fxIStream> stream, char* scrip
 
 			if (m_debugListener.GetRef())
 			{
-				auto j = json::array();
+				auto j = nlohmann::json::array();
 
 				for (auto& line : lineNums)
 				{
@@ -2218,300 +1339,213 @@ void LuaScriptRuntime::SetParentObject(void* object)
 	m_parentObject = object;
 }
 
-using Lua_NativeMap = std::map<std::string, lua_CFunction, std::less<>>;
+/// <summary>
+/// Helper function for initializing the fx::ProfilerComponent bridge.
+/// </summary>
+static LuaProfilingMode IScriptProfiler_Initialize(lua_State* L, int m_profilingId);
 
-#if defined(IS_FXSERVER)
-struct LuaNativeWrapper
+bool LuaScriptRuntime::IScriptProfiler_Tick(bool begin)
 {
-	LUA_INLINE LuaNativeWrapper(uint64_t)
+	// Preempt
+	if (m_profilingMode == LuaProfilingMode::None)
 	{
+		return false;
 	}
+
+	lua_State* L = m_state.Get();
+	switch (m_profilingMode)
+	{
+		case LuaProfilingMode::None:
+			break;
+
+		// Flagged to initialize the fx::ProfilerComponent bridge.
+		case LuaProfilingMode::Setup:
+		{
+			m_profilingMode = IScriptProfiler_Initialize(L, m_profilingId);
+			return begin && m_profilingMode == LuaProfilingMode::Profiling; // Requires an 'exit' scope.
+		}
+
+		// The Lua runtime is either resuming execution or yielding until the
+		// next Tick/Event/CallRef routine.
+		//
+		// To improve clarity of the DevTools timeline: artificial ENTER_SCOPE/EXIT_SCOPE
+		// events are generated to ensure DevTools only renders timeline bars
+		// while the script runtime is active.
+		case LuaProfilingMode::Profiling:
+		{
+			lmprof_State* st = lmprof_singleton(L);
+			return begin ? lmprof_resume_execution(L, st)
+						 : lmprof_pause_execution(L, st);
+		}
+
+		// Flagged to shutdown the profiler.
+		case LuaProfilingMode::Shutdown:
+		{
+			m_profilingId = 0;
+			m_profilingMode = LuaProfilingMode::None;
+
+			// Ensure the profiler was initialized by IScriptProfiler. Must also
+			// consider the edge-case of it being preempted by the exposed
+			// lmprof.quit script function.
+			lmprof_State* st = lmprof_singleton(L);
+			if (st != l_nullptr && BITFIELD_TEST(st->state, LMPROF_STATE_FX_PROFILER))
+			{
+				lmprof_finalize_profiler(L, st, 0);
+				lmprof_shutdown_profiler(L, st);
+				if (lua_gc(L, LUA_GCISRUNNING, 0))
+				{
+					// Force collect & restart the garbage collection, ensuring
+					// all profiler overheads have been managed.
+					lua_gc(L, LUA_GCCOLLECT, 0);
+					lua_gc(L, LUA_GCRESTART, 0);
+				}
+			}
+			break;
+		}
+		default:
+		{
+			break;
+		}
+	}
+	return false;
+}
+
+result_t LuaScriptRuntime::SetupFxProfiler(void* obj, int32_t resourceId)
+{
+	lua_State* L = m_state.Get();
+	if (L != l_nullptr
+		&& lua_gethook(L) == l_nullptr // will be replacing debug.sethook: avoid it
+		&& lmprof_singleton(L) == l_nullptr) // Invalid profiler state: already being profiled.
+	{
+		m_profilingId = resourceId;
+		m_profilingMode = LuaProfilingMode::Setup; // @TODO: See comment in ShutdownFxProfiler.
+		return FX_S_OK;
+	}
+
+	return FX_E_INVALIDARG; // @TODO: Eventually create a unique error code.
+}
+
+result_t LuaScriptRuntime::ShutdownFxProfiler()
+{
+	if (m_profilingMode == LuaProfilingMode::Profiling)
+		m_profilingMode = LuaProfilingMode::Shutdown;
+	else
+		m_profilingMode = LuaProfilingMode::None;
+
+	return FX_S_OK;
+}
+
+/// <summary>
+/// Data required by lmprof to forward/bridge events to fx::ProfilerComponent.
+/// </summary>
+struct ProfilerState
+{
+	const fwRefContainer<fx::ProfilerComponent>& profiler;
 };
 
-struct LuaNativeContext : public fxNativeContext
+static LuaProfilingMode IScriptProfiler_Initialize(lua_State* L, int m_profilingId)
 {
-	LUA_INLINE LuaNativeContext(void*, int numArguments)
-	{
-		numArguments = numArguments;
-		numResults = 0;
-	}
+	const fwRefContainer<fx::ProfilerComponent>& profiler = fx::ResourceManager::GetCurrent(true)->GetComponent<fx::ProfilerComponent>();
+	lmprof_clock_init();
 
-	LUA_INLINE void Invoke(lua_State* L, uint64_t hash)
-	{
-		nativeIdentifier = hash;
+	lmprof_State* st = lmprof_new(L, LMPROF_MODE_EXT_CALLBACK | LMPROF_MODE_INSTRUMENT | LMPROF_MODE_MEMORY, lmprof_default_error);
+	st->state |= LMPROF_STATE_FX_PROFILER;
+	st->conf = LMPROF_OPT_COMPRESS_GRAPH | LMPROF_OPT_LOAD_STACK | LMPROF_OPT_STACK_MISMATCH | LMPROF_OPT_GC_COUNT_INIT;
+	st->thread.mainproc.pid = TRACE_PROCESS_MAIN;
+	st->thread.mainproc.tid = m_profilingId;
+	st->i.counterFrequency = 1;
 
-		if (FX_FAILED(g_lastScriptHost->InvokeNative(*this)))
+	// fx::ProfilerComponent uses std::chrono::[...].time_since_epoch(). Timing
+	// function requires hooking.
+	st->time = []() -> lu_time
+	{
+		return static_cast<lu_time>(fx::usec().count());
+	};
+
+	/// Initialize profiler state
+	st->i.trace.arg = new ProfilerState{ profiler };
+	st->i.trace.free = [](lua_State* L, void* args)
+	{
+		ProfilerState* state = static_cast<ProfilerState*>(args);
+		if (state != nullptr)
 		{
-			lua_pushstring(L, "Native invocation failed.");
-			lua_error(L);
+			delete state;
 		}
-	}
+	};
 
-	template<typename TVal>
-	LUA_INLINE TVal GetResult()
+	/// Entering/Exiting a function: map to ENTER_SCOPE/EXIT_SCOPE.
+	st->i.trace.scope = [](lua_State* L, lmprof_State* st, struct lmprof_StackInst* inst, int enter) -> int
 	{
-		return *(TVal*)(&arguments[0]);
-	}
+		ProfilerState* state = static_cast<ProfilerState*>(st->i.trace.arg);
 
-	template<typename TVal>
-	LUA_INLINE void SetArgument(size_t offset, const TVal& val)
-	{
-		if constexpr (sizeof(TVal) < 4)
+		// Measurements
+		const fx::ProfilerEvent::thread_t tid(st->thread.mainproc.tid);
+		const std::chrono::microseconds when = std::chrono::microseconds(inst->trace.call.s.time);
+
+		// To reduce bloat within the fx::Profiler output, periodically report
+		// memory events.
+		fx::ProfilerEvent::memory_t much = 0;
+		if (--st->i.counterFrequency <= 0)
 		{
-			*reinterpret_cast<uintptr_t*>(&arguments[offset]) = 0;
+			much = unit_allocated(&inst->trace.call.s);
+			st->i.counterFrequency = 16;
 		}
 
-		*reinterpret_cast<TVal*>(&arguments[offset]) = val;
-	}
-
-	template<typename TVal>
-	LUA_INLINE void Push(const TVal& val)
-	{
-		if constexpr (sizeof(TVal) < 4)
+		// Do not report the 'root' (dummy) record: That timeline event will be
+		// covered by trace.routine.
+		if (BITFIELD_TEST(inst->trace.record->info.event, LMPROF_RECORD_IGNORED | LMPROF_RECORD_ROOT))
 		{
-			*reinterpret_cast<uintptr_t*>(&arguments[numArguments]) = 0;
 		}
-
-		*reinterpret_cast<TVal*>(&arguments[numArguments]) = val;
-
-		if constexpr (sizeof(TVal) == sizeof(scrVector))
+		else if (enter)
 		{
-			numArguments += 3;
+			const char* source = inst->trace.record->info.source;
+			const std::string name = (source == NULL) ? "?" : source;
+			state->profiler->PushEvent(tid, ProfilerEventType::ENTER_SCOPE, when, name, "", much);
 		}
 		else
 		{
-			numArguments++;
-		}
-	}
-};
-
-#define LUA_EXC_WRAP_START(hash)
-
-#define LUA_EXC_WRAP_END(hash)
-
-#define ASSERT_LUA_ARGS(count)    \
-	if (!lua_asserttop(L, count)) \
-		return 0;
-#else
-struct LuaNativeWrapper
-{
-	rage::scrEngine::NativeHandler handler;
-
-	inline LuaNativeWrapper(uint64_t hash)
-	{
-		handler = rage::scrEngine::GetNativeHandler(hash);
-	}
-};
-
-static LONG ShouldHandleUnwind(DWORD exceptionCode, uint64_t identifier)
-{
-	// C++ exceptions?
-	if (exceptionCode == 0xE06D7363)
-	{
-		return EXCEPTION_CONTINUE_SEARCH;
-	}
-
-	// INVOKE_FUNCTION_REFERENCE crashing as top-level is usually related to native state corruption,
-	// we'll likely want to crash on this instead rather than on an assertion down the chain
-	if (identifier == HashString("INVOKE_FUNCTION_REFERENCE"))
-	{
-		return EXCEPTION_CONTINUE_SEARCH;
-	}
-
-	return EXCEPTION_EXECUTE_HANDLER;
-}
-
-struct LuaNativeContext
-{
-	NativeContextRaw rawCxt;
-
-	int numArguments;
-	uintptr_t arguments[32];
-
-	LuaNativeWrapper* nw;
-
-	LUA_INLINE LuaNativeContext(LuaNativeWrapper* nw, int numArguments)
-		: rawCxt(arguments, numArguments), numArguments(numArguments), nw(nw)
-	{
-	}
-
-	LUA_INLINE void Invoke(lua_State* L, uint64_t hash)
-	{
-		static void* exceptionAddress;
-
-		__try
-		{
-			nw->handler(&rawCxt);
-		}
-		__except (exceptionAddress = (GetExceptionInformation())->ExceptionRecord->ExceptionAddress, ShouldHandleUnwind((GetExceptionInformation())->ExceptionRecord->ExceptionCode, hash))
-		{
-			throw std::exception(va("Error executing native 0x%016llx at address %p.", hash, exceptionAddress));
-		}
-	}
-
-	template<typename TVal>
-	LUA_INLINE TVal GetResult()
-	{
-		return *(TVal*)(&arguments[0]);
-	}
-
-	template<typename TVal>
-	LUA_INLINE void SetArgument(size_t offset, const TVal& val)
-	{
-		if constexpr (sizeof(TVal) < 4)
-		{
-			*reinterpret_cast<uintptr_t*>(&arguments[offset]) = 0;
+			state->profiler->PushEvent(tid, ProfilerEventType::EXIT_SCOPE, when, much);
 		}
 
-		*reinterpret_cast<TVal*>(&arguments[offset]) = val;
-	}
+		return TRACE_EVENT_OK;
+	};
 
-	template<typename TVal>
-	LUA_INLINE void Push(const TVal& val)
+	/// Resuming/Yielding a coroutine. In lmprof these callbacks have their own
+	/// specialized TraceEvent format. This implementation will treat them as
+	/// scope events.
+	st->i.trace.routine = [](lua_State* L, lmprof_State* st, lmprof_EventProcess thread, int begin) -> int
 	{
-		if constexpr (sizeof(TVal) < 4)
-		{
-			*reinterpret_cast<uintptr_t*>(&arguments[numArguments]) = 0;
-		}
+		ProfilerState* state = static_cast<ProfilerState*>(st->i.trace.arg);
 
-		*reinterpret_cast<TVal*>(&arguments[numArguments]) = val;
+		// Measurements
+		const std::chrono::microseconds when = std::chrono::microseconds(st->thread.r.s.time);
+		const fx::ProfilerEvent::memory_t much(unit_allocated(&st->thread.r.s));
+		const fx::ProfilerEvent::thread_t tid(st->thread.mainproc.tid);
 
-		if constexpr (sizeof(TVal) == sizeof(scrVector))
+		if (begin)
 		{
-			numArguments += 3;
+			const std::string name = lmprof_thread_name(L, thread.tid, "Thread");
+			state->profiler->PushEvent(tid, ProfilerEventType::ENTER_SCOPE, when, name, "", much);
 		}
 		else
 		{
-			numArguments++;
+			state->profiler->PushEvent(tid, ProfilerEventType::EXIT_SCOPE, when, much);
 		}
-	}
-};
 
-#define LUA_EXC_WRAP_START(hash) \
-	try                          \
+		return TRACE_EVENT_OK;
+	};
+
+	// If hook initialization failed the profiler userdata will be thrown to the
+	// garbage collector.
+	LuaProfilingMode result = LuaProfilingMode::None;
+	if (lmprof_initialize_only_hooks(L, st, -1))
 	{
-
-#define LUA_EXC_WRAP_END(hash)                                          \
-	}                                                                   \
-	catch (std::exception & e)                                          \
-	{                                                                   \
-		lua_pushstring(L, e.what());                                    \
-		lua_error(L);                                                   \
-	}                                                                   \
-	catch (...)                                                         \
-	{                                                                   \
-		lua_pushstring(L, va("Error executing native %016llx.", hash)); \
-		lua_error(L);                                                   \
+		result = LuaProfilingMode::Profiling;
 	}
 
-#define ASSERT_LUA_ARGS(count)    \
-	if (!lua_asserttop(L, count)) \
-		return 0;
-#endif
-
-LUA_INLINE const char* Lua_ToFuncRef(lua_State* L, int idx)
-{
-	// TODO: maybe?
-	return lua_tostring(L, idx);
+	lua_pop(L, 1);
+	return result;
 }
-
-LUA_INLINE uint32_t Lua_ToHash(lua_State* L, int idx)
-{
-#if LUA_VERSION_NUM == 504
-	const TValue* o = lua_getvalue(L, idx);
-	if (ttisstring(o))
-		return HashString(svalue(o));
-	else if (ttisinteger(o))
-		return ivalue(o);
-	return 0;
-#else
-	const auto value = lua_getvalue(L, idx);
-
-	if (lua_valuetype(L, value) == LUA_TSTRING)
-	{
-		return HashString(lua_valuetostring(L, value));
-	}
-
-	return lua_valuetointeger(L, value);
-#endif
-}
-
-struct scrVectorLua
-{
-	float x;
-	uint32_t pad;
-	float y;
-	uint32_t pad2;
-	float z;
-	uint32_t pad3;
-
-	LUA_INLINE scrVectorLua()
-	{
-	}
-
-	LUA_INLINE scrVectorLua(float x, float y, float z)
-		: x(x), y(y), z(z)
-	{
-	}
-};
-
-LUA_INLINE scrVectorLua Lua_ToScrVector(lua_State* L, int idx)
-{
-#if LUA_VERSION_NUM == 504
-	luaL_checktype(L, idx, LUA_TVECTOR);
-	const TValue* o = lua_getvalue(L, idx);
-	const lua_Float4 f4 = vvalue(o);
-
-	return scrVectorLua{ f4.x, f4.y, f4.z };
-#else
-	auto f4 = lua_valuetofloat4(L, lua_getvalue(L, idx));
-
-	return scrVectorLua{ f4.x, f4.y, f4.z };
-#endif
-}
-
-LUA_INLINE void Lua_PushScrVector(lua_State* L, const scrVectorLua& val)
-{
-	lua_pushvector3(L, val.x, val.y, val.z);
-}
-
-LUA_INLINE void Lua_PushScrObject(lua_State* L, const scrObject& val)
-{
-	lua_pushlstring(L, val.data, val.length);
-
-	lua_getglobal(L, "msgpack");
-	lua_pushstring(L, "unpack");
-	lua_gettable(L, -2);
-
-	lua_pop(L, -2);
-
-	lua_call(L, 1, 1);
-}
-
-#if 0 && LUA_VERSION_NUM < 504
-#if !defined(IS_FXSERVER) && defined(GTA_FIVE)
-#include "Natives.h"
-#elif defined(IS_FXSERVER)
-#include "NativesServer.h"
-#else
-#endif
-
-lua_CFunction Lua_GetNative(lua_State* L, const char* name)
-{
-#if defined(GTA_FIVE) || defined(IS_FXSERVER)
-	auto it = natives.find(name);
-
-	return (it != natives.end()) ? it->second : nullptr;
-#else
-	return nullptr;
-#endif
-}
-#else
-lua_CFunction Lua_GetNative(lua_State* L, const char* name)
-{
-	return nullptr;
-}
-#endif
 
 #if LUA_VERSION_NUM == 504
 // {91A81564-E5F1-4FD6-BC6A-9865A081011D}
@@ -2528,3 +1562,8 @@ FX_NEW_FACTORY(LuaScriptRuntime);
 FX_IMPLEMENTS(CLSID_LuaScriptRuntime, IScriptRuntime);
 FX_IMPLEMENTS(CLSID_LuaScriptRuntime, IScriptFileHandlingRuntime);
 }
+
+#if !defined(_DEBUG) && !defined(BUILD_LUA_SCRIPT_NATIVES)
+	#define BUILD_LUA_SCRIPT_NATIVES
+	#include "LuaScriptNatives.cpp"
+#endif

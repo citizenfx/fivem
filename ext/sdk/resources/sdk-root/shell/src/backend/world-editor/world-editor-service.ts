@@ -1,5 +1,5 @@
 import { ApiClient } from "backend/api/api-client";
-import { ApiContribution } from "backend/api/api-contribution";
+import { ApiContribution, ApiContributionFactory } from "backend/api/api-contribution";
 import { handlesClientEvent } from "backend/api/api-decorators";
 import { ServerResourceDescriptor, ServerStartRequest } from "backend/game-server/game-server-runtime";
 import { GameServerService } from "backend/game-server/game-server-service";
@@ -7,7 +7,9 @@ import { NotificationService } from "backend/notification/notification-service";
 import { ProjectAccess } from "backend/project/project-access";
 import { inject, injectable, postConstruct } from "inversify";
 import { worldEditorApi } from "shared/api.events";
+import { WorldEditorStartRequest } from "shared/api.requests";
 import { serverUpdateChannels } from "shared/api.types";
+import { WorldEditor } from "./world-editor";
 
 const ENABLE_WORLD_EDITOR_SERVER_MODE_CMD = `setr sdk_worldEditorMode 1`;
 const DISABLE_WORLD_EDITOR_SERVER_MODE_CMD = `setr sdk_worldEditorMode 0`;
@@ -30,8 +32,13 @@ export class WorldEditorService implements ApiContribution {
   @inject(NotificationService)
   protected readonly notificationService: NotificationService;
 
+  @inject(ApiContributionFactory)
+  protected readonly apiContributionFactory: ApiContributionFactory;
+
   private running = false;
   private resourcesToRestore: ServerResourceDescriptor[] | void;
+
+  private worldEditor: WorldEditor | null = null;
 
   @postConstruct()
   init() {
@@ -55,7 +62,7 @@ export class WorldEditorService implements ApiContribution {
   }
 
   @handlesClientEvent(worldEditorApi.start)
-  async start() {
+  async start(request: WorldEditorStartRequest) {
     if (this.running) {
       return this.notificationService.error('World editor is already running');
     }
@@ -65,6 +72,10 @@ export class WorldEditorService implements ApiContribution {
     }
 
     this.running = true;
+
+    this.worldEditor = this.apiContributionFactory(WorldEditor);
+
+    const openPromise = this.worldEditor.open(request.mapPath);
 
     const project = this.projectAccess.getInstance();
 
@@ -78,7 +89,7 @@ export class WorldEditorService implements ApiContribution {
       // restart sdk-game so new mode catches in
       this.gameServerService.restartResource('sdk-game');
 
-      return;
+      return openPromise;
     }
 
     await this.gameServerService.stop();
@@ -97,14 +108,22 @@ export class WorldEditorService implements ApiContribution {
 
     try {
       await this.gameServerService.start(serverStartRequest);
+
+      return openPromise;
     } catch (e) {
       this.notificationService.error(`Failed to start world-editor server: ${e.toString()}`);
       this.running = false;
+
+      await this.worldEditor.close();
+      this.worldEditor = null;
     }
   }
 
   @handlesClientEvent(worldEditorApi.stop)
   async stop() {
+    await this.worldEditor?.close();
+    this.worldEditor = null;
+
     if (this.resourcesToRestore) {
       this.gameServerService.sendCommand(DISABLE_WORLD_EDITOR_SERVER_MODE_CMD);
       this.gameServerService.restartResource('sdk-game');
@@ -115,6 +134,7 @@ export class WorldEditorService implements ApiContribution {
       return;
     }
 
+    // this.running = false;
     await this.gameServerService.stop();
   }
 

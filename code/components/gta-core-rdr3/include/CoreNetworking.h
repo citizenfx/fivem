@@ -50,6 +50,7 @@ struct netPeerAddress
 	netSocketAddress localAddr;
 	netPeerUnkStruct unk;
 	int natType;
+	uint64_t rockstarAccountId;
 };
 
 struct rlSessionToken

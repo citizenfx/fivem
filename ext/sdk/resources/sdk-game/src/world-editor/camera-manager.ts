@@ -1,8 +1,8 @@
 import { CONTROLS, SETTINGS } from "./config";
-import { RotDeg3, Vec3 } from "./math";
+import { limitPrecision, RotDeg3, Vec3 } from "./math";
 import { getSmartControlNormal, useKeyMapping } from "./utils";
 
-export const CameraController = new class CameraController {
+export const CameraManager = new class CameraManager {
   private handle: number;
 
   private pos = new Vec3(0, 0, 100);
@@ -26,14 +26,6 @@ export const CameraController = new class CameraController {
     this.updateCamRotation();
 
     RenderScriptCams(true, false, 1, false, false);
-
-    on('setCamRot', (payload: string) => {
-      try {
-        [this.rot.x, this.rot.y, this.rot.z] = JSON.parse(payload);
-      } catch (e) {
-        console.error(e);
-      }
-    });
   }
 
   private destroyed = false;
@@ -59,6 +51,27 @@ export const CameraController = new class CameraController {
 
   getPosition(): Vec3 {
     return this.pos;
+  }
+
+  getCam(): [number, number, number, number, number, number] {
+    return [
+      this.pos.x, this.pos.y, this.pos.z,
+      this.rot.x, this.rot.y, this.rot.z,
+    ];
+  }
+
+  getCamLimitedPrecision(): [number, number, number, number, number, number] {
+    return limitPrecision(this.getCam(), 10000) as any;
+  }
+
+  setCam([px, py, pz, rx, ry, rz]) {
+    this.pos.x = px;
+    this.pos.y = py;
+    this.pos.z = pz;
+
+    this.rot.x = rx;
+    this.rot.y = ry;
+    this.rot.z = rz;
   }
 
   getForwardVector(): Vec3 {
@@ -136,14 +149,14 @@ const moveBW = useKeyMapping('we_movebw', 'Move Camera backward', 'keyboard', 's
 const moveLB = useKeyMapping('we_movelb', 'Move Camera left', 'keyboard', 'a');
 const moveRB = useKeyMapping('we_moverb', 'Move Camera right', 'keyboard', 'd');
 
-moveFW.on(() => CameraController.setMoveX(1));
-moveFW.off(() => CameraController.setMoveX(-1));
+moveFW.on(() => CameraManager.setMoveX(1));
+moveFW.off(() => CameraManager.setMoveX(-1));
 
-moveBW.on(() => CameraController.setMoveX(-1));
-moveBW.off(() => CameraController.setMoveX(1));
+moveBW.on(() => CameraManager.setMoveX(-1));
+moveBW.off(() => CameraManager.setMoveX(1));
 
-moveLB.on(() => CameraController.setMoveY(-1));
-moveLB.off(() => CameraController.setMoveY(1));
+moveLB.on(() => CameraManager.setMoveY(-1));
+moveLB.off(() => CameraManager.setMoveY(1));
 
-moveRB.on(() => CameraController.setMoveY(1));
-moveRB.off(() => CameraController.setMoveY(-1));
+moveRB.on(() => CameraManager.setMoveY(1));
+moveRB.off(() => CameraManager.setMoveY(-1));

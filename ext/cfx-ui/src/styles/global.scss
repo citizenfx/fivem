@@ -16,10 +16,10 @@
 @include mat-core();
 
 @font-face {
-	font-family: 'Material Icons Outlined';
-	font-style: normal;
-	font-weight: 400;
-	src: url(../assets/fonts/material-icons-outlined.woff2) format('woff2');
+       font-family: 'Material Icons Outlined';
+       font-style: normal;
+       font-weight: 400;
+       src: url(../assets/fonts/material-icons-outlined.woff2) format('woff2');
 }
 
 @font-face
@@ -164,6 +164,12 @@ body {
 		--my-background-image: url(https://fivem.net/73663161434ea35812a20da2e517f102.jpg);
 	}
 
+    &.game-rdr3 {
+        #bg {
+            --my-background-image: url(https://mirrors.fivem.net/rdr3_bg.jpg?v2);
+        }
+    }
+
 	.webapp-hide {
 		display: none !important;
 	}
@@ -192,6 +198,12 @@ body {
 			display: block;
 		}
 	}
+}
+
+.game-rdr3 {
+    .ad {
+        display: none !important;
+    }
 }
 
 app-root {

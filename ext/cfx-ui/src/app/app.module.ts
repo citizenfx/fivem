@@ -1,10 +1,12 @@
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { NgModule, Injectable, Optional, APP_INITIALIZER, Injector, Inject } from '@angular/core';
+import { NgModule, Injectable, Optional, APP_INITIALIZER, Injector, Inject, ErrorHandler } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpClientModule, HttpHeaders, HttpClient } from '@angular/common/http';
 import { NgSelectModule } from '@ng-select/ng-select';
 import { Nl2BrPipeModule } from 'nl2br-pipe';
+import { Router } from '@angular/router';
+import * as Sentry from '@sentry/angular';
 
 import { NgDompurifyModule } from '@tinkoff/ng-dompurify';
 
@@ -29,6 +31,7 @@ import { AppComponent } from './app.component';
 
 import { AppNavComponent } from './nav/app-nav.component';
 import { ConnectingPopupComponent } from './servers/connecting-popup.component';
+import { ConnectionBoundaryComponent } from './servers/connection-boundary.component';
 import { HomeComponent } from './home/home.component';
 import { HomeTweetComponent } from './home/home-tweet.component';
 import { SettingsComponent } from './settings/settings.component';
@@ -47,7 +50,7 @@ import { SpinnerComponent } from './spinner/spinner.component';
 import { ServersService } from './servers/servers.service';
 import { TweetService } from './home/tweet.service';
 import { TrackingService } from './tracking.service';
-import { SettingsService } from './settings.service';
+import { fromEntries, SettingsService } from './settings.service';
 
 import { GameService, CfxGameService, DummyGameService } from './game.service';
 import { DiscourseService } from './discourse.service';
@@ -69,7 +72,7 @@ import {
 	L10nTranslationFallback, L10nTranslationService, L10N_CONFIG, L10nCache
 } from 'angular-l10n';
 import { Observable } from 'rxjs';
-import { take } from 'rxjs/operators';
+import languageRefs from 'webpack-extended-import-glob-loader!./languagerefs';
 
 import { MatSelectModule } from '@angular/material/select';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -87,42 +90,6 @@ import { CreateEditorComponent } from './create/create-editor/create-editor.comp
 import { DirectConnectBackendComponent } from './servers/direct/direct-connect-backend.component';
 import { FiltersService } from './servers/filters.service';
 import { AuthModalComponent } from './auth-modal/auth-modal.component';
-
-const localePrefix = (environment.web) ? '/' : './';
-
-// from the docs
-@Injectable() export class HttpTranslationLoader implements L10nTranslationLoader {
-
-	private headers = new HttpHeaders({ 'Content-Type': 'application/json' });
-
-	constructor(
-		@Optional() private http: HttpClient,
-		@Optional() private injector: Injector) { }
-
-    public get(language: string, provider: L10nProvider): Observable<{ [key: string]: any }> {
-		const langs = Languages.toList().filter(a => a.locale.language.startsWith(language + '-'));
-
-		if (langs.length > 0) {
-			language = langs[0].locale.language;
-		}
-
-		const url = `${provider.asset}-${language.replace(/-/g, '_')}.json`;
-		const defTranslationUrl = `${provider.asset}-en.json`;
-		const options = {
-			headers: this.headers
-		};
-
-		this.http
-			.get(defTranslationUrl, options)
-			.pipe(take(1))
-			.subscribe(en => {
-				this.injector.get(L10nTranslationService).data = { en };
-			});
-
-		return this.http.get(url, options);
-	}
-
-}
 
 @Injectable() export class TranslationFallback implements L10nTranslationFallback {
 
@@ -154,7 +121,9 @@ const localePrefix = (environment.web) ? '/' : './';
 const l10nConfig: L10nConfig = {
 	format: 'language-region',
 	providers: [
-		{ name: 'app', asset: localePrefix + 'assets/languages/locale' }
+		{ name: 'app', asset: fromEntries((languageRefs as any[]).map(lang =>
+			[ (lang.fileName as string).replace(/.*locale-(.*?)\.json/g, '$1').replace(/_/g, '-'), lang.module.default ]
+		)) }
 	],
 	fallback: true,
 	defaultLocale: { language: 'en' },
@@ -184,6 +153,7 @@ export function metaFactory(): MetaLoader {
 		AppComponent,
 		AppNavComponent,
 		ConnectingPopupComponent,
+        ConnectionBoundaryComponent,
 		ChangelogPopupComponent,
 		ChangelogEntryComponent,
 		HomeComponent,
@@ -229,7 +199,6 @@ export function metaFactory(): MetaLoader {
 
 		HttpClientModule,
 		L10nTranslationModule.forRoot(l10nConfig, {
-			translationLoader: HttpTranslationLoader,
 			translationFallback: TranslationFallback
 		}),
 		Angulartics2Module.forRoot(),
@@ -246,6 +215,16 @@ export function metaFactory(): MetaLoader {
 		Nl2BrPipeModule,
 	],
 	providers: [
+		{
+			provide: ErrorHandler,
+			useValue: Sentry.createErrorHandler({
+				showDialog: false,
+			}),
+		},
+		{
+			provide: Sentry.TraceService,
+			deps: [Router],
+		},
 		FiltersService,
 		ServersService,
 		ServerTagsService,
@@ -267,7 +246,8 @@ export function metaFactory(): MetaLoader {
 		{
 			provide: APP_INITIALIZER,
 			useFactory: initL10n,
-			deps: [L10nLoader],
+			// L10nLoader must be first so that initL10n will be called with the right arg
+			deps: [L10nLoader, Sentry.TraceService],
 			multi: true
 		},
 		ModsService,

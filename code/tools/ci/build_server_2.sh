@@ -43,23 +43,24 @@ python2 -m easy_install ply
 
 # build natives
 if [ "$SKIP_NATIVES" == "" ]; then
+	cd /src/ext/natives
+	gcc -O2 -shared -fpic -o cfx.so -I/usr/include/lua5.3/ lua_cfx.c
+
+	mkdir -p inp out
+	curl --http1.1 -sLo inp/natives_global.lua http://runtime.fivem.net/doc/natives.lua
+
 	cd /src/ext/native-doc-gen
 	sh build.sh
 
 	cd /src/ext/natives
 
-	mkdir -p out
-	curl --http1.1 -sLo out/natives_global.lua http://runtime.fivem.net/doc/natives.lua
-
-	gcc -O2 -shared -fpic -o cfx.so -I/usr/include/lua5.3/ lua_cfx.c
-
 	mkdir -p /opt/cfx-server/citizen/scripting/lua/
 	mkdir -p /opt/cfx-server/citizen/scripting/v8/
 
-	lua5.3 codegen.lua out/natives_global.lua native_lua server > /src/code/components/citizen-scripting-lua/include/NativesServer.h
-	lua5.3 codegen.lua out/natives_global.lua lua server > /opt/cfx-server/citizen/scripting/lua/natives_server.lua
-	lua5.3 codegen.lua out/natives_global.lua js server > /opt/cfx-server/citizen/scripting/v8/natives_server.js
-	lua5.3 codegen.lua out/natives_global.lua dts server > /opt/cfx-server/citizen/scripting/v8/natives_server.d.ts
+	lua5.3 codegen.lua inp/natives_global.lua native_lua server > /src/code/components/citizen-scripting-lua/include/NativesServer.h
+	lua5.3 codegen.lua inp/natives_global.lua lua server > /opt/cfx-server/citizen/scripting/lua/natives_server.lua
+	lua5.3 codegen.lua inp/natives_global.lua js server > /opt/cfx-server/citizen/scripting/v8/natives_server.js
+	lua5.3 codegen.lua inp/natives_global.lua dts server > /opt/cfx-server/citizen/scripting/v8/natives_server.d.ts
 
 
 	cat > /src/code/client/clrcore/NativesServer.cs << EOF
@@ -70,15 +71,15 @@ namespace CitizenFX.Core.Native
 {
 EOF
 
-lua5.3 codegen.lua out/natives_global.lua enum server >> /src/code/client/clrcore/NativesServer.cs
-lua5.3 codegen.lua out/natives_global.lua cs server >> /src/code/client/clrcore/NativesServer.cs
+	lua5.3 codegen.lua inp/natives_global.lua enum server >> /src/code/client/clrcore/NativesServer.cs
+	lua5.3 codegen.lua inp/natives_global.lua cs server >> /src/code/client/clrcore/NativesServer.cs
 
-cat >> /src/code/client/clrcore/NativesServer.cs << EOF
+	cat >> /src/code/client/clrcore/NativesServer.cs << EOF
 }
 #endif
 EOF
 
-	lua5.3 codegen.lua out/natives_global.lua rpc server > /opt/cfx-server/citizen/scripting/rpc_natives.json
+	lua5.3 codegen.lua inp/natives_global.lua rpc server > /opt/cfx-server/citizen/scripting/rpc_natives.json
 
 	# build rusty bits
 	cd /src/ext/jexl-eval

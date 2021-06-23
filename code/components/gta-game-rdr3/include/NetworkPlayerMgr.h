@@ -15,6 +15,16 @@
 #define GTA_GAME_EXPORT DLL_IMPORT
 #endif
 
+#define DECLARE_ACCESSOR(x) \
+	decltype(impl.m1311.x)& x() \
+	{ \
+		return (impl.m1311.x); \
+	} \
+	const decltype(impl.m1311.x)& x() const \
+	{ \
+		return (impl.m1311.x); \
+	}
+
 namespace rage
 {
 	struct netNatType;
@@ -29,7 +39,7 @@ namespace rage
 
 		virtual void Init(rage::rlRosPlayerAccountId const& accountId, uint32_t, rage::netNatType natType) = 0;
 
-		virtual void Shutdown() = 0;
+		virtual void Reset() = 0; // Shutdown
 
 		virtual void IsPhysical() = 0;
 
@@ -48,15 +58,48 @@ namespace rage
 		virtual void m_unk2() = 0;
 
 		virtual rlGamerInfo* GetGamerInfo() = 0;
+
+	public:
+		const char* GetName()
+		{
+			return GetGamerInfo()->name;
+		}
 	};
 }
 
 class CNetGamePlayer : public rage::netPlayer
 {
+private:
+	struct Impl
+	{
+		uint8_t pad[16]; // +8
+		uint8_t activePlayerIndex; // +24
+		uint8_t physicalPlayerIndex; // +25
+		char pad2[270]; // +26;
+		void* entity; // +296
+	};
+
+	union
+	{
+		Impl m1311;
+	} impl;
+
 public:
-	uint8_t pad[16];
-	uint8_t activePlayerIndex;
-	uint8_t physicalPlayerIndex;
+	void* GetPlayerInfo()
+	{
+		auto entity = *(uint64_t*)(impl.m1311.entity);
+
+		if (entity)
+		{
+			return (void*)(entity + 304);
+		}
+
+		return nullptr;
+	}
+
+public:
+	DECLARE_ACCESSOR(activePlayerIndex);
+	DECLARE_ACCESSOR(physicalPlayerIndex);
 };
 
 class CNetworkPlayerMgr

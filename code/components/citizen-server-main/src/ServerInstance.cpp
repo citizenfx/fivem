@@ -35,7 +35,8 @@ static std::set<std::string> setList =
 	"onesync_population",
 	"netlib",
 	"onesync_enableInfinity",
-	"onesync_enableBeyond"
+	"onesync_enableBeyond",
+	"gamename"
 };
 
 namespace fx
@@ -111,7 +112,7 @@ namespace fx
 			for (const auto& set : optionParser->GetSetList())
 			{
 				// save this in the default context so V8ScriptRuntime can read this
-				if (set.first == "txAdminServerMode")
+				if (set.first == "txAdminServerMode" || set.first == "gamename")
 				{
 					console::GetDefaultContext()->ExecuteSingleCommandDirect(ProgramArguments{ "set", set.first, set.second });
 				}
@@ -139,6 +140,7 @@ namespace fx
 					}
 
 					consoleCtxRef->ExecuteSingleCommandDirect(ProgramArguments{ argList });
+					console::GetDefaultContext()->ExecuteSingleCommandDirect(ProgramArguments{ argList });
 				};
 
 				execContext->GetCommandManager()->FallbackEvent.Connect([consoleCtxRef, forwardArgs](const std::string& cmd, const ProgramArguments& args, const std::any& context)
@@ -180,9 +182,9 @@ namespace fx
 
 					fwRefContainer<vfs::Stream> stream = vfs::OpenRead(e);
 
-					if (!stream.GetRef())
+					if (!stream.GetRef() && e[0] != '@')
 					{
-						console::Printf("cmd", "No such config file: %s\n", e.c_str());
+						console::Printf("cmd", "No such config file: %s\n", e);
 						continue;
 					}
 
@@ -223,7 +225,10 @@ namespace fx
 
 				// start standard resources
 				//consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "webadmin" });
-				consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "monitor" });
+				if (console::GetDefaultContext()->GetVariableManager()->FindEntryRaw("txAdminServerMode"))
+				{
+					consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "monitor" });
+				}
 
 				// add system console access
 				seGetCurrentContext()->AddAccessControlEntry(se::Principal{ "system.console" }, se::Object{ "webadmin" }, se::AccessType::Allow);

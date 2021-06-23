@@ -88,7 +88,8 @@ void XBR_EarlySelect()
 		{
 			auto retainedBuild = GetPrivateProfileInt(L"Game", L"SavedBuildNumber", defaultBuild, fpath.c_str());
 
-			if (retainedBuild != defaultBuild)
+			// wcsstr is in case we have a `b1604` argument e.g. and we therefore want to ignore the saved build
+			if (retainedBuild != defaultBuild && !wcsstr(GetCommandLineW(), va(L"b%d", defaultBuild)))
 			{
 				g_intendedBuild = retainedBuild;
 

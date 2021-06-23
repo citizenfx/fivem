@@ -486,9 +486,10 @@ static InitFunction initFunction([] ()
 			g_connected = false;
 		});
 
-		netLibrary->OnConnectionError.Connect([] (const char* errorStr)
+		netLibrary->OnConnectionErrorRichEvent.Connect([] (const std::string& errorOrig, const std::string& metaData)
 		{
-			std::string error(errorStr);
+			std::string error = errorOrig;
+
 #ifdef GTA_FIVE
 			if (strstr(error.c_str(), "This server requires a different game build"))
 			{
@@ -496,7 +497,7 @@ static InitFunction initFunction([] ()
 			}
 #endif
 
-			if (strstr(error.c_str(), "steam") || strstr(error.c_str(), "Steam"))
+			if ((strstr(error.c_str(), "steam") || strstr(error.c_str(), "Steam")) && !strstr(error.c_str(), ".ms/verify"))
 			{
 				if (auto steam = GetSteam())
 				{
@@ -533,7 +534,7 @@ static InitFunction initFunction([] ()
 
 			document.Accept(writer);
 
-			nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "connectFailed", "message": %s })", sbuffer.GetString()));
+			nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "connectFailed", "message": %s, "extra": %s })", sbuffer.GetString(), metaData));
 
 			ep.Call("connectionError", error);
 		});
@@ -908,7 +909,7 @@ static InitFunction initFunction([] ()
 			{
 				netLibrary->CancelDeferredConnection();
 			}
-			netLibrary->FinalizeDisconnect();
+			netLibrary->Disconnect();
 
 			g_connected = false;
 		}

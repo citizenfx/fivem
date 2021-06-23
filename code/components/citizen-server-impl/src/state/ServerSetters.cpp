@@ -1,6 +1,7 @@
 #include "StdInc.h"
-#include <state/SyncTrees_Five.h>
+#include <state/SyncTrees.h>
 
+#ifndef STATE_RDR3
 #include <state/ServerGameState.h>
 #include <ScriptEngine.h>
 
@@ -257,6 +258,11 @@ static InitFunction initFunction([]()
 {
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* ref)
 	{
+		if (!IsStateGame())
+		{
+			return;
+		}
+
 		fx::ScriptEngine::RegisterNativeHandler("CREATE_AUTOMOBILE", [=](fx::ScriptContext& ctx) 
 		{
 			uint32_t resourceHash = 0;
@@ -331,3 +337,11 @@ static InitFunction initFunction([]()
 	});
 });
 }
+#else
+namespace fx
+{
+void DisownEntityScript(const fx::sync::SyncEntityPtr& entity)
+{
+}
+}
+#endif

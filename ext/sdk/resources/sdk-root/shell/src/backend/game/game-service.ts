@@ -2,9 +2,11 @@ import { ApiClient } from "backend/api/api-client";
 import { ApiContribution } from "backend/api/api-contribution";
 import { handlesClientEvent } from "backend/api/api-decorators";
 import { AppContribution } from "backend/app/app-contribution";
-import { Disposable, disposableFromFunction } from "backend/disposable-container";
+import { Deferred } from "backend/deferred";
+import { Disposable } from "backend/disposable-container";
 import { LogService } from "backend/logger/log-service";
 import { NotificationService } from "backend/notification/notification-service";
+import { emitSystemEvent, onSystemEvent } from "backend/system-events";
 import { inject, injectable } from "inversify";
 import { gameApi } from "shared/api.events";
 import { NetLibraryConnectionState, SDKGameProcessState } from "shared/native.enums";
@@ -40,6 +42,8 @@ export class GameService implements ApiContribution, AppContribution {
 
   private restartPending = false;
 
+  private messageHandlers: Record<string, Set<Function>> = {};
+
   private readonly gameStateChangeEvent = new SingleEventEmitter<GameStates>();
   onGameStateChange(cb: (gameState: GameStates) => void): Disposable {
     return this.gameStateChangeEvent.addListener(cb);
@@ -54,18 +58,15 @@ export class GameService implements ApiContribution, AppContribution {
   }
 
   async boot() {
-    const gameBuildNumberPromise = new Promise<void>((resolve) => {
-      const handler = (gameBuildNumber: number) => {
-        this.gameBuildNumber = gameBuildNumber;
+    const gameBuildNumberDeferred = new Deferred<number>();
 
-        RemoveEventHandler('sdk:setBuildNumber', handler);
+    gameBuildNumberDeferred.promise.finally(onSystemEvent('sdk:setBuildNumber', (gameBuildNumber: number) => {
+      this.gameBuildNumber = gameBuildNumber;
 
-        resolve();
-      };
+      gameBuildNumberDeferred.resolve();
+    }));
 
-      on('sdk:setBuildNumber', handler);
-      emit('sdk:getBuildNumber');
-    });
+    emitSystemEvent('sdk:getBuildNumber');
 
     on('sdk:gameLaunched', () => {
       this.gameLaunched = true;
@@ -124,15 +125,34 @@ export class GameService implements ApiContribution, AppContribution {
       }
     });
 
-    on('sdk:backendMessage', (message: string) => {
-      if (this.gameLaunched && message === JSON.stringify({ type: 'connected' })) {
+    on('sdk:backendMessage', (payload: unknown) => {
+      if (typeof payload === 'string' && payload) {
+        try {
+          const { type, data } = JSON.parse(payload);
+
+          const handlers = this.messageHandlers[type];
+          if (handlers) {
+            for (const handler of handlers) {
+              handler(data);
+            }
+          }
+        } catch (e) {
+          // don't care
+        }
+      }
+
+      return;
+    });
+
+    this.onBackendMessage('connected', () => {
+      if (this.gameLaunched) {
         this.toGameState(GameStates.CONNECTED);
       }
     });
 
     this.startGame();
 
-    await gameBuildNumberPromise;
+    await gameBuildNumberDeferred.promise;
   }
 
   beginUnloading() {
@@ -173,6 +193,20 @@ export class GameService implements ApiContribution, AppContribution {
     this.toGameState(GameStates.NOT_RUNNING);
 
     emit('sdk:restartGame');
+  }
+
+  onBackendMessage(type: string, handler: Function): Function {
+    if (!this.messageHandlers[type]) {
+      this.messageHandlers[type] = new Set();
+    }
+
+    this.messageHandlers[type].add(handler);
+
+    return () => this.messageHandlers[type].delete(handler);
+  }
+
+  emitEvent(eventName: string, payload?: any) {
+    emit('sdk:sendGameClientEvent', eventName, JSON.stringify(payload) || '');
   }
 
   private toGameState(newState: GameStates) {

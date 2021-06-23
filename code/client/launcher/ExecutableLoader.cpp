@@ -118,6 +118,77 @@ void ExecutableLoader::LoadSection(IMAGE_SECTION_HEADER* section)
 
 	DWORD oldProtect;
 	VirtualProtect(targetAddress, section->Misc.VirtualSize, PAGE_EXECUTE_READWRITE, &oldProtect);
+
+	DWORD protection = 0;
+	if (section->Characteristics & IMAGE_SCN_MEM_NOT_CACHED)
+	{
+		protection |= PAGE_NOCACHE;
+	}
+
+	if (section->Characteristics & IMAGE_SCN_MEM_EXECUTE)
+	{
+		if (section->Characteristics & IMAGE_SCN_MEM_READ)
+		{
+			if (section->Characteristics & IMAGE_SCN_MEM_WRITE)
+			{
+				protection |= PAGE_EXECUTE_READWRITE;
+			}
+			else
+			{
+				protection |= PAGE_EXECUTE_READ;
+			}
+		}
+		else
+		{
+			if (section->Characteristics & IMAGE_SCN_MEM_WRITE)
+			{
+				protection |= PAGE_EXECUTE_WRITECOPY;
+			}
+			else
+			{
+				protection |= PAGE_EXECUTE;
+			}
+		}
+	}
+	else
+	{
+		if (section->Characteristics & IMAGE_SCN_MEM_READ)
+		{
+			if (section->Characteristics & IMAGE_SCN_MEM_WRITE)
+			{
+				protection |= PAGE_READWRITE;
+			}
+			else
+			{
+				protection |= PAGE_READONLY;
+			}
+		}
+		else
+		{
+			if (section->Characteristics & IMAGE_SCN_MEM_WRITE)
+			{
+				protection |= PAGE_WRITECOPY;
+			}
+			else
+			{
+				protection |= PAGE_NOACCESS;
+			}
+		}
+	}	
+
+	if (protection)
+	{
+		m_targetProtections.push_back({ targetAddress, section->Misc.VirtualSize, protection });
+	}
+}
+
+void ExecutableLoader::Protect()
+{
+	for (const auto& protection : m_targetProtections)
+	{
+		DWORD op;
+		VirtualProtect(std::get<0>(protection), std::get<1>(protection), std::get<2>(protection), &op);
+	}
 }
 
 void ExecutableLoader::LoadSections(IMAGE_NT_HEADERS* ntHeader)
@@ -315,7 +386,15 @@ bool ExecutableLoader::ApplyRelocations()
 	IMAGE_BASE_RELOCATION* relocation = GetTargetRVA<IMAGE_BASE_RELOCATION>(relocationDirectory->VirtualAddress);
 	IMAGE_BASE_RELOCATION* endRelocation = reinterpret_cast<IMAGE_BASE_RELOCATION*>((char*)relocation + relocationDirectory->Size);
 
-	intptr_t relocOffset = reinterpret_cast<intptr_t>(m_module) - reinterpret_cast<intptr_t>(GetModuleHandle(NULL));
+	constexpr uintptr_t base =
+#ifdef _M_AMD64
+	0x140000000
+#else
+	0x400000
+#endif
+	;
+
+	intptr_t relocOffset = reinterpret_cast<intptr_t>(m_module) - static_cast<intptr_t>(base);
 
 	if (relocOffset == 0)
 	{

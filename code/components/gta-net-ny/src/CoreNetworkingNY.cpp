@@ -399,7 +399,6 @@ static void WINAPI ExitProcessReplacement(UINT exitCode)
 	if (g_netLibrary)
 	{
 		g_netLibrary->Disconnect((g_quitMsg.empty()) ? "Exiting" : g_quitMsg.c_str());
-		g_netLibrary->FinalizeDisconnect();
 	}
 
 	TerminateProcess(GetCurrentProcess(), exitCode);

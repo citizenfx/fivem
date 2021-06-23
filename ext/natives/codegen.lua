@@ -1,5 +1,5 @@
 -- setup environment for the codegen'd file to execute in
-local codeEnvironment = {
+codeEnvironment = {
 
 }
 
@@ -8,6 +8,7 @@ natives = {}
 rpcNatives = {}
 local curType
 local curNative
+local codeEnvironment = codeEnvironment
 
 local json = require('dkjson')
 local cfx = require('cfx')
@@ -193,6 +194,19 @@ local function getServerNative(nativeName)
 	return n
 end
 
+local function removeServerNative(nativeName)
+	local n = getServerNative(nativeName)
+
+	if n then
+		for k, v in pairs(natives) do
+			if v == n then
+				table.remove(natives, k)
+				break
+			end
+		end
+	end
+end
+
 function rpcEnvironment.context_rpc(nativeName)
 	local n = getNative(nativeName)
 
@@ -267,10 +281,13 @@ function rpcEnvironment.context_rpc(nativeName)
 	rn.ctx = ctx
 	rn.args = args
 
+	removeServerNative(nativeName)
 	codeEnvironment.native(nativeName)
 		codeEnvironment.arguments(n.arguments)
 		codeEnvironment.apiset('server')
 		codeEnvironment.returns('void')
+		curNative.rpc = true
+		curNative.ogHash = n.hash
 
 		if n.doc then
 			codeEnvironment.doc(n.doc)
@@ -373,10 +390,13 @@ function rpcEnvironment.entity_rpc(nativeName)
 
 	rn.args = args
 
+	removeServerNative(nativeName)
 	codeEnvironment.native(nativeName)
 		codeEnvironment.arguments(n.arguments)
 		codeEnvironment.apiset('server')
 		codeEnvironment.returns('Entity')
+		curNative.rpc = true
+		curNative.ogHash = n.hash
 
 		if n.doc then
 			codeEnvironment.doc(n.doc)
@@ -433,10 +453,13 @@ function rpcEnvironment.object_rpc(nativeName)
 
 	rn.args = args
 	
+	removeServerNative(nativeName)
 	codeEnvironment.native(nativeName)
 		codeEnvironment.arguments(n.arguments)
 		codeEnvironment.apiset('server')
 		codeEnvironment.returns(n.returns)
+		curNative.rpc = true
+		curNative.ogHash = n.hash
 
 		if n.doc then
 			codeEnvironment.doc(n.doc)
@@ -497,6 +520,7 @@ function parseDocString(native)
 	}
 end
 
+local gFilterRpc = false
 local gApiSet = 'server'
 local ourGame = 'gta5'
 
@@ -504,6 +528,10 @@ function matchApiSet(native)
 	local game = native.game
 
 	if ourGame and native.game and native.game ~= ourGame then
+		return false
+	end
+
+	if gFilterRpc and not native.rpc then
 		return false
 	end
 
@@ -565,12 +593,20 @@ if #arg > 2 then
 	gApiSet = arg[3]
 end
 
+if #arg > 3 then
+	if arg[4] == 'rpc' then
+		gFilterRpc = true
+	end
+end
+
 -- server has Player be charPtr, not int
 if gApiSet == 'server' then
 	types['Player'].nativeType = 'string'
 end
 
-loadDefinition 'inp/natives_cfx.lua'
+if not gFilterRpc then
+	loadDefinition 'inp/natives_cfx.lua'
+end
 
 if not globalNatives then
 	loadDefinition 'codegen_dlc_natives.lua'

@@ -27,7 +27,7 @@ export class Setting {
 	id?: string;
 }
 
-function fromEntries<TValue>(iterable: [string, TValue][]): { [key: string]: TValue } {
+export function fromEntries<TValue>(iterable: [string, TValue][]): { [key: string]: TValue } {
 	return [...iterable].reduce<{ [key: string]: TValue }>((obj, [key, val]) => {
 		(obj as any)[key] = val;
 		return obj;
@@ -146,8 +146,8 @@ export class SettingsService {
 				name: '#Settings_UseAudioFrameLimiter',
 				description: '#Settings_UseAudioFrameLimiterDesc',
 				type: 'checkbox',
-				getCb: () => this.gameService.getConvar('game_useAudioFrameLimiter').pipe(map(a => a === 'true' ? 'true' : 'false')),
-				setCb: (value) => this.gameService.setConvar('game_useAudioFrameLimiter', value),
+				getCb: () => this.gameService.getConvar('game_useAudioFrameLimiter').pipe(map(a => a === 'true' ? 'false' : 'true')),
+				setCb: (value) => this.gameService.setConvar('game_useAudioFrameLimiter', value === 'true' ? 'false' : 'true'),
 				category: '#SettingsCat_Game',
 			});
 

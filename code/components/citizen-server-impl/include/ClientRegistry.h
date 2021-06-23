@@ -5,15 +5,6 @@
 #include <Client.h>
 #include <ComponentHolder.h>
 
-#ifndef FOLLY_NO_CONFIG
-#define FOLLY_NO_CONFIG
-#endif
-
-#if defined(ssize_t) && defined(_WIN32)
-#undef ssize_t
-#endif
-#include <folly/SharedMutex.h>
-
 #include <tbb/concurrent_unordered_map.h>
 
 namespace tbb
@@ -31,6 +22,57 @@ namespace tbb
 namespace fx
 {
 	class ServerInstanceBase;
+
+	// folly::SharedMutex does not work across module boundaries
+	struct FarLock
+	{
+		struct ImplBase
+		{
+			virtual ~ImplBase() = default;
+
+			virtual bool TryLock() = 0;
+
+			virtual void LockShared() = 0;
+
+			virtual void Lock() = 0;
+
+			virtual void UnlockShared() = 0;
+
+			virtual void Unlock() = 0;
+		};
+
+		FarLock();
+
+		~FarLock();
+
+		inline bool try_lock()
+		{
+			return impl->TryLock();
+		}
+
+		inline void lock_shared()
+		{
+			return impl->LockShared();
+		}
+
+		inline void lock()
+		{
+			return impl->Lock();
+		}
+
+		inline void unlock_shared()
+		{
+			return impl->UnlockShared();
+		}
+
+		inline void unlock()
+		{
+			return impl->Unlock();
+		}
+
+	private:
+		std::unique_ptr<ImplBase> impl;
+	};
 
 	class ClientRegistry : public fwRefCountable, public IAttached<ServerInstanceBase>
 	{
@@ -58,7 +100,7 @@ namespace fx
 			}
 
 			{
-				folly::SharedMutex::WriteHolder writeHolder(m_clientMutex);
+				std::unique_lock writeHolder(m_clientMutex);
 				m_clients.erase(client->GetGuid());
 			}
 
@@ -71,7 +113,7 @@ namespace fx
 			auto ptr = fx::ClientSharedPtr();
 
 			{
-				folly::SharedMutex::ReadHolder readHolder(m_clientMutex);
+				std::shared_lock readHolder(m_clientMutex);
 
 				auto it = m_clients.find(guid);
 				if (it != m_clients.end())
@@ -159,7 +201,7 @@ namespace fx
 		template<typename TFn>
 		inline void ForAllClientsLocked(TFn&& cb)
 		{
-			folly::SharedMutex::ReadHolder readHolder(m_clientMutex);
+			std::shared_lock readHolder(m_clientMutex);
 			for (const auto& [guid, client] : m_clients)
 			{
 				if (client->IsDropping())
@@ -177,7 +219,7 @@ namespace fx
 			std::vector<fx::ClientSharedPtr> allClients{};
 
 			{
-				folly::SharedMutex::ReadHolder readHolder(m_clientMutex);
+				std::shared_lock readHolder(m_clientMutex);
 				allClients.reserve(m_clients.size());
 
 				for (const auto& [guid, client] : m_clients)
@@ -210,7 +252,7 @@ namespace fx
 	private:
 		uint16_t m_hostNetId;
 
-		folly::SharedMutex m_clientMutex;
+		FarLock m_clientMutex;
 		std::unordered_map<std::string, fx::ClientSharedPtr> m_clients;
 
 		// aliases for fast lookup

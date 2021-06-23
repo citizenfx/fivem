@@ -1,11 +1,11 @@
 import { joaatUint32 } from "../shared";
-import { CameraController } from "./camera-controller";
+import { CameraManager } from "./camera-manager";
 import { applyEntityMatrix, applyScale, makeEntityMatrix, vectorLength } from "./math";
 
 function getObjectPosition() {
-  const fw = CameraController.getForwardVector().copy().mult(5);
+  const fw = CameraManager.getForwardVector().copy().mult(5);
 
-  return CameraController.getPosition().copy().add(fw);
+  return CameraManager.getPosition().copy().add(fw);
 }
 
 function getSize(min: number[], max: number[]): number {

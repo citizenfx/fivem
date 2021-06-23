@@ -61,7 +61,7 @@ static void RelocateRelative(std::initializer_list<PatternPair> list)
 		auto curTarget = hook::get_address<void*>(location);
 		assert(curTarget == oldAddress);
 
-		*location = (intptr_t)weaponComponentInfoCollection - (intptr_t)location - 4;
+		hook::put<int32_t>(location, (intptr_t)weaponComponentInfoCollection - (intptr_t)location - 4);
 		++index;
 	}
 }

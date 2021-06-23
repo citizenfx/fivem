@@ -1,0 +1,9 @@
+{
+	"name": "citizen:server:state:rdr3sv",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+		"citizen:server:impl"
+	],
+	"provides": []
+}

@@ -302,6 +302,20 @@ static void SaveConfiguration(const std::string& path, console::Context* context
 
 void Context::SaveConfigurationIfNeeded(const std::string& path)
 {
+	// run a periodic check on tracked variables
+	static std::chrono::milliseconds lastCheck{ 0 };
+	auto now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
+
+	if ((now - lastCheck) > std::chrono::milliseconds{2500})
+	{
+		GetVariableManager()->ForAllVariables([](const std::string& name, int flags, const auto& variable)
+		{
+			variable->UpdateTrackingVariable();
+		});
+
+		lastCheck = now;
+	}
+
 	// check if the configuration was saved already
 	static bool wasSavedBefore = false;
 

@@ -149,4 +149,13 @@ export const worldEditorApi = {
   start: 'world-editor:start',
   stop: 'world-editor:stop',
   stopped: 'world-editor:stopped',
+
+  mapLoaded: 'world-editor:mapLoaded',
+  setCam: 'world-editor:setCam',
+  applyPatch: 'world-editor:applyPatch',
+  deleteAddition: 'world-editor:deleteAddition',
+  setAddition: 'world-editor:setAddition',
+  applyAdditionChange: 'world-editor:applyAdditionChange',
+  setAdditionGroup: 'world-editor:setAdditionGroup',
+  setAdditionGroupName: 'world-editor:setAdditionGroupName',
 };

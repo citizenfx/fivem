@@ -96,7 +96,7 @@ export class ProjectManager implements ApiContribution {
     this.apiClient.emit(projectApi.recents, newRecentProjects);
   }
 
-  protected createProjectBoundToPath(): Project {
+  protected createProjectInstance(): Project {
     const project = this.apiContributionFactory<Project>(Project);
 
     this.projectAccess.setInstance(project);
@@ -127,7 +127,7 @@ export class ProjectManager implements ApiContribution {
         this.projectAccess.setInstance(null);
       }
 
-      this.project = await this.createProjectBoundToPath().open(projectPath);
+      this.project = await this.createProjectInstance().open(projectPath);
 
       this.emitProjectOpen();
       this.setCurrentProjectInstanceAsMostRecent();
@@ -184,7 +184,7 @@ export class ProjectManager implements ApiContribution {
         this.projectAccess.setInstance(null);
       }
 
-      this.project = await this.createProjectBoundToPath().create(request);
+      this.project = await this.createProjectInstance().create(request);
 
       this.emitProjectOpen();
       this.setCurrentProjectInstanceAsMostRecent();

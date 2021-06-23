@@ -83,7 +83,7 @@ export class DiscourseService {
 	public signinChange = new BehaviorSubject<any>(null);
     public initialAuthComplete = new BehaviorSubject(false);
 
-	public currentUser: any;
+	public currentUser: DiscourseUser;
 
 	public currentBoost: BoostData;
 	public noCurrentBoost = false;

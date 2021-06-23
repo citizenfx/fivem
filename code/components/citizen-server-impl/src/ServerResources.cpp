@@ -158,6 +158,9 @@ static std::map<std::string, std::set<std::string>> g_resourcesByComponent;
 
 static void ScanResources(fx::ServerInstanceBase* instance)
 {
+	// mapping of names to paths
+	static std::map<std::string, std::string> scanData;
+
 	auto resMan = instance->GetComponent<fx::ResourceManager>();
 
 	std::string resourceRoot(instance->GetRootPath() + "/resources/");
@@ -211,9 +214,31 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 					// it's a resource
 					else if (scannedNow.find(findData.name) == scannedNow.end())
 					{
-						scannedNow.insert(findData.name);
+						const auto& resourceName = findData.name;
+						scannedNow.insert(resourceName);
 
-						auto oldRes = resMan->GetResource(findData.name, false);
+						auto oldRes = resMan->GetResource(resourceName, false);
+						auto oldScanData = scanData.find(resourceName);
+
+						// did the path change? if so, unload the old resource
+						if (oldRes.GetRef() && oldScanData != scanData.end() && oldScanData->second != resPath)
+						{
+							// remove from by-component lists
+							for (auto& list : g_resourcesByComponent)
+							{
+								list.second.erase(resourceName);
+							}
+
+							// unmount relative device
+							vfs::Unmount(fmt::sprintf("@%s/", resourceName));
+
+							// stop and remove resource
+							oldRes->Stop();
+							resMan->RemoveResource(oldRes);
+
+							// undo ptr
+							oldRes = {};
+						}
 
 						if (oldRes.GetRef())
 						{
@@ -222,7 +247,7 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 						}
 						else
 						{
-							console::DPrintf("resources", "Found new resource %s in %s\n", findData.name, resPath);
+							console::DPrintf("resources", "Found new resource %s in %s\n", resourceName, resPath);
 							newResources++;
 
 							auto path = std::filesystem::u8path(resPath);
@@ -272,12 +297,17 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 								}
 							}
 
+							// mount the resource for later use in VFS (e.g. from `exec`)
+							fwRefContainer<vfs::RelativeDevice> relativeDevice = new vfs::RelativeDevice(resPath + "/");
+							vfs::Mount(relativeDevice, fmt::sprintf("@%s/", resourceName));
+							scanData[resourceName] = resPath;
+
 							skyr::url_record record;
 							record.scheme = "file";
 
 							skyr::url url{ std::move(record) };
 							url.set_pathname(*skyr::percent_encode(resPath, skyr::encode_set::path));
-							url.set_hash(*skyr::percent_encode(findData.name, skyr::encode_set::fragment));
+							url.set_hash(*skyr::percent_encode(resourceName, skyr::encode_set::fragment));
 
 							auto task = resMan->AddResource(url.href())
 										.then([components = std::move(components)](fwRefContainer<fx::Resource> resource)

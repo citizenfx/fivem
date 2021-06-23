@@ -115,7 +115,7 @@
 				width: var(--fs-3);
 				height: var(--fs-3);
 
-				transform: rotateY(180deg);
+				transform: scaleX(-1);
 			}
 		}
 	}

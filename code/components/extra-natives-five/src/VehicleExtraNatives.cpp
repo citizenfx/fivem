@@ -495,7 +495,7 @@ static HookFunction initFunction([]()
 		*g_trainsForceDoorsOpen = true;
 
 		auto location = hook::get_pattern<uint32_t>("74 56 40 38 BB ? ? ? ? 74 49 48 8B CB E8", -8);
-		*location = (intptr_t)g_trainsForceDoorsOpen - (intptr_t)location - 4;
+		hook::put<int32_t>(location, (intptr_t)g_trainsForceDoorsOpen - (intptr_t)location - 4);
 	}
 
 	{
@@ -521,7 +521,7 @@ static HookFunction initFunction([]()
 		static ConVar<bool> enableFlyThroughWindscreen("game_enableFlyThroughWindscreen", ConVar_Replicated, false, &isFlyThroughWindscreenEnabledConVar);
 
 		auto location = hook::get_pattern<uint32_t>("45 33 ED 44 38 2D ? ? ? ? 4D", 6);
-		*location = (intptr_t)g_flyThroughWindscreenDisabled - (intptr_t)location - 4;
+		hook::put<int32_t>(location, (intptr_t)g_flyThroughWindscreenDisabled - (intptr_t)location - 4);
 	}
 
 	{
@@ -546,7 +546,7 @@ static HookFunction initFunction([]()
 			data.defaultPtr = defaultAddr;
 			data.currentPtr = currentAddr;
 
-			*location = (intptr_t)currentAddr - (intptr_t)location - 4;
+			hook::put<int32_t>(location, (intptr_t)currentAddr - (intptr_t)location - 4);
 			++index;
 
 			g_flyThroughWindscreenParams.push_back(data);
@@ -1457,12 +1457,12 @@ static HookFunction inputFunction([]()
 	{
 		auto getStateRef = hook::get_address<void**>(hook::get_call(hook::get_pattern<char>("75 13 48 8D 54 24 20 8B CF E8", 9)) + 2);
 		g_origXInputGetState = (decltype(g_origXInputGetState))*getStateRef;
-		*getStateRef = XInputGetStateHook;
+		hook::put(getStateRef, XInputGetStateHook);
 	}
 
 	{
 		auto setStateRef = hook::get_address<void**>(hook::get_call(hook::get_pattern<char>("8B CF 89 73 42 89 74 24 40 E8", 9)) + 2);
 		g_origXInputSetState = (decltype(g_origXInputSetState))*setStateRef;
-		*setStateRef = XInputSetStateHook;
+		hook::put(setStateRef, XInputSetStateHook);
 	}
 });

@@ -42,8 +42,11 @@
             "production": {
               "optimization": true,
               "outputHashing": "all",
-              "sourceMap": false,
-              "extractCss": true,
+              "sourceMap": {
+				"hidden": true,
+				"scripts": true,
+				"styles": true
+			  },
               "namedChunks": false,
               "aot": true,
               "extractLicenses": true,
@@ -79,7 +82,6 @@
               "optimization": true,
               "outputHashing": "all",
               "sourceMap": false,
-              "extractCss": true,
               "namedChunks": false,
               "aot": true,
               "extractLicenses": true,

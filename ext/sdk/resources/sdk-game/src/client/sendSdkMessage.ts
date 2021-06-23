@@ -16,3 +16,13 @@ export function sendSdkBackendMessage(type: string, data?: any) {
     data,
   }));
 }
+
+export function sendSdkMessageBroadcast(type: string, data?: any) {
+  const msg = JSON.stringify({
+    type,
+    data,
+  });
+
+  Citizen.invokeNative(SEND_SDK_MESSAGE, msg);
+  Citizen.invokeNative(SEND_SDK_MESSAGE_TO_BACKEND, msg);
+}

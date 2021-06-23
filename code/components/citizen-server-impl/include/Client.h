@@ -355,7 +355,7 @@ namespace fx
 		void (*m_clientNetworkMetricsRecvCallback)(Client *thisptr, uint32_t packetId, net::Buffer& packet);
 	};
 
-	inline object_pool<Client, 512 * 1024> clientPool;
+	extern SERVER_IMPL_EXPORT object_pool<Client, 512 * 1024> clientPool;
 
 	using ClientSharedPtr = shared_reference<Client, &clientPool>;
 	using ClientWeakPtr = weak_reference<ClientSharedPtr>;
