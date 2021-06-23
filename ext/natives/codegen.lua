@@ -194,6 +194,19 @@ local function getServerNative(nativeName)
 	return n
 end
 
+local function removeServerNative(nativeName)
+	local n = getServerNative(nativeName)
+
+	if n then
+		for k, v in pairs(natives) do
+			if v == n then
+				table.remove(natives, k)
+				break
+			end
+		end
+	end
+end
+
 function rpcEnvironment.context_rpc(nativeName)
 	local n = getNative(nativeName)
 
@@ -268,6 +281,7 @@ function rpcEnvironment.context_rpc(nativeName)
 	rn.ctx = ctx
 	rn.args = args
 
+	removeServerNative(nativeName)
 	codeEnvironment.native(nativeName)
 		codeEnvironment.arguments(n.arguments)
 		codeEnvironment.apiset('server')
@@ -376,6 +390,7 @@ function rpcEnvironment.entity_rpc(nativeName)
 
 	rn.args = args
 
+	removeServerNative(nativeName)
 	codeEnvironment.native(nativeName)
 		codeEnvironment.arguments(n.arguments)
 		codeEnvironment.apiset('server')
@@ -438,6 +453,7 @@ function rpcEnvironment.object_rpc(nativeName)
 
 	rn.args = args
 	
+	removeServerNative(nativeName)
 	codeEnvironment.native(nativeName)
 		codeEnvironment.arguments(n.arguments)
 		codeEnvironment.apiset('server')
