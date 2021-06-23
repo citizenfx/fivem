@@ -32,6 +32,19 @@ const HOST_INVOKE: &str = "invoke";
 const HOST_CANONICALIZE_REF: &str = "canonicalize_ref";
 const HOST_INVOKE_REF_FUNC: &str = "invoke_ref_func";
 
+#[macro_export]
+macro_rules! ptr_out_of_bounds {
+    ($ptr:expr, $mem:expr, $ctx:expr) => {
+        $ptr < 0 || $ptr as usize >= $mem.data_size($ctx)
+    };
+
+    ($ptr:expr, $len:expr, $mem:expr, $ctx:expr) => {
+        $crate::ptr_out_of_bounds!($ptr, $mem, $ctx)
+            || $len < 0
+            || ($ptr as usize + $len as usize) >= $mem.data_size($ctx)
+    };
+}
+
 pub struct Runtime {
     engine: Engine,
     script: Option<ScriptModule>,
@@ -234,7 +247,9 @@ impl ScriptModule {
         let mut store = Store::new(&engine, wasi_ctx);
 
         linker.func_wrap(HOST, HOST_LOG, |caller: Caller<'_, _>, ptr: i32| {
-            let _ = log(caller, ptr);
+            if let Err(err) = log(caller, ptr) {
+                script_log(format!("{}::{} error: {:?}", HOST, HOST_LOG, err));
+            }
         })?;
 
         linker.func_wrap(
@@ -255,8 +270,18 @@ impl ScriptModule {
         linker.func_wrap(
             HOST,
             HOST_CANONICALIZE_REF,
-            |caller: Caller<'_, _>, ref_idx: i32, ptr: i32, len: i32| {
-                canonicalize_ref(caller, ref_idx, ptr, len).unwrap_or(0)
+            |caller: Caller<'_, _>, ref_idx: i32, ptr: i32, len: i32| match canonicalize_ref(
+                caller, ref_idx, ptr, len,
+            ) {
+                Ok(result) => result,
+                Err(err) => {
+                    script_log(format!(
+                        "{}::{} error: {:?}",
+                        HOST, HOST_CANONICALIZE_REF, err
+                    ));
+
+                    0
+                }
             },
         )?;
 
@@ -481,6 +506,10 @@ fn log<'a, T>(mut caller: Caller<'a, T>, ptr: i32) -> anyhow::Result<()> {
         .and_then(|export| export.into_memory())
         .ok_or(anyhow!("No memory"))?;
 
+    if ptr_out_of_bounds!(ptr, mem, &caller) {
+        return Err(anyhow!("Pointer is out of bounds."));
+    }
+
     let host_ptr = unsafe { mem.data_ptr(&mut caller).add(ptr as _) };
 
     unsafe {
@@ -502,6 +531,10 @@ fn canonicalize_ref<'a, T>(
         .get_export("memory")
         .and_then(|export| export.into_memory())
         .ok_or(anyhow!("No memory"))?;
+
+    if ptr_out_of_bounds!(ptr, len, mem, &caller) {
+        return Err(anyhow!("Pointer is out of bounds"));
+    }
 
     unsafe {
         let ptr = mem.data_ptr(&mut caller).add(ptr as _) as *mut _;

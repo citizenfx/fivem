@@ -1,3 +1,4 @@
+use crate::ptr_out_of_bounds;
 use cfx_wasm_rt_types::{call_result::*, GuestArg, ReturnType, ReturnValue, ScrObject, Vector3};
 use std::ffi::CStr;
 use wasmtime::{Caller, Func, Memory, Val};
@@ -27,6 +28,7 @@ pub enum NativeError {
     NoMemory,
     /// `IScriptHost::InvokeNative` returns an error.
     InvokeError,
+    IncorrectPtr,
 }
 
 /// A result of executing native functions. This results (even if not succeeded) isn't critical, meaning the runtime
@@ -80,6 +82,10 @@ pub fn call_native_wrapper<'a, T>(
         .and_then(|ext| ext.into_memory())
         .ok_or(NativeError::NoMemory)?;
 
+    if ptr_out_of_bounds!(ptr, len, mem, &caller) {
+        return Err(NativeError::IncorrectPtr);
+    }
+
     if len > 0 && ptr != 0 {
         unsafe {
             let ptr = mem.data_ptr(&mut caller).add(ptr as _) as *const GuestArg;
@@ -87,7 +93,7 @@ pub fn call_native_wrapper<'a, T>(
         }
     }
 
-    let retval = if retval == 0 {
+    let retval = if ptr_out_of_bounds!(retval, mem, &caller) {
         None
     } else {
         Some(unsafe {
@@ -139,6 +145,10 @@ fn call_native<'a, T>(
 
         unsafe {
             if arg.is_ref {
+                if ptr_out_of_bounds!(arg.value, memory, &caller) {
+                    return Err(NativeError::IncorrectPtr);
+                }
+
                 (ctx_args.add(idx) as *mut usize).write(mem_start.add(arg.value as usize) as _);
             } else {
                 std::ptr::copy(
@@ -161,6 +171,10 @@ fn call_native<'a, T>(
     if let Some(retval) = retval {
         if ctx.num_results == 0 && retval.rettype == ReturnType::Empty {
             return Ok(CallResult::Ok);
+        }
+
+        if ptr_out_of_bounds!(retval.buffer, retval.capacity, memory, &caller) {
+            return Err(NativeError::IncorrectPtr);
         }
 
         let mut buffer = unsafe { memory.data_ptr(&mut caller).add(retval.buffer as _) };
@@ -299,6 +313,14 @@ pub fn invoke_ref_func_wrapper<'a, T>(
 
     if ref_name == 0 || args == 0 {
         return Ok(CallResult::WrongArgs);
+    }
+
+    if ptr_out_of_bounds!(args, args_len, mem, &caller) {
+        return Err(NativeError::IncorrectPtr);
+    }
+
+    if ptr_out_of_bounds!(buffer, buffer_cap, mem, &caller) {
+        return Err(NativeError::IncorrectPtr);
     }
 
     let mut ctx = NativeContext::default();
