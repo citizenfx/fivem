@@ -41,7 +41,7 @@ static void(*g_loadLevel)(const char* levelPath);
 
 enum NativeIdentifiers : uint64_t
 {
-	GET_PLAYER_PED = 0x43A66C31C68491C0,
+	PLAYER_PED_ID = 0xD80958FC74E988A6,
 	SET_ENTITY_COORDS = 0x621873ECE1178967,
 	LOAD_SCENE = 0x4448EB75B4904BDB,
 	SHUTDOWN_LOADING_SCREEN = 0x078EBE9809CCD637,
@@ -68,7 +68,7 @@ public:
 
 	virtual void DoRun() override
 	{
-		uint32_t playerPedId = NativeInvoke::Invoke<GET_PLAYER_PED, uint32_t>(-1);
+		uint32_t playerPedId = NativeInvoke::Invoke<PLAYER_PED_ID, uint32_t>();
 
 		if (m_doInityThings)
 		{
