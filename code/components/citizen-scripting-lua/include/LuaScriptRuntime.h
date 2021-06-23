@@ -4,7 +4,10 @@
  * See LICENSE and MENTIONS in the root of the source tree for information
  * regarding licensing.
  */
-#pragma once
+
+// explicit include guard as we may include this with different names
+#ifndef LSRT_H
+#define LSRT_H
 #undef LuaScriptRuntime
 #define LUA_LIB
 
@@ -332,3 +335,4 @@ public:
 	NS_DECL_ISCRIPTPROFILER;
 };
 }
+#endif

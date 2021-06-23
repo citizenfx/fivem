@@ -226,7 +226,7 @@
 	branch = grit
 [submodule "vendor/lua"]
 	path = vendor/lua
-	url = https://github.com/gottfriedleibniz/lua.git
+	url = https://github.com/citizenfx/lua.git
 	branch = luaglm-dev/cfx
 [submodule "vendor/tinygltf"]
 	path = vendor/tinygltf
@@ -269,9 +269,9 @@
 	url = https://github.com/john-chapman/im3d.git
 [submodule "vendor/lmprof"]
 	path = vendor/lmprof
-	url = https://github.com/gottfriedleibniz/lmprof.git
+	url = https://github.com/citizenfx/lmprof.git
 	branch = grit
 [submodule "vendor/rpmalloc"]
 	path = vendor/rpmalloc
-	url = https://github.com/gottfriedleibniz/rpmalloc.git
+	url = https://github.com/citizenfx/rpmalloc.git
 	branch = lua
