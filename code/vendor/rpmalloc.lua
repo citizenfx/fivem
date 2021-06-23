@@ -10,22 +10,24 @@ return {
 		
 		if os.istarget('windows') then
 			flags { "LinkTimeOptimization" }
-		end
 
-		defines { 
-			"ENABLE_THREAD_CACHE=1",
-			"ENABLE_GLOBAL_CACHE=0",
-		}
+			defines { 
+				"ENABLE_THREAD_CACHE=1",
+				"ENABLE_GLOBAL_CACHE=0",
+			}
 
-		files
-		{
-			"../vendor/rpmalloc/rpmalloc/**",
-		}
+			files
+			{
+				"../vendor/rpmalloc/rpmalloc/**",
+			}
 
-		removefiles {
-			"../vendor/rpmalloc/rpmalloc/version.c",
-		}
+			removefiles {
+				"../vendor/rpmalloc/rpmalloc/version.c",
+			}
 
-		optimize "Speed"
+			optimize "Speed"
+		else
+			files 'vendor/dummy.c'
+		end		
 	end
 }
