@@ -17,7 +17,7 @@
 
 enum NativeIdentifiers : uint64_t
 {
-	GET_PLAYER_PED = 0x43A66C31C68491C0,
+	PLAYER_PED_ID = 0xD80958FC74E988A6,
 	GET_ENTITY_COORDS = 0x3FEF770D40960D5A,
 	GET_FIRST_BLIP_INFO_ID = 0x1BEDE233E6CD2A1F,
 	GET_NEXT_BLIP_INFO_ID = 0x14F96AA50D6FBEA7,
@@ -108,7 +108,7 @@ public:
 			NativeInvoke::Invoke<0xB3B3359379FE77D3, int>(0.0f);
 		}
 
-		uint32_t playerPedId = NativeInvoke::Invoke<GET_PLAYER_PED, uint32_t>(-1);
+		uint32_t playerPedId = NativeInvoke::Invoke<PLAYER_PED_ID, uint32_t>();
 
 		if (playerPedId != -1 && playerPedId != 0)
 		{
