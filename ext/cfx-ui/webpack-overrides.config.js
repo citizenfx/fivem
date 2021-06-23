@@ -18,7 +18,7 @@ module.exports = (config, options) => {
 		}));
 	} else {
 		config.plugins.push(new webpack.DefinePlugin({
-			'process.env.CI_PIPELINE_ID': 'dev',
+			'process.env.CI_PIPELINE_ID': '"dev"',
 		}));
 	}
 
