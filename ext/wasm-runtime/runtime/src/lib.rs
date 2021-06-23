@@ -26,8 +26,8 @@ const CFX_DUPLICATE_REF: &str = "__cfx_duplicate_ref";
 const CFX_REMOVE_REF: &str = "__cfx_remove_ref";
 
 // exports from the host
-const HOST: &str = "host";
-const HOST_LOG: &str = "log";
+const HOST: &str = "cfx"; // module name
+const HOST_LOG: &str = "script_log";
 const HOST_INVOKE: &str = "invoke";
 const HOST_CANONICALIZE_REF: &str = "canonicalize_ref";
 const HOST_INVOKE_REF_FUNC: &str = "invoke_ref_func";
@@ -233,13 +233,9 @@ impl ScriptModule {
 
         let mut store = Store::new(&engine, wasi_ctx);
 
-        linker.func_wrap(
-            HOST,
-            HOST_LOG,
-            |caller: Caller<'_, _>, ptr: i32, len: i32| {
-                let _ = log(caller, ptr, len);
-            },
-        )?;
+        linker.func_wrap(HOST, HOST_LOG, |caller: Caller<'_, _>, ptr: i32| {
+            let _ = log(caller, ptr);
+        })?;
 
         linker.func_wrap(
             HOST,
@@ -479,18 +475,17 @@ fn call_call_ref(
     Ok(ret_buf.len() as _)
 }
 
-fn log<'a, T>(mut caller: Caller<'a, T>, ptr: i32, len: i32) -> anyhow::Result<()> {
-    let mut buf = vec![0u8; len as usize];
+fn log<'a, T>(mut caller: Caller<'a, T>, ptr: i32) -> anyhow::Result<()> {
     let mem = caller
         .get_export("memory")
         .and_then(|export| export.into_memory())
         .ok_or(anyhow!("No memory"))?;
 
-    mem.read(&mut caller, ptr as _, buf.as_mut())?;
+    let host_ptr = unsafe { mem.data_ptr(&mut caller).add(ptr as _) };
 
     unsafe {
         if let Some(logger) = LOGGER {
-            logger(buf.as_mut_ptr() as _);
+            logger(host_ptr as _);
         }
     }
 

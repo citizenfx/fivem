@@ -14,10 +14,9 @@ Each module can listen to events, invoke CitizenFX native functions and call ref
 
 **SCRIPTS (MODULES) ARE RESPONSIBLE TO MANAGE VALUES THAT IS PASSED TO THE RUNTIME (BUT THEY SHOULD LIVE AS LONG AS RUNTIME (HOST) FUNCTION IS EXECUTED)**
 
-The runtime exposes next functions that can be used by any WebAssembly module (runtime module name is `host`):
-- `log(message: *const char, length: i32)` - log a message in the console
-    - `message` - null terminated C string (should it be?)
-    - `length` - length of the message
+The runtime exposes next functions that can be used by any WebAssembly module (runtime module name is `cfx`):
+- `script_log(message: *const char)` - log a message in the console
+    - `message` - null terminated C string
 - `invoke(hash: u64, ptr: i32, len: i32, retval: i32) -> i32` - invokes a native CitizenFX function (returns status code `rt-types/lib.rs/call_result`)
     - `hash` - hash of a native function to call
     - `ptr` - pointer to an array of arguments
@@ -67,3 +66,85 @@ Expected exports from modules (scripts):
     - returns a pointer to the new buffer (the old one may be freed)
 
 An example of WASM modules implemented in Rust can be found here: (where?)
+
+C++ version
+```c++
+// To build this code you need wasi-sdk (https://github.com/WebAssembly/wasi-sdk/)
+// $CXX -std=c++17 -O3 -flto -fno-exceptions main.cpp -o main.wasm  -Wl,--allow-undefined,--export-all
+// I've modified msgpack11 by removing all throws (https://github.com/ar90n/msgpack11)
+#include <string>
+#include <iostream>
+#include <sstream>
+#include <vector>
+#include <msgpack11.hpp>
+
+using namespace msgpack11;
+
+#define FROM_CFX __attribute__((import_module("cfx")))
+
+// Defined at ext/wasm-runtime/rt-types
+struct guest_arg
+{
+    bool is_ref;
+    uint64_t value;
+    std::size_t size;
+};
+
+extern "C" void FROM_CFX script_log(const char *message);
+extern "C" int32_t FROM_CFX invoke(uint64_t hash, const guest_arg *args, std::size_t len, void *retval);
+
+void register_resource_as_event_handler(const std::string &event_name)
+{
+    std::vector<guest_arg> args{guest_arg{true, reinterpret_cast<uint64_t>(event_name.c_str()), 8}};
+    invoke(0xD233A168, args.data(), args.size(), nullptr);
+}
+
+template <typename... T>
+void log(T... args)
+{
+    std::stringstream stream("");
+
+    (stream << ... << args);
+
+    auto result = stream.str();
+    script_log(result.c_str());
+}
+
+int main()
+{
+    std::string message = "hellow!";
+    std::string event_name = "onServerResourceStart";
+
+    register_resource_as_event_handler(event_name);
+
+    log(message);
+
+    return 0;
+}
+
+__attribute__((used)) extern "C" void __cfx_on_event(const char *event, const char *args, std::size_t size, const char *source)
+{
+    std::string err;
+    std::string event_name(event);
+
+    MsgPack des_msgpack = MsgPack::parse(args, size, err);
+
+    if (event_name.compare("onServerResourceStart") == 0)
+    {
+        auto array = des_msgpack.array_items();
+        auto resource_name = array[0];
+
+        log("new resource: ", resource_name.string_value());
+    }
+}
+
+__attribute__((used)) extern "C" void *__cfx_alloc(std::size_t size, std::size_t align)
+{
+    return aligned_alloc(align, size);
+}
+
+__attribute__((used)) extern "C" void __cfx_free(void *ptr, uint32_t size, uint32_t align)
+{
+    std::free(ptr);
+}
+```
