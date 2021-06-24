@@ -62,14 +62,16 @@ export class PlayerAvatarComponent implements OnInit, OnChanges {
 				const decId = int.toString(10);
 
 				return this.http.get(`https://steamcommunity.com/profiles/${decId}?xml=1`, { responseType: 'text' })
-					.pipe(catchError(() => EMPTY))
+					.pipe(catchError(() => ''))
 					.map(a => {
 						try {
-							const obj = xml2js(a, { compact: true }) as ElementCompact;
+							if (a && a !== '') {
+								const obj = xml2js(a, { compact: true }) as ElementCompact;
 
-							if (obj && obj.profile && obj.profile.avatarMedium) {
-								return obj.profile.avatarMedium._cdata
-									.replace('http://cdn.edgecast.steamstatic.com/', 'https://steamcdn-a.akamaihd.net/');
+								if (obj && obj.profile && obj.profile.avatarMedium) {
+									return obj.profile.avatarMedium._cdata
+										.replace('http://cdn.edgecast.steamstatic.com/', 'https://steamcdn-a.akamaihd.net/');
+								}
 							}
 						} catch {}
 

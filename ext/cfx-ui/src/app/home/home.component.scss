@@ -740,7 +740,8 @@
 
 			padding: var(--q1);
 
-			overflow-y: scroll;
+			display: flex;
+			flex-direction: column;
 
 			.title {
 				margin-bottom: var(--qh);
@@ -755,6 +756,18 @@
 				opacity: .25;
 
 				text-align: justify;
+
+				flex: 0;
+			}
+
+			cdk-virtual-scroll-viewport {
+				flex-grow: 1;
+				overflow-x: hidden;
+				overflow-y: auto;
+
+				::ng-deep .cdk-virtual-scroll-content-wrapper {
+					width: 100%;
+				}
 			}
 		}
 

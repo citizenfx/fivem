@@ -205,15 +205,24 @@
 
 		<div class="tweets community">
 			<div class="title">Community</div>
-			<app-home-tweet class="message" [actuallyTweet]="true" *ngFor="let tweet of communityTweets" [tweet]="tweet">
-			</app-home-tweet>
+			<cdk-virtual-scroll-viewport autosize>
+				<!-- parent div is required to not break cdk-portal, see https://github.com/angular/components/issues/11323 -->
+				<div *cdkVirtualFor="let tweet of communityTweets">
+					<app-home-tweet class="message" [actuallyTweet]="true" [tweet]="tweet">
+					</app-home-tweet>
+				</div>
+			</cdk-virtual-scroll-viewport>
 		</div>
 
 		<div class="tweets official">
 			<div class="title" *ngIf="gameName === 'gta5'">FiveM Official</div>
 			<div class="title" *ngIf="gameName !== 'gta5'">Cfx.re Official</div>
-			<app-home-tweet class="message" [actuallyTweet]="true" *ngFor="let tweet of officialTweets" [tweet]="tweet">
-			</app-home-tweet>
+			<cdk-virtual-scroll-viewport autosize>
+				<div *cdkVirtualFor="let tweet of officialTweets">
+					<app-home-tweet class="message" [actuallyTweet]="true" [tweet]="tweet">
+					</app-home-tweet>
+				</div>
+			</cdk-virtual-scroll-viewport>
 		</div>
 	</div>
 </div>
