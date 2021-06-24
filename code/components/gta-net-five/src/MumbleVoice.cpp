@@ -33,6 +33,8 @@
 #include <ResourceManager.h>
 #include <ResourceEventComponent.h>
 
+#include <GameInput.h>
+
 #if __has_include(<GameAudioState.h>)
 #include <GameAudioState.h>
 #endif
@@ -128,7 +130,7 @@ static bool Mumble_ShouldConnect()
 	return g_preferenceArray[PREF_VOICE_ENABLE] && Instance<ICoreGameInit>::Get()->OneSyncEnabled && g_voiceActiveByScript;
 }
 
-static void Mumble_Connect()
+static void Mumble_Connect(bool isReconnect = false)
 {
 	g_mumble.connected = false;
 	g_mumble.errored = false;
@@ -136,7 +138,7 @@ static void Mumble_Connect()
 
 	_initVoiceChatConfig();
 
-	g_mumbleClient->ConnectAsync(g_mumble.overridePeer ? *g_mumble.overridePeer : g_netLibrary->GetCurrentPeer(), fmt::sprintf("[%d] %s", g_netLibrary->GetServerNetID(), g_netLibrary->GetPlayerName())).then([](concurrency::task<MumbleConnectionInfo*> task)
+	g_mumbleClient->ConnectAsync(g_mumble.overridePeer ? *g_mumble.overridePeer : g_netLibrary->GetCurrentPeer(), fmt::sprintf("[%d] %s", g_netLibrary->GetServerNetID(), g_netLibrary->GetPlayerName())).then([&](concurrency::task<MumbleConnectionInfo*> task)
 	{
 		try
 		{
@@ -149,10 +151,11 @@ static void Mumble_Connect()
 			 * An event triggered when the game completes (re)connecting to a Mumble server.
 			 *
 			 * @param address - The address of the Mumble server connected to.
+             * @param reconnecting - Is this a reconnection to a Mumble server.
 			 #/
-			declare function mumbleConnected(address: string): void;
+			declare function mumbleConnected(address: string, reconnecting: boolean): void;
 			*/
-			eventManager->QueueEvent2("mumbleConnected", {}, info->address.ToString());
+			eventManager->QueueEvent2("mumbleConnected", {}, info->address.ToString(), isReconnect);
 
 			g_mumble.connectionInfo = g_mumbleClient->GetConnectionInfo();
 
@@ -177,6 +180,8 @@ static void Mumble_Connect()
 
 static void Mumble_Disconnect(bool reconnect = false)
 {
+	auto mumbleConnectionInfo = g_mumbleClient->GetConnectionInfo();
+
 	g_mumble.connected = false;
 	g_mumble.errored = false;
 	g_mumble.connecting = false;
@@ -184,9 +189,24 @@ static void Mumble_Disconnect(bool reconnect = false)
 
 	g_mumbleClient->DisconnectAsync().then([=]()
 	{
+        if (!reconnect && mumbleConnectionInfo)
+        {
+            auto eventManager = Instance<fx::ResourceManager>::Get()->GetComponent<fx::ResourceEventManagerComponent>();
+
+		    /*NETEV mumbleDisconnected CLIENT
+		    /#*
+		     * An event triggered when the game disconnects from a Mumble server without being reconnected.
+		     *
+		     * @param address - The address of the Mumble server disconnected from.
+		     #/
+		    declare function mumbleDisconnected(address: string): void;
+		    */
+		    eventManager->QueueEvent2("mumbleDisconnected", {}, mumbleConnectionInfo ? mumbleConnectionInfo->address.ToString() : NULL);
+        }
+        
 		if (reconnect && Mumble_ShouldConnect())
 		{
-			Mumble_Connect();
+			Mumble_Connect(true);
 		}
 	});
 
@@ -341,16 +361,18 @@ static void Mumble_RunFrame()
 		g_mumbleClient->SetActivationLikelihood(MumbleVoiceLikelihood::HighLikelihood);
 	}
 
-	// handle PTT
-	auto isControlPressed = fx::ScriptEngine::GetNativeHandler(0xF3A21BCD95725A4A);
-	fx::ScriptContextBuffer cxt;
+	{
+		// handle PTT
+		constexpr const uint32_t PLAYER_CONTROL = 0;
+		constexpr const uint32_t INPUT_PUSH_TO_TALK = 249;
+		static auto isControlPressed = fx::ScriptEngine::GetNativeHandler(0xF3A21BCD95725A4A);
+		static auto isControlEnabled = fx::ScriptEngine::GetNativeHandler(0x1CEA6BFDF248E5D9);
+		bool pushToTalkPressed = FxNativeInvoke::Invoke<bool>(isControlPressed, PLAYER_CONTROL, INPUT_PUSH_TO_TALK);
+		bool pushToTalkEnabled = FxNativeInvoke::Invoke<bool>(isControlEnabled, PLAYER_CONTROL, INPUT_PUSH_TO_TALK);
 
-	cxt.Push(0);
-	cxt.Push(249); // INPUT_PUSH_TO_TALK
-
-	(*isControlPressed)(cxt);
-
-	g_mumbleClient->SetPTTButtonState(cxt.GetResult<bool>());
+		// game::IsControlKeyDown doesn't take enabled/disabled state into account, so we manually check enabled state
+		g_mumbleClient->SetPTTButtonState(pushToTalkEnabled && (pushToTalkPressed || game::IsControlKeyDown(249 /* INPUT_PUSH_TO_TALK */)));
+	}
 
 	// handle device changes
 	static int curInDevice = -1;
@@ -986,7 +1008,7 @@ static HookFunction hookFunction([]()
 
 		fx::ScriptEngine::RegisterNativeHandler(0x84F0F13120B4E098, [=](fx::ScriptContext& context)
 		{
-			(*origSetProximity)(context);
+			(*origGetProximity)(context);
 
 			float proximity = g_mumbleClient->GetAudioDistance();
 

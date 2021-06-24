@@ -11,12 +11,14 @@ import { ServersService } from './servers/servers.service';
 import { L10N_LOCALE, L10nLocale, L10nTranslationService } from 'angular-l10n';
 import { OverlayContainer } from '@angular/cdk/overlay';
 import { getNavConfigFromUrl } from './nav/helpers';
+import { DomSanitizer } from '@angular/platform-browser';
+
+import * as md5 from 'js-md5';
 
 // from fxdk
 const vertexShaderSrc = `
   attribute vec2 a_position;
   attribute vec2 a_texcoord;
-  uniform mat3 u_matrix;
   varying vec2 textureCoordinate;
   void main() {
     gl_Position = vec4(a_position, 0.0, 1.0);
@@ -25,7 +27,7 @@ const vertexShaderSrc = `
 `;
 
 const fragmentShaderSrc = `
-varying highp vec2 textureCoordinate;
+varying mediump vec2 textureCoordinate;
 uniform sampler2D external_texture;
 void main()
 {
@@ -115,9 +117,13 @@ function createGameView(canvas: HTMLCanvasElement) {
 		depth: false,
 		stencil: false,
 		alpha: false,
-		desynchronized: true,
+		preserveDrawingBuffer: true,
 		failIfMajorPerformanceCaveat: false
 	}) as WebGLRenderingContext;
+
+	if (!gl) {
+		return null;
+	}
 
 	let render = () => { };
 
@@ -158,9 +164,8 @@ function createGameView(canvas: HTMLCanvasElement) {
 
 	render = () => {
 		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-		gl.finish();
 
-		gameView.animationFrame = requestAnimationFrame(render);
+		gameView.animationFrame = setTimeout(render, 33.3);
 	};
 
 	createStuff();
@@ -187,6 +192,8 @@ export class AppComponent implements OnInit, AfterViewInit {
 	@ViewChild('gameCanvas')
 	gameCanvas: ElementRef;
 
+    customBackdrop = '';
+
 	gameView: ReturnType<typeof createGameView>;
 
 	get minMode() {
@@ -201,6 +208,10 @@ export class AppComponent implements OnInit, AfterViewInit {
 		return this.router.url === '/';
 	}
 
+    get isWeb() {
+        return environment.web;
+    }
+
 	constructor(@Inject(L10N_LOCALE) public locale: L10nLocale,
 		public l10nService: L10nTranslationService,
 		public gameService: GameService,
@@ -209,6 +220,7 @@ export class AppComponent implements OnInit, AfterViewInit {
 		private zone: NgZone,
 		private serversService: ServersService,
 		private overlayContainer: OverlayContainer,
+        private sanitizer: DomSanitizer,
 	) {
 		this.gameService.init();
 
@@ -228,6 +240,10 @@ export class AppComponent implements OnInit, AfterViewInit {
 
 			this.minModeSetUp = true;
 		});
+
+        this.gameService.getConvar('ui_customBackdrop').subscribe((value: string) => {
+            this.customBackdrop = value;
+        });
 
 		this.gameService.getConvar('ui_blurPerfMode').subscribe((value: string) => {
 			delete this.classes['blur-noBackdrop'];
@@ -309,23 +325,35 @@ export class AppComponent implements OnInit, AfterViewInit {
 		});
 	}
 
+    get stylish() {
+        if (this.customBackdrop) {
+            return this.sanitizer.bypassSecurityTrustUrl(`url(https://nui-backdrop/user.png?${md5(this.customBackdrop ?? '')})`);
+        }
+
+        return null;
+    }
+
 	ngAfterViewInit(): void {
 		if (!this.gameCanvas) {
 			return;
 		}
 
 		this.gameView = createGameView(this.gameCanvas.nativeElement);
-		this.gameView.resize(window.innerWidth, window.innerHeight);
+		this.gameView?.resize(window.innerWidth, window.innerHeight);
 
 		window.addEventListener('resize', () => {
-			this.gameView.resize(window.innerWidth, window.innerHeight);
+			this.gameView?.resize(window.innerWidth, window.innerHeight);
 		});
 	}
 
 	ngOnInit() {
-		const themeName = this.gameService.gameName === 'rdr3'
-			? 'theme-rdr3'
-			: (this.gameService.darkTheme ? 'theme-dark' : 'theme-light');
+		let themeName = this.gameService.darkTheme ? 'theme-dark' : 'theme-light';
+
+		if (this.gameService.gameName === 'rdr3') {
+			themeName = 'theme-rdr3';
+		} else if (this.gameService.gameName === 'ny') {
+			themeName = 'theme-ny';
+		}
 
 		this.classes = {};
 		this.classes[environment.web ? 'webapp' : 'gameapp'] = true;
@@ -338,7 +366,7 @@ export class AppComponent implements OnInit, AfterViewInit {
 		this.classes['no-header-safe-zone'] = !getNavConfigFromUrl(this.router.url).withHomeButton;
 
 		this.gameService.darkThemeChange.subscribe(value => {
-			if (this.gameService.gameName !== 'rdr3') {
+			if (this.gameService.gameName !== 'rdr3' && this.gameService.gameName !== 'ny') {
 				const overlayElement = this.overlayContainer.getContainerElement();
 
 				overlayElement.classList.remove('theme-light');

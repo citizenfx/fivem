@@ -70,9 +70,9 @@ export type FilesystemEntryMap = {
 
 
 export enum Feature {
-  systemGitClientAvailable,
   windowsDevModeEnabled,
   dotnetAvailable,
+  worldEditor,
 }
 
 export type FeaturesMap = Partial<Record<Feature, boolean>>;

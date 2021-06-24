@@ -15,7 +15,7 @@
 	>
 	</div>
 
-    <figure class="icon" (click)="attemptConnect($event)" #iconFigure>
+    <figure class="icon" #iconFigure>
         <img [src]="server.sanitizedUri" (error)="server.setDefaultIcon()" *ngIf="premium == 'pt' || server.isDefaultIcon">
 	</figure>
 
@@ -29,12 +29,25 @@
 		<span><div>{{ premium }}</div></span>
 	</div>
 
-    <div class="name" [innerHTML]="server.hostname | allowify | escape | colorize:{trust: true}"></div>
+	<div class="locale"><span data-balloon-pos="right" [attr.aria-label]="localeName" [class]="'flag-icon flag-icon-' + localeCountry"></span></div>
 
-    <div class="actions" *ngIf="!isPinList">
+    <div *ngIf="!server.data.vars?.sv_projectName" class="name" [innerHTML]="server.hostname | allowify | escape | colorize:{trust: true}"></div>
+	<div *ngIf="server.data.vars?.sv_projectName" class="name projectName">
+		<strong [innerHTML]="server.data.vars?.sv_projectName | allowify | escape | colorize:{trust: true}"></strong>
+		<span [innerHTML]="(server.data.vars?.sv_projectDesc || '') | allowify | escape"></span>
+	</div>
+
+	<div class="tags">
+		<span *ngFor="let tag of tags">
+			{{tag}}
+		</span>
+	</div>
+
+    <div class="actions" *ngIf="!isPinList" [class.web]="isWeb">
 		<button
 			(click)="enableBoost($event)"
-			[class.active]="isBoost()"
+			[class.active]="isBoost() && !isWeb"
+            [class.web]="isWeb"
 			aria-label="Give this server a BOOST™!"
 			data-balloon-pos="left"
 			class="boost"
@@ -45,7 +58,7 @@
 				{{server.upvotePower}}
 			</span>
 
-			<div class="booster">
+			<div class="booster" *ngIf="!isWeb">
 				BOOST™!
 			</div>
 		</button>
@@ -55,6 +68,7 @@
 			[class.active]="isFavorite()"
 			class="fav"
 			tabindex="-1"
+            *ngIf="!isWeb"
 		>
 			<span *ngIf="!isFavorite()" class="material-icons-outlined">star_bordered</span>
 			<span *ngIf="isFavorite()" class="material-icons-outlined">star</span>

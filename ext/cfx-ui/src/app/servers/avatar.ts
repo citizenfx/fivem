@@ -29,7 +29,7 @@ export class Avatar {
 `;
 
     public static getFor(key: string) {
-        const hashStr: string = md5(key);
+        const hashStr: string = md5(key ?? '');
 
         let firstColor = Color(Avatar.hashStringToColor(hashStr)).saturate(0.5);
 

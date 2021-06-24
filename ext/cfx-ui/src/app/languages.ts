@@ -1,9 +1,9 @@
-// #TODO: move to Intl API upon Chromium update
-import cldrLanguages from 'cldr-data/main/en/languages.json';
-import cldrSubTags from 'cldr-data/supplemental/likelySubtags.json';
+// #TODO: move to Intl API
+import cldrLanguages from 'cldr-localenames-modern/main/en/languages.json';
+import cldrSubTags from 'cldr-core/supplemental/likelySubtags.json';
 import * as cldrjs from 'cldrjs';
 
-import { L10nSchema } from "angular-l10n";
+import { L10nSchema } from 'angular-l10n';
 import languageRefs from 'webpack-extended-import-glob-loader!./languagerefs';
 
 cldrjs.load(cldrLanguages, cldrSubTags);

@@ -1,6 +1,6 @@
 return {
 	include = function()
-		includedirs { "vendor/folly/", "../vendor/folly/", "../vendor/chromium/base/third_party/double_conversion/" }
+		includedirs { "vendor/folly/", "../vendor/folly/", "../vendor/chromium/base/third_party/double_conversion/", "../vendor/fmtlib/include" }
 	end,
 
 	run = function()
@@ -8,6 +8,10 @@ return {
 		kind "StaticLib"
 		
 		defines { 'FOLLY_NO_CONFIG' }
+		
+		if os.istarget('linux') then
+			defines { 'FOLLY_HAVE_RECVMMSG' }
+		end
 
 		files_project '../vendor/folly/folly/'
 		{
@@ -27,6 +31,20 @@ return {
 			'portability/Sockets.cpp',
 			'net/NetOps.cpp',
 			'net/detail/SocketFileDescriptorMap.cpp',
+			-- SharedMutex
+			'synchronization/SanitizeThread.cpp',
+			'synchronization/ParkingLot.cpp',
+			'concurrency/*.cpp', 
+			'portability/Builtins.h',
+			'portability/Builtins.cpp',
+			'portability/Unistd.cpp',
+			'portability/SysResource.cpp',
+			'detail/Futex.cpp',
+			'SharedMutex.cpp',
+			'lang/SafeAssert.cpp',
+			'FileUtil.cpp',
+			'logging/LogLevel.h',
+			'logging/LogLevel.cpp',
 		}
 		
 		files_project '../vendor/chromium/base/' {

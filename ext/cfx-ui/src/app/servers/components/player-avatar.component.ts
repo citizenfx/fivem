@@ -4,8 +4,8 @@ import { DomSanitizer, SafeStyle } from '@angular/platform-browser';
 
 import { Avatar } from '../avatar';
 
-import { Observable, of } from 'rxjs';
-import { delay, share, flatMap } from 'rxjs/operators';
+import { EMPTY, Observable, of } from 'rxjs';
+import { delay, share, flatMap, catchError } from 'rxjs/operators';
 
 import { Int64BE } from 'int64-buffer';
 import { xml2js, ElementCompact } from 'xml-js';
@@ -62,13 +62,16 @@ export class PlayerAvatarComponent implements OnInit, OnChanges {
 				const decId = int.toString(10);
 
 				return this.http.get(`https://steamcommunity.com/profiles/${decId}?xml=1`, { responseType: 'text' })
+					.pipe(catchError(() => EMPTY))
 					.map(a => {
-						const obj = xml2js(a, { compact: true }) as ElementCompact;
+						try {
+							const obj = xml2js(a, { compact: true }) as ElementCompact;
 
-						if (obj && obj.profile && obj.profile.avatarMedium) {
-							return obj.profile.avatarMedium._cdata
-								.replace('http://cdn.edgecast.steamstatic.com/', 'https://steamcdn-a.akamaihd.net/');
-						}
+							if (obj && obj.profile && obj.profile.avatarMedium) {
+								return obj.profile.avatarMedium._cdata
+									.replace('http://cdn.edgecast.steamstatic.com/', 'https://steamcdn-a.akamaihd.net/');
+							}
+						} catch {}
 
 						return this.sanitizer.bypassSecurityTrustUrl(this.svgUrl);
 					});

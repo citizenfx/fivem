@@ -13,6 +13,8 @@ return function()
 	filter {}
 	configuration {}
 	
+	add_dependencies { 'vendor:folly' }
+	
 	local jexlEvalDir = path.getabsolute(_ROOTPATH .. '/../ext/jexl-eval/target/release/')
 	
 	if os.isdir(jexlEvalDir) then
@@ -21,4 +23,8 @@ return function()
 		
 		includedirs { path.getabsolute(jexlEvalDir .. '/../../') }
 	end
+
+	removefiles {
+		'components/citizen-server-impl/src/state/**'
+	}
 end

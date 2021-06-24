@@ -36,32 +36,34 @@ apk del curl
 apk add --no-cache curl=7.72.0-r99 libssl1.1 libunwind libstdc++ zlib c-ares icu-libs v8 musl-dbg
 
 # install compile-time dependencies
-apk add --no-cache --virtual .dev-deps curl-dev=7.72.0-r99 clang clang-dev build-base linux-headers openssl-dev python2 py2-setuptools lua5.3 lua5.3-dev mono-reference-assemblies=5.16.1.0-r9990 mono-dev=5.16.1.0-r9990 libmono=5.16.1.0-r9990 mono-corlib=5.16.1.0-r9990 mono=5.16.1.0-r9990 mono-reference-assemblies-4.x=5.16.1.0-r9990 mono-reference-assemblies-facades=5.16.1.0-r9990 mono-csc=5.16.1.0-r9990 mono-runtime=5.16.1.0-r9990 c-ares-dev v8-dev nodejs~=12 nodejs-dev~=12 npm yarn clang-libs git cargo
+apk add --no-cache --virtual .dev-deps lld curl-dev=7.72.0-r99 clang clang-dev build-base linux-headers openssl-dev python2 py2-setuptools lua5.3 lua5.3-dev mono-reference-assemblies=5.16.1.0-r9990 mono-dev=5.16.1.0-r9990 libmono=5.16.1.0-r9990 mono-corlib=5.16.1.0-r9990 mono=5.16.1.0-r9990 mono-reference-assemblies-4.x=5.16.1.0-r9990 mono-reference-assemblies-facades=5.16.1.0-r9990 mono-csc=5.16.1.0-r9990 mono-runtime=5.16.1.0-r9990 c-ares-dev v8-dev nodejs~=12 nodejs-dev~=12 npm yarn clang-libs git cargo
 
 # install ply
 python2 -m easy_install ply
 
 # build natives
-cd /src/ext/native-doc-gen
-sh build.sh
+if [ "$SKIP_NATIVES" == "" ]; then
+	cd /src/ext/natives
+	gcc -O2 -shared -fpic -o cfx.so -I/usr/include/lua5.3/ lua_cfx.c
 
-cd /src/ext/natives
+	mkdir -p inp out
+	curl --http1.1 -sLo inp/natives_global.lua http://runtime.fivem.net/doc/natives.lua
 
-mkdir -p out
-curl --http1.1 -sLo out/natives_global.lua http://runtime.fivem.net/doc/natives.lua
+	cd /src/ext/native-doc-gen
+	sh build.sh
 
-gcc -O2 -shared -fpic -o cfx.so -I/usr/include/lua5.3/ lua_cfx.c
+	cd /src/ext/natives
 
-mkdir -p /opt/cfx-server/citizen/scripting/lua/
-mkdir -p /opt/cfx-server/citizen/scripting/v8/
+	mkdir -p /opt/cfx-server/citizen/scripting/lua/
+	mkdir -p /opt/cfx-server/citizen/scripting/v8/
 
-lua5.3 codegen.lua out/natives_global.lua native_lua server > /src/code/components/citizen-scripting-lua/include/NativesServer.h
-lua5.3 codegen.lua out/natives_global.lua lua server > /opt/cfx-server/citizen/scripting/lua/natives_server.lua
-lua5.3 codegen.lua out/natives_global.lua js server > /opt/cfx-server/citizen/scripting/v8/natives_server.js
-lua5.3 codegen.lua out/natives_global.lua dts server > /opt/cfx-server/citizen/scripting/v8/natives_server.d.ts
+	lua5.3 codegen.lua inp/natives_global.lua native_lua server > /src/code/components/citizen-scripting-lua/include/NativesServer.h
+	lua5.3 codegen.lua inp/natives_global.lua lua server > /opt/cfx-server/citizen/scripting/lua/natives_server.lua
+	lua5.3 codegen.lua inp/natives_global.lua js server > /opt/cfx-server/citizen/scripting/v8/natives_server.js
+	lua5.3 codegen.lua inp/natives_global.lua dts server > /opt/cfx-server/citizen/scripting/v8/natives_server.d.ts
 
 
-cat > /src/code/client/clrcore/NativesServer.cs << EOF
+	cat > /src/code/client/clrcore/NativesServer.cs << EOF
 #if IS_FXSERVER
 using ContextType = CitizenFX.Core.fxScriptContext;
 
@@ -69,19 +71,20 @@ namespace CitizenFX.Core.Native
 {
 EOF
 
-lua5.3 codegen.lua out/natives_global.lua enum server >> /src/code/client/clrcore/NativesServer.cs
-lua5.3 codegen.lua out/natives_global.lua cs server >> /src/code/client/clrcore/NativesServer.cs
+	lua5.3 codegen.lua inp/natives_global.lua enum server >> /src/code/client/clrcore/NativesServer.cs
+	lua5.3 codegen.lua inp/natives_global.lua cs server >> /src/code/client/clrcore/NativesServer.cs
 
-cat >> /src/code/client/clrcore/NativesServer.cs << EOF
+	cat >> /src/code/client/clrcore/NativesServer.cs << EOF
 }
 #endif
 EOF
 
-lua5.3 codegen.lua out/natives_global.lua rpc server > /opt/cfx-server/citizen/scripting/rpc_natives.json
+	lua5.3 codegen.lua inp/natives_global.lua rpc server > /opt/cfx-server/citizen/scripting/rpc_natives.json
 
-# build rusty bits
-cd /src/ext/jexl-eval
-cargo build --release
+	# build rusty bits
+	cd /src/ext/jexl-eval
+	cargo build --release
+fi
 
 # download and extract boost
 cd /tmp
@@ -94,7 +97,7 @@ curl --http1.1 -sLo /tmp/boost.tar.bz2 https://runtime.fivem.net/client/deps/boo
 tar xf boost.tar.bz2
 rm boost.tar.bz2
 
-mv boost_* boost
+mv boost_* boost || true
 
 export BOOST_ROOT=/tmp/boost/
 
@@ -115,14 +118,17 @@ cd ..
 
 rm -rf premake-*
 
+## SETUP-CUTOFF
+
 # build CitizenFX
 cd /src/code
 
 premake5 gmake2 --game=server --cc=clang --dotnet=msnet
 cd build/server/linux
 
-export CXXFLAGS="-std=c++17 -D_LIBCPP_ENABLE_CXX17_REMOVED_AUTO_PTR -Wno-deprecated-declarations -Wno-invalid-offsetof"
-export LDFLAGS="-Wl,--build-id"
+export CFLAGS="-fno-plt"
+export CXXFLAGS="-D_LIBCPP_ENABLE_CXX17_REMOVED_AUTO_PTR -Wno-deprecated-declarations -Wno-invalid-offsetof -fno-plt"
+export LDFLAGS="-Wl,--build-id -fuse-ld=lld"
 
 if [ ! -z "$CI_BRANCH" ] && [ ! -z "$CI_BUILD_NUMBER" ]; then
 	echo '#pragma once' > /src/code/shared/cfx_version.h
@@ -164,6 +170,8 @@ cp -a /usr/lib/libmono-btls-shared.so /tmp/libmono-btls-shared.so
 for dll in I18N.CJK.dll I18N.MidEast.dll I18N.Other.dll I18N.Rare.dll I18N.West.dll I18N.dll Microsoft.CSharp.dll Mono.CSharp.dll Mono.Posix.dll Mono.Security.dll System.Collections.Immutable.dll System.ComponentModel.DataAnnotations.dll System.Configuration.dll System.Core.dll System.Data.dll System.Drawing.dll System.EnterpriseServices.dll System.IO.Compression.FileSystem.dll System.IO.Compression.dll System.Management.dll System.Net.Http.WebRequest.dll System.Net.Http.dll System.Net.dll System.Numerics.Vectors.dll System.Numerics.dll System.Reflection.Metadata.dll System.Runtime.InteropServices.RuntimeInformation.dll System.Runtime.Serialization.dll System.ServiceModel.Internals.dll System.ServiceModel.dll System.Transactions.dll System.Web.dll System.Xml.Linq.dll System.Xml.dll System.dll mscorlib.dll; do
 	cp /usr/lib/mono/4.5/$dll /opt/cfx-server/citizen/clr2/lib/mono/4.5/ || true
 done
+
+## BUILD-CUTOFF
 
 # copy debug info
 for i in /opt/cfx-server/*.so /opt/cfx-server/FXServer; do

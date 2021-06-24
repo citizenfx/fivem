@@ -56,22 +56,24 @@ void RegisterServerIdentityProvider(ServerIdentityProviderBase* provider)
 	g_serverProviders.push_front(provider);
 	g_providersByType.insert({ provider->GetIdentifierPrefix(), provider });
 }
-
-extern bool IsOneSync();
-extern bool IsLengthHack();
 }
 
 static std::mutex g_ticketMapMutex;
 static std::unordered_set<std::tuple<uint64_t, uint64_t>> g_ticketList;
 static std::chrono::milliseconds g_nextTicketGc;
 
-static bool VerifyTicket(const std::string& guid, const std::string& ticket)
+static bool VerifyTicket(const std::string& guid, const std::string& ticket, std::string* error = nullptr)
 {
 	auto ticketData = Botan::base64_decode(ticket);
 
 	// validate ticket length
 	if (ticketData.size() < 20 + 4 + 128)
 	{
+		if (error)
+		{
+			*error = "Invalid ticket length.";
+		}
+
 		return false;
 	}
 
@@ -79,6 +81,11 @@ static bool VerifyTicket(const std::string& guid, const std::string& ticket)
 
 	if (length != 16)
 	{
+		if (error)
+		{
+			*error = "Invalid ticket length. (2)";
+		}
+
 		return false;
 	}
 
@@ -94,6 +101,11 @@ static bool VerifyTicket(const std::string& guid, const std::string& ticket)
 	// verify
 	if (ticketExpiry < timeVal)
 	{
+		if (error)
+		{
+			*error = "Ticket expired. Please check your server's system time.";
+		}
+
 		console::DPrintf("server", "Connecting player: ticket expired\n");
 		return false;
 	}
@@ -103,6 +115,11 @@ static bool VerifyTicket(const std::string& guid, const std::string& ticket)
 
 	if (realGuid != ticketGuid)
 	{
+		if (error)
+		{
+			*error = "Mismatching GUID.";
+		}
+
 		console::DPrintf("server", "Connecting player: ticket GUID not matching\n");
 		return false;
 	}
@@ -112,6 +129,11 @@ static bool VerifyTicket(const std::string& guid, const std::string& ticket)
 
 		if (g_ticketList.find({ ticketExpiry, ticketGuid }) != g_ticketList.end())
 		{
+			if (error)
+			{
+				*error = "Reused ticket.";
+			}
+
 			return false;
 		}
 
@@ -129,6 +151,11 @@ static bool VerifyTicket(const std::string& guid, const std::string& ticket)
 
 	if (sigLength != 128)
 	{
+		if (error)
+		{
+			*error = "Invalid signature length.";
+		}
+
 		return false;
 	}
 
@@ -157,6 +184,11 @@ static bool VerifyTicket(const std::string& guid, const std::string& ticket)
 
 	if (!valid)
 	{
+		if (error)
+		{
+			*error = "Invalid ticket signature.";
+		}
+
 		console::DPrintf("server", "Connecting player: ticket RSA signature not matching\n");
 		return false;
 	}
@@ -408,7 +440,7 @@ static InitFunction initFunction([]()
 
 			if (fx::IsOneSync())
 			{
-				if (protocol < 9)
+				if (protocol < 11)
 				{
 					sendError("Client/server version mismatch.");
 					return;
@@ -421,6 +453,14 @@ static InitFunction initFunction([]()
 
 			switch (instance->GetComponent<fx::GameServer>()->GetGameName())
 			{
+			case fx::GameName::GTA4:
+				intendedGameName = "gta4";
+
+				if (gameName == "gta4")
+				{
+					validGameName = true;
+				}
+				break;
 			case fx::GameName::GTA5:
 				intendedGameName = "gta5";
 
@@ -460,15 +500,17 @@ static InitFunction initFunction([]()
 
 				if (ticketIt == postMap.end())
 				{
-					sendError("No CitizenFX ticket was specified. If this is an offline server, maybe set sv_lan?");
+					sendError("No authentication ticket was specified.");
 					return;
 				}
 
 				try
 				{
-					if (!VerifyTicket(guid, ticketIt->second))
+					std::string ticketError;
+
+					if (!VerifyTicket(guid, ticketIt->second, &ticketError))
 					{
-						sendError("CitizenFX ticket authorization failed.");
+						sendError(fmt::sprintf("Ticket authorization failed. %s", ticketError));
 						return;
 					}
 
@@ -476,7 +518,7 @@ static InitFunction initFunction([]()
 
 					if (!optionalTicket)
 					{
-						sendError("CitizenFX ticket authorization failed. (2)");
+						sendError("Ticket authorization failed. (2)");
 						return;
 					}
 
@@ -484,7 +526,7 @@ static InitFunction initFunction([]()
 				}
 				catch (const std::exception& e)
 				{
-					sendError(fmt::sprintf("Parsing error while verifying CitizenFX ticket. %s", e.what()));
+					sendError(fmt::sprintf("Parsing error while verifying ticket. %s", e.what()));
 					return;
 				}
 			}
@@ -493,7 +535,7 @@ static InitFunction initFunction([]()
 
 			json data = json::object();
 			data["protocol"] = 5;
-			data["bitVersion"] = 0x202103030422;
+			data["bitVersion"] = 0x202103292050;
 			data["sH"] = shVar->GetValue();
 			data["enhancedHostSupport"] = ehVar->GetValue() && !fx::IsOneSync();
 			data["onesync"] = fx::IsOneSync();
@@ -769,6 +811,8 @@ static InitFunction initFunction([]()
 
 				gscomms_execute_callback_on_main_thread([=]
 				{
+					auto deferralsRef = *deferrals;
+
 					/*NETEV playerConnecting SERVER
 					/#*
 					 * A server-side event that is triggered when a player is trying to connect.
@@ -826,7 +870,7 @@ static InitFunction initFunction([]()
 						handover(data: { [key: string]: any }): void,
 					}, source: string): void;
 					*/
-					bool shouldAllow = eventManager->TriggerEvent2("playerConnecting", { fmt::sprintf("internal-net:%d", lockedClient->GetNetId()) }, lockedClient->GetName(), cbComponent->CreateCallback([noReason](const msgpack::unpacked& unpacked)
+					bool shouldAllow = (deferralsRef) ? (eventManager->TriggerEvent2("playerConnecting", { fmt::sprintf("internal-net:%d", lockedClient->GetNetId()) }, lockedClient->GetName(), cbComponent->CreateCallback([noReason](const msgpack::unpacked& unpacked)
 					{
 						auto obj = unpacked.get().as<std::vector<msgpack::object>>();
 
@@ -835,7 +879,7 @@ static InitFunction initFunction([]()
 							**noReason = obj[0].as<std::string>();
 						}
 					}),
-					(*deferrals)->GetCallbacks());
+					deferralsRef->GetCallbacks())) : false;
 
 					if (!shouldAllow)
 					{
@@ -854,8 +898,6 @@ static InitFunction initFunction([]()
 					}
 
 					// was the deferral already completed/canceled this frame? if so, just don't respond at all
-					auto deferralsRef = *deferrals;
-
 					if (!deferralsRef)
 					{
 						return;

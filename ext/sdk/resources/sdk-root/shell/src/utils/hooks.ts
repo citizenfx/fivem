@@ -1,9 +1,8 @@
-import { useStatus } from 'contexts/StatusContext';
 import React from 'react';
-import { featuresStatuses } from 'shared/api.statuses';
-import { Feature } from 'shared/api.types';
-import { ANY_MESSAGE, ApiMessageCallback, ApiMessageListener, onApiMessage, sendApiMessageCallback } from './api';
+import { ShellState } from 'store/ShellState';
+import { ANY_MESSAGE, ApiMessageCallback, ApiMessageListener, onApiMessage, onApiMessageScoped, sendApiMessageCallback } from './api';
 import { fastRandomId } from './random';
+import { onWindowEvent, WindowEventListener } from './windowMessages';
 
 export const useSid = (watchers: React.DependencyList = []) => {
   const initialSid = React.useMemo(fastRandomId, []);
@@ -16,32 +15,19 @@ export const useSid = (watchers: React.DependencyList = []) => {
   return sidRef.current;
 };
 
-export const useApiMessage = (type: string | typeof ANY_MESSAGE, cb: ApiMessageListener, watchers: React.DependencyList = []) => {
-  React.useEffect(() => onApiMessage(type, cb), watchers); // eslint-disable-line react-hooks/exhaustive-deps
+export const useApiMessage = (type: string | typeof ANY_MESSAGE, cb: ApiMessageListener, deps: React.DependencyList = []) => {
+  React.useEffect(() => onApiMessage(type, cb), deps); // eslint-disable-line react-hooks/exhaustive-deps
 };
 
-type SdkMessageListener<T> = (data: T) => void;
-const sdkMessageListeners: Record<string, Set<SdkMessageListener<any>>> = {};
-export const useSdkMessage = <T>(type: string, cb: SdkMessageListener<T>, deps: React.DependencyList = []) => {
+export const useApiMessageScoped = (type: string, scope: string, cb: ApiMessageListener, deps: React.DependencyList = []) => {
   React.useEffect(() => {
-    if (!sdkMessageListeners[type]) {
-      sdkMessageListeners[type] = new Set();
-    }
-
-    sdkMessageListeners[type].add(cb);
-
-    return () => sdkMessageListeners[type].delete(cb);
-  }, [type, cb, ...deps]);
+    return onApiMessageScoped(type, scope, cb);
+  }, [...deps, scope]);
 };
 
-export const useSdkMessageEmitter = (deps: React.DependencyList = []) => React.useCallback((type: string, data: any) => {
-  const listeners = sdkMessageListeners[type];
-  if (!listeners) {
-    return;
-  }
-
-  listeners.forEach((listener) => listener(data));
-}, [...deps]);
+export const useWindowEvent = <T>(type: string, cb: WindowEventListener<T>, deps: React.DependencyList = []) => {
+  React.useEffect(() => onWindowEvent(type, cb), [type, cb, ...deps]);
+};
 
 export const useCounter = (initial: number = 0) => {
   const [counter, setCounter] = React.useState<number>(initial);
@@ -118,14 +104,6 @@ export const useStore = <T>(defaultValue: Record<string, T>) => {
   };
 };
 
-
-export const useFeature = (feature: Feature): boolean | void => {
-  const featuresState = useStatus(featuresStatuses.state, {});
-
-  return featuresState[feature];
-}
-
-
 export const useDebouncedCallback = <T extends any[], U extends any, R = (...args: T) => any>(
   cb: (...args: T) => U,
   timeout: number,
@@ -148,7 +126,13 @@ export const useDebouncedCallback = <T extends any[], U extends any, R = (...arg
     }, timeout);
   };
 
-  return React.useCallback<any>(realCb, [...watchers]);
+  React.useEffect(() => () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+  }, []);
+
+  return React.useCallback<any>(realCb, []);
 };
 
 export interface UseOpenFolderSelectDialogOptions {
@@ -196,4 +180,29 @@ export const useSendApiMessageCallback = <Data, ResponseData>(type: string, call
       callbackRef.current?.(error, response as any);
     });
   }, [type]);
+};
+
+export const useOutsideClick = (ref, callback) => {
+  const callbackRef = React.useRef<Function>();
+  callbackRef.current = callback;
+
+  const handleClick = (e) => {
+    if (ref.current && !ref.current.contains(e.target)) {
+      callbackRef.current();
+    }
+  };
+
+  React.useEffect(() => {
+    document.addEventListener("click", handleClick);
+
+    return () => document.removeEventListener("click", handleClick);
+  });
+};
+
+export const useIframeCover = () => {
+  React.useEffect(() => {
+    ShellState.enableIframeCover();
+
+    return () => ShellState.disableIframeCover();
+  }, []);
 };

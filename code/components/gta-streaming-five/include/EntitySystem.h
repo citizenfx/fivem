@@ -27,12 +27,12 @@ namespace rage
 	class STREAMING_EXPORT fwRefAwareBase
 	{
 	public:
-		~fwRefAwareBase() = default;
+		virtual ~fwRefAwareBase() = default;
 
 	public:
-		void AddKnownRef(void** ref) const;
+		void AddKnownRef(void** ref);
 
-		void RemoveKnownRef(void** ref) const;
+		void RemoveKnownRef(void** ref);
 	};
 
 	class STREAMING_EXPORT fwScriptGuid
@@ -162,6 +162,8 @@ public:
 
 namespace rage
 {
+using fwArchetype = ::fwArchetype;
+
 struct fwModelId
 {
 	uint64_t id;
@@ -178,6 +180,16 @@ namespace rage
 {
 class parStructure;
 }
+
+class STREAMING_EXPORT fwExtensionDef
+{
+public:
+	virtual ~fwExtensionDef() = default;
+
+	virtual void* parser_GetStructure() = 0;
+
+	uint32_t name;
+};
 
 class STREAMING_EXPORT fwEntityDef
 {
@@ -208,11 +220,7 @@ public:
 	int32_t numChildren;
 
 	int32_t priorityLevel;
-
-	int32_t pad2[4];
-	int32_t ambientOcclusionMultiplier;
-	int32_t artificialAmbientOcclusion;
-	int32_t pad3[2];
+	atArray<fwExtensionDef*> extensions;
 
 public:
 	fwEntityDef()
@@ -225,21 +233,54 @@ public:
 		childLodDist = 500.f;
 		lodLevel = 2;
 		numChildren = 9;
-		ambientOcclusionMultiplier = 0xFF;
-		artificialAmbientOcclusion = 0xFF;
 		priorityLevel = 0;
 
 		memset(pad, 0, sizeof(pad));
-		memset(pad2, 0, sizeof(pad2));
-		memset(pad3, 0, sizeof(pad3));
+	}
+};
+
+class STREAMING_EXPORT CEntityDef : fwEntityDef
+{
+public:
+	int32_t ambientOcclusionMultiplier;
+	int32_t artificialAmbientOcclusion;
+	uint32_t tintValue;
+
+	CEntityDef()
+		: fwEntityDef()
+	{
+		ambientOcclusionMultiplier = 0xFF;
+		artificialAmbientOcclusion = 0xFF;
+		tintValue = 0;
 	}
 };
 
 extern STREAMING_EXPORT atArray<fwFactoryBase<fwArchetype>*>* g_archetypeFactories;
 
+namespace rage
+{
+class STREAMING_EXPORT fwExtension
+{
+public:
+	virtual ~fwExtension() = default;
+
+	virtual void InitEntityExtensionFromDefinition(const void* extensionDef, rage::fwEntity* entity)
+	{
+	}
+
+	virtual void InitArchetypeExtensionFromDefinition(const void* extensionDef, rage::fwArchetype* entity)
+	{
+	}
+
+	virtual int GetExtensionId() const = 0;
+};
+}
+
 class STREAMING_EXPORT fwExtensionList
 {
 public:
+	void Add(rage::fwExtension* extension);
+
 	void* Get(uint32_t id);
 
 private:
@@ -264,6 +305,11 @@ public:
 	inline void* GetExtension(uint32_t id)
 	{
 		return m_extensionList.Get(id);
+	}
+
+	inline void AddExtension(rage::fwExtension* extension)
+	{
+		return m_extensionList.Add(extension);
 	}
 
 	template<typename T>
@@ -629,6 +675,8 @@ struct GameEventMetaData
 
 STREAMING_EXPORT extern fwEvent<const GameEventMetaData&> OnTriggerGameEvent;
 
+class CMapData;
+
 struct CMapDataContents
 {
 	virtual ~CMapDataContents() = 0;
@@ -636,9 +684,15 @@ struct CMapDataContents
 	virtual void Remove() = 0;
 	virtual void PrepareInteriors(void* meta, void* data, uint32_t id) = 0;
 
+	// 8
 	void* sceneNodes;
+	// 16
 	void** entities;
+	// 24
 	uint32_t numEntities;
+	// 28
+	uint8_t pad[12];
+	CMapData* mapData;
 };
 
 struct MapDataVec4

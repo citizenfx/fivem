@@ -17,6 +17,10 @@
 
 #include <json.hpp>
 
+#include <boost/random/random_device.hpp>
+#include <boost/uuid/random_generator.hpp>
+#include <boost/uuid/uuid_io.hpp>
+
 extern fwEvent<fx::MonitorInstance*> OnMonitorTick;
 
 inline auto msec()
@@ -39,6 +43,38 @@ static InitFunction initFunction([]()
 		if (!setNucleusSuccess && (!setNucleus || (msec() > setNucleusTimeout)))
 		{
 			std::string nucleusToken = "anonymous";
+			std::string extToken;
+
+			{
+				char tokenData[64] = { 0 };
+				fwPlatformString tokenPath = MakeRelativeCitPath("server-monitor-token.key");
+
+				if (auto f = _pfopen(tokenPath.c_str(), _P("rb")))
+				{
+					fgets(tokenData, std::size(tokenData), f);
+					fclose(f);
+				}
+
+				if (!tokenData[0])
+				{
+					std::string token = boost::uuids::to_string(boost::uuids::basic_random_generator<boost::random_device>()());
+
+					if (auto f = _pfopen(tokenPath.c_str(), _P("wb")))
+					{
+						fmt::fprintf(f, "%s", token);
+						fclose(f);
+					}
+
+					extToken = token;
+				}
+				else
+				{
+					extToken = tokenData;
+				}
+			}
+
+			static ConVar<std::string> serverProfile("serverProfile", ConVar_None, "default");
+			extToken += "_" + serverProfile.GetValue();
 
 			if (!nucleusToken.empty())
 			{
@@ -46,6 +82,7 @@ static InitFunction initFunction([]()
 
 				auto jsonData = nlohmann::json::object({
 					{ "token", nucleusToken },
+					{ "tokenEx", extToken },
 					{ "port", fmt::sprintf("%d", tlm->GetPrimaryPort()) },
 				});
 
@@ -53,7 +90,10 @@ static InitFunction initFunction([]()
 
 				setNucleusTimeout = msec() + authDelay;
 
-				httpClient->DoPostRequest("https://cfx.re/api/register/?v=2", jsonData.dump(), [instance, tlm](bool success, const char* data, size_t length)
+				HttpRequestOptions opts;
+				opts.ipv4 = true;
+
+				httpClient->DoPostRequest("https://cfx.re/api/register/?v=2", jsonData.dump(), opts, [instance, tlm](bool success, const char* data, size_t length)
 				{
 					if (!success)
 					{

@@ -4,6 +4,8 @@
 #include <wscapi.h>
 #include <iwscapi.h>
 
+#include <OleAuto.h>
+
 // from https://github.com/Microsoft/Windows-classic-samples/blob/master/Samples/WebSecurityCenter/cpp/WscApiSample.cpp
 
 static std::string GetSecurityCenterInfo(WSC_SECURITY_PROVIDER provider)

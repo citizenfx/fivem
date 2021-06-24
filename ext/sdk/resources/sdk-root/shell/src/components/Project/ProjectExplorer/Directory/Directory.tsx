@@ -1,4 +1,5 @@
 import React from 'react';
+import { observer } from 'mobx-react-lite';
 import classnames from 'classnames';
 import { BsFolder, BsFolderFill, BsPuzzle } from 'react-icons/bs';
 import { DirectoryDeleteConfirmation } from './DirectoryDeleteConfirmation/DirectoryDeleteConfirmation';
@@ -11,6 +12,7 @@ import { ContextMenu, ContextMenuItemsCollection, ContextMenuItemSeparator } fro
 import { itemsStyles } from '../item.styles';
 import { NativeTypes } from 'react-dnd-html5-backend';
 import { ProjectExplorerItemContext, ProjectExplorerItemContextProvider } from '../item.context';
+import { DirectoryRenamer } from './DirectoryRenamer/DirectoryRenamer';
 
 
 const getDirectoryIcon = (entry: FilesystemEntry, open: boolean) => {
@@ -28,22 +30,49 @@ export interface DirectoryProps extends ProjectItemProps {
   icon?: React.ReactNode,
 }
 
-export const Directory = React.memo(function Directory(props: DirectoryProps) {
-  const { entry, project, pathsMap } = props;
+export const Directory = observer(function Directory(props: DirectoryProps) {
+  const { entry, pathsMap } = props;
   const { icon } = props;
 
   const { expanded, toggleExpanded } = useExpandablePath(entry.path, !props.childrenCollapsed);
 
   const directoryChildren = pathsMap[entry.path] || [];
 
+  const assetMetaFlags = entry.meta?.assetMeta?.flags;
+  const itemContext = React.useMemo(() => {
+    if (!assetMetaFlags) {
+      return null;
+    }
+
+    const ctx: Partial<ProjectExplorerItemContext> = {};
+
+    if (assetMetaFlags.readOnly) {
+      ctx.disableAssetCreate = true;
+      ctx.disableAssetDelete = true;
+      ctx.disableAssetRename = true;
+      ctx.disableDirectoryCreate = true;
+      ctx.disableDirectoryDelete = true;
+      ctx.disableDirectoryRename = true;
+      ctx.disableEntryMove = true;
+      ctx.disableFileCreate = true;
+      ctx.disableFileDelete = true;
+      ctx.disableFileOpen = true;
+      ctx.disableFileRename = true;
+    }
+
+    return ctx;
+  }, [assetMetaFlags]);
+
   const {
     directoryContextMenuItems,
     deleteConfirmationOpen,
     closeDeleteConfirmation,
     deleteDirectory,
-  } = useDirectoryContextMenu(entry.path, directoryChildren.length);
+    closeDirectoryRename,
+    directoryRenameOpen,
+  } = useDirectoryContextMenu(entry.path, directoryChildren.length, itemContext);
 
-  const { contextMenuItems, requiredContextMenuItems, renderItemControls, renderItemChildren } = useItem(props);
+  const { contextMenuItems, requiredContextMenuItems, renderItemControls, renderItemChildren } = useItem(props, itemContext);
 
   const relocateSourceContextMenu = useItemRelocateSourceContextMenu(entry);
   const relocateTargetContextMenu = useItemRelocateTargetContextMenu(entry);
@@ -76,31 +105,6 @@ export const Directory = React.memo(function Directory(props: DirectoryProps) {
   const itemClassName = classnames(itemsStyles.item, {
     [itemsStyles.dragging]: isDragging,
   });
-
-  const assetMetaFlags = entry.meta?.assetMeta?.flags;
-  const itemContext = React.useMemo(() => {
-    if (!assetMetaFlags) {
-      return null;
-    }
-
-    const ctx: Partial<ProjectExplorerItemContext> = {};
-
-    if (assetMetaFlags.readOnly) {
-      ctx.disableAssetCreate = true;
-      ctx.disableAssetDelete = true;
-      ctx.disableAssetRename = true;
-      ctx.disableDirectoryCreate = true;
-      ctx.disableDirectoryDelete = true;
-      ctx.disableDirectoryRename = true;
-      ctx.disableEntryMove = true;
-      ctx.disableFileCreate = true;
-      ctx.disableFileDelete = true;
-      ctx.disableFileOpen = true;
-      ctx.disableFileRename = true;
-    }
-
-    return ctx;
-  }, [assetMetaFlags]);
 
   return (
     <div className={rootClassName} ref={dropRef}>
@@ -141,6 +145,13 @@ export const Directory = React.memo(function Directory(props: DirectoryProps) {
           entry={entry}
           onClose={closeDeleteConfirmation}
           onDelete={deleteDirectory}
+        />
+      )}
+
+      {directoryRenameOpen && (
+        <DirectoryRenamer
+          entry={entry}
+          onClose={closeDirectoryRename}
         />
       )}
     </div>

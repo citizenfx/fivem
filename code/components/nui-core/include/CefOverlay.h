@@ -383,7 +383,13 @@ namespace nui
 	OVERLAY_DECL void ExecuteWindowScript(const std::string& windowName, const std::string& scriptBit);
 	OVERLAY_DECL void SetNUIWindowURL(fwString windowName, fwString url);
 
+	OVERLAY_DECL void SwitchContext(const std::string& contextId);
+
 #ifdef WANT_CEF_INTERNALS
+	OVERLAY_DECL void RegisterSchemeHandlerFactory(const CefString& scheme_name,
+	const CefString& domain_name,
+	CefRefPtr<CefSchemeHandlerFactory> factory);
+
 	OVERLAY_DECL fwRefContainer<GITexture> GetWindowTexture(fwString windowName);
 #endif
 

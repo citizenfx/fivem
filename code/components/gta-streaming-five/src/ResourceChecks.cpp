@@ -1,4 +1,6 @@
 #include "StdInc.h"
+
+#include <jitasm.h>
 #include "Hooking.h"
 
 #include "Streaming.h"
@@ -107,7 +109,7 @@ static int InsertStreamingModuleWrap(void* moduleMgr, void* strModule)
 	};
 
 	auto stub = new StreamingOnLoadStub(vt[6]);
-	vt[6] = stub->GetCode();
+	hook::put(&vt[6], stub->GetCode());
 
 	return g_origInsertModule(moduleMgr, strModule);
 }
@@ -223,7 +225,7 @@ static void ValidateGeometry(void* geomPtr)
 			uint32_t right;
 		};
 
-		std::map<uint32_t, PolyEdgeMap> edgeMapping;
+		std::unordered_map<uint32_t, PolyEdgeMap> edgeMapping;
 		auto outPolys = polys;
 
 		for (int i = 0; i < numPolys; i++)

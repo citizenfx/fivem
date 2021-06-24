@@ -312,6 +312,13 @@ static std::wstring g_mainXaml = LR"(
 					 0,0 0,0 z" RenderTransform="1,0,0,1,311.79,155.13" Fill="#ffffffff" />
 				</Grid>
 )"
+#elif defined(GTA_NY)
+								 R"(
+			<Viewbox Height="150" Margin="0,0,0,15">
+				<Grid>
+				<Path Data="M26,145L54.571,145C54.952,144.905 55.143,144.714 55.143,144.429L55.143,69C43.714,57.286 33.905,47.476 25.714,39.571L25.429,39.571L25.429,144.429C25.524,144.81 25.714,145 26,145ZM54.857,57.857L55.143,57.857L55.143,54.143C43.714,42.429 33.905,32.619 25.714,24.714L25.429,24.714L25.429,28.429C36.857,40.048 46.667,49.857 54.857,57.857ZM54.857,43L55.143,43L55.143,31.571C46.857,23 38,14.143 28.571,5L26,5C25.619,5 25.429,5.19 25.429,5.571L25.429,13.571C36.857,25.19 46.667,35 54.857,43ZM57.714,30.429L124,30.429C124.381,30.333 124.571,30.143 124.571,29.857L124.571,5.571C124.571,5.19 124.381,5 124,5L32.571,5L32.571,5.286C41.714,14.619 50.095,23 57.714,30.429Z"  Fill="#ffffffff" />
+				</Grid>
+)"
 #endif
 R"(         </Viewbox>
             <TextBlock x:Name="static1" Text=" " TextAlignment="Center" Foreground="#ffffffff" FontSize="24" />
@@ -344,6 +351,8 @@ void BackdropBrush::OnConnected()
 		effect.Color(winrt::Windows::UI::ColorHelper::FromArgb(255, 0x16, 0x19, 0x23));
 #elif defined(IS_RDR3)
 		effect.Color(winrt::Windows::UI::ColorHelper::FromArgb(255, 186, 2, 2));
+#elif defined(GTA_NY)
+		effect.Color(winrt::Windows::UI::ColorHelper::FromArgb(255, 0x4D, 0xA6, 0xD3));
 #endif
 
 		winrt::Windows::UI::Composition::CompositionEffectSourceParameter sp{ L"layer" };
@@ -369,7 +378,7 @@ void BackdropBrush::OnConnected()
 		mat.M22 = 1.0f;
 		mat.M33 = 1.0f;
 		mat.M44 = 0.03f;
-#elif defined(IS_RDR3)
+#elif defined(IS_RDR3) || defined(GTA_NY)
 		mat.M11 = 1.0f;
 		mat.M22 = 1.0f;
 		mat.M33 = 1.0f;
@@ -1794,10 +1803,12 @@ std::unique_ptr<TenUIBase> UI_InitTen()
 	return {};
 }
 
-DLL_EXPORT HRESULT DllCanUnloadNow()
+#ifndef _M_IX86
+extern "C" DLL_EXPORT HRESULT __stdcall DllCanUnloadNow()
 {
 	return S_OK;
 }
+#endif
 
 #pragma comment(lib, "delayimp.lib")
 #endif

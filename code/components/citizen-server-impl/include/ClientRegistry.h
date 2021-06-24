@@ -7,9 +7,6 @@
 
 #include <tbb/concurrent_unordered_map.h>
 
-#include <xenium/harris_michael_hash_map.hpp>
-#include <xenium/reclamation/stamp_it.hpp>
-
 namespace tbb
 {
 	namespace interface5
@@ -25,6 +22,57 @@ namespace tbb
 namespace fx
 {
 	class ServerInstanceBase;
+
+	// folly::SharedMutex does not work across module boundaries
+	struct FarLock
+	{
+		struct ImplBase
+		{
+			virtual ~ImplBase() = default;
+
+			virtual bool TryLock() = 0;
+
+			virtual void LockShared() = 0;
+
+			virtual void Lock() = 0;
+
+			virtual void UnlockShared() = 0;
+
+			virtual void Unlock() = 0;
+		};
+
+		FarLock();
+
+		~FarLock();
+
+		inline bool try_lock()
+		{
+			return impl->TryLock();
+		}
+
+		inline void lock_shared()
+		{
+			return impl->LockShared();
+		}
+
+		inline void lock()
+		{
+			return impl->Lock();
+		}
+
+		inline void unlock_shared()
+		{
+			return impl->UnlockShared();
+		}
+
+		inline void unlock()
+		{
+			return impl->Unlock();
+		}
+
+	private:
+		std::unique_ptr<ImplBase> impl;
+	};
 
 	class ClientRegistry : public fwRefCountable, public IAttached<ServerInstanceBase>
 	{
@@ -51,7 +99,10 @@ namespace fx
 				m_clientsBySlotId[client->GetSlotId()].reset();
 			}
 
-			m_clients.erase(client->GetGuid());
+			{
+				std::unique_lock writeHolder(m_clientMutex);
+				m_clients.erase(client->GetGuid());
+			}
 
 			// unassign slot ID
 			client->SetSlotId(-1);
@@ -60,11 +111,15 @@ namespace fx
 		inline fx::ClientSharedPtr GetClientByGuid(const std::string& guid)
 		{
 			auto ptr = fx::ClientSharedPtr();
-			auto it = m_clients.find(guid);
 
-			if (it != m_clients.end())
 			{
-				ptr = it->second;
+				std::shared_lock readHolder(m_clientMutex);
+
+				auto it = m_clients.find(guid);
+				if (it != m_clients.end())
+				{
+					ptr = it->second;
+				}
 			}
 
 			return ptr;
@@ -144,16 +199,43 @@ namespace fx
 		}
 
 		template<typename TFn>
-		inline void ForAllClients(TFn&& cb)
+		inline void ForAllClientsLocked(TFn&& cb)
 		{
-			for (auto& client : m_clients)
+			std::shared_lock readHolder(m_clientMutex);
+			for (const auto& [guid, client] : m_clients)
 			{
-				if (client.second->IsDropping())
+				if (client->IsDropping())
 				{
 					continue;
 				}
 
-				cb(client.second);
+				cb(client);
+			}
+		}
+
+		template<typename TFn>
+		inline void ForAllClients(TFn&& cb)
+		{
+			std::vector<fx::ClientSharedPtr> allClients{};
+
+			{
+				std::shared_lock readHolder(m_clientMutex);
+				allClients.reserve(m_clients.size());
+
+				for (const auto& [guid, client] : m_clients)
+				{
+					if (client->IsDropping())
+					{
+						continue;
+					}
+
+					allClients.push_back(client);
+				}
+			}
+
+			for (const auto& client : allClients)
+			{
+				cb(client);
 			}
 		}
 
@@ -170,9 +252,8 @@ namespace fx
 	private:
 		uint16_t m_hostNetId;
 
-		using ClientHashMap = xenium::harris_michael_hash_map<std::string, fx::ClientSharedPtr, xenium::policy::reclaimer<xenium::reclamation::stamp_it>>;
-
-		ClientHashMap m_clients;
+		FarLock m_clientMutex;
+		std::unordered_map<std::string, fx::ClientSharedPtr> m_clients;
 
 		// aliases for fast lookup
 		tbb::concurrent_unordered_map<uint32_t, fx::ClientWeakPtr> m_clientsByNetId;

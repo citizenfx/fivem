@@ -2,9 +2,7 @@ import { Injectable, NgZone, Inject, PLATFORM_ID } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 
-import { Observable, Subject } from 'rxjs';
-
-import { applyPatch } from 'fast-json-patch';
+import {Observable, of, Subject} from 'rxjs';
 
 import { concat, from, BehaviorSubject } from 'rxjs';
 
@@ -16,8 +14,6 @@ import 'rxjs/add/operator/mergeMap';
 import 'rxjs/add/operator/filter';
 import 'rxjs/add/operator/map';
 
-import ReconnectingWebSocket from 'reconnecting-websocket';
-
 import { Server, ServerHistoryEntry } from './server';
 import { PinConfig } from './pins';
 
@@ -25,6 +21,7 @@ import { master } from './master';
 import { isPlatformBrowser } from '@angular/common';
 import { GameService } from '../game.service';
 import { FilterRequest } from './filter-request';
+import {catchError, timeout} from 'rxjs/operators';
 
 const serversWorker = new Worker('./workers/servers.worker', { type: 'module' });
 
@@ -63,8 +60,6 @@ export class ServersService {
 	private internalServerEvent: Subject<master.IServer>;
 
 	private worker: Worker;
-
-	private webSocket: ReconnectingWebSocket;
 
 	public servers: { [addr: string]: Server } = {};
 	public serversLoadedUpdate: Subject<boolean> = new BehaviorSubject(false);
@@ -118,8 +113,6 @@ export class ServersService {
 				.subscribe(url => {
 					this.worker.postMessage({ type: 'queryServers', url: url + `streamRedir/` });
 				});
-
-			this.subscribeWebSocket();
 		}
 
 		this.serversSource
@@ -165,7 +158,13 @@ export class ServersService {
 				// fetch it
 				const serverID = await this.httpClient.post('https://nui-internal/gsclient/url', `url=${serverHost}`, {
 					responseType: 'text'
-				}).toPromise();
+				}).pipe(
+                    timeout(5000),
+                    catchError(e => {
+                        console.log('https://nui-internal/gsclient/url timed out');
+                        return of(null);
+                    })
+                ).toPromise();
 
 				if (serverID && serverID !== '') {
 					try {
@@ -178,9 +177,15 @@ export class ServersService {
 			// try getting dynamic.json to at least populate basic details
 			if (!server) {
 				try {
-					const serverData = await this.httpClient.post('https://nui-internal/gsclient/dynamic', `url=${serverHost}`, {
-						responseType: 'text'
-					}).toPromise();
+				    const serverData = await this.httpClient.post('https://nui-internal/gsclient/dynamic', `url=${serverHost}`, {
+                        responseType: 'text'
+                    }).pipe(
+                        timeout(5000),
+                        catchError(e => {
+                            console.log('https://nui-internal/gsclient/dynamic timed out');
+                            return of(null);
+                        })
+                    ).toPromise();
 
 					if (serverData) {
 						const sd = JSON.parse(serverData);
@@ -261,47 +266,6 @@ export class ServersService {
 		return true;
 	}
 
-	private subscribeWebSocket() {
-		const ws = new ReconnectingWebSocket('wss://servers-frontend.fivem.net/api/servers/socket/v1/');
-		ws.addEventListener('message', (ev) => {
-			const data = JSON.parse(ev.data);
-
-			switch (data.op) {
-				case 'ADD_SERVER':
-					const server = {
-						Data: data.data.data,
-						EndPoint: data.id
-					};
-
-					if (this.matchesGame(server)) {
-						this.internalServerEvent.next(server);
-					}
-					break;
-				case 'UPDATE_SERVER':
-					const old = this.servers[data.id];
-
-					if (old) {
-						const patch = data.data;
-						const result = applyPatch({ data: old.data }, patch).newDocument;
-
-						const ping = old.ping;
-						result.data.vars.ping = ping;
-
-						this.internalServerEvent.next({
-							Data: result.data,
-							EndPoint: data.id
-						});
-					}
-					break;
-				case 'REMOVE_SERVER':
-					// not impl'd
-					break;
-			}
-		});
-
-		this.webSocket = ws;
-	}
-
 	private refreshServers() {
 		this.requestEvent.next('https://servers-frontend.fivem.net/api/servers/');
 	}
@@ -311,13 +275,20 @@ export class ServersService {
 			return this.serverCache[address].server;
 		}
 
-		const server = await this.httpClient.get('https://servers-frontend.fivem.net/api/servers/single/' + address)
-			.toPromise()
-			.then((data: master.IServer) => Server.fromObject(this.domSanitizer, data.EndPoint, data.Data));
+		try {
+			const server = await this.httpClient.get('https://servers-frontend.fivem.net/api/servers/single/' + address)
+				.toPromise()
+				.then((data: master.IServer) => Server.fromObject(this.domSanitizer, data.EndPoint, data.Data))
+				.catch(() => null);
 
-		this.serverCache[address] = new ServerCacheEntry(server);
+			if (server) {
+				this.serverCache[address] = new ServerCacheEntry(server);
+			}
 
-		return server;
+			return server;
+		} catch {
+			return null;
+		}
 	}
 
 	public async getTopServer() {

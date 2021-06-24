@@ -15,6 +15,7 @@
 
 #include <CefOverlay.h>
 
+#include <psapi.h>
 #include <delayimp.h>
 
 #include <include/cef_origin_whitelist.h>
@@ -43,6 +44,8 @@
 
 #include <VFSManager.h>
 #include <VFSZipFile.h>
+
+#include <include/cef_version.h>
 
 #include <Error.h>
 
@@ -81,18 +84,17 @@ static void glDeleteTexturesHook(GLsizei n, const GLuint* textures)
 	for (int i = 0; i < n; i++)
 	{
 		GLuint texture = textures[i];
-
-		if (g_backBufferTextures.find(texture) != g_backBufferTextures.end())
-		{
-			g_backBufferTextures.erase(texture);
-		}
+		g_backBufferTextures.erase(texture);
 
 		if (g_pbuffers.find(texture) != g_pbuffers.end())
 		{
-			auto _eglGetCurrentDisplay = (decltype(&eglGetCurrentDisplay))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglGetCurrentDisplay"));
-			auto _eglDestroySurface = (decltype(&eglDestroySurface))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglDestroySurface"));
+			static auto _eglGetCurrentDisplay = (decltype(&eglGetCurrentDisplay))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglGetCurrentDisplay"));
+			static auto _eglDestroySurface = (decltype(&eglDestroySurface))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglDestroySurface"));
+			static auto _eglReleaseTexImage = (decltype(&eglReleaseTexImage))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglReleaseTexImage"));
+			static auto _eglGetError = (decltype(&eglGetError))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglGetError"));
 
 			auto m_display = _eglGetCurrentDisplay();
+			_eglReleaseTexImage(m_display, g_pbuffers[texture], EGL_BACK_BUFFER);
 			_eglDestroySurface(m_display, g_pbuffers[texture]);
 			g_pbuffers.erase(texture);
 		}
@@ -105,11 +107,6 @@ static void (*g_origglBindTexture)(GLenum target, GLuint texture);
 
 static void glBindTextureHook(GLenum target, GLuint texture)
 {
-	if (target == GL_TEXTURE_2D)
-	{
-		g_curGlTexture = texture;
-	}
-
 	// this gets called really frequently but do we want to do so here?
 	static HANDLE lastBackbufHandle;
 	static HostSharedData<GameRenderData> handleData(launch::IsSDK() ? "CfxGameRenderHandleFxDK" : "CfxGameRenderHandle");
@@ -120,27 +117,101 @@ static void glBindTextureHook(GLenum target, GLuint texture)
 
 		for (auto textureId : g_backBufferTextures)
 		{
+			g_curGlTexture = textureId;
+
 			g_origglBindTexture(GL_TEXTURE_2D, textureId);
 			BindGameRenderHandle();
 		}
 	}
 
+	if (target == GL_TEXTURE_2D)
+	{
+		g_curGlTexture = texture;
+	}
+
 	g_origglBindTexture(target, texture);
+}
+
+EGLConfig ChooseCompatibleConfig()
+{
+	static auto _eglChooseConfig = (decltype(&eglChooseConfig))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglChooseConfig"));
+	static auto _eglGetConfigAttrib = (decltype(&eglGetConfigAttrib))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglGetConfigAttrib"));
+	static auto _eglGetCurrentDisplay = (decltype(&eglGetCurrentDisplay))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglGetCurrentDisplay"));
+
+	const EGLint buffer_bind_to_texture = EGL_BIND_TO_TEXTURE_RGBA;
+	const EGLint buffer_size = 32;
+	EGLint const attrib_list[] = { EGL_RED_SIZE,
+		8,
+		EGL_GREEN_SIZE,
+		8,
+		EGL_BLUE_SIZE,
+		8,
+		EGL_SURFACE_TYPE,
+		EGL_PBUFFER_BIT,
+		buffer_bind_to_texture,
+		EGL_TRUE,
+		EGL_BUFFER_SIZE,
+		buffer_size,
+		EGL_NONE };
+
+	EGLint num_config;
+	EGLDisplay display = _eglGetCurrentDisplay();
+	EGLBoolean result = _eglChooseConfig(display, attrib_list, nullptr, 0, &num_config);
+	if (result != EGL_TRUE)
+		return nullptr;
+	std::vector<EGLConfig> all_configs(num_config);
+	result = _eglChooseConfig(display, attrib_list,
+	all_configs.data(), num_config, &num_config);
+	if (result != EGL_TRUE)
+		return nullptr;
+	for (EGLConfig config : all_configs)
+	{
+		EGLint bits;
+		if (!_eglGetConfigAttrib(display, config, EGL_RED_SIZE, &bits) || bits != 8)
+		{
+			continue;
+		}
+
+		if (!_eglGetConfigAttrib(display, config, EGL_BLUE_SIZE, &bits) || bits != 8)
+		{
+			continue;
+		}
+
+		if (!_eglGetConfigAttrib(display, config, EGL_GREEN_SIZE, &bits) || bits != 8)
+		{
+			continue;
+		}
+
+		if (!_eglGetConfigAttrib(display, config, EGL_ALPHA_SIZE, &bits) || bits != 8)
+		{
+			continue;
+		}
+
+		return config;
+	}
+	return nullptr;
 }
 
 static void BindGameRenderHandle()
 {
-	auto _eglGetCurrentDisplay = (decltype(&eglGetCurrentDisplay))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglGetCurrentDisplay"));
-	auto _eglDestroySurface = (decltype(&eglDestroySurface))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglDestroySurface"));
-	auto _eglChooseConfig = (decltype(&eglChooseConfig))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglChooseConfig"));
-	auto _eglGetConfigs = (decltype(&eglGetConfigs))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglGetConfigs"));
-	auto _eglCreatePbufferFromClientBuffer = (decltype(&eglCreatePbufferFromClientBuffer))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglCreatePbufferFromClientBuffer"));
-	auto _eglBindTexImage = (decltype(&eglBindTexImage))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglBindTexImage"));
-	auto _eglGetError = (decltype(&eglGetError))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglGetError"));
+	static auto _eglGetCurrentDisplay = (decltype(&eglGetCurrentDisplay))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglGetCurrentDisplay"));
+	static auto _eglDestroySurface = (decltype(&eglDestroySurface))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglDestroySurface"));
+	static auto _eglChooseConfig = (decltype(&eglChooseConfig))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglChooseConfig"));
+	static auto _eglGetConfigs = (decltype(&eglGetConfigs))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglGetConfigs"));
+	static auto _eglCreatePbufferFromClientBuffer = (decltype(&eglCreatePbufferFromClientBuffer))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglCreatePbufferFromClientBuffer"));
+	static auto _eglBindTexImage = (decltype(&eglBindTexImage))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglBindTexImage"));
+	static auto _eglGetError = (decltype(&eglGetError))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglGetError"));
+	static auto _eglReleaseTexImage = (decltype(&eglReleaseTexImage))(GetProcAddress(GetModuleHandle(L"libEGL.dll"), "eglReleaseTexImage"));
 
 	auto m_display = _eglGetCurrentDisplay();
 
 	static HostSharedData<GameRenderData> handleData(launch::IsSDK() ? "CfxGameRenderHandleFxDK" : "CfxGameRenderHandle");
+
+	// not existent yet, but we will retry this later on
+	if (!handleData->handle)
+	{
+		return;
+	}
 
 	EGLint pbuffer_attributes[] = {
 		EGL_WIDTH, handleData->width,
@@ -150,38 +221,23 @@ static void BindGameRenderHandle()
 		EGL_NONE
 	};
 
-	EGLConfig configs;
-	EGLint numConfigs = 0;
+	auto config = ChooseCompatibleConfig();
 
-	EGLint config_attributes[] = {
-		EGL_RED_SIZE,
-		8,
-		EGL_GREEN_SIZE,
-		8,
-		EGL_BLUE_SIZE,
-		8,
-		EGL_ALPHA_SIZE,
-		8,
-		EGL_NONE,
-		EGL_NONE,
-	};
-
-	_eglChooseConfig(m_display, config_attributes, &configs, 1, &numConfigs);
-
-	if (numConfigs == 0)
+	if (!config)
 	{
-		_eglGetConfigs(m_display, &configs, 1, &numConfigs);
+		return;
 	}
 
 	EGLSurface pbuffer = _eglCreatePbufferFromClientBuffer(
 	m_display,
 	EGL_D3D_TEXTURE_2D_SHARE_HANDLE_ANGLE,
 	(EGLClientBuffer)handleData->handle,
-	configs,
+	config,
 	pbuffer_attributes);
 
 	if (g_pbuffers.find(g_curGlTexture) != g_pbuffers.end())
 	{
+		_eglReleaseTexImage(m_display, g_pbuffers[g_curGlTexture], EGL_BACK_BUFFER);
 		_eglDestroySurface(m_display, g_pbuffers[g_curGlTexture]);
 		g_pbuffers.erase(g_curGlTexture);
 	}
@@ -243,10 +299,9 @@ static void glTexParameterfHook(GLenum target, GLenum pname, GLfloat param)
 
 	if (stage == 3)
 	{
-		BindGameRenderHandle();
-
 		stage = 0;
 
+		BindGameRenderHandle();
 		g_backBufferTextures.insert(g_curGlTexture);
 	}
 	else if (stage <= 1)
@@ -351,12 +406,14 @@ public:
 		m_texture.As(&m_resource);
 		m_texture.As(&m_resource1);
 		m_texture.As(&m_keyedMutex);
+
+		InitializeDeleter();
 	}
 
 	~Texture2DWrap();
 
 	// Inherited via RuntimeClass
-	virtual HRESULT AcquireSync(UINT64 Key, DWORD dwMilliseconds) override
+	virtual HRESULT STDMETHODCALLTYPE AcquireSync(UINT64 Key, DWORD dwMilliseconds) override
 	{
 		if (m_keyedMutex)
 		{
@@ -366,7 +423,7 @@ public:
 		return S_OK;
 	}
 
-	virtual HRESULT ReleaseSync(UINT64 Key) override
+	virtual HRESULT STDMETHODCALLTYPE ReleaseSync(UINT64 Key) override
 	{
 		if (m_keyedMutex)
 		{
@@ -471,15 +528,19 @@ public:
 	}
 
 	HANDLE m_handle = NULL;
+
+private:
+	static void InitializeDeleter();
+
+	static concurrency::concurrent_queue<std::tuple<uint64_t, HANDLE>> deletionQueue;
 };
 
 static std::mutex g_textureLock;
-static std::map<HANDLE, WRL::ComPtr<Texture2DWrap>> g_textureHacks;
+static std::map<HANDLE, WRL::ComPtr<ID3D11Texture2D>> g_textureHacks;
+concurrency::concurrent_queue<std::tuple<uint64_t, HANDLE>> Texture2DWrap::deletionQueue;
 
-Texture2DWrap::~Texture2DWrap()
+void Texture2DWrap::InitializeDeleter()
 {
-	static concurrency::concurrent_queue<std::tuple<uint64_t, HANDLE>> deletionQueue;
-
 	static std::thread* deletionThread = new std::thread([]()
 	{
 		SetThreadName(-1, "GPU Deletion Workaround");
@@ -510,7 +571,10 @@ Texture2DWrap::~Texture2DWrap()
 			}
 		}
 	});
+}
 
+Texture2DWrap::~Texture2DWrap()
+{
 	if (m_handle)
 	{
 		deletionQueue.push({ GetTickCount64(), m_handle });
@@ -532,7 +596,7 @@ HRESULT Texture2DWrap::GetSharedHandle(HANDLE* pSharedHandle)
 		CloseHandle(proc);
 
 		m_handle = *pSharedHandle;
-		g_textureHacks.insert({ *pSharedHandle, this });
+		g_textureHacks.insert({ *pSharedHandle, m_texture });
 	}
 
 	return hr;
@@ -542,7 +606,7 @@ HRESULT Texture2DWrap::GetSharedHandle(HANDLE* pSharedHandle)
 	if (SUCCEEDED(hr))
 	{
 		*pSharedHandle = m_handle;
-		g_textureHacks.insert({ m_handle, this });
+		g_textureHacks.insert({ m_handle, m_texture });
 	}
 
 	return hr;
@@ -620,10 +684,7 @@ static HRESULT OpenSharedResourceHook(ID3D11Device* device, HANDLE hRes, REFIID 
 
 	if (it != g_textureHacks.end())
 	{
-		ID3D11Resource* orig;
-		it->second->GetOriginal(&orig);
-
-		return orig->QueryInterface(iid, ppRes);
+		return it->second->QueryInterface(iid, ppRes);
 	}
 
 	return g_origOpenSharedResourceHook(device, hRes, iid, ppRes);
@@ -700,22 +761,48 @@ static void PatchAdapter(IDXGIAdapter** pAdapter)
 
 static bool g_reshit;
 
-static void PatchCreateResults(ID3D11Device** ppDevice, ID3D11DeviceContext** ppImmediateContext)
+template<typename TFnLeft, typename TFnRight>
+void VHook(intptr_t& ref, TFnLeft fn, TFnRight out)
+{
+	if (ref == (intptr_t)fn)
+	{
+		return;
+	}
+
+	if (*out)
+	{
+		return;
+	}
+
+	*out = (decltype(*out))ref;
+	ref = (intptr_t)fn;
+}
+
+static void PatchCreateResults(ID3D11Device** ppDevice, ID3D11DeviceContext** ppImmediateContext, bool forceGPU)
 {
 	bool can = true;
 
 #if !defined(IS_RDR3)
-	can = wcsstr(GetCommandLineW(), L"type=gpu") != nullptr;
+	can = wcsstr(GetCommandLineW(), L"type=gpu") != nullptr || forceGPU;
 #endif
 
 	if (ppDevice && ppImmediateContext && can && *ppDevice && *ppImmediateContext)
 	{
 		auto vtbl = **(intptr_t***)ppDevice;
 		auto vtblCxt = **(intptr_t***)ppImmediateContext;
-		MH_CreateHook((void*)vtbl[5], CreateTexture2DHook, (void**)&g_origCreateTexture2D);
-		MH_CreateHook((void*)vtbl[28], OpenSharedResourceHook, (void**)&g_origOpenSharedResourceHook);
-		MH_CreateHook((void*)vtblCxt[47], CopyResourceHook, (void**)&g_origCopyResource);
-		MH_EnableHook(MH_ALL_HOOKS);
+
+		auto ourVtbl = new intptr_t[640];
+		memcpy(ourVtbl, vtbl, 640 * sizeof(intptr_t));
+		VHook(ourVtbl[5], &CreateTexture2DHook, &g_origCreateTexture2D);
+		VHook(ourVtbl[28], &OpenSharedResourceHook, &g_origOpenSharedResourceHook);
+
+		auto ourVtblCxt = new intptr_t[640];
+		memcpy(ourVtblCxt, vtblCxt, 640 * sizeof(intptr_t));
+
+		VHook(ourVtblCxt[47], &CopyResourceHook, &g_origCopyResource);
+
+		**(intptr_t***)ppDevice = ourVtbl;
+		**(intptr_t***)ppImmediateContext = ourVtblCxt;
 	}
 
 	if (ppImmediateContext && *ppImmediateContext)
@@ -758,6 +845,64 @@ static void PatchCreateResults(ID3D11Device** ppDevice, ID3D11DeviceContext** pp
 
 static HRESULT (*g_origD3D11CreateDeviceAndSwapChain)(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _In_opt_ CONST DXGI_SWAP_CHAIN_DESC* pSwapChainDesc, _COM_Outptr_opt_ IDXGISwapChain** ppSwapChain, _COM_Outptr_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _COM_Outptr_opt_ ID3D11DeviceContext** ppImmediateContext);
 
+#include <variant>
+
+struct ModuleData
+{
+	using TSet = std::map<uintptr_t, uintptr_t>;
+
+	const TSet dataSet;
+
+	ModuleData(std::initializer_list<std::variant<std::wstring, HMODULE>> moduleNames)
+		: dataSet(CreateSet(moduleNames))
+	{
+	}
+
+	bool IsInSet(void* address)
+	{
+		uintptr_t ptr = (uintptr_t)address;
+
+		auto it = dataSet.upper_bound(ptr);
+
+		if (it != dataSet.begin())
+		{
+			it--;
+
+			if (ptr >= it->first && ptr < it->second)
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+private:
+	TSet CreateSet(std::initializer_list<std::variant<std::wstring, HMODULE>> moduleNames)
+	{
+		TSet set;
+
+		for (auto& name : moduleNames)
+		{
+			HMODULE hMod = (name.index() == 0) ? GetModuleHandle(std::get<0>(name).c_str()) : std::get<1>(name);
+			
+			if (hMod)
+			{
+				MODULEINFO mi;
+				GetModuleInformation(GetCurrentProcess(), hMod, &mi, sizeof(mi));
+
+				set.insert({ (uintptr_t)hMod, (uintptr_t)hMod + mi.SizeOfImage });
+			}
+		}
+
+		return std::move(set);
+	}
+};
+
+static std::unique_ptr<ModuleData> g_libgl;
+static std::unique_ptr<ModuleData> g_d3d11;
+static HMODULE g_sysD3D11;
+
 static HRESULT D3D11CreateDeviceAndSwapChainHook(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _In_opt_ CONST DXGI_SWAP_CHAIN_DESC* pSwapChainDesc, _COM_Outptr_opt_ IDXGISwapChain** ppSwapChain, _COM_Outptr_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _COM_Outptr_opt_ ID3D11DeviceContext** ppImmediateContext)
 {
 	PatchAdapter(&pAdapter);
@@ -770,13 +915,54 @@ static HRESULT D3D11CreateDeviceAndSwapChainHook(_In_opt_ IDXGIAdapter* pAdapter
 
 	auto hr = g_origD3D11CreateDeviceAndSwapChain(pAdapter, DriverType, Software, Flags | D3D11_CREATE_DEVICE_BGRA_SUPPORT, pFeatureLevels, FeatureLevels, SDKVersion, pSwapChainDesc, ppSwapChain, ppDevice, pFeatureLevel, ppImmediateContext);
 
-	PatchCreateResults(ppDevice, ppImmediateContext);
+	PatchCreateResults(ppDevice, ppImmediateContext, g_libgl->IsInSet(_ReturnAddress()));
 
 	return hr;
 }
 
 static HRESULT D3D11CreateDeviceHook(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _COM_Outptr_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _COM_Outptr_opt_ ID3D11DeviceContext** ppImmediateContext)
 {
+	// if this is the OS calling us, we need to be special and *somehow* convince any hook to give up their true colors
+	// since D3D11CoreCreateDevice is super obscure, we'll use *that*
+	if (g_d3d11->IsInSet(_ReturnAddress()))
+	{
+		static auto D3D11CoreCreateDevice = (HRESULT(WINAPI*)(IDXGIFactory * pFactory,
+		IDXGIAdapter * pAdapter,
+		D3D_DRIVER_TYPE DriverType,
+		HMODULE Software, UINT Flags,
+		const D3D_FEATURE_LEVEL* pFeatureLevels,
+		UINT FeatureLevels,
+		UINT SDKVersion,
+		ID3D11Device** ppDevice,
+		D3D_FEATURE_LEVEL* pFeatureLevel)) GetProcAddress(g_sysD3D11, "D3D11CoreCreateDevice");
+
+		if (D3D11CoreCreateDevice)
+		{
+			if (!pFeatureLevels)
+			{
+				static const D3D_FEATURE_LEVEL fls[] = 
+				{
+					D3D_FEATURE_LEVEL_11_0
+				};
+
+				pFeatureLevels = fls;
+				FeatureLevels = 1;
+			}
+
+			HRESULT hr = D3D11CoreCreateDevice(NULL, pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion, ppDevice, pFeatureLevel);
+
+			if (SUCCEEDED(hr))
+			{
+				if (ppDevice && *ppDevice && ppImmediateContext)
+				{
+					(*ppDevice)->GetImmediateContext(ppImmediateContext);
+				}
+				
+				return hr;
+			}
+		}
+	}
+
 	PatchAdapter(&pAdapter);
 
 	if (pAdapter)
@@ -787,7 +973,7 @@ static HRESULT D3D11CreateDeviceHook(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER
 
 	auto hr = g_origD3D11CreateDevice(pAdapter, DriverType, Software, Flags | D3D11_CREATE_DEVICE_BGRA_SUPPORT, pFeatureLevels, FeatureLevels, SDKVersion, ppDevice, pFeatureLevel, ppImmediateContext);
 
-	PatchCreateResults(ppDevice, ppImmediateContext);
+	PatchCreateResults(ppDevice, ppImmediateContext, g_libgl->IsInSet(_ReturnAddress()));
 
 	return hr;
 }
@@ -814,6 +1000,7 @@ static HRESULT D3D11CreateDeviceHookMain(_In_opt_ IDXGIAdapter* pAdapter, D3D_DR
 
 void HookLibGL(HMODULE libGL)
 {
+#if !GTA_NY
 	wchar_t systemDir[MAX_PATH];
 	GetSystemDirectoryW(systemDir, std::size(systemDir));
 
@@ -843,6 +1030,9 @@ void HookLibGL(HMODULE libGL)
 		}
 	}
 
+	g_sysD3D11 = realSysDll;
+	g_d3d11 = std::unique_ptr<ModuleData>(new ModuleData{ realSysDll });
+
 	// maybe
 	g_reshit = true;
 
@@ -870,6 +1060,7 @@ void HookLibGL(HMODULE libGL)
 	}
 
 	MH_EnableHook(MH_ALL_HOOKS);
+#endif
 }
 
 extern bool g_inited;
@@ -898,12 +1089,24 @@ void Component_RunPreInit()
 	// load the CEF library
 	HMODULE libcef = LoadLibraryW(MakeRelativeCitPath(L"bin/libcef.dll").c_str());
 
+	g_libgl = std::unique_ptr<ModuleData>(new ModuleData{ L"libGLESv2.dll", L"libEGL.dll", L"libcef.dll" });
+
 	if (!libcef)
 	{
 		auto gle = GetLastError();
 
-		_wunlink(MakeRelativeCitPath(L"caches.xml").c_str());
+		_wunlink(MakeRelativeCitPath(L"content_index.xml").c_str());
 		FatalError("Could not load bin/libcef.dll.\nLoadLibraryW failed for reason %d.", gle);
+	}
+
+	if (wcsstr(GetCommandLineW(), L"type=gpu"))
+	{
+		auto mojo__Connector__RaiseError = (uint8_t*)((char*)libcef + 0x2d12f4a);
+
+		if (*mojo__Connector__RaiseError == 0xB2)
+		{
+			hook::putVP<uint8_t>(mojo__Connector__RaiseError, 0xCC);
+		}
 	}
 
 	{
@@ -913,6 +1116,9 @@ void Component_RunPreInit()
 		if (*network__SetFetchMetadataHeaders == 0x41)
 		{
 			hook::putVP<uint8_t>(network__SetFetchMetadataHeaders, 0xC3);
+
+			// GL robust error handling
+			hook::putVP<uint32_t>((char*)libcef + 0x26C818A, 0x90C3C033);
 		}
 	}
 
@@ -944,6 +1150,11 @@ void Component_RunPreInit()
 }
 
 #ifndef USE_NUI_ROOTLESS
+namespace nui
+{
+std::string GetContext();
+}
+
 void CreateRootWindow()
 {
 	int resX, resY;
@@ -951,7 +1162,7 @@ void CreateRootWindow()
 
 	static ConVar<std::string> rootUrl("ui_rootUrl", ConVar_None, "nui://game/ui/root.html");
 
-	auto rootWindow = NUIWindow::Create(true, resX, resY, rootUrl.GetValue(), true);
+	auto rootWindow = NUIWindow::Create(true, resX, resY, rootUrl.GetValue(), true, nui::GetContext());
 	rootWindow->SetPaintType(NUIPaintTypePostRender);
 	rootWindow->SetName("root");
 
@@ -966,9 +1177,76 @@ std::set<std::string> g_recreateBrowsers;
 
 namespace nui
 {
+static std::mutex g_rcHandlerMutex;
+static std::vector<std::tuple<CefString, CefString, CefRefPtr<CefSchemeHandlerFactory>>> g_schemeHandlers;
+static std::set<CefRefPtr<CefRequestContext>> g_requestContexts;
+
+void AddSchemeHandlerFactories(CefRefPtr<CefRequestContext> rc)
+{
+	std::unique_lock _(g_rcHandlerMutex);
+
+	for (const auto& [name, domain, factory] : g_schemeHandlers)
+	{
+		rc->RegisterSchemeHandlerFactory(name, domain, factory);
+	}
+
+	g_requestContexts.insert(rc);
+}
+
+void RegisterSchemeHandlerFactory(const CefString& scheme_name, const CefString& domain_name, CefRefPtr<CefSchemeHandlerFactory> factory)
+{
+	std::unique_lock _(g_rcHandlerMutex);
+
+	CefRegisterSchemeHandlerFactory(scheme_name, domain_name, factory);
+
+	for (auto& rc : g_requestContexts)
+	{
+		rc->RegisterSchemeHandlerFactory(scheme_name, domain_name, factory);
+	}
+
+	g_schemeHandlers.push_back({ scheme_name, domain_name, factory });
+}
+
 extern std::unordered_map<std::string, fwRefContainer<NUIWindow>> windowList;
 extern std::shared_mutex windowListMutex;
+static std::string g_currentContext;
 bool g_rendererInit;
+
+std::string GetContext()
+{
+	std::shared_lock _(windowListMutex);
+	return g_currentContext;
+}
+
+void SwitchContext(const std::string& contextId)
+{
+	bool switched = false;
+
+	{
+		std::unique_lock _(windowListMutex);
+
+		if (contextId != g_currentContext)
+		{
+			g_currentContext = contextId;
+			switched = true;
+		}
+	}
+
+	if (switched)
+	{
+		{
+			auto rw = Instance<NUIWindowManager>::Get()->GetRootWindow().GetRef();
+
+			if (rw)
+			{
+				Instance<NUIWindowManager>::Get()->RemoveWindow(rw);
+				Instance<NUIWindowManager>::Get()->SetRootWindow({});
+			}
+		}
+
+		CreateRootWindow();
+	}
+}
 
 void Initialize(nui::GameInterface* gi)
 {
@@ -979,7 +1257,7 @@ void Initialize(nui::GameInterface* gi)
         return;
     }
 
-	std::wstring cachePath = MakeRelativeCitPath(fmt::sprintf(L"cache\\browser%s", ToWide(launch::GetPrefixedLaunchModeKey("-"))));
+	std::wstring cachePath = MakeRelativeCitPath(fmt::sprintf(L"data\\nui-storage%s", ToWide(launch::GetPrefixedLaunchModeKey("-"))));
 	CreateDirectory(cachePath.c_str(), nullptr);
 
 	// delete any old CEF logs
@@ -997,12 +1275,30 @@ void Initialize(nui::GameInterface* gi)
 	cSettings.windowless_rendering_enabled = true;
 	cSettings.log_severity = LOGSEVERITY_DEFAULT;
 	cSettings.background_color = 0;
+
+	// read the platform version
+	FILE* f = _wfopen(MakeRelativeCitPath(L"citizen/release.txt").c_str(), L"r");
+	int version = 0;
+
+	if (f)
+	{
+		char ver[128];
+
+		fgets(ver, sizeof(ver), f);
+		fclose(f);
+
+		version = atoi(ver);
+	}
+
+	CefString(&cSettings.user_agent_product).FromWString(fmt::sprintf(L"Chrome/%d.%d.%d.%d CitizenFX/1.0.0.%d", cef_version_info(4), cef_version_info(5), cef_version_info(6), cef_version_info(7), version));
 	
 	CefString(&cSettings.log_file).FromWString(MakeRelativeCitPath(L"cef.log"));
 	
 	CefString(&cSettings.browser_subprocess_path).FromWString(MakeCfxSubProcess(L"ChromeBrowser", L"chrome"));
 
 	CefString(&cSettings.locale).FromASCII("en-US");
+
+	CefString(&cSettings.cookieable_schemes_list).FromString("nui");
 
 	std::wstring resPath = MakeRelativeCitPath(L"bin/cef/");
 
@@ -1012,29 +1308,31 @@ void Initialize(nui::GameInterface* gi)
 
 	// 2014-06-30: sandbox disabled as it breaks scheme handler factories (results in blank page being loaded)
 	CefInitialize(args, cSettings, app.get(), /*cefSandbox*/ nullptr);
-	CefRegisterSchemeHandlerFactory("nui", "", Instance<NUISchemeHandlerFactory>::Get());
+	nui::RegisterSchemeHandlerFactory("nui", "", Instance<NUISchemeHandlerFactory>::Get());
 	CefAddCrossOriginWhitelistEntry("nui://game", "https", "", true);
 	CefAddCrossOriginWhitelistEntry("nui://game", "http", "", true);
 	CefAddCrossOriginWhitelistEntry("nui://game", "nui", "", true);
 
-	CefRegisterSchemeHandlerFactory("https", "nui-game-internal", Instance<NUISchemeHandlerFactory>::Get());
+	nui::RegisterSchemeHandlerFactory("https", "nui-game-internal", Instance<NUISchemeHandlerFactory>::Get());
 	CefAddCrossOriginWhitelistEntry("https://nui-game-internal", "https", "", true);
 	CefAddCrossOriginWhitelistEntry("https://nui-game-internal", "http", "", true);
 	CefAddCrossOriginWhitelistEntry("https://nui-game-internal", "nui", "", true);
 
-	CefRegisterSchemeHandlerFactory("ws", "", Instance<NUISchemeHandlerFactory>::Get());
-	CefRegisterSchemeHandlerFactory("wss", "", Instance<NUISchemeHandlerFactory>::Get());
+	nui::RegisterSchemeHandlerFactory("ws", "", Instance<NUISchemeHandlerFactory>::Get());
+	nui::RegisterSchemeHandlerFactory("wss", "", Instance<NUISchemeHandlerFactory>::Get());
 
     HookFunctionBase::RunAll();
 
 #if defined(GTA_NY)
-	OnGrcBeginScene.Connect([] ()
+
+	// #TODOLIBERTY:
+	/*OnGrcBeginScene.Connect([] ()
 	{
 		Instance<NUIWindowManager>::Get()->ForAllWindows([] (fwRefContainer<NUIWindow> window)
 		{
 			window->UpdateFrame();
 		});
-	});
+	});*/
 #else
 
 #endif

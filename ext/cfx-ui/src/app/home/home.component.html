@@ -8,6 +8,9 @@
 				<li (click)="openLink('https://redm.gg')" aria-label="Opens in browser" data-balloon-pos="right" *ngIf="gameName == 'rdr3'">
 					RedM.gg
 				</li>
+				<li (click)="openLink('https://libertym.net')" aria-label="Opens in browser" data-balloon-pos="right" *ngIf="gameName == 'ny'">
+					LibertyM.net
+				</li>
 				<li (click)="openLink('https://forum.cfx.re')" aria-label="Opens in browser" data-balloon-pos="right">
 					Forum
 				</li>
@@ -24,8 +27,21 @@
 				[innerHTML]="serviceMessage"
 			>
 			</div>
+			<div class="right" id="statuspage_indicator"
+					(click)="openLink('https://status.cfx.re/')"
+					*ngIf="statusLevel && gameName != 'rdr3'"
+			>
+				<div
+					attr.aria-label="{{this.statusMessage}}"
+					data-balloon-pos="right"
+				>
+					<span class="material-icons-outlined status-indicator status-good" *ngIf="this.statusLevel === 1">check_circle</span>
+					<span class="material-icons-outlined status-indicator status-warn" *ngIf="this.statusLevel === 2">error_outline</span>
+					<span class="material-icons-outlined status-indicator status-bad" *ngIf="this.statusLevel === 3">cancel</span>
+				</div>
+			</div>
 		</div>
-		<div class="right" *ngIf="gameName != 'rdr3'">
+		<div class="right" *ngIf="gameName != 'rdr3' && gameName != 'ny'">
 			<div class="player-stats" *ngIf="playerStats">
 				<div
 					aria-label="Current players count"
@@ -36,14 +52,18 @@
 					data-balloon-pos="left"
 				><span class="material-icons-outlined trending">trending_up</span> {{playerStats[2]}}k</div>
 			</div>
-			<button *ngIf="!currentAccount" class="cfx-button primary account-link" (click)="linkAccount()">
+			<button *ngIf="!currentAccount" class="cfx-button primary account-link" (click)="toggleAuthModal()">
 				Link account
 			</button>
 			<div
 				*ngIf="currentAccount && !streamerMode"
 				[style.backgroundImage]="currentAccount.getAvatarUrlForCss()"
+				data-balloon-pos="left"
+				[attr.aria-label]="currentAccount.username"
 				class="userpic"
-			></div>
+			>
+				<span class="material-icons-outlined" *ngIf="currentAccount.isPremium || currentAccount.isStaff">star</span>
+			</div>
 		</div>
 	</div>
 
@@ -99,7 +119,7 @@
 
 		<div class="links">
 			<a [routerLink]="['/servers/premium']" class="nav-item subnav-item" routerLinkActive="active"
-				*ngIf="gameName !== 'rdr3'">
+				*ngIf="gameName !== 'rdr3' && gameName != 'ny'">
 				<span class="material-icons-outlined supporters">monetization_on</span>
 				<span l10nTranslate>
 					#ServerList_Premium
@@ -112,23 +132,23 @@
 				</span>
 			</a>
 			<a [routerLink]="['/servers/favorites']" class="nav-item subnav-item" routerLinkActive="active"
-				*ngIf="gameName !== 'rdr3'">
+				*ngIf="gameName !== 'rdr3' && gameName != 'ny'">
 				<span class="material-icons-outlined favorites">grade</span>
 				<span l10nTranslate>
 					#ServerList_Favorites
 				</span>
 			</a>
-			<a class="nav-item subnav-item" (click)="connectToLocal()" *ngIf="devMode">
+			<a class="nav-item subnav-item" (click)="connectToLocal()" *ngIf="localhost">
 				<span class="material-icons-outlined localhost">computer</span>
 				<span>
-					Localhost
+					{{localhostName}}
 				</span>
 			</a>
 		</div>
 
 		<a class="card ad"
 			[routerLink]="[(this.topServer) ? '/servers/detail/' + this.topServer.address : '']"
-			style="--banner-image: url({{this.topServer?.data?.vars?.banner_detail || 'nah'}})">
+			style="--banner-image: url({{this.topServer?.data?.vars?.banner_detail || 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='}})">
 			<div *ngIf="this.topServer">
 				<h3 class="card_title">
 					<span class="material-icons-outlined">trending_up</span>
@@ -138,7 +158,7 @@
 
 				<section>
 					<div>
-						<span [class]="'flag-icon flag-icon-' + this.topServer.data.vars.locale.split('-')[1].toLowerCase()"></span>
+						<span [class]="'flag-icon flag-icon-' + topFlagCountry"></span>
 					</div>
 
 					<div>
@@ -150,7 +170,7 @@
 						<span class="material-icons-outlined">arrow_upward</span>
 						{{(this.topServer && this.topServer.upvotePower)||0}}
 					</div>
-					
+
 					<span *ngIf="!this.currentAccount" l10nTranslate>
 						#Home_AdDetail
 					</span>
@@ -158,7 +178,7 @@
 			</div>
 		</a>
 
-		<a class="card story" [routerLink]="['/story']" *ngIf="gameName !== 'rdr3'">
+		<a class="card story" [routerLink]="['/story']" *ngIf="gameName !== 'rdr3' && gameName != 'ny'">
 			<h3 class="card_title">
 				<span class="material-icons-outlined">play_arrow</span>
 				<span l10nTranslate>#BottomNav_Story</span>
@@ -170,7 +190,7 @@
 			</p>
 		</a>
 
-		<a class="card replay" [routerLink]="['/editor']" routerLinkActive="active" *ngIf="gameName !== 'rdr3'">
+		<a class="card replay" [routerLink]="['/editor']" routerLinkActive="active" *ngIf="gameName !== 'rdr3' && gameName != 'ny'">
 			<h3 class="card_title">
 				<span class="material-icons-outlined">replay</span>
 				<span l10nTranslate>

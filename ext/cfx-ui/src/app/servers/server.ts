@@ -4,6 +4,7 @@ import { EventEmitter } from '@angular/core';
 import { master } from './master';
 
 import { Avatar } from './avatar';
+import { filterProjectDesc, filterProjectName } from './server-utils';
 
 export class Server {
     readonly hostname: string;
@@ -64,7 +65,7 @@ export class Server {
             gametype: object.gametype
         };
 
-        const server = new Server(sanitizer, object.addr, { ...mappedData });
+        const server = new Server(sanitizer, object.addr, { ...object.infoBlob || {}, ...object, ...mappedData });
 
         if (object.infoBlob) {
             if (object.infoBlob.icon) {
@@ -134,6 +135,14 @@ export class Server {
         this.data = object;
         this.int = object;
         this.connectEndPoints = object.connectEndPoints;
+
+		if (this.data?.vars?.sv_projectName) {
+			this.data.vars.sv_projectName = filterProjectName(this.data.vars.sv_projectName);
+		}
+
+		if (this.data?.vars?.sv_projectDesc) {
+			this.data.vars.sv_projectDesc = filterProjectDesc(this.data.vars.sv_projectDesc);
+		}
 
         if (!object.iconVersion && sanitizer) {
             this.setDefaultIcon();

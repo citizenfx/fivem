@@ -48,14 +48,17 @@
 								<span>{{ server.premium }}</span>
 							</div>
 							<div class="buttons">
-								<button class="cfx-button primary connect" (click)="attemptConnect()" l10nTranslate>
+								<button class="cfx-button primary connect" [disabled]="eol" [attr.aria-label]="eolLabel" [attr.data-balloon-pos]="eol ? 'right' : undefined" (click)="attemptConnect()" l10nTranslate>
 									#DirectConnect_Connect
 								</button>
 							</div>
-							<div class="address">
+							<div class="address" *ngIf="!eol">
 								<span class="material-icons-outlined">link</span>
 								<span class="select">{{(serverAddress)||'undefined'}}</span>
 							</div>
+                            <div class="warning" *ngIf="eol || eos">
+                                <span class="material-icons-outlined">warning</span><p (click)="openLink($event)" [innerHTML]="(eos ? '#ServerDetail_SupportWarning' : '#ServerDetail_EOLWarning') | translate:locale.language | linky | safehtml"></p>
+                            </div>
 						</div>
 
 						<div class="right">
@@ -96,6 +99,10 @@
 									(click)="openLink($event)"
 								></span>
 							</ng-container>
+						</li>
+						<li class="owner" *ngIf="server.data?.ownerName" (click)="openOwner()">
+							<span class="key" l10nTranslate>#ServerDetail_Owner</span>
+							<span class="value"><img [src]="server.data?.ownerAvatar"><span>{{server.data?.ownerName}}</span></span>
 						</li>
 					</ul>
 				</div>

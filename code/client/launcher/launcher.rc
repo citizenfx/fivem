@@ -38,7 +38,7 @@ IDI_ICON1               ICON                    "redm.ico"
 1						RT_MANIFEST				"launcher.manifest"
 
 #ifdef LAUNCHER_PERSONALITY_MAIN
-#if defined(GTA_FIVE)
+#if defined(GTA_FIVE) || defined(GTA_NY)
 1010					MEOW					"backdrop.png"
 #else
 1010					MEOW					"backdrop_rdr.png"
@@ -91,12 +91,14 @@ BEGIN
 			VALUE "FileDescription", "FiveM" SUFFIX
 #elif defined(IS_RDR3)
 			VALUE "FileDescription", "RedM" SUFFIX
+#elif defined(GTA_NY)
+			VALUE "FileDescription", "LibertyM" SUFFIX
 #else
 			VALUE "FileDescription", "CitizenFX" SUFFIX
 #endif
             VALUE "FileVersion", "1.1.0.0"
             VALUE "InternalName", "Citizen"
-            VALUE "LegalCopyright", "(C) 2015-2020 Cfx.re"
+            VALUE "LegalCopyright", "(C) 2015-2021 Cfx.re"
             VALUE "OriginalFilename", "citizenmp.exe"
             VALUE "ProductName", "CitizenFX"
             VALUE "ProductVersion", "1.1.0.0"

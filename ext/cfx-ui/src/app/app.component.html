@@ -1,19 +1,18 @@
 <div [class]="classes">
-	<div id="bg">
+	<div id="bg" class="acrylicBlur" [style.background-image]="stylish">
 		<canvas
-			*ngIf="!showSiteNavbar && gameName != 'rdr3'"
-			class="acrylicBlur"
+			*ngIf="!showSiteNavbar && gameName != 'rdr3' && gameName != 'ny' && customBackdrop == ''"
 			#gameCanvas
 		>
 		</canvas>
 	</div>
 
 	<header class="site-navbar" *ngIf="showSiteNavbar">
-		<a class="logo" href="https://fivem.net">
+		<a class="logo" [href]="gameName == 'gta5' ? 'https://fivem.net' : 'https://redm.gg'">
 			<svg class="logo-img">
-				<use xlink:href="#logo-gta5"></use>
+				<use [attr.xlink:href]="'#logo-' + gameName"></use>
 			</svg>
-			<div class="logo-title">FiveM</div>
+			<div class="logo-title">{{ gameName == 'gta5' ? 'FiveM' : 'RedM' }}</div>
 		</a>
 
 		<ul class="site-links">
@@ -23,7 +22,7 @@
 			<li><a class="active" href="https://servers.fivem.net/"> <span class="text"> Servers </span> </a></li>
 			<li><a href="https://cookbook.fivem.net/"> <span class="text"> Cookbook </span> </a></li>
 			<li><a href="https://github.com/citizenfx/fivem"> <span class="text"> GitHub </span> </a></li>
-			<li><a href="/terms"> <span class="text"> Terms </span> </a></li>
+			<li><a href="https://fivem.net//terms"> <span class="text"> Terms </span> </a></li>
 			<li><a href="https://patreon.com/fivem" title="Patreon"> <span class="text"> Patreon</span> </a></li>
 		</ul>
 	</header>
@@ -33,5 +32,6 @@
 		<router-outlet></router-outlet>
 		<connecting-popup></connecting-popup>
 		<div id="overlays" [class]="classes"></div>
+        <auth-modal *ngIf="!isWeb"></auth-modal>
 	</div>
 </div>

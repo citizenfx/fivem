@@ -5,7 +5,6 @@
   flex-direction: column;
 
   width: 100%;
-  height: $modalContentHeight;
 
   .name-input {
     padding: 0 $q*4;
@@ -24,7 +23,7 @@
 
   .explorer-hint {
     padding: $q $q*4;
-    margin-top: $q*8;
+    margin-top: $q*4;
 
     font-family: Rubik;
     font-size: .8rem;

@@ -18,6 +18,16 @@ static hook::cdecl_stub<void* (fwExtensionList*, uint32_t)> getExtension([]()
 	return hook::get_pattern("8B FA 83 FA 20 73 17 8B C7", -15);
 });
 
+static hook::cdecl_stub<void(fwExtensionList*, rage::fwExtension*)> addExtension([]()
+{
+	return hook::get_pattern("48 8B 03 FF 50 18 83 F8 20 73 21", -0x2A);
+});
+
+void fwExtensionList::Add(rage::fwExtension* extension)
+{
+	return addExtension(this, extension);
+}
+
 void* fwExtensionList::Get(uint32_t id)
 {
 	return getExtension(this, id);

@@ -915,7 +915,7 @@ int Client_voiceMsg(client_t *client, uint8_t *data, int len)
 	channel_t *ch = (channel_t *)client->channel;
 	struct dlist *itr;
 
-	eastl::fixed_set<client_t*, 10> listeningUsers;
+	eastl::fixed_set<client_t*, 32> listeningUsers;
 
 	if (!client->authenticated || client->mute || client->self_mute || !ch || ch->silent)
 		goto out;
@@ -957,7 +957,7 @@ int Client_voiceMsg(client_t *client, uint8_t *data, int len)
 		list_iterate(itr, &ch->clients) {
 			client_t *c;
 			c = list_get_entry(itr, client_t, chan_node);
-			Client_send_voice(client, c, buffer, pds->offset + 1, poslen);
+			listeningUsers.insert(c);
 		}
 
 		for (unsigned int currentSession : ChannelListener::getListenersForChannel(ch))
@@ -991,7 +991,7 @@ int Client_voiceMsg(client_t *client, uint8_t *data, int len)
 			list_iterate(itr, &ch->clients) {
 				client_t *c;
 				c = list_get_entry(itr, client_t, chan_node);
-				Client_send_voice(client, c, buffer, pds->offset + 1, poslen);
+				listeningUsers.insert(c);
 			}
 
 			// Send audio to all users that are listening to the channel
@@ -1044,7 +1044,7 @@ int Client_voiceMsg(client_t *client, uint8_t *data, int len)
 						if (!ChannelListener::isListening(c, ch_link))
 						{
 							Log_debug("Linked voice from %s -> %s", ch->name, ch_link->name);
-							Client_send_voice(client, c, buffer, pds->offset + 1, poslen);
+							listeningUsers.insert(c);
 						}
 					}
 				}
@@ -1061,7 +1061,7 @@ int Client_voiceMsg(client_t *client, uint8_t *data, int len)
 						client_t *c;
 						c = list_get_entry(itr, client_t, chan_node);
 						Log_debug("Child voice from %s -> %s", ch->name, sub->name);
-						Client_send_voice(client, c, buffer, pds->offset + 1, poslen);
+						listeningUsers.insert(c);
 					}
 				}
 				Chan_freeTreeList(&chanlist);
@@ -1075,7 +1075,7 @@ int Client_voiceMsg(client_t *client, uint8_t *data, int len)
 			while (Client_iterate(&c) != NULL) {
 				channel_t* ch = (channel_t*)c->channel;
 				if ((!ch || targeted_channels.find(ch->id) == targeted_channels.end()) && c->sessionId == vt->sessions[i]) {
-					Client_send_voice(client, c, buffer, pds->offset + 1, poslen);
+					listeningUsers.insert(c);
 					break;
 				}
 			}

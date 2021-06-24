@@ -19,6 +19,12 @@
     }
   }
 
+  &.full-height {
+    .content {
+      height: 60vh;
+    }
+  }
+
   .backdrop {
     position: fixed;
     top: 0;
@@ -57,6 +63,11 @@
 
     & > * {
       overflow: hidden;
+
+      display: flex;
+      flex-direction: column;
+
+      min-height: 100%;
     }
   }
 }

@@ -13,6 +13,9 @@
 #include <MumbleClientImpl.h>
 #include <ksmedia.h>
 
+#include <ICoreGameInit.h>
+#include <ScriptEngine.h>
+
 #pragma comment(lib, "avrt.lib")
 
 extern "C"
@@ -26,6 +29,14 @@ MumbleAudioInput::MumbleAudioInput()
 {
 
 }
+
+enum class InputIntentMode {
+	SPEECH,
+	MUSIC
+};
+
+static InputIntentMode g_curInputIntentMode = InputIntentMode::SPEECH;
+static InputIntentMode g_lastIntentMode = InputIntentMode::SPEECH;
 
 void MumbleAudioInput::Initialize()
 {
@@ -117,6 +128,28 @@ void MumbleAudioInput::ThreadFunc()
 
 			lastLikelihood = m_likelihood;
 		}
+
+		if (g_curInputIntentMode != g_lastIntentMode)
+		{
+			switch (g_curInputIntentMode)
+			{
+			case InputIntentMode::MUSIC:
+			{
+				m_apm->noise_suppression()->Enable(false);
+				m_apm->high_pass_filter()->Enable(false);
+				break;
+			}
+			case InputIntentMode::SPEECH:
+			default:
+			{
+				m_apm->noise_suppression()->Enable(true);
+				m_apm->high_pass_filter()->Enable(true);
+				break;
+			}
+			};
+			g_lastIntentMode = g_curInputIntentMode;
+		}
+
 
 		if (lastDevice != m_deviceId)
 		{
@@ -298,7 +331,7 @@ void MumbleAudioInput::HandleData(const uint8_t* buffer, size_t numBytes)
 		}
 
 		// store packet
-		EnqueueOpusPacket(std::string((char*)m_encodedBytes, len));
+		EnqueueOpusPacket(std::string{ (char*)m_encodedBytes, size_t(len) }, frameSize / 10);
 	}
 
 	if (bytesLeft > 0)
@@ -321,9 +354,9 @@ void MumbleAudioInput::HandleData(const uint8_t* buffer, size_t numBytes)
 	SendQueuedOpusPackets();
 }
 
-void MumbleAudioInput::EnqueueOpusPacket(std::string packet)
+void MumbleAudioInput::EnqueueOpusPacket(std::string&& packet, int numFrames)
 {
-	m_opusPackets.push(packet);
+	m_opusPackets.push({ std::move(packet), numFrames });
 }
 
 void MumbleAudioInput::SendQueuedOpusPackets()
@@ -335,8 +368,10 @@ void MumbleAudioInput::SendQueuedOpusPackets()
 
 	while (!m_opusPackets.empty())
 	{
-		auto packet = m_opusPackets.front();
+		auto packetChunk = std::move(m_opusPackets.front());
 		m_opusPackets.pop();
+
+		const auto& [packet, frames] = packetChunk;
 
 		char outBuf[16384];
 		PacketDataStream buffer(outBuf, sizeof(outBuf));
@@ -350,7 +385,7 @@ void MumbleAudioInput::SendQueuedOpusPackets()
 		buffer << (packet.size() | (bTerminate ? (1 << 13) : 0));
 		buffer.append(packet.c_str(), packet.size());
 
-		++m_sequence;
+		m_sequence += frames;
 
 		//buffer << uint64_t(1 << 13);
 
@@ -635,3 +670,31 @@ void MumbleAudioInput::ThreadStart(MumbleAudioInput* instance)
 	mmcssHandle = AvSetMmThreadCharacteristics(L"Pro Audio", &mmcssTaskIndex);
 	instance->ThreadFunc();
 }
+
+static InitFunction initFunction([]()
+{
+	fx::ScriptEngine::RegisterNativeHandler("MUMBLE_SET_AUDIO_INPUT_INTENT", [](fx::ScriptContext& scriptContext)
+	{
+		uint32_t intent = scriptContext.GetArgument<uint32_t>(0);
+
+		switch (intent)
+		{
+		case HashString("music"):
+		{
+			g_curInputIntentMode = InputIntentMode::MUSIC;
+			break;
+		}
+		case HashString("speech"):
+		default:
+		{
+			g_curInputIntentMode = InputIntentMode::SPEECH;
+			break;
+		}
+		};
+	});
+
+	Instance<ICoreGameInit>::Get()->OnShutdownSession.Connect([]()
+	{
+		g_curInputIntentMode = InputIntentMode::SPEECH;
+	});
+});

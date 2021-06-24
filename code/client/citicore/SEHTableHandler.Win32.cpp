@@ -9,8 +9,6 @@
 
 #ifndef IS_FXSERVER
 #include <minhook.h>
-
-#ifdef _M_AMD64
 #include "Hooking.Aux.h"
 
 #include <Error.h>
@@ -27,7 +25,13 @@ static void* FindCallFromAddress(void* methodPtr, ud_mnemonic_code mnemonic = UD
 	ud_init(&ud);
 
 	// set the correct architecture
-	ud_set_mode(&ud, 64);
+	ud_set_mode(&ud, 
+#ifdef _M_AMD64
+		64
+#elif defined(_M_IX86)
+		32
+#endif
+	);
 
 	// set the program counter
 	ud_set_pc(&ud, reinterpret_cast<uint64_t>(methodPtr));
@@ -79,6 +83,7 @@ static void* FindCallFromAddress(void* methodPtr, ud_mnemonic_code mnemonic = UD
 	return retval;
 }
 
+#ifdef _M_AMD64
 struct FUNCTION_TABLE_DATA
 {
 	DWORD64 TableAddress;
@@ -232,23 +237,147 @@ extern "C" void DLL_EXPORT CoreRT_SetupSEHHandler(void* moduleBase, void* module
 		MH_EnableHook(MH_ALL_HOOKS);
 	}
 }
+#else
+void DLL_EXPORT CoreRT_SetupSEHHandler(...)
+{
+	// no-op for non-AMD64
+}
+#endif
 
-static LONG(*g_exceptionHandler)(EXCEPTION_POINTERS*);
-static BOOLEAN(*g_origRtlDispatchException)(EXCEPTION_RECORD* record, CONTEXT* context);
+
+static LONG (*g_exceptionHandler)(EXCEPTION_POINTERS*);
+static BOOLEAN(WINAPI *g_origRtlDispatchException)(EXCEPTION_RECORD* record, CONTEXT* context);
 
 static thread_local std::tuple<EXCEPTION_RECORD*, CONTEXT*> g_lastExc;
 
-static BOOLEAN RtlDispatchExceptionStub(EXCEPTION_RECORD* record, CONTEXT* context)
+static PIMAGE_SECTION_HEADER GetSection(std::string_view name, int off = 0)
+{
+	PIMAGE_DOS_HEADER dosHeader = (PIMAGE_DOS_HEADER)GetModuleHandle(NULL);
+	PIMAGE_NT_HEADERS ntHeader = (PIMAGE_NT_HEADERS)((char*)dosHeader + dosHeader->e_lfanew);
+	IMAGE_SECTION_HEADER* section = IMAGE_FIRST_SECTION(ntHeader);
+
+	int matchIdx = -1;
+
+	for (int i = 0; i < ntHeader->FileHeader.NumberOfSections; i++)
+	{
+		if (name == (char*)section->Name)
+		{
+			matchIdx++;
+
+			if (off == matchIdx)
+			{
+				return section;
+			}
+		}
+
+		section++;
+	}
+
+	return NULL;
+}
+
+static uintptr_t moduleBase = (uintptr_t)GetModuleHandle(NULL);
+static DWORD moduleSize = 0x60000000;
+
+template<typename T>
+static bool IsInSection(T address, PIMAGE_SECTION_HEADER scn)
+{
+	if (!scn)
+	{
+		return false;
+	}
+
+	auto va = (uintptr_t)GetModuleHandle(NULL) + scn->VirtualAddress;
+	auto nva = std::max((uintptr_t)GetModuleHandle(NULL) + scn[1].VirtualAddress, va + scn->Misc.VirtualSize);
+
+	return ((uintptr_t)address >= va && (uintptr_t)address < nva);
+}
+
+static std::atomic<int> hardeningOn = 0;
+
+extern "C" void DLL_EXPORT CoreRT_SetHardening(bool hardened)
+{
+	if (hardened)
+	{
+		hardeningOn++;
+	}
+	else
+	{
+		hardeningOn--;
+	}
+}
+
+static BOOLEAN WINAPI RtlDispatchExceptionStub(EXCEPTION_RECORD* record, CONTEXT* context)
 {
 	// anti-anti-anti-anti-debug
-	if (CoreIsDebuggerPresent() && (record->ExceptionCode == 0xc0000008/* || record->ExceptionCode == 0x80000003*/))
+	if (CoreIsDebuggerPresent() && (record->ExceptionCode == 0xc0000008 /* || record->ExceptionCode == 0x80000003*/))
 	{
 		return TRUE;
 	}
 
+#if defined(GTA_FIVE) && defined(RWX_TEST)
+	if (record->ExceptionCode == 0xC0000005)
+	{
+		if (record->ExceptionInformation[0] == EXCEPTION_WRITE_FAULT)
+		{
+			auto textScn = GetSection(".text", 0);
+			auto textScnFake = GetSection(".text", 1);
+			auto textScnFake2 = GetSection(".text", 2);
+			auto tlsScn = GetSection(".tls");
+			auto dataScn = GetSection(".data");
+
+			// #TODO: unprotect after a while
+			if (IsInSection(record->ExceptionInformation[1], textScn) || IsInSection(record->ExceptionInformation[1], textScnFake) || IsInSection(record->ExceptionInformation[1], textScnFake2) || IsInSection(record->ExceptionInformation[1], tlsScn))
+			{
+				if (hardeningOn <= 0)
+				/* if (IsInSection(record->ExceptionAddress, textScnFake) || IsInSection(record->ExceptionAddress, textScnFake2) ||
+					(IsInSection(record->ExceptionAddress, textScn) && 
+						(*(uint8_t*)((char*)record->ExceptionAddress + 2) == 0xE9 && *(uint16_t*)record->ExceptionAddress == 0x0289) ||
+						(*(uint8_t*)((char*)record->ExceptionAddress + 6) == 0xE9 && *(uint16_t*)record->ExceptionAddress == 0x0589)||
+						 *(uint8_t*)((char*)record->ExceptionAddress - 5) == 0xE9)))*/
+				{
+					DWORD op;
+					VirtualProtect((void*)record->ExceptionInformation[1], 0x10000, PAGE_EXECUTE_READWRITE, &op);
+					return TRUE;
+				}
+			}
+			else if (IsInSection(record->ExceptionInformation[1], dataScn))
+			{
+				DWORD op;
+				VirtualProtect((void*)record->ExceptionInformation[1], 0x10000, PAGE_READWRITE, &op);
+				return TRUE;			
+			}
+		}
+		else if (record->ExceptionInformation[0] == EXCEPTION_EXECUTE_FAULT)
+		{
+			auto rdataScn = GetSection(".rdata");
+			auto pdataScn = GetSection(".pdata");
+			auto tlsScn = GetSection(".tls");
+			auto bcScn = GetSection("BINKCONS");
+
+			if (IsInSection(record->ExceptionInformation[1], rdataScn) || IsInSection(record->ExceptionInformation[1], pdataScn) || IsInSection(record->ExceptionInformation[1], tlsScn) || IsInSection(record->ExceptionInformation[1], bcScn))
+			{
+				DWORD op;
+				VirtualProtect((void*)record->ExceptionInformation[1], 0x10000, PAGE_EXECUTE_READ, &op);
+
+				if (op == PAGE_READWRITE || op == PAGE_EXECUTE_READWRITE)
+				{
+					VirtualProtect((void*)record->ExceptionInformation[1], 0x10000, PAGE_EXECUTE_READWRITE, &op);
+				}
+
+				return TRUE;
+			}
+		}
+	}
+#endif
+
+#ifndef _M_IX86
 	g_lastExc = { record, context };
+#endif
 	BOOLEAN success = g_origRtlDispatchException(record, context);
+#ifndef _M_IX86
 	g_lastExc = { nullptr, nullptr };
+#endif
 
 	if (CoreIsDebuggerPresent())
 	{
@@ -299,7 +428,7 @@ static void terminateStub()
 	FatalError("UCRT terminate() called");
 }
 
-extern "C" void DLL_EXPORT CoreSetExceptionOverride(LONG(*handler)(EXCEPTION_POINTERS*))
+extern "C" void DLL_EXPORT CoreSetExceptionOverride(LONG (*handler)(EXCEPTION_POINTERS*))
 {
 	_TerminateForException = (decltype(_TerminateForException))GetProcAddress(GetModuleHandle(NULL), "TerminateForException");
 
@@ -319,12 +448,6 @@ extern "C" void DLL_EXPORT CoreSetExceptionOverride(LONG(*handler)(EXCEPTION_POI
 		}
 	}
 }
-#else
-void DLL_EXPORT CoreRT_SetupSEHHandler(...)
-{
-	// no-op for non-AMD64
-}
-#endif
 
 struct InitMHWrapper
 {

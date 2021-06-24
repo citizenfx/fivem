@@ -20,11 +20,14 @@ $q: 4px;
 $blurSize: 20px;
 
 $toolbarHeight: 32px;
-$toolbarWidth: 430px;
 $triggerWidth: 50px;
 $toolbarHeight: 32px;
 
 $modalContentHeight: 90vh;
+
+$zToolbar: 2;
+$zTheia: 1;
+$zWorldEditor: 4000;
 
 @mixin fontPrimary {
   font-family: Rubik;
@@ -41,6 +44,36 @@ $modalContentHeight: 90vh;
 
   &:hover {
     transition: none;
+  }
+}
+
+@mixin data-label {
+  position: relative;
+
+  &::after {
+    position: absolute;
+    display: block;
+    content: attr(data-label);
+
+    bottom: $q*-7;
+
+    padding: $q $q*2;
+
+    white-space: nowrap;
+
+    border-radius: 2px;
+    background-color: mix(rgba($bgColor, 1), rgba($fgColor, .5));
+
+    opacity: 0;
+    pointer-events: none;
+
+    z-index: 1000;
+
+    @content;
+  }
+
+  &:hover::after {
+    opacity: 1;
   }
 }
 

@@ -42,6 +42,8 @@
 fwRefContainer<fx::ResourceManager> g_resourceManager;
 
 #if __has_include(<streaming.h>)
+#include <Streaming.h>
+
 void DLL_IMPORT CfxCollection_AddStreamingFileByTag(const std::string& tag, const std::string& fileName, rage::ResourceFlags flags);
 void DLL_IMPORT CfxCollection_RemoveStreamingTag(const std::string& tag);
 void DLL_IMPORT CfxCollection_BackoutStreamingTag(const std::string& tag);
@@ -100,7 +102,11 @@ static InitFunction initFunction([] ()
 
 	fx::OnAddStreamingResource.Connect([] (const fx::StreamingEntryData& entry)
 	{
+#ifndef GTA_NY
 		CfxCollection_AddStreamingFileByTag(entry.resourceName, entry.filePath, { entry.rscPagesVirtual, entry.rscPagesPhysical });
+#else
+		CfxCollection_AddStreamingFileByTag(entry.resourceName, entry.filePath, entry.rscPagesVirtual);
+#endif
 		removeTags.insert(entry.resourceName);
 	});
 
@@ -134,7 +140,9 @@ static InitFunction initFunction([] ()
 	{
 		Instance<fx::ResourceManager>::Get()->ForAllResources([](fwRefContainer<fx::Resource> resource)
 		{
+#ifndef GTA_NY
 			resource->GetComponent<fx::ResourceGameLifetimeEvents>()->OnBeforeGameShutdown();
+#endif
 		});
 	}, -500);
 #endif
@@ -143,7 +151,7 @@ static InitFunction initFunction([] ()
 	{
 		resource->SetComponent(new ResourceEntryListComponent());
 
-#if __has_include(<streaming.h>)
+#if __has_include(<streaming.h>) && !defined(GTA_NY)
 		resource->OnStart.Connect([=] ()
 		{
 			if (resource->GetName() == "_cfx_internal")

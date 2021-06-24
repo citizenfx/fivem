@@ -27,12 +27,17 @@ export class HomeComponent implements OnInit, OnDestroy {
 
 	serviceMessage: SafeHtml;
 	welcomeMessage: SafeHtml;
+	statusMessage = '';
+	statusLevel = 0; // 0 = [unset], 1 = good, 2 = warn, 3 = bad
+	statusInterval;
 
 	brandingName: string;
 	language = '';
 
 	streamerMode = false;
 	devMode = false;
+	localhost = false;
+	localhostName = '';
 	localhostPort = '';
 	nickname = '';
 
@@ -78,6 +83,19 @@ export class HomeComponent implements OnInit, OnDestroy {
 		gameService.streamerModeChange.subscribe(value => this.streamerMode = value);
 		gameService.devModeChange.subscribe(value => this.devMode = value);
 		gameService.localhostPortChange.subscribe(value => this.localhostPort = value);
+		gameService.localServerChange.subscribe(value => {
+			if (value.available) {
+				this.localhost = true;
+				this.localhostName = value.host;
+				this.localhostPort = value.port;
+			} else {
+				this.localhost = false;
+			}
+		});
+	}
+
+	get topFlagCountry() {
+		return this.topServer?.data?.vars?.locale?.split('-')[1]?.toLowerCase() ?? 'aq';
 	}
 
 	ngOnInit() {
@@ -88,12 +106,16 @@ export class HomeComponent implements OnInit, OnDestroy {
 		this.fetchWelcome();
 		this.fetchPlayerStats();
 		this.fetchServiceMessage();
+		this.updateStatus();
+		this.statusInterval = this.startStatusCheckerLoop();
 
 		this.loadLastServer();
 		this.loadTopServer();
 	}
 
-	ngOnDestroy() {}
+	ngOnDestroy() {
+		clearInterval(this.statusInterval);
+	}
 
 	async loadTopServer() {
 		if (this.currentAccount) {
@@ -121,27 +143,33 @@ export class HomeComponent implements OnInit, OnDestroy {
 			};
 
 			const isAddressServer = this.lastServer.historyEntry.address.includes(':');
+			const done = () => {
+				this.changeDetectorRef.markForCheck();
+			};
 
 			if (!isAddressServer) {
 				try {
 					this.lastServer.server = await this.serversService.getServer(this.lastServer.historyEntry.address);
 					this.lastServer.status = HistoryServerStatus.Online;
-				} catch (e) {
-					this.lastServer.status = HistoryServerStatus.Offline;
-				}
-			} else {
-				try {
-					this.lastServer.server = await this.gameService.queryAddress(
-						this.serversService.parseAddress(this.lastServer.historyEntry.address),
-					);
 
-					this.lastServer.status = HistoryServerStatus.Online;
+					done();
+					return;
 				} catch (e) {
 					this.lastServer.status = HistoryServerStatus.Offline;
 				}
 			}
 
-			this.changeDetectorRef.markForCheck();
+			try {
+				this.lastServer.server = await this.gameService.queryAddress(
+					this.serversService.parseAddress(this.lastServer.historyEntry.address),
+				);
+
+				this.lastServer.status = HistoryServerStatus.Online;
+			} catch (e) {
+				this.lastServer.status = HistoryServerStatus.Offline;
+			}
+
+			done();
 		}
 	}
 
@@ -152,6 +180,33 @@ export class HomeComponent implements OnInit, OnDestroy {
 					this.serviceMessage = cachedServiceMessage = this.domSanitizer.bypassSecurityTrustHtml(await res.text());
 				}
 			});
+	}
+
+	updateStatus() {
+		window.fetch('https://status.cfx.re/api/v2/status.json')
+			.then(async (res) => {
+				const status = (await res.json());
+				this.statusMessage = status['status']['description'] || '';
+				switch (status['status']['description']) {
+					case 'All Systems Operational':
+						this.statusLevel = 1;
+						break;
+					case 'Partial System Outage':
+					case 'Minor Service Outage':
+						this.statusLevel = 2;
+						break;
+					case 'Major Service Outage':
+						this.statusLevel = 3;
+						break;
+					default:
+						this.statusLevel = 0;
+						break;
+				}
+			})
+			.catch(a => {});
+	}
+	startStatusCheckerLoop() {
+		return setInterval(() => { this.updateStatus(); }, 1000 * 20 );
 	}
 
 	fetchWelcome() {
@@ -203,6 +258,10 @@ export class HomeComponent implements OnInit, OnDestroy {
 			});
 	}
 
+	toggleAuthModal() {
+		this.discourseService.openAuthModal();
+	}
+
 	clickContent(event: MouseEvent) {
 		const srcElement = event.srcElement as HTMLElement;
 
@@ -232,7 +291,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 	}
 
 	connectToLocal() {
-		(<any>window).invokeNative('connectTo', '127.0.0.1:' + (this.localhostPort || '30120'));
+		(<any>window).invokeNative('connectTo', (this.localhostName || '127.0.0.1') + ':' + (this.localhostPort || '30120'));
 	}
 
 	attemptConnectTo(entry: HistoryServer) {

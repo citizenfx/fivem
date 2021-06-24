@@ -1,6 +1,7 @@
 export const projectApi = {
   checkCreateRequest: 'project:checkCreateRequest',
   checkCreateResult: 'project:checkCreateResult',
+  checkOpenRequest: 'project:checkOpenRequest',
   create: 'project:create',
   open: 'project:open',
   close: 'project:close',
@@ -8,6 +9,10 @@ export const projectApi = {
   build: 'project:build',
   buildError: 'project:buildError',
   setServerUpdateChannel: 'project:setServerUpdateChannel',
+  setSystemResources: 'project:setSystemResources',
+  setVariable: 'project:setVariable',
+
+  upgradeRecommendations: 'project.upgradeRecommendations',
 
   getRecents: 'project:getRecents',
   recents: 'project:recents',
@@ -38,6 +43,9 @@ export const projectApi = {
   moveEntry: 'project:moveEntry',
   copyEntry: 'project:copyEntry',
   copyEntries: 'project:copyEntries',
+
+  startServer: 'project:startServer',
+  stopServer: 'project:stopServer',
 };
 
 export const assetApi = {
@@ -45,6 +53,10 @@ export const assetApi = {
   import: 'asset:import',
   rename: 'asset:rename',
   delete: 'asset:delete',
+
+  setConfig: 'asset:setConfig',
+  setType: 'asset:setType',
+  setDefinition: 'asset:setDefinition',
 };
 
 export const githubApi = {
@@ -56,6 +68,7 @@ export const stateApi = {
   state: 'state',
   serverDataState: 'serverDataState',
   gameLaunched: 'state:gameLaunched',
+  setUserId: 'state:setUserId',
 };
 
 export const explorerApi = {
@@ -76,9 +89,7 @@ export const serverApi = {
   ackState: 'server:ackState',
   state: 'server:state',
 
-  start: 'server:start',
-  stop: 'server:stop',
-
+  resourceDatas: 'server:resourceDatas',
   bufferedOutput: 'server:output',
   structuredOutputMessage: 'server:outputStructured',
   clearOutput: 'server:clearOutput',
@@ -87,7 +98,6 @@ export const serverApi = {
   ackResourcesState: 'server:ackResourcesState',
   resourcesState: 'server:resourcesState',
 
-  setEnabledResources: 'server:refreshResources',
   restartResource: 'server:restartResource',
   stopResource: 'server:stopResource',
   startResource: 'server:startResource',
@@ -119,7 +129,6 @@ export const taskReporterApi = {
 };
 
 export const outputApi = {
-  ack: 'output:ack',
   output: 'output:output',
   outputLabel: 'output:outputLabel',
   flush: 'output:flush',
@@ -127,10 +136,26 @@ export const outputApi = {
 
 export const gameApi = {
   ack: 'game:ack',
+  gameState: 'game:gameState',
   gameLaunched: 'game:gameLaunched',
   gameProcessStateChanged: 'game:gameStateChanged',
   connectionStateChanged: 'game:connectionStateChanged',
   start: 'game:start',
   stop: 'game:stop',
   restart: 'game:restart',
+};
+
+export const worldEditorApi = {
+  start: 'world-editor:start',
+  stop: 'world-editor:stop',
+  stopped: 'world-editor:stopped',
+
+  mapLoaded: 'world-editor:mapLoaded',
+  setCam: 'world-editor:setCam',
+  applyPatch: 'world-editor:applyPatch',
+  deleteAddition: 'world-editor:deleteAddition',
+  setAddition: 'world-editor:setAddition',
+  applyAdditionChange: 'world-editor:applyAdditionChange',
+  setAdditionGroup: 'world-editor:setAdditionGroup',
+  setAdditionGroupName: 'world-editor:setAdditionGroupName',
 };

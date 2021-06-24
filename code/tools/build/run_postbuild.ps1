@@ -23,11 +23,14 @@ $WorkDir = "$InstRoot"
 $IsRDR = $false
 $IsLauncher = $false
 $IsServer = $false
+$IsNY = $false
 
 if ($Game -eq "server") {
     $IsServer = $true
 } elseif ($Game -eq "rdr3") {
     $IsRDR = $true
+} elseif ($Game -eq "ny") {
+    $IsNY = $true
 } elseif ($Game -eq "launcher") {
     $IsLauncher = $true
 }
@@ -47,7 +50,7 @@ if (!$IsServer) {
 
     if ($?) {
         Copy-Item -Force $WorkDir\ext\ui-build\data.zip $LayoutDir\citizen\ui.zip
-        Copy-Item -Force $WorkDir\ext\ui-build\data_big.zip $LayoutDir\citizen\ui-big.zip
+        Copy-Item -Force $WorkDir\ext\ui-build\data_big.zip $LayoutDir\citizen\ui-big.zip 
     }
     Pop-Location
 
@@ -72,16 +75,22 @@ if (!$IsServer) {
     ## setup layout
     New-Item -ItemType Directory -Force $LayoutDir\bin
 
-    Copy-Item -Force -Recurse $WorkDir\vendor\cef\Release\*.dll $LayoutDir\bin\
-    Copy-Item -Force -Recurse $WorkDir\vendor\cef\Release\*.bin $LayoutDir\bin\
+    $CefPath = "cef"
+
+    if ($IsNY) {
+        $CefPath = "cef32"
+    }
+
+    Copy-Item -Force -Recurse $WorkDir\vendor\$CefPath\Release\*.dll $LayoutDir\bin\
+    Copy-Item -Force -Recurse $WorkDir\vendor\$CefPath\Release\*.bin $LayoutDir\bin\
 
     New-Item -ItemType Directory -Force $LayoutDir\bin\cef
 
-    Copy-Item -Force -Recurse $WorkDir\vendor\cef\Resources\icudtl.dat $LayoutDir\bin\
-    Copy-Item -Force -Recurse $WorkDir\vendor\cef\Resources\*.pak $LayoutDir\bin\cef\
-    Copy-Item -Force -Recurse $WorkDir\vendor\cef\Resources\locales\en-US.pak $LayoutDir\bin\cef\
+    Copy-Item -Force -Recurse $WorkDir\vendor\$CefPath\Resources\icudtl.dat $LayoutDir\bin\
+    Copy-Item -Force -Recurse $WorkDir\vendor\$CefPath\Resources\*.pak $LayoutDir\bin\cef\
+    Copy-Item -Force -Recurse $WorkDir\vendor\$CefPath\Resources\locales\en-US.pak $LayoutDir\bin\cef\
 
-    if (!$IsLauncher -and !$IsRDR) {
+    if (!$IsLauncher -and !$IsRDR -and !$IsNY) {
         Copy-Item -Force -Recurse $WorkDir\data\shared\* $LayoutDir\
         Copy-Item -Force -Recurse $WorkDir\data\client\* $LayoutDir\
 
@@ -101,7 +110,14 @@ if (!$IsServer) {
         Copy-Item -Force -Recurse $WorkDir\data\client\citizen\ros $LayoutDir\citizen\
         Copy-Item -Force -Recurse $WorkDir\data\client\citizen\resources $LayoutDir\citizen\
         Copy-Item -Force -Recurse $WorkDir\data\client_rdr\* $LayoutDir\
-    }
+    } elseif ($IsNY) {
+        Copy-Item -Force -Recurse $WorkDir\data\shared\* $LayoutDir\
+        Copy-Item -Force -Recurse $WorkDir\data\client\citizen\clr2 $LayoutDir\citizen\
+        Copy-Item -Force -Recurse $WorkDir\data\client\citizen\*.ttf $LayoutDir\citizen\
+        Copy-Item -Force -Recurse $WorkDir\data\client\citizen\ros $LayoutDir\citizen\
+        Copy-Item -Force -Recurse $WorkDir\data\client\citizen\resources $LayoutDir\citizen\
+        Copy-Item -Force -Recurse $WorkDir\data\client_ny\* $LayoutDir\
+	}
 } else {
     Push-Location $WorkDir\ext\system-resources
     .\build.cmd

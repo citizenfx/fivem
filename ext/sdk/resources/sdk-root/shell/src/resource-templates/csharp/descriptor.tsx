@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { SiCsharp } from "react-icons/si";
 import { Feature } from 'shared/api.types';
-import { useFeature } from 'utils/hooks';
+import { StatusState } from 'store/StatusState';
 import { ResourceTemplateDescriptor } from '../types';
 
 export default {
@@ -10,6 +10,6 @@ export default {
   title: 'C#',
   description: 'Easy start C# resource template',
 
-  useIsEnabled: () => useFeature(Feature.dotnetAvailable),
+  useIsEnabled: () => StatusState.getFeature(Feature.dotnetAvailable),
   disabledDescription: '.NET is not installed on your system, please install it and restart FxDK to get this template available',
 } as ResourceTemplateDescriptor;

@@ -25,6 +25,7 @@ const ModuleNotFoundPlugin = require('react-dev-utils/ModuleNotFoundPlugin');
 const ForkTsCheckerWebpackPlugin = require('react-dev-utils/ForkTsCheckerWebpackPlugin');
 const typescriptFormatter = require('react-dev-utils/typescriptFormatter');
 const sentry = require('./sentry');
+const ThreadsPlugin = require('threads-plugin');
 
 const postcssNormalize = require('postcss-normalize');
 
@@ -136,9 +137,7 @@ module.exports = function(webpackEnv) {
     // Stop compilation early in production
     bail: isEnvProduction,
     devtool: isEnvProduction
-      ? shouldUseSourceMap
-        ? 'source-map'
-        : false
+      ? false
       : isEnvDevelopment && 'cheap-module-source-map',
     // These are the "entry points" to our application.
     // This means they will be the "root" imports that are included in JS bundle.
@@ -658,6 +657,10 @@ module.exports = function(webpackEnv) {
           // The formatter is invoked directly in WebpackDevServerUtils during development
           formatter: isEnvProduction ? typescriptFormatter : undefined,
         }),
+        isEnvProduction && shouldUseSourceMap && new webpack.SourceMapDevToolPlugin({
+          exclude: /\.worker\.js$/,
+          filename: '[file].map',
+        }),
         sentryAuthToken && new SentryWebpackPlugin({
           url: 'https://sentry.fivem.net/',
           authToken: sentryAuthToken,
@@ -666,6 +669,7 @@ module.exports = function(webpackEnv) {
           project: "fxdk",
           include: path.join(__dirname, '../build'),
         }),
+        new ThreadsPlugin(),
     ].filter(Boolean),
     // Some libraries import Node modules but don't use them in the browser.
     // Tell webpack to provide empty mocks for them so importing them works.

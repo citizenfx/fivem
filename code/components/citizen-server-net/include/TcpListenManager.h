@@ -49,11 +49,15 @@ namespace fx
 
 		std::shared_ptr<ConVar<int>> m_tcpLimitVar;
 
+		std::shared_ptr<ConVar<bool>> m_dnsRegisterVar;
+
 		tbb::concurrent_unordered_map<std::array<uint8_t, 16>, std::atomic<int>> m_tcpLimitByHost;
 
 		int m_tcpLimit = 16;
 
 		int m_primaryPort;
+
+		void RegisterDns();
 
 	public:
 		TcpListenManager(const std::string& loopName = "default");

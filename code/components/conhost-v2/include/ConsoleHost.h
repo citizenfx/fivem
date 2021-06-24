@@ -24,4 +24,6 @@ namespace ConHost
 	CONHOST_EXPORT bool IsConsoleOpen();
 	
 	CONHOST_EXPORT void Print(const std::string& channel, const std::string& message);
+
+	CONHOST_EXPORT void SetCursorMode(bool mode);
 }

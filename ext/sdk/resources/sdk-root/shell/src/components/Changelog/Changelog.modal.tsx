@@ -1,16 +1,15 @@
 import * as React from 'react';
 import { Modal } from 'components/Modal/Modal';
-import { StateContext } from 'contexts/StateContext';
 import { Changelog } from './Changelog';
 import { Button } from 'components/controls/Button/Button';
 import { ScrollContainer } from 'components/ScrollContainer/ScrollContainer';
+import { observer } from 'mobx-react-lite';
+import { ShellState } from 'store/ShellState';
 import s from './Changelog.module.scss';
 
-export const ChangelogModal = React.memo(function ChangelogModal() {
-  const { closeChangelog } = React.useContext(StateContext);
-
+export const ChangelogModal = observer(function ChangelogModal() {
   return (
-    <Modal fullWidth onClose={closeChangelog}>
+    <Modal fullWidth onClose={ShellState.closeChangelog}>
       <div className={s.modal}>
         <div className="modal-header">
           Changelog
@@ -23,7 +22,7 @@ export const ChangelogModal = React.memo(function ChangelogModal() {
         <div className="modal-actions">
           <Button
             text="Close"
-            onClick={closeChangelog}
+            onClick={ShellState.closeChangelog}
           />
         </div>
       </div>

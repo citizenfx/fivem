@@ -11,7 +11,10 @@
 
 #ifndef IS_FXSERVER
 #define ASSERT(x) __noop
+
+#if !defined(GTA_FIVE) && !defined(JITASM_H)
 #include <jitasm.h>
+#endif
 
 #include <memory>
 #include <functional>
@@ -66,10 +69,14 @@ inline uintptr_t get_adjusted(T address)
 template<typename T>
 inline uintptr_t get_unadjusted(T address)
 {
+#ifdef _M_AMD64
 	if ((uintptr_t)address >= hook::get_adjusted(0x140000000) && (uintptr_t)address <= hook::get_adjusted(0x146000000))
 	{
 		return (uintptr_t)address - baseAddressDifference;
 	}
+#endif
+
+	return (uintptr_t)address;
 }
 
 struct pass
@@ -77,6 +84,7 @@ struct pass
 	template<typename ...T> pass(T...) {}
 };
 
+#ifdef JITASM_H
 #pragma region assembly generator
 class FunctionAssembly
 {
@@ -107,13 +115,19 @@ public:
 	}
 };
 #pragma endregion
+#endif
 
 template<typename ValueType, typename AddressType>
 inline void put(AddressType address, ValueType value)
 {
 	adjust_base(address);
 
+	DWORD oldProtect;
+	VirtualProtect((void*)address, sizeof(value), PAGE_EXECUTE_READWRITE, &oldProtect);
+
 	memcpy((void*)address, &value, sizeof(value));
+
+	VirtualProtect((void*)address, sizeof(value), oldProtect, &oldProtect);
 }
 
 template<typename ValueType, typename AddressType>
@@ -134,7 +148,12 @@ inline void nop(AddressType address, size_t length)
 {
 	adjust_base(address);
 
+	DWORD oldProtect;
+	VirtualProtect((void*)address, length, PAGE_EXECUTE_READWRITE, &oldProtect);
+
 	memset((void*)address, 0x90, length);
+
+	VirtualProtect((void*)address, length, oldProtect, &oldProtect);
 }
 
 template<typename AddressType>
@@ -335,6 +354,7 @@ public:
 	void injectCall();
 };
 
+#ifdef JITASM_H
 struct inject_hook_frontend : jitasm::Frontend
 {
 private:
@@ -401,6 +421,7 @@ public:
 #define DEFINE_INJECT_HOOK(hookName, hookAddress) class _zz_inject_hook_##hookName : public hook::inject_hook { public: _zz_inject_hook_##hookName(uint32_t address) : hook::inject_hook(address) {}; ReturnType run(); }; \
 	static _zz_inject_hook_##hookName hookName(hookAddress); \
 	_zz_inject_hook_##hookName::ReturnType _zz_inject_hook_##hookName::run()
+#endif
 
 
 #if 0
@@ -485,6 +506,42 @@ inline void set_call(TTarget* target, T address)
 	*(T*)target = get_call(address);
 }
 
+inline uintptr_t get_member_internal(void* function)
+{
+	return (uintptr_t)function;
+}
+
+template<typename T>
+inline uintptr_t get_member_old(T function)
+{
+	return ((uintptr_t(*)(T))get_member_internal)(function);
+}
+
+template<typename TClass, typename TMember>
+inline uintptr_t get_member(TMember TClass::* function)
+{
+	union member_cast
+	{
+		TMember TClass::* function;
+		struct
+		{
+			void* ptr;
+			void* offset;
+		};
+	};
+
+	member_cast cast;
+
+	if (sizeof(cast.function) != sizeof(cast.ptr))
+	{
+		return get_member_old(function);
+	}
+
+	cast.function = function;
+
+	return (uintptr_t)cast.ptr;
+}
+
 namespace vp
 {
 	template<typename T, typename AT>
@@ -502,6 +559,7 @@ namespace vp
 	}
 }
 
+#ifdef JITASM_H
 #pragma region inject call: call stub
 template<typename R, typename... Args>
 struct CallStub : jitasm::function<void, CallStub<R, Args...>>
@@ -523,7 +581,7 @@ public:
 
 		pass{([&]
 		{
-			int size = min(sizeof(Args), sizeof(uintptr_t));
+			int size = std::min(sizeof(Args), sizeof(uintptr_t));
 
 			argOffset += size;
 		}(), 1)...};
@@ -536,7 +594,7 @@ public:
 			mov(eax, dword_ptr[esp + stackOffset + argOffset]);
 			push(eax);
 
-			int size = max(sizeof(Args), sizeof(uintptr_t));
+			int size = std::max(sizeof(Args), sizeof(uintptr_t));
 
 			stackOffset += size;
 			argCleanup += size;
@@ -550,6 +608,7 @@ public:
 	}
 };
 #pragma endregion
+#endif
 
 #pragma region inject call
 template<typename R, typename... Args>
@@ -567,7 +626,8 @@ public:
 	{
 		if (*(uint8_t*)address != 0xE8)
 		{
-			FatalError("inject_call attempted on something that was not a call. Are you sure you have a compatible version of the game executable? You might need to try poking the guru.");
+			__debugbreak();
+			// "inject_call attempted on something that was not a call. Are you sure you have a compatible version of the game executable? You might need to try poking the guru."
 		}
 
 		m_address = address;
@@ -657,15 +717,6 @@ inline void call_rcx(AT address, T func)
 	call_reg<1>(address, func);
 }
 
-template<typename T, typename TAddr>
-inline T get_address(TAddr address)
-{
-	intptr_t target = *(int32_t*)(get_adjusted(address));
-	target += (get_adjusted(address) + 4);
-
-	return (T)target;
-}
-
 template<typename T>
 inline T get_call(T address)
 {
@@ -722,6 +773,24 @@ struct get_func_ptr<TMember TClass::*>
 	}
 };
 #endif
+
+template<typename T, typename TAddr>
+inline T get_address(TAddr address)
+{
+	intptr_t target = *(int32_t*)(get_adjusted(address));
+	target += (get_adjusted(address) + 4);
+
+	return (T)target;
+}
+
+template<typename T, typename TAddr>
+inline T get_address(TAddr address, size_t offsetTo4ByteAddr, size_t numBytesInLine)
+{
+	intptr_t target = *(int32_t*)(get_adjusted((char*)address + offsetTo4ByteAddr));
+	target += (get_adjusted(address) + numBytesInLine);
+
+	return (T)target;
+}
 }
 
 #include "Hooking.Invoke.h"

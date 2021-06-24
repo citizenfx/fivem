@@ -23,9 +23,11 @@
 static std::thread g_consoleThread;
 static std::once_flag g_consoleInitialized;
 bool g_consoleFlag;
+bool g_cursorFlag;
 extern int g_scrollTop;
 extern int g_bufferHeight;
 
+#if __has_include("InputHook.h")
 void ProcessWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, bool& pass, LRESULT& lresult)
 {
 	if (g_consoleFlag)
@@ -47,6 +49,7 @@ void ProcessWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, bool& pas
 				{
 					g_consoleClosing = false;
 					g_consoleFlag = false;
+					InputHook::SetGameMouseFocus(true);
 
 					return;
 				}
@@ -54,6 +57,7 @@ void ProcessWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, bool& pas
 		}
 	}
 }
+#endif
 
 static InitFunction initFunction([] ()
 {
@@ -142,8 +146,17 @@ static InitFunction initFunction([] ()
 			if (msg == WM_KEYUP && wParam == VK_F8)
 			{
 				g_consoleFlag = true;
+				InputHook::SetGameMouseFocus(false);
 			}
 		}
 	}, 10);
 #endif
 });
+
+void ConHost::SetCursorMode(bool mode)
+{
+	g_cursorFlag = mode;
+#if __has_include("InputHook.h")
+	InputHook::SetGameMouseFocus(!mode);
+#endif
+}

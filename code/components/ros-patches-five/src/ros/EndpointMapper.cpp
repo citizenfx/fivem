@@ -83,11 +83,17 @@ static InitFunction initFunction([] ()
 			"prod.ros.rockstargames.com",
 			"auth-prod.ros.rockstargames.com",
 			"auth-gta5-prod.ros.rockstargames.com",
+#ifndef GTA_NY
 			"rgl-prod.ros.rockstargames.com",
 			"auth-rgl-prod.ros.rockstargames.com",
 			"ps-rgl-prod.ros.rockstargames.com",
 			"prs-rgl-prod.ros.rockstargames.com",
 			"app-rgl-prod.ros.rockstargames.com",
+#endif
+			"prs-gta4-prod.ros.rockstargames.com",
+			"gta4-prod.ros.rockstargames.com",
+			"auth-gta4-prod.ros.rockstargames.com",
+#ifdef IS_RDR3
 			"crews-rdr2-prod.ros.rockstargames.com",
 			"prs-rdr2-prod.ros.rockstargames.com",
 			"ugc-rdr2-prod.ros.rockstargames.com",
@@ -97,6 +103,7 @@ static InitFunction initFunction([] ()
 			"feed-rdr2-prod.ros.rockstargames.com",
 			"conductor-rdr2-prod.ros.rockstargames.com",
 			"challenges-rdr2-prod.ros.rockstargames.com",
+#endif
 			"prod-locator-cloud.rockstargames.com",
 			"www.google-analytics.com",
 		};
@@ -117,7 +124,7 @@ static InitFunction initFunction([] ()
 			if (GetFileAttributesW(MakeRelativeCitPath("citizen/ros/ros.crt").c_str()) == INVALID_FILE_ATTRIBUTES ||
 				GetFileAttributesW(MakeRelativeCitPath("citizen/ros/ros.key").c_str()) == INVALID_FILE_ATTRIBUTES)
 			{
-				_wunlink(MakeRelativeCitPath("caches.xml").c_str());
+				_wunlink(MakeRelativeCitPath("content_index.xml").c_str());
 			}
 
 			// create the TLS wrapper for the TLS backend
@@ -146,6 +153,8 @@ static InitFunction initFunction([] ()
 
 #ifndef IS_RDR3
 	if (initState->IsGameProcess() || wcsstr(GetCommandLineW(), L"ros:legit"))
+#else
+	if (!wcsstr(GetCommandLineW(), L"ros:epic") && !wcsstr(GetCommandLineW(), L"ros:steam"))
 #endif
 	{
 		net::PeerAddress address = net::PeerAddress::FromString("127.0.0.1:32891", 32891, net::PeerAddress::LookupType::NoResolution).get();

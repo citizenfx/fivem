@@ -1,4 +1,4 @@
-﻿#include "StdInc.h"
+#include "StdInc.h"
 
 #include <fiCustomDevice.h>
 
@@ -183,20 +183,20 @@ public:
 			std::string f = &fn[20];
 			f = f.substr(0, f.find_last_of("."));
 
-			::CreateDirectory(MakeRelativeCitPath(L"cache\\dunno").c_str(), nullptr);
+			::CreateDirectory(MakeRelativeCitPath(L"data\\cache\\dunno").c_str(), nullptr);
 
-			FILE* file = _wfopen(MakeRelativeCitPath(L"cache\\dunno\\" + ToWide(f) + L".rpf").c_str(), L"w");
+			FILE* file = _wfopen(MakeRelativeCitPath(L"data\\cache\\dunno\\" + ToWide(f) + L".rpf").c_str(), L"w");
 
 			if (file)
 			{
 				fclose(file);
 			}
 
-			auto device = rage::fiDevice::GetDevice(va("rescache:/dunno/%s.rpf", f), true);
+			auto device = rage::fiDevice::GetDevice(va("cfx:/data/cache/dunno/%s.rpf", f), true);
 
 			if (device)
 			{
-				return device->m_xy(a, len, (void*)va("rescache:/dunno/%s.rpf", f));
+				return device->m_xy(a, len, (void*)va("cfx:/data/cache/dunno/%s.rpf", f));
 			}
 		}
 

@@ -251,7 +251,12 @@ static InitFunction initFunction([]()
 		}
 	}).detach();
 
-	static int tcpServerPort = IsCL2() ? 29200 : 29100;
+	// Handle case where the client and server are on the same localhost.
+#if defined(IS_FXSERVER)
+	static const int tcpServerPort = 29100;
+#else
+	static const int tcpServerPort = IsCL2() ? 29300 : 29200;
+#endif
 	static fwRefContainer<net::TcpServerManager> tcpStack = new net::TcpServerManager();
 	static fwRefContainer<net::TcpServer> tcpServer = tcpStack->CreateServer(net::PeerAddress::FromString(fmt::sprintf("0.0.0.0:%d", tcpServerPort), tcpServerPort, net::PeerAddress::LookupType::NoResolution).get());
 
@@ -311,7 +316,7 @@ static InitFunction initFunction([]()
 		{
 			lastProfile = json;
 
-			ShellExecuteW(nullptr, L"open", fmt::sprintf(L"http://frontend.chrome-dev.tools/serve_rev/@901bcc219d9204748f9c256ceca0f2cd68061006/inspector.html?loadTimelineFromURL=http://localhost:29100/profileData.json").c_str(), NULL, NULL, SW_SHOW);
+			ShellExecuteW(nullptr, L"open", fmt::sprintf(L"http://frontend.chrome-dev.tools/serve_rev/@901bcc219d9204748f9c256ceca0f2cd68061006/inspector.html?loadTimelineFromURL=http://localhost:%d/profileData.json", tcpServerPort).c_str(), NULL, NULL, SW_SHOW);
 		});
 	}, INT32_MAX);
 

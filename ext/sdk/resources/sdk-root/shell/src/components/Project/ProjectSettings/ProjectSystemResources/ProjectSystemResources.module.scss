@@ -1,0 +1,72 @@
+@import "variables";
+
+.wrapper {
+  display: flex;
+  flex-wrap: wrap;
+
+  .category {
+    width: 33%;
+
+    .list {
+      display: flex;
+      flex-direction: column;
+
+      gap: $q*2;
+
+      .resource {
+        flex-grow: 1;
+
+        display: flex;
+        flex-direction: column;
+
+        padding: $q*3;
+
+        background-color: rgba($fgColor, .05);
+
+        cursor: pointer;
+        user-select: none;
+
+        .row {
+          display: flex;
+
+          gap: $q*2;
+        }
+
+        .check {
+          flex-shrink: 0;
+
+          width: $fs08;
+          height: $fs08;
+          background-color: rgba($fgColor, .5);
+        }
+
+        .name {
+          display: block;
+        }
+
+        .description {
+          display: block;
+
+          margin-top: $q*2;
+
+          color: rgba($fgColor, .75);
+          font-size: $fs08;
+        }
+
+        @include interactiveTransition;
+
+        &:hover {
+          box-shadow: 0 0 0 2px rgba($fgColor, .5) inset;
+        }
+
+        &.active {
+          box-shadow: 0 0 0 2px $acColor inset;
+
+          .check {
+            background-color: $acColor;
+          }
+        }
+      }
+    }
+  }
+}

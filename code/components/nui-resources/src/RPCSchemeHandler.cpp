@@ -43,12 +43,14 @@ public:
 		std::string url = request->GetURL();
 		std::string hostname;
 		std::string path;
+		std::string query;
 
 		CefURLParts parts;
 		CefParseURL(url, parts);
 
 		hostname = CefString(&parts.host);
 		path = CefString(&parts.path);
+		query = CefString(&parts.query);
 
 		fwString host(hostname.begin(), hostname.end());
 
@@ -145,7 +147,7 @@ public:
 
 		CefRefPtr<RPCResourceHandler> self = this;
 
-		auto result = ui->InvokeCallback(path.substr(1), headers, postDataString, [self, callback] (int statusCode, const std::multimap<std::string, std::string>& headers, const std::string& callResult)
+		auto result = ui->InvokeCallback(path.substr(1), query, headers, postDataString, [self, callback] (int statusCode, const std::multimap<std::string, std::string>& headers, const std::string& callResult)
 		{
 			{
 				std::unique_lock _(self->m_mutex);

@@ -576,8 +576,6 @@ class GameView extends HTMLElement {
       e.preventDefault();
       e.stopPropagation();
 
-      console.log('Propagation stopped');
-
       // Handling pointer unlock
       if (e.key === 'Escape' && e.shiftKey) {
         if (this._fullscreenActive) {
@@ -601,8 +599,12 @@ class GameView extends HTMLElement {
       this._keysState[vk] = true;
       setKeyState(vk, true);
 
-      if (e.key.length === 1){
+      if (e.key.length === 1) {
         setInputChar(e.key);
+      } else if (e.key.length > 2) {
+        // "BackSpace", "Shift", "Alt", ...
+        // Use the charcode instead, but don't do F-Keys.
+        setInputChar(e.which);
       }
     };
     this._handleKeyup = (e) => {

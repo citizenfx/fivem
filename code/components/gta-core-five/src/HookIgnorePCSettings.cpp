@@ -6,6 +6,8 @@
  */
 
 #include "StdInc.h"
+
+#include <jitasm.h>
 #include "Hooking.h"
 
 #include <CrossBuildRuntime.h>
@@ -18,12 +20,16 @@ static HookFunction hookFunction([] ()
 	{
 		char* location = matches.get(i).get<char>(-11);
 
+		DWORD oldProtect;
+		VirtualProtect(hook::get_address<char*>(location), 14, PAGE_READWRITE, &oldProtect);
 		strcpy(hook::get_address<char*>(location), "fivem_set.bin");
+		VirtualProtect(hook::get_address<char*>(location), 14, oldProtect, &oldProtect);
 
 		location = matches.get(i).get<char>(14);
 
+		VirtualProtect(hook::get_address<char*>(location), 19, PAGE_READWRITE, &oldProtect);
 		strcpy(hook::get_address<char*>(location), "fxu:/fivem_set.bin");
-
+		VirtualProtect(hook::get_address<char*>(location), 19, oldProtect, &oldProtect);
 	}
 
 	// testing hook to not kill blip data when changing to a network game

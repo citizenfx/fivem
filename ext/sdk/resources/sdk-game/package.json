@@ -1,0 +1,25 @@
+{
+  "name": "sdk-game",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "watch:client": "esbuild src/client/client.ts --outfile=sdk-client.js --bundle --watch --format=cjs",
+    "watch:server": "esbuild src/server/server.ts --outfile=sdk-server.js --bundle --watch --format=cjs --platform=node",
+    "watch": "concurrently --names \"client,server\" \"yarn run watch:client\" \"yarn run watch:server\"",
+    "start": "yarn run watch",
+    "build:client": "esbuild src/client/client.ts --outfile=sdk-client.js --bundle --minify --format=cjs",
+    "build:server": "esbuild src/server/server.ts --outfile=sdk-server.js --bundle --minify --format=cjs --platform=node",
+    "build": "concurrently --names \"client,server\" \"yarn run build:client\" \"yarn run build:server\""
+  },
+  "devDependencies": {
+    "@citizenfx/client": "^2.0.3882-1",
+    "@citizenfx/server": "^2.0.3882-1",
+    "@types/node": "^15.0.0",
+    "concurrently": "^6.0.2",
+    "esbuild": "^0.11.15"
+  },
+  "dependencies": {
+    "byline": "^5.0.0"
+  }
+}

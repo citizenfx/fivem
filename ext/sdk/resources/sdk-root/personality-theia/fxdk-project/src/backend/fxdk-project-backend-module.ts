@@ -6,9 +6,13 @@ import { DiskFileSystemProvider } from '@theia/filesystem/lib/node/disk-file-sys
 import { rebindEnvVariablesServerImpl } from '../backend/rebindEnvVariablesServerImpl';
 import { FxdkDiskFileSystemProvider } from './fxdk-disk-file-system-provider';
 import { FxdkPluginDeployerParticipant, FxdkPluginDeployerResolver } from './fxdk-plugin-deployer-participant';
+import { rebindVSXApiVersionProvider } from './fxdk-vsx-api-version-provider';
+import { rebindFilesystemWatcherService } from './rebindFilesystemWatcherService';
 
 export default new ContainerModule((bind: interfaces.Bind, unbind: interfaces.Unbind, isBound: interfaces.IsBound, rebind: interfaces.Rebind) => {
+  rebindFilesystemWatcherService(bind, rebind);
   rebindEnvVariablesServerImpl(bind, rebind);
+  rebindVSXApiVersionProvider(bind, rebind);
 
   bind(FxdkDiskFileSystemProvider).toSelf().inSingletonScope();
   rebind(DiskFileSystemProvider).toService(FxdkDiskFileSystemProvider);

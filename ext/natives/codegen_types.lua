@@ -19,6 +19,9 @@ type 'Entity'
 type 'Player'
 	nativeType 'int'
 
+type 'DecisionMaker'
+	nativeType 'int'
+
 type 'FireId'
 	nativeType 'int'
 
@@ -84,6 +87,9 @@ type 'ScrHandle'
 	nativeType 'int'
 
 type 'BOOL'
+	nativeType 'bool'
+
+type 'bool'
 	nativeType 'bool'
 
 -- you wouldn't say

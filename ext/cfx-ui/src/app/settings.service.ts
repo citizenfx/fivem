@@ -27,7 +27,7 @@ export class Setting {
 	id?: string;
 }
 
-function fromEntries<TValue>(iterable: [string, TValue][]): { [key: string]: TValue } {
+export function fromEntries<TValue>(iterable: [string, TValue][]): { [key: string]: TValue } {
 	return [...iterable].reduce<{ [key: string]: TValue }>((obj, [key, val]) => {
 		(obj as any)[key] = val;
 		return obj;
@@ -39,8 +39,11 @@ export class SettingsService {
 	private settings: { [key: string]: Setting } = {};
 	private settingOrder: string[] = [];
 
-	constructor(private translation: L10nTranslationService, private gameService: GameService,
-		private discourseService: DiscourseService) {
+	constructor(
+        private translation: L10nTranslationService,
+        private gameService: GameService,
+		private discourseService: DiscourseService,
+    ) {
 		this.addSetting('nickname', {
 			name: '#Settings_Nickname',
 			description: '#Settings_Nickname',
@@ -50,7 +53,7 @@ export class SettingsService {
 			category: '#SettingsCat_Connection',
 		});
 
-		if (this.gameService.gameName !== 'rdr3') {
+		if (this.gameService.gameName !== 'rdr3' && this.gameService.gameName !== 'ny') {
 			this.addSetting('darkTheme', {
 				name: '#Settings_DarkTheme',
 				description: '#Settings_DarkThemeDesc',
@@ -69,6 +72,14 @@ export class SettingsService {
 			setCb: (value) => this.gameService.streamerMode = (value === 'true'),
 			category: '#SettingsCat_Interface',
 		});
+
+        this.addSetting('customBackdropButton', {
+            name: '#Settings_CustomBackdrop',
+            type: 'button',
+            setCb: (value) => this.setCustomBackdrop(),
+            category: '#SettingsCat_Interface',
+            description: '#Settings_CustomBackdropSelect',
+        });
 
 		this.addSetting('uiPerformance', {
 			name: '#Settings_LowPerfMode',
@@ -103,7 +114,7 @@ export class SettingsService {
 			category: '#SettingsCat_Interface',
 		});
 
-		if (this.gameService.gameName !== 'rdr3') {
+		if (this.gameService.gameName !== 'rdr3' && this.gameService.gameName !== 'ny') {
 			this.addSetting('menuAudio', {
 				name: '#Settings_MenuAudio',
 				description: '#Settings_MenuAudioDesc',
@@ -111,6 +122,15 @@ export class SettingsService {
 				getCb: () => this.gameService.getConvar('ui_disableMusicTheme').pipe(map(a => a === 'true' ? 'false' : 'true')),
 				setCb: (value) => this.gameService.setConvar('ui_disableMusicTheme', value === 'true' ? 'false' : 'true'),
 				category: '#SettingsCat_Interface',
+			});
+
+			this.addSetting('inProcessGpu', {
+				name: '#Settings_InProcessGpu',
+				description: '#Settings_InProcessGpuDesc',
+				type: 'checkbox',
+				getCb: () => this.gameService.getConvar('nui_useInProcessGpu').pipe(map(a => a === 'true' ? 'true' : 'false')),
+				setCb: (value) => this.gameService.setConvar('nui_useInProcessGpu', value),
+				category: '#SettingsCat_Game',
 			});
 
 			this.addSetting('streamingProgress', {
@@ -126,8 +146,8 @@ export class SettingsService {
 				name: '#Settings_UseAudioFrameLimiter',
 				description: '#Settings_UseAudioFrameLimiterDesc',
 				type: 'checkbox',
-				getCb: () => this.gameService.getConvar('game_useAudioFrameLimiter').pipe(map(a => a === 'true' ? 'true' : 'false')),
-				setCb: (value) => this.gameService.setConvar('game_useAudioFrameLimiter', value),
+				getCb: () => this.gameService.getConvar('game_useAudioFrameLimiter').pipe(map(a => a === 'true' ? 'false' : 'true')),
+				setCb: (value) => this.gameService.setConvar('game_useAudioFrameLimiter', value === 'true' ? 'false' : 'true'),
 				category: '#SettingsCat_Game',
 			});
 
@@ -171,7 +191,7 @@ export class SettingsService {
 			category: '#SettingsCat_Account',
 		});
 
-		if (this.gameService.gameName !== 'rdr3') {
+		if (this.gameService.gameName !== 'rdr3' && this.gameService.gameName !== 'ny') {
 			this.addSetting('accountButton', {
 				name: '#Settings_Account',
 				type: 'button',
@@ -270,7 +290,11 @@ export class SettingsService {
 	}
 
 	private async linkAccount() {
-		const url = await this.discourseService.generateAuthURL();
-		this.gameService.openUrl(url);
+        this.discourseService.openAuthModal();
 	}
+
+    private async setCustomBackdrop() {
+        const fileName = await this.gameService.selectFile('backdrop');
+        this.gameService.setArchivedConvar('ui_customBackdrop', fileName);
+    }
 }

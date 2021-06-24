@@ -1,7 +1,52 @@
 @import "variables";
 
 .root {
+  .older {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    margin-bottom: $q*6;
+
+    font-size: $fs08;
+    font-weight: 100;
+    color: rgba($fgColor, .5);
+    letter-spacing: 1px;
+
+    &::before {
+      display: block;
+      content: '';
+
+      flex-grow: 1;
+
+      margin-right: $q*2;
+
+      border-bottom: dashed 1px rgba($fgColor, .5);
+    }
+
+    &::after {
+      display: block;
+      content: '';
+
+      flex-grow: 1;
+
+      margin-left: $q*2;
+
+      border-bottom: dashed 1px rgba($fgColor, .5);
+    }
+  }
+
   .entry {
+    margin-bottom: $q*12;
+
+    &:first-child {
+      margin-bottom: $q*6;
+    }
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
     .title {
       @include fontSecondary;
       font-size: $fs2;
@@ -33,7 +78,7 @@
         li {
           line-height: 1.2;
 
-          margin-bottom: $q;
+          margin-bottom: $q*3;
         }
       }
 

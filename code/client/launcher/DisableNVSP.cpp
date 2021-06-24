@@ -97,7 +97,7 @@ static bool SetShadowPlayStatus(const NvidiaConnectionInfo& connection, bool ena
 
 static void WriteSPEnableCookie()
 {
-	FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\enable_nvsp").c_str(), L"wb");
+	FILE* f = _wfopen(MakeRelativeCitPath(L"data\\cache\\enable_nvsp").c_str(), L"wb");
 
 	if (f)
 	{
@@ -172,7 +172,7 @@ void NVSP_DisableOnStartup()
 
 void NVSP_ShutdownSafely()
 {
-	FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\enable_nvsp").c_str(), L"rb");
+	FILE* f = _wfopen(MakeRelativeCitPath(L"data\\cache\\enable_nvsp").c_str(), L"rb");
 
 	if (f)
 	{
@@ -187,7 +187,7 @@ void NVSP_ShutdownSafely()
 			SetShadowPlayStatus(*nvConn, true);
 		}
 
-		_wunlink(MakeRelativeCitPath(L"cache\\enable_nvsp").c_str());
+		_wunlink(MakeRelativeCitPath(L"data\\cache\\enable_nvsp").c_str());
 	}
 }
 #endif

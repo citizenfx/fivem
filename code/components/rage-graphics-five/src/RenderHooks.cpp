@@ -82,6 +82,65 @@ static void InvokeCreateCB(const char* arg)
 static void CaptureBufferOutput();
 static void CaptureInternalScreenshot();
 
+static hook::cdecl_stub<void()> flushRenderStates([]()
+{
+	return hook::get_pattern("F6 C2 01 74 30 8B", -10);
+});
+
+static hook::cdecl_stub<void(bool)> _grcLighting([]()
+{
+	return hook::get_call(hook::get_pattern("48 83 EC 38 B1 01 E8 ? ? ? ? 48 8B", 6));
+});
+
+static hook::cdecl_stub<void(rage::grcTexture*)> _grcBindTexture([]()
+{
+	return hook::get_call(hook::get_pattern("48 8B D9 33 C9 E8 ? ? ? ? E8 ? ? ? ? 33 C9 E8", 5));
+});
+
+static hook::cdecl_stub<void()> _grcWorldIdentity([]()
+{
+	return hook::get_call(hook::get_pattern("48 8B D9 33 C9 E8 ? ? ? ? E8 ? ? ? ? 33 C9 E8", 10));
+});
+
+namespace rage
+{
+void grcLighting(bool enable)
+{
+	return _grcLighting(enable);
+}
+
+void grcBindTexture(rage::grcTexture* texture)
+{
+	return _grcBindTexture(texture);
+}
+
+void grcWorldIdentity()
+{
+	return _grcWorldIdentity();
+}
+
+struct grcViewport
+{
+};
+
+struct spdViewport : grcViewport
+{
+	static spdViewport* GetCurrent();
+};
+}
+
+static rage::spdViewport** rage__spdViewport__sm_Current;
+
+rage::spdViewport* rage::spdViewport::GetCurrent()
+{
+	return *rage__spdViewport__sm_Current;
+}
+
+static HookFunction hookFunctionSafe([]()
+{
+	rage__spdViewport__sm_Current = hook::get_address<rage::spdViewport**>(hook::get_pattern("48 8B 3D ? ? ? ? 40 8A F2 48 8B D9 75 14", 3));
+});
+
 static void InvokeRender()
 {
 	static std::once_flag of;
@@ -90,6 +149,28 @@ static void InvokeRender()
 	{
 		OnGrcCreateDevice();
 	});
+
+	SetBlendState(GetStockStateIdentifier(BlendStateDefault));
+	SetDepthStencilState(GetStockStateIdentifier(DepthStencilStateNoDepth));
+	SetRasterizerState(GetStockStateIdentifier(RasterizerStateNoCulling));
+
+	rage::grcLighting(false);
+
+	if (rage::spdViewport::GetCurrent())
+	{
+		rage::grcWorldIdentity();
+	}
+
+	rage::grcBindTexture(nullptr);
+
+	flushRenderStates();
+
+	// run a no-op draw call to flush other grcore states
+	rage::grcBegin(3, 3);
+	rage::grcVertex(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0, 0.0f, 0.0f);
+	rage::grcVertex(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0, 0.0f, 0.0f);
+	rage::grcVertex(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0, 0.0f, 0.0f);
+	rage::grcEnd();
 
 	OnPostFrontendRender();
 }
@@ -477,6 +558,9 @@ static HRESULT CreateD3D11DeviceWrapOrig(_In_opt_ IDXGIAdapter* pAdapter, D3D_DR
 					continue;
 				}
 
+				AddCrashometry("gpu_name", "%s", ToNarrow(desc.Description));
+				AddCrashometry("gpu_id", "%04x:%04x", desc.VendorId, desc.DeviceId);
+
 				adapter.CopyTo(&pAdapter);
 				break;
 			}
@@ -577,6 +661,11 @@ static HRESULT CreateD3D11DeviceWrapOrig(_In_opt_ IDXGIAdapter* pAdapter, D3D_DR
 		else if (!pSwapChainDesc->Windowed)
 		{
 			auto sc = WRL::Make<DeferredFullscreenSwapChain>(*ppSwapChain);
+
+			// release the original swapchain
+			(*ppSwapChain)->Release();
+			*ppSwapChain = NULL;
+
 			sc.CopyTo(ppSwapChain);
 		}
 	}
@@ -976,7 +1065,26 @@ void RenderBufferToBuffer(ID3D11RenderTargetView* rtv, int width = 0, int height
 	}
 
 	// guess what we can't just CopyResource, so time for copy/pasted D3D11 garbage
+	if (backBuf)
 	{
+		WRL::ComPtr<IUnknown> realSrvUnk;
+		WRL::ComPtr<ID3D11ShaderResourceView> realSrv;
+
+		backBuf->m_srv2->QueryInterface(IID_PPV_ARGS(&realSrvUnk));
+		realSrvUnk.As(&realSrv);
+
+		WRL::ComPtr<IDXGIDevice> realDeviceDxgi;
+		WRL::ComPtr<ID3D11Device> realDevice;
+
+		GetD3D11Device()->QueryInterface(IID_PPV_ARGS(&realDeviceDxgi));
+		realDeviceDxgi.As(&realDevice);
+
+		WRL::ComPtr<IUnknown> realDeviceContextUnk;
+		WRL::ComPtr<ID3D11DeviceContext> realDeviceContext;
+
+		GetD3D11DeviceContext()->QueryInterface(IID_PPV_ARGS(&realDeviceContextUnk));
+		realDeviceContextUnk.As(&realDeviceContext);
+
 		auto m_width = resDesc.Width;
 		auto m_height = resDesc.Height;
 
@@ -989,30 +1097,30 @@ void RenderBufferToBuffer(ID3D11RenderTargetView* rtv, int width = 0, int height
 		static ID3D11PixelShader* ps;
 
 		static std::once_flag of;
-		std::call_once(of, []()
+		std::call_once(of, [&realDevice]()
 		{
 			D3D11_SAMPLER_DESC sd = CD3D11_SAMPLER_DESC(CD3D11_DEFAULT());
-			GetD3D11Device()->CreateSamplerState(&sd, &ss);
+			realDevice->CreateSamplerState(&sd, &ss);
 
 			D3D11_BLEND_DESC bd = CD3D11_BLEND_DESC(CD3D11_DEFAULT());
 			bd.RenderTarget[0].BlendEnable = FALSE;
 
-			GetD3D11Device()->CreateBlendState(&bd, &bs);
+			realDevice->CreateBlendState(&bd, &bs);
 
-			GetD3D11Device()->CreateVertexShader(quadVS, sizeof(quadVS), nullptr, &vs);
-			GetD3D11Device()->CreatePixelShader(quadPS, sizeof(quadPS), nullptr, &ps);
+			realDevice->CreateVertexShader(quadVS, sizeof(quadVS), nullptr, &vs);
+			realDevice->CreatePixelShader(quadPS, sizeof(quadPS), nullptr, &ps);
 		});
 
 		ID3DUserDefinedAnnotation* pPerf = NULL;
-		GetD3D11DeviceContext()->QueryInterface(__uuidof(pPerf), reinterpret_cast<void**>(&pPerf));
+		realDeviceContext->QueryInterface(__uuidof(pPerf), reinterpret_cast<void**>(&pPerf));
 
 		if (pPerf)
 		{
 			pPerf->BeginEvent(L"DrawRenderTexture");
 		}
 
-		auto deviceContext = GetD3D11DeviceContext();
-
+		auto deviceContext = realDeviceContext;
+		
 		ID3D11RenderTargetView* oldRtv = nullptr;
 		ID3D11DepthStencilView* oldDsv = nullptr;
 		deviceContext->OMGetRenderTargets(1, &oldRtv, &oldDsv);
@@ -1042,9 +1150,14 @@ void RenderBufferToBuffer(ID3D11RenderTargetView* rtv, int width = 0, int height
 		deviceContext->OMSetRenderTargets(1, &rtv, nullptr);
 		deviceContext->OMSetBlendState(bs, nullptr, 0xffffffff);
 
+		ID3D11ShaderResourceView* srvs[] =
+		{
+			realSrv.Get()
+		};
+
 		deviceContext->PSSetShader(ps, nullptr, 0);
 		deviceContext->PSSetSamplers(0, 1, &ss);
-		deviceContext->PSSetShaderResources(0, 1, &backBuf->m_srv2);
+		deviceContext->PSSetShaderResources(0, 1, srvs);
 
 		deviceContext->VSSetShader(vs, nullptr, 0);
 
@@ -1437,7 +1550,26 @@ static void DisplayD3DCrashMessage(HRESULT hr)
 		errorString = va(L"0x%08x", hr);
 	}
 
-	FatalError("DirectX encountered an unrecoverable error: %s - %s", ToNarrow(errorString), ToNarrow(errorBuffer));
+	std::string removedError;
+
+	if (hr == DXGI_ERROR_DEVICE_REMOVED)
+	{
+		HRESULT removedReason = GetD3D11Device()->GetDeviceRemovedReason();
+
+		wchar_t errorBuffer[8192] = { 0 };
+		DXGetErrorDescriptionW(removedReason, errorBuffer, _countof(errorBuffer));
+
+		auto removedString = DXGetErrorStringW(removedReason);
+
+		if (!removedString)
+		{
+			removedString = va(L"0x%08x", hr);
+		}
+
+		removedError = ToNarrow(fmt::sprintf(L"\nGetDeviceRemovedReason returned %s - %s", removedString, errorBuffer));
+	}
+
+	FatalError("DirectX encountered an unrecoverable error: %s - %s%s", ToNarrow(errorString), ToNarrow(errorBuffer), removedError);
 }
 
 static HRESULT D3DGetData(ID3D11DeviceContext* dc, ID3D11Asynchronous* async, void* data, UINT dataSize, UINT flags)

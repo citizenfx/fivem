@@ -1,31 +1,18 @@
 #include "StdInc.h"
 
-#include <Resource.h>
-#include <ResourceManager.h>
 #include <ConsoleHost.h>
-#include <ResourceScriptingComponent.h>
 
-#if __has_include(<ResourceGameLifetimeEvents.h>)
-#include <ResourceGameLifetimeEvents.h>
-#endif
+#include <CL2LaunchMode.h>
+#include <json.hpp>
 
 #include <CoreConsole.h>
 
 #include <imgui.h>
+#include <imgui_internal.h>
 
 #include <chrono>
 
-#if __has_include(<scrThread.h>)
-#include <scrThread.h>
-#include <scrEngine.h>
-#endif
-
-#ifdef GTA_FIVE
-#include <Streaming.h>
-#include <ScriptHandlerMgr.h>
-
-#include <nutsnbolts.h>
-#endif
+#include "ResourceMonitor.h"
 
 DLL_IMPORT ImFont* GetConsoleFontTiny();
 
@@ -35,59 +22,6 @@ inline std::chrono::microseconds usec()
 {
 	return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
 }
-
-template<int SampleCount>
-struct TickMetrics
-{
-	int curTickTime = 0;
-	std::chrono::microseconds tickTimes[SampleCount];
-
-	inline void Append(std::chrono::microseconds time)
-	{
-		tickTimes[curTickTime++] = time;
-
-		if (curTickTime >= _countof(tickTimes))
-		{
-			curTickTime = 0;
-		}
-	}
-
-	inline std::chrono::microseconds GetAverage() const
-	{
-		std::chrono::microseconds avgTickTime(0);
-
-		for (auto tickTime : tickTimes)
-		{
-			avgTickTime += tickTime;
-		}
-
-		avgTickTime /= std::size(tickTimes);
-
-		return avgTickTime;
-	}
-
-	inline void Reset()
-	{
-		for (auto& tt : tickTimes)
-		{
-			tt = std::chrono::microseconds{ 0 };
-		}
-	}
-};
-
-struct ResourceMetrics
-{
-	std::chrono::microseconds tickStart;
-	TickMetrics<64> ticks;
-
-	std::chrono::microseconds memoryLastFetched;
-
-	int64_t memorySize;
-
-#if __has_include(<scrThread.h>)
-	GtaThread* gtaThread;
-#endif
-};
 
 static ImVec4 GetColorForRange(float min, float max, float num)
 {
@@ -112,62 +46,33 @@ static ImVec4 GetColorForRange(float min, float max, float num)
 	}
 }
 
-static int64_t GetTotalBytes(const fwRefContainer<fx::Resource>& resource)
+// tuple slice from https://stackoverflow.com/a/40836163/10995747
+namespace detail
 {
-	int64_t totalBytes = 0;
-
-	auto scripting = resource->GetComponent<fx::ResourceScriptingComponent>();
-	scripting->ForAllRuntimes([&totalBytes](fx::OMPtr<IScriptRuntime> scRt)
-	{
-		fx::OMPtr<IScriptMemInfoRuntime> miRt;
-
-		if (FX_SUCCEEDED(scRt.As<IScriptMemInfoRuntime>(&miRt)))
-		{
-			if (FX_SUCCEEDED(miRt->RequestMemoryUsage()))
-			{
-				int64_t bytes = 0;
-
-				if (FX_SUCCEEDED(miRt->GetMemoryUsage(&bytes)))
-				{
-					totalBytes += bytes;
-				}
-			}
-		}
-	});
-
-	return totalBytes;
+template<std::size_t Ofst, class Tuple, std::size_t... I>
+constexpr auto slice_impl(Tuple&& t, std::index_sequence<I...>)
+{
+	return std::forward_as_tuple(
+	std::get<I + Ofst>(std::forward<Tuple>(t))...);
+}
 }
 
-#ifdef GTA_FIVE
-size_t CountDependencyMemory(streaming::Manager* streaming, uint32_t strIdx);
-
-static size_t GetStreamingUsageForThread(GtaThread* thread)
+template<std::size_t I1, std::size_t I2, class Cont>
+constexpr auto tuple_slice(Cont&& t)
 {
-	size_t memory = 0;
+	static_assert(I2 >= I1, "invalid slice");
+	static_assert(std::tuple_size<std::decay_t<Cont>>::value >= I2,
+	"slice index out of bounds");
 
-	if (thread)
-	{
-		if (thread->GetScriptHandler())
-		{	
-			thread->GetScriptHandler()->ForAllResources([&](rage::scriptResource* resource)
-			{
-				uint32_t strIdx = -1;
-				resource->GetStreamingIndex(&strIdx);
-
-				if (strIdx != -1)
-				{
-					memory += CountDependencyMemory(streaming::Manager::GetInstance(), strIdx);
-				}
-			});
-		}
-	}
-
-	return memory;
+	return detail::slice_impl<I1>(std::forward<Cont>(t),
+	std::make_index_sequence<I2 - I1>{});
 }
-#endif
+
 
 static InitFunction initFunction([]()
 {
+	static auto* resourceMonitor = fx::ResourceMonitor::GetCurrent();
+
 	static bool resourceTimeWarningShown;
 	static std::chrono::microseconds warningLastShown;
 	static std::string resourceTimeWarningText;
@@ -177,241 +82,33 @@ static InitFunction initFunction([]()
 
 	static ConVar<bool> taskMgrVar("resmon", ConVar_Archive, false, &taskMgrEnabled);
 
-	static tbb::concurrent_unordered_map<std::string, std::optional<ResourceMetrics>> metrics;
-	static TickMetrics<64> scriptFrameMetrics;
-	static TickMetrics<64> gameFrameMetrics;
-
-#ifdef GTA_FIVE
-	static auto frameBegin = usec();
-
-	OnBeginGameFrame.Connect([]()
+	fx::ResourceMonitor::OnWarning.Connect([](const std::string& warningText)
 	{
-		frameBegin = usec();
-	});
+		std::unique_lock<std::mutex> lock(mutex);
 
-	OnEndGameFrame.Connect([]()
-	{
-		auto now = usec();
-		auto frameTime = now - frameBegin;
-
-		gameFrameMetrics.Append(frameTime);
-	});
-
-	OnDeleteResourceThread.Connect([](rage::scrThread* thread)
-	{
-		for (auto& metric : metrics)
+		if (!resourceTimeWarningShown)
 		{
-			if (metric.second)
-			{
-				if (metric.second->gtaThread == thread)
-				{
-					metric.second->gtaThread = nullptr;
-				}
-			}
+			warningLastShown = usec();
 		}
-	});
-#endif
 
-	fx::Resource::OnInitializeInstance.Connect([](fx::Resource* resource)
-	{
-		resource->OnStart.Connect([resource]()
+		// warn again 10 minutes later
+		if ((usec() - warningLastShown) > 600s)
 		{
-			metrics[resource->GetName()] = ResourceMetrics{};
+			warningLastShown = usec();
+		}
 
-			metrics[resource->GetName()]->ticks.Reset();
-		});
-
-#if __has_include(<scrThread.h>)
-		resource->OnActivate.Connect([resource]()
-		{
-			metrics[resource->GetName()]->gtaThread = (GtaThread*)rage::scrEngine::GetActiveThread();
-		}, 9999);
-#endif
-
-		resource->OnTick.Connect([resource]()
-		{
-			metrics[resource->GetName()]->tickStart = usec();
-		}, -99999999);
-
-		resource->OnTick.Connect([resource]()
-		{
-			auto& metric = *metrics[resource->GetName()];
-			metric.ticks.Append(usec() - metric.tickStart);
-
-			if ((usec() - metric.memoryLastFetched) > (!taskMgrEnabled ? 20s : 500ms))
-			{
-				int64_t totalBytes = GetTotalBytes(resource);
-
-				metric.memorySize = totalBytes;
-				metric.memoryLastFetched = usec();
-			}
-		}, 99999999);
-
-		resource->OnStop.Connect([resource]()
-		{
-			metrics[resource->GetName()] = {};
-		});
-
-#if __has_include(<scrThread.h>) && __has_include(<ResourceGameLifeTimeEvents.h>)
-		resource->GetComponent<fx::ResourceGameLifetimeEvents>()->OnBeforeGameShutdown.Connect([resource]()
-		{
-			auto m = metrics[resource->GetName()];
-
-			if (m)
-			{
-				m->gtaThread = nullptr;
-			}
-		}, -50);
-
-		resource->GetComponent<fx::ResourceGameLifetimeEvents>()->OnGameDisconnect.Connect([resource]()
-		{
-			auto m = metrics[resource->GetName()];
-
-			if (m)
-			{
-				m->gtaThread = nullptr;
-			}
-		}, -50);
-#endif
+		resourceTimeWarningShown = true;
+		resourceTimeWarningText = warningText;
 	});
 
-	fx::ResourceManager::OnInitializeInstance.Connect([](fx::ResourceManager* manager)
+	fx::ResourceMonitor::OnWarningGone.Connect([]()
 	{
-		static std::chrono::microseconds scriptBeginTime;
-
-		manager->OnTick.Connect([]()
+		if (resourceTimeWarningShown && (usec() - warningLastShown) < 17s)
 		{
-			scriptBeginTime = usec();
-		}, INT32_MIN);
+			warningLastShown = usec() - 17s;
+		}
 
-		manager->OnTick.Connect([]()
-		{
-			auto scriptEndTime = usec() - scriptBeginTime;
-			scriptFrameMetrics.Append(scriptEndTime);
-		}, INT32_MAX);
-
-		manager->OnTick.Connect([]()
-		{
-			bool showWarning = false;
-			std::string warningText;
-
-			for (const auto& [ key, metricRef ] : metrics)
-			{
-				if (!metricRef)
-				{
-					continue;
-				}
-
-				auto& metric = *metricRef;
-				auto avgTickTime = metric.ticks.GetAverage();
-
-				if (avgTickTime > 6ms)
-				{
-					float fpsCount = (60 - (1000.f / (16.67f + (avgTickTime.count() / 1000.0))));
-
-					showWarning = true;
-					warningText += fmt::sprintf("%s is taking %.2f ms (or -%.1f FPS @ 60 Hz)\n", key, avgTickTime.count() / 1000.0, fpsCount);
-				}
-
-				if (metric.memorySize > (50 * 1024 * 1024))
-				{
-					showWarning = true;
-					warningText += fmt::sprintf("%s is using %.2f MiB of RAM\n", key, metric.memorySize / 1024.0 / 1024.0);
-				}
-			}
-
-#if 0
-			auto avgFrameTime = gameFrameMetrics.GetAverage();
-			auto avgScriptTime = scriptFrameMetrics.GetAverage();
-
-			double avgFrameMs = (avgFrameTime.count() / 1000.0);
-			double avgScriptMs = (avgScriptTime.count() / 1000.0);
-
-			if (avgFrameTime > 0us)
-			{
-				double avgFrameFraction = (avgScriptMs / avgFrameMs);
-
-				bool wouldBeOver60 = false;
-
-				// if <60 FPS (minus render frame queueing guess)
-				if (avgFrameMs >= 15.66)
-				{
-					// and without scripts it would be 60 FPS
-					if ((avgFrameMs - avgScriptMs) < 15.6666)
-					{
-						// use a 30% threshold in that case
-						wouldBeOver60 = (avgFrameFraction >= 0.3);
-					}
-				}
-
-				// 60%, when a frame takes more than 8.33ms (<120 FPS)
-				if ((avgFrameFraction >= 0.6 && avgFrameMs >= 8.33) || wouldBeOver60)
-				{
-					std::vector<std::tuple<uint64_t, std::string>> topEntries;
-
-					for (const auto& [key, metricRef] : metrics)
-					{
-						if (!metricRef)
-						{
-							continue;
-						}
-
-						auto& metric = *metricRef;
-						auto avgTickTime = metric.ticks.GetAverage();
-
-						topEntries.emplace_back(avgTickTime.count(), key);
-					}
-
-					std::sort(topEntries.begin(), topEntries.end());
-
-					std::string topList = "";
-					int c = 0;
-
-					for (auto it = topEntries.rbegin(); it != topEntries.rend(); it++)
-					{
-						if (c >= 3)
-						{
-							break;
-						}
-
-						topList += ((c != 0) ? " " : "") + std::get<1>(*it);
-						c++;
-					}
-
-					showWarning = true;
-					warningText += fmt::sprintf("Total script tick time of %.2fms is %.1f percent of total frame time (%.2fms)%s\nTop resources: [%s]\n", avgScriptMs, avgFrameFraction * 100.0, avgFrameMs, wouldBeOver60 ? "\nOptimizing slow scripts might bring you above 60 FPS. Open the Resource Monitor in F8 to begin." : "", topList);
-				}
-			}
-#endif
-
-			if (showWarning)
-			{
-				std::unique_lock<std::mutex> lock(mutex);
-				
-				if (!resourceTimeWarningShown)
-				{
-					warningLastShown = usec();
-				}
-				
-				// warn again 10 minutes later
-				if ((usec() - warningLastShown) > 600s)
-				{
-					warningLastShown = usec();
-				}
-
-				resourceTimeWarningShown = true;
-				resourceTimeWarningText = warningText;
-			}
-			else
-			{
-				if (resourceTimeWarningShown && (usec() - warningLastShown) < 17s)
-				{
-					warningLastShown = usec() - 17s;
-				}
-
-				resourceTimeWarningShown = false;
-			}
-		});
+		resourceTimeWarningShown = false;
 	});
 
 	ConHost::OnShouldDrawGui.Connect([](bool* should)
@@ -439,10 +136,42 @@ static InitFunction initFunction([]()
 				ImGui::Text(resourceTimeWarningText.c_str());
 				ImGui::Separator();
 				ImGui::Text("Please contact the server owner to resolve this issue.");
-				ImGui::End();
 			}
-
+			ImGui::End();
 			ImGui::PopFont();
+		}
+#endif
+
+#ifndef IS_FXSERVER
+		if (launch::IsSDKGuest())
+		{
+			const auto& resourceDatas = resourceMonitor->GetResourceDatas();
+
+			if (resourceDatas.size() >= 2)
+			{
+				static std::chrono::microseconds lastSendTime;
+				static std::chrono::milliseconds maxPause(333);
+
+				// only send data thrice a second
+				if (usec() - lastSendTime >= maxPause)
+				{
+					static constexpr uint32_t SEND_SDK_MESSAGE = HashString("SEND_SDK_MESSAGE");
+
+					std::vector<std::tuple<std::string, double, double, int64_t, int64_t>> resourceDatasClean;
+					for (const auto& data : resourceDatas)
+					{
+						resourceDatasClean.push_back(tuple_slice<0, std::tuple_size_v<decltype(resourceDatasClean)::value_type>>(data));
+					}
+
+					nlohmann::json resourceDatasJson;
+					resourceDatasJson["type"] = "fxdk:clientResourcesData";
+					resourceDatasJson["data"] = resourceDatasClean;
+
+					NativeInvoke::Invoke<SEND_SDK_MESSAGE, const char*>(resourceDatasJson.dump().c_str());
+
+					lastSendTime = usec();
+				}
+			}
 		}
 #endif
 
@@ -457,25 +186,17 @@ static InitFunction initFunction([]()
 				ImGui::TableSetupColumn("Streaming", ImGuiTableColumnFlags_PreferSortDescending);
 				ImGui::TableHeadersRow();
 
-				std::map<std::string, fwRefContainer<fx::Resource>> resourceList;
+				auto& resourceDatas = resourceMonitor->GetResourceDatas();
 
-				fx::ResourceManager::GetCurrent()->ForAllResources([&resourceList](fwRefContainer<fx::Resource> resource)
-				{
-					resourceList.insert({ resource->GetName(), resource });
-				});
-
-				if (resourceList.size() < 2)
+				if (resourceDatas.size() < 2)
 				{
 					ImGui::EndTable();
 					ImGui::End();
 					return;
 				}
 
-				auto avgScriptTime = scriptFrameMetrics.GetAverage();
-				double avgScriptMs = (avgScriptTime.count() / 1000.0);
-
-				auto avgFrameTime = gameFrameMetrics.GetAverage();
-				double avgFrameMs = (avgFrameTime.count() / 1000.0);
+				double avgFrameMs = resourceMonitor->GetAvgFrameMs();
+				double avgScriptMs = resourceMonitor->GetAvgScriptMs();
 
 				ImGui::TableNextRow();
 				ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImGui::GetColorU32(ImVec4(0.7f, 0.3f, 0.3f, 0.65f)));
@@ -495,47 +216,6 @@ static InitFunction initFunction([]()
 				else
 				{
 					ImGui::Text("%.1f%%", (avgScriptMs / avgFrameMs) * 100.0);
-				}
-
-				std::vector<std::tuple<std::string, double, double, int64_t, int64_t>> resourceDatas;
-
-				for (const auto& [ resourceName, resource ] : resourceList)
-				{
-					auto metric = metrics.find(resourceName);
-					double avgTickMs = -1.0;
-					double avgFrameFraction = -1.0f;
-					int64_t memorySize = -1;
-					int64_t streamingSize = -1;
-
-					if (metric != metrics.end() && metric->second)
-					{
-						const auto& [key, valueRef] = *metric;
-						auto value = *valueRef;
-
-						auto avgTickTime = value.ticks.GetAverage();
-						avgTickMs = (avgTickTime.count() / 1000.0);
-
-						if (avgScriptMs != 0.0f)
-						{
-							avgFrameFraction = (avgTickMs / avgScriptMs);
-						}
-
-						if (value.memorySize != 0)
-						{
-							memorySize = value.memorySize;
-						}
-
-#ifdef GTA_FIVE
-						auto streamingUsage = GetStreamingUsageForThread(value.gtaThread);
-
-						if (streamingUsage > 0)
-						{
-							streamingSize = streamingUsage;
-						}
-#endif
-
-						resourceDatas.emplace_back(resource->GetName(), avgTickMs, avgFrameFraction, memorySize, streamingSize);
-					}
 				}
 
 				{
@@ -584,12 +264,12 @@ static InitFunction initFunction([]()
 									return (sortSpec->SortDirection == ImGuiSortDirection_Ascending) ? true : false;
 							}
 
-							return (left < right);
+							return std::get<0>(left) < std::get<0>(right);
 						});
 					}
 				}
 
-				for (const auto& [resourceName, avgTickMs, avgFrameFraction, memorySize, streamingUsage] : resourceDatas)
+				for (const auto& [resourceName, avgTickMs, avgFrameFraction, memorySize, streamingUsage, recentTicks] : resourceDatas)
 				{
 					ImGui::TableNextRow();
 
@@ -600,7 +280,38 @@ static InitFunction initFunction([]()
 
 					if (avgTickMs >= 0.0)
 					{
+						using TTick = decltype(recentTicks.get().tickTimes);
+						static constexpr const size_t sampleCount = 2;
+
 						ImGui::TextColored(GetColorForRange(1.0f, 8.0f, avgTickMs), "%.2f ms", avgTickMs);
+						ImGui::SameLine();
+						ImGui::PlotLines(
+						"", [](void* data, int idx) {
+							auto dataRef = (const std::chrono::microseconds*)data;
+							float curSample = 0.0f;
+							for (int i = 0; i < sampleCount; i++)
+							{
+								curSample += static_cast<float>(
+									std::chrono::duration_cast<std::chrono::microseconds>(
+										dataRef[
+											((size_t(idx) * sampleCount) + i) % std::size(TTick{})
+										]
+									).count()
+								) / 1000.0f;
+							}
+
+							return curSample / float(sampleCount);
+						},
+						(void*)recentTicks.get().tickTimes,
+						std::size(TTick{}) / sampleCount,
+						recentTicks.get().curTickTime / sampleCount,
+						nullptr,
+						0.0f,
+						2.5f,
+						ImVec2(
+							100.0f,
+							ImGui::GetTextLineHeight()
+						));
 					}
 					else
 					{

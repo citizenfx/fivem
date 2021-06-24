@@ -36,6 +36,9 @@ import { bindTask } from './task/task-bindings';
 import { bindOutput } from './output/output-bindings';
 import { bindGame } from './game/game-bindings';
 import { bindGithub } from './github/github-bindings';
+import { bindGit } from './git/git-bindings';
+import { bindWorldEditor } from './world-editor/world-editor-bindings';
+import { bindSystemResources } from './system-resources/system-resources-bindings';
 
 const appContainer = new Container();
 
@@ -60,6 +63,9 @@ bindUpdater(appContainer);
 bindTheia(appContainer);
 bindProject(appContainer);
 bindGithub(appContainer);
+bindGit(appContainer);
+bindWorldEditor(appContainer);
+bindSystemResources(appContainer);
 
 
 appContainer.get(AppService).startContributions().catch((e) => {

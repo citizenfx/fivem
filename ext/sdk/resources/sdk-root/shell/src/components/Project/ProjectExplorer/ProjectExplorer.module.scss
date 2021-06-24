@@ -31,4 +31,80 @@
       box-shadow: 0 0 0 2px $acColor inset;
     }
   }
+
+  .empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    padding: $q*20 $q*10 $q*6 $q*10;
+
+    @include fontSecondary;
+
+    text-align: center;
+    font-size: $fs2;
+    color: rgba($fgColor, .75);
+
+    user-select: none;
+
+    div {
+      line-height: 1.2;
+    }
+
+    svg {
+      font-size: 10vh;
+
+      opacity: .25;
+
+      @keyframes shakey {
+        0% {
+          transform: translateX(20px);
+        }
+        50% {
+          transform: translateX(-20px);
+        }
+        100% {
+          transform: translateX(20px);
+        }
+      }
+
+      animation: shakey 5s ease-in-out infinite;
+    }
+  }
+
+  .quick-access {
+    display: flex;
+    // flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    gap: $q*2;
+
+    margin-top: $q*2;
+
+    button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      gap: $q*2;
+
+      padding: $q*2 $q*3;
+
+      border: none;
+
+      color: rgba($fgColor, .75);
+      background-color: rgba($fgColor, .2);
+
+      cursor: pointer;
+
+      @include interactiveTransition;
+
+      &:hover {
+        color: $fgColor;
+        background-color: $acColor;
+      }
+    }
+  }
 }

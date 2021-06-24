@@ -12,7 +12,8 @@
 		"gta:game",
 		"gta:mission-cleanup",
 		"gta:streaming",
-		"citizen:level-loader"
+		"citizen:level-loader",
+		"gta:net"
 	],
 	"provides": []
 }

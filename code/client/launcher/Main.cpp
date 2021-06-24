@@ -91,6 +91,7 @@ HANDLE g_uiDoneEvent;
 HANDLE g_uiExitEvent;
 
 bool IsUnsafeGraphicsLibrary();
+void MigrateCacheFromat202105();
 
 int RealMain()
 {
@@ -301,6 +302,12 @@ int RealMain()
 	// add DLL directories post-installer (in case we moved into a Product.app directory)
 	addDllDirs();
 
+	// we have to migrate *before* launching the crash handler as that will otherwise create data/cache/
+	if (initState->IsMasterProcess())
+	{
+		MigrateCacheFromat202105();
+	}
+
 	if (InitializeExceptionHandler())
 	{
 		return 0;
@@ -357,7 +364,8 @@ int RealMain()
 		}
 
 		// delete crashometry
-		_wunlink(MakeRelativeCitPath(L"cache\\crashometry").c_str());
+		_wunlink(MakeRelativeCitPath(L"data\\cache\\crashometry").c_str());
+		_wunlink(MakeRelativeCitPath(L"data\\cache\\error_out").c_str());
 
 		if (GetFileAttributesW(MakeRelativeCitPath(L"permalauncher").c_str()) == INVALID_FILE_ATTRIBUTES)
 		{
@@ -576,11 +584,6 @@ int RealMain()
 		SetCurrentDirectory(MakeRelativeGamePath(L"").c_str());
 	}
 
-#ifdef GTA_NY
-	// initialize TLS variable so we get a TLS directory
-	InitializeDummies();
-#endif
-
 	// check stuff regarding the game executable
 	std::wstring gameExecutable = MakeRelativeGamePath(GAME_EXECUTABLE);
 
@@ -589,8 +592,10 @@ int RealMain()
 	{
 		return 0;
 	}
+#endif
 
-#if defined(LAUNCHER_PERSONALITY_GAME) || defined(LAUNCHER_PERSONALITY_MAIN)
+#if defined(GTA_FIVE) || defined(IS_RDR3) || defined(GTA_NY)
+#if (defined(LAUNCHER_PERSONALITY_GAME) || defined(LAUNCHER_PERSONALITY_MAIN))
 	// ensure game cache is up-to-date, and obtain redirection metadata from the game cache
 	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
 	auto redirectionData = UpdateGameCache();
@@ -602,8 +607,10 @@ int RealMain()
 
 	g_redirectionData = redirectionData;
 
+#if !defined(IS_RDR3)
 #ifdef GTA_FIVE
 	gameExecutable = converter.from_bytes(redirectionData["GTA5.exe"]);
+#endif
 
 	{
 		DWORD versionInfoSize = GetFileVersionInfoSize(gameExecutable.c_str(), nullptr);
@@ -621,6 +628,7 @@ int RealMain()
 
 				VS_FIXEDFILEINFO* fixedInfo = reinterpret_cast<VS_FIXEDFILEINFO*>(fixedInfoBuffer);
 
+#if defined(GTA_FIVE)
 				auto expectedVersion = 1604;
 
 				if (Is372())
@@ -637,13 +645,19 @@ int RealMain()
 				}
 				
 				if ((fixedInfo->dwFileVersionLS >> 16) != expectedVersion)
+#else
+				auto expectedVersion = 43;
+
+				if ((fixedInfo->dwFileVersionLS & 0xFFFF) != expectedVersion)
+#endif
 				{
-					MessageBox(nullptr, va(L"The found GTA executable (%s) has version %d.%d.%d.%d, but only 1.0.372.2/1.0.1604.0/1.0.2060.0 is currently supported. Please obtain this version, and try again.",
+					MessageBox(nullptr, va(L"The found game executable (%s) has version %d.%d.%d.%d, but we're trying to run with 1.0.%d.0. Please obtain this version, and try again.",
 										   gameExecutable.c_str(),
 										   (fixedInfo->dwFileVersionMS >> 16),
 										   (fixedInfo->dwFileVersionMS & 0xFFFF),
 										   (fixedInfo->dwFileVersionLS >> 16),
-										   (fixedInfo->dwFileVersionLS & 0xFFFF)), PRODUCT_NAME, MB_OK | MB_ICONERROR);
+										   (fixedInfo->dwFileVersionLS & 0xFFFF),
+										   xbr::GetGameBuild()), PRODUCT_NAME, MB_OK | MB_ICONERROR);
 
 					return 0;
 				}

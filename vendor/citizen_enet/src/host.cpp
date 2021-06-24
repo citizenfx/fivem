@@ -114,6 +114,7 @@ enet_host_create (const ENetAddress * address, size_t peerCount, size_t channelL
     host -> compressor.destroy = NULL;
 
     host -> intercept = NULL;
+    host -> peerTimeoutCb = NULL;
 
     enet_list_clear (& host -> dispatchQueue);
 

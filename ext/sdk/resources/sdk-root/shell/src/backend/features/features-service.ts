@@ -10,6 +10,21 @@ import { LogService } from "backend/logger/log-service";
 import { featuresStatuses } from "shared/api.statuses";
 import { Feature, FeaturesMap } from "shared/api.types";
 import { concurrently } from 'utils/concurrently';
+import { ConfigService } from 'backend/config-service';
+
+interface LoadableFeature {
+  key: string,
+  feature: Feature,
+  enabledByDefault: boolean,
+}
+
+const loadableFeatures: LoadableFeature[] = [
+  {
+    key: 'world-editor',
+    feature: Feature.worldEditor,
+    enabledByDefault: false,
+  }
+];
 
 @injectable()
 export class FeaturesService implements AppContribution {
@@ -26,6 +41,9 @@ export class FeaturesService implements AppContribution {
 
   @inject(LogService)
   protected readonly logService: LogService;
+
+  @inject(ConfigService)
+  protected readonly configService: ConfigService;
 
   boot() {
     this.probeFeatures();
@@ -70,8 +88,8 @@ export class FeaturesService implements AppContribution {
 
     await concurrently(
       this.probeWindowsDevMode(),
-      this.probeSystemGit(),
       this.probeDotnet(),
+      this.loadFeatures(),
     );
   }
 
@@ -107,20 +125,6 @@ export class FeaturesService implements AppContribution {
     ]);
   }
 
-  protected async probeSystemGit() {
-    let systemGitClientAvailable: boolean;
-
-    try {
-      const response = cp.execSync('git --version').toString();
-
-      systemGitClientAvailable = response.startsWith('git version');
-    } catch (e) {
-      systemGitClientAvailable = false;
-    }
-
-    this.resolveFeature(Feature.systemGitClientAvailable, systemGitClientAvailable);
-  }
-
   protected async probeDotnet() {
     let dotnetAvailable = false;
 
@@ -133,5 +137,29 @@ export class FeaturesService implements AppContribution {
     }
 
     this.resolveFeature(Feature.dotnetAvailable, dotnetAvailable);
+  }
+
+  protected async loadFeatures() {
+    let enabledFeatures: string[] = [];
+
+    if (await this.fsService.statSafe(this.configService.featuresFilePath)) {
+      try {
+        enabledFeatures = await this.fsService.readFileJson(this.configService.featuresFilePath);
+
+        if (!Array.isArray(enabledFeatures)) {
+          throw new Error('Features file must be a valid JSON file with array in it');
+        }
+      } catch (e) {
+        enabledFeatures = [];
+
+        this.logService.error(new Error('Failed to read features file'), { originalError: e });
+      }
+    }
+
+    for (const { key, feature, enabledByDefault } of loadableFeatures) {
+      const enabled = enabledFeatures.includes(key) || enabledByDefault;
+
+      this.resolveFeature(feature, enabled);
+    }
   }
 }

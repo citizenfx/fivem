@@ -6,7 +6,6 @@
  */
 
 #include "StdInc.h"
-//#include "GameInit.h"
 
 #if !defined(COMPILING_LAUNCH) && !defined(COMPILING_CONSOLE) && !defined(IS_FXSERVER)
 #include <ICoreGameInit.h>
@@ -15,6 +14,7 @@
 #include <fnv.h>
 
 #include <json.hpp>
+#include <CrossBuildRuntime.h>
 
 using json = nlohmann::json;
 
@@ -65,15 +65,7 @@ static bool IsUserConnected()
 static int SysError(const char* buffer)
 {
 #ifdef WIN32
-	HWND wnd = FindWindowW(
-#ifdef GTA_FIVE
-		L"grcWindow"
-#elif defined(IS_RDR3)
-		L"sgaWindow"
-#else
-		L"UNKNOWN_WINDOW"
-#endif
-	, nullptr);
+	HWND wnd = FindWindowW(xbr::GetGameWndClass(), nullptr);
 
 #if !defined(COMPILING_LAUNCH) && !defined(COMPILING_CONSOLE)
 	if (CoreIsDebuggerPresent())
@@ -91,7 +83,7 @@ static int SysError(const char* buffer)
 	o["line"] = std::get<1>(g_thisError);
 	o["sigHash"] = std::get<2>(g_thisError);
 
-	FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\error-pickup").c_str(), L"wb");
+	FILE* f = _wfopen(MakeRelativeCitPath(L"data\\cache\\error-pickup").c_str(), L"wb");
 
 	if (f)
 	{
@@ -297,7 +289,7 @@ int FatalErrorNoExceptRealV(const char* file, int line, uint32_t stringHash, con
 	o["line"] = line;
 	o["sigHash"] = stringHash;
 
-	FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\error-pickup").c_str(), L"wb");
+	FILE* f = _wfopen(MakeRelativeCitPath(L"data\\cache\\error-pickup").c_str(), L"wb");
 
 	if (f)
 	{

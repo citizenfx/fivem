@@ -1,0 +1,9 @@
+{
+	"name": "rage:nutsnbolts:ny",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+		"vendor:minhook"
+	],
+	"provides": []
+}

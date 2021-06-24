@@ -1,21 +1,28 @@
 import React from 'react';
-import { ProjectContext } from '../contexts/ProjectContext';
+import { observer } from 'mobx-react-lite';
+import { ProjectState } from 'store/ProjectState';
+import { WorldEditorState } from 'personalities/WorldEditorPersonality/WorldEditorState';
 
 const titleBase = 'Cfx.re Development Kit (FiveM)';
 
-export const TitleManager = React.memo(() => {
-  const { project } = React.useContext(ProjectContext);
+export const TitleManager = observer(() => {
   const titleRef = React.useRef<HTMLTitleElement | null>();
 
   React.useEffect(() => {
     if (titleRef.current) {
-      const title = project
-        ? `${project.manifest.name} — ${titleBase}`
-        : titleBase;
+      const parts = [titleBase];
 
-      titleRef.current.innerText = title;
+      if (ProjectState.hasProject) {
+        parts.push(ProjectState.projectName);
+      }
+
+      if (WorldEditorState.mapName) {
+        parts.push(WorldEditorState.mapName);
+      }
+
+      titleRef.current.innerText = parts.reverse().join(' — ');
     }
-  }, [project]);
+  }, [ProjectState.hasProject, ProjectState.projectName, WorldEditorState.mapName]);
 
   React.useLayoutEffect(() => {
     titleRef.current = document.querySelector('title');

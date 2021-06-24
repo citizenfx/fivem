@@ -145,6 +145,11 @@ namespace fx
 			OnAssignConnectionToken();
 		}
 
+		inline std::chrono::milliseconds GetFirstSeen()
+		{
+			return m_firstSeen;
+		}
+
 		inline std::chrono::milliseconds GetLastSeen()
 		{
 			return m_lastSeen;
@@ -237,6 +242,28 @@ namespace fx
 			m_dropping = true;
 		}
 
+		inline auto GetNetworkMetricsSendCallback()
+		{
+			return m_clientNetworkMetricsSendCallback;
+		}
+
+		inline void SetNetworkMetricsSendCallback(void (*callback)(Client *thisptr, int channel, const net::Buffer& buffer, NetPacketType flags))
+		{
+			m_clientNetworkMetricsSendCallback = callback;
+		}
+
+		inline auto GetNetworkMetricsRecvCallback()
+		{
+			return m_clientNetworkMetricsRecvCallback;
+		}
+
+		inline void SetNetworkMetricsRecvCallback(void(*callback)(Client *thisptr, uint32_t packetId, net::Buffer& packet))
+		{
+			m_clientNetworkMetricsRecvCallback = callback;
+		}
+
+		int GetPing();
+
 		const std::any& GetData(const std::string& key);
 
 		void SetData(const std::string& key, const std::any& data);
@@ -272,7 +299,10 @@ namespace fx
 		// the client's UDP peer address
 		net::PeerAddress m_peerAddress;
 
-		// when the client was last seen
+		// when client was first seen (time since Epoch)
+		std::chrono::milliseconds m_firstSeen;
+
+		// when the client was last seen (time since Epoch)
 		std::chrono::milliseconds m_lastSeen;
 
 		// the client's primary GUID
@@ -319,9 +349,13 @@ namespace fx
 
 		// whether the client is currently being dropped
 		volatile bool m_dropping;
+
+		void (*m_clientNetworkMetricsSendCallback)(Client *thisptr, int channel, const net::Buffer& buffer, NetPacketType flags);
+
+		void (*m_clientNetworkMetricsRecvCallback)(Client *thisptr, uint32_t packetId, net::Buffer& packet);
 	};
 
-	inline object_pool<Client, 512 * 1024> clientPool;
+	extern SERVER_IMPL_EXPORT object_pool<Client, 512 * 1024> clientPool;
 
 	using ClientSharedPtr = shared_reference<Client, &clientPool>;
 	using ClientWeakPtr = weak_reference<ClientSharedPtr>;

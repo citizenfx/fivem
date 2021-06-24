@@ -1,4 +1,6 @@
 #include "StdInc.h"
+
+#include <jitasm.h>
 #include "Hooking.h"
 
 #include "Streaming.h"
@@ -305,7 +307,9 @@ static int HandleObjectLoadWrap(streaming::Manager* streaming, int a2, int a3, i
 
 struct datResourceChunk
 {
-
+	void* rscPtr;
+	void* memPtr;
+	size_t size;
 };
 
 #define VFS_RCD_REQUEST_HANDLE 0x30003
@@ -397,6 +401,14 @@ static void* pgStreamerRead(uint32_t handle, datResourceChunk* outChunks, int nu
 
 		if (isCache)
 		{
+			for (int i = 0; i < numChunks; i++)
+			{
+				if (outChunks[i].size > 100000000)
+				{
+					FatalError("ERR_STR_FAILURE_3: page %d in paged resource %s is over 100 MB in size (%.2f MB), which is unsupported by RAGE.", i, fileName, outChunks[i].size / 1000.0 / 1000.0);
+				}
+			}
+
 			auto device = vfs::GetDevice(fileName);
 
 			uint64_t ptr;

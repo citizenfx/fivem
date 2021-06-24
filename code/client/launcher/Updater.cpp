@@ -13,6 +13,7 @@
 
 #include <stdint.h>
 
+#include <optional>
 #include <list>
 #include <unordered_set>
 #include <string>
@@ -20,17 +21,30 @@
 #include <sstream>
 
 #include <openssl/sha.h>
+#include <boost/algorithm/string.hpp>
 
 struct cache_t
 {
 	std::string name;
 	int version;
+	std::string manifest;
+	std::string manifestUrl;
 };
+
+std::string GetObjectURL(std::string_view objectHash, std::string_view suffix = "")
+{
+	auto url = fmt::sprintf("%s/%s/%s/%s%s", CONTENT_URL, objectHash.substr(0, 2), objectHash.substr(2, 2), objectHash, suffix);
+	boost::algorithm::to_lower(url);
+
+	return url;
+}
+
+using cache_ptr = std::shared_ptr<cache_t>;
 
 struct cacheFile_t
 {
 private:
-	std::list<cache_t> caches;
+	std::list<cache_ptr> caches;
 
 public:
 	void Parse(const char* str)
@@ -48,58 +62,81 @@ public:
 				cache_t cache;
 				cache.name = cacheElement->Attribute("ID");
 				cache.version = atoi(cacheElement->Attribute("Version"));
+				
+				if (auto child = cacheElement->FirstChild(); child)
+				{
+					if (auto text = child->ToText(); text)
+					{
+						cache.manifest = text->Value();
+					}
+				}
 
-				caches.push_back(cache);
+				caches.push_back(std::make_shared<cache_t>(cache));
 
 				cacheElement = cacheElement->NextSiblingElement("Cache");
 			}
 		}
 	}
 
-	std::list<cache_t>& GetCaches()
+	std::list<cache_ptr>& GetCaches()
 	{
 		return caches;
 	}
 
-	cache_t GetCache(std::string name)
+	cache_ptr GetCache(std::string name)
 	{
-		for (cache_t& cache : caches)
+		for (cache_ptr& cache : caches)
 		{
-			if (cache.name == name)
+			if (cache->name == name)
 			{
 				return cache;
 			}
 		}
 
-		return cache_t();
+		return std::make_shared<cache_t>();
 	}
 };
 
 struct manifestFile_t
 {
+	using TTuple = std::tuple<std::string, size_t, std::array<uint8_t, 20>>;
+
 	std::string name;
-	size_t downloadSize;
-	bool compressed;
-	uint8_t hash[20];
+	size_t downloadSize = 0;
+	size_t localSize = 0;
+	bool compressed = false;
+	bool hash256Valid = false;
+	std::array<uint8_t, 20> hash = { 0 };
+	std::array<uint8_t, 32> hash256 = { 0 };
+
+	TTuple ToTuple() const
+	{
+		return { name, localSize, hash };
+	}
 };
 
 struct manifest_t
 {
+	using TSet = std::set<typename manifestFile_t::TTuple>;
+
 private:
 	std::list<manifestFile_t> files;
-	cache_t& parentCache;
+	cache_ptr parentCache;
 
 public:
-	manifest_t(cache_t& parent)
+	manifest_t(cache_ptr parent)
 		: parentCache(parent)
 	{
 
 	}
 
-	void Parse(const char* str)
+	bool Parse(const char* str)
 	{
 		tinyxml2::XMLDocument doc;
-		doc.Parse(str);
+		if (doc.Parse(str) != tinyxml2::XML_SUCCESS)
+		{
+			return false;
+		}
 
 		auto rootElement = doc.RootElement();
 		auto fileElement = rootElement->FirstChildElement("ContentFile");
@@ -115,13 +152,35 @@ public:
 
 			file.compressed = (size != compressedSize);
 			file.downloadSize = compressedSize;
+			file.localSize = size;
 
-			ParseHash(fileElement->Attribute("SHA1Hash"), file.hash);
+			ParseHash(fileElement->Attribute("SHA1Hash"), file.hash.data());
+
+			if (fileElement->Attribute("SHA256Hash"))
+			{
+				ParseHash(fileElement->Attribute("SHA256Hash"), file.hash256.data());
+				file.hash256Valid = true;
+			}
 
 			files.push_back(file);
 
 			fileElement = fileElement->NextSiblingElement("ContentFile");
 		}
+
+		return true;
+	}
+
+	const manifestFile_t* GetFile(std::string_view name) const
+	{
+		for (const auto& file : files)
+		{
+			if (file.name == name)
+			{
+				return &file;
+			}
+		}
+
+		return nullptr;
 	}
 
 	std::list<manifestFile_t>& GetFiles()
@@ -129,9 +188,21 @@ public:
 		return files;
 	}
 
-	cache_t& GetParentCache()
+	cache_ptr GetParentCache()
 	{
 		return parentCache;
+	}
+
+	TSet ToSet() const
+	{
+		TSet rv;
+
+		for (const auto& file : files)
+		{
+			rv.insert(file.ToTuple());
+		}
+
+		return rv;
 	}
 
 private:
@@ -163,14 +234,15 @@ bool Updater_RunUpdate(std::initializer_list<std::string> wantedCachesList)
 	// fetch remote caches
 	cacheFile_t cacheFile;
 
-	static char cachesFile[64000];
+	static std::vector<char> cachesFile(131072);
 
 	bool success = false;
-	for (auto& caches : { "caches.xml", "caches_sdk.xml" })
+	for (auto& cacheName : wantedCaches)
 	{
-		memset(cachesFile, 0, sizeof(cachesFile));
+		char bootstrapVersion[256];
 
-		int result = DL_RequestURL(va(CONTENT_URL "/%s/content/%s?timeStamp=%lld", GetUpdateChannel(), caches, _time64(NULL)), cachesFile, sizeof(cachesFile));
+		auto contentHeaders = std::make_shared<HttpHeaderList>();
+		int result = DL_RequestURL(va(CONTENT_URL "/heads/%s/%s?time=%lld", cacheName, GetUpdateChannel(), _time64(NULL)), bootstrapVersion, sizeof(bootstrapVersion), contentHeaders);
 
 		if (result != 0 && !success)
 		{
@@ -180,8 +252,21 @@ bool Updater_RunUpdate(std::initializer_list<std::string> wantedCachesList)
 
 		success = true;
 
+		auto v = contentHeaders->find("x-amz-meta-branch-version");
+		auto m = contentHeaders->find("x-amz-meta-branch-manifest");
+
+		if (v == contentHeaders->end() || m == contentHeaders->end())
+		{
+			continue;
+		}
+
 		// get the caches we want to update
-		cacheFile.Parse(cachesFile);
+		cache_ptr cache = std::make_shared<cache_t>();
+		cache->name = cacheName;
+		cache->version = std::stoi(v->second);
+		cache->manifestUrl = GetObjectURL(m->second);
+
+		cacheFile.GetCaches().push_back(cache);
 	}
 
 	// error out if the remote caches file is empty
@@ -191,39 +276,80 @@ bool Updater_RunUpdate(std::initializer_list<std::string> wantedCachesList)
 		return false;
 	}
 
+	// ---------------------
+	// read local cache file
+	// ---------------------
 	cacheFile_t localCacheFile;
-	std::list<cache_t> needsUpdate;
+	std::list<std::tuple<std::optional<cache_ptr>, cache_ptr>> needsUpdate;
 
-	FILE* cachesReader = _wfopen(MakeRelativeCitPath(L"caches.xml").c_str(), L"r");
+	// workaround: if the user removed citizen/, make sure we re-verify, as that's just silly
+	bool shouldVerify = false;
 
+	if (GetFileAttributesW(MakeRelativeCitPath(L"citizen/").c_str()) == INVALID_FILE_ATTRIBUTES)
+	{
+		shouldVerify = true;
+	}
+
+	FILE* cachesReader = NULL;
+	
+	if (!shouldVerify)
+	{
+		cachesReader = _wfopen(MakeRelativeCitPath(L"content_index.xml").c_str(), L"rb");
+
+		if (!cachesReader)
+		{
+			// old?
+			cachesReader = _wfopen(MakeRelativeCitPath(L"caches.xml").c_str(), L"rb");
+		}
+	}
+
+	// ------------------------------------
+	// if local cache file does *not* exist
+	// ------------------------------------
 	if (!cachesReader)
 	{
-		for (cache_t& cache : cacheFile.GetCaches())
+		for (const cache_ptr& cache : cacheFile.GetCaches())
 		{
-			if (wantedCaches.find(cache.name) != wantedCaches.end())
+			if (wantedCaches.find(cache->name) != wantedCaches.end())
 			{
-				needsUpdate.push_back(cache);
+				needsUpdate.emplace_back(std::optional<cache_ptr>{}, cache);
 			}
 		}
 	}
 	else
 	{
-		int length = fread(cachesFile, 1, sizeof(cachesFile), cachesReader);
+		// --------------------------------
+		// if local cache file *does* exist
+		// --------------------------------
+		fseek(cachesReader, 0, SEEK_END);
+		size_t len = ftell(cachesReader);
+		fseek(cachesReader, 0, SEEK_SET);
+
+		if (cachesFile.size() < (len + 1))
+		{
+			cachesFile.resize(len + 1);
+		}
+
+		int length = fread(cachesFile.data(), 1, cachesFile.size(), cachesReader);
 		fclose(cachesReader);
 
 		cachesFile[length] = '\0';
 
-		localCacheFile.Parse(cachesFile);
+		localCacheFile.Parse(cachesFile.data());
 
-		for (cache_t& cache : cacheFile.GetCaches())
+		for (cache_ptr& cache : cacheFile.GetCaches())
 		{
-			if (wantedCaches.find(cache.name) != wantedCaches.end())
+			if (wantedCaches.find(cache->name) != wantedCaches.end())
 			{
-				cache_t& localCache = localCacheFile.GetCache(cache.name);
+				cache_ptr& localCache = localCacheFile.GetCache(cache->name);
 
-				if (localCache.version != cache.version)
+				if (localCache->version != cache->version)
 				{
-					needsUpdate.push_back(cache);
+					needsUpdate.emplace_back(localCache, cache);
+				}
+				else
+				{
+					wantedCaches.erase(cache->name);
 				}
 			}
 		}
@@ -235,19 +361,61 @@ bool Updater_RunUpdate(std::initializer_list<std::string> wantedCachesList)
 		return true;
 	}
 
+	// -------------------------------------------
 	// fetch cache manifests and enqueue downloads
-	std::list<std::pair<cache_t, manifestFile_t>> queuedFiles;
+	// -------------------------------------------
+	std::list<std::pair<cache_ptr, manifestFile_t>> queuedFiles;
+	std::list<std::tuple<std::string, size_t>> deleteFiles;
+	std::set<std::string> queuedNames;
 
-	for (cache_t& cache : needsUpdate)
+	for (auto& [localCache, cache] : needsUpdate)
 	{
-		int result = DL_RequestURL(va(CONTENT_URL "/%s/content/%s/info.xml?version=%d&timeStamp=%lld", GetUpdateChannel(), cache.name.c_str(), cache.version, _time64(NULL)), cachesFile, sizeof(cachesFile));
+		int result = DL_RequestURL(cache->manifestUrl.c_str(), cachesFile.data(), cachesFile.size());
 
 		manifest_t manifest(cache);
-		manifest.Parse(cachesFile);
+		manifest.Parse(cachesFile.data());
+		cache->manifest = cachesFile.data();
 
-		for (manifestFile_t& file : manifest.GetFiles())
+		// check if we have a valid manifest
+		bool localDiff = false;
+		manifest_t localManifest(cache);
+
+		if (localCache && !(*localCache)->manifest.empty())
 		{
-			queuedFiles.push_back(std::make_pair(cache, file));
+			localDiff = localManifest.Parse((*localCache)->manifest.c_str());
+		}
+
+		// if we *don't* want to diff
+		if (!localDiff)
+		{
+			for (manifestFile_t& file : manifest.GetFiles())
+			{
+				queuedFiles.emplace_back(cache, file);
+			}
+		}
+		else
+		{
+			// or if we do...
+			auto localData = localManifest.ToSet();
+			auto remoteData = manifest.ToSet();
+			manifest_t::TSet diffData;
+
+			std::set_symmetric_difference(remoteData.begin(), remoteData.end(), localData.begin(), localData.end(), std::inserter(diffData, diffData.begin()));
+
+			for (const auto& [name, size, _] : diffData)
+			{
+				auto file = manifest.GetFile(name);
+
+				if (!file)
+				{
+					deleteFiles.emplace_back(name, size);
+				}
+				else if (queuedNames.find(name) == queuedNames.end())
+				{
+					queuedFiles.emplace_back(cache, *file);
+					queuedNames.insert(name);
+				}
+			}
 		}
 	}
 
@@ -263,7 +431,11 @@ bool Updater_RunUpdate(std::initializer_list<std::string> wantedCachesList)
 		struct _stat64 stat;
 		if (_wstat64(MakeRelativeCitPath(converter.from_bytes(filePair.second.name)).c_str(), &stat) >= 0)
 		{
-			fileTotal += stat.st_size;
+			// if the size is wrong.. why verify? -> we don't count this file so don't add it to verifying
+			if (stat.st_size == filePair.second.localSize)
+			{
+				fileTotal += stat.st_size;
+			}
 		}
 	}
 
@@ -271,12 +443,12 @@ bool Updater_RunUpdate(std::initializer_list<std::string> wantedCachesList)
 
 	for (auto& filePair : queuedFiles)
 	{
-		cache_t& cache = filePair.first;
+		cache_ptr cache = filePair.first;
 		manifestFile_t& file = filePair.second;
 
 		// check file hash first
 		std::array<uint8_t, 20> hashEntry;
-		memcpy(hashEntry.data(), file.hash, hashEntry.size());
+		memcpy(hashEntry.data(), file.hash.data(), hashEntry.size());
 
 		std::stringstream formattedHash;
 		for (uint8_t b : hashEntry)
@@ -284,15 +456,20 @@ bool Updater_RunUpdate(std::initializer_list<std::string> wantedCachesList)
 			formattedHash << fmt::sprintf("%02X", (uint32_t)b);
 		}
 
-		bool fileOutdated = CheckFileOutdatedWithUI(MakeRelativeCitPath(converter.from_bytes(file.name)).c_str(), { hashEntry }, &fileStart, fileTotal);
+		bool fileOutdated = CheckFileOutdatedWithUI(MakeRelativeCitPath(converter.from_bytes(file.name)).c_str(), { hashEntry }, &fileStart, fileTotal, nullptr, filePair.second.localSize);
 
 		if (fileOutdated)
 		{
-			const char* url = va(CONTENT_URL "/%s/content/%s/%s%s?hash=%s", GetUpdateChannel(), cache.name.c_str(), file.name.c_str(), (file.compressed) ? ".xz" : "", formattedHash.str());
+			std::stringstream hashString;
+			for (uint8_t b : file.hash256)
+			{
+				hashString << fmt::sprintf("%02x", b);
+			}
 
+			std::string url = GetObjectURL(hashString.str(), (file.compressed) ? ".xz" : "");
 			std::string outPath = converter.to_bytes(MakeRelativeCitPath(converter.from_bytes(file.name)));
 
-			CL_QueueDownload(url, outPath.c_str(), file.downloadSize, file.compressed);
+			CL_QueueDownload(url.c_str(), outPath.c_str(), file.downloadSize, file.compressed);
 		}
 	}
 
@@ -300,41 +477,73 @@ bool Updater_RunUpdate(std::initializer_list<std::string> wantedCachesList)
 
 	bool retval = DL_RunLoop();
 
+	// delete obsolete files
+	// *after* downloading, so if downloading fails we won't break
+	for (const auto& [name, size] : deleteFiles)
+	{
+		struct _stat64 stat;
+		auto fn = MakeRelativeCitPath(converter.from_bytes(name));
+		if (_wstat64(fn.c_str(), &stat) >= 0)
+		{
+			if (stat.st_size == size)
+			{
+				// delete the file
+				DeleteFileW(fn.c_str());
+			}
+		}
+	}
+
 	UI_DoDestruction();
 
 	if (retval)
 	{
-		// there used to be an XML writing library here to write the file properly
-		// but people trusting VirusTotal caused me to have to remove it
-		// (both TinyXML1/2/3 and RapidXML cause 'Gen:Variant.Kazy.454890' detections
-		//  by around 7 different antivirus applications all using the same codebase,
-		//  and therefore writing XML like this is the only way antivirus scampanies
-		//  allow me to write XML from a 'suspicious application' like CitiLaunch...)
-		//
-		// TinyXML2 (3.0) does not seem to cause this detection, but only if its
-		// XMLWriter class isn't used - TinyXML1 and boost::property_tree w/ RapidXML
-		// both still cause this detection.
-
-		FILE* outCachesFile = _wfopen(MakeRelativeCitPath(L"caches.xml").c_str(), L"w");
+		tinyxml2::XMLDocument cachesDoc;
+		auto root = cachesDoc.NewElement("Caches");
 		
-		if (outCachesFile)
+		for (const cache_ptr& cache : cacheFile.GetCaches())
 		{
-			fprintf(outCachesFile, "<Caches>\n");
+			auto cacheElement = cachesDoc.NewElement("Cache");
+			cacheElement->SetAttribute("ID", cache->name.c_str());
+			tinyxml2::XMLText* text = nullptr;
 			
-			for (cache_t& cache : cacheFile.GetCaches())
+			if (wantedCaches.find(cache->name) != wantedCaches.end())
 			{
-				if (wantedCaches.find(cache.name) != wantedCaches.end())
+				cacheElement->SetAttribute("Version", cache->version);
+
+				if (!cache->manifest.empty())
 				{
-					fprintf(outCachesFile, "\t<Cache ID=\"%s\" Version=\"%d\" />\n", cache.name.c_str(), cache.version);
+					text = cachesDoc.NewText(cache->manifest.c_str());
 				}
-				else
+			}
+			else
+			{
+				cache_ptr localCache = localCacheFile.GetCache(cache->name);
+				cacheElement->SetAttribute("Version", localCache->version);
+
+				if (!localCache->manifest.empty())
 				{
-					cache_t localCache = localCacheFile.GetCache(cache.name);
-					fprintf(outCachesFile, "\t<Cache ID=\"%s\" Version=\"%d\" />\n", cache.name.c_str(), localCache.version);
+					text = cachesDoc.NewText(localCache->manifest.c_str());
 				}
 			}
 
-			fprintf(outCachesFile, "</Caches>");
+			if (text)
+			{
+				text->SetCData(true);
+
+				cacheElement->InsertFirstChild(text);
+			}
+
+			root->InsertEndChild(cacheElement);
+		}
+
+		cachesDoc.InsertEndChild(root);
+		
+		_wunlink(MakeRelativeCitPath(L"caches.xml").c_str());
+		FILE* outCachesFile = _wfopen(MakeRelativeCitPath(L"content_index.xml").c_str(), L"wb");
+
+		if (outCachesFile)
+		{
+			cachesDoc.SaveFile(outCachesFile);
 			fclose(outCachesFile);
 		}
 	}
@@ -342,8 +551,9 @@ bool Updater_RunUpdate(std::initializer_list<std::string> wantedCachesList)
 	return retval;
 }
 
-bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::array<uint8_t, 20>>& validHashes, uint64_t* fileStart, uint64_t fileTotal, std::array<uint8_t, 20>* foundHash)
+bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::array<uint8_t, 20>>& validHashes, uint64_t* fileStart, uint64_t fileTotal, std::array<uint8_t, 20>* foundHash, size_t checkSize)
 {
+	// if default changes, fix shouldCheck below
 	bool fileOutdated = true;
 
 	HANDLE hFile = CreateFile(fileName, GENERIC_READ | SYNCHRONIZE, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL);
@@ -367,116 +577,136 @@ bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::arr
 			fileNameOffset = citizenRoot.size();
 		}
 
-		UI_UpdateText(1, va(gettext(L"Checking %s"), &fileName[fileNameOffset]));
+		bool shouldCheck = true;
 
-		LARGE_INTEGER fileSize;
-		GetFileSizeEx(hFile, &fileSize);
-
-		OVERLAPPED overlapped;
-
-		SHA_CTX ctx;
-		SHA1_Init(&ctx);
-
-		bool doneReading = false;
-		uint64_t fileOffset = 0;
-
-		double lastProgress = 0.0;
-
-		while (!doneReading)
+		// should we assume the file is outdated if the size is different?
+		if (checkSize != -1 && !foundHash)
 		{
-			memset(&overlapped, 0, sizeof(overlapped));
-			overlapped.OffsetHigh = fileOffset >> 32;
-			overlapped.Offset = fileOffset;
+			LARGE_INTEGER size = { 0 };
+			GetFileSizeEx(hFile, &size);
 
-			char buffer[131072];
-			if (ReadFile(hFile, buffer, sizeof(buffer), NULL, &overlapped) == FALSE)
+			// we can just assume it's outdated already
+			if (size.QuadPart != checkSize)
 			{
-				if (GetLastError() != ERROR_IO_PENDING && GetLastError() != ERROR_HANDLE_EOF)
+				shouldCheck = false;
+			}
+		}
+
+		// fileOutdated defaults to true, so we can safely skip the check
+		if (shouldCheck)
+		{
+			UI_UpdateText(1, va(gettext(L"Checking %s"), &fileName[fileNameOffset]));
+
+			LARGE_INTEGER fileSize;
+			GetFileSizeEx(hFile, &fileSize);
+
+			OVERLAPPED overlapped;
+
+			SHA_CTX ctx;
+			SHA1_Init(&ctx);
+
+			bool doneReading = false;
+			uint64_t fileOffset = 0;
+
+			double lastProgress = 0.0;
+
+			while (!doneReading)
+			{
+				memset(&overlapped, 0, sizeof(overlapped));
+				overlapped.OffsetHigh = fileOffset >> 32;
+				overlapped.Offset = fileOffset;
+
+				char buffer[131072];
+				if (ReadFile(hFile, buffer, sizeof(buffer), NULL, &overlapped) == FALSE)
 				{
-					MessageBox(NULL, va(L"Reading of %s failed with error %i.", fileName, GetLastError()), L"O\x448\x438\x431\x43A\x430", MB_OK | MB_ICONSTOP);
-					return false;
-				}
+					if (GetLastError() != ERROR_IO_PENDING && GetLastError() != ERROR_HANDLE_EOF)
+					{
+						MessageBox(NULL, va(L"Reading of %s failed with error %i.", fileName, GetLastError()), L"O\x448\x438\x431\x43A\x430", MB_OK | MB_ICONSTOP);
+						return false;
+					}
 
-				if (GetLastError() == ERROR_HANDLE_EOF)
-				{
-					break;
-				}
-
-				while (true)
-				{
-					HANDLE pHandles[1];
-					pHandles[0] = hFile;
-
-					DWORD waitResult = MsgWaitForMultipleObjects(1, pHandles, FALSE, INFINITE, QS_ALLINPUT);
-
-					if (waitResult == WAIT_OBJECT_0)
+					if (GetLastError() == ERROR_HANDLE_EOF)
 					{
 						break;
 					}
 
-					MSG msg;
-					while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+					while (true)
 					{
-						TranslateMessage(&msg);
-						DispatchMessage(&msg);
-					}
+						HANDLE pHandles[1];
+						pHandles[0] = hFile;
 
-					if (UI_IsCanceled())
-					{
-						return false;
+						DWORD waitResult = MsgWaitForMultipleObjects(1, pHandles, FALSE, INFINITE, QS_ALLINPUT);
+
+						if (waitResult == WAIT_OBJECT_0)
+						{
+							break;
+						}
+
+						MSG msg;
+						while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+						{
+							TranslateMessage(&msg);
+							DispatchMessage(&msg);
+						}
+
+						if (UI_IsCanceled())
+						{
+							return false;
+						}
 					}
 				}
-			}
 
-			DWORD bytesRead;
-			BOOL olResult = GetOverlappedResult(hFile, &overlapped, &bytesRead, FALSE);
-			DWORD err = GetLastError();
+				DWORD bytesRead;
+				BOOL olResult = GetOverlappedResult(hFile, &overlapped, &bytesRead, FALSE);
+				DWORD err = GetLastError();
 
-			SHA1_Update(&ctx, (uint8_t*)buffer, bytesRead);
+				SHA1_Update(&ctx, (uint8_t*)buffer, bytesRead);
 
-			if (bytesRead < sizeof(buffer) || (!olResult && err == ERROR_HANDLE_EOF))
-			{
-				doneReading = true;
-			}
-
-			fileOffset += bytesRead;
-
-			if (fileSize.QuadPart == 0)
-			{
-				UI_UpdateProgress(100.0);
-			}
-			else
-			{
-				double progress = ((*fileStart + fileOffset) / (double)fileTotal) * 100.0;
-
-				if (abs(progress - lastProgress) > 0.5)
+				if (bytesRead < sizeof(buffer) || (!olResult && err == ERROR_HANDLE_EOF))
 				{
-					UI_UpdateProgress(progress);
-					lastProgress = progress;
+					doneReading = true;
+				}
+
+				fileOffset += bytesRead;
+
+				if (fileSize.QuadPart == 0)
+				{
+					UI_UpdateProgress(100.0);
+				}
+				else
+				{
+					double progress = ((*fileStart + fileOffset) / (double)fileTotal) * 100.0;
+
+					if (abs(progress - lastProgress) > 0.5)
+					{
+						UI_UpdateProgress(progress);
+						lastProgress = progress;
+					}
+				}
+			}
+
+			*fileStart += fileOffset;
+
+			uint8_t outHash[20];
+			SHA1_Final(outHash, &ctx);
+
+			if (foundHash)
+			{
+				memcpy(foundHash->data(), outHash, foundHash->size());
+			}
+
+			for (auto& hash : validHashes)
+			{
+				if (memcmp(hash.data(), outHash, 20) == 0)
+				{
+					fileOutdated = false;
 				}
 			}
 		}
 
-		*fileStart += fileOffset;
-
-		uint8_t outHash[20];
-		SHA1_Final(outHash, &ctx);
-
-		if (foundHash)
-		{
-			memcpy(foundHash->data(), outHash, foundHash->size());
-		}
-
-		for (auto& hash : validHashes)
-		{
-			if (memcmp(hash.data(), outHash, 20) == 0)
-			{
-				fileOutdated = false;
-			}
-		}
+		CloseHandle(hFile);
 	}
 
-	CloseHandle(hFile);
 	CloseHandle(hEvent);
 
 	return fileOutdated;
@@ -492,17 +722,23 @@ const char* GetUpdateChannel()
 
 		if (GetFileAttributes(fpath.c_str()) == INVALID_FILE_ATTRIBUTES)
 		{
-			updateChannel = "prod";
+			updateChannel = "production";
 			return updateChannel.c_str();
 		}
 
 		wchar_t channel[512];
-		GetPrivateProfileString(L"Game", L"UpdateChannel", L"prod", channel, _countof(channel), fpath.c_str());
+		GetPrivateProfileString(L"Game", L"UpdateChannel", L"production", channel, _countof(channel), fpath.c_str());
 
 		char channelS[512];
 		wcstombs(channelS, channel, sizeof(channelS));
 
 		updateChannel = channelS;
+
+		// map prod -> production
+		if (updateChannel == "prod")
+		{
+			updateChannel = "production";
+		}
 	}
 
 	return updateChannel.c_str();

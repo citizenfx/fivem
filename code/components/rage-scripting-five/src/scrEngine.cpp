@@ -21,6 +21,9 @@
 
 #include <unordered_set>
 
+extern void PointerArgumentSafety();
+extern bool storyMode;
+
 #if __has_include("scrEngineStubs.h")
 #include <scrEngineStubs.h>
 #else
@@ -411,13 +414,22 @@ static InitFunction initFunction([] ()
 {
 	scrEngine::OnScriptInit.Connect([] ()
 	{
-		for (auto& handler : g_nativeHandlers)
+		auto doReg = []()
 		{
-			RegisterNative(handler.first, handler.second);
-		}
+			for (auto& handler : g_nativeHandlers)
+			{
+				RegisterNative(handler.first, handler.second);
+			}
 
-		// to prevent double registration resulting in a game error
-		g_nativeHandlers.clear();
+			// to prevent double registration resulting in a game error
+			g_nativeHandlers.clear();
+		};
+
+		doReg();
+
+		PointerArgumentSafety();
+		g_fastPathMap.clear();
+		doReg();
 
 		for (auto& entry : g_onScriptInitQueue)
 		{
@@ -443,7 +455,25 @@ scrEngine::NativeHandler GetNativeHandlerDo(uint64_t origHash, uint64_t hash)
 				handler = (scrEngine::NativeHandler) /*DecodePointer(*/ table->handlers[i] /*)*/;
 				HandlerFilter(&handler);
 
-				g_fastPathMap.insert({ NativeHash{ origHash }, handler });
+				if (handler)
+				{
+#define BLOCK_NATIVE(x) \
+	if (origHash == x) { \
+		static auto ogHandler = handler; \
+		handler = [](rage::scrNativeCallContext* cxt) { \
+			if (storyMode) return ogHandler(cxt); \
+		}; \
+	}
+
+					BLOCK_NATIVE(0x9BAE5AD2508DF078); // prop density lowering
+					BLOCK_NATIVE(0x5A5F40FE637EB584);
+					BLOCK_NATIVE(0xE80492A9AC099A93);
+					BLOCK_NATIVE(0x8EF07E15701D61ED);
+					BLOCK_NATIVE(0x933D6A9EEC1BACD0);
+					BLOCK_NATIVE(0x213AEB2B90CBA7AC);
+				}
+
+				g_fastPathMap[NativeHash{ origHash }] = handler;
 
 				break;
 			}
@@ -460,70 +490,12 @@ scrEngine::NativeHandler GetNativeHandlerWrap(uint64_t origHash, uint64_t hash)
 
 scrEngine::NativeHandler scrEngine::GetNativeHandler(uint64_t hash)
 {
-	scrEngine::NativeHandler handler = nullptr;
-
-	auto it = g_fastPathMap.find(NativeHash{ hash });
-
-	if (it != g_fastPathMap.end())
+	if (auto it = g_fastPathMap.find(NativeHash{ hash }); it != g_fastPathMap.end() && it->second)
 	{
-		handler = it->second;
+		return it->second;
 	}
 
-	uint64_t origHash = hash;
-
-	if (!handler)
-	{
-		hash = MapNative(hash);
-
-		handler = GetNativeHandlerWrap(origHash, hash);
-	}
-
-	if (handler)
-	{
-		/*if (origHash == 0xD1110739EEADB592)
-		{
-			static scrEngine::NativeHandler hashHandler = handler;
-
-			return [] (rage::scrNativeCallContext* context)
-			{
-				hashHandler(context);
-
-				GtaThread* thread = static_cast<GtaThread*>(GetActiveThread());
-				void* handler = thread->GetScriptHandler();
-
-				if (handler)
-				{
-					for (auto& ownedThread : g_ownedThreads)
-					{
-						if (ownedThread != thread)
-						{
-							ownedThread->SetScriptHandler(handler);
-						}
-					}
-				}
-			};
-		}
-		// prop density lowering
-		else */if (origHash == 0x9BAE5AD2508DF078)
-		{
-			return [] (rage::scrNativeCallContext*)
-			{
-				// no-op
-			};
-		}
-		//StringToInt, ClearBit, SetBitsInRange, SetBit, CopyMemory
-		else if (origHash == 0x5A5F40FE637EB584 || origHash == 0xE80492A9AC099A93 || origHash == 0x8EF07E15701D61ED || origHash == 0x933D6A9EEC1BACD0 || origHash == 0x213AEB2B90CBA7AC)
-		{
-			return [](rage::scrNativeCallContext*)
-			{
-				// no-op
-			};
-		}
-
-		return handler;
-	}
-
-	return nullptr;
+	return GetNativeHandlerWrap(hash, MapNative(hash));
 }
 }
 

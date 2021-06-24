@@ -1,4 +1,5 @@
 import '../../src/browser/styles/console.css';
+import '../../src/browser/styles/resmon.css';
 import '../../src/browser/styles/faq.css';
 
 import { ContainerModule, interfaces } from 'inversify';
@@ -11,17 +12,16 @@ import { rebindWorkspaceFrontendContribution } from './rebindWorkspaceFrontendCo
 import { rebindApplicationShell } from './rebindApplicationShell';
 import { rebindNavigator } from './rebindNavigator';
 import { FxdkProjectContribution } from './fxdk-project-contribution';
-import { FxdkDataService } from './fxdk-data-service';
 import { FxdkMenuContribution } from './fxdk-menu-contribution';
 import { CommandContribution, MenuContribution } from '@theia/core';
 import { ServerConsole, ServerConsoleViewContribution, SERVER_CONSOLE_WIDGET_ID } from './console/server-console';
 import { ClientConsole, ClientConsoleViewContribution, CLIENT_CONSOLE_WIDGET_ID } from './console/client-console';
+import { ResmonWidget, ResmonWidgetViewContribution, RESMON_WIDGET_ID } from './resmon/combined-resmon';
 import { rebindHelpContribution } from './help/rebindHelpContribution';
+import { rebindVsxEnvironment } from './rebindVsxEnvironment';
 
 
 export default new ContainerModule((bind: interfaces.Bind, unbind: interfaces.Unbind, isBound: interfaces.IsBound, rebind: interfaces.Rebind) => {
-  bind(FxdkDataService).toSelf().inSingletonScope();
-
   bind(FxdkMenuContribution).toSelf().inSingletonScope();
   bind(MenuContribution).toService(FxdkMenuContribution);
   bind(CommandContribution).toService(FxdkMenuContribution);
@@ -37,6 +37,8 @@ export default new ContainerModule((bind: interfaces.Bind, unbind: interfaces.Un
   rebindWorkspaceCommands(bind, rebind);
   rebindWorkspaceFrontendContribution(bind, rebind);
 
+  rebindVsxEnvironment(bind, rebind);
+
   rebindHelpContribution(bind, rebind);
 
   bindViewContribution(bind, ServerConsoleViewContribution);
@@ -49,5 +51,11 @@ export default new ContainerModule((bind: interfaces.Bind, unbind: interfaces.Un
   bind(WidgetFactory).toDynamicValue((ctx) => ({
     id: CLIENT_CONSOLE_WIDGET_ID,
     createWidget: () => ctx.container.resolve(ClientConsole),
+  }));
+
+  bindViewContribution(bind, ResmonWidgetViewContribution);
+  bind(WidgetFactory).toDynamicValue((ctx) => ({
+    id: RESMON_WIDGET_ID,
+    createWidget: () => ctx.container.resolve(ResmonWidget),
   }));
 });

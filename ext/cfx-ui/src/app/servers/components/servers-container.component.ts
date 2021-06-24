@@ -6,6 +6,7 @@ import { isPlatformBrowser } from '@angular/common';
 import 'rxjs/add/operator/bufferTime';
 import { FiltersService } from '../filters.service';
 import { ServersService } from '../servers.service';
+import { GameService } from 'app/game.service';
 
 @Component({
 	moduleId: module.id,
@@ -25,6 +26,7 @@ export class ServersContainerComponent implements OnInit {
 		@Inject(PLATFORM_ID) private platformId: any,
 		private filtersService: FiltersService,
 		private serversService: ServersService,
+        private gameService: GameService,
 		private changeDetectorRef: ChangeDetectorRef,
 	) {
 		this.serversService.serversLoadedUpdate.subscribe((loaded) => {
@@ -49,6 +51,10 @@ export class ServersContainerComponent implements OnInit {
 	}
 
 	isFiltering() {
+        if (this.gameService.gameName === 'rdr3') {
+            return true;
+        }
+
 		return (this.filtersService.filters?.searchText ?? '') !== '';
 	}
 

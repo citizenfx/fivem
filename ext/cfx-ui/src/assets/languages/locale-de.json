@@ -33,7 +33,7 @@
     "#Settings_DarkThemeDesc": "Nutze ein dunkles Thema für das Menü",
     "#Settings_DevMode": "Entwicklermodus",
     "#Settings_DevModeDesc": "Aktiviert den \"localhost\" Menüpunkt",
-    "#Settings_Account": "Verbundenes FiveM-Konto",
+    "#Settings_Account": "Verbundenes Cfx.re-Konto",
     "#Settings_AccountLink": "Verbinden",
     "#Settings_AccountLinked": "Verbunden: {{ username }}",
     "#Settings_Boost": "Aktueller Server BOOST™",

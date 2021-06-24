@@ -24,9 +24,11 @@ static InitFunction initFunction([] ()
 {
 	seGetCurrentContext()->AddAccessControlEntry(se::Principal{ "system.internal" }, se::Object{ "builtin" }, se::AccessType::Allow);
 
+	static NetLibrary* netLibrary;
+
 	NetLibrary::OnNetLibraryCreate.Connect([] (NetLibrary* library)
 	{
-		static NetLibrary* netLibrary = library;
+		netLibrary = library;
 		static std::string netLibWarningMessage;
 		static std::mutex netLibWarningMessageLock;
 
@@ -93,7 +95,7 @@ static InitFunction initFunction([] ()
 
 		OnKillNetworkDone.Connect([=]()
 		{
-			library->FinalizeDisconnect();
+			library->Disconnect();
 
 			console::GetDefaultContext()->GetVariableManager()->RemoveVariablesWithFlag(ConVar_Replicated);
 		});
@@ -118,11 +120,16 @@ static InitFunction initFunction([] ()
 	{
 		nui::SetMainUI(false);
 
+		auto context = (netLibrary->GetConnectionState() != NetLibrary::CS_IDLE) ? ("server_" + netLibrary->GetTargetContext()) : "";
+		nui::SwitchContext(context);
 		nui::DestroyFrame("mpMenu");
 	});
 
+	// #TODOLIBERTY: ?
+#ifndef GTA_NY
 	OnFirstLoadCompleted.Connect([] ()
 	{
 		g_gameInit.SetGameLoaded();
 	});
+#endif
 });

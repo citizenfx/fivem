@@ -33,7 +33,7 @@
     "#Settings_DarkThemeDesc": "Faça com que a interface use um \"tema\" \"escuro\".",
     "#Settings_DevMode": "Modo de desenvolvedor",
     "#Settings_DevModeDesc": "Ative o item \"localhost\" no menu.",
-    "#Settings_Account": "Conta do FiveM vinculada",
+    "#Settings_Account": "Conta do Cfx.re vinculada",
     "#Settings_AccountLink": "Vincular",
     "#Settings_AccountLinked": "Vinculada: {{ username }}",
     "#Settings_Boost": "Servidor atualmente com BOOST™",

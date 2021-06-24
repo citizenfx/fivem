@@ -8,6 +8,7 @@
 #include <StdInc.h>
 #include <fiCollectionWrapper.h>
 
+#include <jitasm.h>
 #include <Hooking.h>
 
 #include <fnv.h>

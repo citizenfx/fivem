@@ -222,7 +222,7 @@ void AddCrashometryV(const std::string& key, const std::string& format, fmt::pri
 {
 	std::string formatted = fmt::vsprintf(format, value);
 
-	FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\crashometry").c_str(), L"ab");
+	FILE* f = _wfopen(MakeRelativeCitPath(L"data\\cache\\crashometry").c_str(), L"ab");
 
 	if (f)
 	{
@@ -243,6 +243,19 @@ void AddCrashometryV(const std::string& key, const std::string& format, fmt::pri
 
 extern "C" void Win32TrapAndJump64();
 
+#if defined(_M_IX86)
+static void __declspec(naked) Win32TrapAndJumpX86()
+{
+	__asm {
+		pushfd
+		or dword ptr [esp], 100h
+		popfd
+
+		jmp dword ptr fs:[1Ch]
+	}
+}
+#endif
+
 void __cdecl _wwassert(
 	_In_z_ wchar_t const* _Message,
 	_In_z_ wchar_t const* _File,
@@ -254,8 +267,11 @@ void __cdecl _wwassert(
 #if defined(_M_AMD64)
 	__writegsqword(0x38, (uintptr_t)_ReturnAddress());
 	*(void**)_AddressOfReturnAddress() = &Win32TrapAndJump64;
+#elif defined(_M_IX86)
+	__writefsdword(0x1C, (uintptr_t)_ReturnAddress());
+	*(void**)_AddressOfReturnAddress() = &Win32TrapAndJumpX86;
 #else
-#error No architecture for asserts?
+#error No architecture for asserts here.
 #endif
 }
 #endif

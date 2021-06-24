@@ -4,6 +4,7 @@
 #include <Hooking.h>
 
 #include <MinHook.h>
+#include <filesystem>
 
 #include <Error.h>
 
@@ -35,14 +36,58 @@ static DWORD PackfileEh(PEXCEPTION_POINTERS ei)
 	return EXCEPTION_EXECUTE_HANDLER;
 }
 
+static decltype(&CreateFileW) createFileW;
+
+static HANDLE WINAPI CreateFileWDummy(_In_ LPCWSTR lpFileName, _In_ DWORD dwDesiredAccess, _In_ DWORD dwShareMode, _In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes, _In_ DWORD dwCreationDisposition, _In_ DWORD dwFlagsAndAttributes, _In_opt_ HANDLE hTemplateFile)
+{
+	return createFileW(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
+}
+
+static void ResetPackfile(const char* archive)
+{
+	// if this is update.rpf, maybe we should do something about that?
+	if (strcmp(archive, "update/update.rpf") == 0)
+	{
+		createFileW = hook::iat("kernel32.dll", CreateFileWDummy, "CreateFileW");
+
+		HANDLE hFile = createFileW(L"update/update.rpf", GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, 0, NULL);
+
+		if (hFile != INVALID_HANDLE_VALUE)
+		{
+			wchar_t realPath[512];
+			GetFinalPathNameByHandleW(hFile, realPath, std::size(realPath), VOLUME_NAME_DOS);
+			CloseHandle(hFile);
+
+			// a cache will usually contain update+update.rpf
+			if (wcschr(realPath, L'+'))
+			{
+				std::filesystem::path pathRef(realPath);
+				pathRef.replace_filename(L"corrupted_" + pathRef.filename().wstring());
+
+				DeleteFileW(pathRef.wstring().c_str());
+				MoveFileW(realPath, pathRef.wstring().c_str());
+			}
+		}
+	}
+}
+
 static bool OpenArchiveWrapSeh(rage::fiPackfile* packfile, const char* archive, bool a3, int a4, intptr_t a5)
 {
 	__try
 	{
-		return g_origOpenPackfile(packfile, archive, a3, a4, a5);
+		bool success = g_origOpenPackfile(packfile, archive, a3, a4, a5);
+
+		if (!success)
+		{
+			ResetPackfile(archive);
+		}
+
+		return success;
 	}
 	__except (PackfileEh(GetExceptionInformation()))
 	{
+		ResetPackfile(archive);
+
 		FatalError("Failed to read rage::fiPackfile %s - an exception occurred in game code.", archive);
 		return false;
 	}

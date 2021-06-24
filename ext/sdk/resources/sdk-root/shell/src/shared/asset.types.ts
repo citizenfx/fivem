@@ -6,6 +6,7 @@ export type KeysOf<T> = T[keyof T];
 
 export const assetTypes = {
   resource: 'resource',
+  fxworld: 'fxworld',
 };
 export type AssetType = KeysOf<typeof assetTypes>;
 
@@ -13,6 +14,7 @@ export const assetImporterTypes = {
   git: 'git',
   release: 'release',
   fs: 'fs',
+  example: 'example',
 };
 export type AssetImporterType = KeysOf<typeof assetImporterTypes>;
 

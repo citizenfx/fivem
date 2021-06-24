@@ -26,6 +26,10 @@ export class GameServerInstallerUtils {
 
     return new Promise((resolve, reject) => {
       https.get(options, (res) => {
+        if (res.statusCode >= 400) {
+          return reject(`Artifact server responded with status code: ${res.statusCode}`);
+        }
+
         const artifactWriteStream = this.fsService.createWriteStream(artifactPath);
 
         const contentLength = parseInt(res.headers['content-length'] || '0', 10) || 0;

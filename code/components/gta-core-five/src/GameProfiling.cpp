@@ -5,6 +5,8 @@
 
 #include <optick.h>
 
+DLL_IMPORT extern "C" void DoGameFrame();
+
 namespace rage
 {
 	static bool(*CommonMain_Prologue)(int argc, const char** argv);
@@ -18,6 +20,8 @@ namespace rage
 			while (true)
 			{
 				OPTICK_FRAME("Main");
+
+				DoGameFrame();
 
 				if (!(*g_pProjectMainOrDoOneLoop)())
 				{

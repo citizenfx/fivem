@@ -6,6 +6,8 @@
  */
 
 #include <StdInc.h>
+
+#include <jitasm.h>
 #include <Hooking.h>
 
 #include <Error.h>
@@ -479,8 +481,89 @@ static float sysPerformanceTimer__GetElapsedTimeMS(sysPerformanceTimer* self)
 	return (curTime.QuadPart - self->startTime.QuadPart) * *rage__sysTimerConsts__TicksToMilliseconds;
 }
 
+struct EnumContext
+{
+	void* outPtr;
+	uint32_t max;
+	uint32_t cur;
+};
+
+static BOOL (*g_origDSoundEnumCallback)(void* a1, void* a2, void* a3, EnumContext* cxt);
+
+static BOOL DSoundEnumCallback(void* a1, void* a2, void* a3, EnumContext* cxt)
+{
+	if (cxt->cur >= cxt->max)
+	{
+		return FALSE;
+	}
+
+	return g_origDSoundEnumCallback(a1, a2, a3, cxt);
+}
+
+struct CWeaponInfoBlob
+{
+	char pad[0xF8];
+};
+
+static uint16_t* g_weaponInfoArrayCount;
+
+static void (*g_origShiftWeaponInfoBlobsDown)(CWeaponInfoBlob* pArray[], uint16_t startIndex);
+
+void ShiftWeaponInfoBlobsDown(CWeaponInfoBlob* pArray[], uint16_t startIndex)
+{
+	uint16_t lastItemIndex = *g_weaponInfoArrayCount - 1;
+
+	g_origShiftWeaponInfoBlobsDown(pArray, startIndex);
+
+	// Only clear if a shift occured
+	if (startIndex < lastItemIndex)
+	{
+		// Copy the next empty weapon info into this unused one to reset it
+		(*pArray)[lastItemIndex] = (*pArray)[lastItemIndex + 1];
+	}
+}
+
+static const uint64_t* (*origMILookup)(void* archetype);
+
+static const uint64_t* SafeMILookup(void* archetype)
+{
+	auto mi = origMILookup(archetype);
+
+	if (!mi)
+	{
+		static const uint64_t noArchetype = 0xFFFFFFFFFFFFFFFF;
+		mi = &noArchetype;
+	}
+
+	return mi;
+}
+
 static HookFunction hookFunction{[] ()
 {
+	// CModelInfoStreamingModule LookupModelId null return
+	{
+		auto location = hook::get_pattern("48 85 C0 74 2D 48 8B C8 E8 ? ? ? ? 8B 00", 8);
+		hook::set_call(&origMILookup, location);
+		hook::call(location, SafeMILookup);
+	}
+
+	// Clear out unused CWeaponInfoBlob when the array is shifted. This leads to a crash when another blob inserts in to the unused position
+	{
+		auto location = hook::get_pattern<char>("E8 ? ? ? ? FF CD 0F B7 05 ? ? ? ?");
+
+		hook::set_call(&g_origShiftWeaponInfoBlobsDown, location);
+		hook::call(location, ShiftWeaponInfoBlobsDown);
+
+		g_weaponInfoArrayCount = hook::get_address<uint16_t*>(location + 0xA);
+	}
+
+	// audio device count fix for dsound
+	{
+		MH_Initialize();
+		MH_CreateHook(hook::get_address<void*>(hook::get_pattern("C6 45 F0 01 E8 ? ? ? ? 40 F6 C7 02", -4)), DSoundEnumCallback, (void**)&g_origDSoundEnumCallback);
+		MH_EnableHook(MH_ALL_HOOKS);
+	}
+
 	// TEMP DBG for investigation: don't crash blindly (but error cleanly) on odd object spawn
 	if (!xbr::IsGameBuildOrGreater<2060>())
 	{
@@ -945,6 +1028,10 @@ static HookFunction hookFunction{[] ()
 	{
 		hook::put<uint16_t>(hook::get_pattern("FF C8 0F 84 85 00 00 00 83 E8 12 75 6A", 13), 0x7EEB);
 	}
+	else
+	{
+		hook::put<uint16_t>(hook::get_pattern("83 E8 12 75 6A 48 8B 03 48 8B CB", 5), 0x76EB);
+	}
 
 	// vehicles.meta explosionInfo field invalidity
 	MH_Initialize();
@@ -1064,6 +1151,9 @@ static HookFunction hookFunction{[] ()
 		hook::set_call(&g_origPoolInit, location);
 		hook::call(location, PoolInitX<3>);
 	}
+
+	// unloading crash: CConditionalAnimManager::ShutdownSession double-free
+	hook::nop(hook::get_pattern("74 08 41 8B D6 E8 ? ? ? ? 44 8B 07 EB 15", 5), 5);
 
 	// validate dlDrawListMgr cloth entries on flush
 	MH_CreateHook(hook::get_pattern("66 44 3B A9 50 06 00 00 0F 83", -0x25), CDrawListMgr_ClothCleanup, (void**)&g_origDrawListMgr_ClothFlush);

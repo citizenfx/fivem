@@ -3,9 +3,6 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { DomSanitizer } from '@angular/platform-browser';
 import { Subject } from 'rxjs';
 
-import 'rxjs/add/operator/debounceTime';
-import 'rxjs/add/operator/distinctUntilChanged';
-
 import { Server } from '../../server';
 
 import { GameService } from '../../../game.service';
@@ -15,7 +12,7 @@ import { ServersService } from '../../servers.service';
 
 import { isPlatformBrowser } from '@angular/common';
 import { MetaService } from '@ngx-meta/core';
-import { L10N_LOCALE, L10nLocale } from 'angular-l10n';
+import { L10N_LOCALE, L10nLocale, L10nTranslationService } from 'angular-l10n';
 import { ServerTagsService } from '../../server-tags.service';
 
 class VariablePair {
@@ -66,9 +63,6 @@ export class ServersDetailComponent implements OnInit, OnDestroy {
 
 	collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'});
 
-	@ViewChildren('input')
-	private inputBox;
-
 	get serverAddress() {
 		if (this.server) {
 			if (this.server.address) {
@@ -117,10 +111,35 @@ export class ServersDetailComponent implements OnInit, OnDestroy {
 		return players.sort((a, b) => this.collator.compare(a.name, b.name));
 	}
 
+    get eol() {
+        const now = new Date().getTime();
+
+        // Tue Jun 01 2021 00:00:00 GMT+0200
+        // Servers can't be EOL until this date.
+        if (now < 1622498400000) {
+            return false;
+        }
+
+        const supportStatus = (this.server.data.support_status ?? 'supported');
+
+        return (supportStatus === 'unknown' || supportStatus === 'end_of_life');
+    }
+
+    get eolLabel() {
+        return this.translation.translate('#ServerDetail_EOLDisable', null, this.locale.language);
+    }
+
+    get eos() {
+        const supportStatus = (this.server.data.support_status ?? 'supported');
+
+        return (supportStatus === 'end_of_support' || (!this.eol && supportStatus === 'end_of_life'));
+    }
+
 	constructor(private gameService: GameService, private serversService: ServersService,
 		private route: ActivatedRoute, private cdRef: ChangeDetectorRef, private sanitizer: DomSanitizer,
 		private router: Router, @Inject(PLATFORM_ID) private platformId: any, private meta: MetaService,
 		private tagService: ServerTagsService, private tweetService: TweetService,
+        private translation: L10nTranslationService,
 		@Inject(L10N_LOCALE) public locale: L10nLocale) {
 		this.filterFuncs['sv_scriptHookAllowed'] = (pair) => {
 			return {
@@ -161,29 +180,34 @@ export class ServersDetailComponent implements OnInit, OnDestroy {
 
 				this.fetchApFeed();
 
-				const resources = (<string[]>a.data.resources)
+				const resources = (<string[]>(a?.data?.resources ?? []))
 					.filter(res => res !== '_cfx_internal' && res !== 'hardcap' && res !== 'sessionmanager');
 
 				this.resources = resources.sort(this.collator.compare);
 
 				this.resourceCount = resources.length;
 
-				this.serverVariables = Object.entries(a.data.vars as { [key: string]: string })
+				this.serverVariables = Object.entries((a?.data.vars ?? {}) as { [key: string]: string })
 					.map(([key, value]) => ({ key, value }))
 					.filter(({ key }) => this.disallowedVars.indexOf(key) < 0)
 					.filter(({ key }) => key.indexOf('banner_') < 0)
+					.filter(({ key }) => key.indexOf('sv_project') < 0)
 					.filter(({ key }) => key.toLowerCase().indexOf('version') < 0)
 					.filter(({ key }) => key.toLowerCase().indexOf('uuid') < 0)
 					.filter(({ key, value }) => key !== 'sv_enforceGameBuild' || (value !== '1604' && value !== '1311'))
 					.filter(({ key, value }) => key !== 'sv_scriptHookAllowed' || value === 'true')
 					.map(pair => this.filterFuncs[pair.key] ? this.filterFuncs[pair.key](pair) : pair);
 
-				this.meta.setTag('og:image', this.server.iconUri);
+				this.meta.setTag('og:image', this.server?.iconUri);
 				this.meta.setTag('og:type', 'website');
 				this.meta.setTitle(this.server.hostname.replace(/\^[0-9]/g, ''));
 				this.meta.setTag('og:description', `${this.server.currentPlayers} players on ${this.server.data.mapname}`);
 				this.meta.setTag('og:site_name', 'FiveM');
 			});
+	}
+
+	openOwner() {
+		this.gameService.openUrl(this.server?.data?.ownerProfile ?? '');
 	}
 
 	trackPlayer(index: number, player: any) {
@@ -206,19 +230,31 @@ export class ServersDetailComponent implements OnInit, OnDestroy {
 	}
 
 	attemptConnect() {
+        if (this.eol) {
+            return;
+        }
+
 		this.gameService.connectTo(this.server);
 	}
 
 	isFavorite() {
-		return this.gameService.isMatchingServer('favorites', this.server);
+		if (this.server) {
+			return this.gameService.isMatchingServer('favorites', this.server);
+		}
+
+		return false;
 	}
 
 	addFavorite() {
-		this.gameService.toggleListEntry('favorites', this.server, true);
+		if (this.server) {
+			this.gameService.toggleListEntry('favorites', this.server, true);
+		}
 	}
 
 	removeFavorite() {
-		this.gameService.toggleListEntry('favorites', this.server, false);
+		if (this.server) {
+			this.gameService.toggleListEntry('favorites', this.server, false);
+		}
 	}
 
 	ngOnInit() {

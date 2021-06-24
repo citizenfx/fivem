@@ -98,6 +98,27 @@ namespace CitizenFX.Core
 		}
 
 		[SecurityCritical]
+		internal static unsafe void PushObject(ContextType* cxt, object arg)
+		{
+			var ptr = IntPtr.Zero;
+
+			var b = MsgPackSerializer.Serialize(arg);
+
+			ptr = Marshal.AllocHGlobal(b.Length);
+			Marshal.Copy(b, 0, ptr, b.Length);
+
+			ms_finalizers.Enqueue(() => Free(ptr));
+
+			unsafe
+			{
+				*(IntPtr*)(&cxt->functionData[8 * cxt->numArguments]) = ptr;
+				*(long*)(&cxt->functionData[8 * (cxt->numArguments + 1)]) = b.Length;
+			}
+
+			cxt->numArguments += 2;
+		}
+
+		[SecurityCritical]
 		internal static unsafe void PushUnsafe(ContextType* cxt, object arg)
 		{
 			*(long*)(&cxt->functionData[8 * cxt->numArguments]) = 0;

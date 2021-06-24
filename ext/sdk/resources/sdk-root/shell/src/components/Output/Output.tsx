@@ -1,10 +1,11 @@
 import * as React from 'react';
 import classnames from 'classnames';
 import AnsiToHTMLConverter from 'ansi-to-html';
-import { OutputContext } from 'contexts/OutputContext';
-import s from './Output.module.scss';
 import { useOpenFlag } from 'utils/hooks';
 import { ScrollContainer } from 'components/ScrollContainer/ScrollContainer';
+import { observer } from 'mobx-react-lite';
+import { OutputState } from 'store/OutputState';
+import s from './Output.module.scss';
 
 const converter = new AnsiToHTMLConverter({
   newline: true,
@@ -34,9 +35,8 @@ export interface OutputProps {
   className?: string,
 }
 
-export const Output = React.memo(function Output({ channelId, className }: OutputProps) {
-  const { outputs } = React.useContext(OutputContext);
-  const output = outputs[channelId] || '';
+export const Output = observer(function Output({ channelId, className }: OutputProps) {
+  const output = OutputState.getOutput(channelId);
 
   const [override, setOverriden, releaseOverride] = useOpenFlag(false);
   const ref = React.useRef<HTMLElement>();

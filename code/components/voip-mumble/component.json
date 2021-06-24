@@ -11,6 +11,7 @@
 		"vendor:botan",
 		"vendor:webrtc-audio-processing",
 		"vendor:labsound",
+		"vendor:speexdsp",
 		"scrbind:base"
 	],
 	"provides": []

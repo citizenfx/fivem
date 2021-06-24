@@ -4,14 +4,63 @@
 		<h1 class="title">
 			{{(overlayTitle)|translate:locale.language:overlayMessageData}}
 		</h1>
+        <div class="friendly" *ngIf="extraData.fault">
+            <div>
+                <div class="connection" [class.broken]="isCfx(extraData.fault)">
+                    <div class="logo you" [style.--logo]="userLogo"></div>
+                    <div class="text you">
+                        {{ '#Error_You' | translate:locale.language:mergedData }}
+                        <span>{{ youName }}</span>
+                    </div>
+
+                    <app-connection-boundary [state]="extraData.fault === 'you' ? 'bye' : (extraData.fault === 'either' ? 'unknown' : (isCfx(extraData.fault) ? 'broken' : 'ok'))"></app-connection-boundary>
+
+                    <div class="logo cfx">
+                        <div class="ilogo">
+                            <svg [class.game-gta5]="gameName == 'gta5'">
+                                <use [attr.xlink:href]="'#logo-' + gameName"></use>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <div class="text cfx">
+                        {{ '#Error_Cfx' | translate:locale.language:mergedData }}
+                        <span>{{ gameBrand }}</span>
+                    </div>
+
+                    <app-connection-boundary [state]="extraData.fault === 'you' ? 'bye' : (extraData.fault === 'either' || isCfx(extraData.fault) ? 'unknown' : 'broken')"></app-connection-boundary>
+
+                    <div class="logo server" [style.--logo]="serverLogo"></div>
+
+                    <div class="text server">
+                        {{ '#Error_Server' | translate:locale.language:mergedData }}
+                        <span>{{ serverName }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="action" *ngIf="extraData.action">
+                <h2 l10nTranslate *ngIf="extraData.status && statusLevel < 2">#ErrorNoOutage</h2>
+                <p (click)="clickContent($event)" *ngIf="extraData.status && statusLevel < 2" [innerHTML]="'#NoOutage' | translate:locale.language:mergedData | linky:{ hashtag: 'twitter', mention: 'twitter' } | nl2br"></p>
+
+                <h2 l10nTranslate *ngIf="statusLevel >= 2">#ErrorOutage</h2>
+                <p (click)="clickContent($event)" *ngIf="statusLevel >= 2" [innerHTML]="'#ServiceAlert' | translate:locale.language:mergedData | linky:{ hashtag: 'twitter', mention: 'twitter' } | nl2br"></p>
+
+                <h2 l10nTranslate>#ErrorActions</h2>
+                <p (click)="clickContent($event)" [innerHTML]="extraData.action | translate:locale.language:mergedData | linky:{ hashtag: 'twitter', mention: 'twitter', sanitizeHtml: true } | nl2br | rejectify:{server:serverData}"></p>
+
+                <h2 l10nTranslate>#ErrorDetails</h2>
+            </div>
+        </div>
 		<p
 			class="content"
 			(click)="clickContent($event)"
-			[innerHTML]="overlayMessage|translate:locale.language:overlayMessageData|linky:{ hashtag: 'twitter', mention: 'twitter', sanitizeHtml: true }|nl2br|allowify"
+			[innerHTML]="overlayMessage|translate:locale.language:overlayMessageData|linky:{ hashtag: 'twitter', mention: 'twitter', sanitizeHtml: true }|nl2br|allowify|rejectify:{server:serverData}"
 		></p>
 		<div class="card" #card></div>
 		<button
 			class="cfx-button primary"
+            [style.opacity]="overlayClosable === true ? 1.0 : 0.0"
 			[class.active]="overlayClosable"
 			(click)="closeOverlay(); false"
 		>

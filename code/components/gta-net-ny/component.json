@@ -1,0 +1,14 @@
+{
+	"name": "gta:net:ny",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+		"net",
+		"gta:core",
+		"rage:nutsnbolts",
+		"citizen:resources:core",
+		"ros-patches",
+		"scripting"
+	],
+	"provides": []
+}

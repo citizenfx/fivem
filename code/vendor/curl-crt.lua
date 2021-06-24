@@ -50,7 +50,11 @@ return {
 		end
 
 		-- nghttp2
-		add_dependencies 'vendor:nghttp2'
+		if not isCrt then
+			add_dependencies 'vendor:nghttp2'
+		else
+			add_dependencies 'vendor:nghttp2-crt'
+		end
 
 		-- all the disables except http/file
 		defines { 'BUILDING_LIBCURL', 'USE_IPV6', 'CURL_DISABLE_TFTP', 'CURL_DISABLE_FTP', 'CURL_DISABLE_LDAP', 'CURL_DISABLE_TELNET',
@@ -61,19 +65,14 @@ return {
 			defines { 'USE_WINDOWS_SSPI' }
 			buildoptions '/MP'
 			
-			if not isCrt then			
-				defines { 'USE_OPENSSL', 'OPENSSL_NO_ENGINE' }
+			defines { 'USE_OPENSSL', 'OPENSSL_NO_ENGINE' }
 			
-				if a then
-					add_dependencies 'vendor:openssl_crypto'
-					add_dependencies 'vendor:openssl_ssl'
-				else
-					add_dependencies 'vendor:openssl_crypto_crt'
-					add_dependencies 'vendor:openssl_ssl_crt'
-				end
+			if not isCrt then
+				add_dependencies 'vendor:openssl_crypto'
+				add_dependencies 'vendor:openssl_ssl'
 			else
-				defines { 'USE_MBEDTLS', 'MBEDTLS_HAVEGE_C' }
-				add_dependencies 'vendor:mbedtls_crt'
+				add_dependencies 'vendor:openssl_crypto_crt'
+				add_dependencies 'vendor:openssl_ssl_crt'
 			end
 		else
 			defines { 'USE_OPENSSL' }

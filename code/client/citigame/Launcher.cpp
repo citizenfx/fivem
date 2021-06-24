@@ -14,6 +14,7 @@
 #include "Hooking.Aux.h"
 
 #include <ComponentLoader.h>
+#include <CrossBuildRuntime.h>
 
 #include <HostSharedData.h>
 #include <CfxState.h>
@@ -38,11 +39,6 @@ bool LauncherInterface::PreLoadGame(void* cefSandbox)
 	}
 	
 	bool continueRunning = true;
-
-	// HooksDLL only exists for GTA_NY
-#ifdef GTA_NY
-	HooksDLLInterface::PreGameLoad(&continueRunning, &g_hooksDLL);
-#endif
 
 	// initialize component instances
     if (!getenv("CitizenFX_ToolMode"))
@@ -73,22 +69,7 @@ bool LauncherInterface::PostLoadGame(HMODULE hModule, void(**entryPoint)())
 		ComponentLoader::GetInstance()->DoGameLoad(hModule);
 	}
 
-	// HooksDLL only exists for GTA_NY
-#ifdef GTA_NY
-	HooksDLLInterface::PostGameLoad(hModule, &continueRunning);
-#endif
-
 	InitFunctionBase::RunAll();
-
-#if defined(GTA_NY)
-	*entryPoint = (void(*)())0xD0D011;
-#elif defined(PAYNE)
-	// don't modify the entry point
-	//*entryPoint = (void(*)())0;
-#elif defined(_M_AMD64)
-#else
-#error TODO: define entry point for this title
-#endif
 
 	return continueRunning;
 }
@@ -159,4 +140,9 @@ static LauncherInterface g_launcherInterface;
 extern "C" __declspec(dllexport) ILauncherInterface* GetLauncherInterface()
 {
 	return &g_launcherInterface;
+}
+
+extern "C" __declspec(dllexport) int GetGameVersion()
+{
+	return xbr::GetGameBuild();
 }

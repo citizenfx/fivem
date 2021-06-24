@@ -17,6 +17,7 @@ export interface PathSelectorProps {
   disabled?: boolean,
   description?: React.ReactNode,
   notOnlyFolders?: boolean,
+  showLoader?: boolean,
 }
 
 export const PathSelector = React.memo(function PathSelector(props: PathSelectorProps) {
@@ -32,6 +33,7 @@ export const PathSelector = React.memo(function PathSelector(props: PathSelector
     description = '',
     disabled = false,
     notOnlyFolders = false,
+    showLoader = false,
   } = props;
 
   const folderSelectOptions = React.useMemo(() => ({
@@ -58,6 +60,7 @@ export const PathSelector = React.memo(function PathSelector(props: PathSelector
         placeholder={placeholder}
         disabled={disabled}
         description={description}
+        showLoader={showLoader}
       />
 
       <Button

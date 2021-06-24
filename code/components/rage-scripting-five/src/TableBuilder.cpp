@@ -321,7 +321,7 @@ static void DoMapping(std::map<int, std::shared_ptr<FunctionTable>>& functionTab
 
 	for (auto& nativeEntry : crossMapping_universal)
 	{
-		for (int i = 0; i < (maxVersion - 1); i++)
+		for (int i = 0; i < maxVersion; i++)
 		{
 			if (nativeEntry.entries[i] != 0 && nativeEntry.entries[maxVersion] != 0)
 			{

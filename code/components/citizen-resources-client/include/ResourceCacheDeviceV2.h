@@ -117,7 +117,7 @@ protected:
 	virtual void CloseFile() override;
 
 private:
-	size_t m_parentPtr;
+	uint64_t m_parentPtr;
 };
 
 struct RcdFetchResult

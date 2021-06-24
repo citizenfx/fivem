@@ -1,5 +1,6 @@
 import { Deferred } from 'backend/deferred';
 import ReconnectingWebScoket from 'reconnectingwebsocket';
+import { getScopedEventName } from './apiScope';
 import { enableLogger, errorLog, logger, rootLogger } from './logger';
 import { fastRandomId } from './random';
 
@@ -23,6 +24,7 @@ const messageCallbacks: Record<string, ApiMessageCallback<any>> = {};
 
 let pendingMessages: string[] = [];
 let connected = false;
+const backlog: { [type: string]: any[] } = {};
 
 const ws = new ReconnectingWebScoket('ws://localhost:35419/api');
 ws.addEventListener('open', () => {
@@ -71,6 +73,14 @@ ws.addEventListener('message', (event: MessageEvent) => {
 
     if (typeListeners) {
       typeListeners.forEach((listener) => listener(data, type));
+    }
+
+    if (typeListeners?.size === 0) {
+      if (!backlog[type]) {
+        backlog[type] = [];
+      }
+
+      backlog[type].push(data);
     }
 
     if (anyListeners) {
@@ -130,6 +140,9 @@ export const sendApiMessage = (type: string, data?: any) => {
     pendingMessages.push(message);
   }
 }
+export const sendApiMessageScoped = (type: string, scope: string, data?: any) => {
+  sendApiMessage(getScopedEventName(type, scope), data);
+};
 
 export const sendApiMessageCallback = <ResponseData>(type: string, data: any, callback: ApiMessageCallback<ResponseData>): (() => void) => {
   const id = fastRandomId();
@@ -147,13 +160,27 @@ export const sendApiMessageCallback = <ResponseData>(type: string, data: any, ca
 
   return () => delete messageCallbacks[id];
 };
+export const sendApiMessageCallbackScoped = <ResponseData>(type: string, scope: string, data: any, callback: ApiMessageCallback<ResponseData>): (() => void) => {
+  return sendApiMessageCallback(getScopedEventName(type, scope), data, callback);
+};
 
 export const onApiMessage = (type: string | typeof ANY_MESSAGE, cb: ApiMessageListener) => {
   const listeners = messageListeners[type as any] || (messageListeners[type as any] = new Set());
 
   listeners.add(cb);
 
+  if (type !== ANY_MESSAGE && backlog[type]) {
+    for (const entry of backlog[type]) {
+      cb(entry, type);
+    }
+
+    delete backlog[type];
+  }
+
   return () => offApiMessage(type, cb);
+};
+export const onApiMessageScoped = (type: string, scope: string, cb: ApiMessageListener) => {
+  return onApiMessage(getScopedEventName(type, scope), cb);
 };
 
 export const offApiMessage = (type: string | typeof ANY_MESSAGE, cb: ApiMessageListener) => {
@@ -163,3 +190,6 @@ export const offApiMessage = (type: string | typeof ANY_MESSAGE, cb: ApiMessageL
     listeners.delete(cb);
   }
 }
+export const offApiMessageScoped = (type: string, scope: string, cb: ApiMessageListener) => {
+  return offApiMessage(getScopedEventName(type, scope), cb);
+};

@@ -19,6 +19,8 @@ private:
 
 	std::mutex m_nuiWindowMutex;
 
+	std::shared_mutex m_nuiRootWindowMutex;
+
 #ifndef USE_NUI_ROOTLESS
 	fwRefContainer<NUIWindow> m_rootWindow;
 #endif
@@ -32,9 +34,26 @@ public:
 
 #ifndef USE_NUI_ROOTLESS
 public:
-	inline fwRefContainer<NUIWindow> GetRootWindow() { return m_rootWindow; }
+	inline fwRefContainer<NUIWindow> GetRootWindow()
+	{
+		std::shared_lock _(m_nuiRootWindowMutex);
+		return m_rootWindow;
+	}
 
-	inline void SetRootWindow(fwRefContainer<NUIWindow> window) { m_rootWindow = window; }
+	inline void SetRootWindow(fwRefContainer<NUIWindow> window)
+	{
+		fwRefContainer<NUIWindow> old;
+
+		{
+			std::shared_lock _(m_nuiRootWindowMutex);
+			old = m_rootWindow;
+		}
+
+		{
+			std::unique_lock _(m_nuiRootWindowMutex);
+			m_rootWindow = window;
+		}
+	}
 #endif
 };
 

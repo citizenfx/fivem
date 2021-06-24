@@ -1,6 +1,7 @@
 import * as cp from 'child_process';
 import treeKill from 'tree-kill';
 import { OutputListener, OutputChannelProvider } from 'backend/output/output-types';
+import { Deferred } from 'backend/deferred';
 
 export type ShellCommandDataListener = (data: Buffer) => void;
 export type ShellCommandErrorListener = (error: Error) => void;
@@ -8,6 +9,8 @@ export type ShellCommandCloseListener = (code: number, signal: NodeJS.Signals) =
 
 export class ShellCommand implements OutputChannelProvider {
   private proc: cp.ChildProcess | null = null;
+
+  private pidCheckInterval: NodeJS.Timeout;
 
   private stdoutListeners: Set<ShellCommandDataListener> = new Set();
   private stderrListeners: Set<ShellCommandDataListener> = new Set();
@@ -72,7 +75,7 @@ export class ShellCommand implements OutputChannelProvider {
     }
   }
 
-  start() {
+  async start() {
     this.proc = cp.spawn(this.command, this.args, {
       cwd: this.cwd,
       shell: true,
@@ -97,16 +100,45 @@ export class ShellCommand implements OutputChannelProvider {
 
       this.proc = null;
 
+      if (this.pidCheckInterval) {
+        clearInterval(this.pidCheckInterval);
+      }
+
       this.errorListeners.forEach((listener) => listener(err));
     });
 
     this.proc.on('close', (code, signal) => {
       this.proc = null;
 
+      if (this.pidCheckInterval) {
+        clearInterval(this.pidCheckInterval);
+      }
+
       this.closeListeners.forEach((listener) => listener(code, signal));
     });
 
     this.proc.unref();
+
+    // who knows, right
+    if (this.proc.pid) {
+      return;
+    }
+
+    const startDeferred = new Deferred<void>();
+
+    this.pidCheckInterval = setInterval(() => {
+      if (this.proc) {
+        if (this.proc.pid) {
+          clearInterval(this.pidCheckInterval);
+          startDeferred.resolve();
+        }
+      } else {
+        clearInterval(this.pidCheckInterval);
+        startDeferred.reject();
+      }
+    }, 100); // sounds like a reasonable interval
+
+    return startDeferred.promise;
   }
 
   stop(): Promise<null | { code: number, signal: NodeJS.Signals }> {

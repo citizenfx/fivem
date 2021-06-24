@@ -30,7 +30,7 @@ struct RequestWrap
 
 static ResUICallback MakeUICallback(fx::Resource* resource, const std::string& type, const std::string& ref)
 {
-	return [resource, type, ref](const std::string& path, const std::multimap<std::string, std::string>& headers, const std::string& postData, ResUIResultCallback cb)
+	return [resource, type, ref](const std::string& path, const std::string& query, const std::multimap<std::string, std::string>& headers, const std::string& postData, ResUIResultCallback cb)
 	{
 		RequestWrap req;
 		req.method = (postData.empty()) ? "GET" : "POST";
@@ -44,6 +44,11 @@ static ResUICallback MakeUICallback(fx::Resource* resource, const std::string& t
 		}
 
 		req.path = path.substr(type.length());
+
+		if (!query.empty())
+		{
+			req.path += "?" + query;
+		}
 
 		auto cbComponent = resource->GetManager()->GetComponent<fx::ResourceCallbackComponent>();
 
@@ -60,18 +65,21 @@ static ResUICallback MakeUICallback(fx::Resource* resource, const std::string& t
 				
 				if (auto hit = outObj.find("headers"); hit != outObj.end())
 				{
-					for (auto& pair : hit->second.as<std::map<std::string, msgpack::object>>())
+					if (hit->second.type != msgpack::type::ARRAY)
 					{
-						if (pair.second.type == msgpack::type::ARRAY)
+						for (auto& pair : hit->second.as<std::map<std::string, msgpack::object>>())
 						{
-							for (const auto& value : pair.second.as<std::vector<std::string>>())
+							if (pair.second.type == msgpack::type::ARRAY)
 							{
-								headers.emplace(boost::algorithm::to_lower_copy(pair.first), value);
+								for (const auto& value : pair.second.as<std::vector<std::string>>())
+								{
+									headers.emplace(boost::algorithm::to_lower_copy(pair.first), value);
+								}
 							}
-						}
-						else
-						{
-							headers.emplace(boost::algorithm::to_lower_copy(pair.first), pair.second.as<std::string>());
+							else
+							{
+								headers.emplace(boost::algorithm::to_lower_copy(pair.first), pair.second.as<std::string>());
+							}
 						}
 					}
 				}

@@ -1,11 +1,14 @@
 #include <StdInc.h>
 #include <LocalDevice.h>
 
+#include <VFSLinkExtension.h>
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <dirent.h>
 #include <fcntl.h>
+#include <errno.h>
 
 namespace vfs
 {
@@ -218,6 +221,31 @@ bool LocalDevice::ExtensionCtl(int controlIdx, void* controlData, size_t control
 		memcpy(data->fileId.data(), &buf.st_ino, std::min(sizeof(buf.st_ino), data->fileId.size()));
 
 		return true;
+	}
+	else if (controlIdx == VFS_MAKE_HARDLINK && controlSize == sizeof(MakeHardLinkExtension))
+	{
+		auto data = reinterpret_cast<MakeHardLinkExtension*>(controlData);
+
+		auto filename = realpath(data->existingPath.c_str(), NULL);
+
+		if (!filename)
+		{
+			return false;
+		}
+
+		auto success = link(filename, data->newPath.c_str()) == 0;
+
+		free(filename);
+
+		if (!success)
+		{
+			if (errno == EEXIST)
+			{
+				success = true;
+			}
+		}
+
+		return success;
 	}
 
 	return false;

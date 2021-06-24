@@ -29,7 +29,7 @@ static void RelocateRelative(std::initializer_list<PatternPair> list)
 		auto curTarget = hook::get_address<void*>(location);
 		assert(curTarget == oldAddress);
 
-		*location = (intptr_t)_vehicleModKitArray - (intptr_t)location - 4;
+		hook::put<int32_t>(location, (intptr_t)_vehicleModKitArray - (intptr_t)location - 4);
 	}
 }
 
@@ -49,7 +49,7 @@ static void RelocateAbsolute(std::initializer_list<PatternPair> list)
 		auto curTarget = *location;
 		assert(curTarget == oldAddress);
 
-		*location = (intptr_t)_vehicleModKitArray - hook::get_adjusted(0x140000000);
+		hook::put<int32_t>(location, (intptr_t)_vehicleModKitArray - hook::get_adjusted(0x140000000));
 	}
 }
 
@@ -75,6 +75,6 @@ static HookFunction hookFunction([]()
 
 	{
 		auto location = hook::get_pattern("B8 FF FF 00 00 48 8D 3D", 13);
-		*(int32_t*)location = NUM_MODKIT_INDICES;
+		hook::put<int32_t>(location, NUM_MODKIT_INDICES);
 	}
 });

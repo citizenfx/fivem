@@ -34,6 +34,10 @@ DEFINE_GUID(CfxStorageGuid,
 DEFINE_GUID(CfxStorageGuidRDR,
 	0x45acdd04, 0xeca8, 0x4c35, 0x96, 0x22, 0x4f, 0xab, 0x4c, 0xa1, 0x6e, 0x14);
 
+// {86219F24-F0E4-47C3-9D1F-4C7B156087EE}
+DEFINE_GUID(CfxStorageGuidNY,
+	0x86219f24, 0xf0e4, 0x47c3, 0x9d, 0x1f, 0x4c, 0x7b, 0x15, 0x60, 0x87, 0xee);
+
 
 #pragma comment(lib, "rpcrt4.lib")
 
@@ -63,6 +67,8 @@ std::string GetOwnershipPath()
         UuidToStringA(&CfxStorageGuid, &str);
 #elif defined(IS_RDR3)
 		UuidToStringA(&CfxStorageGuidRDR, &str);
+#elif defined(GTA_NY)
+		UuidToStringA(&CfxStorageGuidNY, &str);
 #else
 #error No entitlement GUID?
 #endif
@@ -148,7 +154,11 @@ bool LoadOwnershipTicket()
 			if (doc.IsObject())
 			{
 				g_entitlementSource = doc["guid"].GetString();
-				return true;
+
+				if (!g_entitlementSource.empty())
+				{
+					return true;
+				}
 			}
 		}
     }
@@ -616,9 +626,8 @@ void RunLegitimacyNui();
 
 std::string g_rosData;
 
-#if defined(IS_RDR3) || defined(GTA_FIVE)
 #include <array>
-
+#if defined(IS_RDR3) || defined(GTA_FIVE) || defined(GTA_NY)
 bool GetMTLSessionInfo(std::string& ticket, std::string& sessionTicket, std::array<uint8_t, 16>& sessionKey, uint64_t& accountId);
 #endif
 
@@ -631,8 +640,9 @@ bool VerifyRetailOwnershipInternal(int pass)
 	Botan::secure_vector<uint8_t> machineHash;
 	std::array<uint8_t, 16> sessionKeyArray;
 	std::string sessionTicket;
+	uint64_t accountId = 0;
 
-#ifdef GTA_FIVE
+#ifndef IS_RDR3
 	if (pass == 2)
 	{
 		trace(__FUNCTION__ ": Running legitimacy NUI.\n");
@@ -657,6 +667,7 @@ bool VerifyRetailOwnershipInternal(int pass)
 		Botan::AutoSeeded_RNG rng;
 		machineHash = rng.random_vec(32);
 		*(uint64_t*)&machineHash[4] = atoi(doc["RockstarId"].GetString()) ^ 0xDEADCAFEBABEFEED;
+		accountId = atoi(doc["RockstarId"].GetString());
 
 		trace(__FUNCTION__ ": Caught machine hash details from NUI.\n");
 	}
@@ -664,8 +675,6 @@ bool VerifyRetailOwnershipInternal(int pass)
 
 	if (pass == 1)
 	{
-		uint64_t accountId = 0;
-
 		if (!GetMTLSessionInfo(ticket, sessionTicket, sessionKeyArray, accountId))
 		{
 			return false;
@@ -693,7 +702,7 @@ bool VerifyRetailOwnershipInternal(int pass)
 
 	doc2.Accept(w);
 
-#ifndef IS_RDR3
+#ifdef GTA_FIVE
 	trace(__FUNCTION__ ": Going to call /ros/validate.\n");
 
 	auto b = cpr::Post(cpr::Url{ "http://localhost:32891/ros/validate" },
@@ -836,14 +845,20 @@ bool VerifyRetailOwnershipInternal(int pass)
 			MessageBox(nullptr, ToWide(b.text).c_str(), L"Authentication error", MB_OK | MB_ICONWARNING);
 		}).join();
 	}
-#elif defined(IS_RDR3)
+#else
 	auto r = cpr::Post(cpr::Url{ "https://lambda.fivem.net/api/validate/entitlement/ros2" },
 		cpr::Payload{
 			{ "ticket", ticket },
-			{ "gameName", "rdr3" },
+			{ "gameName",
+#ifdef GTA_NY
+				"gta4"
+#else
+				"rdr3"
+#endif
+			},
 			{ "sessionKey", sessionKey },
 			{ "sessionTicket", sessionTicket },
-			{ "rosId", fmt::sprintf("%d", ROS_DUMMY_ACCOUNT_ID) },
+			{ "rosId", fmt::sprintf("%d", accountId) },
 		});
 
 	if (r.error)
@@ -874,7 +889,7 @@ bool VerifyRetailOwnership()
 {
 	if (!VerifyRetailOwnershipInternal(1))
 	{
-#ifdef GTA_FIVE
+#ifndef IS_RDR3
 		return VerifyRetailOwnershipInternal(2);
 #else
 		return false;
@@ -920,6 +935,11 @@ void LoadOwnershipEarly()
 		SaveOwnershipTicket(tokenVar->GetValue());
 	}
 }
+
+static InitFunction initFunction([]()
+{
+	LoadOwnershipTicket();
+});
 
 static HookFunction hookFunction([]()
 {

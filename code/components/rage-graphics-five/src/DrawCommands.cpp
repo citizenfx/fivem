@@ -458,61 +458,52 @@ ID3D11DeviceContext* GetD3D11DeviceContext()
 	return *(ID3D11DeviceContext**)(*(uintptr_t*)(__readgsqword(88)) + g_d3d11DeviceContextOffset);
 }
 
-#if 0
 namespace rage
 {
 	static hook::cdecl_stub<bool(grmShaderFx*, const char*, void*, bool)> _grmShaderFx_LoadTechnique([]()
 	{
-		// 1604-unused
-		return (void*)0x141330094;
+		return hook::get_pattern("48 8B D9 BA 2E 00 00 00 48 8B CF 45 8A F1", -0x1C);
 	});
 
 	static hook::cdecl_stub<int(grmShaderFx*, int, bool, int)> _grmShaderFx_PushTechnique([]()
 	{
-		// 1604-unused
-		return (void*)0x14132E0F8;
+		return hook::get_pattern("4C 63 DA 83 F8 FF 75 07 0F B6 05", -6);
 	});
 
 	grmShaderFactory* grmShaderFactory::GetInstance()
 	{
-		// 1604-unused
-		return *(grmShaderFactory**)0x142B40F78;
+		static auto ptr = hook::get_address<grmShaderFactory**>(hook::get_pattern("84 C0 74 29 48 8B 0D ? ? ? ? 48 8B 01", 7));
+		return *ptr;
 	}
 
 	static hook::cdecl_stub<void(grmShaderDef*, int, grmShaderFx*)> _grmShaderDef_PushPass([]()
 	{
-		// 1604-unused
-		return (void*)0x1412ECD74;
+		return hook::get_pattern("8B C2 49 8B F0 4C 8D 0C 40", -0x15);
 	});
 
 	static hook::cdecl_stub<void(grmShaderDef*)> _grmShaderDef_PopPass([]()
 	{
-		// 1604-unused
-		return (void*)0x1412F630C;
+		return hook::get_call(hook::get_pattern("0F 8C 0C FE FF FF 48 8B CE E8", 9));
 	});
 
 	static hook::cdecl_stub<int(grmShaderDef*, const char*)> _grmShaderDef_GetParameter([]()
 	{
-		// 1604-unused
-		return (void*)0x141304028;
+		return hook::get_call(hook::get_pattern("89 43 40 48 8B 43 08 48 8B 48 08 E8", 11));
 	});
 
 	static hook::cdecl_stub<int(grmShaderDef*, const char*)> _grmShaderDef_GetTechnique([]()
 	{
-		// 1604-unused
-		return (void*)0x141303EAC;
+		return hook::get_call(hook::get_pattern("41 B0 01 48 8B 49 08 8B E8 E8 ? ? ? ? 48", 9));
 	});
 
 	static hook::cdecl_stub<void(grmShaderDef*, grmShaderFx*, int, void*)> _grmShaderDef_SetSampler([]()
 	{
-		// 1604-unused
-		return (void*)0x14130CE88;
+		return hook::get_pattern("74 47 41 8D 40 FF 48 63 C8 48 8B 02 48 03 C9", -6);
 	});
 
 	static hook::cdecl_stub<void(grmShaderDef*, grmShaderFx*, int, const void*, int, int)> _grmShaderDef_SetParameter([]()
 	{
-		// 1604-unused
-		return (void*)0x14130AB8C;
+		return hook::get_pattern("74 4E 44 8B 54 24 30 45 85 D2 7E", -3);
 	});
 
 	void grmShaderDef::PushPass(int pass, grmShaderFx* shader)
@@ -552,7 +543,7 @@ namespace rage
 
 	int grmShaderFx::PushTechnique(int technique, bool unk1, int a4)
 	{
-		return _grmShaderFx_PushTechnique(this, technique, unk1, a4);
+		return _grmShaderFx_PushTechnique(this, a4, unk1, technique);
 	}
 
 	void grmShaderFx::PushPass(int index)
@@ -567,15 +558,14 @@ namespace rage
 
 	void grmShaderFx::PopTechnique()
 	{
-		// 1604-unused
-		*(void**)0x142B07F80 = nullptr;
+		static void** ptr = hook::get_address<void**>(hook::get_pattern("FF C9 48 C1 E1 05 49 03 09 48 89 0D", 12));
+		*ptr = nullptr;
 	}
 }
 
 static hook::cdecl_stub<void(const float*)> _setWorldMatrix([]()
 {
-	// 1604-unused
-	return (void*)0x141309F58;
+	return hook::get_pattern("0F 28 69 30 0F 28 49 20 0F 28 61 10 0F", -0xB);
 });
 
 void SetWorldMatrix(const float* matrix)
@@ -583,40 +573,8 @@ void SetWorldMatrix(const float* matrix)
 	_setWorldMatrix(matrix);
 }
 
-#include <MinHook.h>
-
-static void(*g_origRenderEntityList)(void* a1, void* a2, void* a3, void* a4, void* a5, void* a6, void* a7);
-
-fwEvent<> OnTempDrawEntityList;
-
-void RenderEntityList(void* a1, void* a2, void* a3, void* a4, void* a5, void* a6, void* a7)
-{
-	OnTempDrawEntityList();
-
-	g_origRenderEntityList(a1, a2, a3, a4, a5, a6, a7);
-}
-
-static void(*g_origRunScannedEntityList)(void* a1, void* a2, void* a3, void* a4, void* a5, void* a6, void* a7);
-
-void RunScannedEntityList(void* a1, void* a2, void* a3, void* a4, void* a5, void* a6, void* a7)
-{
-	OnTempDrawEntityList();
-
-	g_origRunScannedEntityList(a1, a2, a3, a4, a5, a6, a7);
-}
-#endif
-
 static HookFunction hookFunction([] ()
 {
-	//MH_Initialize();
-	// 1604, TEMP/TODO, unused
-	//MH_CreateHook((void*)0x1404E9884, RenderEntityList, (void**)& g_origRenderEntityList);
-	// -> this MH_CreateHook((void*)0x1415955E0, RunScannedEntityList, (void**)&g_origRunScannedEntityList);
-	//hook::set_call(&g_origRunOnEntityList, )
-	//hook::set_call(&g_origRenderEntityList, 0x1404F3D8D);
-	//hook::call(0x1404F31C8, RenderEntityList);
-	//MH_EnableHook(MH_ALL_HOOKS);
-
 	char* location = hook::pattern("44 8B CE 33 D2 48 89 0D").count(1).get(0).get<char>(8);
 
 	g_d3d11Device = (ID3D11Device**)(location + *(int32_t*)location + 4);

@@ -5,13 +5,11 @@ return {
 	
 	run = function()
 		targetname 'citizen_util'
-		language 'C++'
+		language 'C'
 		kind 'StaticLib'
 		
-        add_dependencies("vendor:xenium")
-		
-        files_project "../vendor/citizen_util/src/" {
-			"*.cpp"
+		files {
+			'vendor/dummy.c'
 		}
 	end
 }

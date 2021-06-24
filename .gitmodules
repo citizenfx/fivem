@@ -1,7 +1,6 @@
 [submodule "vendor/jitasm"]
 	path = vendor/jitasm
-	url = http://tohjo.eu/citidev/jitasm.git
-	branch = master
+	url = https://github.com/citizenfx/jitasm.git
 [submodule "vendor/yaml-cpp"]
 	path = vendor/yaml-cpp
 	url = https://github.com/jbeder/yaml-cpp.git
@@ -204,7 +203,7 @@
 	url = https://github.com/cameron314/concurrentqueue.git
 [submodule "vendor/xenium"]
 	path = vendor/xenium
-	url = https://github.com/mpoeter/xenium
+	url = https://github.com/citizenfx/xenium.git
 [submodule "vendor/re3"]
 	path = vendor/re3
 	url = https://git.gta.re/blattersturm/re3.git
@@ -228,7 +227,7 @@
 [submodule "vendor/lua"]
 	path = vendor/lua
 	url = https://github.com/citizenfx/lua.git
-	branch = grit
+	branch = luaglm-dev/cfx
 [submodule "vendor/tinygltf"]
 	path = vendor/tinygltf
 	url = https://github.com/syoyo/tinygltf.git
@@ -259,3 +258,20 @@
 [submodule "vendor/hdiffpatch"]
 	path = vendor/hdiffpatch
 	url = https://github.com/sisong/HDiffPatch.git
+[submodule "vendor/speexdsp"]
+	path = vendor/speexdsp
+	url = https://github.com/xiph/speexdsp.git
+[submodule "vendor/fx11"]
+	path = vendor/fx11
+	url = https://github.com/microsoft/FX11
+[submodule "vendor/im3d"]
+	path = vendor/im3d
+	url = https://github.com/john-chapman/im3d.git
+[submodule "vendor/lmprof"]
+	path = vendor/lmprof
+	url = https://github.com/citizenfx/lmprof.git
+	branch = grit
+[submodule "vendor/rpmalloc"]
+	path = vendor/rpmalloc
+	url = https://github.com/citizenfx/rpmalloc.git
+	branch = lua

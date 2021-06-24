@@ -1,6 +1,6 @@
 import * as ws from 'ws';
 import { inject, injectable, postConstruct } from 'inversify';
-import { SingleEventEmitter } from 'backend/single-event-emitter';
+import { SingleEventEmitter } from 'utils/singleEventEmitter';
 import { LogService } from 'backend/logger/log-service';
 import { ShellBackend } from 'backend/shell-backend';
 

@@ -1,0 +1,9 @@
+@import "variables";
+
+.running svg {
+  color: $scColor;
+}
+
+.conflicting svg {
+  color: $erColor;
+}

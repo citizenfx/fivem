@@ -24,7 +24,7 @@ namespace rage
 
 			inline static bool IsRenderSystemColorSwapped()
 			{
-				return false;
+				return true;
 			}
 		};
 

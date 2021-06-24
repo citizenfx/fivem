@@ -118,6 +118,77 @@ void ExecutableLoader::LoadSection(IMAGE_SECTION_HEADER* section)
 
 	DWORD oldProtect;
 	VirtualProtect(targetAddress, section->Misc.VirtualSize, PAGE_EXECUTE_READWRITE, &oldProtect);
+
+	DWORD protection = 0;
+	if (section->Characteristics & IMAGE_SCN_MEM_NOT_CACHED)
+	{
+		protection |= PAGE_NOCACHE;
+	}
+
+	if (section->Characteristics & IMAGE_SCN_MEM_EXECUTE)
+	{
+		if (section->Characteristics & IMAGE_SCN_MEM_READ)
+		{
+			if (section->Characteristics & IMAGE_SCN_MEM_WRITE)
+			{
+				protection |= PAGE_EXECUTE_READWRITE;
+			}
+			else
+			{
+				protection |= PAGE_EXECUTE_READ;
+			}
+		}
+		else
+		{
+			if (section->Characteristics & IMAGE_SCN_MEM_WRITE)
+			{
+				protection |= PAGE_EXECUTE_WRITECOPY;
+			}
+			else
+			{
+				protection |= PAGE_EXECUTE;
+			}
+		}
+	}
+	else
+	{
+		if (section->Characteristics & IMAGE_SCN_MEM_READ)
+		{
+			if (section->Characteristics & IMAGE_SCN_MEM_WRITE)
+			{
+				protection |= PAGE_READWRITE;
+			}
+			else
+			{
+				protection |= PAGE_READONLY;
+			}
+		}
+		else
+		{
+			if (section->Characteristics & IMAGE_SCN_MEM_WRITE)
+			{
+				protection |= PAGE_WRITECOPY;
+			}
+			else
+			{
+				protection |= PAGE_NOACCESS;
+			}
+		}
+	}	
+
+	if (protection)
+	{
+		m_targetProtections.push_back({ targetAddress, section->Misc.VirtualSize, protection });
+	}
+}
+
+void ExecutableLoader::Protect()
+{
+	for (const auto& protection : m_targetProtections)
+	{
+		DWORD op;
+		VirtualProtect(std::get<0>(protection), std::get<1>(protection), std::get<2>(protection), &op);
+	}
 }
 
 void ExecutableLoader::LoadSections(IMAGE_NT_HEADERS* ntHeader)
@@ -263,12 +334,6 @@ void ExecutableLoader::LoadIntoModule(HMODULE module)
 	// copy over TLS index (source in this case indicates the TLS data to copy from, which is the launcher app itself)
 	if (ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].Size)
 	{
-#if defined(GTA_NY)
-		const IMAGE_TLS_DIRECTORY* targetTls = GetRVA<IMAGE_TLS_DIRECTORY>(ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress);
-		const IMAGE_TLS_DIRECTORY* sourceTls = GetTargetRVA<IMAGE_TLS_DIRECTORY>(sourceNtHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress);
-
-		*(DWORD*)(targetTls->AddressOfIndex) = *(DWORD*)(sourceTls->AddressOfIndex);
-#else
 		const IMAGE_TLS_DIRECTORY* targetTls = GetTargetRVA<IMAGE_TLS_DIRECTORY>(sourceNtHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress);
 		const IMAGE_TLS_DIRECTORY* sourceTls = GetTargetRVA<IMAGE_TLS_DIRECTORY>(ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress);
 
@@ -292,11 +357,6 @@ void ExecutableLoader::LoadIntoModule(HMODULE module)
 			memcpy(tlsBase, reinterpret_cast<void*>(sourceTls->StartAddressOfRawData), sourceTls->EndAddressOfRawData - sourceTls->StartAddressOfRawData);
 			memcpy((void*)targetTls->StartAddressOfRawData, reinterpret_cast<void*>(sourceTls->StartAddressOfRawData), sourceTls->EndAddressOfRawData - sourceTls->StartAddressOfRawData);
 		}
-		/*#else
-			const IMAGE_TLS_DIRECTORY* targetTls = GetTargetRVA<IMAGE_TLS_DIRECTORY>(ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress);
-
-			m_tlsInitializer(targetTls);*/
-#endif
 	}
 
 	// store the entry point
@@ -305,7 +365,7 @@ void ExecutableLoader::LoadIntoModule(HMODULE module)
 	// copy over the offset to the new imports directory
 	sourceNtHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT] = ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
 
-#if defined(GTA_FIVE) || defined(IS_RDR3)
+#if defined(GTA_FIVE) || defined(IS_RDR3) || defined(GTA_NY)
 	memcpy(sourceNtHeader, ntHeader, sizeof(IMAGE_NT_HEADERS) + (ntHeader->FileHeader.NumberOfSections * (sizeof(IMAGE_SECTION_HEADER))));
 #endif
 
@@ -326,7 +386,15 @@ bool ExecutableLoader::ApplyRelocations()
 	IMAGE_BASE_RELOCATION* relocation = GetTargetRVA<IMAGE_BASE_RELOCATION>(relocationDirectory->VirtualAddress);
 	IMAGE_BASE_RELOCATION* endRelocation = reinterpret_cast<IMAGE_BASE_RELOCATION*>((char*)relocation + relocationDirectory->Size);
 
-	intptr_t relocOffset = reinterpret_cast<intptr_t>(m_module) - 0x140000000;
+	constexpr uintptr_t base =
+#ifdef _M_AMD64
+	0x140000000
+#else
+	0x400000
+#endif
+	;
+
+	intptr_t relocOffset = reinterpret_cast<intptr_t>(m_module) - static_cast<intptr_t>(base);
 
 	if (relocOffset == 0)
 	{

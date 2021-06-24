@@ -1,4 +1,5 @@
 local USE_SPLIT_LUA, USE_DOC_LUA = ...
+local USE_SPLIT_LUA_DIRECT = USE_SPLIT_LUA and gApiSet ~= 'server'
 
 if USE_SPLIT_LUA or USE_DOC_LUA then
 	if not os.getenv('NATIVES_DIR') or #os.getenv('NATIVES_DIR') < 2 then
@@ -40,6 +41,11 @@ print("\tif num == 0 or not num then -- workaround for users calling string para
 print("\t\treturn nil")
 print("\tend")
 print("\treturn _tostring(num)")
+print("end")
+
+print("local function _obj(obj)")
+print("\tlocal s = msgpack.pack(obj)")
+print("\treturn s, #s")
 print("end")
 
 print("local function _ch(hash)")
@@ -105,6 +111,8 @@ local function printArgument(argument, native)
 		else
 			return '_i --[[ actually ' .. argument.type.nativeType .. ' ]]'
 		end
+	elseif argument.type.name == 'object' then
+		return '_obj(' .. printArgumentName(argument.name) .. ')'
 	elseif argument.type.name == 'func' then
 		return '_mfr(' .. printArgumentName(argument.name) .. ')'
 	elseif argument.type.name == 'Hash' then
@@ -154,7 +162,7 @@ end
 
 local function printInvocationArguments(native)
 	local args = {
-		native.hash
+		USE_SPLIT_LUA_DIRECT and 'fn' or native.hash
 	}
 
 	if native.arguments then
@@ -164,10 +172,10 @@ local function printInvocationArguments(native)
 	end
 
 	if native.returns then
-		table.insert(args, '_r')
-
 		if native.returns.nativeType ~= 'bool' then
 			table.insert(args, printReturnType(native.returns))
+		else
+			table.insert(args, '_r')
 		end
 	end
 
@@ -280,7 +288,13 @@ local function printNative(native)
 	local str = ""
 
 	local function printThis(name)
-		local str = string.format("%sfunction %s%s(%s)\n", formatDocString(native), USE_DOC_LUA and '' or 'Global.', name, printArgumentList(native))
+		local prefix = ""
+		
+		if USE_SPLIT_LUA_DIRECT then
+			prefix = string.format("local fn = _gn(%s)\n", native.hash)
+		end
+	
+		local str = string.format("%s%sfunction %s%s(%s)\n", prefix, formatDocString(native), USE_DOC_LUA and '' or 'Global.', name, printArgumentList(native))
 
 		if not USE_DOC_LUA then
 			local preCall = ''
@@ -291,7 +305,7 @@ local function printNative(native)
 				postCall = ')'
 			end
 		
-			str = str .. string.format("\treturn %s_in(%s)%s\n", preCall, printInvocationArguments(native), postCall)
+			str = str .. string.format("\treturn %s_in%s(%s)%s\n", preCall, USE_SPLIT_LUA_DIRECT and '2' or '', printInvocationArguments(native), postCall)
 		end
 	
 		str = str .. "end\n"

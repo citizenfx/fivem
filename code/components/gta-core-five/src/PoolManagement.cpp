@@ -1,6 +1,7 @@
 #include <StdInc.h>
 #include <Pool.h>
 
+#include <jitasm.h>
 #include <Hooking.h>
 
 #include <MinHook.h>

@@ -8,6 +8,169 @@ export interface ChangelogEntry {
 
 export const changelogEntries: ChangelogEntry[] = [
   {
+    id: '2021-05-14',
+    title: 'May 14, 2021',
+    content: (
+      <>
+        <ul>
+          <li>
+            ⚠️ If you were using <kbd>.fxdkignore</kbd> files in your project they were treated wrong as it was <kbd>.fxdkinclude</kbd>, this has been fixed.
+            <br/>
+            These files actually must contain list of rules for files to actually ignore during build.
+          </li>
+          <li>
+            ⚠️ In-project <kbd>system-resources</kbd> has been <strong>deprecated</strong>, we'll do our best to upgrade your project when it opens.
+            <br/>
+            Though, if you did modify that folder we will not remove it, but only rename, <em>shame on you</em>!
+          </li>
+          <li>
+            System resources needed for project can now be tweaked in <strong>Project Settings</strong>
+          </li>
+          <li>
+            You can now import some example resources from cfx-server-data
+          </li>
+        </ul>
+      </>
+    ),
+  },
+  {
+    id: '2021-05-08',
+    title: 'May 8, 2021',
+    content: (
+      <>
+        <ul>
+          <li>
+            Removed client resource monitor theia widget 😭
+          </li>
+          <li>
+            Added combined (both client and server) resource monitor theia widget 🎉
+            <br/>
+            Do note that server data will only be available if using latest server artifact ⚠️
+          </li>
+        </ul>
+      </>
+    ),
+  },
+  {
+    id: '2021-05-04',
+    title: 'May 4, 2021',
+    content: (
+      <>
+        <ul>
+          <li>
+            Added client resource monitor theia widget 🎉
+            <br/>
+            This is pretty basic for now, but it's a solid base for a tighter integration
+          </li>
+        </ul>
+      </>
+    ),
+  },
+  {
+    id: '2021-03-24',
+    title: 'March 24, 2021',
+    content: (
+      <>
+        <ul>
+          <li>
+            Fixed game connecting to server too early, hopefully
+          </li>
+          <li>
+            Fixed project explorer not showing correct fs tree when importing stuff add over 9000 of files in a blink
+          </li>
+        </ul>
+      </>
+    ),
+  },
+  {
+    id: '2021-03-23',
+    title: 'March 23, 2021',
+    content: (
+      <>
+        <ul>
+          <li>
+            Fix most cases of EPERM while deleting/renaming folders, but not all of them:
+            <ul>
+              <li>
+                tsserver of typescript-language-features ext of theia is still using node's broken file watcher
+                so it will still EPERM if deleting/renaming folder containing tsconfig.json, rip
+              </li>
+              <li>
+                omnisharp of csharp-language-features ext of theia will also block deleting/renaming of folder with cs resource, rip
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </>
+    ),
+  },
+  {
+    id: '2021-03-17',
+    title: 'March 17, 2021',
+    content: (
+      <>
+        <ul>
+          <li>
+            Fixed theia's terminal not working
+          </li>
+          <li>
+            Added directory rename (how did I forget about that 🧐)
+          </li>
+          <li>
+            Hopefully fixed rare deadlocks during opening/creating project
+          </li>
+        </ul>
+      </>
+    ),
+  },
+  {
+    id: '2021-03-16',
+    title: 'March 16, 2021',
+    content: (
+      <>
+        <ul>
+          <li>
+            Fixed some system resources not actually be enabled right after project creation
+          </li>
+          <li>
+            Added default project build path: for project <kbd>C</kbd> in <kbd>/a/b/c</kbd> default build path will be <kbd>/a/b/c-build</kbd>
+          </li>
+          <li>
+            Added ability to resize FxDK's toolbar
+          </li>
+        </ul>
+      </>
+    ),
+  },
+  {
+    id: '2021-03-13',
+    title: 'March 13, 2021',
+    content: (
+      <>
+        <ul>
+          <li>
+            Issue with different game builds not connecting to server has been fixed
+          </li>
+        </ul>
+      </>
+    ),
+  },
+  {
+    id: '2021-03-12',
+    title: 'March 12, 2021',
+    content: (
+      <>
+        <ul>
+          <li>
+            <strong>Ditched embedded filesystem viewer (as seen in project creator) in favor of system's folder select dialog</strong>
+            <br/>
+            This is due to a big amount of unforeseen edge-cases that sometimes cause viewer to be completely broken.
+          </li>
+        </ul>
+      </>
+    ),
+  },
+  {
     id: 'initial',
     title: 'FxDK Pre-release 🎉',
     content: (

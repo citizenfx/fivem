@@ -8,8 +8,12 @@
 
 #undef RemoveDirectory
 #define RemoveDirectory RemoveDirectoryW
+
+#undef GetModuleHandle
+#define GetModuleHandle GetModuleHandleW
 #endif
 
+#include <CoreConsole.h>
 #include <DrawCommands.h>
 #include <grcTexture.h>
 #include <VFSManager.h>
@@ -27,6 +31,18 @@
 #include "Hud.h"
 #include "Clock.h"
 #include "Streaming.h"
+
+static bool ReEnabled()
+{
+	auto e = console::GetDefaultContext()->GetVariableManager()->FindEntryRaw("ui_customBackdrop");
+
+	if (e)
+	{
+		return e->GetValue().empty();
+	}
+
+	return true;
+}
 
 DLL_IMPORT ID3D11Device* GetRawD3D11Device();
 
@@ -191,6 +207,12 @@ static InitFunction initFunction([]()
 	{
 		if (wcscmp(type, L"enterGameplay") == 0)
 		{
+			if (!ReEnabled())
+			{
+				nui::PostFrameMessage("mpMenu", R"({ "type": "exitGameplay" })");
+				return;
+			}
+
 			nui::SetHideCursor(true);
 			bWantsGameplay = true;
 		}
@@ -198,6 +220,11 @@ static InitFunction initFunction([]()
 
 	OnPostFrontendRender.Connect([]()
 	{
+		if (!ReEnabled())
+		{
+			return;
+		}
+
 		static rage::grcTexture* gTex = NULL;
 
 		static bool inited = false;
@@ -375,6 +402,18 @@ static InitFunction initFunction([]()
 
 	OnPostFrontendRender.Connect([]()
 	{
+		using namespace std::chrono_literals;
+
+		static auto last = std::chrono::high_resolution_clock::now().time_since_epoch();
+		auto now = std::chrono::high_resolution_clock::now().time_since_epoch();
+
+		if ((now - last) < 33333us)
+		{
+			return;
+		}
+
+		last = now;
+
 		auto dev = GetD3D11Device();
 		ID3D11Device1* dev1;
 		if (FAILED(dev->QueryInterface(&dev1)))

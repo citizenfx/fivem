@@ -1,15 +1,14 @@
 import { inject, injectable } from 'inversify';
 import { WorkspaceService } from '@theia/workspace/lib/browser';
 import { FrontendApplicationContribution, OpenerService, open, WidgetManager } from '@theia/core/lib/browser';
-import { EditorWidget } from '@theia/editor/lib/browser/editor-widget';
 
 import { FxdkWorkspaceService } from './rebindWorkspaceService';
 import URI from '@theia/core/lib/common/uri';
 import { CommandService } from '@theia/core';
-import { FxdkDataService, StructuredMessage } from './fxdk-data-service';
 
 import { FxdkGameView, FxdkGameViewContribution } from 'fxdk-game-view/lib/browser/fxdk-game-view-view';
 import { FrontendApplicationState, FrontendApplicationStateService } from '@theia/core/lib/browser/frontend-application-state';
+import { ClientResourceData, FxdkDataService, GameStates, ServerResourceData, StructuredMessage } from 'fxdk-services/lib/browser/fxdk-data-service';
 
 const stateToNumber: Record<FrontendApplicationState, number> = {
   init: 0,
@@ -27,6 +26,8 @@ function mapStateToNumber(state: FrontendApplicationState): number {
 function mapFxdkFolderToTheiaFolder(folder: string): string {
   return folder.replace(/\\/g, '/');
 }
+
+const eventHandlersCache: Record<string, string | null> = {};
 
 @injectable()
 export class FxdkProjectContribution implements FrontendApplicationContribution {
@@ -52,22 +53,32 @@ export class FxdkProjectContribution implements FrontendApplicationContribution 
     window.parent.postMessage({ type: 'theia:ready' }, '*');
 
     window.addEventListener('message', (e) => {
-      if (typeof e.data !== 'object' || e.data === null) {
+      if (typeof e.data !== 'object' || e.data === null || (typeof e.data.type !== 'string')) {
         return;
       }
 
       const { type, data } = e.data;
 
-      if (type.indexOf('fxdk:') !== 0) {
+      let method = eventHandlersCache[type];
+      if (method === undefined) {
+        if (type.indexOf('fxdk:') !== 0) {
+          return;
+        }
+
+        const methodBase = type.substr(5);
+        method = 'handle' + methodBase[0].toUpperCase() + methodBase.substr(1);
+
+        if (typeof this[method] === 'undefined') {
+          eventHandlersCache[type] = null;
+          return;
+        } else {
+          eventHandlersCache[type] = method;
+        }
+      } else if (method === null) {
         return;
       }
 
-      const methodBase = type.substr(5);
-      const method = 'handle' + methodBase[0].toUpperCase() + methodBase.substr(1);
-
-      if (typeof this[method] !== 'undefined') {
-        return this[method](data);
-      }
+      return this[method](data);
     });
 
     document.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -100,6 +111,14 @@ export class FxdkProjectContribution implements FrontendApplicationContribution 
   private handleAddFolders(folders: string[]) {
     console.log('adding folders', folders);
     return this.fxdkWorkspaceService.addFolders(folders.map(mapFxdkFolderToTheiaFolder));
+  }
+
+  private handleSetIsActive(isActive: boolean) {
+    this.dataService.setTheiaIsActive(isActive);
+  }
+
+  private handleSetGameState(gameState: GameStates) {
+    this.dataService.setGameState(gameState);
   }
 
   private handleOpenFile(file: string) {
@@ -160,6 +179,14 @@ export class FxdkProjectContribution implements FrontendApplicationContribution 
 
   private handleClearGameOutput() {
     this.dataService.clearGameOutput();
+  }
+
+  private handleClientResourcesData(data: ClientResourceData[]) {
+    this.dataService.setClientResourcesData(data);
+  }
+
+  private handleServerResourcesData(data: ServerResourceData[]) {
+    this.dataService.setServerResourcesData(data);
   }
 
   private reachedState(state: FrontendApplicationState) {

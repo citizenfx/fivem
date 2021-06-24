@@ -137,129 +137,111 @@ public:
 	}
 };
 
+struct RelativeRedirection
+{
+	std::string mount;
+	std::string targetPath;
+	bool relativeFlag = false;
+	rage::fiPackfile* fiPackfile = nullptr;
+	fwRefContainer<vfs::Device> cfxDevice;
+
+	inline RelativeRedirection(const std::string& mount, const std::string& relativePath, bool relativeFlag = true)
+		: mount(mount), targetPath(relativePath), relativeFlag(relativeFlag)
+	{
+	}
+
+	inline RelativeRedirection(const std::string& mount, const fwRefContainer<vfs::Device>& cfxDevice)
+		: mount(mount), cfxDevice(cfxDevice)
+	{
+	}
+
+	inline RelativeRedirection(const std::string& mount, rage::fiPackfile* fiPackfile)
+		: mount(mount), fiPackfile(fiPackfile)
+	{
+	}
+
+	void Apply()
+	{
+		if (cfxDevice.GetRef())
+		{
+			vfs::Mount(cfxDevice, mount);
+		}
+		else if (fiPackfile)
+		{
+			fiPackfile->Mount(mount.c_str());
+		}
+		else
+		{
+			rage::fiDeviceRelative* device = new rage::fiDeviceRelative();
+			device->SetPath(targetPath.c_str(), relativeFlag);
+			device->Mount(mount.c_str());
+		}
+	}
+};
+
+template<typename TContainer>
+static void ApplyPaths(TContainer& container)
+{
+	for (RelativeRedirection& value : container)
+	{
+		value.Apply();
+	}
+
+	container.clear();
+}
+
 static InitFunction initFunction([] ()
 {
 	rage::fiDevice::OnInitialMount.Connect([] ()
 	{
-		std::wstring citPath = MakeRelativeCitPath(L"citizen");
+		std::vector<RelativeRedirection> relativePaths;
+		relativePaths.emplace_back("citizen:/", ToNarrow(MakeRelativeCitPath("citizen/")));
+		relativePaths.emplace_back("cfx:/", ToNarrow(MakeRelativeCitPath("")));
 
-		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
-		std::string citRoot = converter.to_bytes(citPath) + "\\";
+		auto cacheRoot = MakeRelativeCitPath(fmt::sprintf(L"data/server-cache%s/", ToWide(launch::GetPrefixedLaunchModeKey("-"))));
+		CreateDirectoryW(cacheRoot.c_str(), NULL);
 
-		rage::fiDeviceRelative* device = new rage::fiDeviceRelative();
-		device->SetPath(citRoot.c_str(), true);
-		device->Mount("citizen:/");
-
-		// mount cfx:/ -> citizen folder
-		std::string fxRoot = converter.to_bytes(MakeRelativeCitPath(L""));
-
-		rage::fiDeviceRelative* cfxDevice = new rage::fiDeviceRelative();
-		cfxDevice->SetPath(fxRoot.c_str(), true);
-		cfxDevice->Mount("cfx:/");
-
-		std::wstring cachePath = MakeRelativeCitPath(fmt::sprintf(L"cache%s", ToWide(launch::GetPrefixedLaunchModeKey("\\"))));
-
-		if (GetFileAttributes(cachePath.c_str()) == INVALID_FILE_ATTRIBUTES)
-		{
-			CreateDirectory(cachePath.c_str(), nullptr);
-		}
-
-		std::string cacheRoot = converter.to_bytes(cachePath) + "\\";
-
-		rage::fiDeviceRelative* cacheDevice = new rage::fiDeviceRelative();
-		cacheDevice->SetPath(cacheRoot.c_str(), true);
-		cacheDevice->Mount("rescache:/");
+		relativePaths.emplace_back("rescache:/", ToNarrow(cacheRoot));
 
 		if (!Is372())
 		{
-			std::string narrowPath;
+			std::string targetPath;
 
 			if (!CfxIsSinglePlayer())
 			{
-				std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
-				narrowPath = converter.to_bytes(MakeRelativeCitPath(L"citizen\\common\\"s));
-
-				fwRefContainer<PathFilteringDevice> filterDevice = new PathFilteringDevice(narrowPath);
-				vfs::Mount(filterDevice, "commonFilter:/");
-
-				narrowPath = "commonFilter:/";
+				relativePaths.emplace_back("commonFilter:/", new PathFilteringDevice(ToNarrow(MakeRelativeCitPath(L"citizen\\common\\"s))));
+				targetPath = "commonFilter:/";
 			}
 			else if (CfxIsSinglePlayer())
 			{
-				std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
-				narrowPath = converter.to_bytes(MakeRelativeCitPath(L"citizen\\common"s + (CfxIsSinglePlayer() ? L"-sp" : L"")));
+				targetPath = ToNarrow(MakeRelativeCitPath(L"citizen\\common-sp"s));
 			}
-#if 0
-			else
-			{
-				static fwRefContainer<vfs::RagePackfile7> citizenCommon = new vfs::RagePackfile7();
-				if (!citizenCommon->OpenArchive("citizen:/citizen_common.rpf", true))
-				{
-					FatalError("Opening citizen_common.rpf failed!");
-				}
 
-				vfs::Mount(citizenCommon, "citizen_common:/");
-				narrowPath = "citizen_common:/";
-			}
-#endif
-
-			rage::fiDeviceRelative* relativeDevice = new rage::fiDeviceRelative();
-			relativeDevice->SetPath(narrowPath.c_str(), nullptr, true);
-			relativeDevice->Mount("common:/");
-
-			rage::fiDeviceRelative* relativeDeviceCrc = new rage::fiDeviceRelative();
-			relativeDeviceCrc->SetPath(narrowPath.c_str(), nullptr, true);
-			relativeDeviceCrc->Mount("commoncrc:/");
-
-			rage::fiDeviceRelative* relativeDeviceGc = new rage::fiDeviceRelative();
-			relativeDeviceGc->SetPath(narrowPath.c_str(), nullptr, true);
-			relativeDeviceGc->Mount("gamecache:/");
-
+			relativePaths.emplace_back("common:/", targetPath);
+			relativePaths.emplace_back("commoncrc:/", targetPath);
+			relativePaths.emplace_back("gamecache:/", targetPath);
 		}
 
 		{
-			std::string narrowPath;
+			auto targetPath = ToNarrow(MakeRelativeCitPath(L"citizen\\platform"s + (CfxIsSinglePlayer() ? L"-sp" : L"")));
 
-			if (CfxIsSinglePlayer() || true)
-			{
-				std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
-				narrowPath = converter.to_bytes(MakeRelativeCitPath(L"citizen\\platform"s + (CfxIsSinglePlayer() ? L"-sp" : L"")));
-			}
-			else
-			{
-				static fwRefContainer<vfs::RagePackfile7> citizenPlatform = new vfs::RagePackfile7();
-				if (!citizenPlatform->OpenArchive("citizen:/citizen_platform.rpf", true))
-				{
-					FatalError("Opening citizen_platform.rpf failed!");
-				}
-
-				vfs::Mount(citizenPlatform, "citizen_platform:/");
-				narrowPath = "citizen_platform:/";
-			}
-
-			rage::fiDeviceRelative* relativeDevice = new rage::fiDeviceRelative();
-			relativeDevice->SetPath(narrowPath.c_str(), nullptr, true);
-			relativeDevice->Mount("platform:/");
-
-			rage::fiDeviceRelative* relativeDeviceCrc = new rage::fiDeviceRelative();
-			relativeDeviceCrc->SetPath(narrowPath.c_str(), nullptr, true);
-			relativeDeviceCrc->Mount("platformcrc:/");
+			relativePaths.emplace_back("platform:/", targetPath);
+			relativePaths.emplace_back("platformcrc:/", targetPath);
 		}
 
 		{
-			auto narrowPath = ToNarrow(MakeRelativeCitPath(fmt::sprintf(L"citizen\\platform-%d", xbr::GetGameBuild())));
+			auto targetPath = ToNarrow(MakeRelativeCitPath(fmt::sprintf(L"citizen\\platform-%d", xbr::GetGameBuild())));
 
-			rage::fiDeviceRelative* relativeDevice = new rage::fiDeviceRelative();
-			relativeDevice->SetPath(narrowPath.c_str(), nullptr, true);
-			relativeDevice->Mount("platform:/");
-
-			rage::fiDeviceRelative* relativeDeviceCrc = new rage::fiDeviceRelative();
-			relativeDeviceCrc->SetPath(narrowPath.c_str(), nullptr, true);
-			relativeDeviceCrc->Mount("platformcrc:/");
+			relativePaths.emplace_back("platform:/", targetPath);
+			relativePaths.emplace_back("platformcrc:/", targetPath);
 		}
 
-		if (CfxIsSinglePlayer() || true)
+		// we will try to fetch `cfx:/` soon, so apply current state
+		ApplyPaths(relativePaths);
+
 		{
+			auto cfxDevice = rage::fiDevice::GetDevice("cfx:/", true);
+
 			rage::fiFindData findData;
 			auto handle = cfxDevice->FindFirst("cfx:/addons/", &findData);
 
@@ -277,27 +259,15 @@ static InitFunction initFunction([] ()
 							std::string addonRoot = "addons:/" + fn.substr(0, fn.find_last_of('.')) + "/";
 
 							rage::fiPackfile* addonPack = new rage::fiPackfile();
-							addonPack->OpenPackfile(fullFn.c_str(), true, false, 0);
-							addonPack->Mount(addonRoot.c_str());
-
+							if (addonPack->OpenPackfile(fullFn.c_str(), true, 3, 0))
 							{
-								rage::fiDeviceRelative* relativeDevice = new rage::fiDeviceRelative();
-								relativeDevice->SetPath((addonRoot + "platform/").c_str(), nullptr, true);
-								relativeDevice->Mount("platform:/");
+								relativePaths.emplace_back(addonRoot, addonPack);
 
-								rage::fiDeviceRelative* relativeDeviceCrc = new rage::fiDeviceRelative();
-								relativeDeviceCrc->SetPath((addonRoot + "platform/").c_str(), nullptr, true);
-								relativeDeviceCrc->Mount("platformcrc:/");
-							}
+								relativePaths.emplace_back("platform:/", addonRoot + "platform/");
+								relativePaths.emplace_back("platformcrc:/", addonRoot + "platform/");
 
-							{
-								rage::fiDeviceRelative* relativeDevice = new rage::fiDeviceRelative();
-								relativeDevice->SetPath((addonRoot + "common/").c_str(), nullptr, true);
-								relativeDevice->Mount("common:/");
-
-								rage::fiDeviceRelative* relativeDeviceCrc = new rage::fiDeviceRelative();
-								relativeDeviceCrc->SetPath((addonRoot + "common/").c_str(), nullptr, true);
-								relativeDeviceCrc->Mount("commoncrc:/");
+								relativePaths.emplace_back("common:/", addonRoot + "common/");
+								relativePaths.emplace_back("commoncrc:/", addonRoot + "common/");
 							}
 						}
 					}
@@ -316,48 +286,12 @@ static InitFunction initFunction([] ()
 				CreateDirectory(cfxPath.c_str(), nullptr);
 
 				std::wstring profilePath = cfxPath + L"\\";
-
-				rage::fiDeviceRelative* fxUserDevice = new rage::fiDeviceRelative();
-				fxUserDevice->SetPath(converter.to_bytes(profilePath).c_str(), false);
-				fxUserDevice->Mount("fxd:/");
+				relativePaths.emplace_back("fxd:/", ToNarrow(profilePath), false);
 
 				CoTaskMemFree(appDataPath);
 			}
 		}
 
-#if 0
-		// look for files in citizen\common\data
-		rage::fiFindData findData;
-		auto handle = device->FindFirst("citizen:/common/data/", &findData);
-
-		if (handle != -1)
-		{
-			do 
-			{
-				if ((findData.fileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0)
-				{
-					AddCrashometry(fmt::sprintf("common_data_%s", findData.fileName), "%d", findData.fileSize);
-				}
-			} while (device->FindNext(handle, &findData));
-
-			device->FindClose(handle);
-		}
-
-		// look for files in citizen\platform\data too
-		handle = device->FindFirst("citizen:/platform/data/", &findData);
-
-		if (handle != -1)
-		{
-			do
-			{
-				if ((findData.fileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0)
-				{
-					AddCrashometry(fmt::sprintf("platform_data_%s", findData.fileName), "%d", findData.fileSize);
-				}
-			} while (device->FindNext(handle, &findData));
-
-			device->FindClose(handle);
-		}
-#endif
+		ApplyPaths(relativePaths);
 	});
 });

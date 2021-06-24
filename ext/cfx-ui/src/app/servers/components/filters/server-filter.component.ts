@@ -14,6 +14,8 @@ import { ServerFilters, ServerSorting, ServerSortBy, ServerSortDirection } from 
 import { DirectConnectBackendComponent } from '../../direct/direct-connect-backend.component';
 import { LocalStorage } from '../../../local-storage';
 import { FiltersService, ServerAutocompleteEntry, SearchAutocompleteIndex } from '../../filters.service';
+import { L10nLocale, L10N_LOCALE } from 'angular-l10n';
+import { environment } from 'environments/environment';
 
 @Component({
 	moduleId: module.id,
@@ -71,12 +73,12 @@ export class ServerFilterComponent implements OnInit, OnDestroy {
 		return this.sortOrder[0] === ServerSortBy.Name;
 	}
 	get sortByNameAsc() {
-		return this.sortOrder[0] === ServerSortBy.Name && this.sortOrder[1] === ServerSortDirection.Asc;
+		return this.sortOrder[0] !== ServerSortBy.Name || (
+            this.sortOrder[0] === ServerSortBy.Name && this.sortOrder[1] === ServerSortDirection.Asc
+        );
 	}
 	get sortByNameDesc() {
-		return this.sortOrder[0] !== ServerSortBy.Name || (
-			this.sortOrder[0] === ServerSortBy.Name && this.sortOrder[1] === ServerSortDirection.Desc
-		);
+		return this.sortOrder[0] === ServerSortBy.Name && this.sortOrder[1] === ServerSortDirection.Desc;
 	}
 
 	get sortByPlayers() {
@@ -97,6 +99,7 @@ export class ServerFilterComponent implements OnInit, OnDestroy {
 		private gameService: GameService,
 		private cdr: ChangeDetectorRef,
 		private filtersService: FiltersService,
+        @Inject(L10N_LOCALE) public locale: L10nLocale,
 	) {
 		this.gameName = gameService.gameName;
 		this.streamerMode = gameService.streamerMode;
@@ -142,6 +145,10 @@ export class ServerFilterComponent implements OnInit, OnDestroy {
 		});
 	}
 
+    get searchHint() {
+        return (environment.web) ? '#ServerList_SearchHintWeb' : '#ServerList_SearchHint';
+    }
+
 	updateSort(sortBy: ServerSortBy) {
 		const [currentSortBy, currentSortDirection] = this.sortOrder;
 
@@ -157,14 +164,13 @@ export class ServerFilterComponent implements OnInit, OnDestroy {
 				break;
 			}
 			case currentSortDirection === ServerSortDirection.Asc: {
-				newSortOrder[0] = ServerSortBy.Boosts;
 				newSortOrder[1] = ServerSortDirection.Desc;
 
 				break;
 			}
 			case sortBy !== currentSortBy: {
 				newSortOrder[0] = sortBy;
-				newSortOrder[1] = ServerSortDirection.Desc;
+				newSortOrder[1] = (sortBy === ServerSortBy.Name) ? ServerSortDirection.Asc : ServerSortDirection.Desc;
 
 				break;
 			}
@@ -287,7 +293,7 @@ export class ServerFilterComponent implements OnInit, OnDestroy {
 	}
 
 	acceptAutocomplete(entry: ServerAutocompleteEntry) {
-		if (entry?.completion !== '') {
+		if ((entry?.completion ?? '') !== '') {
 			this.filters.searchText = this.filters.searchText.replace(/(\s?)([^\s]*)$/, (str, space) => space + entry.completion) + ' ';
 			this.filtersService.setFilters(this.filters);
 

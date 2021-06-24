@@ -1,14 +1,13 @@
 import React from 'react';
+import { observer } from 'mobx-react-lite';
 import classnames from 'classnames';
-import { ProjectContext } from 'contexts/ProjectContext';
 import { Button } from 'components/controls/Button/Button';
-import s from './Welcome.module.scss';
 import { RecentProjectItem } from 'components/RecentProjectItem/RecentProjectItem';
+import { ProjectState } from 'store/ProjectState';
+import s from './Welcome.module.scss';
 
 
-export const Welcome = React.memo(function Welcome() {
-  const { recentProjects, openProject, openCreator, openOpener } = React.useContext(ProjectContext);
-
+export const Welcome = observer(function Welcome() {
   const [active, setActive] = React.useState(false);
   React.useEffect(() => {
     const timer = setTimeout(() => setActive(true), 500);
@@ -27,9 +26,9 @@ export const Welcome = React.memo(function Welcome() {
         </span>
       </div>
 
-      {!!recentProjects.length && (
+      {!!ProjectState.recentProjects.length && (
         <div className={s['recent-projects']}>
-          {recentProjects.map((recentProject) => (
+          {ProjectState.recentProjects.map((recentProject) => (
             <RecentProjectItem
               key={recentProject.path}
               recentProject={recentProject}
@@ -42,11 +41,11 @@ export const Welcome = React.memo(function Welcome() {
         <Button
           text="Create New Project"
           theme="primary"
-          onClick={openCreator}
+          onClick={ProjectState.openCreator}
         />
         <Button
           text="Open Project"
-          onClick={openOpener}
+          onClick={ProjectState.openOpener}
         />
       </div>
     </div>

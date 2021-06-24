@@ -17,4 +17,4 @@ export const ScrollContainer = React.memo(function ScrollContainer(props: Scroll
       {children}
     </PerfectScrollbar>
   );
-})
+});

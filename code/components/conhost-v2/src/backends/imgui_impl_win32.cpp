@@ -15,6 +15,7 @@
 #include <StdInc.h>
 #include "imgui.h"
 #include "imgui_impl_win32.h"
+#include <CrossBuildRuntime.h>
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
@@ -168,6 +169,7 @@ static bool ImGui_ImplWin32_UpdateMouseCursor()
 }
 
 extern bool g_consoleFlag;
+extern bool g_cursorFlag;
 
 // This code supports multi-viewports (multiple OS Windows mapped into different Dear ImGui viewports)
 // Because of that, it is a little more complicated than your typical single-viewport binding code!
@@ -206,7 +208,7 @@ static void ImGui_ImplWin32_UpdateMousePos()
 #ifndef IS_FXSERVER
 	if (io.MouseHoveredViewport == ImGui::GetMainViewport()->ID)
 	{
-		if (!g_consoleFlag)
+		if (!g_consoleFlag && !g_cursorFlag)
 		{
 			return;
 		}
@@ -956,13 +958,7 @@ void ImGui_ImplWin32_InitPlatformInterface()
 #ifdef IS_FXSERVER
 	data->Hwnd = g_hWnd;
 #else
-	data->Hwnd = FindWindow(
-#ifdef IS_RDR3
-		L"sgaWindow", 
-#else
-		L"grcWindow", 
-#endif
-		NULL);
+	data->Hwnd = FindWindow(xbr::GetGameWndClass(), NULL);
 #endif
 	data->HwndOwned = false;
 	main_viewport->PlatformUserData = data;

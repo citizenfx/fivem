@@ -1,17 +1,15 @@
-import { ServerUpdateChannel } from "./api.types";
 import { AssetImporterType, AssetMetaFlags, AssetType } from "./asset.types";
-import { ProjectManifestResource } from "./project.types";
+import { ProjectAssetBaseConfig } from "./project.types";
 
 
 export interface ProjectCreateRequest {
   projectName: string,
   projectPath: string,
-  withServerData?: boolean,
 }
 
-export interface ProjectSetResourceConfigRequest {
-  resourceName: string,
-  config: Partial<ProjectManifestResource>,
+export interface ProjectSetAssetConfigRequest<AssetConfigType extends ProjectAssetBaseConfig = ProjectAssetBaseConfig> {
+  assetPath: string,
+  config: Partial<AssetConfigType>,
 }
 
 export interface ProjectCreateDirectoryRequest {
@@ -105,17 +103,10 @@ export interface RelinkResourcesRequest {
   enabledResourcesPaths: string[],
 }
 
-export interface ServerStartRequest {
-  projectPath: string,
-  updateChannel: ServerUpdateChannel,
+export interface ProjectStartServerRequest {
   licenseKey?: string,
   steamWebApiKey?: string,
   tebexSecret?: string,
-}
-
-export interface SetEnabledResourcesRequest {
-  projectPath: string,
-  enabledResourcesPaths: string[],
 }
 
 export interface MoveEntryRequest {
@@ -136,4 +127,8 @@ export interface ProjectBuildRequest {
   deployArtifact: boolean,
   steamWebApiKey: string,
   tebexSecret: string,
+}
+
+export interface WorldEditorStartRequest {
+  mapPath: string,
 }

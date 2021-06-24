@@ -897,14 +897,6 @@ FORMATS_EXPORT rage::RAGE_FORMATS_GAME::BlockMap* UnwrapRSC5(const wchar_t* file
 	uint32_t version;
 	fread(&version, 1, sizeof(version), f);
 
-	if (version != 110 && version != 32 && version != 8)
-	{
-		printf("not actually a supported file...\n");
-
-		//fclose(f);
-		//return nullptr;
-	}
-
 	uint32_t flags;
 	fread(&flags, 1, sizeof(flags), f);
 
@@ -1036,7 +1028,7 @@ FORMATS_EXPORT rage::RAGE_FORMATS_GAME::BlockMap* UnwrapRSC8(const wchar_t* file
 	}
 
 	fseek(f, 0, SEEK_END);
-	size_t fileLength = ftell(f) - 12;
+	size_t fileLength = ftell(f) - 16;
 	fseek(f, 0, SEEK_SET);
 
 	uint32_t magic;
@@ -1053,9 +1045,10 @@ FORMATS_EXPORT rage::RAGE_FORMATS_GAME::BlockMap* UnwrapRSC8(const wchar_t* file
 	uint32_t version;
 	fread(&version, 1, sizeof(version), f);
 
-	if (((version >> 24) & 1) != 1 || ((version >> 8 & 0xF)) != 0)
+	if (((version >> 24) & 1) != 1)
 	{
-		printf("encrypted/oodle files are not supported\n");
+		printf("encrypted files are not supported\n");
+		printf("if this file is from openiv, encryption flag should be removed manually (replace bytes 6/7 with 00 01)\n");
 
 		fclose(f);
 		return nullptr;
@@ -1075,8 +1068,38 @@ FORMATS_EXPORT rage::RAGE_FORMATS_GAME::BlockMap* UnwrapRSC8(const wchar_t* file
 		std::vector<uint8_t> tempInBytes(fileLength);
 		fread(&tempInBytes[0], 1, fileLength, f);
 
-		size_t destLength = tempBytes.size();
-		funcompress(&tempBytes[0], (uLongf*)& destLength, &tempInBytes[0], tempInBytes.size());
+		// zlib
+		if (((version >> 8 & 0xF)) == 0)
+		{
+			size_t destLength = tempBytes.size();
+			funcompress(&tempBytes[0], (uLongf*)&destLength, &tempInBytes[0], tempInBytes.size());
+		}
+		else if (((version >> 8 & 0xF)) == 1)
+		// oodle
+		// (broken? hard to tell, could be OIV crypto)
+		{
+			auto oodleLib = LoadLibraryW(MakeRelativeCitPath(L"oo2core_5_win64.dll").c_str());
+
+			if (!oodleLib)
+			{
+				printf("we expect oo2core_5_win64.dll in your citizen root directory\nyou can find this in your rdr3 install\n");
+
+				return nullptr;
+			}
+
+			auto OodleLZ_Decompress = (int (*)(unsigned char* in, size_t insz, unsigned char* out, size_t outsz, int a, int b, uint64_t c, void* d, void* e, void* f, void* g, void* h, void* i, int j))GetProcAddress(oodleLib, "OodleLZ_Decompress");
+			OodleLZ_Decompress(&tempInBytes[0], tempInBytes.size(), &tempBytes[0], tempBytes.size(), 0, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, 3);
+		}
+		else if (((version >> 8 & 0x1F)) == 0x1F)
+		{
+			// uncompressed
+			memcpy(&tempBytes[0], &tempInBytes[0], std::min(tempBytes.size(), tempInBytes.size()));
+		}
+		else
+		{
+			printf("unknown compression\n");
+			return nullptr;
+		}
 	}
 
 	char* virtualData = new char[virtualSize];

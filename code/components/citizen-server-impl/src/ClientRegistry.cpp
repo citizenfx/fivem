@@ -11,9 +11,54 @@
 #include <ResourceManagerImpl.h>
 #include <ResourceEventComponent.h>
 
+#if defined(ssize_t) && defined(_WIN32)
+#undef ssize_t
+#endif
+
+#ifndef FOLLY_NO_CONFIG
+#define FOLLY_NO_CONFIG
+#endif
+
+#include <folly/SharedMutex.h>
+
 namespace fx
 {
-	extern bool IsOneSync();
+	struct FarLockImpl : FarLock::ImplBase
+	{
+		virtual bool TryLock() override
+		{
+			return mutex.try_lock();
+		}
+		virtual void LockShared() override
+		{
+			return mutex.lock_shared();
+		}
+		virtual void Lock() override
+		{
+			return mutex.lock();
+		}
+		virtual void Unlock() override
+		{
+			return mutex.unlock();
+		}
+		virtual void UnlockShared() override
+		{
+			return mutex.unlock_shared();
+		}
+
+		folly::SharedMutex mutex;
+	};
+
+	FarLock::FarLock()
+		: impl(std::make_unique<FarLockImpl>())
+	{
+
+	}
+
+	FarLock::~FarLock()
+	{
+	
+	}
 
 	ClientRegistry::ClientRegistry()
 		: m_hostNetId(-1), m_curNetId(1), m_instance(nullptr)
@@ -33,7 +78,11 @@ namespace fx
 		fx::ClientSharedPtr client = fx::ClientSharedPtr::Construct(guid);
 		fx::ClientWeakPtr weakClient(client);
 
-		m_clients.emplace(guid, client);
+		{
+			std::unique_lock writeHolder(m_clientMutex);
+			m_clients.emplace(guid, client);
+		}
+		
 		client->OnAssignNetId.Connect([this, weakClient]()
 		{
 			m_clientsByNetId[weakClient.lock()->GetNetId()] = weakClient;
@@ -163,8 +212,9 @@ namespace fx
 			fwRefContainer<ServerEventComponent> events = m_instance->GetComponent<ServerEventComponent>();
 
 			std::string target = fmt::sprintf("%d", client->GetNetId());
+			uint32_t bigModeSlot = (m_instance->GetComponent<fx::GameServer>()->GetGameName() == fx::GameName::GTA5) ? 128 : 16;
 
-			events->TriggerClientEventReplayed("onPlayerJoining", target, client->GetNetId(), client->GetName(), 128);
+			events->TriggerClientEventReplayed("onPlayerJoining", target, client->GetNetId(), client->GetName(), bigModeSlot);
 		}
 
 		// trigger connection handlers

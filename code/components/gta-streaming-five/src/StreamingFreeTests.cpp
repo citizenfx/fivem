@@ -10,6 +10,7 @@
 #include <unordered_set>
 
 #ifdef GTA_FIVE
+#include <jitasm.h>
 #include "Hooking.h"
 #include <atPool.h>
 

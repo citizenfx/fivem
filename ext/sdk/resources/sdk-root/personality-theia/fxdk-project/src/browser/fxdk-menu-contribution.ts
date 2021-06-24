@@ -3,9 +3,10 @@ import { Command, CommandContribution, CommandHandler, CommandRegistry, MAIN_MEN
 import { EditorManager } from '@theia/editor/lib/browser/editor-manager';
 import { EDITOR_CONTEXT_MENU } from '@theia/editor/lib/browser/editor-menu';
 import { TextEditor } from '@theia/editor/lib/browser/editor';
-import { FxdkDataService } from './fxdk-data-service';
 import { ServerConsoleViewContribution, SERVER_CONSOLE_WIDGET_ICON } from './console/server-console';
 import { ClientConsoleViewContribution, CLIENT_CONSOLE_WIDGET_ICON } from './console/client-console';
+import { FxdkDataService } from 'fxdk-services/lib/browser/fxdk-data-service';
+import { ResmonWidgetViewContribution, RESMON_WIDGET_ICON } from './resmon/combined-resmon';
 
 function formatArrayOfFloats(arr: number[]): string {
   return arr.map((coord) => coord.toFixed(3)).join(', ');
@@ -95,6 +96,11 @@ export class FxdkMenuContribution implements MenuContribution, CommandContributi
         commandId: ClientConsoleViewContribution.TOGGLE_COMMAND_ID,
         label: 'Toggle Client Console',
         icon: CLIENT_CONSOLE_WIDGET_ICON,
+      });
+      registry.registerMenuAction(FxdkMenus.FXDK_TOGGLES, {
+        commandId: ResmonWidgetViewContribution.TOGGLE_COMMAND_ID,
+        label: 'Toggle Resource Monitor',
+        icon: RESMON_WIDGET_ICON,
       });
     }
 

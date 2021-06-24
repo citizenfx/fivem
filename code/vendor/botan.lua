@@ -2,8 +2,6 @@ return {
 	include = function()
 		if not os.istarget('windows') then
 			defines { "BOTAN_DLL=" }
-		else
-			defines { "BOTAN_DLL=__declspec(dllimport)" }
 		end
 
 		if _OPTIONS['game'] == 'server' then
@@ -49,7 +47,7 @@ return {
 			end
 		elseif os.istarget('linux') then
 			prebuildcommands {
-				('cp %s %s'):format(
+				('cp -a %s %s'):format(
 					path.getabsolute('vendor/botan_sv/include/build_linux.h'),
 					path.getabsolute('vendor/botan_sv/include/botan/build.h')
 				)

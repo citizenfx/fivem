@@ -15,7 +15,23 @@
 
 #include <shellapi.h>
 #include <ReverseGameData.h>
+#include <WorldEditorControls.h>
 #include <HostSharedData.h>
+
+static float clamp01(float num)
+{
+	if (num < 0.0f)
+	{
+		return 0.0f;
+	}
+
+	if (num > 1.0f)
+	{
+		return 1.0f;
+	}
+
+	return num;
+}
 
 static InitFunction initFunction([]()
 {
@@ -153,6 +169,41 @@ static InitFunction initFunction([]()
 		return CefV8Value::CreateUndefined();
 	});
 
+	nuiApp->AddV8Handler("setWorldEditorControls", [](const CefV8ValueList& arguments, CefString& exception)
+	{
+		if (arguments.size() == 3)
+		{
+			static HostSharedData<WorldEditorControls> wec("CfxWorldEditorControls");
+
+			wec->gizmoSelect = arguments[0]->GetBoolValue();
+			wec->gizmoMode = (WorldEditorMode)arguments[1]->GetIntValue();
+			wec->gizmoLocal = arguments[2]->GetBoolValue();
+
+			return CefV8Value::CreateBool(true);
+		}
+
+		exception.FromString(fmt::sprintf("Expected 5 arguments, got %d", arguments.size()));
+
+		return CefV8Value::CreateUndefined();
+	});
+
+	nuiApp->AddV8Handler("setWorldEditorMouse", [](const CefV8ValueList & arguments, CefString & exception)
+	{
+		if (arguments.size() == 2)
+		{
+			static HostSharedData<WorldEditorControls> wec("CfxWorldEditorControls");
+
+			wec->mouseX = clamp01(arguments[0]->GetDoubleValue());
+			wec->mouseY = clamp01(arguments[1]->GetDoubleValue());
+
+			return CefV8Value::CreateBool(true);
+		}
+
+		exception.FromString(fmt::sprintf("Expected 2 arguments, got %d", arguments.size()));
+
+		return CefV8Value::CreateUndefined();
+	});
+
 	nuiApp->AddV8Handler("openDevTools", [](const CefV8ValueList& arguments, CefString& exception)
 	{
 		auto msg = CefProcessMessage::Create("openDevTools");
@@ -176,11 +227,17 @@ static InitFunction initFunction([]()
 	{
 		if (arguments.size() == 1)
 		{
+			// "x", "X", "y", "Y"
 			if (arguments[0]->IsString())
 			{
 				auto charString = arguments[0]->GetStringValue();
-				
 				rgd->inputChar = charString.c_str()[0];
+			} 
+			// big keys in JS are processed as "BackSpace", "Shift", "Alt", ... The charcode is sent instead in this case.
+			else
+			{
+				auto charCode = arguments[0]->GetIntValue();
+				rgd->inputChar = (wchar_t)charCode;
 			}
 		}
 
@@ -202,6 +259,39 @@ static InitFunction initFunction([]()
 
 			cefMsgArgs->SetSize(1);
 			cefMsgArgs->SetString(0, msg->GetStringValue());
+
+			CefV8Context::GetCurrentContext()->GetFrame()->SendProcessMessage(PID_BROWSER, cefMsg);
+
+			return CefV8Value::CreateBool(true);
+		}
+
+		return CefV8Value::CreateBool(false);
+	});
+
+	nuiApp->AddV8Handler("sendGameClientEvent", [](const CefV8ValueList& arguments, CefString& exception)
+	{
+		if (arguments.size() == 2)
+		{
+			auto eventName = arguments[0];
+			if (!eventName->IsString())
+			{
+				exception.FromString("Event name must be a string");
+				return CefV8Value::CreateBool(false);
+			}
+
+			auto eventPayload = arguments[1];
+			if (!eventPayload->IsString())
+			{
+				exception.FromString("Payload must be a string");
+				return CefV8Value::CreateBool(false);
+			}
+
+			auto cefMsg = CefProcessMessage::Create("sendGameClientEvent");
+			auto cefMsgArgs = cefMsg->GetArgumentList();
+
+			cefMsgArgs->SetSize(2);
+			cefMsgArgs->SetString(0, eventName->GetStringValue());
+			cefMsgArgs->SetString(1, eventPayload->GetStringValue());
 
 			CefV8Context::GetCurrentContext()->GetFrame()->SendProcessMessage(PID_BROWSER, cefMsg);
 

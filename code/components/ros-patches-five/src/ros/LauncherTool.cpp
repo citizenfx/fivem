@@ -32,7 +32,7 @@
 
 bool CanSafelySkipLauncher()
 {
-	FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\launcher_skip_mtl2").c_str(), L"rb");
+	FILE* f = _wfopen(MakeRelativeCitPath(L"data\\cache\\launcher_skip_mtl2").c_str(), L"rb");
 
 	if (f)
 	{
@@ -48,7 +48,7 @@ void SetCanSafelySkipLauncher(bool value)
 {
 	if (value)
 	{
-		FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\launcher_skip_mtl2").c_str(), L"wb");
+		FILE* f = _wfopen(MakeRelativeCitPath(L"data\\cache\\launcher_skip_mtl2").c_str(), L"wb");
 
 		if (f)
 		{
@@ -57,7 +57,7 @@ void SetCanSafelySkipLauncher(bool value)
 	}
 	else
 	{
-		_wunlink(MakeRelativeCitPath(L"cache\\launcher_skip_mtl2").c_str());
+		_wunlink(MakeRelativeCitPath(L"data\\cache\\launcher_skip_mtl2").c_str());
 	}
 }
 
@@ -357,7 +357,7 @@ BOOL WINAPI Shell_NotifyIconWStub(
 
 #include "RSAKey.h"
 
-FARPROC GetProcAddressStub(HMODULE hModule, LPCSTR name);
+FARPROC _stdcall GetProcAddressStub(HMODULE hModule, LPCSTR name);
 
 DWORD WINAPI GetModuleFileNameWStub(HMODULE hModule, LPWSTR lpFilename, DWORD nSize)
 {
@@ -408,17 +408,6 @@ void DoLauncherUiSkip()
 }
 
 #include <minhook.h>
-static void* (*opf)(void* a1, void* a2, void* a3, void* a4, void* a5, void* a6, void* a7);
-
-static void* pf(void* a1, void* a2, void* a3, void* a4, void* a5, void* a6, void* a7)
-{
-	if (!strcmp((char*)a2, "payload") && *(char**)a3)
-	{
-		//*(int*)0 = 0xDEAD;
-	}
-
-	return opf(a1, a2, a3, a4, a5, a6, a7);
-}
 
 static HANDLE CreateMutexWStub(_In_opt_ LPSECURITY_ATTRIBUTES lpMutexAttributes, _In_ BOOL bInitialOwner, _In_opt_ LPCWSTR lpName)
 {
@@ -430,7 +419,7 @@ static HANDLE CreateMutexWStub(_In_opt_ LPSECURITY_ATTRIBUTES lpMutexAttributes,
 	return CreateMutexW(lpMutexAttributes, bInitialOwner, lpName);
 }
 
-static LONG WinVerifyTrustStub(HWND hwnd, GUID* pgActionID, LPVOID pWVTData)
+static LONG __stdcall WinVerifyTrustStub(HWND hwnd, GUID* pgActionID, LPVOID pWVTData)
 {
 	return 0;
 }
@@ -440,7 +429,7 @@ static int ReturnFalse()
 	return 0;
 }
 
-static BOOL ShellExecuteExWStub(_Inout_ SHELLEXECUTEINFOW *pExecInfo)
+static BOOL WINAPI ShellExecuteExWStub(_Inout_ SHELLEXECUTEINFOW *pExecInfo)
 {
 	if (pExecInfo->lpFile && wcsstr(pExecInfo->lpFile, L"RockstarService"))
 	{
@@ -458,7 +447,7 @@ static BOOL ShellExecuteExWStub(_Inout_ SHELLEXECUTEINFOW *pExecInfo)
 	return TRUE;
 }
 
-HINSTANCE ShellExecuteWStub(_In_opt_ HWND hwnd, _In_opt_ LPCWSTR lpOperation, _In_ LPCWSTR lpFile, _In_opt_ LPCWSTR lpParameters, _In_opt_ LPCWSTR lpDirectory, _In_ INT nShowCmd)
+HINSTANCE WINAPI ShellExecuteWStub(_In_opt_ HWND hwnd, _In_opt_ LPCWSTR lpOperation, _In_ LPCWSTR lpFile, _In_opt_ LPCWSTR lpParameters, _In_opt_ LPCWSTR lpDirectory, _In_ INT nShowCmd)
 {
 	if (lpFile)
 	{
@@ -468,16 +457,17 @@ HINSTANCE ShellExecuteWStub(_In_opt_ HWND hwnd, _In_opt_ LPCWSTR lpOperation, _I
 	return NULL;
 }
 
-extern HRESULT WINAPI CoCreateInstanceStub(_In_ REFCLSID rclsid, _In_opt_ LPUNKNOWN pUnkOuter, _In_ DWORD dwClsContext, _In_ REFIID riid, _COM_Outptr_ _At_(*ppv, _Post_readable_size_(_Inexpressible_(varies))) LPVOID FAR* ppv);
-extern BOOL CreateProcessAStub(_In_opt_ LPCSTR lpApplicationName, _Inout_opt_ LPSTR lpCommandLine, _In_opt_ LPSECURITY_ATTRIBUTES lpProcessAttributes, _In_opt_ LPSECURITY_ATTRIBUTES lpThreadAttributes, _In_ BOOL bInheritHandles, _In_ DWORD dwCreationFlags, _In_opt_ LPVOID lpEnvironment, _In_opt_ LPCSTR lpCurrentDirectory, _In_ LPSTARTUPINFOA lpStartupInfo, _Out_ LPPROCESS_INFORMATION lpProcessInformation);
-HANDLE CreateNamedPipeAHookL(_In_ LPCSTR lpName, _In_ DWORD dwOpenMode, _In_ DWORD dwPipeMode, _In_ DWORD nMaxInstances, _In_ DWORD nOutBufferSize, _In_ DWORD nInBufferSize, _In_ DWORD nDefaultTimeOut, _In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes);
+extern HRESULT WINAPI __stdcall CoCreateInstanceStub(_In_ REFCLSID rclsid, _In_opt_ LPUNKNOWN pUnkOuter, _In_ DWORD dwClsContext, _In_ REFIID riid, _COM_Outptr_ _At_(*ppv, _Post_readable_size_(_Inexpressible_(varies))) LPVOID FAR* ppv);
+extern BOOL WINAPI __stdcall CreateProcessAStub(_In_opt_ LPCSTR lpApplicationName, _Inout_opt_ LPSTR lpCommandLine, _In_opt_ LPSECURITY_ATTRIBUTES lpProcessAttributes, _In_opt_ LPSECURITY_ATTRIBUTES lpThreadAttributes, _In_ BOOL bInheritHandles, _In_ DWORD dwCreationFlags, _In_opt_ LPVOID lpEnvironment, _In_opt_ LPCSTR lpCurrentDirectory, _In_ LPSTARTUPINFOA lpStartupInfo, _Out_ LPPROCESS_INFORMATION lpProcessInformation);
+extern BOOL WINAPI __stdcall CreateProcessWStub(_In_opt_ LPCWSTR lpApplicationName, _Inout_opt_ LPWSTR lpCommandLine, _In_opt_ LPSECURITY_ATTRIBUTES lpProcessAttributes, _In_opt_ LPSECURITY_ATTRIBUTES lpThreadAttributes, _In_ BOOL bInheritHandles, _In_ DWORD dwCreationFlags, _In_opt_ LPVOID lpEnvironment, _In_opt_ LPCWSTR lpCurrentDirectory, _In_ LPSTARTUPINFOW lpStartupInfo, _Out_ LPPROCESS_INFORMATION lpProcessInformation);
+HANDLE WINAPI __stdcall CreateNamedPipeAHookL(_In_ LPCSTR lpName, _In_ DWORD dwOpenMode, _In_ DWORD dwPipeMode, _In_ DWORD nMaxInstances, _In_ DWORD nOutBufferSize, _In_ DWORD nInBufferSize, _In_ DWORD nDefaultTimeOut, _In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes);
 
 static void Launcher_Run(const boost::program_options::variables_map& map)
 {
 	// make firstrun.dat so the launcher won't whine/crash
 	{
-		CreateDirectoryW(MakeRelativeCitPath(L"cache\\game\\ros_launcher_appdata3").c_str(), NULL);
-		FILE* f = _wfopen(MakeRelativeCitPath(L"cache\\game\\ros_launcher_appdata3\\firstrun.dat").c_str(), L"wb");
+		CreateDirectoryW(MakeRelativeCitPath(L"data\\game-storage\\ros_launcher_appdata3").c_str(), NULL);
+		FILE* f = _wfopen(MakeRelativeCitPath(L"data\\game-storage\\ros_launcher_appdata3\\firstrun.dat").c_str(), L"wb");
 
 		if (f)
 		{
@@ -491,20 +481,25 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 	boost::filesystem::path programPath(args[0]);
 
 	auto parentPath = programPath.parent_path();
-	SetCurrentDirectory(MakeRelativeCitPath(L"cache\\game\\launcher").c_str());
+	SetCurrentDirectory(MakeRelativeCitPath(L"data\\game-storage\\launcher").c_str());
 
 	trace("launcher! %s\n", GetCommandLineA());
 
 	g_origProcess = programPath.wstring();
 	ToolMode_SetPostLaunchRoutine([] ()
 	{
+#if _M_IX86
+		HMODULE scDll = LoadLibrary(L"C:\\Program Files\\Rockstar Games (x86)\\Social Club\\socialclub.dll");
+#else
 		HMODULE scDll = LoadLibrary(L"C:\\Program Files\\Rockstar Games\\Social Club\\socialclub.dll");
+#endif
 
 		if (!scDll)
 		{
 			FatalError("Couldn't load SC SDK: Windows error code %d", GetLastError());
 		}
 
+#if !GTA_NY
 		// rosdll
 		HMODULE rosDll = LoadLibrary(L"ros.dll");
 
@@ -513,21 +508,9 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 			((void(*)(const wchar_t*))GetProcAddress(rosDll, "run"))(MakeRelativeCitPath(L"").c_str());
 		}
 
-		DisableToolHelpScope scope;
-
-		// wfsopen debug hook
-		/*void* call = hook::pattern("49 8B 94 DE ? ? ? ? 44 8B C6 48 8B CD E8").count(1).get(0).get<void>(14);
-
-		hook::set_call(&wfsopenOrig, call);
-		hook::call(call, wfsopenCustom);*/
-
-		auto pref = hook::get_pattern("8B C3 4D 85 C0  74 11 48 83 C8 FF 48 FF", -0xb);
-
-		MH_Initialize();
-		MH_CreateHook(pref, pf, (void**)&opf);
-		MH_EnableHook(MH_ALL_HOOKS);
-
+#ifdef _DEBUG
 		hook::jump(hook::get_pattern("4C 89 44 24 18 4C 89 4C 24 20 48 83 EC 28 48 8D"), LogStuff);
+#endif
 
 		hook::iat("version.dll", GetFileVersionInfoAStub, "GetFileVersionInfoA");
 
@@ -551,14 +534,18 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 
 		hook::iat("ole32.dll", CoCreateInstanceStub, "CoCreateInstance");
 		hook::iat("kernel32.dll", CreateProcessAStub, "CreateProcessA");
+		hook::iat("kernel32.dll", CreateProcessWStub, "CreateProcessW");
 
 		HMODULE hSteam = LoadLibrary(L"C:\\Program Files\\Rockstar Games\\Launcher\\steam_api64.dll");
 
 		if (hSteam)
 		{
+			DisableToolHelpScope scope;
+			MH_Initialize();
 			MH_CreateHook(GetProcAddress(hSteam, "SteamAPI_Init"), ReturnFalse, NULL);
 			MH_EnableHook(MH_ALL_HOOKS);
 		}
+#endif
 	});
 
 	// delete in- files (these being present will trigger safe mode, and the function can't be hooked due to hook checks)
@@ -634,10 +621,12 @@ void Component_RunPreInit()
 
 	if (!hostData->IsMasterProcess())
 	{
+#ifndef GTA_NY
 		if (hostData->IsGameProcess())
 		{
 			RunLauncherAwait();
 		}
+#endif
 
 		return;
 	}
@@ -661,7 +650,9 @@ void Component_RunPreInit()
 				TerminateProcess(GetCurrentProcess(), 0x8000DEAD);
 			}
 
+#ifndef GTA_NY
 			RunLauncher(L"ros:launcher", false);
+#endif
 		}
 
 		if (!LoadOwnershipTicket())
@@ -680,7 +671,7 @@ static InitFunction lateInitFunction([]()
 #include <winsock2.h>
 #include <iphlpapi.h>
 
-DWORD NotifyIpInterfaceChangeFake(_In_ ADDRESS_FAMILY Family, _In_ void* Callback, _In_opt_ PVOID CallerContext, _In_ BOOLEAN InitialNotification, _Inout_ HANDLE* NotificationHandle)
+DWORD _stdcall NotifyIpInterfaceChangeFake(_In_ ADDRESS_FAMILY Family, _In_ void* Callback, _In_opt_ PVOID CallerContext, _In_ BOOLEAN InitialNotification, _Inout_ HANDLE* NotificationHandle)
 {
 	*NotificationHandle = NULL;
 	return NO_ERROR;
@@ -706,7 +697,9 @@ static HookFunction hookFunction([] ()
 	}
 
 	
+#if !GTA_NY
 	if (Is372())
+#endif
 	{
 		hook::iat("crypt32.dll", CertGetNameStringStubW, "CertGetNameStringW");
 		hook::iat("crypt32.dll", CertGetNameStringStubA, "CertGetNameStringA");
@@ -722,8 +715,10 @@ static HookFunction hookFunction([] ()
     hook::iat("user32.dll", LoadIconStub, "LoadIconA");
     hook::iat("user32.dll", LoadIconStub, "LoadIconW");
 
+#if !GTA_NY 
 	hook::iat("ole32.dll", CoCreateInstanceStub, "CoCreateInstance");
 	hook::iat("kernel32.dll", CreateProcessAStub, "CreateProcessA");
+#endif
 
 #ifdef GTA_FIVE
 	// bypass the check routine for sky init

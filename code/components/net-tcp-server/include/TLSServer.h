@@ -119,27 +119,27 @@ public:
 
 public:
 	// Botan::TLS::Callbacks
-	virtual inline void tls_emit_data(const uint8_t data[], size_t size) override
+	virtual void tls_emit_data(const uint8_t data[], size_t size) override
 	{
 		return WriteToClient(data, size);
 	}
 
-	virtual inline void tls_record_received(uint64_t seq_no, const uint8_t data[], size_t size) override
+	virtual void tls_record_received(uint64_t seq_no, const uint8_t data[], size_t size) override
 	{
 		return ReceivedData(data, size);
 	}
 
-	virtual inline void tls_alert(Botan::TLS::Alert alert) override
+	virtual void tls_alert(Botan::TLS::Alert alert) override
 	{
 		return ReceivedAlert(alert, nullptr, 0);
 	}
 
-	virtual inline void tls_session_activated() override
+	virtual void tls_session_activated() override
 	{
 		HandshakeComplete();
 	}
 
-	virtual inline bool tls_session_established(const Botan::TLS::Session& session) override
+	virtual bool tls_session_established(const Botan::TLS::Session& session) override
 	{
 		//return HandshakeComplete(session);
 		return true;
@@ -147,7 +147,7 @@ public:
 
 	virtual std::string tls_server_choose_app_protocol(const std::vector<std::string>& client_protos) override;
 
-	virtual inline void tls_verify_cert_chain(
+	virtual void tls_verify_cert_chain(
 		const std::vector<Botan::X509_Certificate>& cert_chain,
 		const std::vector<std::shared_ptr<const Botan::OCSP::Response>>& ocsp_responses,
 		const std::vector<Botan::Certificate_Store*>& trusted_roots,

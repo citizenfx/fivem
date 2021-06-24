@@ -461,7 +461,7 @@ static hook::cdecl_stub<void(void*, int, int, int, int)> setSRs([]()
 
 void SetScissorRect(int x, int y, int z, int w)
 {
-	setSRs(get_sgaGraphicsContext(), x, y, z, w);
+	setSRs(get_sgaGraphicsContext(), x, y, z - x, w - y);
 }
 
 static uint64_t** sgaDriver;

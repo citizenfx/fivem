@@ -215,11 +215,21 @@ const EXT_LOCALFUNCREF = 11;
 
 			TriggerLatentClientEventInternal(name, source, dataSerialized, dataSerialized.length, bps);
 		};
+
 		global.getPlayerIdentifiers = (player) => {
 			const numIds = GetNumPlayerIdentifiers(player);
 			let t = [];
 			for (let i = 0; i < numIds; i++) {
 				t[i] = GetPlayerIdentifier(player, i);
+			}
+			return t;
+		};
+
+		global.getPlayerTokens = (player) => {
+			const numIds = GetNumPlayerTokens(player);
+			let t = [];
+			for (let i = 0; i < numIds; i++) {
+				t[i] = GetPlayerToken(player, i);
 			}
 			return t;
 		};
@@ -235,6 +245,11 @@ const EXT_LOCALFUNCREF = 11;
 			return t;
 		};
 	} else {
+		global.SendNUIMessage = (data) => {
+			const dataJson = JSON.stringify(data)
+			SendNuiMessage(dataJson)
+		}
+
 		global.emitNet = (name, ...args) => {
 			const dataSerialized = pack(args);
 
@@ -492,17 +507,9 @@ const EXT_LOCALFUNCREF = 11;
 
 						return (...args) => {
 							try {
-								const result = exportsCallbackCache[resource][k](...args);
-
-								if (Array.isArray(result) && result.length === 1) {
-									return result[0];
-								}
-
-								return result;
+								return exportsCallbackCache[resource][k](...args);
 							} catch (e) {
-								//console.error(e);
-
-								throw new Error(`An error happened while calling export ${k} of resource ${resource} - see above for details`);
+								throw new Error(`An error occurred while calling export ${k} of resource ${resource} - see above for details`);
 							}
 						};
 					},

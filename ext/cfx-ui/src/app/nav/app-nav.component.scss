@@ -104,11 +104,18 @@
 				fill: #d80d0d;
 			}
 
+			:host-context(.game-ny) & {
+				width: var(--q2);
+				height: var(--q2);
+
+				fill: #387ABD;
+			}
+
 			:host-context(.game-gta5) & {
 				width: var(--fs-3);
 				height: var(--fs-3);
 
-				transform: rotateY(180deg);
+				transform: scaleX(-1);
 			}
 		}
 	}

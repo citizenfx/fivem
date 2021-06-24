@@ -39,6 +39,11 @@
 #include <queue>
 #include <sstream>
 
+static std::string_view GetBaseName(std::string_view str)
+{
+	return str.substr(str.find_last_of('/') + 1);
+}
+
 static CURLcode ssl_ctx_callback(CURL* curl, void* ssl_ctx, void* userptr)
 {
 	auto config = (mbedtls_ssl_config*)ssl_ctx;
@@ -56,15 +61,20 @@ static CURL* curl_easy_init_cfx()
 
 	if (curlHandle)
 	{
-		curl_easy_setopt(curlHandle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+		curl_easy_setopt(curlHandle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2TLS);
 		curl_easy_setopt(curlHandle, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2 | CURL_SSLVERSION_MAX_TLSv1_2);
 
-		static mbedtls_x509_crt cacert;
-		mbedtls_x509_crt_init(&cacert);
-		mbedtls_x509_crt_parse(&cacert, sslRoots, sizeof(sslRoots));
+		char* curlVer = curl_version();
 
-		curl_easy_setopt(curlHandle, CURLOPT_SSL_CTX_DATA, &cacert);
-		curl_easy_setopt(curlHandle, CURLOPT_SSL_CTX_FUNCTION, ssl_ctx_callback);
+		if (strstr(curlVer, "mbedTLS/") != nullptr)
+		{
+			static mbedtls_x509_crt cacert;
+			mbedtls_x509_crt_init(&cacert);
+			mbedtls_x509_crt_parse(&cacert, sslRoots, sizeof(sslRoots));
+
+			curl_easy_setopt(curlHandle, CURLOPT_SSL_CTX_DATA, &cacert);
+			curl_easy_setopt(curlHandle, CURLOPT_SSL_CTX_FUNCTION, ssl_ctx_callback);
+		}
 	}
 
 	return curlHandle;
@@ -99,6 +109,9 @@ typedef struct download_s
 
 	lzma_stream strm;
 	uint8_t strmOut[65535];
+
+	int64_t progress = 0;
+	int numRetries = 10;
 
 	char curlError[CURL_ERROR_SIZE * 4];
 } download_t;
@@ -161,7 +174,7 @@ void CL_QueueDownload(const char* url, const char* file, int64_t size, bool comp
 	{
 		for (int i = 0; i <= 9; i++)
 		{
-			CL_QueueDownload(va("https://mirrors.fivem.net/emergency_mirror/GTAV1604.exe%02d", i), va("%s.%d", file, i), i == 9 ? 87584200 : 104857600, false, 1);
+			CL_QueueDownload(va("https://content.cfx.re/mirrors/emergency_mirror/GTAV1604.exe%02d", i), va("%s.%d", file, i), i == 9 ? 87584200 : 104857600, false, 1);
 		}
 
 		return;
@@ -309,6 +322,7 @@ size_t DL_WriteToFile(void *ptr, size_t size, size_t nmemb, download_t* download
 	}
 
 	// do size calculations
+	download->progress += (size * nmemb);
 	dls.completedSize += (size * nmemb);
 	if ((dls.lastTime + 1000) < GetTickCount())
 	{
@@ -582,7 +596,10 @@ bool DL_ProcessDownload()
 			CreateDirectoryAnyDepth(tmpDir);
 		}
 
-		memset(&download->strm, 0, sizeof(download->strm));
+		if (download->progress == 0)
+		{
+			memset(&download->strm, 0, sizeof(download->strm));
+		}
 
 		download->writeToMemory = false;
 
@@ -596,7 +613,7 @@ bool DL_ProcessDownload()
 		{
 			FILE* fp = nullptr;
 
-			fp = _wfopen(ToWide(tmpPath).c_str(), L"wb");
+			fp = _wfopen(ToWide(tmpPath).c_str(), ((download->progress > 0) ? L"ab" : L"wb"));
 
 			if (!fp)
 			{
@@ -610,6 +627,49 @@ bool DL_ProcessDownload()
 		}
 
 		return true;
+	};
+
+	auto initCurlDownload = [&initDownload](download_t* download)
+	{
+		if (!initDownload(download))
+		{
+			return false;
+		}
+
+		curl_slist* headers = nullptr;
+		headers = curl_slist_append(headers, va("X-Cfx-Client: 1"));
+
+		auto curlHandle = curl_easy_init_cfx();
+		download->curlHandles[0] = curlHandle;
+
+		curl_easy_setopt(curlHandle, CURLOPT_URL, download->url);
+		curl_easy_setopt(curlHandle, CURLOPT_ERRORBUFFER, download->curlError);
+		curl_easy_setopt(curlHandle, CURLOPT_PRIVATE, download);
+		curl_easy_setopt(curlHandle, CURLOPT_WRITEDATA, download);
+		curl_easy_setopt(curlHandle, CURLOPT_WRITEFUNCTION, DL_WriteToFile);
+		curl_easy_setopt(curlHandle, CURLOPT_FAILONERROR, true);
+		curl_easy_setopt(curlHandle, CURLOPT_HTTPHEADER, headers);
+		curl_easy_setopt(curlHandle, CURLOPT_FOLLOWLOCATION, true);
+
+		if (getenv("CFX_CURL_DEBUG"))
+		{
+			curl_easy_setopt(curlHandle, CURLOPT_VERBOSE, 1);
+			curl_easy_setopt(curlHandle, CURLOPT_DEBUGFUNCTION, DL_CurlDebug);
+		}
+
+		if (download->progress)
+		{
+			curl_easy_setopt(curlHandle, CURLOPT_RANGE, va("%d-", download->progress));
+		}
+
+		if (download->progress == 0)
+		{
+			lzma_stream_decoder(&download->strm, UINT32_MAX, 0);
+			download->strm.avail_out = sizeof(download->strmOut);
+			download->strm.next_out = download->strmOut;
+		}
+
+		curl_multi_add_handle(dls.curl, curlHandle);
 	};
 
 	auto onSuccess = [](decltype(dls.currentDownloads.begin()) it)
@@ -717,37 +777,7 @@ bool DL_ProcessDownload()
 
 		if (!download->curlHandles[0])
 		{
-			if (!initDownload(download.get()))
-			{
-				return false;
-			}
-
-			curl_slist* headers = nullptr;
-			headers = curl_slist_append(headers, va("X-Cfx-Client: 1"));
-
-			auto curlHandle = curl_easy_init_cfx();
-			download->curlHandles[0] = curlHandle;
-
-			curl_easy_setopt(curlHandle, CURLOPT_URL, download->url);
-			curl_easy_setopt(curlHandle, CURLOPT_ERRORBUFFER, download->curlError);
-			curl_easy_setopt(curlHandle, CURLOPT_PRIVATE, download.get());
-			curl_easy_setopt(curlHandle, CURLOPT_WRITEDATA, download.get());
-			curl_easy_setopt(curlHandle, CURLOPT_WRITEFUNCTION, DL_WriteToFile);
-			curl_easy_setopt(curlHandle, CURLOPT_FAILONERROR, true);
-			curl_easy_setopt(curlHandle, CURLOPT_HTTPHEADER, headers);
-			curl_easy_setopt(curlHandle, CURLOPT_FOLLOWLOCATION, true);
-
-			if (getenv("CFX_CURL_DEBUG"))
-			{
-				curl_easy_setopt(curlHandle, CURLOPT_VERBOSE, 1);
-				curl_easy_setopt(curlHandle, CURLOPT_DEBUGFUNCTION, DL_CurlDebug);
-			}
-
-			lzma_stream_decoder(&download->strm, UINT32_MAX, 0);
-			download->strm.avail_out = sizeof(download->strmOut);
-			download->strm.next_out = download->strmOut;
-
-			curl_multi_add_handle(dls.curl, curlHandle);
+			initCurlDownload(download.get());
 		}
 	}
 
@@ -793,6 +823,7 @@ bool DL_ProcessDownload()
 					if (download->fp[0])
 					{
 						fclose(download->fp[0]);
+						download->fp[0] = nullptr;
 					}
 				}
 				else
@@ -836,10 +867,11 @@ bool DL_ProcessDownload()
 
 				curl_multi_remove_handle(dls.curl, handle);
 				curl_easy_cleanup(handle);
-				lzma_end(&download->strm);
 
 				if (code == CURLE_OK)
 				{
+					lzma_end(&download->strm);
+
 					if (!onSuccess(it))
 					{
 						return false;
@@ -847,10 +879,30 @@ bool DL_ProcessDownload()
 				}
 				else
 				{
-					_wunlink(tmpPathWide.c_str());
-					MessageBoxA(NULL, va("Downloading of %s failed with CURLcode %d - %s%s", download->url, (int)code, download->curlError, (code == CURLE_WRITE_ERROR) ? "\nAre you sure you have enough disk space on all drives?" : ""), "Error", MB_OK | MB_ICONSTOP);
+					bool shouldRetry = false;
 
-					return false;
+					if (code != CURLE_HTTP_RETURNED_ERROR)
+					{
+						if (download->numRetries > 0)
+						{
+							download->numRetries--;
+
+							shouldRetry = true;
+						}
+					}
+
+					if (!shouldRetry)
+					{
+						lzma_end(&download->strm);
+
+						_wunlink(tmpPathWide.c_str());
+						MessageBoxA(NULL, va("Downloading %s failed with CURLcode %d - %s%s", GetBaseName(download->url), (int)code, download->curlError, (code == CURLE_WRITE_ERROR) ? "\nAre you sure you have enough disk space on all drives?" : ""), "Error", MB_OK | MB_ICONSTOP);
+
+						return false;
+					}
+
+					download->curlHandles[0] = NULL;
+					initCurlDownload(download.get());
 				}
 			}
 		}
@@ -941,7 +993,32 @@ static struct CurlInit
 	}
 } curlInit;
 
-int DL_RequestURL(const char* url, char* buffer, size_t bufSize)
+static size_t CurlHeaderInfo(char* buffer, size_t size, size_t nitems, void* userdata)
+{
+	auto cdPtr = reinterpret_cast<HttpHeaderList*>(userdata);
+
+	if (cdPtr)
+	{
+		std::string str(buffer, size * nitems);
+
+		// reset HTTP headers if we followed a Location and got a new HTTP response
+		if (str.find("HTTP/") == 0)
+		{
+			cdPtr->clear();
+		}
+
+		auto colonPos = str.find(": ");
+
+		if (colonPos != std::string::npos)
+		{
+			cdPtr->emplace(str.substr(0, colonPos), str.substr(colonPos + 2, str.length() - 2 - colonPos - 2));
+		}
+	}
+
+	return size * nitems;
+}
+
+int DL_RequestURL(const char* url, char* buffer, size_t bufSize, HttpHeaderListPtr responseHeaders)
 {
 	CURL* curl = curl_easy_init_cfx();
 
@@ -964,6 +1041,12 @@ int DL_RequestURL(const char* url, char* buffer, size_t bufSize)
 		{
 			curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
 			curl_easy_setopt(curl, CURLOPT_DEBUGFUNCTION, DL_CurlDebug);
+		}
+
+		if (responseHeaders)
+		{
+			curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, CurlHeaderInfo);
+			curl_easy_setopt(curl, CURLOPT_HEADERDATA, responseHeaders.get());
 		}
 
 		CURLcode code = curl_easy_perform(curl);

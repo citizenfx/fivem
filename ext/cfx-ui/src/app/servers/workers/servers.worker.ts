@@ -7,6 +7,11 @@ import { FilterRequest } from '../filter-request';
 import { PinConfigCached, PinConfig } from '../pins';
 import { ServerFilterContainer } from '../components/filters/server-filter-container';
 import { getCanonicalLocale } from '../components/utils';
+import { filterProjectDesc, filterProjectName } from '../server-utils';
+
+function softSlice(arr: Uint8Array, start: number, end?: number) {
+    return new Uint8Array(arr.buffer, arr.byteOffset + start, end && end - start);
+}
 
 // this class loosely based on https://github.com/rkusa/frame-stream
 class FrameReader {
@@ -67,7 +72,7 @@ class FrameReader {
 					return;
 				}
 
-				const bit = array.slice(start, end);
+				const bit = softSlice(array, start, end);
 				this.framePos += (end - start);
 
 				if (this.framePos === this.frameLength) {
@@ -80,7 +85,7 @@ class FrameReader {
 
 				// more in the array?
 				if (array.length > end) {
-					array = array.slice(end);
+					array = softSlice(array, end);
 				} else {
 					// continue reading
 					this.beginRead();
@@ -108,7 +113,17 @@ const sortNames: { [key: string]: string } = {};
 const stripNames: { [key: string]: string } = {};
 
 function stripName(server: master.IServerData) {
-	return (server.hostname || '').replace(/\^[0-9]/g, '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+	let name = server.hostname || '';
+
+	if (server.vars?.sv_projectName) {
+		name = filterProjectName(server.vars?.sv_projectName) + ' ' + filterProjectDesc(server.vars?.sv_projectDesc ?? '');
+	} else {
+		if (name.length >= 100) {
+			name = name.substring(0, 100);
+		}
+	}
+
+	return (name).replace(/\^[0-9]/g, '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 }
 
 function sortName(server: master.IServerData) {
@@ -335,7 +350,7 @@ function queryServers(e: MessageEvent) {
 
 				return subject;
 			}),
-			bufferTime(250, null, 50),
+			bufferTime(250, null, 250),
 			retryWhen(errors =>
 				errors.pipe(
 					tap(err => console.log(`Fetching server list failed: ${err}`)),
@@ -346,9 +361,9 @@ function queryServers(e: MessageEvent) {
 		)
 		.subscribe((servers: master.IServer[]) => {
 			if (servers.length) {
-				servers.forEach(({ EndPoint, Data }) => {
-					cachedServers[EndPoint] = Data;
-				});
+                for (const server of servers) {
+					cachedServers[server.EndPoint] = server.Data;
+				}
 
 				(<any>postMessage)({ type: 'addServers', servers })
 			}

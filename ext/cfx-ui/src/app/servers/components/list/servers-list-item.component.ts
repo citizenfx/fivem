@@ -1,6 +1,6 @@
 import {
 	Component, Input, ViewChild, ChangeDetectionStrategy,
-	OnDestroy, OnInit, ElementRef, AfterViewInit, NgZone, Renderer2, OnChanges
+	OnDestroy, OnInit, ElementRef, AfterViewInit, NgZone, Renderer2, OnChanges, ChangeDetectorRef
 } from '@angular/core';
 import { Router } from '@angular/router';
 
@@ -13,6 +13,9 @@ import * as hoverintent from 'hoverintent';
 import { ServersService } from '../../servers.service';
 
 import parseAPNG, { isNotAPNG } from '@citizenfx/apng-js';
+import { ServerTagsService } from 'app/servers/server-tags.service';
+import { Subscription } from 'rxjs';
+import { environment } from 'environments/environment';
 
 @Component({
 	moduleId: module.id,
@@ -39,9 +42,16 @@ export class ServersListItemComponent implements OnInit, OnChanges, OnDestroy, A
 
 	private upvoting = false;
 
-	constructor(private gameService: GameService, private discourseService: DiscourseService,
+    private tagSubscription: Subscription;
+
+	constructor(private gameService: GameService, private discourseService: DiscourseService, private tagService: ServerTagsService,
 		private serversService: ServersService, private router: Router, private elementRef: ElementRef,
-		private zone: NgZone, private renderer: Renderer2) { }
+		private zone: NgZone, private renderer: Renderer2, private cdr: ChangeDetectorRef) {
+    }
+
+    get isWeb() {
+        return environment.web;
+    }
 
 	get premium() {
 		if (!this.server.data.vars) {
@@ -59,10 +69,14 @@ export class ServersListItemComponent implements OnInit, OnChanges, OnDestroy, A
 		this.hoverIntent.options({
 			interval: 50
 		});
+
+        this.tagSubscription = this.tagService.onUpdate.subscribe(() => this.cdr.detectChanges());
 	}
 
 	public ngOnDestroy() {
 		this.hoverIntent.remove();
+
+        this.tagSubscription.unsubscribe();
 	}
 
 	public ngAfterViewInit() {
@@ -192,7 +206,9 @@ export class ServersListItemComponent implements OnInit, OnChanges, OnDestroy, A
 	}
 
 	enableBoost(event: Event) {
-		this.addBoost();
+        if (!environment.web) {
+		    this.addBoost();
+        }
 
 		event.stopPropagation();
 	}
@@ -241,5 +257,31 @@ export class ServersListItemComponent implements OnInit, OnChanges, OnDestroy, A
 
 			this.upvoting = false;
 		}).catch(_=>_);
+	}
+
+	get locale() {
+		return this.server?.data?.vars?.locale ?? 'root-001';
+	}
+
+	get localeCountry() {
+		const parts = this.locale.split('-');
+		return parts[parts.length - 1].toLowerCase();
+	}
+
+	get localeName() {
+		return this.tagService.getLocaleDisplayName(this.locale);
+	}
+
+	get tags() {
+		const tagList = Array.from(new Set<string>(((this.server.data?.vars?.tags as string) ?? '').split(',').map(a => a.trim())));
+		const tagsByCount = tagList
+			.map(a => this.tagService.coreTags[a]).filter(a => a).sort((a, b) => (b.count - a.count))
+			.filter(a => a.count >= 8);
+
+		if (tagsByCount.length > 4) {
+			tagsByCount.length = 4;
+		}
+
+		return tagsByCount.map(a => a.name);
 	}
 }

@@ -13,8 +13,11 @@
 #define NUTSNBOLTS_EXPORT DLL_IMPORT
 #endif
 
+#define HAS_EARLY_GAME_FRAME
+
 extern NUTSNBOLTS_EXPORT fwEvent<> OnLookAliveFrame;
 extern NUTSNBOLTS_EXPORT fwEvent<> OnGameFrame;
+extern NUTSNBOLTS_EXPORT fwEvent<> OnEarlyGameFrame;
 extern NUTSNBOLTS_EXPORT fwEvent<> OnMainGameFrame;
 extern NUTSNBOLTS_EXPORT fwEvent<> OnCriticalGameFrame;
 extern NUTSNBOLTS_EXPORT fwEvent<> OnFirstLoadCompleted;

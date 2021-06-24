@@ -34,7 +34,10 @@ inline const wchar_t* MakeCfxSubProcess(const std::wstring& processType, const s
 	}
 
 	// make the out directory
-	std::wstring outPath = MakeRelativeCitPath(L"cache\\");
+	std::wstring outPath = MakeRelativeCitPath(L"data\\");
+	CreateDirectory(outPath.c_str(), nullptr);
+
+	outPath += L"cache\\";
 	CreateDirectory(outPath.c_str(), nullptr);
 
 	outPath += L"subprocess\\";
@@ -51,6 +54,8 @@ inline const wchar_t* MakeCfxSubProcess(const std::wstring& processType, const s
 	productName = L"FXS_";
 #elif defined(IS_RDR3)
 	productName = L"RedM_";
+#elif defined(GTA_NY)
+	productName = L"LibertyM_";
 #else
 #error No subprocess name!
 #endif

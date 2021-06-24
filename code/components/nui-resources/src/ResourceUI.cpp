@@ -34,8 +34,8 @@ bool ResourceUI::Create()
 	// initialize callback handlers
 	auto resourceName = m_resource->GetName();
 	std::transform(resourceName.begin(), resourceName.end(), resourceName.begin(), ::ToLower);
-	CefRegisterSchemeHandlerFactory("http", resourceName, Instance<NUISchemeHandlerFactory>::Get());
-	CefRegisterSchemeHandlerFactory("https", resourceName, Instance<NUISchemeHandlerFactory>::Get());
+	nui::RegisterSchemeHandlerFactory("http", resourceName, Instance<NUISchemeHandlerFactory>::Get());
+	nui::RegisterSchemeHandlerFactory("https", resourceName, Instance<NUISchemeHandlerFactory>::Get());
 
 	// get the metadata component
 	fwRefContainer<fx::ResourceMetaDataComponent> metaData = m_resource->GetComponent<fx::ResourceMetaDataComponent>();
@@ -62,7 +62,7 @@ bool ResourceUI::Create()
 
 	// get the page name from the iterator
 	std::string pageName = uiPageData.begin()->second;
-	CefRegisterSchemeHandlerFactory("https", "cfx-nui-" + resourceName, Instance<NUISchemeHandlerFactory>::Get());
+	nui::RegisterSchemeHandlerFactory("https", "cfx-nui-" + resourceName, Instance<NUISchemeHandlerFactory>::Get());
 
 	// create the NUI frame
 	auto rmvRes = metaData->IsManifestVersionBetween("cerulean", "");
@@ -109,7 +109,7 @@ void ResourceUI::AddCallback(const std::string& type, ResUICallback callback)
 	m_callbacks.insert({ type, callback });
 }
 
-bool ResourceUI::InvokeCallback(const std::string& type, const std::multimap<std::string, std::string>& headers, const std::string& data, ResUIResultCallback resultCB)
+bool ResourceUI::InvokeCallback(const std::string& type, const std::string& query, const std::multimap<std::string, std::string>& headers, const std::string& data, ResUIResultCallback resultCB)
 {
 	auto set = fx::GetIteratorView(m_callbacks.equal_range(type));
 
@@ -128,7 +128,7 @@ bool ResourceUI::InvokeCallback(const std::string& type, const std::multimap<std
 
 	for (auto& cb : set)
 	{
-		cb.second(type, headers, data, resultCB);
+		cb.second(type, query, headers, data, resultCB);
 	}
 
 	return true;

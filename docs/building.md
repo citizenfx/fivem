@@ -11,44 +11,45 @@ To build FiveM, RedM or FXServer on Windows you need the following dependencies:
   
   You can install these workloads by going to "Tools" -> "Get Tools and Features..." -> Check the checkboxes -> Click "Modify" in the bottom right corner.
   
-* [Boost 1.71.0](https://dl.bintray.com/boostorg/release/1.71.0/source/boost_1_71_0.7z), extracted to a path defined by the environment variable `BOOST_ROOT`.
-* [Modified CEF](https://runtime.fivem.net/build/cef/cef_binary_83.0.0-shared-textures.2175+g5430a8e+chromium-83.0.4103.0_windows64_20210210_minimal.zip), extracted to `vendor/cef` in the build tree.
-* [Python 2.7.x](https://python.org/) in your PATH as `python`. This is still Python 2 due to a dependency on Mozilla `xpidl`, which hasn't been ported to Python 3.
+* [PowerShell 7](https://aka.ms/powershell-release?tag=stable) or higher.
+* [Boost 1.71.0](https://boostorg.jfrog.io/artifactory/main/release/1.71.0/source/boost_1_71_0.7z), extracted to a path defined by the environment variable `BOOST_ROOT`.
+* [Python 2.7.x](https://python.org/) in your PATH as `python`. This is still Python 2 due to a dependency on Mozilla `xpidl`, which hasn't been updated to a Python 3-compatible version, as well as Chromium build tools.
 * [MSYS2](https://www.msys2.org/) at `C:\msys64\` which is where the installer places it.
-* [Node.js](https://nodejs.org/en/download/) and [Yarn](https://classic.yarnpkg.com/en/docs/install/) in your PATH as `yarn`.
+* [Node.js](https://nodejs.org/en/download/) and [Yarn](https://classic.yarnpkg.com/en/docs/install/) in your PATH as `node` and `yarn`.
 
 Then, execute the following commands in a `cmd.exe` shell to set up the build environment:
 
 ```bat
-set BOOST_ROOT=C:\libraries\boost_1_63_0
-set PATH=%path%;C:\tools\python27amd64
-git clone https://github.com/citizenfx/fivem.git
+set BOOST_ROOT=C:\libraries\boost_1_71_0
+set PATH=C:\tools\python27amd64;%path%
+git clone https://github.com/citizenfx/fivem.git -c core.symlinks=true
 cd fivem
-git submodule init
-git submodule update --recursive
-cd code
+git submodule update --jobs=16 --init
 
-:: or --game=server/--game=rdr3
-.\tools\ci\premake5.exe vs2019 --game=five
+:: downloads the right Chrome version for 64-bit projects
+fxd get-chrome
+
+:: or -game server/-game rdr3/-game ny
+fxd gen -game five
+fxd vs -game five
 ```
-
-... and now you can open `build/five/CitizenMP.sln` in Visual Studio, or compile it from the command line with MSBuild.
 
 ### Set up data files for `five`
 
 After building the FiveM client, you should be having files such as `/code/bin/five/debug/v8.dll` exist automatically. Manual copying is no longer required.
 
-**Symlink `cache` directory** (optional)
+**Symlink `game-storage` directory** (optional)
 
-The `/code/bin/five/debug/cache` directory can get quite large and is equivalent to the `%LocalAppData%/FiveM/FiveM.app/cache` directory, so you should use a **symlink** to save disk space.
+The `/code/bin/five/debug/data/game-storage` directory can get quite large and is equivalent to the `%LocalAppData%/FiveM/FiveM.app/data/game-storage` directory, so you should use a **symlink** to save disk space.
 
 If you don't know how to do that, here's how:
 
 1. Navigate to `/code/bin/five/debug`.
-2. Delete the `cache` folder if it already exists.
-3. Hold <kbd>Shift</kbd>, right click empty space in `/code/bin/five/debug`, and select "Open PowerShell window here".
-4. Type this: `New-Item -ItemType SymbolicLink -Path "cache" -Target "$env:localappdata/FiveM/FiveM.app/cache"`.
-5. You should now see a `cache` folder inside `/code/bin/five/debug`.
+2. Delete the `game-storage` folder in `data` if it already exists.
+3. Make a new `data` directory if it doesn't already exist.
+4. Hold <kbd>Shift</kbd>, right click empty space in `/code/bin/five/debug/data`, and select "Open PowerShell window here".
+5. Type this: `New-Item -ItemType SymbolicLink -Path "game-storage" -Target "$env:localappdata/FiveM/FiveM.app/data/game-storage"`.
+6. You should now see a `game-storage` folder inside `/code/bin/five/debug/data`.
 
 **Known issues**
 

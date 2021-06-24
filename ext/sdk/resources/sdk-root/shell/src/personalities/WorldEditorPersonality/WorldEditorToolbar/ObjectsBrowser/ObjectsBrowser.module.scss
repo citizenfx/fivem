@@ -1,0 +1,88 @@
+@import "../../vars.scss";
+
+.root {
+  position: relative;
+
+  .trigger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: $weToolbarHeight;
+    height: $weToolbarHeight;
+
+    cursor: pointer;
+    user-select: none;
+
+    @include interactiveTransition;
+    @include backdrop-blur;
+
+    color: $fgColor;
+
+    &:hover {
+      background-color: $acColor;
+    }
+
+    svg {
+      font-size: $fs4;
+    }
+  }
+
+  .browser {
+    position: absolute;
+
+    top: 0;
+    left: 0;
+
+    display: flex;
+    flex-direction: column;
+
+    width: 15vw;
+    // height: calc(100vh - #{$weToolbarHeight});
+    height: 100vh;
+
+    backdrop-filter: blur(20px);
+
+    background-color: rgba($bgColor, .95);
+    // box-shadow: 0 0 0 2px rgba($fgColor, .5) inset;
+    border: solid 2px rgba($fgColor, .25);
+
+    z-index: 4000;
+
+    .loader {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      height: 100%;
+
+      padding: $q*10;
+    }
+
+    .filter {
+      // margin: $q;
+      height: auto;
+    }
+
+    .list {
+      flex-grow: 1;
+
+      .item {
+        width: 100%;
+
+        padding: $q*2 $q*4;
+
+        cursor: default;
+
+        font-size: $fs08;
+        font-weight: 100;
+
+        @include ellipsis;
+
+        &.active {
+          background-color: rgba($acColor, .25);
+        }
+      }
+    }
+  }
+}

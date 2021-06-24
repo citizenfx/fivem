@@ -108,7 +108,6 @@ export class Task<StageType = number> {
 
   setStage(stage: StageType) {
     if (typeof stage !== 'number') {
-      console.log('NOT A NUMBER STAGE!!!: ', typeof stage, stage);
       return;
     }
 

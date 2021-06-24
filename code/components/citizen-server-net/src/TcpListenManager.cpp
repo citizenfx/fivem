@@ -12,6 +12,10 @@
 
 #include <CoreConsole.h>
 
+#ifdef _WIN32
+#include <windns.h>
+#endif
+
 static auto GetAddrByPeer(const net::PeerAddress& peer)
 {
 	auto addr = peer.GetSocketAddress();
@@ -118,6 +122,8 @@ namespace fx
 			{
 				m_primaryPort = peerAddress->GetPort();
 				m_primaryPortVar->GetHelper()->SetRawValue(m_primaryPort);
+
+				RegisterDns();
 			}
 
 			// create a multiplexable TCP server and bind it
@@ -158,7 +164,67 @@ namespace fx
 		m_primaryPortVar = instance->AddVariable<int>("netPort", ConVar_None, m_primaryPort);
 
 		m_tcpLimitVar = instance->AddVariable<int>("net_tcpConnLimit", ConVar_None, m_tcpLimit, &m_tcpLimit);
+
+		m_dnsRegisterVar = instance->AddVariable<bool>("sv_registerMulticastDns", ConVar_None, true);
 	}
+
+#ifndef _WIN32
+	void TcpListenManager::RegisterDns()
+	{
+	
+	}
+#else
+	void TcpListenManager::RegisterDns()
+	{
+		if (!m_dnsRegisterVar->GetValue())
+		{
+			return;
+		}
+
+		auto dnslib = LoadLibraryW(L"dnsapi.dll");
+
+		if (!dnslib)
+		{
+			return;
+		}
+
+		auto _DnsServiceConstructInstance = (decltype(&DnsServiceConstructInstance))GetProcAddress(dnslib, "DnsServiceConstructInstance");
+		auto _DnsServiceRegister = (decltype(&DnsServiceRegister))GetProcAddress(dnslib, "DnsServiceRegister");
+
+		if (!_DnsServiceConstructInstance || !_DnsServiceRegister)
+		{
+			return;
+		}
+
+		wchar_t computername[512];
+		DWORD nameLen = _countof(computername);
+		GetComputerNameW(computername, &nameLen);
+
+		wchar_t hostBuf[256];
+		swprintf_s(hostBuf, L"%s%s", computername, L"");
+
+		auto instance = _DnsServiceConstructInstance(
+		va(L"%s._cfx._udp.local", computername),
+		computername,
+		NULL,
+		NULL,
+		m_primaryPort,
+		0,
+		0,
+		0,
+		nullptr,
+		nullptr);
+
+		DNS_SERVICE_REGISTER_REQUEST regReq = { 0 };
+		regReq.Version = DNS_QUERY_REQUEST_VERSION1;
+		regReq.InterfaceIndex = 0;
+		regReq.pServiceInstance = instance;
+		regReq.unicastEnabled = FALSE;
+		regReq.pRegisterCompletionCallback = [](DWORD, PVOID, PDNS_SERVICE_INSTANCE) {};
+
+		_DnsServiceRegister(&regReq, NULL);
+	}
+#endif
 }
 
 static InitFunction initFunction([] ()

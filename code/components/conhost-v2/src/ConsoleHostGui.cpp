@@ -25,7 +25,10 @@
 
 #include <se/Security.h>
 
+#include <boost/circular_buffer.hpp>
 #include <concurrent_queue.h>
+
+bool IsNonProduction();
 
 DLL_EXPORT console::Context* g_customConsoleContext;
 
@@ -96,8 +99,8 @@ static CRGBA HSLToRGB(HSL hsl) {
 
 struct FiveMConsoleBase
 {
-	ImVector<char*> Items;
-	ImVector<char*> ItemKeys;
+	boost::circular_buffer<std::string> Items{ 2500 };
+	boost::circular_buffer<std::string> ItemKeys{ 2500 };
 
 	std::recursive_mutex ItemsMutex;
 
@@ -117,9 +120,8 @@ struct FiveMConsoleBase
 
 		{
 			std::unique_lock<std::recursive_mutex> lock(ItemsMutex);
-
-			ItemKeys.push_back(Strdup(key));
-			Items.push_back(Strdup(buf));
+			ItemKeys.push_back(key);
+			Items.push_back(buf);
 
 			OnAddLog(key, buf);
 		}
@@ -144,14 +146,14 @@ struct FiveMConsoleBase
 
 	virtual void DrawItem(int i, float alpha = 1.0f, bool fullBg = false)
 	{
-		const char* item = Items[i];
-		const char* key = ItemKeys[i];
+		const auto& item = Items[i];
+		auto key = ItemKeys[i];
 
-		if (strlen(key) > 0 && strlen(item) > 0)
+		if (strlen(key.c_str()) > 0 && strlen(item.c_str()) > 0)
 		{
 			ImGui::PushFont(consoleFontSmall);
 
-			auto hue = int{ HashRageString(key) % 360 };
+			auto hue = int{ HashRageString(key.c_str()) % 360 };
 			auto color = HSLToRGB(HSL{ hue, 0.8f, 0.4f });
 			color.alpha = alpha * 255.0f;
 
@@ -159,11 +161,10 @@ struct FiveMConsoleBase
 
 			if (fullBg)
 			{
-				refStr = fmt::sprintf("[%s]:", key);
-				key = refStr.c_str();
+				key = fmt::sprintf("[%s]:", key);
 			}
 
-			auto textSize = ImGui::CalcTextSize(key);
+			auto textSize = ImGui::CalcTextSize(key.c_str());
 
 			auto dl = ImGui::GetCurrentContext()->CurrentWindow->DrawList;
 			auto startPos = ImGui::GetCursorScreenPos();
@@ -172,7 +173,7 @@ struct FiveMConsoleBase
 
 			if (fullBg)
 			{
-				itemSize = ImGui::CalcTextSize(item);
+				itemSize = ImGui::CalcTextSize(item.c_str());
 				itemSize.x += 8.0f;
 
 				color.alpha *= 0.8f;
@@ -182,7 +183,7 @@ struct FiveMConsoleBase
 			ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 4.0f);
 
 			//ImGui::PushStyleColor(ImGuiCol_Text, col);
-			ImGui::TextUnformatted(key);
+			ImGui::TextUnformatted(key.c_str());
 			//ImGui::PopStyleColor();
 
 			ImGui::PopFont();
@@ -192,22 +193,18 @@ struct FiveMConsoleBase
 
 		ImVec4 col = ImVec4(1.0f, 1.0f, 1.0f, alpha);
 
-		if (strstr(item, "[error]")) col = ImColor(1.0f, 0.4f, 0.4f, alpha);
-		else if (strncmp(item, "# ", 2) == 0) col = ImColor(1.0f, 0.78f, 0.58f, alpha);
+		if (strstr(item.c_str(), "[error]"))
+			col = ImColor(1.0f, 0.4f, 0.4f, alpha);
+		else if (strncmp(item.c_str(), "# ", 2) == 0)
+			col = ImColor(1.0f, 0.78f, 0.58f, alpha);
 		ImGui::PushStyleColor(ImGuiCol_Text, col);
-		ImGui::TextUnformatted(item);
+		ImGui::TextUnformatted(item.c_str());
 		ImGui::PopStyleColor();
 	}
 
 	virtual void ClearLog()
 	{
 		std::unique_lock<std::recursive_mutex> lock(ItemsMutex);
-
-		for (int i = 0; i < Items.Size; i++)
-		{
-			free(Items[i]);
-			free(ItemKeys[i]);
-		}
 
 		Items.clear();
 		ItemKeys.clear();
@@ -263,10 +260,12 @@ struct CfxBigConsole : FiveMConsoleBase
 
 	void Draw(const char* title, bool* p_open) override
 	{
+#ifndef IS_FXSERVER
 		if (GetKeyState(VK_CONTROL) & 0x8000 && GetKeyState(VK_MENU) & 0x8000)
 		{
 			return;
 		}
+#endif
 
 		ImGui::SetNextWindowPos(ImVec2(ImGui::GetMainViewport()->Pos.x + 0, ImGui::GetMainViewport()->Pos.y + g_menuHeight));
 		ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, 
@@ -283,7 +282,8 @@ struct CfxBigConsole : FiveMConsoleBase
 			ImGuiWindowFlags_NoScrollbar |
 			ImGuiWindowFlags_NoMove |
 			ImGuiWindowFlags_NoResize |
-			ImGuiWindowFlags_NoSavedSettings;
+			ImGuiWindowFlags_NoSavedSettings | 
+			ImGuiWindowFlags_NoBringToFrontOnFocus;
 
 		if (!ImGui::Begin(title, nullptr, flags))
 		{
@@ -327,7 +327,7 @@ struct CfxBigConsole : FiveMConsoleBase
 		// and appending newly elements as they are inserted. This is left as a task to the user until we can manage to improve this example code!
 		// If your items are of variable size you may want to implement code similar to what ImGuiListClipper does. Or split your data into fixed height items to allow random-seeking into your list.
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 1)); // Tighten spacing
-		ImGuiListClipper clipper(Items.Size);
+		ImGuiListClipper clipper(Items.size());
 		while (clipper.Step())
 		{
 			for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
@@ -345,6 +345,7 @@ struct CfxBigConsole : FiveMConsoleBase
 		ImGui::Separator();
 
 		// Command-line
+		ImGui::PushItemWidth(-1.0f);
 		if (ImGui::InputText("_", InputBuf, _countof(InputBuf), ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CallbackCompletion | ImGuiInputTextFlags_CallbackHistory, &TextEditCallbackStub, (void*)this))
 		{
 			char* input_end = InputBuf + strlen(InputBuf);
@@ -353,6 +354,7 @@ struct CfxBigConsole : FiveMConsoleBase
 				ExecCommand(InputBuf);
 			strcpy(InputBuf, "");
 		}
+		ImGui::PopItemWidth();
 
 		// Demonstrate keeping auto focus on the input box
 		if (ImGui::IsItemHovered() || (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && !ImGui::IsAnyItemActive() && !ImGui::IsMouseClicked(0)))
@@ -424,9 +426,25 @@ struct CfxBigConsole : FiveMConsoleBase
 			// Build a list of candidates
 			std::set<std::string> candidates;
 
+			auto hasAccess = [](const std::string& command)
+			{
+				if (IsNonProduction())
+				{
+					return true;
+				}
+
+				se::ScopedPrincipalReset reset;
+				se::ScopedPrincipal principal{
+					se::Principal{
+					"system.extConsole" }
+				};
+
+				return seCheckPrivilege(fmt::sprintf("command.%s", command));
+			};
+
 			GetConsoleContext()->GetCommandManager()->ForAllCommands([&](const std::string& command)
 			{
-				if (Strnicmp(command.c_str(), word_start, (int)(word_end - word_start)) == 0)
+				if (Strnicmp(command.c_str(), word_start, (int)(word_end - word_start)) == 0 && hasAccess(command))
 				{
 					candidates.insert(command);
 				}
@@ -434,7 +452,7 @@ struct CfxBigConsole : FiveMConsoleBase
 
 			console::GetDefaultContext()->GetCommandManager()->ForAllCommands([&](const std::string& command)
 			{
-				if (Strnicmp(command.c_str(), word_start, (int)(word_end - word_start)) == 0)
+				if (Strnicmp(command.c_str(), word_start, (int)(word_end - word_start)) == 0 && hasAccess(command))
 				{
 					candidates.insert(command);
 				}
@@ -529,12 +547,32 @@ struct CfxBigConsole : FiveMConsoleBase
 
 		while (CommandQueue.try_pop(command_line))
 		{
-			se::ScopedPrincipal scope(se::Principal{ "system.console" });
+			se::ScopedPrincipal scope(se::Principal{ (IsNonProduction()) ? "system.console" : "system.extConsole" });
 
 			GetConsoleContext()->AddToBuffer(command_line);
 			GetConsoleContext()->AddToBuffer("\n");
 			GetConsoleContext()->ExecuteBuffer();
 		}
+	}
+
+	virtual bool FilterLog(const std::string& channel) override
+	{
+		if (IsNonProduction())
+		{
+			return true;
+		}
+
+		if (channel == "script:game:nui")
+		{
+			return false;
+		}
+
+		if (channel == "cmd")
+		{
+			return true;
+		}
+
+		return channel.find("script:") == 0;
 	}
 };
 
@@ -593,9 +631,6 @@ struct MiniConsole : CfxBigConsole
 			{
 				while ((ItemTimes.size() > 1 && (t - ItemTimes[0]) > std::chrono::seconds(10)) || Items.size() > 14)
 				{
-					free(Items[0]);
-					free(ItemKeys[0]);
-
 					Items.erase(Items.begin());
 					ItemKeys.erase(ItemKeys.begin());
 					ItemTimes.erase(ItemTimes.begin());
@@ -603,16 +638,13 @@ struct MiniConsole : CfxBigConsole
 
 				if (ItemTimes.size() == 1 && ((t - ItemTimes[0]) > std::chrono::seconds(10)))
 				{
-					free(Items[0]);
-					free(ItemKeys[0]);
-
-					Items[0] = Strdup("");
-					ItemKeys[0] = Strdup("");
+					Items[0] = "";
+					ItemKeys[0] = "";
 					ItemTimes[0] = t;
 				}
 			}
 
-			ImGuiListClipper clipper(Items.Size);
+			ImGuiListClipper clipper(Items.size());
 			while (clipper.Step())
 			{
 				for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
@@ -714,6 +746,26 @@ static void EnsureConsoles()
 	}
 }
 
+bool IsNonProduction()
+{
+#if !defined(GTA_FIVE) || defined(_DEBUG)
+	return true;
+#else
+	static ConVar<int> moo("moo", ConVar_None, 0);
+
+	static auto isProd = ([]()
+	{
+		wchar_t resultPath[1024];
+		static std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+		GetPrivateProfileString(L"Game", L"UpdateChannel", L"production", resultPath, std::size(resultPath), fpath.c_str());
+
+		return _wcsicmp(resultPath, L"production") == 0 || _wcsicmp(resultPath, L"prod") == 0;
+	})();
+
+	return !isProd || moo.GetValue() == 31337;
+#endif
+}
+
 void DrawConsole()
 {
 	EnsureConsoles();
@@ -746,7 +798,7 @@ void SendPrintMessage(const std::string& channel, const std::string& message)
 
 		for (auto& console : g_consoles)
 		{
-			if (console->Items.Size == 0)
+			if (console->Items.size() == 0)
 			{
 				console->AddLog("", "");
 			}
@@ -766,10 +818,8 @@ void SendPrintMessage(const std::string& channel, const std::string& message)
 			{
 				std::unique_lock<std::recursive_mutex> lock(console->ItemsMutex);
 
-				auto strRef = FiveMConsoleBase::Strdup((console->Items[console->Items.size() - 1] + str).c_str());
+				auto strRef = (console->Items[console->Items.size() - 1] + str);
 				std::swap(console->Items[console->Items.size() - 1], strRef);
-
-				free(strRef);
 
 				console->UpdateLog(console->Items.size() - 1);
 			}
@@ -827,10 +877,18 @@ static InitFunction initFunction([]()
 		{
 			std::unique_lock<std::recursive_mutex> lock(g_consoles[1]->ItemsMutex);
 
-			*should = *should || ((g_consoles[1]->Items.size() > 1) || (g_consoles[1]->Items[0] && *g_consoles[1]->Items[0]));
+			*should = *should || ((g_consoles[1]->Items.size() > 1) || (!g_consoles[1]->Items[0].empty()));
 		}
 	}, 999);
 
-	OnGameFrame.Connect([] { RunConsoleGameFrame(); });
+	OnCriticalGameFrame.Connect([] { RunConsoleGameFrame(); });
 });
 #endif
+
+static InitFunction initFunctionCon([]()
+{
+	for (auto& command : { "connect", "quit", "cl_drawFPS", "bind", "rbind", "unbind", "disconnect", "storymode", "loadlevel", "cl_drawPerf", "profile_reticuleSize", "profile_musicVolumeInMp", "profile_musicVolume", "profile_sfxVolume" })
+	{
+		seGetCurrentContext()->AddAccessControlEntry(se::Principal{ "system.extConsole" }, se::Object{ fmt::sprintf("command.%s", command) }, se::AccessType::Allow);
+	}
+});

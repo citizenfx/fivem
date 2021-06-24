@@ -15,6 +15,7 @@ export class ConnectStatus {
 	public message: string;
 	public count: number;
 	public total: number;
+	public cancelable: boolean;
 }
 
 export class ConnectCard {
@@ -45,9 +46,21 @@ class ConvarWrapper {
 	}
 }
 
+export class LocalhostAvailability {
+	available: boolean;
+	host: string;
+	port: string;
+
+	constructor(available: boolean, host?: string, port?: string) {
+		this.available = available;
+		this.host = host ?? '';
+		this.port = port ?? '';
+	}
+}
+
 @Injectable()
 export abstract class GameService {
-	connectFailed = new EventEmitter<[Server, string]>();
+	connectFailed = new EventEmitter<[Server, string, any]>();
 	connectStatus = new EventEmitter<ConnectStatus>();
 	connectCard = new EventEmitter<ConnectCard>();
 	connecting = new EventEmitter<Server>();
@@ -61,6 +74,7 @@ export abstract class GameService {
 	darkThemeChange = new BehaviorSubject<boolean>(true);
 	nicknameChange = new BehaviorSubject<string>('');
 	localhostPortChange = new BehaviorSubject<string>('');
+	localServerChange = new BehaviorSubject<LocalhostAvailability>(new LocalhostAvailability(false));
 	languageChange = new BehaviorSubject<string>('en');
 
 	signinChange = new EventEmitter<Profile>();
@@ -78,6 +92,9 @@ export abstract class GameService {
 
 	convars: { [name: string]: ConvarWrapper } = {};
 	showConnectingOverlay: boolean;
+
+	buildSwitchTimeout;
+	buildSwitchUItimeouts = [];
 
 	get systemLanguages(): string[] {
 		return ['en-us'];
@@ -101,6 +118,8 @@ export abstract class GameService {
 				return 'Cfx.re';
 			case 'gta5':
 				return 'FiveM';
+			case 'ny':
+				return 'LibertyM';
 			default:
 				return 'CitizenFX';
 		}
@@ -164,6 +183,10 @@ export abstract class GameService {
 
 	abstract toggleListEntry(type: string, server: Server, isInList: boolean): void;
 
+    async selectFile(key: string): Promise<string> {
+        throw new Error('not on web');
+    }
+
 	sayHello() {}
 
 	getProfile(): Profile {
@@ -203,8 +226,8 @@ export abstract class GameService {
 		win.focus();
 	}
 
-	protected invokeConnectFailed(server: Server, message: string) {
-		this.connectFailed.emit([server, message]);
+	protected invokeConnectFailed(server: Server, message: string, extra?: any) {
+		this.connectFailed.emit([server, message, extra || {}]);
 	}
 
 	public invokeError(message: string) {
@@ -219,12 +242,13 @@ export abstract class GameService {
 		this.connecting.emit(server);
 	}
 
-	protected invokeConnectStatus(server: Server, message: string, count: number, total: number) {
+	protected invokeConnectStatus(server: Server, message: string, count: number, total: number, cancelable: boolean) {
 		this.connectStatus.emit({
 			server: server,
 			message: message,
 			count: count,
-			total: total
+			total: total,
+            cancelable: cancelable
 		});
 	}
 
@@ -374,8 +398,11 @@ export class CfxGameService extends GameService {
 					case 'exitGameplay':
 						document.body.style.visibility = 'visible';
 						break;
+                    case 'fileDialogResult':
+                        this.zone.run(() => this.invokeFileDialogResult(event.data.dialogKey, event.data.result));
+                        break;
 					case 'connectFailed':
-						this.zone.run(() => this.invokeConnectFailed(this.lastServer, event.data.message));
+						this.zone.run(() => this.invokeConnectFailed(this.lastServer, event.data.message, event.data.extra));
 						break;
 					case 'setWarningMessage':
 						this.zone.run(() => this.invokeError(event.data.message));
@@ -389,7 +416,7 @@ export class CfxGameService extends GameService {
 					case 'connectStatus':
 						this.zone.run(() =>
 							this.invokeConnectStatus(
-								this.lastServer, event.data.data.message, event.data.data.count, event.data.data.total));
+								this.lastServer, event.data.data.message, event.data.data.count, event.data.data.total, event.data.data.cancelable));
 						break;
 					case 'connectCard':
 						this.zone.run(() =>
@@ -454,7 +481,7 @@ export class CfxGameService extends GameService {
 						const address: string = event.data.hostnameStr;
 						const connectParams = query.parse(event.data.connectParams);
 
-						(<any>window).invokeNative('checkNickname', this.realNickname);
+						this.updateNickname();
 
 						if (!this.inConnecting) {
 							if ('streamerMode' in connectParams) {
@@ -495,15 +522,26 @@ export class CfxGameService extends GameService {
 
 			const requestLocalhost = async () => {
 				try {
-					const localhostServer = await this.queryAddress(['localhost', parseInt(this.localhostPort, 10) || 30120]);
+					const localhostServer = await this.queryAddress(['localhost_sentinel', parseInt(this.localhostPort, 10) || 30120]);
 
 					if (localhostServer) {
+						this.localServerChange.next(
+							new LocalhostAvailability(
+								true,
+								localhostServer.data?.address ?? 'localhost',
+								localhostServer.data?.port ?? (this.localhostPort || '30120')
+							)
+						);
 						this.devMode = true;
 					} else {
 						this.devMode = false;
+
+						this.localServerChange.next(new LocalhostAvailability(false));
 					}
 				} catch {
 					this.devMode = false;
+
+					this.localServerChange.next(new LocalhostAvailability(false));
 				}
 			};
 			requestLocalhost();
@@ -559,6 +597,22 @@ export class CfxGameService extends GameService {
 		}
 	}
 
+    private fileSelectReqs: { [key: string]: (result: string) => void } = {};
+
+    private invokeFileDialogResult(key: string, result?: string) {
+        if (this.fileSelectReqs[key]) {
+            this.fileSelectReqs[key](result ?? '');
+        }
+    }
+
+    async selectFile(key: string): Promise<string> {
+        return new Promise<string>((resolve) => {
+            (window as any).invokeNative('openFileDialog', key);
+
+            this.fileSelectReqs[key] = resolve;
+        });
+    }
+
 	protected invokeBuildSwitchRequest(server: Server, build: number) {
 		this.card = true;
 
@@ -606,14 +660,20 @@ export class CfxGameService extends GameService {
 			});
 		};
 
+		this.buildSwitchUItimeouts.forEach(clearTimeout);
+        this.buildSwitchUItimeouts.length = 0;
+
 		for (let i = 0; i < 10; i++) {
 			const msec = (10 - i) * 1000;
 			const sec = i;
 
-			setTimeout(() => presentCard(sec), msec);
+            this.buildSwitchUItimeouts.push(setTimeout(() => presentCard(sec), msec));
 		}
 
-		setTimeout(() => {
+        if (this.buildSwitchTimeout) {
+            clearTimeout(this.buildSwitchTimeout);
+        }
+        this.buildSwitchTimeout = setTimeout(() => {
 			if (this.card) {
 				this.submitCardResponse({
 					action: 'ok'
@@ -724,7 +784,13 @@ export class CfxGameService extends GameService {
 		localStorage.setItem('nickOverride', name);
 		this.invokeNicknameChanged(name);
 
-		(<any>window).invokeNative('checkNickname', name);
+		this.updateNickname();
+	}
+
+	updateNickname() {
+		if (this.realNickname && this.realNickname !== '') {
+			(<any>window).invokeNative('checkNickname', this.realNickname);
+		}
 	}
 
 	get darkTheme(): boolean {
@@ -792,6 +858,8 @@ export class CfxGameService extends GameService {
 		if (this.inConnecting) {
 			return;
 		}
+
+		this.updateNickname();
 
 		this.inConnecting = true;
 
@@ -879,6 +947,8 @@ export class CfxGameService extends GameService {
 	}
 
 	cancelNativeConnect(): void {
+        this.card = false;
+
 		(<any>window).invokeNative('cancelDefer', '');
 	}
 
@@ -911,13 +981,15 @@ export class CfxGameService extends GameService {
 
 			for (const addrString of tries) {
 				const promise = new Promise<Server>((queryResolve, queryReject) => {
+                    let messageHandler: any = null;
+
 					const timeoutTimer = window.setTimeout(() => {
 						queryReject(new Error('#DirectConnect_TimedOut'));
 
 						window.removeEventListener('message', messageHandler);
-					}, 2500);
+					}, 7500);
 
-					const messageHandler = (event) => {
+					messageHandler = (event) => {
 						if (event.data.type === 'queryingFailed') {
 							if (event.data.arg === addrString) {
 								queryReject(new Error('#DirectConnect_Failed'));
@@ -925,9 +997,11 @@ export class CfxGameService extends GameService {
 								window.clearTimeout(timeoutTimer);
 							}
 						} else if (event.data.type === 'serverQueried') {
-							queryResolve(Server.fromNative(this.sanitizer, event.data));
-							window.removeEventListener('message', messageHandler);
-							window.clearTimeout(timeoutTimer);
+                            if (event.data.queryCorrelation === addrString) {
+                                queryResolve(Server.fromNative(this.sanitizer, event.data));
+                                window.removeEventListener('message', messageHandler);
+                                window.clearTimeout(timeoutTimer);
+                            }
 						}
 					};
 
@@ -1096,7 +1170,7 @@ export class DummyGameService extends GameService {
 		this.invokeConnecting(server);
 
 		setTimeout(() => {
-			this.invokeConnectStatus(server, 'hey!', 12, 12)
+			this.invokeConnectStatus(server, 'hey!', 12, 12, false)
 
 			setTimeout(() => {
 				this.invokeConnectFailed(server, 'Sorry, we\'re closed. :(');

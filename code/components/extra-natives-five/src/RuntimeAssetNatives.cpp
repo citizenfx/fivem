@@ -38,6 +38,8 @@
 
 #include <atPool.h>
 
+#include <skyr/url.hpp>
+
 #include <concurrent_unordered_set.h>
 
 using Microsoft::WRL::ComPtr;
@@ -341,9 +343,9 @@ RuntimeTex* RuntimeTxd::CreateTextureFromImage(const char* name, const char* fil
 			}
 
 			// create a pixel data buffer
-			uint32_t* pixelData = new uint32_t[width * height];
+			std::unique_ptr<uint32_t[]> pixelData(new uint32_t[width * height]);
 
-			hr = source->CopyPixels(nullptr, width * 4, width * height * 4, reinterpret_cast<BYTE*>(pixelData));
+			hr = source->CopyPixels(nullptr, width * 4, width * height * 4, reinterpret_cast<BYTE*>(pixelData.get()));
 
 			if (SUCCEEDED(hr))
 			{
@@ -354,9 +356,9 @@ RuntimeTex* RuntimeTxd::CreateTextureFromImage(const char* name, const char* fil
 				reference.depth = 1;
 				reference.stride = width * 4;
 				reference.format = 11; // should correspond to DXGI_FORMAT_B8G8R8A8_UNORM
-				reference.pixelData = (uint8_t*)pixelData;
+				reference.pixelData = (uint8_t*)pixelData.get();
 
-				auto tex = std::make_shared<RuntimeTex>(rage::grcTextureFactory::getInstance()->createImage(&reference, nullptr), pixelData, width * height * 4);
+				auto tex = std::make_shared<RuntimeTex>(rage::grcTextureFactory::getInstance()->createImage(&reference, nullptr), pixelData.get(), width * height * 4);
 				m_txd->Add(name, tex->GetTexture());
 
 				m_textures[name] = tex;
@@ -386,7 +388,7 @@ static hook::cdecl_stub<void(fwArchetype*)> registerArchetype([]()
 	return hook::get_pattern("48 8B D9 8A 49 60 80 F9", -11);
 });
 
-static void* MakeStructFromMsgPack(uint32_t hash, const std::map<std::string, msgpack::object>& data, void* old = nullptr);
+static void* MakeStructFromMsgPack(uint32_t hash, const std::map<std::string, msgpack::object>& data, void* old = nullptr, bool keep = false);
 
 static bool FillStructure(rage::parStructure* structure, const std::function<bool(rage::parMember* member)>& fn)
 {
@@ -483,6 +485,26 @@ static bool SetVector(void* ptr, const msgpack::object& obj)
 			y = *(float*)(obj.via.ext.data() + 4);
 			z = *(float*)(obj.via.ext.data() + 8);
 			w = *(float*)(obj.via.ext.data() + 12);
+		}
+	}
+	else if (obj.type == msgpack::type::ARRAY)
+	{
+		std::vector<float> floats = obj.as<std::vector<float>>();
+
+		if (floats.size() >= 2)
+		{
+			x = floats[0];
+			y = floats[1];
+		}
+
+		if (floats.size() >= 3)
+		{
+			z = floats[2];
+		}
+
+		if (floats.size() >= 4)
+		{
+			w = floats[3];
 		}
 	}
 
@@ -650,9 +672,9 @@ static bool SetArray(void* ptr, const msgpack::object& value, rage::parMember* m
 	return true;
 }
 
-static void* MakeStructFromMsgPack(const char* structType, const std::map<std::string, msgpack::object>& data, void* old = nullptr)
+void* MakeStructFromMsgPack(const char* structType, const std::map<std::string, msgpack::object>& data, void* old = nullptr, bool keep = false)
 {
-	return MakeStructFromMsgPack(HashRageString(structType), data, old);
+	return MakeStructFromMsgPack(HashRageString(structType), data, old, keep);
 }
 
 static bool SetFromMsgPack(rage::parMember* memberBase, void* structVal, const msgpack::object& value)
@@ -737,7 +759,7 @@ static bool SetFromMsgPack(rage::parMember* memberBase, void* structVal, const m
 	return true;
 }
 
-static void* MakeStructFromMsgPack(uint32_t hash, const std::map<std::string, msgpack::object>& data, void* old)
+static void* MakeStructFromMsgPack(uint32_t hash, const std::map<std::string, msgpack::object>& data, void* old, bool keep)
 {
 	std::string structTypeReal;
 
@@ -762,13 +784,29 @@ static void* MakeStructFromMsgPack(uint32_t hash, const std::map<std::string, ms
 		return nullptr;
 	}
 
-	auto retval = (!old) ? structDef->m_new() : structDef->m_placementNew(old);
+	void* retval = nullptr;
 
-	std::map<uint32_t, msgpack::object> mappedData;
+	if (old)
+	{
+		if (keep)
+		{
+			retval = old;
+		}
+		else
+		{
+			retval = structDef->m_placementNew(old);
+		}
+	}
+	else
+	{
+		retval = structDef->m_new();
+	}
+
+	std::map<uint32_t, std::reference_wrapper<const msgpack::object>> mappedData;
 
 	for (auto& entry : data)
 	{
-		mappedData[HashRageString(entry.first.c_str())] = std::move(entry.second);
+		mappedData.emplace(HashRageString(entry.first.c_str()), entry.second);
 	}
 
 	if (retval)
@@ -920,8 +958,7 @@ static InitFunction initFunction([]()
 				CMapData* mapData = new CMapData();
 
 				// 1604, temp
-				// #TODOXBUILD: block 1868
-				assert(!Is2060());
+				assert(!xbr::IsGameBuildOrGreater<1868>());
 
 				*(uintptr_t*)mapData = 0x1419343E0;
 				mapData->name = HashString(nameRef.c_str());
@@ -1150,6 +1187,29 @@ static InitFunction initFunction([]()
 			throw std::runtime_error("no current script runtime");
 		}
 
+		// anonymize query string parameters in case these are used for anything malign
+		try
+		{
+			auto uri = skyr::make_url(sourceUrl);
+			
+			if (uri)
+			{
+				if (!uri->search().empty())
+				{
+					uri->set_search(fmt::sprintf("hash=%08x", HashString(uri->search().c_str())));
+					sourceUrl = uri->href();
+				}
+			}
+			else
+			{
+				throw std::runtime_error("invalid streaming URL");
+			}
+		}
+		catch (std::exception& e)
+		{
+			throw std::runtime_error(va("invalid streaming URL: %s", e.what()));
+		}
+
 		auto resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
 
 		auto headerList = std::make_shared<HttpHeaderList>();
@@ -1178,13 +1238,14 @@ static InitFunction initFunction([]()
 				if (it == headerList->end())
 				{
 					it = headerList->find("content-length");
-					length = atoi(it->second.c_str());
 
 					if (it == headerList->end())
 					{
 						trace("Invalid HTTP response from %s.\n", sourceUrl);
 						return;
 					}
+
+					length = atoi(it->second.c_str());
 				}
 				else
 				{

@@ -248,6 +248,12 @@ void ProfileSettingsInit()
 					continue;
 				}
 
+				// profile_gfx* is also a pretty bad one
+				if (name.find("profile_gfx") == 0)
+				{
+					continue;
+				}
+
 				auto setting = g_prefs[field->index];
 				_profileConVars[field->index] = std::make_shared<ProfileConVar>(name, setting);
 			}
@@ -279,8 +285,76 @@ void ProfileSettingsInit()
 	});
 }
 
+static bool (*g_orig_parSettingsLoad)(void* parManager, const char* filename, const char* ext, void* outStruct, void* handle);
+
+static bool parser_SettingsLoad(void* parManager, const char* filename, const char* ext, char* outStruct, void* handle)
+{
+	bool rv = g_orig_parSettingsLoad(parManager, filename, ext, outStruct, handle);
+
+	if (rv)
+	{
+		int& shadowQuality = *(int*)(outStruct + 40);
+
+		if (shadowQuality < 0 || shadowQuality > 3)
+		{
+			shadowQuality = 1;
+		}
+	}
+
+	return rv;
+}
+
 static HookFunction hookFunction([]()
 {
 	g_prefs = hook::get_address<int*>(hook::get_pattern("8D 0C 9B 8B 14 AA 8D 3C 4A 83 F8 FF 0F 84", -4));
 	g_profileSettings = hook::get_address<void**>(hook::get_pattern("44 38 7B 20 0F 84 ? ? 00 00 41 8D 7F 02", -4));
+
+	// reset shadow quality to 'normal' if it has had -1 saved
+	{
+		auto location = hook::get_pattern("4C 8B C7 48 89 44 24 20 E8 ? ? ? ? 84 C0 75 14", 8);
+		hook::set_call(&g_orig_parSettingsLoad, location);
+		hook::call(location, parser_SettingsLoad);
+	}
+	
+	// Patches enabling ShadowQuality=OFF in pausemenu
+	// 
+    // 8D 4B 42      lea     ecx, [rbx+42h]
+    // FF CA         dec     edx    <---------------
+	hook::nop(hook::get_pattern<unsigned char>("8D 4B 42 FF CA", 3), 2);
+
+	// 8B 45 88      mov     eax, [rbp+0D0h+var_148]
+    // FF C8         dec     eax   <--------------
+    // 3B C1         cmp     eax, ecx
+	hook::nop(hook::get_pattern<unsigned char>("8B 45 ? FF C8 3B C1", 3), 2);
+
+	// 8B 44 24 68   mov     eax, [rsp+300h+var_298]
+    // FF C8         dec     eax   <----------------
+    // 3B C1         cmp     eax, ecx
+	hook::nop(hook::get_pattern<unsigned char>("8B 44 ? ? FF C8 3B C1", 4), 2);
+
+	// *This is where the Game converts the value from profile/preferences in the pausemenu to the CGraphicsSettings in the CSettingsManager*
+	// 89 43 5C             mov     [rbx+5Ch], eax
+    // 8B 05 04 E3 ED 01    mov     eax, cs:pref_shadowQuality
+    // FF C0                inc     eax  <---------------
+	hook::nop(hook::get_pattern<unsigned char>("89 43 ? 8B 05 ? ? ? ? FF C0 89", 9), 2);
+
+	// Most of the checks are done via the game's internal settings, but there is one here in the pausemenu for another option(#93)
+	// 83 3D 92 A2 EC 01 02   cmp     cs:pref_shadowQuality, 2  <--------------- (this should be 3 now)
+	// 41 0F 9D C4            setnl   r12b
+	unsigned char *cmp2 = hook::get_pattern<unsigned char>("83 3D ? ? ? ? 02 41 0F 9D C4", 6);
+	hook::put<uint8_t>(cmp2, 0x03);
+
+
+	// Crash fix (connecticut-texas-carbon) for `_updatePref()` (settings->display->safezone-size)
+    //
+	// The game doesn't check for nullptr here, but does in other places...
+	// 48 8B 05 EB 74 E7 01    mov     rax, cs:qword_14206E448
+	// 40 88 B8 AC 00 00 00    mov     [rax+0ACh], dil(value=1)
+	unsigned char* crashAddr = hook::get_pattern<unsigned char>("48 8B 05 ? ? ? ? 40 88 B8 AC 00 00 00");
+
+	// Conveniently, there is a function [1604]sub_14018014C() that checks null and sets=1 for us
+	unsigned char* checkAndSetFuncAddr = hook::get_pattern<unsigned char>("48 8B 05 ? ? ? ? 48 85 C0 74 ? C6 80 AC 00 00 00 01 C3");
+
+	hook::nop(crashAddr, 14);
+	hook::call(crashAddr, checkAndSetFuncAddr);
 });

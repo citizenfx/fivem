@@ -1,0 +1,61 @@
+@import "../vars.scss";
+
+.root {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  position: fixed;
+
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+
+  background-color: $bgColor;
+
+  .text {
+    margin-top: $q*4;
+
+    @include fontSecondary;
+    font-size: $fs3;
+
+    user-select: none;
+  }
+
+  .progress {
+    width: 25vw;
+    height: $q*2;
+
+    margin-top: $q*4;
+
+    background-color: rgba($fgColor, .25);
+
+    overflow: hidden;
+
+    &.indeterminate {
+      background-image: linear-gradient(90deg, transparent, #{$acColor}, transparent);
+      background-size: 50%;
+
+      @keyframes slidingStripe {
+        0% {
+          background-position-x: 0%;
+        }
+        100% {
+          background-position-x: 100%;
+        }
+      }
+
+      animation: slidingStripe .5s linear infinite;
+    }
+
+    .bar {
+      height: 100%;
+
+      background-color: $acColor;
+
+      transition: width .2s ease;
+    }
+  }
+}

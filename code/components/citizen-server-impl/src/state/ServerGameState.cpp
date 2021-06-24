@@ -8,6 +8,7 @@
 #include <NetBuffer.h>
 
 #include <lz4.h>
+#include <lz4hc.h>
 
 #include <tbb/concurrent_queue.h>
 #include <tbb/parallel_for_each.h>
@@ -36,27 +37,17 @@
 #include <citizen_util/object_pool.h>
 #include <citizen_util/shared_reference.h>
 
-static bool g_bigMode;
-static bool g_lengthHack;
-
-namespace fx
-{
-	bool IsBigMode()
-	{
-		return g_bigMode;
-	}
-
-	bool IsLengthHack()
-	{
-		return g_lengthHack;
-	}
-}
+#ifdef STATE_FIVE
+static constexpr int g_netObjectTypeBitLength = 4;
+#elif defined(STATE_RDR3)
+static constexpr int g_netObjectTypeBitLength = 5;
+#endif
 
 namespace rl
 {
 	bool MessageBuffer::GetLengthHackState()
 	{
-		return g_lengthHack;
+		return fx::IsLengthHack();
 	}
 }
 
@@ -75,14 +66,6 @@ std::shared_ptr<ConVar<bool>> g_oneSyncLengthHack;
 std::shared_ptr<ConVar<fx::OneSyncState>> g_oneSyncVar;
 std::shared_ptr<ConVar<bool>> g_oneSyncPopulation;
 std::shared_ptr<ConVar<bool>> g_oneSyncARQ;
-
-namespace fx
-{
-bool IsOneSync()
-{
-	return g_oneSyncEnabledVar->GetValue() || g_oneSyncVar->GetValue() != fx::OneSyncState::Off;
-}
-}
 
 static uint32_t MakeHandleUniqifierPair(uint16_t objectId, uint16_t uniqifier)
 {
@@ -334,6 +317,155 @@ std::tuple<std::unique_lock<std::mutex>, std::shared_ptr<GameStateClientData>> S
 	return GetClientData(this, client);
 }
 
+
+static const char* PopTypeToString(fx::sync::ePopType type)
+{
+	using namespace fx;
+
+	switch (type)
+	{
+		case fx::sync::POPTYPE_UNKNOWN:
+			return "POPTYPE_UNKNOWN";
+		case fx::sync::POPTYPE_RANDOM_PERMANENT:
+			return "POPTYPE_RANDOM_PERMANENT";
+		case fx::sync::POPTYPE_RANDOM_PARKED:
+			return "POPTYPE_RANDOM_PARKED";
+		case fx::sync::POPTYPE_RANDOM_PATROL:
+			return "POPTYPE_RANDOM_PATROL";
+		case fx::sync::POPTYPE_RANDOM_SCENARIO:
+			return "POPTYPE_RANDOM_SCENARIO";
+		case fx::sync::POPTYPE_RANDOM_AMBIENT:
+			return "POPTYPE_RANDOM_AMBIENT";
+		case fx::sync::POPTYPE_PERMANENT:
+			return "POPTYPE_PERMANENT";
+		case fx::sync::POPTYPE_MISSION:
+			return "POPTYPE_MISSION";
+		case fx::sync::POPTYPE_REPLAY:
+			return "POPTYPE_REPLAY";
+		case fx::sync::POPTYPE_CACHE:
+			return "POPTYPE_CACHE";
+		case fx::sync::POPTYPE_TOOL:
+			return "POPTYPE_TOOL";
+		default:
+			return "";
+	}
+}
+
+static const char* TypeToString(fx::sync::NetObjEntityType type)
+{
+	using namespace fx;
+
+	switch (type)
+	{
+		case sync::NetObjEntityType::Automobile:
+			return "Automobile";
+		case sync::NetObjEntityType::Bike:
+			return "Bike";
+		case sync::NetObjEntityType::Boat:
+			return "Boat";
+		case sync::NetObjEntityType::Door:
+			return "Door";
+		case sync::NetObjEntityType::Heli:
+			return "Heli";
+		case sync::NetObjEntityType::Object:
+			return "Object";
+		case sync::NetObjEntityType::Ped:
+			return "Ped";
+		case sync::NetObjEntityType::Pickup:
+			return "Pickup";
+		case sync::NetObjEntityType::PickupPlacement:
+			return "PickupPlacement";
+		case sync::NetObjEntityType::Plane:
+			return "Plane";
+		case sync::NetObjEntityType::Submarine:
+			return "Submarine";
+		case sync::NetObjEntityType::Player:
+			return "Player";
+		case sync::NetObjEntityType::Trailer:
+			return "Trailer";
+		case sync::NetObjEntityType::Train:
+			return "Train";
+	}
+}
+
+struct EntityImpl : sync::Entity
+{
+	EntityImpl(const sync::SyncEntityPtr& ent)
+		: ent(ent)
+	{
+
+	}
+
+	bool IsPlayer() override
+	{
+		return ent->type == sync::NetObjEntityType::Player;
+	}
+
+	fx::ClientSharedPtr GetOwner() override
+	{
+		return ent->GetClient();
+	}
+
+	glm::vec3 GetPosition() override
+	{
+		if (ent->syncTree)
+		{
+			float positionFloat[3];
+			ent->syncTree->GetPosition(positionFloat);
+
+			return { positionFloat[0], positionFloat[1], positionFloat[2] };
+		}
+		
+		return {};
+	}
+
+private:
+	sync::SyncEntityPtr ent;
+
+	// Inherited via Entity
+	virtual uint32_t GetId() override
+	{
+		return ent->handle;
+	}
+	virtual std::string GetPopType() override
+	{
+		auto popType = fx::sync::POPTYPE_UNKNOWN;
+
+		if (ent->syncTree)
+		{
+			ent->syncTree->GetPopulationType(&popType);
+		}
+
+		return PopTypeToString(popType);
+	}
+	virtual uint32_t GetModel() override
+	{
+		uint32_t model = 0;
+
+		if (ent->syncTree)
+		{
+			ent->syncTree->GetModelHash(&model);
+		}
+
+		return model;
+	}
+	virtual std::string GetType() override
+	{
+		return TypeToString(ent->type);
+	}
+};
+
+void ServerGameState::ForAllEntities(const std::function<void(sync::Entity*)>& cb)
+{
+	std::shared_lock _(m_entityListMutex);
+
+	for (auto& entity : m_entityList)
+	{
+		EntityImpl ent(entity);
+		cb(&ent);
+	}
+}
+
 uint32_t ServerGameState::MakeScriptHandle(const fx::sync::SyncEntityPtr& ptr)
 {
 	// only one unique lock here since we can't upgrade from reader to writer
@@ -417,13 +549,15 @@ uint32_t ServerGameState::MakeScriptHandle(const fx::sync::SyncEntityPtr& ptr)
 	}
 }
 
-glm::vec3 GetPlayerFocusPos(const fx::sync::SyncEntityPtr& entity)
+using FocusResult = eastl::fixed_vector<glm::vec3, 5>;
+
+FocusResult GetPlayerFocusPos(const fx::sync::SyncEntityPtr& entity)
 {
 	auto syncTree = entity->syncTree;
 
 	if (!syncTree)
 	{
-		return { 0, 0, 0 };
+		return {};
 	}
 
 	float playerPos[3];
@@ -433,18 +567,24 @@ glm::vec3 GetPlayerFocusPos(const fx::sync::SyncEntityPtr& entity)
 
 	if (!camData)
 	{
-		return { playerPos[0], playerPos[1], playerPos[2] };
+		return { { playerPos[0], playerPos[1], playerPos[2] } };
 	}
 
 	switch (camData->camMode)
 	{
 	case 0:
 	default:
-		return { playerPos[0], playerPos[1], playerPos[2] };
+		return { { playerPos[0], playerPos[1], playerPos[2] } };
 	case 1:
-		return { camData->freeCamPosX, camData->freeCamPosY, camData->freeCamPosZ };
+		return {
+			{ playerPos[0], playerPos[1], playerPos[2] },
+			{ camData->freeCamPosX, camData->freeCamPosY, camData->freeCamPosZ }
+		};
 	case 2:
-		return { playerPos[0] + camData->camOffX, playerPos[1] + camData->camOffY, playerPos[2] + camData->camOffZ };
+		return {
+			{ playerPos[0], playerPos[1], playerPos[2] },
+			{ playerPos[0] + camData->camOffX, playerPos[1] + camData->camOffY, playerPos[2] + camData->camOffZ }
+		};
 	}
 }
 
@@ -704,7 +844,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 					// entity was requested as delete, nobody knows of it anymore: finalize
 					if (entity->deleting)
 					{
-						FinalizeClone({}, entity->handle, 0, "Requested deletion");
+						FinalizeClone({}, entity, entity->handle, 0, "Requested deletion");
 						continue;
 					}
 					// it's a client-owned entity, let's check for a few things
@@ -714,14 +854,14 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 						if (entity->firstOwnerDropped)
 						{
 							// we can delete
-							FinalizeClone({}, entity->handle, 0, "First owner dropped");
+							FinalizeClone({}, entity, entity->handle, 0, "First owner dropped");
 							continue;
 						}
 					}
 					// it's a script-less entity, we can collect it.
 					else if (!entity->IsOwnedByScript() && (entity->type != sync::NetObjEntityType::Player || !entity->GetClient()))
 					{
-						FinalizeClone({}, entity->handle, 0, "Regular entity GC");
+						FinalizeClone({}, entity, entity->handle, 0, "Regular entity GC");
 						continue;
 					}
 				}
@@ -743,6 +883,9 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				entity->type == sync::NetObjEntityType::Plane ||
 				entity->type == sync::NetObjEntityType::Submarine ||
 				entity->type == sync::NetObjEntityType::Trailer ||
+#ifdef STATE_RDR3
+				entity->type == sync::NetObjEntityType::DraftVeh ||
+#endif
 				entity->type == sync::NetObjEntityType::Train)
 			{
 				vehicleData = entity->syncTree->GetVehicleGameState();
@@ -796,11 +939,11 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			playerEntity = clientDataUnlocked->playerEntity.lock();
 		}
 
-		glm::vec3 playerPos;
+		FocusResult playerPosns;
 
 		if (playerEntity)
 		{
-			playerPos = GetPlayerFocusPos(playerEntity);
+			playerPosns = GetPlayerFocusPos(playerEntity);
 		}
 
 		auto slotId = client->GetSlotId();
@@ -834,15 +977,20 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			{
 				if (playerEntity)
 				{
-					float diffX = entityPos.x - playerPos.x;
-					float diffY = entityPos.y - playerPos.y;
-
-					float distSquared = (diffX * diffX) + (diffY * diffY);
-					if (distSquared < entity->GetDistanceCullingRadius(clientDataUnlocked->GetPlayerCullingRadius())) 
+					for (auto& playerPos : playerPosns)
 					{
-						isRelevant = true;
+						float diffX = entityPos.x - playerPos.x;
+						float diffY = entityPos.y - playerPos.y;
+
+						float distSquared = (diffX * diffX) + (diffY * diffY);
+						if (distSquared < entity->GetDistanceCullingRadius(clientDataUnlocked->GetPlayerCullingRadius()))
+						{
+							isRelevant = true;
+							break;
+						}
 					}
-					else
+					
+					if (!isRelevant)
 					{
 						// are we owning the world grid in which this entity exists?
 						int sectorX = std::max(entityPos.x + 8192.0f, 0.0f) / 150;
@@ -894,6 +1042,9 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 					entity->type == sync::NetObjEntityType::Plane ||
 					entity->type == sync::NetObjEntityType::Submarine ||
 					entity->type == sync::NetObjEntityType::Trailer ||
+#ifdef STATE_RDR3
+					entity->type == sync::NetObjEntityType::DraftVeh ||
+#endif
 					entity->type == sync::NetObjEntityType::Train)
 				{
 					if (vehicleData)
@@ -942,7 +1093,8 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 					entity->wantsReassign = true;
 
 					// but don't force it to exist for ourselves if it's not script-owned
-					if (entity->IsOwnedByClientScript() && entity->routingBucket == clientDataUnlocked->routingBucket)
+					// (also, if not hasSynced, we can't tell if a script owns it or not, so we may delete early)
+					if ((!entity->hasSynced || entity->IsOwnedByClientScript()) && entity->routingBucket == clientDataUnlocked->routingBucket)
 					{
 						isRelevant = true;
 					}
@@ -1000,6 +1152,10 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 					{
 					case sync::NetObjEntityType::Ped:
 					case sync::NetObjEntityType::Player:
+#ifdef STATE_RDR3
+					case sync::NetObjEntityType::Animal:
+					case sync::NetObjEntityType::Horse:
+#endif
 						objRadius = 2.5f;
 						break;
 					case sync::NetObjEntityType::Heli:
@@ -1016,7 +1172,13 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 					if (playerEntity)
 					{
-						auto dist = glm::distance2(position, playerPos);
+						float dist = std::numeric_limits<float>::max();
+
+						for (const auto& playerPos : playerPosns)
+						{
+							auto thisDist = glm::distance2(position, playerPos);
+							dist = std::min(thisDist, dist);
+						}
 
 						if (dist > 500.0f * 500.0f)
 						{
@@ -1037,7 +1199,13 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			{
 				if (playerEntity)
 				{
-					auto dist = glm::distance2(entityPos, playerPos);
+					float dist = std::numeric_limits<float>::max();
+
+					for (const auto& playerPos : playerPosns)
+					{
+						auto thisDist = glm::distance2(entityPos, playerPos);
+						dist = std::min(thisDist, dist);
+					}
 
 					if (dist < 35.0f * 35.0f)
 					{
@@ -1090,7 +1258,8 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 	// gather client refs
 	eastl::fixed_vector<fx::ClientSharedPtr, MAX_CLIENTS> clientRefs;
 
-	creg->ForAllClients([&clientRefs](const fx::ClientSharedPtr& clientRef)
+	// since we're doing essentially the same thing as what ForAllClients does, we use ForAllClientsLocked to prevent extra copies
+	creg->ForAllClientsLocked([&clientRefs](const fx::ClientSharedPtr& clientRef)
 	{
 		clientRefs.push_back(clientRef);
 	});
@@ -1136,11 +1305,11 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			playerEntity = clientDataUnlocked->playerEntity.lock();
 		}
 
-		glm::vec3 playerPos;
+		FocusResult playerPosns;
 
 		if (playerEntity)
 		{
-			playerPos = GetPlayerFocusPos(playerEntity);
+			playerPosns = GetPlayerFocusPos(playerEntity);
 		}
 
 	
@@ -1356,7 +1525,15 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 							if (!hasCreatedPlayer)
 							{
-								int slotId = 127;
+								constexpr const int kSlotIdStart = 
+#ifdef STATE_RDR3
+									30
+#else
+									127
+#endif
+;
+
+								int slotId = kSlotIdStart;
 
 								for (; slotId >= 0; slotId--)
 								{
@@ -1364,6 +1541,13 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 									{
 										slotId--;
 									}
+
+#ifdef STATE_RDR3
+									if (slotId == 16)
+									{
+										slotId--;
+									}
+#endif
 
 									if (!clientData->playersInScope.test(slotId))
 									{
@@ -1598,7 +1782,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 							if (syncType == 1)
 							{
-								cmdState.cloneBuffer.Write(4, (uint8_t)entity->type);
+								cmdState.cloneBuffer.Write(g_netObjectTypeBitLength, (uint8_t)entity->type);
 								cmdState.cloneBuffer.Write(32, entity->creationToken);
 							}
 
@@ -1865,6 +2049,7 @@ void ServerGameState::UpdateEntities()
 					if (curVehicleData && curVehicleData->occupants[vehicleData->curVehicleSeat] == 0)
 					{
 						curVehicleData->occupants[vehicleData->curVehicleSeat] = pedHandle;
+						curVehicleData->lastOccupant[vehicleData->curVehicleSeat] = pedHandle;
 
 						if (entity->type == sync::NetObjEntityType::Player)
 						{
@@ -2053,7 +2238,15 @@ void ServerGameState::UpdateWorldGrid(fx::ServerInstanceBase* instance)
 			return;
 		}
 
-		auto pos = GetPlayerFocusPos(playerEntity);
+		auto posns = GetPlayerFocusPos(playerEntity);
+
+		if (posns.empty())
+		{
+			return;
+		}
+
+		// only set world grid for the most focused position
+		const auto& pos = posns[0];
 
 		int minSectorX = std::max((pos.x - 299.0f) + 8192.0f, 0.0f) / 150;
 		int maxSectorX = std::max((pos.x + 299.0f) + 8192.0f, 0.0f) / 150;
@@ -2290,6 +2483,22 @@ void ServerGameState::ReassignEntity(uint32_t entityHandle, const fx::ClientShar
 
 bool ServerGameState::MoveEntityToCandidate(const fx::sync::SyncEntityPtr& entity, const fx::ClientSharedPtr& client)
 {
+	// pickup placements at 0,0,0 are transient and shouldn't migrate
+	if (entity->type == sync::NetObjEntityType::PickupPlacement)
+	{
+		float position[3] = { 0 };
+
+		if (entity->syncTree)
+		{
+			entity->syncTree->GetPosition(position);
+		}
+
+		if (position[0] == 0.0f && position[1] == 0.0f)
+		{
+			return false;
+		}
+	}
+
 	const auto& clientRegistry = m_instance->GetComponent<fx::ClientRegistry>();
 	bool hasClient = true;
 
@@ -2349,11 +2558,11 @@ bool ServerGameState::MoveEntityToCandidate(const fx::sync::SyncEntityPtr& entit
 
 				if (playerEntity)
 				{
-					auto tgt = GetPlayerFocusPos(playerEntity);
+					auto tgts = GetPlayerFocusPos(playerEntity);
 
-					if (pos.x != 0.0f)
+					if (pos.x != 0.0f && !tgts.empty())
 					{
-						distance = glm::distance2(tgt, pos);
+						distance = glm::distance2(tgts[0], pos);
 					}
 				}
 
@@ -2715,7 +2924,7 @@ void ServerGameState::RemoveClone(const fx::ClientSharedPtr& client, uint16_t ob
 	}
 }
 
-void ServerGameState::FinalizeClone(const fx::ClientSharedPtr& client, uint16_t objectId, uint16_t uniqifier, std::string_view finalizeReason)
+void ServerGameState::FinalizeClone(const fx::ClientSharedPtr& client, const fx::sync::SyncEntityPtr& entity, uint16_t objectId, uint16_t uniqifier, std::string_view finalizeReason)
 {
 	sync::SyncEntityPtr entityRef;
 
@@ -2724,7 +2933,7 @@ void ServerGameState::FinalizeClone(const fx::ClientSharedPtr& client, uint16_t 
 		entityRef = m_entitiesById[objectId].lock();
 	}
 
-	if (entityRef)
+	if (entityRef && entityRef == entity)
 	{
 		if (!entityRef->finalizing)
 		{
@@ -2732,36 +2941,36 @@ void ServerGameState::FinalizeClone(const fx::ClientSharedPtr& client, uint16_t 
 
 			GS_LOG("%s: finalizing object %d (for reason %s)\n", __func__, objectId, finalizeReason);
 
-			bool stolen = false;
-
-			{
-				std::unique_lock objectIdsLock(m_objectIdsMutex);
-				m_objectIdsUsed.reset(objectId);
-
-				if (m_objectIdsStolen.test(objectId))
-				{
-					stolen = true;
-
-					m_objectIdsSent.reset(objectId);
-					m_objectIdsStolen.reset(objectId);
-				}
-			}
-
-			if (stolen)
-			{
-				fx::ClientSharedPtr clientRef = entityRef->GetClient();
-				if (clientRef)
-				{
-					auto [lock, clientData] = GetClientData(this, clientRef);
-					clientData->objectIds.erase(objectId);
-				}
-			}
-
 			OnCloneRemove(entityRef, [this, objectId, entityRef]()
 			{
 				{
 					std::unique_lock entitiesByIdLock(m_entitiesByIdMutex);
 					m_entitiesById[objectId].reset();
+				}
+
+				bool stolen = false;
+
+				{
+					std::unique_lock objectIdsLock(m_objectIdsMutex);
+					m_objectIdsUsed.reset(objectId);
+
+					if (m_objectIdsStolen.test(objectId))
+					{
+						stolen = true;
+
+						m_objectIdsSent.reset(objectId);
+						m_objectIdsStolen.reset(objectId);
+					}
+				}
+
+				if (stolen)
+				{
+					fx::ClientSharedPtr clientRef = entityRef->GetClient();
+					if (clientRef)
+					{
+						auto [lock, clientData] = GetClientData(this, clientRef);
+						clientData->objectIds.erase(objectId);
+					}
 				}
 
 				{
@@ -2848,7 +3057,7 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 	{
 		creationToken = inPacket.Read<uint32_t>(32);
 
-		objectType = (sync::NetObjEntityType)inPacket.Read<uint8_t>(4);
+		objectType = (sync::NetObjEntityType)inPacket.Read<uint8_t>(g_netObjectTypeBitLength);
 	}
 
 	auto length = inPacket.Read<uint16_t>(12);
@@ -3225,8 +3434,12 @@ static std::tuple<std::optional<net::Buffer>, uint32_t> UncompressClonePacket(co
 		return { std::optional<net::Buffer>{}, type };
 	}
 
-	uint8_t bufferData[16384] = { 0 };
-	int bufferLength = LZ4_decompress_safe(reinterpret_cast<const char*>(&readBuffer.GetData()[4]), reinterpret_cast<char*>(bufferData), readBuffer.GetRemainingBytes(), sizeof(bufferData));
+	const static uint8_t dictBuffer[65536] = 
+	{
+#include <state/dict_five_20210329.h>
+	};
+	uint8_t bufferData[16384];
+	int bufferLength = LZ4_decompress_safe_usingDict(reinterpret_cast<const char*>(&readBuffer.GetData()[4]), reinterpret_cast<char*>(bufferData), readBuffer.GetRemainingBytes(), sizeof(bufferData), reinterpret_cast<const char*>(dictBuffer), std::size(dictBuffer));
 
 	if (bufferLength <= 0)
 	{
@@ -3857,6 +4070,7 @@ void ServerGameState::AttachToObject(fx::ServerInstanceBase* instance)
 #include <ServerInstanceBaseRef.h>
 #include <ScriptEngine.h>
 
+#ifdef STATE_FIVE
 struct CFireEvent
 {
 	void Parse(rl::MessageBuffer& buffer);
@@ -4729,6 +4943,7 @@ struct CNetworkPtFXEvent
 
 	MSGPACK_DEFINE_MAP(effectHash, assetHash, posX, posY, posZ, offsetX, offsetY, offsetZ, rotX, rotY, rotZ, scale, axisBitset, isOnEntity, entityNetId, f109, f92, f110, f105, f106, f107, f111, f100);
 };
+#endif
 
 template<typename TEvent>
 inline auto GetHandler(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer&& buffer) -> std::function<bool()>
@@ -4758,6 +4973,7 @@ inline auto GetHandler(fx::ServerInstanceBase* instance, const fx::ClientSharedP
 
 enum GTA_EVENT_IDS
 {
+#ifdef STATE_FIVE
 	OBJECT_ID_FREED_EVENT,
 	OBJECT_ID_REQUEST_EVENT,
 	ARRAY_DATA_VERIFY_EVENT,
@@ -4845,6 +5061,150 @@ enum GTA_EVENT_IDS
 	ACTIVATE_VEHICLE_SPECIAL_ABILITY_EVENT,
 	BLOCK_WEAPON_SELECTION,
 	NETWORK_CHECK_CATALOG_CRC,
+#elif defined(STATE_RDR3)
+	OBJECT_ID_FREED_EVENT,
+	OBJECT_ID_REQUEST_EVENT,
+	ARRAY_DATA_VERIFY_EVENT,
+	SCRIPT_ARRAY_DATA_VERIFY_EVENT,
+	REQUEST_CONTROL_EVENT,
+	GIVE_CONTROL_EVENT,
+	WEAPON_DAMAGE_EVENT,
+	INCAPACITATED_REVIVE_EVENT,
+	INCAPACITATED_EXECUTE_EVENT,
+	REQUEST_PICKUP_EVENT,
+	REQUEST_MAP_PICKUP_EVENT,
+	REQUEST_IS_VOLUME_EMPTY,
+	RESPAWN_PLAYER_PED_EVENT,
+	GENERIC_COMPONENT_CONTROL_EVENT,
+	FIRE_EVENT,
+	FIRE_TRAIL_UPDATE_EVENT,
+	EXPLOSION_EVENT,
+	START_PROJECTILE_EVENT,
+	ALTER_WANTED_LEVEL_EVENT,
+	CHANGE_RADIO_STATION_EVENT,
+	RAGDOLL_REQUEST_EVENT,
+	PLAYER_CARD_STAT_EVENT,
+	DOOR_BREAK_EVENT,
+	SCRIPTED_GAME_EVENT,
+	REMOTE_SCRIPT_INFO_EVENT,
+	REMOTE_SCRIPT_LEAVE_EVENT,
+	MARK_AS_NO_LONGER_NEEDED_EVENT,
+	CONVERT_TO_SCRIPT_ENTITY_EVENT,
+	INCIDENT_EVENT,
+	INCIDENT_ENTITY_EVENT,
+	CLEAR_AREA_EVENT,
+	CLEAR_VOLUME_EVENT,
+	GIVE_PED_SCRIPTED_TASK_EVENT,
+	GIVE_PED_SEQUENCE_TASK_EVENT,
+	NETWORK_CLEAR_PED_TASKS_EVENT,
+	NETWORK_SOUND_CAR_HORN_EVENT,
+	NETWORK_ENTITY_AREA_STATUS_EVENT,
+	NETWORK_GARAGE_OCCUPIED_STATUS_EVENT,
+	NETWORK_PED_WHISTLE_EVENT,
+	PED_SPEECH_CREATE_EVENT,
+	PED_SPEECH_PLAY_EVENT,
+	PED_SPEECH_STOP_EVENT,
+	PED_SPEECH_ASSIGN_VOICE_EVENT,
+	SCRIPT_ENTITY_STATE_CHANGE_EVENT,
+	NETWORK_PLAY_SCRIPT_SOUND_EVENT,
+	NETWORK_PLAY_AUDIO_ENTITY_SOUND_EVENT,
+	NETWORK_STOP_SCRIPT_SOUND_EVENT,
+	NETWORK_STOP_AUDIO_ENTITY_SOUND_EVENT,
+	NETWORK_TRAIN_REQUEST_EVENT,
+	NETWORK_INCREMENT_STAT_EVENT,
+	MODIFY_VEHICLE_LOCK_WORD_STATE_DATA,
+	REQUEST_PHONE_EXPLOSION_EVENT,
+	REQUEST_DETACHMENT_EVENT,
+	KICK_VOTES_EVENT,
+	GIVE_PICKUP_REWARDS_EVENT,
+	BLOW_UP_VEHICLE_EVENT,
+	NETWORK_SPECIAL_FIRE_EQUIPPED_WEAPON,
+	NETWORK_RESPONDED_TO_THREAT_EVENT,
+	NETWORK_SHOUT_TARGET_POSITION_EVENT,
+	PICKUP_DESTROYED_EVENT,
+	NETWORK_PTFX_EVENT,
+	NETWORK_PED_SEEN_DEAD_PED_EVENT,
+	PED_PLAY_PAIN_EVENT,
+	ADD_OR_REMOVE_PED_FROM_PEDGROUP_EVENT,
+	NETWORK_START_PED_HOGTIE_EVENT,
+	NETWORK_SEND_PED_LASSO_ATTACH_EVENT,
+	NETWORK_SEND_PED_LASSO_DETTACH_EVENT,
+	NETWORK_SEND_CARRIABLE_UPDATE_CARRY_STATE_EVENT,
+	REQUEST_CONTROL_REQUESTER_EVENT,
+	NETWORK_VOLUME_LOCK_REQUEST_EVENT,
+	NETWORK_VOLUME_LOCK_REQUEST_FAILURE_EVENT,
+	NETWORK_VOLUME_LOCK_KEEP_ALIVE_EVENT,
+	NETWORK_VOLUME_LOCK_MOVE_EVENT,
+	NETWORK_VOLUME_LOCK_ATTACH_EVENT,
+	NETWORK_VOLUME_LOCK_DETACH_EVENT,
+	NETWORK_VOLUME_LOCK_RESIZE_EVENT,
+	NETWORK_VOLUME_LOCK_RELEASE_EVENT,
+	NETWORK_VOLUME_LOCK_DATA_EVENT,
+	NETWORK_MAKE_WITNESS_EVENT,
+	NETWORK_REMOVE_WITNESS_EVENT,
+	NETWORK_GANG_INVITE_PLAYER_EVENT,
+	NETWORK_GANG_INVITE_RESPONSE_EVENT,
+	NETWORK_GANG_INVITE_CANCEL_EVENT,
+	NETWORK_GANG_JOIN_REQUEST_EVENT,
+	NETWORK_REQUEST_CONVERT_TO_SCRIPT_ENTITY_EVENT,
+	NETWORK_REGISTER_CRIME_EVENT,
+	NETWORK_START_LOOT_EVENT,
+	NETWORK_NEW_BUG_EVENT,
+	REPORT_CASH_SPAWN_EVENT,
+	NETWORK_CHEST_REQUEST_EVENT,
+	NETWORK_CHEST_DATA_CHANGE_EVENT,
+	NETWORK_CHEST_RELEASE_EVENT,
+	NETWORK_CLEAR_GANG_BOUNTY_EVENT,
+	NETWORK_PLAYER_REQUEST_CONTENTION_EVENT,
+	NETWORK_START_FALLBACK_CARRY_ACTION_EVENT,
+	NETWORK_GIVE_ENERGY_EVENT,
+	NETWORK_DOOR_STATE_CHANGE,
+	NETWORK_STAMINA_COST_EVENT,
+	NETWORK_REMOVE_DOOR,
+	SCRIPT_COMMAND_EVENT,
+	NETWORK_KNOCK_PED_OFF_VEHICLE_EVENT,
+	NETWORK_SPAWN_SEARCH_EVENT,
+	NETWORK_ROPE_WORLD_STATE_DATA_BREAK_EVENT,
+	NETWORK_PLAYER_HAT_EVENT,
+	NETWORK_CRIME_SCENE_EVENT,
+	NETWORK_POINT_OF_INTEREST_EVENT,
+	NETWORK_DESTROY_VEHICLE_LOCK_EVENT,
+	NETWORK_APPLY_REACTION_EVENT,
+	NETWORK_START_LOOT_ALIVE_EVENT,
+	NETWORK_SET_ENTITY_GHOST_WITH_PLAYER_EVENT,
+	NETWORK_COMBAT_DIRECTOR_EVENT,
+	NETWORK_MELEE_ARBITRATION_FAIL_EVENT,
+	NETWORK_PED_MOTIVATION_CHANGE_EVENT,
+	NETWORK_IGNITE_BOMB_EVENT,
+	NETWORK_PED_SHARED_TARGETING_EVENT,
+	NETWORK_REQUEST_COMBAT_GESTURE,
+	NETWORK_CRIME_REPORT_EVENT,
+	LIGHTNING_EVENT,
+	PED_TRIGGER_BULLET_FLINCH_EVENT,
+	PED_TRIGGER_EXPLOSION_FLINCH_EVENT,
+	NETWORK_PLAYER_WHISTLE_EVENT,
+	CONVERSATION_EVENT,
+	NETWORK_END_LOOT_EVENT,
+	NETWORK_PLAYER_SPURRING_EVENT,
+	NETWORK_PLAYER_HORSE_TAMING_CALLOUT_EVENT,
+	NETWORK_PICKUP_CARRIABLE_EVENT,
+	NETWORK_PLACE_CARRIABLE_ONTO_PARENT_EVENT,
+	PLAY_DEAD_EVENT,
+	NETWORK_PLAYER_HORSE_SHOT_EVENT,
+	ANIM_SCENE_ABORT_ENTITY_EVENT,
+	NETWORK_REQUEST_ASSET_DETACHMENT,
+	NETWORK_CARRIABLE_VEHICLE_STOW_START_EVENT,
+	NETWORK_CARRIABLE_VEHICLE_STOW_COMPLETE_EVENT,
+	NETWORK_BOLAS_HIT_EVENT,
+	NETWORK_WANTED_EVENT,
+	NETWORK_UPDATE_ANIMATED_VEHICLE_PROP_EVENT,
+	NETWORK_SET_CARRYING_FLAG_FOR_ENTITY,
+	NETWORK_BOUNTY_HUNT_EVENT,
+	NETWORK_DEBUG_REQUEST_ENTITY_POSITION,
+	NETWORK_REMOVE_PROP_OWNERSHIP,
+	NETWORK_DUMP_CARRIABLE_OFF_MOUNT_EVENT,
+	NETWORK_LEGENDARY_ANIMAL_SAMPLED_STAT_EVENT,
+#endif
 };
 
 static std::function<bool()> GetEventHandler(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer&& buffer)
@@ -4853,6 +5213,7 @@ static std::function<bool()> GetEventHandler(fx::ServerInstanceBase* instance, c
 	bool isReply = buffer.Read<uint8_t>(); // is reply
 	uint16_t eventType = buffer.Read<uint16_t>(); // event ID
 
+#ifdef STATE_FIVE
 	if (Is2060() && eventType > 55) // patch for 1868+ game build as `NETWORK_AUDIO_BARK_EVENT` was added
 	{
 		eventType--;
@@ -4872,6 +5233,7 @@ static std::function<bool()> GetEventHandler(fx::ServerInstanceBase* instance, c
 		case NETWORK_CLEAR_PED_TASKS_EVENT: return GetHandler<CClearPedTasksEvent>(instance, client, std::move(buffer));
 		case NETWORK_PTFX_EVENT: return GetHandler<CNetworkPtFXEvent>(instance, client, std::move(buffer));
 	};
+#endif
 
 	return {};
 }
@@ -4881,6 +5243,16 @@ static InitFunction initFunction([]()
 	g_scriptHandlePool = new CPool<fx::ScriptGuid>(1500, "fx::ScriptGuid");
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
+		if (!IsStateGame())
+		{
+			return;
+		}
+
+		fx::SetOneSyncGetCallback([]()
+		{
+			return g_oneSyncEnabledVar->GetValue() || g_oneSyncVar->GetValue() != fx::OneSyncState::Off;
+		});
+
 		g_oneSyncVar = instance->AddVariable<fx::OneSyncState>("onesync", ConVar_ReadOnly, fx::OneSyncState::Off);
 		g_oneSyncPopulation = instance->AddVariable<bool>("onesync_population", ConVar_ReadOnly, true);
 		g_oneSyncARQ = instance->AddVariable<bool>("onesync_automaticResend", ConVar_None, false);
@@ -4888,30 +5260,35 @@ static InitFunction initFunction([]()
 		// .. to infinity?
 		g_oneSyncBigMode = instance->AddVariable<bool>("onesync_enableInfinity", ConVar_ReadOnly, false);
 
-		g_bigMode = g_oneSyncBigMode->GetValue();
-
 		// or maybe, beyond?
 		g_oneSyncLengthHack = instance->AddVariable<bool>("onesync_enableBeyond", ConVar_ReadOnly, false);
 
-		g_lengthHack = g_oneSyncLengthHack->GetValue();
+		constexpr bool canLengthHack =
+#ifdef STATE_RDR3
+		false
+#else
+		true
+#endif
+		;
+
+		fx::SetBigModeHack(g_oneSyncBigMode->GetValue(), canLengthHack && g_oneSyncLengthHack->GetValue());
 
 		if (g_oneSyncVar->GetValue() == fx::OneSyncState::On)
 		{
-			g_bigMode = true;
-			g_lengthHack = g_oneSyncPopulation->GetValue();
+			fx::SetBigModeHack(true, canLengthHack && g_oneSyncPopulation->GetValue());
 
 			g_oneSyncBigMode->GetHelper()->SetRawValue(true);
-			g_oneSyncLengthHack->GetHelper()->SetRawValue(g_lengthHack);
+			g_oneSyncLengthHack->GetHelper()->SetRawValue(fx::IsLengthHack());
 		}
 
 		instance->OnInitialConfiguration.Connect([]()
 		{
 			if (g_oneSyncEnabledVar->GetValue() && g_oneSyncVar->GetValue() == fx::OneSyncState::Off)
 			{
-				g_oneSyncVar->GetHelper()->SetRawValue(g_bigMode ? fx::OneSyncState::On : fx::OneSyncState::Legacy);
+				g_oneSyncVar->GetHelper()->SetRawValue(fx::IsBigMode() ? fx::OneSyncState::On : fx::OneSyncState::Legacy);
 
 				console::PrintWarning("server", "`onesync_enabled` is deprecated. Please use `onesync %s` instead.\n", 
-					g_bigMode ? "on" : "legacy");
+					fx::IsBigMode() ? "on" : "legacy");
 			}
 			else if (!g_oneSyncEnabledVar->GetValue() && g_oneSyncVar->GetValue() != fx::OneSyncState::Off)
 			{
@@ -4922,6 +5299,11 @@ static InitFunction initFunction([]()
 
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
+		if (!IsStateGame())
+		{
+			return;
+		}
+
 		g_oneSyncEnabledVar = instance->AddVariable<bool>("onesync_enabled", ConVar_ServerInfo, false);
 		g_oneSyncCulling = instance->AddVariable<bool>("onesync_distanceCulling", ConVar_None, true);
 		g_oneSyncVehicleCulling = instance->AddVariable<bool>("onesync_distanceCullVehicles", ConVar_None, false);
@@ -4930,7 +5312,9 @@ static InitFunction initFunction([]()
 		g_oneSyncLogVar = instance->AddVariable<std::string>("onesync_logFile", ConVar_None, "");
 		g_oneSyncWorkaround763185 = instance->AddVariable<bool>("onesync_workaround763185", ConVar_None, false);
 
-		instance->SetComponent(new fx::ServerGameState);
+		fwRefContainer<fx::ServerGameState> sgs = new fx::ServerGameState();
+		instance->SetComponent(sgs);
+		instance->SetComponent<fx::ServerGameStatePublic>(sgs);
 
 		instance->GetComponent<fx::GameServer>()->OnSyncTick.Connect([=]()
 		{

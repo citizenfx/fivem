@@ -6,6 +6,7 @@
  */
 
 #include <StdInc.h>
+#include <jitasm.h>
 #include <Hooking.h>
 
 #include <Pool.h>
@@ -345,64 +346,147 @@ extern std::unordered_map<int, std::string> g_handlesToTag;
 
 fwEvent<> OnReloadMapStore;
 
+#ifdef GTA_FIVE
+static hook::cdecl_stub<void()> _reloadMapIfNeeded([]()
+{
+	return hook::get_pattern("74 1F 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? C6 05", -0xB);
+});
+
+static void ReloadMapStoreNative()
+{
+	static auto loadChangeSet = hook::get_pattern<char>("48 81 EC 50 03 00 00 49 8B F0 4C", -0x18);
+	uint8_t origCode[0x4F3];
+	memcpy(origCode, loadChangeSet, sizeof(origCode));
+
+	// nop a call before the r13d load
+	hook::nop(loadChangeSet + 0x28, 5);
+
+	// jump straight into the right block
+	hook::put<uint8_t>(loadChangeSet + 0x41, 0xE9);
+	hook::put<int32_t>(loadChangeSet + 0x42, 0x116);
+
+	// don't load CS
+	hook::nop(loadChangeSet + 0x300, 5);
+
+	// don't use cache state
+	hook::nop(loadChangeSet + 0x356, 10);
+	hook::put<uint16_t>(loadChangeSet + 0x356, 0x00B3);
+
+	// ignore staticboundsstore too (crashes in release, thanks stack)
+	hook::nop(loadChangeSet + 0x434, 5);
+
+	// and the array fill/clear for this fake array
+	hook::nop(loadChangeSet + 0x395, 5);
+	hook::nop(loadChangeSet + 0x489, 5);
+
+	// ignore trailer
+	hook::nop(loadChangeSet + 0x4A3, 54);
+
+	// call
+	uint32_t hash = 0xDEADBDEF;
+	uint8_t csBuf[512] = { 0 };
+	uint8_t unkBuf[512] = { 0 };
+	((void (*)(void*, void*, void*))loadChangeSet)(csBuf, unkBuf, &hash);
+
+	DWORD oldProtect;
+	VirtualProtect(loadChangeSet, sizeof(origCode), PAGE_EXECUTE_READWRITE, &oldProtect);
+	memcpy(loadChangeSet, origCode, sizeof(origCode));
+	VirtualProtect(loadChangeSet, sizeof(origCode), oldProtect, &oldProtect);
+
+	// reload map stuff
+	_reloadMapIfNeeded();
+}
+#endif
+
 static void ReloadMapStore()
 {
+	// filename, streamingIndex
+	std::vector<std::pair<std::string, uint32_t>> collisionFiles;
+
 	if (!g_reloadMapStore)
 	{
 		return;
 	}
 
-	// preload collisions for the world
+	auto mgr = streaming::Manager::GetInstance();
+
+
+	// Find collision files that need reloading
 	ForAllStreamingFiles([&](const std::string& file)
 	{
-		if (file.find(".ybn") != std::string::npos)
+		if (file.find(".ybn") == std::string::npos)
 		{
-			if (loadedCollisions.find(file) == loadedCollisions.end())
-			{
-				auto obj = streaming::GetStreamingIndexForName(file);
+			return;
+		}
+		if (loadedCollisions.find(file) != loadedCollisions.end())
+		{
+			return;
+		}
 
-				if (obj == 0)
-				{
-					return;
-				}
+		auto obj = streaming::GetStreamingIndexForName(file);
 
-				auto mgr = streaming::Manager::GetInstance();
-				auto relId = obj - streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ybn")->baseIdx;
+		if (obj == 0)
+		{
+			return;
+		}
 
-				if (
-					_isResourceNotCached(mgr, obj)
+		auto relId = obj - streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ybn")->baseIdx;
+
+		if (
+			_isResourceNotCached(mgr, obj)
 #ifdef GTA_FIVE
-					|| GetDummyCollectionIndexByTag(g_handlesToTag[mgr->Entries[obj].handle]) == -1
+			|| GetDummyCollectionIndexByTag(g_handlesToTag[mgr->Entries[obj].handle]) == -1
 #endif
-				)
-				{
-					mgr->RequestObject(obj, 0);
-
-					streaming::LoadObjectsNow(0);
-
-					mgr->ReleaseObject(obj);
-
-					loadedCollisions.insert(file);
-
-					trace("Loaded %s (id %d)\n", file, relId);
-				}
-				else
-				{
-					trace("Skipped %s - it's cached! (id %d)\n", file, relId);
-				}
-			}
+		   )
+		{
+			collisionFiles.push_back(std::make_pair(file, obj));
+		}
+		else
+		{
+			trace("Skipped %s - it's cached! (id %d)\n", file.c_str(), relId);
 		}
 	});
 
+
+	static constexpr uint8_t batchSize = 4;
+
+	for (int count = 0; count < collisionFiles.size(); count += batchSize)
+	{
+		int end = std::min((count + batchSize), (int)collisionFiles.size());
+
+		for (int i = count; i < end; i++)
+		{
+			mgr->RequestObject(collisionFiles[i].second, 0);
+			trace("Loaded %s (id %d)\n", collisionFiles[i].first.c_str(), (collisionFiles[i].second - mgr->moduleMgr.GetStreamingModule("ybn")->baseIdx));
+		}
+
+		streaming::LoadObjectsNow(0);
+
+		for (int i = count; i < end; i++)
+		{
+			mgr->ReleaseObject(collisionFiles[i].second);
+		}
+	}
+
 	OnReloadMapStore();
 
-	// workaround by unloading/reloading MP map group
-	g_disableContentGroup(*g_extraContentManager, 0xBCC89179); // GROUP_MAP
+#ifdef GTA_FIVE
+	// needs verification for newer builds
+	if (!xbr::IsGameBuildOrGreater<2189 + 1>())
+	{
+		ReloadMapStoreNative();
+	}
+	else
+#endif
+	{
+		// workaround by unloading/reloading MP map group
+		g_disableContentGroup(*g_extraContentManager, 0xBCC89179); // GROUP_MAP
 
-	// again for enablement
-	OnReloadMapStore();
+		// again for enablement
+		OnReloadMapStore();
 
-	g_enableContentGroup(*g_extraContentManager, 0xBCC89179);
+		g_enableContentGroup(*g_extraContentManager, 0xBCC89179);
+	}
 
 #ifdef GTA_FIVE
 	g_clearContentCache(0);
@@ -812,6 +896,7 @@ enum class LoadType
 {
 	BeforeMapLoad,
 	BeforeSession,
+	AfterSessionEarlyStage,
 	AfterSession
 };
 
@@ -857,6 +942,7 @@ namespace streaming
 
 		if (Instance<ICoreGameInit>::Get()->GetGameLoaded() && !Instance<ICoreGameInit>::Get()->HasVariable("gameKilled"))
 		{
+			LoadStreamingFiles(LoadType::AfterSessionEarlyStage);
 			LoadStreamingFiles();
 			LoadDataFiles();
 		}
@@ -946,17 +1032,30 @@ namespace rage
 	});
 }
 
+#ifdef GTA_FIVE
+extern bool GetRawStreamerForFile(const char* fileName, rage::fiCollection** collection);
+
+static hook::cdecl_stub<void(int, const char*)> initGfxTexture([]()
+{
+	return hook::get_pattern("4C 23 C0 41 83 78 10 FF", -0x57);
+});
+#endif
+
 static void LoadStreamingFiles(LoadType loadType)
 {
+	std::vector<std::tuple<int, std::string>> newGfx;
+
 	// register any custom streaming assets
 	for (auto it = g_customStreamingFiles.begin(); it != g_customStreamingFiles.end(); )
 	{
 		auto [file, tag] = *it;
 
-		if (loadType == LoadType::BeforeMapLoad)
+		bool isMod = tag.find("mod_") == 0 || tag.find("faux_pack") == 0;
+
+		if (loadType == LoadType::BeforeMapLoad || loadType == LoadType::AfterSessionEarlyStage)
 		{
 			// only support tags mod_ and faux_pack
-			if (tag.find("mod_") != 0 && tag.find("faux_pack") != 0)
+			if (!isMod)
 			{
 				++it;
 				continue;
@@ -1001,7 +1100,7 @@ static void LoadStreamingFiles(LoadType loadType)
 			continue;
 		}
 
-		if (loadType != LoadType::AfterSession)
+		if (loadType != LoadType::AfterSession && loadType != LoadType::AfterSessionEarlyStage)
 		{
 			if (ext == "ymap" || ext == "ytyp" || ext == "ybn")
 			{
@@ -1027,6 +1126,11 @@ static void LoadStreamingFiles(LoadType loadType)
 			if (strId == -1)
 			{
 				strModule->FindSlotFromHashKey(&strId, nameWithoutExt.c_str());
+
+				if (ext == "gfx")
+				{
+					newGfx.push_back({ strId, nameWithoutExt });
+				}
 			}
 #elif IS_RDR3
 			strModule->FindSlotFromHashKey(&strId, HashString(nameWithoutExt.c_str()));
@@ -1040,17 +1144,24 @@ static void LoadStreamingFiles(LoadType loadType)
 			{
 				// get the raw streamer and make an entry in there
 				auto rawStreamer = getRawStreamer();
+				int collectionId = 0;
+
+#ifdef GTA_FIVE
+				rage::fiCollection* customRawStreamer;
+
+				if (GetRawStreamerForFile(file.c_str(), &customRawStreamer))
+				{
+					rawStreamer = customRawStreamer;
+					collectionId = 1;
+				}
+#endif
+
 				uint32_t idx = rawStreamer->GetEntryByName(file.c_str());
 
 				if (strId != -1)
 				{
 					auto& entry = cstreaming->Entries[strId + strModule->baseIdx];
-
-#ifdef GTA_FIVE
-					console::DPrintf("gta:streaming:five", "overriding handle for %s (was %x) -> %x\n", baseName, entry.handle, (rawStreamer->GetCollectionId() << 16) | idx);
-#elif IS_RDR3
-					console::DPrintf("gta:streaming:rdr3", "overriding handle for %s (was %x) -> %x\n", baseName, entry.handle, (rawStreamer->GetCollectionId() << 16) | idx);
-#endif
+					console::DPrintf("gta:streaming", "overriding handle for %s (was %x) -> %x\n", baseName, entry.handle, (collectionId << 16) | idx);
 
 					// if no old handle was saved, save the old handle
 					auto& hs = g_handleStack[strId + strModule->baseIdx];
@@ -1060,7 +1171,7 @@ static void LoadStreamingFiles(LoadType loadType)
 						hs.push_front(entry.handle);
 					}
 
-					entry.handle = (rawStreamer->GetCollectionId() << 16) | idx;
+					entry.handle = (collectionId << 16) | idx;
 					g_handlesToTag[entry.handle] = tag;
 
 					// save the new handle
@@ -1077,7 +1188,11 @@ static void LoadStreamingFiles(LoadType loadType)
 					auto& entry = cstreaming->Entries[fileId];
 					g_handleStack[fileId].push_front(entry.handle);
 
-					rage::pgRawStreamerInvalidateEntry(entry.handle & 0xFFFF);
+					// only for 'real' rawStreamer (mod variant likely won't reregister)
+					if ((entry.handle >> 16) == 0)
+					{
+						rage::pgRawStreamerInvalidateEntry(entry.handle & 0xFFFF);
+					}
 
 					g_handlesToTag[entry.handle] = tag;
 				}
@@ -1100,6 +1215,16 @@ static void LoadStreamingFiles(LoadType loadType)
 		}
 #endif
 	}
+
+#ifdef GTA_FIVE
+	if (!newGfx.empty())
+	{
+		for (const auto& [id, name] : newGfx)
+		{
+			initGfxTexture(id, name.c_str());
+		}
+	}
+#endif
 }
 
 static std::multimap<std::string, std::string, std::less<>> g_manifestNames;
@@ -1965,6 +2090,7 @@ static void LoadReplayDlc(void* ecw)
 
 	g_origLoadReplayDlc(ecw);
 
+	LoadStreamingFiles(LoadType::AfterSessionEarlyStage);
 	LoadStreamingFiles(LoadType::AfterSession);
 	LoadDataFiles();
 }
@@ -2242,9 +2368,9 @@ static HookFunction hookFunction([]()
 
 	// process streamer-loaded resource: check 'free instantly' flag even if no dependencies exist (change jump target)
 #ifdef GTA_FIVE
-	* hook::get_pattern<int8_t>("4C 63 C0 85 C0 7E 54 48 8B", 6) = 0x25;
+	hook::put<int8_t>(hook::get_pattern<int8_t>("4C 63 C0 85 C0 7E 54 48 8B", 6), 0x25);
 #elif IS_RDR3
-	* hook::get_pattern<int8_t>("4C 63 C8 85 C0 7E 62 4C 8B", 21) = 0x2E;
+	hook::put<int8_t>(hook::get_pattern<int8_t>("4C 63 C8 85 C0 7E 62 4C 8B", 21), 0x2E);
 #endif
 
 	// same function: stub to change free-instantly flag if needed by bypass streaming
@@ -2475,6 +2601,7 @@ static HookFunction hookFunction([]()
 #endif
 		)
 		{
+			LoadStreamingFiles(LoadType::AfterSessionEarlyStage);
 			LoadStreamingFiles(LoadType::AfterSession);
 
 			g_reloadStreamingFiles = false;
@@ -2530,6 +2657,7 @@ static HookFunction hookFunction([]()
 		}
 		else if (type == rage::INIT_SESSION)
 		{
+			LoadStreamingFiles(LoadType::AfterSessionEarlyStage);
 			LoadStreamingFiles(LoadType::AfterSession);
 			LoadDataFiles();
 		}

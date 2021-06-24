@@ -51,7 +51,12 @@ uint32_t UserLibrary::GetExportCode(const char* getName) const
 	{
 		const char* name = (const char*)GetOffsetPointer(names[i]);
 
-		if (_stricmp(name, getName) == 0)
+		if (_stricmp(name, getName) == 0
+			// _*@N for stdcall
+#ifdef _M_IX86
+			|| strstr(name, getName)
+#endif
+			)
 		{
 			return functions[ordinals[i]];
 		}

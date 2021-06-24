@@ -27,6 +27,7 @@
 #include <RelativeDevice.h>
 
 #include <ReverseGameData.h>
+#include <LegitimacyAPI.h>
 
 #include <SDK.h>
 #include <SDKGameProcessManager.h>
@@ -173,6 +174,10 @@ void SdkMain()
 	{
 		ExecuteJavascriptOnMainFrame(fmt::sprintf("window.postMessage(%s, '*')", message), "fxdk://sdk-message");
 	});
+	launcherTalk.Bind("sdk:backendMessage", [resman](const std::string& message)
+	{
+		resman->GetComponent<fx::ResourceEventManagerComponent>()->QueueEvent2("sdk:backendMessage", {}, message);
+	});
 	launcherTalk.Bind("sdk:consoleMessage", [](const std::string& channel, const std::string& message)
 	{
 		auto msg = nlohmann::json::object({
@@ -192,6 +197,33 @@ void SdkMain()
 		ExecuteJavascriptOnMainFrame(
 			fmt::sprintf("window.postMessage({type: 'connection-state-changed', data: {current:%d, previous:%d}}, '*')", currentState, previousState),
 			"fxdk://connection-state-changed"
+		);
+	});
+	launcherTalk.Bind("loading", [resman]()
+	{
+		resman->GetComponent<fx::ResourceEventManagerComponent>()->QueueEvent2("sdk:gameLoading", {});
+
+		ExecuteJavascriptOnMainFrame(
+			"window.postMessage({type: 'game-loading'}, '*')",
+			"fxdk://game-loading"
+		);
+	});
+	launcherTalk.Bind("unloading", [resman]()
+	{
+		resman->GetComponent<fx::ResourceEventManagerComponent>()->QueueEvent2("sdk:gameUnloading", {});
+
+		ExecuteJavascriptOnMainFrame(
+			"window.postMessage({type: 'game-unloading'}, '*')",
+			"fxdk://game-loading"
+		);
+	});
+	launcherTalk.Bind("unloaded", [resman]()
+	{
+		resman->GetComponent<fx::ResourceEventManagerComponent>()->QueueEvent2("sdk:gameUnloaded", {});
+
+		ExecuteJavascriptOnMainFrame(
+			"window.postMessage({type: 'game-unloaded'}, '*')",
+			"fxdk://game-loading"
 		);
 	});
 
@@ -267,6 +299,39 @@ void SdkMain()
 						});
 			}
 		}
+		else if (eventName == "sdk:setFPSLimit")
+		{
+			static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");
+
+			// deserialize the arguments
+			msgpack::unpacked msg;
+			msgpack::unpack(msg, eventPayload.c_str(), eventPayload.size());
+
+			msgpack::object obj = msg.get();
+			auto fpsLimit = obj.as<std::vector<int32_t>>()[0];
+
+			if (fpsLimit < 0)
+			{
+				return;
+			}
+
+			rgd->fpsLimit = fpsLimit;
+		}
+		else if (eventName == "sdk:disconnectClient")
+		{
+			fxdk::GetLauncherTalk().Call("disconnect");
+		}
+		else if (eventName == "sdk:connectClientTo")
+		{
+			// deserialize the arguments
+			msgpack::unpacked msg;
+			msgpack::unpack(msg, eventPayload.c_str(), eventPayload.size());
+
+			msgpack::object obj = msg.get();
+			std::string connectTo = obj.as<std::vector<std::string>>()[0];
+
+			fxdk::GetLauncherTalk().Call("connectTo", connectTo);
+		}
 		else if (eventName == "sdk:startGame")
 		{
 			gameProcessManager.StartGame();
@@ -317,6 +382,73 @@ void SdkMain()
 				resman->GetComponent<ResourceEventManagerComponent>()->QueueEvent2("sdk:recycleShellItemsResponse", {}, msgId, error);
 			});
 		}
+		else if (eventName == "sdk:getUserId")
+		{
+			resman->GetComponent<ResourceEventManagerComponent>()->QueueEvent2("sdk:setUserId", {}, ros::GetEntitlementSource());
+		}
+		else if (eventName == "sdk:getBuildNumber")
+		{
+			uint32_t buildNumber = 0;
+
+			std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+
+			if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
+			{
+				buildNumber = GetPrivateProfileInt(L"Game", L"SavedBuildNumber", buildNumber, fpath.c_str());
+			}
+
+			resman->GetComponent<ResourceEventManagerComponent>()->QueueEvent2("sdk:setBuildNumber", {}, buildNumber);
+		}
+		else if (eventName == "sdk:startFileWatcher")
+		{
+			// deserialize the arguments
+			msgpack::unpacked msg;
+			msgpack::unpack(msg, eventPayload.c_str(), eventPayload.size());
+
+			msgpack::object obj = msg.get();
+			auto args = obj.as<std::vector<std::string>>();
+
+			std::string path = args[0];
+			std::string requestId = args[1];
+
+			auto watcherId = fxdk::ioUtils::StartFileWatcher(
+				path,
+				[resman](uint32_t watcherId, const fxdk::ioUtils::FileEvents& events)
+				{
+					resman->GetComponent<ResourceEventManagerComponent>()->QueueEvent2("sdk:fileWatcherEvents", {}, watcherId, events);
+				},
+				[resman](uint32_t watcherId, const std::string& error)
+				{
+					resman->GetComponent<ResourceEventManagerComponent>()->QueueEvent2("sdk:fileWatcherError", {}, watcherId, error);
+				}
+			);
+
+			resman->GetComponent<ResourceEventManagerComponent>()->QueueEvent2("sdk:fileWatcherId", {}, requestId, watcherId);
+		}
+		else if (eventName == "sdk:stopFileWatcher")
+		{
+			// deserialize the arguments
+			msgpack::unpacked msg;
+			msgpack::unpack(msg, eventPayload.c_str(), eventPayload.size());
+
+			msgpack::object obj = msg.get();
+			uint32_t watcherId = obj.as<std::vector<std::uint32_t>>()[0];
+
+			fxdk::ioUtils::StopFileWatcher(watcherId);
+		}
+		else if (eventName == "sdk:sendGameClientEvent")
+		{
+			// deserialize the arguments
+			msgpack::unpacked msg;
+			msgpack::unpack(msg, eventPayload.c_str(), eventPayload.size());
+
+			msgpack::object obj = msg.get();
+
+			std::string clientEventName = obj.as<std::vector<std::string>>()[0];
+			std::string clientEventPayload = obj.as<std::vector<std::string>>()[1];
+
+			fxdk::GetLauncherTalk().Call("sdk:clientEvent", clientEventName, clientEventPayload);
+		}
 	});
 
 	// Provide CEF with command-line arguments.
@@ -325,6 +457,8 @@ void SdkMain()
 	// Specify CEF global settings here.
 	CefSettings settings;
 	settings.no_sandbox = true;
+
+	settings.background_color = 0xFF161923;
 
 	settings.remote_debugging_port = 13173;
 	settings.log_severity = LOGSEVERITY_DEFAULT;
@@ -337,7 +471,7 @@ void SdkMain()
 
 	std::wstring resPath = MakeRelativeCitPath(L"bin/cef/");
 
-	std::wstring cachePath = MakeRelativeCitPath(L"cache\\browser\\");
+	std::wstring cachePath = MakeRelativeCitPath(ToWide(fmt::sprintf("data\\nui-storage%s\\", launch::GetPrefixedLaunchModeKey("-"))));
 	CreateDirectory(cachePath.c_str(), nullptr);
 
 	CefString(&settings.resources_dir_path).FromWString(resPath);

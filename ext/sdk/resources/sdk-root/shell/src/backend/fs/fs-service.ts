@@ -13,6 +13,7 @@ import { LogService } from 'backend/logger/log-service';
 import { NotificationService } from 'backend/notification/notification-service';
 import { concurrently } from 'utils/concurrently';
 import { fastRandomId } from 'utils/random';
+import { FsThrottledWriterOptions, FsThrottledWriter } from './fs-throttled-writer';
 
 const rimraf = promisify(rimrafSync);
 
@@ -56,6 +57,10 @@ export class FsService {
 
   joinPath(...args: string[]) {
     return path.join(...args);
+  }
+
+  resolvePath(entryPath: string) {
+    return path.resolve(entryPath);
   }
 
   async statSafe(entryPath: string): Promise<fs.Stats | null> {
@@ -152,7 +157,7 @@ export class FsService {
     return this.writeFile(entryPath, JSON.stringify(content, undefined, pretty ? 2 : undefined));
   }
 
-  createAtomicWrite(entryPath: string) {
+  createAtomicWriter(entryPath: string) {
     return new FsAtomicWriter(entryPath, this.writeFile.bind(this));
   }
 
@@ -160,7 +165,7 @@ export class FsService {
     entryPath: string,
     options?: FsJsonFileMappingOptions<T>,
   ): Promise<FsJsonFileMapping<T>> {
-    const writer = this.createAtomicWrite(entryPath);
+    const writer = this.createAtomicWriter(entryPath);
     const reader = async () => {
       const content = await this.readFile(entryPath);
       return {
@@ -172,6 +177,13 @@ export class FsService {
     const snapshot = await reader();
 
     return new FsJsonFileMapping(snapshot, writer, reader, options);
+  }
+
+  createThrottledFileWriter<T>(entryPath: string, options: FsThrottledWriterOptions<T>): FsThrottledWriter<T> {
+    return new FsThrottledWriter(
+      (content) => this.writeFile(entryPath, content),
+      options,
+    );
   }
 
   /**

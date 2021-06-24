@@ -30,6 +30,8 @@
 
 #include <filesystem>
 
+#include <ManifestVersion.h>
+
 // a set of resources that are system-managed and should not be stopped from script
 static std::set<std::string> g_managedResources = {
 	"spawnmanager",
@@ -103,6 +105,7 @@ static void HandleServerEvent(fx::ServerInstanceBase* instance, const fx::Client
 	static fx::RateLimiterStore<uint32_t, false> netEventRateLimiterStore{ instance->GetComponent<console::Context>().GetRef() };
 	static auto netEventRateLimiter = netEventRateLimiterStore.GetRateLimiter("netEvent", fx::RateLimiterDefaults{ 50.f, 200.f });
 	static auto netFloodRateLimiter = netEventRateLimiterStore.GetRateLimiter("netEventFlood", fx::RateLimiterDefaults{ 75.f, 300.f });
+	static auto netEventSizeRateLimiter = netEventRateLimiterStore.GetRateLimiter("netEventSize", fx::RateLimiterDefaults{ 128 * 1024.0, 384 * 1024.0 });
 
 	uint32_t netId = client->GetNetId();
 
@@ -125,6 +128,18 @@ static void HandleServerEvent(fx::ServerInstanceBase* instance, const fx::Client
 
 	uint32_t dataLength = buffer.GetRemainingBytes();
 
+	if (!netEventSizeRateLimiter->Consume(netId, double(dataLength)))
+	{
+		gscomms_execute_callback_on_main_thread([client, instance]()
+		{
+			// if this happens, try increasing rateLimiter_netEventSize_rate and rateLimiter_netEventSize_burst
+			// preferably, fix client scripts to not have this large a set of events with high frequency
+			instance->GetComponent<fx::GameServer>()->DropClient(client, "Reliable network event size overflow.");
+		});
+
+		return;
+	}
+
 	std::vector<uint8_t> data(dataLength);
 	buffer.Read(data.data(), data.size());
 
@@ -143,6 +158,9 @@ static std::map<std::string, std::set<std::string>> g_resourcesByComponent;
 
 static void ScanResources(fx::ServerInstanceBase* instance)
 {
+	// mapping of names to paths
+	static std::map<std::string, std::string> scanData;
+
 	auto resMan = instance->GetComponent<fx::ResourceManager>();
 
 	std::string resourceRoot(instance->GetRootPath() + "/resources/");
@@ -152,8 +170,8 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 	auto systemResourceRootPath = std::filesystem::u8path(systemResourceRoot).lexically_normal();
 
 	std::queue<std::string> pathsToIterate;
-	pathsToIterate.push(resourceRoot);
 	pathsToIterate.push(systemResourceRoot);
+	pathsToIterate.push(resourceRoot);
 
 	std::vector<pplx::task<fwRefContainer<fx::Resource>>> tasks;
 
@@ -196,9 +214,31 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 					// it's a resource
 					else if (scannedNow.find(findData.name) == scannedNow.end())
 					{
-						scannedNow.insert(findData.name);
+						const auto& resourceName = findData.name;
+						scannedNow.insert(resourceName);
 
-						auto oldRes = resMan->GetResource(findData.name, false);
+						auto oldRes = resMan->GetResource(resourceName, false);
+						auto oldScanData = scanData.find(resourceName);
+
+						// did the path change? if so, unload the old resource
+						if (oldRes.GetRef() && oldScanData != scanData.end() && oldScanData->second != resPath)
+						{
+							// remove from by-component lists
+							for (auto& list : g_resourcesByComponent)
+							{
+								list.second.erase(resourceName);
+							}
+
+							// unmount relative device
+							vfs::Unmount(fmt::sprintf("@%s/", resourceName));
+
+							// stop and remove resource
+							oldRes->Stop();
+							resMan->RemoveResource(oldRes);
+
+							// undo ptr
+							oldRes = {};
+						}
 
 						if (oldRes.GetRef())
 						{
@@ -207,7 +247,7 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 						}
 						else
 						{
-							console::DPrintf("resources", "Found new resource %s in %s\n", findData.name, resPath);
+							console::DPrintf("resources", "Found new resource %s in %s\n", resourceName, resPath);
 							newResources++;
 
 							auto path = std::filesystem::u8path(resPath);
@@ -247,7 +287,7 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 								{
 									for (const auto& component : relPath)
 									{
-										auto name = component.filename().string();
+										auto name = component.filename().u8string();
 
 										if (name[0] == '[' && name[name.size() - 1] == ']')
 										{
@@ -257,12 +297,17 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 								}
 							}
 
+							// mount the resource for later use in VFS (e.g. from `exec`)
+							fwRefContainer<vfs::RelativeDevice> relativeDevice = new vfs::RelativeDevice(resPath + "/");
+							vfs::Mount(relativeDevice, fmt::sprintf("@%s/", resourceName));
+							scanData[resourceName] = resPath;
+
 							skyr::url_record record;
 							record.scheme = "file";
 
 							skyr::url url{ std::move(record) };
 							url.set_pathname(*skyr::percent_encode(resPath, skyr::encode_set::path));
-							url.set_hash(*skyr::percent_encode(findData.name, skyr::encode_set::fragment));
+							url.set_hash(*skyr::percent_encode(resourceName, skyr::encode_set::fragment));
 
 							auto task = resMan->AddResource(url.href())
 										.then([components = std::move(components)](fwRefContainer<fx::Resource> resource)
@@ -297,6 +342,43 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 	else
 	{
 		trace("^2Found %d resources.^7\n", newResources);
+	}
+
+	auto trl = instance->GetComponent<fx::TokenRateLimiter>();
+	trl->Update(1.0, std::max(double(newResources + reloadedResources), 3.0));
+
+	// check for outdated
+	std::set<std::string> nonManifestResources;
+
+	resMan->ForAllResources([&nonManifestResources](const fwRefContainer<fx::Resource>& resource)
+	{
+		auto md = resource->GetComponent<fx::ResourceMetaDataComponent>();
+
+		auto fxV2 = md->IsManifestVersionBetween("adamant", "");
+		auto fxV1 = md->IsManifestVersionBetween(ManifestVersion{ "44febabe-d386-4d18-afbe-5e627f4af937" }.guid, guid_t{ 0 });
+
+		if (!fxV2 || !*fxV2)
+		{
+			if (!fxV1 || !*fxV1)
+			{
+				if (!md->GlobEntriesVector("client_script").empty())
+				{
+					nonManifestResources.insert(resource->GetName());
+				}
+			}
+		}
+	});
+
+	if (!nonManifestResources.empty())
+	{
+		trace("^1Some resources have an outdated resource manifest:^7\n");
+
+		for (auto& name : nonManifestResources)
+		{
+			trace("    - %s\n", name);
+		}
+
+		trace("\nPlease update these resources.\n");
 	}
 
 	/*NETEV onResourceListRefresh SERVER
@@ -373,6 +455,7 @@ static InitFunction initFunction([]()
 	{
 		instance->SetComponent(fx::CreateResourceManager());
 		instance->SetComponent(new fx::ServerEventComponent());
+		instance->SetComponent(new fx::TokenRateLimiter(1.0f, 3.0f));
 
 		fwRefContainer<fx::ResourceManager> resman = instance->GetComponent<fx::ResourceManager>();
 		resman->SetComponent(new fx::ServerInstanceBaseRef(instance));
@@ -431,8 +514,21 @@ static InitFunction initFunction([]()
 				bool allowed = true;
 
 				// store the game name
-				std::string gameNameString = (gameServer->GetGameName() == fx::GameName::GTA5) ? "gta5" :
-					(gameServer->GetGameName() == fx::GameName::RDR3) ? "rdr3" : "unknown";
+				std::string gameNameString;
+				switch (gameServer->GetGameName())
+				{
+				case fx::GameName::GTA4:
+					gameNameString = "gta4";
+					break;
+				case fx::GameName::GTA5:
+					gameNameString = "gta5";
+					break;
+				case fx::GameName::RDR3:
+					gameNameString = "rdr3";
+					break;
+				default:
+					gameNameString = "unknown";
+				}
 
 				// if is FXv2
 				auto isCfxV2 = md->GetEntries("is_cfxv2");
@@ -747,7 +843,7 @@ static InitFunction initFunction([]()
 
 				try
 				{
-					return eventComponent->TriggerEvent2("__cfx_internal:commandFallback", { "net:" + context }, rawCommand);
+					return eventComponent->TriggerEvent2("__cfx_internal:commandFallback", { "internal-net:" + context }, rawCommand);
 				}
 				catch (std::bad_any_cast& e)
 				{

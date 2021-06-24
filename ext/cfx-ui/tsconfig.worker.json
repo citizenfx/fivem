@@ -6,7 +6,8 @@
       "es2018",
       "webworker"
     ],
-    "types": []
+    "types": [],
+	"allowSyntheticDefaultImports": true
   },
   "include": [
     "src/**/*.worker.ts"

@@ -144,10 +144,12 @@ export class FiltersService {
 			}
 
 			const storedTags = this.localStorage.getItem(`stags:${type}`);
+			this.tags = new ServerTags();
+
 			if (storedTags) {
-				this.tags = { ...<ServerTags>JSON.parse(storedTags) };
-			} else {
-				this.tags = new ServerTags();
+				try {
+					this.tags = { ...<ServerTags>JSON.parse(storedTags) };
+				} catch {}
 			}
 
 			if (this.sortOrderPerType[type]) {

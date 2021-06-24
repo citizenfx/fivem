@@ -193,7 +193,7 @@ namespace fxc
 		} intro;
 
 		intro.type = (uint8_t)m_type;
-		intro.size = m_size;
+		intro.size = m_size == 0 ? 1 : m_size;
 		intro.reg = m_register;
 		intro.unk = m_unk;
 
@@ -235,7 +235,7 @@ namespace fxc
 
 		if (valueLength > 0)
 		{
-			writer(&m_defaultValue[0], valueLength * 4);
+			writer(&m_defaultValue[0], size_t(valueLength) * 4);
 		}
 	}
 

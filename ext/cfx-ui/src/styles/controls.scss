@@ -1,4 +1,5 @@
 input[type="text"],
+input[type="email"],
 input[type="search"],
 input[type="password"] {
 	@include backdropPane;
@@ -64,7 +65,7 @@ input[type="password"] {
 	@include backdropPane;
 
 	@include fontRubik;
-	font-size: var(--fs-1);
+	font-size: var(--fs-075);
 	font-weight: 300;
 	line-height: 1;
 	letter-spacing: 1px;
@@ -92,6 +93,12 @@ input[type="password"] {
 				background-color: gtv($theme, accentColor1);
 			}
 		}
+
+        &[disabled] {
+            box-shadow: 0 0 0 2px darken(gtv($theme, accentColor1), 30%) inset !important;
+            color: rgba(gtv($theme, fgColor), .3) !important;
+            background-color: inherit !important;
+        }
 	}
 
 	.material-icons-outlined {

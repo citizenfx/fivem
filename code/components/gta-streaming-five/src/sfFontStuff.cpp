@@ -5,6 +5,7 @@
 
 #include <MinHook.h>
 
+#include <jitasm.h>
 #include <Hooking.h>
 
 #include <Streaming.h>
@@ -724,13 +725,13 @@ static HookFunction hookFunction([]()
 	// (memory locking, maybe? GFx allows disabling thread safety of its heap)
 	// TODO: figure this out
 	auto memoryHeapPt = hook::get_address<void**>(hook::get_call(hook::get_pattern<char>("41 F6 06 04 75 03 83 CD 20", 12)) + 0x19);
-	memoryHeapPt[9] = Alloc_Align;
-	memoryHeapPt[10] = Alloc;
-	memoryHeapPt[11] = Realloc;
-	memoryHeapPt[12] = Free;
-	memoryHeapPt[13] = AllocAuto_Align;
-	memoryHeapPt[14] = AllocAuto;
-	memoryHeapPt[15] = GetHeap;
+	hook::put(&memoryHeapPt[9], Alloc_Align);
+	hook::put(&memoryHeapPt[10], Alloc);
+	hook::put(&memoryHeapPt[11], Realloc);
+	hook::put(&memoryHeapPt[12], Free);
+	hook::put(&memoryHeapPt[13], AllocAuto_Align);
+	hook::put(&memoryHeapPt[14], AllocAuto);
+	hook::put(&memoryHeapPt[15], GetHeap);
 
 	// undo fonts if reloading
 	OnKillNetworkDone.Connect([]()

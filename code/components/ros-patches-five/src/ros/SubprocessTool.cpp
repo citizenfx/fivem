@@ -176,6 +176,8 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 						"gta5"
 #elif defined(IS_RDR3)
 						"rdr2"
+#elif defined(GTA_NY)
+						"gta4"
 #else
 						""
 #endif
@@ -203,41 +205,30 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 							launchDone = true;
 						}
 
-						if (c == "SetTitleInfo") {
+						if (c == "SignInComplete")
+						{
+							child->SendJSCallback("RGSC_RAISE_UI_EVENT", json::object({ { "EventId", 2 }, // LauncherV3UiEvent
+
+																					  { "Data", json::object({ { "Action", "EnableDownloading" } }) } })
+																		 .dump());
+
+							if (verifying)
+							{
+								child->SendJSCallback("RGSC_RAISE_UI_EVENT", json::object({ { "EventId", 2 }, // LauncherV3UiEvent
+
+													{ "Data", json::object({ { "Action", "Install" },
+															{ "Parameter", json::object({ { "titleName", targetTitle },
+																			{ "location", "C:\\Program Files\\Rockstar Games\\Games" },
+																			{ "desktopShortcut", false },
+																			{ "startMenuShortcut", false } }) } }) } })
+										.dump());
+							}
+						}
+						else if (c == "SetTitleInfo") {
 							if (p.value("titleName", "") == targetTitle) {
 								if (p["status"].value("entitlement", false) && !p["status"].value("install", false) && !verified) {
 									if (!verifying) {
-										child->SendJSCallback("RGSC_RAISE_UI_EVENT", json::object({
-											{ "EventId", 2 }, // LauncherV3UiEvent
-
-											{"Data", json::object({
-												{"Action", "Install"},
-												{"Parameter", json::object({
-													{"titleName", targetTitle},
-													{"location", "C:\\Program Files\\Rockstar Games\\Games"},
-													{"desktopShortcut", false},
-													{"startMenuShortcut", false}
-												})}
-											})}
-											}).dump());
-
 										verifying = true;
-									}
-
-									if ((p["status"].value("updateState", "") == "starting" || p["status"].value("updateState", "") == "updateQueued") && !verified)
-									{
-										Sleep(500);
-
-										child->SendJSCallback("RGSC_RAISE_UI_EVENT", json::object({
-											{ "EventId", 2 }, // LauncherV3UiEvent
-
-											{"Data", json::object({
-												{"Action", "Verify"},
-												{"Parameter", json::object({
-													{"titleName", targetTitle},
-												})}
-											})}
-											}).dump());
 									}
 								}
 								else if (p["status"].value("install", false) &&
@@ -245,7 +236,7 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 										p["status"].value("updateState", "") == "updateQueued" ||
 										p["status"].value("updateState", "") == "verifyQueued"))
 								{
-									if (verified && !launched)
+									if (!launched)
 									{
 										launched = true;
 
@@ -276,25 +267,6 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 											Sleep(5000);
 										}
 									}
-									else if (!verified)
-									{
-										child->SendJSCallback("RGSC_RAISE_UI_EVENT", json::object({
-											{ "EventId", 2 }, // LauncherV3UiEvent
-
-											{"Data", json::object({
-												{"Action", "Verify"},
-												{"Parameter", json::object({
-													{"titleName", targetTitle},
-													{"args", ""}
-												})}
-											})}
-											}).dump());
-									}
-								}
-								
-								if (p["status"].value("updateState", "") == "verifying")
-								{
-									verified = true;
 								}
 							}
 						}
@@ -306,8 +278,16 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 				}
 			}
 		}
+		else if (type == 0x1000c) // ViewMsg_AddBindOnStartLoading
+		{
+			std::wstring js;
+			iter.ReadString16(&js);
+			bool b;
+			iter.ReadBool(&b);
+		}
 		else if (type == 0xfffffff0)
 		{
+
 			int replyId;
 			iter.ReadInt(&replyId);
 
@@ -507,7 +487,7 @@ static MyListener* RunListener(const std::wstring& a)
 		{
 			DWORD bytesRead = 0;
 			uint8_t data[2048];
-
+			
 			OVERLAPPED overlapped = { 0 };
 			overlapped.hEvent = ev;
 

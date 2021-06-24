@@ -101,7 +101,7 @@ int __stdcall CfxBind(SOCKET s, sockaddr* addr, int addrlen)
 {
 	sockaddr_in* addrIn = (sockaddr_in*)addr;
 
-	trace("binder on %i is %p\n", htons(addrIn->sin_port), s);
+	trace("binder on %d is %p\n", htons(addrIn->sin_port), (void*)s);
 
 	if (htons(addrIn->sin_port) == 6672)
 	{
@@ -182,9 +182,19 @@ static hook::cdecl_stub<bool()> isNetworkHost([]()
 	return hook::get_pattern("33 DB 38 1D ? ? ? ? 75 1B 38 1D", -6);
 });
 
+void ObjectIds_BindNetLibrary(NetLibrary*);
+
+#include <CloneManager.h>
+
 static HookFunction initFunction([]()
 {
 	g_netLibrary = NetLibrary::Create();
+
+	Instance<NetLibrary>::Set(g_netLibrary);
+
+	TheClones->BindNetLibrary(g_netLibrary);
+
+	ObjectIds_BindNetLibrary(g_netLibrary);
 
 	g_netLibrary->OnBuildMessage.Connect([](const std::function<void(uint32_t, const char*, int)>& writeReliable)
 	{
@@ -210,6 +220,42 @@ static HookFunction initFunction([]()
 			lastHostState = false;
 			lastHostSend = timeGetTime();
 		}
+	});
+
+	g_netLibrary->AddReliableHandler("msgFrame", [](const char* data, size_t len)
+	{
+		net::Buffer buffer(reinterpret_cast<const uint8_t*>(data), len);
+		auto idx = buffer.Read<uint32_t>();
+
+		auto icgi = Instance<ICoreGameInit>::Get();
+
+		uint8_t strictLockdown = 0;
+
+		if (icgi->NetProtoVersion >= 0x202002271209)
+		{
+			strictLockdown = buffer.Read<uint8_t>();
+		}
+
+		static uint8_t lastStrictLockdown;
+
+		if (strictLockdown != lastStrictLockdown)
+		{
+			if (!strictLockdown)
+			{
+				icgi->ClearVariable("strict_entity_lockdown");
+			}
+			else
+			{
+				icgi->SetVariable("strict_entity_lockdown");
+			}
+
+			lastStrictLockdown = strictLockdown;
+		}
+	}, true);
+
+	OnMainGameFrame.Connect([]()
+	{
+		g_netLibrary->RunMainFrame();
 	});
 
 	OnGameFrame.Connect([]()
@@ -599,7 +645,6 @@ static void WINAPI ExitProcessReplacement(UINT exitCode)
 	if (g_netLibrary)
 	{
 		g_netLibrary->Disconnect((g_quitMsg.empty()) ? "Exiting" : g_quitMsg.c_str());
-		g_netLibrary->FinalizeDisconnect();
 	}
 
 	TerminateProcess(GetCurrentProcess(), exitCode);
@@ -635,6 +680,34 @@ static struct : GtaThread
 	{
 	}
 } fakeThread;
+
+struct LoggedInt
+{
+	LoggedInt(int a)
+		: value(a)
+	{
+	}
+
+	LoggedInt& operator=(int value)
+	{
+		if (this->value != value)
+		{
+			trace("tryHostState changing from %d to %d\n", this->value, value);
+			this->value = value;
+		}
+
+		return *this;
+	}
+
+	operator int() const
+	{
+		return value;
+	}
+
+	int value;
+};
+
+bool IsWaitingForTimeSync();
 
 static HookFunction hookFunction([]()
 {
@@ -704,7 +777,7 @@ static HookFunction hookFunction([]()
 
 	rlPresence__m_GamerPresences = hook::get_address<void*>(hook::get_pattern("48 8D 54 24 20 48 69 ? ? ? ? ? 48 8D 05 ? ? ? ? 4C", 0x44 - 0x35));
 
-	static int tryHostStage = 0;
+	static LoggedInt tryHostStage = 0;
 
 	static bool gameLoaded;
 
@@ -712,6 +785,8 @@ static HookFunction hookFunction([]()
 	{
 		gameLoaded = true;
 	});
+
+	static ICoreGameInit* cgi = Instance<ICoreGameInit>::Get();
 
 	OnKillNetwork.Connect([](const char*)
 	{
@@ -735,7 +810,7 @@ static HookFunction hookFunction([]()
 			_rlPresence_refreshSigninState(0);
 			_rlPresence_refreshNetworkStatus(0);
 
-			tryHostStage = 2;
+			tryHostStage = 1;
 			break;
 		}
 		case 1:
@@ -786,19 +861,35 @@ static HookFunction hookFunction([]()
 			break;
 
 		case 5:
+			if (cgi->OneSyncEnabled)
+			{
+				if (IsWaitingForTimeSync())
+				{
+					return;
+				}
+			}
+
 			static char sessionIdPtr[48];
 			memset(sessionIdPtr, 0, sizeof(sessionIdPtr));
-			joinOrHost(0, nullptr, sessionIdPtr);
+			joinOrHost(1, nullptr, sessionIdPtr);
 
 			tryHostStage = 6;
 
 			break;
 
 		case 6:
-			if (*(BYTE*)((uint64_t)g_networkMgrPtr + 24))
+			struct
 			{
-				uint64_t networkMgr = *(uint64_t*)((uint64_t)g_networkMgrPtr);
-				auto networkState = *(BYTE*)(*(uint64_t*)networkMgr + networkStateOffset);
+				char* sessionMultiplayer;
+				char pad[16];
+				uint8_t networkInited;
+			}* networkMgr;
+
+			networkMgr = *(decltype(networkMgr)*)g_networkMgrPtr;
+
+			if (networkMgr->networkInited)
+			{
+				auto networkState = *(BYTE*)(networkMgr->sessionMultiplayer + networkStateOffset);
 
 				if (networkState == 4)
 				{
@@ -916,4 +1007,7 @@ static HookFunction hookFunction([]()
 		hook::put<int>(location + 3, 1);
 		hook::put<int>(location + 10, 2);
 	}
+
+	// unusual script check before allowing session to continue
+	hook::nop(hook::get_pattern("84 C0 75 6C 44 39 7B 20 75", 2), 2);
 });

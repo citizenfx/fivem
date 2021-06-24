@@ -34,37 +34,43 @@ bool ComponentInstance::Initialize()
 	return true;
 }
 
-static bool IsCLRAssembly(const std::filesystem::path& path)
+static bool LoadPEFile(const std::filesystem::path& path, std::vector<uint8_t>& outBuf)
 {
 	FILE* f = _wfopen(path.c_str(), L"rb");
 
 	if (f)
 	{
 		fseek(f, 0, SEEK_END);
-		std::vector<uint8_t> libraryBuffer(ftell(f));
+		outBuf.resize(ftell(f));
 
 		fseek(f, 0, SEEK_SET);
-		fread(&libraryBuffer[0], 1, libraryBuffer.size(), f);
+		fread(&outBuf[0], 1, outBuf.size(), f);
 
 		fclose(f);
+		return true;
+	}
 
-		// get the DOS header
-		IMAGE_DOS_HEADER* header = (IMAGE_DOS_HEADER*)&libraryBuffer[0];
+	return false;
+}
 
-		if (header->e_magic == IMAGE_DOS_SIGNATURE)
+static bool IsCLRAssembly(const std::vector<uint8_t>& libraryBuffer)
+{
+	// get the DOS header
+	IMAGE_DOS_HEADER* header = (IMAGE_DOS_HEADER*)&libraryBuffer[0];
+
+	if (header->e_magic == IMAGE_DOS_SIGNATURE)
+	{
+		// get the NT header
+		const IMAGE_NT_HEADERS* ntHeader = (const IMAGE_NT_HEADERS*)&libraryBuffer[header->e_lfanew];
+
+		// find the COM+ directory
+		auto comPlusDirectoryData = ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR];
+
+		if (comPlusDirectoryData.Size > 0)
 		{
-			// get the NT header
-			const IMAGE_NT_HEADERS* ntHeader = (const IMAGE_NT_HEADERS*)&libraryBuffer[header->e_lfanew];
-
-			// find the COM+ directory
-			auto comPlusDirectoryData = ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR];
-
-			if (comPlusDirectoryData.Size > 0)
+			if (comPlusDirectoryData.VirtualAddress < ntHeader->OptionalHeader.SizeOfImage)
 			{
-				if (comPlusDirectoryData.VirtualAddress < ntHeader->OptionalHeader.SizeOfImage)
-				{
-					return true;
-				}
+				return true;
 			}
 		}
 	}
@@ -124,48 +130,75 @@ bool ComponentInstance::DoGameLoad(void* module)
 			{
 				bool bad = false;
 				std::wstring badFileName;
+				std::vector<uint8_t> libraryBuffer;
 
-				if (!CfxIsSinglePlayer())
+				DWORD versionInfoSize = GetFileVersionInfoSize(it->path().c_str(), nullptr);
+				if (versionInfoSize)
 				{
-					DWORD versionInfoSize = GetFileVersionInfoSize(it->path().c_str(), nullptr);
+					std::vector<uint8_t> versionInfo(versionInfoSize);
 
-					if (versionInfoSize)
+					if (GetFileVersionInfo(it->path().c_str(), 0, versionInfo.size(), &versionInfo[0]))
 					{
-						std::vector<uint8_t> versionInfo(versionInfoSize);
+						void* fixedInfoBuffer;
+						UINT fixedInfoSize;
 
-						if (GetFileVersionInfo(it->path().c_str(), 0, versionInfo.size(), &versionInfo[0]))
-						{
-							void* fixedInfoBuffer;
-							UINT fixedInfoSize;
+						VerQueryValue(&versionInfo[0], L"\\StringFileInfo\\040904b0\\OriginalFilename", &fixedInfoBuffer, &fixedInfoSize);
 
-							VerQueryValue(&versionInfo[0], L"\\StringFileInfo\\040904b0\\OriginalFilename", &fixedInfoBuffer, &fixedInfoSize);
-
-							badFileName = std::wstring((wchar_t*)fixedInfoBuffer, fixedInfoSize);
-						}
+						badFileName = std::wstring((wchar_t*)fixedInfoBuffer, fixedInfoSize);
 					}
+				}
 
-					for (auto itt = blacklistedAsis.begin(); itt != blacklistedAsis.end(); ++itt) {
-
-						if (*itt != L"")
+				if (LoadPEFile(it->path(), libraryBuffer))
+				{
+					if (!CfxIsSinglePlayer())
+					{
+						for (auto itt = blacklistedAsis.begin(); itt != blacklistedAsis.end(); ++itt)
 						{
-							if (wcsicmp(it->path().filename().c_str(), itt->c_str()) == 0 || wcsicmp(badFileName.c_str(), itt->c_str()) == 0) {
-								bad = true;
-								trace("Skipping blacklisted ASI %s - this plugin is not compatible with FiveM.\n", it->path().filename().string());
-								if (*itt == L"openiv.asi")
+
+							if (*itt != L"")
+							{
+								if (wcsicmp(it->path().filename().c_str(), itt->c_str()) == 0 || wcsicmp(badFileName.c_str(), itt->c_str()) == 0)
 								{
-									FatalError("You cannot use OpenIV with FiveM. Please use clean game RPFs and remove OpenIV.asi from your plugins. Check fivem.net on how to use modded files with FiveM.");
+									bad = true;
+									trace("Skipping blacklisted ASI %s - this plugin is not compatible with FiveM.\n", it->path().filename().string());
+									if (*itt == L"openiv.asi")
+									{
+										FatalError("You cannot use OpenIV with FiveM. Please use clean game RPFs and remove OpenIV.asi from your plugins. Check fivem.net on how to use modded files with FiveM.");
+									}
 								}
+							}
+						}
+
+						if (!bad)
+						{
+							if (IsCLRAssembly(libraryBuffer))
+							{
+								trace("Skipping blacklisted CLR assembly %s - this plugin is not compatible with FiveM.\n", it->path().filename().string());
+
+								bad = true;
 							}
 						}
 					}
 
-					if (!bad)
+					// this check is ubiquitous as these older dlls will crash you no matter what
+					if (wcsicmp(it->path().filename().c_str(), L"gears.asi") == 0 || wcsicmp(badFileName.c_str(), L"gears.asi") == 0)
 					{
-						if (IsCLRAssembly(it->path()))
-						{
-							trace("Skipping blacklisted CLR assembly %s - this plugin is not compatible with FiveM.\n", it->path().filename().string());
+						// get the DOS header
+						IMAGE_DOS_HEADER* header = (IMAGE_DOS_HEADER*)&libraryBuffer[0];
 
-							bad = true;
+						if (header->e_magic == IMAGE_DOS_SIGNATURE)
+						{
+							// get the NT header
+							const IMAGE_NT_HEADERS* ntHeader = (const IMAGE_NT_HEADERS*)&libraryBuffer[header->e_lfanew];
+
+							// check timestamp
+							auto timeStamp = ntHeader->FileHeader.TimeDateStamp;
+							if (timeStamp != 0 && timeStamp <= 0x605FC73B)
+							{
+								MessageBoxW(NULL, L"This version of the manual transmission plugin ('Gears.asi') is outdated and no longer works with FiveM. Please update this plugin to a newer version or delete it.", L"FiveM", MB_OK | MB_ICONSTOP);
+
+								bad = true;
+							}
 						}
 					}
 				}

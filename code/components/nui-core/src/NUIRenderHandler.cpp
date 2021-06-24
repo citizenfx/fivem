@@ -13,20 +13,14 @@
 
 #include "memdbgon.h"
 
+#include <CrossBuildRuntime.h>
+
 extern OsrImeHandlerWin* g_imeHandler;
 
 NUIRenderHandler::NUIRenderHandler(NUIClient* client)
 	: m_paintingPopup(false), m_owner(client), m_currentDragOp(DRAG_OPERATION_NONE)
 {
-	auto hWnd = FindWindow(
-#ifdef GTA_FIVE
-		L"grcWindow"
-#elif defined(IS_RDR3)
-		L"sgaWindow"
-#else
-		L"UNKNOWN_WINDOW"
-#endif
-	, nullptr);
+	auto hWnd = FindWindow(xbr::GetGameWndClass(), nullptr);
 
 	m_dropTarget = DropTargetWin::Create(this, hWnd);
 }
@@ -183,6 +177,7 @@ void NUIRenderHandler::UpdatePopup()
 void NUIRenderHandler::PaintView(const RectList& dirtyRects, const void* buffer, int width, int height)
 {
 	NUIWindow* window = m_owner->GetWindow();
+	auto lock = window->GetRenderBufferLock();
 	void* renderBuffer = window->GetRenderBuffer();
 	int roundedWidth = window->GetRoundedWidth();
 
@@ -270,15 +265,7 @@ bool NUIRenderHandler::StartDragging(CefRefPtr<CefBrowser> browser, CefRefPtr<Ce
 	m_currentDragOp = DRAG_OPERATION_NONE;
 	POINT pt = {};
 	GetCursorPos(&pt);
-	ScreenToClient(FindWindow(
-#ifdef GTA_FIVE
-		L"grcWindow"
-#elif defined(IS_RDR3)
-		L"sgaWindow"
-#else
-		L"UNKNOWN_WINDOW"
-#endif	
-	, nullptr), &pt);
+	ScreenToClient(FindWindow(xbr::GetGameWndClass(), nullptr), &pt);
 
 	browser->GetHost()->DragSourceEndedAt(
 		pt.x,

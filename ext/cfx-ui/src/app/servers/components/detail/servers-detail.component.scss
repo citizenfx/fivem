@@ -194,6 +194,30 @@
 								transition: none;
 							}
 
+							&.owner {
+								img {
+									display: inline;
+									height: var(--fs-075);
+									width: var(--fs-075);
+									padding-right: var(--inner-padding);
+									box-sizing: content-box;
+								}
+
+								.value {
+									text-decoration: underline;
+									display: flex;
+									justify-content: space-around;
+								}
+
+								@include theme() using ($theme) {
+									&:hover, &:focus {
+										.value span {
+											background-color: gtv($theme, accentColor1);
+										}
+									}
+								}
+							}
+
 							.key,
 							.value {
 								display: block;
@@ -252,10 +276,27 @@
 							// .cfx-button {
 							// 	margin-right: var(--qh);
 							// }
+
+                            button {
+                                &:after {
+                                    text-transform: none;
+                                }
+                            }
 						}
+
+                        .warning {
+                            margin: var(--qh);
+                            margin-left: 0;
+
+                            p {
+                                display: inline-block;
+                                padding-left: calc(var(--qh) / 2);
+                            }
+                        }
 
 						.address {
 							padding: var(--qh);
+                            margin-right: var(--q1);
 
 							line-height: 1;
 

@@ -3,6 +3,10 @@ import { GameService } from '../game.service';
 import * as AdaptiveCards from 'adaptivecards';
 import { L10N_LOCALE, L10nLocale } from 'angular-l10n';
 import { ActionAlignment } from 'adaptivecards';
+import { DiscourseService } from 'app/discourse.service';
+import { Avatar } from './avatar';
+import { DomSanitizer } from '@angular/platform-browser';
+import { Server } from './server';
 
 // Matches `<ip>:<port>` and `<ip> port <port>`
 const ipRegex = Array(4).fill('(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)').join('\\.');
@@ -24,7 +28,12 @@ export class ConnectingPopupComponent implements OnInit {
 	closeLabel = "#Servers_CloseOverlay";
 	retryLabel = "#Servers_Retry";
 	submitting = false;
-	closeKeys = ["Escape", "Backspace", "Delete"];
+	closeKeys = ["Escape"];
+    serverLogo: any = '';
+	serverData: any = null;
+    extraData: any = {};
+    lastServer: Server = null;
+    statusLevel = 0;
 
 	@Output()
 	retry = new EventEmitter();
@@ -33,14 +42,66 @@ export class ConnectingPopupComponent implements OnInit {
 
 	constructor(
 		private gameService: GameService,
+        private discourseService: DiscourseService,
+        private sanitizer: DomSanitizer,
 		@Inject(L10N_LOCALE) public locale: L10nLocale
 	) {
-
+        this.serverLogo = this.sanitizer.bypassSecurityTrustStyle(`url('${this.defaultLogo}')`);
 	}
 
 	get inSwitchCL() {
 		return this.gameService.inSwitchCL;
 	}
+
+    get mergedData() {
+        return {
+            ...this.serverData,
+            ...this.extraData
+        };
+    }
+
+    get userLogo() {
+        return this.sanitizer.bypassSecurityTrustStyle(
+            `url('${this.discourseService.currentUser?.getAvatarUrl(256) ?? this.defaultLogo}')`);
+    }
+
+    get defaultLogo() {
+        const svg = Avatar.getFor('meow');
+
+        return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+    }
+
+    get youName() {
+        return this.discourseService.currentUser?.username ?? this.gameService.nickname;
+    }
+
+    get gameName() {
+        return this.gameService.gameName;
+    }
+
+    get gameBrand() {
+        let gameBrand = 'CitizenFX';
+
+        if (this.gameName === 'rdr3') {
+            gameBrand = 'RedM';
+        } else if (this.gameName === 'gta5') {
+            gameBrand = 'FiveM';
+        }
+
+        return gameBrand;
+    }
+
+    get serverName() {
+        if (this.gameService.streamerMode) {
+            return '...';
+        }
+
+        return (this.serverData?.vars?.sv_projectName ?? this.lastServer?.address ?? 'a server').replace(/\^[0-9]/g, '');
+    }
+
+    isCfx(fault: string) {
+        return fault.startsWith('cfx');
+    }
 
 	ngOnInit() {
 		this.gameService.connecting.subscribe(a => {
@@ -49,25 +110,35 @@ export class ConnectingPopupComponent implements OnInit {
 				? '#Servers_ConnectingToServer'
 				: '#Servers_ConnectingTo';
 			this.overlayMessageData = {
-				serverName: a?.address || 'unknown',
+				serverName: a?.address || 'a server',
 			};
 			this.showOverlay = true;
 			this.gameService.showConnectingOverlay = true;
 			this.overlayClosable = false;
 
+            if (a) {
+                this.lastServer = a;
+            }
+
 			this.overlayBg = a?.data?.vars?.banner_connecting || '';
+			this.serverData = a?.data;
+            this.serverLogo = this.sanitizer.bypassSecurityTrustStyle(`url('${a?.iconUri ?? this.defaultLogo}')`);
+            this.extraData = {};
 
 			this.clearElements();
 		});
 
-		this.gameService.connectFailed.subscribe(([server, message]) => {
+		this.gameService.connectFailed.subscribe(([server, message, extra]) => {
 			this.overlayTitle = '#Servers_ConnectFailed';
 			this.overlayMessage = '#Servers_Message';
 			this.overlayMessageData = { message };
 			this.showOverlay = true;
 			this.gameService.showConnectingOverlay = true;
 			this.overlayClosable = true;
+            this.extraData = extra;
 			this.closeLabel = "#Servers_CloseOverlay";
+
+            this.updateStatus();
 
 			if (this.gameService.streamerMode && message) {
 				this.overlayMessageData.message = message.replace(serverAddressRegex, '&lt;HIDDEN&gt;');
@@ -85,7 +156,7 @@ export class ConnectingPopupComponent implements OnInit {
 			};
 			this.showOverlay = true;
 			this.gameService.showConnectingOverlay = true;
-			this.overlayClosable = (a.count === 133 && a.total === 133); // magic numbers, yeah :(
+			this.overlayClosable = a.cancelable;
 
 			if (this.overlayClosable) {
 				this.closeLabel = "#Servers_CancelOverlay";
@@ -334,6 +405,29 @@ export class ConnectingPopupComponent implements OnInit {
 		});
 	}
 
+	updateStatus() {
+		window.fetch('https://status.cfx.re/api/v2/status.json')
+			.then(async (res) => {
+				const status = (await res.json());
+				switch (status['status']['description']) {
+					case 'All Systems Operational':
+						this.statusLevel = 1;
+						break;
+					case 'Partial System Outage':
+					case 'Minor Service Outage':
+						this.statusLevel = 2;
+						break;
+					case 'Major Service Outage':
+						this.statusLevel = 3;
+						break;
+					default:
+						this.statusLevel = 0;
+						break;
+				}
+			})
+			.catch(a => {});
+	}
+
 	clearElements() {
 		const element = this.cardElement.nativeElement as HTMLElement;
 
@@ -341,7 +435,7 @@ export class ConnectingPopupComponent implements OnInit {
 	}
 
 	clickContent(event: MouseEvent) {
-		const srcElement = event.srcElement as HTMLElement;
+		const srcElement = event.target as HTMLElement;
 
 		if (srcElement.localName === 'a') {
 			this.gameService.openUrl(srcElement.getAttribute('href'));

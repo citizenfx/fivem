@@ -18,43 +18,88 @@ for _, v in ipairs(unsupList) do
 	unsup[v] = true
 end
 
+--[[ from codegen_out_lua.lua --]]
+local function isSinglePointerNative(native)
+	local foundPointer = false
+
+	for _, v in ipairs(native.arguments) do
+		if v.pointer then
+			if foundPointer then
+				return false
+			else
+				foundPointer = true
+			end
+		end
+	end
+
+	if #native.arguments > 0 then
+		return native.arguments[#native.arguments].pointer
+	end
+	return false
+end
+
+--[[ Safe parameter types for fxv2 native invocation --]]
+local safeArguments = {
+	int = true,
+	float = true,
+	bool = true,
+	string = true,
+	Hash = true,
+}
+
+--[[ Safe native return types for fxv2 native invocation --]]
+local safeResults = {
+	int = true,
+	float = true,
+	bool = true,
+	string = true,
+	Hash = true,
+	vector3 = true,
+	object = true,
+}
+
+--[[
+	A native is 'safe' if:
+		1. Has a known or partially known name.
+		2. Has only int/float/string/bool/Hash arguments.
+		3. Has a 'trivial' return type (void, int, float, vector3, string, bool).
+
+	Known compatibility changes:
+		1. Native handler will not implicitly unroll vectors arguments.	
+		2. In the old native handler, natives with boolean 'out' pointers will 
+			convert the boolean type to an int, e.g., GetShapeTestResult: 
+			"_i --\[\[ actually bool \]\]". This value will now remain boolean.
+--]]
 local function isSafeNative(native)
-	-- a native is 'safe' for this if
-	-- 1. the native has only int/string/bool arguments (float can be a vector, which is bad)
-	-- 2. 'trivial' return value (int, float, vector3, string, bool)
-	
-	local safe = true
-	
 	if native.name:sub(1, 2) == '0x' then
-		safe = false
+		return false
 	end
-	
-	for argn, arg in pairs(native.arguments) do
-		if arg.type.nativeType ~= 'int' and
-		   arg.type.nativeType ~= 'bool' and
-		   arg.type.nativeType ~= 'string' or
-		   (arg.type.name == 'Any' or 
-		    arg.type.name == 'Hash') then
-			safe = false
-		end
-		
+
+	local safe = true
+	local singlePointer = isSinglePointerNative(native)
+	for argn=1,#native.arguments do
+		local arg = native.arguments[argn]
+		local nativeType = arg.type.nativeType or 'Any'
+
 		if arg.pointer then
+			if singlePointer then
+				safe = false
+			elseif nativeType ~= "vector3" and not safeArguments[nativeType] then
+				safe = false
+			end
+		elseif not safeArguments[nativeType] then
 			safe = false
 		end
 	end
-	
+
 	if safe then
 		if native.returns then
-			if native.returns.nativeType ~= 'int' and
-			   native.returns.nativeType ~= 'bool' and
-			   native.returns.nativeType ~= 'vector3' and
-			   native.returns.nativeType ~= 'float' and
-			   native.returns.nativeType ~= 'string' then
+			if not safeResults[native.returns.nativeType or 'void'] then
 				safe = false
 			end
 		end
 	end
-	
+
 	return safe
 end
 
@@ -68,7 +113,7 @@ local function printFunctionName(native)
 	end)
 end
 
-local function parseArgumentType(type, native)
+local function parseArgumentType(type, native, return_type)
 	local argType
 
 	if type.name == 'Hash' then
@@ -91,36 +136,44 @@ local function parseArgumentType(type, native)
 		argType = 'bool'
 	elseif type.nativeType == 'vector3' then
 		argType = 'scrVectorLua'
+		if return_type then
+			argType = "const " .. argType
+		end
 	elseif type.name == 'object' then
 		argType = 'scrObject'
+		if return_type then
+			argType = "const " .. argType
+		end		
 	end
 	
 	return argType
 end
 
 local function printTypeGetter(argument, native, idx)
-	local argType
+	local template = "LuaArgumentParser::ParseArgument<%s>(L, " .. idx .. ")"
 
+	local argType
 	if argument.type.name == 'Hash' then
-		argType = 'Lua_ToHash(L, ' .. idx .. ')'
+		argType = template:format("uint32_t")
 	elseif argument.type.name == 'uint' then
-		argType = 'lua_utointeger(L, ' .. idx .. ')'
+		argType = template:format("lua_Integer")
 	elseif argument.type.nativeType == 'Any*' then
-		argType = 'lua_utointeger(L, ' .. idx .. ')'
+		argType = template:format("lua_Integer")
 	elseif argument.type.nativeType == 'string' then
-		argType = '((lua_type(L, ' .. idx .. ') != LUA_TNUMBER || lua_utointeger(L, ' .. idx ..') != 0) ? lua_tostring(L, ' .. idx .. ') : 0)'
+		argType = template:format("const char*")
 	elseif argument.type.nativeType == 'int' then
-		argType = 'lua_utointeger(L, ' .. idx .. ')'
+		argType = template:format("lua_Integer")
 	elseif argument.type.nativeType == 'float' then
-		argType = '(float)lua_utonumber(L, ' .. idx .. ')'
+		argType = template:format("float")
 	elseif argument.type.nativeType == 'bool' then
-		--argType = 'lua_toboolean(L, ' .. idx .. ')'
-		-- 0 is truthy in lua, so let's use raw value access
-		argType = '(lua_utointeger(L, ' .. idx .. ') & 0xFF) != 0'
+		argType = template:format("bool")
 	elseif argument.type.nativeType == 'vector3' then
-		argType = 'Lua_ToScrVector(L, ' .. idx .. ')'
+		argType = template:format("scrVectorLua")
 	elseif argument.type.name == 'func' then
-		argType = 'Lua_ToFuncRef(L, ' .. idx .. ')'
+		argType = "LuaArgumentParser::ParseFunctionReference(L, " .. idx .. ")"
+	elseif argument.type.name == 'object' then
+		-- EXPERIMENTAL: Requires testing and safeArguments update.
+		argType = "LuaArgumentParser::ParseObject(L, " .. idx .. ")"
 	else
 		error('invalid arg in native ' .. native.hash)
 	end
@@ -128,30 +181,74 @@ local function printTypeGetter(argument, native, idx)
 	return argType
 end
 
-local function printTypeSetter(type, native, idx)
-	local argType
+local function printTypeSetter(type, native, retval)
+	local template = "LuaArgumentParser::PushObject<%s>(L, %s)"
 
+	local argType
 	if type.name == 'Hash' then
-		argType = 'lua_pushinteger(L, ' .. idx .. ')'
+		argType = template:format("int32_t", retval)
 	elseif type.name == 'uint' then
-		argType = 'lua_pushinteger(L, ' .. idx .. ')'
+		argType = template:format("uint32_t", retval)
 	elseif type.nativeType == 'Any*' then
-		argType = 'lua_pushinteger(L, ' .. idx .. ')'
+		argType = template:format("lua_Integer", ("(lua_Integer)%s"):format(retval))
 	elseif type.nativeType == 'string' then
-		argType = 'lua_pushstring(L, ' .. idx .. ')'
+		argType = template:format("const char*", retval)
 	elseif type.nativeType == 'int' then
-		argType = 'lua_pushinteger(L, ' .. idx .. ')'
+		argType = template:format("int32_t", retval)
 	elseif type.nativeType == 'float' then
-		argType = 'lua_pushnumber(L, ' .. idx .. ')'
+		argType = template:format("float", retval)
 	elseif type.nativeType == 'bool' then
-		argType = 'lua_pushboolean(L, ' .. idx .. ')'
+		argType = template:format("bool", retval)
 	elseif type.nativeType == 'vector3' then
-		argType = 'Lua_PushScrVector(L, ' .. idx .. ')'
+		argType = template:format("const scrVectorLua&", retval)
 	elseif type.name == 'object' then
-		argType = 'Lua_PushScrObject(L, ' .. idx .. ')'
+		argType = template:format("const scrObject&", retval)
 	end
 	
 	return argType
+end
+
+--[[
+	Return true if the native parameters starting at 'arg' may correspond to a 
+	floating point sequence that can be unrolled from a LUA_TVECTOR type.
+
+	All triples are extracted from the V natives repository.
+--]]
+local function isVectorSequence(native, arg)
+	local fields = { 
+		{ 'x', 'y', 'z' },
+		{ 'x1', 'y1', 'z1' },
+		{ 'x2', 'y2', 'z2' },
+		{ 'posX', 'posY', 'posZ' },
+		{ 'dirX', 'dirY', 'dirZ' },
+		{ 'rotX', 'rotY', 'rotZ' },
+		{ 'roll', 'pitch', 'yaw' },
+		{ 'coordsX', 'coordsY', 'coordsZ' },
+		{ 'offsetX', 'offsetY', 'offsetZ' },
+		{ 'rotationX', 'rotationY', 'rotationZ' },
+		{ 'hookOffsetX', 'hookOffsetY', 'hookOffsetZ' },
+		{ 'destinationX', 'destinationY', 'destinationZ' },
+		{ 'goToLocationX', 'goToLocationY', 'goToLocationZ' },
+		{ 'focusLocationX', 'focusLocationY', 'focusLocationZ' },
+	}
+
+	for i=1,#fields do
+		local result = true
+
+		local field = fields[i]
+		for j=1,#field do
+			local arg = native.arguments[arg + j - 1]
+			if arg == nil or arg.type.name ~= "float" or arg.name ~= field[j] then
+				result = false
+			end
+		end
+
+		if result then
+			return result
+		end     
+	end
+
+	return false
 end
 
 local function printNative(native)
@@ -170,7 +267,8 @@ local function printNative(native)
 	local refValNum = 0
 	local expectedArgs = #native.arguments
 
-	for argn, arg in pairs(native.arguments) do
+	for argn=1,#native.arguments do
+		local arg = native.arguments[argn]
 		local ptr = arg.pointer
 		local isInitialized = arg.initializedPointer
 		local type = parseArgumentType(arg.type, native)
@@ -204,9 +302,10 @@ local function printNative(native)
 	local lIdx = 1
 	local aIdx = 0
 	
-	n = n .. t .. ("const int Ltop = lua_gettop(L);\n")
+	-- n = n .. t .. ("const int Ltop = lua_gettop(L);\n")
 
-	for argn, arg in pairs(native.arguments) do
+	for argn=1,#native.arguments do
+		local arg = native.arguments[argn]
 		if arg.pointer then
 			n = n .. t .. ("nCtx.SetArgument(%d, &ref_%s);\n"):format(aIdx, arg.name)
 			
@@ -216,7 +315,7 @@ local function printNative(native)
 			
 			aIdx = aIdx + 1
 		else
-			n = n .. t .. ("nCtx.SetArgument(%d, (%d <= Ltop && !lua_uisnil(L, %d)) ? %s : 0); // %s\n"):format(aIdx, aIdx + 1, aIdx + 1, printTypeGetter(arg, native, lIdx), arg.name)
+			n = n .. t .. ("nCtx.SetArgument(%d, %s); // %s\n"):format(aIdx, printTypeGetter(arg, native, lIdx), arg.name)
 			
 			lIdx = lIdx + 1
 			
@@ -231,7 +330,7 @@ local function printNative(native)
 	local retValNum = refValNum
 	
 	if native.returns then
-		local type = parseArgumentType(native.returns, native)
+		local type = parseArgumentType(native.returns, native, true)
 	
 		n = n .. t .. ("%s retval = nCtx.GetResult<%s>();\n"):format(type, type)
 		
@@ -240,7 +339,8 @@ local function printNative(native)
 		retValNum = retValNum + 1
 	end
 	
-	for argn, arg in pairs(native.arguments) do
+	for argn=1,#native.arguments do
+		local arg = native.arguments[argn]
 		local ptr = arg.pointer
 		local isInitialized = arg.initializedPointer
 		local type = parseArgumentType(arg.type, native)

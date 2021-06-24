@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 cd /opt/cfx-server
 [ -d cache ] || mkdir cache

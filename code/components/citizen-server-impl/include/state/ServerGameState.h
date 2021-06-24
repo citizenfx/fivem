@@ -1,6 +1,19 @@
 #pragma once
 
+#include "StateGuard.h"
+
+#include <state/ServerGameStatePublic.h>
+
+static constexpr const size_t kGamePlayerCap =
+#ifdef STATE_FIVE
+128
+#elif defined(STATE_RDR3)
+32
+#endif
+;
+
 #include <Client.h>
+#include <GameServer.h>
 
 #include <ServerInstanceBase.h>
 #include <ServerTime.h>
@@ -28,35 +41,17 @@
 
 #include <OneSyncVars.h>
 
-#define GLM_ENABLE_EXPERIMENTAL
-
-#if defined(_M_IX86) || defined(_M_AMD64) || defined(__x86_64__) || defined(__i386__)
-#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
-#define GLM_FORCE_SSE2
-#define GLM_FORCE_SSE3
-#endif
-
-#include <glm/vec3.hpp>
-#include <glm/vec4.hpp>
-#include <glm/mat4x4.hpp>
-#include <glm/ext/matrix_transform.hpp>
-#include <glm/ext/matrix_clip_space.hpp>
-#include <glm/gtx/euler_angles.hpp>
-#include <glm/gtx/quaternion.hpp>
-
 #include <citizen_util/detached_queue.h>
 #include <citizen_util/object_pool.h>
 #include <citizen_util/shared_reference.h>
 
 #include <StateBagComponent.h>
 
-extern std::string g_enforcedGameBuild;
-
 inline bool Is2060()
 {
 	static bool value = ([]()
 	{
-		return g_enforcedGameBuild == "2060" || g_enforcedGameBuild == "2189";
+		return fx::GetEnforcedGameBuild() == "2060" || fx::GetEnforcedGameBuild() == "2189";
 	})();
 
 	return value;
@@ -66,7 +61,7 @@ inline bool Is2189()
 {
 	static bool value = ([]()
 	{
-		return g_enforcedGameBuild == "2189";
+		return fx::GetEnforcedGameBuild() == "2189";
 	})();
 
 	return value;
@@ -114,6 +109,36 @@ public:
 	virtual bool Visit(const SyncTreeVisitor& visitor) = 0;
 
 	virtual bool IsAdditional() = 0;
+};
+
+struct CDoorMovementDataNodeData
+{
+	bool isManualDoor;
+	float openRatio;
+
+	bool opening;
+	bool fullyOpen;
+	bool closed;
+};
+
+struct CDoorScriptInfoDataNodeData
+{
+	uint32_t scriptHash;
+	uint32_t doorSystemHash;
+};
+
+struct CDoorScriptGameStateDataNodeData
+{
+	uint32_t doorSystemState;
+	bool holdOpen;
+};
+
+struct CHeliControlDataNodeData
+{
+	bool engineOff;
+
+	bool hasLandingGear;
+	uint32_t landingGearState;
 };
 
 struct CPlayerCameraNodeData
@@ -228,6 +253,7 @@ struct CVehicleGameStateNodeData
 {
 	uint16_t occupants[32];
 	eastl::bitset<32> playerOccupants;
+	uint16_t lastOccupant[32];
 	int radioStation;
 	bool isEngineOn;
 	bool isEngineStarting;
@@ -292,6 +318,38 @@ struct CPedOrientationNodeData
 {
 	float currentHeading;
 	float desiredHeading;
+};
+
+struct CPedTaskTreeDataNodeData
+{
+	uint32_t scriptCommand;
+	uint32_t scriptTaskStage;
+
+	uint32_t specifics;
+
+	struct
+	{
+		uint32_t type;
+		bool active;
+		uint32_t priority;
+		uint32_t treeDepth;
+		uint32_t sequenceId;
+	} tasks[8];
+};
+
+struct CPlaneGameStateDataNodeData
+{
+	uint32_t landingGearState;
+
+	uint16_t lockOnEntity;
+	uint32_t lockOnState;
+
+	uint32_t visibleDistance;
+};
+
+struct CPlaneControlDataNodeData
+{
+	float nozzlePosition;
 };
 
 struct CDynamicEntityGameStateNodeData
@@ -366,6 +424,14 @@ public:
 public:
 	virtual void GetPosition(float* posOut) = 0;
 
+	virtual CDoorMovementDataNodeData* GetDoorMovement() = 0;
+
+	virtual CDoorScriptInfoDataNodeData* GetDoorScriptInfo() = 0;
+
+	virtual CDoorScriptGameStateDataNodeData* GetDoorScriptGameState() = 0;
+
+	virtual CHeliControlDataNodeData* GetHeliControl() = 0;
+
 	virtual CPlayerCameraNodeData* GetPlayerCamera() = 0;
 
 	virtual CPlayerWantedAndLOSNodeData* GetPlayerWantedAndLOS() = 0;
@@ -377,6 +443,12 @@ public:
 	virtual CVehicleGameStateNodeData* GetVehicleGameState() = 0;
 
 	virtual CVehicleAppearanceNodeData* GetVehicleAppearance() = 0;
+
+	virtual CPedTaskTreeDataNodeData* GetPedTaskTree() = 0;
+
+	virtual CPlaneGameStateDataNodeData* GetPlaneGameState() = 0;
+
+	virtual CPlaneControlDataNodeData* GetPlaneControl() = 0;
 
 	virtual CTrainGameStateDataNodeData* GetTrainState() = 0;
 
@@ -409,6 +481,7 @@ public:
 
 enum class NetObjEntityType
 {
+#ifdef STATE_FIVE
 	Automobile = 0,
 	Bike = 1,
 	Boat = 2,
@@ -422,7 +495,39 @@ enum class NetObjEntityType
 	Submarine = 10,
 	Player = 11,
 	Trailer = 12,
-	Train = 13
+	Train = 13,
+#elif defined(STATE_RDR3)
+	Animal = 0,
+	Automobile = 1,
+	Bike = 2,
+	Boat = 3,
+	Door = 4,
+	Heli = 5,
+	Object = 6,
+	Ped = 7,
+	Pickup = 8,
+	PickupPlacement = 9,
+	Plane = 10,
+	Submarine = 11,
+	Player = 12,
+	Trailer = 13,
+	Train = 14,
+	DraftVeh = 15,
+	StatsTracker = 16,
+	PropSet = 17,
+	AnimScene = 18,
+	GroupScenario = 19,
+	Herd = 20,
+	Horse = 21,
+	WorldState = 22,
+	WorldProjectile = 23,
+	Incident = 24,
+	Guardzone = 25,
+	PedGroup = 26,
+	CombatDirector = 27,
+	PedSharedTargeting = 28,
+	Persistent = 29,
+#endif
 };
 
 struct SyncEntityState
@@ -808,8 +913,8 @@ struct GameStateClientData : public sync::ClientSyncDataBase
 
 	fx::ClientWeakPtr client;
 
-	eastl::fixed_hash_map<int, int, 128> playersToSlots;
-	eastl::bitset<128> playersInScope;
+	eastl::fixed_hash_map<int, int, kGamePlayerCap> playersToSlots;
+	eastl::bitset<kGamePlayerCap> playersInScope;
 	
 	// use fixed_map to make insertion into the vector_map cheap (as sorted)
 	eastl::fixed_map<uint32_t, SyncedEntityData, 256> syncedEntities;
@@ -842,13 +947,7 @@ struct GameStateClientData : public sync::ClientSyncDataBase
 	void MaybeFlushAcks();
 };
 
-enum class SyncStyle
-{
-	NAK = 0,
-	ARQ = 1
-};
-
-class ServerGameState : public fwRefCountable, public fx::IAttached<fx::ServerInstanceBase>, public StateBagGameInterface
+class ServerGameState : public ServerGameStatePublic, public fx::IAttached<fx::ServerInstanceBase>, public StateBagGameInterface
 {
 private:
 	using ThreadPool = tp::ThreadPool;
@@ -904,6 +1003,8 @@ public:
 
 	std::tuple<std::unique_lock<std::mutex>, std::shared_ptr<GameStateClientData>> ExternalGetClientData(const fx::ClientSharedPtr& client);
 
+	void ForAllEntities(const std::function<void(sync::Entity*)>& cb);
+
 private:
 	void ProcessCloneCreate(const fx::ClientSharedPtr& client, rl::MessageBuffer& inPacket, AckPacketWrapper& ackPacket);
 
@@ -919,7 +1020,7 @@ private:
 
 	void RemoveClone(const fx::ClientSharedPtr& client, uint16_t objectId, uint16_t uniqifier = 0);
 
-	void FinalizeClone(const fx::ClientSharedPtr& client, uint16_t objectId, uint16_t uniqifier = 0, std::string_view finalizeReason = "");
+	void FinalizeClone(const fx::ClientSharedPtr& client, const fx::sync::SyncEntityPtr& entity, uint16_t objectId, uint16_t uniqifier = 0, std::string_view finalizeReason = "");
 
 	void ParseClonePacket(const fx::ClientSharedPtr& client, net::Buffer& buffer);
 

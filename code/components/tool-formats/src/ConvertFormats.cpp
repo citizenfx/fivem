@@ -113,8 +113,15 @@ static bool AutoConvert(TBlockMap blockMap, const std::wstring& fileName, int fi
 		fileExt = fileExtOverride;
 	}
 
+	std::wstring suffix;
+
+	if (fileExt[1] == L'y')
+	{
+		suffix = L"_nya";
+	}
+
 	std::wstring outFileName(fileName);
-	outFileName = outFileName.substr(0, outFileName.find_last_of('.')) + L".y" + fileExt.substr(2);
+	outFileName = outFileName.substr(0, outFileName.find_last_of('.')) + suffix + L".y" + fileExt.substr(2);
 	
 	return OutputFile([&]()
 	{
@@ -127,8 +134,10 @@ static bool AutoConvert(TBlockMap blockMap, const std::wstring& fileName, int fi
 	}, fileVersion, outFileName);
 }
 
-static void ConvertBoundDict(rage::ny::pgDictionary<rage::ny::phBound>* dictionary, const std::wstring& fileName)
+template<typename TConfig>
+static void ConvertBoundDict(void* dictionaryRef, const std::wstring& fileName)
 {
+	auto dictionary = (typename TConfig::TBoundDict*)dictionaryRef;
 	std::wstring dirName = boost::filesystem::path(fileName).parent_path().wstring();
 
 	if (!dirName.empty())
@@ -159,9 +168,12 @@ struct GameConfig_NY
 
 	using StreamManager = rage::ny::pgStreamManager;
 	using TBound = rage::ny::datOwner<rage::ny::phBound>;
+	using TBoundDict = rage::ny::pgDictionary<rage::ny::phBound>;
 	using TDrawable = rage::ny::gtaDrawable;
 	using TTxd = rage::ny::pgDictionary<rage::ny::grcTexturePC>;
 	using TDwd = rage::ny::pgDictionary<rage::ny::gtaDrawable>;
+
+	constexpr const static bool HasBoundDicts = true;
 };
 
 struct GameConfig_Payne
@@ -173,9 +185,12 @@ struct GameConfig_Payne
 
 	using StreamManager = rage::payne::pgStreamManager;
 	using TBound = rage::payne::phBound;
+	using TBoundDict = rage::payne::pgDictionary<rage::payne::phBound>;
 	using TDrawable = rage::payne::gtaDrawable;
 	using TTxd = rage::payne::pgDictionary<rage::payne::grcTexturePC>;
 	using TDwd = rage::payne::pgDictionary<rage::payne::gtaDrawable>;
+
+	constexpr const static bool HasBoundDicts = true;
 };
 
 struct GameConfig_RDR3
@@ -190,6 +205,8 @@ struct GameConfig_RDR3
 	using TDrawable = rage::rdr3::gtaDrawable;
 	using TTxd = rage::rdr3::pgDictionary<rage::rdr3::grcTexturePC>;
 	using TDwd = rage::rdr3::pgDictionary<rage::rdr3::gtaDrawable>;
+
+	constexpr const static bool HasBoundDicts = false;
 };
 
 template<typename TConfig>
@@ -212,7 +229,7 @@ static void ConvertFile(const boost::filesystem::path& path)
 
 	int fileVersion = 0;
 
-	if (fileExt == L".wbn" || fileExt == L".obn")
+	if (fileExt == L".wbn" || fileExt == L".obn" || fileExt == L".ybn")
 	{
 		wprintf(L"converting bound %s...\n", path.filename().c_str());
 
@@ -220,10 +237,12 @@ static void ConvertFile(const boost::filesystem::path& path)
 	}
 	else if (fileExt == L".wbd")
 	{
-		wprintf(L"converting bound dictionary %s...\n", path.filename().c_str());
+		if constexpr (typename TConfig::HasBoundDicts)
+		{
+			wprintf(L"converting bound dictionary %s...\n", path.filename().c_str());
 
-		ConvertBoundDict((rage::ny::pgDictionary<rage::ny::phBound>*)bm->blocks[0].data, fileName);
-		//AutoConvert<rage::five::pgDictionary<rage::five::phBound>, rage::ny::pgDictionary<rage::ny::phBound>>(bm, fileName, 43);
+			ConvertBoundDict<TConfig>(bm->blocks[0].data, fileName);
+		}
 	}
 	else if (fileExt == L".wft")
 	{
@@ -231,7 +250,7 @@ static void ConvertFile(const boost::filesystem::path& path)
 
 		AutoConvert<rage::five::gtaDrawable, rage::ny::fragType>(bm, fileName, 162, L".ydr");
 	}
-	else if (fileExt == L".wdr" || fileExt == L".odr")
+	else if (fileExt == L".wdr" || fileExt == L".odr" || fileExt == L".ydr")
 	{
 		wprintf(L"converting drawable %s...\n", path.filename().c_str());
 
@@ -348,14 +367,6 @@ rage::five::BlockMap* UnwrapRSC7(const wchar_t* fileName, rage::five::ResourceFl
     fread(&version, 1, sizeof(version), f);
 
 	flags->version = version;
-
-    /*if (version != 165)
-    {
-        printf("not actually a supported file...\n");
-
-        fclose(f);
-        return nullptr;
-    }*/
 
 	auto fla = [](uint32_t flags)
 	{

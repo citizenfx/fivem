@@ -3,6 +3,8 @@
 #include <shellapi.h>
 #include <ShlObj_core.h>
 
+#include <skyr/url.hpp>
+
 #include <ResourceManager.h>
 #include <ResourceEventComponent.h>
 
@@ -135,6 +137,16 @@ SDKCefApp::SDKCefApp()
 
 void SDKCefApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRefPtr<CefCommandLine> command_line)
 {
+	auto sdk_url = ConsoleVariableManager::GetDefaultInstance()->FindEntryRaw("sdk_url");
+
+	auto parsedSdkUrl = skyr::make_url(sdk_url->GetValue());
+
+	if (parsedSdkUrl && !parsedSdkUrl->origin().empty())
+	{
+		// Allow secure context for insecure localhost
+		command_line->AppendSwitchWithValue("unsafely-treat-insecure-origin-as-secure", parsedSdkUrl->origin());
+	}
+
 	command_line->AppendSwitch("disable-extensions");
 	command_line->AppendSwitch("disable-pdf-extension");
 
@@ -312,6 +324,7 @@ bool SDKCefClient::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRe
 	else if (messageName == "openDevTools")
 	{
 		CefWindowInfo wi;
+
 		wi.SetAsPopup(NULL, "FxDK DevTools");
 
 		CefBrowserSettings s;
@@ -343,6 +356,13 @@ bool SDKCefClient::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRe
 			browser->GetMainFrame()->SendProcessMessage(PID_RENDERER, cefMsg);
 		})
 		.detach();
+	}
+	else if (messageName == "sendGameClientEvent")
+	{
+		std::string eventName = message->GetArgumentList()->GetString(0);
+		std::string eventPayload = message->GetArgumentList()->GetString(1);
+
+		fxdk::GetLauncherTalk().Call("sdk:clientEvent", eventName, eventPayload);
 	}
 
 	return true;

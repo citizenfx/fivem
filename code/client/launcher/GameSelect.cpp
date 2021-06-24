@@ -60,7 +60,7 @@ static std::wstring GetFolderPath(const KNOWNFOLDERID& folderId)
 	return L"";
 }
 
-#include <openssl/aes.h>
+#include <openssl/evp.h>
 #include <json.hpp>
 
 using json = nlohmann::json;
@@ -86,13 +86,29 @@ static std::string GetMtlGamePath(std::string_view gameName)
 		uint8_t key[32] = { 0 };
 		uint8_t iv[16] = { 0 };
 
-		AES_KEY decKey = { 0 };
-		AES_set_decrypt_key(key, 256, &decKey);
-		AES_cbc_encrypt(fileData.data(), fileData.data(), fileData.size(), &decKey, iv, AES_DECRYPT);
+		EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
+		if (!ctx)
+		{
+			return "";
+		}
+
+		EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv);
+
+		int outl = fileData.size();
+		size_t finalLen = 0;
+		EVP_DecryptUpdate(ctx, fileData.data(), &outl, fileData.data(), outl);
+		finalLen += outl;
+
+		int outl2 = fileData.size() - outl;
+		EVP_DecryptFinal_ex(ctx, fileData.data() + outl, &outl2);
+		finalLen += outl2;
+
+		EVP_CIPHER_CTX_free(ctx);
 
 		try
 		{
-			auto titleData = json::parse(fileData.begin() + 16, fileData.end());
+			std::string fileText(fileData.begin() + 16, fileData.begin() + finalLen);
+			auto titleData = json::parse(fileText);
 
 			for (auto& t : titleData["tl"])
 			{
@@ -104,6 +120,7 @@ static std::string GetMtlGamePath(std::string_view gameName)
 		}
 		catch (std::exception& e)
 		{
+			trace("%s\n", e.what());
 		}
 	}
 
@@ -174,7 +191,7 @@ std::optional<int> EnsureGamePath()
 	fileDialog->SetTitle(gettext(L"Select the folder containing Grand Theft Auto V").c_str());
 #endif
 
-#if defined(GTA_FIVE) || defined(IS_RDR3)
+#if defined(GTA_FIVE) || defined(IS_RDR3) || defined(GTA_NY)
 	// set the default folder, if we can find one
 	{
 		wchar_t gameRootBuf[1024];
@@ -187,6 +204,8 @@ std::optional<int> EnsureGamePath()
 			{ L"InstallFolderEpic", L"SOFTWARE\\Rockstar Games\\Grand Theft Auto V", 0 },
 #elif defined(IS_RDR3)
 			{ L"InstallFolderSteam", L"SOFTWARE\\WOW6432Node\\Rockstar Games\\Red Dead Redemption 2", strlen("Red Dead Redemption 2") },
+#elif defined(GTA_NY)
+			{ L"InstallFolder", L"SOFTWARE\\WOW6432Node\\Rockstar Games\\Grand Theft Auto IV", 0 },
 #endif
 		};
 
@@ -207,6 +226,8 @@ std::optional<int> EnsureGamePath()
 				if (checkFile(L"x64a.rpf") && checkFile(L"x64b.rpf") && checkFile(L"x64g.rpf") && checkFile(L"common.rpf") && checkFile(L"bink2w64.dll") && checkFile(L"x64\\audio\\audio_rel.rpf") && checkFile(L"GTA5.exe") && checkFile(L"update\\x64\\dlcpacks\\mpheist3\\dlc.rpf"))
 #elif defined(IS_RDR3)
 				if (checkFile(L"common.rpf") && checkFile(L"appdata0_update.rpf") && checkFile(L"levels_7.rpf") && checkFile(L"RDR2.exe") && checkFile(L"x64\\dlcpacks\\mp007\\dlc.rpf"))
+#elif defined(GTA_NY)
+				if (checkFile(L"pc/audio/sfx/general.rpf"))
 #endif
 				{
 					WritePrivateProfileString(L"Game", pathKey, gameRoot.c_str(), fpath.c_str());
@@ -224,6 +245,8 @@ std::optional<int> EnsureGamePath()
 		"gta5"
 #elif defined(IS_RDR3)
 		"rdr2"
+#elif defined(GTA_NY)
+		"gta4"
 #endif
 		);
 

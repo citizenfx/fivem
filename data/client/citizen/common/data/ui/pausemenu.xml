@@ -1304,7 +1304,7 @@
 				<Item> <cTextId>MO_VOUT</cTextId>	  <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_VOICE_CHAT</MenuUniqueId> <Contexts>*ALL*,x64</Contexts> </Item>
 				<!--<Item> <cTextId>PM_PANE_FEE</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_FEED</MenuUniqueId> </Item>-->
 				<Item> <cTextId>PM_PANE_RPY</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_REPLAY</MenuUniqueId> <Contexts>*ALL*,ReplayEditor</Contexts> </Item>
-				<!--<Item> <cTextId>PM_PANE_SAV</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_SAVEGAME</MenuUniqueId> </Item>-->
+				<Item> <cTextId>PM_PANE_SAV</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_SAVEGAME</MenuUniqueId> <Contexts>*ANY*,InSP</Contexts> </Item>
 				<Item> <cTextId>MO_SIXAXIS</cTextId>  <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_SIXAXIS</MenuUniqueId> <Contexts>*ALL*,PS4</Contexts></Item>
 				<!--<Item> <cTextId>PM_PANE_FB</cTextId>  <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_FACEBOOK</MenuUniqueId> <Contexts>*NONE*,OnLandingPage,FB_Disabled</Contexts> </Item>-->
 			</MenuItems>
@@ -2175,7 +2175,6 @@
 		<Item> <cTextId>GFX_TXAA</cTextId>			<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_GFX_TXAA</MenuPref> 					<MenuOption>MENU_OPTION_DISPLAY_ON_OFF</MenuOption>		<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> <Contexts>*ALL*,GFX_SUPPORT_TXAA</Contexts> </Item>
 				<Item> <cTextId>VID_VSYNC</cTextId>			<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_VID_VSYNC</MenuPref> 				<MenuOption>MENU_OPTION_VID_VSYNC</MenuOption>			<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
 				<Item> <cTextId>MO_STER</cTextId>			<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_VID_STEREO</MenuPref>				<MenuOption>MENU_OPTION_DISPLAY_ON_OFF</MenuOption>		<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> <Contexts>*ANY*,VID_STEREO</Contexts></Item>
-        <Item> <cTextId>STE_CONVERGE</cTextId>		<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_VID_STEREO_CONVERGENCE</MenuPref>	<MenuOption>MENU_OPTION_SLIDER</MenuOption>				<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> <Contexts>*ANY*,VID_STEREO</Contexts></Item>
 				<!--<Item> <cTextId>STE_SEPAR</cTextId>			<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_VID_STEREO_SEPARATION</MenuPref>		<MenuOption>MENU_OPTION_SLIDER</MenuOption>				<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> <Contexts>*ANY*,VID_STEREO</Contexts></Item>-->
 				<Item> <cTextId>VID_FOCUS</cTextId>			<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_VID_PAUSE_ON_FOCUS_LOSS</MenuPref> 	<MenuOption>MENU_OPTION_DISPLAY_ON_OFF</MenuOption>			<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
 
@@ -2187,9 +2186,13 @@
 
 				<Item> <MenuAction>MENU_OPTION_ACTION_SEPARATOR</MenuAction> </Item>
 
+				<!-- move this once the uniqueid is advanced gfx for the requirements -->
+				<Item> <cTextId>GFX_BUDGET</cTextId>		<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_VID_STEREO_CONVERGENCE</MenuPref>	<MenuOption>MENU_OPTION_SLIDER</MenuOption>				<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
 				<Item> <cTextId>GFX_TXTQ</cTextId>			<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_GFX_TEXTURE_QUALITY</MenuPref> 		<MenuOption>MENU_OPTION_GFX_NIGHTLIGHTS</MenuOption>	<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
 				<Item> <cTextId>GFX_SHADERQ</cTextId>		<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_GFX_SHADER_QUALITY</MenuPref> 		<MenuOption>MENU_OPTION_GFX_SHADERQ</MenuOption>		<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
-				<Item> <cTextId>GFX_SHADOWQ</cTextId>		<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_GFX_SHADOW_QUALITY</MenuPref> 		<MenuOption>MENU_OPTION_GFX_NIGHTLIGHTS</MenuOption>	<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
+		<!--Changed to allow Shadows=OFF-->
+		<!--<Item> <cTextId>GFX_SHADOWQ</cTextId>		<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_GFX_SHADOW_QUALITY</MenuPref> 		<MenuOption>MENU_OPTION_GFX_NIGHTLIGHTS</MenuOption>	<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>-->
+				<Item> <cTextId>GFX_SHADOWQ</cTextId>		<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_GFX_SHADOW_QUALITY</MenuPref> 		<MenuOption>MENU_OPTION_GFX_SHADOWS</MenuOption>		<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
 				<Item> <cTextId>GFX_REFELECTIONQ</cTextId>	<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_GFX_REFLECTION_QUALITY</MenuPref>	<MenuOption>MENU_OPTION_GFX_REFLECTION</MenuOption>		<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
 				<Item> <cTextId>GFX_REFLECTION_MSAA</cTextId><MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>	<MenuPref>PREF_GFX_REFLECTION_MSAA</MenuPref>		<MenuOption>MENU_OPTION_GFX_MSAA</MenuOption>			<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
 				<Item> <cTextId>GFX_WATERQ</cTextId>		<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_GFX_WATER_QUALITY</MenuPref> 		<MenuOption>MENU_OPTION_GFX_SHADERQ</MenuOption>		<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
@@ -2377,8 +2380,6 @@
 			<Flags>SF_NoClearRootColumns</Flags>
 			<ScrollBarFlags>Width_2 ManualUpdate InitiallyInvisible</ScrollBarFlags>
 			<MenuItems>
-        <Item> <cTextId>MO_SKIP_LANDING</cTextId>	<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_LANDING_PAGE</MenuPref> 	<MenuOption>MENU_OPTION_DISPLAY_ON_OFF</MenuOption>			<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> <Contexts>*ALL*,x64</Contexts> </Item>
-				<Item> <cTextId>MO_START_PATH</cTextId>	<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_STARTUP_FLOW</MenuPref> 	<MenuOption>MENU_OPTION_GAME_FLOW</MenuOption>			<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
 				<Item> <cTextId>MO_AUTOSAV</cTextId>	<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_AUTOSAVE</MenuPref> 		<MenuOption>MENU_OPTION_DISPLAY_ON_OFF</MenuOption>		<MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> <Contexts>*ANY*,InSP</Contexts> </Item>
 			</MenuItems>
 		</Item>

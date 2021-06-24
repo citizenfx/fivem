@@ -353,7 +353,7 @@ static std::vector<std::string> MatchFiles(const fwRefContainer<vfs::Device>& de
 						results.insert(std::move(result));
 					}
 				}
-				else
+				else if (isfile)
 				{
 					results.insert(matchPath);
 				}

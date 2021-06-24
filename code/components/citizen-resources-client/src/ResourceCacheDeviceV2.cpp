@@ -35,6 +35,8 @@
 extern tbb::concurrent_unordered_map<std::string, bool> g_stuffWritten;
 extern std::unordered_multimap<std::string, std::pair<std::string, std::string>> g_referenceHashList;
 
+int GetWeightForFileName(const std::string& fileName);
+
 namespace resources
 {
 size_t RcdBaseStream::GetLength()
@@ -308,11 +310,7 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::FetchEntry(const std::s
 
 	if (it == ms_entries.end() || !it->second)
 	{
-		lock.unlock();
-
 		auto retTask = concurrency::create_task(std::bind(&ResourceCacheDeviceV2::DoFetch, this, *entry));
-
-		lock.lock();
 
 		if (it != ms_entries.end())
 		{
@@ -455,7 +453,7 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::DoFetch(const ResourceC
 				}
 			};
 
-			//options.weight = GetWeightForFileName(handleData->entry.basename);
+			options.weight = ::GetWeightForFileName(entry.basename);
 
 			std::string connectionToken;
 			if (Instance<ICoreGameInit>::Get()->GetData("connectionToken", &connectionToken))
@@ -674,10 +672,14 @@ bool ResourceCacheDeviceV2::ExtensionCtl(int controlIdx, void* controlData, size
 			data->flags.version = atoi(extData["rscVersion"].c_str());
 			data->flags.virtPages = strtoul(extData["rscPagesVirtual"].c_str(), nullptr, 10);
 			data->flags.physPages = strtoul(extData["rscPagesPhysical"].c_str(), nullptr, 10);
-#else
+#elif defined(GTA_FIVE)
 			data->version = atoi(extData["rscVersion"].c_str());
 			data->flags.flag1 = strtoul(extData["rscPagesVirtual"].c_str(), nullptr, 10);
 			data->flags.flag2 = strtoul(extData["rscPagesPhysical"].c_str(), nullptr, 10);
+#elif defined(GTA_NY)
+			data->version = atoi(extData["rscVersion"].c_str());
+			data->flags.flag1 = strtoul(extData["rscPagesVirtual"].c_str(), nullptr, 10);
+			// flag2 would be out of bounds
 #endif
 			return true;
 		}

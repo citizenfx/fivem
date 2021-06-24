@@ -4,6 +4,8 @@
 :host {
 	height: 100%;
 	overflow: hidden;
+	display: flex;
+	flex-direction: column;
 }
 
 .page-header {
@@ -17,8 +19,6 @@ main {
 
 	display: flex;
 	flex-direction: row;
-
-	height: 100%;
 
 	overflow-y: hidden;
 }

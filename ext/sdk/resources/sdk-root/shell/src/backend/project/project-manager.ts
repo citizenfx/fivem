@@ -1,10 +1,9 @@
 import { inject, injectable } from "inversify";
 import { ApiClient } from "backend/api/api-client";
 import { ApiContribution, ApiContributionFactory } from "backend/api/api-contribution";
-import { handlesClientEvent } from "backend/api/api-decorators";
+import { handlesClientCallbackEvent, handlesClientEvent } from "backend/api/api-decorators";
 import { ConfigService } from "backend/config-service";
 import { fxdkProjectFilename } from "backend/constants";
-import { Sequencer } from "backend/execution-utils/sequencer";
 import { FsService } from "backend/fs/fs-service";
 import { LogService } from "backend/logger/log-service";
 import { NotificationService } from "backend/notification/notification-service";
@@ -14,20 +13,6 @@ import { ProjectCreateCheckResult, RecentProject } from "shared/project.types";
 import { notNull } from "shared/utils";
 import { Project } from "./project";
 import { ProjectAccess } from "./project-access";
-import { assetImporterTypes } from "shared/asset.types";
-import { GitAssetImportRequest } from "./asset/importer-contributions/git-importer/git-importer.types";
-
-export const cfxServerDataEnabledResources = [
-  'basic-gamemode',
-  'fivem-map-skater',
-  'chat',
-  'playernames',
-  'mapmanager',
-  'spawnmanager',
-  'sessionmanager',
-  'baseevents',
-  'hardcap',
-];
 
 @injectable()
 export class ProjectManager implements ApiContribution {
@@ -57,8 +42,7 @@ export class ProjectManager implements ApiContribution {
   protected readonly projectAccess: ProjectAccess;
 
   protected project: Project | null = null;
-
-  protected projectOpsSequencer = new Sequencer();
+  protected projectLock: boolean = false;
 
   getProject() {
     return this.project;
@@ -112,7 +96,7 @@ export class ProjectManager implements ApiContribution {
     this.apiClient.emit(projectApi.recents, newRecentProjects);
   }
 
-  protected createProjectBoundToPath(): Project {
+  protected createProjectInstance(): Project {
     const project = this.apiContributionFactory<Project>(Project);
 
     this.projectAccess.setInstance(project);
@@ -120,23 +104,38 @@ export class ProjectManager implements ApiContribution {
     return project;
   }
 
-  @handlesClientEvent(projectApi.open)
-  async openProject(projectPath: string): Promise<Project | null | void> {
-    return this.projectOpsSequencer.executeBlocking(async () => {
-      this.logService.log('Opening project', projectPath);
+  @handlesClientCallbackEvent(projectApi.checkOpenRequest)
+  async checkOpenRequest(projectPath: string): Promise<boolean> {
+    const projectManifestPath: string = this.fsService.joinPath(projectPath, fxdkProjectFilename);
 
+    return !!(await this.fsService.statSafe(projectManifestPath));
+  }
+
+  @handlesClientEvent(projectApi.open)
+  async openProject(projectPath: string) {
+    if (this.projectLock) {
+      throw new Error('Can not open project while another project is being opened or created');
+    }
+
+    this.projectLock = true;
+
+    this.logService.log('Opening project', projectPath);
+
+    try {
       if (this.project) {
         await this.project.unload();
         this.projectAccess.setInstance(null);
       }
 
-      this.project = await this.createProjectBoundToPath().load(projectPath);
+      this.project = await this.createProjectInstance().open(projectPath);
 
       this.emitProjectOpen();
       this.setCurrentProjectInstanceAsMostRecent();
-
-      return this.project;
-    });
+    } catch (e) {
+      throw e;
+    } finally {
+      this.projectLock = false;
+    }
   }
 
   @handlesClientEvent(projectApi.checkCreateRequest)
@@ -158,53 +157,41 @@ export class ProjectManager implements ApiContribution {
       return finish();
     }
 
-    const serverDataPath = this.fsService.joinPath(projectPath, 'cfx-server-data');
-    if (request.withServerData && await this.fsService.statSafe(serverDataPath)) {
-      result.ignoreCfxServerData = true;
-    }
-
     return finish();
   }
 
   @handlesClientEvent(projectApi.create)
   async createProject(request: ProjectCreateRequest) {
-    const checkResult = await this.checkCreateRequest(request);
+    if (this.projectLock) {
+      throw new Error('Can not create project while another project is being opened or created');
+    }
 
+    this.projectLock = true;
+
+    const checkResult = await this.checkCreateRequest(request);
     if (checkResult.openProject) {
-      return this.openProject(this.fsService.joinPath(request.projectPath, request.projectName));
+      // Project open will lock it again
+      this.projectLock = false;
+      await this.openProject(this.fsService.joinPath(request.projectPath, request.projectName));
+      return;
     }
 
     this.logService.log('Creating project', request);
 
-    await this.projectOpsSequencer.executeBlocking(async () => {
+    try {
       if (this.project) {
         await this.project.unload();
         this.projectAccess.setInstance(null);
       }
 
-      this.project = await this.createProjectBoundToPath().create(request);
+      this.project = await this.createProjectInstance().create(request);
 
       this.emitProjectOpen();
       this.setCurrentProjectInstanceAsMostRecent();
-    });
-
-    if (!checkResult.ignoreCfxServerData && request.withServerData) {
-      const assetImportRequest: GitAssetImportRequest = {
-        importerType: assetImporterTypes.git,
-        assetName: 'cfx-server-data',
-        assetBasePath: this.project.getPath(),
-        assetMetaFlags: {
-          readOnly: true,
-        },
-        data: {
-          repoUrl: 'https://github.com/citizenfx/cfx-server-data.git',
-        },
-        callback: () => {
-          this.project?.setResourcesEnabled(cfxServerDataEnabledResources, true);
-        },
-      };
-
-      this.project.importAsset(assetImportRequest);
+    } catch (e) {
+      throw e;
+    } finally {
+      this.projectLock = false;
     }
   }
 

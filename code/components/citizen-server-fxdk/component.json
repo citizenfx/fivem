@@ -1,0 +1,16 @@
+{
+	"name": "citizen:server:fxdk",
+	"version": "0.1.0",
+	"dependencies": [
+		"fx[2]",
+		"citizen:devtools",
+		"citizen:resources:core",
+		"citizen:server:instance",
+		"citizen:server:net",
+		"vendor:boost_program_options",
+		"vendor:boost_filesystem",
+		"vfs:core"
+	],
+	"provides": [],
+	"shouldAutoInstance": false
+}

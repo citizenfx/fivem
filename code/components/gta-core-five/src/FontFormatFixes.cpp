@@ -267,11 +267,11 @@ static void GfxLog(void* sfLog, int messageType, const char* pfmt, va_list argLi
 
 static void(*g_origGFxEditTextCharacterDef__SetTextValue)(void* self, const char* newText, bool html, bool notifyVariable);
 
+static bool ContainsHtml(const char* in);
+
 static void GFxEditTextCharacterDef__SetTextValue(void* self, const char* newText, bool html, bool notifyVariable)
 {
-	std::string textRef;
-
-	if (!html)
+	if (!html && ContainsHtml(newText))
 	{
 		html = true;
 	}
@@ -285,26 +285,38 @@ struct GSizeF
 	float y;
 };
 
-static GSizeF (*getHtmlTextExtent)(void* self, const char* putf8Str, float width, const void* ptxtParams);
-
-static GSizeF GetHtmlTextExtentWrap(void* self, const char* putf8Str, float width, const void* ptxtParams)
-{
-	// escape (since this is actually non-HTML text extent)
-	//std::string textRef = putf8Str;
-	//EscapeXml<char>(textRef);
-
-	return getHtmlTextExtent(self, putf8Str, width, ptxtParams);
-}
-
 static void(*g_origFormatGtaText)(const char* in, char* out, bool a3, void* a4, float size, bool* html, int maxLength, bool a8);
 
 static std::regex condRe{"&lt;(/?C)&gt;"};
+
+static bool ContainsHtml(const char* in)
+{
+	static thread_local std::map<std::string, bool, std::less<>> emojiCache;
+	static thread_local uint32_t nextClear;
+
+	if (curTime > nextClear)
+	{
+		emojiCache.clear();
+		nextClear = curTime + 5000;
+	}
+
+	if (auto it = emojiCache.find(in); it != emojiCache.end())
+	{
+		return it->second;
+	}
+
+	std::string inStr = in;
+	bool has = inStr.find_first_of("&<") != std::string::npos || std::regex_search(ToWide(inStr), emojiRegEx);
+	emojiCache[inStr] = has;
+
+	return has;
+}
 
 static void FormatGtaTextWrap(const char* in, char* out, bool a3, void* a4, float size, bool* html, int maxLength, bool a8)
 {
 	g_origFormatGtaText(in, out, a3, a4, size, html, maxLength, a8);
 
-	if (!*html)
+	if (!*html && ContainsHtml(in))
 	{
 		*html = true;
 	}
@@ -330,10 +342,6 @@ static HookFunction hookFunction([]()
 	hook::jump(hook::get_pattern("49 8B D8  45 33 C0 49 8B E9 FF 50", -0x31), ParseHtmlUtf8);
 
 	// GFxDrawTextImpl(?)
-
-	// GetTextExtent
-	hook::set_call(&getHtmlTextExtent, hook::get_pattern("48 8B 55 60 45 33 E4 4C 89", -0x5B));
-	hook::jump(hook::get_pattern("0F 29 70 D8 4D 8B F0 48 8B F2 0F 28 F3", -0x1F), GetHtmlTextExtentWrap);
 
 	OnGameFrame.Connect([]()
 	{

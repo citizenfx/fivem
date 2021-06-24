@@ -181,8 +181,8 @@ export class ServersListComponent implements OnInit, OnDestroy {
 		this.gameService.connectTo(entry.server, entry.historyEntry.address);
 	}
 
-	svTrack(index: number, serverRow: Server) {
-		return index + serverRow.address;
+	svTrack(_: number, serverRow: Server) {
+		return serverRow.address;
 	}
 
 	isFavorite(server: Server) {

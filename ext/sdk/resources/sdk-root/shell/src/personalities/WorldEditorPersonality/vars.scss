@@ -1,0 +1,21 @@
+@import "variables";
+
+$zGameView: 1;
+$zToolbar: 2;
+
+$weToolbarHeight: $q*10;
+
+@mixin overlayPanel {
+  backdrop-filter: blur(20px);
+
+  background-color: rgba($bgColor, .95);
+  box-shadow: 0 0 10px 0 rgba($bgColor, .5);
+  border: solid 2px rgba($fgColor, .5);
+
+  z-index: 4000;
+}
+
+@mixin backdrop-blur {
+  backdrop-filter: blur(20px);
+  background-color: rgba($bgColor, .25);
+}

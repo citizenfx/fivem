@@ -35,7 +35,7 @@
     "#Settings_DarkThemeDesc": "Sprawia, że interefejs używa \"ciemnego\" \"stylu\"",
     "#Settings_DevMode": "Tryb developerski",
     "#Settings_DevModeDesc": "Włącza menu \"localhost\"",
-    "#Settings_Account": "Powiązane konto FiveM",
+    "#Settings_Account": "Powiązane konto Cfx.re",
     "#Settings_AccountLink": "Połącz",
     "#Settings_AccountLinked": "Połączono: {{ username }}",
     "#Settings_Boost": "Aktualny BOOST™ serwera",

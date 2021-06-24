@@ -204,9 +204,6 @@ void StreamingListView::getCellData(size_t row, size_t column, CellData& cellDat
 	}
 	case 1:
 	{
-		// icon
-		// ^ not yet
-
 		auto type = std::string(typeid(*strModule).name());
 
 		cellDataOut.customText = va("%s", type.substr(6));
@@ -214,15 +211,20 @@ void StreamingListView::getCellData(size_t row, size_t column, CellData& cellDat
 	}
 	case 2:
 	{
+		cellDataOut.customText = va("%d (+%d)", relativeIndex, strModule->baseIdx);
+		break;
+	}
+	case 3:
+	{
 		const auto& entryName = streaming::GetStreamingNameForIndex(num);
 
 		cellDataOut.customText = entryName.c_str();
 		break;
 	}
-	case 3:
+	case 4:
 		cellDataOut.fieldPtr = &entry.flags;
 		break;
-	case 4:
+	case 5:
 	{
 		static int refCount;
 		refCount = strModule->GetNumRefs(relativeIndex);
@@ -254,10 +256,15 @@ void StreamingListView::getHeaderData(size_t column, HeaderData& headerDataOut) 
 		break;
 	case 2:
 		headerDataOut.sorting.sortable = false;
-		headerDataOut.name = "Name";
+		headerDataOut.name = "Index";
 		headerDataOut.type.headerType = ImGui::ListViewBase::HT_CUSTOM;
 		break;
 	case 3:
+		headerDataOut.sorting.sortable = false;
+		headerDataOut.name = "Name";
+		headerDataOut.type.headerType = ImGui::ListViewBase::HT_CUSTOM;
+		break;
+	case 4:
 		headerDataOut.sorting.sortable = false;
 		headerDataOut.name = "State";
 		headerDataOut.type.headerType = ImGui::ListViewBase::HT_ENUM;
@@ -283,7 +290,7 @@ void StreamingListView::getHeaderData(size_t column, HeaderData& headerDataOut) 
 		};
 		headerDataOut.formatting.columnWidth = 200;
 		break;
-	case 4:
+	case 5:
 		headerDataOut.sorting.sortable = false;
 		headerDataOut.name = "Refs";
 		headerDataOut.type.headerType = ImGui::ListViewBase::HT_INT;
@@ -294,7 +301,7 @@ void StreamingListView::getHeaderData(size_t column, HeaderData& headerDataOut) 
 
 size_t StreamingListView::getNumColumns() const
 {
-	return 5;
+	return 6;
 }
 
 size_t StreamingListView::getNumRows() const
@@ -341,8 +348,6 @@ static InitFunction initFunction([]()
 			return;
 		}
 
-		static bool streamingMemoryOpen;
-
 		auto streaming = streaming::Manager::GetInstance();
 		auto streamingAllocator = rage::strStreamingAllocator::GetInstance();
 
@@ -383,7 +388,7 @@ static InitFunction initFunction([]()
 
 		auto avMem = 0x40000000;//streamingAllocator->GetMemoryAvailable()
 
-		if (ImGui::Begin("Streaming Memory", &streamingMemoryOpen))
+		if (ImGui::Begin("Streaming Memory", &streamingMemoryEnabled))
 		{
 			static std::vector<StreamingMemoryInfo> entryList(streaming->numEntries);
 			entryList.resize(streaming->numEntries);
@@ -450,6 +455,10 @@ static InitFunction initFunction([]()
 
 			ImGui::Text("Physical memory: %.2f MiB", usedPhys / 1024.0 / 1024.0);
 
+			ImGui::Text("grcore/ResourceCache usage: %.2f / %.2f MiB",
+				rage::grcResourceCache::GetInstance()->GetUsedPhysicalMemory() / 1024.0 / 1024.0,
+				rage::grcResourceCache::GetInstance()->GetTotalPhysicalMemory() / 1024.0 / 1024.0);
+
 			static ImGui::ListView lv;
 
 			if (lv.headers.empty())
@@ -487,13 +496,11 @@ static InitFunction initFunction([]()
 			return;
 		}
 
-		static bool streamingStatsOpen;
-
 		auto streaming = streaming::Manager::GetInstance();
 
 		ImGui::SetNextWindowSize(ImVec2(500.0f, 300.0f), ImGuiCond_FirstUseEver);
 
-		if (ImGui::Begin("Streaming List", &streamingStatsOpen))
+		if (ImGui::Begin("Streaming List", &streamingListEnabled))
 		{
 			static StreamingListView lv(streaming);
 
@@ -544,11 +551,9 @@ static InitFunction initFunction([]()
 			return;
 		}
 
-		static bool streamingStatsOpen;
-
 		auto streaming = streaming::Manager::GetInstance();
 		
-		if (ImGui::Begin("Streaming Stats", &streamingStatsOpen))
+		if (ImGui::Begin("Streaming Stats", &streamingDebugEnabled))
 		{
 			ImGui::Text("Pending requests: %d", streaming->NumPendingRequests);
 

@@ -7,6 +7,8 @@
 #include <EASTL/bitvector.h>
 #include <state/RlMessageBuffer.h>
 
+#include <shared_mutex>
+
 void* operator new[](size_t size, const char* pName, int flags, unsigned debugFlags, const char* file, int line)
 {
 	return ::operator new[](size);
@@ -60,15 +62,10 @@ private:
 	{
 		struct PerTargetData
 		{
-			std::chrono::milliseconds lastSend;
+			std::chrono::milliseconds lastSend{ 0 };
+			std::chrono::milliseconds delayNextSend{ 0 };
 			eastl::bitvector<> ackBits;
-			size_t lastBit;
-
-			PerTargetData()
-				: lastBit(0)
-			{
-
-			}
+			size_t lastBit = 0;
 		};
 
 		std::set<int> targets;
@@ -96,7 +93,7 @@ private:
 
 	std::set<int> m_targets;
 
-	std::mutex m_listMutex;
+	std::shared_mutex m_listMutex;
 
 	ResourceManager* m_resourceManager;
 
@@ -198,14 +195,14 @@ void EventReassemblyComponentImpl::SetSink(EventReassemblySink* sink)
 
 void EventReassemblyComponentImpl::RegisterTarget(int id)
 {
-	std::unique_lock<std::mutex> lock(m_listMutex);
+	std::unique_lock lock(m_listMutex);
 
 	m_targets.insert(id);
 }
 
 void EventReassemblyComponentImpl::UnregisterTarget(int id)
 {
-	std::unique_lock<std::mutex> lock(m_listMutex);
+	std::unique_lock lock(m_listMutex);
 
 	if (m_targets.find(id) != m_targets.end())
 	{
@@ -240,10 +237,18 @@ void EventReassemblyComponentImpl::TriggerEvent(int target, std::string_view eve
 
 	if (target == -1)
 	{
+		std::shared_lock _(m_listMutex);
 		targets = m_targets;
 	}
 	else
 	{
+		std::shared_lock _(m_listMutex);
+
+		if (m_targets.find(target) == m_targets.end())
+		{
+			return;
+		}
+
 		targets.insert(target);
 	}
 
@@ -275,7 +280,7 @@ void EventReassemblyComponentImpl::TriggerEvent(int target, std::string_view eve
 		sendPacket->targetData[target] = targetData;
 	}
 
-	std::unique_lock<std::mutex> lock(m_listMutex);
+	std::unique_lock lock(m_listMutex);
 	m_sendList.insert({ m_eventId++, sendPacket });
 }
 
@@ -303,6 +308,7 @@ void EventReassemblyComponentImpl::HandleReceivedPacket(int source, const std::s
 
 	uint16_t nameLength = buffer.Read<uint16_t>(16);
 	buffer.ReadBits(eventName, nameLength * 8);
+	eventName[nameLength] = '\0';
 
 	// convert the source net ID to a string
 	std::string sourceStr = "net:" + std::to_string(source);
@@ -334,7 +340,7 @@ void EventReassemblyComponentImpl::NetworkTick()
 
 	// handle the send list
 	{
-		std::unique_lock<std::mutex> lock(m_listMutex);
+		std::unique_lock lock(m_listMutex);
 
 		std::set<EventId> dones;
 
@@ -347,13 +353,21 @@ void EventReassemblyComponentImpl::NetworkTick()
 
 			for (int target : sendPacket->targets)
 			{
+				// if the target is gone, get rid of them
+				if (m_targets.find(target) == m_targets.end())
+				{
+					doneTargets.insert(target);
+					continue;
+				}
+
 				auto targetData = sendPacket->targetData[target];
 
-				if (targetData && (targetData->lastSend + latency) < timeNow)
+				if (targetData && (targetData->lastSend + latency) < timeNow && targetData->delayNextSend < timeNow)
 				{
 					// burst loop so we don't 'slow down' too much at a lower tick rate
 					auto resTime = dT;
 					auto& ackBits = targetData->ackBits;
+					auto startBit = targetData->lastBit;
 
 					do
 					{
@@ -402,8 +416,20 @@ void EventReassemblyComponentImpl::NetworkTick()
 						{
 							resTime -= latency;
 						}
+
+						// if we've cycled around fully, set next send time and break out
+						if (targetData->lastBit <= startBit)
+						{
+							targetData->delayNextSend = timeNow + std::chrono::milliseconds(250);
+							break;
+						}
 					} while (resTime > latency);
 
+					targetData->lastSend = timeNow;
+				}
+				// update send timer if we are delaying (to prevent oversize bursts)
+				else if (targetData && targetData->delayNextSend >= timeNow)
+				{
 					targetData->lastSend = timeNow;
 				}
 			}
@@ -440,7 +466,7 @@ void EventReassemblyComponentImpl::HandlePacket(int source, std::string_view dat
 
 	if (packet.IsAck())
 	{
-		std::unique_lock<std::mutex> lock(m_listMutex);
+		std::unique_lock lock(m_listMutex);
 		auto entryIt = m_sendList.find(packet.eventId);
 
 		if (entryIt != m_sendList.end())
@@ -462,7 +488,7 @@ void EventReassemblyComponentImpl::HandlePacket(int source, std::string_view dat
 	}
 	else
 	{
-		std::unique_lock<std::mutex> lock(m_listMutex);
+		std::unique_lock lock(m_listMutex);
 		auto entryIt = m_receiveList.find({ source, packet.eventId });
 
 		std::shared_ptr<ReceiveEvent> receiveData;

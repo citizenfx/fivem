@@ -1,31 +1,27 @@
+import { SystemResource } from "backend/system-resources/system-resources-constants";
 import { FilesystemEntry, FilesystemEntryMap, ServerUpdateChannel } from "./api.types";
+import { AssetType } from "./asset.types";
 
-
-export interface ProjectResource extends ProjectManifestResource {
-  path: string,
-  running: boolean,
-}
-
-export type ProjectResources = {
-  [path: string]: ProjectResource,
-};
-
-export interface ProjectManifestResource {
-  name: string,
-  enabled: boolean,
-  restartOnChange: boolean,
-}
 
 export type ProjectPathsState = {
   [path: string]: boolean,
 };
 
 export interface ProjectData {
-  path: string,
-  manifest: ProjectManifest,
-
   fs: FilesystemEntryMap,
-  resources: ProjectResources,
+  path: string,
+  assets: {
+    [path: string]: ProjectAssetBaseConfig,
+  },
+  assetTypes: Record<string, AssetType | void>,
+  assetDefs: {
+    [path: string]: any,
+  },
+  manifest: ProjectManifest,
+}
+
+export interface ProjectAssetBaseConfig {
+  enabled: boolean,
 }
 
 export interface ProjectManifest {
@@ -33,10 +29,14 @@ export interface ProjectManifest {
   createdAt: string,
   updatedAt: string,
   serverUpdateChannel: ServerUpdateChannel,
-  resources: {
-    [name: string]: ProjectManifestResource,
-  },
   pathsState: ProjectPathsState,
+  assets: {
+    [path: string]: ProjectAssetBaseConfig,
+  },
+  systemResources: SystemResource[],
+  variables?: {
+    [key: string]: string
+  },
 }
 
 export interface ProjectFsUpdate {
@@ -53,7 +53,6 @@ export interface RecentProject {
 
 export interface ProjectCreateCheckResult {
   openProject?: boolean,
-  ignoreCfxServerData?: boolean,
 }
 
 export type ProjectBuildError =

@@ -571,13 +571,29 @@ rdr3::grmShaderGroup* convert(five::grmShaderGroup* shaderGroup)
 		{
 			shs = HashString("vehicle_track");
 		}
-		else if (shs == HashString("terrain_cb_4lyr") || shs == HashString("terrain_cb_4lyr_pxm") || shs == HashString("terrain_cb_4lyr_spec") || shs == HashString("terrain_cb_4lyr_lod") || shs == HashString("terrain_cb_4lyr_2tex") || shs == HashString("terrain_cb_4lyr_2tex_pxm") || shs == HashString("terrain_cb_4lyr_2tex_blend") || shs == HashString("terrain_cb_4lyr_2tex_blend_lod") || shs == HashString("terrain_cb_4lyr_cm") || shs == HashString("terrain_cb_4lyr_cm_tnt") || shs == HashString("terrain_cb_w_4lyr") || shs == HashString("terrain_cb_w_4lyr_pxm") || shs == HashString("terrain_cb_w_4lyr_pxm_spm") || shs == HashString("terrain_cb_w_4lyr_spec") || shs == HashString("terrain_cb_w_4lyr_spec_pxm") || shs == HashString("terrain_cb_w_4lyr_spec_int") || shs == HashString("terrain_cb_w_4lyr_spec_int_pxm") || shs == HashString("terrain_cb_w_4lyr_lod") || shs == HashString("terrain_cb_w_4lyr_2tex") || shs == HashString("terrain_cb_w_4lyr_2tex_pxm") || shs == HashString("terrain_cb_w_4lyr_2tex_blend") || shs == HashString("terrain_cb_w_4lyr_2tex_blend_tt") || shs == HashString("terrain_cb_w_4lyr_2tex_blend_ttn") || shs == HashString("terrain_cb_w_4lyr_2tex_blend_pxm") || shs == HashString("terrain_cb_w_4lyr_2tex_blend_pxm_spm") || shs == HashString("terrain_cb_w_4lyr_2tex_blend_pxm_tt_spm") || shs == HashString("terrain_cb_w_4lyr_2tex_blend_pxm_tn_spm") || shs == HashString("terrain_cb_w_4lyr_2tex_blend_lod") || shs == HashString("terrain_cb_w_4lyr_cm") || shs == HashString("terrain_cb_w_4lyr_cm_pxm") || shs == HashString("terrain_cb_w_4lyr_cm_pxm_tnt") || shs == HashString("terrain_cb_w_4lyr_cm_tnt"))
+		else if (shs == HashString("terrain_cb_4lyr") || shs == HashString("terrain_cb_4lyr_pxm") || shs == HashString("terrain_cb_4lyr_spec") || shs == HashString("terrain_cb_4lyr_lod") || shs == HashString("terrain_cb_4lyr_2tex") || shs == HashString("terrain_cb_4lyr_2tex_pxm") || shs == HashString("terrain_cb_4lyr_2tex_blend") || shs == HashString("terrain_cb_4lyr_2tex_blend_lod") || shs == HashString("terrain_cb_4lyr_cm") || shs == HashString("terrain_cb_4lyr_cm_tnt") || shs == HashString("terrain_cb_w_4lyr") || shs == HashString("terrain_cb_w_4lyr_pxm") || shs == HashString("terrain_cb_w_4lyr_pxm_spm") || shs == HashString("terrain_cb_w_4lyr_spec") || shs == HashString("terrain_cb_w_4lyr_spec_pxm") || shs == HashString("terrain_cb_w_4lyr_spec_int") || shs == HashString("terrain_cb_w_4lyr_spec_int_pxm") || shs == HashString("terrain_cb_w_4lyr_lod") || shs == HashString("terrain_cb_w_4lyr_2tex") || shs == HashString("terrain_cb_w_4lyr_2tex_pxm") || shs == HashString("terrain_cb_w_4lyr_2tex_blend") || shs == HashString("terrain_cb_w_4lyr_2tex_blend_tt") || shs == HashString("terrain_cb_w_4lyr_2tex_blend_ttn") || shs == HashString("terrain_cb_w_4lyr_2tex_blend_pxm") || shs == HashString("terrain_cb_w_4lyr_2tex_blend_pxm_spm") || shs == HashString("terrain_cb_w_4lyr_2tex_blend_pxm_tt_spm") || shs == HashString("terrain_cb_w_4lyr_2tex_blend_pxm_tn_spm") || shs == HashString("terrain_cb_w_4lyr_2tex_blend_lod") || shs == HashString("terrain_cb_w_4lyr_cm") || shs == HashString("terrain_cb_w_4lyr_cm_pxm") || shs == HashString("terrain_cb_w_4lyr_cm_pxm_tnt") || shs == HashString("terrain_cb_w_4lyr_cm_tnt") || shs == HashString("trees_shadow_proxy"))
 		{
 			shs = HashString("default");
 		}
-		else if (shs == HashString("emissive_clip") || shs == HashString("emissivenight"))
+		else if (shs == HashString("emissive_clip") || shs == HashString("emissivenight") || shs == HashString("emissive_additive_alpha") || shs == HashString("emissive_speclum") || shs == HashString("emissive_tnt") || shs == HashString("emissivenight_geomnightonly"))
 		{
 			shs = HashString("emissive");
+		}
+		else if (shs == HashString("trees") || shs == HashString("trees_lod") || shs == HashString("trees_lod2") || shs == HashString("trees_camera_aligned") || shs == HashString("trees_camera_facing") || shs == HashString("trees_lod_tnt") || shs == HashString("trees_lod2d"))
+		{
+			shs = HashString("cutout");
+		}	
+		else if (shs == HashString("trees_normal"))
+		{
+			shs = HashString("normal");
+		}
+		else if (shs == HashString("trees_normal_spec_tnt"))
+		{
+			shs = HashString("normal_spec_tnt");
+		}
+		else if (shs == HashString("trees_normal_spec") || shs == HashString("trees_normal_spec_camera_aligned") || shs == HashString("trees_normal_spec_camera_aligned_tnt") || shs == HashString("trees_normal_spec_camera_facing") || shs == HashString("trees_normal_spec_camera_facing_tnt"))
+		{
+			shs = HashString("normal_spec");
 		}
 
 		rdr3::grmShaderFx* shader = new (false) rdr3::grmShaderFx;

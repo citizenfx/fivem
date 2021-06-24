@@ -24,11 +24,11 @@ export class ServerTagFilterComponent {
 	}
 
 	get tagsCanReset() {
-		return Object.keys(this.filtersTags.tagList).length > 0;
+		return Object.keys(this.filtersTags?.tagList ?? {}).length > 0;
 	}
 
 	get localesCanReset() {
-		return Object.keys(this.filtersTags.localeList).length > 0;
+		return Object.keys(this.filtersTags?.localeList ?? {}).length > 0;
 	}
 
 	constructor(
@@ -87,22 +87,26 @@ export class ServerTagFilterComponent {
 	}
 
 	isLocaleActive(locale: ServerLocale) {
-		return (locale?.name in this.filtersTags.localeList) && (this.filtersTags.localeList[locale?.name]);
+		return (locale?.name in (this.filtersTags.localeList ?? {})) && (this.filtersTags.localeList[locale?.name]);
 	}
 
 	isLocaleInactive(locale: ServerLocale) {
-		return (locale?.name in this.filtersTags.localeList) && (!this.filtersTags.localeList[locale?.name]);
+		return (locale?.name in (this.filtersTags.localeList ?? {})) && (!this.filtersTags.localeList[locale?.name]);
 	}
 
 	isActive(tag: ServerTag) {
-		return (tag?.name in this.filtersTags.tagList) && (this.filtersTags.tagList[tag?.name]);
+		return (tag?.name in (this.filtersTags.tagList ?? {})) && (this.filtersTags.tagList[tag?.name]);
 	}
 
 	isInactive(tag: ServerTag) {
-		return (tag?.name in this.filtersTags.tagList) && (!this.filtersTags.tagList[tag?.name]);
+		return (tag?.name in (this.filtersTags.tagList ?? {})) && (!this.filtersTags.tagList[tag?.name]);
 	}
 
 	toggleTag(tag: ServerTag) {
+		if (!this.filtersTags.tagList) {
+			this.filtersTags.tagList = {};
+		}
+
 		if (!(tag.name in this.filtersTags.tagList)) {
 			this.filtersTags.tagList[tag.name] = true;
 		} else if (this.filtersTags.tagList[tag.name]) {
@@ -115,6 +119,10 @@ export class ServerTagFilterComponent {
 	}
 
 	toggleLocale(tag: ServerLocale) {
+		if (!this.filtersTags.localeList) {
+			this.filtersTags.localeList = {};
+		}
+
 		if (!(tag.name in this.filtersTags.localeList)) {
 			this.filtersTags.localeList[tag.name] = true;
 		} else if (this.filtersTags.localeList[tag.name]) {

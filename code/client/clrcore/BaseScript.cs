@@ -84,7 +84,7 @@ namespace CitizenFX.Core
 			set => ms_curName = value;
 		}
 
-#if !IS_FXSERVER && !IS_RDR3
+#if !IS_FXSERVER && !IS_RDR3 && !GTA_NY
 		private Player m_player;
 
 		protected Player LocalPlayer
@@ -103,7 +103,7 @@ namespace CitizenFX.Core
 		}
 #endif
 
-#if !IS_RDR3
+#if !IS_RDR3 && !GTA_NY
 		protected PlayerList Players { get; private set; }
 #endif
 
@@ -115,7 +115,7 @@ namespace CitizenFX.Core
 			Exports = new ExportDictionary();
 			CurrentTaskList = new ConcurrentDictionary<int, Task>();
 			GlobalState = new StateBag("global");
-#if !IS_RDR3
+#if !IS_RDR3 && !GTA_NY
 			Players = new PlayerList();
 #endif
 		}
@@ -451,7 +451,7 @@ namespace CitizenFX.Core
 						}
 					}
 					// Player
-#if !IS_RDR3
+#if !IS_RDR3 && !GTA_NY
 					else if (parameters.Any(p => p.ParameterType == typeof(Player)) && parameters.Length == 1)
 					{
 #if IS_FXSERVER
@@ -493,7 +493,7 @@ namespace CitizenFX.Core
 						}
 					}
 					// Player, string[]
-#if !IS_RDR3
+#if !IS_RDR3 && !GTA_NY
 					else if (parameters.Any(p => p.ParameterType == typeof(Player)) && parameters.Length == 2)
 					{
 #if IS_FXSERVER

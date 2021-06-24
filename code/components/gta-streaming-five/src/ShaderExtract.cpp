@@ -14,7 +14,7 @@ static InitFunction initFunction([]()
 	{
 		// 1604
 		// 1868
-		auto cacheRoot = MakeRelativeCitPath(fmt::sprintf(L"cache\\game\\shaders_%d", Is2060() ? 1868 : 1604));
+		auto cacheRoot = MakeRelativeCitPath(fmt::sprintf(L"data\\cache\\shaders_%d", Is2060() ? 1868 : 1604));
 
 		if (GetFileAttributesW(cacheRoot.c_str()) == INVALID_FILE_ATTRIBUTES)
 		{

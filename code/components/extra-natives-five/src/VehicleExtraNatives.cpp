@@ -10,7 +10,7 @@
 #include <ScriptEngine.h>
 #include <atArray.h>
 
-#include <Local.h>
+#include <jitasm.h>
 #include <Hooking.h>
 #include <GameInit.h>
 #include <nutsnbolts.h>
@@ -43,6 +43,14 @@ struct FlyThroughWindscreenParam
 	float* currentPtr;
 	float* defaultPtr;
 };
+
+struct TrainDoor
+{
+	char pad_0[0x2C];
+	float ratio;
+	char pad_30[0x40];
+};
+static_assert(sizeof(TrainDoor) == 0x70);
 
 static std::unordered_set<fwEntity*> g_skipRepairVehicles{};
 
@@ -196,6 +204,7 @@ static int TurboBoostOffset; // = 0x8D8;
 static int ClutchOffset; // = 0x8C0;
 //static int VisualHeightGetOffset = 0x080; // There is a vanilla native for this.
 static int VisualHeightSetOffset = 0x07C;
+static int LightMultiplierGetOffset;
 
 // TODO: Wheel class.
 static int WheelYRotOffset = 0x008;
@@ -216,6 +225,10 @@ static int WheelFlagsOffset;
 
 static char* VehicleTopSpeedModifierPtr;
 static int VehicleCheatPowerIncreaseOffset;
+
+static bool* g_trainsForceDoorsOpen;
+static int TrainDoorCountOffset;
+static int TrainDoorArrayPointerOffset;
 
 static std::unordered_set<fwEntity*> g_deletionTraces;
 static std::unordered_set<void*> g_deletionTraces2;
@@ -344,6 +357,11 @@ static bool CanPedStandOnVehicleWrap(CVehicle* vehicle)
 	return g_origCanPedStandOnVehicle(vehicle);
 }
 
+TrainDoor* GetTrainDoor(fwEntity* train, uint32_t index)
+{
+	return &(*((TrainDoor**)(((char*)train) + TrainDoorArrayPointerOffset)))[index];
+}
+
 static HookFunction initFunction([]()
 {
 	{
@@ -363,6 +381,7 @@ static HookFunction initFunction([]()
 		VehicleCheatPowerIncreaseOffset = *hook::get_pattern<uint32_t>("E8 ? ? ? ? 8B 83 ? ? ? ? C7 83", 23);
 		WheelSurfaceMaterialOffset = *hook::get_pattern<uint32_t>("48 8B 4A 10 0F 28 CF F3 0F 59 05", -4);
 		WheelHealthOffset = *hook::get_pattern<uint32_t>("75 24 F3 0F 10 ? ? ? 00 00 F3 0F", 6);
+		LightMultiplierGetOffset = *hook::get_pattern<uint32_t>("00 00 48 8B CE F3 0F 59 ? ? ? 00 00 F3 41", 9);
 	}
 
 	{
@@ -471,12 +490,38 @@ static HookFunction initFunction([]()
 	}
 
 	{
+		// replace netgame check for train doors with our own
+		g_trainsForceDoorsOpen = (bool*)hook::AllocateStubMemory(1);
+		*g_trainsForceDoorsOpen = true;
+
+		auto location = hook::get_pattern<uint32_t>("74 56 40 38 BB ? ? ? ? 74 49 48 8B CB E8", -8);
+		hook::put<int32_t>(location, (intptr_t)g_trainsForceDoorsOpen - (intptr_t)location - 4);
+	}
+
+	{
+		auto location = hook::get_pattern<char>("44 8B 91 ? ? ? ? 45 33 C0 45 8B C8 45 85 D2");
+
+		TrainDoorCountOffset = *(uint32_t*)(location + 3);
+		TrainDoorArrayPointerOffset = *(uint32_t*)(location + 33);
+	}
+
+	{
+		// allow door collisions to be changed at any train stage, not just at the station so remove check
+		// mov     eax, [rdi+1548h]       <-- train stage
+		// sub     eax, 2
+		// cmp     eax, 2
+		// ja      short loc_140F634B9
+		auto location = hook::get_pattern<char>("8B 87 ? ? ? ? 83 E8 02 83 F8 02 77 04");
+		hook::nop(location, 14);
+	}
+
+	{
 		// replace netgame check for fly through windscreen with our variable
 		g_flyThroughWindscreenDisabled = (bool*)hook::AllocateStubMemory(1);
 		static ConVar<bool> enableFlyThroughWindscreen("game_enableFlyThroughWindscreen", ConVar_Replicated, false, &isFlyThroughWindscreenEnabledConVar);
 
 		auto location = hook::get_pattern<uint32_t>("45 33 ED 44 38 2D ? ? ? ? 4D", 6);
-		*location = (intptr_t)g_flyThroughWindscreenDisabled - (intptr_t)location - 4;
+		hook::put<int32_t>(location, (intptr_t)g_flyThroughWindscreenDisabled - (intptr_t)location - 4);
 	}
 
 	{
@@ -501,7 +546,7 @@ static HookFunction initFunction([]()
 			data.defaultPtr = defaultAddr;
 			data.currentPtr = currentAddr;
 
-			*location = (intptr_t)currentAddr - (intptr_t)location - 4;
+			hook::put<int32_t>(location, (intptr_t)currentAddr - (intptr_t)location - 4);
 			++index;
 
 			g_flyThroughWindscreenParams.push_back(data);
@@ -944,6 +989,8 @@ static HookFunction initFunction([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_INDICATOR_LIGHTS", std::bind(readVehicleMemory<unsigned char, &BlinkerStateOffset>, _1, "GET_VEHICLE_INDICATOR_LIGHTS"));
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_LIGHT_MULTIPLIER", std::bind(readVehicleMemory<float, &LightMultiplierGetOffset>, _1, "GET_VEHICLE_LIGHT_MULTIPLIER"));
+
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_WHEELIE_STATE", std::bind(readVehicleMemory<unsigned char, &WheelieStateOffset>, _1, "GET_VEHICLE_WHEELIE_STATE"));
 	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_WHEELIE_STATE", std::bind(writeVehicleMemory<unsigned char, &WheelieStateOffset>, _1, "SET_VEHICLE_WHEELIE_STATE"));
 
@@ -961,6 +1008,51 @@ static HookFunction initFunction([]()
 
 		context.SetResult<int>(trackNode);
 	});
+
+	auto makeTrainFunction = [](auto cb)
+	{
+		return [=](fx::ScriptContext& context)
+		{
+			if (fwEntity* vehicle = getAndCheckVehicle(context, "makeTrainFunction"))
+			{
+				if (vehicle->IsOfType<CVehicle>() && readValue<int>(vehicle, VehicleTypeOffset) == 14)
+				{
+					cb(context, vehicle);
+				}
+			}
+		};
+	};
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_TRAINS_FORCE_DOORS_OPEN", [](fx::ScriptContext& context)
+	{
+		bool forceOpen = context.GetArgument<bool>(0);
+		*g_trainsForceDoorsOpen = forceOpen;
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_TRAIN_DOOR_COUNT", makeTrainFunction([](fx::ScriptContext& context, fwEntity* train)
+	{
+		context.SetResult(readValue<int>(train, TrainDoorCountOffset));
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_TRAIN_DOOR_OPEN_RATIO", makeTrainFunction([](fx::ScriptContext& context, fwEntity* train)
+	{
+		int doorIndex = context.GetArgument<int>(1);
+		if (doorIndex < 0 || doorIndex >= readValue<int>(train, TrainDoorCountOffset)) return;
+
+		float ratio = GetTrainDoor(train, doorIndex)->ratio;
+		context.SetResult(ratio);
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_TRAIN_DOOR_OPEN_RATIO", makeTrainFunction([](fx::ScriptContext& context, fwEntity* train)
+	{
+		int doorIndex = context.GetArgument<int>(1);
+		if (doorIndex < 0 || doorIndex >= readValue<int>(train, TrainDoorCountOffset)) return;
+
+		float ratio = context.GetArgument<float>(2);
+		if (ratio < 0.0f || ratio > 1.0f) return;
+
+		GetTrainDoor(train, doorIndex)->ratio = ratio;
+	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_WHEEL_X_OFFSET", makeWheelFunction([](fx::ScriptContext& context, fwEntity* vehicle, uintptr_t wheelAddr)
 	{
@@ -1093,6 +1185,7 @@ static HookFunction initFunction([]()
 	{
 		g_skipRepairVehicles.clear();
 		ResetFlyThroughWindscreenParams();
+		*g_trainsForceDoorsOpen = true;
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_AUTO_REPAIR_DISABLED", [](fx::ScriptContext& context) {
@@ -1364,12 +1457,12 @@ static HookFunction inputFunction([]()
 	{
 		auto getStateRef = hook::get_address<void**>(hook::get_call(hook::get_pattern<char>("75 13 48 8D 54 24 20 8B CF E8", 9)) + 2);
 		g_origXInputGetState = (decltype(g_origXInputGetState))*getStateRef;
-		*getStateRef = XInputGetStateHook;
+		hook::put(getStateRef, XInputGetStateHook);
 	}
 
 	{
 		auto setStateRef = hook::get_address<void**>(hook::get_call(hook::get_pattern<char>("8B CF 89 73 42 89 74 24 40 E8", 9)) + 2);
 		g_origXInputSetState = (decltype(g_origXInputSetState))*setStateRef;
-		*setStateRef = XInputSetStateHook;
+		hook::put(setStateRef, XInputSetStateHook);
 	}
 });

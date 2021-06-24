@@ -18,8 +18,11 @@
 
 #include <include/base/cef_bind.h>
 #include <include/wrapper/cef_closure_task.h>
+#include <include/cef_request_context_handler.h>
 
 #include <CefOverlay.h>
+
+#include <CL2LaunchMode.h>
 
 extern nui::GameInterface* g_nuiGi;
 
@@ -28,12 +31,14 @@ extern nui::GameInterface* g_nuiGi;
 namespace nui
 {
 extern bool g_rendererInit;
+
+extern void AddSchemeHandlerFactories(CefRefPtr<CefRequestContext> rc);
 }
 
-NUIWindow::NUIWindow(bool rawBlit, int width, int height)
+NUIWindow::NUIWindow(bool rawBlit, int width, int height, const std::string& windowContext)
 	: m_rawBlit(rawBlit), m_width(width), m_height(height), m_renderBuffer(nullptr), m_dirtyFlag(0), m_onClientCreated(nullptr), m_nuiTexture(nullptr), m_popupTexture(nullptr), m_swapTexture(nullptr),
 	  m_swapRtv(nullptr), m_swapSrv(nullptr), m_dereferencedNuiTexture(false), m_lastFrameTime(0), m_lastMessageTime(0), m_roundedHeight(0), m_roundedWidth(0),
-	  m_syncKey(0), m_paintType(NUIPaintTypeDummy)
+	  m_syncKey(0), m_paintType(NUIPaintTypeDummy), m_windowContext(windowContext)
 {
 	memset(&m_lastDirtyRect, 0, sizeof(m_lastDirtyRect));
 
@@ -51,11 +56,10 @@ NUIWindow::~NUIWindow()
 
 	if (nuiClient)
 	{
-		auto& mutex = nuiClient->GetWindowLock();
-
-		mutex.lock();
 		nuiClient->SetWindowValid(false);
+		nuiClient->ClearWindow();
 
+		std::unique_lock _(nuiClient->GetWindowLock());
 		if (nuiClient->GetBrowser() && nuiClient->GetBrowser()->GetHost())
 		{
 			if (!CefCurrentlyOn(TID_UI))
@@ -67,8 +71,6 @@ NUIWindow::~NUIWindow()
 				nuiClient->GetBrowser()->GetHost()->CloseBrowser(true);
 			}
 		}
-
-		mutex.unlock();
 	}
 
 	if (m_swapTexture)
@@ -94,9 +96,9 @@ NUIWindow::~NUIWindow()
 	Instance<NUIWindowManager>::Get()->RemoveWindow(this);
 }
 
-fwRefContainer<NUIWindow> NUIWindow::Create(bool primary, int width, int height, CefString url, bool instant)
+fwRefContainer<NUIWindow> NUIWindow::Create(bool primary, int width, int height, CefString url, bool instant, const std::string& context)
 {
-	auto window = new NUIWindow(primary, width, height);
+	auto window = new NUIWindow(primary, width, height, context);
 
 	if (instant)
 	{
@@ -344,23 +346,24 @@ const BYTE quadVS[] =
 }; 
 #pragma endregion
 
+static auto roundUp(int x, int y)
+{
+	return x + (y - (x % y));
+}
+
 void NUIWindow::Initialize(CefString url)
 {
+#if defined(GTA_NY)
+	static bool nuiSharedResourcesEnabled = false;
+#else
 	static bool nuiSharedResourcesEnabled = true;
 	static ConVar<bool> nuiSharedResources("nui_useSharedResources", ConVar_Archive, true, &nuiSharedResourcesEnabled);
-
-	InitializeCriticalSection(&m_renderBufferLock);
+#endif
 
 	if (m_renderBuffer)
 	{
 		delete[] m_renderBuffer;
 	}
-
-	// rounding function
-	auto roundUp = [] (int x, int y)
-	{
-		return x + (y - (x % y));
-	};
 
 	// create the temporary backing store
 	m_roundedHeight = roundUp(m_height, 16);
@@ -374,17 +377,34 @@ void NUIWindow::Initialize(CefString url)
 	CefWindowInfo info;
 	info.SetAsWindowless(NULL);
 	info.shared_texture_enabled = (!CfxIsWine() && nuiSharedResourcesEnabled);
-	info.external_begin_frame_enabled = true;
+	info.external_begin_frame_enabled = nuiSharedResourcesEnabled;
 	info.width = m_width;
 	info.height = m_height;
 
 	CefBrowserSettings settings;
 	settings.javascript_close_windows = STATE_DISABLED;
-	settings.web_security = STATE_DISABLED;
+	//settings.web_security = STATE_DISABLED;
 	settings.windowless_frame_rate = 240;
 	CefString(&settings.default_encoding).FromString("utf-8");
 
-	CefRefPtr<CefRequestContext> rc = CefRequestContext::GetGlobalContext();
+	CefRefPtr<CefRequestContext> rc;
+
+	if (m_windowContext.empty())
+	{
+		rc = CefRequestContext::GetGlobalContext();
+	}
+	else
+	{
+		auto cachePath = MakeRelativeCitPath(fmt::sprintf(L"data\\nui-storage%s\\context-%s", ToWide(launch::GetPrefixedLaunchModeKey("-")), ToWide(m_windowContext)));
+		CreateDirectory(cachePath.c_str(), nullptr);
+
+		CefRequestContextSettings rcConfig;
+		CefString(&rcConfig.cache_path).FromWString(cachePath);
+		rc = CefRequestContext::CreateContext(rcConfig, {});
+
+		nui::AddSchemeHandlerFactories(rc);
+	}
+
 	CefBrowserHost::CreateBrowser(info, m_client, url, settings, {}, rc);
 
 	if (!info.shared_texture_enabled)
@@ -421,9 +441,7 @@ void NUIWindow::InitializeRenderBacking()
 
 void NUIWindow::AddDirtyRect(const CefRect& rect)
 {
-	EnterCriticalSection(&m_renderBufferLock);
 	m_dirtyRects.push(rect);
-	LeaveCriticalSection(&m_renderBufferLock);
 }
 
 CefBrowser* NUIWindow::GetBrowser()
@@ -573,7 +591,9 @@ void NUIWindow::SendBeginFrame()
 
 			if (host)
 			{
+#ifndef GTA_NY
 				host->SendExternalBeginFrame();
+#endif
 				m_lastFrameTime = curTime;
 			}
 		}
@@ -610,7 +630,7 @@ void NUIWindow::UpdateFrame()
 		}
 	}
 
-#ifndef IS_RDR3
+#if !defined(IS_RDR3) && !defined(GTA_NY)
 	if (GetPaintType() != NUIPaintTypePostRender)
 #endif
 	{
@@ -623,7 +643,7 @@ void NUIWindow::UpdateFrame()
 	}
 
 	if (m_rawBlit)
-	{
+	{		
 		int resX, resY;
 		g_nuiGi->GetGameResolution(&resX, &resY);
 
@@ -631,6 +651,18 @@ void NUIWindow::UpdateFrame()
 		{
 			m_width = resX;
 			m_height = resY;
+
+			{
+				auto _ = GetRenderBufferLock();
+				m_roundedHeight = roundUp(m_height, 16);
+				m_roundedWidth = roundUp(m_width, 16);
+
+				if (m_renderBuffer)
+				{
+					delete[] m_renderBuffer;
+					m_renderBuffer = new char[4 * m_roundedWidth * m_roundedHeight];
+				}
+			}
 
 			if (m_client)
 			{
@@ -748,10 +780,11 @@ void NUIWindow::UpdateFrame()
 						D3D11_VIEWPORT oldVp;
 						UINT numVPs = 1;
 
-						deviceContext->RSGetViewports(&numVPs, &oldVp);
+						D3D11_RECT oldSr;
+						UINT numSRs = 1;
 
-						CD3D11_VIEWPORT vp = CD3D11_VIEWPORT(0.0f, 0.0f, m_width, m_height);
-						deviceContext->RSSetViewports(1, &vp);
+						deviceContext->RSGetScissorRects(&numSRs, &oldSr);
+						deviceContext->RSGetViewports(&numVPs, &oldVp);
 
 						deviceContext->OMGetBlendState(&oldBs, nullptr, nullptr);
 
@@ -763,6 +796,12 @@ void NUIWindow::UpdateFrame()
 
 						deviceContext->OMSetRenderTargets(1, &m_swapRtv, nullptr);
 						deviceContext->OMSetBlendState(bs, nullptr, 0xffffffff);
+
+						CD3D11_VIEWPORT vp = CD3D11_VIEWPORT(0.0f, 0.0f, m_width, m_height);
+						deviceContext->RSSetViewports(1, &vp);
+
+						CD3D11_RECT sr = CD3D11_RECT(0, 0, m_width, m_height);
+						deviceContext->RSSetScissorRects(1, &sr);
 
 						deviceContext->PSSetShader(ps, nullptr, 0);
 						deviceContext->PSSetSamplers(0, 1, &ss);
@@ -794,6 +833,7 @@ void NUIWindow::UpdateFrame()
 						deviceContext->PSSetShaderResources(0, 1, &oldSrv);
 						deviceContext->OMSetBlendState(oldBs, nullptr, 0xffffffff);
 						deviceContext->RSSetViewports(1, &oldVp);
+						deviceContext->RSSetScissorRects(numSRs, &oldSr);
 
 						if (oldVs)
 						{
@@ -871,6 +911,11 @@ void NUIWindow::UpdateFrame()
 
 				discarded = true;
 			}
+			else
+			{
+				// really
+				pBits = nullptr;
+			}
 
 			if (pBits)
 			{
@@ -878,29 +923,36 @@ void NUIWindow::UpdateFrame()
 				{
 					while (!m_dirtyRects.empty())
 					{
-						EnterCriticalSection(&m_renderBufferLock);
+						auto _ = GetRenderBufferLock();
 						CefRect rect = m_dirtyRects.front();
 						m_dirtyRects.pop();
-						LeaveCriticalSection(&m_renderBufferLock);
 
-						int height = m_height;
-
-						for (int y = rect.y; y < (rect.y + rect.height); y++)
+						if (pitch >= (rect.width * 4))
 						{
-							int dy = height - y;
+							int height = m_height;
 
-							int* src = &((int*)(m_renderBuffer))[(y * m_roundedWidth) + rect.x];
-							int* dest = &((int*)(pBits))[(dy * (pitch / 4)) + rect.x];
+							// ignore invalid height/width
+							if (((rect.y + rect.height) > height) || ((rect.x + rect.width) > m_roundedWidth))
+							{
+								continue;
+							}
 
-							memcpy(dest, src, (rect.width * 4));
+							for (int y = rect.y; y < (rect.y + rect.height); y++)
+							{
+								int dy = height - y - 1;
+
+								int* src = &((int*)(m_renderBuffer))[(y * m_roundedWidth) + rect.x];
+								int* dest = &((int*)(pBits))[(dy * (pitch / 4)) + rect.x];
+
+								memcpy(dest, src, (rect.width * 4));
+							}
 						}
 					}
 				}
 				else
 				{
-					EnterCriticalSection(&m_renderBufferLock);
+					auto _ = GetRenderBufferLock();
 					m_dirtyRects = std::queue<CefRect>();
-					LeaveCriticalSection(&m_renderBufferLock);
 
 					memcpy(pBits, m_renderBuffer, m_height * pitch);
 				}

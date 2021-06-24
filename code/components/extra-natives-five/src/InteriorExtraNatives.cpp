@@ -29,7 +29,7 @@ struct Vector
 	float w; // +16
 };
 
-struct CEntityDef
+struct iCEntityDef
 {
 	void* vtable; // +0
 	uint32_t archetypeName; // +8
@@ -85,7 +85,7 @@ struct CMloEntitySet
 	void* vtable; // +0
 	uint64_t name; // +8
 	atArray<int32_t> locations; // +12
-	atArray<CEntityDef> entities; // +28
+	atArray<iCEntityDef> entities; // +28
 };
 
 struct CMloTimeCycleModifier
@@ -102,7 +102,7 @@ struct CMloTimeCycleModifier
 struct CMloModelInfo
 {
 	char pad1[200]; // +0
-	atArray<CEntityDef*>* entities; // +200
+	atArray<iCEntityDef*>* entities; // +200
 	atArray<CMloRoomDef>* rooms; // +208
 	atArray<CMloPortalDef>* portals; // +216
 	atArray<CMloEntitySet>* entitySets; // +224

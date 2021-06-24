@@ -1,6 +1,7 @@
 import { Injectable, EventEmitter } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
-import { BehaviorSubject } from "rxjs";
+import { BehaviorSubject, EMPTY } from "rxjs";
+import { catchError } from "rxjs/operators";
 
 @Injectable()
 export class ChangelogService {
@@ -59,7 +60,9 @@ export class ChangelogService {
 	async getVersions() {
 		return await this.http.get<string[]>(this.targetEndpoint + 'versions', {
 			responseType: 'json'
-		}).toPromise();
+		})
+		.pipe(catchError(() => EMPTY))
+		.toPromise();
 	}
 
 	private versionLoadingPromises = {};

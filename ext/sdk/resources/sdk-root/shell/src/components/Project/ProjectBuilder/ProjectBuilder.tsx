@@ -1,10 +1,9 @@
 import * as React from 'react';
+import { observer } from 'mobx-react-lite';
 import { Button } from 'components/controls/Button/Button';
 import { Input } from 'components/controls/Input/Input';
 import { Modal } from 'components/Modal/Modal';
-import { ProjectContext } from 'contexts/ProjectContext';
 import { BsBoxArrowUpRight, BsExclamationCircle } from 'react-icons/bs';
-import { useTask } from 'contexts/TaskContext';
 import { projectBuildingTaskName, ProjectBuildTaskStage } from 'shared/task.names';
 import { useApiMessage, useOpenFolderSelectDialog, UseOpenFolderSelectDialogOptions } from 'utils/hooks';
 import {
@@ -20,22 +19,24 @@ import { openInExplorerIcon, projectBuildIcon } from 'constants/icons';
 import { openInExplorerAndSelect } from 'utils/natives';
 import { serverUpdateChannels } from 'shared/api.types';
 import { projectApi } from 'shared/api.events';
-import { ProjectBuilderError } from './ProjectBuilderError';
-import s from './ProjectBuilder.module.scss';
 import { ProjectBuildError } from 'shared/project.types';
+import { TaskState } from 'store/TaskState';
+import { ProjectBuilderError } from './ProjectBuilderError';
+import { ProjectState } from 'store/ProjectState';
+import s from './ProjectBuilder.module.scss';
 
 const buildSteps: Record<ProjectBuildTaskStage, React.ReactNode> = {
   [ProjectBuildTaskStage.VerifyingBuildSite]: 'Verifying build site',
-  [ProjectBuildTaskStage.StoppingWatchCommands]: 'Stopping watch commands',
   [ProjectBuildTaskStage.RunningBuildCommands]: 'Running builds commands',
   [ProjectBuildTaskStage.PreparingBuildSite]: 'Preparing build site',
   [ProjectBuildTaskStage.DeployingToBuildSite]: 'Deploying to build site',
   [ProjectBuildTaskStage.Done]: 'Done',
 };
 
-export const ProjectBuilder = React.memo(function ProjectBuilder() {
-  const { project, closeBuilder, build } = React.useContext(ProjectContext);
-  const buildTask = useTask(projectBuildingTaskName);
+export const ProjectBuilder = observer(function ProjectBuilder() {
+  const project = ProjectState.project;
+
+  const buildTask = TaskState.get(projectBuildingTaskName);
   const buildInProgress = !!buildTask;
 
   const [buildError, setBuildError] = React.useState<ProjectBuildError | null>(null);
@@ -59,8 +60,8 @@ export const ProjectBuilder = React.memo(function ProjectBuilder() {
       return;
     }
 
-    closeBuilder();
-  }, [buildTask, closeBuilder]);
+    ProjectState.closeBuilder();
+  }, [buildTask]);
 
   const [useVersioning, setUseVersioning] = useProjectUseVersioningVar(project);
   const [deployArtifact, setDeployArtifact] = useProjectDeployArtifactVar(project);
@@ -68,6 +69,11 @@ export const ProjectBuilder = React.memo(function ProjectBuilder() {
   const [tebexSecret, setTebexSecret] = useProjectTebexSecretVar(project);
 
   const [buildPath, setBuildPath] = useProjectBuildPathVar(project);
+
+  // This is so we actually save default buildPath to localstorage allowing for fast-project-build next time w/o showing this modal
+  React.useEffect(() => {
+    setBuildPath(buildPath);
+  }, []);
 
   const folderSelectOptions: UseOpenFolderSelectDialogOptions = React.useMemo(() => ({
     startPath: project.path,
@@ -96,7 +102,7 @@ export const ProjectBuilder = React.memo(function ProjectBuilder() {
     setBuildTriggered(false);
     setBuildError(null);
 
-    build({
+    ProjectState.buildProject({
       useVersioning,
       deployArtifact,
       steamWebApiKey,
@@ -105,7 +111,6 @@ export const ProjectBuilder = React.memo(function ProjectBuilder() {
   }, [
     setBuildTriggered,
     setBuildError,
-    build,
     useVersioning,
     deployArtifact,
     steamWebApiKey,
@@ -158,24 +163,7 @@ export const ProjectBuilder = React.memo(function ProjectBuilder() {
           <Checkbox
             value={deployArtifact}
             onChange={setDeployArtifact}
-            label={`Include server ${serverUpdateChannels[project.manifest.serverUpdateChannel]} artifact`}
-          />
-        </div>
-
-        <div className="modal-block modal-combine">
-          <Input
-            type="password"
-            label="Steam API key:"
-            value={steamWebApiKey}
-            onChange={setSteamWebApiKey}
-            description={<>If you want to use Steam authentication — <a href="https://steamcommunity.com/dev/apikey">get a key</a></>}
-          />
-          <Input
-            type="password"
-            label="Tebex secret:"
-            value={tebexSecret}
-            onChange={setTebexSecret}
-            description={<a href="https://server.tebex.io/settings/servers">Get Tebex secret</a>}
+            label={`Include ${serverUpdateChannels[project.manifest.serverUpdateChannel]} server artifact`}
           />
         </div>
 

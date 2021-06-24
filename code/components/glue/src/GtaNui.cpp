@@ -8,6 +8,7 @@
 
 #include <HostSharedData.h>
 #include <CfxState.h>
+#include <CrossBuildRuntime.h>
 
 #include <tbb/concurrent_queue.h>
 
@@ -40,7 +41,7 @@ private:
 
 	bool m_targetMouseFocus = true;
 
-	bool m_lastTargetMouseFocus = false;
+	bool m_lastTargetMouseFocus = true;
 
 public:
 	virtual void GetGameResolution(int* width, int* height) override;
@@ -80,15 +81,7 @@ public:
 
 	virtual HWND GetHWND() override
 	{
-		return FindWindowW(
-#ifdef GTA_FIVE
-			L"grcWindow"
-#elif defined(IS_RDR3)
-			L"sgaWindow"
-#else
-			L"UNKNOWN_WINDOW"
-#endif
-		, NULL);
+		return FindWindowW(xbr::GetGameWndClass(), NULL);
 	}
 
 	virtual void BlitTexture(fwRefContainer<GITexture> dst, fwRefContainer<GITexture> src) override
@@ -262,6 +255,20 @@ public:
 
 			return true;
 		}
+#elif defined(GTA_NY)
+		if (!m_texture || !m_texture->m_pITexture)
+		{
+			return false;
+		}
+
+		D3DLOCKED_RECT lockedRect;
+		if (SUCCEEDED(m_texture->m_pITexture->LockRect(0, &lockedRect, NULL, (flags == nui::GILockFlags::WriteDiscard) ? D3DLOCK_DISCARD : 0)))
+		{
+			lockedTexture->pBits = lockedRect.pBits;
+			lockedTexture->pitch = lockedRect.Pitch;
+
+			return true;
+		}
 #endif
 
 		return false;
@@ -280,6 +287,8 @@ public:
 		rlt.width = lockedTexture->width;
 
 		m_texture->Unmap(&rlt);
+#elif defined(GTA_NY)
+		m_texture->m_pITexture->UnlockRect(0);
 #endif
 	}
 };
@@ -328,7 +337,11 @@ fwRefContainer<GITexture> GtaNuiInterface::CreateTexture(int width, int height, 
 		reference.height = height;
 		reference.depth = 1;
 		reference.stride = width * 4;
+#if GTA_NY
+		reference.format = 1;
+#else
 		reference.format = (format == GITextureFormat::ARGB) ? 11 : -1; // dxt5?
+#endif
 		reference.pixelData = (uint8_t*)pixelMem->data();
 
 		return rage::grcTextureFactory::getInstance()->createImage(&reference, nullptr);
@@ -338,11 +351,13 @@ fwRefContainer<GITexture> GtaNuiInterface::CreateTexture(int width, int height, 
 
 fwRefContainer<GITexture> GtaNuiInterface::CreateTextureBacking(int width, int height, GITextureFormat format)
 {
+#ifndef GTA_NY
 	rage::sysMemAllocator::UpdateAllocatorValue();
+#endif
 
 	assert(format == GITextureFormat::ARGB);
 
-#ifdef GTA_FIVE
+#if defined(GTA_FIVE)
 	rage::grcManualTextureDef textureDef;
 	memset(&textureDef, 0, sizeof(textureDef));
 	textureDef.isStaging = 0;
@@ -357,7 +372,11 @@ fwRefContainer<GITexture> GtaNuiInterface::CreateTextureBacking(int width, int h
 		textureDef.isStaging = 0;
 		textureDef.arraySize = 1;
 
+#ifdef GTA_NY
+		return rage::grcTextureFactory::getInstance()->createManualTexture(width, height, FORMAT_A8R8G8B8, true, &textureDef);
+#else
 		return rage::grcTextureFactory::getInstance()->createManualTexture(width, height, 2 /* maps to BGRA DXGI format */, nullptr, true, &textureDef);
+#endif
 	});
 #endif
 }
@@ -368,7 +387,9 @@ fwRefContainer<GITexture> GtaNuiInterface::CreateTextureBacking(int width, int h
 
 fwRefContainer<GITexture> GtaNuiInterface::CreateTextureFromShareHandle(HANDLE shareHandle, int width, int height)
 {
+#ifndef GTA_NY
 	rage::sysMemAllocator::UpdateAllocatorValue();
+#endif
 
 #ifdef GTA_FIVE
 	ID3D11Device* device = ::GetD3D11Device();
@@ -425,6 +446,8 @@ fwRefContainer<GITexture> GtaNuiInterface::CreateTextureFromShareHandle(HANDLE s
 
 		return texture;
 	}
+#elif GTA_NY
+	// ?
 #else
 	if (GetCurrentGraphicsAPI() == GraphicsAPI::D3D12)
 	{
@@ -573,13 +596,16 @@ static thread_local fwRefContainer<nui::GITexture> g_currentTexture;
 
 void GtaNuiInterface::SetTexture(fwRefContainer<GITexture> texture, bool pm)
 {
+#ifndef GTA_NY
 	rage::sysMemAllocator::UpdateAllocatorValue();
+#endif
 
 	g_currentTexture = texture;
 
-	m_oldSamplerState = GetImDiffuseSamplerState();
-
 	SetTextureGtaIm(static_cast<GtaNuiTexture*>(texture.GetRef())->GetTexture());
+
+#if _HAVE_GRCORE_NEWSTATES
+	m_oldSamplerState = GetImDiffuseSamplerState();
 
 	m_oldRasterizerState = GetRasterizerState();
 	SetRasterizerState(GetStockStateIdentifier(RasterizerStateNoCulling));
@@ -589,6 +615,10 @@ void GtaNuiInterface::SetTexture(fwRefContainer<GITexture> texture, bool pm)
 
 	m_oldDepthStencilState = GetDepthStencilState();
 	SetDepthStencilState(GetStockStateIdentifier(DepthStencilStateNoDepth));
+#else
+	SetRenderState(0, grcCullModeNone);
+	SetRenderState(2, pm ? 13 : 0); // alpha blending m8
+#endif
 
 	PushDrawBlitImShader();
 }
@@ -628,10 +658,12 @@ void GtaNuiInterface::UnsetTexture()
 {
 	PopDrawBlitImShader();
 
+#ifdef _HAVE_GRCORE_NEWSTATES
 	SetRasterizerState(m_oldRasterizerState);
 	SetBlendState(m_oldBlendState);
 	SetDepthStencilState(m_oldDepthStencilState);
 	SetImDiffuseSamplerState(m_oldSamplerState);
+#endif
 
 	g_currentTexture = {};
 }
@@ -644,6 +676,23 @@ bool GtaNuiInterface::RequestMediaAccess(const std::string& frameOrigin, const s
 }
 
 static GtaNuiInterface nuiGi;
+
+static void DoRender()
+{
+	std::function<void()> fn;
+
+	while (g_earlyOnRenderQueue.try_pop(fn))
+	{
+		fn();
+	}
+
+	while (g_onRenderQueue.try_pop(fn))
+	{
+		fn();
+	}
+
+	nuiGi.OnRender();
+}
 
 static InitFunction initFunction([]()
 {
@@ -661,19 +710,20 @@ static InitFunction initFunction([]()
 
 	OnPostFrontendRender.Connect([]()
 	{
-		std::function<void()> fn;
-
-		while (g_earlyOnRenderQueue.try_pop(fn))
+		if (IsOnRenderThread())
 		{
-			fn();
+			DoRender();
 		}
-
-		while (g_onRenderQueue.try_pop(fn))
+		else
 		{
-			fn();
+			uintptr_t a = 0, b = 0;
+			EnqueueGenericDrawCommand([](uintptr_t, uintptr_t)
+			{
+				DoRender();
+			}, &a, &b);
 		}
-
-#ifndef IS_RDR3
+		
+#if !IS_RDR3 && !GTA_NY
 		if (nui::HasMainUI() || nui::HasFrame("loadingScreen"))
 		{
 			GfxForceVsync(true);
@@ -685,8 +735,6 @@ static InitFunction initFunction([]()
 #endif
 
 		nuiGi.UpdateMouseFocus();
-
-		nuiGi.OnRender();
 	}, -1000);
 
 	rage::fiDevice::OnInitialMount.Connect([]()

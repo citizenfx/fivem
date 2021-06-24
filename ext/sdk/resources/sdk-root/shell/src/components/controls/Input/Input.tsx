@@ -5,7 +5,7 @@ import { Indicator } from 'components/Indicator/Indicator';
 
 
 export interface InputProps {
-  type?: 'text' | 'password' | 'search',
+  type?: 'text' | 'password' | 'search' | 'range',
   tabIndex?: number,
   disabled?: boolean,
   autofocus?: boolean,
@@ -16,8 +16,15 @@ export interface InputProps {
   placeholder?: string,
   description?: React.ReactNode,
   value: string,
-  onChange: (string) => void,
+
+  // for 'range' inputs
+  combi?: boolean,
+  min?: string,
+  max?: string,
+
+  onChange: (value: string) => void,
   onSubmit?: () => void,
+  onKeyDown?(event: React.KeyboardEvent<HTMLInputElement>): void | boolean,
 
   showLoader?: boolean,
   noSpellCheck?: boolean,
@@ -29,6 +36,7 @@ export const Input = React.memo(function Input(props: InputProps) {
     value,
     onChange,
     onSubmit,
+    onKeyDown = () => false,
     pattern,
     tabIndex,
     showLoader = false,
@@ -40,6 +48,9 @@ export const Input = React.memo(function Input(props: InputProps) {
     inputClassName = '',
     description = '',
     type = 'text',
+    combi,
+    min,
+    max
   } = props;
 
   const handleChange = React.useCallback((event) => {
@@ -49,22 +60,53 @@ export const Input = React.memo(function Input(props: InputProps) {
       if (pattern.test(value)) {
         onChange(value);
       }
+    } else if (type === 'range') {
+      if (/^[0-9]*$/.test(value)) {
+        const intValue = value | 0;
+        if (value === '' || (intValue >= (parseInt(min, 10)) && intValue <= (parseInt(max, 10)))) {
+          onChange(value);
+        }
+      }
     } else {
       onChange(value);
     }
   }, [onChange, pattern]);
 
   const handleKeyDown = React.useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (onKeyDown(event)) {
+      return;
+    }
+
     if (event.key === 'Enter' && onSubmit) {
       onSubmit();
     }
-  }, [onSubmit]);
+  }, [onSubmit, onKeyDown]);
 
   const loaderNode = showLoader
     ? (
       <div className={s.loader}>
         <Indicator />
       </div>
+    )
+    : null;
+
+  const curNode = (!combi && type === 'range')
+    ? (
+      <span>{value}</span>
+    )
+    : null;
+
+  const textNode = (combi && type === 'range')
+    ? (
+        <input
+        type='text'
+        className={inputClassName}
+        value={value}
+        disabled={disabled}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown}
+        spellCheck={false}
+      />
     )
     : null;
 
@@ -81,7 +123,11 @@ export const Input = React.memo(function Input(props: InputProps) {
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         spellCheck={!noSpellCheck}
+        min={min}
+        max={max}
       />
+      {curNode}
+      {textNode}
       {loaderNode}
     </div>
   );

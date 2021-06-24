@@ -12,7 +12,7 @@
 #include <NetBuffer.h>
 #include <StructuredTrace.h>
 
-#include <state/ServerGameState.h>
+#include <state/ServerGameStatePublic.h>
 
 #include <PrintListener.h>
 
@@ -47,7 +47,7 @@ extern fwEvent<> OnEnetReceive;
 
 namespace fx
 {
-	extern bool IsOneSync();
+	DLL_EXPORT object_pool<GameServerPacket> m_packetPool;
 
 	GameServer::GameServer()
 		: m_residualTime(0), m_serverTime(msec().count()), m_nextHeartbeatTime(0), m_hasSettled(false)
@@ -73,7 +73,7 @@ namespace fx
 	{
 		m_instance = instance;
 
-		m_gamename = instance->AddVariable<GameName>("gamename", ConVar_ServerInfo, GameName::GTA5);
+		m_gamename = std::make_shared<ConVar<GameName>>("gamename", ConVar_ServerInfo, GameName::GTA5);
 		m_lastGameName = m_gamename->GetHelper()->GetValue();
 
 #ifdef _WIN32
@@ -715,6 +715,8 @@ namespace fx
 
 					auto host = m_clientRegistry->GetHost();
 
+					uint32_t bigModeSlot = (m_instance->GetComponent<fx::GameServer>()->GetGameName() == fx::GameName::GTA5) ? 128 : 16;
+
 					auto outStr = fmt::sprintf(
 						" %d %d %d %d %lld",
 						client->GetNetId(),
@@ -722,7 +724,7 @@ namespace fx
 						(host) ? host->GetNetBase() : -1,
 						(IsOneSync())
 							? ((fx::IsBigMode())
-								? 128
+								? bigModeSlot
 								: client->GetSlotId())
 							: -1,
 						(IsOneSync()) ? msec().count() : -1);
@@ -742,7 +744,7 @@ namespace fx
 
 						if (IsOneSync())
 						{
-							m_instance->GetComponent<fx::ServerGameState>()->SendObjectIds(client, fx::IsBigMode() ? 4 : 64);
+							m_instance->GetComponent<fx::ServerGameStatePublic>()->SendObjectIds(client, fx::IsBigMode() ? 4 : 64);
 						}
 
 						ForceHeartbeatSoon();
@@ -766,6 +768,10 @@ namespace fx
 			m_packetHandler(msgType, client, msg);
 		}
 
+		if (client->GetNetworkMetricsRecvCallback())
+		{
+			client->GetNetworkMetricsRecvCallback()(client.get(), msgType, msg);
+		}
 		client->Touch();
 	}
 
@@ -877,7 +883,7 @@ namespace fx
 		{
 			std::vector<fx::ClientSharedPtr> toRemove;
 
-			uint8_t syncStyle = (uint8_t)m_instance->GetComponent<fx::ServerGameState>()->GetSyncStyle();
+			uint8_t syncStyle = (uint8_t)m_instance->GetComponent<fx::ServerGameStatePublic>()->GetSyncStyle();
 
 			m_clientRegistry->ForAllClients([&](fx::ClientSharedPtr client)
 			{
@@ -889,7 +895,7 @@ namespace fx
 					const auto& lf = client->GetData("lastFrame");
 					const auto& ss = client->GetData("syncStyle");
 
-					bool lockdownMode = m_instance->GetComponent<fx::ServerGameState>()->GetEntityLockdownMode(client) == fx::EntityLockdownMode::Strict;
+					bool lockdownMode = m_instance->GetComponent<fx::ServerGameStatePublic>()->GetEntityLockdownMode(client) == fx::EntityLockdownMode::Strict;
 
 					if (!lm.has_value() || std::any_cast<bool>(lm) != lockdownMode ||
 						!ss.has_value() || std::any_cast<uint8_t>(ss) != syncStyle ||
@@ -919,7 +925,29 @@ namespace fx
 
 			for (auto& client : toRemove)
 			{
-				DropClient(client, "Server->client connection timed out. Last seen %d msec ago.", (msec() - client->GetLastSeen()).count());
+				auto lastSeen = (msec() - client->GetLastSeen());
+
+				// if this happened fairly early, try to find out why
+				if (lastSeen < 1500ms)
+				{
+					auto timeoutInfo = m_net->GatherTimeoutInfo(client->GetPeer());
+
+					if (!timeoutInfo.bigCommandList.empty())
+					{
+						std::stringstream commandListFormat;
+						for (const auto& bigCmd : timeoutInfo.bigCommandList)
+						{
+							std::string name = (bigCmd.eventName.empty()) ? fmt::sprintf("%08x", bigCmd.type) : bigCmd.eventName;
+
+							commandListFormat << fmt::sprintf("%s (%d B, %d msec ago)\n", name, bigCmd.size, bigCmd.timeAgo);
+						}
+
+						DropClient(client, "Server->client connection timed out. Pending commands: %d.\nCommand list:\n%s", timeoutInfo.pendingCommands, commandListFormat.str());
+						continue;
+					}
+				}
+
+				DropClient(client, "Server->client connection timed out. Last seen %d msec ago.", lastSeen.count());
 			}
 		}
 
@@ -1045,15 +1073,21 @@ namespace fx
 		// ensure mono thread attachment (if this was a worker thread)
 		MonoEnsureThreadAttached();
 
-		// trigger a event signaling the player's drop
-		m_instance
-			->GetComponent<fx::ResourceManager>()
-			->GetComponent<fx::ResourceEventManagerComponent>()
-			->TriggerEvent2(
-				"playerDropped",
-				{ fmt::sprintf("internal-net:%d", client->GetNetId()) },
-				realReason
-			);
+		// verify if the client is still using a TempID
+		bool isFinal = (client->GetNetId() < 0xFFFF);
+
+		// trigger a event signaling the player's drop, if final
+		if (isFinal)
+		{
+			m_instance
+				->GetComponent<fx::ResourceManager>()
+				->GetComponent<fx::ResourceEventManagerComponent>()
+				->TriggerEvent2(
+					"playerDropped",
+					{ fmt::sprintf("internal-net:%d", client->GetNetId()) },
+					realReason
+				);
+		}
 
 		// remove the host if this was the host
 		if (m_clientRegistry->GetHost() == client)
@@ -1076,7 +1110,7 @@ namespace fx
 			// for name handling, send player state
 			fwRefContainer<ServerEventComponent> events = m_instance->GetComponent<ServerEventComponent>();
 
-			if (!fx::IsBigMode())
+			if (!fx::IsBigMode() && isFinal)
 			{
 				// send every player information about the dropping client
 				events->TriggerClientEventReplayed("onPlayerDropped", std::optional<std::string_view>(), client->GetNetId(), client->GetName(), client->GetSlotId());
@@ -1368,7 +1402,7 @@ namespace fx
 
 						gscomms_execute_callback_on_sync_thread([instance, client, packetData]()
 						{
-							instance->GetComponent<fx::ServerGameState>()->ParseGameStatePacket(client, packetData);
+							instance->GetComponent<fx::ServerGameStatePublic>()->ParseGameStatePacket(client, packetData);
 						});
 
 						return;
@@ -1563,16 +1597,34 @@ DECLARE_INSTANCE_TYPE(fx::ServerDecorators::HostVoteCount);
 
 DLL_EXPORT void gscomms_execute_callback_on_main_thread(const std::function<void()>& fn, bool force)
 {
+	if (!g_gameServer)
+	{
+		fn();
+		return;
+	}
+
 	g_gameServer->InternalAddMainThreadCb(fn, force);
 }
 
 void gscomms_execute_callback_on_net_thread(const std::function<void()>& fn)
 {
+	if (!g_gameServer)
+	{
+		fn();
+		return;
+	}
+
 	g_gameServer->InternalAddNetThreadCb(fn);
 }
 
 void gscomms_execute_callback_on_sync_thread(const std::function<void()>& fn)
 {
+	if (!g_gameServer)
+	{
+		fn();
+		return;
+	}
+
 	g_gameServer->InternalAddSyncThreadCb(fn);
 }
 

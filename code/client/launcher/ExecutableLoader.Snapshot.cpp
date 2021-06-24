@@ -5,6 +5,8 @@
 
 #include <CrossBuildRuntime.h>
 
+#include <openssl/sha.h>
+
 #if defined(GTA_FIVE) || defined(IS_RDR3)
 inline static uintptr_t GetLauncherTriggerEP()
 {
@@ -69,6 +71,9 @@ inline uintptr_t GetTriggerEP()
 }
 
 #define TRIGGER_EP (GetTriggerEP())
+#elif defined(GTA_NY)
+// .43
+#define TRIGGER_EP 0xDF8F2B
 #else
 #define TRIGGER_EP 0xDECEA5ED
 #endif
@@ -111,7 +116,13 @@ static void SetDebugBits(std::function<void(CONTEXT*)> cb, CONTEXT* curContext)
 template<typename T>
 static inline T* GetTargetRVA(uint32_t rva)
 {
-	return (T*)((uint8_t*)hook::get_adjusted(0x140000000 + rva));
+	return (T*)((uint8_t*)hook::get_adjusted(
+#ifdef _M_AMD64
+	0x140000000
+#else
+	0x400000
+#endif
+		+ rva));
 }
 
 static void UnapplyRelocations(bool a);
@@ -136,20 +147,35 @@ static LONG CALLBACK SnapshotVEH(PEXCEPTION_POINTERS pointers)
 		IMAGE_NT_HEADERS* ntHeader = GetTargetRVA<IMAGE_NT_HEADERS>(header->e_lfanew);
 		IMAGE_SECTION_HEADER* section = IMAGE_FIRST_SECTION(ntHeader);
 
-		FILE* f = _wfopen(MakeRelativeCitPath(fmt::sprintf(L"cache\\game\\executable_snapshot_%x.bin", ntHeader->OptionalHeader.AddressOfEntryPoint)).c_str(), L"wb");
+		FILE* f = _wfopen(MakeRelativeCitPath(fmt::sprintf(L"data\\cache\\executable_snapshot_%x.bin", ntHeader->OptionalHeader.AddressOfEntryPoint)).c_str(), L"wb");
 
-		for (int i = 0; i < ntHeader->FileHeader.NumberOfSections; i++)
+		SHA256_CTX sha;
+		SHA256_Init(&sha);
+
+		auto write = [&f, &sha](const void* data, size_t size)
 		{
 			if (f)
 			{
-				fwrite(GetTargetRVA<void>(section->VirtualAddress), 1, section->SizeOfRawData, f);
+				fwrite(data, 1, size, f);
 			}
+
+			SHA256_Update(&sha, data, size);
+		};
+
+		for (int i = 0; i < ntHeader->FileHeader.NumberOfSections; i++)
+		{
+			write(GetTargetRVA<void>(section->VirtualAddress), section->SizeOfRawData);
 
 			++section;
 		}
 
 		if (f)
 		{
+			uint8_t endHash[256 / 8];
+			SHA256_Final(endHash, &sha);
+
+			fwrite(endHash, 1, sizeof(endHash), f);
+
 			fclose(f);
 		}
 
@@ -172,7 +198,7 @@ void DoCreateSnapshot()
 		context->Dr7 |= (1 << 6) | (0 << 28) | (0 << 30);
 
 		// set the address for bp 4
-		context->Dr3 = (DWORD64)hook::get_adjusted(TRIGGER_EP);
+		context->Dr3 = (DWORD_PTR)hook::get_adjusted(TRIGGER_EP);
 	}, nullptr);
 }
 
@@ -181,7 +207,15 @@ static std::wstring g_dumpFileName;
 
 static void UnapplyRelocations(bool a)
 {
-	IMAGE_DOS_HEADER* dosHeader = reinterpret_cast<IMAGE_DOS_HEADER*>(hook::get_adjusted(0x140000000));
+	constexpr uintptr_t base =
+#ifdef _M_AMD64
+	0x140000000
+#else
+	0x400000
+#endif
+	;
+
+	IMAGE_DOS_HEADER* dosHeader = reinterpret_cast<IMAGE_DOS_HEADER*>(hook::get_adjusted(base));
 
 	IMAGE_NT_HEADERS* ntHeader = GetTargetRVA<IMAGE_NT_HEADERS>(dosHeader->e_lfanew);
 
@@ -190,7 +224,7 @@ static void UnapplyRelocations(bool a)
 	IMAGE_BASE_RELOCATION* relocation = GetTargetRVA<IMAGE_BASE_RELOCATION>(relocationDirectory->VirtualAddress);
 	IMAGE_BASE_RELOCATION* endRelocation = reinterpret_cast<IMAGE_BASE_RELOCATION*>((char*)relocation + relocationDirectory->Size);
 
-	intptr_t relocOffset = static_cast<intptr_t>(hook::get_adjusted(0x140000000)) - 0x140000000;
+	intptr_t relocOffset = static_cast<intptr_t>(hook::get_adjusted(base)) - base;
 
 	if (relocOffset == 0)
 	{
@@ -350,13 +384,13 @@ void DoCreateDump(void* ep, const wchar_t* fileName)
 		context->Dr7 |= (1 << 6) | (0 << 28) | (0 << 30);
 
 		// set the address for bp 4
-		context->Dr3 = (DWORD64)ep;
+		context->Dr3 = (DWORD_PTR)ep;
 	}, nullptr);
 }
 
 void ExecutableLoader::LoadSnapshot(IMAGE_NT_HEADERS* ntHeader)
 {
-	std::wstring snapBaseName = MakeRelativeCitPath(fmt::sprintf(L"cache\\game\\executable_snapshot_%x.bin", ntHeader->OptionalHeader.AddressOfEntryPoint));
+	std::wstring snapBaseName = MakeRelativeCitPath(fmt::sprintf(L"data\\cache\\executable_snapshot_%x.bin", ntHeader->OptionalHeader.AddressOfEntryPoint));
 
 	if (GetFileAttributesW(snapBaseName.c_str()) == INVALID_FILE_ATTRIBUTES)
 	{
@@ -370,16 +404,60 @@ void ExecutableLoader::LoadSnapshot(IMAGE_NT_HEADERS* ntHeader)
 
 	if (!f)
 	{
+		DoCreateSnapshot();
 		return;
 	}
+
+	size_t sectionSize = 0;
+
+	for (int i = 0; i < ntHeader->FileHeader.NumberOfSections; i++)
+	{
+		sectionSize += section[i].SizeOfRawData;
+	}
+
+	std::vector<uint8_t> fileData(sectionSize);
+	if (fread(fileData.data(), 1, sectionSize, f) != sectionSize)
+	{
+		fclose(f);
+
+		DoCreateSnapshot();
+		return;
+	}
+
+	uint8_t md[256 / 8];
+	if (fread(md, 1, sizeof(md), f) != sizeof(md))
+	{
+		fclose(f);
+
+		DoCreateSnapshot();
+		return;
+	}
+
+	uint8_t rmd[256 / 8];
+
+	SHA256_CTX sha;
+	SHA256_Init(&sha);
+	SHA256_Update(&sha, fileData.data(), sectionSize);
+	SHA256_Final(rmd, &sha);
+
+	if (memcmp(rmd, md, sizeof(md)) != 0)
+	{
+		fclose(f);
+
+		DoCreateSnapshot();
+		return;
+	}
+
+	size_t off = 0;
 
 	for (int i = 0; i < ntHeader->FileHeader.NumberOfSections; i++)
 	{
 		DWORD oldProtect;
 		VirtualProtect(GetTargetRVA<void>(section->VirtualAddress), section->SizeOfRawData, PAGE_EXECUTE_READWRITE, &oldProtect);
 
-		fread(GetTargetRVA<void>(section->VirtualAddress), 1, section->SizeOfRawData, f);
+		memcpy(GetTargetRVA<void>(section->VirtualAddress), &fileData[off], section->SizeOfRawData);
 
+		off += section->SizeOfRawData;
 		++section;
 	}
 
@@ -389,5 +467,11 @@ void ExecutableLoader::LoadSnapshot(IMAGE_NT_HEADERS* ntHeader)
 	VirtualProtect(ntHeader, 0x1000, PAGE_READWRITE, &oldProtect);
 
 	// no-adjust
-	ntHeader->OptionalHeader.AddressOfEntryPoint = TRIGGER_EP - 0x140000000;
+	ntHeader->OptionalHeader.AddressOfEntryPoint = TRIGGER_EP - 
+#ifdef _M_AMD64
+		0x140000000
+#else
+		0x400000
+#endif
+		;
 }

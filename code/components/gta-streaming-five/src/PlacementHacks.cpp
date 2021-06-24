@@ -25,22 +25,22 @@
 
 namespace rage
 {
-	static hook::cdecl_stub<void(const fwRefAwareBase* self, void** ref)> _addKnownRef([]()
+	static hook::cdecl_stub<void(fwRefAwareBase* self, void** ref)> _addKnownRef([]()
 	{
 		return hook::get_call(hook::get_pattern("74 20 48 85 C9 74 08", 29));
 	});
 
-	static hook::cdecl_stub<void(const fwRefAwareBase* self, void** ref)> _removeKnownRef([]()
+	static hook::cdecl_stub<void(fwRefAwareBase* self, void** ref)> _removeKnownRef([]()
 	{
 		return hook::get_call(hook::get_pattern("74 20 48 85 C9 74 08", 10));
 	});
 
-	void fwRefAwareBase::AddKnownRef(void** ref) const
+	void fwRefAwareBase::AddKnownRef(void** ref)
 	{
 		return _addKnownRef(this, ref);
 	}
 
-	void fwRefAwareBase::RemoveKnownRef(void** ref) const
+	void fwRefAwareBase::RemoveKnownRef(void** ref)
 	{
 		return _removeKnownRef(this, ref);
 	}

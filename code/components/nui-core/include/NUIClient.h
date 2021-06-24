@@ -47,7 +47,16 @@ private:
 public:
 	NUIClient(NUIWindow* window);
 
-	inline NUIWindow*	GetWindow()					{ return m_window;		}
+	inline NUIWindow* GetWindow()
+	{
+		return m_window;
+	}
+
+	inline void ClearWindow()
+	{
+		m_window = nullptr;
+	}
+
 	inline CefBrowser*	GetBrowser()				{ return m_browser.get();		}
 
 	inline bool			GetWindowValid()			{ return m_windowValid;			}
@@ -74,6 +83,17 @@ protected:
 	virtual CefRefPtr<CefLoadHandler> GetLoadHandler() override;
 	virtual CefRefPtr<CefRenderHandler> GetRenderHandler() override;
 	virtual CefRefPtr<CefRequestHandler> GetRequestHandler() override;
+	virtual CefRefPtr<CefResourceRequestHandler> GetResourceRequestHandler(
+		CefRefPtr<CefBrowser> browser,
+		CefRefPtr<CefFrame> frame,
+		CefRefPtr<CefRequest> request,
+		bool is_navigation,
+		bool is_download,
+		const CefString& request_initiator,
+		bool& disable_default_handling) OVERRIDE
+	{
+		return this;
+	}
 
 #ifdef NUI_WITH_MEDIA_ACCESS
 	virtual CefRefPtr<CefMediaAccessHandler> GetMediaAccessHandler() override;
@@ -96,6 +116,19 @@ protected:
 	virtual void OnAfterCreated(CefRefPtr<CefBrowser> browser) override;
 
 	virtual void OnBeforeClose(CefRefPtr<CefBrowser> browser) override;
+
+	virtual bool OnBeforePopup(CefRefPtr<CefBrowser> browser,
+		CefRefPtr<CefFrame> frame,
+		const CefString& target_url,
+		const CefString& target_frame_name,
+		CefLifeSpanHandler::WindowOpenDisposition target_disposition,
+		bool user_gesture,
+		const CefPopupFeatures& popupFeatures,
+		CefWindowInfo& windowInfo,
+		CefRefPtr<CefClient>& client,
+		CefBrowserSettings& settings,
+		CefRefPtr<CefDictionaryValue>& extra_info,
+		bool* no_javascript_access) override;
 
 // CefLoadHandler
 protected:
@@ -147,11 +180,6 @@ protected:
 
 public:
 	virtual void OnAudioCategoryConfigure(const std::string& frame, const std::string& category);
-
-	virtual CefRefPtr<CefResourceRequestHandler> GetResourceRequestHandler(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, bool is_navigation, bool is_download, const CefString& request_initiator, bool& disable_default_handling) OVERRIDE
-	{
-		return this;
-	}
 
 private:
 	std::map<std::pair<int, int>, std::tuple<std::shared_ptr<nui::IAudioStream>, nui::AudioStreamParams>> m_audioStreams;

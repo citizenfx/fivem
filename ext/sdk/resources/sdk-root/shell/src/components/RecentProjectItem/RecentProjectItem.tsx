@@ -1,9 +1,9 @@
+import React from 'react';
 import { Button } from 'components/controls/Button/Button';
 import { closeIcon, projectIcon } from 'constants/icons';
-import { ProjectContext } from 'contexts/ProjectContext';
-import * as React from 'react';
 import { projectApi } from 'shared/api.events';
 import { RecentProject } from 'shared/project.types';
+import { ProjectState } from 'store/ProjectState';
 import { sendApiMessage } from 'utils/api';
 import s from './RecentProjectItem.module.scss';
 
@@ -12,12 +12,9 @@ export interface RecentProjectItemProps {
 }
 
 export const RecentProjectItem = React.memo(function RecentProjectItem({ recentProject }: RecentProjectItemProps) {
-  const { openProject: baseOpenProject, closeOpener } = React.useContext(ProjectContext);
-
   const openProject = React.useCallback(() => {
-    baseOpenProject(recentProject.path);
-    closeOpener();
-  }, [recentProject.path, baseOpenProject, closeOpener]);
+    ProjectState.openProject(recentProject.path);
+  }, [recentProject.path]);
 
   const removeRecentProject = React.useCallback(() => {
     sendApiMessage(projectApi.removeRecent, recentProject.path);

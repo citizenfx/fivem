@@ -36,7 +36,10 @@ New-Item -ItemType Directory -Force $CacheDir\fxdk-five\citizen\sdk | Out-Null
 Set-Location $CacheDir
 
 robocopy $WorkDir\ext\sdk-build\sdk-root\resource\ $CacheDir\fxdk-five\citizen\sdk\sdk-root\ /mir /xo /fft /ndl /njh /njs /nc /ns /np
-xcopy /y /e $WorkDir\ext\sdk\resources\sdk-game\*.* $CacheDir\fxdk-five\citizen\sdk\sdk-game\
+# xcopy /y /e $WorkDir\ext\sdk\resources\sdk-game\*.* $CacheDir\fxdk-five\citizen\sdk\sdk-game\
+xcopy /y /e $WorkDir\ext\sdk\resources\sdk-game\fxmanifest.lua $CacheDir\fxdk-five\citizen\sdk\sdk-game\
+xcopy /y /e $WorkDir\ext\sdk\resources\sdk-game\sdk-client.js $CacheDir\fxdk-five\citizen\sdk\sdk-game\
+xcopy /y /e $WorkDir\ext\sdk\resources\sdk-game\sdk-server.js $CacheDir\fxdk-five\citizen\sdk\sdk-game\
 
 "<Caches>
 <Cache ID=`"fxdk-five`" Version=`"$SDKVersion`" />

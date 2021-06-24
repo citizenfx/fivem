@@ -1,0 +1,67 @@
+@import "variables";
+
+.root {
+  display: flex;
+  flex-direction: column;
+
+  padding: $q*2;
+
+  font-weight: 100;
+
+  background-color: rgba($fgColor, .05);
+
+  &:nth-child(odd) {
+    background-color: rgba($fgColor, .1);
+  }
+
+  .progress {
+    position: relative;
+
+    margin-top: $q*2;
+
+    height: 2px;
+
+    background-color: rgba($fgColor, .25);
+
+    &.indeterminate {
+      background-image: linear-gradient(90deg, transparent, #{$acColor}, transparent);
+      background-size: 50%;
+
+      @keyframes slidingStripe {
+        0% {
+          background-position-x: 0%;
+        }
+        100% {
+          background-position-x: 100%;
+        }
+      }
+
+      animation: slidingStripe .5s linear infinite;
+    }
+
+    .bar {
+      height: 100%;
+
+      background-color: $acColor;
+
+      transition: width .2s linear;
+    }
+  }
+
+  .title {
+    display: flex;
+
+    @include fontPrimary;
+
+    color: rgba($fgColor, .75);
+    font-size: $fs08;
+    font-weight: 100;
+
+    .text {
+      font-size: $fs08;
+      color: rgba($fgColor, .5);
+
+      margin-left: $q;
+    }
+  }
+}
