@@ -181,8 +181,9 @@ private:
 				auto hostNameVar = conCtx->GetVariableManager()->FindEntryRaw("sv_hostname");
 				auto iconVar = conCtx->GetVariableManager()->FindEntryRaw("sv_icon");
 				auto gameNameVar = conCtx->GetVariableManager()->FindEntryRaw("gamename");
+				auto changeConsoleTitle = conCtx->GetVariableManager()->FindEntryRaw("consoletitle");
 
-				if (hostNameVar && consoleWindowState.lastHostname != hostNameVar->GetValue())
+				if (hostNameVar && consoleWindowState.lastHostname != hostNameVar->GetValue() && consoletitle->GetValue() != "0")
 				{
 					consoleWindowState.lastHostname = hostNameVar->GetValue();
 
@@ -226,8 +227,9 @@ private:
 					auto hostNameVar = conCtx->GetVariableManager()->FindEntryRaw("sv_hostname");
 					auto iconVar = conCtx->GetVariableManager()->FindEntryRaw("sv_icon");
 					auto gameNameVar = conCtx->GetVariableManager()->FindEntryRaw("gamename");
-
-					if (hostNameVar && state.lastHostname != hostNameVar->GetValue())
+					auto changeConsoleTitle = conCtx->GetVariableManager()->FindEntryRaw("consoletitle");
+					
+					if (hostNameVar && state.lastHostname != hostNameVar->GetValue() && consoletitle->GetValue() != "0")
 					{
 						state.lastHostname = hostNameVar->GetValue();
 
