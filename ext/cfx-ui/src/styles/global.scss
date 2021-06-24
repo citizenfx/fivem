@@ -11,13 +11,10 @@
 @import "~@fortawesome/fontawesome-free/css/brands.css";
 @import "~@fortawesome/fontawesome-free/css/solid.css";
 
-@import '~@angular/material/theming';
-
-@include mat-core();
-
 @font-face {
        font-family: 'Material Icons Outlined';
        font-style: normal;
+	   font-display: block;
        font-weight: 400;
        src: url(../assets/fonts/material-icons-outlined.woff2) format('woff2');
 }
@@ -27,18 +24,21 @@
 	font-family: 'Roboto';
 	src: url(../assets/fonts/roboto_light.woff);
 	font-weight: 100;
+	font-display: swap;
 }
 @font-face
 {
 	font-family: 'Roboto';
 	src: url(../assets/fonts/roboto_regular.woff);
 	font-weight: normal;
+	font-display: swap;
 }
 @font-face
 {
 	font-family: 'Roboto';
 	src: url(../assets/fonts/roboto_medium.woff);
 	font-weight: bold;
+	font-display: swap;
 }
 
 $md-cfx: (
@@ -318,58 +318,16 @@ button {
 	}
 }
 
-.mat-tab-body-wrapper, mat-tab-body, mat-tab-group {
-	flex-grow: 1;
-}
-
-.mat-tab-label {
-	@include fontRubik;
-	font-size: var(--fs-1);
-	font-weight: normal;
-}
-
 .theme-light {
-	@include angular-material-theme(mat-light-theme(
-		mat-palette($md-cfx),
-		mat-palette($md-cfx)
-	));
-
 	input[type="search"]::-webkit-search-cancel-button {
 		background-image: url(../assets/images/cross-light.svg);
 	}
 }
 
-.theme-dark {
-	@include angular-material-theme(mat-dark-theme(
-		mat-palette($md-cfx),
-		mat-palette($md-cfx)
-	));
-
+.theme-dark, .theme-ny, .theme-rdr3 {
 	input[type="search"]::-webkit-search-cancel-button {
 		background-image: url(../assets/images/cross-dark.svg);
 	}
-}
-
-.theme-rdr3 {
-	@include angular-material-theme(mat-dark-theme(
-		mat-palette($mat-red),
-		mat-palette($mat-red)
-	));
-}
-
-.theme-ny {
-	@include angular-material-theme(mat-dark-theme(
-		mat-palette($mat-blue),
-		mat-palette($mat-blue)
-	));
-}
-
-.mat-tab-group, mat-tab-group {
-	font-family: inherit;
-}
-
-.mat-tab-body-content {
-	will-change: transform;
 }
 
 .material-icons-outlined {

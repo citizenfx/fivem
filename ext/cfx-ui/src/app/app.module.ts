@@ -74,10 +74,6 @@ import {
 import { Observable } from 'rxjs';
 import languageRefs from 'webpack-extended-import-glob-loader!./languagerefs';
 
-import { MatSelectModule } from '@angular/material/select';
-import { MatTabsModule } from '@angular/material/tabs';
-import { MatCheckboxModule } from '@angular/material/checkbox';
-
 import { ModsComponent } from './mods/mods/mods.component';
 import { ModListComponent } from './mods/mod-list/mod-list.component';
 import { ModDetailComponent } from './mods/mod-detail/mod-detail.component';
@@ -208,9 +204,6 @@ export function metaFactory(): MetaLoader {
 			useFactory: (metaFactory)
 		}),
 		BrowserAnimationsModule,
-		MatTabsModule,
-		MatSelectModule,
-		MatCheckboxModule,
 		NgxFilesizeModule,
 		Nl2BrPipeModule,
 	],
