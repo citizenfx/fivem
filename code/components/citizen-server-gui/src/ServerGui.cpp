@@ -183,7 +183,7 @@ private:
 				auto gameNameVar = conCtx->GetVariableManager()->FindEntryRaw("gamename");
 				auto changeConsoleTitle = conCtx->GetVariableManager()->FindEntryRaw("consoletitle");
 
-				if (hostNameVar && consoleWindowState.lastHostname != hostNameVar->GetValue() && consoletitle->GetValue() != "0")
+				if (hostNameVar && consoleWindowState.lastHostname != hostNameVar->GetValue() && changeConsoleTitle->GetValue() != "0")
 				{
 					consoleWindowState.lastHostname = hostNameVar->GetValue();
 
@@ -229,7 +229,7 @@ private:
 					auto gameNameVar = conCtx->GetVariableManager()->FindEntryRaw("gamename");
 					auto changeConsoleTitle = conCtx->GetVariableManager()->FindEntryRaw("consoletitle");
 					
-					if (hostNameVar && state.lastHostname != hostNameVar->GetValue() && consoletitle->GetValue() != "0")
+					if (hostNameVar && state.lastHostname != hostNameVar->GetValue() && changeConsoleTitle->GetValue() != "0")
 					{
 						state.lastHostname = hostNameVar->GetValue();
 
