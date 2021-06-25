@@ -95,8 +95,11 @@ inline void ConvertToJSON(const msgpack::object& object, rapidjson::Value& value
 			break;
 
 		case msgpack::type::POSITIVE_INTEGER:
+			value.SetUint64(object.as<uint64_t>());
+			break;
+
 		case msgpack::type::NEGATIVE_INTEGER:
-			value.SetInt(object.as<int>());
+			value.SetInt64(object.as<int64_t>());
 			break;
 
 		case msgpack::type::FLOAT:
