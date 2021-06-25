@@ -8,8 +8,6 @@ import { GameService } from '../../../game.service';
 
 import { Subject } from 'rxjs';
 
-import 'rxjs/add/operator/throttleTime';
-
 import { ServerFilters, ServerSorting, ServerSortBy, ServerSortDirection } from './server-filter-container';
 import { DirectConnectBackendComponent } from '../../direct/direct-connect-backend.component';
 import { LocalStorage } from '../../../local-storage';

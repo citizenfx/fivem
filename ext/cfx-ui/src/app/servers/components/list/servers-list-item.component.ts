@@ -16,6 +16,7 @@ import parseAPNG, { isNotAPNG } from '@citizenfx/apng-js';
 import { ServerTagsService } from 'app/servers/server-tags.service';
 import { Subscription } from 'rxjs';
 import { environment } from 'environments/environment';
+import { master } from 'app/servers/master';
 
 @Component({
 	moduleId: module.id,
@@ -27,7 +28,7 @@ import { environment } from 'environments/environment';
 
 export class ServersListItemComponent implements OnInit, OnChanges, OnDestroy, AfterViewInit {
 	@Input()
-	server: Server;
+	server: master.IServer;
 
 	@Input()
 	pinned = false;
@@ -49,21 +50,25 @@ export class ServersListItemComponent implements OnInit, OnChanges, OnDestroy, A
 		private zone: NgZone, private renderer: Renderer2, private cdr: ChangeDetectorRef) {
     }
 
+	get rawServer() {
+		return this.serversService.getMaterializedServer(this.server);
+	}
+
     get isWeb() {
         return environment.web;
     }
 
 	get premium() {
-		if (!this.server.data.vars) {
+		if (!this.rawServer.data.vars) {
 			return '';
 		}
 
-		return this.server.data.vars.premium;
+		return this.rawServer.data.vars.premium;
 	}
 
 	public ngOnInit() {
 		this.hoverIntent = hoverintent(this.elementRef.nativeElement, () => {
-			this.serversService.getServer(this.server.address, true);
+			this.serversService.getServer(this.rawServer.address, true);
 		}, () => { });
 
 		this.hoverIntent.options({
@@ -116,24 +121,26 @@ export class ServersListItemComponent implements OnInit, OnChanges, OnDestroy, A
 		// APNG icons only allowed for pt level
 		// So we have to check if other levels don't violate that
 		if (this.premium !== 'pt') {
-			if (this.server.iconNeedsResolving) {
+			if (this.rawServer.iconNeedsResolving) {
 				this.zone.runOutsideAngular(() => {
 					this.resolveIcon();
 				});
 				return;
 			}
 
-			if (this.server.cachedResolvedIcon) {
+			if (this.rawServer.cachedResolvedIcon) {
 				this.zone.runOutsideAngular(() => {
-					this.placeIconNode(this.server.cachedResolvedIcon);
+					this.placeIconNode(this.rawServer.cachedResolvedIcon);
 				});
 			}
 		}
 	}
 
 	private async resolveIcon() {
+		const server = this.rawServer;
+
 		try {
-			const response = await fetch(this.server.iconUri);
+			const response = await fetch(server.iconUri);
 
 			if (!response.ok) {
 				throw new Error();
@@ -144,11 +151,11 @@ export class ServersListItemComponent implements OnInit, OnChanges, OnDestroy, A
 
 			if (isNotAPNG(png)) {
 				const imageElement = document.createElement('img');
-				imageElement.src = this.server.iconUri;
+				imageElement.src = server.iconUri;
 
 				await imageElement.decode();
 
-				this.server.cachedResolvedIcon = imageElement;
+				server.cachedResolvedIcon = imageElement;
 				this.placeIconNode(imageElement);
 			} else {
 				if (png instanceof Error) {
@@ -161,25 +168,25 @@ export class ServersListItemComponent implements OnInit, OnChanges, OnDestroy, A
 				const imageElement = frame.imageElement;
 				await imageElement.decode();
 
-				this.server.cachedResolvedIcon = imageElement;
+				server.cachedResolvedIcon = imageElement;
 				this.placeIconNode(imageElement);
 			}
 		} catch (e) {
-			this.server.setDefaultIcon();
+			server.setDefaultIcon();
 		} finally {
-			this.server.iconNeedsResolving = false;
+			server.iconNeedsResolving = false;
 		}
 	}
 
 	attemptConnect(event: Event) {
-		this.gameService.connectTo(this.server);
+		this.gameService.connectTo(this.rawServer);
 
 		event.stopPropagation();
 	}
 
 	showServerDetail() {
 		this.zone.run(() => {
-			this.router.navigate(['/', 'servers', 'detail', this.server.address]);
+			this.router.navigate(['/', 'servers', 'detail', this.server.EndPoint]);
 		});
 	}
 
@@ -198,11 +205,11 @@ export class ServersListItemComponent implements OnInit, OnChanges, OnDestroy, A
 	}
 
 	addFavorite() {
-		this.gameService.toggleListEntry('favorites', this.server, true);
+		this.gameService.toggleListEntry('favorites', this.rawServer, true);
 	}
 
 	removeFavorite() {
-		this.gameService.toggleListEntry('favorites', this.server, false);
+		this.gameService.toggleListEntry('favorites', this.rawServer, false);
 	}
 
 	enableBoost(event: Event) {
@@ -214,7 +221,7 @@ export class ServersListItemComponent implements OnInit, OnChanges, OnDestroy, A
 	}
 
 	isBoost() {
-		return this.discourseService.currentBoost && this.discourseService.currentBoost.address === this.server.address;
+		return this.discourseService.currentBoost && this.discourseService.currentBoost.address === this.server.EndPoint;
 	}
 
 	addBoost() {
@@ -231,15 +238,15 @@ export class ServersListItemComponent implements OnInit, OnChanges, OnDestroy, A
 		}
 
 		this.discourseService.externalCall('https://servers-frontend.fivem.net/api/upvote/', 'POST', {
-			address: this.server.address
+			address: this.rawServer.address
 		}).then((response) => {
 			if (response.data.success) {
 				if (!this.discourseService.currentBoost) {
 					this.discourseService.currentBoost = new BoostData();
 				}
 
-				this.discourseService.currentBoost.address = this.server.address;
-				this.discourseService.currentBoost.server = this.server;
+				this.discourseService.currentBoost.address = this.rawServer.address;
+				this.discourseService.currentBoost.server = this.rawServer;
 
 				this.gameService.invokeInformational(
 					`Your BOOST™ is now assigned to this server (with an admirable strength of ${response.data.power})! `
@@ -260,7 +267,7 @@ export class ServersListItemComponent implements OnInit, OnChanges, OnDestroy, A
 	}
 
 	get locale() {
-		return this.server?.data?.vars?.locale ?? 'root-001';
+		return this.rawServer?.data?.vars?.locale ?? 'root-001';
 	}
 
 	get localeCountry() {
@@ -273,7 +280,7 @@ export class ServersListItemComponent implements OnInit, OnChanges, OnDestroy, A
 	}
 
 	get tags() {
-		const tagList = Array.from(new Set<string>(((this.server.data?.vars?.tags as string) ?? '').split(',').map(a => a.trim())));
+		const tagList = Array.from(new Set<string>(((this.rawServer.data?.vars?.tags as string) ?? '').split(',').map(a => a.trim())));
 		const tagsByCount = tagList
 			.map(a => this.tagService.coreTags[a]).filter(a => a).sort((a, b) => (b.count - a.count))
 			.filter(a => a.count >= 8);

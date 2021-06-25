@@ -55,12 +55,12 @@
 				<div class="title" [innerHTML]="(server && server.historyEntry.hostname)||'test' | escape | colorize"></div>
 				<div class="actions" *ngIf="server.server">
 					<button
-						(click)="toggleFavorite($event, server.server)"
-						[class.active]="isFavorite(server.server)"
+						(click)="toggleFavorite($event, makeServer(server.server))"
+						[class.active]="isFavorite(makeServer(server.server))"
 						class="fav"
 					>
-						<span *ngIf="!isFavorite(server.server)" class="material-icons-outlined">star_bordered</span>
-						<span *ngIf="isFavorite(server.server)" class="material-icons-outlined">star</span>
+						<span *ngIf="!isFavorite(makeServer(server.server))" class="material-icons-outlined">star_bordered</span>
+						<span *ngIf="isFavorite(makeServer(server.server))" class="material-icons-outlined">star</span>
 					</button>
 				</div>
 				<span class="players" *ngIf="server.server">

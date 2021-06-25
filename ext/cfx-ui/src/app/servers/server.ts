@@ -4,7 +4,6 @@ import { EventEmitter } from '@angular/core';
 import { master } from './master';
 
 import { Avatar } from './avatar';
-import { filterProjectDesc, filterProjectName } from './server-utils';
 
 export class Server {
     readonly hostname: string;
@@ -28,6 +27,10 @@ export class Server {
     realIconUri: string;
 
     get iconUri(): string {
+		if (!this.realIconUri) {
+			this.setDefaultIcon();
+		}
+
         return this.realIconUri;
     }
 
@@ -70,8 +73,6 @@ export class Server {
         if (object.infoBlob) {
             if (object.infoBlob.icon) {
                 server.iconUri = 'data:image/png;base64,' + object.infoBlob.icon;
-            } else {
-                server.setDefaultIcon();
             }
         }
 
@@ -136,17 +137,7 @@ export class Server {
         this.int = object;
         this.connectEndPoints = object.connectEndPoints;
 
-		if (this.data?.vars?.sv_projectName) {
-			this.data.vars.sv_projectName = filterProjectName(this.data.vars.sv_projectName);
-		}
-
-		if (this.data?.vars?.sv_projectDesc) {
-			this.data.vars.sv_projectDesc = filterProjectDesc(this.data.vars.sv_projectDesc);
-		}
-
-        if (!object.iconVersion && sanitizer) {
-            this.setDefaultIcon();
-        } else {
+        if (object.iconVersion) {
             this.iconUri = `https://servers-live.fivem.net/servers/icon/${address}/${object.iconVersion}.png`;
         }
     }

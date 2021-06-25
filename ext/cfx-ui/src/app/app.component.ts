@@ -338,11 +338,15 @@ export class AppComponent implements OnInit, AfterViewInit {
 			return;
 		}
 
-		this.gameView = createGameView(this.gameCanvas.nativeElement);
-		this.gameView?.resize(window.innerWidth, window.innerHeight);
+		this.zone.runOutsideAngular(() => {
+			setTimeout(() => {
+				this.gameView = createGameView(this.gameCanvas.nativeElement);
+				this.gameView?.resize(window.innerWidth, window.innerHeight);
 
-		window.addEventListener('resize', () => {
-			this.gameView?.resize(window.innerWidth, window.innerHeight);
+				window.addEventListener('resize', () => {
+					this.gameView?.resize(window.innerWidth, window.innerHeight);
+				});
+			}, 150);
 		});
 	}
 

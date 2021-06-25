@@ -6,6 +6,7 @@ import { ServersService } from "./servers.service";
 import { LocalStorage } from "app/local-storage";
 import { Server } from "./server";
 import { GameService } from "app/game.service";
+import { master } from "./master";
 
 export class ServerAutocompleteEntry {
 	public name = '';
@@ -36,8 +37,8 @@ export class FiltersService {
 
 	sortingInProgress: BehaviorSubject<boolean> = new BehaviorSubject(false);
 
-	sortedServersUpdate: Subject<Server[]> = new Subject();
-	sortedServers: Server[] = [];
+	sortedServersUpdate: Subject<master.IServer[]> = new Subject();
+	sortedServers: master.IServer[] = [];
 
 	autocompleteIndex: SearchAutocompleteIndex = {};
 	autocompleteIndexUpdate: Subject<SearchAutocompleteIndex> = new BehaviorSubject(this.autocompleteIndex);
@@ -57,13 +58,10 @@ export class FiltersService {
 				this.pinConfig = new PinConfigCached(pinConfig);
 			});
 
-		this.serversService
-			.getReplayedServers()
-			.subscribe(server => {
-				if (server) {
-					this.addAutocompleteIndex(server);
-				}
-			});
+		this.serversService.autoCompleteUpdate.subscribe((index) => {
+			this.autocompleteIndex = index;
+			this.autocompleteIndexUpdate.next(index);
+		});
 
 		this.serversService.serversLoadedUpdate.subscribe((loaded) => {
 			if (loaded && this.sortingPending) {
@@ -71,64 +69,6 @@ export class FiltersService {
 				this.sortAndFilterServers(false);
 			}
 		});
-	}
-
-	addAutocompleteIndex(server: Server) {
-		for (const list of [server.data, server.data.vars]) {
-			for (const entryName in list) {
-				if (list.hasOwnProperty(entryName)) {
-					const key = entryName;
-					const fields = list[entryName];
-
-					if (key.endsWith('s')) {
-						const bits: string[] = [];
-
-						const subKey = key.substr(0, key.length - 1);
-
-						if (Array.isArray(fields)) {
-							for (const item of fields) {
-								bits.push(item);
-							}
-						} else if (typeof fields === 'object') {
-							const values = Object.keys(fields);
-
-							for (const item of values) {
-								bits.push(item);
-							}
-						} else if (typeof fields === 'string') {
-							for (const item of fields.split(',')) {
-								bits.push(item.trim());
-							}
-						}
-
-						const uniqueBits = bits.filter((v, i, a) => a.indexOf(v) === i && typeof (v) === 'string');
-						this.addAutoCompleteEntries(subKey, uniqueBits);
-					}
-
-					if (typeof fields === 'string') {
-						this.addAutoCompleteEntries(key, [fields]);
-					}
-				}
-			}
-		}
-	}
-
-	addAutoCompleteEntries(key: string, list: string[]) {
-		if (!this.autocompleteIndex[key]) {
-			this.autocompleteIndex[key] = {};
-		}
-
-		for (const entry of list) {
-			const lowerEntry = entry.toLowerCase();
-
-			if (!this.autocompleteIndex[key][lowerEntry]) {
-				this.autocompleteIndex[key][lowerEntry] = 1;
-			} else {
-				++this.autocompleteIndex[key][lowerEntry];
-			}
-		}
-
-		this.autocompleteIndexUpdate.next(this.autocompleteIndex);
 	}
 
 	setType(type: string) {
@@ -210,7 +150,7 @@ export class FiltersService {
 	}
 
 	sortAndFilterServers(fromInteraction?: boolean) {
-		if (Object.values(this.serversService.servers).length === 0) {
+		if (this.serversService.servers.size === 0) {
 			this.sortingPending = true;
 			return;
 		}
@@ -226,7 +166,7 @@ export class FiltersService {
 			listType: this.type
 		}, (sortedServers: string[]) => {
 			this.sortedServers = sortedServers
-				.map(a => this.serversService.servers[a])
+				.map(a => this.serversService.deserializeServer(this.serversService.servers.get(a)))
 				.filter((server) => {
 					if (!server) {
 						return false;

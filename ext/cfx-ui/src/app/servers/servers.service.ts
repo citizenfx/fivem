@@ -22,6 +22,7 @@ import { isPlatformBrowser } from '@angular/common';
 import { GameService } from '../game.service';
 import { FilterRequest } from './filter-request';
 import {catchError, timeout} from 'rxjs/operators';
+import { SearchAutocompleteIndex } from './filters.service';
 
 const serversWorker = new Worker('./workers/servers.worker', { type: 'module' });
 
@@ -52,17 +53,21 @@ class ServerCacheEntry {
 	}
 }
 
+export interface TagIndex { [key: string]: number };
+
 @Injectable()
 export class ServersService {
 	private requestEvent: Subject<string>;
-	private serversEvent: Subject<Server>;
-
-	private internalServerEvent: Subject<master.IServer>;
+	private serversEvent: Subject<master.IServer>;
 
 	private worker: Worker;
 
-	public servers: { [addr: string]: Server } = {};
+	public tagUpdate: Subject<[TagIndex, TagIndex]> = new BehaviorSubject([{}, {}]);
+	public autoCompleteUpdate: Subject<SearchAutocompleteIndex> = new BehaviorSubject({});
+
+	public servers = new Map<string, master.IServer>();
 	public serversLoadedUpdate: Subject<boolean> = new BehaviorSubject(false);
+	private serverCacheMaterialized: { [addr: string]: Server } = {};
 
 	private serverCache: { [addr: string]: ServerCacheEntry } = {};
 
@@ -74,8 +79,7 @@ export class ServersService {
 		private gameService: GameService, @Inject(PLATFORM_ID) private platformId: any) {
 		this.requestEvent = new Subject<string>();
 
-		this.serversEvent = new Subject<Server>();
-		this.internalServerEvent = new Subject<master.IServer>();
+		this.serversEvent = new Subject<master.IServer>();
 
 		// only enable the worker if streams are supported
 		if (typeof window !== 'undefined' && window.hasOwnProperty('Response') && Response.prototype.hasOwnProperty('body')) {
@@ -83,13 +87,15 @@ export class ServersService {
 			zone.runOutsideAngular(() => {
 				this.worker.addEventListener('message', (event) => {
 					if (event.data.type === 'addServers') {
-						for (const server of event.data.servers) {
+						for (const server of (event.data.servers as master.IServer[])) {
 							if (this.matchesGame(server)) {
-								this.internalServerEvent.next(server);
+								if (server && server.Data) {
+									this.servers.set(server.EndPoint, server);
+									this.serversEvent.next(server);
+								}
 							}
 						}
 					} else if (event.data.type === 'serversDone') {
-						this.internalServerEvent.next(null);
 						this.serversLoadedUpdate.next(true);
 					} else if (event.data.type === 'sortedServers') {
 						if (this.onSortCB.length) {
@@ -98,11 +104,10 @@ export class ServersService {
 								this.onSortCB.shift();
 							});
 						}
-					} else if (event.data.type === 'pushBitmap') {
-						const addr: string = event.data.server;
-						const bitmap: ImageBitmap = event.data.bitmap;
-
-						this.servers[addr].bitmap = bitmap;
+					} else if (event.data.type === 'updateTags') {
+						this.tagUpdate.next(event.data.data);
+					} else if (event.data.type === 'updateAutoComplete') {
+						this.autoCompleteUpdate.next(event.data.data);
 					} else {
 						console.log('[servers] worker message rcv', event);
 					}
@@ -114,25 +119,6 @@ export class ServersService {
 					this.worker.postMessage({ type: 'queryServers', url: url + `streamRedir/` });
 				});
 		}
-
-		this.serversSource
-			.filter(a => !a || a.Data != null)
-			.map((server) => {
-				if (server?.Data) {
-					return Server.fromObject(this.domSanitizer, server.EndPoint, server.Data)
-				}
-
-				return null;
-			})
-			.subscribe(server => {
-				if (!server) {
-					this.serversEvent.next(null);
-					return;
-				}
-
-				this.servers[server.address] = server;
-				this.serversEvent.next(server);
-			});
 
 		this.gameService.tryConnecting.subscribe(async (serverHost: string) => {
 			let server: Server = null;
@@ -211,6 +197,10 @@ export class ServersService {
 		});
 	}
 
+	deserializeServer(server: master.IServer): master.IServer {
+		return server;
+	}
+
 	public onInitialized() {
 		if (isPlatformBrowser(this.platformId)) {
 			this.refreshServers();
@@ -219,14 +209,6 @@ export class ServersService {
 
 	public get serversArray() {
 		return Object.values(this.servers);
-	}
-
-	private get serversSource(): Observable<master.IServer> {
-		if (typeof window !== 'undefined' && window.hasOwnProperty('Response') && Response.prototype.hasOwnProperty('body')) {
-			return this.internalServerEvent;
-		} else {
-			return this.httpSource;
-		}
 	}
 
 	private get httpSource() {
@@ -291,6 +273,21 @@ export class ServersService {
 		}
 	}
 
+	getMaterializedServer(server: master.IServer) {
+		if (!server) {
+			return null;
+		}
+
+		if (this.serverCacheMaterialized[server.EndPoint]) {
+			return this.serverCacheMaterialized[server.EndPoint];
+		}
+
+		const s = Server.fromObject(this.domSanitizer, server.EndPoint, server.Data);
+		this.serverCacheMaterialized[server.EndPoint] = s;
+
+		return s;
+	}
+
 	public async getTopServer() {
 		if (this.topServer !== undefined) {
 			return this.topServer;
@@ -315,15 +312,15 @@ export class ServersService {
 		return server;
 	}
 
-	public getServers(): Observable<Server> {
+	public getServers(): Observable<master.IServer> {
 		return this.serversEvent;
 	}
 
-	public getCachedServers(): Iterable<Server> {
+	public getCachedServers(): Iterable<master.IServer> {
 		return Object.values(this.servers);
 	}
 
-	public getReplayedServers(): Observable<Server> {
+	public getReplayedServers(): Observable<master.IServer> {
 		return concat(
 			from(this.getCachedServers()),
 			this.getServers()

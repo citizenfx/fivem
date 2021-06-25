@@ -239,7 +239,10 @@ export class ServersDetailComponent implements OnInit, OnDestroy {
 
 	isFavorite() {
 		if (this.server) {
-			return this.gameService.isMatchingServer('favorites', this.server);
+			return this.gameService.isMatchingServer('favorites', {
+				EndPoint: this.server.address,
+				Data: this.server.data
+			});
 		}
 
 		return false;

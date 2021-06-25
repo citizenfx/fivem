@@ -1,15 +1,13 @@
 import { Component, Inject, Output, EventEmitter, Input, OnChanges, ChangeDetectorRef } from '@angular/core';
 import { Subject } from 'rxjs';
 
-import 'rxjs/add/operator/debounceTime';
-import 'rxjs/add/operator/distinctUntilChanged';
-
 import { Server } from '../server';
 
 import { GameService } from '../../game.service';
 
 import { L10N_LOCALE, L10nLocale } from 'angular-l10n';
 import { ServersService } from '../servers.service';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 @Component({
 	moduleId: module.id,
@@ -49,8 +47,10 @@ export class DirectConnectBackendComponent implements OnChanges {
 	) {
 		this.addrEvent
 			.asObservable()
-			.debounceTime(250)
-			.distinctUntilChanged()
+			.pipe(
+				debounceTime(250),
+				distinctUntilChanged()
+			)
 			.subscribe((addr) => this.handleAddrChange(addr));
 	}
 

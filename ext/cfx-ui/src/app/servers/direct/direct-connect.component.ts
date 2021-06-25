@@ -1,8 +1,4 @@
 import { Component, OnInit, AfterViewInit, ViewChild, ViewChildren, Inject } from '@angular/core';
-import { Subject } from 'rxjs';
-
-import 'rxjs/add/operator/debounceTime';
-import 'rxjs/add/operator/distinctUntilChanged';
 
 import { Server, ServerHistoryEntry } from '../server';
 
@@ -55,12 +51,13 @@ export class DirectConnectComponent implements OnInit, AfterViewInit {
         this.serversService
             .getReplayedServers()
             .filter(server => server != null)
-            .map(server => ({ server, history: this.history.find(history => history.entry.address === server.address) }))
+            .map(server => ({ server, history: this.history.find(history => history.entry.address === server.EndPoint) }))
             .filter(bundle => bundle.history !== undefined)
             .subscribe(bundle => {
-                bundle.history.entry.hostname = bundle.server.hostname;
-                bundle.history.server = bundle.server;
-                bundle.history.sanitizedIcon = bundle.server.sanitizedUri;
+				const s = this.serversService.getMaterializedServer(bundle.server);
+                bundle.history.entry.hostname = s.hostname;
+                bundle.history.server = s;
+                bundle.history.sanitizedIcon = s.sanitizedUri;
             });
 
         if (this.history.length > 0) {

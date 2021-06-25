@@ -16,7 +16,7 @@
 	</div>
 
     <figure class="icon" #iconFigure>
-        <img [src]="server.sanitizedUri" (error)="server.setDefaultIcon()" *ngIf="premium == 'pt' || server.isDefaultIcon">
+        <img [src]="rawServer.sanitizedUri" (error)="rawServer.setDefaultIcon()" *ngIf="premium == 'pt' || rawServer.isDefaultIcon">
 	</figure>
 
 	<div
@@ -31,10 +31,10 @@
 
 	<div class="locale"><span data-balloon-pos="right" [attr.aria-label]="localeName" [class]="'flag-icon flag-icon-' + localeCountry"></span></div>
 
-    <div *ngIf="!server.data.vars?.sv_projectName" class="name" [innerHTML]="server.hostname | allowify | escape | colorize:{trust: true}"></div>
-	<div *ngIf="server.data.vars?.sv_projectName" class="name projectName">
-		<strong [innerHTML]="server.data.vars?.sv_projectName | allowify | escape | colorize:{trust: true}"></strong>
-		<span [innerHTML]="(server.data.vars?.sv_projectDesc || '') | allowify | escape"></span>
+    <div *ngIf="!rawServer.data.vars?.sv_projectName" class="name" [innerHTML]="rawServer.hostname | allowify | escape | colorize:{trust: true}"></div>
+	<div *ngIf="rawServer.data.vars?.sv_projectName" class="name projectName">
+		<strong [innerHTML]="rawServer.data.vars?.sv_projectName | allowify | escape | colorize:{trust: true}"></strong>
+		<span [innerHTML]="(rawServer.data.vars?.sv_projectDesc || '') | allowify | escape"></span>
 	</div>
 
 	<div class="tags">
@@ -55,7 +55,7 @@
 		>
             <span class="material-icons-outlined">arrow_upward</span>
 			<span class="boosts-counter">
-				{{server.upvotePower}}
+				{{rawServer.upvotePower}}
 			</span>
 
 			<div class="booster" *ngIf="!isWeb">
@@ -76,6 +76,6 @@
     </div>
 
     <div class="players">
-		{{server.currentPlayers}}<span class="max">/{{server.maxPlayers}}</span>
+		{{rawServer.currentPlayers}}<span class="max">/{{rawServer.maxPlayers}}</span>
     </div>
 </a>

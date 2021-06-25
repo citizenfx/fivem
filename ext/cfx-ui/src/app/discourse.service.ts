@@ -144,9 +144,9 @@ export class DiscourseService {
 
 					this.serversService
 						.getReplayedServers()
-						.filter(server => server != null && server.address === result.data.address)
+						.filter(server => server != null && server.EndPoint === result.data.address)
 						.subscribe(a => {
-							this.currentBoost.server = a;
+							this.currentBoost.server = this.serversService.getMaterializedServer(a);
 						});
 				} else if (result.status === 404) {
 					this.noCurrentBoost = true;

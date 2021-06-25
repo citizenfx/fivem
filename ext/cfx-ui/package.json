@@ -9,6 +9,9 @@
     "test": "ng test",
     "lint": "ng lint"
   },
+  "browserslist": [
+	"Chrome >= 91"
+  ],
   "private": true,
   "dependencies": {
     "@angular-builders/dev-server": "^7.3.1",
@@ -55,7 +58,6 @@
     "emoji-regex": "^9.2.2",
     "emoji.json": "^13.1.0",
     "flag-icon-css": "^3.5.0",
-    "font-awesome": "^4.7.0",
     "hoverintent": "^2.2.1",
     "idb": "^6.0.0",
     "int64-buffer": "^1.0.0",

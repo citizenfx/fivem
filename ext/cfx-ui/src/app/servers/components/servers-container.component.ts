@@ -3,7 +3,6 @@ import { ActivatedRoute } from '@angular/router';
 
 import { isPlatformBrowser } from '@angular/common';
 
-import 'rxjs/add/operator/bufferTime';
 import { FiltersService } from '../filters.service';
 import { ServersService } from '../servers.service';
 import { GameService } from 'app/game.service';

@@ -330,6 +330,133 @@ function getSortable(server: master.IServer, name: string): any {
 	}
 }
 
+class ServerTagsWorker {
+	private serverTags: { [addr: string]: true } = {};
+	private serverLocale: { [addr: string]: true } = {};
+
+	private tagsIndex: { [key: string]: number } = {};
+	private localesIndex: { [key: string]: number } = {};
+
+	send() {
+		return [this.tagsIndex, this.localesIndex];
+	}
+
+	addServerTags(server: master.IServer) {
+		if (this.serverTags[server.EndPoint]) {
+			return;
+		}
+
+		if (server.Data?.vars?.tags) {
+			(<string>server.Data.vars.tags)
+				.split(',')
+				.forEach((rawTag) => {
+					const tag = rawTag.trim().toLowerCase();
+
+					if (!tag) {
+						return;
+					}
+
+					this.tagsIndex[tag] = (this.tagsIndex[tag] || 0) + 1;
+				});
+
+			this.serverTags[server.EndPoint] = true;
+		}
+	}
+
+	addLocaleIndex(server: master.IServer) {
+		if (this.serverLocale[server.EndPoint]) {
+			return;
+		}
+
+		if (server?.Data?.vars?.locale) {
+			this.serverLocale[server.EndPoint] = true;
+
+			const locale = getCanonicalLocale(server.Data.vars.locale);
+
+			// We don't care about root, right
+			if (locale === 'root-AQ') {
+				return;
+			}
+
+			this.localesIndex[locale] = (this.localesIndex[locale] || 0) + 1;
+		}
+	}
+}
+
+interface SearchAutocompleteIndex {
+	[type: string]: {
+		[entry: string]: number,
+	},
+};
+
+class ServerAutoCompleteWorker {
+	autocompleteIndex: SearchAutocompleteIndex = {};
+	autocompleteIndexBacking: SearchAutocompleteIndex = {};
+
+	addAutocompleteIndex(server: master.IServer) {
+		for (const list of [server.Data, server.Data?.vars]) {
+			for (const entryName in list) {
+				if (list.hasOwnProperty(entryName)) {
+					const key = entryName;
+					const fields = list[entryName];
+
+					if (key.endsWith('s')) {
+						const bits: string[] = [];
+
+						const subKey = key.substr(0, key.length - 1);
+
+						if (Array.isArray(fields)) {
+							for (const item of fields) {
+								bits.push(item);
+							}
+						} else if (typeof fields === 'object') {
+							const values = Object.keys(fields);
+
+							for (const item of values) {
+								bits.push(item);
+							}
+						} else if (typeof fields === 'string') {
+							for (const item of fields.split(',')) {
+								bits.push(item.trim());
+							}
+						}
+
+						const uniqueBits = bits.filter((v, i, a) => a.indexOf(v) === i && typeof (v) === 'string');
+						this.addAutoCompleteEntries(subKey, uniqueBits);
+					}
+
+					if (typeof fields === 'string') {
+						this.addAutoCompleteEntries(key, [fields]);
+					}
+				}
+			}
+		}
+	}
+
+	addAutoCompleteEntries(key: string, list: string[]) {
+		if (!this.autocompleteIndexBacking[key]) {
+			this.autocompleteIndexBacking[key] = {};
+		}
+
+		for (const entry of list) {
+			const lowerEntry = entry.toLowerCase();
+
+			if (!this.autocompleteIndexBacking[key][lowerEntry]) {
+				this.autocompleteIndexBacking[key][lowerEntry] = 1;
+			} else {
+				if (!this.autocompleteIndex[key]) {
+					this.autocompleteIndex[key] = {};
+				}
+
+				this.autocompleteIndex[key][lowerEntry] = ++this.autocompleteIndexBacking[key][lowerEntry];
+			}
+		}
+	}
+}
+
+const serverTagsWorker = new ServerTagsWorker();
+const serverAutoCompleteWorker = new ServerAutoCompleteWorker();
+
 let cachedServers = {};
 
 function queryServers(e: MessageEvent) {
@@ -362,10 +489,24 @@ function queryServers(e: MessageEvent) {
 		.subscribe((servers: master.IServer[]) => {
 			if (servers.length) {
                 for (const server of servers) {
+					if (server.Data?.vars?.sv_projectName) {
+						server.Data.vars.sv_projectName = filterProjectName(server.Data.vars.sv_projectName);
+					}
+
+					if (server.Data?.vars?.sv_projectDesc) {
+						server.Data.vars.sv_projectDesc = filterProjectDesc(server.Data.vars.sv_projectDesc);
+					}
+
+					serverTagsWorker.addServerTags(server);
+					serverTagsWorker.addLocaleIndex(server);
+					serverAutoCompleteWorker.addAutocompleteIndex(server);
+
 					cachedServers[server.EndPoint] = server.Data;
 				}
 
-				(<any>postMessage)({ type: 'addServers', servers })
+				postMessage({ type: 'addServers', servers });
+				postMessage({ type: 'updateTags', data: serverTagsWorker.send() });
+				postMessage({ type: 'updateAutoComplete', data: serverAutoCompleteWorker.autocompleteIndex });
 			}
 		});
 }

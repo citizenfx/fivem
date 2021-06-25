@@ -7,12 +7,12 @@ import { PinConfigCached } from '../../pins';
 
 import { isPlatformBrowser } from '@angular/common';
 
-import 'rxjs/add/operator/throttleTime';
 import { ServersService, HistoryServerStatus, HistoryServer } from '../../servers.service';
 import { FiltersService } from '../../filters.service';
 import { GameService } from 'app/game.service';
 import { DomSanitizer } from '@angular/platform-browser';
 import { L10nLocale, L10N_LOCALE } from 'angular-l10n';
+import { master } from 'app/servers/master';
 
 @Component({
 	moduleId: module.id,
@@ -38,7 +38,7 @@ export class ServersListComponent implements OnInit, OnDestroy {
 	serversLoaded = false;
 	sortingComplete = false;
 
-	sortedServers: Server[] = [];
+	sortedServers: master.IServer[] = [];
 	historyServers: HistoryServer[] = [];
 
 	screenHeight = 1080;
@@ -75,7 +75,8 @@ export class ServersListComponent implements OnInit, OnDestroy {
 			this.sortedServers = servers.filter(finalFilter);
 
 			if (this.type === 'pins') {
-				this.sortedServers.sort((a, b) => b.currentPlayers - a.currentPlayers);
+				this.sortedServers.sort((a, b) => this.serversService.getMaterializedServer(b).currentPlayers -
+					this.serversService.getMaterializedServer(a).currentPlayers);
 			}
 
 			this.changeDetectorRef.markForCheck();
@@ -101,7 +102,7 @@ export class ServersListComponent implements OnInit, OnDestroy {
 		}
 	}
 
-	finalFilter(server: Server) {
+	finalFilter(server: master.IServer) {
 		if (this.type === 'pins') {
 			return this.isPinned(server);
 		}
@@ -113,8 +114,8 @@ export class ServersListComponent implements OnInit, OnDestroy {
 		return isPlatformBrowser(this.platformId);
 	}
 
-	isPinned(server: Server) {
-		return this.filtersService.pinConfig.pinnedServers.has(server?.address);
+	isPinned(server: master.IServer) {
+		return this.filtersService.pinConfig.pinnedServers.has(server?.EndPoint);
 	}
 
 	isPremium(server: Server) {
@@ -181,21 +182,28 @@ export class ServersListComponent implements OnInit, OnDestroy {
 		this.gameService.connectTo(entry.server, entry.historyEntry.address);
 	}
 
-	svTrack(_: number, serverRow: Server) {
-		return serverRow.address;
+	svTrack(_: number, serverRow: master.IServer) {
+		return serverRow.EndPoint;
 	}
 
-	isFavorite(server: Server) {
+	isFavorite(server: master.IServer) {
 		return this.gameService.isMatchingServer('favorites', server);
 	}
 
-	toggleFavorite(event, server: Server) {
+	toggleFavorite(event, server: master.IServer) {
 		if (this.isFavorite(server)) {
-			this.gameService.toggleListEntry('favorites', server, false);
+			this.gameService.toggleListEntry('favorites', this.serversService.getMaterializedServer(server), false);
 		} else {
-			this.gameService.toggleListEntry('favorites', server, true);
+			this.gameService.toggleListEntry('favorites', this.serversService.getMaterializedServer(server), true);
 		}
 
 		event.stopPropagation();
+	}
+
+	makeServer(server: Server): master.IServer {
+		return {
+			EndPoint: server.address,
+			Data: server.data
+		};
 	}
 }

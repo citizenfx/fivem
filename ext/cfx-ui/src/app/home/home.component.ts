@@ -306,4 +306,8 @@ export class HomeComponent implements OnInit, OnDestroy {
 		const url = await this.discourseService.generateAuthURL();
 		this.gameService.openUrl(url);
 	}
+
+	tweetTrack(idx: number, tweet: Tweet) {
+		return tweet.id;
+	}
 }

@@ -9,6 +9,7 @@ import { Observable, BehaviorSubject } from 'rxjs';
 import * as query from 'query-string';
 import { ActionSet, AdaptiveCard, SubmitAction, TextBlock, TextSize, Version } from 'adaptivecards';
 import { L10nTranslationService } from 'angular-l10n';
+import { master } from './servers/master';
 
 export class ConnectStatus {
 	public server: Server;
@@ -179,7 +180,7 @@ export abstract class GameService {
 
 	abstract pingServers(servers: Server[]): Server[];
 
-	abstract isMatchingServer(type: string, server: Server): boolean;
+	abstract isMatchingServer(type: string, server: master.IServer): boolean;
 
 	abstract toggleListEntry(type: string, server: Server, isInList: boolean): void;
 
@@ -909,20 +910,23 @@ export class CfxGameService extends GameService {
 		return servers;
 	}
 
-	isMatchingServer(type: string, server: Server) {
-		if (type == 'favorites') {
-			return this.favorites.indexOf(server?.address) >= 0;
-		} else if (type == 'history') {
-			return this.history.indexOf(server?.address) >= 0;
-		} else if (type == 'premium') {
-			return server?.data?.vars?.premium;
+	isMatchingServer(type: string, server: master.IServer) {
+		if (type === 'favorites') {
+			return this.favorites.indexOf(server?.EndPoint) >= 0;
+		} else if (type === 'history') {
+			return this.history.indexOf(server?.EndPoint) >= 0;
+		} else if (type === 'premium') {
+			return !!server?.Data?.vars?.premium;
 		}
 
 		return true;
 	}
 
 	toggleListEntry(list: string, server: Server, isInList: boolean) {
-		if (this.isMatchingServer(list, server) !== isInList) {
+		if (this.isMatchingServer(list, {
+			EndPoint: server.address,
+			Data: server.data
+		}) !== isInList) {
 			if (isInList) {
 				if (list == 'favorites') {
 					this.favorites.push(server.address);
@@ -1217,12 +1221,12 @@ export class DummyGameService extends GameService {
 		return servers;
 	}
 
-	isMatchingServer(type: string, server: Server): boolean {
-		if (type == 'premium') {
-			return server.data.vars && server.data.vars.premium;
+	isMatchingServer(type: string, server: master.IServer): boolean {
+		if (type === 'premium') {
+			return server.Data.vars && (server.Data.vars.premium ? true : false);
 		}
 
-		return ((type !== 'history' && type !== 'favorites') || server.currentPlayers < 12);
+		return ((type !== 'history' && type !== 'favorites') || server.Data.clients < 12);
 	}
 
 	toggleListEntry(list: string, server: Server, isInList: boolean) {

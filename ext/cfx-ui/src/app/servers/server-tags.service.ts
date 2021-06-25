@@ -32,9 +32,6 @@ function fromEntries<TValue>(iterable: [string, TValue][]): { [key: string]: TVa
 
 @Injectable()
 export class ServerTagsService {
-	serverTags: { [addr: string]: true } = {};
-	serverLocale: { [addr: string]: true } = {};
-
 	tags: ServerTag[] = [];
 	coreTags: { [key: string]: ServerTag } = {};
 	locales: ServerLocale[] = [];
@@ -45,27 +42,15 @@ export class ServerTagsService {
 	private localesIndex: { [key: string]: number } = {};
 
 	constructor(private serversService: ServersService) {
-		this.serversService
-			.getReplayedServers()
-			.filter((server) => !!server)
-			.subscribe(server => {
-				this.addServerTags(server);
-				this.addLocaleIndex(server);
-			});
+		this.serversService.tagUpdate.subscribe(([tags, locales]) => {
+			this.tagsIndex = tags;
+			this.localesIndex = locales;
 
-		this.serversService
-			.getReplayedServers()
-			.bufferTime(1000)
-			.subscribe((servers) => {
-				if (servers.length === 0) {
-					return;
-				}
+			this.updateTagList();
+			this.updateLocaleList();
 
-				this.updateTagList();
-				this.updateLocaleList();
-
-				this.onUpdate.emit();
-			});
+			this.onUpdate.emit();
+		});
 	}
 
 	private updateTagList() {
@@ -75,28 +60,6 @@ export class ServerTagsService {
 		tags.length = Math.min(50, tags.length);
 
 		this.tags = tags.map(([name, count]) => ({ name, count }));
-	}
-
-	private addServerTags(server: Server) {
-		if (this.serverTags[server.address]) {
-			return;
-		}
-
-		if (server?.data?.vars?.tags) {
-			(<string>server.data.vars.tags)
-				.split(',')
-				.forEach((rawTag) => {
-					const tag = rawTag.trim().toLowerCase();
-
-					if (!tag) {
-						return;
-					}
-
-					this.tagsIndex[tag] = (this.tagsIndex[tag] || 0) + 1;
-				});
-
-			this.serverTags[server.address] = true;
-		}
 	}
 
 	private updateLocaleList() {
@@ -131,24 +94,5 @@ export class ServerTagsService {
 		}
 
 		return cached;
-	}
-
-	private addLocaleIndex(server: Server) {
-		if (this.serverLocale[server.address]) {
-			return;
-		}
-
-		if (server?.data?.vars?.locale) {
-			this.serverLocale[server.address] = true;
-
-			const locale = getCanonicalLocale(server.data.vars.locale);
-
-			// We don't care about root, right
-			if (locale === 'root-AQ') {
-				return;
-			}
-
-			this.localesIndex[locale] = (this.localesIndex[locale] || 0) + 1;
-		}
 	}
 }
