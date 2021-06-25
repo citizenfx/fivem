@@ -3277,12 +3277,14 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 			}
 		};
 
-		auto entityLockdownMode = m_entityLockdownMode;
 
+		// if we're in entity lockdown, validate the entity first
+		if (entity->type != sync::NetObjEntityType::Player)
 		{
 			auto clientData = GetClientDataUnlocked(this, client);
 			std::shared_lock _(m_routingDataMutex);
 
+			auto entityLockdownMode = m_entityLockdownMode;
 			if (auto rbmdIt = m_routingData.find(clientData->routingBucket); rbmdIt != m_routingData.end())
 			{
 				auto& rbmd = rbmdIt->second;
@@ -3292,12 +3294,8 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 					entityLockdownMode = *rbmd.lockdownMode;
 				}
 			}
-		}
 
-		// if we're in entity lockdown, validate the entity first
-		if (entityLockdownMode != EntityLockdownMode::Inactive && entity->type != sync::NetObjEntityType::Player)
-		{
-			if (!ValidateEntity(entityLockdownMode, entity))
+			if (entityLockdownMode != EntityLockdownMode::Inactive && !ValidateEntity(entityLockdownMode, entity))
 			{
 				// yeet
 				startDelete();
@@ -3406,6 +3404,50 @@ bool ServerGameState::ValidateEntity(EntityLockdownMode entityLockdownMode, cons
 			}
 		}
 	}
+
+	// Networked CDummyObjects are used to ensure map objects, e.g., gas pumps
+	// and propane tanks, stay in an destroyed/exploded state. When lockdown
+	// mode is enabled, infinite explosions may occur if the exploded objects
+	// are not validated.
+	//
+	// This logic will require refactoring for CDoor instances
+#if !defined(STATE_RDR3)
+	if (!allowed)
+	{
+		sync::CDummyObjectCreationNodeData* dummy = entity->syncTree->GetDummyObjectState();
+		if (dummy)
+		{
+			allowed = dummy->_hasRelatedDummy && ((dummy->hasFragGroup && dummy->hasExploded) || (dummy->_explodingEntityExploded));
+			if (entityLockdownMode == EntityLockdownMode::Dummy)
+			{
+				return allowed;
+			}
+		}
+		// "Dummy" mode allows everything except dummy objects.
+		else if (entityLockdownMode == EntityLockdownMode::Dummy)
+		{
+			allowed = true;
+		}
+	}
+#endif
+
+	// Allow gamestate and task generated entities when in entity lockdown.
+	//
+	// @NOTE Missing CVehicleGadgetPickUpRopeWithMagnet.
+#if !defined(STATE_RDR3)
+	if (!allowed)
+	{
+		// CTaskParachuteObject changed from 335 to 336 in 1868. While CTaskScriptedAnimation
+		// has remained 134. Reference 0x1410FC34C in CNetObject::SetObjectGameStateData.
+		sync::CObjectGameStateNodeData* state = entity->syncTree->GetObjectGameState();
+		sync::CBaseAttachNodeData* attachment = entity->syncTree->GetAttachment();
+		if (attachment != nullptr && state != nullptr && state->hasTask)
+		{
+			auto base = g_serverGameState->GetEntity(0, attachment->attachedTo);
+			allowed |= (base && ((attachment->attachmentFlags & 130) == 130)); // Parachute attachment flags.
+		}
+	}
+#endif
 
 	// check the entity creation token, only if the check above didn't pass
 	if (!allowed)

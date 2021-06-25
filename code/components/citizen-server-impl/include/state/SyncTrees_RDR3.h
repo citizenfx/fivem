@@ -1131,6 +1131,21 @@ struct SyncTree : public SyncTreeBase
 		return (hasNode) ? &node->data : nullptr;
 	}
 
+	virtual CBaseAttachNodeData* GetAttachment() override
+	{
+		return nullptr;
+	}
+
+	virtual CObjectGameStateNodeData* GetObjectGameState() override
+	{
+		return nullptr;
+	}
+
+	virtual CDummyObjectCreationNodeData* GetDummyObjectState() override
+	{
+		return nullptr;
+	}
+
 	virtual void CalculatePosition() override
 	{
 		// TODO: cache it?

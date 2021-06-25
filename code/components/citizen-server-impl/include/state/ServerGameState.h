@@ -194,6 +194,42 @@ struct CPedGameStateNodeData
 	}
 };
 
+/// <summary>
+/// Shared CPhysicalAttachNodeData/CPedAttachNodeData data
+/// </summary>
+struct CBaseAttachNodeData
+{
+	bool attached;
+	uint16_t attachedTo;
+
+	bool hasOffset;
+	float x, y, z;
+
+	bool hasOrientation;
+	float qx, qy, qz, qw;
+
+	uint16_t attachBone;
+	uint32_t attachmentFlags;
+};
+
+struct CObjectGameStateNodeData
+{
+	bool hasTask;
+	uint16_t taskType;
+	uint16_t taskDataSize;
+
+	//uint8_t taskData[256];
+
+	bool isBroken;
+	uint32_t brokenFlags;
+
+	bool hasExploded;
+	bool hasAddedPhysics;
+	bool isVisible;
+	bool unk_0x165;
+	bool unk_0x166;
+} ;
+
 struct CVehicleAppearanceNodeData
 {
 	int primaryColour;
@@ -282,6 +318,29 @@ struct CVehicleGameStateNodeData
 struct CEntityOrientationNodeData
 {
 	compressed_quaternion<11> quat;
+};
+
+struct CDummyObjectCreationNodeData
+{
+	float dummyPosX, dummyPosY, dummyPosZ;
+
+	bool playerWantsControl;
+	bool hasFragGroup;
+	bool isBroken;
+	bool unk11;
+	bool hasExploded;
+	bool _explodingEntityExploded; // Estimated name from CExplosionEvent.
+	bool keepRegistered;
+
+	uint16_t fragGroupIndex;
+
+	// Other unused fields...
+
+	/// <summary>
+	/// Estimated name from CExplosionEvent. When false the dummy object has an
+	/// ownership token, position, and orientation.
+	/// </summary>
+	bool _hasRelatedDummy;
 };
 
 struct CObjectOrientationNodeData
@@ -467,6 +526,12 @@ public:
 	virtual CVehicleAngVelocityNodeData* GetAngVelocity() = 0;
 
 	virtual CPhysicalVelocityNodeData* GetVelocity() = 0;
+
+	virtual CBaseAttachNodeData* GetAttachment() = 0;
+
+	virtual CObjectGameStateNodeData* GetObjectGameState() = 0;
+
+	virtual CDummyObjectCreationNodeData* GetDummyObjectState() = 0;
 
 	virtual void CalculatePosition() = 0;
 

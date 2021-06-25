@@ -464,7 +464,84 @@ struct CEntityScriptInfoDataNode
 	}
 };
 
-struct CPhysicalAttachDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CPhysicalAttachDataNode
+{
+	struct CPhysicalAttachNodeData : public CBaseAttachNodeData
+	{
+		bool hasParentOffset;
+		float px, py, pz;
+
+		bool hasAttachBones;
+		uint16_t otherAttachBone;
+
+		bool allowInitialSeparation;
+		float unk_0x10c;
+		float unk_0x110;
+		bool isCargoVehicle;
+		bool activatePhysicsWhenDetached;
+	} data;
+
+	bool Parse(SyncParseState& state)
+	{
+		data.attached = state.buffer.ReadBit();
+		if (data.attached)
+		{
+			data.attachedTo = state.buffer.Read<uint16_t>(13);
+
+			data.hasOffset = state.buffer.ReadBit();
+			if (data.hasOffset) // Divisor 0x42200000
+			{
+				data.x = state.buffer.ReadSignedFloat(15, 40.f);
+				data.y = state.buffer.ReadSignedFloat(15, 40.f);
+				data.z = state.buffer.ReadSignedFloat(15, 40.f);
+			}
+
+			data.hasOrientation = state.buffer.ReadBit();
+			if (data.hasOrientation) // Divisor 0x3F800000
+			{
+				data.qx = state.buffer.ReadSignedFloat(16, 40.f);
+				data.qy = state.buffer.ReadSignedFloat(16, 40.f);
+				data.qz = state.buffer.ReadSignedFloat(16, 40.f);
+				data.qw = state.buffer.ReadSignedFloat(16, 40.f);
+			}
+			else
+			{
+				data.qw = 1.f; // Ensure identity quaternion is set.
+				data.qx = data.qy = data.qz = 0.f;
+			}
+
+			data.hasParentOffset = state.buffer.ReadBit();
+			if (data.hasParentOffset) // Divisor 0x40800000
+			{
+				data.px = state.buffer.ReadSignedFloat(15, 4.f);
+				data.py = state.buffer.ReadSignedFloat(15, 4.f);
+				data.pz = state.buffer.ReadSignedFloat(15, 4.f);
+			}
+
+			data.hasAttachBones = state.buffer.ReadBit();
+			if (data.hasAttachBones)
+			{
+				data.otherAttachBone = state.buffer.Read<uint16_t>(8);
+				data.attachBone = state.buffer.Read<uint16_t>(8);
+			}
+			else
+			{
+				data.attachBone = 0xFFFF;
+			}
+
+			data.attachmentFlags = state.buffer.Read<uint32_t>(19);
+			data.allowInitialSeparation = state.buffer.ReadBit();
+			data.unk_0x10c = state.buffer.ReadFloat(5, 1.f); // Divisor 0x3F800000
+			data.unk_0x110 = state.buffer.ReadFloat(5, 1.f);
+			data.isCargoVehicle = state.buffer.ReadBit();
+		}
+		else
+		{
+			data.activatePhysicsWhenDetached = false; // @TODO:
+		}
+		return true;
+	}
+};
 
 struct CVehicleAppearanceDataNode {
 	CVehicleAppearanceNodeData data;
@@ -1211,7 +1288,170 @@ struct CVehicleAngVelocityDataNode
 
 struct CVehicleSteeringDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CVehicleControlDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CVehicleGadgetDataNode { bool Parse(SyncParseState& state) { return true; } };
+
+struct CVehicleGadgetDataNode
+{
+	bool Parse(SyncParseState& state) { return true; }
+
+	// Avoid unnecessary CPU cycles parsing something unused.
+#if 0
+	enum class VehicleGadgetType : uint8_t
+	{
+		CVehicleGadgetForks = 0,
+		CSearchLight = 1,
+		CVehicleGadgetPickUpRopeWithHook = 2,
+		CVehicleGadgetDiggerArm = 3,
+		CVehicleGadgetHandlerFrame = 4,
+		CVehicleGadgetPickUpRopeWithMagnet = 5,
+		CVehicleGadgetBombBay = 6,
+		Unknown = 255,
+	};
+
+	bool hasParentVehicleOffset;
+	float parentVehicleOffsetX;
+	float parentVehicleOffsetY;
+	float parentVehicleOffsetZ;
+
+	uint8_t count;
+	struct {
+		VehicleGadgetType type;
+		union
+		{
+			struct { float desiredPosition; float desiredAcceleration; } fork;
+			struct { bool searchlightOn; uint16_t searchlightTarget; } searchlight;
+			struct { float offsetX, offsetY, offsetZ; uint16_t object; } pickupRope;
+			struct { float m_fJointPositionRatio; } diggerArm;
+			struct { float desiredPosition; float desiredAcceleration; uint16_t attachEntity; } handlerFrame;
+			struct { bool unk_0x45; } bombBay;
+			struct
+			{
+				float offsetX, offsetY, offsetZ;
+				uint16_t object;
+
+				uint16_t magnetId;;
+				uint16_t attractedId;
+				bool unk_0x161;
+
+				bool unk_0x014;
+				float unk_0x144, unk_0x148, unk_0x14c;
+				float unk_0x150, unk_0x154, unk_0x158;
+				float unk_0x15c;
+				bool unk_0x140;
+			} pickupMagnet;
+		};
+
+		bool Parse(VehicleGadgetType g_type, rl::MessageBuffer& buffer)
+		{
+			type = g_type;
+			switch (type)
+			{
+				case VehicleGadgetType::CVehicleGadgetForks:
+				{
+					fork.desiredPosition = buffer.ReadFloat(8, 1.7);
+					fork.desiredAcceleration = buffer.ReadSignedFloat(8, 1.0);
+					break;
+				}
+				case VehicleGadgetType::CSearchLight:
+				{
+					searchlight.searchlightOn = buffer.ReadBit();
+					searchlight.searchlightTarget = buffer.Read<uint16_t>(13);
+					break;
+				}
+				case VehicleGadgetType::CVehicleGadgetPickUpRopeWithHook:
+				{
+					pickupRope.offsetX = buffer.ReadFloat(8, 100.f); // Divisor 0x42C80000
+					pickupRope.offsetY = buffer.ReadFloat(8, 100.f);
+					pickupRope.offsetZ = buffer.ReadFloat(8, 100.f);
+					pickupRope.object = buffer.Read<uint16_t>(13);
+					break;
+				}
+				case VehicleGadgetType::CVehicleGadgetDiggerArm:
+				{
+					diggerArm.m_fJointPositionRatio = buffer.ReadFloat(8, 1.7);
+					break;
+				}
+				case VehicleGadgetType::CVehicleGadgetHandlerFrame:
+				{
+					handlerFrame.desiredPosition = buffer.ReadFloat(8, 5.5999999f); // Divisor 0x40B33333
+					handlerFrame.desiredAcceleration = buffer.ReadSignedFloat(8, 1.f);
+					handlerFrame.attachEntity = buffer.Read<uint16_t>(13);
+					break;
+				}
+				case VehicleGadgetType::CVehicleGadgetBombBay:
+				{
+					bombBay.unk_0x45 = buffer.ReadBit();
+					break;
+				}
+				case VehicleGadgetType::CVehicleGadgetPickUpRopeWithMagnet:
+				{
+					pickupMagnet.offsetX = buffer.ReadFloat(8, 100.f);
+					pickupMagnet.offsetY = buffer.ReadFloat(8, 100.f);
+					pickupMagnet.offsetZ = buffer.ReadFloat(8, 100.f);
+					pickupMagnet.object = buffer.Read<uint16_t>(13);
+
+					pickupMagnet.magnetId = buffer.Read<uint16_t>(13);
+					pickupMagnet.attractedId = buffer.Read<uint16_t>(13);
+
+					pickupMagnet.unk_0x161 = buffer.ReadBit();
+
+					pickupMagnet.unk_0x014 = buffer.ReadBit();
+					pickupMagnet.unk_0x144 = buffer.ReadSignedFloat(4, 10.f); // Divisor 0x41200000
+					pickupMagnet.unk_0x148 = buffer.ReadSignedFloat(4, 10.f);
+					pickupMagnet.unk_0x14c = buffer.ReadSignedFloat(4, 10.f);
+					pickupMagnet.unk_0x150 = buffer.ReadSignedFloat(4, 10.f);
+					pickupMagnet.unk_0x154 = buffer.ReadSignedFloat(4, 10.f);
+					pickupMagnet.unk_0x158 = buffer.ReadSignedFloat(4, 10.f);
+					pickupMagnet.unk_0x15c = buffer.ReadSignedFloat(4, 100.f); // Divisor 0x42C80000
+
+					pickupMagnet.unk_0x140 = buffer.ReadBit();
+				}
+				default:
+				{
+					type = VehicleGadgetType::Unknown;
+					break;
+				}
+			}
+			return true;
+		}
+	} gadgets[4];
+
+	bool Parse(SyncParseState& state)
+	{
+		hasParentVehicleOffset = state.buffer.ReadBit();
+		if (hasParentVehicleOffset)
+		{
+			parentVehicleOffsetX = state.buffer.ReadSignedFloat(14, 24.f); // Divisor = 0x41C00000
+			parentVehicleOffsetY = state.buffer.ReadSignedFloat(14, 24.f);
+			parentVehicleOffsetZ = state.buffer.ReadSignedFloat(14, 24.f);
+		}
+
+		count = state.buffer.Read<uint8_t>(2);
+		for (uint8_t i = 0; i < count; ++i)
+		{
+			uint8_t block[12] = { 0 };
+
+			VehicleGadgetType type = (VehicleGadgetType)state.buffer.Read<uint8_t>(3);
+			if (i == (count - 1))
+			{
+				gadgets[i].Parse(type, state.buffer);
+			}
+			// SerialiseDataBlock
+			else if (state.buffer.ReadBits(block, 94))
+			{
+				rl::MessageBuffer buffer(block, sizeof(block));
+				gadgets[i].Parse(type, state.buffer);
+			}
+			else
+			{
+				count = 0;
+				return true;
+			}
+		}
+		return true;
+	}
+#endif
+};
+
 struct CMigrationDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPhysicalMigrationDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPhysicalScriptMigrationDataNode { bool Parse(SyncParseState& state) { return true; } };
@@ -1376,15 +1616,17 @@ struct CHeliControlDataNode
 
 struct CObjectCreationDataNode
 {
+	int m_createdBy;
 	uint32_t m_model;
-	bool m_dynamic;
+	bool m_hasInitPhysics;
+	CDummyObjectCreationNodeData dummy;
 
 	// #TODO: universal serializer
 	bool Unparse(SyncUnparseState& state)
 	{
 		state.buffer.Write<int>(5, 4); // ENTITY_OWNEDBY_SCRIPT
 		state.buffer.Write<uint32_t>(32, m_model);
-		state.buffer.WriteBit(m_dynamic);
+		state.buffer.WriteBit(m_hasInitPhysics);
 		state.buffer.WriteBit(false);
 		state.buffer.WriteBit(false);
 
@@ -1421,13 +1663,12 @@ struct CObjectCreationDataNode
 			16: ENTITY_OWNEDBY_INTERIOR
 			17: ENTITY_OWNEDBY_COMPENTITY
 		*/
-		int createdBy = state.buffer.Read<int>(5);
-		if (createdBy != 0 && createdBy != 2)
+		m_createdBy = state.buffer.Read<int>(5);
+		if (m_createdBy != 0 && m_createdBy != 2)
 		{
-			uint32_t model = state.buffer.Read<uint32_t>(32);
-			m_model = model;
+			m_model = state.buffer.Read<uint32_t>(32);
 
-			bool hasInitPhysics = state.buffer.ReadBit();
+			m_hasInitPhysics = state.buffer.ReadBit();
 			bool scriptGrabbedFromWorld = state.buffer.ReadBit();
 			bool noReassign = state.buffer.ReadBit();
 
@@ -1437,40 +1678,40 @@ struct CObjectCreationDataNode
 				float scriptGrabPosY = state.buffer.ReadSignedFloat(19, 27648.0f);
 				float scriptGrabPosZ = state.buffer.ReadFloat(19, 4416.0f) - 1700.0f;
 
-				auto scriptGrabRadius = state.buffer.ReadFloat(8, 20); // wrong divisor
+				auto scriptGrabRadius = state.buffer.ReadFloat(8, 20.f); // 0x41A00000
 			}
 		}
 		else
 		{
-			float dummyPosX = state.buffer.ReadSignedFloat(31, 27648.0f);
-			float dummyPosY = state.buffer.ReadSignedFloat(31, 27648.0f);
-			float dummyPosZ = state.buffer.ReadFloat(31, 4416.0f) - 1700.0f;
+			dummy.dummyPosX = state.buffer.ReadSignedFloat(31, 27648.0f);
+			dummy.dummyPosY = state.buffer.ReadSignedFloat(31, 27648.0f);
+			dummy.dummyPosZ = state.buffer.ReadFloat(31, 4416.0f) - 1700.0f;
 
-			auto playerWantsControl = state.buffer.ReadBit();
-			auto unk9 = state.buffer.ReadBit();
-			auto unk10 = state.buffer.ReadBit();
-			auto unk11 = state.buffer.ReadBit();
-			auto unk12 = state.buffer.ReadBit();
-			auto unk13 = state.buffer.ReadBit();
-			auto unk14 = state.buffer.ReadBit();
+			dummy.playerWantsControl = state.buffer.ReadBit();
+			dummy.hasFragGroup = state.buffer.ReadBit();
+			dummy.isBroken = state.buffer.ReadBit();
+			dummy.unk11 = state.buffer.ReadBit();
+			dummy.hasExploded = state.buffer.ReadBit();
+			dummy._explodingEntityExploded = state.buffer.ReadBit();
+			dummy.keepRegistered = state.buffer.ReadBit();
 
-			if (unk9)
+			if (dummy.hasFragGroup)
 			{
-				auto fragGroupIndex = state.buffer.Read<int>(5);
+				dummy.fragGroupIndex = state.buffer.Read<int>(5);
 			}
 
-			auto unk16 = state.buffer.ReadBit();
+			dummy._hasRelatedDummy = state.buffer.ReadBit();
 
-			if (!unk16)
+			if (!dummy._hasRelatedDummy)
 			{
 				auto ownershipToken = state.buffer.Read<int>(10);
 				float objectPosX = state.buffer.ReadSignedFloat(19, 27648.0f);
 				float objectPosY = state.buffer.ReadSignedFloat(19, 27648.0f);
 				float objectPosZ = state.buffer.ReadFloat(19, 4416.0f) - 1700.0f;
 				
-				auto rotX = state.buffer.ReadSigned<int>(9) * 0.015625f;
-				auto rotY = state.buffer.ReadSigned<int>(9) * 0.015625f;
-				auto rotZ = state.buffer.ReadSigned<int>(9) * 0.015625f;
+				auto objectRotX = state.buffer.ReadSigned<int>(9) * 0.015625f;
+				auto objectRotY = state.buffer.ReadSigned<int>(9) * 0.015625f;
+				auto objectRotZ = state.buffer.ReadSigned<int>(9) * 0.015625f;
 			}
 		}
 
@@ -1478,7 +1719,7 @@ struct CObjectCreationDataNode
 
 		if (unk20)
 		{
-			auto unk21 = state.buffer.ReadBit();
+			auto unk21 = state.buffer.Read<uint16_t>(13);
 		}
 
 		bool unk22 = state.buffer.ReadBit();
@@ -1494,7 +1735,42 @@ struct CObjectCreationDataNode
 	}
 };
 
-struct CObjectGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CObjectGameStateDataNode
+{
+	CObjectGameStateNodeData data;
+
+	bool Parse(SyncParseState& state)
+	{
+		data.hasTask = state.buffer.ReadBit();
+		if (data.hasTask)
+		{
+			data.taskType = state.buffer.Read<uint16_t>(10);
+			data.taskDataSize = state.buffer.Read<uint16_t>(8);
+		}
+		else
+		{
+			data.taskDataSize = 0;
+		}
+
+		// Bypass SerialiseDataBlock.
+		state.buffer.SetCurrentBit(state.buffer.GetCurrentBit() + data.taskDataSize);
+
+		data.isBroken = state.buffer.ReadBit();
+		if (data.isBroken)
+		{
+			data.brokenFlags = state.buffer.Read<uint32_t>(32);
+		}
+
+		data.hasExploded = state.buffer.ReadBit();
+		data.hasAddedPhysics = state.buffer.ReadBit();
+		data.isVisible = state.buffer.ReadBit();
+		data.unk_0x165 = state.buffer.ReadBit();
+		data.unk_0x166 = state.buffer.ReadBit();
+
+		return true;
+	}
+};
+
 struct CObjectScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPhysicalHealthDataNode { bool Parse(SyncParseState& state) { return true; } };
 
@@ -1547,7 +1823,59 @@ struct CPedScriptCreationDataNode { bool Parse(SyncParseState& state) { return t
 //struct CPedGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPedComponentReservationDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPedScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPedAttachDataNode { bool Parse(SyncParseState& state) { return true; } };
+
+struct CPedAttachDataNode
+{
+	struct CPedAttachNodeData : public CBaseAttachNodeData
+	{
+		bool unk_0x241;
+		bool hasHeading;
+		float heading_1; // 0xe8
+		float heading_2; // 0xec
+	} data;
+
+	bool Parse(SyncParseState& state)
+	{
+		data.attached = state.buffer.ReadBit();
+		if (data.attached)
+		{
+			data.attachedTo = state.buffer.Read<uint16_t>(13);
+			data.unk_0x241 = state.buffer.ReadBit();
+
+			data.hasOffset = state.buffer.ReadBit();
+			if (data.hasOffset) // Divisor 0x42340000
+			{
+				data.x = state.buffer.ReadSignedFloat(15, 45.f);
+				data.y = state.buffer.ReadSignedFloat(15, 45.f);
+				data.z = state.buffer.ReadSignedFloat(15, 45.f);
+			}
+
+			data.hasOrientation = state.buffer.ReadBit();
+			if (data.hasOrientation) // Divisor 0x3F8147AE
+			{
+				data.qx = state.buffer.ReadSignedFloat(16, 1.01f);
+				data.qy = state.buffer.ReadSignedFloat(16, 1.01f);
+				data.qz = state.buffer.ReadSignedFloat(16, 1.01f);
+				data.qw = state.buffer.ReadSignedFloat(16, 1.01f);
+			}
+			else
+			{
+				data.qw = 1.f; // Ensure identity quaternion is set.
+				data.qx = data.qy = data.qz = 0.f;
+			}
+
+			data.attachBone = state.buffer.Read<uint16_t>(8);
+			data.attachmentFlags = state.buffer.Read<uint32_t>(17);
+			data.hasHeading = state.buffer.ReadBit();
+			if (data.hasHeading) // Divisor 0x40C90FDB
+			{
+				data.heading_1 = state.buffer.ReadSignedFloat(8, 6.28319f);
+				data.heading_2 = state.buffer.ReadSignedFloat(8, 6.28319f);
+			}
+		}
+		return true;
+	}
+};
 
 struct CPedHealthDataNode
 {
@@ -2803,6 +3131,48 @@ struct SyncTree : public SyncTreeBase
 		auto [hasNode, node] = GetData<CPhysicalVelocityDataNode>();
 
 		return (hasNode) ? &node->data : nullptr;
+	}
+
+	virtual CDummyObjectCreationNodeData* GetDummyObjectState() override
+	{
+		auto [hasObject, objectCreationNode] = GetData<CObjectCreationDataNode>();
+		if (hasObject)
+		{
+			if (objectCreationNode->m_createdBy == 0 || objectCreationNode->m_createdBy == 2)
+			{
+				return &objectCreationNode->dummy;
+			}
+		}
+
+		return nullptr;
+	}
+
+	virtual CBaseAttachNodeData* GetAttachment() override
+	{
+		auto [hasPed, pedAttachNode] = GetData<CPedAttachDataNode>();
+		if (hasPed)
+		{
+			return &pedAttachNode->data;
+		}
+
+		auto [hasPhys, physicalAttachNode] = GetData<CPhysicalAttachDataNode>();
+		if (hasPhys)
+		{
+			return &physicalAttachNode->data;
+		}
+
+		return nullptr;
+	}
+
+	virtual CObjectGameStateNodeData* GetObjectGameState() override
+	{
+		auto [hasObj, objStateNode] = GetData<CObjectGameStateDataNode>();
+		if (hasObj)
+		{
+			return &objStateNode->data;
+		}
+
+		return nullptr;
 	}
 
 	virtual void CalculatePosition() override

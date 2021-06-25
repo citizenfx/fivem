@@ -14,6 +14,7 @@ enum class OneSyncState
 enum class EntityLockdownMode
 {
 	Inactive,
+	Dummy,
 	Relaxed,
 	Strict
 };
@@ -77,6 +78,8 @@ struct ConsoleArgumentType<fx::EntityLockdownMode>
 		{
 			case fx::EntityLockdownMode::Inactive:
 				return "inactive";
+			case fx::EntityLockdownMode::Dummy:
+				return "no_dummy";
 			case fx::EntityLockdownMode::Strict:
 				return "strict";
 			case fx::EntityLockdownMode::Relaxed:
@@ -91,6 +94,11 @@ struct ConsoleArgumentType<fx::EntityLockdownMode>
 		if (_stricmp(input.c_str(), "strict") == 0)
 		{
 			*out = fx::EntityLockdownMode::Strict;
+			return true;
+		}
+		else if (_stricmp(input.c_str(), "no_dummy") == 0)
+		{
+			*out = fx::EntityLockdownMode::Dummy;
 			return true;
 		}
 		else if (_stricmp(input.c_str(), "relaxed") == 0)
