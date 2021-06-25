@@ -16,7 +16,7 @@ import { OutputService } from "backend/output/output-service";
 import { uniqueArray } from "utils/unique";
 import { Deferred } from "backend/deferred";
 import { AssetBuildCommandError } from "backend/project/asset/asset-error";
-import { AssetInterface } from "assets/core/asset-interface";
+import { AssetDeployablePathsDescriptor, AssetInterface } from "assets/core/asset-interface";
 import { ProjectAssetBaseConfig } from "shared/project.types";
 import { FsWatcherEventType } from "backend/fs/fs-watcher";
 import { ResourceAssetConfig, ResourceStatus } from "./resource-types";
@@ -126,7 +126,7 @@ export class Resource implements AssetInterface {
 
   getDefinition() {
     return {
-      convarCategories: this.manifest.convarCategories
+      convarCategories: this.manifest.convarCategories,
     }
   }
 
@@ -134,7 +134,7 @@ export class Resource implements AssetInterface {
     return this.fsService.readIgnorePatterns(this.getPath());
   }
 
-  async getDeployablePaths(): Promise<string[]> {
+  async getDeployablePathsDescriptor(): Promise<AssetDeployablePathsDescriptor> {
     const resourcePath = this.getPath();
     const ignorePatterns = await this.getIgnorePatterns();
 
@@ -150,7 +150,13 @@ export class Resource implements AssetInterface {
       },
     );
 
-    return uniqueArray(allPaths.map((pathItem) => this.fsService.joinPath(resourcePath, pathItem)).concat(this.manifestPath));
+    return {
+      root: resourcePath,
+      paths: uniqueArray([
+        ...allPaths,
+        this.fsService.relativePath(resourcePath, this.manifestPath),
+      ]),
+    };
   }
 
   async suspendWatchCommands() {

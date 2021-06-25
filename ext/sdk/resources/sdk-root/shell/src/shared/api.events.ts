@@ -23,7 +23,7 @@ export const projectApi = {
   pathsState: 'project:pathsState',
 
   updateResources: 'project:updateResources',
-  setResourceConfig: 'project:setResourceConfig',
+  setAssetConfig: 'project:setResourceConfig',
 
   fsUpdate: 'project:fsUpdate',
   resourcesUpdate: 'project:resourcesUpdate',

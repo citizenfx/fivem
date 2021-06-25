@@ -357,6 +357,10 @@ module.exports = function(webpackEnv) {
                 name: 'static/media/[name].[ext]',
               },
             },
+            {
+              test: /\.raw\.js$/,
+              loader: require.resolve('raw-loader'),
+            },
             // Process application JS with Babel.
             // The preset includes JSX, Flow, TypeScript, and some ESnext features.
             {
