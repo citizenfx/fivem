@@ -189,7 +189,7 @@ static CInteriorProxy<Build>* GetInteriorProxy(int handle)
 
 static CMloModelInfo* GetInteriorArchetype(int interiorId)
 {
-	CInteriorInst* instance;
+	CInteriorInst* instance = nullptr;
 
 	if (xbr::IsGameBuildOrGreater<2060>())
 	{
