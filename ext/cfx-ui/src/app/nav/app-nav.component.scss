@@ -139,6 +139,13 @@
 			font-size: var(--fs-2);
 		}
 
+        .active {
+            @include theme() using ($theme) {
+                color: gtv($theme, accentContrastColor);
+                background-color: gtv($theme, accentColor1);
+            };
+        }
+
 		&>* {
 			position: relative;
 
@@ -183,7 +190,7 @@
 				transition: all .2s ease;
 			}
 
-			&:hover, &:focus {
+			&:hover {
 				transition: none;
 
 				@include theme() using ($theme) {
