@@ -340,6 +340,11 @@ export class AppComponent implements OnInit, AfterViewInit {
 
 		this.zone.runOutsideAngular(() => {
 			setTimeout(() => {
+				// double check in case it got removed
+				if (!this.gameCanvas) {
+					return;
+				}
+
 				this.gameView = createGameView(this.gameCanvas.nativeElement);
 				this.gameView?.resize(window.innerWidth, window.innerHeight);
 

@@ -83,7 +83,7 @@ export class HomeTweetComponent implements AfterViewInit, OnInit, OnDestroy {
 
 	ngOnDestroy() {
 		if (this.tweet.image) {
-			this.embeddedViewRef.destroy();
+			this.embeddedViewRef?.destroy();
 
 			document.removeEventListener('keydown', this.handleEsc);
 		}
