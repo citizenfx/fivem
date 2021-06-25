@@ -312,6 +312,18 @@ static void DeleteResourceKvp(fx::ScriptContext& context)
 	db->Delete(rocksdb::WriteOptions{}, key);
 }
 
+static void GetResourceKvpProperty(fx::ScriptContext& context)
+{
+	static std::string property_value;
+
+	auto db = EnsureDatabase();
+	auto db_property = context.CheckArgument<const char*>(0);
+
+	db->GetProperty(db_property, &property_value);
+
+	context.SetResult<const char*>(property_value.c_str());
+}
+
 static InitFunction initFunction([]()
 {
 	fx::ScriptEngine::RegisterNativeHandler("GET_RESOURCE_KVP", GetResourceKvp<AnyType>);
@@ -326,6 +338,7 @@ static InitFunction initFunction([]()
 	fx::ScriptEngine::RegisterNativeHandler("SET_RESOURCE_RAW_KVP", SetResourceKvpRaw);
 
 	fx::ScriptEngine::RegisterNativeHandler("DELETE_RESOURCE_KVP", DeleteResourceKvp);
+	fx::ScriptEngine::RegisterNativeHandler("GET_RESOURCE_KVP_PROPERTY", GetResourceKvpProperty);
 
 	fx::ScriptEngine::RegisterNativeHandler("START_FIND_KVP", StartFindKvp);
 	fx::ScriptEngine::RegisterNativeHandler("FIND_KVP", FindKvp);
