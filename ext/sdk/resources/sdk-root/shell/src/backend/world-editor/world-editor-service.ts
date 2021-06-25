@@ -80,17 +80,18 @@ export class WorldEditorService implements ApiContribution {
     const project = this.projectAccess.getInstance();
 
     // If server is already running and running latest update channel - we can't reuse that
-    if (this.gameServerService.isUp() && project.getUpdateChannel() === serverUpdateChannels.latest) {
-      this.resourcesToRestore = this.gameServerService.getResources();
+    // But there still is a bug in fxserver that prevents this: too many simultaneous stop events
+    // if (this.gameServerService.isUp() && project.getUpdateChannel() === serverUpdateChannels.latest) {
+    //   this.resourcesToRestore = this.gameServerService.getResources();
 
-      this.gameServerService.setResources([]);
-      this.gameServerService.sendCommand(ENABLE_WORLD_EDITOR_SERVER_MODE_CMD);
+    //   this.gameServerService.setResources([]);
+    //   this.gameServerService.sendCommand(ENABLE_WORLD_EDITOR_SERVER_MODE_CMD);
 
-      // restart sdk-game so new mode catches in
-      this.gameServerService.restartResource('sdk-game');
+    //   // restart sdk-game so new mode catches in
+    //   this.gameServerService.restartResource('sdk-game');
 
-      return openPromise;
-    }
+    //   return openPromise;
+    // }
 
     await this.gameServerService.stop();
 
@@ -134,8 +135,8 @@ export class WorldEditorService implements ApiContribution {
       return;
     }
 
-    // this.running = false;
     await this.gameServerService.stop();
+    this.running = false;
   }
 
   isRunning(): boolean {

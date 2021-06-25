@@ -12,7 +12,7 @@ export const WorldEditorPersonality = observer(function WorldEditorPersonality()
   const gameViewRef = React.useRef<HTMLDivElement>();
 
   const rootStyles: React.CSSProperties = {
-    '--toolbar-width': `${ToolbarState.width}px`,
+    '--we-toolbar-width': `${WorldEditorState.mapExplorerWidth}px`,
   } as any;
 
   const rooClassName = classnames(s.root, {

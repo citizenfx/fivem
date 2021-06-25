@@ -2,13 +2,13 @@ import React from 'react';
 import { observer } from 'mobx-react-lite';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { useDebouncedCallback, useOutsideClick } from 'utils/hooks';
-import { BsPlus } from 'react-icons/bs';
 import { Input } from 'components/controls/Input/Input';
 import { FixedSizeList } from 'react-window';
 import { useInputOverride } from 'personalities/WorldEditorPersonality/hooks';
 import { getAllArchetypes, searchArchetypes } from './worker/interface';
 import { Indicator } from 'components/Indicator/Indicator';
 import { WorldEditorState } from 'personalities/WorldEditorPersonality/WorldEditorState';
+import { RiMapPinAddFill } from 'react-icons/ri';
 import s from './ObjectsBrowser.module.scss';
 
 let ARCHETYPES: string[] = [];
@@ -39,7 +39,7 @@ const ObjectItem = React.memo(function ObjectItem({ active, name, style, spawn, 
   );
 });
 
-const ObjectsBrowserDropdown = React.memo(function ObjectsBrowserDropdown() {
+export const ObjectsBrowser = React.memo(function ObjectsBrowserDropdown() {
   const rootRef = React.useRef();
   const listRef = React.useRef<FixedSizeList>();
 
@@ -198,7 +198,7 @@ const ObjectsBrowserDropdown = React.memo(function ObjectsBrowserDropdown() {
   );
 });
 
-export const ObjectsBrowser = observer(function ObjectsBrowser() {
+export const ObjectsBrowserTrigger = observer(function ObjectsBrowser() {
   const [archetypesLoaded, setArchetypesLoaded] = React.useState(ARCHETYPES.length > 0);
 
   // Query all archetypes
@@ -224,14 +224,11 @@ export const ObjectsBrowser = observer(function ObjectsBrowser() {
   const showLoader = WorldEditorState.objectsBrowserOpen && !archetypesLoaded;
 
   return (
-    <div className={s.root}>
-      <div className={s.trigger} onClick={WorldEditorState.toggleObjectsBrowser}>
-        {showLoader ? <Indicator /> : <BsPlus />}
-      </div>
-
-      {WorldEditorState.objectsBrowserOpen && archetypesLoaded && (
-        <ObjectsBrowserDropdown />
-      )}
-    </div>
+    <button
+      onClick={WorldEditorState.toggleObjectsBrowser}
+      data-label="Add object on map"
+    >
+      {showLoader ? <Indicator /> : <RiMapPinAddFill />}
+    </button>
   );
 });

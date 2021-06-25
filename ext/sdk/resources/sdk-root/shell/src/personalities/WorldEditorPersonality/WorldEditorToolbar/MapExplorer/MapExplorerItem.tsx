@@ -17,8 +17,6 @@ export interface MapExplorerItemProps {
 export const MapExplorerItem = observer(function MapExplorerItem(props: MapExplorerItemProps) {
   const { item: { label }, onLabelChange, onClick, labelPlaceholder, children } = props;
 
-  console.log('RENDERING ITEM', label);
-
   const [editing, enterEditing, exitEditing] = useOpenFlag(false);
 
   React.useEffect(() => {

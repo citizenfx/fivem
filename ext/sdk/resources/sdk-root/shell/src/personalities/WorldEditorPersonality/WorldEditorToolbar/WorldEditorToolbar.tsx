@@ -5,7 +5,6 @@ import { BsX } from 'react-icons/bs';
 // import { sendApiMessage } from 'utils/api';
 import { WorldEditorState } from '../WorldEditorState';
 import { StatusBar } from './StatusBar/StatusBar';
-import { ObjectsBrowser } from './ObjectsBrowser/ObjectsBrowser';
 import { ModeSelector } from './ModeSelector/ModeSelector';
 import { MapExplorer } from './MapExplorer/MapExplorer';
 import s from './WorldEditorToolbar.module.scss';
@@ -16,10 +15,6 @@ export const WorldEditorToolbar = observer(function WorldEditorToolbar() {
       <div className={s.left}>
         {WorldEditorState.ready && (
           <MapExplorer />
-        )}
-
-        {WorldEditorState.ready && (
-          <ObjectsBrowser />
         )}
 
         {/* <button onClick={() => sendApiMessage(serverApi.restartResource, 'sdk-game')}>
@@ -39,6 +34,7 @@ export const WorldEditorToolbar = observer(function WorldEditorToolbar() {
         <button
           className={s.close}
           onClick={WorldEditorState.closeMap}
+          data-label="Close World Editor"
         >
           <BsX />
         </button>

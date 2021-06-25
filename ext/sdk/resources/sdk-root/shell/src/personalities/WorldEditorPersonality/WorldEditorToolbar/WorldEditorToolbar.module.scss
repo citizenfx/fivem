@@ -52,6 +52,9 @@
       font-size: $fs2;
     }
 
+    @include data-label {
+      right: 0;
+    };
     @include interactiveTransition;
     @include backdrop-blur;
 
