@@ -43,6 +43,9 @@ private:
 	uintptr_t file_;
 
 	bool closed_;
+
+	bool canCache_ = false;
+
 public:
 	NUIResourceHandler()
 	{
@@ -70,13 +73,21 @@ public:
 		hostname = CefString(&parts.host);
 		path = CefString(&parts.path);
 
-		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
-
 		if (hostname == L"game" || hostname == L"nui-game-internal")
 		{
 			filename_ = "citizen:/";
+
+			if (path == L"/ui/app/")
+			{
+				path += L"index.html";
+			}
 			
-			filename_ += converter.to_bytes(path).substr(1);
+			if (path.find(L"/ui/app/") != std::string::npos && path.find(L"index.html") == std::string::npos)
+			{
+				canCache_ = true;
+			}
+			
+			filename_ += ToNarrow(path).substr(1);
 		}
 		else
 		{
@@ -92,8 +103,8 @@ public:
 			else
 			{
 				filename_ = "resources:/";
-				filename_ += converter.to_bytes(hostname) + "/";
-				filename_ += converter.to_bytes(path);
+				filename_ += ToNarrow(hostname) + "/";
+				filename_ += ToNarrow(path);
 			}
 		}
 
@@ -165,8 +176,16 @@ public:
 		map.emplace("access-control-allow-origin", "*");
 		map.emplace("access-control-allow-methods", "GET, OPTIONS");
 
-		// #TODO: maybe handle caching based on actual resource-related metadata
-		map.insert({ "cache-control", "no-cache, must-revalidate" });
+		// #TODO: maybe handle caching based on actual resource-related metadata (last-modified, etag, ..?)
+		if (!canCache_)
+		{
+			map.insert({ "cache-control", "no-cache, must-revalidate" });
+		}
+		else
+		{
+			map.insert({ "cache-control", "max-age=2592000" });
+		}
+
 		response->SetHeaderMap(map);
 
 		if (file_ != -1)

@@ -281,7 +281,7 @@ auto NUIClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<Ce
 {
 	auto url = request->GetURL().ToString();
 
-#ifndef USE_NUI_ROOTLESS
+#if !defined(USE_NUI_ROOTLESS) && !defined(_DEBUG)
 	if (frame->IsMain())
 	{
 		if (frame->GetURL().ToString().find("nui://game/ui/") == 0 && url.find("nui://game/ui/") != 0)
