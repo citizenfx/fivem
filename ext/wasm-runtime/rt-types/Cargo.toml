@@ -1,6 +1,6 @@
 [package]
 name = "cfx-wasm-rt-types"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2018"
 license = "MIT OR Apache-2.0"
 description = "Types used by CitizenFX WASM Runtime"

@@ -93,9 +93,21 @@ impl Runtime {
         if let Some(script) = self.script.as_mut() {
             let mut wrapper = || -> anyhow::Result<()> {
                 if let Some(func) = script.on_event.clone() {
-                    let ev = script.copy_event_name(event_name)?;
-                    let args = script.copy_event_args(args)?;
-                    let src = script.copy_event_source(source)?;
+                    let (cleanup, ev, args, src) = if script.handling_event {
+                        let ev = script.alloc_bytes(event_name.to_bytes_with_nul())?;
+                        let args = script.alloc_bytes(args)?;
+                        let src = script.alloc_bytes(source.to_bytes_with_nul())?;
+
+                        (true, ev, args, src)
+                    } else {
+                        let ev = script.copy_event_name(event_name)?;
+                        let args = script.copy_event_args(args)?;
+                        let src = script.copy_event_source(source)?;
+
+                        script.handling_event = true;
+
+                        (false, ev, args, src)
+                    };
 
                     // event, args, args_len, src
                     func.call(
@@ -107,6 +119,14 @@ impl Runtime {
                             Val::I32(src.0 as _),
                         ],
                     )?;
+
+                    if cleanup {
+                        script.free_bytes(ev)?;
+                        script.free_bytes(args)?;
+                        script.free_bytes(src)?;
+                    } else {
+                        script.handling_event = false;
+                    }
                 }
 
                 Ok(())
@@ -222,6 +242,7 @@ struct ScriptModule {
     instance: Instance,
     on_event: Option<Func>,
     event_allocs: EventAlloc,
+    handling_event: bool,
     memory: Memory,
 }
 
@@ -323,6 +344,7 @@ impl ScriptModule {
             instance,
             on_event,
             memory,
+            handling_event: false,
             event_allocs: EventAlloc::default(),
         };
 

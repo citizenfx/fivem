@@ -85,9 +85,9 @@ using namespace msgpack11;
 // Defined at ext/wasm-runtime/rt-types
 struct guest_arg
 {
-    bool is_ref;
     uint64_t value;
     std::size_t size;
+    bool is_ref;
 };
 
 extern "C" void FROM_CFX script_log(const char *message);
@@ -95,7 +95,7 @@ extern "C" int32_t FROM_CFX invoke(uint64_t hash, const guest_arg *args, std::si
 
 void register_resource_as_event_handler(const std::string &event_name)
 {
-    std::vector<guest_arg> args{guest_arg{true, reinterpret_cast<uint64_t>(event_name.c_str()), 8}};
+    std::vector<guest_arg> args{guest_arg{reinterpret_cast<uint64_t>(event_name.c_str()), 8, true}};
     invoke(0xD233A168, args.data(), args.size(), nullptr);
 }
 

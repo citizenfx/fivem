@@ -174,9 +174,9 @@ impl_for_primitives! {
 #[repr(C)]
 #[derive(Default)]
 pub struct GuestArg {
-    pub is_ref: bool,
     pub value: u64,
     pub size: u32,
+    pub is_ref: bool,
 }
 
 impl GuestArg {
