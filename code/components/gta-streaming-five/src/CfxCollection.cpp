@@ -1088,37 +1088,28 @@ private:
 			return;
 		}
 
+		// we *only* support old usermaps here, everything else is trash
+		if (_strnicmp(archive, "usermaps:/", 10) != 0)
+		{
+			m_lookupFunction = [=](const char* lookupName, std::string& fileName)
+			{
+				return false;
+			};
+
+			return;
+		}
+
 		// build a local path string to verify
 		std::stringstream basePath;
+		const char* colon = strchr(archive, ':');
 
-		if (_strnicmp(archive, "usermaps:/", 10) == 0)
-		{
-			const char* colon = strchr(archive, ':');
+		// temporary: make citizen/ path manually
+		static std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
+		basePath << converter.to_bytes(MakeRelativeCitPath(L"/"));
 
-			// temporary: make citizen/ path manually
-			static std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
-			basePath << converter.to_bytes(MakeRelativeCitPath(L"/"));
-
-			basePath << std::string(archive, colon);
-			basePath << "/";
-			basePath << std::string(&colon[1], const_cast<const char*>(StrStrIA(colon, ".rpf")));
-		}
-		else if (!IsPseudoPackPath(archive) || _strnicmp(archive, "pseudoPack:/", 12) == 0)
-		{
-			const char* colon = strchr(archive, ':');
-
-			// temporary: make citizen/ path manually
-			static std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
-			basePath << converter.to_bytes(MakeRelativeCitPath(L"citizen/"));
-
-			basePath << std::string(archive, colon);
-			basePath << "/";
-			basePath << std::string(&colon[1], const_cast<const char*>(strrchr(colon, '.')));
-		}
-		else
-		{
-			basePath << std::string(archive, const_cast<const char*>(strrchr(archive, '.')));
-		}
+		basePath << std::string(archive, colon);
+		basePath << "/";
+		basePath << std::string(&colon[1], const_cast<const char*>(StrStrIA(colon, ".rpf")));
 
 		// get the folder device
 		std::string str = basePath.str();
