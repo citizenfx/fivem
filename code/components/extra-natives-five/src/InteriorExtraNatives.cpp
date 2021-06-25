@@ -439,13 +439,13 @@ static HookFunction initFunction([]()
 			return false;
 		}
 
-		*context.GetArgument<float*>(1) = roomDef->bbMin.x;
-		*context.GetArgument<float*>(2) = roomDef->bbMin.y;
-		*context.GetArgument<float*>(3) = roomDef->bbMin.z;
+		*context.GetArgument<float*>(2) = roomDef->bbMin.x;
+		*context.GetArgument<float*>(3) = roomDef->bbMin.y;
+		*context.GetArgument<float*>(4) = roomDef->bbMin.z;
 
-		*context.GetArgument<float*>(4) = roomDef->bbMax.x;
-		*context.GetArgument<float*>(5) = roomDef->bbMax.y;
-		*context.GetArgument<float*>(6) = roomDef->bbMax.z;
+		*context.GetArgument<float*>(5) = roomDef->bbMax.x;
+		*context.GetArgument<float*>(6) = roomDef->bbMax.y;
+		*context.GetArgument<float*>(7) = roomDef->bbMax.z;
 
 		return true;
 	});
