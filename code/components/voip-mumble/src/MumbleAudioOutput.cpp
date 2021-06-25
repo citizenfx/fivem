@@ -451,7 +451,23 @@ MumbleAudioOutput::ClientAudioState::~ClientAudioState()
 		});
 	}
 
-	context = {};
+	// destroy the lab::AudioContext off-thread as it may be blocking for a while
+	struct DtorWorker
+	{
+		std::shared_ptr<lab::AudioContext> audCxt;
+	};
+
+	auto dtorWorker = new DtorWorker();
+	dtorWorker->audCxt = std::move(context);
+
+	QueueUserWorkItem([](void* data) -> DWORD
+	{
+		auto dtorWorker = (DtorWorker*)data;
+		delete dtorWorker;
+
+		return 0;
+	},
+	dtorWorker, 0);
 
 	if (voice)
 	{
