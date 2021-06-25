@@ -22,6 +22,7 @@ import { ChangeAwareContainer } from 'backend/change-aware-container';
 import { FsThrottledWriter } from 'backend/fs/fs-throttled-writer';
 import { ApiClient } from 'backend/api/api-client';
 import { omit } from 'utils/omit';
+import { ProjectAccess } from 'backend/project/project-access';
 
 @injectable()
 export class WorldEditor implements ApiContribution {
@@ -42,6 +43,9 @@ export class WorldEditor implements ApiContribution {
 
   @inject(ApiClient)
   protected readonly apiClient: ApiClient;
+
+  @inject(ProjectAccess)
+  protected readonly projectAccess: ProjectAccess;
 
   private map: ChangeAwareContainer<WorldEditorMap>;
   private mapWriter: FsThrottledWriter<WorldEditorMap>;
@@ -86,6 +90,9 @@ export class WorldEditor implements ApiContribution {
     this.eventDisposers.forEach((disposer) => disposer());
 
     await this.mapWriter.flush();
+
+    // Ask asset to build itself
+    await this.projectAccess.withInstance((project) => project.getAssets().get(this.mapPath)?.build?.());
   }
 
   @handlesClientEvent(worldEditorApi.setCam)

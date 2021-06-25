@@ -1,4 +1,5 @@
 import React from 'react';
+import { BiWorld } from 'react-icons/bi';
 import {
   BsDiamond,
   BsFolderFill,
@@ -21,7 +22,9 @@ import {
   BsBoxArrowInDown,
   BsBoxArrowUpRight,
   BsMap,
-  BsBoxArrowInDownRight
+  BsBoxArrowInDownRight,
+  BsCheckBox,
+  BsSquare
 } from 'react-icons/bs';
 import { VscSettingsGear } from 'react-icons/vsc';
 
@@ -61,4 +64,10 @@ export const stopIcon = <BsStopFill />;
 export const startIcon = <BsPlayFill />;
 
 export const closeIcon = <BsX />;
+
 export const mapIcon = <BsMap />;
+
+export const fxworldIcon = <BiWorld />;
+
+export const checkedIcon = <BsCheckBox />;
+export const uncheckedIcon = <BsSquare />;

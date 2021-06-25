@@ -41,6 +41,13 @@ module.exports = (env, args) => {
     module: {
       rules: [
         {
+          test: /\.raw\.js$/,
+          loader: 'raw-loader',
+          options: {
+            esModule: false,
+          },
+        },
+        {
           test: /\.ts/,
           loader: 'ts-loader',
           options: {

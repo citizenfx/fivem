@@ -7,7 +7,7 @@ import { useOpenFlag } from 'utils/hooks';
 import { sendApiMessage } from 'utils/api';
 import { projectApi, serverApi } from 'shared/api.events';
 import { ContextMenu, ContextMenuItemsCollection, ContextMenuItemSeparator } from 'components/controls/ContextMenu/ContextMenu';
-import { deleteIcon, disabledResourceIcon, enabledResourceIcon, refreshIcon, renameIcon, resourceIcon, startIcon, stopIcon } from 'constants/icons';
+import { checkedIcon, deleteIcon, disabledResourceIcon, enabledResourceIcon, refreshIcon, renameIcon, resourceIcon, startIcon, stopIcon, uncheckedIcon } from 'constants/icons';
 import { useExpandablePath, useItem, useItemDrop, useItemRelocateTargetContextMenu } from 'components/Project/ProjectExplorer/ProjectExplorer.hooks';
 import { ProjectExplorerItemContext, ProjectExplorerItemContextProvider } from 'components/Project/ProjectExplorer/item.context';
 import { projectExplorerItemType } from 'components/Project/ProjectExplorer/item.types';
@@ -243,7 +243,7 @@ function useResourceLifecycle(
       },
     };
 
-    sendApiMessage(projectApi.setResourceConfig, request);
+    sendApiMessage(projectApi.setAssetConfig, request);
   }, [resourcePath, isEnabled]);
 
   const handleToggleAutorestartEnabled = React.useCallback(() => {
@@ -254,7 +254,7 @@ function useResourceLifecycle(
       },
     };
 
-    sendApiMessage(projectApi.setResourceConfig, request);
+    sendApiMessage(projectApi.setAssetConfig, request);
   }, [resourcePath, isAutorestartOnChangeEnabled]);
 
   const handleRestart = React.useCallback(() => {
@@ -321,8 +321,8 @@ function useResourceLifecycle(
       {
         id: 'toggle-autorestart-enabled',
         icon: isAutorestartOnChangeEnabled
-          ? <BsCheckBox />
-          : <BsSquare />,
+          ? checkedIcon
+          : uncheckedIcon,
         text: isAutorestartOnChangeEnabled
           ? 'Disable restart on change'
           : 'Enable restart on change',

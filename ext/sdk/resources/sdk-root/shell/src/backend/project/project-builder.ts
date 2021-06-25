@@ -1,9 +1,11 @@
+import { AssetDeployablePathsDescriptor } from 'assets/core/asset-interface';
 import { ApiClient } from 'backend/api/api-client';
 import { ApiContribution } from 'backend/api/api-contribution';
 import { handlesClientEvent } from 'backend/api/api-decorators';
 import { CopyOptions, FsService } from 'backend/fs/fs-service';
 import { versionFilename } from 'backend/game-server/game-server-installer-utils';
 import { GameServerManagerService } from 'backend/game-server/game-server-manager-service';
+import { ServerResourceDescriptor } from 'backend/game-server/game-server-runtime';
 import { GameServerService } from 'backend/game-server/game-server-service';
 import { LogService } from 'backend/logger/log-service';
 import { NotificationService } from 'backend/notification/notification-service';
@@ -93,7 +95,7 @@ export class ProjectBuilder implements ApiContribution {
     }
 
     const project = this.projectAccess.getInstance();
-    if (project.isNotInDevState()) {
+    if (!project.isInDevState()) {
       this.notificationService.error('Project build failed: project is already building');
 
       return;
@@ -235,7 +237,9 @@ export class ProjectBuilder implements ApiContribution {
 
   protected async deployResources(project: Project, buildInfo: ProjectBuildInfo) {
     const { resourcesDeployPath } = buildInfo;
-    const deployableResources = project.getEnabledAssets().filter((asset) => asset.getResourceDescriptor?.());
+    const deployableResources: [ServerResourceDescriptor, AssetDeployablePathsDescriptor][] = project.getEnabledAssets()
+      .map((asset) => [asset.getResourceDescriptor?.(), asset.getDeployablePathsDescriptor?.()])
+      .filter(([assetResourceDescriptor]) => !!assetResourceDescriptor) as any; // thanks ts, again
 
     const resourceConfig: string[] = [];
 
@@ -258,19 +262,18 @@ export class ProjectBuilder implements ApiContribution {
     const resourcesCount = deployableResources.length;
     if (resourcesCount) {
       await Promise.all(
-        deployableResources.map(async (asset) => {
-          const { name: resourceName, path: resourcePath } = asset.getResourceDescriptor();
-          const deployablePaths = await asset.getDeployablePaths();
+        deployableResources.map(async ([resourceDescriptor, deployablePathsDescriptorPromise]) => {
+          const deployablePathsDescriptor = await deployablePathsDescriptorPromise;
 
           const copyTasks: [string, string][] = [];
           const foldersToCreate: Set<string> = new Set();
 
-          deployablePaths.forEach((deployablePath: string) => {
-            const relativePath = this.fsService.dirname(this.fsService.relativePath(resourcePath, deployablePath));
-            const deploySitePath = this.fsService.joinPath(resourcesDeployPath, resourceName, relativePath);
+          deployablePathsDescriptor.paths.forEach((deployablePath: string) => {
+            const assetSitePath = this.fsService.joinPath(deployablePathsDescriptor.root, deployablePath);
+            const deploySitePath = this.fsService.dirname(this.fsService.joinPath(resourcesDeployPath, resourceDescriptor.name, deployablePath));
 
             // Remember, that it goes like so: /a/beef/c.txt -> /a/milk, so it will get copied to /a/milk/c.txt
-            copyTasks.push([deployablePath, deploySitePath]);
+            copyTasks.push([assetSitePath, deploySitePath]);
             foldersToCreate.add(deploySitePath);
           });
 
@@ -289,7 +292,7 @@ export class ProjectBuilder implements ApiContribution {
             copyTasks.map(([sourcePath, target]) => this.fsService.copy(sourcePath, target, copyOptions)),
           );
 
-          resourceConfig.push(`ensure ${resourceName}`);
+          resourceConfig.push(`ensure ${resourceDescriptor.name}`);
         }),
       );
     }
@@ -333,7 +336,7 @@ export class ProjectBuilder implements ApiContribution {
         `set steam_webApiKey "${buildInfo.steamWebApiKey}"`,
         `sv_tebexSecret "${buildInfo.tebexSecret}"`,
         ``,
-        ...this.projectAccess.getInstance().getAssetVariables(),
+        ...this.projectAccess.getInstance().getAssetsConvarCommands(),
         ``
       ];
 

@@ -4,6 +4,11 @@ import { ServerResourceDescriptor } from "backend/game-server/game-server-runtim
 import { FilesystemEntry } from "shared/api.types";
 import { AssetType } from "shared/asset.types";
 
+export interface AssetDeployablePathsDescriptor {
+  root: string,
+  paths: string[],
+}
+
 export interface AssetInterface extends DisposableObject {
   readonly type: AssetType;
 
@@ -13,10 +18,10 @@ export interface AssetInterface extends DisposableObject {
   setEntry?(entry: FilesystemEntry): Promise<void> | void;
   onFsUpdate?(updateType: FsWatcherEventType, entry: FilesystemEntry | null, entryPath: string): Promise<void> | void;
 
-  getDeployablePaths?(): Promise<string[]>;
+  getDeployablePathsDescriptor?(): Promise<AssetDeployablePathsDescriptor>;
 
-  getResourceDescriptor?(): ServerResourceDescriptor;
-  getDefinition?(): any;
+  getResourceDescriptor?(): ServerResourceDescriptor | void;
+  getDefinition?(): Record<string, unknown>;
 
   build?(): Promise<void> | void;
 }

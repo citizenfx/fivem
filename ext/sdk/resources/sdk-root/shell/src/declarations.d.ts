@@ -37,3 +37,7 @@ declare module '*.module.scss' {
   const classes: { [key: string]: string };
   export default classes;
 }
+declare module '*.raw.js' {
+  const classes: string;
+  export default classes;
+}

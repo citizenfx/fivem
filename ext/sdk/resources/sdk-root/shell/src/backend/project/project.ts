@@ -46,7 +46,7 @@ import { TaskReporterService } from 'backend/task/task-reporter-service';
 import { projectCreatingTaskName, projectLoadingTaskName } from 'shared/task.names';
 import { TheiaService } from 'backend/theia/theia-service';
 import { getAssetsPriorityQueue } from './project-utils';
-import { AssetImporterType, AssetMeta, assetMetaFileExt } from 'shared/asset.types';
+import { AssetImporterType, AssetMeta, assetMetaFileExt, assetTypes } from 'shared/asset.types';
 import { AssetImporterContribution } from './asset/asset-importer-contribution';
 import { AssetInterface } from '../../assets/core/asset-interface';
 import { ProjectAssetBaseConfig, ProjectData, ProjectManifest, ProjectPathsState } from 'shared/project.types';
@@ -171,6 +171,10 @@ export class Project implements ApiContribution {
     return this.path;
   }
 
+  getStoragePath(): string {
+    return this.storagePath;
+  }
+
   getFs(): FilesystemEntryMap {
     return this.fsMapping.getMap();
   }
@@ -241,8 +245,8 @@ export class Project implements ApiContribution {
     this.state = state;
   }
 
-  isNotInDevState(): boolean {
-    return this.state !== ProjectState.Development;
+  isInDevState(): boolean {
+    return this.state === ProjectState.Development;
   }
 
   async runBuildCommands() {
@@ -469,7 +473,7 @@ export class Project implements ApiContribution {
     return this.getManifest().assets[assetRelativePath] || { enabled: false };
   }
 
-  @handlesClientEvent(projectApi.setResourceConfig)
+  @handlesClientEvent(projectApi.setAssetConfig)
   async setAssetConfig(request: ProjectSetAssetConfigRequest) {
     const assetRelativePath = this.fsService.relativePath(this.path, request.assetPath);
 
@@ -877,20 +881,17 @@ export class Project implements ApiContribution {
       return;
     }
 
-    for (const cmd of this.getAssetVariables()) {
+    for (const cmd of this.getAssetsConvarCommands()) {
       this.gameServerService.sendCommand(cmd);
     }
   }
 
-  *getAssetVariables() {
-    const enabledAssets = this.getEnabledAssets();
-    const convarMap = enabledAssets
-      .filter(asset => asset.type === 'resource')
-      .map(asset => asset.getDefinition() ?? {})
-      .map(definition =>
-        (definition.convarCategories ?? [])
-          .map(data => data[1])
-          .map(data => data[1]))
+  *getAssetsConvarCommands() {
+    const convarMap = this.getEnabledAssets()
+      .filter((asset) => asset.type === assetTypes.resource)
+      .map((asset) => asset.getDefinition?.()?.convarCategories)
+      .filter((convarCategories) => Array.isArray(convarCategories))
+      .map((convarCategories) => (convarCategories as any).map(([, [, setting]]) => setting))
       .flat(2);
 
     for (const setting of convarMap) {
@@ -933,9 +934,8 @@ export class Project implements ApiContribution {
     const resourceDescriptors: ServerResourceDescriptor[] = this.systemResourcesService.getResourceDescriptors(enabledSystemResources).slice();
 
     for (const asset of this.getEnabledAssets()) {
-      if (asset.getResourceDescriptor) {
-        const descriptor = asset.getResourceDescriptor();
-
+      const descriptor = asset.getResourceDescriptor?.();
+      if (descriptor) {
         // Only if it doesn't conflict with enabled system resource name
         if (enabledSystemResources.indexOf(descriptor.name as SystemResource) === -1) {
           resourceDescriptors.push(descriptor);
