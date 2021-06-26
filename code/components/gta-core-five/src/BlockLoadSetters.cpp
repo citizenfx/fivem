@@ -248,7 +248,7 @@ struct InitFunctionStub : public jitasm::Frontend
 {
 	static uintptr_t LogStub(uintptr_t stub, int type)
 	{
-		trace("Running shutdown %s function: %p\n", typeMap[type], (void*)stub);
+		trace("Running shutdown %s function: %p\n", typeMap[type], (void*)hook::get_unadjusted(stub));
 		return stub;
 	}
 

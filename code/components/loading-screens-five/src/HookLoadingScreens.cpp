@@ -48,7 +48,7 @@ struct LoadScreenFuncs
 
 			if (msec > 50)
 			{
-				trace(__FUNCTION__ ": Instrumented function %p (%i) took %dmsec\n", data.func, data.index, msec);
+				trace(__FUNCTION__ ": Instrumented function %p (%i) took %dmsec\n", (void*)hook::get_unadjusted(data.func), data.index, msec);
 			}
 		}
 	}
