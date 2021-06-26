@@ -50,6 +50,24 @@ function Invoke-BatchFile
    Remove-Item $tempFile
 }
 
+function Start-Section
+{
+	param([Parameter(Position=0)][string]$Id, [Parameter(Position=1)][string]$Name)
+	
+	$ts = (Get-Date -UFormat %s -Millisecond 0)
+	$esc = $([char]27)
+	Write-Host "section_start:$($ts):$Id`r$esc[0K$Name"
+}
+
+function End-Section
+{
+	param([Parameter(Position=0)][string]$Id)
+	
+	$ts = (Get-Date -UFormat %s -Millisecond 0)
+	$esc = $([char]27)
+	Write-Host "section_end:$($ts):$Id`r$esc[0K"
+}
+
 function Invoke-WebHook
 {
     param([string]$Text)
@@ -65,7 +83,7 @@ function Invoke-WebHook
 
     iwr -UseBasicParsing -Uri $env:TG_WEBHOOK -Method POST -Headers @{'Content-Type' = 'application/json'} -Body (ConvertTo-Json -Compress -InputObject $payload) | out-null
 
-    $payload.text += " <:mascot:780071492469653515>"#<@&297070674898321408>"
+    $payload.text += " <:mascot:780071492469653515>"
     iwr -UseBasicParsing -Uri $env:DISCORD_WEBHOOK -Method POST -Headers @{'Content-Type' = 'application/json'} -Body (ConvertTo-Json -Compress -InputObject $payload) | out-null
 }
 
@@ -173,11 +191,9 @@ if (!$DontBuild)
 {
     Invoke-WebHook "Bloop, building a new $env:CI_PROJECT_NAME $UploadBranch build, triggered by $Triggerer"
 
-    Write-Host "[checking if repository is latest version]" -ForegroundColor DarkMagenta
+    Start-Section "vs_setup" "Setting up VS"
 
     $ci_dir = $env:CI_PROJECT_DIR -replace '/','\'
-
-    #cmd /c mklink /d citizenmp cfx-client
 
     $VCDir = (& "$WorkDir\code\tools\ci\vswhere.exe" -latest -prerelease -property installationPath -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64)
 
@@ -189,7 +205,9 @@ if (!$DontBuild)
         throw "No VC path!"
     }
 
-    Write-Host "[updating submodules]" -ForegroundColor DarkMagenta
+	End-Section "vs_setup"
+
+    Start-Section "update_submodules" "Updating submodules"
     Push-Location $WorkDir
 
     git submodule init
@@ -204,6 +222,7 @@ if (!$DontBuild)
 			continue;
 		}
 		
+		Start-Section "update_submodule_$($submodule.Name)" "Cloning $($submodule.Name)"
         $SubmoduleRemote = git config -f .gitmodules --get "submodule.$($submodule.Name).url"
 
         $Tag = (git ls-remote --tags $SubmoduleRemote | Select-String -Pattern $submodule.Hash) -replace '^.*tags/([^^]+).*$','$1'
@@ -213,19 +232,26 @@ if (!$DontBuild)
         } else {
             git clone -b $Tag --depth 1 --single-branch $SubmoduleRemote $SubmodulePath
         }
+
+		End-Section "update_submodule_$($submodule.Name)"
     }
 
+	Start-Section "update_submodule_git" "Updating all submodules"
     git submodule update
+	End-Section "update_submodule_git"
 
     Pop-Location
 
-    Write-Host "[running prebuild]" -ForegroundColor DarkMagenta
+	End-Section "update_submodules"
+
+	Start-Section "run_prebuild" "Running prebuild"
     Push-Location $WorkDir
     .\prebuild.cmd
     Pop-Location
+	End-Section "run_prebuild"
 
     if (!$IsServer) {
-        Write-Host "[downloading chrome]" -ForegroundColor DarkMagenta
+        Start-Section "dl_chrome" "Downloading Chrome"
         try {
             if (!(Test-Path "$SaveDir\$CefName.zip")) {
                 curl.exe -Lo "$SaveDir\$CefName.zip" "https://runtime.fivem.net/build/cef/$CefName.zip"
@@ -237,8 +263,9 @@ if (!$DontBuild)
         } catch {
             return
         }
+        End-Section "dl_chrome"
         
-        Write-Host "[downloading re3]" -ForegroundColor DarkMagenta
+        Start-Section "dl_re3" "Downloading RE3"
         try {
             if (!(Test-Path "$SaveDir\re3.rpf")) {
                 Invoke-WebRequest -UseBasicParsing -OutFile "$SaveDir\re3.rpf" "https://runtime.fivem.net/client/re3.rpf"
@@ -246,11 +273,13 @@ if (!$DontBuild)
         } catch {
             return
         }
+		End-Section "dl_re3"
     }
 
-    Write-Host "[building]" -ForegroundColor DarkMagenta
+    Start-Section "build" "Building"
 
-	if (!($env:APPVEYOR)) {
+	if ($env:FIVEM_PRIVATE_URI) {
+		Start-Section "private" "Fetching privates"
 	    Push-Location $WorkDir\..\
 	    
 	    $CIBranch = "master-old"
@@ -274,6 +303,7 @@ if (!$DontBuild)
 	    echo "private_repo '../../fivem-private/'" | Out-File -Encoding ascii $WorkRootDir\privates_config.lua
 
 	    Pop-Location
+		End-Section "private"
 	}
 
     $GameName = "five"
@@ -294,7 +324,9 @@ if (!$DontBuild)
 		Invoke-Expression "& $WorkRootDir\tools\ci\build_rs.cmd"
     }
 
+	Start-Section "premake" "Running premake"
     Invoke-Expression "& $WorkRootDir\tools\ci\premake5 vs2019 --game=$GameName --builddir=$BuildRoot --bindir=$BinRoot"
+	End-Section "premake"
 
     "#pragma once
     #define BASE_EXE_VERSION $LauncherVersion" | Out-File -Force shared\citversion.h.tmp
@@ -313,10 +345,13 @@ if (!$DontBuild)
 	$env:EnforceProcessCountAcrossBuilds = "true"
 
 	# restore nuget packages
+	Start-Section "nuget" "Running nuget.exe"
 	Invoke-Expression "& $WorkRootDir\tools\ci\nuget.exe restore $BuildPath\CitizenMP.sln"
+	End-Section "nuget"
 
     #echo $env:Path
     #/logger:C:\f\customlogger.dll /noconsolelogger
+	Start-Section "msbuild" "Running msbuild..."
     msbuild /p:preferredtoolarchitecture=x64 /p:configuration=release /v:q /fl /m $BuildPath\CitizenMP.sln
 
     if (!$?) {
@@ -324,11 +359,15 @@ if (!$DontBuild)
         throw "Failed to build the code."
     }
 
+	End-Section "msbuild"
+
     if ((($env:COMPUTERNAME -eq "AVALON2") -or ($env:COMPUTERNAME -eq "AVALON") -or ($env:COMPUTERNAME -eq "OMNITRON")) -and (!$IsServer)) {
         Start-Process -NoNewWindow powershell -ArgumentList "-ExecutionPolicy unrestricted .\tools\ci\dump_symbols.ps1 -BinRoot $BinRoot -GameName $GameName"
     } elseif ($IsServer -and (Test-Path C:\h\debuggers)) {
 		Start-Process -NoNewWindow powershell -ArgumentList "-ExecutionPolicy unrestricted .\tools\ci\dump_symbols_server.ps1 -BinRoot $BinRoot"
     }
+
+	End-Section "build"
 }
 
 Set-Location $WorkRootDir
@@ -422,6 +461,7 @@ if (!$DontBuild -and !$IsServer) {
     Set-Location $CacheDir
 
     if ($true) {
+		Start-Section "ui" "Building UI"
         # build UI
         Push-Location $WorkDir
         $UICommit = (git rev-list -1 HEAD ext/ui-build/ ext/cfx-ui/)
@@ -441,8 +481,10 @@ if (!$DontBuild -and !$IsServer) {
         }
 
         Pop-Location
+		End-Section "ui"
     }
     
+	Start-Section "caches" "Gathering caches"
     Copy-Item -Force $SaveDir\re3.rpf $CacheDir\fivereborn\citizen\re3.rpf
 
     # copy output files
@@ -535,6 +577,8 @@ if (!$DontBuild -and !$IsServer) {
         <Cache ID=`"fivereborn`" Version=`"$GameVersion`" />
     </Caches>" | Out-File -Encoding ascii $CacheDir\caches.xml
 
+	End-Section "caches"
+
     Copy-Item -Force "$WorkRootDir\tools\ci\xz.exe" xz.exe
 
     #Invoke-Expression "& $WorkRootDir\tools\ci\BuildCacheMeta.exe"
@@ -552,6 +596,7 @@ if (!$DontBuild -and !$IsServer) {
         Remove-Item CitizenFX.exe.xz
     }
 
+	Start-Section "caches_fin" "Gathering more caches"
     Invoke-Expression "& $WorkRootDir\tools\ci\xz.exe -9 CitizenFX.exe"
 
     Invoke-WebRequest -Method POST -UseBasicParsing "https://crashes.fivem.net/management/add-version/1.3.0.$GameVersion"
@@ -587,6 +632,7 @@ if (!$DontBuild -and !$IsServer) {
 
     Remove-Item -Recurse -Force $WorkDir\caches
     Copy-Item -Recurse -Force $CacheDir $WorkDir\caches
+	End-Section "caches_fin"
 }
 
 if (!$DontUpload) {
