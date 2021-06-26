@@ -766,7 +766,7 @@ static bool InitAccountMTL()
 
 				if (lastEnd)
 				{
-					if (_wcsicmp(lastEnd, L"\\socialclub.dll"))
+					if (_wcsicmp(lastEnd, L"\\socialclub.dll") == 0)
 					{
 						scModule = hMods[i];
 						break;
