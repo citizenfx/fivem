@@ -2479,17 +2479,9 @@ static HookFunction hookFunction([]()
 		}
 	});
 
-	// unload GROUP_MAP before reloading, for it'll break fwMapTypesStore if there's a map CCS loaded
-	// by the time DLC reinitializes
 #ifdef GTA_FIVE
 	OnKillNetworkDone.Connect([]()
 	{
-		if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
-		{
-			// unload GROUP_MAP and load GROUP_MAP_SP
-			_unloadMultiplayerContent();
-		}
-
 		g_pedsToRegister.clear();
 	}, 99925);
 #endif
