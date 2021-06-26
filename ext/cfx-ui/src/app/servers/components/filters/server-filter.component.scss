@@ -283,6 +283,12 @@
 				}
 			}
 
+			&:focus-within {
+				.label {
+					display: none;
+				}
+			}
+
 			&:hover, &:focus-within {
 				@include theme() using($theme) {
 					.trigger {
@@ -399,6 +405,12 @@
 							color: gtv($theme, accentContrastColor);
 						}
 					}
+				}
+			}
+
+			&:focus-within {
+				.label {
+					display: none;
 				}
 			}
 
