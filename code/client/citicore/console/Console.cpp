@@ -559,22 +559,28 @@ DLL_EXPORT ProgramArguments Tokenize(const std::string& lineUtf8)
 			// # comments are one character long
 			if (i < lineLength)
 			{
-				if (line[i] == U'#')
+				if (i == 0 || line[i - 1] == U' ' || line[i - 1] == U'\t')
 				{
-					return ProgramArguments{args};
+					if (line[i] == U'#')
+					{
+						return ProgramArguments{ args };
+					}
 				}
 			}
 
 			if (i < (lineLength - 1))
 			{
-				if ((line[i] == U'/' && line[i + 1] == U'/'))
+				if (i == 0 || line[i - 1] == U' ' || line[i - 1] == U'\t')
 				{
-					return ProgramArguments{args};
-				}
+					if ((line[i] == U'/' && line[i + 1] == U'/'))
+					{
+						return ProgramArguments{ args };
+					}
 
-				if (line[i] == U'/' && line[i + 1] == U'*')
-				{
-					return ProgramArguments{args};
+					if (line[i] == U'/' && line[i + 1] == U'*')
+					{
+						return ProgramArguments{ args };
+					}
 				}
 			}
 
