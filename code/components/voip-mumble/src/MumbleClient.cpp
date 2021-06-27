@@ -407,7 +407,7 @@ void MumbleClient::Initialize()
 					m_nextPing = msec() + kUDPPingInterval;
 				}
 			}
-			else
+			else if (m_connectionInfo.address.GetAddressFamily() != 0)
 			{
 				console::DPrintf("Mumble", "Reconnecting.\n");
 
