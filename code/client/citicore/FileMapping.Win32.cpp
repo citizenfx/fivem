@@ -145,7 +145,10 @@ static std::wstring MapRedirectedFilename(const wchar_t* origFileName)
 			return MakeRelativeCitPath(L"data\\game-storage\\dummy.lnk");
 		}
 
-		auto gameDir = MakeRelativeCitPath(fmt::sprintf(L"data\\game-storage\\ros_launcher_game_%d", xbr::GetGameBuild()));
+		auto gameDir = []()
+		{
+			return MakeRelativeCitPath(fmt::sprintf(L"data\\game-storage\\ros_launcher_game_%d", xbr::GetGameBuild()));
+		};
 
 		if (wcsstr(origFileName, L".exe.part") != nullptr)
 		{
@@ -168,27 +171,27 @@ static std::wstring MapRedirectedFilename(const wchar_t* origFileName)
 		}
 		else if (wcsstr(origFileName, L"Rockstar Games\\Games") != nullptr)
 		{
-			CreateDirectoryW(gameDir.c_str(), NULL);
+			CreateDirectoryW(gameDir().c_str(), NULL);
 			//CreateDirectoryW((gameDir + L"\\Grand Theft Auto V").c_str(), NULL);
 			//CreateDirectoryW((gameDir + L"\\Red Dead Redemption 2").c_str(), NULL);
 
-			return gameDir + &wcsstr(origFileName, L"ar Games\\Games")[14];
+			return gameDir() + &wcsstr(origFileName, L"ar Games\\Games")[14];
 		}
 		else if (wcsstr(origFileName, L"Rockstar Games\\Red Dead Redemption 2") != nullptr)
 		{
-			return gameDir + &wcsstr(origFileName, L"d Redemption 2")[14];
+			return gameDir() + &wcsstr(origFileName, L"d Redemption 2")[14];
 		}
 		else if (wcsstr(origFileName, L"Rockstar Games\\Grand Theft Auto V") != nullptr)
 		{
-			CreateDirectoryW(gameDir.c_str(), NULL);
+			CreateDirectoryW(gameDir().c_str(), NULL);
 
-			return gameDir + &wcsstr(origFileName, L"d Theft Auto V")[14];
+			return gameDir() + &wcsstr(origFileName, L"d Theft Auto V")[14];
 		}
 		else if (wcsstr(origFileName, L"Rockstar Games\\index.bin") != nullptr) // lol
 		{
-			CreateDirectoryW(gameDir.c_str(), NULL);
+			CreateDirectoryW(gameDir().c_str(), NULL);
 
-			return gameDir + &wcsstr(origFileName, L"Rockstar Games")[14];
+			return gameDir() + &wcsstr(origFileName, L"Rockstar Games")[14];
 		}
 	}
 
