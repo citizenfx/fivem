@@ -758,7 +758,7 @@ static int Lua_Require(lua_State* L)
 	// for example, LoadSystemFile("citizen:/scripting/lua/json.lua"). Server
 	// side luarocks integration would be pretty neat.
 
-	return 0;
+	return luaL_error(L, "module '%s' not found", name);
 }
 
 static const struct luaL_Reg g_citizenLib[] = {
