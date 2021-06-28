@@ -1321,7 +1321,7 @@ static InitFunction initFunction([]()
 				LuaNativeContext nCtx(&nW, 0);
 				nCtx.Invoke(nullptr, GET_GAME_TIMER);
 
-				g_tickTime = nCtx.GetResult<uint64_t>();
+				g_tickTime = nCtx.GetResult<int32_t>();
 			}
 
 			g_hadProfiler = self->GetComponent<fx::ProfilerComponent>()->IsRecording();
