@@ -578,7 +578,7 @@ void scrBindGlobal(const char* methodName, TFunc method)
 	{
 		TFunc* udata = (TFunc*)ufunc;
 
-		if (context.GetArgumentCount() != scrBindFunc<TFunc>::GetArgumentCount())
+		if (context.GetArgumentCount() < scrBindFunc<TFunc>::GetArgumentCount())
 		{
 			return;
 		}
