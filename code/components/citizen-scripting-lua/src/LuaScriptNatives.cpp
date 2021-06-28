@@ -13,6 +13,9 @@
 #include <vector>
 #include <map>
 
+#include <ResourceManager.h>
+#include <Profiler.h>
+
 #include "LuaScriptNatives.h"
 #include "LuaScriptRuntime.h"
 
@@ -29,6 +32,9 @@ extern LUA_INTERNAL_LINKAGE
 
 // @TODO: Technically unsafe
 extern uint8_t g_metaFields[];
+
+extern uint64_t g_tickTime;
+extern bool g_hadProfiler;
 
 /// <summary>
 /// </summary>
@@ -1286,6 +1292,38 @@ LUA_SCRIPT_LINKAGE lua_CFunction Lua_GetNative(lua_State* L, const char* name)
 	return nullptr;
 #endif
 }
+
+static InitFunction initFunction([]()
+{
+	fx::ResourceManager::OnInitializeInstance.Connect([](fx::ResourceManager* self)
+	{
+		self->OnTick.Connect([self]()
+		{
+			constexpr uint64_t GET_GAME_TIMER =
+#ifdef IS_FXSERVER
+			0xa4ea0691
+#elif defined(GTA_FIVE)
+			0x9CD27B0045628463
+#elif defined(IS_RDR3)
+			0x4F67E8ECA7D3F667
+#elif defined(GTA_NY)
+			0x022B2DA9
+#else
+#error Undefined GET_GAME_TIMER
+#endif
+			;
+
+			static LuaNativeWrapper nW(GET_GAME_TIMER);
+			LuaNativeContext nCtx(&nW, 0);
+			nCtx.Invoke(nullptr, GET_GAME_TIMER);
+
+			g_tickTime = nCtx.GetResult<uint64_t>();
+
+			g_hadProfiler = self->GetComponent<fx::ProfilerComponent>()->IsRecording();
+		},
+		INT32_MIN);
+	});
+});
 
 #pragma endregion
 

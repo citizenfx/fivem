@@ -70,6 +70,9 @@ static fx::OMPtr<fx::LuaScriptRuntime> g_currentLuaRuntime;
 /// </summary>
 static IScriptHost* g_lastScriptHost;
 
+uint64_t g_tickTime;
+bool g_hadProfiler;
+
 #if defined(LUA_USE_RPMALLOC)
 #include "rpmalloc/rpmalloc.h"
 
@@ -257,7 +260,7 @@ static int Lua_SetTickRoutine(lua_State* L)
 	// set the tick callback in the current routine
 	auto luaRuntime = LuaScriptRuntime::GetCurrent().GetRef();
 
-	luaRuntime->SetTickRoutine([=]()
+	luaRuntime->SetTickRoutine([=](uint64_t time, bool hadProfiler)
 	{
 		LuaProfilerScope _profile(luaRuntime);
 
@@ -269,8 +272,12 @@ static int Lua_SetTickRoutine(lua_State* L)
 		// get the referenced function
 		lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
 
+		// push the current time/profiler argument
+		lua_pushinteger(L, time);
+		lua_pushboolean(L, hadProfiler);
+
 		// invoke the tick routine
-		if (lua_pcall(L, 0, 0, eh) != 0)
+		if (lua_pcall(L, 2, 0, eh) != 0)
 		{
 			// Copies the contents of the string, ensuring the pointer remains
 			// valid after lua_pop()
@@ -851,7 +858,7 @@ IScriptHost* LuaScriptRuntime::GetLastHost()
 	return g_lastScriptHost;
 }
 
-void LuaScriptRuntime::SetTickRoutine(const std::function<void()>& tickRoutine)
+void LuaScriptRuntime::SetTickRoutine(const std::function<void(uint64_t, bool)>& tickRoutine)
 {
 	if (!m_tickRoutine)
 	{
@@ -1018,7 +1025,7 @@ result_t LuaScriptRuntime::Destroy()
 {
 	// destroy any routines that may be referencing the Lua state
 	m_eventRoutine = TEventRoutine();
-	m_tickRoutine = std::function<void()>();
+	m_tickRoutine = {};
 	m_callRefRoutine = TCallRefRoutine();
 	m_deleteRefRoutine = TDeleteRefRoutine();
 	m_duplicateRefRoutine = TDuplicateRefRoutine();
@@ -1211,7 +1218,7 @@ result_t LuaScriptRuntime::Tick()
 	{
 		LuaPushEnvironment pushed(this);
 
-		m_tickRoutine();
+		m_tickRoutine(g_tickTime, g_hadProfiler);
 	}
 
 	return FX_S_OK;

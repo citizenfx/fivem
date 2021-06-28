@@ -186,7 +186,7 @@ private:
 
 	OMPtr<IDebugEventListener> m_debugListener;
 
-	std::function<void()> m_tickRoutine;
+	std::function<void(uint64_t, bool)> m_tickRoutine;
 
 	TEventRoutine m_eventRoutine;
 
@@ -223,7 +223,7 @@ public:
 	static const OMPtr<LuaScriptRuntime>& GetCurrent();
 	static IScriptHost* GetLastHost();
 
-	void SetTickRoutine(const std::function<void()>& tickRoutine);
+	void SetTickRoutine(const std::function<void(uint64_t, bool)>& tickRoutine);
 
 	void SetEventRoutine(const TEventRoutine& eventRoutine);
 

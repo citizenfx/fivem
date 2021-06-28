@@ -29,10 +29,25 @@ local Citizen = Citizen
 local Citizen_SubmitBoundaryStart = Citizen.SubmitBoundaryStart
 local Citizen_InvokeFunctionReference = Citizen.InvokeFunctionReference
 local GetGameTimer = GetGameTimer
+local ProfilerEnterScope = ProfilerEnterScope
+local ProfilerExitScope = ProfilerExitScope
 
 local hadThread = false
 local curTime = 0
+local hadProfiler = false
 local isDuplicityVersion = IsDuplicityVersion()
+
+local function _ProfilerEnterScope(name)
+	if hadProfiler then
+		ProfilerEnterScope(name)
+	end
+end
+
+local function _ProfilerExitScope()
+	if hadProfiler then
+		ProfilerExitScope()
+	end
+end
 
 -- setup msgpack compat
 msgpack.set_string('string_compat')
@@ -44,21 +59,6 @@ msgpack.setoption('empty_table_as_array', true)
 json.version = json._VERSION -- Version compatibility
 json.setoption("empty_table_as_array", true)
 json.setoption('with_hole', true)
-
--- temp
-local _in = Citizen.InvokeNative
-
-local function FormatStackTrace()
-	return _in(`FORMAT_STACK_TRACE` & 0xFFFFFFFF, nil, 0, Citizen.ResultAsString())
-end
-
-local function ProfilerEnterScope(scopeName)
-	return _in(`PROFILER_ENTER_SCOPE` & 0xFFFFFFFF, scopeName)
-end
-
-local function ProfilerExitScope()
-	return _in(`PROFILER_EXIT_SCOPE` & 0xFFFFFFFF)
-end
 
 local newThreads = {}
 local threads = setmetatable({}, {
@@ -149,7 +149,10 @@ local function SLQ_Queue(name)
 	local tail = SLQ_Record(("%s_tail"):format(name))
 	SLQ_Attach(head, tail)
 
-	return { head = head, tail = tail }
+	return {
+		--[[ [SLQ_Q_HEAD] = ]] head,
+		--[[ [SLQ_Q_TAIL] = ]] tail
+	}
 end
 
 --[[ Append a SLQ record to the tail of a queue --]]
@@ -157,8 +160,8 @@ local function SLQ_AppendTail(queue, record)
 	if SLQ_isAttached(record) then
 		error("Unexpected SLQ state; record.{prev|next} is non-nil")
 	else
-		SLQ_Attach(queue.tail[6 --[[SLQ_PREV]]], record)
-		SLQ_Attach(record, queue.tail)
+		SLQ_Attach(queue[2 --[[SLQ_Q_TAIL]]][6 --[[SLQ_PREV]]], record)
+		SLQ_Attach(record, queue[2 --[[SLQ_Q_TAIL]]])
 	end
 end
 
@@ -182,14 +185,14 @@ local thread_lu = { } -- coroutine to thread record lookup
 local thread_queue = {
 	-- A queue of threads created "this" TickRoutine whose execution does not
 	-- resume/begin until the next TickRoutine.
-	new = SLQ_Queue("new"),
+	--[[ [SLQ_T_NEW] = ]] SLQ_Queue("new"),
 
 	-- A linked list of all coroutines to be iterated through the next
 	-- TickRoutine.
-	slq = SLQ_Queue("slq"),
+	--[[ [SLQ_T_SLQ] = ]] SLQ_Queue("slq"),
 
 	-- A linked list of recycled record tables.
-	recycle = nil, recycle_count = 0,
+	--[[ [SLQ_T_RECYCLE] = ]] nil, --[[ [SLQ_T_RECYCLE_COUNT] = ]] 0,
 }
 
 --[[ Creates a new coroutine and SLQ record, with body f. --]]
@@ -202,12 +205,12 @@ local function thread_createRecord(f, name)
 	end)
 
 	local record = nil
-	if thread_queue.recycle ~= nil then
-		record = thread_queue.recycle
+	if thread_queue[3 --[[SLQ_T_RECYCLE]]] ~= nil then
+		record = thread_queue[3 --[[SLQ_T_RECYCLE]]]
 
 		-- Ensure recycle list is initialized
-		thread_queue.recycle = record[5 --[[SLQ_NEXT]]]
-		thread_queue.recycle_count = thread_queue.recycle_count - 1
+		thread_queue[3 --[[SLQ_T_RECYCLE]]] = record[5 --[[SLQ_NEXT]]]
+		thread_queue[4 --[[SLQ_T_RECYCLE_COUNT]]] = thread_queue[4 --[[SLQ_T_RECYCLE_COUNT]]] - 1
 
 		-- Initialize data
 		record[1 --[[SLQ_CORO]]] = coro
@@ -239,19 +242,19 @@ local function resumeThread(thread, coro) -- Internal utility
 			-- Coroutine has died: attempt to recycle the linked list node to
 			-- handle the case of many shortly lived threads being created on a
 			-- per-frame basis.
-			local rc = thread_queue.recycle_count
+			local rc = thread_queue[4 --[[SLQ_T_RECYCLE_COUNT]]]
 			if rc < 16 then -- Append recycled record to root of 'recycle' chain.
 				thread[2 --[[SLQ_NAME]]] = ""
 				--thread[3 --[[SLQ_WAKE]]] = 0
 				--thread[4 --[[SLQ_BOUNDARY]]] = 0
 				thread[5 --[[SLQ_NEXT]]] = nil
 				thread[6 --[[SLQ_PREV]]] = nil
-				if thread_queue.recycle then
-					SLQ_Attach(thread, thread_queue.recycle)
+				if thread_queue[3 --[[SLQ_T_RECYCLE]]] then
+					SLQ_Attach(thread, thread_queue[3 --[[SLQ_T_RECYCLE]]])
 				end
 
-				thread_queue.recycle = thread
-				thread_queue.recycle_count = rc + 1
+				thread_queue[3 --[[SLQ_T_RECYCLE]]] = thread
+				thread_queue[4 --[[SLQ_T_RECYCLE_COUNT]]] = rc + 1
 			end
 		end
 
@@ -262,7 +265,7 @@ local function resumeThread(thread, coro) -- Internal utility
 	runningThread = coro
 	
 	if thread then
-		ProfilerEnterScope(thread[2 --[[SLQ_NAME]]])
+		_ProfilerEnterScope(thread[2 --[[SLQ_NAME]]])
 
 		Citizen_SubmitBoundaryStart(thread[4 --[[SLQ_BOUNDARY]]], coro)
 	end
@@ -287,10 +290,7 @@ local function resumeThread(thread, coro) -- Internal utility
 	
 	runningThread = nil
 	
-	ProfilerExitScope()
-	
-	-- Return not finished
-	return coroutine_status(coro) ~= "dead"
+	_ProfilerExitScope()
 end
 
 function Citizen.CreateThread(threadFunction)
@@ -299,7 +299,7 @@ function Citizen.CreateThread(threadFunction)
 	local name = ('thread %s[%d..%d]'):format(di.short_src, di.linedefined, di.lastlinedefined)
 	local record = thread_createRecord(threadFunction, name)
 
-	SLQ_AppendTail(thread_queue.new, record)
+	SLQ_AppendTail(thread_queue[1 --[[SLQ_T_NEW]]], record)
 	hadThread = true
 end
 
@@ -319,8 +319,12 @@ function Citizen.CreateThreadNow(threadFunction, name)
 	local record = thread_createRecord(threadFunction, name)
 
 	-- Worst case scenario the record removes itself from the 'new' queue.
-	SLQ_AppendTail(thread_queue.new, record)
-	return resumeThread(record, record[1 --[[SLQ_CORO]]])
+	SLQ_AppendTail(thread_queue[1 --[[SLQ_T_NEW]]], record)
+	
+	local coro = record[1 --[[SLQ_CORO]]]
+	resumeThread(record, coro)
+	
+	return coroutine_status(coro) ~= "dead"
 end
 
 function Citizen.Await(promise)
@@ -349,7 +353,7 @@ function Citizen.Await(promise)
 
 		local function reattach()
 			if threadData ~= nil and not SLQ_isAttached(threadData) then
-				SLQ_AppendTail(thread_queue.new, threadData)
+				SLQ_AppendTail(thread_queue[1 --[[SLQ_T_NEW]]], threadData)
 			end
 
 			resumeThread(threadData, coro)
@@ -370,32 +374,33 @@ function Citizen.SetTimeout(msec, callback)
 	local record = thread_createRecord(callback)
 	record[3 --[[SLQ_WAKE]]] = curTime + msec
 
-	SLQ_AppendTail(thread_queue.new, record)
+	SLQ_AppendTail(thread_queue[1 --[[SLQ_T_NEW]]], record)
 	hadThread = true
 end
 
 SetTimeout = Citizen.SetTimeout
 
-Citizen.SetTickRoutine(function()
+Citizen.SetTickRoutine(function(tickTime, profilerEnabled)
 	if not hadThread then
 		return
 	end
 
 	-- flag to skip thread exec if we don't have any
 	local thisHadThread = false
-	curTime = GetGameTimer()
+	curTime = tickTime
+	hadProfiler = profilerEnabled
 
-	local queue,queue_new = thread_queue.slq,thread_queue.new
-	local head_record,tail_record = queue.head,queue.tail
+	local queue,queue_new = thread_queue[2 --[[SLQ_T_SLQ]]],thread_queue[1 --[[SLQ_T_NEW]]]
+	local head_record,tail_record = queue[1 --[[SLQ_Q_HEAD]]],queue[2 --[[SLQ_Q_TAIL]]]
 
 	-- Append new threads to the end of the execution queue.
-	if queue_new.head[5 --[[SLQ_NEXT]]] ~= queue_new.tail then
-		SLQ_Attach(tail_record[6 --[[SLQ_PREV]]], queue_new.head[5 --[[SLQ_NEXT]]])
-		SLQ_Attach(queue_new.tail[6 --[[SLQ_PREV]]], tail_record)
+	if queue_new[1 --[[SLQ_Q_HEAD]]][5 --[[SLQ_NEXT]]] ~= queue_new[2 --[[SLQ_Q_TAIL]]] then
+		SLQ_Attach(tail_record[6 --[[SLQ_PREV]]], queue_new[1 --[[SLQ_Q_HEAD]]][5 --[[SLQ_NEXT]]])
+		SLQ_Attach(queue_new[2 --[[SLQ_Q_TAIL]]][6 --[[SLQ_PREV]]], tail_record)
 
 		-- Clear the new queue
-		queue_new.head[5 --[[SLQ_NEXT]]] = queue_new.tail
-		queue_new.tail[6 --[[SLQ_PREV]]] = queue_new.head
+		queue_new[1 --[[SLQ_Q_HEAD]]][5 --[[SLQ_NEXT]]] = queue_new[2 --[[SLQ_Q_TAIL]]]
+		queue_new[2 --[[SLQ_Q_TAIL]]][6 --[[SLQ_PREV]]] = queue_new[1 --[[SLQ_Q_HEAD]]]
 
 		thisHadThread = true
 	end
