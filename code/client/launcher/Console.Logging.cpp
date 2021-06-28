@@ -56,10 +56,11 @@ static std::string GetProcessName()
 	return rv;
 }
 
+static auto _GetThreadDescription = (decltype(&GetThreadDescription))GetProcAddress(GetModuleHandle(L"kernel32.dll"), "GetThreadDescription");
+
 static std::string GetThreadName()
 {
-	static auto _GetThreadDescription = (decltype(&GetThreadDescription))GetProcAddress(GetModuleHandle(L"kernel32.dll"), "GetThreadDescription");
-	std::string rv = fmt::sprintf("%d", GetCurrentThreadId());
+	std::string rv = std::to_string(GetCurrentThreadId());
 
 	if (_GetThreadDescription)
 	{
