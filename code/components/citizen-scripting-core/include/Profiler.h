@@ -106,7 +106,7 @@ namespace fx {
 
 		void SubmitScreenshot(const void* imageRgb, size_t width, size_t height);
 
-		auto IsRecording() -> bool;
+		virtual auto IsRecording() -> bool;
 		auto GetFrames() -> int;
 
 		void StartRecording(int frames, const std::string& resource = "");
