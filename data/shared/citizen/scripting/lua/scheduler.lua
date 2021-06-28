@@ -60,6 +60,13 @@ json.version = json._VERSION -- Version compatibility
 json.setoption("empty_table_as_array", true)
 json.setoption('with_hole', true)
 
+-- temp
+local _in = Citizen.InvokeNative
+
+local function FormatStackTrace()
+	return _in(`FORMAT_STACK_TRACE` & 0xFFFFFFFF, nil, 0, Citizen.ResultAsString())
+end
+
 local newThreads = {}
 local threads = setmetatable({}, {
 	-- This circumvents undefined behaviour in "next" (and therefore "pairs")
