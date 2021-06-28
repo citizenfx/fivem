@@ -298,6 +298,8 @@ local function resumeThread(thread, coro) -- Internal utility
 	runningThread = nil
 	
 	_ProfilerExitScope()
+
+	return true
 end
 
 function Citizen.CreateThread(threadFunction)
@@ -329,7 +331,9 @@ function Citizen.CreateThreadNow(threadFunction, name)
 	SLQ_AppendTail(thread_queue[1 --[[SLQ_T_NEW]]], record)
 	
 	local coro = record[1 --[[SLQ_CORO]]]
-	resumeThread(record, coro)
+	if not resumeThread(record, coro) then
+		return false
+	end
 	
 	return coroutine_status(coro) ~= "dead"
 end
