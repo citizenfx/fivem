@@ -1350,6 +1350,7 @@ static DWORD WINAPI XInputGetStateHook(_In_ DWORD dwUserIndex, _Out_ XINPUT_STAT
 		mapButton(GamepadButtons::DPadRight, XINPUT_GAMEPAD_DPAD_RIGHT);
 
 		auto vibration = gamepad.Vibration();
+		auto origVibration = vibration;
 
 		// add vehicle bits
 		if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
@@ -1387,8 +1388,10 @@ static DWORD WINAPI XInputGetStateHook(_In_ DWORD dwUserIndex, _Out_ XINPUT_STAT
 			}
 		}
 
-		gamepad.Vibration(vibration);
-
+		if (origVibration != vibration)
+		{
+			gamepad.Vibration(vibration);
+		}
 	}
 
 	return ERROR_SUCCESS;
