@@ -1313,11 +1313,16 @@ static InitFunction initFunction([]()
 #endif
 			;
 
-			static LuaNativeWrapper nW(GET_GAME_TIMER);
-			LuaNativeContext nCtx(&nW, 0);
-			nCtx.Invoke(nullptr, GET_GAME_TIMER);
+#ifdef IS_FXSERVER
+			if (fx::LuaScriptRuntime::GetLastHost())
+#endif
+			{
+				static LuaNativeWrapper nW(GET_GAME_TIMER);
+				LuaNativeContext nCtx(&nW, 0);
+				nCtx.Invoke(nullptr, GET_GAME_TIMER);
 
-			g_tickTime = nCtx.GetResult<uint64_t>();
+				g_tickTime = nCtx.GetResult<uint64_t>();
+			}
 
 			g_hadProfiler = self->GetComponent<fx::ProfilerComponent>()->IsRecording();
 		},
