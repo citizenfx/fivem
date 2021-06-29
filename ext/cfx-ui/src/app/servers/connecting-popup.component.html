@@ -41,13 +41,13 @@
 
             <div class="action" *ngIf="extraData.action">
                 <h2 l10nTranslate *ngIf="extraData.status && statusLevel < 2">#ErrorNoOutage</h2>
-                <p (click)="clickContent($event)" *ngIf="extraData.status && statusLevel < 2" [innerHTML]="'#NoOutage' | translate:locale.language:mergedData | linky:{ hashtag: 'twitter', mention: 'twitter' } | nl2br"></p>
+                <p (click)="clickContent($event)" *ngIf="extraData.status && statusLevel < 2" [innerHTML]="'#NoOutage' | translate:locale.language:mergedData | linky:{ hashtag: 'twitter', mention: 'twitter', replaceFn: replaceFn } | nl2br"></p>
 
                 <h2 l10nTranslate *ngIf="statusLevel >= 2">#ErrorOutage</h2>
-                <p (click)="clickContent($event)" *ngIf="statusLevel >= 2" [innerHTML]="'#ServiceAlert' | translate:locale.language:mergedData | linky:{ hashtag: 'twitter', mention: 'twitter' } | nl2br"></p>
+                <p (click)="clickContent($event)" *ngIf="statusLevel >= 2" [innerHTML]="'#ServiceAlert' | translate:locale.language:mergedData | linky:{ hashtag: 'twitter', mention: 'twitter', replaceFn: replaceFn } | nl2br"></p>
 
                 <h2 l10nTranslate>#ErrorActions</h2>
-                <p (click)="clickContent($event)" [innerHTML]="extraData.action | translate:locale.language:mergedData | linky:{ hashtag: 'twitter', mention: 'twitter', sanitizeHtml: true } | nl2br | rejectify:{server:serverData}"></p>
+                <p (click)="clickContent($event)" [innerHTML]="extraData.action | translate:locale.language:mergedData | linky:{ hashtag: 'twitter', mention: 'twitter', sanitizeHtml: true, replaceFn: replaceFn } | nl2br | rejectify:{server:serverData}"></p>
 
                 <h2 l10nTranslate>#ErrorDetails</h2>
             </div>
@@ -55,7 +55,7 @@
 		<p
 			class="content"
 			(click)="clickContent($event)"
-			[innerHTML]="overlayMessage|translate:locale.language:overlayMessageData|linky:{ hashtag: 'twitter', mention: 'twitter', sanitizeHtml: true }|nl2br|allowify|rejectify:{server:serverData}"
+			[innerHTML]="overlayMessage|translate:locale.language:overlayMessageData|linky:{ hashtag: 'twitter', mention: 'twitter', sanitizeHtml: true, replaceFn: replaceFn }|nl2br|allowify|rejectify:{server:serverData}"
 		></p>
 		<div class="card" #card></div>
 		<button

@@ -463,4 +463,16 @@ export class ConnectingPopupComponent implements OnInit {
 			this.closeOverlay()
 		}
 	}
+
+	replaceFn(match: any): boolean {
+		if (match.getType() === 'url') {
+			const url = match.getUrl();
+
+			if (url.toLowerCase().indexOf('cfx.re') !== -1) {
+				return false;
+			}
+		}
+
+		return true;
+	}
 }
