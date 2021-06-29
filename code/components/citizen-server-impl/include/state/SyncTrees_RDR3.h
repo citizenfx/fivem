@@ -328,6 +328,30 @@ struct CVehicleAngVelocityDataNode
 	}
 };
 
+struct CDoorCreationDataNode
+{
+	float m_posX;
+	float m_posY;
+	float m_posZ;
+
+	bool Parse(SyncParseState& state)
+	{
+		auto positionX = state.buffer.ReadSignedFloat(31, 27648.0f);
+		auto positionY = state.buffer.ReadSignedFloat(31, 27648.0f);
+		auto positionZ = state.buffer.ReadFloat(31, 4416.0f) - 1700.0f;
+
+		m_posX = positionX;
+		m_posY = positionY;
+		m_posZ = positionZ;
+
+		auto modelHash = state.buffer.Read<uint32_t>(32);
+
+		// ...
+
+		return true;
+	}
+};
+
 struct CVehicleSteeringDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CVehicleControlDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CVehicleGadgetDataNode { bool Parse(SyncParseState& state) { return true; } };
@@ -337,7 +361,6 @@ struct CPhysicalScriptMigrationDataNode { bool Parse(SyncParseState& state) { re
 struct CVehicleProximityMigrationDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CBikeGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CBoatGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CDoorCreationDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CDoorMovementDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CDoorScriptInfoDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CDoorScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
@@ -511,33 +534,8 @@ struct CPlayerSectorPosNode
 		m_posX = posX;
 		m_posY = posY;
 		m_posZ = posZ;
-
-		// extra data
-		if (state.buffer.ReadBit())
-		{
-			// unknown fields
-			state.buffer.ReadBit();
-			state.buffer.ReadBit();
-
-			// is standing on?
-			bool isStandingOn = state.buffer.ReadBit();
-			if (isStandingOn)
-			{
-				m_standingOnHandle = state.buffer.Read<int>(13); // Standing On
-				m_standingOffsetX = state.buffer.ReadSignedFloat(14, 40.0f); // Standing On Local Offset X
-				m_standingOffsetY = state.buffer.ReadSignedFloat(14, 40.0f); // Standing On Local Offset Y
-				m_standingOffsetZ = state.buffer.ReadSignedFloat(10, 20.0f); // Standing On Local Offset Z
-			}
-			else
-			{
-				m_standingOnHandle = 0;
-				m_standingOffsetX = 0.0f;
-				m_standingOffsetY = 0.0f;
-				m_standingOffsetZ = 0.0f;
-			}
-
-			isStandingOn = isStandingOn;
-		}
+	
+		// ...
 
 		state.entity->syncTree->CalculatePosition();
 
@@ -886,7 +884,6 @@ struct SyncTree : public SyncTreeBase
 		auto [hasOspdn, objectSecPosDataNode] = GetData<CObjectSectorPosNode>();
 		auto [hasPspmdn, pedSecPosMapDataNode] = GetData<CPedSectorPosMapNode>();
 		auto [hasDoor, doorCreationDataNode] = GetData<CDoorCreationDataNode>();
-		auto [hasPgsdn, pedGameStateDataNode] = GetData<CPedGameStateDataNode>();
 		auto [hasHpn, herdPosNode] = GetData<CHerdPositionNode>();
 
 		auto sectorX =
@@ -934,60 +931,16 @@ struct SyncTree : public SyncTreeBase
 								(hasHpn) ? herdPosNode->m_posZ :
 									0.0f;
 
-		if (sectorPosX == 0.0f && sectorPosY == 0.0f && sectorPosZ == 0.0f)
-		{
-			trace("warning | %d %d %d\n", sectorX, sectorY, sectorZ);
-		}
-
 		posOut[0] = ((sectorX - 512.0f) * 54.0f) + sectorPosX;
 		posOut[1] = ((sectorY - 512.0f) * 54.0f) + sectorPosY;
 		posOut[2] = ((sectorZ * 69.0f) + sectorPosZ) - 1700.0f;
 
-		/*
 		if (hasDoor)
 		{
 			posOut[0] = doorCreationDataNode->m_posX;
 			posOut[1] = doorCreationDataNode->m_posY;
 			posOut[2] = doorCreationDataNode->m_posZ;
 		}
-		*/
-
-		if (hasPspdn)
-		{
-			// trace("sector pos %d %d %d | location: %f %f %f\n", sectorX, sectorY, sectorZ, posOut[0], posOut[1], posOut[2]);
-
-			/*
-			if (g_serverGameState && playerSecPosDataNode->isStandingOn)
-			{
-				auto entity = g_serverGameState->GetEntity(0, playerSecPosDataNode->m_standingOnHandle);
-
-				if (entity && entity->type != sync::NetObjEntityType::Player)
-				{
-					entity->syncTree->GetPosition(posOut);
-
-					posOut[0] += playerSecPosDataNode->m_standingOffsetX;
-					posOut[1] += playerSecPosDataNode->m_standingOffsetY;
-					posOut[2] += playerSecPosDataNode->m_standingOffsetZ;
-				}
-			}
-			*/
-		}
-
-		/*
-		// if in a vehicle, force the current vehicle's position to be used
-		if (hasPgsdn)
-		{
-			if (g_serverGameState && pedGameStateDataNode->data.curVehicle != -1)
-			{
-				auto entity = g_serverGameState->GetEntity(0, pedGameStateDataNode->data.curVehicle);
-
-				if (entity && entity->type != fx::sync::NetObjEntityType::Ped && entity->type != fx::sync::NetObjEntityType::Player)
-				{
-					entity->syncTree->GetPosition(posOut);
-				}
-			}
-		}
-		*/
 	}
 
 	virtual CDoorMovementDataNodeData* GetDoorMovement() override
