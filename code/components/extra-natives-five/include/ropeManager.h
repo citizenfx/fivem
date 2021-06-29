@@ -17,7 +17,7 @@ public:
 
 	virtual const char* GetName() = 0;
 
-	virtual parStructure* GetParStructure() = 0;
+	virtual parStructure* parser_GetStructure() = 0;
 
 	uint32_t numSections; // 0x8
 	float radius; // 0xC
@@ -45,11 +45,11 @@ public:
 
 	atArray<ropeData*> typeData; // 0x8
 
-	static ropeDataManager* Get();
+	static ropeDataManager* GetInstance();
 };
 static_assert(sizeof(ropeDataManager) == 0x18);
 
-// ----------- rage::rope -----------
+// ----------- rage::ropeInstance -----------
 
 class phVerletCloth;
 class rmcRopeDrawable;
@@ -65,12 +65,12 @@ enum eRopeFlags : uint8_t
 	RopeWinding = 32
 };
 
-class rope // No RTTI for this. Unknown class name.
+class ropeInstance
 {
 public:
-	rope* currentRope; // 0x0
-	rope* nextRope; // 0x8
-	rope* previousRope; // 0x10
+	ropeInstance* currentRope; // 0x0
+	ropeInstance* nextRope; // 0x8
+	ropeInstance* previousRope; // 0x10
 	phVerletCloth* verletCloth; // 0x18
 	char pad_20[0x38]; // 0x20
 	rmcRopeDrawable* drawable; // 0x58
@@ -88,7 +88,7 @@ public:
 	char pad_E4[0xB0]; // 0xE4
 	scriptHandler* scriptHandler; // 0x198
 	uint32_t updateOrder; // 0x1A0
-	uint32_t handle; // 0x1A4
+	int handle; // 0x1A4
 	char pad_1A8[0x4]; // 0x1A8
 	uint32_t ropeTypeIndex; // 0x1AC
 	char pad_1B0[0x8]; // 0x1B0
@@ -104,7 +104,7 @@ public:
 	eRopeFlags flags; // 0x1DE
 	char pad_1DF[0x1]; // 0x1DF
 };
-static_assert(sizeof(rope) == 0x1E0);
+static_assert(sizeof(ropeInstance) == 0x1E0);
 
 // ----------- rage::ropeManager -----------
 
@@ -128,14 +128,14 @@ public:
 	uint32_t numAllocated; // 0x18
 	uint32_t numAvailable; // 0x1C
 	char pad_20[0x8]; // 0x20
-	LinkedList<rope*> allocated; // 0x28
-	LinkedList<rope*> available; // 0x38
+	LinkedList<ropeInstance*> allocated; // 0x28
+	LinkedList<ropeInstance*> available; // 0x38
 	char pad_48[0x10]; // 0x48
 	LinkedList<phVerletCloth*> cloths; // 0x58
 
-	rope* GetRopeFromHandle(uint32_t handle);
+	ropeInstance* FindRope(int handle);
 
-	static ropeManager* Get();
+	static ropeManager* GetInstance();
 };
 static_assert(sizeof(ropeManager) == 0x68);
 }

@@ -10,24 +10,24 @@ namespace rage
 {
 static ropeDataManager* g_ropeDataManager;
 
-ropeDataManager* ropeDataManager::Get()
+ropeDataManager* ropeDataManager::GetInstance()
 {
 	return g_ropeDataManager;
 }
 
-static hook::thiscall_stub<rope*(ropeManager* manager, uint32_t handle)> ropeManager_getRopeFromHandle([]()
+static hook::thiscall_stub<ropeInstance*(ropeManager* manager, int handle)> ropeManager_findRope([]()
 {
 	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 4C 8B E8 48 89 45 67"));
 });
 
-rope* ropeManager::GetRopeFromHandle(uint32_t handle)
+ropeInstance* ropeManager::FindRope(int handle)
 {
-	return ropeManager_getRopeFromHandle(this, handle);
+	return ropeManager_findRope(this, handle);
 }
 
 static ropeManager** g_ropeManager;
 
-ropeManager* ropeManager::Get()
+ropeManager* ropeManager::GetInstance()
 {
 	return (g_ropeManager) ? *g_ropeManager : nullptr;
 }
@@ -50,7 +50,7 @@ static HookFunction hookFunction([]()
 	{
 		std::vector<uint32_t> handles;
 
-		if (auto manager = rage::ropeManager::Get())
+		if (auto manager = rage::ropeManager::GetInstance())
 		{
 			if (manager->numAllocated > 0)
 			{
@@ -71,9 +71,9 @@ static HookFunction hookFunction([]()
 		int handle = context.GetArgument<int>(0);
 		float lengthChangeRate = 0.0f;
 
-		if (auto manager = rage::ropeManager::Get())
+		if (auto manager = rage::ropeManager::GetInstance())
 		{
-			if (auto rope = manager->GetRopeFromHandle(handle))
+			if (auto rope = manager->FindRope(handle))
 			{
 				lengthChangeRate = rope->lengthChangeRate;
 			}
@@ -87,9 +87,9 @@ static HookFunction hookFunction([]()
 		int handle = context.GetArgument<int>(0);
 		float lengthChangeRate = context.GetArgument<float>(1);
 
-		if (auto manager = rage::ropeManager::Get())
+		if (auto manager = rage::ropeManager::GetInstance())
 		{
-			if (auto rope = manager->GetRopeFromHandle(handle))
+			if (auto rope = manager->FindRope(handle))
 			{
 				rope->lengthChangeRate = lengthChangeRate;
 			}
@@ -101,9 +101,9 @@ static HookFunction hookFunction([]()
 		int handle = context.GetArgument<int>(0);
 		float multiplier = 0.0f;
 
-		if (auto manager = rage::ropeManager::Get())
+		if (auto manager = rage::ropeManager::GetInstance())
 		{
-			if (auto rope = manager->GetRopeFromHandle(handle))
+			if (auto rope = manager->FindRope(handle))
 			{
 				multiplier = rope->timeMultiplier;
 			}
@@ -117,9 +117,9 @@ static HookFunction hookFunction([]()
 		int handle = context.GetArgument<int>(0);
 		rage::eRopeFlags flags{};
 
-		if (auto manager = rage::ropeManager::Get())
+		if (auto manager = rage::ropeManager::GetInstance())
 		{
-			if (auto rope = manager->GetRopeFromHandle(handle))
+			if (auto rope = manager->FindRope(handle))
 			{
 				flags = rope->flags;
 			}
@@ -133,9 +133,9 @@ static HookFunction hookFunction([]()
 		int handle = context.GetArgument<int>(0);
 		uint32_t updateOrder = 0;
 
-		if (auto manager = rage::ropeManager::Get())
+		if (auto manager = rage::ropeManager::GetInstance())
 		{
-			if (auto rope = manager->GetRopeFromHandle(handle))
+			if (auto rope = manager->FindRope(handle))
 			{
 				updateOrder = rope->updateOrder;
 			}
