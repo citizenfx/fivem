@@ -169,6 +169,11 @@ export const WorldEditorState = new class WorldEditorState {
       .setActiveKeyboardShortcut('Digit2', this.enableRotation)
       .setActiveKeyboardShortcut('Digit3', this.enableScaling)
       .setActiveKeyboardShortcut('Backquote', this.toggleEditorLocal)
+      .setActiveKeyboardShortcut('Escape', () => {
+        if (this.selection) {
+          sendGameClientEvent('we:clearSelection', '');
+        }
+      })
       .setActiveKeyboardShortcut('KeyA', (_active, _key, isCtrl) => {
         if (isCtrl) {
           this.openObjectsBrowser();

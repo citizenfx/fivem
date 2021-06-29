@@ -1,6 +1,7 @@
 import React from 'react';
 import { observer } from 'mobx-react-lite';
 import { ResourceCreator } from 'assets/resource/renderer/ResourceCreator/ResourceCreator';
+import { FXWorldCreator } from 'assets/fxworld/renderer/FXWorldCreator/FXWorldCreator';
 import { ProjectExplorer } from './ProjectExplorer/ProjectExplorer';
 import { ProjectSettings } from './ProjectSettings/ProjectSettings';
 import { ProjectBuilder } from './ProjectBuilder/ProjectBuilder';
@@ -9,6 +10,8 @@ import { ProjectState } from 'store/ProjectState';
 import { ProjectCreator } from './ProjectCreator/ProjectCreator';
 import { ProjectOpener } from './ProjectOpener/ProjectOpener';
 import s from './Project.module.scss';
+import { StatusState } from 'store/StatusState';
+import { Feature } from 'shared/api.types';
 
 
 export const Project = observer(function Project() {
@@ -19,7 +22,10 @@ export const Project = observer(function Project() {
     creatorOpen,
     openerOpen,
     resourceCreatorOpen,
+    mapCreatorOpen,
   } = ProjectState;
+
+  const worldEditorAvailable = StatusState.getFeature(Feature.worldEditor);
 
   return (
     <>
@@ -45,6 +51,10 @@ export const Project = observer(function Project() {
 
       {ProjectState.hasProject && resourceCreatorOpen && (
         <ResourceCreator />
+      )}
+
+      {worldEditorAvailable && ProjectState.hasProject && mapCreatorOpen && (
+        <FXWorldCreator />
       )}
 
       <div className={s.root}>

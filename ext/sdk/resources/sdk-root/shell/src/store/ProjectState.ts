@@ -216,6 +216,10 @@ export const ProjectState = new class ProjectState {
   openDirectoryCreator = () => this.directoryCreatorOpen = true;
   closeDirectoryCreator = () => this.directoryCreatorOpen = false;
 
+  public mapCreatorOpen = false;
+  openMapCreator = () => this.mapCreatorOpen = true;
+  closeMapCreator = () => this.mapCreatorOpen = false;
+
   private projectObject: ProjectObject | null = null;
 
   get project(): ProjectObject {

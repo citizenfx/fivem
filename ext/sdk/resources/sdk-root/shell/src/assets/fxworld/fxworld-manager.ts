@@ -1,6 +1,10 @@
 import { ContainerAccess } from "backend/container-access";
+import { FsService } from "backend/fs/fs-service";
+import { LogService } from "backend/logger/log-service";
 import { AssetManagerContribution } from "backend/project/asset/asset-manager-contribution";
+import { WorldEditorMap, WorldEditorMapVersion } from "backend/world-editor/world-editor-types";
 import { inject, injectable } from "inversify";
+import { AssetCreateRequest } from "shared/api.requests";
 import { FilesystemEntry } from "shared/api.types";
 import { endsWith } from "utils/stringUtils";
 import { FXWorld } from "./fxworld";
@@ -8,11 +12,37 @@ import { FXWORLD_FILE_EXT } from "./fxworld-types";
 
 @injectable()
 export class FXWorldManager implements AssetManagerContribution {
+  @inject(FsService)
+  protected readonly fsService: FsService;
+
+  @inject(LogService)
+  protected readonly logService: LogService;
+
   @inject(ContainerAccess)
   protected readonly containerAccess: ContainerAccess;
 
-  createAsset() {
-    return null;
+  async createAsset(request: AssetCreateRequest): Promise<boolean> {
+    this.logService.log('Creating map asset', request);
+
+    const mapFilePath = this.fsService.joinPath(request.assetPath, request.assetName + FXWORLD_FILE_EXT);
+
+    const mapContent: WorldEditorMap = {
+      version: WorldEditorMapVersion.V1,
+      meta: {
+        cam: [0, 0, 0, 0, 0, -45],
+      },
+      additionGroups: [],
+      additions: {},
+      patches: {},
+    };
+
+    await this.fsService.writeFileJson(mapFilePath, mapContent, false);
+
+    if (request.callback) {
+      request.callback();
+    }
+
+    return true;
   }
 
   loadAsset(assetEntry: FilesystemEntry): FXWorld | void {
