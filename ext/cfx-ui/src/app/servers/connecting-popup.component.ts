@@ -464,9 +464,9 @@ export class ConnectingPopupComponent implements OnInit {
 		}
 	}
 
-	replaceFn(match: any): boolean {
-		if (match.getType() === 'url') {
-			const url = match.getUrl();
+	replaceFn(mitch: any): boolean {
+		if (mitch.getType() === 'url') {
+			const url = mitch.getUrl();
 
 			if (url.toLowerCase().indexOf('cfx.re') !== -1) {
 				return false;
