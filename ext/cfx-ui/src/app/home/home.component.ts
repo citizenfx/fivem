@@ -150,6 +150,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 			if (!isAddressServer) {
 				try {
 					this.lastServer.server = await this.serversService.getServer(this.lastServer.historyEntry.address);
+					this.lastServer.sanitizedIcon = this.lastServer.server.sanitizedUri;
 					this.lastServer.status = HistoryServerStatus.Online;
 
 					done();
@@ -163,6 +164,15 @@ export class HomeComponent implements OnInit, OnDestroy {
 				this.lastServer.server = await this.gameService.queryAddress(
 					this.serversService.parseAddress(this.lastServer.historyEntry.address),
 				);
+
+				this.lastServer.sanitizedIcon = this.lastServer.server.sanitizedUri;
+
+				// replace the server with a clean server-list server if need be
+				this.serversService.tryGetJoinServer(this.lastServer.historyEntry.address).then(server => {
+					if (server) {
+						this.lastServer.server = server;
+					}
+				});
 
 				this.lastServer.status = HistoryServerStatus.Online;
 			} catch (e) {

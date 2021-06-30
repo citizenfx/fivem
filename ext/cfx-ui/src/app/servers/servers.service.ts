@@ -141,22 +141,7 @@ export class ServersService {
 
 			// not found yet? try finding the join ID at least
 			if (!server) {
-				// fetch it
-				const serverID = await this.httpClient.post('https://nui-internal/gsclient/url', `url=${serverHost}`, {
-					responseType: 'text'
-				}).pipe(
-                    timeout(5000),
-                    catchError(e => {
-                        console.log('https://nui-internal/gsclient/url timed out');
-                        return of(null);
-                    })
-                ).toPromise();
-
-				if (serverID && serverID !== '') {
-					try {
-						server = await this.getServer(serverID, false);
-					} catch {}
-				}
+				server = await this.tryGetJoinServer(serverHost);
 			}
 
 			// meh, no progress at all. probably private/unlisted
@@ -195,6 +180,29 @@ export class ServersService {
 				}
 			}
 		});
+	}
+
+	async tryGetJoinServer(serverHost: string) {
+		// fetch it
+		const serverID = await this.httpClient.post('https://nui-internal/gsclient/url', `url=${serverHost}`, {
+			responseType: 'text'
+		}).pipe(
+			timeout(5000),
+			catchError(e => {
+				console.log('https://nui-internal/gsclient/url timed out');
+				return of(null);
+			})
+		).toPromise();
+
+		let server: Server = null;
+
+		if (serverID && serverID !== '') {
+			try {
+				server = await this.getServer(serverID, false);
+			} catch {}
+		}
+
+		return server;
 	}
 
 	deserializeServer(server: master.IServer): master.IServer {
