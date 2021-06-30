@@ -869,6 +869,17 @@ namespace game
 		}
 	}
 
+	bool IsInputSourceDown(const rage::ioInputSource& controlData)
+	{
+		// mouse?
+		if (controlData.source == 7)
+		{
+			return InputHook::IsMouseButtonDown(controlData.parameter);
+		}
+
+		return InputHook::IsKeyDown(controlData.parameter);
+	}
+
 	bool IsControlKeyDown(int control)
 	{
 		rage::ioInputSource controlData;
@@ -876,13 +887,7 @@ namespace game
 		_control_getBinding(g_control, &controlData, control, -1, false, false);
 		_control_getBinding(g_control, &controlDataSecondary, control, -4, true, false);
 
-		// Comes from a mouse
-		if (controlData.source == 7)
-		{
-			return InputHook::IsMouseButtonDown(controlData.parameter);
-		}
-
-		return (InputHook::IsKeyDown(controlData.parameter) || InputHook::IsKeyDown(controlDataSecondary.parameter));
+		return IsInputSourceDown(controlData) || IsInputSourceDown(controlDataSecondary);
 	}
 }
 
