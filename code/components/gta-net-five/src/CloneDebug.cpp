@@ -48,18 +48,6 @@ static bool Splitter(bool split_vertically, float thickness, float* size1, float
 	return SplitterBehavior(bb, id, split_vertically ? ImGuiAxis_X : ImGuiAxis_Y, size1, size2, min_size1, min_size2, 0.0f);
 }
 
-#ifdef IS_RDR3
-struct LogVector
-{
-	float x;
-	char pad1[4];
-	float y;
-	char pad2[4];
-	float z;
-	char pad3[4];
-};
-#endif
-
 namespace rage
 {
 	class netLogStub
@@ -92,17 +80,17 @@ namespace rage
 
 		virtual void m_20(const char* prefix, uint64_t value) = 0;
 
-		virtual void m_28(const char* prefix, LogVector* value) = 0; // log vector?
+		virtual void m_28(const char* prefix, float value) = 0;
 
 		virtual void m_30(const char* prefix, uint64_t value) = 0;
 
-		virtual void m_38(const char* prefix, uint64_t value) = 0;
+		virtual void m_38(const char* prefix, int64_t value) = 0;
 
-		virtual void m_40(const char* prefix, uint32_t value) = 0; // log hash
+		virtual void m_40(const char* prefix, uint32_t value) = 0;
 
-		virtual void m_48(const char* prefix, uint64_t value) = 0;
+		virtual void m_48(const char* prefix, int32_t value) = 0;
 
-		virtual void m_50(const char* prefix, uint8_t value) = 0; // log boolean?
+		virtual void m_50(const char* prefix, bool value) = 0;
 
 		virtual void LogString(const char* prefix, const char* fmt, ...) = 0;
 #endif
@@ -394,52 +382,52 @@ public:
 #elif IS_RDR3
 	virtual void m_8(const char* prefix, uint64_t value)
 	{
-		trace("m_8 %d\n", value);
+		m_logger(fmt::sprintf("%s%s%x%s", prefix ? prefix : "", prefix ? ": " : "", value, " (unknown m_8)"));
 	}
 
 	virtual void m_10(const char* prefix, uint64_t value)
 	{
-		trace("m_10 %d\n", value);
+		m_logger(fmt::sprintf("%s%s%x%s", prefix ? prefix : "", prefix ? ": " : "", value, " (unknown m_10)"));
 	}
 
 	virtual void m_18(const char* prefix, uint64_t value)
 	{
-		trace("m_18 %d\n", value);
+		m_logger(fmt::sprintf("%s%s%x%s", prefix ? prefix : "", prefix ? ": " : "", value, " (unknown m_18)"));
 	}
 
 	virtual void m_20(const char* prefix, uint64_t value)
 	{
-		trace("m_20 %d\n", value);
+		m_logger(fmt::sprintf("%s%s%x%s", prefix ? prefix : "", prefix ? ": " : "", value, " (unknown m_20)"));
 	}
 
-	virtual void m_28(const char* prefix, LogVector* value)
+	virtual void m_28(const char* prefix, float value)
 	{
-		m_logger(fmt::sprintf("%s%s%f %f %f", prefix ? prefix : "", prefix ? ": " : "", value->x, value->y, value->z));
+		m_logger(fmt::sprintf("%s%s%.2f", prefix ? prefix : "", prefix ? ": " : "", value));
 	}
 
 	virtual void m_30(const char* prefix, uint64_t value)
 	{
-		trace("m_30 %d\n", value);
+		m_logger(fmt::sprintf("%s%s%u", prefix ? prefix : "", prefix ? ": " : "", value));
 	}
 
-	virtual void m_38(const char* prefix, uint64_t value)
+	virtual void m_38(const char* prefix, int64_t value)
 	{
-		trace("m_38 %d\n", value);
+		m_logger(fmt::sprintf("%s%s%d", prefix ? prefix : "", prefix ? ": " : "", value));
 	}
 
 	virtual void m_40(const char* prefix, uint32_t value)
 	{
-		m_logger(fmt::sprintf("%s%s%d", prefix ? prefix : "", prefix ? ": " : "", value));
+		m_logger(fmt::sprintf("%s%s%u", prefix ? prefix : "", prefix ? ": " : "", value));
 	}
 
-	virtual void m_48(const char* prefix, uint64_t value)
+	virtual void m_48(const char* prefix, int32_t value)
 	{
 		m_logger(fmt::sprintf("%s%s%d", prefix ? prefix : "", prefix ? ": " : "", value));
 	}
 
-	virtual void m_50(const char* prefix, uint8_t value)
+	virtual void m_50(const char* prefix, bool value)
 	{
-		m_logger(fmt::sprintf("%s%s%d", prefix ? prefix : "", prefix ? ": " : "", value));
+		m_logger(fmt::sprintf("%s%s%s", prefix ? prefix : "", prefix ? ": " : "", (value) ? "true" : "false"));
 	}
 
 	virtual void LogString(const char* prefix, const char* fmt, ...)
