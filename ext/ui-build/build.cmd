@@ -25,6 +25,9 @@ if exist %CacheRoot%\cfx-ui-modules (
 :: install packages (using Yarn now)
 call yarn
 
+:: propagate error
+if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
+
 :: workaround for duplicate webpack versions
 rmdir /s /q node_modules\@angular-devkit\build-angular\node_modules\webpack
 
@@ -34,6 +37,9 @@ rmdir /s /q node_modules\@angular-devkit\build-angular\node_modules\webpack
 
 :: ng build
 call node_modules\.bin\ng.cmd build --prod 2>&1
+
+:: propagate error
+if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
 
 :: delete old app
 rmdir /s /q %UIRoot%\app\

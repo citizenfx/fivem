@@ -469,16 +469,21 @@ if (!$DontBuild -and !$IsServer) {
 
         Push-Location $WorkDir\ext\ui-build
 
+		$UiSucceeded = $true
+
         if ($UICommit -ne (Get-Content data\.commit)) {
             .\build.cmd
+			$UiSucceeded = $?
             
             $UICommit | Out-File -Encoding ascii -NoNewline data\.commit
         }
 
-        if ($?) {
+        if ($UiSucceeded) {
             Copy-Item -Force $WorkDir\ext\ui-build\data.zip $CacheDir\fivereborn\citizen\ui.zip
             Copy-Item -Force $WorkDir\ext\ui-build\data_big.zip $CacheDir\fivereborn\citizen\ui-big.zip
-        }
+        } else {
+			throw "Failed to build UI"
+		}
 
         Pop-Location
 		End-Section "ui"
