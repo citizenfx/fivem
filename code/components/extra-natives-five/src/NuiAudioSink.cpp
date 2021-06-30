@@ -37,6 +37,24 @@ static concurrency::concurrent_queue<std::function<void()>> g_mainQueue;
 
 namespace rage
 {
+	class audCurve
+	{
+	public:
+		// input: units of distance
+		// output: attenuation in dB from -100 to 0
+		static float DefaultDistanceAttenuation_CalculateValue(float x);
+	};
+
+	static hook::cdecl_stub<float(float)> _audCurve_DefaultDistanceAttenuation_CalculateValue([]()
+	{
+		return hook::get_pattern("0F 28 C8 F3 0F 59 08 48 83 C0 04", -0x38);
+	});
+
+	float audCurve::DefaultDistanceAttenuation_CalculateValue(float x)
+	{
+		return _audCurve_DefaultDistanceAttenuation_CalculateValue(x);
+	}
+
 	class audWaveSlot
 	{
 	public:
@@ -842,7 +860,7 @@ class naEnvironmentGroup : public rage::audEnvironmentGroupInterface
 public:
 	static naEnvironmentGroup* Create();
 
-	void Init(void* a2, float a3, int a4, int a5, float a6, int a7);
+	void Init(rage::audEntity* a2, float a3, int a4, int a5, float a6, int a7);
 
 	void SetPosition(const rage::Vec3V& position);
 
@@ -854,7 +872,7 @@ static hook::cdecl_stub<naEnvironmentGroup*()> _naEnvironmentGroup_create([]()
 	return hook::get_pattern("F6 04 02 01 74 0A 8A 05", -0x24);
 });
 
-static hook::thiscall_stub<void(naEnvironmentGroup*, void* a2, float a3, int a4, int a5, float a6, int a7)> _naEnvironmentGroup_init([]()
+static hook::thiscall_stub<void(naEnvironmentGroup*, rage::audEntity* a2, float a3, int a4, int a5, float a6, int a7)> _naEnvironmentGroup_init([]()
 {
 	return hook::get_pattern("80 A7 ? 01 00 00 FC F3 0F 10", -0x22);
 });
@@ -874,9 +892,9 @@ naEnvironmentGroup* naEnvironmentGroup::Create()
 	return _naEnvironmentGroup_create();
 }
 
-void naEnvironmentGroup::Init(void* a2, float a3, int a4, int a5, float a6, int a7)
+void naEnvironmentGroup::Init(rage::audEntity* entity, float a3, int a4, int a5, float a6, int a7)
 {
-	_naEnvironmentGroup_init(this, a2, a3, a4, a5, a6, a7);
+	_naEnvironmentGroup_init(this, entity, a3, a4, a5, a6, a7);
 }
 
 void naEnvironmentGroup::SetPosition(const rage::Vec3V& position)
@@ -1338,6 +1356,7 @@ public:
 	virtual void SetResetHandler(const std::function<void()>& resetti) override;
 	virtual void SetPosition(float position[3], float distance, float overrideVolume) override;
 	virtual void PushAudio(int16_t* pcm, int len) override;
+	virtual bool IsTalkingAt(float distance) override;
 
 	void Reset();
 
@@ -1402,6 +1421,14 @@ void MumbleAudioSink::SetPollHandler(const std::function<void(int)>& poller)
 void MumbleAudioSink::SetResetHandler(const std::function<void()>& resetti)
 {
 	m_resetti = resetti;
+}
+
+bool MumbleAudioSink::IsTalkingAt(float distance)
+{
+	static float threshold = rage::GetDbForLinear(0.1f);
+	float scale = (m_distance > 0.01f) ? (m_distance / 10.0f) : 1.0f;
+	
+	return (rage::audCurve::DefaultDistanceAttenuation_CalculateValue(distance) * scale) > threshold;
 }
 
 void MumbleAudioSink::SetPosition(float position[3], float distance, float overrideVolume)
