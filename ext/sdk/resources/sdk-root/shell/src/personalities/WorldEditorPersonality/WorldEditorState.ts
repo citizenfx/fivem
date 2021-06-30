@@ -13,6 +13,10 @@ import { WorldEditorMapState } from './WorldEditorMapState';
 
 const noop = () => {};
 
+function clampExplorerWidth(width: number): number {
+  return Math.max(250, Math.min(document.body.offsetWidth / 2, width));
+};
+
 type WESelection = null | {
   id: number,
   type: number,
@@ -42,6 +46,7 @@ export const WorldEditorState = new class WorldEditorState {
   private mapEntry: FilesystemEntry | null = null;
 
   public mapExplorerOpen = false;
+  public mapExplorerWidth: number = clampExplorerWidth(parseInt(localStorage.weExplorerWidth, 10) || 300);
 
   constructor() {
     makeAutoObservable(this);
@@ -87,7 +92,7 @@ export const WorldEditorState = new class WorldEditorState {
   };
 
   closeMap = () => {
-    // this.ready = false;
+    this.ready = false;
     this.map = null;
     this.mapEntry = null;
 
@@ -95,6 +100,12 @@ export const WorldEditorState = new class WorldEditorState {
 
     ShellState.setPersonality(ShellPersonality.THEIA);
   };
+
+  setExplorerWidth(width: number) {
+    this.mapExplorerWidth = clampExplorerWidth(width);
+
+    localStorage.weExplorerWidth = this.mapExplorerWidth;
+  }
 
   toggleObjectsBrowser = () => {
     this.objectsBrowserOpen = !this.objectsBrowserOpen;
@@ -158,6 +169,11 @@ export const WorldEditorState = new class WorldEditorState {
       .setActiveKeyboardShortcut('Digit2', this.enableRotation)
       .setActiveKeyboardShortcut('Digit3', this.enableScaling)
       .setActiveKeyboardShortcut('Backquote', this.toggleEditorLocal)
+      .setActiveKeyboardShortcut('Escape', () => {
+        if (this.selection) {
+          sendGameClientEvent('we:clearSelection', '');
+        }
+      })
       .setActiveKeyboardShortcut('KeyA', (_active, _key, isCtrl) => {
         if (isCtrl) {
           this.openObjectsBrowser();
