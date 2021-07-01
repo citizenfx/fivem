@@ -5,6 +5,7 @@ import { ServerResourceDescriptor, ServerStartRequest } from "backend/game-serve
 import { GameServerService } from "backend/game-server/game-server-service";
 import { NotificationService } from "backend/notification/notification-service";
 import { ProjectAccess } from "backend/project/project-access";
+import { __DEBUG_MODE_TOGGLES__ } from "constants/debug-constants";
 import { inject, injectable, postConstruct } from "inversify";
 import { worldEditorApi } from "shared/api.events";
 import { WorldEditorStartRequest } from "shared/api.requests";
@@ -93,7 +94,9 @@ export class WorldEditorService implements ApiContribution {
     //   return openPromise;
     // }
 
-    await this.gameServerService.stop();
+    if (this.gameServerService.isUp()) {
+      await this.gameServerService.stop();
+    }
 
     const serverStartRequest: ServerStartRequest = {
       fxserverCwd: project.getFxserverCwd(),
@@ -108,7 +111,9 @@ export class WorldEditorService implements ApiContribution {
     this.gameServerService.setResources([]);
 
     try {
-      await this.gameServerService.start(serverStartRequest);
+      if (false === __DEBUG_MODE_TOGGLES__.WORLD_EDITOR_UI_ONLY) {
+        await this.gameServerService.start(serverStartRequest);
+      }
 
       return openPromise;
     } catch (e) {
@@ -135,7 +140,10 @@ export class WorldEditorService implements ApiContribution {
       return;
     }
 
-    await this.gameServerService.stop();
+    if (false === __DEBUG_MODE_TOGGLES__.WORLD_EDITOR_UI_ONLY) {
+      await this.gameServerService.stop();
+    }
+
     this.running = false;
   }
 

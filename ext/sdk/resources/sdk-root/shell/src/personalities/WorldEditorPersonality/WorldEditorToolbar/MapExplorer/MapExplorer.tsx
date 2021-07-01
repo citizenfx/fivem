@@ -7,6 +7,8 @@ import { useOutsideClick } from 'utils/hooks';
 import { MapExplorerBrowser } from './MapExplorerBrowser';
 import s from './MapExplorer.module.scss';
 import { ObjectsBrowser, ObjectsBrowserTrigger } from '../ObjectsBrowser/ObjectsBrowser';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+import { DndProvider } from 'react-dnd';
 
 function MapExplorerSentinel({ explorerRef }) {
   useOutsideClick(explorerRef, WorldEditorState.closeMapExplorer);
@@ -41,7 +43,10 @@ export const MapExplorer = observer(function MapExplorer() {
         <MapExplorerSentinel explorerRef={explorerRef} />
       )}
 
-      <MapExplorerBrowser explorerRef={explorerRef} />
+
+      <DndProvider backend={HTML5Backend}>
+        <MapExplorerBrowser explorerRef={explorerRef} />
+      </DndProvider>
 
       {WorldEditorState.objectsBrowserOpen && (
         <ObjectsBrowser />

@@ -2,7 +2,8 @@ import { ContainerAccess } from "backend/container-access";
 import { FsService } from "backend/fs/fs-service";
 import { LogService } from "backend/logger/log-service";
 import { AssetManagerContribution } from "backend/project/asset/asset-manager-contribution";
-import { WorldEditorMap, WorldEditorMapVersion } from "backend/world-editor/world-editor-types";
+import { DEFAULT_WORLD_EDITOR_MAP } from "backend/world-editor/world-editor-constants";
+import { WEMap, WEMapVersion } from "backend/world-editor/world-editor-types";
 import { inject, injectable } from "inversify";
 import { AssetCreateRequest } from "shared/api.requests";
 import { FilesystemEntry } from "shared/api.types";
@@ -26,15 +27,7 @@ export class FXWorldManager implements AssetManagerContribution {
 
     const mapFilePath = this.fsService.joinPath(request.assetPath, request.assetName + FXWORLD_FILE_EXT);
 
-    const mapContent: WorldEditorMap = {
-      version: WorldEditorMapVersion.V1,
-      meta: {
-        cam: [0, 0, 0, 0, 0, -45],
-      },
-      additionGroups: [],
-      additions: {},
-      patches: {},
-    };
+    const mapContent: WEMap = DEFAULT_WORLD_EDITOR_MAP;
 
     await this.fsService.writeFileJson(mapFilePath, mapContent, false);
 

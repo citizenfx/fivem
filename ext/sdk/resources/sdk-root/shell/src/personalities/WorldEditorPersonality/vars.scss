@@ -12,7 +12,7 @@ $weToolbarHeight: $q*10;
   box-shadow: 0 0 10px 0 rgba($bgColor, .5);
   border: solid 2px rgba($fgColor, .5);
 
-  z-index: 4000;
+  z-index: 3000;
 }
 
 @mixin backdrop-blur {

@@ -11,7 +11,7 @@
   align-items: center;
   justify-content: center;
 
-  z-index: 2000;
+  z-index: 9500;
 
   &.full-width {
     .content {
@@ -63,11 +63,6 @@
 
     & > * {
       overflow: hidden;
-
-      display: flex;
-      flex-direction: column;
-
-      min-height: 100%;
     }
   }
 }

@@ -28,6 +28,7 @@ export interface ContextMenuProps {
   className?: string,
   activeClassName?: string,
   onClick?: (openMenu?: () => void) => void,
+  onDoubleClick?: () => void,
   getCoords?: (node: HTMLDivElement) => { top: number, left: number },
 }
 
@@ -44,6 +45,7 @@ export const ContextMenu = React.forwardRef(function ContextMenu(props: ContextM
     className = '',
     activeClassName = '',
     onClick = noop,
+    onDoubleClick = noop,
     getCoords,
   } = props;
 
@@ -148,6 +150,7 @@ export const ContextMenu = React.forwardRef(function ContextMenu(props: ContextM
       className={classnames(className, { [activeClassName]: !!coords })}
       onContextMenu={handleOpenMenu}
       onClick={handleRootClick}
+      onDoubleClick={onDoubleClick}
     >
       {children}
       {menu}

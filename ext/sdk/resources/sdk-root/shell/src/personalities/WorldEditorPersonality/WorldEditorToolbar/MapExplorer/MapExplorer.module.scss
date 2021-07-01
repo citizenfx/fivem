@@ -175,6 +175,10 @@
         }
       }
 
+      &.dropping {
+        background-color: rgba($acColor, .25);
+      }
+
       &:hover {
         > header {
           .icon, .name {
@@ -208,6 +212,15 @@
 
           &:hover {
             color: $fgColor;
+          }
+
+          &.active {
+            color: $fgColor;
+            background-color: rgba($acColor, .25);
+          }
+
+          &.dragging {
+            background-color: $acColor;
           }
 
           &.editing {
@@ -284,12 +297,6 @@
         .icon, .name {
           color: $fgColor;
         }
-      }
-    }
-
-    .additions {
-      .group {
-        // margin-left: $q*4;
       }
     }
 

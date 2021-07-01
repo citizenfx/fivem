@@ -1,13 +1,21 @@
 import { sendSdkBackendMessage, sendSdkMessage, sendSdkMessageBroadcast } from "../client/sendSdkMessage";
 import { joaat, joaatUint32 } from "../shared";
 import { CameraManager } from "./camera-manager";
-import { WorldEditorApplyAdditionChangeRequest as WorldEditorApplyAdditionChangeRequest, WorldEditorApplyPatchRequest, WorldEditorEntityMatrix, WorldEditorMap, WorldEditorMapObject, WorldEditorPatch, WorldEditorSetAdditionRequest } from "./map-types";
+import {
+  WEApplyAdditionChangeRequest,
+  WEApplyPatchRequest,
+  WEEntityMatrix,
+  WEMap,
+  WEMapAddition,
+  WEMapPatch,
+  WESetAdditionRequest,
+} from "./map-types";
 import { applyEntityMatrix, limitPrecision, makeEntityMatrix } from "./math";
 import { ObjectManager } from "./object-manager";
 import { SelectionController } from "./selection-controller";
 
 export const MapManager = new class MapManager {
-  private map: WorldEditorMap | null = null;
+  private map: WEMap | null = null;
   private pendingMapdatas: number[] = [];
   private lastCamString: string = '';
   private objects: ObjectManager | null = null;
@@ -30,13 +38,16 @@ export const MapManager = new class MapManager {
       }
     });
     on('we:applyAdditionChange', (req: string) => {
-      const request: WorldEditorApplyAdditionChangeRequest = JSON.parse(req);
+      const request: WEApplyAdditionChangeRequest = JSON.parse(req);
 
       this.handleApplyAdditionChange(request);
     });
 
     on('we:deleteAddition', (objectId: string) => {
-      this.handleDeleteObject(objectId);
+      this.handleDeleteAddition(objectId);
+    });
+    on('we:deleteAdditions', (ids: string) => {
+      this.handleDeleteAddition(JSON.parse(ids));
     });
 
     on('we:map', (mapString: string) => {
@@ -111,7 +122,7 @@ export const MapManager = new class MapManager {
     const objectId = (Math.abs(Math.random() * objectNameHash) | 0).toString();
     const pos = getObjectPosition();
 
-    const obj: WorldEditorMapObject = {
+    const obj: WEMapAddition = {
       label: objectName,
       hash: objectNameHash,
       grp: -1,
@@ -127,10 +138,16 @@ export const MapManager = new class MapManager {
     this.setAddition(objectId, obj);
   }
 
-  private handleDeleteObject(objectId: string) {
+  private handleDeleteAddition(objectId: string) {
+    this.handleDeleteAdditions([objectId]);
+  }
+
+  private handleDeleteAdditions(ids: string[]) {
     if (this.map) {
-      delete this.map.additions[objectId];
-      this.objects.delete(objectId);
+      for (const id of ids) {
+        delete this.map.additions[id];
+        this.objects.delete(id);
+      }
     }
   }
 
@@ -162,7 +179,7 @@ export const MapManager = new class MapManager {
     }
   }
 
-  private handleApplyAdditionChange(request: WorldEditorApplyAdditionChangeRequest) {
+  private handleApplyAdditionChange(request: WEApplyAdditionChangeRequest) {
     if (this.map === null) {
       return;
     }
@@ -197,10 +214,10 @@ export const MapManager = new class MapManager {
     }
   }
 
-  private updatePatch(entity: number, mat: Float32Array | WorldEditorEntityMatrix) {
+  private updatePatch(entity: number, mat: Float32Array | WEEntityMatrix) {
     const [success, mapdataHash, entityHash] = GetEntityMapdataOwner(entity);
     if (success) {
-      const patch: WorldEditorPatch = {
+      const patch: WEMapPatch = {
         label: GetEntityModel(entity).toString(16).toUpperCase(),
         cam: CameraManager.getCamLimitedPrecision(),
         mat: prepareEntityMatrix(mat),
@@ -215,12 +232,12 @@ export const MapManager = new class MapManager {
         mapDataHash: mapdataHash,
         entityHash: entityHash,
         patch,
-      } as WorldEditorApplyPatchRequest);
+      } as WEApplyPatchRequest);
     }
   }
 
-  private updateAddition(additionId: string, addition: WorldEditorMapObject, mat: Float32Array | WorldEditorEntityMatrix) {
-    const change: WorldEditorApplyAdditionChangeRequest = {
+  private updateAddition(additionId: string, addition: WEMapAddition, mat: Float32Array | WEEntityMatrix) {
+    const change: WEApplyAdditionChangeRequest = {
       id: additionId,
       cam: CameraManager.getCamLimitedPrecision(),
       mat: prepareEntityMatrix(mat),
@@ -235,7 +252,7 @@ export const MapManager = new class MapManager {
     sendSdkMessageBroadcast('we:applyAdditionChange', change);
   }
 
-  private setAddition(id: string, object: WorldEditorMapObject) {
+  private setAddition(id: string, object: WEMapAddition) {
     this.map.additions[id] = object;
 
     this.objects.set(id, object);
@@ -243,7 +260,7 @@ export const MapManager = new class MapManager {
     sendSdkMessageBroadcast('we:setAddition', {
       id,
       object,
-    } as WorldEditorSetAdditionRequest);
+    } as WESetAdditionRequest);
   }
 };
 
@@ -272,6 +289,6 @@ function getObjectPosition() {
   return CameraManager.getPosition().copy().add(fw);
 }
 
-function prepareEntityMatrix(mat: Float32Array | WorldEditorEntityMatrix): WorldEditorEntityMatrix {
+function prepareEntityMatrix(mat: Float32Array | WEEntityMatrix): WEEntityMatrix {
   return limitPrecision(Array.from(mat), 10000) as any;
 }
