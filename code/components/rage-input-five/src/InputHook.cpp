@@ -547,6 +547,11 @@ static void rage__ioPad__Update(rage::ioPad* thisptr, bool onlyVibrate)
 	ReleaseMutex(rgd->inputMutex);
 }
 
+static int Return0()
+{
+	return 0;
+}
+
 static HookFunction hookFunction([]()
 {
 	static int* captureCount = hook::get_address<int*>(hook::get_pattern("48 3B 05 ? ? ? ? 0F 45 CA 89 0D ? ? ? ? 48 83 C4 28", 12));
@@ -646,6 +651,9 @@ static HookFunction hookFunction([]()
 		auto changeMouseInput = hook::get_pattern("0F 84 ? ? ? ? 8B CB E8 ? ? ? ? E9", 8);
 		hook::nop(changeMouseInput, 5);
 	}
+
+	// cancel out ioLogitechLedDevice
+	hook::jump(hook::get_pattern("85 C0 0F 85 ? ? 00 00 48 8B CB FF 15", -0x77), Return0);
 });
 
 fwEvent<HWND, UINT, WPARAM, LPARAM, bool&, LRESULT&> InputHook::DeprecatedOnWndProc;
