@@ -1,4 +1,6 @@
 #include "StdInc.h"
+#include <mutex>
+
 #include <CoreConsole.h>
 #include <Profiler.h>
 #include <ResourceEventComponent.h>
@@ -16,6 +18,53 @@
 using json = nlohmann::json;
 
 MSGPACK_ADD_ENUM(fx::ProfilerEventType);
+
+/// <summary>
+/// Ensure m_events is valid for the duration of a ConvertToStorage operation.
+/// </summary>
+static std::recursive_mutex m_eventsMutex;
+
+/// <summary>
+/// Execute a profiler command on a separate thread.
+///
+/// Decorator designed to play nice with detail::make_function.
+/// </summary>
+template<typename... Args, typename Fn>
+static auto ExecuteOffThread(Fn&& fn, bool requiresFxComponent = true)
+{
+	// If another console command is executed prior to the thread acquiring the
+	// lock, e.g., 'profiler view ; profiler record start' then the thread will
+	// likely return without processing. As this is a developer tool, corner
+	// cutting should be acceptable.
+	return [fn, requiresFxComponent](Args... args)
+	{
+		std::thread([=]()
+		{
+			if (requiresFxComponent)
+			{
+				std::lock_guard<std::recursive_mutex> guard(m_eventsMutex);
+				fn(std::move(args)...);
+			}
+			else
+			{
+				fn(std::move(args)...);
+			}
+		}).detach();
+	};
+}
+
+/// <summary>
+/// Execute a profiler command on the console thread.
+/// </summary>
+template<typename... Args, typename Fn>
+static auto ExecuteOnThread(Fn&& fn)
+{
+	return [fn](Args... args)
+	{
+		std::lock_guard<std::recursive_mutex> guard(m_eventsMutex);
+		fn(std::move(args)...);
+	};
+}
 
 struct ProfilerRecordingEvent {
 	int who;
@@ -406,7 +455,7 @@ namespace profilerCommand {
 			});
 		});
 
-		static ConsoleCommand statusCmd(profilerCtx.GetRef(), "status", []()
+		static ConsoleCommand statusCmd(profilerCtx.GetRef(), "status", ExecuteOnThread([]()
 		{
 			// Recording: <Yes/No> (<frames>)
 			auto profiler = fx::ResourceManager::GetCurrent(true)->GetComponent<fx::ProfilerComponent>();
@@ -440,9 +489,9 @@ namespace profilerCommand {
 				}
 			}
 			console::Printf("cmd", "Buffer: %d events over %d frames\n", eventCount, frameCount);
-		});
+		}));
 
-		static ConsoleCommand recordCmd(profilerCtx.GetRef(), "record", [](std::string arg)
+		static ConsoleCommand recordCmd(profilerCtx.GetRef(), "record", ExecuteOnThread<std::string>([](std::string arg)
 		{
 			auto profiler = fx::ResourceManager::GetCurrent(true)->GetComponent<fx::ProfilerComponent>();
 			if (arg == "stop")
@@ -452,13 +501,13 @@ namespace profilerCommand {
 					profiler->ScriptStopRecording();
 					console::Printf("cmd", "Stopping the recording\n");
 				}
-				else
+				else if (profiler->IsRecording())
 				{
 					profiler->StopRecording();
 					console::Printf("cmd", "Stopped the recording\n");
 				}
 			}
-			else
+			else if (!profiler->IsRecording())
 			{
 				try
 				{
@@ -470,9 +519,13 @@ namespace profilerCommand {
 					console::Printf("cmd", "Invalid argument to `profiler record` expected 'start', 'stop' or an integer\n");
 				}
 			}
-		});
+			else
+			{
+				console::Printf("cmd", "A recording is already taking place\n");
+			}
+		}));
 
-		static ConsoleCommand resourceStopCmd(profilerCtx.GetRef(), "resource", [](std::string arg)
+		static ConsoleCommand resourceStopCmd(profilerCtx.GetRef(), "resource", ExecuteOnThread<std::string>([](std::string arg)
 		{
 			auto profiler = fx::ResourceManager::GetCurrent(true)->GetComponent<fx::ProfilerComponent>();
 			if (arg == "stop")
@@ -482,17 +535,26 @@ namespace profilerCommand {
 					profiler->ScriptStopRecording();
 					console::Printf("cmd", "Stopping the recording\n");
 				}
-				else
+				else if (profiler->IsRecording())
 				{
 					profiler->StopRecording();
 					console::Printf("cmd", "Stopped the recording\n");
 				}
+				else
+				{
+					console::Printf("cmd", "No active recording\n");
+				}
 			}
-		});
+		}));
 
-		static ConsoleCommand resourceCmd(profilerCtx.GetRef(), "resource", [](std::string resource, std::string arg)
+		static ConsoleCommand resourceCmd(profilerCtx.GetRef(), "resource", ExecuteOnThread<std::string, std::string>([](std::string resource, std::string arg)
 		{
 			auto profiler = fx::ResourceManager::GetCurrent(true)->GetComponent<fx::ProfilerComponent>();
+			if (profiler->IsRecording())
+			{
+				console::Printf("cmd", "A recording is already taking place\n");
+				return;
+			}
 
 			int frames = -1;
 			if (arg.size() > 0) {
@@ -508,9 +570,9 @@ namespace profilerCommand {
 
 			profiler->StartRecording(frames, resource);
 			console::Printf("cmd", "Started recording\n");
-		});
+		}));
 
-		static ConsoleCommand saveCmd(profilerCtx.GetRef(), "save", [](std::string path)
+		static ConsoleCommand saveCmd(profilerCtx.GetRef(), "save", ExecuteOffThread<std::string>([](std::string path)
 		{
 			auto profiler = fx::ResourceManager::GetCurrent(true)->GetComponent<fx::ProfilerComponent>();
 
@@ -540,22 +602,37 @@ namespace profilerCommand {
 				vfs::Stream& stream;
 			} writeWrapper(writeStream);
 
+			console::Printf("cmd", "Saving the recording to: %s.\n", path);
 			msgpack::pack(writeWrapper, ConvertToStorage(profiler));
-		});
+			console::Printf("cmd", "Save complete\n");
+		}));
 
-		static ConsoleCommand dumpCmd(profilerCtx.GetRef(), "dump", []() {
+		static ConsoleCommand dumpCmd(profilerCtx.GetRef(), "dump", ExecuteOffThread([]() {
 			auto profiler = fx::ResourceManager::GetCurrent(true)->GetComponent<fx::ProfilerComponent>();
+			if (profiler->IsRecording())
+			{
+				console::Printf("cmd", "Cannot dump: profiler is active.\n");
+				return;
+			}
+
 			PrintEvents(profiler->Get());
-		});
+		}));
 
-		static ConsoleCommand viewCmd0(profilerCtx.GetRef(), "view", []() {
+		static ConsoleCommand viewCmd0(profilerCtx.GetRef(), "view", ExecuteOffThread([]() {
 			auto profiler = fx::ResourceManager::GetCurrent(true)->GetComponent<fx::ProfilerComponent>();
+			if (profiler->IsRecording())
+			{
+				console::Printf("cmd", "Cannot view: profiler is active.\n");
+				return;
+			}
+
+			console::Printf("cmd", "Building profile results\n");
 			auto jsonData = ConvertToJSON(ConvertToStorage(profiler));
 
 			ViewProfile(jsonData);
-		});
+		}));
 
-		static ConsoleCommand viewCmd1(profilerCtx.GetRef(), "view", [](std::string path) {
+		static ConsoleCommand viewCmd1(profilerCtx.GetRef(), "view", ExecuteOffThread<std::string>([](std::string path) {
 			std::string inFn = path;
 
 #ifndef IS_FXSERVER
@@ -575,7 +652,7 @@ namespace profilerCommand {
 			auto jsonData = ConvertToJSON(recording);
 
 			ViewProfile(jsonData);
-		});
+		}, false));
 	}
 	
 
@@ -678,6 +755,9 @@ namespace fx {
 	
 	void ProfilerComponent::StartRecording(const int frames, const std::string& resource)
 	{
+		// Handle StartRecording being invoked outside of ConsoleCommand
+		std::lock_guard<std::recursive_mutex> guard(m_eventsMutex);
+
 		m_offset = fx::usec();
 		m_frames = frames;
 		m_recording = true;
@@ -691,6 +771,8 @@ namespace fx {
 
 	void ProfilerComponent::StopRecording()
 	{
+		std::lock_guard<std::recursive_mutex> guard(m_eventsMutex);
+
 		ShutdownScriptConnection();
 		m_recording = false;
 		m_script = false;
