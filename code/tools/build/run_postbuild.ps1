@@ -120,7 +120,16 @@ if (!$IsServer) {
 	}
 } else {
     Push-Location $WorkDir\ext\system-resources
-    .\build.cmd
+
+    Push-Location $WorkDir
+    $SRCommit = (git rev-list -1 HEAD ext/txAdmin ext/system-resources/)
+    Pop-Location
+
+    if (!(Test-Path .commit) -or $SRCommit -ne (Get-Content .commit)) {
+        .\build.cmd
+
+        $SRCommit | Out-File -Encoding ascii -NoNewline .commit
+    }
 
     if ($?) {
         New-Item -ItemType Directory -Force $WorkDir\data\server\citizen\system_resources\ | Out-Null
