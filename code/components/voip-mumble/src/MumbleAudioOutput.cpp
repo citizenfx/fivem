@@ -565,7 +565,7 @@ void MumbleAudioOutput::ExternalAudioState::PushPosition(MumbleAudioOutput* base
 	auto listenerPos = XMVectorSet(baseIo->m_listener.Position.x, baseIo->m_listener.Position.y, baseIo->m_listener.Position.z, 0.0f);
 
 	// default algorithm: (abs(distance) < 0.01f) ? true : (XMVectorGetX(XMVector3LengthSq(emitterPos - listenerPos)) < (distance * distance))
-	bool shouldHear = sink->IsTalkingAt(XMVectorGetX(XMVector3LengthSq(emitterPos - listenerPos)));
+	bool shouldHear = sink->IsTalkingAt(XMVectorGetX(XMVector3Length(emitterPos - listenerPos)));
 
 	if (client->overrideVolume >= 0.0f)
 	{
