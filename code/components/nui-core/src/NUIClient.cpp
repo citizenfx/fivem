@@ -307,17 +307,6 @@ auto NUIClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<Ce
 		}
 	}
 
-	// to whoever may read this in charge of blocking `https://nui-game-internal*` as referrer on the `mastodon.social` instance:
-	// -> instead of outright blocking, it would've been possible to contact us as well (hydrogen@fivem.net et al.) before resorting to
-	//    outright oddity affecting actual users. even if server load is the issue.
-	// -> maybe don't pretend to support some open protocol if you block anyone using the API on your federated instance?
-	if (url.find("mastodon.social/") != std::string::npos)
-	{
-		request->SetReferrer("", CefRequest::ReferrerPolicy::REFERRER_POLICY_NO_REFERRER);
-		request->SetHeaderByName("origin", "http://localhost", true);
-		request->SetHeaderByName("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.48 Safari/537.36", true);
-	}
-
 	return RV_CONTINUE;
 }
 
