@@ -13,6 +13,20 @@
 
 #include <VFSManager.h>
 
+#if __has_include(<CrossBuildRuntime.h>) && defined(_WIN32)
+#include <CrossBuildRuntime.h>
+
+static inline auto GetGameBuild()
+{
+	return xbr::GetGameBuild();
+}
+#else
+static inline auto GetGameBuild()
+{
+	return 0;
+}
+#endif
+
 static InitFunction initFunction([] ()
 {
 	fx::ScriptEngine::RegisterNativeHandler("GET_NUM_RESOURCE_METADATA", [] (fx::ScriptContext& context)
@@ -174,4 +188,28 @@ static InitFunction initFunction([] ()
 		context.SetResult(true);
 	});
 #endif
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_GAME_NAME", [](fx::ScriptContext& context)
+	{
+		const char* gameName =
+#ifdef IS_FXSERVER
+		"fxserver"
+#elif defined(GTA_FIVE)
+		"fivem"
+#elif defined(GTA_NY)
+		"libertym"
+#elif defined(IS_RDR3)
+		"redm"
+#else
+		"unknown"
+#endif
+		;
+
+		context.SetResult<const char*>(gameName);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_GAME_BUILD_NUMBER", [](fx::ScriptContext& context)
+	{
+		context.SetResult<int64_t>(GetGameBuild());
+	});
 });
