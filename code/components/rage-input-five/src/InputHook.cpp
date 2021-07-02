@@ -10,6 +10,8 @@
 #include <CrossBuildRuntime.h>
 #include <timeapi.h> // timeGetTime()
 
+#include <GlobalInput.h>
+
 static WNDPROC origWndProc;
 
 static bool g_isFocused = true;
@@ -84,12 +86,36 @@ bool InputHook::IsMouseButtonDown(int buttonFlag)
 	return ((*g_mouseButtons) & buttonFlag);
 }
 
+static bool GlobalInputIsDown(int vKey)
+{
+	static bool keys[512];
+
+	static auto gInput = []()
+	{
+		auto gInput = CreateGlobalInputHandler();
+		gInput->OnKey.Connect([](DWORD vKey, bool down)
+		{
+			keys[vKey] = down;
+		});
+
+		return gInput;
+	}();
+
+	return keys[vKey];
+}
+
 bool InputHook::IsKeyDown(int vk_keycode)
 {
 	if (vk_keycode < 0 || vk_keycode > 255)
 	{
 		return false;
 	}
+
+	if (GlobalInputIsDown(vk_keycode))
+	{
+		return true;
+	}
+
 	return g_gameKeyArray[vk_keycode] & 0x80;
 }
 
