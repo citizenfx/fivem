@@ -50,33 +50,13 @@ LRESULT GlobalInputHandlerLocal::WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam
 	{
 		case WM_CREATE:
 		{
-			constexpr uint8_t nRid = 5;
+			constexpr uint8_t nRid = 1;
 			RAWINPUTDEVICE rid[nRid] = {};
 
 			rid[0].usUsagePage = HID_USAGE_PAGE_GENERIC;
-			rid[0].usUsage = HID_USAGE_GENERIC_MOUSE;
-			rid[0].dwFlags = RIDEV_INPUTSINK;
+			rid[0].usUsage = HID_USAGE_GENERIC_KEYBOARD;
+			rid[0].dwFlags = RIDEV_INPUTSINK | RIDEV_DEVNOTIFY;
 			rid[0].hwndTarget = hWnd;
-
-			rid[1].usUsagePage = HID_USAGE_PAGE_GENERIC;
-			rid[1].usUsage = HID_USAGE_GENERIC_JOYSTICK;
-			rid[1].dwFlags = RIDEV_INPUTSINK | RIDEV_DEVNOTIFY;
-			rid[1].hwndTarget = hWnd;
-
-			rid[2].usUsagePage = HID_USAGE_PAGE_GENERIC;
-			rid[2].usUsage = HID_USAGE_GENERIC_GAMEPAD;
-			rid[2].dwFlags = RIDEV_INPUTSINK | RIDEV_DEVNOTIFY;
-			rid[2].hwndTarget = hWnd;
-
-			rid[3].usUsagePage = HID_USAGE_PAGE_GENERIC;
-			rid[3].usUsage = HID_USAGE_GENERIC_KEYBOARD;
-			rid[3].dwFlags = RIDEV_INPUTSINK | RIDEV_DEVNOTIFY;
-			rid[3].hwndTarget = hWnd;
-
-			rid[4].usUsagePage = HID_USAGE_PAGE_GENERIC;
-			rid[4].usUsage = HID_USAGE_GENERIC_MULTI_AXIS_CONTROLLER;
-			rid[4].dwFlags = RIDEV_INPUTSINK | RIDEV_DEVNOTIFY;
-			rid[4].hwndTarget = hWnd;
 
 			if (!RegisterRawInputDevices(rid, nRid, sizeof(RAWINPUTDEVICE)))
 			{
