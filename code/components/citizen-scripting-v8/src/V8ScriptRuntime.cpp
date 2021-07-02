@@ -2286,8 +2286,18 @@ result_t V8ScriptRuntime::Tick()
 {
 	if (m_tickRoutine)
 	{
-		V8PushEnvironment<FakeScope, FakeScope> pushed(this);
-		m_tickRoutine();
+#ifdef IS_FXSERVER
+		if (!v8::Locker::IsLocked(GetV8Isolate()))
+		{
+			V8PushEnvironment pushed(this);
+			m_tickRoutine();
+		}
+		else
+#endif
+		{
+			V8PushEnvironment<FakeScope, FakeScope> pushed(this);
+			m_tickRoutine();
+		}
 	}
 
 	return FX_S_OK;
