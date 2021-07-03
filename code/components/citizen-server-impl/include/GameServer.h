@@ -82,7 +82,7 @@ namespace fx
 	public:
 		void ForceHeartbeat();
 
-		void ForceHeartbeatSoon();
+		virtual void ForceHeartbeatSoon();
 
 		void DeferCall(int inMsec, const std::function<void()>& fn);
 
