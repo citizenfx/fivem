@@ -1227,7 +1227,7 @@ void MumbleAudioEntity::PreUpdateService(uint32_t)
 
 		if (m_distance > 0.01f)
 		{
-			settings->SetVolumeCurveScale(m_distance / 10.0f);
+			settings->SetVolumeCurveScale(m_distance / 20.0f);
 		}
 		else
 		{
@@ -1425,10 +1425,16 @@ void MumbleAudioSink::SetResetHandler(const std::function<void()>& resetti)
 
 bool MumbleAudioSink::IsTalkingAt(float distance)
 {
-	static float threshold = rage::GetDbForLinear(0.1f);
-	float scale = (m_distance > 0.01f) ? (m_distance / 10.0f) : 1.0f;
-	
-	return (rage::audCurve::DefaultDistanceAttenuation_CalculateValue(distance / scale)) > threshold;
+	static float threshold = -80.0f; // anything below -80dB should be unintelligible.
+
+	float userScale = 1.0f;
+
+	if (m_distance > 0.01f)
+	{
+		userScale = 1.0f / (m_distance / 20.0f);
+	}
+
+	return (rage::audCurve::DefaultDistanceAttenuation_CalculateValue(distance * userScale)) > threshold;
 }
 
 void MumbleAudioSink::SetPosition(float position[3], float distance, float overrideVolume)
