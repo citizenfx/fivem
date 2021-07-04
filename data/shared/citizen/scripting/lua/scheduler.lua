@@ -690,11 +690,11 @@ if isDuplicityVersion then
 	end
 
 	local httpDispatch = {}
-	AddEventHandler('__cfx_internal:httpResponse', function(token, status, body, headers)
+	AddEventHandler('__cfx_internal:httpResponse', function(token, status, body, headers, errorData)
 		if httpDispatch[token] then
 			local userCallback = httpDispatch[token]
 			httpDispatch[token] = nil
-			userCallback(status, body, headers)
+			userCallback(status, body, headers, errorData)
 		end
 	end)
 
@@ -713,10 +713,13 @@ if isDuplicityVersion then
 			followLocation = followLocation
 		}
 
-		local d = json.encode(t)
-		local id = PerformHttpRequestInternal(d, d:len())
+		local id = PerformHttpRequestInternalEx(t)
 
-		httpDispatch[id] = cb
+		if id ~= -1 then
+			httpDispatch[id] = cb
+		else
+			cb(0, nil, {}, 'Failure handling HTTP request')
+		end
 	end
 else
 	function TriggerServerEvent(eventName, ...)
