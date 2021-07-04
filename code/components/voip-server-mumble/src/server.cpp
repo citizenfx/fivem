@@ -293,12 +293,38 @@ int Client_send_udp(client_t *client, uint8_t *data, int len);
 static std::mutex mumblePairsMutex;
 static std::map<net::PeerAddress, bool> mumblePairs;
 
+static std::mutex retryPairsMutex;
+static std::map<net::PeerAddress, int> retryPairs;
+
 extern std::recursive_mutex g_mumbleClientMutex;
 
 void Server_onFree(client_t* client)
 {
 	std::lock_guard _(mumblePairsMutex);
 	mumblePairs.erase(client->remote_udp);
+}
+
+void CleanupMumblePairs()
+{
+	{
+		std::lock_guard _(mumblePairsMutex);
+		for (auto it = mumblePairs.begin(); it != mumblePairs.end(); )
+		{
+			if (!it->second)
+			{
+				it = mumblePairs.erase(it);
+			}
+			else
+			{
+				++it;
+			}
+		}
+	}
+
+	{
+		std::lock_guard _(retryPairsMutex);
+		retryPairs.clear();
+	}
 }
 
 static InitFunction initFunction([]()
@@ -455,11 +481,22 @@ static InitFunction initFunction([]()
 			using namespace std::chrono_literals;
 			SetThreadName(-1, "[Mumble] Worker thread");
 
+			size_t i = 0;
+
 			while (true)
 			{
 				std::this_thread::sleep_for(1000ms);
 
 				Client_janitor();
+
+				++i;
+
+				// clean up pairs every ~15 seconds
+				if (i > 15)
+				{
+					CleanupMumblePairs();
+					i = 0;
+				}
 			}
 		}).detach();
 	});
@@ -515,7 +552,9 @@ static InitFunction initFunction([]()
 
 			if (!known)
 			{
+				// try finding a client for whom the packet will decrypt correctly
 				client_t* itr = nullptr;
+				bool found = false;
 
 				while (Client_iterate(&itr) != nullptr)
 				{
@@ -524,11 +563,22 @@ static InitFunction initFunction([]()
 						 fromAddress == fmt::sprintf("[::ffff:%s]", itr->remote_tcp.GetHost())))
 					{
 						known = true;
-						break;
+
+						// try decrypting the packet, maybe it'll be mumble
+						if (checkDecrypt(itr, data, buffer, std::min(len, sizeof(buffer))))
+						{
+							// it's mumble!
+							std::lock_guard _(retryPairsMutex);
+							retryPairs[address] = 0;
+
+							found = true;
+
+							break;
+						}
 					}
 				}
 
-				// still not known? don't intercept
+				// if no client matched even on IP, mark this pair as dead
 				if (!known)
 				{
 					std::lock_guard<std::mutex> lock(mumblePairsMutex);
@@ -537,26 +587,28 @@ static InitFunction initFunction([]()
 					return;
 				}
 
-				// try decrypting the packet, maybe it'll be mumble
-				if (!checkDecrypt(itr, data, buffer, std::min(len, sizeof(buffer))))
+				// wasn't mumble, note down a failure and return
+				if (!found)
 				{
+					std::unique_lock _(retryPairsMutex);
+
 					// quite certainly not mumble
-					if (itr->numFailedCrypt > 10)
+					if (retryPairs[address] > 10)
 					{
+						// unlock so we don't incorrectly nest
+						_.unlock();
+
+						// permanently note down this pair as not-mumble
 						std::lock_guard<std::mutex> lock(mumblePairsMutex);
 						mumblePairs.insert({ address, false });
-
-						itr->numFailedCrypt = 0;
 
 						return;
 					}
 
-					itr->numFailedCrypt++;
-
+					// note this client has been mumble
+					retryPairs[address]++;
 					return;
 				}
-
-				itr->numFailedCrypt = 0;
 
 				// mumble! let's mark it
 				std::lock_guard<std::mutex> lock(mumblePairsMutex);
