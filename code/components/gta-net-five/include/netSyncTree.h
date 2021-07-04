@@ -48,7 +48,7 @@ public:
 
 	virtual void m_48() = 0;
 
-	virtual void m_50() = 0;
+	virtual void* GetCreationDataNode() = 0;
 
 	virtual void m_58() = 0;
 

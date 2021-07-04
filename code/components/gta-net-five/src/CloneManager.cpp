@@ -270,6 +270,8 @@ private:
 
 	std::map<std::tuple<int, int>, std::chrono::milliseconds> m_pendingRemoveAcks;
 
+	std::set<std::tuple<int, int>> m_mercyList;
+
 	std::set<int> m_pendingConfirmObjectIds;
 
 	tbb::concurrent_queue<std::string> m_logQueue;
@@ -470,6 +472,7 @@ void CloneManagerLocal::Reset()
 	m_pendingRemoveAcks.clear();
 	m_pendingConfirmObjectIds.clear();
 	m_logQueue.clear();
+	m_mercyList.clear();
 
 	m_lastReceivedFrame = { 0 };
 
@@ -1090,8 +1093,8 @@ bool CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 	rage::datBitBuffer rlBuffer(const_cast<uint8_t*>(msg.GetCloneData().data()), msg.GetCloneData().size());
 	rlBuffer.m_f1C = 1;
 
-	// skip if the player hasn't been created yet
-	if (GetPlayerByNetId(msg.GetClientId()) == nullptr)
+	// skip players if the player hasn't been created yet
+	if (msg.GetEntityType() == NetObjEntityType::Player && GetPlayerByNetId(msg.GetClientId()) == nullptr)
 	{
 		return false;
 	}
@@ -1156,6 +1159,32 @@ bool CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 	if (!syncTree->CanApplyToObject(obj))
 	{
 		Log("%s: couldn't apply object\n", __func__);
+
+		// mercy-create dummy objects that shouldn't exist
+		if (msg.GetEntityType() == NetObjEntityType::Object)
+		{
+#ifdef GTA_FIVE
+			auto objectCreationDataNode = syncTree->GetCreationDataNode();
+
+			if (objectCreationDataNode)
+			{
+				static int createdByOffset = xbr::IsGameBuildOrGreater<1604>() ? 332 : 0;
+
+				int createdBy = *(int*)((char*)objectCreationDataNode + createdByOffset);
+
+				// random or fragment cache
+				if (createdBy == 0 || createdBy == 2)
+				{
+					m_mercyList.emplace(msg.GetObjectId(), msg.GetUniqifier());
+
+					delete obj;
+					ackPacket();
+
+					return true;
+				}
+			}
+#endif
+		}
 
 		// delete the unapplied object
 		delete obj;
@@ -1267,6 +1296,14 @@ AckResult CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 	};
 
 	Log("%s: id %d obj [obj:%d] ts %d\n", __func__, msg.GetClientId(), msg.GetObjectId(), msg.GetTimestamp());
+
+	if (m_mercyList.find({ msg.GetObjectId(), msg.GetUniqifier() }) != m_mercyList.end() ||
+		m_mercyList.find({ msg.GetObjectId(), uint16_t(~msg.GetUniqifier()) }) != m_mercyList.end())
+	{
+		ackPacket();
+
+		return AckResult::OK;
+	}
 
 	// get saved object
 	auto objIt = m_savedEntities.find(msg.GetObjectId());
@@ -1852,6 +1889,8 @@ void CloneManagerLocal::DeleteObjectId(uint16_t objectId, uint16_t uniqifier, bo
 
 		Log("%s: object ID [obj:%d]\n", __func__, objectId);
 	}
+
+	m_mercyList.erase({ objectId, uniqifier });
 
 	// #NETVER: refactored ACKs
 	if (icgi->NetProtoVersion >= 0x201905310838 && !force)

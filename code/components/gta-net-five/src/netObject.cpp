@@ -5,6 +5,7 @@
 #include <netSyncTree.h>
 
 #include <atPool.h>
+#include <Pool.h>
 
 using TCreateCloneObjFn = rage::netObject*(*)(uint16_t objectId, uint8_t, int, int);
 using TPoolPtr = atPoolBase**;
@@ -21,6 +22,16 @@ namespace rage
 		if (pool->GetCountDirect() >= pool->GetSize())
 		{
 			return nullptr;
+		}
+
+		if (type == NetObjEntityType::Ped || type == NetObjEntityType::Player)
+		{
+			auto entityPool = rage::GetPoolBase("Peds");
+
+			if (entityPool->GetCountDirect() >= (entityPool->GetSize() - 4))
+			{
+				return nullptr;
+			}
 		}
 
 		return createCloneFuncs[(int)type](objectId, a2, a3, a4);

@@ -585,6 +585,7 @@ void HandleClientDrop(const NetLibraryClientInfo& info)
 }
 
 static CNetGamePlayer*(*g_origGetOwnerNetPlayer)(rage::netObject*);
+static CNetGamePlayer* g_player31;
 
 CNetGamePlayer* netObject__GetPlayerOwner(rage::netObject* object)
 {
@@ -602,6 +603,8 @@ CNetGamePlayer* netObject__GetPlayerOwner(rage::netObject* object)
 		{
 			return player;
 		}
+
+		return g_player31;
 	}
 
 	return g_playerMgr->localPlayer;
@@ -1990,8 +1993,6 @@ namespace rage
 #endif
 	};
 }
-
-static CNetGamePlayer* g_player31;
 
 bool EnsurePlayer31()
 {
