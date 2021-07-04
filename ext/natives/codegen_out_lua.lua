@@ -112,7 +112,10 @@ local function printArgument(argument, native)
 			return '_i --[[ actually ' .. argument.type.nativeType .. ' ]]'
 		end
 	elseif argument.type.name == 'object' then
-		return '_obj(' .. printArgumentName(argument.name) .. ')'
+		return ('%s_bytes, %s_len'):format(
+			printArgumentName(argument.name),
+			printArgumentName(argument.name)
+		)
 	elseif argument.type.name == 'func' then
 		return '_mfr(' .. printArgumentName(argument.name) .. ')'
 	elseif argument.type.name == 'Hash' then
@@ -180,6 +183,22 @@ local function printInvocationArguments(native)
 	end
 
 	return table.concat(args, ', ')
+end
+
+local function printGatherArguments(native)
+	local s = ''
+
+	if native.arguments then
+		for _, v in pairs(native.arguments) do
+			if v.type.name == 'object' then
+				s = s .. ('\tlocal %s_bytes, %s_len = _obj(%s)\n'):format(
+					printArgumentName(v.name), printArgumentName(v.name), printArgumentName(v.name)
+				)
+			end
+		end
+	end
+
+	return s
 end
 
 local function formatCommentedLine(line, indent)
@@ -304,7 +323,8 @@ local function printNative(native)
 				preCall = 'msgpack.unpack('
 				postCall = ')'
 			end
-		
+
+			str = str .. printGatherArguments(native)		
 			str = str .. string.format("\treturn %s_in%s(%s)%s\n", preCall, USE_SPLIT_LUA_DIRECT and '2' or '', printInvocationArguments(native), postCall)
 		end
 	
