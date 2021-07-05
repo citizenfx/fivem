@@ -323,7 +323,7 @@ void ValidateEpic(int parentPid)
 
 	std::wstring silentVar = L"";
 #ifdef IS_RDR3
-	silentVar = "&silent=true"
+	silentVar = L"&silent=true"
 #endif
 
 	// try to launch RDR-MTL from EGL
