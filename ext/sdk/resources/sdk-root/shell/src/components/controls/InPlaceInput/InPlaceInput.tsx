@@ -5,6 +5,7 @@ export interface InPlaceProps {
   value: string,
   onChange: (value: string) => void,
   placeholder?: string,
+  className?: string,
 }
 
 export function InPlaceInput(props: InPlaceProps) {
@@ -13,6 +14,7 @@ export function InPlaceInput(props: InPlaceProps) {
     value,
     onChange,
     placeholder,
+    className = '',
   } = props;
 
   const [intermediateValue, setIntermediateValue] = React.useState(value);
@@ -44,6 +46,7 @@ export function InPlaceInput(props: InPlaceProps) {
       placeholder={placeholder}
       onBlur={handleBlur}
       onKeyDown={handleKeyDown}
+      className={className}
     />
   );
 }

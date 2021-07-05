@@ -8,8 +8,9 @@ import { ShellPersonality, ShellState } from 'store/ShellState';
 import { FilesystemEntry } from 'shared/api.types';
 import { FXWORLD_FILE_EXT } from 'assets/fxworld/fxworld-types';
 import { WorldEditorStartRequest } from 'shared/api.requests';
-import { WorldEditorApplyAdditionChangeRequest, WorldEditorApplyPatchRequest, WorldEditorMap, WorldEditorSetAdditionRequest } from 'backend/world-editor/world-editor-types';
+import { WEApplyAdditionChangeRequest, WEApplyPatchRequest, WEMap, WESetAdditionRequest } from 'backend/world-editor/world-editor-types';
 import { WorldEditorMapState } from './WorldEditorMapState';
+import { __DEBUG_MODE_TOGGLES__ } from 'constants/debug-constants';
 
 const noop = () => {};
 
@@ -51,6 +52,10 @@ export const WorldEditorState = new class WorldEditorState {
   constructor() {
     makeAutoObservable(this);
 
+    if (__DEBUG_MODE_TOGGLES__.WORLD_EDITOR_UI_ONLY) {
+      this.ready = true;
+    }
+
     onWindowEvent('we:selection', (selection: WESelection) => runInAction(() => {
       this.selection = selection;
     }));
@@ -59,11 +64,11 @@ export const WorldEditorState = new class WorldEditorState {
       this.ready = true;
     }));
 
-    onWindowEvent('we:applyPatch', (request: WorldEditorApplyPatchRequest) => this.map?.handleApplyPatchRequest(request));
-    onWindowEvent('we:setAddition', (request: WorldEditorSetAdditionRequest) => this.map?.handleSetAdditionRequest(request));
-    onWindowEvent('we:applyAdditionChange', (request: WorldEditorApplyAdditionChangeRequest) => this.map?.handleApplyAdditionChangeRequest(request));
+    onWindowEvent('we:applyPatch', (request: WEApplyPatchRequest) => this.map?.handleApplyPatchRequest(request));
+    onWindowEvent('we:setAddition', (request: WESetAdditionRequest) => this.map?.handleSetAdditionRequest(request));
+    onWindowEvent('we:applyAdditionChange', (request: WEApplyAdditionChangeRequest) => this.map?.handleApplyAdditionChangeRequest(request));
 
-    onApiMessage(worldEditorApi.mapLoaded, (map: WorldEditorMap) => runInAction(() => {
+    onApiMessage(worldEditorApi.mapLoaded, (map: WEMap) => runInAction(() => {
       this.map = new WorldEditorMapState(map);
     }));
   }
@@ -92,7 +97,10 @@ export const WorldEditorState = new class WorldEditorState {
   };
 
   closeMap = () => {
-    this.ready = false;
+    if (false === __DEBUG_MODE_TOGGLES__.WORLD_EDITOR_UI_ONLY) {
+      this.ready = false;
+    }
+
     this.map = null;
     this.mapEntry = null;
 

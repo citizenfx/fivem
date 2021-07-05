@@ -7,7 +7,7 @@
   right: 0;
   bottom: 0;
 
-  z-index: 1000;
+  z-index: 9000;
 
   .menu {
     position: fixed;
@@ -25,7 +25,7 @@
 
     pointer-events: all;
 
-    z-index: 1001;
+    z-index: 9001;
 
     .separator {
       height: 1px;

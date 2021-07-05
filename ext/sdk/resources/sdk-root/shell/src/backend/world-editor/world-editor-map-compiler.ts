@@ -3,7 +3,7 @@ import { LogService } from "backend/logger/log-service";
 import { inject, injectable } from "inversify";
 import { formatDateForFilename } from "utils/date";
 import Flatbush from 'flatbush';
-import { WorldEditorMap } from "./world-editor-types";
+import { WEMap } from "./world-editor-types";
 import { concurrently } from "utils/concurrently";
 
 const WORLD_EDITOR_MAP_INDEX_RUNTIME = require('./world-editor-map-runtime/map-index.raw.js');
@@ -15,7 +15,7 @@ export interface WorldEditorMapCompileRequest {
 }
 
 interface CompilationData {
-  map: WorldEditorMap,
+  map: WEMap,
   compiled: string[],
 }
 
@@ -141,7 +141,7 @@ export class WorldEditorMapCompiler {
     data.compiled.push(
       '',
       '// Map additions',
-      `const mai=Flatbush.from(new Uint32Array(${JSON.stringify(Array.from(new Uint32Array(index.data)))}).buffer)`,
+      `const mai=Flatbush.from(new Uint8Array(${JSON.stringify(Array.from(new Uint8Array(index.data)))}).buffer)`,
       `const mad=[`,
       additions.join(',\n'),
       `]`,

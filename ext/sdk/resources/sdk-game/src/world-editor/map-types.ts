@@ -1,70 +1,85 @@
 //                            posX    posY    posZ    rotX    rotY    rotZ
-export type WorldEditorCam = [number, number, number, number, number, number];
+export type WECam = [number, number, number, number, number, number];
 
-export type WorldEditorEntityMatrix = [
+export type WEEntityMatrix = [
   number, number, number, number, // right
   number, number, number, number, // forward
   number, number, number, number, // up
   number, number, number, number, // at
 ];
 
-export interface WorldEditorPatch {
+export interface WEMapPatch {
   label: string,
-  mat: WorldEditorEntityMatrix,
-  cam: WorldEditorCam,
+  mat: WEEntityMatrix,
+  cam: WECam,
 }
 
-export interface WorldEditorMapObject {
+export type WEMapAdditionGroup = -1 | string;
+
+export interface WEMapAddition {
   label: string,
   hash: number,
-  grp: number,
-  mat: WorldEditorEntityMatrix,
-  cam: WorldEditorCam,
+  grp: WEMapAdditionGroup,
+  mat: WEEntityMatrix,
+  cam: WECam,
 }
 
-export interface WorldEditorApplyPatchRequest {
-  patch: WorldEditorPatch,
+export interface WEApplyPatchRequest {
+  patch: WEMapPatch,
   mapDataHash: number,
   entityHash: number,
 }
 
-export interface WorldEditorSetAdditionRequest {
+export interface WESetAdditionRequest {
   id: string,
-  object: WorldEditorMapObject,
+  object: WEMapAddition,
 }
 
-export type WorldEditorApplyAdditionChangeRequest = { id: string } & Partial<WorldEditorMapObject>;
+export type WEApplyAdditionChangeRequest = { id: string } & Partial<WEMapAddition>;
 
-export interface WorldEditorSetAdditionGroupRequest {
+export interface WESetAdditionGroupRequest {
+  additionId: string,
+  grp: WEMapAdditionGroup,
+}
+
+export interface WECreateAdditionGroupRequest {
+  grp: string,
+  label: string,
+}
+
+export interface WEDeleteAdditionGroupRequest {
+  grp: string,
+  deleteAdditions: boolean,
+}
+
+export interface WESetAdditionGroupNameRequest {
+  grp: string,
+  label: string,
+}
+
+export interface WEDeleteAdditionRequest {
   id: string,
-  group: number,
 }
 
-export interface WorldEditorSetAdditionGroupNameRequest {
-  additionIndex: number,
-  name: string,
-}
-
-export interface WorldEditorDeleteAdditionRequest {
-  id: string,
-}
-
-export enum WorldEditorMapVersion {
+export enum WEMapVersion {
   V1 = 1,
+  V2 = 2,
 }
 
-export interface WorldEditorMap {
-  version: WorldEditorMapVersion,
+export interface WEMap {
+  version: WEMapVersion,
   meta: {
-    cam: WorldEditorCam,
+    cam: WECam,
   },
   patches: {
     [mapDataHash: number]: {
-      [entityHash: number]: WorldEditorPatch,
+      [entityHash: number]: WEMapPatch,
     },
   },
-  additionGroups: string[],
+  additionGroups: Record<string, {
+    label: string,
+  }>,
   additions: {
-    [entityId: string]: WorldEditorMapObject,
+    [entityId: string]: WEMapAddition,
   },
 }

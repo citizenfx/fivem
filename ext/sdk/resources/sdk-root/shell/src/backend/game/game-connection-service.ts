@@ -32,18 +32,22 @@ export class GameConnectionService implements AppContribution {
   private processState(gameState: GameStates, serverState: ServerStates) {
     switch (true) {
       case gameState === GameStates.READY && serverState === ServerStates.up: {
+        this.logService.log('[GameConnectionService] Connecting client to server')
         return emit('sdk:connectClientTo', '127.0.0.1:30120');
       }
 
       case gameState === GameStates.CONNECTED && serverState === ServerStates.up: {
+        this.logService.log('[GameConnectionService] FPS limit lifted');
         return this.unlimitFPS();
       }
 
       case gameState === GameStates.UNLOADING && serverState === ServerStates.down: {
+        this.logService.log('[GameConnectionService] Disconnecting client from server');
         return emit('sdk:disconnectClient');
       }
 
       default: {
+        this.logService.log('[GameConnectionService] FPS has been limited to 60');
         return this.limitFPS();
       }
     }

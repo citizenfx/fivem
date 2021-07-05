@@ -1,11 +1,11 @@
-import { WorldEditorMapObject } from "./map-types";
+import { WEMapAddition } from "./map-types";
 
 export class ObjectManager {
   private handles: Record<string, number> = {};
   private handleToObjectIdMap: Record<number, string> = {};
 
   constructor(
-    private objects: Record<string, WorldEditorMapObject>,
+    private objects: Record<string, WEMapAddition>,
   ) {
     Object.keys(objects).forEach((objectId) => this.handles[objectId] = 0xFFFFFFFF);
   }
@@ -18,7 +18,7 @@ export class ObjectManager {
     return this.handleToObjectIdMap[handle];
   }
 
-  set(objectId: string, object: WorldEditorMapObject) {
+  set(objectId: string, object: WEMapAddition) {
     this.objects[objectId] = object;
 
     if (!(objectId in this.handles)) {

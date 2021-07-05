@@ -1,20 +1,37 @@
 import React from 'react';
 import classnames from 'classnames';
 import { observer } from 'mobx-react-lite';
+import { DropTargetMonitor, useDrop } from 'react-dnd';
 import { WorldEditorState } from 'personalities/WorldEditorPersonality/WorldEditorState';
 import { Indicator } from 'components/Indicator/Indicator';
 import { ScrollContainer } from 'components/ScrollContainer/ScrollContainer';
 import { BsMap } from 'react-icons/bs';
-import { RiMapPinAddFill } from 'react-icons/ri';
-import { openDirectoryIcon } from 'constants/icons';
-import { MapExplorerItem } from './MapExplorerItem';
-import s from './MapExplorer.module.scss';
-import { ObjectsBrowserTrigger } from '../ObjectsBrowser/ObjectsBrowser';
 import { Resizer } from 'components/controls/Resizer/Resizer';
 import { useOpenFlag } from 'utils/hooks';
+import s from './MapExplorer.module.scss';
+import { mapExplorerDNDTypes } from './MapExplorer.constants';
+import { MapExplorerAdditions } from './MapExplorerAdditions/MapExplorerAdditions';
 
 export const MapExplorerBrowser = observer(function MapExplorerBrowser({ explorerRef }: { explorerRef: React.RefObject<HTMLDivElement> }) {
+  const mapIsOpen = WorldEditorState.map !== null;
+
   const [resizing, enableResizing, disableResizing] = useOpenFlag(false);
+
+  const [{ isDropping }, dropRef] = useDrop({
+    accept: mapExplorerDNDTypes.ADDITION,
+    drop(item: unknown | { id: string, type: string }, monitor: DropTargetMonitor) {
+      if (monitor.didDrop()) {
+        return;
+      }
+
+      if (item['id']) {
+        WorldEditorState.map.setAdditionGroup(item['id'], -1);
+      }
+    },
+    collect: (monitor) =>({
+      isDropping: monitor.isOver({ shallow: true }) && monitor.canDrop(),
+    }),
+  });
 
   const explorerClassName = classnames(s.explorer, {
     [s.active]: WorldEditorState.mapExplorerOpen,
@@ -38,61 +55,13 @@ export const MapExplorerBrowser = observer(function MapExplorerBrowser({ explore
       </Resizer>
 
       <ScrollContainer className={s.content}>
-        {WorldEditorState.map === null && (
+        {!mapIsOpen && (
           <Indicator />
         )}
 
-        {WorldEditorState.map !== null && (
+        {mapIsOpen && (
           <>
-            <div className={s.additions}>
-              <header>
-                <div className={s.icon}>
-                  <RiMapPinAddFill />
-                </div>
-                <div className={s.name}>
-                  Map additions
-                </div>
-              </header>
-
-              <div className={s.children}>
-                {Object.entries(WorldEditorState.map.additionsByGroups).map(([groupIndex, additions]) => {
-                  return (
-                    <div key={`group-${groupIndex}`} className={s.group}>
-                      <header>
-                        <div className={s.icon}>
-                          {openDirectoryIcon}
-                        </div>
-                        <div className={s.name}>
-                          {WorldEditorState.map.additionGroups[groupIndex]}
-                        </div>
-                      </header>
-
-                      <div className={s.children}>
-                        {Object.entries(additions).map(([id, obj]) => (
-                          <MapExplorerItem
-                            key={id}
-                            item={obj}
-                            labelPlaceholder="Addition label"
-                            onLabelChange={(label: string) => label.trim() && WorldEditorState.map?.setAdditionLabel(id, label.trim())}
-                            onClick={() => WorldEditorState.setCam(obj.cam)}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {Object.entries(WorldEditorState.map.additionsUngrouped).map(([id, obj]) => (
-                  <MapExplorerItem
-                    key={id}
-                    item={obj}
-                    labelPlaceholder="Addition label"
-                    onLabelChange={(label: string) => label.trim() && WorldEditorState.map?.setAdditionLabel(id, label.trim())}
-                    onClick={() => WorldEditorState.setCam(obj.cam)}
-                  />
-                ))}
-              </div>
-            </div>
+            <MapExplorerAdditions />
 
             <div className={s.patches}>
               <header>

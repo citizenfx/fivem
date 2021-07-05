@@ -157,5 +157,7 @@ export const worldEditorApi = {
   setAddition: 'world-editor:setAddition',
   applyAdditionChange: 'world-editor:applyAdditionChange',
   setAdditionGroup: 'world-editor:setAdditionGroup',
-  setAdditionGroupName: 'world-editor:setAdditionGroupName',
+  createAdditionGroup: 'world-editor:createAdditionGroup',
+  deleteAdditionGroup: 'world-editor:deleteAdditionGroup',
+  setAdditionGroupLabel: 'world-editor:setAdditionGroupName',
 };
