@@ -20,6 +20,18 @@ namespace rage
 	{
 		return g_tlsOffset;
 	}
+
+	sysMemAllocator* GetAllocator()
+	{
+		sysMemAllocator* allocator = *(sysMemAllocator**)(hook::get_tls() + sysMemAllocator::GetAllocatorTlsOffset());
+
+		if (!allocator)
+		{
+			return sysMemAllocator::UpdateAllocatorValue();
+		}
+
+		return allocator;
+	}
 }
 
 static HookFunction hookFunction([] ()

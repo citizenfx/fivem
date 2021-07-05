@@ -167,6 +167,11 @@ local function launcherpersonality_inner(name, aslr)
 		if isGamePersonality(name) then
 			if not aslr and not isLauncherPersonality(name) then
 				linkoptions { "/SAFESEH:NO", "/DYNAMICBASE:NO" }
+			else
+				filter { "configurations:Debug" }
+					linkoptions { "/SAFESEH:NO", "/DYNAMICBASE:NO" }
+
+				filter {}
 			end
 
 			-- VS14 linker behavior change causes the usual workaround to no longer work, use an undocumented linker switch instead
@@ -211,6 +216,18 @@ elseif _OPTIONS['game'] == 'rdr3' then
 elseif _OPTIONS['game'] == 'ny' then
 	launcherpersonality 'game_43'
 end
+
+project 'CitiLaunch_TLSDummy'
+	kind 'SharedLib'
+	language 'C++'
+
+	defines { 'IS_TLS_DLL' }
+
+	staticruntime 'On'
+
+	files {
+		'DummyVariables.cpp'
+	}
 
 externalproject "Win2D"
 	if os.getenv('COMPUTERNAME') ~= 'AVALON' and not os.getenv('CI') then

@@ -225,16 +225,12 @@ pgPtrCollection<GtaThread>* scrEngine::GetThreadCollection()
 
 scrThread* scrEngine::GetActiveThread()
 {
-	char* moduleTls = *(char**)__readgsqword(88);
-
-	return *reinterpret_cast<scrThread**>(moduleTls + activeThreadTlsOffset);
+	return *reinterpret_cast<scrThread**>(hook::get_tls() + activeThreadTlsOffset);
 }
 
 void scrEngine::SetActiveThread(scrThread* thread)
 {
-	char* moduleTls = *(char**)__readgsqword(88);
-
-	*reinterpret_cast<scrThread**>(moduleTls + activeThreadTlsOffset) = thread;
+	*reinterpret_cast<scrThread**>(hook::get_tls() + activeThreadTlsOffset) = thread;
 }
 
 //static uint32_t& scrThreadId = *(uint32_t*)0x1849ADC;

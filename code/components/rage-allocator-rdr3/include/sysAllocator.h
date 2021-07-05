@@ -57,17 +57,7 @@ namespace rage
 		static GAMESPEC_EXPORT sysMemAllocator* UpdateAllocatorValue();
 	};
 
-	inline sysMemAllocator* GetAllocator()
-	{
-		sysMemAllocator* allocator = *(sysMemAllocator**)(*(uintptr_t*)(__readgsqword(88)) + sysMemAllocator::GetAllocatorTlsOffset());
-
-		if (!allocator)
-		{
-			return sysMemAllocator::UpdateAllocatorValue();
-		}
-
-		return allocator;
-	}
+	GAMESPEC_EXPORT sysMemAllocator* GetAllocator();
 
 	class GAMESPEC_EXPORT sysUseAllocator
 	{

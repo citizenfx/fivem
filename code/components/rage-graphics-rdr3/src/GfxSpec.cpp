@@ -105,7 +105,7 @@ static uint32_t g_sgaGraphicsContextOffset;
 
 static void* get_sgaGraphicsContext()
 {
-	return *(void**)(*(uintptr_t*)(__readgsqword(88)) + g_sgaGraphicsContextOffset);
+	return *(void**)(hook::get_tls() + g_sgaGraphicsContextOffset);
 }
 
 static intptr_t* gtaImShader;// = (intptr_t*)0x143D96A60;
@@ -200,7 +200,7 @@ static int32_t g_renderThreadTlsIndex = 1052;
 
 bool IsOnRenderThread()
 {
-	char* moduleTls = *(char**)__readgsqword(88);
+	char* moduleTls = hook::get_tls();
 
 	return (*reinterpret_cast<int32_t*>(moduleTls + g_renderThreadTlsIndex) & 2) != 0;
 }

@@ -287,6 +287,7 @@ void ExecutableLoader::LoadExceptionTable(IMAGE_NT_HEADERS* ntHeader)
 #endif
 
 static void InitTlsFromExecutable();
+extern HMODULE tlsDll;
 
 void ExecutableLoader::LoadIntoModule(HMODULE module)
 {
@@ -337,25 +338,32 @@ void ExecutableLoader::LoadIntoModule(HMODULE module)
 		const IMAGE_TLS_DIRECTORY* targetTls = GetTargetRVA<IMAGE_TLS_DIRECTORY>(sourceNtHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress);
 		const IMAGE_TLS_DIRECTORY* sourceTls = GetTargetRVA<IMAGE_TLS_DIRECTORY>(ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress);
 
-		if (sourceTls->AddressOfIndex)
-		{
-			*(DWORD*)(sourceTls->AddressOfIndex) = 0;
-		}
-
-		// note: 32-bit!
 #if defined(_M_IX86)
-		LPVOID tlsBase = *(LPVOID*)__readfsdword(0x2C);
+		LPVOID* tlsBase = (LPVOID*)__readfsdword(0x2C);
 #elif defined(_M_AMD64)
-		LPVOID tlsBase = *(LPVOID*)__readgsqword(0x58);
+		LPVOID* tlsBase = (LPVOID*)__readgsqword(0x58);
 #endif
+
+		uint32_t tlsIndex = 0;
+		void* tlsInit = nullptr;
+
+		auto tlsExport = (void(*)(void**, uint32_t*))GetProcAddress(tlsDll, "GetThreadLocalStorage");
+		tlsExport(&tlsInit, &tlsIndex);
+
+		assert(tlsIndex < 64);
 
 		if (sourceTls->StartAddressOfRawData)
 		{
 			DWORD oldProtect;
-			VirtualProtect((void*)targetTls->StartAddressOfRawData, sourceTls->EndAddressOfRawData - sourceTls->StartAddressOfRawData, PAGE_READWRITE, &oldProtect);
+			VirtualProtect(tlsInit, sourceTls->EndAddressOfRawData - sourceTls->StartAddressOfRawData, PAGE_READWRITE, &oldProtect);
 
-			memcpy(tlsBase, reinterpret_cast<void*>(sourceTls->StartAddressOfRawData), sourceTls->EndAddressOfRawData - sourceTls->StartAddressOfRawData);
-			memcpy((void*)targetTls->StartAddressOfRawData, reinterpret_cast<void*>(sourceTls->StartAddressOfRawData), sourceTls->EndAddressOfRawData - sourceTls->StartAddressOfRawData);
+			memcpy(tlsBase[tlsIndex], reinterpret_cast<void*>(sourceTls->StartAddressOfRawData), sourceTls->EndAddressOfRawData - sourceTls->StartAddressOfRawData);
+			memcpy(tlsInit, reinterpret_cast<void*>(sourceTls->StartAddressOfRawData), sourceTls->EndAddressOfRawData - sourceTls->StartAddressOfRawData);
+		}
+
+		if (sourceTls->AddressOfIndex)
+		{
+			hook::put(sourceTls->AddressOfIndex, tlsIndex);
 		}
 	}
 

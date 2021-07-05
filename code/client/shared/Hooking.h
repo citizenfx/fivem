@@ -79,6 +79,30 @@ inline uintptr_t get_unadjusted(T address)
 	return (uintptr_t)address;
 }
 
+// gets the current executable TLS offset
+template<typename T = char*>
+T get_tls()
+{
+	// ah, the irony in using TLS to get TLS
+	static auto tlsIndex = ([]()
+	{
+		auto base = (char*)GetModuleHandle(NULL);
+		auto moduleBase = (PIMAGE_DOS_HEADER)base;
+		auto ntBase = (PIMAGE_NT_HEADERS)(base + moduleBase->e_lfanew);
+		auto tlsBase = (PIMAGE_TLS_DIRECTORY)(base + ntBase->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress);
+
+		return reinterpret_cast<uint32_t*>(tlsBase->AddressOfIndex);
+	})();
+
+	#if defined(_M_IX86)
+	LPVOID* tlsBase = (LPVOID*)__readfsdword(0x2C);
+#elif defined(_M_AMD64)
+	LPVOID* tlsBase = (LPVOID*)__readgsqword(0x58);
+#endif
+
+	return (T)tlsBase[*tlsIndex];
+}
+
 struct pass
 {
 	template<typename ...T> pass(T...) {}

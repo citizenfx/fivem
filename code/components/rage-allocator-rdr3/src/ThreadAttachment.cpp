@@ -17,7 +17,7 @@ static sysMemAllocator* g_gtaTlsEntry;
 static DWORD RageThreadHook(HANDLE hThread)
 {
 	// store the allocator
-	g_gtaTlsEntry = *(sysMemAllocator**)(*(uintptr_t*)(__readgsqword(88)) + sysMemAllocator::GetAllocatorTlsOffset());
+	g_gtaTlsEntry = *(sysMemAllocator**)(hook::get_tls() + sysMemAllocator::GetAllocatorTlsOffset());
 
 	return ResumeThread(hThread);
 }
@@ -34,8 +34,8 @@ sysMemAllocator* sysMemAllocator::UpdateAllocatorValue()
 {
 	assert(g_gtaTlsEntry);
 
-	*(sysMemAllocator**)(*(uintptr_t*)(__readgsqword(88)) + sysMemAllocator::GetAllocatorTlsOffset()) = g_gtaTlsEntry;
-	*(sysMemAllocator**)(*(uintptr_t*)(__readgsqword(88)) + sysMemAllocator::GetAllocatorTlsOffset() - 8) = g_gtaTlsEntry;
+	*(sysMemAllocator**)(hook::get_tls() + sysMemAllocator::GetAllocatorTlsOffset()) = g_gtaTlsEntry;
+	*(sysMemAllocator**)(hook::get_tls() + sysMemAllocator::GetAllocatorTlsOffset() - 8) = g_gtaTlsEntry;
 
 	return g_gtaTlsEntry;
 }
@@ -46,8 +46,8 @@ BOOL WINAPI DllMain(HANDLE, DWORD reason, LPVOID)
 	{
 		if (g_gtaTlsEntry)
 		{
-			*(sysMemAllocator**)(*(uintptr_t*)(__readgsqword(88)) + sysMemAllocator::GetAllocatorTlsOffset()) = g_gtaTlsEntry;
-			*(sysMemAllocator**)(*(uintptr_t*)(__readgsqword(88)) + sysMemAllocator::GetAllocatorTlsOffset() - 8) = g_gtaTlsEntry; // does this match for rdr?
+			*(sysMemAllocator**)(hook::get_tls() + sysMemAllocator::GetAllocatorTlsOffset()) = g_gtaTlsEntry;
+			*(sysMemAllocator**)(hook::get_tls() + sysMemAllocator::GetAllocatorTlsOffset() - 8) = g_gtaTlsEntry; // does this match for rdr?
 		}
 	}
 

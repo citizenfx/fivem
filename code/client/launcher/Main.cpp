@@ -95,6 +95,8 @@ bool IsUnsafeGraphicsLibrary();
 void MigrateCacheFromat202105();
 void UI_DestroyTen();
 
+HMODULE tlsDll;
+
 int RealMain()
 {
 	//SetEnvironmentVariableW(L"CitizenFX_ToolMode", L"1");
@@ -160,6 +162,8 @@ int RealMain()
 	SetEnvironmentVariable(L"PATH", newPath.c_str());
 
 	SetDllDirectory(MakeRelativeCitPath(L"bin").c_str()); // to prevent a) current directory DLL search being disabled and b) xlive.dll being taken from system if not overridden
+
+	tlsDll = LoadLibraryW(MakeRelativeCitPath(L"CitiLaunch_TLSDummy.dll").c_str());
 
 	wchar_t initCwd[1024];
 	GetCurrentDirectoryW(std::size(initCwd), initCwd);
@@ -300,6 +304,12 @@ int RealMain()
 
 	XBR_EarlySelect();
 #endif
+
+	if (!tlsDll)
+	{
+		tlsDll = LoadLibraryW(MakeRelativeCitPath(L"CitiLaunch_TLSDummy.dll").c_str());
+		assert(tlsDll);
+	}
 
 	// add DLL directories post-installer (in case we moved into a Product.app directory)
 	addDllDirs();

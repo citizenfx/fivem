@@ -108,7 +108,7 @@ static int32_t g_renderThreadTlsIndex;
 
 bool IsOnRenderThread()
 {
-	char* moduleTls = *(char**)__readgsqword(88);
+	char* moduleTls = hook::get_tls();
 
 	return (*reinterpret_cast<int32_t*>(moduleTls + g_renderThreadTlsIndex) & 2) != 0;
 }
@@ -333,7 +333,17 @@ void GetGameResolution(int& resX, int& resY)
 
 static hook::cdecl_stub<uint32_t(const D3D11_RASTERIZER_DESC*)> createRasterizerState([]()
 {
-	return hook::get_pattern("48 8D  4D D7 F3 0F 11 7D FF F3 44 0F", -0x86);
+	return hook::get_pattern("48 8D 4D D7 F3 0F 11 7D FF F3 44 0F", -0x86);
+});
+
+static hook::cdecl_stub<uint32_t(const D3D11_DEPTH_STENCIL_DESC*)> createDepthStencilState([]()
+{
+	return hook::get_pattern("8A C2 48 8B 45 C8 88 55 B0 48 C1 E8 20", -0x69);
+});
+
+static hook::cdecl_stub<uint32_t(const D3D11_BLEND_DESC*)> createBlendState([]()
+{
+	return hook::get_pattern("74 3D 41 0F B7 44 18 0C", -0x47);
 });
 
 hook::cdecl_stub<void(uint32_t)> setRasterizerState([] ()
@@ -350,6 +360,16 @@ static uint32_t* g_nextDepthStencilState;
 uint32_t CreateRasterizerState(const D3D11_RASTERIZER_DESC* desc)
 {
 	return createRasterizerState(desc);
+}
+
+uint32_t CreateDepthStencilState(const D3D11_DEPTH_STENCIL_DESC* desc)
+{
+	return createDepthStencilState(desc);
+}
+
+uint32_t CreateBlendState(const D3D11_BLEND_DESC* desc)
+{
+	return createBlendState(desc);
 }
 
 uint32_t GetRasterizerState()
@@ -455,7 +475,7 @@ ID3D11Device* GetD3D11Device()
 
 ID3D11DeviceContext* GetD3D11DeviceContext()
 {
-	return *(ID3D11DeviceContext**)(*(uintptr_t*)(__readgsqword(88)) + g_d3d11DeviceContextOffset);
+	return *(ID3D11DeviceContext**)(hook::get_tls() + g_d3d11DeviceContextOffset);
 }
 
 namespace rage
