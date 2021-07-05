@@ -691,7 +691,7 @@ void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 #ifndef _M_AMD64
 	return InvokeEntryPoint(entryPoint);
 #else
-	return entryPoint();
+	return entryPoint(.);
 #endif
 #else
 	return;
