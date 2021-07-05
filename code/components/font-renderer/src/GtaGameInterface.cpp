@@ -15,6 +15,7 @@
 #include <CrossBuildRuntime.h>
 #include <utf8.h>
 #include <Hooking.h>
+#include <CL2LaunchMode.h>
 
 #include "memdbgon.h"
 
@@ -457,18 +458,32 @@ static InitFunction initFunction([] ()
 				brandingEmoji = L"\U0001F5FD";
 #endif
 
-				if (isCanary)
+				if (launch::IsSDKGuest())
+				{
+					brandName += L" (SDK)";
+				}
+				else if (isCanary)
 				{
 					brandName += L" (Canary)";
 				}
 			}
 		}
 
-		std::random_device rd;
-		std::mt19937 gen(rd());
-		std::uniform_int_distribution<> dis(0, 2);
+		static int anchorPos = ([]()
+		{
+			if (launch::IsSDKGuest())
+			{
+				return 1;
+			}
+			else
+			{
+				std::random_device rd;
+				std::mt19937 gen(rd());
+				std::uniform_int_distribution<> dis(0, 2);
 
-		static int anchorPos = dis(gen);
+				return dis(gen);
+			}
+		})();
 
 		// If anchor position is on left-side, make the emoji go on the left side.
 		if (anchorPos < 2) {
