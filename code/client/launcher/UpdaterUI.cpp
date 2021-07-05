@@ -1506,7 +1506,8 @@ static TenUIStorage* g_tenUI;
 
 struct TenUIStorage : public TenUIBase
 {
-	WindowsXamlManager manager{ nullptr };
+	// convoluted stuff to prevent WindowsXamlManager destruction weirdness
+	static inline thread_local WindowsXamlManager* gManager{ nullptr };
 
 	TenUIStorage()
 	{
@@ -1515,22 +1516,26 @@ struct TenUIStorage : public TenUIBase
 
 	void InitManager()
 	{
-		if (!manager)
+		if (!gManager)
 		{
-			manager = WindowsXamlManager::InitializeForCurrentThread();
+			static thread_local WindowsXamlManager manager = WindowsXamlManager::InitializeForCurrentThread();
+			gManager = &manager;
 		}
 	}
 
 	virtual ~TenUIStorage() override
 	{
-		if (manager)
-		{
-			manager.Close();
-		}
-
 		ShowWindow(g_uui.tenWindow, SW_HIDE);
 
 		g_tenUI = nullptr;
+	}
+
+	static void ReallyBreakIt()
+	{
+		if (gManager)
+		{
+			gManager->Close();
+		}
 	}
 };
 
@@ -1580,6 +1585,11 @@ std::unique_ptr<TenUIBase> UI_InitTen()
 	}
 
 	return std::make_unique<TenUIBase>();
+}
+
+void UI_DestroyTen()
+{
+	TenUIStorage::ReallyBreakIt();
 }
 
 void UI_DoCreation(bool safeMode)
@@ -1809,6 +1819,10 @@ extern "C" DLL_EXPORT HRESULT __stdcall DllCanUnloadNow()
 	return S_OK;
 }
 #endif
+
+void UI_DestroyTen()
+{
+}
 
 #pragma comment(lib, "delayimp.lib")
 #endif

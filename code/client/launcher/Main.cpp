@@ -14,6 +14,7 @@
 #include <fcntl.h>
 
 #include <CfxState.h>
+#include <UUIState.h>
 #include <HostSharedData.h>
 
 #include <array>
@@ -92,6 +93,7 @@ HANDLE g_uiExitEvent;
 
 bool IsUnsafeGraphicsLibrary();
 void MigrateCacheFromat202105();
+void UI_DestroyTen();
 
 int RealMain()
 {
@@ -679,36 +681,63 @@ int RealMain()
 
 	if (initState->IsMasterProcess() && !toolMode && !launch::IsSDK())
 	{
-		std::thread([/*tui = std::move(tui)*/minModeManifest]() mutable
+		std::thread([minModeManifest]() mutable
 		{
 			static HostSharedData<CfxState> initState("CfxInitState");
+			static HostSharedData<UpdaterUIState> uuiState("CfxUUIState");
 
-#ifndef _DEBUG
-			if (!initState->isReverseGame)
+#if !defined(_DEBUG) || 1
+			auto runUUILoop = [minModeManifest]()
 			{
-				//auto tuiTen = std::move(tui);
 				auto tuiTen = UI_InitTen();
 
 				// say hi
 				UI_DoCreation(false);
 
+				std::string firstTitle = fmt::sprintf("Starting %s",
+					minModeManifest->Get("productName", ToNarrow(PRODUCT_NAME)));
+				std::string firstSubtitle = (wcsstr(GetCommandLineW(), L"-switchcl"))
+					? gettext("Transitioning to another build...") 
+					: minModeManifest->Get("productSubtitle", gettext("We're getting there."));
+
+				std::string lastTitle = firstTitle;
+				std::string lastSubtitle = firstSubtitle;
+
 				auto st = GetTickCount64();
-				UI_UpdateText(0, va(L"Starting %s...", 
-					ToWide(minModeManifest->Get("productName", ToNarrow(PRODUCT_NAME)))));
+				UI_UpdateText(0, ToWide(lastTitle).c_str());
+				UI_UpdateText(1, ToWide(lastSubtitle).c_str());
 
-				if (wcsstr(GetCommandLineW(), L"-switchcl"))
+				auto expired = [&st]()
 				{
-					UI_UpdateText(1, va(gettext(L"Transitioning to another build...")));
-				}
-				else
-				{
-					UI_UpdateText(1, ToWide(minModeManifest->Get("productSubtitle", gettext("We're getting there."))).c_str());
-				}
+					return GetTickCount64() >= (st + 3500);
+				};
 
-				while (GetTickCount64() < (st + 3500))
+				auto shouldBeOpen = [expired]()
 				{
-					HANDLE hs[] =
+					if (!uuiState->finalized)
 					{
+						return true;
+					}
+
+					return !expired();
+				};
+
+				auto shouldBeCustom = [expired]()
+				{
+					// UUI customizations do not apply if finalized
+					if (uuiState->finalized)
+					{
+						return false;
+					}
+
+					return (uuiState->waitForExpiration) ? expired() : true;
+				};
+
+				bool wasCustom = false;
+
+				while (shouldBeOpen())
+				{
+					HANDLE hs[] = {
 						g_uiExitEvent
 					};
 
@@ -726,14 +755,76 @@ int RealMain()
 						DispatchMessage(&msg);
 					}
 
-					UI_UpdateProgress((GetTickCount64() - st) / 35.0);
+					if (uuiState->progress < 0.0 || !shouldBeCustom())
+					{
+						UI_UpdateProgress((GetTickCount64() - st) / 35.0);
+					}
+					else
+					{
+						UI_UpdateProgress(uuiState->progress);
+					}
+
+					if (shouldBeCustom())
+					{
+						wasCustom = true;
+
+						std::string titleStr = uuiState->title;
+						std::string subtitleStr = uuiState->subtitle;
+
+						if (!titleStr.empty() && titleStr != lastTitle)
+						{
+							UI_UpdateText(0, ToWide(titleStr).c_str());
+							lastTitle = titleStr;
+						}
+
+						if (!subtitleStr.empty() && subtitleStr != lastSubtitle)
+						{
+							UI_UpdateText(1, ToWide(subtitleStr).c_str());
+							lastSubtitle = subtitleStr;
+						}
+					}
+					else if (wasCustom)
+					{
+						UI_UpdateText(0, ToWide(firstTitle).c_str());
+						UI_UpdateText(1, ToWide(firstSubtitle).c_str());
+
+						st = GetTickCount64();
+
+						wasCustom = false;
+					}
 				}
 
 				UI_DoDestruction();
+			};
+
+			if (!initState->isReverseGame)
+			{
+				runUUILoop();
 			}
 #endif
 
 			SetEvent(g_uiDoneEvent);
+
+			if (!initState->isReverseGame)
+			{
+				// run UI polling loop if need be, anyway
+				while (true)
+				{
+					// UI exit event ends the thread
+					if (WaitForSingleObject(g_uiExitEvent, 0) == WAIT_OBJECT_0)
+					{
+						break;
+					}
+
+					// did we get asked to open UUI again?
+					if (!uuiState->finalized)
+					{
+						runUUILoop();
+					}
+				}
+			}
+
+			UI_DestroyTen();
 		}).detach();
 	}
 

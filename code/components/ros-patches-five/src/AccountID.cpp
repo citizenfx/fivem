@@ -29,6 +29,8 @@
 
 #include <CL2LaunchMode.h>
 
+#include <CfxLocale.h>
+#include <UUIState.h>
 #include <HostSharedData.h>
 
 struct ExternalROSBlob
@@ -176,7 +178,15 @@ static bool InitAccountSteam()
 		if (!getenv("CitizenFX_ToolMode"))
 #endif
 		{
-			RunLauncher(L"ros:steam", true);
+			static HostSharedData<UpdaterUIState> uuiState("CfxUUIState");
+
+			uuiState->SetText(1, gettext("Signing in with Steam"));
+			uuiState->SetProgress(100.0);
+			uuiState->Open();
+
+			RunLauncher(L"ros:steam", true);			
+
+			uuiState->Close();
 		}
 	}
 
@@ -204,7 +214,15 @@ static bool InitAccountEOS()
 		if (!getenv("CitizenFX_ToolMode"))
 #endif
 		{
+			static HostSharedData<UpdaterUIState> uuiState("CfxUUIState");
+
+			uuiState->SetText(1, gettext("Signing in with Epic"));
+			uuiState->SetProgress(100.0);
+			uuiState->Open();
+
 			RunLauncher(L"ros:epic", true);
+
+			uuiState->Close();
 		}
 	}
 
@@ -263,7 +281,7 @@ void ValidateEpic(int parentPid)
 	blob->triedEpic = true;
 
 	// find a process named EpicGamesLauncher.exe
-	auto egl = OpenProcessByName(L"EpicGamesLauncher.exe", PROCESS_VM_READ);
+	auto egl = OpenProcessByName(L"EpicGamesLauncher.exe", SYNCHRONIZE);
 
 	if (egl == INVALID_HANDLE_VALUE)
 	{
@@ -272,7 +290,7 @@ void ValidateEpic(int parentPid)
 
 	if (!egl)
 	{
-		MessageBoxW(NULL, L"Could not read data from the Epic Games Launcher. If you are running it as administrator, please launch it as regular user.", L"RedM", MB_OK | MB_ICONSTOP);
+		MessageBoxW(NULL, L"Could not read data from the Epic Games Launcher.", L"RedM", MB_OK | MB_ICONSTOP);
 		return;
 	}
 
@@ -303,8 +321,13 @@ void ValidateEpic(int parentPid)
 		return;
 	}
 
+	std::wstring silentVar = L"";
+#ifdef IS_RDR3
+	silentVar = "&silent=true"
+#endif
+
 	// try to launch RDR-MTL from EGL
-	ShellExecuteW(NULL, L"open", va(L"com.epicgames.launcher://apps/%s?action=launch&silent=true", epicName), NULL, NULL, SW_SHOWNORMAL);
+	ShellExecuteW(NULL, L"open", va(L"com.epicgames.launcher://apps/%s?action=launch%s", epicName, silentVar), NULL, NULL, SW_SHOWNORMAL);
 
 	// wait for MTL to open
 	int iterations = 0;
@@ -328,7 +351,7 @@ void ValidateEpic(int parentPid)
 
 	if (!mtl)
 	{
-		FatalError("Epic Games Launcher launched the Rockstar Games Launcher in a way we couldn't access. Aborting!");
+		FatalError("Epic Games Launcher launched the Rockstar Games Launcher in a way we couldn't access. Aborting! If you are running it as administrator, please launch it as regular user.");
 	}
 
 	// halt!

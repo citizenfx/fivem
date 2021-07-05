@@ -1403,17 +1403,18 @@ void WaitForLauncher()
 
 extern void SetCanSafelySkipLauncher(bool value);
 
-static void SetLauncherWaitCB(HANDLE hEvent, HANDLE hProcess, BOOL doBreak)
+static void SetLauncherWaitCB(HANDLE hEvent, HANDLE hProcess, BOOL doBreak, DWORD timeout = INFINITE)
 {
 	g_waitForLauncherCB = [=]()
 	{
 		bool done = false;
 		static uint64_t startTime = GetTickCount64();
+		uint64_t endTime = GetTickCount64() + timeout;
 
 		while (!done)
 		{
 			HANDLE waitHandles[] = { hEvent, hProcess };
-			DWORD waitResult = WaitForMultipleObjects(2, waitHandles, FALSE, 10000);
+			DWORD waitResult = WaitForMultipleObjects(2, waitHandles, FALSE, 5000);
 
 			if (waitResult == WAIT_OBJECT_0 + 1)
 			{
@@ -1451,6 +1452,15 @@ static void SetLauncherWaitCB(HANDLE hEvent, HANDLE hProcess, BOOL doBreak)
 					}
 
 					trace("^3ROS/MTL still hasn't cleared launch (waited %d seconds) - if this ends up timing out, please solve this!\n", waitedFor);
+				}
+
+				if (timeout != INFINITE)
+				{
+					if (GetTickCount64() >= endTime)
+					{
+						TerminateProcess(hProcess, 0);
+						done = true;
+					}
 				}
 			}
 		}
@@ -1564,7 +1574,14 @@ void RunLauncher(const wchar_t* toolName, bool instantWait)
 			launcherState->pid = pi.dwProcessId;
 		}
 
-		SetLauncherWaitCB(hEvent, pi.hProcess, doBreak);
+		DWORD timeout = INFINITE;
+
+		if (wcsstr(toolName, L"ros:epic") != nullptr || wcsstr(toolName, L"ros:steam") != nullptr)
+		{
+			timeout = 30000;
+		}
+
+		SetLauncherWaitCB(hEvent, pi.hProcess, doBreak, timeout);
 
         if (instantWait)
         {
