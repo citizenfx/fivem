@@ -67,6 +67,8 @@ public:
 
 	virtual void ExecuteBuffer();
 
+	virtual void SaveConfiguration(const std::string& path);
+
 	virtual void SaveConfigurationIfNeeded(const std::string& path);
 
 	virtual void SetVariableModifiedFlags(int flags);
