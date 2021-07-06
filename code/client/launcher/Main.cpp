@@ -697,8 +697,9 @@ int RealMain()
 			static HostSharedData<UpdaterUIState> uuiState("CfxUUIState");
 
 #if !defined(_DEBUG) || 1
-			auto runUUILoop = [minModeManifest]()
+			auto runUUILoop = [minModeManifest](bool firstLoop)
 			{
+				static constexpr const uint32_t loadWait = 5000;
 				auto tuiTen = UI_InitTen();
 
 				// say hi
@@ -719,7 +720,7 @@ int RealMain()
 
 				auto expired = [&st]()
 				{
-					return GetTickCount64() >= (st + 3500);
+					return GetTickCount64() >= (st + loadWait);
 				};
 
 				auto shouldBeOpen = [expired]()
@@ -732,7 +733,7 @@ int RealMain()
 					return !expired();
 				};
 
-				auto shouldBeCustom = [expired]()
+				auto shouldBeCustom = [expired, firstLoop]()
 				{
 					// UUI customizations do not apply if finalized
 					if (uuiState->finalized)
@@ -740,7 +741,7 @@ int RealMain()
 						return false;
 					}
 
-					return (uuiState->waitForExpiration) ? expired() : true;
+					return (uuiState->waitForExpiration && firstLoop) ? expired() : true;
 				};
 
 				bool wasCustom = false;
@@ -767,7 +768,7 @@ int RealMain()
 
 					if (uuiState->progress < 0.0 || !shouldBeCustom())
 					{
-						UI_UpdateProgress((GetTickCount64() - st) / 35.0);
+						UI_UpdateProgress((GetTickCount64() - st) / loadWait / 100.0);
 					}
 					else
 					{
@@ -809,7 +810,7 @@ int RealMain()
 
 			if (!initState->isReverseGame)
 			{
-				runUUILoop();
+				runUUILoop(true);
 			}
 #endif
 
@@ -829,7 +830,7 @@ int RealMain()
 					// did we get asked to open UUI again?
 					if (!uuiState->finalized)
 					{
-						runUUILoop();
+						runUUILoop(false);
 					}
 				}
 			}
