@@ -926,6 +926,9 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 	// needed to initialize logging(!)
 	trace("DumpServer is active and waiting.\n");
 
+	// remove any pending error pickup
+	_wunlink(MakeRelativeCitPath(L"data\\cache\\error-pickup").c_str());
+
 	HANDLE inheritedHandleBit = (HANDLE)inheritedHandle;
 	static HANDLE parentProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_TERMINATE | SYNCHRONIZE | PROCESS_CREATE_THREAD | PROCESS_VM_READ | PROCESS_VM_WRITE, FALSE, parentPid);
 
