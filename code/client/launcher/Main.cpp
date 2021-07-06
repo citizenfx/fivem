@@ -768,7 +768,7 @@ int RealMain()
 
 					if (uuiState->progress < 0.0 || !shouldBeCustom())
 					{
-						UI_UpdateProgress((GetTickCount64() - st) / loadWait / 100.0);
+						UI_UpdateProgress((GetTickCount64() - st) / (loadWait / 100.0));
 					}
 					else
 					{
