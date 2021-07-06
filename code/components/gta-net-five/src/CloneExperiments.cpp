@@ -586,6 +586,7 @@ void HandleClientDrop(const NetLibraryClientInfo& info)
 
 static CNetGamePlayer*(*g_origGetOwnerNetPlayer)(rage::netObject*);
 static CNetGamePlayer* g_player31;
+bool EnsurePlayer31();
 
 CNetGamePlayer* netObject__GetPlayerOwner(rage::netObject* object)
 {
@@ -604,6 +605,7 @@ CNetGamePlayer* netObject__GetPlayerOwner(rage::netObject* object)
 			return player;
 		}
 
+		EnsurePlayer31();
 		return g_player31;
 	}
 
@@ -853,7 +855,10 @@ static void SetOwnerStub(rage::netObject* netObject, CNetGamePlayer* newOwner)
 
 	g_origSetOwner(netObject, newOwner);
 
-	if (newOwner->physicalPlayerIndex() == netObject__GetPlayerOwner(netObject)->physicalPlayerIndex())
+	auto oldOwner = netObject__GetPlayerOwner(netObject);
+	auto oldIndex = (oldOwner) ? oldOwner->physicalPlayerIndex() : 31;
+
+	if (newOwner->physicalPlayerIndex() == oldIndex)
 	{
 		return;
 	}
