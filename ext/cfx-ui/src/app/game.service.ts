@@ -888,7 +888,8 @@ export class CfxGameService extends GameService {
 	private getConnectAddress(server: Server): string {
 		let connectAddress = server.address;
 
-		if (server.connectEndPoints && server.connectEndPoints.length > 0) {
+		if (server.connectEndPoints && server.connectEndPoints.length > 0 &&
+			server.connectEndPoints[0] !== 'https://private-placeholder.cfx.re/') {
 			connectAddress = server.connectEndPoints[Math.floor(Math.random() * server.connectEndPoints.length)];
 		}
 

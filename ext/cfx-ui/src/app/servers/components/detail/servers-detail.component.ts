@@ -97,6 +97,54 @@ export class ServersDetailComponent implements OnInit, OnDestroy {
 		return this.tagService.getLocaleDisplayName(lang);
 	}
 
+	get joinable() {
+		return (!this.eol && !this.server.data?.private);
+	}
+
+	get privateLabel() {
+        return this.translation.translate('#ServerDetail_PrivateDisable', null, this.locale.language);
+    }
+
+	get offlineLabel() {
+        return this.translation.translate('#ServerDetail_OfflineDisable', null, this.locale.language);
+    }
+
+	get joinableLabel() {
+		if (this.eol) {
+			return this.eolLabel;
+		}
+
+		if (this.server.data?.private) {
+			return this.privateLabel;
+		}
+
+		if (this.server.data?.fallback) {
+			return this.offlineLabel;
+		}
+
+		return '';
+	}
+
+	get serverWarning() {
+		if (this.eol) {
+			return '#ServerDetail_EOLWarning';
+		}
+
+		if (this.eos) {
+			return '#ServerDetail_SupportWarning';
+		}
+
+		if (this.server.data?.private) {
+			return '#ServerDetail_PrivateWarning';
+		}
+
+		if (this.server.data?.fallback) {
+			return '#ServerDetail_OfflineWarning';
+		}
+
+		return '';
+	}
+
 	get onesyncEnabled() {
 		return this.server?.data?.vars?.onesync_enabled === 'true';
 	}

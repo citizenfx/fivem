@@ -48,16 +48,16 @@
 								<span>{{ server.premium }}</span>
 							</div>
 							<div class="buttons">
-								<button class="cfx-button primary connect" [disabled]="eol" [attr.aria-label]="eolLabel" [attr.data-balloon-pos]="eol ? 'right' : undefined" (click)="attemptConnect()" l10nTranslate>
+								<button class="cfx-button primary connect" [disabled]="!joinable" [attr.aria-label]="joinableLabel" [attr.data-balloon-pos]="!joinable ? 'right' : undefined" (click)="attemptConnect()" l10nTranslate>
 									#DirectConnect_Connect
 								</button>
 							</div>
-							<div class="address" *ngIf="!eol">
+							<div class="address" *ngIf="joinable">
 								<span class="material-icons-outlined">link</span>
 								<span class="select">{{(serverAddress)||'undefined'}}</span>
 							</div>
-                            <div class="warning" *ngIf="eol || eos">
-                                <span class="material-icons-outlined">warning</span><p (click)="openLink($event)" [innerHTML]="(eos ? '#ServerDetail_SupportWarning' : '#ServerDetail_EOLWarning') | translate:locale.language | linky | safehtml"></p>
+                            <div class="warning" *ngIf="serverWarning != ''">
+                                <span class="material-icons-outlined">{{ (server.data?.private ? 'lock' : 'warning') }}</span><p (click)="openLink($event)" [innerHTML]="serverWarning | translate:locale.language | linky | safehtml"></p>
                             </div>
 						</div>
 
