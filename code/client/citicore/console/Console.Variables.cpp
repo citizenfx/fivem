@@ -174,6 +174,22 @@ void ConsoleVariableManager::Unregister(int token)
 	}
 }
 
+void ConsoleVariableManager::Unregister(const std::string& name)
+{
+	std::unique_lock<std::shared_mutex> lock(m_mutex);
+
+	// look through the list for a matching name
+	for (auto it = m_entries.begin(); it != m_entries.end(); it++)
+	{
+		if (it->first == name)
+		{
+			// erase and return immediately (so we won't increment a bad iterator)
+			m_entries.erase(it);
+			return;
+		}
+	}
+}
+
 void ConsoleVariableManager::AddEntryFlags(const std::string& name, int flags)
 {
 	std::unique_lock<std::shared_mutex> lock(m_mutex);
@@ -265,7 +281,15 @@ void ConsoleVariableManager::RemoveVariablesWithFlag(int flagMask)
 void ConsoleVariableManager::SaveConfiguration(const TWriteLineCB& writeLineFunction)
 {
 	ForAllVariables([&](const std::string& name, int flags, const THandlerPtr& variable) {
-		writeLineFunction("seta \"" + name + "\" \"" + variable->GetValue() + "\"");
+		// Don't Save values set by a server
+		if (flags & ConVar_Replicated)
+		{
+			writeLineFunction("seta \"" + name + "\" \"" + variable->GetOfflineValue() + "\"");
+		}
+		else
+		{
+			writeLineFunction("seta \"" + name + "\" \"" + variable->GetValue() + "\"");		
+		}
 	},
 	    ConVar_Archive);
 }

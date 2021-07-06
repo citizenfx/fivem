@@ -14,6 +14,10 @@ public:
 
 	virtual bool SetValue(const std::string& value) = 0;
 
+	virtual std::string GetOfflineValue() = 0;
+
+	virtual void SaveOfflineValue() = 0;
+
 	virtual void UpdateTrackingVariable() = 0;
 };
 
@@ -58,6 +62,25 @@ enum ConsoleVariableFlags
 	ConVar_ReadOnly   = 0x10,
 };
 
+inline std::string ConsoleFlagsToString(ConsoleVariableFlags flags)
+{
+	std::string value = "";
+	if (flags & ConVar_None)
+		value += "None ";
+	if (flags & ConVar_Archive)
+		value += "Archive ";
+	if (flags & ConVar_Modified)
+		value += "Modified ";
+	if (flags & ConVar_ServerInfo)
+		value += "ServerInfo ";
+	if (flags & ConVar_Replicated)
+		value += "Replicated ";
+	if (flags & ConVar_ReadOnly)
+		value += "ReadOnly ";
+	
+	return value;
+}
+
 class ConsoleVariableManager
 {
 public:
@@ -75,6 +98,8 @@ public:
 	virtual int Register(const std::string& name, int flags, const THandlerPtr& variable);
 
 	virtual void Unregister(int token);
+
+	virtual void Unregister(const std::string& name);
 
 	virtual bool Process(const std::string& commandName, const ProgramArguments& arguments);
 
@@ -172,7 +197,7 @@ public:
 	{
 		m_getCommand = std::make_unique<ConsoleCommand>(manager->GetParentContext(), name, [=] ()
 		{
-			console::Printf("cmd", " \"%s\" is \"%s\"\n default: \"%s\"\n type: %s\n", name.c_str(), GetValue().c_str(), UnparseArgument(m_defaultValue).c_str(), ConsoleArgumentName<T>::Get());
+			console::Printf("cmd", " \"%s\" is \"%s\"\n default: \"%s\" - flags( %s)\n type: %s\n", name.c_str(), GetValue().c_str(), UnparseArgument(m_defaultValue).c_str(), ConsoleFlagsToString((ConsoleVariableFlags)m_manager->GetEntryFlags(name)).c_str(), ConsoleArgumentName<T>::Get());
 		});
 
 		m_setCommand = std::make_unique<ConsoleCommand>(manager->GetParentContext(), name, [=] (const T& newValue)
@@ -250,6 +275,16 @@ public:
 		return false;
 	}
 
+	virtual std::string GetOfflineValue() override
+	{
+		return UnparseArgument(m_offlineValue);
+	}
+
+	virtual void SaveOfflineValue() override
+	{
+		m_offlineValue = m_curValue;
+	}
+
 	virtual void UpdateTrackingVariable() override
 	{
 		if (m_trackingVar)
@@ -314,6 +349,8 @@ private:
 	std::string m_name;
 
 	T m_curValue;
+	// previous value before connecting to server
+	T m_offlineValue;
 
 	T m_minValue;
 	T m_maxValue;

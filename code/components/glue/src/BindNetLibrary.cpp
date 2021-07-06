@@ -93,13 +93,34 @@ static InitFunction initFunction([] ()
 			Instance<ICoreGameInit>::Get()->ClearVariable("localMode");
 		});
 
+		static std::vector<std::string> convarsCreatedByServer;
+		static std::vector<std::string> convarsModifiedByServer;
+
 		OnKillNetworkDone.Connect([=]()
 		{
 			library->Disconnect();
 
-			console::GetDefaultContext()->GetVariableManager()->RemoveVariablesWithFlag(ConVar_Replicated);
+			// Remove ConVars created by the server
+			for (const std::string& convarName : convarsCreatedByServer)
+			{
+				console::GetDefaultContext()->GetVariableManager()->Unregister(convarName);
+			}
+
+			// Revert values modified by server back to their old values
+			for (const std::string& convarName : convarsModifiedByServer)
+			{
+				auto convar = console::GetDefaultContext()->GetVariableManager()->FindEntryRaw(convarName);
+				if (convar)
+				{
+					console::GetDefaultContext()->GetVariableManager()->RemoveEntryFlags(convarName, ConVar_Replicated);
+					convar->SetValue(convar->GetOfflineValue());
+				}
+			}
+			convarsCreatedByServer.clear();
+			convarsModifiedByServer.clear();
 		});
 
+		// Process ConVar values sent from the server
 		library->AddReliableHandler("msgConVars", [](const char* buf, size_t len)
 		{
 			auto unpacked = msgpack::unpack(buf, len);
@@ -108,9 +129,22 @@ static InitFunction initFunction([] ()
 			se::ScopedPrincipal principalScope(se::Principal{ "system.console" });
 			se::ScopedPrincipal principalScopeInternal(se::Principal{ "system.internal" });
 
-			// set variable
 			for (const auto& conVar : conVars)
 			{
+				auto convar = console::GetDefaultContext()->GetVariableManager()->FindEntryRaw(conVar.first);
+				if (convar)
+				{
+					// If the value is not already from the server
+					if (!(console::GetDefaultContext()->GetVariableManager()->GetEntryFlags(conVar.first) & ConVar_Replicated))
+					{
+						convar->SaveOfflineValue();	
+					}
+					convarsModifiedByServer.push_back(conVar.first);
+				}
+				else
+				{
+					convarsCreatedByServer.push_back(conVar.first);
+				}
 				console::GetDefaultContext()->ExecuteSingleCommandDirect(ProgramArguments{ "setr", conVar.first, conVar.second });
 			}
 		}, true);
