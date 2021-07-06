@@ -375,15 +375,32 @@ Set-Location $WorkRootDir
 if (!$DontBuild -and $IsServer) {
     Remove-Item -Recurse -Force $WorkDir\out
     
-    Push-Location $WorkDir\ext\system-resources
-    .\build.cmd
+    Start-Section "sr" "Building system resources"
+    # build UI
+    Push-Location $WorkDir
+    $SRCommit = (git rev-list -1 HEAD ext/txAdmin ext/system-resources/)
+    Pop-Location
 
-    if ($?) {
+    Push-Location $WorkDir\ext\system-resources
+
+    $SRSucceeded = $true
+
+    if ($SRCommit -ne (Get-Content .commit)) {
+        .\build.cmd
+        $SRSucceeded = $?
+        
+        $SRCommit | Out-File -Encoding ascii -NoNewline .commit
+    }
+
+    if ($SRSucceeded) {
         New-Item -ItemType Directory -Force $WorkDir\data\server\citizen\system_resources\ | Out-Null
         Copy-Item -Force -Recurse $WorkDir\ext\system-resources\data\* $WorkDir\data\server\citizen\system_resources\
+    } else {
+        throw "Failed to build system resources"
     }
 
     Pop-Location
+    End-Section "sr"
 
     New-Item -ItemType Directory -Force $WorkDir\out | Out-Null
     New-Item -ItemType Directory -Force $WorkDir\out\server | Out-Null
@@ -404,8 +421,9 @@ if (!$DontBuild -and $IsServer) {
 
     Remove-Item -Force $WorkDir\out\server\citizen\.gitignore
     
-    # old filename
+    # old filenames
     Remove-Item -Force $WorkDir\out\server\citizen\system_resources\monitor\starter.js
+    Remove-Item -Force $WorkDir\out\server\citizen\system_resources\monitor\scripts\menu\client\cl_menu.lua
     
     # useless client-related scripting stuff
     Remove-Item -Force $WorkDir\out\server\citizen\scripting\lua\*.zip
