@@ -181,17 +181,33 @@ public:
 	}
 };
 
+// #TODO: unify these different models into a single variable
 static std::shared_ptr<ConVar<bool>> g_use3dAudio;
 static std::shared_ptr<ConVar<bool>> g_useSendingRangeOnly;
 static std::shared_ptr<ConVar<bool>> g_use2dAudio;
 static std::shared_ptr<ConVar<bool>> g_useNativeAudio;
+static std::shared_ptr<ConVar<bool>> g_useLegacyAudio;
 
 void MumbleAudioOutput::Initialize()
 {
+	// whether to use '3D' audio when using the XA2 code path
 	g_use3dAudio = std::make_shared<ConVar<bool>>("voice_use3dAudio", ConVar_None, false);
-	g_useSendingRangeOnly = std::make_shared<ConVar<bool>>("voice_useSendingRangeOnly", ConVar_None, false);
+
+	// whether to use '2D' (only volume, no position) audio when using the XA2 code path
 	g_use2dAudio = std::make_shared<ConVar<bool>>("voice_use2dAudio", ConVar_None, false);
+
+	// whether to *forcibly* use the game-integrated audio code path
 	g_useNativeAudio = std::make_shared<ConVar<bool>>("voice_useNativeAudio", ConVar_None, false);
+
+	// whether to *not* use the game-integrated code path, without using 3dAudio or 2dAudio
+	g_useLegacyAudio = std::make_shared<ConVar<bool>>("voice_useLegacyAudio", ConVar_None, false);
+
+	// decision tree:
+	// - nativeAudio set: use native audio
+	// - legacyAudio, 3dAudio or 2dAudio set: use legacy audio
+	// - none set: use native audio
+
+	g_useSendingRangeOnly = std::make_shared<ConVar<bool>>("voice_useSendingRangeOnly", ConVar_None, false);
 
 	m_initialized = false;
 	m_distance = FLT_MAX;
@@ -622,7 +638,7 @@ void MumbleAudioOutput::HandleClientConnect(const MumbleUser& user)
 		return;
 	}
 
-	if (g_useNativeAudio->GetValue())
+	if (g_useNativeAudio->GetValue() || (!g_useLegacyAudio->GetValue() && !g_use3dAudio->GetValue() && !g_use2dAudio->GetValue()))
 	{
 		fwRefContainer<IMumbleAudioSink> sinkRef;
 		OnGetMumbleAudioSink(user.GetName(), &sinkRef);
