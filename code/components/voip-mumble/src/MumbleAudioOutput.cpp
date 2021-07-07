@@ -428,15 +428,17 @@ struct XA2DestinationNode : public lab::AudioDestinationNode
 
 MumbleAudioOutput::ClientAudioState::~ClientAudioState()
 {
-	std::weak_ptr contextRef = context;
+	lab::AudioContext* contextRef = context.get();
 
-	if (auto localCxt = contextRef.lock())
+	if (contextRef)
 	{
 		shuttingDown = true;
 
-		std::weak_ptr cdgRef = localCxt->destination();
+		// we shall not use a shared_ptr inside of the thread as it'll then try to join itself
+		// which is nonsense
+		auto cdg = contextRef->destination().get();
 
-		std::static_pointer_cast<XA2DestinationNode>(context->destination())->PutThread(std::thread([this, contextRef, cdgRef]()
+		std::static_pointer_cast<XA2DestinationNode>(context->destination())->PutThread(std::thread([this, contextRef, cdg]()
 		{
 			static float floatBuffer[24000] = { 0 };
 
@@ -446,12 +448,13 @@ MumbleAudioOutput::ClientAudioState::~ClientAudioState()
 
 			while (shuttingDown)
 			{
-				auto context = contextRef.lock();
-				auto cdg = cdgRef.lock();
+				auto context = contextRef;
 
-				if (context && cdg)
+				if (context)
 				{
-					if (auto d = static_cast<XA2DestinationNode*>(cdg.get()))
+					auto d = static_cast<XA2DestinationNode*>(cdg);
+
+					if (d)
 					{
 						d->Push(&inBuffer);
 						d->Poll(24000);
