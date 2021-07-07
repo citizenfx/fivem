@@ -15,3 +15,9 @@ Sets a clickable button to be displayed in a player's Discord rich presence.
 * **label**: The text to display on the button.
 * **url**: The URL to open when clicking the button. This has to start with `fivem://connect/` or `https://`.
 
+
+**Example:**
+```
+SetDiscordRichPresenceAction(0, "Visit FiveM Forum", "https://fivem.net")
+SetDiscordRichPresenceAction(1, "Join FiveM Discord", "https://discord.com/invite/fivem")
+```
