@@ -392,7 +392,8 @@ if (!$DontBuild -and $IsServer) {
 		$SRCommit | Out-File -Encoding ascii -NoNewline .commit
 	}
 
-	if ($SRSucceeded) {
+	# same as for UISucceeded
+	if ($SRSucceeded -or $env:APPVEYOR) {
 		New-Item -ItemType Directory -Force $WorkDir\data\server\citizen\system_resources\ | Out-Null
 		Copy-Item -Force -Recurse $WorkDir\ext\system-resources\data\* $WorkDir\data\server\citizen\system_resources\
 	} else {
@@ -496,7 +497,8 @@ if (!$DontBuild -and !$IsServer) {
 			$UICommit | Out-File -Encoding ascii -NoNewline data\.commit
 		}
 
-		if ($UiSucceeded) {
+		# appveyor somehow fails the $? check
+		if ($UiSucceeded -or $env:APPVEYOR) {
 			Copy-Item -Force $WorkDir\ext\ui-build\data.zip $CacheDir\fivereborn\citizen\ui.zip
 			Copy-Item -Force $WorkDir\ext\ui-build\data_big.zip $CacheDir\fivereborn\citizen\ui-big.zip
 		} else {
