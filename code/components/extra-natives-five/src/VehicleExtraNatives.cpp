@@ -1288,27 +1288,39 @@ static DWORD(WINAPI* g_origXInputGetState)(_In_ DWORD dwUserIndex, _Out_ XINPUT_
 
 static bool g_useWGI = true;
 
+static std::mutex gamepadMutex;
+static std::vector<Gamepad> g_gamepads;
+static Gamepad::GamepadAdded_revoker addedRevoker;
+static Gamepad::GamepadRemoved_revoker removedRevoker;
+
+void OnGamepadAdded(winrt::Windows::Foundation::IInspectable const& /* sender */, Gamepad const& gamepad)
+{
+	std::lock_guard<std::mutex> _(gamepadMutex);
+	
+	g_gamepads.push_back(gamepad);
+}
+
+void OnGamepadRemoved(winrt::Windows::Foundation::IInspectable const& /* sender */, Gamepad const& gamepad)
+{
+	std::lock_guard<std::mutex> _(gamepadMutex);
+
+	g_gamepads.erase(std::remove(g_gamepads.begin(), g_gamepads.end(), gamepad), g_gamepads.end());
+}
+
+
 static DWORD WINAPI XInputGetStateHook(_In_ DWORD dwUserIndex, _Out_ XINPUT_STATE* pState)
 {
-	// if we're running Steam, don't - Steam will crash in numerous scenarios.
-	static auto gameOverlay = GetModuleHandleW(L"gameoverlayrenderer64.dll");
+	std::lock_guard<std::mutex> _(gamepadMutex);
 
-	if (gameOverlay != NULL)
-	{
-		return g_origXInputGetState(dwUserIndex, pState);
-	}
-
-	auto gamepads = Gamepad::Gamepads();
-
-	if (gamepads.Size() == 0 || !g_useWGI)
+	if (!g_useWGI || g_gamepads.size() == 0)
 	{
 		// e.g. if using some sort of hook
 		return g_origXInputGetState(dwUserIndex, pState);
 	}
 
-	if (dwUserIndex < gamepads.Size())
+	if (dwUserIndex < g_gamepads.size())
 	{
-		auto gamepad = gamepads.GetAt(dwUserIndex);
+		auto gamepad = g_gamepads[dwUserIndex];
 		auto reading = gamepad.GetCurrentReading();
 
 		auto mapShort = [](float val)
@@ -1401,25 +1413,17 @@ static DWORD(*WINAPI g_origXInputSetState)(_In_ DWORD dwUserIndex, _In_ XINPUT_V
 
 static DWORD WINAPI XInputSetStateHook(_In_ DWORD dwUserIndex, _In_ XINPUT_VIBRATION* pVibration)
 {
-	// if we're running Steam, don't - Steam will crash in numerous scenarios.
-	static auto gameOverlay = GetModuleHandleW(L"gameoverlayrenderer64.dll");
+	std::lock_guard<std::mutex> _(gamepadMutex);
 
-	if (gameOverlay != NULL)
-	{
-		return g_origXInputSetState(dwUserIndex, pVibration);
-	}
-
-	auto gamepads = Gamepad::Gamepads();
-
-	if (gamepads.Size() == 0 || !g_useWGI)
+	if (!g_useWGI || g_gamepads.size() == 0)
 	{
 		// e.g. if using some sort of hook
 		return g_origXInputSetState(dwUserIndex, pVibration);
 	}
 
-	if (dwUserIndex < gamepads.Size())
+	if (dwUserIndex < g_gamepads.size())
 	{
-		auto gamepad = gamepads.GetAt(dwUserIndex);
+		auto gamepad = g_gamepads[dwUserIndex];
 
 		GamepadVibration vibration = gamepad.Vibration();
 		vibration.LeftMotor = pVibration->wLeftMotorSpeed / 65535.f;
@@ -1451,6 +1455,9 @@ static HookFunction inputFunction([]()
 	{
 		return;
 	}
+
+	addedRevoker = Gamepad::GamepadAdded(winrt::auto_revoke, OnGamepadAdded);
+	removedRevoker = Gamepad::GamepadRemoved(winrt::auto_revoke, OnGamepadRemoved);
 
 	if (!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_PIN | GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, (LPCWSTR)hLib, &hLib))
 	{
