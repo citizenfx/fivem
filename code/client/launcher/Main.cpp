@@ -696,7 +696,7 @@ int RealMain()
 			static HostSharedData<CfxState> initState("CfxInitState");
 			static HostSharedData<UpdaterUIState> uuiState("CfxUUIState");
 
-#if !defined(_DEBUG) || 1
+#if !defined(_DEBUG)
 			auto runUUILoop = [minModeManifest](bool firstLoop)
 			{
 				static constexpr const uint32_t loadWait = 5000;
@@ -754,7 +754,8 @@ int RealMain()
 
 					auto res = MsgWaitForMultipleObjects(std::size(hs), hs, FALSE, 50, QS_ALLEVENTS);
 
-					if (res == WAIT_OBJECT_0)
+					// bail out if wait failed, or if the handle is signaled
+					if (res == WAIT_OBJECT_0 || res == WAIT_FAILED)
 					{
 						break;
 					}
@@ -822,7 +823,7 @@ int RealMain()
 				while (true)
 				{
 					// UI exit event ends the thread
-					if (WaitForSingleObject(g_uiExitEvent, 0) == WAIT_OBJECT_0)
+					if (WaitForSingleObject(g_uiExitEvent, 50) != WAIT_TIMEOUT)
 					{
 						break;
 					}
