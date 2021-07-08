@@ -730,6 +730,20 @@ struct STREAMING_EXPORT CMapData : rage::sysUseAllocator
 	// etc.
 };
 
+struct STREAMING_EXPORT CMapTypes : rage::sysUseAllocator
+{
+	CMapTypes();
+	virtual ~CMapTypes() = default;
+
+	atArray<fwExtensionDef*> extensions;
+	atArray<fwArchetypeDef*> archetypes;
+
+	uint32_t name;
+
+	// atArray<???> dependencies;
+	// atArray<CCompositeEntityType*> compositeEntityTypes;
+};
+
 namespace rage
 {
 class fwInteriorLocation

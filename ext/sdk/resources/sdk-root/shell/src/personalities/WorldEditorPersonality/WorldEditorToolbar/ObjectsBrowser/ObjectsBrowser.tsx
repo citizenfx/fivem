@@ -5,13 +5,13 @@ import { useDebouncedCallback, useOutsideClick } from 'utils/hooks';
 import { Input } from 'components/controls/Input/Input';
 import { FixedSizeList } from 'react-window';
 import { useInputOverride } from 'personalities/WorldEditorPersonality/hooks';
-import { getAllArchetypes, searchArchetypes } from './worker/interface';
+import { ArchetypesStore, fetchAllArchetypes, searchArchetypes } from './worker/interface';
 import { Indicator } from 'components/Indicator/Indicator';
 import { WorldEditorState } from 'personalities/WorldEditorPersonality/WorldEditorState';
 import { RiMapPinAddFill } from 'react-icons/ri';
+import { BsArrowClockwise } from 'react-icons/bs';
+import { GameState } from 'store/GameState';
 import s from './ObjectsBrowser.module.scss';
-
-let ARCHETYPES: string[] = [];
 
 interface ObjectItemProps {
   name: string,
@@ -39,7 +39,7 @@ const ObjectItem = React.memo(function ObjectItem({ active, name, style, spawn, 
   );
 });
 
-export const ObjectsBrowser = React.memo(function ObjectsBrowserDropdown() {
+export const ObjectsBrowser = observer(function ObjectsBrowserDropdown() {
   const rootRef = React.useRef();
   const listRef = React.useRef<FixedSizeList>();
 
@@ -57,7 +57,7 @@ export const ObjectsBrowser = React.memo(function ObjectsBrowserDropdown() {
   // Don't send any input to world-editor while rendering objects browser
   useInputOverride();
 
-  const activeSet: string[] = filter.length ? filtered : ARCHETYPES;
+  const activeSet: string[] = filter.length ? filtered : ArchetypesStore.archetypes;
 
   // Change preview item
   React.useEffect(() => {
@@ -155,15 +155,25 @@ export const ObjectsBrowser = React.memo(function ObjectsBrowserDropdown() {
 
   return (
     <div ref={rootRef} className={s.browser}>
-      <Input
-        autofocus
-        value={filter}
-        className={s.filter}
-        placeholder="Search objects"
-        onChange={handleSetFilter}
-        onKeyDown={handleFilterKeyDown}
-        onSubmit={handleFilterSubmit}
-      />
+      <div className={s.controls}>
+        <Input
+          autofocus
+          value={filter}
+          className={s.filter}
+          placeholder="Search objects"
+          onChange={handleSetFilter}
+          onKeyDown={handleFilterKeyDown}
+          onSubmit={handleFilterSubmit}
+        />
+
+        <button
+          className={s.refresh}
+          onClick={() => GameState.refreshArchetypesCollection()}
+          data-label="Refresh objects list"
+        >
+          <BsArrowClockwise />
+        </button>
+      </div>
 
       <div className={s.list}>
         <AutoSizer>
@@ -199,16 +209,14 @@ export const ObjectsBrowser = React.memo(function ObjectsBrowserDropdown() {
 });
 
 export const ObjectsBrowserTrigger = observer(function ObjectsBrowser() {
-  const [archetypesLoaded, setArchetypesLoaded] = React.useState(ARCHETYPES.length > 0);
+  const [archetypesLoaded, setArchetypesLoaded] = React.useState(ArchetypesStore.archetypes.length > 0);
 
   // Query all archetypes
   React.useEffect(() => {
     let stillMounted = true;
 
     const rAF = requestAnimationFrame(() => {
-      getAllArchetypes().then((archetypes) => {
-        ARCHETYPES = archetypes;
-
+      fetchAllArchetypes().then(() => {
         if (stillMounted) {
           setArchetypesLoaded(true);
         }

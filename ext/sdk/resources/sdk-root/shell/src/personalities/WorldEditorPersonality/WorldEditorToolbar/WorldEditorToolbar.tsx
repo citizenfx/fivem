@@ -8,12 +8,15 @@ import { StatusBar } from './StatusBar/StatusBar';
 import { ModeSelector } from './ModeSelector/ModeSelector';
 import { MapExplorer } from './MapExplorer/MapExplorer';
 import s from './WorldEditorToolbar.module.scss';
+import { GameState } from 'store/GameState';
 
 export const WorldEditorToolbar = observer(function WorldEditorToolbar() {
+  const showControls = WorldEditorState.ready && !GameState.archetypesCollectionPending;
+
   return (
     <div className={s.root}>
       <div className={s.left}>
-        {WorldEditorState.ready && (
+        {showControls && (
           <MapExplorer />
         )}
 
@@ -23,7 +26,7 @@ export const WorldEditorToolbar = observer(function WorldEditorToolbar() {
       </div>
 
       <div className={s.center}>
-        {WorldEditorState.ready && (
+        {showControls && (
           <ModeSelector />
         )}
       </div>

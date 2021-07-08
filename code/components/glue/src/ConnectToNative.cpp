@@ -52,6 +52,10 @@
 
 #include "GameInit.h"
 
+#ifdef GTA_FIVE
+#include <ArchetypesCollector.h>
+#endif
+
 std::string g_lastConn;
 
 extern bool XBR_InterceptCardResponse(const nlohmann::json& j);
@@ -724,6 +728,18 @@ static InitFunction initFunction([] ()
 
 			resevman->QueueEvent2(eventName, {}, payload);
 		});
+
+#ifdef GTA_FIVE
+		OnRefreshArchetypesCollectionDone.Connect([]()
+		{
+			ep.Call("sdk:refreshArchetypesCollectionDone");
+		});
+
+		ep.Bind("sdk:refreshArchetypesCollection", []()
+		{
+			OnRefreshArchetypesCollection();
+		});
+#endif
 	}
 
 	static ConsoleCommand connectCommand("connect", [](const std::string& server)

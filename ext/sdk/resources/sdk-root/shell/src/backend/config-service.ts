@@ -47,6 +47,8 @@ export class ConfigService {
 
   readonly wellKnownPathsPath: string;
 
+  readonly archetypesCollectionPath: string;
+
   constructor() {
     this.shellBackendPort = 35419;
     this.theiaBackendPort = 35420;
@@ -89,5 +91,7 @@ export class ConfigService {
 
     this.systemResourcesRoot = path.join(this.sdkStorage, 'system-resources');
     this.systemResourcesPath = path.join(this.systemResourcesRoot, 'resources');
+
+    this.archetypesCollectionPath = path.join(this.cfxLocalAppData, 'archetypes.json');
   }
 }

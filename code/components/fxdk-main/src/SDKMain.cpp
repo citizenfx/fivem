@@ -226,6 +226,10 @@ void SdkMain()
 			"fxdk://game-loading"
 		);
 	});
+	launcherTalk.Bind("sdk:refreshArchetypesCollectionDone", [resman]()
+	{
+		resman->GetComponent<fx::ResourceEventManagerComponent>()->QueueEvent2("sdk:refreshArchetypesCollectionDone", {});
+	});
 
 	gameProcessManager.OnGameProcessStateChanged.Connect([resman](const SDKGameProcessManager::GameProcessState state)
 	{
@@ -448,6 +452,10 @@ void SdkMain()
 			std::string clientEventPayload = obj.as<std::vector<std::string>>()[1];
 
 			fxdk::GetLauncherTalk().Call("sdk:clientEvent", clientEventName, clientEventPayload);
+		}
+		else if (eventName == "sdk:refreshArchetypesCollection")
+		{
+			fxdk::GetLauncherTalk().Call("sdk:refreshArchetypesCollection");
 		}
 	});
 

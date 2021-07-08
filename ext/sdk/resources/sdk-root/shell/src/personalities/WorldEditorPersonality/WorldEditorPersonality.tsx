@@ -7,6 +7,7 @@ import { WorldEditorState } from './WorldEditorState';
 import { WorldEditorToolbar } from './WorldEditorToolbar/WorldEditorToolbar';
 import s from './WorldEditorPersonality.module.scss';
 import { LoadScreen } from './LoadScreen/LoadScreen';
+import { GameState } from 'store/GameState';
 
 export const WorldEditorPersonality = observer(function WorldEditorPersonality() {
   const gameViewRef = React.useRef<HTMLDivElement>();
@@ -25,6 +26,8 @@ export const WorldEditorPersonality = observer(function WorldEditorPersonality()
     return () => WorldEditorState.destroyInputController();
   }, []);
 
+  const showLoadScreen = !WorldEditorState.ready || GameState.archetypesCollectionPending;
+
   return (
     <div
       style={rootStyles}
@@ -39,7 +42,7 @@ export const WorldEditorPersonality = observer(function WorldEditorPersonality()
         <GameView />
       </div>
 
-      {!WorldEditorState.ready && (
+      {showLoadScreen && (
         <LoadScreen />
       )}
     </div>

@@ -28,6 +28,37 @@
   }
   animation: appearance .2s ease;
 
+  .controls {
+    display: flex;
+
+    .filter {
+      flex-grow: 1;
+
+      height: auto;
+    }
+
+    .refresh {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      width: $weToolbarHeight;
+
+      color: $fgColor;
+      background-color: rgba($fgColor, .25);
+
+      border: none;
+
+      @include interactiveTransition;
+      @include data-label;
+
+      &:hover,
+      &:focus {
+        background-color: $acColor;
+      }
+    }
+  }
+
   .loader {
     display: flex;
     align-items: center;
@@ -36,10 +67,6 @@
     height: 100%;
 
     padding: $q*10;
-  }
-
-  .filter {
-    height: auto;
   }
 
   .list {
