@@ -686,8 +686,8 @@ int RealMain()
 
 	auto minModeManifest = InitMinMode();
 
-	g_uiExitEvent = CreateEvent(NULL, FALSE, FALSE, va(L"CitizenFX_PreUIExit%s", IsCL2() ? L"CL2" : L""));
-	g_uiDoneEvent = CreateEvent(NULL, FALSE, FALSE, va(L"CitizenFX_PreUIDone%s", IsCL2() ? L"CL2" : L""));
+	g_uiExitEvent = CreateEventW(NULL, TRUE, FALSE, va(L"CitizenFX_PreUIExit%s", IsCL2() ? L"CL2" : L""));
+	g_uiDoneEvent = CreateEventW(NULL, FALSE, FALSE, va(L"CitizenFX_PreUIDone%s", IsCL2() ? L"CL2" : L""));
 
 	if (initState->IsMasterProcess() && !toolMode && !launch::IsSDK())
 	{
@@ -817,6 +817,7 @@ int RealMain()
 
 			SetEvent(g_uiDoneEvent);
 
+#if !defined(_DEBUG)
 			if (!initState->isReverseGame)
 			{
 				// run UI polling loop if need be, anyway
@@ -835,6 +836,7 @@ int RealMain()
 					}
 				}
 			}
+#endif
 
 			UI_DestroyTen();
 		}).detach();
