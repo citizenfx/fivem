@@ -2,7 +2,7 @@
 set -e
 
 apk add --no-cache nodejs npm
-npm install -g npm@7.8.0
+npm install -g npm@7.19.1
 
 mkdir -p data
 

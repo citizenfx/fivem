@@ -26,6 +26,7 @@ xcopy /y /e ..\webadmin\wwwroot\. %SRRoot%\webadmin\wwwroot\
 xcopy /y /e ..\webadmin\server\bin\Release\netstandard2.0\publish\. %SRRoot%\webadmin\server\bin\Release\netstandard2.0\publish\
 
 pushd ..\txAdmin
+call npm install -g npm@7.19.1
 call npm ci
 call npm run build 2>&1 | findstr /V "not found"
 popd
