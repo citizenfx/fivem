@@ -61,8 +61,14 @@ $zWorldEditor: 4000;
 
     white-space: nowrap;
 
-    border-radius: 2px;
-    background-color: mix(rgba($bgColor, 1), rgba($fgColor, .5));
+    @include fontPrimary;
+    font-size: $fs08;
+    font-weight: 100;
+    letter-spacing: .1px;
+
+    border-radius: 1px;
+    box-shadow: 0 0 0 1px $bgColor;
+    background-color: mix(rgba($bgColor, 1), rgba($fgColor, .75));
 
     opacity: 0;
     pointer-events: none;
@@ -74,6 +80,11 @@ $zWorldEditor: 4000;
 
   &:hover::after {
     opacity: 1;
+  }
+}
+@mixin data-label-remove {
+  &::after {
+    display: none;
   }
 }
 

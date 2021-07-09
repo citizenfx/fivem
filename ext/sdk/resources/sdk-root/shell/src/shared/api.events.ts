@@ -154,6 +154,7 @@ export const worldEditorApi = {
   mapLoaded: 'world-editor:mapLoaded',
   setCam: 'world-editor:setCam',
   applyPatch: 'world-editor:applyPatch',
+  createAddition: 'world-editor:createAddition',
   deleteAddition: 'world-editor:deleteAddition',
   setAddition: 'world-editor:setAddition',
   applyAdditionChange: 'world-editor:applyAdditionChange',

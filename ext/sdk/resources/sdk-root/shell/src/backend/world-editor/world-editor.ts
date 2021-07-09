@@ -8,6 +8,7 @@ import {
   WEApplyPatchRequest,
   WECam,
   WECreateAdditionGroupRequest,
+  WECreateAdditionRequest,
   WEDeleteAdditionGroupRequest,
   WEDeleteAdditionRequest,
   WEMap,
@@ -110,6 +111,11 @@ export class WorldEditor implements ApiContribution {
   readonly applyPatch = (request: WEApplyPatchRequest) => this.map.apply((map) => {
     map.patches[request.mapDataHash] ??= {};
     map.patches[request.mapDataHash][request.entityHash] = request.patch;
+  });
+
+  @handlesClientEvent(worldEditorApi.createAddition)
+  readonly createAddition = (request: WECreateAdditionRequest) => this.map.apply((map) => {
+    map.additions[request.id] = request.object;
   });
 
   @handlesClientEvent(worldEditorApi.setAddition)

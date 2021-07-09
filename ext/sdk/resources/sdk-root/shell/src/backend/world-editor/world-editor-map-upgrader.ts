@@ -7,7 +7,7 @@ import { WEMap, WEMapVersion } from "./world-editor-types";
 
 @injectable()
 export class WorldEditorMapUpgrader {
-  static CURRENT_VERSION = WEMapVersion.V2;
+  static CURRENT_VERSION = WEMapVersion.V3;
 
   @inject(LogService)
   protected readonly logService: LogService;
@@ -66,7 +66,20 @@ export class WorldEditorMapUpgrader {
     return upgradedMap;
   };
 
+  private upgradeV2toV3 = (map: WEMap): WEMap => {
+    const upgradedMap = deepmerge({}, { ...map });
+    upgradedMap.version = WEMapVersion.V3;
+
+    for (const addition of Object.values(upgradedMap.additions)) {
+      addition.mdl = (addition as any).hash;
+      delete (addition as any).hash;
+    }
+
+    return upgradedMap;
+  };
+
   private upgraders = {
     [WEMapVersion.V1]: this.upgradeV1toV2,
+    [WEMapVersion.V2]: this.upgradeV2toV3,
   };
 }

@@ -45,15 +45,11 @@ export function isRMB(e: MouseEvent): boolean {
   return e.button === 2;
 }
 
-export type ShortcutHandler = (active: boolean, key: number, isCtrl: boolean, isShift: boolean, isAlt: boolean) => void | boolean;
-
 export class InputController {
   private readonly activeKeys: Record<number, boolean> = {};
   private readonly activeMouseButtons: Record<number, boolean> = {};
 
   private cameraControlActive = false;
-
-  private shortcutHandlers: Record<string, ShortcutHandler> = {};
 
   private inputOverrides = 0;
 
@@ -76,14 +72,11 @@ export class InputController {
     return () => this.inputOverrides--;
   }
 
-  setKeyboardShortcut(code: string, handler: ShortcutHandler) {
-    this.shortcutHandlers[code] = handler;
-
-    return this;
-  }
-
-  setActiveKeyboardShortcut(code: string, handler: ShortcutHandler) {
-    return this.setKeyboardShortcut(code, (active, ...args) => active && handler(active, ...args));
+  deactivateCameraControl() {
+    if (this.cameraControlActive) {
+      this.cameraControlActive = false;
+      document.exitPointerLock();
+    }
   }
 
   destroy() {
@@ -124,10 +117,6 @@ export class InputController {
     event.stopPropagation();
 
     const key = mapKey(event.which, event.location);
-
-    if (this.shortcutHandlers[event.code]?.(active, key, event.ctrlKey, event.shiftKey, event.altKey)) {
-      return;
-    }
 
     switch (event.code) {
       case 'KeyW':

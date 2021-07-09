@@ -5,6 +5,7 @@ import { formatDateForFilename } from "utils/date";
 import Flatbush from 'flatbush';
 import { WEMap } from "./world-editor-types";
 import { concurrently } from "utils/concurrently";
+import { joaat } from "utils/joaat";
 
 const WORLD_EDITOR_MAP_INDEX_RUNTIME = require('./world-editor-map-runtime/map-index.raw.js');
 const WORLD_EDITOR_MAP_ADDITIONS_RUNTIME = require('./world-editor-map-runtime/map-additions.raw.js');
@@ -133,7 +134,12 @@ export class WorldEditorMapCompiler {
       const x = addition.mat[12];
       const y = addition.mat[13];
 
-      additions[index.add(x, y, x, y)] = JSON.stringify([addition.hash, addition.mat]);
+      additions[index.add(x, y, x, y)] = JSON.stringify([
+        typeof addition.mdl === 'string'
+          ? joaat(addition.mdl)
+          : addition.mdl,
+        addition.mat,
+      ]);
     }
 
     index.finish();

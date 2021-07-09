@@ -1,0 +1,81 @@
+@import "../../../../vars.scss";
+
+.root {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: $q;
+
+  padding: $q;
+
+  &.accepting {
+    button {
+      border: dashed 1px rgba($fgColor, .5);
+      background-color: rgba($fgColor, .1);
+    }
+
+    .ungroup {
+      display: flex;
+      border: dashed 1px rgba($fgColor, .5);
+      background-color: rgba($fgColor, .1);
+    }
+  }
+
+  button {
+    flex-grow: 1;
+
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+
+    gap: $q;
+
+    padding: $q;
+
+    color: rgba($fgColor, .75);
+    background-color: rgba($fgColor, .1);
+
+    border: dashed 1px transparent;
+
+    cursor: pointer;
+
+    @include fontPrimary;
+    font-weight: 100;
+    font-size: $fs08;
+
+    @include interactiveTransition;
+    transition-property: background-color, color;
+
+    &.dropping {
+      background-color: rgba($acColor, .5);
+    }
+
+    &:hover {
+      color: $fgColor;
+      background-color: $acColor;
+    }
+  }
+
+  .ungroup {
+    display: none;
+
+    flex-grow: 1;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: $q;
+
+    padding: $q;
+
+    color: rgba($fgColor, .75);
+    background-color: rgba($fgColor, .1);
+
+    border: dashed 1px transparent;
+
+    @include fontPrimary;
+    font-weight: 100;
+    font-size: $fs08;
+  }
+}

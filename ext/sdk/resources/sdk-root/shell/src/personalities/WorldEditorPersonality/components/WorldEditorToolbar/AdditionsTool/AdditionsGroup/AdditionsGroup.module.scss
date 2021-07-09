@@ -1,0 +1,106 @@
+@import '../../../../vars.scss';
+
+.root {
+  margin-bottom: $q;
+
+  &.collapsed {
+    .children {
+      display: none;
+    }
+  }
+
+  &.dropping {
+    background-color: rgba($acColor, .25);
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+
+    height: $q*7;
+
+    padding: $q*2;
+    padding-left: $q*2.5;
+    padding-right: 0;
+
+    cursor: pointer;
+
+    &.active {
+      background-color: rgba($acColor, .25);
+
+      .icon,
+      .name {
+        color: $fgColor;
+      }
+    }
+
+    &.editing {
+      box-shadow: 0 2px 0 $acColor;
+
+      input {
+        flex-grow: 1;
+
+        border: none;
+
+        @include fontPrimary;
+        font-size: $fs08;
+        font-weight: 300;
+        color: $fgColor;
+        background-color: transparent;
+      }
+    }
+
+    .icon {
+      flex-shrink: 0;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      color: rgba($fgColor, .5);
+
+      margin-right: $q;
+
+      svg {
+        font-size: $fs08;
+      }
+    }
+
+    .name {
+      flex-grow: 1;
+      color: rgba($fgColor, .75);
+
+      user-select: none;
+    }
+
+    .controls {
+      background-color: green;
+
+      button {
+        background-color: transparent;
+        padding: 0;
+        margin: 0;
+
+        border: none;
+        line-height: 1;
+      }
+    }
+
+    &:hover {
+      .icon, .name {
+        color: $fgColor;
+      }
+    }
+  }
+
+  .children {
+    margin-left: $q*4;
+    box-shadow: -1px 0 0 0 rgba($fgColor, .05);
+
+    transition: box-shadow .2s ease;
+
+    &:hover {
+      box-shadow: -1px 0 0 0 rgba($fgColor, .15);
+    }
+  }
+}

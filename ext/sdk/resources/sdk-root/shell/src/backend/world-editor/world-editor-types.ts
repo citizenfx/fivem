@@ -18,7 +18,7 @@ export type WEMapAdditionGroup = -1 | string;
 
 export interface WEMapAddition {
   label: string,
-  hash: number,
+  mdl: number | string,
   grp: WEMapAdditionGroup,
   mat: WEEntityMatrix,
   cam: WECam,
@@ -28,6 +28,12 @@ export interface WEApplyPatchRequest {
   patch: WEMapPatch,
   mapDataHash: number,
   entityHash: number,
+}
+
+export interface WECreateAdditionRequest {
+  id: string,
+  object: WEMapAddition,
+  needsPlacement?: boolean,
 }
 
 export interface WESetAdditionRequest {
@@ -64,6 +70,7 @@ export interface WEDeleteAdditionRequest {
 export enum WEMapVersion {
   V1 = 1,
   V2 = 2,
+  V3 = 3,
 }
 
 export interface WEMap {

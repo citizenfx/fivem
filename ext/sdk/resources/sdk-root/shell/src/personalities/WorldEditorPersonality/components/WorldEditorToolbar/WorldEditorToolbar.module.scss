@@ -1,0 +1,47 @@
+@import "../../vars.scss";
+
+.top-left {
+  position: fixed;
+
+  top: $weToolbarOffset;
+  left: $weToolbarOffset;
+
+  display: flex;
+
+  gap: $q*2;
+
+  height: $weToolbarHeight;
+
+  z-index: 1;
+}
+
+.top-right {
+  position: fixed;
+
+  top: $weToolbarOffset;
+  right: $weToolbarOffset;
+
+  display: flex;
+
+  gap: $q*2;
+
+  height: $weToolbarHeight;
+
+  z-index: 1;
+}
+
+.bottom {
+  position: fixed;
+
+  left: $weToolbarOffset;
+  right: $weToolbarOffset;
+  bottom: $weToolbarOffset;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  height: $weToolbarHeight;
+
+  z-index: 1;
+}

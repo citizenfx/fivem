@@ -4,6 +4,7 @@ import { CameraManager } from "./camera-manager";
 import {
   WEApplyAdditionChangeRequest,
   WEApplyPatchRequest,
+  WECreateAdditionRequest,
   WEEntityMatrix,
   WEMap,
   WEMapAddition,
@@ -13,6 +14,7 @@ import {
 import { applyEntityMatrix, limitPrecision, makeEntityMatrix } from "./math";
 import { ObjectManager } from "./object-manager";
 import { SelectionController } from "./selection-controller";
+import { drawDebugText } from "./utils";
 
 export const MapManager = new class MapManager {
   private map: WEMap | null = null;
@@ -26,8 +28,8 @@ export const MapManager = new class MapManager {
     on('mapDataLoaded', (mapdata: number) => this.handleMapdataLoaded(mapdata));
     on('mapDataUnloaded', (mapdata: number) => this.handleMapdataUnloaded(mapdata));
 
-    on('we:createAddition', (objectName: string) => {
-      this.handleSpawnObject(objectName);
+    on('we:createAddition', (request: string) => {
+      this.handleSpawnObject(JSON.parse(request));
     });
     on('we:setAddition', (req: string) => {
       const [additionId, addition] = JSON.parse(req);
@@ -117,25 +119,26 @@ export const MapManager = new class MapManager {
     this.pendingMapdatas = [];
   }
 
-  private handleSpawnObject(objectName: string) {
-    const objectNameHash = joaatUint32(objectName);
-    const objectId = (Math.abs(Math.random() * objectNameHash) | 0).toString();
-    const pos = getObjectPosition();
+  private handleSpawnObject(request: WECreateAdditionRequest) {
+    if (request.needsPlacement) {
+      const pos = getObjectPosition();
 
-    const obj: WEMapAddition = {
-      label: objectName,
-      hash: objectNameHash,
-      grp: -1,
-      cam: CameraManager.getCamLimitedPrecision(),
-      mat: prepareEntityMatrix([
+      request.object.cam = CameraManager.getCamLimitedPrecision();
+      request.object.mat = prepareEntityMatrix([
         1, 0, 0, 0,
         0, 1, 0, 0,
         0, 0, 1, 0,
         pos.x, pos.y, pos.z, 1,
-      ]),
-    };
+      ]);
 
-    this.setAddition(objectId, obj);
+      sendSdkMessageBroadcast('we:setAddition', {
+        id: request.id,
+        object: request.object,
+      } as WESetAdditionRequest);
+    }
+
+    this.map.additions[request.id] = request.object;
+    this.objects.set(request.id, request.object);
   }
 
   private handleDeleteAddition(objectId: string) {
@@ -250,17 +253,6 @@ export const MapManager = new class MapManager {
     this.objects.set(additionId, addition);
 
     sendSdkMessageBroadcast('we:applyAdditionChange', change);
-  }
-
-  private setAddition(id: string, object: WEMapAddition) {
-    this.map.additions[id] = object;
-
-    this.objects.set(id, object);
-
-    sendSdkMessageBroadcast('we:setAddition', {
-      id,
-      object,
-    } as WESetAdditionRequest);
   }
 };
 
