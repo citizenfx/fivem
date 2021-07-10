@@ -24,13 +24,22 @@ bool fiDevice::MountGlobal(const char* mountPoint, fiDevice* device, bool allowR
 	return fiDevice__MountGlobal(mountPoint, device, allowRoot);
 }
 
-// DCEC20
 hook::cdecl_stub<void(const char*)> fiDevice__Unmount([] ()
 {
-	return hook::pattern("E8 ? ? ? ? 85 C0 75 23 48 83").count(1).get(0).get<void>(-0x22);
+	return hook::get_pattern("E8 ? ? ? ? 85 C0 75 23 48 83", -0x22);
+});
+
+hook::cdecl_stub<void(fiDevice const&)> fiDevice__Unmount_device([]()
+{
+	return hook::get_pattern("85 C0 7E 38 4C 8B 05", -0x25);
 });
 
 void fiDevice::Unmount(const char* rootPath) { fiDevice__Unmount(rootPath); }
+
+void fiDevice::Unmount(fiDevice const& device)
+{
+	fiDevice__Unmount_device(device);
+}
 
 rage::fiDevice::~fiDevice() {}
 

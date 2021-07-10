@@ -40,6 +40,8 @@ public:
 
 	static void Unmount(const char* rootPath);
 
+	static void Unmount(fiDevice const& device);
+
 	static DEVICE_IMPORT fwEvent<> OnInitialMount;
 
 public:
