@@ -2,12 +2,13 @@
 #include <Hooking.h>
 
 #include <fiDevice.h>
+#include <fiCustomDevice.h>
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 
 #include <MinHook.h>
 
-static std::map<std::tuple<std::string, std::string>, rage::fiDeviceRelative*> g_pathsToDevices;
+static std::map<std::tuple<std::string, std::string>, rage::fiDevice*> g_pathsToDevices;
 static std::unordered_map<std::string, size_t> g_nameRefCounts;
 
 static const std::string_view g_basePacks[] =
@@ -70,23 +71,307 @@ static const std::string_view g_basePacks[] =
 
 static void (*g_origAddWavePack)(const char* name, const char* path);
 
+// equivalent of fiDeviceRelative, but it resolves the device on open, not on init
+class MultiRelativeDevice : public rage::fiCustomDevice
+{
+private:
+	struct HandleData
+	{
+		rage::fiDevice* device = nullptr;
+		uint64_t handle = -1;
+	};
+
+public:
+	auto Get(const std::string& fileName)
+	{
+		auto fileNameRel = m_relativeTo + fileName.substr(m_stripLength);
+
+		return std::make_tuple(rage::fiDevice::GetDevice(fileNameRel.c_str(), true), fileNameRel);
+	}
+
+	auto Get(uint64_t handle) -> HandleData*
+	{
+		if (m_handles[handle].device)
+		{
+			return &m_handles[handle];
+		}
+
+		return nullptr;
+	}
+
+	auto Allocate()
+	{
+		for (int i = 0; i < std::size(m_handles); i++)
+		{
+			if (m_handles[i].device == nullptr)
+			{
+				return i;
+			}
+		}
+
+		return -1;
+	}
+
+	virtual uint64_t Open(const char* fileName, bool readOnly) override
+	{
+		auto [d, n] = Get(fileName);
+
+		if (d)
+		{
+			auto h = d->Open(n.c_str(), readOnly);
+
+			if (h != -1)
+			{
+				uint64_t rh = Allocate();
+				auto dt = &m_handles[rh];
+				dt->device = d;
+				dt->handle = h;
+
+				return rh;
+			}
+		}
+
+		return -1;
+	}
+
+	virtual uint64_t OpenBulk(const char* fileName, uint64_t* ptr) override
+	{
+		auto [d, n] = Get(fileName);
+
+		if (d)
+		{
+			auto h = d->OpenBulk(n.c_str(), ptr);
+
+			if (h != -1)
+			{
+				uint64_t rh = Allocate();
+				auto dt = &m_handles[rh];
+				dt->device = d;
+				dt->handle = h;
+
+				return rh;
+			}
+		}
+
+		return -1;
+	}
+
+	virtual uint64_t OpenBulkWrap(const char* fileName, uint64_t* ptr, void*) override
+	{
+		return OpenBulk(fileName, ptr);
+	}
+
+	virtual uint64_t Create(const char* fileName) override
+	{
+		return -1;
+	}
+
+	virtual uint32_t Read(uint64_t handle, void* buffer, uint32_t toRead) override
+	{
+		auto dt = Get(handle);
+		return dt->device->Read(dt->handle, buffer, toRead);
+	}
+
+	virtual uint32_t ReadBulk(uint64_t handle, uint64_t ptr, void* buffer, uint32_t toRead) override
+	{
+		auto dt = Get(handle);
+		return dt->device->ReadBulk(dt->handle, ptr, buffer, toRead);
+	}
+
+	virtual int32_t GetCollectionId() override
+	{
+		return 0;
+	}
+
+	virtual uint32_t Write(uint64_t, void*, int) override
+	{
+		return -1;
+	}
+
+	virtual uint32_t WriteBulk(uint64_t, int, int, int, int) override
+	{
+		return -1;
+	}
+
+	virtual uint32_t Seek(uint64_t handle, int32_t distance, uint32_t method) override
+	{
+		auto dt = Get(handle);
+		return dt->device->Seek(dt->handle, distance, method);
+	}
+
+	virtual uint64_t SeekLong(uint64_t handle, int64_t distance, uint32_t method) override
+	{
+		auto dt = Get(handle);
+		return dt->device->SeekLong(dt->handle, distance, method);
+	}
+
+	virtual int32_t Close(uint64_t handle) override
+	{
+		auto dt = Get(handle);
+		auto r = dt->device->Close(dt->handle);
+
+		dt->device = nullptr;
+		dt->handle = -1;
+
+		return r;
+	}
+
+	virtual int32_t CloseBulk(uint64_t handle) override
+	{
+		auto dt = Get(handle);
+		auto r = dt->device->CloseBulk(dt->handle);
+
+		dt->device = nullptr;
+		dt->handle = -1;
+
+		return r;
+	}
+
+	virtual int GetFileLength(uint64_t handle) override
+	{
+		auto dt = Get(handle);
+		return dt->device->GetFileLength(dt->handle);
+	}
+
+	virtual uint64_t GetFileLengthLong(const char* fileName) override
+	{
+		auto [d, f] = Get(fileName);
+
+		if (d)
+		{
+			return d->GetFileLengthLong(f.c_str());
+		}
+
+		return -1;
+	}
+
+	virtual uint64_t GetFileLengthUInt64(uint64_t handle) override
+	{
+		auto dt = Get(handle);
+		return dt->device->GetFileLengthUInt64(dt->handle);
+	}
+
+	virtual bool RemoveFile(const char* file) override
+	{
+		return false;
+	}
+
+	virtual int RenameFile(const char* from, const char* to) override
+	{
+		return false;
+	}
+
+	virtual int CreateDirectory(const char* dir) override
+	{
+		return false;
+	}
+
+	virtual int RemoveDirectory(const char* dir) override
+	{
+		return false;
+	}
+
+	virtual uint64_t GetFileTime(const char* file) override
+	{
+		auto [d, f] = Get(file);
+
+		if (d)
+		{
+			return d->GetFileTime(f.c_str());
+		}
+
+		return -1;
+	}
+
+	virtual bool SetFileTime(const char* file, FILETIME fileTime) override
+	{
+		return false;
+	}
+
+	virtual uint32_t GetFileAttributes(const char* path) override
+	{
+		auto [d, f] = Get(path);
+
+		if (d)
+		{
+			return d->GetFileAttributes(f.c_str());
+		}
+
+		return -1;
+	}
+
+	virtual int m_yx() override
+	{
+		return 0;
+	}
+
+	virtual bool IsCollection() override
+	{
+		return false;
+	}
+
+	virtual const char* GetName() override
+	{
+		return "AWP";
+	}
+
+	virtual int GetResourceVersion(const char* fileName, rage::ResourceFlags* version) override
+	{
+		auto [d, f] = Get(fileName);
+
+		if (d)
+		{
+			return d->GetResourceVersion(f.c_str(), version);
+		}
+
+		return -1;
+	}
+
+	virtual uint64_t CreateLocal(const char* fileName) override
+	{
+		return -1;
+	}
+
+	virtual void* m_xy(void* a, int len, void* c) override
+	{
+		return nullptr;
+	}
+
+	void SetPath(const std::string& path, bool)
+	{
+		m_relativeTo = path;
+	}
+
+	void Mount(const char* at)
+	{	
+		m_stripLength = strlen(at);
+		rage::fiDevice::MountGlobal(at, this, true);
+	}
+
+private:
+	size_t m_stripLength = 0;
+	std::string m_relativeTo;
+
+	HandleData m_handles[512];
+};
+
 static void AddWavePack(const char* name, const char* path)
 {
 	auto wavePath = fmt::sprintf("awc:/%s/", name);
 	
-	auto addPath = [](const char* path, const char* mountAt)
+	auto addPath = [&wavePath](const char* path)
 	{
-		if (g_pathsToDevices.find({ path, mountAt }) == g_pathsToDevices.end())
+		if (g_pathsToDevices.find({ path, wavePath }) == g_pathsToDevices.end())
 		{
-			auto device = new rage::fiDeviceRelative();
+			auto device = new MultiRelativeDevice();
 			device->SetPath(path, true);
-			device->Mount(mountAt);
+			device->Mount(wavePath.c_str());
 
-			g_pathsToDevices.insert({ { path, mountAt }, device });
+			g_pathsToDevices.insert({ { path, wavePath }, device });
 		}
 	};
 
-	addPath(path, wavePath.c_str());
+	addPath(path);
 
 	if (g_nameRefCounts[name] == 0)
 	{
@@ -96,7 +381,7 @@ static void AddWavePack(const char* name, const char* path)
 		{
 			if (boost::algorithm::iequals(pack.substr(0, std::min(size_t(8), pack.length())), name))
 			{
-				addPath(va("audio:/sfx/%s/", pack), va("%s%s/", wavePath, pack));
+				addPath("audio:/sfx/");
 			}
 		}
 
