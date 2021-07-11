@@ -79,7 +79,7 @@ auto LuaMetaDataLoader::LoadFile(const std::string& filename) -> LoadFileResult
 
 	if (!stream.GetRef())
 	{
-		m_error = "Could not open resource metadata file " + filename + ".";
+		m_error = "Could not open resource metadata file - no such file.";
 
 		return LoadFileResult::NoSuchFile;
 	}
