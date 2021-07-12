@@ -304,7 +304,7 @@ namespace fx
 						warningText += fmt::sprintf("%s is taking %.2f ms (or -%.1f FPS @ 60 Hz)\n", key, avgTickTime.count() / 1000.0, fpsCount);
 					}
 
-					if (metric.memorySize > (50 * 1024 * 1024))
+					if (metric.memorySize > (75 * 1024 * 1024))
 					{
 						showWarning = true;
 						warningText += fmt::sprintf("%s is using %.2f MiB of RAM\n", key, metric.memorySize / 1024.0 / 1024.0);
