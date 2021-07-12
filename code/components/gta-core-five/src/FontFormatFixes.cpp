@@ -8,6 +8,7 @@
 #include <sstream>
 
 #include <nutsnbolts.h>
+#include <EASTL/fixed_vector.h>
 
 #include <MinHook.h>
 
@@ -185,6 +186,16 @@ std::string regex_replace(const std::string& s,
 
 static uint32_t curTime;
 
+void* operator new[](size_t size, const char* pName, int flags, unsigned debugFlags, const char* file, int line)
+{
+	return ::operator new[](size);
+}
+
+void* operator new[](size_t size, size_t alignment, size_t alignmentOffset, const char* pName, int flags, unsigned debugFlags, const char* file, int line)
+{
+	return ::operator new[](size);
+}
+
 static void ParseHtmlStub(void* styledText, const wchar_t* str, int64_t length, void* pImgInfoArr, bool multiline, bool condenseWhite, void* styleMgr, void* txtFmt, void* paraFmt)
 {
 	if (!txtFmt)
@@ -207,7 +218,7 @@ static void ParseHtmlStub(void* styledText, const wchar_t* str, int64_t length, 
 
 	if (it == replacedText.end())
 	{
-		auto emojifiedText = regex_replace(str, str + length, emojiRegEx, [sz](const auto& m)
+		auto emojifiedText = regex_replace(str, str + length, emojiRegEx, [](const auto& m)
 		{
 			auto s = m.str();
 
@@ -241,13 +252,38 @@ static void ParseHtmlStub(void* styledText, const wchar_t* str, int64_t length, 
 
 			auto cps = codePointString.str();
 
-			return fmt::sprintf(L"<img src='flex_img_%s' width='%d' height='%d'/>", cps.substr(0, cps.length() - 1), sz, sz);
+			return fmt::sprintf(L"<img src='flex_img_%s' width='\uE812' height='\uE812'/>", cps.substr(0, cps.length() - 1));
 		});
 
 		it = replacedText.emplace(str, std::move(emojifiedText)).first;
 	}
 
-	g_parseHtml(styledText, it->second.c_str(), it->second.size(), pImgInfoArr, multiline, condenseWhite, styleMgr, txtFmt, paraFmt);
+	// since the same text may have multiple sizes, we will insert sizes manually now
+	auto sizedString = eastl::fixed_vector<wchar_t, 1024, true>{};
+	sizedString.reserve(it->second.size() + 64);
+
+	auto formattedSize = fmt::sprintf("%d", sz);
+
+	for (wchar_t ch : it->second)
+	{
+		// push size instead
+		if (ch == L'\uE812')
+		{
+			for (char sch : formattedSize)
+			{
+				sizedString.push_back(static_cast<wchar_t>(sch));
+			}
+
+			continue;
+		}
+
+		sizedString.push_back(ch);
+	}
+
+	// maybe unneeded
+	sizedString.push_back('\0');
+
+	g_parseHtml(styledText, sizedString.data(), sizedString.size() - 1, pImgInfoArr, multiline, condenseWhite, styleMgr, txtFmt, paraFmt);
 }
 
 static void ParseHtmlUtf8(void* styledText, const char* str, uint64_t length, void* pImgInfoArr, bool multiline, bool condenseWhite, void* styleMgr, void* txtFmt, void* paraFmt)
