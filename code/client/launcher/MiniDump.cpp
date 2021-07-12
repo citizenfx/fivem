@@ -1435,18 +1435,22 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 		static auto saveStr = gettext(L"Save information\nStores a file with crash information that you should copy and upload when asking for help.");
 
-		static const TASKDIALOG_BUTTON buttons[] = {
+		static TASKDIALOG_BUTTON buttons[] = {
 			{ 42, saveStr.c_str() }
 		};
 
 		static std::wstring tempSignature = fmt::sprintf(gettext(L"Crash signature: %s\nReport ID: ... [uploading]\nYou can press Ctrl-C to copy this message and paste it elsewhere."), crashHash);
+		static bool isDisconnectMessage = false;
+		isDisconnectMessage = false;
 
 		if (crashometry.find("kill_network_msg") != crashometry.end() && crashometry.find("reload_game") == crashometry.end())
 		{
 			windowTitle = L"Disconnected";
 			mainInstruction = L"O\x448\x438\x431\x43A\x430 (Error)";
 
-			content = ToWide(crashometry["kill_network_msg"]) + gettext(L"\n\nThis is a fatal error because game unloading failed. Please report this issue and how to cause it (what server you played on, any resources/scripts, etc.) so this can be solved.");
+			content = ToWide(crashometry["kill_network_msg"]);
+
+			isDisconnectMessage = true;
 		}
 
 		static std::thread saveThread;
@@ -1521,6 +1525,16 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 			return S_FALSE;
 		};
+
+		// make the disconnect message less confusing
+		if (isDisconnectMessage)
+		{
+			taskDialogConfig.dwFlags &= ~(TDF_USE_COMMAND_LINKS | TDF_EXPANDED_BY_DEFAULT);
+			taskDialogConfig.pszMainIcon = TD_WARNING_ICON;
+
+			saveStr = gettext(L"Save information");
+			buttons[0].pszButtonText = saveStr.c_str();
+		}
 
 		OverloadCrashData(&taskDialogConfig);
 
