@@ -1886,7 +1886,7 @@ struct CPedHealthDataNode
 		bool isFine = state.buffer.ReadBit();
 		auto maxHealthChanged = state.buffer.ReadBit();
 
-		int maxHealth = 200;
+		int maxHealth = (data.maxHealth == 0) ? 200 : data.maxHealth;
 
 		if (maxHealthChanged)
 		{
