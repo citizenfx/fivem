@@ -15,6 +15,7 @@
 #include <DrawCommands.h>
 
 #include <CrossBuildRuntime.h>
+#include <Error.h>
 
 #include <boost/algorithm/string.hpp>
 
@@ -253,12 +254,12 @@ std::string ModVFSDevice::MapFileName(const std::string& name)
 }
 
 bool loadedUnencryptedMod;
+int modCount;
 
 bool ModsNeedEncryption()
 {
-	static ConVar<bool> modDevMode("modDevMode", ConVar_None, false);
-
-	return !modDevMode.GetValue();
+	// they don't currently
+	return false;
 }
 
 static void MountFauxStreamingRpf(const std::string& fn)
@@ -361,6 +362,9 @@ void MountModDevice(const std::shared_ptr<fx::ModPackage>& modPackage)
 
 		g_devices.push_back(device);
 	}
+
+	modCount++;
+	AddCrashometry("mod_package_count", "%d", modCount);
 }
 
 void MountModStream(const std::shared_ptr<fx::ModPackage>& modPackage)
@@ -562,9 +566,32 @@ static InitFunction initFunction([]()
 {
 	OnPostFrontendRender.Connect([]()
 	{
-		if (!fx::ModsNeedEncryption() || fx::loadedUnencryptedMod)
+		if (fx::modCount > 1)
 		{
-			TheFonts->DrawText(L"CFX MOD DEV MODE ENABLED", CRect(40.0f, 40.0f, 800.0f, 500.0f), CRGBA(255, 0, 0, 255), 40.0f, 1.0f, "Comic Sans MS");
+			int gameWidth, gameHeight;
+			GetGameResolution(gameWidth, gameHeight);
+
+			static CRect metrics;
+			static fwWString lastString;
+			static float lastHeight;
+
+			std::wstring brandingString = fmt::sprintf(L"%d mod packs loaded", fx::modCount);
+
+			float gameWidthF = static_cast<float>(gameWidth);
+			float gameHeightF = static_cast<float>(gameHeight);
+
+			if (metrics.Width() <= 0.1f || lastString != brandingString || lastHeight != gameHeightF)
+			{
+				TheFonts->GetStringMetrics(brandingString, 22.0f * (gameHeightF / 1440.0f), 1.0f, "Segoe UI", metrics);
+
+				lastString = brandingString;
+				lastHeight = gameHeightF;
+			}
+
+			CRect drawRect = { 10.0f, gameHeightF - metrics.Height() - 10.0f, gameWidthF, gameHeightF };
+			CRGBA color(180, 180, 180, 120);
+
+			TheFonts->DrawText(brandingString, drawRect, color, 22.0f * (gameHeightF / 1440.0f), 1.0f, "Segoe UI");
 		}
 	}, -1000);
 });

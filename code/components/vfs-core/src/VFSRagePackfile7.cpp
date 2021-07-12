@@ -128,7 +128,7 @@ namespace vfs
 
 			auto signer = std::make_unique<Botan::PK_Verifier>(pk, "EMSA_PKCS1(SHA-384)");
 
-			bool valid = false; //signer->verify_message(hashData, headerSignature);
+			bool valid = signer->verify_message(hashData, headerSignature);
 
 			if (!valid)
 			{
