@@ -214,10 +214,10 @@ button {
 }
 
 ::-webkit-scrollbar {
-	width: 2px;
+	width: 5px;
 }
 ::-webkit-scrollbar-thumb {
-	width: 2px;
+	width: 5px;
 	@include themeNoHost() using ($theme) {
 		background-color: rgba(gtv($theme, fgColor), .5);
 	}
