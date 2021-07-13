@@ -85,6 +85,7 @@ struct ReverseGameData
 	int mouseButtons;
 
 	HANDLE inputMutex;
+	DWORD inputMutexPID;
 
 	HANDLE produceSema;
 	HANDLE consumeSema;

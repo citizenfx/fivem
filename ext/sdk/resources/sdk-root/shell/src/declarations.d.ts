@@ -1,6 +1,7 @@
 /// <reference types="react-scripts" />
 
 declare var resizeGame: (width: number, height: number) => void;
+declare var initRGDInput: () => boolean;
 declare var setMouseButtonState: (button: number, state: boolean) => void;
 declare var sendMouseWheel: (deltaY: number) => void;
 declare var sendMousePos: (mx: number, my: number) => void;
