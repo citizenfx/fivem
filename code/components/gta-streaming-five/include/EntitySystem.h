@@ -384,9 +384,9 @@ public:
 		FORWARD_FUNC(SetTransform, 0xb8, matrix, updateScene);
 	}
 
-	inline void UpdateTransform(const Matrix4x4& matrix, bool updateScene)
+	inline void UpdateTransform(const Matrix4x4& matrix, bool updateScene, bool moreUpdate = false, bool evenMoreUpdate = false)
 	{
-		FORWARD_FUNC(UpdateTransform, 0xc0, matrix, updateScene);
+		FORWARD_FUNC(UpdateTransform, 0xc0, matrix, updateScene, moreUpdate, evenMoreUpdate);
 	}
 
 	inline void AddToSceneWrap()
@@ -681,7 +681,7 @@ struct CMapDataContents
 {
 	virtual ~CMapDataContents() = 0;
 	virtual void Add() = 0;
-	virtual void Remove() = 0;
+	virtual void Remove(int id) = 0;
 	virtual void PrepareInteriors(void* meta, void* data, uint32_t id) = 0;
 
 	// 8
