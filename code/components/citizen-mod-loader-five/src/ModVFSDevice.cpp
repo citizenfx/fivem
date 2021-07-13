@@ -389,10 +389,20 @@ void MountModStream(const std::shared_ptr<fx::ModPackage>& modPackage)
 
 		std::replace(tgtFile.begin(), tgtFile.end(), '\\', '/');
 
-		if (entry.archiveRoots.size() >= 2)
+		// strip leading slashes
+		if (!tgtFile.empty() && tgtFile[0] == '/')
+		{
+			tgtFile = tgtFile.substr(1);
+		}
+
+		auto isCoreTexture = boost::algorithm::starts_with(tgtFile, "textures/");
+
+		if (entry.archiveRoots.size() >= 2 || isCoreTexture)
 		{
 			// if only one path is there, as well
-			if (std::count(tgtFile.begin(), tgtFile.end(), '/') == 0)
+			auto slashCount = std::count(tgtFile.begin(), tgtFile.end(), '/');
+
+			if (slashCount == 0 || isCoreTexture)
 			{
 				// probably a streaming file
 				std::string fn = modPackage->GetRootPath() + "content/" + entry.sourceFile;

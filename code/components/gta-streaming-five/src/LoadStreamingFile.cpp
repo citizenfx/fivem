@@ -1017,6 +1017,14 @@ static std::string GetBaseName(const std::string& name)
 		}
 	}
 
+	// is this trying to override a file extant in platform:/textures/?
+	auto texturesName = fmt::sprintf("platform:/textures/%s", retval);
+
+	if (auto device = rage::fiDevice::GetDevice(texturesName.c_str(), true); device && device->GetFileAttributes(texturesName.c_str()) != -1)
+	{
+		retval = texturesName;
+	}
+
 	return retval;
 }
 
@@ -1043,6 +1051,7 @@ static hook::cdecl_stub<void(int, const char*)> initGfxTexture([]()
 
 static void LoadStreamingFiles(LoadType loadType)
 {
+	auto cstreaming = streaming::Manager::GetInstance();
 	std::vector<std::tuple<int, std::string>> newGfx;
 
 	// register any custom streaming assets
@@ -1111,7 +1120,6 @@ static void LoadStreamingFiles(LoadType loadType)
 
 		it = g_customStreamingFiles.erase(it);
 
-		auto cstreaming = streaming::Manager::GetInstance();
 		auto strModule = cstreaming->moduleMgr.GetStreamingModule(ext.c_str());
 
 		if (strModule)
@@ -1180,7 +1188,6 @@ static void LoadStreamingFiles(LoadType loadType)
 			}
 			else
 			{
-				uint32_t fileId;
 				streaming::RegisterRawStreamingFile(&fileId, file.c_str(), true, baseName.c_str(), false);
 
 				if (fileId != -1)
@@ -1201,6 +1208,39 @@ static void LoadStreamingFiles(LoadType loadType)
 					trace("failed to reg %s? %d\n", baseName, fileId);
 				}
 			}
+
+			
+			// verify whether the file is a zlib'd file from a real backing RPF7
+			// (length and resource value mismatching)
+#ifdef GTA_FIVE
+			auto device = rage::fiDevice::GetDevice(file.c_str(), true);
+
+			if (device && fileId != -1)
+			{
+				rage::ResourceFlags resFlags;
+
+				if (device->GetResourceVersion(file.c_str(), &resFlags) == 0)
+				{
+					// we have to check using findData, as this currently uses the compressed size in vfs-core
+					rage::fiFindData fd;
+					auto findHandle = device->FindFirst(file.c_str(), &fd);
+
+					if (findHandle != -1)
+					{
+						device->FindClose(findHandle);
+
+						if (resFlags.flag1 != fd.fileSize)
+						{
+							auto& entry = cstreaming->Entries[fileId];
+
+							// incorrect: fix it in the raw streamer
+							auto strEntry = const_cast<rage::fiCollection::FileEntry*>(rawStreamer->GetEntry(entry.handle & 0xFFFF));
+							strEntry->size = fd.fileSize;
+						}
+					}
+				}
+			}
+#endif
 		}
 		else if (ext != "ymf")
 		{
@@ -2639,15 +2679,15 @@ static HookFunction hookFunction([]()
 
 			LoadStreamingFiles(LoadType::BeforeSession);
 		}
+		else if (type == rage::INIT_CORE)
+		{
+			LoadStreamingFiles(LoadType::BeforeMapLoad);
+		}
 	});
 
 	rage::OnInitFunctionEnd.Connect([](rage::InitFunctionType type)
 	{
-		if (type == rage::INIT_BEFORE_MAP_LOADED)
-		{
-			LoadStreamingFiles(LoadType::BeforeMapLoad);
-		}
-		else if (type == rage::INIT_SESSION)
+		if (type == rage::INIT_SESSION)
 		{
 			LoadStreamingFiles(LoadType::AfterSessionEarlyStage);
 			LoadStreamingFiles(LoadType::AfterSession);

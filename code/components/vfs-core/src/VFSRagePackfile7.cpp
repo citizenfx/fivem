@@ -563,6 +563,23 @@ namespace vfs
 					return handle;
 				}
 			}
+			// a single file?
+			else
+			{
+				THandle handle;
+				auto handleData = AllocateHandle(&handle);
+
+				if (handleData)
+				{
+					handleData->curOffset = 0;
+					handleData->entry = *entry;
+					handleData->valid = true;
+
+					FillFindData(findData, entry);
+
+					return handle;
+				}
+			}
 		}
 
 		return InvalidHandle;
@@ -577,7 +594,7 @@ namespace vfs
 			handleData->curOffset++;
 
 			// have we passed the length already?
-			if (handleData->curOffset >= handleData->entry.physFlags)
+			if (handleData->entry.offset != 0x7FFFFF || handleData->curOffset >= handleData->entry.physFlags)
 			{
 				return false;
 			}
