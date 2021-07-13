@@ -147,6 +147,10 @@ void SdkMain()
 #ifdef _WIN32
 	timeBeginPeriod(1);
 #endif
+	static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");
+
+	rgd->inputMutexPID = GetCurrentProcessId();
+
 	ConVar<std::string> sdkUrlVar("sdk_url", ConVar_None, "http://localhost:35419/");
 	ConVar<std::string> sdkRootPath("sdk_root_path", ConVar_None, "built-in");
 	ConVar<std::string> citizenPath("citizen_path", ConVar_None, ToNarrow(MakeRelativeCitPath(L"citizen/")));
@@ -225,6 +229,10 @@ void SdkMain()
 			"window.postMessage({type: 'game-unloaded'}, '*')",
 			"fxdk://game-loading"
 		);
+	});
+	launcherTalk.Bind("sdk:refreshArchetypesCollectionDone", [resman]()
+	{
+		resman->GetComponent<fx::ResourceEventManagerComponent>()->QueueEvent2("sdk:refreshArchetypesCollectionDone", {});
 	});
 
 	gameProcessManager.OnGameProcessStateChanged.Connect([resman](const SDKGameProcessManager::GameProcessState state)
@@ -448,6 +456,10 @@ void SdkMain()
 			std::string clientEventPayload = obj.as<std::vector<std::string>>()[1];
 
 			fxdk::GetLauncherTalk().Call("sdk:clientEvent", clientEventName, clientEventPayload);
+		}
+		else if (eventName == "sdk:refreshArchetypesCollection")
+		{
+			fxdk::GetLauncherTalk().Call("sdk:refreshArchetypesCollection");
 		}
 	});
 

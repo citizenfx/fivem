@@ -34,6 +34,10 @@ if (process.env.CI_PIPELINE_ID !== 'dev') {
   });
 }
 
+if (!initRGDInput()) {
+  throw new Error('Failed to init RGD input');
+}
+
 onApiMessage(stateApi.setUserId, (id: string) => Sentry.setUser({ id }));
 
 document.addEventListener('click', (event: MouseEvent) => {

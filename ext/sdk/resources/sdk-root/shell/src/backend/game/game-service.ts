@@ -1,9 +1,11 @@
 import { ApiClient } from "backend/api/api-client";
 import { ApiContribution } from "backend/api/api-contribution";
-import { handlesClientEvent } from "backend/api/api-decorators";
+import { handlesClientCallbackEvent, handlesClientEvent } from "backend/api/api-decorators";
 import { AppContribution } from "backend/app/app-contribution";
+import { ConfigService } from "backend/config-service";
 import { Deferred } from "backend/deferred";
 import { Disposable } from "backend/disposable-container";
+import { FsService } from "backend/fs/fs-service";
 import { LogService } from "backend/logger/log-service";
 import { NotificationService } from "backend/notification/notification-service";
 import { emitSystemEvent, onSystemEvent } from "backend/system-events";
@@ -19,11 +21,17 @@ export class GameService implements ApiContribution, AppContribution {
     return 'GameService';
   }
 
+  @inject(FsService)
+  protected readonly fsService: FsService;
+
   @inject(ApiClient)
   protected readonly apiClient: ApiClient;
 
   @inject(LogService)
   protected readonly logService: LogService;
+
+  @inject(ConfigService)
+  protected readonly configService: ConfigService;
 
   @inject(NotificationService)
   protected readonly notificationService: NotificationService;
@@ -44,6 +52,10 @@ export class GameService implements ApiContribution, AppContribution {
 
   private messageHandlers: Record<string, Set<Function>> = {};
 
+  private archetypesCollectionReady = false;
+  private rACDeferred: Deferred<boolean> | null = null;
+  private rACTimeout: NodeJS.Timeout | null = null;
+
   private readonly gameStateChangeEvent = new SingleEventEmitter<GameStates>();
   onGameStateChange(cb: (gameState: GameStates) => void): Disposable {
     return this.gameStateChangeEvent.addListener(cb);
@@ -58,6 +70,8 @@ export class GameService implements ApiContribution, AppContribution {
   }
 
   async boot() {
+    this.archetypesCollectionReady = Boolean(await this.fsService.statSafe(this.configService.archetypesCollectionPath));
+
     const gameBuildNumberDeferred = new Deferred<number>();
 
     gameBuildNumberDeferred.promise.finally(onSystemEvent('sdk:setBuildNumber', (gameBuildNumber: number) => {
@@ -144,6 +158,16 @@ export class GameService implements ApiContribution, AppContribution {
       return;
     });
 
+    on('sdk:refreshArchetypesCollectionDone', () => {
+      if (this.rACDeferred) {
+        clearTimeout(this.rACTimeout);
+        this.rACTimeout = null;
+
+        this.rACDeferred.resolve(true);
+        this.rACDeferred = null;
+      }
+    });
+
     this.onBackendMessage('connected', () => {
       if (this.gameLaunched) {
         this.toGameState(GameStates.CONNECTED);
@@ -166,6 +190,7 @@ export class GameService implements ApiContribution, AppContribution {
       gameLaunched: this.gameLaunched,
       gameProcessState: this.gameProcessState,
       connectionState: this.connectionState,
+      archetypesCollectionReady: this.archetypesCollectionReady,
     });
   }
 
@@ -207,6 +232,24 @@ export class GameService implements ApiContribution, AppContribution {
 
   emitEvent(eventName: string, payload?: any) {
     emit('sdk:sendGameClientEvent', eventName, JSON.stringify(payload) || '');
+  }
+
+  @handlesClientCallbackEvent(gameApi.refreshArchetypesCollection)
+  async refreshArchetypesCollection() {
+    if (this.rACDeferred) {
+      return this.rACDeferred.promise;
+    }
+
+    this.rACDeferred = new Deferred();
+    this.rACTimeout = setTimeout(() => {
+      this.rACDeferred.reject(new Error('Timedout'));
+      this.rACDeferred = null;
+      this.rACTimeout = null;
+    }, 60000);
+
+    emit('sdk:refreshArchetypesCollection');
+
+    return this.rACDeferred.promise;
   }
 
   private toGameState(newState: GameStates) {

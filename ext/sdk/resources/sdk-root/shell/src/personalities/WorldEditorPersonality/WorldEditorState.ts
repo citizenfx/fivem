@@ -11,6 +11,7 @@ import { WorldEditorStartRequest } from 'shared/api.requests';
 import { WEApplyAdditionChangeRequest, WEApplyPatchRequest, WEMap, WESetAdditionRequest } from 'backend/world-editor/world-editor-types';
 import { WorldEditorMapState } from './WorldEditorMapState';
 import { __DEBUG_MODE_TOGGLES__ } from 'constants/debug-constants';
+import { GameState } from 'store/GameState';
 
 const noop = () => {};
 
@@ -62,6 +63,10 @@ export const WorldEditorState = new class WorldEditorState {
 
     onWindowEvent('we:ready', () => runInAction(() => {
       this.ready = true;
+
+      if (!GameState.archetypesCollectionReady) {
+        GameState.refreshArchetypesCollection();
+      }
     }));
 
     onWindowEvent('we:applyPatch', (request: WEApplyPatchRequest) => this.map?.handleApplyPatchRequest(request));

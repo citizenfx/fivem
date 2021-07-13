@@ -15,6 +15,10 @@ function getLoadingText() {
     return 'The World Editor is getting ready...';
   }
 
+  if (GameState.archetypesCollectionPending) {
+    return 'Building object list...';
+  }
+
   return 'Loading World Editor...';
 }
 

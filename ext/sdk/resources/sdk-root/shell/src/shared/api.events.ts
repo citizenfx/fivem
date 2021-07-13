@@ -143,6 +143,7 @@ export const gameApi = {
   start: 'game:start',
   stop: 'game:stop',
   restart: 'game:restart',
+  refreshArchetypesCollection: 'game:refreshArchetypesCollection',
 };
 
 export const worldEditorApi = {

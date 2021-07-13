@@ -2,7 +2,7 @@ import { GameStates } from "backend/game/game-contants";
 import { makeAutoObservable, runInAction } from "mobx";
 import { gameApi } from "shared/api.events";
 import { NetLibraryConnectionState, SDKGameProcessState } from "shared/native.enums";
-import { onApiMessage, sendApiMessage } from "utils/api";
+import { onApiMessage, sendApiMessage, sendApiMessageCallback } from "utils/api";
 import { GameLoadingState } from "./GameLoadingState";
 
 export const GameState = new class GameState {
@@ -14,6 +14,7 @@ export const GameState = new class GameState {
       this.launched = data.gameLaunched;
       this.processState = data.gameProcessState;
       this.connectionState = data.connectionState;
+      this.archetypesCollectionReady = data.archetypesCollectionReady;
     }));
 
     onApiMessage(gameApi.gameState, this.setState);
@@ -48,5 +49,22 @@ export const GameState = new class GameState {
   public connectionState = NetLibraryConnectionState.CS_IDLE;
   private setConnectionState = ({ current }) => {
     this.connectionState = current;
+  }
+
+  public archetypesCollectionPending = false;
+  public archetypesCollectionReady = false;
+  refreshArchetypesCollection() {
+    this.archetypesCollectionPending = true;
+    this.archetypesCollectionReady = false;
+
+    sendApiMessageCallback(gameApi.refreshArchetypesCollection, null, (error: string, data: boolean) => runInAction(() => {
+      this.archetypesCollectionPending = false;
+      this.archetypesCollectionReady = true;
+
+      console.log('Archetypes are ready?', {
+        error,
+        data,
+      });
+    }));
   }
 };

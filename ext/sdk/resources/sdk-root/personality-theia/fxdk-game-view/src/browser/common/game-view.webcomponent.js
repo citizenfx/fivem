@@ -557,7 +557,7 @@ class GameView extends HTMLElement {
       e.preventDefault();
 
       if (this._acceptInput) {
-        sendMouseWheel(e.deltaY);
+        sendMouseWheel(-e.deltaY);
       }
     };
     this._handleMousemove = (e) => {
