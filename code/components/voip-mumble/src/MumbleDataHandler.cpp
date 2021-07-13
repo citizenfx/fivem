@@ -37,9 +37,13 @@ void MumbleDataHandler::HandleIncomingData(const uint8_t* data, size_t length)
 		// if this is a new 'packet'
 		if (m_readBytes == 0)
 		{
+			if (read < 6)
+			{
+				return;
+			}
+
 			const MumblePacketHeader* header = (const MumblePacketHeader*)origin;
 
-			m_readBytes = 0;
 			m_totalBytes = header->GetPacketLength();
 			m_messageType = header->GetPacketType();
 
