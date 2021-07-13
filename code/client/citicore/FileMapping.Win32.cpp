@@ -423,7 +423,8 @@ NTSTATUS NTAPI LdrLoadDllStub(const wchar_t* fileName, uint32_t* flags, UNICODE_
 		// apparently crashes NUI
 		moduleNameStr.find(L"bdcam64.dll") != std::string::npos ||
 		// ASUS/A-Volute/Nahimic audio software
-		//moduleNameStr.find(L"a-volute") != std::string::npos || moduleNameStr.find(L"audiodevprops") != std::string::npos ||
+		// broken again as of 2021-07 updates to A-Volute
+		moduleNameStr.find(L"a-volute") != std::string::npos || moduleNameStr.find(L"audiodevprops") != std::string::npos ||
 		// Canon camera software
 		moduleNameStr.find(L"\\edsdk.dll") != std::string::npos ||
 		// Microsoft camera software
@@ -433,7 +434,8 @@ NTSTATUS NTAPI LdrLoadDllStub(const wchar_t* fileName, uint32_t* flags, UNICODE_
 		// lots of crashes occur in the DiscordApp overlay
 		//moduleNameStr.find(L"overlay.x64.dll") != std::string::npos ||
 		// new DiscordApp overlay name :/
-		//moduleNameStr.find(L"DiscordHook64.dll") != std::string::npos ||
+		// readded as of 2021-07 since it breaks WM_INPUT messages
+		moduleNameStr.find(L"discordhook64.dll") != std::string::npos ||
 		// HideMyIP, causes LoopbackTcpServer and libuv to crash
 		moduleNameStr.find(L"hmipcore64.dll") != std::string::npos ||
 		// NVIDIA SHARE/ShadowPlay capture DLL, high correlation with ERR_GFX_D3D_INIT failures
