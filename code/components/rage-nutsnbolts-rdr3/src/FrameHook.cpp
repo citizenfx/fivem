@@ -149,7 +149,7 @@ static HookFunction hookFunction([]()
 	hook::set_call(&g_origLookAlive, lookAliveFrameCall);
 	hook::call(lookAliveFrameCall, OnLookAlive);
 
-	auto runState = (xbr::IsGameBuildOrGreater<1436>()) ? hook::pattern("85 F6 78 ? 75 ? 83 FB 01 75").count(1).get(0).get<char>(-0x2A) : hook::pattern("8B CA 8B F2 E8").count(1).get(0).get<char>(-0x15);
+	auto runState = hook::pattern("85 F6 78 ? 75 ? 83 FB 01 75").count(1).get(0).get<char>(xbr::IsGameBuildOrGreater<1436>() ? -0x2A : -0x1E);
 
 	MH_Initialize();
 	MH_CreateHook(runState, DoAppState, (void**)&g_appState);

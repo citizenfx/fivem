@@ -484,7 +484,7 @@ static void WrapEndDraw(void* cxt)
 	//rt[0] = (*(void* (__fastcall**)(__int64))(**(uint64_t**)sgaDriver + 1992i64))(*(uint64_t*)sgaDriver);
 	rt[0] = (*(void*(__fastcall**)(__int64))(**(uint64_t**)sgaDriver + g_swapchainBackbufferOffset))(*(uint64_t*)sgaDriver);
 
-	static auto ds = hook::get_address<int*>(xbr::IsGameBuildOrGreater<1436>() ? hook::get_pattern("44 8B CE 48 8B 05 ? ? ? ? 33 C9 48 89", 6) : hook::get_pattern("44 8B CE 48 89 05 ? ? ? ? 41 B8 02", 19));
+	static auto ds = hook::get_address<int*>(hook::get_pattern("4C 8B ? ? ? ? ? 84 D2 74 ? 4C", 3));
 
 	setRTs(cxt, 1, rt, true);
 	setDSs(cxt, *(void**)ds, true);
@@ -584,7 +584,7 @@ static HookFunction hookFunction([]()
 	sgaDriver = hook::get_address<decltype(sgaDriver)>(hook::get_pattern("C6 82 ? ? 00 00 01 C6 82 ? ? 00 00 01 48 8B 0D", 17));
 
 	g_textureFactory = hook::get_address<decltype(g_textureFactory)>(hook::get_pattern("48 8D 54 24 50 C7 44 24 50 80 80 00 00 48 8B C8", 0x25));
-	
+
 	if (xbr::IsGameBuildOrGreater<1436>())
 	{
 		g_d3d12Driver = hook::get_address<void*>(hook::get_pattern("75 04 33 C0 EB 1A E8", 28));

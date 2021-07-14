@@ -89,7 +89,7 @@ static hook::thiscall_stub<void(netPlayerMgrBase*, CNetGamePlayer*)> _netPlayerM
 #ifdef GTA_FIVE
 	return hook::get_call(hook::get_pattern("FF 57 30 48 8B D6 49 8B CE E8", 9));
 #elif IS_RDR3
-	return hook::get_call((xbr::IsGameBuildOrGreater<1436>()) ? hook::get_pattern("48 8B 01 FF 50 58 49 8B D7 48", 12) : hook::get_pattern("41 B9 FF 00 00 00 4D 8B C5", 21));
+	return hook::get_call(hook::get_pattern("48 8B 01 FF 50 ? 49 8B D7 48 8B CE E8", 12));
 #endif
 });
 
@@ -300,7 +300,7 @@ static hook::cdecl_stub<void(void*)> _pCtor([]()
 #ifdef IS_RDR3
 static hook::cdecl_stub<void(uint8_t)> _initUnkPlayerArray([]()
 {
-	return (xbr::IsGameBuildOrGreater<1436>()) ? hook::get_pattern("48 8B C8 48 85 C0 74 ? 83 61 04 00 B8", -0x40) : hook::get_pattern("80 F9 20 73 ? 53 48 83 EC 20 8A D9");
+	return hook::get_call(hook::get_pattern("48 8B CB E8 ? ? ? ? 8A 4B 19 48 83 C4", 0x10));
 });
 #endif
 
@@ -1577,7 +1577,7 @@ static HookFunction hookFunction([]()
 #ifdef GTA_FIVE
 	MH_CreateHook(hook::get_pattern("80 7A ? FF 48 8B EA 48 8B F1 0F", -0x13), UnkEventMgr, (void**)&g_origUnkEventMgr);
 #elif IS_RDR3
-	MH_CreateHook((xbr::IsGameBuildOrGreater<1436>()) ? hook::get_pattern("45 33 FF 80 FB 20 72 ? 41 8D 57 01 C7", -0x2B) : hook::get_pattern("4C 69 F0 ? ? ? ? 45 39 BC 3E ? ? ? ? 0F", -0x38), UnkEventMgr, (void**)&g_origUnkEventMgr);
+	MH_CreateHook(hook::get_pattern("41 57 48 83 EC 30 ? 8B ? ? 8B ? 48 83 C1 08 E8", -0x12), UnkEventMgr, (void**)&g_origUnkEventMgr);
 #endif
 
 	// return to disable breaking hooks
@@ -1612,7 +1612,7 @@ static HookFunction hookFunction([]()
 	MH_CreateHook((xbr::IsGameBuildOrGreater<1436>()) ? hook::get_pattern("33 DB 48 8B F9 48 39 99 ? ? ? ? 75 ? 8D 53 01", -10) : hook::get_pattern("48 39 99 ? ? ? ? 74 ? 48 81 C1 ? ? ? ? 48 8B 19 48 85", -15), AllocateNetPlayer, (void**)&g_origAllocateNetPlayer);
 
 	MH_CreateHook(hook::get_pattern((xbr::IsGameBuildOrGreater<1436>()) ? "8A 41 45 3C 20 72 ? 33 C0 C3" : "80 79 45 20 72 ? 33 C0 C3"), netObject__GetPlayerOwner, (void**)&g_origGetOwnerNetPlayer);
-	MH_CreateHook((xbr::IsGameBuildOrGreater<1436>()) ? hook::get_pattern("48 83 EC 30 8A 59 46 80 FB FF 75", -6) : hook::get_pattern("0F B6 C8 48 8B 05 ? ? ? ? 48 8B 84 C8", -11), netObject__GetPendingPlayerOwner, (void**)&g_origGetPendingPlayerOwner);
+	MH_CreateHook(hook::get_pattern((xbr::IsGameBuildOrGreater<1436>()) ? "48 89 5C 24 08 57 48 83 EC 30 8A 59 46" : "8A 41 46 3C FF 74"), netObject__GetPendingPlayerOwner, (void**)&g_origGetPendingPlayerOwner);
 #endif
 
 	// function is only 4 bytes, can't be hooked like this
@@ -1702,7 +1702,7 @@ static HookFunction hookFunction([]()
 		MH_CreateHook(hook::get_call(location + 0), netInterface_GetNumRemotePhysicalPlayers, (void**)&g_origGetNetworkPlayerListCount);
 		MH_CreateHook(hook::get_call(location + 8), netInterface_GetRemotePhysicalPlayers, (void**)&g_origGetNetworkPlayerList);
 #elif IS_RDR3
-		auto location = hook::get_pattern<char>((xbr::IsGameBuildOrGreater<1436>()) ? "48 8B 07 48 8B CF FF 90 ? ? ? ? 44 8B F0 E8" : "48 8B 07 48 8B CF FF 90 ? ? ? ? 44 8B F8 E8");
+		auto location = hook::get_pattern<char>("48 8B 07 48 8B CF FF 90 ? ? ? ? 44 8B ? E8");
 		MH_CreateHook(hook::get_call(location + 15), netInterface_GetNumRemotePhysicalPlayers, (void**)&g_origGetNetworkPlayerListCount);
 		MH_CreateHook(hook::get_call(location + 22), netInterface_GetRemotePhysicalPlayers, (void**)&g_origGetNetworkPlayerList);
 #endif
@@ -1730,7 +1730,7 @@ static HookFunction hookFunction([]()
 #ifdef GTA_FIVE
 	MH_CreateHook(hook::get_pattern("4C 8B F9 74 7D", -0x2B), netObjectMgr__CountObjects, (void**)&g_origCountObjects);
 #elif IS_RDR3
-	MH_CreateHook(hook::get_pattern((xbr::IsGameBuildOrGreater<1436>()) ? "F6 86 D8 08 00 00 01 0F 84 ? ? ? ? 44 8A 05" : "F6 86 D8 08 00 00 01 74 ? 44 8A 05", -0x3B), netObjectMgr__CountObjects, (void**)&g_origCountObjects);
+	MH_CreateHook(hook::get_pattern("4C 8B F9 49 8B CC 4C 8B F2 33 FF E8", -0x24), netObjectMgr__CountObjects, (void**)&g_origCountObjects);
 #endif
 
 #ifdef GTA_FIVE
@@ -1750,7 +1750,7 @@ static HookFunction hookFunction([]()
 	MH_CreateHook(hook::get_pattern("45 8D 65 20 C6 81 ? ? 00 00 01 48 8D 59 08", -0x2F), ObjectManager_End, (void**)&g_origObjectManager_End);
 	MH_CreateHook(hook::get_call(hook::get_call(hook::get_pattern<char>("48 8D 05 ? ? ? ? 48 8B D9 48 89 01 E8 ? ? ? ? 84 C0 74 08 48 8B CB E8", -0x19) + 0x32)), PlayerManager_End, (void**)&g_origPlayerManager_End);
 #elif IS_RDR3
-	MH_CreateHook(hook::get_pattern((xbr::IsGameBuildOrGreater<1436>()) ? "C6 81 ? ? ? ? 01 49 8B ? E8 ? ? ? ? 45 8D 67" : "C6 81 ? ? ? ? 01 48 8B CD E8 ? ? ? ? 45 8D 67", -0x36), ObjectManager_End, (void**)&g_origObjectManager_End);
+	MH_CreateHook(hook::get_pattern("48 83 EC 30 45 33 FF 48 8B F1 44 38 B9", -0x18), ObjectManager_End, (void**)&g_origObjectManager_End);
 	MH_CreateHook(hook::get_call(hook::get_call(hook::get_pattern<char>("48 8D 05 ? ? ? ? 48 8B F9 48 89 01 E8 ? ? ? ? 84 C0 74 08 48 8B ? E8", -0xF) + 0x28)), PlayerManager_End, (void**)&g_origPlayerManager_End);
 #endif
 

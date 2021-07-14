@@ -1,13 +1,12 @@
 #include <StdInc.h>
 #include <Hooking.h>
 #include <Streaming.h>
-#include <CrossBuildRuntime.h>
 
 static void* g_storeMgr;
 
 static hook::cdecl_stub<void(bool)> g_loadObjectsNow([]()
 {
-	return hook::get_call(hook::get_pattern(xbr::IsGameBuildOrGreater<1436>() ? "03 CB 8B 4C C8 04 80 E1 03 80 F9 01 74 2B" : "03 CB 8B 4C C8 04 80 E1 03 80 F9 01 75", -0x12));
+	return hook::get_call(hook::get_pattern("33 C9 E8 ? ? ? ? 8B 0D ? ? ? ? 48 8B 05 ? ? ? ? 03 CB", 2));
 });
 
 static hook::cdecl_stub<void(void*, uint32_t, int)> g_requestObject([]()

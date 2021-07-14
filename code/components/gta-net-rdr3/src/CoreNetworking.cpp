@@ -570,12 +570,12 @@ static hook::cdecl_stub<void(void*)> _rlPresence_GamerPresence_Clear([]()
 
 static hook::cdecl_stub<void(int)> _rlPresence_refreshSigninState([]()
 {
-	return (xbr::IsGameBuildOrGreater<1436>()) ? hook::get_pattern("48 81 EC ? ? ? ? 45 33 ED 44 8B F9 44", -0x18) : hook::get_pattern("48 8D 54 24 20 48 69 ? ? ? ? ? 48 8D 05 ? ? ? ? 4C", -0x35);
+	return hook::get_call(hook::get_pattern("40 84 FF 74 0E 33 C9 E8", 7));
 });
 
 static hook::cdecl_stub<void(int)> _rlPresence_refreshNetworkStatus([]()
 {
-	return hook::get_pattern("45 33 ? 8B DE EB 0F 48 8D", xbr::IsGameBuildOrGreater<1436>() ? -0x7A : -0x7D);
+	return hook::get_call(hook::get_pattern("40 84 FF 74 0E 33 C9 E8", 14));
 });
 
 // unused if we use sc sessions
@@ -775,15 +775,8 @@ static HookFunction hookFunction([]()
 
 	// skip seamless host for is-host call
 	//hook::put<uint8_t>(hook::get_pattern("75 1B 38 1D ? ? ? ? 74 36"), 0xEB);
-	
-	if (xbr::IsGameBuildOrGreater<1436>())
-	{
-		rlPresence__m_GamerPresences = hook::get_address<void*>(hook::get_pattern("48 81 EC ? ? ? ? 45 33 ED 44 8B F9 44", 0x35 - 0x18));
-	}
-	else
-	{
-		rlPresence__m_GamerPresences = hook::get_address<void*>(hook::get_pattern("48 8D 54 24 20 48 69 ? ? ? ? ? 48 8D 05 ? ? ? ? 4C", 0x44 - 0x35));
-	}
+
+	rlPresence__m_GamerPresences = hook::get_address<void*>(hook::get_pattern("F6 84 01 ? ? ? ? 02 74 ? 48 05", -4));
 
 	static LoggedInt tryHostStage = 0;
 
@@ -994,7 +987,7 @@ static HookFunction hookFunction([]()
 	{
 		hook::jump(hook::get_pattern("75 42 8D 53 03 C7 44 24 20 F4 D2", -0x21), Return<int, 2>);
 		hook::jump(hook::get_pattern("A9 FD FF FF FF 0F 85 B1 00 00 00 48", -0x3E), Return<int, 2>);
-	} 
+	}
 	else
 	{
 		hook::jump(hook::get_pattern("75 21 4C 8D 0D ? ? ? ? 41 B8 30 10 00 10", -0x21), Return<int, 2>);
