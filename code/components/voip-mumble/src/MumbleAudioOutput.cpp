@@ -326,6 +326,18 @@ struct XA2DestinationNode : public lab::AudioDestinationNode
 
 	void Poll(size_t numFrames)
 	{
+		__try
+		{
+			PollReal(numFrames);
+		}
+		__except(EXCEPTION_EXECUTE_HANDLER)
+		{
+		
+		}
+	}
+
+	void PollReal(size_t numFrames)
+	{
 		if (m_shutDown)
 		{
 			return;
