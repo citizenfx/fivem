@@ -358,13 +358,29 @@ static void OverloadCrashData(TASKDIALOGCONFIG* config)
 
 		if (!pickup.is_null())
 		{
-			_wunlink(MakeRelativeCitPath(L"data\\cache\\error-pickup").c_str());
-
 			static std::wstring errTitle = fmt::sprintf(PRODUCT_NAME L" has encountered an error");
 			static std::wstring errDescription = ToWide(ParseLinks(pickup["message"].get<std::string>()));
 
+			if (errDescription.find(L'\n') != std::string::npos)
+			{
+				auto nlPos = errDescription.find_first_of(L"\r\n");
+				errTitle = errDescription.substr(0, nlPos);
+
+				if (auto msgStart = errDescription.find_first_not_of(L"\r\n", nlPos); msgStart
+																					  != std::string::npos)
+				{
+					errDescription = errDescription.substr(msgStart);
+				}
+			}
+
 			config->pszMainInstruction = errTitle.c_str();
 			config->pszContent = errDescription.c_str();
+
+			config->dwFlags &= ~(TDF_USE_COMMAND_LINKS | TDF_EXPANDED_BY_DEFAULT | TDF_SHOW_PROGRESS_BAR);
+			config->pszMainIcon = TD_ERROR_ICON;
+
+			static std::wstring saveStr = gettext(L"Save information");
+			const_cast<TASKDIALOG_BUTTON*>(config->pButtons)[0].pszButtonText = saveStr.c_str();
 
 			return;
 		}
@@ -928,6 +944,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 	HANDLE inheritedHandleBit = (HANDLE)inheritedHandle;
 	static HANDLE parentProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_TERMINATE | SYNCHRONIZE | PROCESS_CREATE_THREAD | PROCESS_VM_READ | PROCESS_VM_WRITE, FALSE, parentPid);
+	static HANDLE crashReport = CreateEvent(NULL, TRUE, TRUE, NULL);
 
 	CrashGenerationServer::OnClientConnectedCallback connectCallback = [] (void*, const ClientInfo* info)
 	{
@@ -936,6 +953,9 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 	CrashGenerationServer::OnClientDumpRequestCallback dumpCallback = [] (void*, const ClientInfo* info, const std::wstring* filePath)
 	{
+		// we're going to be reporting, unsignal
+		ResetEvent(crashReport);
+
 		auto process_handle = info->process_handle();
 		DWORD exceptionCode = 0;
 
@@ -1304,7 +1324,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 			}
 		}
 
-		static std::wstring windowTitle = PRODUCT_NAME L" Error";
+		static std::wstring windowTitle = PRODUCT_NAME;
 		static std::wstring mainInstruction = PRODUCT_NAME L" has stopped working";
 		
 		std::wstring cuz = L"An error";
@@ -1622,6 +1642,8 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 			saveThread.join();
 		}
 
+		SetEvent(crashReport);
+
 		_wunlink(MakeRelativeCitPath(L"data\\cache\\extra_dump_info.bin").c_str());
 		_wunlink(MakeRelativeCitPath(L"data\\cache\\extra_dump_info2.bin").c_str());
 	};
@@ -1645,9 +1667,10 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		SetEvent(inheritedHandleBit);
 
 		OnStartSession();
-
-		WaitForSingleObject(parentProcess, INFINITE);
 	}
+
+	WaitForSingleObject(parentProcess, INFINITE);
+	WaitForSingleObject(crashReport, 15000);
 
 	// at this point we can safely perform some cleanup tasks, no matter whether the game exited cleanly or crashed
 
