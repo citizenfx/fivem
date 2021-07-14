@@ -387,7 +387,7 @@
                 </Item>
                 <Item>
                   <PoolName>CScenarioInfo</PoolName>
-                  <PoolSize value="2590"/>
+                  <PoolSize value="2605"/>
                 </Item>
                 <Item>
                     <PoolName>CTacticalAnalysis</PoolName>
@@ -415,11 +415,11 @@
 				</Item>
                 <Item>
 					<PoolName>CGameScriptResource</PoolName>
-                  <PoolSize value="2466"/>
+                  <PoolSize value="2526"/>
                 </Item>
                 <Item>
                   <PoolName>ClothStore</PoolName>
-                  <PoolSize value="1010"/>
+                  <PoolSize value="1100"/>
                 </Item>
 				<Item>
 					<PoolName>CCombatMeleeGroup</PoolName>
@@ -947,11 +947,11 @@
                 </Item>
                 <Item>
                   <PoolName>CScriptEntityExtension</PoolName>
-                  <PoolSize value="400"/>
+                  <PoolSize value="600"/>
                 </Item>
                 <Item>
                   <PoolName>CScriptEntityIdExtension</PoolName>
-                  <PoolSize value="500"/>
+                  <PoolSize value="600"/>
                 </Item>
                 <Item>
                   <PoolName>CVehicleChaseDirector</PoolName>
@@ -1107,7 +1107,7 @@
                 </Item>
                 <Item>
                   <PoolName>FragmentStore</PoolName>
-                  <PoolSize value="8740"/>
+                  <PoolSize value="8756"/>
                 </Item>
                 <Item>
                   <PoolName>fwScriptGuid</PoolName>
@@ -1307,7 +1307,7 @@
                 </Item>
                 <Item>
                   <PoolName>MetaDataStore</PoolName>
-                  <PoolSize value="44450"/>
+                  <PoolSize value="44620"/>
                 </Item>
                 <Item>
                   <PoolName>NavMeshes</PoolName>
@@ -1404,7 +1404,7 @@
                 </Item>
                 <Item>
                   <PoolName>CWeaponComponentInfo</PoolName>
-                  <PoolSize value="790"/>
+                  <PoolSize value="840"/>
                 </Item>
                 <Item>
                   <PoolName>phInstGta</PoolName>
@@ -1570,7 +1570,7 @@
 				<Item>
                   <!-- Size of the CWaypointRecording streaming module. -->
                   <PoolName>wptrec</PoolName>
-                  <PoolSize value="3100"/>
+                  <PoolSize value="3150"/>
                 </Item>
                 <Item>
                   <PoolName>fwLodNode</PoolName>
@@ -1791,7 +1791,7 @@
                 </Item>
                 <Item>
                   <PoolName>CUnlock</PoolName>
-                  <PoolSize value="25000"/>
+                  <PoolSize value="27000"/>
                 </Item>
                 <!-- ExtensionComponents -->
                 <Item>
@@ -1924,7 +1924,7 @@
 				</Item>
 				<Item>
 					<PoolName>scrGlobals</PoolName>
-					<PoolSize value="8388608"/>
+					<PoolSize value="8488608"/>
 				</Item>
               </Entries>
             </PoolSizes>
@@ -2155,7 +2155,7 @@
               <MaxTimeModelInfos value="10"/>
               <MaxVehicleModelInfos value="200"/>
               <MaxWeaponModelInfos value="350"/>
-			  <MaxExtraWeaponModelInfos value = "159"/>
+			  <MaxExtraWeaponModelInfos value = "205"/>
             </ConfigModelInfo>
 
 			<ConfigComponentSystem>
@@ -2173,7 +2173,7 @@
             </ConfigExtensions>
 
             <ConfigStreamingEngine>
-			  <ArchiveCount value="4600"/>
+			  <ArchiveCount value="4650"/>
 			  <MinVideoMemory value="5120"/>
             </ConfigStreamingEngine>
 
@@ -2267,7 +2267,7 @@
 				<RosTitleVersion value="11"/>
 				<RosScVersion value="11"/>
 				<RosGameServerVersionNumber value="17"/>
-				<RosGameServerCatalogReleaseId>mp008</RosGameServerCatalogReleaseId>
+				<RosGameServerCatalogReleaseId>mp009</RosGameServerCatalogReleaseId>
 				<RosScId value="13"/>
 				<TitleDirectoryName>Red Dead Redemption 2</TitleDirectoryName>
 				<MultiplayerSessionTemplateName>SessionTemplate</MultiplayerSessionTemplateName>
@@ -3845,7 +3845,7 @@
 				</ConfigExtensions>
 
 				<ConfigStreamingEngine>
-					<ArchiveCount value="4650"/>
+					<ArchiveCount value="4700"/>
 					<MinVideoMemory value="5120"/>
 				</ConfigStreamingEngine>
 
@@ -3955,7 +3955,7 @@
 					<RosTitleVersion value="11"/>
 					<RosScVersion value="11"/>
 					<RosGameServerVersionNumber value="1017"/>
-					<RosGameServerCatalogReleaseId>mp008</RosGameServerCatalogReleaseId>
+					<RosGameServerCatalogReleaseId>mp009</RosGameServerCatalogReleaseId>
 					<RosScId value="13"/>
 					<SteamAppId value="1174180"/>
 					<TitleDirectoryName>Red Dead Redemption 2</TitleDirectoryName>
@@ -4255,7 +4255,7 @@
 				<RosTitleVersion value="11"/>
 				<RosScVersion value="11"/>
 				<RosGameServerVersionNumber value="2017"/>
-				<RosGameServerCatalogReleaseId>mp008</RosGameServerCatalogReleaseId>
+				<RosGameServerCatalogReleaseId>mp009</RosGameServerCatalogReleaseId>
 				<RosScId value="13"/>
 				<TitleDirectoryName>Redemption 2</TitleDirectoryName>
 				<MultiplayerSessionTemplateName>SessionTemplate</MultiplayerSessionTemplateName>
@@ -4383,7 +4383,7 @@
 						</Item>
 						<Item>
 						  <ResourceTypeName>SEQUENCE_TASK</ResourceTypeName>
-						  <ExpectedMaximum value="11"/>
+						  <ExpectedMaximum value="13"/>
 						</Item>
 						<Item>
 						  <ResourceTypeName>GROUP_TASK</ResourceTypeName>
@@ -4395,7 +4395,7 @@
 						</Item>
 						<Item>
 						  <ResourceTypeName>CHECKPOINT</ResourceTypeName>
-						  <ExpectedMaximum value="6"/>
+						  <ExpectedMaximum value="64"/>
 						</Item>
 						<Item>
 						  <ResourceTypeName>TEXT_DATABASE</ResourceTypeName>
