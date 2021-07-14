@@ -1147,23 +1147,25 @@ static void LoadStreamingFiles(LoadType loadType)
 			g_ourIndexes.insert(strId + strModule->baseIdx);
 			g_pendingRemovals.erase({ strModule, strId });
 
+			// get the raw streamer and make an entry in there
+			auto rawStreamer = getRawStreamer();
+			int collectionId = 0;
+
+#ifdef GTA_FIVE
+			rage::fiCollection* customRawStreamer;
+
+			if (GetRawStreamerForFile(file.c_str(), &customRawStreamer))
+			{
+				rawStreamer = customRawStreamer;
+				collectionId = 1;
+			}
+#endif
+
+			uint32_t fileId = strId + strModule->baseIdx;
+
 			// if the asset is already registered...
 			if (cstreaming->Entries[strId + strModule->baseIdx].handle != 0)
 			{
-				// get the raw streamer and make an entry in there
-				auto rawStreamer = getRawStreamer();
-				int collectionId = 0;
-
-#ifdef GTA_FIVE
-				rage::fiCollection* customRawStreamer;
-
-				if (GetRawStreamerForFile(file.c_str(), &customRawStreamer))
-				{
-					rawStreamer = customRawStreamer;
-					collectionId = 1;
-				}
-#endif
-
 				uint32_t idx = rawStreamer->GetEntryByName(file.c_str());
 
 				if (strId != -1)
