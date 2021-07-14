@@ -2,6 +2,7 @@
 #include "Hooking.h"
 
 #include "scrEngine.h"
+#include "CrossBuildRuntime.h"
 
 #include <boost/type_index.hpp>
 
@@ -91,7 +92,7 @@ static hook::cdecl_stub<void(fwEntity*)> deleteObject([]()
 
 static hook::cdecl_stub<void(netObject*, bool)> sendMarkAsNoLongerNeededEvent([]()
 {
-	return hook::get_pattern("49 8B 04 C0 40 84 34 01 0F 84", -47);
+	return (xbr::IsGameBuildOrGreater<1436>()) ? hook::get_pattern("8A 55 28 48 8B CF C6 45 38 00 E8", -99) : hook::get_pattern("49 8B 04 C0 40 84 34 01 0F 84", -47);
 });
 
 static hook::cdecl_stub<void(fwEntity*, bool)> markAsNoLongerNeeded([]()

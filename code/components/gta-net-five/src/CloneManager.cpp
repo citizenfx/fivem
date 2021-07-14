@@ -1193,7 +1193,6 @@ bool CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 
 	AssociateSyncTree(obj->GetObjectId(), syncTree);
 
-
 #ifdef IS_RDR3
 	auto check = syncTree->m_18(obj, -1);
 	auto canSync = obj->CanSyncWithNoGameObject();
@@ -2215,7 +2214,7 @@ static hook::cdecl_stub<void(rage::netObjectMgr*, rage::netObject*)> _processRem
 #ifdef GTA_FIVE
 	return hook::get_pattern("39 42 74 75 12 39 42 70 75 0D", -0x11);
 #elif IS_RDR3
-	return hook::get_pattern("74 ? F6 42 48 01 74 ? 45 8B C2 48", -0xD);
+	return (xbr::IsGameBuildOrGreater<1436>()) ? hook::get_pattern("F6 43 48 01 74 ? 33 C9 48 8D 43", -0x3C) : hook::get_pattern("74 ? F6 42 48 01 74 ? 45 8B C2 48", -0xD);
 #endif
 });
 

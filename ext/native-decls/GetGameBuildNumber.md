@@ -20,6 +20,7 @@ Possible values:
 * RedM
   * 1311
   * 1355
+  * 1436
 * LibertyM
   * 43
 * FXServer

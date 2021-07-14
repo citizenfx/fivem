@@ -324,6 +324,8 @@ static uint32_t g_rsOffset1;
 static uint32_t g_rsOffset2;
 static uint32_t g_rsOffset3;
 
+static uint32_t g_swapchainBackbufferOffset;
+
 uint32_t GetRasterizerState()
 {
 	return *(uint8_t*)((char*)get_sgaGraphicsContext() + g_rsOffset1);
@@ -360,6 +362,9 @@ static HookFunction hookFunctionRS([]()
 
 	// 1207.80: 0x9D2C/40236
 	g_rsOffset3 = *hook::get_pattern<uint32_t>("3A D1 74 22 8B 83 ? ? ? ? 88 8B", 18);
+
+	// 1311.20: 0x778/1912, 1436.25: 0x7B8/1976
+	g_swapchainBackbufferOffset = *hook::get_pattern<uint32_t>("41 B1 01 BA 01 00 00 00 48 8B 0C D8", -24);
 });
 
 uint32_t GetBlendState()
@@ -477,12 +482,9 @@ static void WrapEndDraw(void* cxt)
 	void* rt[1];
 	//rt[0] = (*(void* (__fastcall**)(__int64))(**(uint64_t**)sgaDriver + 1984i64))(*(uint64_t*)sgaDriver);
 	//rt[0] = (*(void* (__fastcall**)(__int64))(**(uint64_t**)sgaDriver + 1992i64))(*(uint64_t*)sgaDriver);
-	rt[0] = (*(void*(__fastcall**)(__int64))(**(uint64_t**)sgaDriver + 0x778))(*(uint64_t*)sgaDriver);
+	rt[0] = (*(void*(__fastcall**)(__int64))(**(uint64_t**)sgaDriver + g_swapchainBackbufferOffset))(*(uint64_t*)sgaDriver);
 
-	// pattern near vtbl call:
-	//41 B1 01 BA 01 00 00 00 48 8B 0C D8
-
-	static auto ds = hook::get_address<int*>(hook::get_pattern("44 8B CE 48 89 05 ? ? ? ? 41 B8 02", 19));
+	static auto ds = hook::get_address<int*>(xbr::IsGameBuildOrGreater<1436>() ? hook::get_pattern("44 8B CE 48 8B 05 ? ? ? ? 33 C9 48 89", 6) : hook::get_pattern("44 8B CE 48 89 05 ? ? ? ? 41 B8 02", 19));
 
 	setRTs(cxt, 1, rt, true);
 	setDSs(cxt, *(void**)ds, true);
@@ -579,11 +581,15 @@ static HookFunction hookFunction([]()
 	stockStates[BlendStatePremultiplied] = stockStates[BlendStateDefault];
 
 	diffSS = hook::get_address<decltype(diffSS)>(hook::get_pattern("66 C7 45 60 15 03 C6 45 62 03", 17));
-	sgaDriver = hook::get_address<decltype(sgaDriver)>(hook::get_pattern("C6 82 ? ? 00 00 01 C6 82 ? ? 00 00 01", 17));
+	sgaDriver = hook::get_address<decltype(sgaDriver)>(hook::get_pattern("C6 82 ? ? 00 00 01 C6 82 ? ? 00 00 01 48 8B 0D", 17));
 
 	g_textureFactory = hook::get_address<decltype(g_textureFactory)>(hook::get_pattern("48 8D 54 24 50 C7 44 24 50 80 80 00 00 48 8B C8", 0x25));
 	
-	if (xbr::IsGameBuildOrGreater<1355>())
+	if (xbr::IsGameBuildOrGreater<1436>())
+	{
+		g_d3d12Driver = hook::get_address<void*>(hook::get_pattern("75 04 33 C0 EB 1A E8", 28));
+	}
+	else if (xbr::IsGameBuildOrGreater<1355>())
 	{
 		g_d3d12Driver = hook::get_address<void*>(hook::get_pattern("B9 01 00 00 00 48 83 3D ? ? ? ? 00 0F", 25));
 	}
@@ -592,7 +598,14 @@ static HookFunction hookFunction([]()
 		g_d3d12Driver = hook::get_address<void*>(hook::get_pattern("83 E9 01 74 ? 83 F9 02 75 ? 48 8B CF E8", -4));
 	}
 
-	g_vkDriver = hook::get_address<void*>(hook::get_pattern("B9 03 00 00 00 48 83 3D ? ? ? ? 00 0F", 25));
+	if (xbr::IsGameBuildOrGreater<1436>())
+	{
+		g_vkDriver = hook::get_address<void*>(hook::get_pattern("33 C0 EB 2F 41 B8 80 00 00 00", 47));
+	}
+	else
+	{
+		g_vkDriver = hook::get_address<void*>(hook::get_pattern("B9 03 00 00 00 48 83 3D ? ? ? ? 00 0F", 25));
+	}
 
 	g_d3d12Device = hook::get_address<decltype(g_d3d12Device)>(hook::get_pattern("48 8B 01 FF 50 78 48 8B 0B 48 8D", -7));
 	g_vkHandle = hook::get_address<decltype(g_vkHandle)>(hook::get_pattern("8D 50 41 8B CA 44 8B C2 F3 48 AB 48 8B 0D", 14));

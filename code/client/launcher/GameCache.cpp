@@ -1459,8 +1459,19 @@ std::map<std::string, std::string> UpdateGameCache()
 		g_requiredEntries.push_back({ "update/x64/dlcpacks/mptuner/dlc.rpf", "7a7521b3396701f4fe8ae51347c6206c46306648", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 3482869760 });
 	}
 #elif IS_RDR3
-	// 1311/1355 toggle
-	if (IsTargetGameBuild<1355>())
+	// 1311/1355/1436 toggle
+	if (IsTargetGameBuild<1436>())
+	{
+		g_requiredEntries.push_back({ "RDR2.exe", "af5c7ac8e0364b9f16dd56038514b2b6183a856b", "ipfs://todo", 89612184 });
+		g_requiredEntries.push_back({ "appdata0_update.rpf", "40c389093bb843235119cf0aaffdc020beba493d", "ipfs://todo", 3164575 });
+		g_requiredEntries.push_back({ "shaders_x64.rpf", "f4f06c18701d66958eb6f0ac243c8467033b864b", "ipfs://todo", 233898030 });
+		g_requiredEntries.push_back({ "update_1.rpf", "e623e54e3e1dd938a84de780d331a939446e4ba0", "ipfs://todo", 2836982634 });
+		g_requiredEntries.push_back({ "update_2.rpf", "e8a1cb04c4c8b4aba5b0a311a6a1e8d547393da4", "ipfs://todo", 152008398 });
+		g_requiredEntries.push_back({ "update_3.rpf", "b7035ca49f70ed0fc79d6f5690376c5b49784d21", "ipfs://todo", 132374108 });
+		g_requiredEntries.push_back({ "update_4.rpf", "39ca2bbb7a0ab8d8e09288ca8783b91654c9b91b", "ipfs://todo", 2014659811 });
+
+	}
+	else if (IsTargetGameBuild<1355>())
 	{
 		g_requiredEntries.push_back({ "RDR2.exe", "c2fab1d25daef4779aafd2754ec9c593e674e7c3", "ipfs://bafybeigcudahnyogfbavh2fldp5irtm3jxvseysqyarkgibf75wcsmxo4i", 84664448 });
 		g_requiredEntries.push_back({ "appdata0_update.rpf", "307609c164e78adaf4e50e993328485e6264803f", "ipfs://bafybeieesm4cgypcfesnlr4n3q5ruxbjywarnarq75bso77nu6chapktbu", 3069247 });
@@ -1478,6 +1489,11 @@ std::map<std::string, std::string> UpdateGameCache()
 	if (IsTargetGameBuild<1355>())
 	{
 		g_requiredEntries.push_back({ "x64/dlcpacks/mp008/dlc.rpf", "66a50ed07293b92466423e1db5eed159551d8c25", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 487150980 });
+	}
+
+	if (IsTargetGameBuild<1436>())
+	{
+		g_requiredEntries.push_back({ "x64/dlcpacks/mp009/dlc.rpf", "7ae2012968709d6d1079c88ee40369f4359778bf", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 494360763 });
 	}
 #endif
 

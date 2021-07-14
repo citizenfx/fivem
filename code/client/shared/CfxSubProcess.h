@@ -96,6 +96,11 @@ inline const wchar_t* MakeCfxSubProcess(const std::wstring& processType, const s
 	{
 		productName += L"b1355_";
 	}
+
+	if (wcsstr(GetCommandLine(), L"b1436") != nullptr)
+	{
+		productName += L"b1436_";
+	}
 #endif
 #endif
 

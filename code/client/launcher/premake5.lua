@@ -17,7 +17,7 @@ local function isGamePersonality(name)
 		return true
 	end
 	
-	if name == 'game_1311' or name == 'game_1355' then
+	if name == 'game_1311' or name == 'game_1355' or name == 'game_1436' then
 		return true
 	end
 	
@@ -104,6 +104,7 @@ local function launcherpersonality_inner(name, aslr)
 				local gameBuild = '1311'
 				
 				if name == 'game_1355' then gameBuild = '1355_18' end
+				if name == 'game_1436' then gameBuild = '1436_25' end
 
 				local gameDump = ("C:\\f\\RDR2_%s.exe"):format(gameBuild)
 
@@ -214,6 +215,7 @@ if _OPTIONS['game'] == 'five' then
 elseif _OPTIONS['game'] == 'rdr3' then
 	launcherpersonality 'game_1311'
 	launcherpersonality 'game_1355'
+	launcherpersonality 'game_1436'
 	launcherpersonality 'game_mtl'
 elseif _OPTIONS['game'] == 'ny' then
 	launcherpersonality 'game_43'

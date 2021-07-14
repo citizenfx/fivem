@@ -6,6 +6,7 @@
 #include <GameInit.h>
 
 #include <CoreNetworking.h>
+#include <CrossBuildRuntime.h>
 #include <Error.h>
 
 NetLibrary* g_netLibrary;
@@ -569,12 +570,12 @@ static hook::cdecl_stub<void(void*)> _rlPresence_GamerPresence_Clear([]()
 
 static hook::cdecl_stub<void(int)> _rlPresence_refreshSigninState([]()
 {
-	return hook::get_pattern("48 8D 54 24 20 48 69 ? ? ? ? ? 48 8D 05 ? ? ? ? 4C", -0x35);
+	return (xbr::IsGameBuildOrGreater<1436>()) ? hook::get_pattern("48 81 EC ? ? ? ? 45 33 ED 44 8B F9 44", -0x18) : hook::get_pattern("48 8D 54 24 20 48 69 ? ? ? ? ? 48 8D 05 ? ? ? ? 4C", -0x35);
 });
 
 static hook::cdecl_stub<void(int)> _rlPresence_refreshNetworkStatus([]()
 {
-	return hook::get_pattern("45 33 ? 8B DE EB 0F 48 8D", -0x7D);
+	return hook::get_pattern("45 33 ? 8B DE EB 0F 48 8D", xbr::IsGameBuildOrGreater<1436>() ? -0x7A : -0x7D);
 });
 
 // unused if we use sc sessions
@@ -733,7 +734,7 @@ static HookFunction hookFunction([]()
 	// exitprocess -> terminateprocess
 	MH_Initialize();
 	MH_CreateHookApi(L"kernel32.dll", "ExitProcess", ExitProcessReplacement, nullptr);
-	MH_CreateHook(hook::get_pattern("48 8B F9 48 89 44 24 20 41 FF 52 28 85", -0x22), HandleInitPlayerResultStub, (void**)&g_origHandleInitPlayerResult);
+	MH_CreateHook(hook::get_pattern("45 33 C9 4C 8B 11 49 8B D8 48 8B F9", xbr::IsGameBuildOrGreater<1436>() ? -0x1E : -0x19), HandleInitPlayerResultStub, (void**)&g_origHandleInitPlayerResult);
 	MH_EnableHook(MH_ALL_HOOKS);
 
 	hook::iat("ws2_32.dll", CfxSendTo, 20);
@@ -760,7 +761,7 @@ static HookFunction hookFunction([]()
 	//hook::call(0x1426E100B, ParseAddGamer);
 
 	// all uwuids be 2
-	hook::call(hook::get_pattern("B9 03 00 00 00 B8 01 00 00 00 87 83", -85), ZeroUUID);
+	hook::call(hook::get_pattern("B9 03 00 00 00 B8 01 00 00 00 87 83", (xbr::IsGameBuildOrGreater<1436>()) ? -89 : -85), ZeroUUID);
 
 	// get session for find result
 	// 1207.58
@@ -774,8 +775,15 @@ static HookFunction hookFunction([]()
 
 	// skip seamless host for is-host call
 	//hook::put<uint8_t>(hook::get_pattern("75 1B 38 1D ? ? ? ? 74 36"), 0xEB);
-
-	rlPresence__m_GamerPresences = hook::get_address<void*>(hook::get_pattern("48 8D 54 24 20 48 69 ? ? ? ? ? 48 8D 05 ? ? ? ? 4C", 0x44 - 0x35));
+	
+	if (xbr::IsGameBuildOrGreater<1436>())
+	{
+		rlPresence__m_GamerPresences = hook::get_address<void*>(hook::get_pattern("48 81 EC ? ? ? ? 45 33 ED 44 8B F9 44", 0x35 - 0x18));
+	}
+	else
+	{
+		rlPresence__m_GamerPresences = hook::get_address<void*>(hook::get_pattern("48 8D 54 24 20 48 69 ? ? ? ? ? 48 8D 05 ? ? ? ? 4C", 0x44 - 0x35));
+	}
 
 	static LoggedInt tryHostStage = 0;
 
@@ -982,12 +990,27 @@ static HookFunction hookFunction([]()
 	hook::jump(hook::get_pattern("33 C0 39 41 18 74 11 F6 81 B4 00 00"), Return<int, 1>); // 1408A1014
 
 	// skip cash/inventory
-	hook::jump(hook::get_pattern("75 21 4C 8D 0D ? ? ? ? 41 B8 30 10 00 10", -0x21), Return<int, 2>); // 1423E93A8
-	hook::jump(hook::get_pattern("A9 FD FF FF FF 75 64 48 8B 0D", -0x3A), Return<int, 2>); // 0x1423FAB4C
+	if (xbr::IsGameBuildOrGreater<1436>())
+	{
+		hook::jump(hook::get_pattern("75 42 8D 53 03 C7 44 24 20 F4 D2", -0x21), Return<int, 2>);
+		hook::jump(hook::get_pattern("A9 FD FF FF FF 0F 85 B1 00 00 00 48", -0x3E), Return<int, 2>);
+	} 
+	else
+	{
+		hook::jump(hook::get_pattern("75 21 4C 8D 0D ? ? ? ? 41 B8 30 10 00 10", -0x21), Return<int, 2>);
+		hook::jump(hook::get_pattern("A9 FD FF FF FF 75 64 48 8B 0D", -0x3A), Return<int, 2>);
+	}
 
 	// skip poker
-	hook::jump(hook::get_pattern("48 83 EC 28 48 8B 0D ? ? ? ? E8 ? ? ? ? F6 D8 1B C0 83 C0 02"), Return<int, 2>); // 0x1423E9338
-	hook::jump(hook::get_pattern("B8 02 00 00 00 EB 1F 38 91", -0x22), Return<int, 2>); // 0x1423FAAFC
+	if (xbr::IsGameBuildOrGreater<1436>())
+	{
+		hook::jump(hook::get_pattern("48 83 EC 38 48 8B 0D ? ? ? ? E8 ? ? ? ? 33"), Return<int, 2>);
+	}
+	else
+	{
+		hook::jump(hook::get_pattern("48 83 EC 28 48 8B 0D ? ? ? ? E8 ? ? ? ? F6 D8 1B C0 83 C0 02"), Return<int, 2>);
+		hook::jump(hook::get_pattern("B8 02 00 00 00 EB 1F 38 91", -0x22), Return<int, 2>);
+	}
 
 	// don't stop unsafe network scripts
 	hook::jump(hook::get_pattern("83 7B 10 02 74 21 48 8B CB E8", -0x35), Return<int, 0>); // 0x140E8A58C
@@ -1009,5 +1032,12 @@ static HookFunction hookFunction([]()
 	}
 
 	// unusual script check before allowing session to continue
-	hook::nop(hook::get_pattern("84 C0 75 6C 44 39 7B 20 75", 2), 2);
+	if (xbr::IsGameBuildOrGreater<1436>())
+	{
+		hook::nop(hook::get_pattern("84 C0 0F 85 90 00 00 00 44 39 6B 20 75", 2), 6);
+	}
+	else
+	{
+		hook::nop(hook::get_pattern("84 C0 75 6C 44 39 7B 20 75", 2), 2);
+	}
 });
