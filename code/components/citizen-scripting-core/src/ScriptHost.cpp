@@ -222,7 +222,7 @@ result_t TestScriptHost::OpenHostFile(char *fileName, fxIStream * *stream)
 	std::string_view fn = fileName;
 	std::string fileNameStr = m_resource->GetPath() + "/" + fileName;
 
-	if (fn.length() > 1 && fn[0] == '@')
+	if (fn.length() > 1 && fn[0] == '@' && fn.find_first_of('/') != std::string::npos)
 	{
 		std::string_view resName = fn.substr(1, fn.find_first_of('/') - 1);
 		fn = fn.substr(1 + resName.length() + 1);
