@@ -118,10 +118,47 @@ static bool OpenArchiveWrap(rage::fiPackfile* packfile, const char* archive, boo
 
 static void PackfileEncryptionError()
 {
-	FatalError("Invalid rage::fiPackfile encryption type%s.\n\nIf you have any modified game files, please remove or verify them. See http://rsg.ms/verify for more information on verifying your game files.\n"
-		"If using OpenIV, please make sure you have used the 'mods' folder for placing your modified files.\n\n"
-		"Currently, the installation directory %s is being used.",
-		(!currentPack.empty()) ? fmt::sprintf(" in packfile %s", currentPack) : " specified",
+	std::string modMessage = "";
+
+	if (!currentPack.empty())
+	{
+		auto device = rage::fiDevice::GetDevice(currentPack.c_str(), true);
+		if (device)
+		{
+			uint64_t ptr;
+			auto h = device->OpenBulk(currentPack.c_str(), &ptr);
+
+			if (h != -1)
+			{
+				struct Header7
+				{
+					uint32_t magic;
+					uint32_t entryCount;
+					uint32_t nameLength;
+					uint32_t encryption;
+				};
+
+				Header7 packHeader;
+
+				device->ReadBulk(h, ptr, &packHeader, sizeof(packHeader));
+				device->CloseBulk(h);
+
+				modMessage = fmt::sprintf("Found encryption type %s. ", std::string_view((char*)&packHeader.encryption, 4));
+
+				if (packHeader.encryption == 0x4E45504F || packHeader.encryption == 0x50584643)
+				{
+					modMessage += "Since you were using OpenIV, make sure you use the 'mods' folder to place your modified files.\n\n";
+				}
+			}
+		}
+	}
+
+	FatalError("Detected modified game files%s.\n"
+		"%s"
+		"Currently, the installation directory %s is being used.\n\n"
+		"Please verify your game files, see http://rsg.ms/verify for more information on doing so.",
+		(!currentPack.empty()) ? fmt::sprintf(" (packfile %s)", currentPack) : "",
+		modMessage,
 		ToNarrow(MakeRelativeGamePath(L"")));
 }
 
