@@ -16,6 +16,6 @@ A setter for [GET_RESOURCE_KVP_FLOAT](#_0x35BDCEEA).
 
 ## Examples
 ```lua
-local lickMy = 42
-SetResourceKvp('bananabread', lickMy)
+local lickMy = 42.5
+SetResourceKvpFloat('bananabread', lickMy)
 ```
