@@ -886,6 +886,7 @@ inline void HandleDataFileListWithTypes(TList& list, const TFn& fn, const std::s
 
 enum class LoadType
 {
+	Startup,
 	BeforeMapLoad,
 	BeforeSession,
 	AfterSessionEarlyStage,
@@ -1053,7 +1054,7 @@ static void LoadStreamingFiles(LoadType loadType)
 
 		bool isMod = tag.find("mod_") == 0 || tag.find("faux_pack") == 0;
 
-		if (loadType == LoadType::BeforeMapLoad || loadType == LoadType::AfterSessionEarlyStage)
+		if (loadType == LoadType::Startup || loadType == LoadType::BeforeMapLoad || loadType == LoadType::AfterSessionEarlyStage)
 		{
 			// only support tags mod_ and faux_pack
 			if (!isMod)
@@ -1101,6 +1102,15 @@ static void LoadStreamingFiles(LoadType loadType)
 			continue;
 		}
 
+		if (loadType == LoadType::Startup)
+		{
+			if (ext != "ytd" && ext != "gfx")
+			{
+				++it;
+				continue;
+			}
+		}
+
 		if (loadType != LoadType::AfterSession && loadType != LoadType::AfterSessionEarlyStage)
 		{
 			if (ext == "ymap" || ext == "ytyp" || ext == "ybn")
@@ -1111,6 +1121,16 @@ static void LoadStreamingFiles(LoadType loadType)
 		}
 
 		it = g_customStreamingFiles.erase(it);
+
+		// check if the file even exists
+		{
+			auto holderDevice = rage::fiDevice::GetDevice(file.c_str(), true);
+
+			if (holderDevice->GetFileAttributes(file.c_str()) == INVALID_FILE_ATTRIBUTES)
+			{
+				continue;
+			}
+		}
 
 		auto strModule = cstreaming->moduleMgr.GetStreamingModule(ext.c_str());
 
@@ -1182,6 +1202,7 @@ static void LoadStreamingFiles(LoadType loadType)
 			}
 			else
 			{
+				fileId = -1;
 				streaming::RegisterRawStreamingFile(&fileId, file.c_str(), true, baseName.c_str(), false);
 
 				if (fileId != -1)
@@ -2675,13 +2696,17 @@ static HookFunction hookFunction([]()
 		}
 		else if (type == rage::INIT_CORE)
 		{
-			LoadStreamingFiles(LoadType::BeforeMapLoad);
+			LoadStreamingFiles(LoadType::Startup);
 		}
 	});
 
 	rage::OnInitFunctionEnd.Connect([](rage::InitFunctionType type)
 	{
-		if (type == rage::INIT_SESSION)
+		if (type == rage::INIT_BEFORE_MAP_LOADED)
+		{
+			LoadStreamingFiles(LoadType::BeforeMapLoad);
+		}
+		else if (type == rage::INIT_SESSION)
 		{
 			LoadStreamingFiles(LoadType::AfterSessionEarlyStage);
 			LoadStreamingFiles(LoadType::AfterSession);
