@@ -2537,6 +2537,22 @@ static uint32_t GetFireApplicability(void* event, void* pos)
 	// send all fires to all remote players
 	return (1 << 31);
 }
+#elif IS_RDR3
+static uint32_t*(*g_origGetFireApplicability)(void* event, uint32_t*, void* pos);
+
+static uint32_t* GetFireApplicability(void* event, uint32_t* result, void* pos)
+{
+	if (!icgi->OneSyncEnabled)
+	{
+		return g_origGetFireApplicability(event, result, pos);
+	}
+
+	// send all fires to all remote players
+	uint32_t value = (1 << 31);
+
+	*result = value;
+	return &value;
+}
 #endif
 
 static hook::thiscall_stub<bool(void* eventMgr, bool fatal)> rage__netEventMgr__CheckForSpaceInPool([]()
@@ -2653,10 +2669,14 @@ static HookFunction hookFunctionEv([]()
 	MH_CreateHook(hook::get_pattern("48 83 EC 30 48 8B F9 4C 8B F2 48 83 C1 08", -0xE), SendGameEvent, (void**)&g_origSendGameEvent);
 #endif
 
-#ifdef GTA_FIVE
 	// fire applicability
+#ifdef GTA_FIVE
 	MH_CreateHook(hook::get_pattern("85 DB 74 78 44 8B F3 48", -0x30), GetFireApplicability, (void**)&g_origGetFireApplicability);
+#elif IS_RDR3
+	MH_CreateHook(hook::get_pattern("48 8B 0C C1 4C 39 24 0A 75 04 33 C0", -0x3A), GetFireApplicability, (void**)&g_origGetFireApplicability);
+#endif
 
+#ifdef GTA_FIVE
 	// CAlterWantedLevelEvent pool check
 	if (xbr::IsGameBuildOrGreater<2060>())
 	{
