@@ -67,8 +67,6 @@ static void* g_dataFileMgr;
 #ifdef GTA_FIVE
 static void LoadDats(void* dataFileMgr, const char* name, bool enabled)
 {
-	dataFileMgr__loadDat(dataFileMgr, "citizen:/citizen.meta", enabled);
-
 	// load before-level metas
 	for (const auto& meta : g_beforeLevelMetas)
 	{
@@ -87,8 +85,6 @@ static void LoadDats(void* dataFileMgr, const char* name, bool enabled)
 
 static void LoadDefDats(void* dataFileMgr, const char* name, bool enabled)
 {
-	//dataFileMgr__loadDefDat(dataFileMgr, "citizen:/citizen.meta", enabled);
-
 	g_dataFileMgr = dataFileMgr;
 
 	// load before-level metas
@@ -101,8 +97,6 @@ static void LoadDefDats(void* dataFileMgr, const char* name, bool enabled)
 #elif IS_RDR3
 static void LoadDats(void* dataFileMgr, const char* name, bool enabled, void* unk)
 {
-	dataFileMgr__loadDat(dataFileMgr, "citizen:/citizen.meta", enabled, unk);
-
 	// load before-level metas
 	for (const auto& meta : g_beforeLevelMetas)
 	{
@@ -121,8 +115,6 @@ static void LoadDats(void* dataFileMgr, const char* name, bool enabled, void* un
 
 static void LoadDefDats(void* dataFileMgr, const char* name, bool enabled, void* unk)
 {
-	//dataFileMgr__loadDefDat(dataFileMgr, "citizen:/citizen.meta", enabled);
-
 	g_dataFileMgr = dataFileMgr;
 
 	// load before-level metas
