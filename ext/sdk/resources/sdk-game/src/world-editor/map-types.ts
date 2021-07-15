@@ -30,6 +30,11 @@ export interface WEApplyPatchRequest {
   entityHash: number,
 }
 
+export interface WEDeletePatchRequest {
+  mapDataHash: number,
+  entityHash: number,
+}
+
 export interface WECreateAdditionRequest {
   id: string,
   object: WEMapAddition,
@@ -70,6 +75,7 @@ export interface WEDeleteAdditionRequest {
 export enum WEMapVersion {
   V1 = 1,
   V2 = 2,
+  V3 = 3,
 }
 
 export interface WEMap {

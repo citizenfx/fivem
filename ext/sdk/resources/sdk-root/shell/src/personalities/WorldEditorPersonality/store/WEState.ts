@@ -9,7 +9,7 @@ import { FilesystemEntry } from 'shared/api.types';
 import { FXWORLD_FILE_EXT } from 'assets/fxworld/fxworld-types';
 import { WorldEditorStartRequest } from 'shared/api.requests';
 import { WEApplyAdditionChangeRequest, WEApplyPatchRequest, WEMap, WESetAdditionRequest } from 'backend/world-editor/world-editor-types';
-import { WorldEditorMapState } from './WorldEditorMapState';
+import { WEMapState } from './WEMapState';
 import { __DEBUG_MODE_TOGGLES__ } from 'constants/debug-constants';
 import { GameState } from 'store/GameState';
 import { Hotkeys, HOTKEY_COMMAND } from '../Hotkeys';
@@ -45,7 +45,7 @@ export const WEState = new class WEState {
 
   public selection: WESelection = null;
 
-  public map: WorldEditorMapState | null = null;
+  public map: WEMapState | null = null;
   private mapEntry: FilesystemEntry | null = null;
 
   public mapExplorerOpen = false;
@@ -75,7 +75,7 @@ export const WEState = new class WEState {
     onWindowEvent('we:applyAdditionChange', (request: WEApplyAdditionChangeRequest) => this.map?.handleApplyAdditionChangeRequest(request));
 
     onApiMessage(worldEditorApi.mapLoaded, (map: WEMap) => runInAction(() => {
-      this.map = new WorldEditorMapState(map);
+      this.map = new WEMapState(map);
     }));
   }
 

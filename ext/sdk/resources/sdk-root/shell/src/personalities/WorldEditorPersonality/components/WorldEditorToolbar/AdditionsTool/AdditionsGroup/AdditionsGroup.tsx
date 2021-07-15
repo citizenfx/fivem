@@ -46,7 +46,7 @@ export const AdditionsGroup = observer(function AdditionsGroup(props: AdditionsG
     [s.dropping]: isDropping,
   });
 
-  const [groupRenamerOpen, openGroupRenamer, closeGroupRenamer] = useOpenFlag(true);
+  const [groupRenamerOpen, openGroupRenamer, closeGroupRenamer] = useOpenFlag(false);
   const [groupDeleterOpen, openGroupDeleter, closeGroupDeleter] = useOpenFlag(false);
 
   React.useEffect(() => {

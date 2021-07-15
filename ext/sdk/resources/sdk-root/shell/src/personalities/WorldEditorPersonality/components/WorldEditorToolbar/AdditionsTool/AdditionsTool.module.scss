@@ -8,6 +8,12 @@
     background-color: rgba($acColor, .25);
   }
 
+  .placeholder {
+    padding: $q*4;
+
+    line-height: 1.1;
+  }
+
   .controls {
     display: flex;
     align-items: center;

@@ -63,6 +63,19 @@ export const AdditionsTool = observer(function AdditionsTool() {
     },
   ] as ContextMenuItemsCollection, [openGroupCreator]);
 
+  const hasGroups = Object.keys(WEState.map.additionGroups).length > 0;
+  const hasAdditions = Object.keys(WEState.map.additions).length > 0;
+
+  const showPlaceholder = !hasGroups || !hasAdditions;
+  let placeholder;
+  switch (true) {
+    case !hasGroups && !hasAdditions: {
+      placeholder = 'Create addition by clicking plus button above';
+
+      break;
+    }
+  }
+
   return (
     <BaseTool
       renderAlways
@@ -98,6 +111,12 @@ export const AdditionsTool = observer(function AdditionsTool() {
             />
           );
         })}
+
+        {showPlaceholder && (
+          <div className={s.placeholder}>
+            {placeholder}
+          </div>
+        )}
 
         {Object.entries(WEState.map.additionsUngrouped).map(([id, obj]) => (
           <Addition

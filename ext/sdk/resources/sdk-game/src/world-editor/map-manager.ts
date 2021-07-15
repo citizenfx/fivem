@@ -5,6 +5,7 @@ import {
   WEApplyAdditionChangeRequest,
   WEApplyPatchRequest,
   WECreateAdditionRequest,
+  WEDeletePatchRequest,
   WEEntityMatrix,
   WEMap,
   WEMapAddition,
@@ -14,13 +15,14 @@ import {
 import { applyEntityMatrix, limitPrecision, makeEntityMatrix } from "./math";
 import { ObjectManager } from "./object-manager";
 import { SelectionController } from "./selection-controller";
-import { drawDebugText } from "./utils";
 
 export const MapManager = new class MapManager {
   private map: WEMap | null = null;
   private pendingMapdatas: number[] = [];
   private lastCamString: string = '';
   private objects: ObjectManager | null = null;
+
+  private patchBackupMatrices: Record<string, Float32Array> = {};
 
   preinit() {
     EnableEditorRuntime();
@@ -43,6 +45,12 @@ export const MapManager = new class MapManager {
       const request: WEApplyAdditionChangeRequest = JSON.parse(req);
 
       this.handleApplyAdditionChange(request);
+    });
+
+    on('we:deletePatch', (req: string) => {
+      const request: WEDeletePatchRequest = JSON.parse(req);
+
+      this.handleDeletePatch(request.mapDataHash, request.entityHash);
     });
 
     on('we:deleteAddition', (objectId: string) => {
@@ -90,17 +98,29 @@ export const MapManager = new class MapManager {
     this.updateSelectedEntity();
   }
 
+  private prevSelectedEntity = null;
   private updateSelectedEntity() {
     const selectedEntity = SelectionController.getSelectedEntity();
 
     if (selectedEntity !== null) {
       const entityMatrix = makeEntityMatrix(selectedEntity);
 
+      const additionId = this.objects.getObjectId(selectedEntity) || '';
+      const addition = this.map.additions[additionId];
+
+      // Save initial patch matrix
+      if (!addition && (this.prevSelectedEntity !== selectedEntity)) {
+        const [success, mapdataHash, entityHash] = GetEntityMapdataOwner(selectedEntity);
+        if (success) {
+          const key = getPatchKey(mapdataHash, entityHash);
+          if (!this.patchBackupMatrices[key]) {
+            this.patchBackupMatrices[key] = entityMatrix;
+          }
+        }
+      }
+
       if (DrawGizmo(entityMatrix as any, selectedEntity.toString())) {
         applyEntityMatrix(selectedEntity, entityMatrix);
-
-        const additionId = this.objects.getObjectId(selectedEntity) || '';
-        const addition = this.map.additions[additionId];
 
         if (addition) {
           this.updateAddition(additionId, addition, entityMatrix);
@@ -109,6 +129,8 @@ export const MapManager = new class MapManager {
         }
       }
     }
+
+    this.prevSelectedEntity = selectedEntity;
   }
 
   destroy() {
@@ -141,6 +163,19 @@ export const MapManager = new class MapManager {
     this.objects.set(request.id, request.object);
   }
 
+  handleDeletePatch(mapdataHash: number, entityHash: number) {
+    const key = getPatchKey(mapdataHash, entityHash);
+
+    if (this.patchBackupMatrices[key]) {
+      applyMapdataPatch(mapdataHash, entityHash, this.patchBackupMatrices[key]);
+      delete this.patchBackupMatrices[key];
+    }
+
+    if (this.map.patches[mapdataHash]) {
+      delete this.map.patches[mapdataHash][entityHash];
+    }
+  }
+
   private handleDeleteAddition(objectId: string) {
     this.handleDeleteAdditions([objectId]);
   }
@@ -154,18 +189,25 @@ export const MapManager = new class MapManager {
     }
   }
 
-  private handleMapdataLoaded(mapdata: number) {
+  private handleMapdataLoaded(mapdataHash: number) {
     // if map is not loaded yet - store to pending to load later
     if (this.map === null) {
-      this.pendingMapdatas.push(mapdata);
+      this.pendingMapdatas.push(mapdataHash);
       return;
     }
 
-    const entities = this.map.patches[mapdata];
+    const entities = this.map.patches[mapdataHash];
 
     if (entities) {
-      for (const [entity, def] of Object.entries(entities)) {
-        applyMapdataPatch(mapdata, parseInt(entity, 10), def.mat);
+      for (const [entityHashString, def] of Object.entries(entities)) {
+        const key = getPatchKey(mapdataHash, entityHashString);
+        const entityHash = parseInt(entityHashString, 10);
+
+        if (!this.patchBackupMatrices[key]) {
+          this.patchBackupMatrices[key] = getMapdataEntityMatrix(mapdataHash, entityHash);
+        }
+
+        applyMapdataPatch(mapdataHash, entityHash, def.mat);
       }
     }
   }
@@ -283,4 +325,27 @@ function getObjectPosition() {
 
 function prepareEntityMatrix(mat: Float32Array | WEEntityMatrix): WEEntityMatrix {
   return limitPrecision(Array.from(mat), 10000) as any;
+}
+
+const GET_MAPDATA_ENTITY_MATRIX = joaat('GET_MAPDATA_ENTITY_MATRIX');
+function getMapdataEntityMatrix(mapdata: number, entity: number): Float32Array {
+  const matrix = new Float32Array(16);
+
+  const success: boolean = Citizen.invokeNative(
+    GET_MAPDATA_ENTITY_MATRIX,
+    mapdata,
+    entity,
+    matrix,
+    Citizen.returnResultAnyway(),
+  );
+
+  if (!success) {
+    console.error('Failed to get mapdata entity matrix', { mapdata, entity });
+  }
+
+  return matrix;
+}
+
+function getPatchKey(mapdata: string | number, entity: string | number): string {
+  return `${mapdata}:${entity}`;
 }

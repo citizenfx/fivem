@@ -1,12 +1,12 @@
 import { WORLD_EDITOR_MAP_NO_GROUP } from "backend/world-editor/world-editor-constants";
-import { WEApplyAdditionChangeRequest, WEApplyPatchRequest, WECam, WECreateAdditionGroupRequest, WECreateAdditionRequest, WEDeleteAdditionGroupRequest, WEDeleteAdditionRequest, WEMap, WEMapAddition, WEMapAdditionGroup, WEMapPatch, WESetAdditionGroupNameRequest, WESetAdditionRequest } from "backend/world-editor/world-editor-types";
+import { WEApplyAdditionChangeRequest, WEApplyPatchRequest, WECam, WECreateAdditionGroupRequest, WECreateAdditionRequest, WEDeleteAdditionGroupRequest, WEDeleteAdditionRequest, WEDeletePatchRequest, WEMap, WEMapAddition, WEMapAdditionGroup, WEMapPatch, WESetAdditionGroupNameRequest, WESetAdditionRequest } from "backend/world-editor/world-editor-types";
 import { makeAutoObservable } from "mobx";
 import { worldEditorApi } from "shared/api.events";
 import { sendApiMessage } from "utils/api";
 import { omit } from "utils/omit";
 import { fastRandomId } from "utils/random";
 
-export class WorldEditorMapState {
+export class WEMapState {
   private ungroupedAdditions: Record<string, WEMapAddition> = {};
   private groupedAdditions: Record<number, Record<string, WEMapAddition>> = {};
 
@@ -127,6 +127,24 @@ export class WorldEditorMapState {
 
     sendGameClientEvent('we:createAddition', JSON.stringify(request));
     sendApiMessage(worldEditorApi.createAddition, request);
+  }
+
+  deletePatch(mapdata: string, entity: string) {
+    if (this.map.patches[mapdata]) {
+      delete this.map.patches[mapdata][entity];
+
+      if (Object.keys(this.map.patches[mapdata]).length === 0) {
+        delete this.map.patches[mapdata];
+      }
+    }
+
+    const request: WEDeletePatchRequest = {
+      mapDataHash: parseInt(mapdata, 10),
+      entityHash: parseInt(entity, 10),
+    };
+
+    sendGameClientEvent('we:deletePatch', JSON.stringify(request));
+    sendApiMessage(worldEditorApi.deletePatch, request);
   }
 
   deleteAddition(id: string) {

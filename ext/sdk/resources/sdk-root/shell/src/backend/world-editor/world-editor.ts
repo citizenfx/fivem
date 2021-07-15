@@ -11,6 +11,7 @@ import {
   WECreateAdditionRequest,
   WEDeleteAdditionGroupRequest,
   WEDeleteAdditionRequest,
+  WEDeletePatchRequest,
   WEMap,
   WESetAdditionGroupNameRequest as WESetAdditionGroupLabelRequest,
   WESetAdditionGroupRequest,
@@ -111,6 +112,17 @@ export class WorldEditor implements ApiContribution {
   readonly applyPatch = (request: WEApplyPatchRequest) => this.map.apply((map) => {
     map.patches[request.mapDataHash] ??= {};
     map.patches[request.mapDataHash][request.entityHash] = request.patch;
+  });
+
+  @handlesClientEvent(worldEditorApi.deletePatch)
+  readonly deletePatch = (request: WEDeletePatchRequest) => this.map.apply((map) => {
+    if (map.patches[request.mapDataHash]) {
+      delete map.patches[request.mapDataHash][request.entityHash];
+
+      if (Object.keys(map.patches[request.mapDataHash]).length === 0) {
+        delete map.patches[request.mapDataHash];
+      }
+    }
   });
 
   @handlesClientEvent(worldEditorApi.createAddition)
