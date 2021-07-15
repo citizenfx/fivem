@@ -98,11 +98,7 @@ void ModPackage::ParsePackage(const std::string& path)
 
 		m_metadata = ParseMetadata(doc.RootElement()->FirstChildElement("metadata"));
 
-		// don't load any content from known-broken mods
-		if (HashRageString(m_metadata.authorName.c_str()) != 0x04f243b9)
-		{
-			m_content = ParseContent(doc.RootElement()->FirstChildElement("content"));
-		}
+		m_content = ParseContent(doc.RootElement()->FirstChildElement("content"));
 	}
 }
 
