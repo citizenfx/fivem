@@ -343,26 +343,6 @@ static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
 	static bool lastCaught;
 	bool caught = !InputHook::QueryInputTarget(inputTargets);
 
-	if (caught)
-	{
-		if (rgd->mouseX < 0)
-		{
-			rgd->mouseX = 0;
-		}
-		else if (rgd->mouseX >= rgd->width)
-		{
-			rgd->mouseX = rgd->width;
-		}
-
-		if (rgd->mouseY < 0)
-		{
-			rgd->mouseY = 0;
-		}
-		else if (rgd->mouseY >= rgd->height)
-		{
-			rgd->mouseY = rgd->height;
-		}
-	}
 
 	curInput = ReverseGameInputState{ *rgd };
 
