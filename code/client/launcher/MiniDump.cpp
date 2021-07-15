@@ -1273,7 +1273,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		}
 
 		std::wstring responseBody;
-		int responseCode;
+		int responseCode = 0;
 
 		std::map<std::wstring, std::wstring> files;
 		files[L"upload_file_minidump"] = *filePath;
