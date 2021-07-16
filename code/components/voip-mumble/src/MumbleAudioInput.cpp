@@ -161,7 +161,10 @@ void MumbleAudioInput::ThreadFunc()
 		{
 			InitializeAudioDevice();
 
-			if (m_audioCaptureClient.Get())
+			// @FIX(pasta-wolfram-mockingbird): Ensure the audio client has been
+			// created. If m_audioCaptureClient is null then HandleIncomingAudio
+			// will return E_NOT_VALID_STATE and force another recreation cycle.
+			if (m_audioCaptureClient.Get() && m_audioClient.Get())
 			{
 				m_audioClient->Start();
 			}
