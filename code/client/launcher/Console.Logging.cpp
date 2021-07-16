@@ -1,8 +1,8 @@
 #include <StdInc.h>
 #include <concurrentqueue.h>
 
-#include <fmt/time.h>
 #include <filesystem>
+#include <fmt/chrono.h>
 
 #include <HostSharedData.h>
 

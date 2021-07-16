@@ -37,7 +37,7 @@ using namespace google_breakpad;
 #include <cpr/cpr.h>
 #include <citversion.h>
 
-#include <fmt/time.h>
+#include <fmt/chrono.h>
 
 using json = nlohmann::json;
 

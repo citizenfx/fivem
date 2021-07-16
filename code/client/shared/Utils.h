@@ -176,6 +176,8 @@ public:
 
 #include <fmt/format.h>
 #include <fmt/printf.h>
+#include <fmt/ostream.h>
+#include <fmt/xchar.h>
 
 template<typename TEnum, typename = std::enable_if_t<std::is_enum<TEnum>::value>>
 std::ostream& operator<<(std::ostream& os, const TEnum& value)

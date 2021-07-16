@@ -7,7 +7,6 @@
 #include <ServerInstanceBase.h>
 
 #include <fmt/chrono.h>
-#include <fmt/time.h>
 #include <json.hpp>
 
 #include <unordered_set>
