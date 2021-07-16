@@ -3,7 +3,9 @@ import { makeAutoObservable, runInAction } from "mobx";
 import { gameApi } from "shared/api.events";
 import { NetLibraryConnectionState, SDKGameProcessState } from "shared/native.enums";
 import { onApiMessage, sendApiMessage, sendApiMessageCallback } from "utils/api";
+import { SingleEventEmitter } from "utils/singleEventEmitter";
 import { GameLoadingState } from "./GameLoadingState";
+import { NotificationState } from "./NotificationState";
 
 export const GameState = new class GameState {
   constructor() {
@@ -53,6 +55,12 @@ export const GameState = new class GameState {
 
   public archetypesCollectionPending = false;
   public archetypesCollectionReady = false;
+
+  private archetypesCollectionReadyEvent = new SingleEventEmitter<void>();
+  onArchetypeCollectionReady(cb: () => void) {
+    this.archetypesCollectionReadyEvent.addListener(cb);
+  }
+
   refreshArchetypesCollection() {
     this.archetypesCollectionPending = true;
     this.archetypesCollectionReady = false;
@@ -61,10 +69,11 @@ export const GameState = new class GameState {
       this.archetypesCollectionPending = false;
       this.archetypesCollectionReady = true;
 
-      console.log('Archetypes are ready?', {
-        error,
-        data,
-      });
+      if (!data && error) {
+        NotificationState.error(`Failed to obtain object list: ${error}`);
+      } else {
+        this.archetypesCollectionReadyEvent.emit();
+      }
     }));
   }
 };

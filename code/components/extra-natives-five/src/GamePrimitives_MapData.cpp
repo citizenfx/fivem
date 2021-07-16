@@ -326,6 +326,47 @@ static int UpdateMapdataEntity(int mapDataIdx, int entityIdx, const char* msgDat
 	}
 }
 
+static bool GetMapdataEntityMatrix(uint32_t mapDataHash, uint32_t entityHash, float* matrix)
+{
+	auto mapDataIdx = GetMapDataFromHashKey(mapDataHash);
+	auto entityIdx = GetEntityDefFromMapData(mapDataIdx, entityHash);
+
+	if (entityIdx == -1)
+	{
+		return false;
+	}
+
+	static auto mapDataStore = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ymap");
+
+	auto pool = (atPoolBase*)((char*)mapDataStore + 56);
+	if (auto entry = pool->GetAt<char>(mapDataIdx))
+	{
+		auto mapDataContents = *(CMapDataContents**)(entry);
+
+		if (mapDataContents == nullptr)
+		{
+			trace(__FUNCTION__ ": Missing mapDataContents for index %d\n", mapDataIdx);
+			return false;
+		}
+
+		if (entityIdx < mapDataContents->numEntities)
+		{
+			fwEntity* entity = nullptr;
+
+			if (entity = (fwEntity*)mapDataContents->entities[entityIdx])
+			{
+				auto& transform = entity->GetTransform();
+
+				memcpy(matrix, (void*)(&transform), sizeof(Matrix4x4));
+
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
 static void EnableEditorRuntime()
 {
 	g_isEditorRuntime = true;
@@ -344,6 +385,15 @@ static InitFunction initFunction([]()
 	scrBindGlobal("UPDATE_MAPDATA_ENTITY", &UpdateMapdataEntity);
 	scrBindGlobal("ENABLE_EDITOR_RUNTIME", &EnableEditorRuntime);
 	scrBindGlobal("DISABLE_EDITOR_RUNTIME", &DisableEditorRuntime);
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_MAPDATA_ENTITY_MATRIX", [](fx::ScriptContext& context)
+	{
+		context.SetResult(GetMapdataEntityMatrix(
+			context.CheckArgument<uint32_t>(0),
+			context.CheckArgument<uint32_t>(1),
+			(float*)context.CheckArgument<float*>(2)
+		));
+	});
 
 	OnKillNetworkDone.Connect([]
 	{

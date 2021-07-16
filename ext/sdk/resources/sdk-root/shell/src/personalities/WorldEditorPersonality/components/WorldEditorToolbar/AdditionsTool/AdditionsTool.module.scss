@@ -1,0 +1,120 @@
+@import "../../../vars.scss";
+
+.root {
+  font-size: $fs08;
+  font-weight: 300;
+
+  &.dropping {
+    background-color: rgba($acColor, .25);
+  }
+
+  .placeholder {
+    padding: $q*4;
+
+    line-height: 1.1;
+  }
+
+  .controls {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+
+    gap: $q;
+
+    // padding: $q $q*2;
+
+    button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      gap: $q;
+
+      padding: $q $q*2.5;
+
+      color: rgba($fgColor, .75);
+      background-color: rgba($fgColor, .1);
+
+      @include fontPrimary;
+      font-weight: 300;
+
+      border: none;
+    }
+  }
+
+  .creator {
+    position: relative;
+
+    svg {
+      position: absolute;
+      top: $q*2;
+      left: $q*2.5;
+    }
+
+    input {
+      width: 100%;
+      height: 100%;
+
+      padding: $q*2;
+      padding-left: $q*6.5;
+
+      border: none;
+
+      @include fontPrimary;
+
+      color: $fgColor;
+      background-color: transparent;
+
+      box-shadow: 0 0 0 2px $acColor inset;
+    }
+  }
+
+  .item {
+    height: $q*7;
+
+    padding: $q*2;
+    padding-left: $q*2.5;
+
+    color: rgba($fgColor, .75);
+    cursor: default;
+
+    &:hover {
+      color: $fgColor;
+    }
+
+    &.active {
+      color: $fgColor;
+      background-color: rgba($acColor, .25);
+    }
+
+    &.highlight {
+      color: $scColor;
+      box-shadow: 2px 0 0 $scColor inset;
+    }
+
+    &.dragging {
+      background-color: $acColor;
+    }
+
+    &.editing {
+      padding: 0;
+
+      input {
+        width: 100%;
+        height: 100%;
+
+        padding-left: $q*2.5;
+
+        border: none;
+
+        @include fontPrimary;
+        font-size: $fs08;
+        font-weight: 300;
+        color: $fgColor;
+        background-color: transparent;
+
+        box-shadow: 0 2px 0 $acColor;
+      }
+    }
+  }
+}

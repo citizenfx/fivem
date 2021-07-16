@@ -1,4 +1,4 @@
 import React from 'react';
-import { WorldEditorState } from './WorldEditorState';
+import { WEState } from './store/WEState';
 
-export const useInputOverride = () => React.useEffect(() => WorldEditorState.overrideInput(), []);
+export const useInputOverride = () => React.useEffect(() => WEState.overrideInput(), []);

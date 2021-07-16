@@ -3,7 +3,7 @@ import { ProjectItemProps } from "components/Project/ProjectExplorer/item";
 import { itemsStyles } from "components/Project/ProjectExplorer/item.styles";
 import { observer } from "mobx-react-lite";
 import { FXWorldAssetConfig, FXWORLD_FILE_EXT } from '../fxworld-types';
-import { WorldEditorState } from 'personalities/WorldEditorPersonality/WorldEditorState';
+import { WEState } from 'personalities/WorldEditorPersonality/store/WEState';
 import { useItem } from 'components/Project/ProjectExplorer/ProjectExplorer.hooks';
 import { ContextMenu, ContextMenuItemsCollection, ContextMenuItemSeparator } from 'components/controls/ContextMenu/ContextMenu';
 import { useOpenFlag } from 'utils/hooks';
@@ -36,7 +36,7 @@ export const FXWorld = observer(function FXWorld(props: ProjectItemProps) {
   const isEnabled = !!config?.enabled;
 
   const handleOpen = React.useCallback(() => {
-    WorldEditorState.openMap(props.entry);
+    WEState.openMap(props.entry);
   }, [assetPath]);
 
   const handleToggleEnabled = React.useCallback(() => {

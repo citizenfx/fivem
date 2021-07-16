@@ -1,4 +1,7 @@
+import { joaatUint32 } from "../shared";
 import { WEMapAddition } from "./map-types";
+
+const mdlHashCache = {};
 
 export class ObjectManager {
   private handles: Record<string, number> = {};
@@ -40,18 +43,25 @@ export class ObjectManager {
 
   update() {
     for (const [objectId, handle] of Object.entries(this.handles)) {
-      const { hash, mat } = this.objects[objectId];
+      const { mdl, mat } = this.objects[objectId];
+
+      if (!(mdl in mdlHashCache)) {
+        mdlHashCache[mdl] = typeof mdl === 'string'
+          ? joaatUint32(mdl)
+          : mdl;
+      }
+      const mdlHash = mdlHashCache[mdl];
 
       switch (handle) {
         case 0xFFFFFFFF: {
-          RequestModel(hash);
+          RequestModel(mdlHash);
           this.handles[objectId] = 0;
           break;
         }
 
         case 0: {
-          if (HasModelLoaded(hash)) {
-            const handle = CreateObject(hash, mat[12], mat[13], mat[14], false, false, false);
+          if (HasModelLoaded(mdlHash)) {
+            const handle = CreateObject(mdlHash, mat[12], mat[13], mat[14], false, false, false);
 
             SetEntityMatrix(
               handle,

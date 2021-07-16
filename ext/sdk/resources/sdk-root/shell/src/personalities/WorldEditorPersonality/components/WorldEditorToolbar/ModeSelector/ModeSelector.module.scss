@@ -1,0 +1,184 @@
+@import "../../../vars.scss";
+
+.root {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  height: 100%;
+
+  gap: $q*4;
+
+  .modes {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    // width: $q*35;
+    height: $weToolbarHeight;
+
+    padding: 0 1px;
+
+    background-color: rgba($bgColor, .5);
+    backdrop-filter: blur(20px);
+
+    box-shadow: 0 0 0 1px rgba($bgColor, .5) inset, 0 0 10px 0 rgba($bgColor, .75), 0 0 0 0 $acColor inset;
+
+    border-radius: $weToolbarHeight;
+  }
+
+  .mode {
+    flex-grow: 1;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: $q*2;
+
+    user-select: none;
+
+    height: calc(#{$weToolbarHeight} - 2px);
+    width: calc(#{$weToolbarHeight} - 2px);
+
+    font-weight: 100;
+    letter-spacing: 1px;
+
+    border-radius: $weToolbarHeight;
+
+    @include interactiveTransition;
+
+    &:hover {
+      background-color: $acColor;
+    }
+
+    &:first-child {
+      border-top-left-radius: $weToolbarHeight;
+      border-bottom-left-radius: $weToolbarHeight;
+    }
+
+    &:last-child {
+      border-top-right-radius: $weToolbarHeight;
+      border-bottom-right-radius: $weToolbarHeight;
+    }
+
+    &.active {
+      color: $acColor;
+      background-color: rgba($fgColor, .05);
+      // background-color: mix(rgba($acColor, .6), rgba($fgColor, .2));
+      // box-shadow: 0 -2px 0 0 $acColor inset;
+    }
+
+    svg {
+      font-size: $fs2;
+    }
+  }
+
+  .toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: $weToolbarHeight;
+    height: $weToolbarHeight;
+
+    background-color: rgba($bgColor, .5);
+    backdrop-filter: blur(20px);
+
+    box-shadow: 0 0 0 1px rgba($bgColor, .5) inset, 0 0 10px 0 rgba($bgColor, .75), 0 0 0 0 $acColor inset;
+
+    border-radius: $weToolbarHeight;
+  }
+
+  .toggle,
+  .mode {
+    position: relative;
+
+    &:hover {
+      span {
+        opacity: 1;
+      }
+    }
+
+    span {
+      position: absolute;
+
+      top: -$weToolbarHeight + $q;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      padding: $q $q*2;
+
+      color: $fgColor;
+      background-color: rgba($bgColor, .75);
+      backdrop-filter: blur(20px);
+      border-radius: 2px;
+
+      @include fontPrimary;
+      font-size: $fs08;
+      font-weight: 100;
+      text-transform: lowercase;
+      white-space: nowrap;
+
+      opacity: 0;
+      pointer-events: none;
+
+      z-index: 1;
+
+      :global(.shortcut) {
+        margin-left: $q;
+      }
+    }
+  }
+}
+
+.coords {
+  position: relative;
+
+  width: $weToolbarHeight/2;
+  height: $weToolbarHeight/2;
+
+  &.global {
+    display: block;
+
+    .axis {
+      transform: none;
+    }
+  }
+
+  .axis {
+    position: absolute;
+
+    width: 100%;
+    height: 100%;
+
+    display: block;
+
+    border-left: solid 1px $acColor;
+    border-bottom: solid 1px $scColor;
+
+    transform: translateY(-5.5px) rotate(20deg);
+    transform-origin: left bottom;
+
+    transition: all .2s ease;
+  }
+
+  .object {
+    position: absolute;
+
+    left: 2px;
+    bottom: 3px;
+
+    display: block;
+
+    width: 15px;
+    height: 10px;
+
+    border: solid 1px rgba($fgColor, 1);
+    background-color: rgba($fgColor, .25);
+
+    transform: rotate(20deg);
+  }
+}

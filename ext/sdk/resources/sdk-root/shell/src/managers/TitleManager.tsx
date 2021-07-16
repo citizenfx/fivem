@@ -1,7 +1,7 @@
 import React from 'react';
 import { observer } from 'mobx-react-lite';
 import { ProjectState } from 'store/ProjectState';
-import { WorldEditorState } from 'personalities/WorldEditorPersonality/WorldEditorState';
+import { WEState } from 'personalities/WorldEditorPersonality/store/WEState';
 
 const titleBase = 'Cfx.re Development Kit (FiveM)';
 
@@ -16,13 +16,13 @@ export const TitleManager = observer(() => {
         parts.push(ProjectState.projectName);
       }
 
-      if (WorldEditorState.mapName) {
-        parts.push(WorldEditorState.mapName);
+      if (WEState.mapName) {
+        parts.push(WEState.mapName);
       }
 
       titleRef.current.innerText = parts.reverse().join(' — ');
     }
-  }, [ProjectState.hasProject, ProjectState.projectName, WorldEditorState.mapName]);
+  }, [ProjectState.hasProject, ProjectState.projectName, WEState.mapName]);
 
   React.useLayoutEffect(() => {
     titleRef.current = document.querySelector('title');

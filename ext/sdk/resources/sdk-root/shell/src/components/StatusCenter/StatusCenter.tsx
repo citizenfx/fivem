@@ -48,6 +48,12 @@ export const StatusCenter = observer(function StatusCenter(props: StatusCenterPr
       <OutsideClickSentinel ref={ref} onClose={onClose} />
 
       <div ref={ref} className={rootClassName}>
+        {(!notifications.length && !tasks.length) && (
+          <div className={s.placeholder}>
+            No notifications or tasks!
+          </div>
+        )}
+
         {notifications.map((item) => (
           <NotificationItem key={item.id} item={item} />
         ))}

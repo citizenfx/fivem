@@ -204,7 +204,10 @@ static InitFunction initFunction([]()
 		int x = arguments[0]->GetIntValue();
 		int y = arguments[1]->GetIntValue();
 
-		ExecOrQueueOp({ INPUT_OP::MOUSE_POS, InputMousePos{ x, y } });
+		rgd->mouseX = x;
+		rgd->mouseY = y;
+
+		//ExecOrQueueOp({ INPUT_OP::MOUSE_POS, InputMousePos{ x, y } });
 
 		return CefV8Value::CreateBool(true);
 	});
@@ -220,7 +223,16 @@ static InitFunction initFunction([]()
 		auto buttonIndex = arguments[0]->GetIntValue();
 		auto state = arguments[1]->GetBoolValue();
 
-		ExecOrQueueOp({ INPUT_OP::MOUSE_BUTTONS, InputMouseButtonState{ buttonIndex, state } });
+		if (state)
+		{
+			rgd->mouseButtons |= (1 << buttonIndex);
+		}
+		else
+		{
+			rgd->mouseButtons &= ~(1 << buttonIndex);
+		}
+
+		//ExecOrQueueOp({ INPUT_OP::MOUSE_BUTTONS, InputMouseButtonState{ buttonIndex, state } });
 
 		return CefV8Value::CreateBool(true);
 	});
@@ -235,7 +247,9 @@ static InitFunction initFunction([]()
 
 		auto wheel = arguments[0]->GetIntValue();
 
-		ExecOrQueueOp({ INPUT_OP::MOUSE_WHEEL, wheel });
+		rgd->mouseWheel = wheel;
+
+		//ExecOrQueueOp({ INPUT_OP::MOUSE_WHEEL, wheel });
 
 		return CefV8Value::CreateBool(true);
 	});

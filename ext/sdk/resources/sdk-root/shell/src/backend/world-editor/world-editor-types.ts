@@ -1,4 +1,4 @@
-//                            posX    posY    posZ    rotX    rotY    rotZ
+//                   posX    posY    posZ    rotX    rotY    rotZ
 export type WECam = [number, number, number, number, number, number];
 
 export type WEEntityMatrix = [
@@ -18,16 +18,37 @@ export type WEMapAdditionGroup = -1 | string;
 
 export interface WEMapAddition {
   label: string,
-  hash: number,
+  mdl: number | string,
   grp: WEMapAdditionGroup,
   mat: WEEntityMatrix,
   cam: WECam,
 }
 
+export enum WESelectionType {
+  NONE,
+  PATCH,
+  ADDITION,
+}
+export type WESetSelectionRequest =
+  | { type: WESelectionType.NONE }
+  | { type: WESelectionType.PATCH, mapdata: number, entity: number, label: string }
+  | { type: WESelectionType.ADDITION, id: string };
+
 export interface WEApplyPatchRequest {
   patch: WEMapPatch,
   mapDataHash: number,
   entityHash: number,
+}
+
+export interface WEDeletePatchRequest {
+  mapDataHash: number,
+  entityHash: number,
+}
+
+export interface WECreateAdditionRequest {
+  id: string,
+  object: WEMapAddition,
+  needsPlacement?: boolean,
 }
 
 export interface WESetAdditionRequest {
@@ -64,6 +85,7 @@ export interface WEDeleteAdditionRequest {
 export enum WEMapVersion {
   V1 = 1,
   V2 = 2,
+  V3 = 3,
 }
 
 export interface WEMap {

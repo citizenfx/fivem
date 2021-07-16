@@ -2,6 +2,7 @@ import { makeAutoObservable } from "mobx";
 import { notificationsApi } from "shared/api.events";
 import { NotificationItem, NotificationType } from "shared/notification.types";
 import { onApiMessage, sendApiMessage } from "utils/api";
+import { fastRandomId } from "utils/random";
 
 export class Notification {
   constructor(
@@ -36,6 +37,15 @@ export const NotificationState = new class NotificationState {
 
   public ack() {
     sendApiMessage(notificationsApi.ack);
+  }
+
+  public error(text: string, expireAt?: number) {
+    this.create({
+      id: fastRandomId(),
+      type: NotificationType.error,
+      text,
+      expireAt,
+    });
   }
 
   readonly delete = (id: string) => {

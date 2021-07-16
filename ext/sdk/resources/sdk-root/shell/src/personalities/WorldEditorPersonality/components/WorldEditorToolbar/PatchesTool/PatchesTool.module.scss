@@ -1,0 +1,65 @@
+@import "../../../vars.scss";
+
+.root {
+  font-size: $fs08;
+  font-weight: 300;
+
+  &.dropping {
+    background-color: rgba($acColor, .25);
+  }
+
+  .placeholder {
+    padding: $q*4;
+
+    line-height: 1.1;
+  }
+
+  .item {
+    height: $q*7;
+
+    padding: $q*2;
+    padding-left: $q*2.5;
+
+    color: rgba($fgColor, .75);
+    cursor: default;
+
+    &:hover {
+      color: $fgColor;
+    }
+
+    &.active {
+      color: $fgColor;
+      background-color: rgba($acColor, .25);
+    }
+
+    &.highlight {
+      color: $scColor;
+      box-shadow: 2px 0 0 $scColor inset;
+    }
+
+    &.dragging {
+      background-color: $acColor;
+    }
+
+    &.editing {
+      padding: 0;
+
+      input {
+        width: 100%;
+        height: 100%;
+
+        padding-left: $q*2.5;
+
+        border: none;
+
+        @include fontPrimary;
+        font-size: $fs08;
+        font-weight: 300;
+        color: $fgColor;
+        background-color: transparent;
+
+        box-shadow: 0 0 0 2px $acColor inset;
+      }
+    }
+  }
+}

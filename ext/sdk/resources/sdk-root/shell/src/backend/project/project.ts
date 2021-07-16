@@ -874,7 +874,7 @@ export class Project implements ApiContribution {
 
       this.refreshEnabledResources();
     });
-  }, 100);
+  }, 1000);
 
   private refreshVariables() {
     if (this.worldEditorService.isRunning()) {

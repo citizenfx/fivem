@@ -2,18 +2,20 @@ import React from 'react';
 import classnames from 'classnames';
 import { observer } from 'mobx-react-lite';
 import { ToolbarState } from 'store/ToolbarState';
-import { GameView } from './GameView/GameView';
-import { WorldEditorState } from './WorldEditorState';
-import { WorldEditorToolbar } from './WorldEditorToolbar/WorldEditorToolbar';
+import { GameView } from './components/GameView/GameView';
+import { WEState } from './store/WEState';
+import { WorldEditorToolbar } from './components/WorldEditorToolbar/WorldEditorToolbar';
 import s from './WorldEditorPersonality.module.scss';
-import { LoadScreen } from './LoadScreen/LoadScreen';
+import { LoadScreen } from './components/LoadScreen/LoadScreen';
 import { GameState } from 'store/GameState';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+import { DndProvider } from 'react-dnd';
 
 export const WorldEditorPersonality = observer(function WorldEditorPersonality() {
   const gameViewRef = React.useRef<HTMLDivElement>();
 
   const rootStyles: React.CSSProperties = {
-    '--we-toolbar-width': `${WorldEditorState.mapExplorerWidth}px`,
+    '--we-toolbar-width': `${WEState.mapExplorerWidth}px`,
   } as any;
 
   const rooClassName = classnames(s.root, {
@@ -21,19 +23,21 @@ export const WorldEditorPersonality = observer(function WorldEditorPersonality()
   });
 
   React.useEffect(() => {
-    WorldEditorState.createInputController(gameViewRef);
+    WEState.createInputController(gameViewRef);
 
-    return () => WorldEditorState.destroyInputController();
+    return () => WEState.destroyInputController();
   }, []);
 
-  const showLoadScreen = !WorldEditorState.ready || GameState.archetypesCollectionPending;
+  const showLoadScreen = !WEState.ready || GameState.archetypesCollectionPending;
 
   return (
     <div
       style={rootStyles}
       className={rooClassName}
     >
-      <WorldEditorToolbar />
+      <DndProvider backend={HTML5Backend}>
+        <WorldEditorToolbar />
+      </DndProvider>
 
       <div
         ref={gameViewRef}

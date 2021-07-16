@@ -42,7 +42,9 @@
   left: 0;
   bottom: 23px;
 
-  min-height: $q*10;
+  border: solid 2px rgba($fgColor, .5);
+  backdrop-filter: blur(10px);
+  background-color: rgba($bgColor, .5);
 
   z-index: 4000;
 }

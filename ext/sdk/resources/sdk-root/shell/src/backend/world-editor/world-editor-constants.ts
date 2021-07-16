@@ -1,7 +1,7 @@
 import { WEMap, WEMapVersion } from "./world-editor-types";
 
 export const DEFAULT_WORLD_EDITOR_MAP: WEMap = {
-  version: WEMapVersion.V2,
+  version: WEMapVersion.V3,
   meta: {
     cam: [0, 0, 100, 0, 0, -45],
   },
