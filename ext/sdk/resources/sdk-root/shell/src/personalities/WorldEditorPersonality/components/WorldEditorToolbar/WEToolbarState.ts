@@ -21,7 +21,7 @@ export const TOOL_SIDE: Record<WETool, WEToolSide> = {
   [WETool.StatusCenter]: RIGHT_SIDE_TOOL,
 };
 
-export const WorldEditorToolbarState = new class WorldEditorToolbarState {
+export const WEToolbarState = new class WEToolbarState {
   private activeTool: Record<WEToolSide, WETool | null> = {
     [LEFT_SIDE_TOOL]: null,
     [RIGHT_SIDE_TOOL]: null,

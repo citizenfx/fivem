@@ -1,7 +1,7 @@
 import React from 'react';
 import classnames from 'classnames';
 import { FiBox } from 'react-icons/fi';
-import { WETool, WorldEditorToolbarState } from '../WorldEditorToolbarState';
+import { WETool, WEToolbarState } from '../WEToolbarState';
 import { BaseTool } from '../BaseTool/BaseTool';
 import { useOpenFlag } from 'utils/hooks';
 import { WEState } from 'personalities/WorldEditorPersonality/store/WEState';
@@ -16,6 +16,8 @@ import { Addition } from './Addition';
 import { AdditionsGroup } from './AdditionsGroup/AdditionsGroup';
 import { AdditionsNewGroup } from './AdditionsNewGroup/AdditionsNewGroup';
 import { observer } from 'mobx-react-lite';
+import { WESelectionType } from 'backend/world-editor/world-editor-types';
+import { additionsToolIcon } from 'personalities/WorldEditorPersonality/constants/icons';
 
 export const AdditionsTool = observer(function AdditionsTool() {
   const [groupCreatorOpen, openGroupCreator, closeGroupCreator] = useOpenFlag(false);
@@ -80,8 +82,9 @@ export const AdditionsTool = observer(function AdditionsTool() {
     <BaseTool
       renderAlways
       tool={WETool.Additions}
-      icon={<FiBox />}
+      icon={additionsToolIcon}
       label="Map additions"
+      highlight={WEState.selection.type === WESelectionType.ADDITION}
     >
       <ContextMenu
         ref={dropRef}

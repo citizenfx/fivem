@@ -4,7 +4,7 @@ import { Indicator } from 'components/Indicator/Indicator';
 import { StatusCenter } from 'components/StatusCenter/StatusCenter';
 import { BsListTask } from 'react-icons/bs';
 import { TaskState } from 'store/TaskState';
-import { WETool, WorldEditorToolbarState } from '../WorldEditorToolbarState';
+import { WETool, WEToolbarState } from '../WEToolbarState';
 import { BaseTool } from '../BaseTool/BaseTool';
 
 const noop = () => {};
@@ -14,7 +14,7 @@ export const StatusTool = observer(function StatusTool() {
 
   const hasTasks = tasks.length > 0;
 
-  const toolOpen = WorldEditorToolbarState.isToolOpen(WETool.StatusCenter);
+  const toolOpen = WEToolbarState.isToolOpen(WETool.StatusCenter);
 
   return (
     <BaseTool

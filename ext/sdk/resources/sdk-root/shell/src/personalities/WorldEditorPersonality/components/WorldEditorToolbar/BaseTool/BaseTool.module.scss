@@ -17,28 +17,41 @@ $panelOffset: $q*2;
   backdrop-filter: blur(20px);
 
   border: none;
-  border-radius: 50%;
+  border-radius: $weToolbarHeight;
 
   box-shadow: 0 0 0 1px rgba($bgColor, .5) inset, 0 0 5px 0 rgba($bgColor, .5);
 
   cursor: pointer;
 
   @include interactiveTransition;
-  @include data-label {
-    top: -$q*7;
-    bottom: auto;
-  };
 
   &.active {
     color: $fgColor;
     background-color: $acColor;
-
-    @include data-label-remove;
   }
 
-  &:hover {
-    color: $fgColor;
-    box-shadow: 0 0 0 2px $acColor inset, 0 0 5px 0 rgba($bgColor, .5);
+  &.highlight {
+    // box-shadow: 0 0 0 1px $scColor inset, 0 0 5px 0 rgba($bgColor, .5);
+
+    color: $scColor;
+  }
+
+  &.labelled {
+    @include data-label {
+      top: -$q*7;
+      bottom: auto;
+    };
+
+    &.active {
+      @include data-label-remove;
+    }
+  }
+
+  &.hoverable {
+    &:hover {
+      color: $fgColor;
+      box-shadow: 0 0 0 2px $acColor inset, 0 0 5px 0 rgba($bgColor, .5);
+    }
   }
 }
 

@@ -1,4 +1,5 @@
 import React from 'react';
+import classnames from 'classnames';
 import { observer } from 'mobx-react-lite';
 import { WEState } from 'personalities/WorldEditorPersonality/store/WEState';
 import { ContextMenu, ContextMenuItemsCollection } from 'components/controls/ContextMenu/ContextMenu';
@@ -23,10 +24,14 @@ export const Patch = observer(function Patch(props: PatchProps) {
     }
   ] as ContextMenuItemsCollection, [mapData, entityId]);
 
+  const itemClassName = classnames(s.item, {
+    [s.highlight]: WEState.isPatchSelected(mapData, entityId),
+  });
+
   return (
     <ContextMenu
       items={contextMenu}
-      className={s.item}
+      className={itemClassName}
       activeClassName={s.active}
       onClick={() => WEState.setCam(patch.cam)}
     >

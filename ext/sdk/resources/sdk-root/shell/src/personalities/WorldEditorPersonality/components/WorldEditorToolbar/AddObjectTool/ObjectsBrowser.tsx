@@ -8,7 +8,7 @@ import { useInputOverride } from 'personalities/WorldEditorPersonality/hooks';
 import { WEState } from 'personalities/WorldEditorPersonality/store/WEState';
 import { BsArrowClockwise } from 'react-icons/bs';
 import { GameState } from 'store/GameState';
-import { WETool, WorldEditorToolbarState } from '../WorldEditorToolbarState';
+import { WETool, WEToolbarState } from '../WEToolbarState';
 import { ArchetypesState } from 'personalities/WorldEditorPersonality/store/ArchetypesState';
 import { WORLD_EDITOR_MAP_NO_GROUP } from 'backend/world-editor/world-editor-constants';
 import s from './AddObjectTool.module.scss';
@@ -92,7 +92,7 @@ export const ObjectsBrowser = observer(function ObjectsBrowserDropdown() {
       event.stopPropagation();
 
       if (isEsc) {
-        WorldEditorToolbarState.closeTool(WETool.AddObject);
+        WEToolbarState.closeTool(WETool.AddObject);
 
         return true;
       }
@@ -140,7 +140,7 @@ export const ObjectsBrowser = observer(function ObjectsBrowserDropdown() {
       WEState.map.createAddition(objectName, WORLD_EDITOR_MAP_NO_GROUP);
     }
 
-    WEState.closeObjectsBrowser();
+    WEToolbarState.closeTool(WETool.AddObject);
   }, []);
 
   const handleFilterSubmit = React.useCallback(() => {

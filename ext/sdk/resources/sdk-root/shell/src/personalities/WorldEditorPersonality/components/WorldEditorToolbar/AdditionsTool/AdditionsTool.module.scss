@@ -87,6 +87,11 @@
       background-color: rgba($acColor, .25);
     }
 
+    &.highlight {
+      color: $scColor;
+      box-shadow: 2px 0 0 $scColor inset;
+    }
+
     &.dragging {
       background-color: $acColor;
     }

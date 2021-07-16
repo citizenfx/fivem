@@ -15,6 +15,26 @@
   z-index: 1;
 }
 
+.top-center {
+  position: fixed;
+
+  top: $weToolbarOffset;
+  left: $weToolbarOffset;
+  right: $weToolbarOffset;
+
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+
+  gap: $q*2;
+
+  height: 1px;
+
+  overflow: visible;
+
+  z-index: 1;
+}
+
 .top-right {
   position: fixed;
 

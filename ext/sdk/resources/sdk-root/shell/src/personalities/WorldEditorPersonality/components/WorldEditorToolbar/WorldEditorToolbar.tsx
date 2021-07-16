@@ -1,6 +1,6 @@
 import React from 'react';
 import { observer } from "mobx-react-lite";
-import { BsX } from 'react-icons/bs';
+import classnames from 'classnames';
 // import { serverApi } from 'shared/api.events';
 // import { sendApiMessage } from 'utils/api';
 import { WEState } from '../../store/WEState';
@@ -12,6 +12,22 @@ import { AdditionsTool } from './AdditionsTool/AdditionsTool';
 import { AddObjectTool } from './AddObjectTool/AddObjectTool';
 import s from './WorldEditorToolbar.module.scss';
 import sBaseTool from './BaseTool/BaseTool.module.scss';
+import { closeIcon } from 'constants/icons';
+import { ActiveSelectionTool } from './ActiveSelectionTool/ActiveSelectionTool';
+
+function CloseButton() {
+  const rootClassName = classnames(sBaseTool.toggle, sBaseTool.labelled, sBaseTool.hoverable);
+
+  return (
+    <button
+      className={rootClassName}
+      onClick={WEState.closeMap}
+      data-label="Close World Editor"
+    >
+      {closeIcon}
+    </button>
+  );
+}
 
 export const WorldEditorToolbar = observer(function WorldEditorToolbar() {
   const showControls = WEState.ready && !GameState.archetypesCollectionPending;
@@ -35,16 +51,14 @@ export const WorldEditorToolbar = observer(function WorldEditorToolbar() {
         </button> */}
       </div>
 
+      <div className={s['top-center']}>
+        <ActiveSelectionTool />
+      </div>
+
       <div className={s['top-right']}>
         <StatusTool />
 
-        <button
-          className={sBaseTool.toggle}
-          onClick={WEState.closeMap}
-          data-label="Close World Editor"
-        >
-          <BsX />
-        </button>
+        <CloseButton />
       </div>
 
       <div className={s.bottom}>

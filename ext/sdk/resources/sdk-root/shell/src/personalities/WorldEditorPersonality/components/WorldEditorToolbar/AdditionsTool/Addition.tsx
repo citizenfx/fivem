@@ -68,6 +68,7 @@ export const Addition = observer(function Addition(props: AdditionProps) {
   const itemClassName = classnames(s.item, {
     [s.editing]: editing,
     [s.dragging]: isDragging,
+    [s.highlight]: WEState.isAdditionSelected(id),
   });
 
   return (

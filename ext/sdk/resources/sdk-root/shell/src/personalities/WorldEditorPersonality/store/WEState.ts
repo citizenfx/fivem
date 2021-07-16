@@ -8,7 +8,14 @@ import { ShellPersonality, ShellState } from 'store/ShellState';
 import { FilesystemEntry } from 'shared/api.types';
 import { FXWORLD_FILE_EXT } from 'assets/fxworld/fxworld-types';
 import { WorldEditorStartRequest } from 'shared/api.requests';
-import { WEApplyAdditionChangeRequest, WEApplyPatchRequest, WEMap, WESetAdditionRequest } from 'backend/world-editor/world-editor-types';
+import {
+  WEApplyAdditionChangeRequest,
+  WEApplyPatchRequest,
+  WEMap,
+  WESelectionType,
+  WESetAdditionRequest,
+  WESetSelectionRequest,
+} from 'backend/world-editor/world-editor-types';
 import { WEMapState } from './WEMapState';
 import { __DEBUG_MODE_TOGGLES__ } from 'constants/debug-constants';
 import { GameState } from 'store/GameState';
@@ -18,12 +25,6 @@ const noop = () => {};
 
 function clampExplorerWidth(width: number): number {
   return Math.max(250, Math.min(document.body.offsetWidth / 2, width));
-};
-
-type WESelection = null | {
-  id: number,
-  type: number,
-  model: number,
 };
 
 export enum EditorMode {
@@ -41,14 +42,11 @@ export const WEState = new class WEState {
   public editorMode = EditorMode.TRANSLATE;
   public editorLocal = false;
 
-  public objectsBrowserOpen = false;
-
-  public selection: WESelection = null;
+  public selection: WESetSelectionRequest = { type: WESelectionType.NONE };
 
   public map: WEMapState | null = null;
   private mapEntry: FilesystemEntry | null = null;
 
-  public mapExplorerOpen = false;
   public mapExplorerWidth: number = clampExplorerWidth(parseInt(localStorage.weExplorerWidth, 10) || 300);
 
   constructor() {
@@ -58,7 +56,7 @@ export const WEState = new class WEState {
       this.ready = true;
     }
 
-    onWindowEvent('we:selection', (selection: WESelection) => runInAction(() => {
+    onWindowEvent('we:setSelection', (selection: WESetSelectionRequest) => runInAction(() => {
       this.selection = selection;
     }));
 
@@ -121,30 +119,6 @@ export const WEState = new class WEState {
     localStorage.weExplorerWidth = this.mapExplorerWidth;
   }
 
-  toggleObjectsBrowser = () => {
-    this.objectsBrowserOpen = !this.objectsBrowserOpen;
-  };
-
-  openObjectsBrowser = () => {
-    this.objectsBrowserOpen = true;
-  };
-
-  closeObjectsBrowser = () => {
-    this.objectsBrowserOpen = false;
-  };
-
-  toggleMapExplorer = () => {
-    this.mapExplorerOpen = !this.mapExplorerOpen;
-  };
-
-  openMapExplorer = () => {
-    this.mapExplorerOpen = true;
-  };
-
-  closeMapExplorer = () => {
-    this.mapExplorerOpen = false;
-  };
-
   enableTranslation = () => {
     this.editorMode = EditorMode.TRANSLATE;
 
@@ -174,6 +148,22 @@ export const WEState = new class WEState {
 
     this.updateEditorControls();
   };
+
+  isAdditionSelected(additionId: string) {
+    if (this.selection.type !== WESelectionType.ADDITION) {
+      return false;
+    }
+
+    return this.selection.id === additionId;
+  }
+
+  isPatchSelected(mapdata: string, entity: string) {
+    if (this.selection.type !== WESelectionType.PATCH) {
+      return false;
+    }
+
+    return this.selection.mapdata === parseInt(mapdata, 10) && this.selection.entity === parseInt(entity, 10);
+  }
 
   clearEditorSelection = () => {
     if (this.selection) {

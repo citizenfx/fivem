@@ -34,20 +34,11 @@ export const SelectionController = new class SelectionController {
         ReleaseScriptGuidFromEntity(this.selectedEntity);
 
         this.selectedEntity = null;
-
-        sendSdkMessage('we:selection', null);
       }
 
       if (this.selectedEntity !== selectedEntity) {
         this.selectedEntity = selectedEntity;
         SetEntityDrawOutline(this.selectedEntity, true);
-
-        sendSdkMessage('we:selection', {
-          id: this.selectedEntity,
-          lod: GetEntityLodDist(this.selectedEntity),
-          type: GetEntityType(this.selectedEntity),
-          model: GetEntityModel(this.selectedEntity),
-        });
       }
     }
   }

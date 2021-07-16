@@ -10,7 +10,9 @@ import {
   WEMap,
   WEMapAddition,
   WEMapPatch,
+  WESelectionType,
   WESetAdditionRequest,
+  WESetSelectionRequest,
 } from "./map-types";
 import { applyEntityMatrix, limitPrecision, makeEntityMatrix } from "./math";
 import { ObjectManager } from "./object-manager";
@@ -101,6 +103,7 @@ export const MapManager = new class MapManager {
   private prevSelectedEntity = null;
   private updateSelectedEntity() {
     const selectedEntity = SelectionController.getSelectedEntity();
+    const hasSelectedEntityChanged = selectedEntity !== this.prevSelectedEntity;
 
     if (selectedEntity !== null) {
       const entityMatrix = makeEntityMatrix(selectedEntity);
@@ -108,8 +111,34 @@ export const MapManager = new class MapManager {
       const additionId = this.objects.getObjectId(selectedEntity) || '';
       const addition = this.map.additions[additionId];
 
+      if (hasSelectedEntityChanged) {
+        if (addition) {
+          sendSdkMessage('we:setSelection', {
+            type: WESelectionType.ADDITION,
+            id: additionId,
+            label: this.getEntityLabel(selectedEntity),
+          } as WESetSelectionRequest);
+        } else {
+          const [success, mapdataHash, entityHash] = GetEntityMapdataOwner(selectedEntity);
+          if (success) {
+            // Save initial patch matrix allowing its deletion
+            const key = getPatchKey(mapdataHash, entityHash);
+            if (!this.patchBackupMatrices[key]) {
+              this.patchBackupMatrices[key] = entityMatrix;
+            }
+
+            sendSdkMessage('we:setSelection', {
+              type: WESelectionType.PATCH,
+              mapdata: mapdataHash,
+              entity: entityHash,
+              label: this.getEntityLabel(selectedEntity),
+            } as WESetSelectionRequest);
+          }
+        }
+      }
+
       // Save initial patch matrix
-      if (!addition && (this.prevSelectedEntity !== selectedEntity)) {
+      if (!addition && hasSelectedEntityChanged) {
         const [success, mapdataHash, entityHash] = GetEntityMapdataOwner(selectedEntity);
         if (success) {
           const key = getPatchKey(mapdataHash, entityHash);
@@ -127,6 +156,12 @@ export const MapManager = new class MapManager {
         } else {
           this.updatePatch(selectedEntity, entityMatrix);
         }
+      }
+    } else {
+      if (hasSelectedEntityChanged) {
+        sendSdkMessage('we:setSelection', {
+          type: WESelectionType.NONE,
+        } as WESetSelectionRequest);
       }
     }
 
@@ -263,7 +298,7 @@ export const MapManager = new class MapManager {
     const [success, mapdataHash, entityHash] = GetEntityMapdataOwner(entity);
     if (success) {
       const patch: WEMapPatch = {
-        label: GetEntityModel(entity).toString(16).toUpperCase(),
+        label: this.getEntityLabel(entity),
         cam: CameraManager.getCamLimitedPrecision(),
         mat: prepareEntityMatrix(mat),
       };
@@ -295,6 +330,10 @@ export const MapManager = new class MapManager {
     this.objects.set(additionId, addition);
 
     sendSdkMessageBroadcast('we:applyAdditionChange', change);
+  }
+
+  private getEntityLabel(entity: number): string {
+    return GetEntityArchetypeName(entity) || GetEntityModel(entity).toString(16).toUpperCase();
   }
 };
 

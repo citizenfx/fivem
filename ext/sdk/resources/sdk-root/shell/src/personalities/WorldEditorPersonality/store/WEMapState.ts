@@ -87,6 +87,10 @@ export class WEMapState {
     }
   }
 
+  getPatch(mapdata: number, entity: number): WEMapPatch | void {
+    return this.map.patches[mapdata]?.[entity];
+  }
+
   getGroupAdditions(grp: string): Record<string, WEMapAddition> {
     return this.groupedAdditions[grp] || {};
   }

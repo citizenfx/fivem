@@ -1,7 +1,7 @@
 import React from 'react';
 import classnames from 'classnames';
 import { observer } from 'mobx-react-lite';
-import { TOOL_SIDE, WETool, WorldEditorToolbarState } from '../WorldEditorToolbarState';
+import { TOOL_SIDE, WETool, WEToolbarState } from '../WEToolbarState';
 import s from './BaseTool.module.scss';
 
 export interface BaseToolProps {
@@ -9,6 +9,7 @@ export interface BaseToolProps {
   icon: React.ReactNode,
   label: string,
 
+  highlight?: boolean,
   renderAlways?: boolean,
   children?: React.ReactNode,
 
@@ -22,16 +23,18 @@ export const BaseTool = observer(function BaseTool(props: BaseToolProps) {
     icon,
     label,
     children,
+    highlight = false,
     renderAlways = false,
     toggleClassName: tClassName = '',
     panelClassName: pClassName = '',
 
   } = props;
 
-  const toolIsOpen = WorldEditorToolbarState.isToolOpen(tool);
+  const toolIsOpen = WEToolbarState.isToolOpen(tool);
 
-  const toggleClassName = classnames(s.toggle, tClassName, {
+  const toggleClassName = classnames(s.toggle, s.hoverable, s.labelled, tClassName, {
     [s.active]: toolIsOpen,
+    [s.highlight]: highlight,
   });
 
   const panelClassName = classnames(s.panel, pClassName, {
@@ -53,7 +56,7 @@ export const BaseTool = observer(function BaseTool(props: BaseToolProps) {
       <button
         className={toggleClassName}
         data-label={label}
-        onClick={() => WorldEditorToolbarState.toggleTool(tool)}
+        onClick={() => WEToolbarState.toggleTool(tool)}
       >
         {icon}
       </button>

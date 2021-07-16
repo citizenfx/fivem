@@ -1,4 +1,4 @@
-//                            posX    posY    posZ    rotX    rotY    rotZ
+//                   posX    posY    posZ    rotX    rotY    rotZ
 export type WECam = [number, number, number, number, number, number];
 
 export type WEEntityMatrix = [
@@ -23,6 +23,16 @@ export interface WEMapAddition {
   mat: WEEntityMatrix,
   cam: WECam,
 }
+
+export enum WESelectionType {
+  NONE,
+  PATCH,
+  ADDITION,
+}
+export type WESetSelectionRequest =
+  | { type: WESelectionType.NONE }
+  | { type: WESelectionType.PATCH, mapdata: number, entity: number, label: string }
+  | { type: WESelectionType.ADDITION, id: string };
 
 export interface WEApplyPatchRequest {
   patch: WEMapPatch,
