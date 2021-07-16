@@ -34,11 +34,6 @@ bool isKeyDown(WPARAM wparam)
 	return (GetKeyState(wparam) & 0x8000) != 0;
 }
 
-bool HasFocus()
-{
-	return (g_hasFocus || g_hasOverriddenFocus);
-}
-
 #include <shared_mutex>
 
 #ifdef USE_NUI_ROOTLESS
@@ -75,6 +70,16 @@ namespace nui
 	}
 
 	extern fwRefContainer<NUIWindow> FindNUIWindow(fwString windowName);
+
+	bool HasFocus()
+	{
+		return (g_hasFocus || g_hasOverriddenFocus);
+	}
+
+	bool HasFocusKeepInput()
+	{
+		return g_keepInput;
+	}
 
 	void GiveFocus(const std::string& frameName, bool hasFocus, bool hasCursor)
 	{
@@ -363,7 +368,7 @@ static HookFunction initFunction([] ()
 {
 	g_nuiGi->QueryMayLockCursor.Connect([](int& argPtr)
 	{
-		if (HasFocus() && !g_keepInput)
+		if (nui::HasFocus() && !g_keepInput)
 		{
 			argPtr = 0;
 		}
@@ -568,15 +573,15 @@ static HookFunction initFunction([] ()
 
 		if (browser)
 		{
-			if (HasFocus() != g_lastFocus)
+			if (nui::HasFocus() != g_lastFocus)
 			{
-				browser->GetHost()->SendFocusEvent(HasFocus());
+				browser->GetHost()->SendFocusEvent(nui::HasFocus());
 			}
 
-			g_lastFocus = HasFocus();
+			g_lastFocus = nui::HasFocus();
 		}
 
-		if (HasFocus())
+		if (nui::HasFocus())
 		{
 			targets.push_back(&inputTarget);
 
@@ -609,15 +614,15 @@ static HookFunction initFunction([] ()
 
 		if (browser)
 		{
-			if (HasFocus() != g_lastFocus)
+			if (nui::HasFocus() != g_lastFocus)
 			{
-				browser->GetHost()->SendFocusEvent(HasFocus());
+				browser->GetHost()->SendFocusEvent(nui::HasFocus());
 			}
 
-			g_lastFocus = HasFocus();
+			g_lastFocus = nui::HasFocus();
 		}
 
-		if (HasFocus())
+		if (nui::HasFocus())
 		{
 			if (!g_imeHandler)
 			{
