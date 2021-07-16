@@ -10,6 +10,7 @@ Player GET_PLAYER_FROM_SERVER_ID(int serverId);
 
 
 ## Parameters
-* **serverId**: 
+* **serverId**: the players network id
 
 ## Return value
+The player index, or -1 if they didn't exist
