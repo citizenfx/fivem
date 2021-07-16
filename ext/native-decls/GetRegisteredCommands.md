@@ -12,12 +12,8 @@ Returns all commands that are registered in the command system.
 The data returned adheres to the following layout:
 ```
 [
-{
-"name": "cmdlist"
-},
-{
-"name": "command1"
-}
+  {"name": "cmdlist"},
+  {"name": "command1"}
 ]
 ```
 
