@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2020-06-26 23:42+0200\n"
-"PO-Revision-Date: 2020-10-25 09:27+0000\n"
+"PO-Revision-Date: 2020-11-17 09:44+0000\n"
 "Last-Translator: Petr Šopf <trsak1@seznam.cz>\n"
 "Language-Team: Czech <http://translations.cfx.re/projects/citizenfx/client/"
 "cs/>\n"
@@ -27,7 +27,7 @@ msgid ""
 msgstr ""
 "\n"
 "\n"
-"Detaily vyjímky: %s"
+"Detaily výjimky: %s"
 
 #: client/launcher/MiniDump.cpp:1213
 #, c-format
@@ -197,18 +197,21 @@ msgid ""
 "Save information\n"
 "Stores a file with crash information that you should copy and upload when asking for help."
 msgstr ""
+"Uložit informace\n"
+"Uloží soubor s informacemi o pádu hry. Tento soubory byste měli zkopírovat a "
+"nahrát při žádosti o pomoc."
 
 #: client/launcher/GameSelect.cpp:107
 msgid "Select the folder containing Grand Theft Auto V"
-msgstr ""
+msgstr "Zvolte adresář obsahující instalaci Grand Theft Auto V"
 
 #: client/launcher/Download.cpp:423
 msgid "Starting IPFS discovery..."
-msgstr ""
+msgstr "Spouštím průzkum IPFS..."
 
 #: client/launcher/ViabilityChecks.cpp:42
 msgid "The game will exit now."
-msgstr ""
+msgstr "Hra se nyní ukončí."
 
 #: client/launcher/GameCache.cpp:635
 #, c-format
@@ -216,56 +219,66 @@ msgid ""
 "The local %s game cache is outdated, and needs to be updated. This will copy %.2f MB of data from the local disk, and download %.2f MB of data from the internet.\n"
 "Do you wish to continue?"
 msgstr ""
+"Lokální %s mezipaměť hry je zastaralá a potřebuje aktualizovat. Tato akce "
+"nakopíruje %.2f MB dat z lokálního disku, a stáhne %.2f MB dat z internetu.\n"
+"Přejete si pokračovat?"
 
 #: client/launcher/GameSelect.cpp:202
 #, c-format
 msgid "The selected path does not contain a %s file."
-msgstr ""
+msgstr "Zvolené umístění neobsahuje soubor %s."
 
 #: client/launcher/ViabilityChecks.cpp:72
 msgid "This product requires Security Update for Windows 7 for x64-based systems (KB2758857) to be installed to run. Please install it, and try again."
 msgstr ""
+"Tento produkt vyžaduje k běhu aktualizaci Security Update for Windows 7 for "
+"x64-based systems (KB2758857). Prosím nainstalujte tuto aktualizaci a zkuste "
+"to znovu."
 
 #: client/launcher/Main.cpp:634
 msgid "Transitioning to another build..."
-msgstr ""
+msgstr "Probíhá přechod na jinou verzi..."
 
 #: client/launcher/MiniDump.cpp:1234
 msgid "Unhandled exception: "
-msgstr ""
+msgstr "Neošetřená výjimka: "
 
 #: client/launcher/Installer.cpp:124
 #, c-format
 msgid "Uninstall %s"
-msgstr ""
+msgstr "Odinstalovat %s"
 
 #: client/launcher/Installer.cpp:125
 #, c-format
 msgid "Uninstall %s?"
-msgstr ""
+msgstr "Odinstalovat %s?"
 
 #: client/launcher/Updater.cpp:297
 #, c-format
 msgid "Updating %s..."
-msgstr ""
+msgstr "Aktualizuji %s..."
 
 #: client/launcher/GameCache.cpp:845
 msgid "Updating game cache..."
-msgstr ""
+msgstr "Aktualizuji mezipaměť hry..."
 
 #: client/launcher/Updater.cpp:268
 msgid "Verifying content..."
-msgstr ""
+msgstr "Ověřuji obsah..."
 
 #: client/launcher/GameCache.cpp:714
 msgid "Verifying game content..."
-msgstr ""
+msgstr "Ověřuji herní obsah..."
 
 #: client/launcher/Main.cpp:638
 msgid "We're getting there."
-msgstr ""
+msgstr "Už to skoro bude."
 
 #: client/launcher/Main.cpp:471
 #, c-format
 msgid "You are currently using an outdated version of Windows. This may lead to issues using the %s client. Please update to Windows 10 version 1703 (\"Creators Update\") or higher in case you are experiencing any issues. The game will continue to start now."
 msgstr ""
+"Aktuálně používáte zastaralou verzi Windows. To může vést k problémům "
+"používání klienta %s. Prosím aktualizujte alespoň na Windows 10 verzi 1703 ("
+"\"Creators Update\") v případě, že zaznamenáváte nějaké potíže. Hra se nyní "
+"zapne."
