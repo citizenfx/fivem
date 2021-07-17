@@ -22,7 +22,7 @@ Matrix layout is as follows:
 - All other elements should be [0, 0, 0, 1].
 
 ## Parameters
-* **mapDataIdx**: A mapdata hash from `mapDataLoaded` event.
+* **mapDataHash**: A mapdata hash from `mapDataLoaded` event.
 * **entityInternalIdx** An internal entity's index.
 * **matrixPtr**: A mutable pointer to a 64-byte buffer of floating-point values, representing an XMFLOAT4X4 in layout.
 
