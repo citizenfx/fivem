@@ -22,34 +22,29 @@ static int* g_mouseButtons;
 static int* g_inputOffset;
 static rage::ioMouse* g_input;
 
+static void (*disableFocus)();
+
+static void DisableFocus()
+{
+	if (!g_isFocusStolen)
+	{
+		disableFocus();
+	}
+}
+
+static void (*enableFocus)();
+
+static void EnableFocus()
+{
+	if (!g_isFocusStolen)
+	{
+		enableFocus();
+	}
+}
+
 static char* g_gameKeyArray;
 
 static std::atomic<int> g_isFocusStolenCount;
-
-static void (*origDInputMouseReset)();
-static void DInputMouseReset()
-{
-	//original:
-	//  if (shouldZeroMouseValues)
-	//  {
-	//  	if (mouseDInputDevice::Acquire() > -1) // ::Acquire()
-	//  		shouldZeroMouseValues = 0;
-	//  	else
-	//  		ZeroAllMouseValues();
-	//  }
-	static unsigned char* shouldZeroMouseValues = hook::get_address<unsigned char*>(hook::get_pattern<unsigned char>("C6 05 12 ? ? ? ? 48 83 C4 28"), 3, 7);
-	static void (*ZeroAllMouseValues)() = hook::get_address<void(*)()>(hook::get_pattern<unsigned char>("C6 05 12 ? ? ? ? 48 83 C4 28") - 5, 1, 5);
-
-	*shouldZeroMouseValues = g_isFocusStolen;
-
-	if (g_isFocusStolen)
-	{
-		ZeroAllMouseValues();
-		return;
-	}
-
-	return origDInputMouseReset();
-}
 
 void InputHook::SetGameMouseFocus(bool focus)
 {
@@ -68,6 +63,8 @@ void InputHook::SetGameMouseFocus(bool focus)
 	{
 		memset(g_gameKeyArray, 0, 256);
 	}
+
+	return (!g_isFocusStolen) ? enableFocus() : disableFocus();
 }
 
 void InputHook::EnableSetCursorPos(bool enabled)
@@ -273,7 +270,6 @@ HKL WINAPI ActivateKeyboardLayoutWrap(IN HKL hkl, IN UINT flags)
 	return hkl;
 }
 
-// This is used by the "Windows" mouse input method
 BOOL WINAPI SetCursorPosWrap(int X, int Y)
 {
 	if (!g_isFocusStolen || g_enableSetCursorPos)
@@ -587,9 +583,14 @@ static HookFunction hookFunction([]()
 
 	hook::put<int32_t>(location, (intptr_t)(hook::AllocateFunctionStub(grcWindowProcedure)) - (intptr_t)location - 4);
 
-	auto dinputMouseReset = hook::get_pattern("E8 DE 00 00 00 C7 05");
-	hook::set_call(&origDInputMouseReset, dinputMouseReset);
-	hook::call(dinputMouseReset, DInputMouseReset);
+	// disable mouse focus function
+	void* patternMatch = hook::pattern("74 0D 38 1D ? ? ? ? 74 05 E8 ? ? ? ? 48 39").count(1).get(0).get<void>(10);
+	hook::set_call(&disableFocus, patternMatch);
+	hook::call(patternMatch, DisableFocus);
+
+	patternMatch = hook::pattern("74 0D 38 1D ? ? ? ? 74 05 E8 ? ? ? ? 33 C9 E8").count(1).get(0).get<void>(10);
+	hook::set_call(&enableFocus, patternMatch);
+	hook::call(patternMatch, EnableFocus);
 
 	// game key array
 	location = hook::pattern("BF 00 01 00 00 48 8D 1D ? ? ? ? 48 3B 05").count(1).get(0).get<char>(8);
