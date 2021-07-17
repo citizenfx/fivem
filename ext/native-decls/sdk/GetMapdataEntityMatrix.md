@@ -6,7 +6,7 @@ game: gta5
 ## GET_MAPDATA_ENTITY_MATRIX
 
 ```c
-BOOL GET_MAPDATA_ENTITY_MATRIX(int mapDataHash, int entityInternalIdx, long matrixPtr);
+BOOL GET_MAPDATA_ENTITY_MATRIX(int mapDataIdx, int entityInternalIdx, long matrixPtr);
 ```
 
 Returns mapdata's entity matrix. This function supports SDK infrastructure and is not intended to be used directly from your code.
