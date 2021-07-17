@@ -1,0 +1,15 @@
+[package]
+name = "cfx-component-glue"
+version = "0.1.0"
+authors = ["ZOTTCE <zottce@gmail.com>"]
+edition = "2018"
+build = "build.rs"
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+cfx-wasm-runtime = { path = "../runtime" }
+
+[build-dependencies]
+cbindgen = "0.19.0"
