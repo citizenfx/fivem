@@ -2040,6 +2040,34 @@ static InitFunction initFunction([]()
 		}
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("SET_AUDIO_SUBMIX_OUTPUT_VOLUMES", [](fx::ScriptContext& ctx)
+	{
+		int sourceIdx = ctx.GetArgument<int>(0);
+		uint32_t effectIdx = ctx.GetArgument<uint32_t>(1);
+		float leftVolume = ctx.GetArgument<float>(2);
+		float rightVolume = ctx.GetArgument<float>(3);
+		float rearLeftVolume = ctx.GetArgument<float>(4);
+		float rearRightVolume = ctx.GetArgument<float>(5);
+		float centerVolume = ctx.GetArgument<float>(6);
+		float lfeVolume = ctx.GetArgument<float>(7);
+
+		auto mixer = rage::audDriver::GetMixer();
+		auto submix = mixer->GetSubmix(sourceIdx);
+
+		if (submix)
+		{
+			rage::audChannelVoiceVolumes volumes;
+			volumes.volumes[0] = leftVolume;
+			volumes.volumes[1] = rightVolume;
+			volumes.volumes[2] = rearLeftVolume;
+			volumes.volumes[3] = rearRightVolume;
+			volumes.volumes[4] = centerVolume;
+			volumes.volumes[5] = lfeVolume;
+
+			submix->SetOutputVolumes(effectIdx, volumes);
+		}
+	});
+
 	rage::OnInitFunctionInvoked.Connect([](rage::InitFunctionType type, const rage::InitFunctionData& data)
 	{
 		if (type == rage::InitFunctionType::INIT_CORE && data.funcHash == /*0xE6D408DF*/0xF0F5A94D)
