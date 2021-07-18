@@ -22,16 +22,32 @@ static InitFunction initFunction([]
 			argTable[arg] = int32_t(data.arguments[arg]);
 		}
 
-		/*NETEV gameEventTriggered CLIENT
-		/#*
-		 * An event that is triggered when the game triggers an internal network event.
-		 *
-		 * @param name - The name of the triggered event.
-		 * @param data - The type-specific event data.
-		 #/
-		declare function gameEventTriggered(name: string, data: number[]): void;
-		*/
-		rec->QueueEvent2("gameEventTriggered", {}, std::string(data.name), argTable);
+		switch (data.type)
+		{
+		case GameEventType::NetworkEvent:
+		{
+			/*NETEV gameEventTriggered CLIENT
+			/#*
+			 * An event that is triggered when the game triggers an internal network event.
+			 *
+			 * @param name - The name of the triggered event.
+			 * @param data - The type-specific event data.
+			 #/
+			declare function gameEventTriggered(name: string, data: number[]): void;
+			*/
+			rec->QueueEvent2("gameEventTriggered", {}, std::string(data.name), argTable);
+
+			break;
+		}
+		case GameEventType::AIEvent:
+		{
+			char eventName[256] = "aiEvent:";
+			strcat(eventName, data.name);
+			rec->QueueEvent2(eventName, {}, argTable);
+
+			break;
+		}
+		}
 	});
 });
 #endif
