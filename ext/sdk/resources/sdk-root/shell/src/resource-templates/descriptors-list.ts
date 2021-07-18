@@ -4,5 +4,6 @@ export const resourceTemplateDescriptors: ResourceTemplateDescriptor[] = [
   require('./empty/descriptor').default,
   require('./lua/descriptor').default,
   require('./js/descriptor').default,
+  require('./ts/descriptor').default,
   require('./csharp/descriptor').default,
 ];
