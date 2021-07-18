@@ -820,7 +820,7 @@ static concurrency::task<std::optional<std::string>> ResolveUrl(const std::strin
 	{
 		// same as above, we need a record
 		skyr::url_record record;
-		record.scheme = "http";
+		record.scheme = "https";
 
 		skyr::url newUri{ std::move(record) };
 		newUri.set_host(peerAddress->ToString());
