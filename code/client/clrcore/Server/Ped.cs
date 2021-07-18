@@ -20,7 +20,7 @@ namespace CitizenFX.Core
 		{
 			int entityHandle = API.GetPlayerPed(handle);
 
-			if (API.GetEntityType(entityHandle) == 1)
+			if (API.DoesEntityExist(entityHandle) && API.GetEntityType(entityHandle) == 1)
 			{
 				return new Ped(entityHandle);
 			}
