@@ -87,6 +87,7 @@ export class InputController {
   private readonly activeMouseButtons: [boolean, boolean, boolean] = [false, false, false];
 
   private cameraControlActive = false;
+  private cameraMovementBaseMultiplier = 1;
 
   private inputOverrides = 0;
 
@@ -253,6 +254,18 @@ export class InputController {
     }
   }
 
+  private readonly handleWheel = (event: WheelEvent) => {
+    if (this.cameraControlActive) {
+      this.cameraMovementBaseMultiplier += -event.deltaY * 0.001;
+
+      if (this.cameraMovementBaseMultiplier < 0.01) {
+        this.cameraMovementBaseMultiplier = 0.01;
+      }
+
+      sendGameClientEvent('we:setCamBaseMultiplier', JSON.stringify(this.cameraMovementBaseMultiplier));
+    }
+  };
+
   private getEventRelativePos(event: MouseEvent): Point {
     const { width, height, x, y } = this.container.current.getBoundingClientRect();
 
@@ -275,6 +288,7 @@ export class InputController {
     mousemove: this.handleContainerMouseMove,
     mousedown: (event: MouseEvent) => this.handleMouseButtonState(event, true),
     mouseup: (event: MouseEvent) => this.handleMouseButtonState(event, false),
+    wheel: this.handleWheel,
   };
 
   private readonly documentHandlers = {
