@@ -275,3 +275,6 @@
 	path = vendor/rpmalloc
 	url = https://github.com/citizenfx/rpmalloc.git
 	branch = lua
+[submodule "vendor/wil"]
+	path = vendor/wil
+	url = https://github.com/microsoft/wil.git
