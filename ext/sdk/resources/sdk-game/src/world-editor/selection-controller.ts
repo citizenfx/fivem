@@ -1,4 +1,3 @@
-import { sendSdkMessage } from "../client/sendSdkMessage";
 import { useKeyMapping } from "./utils";
 
 export const SelectionController = new class SelectionController {

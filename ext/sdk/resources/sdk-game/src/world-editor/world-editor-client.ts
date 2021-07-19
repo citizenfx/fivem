@@ -3,6 +3,7 @@ import { CameraManager } from './camera-manager';
 import { MapManager } from './map-manager';
 import { PreviewManager } from './preview-manager';
 
+CameraManager.preinit();
 MapManager.preinit();
 
 setTimeout(() => {

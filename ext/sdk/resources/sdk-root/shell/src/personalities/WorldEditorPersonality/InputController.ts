@@ -1,5 +1,30 @@
 import React from 'react';
 
+export enum Key {
+  ALT = 18,
+  ALT_LEFT = 0xA4,
+  ALT_RIGHT = 0xA5,
+
+  CTRL = 17,
+  CTRL_LEFT = 0xA2,
+  CTRL_RIGHT = 0xA3,
+
+  SHIFT = 16,
+  SHIFT_LEFT = 0xA0,
+  SHIFT_RIGHT = 0xA1,
+}
+
+export enum MouseButton {
+  LEFT = 0,
+  MIDDLE = 1,
+  RIGHT = 2,
+}
+
+interface Point {
+  x: number,
+  y: number,
+}
+
 export function mapMouseButton(button: number): number {
   if (button === 2) {
     return 1;
@@ -14,44 +39,67 @@ export function mapMouseButton(button: number): number {
 
 export function mapKey(which: number, location: number) {
   // Alt
-  if (which === 18) {
+  if (which === Key.ALT) {
     return location === 1
-      ? 0xA4
-      : 0xA5;
+      ? Key.ALT_LEFT
+      : Key.ALT_RIGHT;
   }
 
   // Ctrl
-  if (which === 17) {
+  if (which === Key.CTRL) {
     return location === 1
-      ? 0xA2
-      : 0xA3;
+      ? Key.CTRL_LEFT
+      : Key.CTRL_RIGHT;
   }
 
   // Shift
-  if (which === 16) {
+  if (which === Key.SHIFT) {
     return location === 1
-      ? 0xA0
-      : 0xA1;
+      ? Key.SHIFT_LEFT
+      : Key.SHIFT_RIGHT;
   }
 
   return which;
 }
 
 export function isLMB(e: MouseEvent): boolean {
-  return e.button === 0;
+  return e.button === MouseButton.LEFT;
 }
 
 export function isRMB(e: MouseEvent): boolean {
-  return e.button === 2;
+  return e.button === MouseButton.RIGHT;
+}
+
+function clamp01(n: number): number {
+  if (n < 0) {
+    return 0;
+  }
+
+  if (n > 1) {
+    return 1;
+  }
+
+  return n;
 }
 
 export class InputController {
   private readonly activeKeys: Record<number, boolean> = {};
-  private readonly activeMouseButtons: Record<number, boolean> = {};
+  private readonly activeMouseButtons: [boolean, boolean, boolean] = [false, false, false];
 
   private cameraControlActive = false;
+  private cameraMovementBaseMultiplier = 1;
 
   private inputOverrides = 0;
+
+  private mousePos: Point = { x: 0, y: 0 };
+
+  private get gizmoPrecisionMode(): boolean {
+    return !!this.activeKeys[Key.ALT_LEFT] || !!this.activeKeys[Key.ALT_RIGHT];
+  }
+
+  private get dragging(): boolean {
+    return this.activeMouseButtons[MouseButton.LEFT];
+  }
 
   constructor(
     private readonly container: React.RefObject<HTMLDivElement>,
@@ -100,10 +148,21 @@ export class InputController {
       return;
     }
 
-    const { width, height, x, y } = this.container.current.getBoundingClientRect();
+    let rx: number;
+    let ry: number;
 
-    const rx = (event.x - x) / width;
-    const ry = (event.y - y) / height;
+    if (this.dragging) {
+      const movement = this.getScaledMovement(event);
+
+      const multiplier = this.gizmoPrecisionMode
+        ? 0.1
+        : 1;
+
+      rx = this.mousePos.x = clamp01(this.mousePos.x + (movement.x * multiplier));
+      ry = this.mousePos.y = clamp01(this.mousePos.y + (movement.y * multiplier));
+    } else {
+      ({ x: rx, y: ry } = this.getEventRelativePos(event));
+    }
 
     setWorldEditorMouse(rx, ry);
   };
@@ -140,14 +199,12 @@ export class InputController {
   }
 
   private resetMouseButtonStates() {
-    for (const [key, active] of Object.entries(this.activeMouseButtons)) {
+    this.activeMouseButtons.forEach((active, button) => {
       if (active) {
-        const button = parseInt(key, 10);
-
         this.activeMouseButtons[button] = false;
         setMouseButtonState(button, false);
       }
-    }
+    });
   }
   private handleMouseButtonState(event: MouseEvent, active: boolean) {
     if (this.inputOverrides > 0) {
@@ -182,6 +239,7 @@ export class InputController {
       case lmb: {
         if (active && !this.activeMouseButtons[button]) {
           this.activeMouseButtons[button] = true;
+          this.mousePos = this.getEventRelativePos(event);
           setMouseButtonState(button, true);
 
           this.onSelect(true);
@@ -196,10 +254,41 @@ export class InputController {
     }
   }
 
+  private readonly handleWheel = (event: WheelEvent) => {
+    if (this.cameraControlActive) {
+      this.cameraMovementBaseMultiplier += -event.deltaY * 0.001;
+
+      if (this.cameraMovementBaseMultiplier < 0.01) {
+        this.cameraMovementBaseMultiplier = 0.01;
+      }
+
+      sendGameClientEvent('we:setCamBaseMultiplier', JSON.stringify(this.cameraMovementBaseMultiplier));
+    }
+  };
+
+  private getEventRelativePos(event: MouseEvent): Point {
+    const { width, height, x, y } = this.container.current.getBoundingClientRect();
+
+    return {
+      x: (event.x - x) / width,
+      y: (event.y - y) / height,
+    };
+  }
+
+  private getScaledMovement(event: MouseEvent): Point {
+    const { width, height } = this.container.current.getBoundingClientRect();
+
+    return {
+      x: event.movementX / width,
+      y: event.movementY / height,
+    };
+  }
+
   private readonly containerHandlers = {
     mousemove: this.handleContainerMouseMove,
     mousedown: (event: MouseEvent) => this.handleMouseButtonState(event, true),
     mouseup: (event: MouseEvent) => this.handleMouseButtonState(event, false),
+    wheel: this.handleWheel,
   };
 
   private readonly documentHandlers = {

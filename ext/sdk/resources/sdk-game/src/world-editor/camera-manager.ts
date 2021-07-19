@@ -15,7 +15,14 @@ export const CameraManager = new class CameraManager {
     y: 0,
   };
 
+  public baseMoveMultiplier = SETTINGS.BASE_MOVE_MULTIPLIER;
   public fov = 45;
+
+  preinit() {
+    on('we:setCamBaseMultiplier', (multiplierString: string) => {
+      this.baseMoveMultiplier = parseFloat(multiplierString);
+    });
+  }
 
   init() {
     this.handle = CreateCamera('DEFAULT_SCRIPTED_CAMERA', true);
@@ -82,7 +89,7 @@ export const CameraManager = new class CameraManager {
     const fastNormal = getSmartControlNormal(CONTROLS.MOVE_FAST);
     const slowNormal = getSmartControlNormal(CONTROLS.MOVE_SLOW);
 
-    const baseSpeed = SETTINGS.BASE_MOVE_MULTIPLIER;
+    const baseSpeed = this.baseMoveMultiplier;
     const fastSpeed = 1 + ((SETTINGS.FAST_MOVE_MULTIPLIER - 1) * fastNormal);
     const slowSpeed = 1 + ((SETTINGS.SLOW_MOVE_MULTIPLIER - 1) * slowNormal);
 

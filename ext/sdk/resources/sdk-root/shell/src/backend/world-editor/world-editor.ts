@@ -199,11 +199,11 @@ export class WorldEditor implements ApiContribution {
       JSON.parse(mapContent),
       {
         arrayMerge(target, source) {
-          if (target?.length) {
-            return target;
+          if (source?.length) {
+            return source;
           }
 
-          return source;
+          return target;
         },
       },
     );
