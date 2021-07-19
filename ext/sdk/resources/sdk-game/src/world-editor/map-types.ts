@@ -1,6 +1,13 @@
 //                   posX    posY    posZ    rotX    rotY    rotZ
 export type WECam = [number, number, number, number, number, number];
 
+export enum WEEntityMatrixIndex {
+  RX, RY, RZ, RW,
+  FX, FY, FZ, FW,
+  UX, UY, UZ, UW,
+  AX, AY, AZ, AW,
+}
+
 export type WEEntityMatrix = [
   number, number, number, number, // right
   number, number, number, number, // forward

@@ -1,67 +1,127 @@
 import { joaatUint32 } from "../shared";
-import { WEMapAddition } from "./map-types";
+import { CameraManager } from "./camera-manager";
+import { WEEntityMatrixIndex, WEMapAddition } from "./map-types";
+import { Sector, SectorId } from "./sector";
+import { Memoizer } from "./utils";
 
 const mdlHashCache = {};
+function getAdditionModelHash(mdl: string | number): number {
+  if (!(mdl in mdlHashCache)) {
+    mdlHashCache[mdl] = typeof mdl === 'string'
+      ? joaatUint32(mdl)
+      : mdl;
+  }
+  return mdlHashCache[mdl];
+}
+
+function getAdditionSectorId(addition: WEMapAddition): SectorId {
+  return Sector.idFromCoords(
+    addition.mat[WEEntityMatrixIndex.AX],
+    addition.mat[WEEntityMatrixIndex.AY],
+  );
+}
+
+const HANDLE_NOT_LOADED = Symbol.for('not_loaded');
+const HANDLE_LOADING = Symbol.for('loading');
+
+type AdditionId = string;
+type Handle =
+  | number
+  | symbol;
 
 export class ObjectManager {
-  private handles: Record<string, number> = {};
-  private handleToObjectIdMap: Record<number, string> = {};
+  private activeHandles: Record<AdditionId, Handle> = {};
+  private activeHandlesToAdditionIdMap: Record<Handle, AdditionId> = {};
+
+  private sectors: Record<SectorId, Record<AdditionId, Handle>> = {};
+  private activeSectors: SectorId[] = [];
+  private activeSectorsMemoizer = new Memoizer(this.activeSectors);
+  private additionSectors: Record<AdditionId, SectorId> = {};
 
   constructor(
-    private objects: Record<string, WEMapAddition>,
+    private additions: Record<AdditionId, WEMapAddition>,
   ) {
-    Object.keys(objects).forEach((objectId) => this.handles[objectId] = 0xFFFFFFFF);
+    Object.entries(additions).forEach(([additionId, addition]) => {
+      this.setAdditionSector(
+        additionId,
+        getAdditionSectorId(addition),
+      );
+    });
   }
 
   isAddition(handle: number): boolean {
-    return handle in this.handleToObjectIdMap;
+    return handle in this.activeHandlesToAdditionIdMap;
   }
 
-  getObjectId(handle: number): string | void {
-    return this.handleToObjectIdMap[handle];
+  getObjectId(handle: number): AdditionId | void {
+    return this.activeHandlesToAdditionIdMap[handle];
   }
 
-  set(objectId: string, object: WEMapAddition) {
-    this.objects[objectId] = object;
+  set(additionId: AdditionId, addition: WEMapAddition) {
+    this.additions[additionId] = addition;
 
-    if (!(objectId in this.handles)) {
-      this.handles[objectId] = 0xFFFFFFFF;
+    this.setAdditionSector(
+      additionId,
+      getAdditionSectorId(addition),
+    );
+  }
+
+  delete(additionId: AdditionId) {
+    const handle = this.activeHandles[additionId];
+    delete this.activeHandlesToAdditionIdMap[handle];
+
+    if (typeof handle === 'number') {
+      this.deleteObject(handle);
     }
-  }
 
-  delete(objectId: string) {
-    const handle = this.handles[objectId];
-    delete this.handleToObjectIdMap[handle];
+    delete this.additions[additionId];
+    delete this.activeHandles[additionId];
 
-    if (handle !== 0 && DoesEntityExist(handle)) {
-      DeleteObject(handle);
+    const sectorId = this.additionSectors[additionId];
+    if (sectorId) {
+      delete this.sectors[sectorId][additionId];
     }
-
-    delete this.objects[objectId];
-    delete this.handles[objectId];
   }
 
   update() {
-    for (const [objectId, handle] of Object.entries(this.handles)) {
-      const { mdl, mat } = this.objects[objectId];
+    const { x, y } = CameraManager.getPosition();
 
-      if (!(mdl in mdlHashCache)) {
-        mdlHashCache[mdl] = typeof mdl === 'string'
-          ? joaatUint32(mdl)
-          : mdl;
-      }
-      const mdlHash = mdlHashCache[mdl];
+    const prevActiveSectors = this.activeSectors;
+    this.activeSectors = Sector.affectedSectorIdsFromCoords(x, y);
 
-      switch (handle) {
-        case 0xFFFFFFFF: {
+    if (!this.activeSectorsMemoizer.compareAndStore(this.activeSectors)) {
+      prevActiveSectors.forEach(this.maybeUnloadSector);
+    }
+
+    for (const sectorId of this.activeSectors) {
+      this.updateSector(sectorId);
+    }
+  }
+
+  private updateSector(sectorId: SectorId) {
+    const sector = this.sectors[sectorId];
+    if (!sector) {
+      return;
+    }
+
+    for (const additionId in sector) {
+      switch (sector[additionId]) {
+        case HANDLE_NOT_LOADED: {
+          const mdlHash = getAdditionModelHash(this.additions[additionId].mdl);
+
           RequestModel(mdlHash);
-          this.handles[objectId] = 0;
+          this.updateHandle(additionId, sectorId, HANDLE_LOADING);
           break;
         }
 
-        case 0: {
+        case HANDLE_LOADING: {
+          const { mdl, mat } = this.additions[additionId];
+          const mdlHash = getAdditionModelHash(mdl);
+
           if (HasModelLoaded(mdlHash)) {
             const handle = CreateObject(mdlHash, mat[12], mat[13], mat[14], false, false, false);
+
+            SetModelAsNoLongerNeeded(mdlHash);
 
             SetEntityMatrix(
               handle,
@@ -71,19 +131,78 @@ export class ObjectManager {
               mat[12], mat[13], mat[14], // at
             );
 
-            this.handles[objectId] = handle;
-            this.handleToObjectIdMap[handle] = objectId;
-            // SetModelAsNoLongerNeeded(hash);
+            this.updateHandle(additionId, sectorId, handle);
           }
           break;
         }
-
-        default: {
-          // if (DoesEntityExist(handle)) {
-          //   this.handles[objectId] = 0xFFFFFFFF;
-          // }
-        }
       }
+    }
+  }
+
+  private updateHandle(additionId: AdditionId, sectorId: SectorId, handle: Handle) {
+    if (handle === HANDLE_NOT_LOADED) {
+      const prevHandle = this.activeHandles[additionId];
+
+      if (typeof prevHandle === 'number') {
+        delete this.activeHandles[additionId];
+        delete this.activeHandlesToAdditionIdMap[prevHandle];
+      }
+    }
+
+    if (typeof handle === 'number') {
+      this.activeHandles[additionId] = handle;
+      this.activeHandlesToAdditionIdMap[handle] = additionId;
+    }
+
+    this.sectors[sectorId][additionId] = handle;
+  }
+
+  private maybeUnloadSector = (sectorId: SectorId) => {
+    const sector = this.sectors[sectorId];
+    if (!sector) {
+      return;
+    }
+
+    if (!this.activeSectors.includes(sectorId)) {
+      for (const additionId in sector) {
+        const handle = sector[additionId];
+
+        if (typeof handle !== 'symbol') {
+          this.deleteObject(handle);
+        }
+
+        this.updateHandle(additionId, sectorId, HANDLE_NOT_LOADED);
+      }
+    }
+  };
+
+  private setAdditionSector(additionId: AdditionId, sectorId: SectorId) {
+    const prevSectorId = this.additionSectors[additionId];
+
+    let handle: Handle = HANDLE_NOT_LOADED;
+
+    this.additionSectors[additionId] = sectorId;
+
+    if (prevSectorId !== undefined) {
+      handle = this.sectors[prevSectorId][additionId];
+
+      delete this.sectors[prevSectorId][additionId];
+
+      if (Object.keys(this.sectors[prevSectorId]).length === 0) {
+        delete this.sectors[prevSectorId];
+      }
+    }
+
+    if (!this.sectors[sectorId]) {
+      this.sectors[sectorId] = {};
+    }
+
+    this.updateHandle(additionId, sectorId, handle);
+  }
+
+  private deleteObject(handle: number) {
+    if (DoesEntityExist(handle)) {
+      DeleteObject(handle);
     }
   }
 }

@@ -1,5 +1,5 @@
 import { sendSdkBackendMessage, sendSdkMessage, sendSdkMessageBroadcast } from "../client/sendSdkMessage";
-import { joaat, joaatUint32 } from "../shared";
+import { joaat } from "../shared";
 import { CameraManager } from "./camera-manager";
 import {
   WEApplyAdditionChangeRequest,

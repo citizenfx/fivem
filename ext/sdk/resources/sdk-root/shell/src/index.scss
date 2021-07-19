@@ -1,11 +1,6 @@
 @import "variables.scss";
 @import "panels.scss";
 
-@font-face {
-  font-family: 'Mensch';
-  src: url('mensch.ttf')  format('truetype')
-}
-
 @keyframes bganim {
     0% {
         background-position: 0px 0px;
