@@ -1122,6 +1122,15 @@ local function lazyEventHandler() -- lazy initializer so we don't add an event w
 	lazyEventHandler = function() end
 end
 
+-- Handle an export with multiple return values.
+local function exportProcessResult(resource, k, status, ...)
+	if not status then
+		local result = tostring(select(1, ...))
+		error('An error happened while calling export ' .. k .. ' of resource ' .. resource .. ' (' .. result .. '), see above for details')
+	end
+	return ...
+end
+
 -- invocation bit
 exports = {}
 
@@ -1147,14 +1156,8 @@ setmetatable(exports, {
 					end
 				end
 
-				return function(self, ...)
-					local status, result = pcall(exportsCallbackCache[resource][k], ...)
-
-					if not status then
-						error('An error happened while calling export ' .. k .. ' of resource ' .. resource .. ' (' .. result .. '), see above for details')
-					end
-
-					return result
+				return function(self, ...) -- TAILCALL
+					return exportProcessResult(resource, k, pcall(exportsCallbackCache[resource][k], ...))
 				end
 			end,
 
