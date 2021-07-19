@@ -24,6 +24,7 @@ local coroutine_close = coroutine.close or (function(c) end) -- 5.3 compatibilit
 local msgpack = msgpack
 local msgpack_pack = msgpack.pack
 local msgpack_unpack = msgpack.unpack
+local msgpack_pack_args = msgpack.pack_args
 
 local Citizen = Citizen
 local Citizen_SubmitBoundaryStart = Citizen.SubmitBoundaryStart
@@ -631,7 +632,7 @@ function RegisterNetEvent(eventName, cb)
 end
 
 function TriggerEvent(eventName, ...)
-	local payload = msgpack_pack({...})
+	local payload = msgpack_pack_args(...)
 
 	return runWithBoundaryEnd(function()
 		return TriggerEventInternal(eventName, payload, payload:len())
@@ -640,13 +641,13 @@ end
 
 if isDuplicityVersion then
 	function TriggerClientEvent(eventName, playerId, ...)
-		local payload = msgpack_pack({...})
+		local payload = msgpack_pack_args(...)
 
 		return TriggerClientEventInternal(eventName, playerId, payload, payload:len())
 	end
 	
 	function TriggerLatentClientEvent(eventName, playerId, bps, ...)
-		local payload = msgpack_pack({...})
+		local payload = msgpack_pack_args(...)
 
 		return TriggerLatentClientEventInternal(eventName, playerId, payload, payload:len(), tonumber(bps))
 	end
@@ -723,13 +724,13 @@ if isDuplicityVersion then
 	end
 else
 	function TriggerServerEvent(eventName, ...)
-		local payload = msgpack_pack({...})
+		local payload = msgpack_pack_args(...)
 
 		return TriggerServerEventInternal(eventName, payload, payload:len())
 	end
 	
 	function TriggerLatentServerEvent(eventName, bps, ...)
-		local payload = msgpack_pack({...})
+		local payload = msgpack_pack_args(...)
 
 		return TriggerLatentServerEventInternal(eventName, payload, payload:len(), tonumber(bps))
 	end
@@ -1015,7 +1016,7 @@ funcref_mt = msgpack.extend({
 		local ref = rawget(t, '__cfx_functionReference')
 
 		if not netSource then
-			local args = msgpack_pack({...})
+			local args = msgpack_pack_args(...)
 
 			-- as Lua doesn't allow directly getting lengths from a data buffer, and _s will zero-terminate, we have a wrapper in the game itself
 			local rv = runWithBoundaryEnd(function()
