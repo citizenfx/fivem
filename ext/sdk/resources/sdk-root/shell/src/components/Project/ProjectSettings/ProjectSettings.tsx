@@ -79,91 +79,112 @@ export const ProjectSettings = observer(function ProjectSettings() {
 
   const [currentTab, setCurrentTab] = React.useState<ProjectSettingsTab>(projectSettingsTabs.variables);
 
-  return (
-    <Modal fullWidth fullHeight onClose={ProjectState.closeSettings}>
-      <div className={s.root}>
-        <div className={s.prime}>
-          <div>
-            <div className="modal-header">Project settings</div>
-            <TabSelector
-              value={currentTab}
-              items={settingsTabOptions}
-              onChange={setCurrentTab}
-              vertical
+  let tabNode: React.ReactNode;
+
+  switch (currentTab) {
+    case projectSettingsTabs.variables: {
+      tabNode = (
+        <div>
+          <div className="modal-label">
+            Server update channel:
+          </div>
+          <div className="modal-block">
+            <Switch
+              value={updateChannel}
+              options={updateChannelOptions}
+              onChange={handleUpdateChannelChange}
             />
           </div>
 
-          <div>
-            {currentTab === projectSettingsTabs.variables && <>
-              <div className="modal-label">
-                Server update channel:
-              </div>
-              <div className="modal-block">
-                <Switch
-                  value={updateChannel}
-                  options={updateChannelOptions}
-                  onChange={handleUpdateChannelChange}
-                />
-              </div>
+          <div className="modal-block modal-combine">
+            <Input
+              type="password"
+              label="Steam API key:"
+              value={steamWebApiKey}
+              onChange={setSteamWebApiKey}
+              description={<>Used only for build. If you want to use Steam authentication — <a href="https://steamcommunity.com/dev/apikey">get a key</a></>}
+            />
+            <Input
+              type="password"
+              label="Tebex secret:"
+              value={tebexSecret}
+              onChange={setTebexSecret}
+              description={<a href="https://server.tebex.io/settings/servers">Get Tebex secret</a>}
+            />
+          </div>
 
-              <div className="modal-block modal-combine">
-                <Input
-                  type="password"
-                  label="Steam API key:"
-                  value={steamWebApiKey}
-                  onChange={setSteamWebApiKey}
-                  description={<>Used only for build. If you want to use Steam authentication — <a href="https://steamcommunity.com/dev/apikey">get a key</a></>}
-                />
-                <Input
-                  type="password"
-                  label="Tebex secret:"
-                  value={tebexSecret}
-                  onChange={setTebexSecret}
-                  description={<a href="https://server.tebex.io/settings/servers">Get Tebex secret</a>}
-                />
-              </div>
+          <ProjectResourceSettings />
+        </div>
+      );
+      break;
+    }
 
-              <ProjectResourceSettings />
-            </>}
+    case projectSettingsTabs.resources: {
+      tabNode = (
+        <div>
+          <ProjectSystemResources />
+        </div>
+      );
+      break;
+    }
 
-            {currentTab === projectSettingsTabs.resources && <>
-              <ProjectSystemResources />
-            </>}
-
-            {currentTab === projectSettingsTabs.buildOptions && <>
-              <div className="modal-label">
-                Deploy options:
-              </div>
-              <div className="modal-block">
-                <Checkbox
-                  value={useVersioning}
-                  onChange={setUseVersioning}
-                  label="If possible, save previous build allowing build rollback"
-                />
-              </div>
-              <div className="modal-block">
-                <Checkbox
-                  value={deployArtifact}
-                  onChange={setDeployArtifact}
-                  label={`Include ${serverUpdateChannels[project.manifest.serverUpdateChannel]} server artifact`}
-                />
-              </div>
-              {/*<div className="modal-block">
+    case projectSettingsTabs.buildOptions: {
+      tabNode = (
+        <div>
+          <div className="modal-label">
+            Deploy options:
+          </div>
+          <div className="modal-block">
+            <Checkbox
+              value={useVersioning}
+              onChange={setUseVersioning}
+              label="If possible, save previous build allowing build rollback"
+            />
+          </div>
+          <div className="modal-block">
+            <Checkbox
+              value={deployArtifact}
+              onChange={setDeployArtifact}
+              label={`Include ${serverUpdateChannels[project.manifest.serverUpdateChannel]} server artifact`}
+            />
+          </div>
+          {/*<div className="modal-block">
                 <Checkbox
                   value={useTxAdmin}
                   onChange={setUseTxAdmin}
                   label="Use txAdmin to manage the server"
                 />
               </div>*/}
-            </>}
+        </div>
+      );
+      break;
+    }
+  }
+
+  return (
+    <Modal fullWidth fullHeight onClose={ProjectState.closeSettings}>
+      <div className={s.root}>
+        <div className={s.left}>
+          <div className="modal-header">
+            Project settings
+          </div>
+          <TabSelector
+            className={s.tabs}
+            value={currentTab}
+            items={settingsTabOptions}
+            onChange={setCurrentTab}
+            vertical
+          />
+          <div className={s.actions}>
+            <Button
+              text="Close"
+              onClick={ProjectState.closeSettings}
+            />
           </div>
         </div>
 
-        <div className={s.actions}>
-          <Button
-            text="Close"
-            onClick={ProjectState.closeSettings}
-          />
+        <div className={s.right}>
+          {tabNode}
         </div>
       </div>
     </Modal>

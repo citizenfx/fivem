@@ -24,6 +24,7 @@ import { FilesystemEntry } from 'shared/api.types';
 import { ProjectState } from 'store/ProjectState';
 import s from './Resource.module.scss';
 import { SystemResource, SYSTEM_RESOURCES_NAMES } from 'backend/system-resources/system-resources-constants';
+import { ItemState } from 'components/Project/ProjectExplorer/ItemState';
 
 
 const contextOptions: Partial<ProjectExplorerItemContext> = {
@@ -115,22 +116,29 @@ export const Resource = observer(function Resource(props: ProjectItemProps) {
 
   const rootTitle = conflictingWithSystemResource
     ? `"${SYSTEM_RESOURCES_NAMES[entry.name as SystemResource]}" is enabled, this resource will be ignored. Either rename this resource or disable "${SYSTEM_RESOURCES_NAMES[entry.name as SystemResource]}" in Project Settings`
-    : entry.name;
+    : `${entry.name} • ${resourceIsEnabled ? 'Enabled' : 'Disabled'}${resourceIsRunning ? ' • Running' : ''}`;
 
   return (
     <div className={rootClassName} ref={dropRef}>
       <ContextMenu
-        className={itemsStyles.item}
+        className={classnames(itemsStyles.item, itemsStyles.itemLabelled)}
         activeClassName={itemsStyles.itemActive}
         items={itemContextMenuItems}
         onClick={toggleExpanded}
+        elementProps={{
+          'data-label': rootTitle,
+        }}
       >
+        <ItemState
+          enabled={resourceIsEnabled}
+          running={resourceIsRunning}
+        />
         <ResourceIcon
           enabled={resourceIsEnabled}
           running={resourceIsRunning}
           conflictingWithSystemResource={conflictingWithSystemResource}
         />
-        <div className={itemsStyles.itemTitle} title={rootTitle}>
+        <div className={itemsStyles.itemTitle}>
           {entry.name}
         </div>
         <ResourceStatusNode
@@ -193,7 +201,7 @@ interface ResourceIconProps {
 const ResourceIcon = React.memo(function ResourceIcon({ enabled, running, conflictingWithSystemResource }: ResourceIconProps) {
   if (conflictingWithSystemResource) {
     return (
-      <span className={classnames(itemsStyles.itemIcon, s.conflicting)} title="Ignored">
+      <span className={classnames(itemsStyles.itemIcon, s.conflicting)}>
         <BsExclamationCircle />
       </span>
     );
@@ -203,16 +211,12 @@ const ResourceIcon = React.memo(function ResourceIcon({ enabled, running, confli
     ? enabledResourceIcon
     : resourceIcon;
 
-  const iconTitle = enabled
-    ? 'Enabled'
-    : 'Disabled';
-
   const iconsClassName = classnames(itemsStyles.itemIcon, {
     [s.running]: running,
   });
 
   return (
-    <span className={iconsClassName} title={iconTitle}>
+    <span className={iconsClassName}>
       {icon}
     </span>
   );

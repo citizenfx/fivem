@@ -24,6 +24,13 @@
 
   user-select: none;
 
+  &.labelled {
+    @include data-label {
+      bottom: $q*-5;
+      left: $q*6.5;
+    };
+  }
+
   &:hover,
   &.active {
     color: $fgColor;
@@ -39,6 +46,33 @@
 
   &.active {
     background-color: rgba($acColor, .25);
+  }
+
+  .state {
+    position: absolute;
+
+    $size: 4px;
+
+    top: $q*2;
+    left: $q*2.5;
+
+    width: $size;
+    height: $size;
+    border-radius: $size;
+
+    background-color: transparent;
+
+    z-index: 1;
+
+    &.enabled {
+      background-color: $acColor;
+      box-shadow: 0 0 0 1px $bgColor;
+    }
+
+    &.running {
+      background-color: $scColor;
+      box-shadow: 0 0 0 1px $bgColor;
+    }
   }
 
   .icon {
