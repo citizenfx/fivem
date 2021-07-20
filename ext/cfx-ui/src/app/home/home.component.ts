@@ -10,8 +10,8 @@ import { ServersService, HistoryServer, HistoryServerStatus } from 'app/servers/
 import { L10N_LOCALE, L10nLocale } from 'angular-l10n';
 import { Server } from 'app/servers/server';
 
-let cachedWelcomeMessage: SafeHtml;
-let cachedServiceMessage: SafeHtml;
+let cachedWelcomeMessage: string;
+let cachedServiceMessage: string;
 
 @Component({
 	moduleId: module.id,
@@ -25,8 +25,8 @@ export class HomeComponent implements OnInit, OnDestroy {
 
 	currentAccount: DiscourseUser;
 
-	serviceMessage: SafeHtml;
-	welcomeMessage: SafeHtml;
+	serviceMessage: string;
+	welcomeMessage: string;
 	statusMessage = '';
 	statusLevel = 0; // 0 = [unset], 1 = good, 2 = warn, 3 = bad
 	statusInterval;
@@ -187,7 +187,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 		window.fetch(`https://runtime.fivem.net/notice_${this.gameService.gameName}.html`)
 			.then(async (res) => {
 				if (res.ok) {
-					this.serviceMessage = cachedServiceMessage = this.domSanitizer.bypassSecurityTrustHtml(await res.text());
+					this.serviceMessage = cachedServiceMessage = await res.text();
 				}
 			});
 	}
@@ -225,7 +225,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 			`https://runtime.fivem.net/welcome_${this.gameService.gameName}.html`)
 			.then(async res => {
 				if (res.ok) {
-					this.welcomeMessage = cachedWelcomeMessage = this.domSanitizer.bypassSecurityTrustHtml(await res.text());
+					this.welcomeMessage = cachedWelcomeMessage = await res.text();
 				}
 			});
 	}

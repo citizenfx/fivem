@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { GameService } from 'app/game.service';
 
-let cachedCreate: SafeHtml;
+let cachedCreate = '';
 
 @Component({
   selector: 'app-create-home',
@@ -10,7 +10,7 @@ let cachedCreate: SafeHtml;
   styleUrls: ['./create-home.component.scss']
 })
 export class CreateHomeComponent implements OnInit {
-  create: SafeHtml;
+  create: string;
 
   constructor(private domSanitizer: DomSanitizer,
     private gameService: GameService) {
@@ -25,7 +25,7 @@ export class CreateHomeComponent implements OnInit {
     window.fetch('https://runtime.fivem.net/create_home.html')
           .then(async res => {
               if (res.ok) {
-                  this.create = cachedCreate = this.domSanitizer.bypassSecurityTrustHtml(await res.text());
+                  this.create = cachedCreate = await res.text();
               }
           });
   }

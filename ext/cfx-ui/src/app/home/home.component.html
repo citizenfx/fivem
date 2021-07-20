@@ -24,7 +24,7 @@
 				class="service-message with-links"
 				(click)="serviceMessageClick($event)"
 				*ngIf="serviceMessage"
-				[innerHTML]="serviceMessage"
+				[innerHTML]="serviceMessage | dompurify"
 			>
 			</div>
 			<div class="right" id="statuspage_indicator"
@@ -84,7 +84,7 @@
 					</div>
 				</div>
 				<div class="memeing">
-					<article [innerHTML]="welcomeMessage" (click)="clickContent($event)">
+					<article [innerHTML]="welcomeMessage | dompurify" (click)="clickContent($event)">
 					</article>
 				</div>
 			</a>

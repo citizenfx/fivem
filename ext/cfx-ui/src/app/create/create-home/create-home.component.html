@@ -1,1 +1,1 @@
-<div class="container" style="height: 100%;" [innerHTML]="create" (click)="clickContent($event)"></div>
+<div class="container" style="height: 100%;" [innerHTML]="create | dompurify" (click)="clickContent($event)"></div>
