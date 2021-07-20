@@ -1,4 +1,5 @@
 import React from 'react';
+import { SingleEventEmitter } from 'utils/singleEventEmitter';
 
 export enum Key {
   ALT = 18,
@@ -83,6 +84,8 @@ function clamp01(n: number): number {
 }
 
 export class InputController {
+  private cameraMovementBaseMultiplierEvent = new SingleEventEmitter<number>();
+
   private readonly activeKeys: Record<number, boolean> = {};
   private readonly activeMouseButtons: [boolean, boolean, boolean] = [false, false, false];
 
@@ -112,6 +115,10 @@ export class InputController {
     for (const [event, handler] of Object.entries(this.documentHandlers)) {
       document.addEventListener(event, handler);
     }
+  }
+
+  onCameraMovementBaseMultiplierChange(cb: (speed: number) => void) {
+    this.cameraMovementBaseMultiplierEvent.addListener(cb);
   }
 
   overrideInput() {
@@ -261,6 +268,11 @@ export class InputController {
       if (this.cameraMovementBaseMultiplier < 0.01) {
         this.cameraMovementBaseMultiplier = 0.01;
       }
+      if (this.cameraMovementBaseMultiplier === 0.11) {
+        this.cameraMovementBaseMultiplier = 0.1;
+      }
+
+      this.cameraMovementBaseMultiplierEvent.emit(this.cameraMovementBaseMultiplier);
 
       sendGameClientEvent('we:setCamBaseMultiplier', JSON.stringify(this.cameraMovementBaseMultiplier));
     }

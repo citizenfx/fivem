@@ -1,0 +1,53 @@
+@import '../../../vars.scss';
+
+.root {
+  display: block;
+
+  @include fontPrimary;
+  font-weight: 100;
+
+  .entry {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+
+    gap: $q*2;
+
+    padding: $q*2;
+  }
+
+  .clock {
+    padding: $q*2;
+  }
+
+  .weather-buttons {
+    display: flex;
+    flex-wrap: wrap;
+
+    gap: $q;
+
+    padding: $q*2;
+
+    button {
+      flex-grow: 1;
+
+      padding: $q;
+
+      border: none;
+
+      color: $fgColor;
+      background-color: rgba($fgColor, .25);
+
+      cursor: pointer;
+
+      @include fontPrimary;
+      font-weight: 100;
+
+      @include interactiveTransition;
+
+      &:hover {
+        background-color: $acColor;
+      }
+    }
+  }
+}

@@ -31,6 +31,23 @@ export interface WEMapAddition {
   cam: WECam,
 }
 
+export interface WEAckEnvironmentRequest {
+  hours: number,
+  minutes: number,
+  prevWeather: number,
+  nextWeather: number,
+}
+
+export enum WESetEnvirnomentType {
+  TIME,
+  PERSISTENT_WEATHER,
+  RANDOM_WEATHER,
+}
+export type WESetEnvironmentRequest =
+  | { type: WESetEnvirnomentType.TIME, hours: number, minutes: number }
+  | { type: WESetEnvirnomentType.RANDOM_WEATHER }
+  | { type: WESetEnvirnomentType.PERSISTENT_WEATHER, weather: string };
+
 export enum WESelectionType {
   NONE,
   PATCH,

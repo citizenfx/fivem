@@ -6,6 +6,7 @@ $zToolbar: 2;
 $weToolbarHeight: $q*10;
 $weToolbarOffset: $q*15;
 
+$panelOffset: $q*2;
 $wePanelHeight: calc(100vh - 2*#{$weToolbarOffset});
 
 @mixin overlayPanel {

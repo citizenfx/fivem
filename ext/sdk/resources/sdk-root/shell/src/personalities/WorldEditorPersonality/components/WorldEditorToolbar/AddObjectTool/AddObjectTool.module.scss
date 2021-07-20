@@ -68,7 +68,7 @@
       @include ellipsis;
 
       &.active {
-        background-color: rgba($acColor, .25);
+        background-color: rgba($acColor, .5);
       }
     }
   }
