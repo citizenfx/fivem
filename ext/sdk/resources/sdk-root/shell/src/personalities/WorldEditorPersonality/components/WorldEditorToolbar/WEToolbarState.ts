@@ -6,6 +6,7 @@ export enum WETool {
   Properties,
   AddObject,
   StatusCenter,
+  EnvironmentTool,
 }
 
 type WEToolSide = 'left' | 'right';
@@ -18,7 +19,9 @@ export const TOOL_SIDE: Record<WETool, WEToolSide> = {
   [WETool.Additions]: LEFT_SIDE_TOOL,
   [WETool.Properties]: LEFT_SIDE_TOOL,
   [WETool.AddObject]: LEFT_SIDE_TOOL,
+
   [WETool.StatusCenter]: RIGHT_SIDE_TOOL,
+  [WETool.EnvironmentTool]: RIGHT_SIDE_TOOL,
 };
 
 export const WEToolbarState = new class WEToolbarState {

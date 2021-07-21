@@ -1,4 +1,5 @@
 import React from 'react';
+import classnames from 'classnames';
 import { ProjectItemProps } from "components/Project/ProjectExplorer/item";
 import { itemsStyles } from "components/Project/ProjectExplorer/item.styles";
 import { observer } from "mobx-react-lite";
@@ -16,6 +17,7 @@ import { ResourceAssetConfig } from 'assets/resource/resource-types';
 import { sendApiMessage } from 'utils/api';
 import { projectApi } from 'shared/api.events';
 import { FXWorldDeleter } from './FXWorldDeleter/FXWorldDeleter';
+import { ItemState } from 'components/Project/ProjectExplorer/ItemState';
 
 const defaultFXWorldConfig: FXWorldAssetConfig = {
   enabled: false,
@@ -92,11 +94,17 @@ export const FXWorld = observer(function FXWorld(props: ProjectItemProps) {
   return (
     <div className={itemsStyles.wrapper}>
       <ContextMenu
-        className={itemsStyles.item}
+        className={classnames(itemsStyles.item, itemsStyles.itemLabelled)}
         activeClassName={itemsStyles.itemActive}
         onClick={handleOpen}
         items={contextMenuItems}
+        elementProps={{
+          'data-label': `${mapName} • ${config.enabled ? 'Enabled' : 'Disabled'}`
+        }}
       >
+        <ItemState
+          enabled={config.enabled}
+        />
         <div className={itemsStyles.itemIcon}>
           {fxworldIcon}
         </div>

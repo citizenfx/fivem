@@ -20,6 +20,7 @@ import { WEMapState } from './WEMapState';
 import { __DEBUG_MODE_TOGGLES__ } from 'constants/debug-constants';
 import { GameState } from 'store/GameState';
 import { Hotkeys, HOTKEY_COMMAND } from '../Hotkeys';
+import { FlashingMessageState } from '../components/WorldEditorToolbar/FlashingMessage/FlashingMessageState';
 
 const noop = () => {};
 
@@ -177,11 +178,16 @@ export const WEState = new class WEState {
 
     this.inputController = new InputController(container, this.setEditorSelect);
 
+    this.inputController.onCameraMovementBaseMultiplierChange((speed: number) => {
+      FlashingMessageState.setMessage(`Camera speed: ${(speed * 100) | 0}%`);
+    });
+
     this.hotkeys.onBeforeHotkey((event) => {
       switch (event.command) {
         case HOTKEY_COMMAND.TOOL_ADDITIONS_TOGGLE:
         case HOTKEY_COMMAND.TOOL_ADD_OBJECT_TOGGLE:
-        case HOTKEY_COMMAND.TOOL_PATCHES_TOGGLE: {
+        case HOTKEY_COMMAND.TOOL_PATCHES_TOGGLE:
+        case HOTKEY_COMMAND.TOOL_ENVIRONMENT_TOGGLE: {
           this.inputController.deactivateCameraControl();
 
           break;

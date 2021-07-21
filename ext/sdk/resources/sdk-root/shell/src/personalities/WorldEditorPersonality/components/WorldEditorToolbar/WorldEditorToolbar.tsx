@@ -1,8 +1,6 @@
 import React from 'react';
 import { observer } from "mobx-react-lite";
 import classnames from 'classnames';
-// import { serverApi } from 'shared/api.events';
-// import { sendApiMessage } from 'utils/api';
 import { WEState } from '../../store/WEState';
 import { StatusTool } from './StatusTool/StatusTool';
 import { ModeSelector } from './ModeSelector/ModeSelector';
@@ -14,6 +12,9 @@ import s from './WorldEditorToolbar.module.scss';
 import sBaseTool from './BaseTool/BaseTool.module.scss';
 import { closeIcon } from 'constants/icons';
 import { ActiveSelectionTool } from './ActiveSelectionTool/ActiveSelectionTool';
+import { EnvironmentTool } from './EnvironmentTool/EnvironmentTool';
+import { FlashingMessage } from './FlashingMessage/FlashingMessage';
+// import { DebugRestartSdkGameTool } from './DebugRestartSdkGameTool';
 
 function CloseButton() {
   const rootClassName = classnames(sBaseTool.toggle, sBaseTool.labelled, sBaseTool.hoverable);
@@ -46,16 +47,20 @@ export const WorldEditorToolbar = observer(function WorldEditorToolbar() {
           </>
         )}
 
-        {/* <button onClick={() => sendApiMessage(serverApi.restartResource, 'sdk-game')}>
-          restart sdk-game
-        </button> */}
+        {/* <DebugRestartSdkGameTool /> */}
       </div>
 
       <div className={s['top-center']}>
         <ActiveSelectionTool />
       </div>
 
+      <FlashingMessage />
+
       <div className={s['top-right']}>
+        {showControls && (
+          <EnvironmentTool />
+        )}
+
         <StatusTool />
 
         <CloseButton />

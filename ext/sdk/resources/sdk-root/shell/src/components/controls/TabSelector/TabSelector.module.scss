@@ -34,6 +34,7 @@
 
   &.vertical {
     flex-direction: column;
+
     width: auto;
     min-width: 250px;
 
@@ -44,7 +45,11 @@
 
       svg {
         margin-right: $q;
-        height: 0.8em;
+        height: $fs08;
+      }
+
+      &:hover {
+        background-color: rgba($fgColor, .05);
       }
 
       &.active {

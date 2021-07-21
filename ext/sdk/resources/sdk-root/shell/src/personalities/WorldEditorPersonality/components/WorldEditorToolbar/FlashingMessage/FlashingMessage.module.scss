@@ -1,0 +1,42 @@
+@import '../../../vars.scss';
+
+.root {
+  position: fixed;
+
+  bottom: $weToolbarHeight*2 + $weToolbarOffset + $panelOffset*2;
+  left: 0;
+  right: 0;
+
+  height: 0;
+
+  display: flex;
+  justify-content: center;
+
+  pointer-events: none;
+
+  z-index: 1;
+
+  .message {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    height: $weToolbarHeight;
+
+    padding: $q*3;
+
+    background-color: rgba($bgColor, .5);
+
+    border-radius: $weToolbarHeight;
+
+    opacity: 0;
+
+    transition: opacity .2s;
+  }
+
+  &.active .message {
+    opacity: 1;
+
+    transition: none;
+  }
+}

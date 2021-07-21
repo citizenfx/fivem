@@ -31,7 +31,6 @@ export const Explorer = React.memo(function Explorer(props: ExplorerProps) {
     setRoot(entry);
   });
   useApiMessage(explorerApi.dirRecursive, (pathsMap: FilesystemEntryMap) => {
-    console.log('dir rec', baseEntry, pathsMap);
     pathsMapRef.current = pathsMap;
     setUpdateBeacon({});
   });

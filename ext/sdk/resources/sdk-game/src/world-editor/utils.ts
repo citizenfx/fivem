@@ -57,3 +57,27 @@ export function drawDebugText(text: string, x: number = .5, y: number = 0) {
 
   DrawText(x, y);
 }
+
+export class Memoizer<T> {
+  private s: string;
+
+  constructor(
+    initial: T,
+    private serializer: ((v: T) => string) = (v: T) => JSON.stringify(v),
+  ) {
+    this.s = serializer(initial);
+  }
+
+  compareAndStore(v: T): boolean {
+    const s = this.serializer(v);
+    let ret = true;
+
+    if (this.s !== s) {
+      ret = false;
+    }
+
+    this.s = s;
+
+    return ret;
+  }
+}

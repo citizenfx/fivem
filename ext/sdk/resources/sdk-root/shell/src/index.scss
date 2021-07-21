@@ -1,11 +1,6 @@
 @import "variables.scss";
 @import "panels.scss";
 
-@font-face {
-  font-family: 'Mensch';
-  src: url('mensch.ttf')  format('truetype')
-}
-
 @keyframes bganim {
     0% {
         background-position: 0px 0px;
@@ -251,4 +246,34 @@ kbd {
   box-shadow: 0 1px 0 0 rgba($fgColor, .5);
 
   background-color: rgba($fgColor, .1);
+}
+
+.normalize-text {
+  text-transform: lowercase;
+
+  &::first-letter {
+    text-transform: uppercase;
+  }
+}
+
+input[type=range] {
+  -webkit-appearance: none;
+  width: 100%;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: $q*2;
+  width: $q*5;
+
+  margin-top: -$q/2;
+
+  border: none;
+
+  background: $acColor;
+}
+input[type=range]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: $q;
+  cursor: pointer;
+  background: mix($bgColor, rgba($fgColor, .25));
 }

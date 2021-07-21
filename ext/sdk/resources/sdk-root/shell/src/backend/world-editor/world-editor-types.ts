@@ -1,6 +1,13 @@
 //                   posX    posY    posZ    rotX    rotY    rotZ
 export type WECam = [number, number, number, number, number, number];
 
+export enum WEEntityMatrixIndex {
+  RX, RY, RZ, RW,
+  FX, FY, FZ, FW,
+  UX, UY, UZ, UW,
+  AX, AY, AZ, AW,
+}
+
 export type WEEntityMatrix = [
   number, number, number, number, // right
   number, number, number, number, // forward
@@ -23,6 +30,23 @@ export interface WEMapAddition {
   mat: WEEntityMatrix,
   cam: WECam,
 }
+
+export interface WEAckEnvironmentRequest {
+  hours: number,
+  minutes: number,
+  prevWeather: number,
+  nextWeather: number,
+}
+
+export enum WESetEnvirnomentType {
+  TIME,
+  PERSISTENT_WEATHER,
+  RANDOM_WEATHER,
+}
+export type WESetEnvironmentRequest =
+  | { type: WESetEnvirnomentType.TIME, hours: number, minutes: number }
+  | { type: WESetEnvirnomentType.RANDOM_WEATHER }
+  | { type: WESetEnvirnomentType.PERSISTENT_WEATHER, weather: string };
 
 export enum WESelectionType {
   NONE,

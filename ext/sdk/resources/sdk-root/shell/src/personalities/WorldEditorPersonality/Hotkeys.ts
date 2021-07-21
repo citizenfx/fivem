@@ -12,6 +12,7 @@ export const HOTKEY_COMMAND = {
   TOOL_PATCHES_TOGGLE: 'tool.patches.toggle',
   TOOL_ADDITIONS_TOGGLE: 'tool.additions.toggle',
   TOOL_ADD_OBJECT_TOGGLE: 'tool.addObject.toggle',
+  TOOL_ENVIRONMENT_TOGGLE: 'tool.environment.toggle',
 
   CONTROL_COORD_SYSTEM_TOGGLE: 'control.coordSystem.toggle',
   CONTROL_MODE_TRANSLATE_TOGGLE: 'control.mode.translate.toggle',
@@ -30,6 +31,7 @@ const defaultMapping = {
   [HOTKEY_COMMAND.TOOL_PATCHES_TOGGLE]: 'ctrl+p',
   [HOTKEY_COMMAND.TOOL_ADD_OBJECT_TOGGLE]: 'ctrl+a',
   [HOTKEY_COMMAND.TOOL_ADDITIONS_TOGGLE]: 'ctrl+b',
+  [HOTKEY_COMMAND.TOOL_ENVIRONMENT_TOGGLE]: 'ctrl+e',
 
   [HOTKEY_COMMAND.CONTROL_COORD_SYSTEM_TOGGLE]: '`',
   [HOTKEY_COMMAND.CONTROL_MODE_TRANSLATE_TOGGLE]: '1',
@@ -62,6 +64,7 @@ export class Hotkeys {
     this.bind(HOTKEY_COMMAND.TOOL_PATCHES_TOGGLE, HotkeyGroup.GAME, () => WEToolbarState.toggleTool(WETool.Patches));
     this.bind(HOTKEY_COMMAND.TOOL_ADDITIONS_TOGGLE, HotkeyGroup.GAME, () => WEToolbarState.toggleTool(WETool.Additions));
     this.bind(HOTKEY_COMMAND.TOOL_ADD_OBJECT_TOGGLE, HotkeyGroup.GAME, () => WEToolbarState.toggleTool(WETool.AddObject));
+    this.bind(HOTKEY_COMMAND.TOOL_ENVIRONMENT_TOGGLE, HotkeyGroup.GAME, () => WEToolbarState.toggleTool(WETool.EnvironmentTool));
 
     this.bind(HOTKEY_COMMAND.CONTROL_COORD_SYSTEM_TOGGLE, HotkeyGroup.GAME, WEState.toggleEditorLocal);
     this.bind(HOTKEY_COMMAND.CONTROL_MODE_TRANSLATE_TOGGLE, HotkeyGroup.GAME, WEState.enableTranslation);
