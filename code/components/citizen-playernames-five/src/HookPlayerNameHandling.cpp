@@ -15,84 +15,21 @@
 
 #include <msgpack.hpp>
 #include <CrossBuildRuntime.h>
+#include <netPeerAddress.h>
 
 static NetLibrary* g_netLibrary;
 static std::unordered_map<int, std::string> g_netIdToNames;
 static std::unordered_map<int, int> g_netIdToSlots;
 
 #define DECLARE_ACCESSOR(x) \
-	decltype(impl.m2060.x)& x()        \
+	decltype(impl.m2372.x)& x()        \
 	{                       \
-		return (xbr::IsGameBuildOrGreater<2060>() ? impl.m2060.x : impl.m1604.x);   \
+		return (xbr::IsGameBuildOrGreater<2372>() ? impl.m2372.x : xbr::IsGameBuildOrGreater<2060>() ? impl.m2060.x : impl.m1604.x);   \
 	} \
-	const decltype(impl.m2060.x)& x() const                         \
+	const decltype(impl.m2372.x)& x() const                         \
 	{                                                    \
-		return (xbr::IsGameBuildOrGreater<2060>() ? impl.m2060.x : impl.m1604.x);  \
+		return (xbr::IsGameBuildOrGreater<2372>() ? impl.m2372.x : xbr::IsGameBuildOrGreater<2060>() ? impl.m2060.x : impl.m1604.x);  \
 	}
-
-struct netIpAddress
-{
-	union
-	{
-		uint32_t addr;
-		uint8_t bytes[4];
-	};
-};
-
-struct netSocketAddress
-{
-	netIpAddress ip;
-	uint16_t port;
-};
-
-// needs to be kept in sync with gta:net:five
-struct netPeerAddress
-{
-public:
-	struct Impl505
-	{
-		uint64_t unkKey1;
-		uint64_t unkKey2;
-		uint32_t secKeyTime; // added in 393
-		netSocketAddress relayAddr;
-		netSocketAddress publicAddr;
-		netSocketAddress localAddr;
-		uint32_t newVal; // added in 372
-		uint64_t rockstarAccountId; // 463/505
-	};
-
-	struct Impl2060
-	{
-		uint64_t unkKey1;
-		uint64_t unkKey2;
-		uint32_t secKeyTime; // added in 393
-		netSocketAddress relayAddr;
-		netSocketAddress publicAddr;
-		netSocketAddress localAddr;
-		netSocketAddress unkAddr; // added in 2060
-		uint32_t newVal; // added in 372
-		uint64_t rockstarAccountId; // 463/505
-	};
-
-	union
-	{
-		Impl505 m1604;
-		Impl2060 m2060;
-	} impl;
-
-public:
-	DECLARE_ACCESSOR(unkKey1);
-	DECLARE_ACCESSOR(unkKey2);
-	DECLARE_ACCESSOR(secKeyTime);
-	DECLARE_ACCESSOR(relayAddr);
-	DECLARE_ACCESSOR(publicAddr);
-	DECLARE_ACCESSOR(localAddr);
-	DECLARE_ACCESSOR(newVal);
-	DECLARE_ACCESSOR(rockstarAccountId);
-};
-
-template<int Build>
-using PeerAddress = std::conditional_t<(Build >= 2060), netPeerAddress::Impl2060, netPeerAddress::Impl505>;
 
 static const char* GetPlayerNameFromScAddr(void* addr)
 {
@@ -103,7 +40,18 @@ static const char* GetPlayerNameFromScAddr(void* addr)
 
 	int netId = 0;
 
-	if (xbr::IsGameBuildOrGreater<2060>())
+	if (xbr::IsGameBuildOrGreater<2372>())
+	{
+		auto address = (PeerAddress<2372>*)addr;
+
+		if (address->relayAddr.ip.addr != address->localAddr.ip.addr || address->relayAddr.ip.addr != address->publicAddr.ip.addr)
+		{
+			return (char*)addr + sizeof(PeerAddress<2372>) + 36;
+		}
+
+		netId = (address->relayAddr.ip.addr & 0xFFFF) ^ 0xFEED;
+	}
+	else if (xbr::IsGameBuildOrGreater<2060>())
 	{
 		auto address = (PeerAddress<2060>*)addr;
 

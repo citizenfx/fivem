@@ -4,6 +4,7 @@
 	"dependencies": [
 		"fx[2]",
 		"net",
+		"gta:core",
 		"citizen:resources:core",
 		"vendor:msgpack-c"
 	],

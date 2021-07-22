@@ -363,7 +363,11 @@ namespace sync
 
 	void TempHackMakePhysicalPlayer(uint16_t clientId, int idx = -1)
 	{
-		if (xbr::IsGameBuildOrGreater<2060>())
+		if (xbr::IsGameBuildOrGreater<2372>())
+		{
+			TempHackMakePhysicalPlayerImpl<2372>(clientId, idx);
+		}
+		else if (xbr::IsGameBuildOrGreater<2060>())
 		{
 			TempHackMakePhysicalPlayerImpl<2060>(clientId, idx);
 		}
@@ -1700,7 +1704,8 @@ static HookFunction hookFunction([]()
 	}
 
 #ifdef GTA_FIVE
-	MH_CreateHook(hook::get_pattern("48 85 DB 74 20 48 8B 03 48 8B CB FF 50 30 48 8B", -0x34), (xbr::IsGameBuildOrGreater<2060>()) ? GetPlayerFromGamerId<2060> : GetPlayerFromGamerId<1604>, (void**)&g_origGetPlayerFromGamerId);
+	MH_CreateHook(hook::get_pattern("48 85 DB 74 20 48 8B 03 48 8B CB FF 50 30 48 8B", -0x34),
+		(xbr::IsGameBuildOrGreater<2372>()) ? GetPlayerFromGamerId<2372> : xbr::IsGameBuildOrGreater<2060>() ? GetPlayerFromGamerId<2060> : GetPlayerFromGamerId<1604>, (void**)&g_origGetPlayerFromGamerId);
 #elif IS_RDR3
 	MH_CreateHook(hook::get_pattern("48 85 DB 74 20 48 8B 03 48 8B CB FF 50 ? 48 8B", -0x27), GetPlayerFromGamerId, (void**)&g_origGetPlayerFromGamerId);
 #endif
@@ -3408,16 +3413,9 @@ static_assert(offsetof(netTimeSync<1604>, m_sessionKey) == 32);
 static_assert(offsetof(netTimeSync<2060>, m_sessionKey) == 40);
 static_assert(offsetof(netTimeSync<2372>, m_sessionKey) == 20);
 
-static_assert(offsetof(netTimeSync<1604>, m_configMaxBackoff) == 96);
-static_assert(offsetof(netTimeSync<2060>, m_configMaxBackoff) == 104);
-static_assert(offsetof(netTimeSync<2372>, m_configMaxBackoff) == 88);
-
 static_assert(offsetof(netTimeSync<1604>, m_disabled) == 133);
 static_assert(offsetof(netTimeSync<2060>, m_disabled) == 141);
 static_assert(offsetof(netTimeSync<2372>, m_disabled) == 125);
-
-static_assert(offsetof(netTimeSync<2372>, m_timeDelta) == 24);
-static_assert(offsetof(netTimeSync<2372>, m_configTimeBetweenSyncs) == 84);
 
 template<int Build>
 static netTimeSync<Build>** g_netTimeSync;
