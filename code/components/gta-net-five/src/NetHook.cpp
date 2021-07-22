@@ -862,6 +862,10 @@ static HookFunction initFunction([]()
 	{
 		auto location = hook::get_pattern("FF C8 0F 85 AC 00 00 00 48 39 35", 11);
 
+		if (xbr::IsGameBuildOrGreater<2372>())
+		{
+			g_gamerInfo<2372> = hook::get_address<decltype(g_gamerInfo<2372>)>(location);
+		}
 		if (xbr::IsGameBuildOrGreater<2060>())
 		{
 			g_gamerInfo<2060> = hook::get_address<decltype(g_gamerInfo<2060>)>(location);
@@ -876,7 +880,11 @@ static HookFunction initFunction([]()
 
 	OnGameFrame.Connect([]()
 	{
-		if (xbr::IsGameBuildOrGreater<2060>())
+		if (xbr::IsGameBuildOrGreater<2372>())
+		{
+			RunGameFrame<2372>();
+		}
+		else if (xbr::IsGameBuildOrGreater<2060>())
 		{
 			RunGameFrame<2060>();
 		}
@@ -1025,7 +1033,11 @@ static HookFunction initFunction([]()
 
 		if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
 		{
-			if (xbr::IsGameBuildOrGreater<2060>())
+			if (xbr::IsGameBuildOrGreater<2372>())
+			{
+				hostSystem.process<2372>();			
+			}
+			else if (xbr::IsGameBuildOrGreater<2060>())
 			{
 				hostSystem.process<2060>();			
 			}
@@ -1607,9 +1619,6 @@ static HookFunction hookFunction([] ()
 		ExitProcess(-1);
 	});
 
-	// #TODO2372: net hook is completely broken and crashing at ~INIT_CORE. Most likely structs.
-	//return;
-
 	/*OnPostFrontendRender.Connect([] ()
 	{
 		int value = *(int*)getNetworkManager();
@@ -1703,7 +1712,7 @@ static HookFunction hookFunction([] ()
 
 
 	hook::set_call(&g_origMigrateCopy, migrateCmd);
-	hook::call(migrateCmd, (xbr::IsGameBuildOrGreater<2060>()) ? (void*)&MigrateSessionCopy<2060> : &MigrateSessionCopy<1604>);
+	hook::call(migrateCmd, (xbr::IsGameBuildOrGreater<2372>()) ? (void*)&MigrateSessionCopy<2372> : (xbr::IsGameBuildOrGreater<2060>()) ? (void*)&MigrateSessionCopy<2060> : &MigrateSessionCopy<1604>);
 
 	// session key getting system key; replace with something static for migration purposes
 	//hook::call(hook::pattern("74 15 48 8D 4C 24 78 E8").count(1).get(0).get<void>(7), GetOurSessionKey);
@@ -1880,7 +1889,7 @@ static HookFunction hookFunction([] ()
 	//hook::call(hook::pattern("89 44 24 28 41 8B 87 80 01 00 00 48 8B CB 89 44").count(1).get(0).get<void>(18), StartLookUpInAddr);
 	//hook::jump(hook::get_call(hook::pattern("48 8B D0 C7 44 24 28 04 00 00 00 44 89 7C 24 20").count(1).get(0).get<void>(16)), StartLookUpInAddr);
 	hook::jump(hook::get_call(hook::get_pattern<char>("E8 ? ? ? ? 84 C0 0F 84 ? ? ? ? 49 8B 8E A0 00 00 00")), 
-		(xbr::IsGameBuildOrGreater<2060>()) ? (void*)StartLookUpInAddr<2060> : StartLookUpInAddr<1604>);
+		(xbr::IsGameBuildOrGreater<2372>()) ? (void*)StartLookUpInAddr<2372> : (xbr::IsGameBuildOrGreater<2060>()) ? (void*)StartLookUpInAddr<2060> : StartLookUpInAddr<1604>);
 
 	// temp dbg: always clone a player (to see why this CTaskMove flag is being a twat)
 	//hook::jump(hook::pattern("74 06 F6 40 2F 01 75 0E 48 8B D7").count(1).get(0).get<void>(-0x27), ReturnTrue);
