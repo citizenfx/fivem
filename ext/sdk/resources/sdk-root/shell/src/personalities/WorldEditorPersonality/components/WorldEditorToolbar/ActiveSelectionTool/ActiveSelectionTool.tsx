@@ -7,6 +7,7 @@ import { WEState } from 'personalities/WorldEditorPersonality/store/WEState';
 import { WESelectionType } from 'backend/world-editor/world-editor-types';
 import { additionsToolIcon, patchesToolIcon } from 'personalities/WorldEditorPersonality/constants/icons';
 import { closeIcon } from 'constants/icons';
+import { Title } from 'components/controls/Title/Title';
 
 function getIconNode(): React.ReactNode {
   switch (WEState.selection.type) {
@@ -24,6 +25,26 @@ function getIconNode(): React.ReactNode {
   }
 }
 
+function getSelectionLabel(): string {
+  switch (WEState.selection.type) {
+    case WESelectionType.NONE: {
+      return '';
+    }
+
+    case WESelectionType.ADDITION: {
+      return WEState.map.additions[WEState.selection.id]?.label || '';
+    }
+
+    case WESelectionType.PATCH: {
+      const patch = WEState.map.getPatch(WEState.selection.mapdata, WEState.selection.entity);
+
+      return patch
+        ? patch.label
+        : WEState.selection.label;
+    }
+  }
+}
+
 export const ActiveSelectionTool = observer(function ActiveSelectionTool() {
   if (WEState.selection.type === WESelectionType.NONE) {
     return null;
@@ -31,28 +52,25 @@ export const ActiveSelectionTool = observer(function ActiveSelectionTool() {
 
   const rootClassName = classnames(sBaseTool.toggle, s.root);
 
-  let label: string;
-  if (WEState.selection.type === WESelectionType.ADDITION) {
-    label = WEState.map.additions[WEState.selection.id].label;
-  } else {
-    const patch = WEState.map.getPatch(WEState.selection.mapdata, WEState.selection.entity);
-
-    label = patch
-      ? patch.label
-      : WEState.selection.label;
-  }
-
   return (
     <div className={rootClassName}>
       <div className={s.icon}>
         {getIconNode()}
       </div>
       <div className={s.label}>
-        {label}
+        {getSelectionLabel()}
       </div>
-      <button className={s.clear} onClick={WEState.clearEditorSelection} data-label="Clear selection (ESC)">
-        {closeIcon}
-      </button>
+      <Title animated={false} delay={0} fixedOn="top" title="Clear selection" shortcut="ESC">
+        {(ref) => (
+          <button
+            ref={ref}
+            className={s.clear}
+            onClick={WEState.clearEditorSelection}
+          >
+            {closeIcon}
+          </button>
+        )}
+      </Title>
     </div>
   );
 });

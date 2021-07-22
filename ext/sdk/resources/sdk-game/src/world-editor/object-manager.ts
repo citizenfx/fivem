@@ -1,6 +1,7 @@
 import { joaatUint32 } from "../shared";
 import { CameraManager } from "./camera-manager";
 import { WEEntityMatrixIndex, WEMapAddition } from "./map-types";
+import { applyEntityMatrix } from "./math";
 import { Sector, SectorId } from "./sector";
 import { Memoizer } from "./utils";
 
@@ -57,13 +58,26 @@ export class ObjectManager {
     return this.activeHandlesToAdditionIdMap[handle];
   }
 
-  set(additionId: AdditionId, addition: WEMapAddition) {
+  getObjectHandle(additionId: AdditionId): Handle | void {
+    return this.activeHandles[additionId];
+  }
+
+  set(additionId: AdditionId, addition: WEMapAddition, doNotApplyMatrix = false) {
     this.additions[additionId] = addition;
 
     this.setAdditionSector(
       additionId,
       getAdditionSectorId(addition),
     );
+
+    if (!doNotApplyMatrix) {
+      const additionSector = this.additionSectors[additionId];
+      const handle = this.activeHandles[additionId];
+
+      if (this.activeSectors.includes(additionSector) && typeof handle === 'number') {
+        applyEntityMatrix(handle, addition.mat);
+      }
+    }
   }
 
   delete(additionId: AdditionId) {

@@ -128,7 +128,6 @@ export const AdditionsGroup = observer(function AdditionsGroup(props: AdditionsG
             key={id}
             item={obj}
             onLabelChange={(label: string) => label.trim() && WEState.map?.setAdditionLabel(id, label.trim())}
-            onClick={() => WEState.setCam(obj.cam)}
             onDelete={() => WEState.map.deleteAddition(id)}
           />
         ))}

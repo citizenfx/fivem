@@ -1,5 +1,6 @@
 import { CONTROLS, SETTINGS } from "./config";
 import { limitPrecision, RotDeg3, Vec3 } from "./math";
+import { SettingsManager } from "./settings-manager";
 import { getSmartControlNormal, useKeyMapping } from "./utils";
 
 export const CameraManager = new class CameraManager {
@@ -119,8 +120,8 @@ export const CameraManager = new class CameraManager {
   }
 
   updateRotation(dx: number, dy: number) {
-    this.rot.x += -dy * SETTINGS.LOOK_SENSETIVITY[0];
-    this.rot.z += -dx * SETTINGS.LOOK_SENSETIVITY[1];
+    this.rot.x += -dy * SettingsManager.settings.mouseSensetivity;
+    this.rot.z += -dx * SettingsManager.settings.mouseSensetivity;
 
     this.rot.clamp();
 

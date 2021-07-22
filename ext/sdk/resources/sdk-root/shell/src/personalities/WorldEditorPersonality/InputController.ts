@@ -1,4 +1,5 @@
 import React from 'react';
+import { clamp01 } from 'shared/math';
 import { SingleEventEmitter } from 'utils/singleEventEmitter';
 
 export enum Key {
@@ -69,18 +70,6 @@ export function isLMB(e: MouseEvent): boolean {
 
 export function isRMB(e: MouseEvent): boolean {
   return e.button === MouseButton.RIGHT;
-}
-
-function clamp01(n: number): number {
-  if (n < 0) {
-    return 0;
-  }
-
-  if (n > 1) {
-    return 1;
-  }
-
-  return n;
 }
 
 export class InputController {
@@ -175,7 +164,7 @@ export class InputController {
   };
 
   private handleKeyState(event: KeyboardEvent, active: boolean) {
-    if (this.inputOverrides > 0) {
+    if (this.inputOverrides > 0 || event.ctrlKey) {
       return;
     }
 
@@ -218,14 +207,17 @@ export class InputController {
       return;
     }
 
-    event.preventDefault();
-    event.stopPropagation();
+    if (active) {
+      (document.activeElement as any).blur();
+    }
 
     const lmb = isLMB(event);
     const rmb = isRMB(event);
     const button = mapMouseButton(event.button);
 
     if (this.cameraControlActive) {
+      haltEvent(event);
+
       if (rmb && !active) {
         this.cameraControlActive = false;
         document.exitPointerLock();
@@ -257,8 +249,14 @@ export class InputController {
 
           this.onSelect(false);
         }
+
+        break;
       }
+
+      default: return;
     }
+
+    haltEvent(event);
   }
 
   private readonly handleWheel = (event: WheelEvent) => {
@@ -307,4 +305,9 @@ export class InputController {
     keydown: (event: KeyboardEvent) => this.handleKeyState(event, true),
     keyup: (event: KeyboardEvent) => this.handleKeyState(event, false),
   };
+}
+
+function haltEvent(event) {
+  event.stopPropagation();
+  event.preventDefault();
 }

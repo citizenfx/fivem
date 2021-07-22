@@ -72,6 +72,9 @@ h6 {
 }
 
 .modal-header {
+  @include fontSecondary;
+  font-weight: 400;
+
   padding: $q*3 $q*4;
   text-transform: uppercase;
   margin-bottom: 0;
@@ -215,10 +218,10 @@ kbd {
 }
 
 ::-webkit-scrollbar {
-  width: 2px;
+  width: 4px;
 }
 ::-webkit-scrollbar-thumb {
-  width: 2px;
+  width: 4px;
   background-color: rgba($fgColor, .2);
 }
 ::selection {
@@ -257,6 +260,7 @@ kbd {
 }
 
 input[type=range] {
+  display: block;
   -webkit-appearance: none;
   width: 100%;
 }

@@ -13,19 +13,24 @@ import { NewMap } from './NewMap';
 import { StatusState } from 'store/StatusState';
 import { Feature } from 'shared/api.types';
 import s from './ProjectControls.module.scss';
+import { Title } from 'components/controls/Title/Title';
 
 export const ProjectControls = observer(function ProjectControls() {
   const worldEditorAvailable = StatusState.getFeature(Feature.worldEditor);
 
   return (
     <>
-      <button
-        className={s.item}
-        onClick={ProjectState.openSettings}
-        data-label="Project settings"
-      >
-        {projectSettingsIcon}
-      </button>
+      <Title animated={false} delay={0} fixedOn="bottom" title="Project settings">
+        {(ref) => (
+          <button
+            ref={ref}
+            className={s.item}
+            onClick={ProjectState.openSettings}
+          >
+            {projectSettingsIcon}
+          </button>
+        )}
+      </Title>
 
       <div className={s['item-stack']}>
         <button className={s.item}>

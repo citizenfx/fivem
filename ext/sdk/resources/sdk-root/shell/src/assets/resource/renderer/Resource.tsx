@@ -25,6 +25,7 @@ import { ProjectState } from 'store/ProjectState';
 import s from './Resource.module.scss';
 import { SystemResource, SYSTEM_RESOURCES_NAMES } from 'backend/system-resources/system-resources-constants';
 import { ItemState } from 'components/Project/ProjectExplorer/ItemState';
+import { Title } from 'components/controls/Title/Title';
 
 
 const contextOptions: Partial<ProjectExplorerItemContext> = {
@@ -120,31 +121,33 @@ export const Resource = observer(function Resource(props: ProjectItemProps) {
 
   return (
     <div className={rootClassName} ref={dropRef}>
-      <ContextMenu
-        className={classnames(itemsStyles.item, itemsStyles.itemLabelled)}
-        activeClassName={itemsStyles.itemActive}
-        items={itemContextMenuItems}
-        onClick={toggleExpanded}
-        elementProps={{
-          'data-label': rootTitle,
-        }}
-      >
-        <ItemState
-          enabled={resourceIsEnabled}
-          running={resourceIsRunning}
-        />
-        <ResourceIcon
-          enabled={resourceIsEnabled}
-          running={resourceIsRunning}
-          conflictingWithSystemResource={conflictingWithSystemResource}
-        />
-        <div className={itemsStyles.itemTitle}>
-          {entry.name}
-        </div>
-        <ResourceStatusNode
-          resourceStatus={resourceStatus}
-        />
-      </ContextMenu>
+      <Title title={rootTitle}>
+        {(ref) => (
+          <ContextMenu
+            ref={ref}
+            className={classnames(itemsStyles.item)}
+            activeClassName={itemsStyles.itemActive}
+            items={itemContextMenuItems}
+            onClick={toggleExpanded}
+          >
+            <ItemState
+              enabled={resourceIsEnabled}
+              running={resourceIsRunning}
+            />
+            <ResourceIcon
+              enabled={resourceIsEnabled}
+              running={resourceIsRunning}
+              conflictingWithSystemResource={conflictingWithSystemResource}
+            />
+            <div className={itemsStyles.itemTitle}>
+              {entry.name}
+            </div>
+            <ResourceStatusNode
+              resourceStatus={resourceStatus}
+            />
+          </ContextMenu>
+        )}
+      </Title>
 
       {expanded && (
         <div className={itemsStyles.children}>

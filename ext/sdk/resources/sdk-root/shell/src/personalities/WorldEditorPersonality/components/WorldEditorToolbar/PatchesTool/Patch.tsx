@@ -5,6 +5,7 @@ import { WEState } from 'personalities/WorldEditorPersonality/store/WEState';
 import { ContextMenu, ContextMenuItemsCollection } from 'components/controls/ContextMenu/ContextMenu';
 import { deleteIcon } from 'constants/icons';
 import s from './PatchesTool.module.scss';
+import { WESelectionType } from 'backend/world-editor/world-editor-types';
 
 export interface PatchProps {
   mapData: string,
@@ -28,12 +29,21 @@ export const Patch = observer(function Patch(props: PatchProps) {
     [s.highlight]: WEState.isPatchSelected(mapData, entityId),
   });
 
+  const handleClick = () => {
+    WEState.setEditorSelection({
+      type: WESelectionType.PATCH,
+      label: patch.label,
+      mapdata: parseInt(mapData, 10),
+      entity: parseInt(entityId, 10),
+    });
+  };
+
   return (
     <ContextMenu
       items={contextMenu}
       className={itemClassName}
       activeClassName={s.active}
-      onClick={() => WEState.setCam(patch.cam)}
+      onClick={handleClick}
     >
       {patch.label}
     </ContextMenu>

@@ -3,7 +3,8 @@ import { joaat } from "../shared";
 import { CameraManager } from "./camera-manager";
 import {
   WEApplyAdditionChangeRequest,
-  WEApplyPatchRequest,
+  WEApplyPatchChangeRequest,
+  WECreatePatchRequest,
   WECreateAdditionRequest,
   WEDeletePatchRequest,
   WEEntityMatrix,
@@ -17,10 +18,12 @@ import {
 import { applyEntityMatrix, limitPrecision, makeEntityMatrix } from "./math";
 import { ObjectManager } from "./object-manager";
 import { SelectionController } from "./selection-controller";
+import { SettingsManager } from "./settings-manager";
+import { drawDebugText } from "./utils";
 
 export const MapManager = new class MapManager {
   private map: WEMap | null = null;
-  private pendingMapdatas: number[] = [];
+  private activeMapdatas: number[] = [];
   private lastCamString: string = '';
   private objects: ObjectManager | null = null;
 
@@ -47,6 +50,27 @@ export const MapManager = new class MapManager {
       const request: WEApplyAdditionChangeRequest = JSON.parse(req);
 
       this.handleApplyAdditionChange(request);
+    });
+    on('we:setAdditionOnGround', (additionId: string) => {
+      const addition = this.map.additions[additionId];
+      if (!addition) {
+        return;
+      }
+
+      const handle = this.objects.getObjectHandle(additionId);
+      if (typeof handle === 'number') {
+        PlaceObjectOnGroundProperly(handle);
+
+        this.updateAddition(additionId, addition, makeEntityMatrix(handle));
+      }
+    });
+
+    on('we:applyPatchChange', (req: string) => {
+      const request: WEApplyPatchChangeRequest = JSON.parse(req);
+
+      if (request.mat) {
+        this.handleApplyPatchMatrix(request.mapdata, request.entity, request.mat);
+      }
     });
 
     on('we:deletePatch', (req: string) => {
@@ -148,6 +172,10 @@ export const MapManager = new class MapManager {
         }
       }
 
+      if (SettingsManager.settings.showSelectionBoundingBox) {
+        this.drawBoundingBox(selectedEntity);
+      }
+
       if (DrawGizmo(entityMatrix as any, selectedEntity.toString())) {
         applyEntityMatrix(selectedEntity, entityMatrix);
 
@@ -173,7 +201,71 @@ export const MapManager = new class MapManager {
 
     this.map = null;
     this.objects = null;
-    this.pendingMapdatas = [];
+    this.activeMapdatas = [];
+  }
+
+  private drawBoundingBox(entity: number) {
+    const pos = GetEntityCoords(entity);
+    const [_min, _max] = GetModelDimensions(GetEntityModel(entity));
+
+    const min = [_min[0] + pos[0], _min[1] + pos[1], _min[2] + pos[2]];
+    const max = [_max[0] + pos[0], _max[1] + pos[1], _max[2] + pos[2]];
+
+    const AF = min;
+    // drawTextAt('AF', AF);
+    const BF = [min[0], min[1], max[2]];
+    // drawTextAt('BF', BF);
+    const CF = [min[0], max[1], max[2]];
+    // drawTextAt('CF', CF);
+    const DF = [min[0], max[1], min[2]];
+    // drawTextAt('DF', DF);
+
+    const AB = [max[0], min[1], min[2]];
+    // drawTextAt('AB', AB);
+    const BB = [max[0], min[1], max[2]];
+    // drawTextAt('BB', BB);
+    const CB = max;
+    // drawTextAt('CB', CB);
+    const DB = [max[0], max[1], min[2]];
+    // drawTextAt('DB', DB);
+
+    const c = [255, 255, 255, 255];
+
+    // AF -> BF
+    drawLine(AF, BF, c);
+
+    // BF -> CF
+    drawLine(BF, CF, c);
+
+    // CF -> DF
+    drawLine(CF, DF, c);
+
+    // DF -> AF
+    drawLine(DF, AF, c);
+
+    // AB -> BB
+    drawLine(AB, BB, c);
+
+    // BB -> CB
+    drawLine(BB, CB, c);
+
+    // CB -> DB
+    drawLine(CB, DB, c);
+
+    // DB -> AB
+    drawLine(DB, AB, c);
+
+    // AF -> AB
+    drawLine(AF, AB, c);
+
+    // BF -> BB
+    drawLine(BF, BB, c);
+
+    // CF -> CB
+    drawLine(CF, CB, c);
+
+    // DF -> DB
+    drawLine(DF, DB, c);
   }
 
   private handleSpawnObject(request: WECreateAdditionRequest) {
@@ -225,9 +317,10 @@ export const MapManager = new class MapManager {
   }
 
   private handleMapdataLoaded(mapdataHash: number) {
+    this.activeMapdatas.push(mapdataHash);
+
     // if map is not loaded yet - store to pending to load later
     if (this.map === null) {
-      this.pendingMapdatas.push(mapdataHash);
       return;
     }
 
@@ -248,14 +341,18 @@ export const MapManager = new class MapManager {
   }
 
   private handleMapdataUnloaded(mapdata: number) {
-    // If map is loaded - don't care about unloaded mapdata
-    if (this.map !== null) {
-      return;
-    }
-
-    const index = this.pendingMapdatas.indexOf(mapdata);
+    const index = this.activeMapdatas.indexOf(mapdata);
     if (index > -1) {
-      this.pendingMapdatas.splice(index, 1);
+      this.activeMapdatas.splice(index, 1);
+    }
+  }
+
+  private handleApplyPatchMatrix(mapdata: number, entity: number, mat: WEEntityMatrix) {
+    const patch = this.map.patches[mapdata]?.[entity];
+    if (patch) {
+      patch.mat = mat;
+
+      applyMapdataPatch(mapdata, entity, mat);
     }
   }
 
@@ -283,8 +380,8 @@ export const MapManager = new class MapManager {
 
     this.objects = new ObjectManager(this.map.additions);
 
-    if (this.pendingMapdatas.length) {
-      for (const mapdata of this.pendingMapdatas) {
+    if (this.activeMapdatas.length) {
+      for (const mapdata of this.activeMapdatas) {
         if (this.map.patches[mapdata]) {
           for (const [entity, def] of Object.entries(this.map.patches[mapdata])) {
             applyMapdataPatch(mapdata, parseInt(entity, 10), def.mat);
@@ -294,25 +391,37 @@ export const MapManager = new class MapManager {
     }
   }
 
-  private updatePatch(entity: number, mat: Float32Array | WEEntityMatrix) {
-    const [success, mapdataHash, entityHash] = GetEntityMapdataOwner(entity);
+  private updatePatch(entityGuid: number, mat: Float32Array | WEEntityMatrix) {
+    const [success, mapdata, entity] = GetEntityMapdataOwner(entityGuid);
     if (success) {
-      const patch: WEMapPatch = {
-        label: this.getEntityLabel(entity),
-        cam: CameraManager.getCamLimitedPrecision(),
-        mat: prepareEntityMatrix(mat),
-      };
+      applyMapdataPatch(mapdata, entity, mat);
 
-      this.map.patches[mapdataHash] ??= {};
-      this.map.patches[mapdataHash][entityHash] = patch;
+      let patch: WEMapPatch = this.map.patches[mapdata]?.[entity];
+      if (patch) {
+        patch.mat = prepareEntityMatrix(mat);
 
-      applyMapdataPatch(mapdataHash, entityHash, mat);
+        sendSdkMessageBroadcast('we:applyPatchChange', {
+          mapdata,
+          entity,
+          mat: patch.mat,
+          cam: CameraManager.getCamLimitedPrecision(),
+        } as WEApplyPatchChangeRequest);
+      } else {
+        patch = {
+          label: this.getEntityLabel(entityGuid),
+          cam: CameraManager.getCamLimitedPrecision(),
+          mat: prepareEntityMatrix(mat),
+        };
 
-      sendSdkMessageBroadcast('we:applyPatch', {
-        mapDataHash: mapdataHash,
-        entityHash: entityHash,
-        patch,
-      } as WEApplyPatchRequest);
+        this.map.patches[mapdata] ??= {};
+        this.map.patches[mapdata][entity] = patch;
+
+        sendSdkMessageBroadcast('we:createPatch', {
+          mapDataHash: mapdata,
+          entityHash: entity,
+          patch,
+        } as WECreatePatchRequest);
+      }
     }
   }
 
@@ -327,7 +436,7 @@ export const MapManager = new class MapManager {
     addition.mat = change.mat;
 
     this.map.additions[additionId] = addition;
-    this.objects.set(additionId, addition);
+    this.objects.set(additionId, addition, true);
 
     sendSdkMessageBroadcast('we:applyAdditionChange', change);
   }
@@ -363,6 +472,7 @@ function getObjectPosition() {
 }
 
 function prepareEntityMatrix(mat: Float32Array | WEEntityMatrix): WEEntityMatrix {
+  return Array.from(mat) as any;
   return limitPrecision(Array.from(mat), 10000) as any;
 }
 
@@ -387,4 +497,15 @@ function getMapdataEntityMatrix(mapdata: number, entity: number): Float32Array {
 
 function getPatchKey(mapdata: string | number, entity: string | number): string {
   return `${mapdata}:${entity}`;
+}
+
+function drawLine(f: [number, number, number] | number[], t: [number, number, number] | number[], c: [number, number, number, number] | number[]) {
+  DrawLine(f[0], f[1], f[2], t[0], t[1], t[2], c[0], c[1], c[2], c[3]);
+}
+
+function drawTextAt(t: string, c: [number, number, number] | number[]) {
+  const [success, x, y] = GetScreenCoordFromWorldCoord(c[0], c[1], c[2]);
+  if (success) {
+    drawDebugText(t, x, y);
+  }
 }

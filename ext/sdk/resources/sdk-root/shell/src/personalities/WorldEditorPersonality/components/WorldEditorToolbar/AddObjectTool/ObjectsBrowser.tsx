@@ -8,10 +8,11 @@ import { useInputOverride } from 'personalities/WorldEditorPersonality/hooks';
 import { WEState } from 'personalities/WorldEditorPersonality/store/WEState';
 import { BsArrowClockwise } from 'react-icons/bs';
 import { GameState } from 'store/GameState';
-import { WETool, WEToolbarState } from '../WEToolbarState';
+import { WETool, WEToolbarState } from '../../../store/WEToolbarState';
 import { ArchetypesState } from 'personalities/WorldEditorPersonality/store/ArchetypesState';
 import { WORLD_EDITOR_MAP_NO_GROUP } from 'backend/world-editor/world-editor-constants';
 import s from './AddObjectTool.module.scss';
+import { Title } from 'components/controls/Title/Title';
 
 interface ObjectItemProps {
   name: string,
@@ -162,13 +163,17 @@ export const ObjectsBrowser = observer(function ObjectsBrowserDropdown() {
           onSubmit={handleFilterSubmit}
         />
 
-        <button
-          className={s.refresh}
-          onClick={() => GameState.refreshArchetypesCollection()}
-          data-label="Refresh objects list"
-        >
-          <BsArrowClockwise />
-        </button>
+        <Title animated={false} delay={0} fixedOn="bottom" title="Refresh objects list">
+          {(ref) => (
+            <button
+              ref={ref}
+              className={s.refresh}
+              onClick={() => GameState.refreshArchetypesCollection()}
+            >
+              <BsArrowClockwise />
+            </button>
+          )}
+        </Title>
       </div>
 
       <div className={s.list}>

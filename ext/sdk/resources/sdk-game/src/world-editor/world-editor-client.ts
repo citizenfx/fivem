@@ -2,7 +2,9 @@ import './environment-manager';
 import { CameraManager } from './camera-manager';
 import { MapManager } from './map-manager';
 import { PreviewManager } from './preview-manager';
+import { SettingsManager } from './settings-manager';
 
+SettingsManager.preinit();
 CameraManager.preinit();
 MapManager.preinit();
 

@@ -137,10 +137,6 @@ $statusBarHeight: 18px;
         &.menu {
           cursor: pointer;
 
-          @include data-label {
-            left: 0;
-          }
-
           svg {
             font-size: $fs1;
           }

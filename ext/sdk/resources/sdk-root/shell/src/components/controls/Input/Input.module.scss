@@ -30,8 +30,9 @@
       padding: $q*3 $q*4;
 
       color: $fgColor;
+
+      @include fontPrimary;
       font-size: $fs1;
-      font-family: Rubik;
 
       border: none;
       box-shadow: 0 0 0 2px rgba($fgColor, .25) inset;
@@ -76,8 +77,9 @@
         padding: $q*3 $q*4;
 
         color: $fgColor;
+
+        @include fontPrimary;
         font-size: $fs1;
-        font-family: Rubik;
 
         margin-top: $q*2;
 

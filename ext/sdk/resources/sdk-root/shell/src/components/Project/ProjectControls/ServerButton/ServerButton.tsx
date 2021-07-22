@@ -7,6 +7,7 @@ import { Indicator } from 'components/Indicator/Indicator';
 import { ServerState } from 'store/ServerState';
 import { ProjectState } from 'store/ProjectState';
 import s from './ServerButton.module.scss';
+import { Title } from 'components/controls/Title/Title';
 
 
 export const ServerButton = observer(function Server({ className }: { className: string }) {
@@ -83,12 +84,16 @@ export const ServerButton = observer(function Server({ className }: { className:
   }, [project, updateChannelState]);
 
   return (
-    <button
-      className={rootClassName}
-      onClick={handleClick}
-      data-label={title}
-    >
-      {icon}
-    </button>
+    <Title animated={false} delay={0} title={title} fixedOn="bottom">
+      {(ref) => (
+        <button
+          ref={ref}
+          className={rootClassName}
+          onClick={handleClick}
+        >
+          {icon}
+        </button>
+      )}
+    </Title>
   );
 });

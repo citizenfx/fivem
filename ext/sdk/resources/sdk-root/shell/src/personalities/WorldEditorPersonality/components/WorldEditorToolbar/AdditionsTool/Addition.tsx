@@ -9,18 +9,18 @@ import { deleteIcon, renameIcon } from 'constants/icons';
 import { useDrag } from 'react-dnd';
 import s from './AdditionsTool.module.scss';
 import { ADDITION_DND_TYPES } from './AdditionsTool.constants';
+import { WESelectionType } from 'backend/world-editor/world-editor-types';
 
 export interface AdditionProps {
   id: string,
   item: { label: string },
-  onClick?(): void,
   onDelete?(): void,
   onLabelChange: (label: string) => void,
   children?: React.ReactNode,
 }
 
 export const Addition = observer(function Addition(props: AdditionProps) {
-  const { id, item: { label }, onLabelChange, onClick, onDelete, children } = props;
+  const { id, item: { label }, onLabelChange, onDelete, children } = props;
 
   const [editing, enterEditing, exitEditing] = useOpenFlag(false);
 
@@ -29,6 +29,13 @@ export const Addition = observer(function Addition(props: AdditionProps) {
       return WEState.overrideInput();
     }
   }, [editing]);
+
+  const handleClick = React.useCallback(() => {
+    WEState.setEditorSelection({
+      type: WESelectionType.ADDITION,
+      id,
+    });
+  }, [id]);
 
   const handleLabelChange = React.useCallback((newLabel: string) => {
     if (newLabel.trim()) {
@@ -76,7 +83,7 @@ export const Addition = observer(function Addition(props: AdditionProps) {
       ref={dragRef}
       className={itemClassName}
       activeClassName={s.active}
-      onClick={onClick}
+      onClick={handleClick}
       onDoubleClick={enterEditing}
       items={contextMenu}
     >

@@ -30,12 +30,17 @@ $zTheia: 1;
 $zWorldEditor: 4000;
 
 @mixin fontPrimary {
-  font-family: Rubik;
-  font-weight: 400;
+  font-family: 'RubikVariable';
+  font-weight: 300;
 }
 
 @mixin fontSecondary {
   font-family: Montserrat;
+  font-weight: 300;
+}
+
+@mixin fontMonospace {
+  font-family: 'Source Code Pro';
   font-weight: 300;
 }
 
@@ -44,49 +49,6 @@ $zWorldEditor: 4000;
 
   &:hover {
     transition: none;
-  }
-}
-
-@mixin data-label {
-  position: relative;
-
-  &::after {
-    position: absolute;
-    display: block;
-    content: attr(data-label);
-
-    bottom: $q*-7;
-
-    padding: $q $q*2;
-
-    white-space: nowrap;
-
-    color: $fgColor;
-
-    @include fontPrimary;
-    font-size: $fs08;
-    font-weight: 100;
-    letter-spacing: .1px;
-
-    border-radius: 1px;
-    box-shadow: 0 0 0 1px $bgColor;
-    background-color: mix(rgba($bgColor, 1), rgba($fgColor, .75));
-
-    opacity: 0;
-    pointer-events: none;
-
-    z-index: 1000;
-
-    @content;
-  }
-
-  &:hover::after {
-    opacity: 1;
-  }
-}
-@mixin data-label-remove {
-  &::after {
-    display: none;
   }
 }
 

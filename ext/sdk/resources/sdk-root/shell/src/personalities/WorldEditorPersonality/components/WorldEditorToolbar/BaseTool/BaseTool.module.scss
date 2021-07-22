@@ -29,20 +29,7 @@
   }
 
   &.highlight {
-    // box-shadow: 0 0 0 1px $scColor inset, 0 0 5px 0 rgba($bgColor, .5);
-
     color: $scColor;
-  }
-
-  &.labelled {
-    @include data-label {
-      top: -$q*7;
-      bottom: auto;
-    };
-
-    &.active {
-      @include data-label-remove;
-    }
   }
 
   &.hoverable {
@@ -53,26 +40,27 @@
   }
 }
 
-.panel {
-  position: fixed;
-
-  $topOffset: $weToolbarOffset + $weToolbarHeight + $panelOffset;
-
-  top: $weToolbarOffset + $weToolbarHeight + $panelOffset;
-  left: $weToolbarOffset;
-
-  max-height: calc(100vh - #{$topOffset + $weToolbarHeight});
-  --panel-max-height: calc(100vh - #{$topOffset + $weToolbarHeight});
-
-  width: 15vw;
-
+.panel,
+.panel-alike {
   padding: 1px;
 
   background-color: rgba($bgColor, .75);
   backdrop-filter: blur(20px);
 
-  // border-radius: $q*2;
   box-shadow: 0 0 0 1px rgba($bgColor, .5) inset, 0 -2px 0 $acColor, 0 0 10px 0 rgba($bgColor, .75);
+}
+
+.panel {
+  position: fixed;
+
+  $topOffset: $weToolbarOffset + $weToolbarHeight + $wePanelOffset;
+
+  top: $weToolbarOffset + $weToolbarHeight + $wePanelOffset;
+  left: $weToolbarOffset;
+
+  max-height: $wePanelHeight;
+
+  width: $wePanelWidth;
 
   opacity: 0;
   pointer-events: none;
@@ -89,7 +77,7 @@
     @keyframes appearance {
       0% {
         opacity: 0;
-        transform: translateY(#{-1 * $panelOffset});
+        transform: translateY(#{-1 * $wePanelOffset});
       }
       100% {
         transform: translateY(0);

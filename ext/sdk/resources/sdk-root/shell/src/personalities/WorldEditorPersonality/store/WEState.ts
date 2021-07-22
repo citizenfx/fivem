@@ -10,7 +10,8 @@ import { FXWORLD_FILE_EXT } from 'assets/fxworld/fxworld-types';
 import { WorldEditorStartRequest } from 'shared/api.requests';
 import {
   WEApplyAdditionChangeRequest,
-  WEApplyPatchRequest,
+  WEApplyPatchChangeRequest,
+  WECreatePatchRequest,
   WEMap,
   WESelectionType,
   WESetAdditionRequest,
@@ -57,9 +58,7 @@ export const WEState = new class WEState {
       this.ready = true;
     }
 
-    onWindowEvent('we:setSelection', (selection: WESetSelectionRequest) => runInAction(() => {
-      this.selection = selection;
-    }));
+    onWindowEvent('we:setSelection', this.setEditorSelection);
 
     onWindowEvent('we:ready', () => runInAction(() => {
       this.ready = true;
@@ -69,8 +68,9 @@ export const WEState = new class WEState {
       }
     }));
 
-    onWindowEvent('we:applyPatch', (request: WEApplyPatchRequest) => this.map?.handleApplyPatchRequest(request));
+    onWindowEvent('we:createPatch', (request: WECreatePatchRequest) => this.map?.handleCreatePatchRequest(request));
     onWindowEvent('we:setAddition', (request: WESetAdditionRequest) => this.map?.handleSetAdditionRequest(request));
+    onWindowEvent('we:applyPatchChange', (request: WEApplyPatchChangeRequest) => this.map?.handleApplyPatchChangeRequest(request));
     onWindowEvent('we:applyAdditionChange', (request: WEApplyAdditionChangeRequest) => this.map?.handleApplyAdditionChangeRequest(request));
 
     onApiMessage(worldEditorApi.mapLoaded, (map: WEMap) => runInAction(() => {
@@ -166,10 +166,14 @@ export const WEState = new class WEState {
     return this.selection.mapdata === parseInt(mapdata, 10) && this.selection.entity === parseInt(entity, 10);
   }
 
-  clearEditorSelection = () => {
-    if (this.selection) {
-      sendGameClientEvent('we:clearSelection', '');
-    }
+  readonly setEditorSelection = (selection: WESetSelectionRequest) => {
+    this.selection = selection;
+  };
+
+  readonly clearEditorSelection = () => {
+    sendGameClientEvent('we:clearSelection', '');
+
+    this.selection = { type: WESelectionType.NONE };
   };
 
   private hotkeys: Hotkeys | null = null;
@@ -197,6 +201,8 @@ export const WEState = new class WEState {
   }
 
   destroyInputController() {
+    this.selection = { type: WESelectionType.NONE };
+
     if (this.inputController) {
       this.inputController.destroy();
       this.inputController = undefined;

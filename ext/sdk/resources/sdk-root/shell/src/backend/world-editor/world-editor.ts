@@ -5,7 +5,8 @@ import { FsService } from "backend/fs/fs-service";
 import { LogService } from "backend/logger/log-service";
 import {
   WEApplyAdditionChangeRequest,
-  WEApplyPatchRequest,
+  WEApplyPatchChangeRequest,
+  WECreatePatchRequest,
   WECam,
   WECreateAdditionGroupRequest,
   WECreateAdditionRequest,
@@ -65,7 +66,10 @@ export class WorldEditor implements ApiContribution {
   init() {
     this.eventDisposers.push(
       this.gameService.onBackendMessage('we:setCam', this.setCam),
-      this.gameService.onBackendMessage('we:applyPatch', this.applyPatch),
+
+      this.gameService.onBackendMessage('we:createPatch', this.createPatch),
+      this.gameService.onBackendMessage('we:applyPatchChange', this.applyPatchChange),
+
       this.gameService.onBackendMessage('we:setAddition', this.setAddition),
       this.gameService.onBackendMessage('we:applyAdditionChange', this.applyAdditionChange),
 
@@ -108,10 +112,30 @@ export class WorldEditor implements ApiContribution {
     map.meta.cam = cam;
   });
 
-  @handlesClientEvent(worldEditorApi.applyPatch)
-  readonly applyPatch = (request: WEApplyPatchRequest) => this.map.apply((map) => {
+  @handlesClientEvent(worldEditorApi.createPatch)
+  readonly createPatch = (request: WECreatePatchRequest) => this.map.apply((map) => {
     map.patches[request.mapDataHash] ??= {};
     map.patches[request.mapDataHash][request.entityHash] = request.patch;
+  });
+
+  @handlesClientEvent(worldEditorApi.applyPatchChange)
+  readonly applyPatchChange = (request: WEApplyPatchChangeRequest) => this.map.apply((map) => {
+    const patch = map.patches[request.mapdata]?.[request.entity];
+    if (!patch) {
+      return;
+    }
+
+    if (request.mat) {
+      patch.mat = request.mat;
+    }
+
+    if (request.label) {
+      patch.label = request.label;
+    }
+
+    if (request.cam) {
+      patch.cam = request.cam;
+    }
   });
 
   @handlesClientEvent(worldEditorApi.deletePatch)

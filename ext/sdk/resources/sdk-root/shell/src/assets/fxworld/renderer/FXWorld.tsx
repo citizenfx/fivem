@@ -18,6 +18,7 @@ import { sendApiMessage } from 'utils/api';
 import { projectApi } from 'shared/api.events';
 import { FXWorldDeleter } from './FXWorldDeleter/FXWorldDeleter';
 import { ItemState } from 'components/Project/ProjectExplorer/ItemState';
+import { Title } from 'components/controls/Title/Title';
 
 const defaultFXWorldConfig: FXWorldAssetConfig = {
   enabled: false,
@@ -91,27 +92,31 @@ export const FXWorld = observer(function FXWorld(props: ProjectItemProps) {
     ...requiredContextMenuItems,
   ], [options, isEnabled, requiredContextMenuItems, handleToggleEnabled, handleOpen, openDeleter, openRenamer]);
 
+  const title = `${mapName} • ${config.enabled ? 'Enabled' : 'Disabled'}`;
+
   return (
     <div className={itemsStyles.wrapper}>
-      <ContextMenu
-        className={classnames(itemsStyles.item, itemsStyles.itemLabelled)}
-        activeClassName={itemsStyles.itemActive}
-        onClick={handleOpen}
-        items={contextMenuItems}
-        elementProps={{
-          'data-label': `${mapName} • ${config.enabled ? 'Enabled' : 'Disabled'}`
-        }}
-      >
-        <ItemState
-          enabled={config.enabled}
-        />
-        <div className={itemsStyles.itemIcon}>
-          {fxworldIcon}
-        </div>
-        <div className={itemsStyles.itemTitle}>
-          {mapName}
-        </div>
-      </ContextMenu>
+      <Title title={title}>
+        {(ref) => (
+          <ContextMenu
+            ref={ref}
+            className={classnames(itemsStyles.item)}
+            activeClassName={itemsStyles.itemActive}
+            onClick={handleOpen}
+            items={contextMenuItems}
+          >
+            <ItemState
+              enabled={config.enabled}
+            />
+            <div className={itemsStyles.itemIcon}>
+              {fxworldIcon}
+            </div>
+            <div className={itemsStyles.itemTitle}>
+              {mapName}
+            </div>
+          </ContextMenu>
+        )}
+      </Title>
 
       {renamerOpen && (
         <FXWorldRenamer

@@ -7,8 +7,6 @@
 
   padding: 1px;
 
-  cursor: default;
-
   @keyframes appearance {
     0% {
       opacity: 0;
@@ -57,11 +55,30 @@
     cursor: pointer;
 
     @include interactiveTransition;
-    @include data-label;
 
     &:hover {
       color: rgba($fgColor, 1);
       background-color: $acColor;
     }
+  }
+}
+
+.panel-wrapper {
+  position: fixed;
+
+  top: $weToolbarOffset + $weToolbarHeight + $wePanelOffset;
+  left: 0;
+  right: 0;
+
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+
+  height: 0;
+
+  .panel {
+    position: unset;
+
+    padding: $q*2;
   }
 }

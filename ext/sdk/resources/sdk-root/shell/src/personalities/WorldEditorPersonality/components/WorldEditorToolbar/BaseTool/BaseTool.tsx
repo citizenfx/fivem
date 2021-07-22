@@ -1,8 +1,9 @@
 import React from 'react';
 import classnames from 'classnames';
 import { observer } from 'mobx-react-lite';
-import { TOOL_SIDE, WETool, WEToolbarState } from '../WEToolbarState';
+import { TOOL_SIDE, WETool, WEToolbarState } from '../../../store/WEToolbarState';
 import s from './BaseTool.module.scss';
+import { Title } from 'components/controls/Title/Title';
 
 export interface BaseToolProps {
   tool: WETool,
@@ -53,13 +54,17 @@ export const BaseTool = observer(function BaseTool(props: BaseToolProps) {
 
   return (
     <>
-      <button
-        className={toggleClassName}
-        data-label={label}
-        onClick={() => WEToolbarState.toggleTool(tool)}
-      >
-        {icon}
-      </button>
+      <Title animated={false} title={label} delay={0} fixedOn="top">
+        {(ref) => (
+          <button
+            ref={ref}
+            className={toggleClassName}
+            onClick={() => WEToolbarState.toggleTool(tool)}
+          >
+            {icon}
+          </button>
+        )}
+      </Title>
 
       {childrenNode}
     </>

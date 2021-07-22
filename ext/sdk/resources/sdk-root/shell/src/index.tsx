@@ -1,5 +1,7 @@
-import 'typeface-montserrat';
-import 'typeface-rubik';
+import '@fontsource/montserrat/300.css';
+import '@fontsource/montserrat/400.css';
+import '@fontsource/rubik/variable.css';
+import '@fontsource/source-code-pro/300.css';
 import './index.scss';
 
 import React from 'react';
@@ -12,6 +14,7 @@ import { TitleManager } from 'managers/TitleManager';
 import { TheiaProjectManager } from 'managers/TheiaProjectManager';
 import { onApiMessage } from 'utils/api';
 import { stateApi } from 'shared/api.events';
+import { ConfirmationManager } from 'managers/ConfirmationManager';
 
 enableLogger('shell,shell:*,host');
 
@@ -70,6 +73,7 @@ ReactDOM.render(
   <React.StrictMode>
     <TitleManager />
     <TheiaProjectManager />
+    <ConfirmationManager />
 
     <Shell />
 

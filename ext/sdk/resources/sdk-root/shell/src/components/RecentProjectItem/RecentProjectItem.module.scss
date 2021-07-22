@@ -45,13 +45,13 @@
       padding: $q*2 $q*4;
 
       .name {
-        font-size: 1.2rem;
+        font-size: $fs2;
       }
 
       .path {
         padding-top: $q;
 
-        font-size: .8rem;
+        font-size: $fs08;
         color: rgba($fgColor, .5);
       }
     }

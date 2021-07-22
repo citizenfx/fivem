@@ -6,8 +6,11 @@ $zToolbar: 2;
 $weToolbarHeight: $q*10;
 $weToolbarOffset: $q*15;
 
-$panelOffset: $q*2;
-$wePanelHeight: calc(100vh - 2*#{$weToolbarOffset});
+$wePanelOffset: $q*2;
+
+$wePanelGap: $q*4;
+$wePanelWidth: 15vw;
+$wePanelHeight: calc(((100vh - 2*#{$weToolbarOffset}) / 2) - #{$wePanelGap/2});
 
 @mixin overlayPanel {
   backdrop-filter: blur(20px);

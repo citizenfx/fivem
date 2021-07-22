@@ -271,7 +271,7 @@ export const ProjectState = new class ProjectState {
     }
   };
 
-  buildProject(overrides?: Partial<ProjectBuildRequest>) {
+  readonly buildProject = (overrides?: Partial<ProjectBuildRequest>) => {
     const project = this.projectObject;
     if (!project) {
       return;
@@ -295,7 +295,7 @@ export const ProjectState = new class ProjectState {
       tebexSecret,
       ...overrides,
     } as ProjectBuildRequest);
-  }
+  };
 
   openFile(entry: FilesystemEntry) {
     if (this.hasProject) {

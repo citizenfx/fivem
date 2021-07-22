@@ -1,6 +1,6 @@
-import hotkeys, { HotkeysEvent } from 'hotkeys-js';
+import hotkeys from 'hotkeys-js';
 import { SingleEventEmitter } from 'utils/singleEventEmitter';
-import { WETool, WEToolbarState } from './components/WorldEditorToolbar/WEToolbarState';
+import { WETool, WEToolbarState } from './store/WEToolbarState';
 import { WEState } from './store/WEState';
 
 export enum HotkeyGroup {
@@ -28,9 +28,9 @@ export interface BeforeHotkeyEvent {
 }
 
 const defaultMapping = {
-  [HOTKEY_COMMAND.TOOL_PATCHES_TOGGLE]: 'ctrl+p',
+  [HOTKEY_COMMAND.TOOL_PATCHES_TOGGLE]: 'ctrl+q',
   [HOTKEY_COMMAND.TOOL_ADD_OBJECT_TOGGLE]: 'ctrl+a',
-  [HOTKEY_COMMAND.TOOL_ADDITIONS_TOGGLE]: 'ctrl+b',
+  [HOTKEY_COMMAND.TOOL_ADDITIONS_TOGGLE]: 'ctrl+w',
   [HOTKEY_COMMAND.TOOL_ENVIRONMENT_TOGGLE]: 'ctrl+e',
 
   [HOTKEY_COMMAND.CONTROL_COORD_SYSTEM_TOGGLE]: '`',
@@ -64,7 +64,7 @@ export class Hotkeys {
     this.bind(HOTKEY_COMMAND.TOOL_PATCHES_TOGGLE, HotkeyGroup.GAME, () => WEToolbarState.toggleTool(WETool.Patches));
     this.bind(HOTKEY_COMMAND.TOOL_ADDITIONS_TOGGLE, HotkeyGroup.GAME, () => WEToolbarState.toggleTool(WETool.Additions));
     this.bind(HOTKEY_COMMAND.TOOL_ADD_OBJECT_TOGGLE, HotkeyGroup.GAME, () => WEToolbarState.toggleTool(WETool.AddObject));
-    this.bind(HOTKEY_COMMAND.TOOL_ENVIRONMENT_TOGGLE, HotkeyGroup.GAME, () => WEToolbarState.toggleTool(WETool.EnvironmentTool));
+    this.bind(HOTKEY_COMMAND.TOOL_ENVIRONMENT_TOGGLE, HotkeyGroup.GAME, () => WEToolbarState.toggleTool(WETool.Environment));
 
     this.bind(HOTKEY_COMMAND.CONTROL_COORD_SYSTEM_TOGGLE, HotkeyGroup.GAME, WEState.toggleEditorLocal);
     this.bind(HOTKEY_COMMAND.CONTROL_MODE_TRANSLATE_TOGGLE, HotkeyGroup.GAME, WEState.enableTranslation);

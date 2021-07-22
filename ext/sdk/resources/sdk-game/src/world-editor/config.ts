@@ -11,7 +11,7 @@ export const CONTROLS = {
 };
 
 export const SETTINGS = {
-  LOOK_SENSETIVITY: [5, 5],
+  LOOK_SENSETIVITY: [15, 15],
 
   BASE_MOVE_MULTIPLIER: 1,
   FAST_MOVE_MULTIPLIER: 10,

@@ -1,6 +1,6 @@
 import React from 'react';
 import { IoBandageSharp } from 'react-icons/io5';
-import { WETool } from '../WEToolbarState';
+import { WETool } from '../../../store/WEToolbarState';
 import { BaseTool } from '../BaseTool/BaseTool';
 import { observer } from 'mobx-react-lite';
 import { Patch } from './Patch';

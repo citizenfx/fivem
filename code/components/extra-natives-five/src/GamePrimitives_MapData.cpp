@@ -367,6 +367,50 @@ static bool GetMapdataEntityMatrix(uint32_t mapDataHash, uint32_t entityHash, fl
 	return false;
 }
 
+static hook::cdecl_stub<uint32_t(fwEntity*)> getScriptGuidForEntity([]()
+{
+	return hook::get_pattern("48 F7 F9 49 8B 48 08 48 63 D0 C1 E0 08 0F B6 1C 11 03 D8", -0x68);
+});
+
+static bool GetMapdataEntityHandle(uint32_t mapDataHash, uint32_t entityHash, uint32_t* handle)
+{
+	auto mapDataIdx = GetMapDataFromHashKey(mapDataHash);
+	auto entityIdx = GetEntityDefFromMapData(mapDataIdx, entityHash);
+
+	if (entityIdx == -1)
+	{
+		return false;
+	}
+
+	static auto mapDataStore = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ymap");
+
+	auto pool = (atPoolBase*)((char*)mapDataStore + 56);
+	if (auto entry = pool->GetAt<char>(mapDataIdx))
+	{
+		auto mapDataContents = *(CMapDataContents**)(entry);
+
+		if (mapDataContents == nullptr)
+		{
+			trace(__FUNCTION__ ": Missing mapDataContents for index %d\n", mapDataIdx);
+			return false;
+		}
+
+		if (entityIdx < mapDataContents->numEntities)
+		{
+			fwEntity* entity = nullptr;
+
+			if (entity = (fwEntity*)mapDataContents->entities[entityIdx])
+			{
+				*handle = getScriptGuidForEntity(entity);
+
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
 static void EnableEditorRuntime()
 {
 	g_isEditorRuntime = true;
@@ -385,6 +429,7 @@ static InitFunction initFunction([]()
 	scrBindGlobal("UPDATE_MAPDATA_ENTITY", &UpdateMapdataEntity);
 	scrBindGlobal("ENABLE_EDITOR_RUNTIME", &EnableEditorRuntime);
 	scrBindGlobal("DISABLE_EDITOR_RUNTIME", &DisableEditorRuntime);
+	scrBindGlobal("GET_MAPDATA_ENTITY_HANDLE", &GetMapdataEntityHandle);
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_MAPDATA_ENTITY_MATRIX", [](fx::ScriptContext& context)
 	{

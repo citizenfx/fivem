@@ -24,13 +24,6 @@
 
   user-select: none;
 
-  &.labelled {
-    @include data-label {
-      bottom: $q*-5;
-      left: $q*6.5;
-    };
-  }
-
   &:hover,
   &.active {
     color: $fgColor;

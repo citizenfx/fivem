@@ -128,6 +128,19 @@ private:
 
 class fwEntity;
 
+class fwDynamicAtchetypeComponent
+{
+public:
+	inline bool IsPhysicsObject()
+	{
+		return (flags & 0x8000);
+	}
+
+private:
+	uint8_t pad[42];
+	uint16_t flags;
+};
+
 class STREAMING_EXPORT fwArchetype
 {
 public:
@@ -139,6 +152,18 @@ public:
 
 	virtual fwEntity* CreateEntity() = 0;
 
+	inline bool HasEmbeddedCollision()
+	{
+		// fragments are inherently colliding
+		if (assetType == 1)
+		{
+			return true;
+		}
+
+		// if we have a dynamic archetype component, and it came from physicsDictionary
+		return (dynamicArchetypeComponent && dynamicArchetypeComponent->IsPhysicsObject());
+	}
+
 public:
 	char pad[16];
 	uint32_t hash;
@@ -148,7 +173,8 @@ public:
 	float aabbMax[4];
 	uint32_t flags;
 
-	uint8_t pad3[12];
+	uint8_t pad3[4];
+	fwDynamicAtchetypeComponent* dynamicArchetypeComponent;
 	uint8_t assetType;
 	uint8_t pad4;
 
