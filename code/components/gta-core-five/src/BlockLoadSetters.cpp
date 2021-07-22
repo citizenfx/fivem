@@ -1175,6 +1175,13 @@ void ShutdownSessionWrap()
 		// 1604 (same as nethook)
 		// 1868
 		// 2060
+		if (Is2372())
+		{
+			((void (*)())hook::get_adjusted(0x140006718))();
+			((void (*)())hook::get_adjusted(0x1407F6050))();
+			((void (*)())hook::get_adjusted(0x1400263CC))();
+			((void (*)(void*))hook::get_adjusted(0x14160104C))((void*)hook::get_adjusted(0x142E34900));
+		}
 		if (Is2189())
 		{
 			((void (*)())hook::get_adjusted(0x140006748))();

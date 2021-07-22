@@ -188,6 +188,12 @@ struct PatternPair
 
 static HookFunction hookFunction([]()
 {
+	// #TODO2372
+	if (xbr::IsGameBuildOrGreater<2372>())
+	{
+		return;
+	}
+
 	const size_t gamerInfoSize = (xbr::IsGameBuildOrGreater<2060>()) ? sizeof(CGamerInfo<2060>) : sizeof(CGamerInfo<1604>);
 	const size_t gamerTagSize = (xbr::IsGameBuildOrGreater<2060>()) ? sizeof(CGamerTag<2060>) : sizeof(CGamerTag<1604>);
 	const uint32_t lockerOffset = (xbr::IsGameBuildOrGreater<2060>()) ? offsetof(CGamerInfo<2060>, locker) : offsetof(CGamerInfo<1604>, locker); // [2189] 0x88C0
@@ -239,7 +245,7 @@ static HookFunction hookFunction([]()
 	}
 
 	//In the GAMER_INFO constructor
-	auto location = hook::pattern("4C 8D 05 ? ? ? ? 48 8D 4B ? 44 ? 7C 24 28 C7").count(1).get(0);
+	auto location = hook::pattern("4C 8D 05 ? ? ? ? 48 8D 4B 04 44 88 7C 24 28").count(1).get(0);
 	//right below "GAMER_NAME"
 	char* locPat1 = location.get<char>(0x37);
 	//2 below "MP_BOMB", 1st in the r15d spam
@@ -287,6 +293,7 @@ static HookFunction hookFunction([]()
 	// change limits
 	// GAMER_INFO::GAMER_INFO
 	{
+		// #TODO2372
 		uint64_t addr = (uint64_t)hook::get_pattern("8D 6F ? 44 88 79");
 		uint8_t payload[] =
 		{

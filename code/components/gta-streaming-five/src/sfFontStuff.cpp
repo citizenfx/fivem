@@ -586,6 +586,7 @@ static HookFunction hookFunction([]()
 		hook::call(location, textFieldStub.GetCode());
 	}
 
+	// #TODO2372: something below is causing HEAP corruption during disconnection
 	static void* returnAddress;
 
 	static struct : jitasm::Frontend

@@ -72,6 +72,11 @@ inline const wchar_t* MakeCfxSubProcess(const std::wstring& processType, const s
 	}
 	
 #ifdef GTA_FIVE
+	if (wcsstr(GetCommandLine(), L"b2372") != nullptr)
+	{
+		productName += L"b2372_";
+	}
+
 	if (wcsstr(GetCommandLine(), L"b2189") != nullptr)
 	{
 		productName += L"b2189_";

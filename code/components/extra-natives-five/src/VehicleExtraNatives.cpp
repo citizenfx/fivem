@@ -384,6 +384,14 @@ static HookFunction initFunction([]()
 		LightMultiplierGetOffset = *hook::get_pattern<uint32_t>("00 00 48 8B CE F3 0F 59 ? ? ? 00 00 F3 41", 9);
 	}
 
+	if (xbr::IsGameBuildOrGreater<2372>())
+	{
+		auto location = hook::get_pattern<char>("49 3B F6 75 ? F3 41 0F 10 0E 41 B1 01");
+
+		FuelLevelOffset = *(uint32_t*)(location + 64);
+		OilLevelOffset = *(uint32_t*)(location + 76);
+	}
+	else
 	{
 		auto location = hook::get_pattern<char>("48 3B CA 0F 84 ? ? ? ? 8B 81");
 

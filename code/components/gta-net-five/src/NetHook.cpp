@@ -257,12 +257,17 @@ static bool* didPresenceStuff;
 
 static hook::cdecl_stub<void()> doPresenceStuff([] ()
 {
+	if (xbr::IsGameBuildOrGreater<2372>())
+	{
+		return hook::pattern("33 DB 38 1D ? ? ? ? 0F 85 ? ? ? ? E8").count(1).get(0).get<void>(-15);
+	}
+
 	return hook::pattern("32 DB 38 1D ? ? ? ? 75 24 E8").count(1).get(0).get<void>(-6);
 });
 
 static hook::cdecl_stub<void(void*, /*ScSessionAddr**/ void*, int64_t, int)> joinGame([] ()
 {
-	return hook::pattern("F6 81 ? ? 00 00 01 45 8B F1 45 8B E0 4C 8B").count(1).get(0).get<void>(-0x24);
+	return hook::pattern("F6 81 ? ? 00 00 01 45 8B F1 45 8B ? 4C 8B").count(1).get(0).get<void>(-0x24);
 });
 
 static hook::cdecl_stub<void(int, int, int)> hostGame([] () -> void*
@@ -290,6 +295,11 @@ static hook::cdecl_stub<void(int, int, int)> hostGame([] () -> void*
 	{
 		// 2189
 		return (void*)hook::get_adjusted(0x14105DFE8);
+	}
+
+	if (xbr::IsGameBuild<2372>())
+	{
+		return (void*)hook::get_adjusted(0x1410646BC);
 	}
 
 	// 1737
@@ -354,6 +364,11 @@ static hook::cdecl_stub<bool()> isSessionStarted([] ()
 
 static hook::cdecl_stub<void(int reason, int, int, int, bool)> networkBail([]()
 {
+	if (xbr::IsGameBuildOrGreater<2372>())
+	{
+		return hook::get_pattern("80 3D ? ? ? ? 00 8B 01 48 8B D9 89", -0xD);
+	}
+
 	return hook::get_pattern("41 8B F1 41 8B E8 8B FA 8B D9 74 26", -0x1B);
 });
 
@@ -1074,6 +1089,27 @@ bool GetOurOnlineAddress(netPeerAddress* address)
 	return true;
 }
 
+// 2245+
+bool GetOurOnlineAddressNew(void* unk, netPeerAddress* address)
+{
+	memset(address, 0, sizeof(*address));
+	address->secKeyTime() = g_netLibrary->GetServerBase() ^ 0xABCD;
+	address->unkKey1() = g_netLibrary->GetServerBase();
+	address->unkKey2() = g_netLibrary->GetServerBase();
+	address->localAddr().ip.addr = (g_netLibrary->GetServerNetID() ^ 0xFEED) | 0xc0a80000;
+	address->localAddr().port = 6672;
+	address->relayAddr().ip.addr = (g_netLibrary->GetServerNetID() ^ 0xFEED) | 0xc0a80000;
+	address->relayAddr().port = 6672;
+	address->publicAddr().ip.addr = (g_netLibrary->GetServerNetID() ^ 0xFEED) | 0xc0a80000;
+	address->publicAddr().port = 6672;
+	//address->pad5 = 0x19;
+
+	g_globalNetSecurityKey[0] = g_netLibrary->GetServerBase();
+	g_globalNetSecurityKey[1] = g_netLibrary->GetServerBase();
+
+	return true;
+}
+
 bool GetOurSystemKey(char* systemKey)
 {
 	// then set this stuff
@@ -1361,6 +1397,13 @@ static void HashSecKeyAddress(uint64_t* outValue, uint32_t seed)
 	outValue[1] = seed ^ 0xABCD;
 }
 
+// Since 2245
+static void HashSecKeyAddressNew(uint64_t* outValue, uint64_t seed)
+{
+	outValue[0] = seed ^ 0xABCD;
+	outValue[1] = seed ^ 0xABCD;
+}
+
 static bool(*g_makeOurSystemKey)(char* key);
 static void* g_sessionKeyReturn;
 
@@ -1391,6 +1434,7 @@ struct ncm_struct
 	}
 };
 
+// #TODO1472: crossbuild struct
 struct netConnectionManager
 {
 private:
@@ -1399,16 +1443,18 @@ private:
 public:
 	SOCKET socket; // +8
 	netConnectionManager* secondarySocket; // +16 // or similar..
-	char m_pad[424]; // +24
+	char m_pad[424 + 256]; // +24
 	ncm_struct unkStructs[16]; // + 448
 };
+
+// #TODO1472: crossbuild struct
+//static_assert(offsetof(netConnectionManager, unkStructs) == 448, "netConnectionManager 2372-");
+static_assert(offsetof(netConnectionManager, unkStructs) == 704, "netConnectionManager 2372+");
 
 struct netConnectionManagerInternal
 {
 	netConnectionManager* socketData;
-
-	char pad[60]; // 68 - 8
-
+	char pad[36];
 	int unk_marker;
 
 	SOCKET GetSocket()
@@ -1496,7 +1542,14 @@ static void WaitForScAndLoadMeta(const char* fn, bool a2, uint32_t a3)
 		// 1737
 		// 1868
 		// 2060
-		if (!xbr::IsGameBuildOrGreater<2060>())
+		if (xbr::IsGameBuildOrGreater<2372>())
+		{
+			((void (*)())hook::get_adjusted(0x140006718))();
+			((void (*)())hook::get_adjusted(0x1407F6050))();
+			((void (*)())hook::get_adjusted(0x1400263CC))();
+			((void (*)(void*))hook::get_adjusted(0x14160104C))((void*)hook::get_adjusted(0x142E34900));
+		}
+		else if (!xbr::IsGameBuildOrGreater<2060>())
 		{
 			((void(*)())hook::get_adjusted(0x1400067E8))();
 			((void(*)())hook::get_adjusted(0x1407D1960))();
@@ -1554,6 +1607,9 @@ static HookFunction hookFunction([] ()
 		ExitProcess(-1);
 	});
 
+	// #TODO2372: net hook is completely broken and crashing at ~INIT_CORE. Most likely structs.
+	//return;
+
 	/*OnPostFrontendRender.Connect([] ()
 	{
 		int value = *(int*)getNetworkManager();
@@ -1564,35 +1620,57 @@ static HookFunction hookFunction([] ()
 		TheFonts->DrawText(va(L"> %i <", value), rect, color, 100.0f, 1.0f, "Comic Sans MS");
 	});*/
 
-	//char* getNewNewVal = hook::pattern("33 D2 41 B8 00 04 00 00 89 1D ? ? ? ? E8").count(1).get(0).get<char>(10);
-	char* getNewNewVal = hook::pattern("33 D2 41 B8 00 04 00 00 89 1D").count(1).get(0).get<char>(10); // 463/505
+	if (xbr::IsGameBuildOrGreater<2372>())
+	{
+		char* getNewNewVal = hook::pattern("41 83 CF FF 33 DB 4C 8D 25").count(1).get(0).get<char>(45);
+		g_netNewVal = (int*)(*(int32_t*)getNewNewVal + getNewNewVal + 4);
 
-	g_netNewVal = (int*)(*(int32_t*)getNewNewVal + getNewNewVal + 4);
+		getNewNewVal -= 0x4E;
+		hook::jump(getNewNewVal, GetNetNewVal);
+	}
+	else
+	{
+		//char* getNewNewVal = hook::pattern("33 D2 41 B8 00 04 00 00 89 1D ? ? ? ? E8").count(1).get(0).get<char>(10);
+		char* getNewNewVal = hook::pattern("33 D2 41 B8 00 04 00 00 89 1D").count(1).get(0).get<char>(10); // 463/505
+		g_netNewVal = (int*)(*(int32_t*)getNewNewVal + getNewNewVal + 4);
 
-	getNewNewVal -= 0x3F;
+		getNewNewVal -= 0x3F;
+		hook::jump(getNewNewVal, GetNetNewVal);
+	}
 
-	hook::jump(getNewNewVal, GetNetNewVal);
 
 	// was void* handleJoinRequestPtr = hook::pattern("4C 8D 40 48 48 8D 95 E0 00 00 00 48 8B CE E8").count(1).get(0).get<void>(14); before 372
-	void* handleJoinRequestPtr = hook::pattern("4C 8D 40 48 48 8D 95 ? ? 00 00 48 8B CE E8").count(1).get(0).get<void>(14);
+	void* handleJoinRequestPtr = hook::pattern("4C 8D 40 ? ? 8D 95 ? ? 00 00 48 8B CE E8").count(1).get(0).get<void>(14);
 	hook::set_call(&g_origJR, handleJoinRequestPtr);
 	hook::call(handleJoinRequestPtr, HandleJR);
 
-	char* fragPtr = hook::pattern("66 44 89 7C 24 34 66 44 89 7C 24 3C E8").count(1).get(0).get<char>(12);
+	char* fragPtr = hook::get_pattern<char>("44 ? ? ? ? E8 ? ? ? ? 8B ? 85 C0 0F", 5);
 	hook::set_call(&origFrag, fragPtr);
 	hook::call(fragPtr, CustomFrag);
 
-	fragPtr += 0xF7;
+	if (xbr::IsGameBuildOrGreater<2372>())
+	{
+		// #TODO2372: do we even need this now?
+		//auto location = hook::pattern("44 8B CF 4D 8B C7 48 8B CB 4C 89").count(1).get(0).get<char>(18);
+		//char* perfSend = hook::get_call(location);
+		//
+		//hook::set_call(&origPerfSend, location);
+		//hook::call(location, CustomPerfSend);
+	}
+	else
+	{
+		fragPtr += 0xF7;
 
-	char* perfSend = hook::get_call(fragPtr);
+		char* perfSend = hook::get_call(fragPtr);
 
-	hook::set_call(&origPerfSend, fragPtr);
-	hook::call(fragPtr, CustomPerfSend);
+		hook::set_call(&origPerfSend, fragPtr);
+		hook::call(fragPtr, CustomPerfSend);
 
-	hook::set_call(&origCheckAddr, perfSend + 0x3F);
-	hook::call(perfSend + 0x3F, CustomCheckAddr);
+		hook::set_call(&origCheckAddr, perfSend + 0x3F);
+		hook::call(perfSend + 0x3F, CustomCheckAddr);
+	}
 
-	char* location = hook::pattern("32 DB 38 1D ? ? ? ? 75 24 E8").count(1).get(0).get<char>(4);
+	char* location = hook::get_pattern<char>("75 ? 40 38 3D ? ? ? ? 74 ? 48 8D 0D", 5);
 	didPresenceStuff = (bool*)(location + *(int32_t*)location + 4);
 
 	hook::iat("ws2_32.dll", CfxSendTo, 20);
@@ -1608,7 +1686,22 @@ static HookFunction hookFunction([] ()
 	// 463/505 change
 	//void* migrateCmd = hook::pattern("48 8B 47 78 48 81 C1 90 00 00 00 48 89 41 F8").count(1).get(0).get<void>(15);
 	// 1032 change
-	void* migrateCmd = hook::get_pattern((xbr::IsGameBuildOrGreater<2060>()) ? "48 8B 87 80 00 00 00 48 81 C1 A0 00 00 00" : "48 8B 47 78 48 81 C1 98 00 00 00 48 89 41 F8", (xbr::IsGameBuildOrGreater<2060>()) ? 0x12 : 15);
+	void* migrateCmd;
+
+	if (xbr::IsGameBuildOrGreater<2372>())
+	{
+		migrateCmd = hook::get_pattern("48 89 81 B0 00 00 00 48 8B 87 A0 00 00 00", 0x19);
+	}
+	else if (xbr::IsGameBuildOrGreater<2060>())
+	{
+		migrateCmd = hook::get_pattern("48 8B 87 80 00 00 00 48 81 C1 A0 00 00 00", 0x12);
+	}
+	else
+	{
+		migrateCmd = hook::get_pattern("48 8B 47 78 48 81 C1 98 00 00 00 48 89 41 F8", 15);
+	}
+
+
 	hook::set_call(&g_origMigrateCopy, migrateCmd);
 	hook::call(migrateCmd, (xbr::IsGameBuildOrGreater<2060>()) ? (void*)&MigrateSessionCopy<2060> : &MigrateSessionCopy<1604>);
 
@@ -1687,6 +1780,23 @@ static HookFunction hookFunction([] ()
 		netAddressFunc += 0x3B; // <- 505
 
 		g_globalNetSecurityKey = (uint64_t*)(netAddressFunc + *(int32_t*)netAddressFunc + 4);
+	}
+	else if (xbr::IsGameBuildOrGreater<2372>())
+	{
+		// #TODO2372: not sure if this works
+		char* netAddressFunc = hook::get_pattern<char>("80 78 ? 02 48 8B D0 75", -0x32);
+		hook::jump(netAddressFunc, GetOurOnlineAddressNew);
+
+		onlineAddressFunc = hook::get_call(netAddressFunc + 0x2D);
+
+		char* netUnkFunc = hook::get_pattern<char>("48 8D 0D ? ? ? ? 48 8D 14 03");
+
+		hook::jump(hook::get_call(netUnkFunc + 0xB), HashSecKeyAddress);
+
+		bool* didNetAddressBool = hook::get_address<bool*>(netUnkFunc + 0x19);
+		*didNetAddressBool = true;
+
+		g_globalNetSecurityKey = hook::get_address<uint64_t*>(netUnkFunc + 3);
 	}
 	else
 	{
@@ -1769,7 +1879,7 @@ static HookFunction hookFunction([] ()
 	// locate address thingy
 	//hook::call(hook::pattern("89 44 24 28 41 8B 87 80 01 00 00 48 8B CB 89 44").count(1).get(0).get<void>(18), StartLookUpInAddr);
 	//hook::jump(hook::get_call(hook::pattern("48 8B D0 C7 44 24 28 04 00 00 00 44 89 7C 24 20").count(1).get(0).get<void>(16)), StartLookUpInAddr);
-	hook::jump(hook::get_call(hook::pattern("45 33 C0 C6 44 24 28 01 44 89 7C 24 20").count(1).get(0).get<void>(13)), 
+	hook::jump(hook::get_call(hook::get_pattern<char>("E8 ? ? ? ? 84 C0 0F 84 ? ? ? ? 49 8B 8E A0 00 00 00")), 
 		(xbr::IsGameBuildOrGreater<2060>()) ? (void*)StartLookUpInAddr<2060> : StartLookUpInAddr<1604>);
 
 	// temp dbg: always clone a player (to see why this CTaskMove flag is being a twat)
@@ -1890,7 +2000,7 @@ static HookFunction hookFunction([] ()
 	// UPPER MARK!
 
 	// unknownland
-	hook::put<uint16_t>(hook::pattern("8B B5 ? 02 00 00 85 F6 0F 84 B1").count(1).get(0).get<void>(8), 0xE990);
+	hook::put<uint16_t>(hook::pattern("8B B5 ? ? 00 00 85 F6 0F 84 ? 00 00").count(1).get(0).get<void>(8), 0xE990);
 
 #if 0
 	// always set the net sendto semaphore
@@ -1941,14 +2051,14 @@ static HookFunction hookFunction([] ()
 
 	g_dlcMountCount = (uint16_t*)(location + *(int32_t*)location + 4 + 8);
 
+
 	// netgame state - includes connecting state
 	location = hook::get_pattern<char>("48 83 EC 20 80 3D ? ? ? ? 00 48 8B D9 74 5F", 6);
 
 	g_isNetGame = (bool*)(location + *(int32_t*)location + 4 + 1); // 1 as end of instruction is after '00', cmp
 
 	// CMsgJoinResponse sending
-	location = hook::pattern("48 8D 4C 24 30 41 B8 00 02 00 00 E8").count(1).get(0).get<char>(11);
-
+	location = hook::get_pattern<char>("F6 D8 1A DB 40 22 DF", -9);
 	hook::set_call(&g_origJoinResponse, location);
 	hook::call(location, HookSendJoinResponse);
 
@@ -1962,7 +2072,11 @@ static HookFunction hookFunction([] ()
 	hook::put<uint8_t>(hook::get_pattern("74 0B 41 BC 0F 00 00 00 E9", 0), 0xEB);
 
 	// don't wait for shut down of NetRelay thread
-	hook::return_function(hook::get_pattern("48 8D 0D ? ? ? ? E8 ? ? ? ? 48 83 3D ? ? ? ? FF 74", -16));
+	// not a thing in 2372 anymore
+	if (!xbr::IsGameBuildOrGreater<2372>())
+	{
+		hook::return_function(hook::get_pattern("48 8D 0D ? ? ? ? E8 ? ? ? ? 48 83 3D ? ? ? ? FF 74", -16));
+	}
 
 	// don't switch clipset manager to network mode
 	// (blocks on a LoadAllObjectsNow after scene has initialized already)
@@ -1987,10 +2101,17 @@ static HookFunction hookFunction([] ()
 	hook::put<uint16_t>(hook::get_pattern("41 BC 88 13 00 00 E8 ? ? ? ? 83 C8 01", -6), 0xE990);
 
 	// nullify RageNetRecv thread
-	hook::nop(hook::get_pattern("41 F6 47 40 02 0F 84 ? ? ? ? 49 8B 4F 28 BA", 5), 6);
+	if (xbr::IsGameBuildOrGreater<2372>())
+	{
+		hook::nop(hook::get_pattern("45 38 AE 80 00 00 00 0F 84", 7), 6);
+	}
+	else
+	{
+		hook::nop(hook::get_pattern("41 F6 47 40 02 0F 84 ? ? ? ? 49 8B 4F 28 BA", 5), 6);
+	}
 
 	// get calls for RageNetSend function
-	hook::set_call(&g_handleQueuedSend, hook::get_pattern("48 8B CE E8 ? ? ? ? 48 8D BE ? 01 00 00 41", 3));
+	hook::set_call(&g_handleQueuedSend, hook::get_pattern("48 8B CE E8 ? ? ? ? 48 8D BE ? ? 00 00 41", 3));
 
 	// replace the call to thread init to get the internal connection manager struct address
 	{
@@ -2000,6 +2121,7 @@ static HookFunction hookFunction([] ()
 	}
 
 	// netrelay thread handle calls
+	if (!xbr::IsGameBuildOrGreater<2372>())
 	{
 		char* location = hook::get_pattern<char>("48 8D 8D C8 09 00 00 41 B8", 13);
 		hook::set_call(&g_receivePacket, location);

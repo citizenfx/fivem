@@ -5,6 +5,7 @@
 #include <sfFontStuff.h>
 
 #include <Streaming.h>
+#include <CrossBuildRuntime.h>
 
 struct GFxObjectInterface
 {
@@ -422,12 +423,20 @@ static HookFunction hookFunction([]()
 	{
 		auto location = hook::get_pattern<char>("74 3B E8 ? ? ? ? 33 C9 E8", 0x31);
 
-		g_foregroundOverlay3D = hook::get_address<decltype(g_foregroundOverlay3D)>(hook::get_call(location) + 0x1C);
+		g_foregroundOverlay3D = hook::get_address<decltype(g_foregroundOverlay3D)>(hook::get_call(location) + (xbr::IsGameBuildOrGreater<2372>() ? 0x18 : 0x1C));
 
 		hook::set_call(&g_origSetupTerritories, location);
 		hook::call(location, SetupTerritories);
 	}
 
-	g_gfxId = hook::get_address<uint32_t*>(hook::get_pattern("66 C7 45 E4 01 01 E8", 0x2A));
+	if (xbr::IsGameBuildOrGreater<2372>())
+	{
+		g_gfxId = hook::get_address<uint32_t*>(hook::get_pattern("C6 45 F0 01 48 89 4D D0 48 8D 4D", 0x17));
+	}
+	else
+	{
+		g_gfxId = hook::get_address<uint32_t*>(hook::get_pattern("66 C7 45 E4 01 01 E8", 0x2A));
+	}
+
 	g_gfxMemoryHeap = hook::get_address<GFxMemoryHeap**>(hook::get_pattern("F0 FF 4A 08 75 0E 48 8B 0D", 9));
 });

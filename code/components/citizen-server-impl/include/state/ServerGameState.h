@@ -61,7 +61,17 @@ inline bool Is2189()
 {
 	static bool value = ([]()
 	{
-		return fx::GetEnforcedGameBuild() == "2189";
+		return fx::GetEnforcedGameBuild() == "2189" || fx::GetEnforcedGameBuild() == "2372";
+	})();
+
+	return value;
+}
+
+inline bool Is2372()
+{
+	static bool value = ([]()
+	{
+		return fx::GetEnforcedGameBuild() == "2372";
 	})();
 
 	return value;

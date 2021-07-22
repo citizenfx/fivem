@@ -806,6 +806,26 @@ mapper->AddGameService("ugc.asmx/Publish", [](const std::string& body)
   </Result>
 </Response>)");
 			}
+			else if (Is2372())
+			{
+				return fmt::sprintf(R"(
+<?xml version="1.0" encoding="utf-8"?>
+<Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ms="0" xmlns="GetBuildManifestFull">
+  <Status>1</Status>
+  <Result BuildId="92" VersionNumber="1.0.2372.0" BuildDateUtc="2020-11-05T11:39:37.0266667">
+    <FileManifest>
+		<FileDetails FileEntryId="9178" FileEntryVersionId="9648" FileSize="59716912" TimestampUtc="2020-11-05T11:39:34.8800000">
+			<RelativePath>GTA5.exe</RelativePath>
+			<SHA256Hash>7e9009bce1aa47b4fc0e216c8d11ec8aaae2a83ba8140463f6f38b98a8a1492e</SHA256Hash>
+			<FileChunks>
+				<Chunk FileChunkId="13046" SHA256Hash="7e9009bce1aa47b4fc0e216c8d11ec8aaae2a83ba8140463f6f38b98a8a1492e" StartByteOffset="0" Size="59716912" />
+			</FileChunks>
+		</FileDetails>
+    </FileManifest>
+    <IsPreload>false</IsPreload>
+  </Result>
+</Response>)");
+			}
 			else if (Is2189())
 			{
 				return fmt::sprintf(R"(
@@ -1002,7 +1022,7 @@ mapper->AddGameService("ugc.asmx/Publish", [](const std::string& body)
     </App>
   </Result>
 </Response>)",
-		Is372() ? 4 : (Is2060() ? 83 : (Is2189() ? 88 : 80)),
+		Is372() ? 4 : (Is2060() ? 83 : (Is2372() ? 92 : (Is2189() ? 88 : 80))),
 		Is1355() ? 80 : 79);
 	});
 

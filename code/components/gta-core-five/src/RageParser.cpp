@@ -24,5 +24,5 @@ namespace rage
 
 static HookFunction hookFunction([]()
 {
-	g_parser = hook::get_address<void**>(hook::get_pattern("48 8B 0D ? ? ? ? 48 8D 54 24 48 41 B0 01", 3));
+	g_parser = hook::get_address<void**>(hook::get_pattern("45 33 C9 E8 ? ? ? ? 48 8B F0 48 85 C0 74", -18));
 });

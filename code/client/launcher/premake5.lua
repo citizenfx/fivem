@@ -13,7 +13,7 @@ local function isGamePersonality(name)
 		return true
 	end
 
-	if name == 'game_1604' or name == 'game_2060' or name == 'game_372' or name == 'game_2189' then
+	if name == 'game_1604' or name == 'game_2060' or name == 'game_372' or name == 'game_2189' or name == 'game_2372' then
 		return true
 	end
 	
@@ -77,6 +77,7 @@ local function launcherpersonality_inner(name, aslr)
 			if _OPTIONS['game'] == 'five' then
 				local gameBuild = '1604'
 				
+				if name == 'game_2372' then gameBuild = '2372_0' end
 				if name == 'game_2189' then gameBuild = '2189_0' end
 				if name == 'game_2060' then gameBuild = '2060_2' end
 				if name == 'game_372' then gameBuild = '372' end
@@ -208,6 +209,7 @@ if _OPTIONS['game'] == 'five' then
 	--launcherpersonality 'game_372'
 	launcherpersonality 'game_2060'
 	launcherpersonality 'game_2189'
+	launcherpersonality 'game_2372'
 	launcherpersonality 'game_mtl'
 elseif _OPTIONS['game'] == 'rdr3' then
 	launcherpersonality 'game_1311'

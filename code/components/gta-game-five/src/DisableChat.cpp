@@ -12,6 +12,7 @@
 
 #include <Hooking.h>
 #include <GameInit.h>
+#include <CrossBuildRuntime.h>
 
 static void(*g_origTextChatShutdown)(void*);
 static void** g_textChat;
@@ -89,7 +90,7 @@ static HookFunction hookFunction([] ()
 #else
 	{
 		MH_Initialize();
-		MH_CreateHook(hook::get_pattern("32 DB 84 C0 74 2D 48 8B", -0x22), TextChatShutdownWrap, (void**)&g_origTextChatShutdown);
+		MH_CreateHook((xbr::IsGameBuildOrGreater<2372>()) ? hook::get_pattern("84 C0 75 04 B0 01 EB 23", -0x19) : hook::get_pattern("32 DB 84 C0 74 2D 48 8B", -0x22), TextChatShutdownWrap, (void**)&g_origTextChatShutdown);
 		MH_EnableHook(MH_ALL_HOOKS);
 
 		g_textChat = hook::get_address<void**>(hook::get_pattern("75 5D 48 8B 05 ? ? ? ? 44 38 60 14", 5));

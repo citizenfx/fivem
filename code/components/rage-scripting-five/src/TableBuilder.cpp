@@ -204,7 +204,7 @@ static struct
 
 struct CrossMappingEntry
 {
-	uint64_t entries[24];
+	uint64_t entries[25];
 };
 
 static void DoMapping(std::map<int, std::shared_ptr<FunctionTable>>& functionTables)
@@ -218,7 +218,11 @@ static void DoMapping(std::map<int, std::shared_ptr<FunctionTable>>& functionTab
 
 	int versionIdx = -1;
 
-	if (strncmp(buildString, "Dec 10 2020", 11) == 0)
+	if (strncmp(buildString, "Jul 15 2021", 11) == 0)
+	{
+		versionIdx = 2372;
+	}
+	else if (strncmp(buildString, "Dec 10 2020", 11) == 0)
 	{
 		versionIdx = 2189;
 	}
@@ -291,7 +295,7 @@ static void DoMapping(std::map<int, std::shared_ptr<FunctionTable>>& functionTab
 	};
 
 	int maxVersion = 0;
-	auto newVersions = { 350, 372, 393, 463, 505, 573, 617, 678, 757, 791, 877, 944, 1011, 1103, 1180, 1290, 1365, 1493, 1604, 1737, 1868, 2060, 2189 };
+	auto newVersions = { 350, 372, 393, 463, 505, 573, 617, 678, 757, 791, 877, 944, 1011, 1103, 1180, 1290, 1365, 1493, 1604, 1737, 1868, 2060, 2189, 2372 };
 
 	for (auto version : newVersions)
 	{
@@ -313,6 +317,10 @@ static void DoMapping(std::map<int, std::shared_ptr<FunctionTable>>& functionTab
 	else if (Is2189())
 	{
 		assert(maxVersion == 23);
+	}
+	else if (Is2372())
+	{
+		assert(maxVersion == 24);
 	}
 	else
 	{

@@ -52,6 +52,8 @@ static HookFunction initFunction([]()
 		revealFullMap = hook::get_address<uint64_t*>((char*)location + 37);
 	}
 
+	// #TODO2372
+	if (!xbr::IsGameBuildOrGreater<2372>())
 	{
 		auto location = hook::get_pattern("E8 ? ? ? ? 0F 2F F8 0F 86 D4 00 00 00 0F B7 0D", 17);
 		auto addr = hook::get_address<char*>((char*)location);
@@ -59,19 +61,23 @@ static HookFunction initFunction([]()
 		zoomData = (MapZoomData*)(addr - 8);
 	}
 
+	if (!xbr::IsGameBuildOrGreater<2372>())
 	{
 		auto location = hook::get_pattern("C7 44 24 28 08 00 00 00 C7 45 DC 0D", 36);
 		hook::set_call(&g_origLoadZoomMapDataMeta, location);
 		hook::call(location, LoadZoomMapDataMeta);
 	}
 
-	Instance<ICoreGameInit>::Get()->OnShutdownSession.Connect([]()
+	if (!xbr::IsGameBuildOrGreater<2372>())
 	{
-		for (int i = 0; i < zoomData->zoomLevels.GetSize(); ++i)
+		Instance<ICoreGameInit>::Get()->OnShutdownSession.Connect([]()
 		{
-			zoomData->zoomLevels[i] = defaultZoomLevels[i];
-		}
-	});
+			for (int i = 0; i < zoomData->zoomLevels.GetSize(); ++i)
+			{
+				zoomData->zoomLevels[i] = defaultZoomLevels[i];
+			}
+		});
+	}
 
 	fx::ScriptEngine::RegisterNativeHandler("IS_BIGMAP_ACTIVE", [=](fx::ScriptContext& context)
 	{
@@ -87,6 +93,12 @@ static HookFunction initFunction([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_MAP_ZOOM_DATA_LEVEL", [=](fx::ScriptContext& context)
 	{
+		// #TODO2372
+		if (xbr::IsGameBuildOrGreater<2372>())
+		{
+			return false;
+		}
+
 		auto index = context.GetArgument<int>(0);
 
 		if (index > zoomData->zoomLevels.GetCount())
@@ -114,6 +126,12 @@ static HookFunction initFunction([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_MAP_ZOOM_DATA_LEVEL", [=](fx::ScriptContext& context)
 	{
+		// #TODO2372
+		if (xbr::IsGameBuildOrGreater<2372>())
+		{
+			return;
+		}
+
 		auto index = context.GetArgument<int>(0);
 
 		if (index > zoomData->zoomLevels.GetCount())
