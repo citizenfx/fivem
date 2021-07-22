@@ -133,6 +133,8 @@ export class SettingsComponent implements OnInit, OnDestroy {
 
         this.categories = Array.from(new Set<string>(this.settings.map(a => a.category)).values());
         this.selectedCategory = this.categories[0];
+
+		this.gameService.updateProfiles(true);
     }
 
     ngOnDestroy() {

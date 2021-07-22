@@ -186,8 +186,8 @@ export class SettingsService {
 		this.addSetting('connectedProfiles', {
 			name: '#Settings_ConnectedProfiles',
 			type: 'html',
-			showCb: () => of(this.gameService.hasProfiles()),
-			labelCb: () => this.gameService.streamerModeChange.pipe(map(_ => this.gameService.getProfileString())),
+			showCb: () => this.gameService.hasProfiles(),
+			labelCb: () => this.gameService.getProfileString(),
 			category: '#SettingsCat_Account',
 		});
 

@@ -5,11 +5,12 @@ import { Server, ServerHistoryEntry } from './servers/server';
 
 import { environment } from '../environments/environment';
 import { LocalStorage } from './local-storage';
-import { Observable, BehaviorSubject } from 'rxjs';
+import { Observable, BehaviorSubject, merge, of } from 'rxjs';
 import * as query from 'query-string';
 import { ActionSet, AdaptiveCard, SubmitAction, TextBlock, TextSize, Version } from 'adaptivecards';
 import { L10nTranslationService } from 'angular-l10n';
 import { master } from './servers/master';
+import { map } from 'rxjs/operators';
 
 export class ConnectStatus {
 	public server: Server;
@@ -188,18 +189,20 @@ export abstract class GameService {
         throw new Error('not on web');
     }
 
+	async updateProfiles(withRockstar?: boolean) {}
+
 	sayHello() {}
 
 	getProfile(): Profile {
 		return this.profile;
 	}
 
-	hasProfiles() {
-		return false;
+	hasProfiles(): Observable<boolean> {
+		return of(false);
 	}
 
-	getProfileString() {
-		return '';
+	getProfileString(): Observable<string> {
+		return of('');
 	}
 
 	abstract getServerHistory(): ServerHistoryEntry[];
@@ -326,6 +329,8 @@ export class CfxGameService extends GameService {
 	private _streamerMode = false;
 	private _devMode = false;
 	private _darkTheme = true;
+
+	private profileListChange = new BehaviorSubject<boolean>(false);
 
 	private lastServer: Server;
 
@@ -1072,10 +1077,10 @@ export class CfxGameService extends GameService {
 		(<any>window).invokeNative('submitCardResponse', JSON.stringify({ data }));
 	}
 
-	async updateProfiles() {
+	async updateProfiles(withRockstar?: boolean) {
 		const r = await fetch('https://lambda.fivem.net/api/ticket/identities', {
 			method: 'POST',
-			body: `token=${this.ownershipTicket}`,
+			body: `token=${this.ownershipTicket}&withRockstar=${withRockstar ?? false}`,
 			headers: {
 				'content-type': 'application/x-www-form-urlencoded'
 			}
@@ -1086,45 +1091,54 @@ export class CfxGameService extends GameService {
 		}
 
 		const j = await r.json();
+		this.profileList = [];
 		this.profileList.push(...j.identities);
+		this.profileListChange.next(true);
 	}
 
 	hasProfiles() {
-		return this.profileList.length > 0;
+		return this.profileListChange.pipe(map(_ => this.profileList.length > 0));
 	}
 
-	getProfileString() {
-		if (this.streamerMode) {
-			return Array(this.profileList.length)
-				.fill('<i class="fas fa-user-secret"></i>&nbsp; &lt;HIDDEN&gt;')
-				.join(',&nbsp;&nbsp;');
-		}
-
-		return this.profileList.map(p => getIcon(p.id.split(':')[0]) + ' ' + htmlEscape(p.username)).join(',&nbsp;&nbsp;');
-
-		function htmlEscape(unsafe: string) {
-			return unsafe
-				.replace(/&/g, '&amp;')
-				.replace(/</g, '&lt;')
-				.replace(/>/g, '&gt;')
-				.replace(/"/g, '&quot;')
-				.replace(/'/g, '&#039;');
-		}
-
-		function getIcon(type: string) {
-			switch (type) {
-				case 'steam':
-					return '<i class="fab fa-steam"></i>';
-				case 'discord':
-					return '<i class="fab fa-discord"></i>';
-				case 'xbl':
-					return '<i class="fab fa-xbox"></i>';
-				case 'fivem':
-					return '<i class="fa fa-road"></i>';
+	getProfileString(): Observable<string> {
+		return merge(
+			this.streamerModeChange,
+			this.profileListChange
+		).pipe(map(_ => {
+			if (this.streamerMode) {
+				return Array(this.profileList.length)
+					.fill('<i class="fas fa-user-secret"></i>&nbsp; &lt;HIDDEN&gt;')
+					.join(',&nbsp;&nbsp;');
 			}
 
-			return '';
-		}
+			return this.profileList.map(p => getIcon(p.id.split(':')[0]) + ' ' + htmlEscape(p.username)).join(',&nbsp;&nbsp;');
+
+			function htmlEscape(unsafe: string) {
+				return unsafe
+					.replace(/&/g, '&amp;')
+					.replace(/</g, '&lt;')
+					.replace(/>/g, '&gt;')
+					.replace(/"/g, '&quot;')
+					.replace(/'/g, '&#039;');
+			}
+
+			function getIcon(type: string) {
+				switch (type) {
+					case 'steam':
+						return '<i class="fab fa-steam"></i>';
+					case 'discord':
+						return '<i class="fab fa-discord"></i>';
+					case 'xbl':
+						return '<i class="fab fa-xbox"></i>';
+					case 'ros':
+						return '<i class="fa fa-registered"></i>';
+					case 'fivem':
+						return '<i class="fa fa-road"></i>';
+				}
+
+				return '';
+			}
+		}));
 	}
 }
 
