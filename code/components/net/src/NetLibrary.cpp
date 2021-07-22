@@ -788,9 +788,9 @@ static concurrency::task<std::optional<std::string>> ResolveUrl(const std::strin
 			{
 				const auto& rh = *ro.responseHeaders;
 				
-				if (rh.find("X-CitizenFX-Url") != rh.end())
+				if (auto it = rh.find("X-CitizenFX-Url"); it != rh.end() && it->second != "https://private-placeholder.cfx.re/")
 				{
-					auto url = rh.find("X-CitizenFX-Url")->second;
+					auto url = it->second;
 
 					auto taskRef = [tce, url]() -> concurrency::task<void>
 					{
