@@ -57,8 +57,10 @@ public:
 	virtual void m_18() = 0;
 
 #ifdef GTA_FIVE
-	// #TODO2372: most likely "addedIn1290" was removed, crossbuild
-	virtual CNetGamePlayer* AddPlayer(void* scInAddr, void* unkNetValue, void* playerData, void* nonPhysicalPlayerData) = 0;
+private:
+	virtual CNetGamePlayer* AddPlayer_raw(void* scInAddr, void* unkNetValue, void* addedIn1290, void* playerData, void* nonPhysicalPlayerData) = 0;
+
+public:
 #elif IS_RDR3
 	virtual CNetGamePlayer* AddPlayer(void* scInAddr, uint32_t activePlayerIndex, void* playerData, void* playerAccountId) = 0;
 #endif
@@ -66,6 +68,20 @@ public:
 	virtual void RemovePlayer(CNetGamePlayer* player) = 0;
 
 	void UpdatePlayerListsForPlayer(CNetGamePlayer* player);
+
+#ifdef GTA_FIVE
+public:
+	CNetGamePlayer* AddPlayer(void* scInAddr, void* unkNetValue, void* addedIn1290, void* playerData, void* nonPhysicalPlayerData)
+	{
+		if (xbr::IsGameBuildOrGreater<2372>())
+		{
+			static auto addPlayerFunc = *(uint64_t*)(*(char**)this + 0x20);
+			return ((CNetGamePlayer*(*)(void*, void*, void*, void*, void*))(addPlayerFunc))(this, scInAddr, unkNetValue, playerData, nonPhysicalPlayerData);
+		}
+
+		return AddPlayer_raw(scInAddr, unkNetValue, addedIn1290, playerData, nonPhysicalPlayerData);
+	}
+#endif
 };
 
 static hook::thiscall_stub<void(netPlayerMgrBase*, CNetGamePlayer*)> _netPlayerMgrBase_UpdatePlayerListsForPlayer([]
@@ -319,7 +335,7 @@ namespace sync
 		void* phys = calloc(1024, 1);
 		_pCtor(phys);
 
-		auto player = g_playerMgr->AddPlayer(fakeInAddr, fakeFakeData, phys, nonPhys);
+		auto player = g_playerMgr->AddPlayer(fakeInAddr, fakeFakeData, nullptr, phys, nonPhys);
 		g_tempRemotePlayer = player;
 
 		// so we can safely remove (do this *before* assigning physical player index, or the game will add

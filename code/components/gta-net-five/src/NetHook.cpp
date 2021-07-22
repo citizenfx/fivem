@@ -1446,7 +1446,7 @@ struct ncm_struct
 	}
 };
 
-// #TODO1472: crossbuild struct
+template<int Build>
 struct netConnectionManager
 {
 private:
@@ -1454,19 +1454,19 @@ private:
 
 public:
 	SOCKET socket; // +8
-	netConnectionManager* secondarySocket; // +16 // or similar..
-	char m_pad[424 + 256]; // +24
-	ncm_struct unkStructs[16]; // + 448
+	netConnectionManager<Build>* secondarySocket; // +16 // or similar..
+	char m_pad[(Build >= 2372) ? 680 : 424]; // +24
+	ncm_struct unkStructs[16];
 };
 
-// #TODO1472: crossbuild struct
-//static_assert(offsetof(netConnectionManager, unkStructs) == 448, "netConnectionManager 2372-");
-static_assert(offsetof(netConnectionManager, unkStructs) == 704, "netConnectionManager 2372+");
+static_assert(offsetof(netConnectionManager<1604>, unkStructs) == 448, "netConnectionManager 1604");
+static_assert(offsetof(netConnectionManager<2372>, unkStructs) == 704, "netConnectionManager 2372");
 
+template<int Build>
 struct netConnectionManagerInternal
 {
-	netConnectionManager* socketData;
-	char pad[36];
+	netConnectionManager<Build>* socketData;
+	char pad[(Build >= 2372) ? 36 : 60];
 	int unk_marker;
 
 	SOCKET GetSocket()
@@ -1482,16 +1482,21 @@ struct netConnectionManagerInternal
 	}
 };
 
-static netConnectionManagerInternal* g_internalNet;
-static netConnectionManager* g_netConnectionManager;
+template<int Build>
+static netConnectionManagerInternal<Build>* g_internalNet;
+
+template<int Build>
+static netConnectionManager<Build>* g_netConnectionManager;
 
 static bool(*g_handleQueuedSend)(void*);
-static bool(*g_origCreateSendThreads)(netConnectionManagerInternal*, void*, int);
 
-bool CustomCreateSendThreads(netConnectionManagerInternal* a1, netConnectionManager* a2, int a3)
+static bool(*g_origCreateSendThreads)(void*, void*, int);
+
+template<int Build>
+bool CustomCreateSendThreads(netConnectionManagerInternal<Build>* a1, netConnectionManager<Build>* a2, int a3)
 {
-	g_internalNet = a1;
-	g_netConnectionManager = a2;
+	g_internalNet<Build> = a1;
+	g_netConnectionManager<Build> = a2;
 
 	return g_origCreateSendThreads(a1, a2, a3);
 }
@@ -1502,15 +1507,32 @@ static void(*g_handlePacket)(void*, void*, uint32_t);
 void RunNetworkStuff()
 {
 	// handle queued sends
-	g_handleQueuedSend(g_netConnectionManager);
+	if (xbr::IsGameBuildOrGreater<2372>())
+	{
+		g_handleQueuedSend(g_netConnectionManager<2372>);
+	}
+	else
+	{
+		g_handleQueuedSend(g_netConnectionManager<1604>);
+	}
 
 	// set timer stuff in connection manager
 	// this seems to be required to actually retain sync
 	// NOTE: 505-specific (struct offsets, ..)!!
 	// updated for 1103
-	for (auto& entry : g_netConnectionManager->unkStructs)
+	if (xbr::IsGameBuildOrGreater<2372>())
 	{
-		entry.SetUnkTimeValue(&g_internalNet->unk_marker);
+		for (auto& entry : g_netConnectionManager<2372>->unkStructs)
+		{
+			entry.SetUnkTimeValue(&g_internalNet<2372>->unk_marker);
+		}
+	}
+	else
+	{
+		for (auto& entry : g_netConnectionManager<1604>->unkStructs)
+		{
+			entry.SetUnkTimeValue(&g_internalNet<1604>->unk_marker);
+		}
 	}
 
 	// handle recv triggering from NetRelay
@@ -2125,8 +2147,10 @@ static HookFunction hookFunction([] ()
 	// replace the call to thread init to get the internal connection manager struct address
 	{
 		void* callOff = hook::get_pattern("80 8B ? ? ? ? 04 48 8D 8B ? ? ? ? 48 8B", 17);
+		void* func = (xbr::IsGameBuildOrGreater<2372>()) ? (void*)&CustomCreateSendThreads<2372> : &CustomCreateSendThreads<1604>;
+
 		hook::set_call(&g_origCreateSendThreads, callOff);
-		hook::call(callOff, CustomCreateSendThreads);
+		hook::call(callOff, func);
 	}
 
 	// netrelay thread handle calls
