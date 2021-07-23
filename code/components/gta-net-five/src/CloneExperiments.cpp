@@ -3228,8 +3228,7 @@ public:
 		m_connectionMgr = mgr;
 	}
 
-// TODO2372: make private again and remove static asserts
-public:
+private:
 	void* m_vtbl; // 0
 	void* m_connectionMgr; // 8
 	TrustAddress<Build> m_trustAddr; // 16
@@ -3424,14 +3423,6 @@ public:
 	uint8_t m_useCloudTime; // +151
 };
 #endif
-
-static_assert(offsetof(netTimeSync<1604>, m_sessionKey) == 32);
-static_assert(offsetof(netTimeSync<2060>, m_sessionKey) == 40);
-static_assert(offsetof(netTimeSync<2372>, m_sessionKey) == 20);
-
-static_assert(offsetof(netTimeSync<1604>, m_disabled) == 133);
-static_assert(offsetof(netTimeSync<2060>, m_disabled) == 141);
-static_assert(offsetof(netTimeSync<2372>, m_disabled) == 125);
 
 template<int Build>
 static netTimeSync<Build>** g_netTimeSync;

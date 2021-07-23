@@ -1182,7 +1182,7 @@ void ShutdownSessionWrap()
 			((void (*)())hook::get_adjusted(0x1400263CC))();
 			((void (*)(void*))hook::get_adjusted(0x14160104C))((void*)hook::get_adjusted(0x142E34900));
 		}
-		if (Is2189())
+		else if (Is2189())
 		{
 			((void (*)())hook::get_adjusted(0x140006748))();
 			((void (*)())hook::get_adjusted(0x1407F4150))();

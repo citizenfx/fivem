@@ -120,7 +120,6 @@ static HookFunction hookFunction([] ()
 		g_customThreadsToNames.erase(thread->GetContext()->ThreadId);
 	});
 
-	// #TODO2372: R* moved this check into a separate call, verify that everything works as expected
 	if (xbr::IsGameBuildOrGreater<2372>())
 	{
 		// FF 50 18 48 8B CE 48 8B D0 E8 ? ? ? ? 84

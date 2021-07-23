@@ -1681,7 +1681,7 @@ static HookFunction hookFunction([] ()
 
 	if (xbr::IsGameBuildOrGreater<2372>())
 	{
-		// #TODO2372: do we even need this now?
+		// do we even need this now?
 		//auto location = hook::pattern("44 8B CF 4D 8B C7 48 8B CB 4C 89").count(1).get(0).get<char>(18);
 		//char* perfSend = hook::get_call(location);
 		//
@@ -1814,7 +1814,6 @@ static HookFunction hookFunction([] ()
 	}
 	else if (xbr::IsGameBuildOrGreater<2372>())
 	{
-		// #TODO2372: not sure if this works
 		char* netAddressFunc = hook::get_pattern<char>("80 78 ? 02 48 8B D0 75", -0x32);
 		hook::jump(netAddressFunc, GetOurOnlineAddressNew);
 
