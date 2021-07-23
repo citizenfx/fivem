@@ -27,7 +27,7 @@ if [ ! -d fivem-private ]; then
 else
 	cd fivem-private
 	git fetch origin
-	git reset --hard origin/master-old
+	git reset --hard origin/master
 	cd ..
 fi
 

@@ -66,7 +66,7 @@ namespace fx
 
 		virtual uint32_t GetType() override
 		{
-			return HashString(boost::typeindex::type_id<T>().name());
+			return HashString(boost::typeindex::type_id<T>().raw_name());
 		}
 
 		inline T& GetData()
@@ -92,7 +92,7 @@ namespace fx
 	template<typename T>
 	T& AnyCast(const std::shared_ptr<AnyBase>& base)
 	{
-		if (!base || base->GetType() != HashString(boost::typeindex::type_id<T>().name()))
+		if (!base || base->GetType() != HashString(boost::typeindex::type_id<T>().raw_name()))
 		{
 			throw std::bad_any_cast();
 		}
