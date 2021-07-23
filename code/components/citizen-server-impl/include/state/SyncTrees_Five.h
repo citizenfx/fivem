@@ -145,6 +145,8 @@ struct CPhysicalGameStateDataNode : GenericSerializeDataNode<CPhysicalGameStateD
 	bool flag2;
 	bool flag3;
 	bool flag4;
+	bool has_unk204;
+	uint16_t unk204;
 
 	int val1;
 
@@ -159,6 +161,14 @@ struct CPhysicalGameStateDataNode : GenericSerializeDataNode<CPhysicalGameStateD
 		if (flag4)
 		{
 			s.Serialize(3, val1);
+			if (Is2060())
+			{
+				s.Serialize(has_unk204);
+				if (has_unk204)
+				{
+					s.Serialize(16, unk204);
+				}
+			}
 		}
 		else
 		{
@@ -379,6 +389,30 @@ struct CVehicleGameStateDataNode
 
 		bool unk67 = state.buffer.ReadBit();
 		bool unk68 = state.buffer.ReadBit();
+
+		if (Is2372())
+		{
+			auto v44 = state.buffer.ReadBit();
+			if (v44 != v15)
+			{
+				uint8_t unk252 = state.buffer.Read<uint8_t>(7);
+			}
+
+			auto unk138 = state.buffer.ReadBit();
+			if (unk138 != v15)
+			{
+				uint32_t unk240 = state.buffer.Read<uint32_t>(32);
+			}
+
+			auto unk139 = state.buffer.ReadBit();
+			auto v46 = state.buffer.ReadBit();
+			if (v46 != v15)
+			{
+				// Defaults to 1.0
+				auto unk204 = state.buffer.ReadFloat(10, 2.f);
+				auto unk200 = state.buffer.ReadFloat(10, 2.f);
+			}
+		}
 
 		return true;
 	}
@@ -776,6 +810,10 @@ struct CVehicleAppearanceDataNode {
 			bool rightNeonEnabled = state.buffer.ReadBit();
 			bool frontNeonEnabled = state.buffer.ReadBit();
 			bool rearNeonEnabled = state.buffer.ReadBit();
+			if (Is2372())
+			{
+				state.buffer.ReadBit();
+			}
 		}
 		*/
 
@@ -1091,6 +1129,11 @@ struct CPedGameStateDataNode
 			{
 				state.buffer.ReadBit();
 			}
+
+			if (Is2372())
+			{
+				state.buffer.ReadBit();
+			}
 		}
 
 		auto arrestState = state.buffer.Read<int>(1);
@@ -1129,6 +1172,14 @@ struct CPedGameStateDataNode
 		for (int i = 0; i < numWeaponComponents; i++)
 		{
 			auto componentHash = state.buffer.Read<int>(32);
+			if (Is2372())
+			{
+				auto v15 = state.buffer.ReadBit();
+				if (v15)
+				{
+					auto unk192 = state.buffer.Read<uint8_t>(5);
+				}
+			}
 		}
 
 		auto numGadgets = state.buffer.Read<int>(2);
@@ -1761,6 +1812,19 @@ struct CObjectGameStateDataNode
 			data.brokenFlags = state.buffer.Read<uint32_t>(32);
 		}
 
+		if (Is2060()) // Introduced 1868, see sub_141147D48 (2372)
+		{
+			auto v11 = state.buffer.ReadBit();
+			if (v11)
+			{
+				uint8_t f_10 = state.buffer.Read<uint32_t>(8); // max 128
+				for (uint8_t i = 0; i < (f_10 / 8); ++i)
+				{
+					state.buffer.Read<uint32_t>(8);
+				}
+			}
+		}
+
 		data.hasExploded = state.buffer.ReadBit();
 		data.hasAddedPhysics = state.buffer.ReadBit();
 		data.isVisible = state.buffer.ReadBit();
@@ -2307,6 +2371,13 @@ struct CTrainGameStateDataNode
 
 		bool renderDerailed = state.buffer.ReadBit();
 
+		if (Is2372()) // Sequence of bits need to be verified for 2732
+		{
+			auto unk198 = state.buffer.ReadBit();
+			auto unk224 = state.buffer.ReadBit();
+			auto unk199 = state.buffer.ReadBit();
+		}
+
 		bool forceDoorsOpen = state.buffer.ReadBit();
 
 		return true;
@@ -2638,6 +2709,18 @@ struct CPlayerGameStateDataNode
 			float unk120X = state.buffer.ReadSignedFloat(19, 27648.0f);
 			float unk120Y = state.buffer.ReadSignedFloat(19, 27648.0f);
 			float unk120Z = state.buffer.ReadFloat(19, 4416.0f) - 1700.0f;
+		}
+
+		if (Is2060()) // Added in trailing bits in 2060
+		{
+			auto v47 = state.buffer.ReadBit();
+			if (v47)
+			{
+				auto unk496 = state.buffer.Read<uint8_t>(2);
+				auto unk497 = state.buffer.Read<uint8_t>(3);
+				auto unk498 = state.buffer.ReadBit();
+				auto unk499 = state.buffer.Read<uint8_t>(6);
+			}
 		}
 
 		return true;
