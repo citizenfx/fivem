@@ -1044,7 +1044,7 @@ export class CfxGameService extends GameService {
 			tries.push(`cfx.re/join/${address[0]}`);
 		}
 
-		tries.push((address[0].indexOf('cfx.re') === -1)
+		tries.push((address[0].indexOf('cfx.re') === -1 && address[1])
 			? address[0] + ':' + address[1]
 			: address[0]);
 

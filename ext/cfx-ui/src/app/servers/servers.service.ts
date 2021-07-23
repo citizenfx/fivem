@@ -351,7 +351,7 @@ export class ServersService {
 		const match = addr.match(/^(?:((?:[^\[: ]+)|\[(?:[a-f0-9:]+)\])(?::([0-9]+)|$)|cfx\.re\/join\/[0-9a-z]+)/i);
 
 		if (!match) {
-			return null;
+			return [addr, 0];
 		}
 
 		addrBits[0] = match[1];

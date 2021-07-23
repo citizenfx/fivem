@@ -623,12 +623,62 @@ void GSClient_QueryOneServer(const std::wstring& arg)
 {
 	auto narrowArg = ToNarrow(arg);
 
+	auto processQuery = [narrowArg](const std::string& url)
+	{
+		Instance<HttpClient>::Get()->DoGetRequest(fmt::sprintf("%sdynamic.json", url), [url, narrowArg](bool success, const char* data, size_t size)
+		{
+			if (success)
+			{
+				std::string dynamicBlob{ data, size };
+
+				Instance<HttpClient>::Get()->DoGetRequest(fmt::sprintf("%sinfo.json", url), [narrowArg, dynamicBlob](bool success, const char* data, size_t size)
+				{
+					if (success)
+					{
+						std::string infoBlobJson{ data, size };
+
+						rapidjson::Document dynDoc;
+						dynDoc.Parse(dynamicBlob.c_str(), dynamicBlob.size());
+
+						rapidjson::Document doc;
+						doc.Parse(infoBlobJson.c_str(), infoBlobJson.size());
+
+						if (!doc.HasParseError() && !dynDoc.HasParseError() && nui::HasFrame("mpMenu"))
+						{
+							std::string hostname = dynDoc["hostname"].GetString();
+							std::string mapname = dynDoc["mapname"].GetString();
+							std::string gametype = dynDoc["gametype"].GetString();
+
+							replaceAll(hostname, "\"", "\\\"");
+							replaceAll(mapname, "\"", "\\\"");
+							replaceAll(gametype, "\"", "\\\"");
+
+							nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "%s", "name": "%s",)"
+																		 R"("mapname": "%s", "gametype": "%s", "clients": "%d", "maxclients": %d, "ping": %d,)"
+																		 R"("addr": "%s", "infoBlob": %s, "queryCorrelation": "%s" })",
+															"serverQueried",
+															hostname,
+															mapname,
+															gametype,
+															dynDoc["clients"].GetInt(),
+															atoi(dynDoc["sv_maxclients"].GetString()),
+															42,
+															narrowArg,
+															infoBlobJson,
+															narrowArg));
+						}
+					}
+				});
+			}
+		});
+	};
+
 	if (narrowArg.find("cfx.re/join") != std::string::npos)
 	{
 		HttpRequestOptions ro;
 		ro.responseHeaders = std::make_shared<HttpHeaderList>();
 
-		Instance<HttpClient>::Get()->DoGetRequest(fmt::sprintf("https://%s", narrowArg.substr(0, narrowArg.find_last_of(':'))), ro, [ro, narrowArg](bool success, const char* data, size_t callback)
+		Instance<HttpClient>::Get()->DoGetRequest(fmt::sprintf("https://%s", narrowArg.substr(0, narrowArg.find_last_of(':'))), ro, [ro, processQuery](bool success, const char* data, size_t callback)
 		{
 			if (success)
 			{
@@ -638,58 +688,17 @@ void GSClient_QueryOneServer(const std::wstring& arg)
 				{
 					auto url = it->second;
 
-					Instance<HttpClient>::Get()->DoGetRequest(fmt::sprintf("%sdynamic.json", url), [url, narrowArg](bool success, const char* data, size_t size)
-					{
-						if (success)
-						{
-							std::string dynamicBlob{ data, size };
-
-							Instance<HttpClient>::Get()->DoGetRequest(fmt::sprintf("%sinfo.json", url), [narrowArg, dynamicBlob](bool success, const char* data, size_t size)
-							{
-								if (success)
-								{
-									std::string infoBlobJson{ data, size };
-
-									rapidjson::Document dynDoc;
-									dynDoc.Parse(dynamicBlob.c_str(), dynamicBlob.size());
-
-									rapidjson::Document doc;
-									doc.Parse(infoBlobJson.c_str(), infoBlobJson.size());
-
-									if (!doc.HasParseError() && !dynDoc.HasParseError() && nui::HasFrame("mpMenu"))
-									{
-										std::string hostname = dynDoc["hostname"].GetString();
-										std::string mapname = dynDoc["mapname"].GetString();
-										std::string gametype = dynDoc["gametype"].GetString();
-
-										replaceAll(hostname, "\"", "\\\"");
-										replaceAll(mapname, "\"", "\\\"");
-										replaceAll(gametype, "\"", "\\\"");
-
-										nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "%s", "name": "%s",)"
-											R"("mapname": "%s", "gametype": "%s", "clients": "%d", "maxclients": %d, "ping": %d,)"
-											R"("addr": "%s", "infoBlob": %s, "queryCorrelation": "%s" })",
-											"serverQueried",
-											hostname,
-											mapname,
-											gametype,
-											dynDoc["clients"].GetInt(),
-											atoi(dynDoc["sv_maxclients"].GetString()),
-											42,
-											narrowArg,
-											infoBlobJson,
-											narrowArg));
-									}
-								}
-							});
-						}
-					});
-
-					return;
+					processQuery(url);
 				}
 			}
 		});
 
+		return;
+	}
+
+	if (narrowArg.find("https://") == 0)
+	{
+		processQuery(narrowArg + ((narrowArg[narrowArg.length() - 1] == '/') ? "" : "/"));
 		return;
 	}
 
