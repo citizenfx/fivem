@@ -31,6 +31,8 @@ return {
 			buildoptions { '-msse', '-msse2' }
 		end
 
+		defines { "BOTAN_IS_BEING_BUILT" }
+
 		if os.istarget('windows') then
 			links { 'ws2_32', 'crypt32' }
 

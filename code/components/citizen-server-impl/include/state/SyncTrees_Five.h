@@ -3054,7 +3054,7 @@ struct SyncTree : public SyncTreeBase
 		return (hasNode) ? &node->data : nullptr;
 	}
 
-	virtual CTrainGameStateDataNodeData* GetTrainState()
+	virtual CTrainGameStateDataNodeData* GetTrainState() override
 	{
 		auto [hasNode, node] = GetData<CTrainGameStateDataNode>();
 
@@ -3253,7 +3253,7 @@ struct SyncTree : public SyncTreeBase
 		return false;
 	}
 
-	virtual bool IsEntityVisible(bool* visible)
+	virtual bool IsEntityVisible(bool* visible) override
 	{
 		auto [hasNode, node] = GetData<CPhysicalGameStateDataNode>();
 

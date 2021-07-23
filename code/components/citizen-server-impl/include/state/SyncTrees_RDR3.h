@@ -1011,7 +1011,7 @@ struct SyncTree : public SyncTreeBase
 		return nullptr;
 	}
 
-	virtual CTrainGameStateDataNodeData* GetTrainState()
+	virtual CTrainGameStateDataNodeData* GetTrainState() override
 	{
 		return nullptr;
 	}
@@ -1181,7 +1181,7 @@ struct SyncTree : public SyncTreeBase
 		return false;
 	}
 
-	virtual bool IsEntityVisible(bool* visible)
+	virtual bool IsEntityVisible(bool* visible) override
 	{
 		*visible = true;
 		return true;

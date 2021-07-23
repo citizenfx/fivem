@@ -386,6 +386,8 @@ static const char* TypeToString(fx::sync::NetObjEntityType type)
 		case sync::NetObjEntityType::Train:
 			return "Train";
 	}
+
+	return "UNKNOWN";
 }
 
 struct EntityImpl : sync::Entity
