@@ -12,6 +12,8 @@
   </PropertyGroup>
   
   <ItemGroup>
+    <!-- manually specified dependency -->
+    <PackageReference Include="Microsoft.SymbolStore" Version="1.0.215101" />
     <!-- msft pls open source this -->
     <PackageReference Include="Microsoft.SymbolUploader" Version="1.0.0-beta-65201-01" />
   </ItemGroup>
