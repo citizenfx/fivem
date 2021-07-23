@@ -578,8 +578,15 @@ static HookFunction hookFunction([] ()
 	}
 	else
 	{
-		// memory layout dependent
-		scrThreadId = hook::get_address<uint32_t*>(hook::get_pattern("33 FF 48 85 C0 74 08 48 8B C8 E8", -9)) - 2;
+		if (xbr::IsGameBuildOrGreater<2372>())
+		{
+			scrThreadId = hook::get_address<uint32_t*>(hook::get_pattern("8B 15 ? ? ? ? 48 8B 05 ? ? ? ? FF C2 89", 2));
+		}
+		else
+		{
+			// memory layout dependent
+			scrThreadId = hook::get_address<uint32_t*>(hook::get_pattern("33 FF 48 85 C0 74 08 48 8B C8 E8", -9)) - 2;
+		}
 
 		location = hook::get_pattern<char>("FF 0D ? ? ? ? 48 8B F9", 2);
 
