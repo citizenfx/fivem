@@ -43,7 +43,7 @@
 					</span>
 
 					<span class="html" *ngIf="setting.setting.type === 'html'"
-						[innerHTML]="setting.label">
+						[innerHTML]="setting.label | safehtml">
 					</span>
 
 					<span *ngIf="setting.setting.type === 'select'">

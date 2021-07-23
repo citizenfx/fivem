@@ -64,8 +64,13 @@
 
 				.html {
 					::ng-deep {
-						.fa, .fab {
+						.fa, .fab, svg {
 							margin-right: var(--qh);
+						}
+
+						svg {
+							fill: currentColor;
+							height: var(--fs-1);
 						}
 					}
 				}
