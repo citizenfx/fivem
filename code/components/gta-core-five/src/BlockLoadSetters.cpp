@@ -1567,10 +1567,9 @@ static HookFunction hookFunction([] ()
 
 	g_extraContentMgr = (void**)(location + *(int32_t*)location + 4);
 
-	// loading screen frame limit
-	location = hook::pattern("0F 2F 05 ? ? ? ? 0F 82 ? ? ? ? E8 ? ? ? ? 48 89").count(1).get(0).get<char>(3);
-
-	hook::put<float>(location + *(int32_t*)location + 4, 0.0f);
+	// loading screen frame limit (~250 FPS max, to fix people who force-disable vsync)
+	// use 0.0f to uncap entirely
+	hook::put<float>(hook::get_address<float*>(hook::get_pattern("0F 2F 05 ? ? ? ? 0F 82 ? ? ? ? E8 ? ? ? ? 48 89", 3)), 4.0f);
 
 	if (!CfxIsSinglePlayer())
 	{
