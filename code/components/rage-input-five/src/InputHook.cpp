@@ -331,6 +331,17 @@ static HookFunction setOffsetsHookFunction([]()
 
 	// This is a sig to the first known member, which is mouseWheel
 	g_input = hook::get_address<rage::ioMouse*>(hook::get_pattern("C1 E8 1F 03 D0 01 15", 7));
+
+#ifdef _DEBUG
+	// test for breakage w/ new updates
+	unsigned char* mouseAbsY = hook::get_address<unsigned char*>(hook::get_pattern("66 44 0F 6E C0 8B 05 ? ? ? ? 2B", 5), 2, 6);
+	unsigned char* mouseDiffDirectionY = hook::get_address<unsigned char*>(hook::get_pattern("21 3D ? ? ? ? 21 3D ? ? ? ? 48 8B", 6), 2, 6);
+	if (xbr::IsGameBuildOrGreater<2372>())
+	{
+		assert(((uintptr_t)mouseAbsY - (uintptr_t)g_input == 0x10));
+		assert(((uintptr_t)mouseDiffDirectionY - (uintptr_t)g_input == 0xA0));
+	}
+#endif
 });
 
 static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
