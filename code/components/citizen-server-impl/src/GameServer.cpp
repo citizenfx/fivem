@@ -676,7 +676,7 @@ namespace fx
 						return;
 					}
 
-					if (!client->GetData("passedValidation").has_value())
+					if (!client->GetData("passedValidation"))
 					{
 						SendOutOfBand(peer->GetAddress(), "error Invalid connection.");
 
@@ -901,10 +901,10 @@ namespace fx
 
 					bool lockdownMode = m_instance->GetComponent<fx::ServerGameStatePublic>()->GetEntityLockdownMode(client) == fx::EntityLockdownMode::Strict;
 
-					if (!lm.has_value() || std::any_cast<bool>(lm) != lockdownMode ||
-						!ss.has_value() || std::any_cast<uint8_t>(ss) != syncStyle ||
-						!lf.has_value() ||
-						(m_serverTime - std::any_cast<uint64_t>(lf)) > 1000)
+					if (!lm || fx::AnyCast<bool>(lm) != lockdownMode ||
+						!ss || fx::AnyCast<uint8_t>(ss) != syncStyle ||
+						!lf ||
+						(m_serverTime - fx::AnyCast<uint64_t>(lf)) > 1000)
 					{
 						net::Buffer outMsg;
 						outMsg.Write(HashRageString("msgFrame"));

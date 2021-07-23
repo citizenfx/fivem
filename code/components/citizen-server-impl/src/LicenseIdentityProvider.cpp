@@ -35,18 +35,18 @@ static InitFunction initFunction([]()
 		{
 			auto& any = clientPtr->GetData("entitlementHash");
 
-			if (any.has_value())
+			if (any)
 			{
-				clientPtr->AddIdentifier(fmt::sprintf("license:%s", std::any_cast<std::string>(any)));
+				clientPtr->AddIdentifier(fmt::sprintf("license:%s", fx::AnyCast<std::string>(any)));
 			}
 
 			auto& jsonAny = clientPtr->GetData("entitlementJson");
 
-			if (jsonAny.has_value())
+			if (jsonAny)
 			{
 				try
 				{
-					auto jsonStr = std::any_cast<std::string>(jsonAny);
+					auto jsonStr = fx::AnyCast<std::string>(jsonAny);
 					json json = json::parse(jsonStr);
 
 					if (json["tk"].is_array())

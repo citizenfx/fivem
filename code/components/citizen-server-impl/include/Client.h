@@ -19,6 +19,8 @@
 #include <citizen_util/object_pool.h>
 #include <citizen_util/shared_reference.h>
 
+#include <boost/type_index.hpp>
+
 #include <shared_mutex>
 
 #define MAX_CLIENTS (1024 + 1) // don't change this past 256 ever, also needs to be synced with client code
@@ -43,6 +45,62 @@ namespace {
 
 namespace fx
 {
+	// here temporarily as mostly used for GetData
+	class SERVER_IMPL_EXPORT AnyBase
+	{
+	public:
+		virtual ~AnyBase() = default;
+
+		virtual uint32_t GetType() = 0;
+	};
+
+	template<typename T>
+	class AnyHolder : public AnyBase
+	{
+	public:
+		explicit AnyHolder(const T& data)
+			: m_data(data)
+		{
+
+		}
+
+		virtual uint32_t GetType() override
+		{
+			return HashString(boost::typeindex::type_id<T>().name());
+		}
+
+		inline T& GetData()
+		{
+			return m_data;
+		}
+
+		inline const T& GetData() const
+		{
+			return m_data;
+		}
+
+	private:
+		T m_data;
+	};
+
+	template<typename T>
+	auto MakeAny(const T& data)
+	{
+		return std::make_shared<AnyHolder<std::remove_reference_t<std::remove_const_t<T>>>>(data);
+	}
+
+	template<typename T>
+	T& AnyCast(const std::shared_ptr<AnyBase>& base)
+	{
+		if (!base || base->GetType() != HashString(boost::typeindex::type_id<T>().name()))
+		{
+			throw std::bad_any_cast();
+		}
+
+		auto entry = std::static_pointer_cast<AnyHolder<T>>(base);
+		return entry->GetData();
+	}
+
 	namespace sync
 	{
 		class ClientSyncDataBase
@@ -264,9 +322,21 @@ namespace fx
 
 		int GetPing();
 
-		const std::any& GetData(const std::string& key);
+		std::shared_ptr<AnyBase> GetData(const std::string& key);
 
-		void SetData(const std::string& key, const std::any& data);
+		void SetDataRaw(const std::string& key, const std::shared_ptr<AnyBase>& data);
+
+		template<typename TAny>
+		inline void SetData(const std::string& key, const TAny& data)
+		{
+			if constexpr (std::is_same_v<TAny, std::nullptr_t>)
+			{
+				SetDataRaw(key, {});
+				return;
+			}
+
+			SetDataRaw(key, MakeAny(data));
+		}
 
 		void SendPacket(int channel, const net::Buffer& buffer, NetPacketType flags = NetPacketType_Unreliable);
 
@@ -342,7 +412,7 @@ namespace fx
 		tbb::concurrent_queue<std::tuple<net::Buffer, int>> m_replayQueue;
 
 		// an arbitrary set of data
-		tbb::concurrent_unordered_map<std::string, std::any> m_userData;
+		tbb::concurrent_unordered_map<std::string, std::shared_ptr<AnyBase>> m_userData;
 
 		// principal values
 		std::list<se::Principal> m_principals;

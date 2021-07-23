@@ -52,7 +52,7 @@ namespace fx
 		{
 			auto canBeDead = GetData("canBeDead");
 
-			if (!canBeDead.has_value() || !std::any_cast<bool>(canBeDead))
+			if (!canBeDead || !fx::AnyCast<bool>(canBeDead))
 			{
 				return (msec() - m_lastSeen) > CLIENT_VERY_DEAD_TIMEOUT;
 			}
@@ -80,19 +80,18 @@ namespace fx
 		return peer->GetPing();
 	}
 
-	void Client::SetData(const std::string& key, const std::any& data)
+	void Client::SetDataRaw(const std::string& key, const std::shared_ptr<AnyBase>& data)
 	{
 		m_userData[key] = data;
 	}
 
-	const std::any& Client::GetData(const std::string& key)
+	std::shared_ptr<AnyBase> Client::GetData(const std::string& key)
 	{
 		auto it = m_userData.find(key);
 
 		if (it == m_userData.end())
 		{
-			static const std::any& emptyAny = *new std::any();
-			return emptyAny;
+			return {};
 		}
 
 		return it->second;

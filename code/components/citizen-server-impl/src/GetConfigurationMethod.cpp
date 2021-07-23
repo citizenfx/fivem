@@ -112,7 +112,7 @@ static InitFunction initFunction([]()
 
 			client->Touch();
 
-			if (!client->GetData("passedValidation").has_value())
+			if (!client->GetData("passedValidation"))
 			{
 				sendError("Client is still connecting.");
 				return;

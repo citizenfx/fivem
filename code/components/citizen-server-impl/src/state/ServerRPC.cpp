@@ -267,7 +267,7 @@ static InitFunction initFunction([]()
 								return;
 							}
 
-							if (client->GetData("playerEntity").has_value())
+							if (client->GetData("playerEntity"))
 							{
 								clientIdx = client->GetNetId();
 							}

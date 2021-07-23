@@ -330,9 +330,9 @@ static InitFunction initFunction([]()
 			{
 				auto deferralAny = client->GetData("deferralPtr");
 
-				if (deferralAny.has_value())
+				if (deferralAny)
 				{
-					auto weakDeferral = std::any_cast<std::weak_ptr<fx::ClientDeferral>>(deferralAny);
+					auto weakDeferral = fx::AnyCast<std::weak_ptr<fx::ClientDeferral>>(deferralAny);
 
 					if (!weakDeferral.expired())
 					{
@@ -655,7 +655,7 @@ static InitFunction initFunction([]()
 
 					if (client)
 					{
-						client->SetData("deferralPtr", std::any());
+						client->SetData("deferralPtr", nullptr);
 						client->SetData("passedValidation", true);
 						client->SetData("canBeDead", false);
 					}
@@ -1020,9 +1020,9 @@ static InitFunction initFunction([]()
 
 			auto deferralRef = client->GetData("deferralPtr");
 
-			if (deferralRef.has_value())
+			if (deferralRef)
 			{
-				auto deferralPtr = std::any_cast<std::weak_ptr<fx::ClientDeferral>>(deferralRef);
+				auto deferralPtr = fx::AnyCast<std::weak_ptr<fx::ClientDeferral>>(deferralRef);
 				auto deferrals = deferralPtr.lock();
 
 				if (deferrals)
