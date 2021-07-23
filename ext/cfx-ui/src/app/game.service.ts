@@ -352,7 +352,7 @@ export class CfxGameService extends GameService {
 
 	private inConnecting = false;
 
-	private profileList: any[] = [];
+	private profileList: Record<string, string> = {};
 	card: boolean;
 
 	constructor(private sanitizer: DomSanitizer, private zone: NgZone, private translation: L10nTranslationService) {
@@ -368,10 +368,8 @@ export class CfxGameService extends GameService {
 				const json = <Profiles>await response.json();
 
 				if (json.profiles && json.profiles.length > 0) {
-					this.profileList.push({
-						id: json.profiles[0].externalIdentifier,
-						username: json.profiles[0].name
-					});
+					this.profileList[json.profiles[0].externalIdentifier] = json.profiles[0].name;
+					this.profileListChange.next(true);
 
 					this.handleSignin(json.profiles[0]);
 				}
@@ -1091,13 +1089,14 @@ export class CfxGameService extends GameService {
 		}
 
 		const j = await r.json();
-		this.profileList = [];
-		this.profileList.push(...j.identities);
+		for (const identity of j.identities) {
+			this.profileList[identity.id] = identity.username;
+		}
 		this.profileListChange.next(true);
 	}
 
 	hasProfiles() {
-		return this.profileListChange.pipe(map(_ => this.profileList.length > 0));
+		return this.profileListChange.pipe(map(_ => Object.entries(this.profileList).length > 0));
 	}
 
 	getProfileString(): Observable<string> {
@@ -1111,7 +1110,7 @@ export class CfxGameService extends GameService {
 					.join(',&nbsp;&nbsp;');
 			}
 
-			return this.profileList.map(p => getIcon(p.id.split(':')[0]) + ' ' + htmlEscape(p.username)).join(',&nbsp;&nbsp;');
+			return Object.entries(this.profileList).map(([id, username]) => getIcon(id.split(':')[0]) + ' ' + htmlEscape(username)).join(',&nbsp;&nbsp;');
 
 			function htmlEscape(unsafe: string) {
 				return unsafe
