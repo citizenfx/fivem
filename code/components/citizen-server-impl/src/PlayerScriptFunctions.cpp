@@ -210,7 +210,7 @@ static void CreatePlayerCommands()
 	{
 		try
 		{
-			return std::any_cast<uint32_t>(client->GetData("playerEntity"));
+			return fx::AnyCast<uint32_t>(client->GetData("playerEntity"));
 		}
 		catch (std::bad_any_cast&)
 		{

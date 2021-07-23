@@ -33,14 +33,14 @@ static InitFunction initFunction([]()
 
 		virtual void RunAuthentication(const fx::ClientSharedPtr& clientPtr, const std::map<std::string, std::string>& postMap, const std::function<void(boost::optional<std::string>)>& cb) override
 		{
-			auto& any = clientPtr->GetData("entitlementHash");
+			auto any = clientPtr->GetData("entitlementHash");
 
 			if (any)
 			{
 				clientPtr->AddIdentifier(fmt::sprintf("license:%s", fx::AnyCast<std::string>(any)));
 			}
 
-			auto& jsonAny = clientPtr->GetData("entitlementJson");
+			auto jsonAny = clientPtr->GetData("entitlementJson");
 
 			if (jsonAny)
 			{

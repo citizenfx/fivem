@@ -176,7 +176,7 @@ static InitFunction initFunction([]()
 
 							if (client)
 							{
-								cxtEntity = std::any_cast<uint32_t>(client->GetData("playerEntity"));
+								cxtEntity = fx::AnyCast<uint32_t>(client->GetData("playerEntity"));
 							}
 						}
 
@@ -383,7 +383,7 @@ static InitFunction initFunction([]()
 
 							if (client)
 							{
-								cxtEntity = std::any_cast<uint32_t>(client->GetData("playerEntity"));
+								cxtEntity = fx::AnyCast<uint32_t>(client->GetData("playerEntity"));
 							}
 						}
 						
@@ -620,7 +620,7 @@ static InitFunction initFunction([]()
 
 							if (client)
 							{
-								cxtEntity = std::any_cast<uint32_t>(client->GetData("playerEntity"));
+								cxtEntity = fx::AnyCast<uint32_t>(client->GetData("playerEntity"));
 							}
 						}
 

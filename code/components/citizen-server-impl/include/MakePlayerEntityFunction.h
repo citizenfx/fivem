@@ -49,7 +49,7 @@ inline auto MakePlayerEntityFunction(TFn fn, uintptr_t defaultValue = 0)
 
 		try
 		{
-			entityHandle = std::any_cast<uint32_t>(client->GetData("playerEntity"));
+			entityHandle = fx::AnyCast<uint32_t>(client->GetData("playerEntity"));
 		}
 		catch (std::bad_any_cast&)
 		{

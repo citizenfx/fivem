@@ -529,7 +529,7 @@ uint32_t ServerGameState::MakeScriptHandle(const fx::sync::SyncEntityPtr& ptr)
 		{
 			try
 			{
-				if (std::any_cast<uint32_t>(client->GetData("playerEntity")) == guid)
+				if (fx::AnyCast<uint32_t>(client->GetData("playerEntity")) == guid)
 				{
 					bad = true;
 					badClient = client;

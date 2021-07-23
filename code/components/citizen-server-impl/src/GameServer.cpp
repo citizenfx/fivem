@@ -895,9 +895,9 @@ namespace fx
 
 				if (peer)
 				{
-					const auto& lm = client->GetData("lockdownMode");
-					const auto& lf = client->GetData("lastFrame");
-					const auto& ss = client->GetData("syncStyle");
+					auto lm = client->GetData("lockdownMode");
+					auto lf = client->GetData("lastFrame");
+					auto ss = client->GetData("syncStyle");
 
 					bool lockdownMode = m_instance->GetComponent<fx::ServerGameStatePublic>()->GetEntityLockdownMode(client) == fx::EntityLockdownMode::Strict;
 

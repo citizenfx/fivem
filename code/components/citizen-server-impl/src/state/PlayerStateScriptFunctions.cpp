@@ -45,7 +45,7 @@ static void CreatePlayerCommands()
 		
 		try
 		{
-			auto entity = gameState->GetEntity(std::any_cast<uint32_t>(client->GetData("playerEntity")));
+			auto entity = gameState->GetEntity(fx::AnyCast<uint32_t>(client->GetData("playerEntity")));
 
 			auto node = entity->syncTree->GetPlayerWantedAndLOS();
 			
@@ -70,7 +70,7 @@ static void CreatePlayerCommands()
 
 		try
 		{
-			auto entity = gameState->GetEntity(std::any_cast<uint32_t>(client->GetData("playerEntity")));
+			auto entity = gameState->GetEntity(fx::AnyCast<uint32_t>(client->GetData("playerEntity")));
 
 			auto node = entity->syncTree->GetPlayerWantedAndLOS();
 
@@ -95,7 +95,7 @@ static void CreatePlayerCommands()
 
 		try
 		{
-			auto entity = gameState->GetEntity(std::any_cast<uint32_t>(client->GetData("playerEntity")));
+			auto entity = gameState->GetEntity(fx::AnyCast<uint32_t>(client->GetData("playerEntity")));
 
 			auto node = entity->syncTree->GetPlayerWantedAndLOS();
 			bool prevPursuitArg = context.GetArgument<bool>(1);
