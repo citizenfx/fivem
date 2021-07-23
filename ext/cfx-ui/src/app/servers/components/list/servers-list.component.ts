@@ -179,7 +179,7 @@ export class ServersListComponent implements OnInit, OnDestroy {
 			return;
 		}
 
-		this.gameService.connectTo(entry.server, entry.historyEntry.address);
+		this.gameService.connectTo(entry.server, entry.historyEntry.title || entry.historyEntry.address);
 	}
 
 	svTrack(_: number, serverRow: master.IServer) {

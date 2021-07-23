@@ -309,7 +309,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 			return;
 		}
 
-		this.gameService.connectTo(entry.server, entry.historyEntry.address);
+		this.gameService.connectTo(entry.server, entry.historyEntry.title || entry.historyEntry.address);
 	}
 
 	async linkAccount() {

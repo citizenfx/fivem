@@ -881,19 +881,21 @@ export class CfxGameService extends GameService {
 			token: server.data?.vars?.sv_licenseKeyToken || '',
 		});
 
-		(<any>window).invokeNative('connectTo', this.getConnectAddress(server));
+		(<any>window).invokeNative('connectTo', this.getConnectAddress(server, enteredAddress));
 
 		// temporary, we hope
 		this.history.push(server.address);
 		this.saveHistory();
 	}
 
-	private getConnectAddress(server: Server): string {
+	private getConnectAddress(server: Server, enteredAddress?: string): string {
 		let connectAddress = server.address;
 
 		if (server.connectEndPoints && server.connectEndPoints.length > 0 &&
 			server.connectEndPoints[0] !== 'https://private-placeholder.cfx.re/') {
 			connectAddress = server.connectEndPoints[Math.floor(Math.random() * server.connectEndPoints.length)];
+		} else if (enteredAddress) {
+			connectAddress = enteredAddress;
 		}
 
 		return connectAddress;

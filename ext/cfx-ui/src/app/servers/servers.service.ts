@@ -171,7 +171,7 @@ export class ServersService {
 			if (server) {
 				server.connectEndPoints = [serverHost];
 
-				gameService.connectTo(server);
+				gameService.connectTo(server, serverHost);
 			} else {
 				const invokeNative: any = (<any>window).invokeNative;
 
