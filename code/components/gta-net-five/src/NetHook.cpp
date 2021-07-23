@@ -216,7 +216,7 @@ static_assert(sizeof(ScSessionAddr<2060>) == (56 + 8 + 8 + 8), "ScSessionAddr si
 template<int Build>
 bool StartLookUpInAddr(void*, void*, void* us, int* unkInt, bool something, int* a, ScSessionAddr<Build>* in, void*, ScUnkAddr<Build>* out, int* outSuccess, int* outStatus) // out might be the one before, or even same as in, dunno
 {
-	uint64_t sysKey = in->addr.unkKey1 ^ 0xFEAFEDE;
+	uint64_t sysKey = in->addr.unkKey1() ^ 0xFEAFEDE;
 
 	memcpy(out->systemKey, in->sessionId, sizeof(out->systemKey));
 	*(uint64_t*)(&out->systemKey[8]) = 0;
@@ -242,8 +242,8 @@ void MigrateSessionCopy(char* target, char* source)
 	
 	std::unique_ptr<net::Buffer> msgBuffer(new net::Buffer(64));
 
-	msgBuffer->Write<uint32_t>((sessionAddress->addr.localAddr.ip.addr & 0xFFFF) ^ 0xFEED);
-	msgBuffer->Write<uint32_t>(sessionAddress->addr.unkKey1);
+	msgBuffer->Write<uint32_t>((sessionAddress->addr.localAddr().ip.addr & 0xFFFF) ^ 0xFEED);
+	msgBuffer->Write<uint32_t>(sessionAddress->addr.unkKey1());
 
 	g_netLibrary->SendReliableCommand("msgHeHost", reinterpret_cast<const char*>(msgBuffer->GetBuffer()), msgBuffer->GetCurOffset());
 }
@@ -454,19 +454,19 @@ struct
 			static ScSessionAddr<Build> netAddr;
 			memset(&netAddr, 0, sizeof(netAddr));
 
-			netAddr.addr.secKeyTime = g_netLibrary->GetHostBase() ^ 0xABCD;
+			netAddr.addr.secKeyTime() = g_netLibrary->GetHostBase() ^ 0xABCD;
 
-			netAddr.addr.unkKey1 = g_netLibrary->GetHostBase();
-			netAddr.addr.unkKey2 = g_netLibrary->GetHostBase();
+			netAddr.addr.unkKey1() = g_netLibrary->GetHostBase();
+			netAddr.addr.unkKey2() = g_netLibrary->GetHostBase();
 
-			netAddr.addr.localAddr.ip.addr = (g_netLibrary->GetHostNetID() ^ 0xFEED) | 0xc0a80000;
-			netAddr.addr.localAddr.port = 6672;
+			netAddr.addr.localAddr().ip.addr = (g_netLibrary->GetHostNetID() ^ 0xFEED) | 0xc0a80000;
+			netAddr.addr.localAddr().port = 6672;
 
-			netAddr.addr.relayAddr.ip.addr = (g_netLibrary->GetHostNetID() ^ 0xFEED) | 0xc0a80000;
-			netAddr.addr.relayAddr.port = 6672;
+			netAddr.addr.relayAddr().ip.addr = (g_netLibrary->GetHostNetID() ^ 0xFEED) | 0xc0a80000;
+			netAddr.addr.relayAddr().port = 6672;
 
-			netAddr.addr.publicAddr.ip.addr = (g_netLibrary->GetHostNetID() ^ 0xFEED) | 0xc0a80000;
-			netAddr.addr.publicAddr.port = 6672;
+			netAddr.addr.publicAddr().ip.addr = (g_netLibrary->GetHostNetID() ^ 0xFEED) | 0xc0a80000;
+			netAddr.addr.publicAddr().port = 6672;
 
 			*(uint32_t*)&netAddr.sessionId[0] = 0x2;//g_netLibrary->GetHostBase() ^ 0xFEAFEDE;
 			*(uint32_t*)&netAddr.sessionId[8] = 0xCDCDCDCD;

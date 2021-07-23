@@ -19,7 +19,7 @@
 template<int Build>
 static inline int GetServerId(const rlGamerInfo<Build>& platformData)
 {
-	return (platformData.peerAddress.localAddr.ip.addr & 0xFFFF) ^ 0xFEED;
+	return (platformData.peerAddress.localAddr().ip.addr & 0xFFFF) ^ 0xFEED;
 }
 
 static inline int DoGetServerId(CNetGamePlayer* player)

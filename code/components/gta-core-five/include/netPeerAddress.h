@@ -15,14 +15,14 @@
 #define GTA_CORE_EXPORT DLL_IMPORT
 #endif
 
-#define DECLARE_ACCESSOR(x) \
-	decltype(impl.m2372.x)& x()        \
+#define DECLARE_PEER_ACCESSOR(x) \
+	decltype(Impl2372{}.x)& x()        \
 	{                       \
-		return (xbr::IsGameBuildOrGreater<2372>() ? impl.m2372.x : xbr::IsGameBuildOrGreater<2060>() ? impl.m2060.x : impl.m1604.x);   \
+		return (xbr::IsGameBuildOrGreater<2372>() ? ((Impls*)this)->m2372.x : xbr::IsGameBuildOrGreater<2060>() ? ((Impls*)this)->m2060.x : ((Impls*)this)->m1604.x);   \
 	} \
-	const decltype(impl.m2372.x)& x() const                         \
+	const decltype(Impl2372{}.x)& x() const                         \
 	{                                                    \
-		return (xbr::IsGameBuildOrGreater<2372>() ? impl.m2372.x : xbr::IsGameBuildOrGreater<2060>() ? impl.m2060.x : impl.m1604.x);  \
+		return (xbr::IsGameBuildOrGreater<2372>() ? ((Impls*)this)->m2372.x : xbr::IsGameBuildOrGreater<2060>() ? ((Impls*)this)->m2060.x : ((Impls*)this)->m1604.x);  \
 	}
 
 struct netIpAddress
@@ -84,23 +84,50 @@ public:
 		uint32_t newVal;
 	};
 
-	union
+	union Impls
 	{
 		Impl505 m1604;
 		Impl2060 m2060;
 		Impl2372 m2372;
-	} impl;
+	};
 
 public:
-	DECLARE_ACCESSOR(unkKey1);
-	DECLARE_ACCESSOR(unkKey2);
-	DECLARE_ACCESSOR(secKeyTime);
-	DECLARE_ACCESSOR(relayAddr);
-	DECLARE_ACCESSOR(publicAddr);
-	DECLARE_ACCESSOR(localAddr);
-	DECLARE_ACCESSOR(newVal);
-	DECLARE_ACCESSOR(rockstarAccountId);
+	DECLARE_PEER_ACCESSOR(unkKey1);
+	DECLARE_PEER_ACCESSOR(unkKey2);
+	DECLARE_PEER_ACCESSOR(secKeyTime);
+	DECLARE_PEER_ACCESSOR(relayAddr);
+	DECLARE_PEER_ACCESSOR(publicAddr);
+	DECLARE_PEER_ACCESSOR(localAddr);
+	DECLARE_PEER_ACCESSOR(newVal);
+	DECLARE_PEER_ACCESSOR(rockstarAccountId);
 };
 
 template<int Build>
-using PeerAddress = std::conditional_t<(Build >= 2372), netPeerAddress::Impl2372, std::conditional_t<(Build >= 2060), netPeerAddress::Impl2060, netPeerAddress::Impl505>>;
+struct netPeerAddressStorage : netPeerAddress
+{
+};
+
+template<>
+struct netPeerAddressStorage<1604> : netPeerAddress
+{
+	uint8_t data[sizeof(Impl505)];
+};
+
+template<>
+struct netPeerAddressStorage<2060> : netPeerAddress
+{
+	uint8_t data[sizeof(Impl2060)];
+};
+
+template<>
+struct netPeerAddressStorage<2372> : netPeerAddress
+{
+	uint8_t data[sizeof(Impl2372)];
+};
+
+template<int Build>
+using PeerAddress = std::conditional_t<(Build >= 2372), netPeerAddressStorage<2372>, std::conditional_t<(Build >= 2060), netPeerAddressStorage<2060>, netPeerAddressStorage<1604>>>;
+
+static_assert(sizeof(PeerAddress<1604>) == 56);
+static_assert(sizeof(PeerAddress<2060>) == 64);
+static_assert(sizeof(PeerAddress<2372>) == 96);

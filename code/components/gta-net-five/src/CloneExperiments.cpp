@@ -322,10 +322,10 @@ namespace sync
 		void* fakeFakeData = calloc(256, 1);
 
 		rlGamerInfo<Build>* inAddr = (rlGamerInfo<Build>*)fakeInAddr;
-		inAddr->peerAddress.localAddr.ip.addr = clientId ^ 0xFEED;
-		inAddr->peerAddress.relayAddr.ip.addr = clientId ^ 0xFEED;
-		inAddr->peerAddress.publicAddr.ip.addr = clientId ^ 0xFEED;
-		inAddr->peerAddress.rockstarAccountId = clientId;
+		inAddr->peerAddress.localAddr().ip.addr = clientId ^ 0xFEED;
+		inAddr->peerAddress.relayAddr().ip.addr = clientId ^ 0xFEED;
+		inAddr->peerAddress.publicAddr().ip.addr = clientId ^ 0xFEED;
+		inAddr->peerAddress.rockstarAccountId() = clientId;
 		inAddr->gamerId = clientId;
 
 		// this has to come from the pool directly as the game will expect to free it
@@ -1183,7 +1183,7 @@ static rage::netPlayer* GetPlayerFromGamerId(rage::netPlayerMgrBase* mgr, const 
 	{
 		if (p)
 		{
-			if (p->GetGamerInfo<Build>()->peerAddress.rockstarAccountId == gamerId.accountId)
+			if (p->GetGamerInfo<Build>()->peerAddress.rockstarAccountId() == gamerId.accountId)
 			{
 				return p;
 			}

@@ -10,21 +10,21 @@
 #include <CrossBuildRuntime.h>
 #include <netPeerAddress.h>
 
+#define DECLARE_ACCESSOR(x) \
+	decltype(impl.m2372.x)& x()        \
+	{                       \
+		return (xbr::IsGameBuildOrGreater<2372>()) ? impl.m2372.x : (xbr::IsGameBuildOrGreater<2060>()) ? impl.m2060.x : impl.m1604.x;   \
+	} \
+	const decltype(impl.m2372.x)& x() const                         \
+	{                                                    \
+		return (xbr::IsGameBuildOrGreater<2372>()) ? impl.m2372.x : (xbr::IsGameBuildOrGreater<2060>()) ? impl.m2060.x : impl.m1604.x;  \
+	}
+
 #ifdef COMPILING_GTA_GAME_FIVE
 #define GTA_GAME_EXPORT DLL_EXPORT
 #else
 #define GTA_GAME_EXPORT DLL_IMPORT
 #endif
-
-#define DECLARE_ACCESSOR(x) \
-	decltype(impl.m2372.x)& x()        \
-	{                       \
-		return (xbr::IsGameBuildOrGreater<2372>() ? impl.m2372.x : xbr::IsGameBuildOrGreater<2060>() ? impl.m2060.x : impl.m1604.x);   \
-	} \
-	const decltype(impl.m2372.x)& x() const                         \
-	{                                                    \
-		return (xbr::IsGameBuildOrGreater<2372>() ? impl.m2372.x : xbr::IsGameBuildOrGreater<2060>() ? impl.m2060.x : impl.m1604.x);  \
-	}
 
 template<int Build>
 struct rlGamerInfo
@@ -67,24 +67,25 @@ public:
 	virtual void m_38() = 0;
 
 private:
-	template<int ExtraPad, int ExtraPad2>
+	template<int ActiveIndexPad, int PlayerInfoPad, int EndPad>
 	struct Impl
 	{
 		uint8_t pad[8];
 		void* nonPhysicalPlayerData;
-		uint8_t pad2[8 + ExtraPad];
+		uint8_t pad2[8 + ActiveIndexPad];
 		uint8_t activePlayerIndex; // 1604: +44, 2060: +52, 2372: +32
 		uint8_t physicalPlayerIndex;
 		uint8_t pad3[2];
-		uint8_t pad4[120 + ExtraPad2];
-		void* playerInfo;
+		uint8_t pad4[120 + PlayerInfoPad];
+		void* playerInfo; // 1604: +148, 2060: +176, 2372: +160
+		char end[EndPad];
 	};
 
 	union
 	{
-		Impl<12, 0> m1604;
-		Impl<20, 0> m2060;
-		Impl<0, 4> m2372;
+		Impl<12, 0, 28> m1604;
+		Impl<20, 0, 0> m2060;
+		Impl<0, 4, 16> m2372;
 	} impl;
 
 public:

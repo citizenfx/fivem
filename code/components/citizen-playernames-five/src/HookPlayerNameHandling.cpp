@@ -14,22 +14,11 @@
 #include <ResourceEventComponent.h>
 
 #include <msgpack.hpp>
-#include <CrossBuildRuntime.h>
 #include <netPeerAddress.h>
 
 static NetLibrary* g_netLibrary;
 static std::unordered_map<int, std::string> g_netIdToNames;
 static std::unordered_map<int, int> g_netIdToSlots;
-
-#define DECLARE_ACCESSOR(x) \
-	decltype(impl.m2372.x)& x()        \
-	{                       \
-		return (xbr::IsGameBuildOrGreater<2372>() ? impl.m2372.x : xbr::IsGameBuildOrGreater<2060>() ? impl.m2060.x : impl.m1604.x);   \
-	} \
-	const decltype(impl.m2372.x)& x() const                         \
-	{                                                    \
-		return (xbr::IsGameBuildOrGreater<2372>() ? impl.m2372.x : xbr::IsGameBuildOrGreater<2060>() ? impl.m2060.x : impl.m1604.x);  \
-	}
 
 static const char* GetPlayerNameFromScAddr(void* addr)
 {
@@ -44,34 +33,34 @@ static const char* GetPlayerNameFromScAddr(void* addr)
 	{
 		auto address = (PeerAddress<2372>*)addr;
 
-		if (address->relayAddr.ip.addr != address->localAddr.ip.addr || address->relayAddr.ip.addr != address->publicAddr.ip.addr)
+		if (address->relayAddr().ip.addr != address->localAddr().ip.addr || address->relayAddr().ip.addr != address->publicAddr().ip.addr)
 		{
 			return (char*)addr + sizeof(PeerAddress<2372>) + 36;
 		}
 
-		netId = (address->relayAddr.ip.addr & 0xFFFF) ^ 0xFEED;
+		netId = (address->relayAddr().ip.addr & 0xFFFF) ^ 0xFEED;
 	}
 	else if (xbr::IsGameBuildOrGreater<2060>())
 	{
 		auto address = (PeerAddress<2060>*)addr;
 
-		if (address->relayAddr.ip.addr != address->localAddr.ip.addr || address->relayAddr.ip.addr != address->publicAddr.ip.addr)
+		if (address->relayAddr().ip.addr != address->localAddr().ip.addr || address->relayAddr().ip.addr != address->publicAddr().ip.addr)
 		{
 			return (char*)addr + sizeof(PeerAddress<2060>) + (92 - 64);
 		}
 
-		netId = (address->relayAddr.ip.addr & 0xFFFF) ^ 0xFEED;
+		netId = (address->relayAddr().ip.addr & 0xFFFF) ^ 0xFEED;
 	}
 	else
 	{
 		auto address = (PeerAddress<1604>*)addr;
 
-		if (address->relayAddr.ip.addr != address->localAddr.ip.addr || address->relayAddr.ip.addr != address->publicAddr.ip.addr)
+		if (address->relayAddr().ip.addr != address->localAddr().ip.addr || address->relayAddr().ip.addr != address->publicAddr().ip.addr)
 		{
 			return (char*)addr + sizeof(PeerAddress<1604>) + (92 - 64);
 		}
 
-		netId = (address->relayAddr.ip.addr & 0xFFFF) ^ 0xFEED;
+		netId = (address->relayAddr().ip.addr & 0xFFFF) ^ 0xFEED;
 	}
 
 	auto it = g_netIdToNames.find(netId);
