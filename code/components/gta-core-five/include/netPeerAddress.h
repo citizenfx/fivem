@@ -40,6 +40,16 @@ struct netSocketAddress
 	uint16_t port;
 };
 
+struct netPeerId
+{
+	uint64_t val;
+};
+
+struct rlGamerHandle
+{
+	uint8_t handle[16];
+};
+
 struct netPeerAddress
 {
 public:
@@ -68,21 +78,53 @@ public:
 		uint64_t rockstarAccountId;
 	};
 
+	// unions used here are to retain accessors for external usage
+#pragma pack(push, 4)
 	struct Impl2372
 	{
-		char pad1[8];
-		uint64_t rockstarAccountId;
-		char pad22[8];
-		uint64_t unkKey1;
-		uint64_t unkKey2;
-		char pad3[16];
-		uint32_t secKeyTime;
-		netSocketAddress publicAddr;
-		netSocketAddress unkAddr;
-		netSocketAddress localAddr;
+		netPeerId peerId;
+
+		// gamer handle + pad
+		union
+		{
+			rlGamerHandle gamerHandle;
+
+			// compat
+			struct
+			{
+				uint64_t rockstarAccountId;
+				char pad22[8];
+			};
+		};
+
+		// peer key
+		union
+		{
+			// compat
+			struct
+			{
+				uint64_t unkKey1;
+				uint64_t unkKey2;
+				char pad3[16];
+				uint32_t secKeyTime;
+			};
+
+			// real
+			struct 
+			{
+				uint8_t peerKey[32];
+				uint8_t hasPeerKey;
+			};
+		};
+
 		netSocketAddress relayAddr;
+		netSocketAddress unkAddr;
+		netSocketAddress publicAddr;
+		netSocketAddress localAddr;
+
 		uint32_t newVal;
 	};
+#pragma pack(pop)
 
 	union Impls
 	{
