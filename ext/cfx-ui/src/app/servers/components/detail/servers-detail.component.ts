@@ -201,8 +201,10 @@ export class ServersDetailComponent implements OnInit, OnDestroy {
 			if (this.gameService.gameName === 'gta5') {
 				if (pair.value === '2060') {
 					value = 'Los Santos Summer Special';
-				} else if (pair.value === '2189' || pair.value === '2215') {
+				} else if (pair.value === '2189' || pair.value === '2215' || pair.value === '2245') {
 					value = 'Cayo Perico Heist';
+				} else if (pair.value === '2372') {
+					value = 'Los Santos Tuners';
 				}
 			}
 
