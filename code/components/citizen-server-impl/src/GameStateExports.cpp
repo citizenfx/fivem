@@ -1,11 +1,13 @@
 #include <StdInc.h>
 #include <GameServer.h>
 
+#include <GameBuilds.h>
+
 static bool g_bigMode;
 static bool g_lengthHack;
 static bool(*g_onesync)();
 
-extern std::string g_enforcedGameBuild;
+extern fx::GameBuild g_enforcedGameBuild;
 
 namespace fx
 {
