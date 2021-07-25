@@ -1398,8 +1398,16 @@ static HookFunction hookFunction([] ()
 		hook::jump(getNewNewVal, GetNetNewVal);
 	}
 
-	char* location = hook::get_pattern<char>("75 ? 40 38 3D ? ? ? ? 74 ? 48 8D 0D", 5);
-	didPresenceStuff = (bool*)(location + *(int32_t*)location + 4);
+	// 2060 matches this pattern more than once, and *second* match there
+	// use old pattern for <2372
+	if (xbr::IsGameBuildOrGreater<2372>())
+	{
+		didPresenceStuff = hook::get_address<bool*>(hook::get_pattern<char>("75 ? 40 38 3D ? ? ? ? 74 ? 48 8D 0D", 5));
+	}
+	else
+	{
+		didPresenceStuff = hook::get_address<bool*>(hook::get_pattern<char>("32 DB 38 1D ? ? ? ? 75 24 E8", 4));
+	}
 
 	hook::iat("ws2_32.dll", CfxSendTo, 20);
 	hook::iat("ws2_32.dll", CfxRecvFrom, 17);
@@ -1568,7 +1576,7 @@ static HookFunction hookFunction([] ()
 	hook::nop(hook::pattern("85 ED 78 52 84 C0 74 4E 48").count(1).get(0).get<void>(), 8);
 
 	// DLC mounts
-	location = hook::pattern("0F 85 A4 00 00 00 8D 57 10 48 8D 0D").count(1).get(0).get<char>(12);
+	auto location = hook::pattern("0F 85 A4 00 00 00 8D 57 10 48 8D 0D").count(1).get(0).get<char>(12);
 
 	g_dlcMountCount = (uint16_t*)(location + *(int32_t*)location + 4 + 8);
 
