@@ -344,17 +344,34 @@ static HookFunction hookFunction([]()
 	unsigned char *cmp2 = hook::get_pattern<unsigned char>("83 3D ? ? ? ? 02 41 0F 9D C4", 6);
 	hook::put<uint8_t>(cmp2, 0x03);
 
-
 	// Crash fix (connecticut-texas-carbon) for `_updatePref()` (settings->display->safezone-size)
-    //
 	// The game doesn't check for nullptr here, but does in other places...
-	// 48 8B 05 EB 74 E7 01    mov     rax, cs:qword_14206E448
-	// 40 88 B8 AC 00 00 00    mov     [rax+0ACh], dil(value=1)
-	unsigned char* crashAddr = hook::get_pattern<unsigned char>("48 8B 05 ? ? ? ? 40 88 B8 AC 00 00 00");
 
 	// Conveniently, there is a function [1604]sub_14018014C() that checks null and sets=1 for us
 	unsigned char* checkAndSetFuncAddr = hook::get_pattern<unsigned char>("48 8B 05 ? ? ? ? 48 85 C0 74 ? C6 80 AC 00 00 00 01 C3");
 
-	hook::nop(crashAddr, 14);
-	hook::call(crashAddr, checkAndSetFuncAddr);
+	if (!xbr::IsGameBuildOrGreater<2372>())
+	{
+		// 48 8B 05 EB 74 E7 01    mov     rax, cs:qword_14206E448
+		// 40 88 B8 AC 00 00 00    mov     [rax+0ACh], dil(value=1)
+		unsigned char* crashAddr = hook::get_pattern<unsigned char>("48 8B 05 ? ? ? ? 40 88 B8 AC 00 00 00");
+		hook::nop(crashAddr, 14);
+		hook::call(crashAddr, checkAndSetFuncAddr);
+	}
+	else
+	{
+		// this area was somewhat re-worked in 2372.
+		// The pointer is now retrieved via a function ex: auto ptr = GetPointer();
+		// And then ptr+172 is set with another Function ex: SetBool172(ptr);
+		// however the functions are simple 1-liners, it still doesn't seem to check for null.
+
+		// E8 E2 9A 2A 00                          call    GetPointer
+		// 48 8B C8                                mov     rcx, rax
+		// E8 C2 0A 2B 00                          call    SetBool172  <-------------------
+		// E8 B5 DD 13 00                          call    sub_7FF712DE62B4
+		// 48 8B 0D AA 11 E0 01                    mov     rcx, cs:qword_7FF714AA96
+
+		unsigned char* setBool172 = hook::get_pattern<unsigned char>("E8 ? ? ? ? 48 8B C8 E8 ? ? ? ? E8 ? ? ? ? 48 8B 0D", 8);
+		hook::call(setBool172, checkAndSetFuncAddr);
+	}
 });

@@ -30,6 +30,7 @@
 #include <ServerIdentityProvider.h>
 
 #include <MonoThreadAttachment.h>
+#include <GameBuilds.h>
 
 #include <json.hpp>
 
@@ -291,7 +292,7 @@ static std::optional<TicketData> VerifyTicketEx(const std::string& ticket)
 }
 
 extern std::shared_ptr<ConVar<bool>> g_oneSyncVar;
-std::string g_enforcedGameBuild;
+fx::GameBuild g_enforcedGameBuild;
 
 static InitFunction initFunction([]()
 {
@@ -312,7 +313,7 @@ static InitFunction initFunction([]()
 		auto lanVar = instance->AddVariable<bool>("sv_lan", ConVar_ServerInfo, false);
 
 		g_enforcedGameBuild = "1604";
-		auto enforceGameBuildVar = instance->AddVariable<std::string>("sv_enforceGameBuild", ConVar_ReadOnly | ConVar_ServerInfo, "1604", &g_enforcedGameBuild);
+		auto enforceGameBuildVar = instance->AddVariable<fx::GameBuild>("sv_enforceGameBuild", ConVar_ReadOnly | ConVar_ServerInfo, "1604", &g_enforcedGameBuild);
 
 		instance->GetComponent<fx::GameServer>()->OnTick.Connect([instance, enforceGameBuildVar]()
 		{

@@ -8,85 +8,23 @@
 #pragma once
 
 #include <CrossBuildRuntime.h>
+#include <netPeerAddress.h>
+
+#define DECLARE_ACCESSOR(x) \
+	decltype(impl.m2372.x)& x()        \
+	{                       \
+		return (xbr::IsGameBuildOrGreater<2372>()) ? impl.m2372.x : (xbr::IsGameBuildOrGreater<2060>()) ? impl.m2060.x : impl.m1604.x;   \
+	} \
+	const decltype(impl.m2372.x)& x() const                         \
+	{                                                    \
+		return (xbr::IsGameBuildOrGreater<2372>()) ? impl.m2372.x : (xbr::IsGameBuildOrGreater<2060>()) ? impl.m2060.x : impl.m1604.x;  \
+	}
 
 #ifdef COMPILING_GTA_GAME_FIVE
 #define GTA_GAME_EXPORT DLL_EXPORT
 #else
 #define GTA_GAME_EXPORT DLL_IMPORT
 #endif
-
-#define DECLARE_ACCESSOR(x) \
-	decltype(impl.m2060.x)& x()        \
-	{                       \
-		return (xbr::IsGameBuildOrGreater<2060>() ? impl.m2060.x : impl.m1604.x);   \
-	} \
-	const decltype(impl.m2060.x)& x() const                         \
-	{                                                    \
-		return (xbr::IsGameBuildOrGreater<2060>() ? impl.m2060.x : impl.m1604.x);  \
-	}
-
-struct netIpAddress
-{
-	union
-	{
-		uint32_t addr;
-		uint8_t bytes[4];
-	};
-};
-
-struct netSocketAddress
-{
-	netIpAddress ip;
-	uint16_t port;
-};
-
-struct netPeerAddress
-{
-public:
-	struct Impl505
-	{
-		uint64_t unkKey1;
-		uint64_t unkKey2;
-		uint32_t secKeyTime; // added in 393
-		netSocketAddress relayAddr;
-		netSocketAddress publicAddr;
-		netSocketAddress localAddr;
-		uint32_t newVal; // added in 372
-		uint64_t rockstarAccountId; // 463/505
-	};
-
-	struct Impl2060
-	{
-		uint64_t unkKey1;
-		uint64_t unkKey2;
-		uint32_t secKeyTime; // added in 393
-		netSocketAddress relayAddr;
-		netSocketAddress publicAddr;
-		netSocketAddress localAddr;
-		netSocketAddress unkAddr; // added in 2060
-		uint32_t newVal; // added in 372
-		uint64_t rockstarAccountId; // 463/505
-	};
-
-	union
-	{
-		Impl505 m1604;
-		Impl2060 m2060;
-	} impl;
-
-public:
-	DECLARE_ACCESSOR(unkKey1);
-	DECLARE_ACCESSOR(unkKey2);
-	DECLARE_ACCESSOR(secKeyTime);
-	DECLARE_ACCESSOR(relayAddr);
-	DECLARE_ACCESSOR(publicAddr);
-	DECLARE_ACCESSOR(localAddr);
-	DECLARE_ACCESSOR(newVal);
-	DECLARE_ACCESSOR(rockstarAccountId);
-};
-
-template<int Build>
-using PeerAddress = std::conditional_t<(Build >= 2060), netPeerAddress::Impl2060, netPeerAddress::Impl505>;
 
 template<int Build>
 struct rlGamerInfo
@@ -129,29 +67,31 @@ public:
 	virtual void m_38() = 0;
 
 private:
-	template<int ExtraPad>
+	template<int ActiveIndexPad, int PlayerInfoPad, int EndPad>
 	struct Impl
 	{
 		uint8_t pad[8];
 		void* nonPhysicalPlayerData;
-		uint8_t pad2[20 + ExtraPad];
-		uint8_t activePlayerIndex;
+		uint8_t pad2[8 + ActiveIndexPad];
+		uint8_t activePlayerIndex; // 1604: +44, 2060: +52, 2372: +32
 		uint8_t physicalPlayerIndex;
 		uint8_t pad3[2];
-		uint8_t pad4[120];
-		void* playerInfo;
+		uint8_t pad4[120 + PlayerInfoPad];
+		void* playerInfo; // 1604: +148, 2060: +176, 2372: +160
+		char end[EndPad];
 	};
 
 	union
 	{
-		Impl<0> m1604;
-		Impl<8> m2060;
+		Impl<12, 0, 28> m1604;
+		Impl<20, 0, 0> m2060;
+		Impl<0, 4, 16> m2372;
 	} impl;
 
 public:
 	void* GetPlayerInfo()
 	{
-		return (xbr::IsGameBuildOrGreater<2060>()) ? impl.m2060.playerInfo : impl.m1604.playerInfo;
+		return (xbr::IsGameBuildOrGreater<2372>()) ? impl.m2372.playerInfo : (xbr::IsGameBuildOrGreater<2060>()) ? impl.m2060.playerInfo : impl.m1604.playerInfo;
 	}
 
 public:

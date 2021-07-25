@@ -53,7 +53,7 @@ static HookFunction initFunction([]()
 	}
 
 	{
-		auto location = hook::get_pattern("E8 ? ? ? ? 0F 2F F8 0F 86 D4 00 00 00 0F B7 0D", 17);
+		auto location = hook::get_pattern("8B C1 48 8D 0C 80 48 8B 05 ? ? ? ? F3 0F 10 04 88", -0xB + 0x3);
 		auto addr = hook::get_address<char*>((char*)location);
 
 		zoomData = (MapZoomData*)(addr - 8);

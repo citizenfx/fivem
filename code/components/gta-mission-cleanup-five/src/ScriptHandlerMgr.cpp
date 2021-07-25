@@ -120,9 +120,20 @@ static HookFunction hookFunction([] ()
 		g_customThreadsToNames.erase(thread->GetContext()->ThreadId);
 	});
 
-	// 1868+
-	if (xbr::IsGameBuildOrGreater<2060>())
+	if (xbr::IsGameBuildOrGreater<2372>())
 	{
+		// FF 50 18 48 8B CE 48 8B D0 E8 ? ? ? ? 84
+		// FF 50 18                call    qword ptr [rax+18h]
+		// 48 8B CE                mov     rcx, rsi
+		// 48 8B D0                mov     rdx, rax
+		// E8 1F 97 FF FF          call    sub_7FF713538288
+		// 84 C0                   test    al, al
+		// 0F 84 AC 01 00 00       jz      loc_7FF71353ED1D   <---------------
+		hook::nop(hook::get_pattern("FF 50 18 48 8B CE 48 8B D0 E8 ? ? ? ? 84", 16), 6);
+	}
+	else if (xbr::IsGameBuildOrGreater<2060>())
+	{
+		// [74] 19  jz short loc_140A3ABA3 -- 0xEB unconditional jmp
 		hook::put<uint8_t>(hook::get_pattern("74 19 FF C1 48 83 C0 04"), 0xEB);
 	}
 });

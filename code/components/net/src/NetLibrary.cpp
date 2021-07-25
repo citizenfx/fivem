@@ -1761,7 +1761,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 						if (buildRef != 0 && buildRef != xbr::GetGameBuild())
 						{
 #if defined(GTA_FIVE)
-							if (buildRef != 1604 && buildRef != 2060 && buildRef != 2189)
+							if (buildRef != 1604 && buildRef != 2060 && buildRef != 2189 && buildRef != 2372)
 #else
 							if (buildRef != 1311 && buildRef != 1355)
 #endif

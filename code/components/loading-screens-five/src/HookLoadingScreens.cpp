@@ -338,7 +338,7 @@ static HookFunction hookFunction([] ()
 	}
 
 	// loading screen state 10 draws postFX every frame, which will make for a lot of unneeded GPU load below NUI
-	loadingScreenState = hook::get_address<int*>(hook::get_pattern("33 D2 48 8D 45 10 39 15", 8));
+	loadingScreenState = hook::get_address<int*>(hook::get_pattern("83 3D ? ? ? ? 05 75 ? 8B"), 2, 7);
 
 	OnGameFrame.Connect([]()
 	{

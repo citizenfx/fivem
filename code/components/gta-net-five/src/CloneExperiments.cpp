@@ -57,7 +57,10 @@ public:
 	virtual void m_18() = 0;
 
 #ifdef GTA_FIVE
-	virtual CNetGamePlayer* AddPlayer(void* scInAddr, void* unkNetValue, void* addedIn1290, void* playerData, void* nonPhysicalPlayerData) = 0;
+private:
+	virtual CNetGamePlayer* AddPlayer_raw(void* scInAddr, void* unkNetValue, void* addedIn1290, void* playerData, void* nonPhysicalPlayerData) = 0;
+
+public:
 #elif IS_RDR3
 	virtual CNetGamePlayer* AddPlayer(void* scInAddr, uint32_t activePlayerIndex, void* playerData, void* playerAccountId) = 0;
 #endif
@@ -65,6 +68,20 @@ public:
 	virtual void RemovePlayer(CNetGamePlayer* player) = 0;
 
 	void UpdatePlayerListsForPlayer(CNetGamePlayer* player);
+
+#ifdef GTA_FIVE
+public:
+	CNetGamePlayer* AddPlayer(void* scInAddr, void* unkNetValue, void* addedIn1290, void* playerData, void* nonPhysicalPlayerData)
+	{
+		if (xbr::IsGameBuildOrGreater<2372>())
+		{
+			static auto addPlayerFunc = *(uint64_t*)(*(char**)this + 0x20);
+			return ((CNetGamePlayer*(*)(void*, void*, void*, void*, void*))(addPlayerFunc))(this, scInAddr, unkNetValue, playerData, nonPhysicalPlayerData);
+		}
+
+		return AddPlayer_raw(scInAddr, unkNetValue, addedIn1290, playerData, nonPhysicalPlayerData);
+	}
+#endif
 };
 
 static hook::thiscall_stub<void(netPlayerMgrBase*, CNetGamePlayer*)> _netPlayerMgrBase_UpdatePlayerListsForPlayer([]
@@ -274,7 +291,7 @@ static hook::cdecl_stub<void(void*)> _npCtor([]()
 static hook::cdecl_stub<void(void*)> _pCtor([]()
 {
 #ifdef GTA_FIVE
-	return hook::get_pattern("48 89 03 48 89 73 10 89 73 1C E8", -0x23);
+	return hook::get_address<void*>(hook::get_pattern("41 8B E9 4D 8B F0 48 8B DA E8", 9), 1, 5);
 #elif IS_RDR3
 	return hook::get_pattern("83 4B 1C FF 48 8D 05 ? ? ? ? 33 C9 48", -0xE);
 #endif
@@ -305,10 +322,10 @@ namespace sync
 		void* fakeFakeData = calloc(256, 1);
 
 		rlGamerInfo<Build>* inAddr = (rlGamerInfo<Build>*)fakeInAddr;
-		inAddr->peerAddress.localAddr.ip.addr = clientId ^ 0xFEED;
-		inAddr->peerAddress.relayAddr.ip.addr = clientId ^ 0xFEED;
-		inAddr->peerAddress.publicAddr.ip.addr = clientId ^ 0xFEED;
-		inAddr->peerAddress.rockstarAccountId = clientId;
+		inAddr->peerAddress.localAddr().ip.addr = clientId ^ 0xFEED;
+		inAddr->peerAddress.relayAddr().ip.addr = clientId ^ 0xFEED;
+		inAddr->peerAddress.publicAddr().ip.addr = clientId ^ 0xFEED;
+		inAddr->peerAddress.rockstarAccountId() = clientId;
 		inAddr->gamerId = clientId;
 
 		// this has to come from the pool directly as the game will expect to free it
@@ -362,7 +379,11 @@ namespace sync
 
 	void TempHackMakePhysicalPlayer(uint16_t clientId, int idx = -1)
 	{
-		if (xbr::IsGameBuildOrGreater<2060>())
+		if (xbr::IsGameBuildOrGreater<2372>())
+		{
+			TempHackMakePhysicalPlayerImpl<2372>(clientId, idx);
+		}
+		else if (xbr::IsGameBuildOrGreater<2060>())
 		{
 			TempHackMakePhysicalPlayerImpl<2060>(clientId, idx);
 		}
@@ -746,7 +767,7 @@ static CNetGamePlayer* AllocateNetPlayer(void* mgr)
 	}
 
 #ifdef GTA_FIVE
-	void* plr = malloc(xbr::IsGameBuildOrGreater<2060>() ? 688 : 672);
+	void* plr = malloc(xbr::IsGameBuildOrGreater<2372>() ? 704 : xbr::IsGameBuildOrGreater<2060>() ? 688 : 672);
 #elif IS_RDR3
 	void* plr = malloc(2784);
 #endif
@@ -1162,7 +1183,7 @@ static rage::netPlayer* GetPlayerFromGamerId(rage::netPlayerMgrBase* mgr, const 
 	{
 		if (p)
 		{
-			if (p->GetGamerInfo<Build>()->peerAddress.rockstarAccountId == gamerId.accountId)
+			if (p->GetGamerInfo<Build>()->peerAddress.rockstarAccountId() == gamerId.accountId)
 			{
 				return p;
 			}
@@ -1599,7 +1620,11 @@ static HookFunction hookFunction([]()
 
 	// NETWORK_GET_PLAYER_INDEX_FROM_PED
 	{
+#ifdef GTA_FIVE
+		auto location = hook::get_pattern("74 ? 48 8B 88 ? ? ? ? 48 85 C9 74 ? E8 ? ? ? ? 0F B6", 14);
+#elif IS_RDR3
 		auto location = hook::get_pattern("48 85 C9 74 ? E8 ? ? ? ? 0F B6 C0 EB", 5);
+#endif
 		hook::set_call(&g_origGetOwnerPlayerId, location);
 		hook::call(location, netObject__GetPlayerOwnerId);
 	}
@@ -1695,7 +1720,8 @@ static HookFunction hookFunction([]()
 	}
 
 #ifdef GTA_FIVE
-	MH_CreateHook(hook::get_pattern("48 85 DB 74 20 48 8B 03 48 8B CB FF 50 30 48 8B", -0x34), (xbr::IsGameBuildOrGreater<2060>()) ? GetPlayerFromGamerId<2060> : GetPlayerFromGamerId<1604>, (void**)&g_origGetPlayerFromGamerId);
+	MH_CreateHook(hook::get_pattern("48 85 DB 74 20 48 8B 03 48 8B CB FF 50 30 48 8B", -0x34),
+		(xbr::IsGameBuildOrGreater<2372>()) ? GetPlayerFromGamerId<2372> : xbr::IsGameBuildOrGreater<2060>() ? GetPlayerFromGamerId<2060> : GetPlayerFromGamerId<1604>, (void**)&g_origGetPlayerFromGamerId);
 #elif IS_RDR3
 	MH_CreateHook(hook::get_pattern("48 85 DB 74 20 48 8B 03 48 8B CB FF 50 ? 48 8B", -0x27), GetPlayerFromGamerId, (void**)&g_origGetPlayerFromGamerId);
 #endif
@@ -1736,7 +1762,14 @@ static HookFunction hookFunction([]()
 
 #ifdef GTA_FIVE
 	// crash logging for invalid mount indices
-	MH_CreateHook(hook::get_pattern("48 8B FA 48 8D 91 44 01 00 00 48 8B F1", -0x16), CPedGameStateDataNode__access, (void**)&g_origCPedGameStateDataNode__access);
+	if (xbr::IsGameBuildOrGreater<2372>())
+	{
+		MH_CreateHook(hook::get_pattern("48 8B FA 48 8D 91 50 01 00 00 48 8B F1", -0x15), CPedGameStateDataNode__access, (void**)&g_origCPedGameStateDataNode__access);
+	}
+	else
+	{
+		MH_CreateHook(hook::get_pattern("48 8B FA 48 8D 91 44 01 00 00 48 8B F1", -0x16), CPedGameStateDataNode__access, (void**)&g_origCPedGameStateDataNode__access);
+	}
 
 	// getnetplayerped 32 cap
 	hook::nop(hook::get_pattern("83 F9 1F 77 26 E8", 3), 2);
@@ -2375,7 +2408,7 @@ static void HandleNetGameEvent(const char* idata, size_t len)
 		if (eventMgr)
 		{
 #ifdef GTA_FIVE
-			auto eventHandlerList = (TEventHandlerFn*)(eventMgr + (xbr::IsGameBuildOrGreater<2060>() ? 0x3ABD0 : 0x3AB80));
+			auto eventHandlerList = (TEventHandlerFn*)(eventMgr + (xbr::IsGameBuildOrGreater<2372>() ? 0x3B3D0 : xbr::IsGameBuildOrGreater<2060>() ? 0x3ABD0 : 0x3AB80));
 #elif IS_RDR3
 			auto eventHandlerList = (TEventHandlerFn*)(eventMgr + 0x3BF10);
 #endif
@@ -3038,14 +3071,32 @@ struct EmptyStruct
 };
 
 #ifdef GTA_FIVE
-struct ExtraAddressData
+struct TrustAddressData
 {
 	uint32_t addr;
 	uint16_t port;
 };
 
-template<bool Enable>
-using ExtraAddress = std::conditional_t<Enable, ExtraAddressData, EmptyStruct>;
+struct TrustAddress1604
+{
+	TrustAddressData m_addr1;
+	TrustAddressData m_addr2;
+};
+
+struct TrustAddress2060
+{
+	TrustAddressData m_addr1;
+	TrustAddressData m_addr2;
+	TrustAddressData m_addr3;
+};
+
+struct TrustAddress2372
+{
+	uint32_t m_addr;
+};
+
+template<int Build>
+using TrustAddress = std::conditional_t<(Build >= 2372), TrustAddress2372, std::conditional_t<(Build >= 2060), TrustAddress2060, TrustAddress1604>>;
 
 template<int Build>
 class netTimeSync
@@ -3180,14 +3231,7 @@ public:
 private:
 	void* m_vtbl; // 0
 	void* m_connectionMgr; // 8
-	struct
-	{
-		uint32_t m_int1;
-		uint16_t m_short1;
-		uint32_t m_int2;
-		uint16_t m_short2;
-		ExtraAddress<(Build >= 2060)> m_addr3;
-	} m_trustAddr; // 16
+	TrustAddress<Build> m_trustAddr; // 16
 	uint32_t m_sessionKey; // 32
 	int32_t m_timeDelta; // 36
 	struct
@@ -3400,7 +3444,11 @@ bool netTimeSync__InitializeTimeStub(netTimeSync<Build>* timeSync, void* connect
 bool IsWaitingForTimeSync()
 {
 #ifdef GTA_FIVE
-	if (xbr::IsGameBuildOrGreater<2060>())
+	if (xbr::IsGameBuildOrGreater<2372>())
+	{
+		return !(*g_netTimeSync<2372>)->IsInitialized();
+	}
+	else if (xbr::IsGameBuildOrGreater<2060>())
 	{
 		return !(*g_netTimeSync<2060>)->IsInitialized();
 	}
@@ -3425,7 +3473,11 @@ static InitFunction initFunctionTime([]()
 			net::Buffer buf(reinterpret_cast<const uint8_t*>(data), len);
 
 #ifdef GTA_FIVE
-			if (xbr::IsGameBuildOrGreater<2060>())
+			if (xbr::IsGameBuildOrGreater<2372>())
+			{
+				(*g_netTimeSync<2372>)->HandleTimeSync(buf);
+			}
+			else if (xbr::IsGameBuildOrGreater<2060>())
 			{
 				(*g_netTimeSync<2060>)->HandleTimeSync(buf);
 			}
@@ -3452,7 +3504,9 @@ static HookFunction hookFunctionTime([]()
 	MH_Initialize();
 
 #ifdef GTA_FIVE
-	void* func = (xbr::IsGameBuildOrGreater<2060>()) ? (void*)&netTimeSync__InitializeTimeStub<2060> : &netTimeSync__InitializeTimeStub<1604>;
+	void* func = (xbr::IsGameBuildOrGreater<2372>()) ? (void*)&netTimeSync__InitializeTimeStub<2372> :
+		(xbr::IsGameBuildOrGreater<2060>()) ? (void*)&netTimeSync__InitializeTimeStub<2060> : &netTimeSync__InitializeTimeStub<1604>;
+
 	MH_CreateHook(hook::get_pattern("48 8B D9 48 39 79 08 0F 85 ? ? 00 00 41 8B E8", -32), func, (void**)&g_origInitializeTime);
 #elif IS_RDR3
 	void* func = (xbr::IsGameBuildOrGreater<1355>()) ? (void*)&netTimeSync__InitializeTimeStub<1355> : &netTimeSync__InitializeTimeStub<1311>;
@@ -3462,7 +3516,11 @@ static HookFunction hookFunctionTime([]()
 	MH_EnableHook(MH_ALL_HOOKS);
 
 #ifdef GTA_FIVE
-	if (xbr::IsGameBuildOrGreater<2060>())
+	if (xbr::IsGameBuildOrGreater<2372>())
+	{
+		g_netTimeSync<2372> = hook::get_address<netTimeSync<2372>**>(hook::get_pattern("48 8B 0D ? ? ? ? 45 33 C9 45 33 C0 41 8D 51 01 E8", 3));
+	}
+	else if (xbr::IsGameBuildOrGreater<2060>())
 	{
 		g_netTimeSync<2060> = hook::get_address<netTimeSync<2060>**>(hook::get_pattern("48 8B 0D ? ? ? ? 45 33 C9 45 33 C0 41 8D 51 01 E8", 3));
 	}
@@ -3486,7 +3544,11 @@ static HookFunction hookFunctionTime([]()
 	OnMainGameFrame.Connect([]()
 	{
 #if GTA_FIVE
-		if (xbr::IsGameBuildOrGreater<2060>())
+		if (xbr::IsGameBuildOrGreater<2372>())
+		{
+			(*g_netTimeSync<2372>)->Update();
+		}
+		else if (xbr::IsGameBuildOrGreater<2060>())
 		{
 			(*g_netTimeSync<2060>)->Update();
 		}

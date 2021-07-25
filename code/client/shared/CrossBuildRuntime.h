@@ -1,6 +1,25 @@
 #pragma once
 
 #pragma region GTA5_builds
+inline bool Is2372()
+{
+#ifdef GTA_FIVE
+	static bool retval = ([]()
+	{
+		if (wcsstr(GetCommandLineW(), L"b2372") != nullptr)
+		{
+			return true;
+		}
+
+		return false;
+	})();
+
+	return retval;
+#endif
+
+	return false;
+}
+
 inline bool Is2189()
 {
 #ifdef GTA_FIVE
@@ -106,6 +125,11 @@ inline int GetGameBuild()
 #ifdef GTA_FIVE
 	static int build = ([]()
 	{
+		if (Is2372())
+		{
+			return 2372;
+		}
+
 		if (Is2189())
 		{
 			return 2189;

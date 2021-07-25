@@ -352,7 +352,7 @@ static uint32_t g_mapperOffset;
 
 static hook::cdecl_stub<bool(int)> _isMenuActive([]
 {
-	return hook::get_call(hook::get_pattern("33 C9 E8 ? ? ? ? 84 C0 74 04 84 DB 75 21", 2));
+	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 33 C9 E8 ? ? ? ? 0F 57 F6", 7));
 });
 
 static hook::cdecl_stub<bool()> _isTextInputBoxActive([]
@@ -1176,7 +1176,7 @@ static HookFunction hookFunction([]()
 	MH_CreateHook(hook::get_pattern("74 2A 48 63 CB 8D 56 10 48", -0x23), GetMappingCategories, (void**)&g_origGetMappingCategories);
 	MH_CreateHook(hook::get_pattern("45 33 ED 4C 8B E2 41 8B C5 45 85 C0 0F 84", -0x24), GetMappingCategoryInputs, (void**)&g_origGetMappingCategoryInputs);
 	MH_CreateHook(hook::get_call(hook::get_pattern("41 B9 FE FF FF FF C6 44 24 28 01 44 88 64 24 20 E8", 16)), GetBindingForControl, (void**)&g_origGetBindingForControl);
-	MH_CreateHook(hook::get_call(hook::get_pattern("48 8B F9 45 8A E1 8B CE 45 8B F8 E8", 11)), GetNameForControl, (void**)&g_origGetNameForControl);
+	MH_CreateHook(hook::get_call(hook::get_pattern("48 8B F9 45 8A ? 8B CE 45 8B ? E8", 11)), GetNameForControl, (void**)&g_origGetNameForControl);
 	MH_CreateHook(hook::get_pattern("4D 8B F9 45 8B E0 48 8B F9 83 FE FF 0F", -0x22), MapControlInternal, (void**)&g_origMapControlInternal);
 	MH_CreateHook(hook::get_call(hook::get_pattern("48 8B DA E8 ? ? ? ? 83 F8 FF 74 27", 3)), GetControlForName, (void**)&g_origGetControlForName);
 	MH_CreateHook(hook::get_pattern("33 DB 4C 8B D1 48 89 5E 50", -0x27), HandleMappingConflicts, (void**)&g_origHandleMappingConflicts);
@@ -1186,7 +1186,7 @@ static HookFunction hookFunction([]()
 
 	// hacks for unknown array
 	{
-		auto location = hook::get_pattern<char>("44 38 34 08 0F 84");
+		auto location = hook::get_pattern<char>("48 8D 0D ? ? ? ? 44 38 34 08", 7);
 		hook::nop(location, 4 + 6);
 	}
 

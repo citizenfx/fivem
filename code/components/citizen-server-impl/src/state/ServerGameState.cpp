@@ -4298,6 +4298,11 @@ void CExplosionEvent::Parse(rl::MessageBuffer& buffer)
 		posZ224 = 0;
 	}
 
+	if (Is2060()) // >= 1868: f_168
+	{
+		auto f168 = buffer.Read<uint32_t>(32);
+	}
+
 	f240 = buffer.Read<uint8_t>(1);
 	if (f240)
 	{
@@ -5027,8 +5032,8 @@ enum GTA_EVENT_IDS
 	WEAPON_DAMAGE_EVENT,
 	REQUEST_PICKUP_EVENT,
 	REQUEST_MAP_PICKUP_EVENT,
-	GAME_CLOCK_EVENT,
-	GAME_WEATHER_EVENT,
+	GAME_CLOCK_EVENT, // 2372: Removed (index now empty placeholder)
+	GAME_WEATHER_EVENT, // 2372: Removed (index now empty placeholder)
 	RESPAWN_PLAYER_PED_EVENT,
 	GIVE_WEAPON_EVENT,
 	REMOVE_WEAPON_EVENT,

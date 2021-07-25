@@ -239,7 +239,7 @@ static HookFunction hookFunction([]()
 	}
 
 	//In the GAMER_INFO constructor
-	auto location = hook::pattern("4C 8D 05 ? ? ? ? 48 8D 4B ? 44 ? 7C 24 28 C7").count(1).get(0);
+	auto location = hook::pattern("4C 8D 05 ? ? ? ? 48 8D 4B 04 44 88 7C 24 28").count(1).get(0);
 	//right below "GAMER_NAME"
 	char* locPat1 = location.get<char>(0x37);
 	//2 below "MP_BOMB", 1st in the r15d spam
@@ -285,26 +285,51 @@ static HookFunction hookFunction([]()
 	hook::put<uint32_t>(hook::get_pattern("48 8B B4 F9 ? ? ? ? 24", 4), componentNamesOffset);
 
 	// change limits
-	// GAMER_INFO::GAMER_INFO
+	// GAMER_INFO::GAMER_INFO()
 	{
-		uint64_t addr = (uint64_t)hook::get_pattern("8D 6F ? 44 88 79");
-		uint8_t payload[] =
-		{
+		// the whole point of this is to change the opcodes to support a 4-byte instead of a 1-byte immediate
+		uint64_t addr;
+		uint8_t payload[] = {
 			// 8D AF 00 00 00 00       lea    ebp,[rdi+0x0]
-			// 44 88 79 0C             mov    BYTE PTR [rcx+0xC],r15b
-			// E9 00 00 00 00          jmp    0xf 
+			// 00 00 00 00             [4 BYTE PLACEHOLDER for nearby-opcodes that get overwritten with our jmp hook]
+			// E9 00 00 00 00          jmp    0xf
 			0x8D, 0xAF, /*stub[2]*/ 0x00, 0x00, 0x00, 0x00,
-			0x44, 0x88, 0x79, 0x0C,
+			0x00, 0x00, 0x00, 0x00, /*stub[6-9]*/
 			0xE9, /*stub[11]*/ 0x00, 0x00, 0x00, 0x00
 		};
 
-		uint8_t *stub = (uint8_t *)hook::AllocateStubMemory(sizeof(payload));
+		// 2372 compiler changed the function a little bit
+		if (xbr::IsGameBuildOrGreater<2372>())
+		{
+			addr = (uint64_t)hook::get_pattern("48 8D 73 40 8D 6F 33");
+			// 48 8D 73 40             lea     rsi, [rbx+40h]  <---------
+			// 8D 6F 33                lea     ebp, [rdi+51]
+			payload[6] = 0x48;
+			payload[7] = 0x8D;
+			payload[8] = 0x73;
+			payload[9] = 0x40;
+		}
+		else
+		{
+			addr = (uint64_t)hook::get_pattern("8D 6F ? 44 88 79");
+			// 8D 6F 33                    lea     ebp, [rdi+51]
+			// 44 88 79 0C                 mov     [rcx+0Ch], r15b  <---------
+			payload[6] = 0x44;
+			payload[7] = 0x88;
+			payload[8] = 0x79;
+			payload[9] = 0x0C;
+		}
+
+		uint8_t* stub = (uint8_t*)hook::AllocateStubMemory(sizeof(payload));
 
 		memcpy(stub, payload, sizeof(payload));
 
-		*(uint32_t *)&stub[2] = GAMER_TAG_LIMIT - 1;
+		*(uint32_t*)&stub[2] = GAMER_TAG_LIMIT - 1;
 
-		*(uint32_t *)(&stub[11]) = (addr + 3 + 4) - ((uint64_t)&stub[11] + 4);
+		*(uint32_t*)(&stub[11]) = (addr + 3 + 4 /*(Both Game-Versions are 7-bytes)*/) - ((uint64_t)&stub[11] + 4);
+
+		// ensure lines are fully NOP'd (Both Game-Versions are 7-bytes)
+		hook::nop(addr, 7);
 
 		hook::put<uint8_t>(addr, 0xE9);
 		hook::put<uint32_t>(addr + 1, (uint64_t)stub - (addr + 5));
