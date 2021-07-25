@@ -2044,31 +2044,39 @@ static InitFunction initFunction([]()
 	{
 		if (type == rage::InitFunctionType::INIT_CORE && data.funcHash == /*0xE6D408DF*/0xF0F5A94D)
 		{
-			if (xbr::IsGameBuildOrGreater<1734>())
+			std::string packFile;
+			std::string soundData;
+			std::string wavePack;
+
+			if (xbr::IsGameBuildOrGreater<2372>())
 			{
-				rage::fiPackfile* vw = new rage::fiPackfile();
-				if (vw->OpenPackfile("dlcpacks:/mpvinewood/dlc.rpf", true, 3, false))
-				{
-					vw->Mount("vw:/");
-
-					ForceMountDataFile({ "AUDIO_SOUNDDATA", "vw:/x64/audio/dlcvinewood_sounds.dat" });
-					ForceMountDataFile({ "AUDIO_WAVEPACK", "vw:/x64/audio/sfx/dlc_vinewood" });
-
-					audioRunning = true;
-				}
+				packFile = "dlcpacks:/mptuner/dlc.rpf";
+				soundData = "x64/audio/dlcTuner_sounds.dat";
+				wavePack = "x64/audio/sfx/dlc_Tuner_Music";
+			}
+			else if (xbr::IsGameBuildOrGreater<1734>())
+			{
+				packFile = "dlcpacks:/mpvinewood/dlc.rpf";
+				soundData = "x64/audio/dlcvinewood_sounds.dat";
+				wavePack = "x64/audio/sfx/dlc_vinewood";
 			}
 			else
 			{
-				rage::fiPackfile* xm18 = new rage::fiPackfile();
-				if (xm18->OpenPackfile("dlcpacks:/mpchristmas2018/dlc.rpf", true, 3, false))
-				{
-					xm18->Mount("xm18:/");
+				packFile = "dlcpacks:/mpchristmas2018/dlc.rpf";
+				soundData = "x64/audio/dlcAWXM2018_sounds.dat";
+				wavePack = "x64/audio/sfx/dlc_AWXM2018";
+			}
 
-					ForceMountDataFile({ "AUDIO_SOUNDDATA", "xm18:/x64/audio/dlcAWXM2018_sounds.dat" });
-					ForceMountDataFile({ "AUDIO_WAVEPACK", "xm18:/x64/audio/sfx/dlc_AWXM2018" });
+			
+			rage::fiPackfile* dlcAud = new rage::fiPackfile();
+			if (dlcAud->OpenPackfile(packFile.c_str(), true, 3, false))
+			{
+				dlcAud->Mount("menuAud:/");
 
-					audioRunning = true;
-				}
+				ForceMountDataFile({ "AUDIO_SOUNDDATA", fmt::sprintf("menuAud:/%s", soundData) });
+				ForceMountDataFile({ "AUDIO_WAVEPACK", fmt::sprintf("menuaud:/%s", wavePack) });
+
+				audioRunning = true;
 			}
 		}
 	});
@@ -2149,7 +2157,20 @@ static InitFunction initFunction([]()
 				initValues.SetVolume(volume);
 
 				auto musicTheme = musicThemeVariable.GetValue();
-				auto defaultMusicTheme = xbr::IsGameBuildOrGreater<1734>() ? "dlc_vinewood_health_05_slaves_of_fear_aw_rmx" : "dlc_awxm2018_theme_5_stems";
+				std::string defaultMusicTheme;
+
+				if (xbr::IsGameBuildOrGreater<2372>())
+				{
+					defaultMusicTheme = "arcade_ch_title_track_1";
+				}
+				else if (xbr::IsGameBuildOrGreater<1734>())
+				{
+					defaultMusicTheme = "dlc_vinewood_health_05_slaves_of_fear_aw_rmx";
+				}
+				else
+				{
+					defaultMusicTheme = "dlc_awxm2018_theme_5_stems";
+				}
 
 				if (musicTheme == "dlc_awxm2018_theme_5_stems")
 				{
