@@ -1915,7 +1915,8 @@ static HookFunction hookFunction([]()
 
 	// custom audio poll stuff
 	{
-		auto location = (xbr::IsGameBuildOrGreater<2372>()) ? hook::get_pattern("F6 41 60 08 0F 85 ? ? ? ? 8B 41", -0x26) : hook::get_pattern("48 8D 6C 24 30 8B 04 24 0F 29 75 30 0F 29 7D", -0x11);
+		auto offset = (xbr::IsGameBuildOrGreater<2372>()) ? -0x14 : -0x11;
+		auto location = hook::get_pattern("48 8D 6C 24 30 8B 04 24 0F 29 75 ? 0F 29 7D ? 48 8B D9", offset);
 
 		MH_Initialize();
 		MH_CreateHook(location, GenerateFrameHook, (void**)&g_origGenerateFrame);
