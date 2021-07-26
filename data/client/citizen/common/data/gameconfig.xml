@@ -142,7 +142,7 @@
 						</Item>
 						<Item>
 							<PoolName>CGameScriptResource</PoolName>
-							<PoolSize value="3062"/>
+							<PoolSize value="3064"/>
 						</Item>
 						<Item>
 							<PoolName>CGameScriptHandlerNetwork</PoolName>
@@ -366,7 +366,7 @@
 						</Item>
 						<Item>
 							<PoolName>OcclusionPortalEntity</PoolName>
-							<PoolSize value="260"/>
+							<PoolSize value="280"/>
 						</Item>
 						<Item>
 							<PoolName>OcclusionPortalInfo</PoolName>
@@ -426,7 +426,7 @@
 						</Item>
 						<Item>
 							<PoolName>PtFxAssetStore</PoolName>
-							<PoolSize value="350"/>
+							<PoolSize value="400"/>
 						</Item>
 						<Item>
 							<PoolName>QuadTreeNodes</PoolName>
@@ -458,7 +458,7 @@
 						</Item>
 						<Item>
 							<PoolName>TxdStore</PoolName>
-							<PoolSize value="75500"/>
+							<PoolSize value="85500"/>
 						</Item>
 						<Item>
 							<PoolName>CNetObjVehicle</PoolName>
@@ -1012,7 +1012,7 @@
 						<Item>
 							<SizeOfData value="1400"/>
 							<MaxParticipants value="32"/>
-							<NumInstances value="3"/>
+							<NumInstances value="6"/>
 						</Item>
 						<Item>
 							<SizeOfData value="600"/>
@@ -1027,17 +1027,17 @@
 						<Item>
 							<SizeOfData value="400"/>
 							<MaxParticipants value="32"/>
-							<NumInstances value="4"/>
+							<NumInstances value="5"/>
 						</Item>
 						<Item>
 							<SizeOfData value="150"/>
 							<MaxParticipants value="32"/>
-							<NumInstances value="2"/>
+							<NumInstances value="6"/>
 						</Item>
 						<Item>
-							<SizeOfData value="80"/>
+							<SizeOfData value="84"/>
 							<MaxParticipants value="32"/>
-							<NumInstances value="4"/>
+							<NumInstances value="5"/>
 						</Item>
 						<Item>
 							<SizeOfData value="40"/>
@@ -1287,7 +1287,7 @@
 				</Entries>
 			</PoolSizes>
 				<ConfigStreamingEngine>
-					<PhysicalStreamingBuffer value="2324"/>
+					<PhysicalStreamingBuffer value="2354"/>
 					<VirtualStreamingBuffer value="0"/>
 				</ConfigStreamingEngine>
         <ConfigMediaTranscoding>
@@ -1514,7 +1514,7 @@
           </Entries>
         </PoolSizes>
 				<ConfigStreamingEngine>
-					<PhysicalStreamingBuffer value="2324"/>
+					<PhysicalStreamingBuffer value="2354"/>
 					<VirtualStreamingBuffer value="0"/>
 				</ConfigStreamingEngine>
         <Threads>
@@ -2175,7 +2175,7 @@
 						</Item>
 						<Item>
 							<ResourceTypeName>SEQUENCE_TASK</ResourceTypeName>
-							<ExpectedMaximum value="96"/>
+							<ExpectedMaximum value="97"/>
 						</Item>
 						<Item>
 							<ResourceTypeName>DECISION_MAKER</ResourceTypeName>
@@ -2187,11 +2187,11 @@
 						</Item>
 						<Item>
 							<ResourceTypeName>TEXTURE_DICTIONARY</ResourceTypeName>
-							<ExpectedMaximum value="40"/>
+							<ExpectedMaximum value="55"/>
 						</Item>
 						<Item>
 							<ResourceTypeName>DRAWABLE_DICTIONARY</ResourceTypeName>
-							<ExpectedMaximum value="34"/>
+							<ExpectedMaximum value="40"/>
 						</Item>
 						<Item>
 							<ResourceTypeName>CLOTH_DICTIONARY</ResourceTypeName>
@@ -2211,11 +2211,11 @@
 						</Item>
 						<Item>
 							<ResourceTypeName>ANIMATION</ResourceTypeName>
-							<ExpectedMaximum value="44"/>
+							<ExpectedMaximum value="57"/>
 						</Item>
 						<Item>
 							<ResourceTypeName>MODEL</ResourceTypeName>
-							<ExpectedMaximum value="195"/>
+							<ExpectedMaximum value="265"/>
 						</Item>
 						<Item>
 							<ResourceTypeName>RADAR_BLIP</ResourceTypeName>
@@ -2231,11 +2231,11 @@
 						</Item>
 						<Item>
 							<ResourceTypeName>PATROL_ROUTE</ResourceTypeName>
-							<ExpectedMaximum value="10"/>
+							<ExpectedMaximum value="30"/>
 						</Item>
 						<Item>
 							<ResourceTypeName>MLO</ResourceTypeName>
-							<ExpectedMaximum value="9"/>
+							<ExpectedMaximum value="35"/>
 						</Item>
 						<Item>
 							<ResourceTypeName>RELATIONSHIP_GROUP</ResourceTypeName>
@@ -2243,7 +2243,7 @@
 						</Item>
 						<Item>
 							<ResourceTypeName>SCALEFORM_MOVIE</ResourceTypeName>
-							<ExpectedMaximum value="15"/>
+							<ExpectedMaximum value="20"/>
 						</Item>
 						<Item>
 							<ResourceTypeName>STREAMED_SCRIPT</ResourceTypeName>
@@ -2259,11 +2259,11 @@
 						</Item>
 						<Item>
 							<ResourceTypeName>SPEED_ZONE</ResourceTypeName>
-							<ExpectedMaximum value="170"/>
+							<ExpectedMaximum value="220"/>
 						</Item>
 						<Item>
 							<ResourceTypeName>WEAPON_ASSET</ResourceTypeName>
-							<ExpectedMaximum value="64"/>
+							<ExpectedMaximum value="68"/>
 						</Item>
 						<Item>
 							<ResourceTypeName>VEHICLE_ASSET</ResourceTypeName>
@@ -2283,7 +2283,7 @@
 						</Item>
 						<Item>
 							<ResourceTypeName>BINK_MOVIE</ResourceTypeName>
-							<ExpectedMaximum value="1"/>
+							<ExpectedMaximum value="2"/>
 						</Item>
 						<Item>
 							<ResourceTypeName>MOVIE_MESH_SET</ResourceTypeName>
@@ -2307,11 +2307,11 @@
 						</Item>
 						<Item>
 							<ResourceTypeName>SYNCED_SCENE</ResourceTypeName>
-							<ExpectedMaximum value="49"/>
+							<ExpectedMaximum value="51"/>
 						</Item>
 						<Item>
 							<ResourceTypeName>CLIP_SET</ResourceTypeName>
-							<ExpectedMaximum value="10"/>
+							<ExpectedMaximum value="15"/>
 						</Item>
 						<Item>
 							<ResourceTypeName>VEHICLE_RECORDING</ResourceTypeName>
