@@ -8,6 +8,8 @@
 #include "StdInc.h"
 #include "ComponentLoader.h"
 #include <boost/algorithm/string.hpp>
+
+#include <CrossBuildRuntime.h>
 #include <filesystem>
 #include <wchar.h>
 
@@ -148,13 +150,48 @@ bool ComponentInstance::DoGameLoad(void* module)
 					}
 				}
 
+				if (xbr::IsGameBuildOrGreater<2189>())
+				{
+					bad = true;
+
+					HMODULE hModule = LoadLibraryEx(it->path().c_str(), nullptr, LOAD_LIBRARY_AS_DATAFILE);
+
+					if (hModule)
+					{
+						HRSRC hResource = FindResource(hModule, L"FX_ASI_BUILD", MAKEINTRESOURCE(xbr::GetGameBuild()));
+
+						if (hResource)
+						{
+							auto resSize = SizeofResource(hModule, hResource);
+							auto resData = LoadResource(hModule, hResource);
+
+							auto resPtr = static_cast<const char*>(LockResource(resData));
+							
+							if (resPtr)
+							{
+								bad = false;
+							}
+						}
+
+						FreeLibrary(hModule);
+					}
+
+					if (bad)
+					{
+						trace("Unable to load %s - this ASI plugin does not claim to support game build %d. If you have access to its source code, add `FX_ASI_BUILD %d dummy.txt` to the .rc file when building this plugin. If not, contact its maintainer.\n", 
+							ToNarrow(it->path().wstring()).c_str(),
+							xbr::GetGameBuild(),
+							xbr::GetGameBuild()
+						);
+					}
+				}
+
 				if (LoadPEFile(it->path(), libraryBuffer))
 				{
 					if (!CfxIsSinglePlayer())
 					{
 						for (auto itt = blacklistedAsis.begin(); itt != blacklistedAsis.end(); ++itt)
 						{
-
 							if (*itt != L"")
 							{
 								if (wcsicmp(it->path().filename().c_str(), itt->c_str()) == 0 || wcsicmp(badFileName.c_str(), itt->c_str()) == 0)
