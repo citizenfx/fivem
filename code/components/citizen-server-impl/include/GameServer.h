@@ -353,6 +353,7 @@ namespace fx
 	SVIMP_EXPORT void SetOneSyncGetCallback(bool (*cb)());
 	SVIMP_EXPORT void SetBigModeHack(bool bigMode, bool lengthHack);
 	SVIMP_EXPORT std::string_view GetEnforcedGameBuild();
+	SVIMP_EXPORT int GetEnforcedGameBuildNumber();
 }
 
 DECLARE_INSTANCE_TYPE(fx::GameServer);

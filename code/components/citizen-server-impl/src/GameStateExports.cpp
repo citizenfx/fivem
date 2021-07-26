@@ -2,6 +2,7 @@
 #include <GameServer.h>
 
 #include <GameBuilds.h>
+#include <charconv>
 
 static bool g_bigMode;
 static bool g_lengthHack;
@@ -45,5 +46,14 @@ void SetBigModeHack(bool bigMode, bool lengthHack)
 std::string_view GetEnforcedGameBuild()
 {
 	return g_enforcedGameBuild;
+}
+
+int GetEnforcedGameBuildNumber()
+{
+	int build = 0;
+	auto buildNum = GetEnforcedGameBuild();
+	std::from_chars(buildNum.data(), buildNum.data() + buildNum.size(), build);
+
+	return build;
 }
 }

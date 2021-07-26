@@ -51,7 +51,7 @@ inline bool Is2060()
 {
 	static bool value = ([]()
 	{
-		return fx::GetEnforcedGameBuild() == "2060" || fx::GetEnforcedGameBuild() == "2189";
+		return fx::GetEnforcedGameBuildNumber() >= 2060;
 	})();
 
 	return value;
@@ -61,7 +61,7 @@ inline bool Is2189()
 {
 	static bool value = ([]()
 	{
-		return fx::GetEnforcedGameBuild() == "2189" || fx::GetEnforcedGameBuild() == "2372";
+		return fx::GetEnforcedGameBuildNumber() >= 2189;
 	})();
 
 	return value;
@@ -71,7 +71,7 @@ inline bool Is2372()
 {
 	static bool value = ([]()
 	{
-		return fx::GetEnforcedGameBuild() == "2372";
+		return fx::GetEnforcedGameBuildNumber() >= 2372;
 	})();
 
 	return value;
