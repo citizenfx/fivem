@@ -21,7 +21,8 @@ import { master } from './master';
 import { isPlatformBrowser } from '@angular/common';
 import { GameService } from '../game.service';
 import { FilterRequest } from './filter-request';
-import {catchError, timeout} from 'rxjs/operators';
+import {catchError} from 'rxjs/operators/catchError';
+import {timeout} from 'rxjs/operators/timeout';
 import { SearchAutocompleteIndex } from './filters.service';
 
 const serversWorker = new Worker('./workers/servers.worker', { type: 'module' });

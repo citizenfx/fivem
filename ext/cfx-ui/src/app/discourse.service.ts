@@ -246,18 +246,25 @@ export class DiscourseService {
 			body: finalData
 		})
 
-		const res = await window.fetch(req);
-
-		let json = null;
-
 		try {
-			json = await res.json();
-		} catch { }
+			const res = await window.fetch(req);
 
-		return {
-			status: res.status,
-			data: json || null
-		};
+			let json = null;
+
+			try {
+				json = await res.json();
+			} catch { }
+
+			return {
+				status: res.status,
+				data: json || null
+			};
+		} catch {
+			return {
+				status: 503,
+				data: null
+			};
+		}
 	}
 
 	public async getCurrentUser() {

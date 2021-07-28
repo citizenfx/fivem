@@ -228,6 +228,10 @@ export class ServersDetailComponent implements OnInit, OnDestroy {
 			.then(a => {
 				this.server = a;
 
+				if (!a) {
+					return;
+				}
+
 				this.fetchApFeed();
 
 				const resources = (<string[]>(a?.data?.resources ?? []))

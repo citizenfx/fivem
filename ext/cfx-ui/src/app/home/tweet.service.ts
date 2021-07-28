@@ -6,8 +6,8 @@ import pLimit from 'p-limit';
 import * as unicodeSubstring from 'unicode-substring';
 
 import 'rxjs/add/operator/toPromise';
-import { EMPTY, Observable, Subject } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { EMPTY, Observable, of, Subject } from 'rxjs';
+import { catchError } from 'rxjs/operators/catchError';
 
 export class Tweet {
     readonly user_displayname: string;
@@ -96,7 +96,7 @@ export class TweetService {
 
     public getTweets(uri: string): Promise<Tweet[]> {
         return this.http.get(uri)
-			.pipe(catchError(() => EMPTY))
+			.pipe(catchError(() => of([])))
             .toPromise()
             .then((result: any) => result
                 .filter(t => t)

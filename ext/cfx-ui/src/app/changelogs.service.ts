@@ -1,7 +1,7 @@
 import { Injectable, EventEmitter } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
-import { BehaviorSubject, EMPTY } from "rxjs";
-import { catchError } from "rxjs/operators";
+import { BehaviorSubject, of } from "rxjs";
+import { catchError } from "rxjs/operators/catchError";
 
 @Injectable()
 export class ChangelogService {
@@ -61,7 +61,7 @@ export class ChangelogService {
 		return await this.http.get<string[]>(this.targetEndpoint + 'versions', {
 			responseType: 'json'
 		})
-		.pipe(catchError(() => EMPTY))
+		.pipe(catchError(() => of(['0'])))
 		.toPromise();
 	}
 

@@ -189,6 +189,9 @@ export class HomeComponent implements OnInit, OnDestroy {
 				if (res.ok) {
 					this.serviceMessage = cachedServiceMessage = await res.text();
 				}
+			})
+			.catch(() => {
+				this.serviceMessage = cachedServiceMessage = `<div class="warning">Could not connect to backend services. Some issues may occur.</div>`;
 			});
 	}
 
@@ -227,7 +230,8 @@ export class HomeComponent implements OnInit, OnDestroy {
 				if (res.ok) {
 					this.welcomeMessage = cachedWelcomeMessage = await res.text();
 				}
-			});
+			})
+			.catch(() => {});
 	}
 
 	fetchPlayerStats() {
