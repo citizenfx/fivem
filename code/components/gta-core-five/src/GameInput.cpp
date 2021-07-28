@@ -1187,7 +1187,7 @@ static HookFunction hookFunction([]()
 	// hacks for unknown array
 	{
 		auto location = hook::get_pattern<char>("48 8D 0D ? ? ? ? 44 38 34 08", 7);
-		hook::nop(location, 4 + 6);
+		hook::nop(location, 4 + (xbr::IsGameBuildOrGreater<2372>() ? 2 : 6));
 	}
 
 	{
