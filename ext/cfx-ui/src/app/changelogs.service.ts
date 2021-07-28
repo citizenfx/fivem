@@ -1,7 +1,7 @@
 import { Injectable, EventEmitter } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import { BehaviorSubject, of } from "rxjs";
-import { catchError } from "rxjs/operators/catchError";
+import { catchError } from "rxjs/operators";
 
 @Injectable()
 export class ChangelogService {

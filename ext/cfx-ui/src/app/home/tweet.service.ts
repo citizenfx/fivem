@@ -6,8 +6,8 @@ import pLimit from 'p-limit';
 import * as unicodeSubstring from 'unicode-substring';
 
 import 'rxjs/add/operator/toPromise';
-import { EMPTY, Observable, of, Subject } from 'rxjs';
-import { catchError } from 'rxjs/operators/catchError';
+import { EMPTY, Observable, Subject } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 export class Tweet {
     readonly user_displayname: string;
@@ -92,17 +92,23 @@ export class Tweet {
 export class TweetService {
     private sentMap = new Set<string>();
 
-    constructor(private http: HttpClient) { }
+	constructor(private http: HttpClient) { }
 
-    public getTweets(uri: string): Promise<Tweet[]> {
-        return this.http.get(uri)
-			.pipe(catchError(() => of([])))
-            .toPromise()
-            .then((result: any) => result
-                .filter(t => t)
-                .filter(t => !t.in_reply_to_user_id)
-                .map(t => new Tweet(t)));
-    }
+	public getTweets(uri: string): Promise<Tweet[]> {
+		return this.http.get(uri)
+			.pipe(catchError(() => EMPTY))
+			.toPromise()
+			.then((result: any) => {
+				if (!result) {
+					return [];
+				}
+
+				return result
+					.filter(t => t)
+					.filter(t => !t.in_reply_to_user_id)
+					.map(t => new Tweet(t))
+			});
+	}
 
     public getActivityTweets(pubs: string[]): Observable<Tweet> {
         const subject = new Subject<Tweet>();
