@@ -65,7 +65,7 @@ export const Updater = observer(function Update() {
           <div className={s.bar} style={{ width: `${status.completed * 100}%` }}/>
         </div>
         <div className={s['current-file-name']}>
-          {status.currentFileName}
+          {isReady ? 'Done!' : status.currentFileName}
         </div>
 
         <div className={s.changelog}>
