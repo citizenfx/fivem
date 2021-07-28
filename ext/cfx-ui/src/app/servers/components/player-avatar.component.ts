@@ -62,7 +62,7 @@ export class PlayerAvatarComponent implements OnInit, OnChanges {
 				const decId = int.toString(10);
 
 				return this.http.get(`https://steamcommunity.com/profiles/${decId}?xml=1`, { responseType: 'text' })
-					.pipe(catchError(() => ''))
+					.pipe(catchError(() => of('')))
 					.map(a => {
 						try {
 							if (a && a !== '') {
