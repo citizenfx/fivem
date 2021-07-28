@@ -9,7 +9,7 @@ export interface ChangelogEntry {
 export const changelogEntries: ChangelogEntry[] = [
   {
     id: '2021-07-20',
-    title: 'Jule 20, 2021',
+    title: 'July 20, 2021',
     content: (
       <>
         <h3>We're almost ready for the next big thing in FxDK, stay tuned</h3>
