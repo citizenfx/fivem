@@ -234,6 +234,15 @@ static InitFunction initFunction([] ()
 
 			relativePaths.emplace_back("platform:/", targetPath);
 			relativePaths.emplace_back("platformcrc:/", targetPath);
+
+			if (xbr::IsGameBuildOrGreater<2060>() && GetFileAttributes(ToWide(targetPath).c_str()) == INVALID_FILE_ATTRIBUTES)
+			{
+				trace("game build %d is expected to have a platform directory, but it doesn't\n", xbr::GetGameBuild());
+
+#ifdef _DEBUG
+				__debugbreak();
+#endif
+			}
 		}
 
 		// we will try to fetch `cfx:/` soon, so apply current state
