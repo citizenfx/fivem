@@ -128,7 +128,7 @@ private:
 
 class fwEntity;
 
-class fwDynamicAtchetypeComponent
+class fwDynamicArchetypeComponent
 {
 public:
 	inline bool IsPhysicsObject()
@@ -174,7 +174,7 @@ public:
 	uint32_t flags;
 
 	uint8_t pad3[4];
-	fwDynamicAtchetypeComponent* dynamicArchetypeComponent;
+	fwDynamicArchetypeComponent* dynamicArchetypeComponent;
 	uint8_t assetType;
 	uint8_t pad4;
 
