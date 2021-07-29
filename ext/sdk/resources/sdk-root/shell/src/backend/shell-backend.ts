@@ -23,6 +23,8 @@ export class ShellBackend implements AppContribution {
   constructor() {
     this.expressApp = (express() as any);
 
+    this.expressApp.disable('x-powered-by');
+
     // Wrapping with WebSockets support
     expressWs(this.expressApp);
   }

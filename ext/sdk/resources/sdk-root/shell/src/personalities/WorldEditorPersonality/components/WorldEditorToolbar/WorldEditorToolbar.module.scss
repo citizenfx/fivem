@@ -7,10 +7,12 @@
   left: $weToolbarOffset;
 
   display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
 
   gap: $q*2;
 
-  height: $weToolbarHeight;
+  height: 0;
 
   z-index: 1;
 }
@@ -42,10 +44,29 @@
   right: $weToolbarOffset;
 
   display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
 
   gap: $q*2;
 
-  height: $weToolbarHeight;
+  height: 0;
+
+  z-index: 1;
+}
+
+.left-bottom {
+  position: fixed;
+
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+
+  left: $weToolbarOffset;
+  bottom: $weToolbarOffset;
+
+  height: 0;
+
+  overflow: visible;
 
   z-index: 1;
 }
@@ -58,10 +79,10 @@
   bottom: $weToolbarOffset;
 
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
 
-  height: $weToolbarHeight;
+  height: 0;
 
   z-index: 1;
 }

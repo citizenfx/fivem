@@ -58,7 +58,7 @@ export type WESetSelectionRequest =
   | { type: WESelectionType.PATCH, mapdata: number, entity: number, label: string }
   | { type: WESelectionType.ADDITION, id: string };
 
-export interface WEApplyPatchRequest {
+export interface WECreatePatchRequest {
   patch: WEMapPatch,
   mapDataHash: number,
   entityHash: number,
@@ -81,6 +81,15 @@ export interface WESetAdditionRequest {
 }
 
 export type WEApplyAdditionChangeRequest = { id: string } & Partial<WEMapAddition>;
+
+export interface WEApplyPatchChangeRequest {
+  mapdata: number,
+  entity: number,
+
+  mat?: WEEntityMatrix,
+  label?: string,
+  cam?: WECam,
+}
 
 export interface WESetAdditionGroupRequest {
   additionId: string,
@@ -129,3 +138,10 @@ export interface WEMap {
     [entityId: string]: WEMapAddition,
   },
 }
+
+export interface WESettings {
+  mouseSensetivity: number,
+  showSelectionBoundingBox: boolean,
+}
+
+export type WESettingsChangeRequest = Partial<WESettings>;

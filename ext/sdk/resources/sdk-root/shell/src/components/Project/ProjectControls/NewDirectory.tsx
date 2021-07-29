@@ -1,6 +1,7 @@
 import React from 'react';
 import { newDirectoryIcon } from 'constants/icons';
 import { ProjectState } from 'store/ProjectState';
+import { Title } from 'components/controls/Title/Title';
 
 export interface NewDirectoryProps {
   className: string,
@@ -8,12 +9,16 @@ export interface NewDirectoryProps {
 
 export const NewDirectory = React.memo(function NewDirectory({ className }: NewDirectoryProps) {
   return (
-    <button
-      className={className}
-      onClick={ProjectState.openDirectoryCreator}
-      data-label="New directory"
-    >
-      {newDirectoryIcon}
-    </button>
+    <Title animated={false} delay={0} title="New directory" fixedOn="right">
+      {(ref) => (
+        <button
+          ref={ref}
+          className={className}
+          onClick={ProjectState.openDirectoryCreator}
+        >
+          {newDirectoryIcon}
+        </button>
+      )}
+    </Title>
   );
 });

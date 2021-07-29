@@ -1,10 +1,9 @@
 import React from 'react';
 import { observer } from 'mobx-react-lite';
 import { BaseTool } from '../BaseTool/BaseTool';
-import { WETool } from '../WEToolbarState';
+import { WETool } from '../../../store/WEToolbarState';
 import { Indicator } from 'components/Indicator/Indicator';
 import { ObjectsBrowser } from './ObjectsBrowser';
-import { FiPlus } from 'react-icons/fi';
 import { ArchetypesState } from 'personalities/WorldEditorPersonality/store/ArchetypesState';
 import { addObjectToolIcon } from 'personalities/WorldEditorPersonality/constants/icons';
 

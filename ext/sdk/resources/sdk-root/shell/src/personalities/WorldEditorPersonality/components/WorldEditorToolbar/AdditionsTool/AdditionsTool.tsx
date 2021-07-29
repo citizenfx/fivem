@@ -1,7 +1,7 @@
 import React from 'react';
 import classnames from 'classnames';
 import { FiBox } from 'react-icons/fi';
-import { WETool, WEToolbarState } from '../WEToolbarState';
+import { WETool, WEToolbarState } from '../../../store/WEToolbarState';
 import { BaseTool } from '../BaseTool/BaseTool';
 import { useOpenFlag } from 'utils/hooks';
 import { WEState } from 'personalities/WorldEditorPersonality/store/WEState';
@@ -127,7 +127,6 @@ export const AdditionsTool = observer(function AdditionsTool() {
             key={id}
             item={obj}
             onLabelChange={(label: string) => label.trim() && WEState.map?.setAdditionLabel(id, label.trim())}
-            onClick={() => WEState.setCam(obj.cam)}
             onDelete={() => WEState.map.deleteAddition(id)}
           />
         ))}

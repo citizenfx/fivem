@@ -1,7 +1,7 @@
 import React from 'react';
 import { observer } from 'mobx-react-lite';
 import classnames from 'classnames';
-import { BsCardHeading, BsGear, BsHash, BsList } from 'react-icons/bs';
+import { BsCardHeading, BsHash, BsList } from 'react-icons/bs';
 import { devtoolsIcon, newProjectIcon, openProjectIcon, projectBuildIcon, mapIcon, projectSettingsIcon } from 'constants/icons';
 import { Project } from 'components/Project/Project';
 import { ContextMenu, ContextMenuItemsCollection, ContextMenuItemSeparator } from 'components/controls/ContextMenu/ContextMenu';
@@ -16,6 +16,7 @@ import { StatusBar } from './StatusBar/StatusBar';
 import s from './Toolbar.module.scss';
 import { useOpenFlag } from 'utils/hooks';
 import { Hasher } from './Hasher/Hasher';
+import { Title } from 'components/controls/Title/Title';
 
 const handleMenuClick = (openMenu) => openMenu();
 const handleGetMenuCoords = () => ({
@@ -133,9 +134,16 @@ export const Toolbar = observer(function Toolbar() {
             onClick={handleMenuClick}
             getCoords={handleGetMenuCoords}
           >
-            <button className={s.menu} data-label="Menu">
-              <BsList />
-            </button>
+            <Title animated={false} delay={0} title="Menu" fixedOn="bottom-left">
+              {(ref) => (
+                <button
+                  ref={ref}
+                  className={s.menu}
+                >
+                  <BsList />
+                </button>
+              )}
+            </Title>
           </ContextMenu>
 
           <div className={s['project-name']} title={ProjectState.projectName}>

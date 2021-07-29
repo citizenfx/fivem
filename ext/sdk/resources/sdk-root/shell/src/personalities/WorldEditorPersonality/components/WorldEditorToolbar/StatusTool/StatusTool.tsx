@@ -4,7 +4,7 @@ import { Indicator } from 'components/Indicator/Indicator';
 import { StatusCenter } from 'components/StatusCenter/StatusCenter';
 import { BsListTask } from 'react-icons/bs';
 import { TaskState } from 'store/TaskState';
-import { WETool, WEToolbarState } from '../WEToolbarState';
+import { WETool, WEToolbarState } from '../../../store/WEToolbarState';
 import { BaseTool } from '../BaseTool/BaseTool';
 
 const noop = () => {};

@@ -5,7 +5,7 @@
   align-items: center;
   justify-content: center;
 
-  height: 100%;
+  height: $weToolbarHeight;
 
   gap: $q*4;
 
@@ -14,7 +14,6 @@
     align-items: center;
     justify-content: center;
 
-    // width: $q*35;
     height: $weToolbarHeight;
 
     padding: 0 1px;
@@ -88,49 +87,17 @@
     box-shadow: 0 0 0 1px rgba($bgColor, .5) inset, 0 0 10px 0 rgba($bgColor, .75), 0 0 0 0 $acColor inset;
 
     border-radius: $weToolbarHeight;
+
+    &:hover {
+      box-shadow: 0 0 0 1px rgba($bgColor, .5) inset, 0 0 10px 0 rgba($bgColor, .75), 0 0 0 2px $acColor inset;
+    }
   }
 
   .toggle,
   .mode {
     position: relative;
 
-    &:hover {
-      span {
-        opacity: 1;
-      }
-    }
-
-    span {
-      position: absolute;
-
-      top: -$weToolbarHeight + $q;
-
-      display: flex;
-      align-items: center;
-      justify-content: center;
-
-      padding: $q $q*2;
-
-      color: $fgColor;
-      background-color: rgba($bgColor, .75);
-      backdrop-filter: blur(20px);
-      border-radius: 2px;
-
-      @include fontPrimary;
-      font-size: $fs08;
-      font-weight: 100;
-      text-transform: lowercase;
-      white-space: nowrap;
-
-      opacity: 0;
-      pointer-events: none;
-
-      z-index: 1;
-
-      :global(.shortcut) {
-        margin-left: $q;
-      }
-    }
+    cursor: pointer;
   }
 }
 

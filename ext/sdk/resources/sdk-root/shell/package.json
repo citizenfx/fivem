@@ -3,6 +3,9 @@
   "version": "0.0.1",
   "private": true,
   "dependencies": {
+    "@fontsource/montserrat": "^4.5.0",
+    "@fontsource/rubik": "^4.5.0",
+    "@fontsource/source-code-pro": "^4.5.0",
     "@octokit/rest": "^18.3.0",
     "@sentry/node": "^6.2.0",
     "@sentry/react": "^6.2.0",
@@ -47,8 +50,6 @@
     "tar-fs": "^2.1.1",
     "threads": "^1.6.4",
     "tree-kill": "^1.2.2",
-    "typeface-montserrat": "^0.0.75",
-    "typeface-rubik": "^0.0.72",
     "uuid": "^8.3.2",
     "yauzl": "^2.10.0"
   },

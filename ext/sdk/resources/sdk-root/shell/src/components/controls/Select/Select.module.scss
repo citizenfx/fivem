@@ -10,8 +10,9 @@
   padding: 0 $q*4;
 
   color: $fgColor;
+
+  @include fontPrimary;
   font-size: $fs1;
-  font-family: Rubik;
 
   border: none;
 

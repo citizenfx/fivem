@@ -1,6 +1,7 @@
 import React from 'react';
 import { importAssetIcon } from 'constants/icons';
 import { ProjectState } from 'store/ProjectState';
+import { Title } from 'components/controls/Title/Title';
 
 export interface ImportAssetProps {
   className: string,
@@ -8,12 +9,16 @@ export interface ImportAssetProps {
 
 export const ImportAsset = React.memo(function ImportAsset({ className }: ImportAssetProps) {
   return (
-    <button
-      className={className}
-      onClick={ProjectState.openImporter}
-      data-label="Import asset"
-    >
-      {importAssetIcon}
-    </button>
+    <Title animated={false} delay={0} fixedOn="bottom" title="Import asset">
+      {(ref) => (
+        <button
+          ref={ref}
+          className={className}
+          onClick={ProjectState.openImporter}
+        >
+          {importAssetIcon}
+        </button>
+      )}
+    </Title>
   );
 });

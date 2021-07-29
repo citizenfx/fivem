@@ -1,0 +1,109 @@
+@import 'variables';
+
+.wrapper {
+  position: fixed;
+
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+
+  gap: $q;
+
+  width: auto;
+  height: 16px;
+
+  overflow: visible;
+
+  z-index: 9999;
+
+  user-select: none;
+  pointer-events: none;
+
+  // box-shadow: 0 0 0 5px red;
+
+  opacity: 0;
+
+  @keyframes appearance {
+    0% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+
+  animation: appearance 0s ease-in-out forwards;
+
+  &.animated {
+    animation: appearance .2s ease-in-out forwards;
+  }
+
+  &.fixed-on-top {
+    width: 0;
+    height: 0;
+
+    align-items: flex-end;
+    justify-content: center;
+  }
+  &.fixed-on-bottom {
+    width: 0;
+    height: 0;
+
+    align-items: flex-start;
+    justify-content: center;
+  }
+  &.fixed-on-bottom-left {
+    width: 0;
+    height: 0;
+
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+
+  &.fixed-on-left {
+    width: 0;
+    height: 0;
+
+    align-items: center;
+    justify-content: flex-end;
+  }
+  &.fixed-on-right {
+    width: 0;
+    height: 0;
+
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  .root {
+    flex-shrink: 0;
+
+    padding: $q/1.5 $q;
+
+    font-size: $fs08;
+    font-weight: 400;
+
+    color: $bgColor;
+    background-color: $fgColor;
+
+    border-radius: 2px;
+
+    box-shadow: 0 0 5px rgba($bgColor, .25);
+  }
+
+  .shortcut {
+    flex-shrink: 0;
+
+    padding: $q/1.5 $q*2;
+
+    font-size: $fs08;
+    font-weight: 500;
+
+    color: $bgColor;
+    background-color: $fgColor;
+
+    border-radius: 2px;
+
+    box-shadow: 0 -2px rgba($bgColor, .5) inset, 0 0 5px rgba($bgColor, .25);
+  }
+}

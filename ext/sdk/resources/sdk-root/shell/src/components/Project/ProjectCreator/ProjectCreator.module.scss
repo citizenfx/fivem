@@ -25,8 +25,8 @@
     padding: $q $q*4;
     margin-top: $q*4;
 
-    font-family: Rubik;
-    font-size: .8rem;
+    @include fontPrimary;
+    font-size: $fs08;
     color: rgba($fgColor, .5);
   }
 }

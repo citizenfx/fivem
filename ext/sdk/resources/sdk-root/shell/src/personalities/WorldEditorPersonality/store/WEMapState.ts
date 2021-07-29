@@ -1,7 +1,8 @@
 import { WORLD_EDITOR_MAP_NO_GROUP } from "backend/world-editor/world-editor-constants";
-import { WEApplyAdditionChangeRequest, WEApplyPatchRequest, WECam, WECreateAdditionGroupRequest, WECreateAdditionRequest, WEDeleteAdditionGroupRequest, WEDeleteAdditionRequest, WEDeletePatchRequest, WEMap, WEMapAddition, WEMapAdditionGroup, WEMapPatch, WESetAdditionGroupNameRequest, WESetAdditionRequest } from "backend/world-editor/world-editor-types";
+import { WEApplyAdditionChangeRequest, WEApplyPatchChangeRequest, WECreatePatchRequest, WECam, WECreateAdditionGroupRequest, WECreateAdditionRequest, WEDeleteAdditionGroupRequest, WEDeleteAdditionRequest, WEDeletePatchRequest, WEEntityMatrixIndex, WEMap, WEMapAddition, WEMapAdditionGroup, WEMapPatch, WESetAdditionGroupNameRequest, WESetAdditionRequest } from "backend/world-editor/world-editor-types";
 import { makeAutoObservable } from "mobx";
 import { worldEditorApi } from "shared/api.events";
+import { applyRotation, applyScale } from "shared/math";
 import { sendApiMessage } from "utils/api";
 import { omit } from "utils/omit";
 import { fastRandomId } from "utils/random";
@@ -50,12 +51,31 @@ export class WEMapState {
     return this.map.patches;
   }
 
-  handleApplyPatchRequest({ entityHash, mapDataHash, patch }: WEApplyPatchRequest) {
+  handleCreatePatchRequest({ entityHash, mapDataHash, patch }: WECreatePatchRequest) {
     if (!this.map.patches[mapDataHash]) {
       this.map.patches[mapDataHash] = {};
     }
 
     this.map.patches[mapDataHash][entityHash] = patch;
+  }
+
+  handleApplyPatchChangeRequest(request: WEApplyPatchChangeRequest) {
+    const patch = this.map.patches[request.mapdata]?.[request.entity];
+    if (!patch) {
+      return;
+    }
+
+    if (request.mat) {
+      patch.mat = request.mat;
+    }
+
+    if (request.label) {
+      patch.label = request.label;
+    }
+
+    if (request.cam) {
+      patch.cam = request.cam;
+    }
   }
 
   handleApplyAdditionChangeRequest(request: WEApplyAdditionChangeRequest) {
@@ -89,6 +109,65 @@ export class WEMapState {
 
   getPatch(mapdata: number, entity: number): WEMapPatch | void {
     return this.map.patches[mapdata]?.[entity];
+  }
+
+  setPatchPosition(mapdata: number, entity: number, x: number, y: number, z: number) {
+    const patch = this.map.patches[mapdata]?.[entity];
+    if (!patch) {
+      return;
+    }
+
+    patch.mat[WEEntityMatrixIndex.AX] = x;
+    patch.mat[WEEntityMatrixIndex.AY] = y;
+    patch.mat[WEEntityMatrixIndex.AZ] = z;
+
+    const request: WEApplyPatchChangeRequest = {
+      entity,
+      mapdata,
+
+      mat: patch.mat,
+    };
+
+    sendGameClientEvent('we:applyPatchChange', JSON.stringify(request));
+    sendApiMessage(worldEditorApi.applyPatchChange, request);
+  }
+
+  setPatchRotation(mapdata: number, entity: number, x: number, y: number, z: number) {
+    const patch = this.map.patches[mapdata]?.[entity];
+    if (!patch) {
+      return;
+    }
+
+    applyRotation(patch.mat, [z, x, y]);
+
+    const request: WEApplyPatchChangeRequest = {
+      entity,
+      mapdata,
+
+      mat: patch.mat,
+    };
+
+    sendGameClientEvent('we:applyPatchChange', JSON.stringify(request));
+    sendApiMessage(worldEditorApi.applyPatchChange, request);
+  }
+
+  setPatchScale(mapdata: number, entity: number, x: number, y: number, z: number) {
+    const patch = this.map.patches[mapdata]?.[entity];
+    if (!patch) {
+      return;
+    }
+
+    applyScale(patch.mat, [x, y, z]);
+
+    const request: WEApplyPatchChangeRequest = {
+      entity,
+      mapdata,
+
+      mat: patch.mat,
+    };
+
+    sendGameClientEvent('we:applyPatchChange', JSON.stringify(request));
+    sendApiMessage(worldEditorApi.applyPatchChange, request);
   }
 
   getGroupAdditions(grp: string): Record<string, WEMapAddition> {
@@ -133,7 +212,64 @@ export class WEMapState {
     sendApiMessage(worldEditorApi.createAddition, request);
   }
 
-  deletePatch(mapdata: string, entity: string) {
+  setAdditionPosition(additionId: string, x: number, y: number, z: number) {
+    const addition = this.map.additions[additionId];
+    if (!addition) {
+      return;
+    }
+
+    addition.mat[WEEntityMatrixIndex.AX] = x;
+    addition.mat[WEEntityMatrixIndex.AY] = y;
+    addition.mat[WEEntityMatrixIndex.AZ] = z;
+
+    const request: WEApplyAdditionChangeRequest = {
+      id: additionId,
+      mat: addition.mat,
+    };
+
+    sendGameClientEvent('we:applyAdditionChange', JSON.stringify(request));
+    sendApiMessage(worldEditorApi.applyAdditionChange, request);
+  }
+
+  setAdditionRotation(additionId: string, x: number, y: number, z: number) {
+    const addition = this.map.additions[additionId];
+    if (!addition) {
+      return;
+    }
+
+    applyRotation(addition.mat, [z, x, y]);
+
+    const request: WEApplyAdditionChangeRequest = {
+      id: additionId,
+      mat: addition.mat,
+    };
+
+    sendGameClientEvent('we:applyAdditionChange', JSON.stringify(request));
+    sendApiMessage(worldEditorApi.applyAdditionChange, request);
+  }
+
+  setAdditionScale(additionId: string, x: number, y: number, z: number) {
+    const addition = this.map.additions[additionId];
+    if (!addition) {
+      return;
+    }
+
+    applyScale(addition.mat, [x, y, z]);
+
+    const request: WEApplyAdditionChangeRequest = {
+      id: additionId,
+      mat: addition.mat,
+    };
+
+    sendGameClientEvent('we:applyAdditionChange', JSON.stringify(request));
+    sendApiMessage(worldEditorApi.applyAdditionChange, request);
+  }
+
+  setAdditionOnGround(additionId: string) {
+    sendGameClientEvent('we:setAdditionOnGround', additionId);
+  }
+
+  deletePatch(mapdata: string | number, entity: string | number) {
     if (this.map.patches[mapdata]) {
       delete this.map.patches[mapdata][entity];
 
@@ -143,8 +279,12 @@ export class WEMapState {
     }
 
     const request: WEDeletePatchRequest = {
-      mapDataHash: parseInt(mapdata, 10),
-      entityHash: parseInt(entity, 10),
+      mapDataHash: typeof mapdata === 'string'
+        ? parseInt(mapdata, 10)
+        : mapdata,
+      entityHash: typeof entity === 'string'
+        ? parseInt(entity, 10)
+        : entity,
     };
 
     sendGameClientEvent('we:deletePatch', JSON.stringify(request));

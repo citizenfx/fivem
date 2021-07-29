@@ -1,7 +1,7 @@
 import React from 'react';
 import { observer } from 'mobx-react-lite';
 import { BaseTool } from '../BaseTool/BaseTool';
-import { WETool } from '../WEToolbarState';
+import { WETool } from '../../../store/WEToolbarState';
 import { WEATHER, WEEnvState } from 'personalities/WorldEditorPersonality/store/WEEnvState';
 import { BiSun } from 'react-icons/bi';
 import { BsClock } from 'react-icons/bs';
@@ -21,7 +21,7 @@ export const EnvironmentTool = observer(function EnvironmentTool() {
   return (
     <BaseTool
       renderAlways
-      tool={WETool.EnvironmentTool}
+      tool={WETool.Environment}
       icon={<BiSun />}
       label="Environment"
     >

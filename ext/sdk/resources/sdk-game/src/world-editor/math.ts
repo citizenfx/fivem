@@ -230,7 +230,7 @@ export function makeEntityMatrix(entity: number): Float32Array {
   ]);
 }
 
-export function applyEntityMatrix(entity: number, mat: Float32Array) {
+export function applyEntityMatrix(entity: number, mat: Float32Array | number[]) {
   SetEntityMatrix(
     entity,
     mat[4], mat[5], mat[6], // right

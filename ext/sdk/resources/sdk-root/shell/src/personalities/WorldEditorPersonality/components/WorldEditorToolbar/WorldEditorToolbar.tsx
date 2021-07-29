@@ -15,18 +15,25 @@ import { ActiveSelectionTool } from './ActiveSelectionTool/ActiveSelectionTool';
 import { EnvironmentTool } from './EnvironmentTool/EnvironmentTool';
 import { FlashingMessage } from './FlashingMessage/FlashingMessage';
 // import { DebugRestartSdkGameTool } from './DebugRestartSdkGameTool';
+import { PropertiesTool } from './PropertiesTool/PropertiesTool';
+import { SettingsTool } from './SettingsTool/SettingsTool';
+import { Title } from 'components/controls/Title/Title';
 
 function CloseButton() {
   const rootClassName = classnames(sBaseTool.toggle, sBaseTool.labelled, sBaseTool.hoverable);
 
   return (
-    <button
-      className={rootClassName}
-      onClick={WEState.closeMap}
-      data-label="Close World Editor"
-    >
-      {closeIcon}
-    </button>
+    <Title animated={false} delay={0} fixedOn="top" title="Close World Editor">
+      {(ref) => (
+        <button
+          ref={ref}
+          className={rootClassName}
+          onClick={WEState.closeMap}
+        >
+          {closeIcon}
+        </button>
+      )}
+    </Title>
   );
 }
 
@@ -58,12 +65,24 @@ export const WorldEditorToolbar = observer(function WorldEditorToolbar() {
 
       <div className={s['top-right']}>
         {showControls && (
+          <SettingsTool />
+        )}
+
+        {showControls && (
           <EnvironmentTool />
         )}
+
+        <div /> {/* gap */}
 
         <StatusTool />
 
         <CloseButton />
+      </div>
+
+      <div className={s['left-bottom']}>
+        {!!WEState.map && showControls && (
+          <PropertiesTool />
+        )}
       </div>
 
       <div className={s.bottom}>

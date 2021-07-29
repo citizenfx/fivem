@@ -3,35 +3,44 @@ import { makeAutoObservable } from "mobx";
 export enum WETool {
   Patches,
   Additions,
-  Properties,
   AddObject,
   StatusCenter,
-  EnvironmentTool,
+  Environment,
+  Properties,
+  Settings,
 }
 
-type WEToolSide = 'left' | 'right';
-
-const LEFT_SIDE_TOOL = 'left';
-const RIGHT_SIDE_TOOL = 'right';
+export enum WEToolSide {
+  LEFT_TOP = 'left_top',
+  LEFT_BOTTOM = 'left_bottom',
+  RIGHT = 'right',
+}
 
 export const TOOL_SIDE: Record<WETool, WEToolSide> = {
-  [WETool.Patches]: LEFT_SIDE_TOOL,
-  [WETool.Additions]: LEFT_SIDE_TOOL,
-  [WETool.Properties]: LEFT_SIDE_TOOL,
-  [WETool.AddObject]: LEFT_SIDE_TOOL,
+  [WETool.Patches]: WEToolSide.LEFT_TOP,
+  [WETool.Additions]: WEToolSide.LEFT_TOP,
+  [WETool.AddObject]: WEToolSide.LEFT_TOP,
 
-  [WETool.StatusCenter]: RIGHT_SIDE_TOOL,
-  [WETool.EnvironmentTool]: RIGHT_SIDE_TOOL,
+  [WETool.Properties]: WEToolSide.LEFT_BOTTOM,
+
+  [WETool.Settings]: WEToolSide.RIGHT,
+  [WETool.Environment]: WEToolSide.RIGHT,
+  [WETool.StatusCenter]: WEToolSide.RIGHT,
 };
 
 export const WEToolbarState = new class WEToolbarState {
   private activeTool: Record<WEToolSide, WETool | null> = {
-    [LEFT_SIDE_TOOL]: null,
-    [RIGHT_SIDE_TOOL]: null,
+    [WEToolSide.LEFT_TOP]: null,
+    [WEToolSide.LEFT_BOTTOM]: null,
+    [WEToolSide.RIGHT]: null,
   };
 
   constructor() {
     makeAutoObservable(this);
+  }
+
+  isSideActive(side: WEToolSide): boolean {
+    return this.activeTool[side] !== null;
   }
 
   isToolOpen(tool: WETool): boolean {

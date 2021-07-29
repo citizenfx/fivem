@@ -7,12 +7,6 @@
 
   cursor: pointer;
 
-  @include data-label;
-
-  &:hover::after {
-    opacity: 1;
-  }
-
   &:hover {
     color: $fgColor;
   }
@@ -38,13 +32,6 @@
     background-color: $bgColor;
 
     z-index: 1;
-
-    .item {
-      @include data-label {
-        left: $q*10;
-        bottom: $q*1.5;
-      }
-    }
   }
 
   &:hover {

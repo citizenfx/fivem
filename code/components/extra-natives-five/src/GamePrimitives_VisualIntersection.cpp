@@ -92,6 +92,11 @@ static fwEntity* RunSelectionProbe(const rage::spdRay& ray, int nth, const HitFl
 			continue;
 		}
 
+		if (!archetype->HasEmbeddedCollision())
+		{
+			continue;
+		}
+
 		if (!flags.preciseTesting)
 		{
 			auto pos = entity->GetPosition();

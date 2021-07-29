@@ -22,7 +22,6 @@ export const SelectionController = new class SelectionController {
     }
 
     if (GetGameTimer() - this.selectStart > 250) {
-      console.log('No select as >250ms hold');
       return;
     }
 

@@ -14,9 +14,8 @@
   background-color: rgba($bgColor, .8);
   backdrop-filter: blur($blurSize);
 
-	font-family: 'Rubik';
-	font-size: 1rem;
-	font-weight: 300;
+	@include fontPrimary;
+	font-size: $fs1;
 	line-height: 1;
 	letter-spacing: 1px;
 	text-decoration: none;
