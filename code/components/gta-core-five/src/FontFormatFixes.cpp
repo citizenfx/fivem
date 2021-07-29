@@ -307,7 +307,7 @@ static bool ContainsHtml(const char* in);
 
 static void GFxEditTextCharacterDef__SetTextValue(void* self, const char* newText, bool html, bool notifyVariable)
 {
-	if (!html && ContainsHtml(newText))
+	if (!html && newText && ContainsHtml(newText))
 	{
 		html = true;
 	}
