@@ -532,6 +532,26 @@ namespace fx
 				fileEntries.emplace_back(file);
 			}
 
+			// filter file entries for .y* files in stream/
+			fileEntries.erase(std::remove_if(fileEntries.begin(), fileEntries.end(), [](const std::string& fileEntry)
+			{
+				if (fileEntry.find("stream/") == 0)
+				{
+					auto dotPos = fileEntry.find_first_of('.');
+
+					if (dotPos != std::string::npos)
+					{
+						auto ext = fileEntry.substr(dotPos);
+						if (ext.length() > 1 && ext[1] == 'y')
+						{
+							return true;
+						}
+					}
+				}
+
+				return false;
+			}), fileEntries.end());
+
 			return fileEntries;
 		}
 
