@@ -15,21 +15,31 @@ import {
   WESetAdditionRequest,
   WESelection,
 } from "./map-types";
-import { applyEntityMatrix, limitPrecision, makeEntityMatrix, Vec3 } from "./math";
+import { applyAdditionMatrix, applyEntityMatrix, limitPrecision, makeEntityMatrix, Vec3 } from "./math";
 import { ObjectManager } from "./object-manager";
 import { SelectionController } from "./selection-controller";
 import { SettingsManager } from "./settings-manager";
 import { drawDebugText } from "./utils";
 
 export const MapManager = new class MapManager {
+  private enabled = true;
+
   private map: WEMap | null = null;
   private activeMapdatas: number[] = [];
   private lastCamString: string = '';
   private objects: ObjectManager | null = null;
 
-  private selection: WESelection = { type: WESelectionType.NONE };
+  public selection: WESelection = { type: WESelectionType.NONE };
 
   private patchBackupMatrices: Record<string, Float32Array> = {};
+
+  enable() {
+    this.enabled = true;
+  }
+
+  disable() {
+    this.enabled = false;
+  }
 
   preinit() {
     EnableEditorRuntime();
@@ -123,14 +133,16 @@ export const MapManager = new class MapManager {
       this.objects.update();
     }
 
-    const cam = CameraManager.getCamLimitedPrecision();
-    const camString = JSON.stringify(cam);
-    if (camString !== this.lastCamString) {
-      this.lastCamString = camString;
-      sendSdkBackendMessage('we:setCam', cam);
-    }
+    if (this.enabled) {
+      const cam = CameraManager.getCamLimitedPrecision();
+      const camString = JSON.stringify(cam);
+      if (camString !== this.lastCamString) {
+        this.lastCamString = camString;
+        sendSdkBackendMessage('we:setCam', cam);
+      }
 
-    this.updateSelectedEntity();
+      this.updateSelectedEntity();
+    }
   }
 
   private prevSelectedEntity = null;
@@ -191,11 +203,11 @@ export const MapManager = new class MapManager {
       }
 
       if (DrawGizmo(entityMatrix as any, selectedEntity.toString())) {
-        applyEntityMatrix(selectedEntity, entityMatrix);
-
         if (addition) {
+          applyAdditionMatrix(selectedEntity, Array.from(entityMatrix));
           this.updateAddition(additionId, addition, entityMatrix);
         } else {
+          applyEntityMatrix(selectedEntity, entityMatrix);
           this.updatePatch(selectedEntity, entityMatrix);
         }
       }
@@ -227,8 +239,12 @@ export const MapManager = new class MapManager {
   destroy() {
     Citizen.invokeNative(joaat('DISABLE_EDITOR_RUNTIME'));
 
+    if (this.objects) {
+      this.objects.destroy();
+      this.objects = null;
+    }
+
     this.map = null;
-    this.objects = null;
     this.activeMapdatas = [];
   }
 

@@ -141,7 +141,11 @@ export interface WEMap {
 
 export interface WESettings {
   mouseSensetivity: number,
+  cameraAboveTheGround: boolean,
   showSelectionBoundingBox: boolean,
+
+  playtestSpawnInVehicle: boolean,
+  playtestVehicleName: string,
 }
 
 export type WESettingsChangeRequest = Partial<WESettings>;

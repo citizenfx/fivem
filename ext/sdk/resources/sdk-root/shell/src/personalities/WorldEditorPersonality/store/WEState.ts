@@ -20,7 +20,7 @@ import {
 import { WEMapState } from './WEMapState';
 import { __DEBUG_MODE_TOGGLES__ } from 'constants/debug-constants';
 import { GameState } from 'store/GameState';
-import { Hotkeys, HOTKEY_COMMAND } from '../Hotkeys';
+import { HotkeyGroup, Hotkeys, HOTKEY_COMMAND } from '../Hotkeys';
 import { FlashingMessageState } from '../components/WorldEditorToolbar/FlashingMessage/FlashingMessageState';
 
 const noop = () => {};
@@ -28,6 +28,11 @@ const noop = () => {};
 function clampExplorerWidth(width: number): number {
   return Math.max(250, Math.min(document.body.offsetWidth / 2, width));
 };
+
+export enum WEMode {
+  EDITOR,
+  PLAYTEST,
+}
 
 export enum EditorMode {
   TRANSLATE,
@@ -39,6 +44,8 @@ export const WEState = new class WEState {
   private inputController: InputController;
 
   public ready = false;
+
+  public mode = WEMode.EDITOR;
 
   public editorSelect = false;
   public editorMode = EditorMode.TRANSLATE;
@@ -87,6 +94,21 @@ export const WEState = new class WEState {
 
     return '';
   }
+
+  readonly enterPlaytestMode = () => {
+    sendGameClientEvent('we:enterPlaytestMode', '');
+
+    this.mode = WEMode.PLAYTEST;
+    this.hotkeys.setGroup(HotkeyGroup.PLAYTEST);
+    this.inputController.enterFullControl();
+  };
+
+  readonly enterEditorMode = () => {
+    sendGameClientEvent('we:exitPlaytestMode', '');
+    this.mode = WEMode.EDITOR;
+    this.hotkeys.setGroup(HotkeyGroup.EDITOR);
+    this.inputController.exitFullControl();
+  };
 
   setCam(cam: number[]) {
     sendGameClientEvent('we:setCam', JSON.stringify(cam));
@@ -184,12 +206,15 @@ export const WEState = new class WEState {
 
     this.inputController = new InputController(container, this.setEditorSelect);
 
+    this.inputController.onEscapeFullControl(this.enterEditorMode);
+
     this.inputController.onCameraMovementBaseMultiplierChange((speed: number) => {
       FlashingMessageState.setMessage(`Camera speed: ${(speed * 100) | 0}%`);
     });
 
     this.hotkeys.onBeforeHotkey((event) => {
       switch (event.command) {
+        case HOTKEY_COMMAND.ACTION_ENTER_PLAYTEST_MODE:
         case HOTKEY_COMMAND.TOOL_ADDITIONS_TOGGLE:
         case HOTKEY_COMMAND.TOOL_ADD_OBJECT_TOGGLE:
         case HOTKEY_COMMAND.TOOL_PATCHES_TOGGLE:

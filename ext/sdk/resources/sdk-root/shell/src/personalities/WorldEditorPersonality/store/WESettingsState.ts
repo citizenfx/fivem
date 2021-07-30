@@ -7,7 +7,11 @@ import { onWindowEvent } from "utils/windowMessages";
 
 const DEFAULT_SETTINGS: WESettings = {
   mouseSensetivity: 15,
+  cameraAboveTheGround: true,
   showSelectionBoundingBox: true,
+
+  playtestSpawnInVehicle: false,
+  playtestVehicleName: '',
 };
 
 function getStoredSettings(): WESettings {
@@ -44,6 +48,18 @@ export const WESettingsState = new class WESettingsState {
 
   setShowSelectionBoundingBox(show: boolean) {
     this.settings.showSelectionBoundingBox = show;
+  }
+
+  setCameraAboveTheGround(above: boolean) {
+    this.settings.cameraAboveTheGround = above;
+  }
+
+  setPlaytestSpawnInVehicle(spawnInVehicle: boolean) {
+    this.settings.playtestSpawnInVehicle = spawnInVehicle;
+  }
+
+  setPlaytestVehicleName(name: string) {
+    this.settings.playtestVehicleName = name;
   }
 
   private handleSettingsChange = () => {

@@ -3,14 +3,14 @@ import { CameraManager } from './camera-manager';
 import { MapManager } from './map-manager';
 import { PreviewManager } from './preview-manager';
 import { SettingsManager } from './settings-manager';
+import { Playtest } from './playtest';
 
 SettingsManager.preinit();
 CameraManager.preinit();
 MapManager.preinit();
+Playtest.preinit();
 
 setTimeout(() => {
-  SetPlayerControl(PlayerId(), false, 0);
-
   CameraManager.init();
   MapManager.init();
 
@@ -18,6 +18,7 @@ setTimeout(() => {
     CameraManager.update();
     PreviewManager.update();
     MapManager.update();
+    Playtest.update();
   });
 
   ShutdownLoadingScreen();

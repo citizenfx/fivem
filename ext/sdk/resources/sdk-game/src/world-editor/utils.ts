@@ -45,10 +45,10 @@ export function useKeyMapping(cmd: string, desc: string, device: string, key: st
   return state;
 }
 
-export function drawDebugText(text: string, x: number = .5, y: number = 0) {
+export function drawDebugText(text: string, x: number = .5, y: number = 0, scale = .5) {
   SetTextFont(4);
   SetTextProportional(true);
-  SetTextScale(0, 0.5);
+  SetTextScale(0, scale);
   SetTextColour(255, 255, 255, 255);
   SetTextDropShadow();
   SetTextOutline();

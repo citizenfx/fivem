@@ -1,3 +1,5 @@
+import { WEEntityMatrix, WEEntityMatrixIndex } from "./map-types";
+
 export const RADS_IN_DEG = 0.0174533; // Math.PI / 180
 
 export function clamp(num: number, min: number, max: number): number {
@@ -240,10 +242,67 @@ export function applyEntityMatrix(entity: number, mat: Float32Array | number[]) 
   );
 }
 
+export function applyAdditionMatrix(entity: number, mat: WEEntityMatrix | number[]) {
+  SetEntityCoords(
+    entity,
+    mat[WEEntityMatrixIndex.AX], mat[WEEntityMatrixIndex.AY], mat[WEEntityMatrixIndex.AZ],
+    false, false, false, false,
+  );
+
+  const rot = eulerFromMatrix(mat);
+
+  SetEntityRotation(entity, rot[0], rot[1], rot[2], 2, false);
+
+  SetEntityMatrix(
+    entity,
+    mat[4], mat[5], mat[6], // right
+    mat[0], mat[1], mat[2], // forward
+    mat[8], mat[9], mat[10], // up
+    mat[12], mat[13], mat[14], // at
+  );
+}
+
 export function toPrecision(n: number, precision: number): number {
   return (n * precision | 0) / precision;
 }
 
 export function limitPrecision(data: number[], precision: number): number[] {
   return data.map((n) => toPrecision(n, precision));
+}
+
+const RAD_TO_DEG = 180 / Math.PI;
+const DEG_TO_RAD = Math.PI/ 180;
+
+export function eulerFromMatrix(mat: WEEntityMatrix | number[]): [number, number, number] {
+  let x = 0;
+  let y = 0;
+  let z = 0;
+
+  const m11 = mat[WEEntityMatrixIndex.RX];
+  const m12 = mat[WEEntityMatrixIndex.FX];
+  const m13 = mat[WEEntityMatrixIndex.UX];
+
+  const m21 = mat[WEEntityMatrixIndex.RY];
+  const m22 = mat[WEEntityMatrixIndex.FY];
+  const m23 = mat[WEEntityMatrixIndex.UY];
+
+  const m31 = mat[WEEntityMatrixIndex.RZ];
+  const m32 = mat[WEEntityMatrixIndex.FZ];
+  const m33 = mat[WEEntityMatrixIndex.UZ];
+
+  x = Math.asin(Math.max(-1, Math.min(1, m32)));
+
+  if (Math.abs(m32) < 0.99999) {
+    y = Math.atan2(-m31, m33);
+    z = Math.atan2(-m12, m22);
+  } else {
+    y = 0;
+    z = Math.atan2(m21, m11);
+  }
+
+  return [
+    x * RAD_TO_DEG,
+    y * RAD_TO_DEG,
+    z * RAD_TO_DEG,
+  ];
 }

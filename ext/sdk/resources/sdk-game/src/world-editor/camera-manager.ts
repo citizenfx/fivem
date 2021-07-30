@@ -5,6 +5,7 @@ import { drawDebugText, getSmartControlNormal, useKeyMapping } from "./utils";
 
 export const CameraManager = new class CameraManager {
   private handle: number;
+  private destroyed = false;
 
   private pos = new Vec3(0, 0, 100);
   private rot = RotDeg3.zero();
@@ -31,7 +32,17 @@ export const CameraManager = new class CameraManager {
     });
   }
 
-  init() {
+  init(ease = false, easeTime = 1) {
+    this.destroyed = false;
+
+    this.mouseDelta[0] = 0;
+    this.mouseDelta[1] = 0;
+
+    const ped = PlayerPedId();
+    SetEntityVisible(ped, false, false);
+    FreezeEntityPosition(ped, true);
+    SetPlayerControl(PlayerId(), false, 0);
+
     this.handle = CreateCamera('DEFAULT_SCRIPTED_CAMERA', true);
 
     SetCamFov(this.handle, this.fov);
@@ -39,18 +50,35 @@ export const CameraManager = new class CameraManager {
     this.updateCamPosition();
     this.updateCamRotation();
 
-    RenderScriptCams(true, false, 1, false, false);
+    RenderScriptCams(true, ease, easeTime, false, false);
   }
 
-  private destroyed = false;
-  destroy() {
+  destroy(ease = false, easeTime = 0, invincible = false, shouldClearFocus = true) {
     if (this.destroyed) {
       return;
     }
 
-    RenderScriptCams(false, false, 0, false, false);
+    this.destroyed = true;
+
     SetPlayerControl(PlayerId(), true, 0);
-    ClearFocus();
+    const ped = PlayerPedId();
+    if (!IsEntityVisible(ped)) {
+      SetEntityVisible(ped, true, false);
+    }
+
+    if (!IsPedInAnyVehicle(ped, false)) {
+      SetEntityCollision(ped, true, false);
+    }
+
+    FreezeEntityPosition(ped, false);
+    SetPlayerInvincible(ped, invincible);
+    ClearPedTasksImmediately(ped);
+
+    if (shouldClearFocus) {
+      ClearFocus();
+    }
+
+    RenderScriptCams(false, ease, easeTime, false, false);
 
     DestroyCam(this.handle, false);
   }
@@ -106,24 +134,44 @@ export const CameraManager = new class CameraManager {
     return speedMultiplier * frameMultiplier;
   }
 
+  acceleration = 100;
   updatePosition() {
     const dx = this.move.x;
     const dy = this.move.y;
+
+    if (!dx && !dy) {
+      this.acceleration = 100;
+    } else {
+      if (this.acceleration > 0) {
+        this.acceleration += 2.5 + GetFrameTime();
+        if (this.acceleration > 1000) {
+          this.acceleration = 1000;
+        }
+      }
+    }
 
     const speedMultiplier = this.getSpeedMultiplier();
 
     const [forward, left] = this.rot.directions();
 
     this.forwardVector = forward.copy();
+    const acceleration = (this.acceleration / 1000);
 
-    forward.mult(dx * speedMultiplier);
-    left.mult(dy * speedMultiplier);
+    forward.mult(dx * speedMultiplier * acceleration);
+    left.mult(dy * speedMultiplier * acceleration);
 
     const moveVec = forward.add(left);
 
     this.pos.x += moveVec.x;
     this.pos.y += moveVec.y;
     this.pos.z += moveVec.z;
+
+    if (SettingsManager.settings.cameraAboveTheGround) {
+      const [success, groundZ] = GetGroundZFor_3dCoord(this.pos.x, this.pos.y, this.pos.z - moveVec.z + .5, false);
+      if (success && this.pos.z < groundZ) {
+        this.pos.z = groundZ + .5;
+      }
+    }
 
     this.updateCamPosition();
   }
@@ -145,8 +193,9 @@ export const CameraManager = new class CameraManager {
   }
 
   update() {
-    // const lookX = getSmartControlNormal(CONTROLS.LOOK_X);
-    // const lookY = getSmartControlNormal(CONTROLS.LOOK_Y);
+    if (this.destroyed) {
+      return;
+    }
 
     this.updatePosition();
     this.updateRotation();

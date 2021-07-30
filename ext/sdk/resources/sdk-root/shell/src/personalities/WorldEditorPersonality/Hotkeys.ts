@@ -5,8 +5,9 @@ import { WEState } from './store/WEState';
 import { WESelectionType } from 'backend/world-editor/world-editor-types';
 
 export enum HotkeyGroup {
-  GAME = 'game',
-  CAPTURE = 'capture',
+  EDITOR = 'editor',
+  PLAYTEST = 'playtest',
+  CONFIGURATION = 'configuration',
 };
 
 export const HOTKEY_COMMAND = {
@@ -22,7 +23,8 @@ export const HOTKEY_COMMAND = {
 
   CONTROL_CLEAR_SELECTION: 'control.clearSelection',
 
-  ACTION_SET_ADDITION_ON_GROUND: 'control.setAdditionOnGround',
+  ACTION_SET_ADDITION_ON_GROUND: 'action.setAdditionOnGround',
+  ACTION_ENTER_PLAYTEST_MODE: 'action.enterPlaytestMode',
 };
 
 export interface BeforeHotkeyEvent {
@@ -44,6 +46,8 @@ const defaultMapping = {
   [HOTKEY_COMMAND.CONTROL_CLEAR_SELECTION]: 'esc',
 
   [HOTKEY_COMMAND.ACTION_SET_ADDITION_ON_GROUND]: 'ctrl+shift+s',
+
+  [HOTKEY_COMMAND.ACTION_ENTER_PLAYTEST_MODE]: 'F5',
 };
 
 export class Hotkeys {
@@ -63,26 +67,32 @@ export class Hotkeys {
     this.beforeHotkeyEvent.addListener(cb);
   }
 
+  setGroup(group: HotkeyGroup) {
+    hotkeys.setScope(group);
+  }
+
   private setup() {
-    hotkeys.setScope(HotkeyGroup.GAME);
+    hotkeys.setScope(HotkeyGroup.EDITOR);
 
-    this.bind(HOTKEY_COMMAND.TOOL_PATCHES_TOGGLE, HotkeyGroup.GAME, () => WEToolbarState.toggleTool(WETool.Patches));
-    this.bind(HOTKEY_COMMAND.TOOL_ADDITIONS_TOGGLE, HotkeyGroup.GAME, () => WEToolbarState.toggleTool(WETool.Additions));
-    this.bind(HOTKEY_COMMAND.TOOL_ADD_OBJECT_TOGGLE, HotkeyGroup.GAME, () => WEToolbarState.toggleTool(WETool.AddObject));
-    this.bind(HOTKEY_COMMAND.TOOL_ENVIRONMENT_TOGGLE, HotkeyGroup.GAME, () => WEToolbarState.toggleTool(WETool.Environment));
+    this.bind(HOTKEY_COMMAND.TOOL_PATCHES_TOGGLE, HotkeyGroup.EDITOR, () => WEToolbarState.toggleTool(WETool.Patches));
+    this.bind(HOTKEY_COMMAND.TOOL_ADDITIONS_TOGGLE, HotkeyGroup.EDITOR, () => WEToolbarState.toggleTool(WETool.Additions));
+    this.bind(HOTKEY_COMMAND.TOOL_ADD_OBJECT_TOGGLE, HotkeyGroup.EDITOR, () => WEToolbarState.toggleTool(WETool.AddObject));
+    this.bind(HOTKEY_COMMAND.TOOL_ENVIRONMENT_TOGGLE, HotkeyGroup.EDITOR, () => WEToolbarState.toggleTool(WETool.Environment));
 
-    this.bind(HOTKEY_COMMAND.CONTROL_COORD_SYSTEM_TOGGLE, HotkeyGroup.GAME, WEState.toggleEditorLocal);
-    this.bind(HOTKEY_COMMAND.CONTROL_MODE_TRANSLATE_TOGGLE, HotkeyGroup.GAME, WEState.enableTranslation);
-    this.bind(HOTKEY_COMMAND.CONTROL_MODE_ROTATE_TOGGLE, HotkeyGroup.GAME, WEState.enableRotation);
-    this.bind(HOTKEY_COMMAND.CONTROL_MODE_SCALE_TOGGLE, HotkeyGroup.GAME, WEState.enableScaling);
+    this.bind(HOTKEY_COMMAND.CONTROL_COORD_SYSTEM_TOGGLE, HotkeyGroup.EDITOR, WEState.toggleEditorLocal);
+    this.bind(HOTKEY_COMMAND.CONTROL_MODE_TRANSLATE_TOGGLE, HotkeyGroup.EDITOR, WEState.enableTranslation);
+    this.bind(HOTKEY_COMMAND.CONTROL_MODE_ROTATE_TOGGLE, HotkeyGroup.EDITOR, WEState.enableRotation);
+    this.bind(HOTKEY_COMMAND.CONTROL_MODE_SCALE_TOGGLE, HotkeyGroup.EDITOR, WEState.enableScaling);
 
-    this.bind(HOTKEY_COMMAND.CONTROL_CLEAR_SELECTION, HotkeyGroup.GAME, WEState.clearEditorSelection);
+    this.bind(HOTKEY_COMMAND.CONTROL_CLEAR_SELECTION, HotkeyGroup.EDITOR, WEState.clearEditorSelection);
 
-    this.bind(HOTKEY_COMMAND.ACTION_SET_ADDITION_ON_GROUND, HotkeyGroup.GAME, () => {
+    this.bind(HOTKEY_COMMAND.ACTION_SET_ADDITION_ON_GROUND, HotkeyGroup.EDITOR, () => {
       if (WEState.map && WEState.selection.type === WESelectionType.ADDITION) {
         WEState.map.setAdditionOnGround(WEState.selection.id);
       }
     });
+
+    this.bind(HOTKEY_COMMAND.ACTION_ENTER_PLAYTEST_MODE, HotkeyGroup.EDITOR, WEState.enterPlaytestMode);
   }
 
   private bind(command: string, group: HotkeyGroup, cb: () => void) {

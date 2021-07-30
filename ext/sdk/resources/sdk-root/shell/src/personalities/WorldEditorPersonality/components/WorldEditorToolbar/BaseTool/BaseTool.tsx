@@ -33,7 +33,7 @@ export const BaseTool = observer(function BaseTool(props: BaseToolProps) {
 
   const toolIsOpen = WEToolbarState.isToolOpen(tool);
 
-  const toggleClassName = classnames(s.toggle, s.hoverable, s.labelled, tClassName, {
+  const toggleClassName = classnames(s.toggle, s.hoverable, tClassName, {
     [s.active]: toolIsOpen,
     [s.highlight]: highlight,
   });

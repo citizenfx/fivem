@@ -1,0 +1,42 @@
+@import '../../../vars.scss';
+
+.root {
+  position: fixed;
+
+  top: $weToolbarOffset;
+  left: $weToolbarOffset;
+  right: $weToolbarOffset;
+
+  height: 0;
+
+  display: flex;
+  justify-content: center;
+
+  overflow: visible;
+
+  .message {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    height: $weToolbarHeight;
+
+    padding: $q*3;
+
+    background-color: rgba($bgColor, .5);
+
+    border-radius: $weToolbarHeight;
+
+    @keyframes disappear {
+      0% {
+        opacity: 1;
+      }
+      100% {
+        opacity: 0;
+      }
+    }
+
+    animation: disappear .2s ease-in-out forwards;
+    animation-delay: 1s;
+  }
+}

@@ -78,6 +78,8 @@ export class InputController {
   private readonly activeKeys: Record<number, boolean> = {};
   private readonly activeMouseButtons: [boolean, boolean, boolean] = [false, false, false];
 
+  private fullControl = false;
+
   private cameraControlActive = false;
   private cameraMovementBaseMultiplier = 1;
 
@@ -104,6 +106,27 @@ export class InputController {
     for (const [event, handler] of Object.entries(this.documentHandlers)) {
       document.addEventListener(event, handler);
     }
+  }
+
+  enterFullControl() {
+    this.fullControl = true;
+
+    this.container.current.requestPointerLock();
+    this.resetMouseButtonStates();
+    this.resetKeysState();
+  }
+
+  exitFullControl() {
+    this.fullControl = false;
+
+    document.exitPointerLock();
+    this.resetMouseButtonStates();
+    this.resetKeysState();
+  }
+
+  private escapeFullControlCallback = () => {};
+  onEscapeFullControl(cb: () => void) {
+    this.escapeFullControlCallback = cb;
   }
 
   onCameraMovementBaseMultiplierChange(cb: (speed: number) => void) {
@@ -134,6 +157,12 @@ export class InputController {
   }
 
   private handleContainerMouseMove = (event: MouseEvent) => {
+    if (this.fullControl) {
+      sendMousePos(event.movementX, event.movementY);
+
+      return;
+    }
+
     if (this.inputOverrides > 0) {
       return;
     }
@@ -163,13 +192,36 @@ export class InputController {
     setWorldEditorMouse(rx, ry);
   };
 
+  private resetKeysState() {
+    for (const [keyString, active] of Object.entries(this.activeKeys)) {
+      if (active) {
+        this.activeKeys[keyString] = false;
+        setKeyState(parseInt(keyString, 10), false);
+      }
+    }
+  }
   private handleKeyState(event: KeyboardEvent, active: boolean) {
-    if (this.inputOverrides > 0 || event.ctrlKey) {
+    if (this.fullControl) {
+      if (event.key === 'Escape') {
+        this.escapeFullControlCallback();
+      } else {
+        const key = mapKey(event.which, event.location);
+
+        if (this.activeKeys[key] !== active) {
+          this.activeKeys[key] = active;
+
+          setKeyState(key, active);
+        }
+      }
+
+      return haltEvent(event);
+    }
+
+    if (this.inputOverrides > 0 || event.ctrlKey || (event.target as any).tagName === 'INPUT') {
       return;
     }
 
-    event.preventDefault();
-    event.stopPropagation();
+    haltEvent(event);
 
     const key = mapKey(event.which, event.location);
 
@@ -182,12 +234,10 @@ export class InputController {
       case 'ShiftRight':
       case 'AltLeft':
       case 'AltRight':
-        if (!active && this.activeKeys[key]) {
-          this.activeKeys[key] = false;
-          setKeyState(key, false);
-        } else if (active && !this.activeKeys[key]) {
-          this.activeKeys[key] = true;
-          setKeyState(key, true);
+        if (this.activeKeys[key] !== active) {
+          this.activeKeys[key] = active;
+
+          setKeyState(key, active);
         }
 
         break;
@@ -203,6 +253,18 @@ export class InputController {
     });
   }
   private handleMouseButtonState(event: MouseEvent, active: boolean) {
+    if (this.fullControl) {
+      const button = mapMouseButton(event.button);
+
+      if (this.activeMouseButtons[button] !== active) {
+        this.activeMouseButtons[button] = active;
+
+        setMouseButtonState(button, active);
+      }
+
+      return haltEvent(event);
+    }
+
     if (this.inputOverrides > 0) {
       return;
     }
@@ -260,6 +322,12 @@ export class InputController {
   }
 
   private readonly handleWheel = (event: WheelEvent) => {
+    if (this.fullControl) {
+      sendMouseWheel(-event.deltaY);
+
+      return haltEvent(event);
+    }
+
     if (this.cameraControlActive) {
       this.cameraMovementBaseMultiplier += -event.deltaY * 0.001;
 
