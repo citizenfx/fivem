@@ -14,12 +14,12 @@
 class MumbleDataHandler
 {
 private:
-	int m_readBytes;
-	uint32_t m_totalBytes;
+	size_t m_readBytes = 0;
+	size_t m_totalBytes = 0;
 
-	uint16_t m_messageType;
+	uint16_t m_messageType = 0;
 
-	uint8_t* m_messageBuffer;
+	std::unique_ptr<uint8_t[]> m_messageBuffer;
 
 private:
 	void HandleCurrentPacket();
