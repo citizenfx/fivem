@@ -185,6 +185,7 @@ static std::shared_ptr<ConVar<bool>> g_use3dAudio;
 static std::shared_ptr<ConVar<bool>> g_useSendingRangeOnly;
 static std::shared_ptr<ConVar<bool>> g_use2dAudio;
 static std::shared_ptr<ConVar<bool>> g_useNativeAudio;
+static std::shared_ptr<ConVar<bool>> g_useAudioContext;
 
 void MumbleAudioOutput::Initialize()
 {
@@ -192,6 +193,7 @@ void MumbleAudioOutput::Initialize()
 	g_useSendingRangeOnly = std::make_shared<ConVar<bool>>("voice_useSendingRangeOnly", ConVar_None, false);
 	g_use2dAudio = std::make_shared<ConVar<bool>>("voice_use2dAudio", ConVar_None, false);
 	g_useNativeAudio = std::make_shared<ConVar<bool>>("voice_useNativeAudio", ConVar_None, false);
+	g_useAudioContext = std::make_shared<ConVar<bool>>("voice_useAudioContext", ConVar_None, false);
 
 	m_initialized = false;
 	m_distance = FLT_MAX;
@@ -292,7 +294,7 @@ struct XA2DestinationNode : public lab::AudioDestinationNode
 	std::function<void()> onDtor;
 
 	XA2DestinationNode(lab::AudioContext* context, std::weak_ptr<MumbleAudioOutput::ClientAudioState> state)
-		: AudioDestinationNode(context, 1, 48000.0f), m_state(state), m_outBuffer(1, 5760, false), m_shutDown(false)
+		: AudioDestinationNode(context, 1, 48000.0f), m_state(state), m_outBuffer(1, 5760, false), m_shutDown(false), m_inBuffer(nullptr)
 	{
 		m_outBuffer.setSampleRate(48000.f);
 		m_outBuffer.setChannelMemory(0, m_floatBuffer, 5760);
@@ -390,21 +392,9 @@ struct XA2DestinationNode : public lab::AudioDestinationNode
 		}
 
 		uint16_t* voiceBuffer = (uint16_t*)_aligned_malloc(5760 * sizeof(uint16_t), 16);
-
 		nqr::ConvertFromFloat32((uint8_t*)voiceBuffer, m_floatBuffer, numFrames, nqr::PCM_16);
 
-		XAUDIO2_BUFFER bufferData;
-		bufferData.LoopBegin = 0;
-		bufferData.LoopCount = 0;
-		bufferData.LoopLength = 0;
-		bufferData.AudioBytes = numFrames * sizeof(int16_t);
-		bufferData.Flags = 0;
-		bufferData.pAudioData = reinterpret_cast<BYTE*>(voiceBuffer);
-		bufferData.pContext = voiceBuffer;
-		bufferData.PlayBegin = 0;
-		bufferData.PlayLength = numFrames;
-
-		state->voice->SubmitSourceBuffer(&bufferData);
+		state->PushSoundInternal(voiceBuffer, numFrames);
 	}
 
 	virtual void uninitialize() override
@@ -421,6 +411,27 @@ struct XA2DestinationNode : public lab::AudioDestinationNode
 	float m_floatBuffer[5760];
 	bool m_shutDown;
 };
+
+void MumbleAudioOutput::ClientAudioState::PushSoundInternal(uint16_t* voiceBuffer, int numFrames)
+{
+	if (!voice)
+	{
+		return;
+	}
+
+	XAUDIO2_BUFFER bufferData;
+	bufferData.LoopBegin = 0;
+	bufferData.LoopCount = 0;
+	bufferData.LoopLength = 0;
+	bufferData.AudioBytes = numFrames * sizeof(int16_t);
+	bufferData.Flags = 0;
+	bufferData.pAudioData = reinterpret_cast<BYTE*>(voiceBuffer);
+	bufferData.pContext = voiceBuffer;
+	bufferData.PlayBegin = 0;
+	bufferData.PlayLength = numFrames;
+
+	voice->SubmitSourceBuffer(&bufferData);
+}
 
 MumbleAudioOutput::ClientAudioState::~ClientAudioState()
 {
@@ -463,23 +474,26 @@ MumbleAudioOutput::ClientAudioState::~ClientAudioState()
 		});
 	}
 
-	// destroy the lab::AudioContext off-thread as it may be blocking for a while
-	struct DtorWorker
+	if (auto ctx = std::move(context))
 	{
-		std::shared_ptr<lab::AudioContext> audCxt;
-	};
+		// destroy the lab::AudioContext off-thread as it may be blocking for a while
+		struct DtorWorker
+		{
+			std::shared_ptr<lab::AudioContext> audCxt;
+		};
 
-	auto dtorWorker = new DtorWorker();
-	dtorWorker->audCxt = std::move(context);
+		auto dtorWorker = new DtorWorker();
+		dtorWorker->audCxt = ctx;
 
-	QueueUserWorkItem([](void* data) -> DWORD
-	{
-		auto dtorWorker = (DtorWorker*)data;
-		delete dtorWorker;
+		QueueUserWorkItem([](void* data) -> DWORD
+		{
+			auto dtorWorker = (DtorWorker*)data;
+			delete dtorWorker;
 
-		return 0;
-	},
-	dtorWorker, 0);
+			return 0;
+		},
+		dtorWorker, 0);
+	}
 
 	if (voice)
 	{
@@ -696,26 +710,29 @@ void MumbleAudioOutput::HandleClientConnect(const MumbleUser& user)
 
 	state->voice = voice;
 
-	auto context = std::make_shared<lab::AudioContext>(false, true);
-
+	if (g_useAudioContext->GetValue())
 	{
-		lab::ContextRenderLock r(context.get(), "init");
-		auto outNode = std::make_shared<XA2DestinationNode>(context.get(), state);
-		context->setDestinationNode(outNode);
+		auto context = std::make_shared<lab::AudioContext>(false, true);
 
-		state->inNode = lab::Sound::MakeHardwareSourceNode(r);
+		{
+			lab::ContextRenderLock r(context.get(), "init");
+			auto outNode = std::make_shared<XA2DestinationNode>(context.get(), state);
+			context->setDestinationNode(outNode);
+
+			state->inNode = lab::Sound::MakeHardwareSourceNode(r);
+		}
+
+		g_audioToClients[context.get()] = state->inNode;
+
+		context->lazyInitialize();
+
+		static auto tNode = std::make_shared<lab::BiquadFilterNode>();
+		context->connect(context->destination(), state->inNode);
+
+		context->startRendering();
+
+		state->context = context;
 	}
-
-	g_audioToClients[context.get()] = state->inNode;
-
-	context->lazyInitialize();
-
-	static auto tNode = std::make_shared<lab::BiquadFilterNode>();
-	context->connect(context->destination(), state->inNode);
-
-	context->startRendering();
-
-	state->context = context;
 
 	std::unique_lock<std::shared_mutex> _(m_clientsMutex);
 	m_clients[user.GetSessionId()] = state;
@@ -1045,19 +1062,29 @@ void MumbleAudioOutput::ClientAudioState::PushSound(int16_t* voiceBuffer, int le
 	// 48kHz = 48 samples/msec, 30ms to account for ticking anomaly
 	lastPush = timeGetTime() + (len / 48) + 30;
 
-	auto floatBuffer = (float*)_aligned_malloc(len * 1 * sizeof(float), 16);
-	nqr::ConvertToFloat32(floatBuffer, voiceBuffer, len, nqr::PCM_16);
-
+	if (!context)
 	{
-		lab::AudioBus inBuffer{ 1, size_t(len), false };
-		inBuffer.setSampleRate(48000.f);
-		inBuffer.setChannelMemory(0, floatBuffer, len);
+		auto voiceBufferCopy = (uint16_t*)_aligned_malloc(len * sizeof(uint16_t), 16);
+		memcpy(voiceBufferCopy, voiceBufferCopy, len * sizeof(uint16_t));
 
-		std::static_pointer_cast<XA2DestinationNode>(context->destination())->Push(&inBuffer);
-		std::static_pointer_cast<XA2DestinationNode>(context->destination())->Poll(len);
+		PushSoundInternal(voiceBufferCopy, len);
 	}
+	else
+	{
+		auto floatBuffer = (float*)_aligned_malloc(len * 1 * sizeof(float), 16);
+		nqr::ConvertToFloat32(floatBuffer, voiceBuffer, len, nqr::PCM_16);
 
-	_aligned_free(floatBuffer);
+		{
+			lab::AudioBus inBuffer{ 1, size_t(len), false };
+			inBuffer.setSampleRate(48000.f);
+			inBuffer.setChannelMemory(0, floatBuffer, len);
+
+			std::static_pointer_cast<XA2DestinationNode>(context->destination())->Push(&inBuffer);
+			std::static_pointer_cast<XA2DestinationNode>(context->destination())->Poll(len);
+		}
+
+		_aligned_free(floatBuffer);
+	}
 }
 
 static const X3DAUDIO_DISTANCE_CURVE_POINT Emitter_LFE_CurvePoints[3] = { 0.0f, 1.0f, 0.25f, 0.0f, 1.0f, 0.0f };

@@ -218,7 +218,7 @@ private:
 
 		virtual bool Valid() override
 		{
-			return context && context->destination();
+			return !context || context->destination();
 		}
 
 		virtual bool ShouldManagePoll()
@@ -229,6 +229,8 @@ private:
 		virtual void PushSound(int16_t* voiceBuffer, int len) override;
 
 		virtual void PushPosition(MumbleAudioOutput* baseIo, float position[3]) override;
+
+		void PushSoundInternal(uint16_t* voiceBuffer, int len);
 
 		void __stdcall OnVoiceProcessingPassStart(UINT32 BytesRequired) override {}
 		void __stdcall OnVoiceProcessingPassEnd() override {}
