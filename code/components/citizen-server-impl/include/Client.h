@@ -412,7 +412,8 @@ namespace fx
 		tbb::concurrent_queue<std::tuple<net::Buffer, int>> m_replayQueue;
 
 		// an arbitrary set of data
-		tbb::concurrent_unordered_map<std::string, std::shared_ptr<AnyBase>> m_userData;
+		std::shared_mutex m_userDataMutex;
+		std::unordered_map<std::string, std::shared_ptr<AnyBase>> m_userData;
 
 		// principal values
 		std::list<se::Principal> m_principals;

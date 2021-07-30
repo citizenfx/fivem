@@ -82,11 +82,13 @@ namespace fx
 
 	void Client::SetDataRaw(const std::string& key, const std::shared_ptr<AnyBase>& data)
 	{
+		std::unique_lock _(m_userDataMutex);
 		m_userData[key] = data;
 	}
 
 	std::shared_ptr<AnyBase> Client::GetData(const std::string& key)
 	{
+		std::shared_lock _(m_userDataMutex);
 		auto it = m_userData.find(key);
 
 		if (it == m_userData.end())
