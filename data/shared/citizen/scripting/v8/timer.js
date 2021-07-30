@@ -14,7 +14,7 @@
     function setTimer(timer, callback, interval) {
         timers[timer.id] = {
             callback,
-            Math.max(0, interval) || 0,
+            interval: Math.max(0, interval) || 0,
             lastRun: gameTime
         };
     }
