@@ -211,17 +211,17 @@ static InitFunction initFunction([]()
 			g_playerListData[client->GetGuid()].connectionState = "CONNECTING";
 			client->SetNetworkMetricsRecvCallback(RecvFromClient_Callback);
 			client->SetNetworkMetricsSendCallback(SendToClient_Callback);
-		});
-		clientRegistry->OnConnectedClient.Connect([](fx::Client* client)
-		{
-			std::unique_lock lock(g_playerListDataMutex);
-			g_playerListData[client->GetGuid()].connectionState = "LOADING";
 
 			client->OnDrop.Connect([client]()
 			{
 				std::unique_lock lock(g_playerListDataMutex);
 				g_playerListData.erase(client->GetGuid());
 			});
+		});
+		clientRegistry->OnConnectedClient.Connect([](fx::Client* client)
+		{
+			std::unique_lock lock(g_playerListDataMutex);
+			g_playerListData[client->GetGuid()].connectionState = "LOADING";
 		});
 	});
 });
