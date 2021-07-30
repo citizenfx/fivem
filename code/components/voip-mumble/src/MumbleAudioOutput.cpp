@@ -1065,7 +1065,7 @@ void MumbleAudioOutput::ClientAudioState::PushSound(int16_t* voiceBuffer, int le
 	if (!context)
 	{
 		auto voiceBufferCopy = (uint16_t*)_aligned_malloc(len * sizeof(uint16_t), 16);
-		memcpy(voiceBufferCopy, voiceBufferCopy, len * sizeof(uint16_t));
+		memcpy(voiceBufferCopy, voiceBuffer, len * sizeof(uint16_t));
 
 		PushSoundInternal(voiceBufferCopy, len);
 	}
