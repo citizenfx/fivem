@@ -1,7 +1,7 @@
 import { CONTROLS, SETTINGS } from "./config";
 import { limitPrecision, RotDeg3, Vec3 } from "./math";
 import { SettingsManager } from "./settings-manager";
-import { getSmartControlNormal, useKeyMapping } from "./utils";
+import { drawDebugText, getSmartControlNormal, useKeyMapping } from "./utils";
 
 export const CameraManager = new class CameraManager {
   private handle: number;
@@ -10,6 +10,8 @@ export const CameraManager = new class CameraManager {
   private rot = RotDeg3.zero();
 
   private forwardVector = Vec3.zero();
+
+  private mouseDelta: [number, number] = [0, 0];
 
   private move = {
     x: 0,
@@ -22,6 +24,10 @@ export const CameraManager = new class CameraManager {
   preinit() {
     on('we:setCamBaseMultiplier', (multiplierString: string) => {
       this.baseMoveMultiplier = parseFloat(multiplierString);
+    });
+
+    on('we:camrot', (req: string) => {
+      this.mouseDelta = JSON.parse(req);
     });
   }
 
@@ -100,7 +106,10 @@ export const CameraManager = new class CameraManager {
     return speedMultiplier * frameMultiplier;
   }
 
-  updatePosition(dx: number, dy: number) {
+  updatePosition() {
+    const dx = this.move.x;
+    const dy = this.move.y;
+
     const speedMultiplier = this.getSpeedMultiplier();
 
     const [forward, left] = this.rot.directions();
@@ -119,9 +128,16 @@ export const CameraManager = new class CameraManager {
     this.updateCamPosition();
   }
 
-  updateRotation(dx: number, dy: number) {
-    this.rot.x += -dy * SettingsManager.settings.mouseSensetivity;
-    this.rot.z += -dx * SettingsManager.settings.mouseSensetivity;
+  updateRotation() {
+    const [dx, dy] = this.mouseDelta;
+
+    if (dx !== 0 || dy !== 0) {
+      this.mouseDelta[0] = 0;
+      this.mouseDelta[1] = 0;
+    }
+
+    this.rot.x += -dy * SettingsManager.settings.mouseSensetivity/100;
+    this.rot.z += -dx * SettingsManager.settings.mouseSensetivity/100;
 
     this.rot.clamp();
 
@@ -129,14 +145,11 @@ export const CameraManager = new class CameraManager {
   }
 
   update() {
-    const lookX = getSmartControlNormal(CONTROLS.LOOK_X);
-    const lookY = getSmartControlNormal(CONTROLS.LOOK_Y);
+    // const lookX = getSmartControlNormal(CONTROLS.LOOK_X);
+    // const lookY = getSmartControlNormal(CONTROLS.LOOK_Y);
 
-    const moveX = this.move.x;
-    const moveY = this.move.y;
-
-    this.updatePosition(moveX, moveY);
-    this.updateRotation(lookX, lookY);
+    this.updatePosition();
+    this.updateRotation();
   }
 
   private updateCamPosition() {

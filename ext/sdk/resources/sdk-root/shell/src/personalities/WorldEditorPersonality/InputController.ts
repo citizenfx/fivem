@@ -139,7 +139,7 @@ export class InputController {
     }
 
     if (this.cameraControlActive) {
-      sendMousePos(event.movementX, event.movementY);
+      sendGameClientEvent('we:camrot', JSON.stringify([event.movementX, event.movementY]));
 
       return;
     }

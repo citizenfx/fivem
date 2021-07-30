@@ -53,7 +53,7 @@ export enum WESelectionType {
   PATCH,
   ADDITION,
 }
-export type WESetSelectionRequest =
+export type WESelection =
   | { type: WESelectionType.NONE }
   | { type: WESelectionType.PATCH, mapdata: number, entity: number, label: string }
   | { type: WESelectionType.ADDITION, id: string };

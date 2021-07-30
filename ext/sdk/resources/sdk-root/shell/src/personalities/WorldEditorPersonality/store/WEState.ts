@@ -15,7 +15,7 @@ import {
   WEMap,
   WESelectionType,
   WESetAdditionRequest,
-  WESetSelectionRequest,
+  WESelection,
 } from 'backend/world-editor/world-editor-types';
 import { WEMapState } from './WEMapState';
 import { __DEBUG_MODE_TOGGLES__ } from 'constants/debug-constants';
@@ -44,7 +44,7 @@ export const WEState = new class WEState {
   public editorMode = EditorMode.TRANSLATE;
   public editorLocal = false;
 
-  public selection: WESetSelectionRequest = { type: WESelectionType.NONE };
+  public selection: WESelection = { type: WESelectionType.NONE };
 
   public map: WEMapState | null = null;
   private mapEntry: FilesystemEntry | null = null;
@@ -58,7 +58,9 @@ export const WEState = new class WEState {
       this.ready = true;
     }
 
-    onWindowEvent('we:setSelection', this.setEditorSelection);
+    onWindowEvent('we:selection', (selection: WESelection) => runInAction(() => {
+      this.selection = selection;
+    }));
 
     onWindowEvent('we:ready', () => runInAction(() => {
       this.ready = true;
@@ -166,14 +168,14 @@ export const WEState = new class WEState {
     return this.selection.mapdata === parseInt(mapdata, 10) && this.selection.entity === parseInt(entity, 10);
   }
 
-  readonly setEditorSelection = (selection: WESetSelectionRequest) => {
+  readonly setEditorSelection = (selection: WESelection) => {
     this.selection = selection;
+
+    sendGameClientEvent('we:selection', JSON.stringify(selection));
   };
 
   readonly clearEditorSelection = () => {
-    sendGameClientEvent('we:clearSelection', '');
-
-    this.selection = { type: WESelectionType.NONE };
+    this.setEditorSelection({ type: WESelectionType.NONE });
   };
 
   private hotkeys: Hotkeys | null = null;

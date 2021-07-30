@@ -2,6 +2,7 @@ import hotkeys from 'hotkeys-js';
 import { SingleEventEmitter } from 'utils/singleEventEmitter';
 import { WETool, WEToolbarState } from './store/WEToolbarState';
 import { WEState } from './store/WEState';
+import { WESelectionType } from 'backend/world-editor/world-editor-types';
 
 export enum HotkeyGroup {
   GAME = 'game',
@@ -20,6 +21,8 @@ export const HOTKEY_COMMAND = {
   CONTROL_MODE_SCALE_TOGGLE: 'control.mode.scale.toggle',
 
   CONTROL_CLEAR_SELECTION: 'control.clearSelection',
+
+  ACTION_SET_ADDITION_ON_GROUND: 'control.setAdditionOnGround',
 };
 
 export interface BeforeHotkeyEvent {
@@ -39,6 +42,8 @@ const defaultMapping = {
   [HOTKEY_COMMAND.CONTROL_MODE_SCALE_TOGGLE]: '3',
 
   [HOTKEY_COMMAND.CONTROL_CLEAR_SELECTION]: 'esc',
+
+  [HOTKEY_COMMAND.ACTION_SET_ADDITION_ON_GROUND]: 'ctrl+shift+s',
 };
 
 export class Hotkeys {
@@ -72,6 +77,12 @@ export class Hotkeys {
     this.bind(HOTKEY_COMMAND.CONTROL_MODE_SCALE_TOGGLE, HotkeyGroup.GAME, WEState.enableScaling);
 
     this.bind(HOTKEY_COMMAND.CONTROL_CLEAR_SELECTION, HotkeyGroup.GAME, WEState.clearEditorSelection);
+
+    this.bind(HOTKEY_COMMAND.ACTION_SET_ADDITION_ON_GROUND, HotkeyGroup.GAME, () => {
+      if (WEState.map && WEState.selection.type === WESelectionType.ADDITION) {
+        WEState.map.setAdditionOnGround(WEState.selection.id);
+      }
+    });
   }
 
   private bind(command: string, group: HotkeyGroup, cb: () => void) {

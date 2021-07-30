@@ -30,6 +30,7 @@ type Handle =
   | number
   | symbol;
 
+export type ObjectCreatedListener = (additionId: AdditionId, handle: number) => void;
 export class ObjectManager {
   private activeHandles: Record<AdditionId, Handle> = {};
   private activeHandlesToAdditionIdMap: Record<Handle, AdditionId> = {};
@@ -38,6 +39,8 @@ export class ObjectManager {
   private activeSectors: SectorId[] = [];
   private activeSectorsMemoizer = new Memoizer(this.activeSectors);
   private additionSectors: Record<AdditionId, SectorId> = {};
+
+  private createEventListeners: ObjectCreatedListener[] = [];
 
   constructor(
     private additions: Record<AdditionId, WEMapAddition>,
@@ -48,6 +51,10 @@ export class ObjectManager {
         getAdditionSectorId(addition),
       );
     });
+  }
+
+  onObjectCreated(cb: ObjectCreatedListener) {
+    this.createEventListeners.push(cb);
   }
 
   isAddition(handle: number): boolean {
@@ -146,6 +153,8 @@ export class ObjectManager {
             );
 
             this.updateHandle(additionId, sectorId, handle);
+
+            this.createEventListeners.forEach((cb) => cb(additionId, handle));
           }
           break;
         }

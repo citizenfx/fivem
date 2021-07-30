@@ -4,17 +4,6 @@ export const SelectionController = new class SelectionController {
   private selectStart: number = 0;
   private selectedEntity: number | null = null;
 
-  constructor() {
-    on('we:clearSelection', () => {
-      if (this.selectedEntity !== null) {
-        SetEntityDrawOutline(this.selectedEntity, false);
-        ReleaseScriptGuidFromEntity(this.selectedEntity);
-
-        this.selectedEntity = null;
-      }
-    });
-  }
-
   select(active: boolean) {
     if (active) {
       this.selectStart = GetGameTimer();
@@ -43,6 +32,21 @@ export const SelectionController = new class SelectionController {
 
   getSelectedEntity(): number | null {
     return this.selectedEntity;
+  }
+
+  setSelectedEntity(entity: number | null) {
+    if (this.selectedEntity !== null) {
+      SetEntityDrawOutline(this.selectedEntity, false);
+      ReleaseScriptGuidFromEntity(this.selectedEntity);
+
+      this.selectedEntity = null;
+    }
+
+    this.selectedEntity = entity;
+
+    if (this.selectedEntity !== null) {
+      SetEntityDrawOutline(this.selectedEntity, true);
+    }
   }
 };
 
