@@ -542,7 +542,13 @@ namespace fx
 					if (dotPos != std::string::npos)
 					{
 						auto ext = fileEntry.substr(dotPos);
-						if (ext.length() > 1 && ext[1] == 'y')
+
+						// we **have** to allow .ytyp files to be added since dumb people for whatever-arse reason
+						// have the tendency to pretend hugging DLC_ITYP_REQUEST is a filename and not a streaming
+						// name trying to be a filename, and also have never heard of 'use a hugging .ymf manifest'
+						// so they glob data_file for these and that requires these to be present on client as for w/e
+						// reason we can't resolve globs server-side yet
+						if (ext.length() > 1 && ext[1] == 'y' && ext != ".ytyp")
 						{
 							return true;
 						}
