@@ -401,6 +401,10 @@ namespace nui
 		OVERLAY_DECL
 		fwEvent<bool> OnDrawBackground;
 
+	extern OVERLAY_DECL
+		fwEvent<std::function<void(bool, const char*, size_t)>>
+		RequestNUIBlocklist;
+
 	OVERLAY_DECL void SetAudioSink(IAudioSink* sinkRef);
 
 	using TResourceLookupFn = std::function<std::string(const std::string&, const std::string&)>;

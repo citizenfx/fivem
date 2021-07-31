@@ -106,7 +106,7 @@ void ComponentLoader::Initialize()
 		// don't load some useless stuff for ChromeBrowser
 		if (wcsstr(moduleName, L"ChromeBrowser"))
 		{
-			if (nameWide != L"nui-core" && nameWide != L"vfs-core" && nameWide != L"http-client")
+			if (nameWide != L"nui-core" && nameWide != L"vfs-core")
 			{
 				continue;
 			}

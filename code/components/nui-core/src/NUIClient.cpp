@@ -11,7 +11,6 @@
 #include "NUISchemeHandlerFactory.h"
 #include "CefOverlay.h"
 #include "memdbgon.h"
-#include "HttpClient.h"
 
 #include <IteratorView.h>
 
@@ -45,8 +44,7 @@ NUIClient::NUIClient(NUIWindow* window)
 
 	CefRefPtr<NUIClient> thisRef(this);
 
-	auto httpClient = Instance<HttpClient>::Get();
-	httpClient->DoGetRequest("https://runtime.fivem.net/nui-blacklist.json", [thisRef](bool success, const char* data, size_t length)
+	nui::RequestNUIBlocklist([thisRef](bool success, const char* data, size_t length)
 	{
 		if (success)
 		{
@@ -517,3 +515,5 @@ CefRefPtr<CefMediaAccessHandler> NUIClient::GetMediaAccessHandler()
 #endif
 
 fwEvent<NUIClient*> NUIClient::OnClientCreated;
+fwEvent<std::function<void(bool, const char*, size_t)>> nui::RequestNUIBlocklist;
+

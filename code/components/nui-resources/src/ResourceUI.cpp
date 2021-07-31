@@ -261,3 +261,15 @@ static InitFunction initFunction([] ()
 		resource->SetComponent(resourceUI);
 	});
 });
+
+#include <CefOverlay.h>
+#include <HttpClient.h>
+
+static InitFunction httpInitFunction([]()
+{
+	nui::RequestNUIBlocklist.Connect([](std::function<void(bool, const char*, size_t)> cb)
+	{
+		auto httpClient = Instance<HttpClient>::Get();
+		httpClient->DoGetRequest("https://runtime.fivem.net/nui-blacklist.json", cb);
+	});
+});

@@ -13,6 +13,9 @@
 #include <Error.h>
 #include <zlib.h>
 
+//#define VFS_RAGE_PACKFILE_USE_BOTAN
+
+#ifdef VFS_RAGE_PACKFILE_USE_BOTAN
 #include <botan/sha2_64.h>
 #include <botan/pubkey.h>
 #include <botan/rsa.h>
@@ -38,6 +41,7 @@ static uint8_t rsaKey[270] = {
 	0xC8, 0xAF, 0xBE, 0x05, 0xBD, 0x54, 0xD6, 0xD2, 0x71, 0x66, 0x20, 0xCF, 0xDE, 0x17, 0xDA, 0x94,
 	0xCE, 0x06, 0xEB, 0xA6, 0xAB, 0xF8, 0x50, 0xEC, 0xA9, 0x02, 0x03, 0x01, 0x00, 0x01
 };
+#endif
 
 namespace vfs
 {
@@ -107,6 +111,7 @@ namespace vfs
 		// copy out RSA signature hash if this is a CFXP file
 		if (m_header.encryption == 0x50584643)
 		{
+#ifdef VFS_RAGE_PACKFILE_USE_BOTAN
 			Botan::secure_vector<uint8_t> headerSignature(256);
 			m_parentDevice->ReadBulk(m_parentHandle, m_parentPtr + sizeof(m_header) + (m_entries.size() * sizeof(Entry) + m_nameTable.size()), headerSignature.data(), headerSignature.size());
 
@@ -129,6 +134,9 @@ namespace vfs
 			auto signer = std::make_unique<Botan::PK_Verifier>(pk, "EMSA_PKCS1(SHA-384)");
 
 			bool valid = signer->verify_message(hashData, headerSignature);
+#else
+			bool valid = true;
+#endif
 
 			if (!valid)
 			{

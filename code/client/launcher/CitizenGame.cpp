@@ -437,8 +437,17 @@ void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 		return;
 	}
 
-	// force loading _this_ variant
-	LoadLibrary(MakeRelativeCitPath(L"scripthookv.dll").c_str());
+#ifdef GTA_FIVE
+	wchar_t moduleName[MAX_PATH];
+	GetModuleFileNameW(GetModuleHandleW(NULL), moduleName, std::size(moduleName));
+
+	// unless we're ChromeBrowser or ROSLauncher, try loading scripthookv.dll
+	if (wcsstr(moduleName, L"ChromeBrowser") == nullptr && wcsstr(moduleName, L"ROSLauncher") == nullptr)
+	{
+		// force loading _this_ variant
+		LoadLibrary(MakeRelativeCitPath(L"scripthookv.dll").c_str());
+	}
+#endif
 
 	CoreSetDebuggerPresent();
 	CoreSetMinModeManifest(g_minModeManifest.c_str());

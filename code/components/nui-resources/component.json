@@ -6,6 +6,7 @@
 		"citizen:resources:client",
 		"nui:core",
 		"scrbind:base",
+		"http-client",
 		"citizen:scripting:core"
 	],
 	"provides": []

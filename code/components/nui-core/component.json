@@ -4,7 +4,6 @@
 	"dependencies": [
 		"fx[2]",
 		"vfs:core",
-		"http-client",
 		"vendor:minhook"
 	],
 	"provides": []

@@ -1080,15 +1080,19 @@ void Component_RunPreInit()
 
 	// load Chrome dependencies ourselves so that the system won't try loading from other paths
 	LoadLibrary(MakeRelativeCitPath(L"bin/chrome_elf.dll").c_str());
-	LoadLibrary(MakeRelativeCitPath(L"bin/libEGL.dll").c_str());
-	HMODULE libGL = LoadLibrary(MakeRelativeCitPath(L"bin/libGLESv2.dll").c_str());
 
-	// hook libGLESv2 for Cfx purposes
-	HookLibGL(libGL);
+	// we don't need to load ANGLE if this is utility or renderer
+	if (wcsstr(GetCommandLineW(), L"type=utility") == nullptr && wcsstr(GetCommandLineW(), L"type=renderer") == nullptr)
+	{
+		LoadLibrary(MakeRelativeCitPath(L"bin/libEGL.dll").c_str());
+		HMODULE libGL = LoadLibrary(MakeRelativeCitPath(L"bin/libGLESv2.dll").c_str());
+
+		// hook libGLESv2 for Cfx purposes
+		HookLibGL(libGL);
+	}
 
 	// load the CEF library
 	HMODULE libcef = LoadLibraryW(MakeRelativeCitPath(L"bin/libcef.dll").c_str());
-
 	g_libgl = std::unique_ptr<ModuleData>(new ModuleData{ L"libGLESv2.dll", L"libEGL.dll", L"libcef.dll" });
 
 	if (!libcef)

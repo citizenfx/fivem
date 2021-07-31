@@ -1,6 +1,8 @@
 return function()
 	configuration {}
 	filter {}
+
+	add_dependencies { 'vendor:tbb' }
 	
 	includedirs {
 		'components/vfs-impl-server/include/', '../vendor/bgfx/examples/common/'
