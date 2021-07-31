@@ -78,6 +78,12 @@ public:
 
 	virtual ~MapDataOwnerExtension() = default;
 
+	inline MapDataOwnerExtension* Clone() const
+	{
+		auto newExtension = new MapDataOwnerExtension(*this);
+		return newExtension;
+	}
+
 	virtual int GetExtensionId() const override
 	{
 		return GetClassId();
@@ -168,6 +174,27 @@ static rage::fwEntity* ConstructEntity(fwEntityDef* entityDef, int mapDataIdx, r
 	}
 
 	return entity;
+}
+
+class CDummyObject : public fwEntity
+{
+};
+
+static CObject* (*g_origConvertDummyToObject)(CDummyObject* dummyObject, int type);
+
+static CObject* ConvertDummyToObject(CDummyObject* dummyObject, int type)
+{
+	auto object = g_origConvertDummyToObject(dummyObject, type);
+
+	if (object)
+	{
+		if (auto extension = dummyObject->GetExtension<MapDataOwnerExtension>())
+		{
+			object->AddExtension(extension->Clone());
+		}
+	}
+
+	return object;
 }
 
 static void (*g_origMapDataContents_Create)(CMapDataContents* contents, void* a2, CMapData* mapData, uint32_t mapDataIdx);
@@ -493,6 +520,7 @@ static HookFunction hookFunction([]()
 		MH_Initialize();
 		MH_CreateHook(hook::get_pattern("F7 42 24 A0 05 00 00 49 8B D8", -0x18), MapDataContents_Create, (void**)&g_origMapDataContents_Create);
 		MH_CreateHook(hook::get_pattern("49 8B 47 08 0F B6 0C 28", -0x6E), MapDataContents_Remove, (void**)&g_origMapDataContents_Remove);
+		MH_CreateHook(hook::get_pattern("8B 45 50 8B F2 C1 E8 13 A8 01", -0x1A), ConvertDummyToObject, (void**)&g_origConvertDummyToObject);
 		MH_EnableHook(MH_ALL_HOOKS);
 	}
 
