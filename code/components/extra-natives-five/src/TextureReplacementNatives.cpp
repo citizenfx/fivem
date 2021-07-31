@@ -6,6 +6,9 @@
 #include <Streaming.h>
 #include <DrawCommands.h>
 
+#include <GameInit.h>
+#include <unordered_set>
+
 #define RAGE_FORMATS_GAME five
 #define RAGE_FORMATS_GAME_FIVE
 
@@ -64,6 +67,8 @@ rage::grcTexture* LookupTexture(const std::string& txd, const std::string& txn)
 	return nullptr;
 }
 
+static std::unordered_set<rage::grcTexture*> texturesToRemove;
+
 static InitFunction initFunction([]()
 {
 	fx::ScriptEngine::RegisterNativeHandler("ADD_REPLACE_TEXTURE", [](fx::ScriptContext& context)
@@ -82,6 +87,7 @@ static InitFunction initFunction([]()
 			return;
 		}
 
+		texturesToRemove.insert(origTexture);
 		AddTextureOverride(origTexture, newTexture);
 	});
 
@@ -98,6 +104,17 @@ static InitFunction initFunction([]()
 			return;
 		}
 
+		texturesToRemove.erase(origTexture);
 		RemoveTextureOverride(origTexture);
+	});
+
+	OnKillNetworkDone.Connect([]()
+	{
+		for (auto texture : texturesToRemove)
+		{
+			RemoveTextureOverride(texture);
+		}
+
+		texturesToRemove.clear();
 	});
 });
