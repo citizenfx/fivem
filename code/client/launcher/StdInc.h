@@ -78,7 +78,7 @@ bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::arr
 #include <winrt/Windows.UI.Xaml.Controls.Primitives.h>
 #endif
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && !defined(LAUNCHER_PERSONALITY_CHROME)
 #define LAUNCHER_PERSONALITY_GAME
 #endif
 
