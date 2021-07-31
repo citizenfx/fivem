@@ -541,6 +541,12 @@ static bool _isPlayerTalking(void* mgr, char* playerData)
 	// #TODO1604
 	auto playerInfo = playerData - 32 - 48 - 16 - (xbr::IsGameBuildOrGreater<2060>() ? 8 : 0);
 
+	// preemptive check for invalid players (FIVEM-CLIENT-1604-TQKV) with uncertain server changes
+	if ((uintptr_t)playerInfo < 0xFFFF)
+	{
+		return false;
+	}
+
 	// get the ped
 	auto ped = *(char**)(playerInfo + 456);
 	
