@@ -54,6 +54,7 @@ static HookFunction initFunction([]()
 			pop(rcx);
 
 			mov(rsi, rax);
+			mov(rax, rbx);
 
 			ret();
 		}
