@@ -1631,11 +1631,11 @@ static void V8_Trace(const v8::FunctionCallbackInfo<v8::Value>& args)
 		}
 		else
 		{
-			printf(" ");
+			ScriptTrace(" ");
 		}
 
 		v8::String::Utf8Value str(GetV8Isolate(), args[i]);
-		ScriptTrace("%s", *str);
+		ScriptTrace("%s", std::string_view{ *str, size_t(str.length()) });
 	}
 
 	ScriptTrace("\n");
