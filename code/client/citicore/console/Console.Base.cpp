@@ -7,6 +7,7 @@
 #include <CL2LaunchMode.h>
 
 #include <tbb/concurrent_queue.h>
+#include <boost/algorithm/string/replace.hpp>
 
 namespace console
 {
@@ -217,6 +218,12 @@ static int g_useDeveloper;
 void Printfv(ConsoleChannel channel, std::string_view format, fmt::printf_args argList)
 {
 	auto buffer = fmt::vsprintf(format, argList);
+
+	// replace NUL characters, if any
+	if (buffer.find('\0') != std::string::npos)
+	{
+		boost::algorithm::replace_all(buffer, std::string_view{ "\0", 1 }, "^5<\\0>^7");
+	}
 
 	// print to all interested listeners
 	for (auto& listener : g_printListeners)
