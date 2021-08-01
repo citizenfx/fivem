@@ -2002,4 +2002,7 @@ static HookFunction hookFunction([] ()
 		},
 		&a1, &a2);
 	}, INT32_MIN + 5);
+
+	// prevent the render thread from knowing present is occluded
+	hook::nop(hook::get_pattern("3D 01 00 7A 08 0F 94"), 5 + 7);
 });

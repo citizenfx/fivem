@@ -126,6 +126,12 @@ LRESULT APIENTRY grcWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
 		SetWindowText(FindWindow(L"grcWindow", nullptr), (CfxIsSinglePlayer()) ? L"Grand Theft Auto V (FiveM SP)" : L"FiveM");
 	}
 
+	// don't inform the game of being minimized
+	if (uMsg == WM_SIZE && wParam == SIZE_MINIMIZED)
+	{
+		return DefWindowProc(hwnd, uMsg, wParam, lParam);
+	}
+
 	if (uMsg == WM_ACTIVATEAPP)
 	{
 		g_isFocused = (wParam) ? true : false;
