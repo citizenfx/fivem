@@ -161,10 +161,6 @@
      * @param {*} args 
      */
     function format(message = undefined, ...args) {
-        if (typeof message === "undefined") {
-            return '';
-        }
-
         const totalArgs = args.length;
 
         if (totalArgs === 0) {
