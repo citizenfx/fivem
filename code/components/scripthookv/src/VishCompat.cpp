@@ -16,6 +16,7 @@
 #include <IteratorView.h>
 
 #include <LaunchMode.h>
+#include <CrossBuildRuntime.h>
 
 #include <memory>
 
@@ -260,14 +261,16 @@ DLL_EXPORT uint64_t* getGlobalPtr(int)
 	return dummyGlobal;
 }
 
-enum eGameVersion : int
+// ScriptHookV uses incremental numbers instead of build
+DLL_EXPORT int getGameVersion()
 {
-	DummyVersion = 44 // VER_1_0_1493_1_NOSTEAM
-};
+	if (xbr::IsGameBuild<372>()) return 5;   // VER_1_0_372_2_NOSTEAM
+	if (xbr::IsGameBuild<1604>()) return 49; // VER_1_0_1604_1_NOSTEAM
+	if (xbr::IsGameBuild<2060>()) return 60; // VER_1_0_2060_0_NOSTEAM
+	if (xbr::IsGameBuild<2189>()) return 64; // VER_1_0_2189_0_NOSTEAM
+	if (xbr::IsGameBuild<2372>()) return 70; // VER_1_0_2372_0_NOSTEAM
 
-DLL_EXPORT eGameVersion getGameVersion()
-{
-	return DummyVersion;
+	return 49; // Default build
 }
 
 class FishNativeContext : public NativeContext
