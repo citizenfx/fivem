@@ -531,6 +531,21 @@ void DLL_EXPORT UiDone()
 	}
 }
 
+// graphics mods don't usually block calls from Windows DLLs to themselves in APIs they've hooked
+// and therefore break EnsureChildDevice API
+//
+// as such, we'll block our forced DXGI use if we found any such library in the game folder
+static bool IsSafeToUseDXGI()
+{
+	if (GetFileAttributesW(MakeRelativeGamePath(L"d3d11.dll").c_str()) != INVALID_FILE_ATTRIBUTES ||
+		GetFileAttributesW(MakeRelativeGamePath(L"dxgi.dll").c_str()) != INVALID_FILE_ATTRIBUTES)
+	{
+		return false;
+	}
+
+	return true;
+}
+
 static HRESULT CreateD3D11DeviceWrapOrig(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _In_opt_ CONST DXGI_SWAP_CHAIN_DESC* pSwapChainDesc, _Out_opt_ IDXGISwapChain** ppSwapChain, _Out_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _Out_opt_ ID3D11DeviceContext** ppImmediateContext)
 {
 	{
@@ -658,7 +673,7 @@ static HRESULT CreateD3D11DeviceWrapOrig(_In_opt_ IDXGIAdapter* pAdapter, D3D_DR
 			auto sc = WRL::Make<BufferBackedDXGISwapChain>(*ppDevice, *pSwapChainDesc);
 			sc.CopyTo(ppSwapChain);
 		}
-		else if (!pSwapChainDesc->Windowed)
+		else if (!pSwapChainDesc->Windowed && IsSafeToUseDXGI())
 		{
 			auto sc = WRL::Make<DeferredFullscreenSwapChain>(*ppSwapChain);
 
