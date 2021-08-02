@@ -10,6 +10,7 @@
 #include <CrossBuildRuntime.h>
 #include <timeapi.h> // timeGetTime()
 
+#include <ICoreGameInit.h>
 #include <GlobalInput.h>
 
 static WNDPROC origWndProc;
@@ -127,9 +128,22 @@ LRESULT APIENTRY grcWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
 	}
 
 	// don't inform the game of being minimized
-	if (uMsg == WM_SIZE && wParam == SIZE_MINIMIZED)
+	static bool minimized = false;
+
+	if (uMsg == WM_SIZE)
 	{
-		return DefWindowProc(hwnd, uMsg, wParam, lParam);
+		if (wParam == SIZE_MINIMIZED)
+		{
+			minimized = true;
+
+			Instance<ICoreGameInit>::Get()->SetVariable("gameMinimized");
+			return DefWindowProc(hwnd, uMsg, wParam, lParam);
+		}
+		else if (minimized)
+		{
+			Instance<ICoreGameInit>::Get()->ClearVariable("gameMinimized");
+			minimized = false;
+		}
 	}
 
 	if (uMsg == WM_ACTIVATEAPP)

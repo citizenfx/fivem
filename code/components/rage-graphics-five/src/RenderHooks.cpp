@@ -20,6 +20,7 @@
 #include <CL2LaunchMode.h>
 
 #include <CoreConsole.h>
+#include <ICoreGameInit.h>
 
 #include <HostSharedData.h>
 
@@ -198,7 +199,40 @@ fwEvent<IDXGIFactory2*, ID3D11Device*, HWND, DXGI_SWAP_CHAIN_DESC1*, DXGI_SWAP_C
 
 #include <mmsystem.h>
 
-using namespace std::chrono_literals;
+static auto LimitFrameTime(WaitableTimer& timer, size_t fpsLimit)
+{
+	using namespace std::chrono_literals;
+
+	static auto getNowUs = []()
+	{
+		return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
+	};
+	static std::chrono::microseconds lastFrameTime{ 0 };
+
+	struct ReturnToken
+	{
+		~ReturnToken()
+		{
+			lastFrameTime = getNowUs();
+		}
+
+		ReturnToken(const ReturnToken&) = delete;
+	};
+
+	if (fpsLimit > 0)
+	{
+		std::chrono::microseconds fpsLimitUs{ 1000000 / fpsLimit };
+
+		auto timeLeft = std::chrono::duration_cast<std::chrono::microseconds>(fpsLimitUs - (getNowUs() - lastFrameTime));
+
+		if (timeLeft > 0us)
+		{
+			timer.Wait(timeLeft);
+		}
+	}
+
+	return ReturnToken{};
+}
 
 class BufferBackedDXGISwapChain : public WRL::RuntimeClass<WRL::RuntimeClassFlags<WRL::ClassicCom>, IDXGISwapChain>
 {
@@ -238,23 +272,7 @@ public:
 
 		GetD3D11DeviceContext()->Flush();
 
-		static auto getNowUs = []()
-		{
-			return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
-		};
-		static std::chrono::microseconds lastFrameTime{ 0 };
-
-		if (rgd->fpsLimit > 0)
-		{
-			std::chrono::microseconds fpsLimitUs{ 1000000 / rgd->fpsLimit };
-
-			auto timeLeft = std::chrono::duration_cast<std::chrono::microseconds>(fpsLimitUs - (getNowUs() - lastFrameTime));
-
-			if (timeLeft > 0us)
-			{
-				m_fpsLimitTimer.Wait(timeLeft);
-			}
-		}
+		auto _ = LimitFrameTime(m_fpsLimitTimer, rgd->fpsLimit);
 
 		int idx = rgd->GetNextSurface(INFINITE);
 
@@ -270,8 +288,6 @@ public:
 		{
 			trace("frame dropped - presenter was busy?\n");
 		}
-
-		lastFrameTime = getNowUs();
 
 		return S_OK;
 	}
@@ -1534,6 +1550,13 @@ void D3DPresent(int syncInterval, int flags)
 	else
 	{
 		(*g_dxgiSwapChain)->Present(syncInterval, flags);
+	}
+
+	static auto icgi = Instance<ICoreGameInit>::Get();
+	if (icgi->HasVariable("gameMinimized"))
+	{
+		static WaitableTimer fpsTimer{NULL, TRUE, NULL};
+		LimitFrameTime(fpsTimer, 20);
 	}
 
 	OnPostD3DPresent(*g_dxgiSwapChain, syncInterval, flags);
