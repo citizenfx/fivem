@@ -9,7 +9,9 @@ apiset: server
 Vector3 GET_ENTITY_COORDS(Entity entity);
 ```
 
-Gets the current coordinates for a specified entity. This native is used server side when using OneSync. See <a href="#_0x3FEF770D40960D5A" >GET_ENTITY_COORDS</a> for client side.
+Gets the current coordinates for a specified entity. This native is used server side when using OneSync.
+
+See [GET_ENTITY_COORDS](#_0x3FEF770D40960D5A) for client side.
 
 ## Parameters
 
