@@ -491,8 +491,8 @@ static InitFunction initFunction([]()
 
 				++i;
 
-				// clean up pairs every ~15 seconds
-				if (i > 15)
+				// clean up pairs every ~20 seconds
+				if (i > 20)
 				{
 					CleanupMumblePairs();
 					i = 0;
@@ -543,7 +543,7 @@ static InitFunction initFunction([]()
 				return;
 			}
 
-			auto fromAddress = address.GetHost();
+			auto fromAddress = address.GetHostBytes();
 
 			// Mumble clients are expected to be connected to TCP already - if this is not a known Mumble TCP pair, mark and drop
 			client_t* client = nullptr;
@@ -559,8 +559,8 @@ static InitFunction initFunction([]()
 				while (Client_iterate(&itr) != nullptr)
 				{
 					if (itr->remote_udp == net::PeerAddress{} &&
-						(itr->remote_tcp.GetHost() == fromAddress ||
-						 fromAddress == fmt::sprintf("[::ffff:%s]", itr->remote_tcp.GetHost())))
+						(itr->remote_tcp.GetHostBytes() == fromAddress ||
+						 itr->remote_tcp.GetHostBytesV6() == fromAddress))
 					{
 						known = true;
 
@@ -593,7 +593,7 @@ static InitFunction initFunction([]()
 					std::unique_lock _(retryPairsMutex);
 
 					// quite certainly not mumble
-					if (retryPairs[address] > 10)
+					if (retryPairs[address] > 5)
 					{
 						// unlock so we don't incorrectly nest
 						_.unlock();

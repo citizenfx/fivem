@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <array>
 #include <boost/optional.hpp>
 
 #include <NetBase.h>
@@ -99,6 +100,16 @@ public:
 	// Get the host name from the address.
 	//
 	std::string GetHost() const;
+
+	//
+	// Get the host as a series of bytes.
+	//
+	std::array<uint8_t, 16> GetHostBytes() const;
+
+	//
+	// Get the host as a series of bytes, mapped to IPv6.
+	//
+	std::array<uint8_t, 16> GetHostBytesV6() const;
 
 	//
 	// Get the port from the address.
