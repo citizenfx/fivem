@@ -4,15 +4,14 @@ import AutoSizer from 'react-virtualized-auto-sizer';
 import { useDebouncedCallback } from 'utils/hooks';
 import { Input } from 'components/controls/Input/Input';
 import { FixedSizeList } from 'react-window';
-import { useInputOverride } from 'personalities/WorldEditorPersonality/hooks';
 import { WEState } from 'personalities/WorldEditorPersonality/store/WEState';
 import { BsArrowClockwise } from 'react-icons/bs';
 import { GameState } from 'store/GameState';
 import { WETool, WEToolbarState } from '../../../store/WEToolbarState';
 import { ArchetypesState } from 'personalities/WorldEditorPersonality/store/ArchetypesState';
 import { WORLD_EDITOR_MAP_NO_GROUP } from 'backend/world-editor/world-editor-constants';
-import s from './AddObjectTool.module.scss';
 import { Title } from 'components/controls/Title/Title';
+import s from './AddObjectTool.module.scss';
 
 interface ObjectItemProps {
   name: string,
@@ -50,9 +49,6 @@ export const ObjectsBrowser = observer(function ObjectsBrowserDropdown() {
   const performFiltering = useDebouncedCallback(async (newFilter: string) => {
     setFiltered((await ArchetypesState.search(newFilter)) || []);
   }, 50, []);
-
-  // Don't send any input to world-editor while rendering objects browser
-  useInputOverride();
 
   const activeSet: string[] = filter.length ? filtered : ArchetypesState.archetypes;
 

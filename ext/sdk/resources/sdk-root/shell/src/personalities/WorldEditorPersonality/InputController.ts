@@ -1,6 +1,9 @@
 import React from 'react';
 import { clamp01 } from 'shared/math';
+import { HotkeyController } from 'utils/HotkeyController';
 import { SingleEventEmitter } from 'utils/singleEventEmitter';
+import { executeCommand, getAllCommandHotkeyBindings, onRegisterCommandBinding } from './command-bindings';
+import { WECommandScope } from './constants/commands';
 
 export enum Key {
   ALT = 18,
@@ -39,7 +42,7 @@ export function mapMouseButton(button: number): number {
   return button;
 }
 
-export function mapKey(which: number, location: number) {
+export function mapKey({ which, location }: KeyboardEvent) {
   // Alt
   if (which === Key.ALT) {
     return location === 1
@@ -73,6 +76,9 @@ export function isRMB(e: MouseEvent): boolean {
 }
 
 export class InputController {
+  private hotkeys: HotkeyController;
+  private removeRegisterCommandBindingListener: Function;
+
   private cameraMovementBaseMultiplierEvent = new SingleEventEmitter<number>();
 
   private readonly activeKeys: Record<number, boolean> = {};
@@ -82,8 +88,6 @@ export class InputController {
 
   private cameraControlActive = false;
   private cameraMovementBaseMultiplier = 1;
-
-  private inputOverrides = 0;
 
   private mousePos: Point = { x: 0, y: 0 };
 
@@ -99,6 +103,22 @@ export class InputController {
     private readonly container: React.RefObject<HTMLDivElement>,
     private readonly onSelect: (select: boolean) => void,
   ) {
+    this.hotkeys = new HotkeyController(
+      (binding) => {
+        if (binding.interrupting) {
+          this.deactivateCameraControl();
+        }
+
+        executeCommand(binding.command);
+      },
+      getAllCommandHotkeyBindings(),
+      WECommandScope.EDITOR,
+    );
+
+    this.removeRegisterCommandBindingListener = onRegisterCommandBinding(() => {
+      this.hotkeys.setBingins(getAllCommandHotkeyBindings());
+    });
+
     for (const [event, handler] of Object.entries(this.containerHandlers)) {
       this.container.current.addEventListener(event, handler);
     }
@@ -108,8 +128,26 @@ export class InputController {
     }
   }
 
+  destroy() {
+    this.removeRegisterCommandBindingListener();
+
+    for (const [event, handler] of Object.entries(this.containerHandlers)) {
+      this.container.current.removeEventListener(event, handler);
+    }
+
+    for (const [event, handler] of Object.entries(this.documentHandlers)) {
+      document.removeEventListener(event, handler);
+    }
+  }
+
+  setScope(scope: WECommandScope) {
+    this.hotkeys.setScope(scope);
+  }
+
   enterFullControl() {
     this.fullControl = true;
+
+    this.setScope(WECommandScope.PLAYTEST);
 
     this.container.current.requestPointerLock();
     this.resetMouseButtonStates();
@@ -118,6 +156,8 @@ export class InputController {
 
   exitFullControl() {
     this.fullControl = false;
+
+    this.setScope(WECommandScope.EDITOR);
 
     document.exitPointerLock();
     this.resetMouseButtonStates();
@@ -133,12 +173,6 @@ export class InputController {
     this.cameraMovementBaseMultiplierEvent.addListener(cb);
   }
 
-  overrideInput() {
-    this.inputOverrides++;
-
-    return () => this.inputOverrides--;
-  }
-
   deactivateCameraControl() {
     if (this.cameraControlActive) {
       this.cameraControlActive = false;
@@ -146,24 +180,10 @@ export class InputController {
     }
   }
 
-  destroy() {
-    for (const [event, handler] of Object.entries(this.containerHandlers)) {
-      this.container.current.removeEventListener(event, handler);
-    }
-
-    for (const [event, handler] of Object.entries(this.documentHandlers)) {
-      document.removeEventListener(event, handler);
-    }
-  }
-
   private handleContainerMouseMove = (event: MouseEvent) => {
     if (this.fullControl) {
       sendMousePos(event.movementX, event.movementY);
 
-      return;
-    }
-
-    if (this.inputOverrides > 0) {
       return;
     }
 
@@ -193,6 +213,8 @@ export class InputController {
   };
 
   private resetKeysState() {
+    this.hotkeys.resetState();
+
     for (const [keyString, active] of Object.entries(this.activeKeys)) {
       if (active) {
         this.activeKeys[keyString] = false;
@@ -200,31 +222,42 @@ export class InputController {
       }
     }
   }
+
   private handleKeyState(event: KeyboardEvent, active: boolean) {
     if (this.fullControl) {
-      if (event.key === 'Escape') {
+      if (event.code === 'Escape') {
         this.escapeFullControlCallback();
       } else {
-        const key = mapKey(event.which, event.location);
-
-        if (this.activeKeys[key] !== active) {
-          this.activeKeys[key] = active;
-
-          setKeyState(key, active);
-        }
+        this.applyKeyState(event, active);
       }
 
       return haltEvent(event);
     }
 
-    if (this.inputOverrides > 0 || event.ctrlKey || (event.target as any).tagName === 'INPUT') {
+    // If any of these in focus - ignore
+    const { tagName } = (event.target as any);
+    if (tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT') {
       return;
     }
 
     haltEvent(event);
 
-    const key = mapKey(event.which, event.location);
+    if (!this.hotkeys.processEvent(event, active)) {
+      this.applyGameInput(event, active);
+    }
+  }
 
+  private applyKeyState(event: KeyboardEvent, active: boolean) {
+    const key = mapKey(event);
+
+    if (this.activeKeys[key] !== active) {
+      this.activeKeys[key] = active;
+
+      setKeyState(key, active);
+    }
+  }
+
+  private applyGameInput(event: KeyboardEvent, active: boolean) {
     switch (event.code) {
       case 'KeyW':
       case 'KeyA':
@@ -234,11 +267,7 @@ export class InputController {
       case 'ShiftRight':
       case 'AltLeft':
       case 'AltRight':
-        if (this.activeKeys[key] !== active) {
-          this.activeKeys[key] = active;
-
-          setKeyState(key, active);
-        }
+        this.applyKeyState(event, active);
 
         break;
     }
@@ -263,10 +292,6 @@ export class InputController {
       }
 
       return haltEvent(event);
-    }
-
-    if (this.inputOverrides > 0) {
-      return;
     }
 
     if (active) {

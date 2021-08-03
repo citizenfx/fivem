@@ -1,7 +1,6 @@
 import React from 'react';
 import classnames from 'classnames';
-import { FiBox } from 'react-icons/fi';
-import { WETool, WEToolbarState } from '../../../store/WEToolbarState';
+import { WETool } from '../../../store/WEToolbarState';
 import { BaseTool } from '../BaseTool/BaseTool';
 import { useOpenFlag } from 'utils/hooks';
 import { WEState } from 'personalities/WorldEditorPersonality/store/WEState';
@@ -29,12 +28,6 @@ export const AdditionsTool = observer(function AdditionsTool() {
       WEState.map.createAdditionGroup(newGroupName);
     }
   }, [closeGroupCreator]);
-
-  React.useEffect(() => {
-    if (groupCreatorOpen) {
-      return WEState.overrideInput();
-    }
-  }, [groupCreatorOpen]);
 
   const [{ isDropping }, dropRef] = useDrop({
     accept: ADDITION_DND_TYPES.ADDITION,

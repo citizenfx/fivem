@@ -20,10 +20,9 @@ import {
 import { WEMapState } from './WEMapState';
 import { __DEBUG_MODE_TOGGLES__ } from 'constants/debug-constants';
 import { GameState } from 'store/GameState';
-import { HotkeyGroup, Hotkeys, HOTKEY_COMMAND } from '../Hotkeys';
 import { FlashingMessageState } from '../components/WorldEditorToolbar/FlashingMessage/FlashingMessageState';
-
-const noop = () => {};
+import { registerCommandBinding } from '../command-bindings';
+import { WECommand, WECommandScope } from '../constants/commands';
 
 function clampExplorerWidth(width: number): number {
   return Math.max(250, Math.min(document.body.offsetWidth / 2, width));
@@ -58,6 +57,14 @@ export const WEState = new class WEState {
 
   public mapExplorerWidth: number = clampExplorerWidth(parseInt(localStorage.weExplorerWidth, 10) || 300);
 
+  get mapName(): string {
+    if (this.mapEntry) {
+      return this.mapEntry.name.replace(FXWORLD_FILE_EXT, '');
+    }
+
+    return '';
+  }
+
   constructor() {
     makeAutoObservable(this);
 
@@ -65,6 +72,11 @@ export const WEState = new class WEState {
       this.ready = true;
     }
 
+    this.bindCommands();
+    this.mountEventHandlers();
+  }
+
+  private mountEventHandlers() {
     onWindowEvent('we:selection', (selection: WESelection) => runInAction(() => {
       this.selection = selection;
     }));
@@ -87,26 +99,64 @@ export const WEState = new class WEState {
     }));
   }
 
-  get mapName(): string {
-    if (this.mapEntry) {
-      return this.mapEntry.name.replace(FXWORLD_FILE_EXT, '');
-    }
+  private bindCommands() {
+    registerCommandBinding({
+      command: WECommand.CONTROL_COORD_SYSTEM_TOGGLE,
+      scope: WECommandScope.EDITOR,
+      execute: this.toggleEditorLocal,
+    }, { code: 'Backquote' });
 
-    return '';
+    registerCommandBinding({
+      command: WECommand.CONTROL_MODE_TRANSLATE_TOGGLE,
+      scope: WECommandScope.EDITOR,
+      execute: this.enableTranslation,
+    }, { code: 'Digit1' });
+
+    registerCommandBinding({
+      command: WECommand.CONTROL_MODE_ROTATE_TOGGLE,
+      scope: WECommandScope.EDITOR,
+      execute: this.enableRotation,
+    }, { code: 'Digit2' });
+
+    registerCommandBinding({
+      command: WECommand.CONTROL_MODE_SCALE_TOGGLE,
+      scope: WECommandScope.EDITOR,
+      execute: this.enableScaling,
+    }, { code: 'Digit3' });
+
+    registerCommandBinding({
+      command: WECommand.CONTROL_CLEAR_SELECTION,
+      scope: WECommandScope.EDITOR,
+      execute: this.clearEditorSelection,
+    }, { code: 'esc' });
+
+    registerCommandBinding({
+      command: WECommand.ACTION_SET_ADDITION_ON_GROUND,
+      scope: WECommandScope.EDITOR,
+      execute: () => {
+        if (this.map && this.selection.type === WESelectionType.ADDITION) {
+          this.map.setAdditionOnGround(this.selection.id);
+        }
+      },
+    }, { code: 'KeyS', ctrl: true, shift: true });
+
+    registerCommandBinding({
+      command: WECommand.ACTION_ENTER_PLAYTEST_MODE,
+      scope: WECommandScope.EDITOR,
+      execute: this.enterPlaytestMode,
+    }, { code: 'F5' });
   }
 
   readonly enterPlaytestMode = () => {
     sendGameClientEvent('we:enterPlaytestMode', '');
 
     this.mode = WEMode.PLAYTEST;
-    this.hotkeys.setGroup(HotkeyGroup.PLAYTEST);
     this.inputController.enterFullControl();
   };
 
   readonly enterEditorMode = () => {
     sendGameClientEvent('we:exitPlaytestMode', '');
     this.mode = WEMode.EDITOR;
-    this.hotkeys.setGroup(HotkeyGroup.EDITOR);
     this.inputController.exitFullControl();
   };
 
@@ -200,30 +250,13 @@ export const WEState = new class WEState {
     this.setEditorSelection({ type: WESelectionType.NONE });
   };
 
-  private hotkeys: Hotkeys | null = null;
   createInputController(container: React.RefObject<HTMLDivElement>) {
-    this.hotkeys = new Hotkeys();
-
     this.inputController = new InputController(container, this.setEditorSelect);
 
     this.inputController.onEscapeFullControl(this.enterEditorMode);
 
     this.inputController.onCameraMovementBaseMultiplierChange((speed: number) => {
       FlashingMessageState.setMessage(`Camera speed: ${(speed * 100) | 0}%`);
-    });
-
-    this.hotkeys.onBeforeHotkey((event) => {
-      switch (event.command) {
-        case HOTKEY_COMMAND.ACTION_ENTER_PLAYTEST_MODE:
-        case HOTKEY_COMMAND.TOOL_ADDITIONS_TOGGLE:
-        case HOTKEY_COMMAND.TOOL_ADD_OBJECT_TOGGLE:
-        case HOTKEY_COMMAND.TOOL_PATCHES_TOGGLE:
-        case HOTKEY_COMMAND.TOOL_ENVIRONMENT_TOGGLE: {
-          this.inputController.deactivateCameraControl();
-
-          break;
-        }
-      }
     });
   }
 
@@ -234,19 +267,6 @@ export const WEState = new class WEState {
       this.inputController.destroy();
       this.inputController = undefined;
     }
-
-    if (this.hotkeys) {
-      this.hotkeys.destroy();
-      this.hotkeys = null;
-    }
-  }
-
-  overrideInput() {
-    if (!this.inputController) {
-      return noop;
-    }
-
-    return this.inputController.overrideInput();
   }
 
   private updateEditorControls() {

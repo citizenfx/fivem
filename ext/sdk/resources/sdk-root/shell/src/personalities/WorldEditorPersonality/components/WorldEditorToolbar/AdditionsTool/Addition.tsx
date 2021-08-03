@@ -24,12 +24,6 @@ export const Addition = observer(function Addition(props: AdditionProps) {
 
   const [editing, enterEditing, exitEditing] = useOpenFlag(false);
 
-  React.useEffect(() => {
-    if (editing) {
-      return WEState.overrideInput();
-    }
-  }, [editing]);
-
   const handleClick = React.useCallback(() => {
     WEState.setEditorSelection({
       type: WESelectionType.ADDITION,
