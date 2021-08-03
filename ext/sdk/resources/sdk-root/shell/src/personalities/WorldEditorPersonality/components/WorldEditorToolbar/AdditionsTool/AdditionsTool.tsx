@@ -1,7 +1,6 @@
 import React from 'react';
 import classnames from 'classnames';
-import { FiBox } from 'react-icons/fi';
-import { WETool, WEToolbarState } from '../../../store/WEToolbarState';
+import { WETool } from '../../../store/WEToolbarState';
 import { BaseTool } from '../BaseTool/BaseTool';
 import { useOpenFlag } from 'utils/hooks';
 import { WEState } from 'personalities/WorldEditorPersonality/store/WEState';
@@ -29,12 +28,6 @@ export const AdditionsTool = observer(function AdditionsTool() {
       WEState.map.createAdditionGroup(newGroupName);
     }
   }, [closeGroupCreator]);
-
-  React.useEffect(() => {
-    if (groupCreatorOpen) {
-      return WEState.overrideInput();
-    }
-  }, [groupCreatorOpen]);
 
   const [{ isDropping }, dropRef] = useDrop({
     accept: ADDITION_DND_TYPES.ADDITION,
@@ -68,15 +61,7 @@ export const AdditionsTool = observer(function AdditionsTool() {
   const hasGroups = Object.keys(WEState.map.additionGroups).length > 0;
   const hasAdditions = Object.keys(WEState.map.additions).length > 0;
 
-  const showPlaceholder = !hasGroups || !hasAdditions;
-  let placeholder;
-  switch (true) {
-    case !hasGroups && !hasAdditions: {
-      placeholder = 'Create addition by clicking plus button above';
-
-      break;
-    }
-  }
+  const showPlaceholder = !hasGroups && !hasAdditions;
 
   return (
     <BaseTool
@@ -117,7 +102,7 @@ export const AdditionsTool = observer(function AdditionsTool() {
 
         {showPlaceholder && (
           <div className={s.placeholder}>
-            {placeholder}
+            Create addition by clicking plus button above
           </div>
         )}
 

@@ -97,13 +97,15 @@
     padding: $q/1.5 $q*2;
 
     font-size: $fs08;
-    font-weight: 500;
+    font-weight: 100;
+    letter-spacing: .5px;
 
-    color: $bgColor;
-    background-color: $fgColor;
+    color: $fgColor;
+    background-color: mix($bgColor, $fgColor, 75%);
 
     border-radius: 2px;
 
-    box-shadow: 0 -2px rgba($bgColor, .5) inset, 0 0 5px rgba($bgColor, .25);
+    text-shadow: 0 1px 1px $bgColor;
+    box-shadow: 0 -1px rgba($bgColor, .5) inset, 0 1px rgba($fgColor, .25) inset, 0 0 5px rgba($bgColor, .25);
   }
 }

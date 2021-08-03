@@ -1,5 +1,24 @@
 @import "../../vars.scss";
 
+.root {
+  position: fixed;
+
+  top: 0;
+  left: 0;
+
+  width: 0;
+  height: 0;
+
+  z-index: 1;
+
+  &.hidden {
+    .hideable {
+      opacity: 0;
+      transition: opacity .2s ease;
+    }
+  }
+}
+
 .top-left {
   position: fixed;
 

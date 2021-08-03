@@ -1,9 +1,9 @@
 import { joaatUint32 } from "../shared";
 import { CameraManager } from "./camera-manager";
 import { WEEntityMatrixIndex, WEMapAddition } from "./map-types";
-import { applyEntityMatrix } from "./math";
+import { applyAdditionMatrix, applyEntityMatrix, eulerFromMatrix } from "./math";
 import { Sector, SectorId } from "./sector";
-import { Memoizer } from "./utils";
+import { drawDebugText, Memoizer } from "./utils";
 
 const mdlHashCache = {};
 function getAdditionModelHash(mdl: string | number): number {
@@ -30,6 +30,7 @@ type Handle =
   | number
   | symbol;
 
+export type ObjectCreatedListener = (additionId: AdditionId, handle: number) => void;
 export class ObjectManager {
   private activeHandles: Record<AdditionId, Handle> = {};
   private activeHandlesToAdditionIdMap: Record<Handle, AdditionId> = {};
@@ -38,6 +39,8 @@ export class ObjectManager {
   private activeSectors: SectorId[] = [];
   private activeSectorsMemoizer = new Memoizer(this.activeSectors);
   private additionSectors: Record<AdditionId, SectorId> = {};
+
+  private createEventListeners: ObjectCreatedListener[] = [];
 
   constructor(
     private additions: Record<AdditionId, WEMapAddition>,
@@ -48,6 +51,18 @@ export class ObjectManager {
         getAdditionSectorId(addition),
       );
     });
+  }
+
+  destroy() {
+    for (const handle of Object.values(this.activeHandles)) {
+      if (typeof handle === 'number') {
+        DeleteObject(handle);
+      }
+    }
+  }
+
+  onObjectCreated(cb: ObjectCreatedListener) {
+    this.createEventListeners.push(cb);
   }
 
   isAddition(handle: number): boolean {
@@ -135,17 +150,15 @@ export class ObjectManager {
           if (HasModelLoaded(mdlHash)) {
             const handle = CreateObject(mdlHash, mat[12], mat[13], mat[14], false, false, false);
 
+            FreezeEntityPosition(handle, true);
+
             SetModelAsNoLongerNeeded(mdlHash);
 
-            SetEntityMatrix(
-              handle,
-              mat[4], mat[5], mat[6], // right
-              mat[0], mat[1], mat[2], // forward
-              mat[8], mat[9], mat[10], // up
-              mat[12], mat[13], mat[14], // at
-            );
+            applyAdditionMatrix(handle, mat);
 
             this.updateHandle(additionId, sectorId, handle);
+
+            this.createEventListeners.forEach((cb) => cb(additionId, handle));
           }
           break;
         }

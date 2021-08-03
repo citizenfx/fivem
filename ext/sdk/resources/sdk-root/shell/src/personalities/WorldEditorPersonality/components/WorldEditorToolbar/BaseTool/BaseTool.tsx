@@ -1,9 +1,10 @@
 import React from 'react';
 import classnames from 'classnames';
 import { observer } from 'mobx-react-lite';
-import { TOOL_SIDE, WETool, WEToolbarState } from '../../../store/WEToolbarState';
+import { getToolCommand, getToolSide, WETool, WEToolbarState } from '../../../store/WEToolbarState';
 import s from './BaseTool.module.scss';
 import { Title } from 'components/controls/Title/Title';
+import { WEHotkeysState } from 'personalities/WorldEditorPersonality/store/WEHotkeysState';
 
 export interface BaseToolProps {
   tool: WETool,
@@ -33,14 +34,14 @@ export const BaseTool = observer(function BaseTool(props: BaseToolProps) {
 
   const toolIsOpen = WEToolbarState.isToolOpen(tool);
 
-  const toggleClassName = classnames(s.toggle, s.hoverable, s.labelled, tClassName, {
+  const toggleClassName = classnames(s.toggle, s.hoverable, tClassName, {
     [s.active]: toolIsOpen,
     [s.highlight]: highlight,
   });
 
   const panelClassName = classnames(s.panel, pClassName, {
     [s.active]: toolIsOpen,
-    [s.right]: TOOL_SIDE[tool] === 'right',
+    [s.right]: getToolSide(tool) === 'right',
   });
 
   let childrenNode = null;
@@ -52,9 +53,14 @@ export const BaseTool = observer(function BaseTool(props: BaseToolProps) {
     );
   }
 
+  const toolCommand = getToolCommand(tool);
+  const shortcut = toolCommand
+    ? WEHotkeysState.getCommandHotkey(toolCommand)
+    : '';
+
   return (
     <>
-      <Title animated={false} title={label} delay={0} fixedOn="top">
+      <Title animated={false} title={label} delay={0} fixedOn="top" shortcut={shortcut}>
         {(ref) => (
           <button
             ref={ref}

@@ -44,7 +44,11 @@ export function NumberInput(props: NumberInputProps) {
     ? value
     : limitPrecision(value);
 
+  const inputRef = React.useRef<HTMLInputElement>();
   const modifiersRef = React.useRef(DEFAULT_MODIFIERS_STATE);
+
+  const mouseDownRef = React.useRef(false);
+  const mouseLockRef = React.useRef(false);
 
   const handleKeyDown = (event: KeyboardEvent) => {
     switch (event.key) {
@@ -73,17 +77,65 @@ export function NumberInput(props: NumberInputProps) {
     event.stopPropagation();
   };
 
+  const handleMouseDown = () => {
+    if (!inputRef.current) {
+      return;
+    }
+
+    mouseDownRef.current = true;
+  };
+
+  const handleMouseMove = ({ movementX }) => {
+    if (!mouseDownRef.current) {
+      return;
+    }
+
+    if (!mouseLockRef.current) {
+      mouseLockRef.current = true;
+      inputRef.current.requestPointerLock();
+    } else if (Math.abs(movementX) < 1000) {
+      onChange(value + movementX * 0.01);
+    }
+  };
+
+  const handleMouseUp = () => {
+    if (!inputRef.current) {
+      return;
+    }
+
+    if (!mouseDownRef.current) {
+      return;
+    }
+
+    mouseDownRef.current = false;
+
+    if (mouseLockRef.current) {
+      inputRef.current.blur();
+      mouseLockRef.current = false;
+      document.exitPointerLock();
+    }
+  };
+
+  const handleWheel = ({ deltaY }) => {
+    onChange(value + deltaY * 0.001);
+  };
+
   return (
     <div className={classnames(s.root, className)}>
       <div className={s.label}>
         {label}
       </div>
       <input
+        ref={inputRef}
         type="text"
         value={valueNumber}
         onChange={({ target: { value } }) => onChange(parseFloat(value))}
         onKeyDown={handleKeyDown as any}
         onKeyUp={handleKeyUp as any}
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
+        onMouseMove={handleMouseMove}
+        onWheel={handleWheel}
       />
     </div>
   );

@@ -1,4 +1,6 @@
 import { makeAutoObservable } from "mobx";
+import { registerInterruptingCommandBinding } from "../command-bindings";
+import { WECommand, WECommandScope, WECommandType } from "../constants/commands";
 
 export enum WETool {
   Patches,
@@ -16,17 +18,25 @@ export enum WEToolSide {
   RIGHT = 'right',
 }
 
-export const TOOL_SIDE: Record<WETool, WEToolSide> = {
-  [WETool.Patches]: WEToolSide.LEFT_TOP,
-  [WETool.Additions]: WEToolSide.LEFT_TOP,
-  [WETool.AddObject]: WEToolSide.LEFT_TOP,
+export const TOOL_CONFIG: Record<WETool, { side: WEToolSide, command?: WECommandType }> = {
+  [WETool.Patches]: { side: WEToolSide.LEFT_TOP, command: WECommand.TOOL_PATCHES_TOGGLE },
+  [WETool.Additions]: { side: WEToolSide.LEFT_TOP, command: WECommand.TOOL_ADDITIONS_TOGGLE },
+  [WETool.AddObject]: { side: WEToolSide.LEFT_TOP, command: WECommand.TOOL_ADD_OBJECT_TOGGLE },
 
-  [WETool.Properties]: WEToolSide.LEFT_BOTTOM,
+  [WETool.Properties]: { side: WEToolSide.LEFT_BOTTOM },
 
-  [WETool.Settings]: WEToolSide.RIGHT,
-  [WETool.Environment]: WEToolSide.RIGHT,
-  [WETool.StatusCenter]: WEToolSide.RIGHT,
+  [WETool.Settings]: { side: WEToolSide.RIGHT },
+  [WETool.Environment]: { side: WEToolSide.RIGHT, command: WECommand.TOOL_ENVIRONMENT_TOGGLE },
+  [WETool.StatusCenter]: { side: WEToolSide.RIGHT },
 };
+
+export function getToolSide(tool: WETool): WEToolSide {
+  return TOOL_CONFIG[tool].side;
+}
+
+export function getToolCommand(tool: WETool): WECommandType | void {
+  return TOOL_CONFIG[tool].command;
+}
 
 export const WEToolbarState = new class WEToolbarState {
   private activeTool: Record<WEToolSide, WETool | null> = {
@@ -37,6 +47,34 @@ export const WEToolbarState = new class WEToolbarState {
 
   constructor() {
     makeAutoObservable(this);
+
+    this.bindCommands();
+  }
+
+  private bindCommands() {
+    registerInterruptingCommandBinding({
+      command: WECommand.TOOL_PATCHES_TOGGLE,
+      scope: WECommandScope.EDITOR,
+      execute: () => this.toggleTool(WETool.Patches),
+    }, { code: 'F1' });
+
+    registerInterruptingCommandBinding({
+      command: WECommand.TOOL_ADDITIONS_TOGGLE,
+      scope: WECommandScope.EDITOR,
+      execute: () => this.toggleTool(WETool.Additions),
+    }, { code: 'F2' });
+
+    registerInterruptingCommandBinding({
+      command: WECommand.TOOL_ADD_OBJECT_TOGGLE,
+      scope: WECommandScope.EDITOR,
+      execute: () => this.toggleTool(WETool.AddObject),
+    }, { code: 'KeyA', ctrl: true });
+
+    registerInterruptingCommandBinding({
+      command: WECommand.TOOL_ENVIRONMENT_TOGGLE,
+      scope: WECommandScope.EDITOR,
+      execute: () => this.toggleTool(WETool.Environment),
+    }, { code: 'F12' });
   }
 
   isSideActive(side: WEToolSide): boolean {
@@ -44,15 +82,15 @@ export const WEToolbarState = new class WEToolbarState {
   }
 
   isToolOpen(tool: WETool): boolean {
-    return this.activeTool[TOOL_SIDE[tool]] === tool;
+    return this.activeTool[getToolSide(tool)] === tool;
   }
 
   openTool(tool: WETool) {
-    this.activeTool[TOOL_SIDE[tool]] = tool;
+    this.activeTool[getToolSide(tool)] = tool;
   }
 
   closeTool(tool: WETool) {
-    this.activeTool[TOOL_SIDE[tool]] = null;
+    this.activeTool[getToolSide(tool)] = null;
   }
 
   toggleTool(tool: WETool) {

@@ -23,15 +23,15 @@
     chalk "^2.0.0"
     js-tokens "^4.0.0"
 
-"@citizenfx/client@^2.0.3882-1":
-  version "2.0.3882-1"
-  resolved "https://registry.yarnpkg.com/@citizenfx/client/-/client-2.0.3882-1.tgz#d27c502c70be9337cc178baf9efc25512dac8466"
-  integrity sha512-CIta4FCjrwXFmUgLgWqcDonv60fOUiCBeRvwieQVt2xsbcA7VchSRp7hEEIqGv4xQEEOiXOHZUWQiSV+b+7Neg==
+"@citizenfx/client@^2.0.4278-1":
+  version "2.0.4278-1"
+  resolved "https://registry.yarnpkg.com/@citizenfx/client/-/client-2.0.4278-1.tgz#61f1874e5adec45aec9d7c9d2999fc680adc07e1"
+  integrity sha512-zfZ6qfdXyqecy74FPM35WbozS9NBaCzrNX2czgRZVaFX3fAS+AmceDEyt+dTsyQpkjxjnQeYjlXjdKI4KmB1SA==
 
-"@citizenfx/server@^2.0.3882-1":
-  version "2.0.3882-1"
-  resolved "https://registry.yarnpkg.com/@citizenfx/server/-/server-2.0.3882-1.tgz#97698232859f906c4b19f480f0431b2b7da5af59"
-  integrity sha512-H+8wercz4IkCJv8IW9oYd+IzoKFqPnnOMOHD69mkjFd7TRr0AQxCCSogmlOGlctExN+25BhxUltThXYuZXH+Uw==
+"@citizenfx/server@^2.0.4278-1":
+  version "2.0.4278-1"
+  resolved "https://registry.yarnpkg.com/@citizenfx/server/-/server-2.0.4278-1.tgz#5403dfe6af5e1e5cd63edf5fa40192376ef5c9d3"
+  integrity sha512-p8BLSK3OVG9F/ecEDCqN4Wq6Klr1PhyhWmBZApuBJ3M6G75En2nwwYR8tnudWnX80dTgr7fZmJtSFsLcI10f8w==
 
 "@types/node@^15.0.0":
   version "15.0.0"

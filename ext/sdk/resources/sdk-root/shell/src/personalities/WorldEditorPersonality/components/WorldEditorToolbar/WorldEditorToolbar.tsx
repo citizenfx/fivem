@@ -1,15 +1,13 @@
 import React from 'react';
 import { observer } from "mobx-react-lite";
 import classnames from 'classnames';
-import { WEState } from '../../store/WEState';
+import { WEMode, WEState } from '../../store/WEState';
 import { StatusTool } from './StatusTool/StatusTool';
 import { ModeSelector } from './ModeSelector/ModeSelector';
 import { GameState } from 'store/GameState';
 import { PatchesTool } from './PatchesTool/PatchesTool';
 import { AdditionsTool } from './AdditionsTool/AdditionsTool';
 import { AddObjectTool } from './AddObjectTool/AddObjectTool';
-import s from './WorldEditorToolbar.module.scss';
-import sBaseTool from './BaseTool/BaseTool.module.scss';
 import { closeIcon } from 'constants/icons';
 import { ActiveSelectionTool } from './ActiveSelectionTool/ActiveSelectionTool';
 import { EnvironmentTool } from './EnvironmentTool/EnvironmentTool';
@@ -18,6 +16,10 @@ import { FlashingMessage } from './FlashingMessage/FlashingMessage';
 import { PropertiesTool } from './PropertiesTool/PropertiesTool';
 import { SettingsTool } from './SettingsTool/SettingsTool';
 import { Title } from 'components/controls/Title/Title';
+import { PlayButton } from './PlayButton/PlayButton';
+import { PlayExitMessage } from './PlayExitMessage/PlayExitMessage';
+import s from './WorldEditorToolbar.module.scss';
+import sBaseTool from './BaseTool/BaseTool.module.scss';
 
 function CloseButton() {
   const rootClassName = classnames(sBaseTool.toggle, sBaseTool.labelled, sBaseTool.hoverable);
@@ -40,9 +42,15 @@ function CloseButton() {
 export const WorldEditorToolbar = observer(function WorldEditorToolbar() {
   const showControls = WEState.ready && !GameState.archetypesCollectionPending;
 
+  const rootClassName = classnames(s.root, {
+    [s.hidden]: WEState.mode === WEMode.PLAYTEST,
+  });
+
   return (
-    <>
-      <div className={s['top-left']}>
+    <div className={rootClassName}>
+      <PlayExitMessage />
+
+      <div className={classnames(s['top-left'], s.hideable)}>
         {!!WEState.map && showControls && (
           <>
             <PatchesTool />
@@ -57,19 +65,22 @@ export const WorldEditorToolbar = observer(function WorldEditorToolbar() {
         {/* <DebugRestartSdkGameTool /> */}
       </div>
 
-      <div className={s['top-center']}>
+      <div className={classnames(s['top-center'], s.hideable)}>
         <ActiveSelectionTool />
       </div>
 
       <FlashingMessage />
 
-      <div className={s['top-right']}>
+      <div className={classnames(s['top-right'], s.hideable)}>
         {showControls && (
-          <SettingsTool />
-        )}
+          <>
+            <PlayButton />
 
-        {showControls && (
-          <EnvironmentTool />
+            <div /> {/* gap */}
+
+            <SettingsTool />
+            <EnvironmentTool />
+          </>
         )}
 
         <div /> {/* gap */}
@@ -79,17 +90,17 @@ export const WorldEditorToolbar = observer(function WorldEditorToolbar() {
         <CloseButton />
       </div>
 
-      <div className={s['left-bottom']}>
+      <div className={classnames(s['left-bottom'], s.hideable)}>
         {!!WEState.map && showControls && (
           <PropertiesTool />
         )}
       </div>
 
-      <div className={s.bottom}>
+      <div className={classnames(s['bottom'], s.hideable)}>
         {showControls && (
           <ModeSelector />
         )}
       </div>
-    </>
+    </div>
   );
 });

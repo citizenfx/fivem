@@ -53,7 +53,7 @@ export enum WESelectionType {
   PATCH,
   ADDITION,
 }
-export type WESetSelectionRequest =
+export type WESelection =
   | { type: WESelectionType.NONE }
   | { type: WESelectionType.PATCH, mapdata: number, entity: number, label: string }
   | { type: WESelectionType.ADDITION, id: string };
@@ -141,7 +141,11 @@ export interface WEMap {
 
 export interface WESettings {
   mouseSensetivity: number,
+  cameraAboveTheGround: boolean,
   showSelectionBoundingBox: boolean,
+
+  playtestSpawnInVehicle: boolean,
+  playtestVehicleName: string,
 }
 
 export type WESettingsChangeRequest = Partial<WESettings>;

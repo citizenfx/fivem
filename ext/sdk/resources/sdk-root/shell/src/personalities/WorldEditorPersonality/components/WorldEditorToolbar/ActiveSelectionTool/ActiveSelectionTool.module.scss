@@ -34,6 +34,10 @@
     color: $fgColor;
 
     font-size: $fs08;
+
+    max-width: 100%;
+
+    @include ellipsis;
   }
 
   .clear {

@@ -12,6 +12,8 @@ import s from './PropertiesTool.module.scss';
 import { ConfirmationsState } from 'store/ConfirmationsState';
 import { deleteIcon } from 'constants/icons';
 import { Title } from 'components/controls/Title/Title';
+import { WEHotkeysState } from 'personalities/WorldEditorPersonality/store/WEHotkeysState';
+import { WECommand } from 'personalities/WorldEditorPersonality/constants/commands';
 
 const Header = div(s, 'header');
 const Name = div(s, 'name');
@@ -82,7 +84,13 @@ export const AdditionProprties = observer(function AdditionProprties(props: Addi
             {translateIcon} Position:
           </Label>
           <Controls>
-            <Title delay={0} animated={false} fixedOn="right" title="Set on ground">
+            <Title
+              delay={0}
+              animated={false}
+              fixedOn="right"
+              title="Set on ground"
+              shortcut={WEHotkeysState.getCommandHotkey(WECommand.ACTION_SET_ADDITION_ON_GROUND)}
+            >
               {(ref) => (
                 <button
                   ref={ref}

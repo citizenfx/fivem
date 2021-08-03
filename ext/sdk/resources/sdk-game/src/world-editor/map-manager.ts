@@ -13,27 +13,46 @@ import {
   WEMapPatch,
   WESelectionType,
   WESetAdditionRequest,
-  WESetSelectionRequest,
+  WESelection,
 } from "./map-types";
-import { applyEntityMatrix, limitPrecision, makeEntityMatrix } from "./math";
+import { applyAdditionMatrix, applyEntityMatrix, limitPrecision, makeEntityMatrix, Vec3 } from "./math";
 import { ObjectManager } from "./object-manager";
 import { SelectionController } from "./selection-controller";
 import { SettingsManager } from "./settings-manager";
 import { drawDebugText } from "./utils";
 
 export const MapManager = new class MapManager {
+  private enabled = true;
+
   private map: WEMap | null = null;
   private activeMapdatas: number[] = [];
   private lastCamString: string = '';
   private objects: ObjectManager | null = null;
 
+  public selection: WESelection = { type: WESelectionType.NONE };
+
   private patchBackupMatrices: Record<string, Float32Array> = {};
+
+  enable() {
+    this.enabled = true;
+  }
+
+  disable() {
+    this.enabled = false;
+  }
 
   preinit() {
     EnableEditorRuntime();
 
     on('mapDataLoaded', (mapdata: number) => this.handleMapdataLoaded(mapdata));
     on('mapDataUnloaded', (mapdata: number) => this.handleMapdataUnloaded(mapdata));
+
+    on('we:selection', (req: string) => {
+      this.selection = JSON.parse(req);
+
+      this.prevSelectedEntity = null;
+      SelectionController.setSelectedEntity(null);
+    });
 
     on('we:createAddition', (request: string) => {
       this.handleSpawnObject(JSON.parse(request));
@@ -114,14 +133,16 @@ export const MapManager = new class MapManager {
       this.objects.update();
     }
 
-    const cam = CameraManager.getCamLimitedPrecision();
-    const camString = JSON.stringify(cam);
-    if (camString !== this.lastCamString) {
-      this.lastCamString = camString;
-      sendSdkBackendMessage('we:setCam', cam);
-    }
+    if (this.enabled) {
+      const cam = CameraManager.getCamLimitedPrecision();
+      const camString = JSON.stringify(cam);
+      if (camString !== this.lastCamString) {
+        this.lastCamString = camString;
+        sendSdkBackendMessage('we:setCam', cam);
+      }
 
-    this.updateSelectedEntity();
+      this.updateSelectedEntity();
+    }
   }
 
   private prevSelectedEntity = null;
@@ -137,11 +158,12 @@ export const MapManager = new class MapManager {
 
       if (hasSelectedEntityChanged) {
         if (addition) {
-          sendSdkMessage('we:setSelection', {
+          this.selection = {
             type: WESelectionType.ADDITION,
             id: additionId,
-            label: this.getEntityLabel(selectedEntity),
-          } as WESetSelectionRequest);
+          };
+
+          sendSdkMessage('we:selection', this.selection);
         } else {
           const [success, mapdataHash, entityHash] = GetEntityMapdataOwner(selectedEntity);
           if (success) {
@@ -151,12 +173,16 @@ export const MapManager = new class MapManager {
               this.patchBackupMatrices[key] = entityMatrix;
             }
 
-            sendSdkMessage('we:setSelection', {
+            this.selection = {
               type: WESelectionType.PATCH,
               mapdata: mapdataHash,
               entity: entityHash,
               label: this.getEntityLabel(selectedEntity),
-            } as WESetSelectionRequest);
+            };
+
+            sendSdkMessage('we:selection', this.selection);
+          } else {
+            SelectionController.setSelectedEntity(null);
           }
         }
       }
@@ -177,19 +203,33 @@ export const MapManager = new class MapManager {
       }
 
       if (DrawGizmo(entityMatrix as any, selectedEntity.toString())) {
-        applyEntityMatrix(selectedEntity, entityMatrix);
-
         if (addition) {
+          applyAdditionMatrix(selectedEntity, Array.from(entityMatrix));
           this.updateAddition(additionId, addition, entityMatrix);
         } else {
+          applyEntityMatrix(selectedEntity, entityMatrix);
           this.updatePatch(selectedEntity, entityMatrix);
         }
       }
     } else {
       if (hasSelectedEntityChanged) {
-        sendSdkMessage('we:setSelection', {
+        sendSdkMessage('we:selection', {
           type: WESelectionType.NONE,
-        } as WESetSelectionRequest);
+        } as WESelection);
+      } else {
+        if (this.selection.type === WESelectionType.ADDITION) {
+          const handle = this.objects.getObjectHandle(this.selection.id);
+          if (typeof handle === 'number') {
+            SelectionController.setSelectedEntity(handle);
+          }
+        }
+
+        if (this.selection.type === WESelectionType.PATCH) {
+          const [success, handle] = GetMapdataEntityHandle(this.selection.mapdata, this.selection.entity);
+          if (success) {
+            SelectionController.setSelectedEntity(handle);
+          }
+        }
       }
     }
 
@@ -199,8 +239,12 @@ export const MapManager = new class MapManager {
   destroy() {
     Citizen.invokeNative(joaat('DISABLE_EDITOR_RUNTIME'));
 
+    if (this.objects) {
+      this.objects.destroy();
+      this.objects = null;
+    }
+
     this.map = null;
-    this.objects = null;
     this.activeMapdatas = [];
   }
 
@@ -379,6 +423,11 @@ export const MapManager = new class MapManager {
     CameraManager.setCam(this.map.meta.cam);
 
     this.objects = new ObjectManager(this.map.additions);
+    this.objects.onObjectCreated((additionId: string, handle: number) => {
+      if (this.selection.type === WESelectionType.ADDITION && this.selection.id === additionId) {
+        SelectionController.setSelectedEntity(handle);
+      }
+    });
 
     if (this.activeMapdatas.length) {
       for (const mapdata of this.activeMapdatas) {
@@ -466,9 +515,24 @@ function applyMapdataPatch(mapdata: number, entity: number, mat: Float32Array | 
 }
 
 function getObjectPosition() {
-  const fw = CameraManager.getForwardVector().copy().mult(5);
+  const cp = CameraManager.getPosition();
+  const fw = CameraManager.getForwardVector().copy().mult(100);
 
-  return CameraManager.getPosition().copy().add(fw);
+  const rh = StartExpensiveSynchronousShapeTestLosProbe(
+    cp.x, cp.y, cp.z,
+    cp.x + fw.x, cp.y + fw.y, cp.z + fw.z,
+    1 | 16 | 256,
+    0,
+    4,
+  );
+
+  const [, hit, endCoords] = GetShapeTestResult(rh);
+
+  if (hit) {
+    return new Vec3(endCoords[0], endCoords[1], endCoords[2]);
+  }
+
+  return CameraManager.getPosition().copy().add(CameraManager.getForwardVector().copy().mult(3));
 }
 
 function prepareEntityMatrix(mat: Float32Array | WEEntityMatrix): WEEntityMatrix {

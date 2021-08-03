@@ -29,25 +29,24 @@ export class Sector {
         return Sector.spatialIdFromCoord(x) * 1000 + Sector.spatialIdFromCoord(y);
     }
 
-    static affectedSectorIdsFromCoords(x: number, y: number, r: number = 50): SectorId[] {
-        const boundingSectorIds: { [key: string]: boolean } = {
-          [Sector.idFromCoords(x, y)]: true,
-        };
+    static affectedSectorIdsFromCoords(x: number, y: number, r: number = SectorSize/2): SectorId[] {
+        const sectors: { [key: string]: boolean } = {};
 
-        // Top Left
-        boundingSectorIds[Sector.idFromCoords(x - r, y - r)] = true;
+        // top left                   top center                  top right
+        addSector(sectors, x-r, y-r); addSector(sectors, x, y-r); addSector(sectors, x+r, y-r);
 
-        // Top Right
-        boundingSectorIds[Sector.idFromCoords(x + r, y - r)] = true;
+        // center left                center center               center right
+        addSector(sectors, x-r, y);   addSector(sectors, x, y);   addSector(sectors, x+r, y);
 
-        // Bottom Left
-        boundingSectorIds[Sector.idFromCoords(x - r, y + r)] = true;
+        // bottom left                bottom center               bottom right
+        addSector(sectors, x-r, y+r); addSector(sectors, x, y+r); addSector(sectors, x+r, y+r);
 
-        // Bottom Right
-        boundingSectorIds[Sector.idFromCoords(x + r, y + r)] = true;
-
-        return Object.keys(boundingSectorIds).map(stringToSectorId);
+        return Object.keys(sectors).map(stringToSectorId);
     }
+}
+
+function addSector(sectors: { [key: string]: boolean }, x: number, y: number) {
+  sectors[Sector.idFromCoords(x, y)] = true;
 }
 
 function stringToSectorId(str: string): SectorId {
