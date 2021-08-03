@@ -117,7 +117,6 @@ private:
 StateBagImpl::StateBagImpl(StateBagComponentImpl* parent, std::string_view id)
 	: m_parent(parent), m_id(id)
 {
-	
 }
 
 StateBagImpl::~StateBagImpl()
@@ -162,6 +161,8 @@ void StateBagImpl::SetKey(std::string_view key, std::string_view data, bool repl
 			SendKeyAll(key);
 		}
 	}
+
+	m_parent->eventManager->QueueEvent2("__cfx_internal:stateBagSetKey", {}, m_id, std::string{ key });
 }
 
 std::optional<int> StateBagImpl::GetOwningPeer()
@@ -426,7 +427,7 @@ std::shared_ptr<StateBag> StateBagComponentImpl::PreCreateStateBag(std::string_v
 
 void StateBagComponentImpl::AttachToObject(fx::ResourceManager* object)
 {
-
+	eventManager = object->GetComponent<fx::ResourceEventManagerComponent>();
 }
 
 void StateBagComponentImpl::HandlePacket(int source, std::string_view dataRaw)

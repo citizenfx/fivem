@@ -1,6 +1,8 @@
 #pragma once
 
 #include <ComponentHolder.h>
+#include <ResourceManager.h>
+#include <ResourceEventComponent.h>
 
 #include <optional>
 #include <string_view>
@@ -13,7 +15,6 @@
 
 namespace fx
 {
-class ResourceManager;
 
 class StateBagGameInterface
 {
@@ -114,6 +115,7 @@ public:
 
 public:
 	static fwRefContainer<StateBagComponent> Create(StateBagRole role);
+	fwRefContainer<fx::ResourceEventManagerComponent> eventManager;
 };
 }
 
