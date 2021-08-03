@@ -2028,4 +2028,7 @@ static HookFunction hookFunction([] ()
 
 	// prevent the render thread from knowing present is occluded
 	hook::nop(hook::get_pattern("3D 01 00 7A 08 0F 94"), 5 + 7);
+
+	// dumb render thread sleep
+	*hook::get_address<bool*>(hook::get_pattern("75 08 8D 48 61 E8", -0x18)) = false;
 });
