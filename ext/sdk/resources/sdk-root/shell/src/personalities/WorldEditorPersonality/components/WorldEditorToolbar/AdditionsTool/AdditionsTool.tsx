@@ -61,15 +61,7 @@ export const AdditionsTool = observer(function AdditionsTool() {
   const hasGroups = Object.keys(WEState.map.additionGroups).length > 0;
   const hasAdditions = Object.keys(WEState.map.additions).length > 0;
 
-  const showPlaceholder = !hasGroups || !hasAdditions;
-  let placeholder;
-  switch (true) {
-    case !hasGroups && !hasAdditions: {
-      placeholder = 'Create addition by clicking plus button above';
-
-      break;
-    }
-  }
+  const showPlaceholder = !hasGroups && !hasAdditions;
 
   return (
     <BaseTool
@@ -110,7 +102,7 @@ export const AdditionsTool = observer(function AdditionsTool() {
 
         {showPlaceholder && (
           <div className={s.placeholder}>
-            {placeholder}
+            Create addition by clicking plus button above
           </div>
         )}
 

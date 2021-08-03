@@ -1,6 +1,7 @@
 /// <reference types="react-scripts" />
 
-import { string } from "yargs";
+// So, yeah, TS needs import for this file to work, yay
+import "react";
 
 declare namespace JSX {
   interface IntrinsicElements {

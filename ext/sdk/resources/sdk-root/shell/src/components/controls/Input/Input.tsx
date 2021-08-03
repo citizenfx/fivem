@@ -56,8 +56,6 @@ export const Input = React.memo(function Input(props: InputProps) {
   const handleChange = React.useCallback((event) => {
     const { value } = event.target;
 
-    console.log('ye fuck?', value);
-
     if (pattern && value) {
       if (pattern.test(value)) {
         onChange(value);

@@ -56,37 +56,25 @@ export const WEToolbarState = new class WEToolbarState {
       command: WECommand.TOOL_PATCHES_TOGGLE,
       scope: WECommandScope.EDITOR,
       execute: () => this.toggleTool(WETool.Patches),
-    }, {
-      code: 'KeyQ',
-      ctrl: true,
-    });
+    }, { code: 'F1' });
 
     registerInterruptingCommandBinding({
       command: WECommand.TOOL_ADDITIONS_TOGGLE,
       scope: WECommandScope.EDITOR,
       execute: () => this.toggleTool(WETool.Additions),
-    }, {
-      code: 'KeyW',
-      ctrl: true,
-    });
+    }, { code: 'F2' });
 
     registerInterruptingCommandBinding({
       command: WECommand.TOOL_ADD_OBJECT_TOGGLE,
       scope: WECommandScope.EDITOR,
       execute: () => this.toggleTool(WETool.AddObject),
-    }, {
-      code: 'KeyA',
-      ctrl: true,
-    });
+    }, { code: 'KeyA', ctrl: true });
 
     registerInterruptingCommandBinding({
       command: WECommand.TOOL_ENVIRONMENT_TOGGLE,
       scope: WECommandScope.EDITOR,
       execute: () => this.toggleTool(WETool.Environment),
-    }, {
-      code: 'KeyE',
-      ctrl: true,
-    });
+    }, { code: 'F12' });
   }
 
   isSideActive(side: WEToolSide): boolean {

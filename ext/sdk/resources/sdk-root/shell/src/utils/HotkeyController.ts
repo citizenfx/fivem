@@ -1,3 +1,18 @@
+const codeMap = {
+  Escape: 'ESC',
+  ShiftLeft: 'Shift',
+  ShiftRight: 'Shift',
+  AltLeft: 'Alt',
+  AltRight: 'Alt',
+  ControlLeft: 'Ctrl',
+  ControlRight: 'Ctrl',
+
+  ArrowUp: '↑',
+  ArrowDown: '↓',
+  ArrowLeft: '←',
+  ArrowRight: '→',
+};
+
 export type HotkeyScope =
   | string
   | number
@@ -74,7 +89,7 @@ export class HotkeyController {
 
     this.applyModifiers(event);
 
-    const code = getLowerCase(codeMap[event.code] || event.code);
+    const code = this.getCode(event);
 
     if (!active) {
       this.codeState[code] = false;
@@ -153,7 +168,7 @@ export class HotkeyController {
     this.codeMap = {};
 
     for (const binding of this.bindings) {
-      const code = getLowerCase(binding.code);
+      const code = getLowerCase(codeMap[binding.code] || binding.code);
 
       if (!this.codeMap[code]) {
         this.codeMap[code] = [];
@@ -211,33 +226,28 @@ export function getPrintableKeystroke(keystroke: Keystroke): string {
   const parts = [];
 
   if (keystroke.alt) {
-    parts.push('alt');
+    parts.push('Alt');
   }
   if (keystroke.ctrl) {
-    parts.push('ctrl');
+    parts.push('Ctrl');
   }
   if (keystroke.shift) {
-    parts.push('shift');
+    parts.push('Shift');
   }
 
   parts.push(
-    getPrintableCode(keystroke.code) || codeMap[keystroke.code] || keystroke.code,
+    getProperCase(getPrintableCode(keystroke.code) || codeMap[keystroke.code] || keystroke.code),
   );
 
   return parts.join('+');
 }
 
-const codeMap = {
-  Escape: 'ESC',
-  ShiftLeft: 'Shift',
-  ShiftRight: 'Shift',
-  AltLeft: 'Alt',
-  AltRight: 'Alt',
-  ControlLeft: 'Ctrl',
-  ControlRight: 'Ctrl',
-};
-
 const _lowerCaseCache = {};
 function getLowerCase(str: string): string {
   return _lowerCaseCache[str] || (_lowerCaseCache[str] = str.toLowerCase());
+}
+
+const _properCaseCache = {};
+function getProperCase(str: string): string {
+  return _properCaseCache[str] || (_properCaseCache[str] = str[0].toUpperCase() + str.slice(1));
 }

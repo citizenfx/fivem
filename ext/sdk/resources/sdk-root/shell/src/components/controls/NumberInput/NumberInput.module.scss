@@ -36,6 +36,8 @@
     color: $fgColor;
     background-color: rgba($fgColor, .15);
 
+    cursor: ew-resize;
+
     @include interactiveTransition;
 
     &:hover {

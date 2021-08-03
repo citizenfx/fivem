@@ -128,7 +128,7 @@ export const WEState = new class WEState {
       command: WECommand.CONTROL_CLEAR_SELECTION,
       scope: WECommandScope.EDITOR,
       execute: this.clearEditorSelection,
-    }, { code: 'esc' });
+    }, { code: 'Esc' });
 
     registerCommandBinding({
       command: WECommand.ACTION_SET_ADDITION_ON_GROUND,
@@ -138,7 +138,7 @@ export const WEState = new class WEState {
           this.map.setAdditionOnGround(this.selection.id);
         }
       },
-    }, { code: 'KeyS', ctrl: true, shift: true });
+    }, { code: 'KeyS', ctrl: true });
 
     registerCommandBinding({
       command: WECommand.ACTION_ENTER_PLAYTEST_MODE,
