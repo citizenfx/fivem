@@ -261,16 +261,25 @@ DLL_EXPORT uint64_t* getGlobalPtr(int)
 	return dummyGlobal;
 }
 
-// ScriptHookV uses incremental numbers instead of build
-DLL_EXPORT int getGameVersion()
+enum eGameVersion : int
 {
-	if (xbr::IsGameBuild<372>()) return 5;   // VER_1_0_372_2_NOSTEAM
-	if (xbr::IsGameBuild<1604>()) return 47; // VER_1_0_1604_0_NOSTEAM
-	if (xbr::IsGameBuild<2060>()) return 60; // VER_1_0_2060_0_NOSTEAM
-	if (xbr::IsGameBuild<2189>()) return 64; // VER_1_0_2189_0_NOSTEAM
-	if (xbr::IsGameBuild<2372>()) return 70; // VER_1_0_2372_0_NOSTEAM
+	VER_1_0_372_2_NOSTEAM = 5,
+	VER_1_0_1604_0_NOSTEAM = 47,
+	VER_1_0_2060_0_NOSTEAM = 60,
+	VER_1_0_2189_0_NOSTEAM = 64,
+	VER_1_0_2372_0_NOSTEAM = 70,
+};
 
-	return 47; // Default build
+// ScriptHookV uses incremental numbers instead of build
+DLL_EXPORT eGameVersion getGameVersion()
+{
+	if (xbr::IsGameBuild<372>()) return VER_1_0_372_2_NOSTEAM;
+	if (xbr::IsGameBuild<1604>()) return VER_1_0_1604_0_NOSTEAM;
+	if (xbr::IsGameBuild<2060>()) return VER_1_0_2060_0_NOSTEAM;
+	if (xbr::IsGameBuild<2189>()) return VER_1_0_2189_0_NOSTEAM;
+	if (xbr::IsGameBuild<2372>()) return VER_1_0_2372_0_NOSTEAM;
+
+	return VER_1_0_1604_0_NOSTEAM; // Default build
 }
 
 class FishNativeContext : public NativeContext
