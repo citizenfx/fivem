@@ -134,10 +134,7 @@ static InitFunction initfunction([]()
 
 		return true;
 	});
-});
 
-static HookFunction hookFunction([]()
-{
 	nui::RegisterSchemeHandlerFactory("https", "nui-backdrop", Instance<NUISchemeHandlerFactory>::Get());
 });
 #endif
