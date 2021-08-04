@@ -2031,4 +2031,10 @@ static HookFunction hookFunction([] ()
 
 	// dumb render thread sleep
 	*hook::get_address<bool*>(hook::get_pattern("75 08 8D 48 61 E8", -0x18)) = false;
+
+	// set the "don't pause on resize" flag
+	*hook::get_address<bool*>(hook::get_pattern("C6 05 ? ? ? ? 01 4C 8B 10"), 2, 7) = true;
+
+	// and don't unset it
+	hook::nop(hook::get_pattern("7C ? E8 ? ? ? ? 48 8B 5C 24 30 88 05", 12), 6);
 });

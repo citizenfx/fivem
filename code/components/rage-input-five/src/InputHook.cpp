@@ -127,7 +127,7 @@ LRESULT APIENTRY grcWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
 		SetWindowText(FindWindow(L"grcWindow", nullptr), (CfxIsSinglePlayer()) ? L"Grand Theft Auto V (FiveM SP)" : L"FiveM");
 	}
 
-	// don't inform the game of being minimized
+	// inform the game of being minimized
 	static bool minimized = false;
 
 	if (uMsg == WM_SIZE)
@@ -137,7 +137,6 @@ LRESULT APIENTRY grcWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
 			minimized = true;
 
 			Instance<ICoreGameInit>::Get()->SetVariable("gameMinimized");
-			return DefWindowProc(hwnd, uMsg, wParam, lParam);
 		}
 		else if (minimized)
 		{
