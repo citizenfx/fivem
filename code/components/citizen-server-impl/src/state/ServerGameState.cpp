@@ -4374,7 +4374,7 @@ struct CWeaponDamageEvent
 
 void CWeaponDamageEvent::Parse(rl::MessageBuffer& buffer)
 {
-	if (Is2060()) {
+	if (Is2060() && !Is2372()) {
 		buffer.Read<uint16_t>(16);
 	}
 
