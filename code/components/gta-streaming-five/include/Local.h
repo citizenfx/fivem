@@ -1,3 +1,3 @@
 #pragma once
 
-constexpr int kNumWeaponInfoBlobs = 256;
+constexpr int kNumWeaponInfoBlobs = 512;
