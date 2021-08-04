@@ -275,8 +275,15 @@ static InitFunction initFunction([] ()
 						{ "action", "#ErrorAction_TryAgainContactOwner" },
 					}).dump());
 
-					GlobalError("Obtaining configuration from server failed. Error state: %s", std::string{ data, size });
+					static ConVar<bool> streamerMode("ui_streamerMode", ConVar_None, false);
+					std::string errorData = fmt::sprintf(" Error state: %s", std::string{ data, size });
 
+					if (streamerMode.GetValue())
+					{
+						errorData = "";
+					}
+
+					GlobalError("Obtaining configuration from server failed.%s", errorData);
 					return;
 				}
 
