@@ -43,6 +43,10 @@ export const WEHotkeysState = new class WEHotkeysState {
     return getPrintableKeystroke(keystroke);
   }
 
+  getCommandKeystroke(command: WECommandType): Keystroke | void {
+    return this.hotkeys[command] || getCommandBindingKeystroke(command);
+  }
+
   setCommandHotkey(command: WECommandType, keystroke: Keystroke) {
     this.hotkeys[command] = keystroke;
 

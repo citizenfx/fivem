@@ -1,12 +1,13 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
 import classnames from 'classnames';
 import { div } from 'utils/styled';
-import s from './Title.module.scss';
 import { observer } from 'mobx-react-lite';
+import { attachOutlet } from 'utils/outlets';
+import s from './Title.module.scss';
+import { Keystroke } from 'components/display/Keystroke/Keystroke';
 
 const Root = div(s, 'root');
-const Shortcut = div(s, 'shortcut');
+const TitleOutlet = attachOutlet('title-outlet');
 
 type FixedOn =
   | 'top'
@@ -38,13 +39,13 @@ function getCoords(ref: React.RefObject<HTMLElement>, fixedOn: FixedOn): [number
 
   switch (fixedOn) {
     case 'top': {
-      xOffset = x + (width/2);
+      xOffset = x + (width / 2);
       yOffset = y - 10;
       break;
     }
 
     case 'bottom': {
-      xOffset = x + (width/2);
+      xOffset = x + (width / 2);
       yOffset = y + height + 10;
       break;
     }
@@ -56,13 +57,13 @@ function getCoords(ref: React.RefObject<HTMLElement>, fixedOn: FixedOn): [number
 
     case 'left': {
       xOffset = x - 10;
-      yOffset = y + (height/2);
+      yOffset = y + (height / 2);
       break;
     }
 
     case 'right': {
       xOffset = x + width + 10;
-      yOffset = y + (height/2);
+      yOffset = y + (height / 2);
       break;
     }
   }
@@ -100,7 +101,6 @@ export const Title = observer(function Title(props: TitleProps) {
   const ref = React.useRef<HTMLElement | null>(null);
 
   const [active, setActive] = React.useState(false);
-  const [outlet, setOutlet] = React.useState<HTMLElement | null>(null);
   const [coords, setCoords] = React.useState([0, 0]);
 
   const activeRef = React.useRef(active);
@@ -188,32 +188,30 @@ export const Title = observer(function Title(props: TitleProps) {
     };
   }, []);
 
-  React.useLayoutEffect(() => {
-    setOutlet(document.getElementById('title-outlet'));
-  }, []);
-
   let titleNode = null;
-  if (active && outlet) {
+  if (active) {
     const wrapperClassName = classnames(s.wrapper, s[`fixed-on-${fixedOn}`], {
       [s.animated]: animated,
     });
 
-    titleNode = ReactDOM.createPortal(
-      <div
-        className={wrapperClassName}
-        style={getCssStyle(!!fixedOn, delay, coords)}
-      >
-        <Root>
-          {title}
-        </Root>
+    titleNode = (
+      <TitleOutlet>
+        <div
+          className={wrapperClassName}
+          style={getCssStyle(!!fixedOn, delay, coords)}
+        >
+          <Root>
+            {title}
+          </Root>
 
-        {!!shortcut && (
-          <Shortcut>
-            {shortcut}
-          </Shortcut>
-        )}
-      </div>,
-      outlet,
+          {!!shortcut && (
+            <Keystroke
+              combination={shortcut}
+              className={s.shortcut}
+            />
+          )}
+        </div>
+      </TitleOutlet>
     );
   }
 

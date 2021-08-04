@@ -1,4 +1,4 @@
-import { AssetInterface } from "assets/core/asset-interface";
+import { AssetDeployablePathsDescriptor, AssetInterface } from "assets/core/asset-interface";
 import { ApiClientScoped } from "backend/api/api-client-scoped";
 import { ApiContribution } from "backend/api/api-contribution";
 import { FsService } from "backend/fs/fs-service";
@@ -63,6 +63,13 @@ export class FXWorld implements AssetInterface, ApiContribution {
     return {
       name: this.getMapResourceName(),
       path: this.getMapResourcePath(),
+    };
+  }
+
+  async getDeployablePathsDescriptor(): Promise<AssetDeployablePathsDescriptor> {
+    return {
+      root: this.getMapResourcePath(),
+      paths: ['fxmanifest.lua', 'map.js'],
     };
   }
 

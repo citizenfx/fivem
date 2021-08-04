@@ -1,10 +1,11 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
 import classnames from 'classnames';
+import { attachOutlet } from 'utils/outlets';
 import s from './Modal.module.scss';
 
+const ModalOutlet = attachOutlet('modal-outlet');
 
-const noop = () => {};
+const noop = () => { };
 
 export interface ModalProps {
   onClose?: () => void,
@@ -22,12 +23,6 @@ export const Modal = React.memo(function Modal(props: ModalProps) {
     fullHeight = false,
   } = props;
 
-  const [modalOutlet, setModalOutlet] = React.useState<HTMLElement | null>(null);
-
-  React.useLayoutEffect(() => {
-    setModalOutlet(document.getElementById('modal-outlet'));
-  }, []);
-
   React.useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -40,22 +35,19 @@ export const Modal = React.memo(function Modal(props: ModalProps) {
     return () => window.removeEventListener('keydown', handler);
   }, [onClose]);
 
-  if (modalOutlet) {
-    const rootClassName = classnames(s.root, {
-      [s['full-width']]: fullWidth,
-      [s['full-height']]: fullHeight,
-    });
+  const rootClassName = classnames(s.root, {
+    [s['full-width']]: fullWidth,
+    [s['full-height']]: fullHeight,
+  });
 
-    return ReactDOM.createPortal(
+  return (
+    <ModalOutlet>
       <div className={rootClassName}>
-        <div className={s.backdrop} onClick={onClose}/>
+        <div className={s.backdrop} onClick={onClose} />
         <div className={s.content}>
           {children}
         </div>
-      </div>,
-      modalOutlet,
-    );
-  }
-
-  return null;
+      </div>
+    </ModalOutlet>
+  );
 });

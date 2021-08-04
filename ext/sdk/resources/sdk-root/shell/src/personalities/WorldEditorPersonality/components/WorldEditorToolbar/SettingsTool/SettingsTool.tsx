@@ -3,11 +3,15 @@ import { projectSettingsIcon } from 'constants/icons';
 import { observer } from 'mobx-react-lite';
 import { WETool } from 'personalities/WorldEditorPersonality/store/WEToolbarState';
 import { BaseTool } from '../BaseTool/BaseTool';
-import s from './SettingsTool.module.scss';
 import { div } from 'utils/styled';
 import { WESettingsState } from 'personalities/WorldEditorPersonality/store/WESettingsState';
 import { Checkbox } from 'components/controls/Checkbox/Checkbox';
 import { Input } from 'components/controls/Input/Input';
+import { useOpenFlag } from 'utils/hooks';
+import { Button } from 'components/controls/Button/Button';
+import { GoKeyboard } from 'react-icons/go';
+import { Hotkeys } from './Hotkeys/Hotkeys';
+import s from './SettingsTool.module.scss';
 
 const Root = div(s, 'root');
 const Block = div(s, 'block');
@@ -15,6 +19,8 @@ const Label = div(s, 'label');
 const Control = div(s, 'control');
 
 export const SettingsTool = observer(function SettingsTool() {
+  const [hotkeysOpen, openHotkeys, closeHotkeys] = useOpenFlag(false);
+
   return (
     <BaseTool
       tool={WETool.Settings}
@@ -64,6 +70,18 @@ export const SettingsTool = observer(function SettingsTool() {
             onChange={(value) => WESettingsState.setPlaytestVehicleName(value)}
             placeholder="Vehicle model name"
           />
+        </Block>
+
+        <Block>
+          <Button
+            text="Hotkeys"
+            icon={<GoKeyboard />}
+            onClick={openHotkeys}
+          />
+
+          {hotkeysOpen && (
+            <Hotkeys onClose={closeHotkeys} />
+          )}
         </Block>
       </Root>
     </BaseTool>
