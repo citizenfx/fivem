@@ -132,6 +132,8 @@ export const WEState = new class WEState {
 
     registerCommandBinding({
       command: WECommand.ACTION_SET_ADDITION_ON_GROUND,
+      label: 'Set selected addition on ground',
+      configurable: true,
       scope: WECommandScope.EDITOR,
       execute: () => {
         if (this.map && this.selection.type === WESelectionType.ADDITION) {
@@ -142,6 +144,8 @@ export const WEState = new class WEState {
 
     registerCommandBinding({
       command: WECommand.ACTION_ENTER_PLAYTEST_MODE,
+      label: 'Enter play mode',
+      configurable: true,
       scope: WECommandScope.EDITOR,
       execute: this.enterPlaytestMode,
     }, { code: 'F5' });
@@ -158,6 +162,14 @@ export const WEState = new class WEState {
     sendGameClientEvent('we:exitPlaytestMode', '');
     this.mode = WEMode.EDITOR;
     this.inputController.exitFullControl();
+  };
+
+  readonly enterHotkeyConfigurationMode = () => {
+    this.inputController.setScope(WECommandScope.CONFIGURATOR);
+  };
+
+  readonly exitHotkeyConfigurationMode = () => {
+    this.inputController.setScope(WECommandScope.EDITOR);
   };
 
   setCam(cam: number[]) {

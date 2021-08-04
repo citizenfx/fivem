@@ -5,6 +5,9 @@ export type RegisterCommandBindingListener = (binding: HotkeyBinding) => void;
 export interface CommandBinding {
   command: string,
 
+  configurable?: boolean,
+  label?: string,
+
   scope?: HotkeyScope,
   extra?: {
     [key: string]: unknown,
@@ -72,6 +75,18 @@ export function getDefaultCommandBindingKeystroke(command: string): Keystroke | 
 
 export function getAllCommandHotkeyBindings(): HotkeyBinding[] {
   return Object.keys(commandBindings).map(getCommandHotkeyBinding);
+}
+
+export function getAllCommandBindings(): CommandBinding[] {
+  return Object.values(commandBindings);
+}
+
+export function getAllCommands(): string[] {
+  return Object.keys(commandBindings);
+}
+
+export function getCommandBinding(command: string): CommandBinding {
+  return commandBindings[command];
 }
 
 function getCommandHotkeyBinding(command: string): HotkeyBinding {

@@ -9,6 +9,7 @@ export const WECommand = Object.freeze({
   TOOL_ADDITIONS_TOGGLE: 'tool.additions.toggle',
   TOOL_ADD_OBJECT_TOGGLE: 'tool.addObject.toggle',
   TOOL_ENVIRONMENT_TOGGLE: 'tool.environment.toggle',
+  TOOL_SETTINGS_TOGGLE: 'tool.settings.toggle',
 
   CONTROL_COORD_SYSTEM_TOGGLE: 'control.coordSystem.toggle',
   CONTROL_MODE_TRANSLATE_TOGGLE: 'control.mode.translate.toggle',

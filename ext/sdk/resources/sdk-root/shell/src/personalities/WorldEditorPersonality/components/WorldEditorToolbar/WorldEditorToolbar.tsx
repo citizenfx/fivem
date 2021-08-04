@@ -78,8 +78,8 @@ export const WorldEditorToolbar = observer(function WorldEditorToolbar() {
 
             <div /> {/* gap */}
 
-            <SettingsTool />
             <EnvironmentTool />
+            <SettingsTool />
           </>
         )}
 

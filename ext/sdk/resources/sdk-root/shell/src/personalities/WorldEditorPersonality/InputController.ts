@@ -240,9 +240,9 @@ export class InputController {
       return;
     }
 
-    haltEvent(event);
-
-    if (!this.hotkeys.processEvent(event, active)) {
+    if (this.hotkeys.processEvent(event, active)) {
+      haltEvent(event);
+    } else {
       this.applyGameInput(event, active);
     }
   }
@@ -267,6 +267,7 @@ export class InputController {
       case 'ShiftRight':
       case 'AltLeft':
       case 'AltRight':
+        haltEvent(event);
         this.applyKeyState(event, active);
 
         break;

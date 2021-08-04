@@ -265,6 +265,11 @@ export class ProjectBuilder implements ApiContribution {
         deployableResources.map(async ([resourceDescriptor, deployablePathsDescriptorPromise]) => {
           const deployablePathsDescriptor = await deployablePathsDescriptorPromise;
 
+          if (!deployablePathsDescriptor) {
+            this.logService.log(`Skipped deploying of resource as it has no deployable paths descriptor`, resourceDescriptor);
+            return;
+          }
+
           const copyTasks: [string, string][] = [];
           const foldersToCreate: Set<string> = new Set();
 

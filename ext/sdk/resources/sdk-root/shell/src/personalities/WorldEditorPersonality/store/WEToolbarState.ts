@@ -25,7 +25,7 @@ export const TOOL_CONFIG: Record<WETool, { side: WEToolSide, command?: WECommand
 
   [WETool.Properties]: { side: WEToolSide.LEFT_BOTTOM },
 
-  [WETool.Settings]: { side: WEToolSide.RIGHT },
+  [WETool.Settings]: { side: WEToolSide.RIGHT, command: WECommand.TOOL_SETTINGS_TOGGLE },
   [WETool.Environment]: { side: WEToolSide.RIGHT, command: WECommand.TOOL_ENVIRONMENT_TOGGLE },
   [WETool.StatusCenter]: { side: WEToolSide.RIGHT },
 };
@@ -54,26 +54,42 @@ export const WEToolbarState = new class WEToolbarState {
   private bindCommands() {
     registerInterruptingCommandBinding({
       command: WECommand.TOOL_PATCHES_TOGGLE,
+      label: 'Toggle map patches panel',
+      configurable: true,
       scope: WECommandScope.EDITOR,
       execute: () => this.toggleTool(WETool.Patches),
     }, { code: 'F1' });
 
     registerInterruptingCommandBinding({
       command: WECommand.TOOL_ADDITIONS_TOGGLE,
+      label: 'Toggle map additions panel',
+      configurable: true,
       scope: WECommandScope.EDITOR,
       execute: () => this.toggleTool(WETool.Additions),
     }, { code: 'F2' });
 
     registerInterruptingCommandBinding({
       command: WECommand.TOOL_ADD_OBJECT_TOGGLE,
+      label: 'Open object adder',
+      configurable: true,
       scope: WECommandScope.EDITOR,
       execute: () => this.toggleTool(WETool.AddObject),
     }, { code: 'KeyA', ctrl: true });
 
     registerInterruptingCommandBinding({
       command: WECommand.TOOL_ENVIRONMENT_TOGGLE,
+      label: 'Toggle environment settings panel',
+      configurable: true,
       scope: WECommandScope.EDITOR,
       execute: () => this.toggleTool(WETool.Environment),
+    }, { code: 'F11' });
+
+    registerInterruptingCommandBinding({
+      command: WECommand.TOOL_SETTINGS_TOGGLE,
+      label: 'Toggle settings panel',
+      configurable: true,
+      scope: WECommandScope.EDITOR,
+      execute: () => this.toggleTool(WETool.Settings),
     }, { code: 'F12' });
   }
 
