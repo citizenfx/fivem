@@ -121,9 +121,78 @@ namespace CitizenFX.Core
         }
     }
 
-	static class CallUtilities
+#if IS_FXSERVER
+    public interface ISourceFactory 
+    {
+        bool IsSource(Type type);
+        object GetSource(Type type, string sourceString);
+    }
+
+    public class SourceFactory : ISourceFactory 
+    {
+        public bool IsSource(Type type) 
+        {
+            return type.IsAssignableFrom(typeof(Player));
+        }
+
+        public object GetSource(Type type, string sourceString) 
+        {
+            return new Player(sourceString);
+        }
+    }
+
+    public abstract class SourceFactoryDecorator : ISourceFactory 
+    {
+        private readonly ISourceFactory sourceFactory;
+
+        public SourceFactoryDecorator(ISourceFactory sourceFactory) 
+        {
+            if(sourceFactory == null)
+            {
+                throw new ArgumentNullException(nameof(sourceFactory));
+            }
+            this.sourceFactory = sourceFactory;
+        }
+
+        public bool IsSource(Type type) 
+        {
+            return this.sourceFactory.IsSource(type) || this.IsThisSource(type);
+        }
+
+        public object GetSource(Type type, string sourceString) 
+        {
+            if(this.IsThisSource(type))
+            {
+                return this.GetThisSource(sourceString);
+            }
+            return this.sourceFactory.GetSource(type, sourceString);
+        }
+
+        protected abstract bool IsThisSource(Type type);
+
+        protected abstract object GetThisSource(string sourceString);
+    }
+#endif
+
+	public static class CallUtilities
 	{
-		public static object[] GetPassArguments(MethodInfo method, object[] args, string sourceString)
+#if IS_FXSERVER
+        private static ISourceFactory _sourceFactory = new SourceFactory();
+        public static ISourceFactory SourceFactory 
+        { 
+            get => CallUtilities._sourceFactory;
+            set 
+            {
+                if(value == null)
+                {
+                    throw new ArgumentNullException(nameof(value));
+                }
+                CallUtilities._sourceFactory = value;
+            }
+        }   
+#endif
+
+		internal static object[] GetPassArguments(MethodInfo method, object[] args, string sourceString)
 		{
 			List<object> passArgs = new List<object>();
 
@@ -166,9 +235,9 @@ namespace CitizenFX.Core
 					}
 
 #if IS_FXSERVER
-					if (type.IsAssignableFrom(typeof(Player)))
+					if (CallUtilities.SourceFactory.IsSource(type))
 					{
-						passArgs.Add(new Player(sourceString));
+						passArgs.Add(CallUtilities.SourceFactory.GetSource(type, sourceString));
 
 						continue;
 					}
