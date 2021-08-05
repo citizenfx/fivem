@@ -18,6 +18,7 @@ export const Playtest = new class Playtest {
 
   readonly enable = () => {
     MapManager.disable();
+    SelectionController.disable();
     SelectionController.setSelectedEntity(null);
 
     this.savedCam = CameraManager.getCam();
@@ -47,6 +48,7 @@ export const Playtest = new class Playtest {
 
   readonly disable = () => {
     MapManager.enable();
+    SelectionController.enable();
     CameraManager.init(true, 200);
 
     if (this.savedCam) {

@@ -4,7 +4,22 @@ export const SelectionController = new class SelectionController {
   private selectStart: number = 0;
   private selectedEntity: number | null = null;
 
+  private disabled = false;
+
+  enable() {
+    this.disabled = false;
+  }
+
+  disable() {
+    this.selectStart = 0;
+    this.disabled = true;
+  }
+
   select(active: boolean) {
+    if (this.disabled) {
+      return;
+    }
+
     if (active) {
       this.selectStart = GetGameTimer();
       return;
