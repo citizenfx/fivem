@@ -361,13 +361,19 @@ static void AddWavePack(const char* name, const char* path)
 	
 	auto addPath = [&wavePath](const char* path)
 	{
-		if (g_pathsToDevices.find({ path, wavePath }) == g_pathsToDevices.end())
+		std::string pathStr = path;
+		if (!boost::algorithm::ends_with(pathStr, "/"))
+		{
+			pathStr += "/";
+		}
+
+		if (g_pathsToDevices.find({ pathStr, wavePath }) == g_pathsToDevices.end())
 		{
 			auto device = new MultiRelativeDevice();
-			device->SetPath(path, true);
+			device->SetPath(pathStr, true);
 			device->Mount(wavePath.c_str());
 
-			g_pathsToDevices.insert({ { path, wavePath }, device });
+			g_pathsToDevices.insert({ { pathStr, wavePath }, device });
 		}
 	};
 
