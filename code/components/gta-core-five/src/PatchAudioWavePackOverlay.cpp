@@ -377,8 +377,6 @@ static void AddWavePack(const char* name, const char* path)
 		}
 	};
 
-	addPath(path);
-
 	if (g_nameRefCounts[name] == 0)
 	{
 		// add any pack that would match an original pack (as 8-character limit)
@@ -394,6 +392,7 @@ static void AddWavePack(const char* name, const char* path)
 		g_origAddWavePack(name, wavePath.c_str());
 	}
 
+	addPath(path);
 	g_nameRefCounts[name]++;
 }
 
