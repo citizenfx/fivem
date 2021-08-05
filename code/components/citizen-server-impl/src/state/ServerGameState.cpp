@@ -4486,6 +4486,27 @@ void CWeaponDamageEvent::Parse(rl::MessageBuffer& buffer)
 	}
 }
 
+struct CWeaponDamageEventReply
+{
+	uint32_t health;
+	uint32_t time;
+	bool f131;
+
+	inline std::string GetName()
+	{
+		return "weaponDamageReply";
+	}
+
+	void Parse(rl::MessageBuffer& buffer)
+	{
+		health = buffer.Read<uint32_t>(14);
+		time = buffer.Read<uint32_t>(32);
+		f131 = buffer.ReadBit();
+	}
+
+	MSGPACK_DEFINE_MAP(health, time, f131);
+};
+
 struct CVehicleComponentControlEvent
 {
 	void Parse(rl::MessageBuffer& buffer)
@@ -4520,6 +4541,35 @@ struct CVehicleComponentControlEvent
 	int pedInSeat;
 
 	MSGPACK_DEFINE_MAP(vehicleGlobalId, pedGlobalId, componentIndex, request, componentIsSeat, pedInSeat);
+};
+
+struct CVehicleComponentControlReply
+{
+	bool isGranted;
+	bool componentIsSeat;
+	uint16_t pedGlobalId;
+
+	inline std::string GetName()
+	{
+		return "vehicleComponentControlReply";
+	}
+
+	void Parse(rl::MessageBuffer& buffer)
+	{
+		isGranted = buffer.ReadBit();
+		if (isGranted)
+		{
+			componentIsSeat = buffer.ReadBit();
+			pedGlobalId = componentIsSeat ? buffer.Read<uint16_t>(13) : 0;
+		}
+		else
+		{
+			pedGlobalId = 0;
+			componentIsSeat = false;
+		}
+	}
+
+	MSGPACK_DEFINE_MAP(isGranted, componentIsSeat, pedGlobalId);
 };
 
 struct CClearPedTasksEvent
@@ -4598,6 +4648,24 @@ struct CRespawnPlayerPedEvent
 
 	MSGPACK_DEFINE_MAP(posX, posY, posZ, f64, f70, f72, f92, f96, f97, f99, f100, f80, f84, f88);
 };
+
+struct CRespawnPlayerPedReply
+{
+	bool respawnFailedResult;
+
+	inline std::string GetName()
+	{
+		return "respawnPlayerPedReply";
+	}
+
+	void Parse(rl::MessageBuffer& buffer)
+	{
+		respawnFailedResult = buffer.ReadBit();
+	}
+
+	MSGPACK_DEFINE_MAP(respawnFailedResult);
+};
+
 
 struct CGiveWeaponEvent
 {
@@ -5268,6 +5336,21 @@ static std::function<bool()> GetEventHandler(fx::ServerInstanceBase* instance, c
 		eventType--;
 	}
 
+	if (isReply)
+	{
+		switch(eventType)
+		{
+			case WEAPON_DAMAGE_EVENT: return GetHandler<CWeaponDamageEventReply>(instance, client, std::move(buffer));
+			case RESPAWN_PLAYER_PED_EVENT: return GetHandler<CRespawnPlayerPedReply>(instance, client, std::move(buffer));
+			case VEHICLE_COMPONENT_CONTROL_EVENT: return GetHandler<CVehicleComponentControlReply>(instance, client, std::move(buffer));
+			// All other events have no PrepareReply/HandleReply handlers.
+			default:
+				break;
+		};
+
+		return {};
+	}
+
 	switch(eventType)
 	{
 		case WEAPON_DAMAGE_EVENT: return GetHandler<CWeaponDamageEvent>(instance, client, std::move(buffer));
@@ -5281,6 +5364,8 @@ static std::function<bool()> GetEventHandler(fx::ServerInstanceBase* instance, c
 		case START_PROJECTILE_EVENT: return GetHandler<CStartProjectileEvent>(instance, client, std::move(buffer));
 		case NETWORK_CLEAR_PED_TASKS_EVENT: return GetHandler<CClearPedTasksEvent>(instance, client, std::move(buffer));
 		case NETWORK_PTFX_EVENT: return GetHandler<CNetworkPtFXEvent>(instance, client, std::move(buffer));
+		default:
+			break;
 	};
 #endif
 
