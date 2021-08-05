@@ -38,6 +38,9 @@ public:
 
 	}
 
+	/// <summary>
+	/// rage::datBitBuffer::ReadUnsigned = 0x14128DCF8 (1604)
+	/// </summary>
 	inline bool ReadBitsSingle(void* out, int length)
 	{
 		if (length == 13 && GetLengthHackState())
@@ -48,7 +51,7 @@ public:
 		int startIdx = m_curBit / 8;
 		int shift = m_curBit % 8;
 		
-		if ((startIdx + (length / 8) > m_data.size()))
+		if ((m_curBit + length) > m_maxBit)
 		{
 			m_curBit += length;
 			return false;
@@ -56,12 +59,6 @@ public:
 
 		uint32_t retval = (uint8_t)(m_data[startIdx] << shift);
 		startIdx++;
-
-		if ((startIdx + (length / 8) > m_data.size()))
-		{
-			m_curBit += length;
-			return false;
-		}
 
 		if (length > 8)
 		{
@@ -78,9 +75,13 @@ public:
 			}
 		}
 
-		auto leftover = (startIdx < m_data.size()) ? m_data[startIdx] : 0;
+		if (shift)
+		{
+			auto leftover = (startIdx < m_data.size()) ? m_data[startIdx] : 0;
+			retval |= (uint8_t)(leftover >> (8 - shift));
+		}
 
-		retval = (uint32_t)(retval | (uint8_t)(leftover >> (8 - shift))) >> (((length + 7) & 0xF8) - length);
+		retval = retval >> (((length + 7) & 0xF8) - length);
 
 		m_curBit += length;
 
