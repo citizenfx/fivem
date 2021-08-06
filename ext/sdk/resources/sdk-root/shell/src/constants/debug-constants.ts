@@ -4,5 +4,5 @@
  * PRECOMMIT
  */
 export const __DEBUG_MODE_TOGGLES__ = {
-  WORLD_EDITOR_UI_ONLY: false,
+  WORLD_EDITOR_UI_ONLY: true,
 };

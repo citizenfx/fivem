@@ -17,6 +17,9 @@ export interface BaseToolProps {
 
   toggleClassName?: string,
   panelClassName?: string,
+
+  toggleProps?: null | object,
+  panelProps?: null | object,
 }
 
 export const BaseTool = observer(function BaseTool(props: BaseToolProps) {
@@ -30,6 +33,8 @@ export const BaseTool = observer(function BaseTool(props: BaseToolProps) {
     toggleClassName: tClassName = '',
     panelClassName: pClassName = '',
 
+    toggleProps = null,
+    panelProps = null,
   } = props;
 
   const toolIsOpen = WEToolbarState.isToolOpen(tool);
@@ -47,7 +52,7 @@ export const BaseTool = observer(function BaseTool(props: BaseToolProps) {
   let childrenNode = null;
   if (children && (renderAlways || toolIsOpen)) {
     childrenNode = (
-      <div className={panelClassName}>
+      <div className={panelClassName} {...panelProps}>
         {children}
       </div>
     );
@@ -63,6 +68,7 @@ export const BaseTool = observer(function BaseTool(props: BaseToolProps) {
       <Title animated={false} title={label} delay={0} fixedOn="top" shortcut={shortcut}>
         {(ref) => (
           <button
+            {...toggleProps}
             ref={ref}
             className={toggleClassName}
             onClick={() => WEToolbarState.toggleTool(tool)}

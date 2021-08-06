@@ -1,5 +1,5 @@
 import { CONTROLS, SETTINGS } from "./config";
-import { clamp, limitPrecision, RotDeg3, Vec3 } from "./math";
+import { limitPrecision, RotDeg3, Vec3 } from "./math";
 import { SettingsManager } from "./settings-manager";
 import { drawDebugText, getSmartControlNormal, useKeyMapping } from "./utils";
 
@@ -11,8 +11,6 @@ export const CameraManager = new class CameraManager {
   private rot = RotDeg3.zero();
 
   private forwardVector = Vec3.zero();
-
-  private mouseDelta: [number, number] = [0, 0];
 
   private move = {
     x: 0,
@@ -26,17 +24,10 @@ export const CameraManager = new class CameraManager {
     on('we:setCamBaseMultiplier', (multiplierString: string) => {
       this.baseMoveMultiplier = parseFloat(multiplierString);
     });
-
-    on('we:camrot', (req: string) => {
-      this.mouseDelta = JSON.parse(req);
-    });
   }
 
   init(ease = false, easeTime = 1) {
     this.destroyed = false;
-
-    this.mouseDelta[0] = 0;
-    this.mouseDelta[1] = 0;
 
     const ped = PlayerPedId();
     SetEntityVisible(ped, false, false);
@@ -140,15 +131,15 @@ export const CameraManager = new class CameraManager {
     const dx = this.move.x;
     const dy = this.move.y;
 
-    drawDebugText(GetFrameTime().toString());
-
     if (!dx && !dy) {
       this.acceleration = 0;
     } else {
-      this.acceleration += GetFrameTime() * 1000;
+      if (this.acceleration < this.speedy) {
+        this.acceleration += GetFrameTime() * 1000;
 
-      if (this.acceleration > this.speedy) {
-        this.acceleration = this.speedy;
+        if (this.acceleration > this.speedy) {
+          this.acceleration = this.speedy;
+        }
       }
     }
 
@@ -179,13 +170,6 @@ export const CameraManager = new class CameraManager {
   }
 
   updateRotation() {
-    // const [dx, dy] = this.mouseDelta;
-
-    // if (dx !== 0 || dy !== 0) {
-    //   this.mouseDelta[0] = 0;
-    //   this.mouseDelta[1] = 0;
-    // }
-
     const dx = getSmartControlNormal(CONTROLS.LOOK_X) * 10;
     const dy = getSmartControlNormal(CONTROLS.LOOK_Y) * 10;
 

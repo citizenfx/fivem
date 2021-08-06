@@ -10,6 +10,7 @@ import { LoadScreen } from './components/LoadScreen/LoadScreen';
 import { GameState } from 'store/GameState';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { DndProvider } from 'react-dnd';
+import { WorldEditorIntro } from './components/WorldEditorIntro/WorldEditorIntro';
 
 export const WorldEditorPersonality = observer(function WorldEditorPersonality() {
   const gameViewRef = React.useRef<HTMLDivElement>();
@@ -30,6 +31,8 @@ export const WorldEditorPersonality = observer(function WorldEditorPersonality()
 
   const showLoadScreen = !WEState.ready || GameState.archetypesCollectionPending;
 
+  const showIntro = !GameState.archetypesCollectionPending && WEState.showIntro;
+
   return (
     <div
       style={rootStyles}
@@ -48,6 +51,10 @@ export const WorldEditorPersonality = observer(function WorldEditorPersonality()
 
       {showLoadScreen && (
         <LoadScreen />
+      )}
+
+      {showIntro && (
+        <WorldEditorIntro />
       )}
     </div>
   );

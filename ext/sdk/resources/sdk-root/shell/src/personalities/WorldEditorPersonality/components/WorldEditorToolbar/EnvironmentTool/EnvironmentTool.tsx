@@ -6,6 +6,7 @@ import { WEATHER, WEEnvState } from 'personalities/WorldEditorPersonality/store/
 import { BiSun } from 'react-icons/bi';
 import { BsClock } from 'react-icons/bs';
 import s from './EnvironmentTool.module.scss';
+import { IntroForceRecalculate } from 'components/Intro/Intro';
 
 export const EnvironmentTool = observer(function EnvironmentTool() {
   const weatherNodes = Object.keys(WEATHER).map((weather) => (
@@ -24,7 +25,12 @@ export const EnvironmentTool = observer(function EnvironmentTool() {
       tool={WETool.Environment}
       icon={<BiSun />}
       label="Environment"
+
+      toggleProps={{ 'data-intro-id': 'environment-panel' }}
+      panelProps={{ 'data-intro-id': 'environment-panel' }}
     >
+      <IntroForceRecalculate />
+
       <div className={s.root}>
         <div className={s.entry}>
           <BsClock /> {WEEnvState.time}

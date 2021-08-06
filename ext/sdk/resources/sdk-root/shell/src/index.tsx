@@ -1,6 +1,7 @@
 import '@fontsource/montserrat/300.css';
 import '@fontsource/montserrat/400.css';
 import '@fontsource/rubik/variable.css';
+import '@fontsource/rubik/variable-italic.css';
 import '@fontsource/source-code-pro/300.css';
 import './index.scss';
 

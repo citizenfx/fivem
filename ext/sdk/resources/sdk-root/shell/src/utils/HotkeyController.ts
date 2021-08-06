@@ -1,3 +1,5 @@
+import { KeyboardLayout } from "store/KeyboardLayout";
+
 const codeMap = {
   Escape: 'ESC',
   ShiftLeft: 'Shift',
@@ -179,17 +181,8 @@ export class HotkeyController {
   }
 }
 
-let keyboardLayout: KeyboardLayoutMap | undefined = undefined;
-(async () => {
-  keyboardLayout = await navigator.keyboard.getLayoutMap();
-})();
-
 export function getPrintableCode(code: string): string {
-  if (keyboardLayout) {
-    return keyboardLayout.get(code);
-  }
-
-  return '';
+  return KeyboardLayout.get(code);
 }
 
 export function getPrintableEventKeystroke(event: KeyboardEvent): string {

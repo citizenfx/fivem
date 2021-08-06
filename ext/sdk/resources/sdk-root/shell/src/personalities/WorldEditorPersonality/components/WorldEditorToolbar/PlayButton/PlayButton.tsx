@@ -20,6 +20,7 @@ export const PlayButton = observer(function PlayButton() {
           ref={ref}
           className={rootClassName}
           onClick={WEState.enterPlaytestMode}
+          data-intro-id="play-test"
         >
           <BsPlay />
         </button>
