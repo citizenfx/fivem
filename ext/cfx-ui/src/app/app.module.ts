@@ -24,7 +24,6 @@ import {
 import { Angulartics2Module } from 'angulartics2';
 import { LinkyModule } from 'ngx-linky';
 import { NgxFilesizeModule } from 'ngx-filesize';
-import { MetaModule, MetaLoader, MetaStaticLoader, PageTitlePositioning } from '@ngx-meta/core';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
@@ -135,14 +134,6 @@ export function localStorageFactory() {
 	return (typeof window !== 'undefined') ? window.localStorage : null;
 }
 
-export function metaFactory(): MetaLoader {
-	return new MetaStaticLoader({
-		pageTitlePositioning: PageTitlePositioning.PrependPageTitle,
-		pageTitleSeparator: ' / ',
-		applicationName: 'FiveM server list'
-	});
-}
-
 @NgModule({
 	declarations: [
 		SpinnerComponent,
@@ -199,10 +190,6 @@ export function metaFactory(): MetaLoader {
 		}),
 		Angulartics2Module.forRoot(),
 		LinkyModule,
-		MetaModule.forRoot({
-			provide: MetaLoader,
-			useFactory: (metaFactory)
-		}),
 		BrowserAnimationsModule,
 		NgxFilesizeModule,
 		Nl2BrPipeModule,

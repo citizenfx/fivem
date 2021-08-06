@@ -24,7 +24,7 @@ import { FilterRequest } from './filter-request';
 import { catchError, timeout } from 'rxjs/operators';
 import { SearchAutocompleteIndex } from './filters.service';
 
-const serversWorker = new Worker('./workers/servers.worker', { type: 'module' });
+const serversWorker = new Worker(new URL('./workers/servers.worker', import.meta.url), { type: 'module' });
 
 export enum HistoryServerStatus {
 	Loading,

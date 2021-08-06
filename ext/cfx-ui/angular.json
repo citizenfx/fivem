@@ -113,8 +113,11 @@
               "includePaths": [
                 "src/styles"
               ]
-            }
-          }
+            },
+            "sourceMap": true,
+            "optimization": false
+          },
+          "defaultConfiguration": ""
         },
         "serve": {
           "builder": "@angular-builders/custom-webpack:dev-server",

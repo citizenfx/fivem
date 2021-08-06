@@ -15,7 +15,7 @@ function softSlice(arr: Uint8Array, start: number, end?: number) {
 
 // this class loosely based on https://github.com/rkusa/frame-stream
 class FrameReader {
-	private reader: ReadableStreamReader;
+	private reader: ReadableStreamReader<any>;
 
 	public frame = new Subject<Uint8Array>();
 	public end = new Subject<void>();

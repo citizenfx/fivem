@@ -9,7 +9,6 @@ import { ServersContainerComponent } from './servers/components/servers-containe
 import { DirectConnectComponent } from './servers/direct/direct-connect.component';
 
 import { environment } from '../environments/environment';
-import { MetaGuard } from '@ngx-meta/core';
 import { ModsComponent } from './mods/mods/mods.component';
 import { ModListComponent } from './mods/mod-list/mod-list.component';
 import { ModDetailComponent } from './mods/mod-detail/mod-detail.component';
@@ -23,12 +22,12 @@ const routes: Routes = [
 		path: '',
 		component: (environment.web) ? ServersContainerComponent : HomeComponent,
 		data: { type: 'browse', meta: { title: 'FiveM' } },
-		canActivateChild: [MetaGuard],
+		canActivateChild: [],
 	},
 	{
 		path: 'home',
 		component: HomeComponent,
-		canActivateChild: [MetaGuard],
+		canActivateChild: [],
 	},
 	{
 		path: 'changelog',
@@ -40,7 +39,7 @@ const routes: Routes = [
 		data: {
 			meta: { title: 'Servers' }
 		},
-		canActivateChild: [MetaGuard],
+		canActivateChild: [],
 		children: [
 			{
 				path: '',

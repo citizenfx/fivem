@@ -11,7 +11,6 @@ import { Tweet, TweetService } from '../../../home/tweet.service';
 import { ServersService } from '../../servers.service';
 
 import { isPlatformBrowser } from '@angular/common';
-import { MetaService } from '@ngx-meta/core';
 import { L10N_LOCALE, L10nLocale, L10nTranslationService } from 'angular-l10n';
 import { ServerTagsService } from '../../server-tags.service';
 
@@ -185,7 +184,7 @@ export class ServersDetailComponent implements OnInit, OnDestroy {
 
 	constructor(private gameService: GameService, private serversService: ServersService,
 		private route: ActivatedRoute, private cdRef: ChangeDetectorRef, private sanitizer: DomSanitizer,
-		private router: Router, @Inject(PLATFORM_ID) private platformId: any, private meta: MetaService,
+		private router: Router, @Inject(PLATFORM_ID) private platformId: any,
 		private tagService: ServerTagsService, private tweetService: TweetService,
         private translation: L10nTranslationService,
 		@Inject(L10N_LOCALE) public locale: L10nLocale) {
@@ -251,12 +250,6 @@ export class ServersDetailComponent implements OnInit, OnDestroy {
 					.filter(({ key, value }) => key !== 'sv_enforceGameBuild' || (value !== '1604' && value !== '1311'))
 					.filter(({ key, value }) => key !== 'sv_scriptHookAllowed' || value === 'true')
 					.map(pair => this.filterFuncs[pair.key] ? this.filterFuncs[pair.key](pair) : pair);
-
-				this.meta.setTag('og:image', this.server?.iconUri);
-				this.meta.setTag('og:type', 'website');
-				this.meta.setTitle(this.server.hostname.replace(/\^[0-9]/g, ''));
-				this.meta.setTag('og:description', `${this.server.currentPlayers} players on ${this.server.data.mapname}`);
-				this.meta.setTag('og:site_name', 'FiveM');
 			});
 	}
 
