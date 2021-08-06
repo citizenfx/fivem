@@ -26,10 +26,7 @@ if exist %CacheRoot%\cfx-ui-modules (
 call yarn
 
 :: propagate error
-if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
-
-:: workaround for duplicate webpack versions
-rmdir /s /q node_modules\@angular-devkit\build-angular\node_modules\webpack
+if %ERRORLEVEL% neq 0 exit /b 1
 
 :: build the worker
 :: unused now
