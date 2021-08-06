@@ -4,7 +4,7 @@
 #include <ClientHttpHandler.h>
 
 #include <CoreConsole.h>
-#include <pplx/threadpool.h>
+#include <thread_pool.hpp>
 
 #include <json.hpp>
 #include <rapidjson/writer.h>
@@ -148,7 +148,8 @@ namespace fx
 
 				if (g_threadedHttpVar->GetValue())
 				{
-					crossplat::threadpool::shared_instance().service().post(runTask);
+					static tp::ThreadPool tg;
+					tg.post(runTask);
 				}
 				else
 				{
