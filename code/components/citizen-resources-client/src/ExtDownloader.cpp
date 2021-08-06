@@ -1,6 +1,7 @@
 #include <StdInc.h>
 #include <ExtDownloader.h>
 
+#if 0
 #include <CfxSubProcess.h>
 #include <IteratorView.h>
 
@@ -413,3 +414,9 @@ static HookFunction hookFunction([]()
 {
 	StartExtDownloader();
 });
+#else
+std::shared_ptr<ExtDownloader> CreateExtDownloader()
+{
+	return {};
+}
+#endif

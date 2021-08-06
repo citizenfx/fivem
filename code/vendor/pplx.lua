@@ -13,6 +13,8 @@ return {
 		language "C++"
 		kind "StaticLib"
 
+		defines { "CPPREST_EXCLUDE_WEBSOCKETS" }
+
 		includedirs "../vendor/cpprestsdk/Release/src/pch/"
 
 		files_project '../vendor/cpprestsdk/Release/src/' {
