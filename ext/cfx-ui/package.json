@@ -33,9 +33,9 @@
     "@nguniversal/express-engine": "^11.2.0",
     "@nguniversal/module-map-ngfactory-loader": "^8.2.6",
     "@ngx-meta/core": "^9.0.0",
-    "@sentry/angular": "^6.7.2",
-    "@sentry/tracing": "^6.7.2",
-    "@sentry/webpack-plugin": "^1.15.1",
+    "@sentry/angular": "^6.10.0",
+    "@sentry/tracing": "^6.10.0",
+    "@sentry/webpack-plugin": "^1.16.0",
     "@tinkoff/ng-dompurify": "^3.0.0",
     "@types/autolinker": "^2.0.0",
     "@types/cldrjs": "^0.4.22",
@@ -126,6 +126,7 @@
     "minimist": "^1.2.3",
     "css-what": "^5.0.1",
     "color-string": "^1.5.5",
-    "tar": "^6.1.2"
+    "tar": "^6.1.2",
+    "@npmcli/git": "^2.0.8"
   }
 }
