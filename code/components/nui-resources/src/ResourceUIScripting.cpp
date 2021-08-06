@@ -421,8 +421,8 @@ static InitFunction initFunction([] ()
 		{
 			static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");
 
-			*context.GetArgument<int*>(0) = rgd->mouseX;
-			*context.GetArgument<int*>(1) = rgd->mouseY;
+			*context.GetArgument<int*>(0) = rgd->mouseAbsX;
+			*context.GetArgument<int*>(1) = rgd->mouseAbsY;
 		});
 	}
 	else

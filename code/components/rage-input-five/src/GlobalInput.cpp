@@ -50,13 +50,18 @@ LRESULT GlobalInputHandlerLocal::WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam
 	{
 		case WM_CREATE:
 		{
-			constexpr uint8_t nRid = 1;
+			constexpr uint8_t nRid = 2;
 			RAWINPUTDEVICE rid[nRid] = {};
 
 			rid[0].usUsagePage = HID_USAGE_PAGE_GENERIC;
 			rid[0].usUsage = HID_USAGE_GENERIC_KEYBOARD;
 			rid[0].dwFlags = RIDEV_INPUTSINK | RIDEV_DEVNOTIFY;
 			rid[0].hwndTarget = hWnd;
+
+			rid[1].usUsagePage = HID_USAGE_PAGE_GENERIC;
+			rid[1].usUsage = HID_USAGE_GENERIC_MOUSE;
+			rid[1].dwFlags = RIDEV_INPUTSINK | RIDEV_DEVNOTIFY;
+			rid[1].hwndTarget = hWnd;
 
 			if (!RegisterRawInputDevices(rid, nRid, sizeof(RAWINPUTDEVICE)))
 			{
@@ -87,7 +92,8 @@ LRESULT GlobalInputHandlerLocal::WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam
 				case RIM_TYPEMOUSE:
 				{
 					const RAWMOUSE& mouse = input->data.mouse;
-					// no-op
+
+					OnMouse(input->data.mouse);
 					break;
 				}
 				case RIM_TYPEKEYBOARD:

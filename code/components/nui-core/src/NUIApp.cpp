@@ -149,7 +149,7 @@ void NUIApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
 		std::vector<std::string> fxdkHandlers{
 			"resizeGame",
 			"initRGDInput",
-			"sendMousePos",
+			"setRawMouseCapture",
 			"sendMouseWheel",
 			"setKeyState",
 			"setMouseButtonState",

@@ -1,5 +1,5 @@
 import { CONTROLS, SETTINGS } from "./config";
-import { limitPrecision, RotDeg3, Vec3 } from "./math";
+import { clamp, limitPrecision, RotDeg3, Vec3 } from "./math";
 import { SettingsManager } from "./settings-manager";
 import { drawDebugText, getSmartControlNormal, useKeyMapping } from "./utils";
 
@@ -134,19 +134,21 @@ export const CameraManager = new class CameraManager {
     return speedMultiplier * frameMultiplier;
   }
 
-  acceleration = 100;
+  acceleration = 0;
+  speedy = 150; // ms
   updatePosition() {
     const dx = this.move.x;
     const dy = this.move.y;
 
+    drawDebugText(GetFrameTime().toString());
+
     if (!dx && !dy) {
-      this.acceleration = 100;
+      this.acceleration = 0;
     } else {
-      if (this.acceleration > 0) {
-        this.acceleration += 2.5 + GetFrameTime();
-        if (this.acceleration > 1000) {
-          this.acceleration = 1000;
-        }
+      this.acceleration += GetFrameTime() * 1000;
+
+      if (this.acceleration > this.speedy) {
+        this.acceleration = this.speedy;
       }
     }
 
@@ -155,10 +157,10 @@ export const CameraManager = new class CameraManager {
     const [forward, left] = this.rot.directions();
 
     this.forwardVector = forward.copy();
-    const acceleration = (this.acceleration / 1000);
+    const acceleration = this.acceleration / this.speedy;
 
-    forward.mult(dx * speedMultiplier * acceleration);
-    left.mult(dy * speedMultiplier * acceleration);
+    forward.mult((dx * speedMultiplier) * acceleration);
+    left.mult((dy * speedMultiplier) * acceleration);
 
     const moveVec = forward.add(left);
 
@@ -177,12 +179,15 @@ export const CameraManager = new class CameraManager {
   }
 
   updateRotation() {
-    const [dx, dy] = this.mouseDelta;
+    // const [dx, dy] = this.mouseDelta;
 
-    if (dx !== 0 || dy !== 0) {
-      this.mouseDelta[0] = 0;
-      this.mouseDelta[1] = 0;
-    }
+    // if (dx !== 0 || dy !== 0) {
+    //   this.mouseDelta[0] = 0;
+    //   this.mouseDelta[1] = 0;
+    // }
+
+    const dx = getSmartControlNormal(CONTROLS.LOOK_X) * 10;
+    const dy = getSmartControlNormal(CONTROLS.LOOK_Y) * 10;
 
     this.rot.x += -dy * SettingsManager.settings.mouseSensetivity/100;
     this.rot.z += -dx * SettingsManager.settings.mouseSensetivity/100;

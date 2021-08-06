@@ -358,6 +358,7 @@ class GameView extends HTMLElement {
   enterFullscreenControlingMode() {
     this.mode = GameView.ModeControling;
 
+    setRawMouseCapture(true);
     this.requestPointerLock();
     this.requestFullscreen();
   }
@@ -479,6 +480,8 @@ class GameView extends HTMLElement {
       this._acceptInput = pointerLocked;
 
       if (pointerLocked !== wasPointerLocked) {
+        setRawMouseCapture(pointerLocked);
+
         this.dispatchEvent(new CustomEvent('pointerlockchange', {
           bubbles: true,
           cancelable: false,
@@ -564,7 +567,7 @@ class GameView extends HTMLElement {
       e.preventDefault();
 
       if (this._acceptInput) {
-        sendMousePos(e.movementX, e.movementY);
+        // sendMousePos(e.movementX, e.movementY);
       }
     };
 

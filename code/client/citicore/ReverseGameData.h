@@ -79,10 +79,17 @@ struct ioPad
 struct ReverseGameData
 {
 	uint8_t keyboardState[256];
-	int mouseX;
-	int mouseY;
+
+	int mouseAbsX;
+	int mouseAbsY;
+
+	int mouseDeltaX;
+	int mouseDeltaY;
+
 	int mouseWheel;
 	int mouseButtons;
+
+	bool useRawMouseCapture;
 
 	HANDLE inputMutex;
 	DWORD inputMutexPID;
@@ -114,7 +121,7 @@ struct ReverseGameData
 	rage::ioPad gamepad;
 
 	ReverseGameData()
-		: mouseX(0), mouseY(0), mouseWheel(0), mouseButtons(0), inputMutex(NULL), produceSema(NULL), consumeSema(NULL), surfaceLimit(0), produceIdx(0), consumeIdx(0), inited(false), isLauncher(false), editWidth(false), fpsLimit(0)
+		: mouseDeltaX(0), mouseAbsX(0), mouseDeltaY(0), mouseAbsY(0), mouseWheel(0), mouseButtons(0), useRawMouseCapture(false), inputMutex(NULL), produceSema(NULL), consumeSema(NULL), surfaceLimit(0), produceIdx(0), consumeIdx(0), inited(false), isLauncher(false), editWidth(false), fpsLimit(0)
 	{
 		memset(keyboardState, 0, sizeof(keyboardState));
 		memset(surfaces, 0, sizeof(surfaces));

@@ -59,19 +59,19 @@ static void ExecOp(const QueueOp& opt, bool additive = false)
 
 	switch (op)
 	{
-	case INPUT_OP::MOUSE_POS:
+	/*case INPUT_OP::MOUSE_POS:
 	{
 		auto& mousePos = std::get<InputMousePos>(payload);
 
 		if (additive)
 		{
-			rgd->mouseX += mousePos.x;
-			rgd->mouseY += mousePos.y;
+			rgd->mouseDeltaX += mousePos.x;
+			rgd->mouseDeltaY += mousePos.y;
 		}
 		else
 		{
-			rgd->mouseX = mousePos.x;
-			rgd->mouseY = mousePos.y;
+			rgd->mouseDeltaX = mousePos.x;
+			rgd->mouseDeltaY = mousePos.y;
 		}
 		break;
 	}
@@ -100,7 +100,7 @@ static void ExecOp(const QueueOp& opt, bool additive = false)
 			rgd->mouseButtons &= ~(1 << mouseButtonState.index);
 		}
 		break;
-	}
+	}*/
 	case INPUT_OP::KEY_STATE:
 	{
 		auto& keyState = std::get<InputKeyState>(payload);
@@ -193,24 +193,39 @@ static InitFunction initFunction([]()
 		return CefV8Value::CreateBool(true);
 	});
 
-	nuiApp->AddV8Handler("sendMousePos", [](const CefV8ValueList& arguments, CefString& exception)
+	nuiApp->AddV8Handler("setRawMouseCapture", [](const CefV8ValueList& arguments, CefString& exception)
 	{
-		if (arguments.size() != 2)
+		if (arguments.size() != 1)
 		{
-			exception.FromString(fmt::sprintf("Expected 2 arguments, got %d", arguments.size()));
+			exception.FromString(fmt::sprintf("Expected 1 argument, got %d", arguments.size()));
 			return CefV8Value::CreateBool(false);
 		}
 
-		int x = arguments[0]->GetIntValue();
-		int y = arguments[1]->GetIntValue();
-
-		rgd->mouseX = x;
-		rgd->mouseY = y;
-
-		//ExecOrQueueOp({ INPUT_OP::MOUSE_POS, InputMousePos{ x, y } });
+		rgd->useRawMouseCapture = arguments[0]->GetBoolValue();
 
 		return CefV8Value::CreateBool(true);
 	});
+
+	//nuiApp->AddV8Handler("sendMousePos", [](const CefV8ValueList& arguments, CefString& exception)
+	//{
+	//	return CefV8Value::CreateBool(true);
+
+	//	if (arguments.size() != 2)
+	//	{
+	//		exception.FromString(fmt::sprintf("Expected 2 arguments, got %d", arguments.size()));
+	//		return CefV8Value::CreateBool(false);
+	//	}
+
+	//	int x = arguments[0]->GetIntValue();
+	//	int y = arguments[1]->GetIntValue();
+
+	//	rgd->mouseDeltaX = x;
+	//	rgd->mouseDeltaY = y;
+
+	//	//ExecOrQueueOp({ INPUT_OP::MOUSE_POS, InputMousePos{ x, y } });
+
+	//	return CefV8Value::CreateBool(true);
+	//});
 
 	nuiApp->AddV8Handler("setMouseButtonState", [](const CefV8ValueList& arguments, CefString& exception)
 	{
@@ -268,6 +283,27 @@ static InitFunction initFunction([]()
 		ExecOrQueueOp({ INPUT_OP::KEY_STATE, InputKeyState{ key, state } });
 
 		return CefV8Value::CreateBool(true);
+	});
+
+	nuiApp->AddV8Handler("setInputChar", [](const CefV8ValueList& arguments, CefString& exception)
+	{
+		if (arguments.size() == 1)
+		{
+			// "x", "X", "y", "Y"
+			if (arguments[0]->IsString())
+			{
+				auto charString = arguments[0]->GetStringValue();
+				rgd->inputChar = charString.c_str()[0];
+			}
+			// big keys in JS are processed as "BackSpace", "Shift", "Alt", ... The charcode is sent instead in this case.
+			else
+			{
+				auto charCode = arguments[0]->GetIntValue();
+				rgd->inputChar = (wchar_t)charCode;
+			}
+		}
+
+		return CefV8Value::CreateUndefined();
 	});
 
 	nuiApp->AddContextReleaseHandler([](CefRefPtr<CefV8Context>)

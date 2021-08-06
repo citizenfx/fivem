@@ -130,8 +130,28 @@ static HookFunction initFunction([] ()
 			{
 				static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");
 
-				cursorPos.x = rgd->mouseX;
-				cursorPos.y = rgd->mouseY;
+				cursorPos.x = rgd->mouseAbsX;
+				cursorPos.y = rgd->mouseAbsY;
+
+				//static auto mp = POINT{ 0, 0 };
+
+				//static auto clamp = [](int n, int min, int max)
+				//{
+				//	if (n < min) {
+				//		return min;
+				//	}
+
+				//	if (n > max) {
+				//		return max;
+				//	}
+
+				//	return n;
+				//};
+
+				//mp.x = clamp(mp.x + rgd->mouseDeltaX, 0, rgd->twidth);
+				//mp.y = clamp(mp.y + rgd->mouseDeltaY, 0, rgd->theight);
+
+				//cursorPos = mp;
 			}
 			else
 			{
