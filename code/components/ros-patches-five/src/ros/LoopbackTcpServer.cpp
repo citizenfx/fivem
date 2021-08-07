@@ -1418,7 +1418,12 @@ static void SetLauncherWaitCB(HANDLE hEvent, HANDLE hProcess, BOOL doBreak, DWOR
 
 			if (waitResult == WAIT_OBJECT_0 + 1)
 			{
-				TerminateProcess(GetCurrentProcess(), 0);
+				done = true;
+
+				if (timeout == INFINITE)
+				{
+					TerminateProcess(GetCurrentProcess(), 0);
+				}
 			}
 			else if (waitResult != WAIT_TIMEOUT)
 			{
