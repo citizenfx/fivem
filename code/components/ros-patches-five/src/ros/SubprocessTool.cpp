@@ -77,7 +77,7 @@ static MyListener* RunListener(const std::wstring& a);
 
 std::string HandleCfxLogin();
 
-bool g_launchDone;
+volatile bool g_launchDone;
 
 #ifdef ROS_2037
 constexpr const int ViewMsg_NavigateTo = 0x1000A;
@@ -264,7 +264,7 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 												})}
 												}).dump());
 
-											Sleep(5000);
+											Sleep(10000);
 										}
 									}
 								}

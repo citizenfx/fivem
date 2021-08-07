@@ -1167,7 +1167,7 @@ static BOOL(__stdcall *g_oldCreateProcessW)(const wchar_t* applicationName, wcha
 								  PROCESS_INFORMATION* information);
 
 int g_rosParentPid;
-extern bool g_launchDone;
+extern volatile bool g_launchDone;
 
 std::vector<int> g_subProcessHandles;
 
