@@ -244,6 +244,37 @@ const EXT_LOCALFUNCREF = 11;
 
 			return t;
 		};
+
+		let httpDispatch = {};
+		on('__cfx_internal:httpResponse', (token, status, body, headers, errorData) => {
+			let handler = httpDispatch[token];
+			if (handler) {
+				handler(status, body, headers, errorData);
+				httpDispatch[token] = null;
+			}
+		})
+
+		global.PerformHttpRequest = (url, cb, method, data, headers, options) => {
+			let followLocation = true;
+			if (options && options.followLocation !== null) {
+				followLocation = options.followLocation;
+			}
+			
+			const t = {
+				url,
+				method: method || 'GET',
+				data: data || '',
+				headers: headers || {},
+				followLocation
+			};
+
+			const requestId = PerformHttpRequestInternalEx(t);
+			if (requestId != -1){
+				httpDispatch[requestId] = cb;
+			} else {
+				cb(0, nil, {}, 'Failure handling HTTP request');
+			}
+		}
 	} else {
 		global.SendNUIMessage = (data) => {
 			const dataJson = JSON.stringify(data)

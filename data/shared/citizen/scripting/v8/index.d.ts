@@ -91,6 +91,7 @@ declare function TriggerLatentServerEvent(eventName: string, bps: number, ...arg
 declare function getPlayerIdentifiers(player: number|string): string[]
 declare function getPlayerTokens(player: number|string): string[]
 declare function getPlayers(): string[]
+declare function PerformHttpRequest(url: string, cb: Function, method?: string, data?: string, headers?: { [key: string]: string }, options?: object): void
 
 declare function SendNUIMessage(data: any): void
 
