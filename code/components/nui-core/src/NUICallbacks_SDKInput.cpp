@@ -59,48 +59,6 @@ static void ExecOp(const QueueOp& opt, bool additive = false)
 
 	switch (op)
 	{
-	/*case INPUT_OP::MOUSE_POS:
-	{
-		auto& mousePos = std::get<InputMousePos>(payload);
-
-		if (additive)
-		{
-			rgd->mouseDeltaX += mousePos.x;
-			rgd->mouseDeltaY += mousePos.y;
-		}
-		else
-		{
-			rgd->mouseDeltaX = mousePos.x;
-			rgd->mouseDeltaY = mousePos.y;
-		}
-		break;
-	}
-	case INPUT_OP::MOUSE_WHEEL:
-	{
-		if (additive)
-		{
-			rgd->mouseWheel += std::get<int>(payload);
-		}
-		else
-		{
-			rgd->mouseWheel = std::get<int>(payload);
-		}
-		break;
-	}
-	case INPUT_OP::MOUSE_BUTTONS:
-	{
-		auto& mouseButtonState = std::get<InputMouseButtonState>(payload);
-
-		if (mouseButtonState.state)
-		{
-			rgd->mouseButtons |= (1 << mouseButtonState.index);
-		}
-		else
-		{
-			rgd->mouseButtons &= ~(1 << mouseButtonState.index);
-		}
-		break;
-	}*/
 	case INPUT_OP::KEY_STATE:
 	{
 		auto& keyState = std::get<InputKeyState>(payload);
@@ -205,27 +163,6 @@ static InitFunction initFunction([]()
 
 		return CefV8Value::CreateBool(true);
 	});
-
-	//nuiApp->AddV8Handler("sendMousePos", [](const CefV8ValueList& arguments, CefString& exception)
-	//{
-	//	return CefV8Value::CreateBool(true);
-
-	//	if (arguments.size() != 2)
-	//	{
-	//		exception.FromString(fmt::sprintf("Expected 2 arguments, got %d", arguments.size()));
-	//		return CefV8Value::CreateBool(false);
-	//	}
-
-	//	int x = arguments[0]->GetIntValue();
-	//	int y = arguments[1]->GetIntValue();
-
-	//	rgd->mouseDeltaX = x;
-	//	rgd->mouseDeltaY = y;
-
-	//	//ExecOrQueueOp({ INPUT_OP::MOUSE_POS, InputMousePos{ x, y } });
-
-	//	return CefV8Value::CreateBool(true);
-	//});
 
 	nuiApp->AddV8Handler("setMouseButtonState", [](const CefV8ValueList& arguments, CefString& exception)
 	{

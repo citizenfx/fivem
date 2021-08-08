@@ -5,7 +5,7 @@ struct GlobalInputHandler
 	virtual ~GlobalInputHandler() = default;
 
 	fwEvent<DWORD, bool> OnKey;
-	fwEvent<RAWMOUSE> OnMouse;
+	fwEvent<const RAWMOUSE&> OnMouse;
 };
 
 extern std::shared_ptr<GlobalInputHandler> CreateGlobalInputHandler();

@@ -13,8 +13,6 @@
 #include <ICoreGameInit.h>
 #include <GlobalInput.h>
 
-#define clamp(v, low, high) ((v)<(low) ? (low) : (v)>(high) ? (high) : (v))
-
 static WNDPROC origWndProc;
 
 static bool g_isFocused = true;
@@ -418,8 +416,8 @@ static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
 		curInput.mouseDeltaY = g_mouseMovement.y;
 	}
 
-	rgd->mouseAbsX = clamp(rgd->mouseAbsX + curInput.mouseDeltaX, 0, rgd->twidth);
-	rgd->mouseAbsY = clamp(rgd->mouseAbsY + curInput.mouseDeltaY, 0, rgd->theight);
+	rgd->mouseAbsX = std::clamp(rgd->mouseAbsX + curInput.mouseDeltaX, 0, rgd->twidth);
+	rgd->mouseAbsY = std::clamp(rgd->mouseAbsY + curInput.mouseDeltaY, 0, rgd->theight);
 
 	g_mouseMovement.x = 0;
 	g_mouseMovement.y = 0;
@@ -563,8 +561,8 @@ static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
 			g_input->m_dY() = curInput.mouseDeltaY;
 		}
 
-		g_input->cursorAbsX() = clamp(g_input->cursorAbsX() + curInput.mouseDeltaX, 0, rgd->twidth);
-		g_input->cursorAbsY() = clamp(g_input->cursorAbsY() + curInput.mouseDeltaY, 0, rgd->theight);
+		g_input->cursorAbsX() = std::clamp(g_input->cursorAbsX() + curInput.mouseDeltaX, 0, rgd->twidth);
+		g_input->cursorAbsY() = std::clamp(g_input->cursorAbsY() + curInput.mouseDeltaY, 0, rgd->theight);
 
 		g_input->m_Buttons() = rgd->mouseButtons;
 		g_input->m_dZ() = rgd->mouseWheel;

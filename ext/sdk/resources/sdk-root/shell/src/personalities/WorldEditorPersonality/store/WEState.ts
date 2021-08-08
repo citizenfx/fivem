@@ -57,7 +57,7 @@ export const WEState = new class WEState {
 
   public mapExplorerWidth: number = clampExplorerWidth(parseInt(localStorage.weExplorerWidth, 10) || 300);
 
-  private forceShowIntro = true;
+  private forceShowIntro = !localStorage['we:introSeen'];
 
   get mapName(): string {
     if (this.mapEntry) {
@@ -171,6 +171,8 @@ export const WEState = new class WEState {
 
   readonly closeIntro = () => {
     this.forceShowIntro = false;
+
+    localStorage['we:introSeen'] = 'true';
   };
 
   readonly enterPlaytestMode = () => {
