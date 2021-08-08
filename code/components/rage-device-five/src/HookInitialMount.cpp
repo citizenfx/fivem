@@ -164,22 +164,8 @@ static void PackfileEncryptionError()
 
 static HookFunction hookFunction([] ()
 {
-	/*static hook::inject_call<void, int> injectCall(0x7B2E27);
-
-	injectCall.inject([] (int)
-	{
-		injectCall.call();
-
-		rage::fiDevice::OnInitialMount();
-	});*/
-
 	// increase non-DLC fiDevice mount limit
 	{
-		/*auto location = hook::get_pattern<char>("44 8B 35 ? ? ? ? 45 85 F6 74 1B 48 8D", 3);
-		int* limit = (int*)(location + *(int32_t*)location + 4);
-
-		*limit *= 8;*/
-
 		// GTA project initialization code, arxan-obfuscated
 		auto location = hook::get_pattern<int>("C7 05 ? ? ? ? 64 00 00 00 48 8B", 6);
 		hook::put<int>(location, *location * 15); // '1500' mount limit now, instead of '500'
@@ -209,4 +195,10 @@ static HookFunction hookFunction([] ()
 
 	// wrap err_gen_invalid failures
 	hook::call(hook::get_pattern("B9 EA 0A 0E BE E8", 5), PackfileEncryptionError);
+
+	// don't crash (forget to call rage::fiDevice::Unmount) on failed DLC text reads
+	{
+		auto location = hook::get_pattern("41 8B D6 E9 7C 02 00 00", 4);
+		*(int*)location -= 0x12;
+	}
 });
