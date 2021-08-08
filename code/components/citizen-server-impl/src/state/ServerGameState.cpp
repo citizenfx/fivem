@@ -4125,7 +4125,9 @@ struct CFireEvent
 	struct fire
 	{
 		int v1;
+		bool isEntity;
 		bool v2;
+		uint16_t entityGlobalId;
 		uint16_t v3;
 		bool v4;
 		float v5X;
@@ -4140,10 +4142,11 @@ struct CFireEvent
 		float v10;
 		float v11;
 		bool v12;
+		int weaponHash;
 		int v13;
 		uint16_t fireId;
 
-		MSGPACK_DEFINE_MAP(v1,v2,v3,v4,v5X,v5Y,v5Z,posX,posY,posZ,v7,v8,maxChildren,v10,v11,v12,v13,fireId);
+		MSGPACK_DEFINE_MAP(v1,isEntity,v2,entityGlobalId,v3,v4,v5X,v5Y,v5Z,posX,posY,posZ,v7,v8,maxChildren,v10,v11,v12,weaponHash, v13,fireId);
 	};
 
 	std::vector<fire> fires;
@@ -4161,11 +4164,18 @@ void CFireEvent::Parse(rl::MessageBuffer& buffer)
 	{
 		fire f;
 		f.v1 = buffer.Read<int>(4);
-		f.v2 = buffer.Read<uint8_t>(1);
-		if (f.v2)
-			f.v3 = buffer.Read<uint16_t>(13);
+		f.isEntity = buffer.Read<uint8_t>(1);
+		f.v2 = f.isEntity;
+		if (f.isEntity)
+		{
+			f.entityGlobalId = buffer.Read<uint16_t>(13);
+			f.v3 = f.entityGlobalId;
+		}
 		else
+		{
+			f.entityGlobalId = 0;
 			f.v3 = 0;
+		}
 		if (buffer.Read<uint8_t>(1))
 		{
 			f.v5X = buffer.ReadSignedFloat(19, 27648.0f);
@@ -4186,10 +4196,15 @@ void CFireEvent::Parse(rl::MessageBuffer& buffer)
 		f.maxChildren = buffer.Read<uint8_t>(5);
 		f.v10 = (buffer.Read<int>(16) / 65535.0f) * 90.0f;
 		f.v11 = (buffer.Read<int>(16) / 65535.0f) * 25.0f;
-		if (buffer.Read<uint8_t>(1))
-			f.v13 = buffer.Read<int>(32);
+		if (buffer.Read<uint8_t>(1)) {
+			f.weaponHash = buffer.Read<int>(32);
+			f.v13 = f.weaponHash;
+		}
 		else
+		{
+			f.weaponHash = 0;
 			f.v13 = 0;
+		}
 		f.fireId = buffer.Read<uint16_t>(16);
 		fires.push_back(f);
 	}
