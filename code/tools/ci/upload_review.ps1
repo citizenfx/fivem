@@ -26,6 +26,8 @@ foreach ($item in $items) {
 	if (Test-Path $Item.FullName -NewerThan 1/1/2020) {
 		if ($item.Name.EndsWith(".dll.xz") -or $item.Name.EndsWith(".exe.xz") -or $item.Name.EndsWith(".bin.xz")) {
 			& $WorkRootDir\tools\ci\7z.exe x -y "-o$TempDir" $item.FullName
+		} elseif ($item.Name.EndsWith(".dll") -or $item.Name.EndsWith(".exe") -or $item.Name.EndsWith(".bin")) {
+			Copy-Item -Force -Path $item.FullName -Destination $TempDir
 		}
 	}
 }
