@@ -191,11 +191,13 @@ struct ReverseGameInputState
 
 	explicit ReverseGameInputState(const ReverseGameData& data)
 	{
+#if 0
 		memcpy(keyboardState, data.keyboardState, sizeof(keyboardState));
 		mouseX = data.mouseX;
 		mouseY = data.mouseY;
 		mouseWheel = data.mouseWheel;
 		mouseButtons = data.mouseButtons;
+#endif
 	}
 };
 
