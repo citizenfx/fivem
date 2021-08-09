@@ -692,14 +692,6 @@ static InitFunction initFunction([] ()
 
 	rage::OnInitFunctionEnd.Connect([] (rage::InitFunctionType type)
 	{
-		{
-			rapidjson::Document doc;
-			doc.SetObject();
-			doc.AddMember("type", rapidjson::Value(rage::InitFunctionTypeToString(type), doc.GetAllocator()), doc.GetAllocator());
-
-			InvokeNUIScript("endInitFunction", doc);
-		}
-
 		if (type == rage::INIT_BEFORE_MAP_LOADED)
 		{
 			primedMapLoad = true;
@@ -762,6 +754,14 @@ static InitFunction initFunction([] ()
 			}
 
 			loadsThread.doShutdown = true;
+		}
+
+		{
+			rapidjson::Document doc;
+			doc.SetObject();
+			doc.AddMember("type", rapidjson::Value(rage::InitFunctionTypeToString(type), doc.GetAllocator()), doc.GetAllocator());
+
+			InvokeNUIScript("endInitFunction", doc);
 		}
 	});
 
