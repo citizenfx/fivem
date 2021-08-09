@@ -462,9 +462,12 @@ static InitFunction initFunction([] ()
 	{
 		if (nui::HasFrame("loadingScreen"))
 		{
-			setupBusySpinner(1);
-			*spinnerDep = true;
-			updateBusySpinner();
+			if (*g_scaleformMgr)
+			{
+				setupBusySpinner(1);
+				*spinnerDep = true;
+				updateBusySpinner();
+			}
 		}
 	});
 		
