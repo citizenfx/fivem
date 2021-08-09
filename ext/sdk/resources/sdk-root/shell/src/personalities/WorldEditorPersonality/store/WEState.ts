@@ -57,12 +57,26 @@ export const WEState = new class WEState {
 
   public mapExplorerWidth: number = clampExplorerWidth(parseInt(localStorage.weExplorerWidth, 10) || 300);
 
+  private forceShowIntro = !localStorage['we:introSeen'];
+
   get mapName(): string {
     if (this.mapEntry) {
       return this.mapEntry.name.replace(FXWORLD_FILE_EXT, '');
     }
 
     return '';
+  }
+
+  get showIntro(): boolean {
+    if (!this.ready) {
+      return false;
+    }
+
+    if (!this.map) {
+      return false;
+    }
+
+    return this.forceShowIntro;
   }
 
   constructor() {
@@ -151,7 +165,21 @@ export const WEState = new class WEState {
     }, { code: 'F5' });
   }
 
+  readonly openIntro = () => {
+    this.forceShowIntro = true;
+  };
+
+  readonly closeIntro = () => {
+    this.forceShowIntro = false;
+
+    localStorage['we:introSeen'] = 'true';
+  };
+
   readonly enterPlaytestMode = () => {
+    if (this.mode === WEMode.PLAYTEST) {
+      return;
+    }
+
     sendGameClientEvent('we:enterPlaytestMode', '');
 
     this.mode = WEMode.PLAYTEST;
@@ -159,6 +187,10 @@ export const WEState = new class WEState {
   };
 
   readonly enterEditorMode = () => {
+    if (this.mode === WEMode.EDITOR) {
+      return;
+    }
+
     sendGameClientEvent('we:exitPlaytestMode', '');
     this.mode = WEMode.EDITOR;
     this.inputController.exitFullControl();

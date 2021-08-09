@@ -1,5 +1,4 @@
 import React from 'react';
-import classnames from 'classnames';
 import { WEEntityMatrixIndex } from 'backend/world-editor/world-editor-types';
 import { observer } from 'mobx-react-lite';
 import { WEState } from 'personalities/WorldEditorPersonality/store/WEState';
@@ -8,12 +7,12 @@ import { BsCameraVideo, BsChevronBarDown } from 'react-icons/bs';
 import { additionsToolIcon, rotateIcon, scaleIcon, translateIcon } from 'personalities/WorldEditorPersonality/constants/icons';
 import { NumberInput } from 'components/controls/NumberInput/NumberInput';
 import { div } from 'utils/styled';
-import s from './PropertiesTool.module.scss';
 import { ConfirmationsState } from 'store/ConfirmationsState';
 import { deleteIcon } from 'constants/icons';
 import { Title } from 'components/controls/Title/Title';
 import { WEHotkeysState } from 'personalities/WorldEditorPersonality/store/WEHotkeysState';
 import { WECommand } from 'personalities/WorldEditorPersonality/constants/commands';
+import s from './PropertiesTool.module.scss';
 
 const Header = div(s, 'header');
 const Name = div(s, 'name');

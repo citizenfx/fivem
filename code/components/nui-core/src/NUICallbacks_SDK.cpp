@@ -121,27 +121,6 @@ static InitFunction initFunction([]()
 		return CefV8Value::CreateUndefined();
 	});
 
-	nuiApp->AddV8Handler("setInputChar", [](const CefV8ValueList& arguments, CefString& exception)
-	{
-		if (arguments.size() == 1)
-		{
-			// "x", "X", "y", "Y"
-			if (arguments[0]->IsString())
-			{
-				auto charString = arguments[0]->GetStringValue();
-				rgd->inputChar = charString.c_str()[0];
-			} 
-			// big keys in JS are processed as "BackSpace", "Shift", "Alt", ... The charcode is sent instead in this case.
-			else
-			{
-				auto charCode = arguments[0]->GetIntValue();
-				rgd->inputChar = (wchar_t)charCode;
-			}
-		}
-
-		return CefV8Value::CreateUndefined();
-	});
-
 	nuiApp->AddV8Handler("fxdkSendApiMessage", [](const CefV8ValueList& arguments, CefString& exception)
 	{
 		if (arguments.size() == 1)

@@ -23,6 +23,25 @@ static int* g_mouseButtons;
 static int* g_inputOffset;
 static rage::ioMouse* g_input;
 
+static bool g_useGlobalMouseMovement = true;
+static POINT g_mouseMovement{ 0 };
+
+static std::shared_ptr<GlobalInputHandler> GetGlobalInput()
+{
+	static auto handler = CreateGlobalInputHandler();
+
+	return handler;
+}
+
+static void UpdateMouseMovement(const RAWMOUSE& mouse)
+{
+	if (mouse.usButtonFlags != RI_MOUSE_WHEEL && !(mouse.usFlags & MOUSE_MOVE_ABSOLUTE))
+	{
+		g_mouseMovement.x += mouse.lLastX;
+		g_mouseMovement.y += mouse.lLastY;
+	}
+}
+
 static void (*disableFocus)();
 
 static void DisableFocus()
@@ -93,13 +112,14 @@ static bool GlobalInputIsDown(int vKey)
 
 	static auto gInput = []()
 	{
-		auto gInput = CreateGlobalInputHandler();
-		gInput->OnKey.Connect([](DWORD vKey, bool down)
+		auto inp = GetGlobalInput();
+
+		inp->OnKey.Connect([](DWORD vKey, bool down)
 		{
 			keys[vKey] = down;
 		});
 
-		return gInput;
+		return inp;
 	}();
 
 	return keys[vKey];
@@ -221,6 +241,11 @@ LRESULT APIENTRY grcWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
 		}
 	}
 
+	if (uMsg == WM_INPUT && g_useGlobalMouseMovement)
+	{
+		pass = false;
+	}
+
 	if (!pass)
 	{
 		bool shouldPassAnyway = false;
@@ -302,21 +327,28 @@ BOOL WINAPI SetCursorPosWrap(int X, int Y)
 #include <HostSharedData.h>
 #include <ReverseGameData.h>
 
+BOOL WINAPI RegisterRawInputDevicesWrap(PCRAWINPUTDEVICE pRawInputDevices, UINT uiNumDevices, UINT cbSize)
+{
+	GetGlobalInput()->OnMouse.Connect([](const RAWMOUSE& mouse) { UpdateMouseMovement(mouse); });
+
+	return RegisterRawInputDevices(pRawInputDevices, uiNumDevices, cbSize);
+}
+
 static void (*origSetInput)(int, void*, void*, void*);
 
 struct ReverseGameInputState
 {
 	uint8_t keyboardState[256];
-	int mouseX;
-	int mouseY;
+	int mouseDeltaX;
+	int mouseDeltaY;
 	int mouseWheel;
 	int mouseButtons;
 
 	ReverseGameInputState()
 	{
 		memset(keyboardState, 0, sizeof(keyboardState));
-		mouseX = 0;
-		mouseY = 0;
+		mouseDeltaX = 0;
+		mouseDeltaY = 0;
 		mouseWheel = 0;
 		mouseButtons = 0;
 	}
@@ -324,8 +356,8 @@ struct ReverseGameInputState
 	explicit ReverseGameInputState(const ReverseGameData& data)
 	{
 		memcpy(keyboardState, data.keyboardState, sizeof(keyboardState));
-		mouseX = data.mouseX;
-		mouseY = data.mouseY;
+		mouseDeltaX = data.mouseDeltaX;
+		mouseDeltaY = data.mouseDeltaY;
 		mouseWheel = data.mouseWheel;
 		mouseButtons = data.mouseButtons;
 	}
@@ -367,6 +399,8 @@ static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
 {
 	static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");
 
+	g_useGlobalMouseMovement = rgd->useRawMouseCapture;
+
 	WaitForSingleObject(rgd->inputMutex, INFINITE);
 
 	std::vector<InputTarget*> inputTargets;
@@ -376,17 +410,29 @@ static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
 
 	curInput = ReverseGameInputState{ *rgd };
 
+	if (g_useGlobalMouseMovement)
+	{
+		curInput.mouseDeltaX = g_mouseMovement.x;
+		curInput.mouseDeltaY = g_mouseMovement.y;
+	}
+
+	rgd->mouseAbsX = std::clamp(rgd->mouseAbsX + curInput.mouseDeltaX, 0, rgd->twidth);
+	rgd->mouseAbsY = std::clamp(rgd->mouseAbsY + curInput.mouseDeltaY, 0, rgd->theight);
+
+	g_mouseMovement.x = 0;
+	g_mouseMovement.y = 0;
+
 	static POINT mousePos[2];
 
 	if (caught != lastCaught)
 	{
-		mousePos[caught ? 1 : 0] = { curInput.mouseX, curInput.mouseY };
+		mousePos[caught ? 1 : 0] = { curInput.mouseDeltaX, curInput.mouseDeltaY };
 
-		curInput.mouseX = mousePos[lastCaught ? 1 : 0].x;
-		curInput.mouseY = mousePos[lastCaught ? 1 : 0].y;
+		curInput.mouseDeltaX = mousePos[lastCaught ? 1 : 0].x;
+		curInput.mouseDeltaY = mousePos[lastCaught ? 1 : 0].y;
 
-		rgd->mouseX = curInput.mouseX;
-		rgd->mouseY = curInput.mouseY;
+		rgd->mouseDeltaX = curInput.mouseDeltaX;
+		rgd->mouseDeltaY = curInput.mouseDeltaY;
 	}
 
 	lastCaught = caught;
@@ -454,8 +500,8 @@ static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
 		bool pass = true;
 		LRESULT lr;
 
-		int mx = curInput.mouseX;
-		int my = curInput.mouseY;
+		int mx = curInput.mouseDeltaX;
+		int my = curInput.mouseDeltaY;
 
 		if ((curInput.mouseButtons & i) && !(lastInput.mouseButtons & i))
 		{
@@ -485,10 +531,10 @@ static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
 	}
 
 	// mouse movement
-	if (curInput.mouseX != lastInput.mouseX || curInput.mouseY != lastInput.mouseY)
+	if (curInput.mouseDeltaX != lastInput.mouseDeltaX || curInput.mouseDeltaY != lastInput.mouseDeltaY)
 	{
-		int mx = curInput.mouseX;
-		int my = curInput.mouseY;
+		int mx = rgd->mouseAbsX;
+		int my = rgd->mouseAbsY;
 
 		loopTargets([mx, my](InputTarget* target)
 		{
@@ -506,17 +552,17 @@ static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
 		memcpy(g_gameKeyArray, rgd->keyboardState, 256);
 		if (off)
 		{
-			g_input->m_lastDX() = curInput.mouseX;
-			g_input->m_lastDY() = curInput.mouseY;
+			g_input->m_lastDX() = curInput.mouseDeltaX;
+			g_input->m_lastDY() = curInput.mouseDeltaY;
 		}
 		else
 		{
-			g_input->m_dX() = curInput.mouseX;
-			g_input->m_dY() = curInput.mouseY;
+			g_input->m_dX() = curInput.mouseDeltaX;
+			g_input->m_dY() = curInput.mouseDeltaY;
 		}
 
-		g_input->cursorAbsX() = std::clamp(g_input->cursorAbsX() + curInput.mouseX, 0, rgd->twidth);
-		g_input->cursorAbsY() = std::clamp(g_input->cursorAbsY() + curInput.mouseY, 0, rgd->theight);
+		g_input->cursorAbsX() = std::clamp(g_input->cursorAbsX() + curInput.mouseDeltaX, 0, rgd->twidth);
+		g_input->cursorAbsY() = std::clamp(g_input->cursorAbsY() + curInput.mouseDeltaY, 0, rgd->theight);
 
 		g_input->m_Buttons() = rgd->mouseButtons;
 		g_input->m_dZ() = rgd->mouseWheel;
@@ -528,13 +574,13 @@ static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
 		memcpy(rgd->keyboardState, g_gameKeyArray, 256);
 		if (off)
 		{
-			rgd->mouseX = g_input->m_lastDX();
-			rgd->mouseY = g_input->m_lastDY();
+			rgd->mouseDeltaX = g_input->m_lastDX();
+			rgd->mouseDeltaY = g_input->m_lastDY();
 		}
 		else
 		{
-			rgd->mouseX = g_input->m_dX();
-			rgd->mouseY = g_input->m_dY();
+			rgd->mouseDeltaX = g_input->m_dX();
+			rgd->mouseDeltaY = g_input->m_dY();
 		}
 		rgd->mouseButtons = g_input->m_Buttons();
 		rgd->mouseWheel = g_input->m_dZ();
@@ -666,6 +712,11 @@ static HookFunction hookFunction([]()
 
 	if (initState->isReverseGame)
 	{
+		if (launch::IsSDKGuest())
+		{
+			hook::iat("user32.dll", RegisterRawInputDevicesWrap, "RegisterRawInputDevices");
+		}
+
 		auto location = hook::get_pattern("45 33 C9 44 8A C7 40 8A D7 33 C9 E8", 11);
 		hook::set_call(&origSetInput, location);
 		hook::call(location, SetInputWrap);

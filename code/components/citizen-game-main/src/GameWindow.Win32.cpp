@@ -809,8 +809,8 @@ class Win32GameWindow : public GameWindow
 					}
 					else if (input->header.dwType == RIM_TYPEMOUSE)
 					{
-						rgd->mouseX += input->data.mouse.lLastX;
-						rgd->mouseY += input->data.mouse.lLastY;
+						rgd->mouseDeltaX += input->data.mouse.lLastX;
+						rgd->mouseDeltaY += input->data.mouse.lLastY;
 
 						if (input->data.mouse.usButtonFlags & RI_MOUSE_WHEEL)
 						{

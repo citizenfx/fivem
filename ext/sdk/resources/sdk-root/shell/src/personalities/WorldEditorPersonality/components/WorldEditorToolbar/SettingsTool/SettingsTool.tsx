@@ -12,6 +12,8 @@ import { Button } from 'components/controls/Button/Button';
 import { GoKeyboard } from 'react-icons/go';
 import { Hotkeys } from './Hotkeys/Hotkeys';
 import s from './SettingsTool.module.scss';
+import { IntroForceRecalculate } from 'components/Intro/Intro';
+import { WEState } from 'personalities/WorldEditorPersonality/store/WEState';
 
 const Root = div(s, 'root');
 const Block = div(s, 'block');
@@ -26,7 +28,12 @@ export const SettingsTool = observer(function SettingsTool() {
       tool={WETool.Settings}
       icon={projectSettingsIcon}
       label="Settings"
+
+      toggleProps={{ 'data-intro-id': 'settings-panel' }}
+      panelProps={{ 'data-intro-id': 'settings-panel' }}
     >
+      <IntroForceRecalculate />
+
       <Root>
         <Block>
           <Label>
@@ -82,6 +89,12 @@ export const SettingsTool = observer(function SettingsTool() {
           {hotkeysOpen && (
             <Hotkeys onClose={closeHotkeys} />
           )}
+        </Block>
+
+        <Block>
+          <a href="javascript:void(0)" onClick={WEState.openIntro}>
+            Show intro tour
+          </a>
         </Block>
       </Root>
     </BaseTool>

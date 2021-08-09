@@ -12,7 +12,6 @@ import { closeIcon } from 'constants/icons';
 import { ActiveSelectionTool } from './ActiveSelectionTool/ActiveSelectionTool';
 import { EnvironmentTool } from './EnvironmentTool/EnvironmentTool';
 import { FlashingMessage } from './FlashingMessage/FlashingMessage';
-// import { DebugRestartSdkGameTool } from './DebugRestartSdkGameTool';
 import { PropertiesTool } from './PropertiesTool/PropertiesTool';
 import { SettingsTool } from './SettingsTool/SettingsTool';
 import { Title } from 'components/controls/Title/Title';
@@ -20,6 +19,7 @@ import { PlayButton } from './PlayButton/PlayButton';
 import { PlayExitMessage } from './PlayExitMessage/PlayExitMessage';
 import s from './WorldEditorToolbar.module.scss';
 import sBaseTool from './BaseTool/BaseTool.module.scss';
+// import { DebugRestartSdkGameTool } from './DebugRestartSdkGameTool';
 
 function CloseButton() {
   const rootClassName = classnames(sBaseTool.toggle, sBaseTool.labelled, sBaseTool.hoverable);

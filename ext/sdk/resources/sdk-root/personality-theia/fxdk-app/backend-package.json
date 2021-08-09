@@ -3,7 +3,7 @@
   "name": "fxdk-app-backend",
   "version": "0.0.0",
   "resolutions": {
-    "nsfw": "https://static.cfx-services.net/fxdk-packages/fxdk-nsfw-1.0.1.tgz"
+    "nsfw": "https://content.cfx.re/fxdk-content/npm-packages/fxdk-nsfw-1.0.1.tgz"
   },
   "dependencies": {
     "@theia/core": "1.12.1",

@@ -130,8 +130,8 @@ static HookFunction initFunction([] ()
 			{
 				static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");
 
-				cursorPos.x = rgd->mouseX;
-				cursorPos.y = rgd->mouseY;
+				cursorPos.x = rgd->mouseAbsX;
+				cursorPos.y = rgd->mouseAbsY;
 			}
 			else
 			{

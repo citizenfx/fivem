@@ -149,7 +149,8 @@ export class InputController {
 
     this.setScope(WECommandScope.PLAYTEST);
 
-    this.container.current.requestPointerLock();
+    this.lockPointer();
+
     this.resetMouseButtonStates();
     this.resetKeysState();
   }
@@ -159,7 +160,8 @@ export class InputController {
 
     this.setScope(WECommandScope.EDITOR);
 
-    document.exitPointerLock();
+    this.unlockPointer();
+
     this.resetMouseButtonStates();
     this.resetKeysState();
   }
@@ -176,19 +178,21 @@ export class InputController {
   deactivateCameraControl() {
     if (this.cameraControlActive) {
       this.cameraControlActive = false;
-      document.exitPointerLock();
+
+      this.unlockPointer();
     }
   }
 
   private handleContainerMouseMove = (event: MouseEvent) => {
     if (this.fullControl) {
-      sendMousePos(event.movementX, event.movementY);
+      // sendMousePos(event.movementX, event.movementY);
 
       return;
     }
 
     if (this.cameraControlActive) {
-      sendGameClientEvent('we:camrot', JSON.stringify([event.movementX, event.movementY]));
+      // sendMousePos(event.movementX, event.movementY);
+      // sendGameClientEvent('we:camrot', JSON.stringify([event.movementX, event.movementY]));
 
       return;
     }
@@ -308,7 +312,7 @@ export class InputController {
 
       if (rmb && !active) {
         this.cameraControlActive = false;
-        document.exitPointerLock();
+        this.unlockPointer();
         return;
       }
 
@@ -318,7 +322,7 @@ export class InputController {
     switch (true) {
       case rmb && active: {
         this.cameraControlActive = true;
-        this.container.current.requestPointerLock();
+        this.lockPointer();
         this.resetMouseButtonStates();
         break;
       }
@@ -388,6 +392,26 @@ export class InputController {
     };
   }
 
+  private lockingPointer = false;
+  private lockPointer() {
+    this.lockingPointer = true;
+    setRawMouseCapture(true);
+    this.container.current.requestPointerLock();
+  }
+
+  private unlockPointer() {
+    this.lockingPointer = false;
+    setRawMouseCapture(false);
+    document.exitPointerLock();
+  }
+
+  private readonly handlePointerLockChanged = () => {
+    if (this.lockingPointer && !document.pointerLockElement) {
+      this.lockingPointer = false;
+      setRawMouseCapture(false);
+    }
+  };
+
   private readonly containerHandlers = {
     mousemove: this.handleContainerMouseMove,
     mousedown: (event: MouseEvent) => this.handleMouseButtonState(event, true),
@@ -396,6 +420,7 @@ export class InputController {
   };
 
   private readonly documentHandlers = {
+    pointerlockchange: this.handlePointerLockChanged,
     keydown: (event: KeyboardEvent) => this.handleKeyState(event, true),
     keyup: (event: KeyboardEvent) => this.handleKeyState(event, false),
   };

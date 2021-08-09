@@ -1,0 +1,167 @@
+@import "variables";
+
+.root {
+  position: fixed;
+
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+
+  z-index: 9999;
+
+  .focuser,
+  .content {
+    @keyframes appearance {
+      0% {
+        opacity: 0;
+      }
+      100% {
+        opacity: 1;
+      }
+    }
+    animation: appearance .3s ease-in-out forwards;
+  }
+
+  .focuser {
+    position: fixed;
+
+    top: 0;
+    left: 0;
+
+    box-shadow: 0 0 10px $acColor, 0 0 30px rgba($acColor, .25), 0 0 0 150vw rgba($bgColor, .9), 0 0 8px 8px rgba($bgColor, .5) inset;
+
+    border: solid 2px $acColor;
+  }
+
+  .content {
+    position: fixed;
+
+    top: 0;
+    left: 0;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: $q*4;
+
+    padding: $q*4 $q*4 $q*2 $q*4;
+
+    background-color: $fgColor;
+
+    border-radius: $q;
+
+    box-shadow: 0 0 25px $bgColor;
+
+    &.transitions {
+      animation: none;
+
+      transition: .2s ease-in-out;
+      transition-property: transform;
+    }
+
+    .wrapper {
+      min-width: 200px;
+      max-width: min(600px, 50vw);
+
+      color: $bgColor;
+
+      line-height: 1.2;
+      font-weight: 400;
+      font-size: $fs2;
+
+      h1, h2, h3, h4 {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        padding-bottom: $q*4;
+
+        border-bottom: solid 1px rgba($bgColor, .1);
+
+        letter-spacing: 0;
+
+        > div {
+          display: flex;
+
+          gap: $q;
+        }
+      }
+
+      p {
+        margin-bottom: $q*4;
+
+        font-weight: 350;
+        line-height: 1.1;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+      }
+
+      ul {
+        padding-left: $q*5;
+
+        li {
+          margin: $q*2 0;
+        }
+      }
+    }
+
+    .controls {
+      display: flex;
+      justify-content: space-between;
+
+      gap: $q*2;
+
+      width: 100%;
+
+      user-select: none;
+
+      > div {
+        display: flex;
+
+        gap: $q*4;
+      }
+
+      button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        padding: $q*2 $q*4;
+
+        @include fontPrimary;
+
+        color: $bgColor;
+        font-weight: 400;
+        background-color: rgba($bgColor, .1);
+
+        font-size: $fs1;
+
+        border: none;
+        border-radius: $q;
+
+        cursor: pointer;
+
+        @include interactiveTransition;
+
+        &[data-back] {
+          background-color: transparent;
+        }
+
+        &:hover {
+          background-color: rgba($bgColor, .2);
+        }
+
+        &[data-success] {
+          background-color: rgba($scColor, 1);
+
+          &:hover {
+            background-color: rgba($scColor, .8);
+          }
+        }
+      }
+    }
+  }
+}

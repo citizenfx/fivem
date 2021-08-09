@@ -14,7 +14,8 @@ declare global {
   var initRGDInput: () => boolean;
   var setMouseButtonState: (button: number, state: boolean) => void;
   var sendMouseWheel: (deltaY: number) => void;
-  var sendMousePos: (mx: number, my: number) => void;
+  // var sendMousePos: (mx: number, my: number) => void;
+  var setRawMouseCapture: (capture: boolean) => void;
   var setKeyState: (vk: number, state: boolean) => void;
   var setInputChar: (char: string) => void;
 

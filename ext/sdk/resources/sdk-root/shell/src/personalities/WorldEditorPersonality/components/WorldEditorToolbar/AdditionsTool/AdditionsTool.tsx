@@ -17,6 +17,7 @@ import { AdditionsNewGroup } from './AdditionsNewGroup/AdditionsNewGroup';
 import { observer } from 'mobx-react-lite';
 import { WESelectionType } from 'backend/world-editor/world-editor-types';
 import { additionsToolIcon } from 'personalities/WorldEditorPersonality/constants/icons';
+import { IntroForceRecalculate } from 'components/Intro/Intro';
 
 export const AdditionsTool = observer(function AdditionsTool() {
   const [groupCreatorOpen, openGroupCreator, closeGroupCreator] = useOpenFlag(false);
@@ -70,7 +71,11 @@ export const AdditionsTool = observer(function AdditionsTool() {
       icon={additionsToolIcon}
       label="Map additions"
       highlight={WEState.selection.type === WESelectionType.ADDITION}
+      toggleProps={{ 'data-intro-id': 'map-additions' }}
+      panelProps={{ 'data-intro-id': 'map-additions' }}
     >
+      <IntroForceRecalculate />
+
       <ContextMenu
         ref={dropRef}
         className={rootClassName}

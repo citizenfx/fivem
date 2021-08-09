@@ -39,6 +39,9 @@ export function getToolCommand(tool: WETool): WECommandType | void {
 }
 
 export const WEToolbarState = new class WEToolbarState {
+  // For intro tour
+  public showingFakeProperties = false;
+
   private activeTool: Record<WEToolSide, WETool | null> = {
     [WEToolSide.LEFT_TOP]: null,
     [WEToolSide.LEFT_BOTTOM]: null,
@@ -116,4 +119,18 @@ export const WEToolbarState = new class WEToolbarState {
       this.openTool(tool);
     }
   }
+
+  closeAllTools() {
+    for (const toolSide of Object.keys(this.activeTool)) {
+      this.activeTool[toolSide] = null;
+    }
+  }
+
+  readonly showFakeProperties = () => {
+    this.showingFakeProperties = true;
+  };
+
+  readonly hideFakeProperties = () => {
+    this.showingFakeProperties = false;
+  };
 };

@@ -3,6 +3,7 @@
 
 #include <StdInc.h>
 #include <GlobalInput.h>
+#include <CL2LaunchMode.h>
 
 #include <hidsdi.h>
 #include <hidpi.h>
@@ -50,15 +51,26 @@ LRESULT GlobalInputHandlerLocal::WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam
 	{
 		case WM_CREATE:
 		{
-			constexpr uint8_t nRid = 1;
-			RAWINPUTDEVICE rid[nRid] = {};
+			std::vector<RAWINPUTDEVICE> devices;
 
-			rid[0].usUsagePage = HID_USAGE_PAGE_GENERIC;
-			rid[0].usUsage = HID_USAGE_GENERIC_KEYBOARD;
-			rid[0].dwFlags = RIDEV_INPUTSINK | RIDEV_DEVNOTIFY;
-			rid[0].hwndTarget = hWnd;
+			devices.push_back({
+				HID_USAGE_PAGE_GENERIC,
+				HID_USAGE_GENERIC_KEYBOARD,
+				RIDEV_INPUTSINK | RIDEV_DEVNOTIFY,
+				hWnd
+			});
 
-			if (!RegisterRawInputDevices(rid, nRid, sizeof(RAWINPUTDEVICE)))
+			if (launch::IsSDKGuest())
+			{
+				devices.push_back({
+					HID_USAGE_PAGE_GENERIC,
+					HID_USAGE_GENERIC_MOUSE,
+					RIDEV_INPUTSINK | RIDEV_DEVNOTIFY,
+					hWnd
+				});
+			}
+
+			if (!RegisterRawInputDevices(devices.data(), devices.size(), sizeof(RAWINPUTDEVICE)))
 			{
 				trace("RegisterRawInputDevices() failed with error %u!\n", GetLastError());
 			}
@@ -87,7 +99,8 @@ LRESULT GlobalInputHandlerLocal::WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam
 				case RIM_TYPEMOUSE:
 				{
 					const RAWMOUSE& mouse = input->data.mouse;
-					// no-op
+
+					OnMouse(input->data.mouse);
 					break;
 				}
 				case RIM_TYPEKEYBOARD:

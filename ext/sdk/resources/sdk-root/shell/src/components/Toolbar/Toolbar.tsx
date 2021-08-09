@@ -7,7 +7,7 @@ import { Project } from 'components/Project/Project';
 import { ContextMenu, ContextMenuItemsCollection, ContextMenuItemSeparator } from 'components/controls/ContextMenu/ContextMenu';
 import { ProjectControls } from 'components/Project/ProjectControls/ProjectControls';
 import { ToolbarTrigger } from './ToolbarTrigger';
-import { Tour } from 'components/Tour/Tour';
+import { FxDKIntroTour } from 'components/FxDKIntroTour/FxDKIntroTour';
 import { ToolbarState } from 'store/ToolbarState';
 import { ShellState } from 'store/ShellState';
 import { ProjectState } from 'store/ProjectState';
@@ -165,7 +165,7 @@ export const Toolbar = observer(function Toolbar() {
 
         <StatusBar />
 
-        <Tour tourVisible={tourVisible} setTourVisible={setTourVisible} />
+        <FxDKIntroTour tourVisible={tourVisible} setTourVisible={setTourVisible} />
 
         {hasherOpen && (
           <Hasher close={closeHasher} />
