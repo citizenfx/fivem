@@ -26,11 +26,16 @@ export const Playtest = new class Playtest {
     const cam = CameraManager.getPosition();
     const ped = PlayerPedId();
 
-    const [success, z] = GetGroundZFor_3dCoord(cam.x, cam.y, cam.z, 0);
+    const forward = CameraManager.getForwardVector();
+
+    const x = cam.x + forward.x * 5;
+    const y = cam.y + forward.y * 5;
+
+    const [success, z] = GetGroundZFor_3dCoord(x, y, cam.z, false);
     if (success) {
-      SetEntityCoords(ped, cam.x, cam.y, z, true, false, false, false);
+      SetEntityCoords(ped, x, y, z, true, false, false, false);
     } else {
-      SetEntityCoords(ped, cam.x, cam.y, cam.z, true, false, false, false);
+      SetEntityCoords(ped, x, y, cam.z, true, false, false, false);
     }
 
     CameraManager.destroy(true, 200, true, true);
@@ -44,14 +49,24 @@ export const Playtest = new class Playtest {
         RequestModel(vehicleModel);
       }
     }
+
+    SetEntityHeading(ped, this.savedCam[5]);
+    SetGameplayCamRelativeHeading(0);
   };
 
-  readonly disable = () => {
+  readonly disable = (relative: string) => {
+    const gameplayCam: WECam = [
+      ...GetGameplayCamCoord(),
+      ...GetGameplayCamRot(2),
+    ] as WECam;
+
     MapManager.enable();
     SelectionController.enable();
     CameraManager.init(true, 200);
 
-    if (this.savedCam) {
+    if (relative) {
+      CameraManager.setCam(gameplayCam);
+    } else if (this.savedCam) {
       CameraManager.setCam(this.savedCam);
     }
 

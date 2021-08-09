@@ -186,12 +186,12 @@ export const WEState = new class WEState {
     this.inputController.enterFullControl();
   };
 
-  readonly enterEditorMode = () => {
+  readonly enterEditorMode = (relative = false) => {
     if (this.mode === WEMode.EDITOR) {
       return;
     }
 
-    sendGameClientEvent('we:exitPlaytestMode', '');
+    sendGameClientEvent('we:exitPlaytestMode', relative ? 'true' : '');
     this.mode = WEMode.EDITOR;
     this.inputController.exitFullControl();
   };

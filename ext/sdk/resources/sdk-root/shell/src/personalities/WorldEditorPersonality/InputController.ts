@@ -166,8 +166,8 @@ export class InputController {
     this.resetKeysState();
   }
 
-  private escapeFullControlCallback = () => {};
-  onEscapeFullControl(cb: () => void) {
+  private escapeFullControlCallback = (relative: boolean) => {};
+  onEscapeFullControl(cb: (relative: boolean) => void) {
     this.escapeFullControlCallback = cb;
   }
 
@@ -230,7 +230,7 @@ export class InputController {
   private handleKeyState(event: KeyboardEvent, active: boolean) {
     if (this.fullControl) {
       if (event.code === 'Escape') {
-        this.escapeFullControlCallback();
+        this.escapeFullControlCallback(event.shiftKey);
       } else {
         this.applyKeyState(event, active);
       }
