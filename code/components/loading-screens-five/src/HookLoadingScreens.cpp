@@ -291,6 +291,7 @@ int CountRelevantDataFileEntries()
 static void(*dataFileMgr__loadDefDat)(void*, const char*, bool);
 
 int dlcIdx = -1;
+std::map<uint32_t, std::string> g_dlcNameMap;
 
 static void LoadDefDats(void* dataFileMgr, const char* name, bool enabled)
 {
@@ -301,6 +302,10 @@ static void LoadDefDats(void* dataFileMgr, const char* name, bool enabled)
 	ifd.initFunction = [](int)
 	{
 	};
+
+	std::string nameStripped = name;
+	nameStripped = nameStripped.substr(0, nameStripped.find("CRC"));
+	g_dlcNameMap.emplace(ifd.funcHash, nameStripped);
 
 	if (dlcIdx >= 0)
 	{

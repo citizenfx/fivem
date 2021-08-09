@@ -40,11 +40,27 @@ static std::set<uint64_t> g_visitedTimings;
 
 static bool ShouldSkipLoading();
 
-// 1365
-// 1493
-// 1604
-// #TODOXBUILD
-#define NUM_DLC_CALLS 32
+static int GetNumDlcCalls()
+{
+	if (xbr::IsGameBuildOrGreater<2372>())
+	{
+		return 37;
+	}
+	else if (xbr::IsGameBuildOrGreater<2189>())
+	{
+		return 36;
+	}
+	else if (xbr::IsGameBuildOrGreater<2060>())
+	{
+		return 35;
+	}
+	else if (xbr::IsGameBuildOrGreater<1604>())
+	{
+		return 33;
+	}
+
+	return 0;
+}
 
 using fx::Resource;
 
@@ -439,7 +455,18 @@ void LoadsThread::DoRun()
 }
 
 extern int dlcIdx;
+extern std::map<uint32_t, std::string> g_dlcNameMap;
 DLL_IMPORT fwEvent<const std::string&> OnScriptInitStatus;
+
+static const char* GetName(const rage::InitFunctionData& data)
+{
+	if (auto it = g_dlcNameMap.find(data.funcHash); it != g_dlcNameMap.end())
+	{
+		return it->second.c_str();
+	}
+
+	return data.GetName();
+}
 
 static InitFunction initFunction([] ()
 {
@@ -608,7 +635,7 @@ static InitFunction initFunction([] ()
 	{
 		if (type == rage::INIT_SESSION && order == 3)
 		{
-			count += NUM_DLC_CALLS;
+			count += GetNumDlcCalls();
 
 			dlcIdx = 0;
 		}
@@ -622,11 +649,20 @@ static InitFunction initFunction([] ()
 		InvokeNUIScript("startInitFunctionOrder", doc);
 	});
 
+	static auto lastIdx = 0;
+
 	rage::OnInitFunctionInvoking.Connect([] (rage::InitFunctionType type, int idx, rage::InitFunctionData& data)
 	{
-		if (type == rage::INIT_SESSION && data.initOrder == 3 && idx >= 15 && data.shutdownOrder != 42)
+		static auto extraContentWrapperIdx = 256;
+
+		if (type == rage::INIT_SESSION && data.initOrder == 3 && data.funcHash == HashString("CExtraContentWrapper"))
 		{
-			idx += NUM_DLC_CALLS;
+			extraContentWrapperIdx = idx;
+		}
+
+		if (type == rage::INIT_SESSION && data.initOrder == 3 && idx >= extraContentWrapperIdx && data.shutdownOrder != 42)
+		{
+			idx += GetNumDlcCalls();
 		}
 
 		uint64_t loadTimingIdentity = data.funcHash | ((int64_t)type << 48);
@@ -636,10 +672,12 @@ static InitFunction initFunction([] ()
 		rapidjson::Document doc;
 		doc.SetObject();
 		doc.AddMember("type", rapidjson::Value(rage::InitFunctionTypeToString(type), doc.GetAllocator()), doc.GetAllocator());
-		doc.AddMember("name", rapidjson::Value(data.GetName(), doc.GetAllocator()), doc.GetAllocator());
+		doc.AddMember("name", rapidjson::Value(GetName(data), doc.GetAllocator()), doc.GetAllocator());
 		doc.AddMember("idx", idx, doc.GetAllocator());
 
 		InvokeNUIScript("initFunctionInvoking", doc);
+
+		lastIdx = idx;
 	});
 
 	rage::OnInitFunctionInvoked.Connect([] (rage::InitFunctionType type, const rage::InitFunctionData& data)
@@ -647,7 +685,7 @@ static InitFunction initFunction([] ()
 		rapidjson::Document doc;
 		doc.SetObject();
 		doc.AddMember("type", rapidjson::Value(rage::InitFunctionTypeToString(type), doc.GetAllocator()), doc.GetAllocator());
-		doc.AddMember("name", rapidjson::Value(data.GetName(), doc.GetAllocator()), doc.GetAllocator());
+		doc.AddMember("name", rapidjson::Value(GetName(data), doc.GetAllocator()), doc.GetAllocator());
 
 		InvokeNUIScript("initFunctionInvoked", doc);
 	});
@@ -668,6 +706,14 @@ static InitFunction initFunction([] ()
 		}
 		else if (type == rage::INIT_SESSION)
 		{
+			rapidjson::Document doc;
+			doc.SetObject();
+			doc.AddMember("type", rapidjson::Value(rage::InitFunctionTypeToString(type), doc.GetAllocator()), doc.GetAllocator());
+			doc.AddMember("name", rapidjson::Value("FinalizeLoad", doc.GetAllocator()), doc.GetAllocator());
+			doc.AddMember("idx", lastIdx + 1, doc.GetAllocator());
+
+			InvokeNUIScript("initFunctionInvoking", doc);
+
 			if (g_loadProfileConvar->GetValue())
 			{
 				auto now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()) - g_loadTimingBase;
