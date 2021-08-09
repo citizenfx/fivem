@@ -84,7 +84,15 @@ export const WEEnvState = new class WEEnvState {
   }
 
   private updateTime(hours: number, minutes: number) {
-    this.time = `${hours}:${minutes}`;
+    this.time = `${hours}:${leadingZero(minutes)}`;
     this.timeNum = hours * 60 + minutes;
   }
+}
+
+function leadingZero(n: number): string {
+  if (n < 10) {
+    return `0${n}`;
+  }
+
+  return n.toString();
 }
