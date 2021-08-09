@@ -160,6 +160,24 @@ static void RunCriticalGameLoop()
 	}
 }
 
+#include <MinHook.h>
+
+static void (*g_orig_sysService_UpdateClass)(void*);
+
+static void sysService_UpdateClass(void* self)
+{
+	g_orig_sysService_UpdateClass(self);
+
+	static bool inSysUpdate;
+
+	if (!inSysUpdate)
+	{
+		inSysUpdate = true;
+		OnLookAliveFrame();
+		inSysUpdate = false;
+	}
+}
+
 static HookFunction hookFunction([] ()
 {
 	g_mainThreadId = GetCurrentThreadId();
@@ -204,6 +222,12 @@ static HookFunction hookFunction([] ()
 
 	// game end frame (after main thread proc)
 	hook::call(hook::get_pattern("B9 05 00 00 00 E8 ? ? ? ? 48 8D 0D", 5), RunEndGameFrame);
+
+	{
+		MH_Initialize();
+		MH_CreateHook(hook::get_call(hook::get_pattern("B9 01 00 00 00 E8 ? ? ? ? 48 8D 0D ? ? ? ? E8", 17)), sysService_UpdateClass, (void**)&g_orig_sysService_UpdateClass);
+		MH_EnableHook(MH_ALL_HOOKS);
+	}
 
 	//__debugbreak();
 });

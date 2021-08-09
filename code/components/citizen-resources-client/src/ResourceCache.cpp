@@ -197,6 +197,8 @@ void ResourceCache::AddEntry(const std::string& localFileName, const std::array<
 		std::string key = "cache:v1:" + std::string(reinterpret_cast<const char*>(hash.data()), 20);
 
 		m_indexDatabase->Put(options, key, leveldb::Slice(buffer.data(), buffer.size()));
+
+		std::unique_lock _(m_entryCacheMutex);
 		m_entryCache[key] = {};
 	}
 
@@ -209,6 +211,8 @@ void ResourceCache::AddEntry(const std::string& localFileName, const std::array<
 		std::string key = "cache:v1:url:" + fromIt->second;
 
 		m_indexDatabase->Put(options, key, leveldb::Slice(buffer.data(), buffer.size()));
+
+		std::unique_lock _(m_entryCacheMutex);
 		m_entryCache[key] = {};
 	}
 
@@ -221,11 +225,14 @@ std::optional<ResourceCache::Entry> ResourceCache::GetEntryFor(const std::array<
 	std::string key = "cache:v1:" + std::string(reinterpret_cast<const char*>(&hash[0]), hash.size());
 	std::string value;
 
-	auto fetchIt = m_entryCache.find(key);
-
-	if (fetchIt != m_entryCache.end() && fetchIt->second)
 	{
-		return *fetchIt->second;
+		std::shared_lock _(m_entryCacheMutex);
+		auto fetchIt = m_entryCache.find(key);
+
+		if (fetchIt != m_entryCache.end() && fetchIt->second)
+		{
+			return *fetchIt->second;
+		}
 	}
 
 	leveldb::Status status = m_indexDatabase->Get(leveldb::ReadOptions{}, key, &value);
@@ -233,6 +240,8 @@ std::optional<ResourceCache::Entry> ResourceCache::GetEntryFor(const std::array<
 	if (status.ok())
 	{
 		Entry e{ value };
+
+		std::unique_lock _(m_entryCacheMutex);
 		m_entryCache[key] = std::optional<Entry>(e);
 
 		return std::optional<Entry>(e);
@@ -247,6 +256,7 @@ std::optional<ResourceCache::Entry> ResourceCache::GetEntryFor(const std::array<
 #endif
 	}
 
+	std::unique_lock _(m_entryCacheMutex);
 	m_entryCache[key] = { std::optional<Entry>{} };
 	return std::optional<Entry>();
 }

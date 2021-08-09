@@ -11,6 +11,7 @@
 #include <array>
 
 #include <optional>
+#include <shared_mutex>
 
 #include <Resource.h>
 
@@ -179,5 +180,6 @@ public:
 private:
 	void OpenDatabase();
 
-	tbb::concurrent_unordered_map<std::string, std::optional<std::optional<Entry>>> m_entryCache;
+	std::unordered_map<std::string, std::optional<std::optional<Entry>>> m_entryCache;
+	std::shared_mutex m_entryCacheMutex;
 };

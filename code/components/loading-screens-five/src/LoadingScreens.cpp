@@ -331,11 +331,15 @@ static void UpdateLoadTiming(uint64_t loadTimingIdentity)
 
 		if (curTiming.count() != 0 && g_visitedTimings.find(loadTimingIdentity) == g_visitedTimings.end())
 		{
+			auto frac = (curTiming - g_loadTimingBase).count() / (double)(g_loadTiming[1] - g_loadTimingBase).count();
+
 			rapidjson::Document doc;
 			doc.SetObject();
-			doc.AddMember("loadFraction", rapidjson::Value((curTiming - g_loadTimingBase).count() / (double)(g_loadTiming[1] - g_loadTimingBase).count()), doc.GetAllocator());
+			doc.AddMember("loadFraction", rapidjson::Value(frac), doc.GetAllocator());
 
 			InvokeNUIScript("loadProgress", doc);
+			ActivateStatusText(va("Loading game (%.0f%%)", frac * 100.0), 5, 4);
+			OnLookAliveFrame();
 
 			g_visitedTimings.insert(loadTimingIdentity);
 		}
@@ -607,6 +611,8 @@ static InitFunction initFunction([] ()
 
 				InvokeNUIScript("loadProgress", doc);
 
+				DeactivateStatusText(4);
+
 				g_visitedTimings.clear();
 			}
 		}
@@ -623,6 +629,8 @@ static InitFunction initFunction([] ()
 				doc.AddMember("loadFraction", 0.0, doc.GetAllocator());
 
 				InvokeNUIScript("loadProgress", doc);
+
+				DeactivateStatusText(4);
 
 				g_visitedTimings.clear();
 
@@ -743,6 +751,7 @@ static InitFunction initFunction([] ()
 				doc.AddMember("loadFraction", 1.0, doc.GetAllocator());
 
 				InvokeNUIScript("loadProgress", doc);
+				DeactivateStatusText(4);
 			}
 
 			// for next time

@@ -17,6 +17,8 @@
 #include <ResourceCacheDeviceV2.h>
 #include <VFSManager.h>
 
+#include <ICoreGameInit.h>
+
 struct StreamingDownloadProgress
 {
 	size_t downloadDone;
@@ -215,11 +217,11 @@ static void StreamingProgress_Update()
 
 		std::string str = fmt::sprintf("Downloading assets (%d of %d)... (%.2f/%.2f MB)", std::min(g_downloadDone.size(), g_downloadList.size()), g_downloadList.size(), std::min(downloadDone, downloadSize) / 1024.0 / 1024.0, downloadSize / 1024.0 / 1024.0);
 
-		ActivateStatusText(str.c_str(), 5, 2);
+		ActivateStatusText(str.c_str(), 5, 3);
 	}
 	else
 	{
-		DeactivateStatusText(2);
+		DeactivateStatusText(3);
 
 		g_downloadList.clear();
 		g_downloadDone.clear();
@@ -239,6 +241,21 @@ static InitFunction initFunction([]()
 		static ConVar<bool> useStreamingProgress("game_showStreamingProgress", ConVar_Archive, false);
 
 		if (useStreamingProgress.GetValue())
+		{
+			StreamingProgress_Update();
+		}
+		else if (Instance<ICoreGameInit>::Get()->HasVariable("networkInited"))
+		{
+			DeactivateStatusText(3);
+
+			g_downloadList.clear();
+			g_downloadDone.clear();
+		}
+	});
+
+	OnLookAliveFrame.Connect([]()
+	{
+		if (!Instance<ICoreGameInit>::Get()->HasVariable("networkInited"))
 		{
 			StreamingProgress_Update();
 		}

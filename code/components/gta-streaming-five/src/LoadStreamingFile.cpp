@@ -30,6 +30,11 @@
 
 #include <CrossBuildRuntime.h>
 
+#if __has_include(<StatusText.h>)
+#include <StatusText.h>
+#include <nutsnbolts.h>
+#endif
+
 #ifdef GTA_FIVE
 static void(*dataFileMgr__loadDat)(void*, const char*, bool);
 static void(*dataFileMgr__loadDefDat)(void*, const char*, bool);
@@ -952,6 +957,10 @@ static void ReloadMapStore()
 			trace("Loaded %s (id %d)\n", collisionFiles[i].first.c_str(), (collisionFiles[i].second - mgr->moduleMgr.GetStreamingModule("ybn")->baseIdx));
 		}
 
+#if __has_include(<StatusText.h>)
+		ActivateStatusText(va("Preloading collisions (%.0f%%)", (count / (double)collisionFiles.size()) * 100.0), 5, 2);
+#endif
+
 		streaming::LoadObjectsNow(0);
 
 		for (int i = count; i < end; i++)
@@ -959,6 +968,10 @@ static void ReloadMapStore()
 			mgr->ReleaseObject(collisionFiles[i].second);
 		}
 	}
+
+#if __has_include(<StatusText.h>)
+	DeactivateStatusText(2);
+#endif
 
 	OnReloadMapStore();
 
@@ -2116,13 +2129,27 @@ static void LoadDataFiles()
 		return dfSort(left) < dfSort(right);
 	});
 
+#if __has_include(<StatusText.h>)
+	ActivateStatusText("Loading add-on data files", 5, 2);
+	OnLookAliveFrame();
+#endif
+
 	HandleDataFileList(g_dataFiles, [](CDataFileMountInterface* mounter, DataFileEntry& entry)
 	{
+#if __has_include(<StatusText.h>)
+		OnLookAliveFrame();
+#endif
+
 		return mounter->MountFile(&entry);
 	});
 
 	g_loadedDataFiles.insert(g_loadedDataFiles.end(), g_dataFiles.begin(), g_dataFiles.end());
 	g_dataFiles.clear();
+
+#if __has_include(<StatusText.h>)
+	DeactivateStatusText(2);
+	OnLookAliveFrame();
+#endif
 
 	if (g_reloadMapStore)
 	{
