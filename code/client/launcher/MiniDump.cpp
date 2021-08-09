@@ -261,7 +261,11 @@ struct GameErrorData
 
 static GameErrorData LookupError(uint32_t hash)
 {
+#ifdef IS_RDR3
+	FILE* f = _wfopen(MakeRelativeGamePath(L"x64/data/errorcodes/american.txt").c_str(), L"r");
+#else
 	FILE* f = _wfopen(MakeRelativeGamePath(L"update/x64/data/errorcodes/american.txt").c_str(), L"r");
+#endif
 
 	if (f)
 	{
