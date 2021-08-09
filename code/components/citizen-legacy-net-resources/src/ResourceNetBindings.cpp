@@ -10,6 +10,8 @@
 #include <ResourceEventComponent.h>
 #include <EventReassemblyComponent.h>
 
+#include <mutex>
+
 #include <ScriptEngine.h>
 
 #include <CachedResourceMounter.h>
@@ -56,6 +58,7 @@ static bool IsBlockedResource(const std::string& resourceName, std::string* why)
 
 static NetAddress g_netAddress;
 
+static std::mutex g_resourceStartRequestMutex;
 static std::set<std::string> g_resourceStartRequestSet;
 
 using ResultTuple = std::tuple<tl::expected<fwRefContainer<fx::Resource>, fx::ResourceManagerError>, std::string>;
@@ -491,6 +494,7 @@ static InitFunction initFunction([] ()
 				// failure should reset the requested resource, instead
 				if (requiredResources.empty() && !updateList.empty())
 				{
+					std::lock_guard _(g_resourceStartRequestMutex);
 					g_resourceStartRequestSet.erase(updateList);
 				}
 
@@ -574,6 +578,7 @@ static InitFunction initFunction([] ()
 
 				updateResources(resource, [=]()
 				{
+					std::lock_guard _(g_resourceStartRequestMutex);
 					g_resourceStartRequestSet.erase(resource);
 
 					if (**updateResource)
@@ -744,6 +749,7 @@ static InitFunction initFunction([] ()
 #endif
 			}
 
+			std::lock_guard _(g_resourceStartRequestMutex);
 			if (g_resourceStartRequestSet.find(resourceName) == g_resourceStartRequestSet.end())
 			{
 				g_resourceStartRequestSet.insert(resourceName);

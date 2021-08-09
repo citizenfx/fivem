@@ -89,6 +89,7 @@ pplx::task<tl::expected<fwRefContainer<Resource>, ResourceManagerError>> Resourc
 		{
 			if (resourceRef)
 			{
+				std::unique_lock<std::recursive_mutex> lock(m_resourcesMutex);
 				auto resource = resourceRef.value();
 
 				// handle provides
@@ -96,7 +97,6 @@ pplx::task<tl::expected<fwRefContainer<Resource>, ResourceManagerError>> Resourc
 
 				for (const auto& entry : md->GetEntries("provide"))
 				{
-					std::unique_lock<std::recursive_mutex> lock(m_resourcesMutex);
 					m_resourceProvides.emplace(entry.second, resource);
 				}
 			}
