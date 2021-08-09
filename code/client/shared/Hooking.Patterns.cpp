@@ -17,25 +17,7 @@
 #if PATTERNS_USE_HINTS
 #include <map>
 
-static void Citizen_PatternSaveHint(uint64_t hash, uintptr_t hint)
-{
-	fwPlatformString hintsFile = MakeRelativeCitPath(L"citizen\\hints.dat");
-	FILE* hints = _pfopen(hintsFile.c_str(), _P("ab"));
-
-	if (hints)
-	{
-		fwrite(&hash, 1, sizeof(hash), hints);
-		fwrite(&hint, 1, sizeof(hint), hints);
-
-		fclose(hints);
-	}
-}
-#endif
-
-
-#if PATTERNS_USE_HINTS
-
-// from boost someplace
+ // from boost someplace
 template <std::uint64_t FnvPrime, std::uint64_t OffsetBasis>
 struct basic_fnv_1
 {
@@ -152,7 +134,35 @@ namespace hook
 		inline uintptr_t begin() const { return m_begin; }
 		inline uintptr_t end() const { return m_end; }
 	};
+}
 
+#if PATTERNS_USE_HINTS
+static void Citizen_PatternSaveHint(uint64_t hash, uintptr_t hint)
+{
+	static auto exeRange = hook::executable_meta(GetModuleHandleW(NULL));
+	static auto unadjustedBegin = hook::get_unadjusted(exeRange.begin());
+	static auto unadjustedEnd = hook::get_unadjusted(exeRange.end());
+
+	if (hint < unadjustedBegin || hint >= unadjustedEnd)
+	{
+		return;
+	}
+
+	fwPlatformString hintsFile = MakeRelativeCitPath(L"citizen\\hints.dat");
+	FILE* hints = _pfopen(hintsFile.c_str(), _P("ab"));
+
+	if (hints)
+	{
+		fwrite(&hash, 1, sizeof(hash), hints);
+		fwrite(&hint, 1, sizeof(hint), hints);
+
+		fclose(hints);
+	}
+}
+#endif
+
+namespace hook
+{
 	void pattern::Initialize(const char* pattern, size_t length)
 	{
 		// get the hash for the base pattern
