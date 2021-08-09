@@ -474,11 +474,14 @@ static InitFunction initFunction([] ()
 		{
 			*g_isPendingGFx = true;
 
-			static auto timeStart = std::chrono::high_resolution_clock::now().time_since_epoch();
-			auto timeSpan = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch() - timeStart);
-			_drawLoadingSpinner(timeSpan.count() / 1000.0 + 4);
+			if (*g_scaleformMgr)
+			{
+				static auto timeStart = std::chrono::high_resolution_clock::now().time_since_epoch();
+				auto timeSpan = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch() - timeStart);
+				_drawLoadingSpinner(timeSpan.count() / 1000.0 + 4);
 
-			g_render(*g_scaleformMgr);
+				g_render(*g_scaleformMgr);
+			}
 		}
 	}, 5000);
 });
