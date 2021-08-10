@@ -6,6 +6,7 @@ import { applyRotation, applyScale } from "shared/math";
 import { sendApiMessage } from "utils/api";
 import { omit } from "utils/omit";
 import { fastRandomId } from "utils/random";
+import { Events } from "./Events";
 
 export class WEMapState {
   private ungroupedAdditions: Record<string, WEMapAddition> = {};
@@ -301,6 +302,8 @@ export class WEMapState {
       }
 
       delete this.map.additions[id];
+
+      Events.additionDeleted.emit(id);
 
       sendGameClientEvent('we:deleteAddition', id);
       sendApiMessage(worldEditorApi.deleteAddition, {

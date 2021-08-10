@@ -126,6 +126,10 @@ export class InputController {
     for (const [event, handler] of Object.entries(this.documentHandlers)) {
       document.addEventListener(event, handler);
     }
+
+    for (const [event, handler] of Object.entries(this.windowHandlers)) {
+      window.addEventListener(event, handler);
+    }
   }
 
   destroy() {
@@ -137,6 +141,10 @@ export class InputController {
 
     for (const [event, handler] of Object.entries(this.documentHandlers)) {
       document.removeEventListener(event, handler);
+    }
+
+    for (const [event, handler] of Object.entries(this.windowHandlers)) {
+      window.removeEventListener(event, handler);
     }
   }
 
@@ -184,16 +192,7 @@ export class InputController {
   }
 
   private handleContainerMouseMove = (event: MouseEvent) => {
-    if (this.fullControl) {
-      // sendMousePos(event.movementX, event.movementY);
-
-      return;
-    }
-
-    if (this.cameraControlActive) {
-      // sendMousePos(event.movementX, event.movementY);
-      // sendGameClientEvent('we:camrot', JSON.stringify([event.movementX, event.movementY]));
-
+    if (this.fullControl || this.cameraControlActive) {
       return;
     }
 
@@ -412,6 +411,13 @@ export class InputController {
     }
   };
 
+  private readonly handleWindowBlur = () => {
+    this.hotkeys.resetState();
+
+    this.resetKeysState();
+    this.resetMouseButtonStates();
+  };
+
   private readonly containerHandlers = {
     mousemove: this.handleContainerMouseMove,
     mousedown: (event: MouseEvent) => this.handleMouseButtonState(event, true),
@@ -423,6 +429,10 @@ export class InputController {
     pointerlockchange: this.handlePointerLockChanged,
     keydown: (event: KeyboardEvent) => this.handleKeyState(event, true),
     keyup: (event: KeyboardEvent) => this.handleKeyState(event, false),
+  };
+
+  private readonly windowHandlers = {
+    blur: this.handleWindowBlur,
   };
 }
 

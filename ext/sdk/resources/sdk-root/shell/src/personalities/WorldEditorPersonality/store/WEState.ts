@@ -1,5 +1,5 @@
 import React from 'react';
-import { makeAutoObservable, runInAction } from "mobx";
+import { makeAutoObservable, reaction, runInAction } from "mobx";
 import { worldEditorApi } from "shared/api.events";
 import { onApiMessage, sendApiMessage } from "utils/api";
 import { InputController } from "../InputController";
@@ -23,10 +23,7 @@ import { GameState } from 'store/GameState';
 import { FlashingMessageState } from '../components/WorldEditorToolbar/FlashingMessage/FlashingMessageState';
 import { registerCommandBinding } from '../command-bindings';
 import { WECommand, WECommandScope } from '../constants/commands';
-
-function clampExplorerWidth(width: number): number {
-  return Math.max(250, Math.min(document.body.offsetWidth / 2, width));
-};
+import { Events } from './Events';
 
 export enum WEMode {
   EDITOR,
@@ -54,8 +51,6 @@ export const WEState = new class WEState {
 
   public map: WEMapState | null = null;
   private mapEntry: FilesystemEntry | null = null;
-
-  public mapExplorerWidth: number = clampExplorerWidth(parseInt(localStorage.weExplorerWidth, 10) || 300);
 
   private forceShowIntro = !localStorage['we:introSeen'];
 
@@ -87,10 +82,10 @@ export const WEState = new class WEState {
     }
 
     this.bindCommands();
-    this.mountEventHandlers();
+    this.bindEvents();
   }
 
-  private mountEventHandlers() {
+  private bindEvents() {
     onWindowEvent('we:selection', (selection: WESelection) => runInAction(() => {
       this.selection = selection;
     }));
@@ -111,6 +106,12 @@ export const WEState = new class WEState {
     onApiMessage(worldEditorApi.mapLoaded, (map: WEMap) => runInAction(() => {
       this.map = new WEMapState(map);
     }));
+
+    Events.additionDeleted.addListener((additionId) => {
+      if (this.selection.type === WESelectionType.ADDITION && this.selection.id === additionId) {
+        this.clearEditorSelection();
+      }
+    });
   }
 
   private bindCommands() {
@@ -231,12 +232,6 @@ export const WEState = new class WEState {
 
     ShellState.setPersonality(ShellPersonality.THEIA);
   };
-
-  setExplorerWidth(width: number) {
-    this.mapExplorerWidth = clampExplorerWidth(width);
-
-    localStorage.weExplorerWidth = this.mapExplorerWidth;
-  }
 
   enableTranslation = () => {
     this.editorMode = EditorMode.TRANSLATE;
