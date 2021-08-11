@@ -1,0 +1,151 @@
+:root {
+	--s: calc(100vh / 720);
+}
+
+@mixin aspectLimited() {
+    @for $w from 17 to 33 {
+        @media only screen and (min-aspect-ratio: #{$w}/9) {
+			$heightRelativeWidthOffset: calc(100vw * ((#{$w} - 16) / #{$w}));
+
+            & {
+                width: calc(100% - #{$heightRelativeWidthOffset} - 5vw);
+                margin-left: auto;
+                margin-right: auto;
+            }
+        }
+    }
+}
+
+* {
+	margin: 0;
+	padding: 0;
+	user-select: none;
+}
+
+body {
+	background-image: url(backdrop.jpg);
+	background-size: cover;
+	background-repeat: no-repeat;
+	background-attachment: fixed;
+
+	font-family: "Segoe UI", sans-serif;
+	font-size: calc(16 * var(--s));
+}
+
+#root {
+	@include aspectLimited();
+	height: 100vh;
+
+	position: relative;
+}
+
+.progressList {
+	list-style: none;
+}
+
+.progressList dl {
+	height: calc(20 * var(--s));
+}
+
+.progressList dt {
+	display: inline-block;
+	height: 100%;
+	line-height: calc(20 * var(--s));
+	vertical-align: middle;
+
+	margin: calc(10 * var(--s));
+	margin-top: 0px;
+	margin-bottom: 0px;
+
+	font-size: calc(18 * var(--s));
+
+	width: calc(120 * var(--s));
+	color: #fff;
+}
+
+.progressList dd {
+	display: inline-block;
+	height: 100%;
+	vertical-align: middle;
+
+	position: relative;
+}
+
+.progressList dd span,
+.progressList dd i {
+	position: absolute;
+	top: 0px;
+	left: 0px;
+
+	display: block;
+	height: calc(20 * var(--s));
+}
+
+.progressList dd span {
+	transition: width 200ms linear; /* linear to not have easing ruin our multi-step updates */
+}
+
+.progressList dd i {
+	width: 100%;
+}
+
+.progressList .not-done i {
+	animation: glowy 750ms ease-in-out infinite alternate;
+}
+
+.log {
+	position: absolute;
+	left: calc(10 * var(--s));
+	right: calc(10 * var(--s));
+	bottom: calc(10 * var(--s));
+	top: calc(10 * var(--s));
+
+	-webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.0) 0%, rgba(0, 0, 0, 1.0) 20%);
+
+	z-index: -999;
+
+	overflow: hidden;
+
+	color: #fff;
+
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-end;
+	list-style: none;
+
+	font-size: 70%;
+
+	font-family: "Lucida Console", monospace;
+}
+
+.log li:before {
+	content: '> ';
+}
+
+.log li:last-child:before {
+	content: '';
+}
+
+.log li:last-child:after {
+	overflow: hidden;
+	display: inline-block;
+	vertical-align: bottom;
+	animation: ellipsis steps(4, end) 1500ms infinite;
+	content: "...";
+	width: 0px;
+}
+
+@keyframes glowy {
+	from {
+		opacity: 1;
+	}
+	to {
+		opacity: 0.7;
+	}
+}
+
+@keyframes ellipsis {
+	to {
+		width: 2.1em;
+	}
+}

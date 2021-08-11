@@ -33,7 +33,7 @@ if %ERRORLEVEL% neq 0 exit /b 1
 ::call node_modules\.bin\webpack.cmd --config=worker.config.js
 
 :: ng build
-call node_modules\.bin\ng.cmd build --prod 2>&1
+call node_modules\.bin\ng.cmd build --configuration production 2>&1
 
 :: propagate error
 if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
@@ -53,11 +53,23 @@ if exist %CacheRoot% (
 :: pop directory
 popd
 
+:: build loading screen
+pushd loadscreen
+call yarn
+if %ERRORLEVEL% neq 0 exit /b 1
+
+call node_modules\.bin\webpack
+if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
+
+xcopy /y /e dist\*.* %UIRoot%\loadscreen\
+popd
+
 mkdir %~dp0\data_big\app\
 move /y %UIRoot%\app\bg*.* %~dp0\data_big\app\
 move /y %UIRoot%\app\*.svg %~dp0\data_big\app\
 move /y %UIRoot%\app\*.woff %~dp0\data_big\app\
 move /y %UIRoot%\app\*.woff2 %~dp0\data_big\app\
+move /y %UIRoot%\loadscreen\*.jpg %~dp0\data_big\loadscreen\
 
 powershell -ExecutionPolicy Unrestricted .\make_dates.ps1 %~dp0\data
 powershell -ExecutionPolicy Unrestricted .\make_dates.ps1 %~dp0\data_big

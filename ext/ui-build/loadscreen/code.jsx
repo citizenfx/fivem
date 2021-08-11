@@ -1,56 +1,8 @@
+import { Component, render, h } from 'preact';
+import './style.scss';
+
 const gstate = {
-	elems: [/*{
-		name: "CORE",
-		orders: [
-			{
-				idx: 1,
-				count: 5,
-				done: 5
-			},
-			{
-				idx: 2,
-				count: 15,
-				done: 12
-			}
-		]
-	}, {
-		name: "BEFORE_MAP_LOADED",
-		orders: [
-			{
-				idx: 1,
-				count: 3,
-				done: 3
-			},
-			{
-				idx: 2,
-				count: 25,
-				done: 9
-			}
-		]
-	}, {
-		name: "AFTER_MAP_LOADED",
-		orders: [
-			{
-				idx: 1,
-				count: 10,
-				done: 10
-			},
-			{
-				idx: 2,
-				count: 25,
-				done: 9
-			}
-		]
-	}, {
-		name: "SESSION",
-		orders: [
-			{
-				idx: 1,
-				count: 100,
-				done: 20
-			}
-		]
-	}*/],
+	elems: [],
 	log: []
 };
 
@@ -208,7 +160,7 @@ const handlers = {
 	}
 };
 
-class ProgressOrder extends preact.Component
+class ProgressOrder extends Component
 {
 	render(props)
 	{
@@ -224,7 +176,7 @@ class ProgressOrder extends preact.Component
 	}
 }
 
-class ProgressType extends preact.Component
+class ProgressType extends Component
 {
 	render(props)
 	{
@@ -242,7 +194,7 @@ class ProgressType extends preact.Component
 	}
 }
 
-class LogEntry extends preact.Component
+class LogEntry extends Component
 {
 	render(props)
 	{
@@ -250,7 +202,7 @@ class LogEntry extends preact.Component
 	}
 }
 
-class Root extends preact.Component
+class Root extends Component
 {
 	constructor()
 	{
@@ -258,9 +210,10 @@ class Root extends preact.Component
 	}
 
 	componentDidMount() {
-		globalStateUpdateCallbacks.push(() => this.forceUpdate());
+		setInterval(() => {
+			this.forceUpdate()
+		}, 50);
 	}
-
 
 	render(props, state)
 	{
@@ -273,7 +226,7 @@ class Root extends preact.Component
 				</ul>
 				<ul class="log">
 					{
-						gstate.log.slice(-20).map(elem => <LogEntry value={elem} />)
+						gstate.log.slice(-100).map(elem => <LogEntry value={elem} />)
 					}
 					<li></li>
 				</ul>
@@ -284,20 +237,13 @@ class Root extends preact.Component
 
 const update = function()
 {
-	preact.render(<Root />, document.querySelector('#root'));
+	render(<Root />, document.querySelector('#root'));
 }
 
 window.addEventListener('message', function(e)
 {
 	(handlers[e.data.eventName] || function() {})(e.data);
 });
-
-const w = Math.max(document.documentElement.clientWidth, window.innerWidth || 0)
-const h = Math.max(document.documentElement.clientHeight, window.innerHeight || 0)
-
-const zoomPercent = ((h / 720) * 100) + '%';
-
-document.body.style.zoom = zoomPercent;
 
 update();
 
@@ -311,6 +257,11 @@ if (!window.invokeNative)
 	const stopEntries = () => () => handlers.endDataFileEntries({});
 
 	const newTypeWithOrder = (name, count) => () => { newType(name)(); newOrder(name, 1, count)(); };
+
+	const meowList = [];
+	for (let i = 0; i < 50; i++) {
+		meowList.push(newInvoke('INIT_SESSION', `meow${i}`));
+	}
 
 	const demoFuncs = [
 		newTypeWithOrder('INIT_CORE', 5),
@@ -330,17 +281,14 @@ if (!window.invokeNative)
 		addEntry(),
 		addEntry(),
 		stopEntries(),
-		newTypeWithOrder('INIT_SESSION', 4),
-		newInvoke('INIT_SESSION', 'meow1'),
-		newInvoke('INIT_SESSION', 'meow2'),
-		newInvoke('INIT_SESSION', 'meow3'),
-		newInvoke('INIT_SESSION', 'meow4'),
+		newTypeWithOrder('INIT_SESSION', 50),
+		...meowList,
 	];
 
 	setInterval(() =>
 	{
 		demoFuncs.length && demoFuncs.shift()();
-	}, 350);
+	}, 0);
 }
 
-/** @jsx preact.h */
+/** @jsx h */
