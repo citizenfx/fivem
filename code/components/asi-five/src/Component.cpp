@@ -178,7 +178,7 @@ bool ComponentInstance::DoGameLoad(void* module)
 
 					if (bad)
 					{
-						trace("Unable to load %s - this ASI plugin does not claim to support game build %d. If you have access to its source code, add `FX_ASI_BUILD %d dummy.txt` to the .rc file when building this plugin. If not, contact its maintainer.\n", 
+						console::Printf("script:shv", "Unable to load %s - this ASI plugin does not claim to support game build %d. If you have access to its source code, add `FX_ASI_BUILD %d dummy.txt` to the .rc file when building this plugin. If not, contact its maintainer.\n", 
 							ToNarrow(it->path().wstring()).c_str(),
 							xbr::GetGameBuild(),
 							xbr::GetGameBuild()
