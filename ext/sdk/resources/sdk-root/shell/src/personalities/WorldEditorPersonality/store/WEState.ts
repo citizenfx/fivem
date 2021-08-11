@@ -16,6 +16,7 @@ import {
   WESelectionType,
   WESetAdditionRequest,
   WESelection,
+  WECam,
 } from 'backend/world-editor/world-editor-types';
 import { WEMapState } from './WEMapState';
 import { __DEBUG_MODE_TOGGLES__ } from 'constants/debug-constants';
@@ -207,6 +208,13 @@ export const WEState = new class WEState {
 
   setCam(cam: number[]) {
     sendGameClientEvent('we:setCam', JSON.stringify(cam));
+  }
+
+  focusInView(cam: WECam, lookAt: [number, number, number]) {
+    sendGameClientEvent('we:focusInView', JSON.stringify({
+      cam,
+      lookAt,
+    }));
   }
 
   openMap = (entry: FilesystemEntry) => {

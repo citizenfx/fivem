@@ -149,3 +149,8 @@ export interface WESettings {
 }
 
 export type WESettingsChangeRequest = Partial<WESettings>;
+
+export interface WEFocusInViewRequest {
+  cam: WECam,
+  lookAt: [number, number, number],
+}

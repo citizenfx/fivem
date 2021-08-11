@@ -1,5 +1,5 @@
 import { CONTROLS, SETTINGS } from "./config";
-import { limitPrecision, RotDeg3, Vec3 } from "./math";
+import { limitPrecision, rad2deg, rotation, RotDeg3, Vec3, vectorLength } from "./math";
 import { SettingsManager } from "./settings-manager";
 import { drawDebugText, getSmartControlNormal, useKeyMapping } from "./utils";
 
@@ -105,6 +105,30 @@ export const CameraManager = new class CameraManager {
     this.rot.x = rx;
     this.rot.y = ry;
     this.rot.z = rz;
+  }
+
+  setLookAt(x: number, y: number, z: number) {
+    this.rot.z = rotation(
+      [this.pos.x, this.pos.y],
+      [x, y],
+    );
+    this.rot.x = 0;
+
+    const fw = this.rot.forward();
+
+    const dir = new Vec3(
+      x - this.pos.x,
+      y - this.pos.y,
+      z - this.pos.z,
+    );
+
+    this.rot.x = rad2deg(Math.acos(fw.dot(dir) / (fw.length() * dir.length())));
+
+    if (z < this.pos.z) {
+      this.rot.x *= -1;
+    }
+
+    this.rot.clamp();
   }
 
   getForwardVector(): Vec3 {

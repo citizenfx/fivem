@@ -1,44 +1,52 @@
 import { WEEntityMatrix, WEEntityMatrixIndex } from "./map-types";
 
-export const RADS_IN_DEG = 0.0174533; // Math.PI / 180
+export const RADS_IN_DEG = Math.PI / 180
+export const DEGS_IN_RAD = 180 / Math.PI;
 
 export function clamp(num: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, num));
+}
+
+export function rad2deg(rad: number): number {
+  return rad * DEGS_IN_RAD;
+}
+
+export function deg2rad(deg: number): number {
+  return deg * RADS_IN_DEG;
 }
 
 const fisrAB = new ArrayBuffer(4);
 const fisrF32 = new Float32Array(fisrAB);
 const fisrU32 = new Uint32Array(fisrAB);
 const threehalfs = 1.5;
-export function Q_rsqrt(number: number): number
-{
-    let i;
-    let y;
+export function Q_rsqrt(number: number): number {
+  let i;
+  let y;
 
-    const x2 = number * 0.5;
+  const x2 = number * 0.5;
 
-    y = number;
-    //evil floating bit level hacking
-    // var buf = new ArrayBuffer(4);
+  y = number;
+  //evil floating bit level hacking
+  // var buf = new ArrayBuffer(4);
 
-    fisrF32[0] = number;
-    // (new Float32Array(buf))[0] = number;
+  fisrF32[0] = number;
+  // (new Float32Array(buf))[0] = number;
 
-    i =  fisrU32[0];
-    // i =  (new Uint32Array(buf))[0];
+  i = fisrU32[0];
+  // i =  (new Uint32Array(buf))[0];
 
-    i = (0x5f3759df - (i >> 1)); //What the fuck?
+  i = (0x5f3759df - (i >> 1)); //What the fuck?
 
-    fisrU32[0] = i;
-    // (new Uint32Array(buf))[0] = i;
+  fisrU32[0] = i;
+  // (new Uint32Array(buf))[0] = i;
 
-    y = fisrF32[0];
-    // y = (new Float32Array(buf))[0];
+  y = fisrF32[0];
+  // y = (new Float32Array(buf))[0];
 
-    y  = y * ( threehalfs - ( x2 * y * y ) );   // 1st iteration
-    y  = y * ( threehalfs - ( x2 * y * y ) );   // 2nd iteration, this can be removed
+  y = y * (threehalfs - (x2 * y * y));   // 1st iteration
+  y = y * (threehalfs - (x2 * y * y));   // 2nd iteration, this can be removed
 
-    return y;
+  return y;
 }
 
 export class Vec3 {
@@ -50,7 +58,7 @@ export class Vec3 {
     public x: number,
     public y: number,
     public z: number,
-  ) {}
+  ) { }
 
   add(vec: Vec3): Vec3 {
     this.x += vec.x;
@@ -77,7 +85,7 @@ export class Vec3 {
   }
 
   normal(): Vec3 {
-    const inverseLength = Q_rsqrt(this.x*this.x + this.y*this.y + this.z*this.z);
+    const inverseLength = Q_rsqrt(this.x * this.x + this.y * this.y + this.z * this.z);
 
     return new Vec3(
       this.x * inverseLength,
@@ -86,8 +94,28 @@ export class Vec3 {
     )
   }
 
+  length(): number {
+    return vectorLength([
+      this.x,
+      this.y,
+      this.z,
+    ]);
+  }
+
+  dot(vec: Vec3): number {
+    return this.x*vec.x + this.y*vec.y + this.z*vec.z;
+  }
+
   copy(): Vec3 {
     return new Vec3(this.x, this.y, this.z);
+  }
+
+  cross(vec: Vec3): Vec3 {
+    return crossProduct(this, vec);
+  }
+
+  toArray(): [number, number, number] {
+    return [this.x, this.y, this.z];
   }
 }
 
@@ -100,7 +128,7 @@ export class RotDeg3 {
     public x: number,
     public y: number,
     public z: number,
-  ) {}
+  ) { }
 
   forward(): Vec3 {
     const radX = this.x * RADS_IN_DEG;
@@ -207,11 +235,11 @@ export function applyScale(mat: Float32Array, scale: [number, number, number]) {
 }
 
 export function vectorLength([x, y, z = 0, w = 0]: number[]): number {
-  return 1/Q_rsqrt(x**2 + y**2 + z**2 + w**2);
+  return 1 / Q_rsqrt(x ** 2 + y ** 2 + z ** 2 + w ** 2);
 }
 
 function normalize([x, y, z, w]: number[]): [number, number, number, number] {
-  const inverseLength = Q_rsqrt(x**2 + y**2 + z**2 + w**2);
+  const inverseLength = Q_rsqrt(x ** 2 + y ** 2 + z ** 2 + w ** 2);
 
   return [
     x * inverseLength,
@@ -271,7 +299,7 @@ export function limitPrecision(data: number[], precision: number): number[] {
 }
 
 const RAD_TO_DEG = 180 / Math.PI;
-const DEG_TO_RAD = Math.PI/ 180;
+const DEG_TO_RAD = Math.PI / 180;
 
 export function eulerFromMatrix(mat: WEEntityMatrix | number[]): [number, number, number] {
   let x = 0;
@@ -305,4 +333,36 @@ export function eulerFromMatrix(mat: WEEntityMatrix | number[]): [number, number
     y * RAD_TO_DEG,
     z * RAD_TO_DEG,
   ];
+}
+
+export function rotationBetween(vec1: Vec3, vec2: Vec3): RotDeg3 {
+  const z = Math.atan2(vec2.y - vec1.y, vec2.x - vec1.x);
+  const x = 0;
+  const y = Math.atan2(vec2.z - vec1.z, vec2.x - vec1.x);
+
+  return new RotDeg3(rad2deg(x), rad2deg(y), rad2deg(z));
+}
+
+export function angleBetween([ox, oy], [x, y]) {
+  let a = Math.atan2(oy, ox) - Math.atan2(y, x);
+  if (a < 0) {
+    a += 2 * Math.PI;
+  }
+
+  return rad2deg(a);
+}
+
+export function rotation([ox, oy], [x, y]) {
+  return -angleBetween(
+    [0, 1],
+    [x - ox, y - oy],
+  );
+}
+
+export function crossProduct(a: Vec3, b: Vec3): Vec3 {
+  return new Vec3(
+    a.y * b.z - a.z * b.y,
+    a.z * b.x - a.x * b.z,
+    a.x * b.y - a.y * b.x,
+  );
 }

@@ -14,6 +14,7 @@ import {
   WESelectionType,
   WESetAdditionRequest,
   WESelection,
+  WEFocusInViewRequest,
 } from "./map-types";
 import { applyAdditionMatrix, applyEntityMatrix, limitPrecision, makeEntityMatrix, Vec3 } from "./math";
 import { ObjectManager } from "./object-manager";
@@ -117,6 +118,13 @@ export const MapManager = new class MapManager {
 
     on('we:setCam', (camString: string) => {
       CameraManager.setCam(JSON.parse(camString));
+    });
+
+    on('we:focusInView', (req: string) => {
+      const request: WEFocusInViewRequest = JSON.parse(req);
+
+      CameraManager.setCam(request.cam);
+      CameraManager.setLookAt(...request.lookAt);
     });
   }
 

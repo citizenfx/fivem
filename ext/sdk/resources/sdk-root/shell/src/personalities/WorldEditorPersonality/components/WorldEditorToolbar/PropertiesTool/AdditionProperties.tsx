@@ -52,6 +52,10 @@ export const AdditionProprties = observer(function AdditionProprties(props: Addi
     });
   }, [additionId, addition.label]);
 
+  const handleFocusInView = () => {
+    WEState.focusInView(addition.cam, [px, py, pz]);
+  };
+
   return (
     <>
       <Header>
@@ -69,7 +73,7 @@ export const AdditionProprties = observer(function AdditionProprties(props: Addi
           </Title>
           <Title delay={0} animated={false} fixedOn="top" title="Focus in view">
             {(ref) => (
-              <button ref={ref} onClick={() => WEState.setCam(addition.cam)}>
+              <button ref={ref} onClick={handleFocusInView}>
                 <BsCameraVideo />
               </button>
             )}
