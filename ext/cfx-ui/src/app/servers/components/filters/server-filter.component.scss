@@ -210,6 +210,26 @@
 				.material-icons-outlined {
 					font-size: var(--fs-2);
 				}
+
+				position: relative;
+
+				/* copied from app-nav */
+				.new {
+					position: absolute;
+
+					bottom: 0;
+					right: 0;
+
+					padding: 2px 4px;
+
+					font-size: var(--fs-075);
+					line-height: 1;
+
+					@include theme() using ($theme) {
+						color: gtv($theme, accentContrastColor);
+						background-color: gtv($theme, accentColor1);
+					};
+				}
 			}
 
 			.label {

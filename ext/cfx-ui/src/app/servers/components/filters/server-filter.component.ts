@@ -91,6 +91,28 @@ export class ServerFilterComponent implements OnInit, OnDestroy {
 		);
 	}
 
+	get filterCount() {
+		let filters = 0;
+
+		if (this.filters.hideEmpty) {
+			filters++;
+		}
+
+		if (this.filters.hideFull) {
+			filters++;
+		}
+
+		if (Object.entries(this.filtersService.tags.tagList).length > 0) {
+			filters++;
+		}
+
+		if (Object.entries(this.filtersService.tags.localeList).length > 0) {
+			filters++;
+		}
+
+		return filters;
+	}
+
 	constructor(
 		private serversService: ServersService,
 		@Inject(LocalStorage) private localStorage: any,
