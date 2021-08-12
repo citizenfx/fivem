@@ -1,7 +1,7 @@
 import emojiRegex from 'emoji-regex';
 
 const emojiPreRe = new RegExp('^(?:' + emojiRegex().source + ')', '');
-const SPLIT_RE = /((?<!\.(?:[a-z]{2,6}))\s?\/+\s?|\||\s-+\s|\s[Il]\s)/u;
+const SPLIT_RE = /((?<!\.(?:[a-zA-Z]{2,6}))\s?\/+\s?|\||\s[-~]+\s|\s[Il]\s|[\sㅤ¦]+\p{Emoji}|ㅤ)/u;
 const COMMA_SPLIT_RE = /,\s*/u;
 
 function filterSplit(a: string) {
@@ -43,7 +43,7 @@ export function filterProjectName(a: string) {
 
 	const n = filterSplit(equalReplace(
 		a,
-		[/^\s+/, ''],
+		[/^[\sㅤ]+/, ''],
 		[/^\p{So}/u, ''],
 		[/(\s|\u2800)+/gu, ' '],
 		[/^\^[0-9]/, (regs) => { colorPrefix = regs; return ''; }],
@@ -60,5 +60,5 @@ export function filterProjectDesc(a: string) {
 		a = a.substring(0, 125);
 	}
 
-	return filterCommas(filterSplit(a)).replace(/(\s|\u2800)+/gu, ' ').replace(/\^[0-9]/g, '').normalize('NFKD');
+	return filterCommas(filterSplit(a.replace(/\^[0-9]/g, ''))).replace(/(\s|\u2800)+/gu, ' ').normalize('NFKD');
 }
