@@ -439,7 +439,7 @@ class ServerAutoCompleteWorker {
 		}
 
 		for (const entry of list) {
-			const lowerEntry = entry.toLowerCase();
+			const lowerEntry = (key !== 'var') ? entry.toLowerCase() : entry;
 
 			if (!this.autocompleteIndexBacking[key][lowerEntry]) {
 				this.autocompleteIndexBacking[key][lowerEntry] = 1;
