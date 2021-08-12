@@ -31,7 +31,7 @@
 
 	<div class="locale"><span data-balloon-pos="right" [attr.aria-label]="localeName" [class]="'flag-icon flag-icon-' + localeCountry"></span></div>
 
-    <div *ngIf="!rawServer.data.vars?.sv_projectName" class="name" [innerHTML]="rawServer.hostname | allowify | escape | colorize:{trust: true}"></div>
+    <div *ngIf="!rawServer.data.vars?.sv_projectName" class="name" [innerHTML]="'cfx.re/join/' + rawServer.address + ' ^3(needs to set sv_projectName/sv_projectDesc)' | allowify | escape | colorize:{trust: true}"></div>
 	<div *ngIf="rawServer.data.vars?.sv_projectName" class="name projectName">
 		<strong [innerHTML]="rawServer.data.vars?.sv_projectName | allowify | escape | colorize:{trust: true}"></strong>
 		<span [innerHTML]="(rawServer.data.vars?.sv_projectDesc || '') | allowify | escape"></span>

@@ -113,7 +113,7 @@ const sortNames: { [key: string]: string } = {};
 const stripNames: { [key: string]: string } = {};
 
 function stripName(server: master.IServerData) {
-	let name = server.hostname || '';
+	let name = '';
 
 	if (server.vars?.sv_projectName) {
 		name = filterProjectName(server.vars?.sv_projectName) + ' ' + filterProjectDesc(server.vars?.sv_projectDesc ?? '');
