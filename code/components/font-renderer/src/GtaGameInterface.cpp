@@ -473,8 +473,34 @@ static InitFunction initFunction([] ()
 				}
 			}
 		}
+		else
+		{
+			static auto version = ([]()
+			{
+				FILE* f = _wfopen(MakeRelativeCitPath(L"citizen/release.txt").c_str(), L"r");
+				int version = -1;
 
-		static int anchorPos = ([]()
+				if (f)
+				{
+					char ver[128];
+
+					fgets(ver, sizeof(ver), f);
+					fclose(f);
+
+					version = atoi(ver);
+				}
+				else
+				{
+					version = 0;
+				}
+
+				return version;
+			})();
+
+			brandName = fmt::sprintf(L"Ver. %d", version);
+		}
+
+		static int anchorPosBase = ([]()
 		{
 			if (launch::IsSDKGuest())
 			{
@@ -489,6 +515,13 @@ static InitFunction initFunction([] ()
 				return dis(gen);
 			}
 		})();
+
+		int anchorPos = anchorPosBase;
+
+		if (!shouldDraw)
+		{
+			anchorPos = 1;
+		}
 
 		// If anchor position is on left-side, make the emoji go on the left side.
 		if (anchorPos < 2) {
@@ -530,6 +563,11 @@ static InitFunction initFunction([] ()
 		}
 
 		CRGBA color(180, 180, 180, 120);
+
+		if (!shouldDraw)
+		{
+			color = CRGBA(255, 108, 0, 255);
+		}
 
 		g_fontRenderer.DrawText(brandingString, drawRect, color, 22.0f * (gameHeightF / 1440.0f), 1.0f, "Segoe UI");
 #endif
