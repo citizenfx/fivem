@@ -1,13 +1,23 @@
 import emojiRegex from 'emoji-regex';
 
 const emojiPreRe = new RegExp('^(?:' + emojiRegex().source + ')', '');
+const SPLIT_RE = /((?<!\.(?:[a-z]{2,6}))\s?\/+\s?|\||\s-+\s|\s[Il]\s)/u;
+const COMMA_SPLIT_RE = /,\s*/u;
 
 function filterSplit(a: string) {
-	const bits = a.split(/(\s\/+\s|\||\s-+\s|\s[Il]\s)/u)
+	const bits = a.split(SPLIT_RE)
 		.map(b => b.trim())
 		.filter(b => b !== '');
 
 	return bits.length > 0 ? bits[0] : '';
+}
+
+function filterCommas(a: string) {
+	const bits = a.split(COMMA_SPLIT_RE)
+		.map(b => b.trim())
+		.filter(b => b !== '');
+
+	return bits.slice(0, 3).join(', ');
 }
 
 function equalReplace(a: string, ...res: [any, any][]) {
@@ -50,5 +60,5 @@ export function filterProjectDesc(a: string) {
 		a = a.substring(0, 125);
 	}
 
-	return filterSplit(a).replace(/(\s|\u2800)+/gu, ' ').replace(/\^[0-9]/g, '').normalize('NFKD');
+	return filterCommas(filterSplit(a)).replace(/(\s|\u2800)+/gu, ' ').replace(/\^[0-9]/g, '').normalize('NFKD');
 }
