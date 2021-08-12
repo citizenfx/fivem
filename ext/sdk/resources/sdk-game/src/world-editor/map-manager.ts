@@ -324,8 +324,8 @@ export const MapManager = new class MapManager {
     if (request.needsPlacement) {
       const pos = getObjectPosition();
 
-      request.object.cam = CameraManager.getCamLimitedPrecision();
-      request.object.mat = prepareEntityMatrix([
+      request.addition.cam = CameraManager.getCamLimitedPrecision();
+      request.addition.mat = prepareEntityMatrix([
         1, 0, 0, 0,
         0, 1, 0, 0,
         0, 0, 1, 0,
@@ -334,12 +334,12 @@ export const MapManager = new class MapManager {
 
       sendSdkMessageBroadcast('we:setAddition', {
         id: request.id,
-        object: request.object,
+        addition: request.addition,
       } as WESetAdditionRequest);
     }
 
-    this.map.additions[request.id] = request.object;
-    this.objects.set(request.id, request.object);
+    this.map.additions[request.id] = request.addition;
+    this.objects.set(request.id, request.addition);
   }
 
   handleDeletePatch(mapdataHash: number, entityHash: number) {

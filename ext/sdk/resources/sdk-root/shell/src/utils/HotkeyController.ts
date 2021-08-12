@@ -144,13 +144,13 @@ export class HotkeyController {
   }
 
   private bindingMatchesModifiers(binding: HotkeyBinding): boolean {
-    if (binding.alt && !this.modifierState.alt) {
+    if (!!binding.alt !== this.modifierState.alt) {
       return false;
     }
-    if (binding.ctrl && !this.modifierState.ctrl) {
+    if (!!binding.ctrl !== this.modifierState.ctrl) {
       return false;
     }
-    if (binding.shift && !this.modifierState.shift) {
+    if (!!binding.shift !== this.modifierState.shift) {
       return false;
     }
 

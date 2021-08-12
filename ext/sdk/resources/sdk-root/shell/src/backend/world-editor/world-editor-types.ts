@@ -71,13 +71,13 @@ export interface WEDeletePatchRequest {
 
 export interface WECreateAdditionRequest {
   id: string,
-  object: WEMapAddition,
+  addition: WEMapAddition,
   needsPlacement?: boolean,
 }
 
 export interface WESetAdditionRequest {
   id: string,
-  object: WEMapAddition,
+  addition: WEMapAddition,
 }
 
 export type WEApplyAdditionChangeRequest = { id: string } & Partial<WEMapAddition>;

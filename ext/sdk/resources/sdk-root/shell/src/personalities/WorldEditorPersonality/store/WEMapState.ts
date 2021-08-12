@@ -5,8 +5,11 @@ import { worldEditorApi } from "shared/api.events";
 import { applyRotation, applyScale } from "shared/math";
 import { sendApiMessage } from "utils/api";
 import { omit } from "utils/omit";
+import { pick } from "utils/pick";
 import { fastRandomId } from "utils/random";
+import { number } from "yargs";
 import { Events } from "./Events";
+import { WEHistory } from "./history/WEHistory";
 
 export class WEMapState {
   private ungroupedAdditions: Record<string, WEMapAddition> = {};
@@ -84,7 +87,7 @@ export class WEMapState {
     if (addition) {
       const setAdditionRequest: WESetAdditionRequest = {
         id: request.id,
-        object: {
+        addition: {
           ...addition,
           ...omit(request, 'id'),
         },
@@ -94,17 +97,17 @@ export class WEMapState {
     }
   }
 
-  handleSetAdditionRequest({ id, object }: WESetAdditionRequest) {
-    this.map.additions[id] = object;
+  handleSetAdditionRequest({ id, addition }: WESetAdditionRequest) {
+    this.map.additions[id] = addition;
 
-    if (object.grp !== -1) {
-      if (!this.groupedAdditions[object.grp]) {
-        this.groupedAdditions[object.grp] = {};
+    if (addition.grp !== -1) {
+      if (!this.groupedAdditions[addition.grp]) {
+        this.groupedAdditions[addition.grp] = {};
       }
 
-      this.groupedAdditions[object.grp][id] = object;
+      this.groupedAdditions[addition.grp][id] = addition;
     } else {
-      this.ungroupedAdditions[id] = object;
+      this.ungroupedAdditions[id] = addition;
     }
   }
 
@@ -175,10 +178,32 @@ export class WEMapState {
     return this.groupedAdditions[grp] || {};
   }
 
+  setAddition(id: string, addition: WEMapAddition) {
+    this.additions[id] = addition;
+
+    if (addition.grp === WORLD_EDITOR_MAP_NO_GROUP) {
+      this.ungroupedAdditions[id] = addition;
+    } else {
+      if (!this.groupedAdditions[addition.grp]) {
+        this.groupedAdditions[addition.grp] = {};
+      }
+
+      this.groupedAdditions[addition.grp][id] = addition;
+    }
+
+    const request: WESetAdditionRequest = {
+      id,
+      addition,
+    };
+
+    sendGameClientEvent('we:setAddition', JSON.stringify(request));
+    sendApiMessage(worldEditorApi.setAddition, request);
+  }
+
   createAddition(mdl: string, grp: WEMapAdditionGroup) {
     const id = fastRandomId();
 
-    const object: WEMapAddition = {
+    const addition: WEMapAddition = {
       mdl,
       grp,
       cam: [0, 0, 100, 0, 0, -45],
@@ -191,21 +216,21 @@ export class WEMapState {
       ],
     };
 
-    this.map.additions[id] = object;
+    this.map.additions[id] = addition;
 
     if (grp === WORLD_EDITOR_MAP_NO_GROUP) {
-      this.ungroupedAdditions[id] = object;
+      this.ungroupedAdditions[id] = addition;
     } else {
       if (!this.groupedAdditions[grp]) {
         this.groupedAdditions[grp] = {};
       }
 
-      this.groupedAdditions[grp][id] = object;
+      this.groupedAdditions[grp][id] = addition;
     }
 
     const request: WECreateAdditionRequest = {
       id,
-      object,
+      addition,
       needsPlacement: true,
     };
 
@@ -213,58 +238,23 @@ export class WEMapState {
     sendApiMessage(worldEditorApi.createAddition, request);
   }
 
-  setAdditionPosition(additionId: string, x: number, y: number, z: number) {
-    const addition = this.map.additions[additionId];
-    if (!addition) {
-      return;
-    }
-
+  readonly setAdditionPosition = this.additionChangeWrap(['mat'], (addition, x: number, y: number, z: number) => {
     addition.mat[WEEntityMatrixIndex.AX] = x;
     addition.mat[WEEntityMatrixIndex.AY] = y;
     addition.mat[WEEntityMatrixIndex.AZ] = z;
+  });
 
-    const request: WEApplyAdditionChangeRequest = {
-      id: additionId,
-      mat: addition.mat,
-    };
-
-    sendGameClientEvent('we:applyAdditionChange', JSON.stringify(request));
-    sendApiMessage(worldEditorApi.applyAdditionChange, request);
-  }
-
-  setAdditionRotation(additionId: string, x: number, y: number, z: number) {
-    const addition = this.map.additions[additionId];
-    if (!addition) {
-      return;
-    }
-
+  readonly setAdditionRotation = this.additionChangeWrap(['mat'], (addition, x: number, y: number, z: number) => {
     applyRotation(addition.mat, [z, x, y]);
+  });
 
-    const request: WEApplyAdditionChangeRequest = {
-      id: additionId,
-      mat: addition.mat,
-    };
-
-    sendGameClientEvent('we:applyAdditionChange', JSON.stringify(request));
-    sendApiMessage(worldEditorApi.applyAdditionChange, request);
-  }
-
-  setAdditionScale(additionId: string, x: number, y: number, z: number) {
-    const addition = this.map.additions[additionId];
-    if (!addition) {
-      return;
-    }
-
+  readonly setAdditionScale = this.additionChangeWrap(['mat'], (addition, x: number, y: number, z: number) => {
     applyScale(addition.mat, [x, y, z]);
+  });
 
-    const request: WEApplyAdditionChangeRequest = {
-      id: additionId,
-      mat: addition.mat,
-    };
-
-    sendGameClientEvent('we:applyAdditionChange', JSON.stringify(request));
-    sendApiMessage(worldEditorApi.applyAdditionChange, request);
-  }
+  readonly setAdditionLabel = this.additionChangeWrap(['label'], (addition, label: string) => {
+    addition.label = label;
+  });
 
   setAdditionOnGround(additionId: string) {
     sendGameClientEvent('we:setAdditionOnGround', additionId);
@@ -303,22 +293,12 @@ export class WEMapState {
 
       delete this.map.additions[id];
 
-      Events.additionDeleted.emit(id);
+      Events.emitAdditionDeleted(id, addition);
 
       sendGameClientEvent('we:deleteAddition', id);
       sendApiMessage(worldEditorApi.deleteAddition, {
         id
       } as WEDeleteAdditionRequest);
-    }
-  }
-
-  setAdditionLabel(id: string, label: string) {
-    const addition = this.map.additions[id];
-
-    if (addition) {
-      this.applyAdditionChange(id, {
-        label,
-      });
     }
   }
 
@@ -404,6 +384,26 @@ export class WEMapState {
       grp,
       label,
     } as WESetAdditionGroupNameRequest);
+  }
+
+  private additionChangeWrap<Args extends any[], ChangeKeys extends keyof WEMapAddition>(
+    keys: ChangeKeys[],
+    fn: (addition: WEMapAddition, ...args: Args) => void
+  ): ((id: string, ...args: Args) => void) {
+    return (id: string, ...args: Args) => {
+      const addition = this.additions[id];
+      if (!addition) {
+        return;
+      }
+
+      WEHistory.beginAdditionChange(id, addition);
+
+      fn(addition, ...args);
+
+      WEHistory.finishAdditionChange(addition);
+
+      this.broadcastAdditionChange(id, pick(addition, ...keys));
+    };
   }
 
   private applyAdditionChange(id: string, change: Partial<WEMapAddition>) {

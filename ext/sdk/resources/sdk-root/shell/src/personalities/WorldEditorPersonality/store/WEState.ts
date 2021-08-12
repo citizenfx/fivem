@@ -26,6 +26,7 @@ import { registerCommandBinding } from '../command-bindings';
 import { WECommand, WECommandScope } from '../constants/commands';
 import { Events } from './Events';
 import { LocalStorageValue } from 'store/generic/LocalStorageValue';
+import { WEHistory } from './history/WEHistory';
 
 export enum WEMode {
   EDITOR,
@@ -94,9 +95,7 @@ export const WEState = new class WEState {
   }
 
   private bindEvents() {
-    onWindowEvent('we:selection', (selection: WESelection) => runInAction(() => {
-      this.selection = selection;
-    }));
+    onWindowEvent('we:selection', this.updateSelection);
 
     onWindowEvent('we:ready', () => runInAction(() => {
       this.ready = true;
@@ -115,8 +114,8 @@ export const WEState = new class WEState {
       this.map = new WEMapState(map);
     }));
 
-    Events.additionDeleted.addListener((additionId) => {
-      if (this.selection.type === WESelectionType.ADDITION && this.selection.id === additionId) {
+    Events.additionDeleted.addListener(({ id }) => {
+      if (this.selection.type === WESelectionType.ADDITION && this.selection.id === id) {
         this.clearEditorSelection();
       }
     });
@@ -230,6 +229,8 @@ export const WEState = new class WEState {
     this.map = null;
     this.mapEntry = entry;
 
+    WEHistory.reset();
+
     sendApiMessage(worldEditorApi.start, {
       mapPath: entry.path,
     } as WorldEditorStartRequest);
@@ -276,6 +277,7 @@ export const WEState = new class WEState {
 
   setEditorSelect = (select: boolean) => {
     this.editorSelect = select;
+    Events.gizmoSelectChanged.emit(select);
 
     this.updateEditorControls();
   };
@@ -297,7 +299,7 @@ export const WEState = new class WEState {
   }
 
   readonly setEditorSelection = (selection: WESelection) => {
-    this.selection = selection;
+    this.updateSelection(selection);
 
     sendGameClientEvent('we:selection', JSON.stringify(selection));
   };
@@ -317,13 +319,18 @@ export const WEState = new class WEState {
   }
 
   destroyInputController() {
-    this.selection = { type: WESelectionType.NONE };
+    this.updateSelection({ type: WESelectionType.NONE });
 
     if (this.inputController) {
       this.inputController.destroy();
       this.inputController = undefined;
     }
   }
+
+  private updateSelection = (selection: WESelection) => {
+    this.selection = selection;
+    Events.selectionChanged.emit(selection);
+  };
 
   private updateEditorControls() {
     setWorldEditorControls(this.editorSelect, this.editorMode, this.editorLocal);

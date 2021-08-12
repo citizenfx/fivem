@@ -13,14 +13,13 @@ import { WESelectionType } from 'backend/world-editor/world-editor-types';
 
 export interface AdditionProps {
   id: string,
-  item: { label: string },
-  onDelete?(): void,
-  onLabelChange: (label: string) => void,
   children?: React.ReactNode,
 }
 
 export const Addition = observer(function Addition(props: AdditionProps) {
-  const { id, item: { label }, onLabelChange, onDelete, children } = props;
+  const { id, children } = props;
+
+  const { label } = WEState.map?.additions[id] || { label: '' };
 
   const [editing, enterEditing, exitEditing] = useOpenFlag(false);
 
@@ -33,11 +32,11 @@ export const Addition = observer(function Addition(props: AdditionProps) {
 
   const handleLabelChange = React.useCallback((newLabel: string) => {
     if (newLabel.trim()) {
-      onLabelChange(newLabel.trim());
+      WEState.map?.setAdditionLabel(id, newLabel.trim());
     }
 
     exitEditing();
-  }, [exitEditing, onLabelChange]);
+  }, [id, exitEditing]);
 
   const contextMenu = React.useMemo(() => [
     {
@@ -46,17 +45,13 @@ export const Addition = observer(function Addition(props: AdditionProps) {
       icon: renameIcon,
       onClick: enterEditing,
     },
-    ...(
-      onDelete
-        ? [{
-          id: 'delete',
-          text: 'Delete addition',
-          icon: deleteIcon,
-          onClick: onDelete,
-        }]
-        : []
-    ),
-  ] as ContextMenuItemsCollection, [onDelete, enterEditing]);
+    {
+      id: 'delete',
+      text: 'Delete addition',
+      icon: deleteIcon,
+      onClick: () => WEState.map?.deleteAddition(id),
+    },
+  ] as ContextMenuItemsCollection, [id, enterEditing]);
 
   const [{ isDragging }, dragRef] = useDrag({
     item: { id, type: ADDITION_DND_TYPES.ADDITION },

@@ -23,10 +23,7 @@ export class LocalStorageValue<ValueType> {
   ) {
     this._value = readLS(key, defaultValue);
 
-    makeAutoObservable(this, {
-      set: action,
-      get: computed,
-    });
+    makeAutoObservable(this);
   }
 
   set(value: ValueType) {

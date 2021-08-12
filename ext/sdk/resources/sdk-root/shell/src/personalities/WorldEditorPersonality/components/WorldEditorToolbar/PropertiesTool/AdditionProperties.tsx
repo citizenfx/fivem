@@ -15,6 +15,7 @@ import { WECommand } from 'personalities/WorldEditorPersonality/constants/comman
 import s from './PropertiesTool.module.scss';
 
 const Header = div(s, 'header');
+const Icon = div(s, 'icon');
 const Name = div(s, 'name');
 const Controls = div(s, 'controls');
 const Block = div(s, 'block');
@@ -59,9 +60,13 @@ export const AdditionProprties = observer(function AdditionProprties(props: Addi
   return (
     <>
       <Header>
-        <Name>
+        <Icon>
           {additionsToolIcon}
-          {addition.label}
+        </Icon>
+        <Name>
+          <span>
+            {addition.label}
+          </span>
         </Name>
         <Controls>
           <Title delay={0} animated={false} fixedOn="top" title="Delete">

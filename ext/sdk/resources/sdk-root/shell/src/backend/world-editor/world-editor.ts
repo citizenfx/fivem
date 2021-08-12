@@ -151,12 +151,12 @@ export class WorldEditor implements ApiContribution {
 
   @handlesClientEvent(worldEditorApi.createAddition)
   readonly createAddition = (request: WECreateAdditionRequest) => this.map.apply((map) => {
-    map.additions[request.id] = request.object;
+    map.additions[request.id] = request.addition;
   });
 
   @handlesClientEvent(worldEditorApi.setAddition)
   readonly setAddition = (request: WESetAdditionRequest) => this.map.apply((map) => {
-    map.additions[request.id] = request.object;
+    map.additions[request.id] = request.addition;
   });
 
   @handlesClientEvent(worldEditorApi.applyAdditionChange)
