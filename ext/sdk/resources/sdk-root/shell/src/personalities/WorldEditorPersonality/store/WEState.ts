@@ -25,6 +25,7 @@ import { FlashingMessageState } from '../components/WorldEditorToolbar/FlashingM
 import { registerCommandBinding } from '../command-bindings';
 import { WECommand, WECommandScope } from '../constants/commands';
 import { Events } from './Events';
+import { LocalStorageValue } from 'store/generic/LocalStorageValue';
 
 export enum WEMode {
   EDITOR,
@@ -53,7 +54,9 @@ export const WEState = new class WEState {
   public map: WEMapState | null = null;
   private mapEntry: FilesystemEntry | null = null;
 
-  private forceShowIntro = !localStorage['we:introSeen'];
+  private introSeen = new LocalStorageValue('we:introSeen', false);
+
+  private forceShowIntro = false;
 
   get mapName(): string {
     if (this.mapEntry) {
@@ -70,6 +73,10 @@ export const WEState = new class WEState {
 
     if (!this.map) {
       return false;
+    }
+
+    if (!this.introSeen.get()) {
+      return true;
     }
 
     return this.forceShowIntro;
@@ -172,9 +179,11 @@ export const WEState = new class WEState {
   };
 
   readonly closeIntro = () => {
-    this.forceShowIntro = false;
+    if (!this.introSeen.get()) {
+      this.introSeen.set(true);
+    }
 
-    localStorage['we:introSeen'] = 'true';
+    this.forceShowIntro = false;
   };
 
   readonly enterPlaytestMode = () => {
