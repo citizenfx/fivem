@@ -1,7 +1,7 @@
 import emojiRegex from 'emoji-regex';
 
 const emojiPreRe = new RegExp('^(?:' + emojiRegex().source + ')', '');
-const SPLIT_RE = /((?<!\.(?:[a-zA-Z]{2,6}))\s?\/+\s?|\||\s[-~]+\s|\s[Il]\s|[\sㅤ¦]+\p{Emoji}|ㅤ)/u;
+const SPLIT_RE = /((?<!\.(?:[a-zA-Z]{2,6}))\s?\/+\s?|\||\s[\-~]+\s|\s[Il]\s|[\sㅤ¦]+(?![#0-9])\p{Emoji}|ㅤ)/u;
 const COMMA_SPLIT_RE = /,\s*/u;
 
 function filterSplit(a: string) {
