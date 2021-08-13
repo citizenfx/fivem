@@ -566,6 +566,15 @@ static InitFunction initFunction([] ()
 		}
 #endif
 
+		if (loadingScreens.size() == 1)
+		{
+			Instance<ICoreGameInit>::Get()->SetVariable("noLoadingScreen");
+		}
+		else
+		{
+			Instance<ICoreGameInit>::Get()->ClearVariable("noLoadingScreen");
+		}
+
 		nui::CreateFrame("loadingScreen", loadingScreens.back());
 		nui::OverrideFocus(true);
 

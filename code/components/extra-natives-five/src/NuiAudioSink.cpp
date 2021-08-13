@@ -29,6 +29,8 @@
 #include <ScriptEngine.h>
 #include <audDspEffect.h>
 
+#include <ICoreGameInit.h>
+
 #include <GameAudioState.h>
 
 #include <CL2LaunchMode.h>
@@ -2125,16 +2127,35 @@ static InitFunction initFunction([]()
 		static std::string lastSong = musicThemeVariable.GetValue();
 
 		static rage::audSound* g_sound;
+		static bool swapSong;
+		static bool wasLoading;
 
 		if (audioRunning)
 		{
 			bool active = nui::HasMainUI() && (!netLibrary || netLibrary->GetConnectionState() == NetLibrary::CS_IDLE) && !arenaWarVariable.GetValue();
+			bool viaLoading = false;
 
 			if (launch::IsSDKGuest()) {
 				active = false;
 			}
 			else
 			{
+				if (!arenaWarVariable.GetValue() && !Instance<ICoreGameInit>::Get()->GetGameLoaded() && Instance<ICoreGameInit>::Get()->HasVariable("noLoadingScreen"))
+				{
+					if (!wasLoading)
+					{
+						swapSong = true;
+						wasLoading = true;
+					}
+
+					active = true;
+					viaLoading = true;
+				}
+				else
+				{
+					wasLoading = false;
+				}
+
 				if (arenaWarVariableForce.GetValue())
 				{
 					active = true;
@@ -2206,7 +2227,7 @@ static InitFunction initFunction([]()
 					musicTheme = defaultMusicTheme;
 				}
 
-				rage::g_frontendAudioEntity->CreateSound_PersistentReference(HashString(musicTheme.c_str()), (rage::audSound**)&g_sound, initValues);
+				rage::g_frontendAudioEntity->CreateSound_PersistentReference(viaLoading ? 0x8D8B11E3 : HashString(musicTheme.c_str()), (rage::audSound**)&g_sound, initValues);
 
 				if (g_sound)
 				{
@@ -2218,14 +2239,18 @@ static InitFunction initFunction([]()
 					musicThemeVariable.GetHelper()->SetValue("dlc_awxm2018_theme_5_stems");
 				}
 			}
-			else if ((g_sound && !active) || musicThemeVariable.GetValue() != lastSong)
+			else if ((g_sound && (!active || swapSong)) || musicThemeVariable.GetValue() != lastSong)
 			{
-				g_sound->StopAndForget(false);
-				g_sound = nullptr;
+				if (g_sound)
+				{
+					g_sound->StopAndForget(false);
+					g_sound = nullptr;
 
-				_updateAudioThread();
+					_updateAudioThread();
+				}
 
 				lastSong = musicThemeVariable.GetValue();
+				swapSong = false;
 			}
 		}
 	});
