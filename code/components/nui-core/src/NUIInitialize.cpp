@@ -54,6 +54,8 @@ namespace nui
 fwRefContainer<NUIWindow> FindNUIWindow(fwString windowName);
 }
 
+std::wstring GetNUIStoragePath();
+
 nui::GameInterface* g_nuiGi;
 
 struct GameRenderData
@@ -1261,7 +1263,7 @@ void Initialize(nui::GameInterface* gi)
         return;
     }
 
-	std::wstring cachePath = MakeRelativeCitPath(fmt::sprintf(L"data\\nui-storage%s", ToWide(launch::GetPrefixedLaunchModeKey("-"))));
+	std::wstring cachePath = GetNUIStoragePath();
 	CreateDirectory(cachePath.c_str(), nullptr);
 
 	// delete any old CEF logs
@@ -1490,4 +1492,16 @@ void Initialize(nui::GameInterface* gi)
 #endif
 	});
 }
+}
+
+std::wstring GetNUIStoragePath()
+{
+	std::wstring lmSuffix;
+
+	if (launch::IsSDKGuest())
+	{
+		lmSuffix = L"-guest";
+	}
+
+	return MakeRelativeCitPath(fmt::sprintf(L"data\\nui-storage%s%s", ToWide(launch::GetPrefixedLaunchModeKey("-")), lmSuffix));
 }
