@@ -282,7 +282,7 @@ function getFilter(pinConfig: PinConfigCached, filterList: ServerFilterContainer
 		return !matchesLocales;
 	};
 
-	const shownAsPin = (server: master.IServer) => (isPinned(pinConfig, server) && listType === 'browse');
+	const shownAsPin = (server: master.IServer) => (filters.searchText === '' && isPinned(pinConfig, server) && listType === 'browse');
 
 	return (server) => {
 		if (!nameMatchCallback(server)) {
