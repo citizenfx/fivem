@@ -22,11 +22,11 @@
 
 #include <CefOverlay.h>
 
-#include <CL2LaunchMode.h>
-
 extern nui::GameInterface* g_nuiGi;
 
 #include "memdbgon.h"
+
+extern std::wstring GetNUIStoragePath();
 
 namespace nui
 {
@@ -395,7 +395,7 @@ void NUIWindow::Initialize(CefString url)
 	}
 	else
 	{
-		auto cachePath = MakeRelativeCitPath(fmt::sprintf(L"data\\nui-storage%s\\context-%s", ToWide(launch::GetPrefixedLaunchModeKey("-")), ToWide(m_windowContext)));
+		auto cachePath = fmt::sprintf(L"%s\\context-%s", GetNUIStoragePath(), ToWide(m_windowContext));
 		CreateDirectory(cachePath.c_str(), nullptr);
 
 		CefRequestContextSettings rcConfig;
