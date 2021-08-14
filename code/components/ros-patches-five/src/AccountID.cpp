@@ -33,6 +33,50 @@
 #include <UUIState.h>
 #include <HostSharedData.h>
 
+#include "ROSErrors.h"
+#include <boost/algorithm/string/replace.hpp>
+
+static bool TryFindError(const std::string& errorString, std::string* outMessage)
+{
+	if (auto it = g_rosErrors.find("Errors_" + errorString); it != g_rosErrors.end())
+	{
+		auto msg = it->second;
+		boost::algorithm::replace_all(msg, "<a>", "");
+		boost::algorithm::replace_all(msg, "</a>", "");
+
+		*outMessage = msg;
+
+		return true;
+	}
+
+	return false;
+}
+
+static std::string MapMessage(const nlohmann::json& j)
+{
+	std::string message = "Unknown error.";
+
+	if (auto it = j.find("Message"); it != j.end() && it.value().is_string())
+	{
+		message = it.value().get<std::string>();
+	}
+	else if (auto it = j.find("Error"); it != j.end() && it.value().is_object())
+	{
+		if (auto errorMessage = it.value().find("ErrorMessage"); errorMessage != it.value().end() && errorMessage.value().is_string())
+		{
+			std::string errorString = errorMessage.value();
+			std::string errorStringGeneral = errorString.substr(0, errorString.find_first_of('.'));
+
+			if (!TryFindError(errorString, &message))
+			{
+				TryFindError(errorStringGeneral, &message);
+			}
+		}
+	}
+
+	return message;
+}
+
 struct ExternalROSBlob
 {
 	uint8_t data[16384];
@@ -529,7 +573,7 @@ void ValidateEpic(int parentPid)
 		bye();
 
 #ifdef IS_RDR3
-		FatalError("Error during Epic ROS signin: %s %s", j["Error"].value("Code", ""), j.value("Message", ""));
+		FatalError("Error during Epic ROS signin (%s)\n%s", j["Error"].value("Code", ""), MapMessage(j));
 #endif
 
 		return;
@@ -683,7 +727,7 @@ void ValidateSteam(int parentPid)
 	if (!j["Status"].get<bool>())
 	{
 #ifdef IS_RDR3
-		FatalError("Error during Steam ROS signin: %s %s", j["Error"].value("Code", ""), j.value("Message", ""));
+		FatalError("Error during Steam ROS signin (%s)\n%s", j["Error"].value("Code", ""), MapMessage(j));
 #endif
 
 		return;
