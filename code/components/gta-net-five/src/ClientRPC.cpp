@@ -28,6 +28,33 @@ extern NetLibrary* g_netLibrary;
 
 #include <concurrentqueue.h>
 
+static LONG ShouldHandleUnwind(DWORD exceptionCode, uint64_t identifier)
+{
+	// C++ exceptions?
+	if (exceptionCode == 0xE06D7363)
+	{
+		return EXCEPTION_CONTINUE_SEARCH;
+	}
+
+	return EXCEPTION_EXECUTE_HANDLER;
+}
+
+template<typename THandler, typename TContext>
+static inline void CallHandler(const THandler& handler, uint64_t nativeIdentifier, TContext& context)
+{
+	// call the original function
+	static void* exceptionAddress;
+
+	__try
+	{
+		handler(context);
+	}
+	__except (exceptionAddress = (GetExceptionInformation())->ExceptionRecord->ExceptionAddress, ShouldHandleUnwind((GetExceptionInformation())->ExceptionRecord->ExceptionCode, nativeIdentifier))
+	{
+		throw std::exception(va("Error executing native 0x%016llx at address %p.", nativeIdentifier, exceptionAddress));
+	}
+}
+
 class FxNativeInvoke
 {
 private:
@@ -539,7 +566,7 @@ static InitFunction initFunction([]()
 							{
 								try
 								{
-									(*n)(*executionCtx);
+									CallHandler(*n, nativeHash, *executionCtx);
 								}
 								catch (std::exception& e)
 								{
