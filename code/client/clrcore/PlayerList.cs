@@ -14,12 +14,10 @@ namespace CitizenFX.Core
 
 		public IEnumerator<Player> GetEnumerator()
 		{
-			for (var i = 0; i < MaxPlayers; i++)
+			var list = (IList<object>)(object)API.GetActivePlayers();
+			foreach (var p in list)
 			{
-				if (API.NetworkIsPlayerActive(i))
-				{
-					yield return new Player(i);
-				}
+				yield return new Player(Convert.ToInt32(p));
 			}
 		}
 
