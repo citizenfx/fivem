@@ -160,7 +160,7 @@ $colorsNy: (
 	line-height: var(--header-height);
 	text-transform: uppercase;
 
-	padding-left: calc(var(--header-safe-left) + var(--qh));
+	padding-left: var(--header-safe-left);
 	padding-right: var(--header-safe-right);
 
 	margin-bottom: var(--q1);
