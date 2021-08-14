@@ -57,6 +57,7 @@
 #endif
 
 std::string g_lastConn;
+static std::string g_connectNonce;
 
 extern bool XBR_InterceptCardResponse(const nlohmann::json& j);
 extern bool XBR_InterceptCancelDefer();
@@ -362,7 +363,7 @@ static WRL::ComPtr<IShellLink> MakeShellLink(const ServerLink& link)
 
 		if (!link.rawIcon.empty())
 		{
-			auto iconPath = MakeRelativeCitPath(fmt::sprintf(L"data/cache/browser/%08x.ico", HashString(link.rawIcon.c_str())));
+			auto iconPath = MakeRelativeCitPath(fmt::sprintf(L"data/cache/servers/%08x.ico", HashString(link.rawIcon.c_str())));
 			
 			FILE* f = _wfopen(iconPath.c_str(), L"wb");
 
@@ -455,6 +456,7 @@ static void UpdatePendingAuthPayload()
 static InitFunction initFunction([] ()
 {
 	static std::function<void()> g_onYesCallback;
+	static std::function<void()> backfillDoneEvent;
 
 	static ipc::Endpoint ep("launcherTalk", false);
 
@@ -476,6 +478,39 @@ static InitFunction initFunction([] ()
 	NetLibrary::OnNetLibraryCreate.Connect([] (NetLibrary* lib)
 	{
 		netLibrary = lib;
+
+		netLibrary->OnInfoBlobReceived.Connect([](std::string_view sv, const std::function<void()>& cb)
+		{
+			try
+			{
+				auto info = nlohmann::json::parse(sv);
+				std::string iconUri = "";
+				std::string svLicenseKeyToken = "";
+
+				if (auto it = info.find("icon"); it != info.end())
+				{
+					iconUri = "data:image/png;base64," + it.value().get<std::string>();
+				}
+
+				if (auto it = info.find("vars"); it != info.end())
+				{
+					if (auto it2 = it.value().find("sv_licenseKeyToken"); it2 != it.value().end())
+					{
+						svLicenseKeyToken = it2.value().get<std::string>();
+					}
+				}
+
+				auto outInfo = nlohmann::json::object({ { "icon", iconUri }, { "token", svLicenseKeyToken }, { "vars", info["vars"] } });
+				auto outData = nlohmann::json::object({ { "nonce", g_connectNonce }, { "server", outInfo } }).dump();
+
+				nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "backfillServerInfo", "data": %s })", outData));
+				backfillDoneEvent = cb;
+			}
+			catch (...)
+			{
+				cb();
+			}
+		});
 
 		netLibrary->OnConnectOKReceived.Connect([](NetAddress)
 		{
@@ -882,6 +917,15 @@ static InitFunction initFunction([] ()
 		{
 			UpdatePendingAuthPayload();
 		}
+		else if (!_wcsicmp(type, L"backfillDone"))
+		{
+			auto ev = std::move(backfillDoneEvent);
+
+			if (ev)
+			{
+				ev();
+			}
+		}
 		else if (!_wcsicmp(type, L"getMinModeInfo"))
 		{
 #ifdef GTA_FIVE
@@ -914,10 +958,23 @@ static InitFunction initFunction([] ()
 		}
 		else if (!_wcsicmp(type, L"connectTo"))
 		{
-			std::wstring hostnameStrW = arg;
-			std::string hostnameStr(hostnameStrW.begin(), hostnameStrW.end());
+			std::string hostName = ToNarrow(arg);
 
-			ConnectTo(hostnameStr, true);
+			try
+			{
+				auto j = nlohmann::json::parse(hostName);
+				hostName = j[0].get<std::string>();
+
+				if (j.size() >= 2)
+				{
+					g_connectNonce = j[1].get<std::string>();
+				}
+			}
+			catch (...)
+			{
+			}
+
+			ConnectTo(hostName, true);
 		}
 		else if (!_wcsicmp(type, L"cancelDefer"))
 		{

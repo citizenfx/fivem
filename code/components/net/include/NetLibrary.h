@@ -391,6 +391,11 @@ public:
 	// a2: previous connection state
 	fwEvent<ConnectionState, ConnectionState> OnStateChanged;
 
+	// a1: the info.json data, raw
+	// a2: callback when completed
+	// #TODO: fxSingleEvent maybe?
+	fwEvent<std::string_view, const std::function<void()>&> OnInfoBlobReceived;
+
 	// for use from high-level code calling down to lower-level code
 	fwEvent<const NetLibraryClientInfo&> OnClientInfoReceived;
 
