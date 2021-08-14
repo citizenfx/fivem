@@ -1,4 +1,5 @@
 import { Component, OnInit, OnDestroy, ViewChildren, ChangeDetectorRef, Inject, PLATFORM_ID } from '@angular/core';
+import { Location } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { DomSanitizer } from '@angular/platform-browser';
 import { Subject } from 'rxjs';
@@ -13,6 +14,7 @@ import { ServersService } from '../../servers.service';
 import { isPlatformBrowser } from '@angular/common';
 import { L10N_LOCALE, L10nLocale, L10nTranslationService } from 'angular-l10n';
 import { ServerTagsService } from '../../server-tags.service';
+import { environment } from 'environments/environment';
 
 class VariablePair {
 	public key: string;
@@ -186,7 +188,7 @@ export class ServersDetailComponent implements OnInit, OnDestroy {
 		private route: ActivatedRoute, private cdRef: ChangeDetectorRef, private sanitizer: DomSanitizer,
 		private router: Router, @Inject(PLATFORM_ID) private platformId: any,
 		private tagService: ServerTagsService, private tweetService: TweetService,
-        private translation: L10nTranslationService,
+        private translation: L10nTranslationService, private location: Location,
 		@Inject(L10N_LOCALE) public locale: L10nLocale) {
 		this.filterFuncs['sv_scriptHookAllowed'] = (pair) => {
 			return {
@@ -277,7 +279,11 @@ export class ServersDetailComponent implements OnInit, OnDestroy {
 	}
 
 	goBack() {
-		this.router.navigate(['/', 'servers']);
+		if (environment.web) {
+			this.router.navigate(['/', 'servers']);
+		} else {
+			this.location.back();
+		}
 	}
 
 	attemptConnect() {
