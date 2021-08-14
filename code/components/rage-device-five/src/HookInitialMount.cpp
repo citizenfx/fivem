@@ -110,7 +110,7 @@ static bool OpenArchiveWrap(rage::fiPackfile* packfile, const char* archive, boo
 
 	if (!retval)
 	{
-		FatalError("Could not open %s. Please try to verify your GTA V files, see http://rsg.ms/verify for more information.\n\nCurrently, the installation directory %s is being used.", archive, ToNarrow(MakeRelativeGamePath(L"")));
+		FatalError("Could not open %s\nPlease try to verify your GTA V files, see http://rsg.ms/verify for more information.\n\nCurrently, the installation directory %s is being used.", archive, ToNarrow(MakeRelativeGamePath(L"")));
 	}
 
 	return retval;
