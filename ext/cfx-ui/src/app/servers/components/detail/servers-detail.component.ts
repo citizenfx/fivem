@@ -220,6 +220,10 @@ export class ServersDetailComponent implements OnInit, OnDestroy {
 		});
 	}
 
+	get premiumName() {
+		return this.serversService.getNameForPremium(this.server.premium);
+	}
+
 	apFeedInitialized = false;
 
 	private updateServer() {
