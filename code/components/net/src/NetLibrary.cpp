@@ -1296,9 +1296,8 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 						auto continueAfterAllowance = [=]()
 						{
-							m_httpClient->DoGetRequest(fmt::sprintf("%sinfo.json", url), [=](bool success, const char* data, size_t size)
+							auto doneCB = [=](const char* data, size_t size)
 							{
-								if (success)
 								{
 									try
 									{
@@ -1494,6 +1493,19 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 										m_connectionState = CS_IDLE;
 									}
+								}
+							};
+
+							m_httpClient->DoGetRequest(fmt::sprintf("%sinfo.json", url), [=](bool success, const char* data, size_t size)
+							{
+								if (success)
+								{
+									std::string blobStr(data, size);
+
+									OnInfoBlobReceived(blobStr, [blobStr, doneCB]()
+									{
+										doneCB(blobStr.data(), blobStr.size());
+									});
 								}
 								else
 								{

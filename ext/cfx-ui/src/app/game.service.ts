@@ -352,6 +352,9 @@ export class CfxGameService extends GameService {
 
 	private inConnecting = false;
 
+	private serverHistoryEntry: ServerHistoryEntry = null;
+	private connectNonce = '';
+
 	private profileList: Record<string, string> = {};
 	card: boolean;
 
@@ -506,6 +509,9 @@ export class CfxGameService extends GameService {
 							});
 						}
 
+						break;
+					case 'backfillServerInfo':
+						this.backfillServerInfo(event.data.data);
 						break;
 				}
 			});
@@ -858,6 +864,24 @@ export class CfxGameService extends GameService {
 		(<any>window).invokeNative('getMinModeInfo', '');
 	}
 
+	private async backfillServerInfo(eventData: any) {
+		if (this.connectNonce === '' || eventData.nonce !== this.connectNonce) {
+			(<any>window).invokeNative('backfillDone', '');
+			return;
+		}
+
+		const newHistoryEntry: ServerHistoryEntry = {
+			...this.serverHistoryEntry,
+			...eventData.server
+		};
+
+		await this.addServerHistory(newHistoryEntry);
+		this.connectNonce = '';
+		this.serverHistoryEntry = null;
+
+		(<any>window).invokeNative('backfillDone', '');
+	}
+
 	async connectTo(server: Server, enteredAddress?: string) {
 		if (this.inConnecting) {
 			return;
@@ -870,7 +894,7 @@ export class CfxGameService extends GameService {
 		localStorage.setItem('lastServer', server.address);
 		this.lastServer = server;
 
-		await this.addServerHistory({
+		const historyEntry: ServerHistoryEntry = {
 			address: server.address,
 			hostname: server.hostname.replace(/\^[0-9]/g, ''),
 			title: enteredAddress || '',
@@ -879,9 +903,16 @@ export class CfxGameService extends GameService {
 			rawIcon: '',
 			vars: server.data?.vars || {},
 			token: server.data?.vars?.sv_licenseKeyToken || '',
-		});
+		};
 
-		(<any>window).invokeNative('connectTo', this.getConnectAddress(server, enteredAddress));
+		await this.addServerHistory(historyEntry);
+		this.serverHistoryEntry = historyEntry;
+		this.connectNonce = (new Date()).getTime().toString();
+
+		(<any>window).invokeNative('connectTo', JSON.stringify([
+			this.getConnectAddress(server, enteredAddress),
+			this.connectNonce,
+		]));
 
 		// temporary, we hope
 		this.history.push(server.address);
