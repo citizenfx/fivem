@@ -66,6 +66,10 @@ export class ServersListItemComponent implements OnInit, OnChanges, OnDestroy, A
 		return this.rawServer.data.vars.premium;
 	}
 
+	get premiumName() {
+		return this.serversService.getNameForPremium(this.premium);
+	}
+
 	public ngOnInit() {
 		this.hoverIntent = hoverintent(this.elementRef.nativeElement, () => {
 			this.serversService.getServer(this.rawServer.address, true);

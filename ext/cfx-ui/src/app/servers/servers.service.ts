@@ -342,6 +342,19 @@ export class ServersService {
 			.catch(() => new PinConfig());
 	}
 
+	getNameForPremium(premium: string) {
+		switch (premium) {
+			case 'pt':
+				return 'Element Club Platinum';
+			case 'au':
+				return 'Element Club Aurum';
+			case 'ag':
+				return 'Element Club Argentum';
+		}
+
+		return '';
+	}
+
 	parseAddress(addr: string): [string, number] {
 		if (!addr) {
 			return null;
