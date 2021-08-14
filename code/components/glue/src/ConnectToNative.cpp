@@ -322,6 +322,7 @@ struct ServerLink
 	std::string rawIcon;
 	std::string hostname;
 	std::string url;
+	nlohmann::json vars;
 };
 
 #include <wrl.h>
@@ -340,6 +341,21 @@ static WRL::ComPtr<IShellLink> MakeShellLink(const ServerLink& link)
 
 	if (SUCCEEDED(hr))
 	{
+		std::wstring buildArgument;
+		try
+		{
+			if (link.vars.is_object())
+			{
+				if (auto it = link.vars.find("sv_enforceGameBuild"); it != link.vars.end())
+				{
+					buildArgument = fmt::sprintf(L"-b%d ", atoi(it.value().get<std::string>().c_str()));
+				}
+			}
+		}
+		catch (...)
+		{
+		}
+
 		static HostSharedData<CfxState> hostData("CfxInitState");
 
 		wchar_t imageFileName[1024];
@@ -348,7 +364,7 @@ static WRL::ComPtr<IShellLink> MakeShellLink(const ServerLink& link)
 		GetModuleFileNameEx(hProcess, NULL, imageFileName, std::size(imageFileName));
 
 		psl->SetPath(imageFileName);
-		psl->SetArguments(fmt::sprintf(L"fivem://connect/%s", ToWide(link.url)).c_str());
+		psl->SetArguments(fmt::sprintf(L"%sfivem://connect/%s", buildArgument, ToWide(link.url)).c_str());
 
 		WRL::ComPtr<IPropertyStore> pps;
 		psl.As(&pps);
@@ -1186,6 +1202,7 @@ static InitFunction initFunction([] ()
 					}
 
 					json[i]["address"].get_to(l.url);
+					l.vars = json[i]["vars"];
 
 					if (l.url.find("cfx.re/join/") == 0)
 					{
