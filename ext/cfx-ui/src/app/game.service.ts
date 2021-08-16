@@ -363,6 +363,7 @@ export class CfxGameService extends GameService {
 	}
 
 	init() {
+		(<any>window).invokeNative('backfillEnable', '');
 		(<any>window).invokeNative('getFavorites', '');
 		(<any>window).invokeNative('getConvars', '');
 
