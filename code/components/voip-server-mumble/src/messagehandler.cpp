@@ -135,12 +135,13 @@ void Mh_handle_message(client_t *client, message_t *msg)
 			break;
 		}
 
-		/*if (SSLi_getSHA1Hash(client->ssl, client->hash) && Ban_isBanned(client)) {
-			char hexhash[41];
-			SSLi_hash2hex(client->hash, hexhash);
-			Log_info("Client with hash '%s' is banned. Disconnecting", hexhash);
+		if (Ban_isBanned(client)) {
+			char buf[64];
+			sprintf(buf, "You were banned from the server");
+			Log_info("Client is banned. Disconnecting");
+			sendServerReject(client, buf, MumbleProto::Reject_RejectType_None);
 			goto disconnect;
-		}*/
+		}
 
 		client_itr = NULL;
 		while (Client_iterate(&client_itr) != NULL) {
