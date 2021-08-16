@@ -20,6 +20,8 @@ export interface IntroStep {
   content: React.FC,
 
   nextButtonText?: string,
+  closeButtonText?: string,
+  backButtonDisabled?: boolean,
 
   onEnter?(): void,
   onExit?(): void,
@@ -93,18 +95,12 @@ export const Intro = observer(function Intro(props: IntroProps) {
         <Content index={stepIndex} step={step} node={stepNode}>
           {!lastStep && (
             <button onClick={onFinish}>
-              Close
-            </button>
-          )}
-
-          {lastStep && (
-            <button data-back onClick={handleStepBackward}>
-              Back
+              {step.closeButtonText || 'Close'}
             </button>
           )}
 
           <div>
-            {!lastStep && (
+            {!step.backButtonDisabled && (
               <button data-back onClick={handleStepBackward}>
                 Back
               </button>

@@ -50,6 +50,20 @@ export function NumberInput(props: NumberInputProps) {
   const mouseDownRef = React.useRef(false);
   const mouseLockRef = React.useRef(false);
 
+  React.useEffect(() => {
+    const handler = () => {
+      modifiersRef.current.fast = false;
+      modifiersRef.current.slow = false;
+
+      mouseDownRef.current = false;
+      mouseLockRef.current = false;
+    };
+
+    window.addEventListener('blur', handler);
+
+    return () => window.removeEventListener('blur', handler);
+  }, []);
+
   const handleKeyDown = (event: KeyboardEvent) => {
     switch (event.key) {
       case 'ArrowUp': onChange(updateValue(value, 1, modifiersRef.current)); break;
@@ -93,7 +107,7 @@ export function NumberInput(props: NumberInputProps) {
     if (!mouseLockRef.current) {
       mouseLockRef.current = true;
       inputRef.current.requestPointerLock();
-    } else if (Math.abs(movementX) < 1000) {
+    } else if (Math.abs(movementX) < 1000) { // prevents weird jumps on start of dragging
       onChange(value + movementX * 0.01);
     }
   };

@@ -1,5 +1,6 @@
 import { makeAutoObservable } from "mobx";
 
+let activityTimer = null;
 let animationTimer = null;
 
 export const FlashingMessageState = new class FlashingMessageState {
@@ -14,18 +15,26 @@ export const FlashingMessageState = new class FlashingMessageState {
     if (this.message !== message) {
       this.active = true;
 
+      if (activityTimer !== null) {
+        clearTimeout(activityTimer);
+      }
       if (animationTimer !== null) {
         clearTimeout(animationTimer);
       }
 
-      animationTimer = setTimeout(this.setInactive, 2000);
+      activityTimer = setTimeout(this.setInactive, 2000);
     }
 
     this.message = message;
   }
 
   private readonly setInactive = () => {
-    animationTimer = null;
+    activityTimer = null;
     this.active = false;
+
+    animationTimer = setTimeout(() => {
+      animationTimer = null;
+      this.message = '';
+    }, 200);
   }
 }

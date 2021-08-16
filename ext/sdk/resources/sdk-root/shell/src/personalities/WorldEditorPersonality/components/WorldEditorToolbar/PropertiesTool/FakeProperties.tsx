@@ -4,13 +4,11 @@ import { additionsToolIcon, rotateIcon, scaleIcon, translateIcon } from 'persona
 import { NumberInput } from 'components/controls/NumberInput/NumberInput';
 import { div } from 'utils/styled';
 import { deleteIcon } from 'constants/icons';
-import { Title } from 'components/controls/Title/Title';
-import { WEHotkeysState } from 'personalities/WorldEditorPersonality/store/WEHotkeysState';
-import { WECommand } from 'personalities/WorldEditorPersonality/constants/commands';
-import s from './PropertiesTool.module.scss';
 import { IntroForceRecalculate } from 'components/Intro/Intro';
+import s from './PropertiesTool.module.scss';
 
 const Header = div(s, 'header');
+const Icon = div(s, 'icon');
 const Name = div(s, 'name');
 const Controls = div(s, 'controls');
 const Block = div(s, 'block');
@@ -26,9 +24,13 @@ export const FakeProperties = function FakeProperties() {
       <IntroForceRecalculate />
 
       <Header>
-        <Name>
+        <Icon>
           {additionsToolIcon}
-          prop_fake_taxi_l
+        </Icon>
+        <Name>
+          <span>
+            prop_fake_taxi_l
+          </span>
         </Name>
         <Controls>
           <button>

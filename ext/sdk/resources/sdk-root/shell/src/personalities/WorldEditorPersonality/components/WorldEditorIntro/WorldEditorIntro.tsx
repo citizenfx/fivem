@@ -21,19 +21,34 @@ const steps: IntroStep[] = [
         </h1>
 
         <p>
-          Ever wanted to easily add that random cantainer on map?
-          <br/>
-          May be install toll booth?
-          <br/>
-          Put some awesome jump ramp on a beach?
+          With FxDK's world editor you can modify the world to your desire! Place new objects, move or delete existing ones, we got you covered.
         </p>
 
         <p>
-          We got you covered.
+          The world editor is currently in alpha and many more features are coming. This includes placing more entities such as vehicles and checkpoints,
+          but also allow you to create scripted content using a graphical editor. Read more about that <a href="#">here</a>! Stay tuned.
         </p>
+
+        {
+          WEState.introFirstTime
+            ? (
+              <p>
+                Since this is your first time here, we'd like to guide you through the basics of using the editor.
+                Throughout the tour you will learn about the controls, how to place and modify objects, create map patches, and how to use all the other tools.
+              </p>
+            )
+            : (
+              <p>
+                In this tour we'd like to guide you through the basics of using the editor.
+                You will learn about the controls, how to place and modify objects, create map patches, and how to use all the other tools.
+              </p>
+            )
+        }
       </>
     ),
-    nextButtonText: 'Okay',
+    closeButtonText: 'Skip',
+    backButtonDisabled: true,
+    nextButtonText: 'Start the tour',
     onEnter() {
       WEState.enterEditorMode();
 
@@ -44,20 +59,23 @@ const steps: IntroStep[] = [
       WEToolbarState.closeAllTools();
     }
   },
-  {
-    content: () => (
-      <>
-        <p>
-          If you don't mind, we'll take a little tour on an interface of the&nbsp;World&nbsp;Editor.
-        </p>
+  // Would be great to include this little step to denote the use of different toolbars
+  // This eases the progress of the tour
+  // {
+  //   content: () => (
+  //     <>
+  //       <h3>
+  //         World modification toolbar
+  //       </h3>
 
-        <p>
-          <em>Or, you can click the <strong>Close</strong> button and dive right in.</em>
-        </p>
-      </>
-    ),
-    nextButtonText: 'Yes, to the tour',
-  },
+  //       <p>
+  //         In the top left toolbar you will find the tools to place new elements in your world, and find the modifications you have made so far.
+  //       </p>
+  //     </>
+  //   ),
+  //   // Does not work, not sure if because of css or wrong data attr
+  //   focusElement: 'toolbar-top-left',
+  // },
   {
     content: () => (
       <>
@@ -67,13 +85,17 @@ const steps: IntroStep[] = [
         </h3>
 
         <p>
-          <strong>Map patch</strong> - is a modification of existing map object: lamp poles, traffic lights, trash cans, etc.
+          A <strong>map patch</strong> is a modification to existing map objects such as lamp poles, traffic lights, trash cans, etc.
         </p>
 
         <p>
-          Not all objects on map can be modified, <em>yet</em>.
-          <br/>
-          Just click on something and if it highlights - you can patch it!
+          You can move, rotate, scale or delete existing map objects. To select an object, simply click on them.
+          Any modification you will make, will appear here.
+        </p>
+
+        <p className="small">
+          Note: not all objects on the map can be modified <em>yet</em>.<br/>
+          Just click on something - if it highlights, you can patch it!
         </p>
       </>
     ),
@@ -90,43 +112,14 @@ const steps: IntroStep[] = [
         </h3>
 
         <p>
-          <strong>Map addition</strong> - is an object added by <em>you</em>.
+          <strong>Map additions</strong> are objects placed by <em>you</em>.
+          Any object that you add to the map will show up in this panel. You can even make groups to organize your work!
         </p>
       </>
     ),
-    nextButtonText: 'Thanks, Captain Obvious!',
     focusElement: 'map-additions',
     onEnter() { WEToolbarState.openTool(WETool.Additions) },
     onExit() { WEToolbarState.closeTool(WETool.Additions) },
-  },
-  {
-    content: () => (
-      <>
-        <h3>Properties panel</h3>
-
-        <p>
-          Fine-tune position/rotation/scale of selected object.
-        </p>
-
-        <div>
-          Each input value can be altered by:
-          <ul>
-            <li>
-              Keyboard: use <Keystroke className={s.inline} combination="↑" /> <Keystroke className={s.inline} combination="↓" /> keys combined with <Keystroke className={s.inline} combination="Shift" /> or <Keystroke className={s.inline} combination="Alt" /> modifiers for faster or slower change rate</li>
-            <li>Mouse wheel: hover the input field and use your mouse wheel to change value</li>
-            <li>Mouse drag: dragging input field will also change value</li>
-          </ul>
-        </div>
-
-        <div>
-          <div style={{ display: 'inline-flex' }}><CommandHotkey command={WECommand.ACTION_SET_ADDITION_ON_GROUND} /></div>
-          &nbsp;<em>Set object on ground</em> command also available for additions.
-        </div>
-      </>
-    ),
-    focusElement: 'properties-panel',
-    onEnter: WEToolbarState.showFakeProperties,
-    onExit: WEToolbarState.hideFakeProperties,
   },
   {
     content: () => (
@@ -137,7 +130,7 @@ const steps: IntroStep[] = [
         </h3>
 
         <p>
-          This is where you pick what object will become your next map addition.
+          This is the object browser. Want to place a new object into your world? Find and add them from here.
         </p>
       </>
     ),
@@ -145,6 +138,31 @@ const steps: IntroStep[] = [
     onEnter() { WEToolbarState.openTool(WETool.AddObject) },
     onExit() { WEToolbarState.closeTool(WETool.AddObject) },
   },
+  {
+    content: () => (
+      <>
+        <h3>Properties panel</h3>
+
+        <p>
+          After placing or selecting an object, you can fine-tune the position/rotation/scale properties of the object here.
+        </p>
+
+        <div>
+          You can modify each value with different controls:
+          <ul>
+            <li>Keyboard: use <Keystroke className={s.inline} combination="↑" /> <Keystroke className={s.inline} combination="↓" /> keys to change the value. The <Keystroke className={s.inline} combination="Shift" /> and <Keystroke className={s.inline} combination="Alt" /> modifier keys allow for a faster or slower change rate</li>
+            <li>Mouse wheel: when hovering over the input field you can use your mouse wheel to change the value</li>
+            <li>Click and drag: dragging the input field will also change the value</li>
+          </ul>
+        </div>
+      </>
+    ),
+    focusElement: 'properties-panel',
+    onEnter: WEToolbarState.showFakeProperties,
+    onExit: WEToolbarState.hideFakeProperties,
+  },
+  // Can add a transparent image of a gizmo next to the text?
+  // Perhaps even an animation that cycles through the 3 different modes?
   {
     content: () => (
       <>
@@ -159,7 +177,7 @@ const steps: IntroStep[] = [
         </h3>
 
         <p>
-          <strong>Gizmo</strong> - is a 3D control, shows up when you select something, either addition or patch, allows you to change selection position, rotation and scale.
+          The <strong>Gizmo</strong> is the 3D tool which allows you to move, rotate or scale your selection. Use these buttons to change the gizmo mode; from move to rotate to scale.
         </p>
       </>
     ),
@@ -169,12 +187,21 @@ const steps: IntroStep[] = [
     content: () => (
       <>
         <h3>
-          Global or local coordinates
+          Coordinate space
           <Keystroke combination={WEHotkeysState.getCommandHotkey(WECommand.CONTROL_COORD_SYSTEM_TOGGLE)} />
         </h3>
 
         <p>
-          If you're unfamiliar with this concept - best if you try it out yourself.
+          When you rotate an object, you rotate its axis. With this tool you can change the behavior of moving or scaling your selection:
+        </p>
+
+        <ul>
+          <li>Local coordinate space: Move along the axis of your selection</li>
+          <li>Global coordinate space: Move your selection along the world axis</li>
+        </ul>
+
+        <p>
+          Try it out yourself to get a feel of how it works!
         </p>
       </>
     ),
@@ -184,72 +211,25 @@ const steps: IntroStep[] = [
     content: () => (
       <>
         <h3>
-          Camera controls
-        </h3>
-
-        <p>
-          <strong>Right Mouse Button</strong> to control camera rotation.
-        </p>
-
-        <p>
-          <strong>Left Mouse Button</strong> to select objects.
-        </p>
-
-        <div>
-          <div style={{ display: 'inline-flex', gap: '2px' }}>
-            <Keystroke combination={KeyboardLayout.get('KeyW')}/>
-            <Keystroke combination={KeyboardLayout.get('KeyA')}/>
-            <Keystroke combination={KeyboardLayout.get('KeyS')}/>
-            <Keystroke combination={KeyboardLayout.get('KeyD')}/>
-          </div>
-          <span>
-           &nbsp;to move camera, combine with <Keystroke className={s.inline} combination="Shift" /> or <Keystroke className={s.inline} combination="Alt" /> for faster or slower movement.
-          </span>
-        </div>
-      </>
-    ),
-  },
-  {
-    content: () => (
-      <>
-        <h3>
-          Play test mode
+          Play mode
 
           <CommandHotkey command={WECommand.ACTION_ENTER_PLAYTEST_MODE} />
         </h3>
 
         <p>
-          Test your creation right away.
+          Quickly jump into your world to test your work.
         </p>
 
         <p>
-          You can also choose to spawn in a vehicle, enable it in the Settings panel.
+          You can also choose to spawn in a vehicle, which you can enable from the Settings panel.
         </p>
 
         <p>
-          <em>Press ESC to exit play test mode.</em>
+          <em>Press <Keystroke className={s.inline} combination="ESC" /> to go back to the editor.</em>
         </p>
       </>
     ),
     focusElement: 'play-test',
-  },
-  {
-    content: () => (
-      <>
-        <h3>
-          Settings panel
-
-          <CommandHotkey command={getToolCommand(WETool.Settings)} />
-        </h3>
-
-        <p>
-          Knobs, ticks and sliders, including the <em>Field of Flew Stretcher©®™</em>.
-        </p>
-      </>
-    ),
-    focusElement: 'settings-panel',
-    onEnter() { WEToolbarState.openTool(WETool.Settings) },
-    onExit() { WEToolbarState.closeTool(WETool.Settings) },
   },
   {
     content: () => (
@@ -261,7 +241,7 @@ const steps: IntroStep[] = [
         </h3>
 
         <p>
-          Allows you to control time and weather conditions.
+          You can control the time and weather here.
         </p>
       </>
     ),
@@ -272,14 +252,101 @@ const steps: IntroStep[] = [
   {
     content: () => (
       <>
-        <h3>That's all, folks!</h3>
+        <h3>
+          Settings panel
+
+          <CommandHotkey command={getToolCommand(WETool.Settings)} />
+        </h3>
 
         <p>
-          But don't get fooled, it's only the beginning.
+          Knobs, ticks and sliders. You can take this tour again anytime from here.
         </p>
       </>
     ),
-    nextButtonText: 'Finally, let me try this already',
+    focusElement: 'settings-panel',
+    onEnter() { WEToolbarState.openTool(WETool.Settings) },
+    onExit() { WEToolbarState.closeTool(WETool.Settings) },
+  },
+  {
+    content: () => (
+      <>
+        <h3>
+          Camera controls
+        </h3>
+
+        <p>
+          Click and hold your <strong>Right Mouse Button</strong> to control the camera rotation.
+        </p>
+
+        <p>
+          Use your <strong>Left Mouse Button</strong> to select objects.
+        </p>
+
+        <div>
+          Move the camera around using the&nbsp;
+          <div style={{ display: 'inline-flex', gap: '2px' }}>
+            <Keystroke combination={KeyboardLayout.get('KeyW')}/>
+            <Keystroke combination={KeyboardLayout.get('KeyA')}/>
+            <Keystroke combination={KeyboardLayout.get('KeyS')}/>
+            <Keystroke combination={KeyboardLayout.get('KeyD')}/>
+          </div>
+          &nbsp;keys.<br/>
+          <span>
+            You can use <Keystroke className={s.inline} combination="Shift" /> to increase the camera speed or <Keystroke className={s.inline} combination="Alt" /> to move slower.
+          </span>
+        </div>
+      </>
+    ),
+  },
+  {
+    content: () => (
+      <>
+        <h3>
+          Keyboard shortcuts
+        </h3>
+
+        <p>
+          The world editor is convenient to use from your keyboard. Here's a quick list of the most useful shortcuts.
+        </p>
+
+        <p>Objects:</p>
+        <ul>
+          <li><Keystroke className={s.inline} combination={WEHotkeysState.getCommandHotkey(WECommand.TOOL_ADD_OBJECT_TOGGLE)} /> - Find and add a new object</li>
+          <li><Keystroke className={s.inline} combination={WEHotkeysState.getCommandHotkey(WECommand.ACTION_SET_ADDITION_ON_GROUND)} /> - Place your selection flush on the ground</li>
+        </ul>
+
+        <p>Selection:</p>
+        <ul>
+          <li><Keystroke className={s.inline} combination={WEHotkeysState.getCommandHotkey(WECommand.CONTROL_COORD_SYSTEM_TOGGLE)} /> - Switch between local and global coordinate space</li>
+          <li><Keystroke className={s.inline} combination={WEHotkeysState.getCommandHotkey(WECommand.CONTROL_MODE_TRANSLATE_TOGGLE)} /> - Move selection</li>
+          <li><Keystroke className={s.inline} combination={WEHotkeysState.getCommandHotkey(WECommand.CONTROL_MODE_ROTATE_TOGGLE)} /> - Rotate selection</li>
+          <li><Keystroke className={s.inline} combination={WEHotkeysState.getCommandHotkey(WECommand.CONTROL_MODE_SCALE_TOGGLE)} /> - Scale selection</li>
+        </ul>
+
+        <p>Testing:</p>
+        <ul>
+          <li><Keystroke className={s.inline} combination={WEHotkeysState.getCommandHotkey(WECommand.ACTION_ENTER_PLAYTEST_MODE)} /> - Jump into play mode</li>
+          <li><Keystroke className={s.inline} combination="ESC" /> - Exit play mode</li>
+        </ul>
+      </>
+    ),
+  },
+  {
+    content: () => (
+      <>
+        <h3>That's all!</h3>
+
+        <p>
+          Get creative! It's your turn to create your own unique world.
+        </p>
+
+        <p>
+          Make sure to read all about the <a href="#">upcoming features</a> in the FxDK world editor. There is much more to come.
+        </p>
+      </>
+    ),
+    // FIX: Back button is placed on the close button position here
+    nextButtonText: 'Get started!',
   },
 ];
 

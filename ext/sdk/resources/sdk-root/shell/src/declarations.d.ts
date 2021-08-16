@@ -36,6 +36,8 @@ declare global {
 
   // Thanks TS...
   var ResizeObserver: any;
+  var requestIdleCallback: (cb: () => unknown) => number;
+  var cancelIdleCallback: (id: number) => void;
 
   type KeyboardLayoutMap = Map<string, string>;
 

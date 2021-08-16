@@ -1,9 +1,12 @@
+import { WEApi } from 'backend/world-editor/world-editor-game-api';
 import React from 'react';
 import { clamp01 } from 'shared/math';
 import { HotkeyController } from 'utils/HotkeyController';
 import { SingleEventEmitter } from 'utils/singleEventEmitter';
 import { executeCommand, getAllCommandHotkeyBindings, onRegisterCommandBinding } from './command-bindings';
+import { FlashingMessageState } from './components/WorldEditorToolbar/FlashingMessage/FlashingMessageState';
 import { WECommandScope } from './constants/commands';
+import { invokeWEApi } from './we-api-utils';
 
 export enum Key {
   ALT = 18,
@@ -79,8 +82,6 @@ export class InputController {
   private hotkeys: HotkeyController;
   private removeRegisterCommandBindingListener: Function;
 
-  private cameraMovementBaseMultiplierEvent = new SingleEventEmitter<number>();
-
   private readonly activeKeys: Record<number, boolean> = {};
   private readonly activeMouseButtons: [boolean, boolean, boolean] = [false, false, false];
 
@@ -126,6 +127,10 @@ export class InputController {
     for (const [event, handler] of Object.entries(this.documentHandlers)) {
       document.addEventListener(event, handler);
     }
+
+    for (const [event, handler] of Object.entries(this.windowHandlers)) {
+      window.addEventListener(event, handler);
+    }
   }
 
   destroy() {
@@ -137,6 +142,10 @@ export class InputController {
 
     for (const [event, handler] of Object.entries(this.documentHandlers)) {
       document.removeEventListener(event, handler);
+    }
+
+    for (const [event, handler] of Object.entries(this.windowHandlers)) {
+      window.removeEventListener(event, handler);
     }
   }
 
@@ -166,13 +175,9 @@ export class InputController {
     this.resetKeysState();
   }
 
-  private escapeFullControlCallback = () => {};
-  onEscapeFullControl(cb: () => void) {
+  private escapeFullControlCallback = (relative: boolean) => {};
+  onEscapeFullControl(cb: (relative: boolean) => void) {
     this.escapeFullControlCallback = cb;
-  }
-
-  onCameraMovementBaseMultiplierChange(cb: (speed: number) => void) {
-    this.cameraMovementBaseMultiplierEvent.addListener(cb);
   }
 
   deactivateCameraControl() {
@@ -184,16 +189,7 @@ export class InputController {
   }
 
   private handleContainerMouseMove = (event: MouseEvent) => {
-    if (this.fullControl) {
-      // sendMousePos(event.movementX, event.movementY);
-
-      return;
-    }
-
-    if (this.cameraControlActive) {
-      // sendMousePos(event.movementX, event.movementY);
-      // sendGameClientEvent('we:camrot', JSON.stringify([event.movementX, event.movementY]));
-
+    if (this.fullControl || this.cameraControlActive) {
       return;
     }
 
@@ -230,7 +226,7 @@ export class InputController {
   private handleKeyState(event: KeyboardEvent, active: boolean) {
     if (this.fullControl) {
       if (event.code === 'Escape') {
-        this.escapeFullControlCallback();
+        this.escapeFullControlCallback(event.shiftKey);
       } else {
         this.applyKeyState(event, active);
       }
@@ -368,9 +364,9 @@ export class InputController {
         this.cameraMovementBaseMultiplier = 0.1;
       }
 
-      this.cameraMovementBaseMultiplierEvent.emit(this.cameraMovementBaseMultiplier);
+      invokeWEApi(WEApi.SetCamBaseMultiplier, this.cameraMovementBaseMultiplier);
 
-      sendGameClientEvent('we:setCamBaseMultiplier', JSON.stringify(this.cameraMovementBaseMultiplier));
+      FlashingMessageState.setMessage(`Camera speed: ${(this.cameraMovementBaseMultiplier * 100) | 0}%`);
     }
   };
 
@@ -412,6 +408,13 @@ export class InputController {
     }
   };
 
+  private readonly handleWindowBlur = () => {
+    this.hotkeys.resetState();
+
+    this.resetKeysState();
+    this.resetMouseButtonStates();
+  };
+
   private readonly containerHandlers = {
     mousemove: this.handleContainerMouseMove,
     mousedown: (event: MouseEvent) => this.handleMouseButtonState(event, true),
@@ -423,6 +426,10 @@ export class InputController {
     pointerlockchange: this.handlePointerLockChanged,
     keydown: (event: KeyboardEvent) => this.handleKeyState(event, true),
     keyup: (event: KeyboardEvent) => this.handleKeyState(event, false),
+  };
+
+  private readonly windowHandlers = {
+    blur: this.handleWindowBlur,
   };
 }
 

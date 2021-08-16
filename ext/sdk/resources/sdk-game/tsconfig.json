@@ -5,7 +5,10 @@
     "module": "commonjs",
     "skipLibCheck": true,
     "esModuleInterop": true,
-    "types": ["@types/node"]
+    "types": ["@types/node"],
+    "paths": {
+      "@sdk-root/*": ["../sdk-root/shell/src/*"]
+    }
   },
   "include": [
     "src"

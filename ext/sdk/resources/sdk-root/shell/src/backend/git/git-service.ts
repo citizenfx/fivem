@@ -49,6 +49,14 @@ export class GitService {
     });
   }
 
+  fastForwrad(dir: string) {
+    return git.fastForward({
+      fs,
+      dir,
+      http,
+    });
+  }
+
   getRemotes(dir: string) {
     return git.listRemotes({ fs, dir });
   }

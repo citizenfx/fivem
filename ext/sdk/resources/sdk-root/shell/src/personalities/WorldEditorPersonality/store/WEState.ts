@@ -1,32 +1,25 @@
+import { __DEBUG_MODE_TOGGLES__ } from 'constants/debug-constants';
+
 import React from 'react';
 import { makeAutoObservable, runInAction } from "mobx";
 import { worldEditorApi } from "shared/api.events";
 import { onApiMessage, sendApiMessage } from "utils/api";
 import { InputController } from "../InputController";
-import { onWindowEvent } from 'utils/windowMessages';
 import { ShellPersonality, ShellState } from 'store/ShellState';
 import { FilesystemEntry } from 'shared/api.types';
 import { FXWORLD_FILE_EXT } from 'assets/fxworld/fxworld-types';
 import { WorldEditorStartRequest } from 'shared/api.requests';
-import {
-  WEApplyAdditionChangeRequest,
-  WEApplyPatchChangeRequest,
-  WECreatePatchRequest,
-  WEMap,
-  WESelectionType,
-  WESetAdditionRequest,
-  WESelection,
-} from 'backend/world-editor/world-editor-types';
+import { WEMap, WESelectionType, WESelection, WECam } from 'backend/world-editor/world-editor-types';
 import { WEMapState } from './WEMapState';
-import { __DEBUG_MODE_TOGGLES__ } from 'constants/debug-constants';
 import { GameState } from 'store/GameState';
 import { FlashingMessageState } from '../components/WorldEditorToolbar/FlashingMessage/FlashingMessageState';
 import { registerCommandBinding } from '../command-bindings';
 import { WECommand, WECommandScope } from '../constants/commands';
-
-function clampExplorerWidth(width: number): number {
-  return Math.max(250, Math.min(document.body.offsetWidth / 2, width));
-};
+import { WEEvents } from './Events';
+import { LocalStorageValue } from 'store/generic/LocalStorageValue';
+import { WEHistory } from './history/WEHistory';
+import { invokeWEApi, onWEApi } from '../we-api-utils';
+import { WEApi } from 'backend/world-editor/world-editor-game-api';
 
 export enum WEMode {
   EDITOR,
@@ -55,9 +48,12 @@ export const WEState = new class WEState {
   public map: WEMapState | null = null;
   private mapEntry: FilesystemEntry | null = null;
 
-  public mapExplorerWidth: number = clampExplorerWidth(parseInt(localStorage.weExplorerWidth, 10) || 300);
+  private introSeen = new LocalStorageValue({
+    key: 'we:introSeen',
+    defaultValue: false,
+  });
 
-  private forceShowIntro = !localStorage['we:introSeen'];
+  private forceShowIntro = false;
 
   get mapName(): string {
     if (this.mapEntry) {
@@ -67,6 +63,10 @@ export const WEState = new class WEState {
     return '';
   }
 
+  get introFirstTime(): boolean {
+    return !this.introSeen.get();
+  }
+
   get showIntro(): boolean {
     if (!this.ready) {
       return false;
@@ -74,6 +74,10 @@ export const WEState = new class WEState {
 
     if (!this.map) {
       return false;
+    }
+
+    if (!this.introSeen.get()) {
+      return true;
     }
 
     return this.forceShowIntro;
@@ -87,31 +91,39 @@ export const WEState = new class WEState {
     }
 
     this.bindCommands();
-    this.mountEventHandlers();
+    this.bindEvents();
   }
 
-  private mountEventHandlers() {
-    onWindowEvent('we:selection', (selection: WESelection) => runInAction(() => {
-      this.selection = selection;
-    }));
+  private bindEvents() {
+    onWEApi(WEApi.Selection, this.updateSelection);
 
-    onWindowEvent('we:ready', () => runInAction(() => {
-      this.ready = true;
+    onWEApi(WEApi.Ready, this.handleGameReady);
 
-      if (!GameState.archetypesCollectionReady) {
-        GameState.refreshArchetypesCollection();
-      }
-    }));
+    onWEApi(WEApi.PatchCreate, (request) => this.map?.handleCreatePatchRequest(request));
 
-    onWindowEvent('we:createPatch', (request: WECreatePatchRequest) => this.map?.handleCreatePatchRequest(request));
-    onWindowEvent('we:setAddition', (request: WESetAdditionRequest) => this.map?.handleSetAdditionRequest(request));
-    onWindowEvent('we:applyPatchChange', (request: WEApplyPatchChangeRequest) => this.map?.handleApplyPatchChangeRequest(request));
-    onWindowEvent('we:applyAdditionChange', (request: WEApplyAdditionChangeRequest) => this.map?.handleApplyAdditionChangeRequest(request));
+    onWEApi(WEApi.PatchApplyChange, (request) => this.map?.handleApplyPatchChangeRequest(request));
+
+    onWEApi(WEApi.AdditionSet, (request) => this.map?.handleSetAdditionRequest(request));
+    onWEApi(WEApi.AdditionApplyChange, (request) => this.map?.handleApplyAdditionChangeRequest(request));
 
     onApiMessage(worldEditorApi.mapLoaded, (map: WEMap) => runInAction(() => {
       this.map = new WEMapState(map);
     }));
+
+    WEEvents.additionDeleted.addListener(({ id }) => {
+      if (this.selection.type === WESelectionType.ADDITION && this.selection.id === id) {
+        this.clearEditorSelection();
+      }
+    });
   }
+
+  private readonly handleGameReady = () => {
+    this.ready = true;
+
+    if (!GameState.archetypesCollectionReady) {
+      GameState.refreshArchetypesCollection();
+    }
+  };
 
   private bindCommands() {
     registerCommandBinding({
@@ -170,9 +182,11 @@ export const WEState = new class WEState {
   };
 
   readonly closeIntro = () => {
-    this.forceShowIntro = false;
+    if (!this.introSeen.get()) {
+      this.introSeen.set(true);
+    }
 
-    localStorage['we:introSeen'] = 'true';
+    this.forceShowIntro = false;
   };
 
   readonly enterPlaytestMode = () => {
@@ -180,18 +194,19 @@ export const WEState = new class WEState {
       return;
     }
 
-    sendGameClientEvent('we:enterPlaytestMode', '');
+    invokeWEApi(WEApi.EnterPlaytestMode, undefined);
 
     this.mode = WEMode.PLAYTEST;
     this.inputController.enterFullControl();
   };
 
-  readonly enterEditorMode = () => {
+  readonly enterEditorMode = (relative = false) => {
     if (this.mode === WEMode.EDITOR) {
       return;
     }
 
-    sendGameClientEvent('we:exitPlaytestMode', '');
+    invokeWEApi(WEApi.ExitPlaytestMode, relative);
+
     this.mode = WEMode.EDITOR;
     this.inputController.exitFullControl();
   };
@@ -205,12 +220,21 @@ export const WEState = new class WEState {
   };
 
   setCam(cam: number[]) {
-    sendGameClientEvent('we:setCam', JSON.stringify(cam));
+    invokeWEApi(WEApi.SetCam, cam as WECam);
+  }
+
+  focusInView(cam: WECam, lookAt: [number, number, number]) {
+    invokeWEApi(WEApi.FocusInView, {
+      cam,
+      lookAt,
+    });
   }
 
   openMap = (entry: FilesystemEntry) => {
     this.map = null;
     this.mapEntry = entry;
+
+    WEHistory.reset();
 
     sendApiMessage(worldEditorApi.start, {
       mapPath: entry.path,
@@ -231,12 +255,6 @@ export const WEState = new class WEState {
 
     ShellState.setPersonality(ShellPersonality.THEIA);
   };
-
-  setExplorerWidth(width: number) {
-    this.mapExplorerWidth = clampExplorerWidth(width);
-
-    localStorage.weExplorerWidth = this.mapExplorerWidth;
-  }
 
   enableTranslation = () => {
     this.editorMode = EditorMode.TRANSLATE;
@@ -264,6 +282,7 @@ export const WEState = new class WEState {
 
   setEditorSelect = (select: boolean) => {
     this.editorSelect = select;
+    WEEvents.gizmoSelectChanged.emit(select);
 
     this.updateEditorControls();
   };
@@ -285,9 +304,9 @@ export const WEState = new class WEState {
   }
 
   readonly setEditorSelection = (selection: WESelection) => {
-    this.selection = selection;
+    this.updateSelection(selection);
 
-    sendGameClientEvent('we:selection', JSON.stringify(selection));
+    invokeWEApi(WEApi.Selection, selection);
   };
 
   readonly clearEditorSelection = () => {
@@ -298,20 +317,21 @@ export const WEState = new class WEState {
     this.inputController = new InputController(container, this.setEditorSelect);
 
     this.inputController.onEscapeFullControl(this.enterEditorMode);
-
-    this.inputController.onCameraMovementBaseMultiplierChange((speed: number) => {
-      FlashingMessageState.setMessage(`Camera speed: ${(speed * 100) | 0}%`);
-    });
   }
 
   destroyInputController() {
-    this.selection = { type: WESelectionType.NONE };
+    this.updateSelection({ type: WESelectionType.NONE });
 
     if (this.inputController) {
       this.inputController.destroy();
       this.inputController = undefined;
     }
   }
+
+  private updateSelection = (selection: WESelection) => {
+    this.selection = selection;
+    WEEvents.selectionChanged.emit(selection);
+  };
 
   private updateEditorControls() {
     setWorldEditorControls(this.editorSelect, this.editorMode, this.editorLocal);

@@ -1,6 +1,8 @@
+import { WEApi } from "@sdk-root/backend/world-editor/world-editor-game-api";
 import { joaatUint32 } from "../shared";
 import { CameraManager } from "./camera-manager";
 import { applyEntityMatrix, applyScale, makeEntityMatrix, vectorLength } from "./math";
+import { onWEApi } from "./utils";
 
 function getObjectPosition() {
   const fw = CameraManager.getForwardVector().copy().mult(5);
@@ -26,7 +28,7 @@ export const PreviewManager = new class PreviewManager {
   private objectHandle: number | void;
 
   constructor() {
-    on('setPreviewObjectName', (objectName: string) => {
+    onWEApi(WEApi.ObjectPreview, (objectName) => {
       this.nextObjectName = objectName;
     });
   }

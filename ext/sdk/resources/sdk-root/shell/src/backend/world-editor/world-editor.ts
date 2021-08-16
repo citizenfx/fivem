@@ -29,6 +29,7 @@ import { ApiClient } from 'backend/api/api-client';
 import { omit } from 'utils/omit';
 import { ProjectAccess } from 'backend/project/project-access';
 import { WorldEditorMapUpgrader } from './world-editor-map-upgrader';
+import { WEApi, WEApiMethod, WEApiMethodRequest } from './world-editor-game-api';
 
 @injectable()
 export class WorldEditor implements ApiContribution {
@@ -64,21 +65,29 @@ export class WorldEditor implements ApiContribution {
 
   @postConstruct()
   init() {
+    this.onWEApi(WEApi.SetCam, this.setCam);
+
+    this.onWEApi(WEApi.Accept, async () => {
+      await this.mapLoadDeferred.promise;
+
+      this.invokeWEApi(WEApi.Map, this.map.get());
+    });
+
+    this.onWEApi(WEApi.PatchCreate, this.createPatch);
+    this.onWEApi(WEApi.PatchApplyChange, this.applyPatchChange);
+
+    this.onWEApi(WEApi.AdditionSet, this.setAddition);
+    this.onWEApi(WEApi.AdditionApplyChange, this.applyAdditionChange);
+  }
+
+  private onWEApi<Method extends WEApiMethod>(method: Method, cb: (request: WEApiMethodRequest<Method>) => void) {
     this.eventDisposers.push(
-      this.gameService.onBackendMessage('we:setCam', this.setCam),
-
-      this.gameService.onBackendMessage('we:createPatch', this.createPatch),
-      this.gameService.onBackendMessage('we:applyPatchChange', this.applyPatchChange),
-
-      this.gameService.onBackendMessage('we:setAddition', this.setAddition),
-      this.gameService.onBackendMessage('we:applyAdditionChange', this.applyAdditionChange),
-
-      this.gameService.onBackendMessage('we:accept', async () => {
-        await this.mapLoadDeferred.promise;
-
-        this.gameService.emitEvent('we:map', this.map.get());
-      }),
+      this.gameService.onBackendMessage(method, cb),
     );
+  }
+
+  private invokeWEApi<Method extends WEApiMethod>(method: Method, request: WEApiMethodRequest<Method>) {
+    this.gameService.emitEvent(method, request);
   }
 
   async open(mapPath: string) {
@@ -151,12 +160,12 @@ export class WorldEditor implements ApiContribution {
 
   @handlesClientEvent(worldEditorApi.createAddition)
   readonly createAddition = (request: WECreateAdditionRequest) => this.map.apply((map) => {
-    map.additions[request.id] = request.object;
+    map.additions[request.id] = request.addition;
   });
 
   @handlesClientEvent(worldEditorApi.setAddition)
   readonly setAddition = (request: WESetAdditionRequest) => this.map.apply((map) => {
-    map.additions[request.id] = request.object;
+    map.additions[request.id] = request.addition;
   });
 
   @handlesClientEvent(worldEditorApi.applyAdditionChange)

@@ -13,6 +13,7 @@ import s from './PropertiesTool.module.scss';
 import { Title } from 'components/controls/Title/Title';
 
 const Header = div(s, 'header');
+const Icon = div(s, 'icon');
 const Name = div(s, 'name');
 const Controls = div(s, 'controls');
 const Block = div(s, 'block');
@@ -54,9 +55,13 @@ export const PatchProperties = observer(function PatchProperties(props: PatchPro
   return (
     <>
       <Header>
-        <Name>
+        <Icon>
           {patchesToolIcon}
-          {patch.label}
+        </Icon>
+        <Name>
+          <span>
+            {patch.label}
+          </span>
         </Name>
         <Controls>
           <Title delay={0} animated={false} fixedOn="top" title="Delete">

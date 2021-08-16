@@ -1,4 +1,6 @@
-import { WESettings } from "./map-types";
+import { WEApi } from "@sdk-root/backend/world-editor/world-editor-game-api";
+import { WESettings } from "@sdk-root/backend/world-editor/world-editor-types";
+import { onWEApi } from "./utils";
 
 export const SettingsManager = new class SettingsManager {
   public settings: WESettings = {
@@ -11,12 +13,10 @@ export const SettingsManager = new class SettingsManager {
   };
 
   preinit() {
-    on('we:settings', (settings: string) => {
-      console.log('settings', settings);
-
+    onWEApi(WEApi.SettingsSet, (settings) => {
       this.settings = {
         ...this.settings,
-        ...JSON.parse(settings),
+        ...settings,
       };
     });
   }

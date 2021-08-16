@@ -11,7 +11,7 @@ export const PlayExitMessage = observer(function PlayExitMessage() {
   return (
     <div className={s.root}>
       <div className={s.message}>
-        Press ESC to exit play mode
+        Press ESC to exit play mode, Shift+ESC to preserve camera position
       </div>
     </div>
   );

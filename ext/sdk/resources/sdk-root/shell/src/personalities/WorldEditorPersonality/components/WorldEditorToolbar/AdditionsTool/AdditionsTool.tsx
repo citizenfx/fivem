@@ -111,13 +111,10 @@ export const AdditionsTool = observer(function AdditionsTool() {
           </div>
         )}
 
-        {Object.entries(WEState.map.additionsUngrouped).map(([id, obj]) => (
+        {Object.keys(WEState.map.additionsUngrouped).map((id) => (
           <Addition
             id={id}
             key={id}
-            item={obj}
-            onLabelChange={(label: string) => label.trim() && WEState.map?.setAdditionLabel(id, label.trim())}
-            onDelete={() => WEState.map.deleteAddition(id)}
           />
         ))}
       </ContextMenu>

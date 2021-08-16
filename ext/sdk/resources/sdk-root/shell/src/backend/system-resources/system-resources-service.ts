@@ -116,7 +116,7 @@ export class SystemResourcesService implements AppContribution {
       ]);
 
       if (remoteHash !== localHash) {
-        await this.gitService.pullChanges(this.configService.systemResourcesRoot);
+        await this.gitService.fastForwrad(this.configService.systemResourcesRoot);
       }
     } catch (e) {
       this.logService.error(e);

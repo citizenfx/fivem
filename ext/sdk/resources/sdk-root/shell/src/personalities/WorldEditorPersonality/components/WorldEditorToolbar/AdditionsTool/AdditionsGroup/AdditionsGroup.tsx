@@ -116,13 +116,10 @@ export const AdditionsGroup = observer(function AdditionsGroup(props: AdditionsG
       }
 
       <div className={s.children}>
-        {Object.entries(items).map(([id, obj]) => (
+        {Object.keys(items).map((id) => (
           <Addition
             id={id}
             key={id}
-            item={obj}
-            onLabelChange={(label: string) => label.trim() && WEState.map?.setAdditionLabel(id, label.trim())}
-            onDelete={() => WEState.map.deleteAddition(id)}
           />
         ))}
       </div>

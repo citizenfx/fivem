@@ -1,7 +1,8 @@
-import { WEAckEnvironmentRequest, WESetEnvirnomentType, WESetEnvironmentRequest } from "backend/world-editor/world-editor-types";
+import { WEApi } from "backend/world-editor/world-editor-game-api";
+import { WESetEnvirnomentType } from "backend/world-editor/world-editor-types";
 import { makeAutoObservable, runInAction } from "mobx";
 import { joaat } from "utils/joaat";
-import { onWindowEvent } from "utils/windowMessages";
+import { invokeWEApi, onWEApi } from "../we-api-utils";
 
 export const WEATHER = {
   CLEAR: 0,
@@ -40,7 +41,7 @@ export const WEEnvState = new class WEEnvState {
   constructor() {
     makeAutoObservable(this);
 
-    onWindowEvent('we:ackEnvironment', (request: WEAckEnvironmentRequest) => runInAction(() => {
+    onWEApi(WEApi.EnvironmentAck, (request) => runInAction(() => {
       this.updateTime(request.hours, request.minutes);
 
       this.prevWeather = WEATHER_MAP[request.prevWeather];
@@ -52,26 +53,26 @@ export const WEEnvState = new class WEEnvState {
   }
 
   setWeather(weather: WeatherType) {
-    sendGameClientEvent('we:setEnvironment', JSON.stringify({
+    invokeWEApi(WEApi.EnvironmentSet, {
       type: WESetEnvirnomentType.PERSISTENT_WEATHER,
       weather,
-    } as WESetEnvironmentRequest));
+    });
   }
 
   setRandomWeather() {
-    sendGameClientEvent('we:setEnvironment', JSON.stringify({
+    invokeWEApi(WEApi.EnvironmentSet, {
       type: WESetEnvirnomentType.RANDOM_WEATHER,
-    } as WESetEnvironmentRequest));
+    });
   }
 
   setTime(hours: number, minutes: number) {
     this.updateTime(hours, minutes);
 
-    sendGameClientEvent('we:setEnvironment', JSON.stringify({
+    invokeWEApi(WEApi.EnvironmentSet, {
       type: WESetEnvirnomentType.TIME,
       hours,
       minutes,
-    } as WESetEnvironmentRequest));
+    });
   }
 
   setTimeNum(numString: string) {
@@ -84,7 +85,15 @@ export const WEEnvState = new class WEEnvState {
   }
 
   private updateTime(hours: number, minutes: number) {
-    this.time = `${hours}:${minutes}`;
+    this.time = `${hours}:${leadingZero(minutes)}`;
     this.timeNum = hours * 60 + minutes;
   }
+}
+
+function leadingZero(n: number): string {
+  if (n < 10) {
+    return `0${n}`;
+  }
+
+  return n.toString();
 }

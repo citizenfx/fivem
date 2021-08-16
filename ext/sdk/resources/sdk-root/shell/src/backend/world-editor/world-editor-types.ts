@@ -71,13 +71,13 @@ export interface WEDeletePatchRequest {
 
 export interface WECreateAdditionRequest {
   id: string,
-  object: WEMapAddition,
+  addition: WEMapAddition,
   needsPlacement?: boolean,
 }
 
 export interface WESetAdditionRequest {
   id: string,
-  object: WEMapAddition,
+  addition: WEMapAddition,
 }
 
 export type WEApplyAdditionChangeRequest = { id: string } & Partial<WEMapAddition>;
@@ -149,3 +149,8 @@ export interface WESettings {
 }
 
 export type WESettingsChangeRequest = Partial<WESettings>;
+
+export interface WEFocusInViewRequest {
+  cam: WECam,
+  lookAt: [number, number, number],
+}
