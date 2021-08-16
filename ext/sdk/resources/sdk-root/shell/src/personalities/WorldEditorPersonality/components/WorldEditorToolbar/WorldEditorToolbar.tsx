@@ -50,7 +50,7 @@ export const WorldEditorToolbar = observer(function WorldEditorToolbar() {
     <div className={rootClassName}>
       <PlayExitMessage />
 
-      <div className={classnames(s['top-left'], s.hideable)}>
+      <div className={classnames(s['top-left'], s.hideable)} data-intro-id="top-left-toolbar">
         {!!WEState.map && showControls && (
           <>
             <PatchesTool />

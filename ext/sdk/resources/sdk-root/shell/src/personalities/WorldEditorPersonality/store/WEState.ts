@@ -63,6 +63,10 @@ export const WEState = new class WEState {
     return '';
   }
 
+  get introFirstTime(): boolean {
+    return !this.introSeen.get();
+  }
+
   get showIntro(): boolean {
     if (!this.ready) {
       return false;
