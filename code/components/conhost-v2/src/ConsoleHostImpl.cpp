@@ -543,12 +543,15 @@ static HookFunction initFunction([]()
 
 	OnGrcCreateDevice.Connect([io, device, immcon]()
 	{
-		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+		if (device)
 		{
-			ImGui_ImplWin32_InitPlatformInterface();
-		}
+			if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+			{
+				ImGui_ImplWin32_InitPlatformInterface();
+			}
 
-		ImGui_ImplDX11_Init(device, immcon);
+			ImGui_ImplDX11_Init(device, immcon);
+		}
 	});
 
 	io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;
