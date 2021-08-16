@@ -355,6 +355,31 @@ static void Init()
 		return (const char*)nullptr;
 	}));
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_TYPE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity) -> const char*
+	{
+		switch (entity->type)
+		{
+			case fx::sync::NetObjEntityType::Automobile:
+				return "automobile";
+			case fx::sync::NetObjEntityType::Bike:
+				return "bike";
+			case fx::sync::NetObjEntityType::Boat:
+				return "boat";
+			case fx::sync::NetObjEntityType::Heli:
+				return "heli";
+			case fx::sync::NetObjEntityType::Plane:
+				return "plane";
+			case fx::sync::NetObjEntityType::Submarine:
+				return "submarine";
+			case fx::sync::NetObjEntityType::Trailer:
+				return "trailer";
+			case fx::sync::NetObjEntityType::Train:
+				return "train";
+		}
+
+		return nullptr;
+	}));
+
 	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_TYPE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
 		switch (entity->type)
