@@ -473,6 +473,7 @@ static InitFunction initFunction([] ()
 {
 	static std::function<void()> g_onYesCallback;
 	static std::function<void()> backfillDoneEvent;
+	static bool mpMenuExpectsBackfill;
 
 	static ipc::Endpoint ep("launcherTalk", false);
 
@@ -497,6 +498,12 @@ static InitFunction initFunction([] ()
 
 		netLibrary->OnInfoBlobReceived.Connect([](std::string_view sv, const std::function<void()>& cb)
 		{
+			if (!nui::HasFrame("mpMenu") || !mpMenuExpectsBackfill)
+			{
+				cb();
+				return;
+			}
+
 			try
 			{
 				auto info = nlohmann::json::parse(sv);
@@ -932,6 +939,10 @@ static InitFunction initFunction([] ()
 		if (!_wcsicmp(type, L"getFavorites"))
 		{
 			UpdatePendingAuthPayload();
+		}
+		else if (!_wcsicmp(type, L"backfillEnable"))
+		{
+			mpMenuExpectsBackfill = true;
 		}
 		else if (!_wcsicmp(type, L"backfillDone"))
 		{
