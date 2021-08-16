@@ -1622,6 +1622,20 @@ static void Init()
 		auto& task = tree->tasks[index];
 		return static_cast<int>(task.type);
 	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_SPEED", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto v = entity->syncTree->GetVelocity();
+
+		float speed = 0.0f;
+
+		if (v)
+		{
+			speed = std::hypot(v->velX, v->velY, v->velZ);
+		}
+
+		return speed;
+	}));
 }
 
 static InitFunction initFunction([]()
