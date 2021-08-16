@@ -1,9 +1,9 @@
 import { joaatUint32 } from "../shared";
 import { CameraManager } from "./camera-manager";
-import { WEEntityMatrixIndex, WEMapAddition } from "./map-types";
-import { applyAdditionMatrix, applyEntityMatrix, eulerFromMatrix } from "./math";
+import { WEEntityMatrixIndex, WEMapAddition } from "@sdk-root/backend/world-editor/world-editor-types";
+import { applyAdditionMatrix, applyEntityMatrix } from "./math";
 import { Sector, SectorId } from "./sector";
-import { drawDebugText, Memoizer } from "./utils";
+import { Memoizer } from "./utils";
 
 const mdlHashCache = {};
 function getAdditionModelHash(mdl: string | number): number {

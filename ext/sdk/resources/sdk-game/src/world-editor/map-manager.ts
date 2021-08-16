@@ -1,26 +1,21 @@
-import { sendSdkBackendMessage, sendSdkMessage, sendSdkMessageBroadcast } from "../client/sendSdkMessage";
 import { joaat } from "../shared";
 import { CameraManager } from "./camera-manager";
 import {
   WEApplyAdditionChangeRequest,
-  WEApplyPatchChangeRequest,
-  WECreatePatchRequest,
   WECreateAdditionRequest,
-  WEDeletePatchRequest,
   WEEntityMatrix,
   WEMap,
   WEMapAddition,
   WEMapPatch,
   WESelectionType,
-  WESetAdditionRequest,
   WESelection,
-  WEFocusInViewRequest,
-} from "./map-types";
-import { applyAdditionMatrix, applyEntityMatrix, limitPrecision, makeEntityMatrix, Vec3 } from "./math";
+} from "@sdk-root/backend/world-editor/world-editor-types";
+import { WEApi } from '@sdk-root/backend/world-editor/world-editor-game-api';
+import { applyAdditionMatrix, applyEntityMatrix, makeEntityMatrix, Vec3 } from "./math";
 import { ObjectManager } from "./object-manager";
 import { SelectionController } from "./selection-controller";
 import { SettingsManager } from "./settings-manager";
-import { drawDebugText } from "./utils";
+import { drawDebugText, invokeWEApi, invokeWEApiBackend, invokeWEApiBroadcast, onWEApi } from "./utils";
 
 export const MapManager = new class MapManager {
   private enabled = true;
@@ -48,30 +43,23 @@ export const MapManager = new class MapManager {
     on('mapDataLoaded', (mapdata: number) => this.handleMapdataLoaded(mapdata));
     on('mapDataUnloaded', (mapdata: number) => this.handleMapdataUnloaded(mapdata));
 
-    on('we:selection', (req: string) => {
-      this.selection = JSON.parse(req);
+    onWEApi(WEApi.Selection, (selection) => {
+      this.selection = selection;
 
       this.prevSelectedEntity = null;
       SelectionController.setSelectedEntity(null);
     });
 
-    on('we:createAddition', (request: string) => {
-      this.handleSpawnObject(JSON.parse(request));
-    });
-    on('we:setAddition', (req: string) => {
-      const [additionId, addition] = JSON.parse(req);
+    onWEApi(WEApi.AdditionCreate, this.handleSpawnObject);
 
-      if (this.map) {
-        this.map.additions[additionId] = addition;
-        this.objects.set(additionId, addition);
-      }
+    onWEApi(WEApi.AdditionSet, ({ id, addition }) => {
+      this.map.additions[id] = addition;
+      this.objects.set(id, addition);
     });
-    on('we:applyAdditionChange', (req: string) => {
-      const request: WEApplyAdditionChangeRequest = JSON.parse(req);
 
-      this.handleApplyAdditionChange(request);
-    });
-    on('we:setAdditionOnGround', (additionId: string) => {
+    onWEApi(WEApi.AdditionApplyChange, this.handleApplyAdditionChange);
+
+    onWEApi(WEApi.AdditionSetOnGround, (additionId) => {
       const addition = this.map.additions[additionId];
       if (!addition) {
         return;
@@ -85,51 +73,39 @@ export const MapManager = new class MapManager {
       }
     });
 
-    on('we:applyPatchChange', (req: string) => {
-      const request: WEApplyPatchChangeRequest = JSON.parse(req);
-
+    onWEApi(WEApi.PatchApplyChange, (request) => {
       if (request.mat) {
         this.handleApplyPatchMatrix(request.mapdata, request.entity, request.mat);
       }
     });
 
-    on('we:deletePatch', (req: string) => {
-      const request: WEDeletePatchRequest = JSON.parse(req);
-
-      this.handleDeletePatch(request.mapDataHash, request.entityHash);
+    onWEApi(WEApi.PatchDelete, ({ mapDataHash, entityHash }) => {
+      this.handleDeletePatch(mapDataHash, entityHash);
     });
 
-    on('we:deleteAddition', (objectId: string) => {
-      this.handleDeleteAddition(objectId);
-    });
-    on('we:deleteAdditions', (ids: string) => {
-      this.handleDeleteAddition(JSON.parse(ids));
-    });
+    onWEApi(WEApi.AdditionDelete, this.handleDeleteAddition);
+    onWEApi(WEApi.AdditionDeleteBatch, this.handleDeleteAdditions);
 
-    on('we:map', (mapString: string) => {
-      this.map = JSON.parse(mapString);
+    onWEApi(WEApi.Map, (map) => {
+      this.map = map;
 
       setTimeout(() => {
         this.applyLoadedMap();
 
-        sendSdkMessage('we:ready');
+        invokeWEApi(WEApi.Ready, undefined);
       }, 0);
     });
 
-    on('we:setCam', (camString: string) => {
-      CameraManager.setCam(JSON.parse(camString));
-    });
+    onWEApi(WEApi.SetCam, (cam) => CameraManager.setCam(cam));
 
-    on('we:focusInView', (req: string) => {
-      const request: WEFocusInViewRequest = JSON.parse(req);
-
+    onWEApi(WEApi.FocusInView, (request) => {
       CameraManager.setCam(request.cam);
       CameraManager.setLookAt(...request.lookAt);
     });
   }
 
   init() {
-    sendSdkBackendMessage('we:accept');
+    invokeWEApiBackend(WEApi.Accept, undefined);
   }
 
   update() {
@@ -146,7 +122,8 @@ export const MapManager = new class MapManager {
       const camString = JSON.stringify(cam);
       if (camString !== this.lastCamString) {
         this.lastCamString = camString;
-        sendSdkBackendMessage('we:setCam', cam);
+
+        invokeWEApiBackend(WEApi.SetCam, cam);
       }
 
       this.updateSelectedEntity();
@@ -171,7 +148,7 @@ export const MapManager = new class MapManager {
             id: additionId,
           };
 
-          sendSdkMessage('we:selection', this.selection);
+          invokeWEApi(WEApi.Selection, this.selection);
         } else {
           const [success, mapdataHash, entityHash] = GetEntityMapdataOwner(selectedEntity);
           if (success) {
@@ -188,7 +165,7 @@ export const MapManager = new class MapManager {
               label: this.getEntityLabel(selectedEntity),
             };
 
-            sendSdkMessage('we:selection', this.selection);
+            invokeWEApi(WEApi.Selection, this.selection);
           } else {
             SelectionController.setSelectedEntity(null);
           }
@@ -221,9 +198,9 @@ export const MapManager = new class MapManager {
       }
     } else {
       if (hasSelectedEntityChanged) {
-        sendSdkMessage('we:selection', {
+        invokeWEApi(WEApi.Selection, {
           type: WESelectionType.NONE,
-        } as WESelection);
+        });
       } else {
         if (this.selection.type === WESelectionType.ADDITION) {
           const handle = this.objects.getObjectHandle(this.selection.id);
@@ -320,7 +297,7 @@ export const MapManager = new class MapManager {
     drawLine(DF, DB, c);
   }
 
-  private handleSpawnObject(request: WECreateAdditionRequest) {
+  private readonly handleSpawnObject = (request: WECreateAdditionRequest) => {
     if (request.needsPlacement) {
       const pos = getObjectPosition();
 
@@ -332,15 +309,12 @@ export const MapManager = new class MapManager {
         pos.x, pos.y, pos.z, 1,
       ]);
 
-      sendSdkMessageBroadcast('we:setAddition', {
-        id: request.id,
-        addition: request.addition,
-      } as WESetAdditionRequest);
+      invokeWEApiBroadcast(WEApi.AdditionSet, request);
     }
 
     this.map.additions[request.id] = request.addition;
     this.objects.set(request.id, request.addition);
-  }
+  };
 
   handleDeletePatch(mapdataHash: number, entityHash: number) {
     const key = getPatchKey(mapdataHash, entityHash);
@@ -355,18 +329,18 @@ export const MapManager = new class MapManager {
     }
   }
 
-  private handleDeleteAddition(objectId: string) {
+  private readonly handleDeleteAddition = (objectId: string) => {
     this.handleDeleteAdditions([objectId]);
-  }
+  };
 
-  private handleDeleteAdditions(ids: string[]) {
+  private readonly handleDeleteAdditions = (ids: string[]) => {
     if (this.map) {
       for (const id of ids) {
         delete this.map.additions[id];
         this.objects.delete(id);
       }
     }
-  }
+  };
 
   private handleMapdataLoaded(mapdataHash: number) {
     this.activeMapdatas.push(mapdataHash);
@@ -408,7 +382,7 @@ export const MapManager = new class MapManager {
     }
   }
 
-  private handleApplyAdditionChange(request: WEApplyAdditionChangeRequest) {
+  private readonly handleApplyAdditionChange = (request: WEApplyAdditionChangeRequest) => {
     if (this.map === null) {
       return;
     }
@@ -425,7 +399,7 @@ export const MapManager = new class MapManager {
       this.map.additions[additionId] = newAddition;
       this.objects.set(additionId, newAddition);
     }
-  }
+  };
 
   private applyLoadedMap() {
     CameraManager.setCam(this.map.meta.cam);
@@ -457,12 +431,12 @@ export const MapManager = new class MapManager {
       if (patch) {
         patch.mat = prepareEntityMatrix(mat);
 
-        sendSdkMessageBroadcast('we:applyPatchChange', {
+        invokeWEApiBroadcast(WEApi.PatchApplyChange, {
           mapdata,
           entity,
           mat: patch.mat,
           cam: CameraManager.getCamLimitedPrecision(),
-        } as WEApplyPatchChangeRequest);
+        });
       } else {
         patch = {
           label: this.getEntityLabel(entityGuid),
@@ -473,11 +447,11 @@ export const MapManager = new class MapManager {
         this.map.patches[mapdata] ??= {};
         this.map.patches[mapdata][entity] = patch;
 
-        sendSdkMessageBroadcast('we:createPatch', {
+        invokeWEApiBroadcast(WEApi.PatchCreate, {
           mapDataHash: mapdata,
           entityHash: entity,
           patch,
-        } as WECreatePatchRequest);
+        });
       }
     }
   }
@@ -495,7 +469,7 @@ export const MapManager = new class MapManager {
     this.map.additions[additionId] = addition;
     this.objects.set(additionId, addition, true);
 
-    sendSdkMessageBroadcast('we:applyAdditionChange', change);
+    invokeWEApiBroadcast(WEApi.AdditionApplyChange, change);
   }
 
   private getEntityLabel(entity: number): string {
@@ -545,7 +519,6 @@ function getObjectPosition() {
 
 function prepareEntityMatrix(mat: Float32Array | WEEntityMatrix): WEEntityMatrix {
   return Array.from(mat) as any;
-  return limitPrecision(Array.from(mat), 10000) as any;
 }
 
 const GET_MAPDATA_ENTITY_MATRIX = joaat('GET_MAPDATA_ENTITY_MATRIX');

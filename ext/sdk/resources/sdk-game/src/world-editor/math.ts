@@ -1,4 +1,4 @@
-import { WEEntityMatrix, WEEntityMatrixIndex } from "./map-types";
+import { WEEntityMatrix, WEEntityMatrixIndex } from "@sdk-root/backend/world-editor/world-editor-types";
 
 export const RADS_IN_DEG = Math.PI / 180
 export const DEGS_IN_RAD = 180 / Math.PI;

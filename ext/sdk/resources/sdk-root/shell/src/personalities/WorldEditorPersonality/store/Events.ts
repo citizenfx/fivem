@@ -6,7 +6,7 @@ export interface AdditionEvent {
   addition: WEMapAddition,
 }
 
-export const Events = new class Events {
+export const WEEvents = new class WEEvents {
   public readonly gizmoSelectChanged = new SingleEventEmitter<boolean>();
 
   public readonly selectionChanged = new SingleEventEmitter<WESelection>();

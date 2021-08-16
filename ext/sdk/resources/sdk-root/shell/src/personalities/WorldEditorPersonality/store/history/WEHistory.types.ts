@@ -9,7 +9,7 @@ export enum HistoryOp {
 export interface AdditionCreatedItem {
   op: HistoryOp.ADDITION_CREATED,
   id: string,
-  addition: WEMapAddition,
+  addition: string,
 }
 
 export interface AdditionChangedItem {
@@ -22,7 +22,7 @@ export interface AdditionChangedItem {
 export interface AdditionDeletedItem {
   op: HistoryOp.ADDITION_DELETED,
   id: string,
-  addition: WEMapAddition,
+  addition: string,
 }
 
 export type WEHistoryUndoRedoItem =

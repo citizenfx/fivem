@@ -1,8 +1,10 @@
 import { CameraManager } from "./camera-manager";
 import { MapManager } from "./map-manager";
-import { WECam } from "./map-types";
+import { WECam } from "@sdk-root/backend/world-editor/world-editor-types";
 import { SelectionController } from "./selection-controller";
 import { SettingsManager } from "./settings-manager";
+import { onWEApi } from "./utils";
+import { WEApi } from "@sdk-root/backend/world-editor/world-editor-game-api";
 
 export const Playtest = new class Playtest {
   private savedCam: WECam | null = null;
@@ -12,8 +14,8 @@ export const Playtest = new class Playtest {
   private vehicleModel: string | undefined;
 
   preinit() {
-    on('we:enterPlaytestMode', this.enable);
-    on('we:exitPlaytestMode', this.disable);
+    onWEApi(WEApi.EnterPlaytestMode, this.enable);
+    onWEApi(WEApi.ExitPlaytestMode, this.disable);
   }
 
   readonly enable = () => {
@@ -54,7 +56,7 @@ export const Playtest = new class Playtest {
     SetGameplayCamRelativeHeading(0);
   };
 
-  readonly disable = (relative: string) => {
+  readonly disable = (relative: boolean) => {
     const gameplayCam: WECam = [
       ...GetGameplayCamCoord(),
       ...GetGameplayCamRot(2),

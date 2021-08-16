@@ -12,6 +12,8 @@ import { ArchetypesState } from 'personalities/WorldEditorPersonality/store/Arch
 import { WORLD_EDITOR_MAP_NO_GROUP } from 'backend/world-editor/world-editor-constants';
 import { Title } from 'components/controls/Title/Title';
 import s from './AddObjectTool.module.scss';
+import { invokeWEApi } from 'personalities/WorldEditorPersonality/we-api-utils';
+import { WEApi } from 'backend/world-editor/world-editor-game-api';
 
 interface ObjectItemProps {
   name: string,
@@ -56,11 +58,11 @@ export const ObjectsBrowser = observer(function ObjectsBrowserDropdown() {
   React.useEffect(() => {
     const name = activeSet[activeIndex];
 
-    sendGameClientEvent('setPreviewObjectName', name || '');
+    invokeWEApi(WEApi.ObjectPreview, name || '');
   }, [activeSet, activeIndex]);
 
   // Clear preview item on unmount
-  React.useEffect(() => () => sendGameClientEvent('setPreviewObjectName', ''), []);
+  React.useEffect(() => () => invokeWEApi(WEApi.ObjectPreview, ''), []);
 
   const handleSetFilter = React.useCallback((newFilter: string) => {
     const normalizedFilter = newFilter.trim();

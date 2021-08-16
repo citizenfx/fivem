@@ -1,7 +1,8 @@
+import { WEApi } from "@sdk-root/backend/world-editor/world-editor-game-api";
 import { CONTROLS, SETTINGS } from "./config";
-import { limitPrecision, rad2deg, rotation, RotDeg3, Vec3, vectorLength } from "./math";
+import { limitPrecision, rad2deg, rotation, RotDeg3, Vec3 } from "./math";
 import { SettingsManager } from "./settings-manager";
-import { drawDebugText, getSmartControlNormal, useKeyMapping } from "./utils";
+import { getSmartControlNormal, onWEApi, useKeyMapping } from "./utils";
 
 export const CameraManager = new class CameraManager {
   private handle: number;
@@ -21,8 +22,8 @@ export const CameraManager = new class CameraManager {
   public fov = 45;
 
   preinit() {
-    on('we:setCamBaseMultiplier', (multiplierString: string) => {
-      this.baseMoveMultiplier = parseFloat(multiplierString);
+    onWEApi(WEApi.SetCamBaseMultiplier, (multiplier) => {
+      this.baseMoveMultiplier = multiplier;
     });
   }
 

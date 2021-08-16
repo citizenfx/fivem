@@ -1,10 +1,10 @@
-import { WEMapAddition } from "backend/world-editor/world-editor-types";
+import { WEMap, WEMapAddition } from "backend/world-editor/world-editor-types";
 import { registerCommandBinding } from "personalities/WorldEditorPersonality/command-bindings";
 import { FlashingMessageState } from "personalities/WorldEditorPersonality/components/WorldEditorToolbar/FlashingMessage/FlashingMessageState";
 import { WECommandScope } from "personalities/WorldEditorPersonality/constants/commands";
 import { UndoRedo } from "shared/undo-redo";
 import { WEState } from "../WEState";
-import { AdditionChangedItem, HistoryOp, WEHistoryUndoRedoItem } from "./WEHistory.types";
+import { AdditionChangedItem, AdditionCreatedItem, AdditionDeletedItem, HistoryOp, WEHistoryUndoRedoItem } from "./WEHistory.types";
 
 const ADDITION_RECORDING_TIME = 500;
 
@@ -50,6 +50,16 @@ export const WEHistory = new class WEHistory {
     }
 
     switch (item.op) {
+      case HistoryOp.ADDITION_CREATED: {
+        WEState.map.deleteAddition(item.id);
+
+        break;
+      }
+      case HistoryOp.ADDITION_DELETED: {
+        WEState.map.setAddition(item.id, JSON.parse(item.addition));
+
+        break;
+      }
       case HistoryOp.ADDITION_CHANGED: {
         WEState.map.setAddition(item.id, JSON.parse(item.prev));
 
@@ -68,6 +78,16 @@ export const WEHistory = new class WEHistory {
     }
 
     switch (item.op) {
+      case HistoryOp.ADDITION_CREATED: {
+        WEState.map.setAddition(item.id, JSON.parse(item.addition));
+
+        break;
+      }
+      case HistoryOp.ADDITION_DELETED: {
+        WEState.map.deleteAddition(item.id);
+
+        break;
+      }
       case HistoryOp.ADDITION_CHANGED: {
         if (!item.next) {
           return;
@@ -78,6 +98,26 @@ export const WEHistory = new class WEHistory {
         break;
       }
     }
+  }
+
+  additionCreated(id: string, addition: WEMapAddition) {
+    this.commitAdditionChangeRecording();
+
+    this.undoredo.push({
+      op: HistoryOp.ADDITION_CREATED,
+      id,
+      addition: JSON.stringify(addition),
+    } as AdditionCreatedItem);
+  }
+
+  additionDeleted(id: string, addition: WEMapAddition) {
+    this.commitAdditionChangeRecording();
+
+    this.undoredo.push({
+      op: HistoryOp.ADDITION_DELETED,
+      id,
+      addition: JSON.stringify(addition),
+    } as AdditionDeletedItem);
   }
 
   beginAdditionChange(id: string, addition: WEMapAddition) {

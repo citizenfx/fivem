@@ -1,9 +1,12 @@
+import { WEApi } from 'backend/world-editor/world-editor-game-api';
 import React from 'react';
 import { clamp01 } from 'shared/math';
 import { HotkeyController } from 'utils/HotkeyController';
 import { SingleEventEmitter } from 'utils/singleEventEmitter';
 import { executeCommand, getAllCommandHotkeyBindings, onRegisterCommandBinding } from './command-bindings';
+import { FlashingMessageState } from './components/WorldEditorToolbar/FlashingMessage/FlashingMessageState';
 import { WECommandScope } from './constants/commands';
+import { invokeWEApi } from './we-api-utils';
 
 export enum Key {
   ALT = 18,
@@ -78,8 +81,6 @@ export function isRMB(e: MouseEvent): boolean {
 export class InputController {
   private hotkeys: HotkeyController;
   private removeRegisterCommandBindingListener: Function;
-
-  private cameraMovementBaseMultiplierEvent = new SingleEventEmitter<number>();
 
   private readonly activeKeys: Record<number, boolean> = {};
   private readonly activeMouseButtons: [boolean, boolean, boolean] = [false, false, false];
@@ -177,10 +178,6 @@ export class InputController {
   private escapeFullControlCallback = (relative: boolean) => {};
   onEscapeFullControl(cb: (relative: boolean) => void) {
     this.escapeFullControlCallback = cb;
-  }
-
-  onCameraMovementBaseMultiplierChange(cb: (speed: number) => void) {
-    this.cameraMovementBaseMultiplierEvent.addListener(cb);
   }
 
   deactivateCameraControl() {
@@ -367,9 +364,9 @@ export class InputController {
         this.cameraMovementBaseMultiplier = 0.1;
       }
 
-      this.cameraMovementBaseMultiplierEvent.emit(this.cameraMovementBaseMultiplier);
+      invokeWEApi(WEApi.SetCamBaseMultiplier, this.cameraMovementBaseMultiplier);
 
-      sendGameClientEvent('we:setCamBaseMultiplier', JSON.stringify(this.cameraMovementBaseMultiplier));
+      FlashingMessageState.setMessage(`Camera speed: ${(this.cameraMovementBaseMultiplier * 100) | 0}%`);
     }
   };
 

@@ -1,6 +1,7 @@
-import { sendSdkMessage } from "../client/sendSdkMessage";
 import { CameraManager } from "./camera-manager";
-import { WEAckEnvironmentRequest, WESetEnvirnomentType, WESetEnvironmentRequest } from "./map-types";
+import { WESetEnvirnomentType } from "@sdk-root/backend/world-editor/world-editor-types";
+import { invokeWEApi, onWEApi } from "./utils";
+import { WEApi } from "@sdk-root/backend/world-editor/world-editor-game-api";
 
 const int2uint = (() => {
   const ab = new ArrayBuffer(4);
@@ -14,9 +15,7 @@ const int2uint = (() => {
   };
 })();
 
-on('we:setEnvironment', (req: string) => {
-  const request: WESetEnvironmentRequest = JSON.parse(req);
-
+onWEApi(WEApi.EnvironmentSet, (request) => {
   switch (request.type) {
     case WESetEnvirnomentType.TIME: {
       NetworkOverrideClockTime(request.hours, request.minutes, 0);
@@ -74,10 +73,10 @@ setTick(() => {
 });
 
 function ackEnvironment() {
-  sendSdkMessage('we:ackEnvironment', {
+  invokeWEApi(WEApi.EnvironmentAck, {
     hours: GetClockHours(),
     minutes: GetClockMinutes(),
     prevWeather: int2uint(GetPrevWeatherTypeHashName()),
     nextWeather: int2uint(GetPrevWeatherTypeHashName()),
-  } as WEAckEnvironmentRequest);
+  });
 }

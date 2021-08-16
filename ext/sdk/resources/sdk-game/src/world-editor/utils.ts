@@ -1,3 +1,6 @@
+import { WEApi, WEApiMethod, WEApiMethodRequest } from '@sdk-root/backend/world-editor/world-editor-game-api';
+import { sendSdkBackendMessage, sendSdkMessage, sendSdkMessageBroadcast } from '../client/sendSdkMessage';
+
 export function getSmartControlNormal(control: number | number[]): number {
   if (Array.isArray(control)) {
     return GetDisabledControlNormal(0, control[0]) - GetDisabledControlNormal(0, control[1]);
@@ -80,4 +83,20 @@ export class Memoizer<T> {
 
     return ret;
   }
+}
+
+export function onWEApi<Method extends WEApiMethod>(method: Method, cb: (request: WEApiMethodRequest<Method>) => void) {
+  on(method as string, (data: string) => cb(JSON.parse(data)));
+}
+
+export function invokeWEApi<Method extends WEApiMethod>(method: Method, request: WEApiMethodRequest<Method>) {
+  sendSdkMessage(method as string, request);
+}
+
+export function invokeWEApiBackend<Method extends WEApiMethod>(method: Method, request: WEApiMethodRequest<Method>) {
+  sendSdkBackendMessage(method as string, request);
+}
+
+export function invokeWEApiBroadcast<Method extends WEApiMethod>(method: Method, request: WEApiMethodRequest<Method>) {
+  sendSdkMessageBroadcast(method as string, request);
 }

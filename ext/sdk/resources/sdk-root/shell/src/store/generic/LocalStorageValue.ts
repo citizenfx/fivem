@@ -1,4 +1,4 @@
-import { action, computed, makeAutoObservable } from "mobx";
+import { makeAutoObservable } from "mobx";
 
 function readLS<ValueType>(key: string, defaultValue: ValueType): ValueType {
   const value = localStorage[key];
@@ -14,14 +14,27 @@ function readLS<ValueType>(key: string, defaultValue: ValueType): ValueType {
   }
 }
 
+export interface LocalStorageValueConfig<ValueType> {
+  key: string,
+  defaultValue: ValueType,
+
+  readTransform?(value: ValueType): ValueType,
+}
+
 export class LocalStorageValue<ValueType> {
+  private key: string;
   private _value: ValueType;
 
   constructor(
-    private key: string,
-    defaultValue: ValueType,
+    config: LocalStorageValueConfig<ValueType>,
   ) {
-    this._value = readLS(key, defaultValue);
+    this.key = config.key;
+
+    this._value = readLS(this.key, config.defaultValue);
+
+    if (config.readTransform) {
+      this._value = config.readTransform(this._value);
+    }
 
     makeAutoObservable(this);
   }

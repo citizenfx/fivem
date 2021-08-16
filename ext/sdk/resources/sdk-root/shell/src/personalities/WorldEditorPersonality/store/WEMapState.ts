@@ -1,4 +1,5 @@
 import { WORLD_EDITOR_MAP_NO_GROUP } from "backend/world-editor/world-editor-constants";
+import { WEApi } from "backend/world-editor/world-editor-game-api";
 import { WEApplyAdditionChangeRequest, WEApplyPatchChangeRequest, WECreatePatchRequest, WECam, WECreateAdditionGroupRequest, WECreateAdditionRequest, WEDeleteAdditionGroupRequest, WEDeleteAdditionRequest, WEDeletePatchRequest, WEEntityMatrixIndex, WEMap, WEMapAddition, WEMapAdditionGroup, WEMapPatch, WESetAdditionGroupNameRequest, WESetAdditionRequest } from "backend/world-editor/world-editor-types";
 import { makeAutoObservable } from "mobx";
 import { worldEditorApi } from "shared/api.events";
@@ -8,7 +9,8 @@ import { omit } from "utils/omit";
 import { pick } from "utils/pick";
 import { fastRandomId } from "utils/random";
 import { number } from "yargs";
-import { Events } from "./Events";
+import { invokeWEApi } from "../we-api-utils";
+import { WEEvents } from "./Events";
 import { WEHistory } from "./history/WEHistory";
 
 export class WEMapState {
@@ -132,7 +134,7 @@ export class WEMapState {
       mat: patch.mat,
     };
 
-    sendGameClientEvent('we:applyPatchChange', JSON.stringify(request));
+    invokeWEApi(WEApi.PatchApplyChange, request);
     sendApiMessage(worldEditorApi.applyPatchChange, request);
   }
 
@@ -151,7 +153,7 @@ export class WEMapState {
       mat: patch.mat,
     };
 
-    sendGameClientEvent('we:applyPatchChange', JSON.stringify(request));
+    invokeWEApi(WEApi.PatchApplyChange, request);
     sendApiMessage(worldEditorApi.applyPatchChange, request);
   }
 
@@ -170,7 +172,7 @@ export class WEMapState {
       mat: patch.mat,
     };
 
-    sendGameClientEvent('we:applyPatchChange', JSON.stringify(request));
+    invokeWEApi(WEApi.PatchApplyChange, request);
     sendApiMessage(worldEditorApi.applyPatchChange, request);
   }
 
@@ -196,7 +198,7 @@ export class WEMapState {
       addition,
     };
 
-    sendGameClientEvent('we:setAddition', JSON.stringify(request));
+    invokeWEApi(WEApi.AdditionSet, request);
     sendApiMessage(worldEditorApi.setAddition, request);
   }
 
@@ -234,7 +236,7 @@ export class WEMapState {
       needsPlacement: true,
     };
 
-    sendGameClientEvent('we:createAddition', JSON.stringify(request));
+    invokeWEApi(WEApi.AdditionCreate, request);
     sendApiMessage(worldEditorApi.createAddition, request);
   }
 
@@ -257,7 +259,7 @@ export class WEMapState {
   });
 
   setAdditionOnGround(additionId: string) {
-    sendGameClientEvent('we:setAdditionOnGround', additionId);
+    invokeWEApi(WEApi.AdditionSetOnGround, additionId);
   }
 
   deletePatch(mapdata: string | number, entity: string | number) {
@@ -278,7 +280,7 @@ export class WEMapState {
         : entity,
     };
 
-    sendGameClientEvent('we:deletePatch', JSON.stringify(request));
+    invokeWEApi(WEApi.PatchDelete, request);
     sendApiMessage(worldEditorApi.deletePatch, request);
   }
 
@@ -293,9 +295,10 @@ export class WEMapState {
 
       delete this.map.additions[id];
 
-      Events.emitAdditionDeleted(id, addition);
+      WEHistory.additionDeleted(id, addition);
+      WEEvents.emitAdditionDeleted(id, addition);
 
-      sendGameClientEvent('we:deleteAddition', id);
+      invokeWEApi(WEApi.AdditionDelete, id);
       sendApiMessage(worldEditorApi.deleteAddition, {
         id
       } as WEDeleteAdditionRequest);
@@ -357,7 +360,7 @@ export class WEMapState {
         delete this.map.additions[id];
       }
 
-      sendGameClientEvent('we:deleteAdditions', JSON.stringify(ids));
+      invokeWEApi(WEApi.AdditionDeleteBatch, ids);
     } else {
       for (const id of ids) {
         const addition = this.map.additions[id];
@@ -434,7 +437,7 @@ export class WEMapState {
       ...change,
     };
 
-    sendGameClientEvent('we:applyAdditionChange', JSON.stringify(request));
+    invokeWEApi(WEApi.AdditionApplyChange, request);
     sendApiMessage(worldEditorApi.applyAdditionChange, request);
   }
 }
