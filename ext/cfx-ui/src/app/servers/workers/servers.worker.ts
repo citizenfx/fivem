@@ -9,9 +9,17 @@ import { ServerFilterContainer } from '../components/filters/server-filter-conta
 import { getCanonicalLocale } from '../components/utils';
 import { filterProjectDesc, filterProjectName } from '../server-utils';
 
+import cldrLanguageData from 'cldr-core/supplemental/languageData.json';
+import cldrTerritoryInfo from 'cldr-core/supplemental/territoryInfo.json';
+
 function softSlice(arr: Uint8Array, start: number, end?: number) {
     return new Uint8Array(arr.buffer, arr.byteOffset + start, end && end - start);
 }
+
+const validLocales = new Set<string>([
+	...Object.entries(cldrTerritoryInfo.supplemental.territoryInfo).map(([k, v]) => k.toLowerCase()),
+	...Object.entries(cldrLanguageData.supplemental.languageData).map(([k, v]) => k.toLowerCase()),
+]);
 
 // this class loosely based on https://github.com/rkusa/frame-stream
 class FrameReader {
@@ -153,6 +161,19 @@ function buildSearchMatch(filterList: ServerFilterContainer) {
 
 		if (searchGroup.length < 2) {
 			continue;
+		}
+
+		if (searchGroup.length === 2) {
+			if (validLocales.has(searchGroup.toLowerCase())) {
+				const localeMatch = (server: master.IServer) => {
+					const llocale = server.Data.vars?.locale?.toLowerCase() ?? '';
+
+					return (llocale.startsWith(searchGroup) || llocale.endsWith(searchGroup)) === !invertSearch;
+				};
+
+				filterFns.push(localeMatch);
+				continue;
+			}
 		}
 
 		const categoryMatch = searchGroup.match(categoryRe);
