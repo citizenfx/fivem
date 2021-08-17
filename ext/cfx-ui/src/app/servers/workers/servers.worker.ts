@@ -491,6 +491,8 @@ function queryServers(e: MessageEvent) {
                 for (const server of servers) {
 					if (server.Data?.vars?.sv_projectName) {
 						server.Data.vars.sv_projectName = filterProjectName(server.Data.vars.sv_projectName);
+					} else {
+						server.Data.upvotePower = 0;
 					}
 
 					if (server.Data?.vars?.sv_projectDesc) {
