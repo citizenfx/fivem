@@ -103,7 +103,7 @@ export const WEState = new class WEState {
 
     onWEApi(WEApi.PatchApplyChange, (request) => this.map?.handleApplyPatchChangeRequest(request));
 
-    onWEApi(WEApi.AdditionSet, (request) => this.map?.handleSetAdditionRequest(request));
+    onWEApi(WEApi.AdditionPlaced, (request) => this.map?.handleAdditionPlaced(request));
     onWEApi(WEApi.AdditionApplyChange, (request) => this.map?.handleApplyAdditionChangeRequest(request));
 
     onApiMessage(worldEditorApi.mapLoaded, (map: WEMap) => runInAction(() => {

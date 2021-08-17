@@ -157,6 +157,7 @@ export const worldEditorApi = {
   applyPatchChange: 'we:applyPatchChange',
   deletePatch: 'we:deletePatch',
   createAddition: 'we:createAddition',
+  additionPlaced: 'we:additionPlaced',
   deleteAddition: 'we:deleteAddition',
   setAddition: 'we:setAddition',
   applyAdditionChange: 'we:applyAdditionChange',

@@ -19,7 +19,7 @@ import { PlayButton } from './PlayButton/PlayButton';
 import { PlayExitMessage } from './PlayExitMessage/PlayExitMessage';
 import s from './WorldEditorToolbar.module.scss';
 import sBaseTool from './BaseTool/BaseTool.module.scss';
-// import { DebugRestartSdkGameTool } from './DebugRestartSdkGameTool';
+import { DebugRestartSdkGameTool } from './DebugRestartSdkGameTool';
 
 function CloseButton() {
   const rootClassName = classnames(sBaseTool.toggle, sBaseTool.labelled, sBaseTool.hoverable);
@@ -62,7 +62,7 @@ export const WorldEditorToolbar = observer(function WorldEditorToolbar() {
           </>
         )}
 
-        {/* <DebugRestartSdkGameTool /> */}
+        <DebugRestartSdkGameTool />
       </div>
 
       <div className={classnames(s['top-center'], s.hideable)}>

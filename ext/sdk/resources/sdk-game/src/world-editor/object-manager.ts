@@ -73,8 +73,13 @@ export class ObjectManager {
     return this.activeHandlesToAdditionIdMap[handle];
   }
 
-  getObjectHandle(additionId: AdditionId): Handle | void {
-    return this.activeHandles[additionId];
+  getObjectHandle(additionId: AdditionId): number | null {
+    const handle = this.activeHandles[additionId];
+    if (typeof handle === 'number') {
+      return handle;
+    }
+
+    return null;
   }
 
   set(additionId: AdditionId, addition: WEMapAddition, doNotApplyMatrix = false) {
@@ -107,8 +112,14 @@ export class ObjectManager {
     delete this.activeHandles[additionId];
 
     const sectorId = this.additionSectors[additionId];
+    delete this.additionSectors[additionId];
+
     if (sectorId) {
       delete this.sectors[sectorId][additionId];
+
+      if (Object.keys(this.sectors[sectorId]).length === 0) {
+        delete this.sectors[sectorId];
+      }
     }
   }
 
