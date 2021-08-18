@@ -38,6 +38,10 @@ export class PatchManager {
   }
 
   getHandle(mapdata: string | number, entity: string | number): number | null {
+    if (!activeMapdatas[mapdata]) {
+      return null;
+    }
+
     const [success, handle] = GetMapdataEntityHandle(toNumber(mapdata), toNumber(entity));
     if (success) {
       return handle;

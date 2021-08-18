@@ -170,6 +170,13 @@ export const MapManager = new class MapManager {
   };
 
   private updateSelectedEntity() {
+    // Happens when dummy<->instantiated transition happens for mapdata entities
+    if (this.selectionHandle !== null && !DoesEntityExist(this.selectionHandle)) {
+      console.log('SELECTED ENTITY DOES NOT EXIST ANYMORE', this.selectionHandle);
+      this.selectionHandle = null;
+      SelectionController.setSelectedEntity(this.selectionHandle);
+    }
+
     // No selection handle but active selection, try acquiring handle
     if (this.selectionHandle === null && this.selection.type !== WESelectionType.NONE) {
       switch (this.selection.type) {
@@ -180,6 +187,10 @@ export const MapManager = new class MapManager {
         }
         case WESelectionType.PATCH: {
           this.selectionHandle = this.patches.getHandle(this.selection.mapdata, this.selection.entity);
+
+          if (this.selectionHandle !== null) {
+            console.log('ACQUIRED NEW HANDLE FOR SELECTED PATCH', this.selectionHandle);
+          }
 
           break;
         }
@@ -227,7 +238,6 @@ export const MapManager = new class MapManager {
     }
 
     this.map = null;
-    this.activeMapdatas = [];
   }
 
   private drawBoundingBox(entity: number) {

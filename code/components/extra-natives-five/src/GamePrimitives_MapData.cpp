@@ -17,6 +17,8 @@
 #include <GameInit.h>
 #include <Streaming.h>
 
+#include "EntityExtensions.h"
+
 namespace rage
 {
 struct strLocalIndex
@@ -46,36 +48,6 @@ static auto IsMapDataCustom(int localIdx)
 	const auto& strEntry = streaming::Manager::GetInstance()->Entries[strIdx];
 	return (strEntry.handle & 0xFFFF) < 2;
 }
-
-class InstantiatedObjectRefExtension : public rage::fwExtension
-{
-public:
-	InstantiatedObjectRefExtension() {}
-	virtual ~InstantiatedObjectRefExtension() = default;
-
-	virtual int GetExtensionId() const override
-	{
-		return GetClassId();
-	}
-
-	static int GetClassId()
-	{
-		return 65;
-	}
-
-	void SetObjectRef(fwEntity* object)
-	{
-		objectRef = object;
-	}
-
-	fwEntity* GetObjectRef()
-	{
-		return objectRef;
-	}
-
-private:
-	fwEntity* objectRef = nullptr;
-};
 
 class MapDataOwnerExtension : public rage::fwExtension
 {
@@ -121,7 +93,7 @@ public:
 
 	static int GetClassId()
 	{
-		return 64;
+		return (int)EntityExtensionClassId::MapDataOwner;
 	}
 
 	std::string Format() const
