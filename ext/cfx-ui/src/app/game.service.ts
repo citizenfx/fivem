@@ -1,4 +1,4 @@
-import { Injectable, EventEmitter, NgZone, Inject } from '@angular/core';
+import { Injectable, EventEmitter, NgZone, Inject, PLATFORM_ID } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 
 import { Server, ServerHistoryEntry } from './servers/server';
@@ -11,6 +11,8 @@ import { ActionSet, AdaptiveCard, SubmitAction, TextBlock, TextSize, Version } f
 import { L10nTranslationService } from 'angular-l10n';
 import { master } from './servers/master';
 import { map } from 'rxjs/operators';
+import { ServersService } from './servers/servers.service';
+import { HttpClient } from '@angular/common/http';
 
 export class ConnectStatus {
 	public server: Server;
@@ -358,8 +360,12 @@ export class CfxGameService extends GameService {
 	private profileList: Record<string, string> = {};
 	card: boolean;
 
-	constructor(private sanitizer: DomSanitizer, private zone: NgZone, private translation: L10nTranslationService) {
+	private serversService: ServersService;
+
+	constructor(private sanitizer: DomSanitizer, private zone: NgZone, private translation: L10nTranslationService,
+				private httpClient: HttpClient, @Inject(PLATFORM_ID) private platformId: any) {
 		super();
+		this.serversService = new ServersService(httpClient, sanitizer, zone, this, platformId);
 	}
 
 	init() {
@@ -730,6 +736,78 @@ export class CfxGameService extends GameService {
 	}
 
 	async addServerHistory(entry: ServerHistoryEntry) {
+		function canonicalize(address: string) {
+			return address.replace(/^cfx.re\/join\//, '');
+		}
+
+		const serverHistory: ServerHistoryEntry[] = this.getServerHistory()
+			.filter(a => canonicalize(a.address) !== canonicalize(entry.address));
+
+		entry.address = canonicalize(entry.address);
+
+		// if the new address is a joinCode
+		if (entry.address.indexOf('.') === -1) {
+			let server: Server = null;
+
+			try {
+				server = await this.serversService.tryGetServerFromHostname(entry.address);
+			} catch {}
+
+			if (server) {
+				let i = serverHistory.length;
+				while (i--) {
+					// Iterate history records and make sure there's no IPs that are the same as the resolved join-token
+					const historyEntry = serverHistory[i];
+					if (historyEntry.address.indexOf('.') !== -1 && server.connectEndPoints) {
+						for (const endpoint of server.connectEndPoints) {
+							if (endpoint === historyEntry.address) {
+								// Change the IP record to one with details/join-token
+								historyEntry.address = entry.address;
+								historyEntry.hostname = entry.hostname;
+								historyEntry.icon = entry.icon;
+							}
+						}
+					}
+				}
+			}
+		} else {
+			// The new address is a direct IP
+			if (entry.token && entry.token !== '' ) {
+				// this is a backfill, go ahead as usual
+			} else {
+				// look in the previous entries to see if we have any join-token details that can apply
+				let i = serverHistory.length;
+				while (i--) {
+					const historyEntry = serverHistory[i];
+					if (historyEntry.address.indexOf('.') === -1) {
+						// Resolve join-code and check if IP matches
+						let server: Server = null;
+
+						try {
+							server = await this.serversService.tryGetServerFromHostname(historyEntry.address);
+						} catch {
+						}
+
+						if (!server || !server.connectEndPoints) {
+							continue;
+						}
+
+						for (const endpoint of server.connectEndPoints) {
+							if (endpoint === entry.address) {
+								// This address seems to match, let's copy the details
+								entry.address = server.address;
+								entry.hostname = server.hostname;
+								entry.icon = server.iconUri;
+								i = 1;
+								break;
+							}
+						}
+					}
+				}
+			}
+		}
+
+		// Process Icon
 		try {
 			const resp = await fetch(entry.icon);
 
@@ -760,17 +838,7 @@ export class CfxGameService extends GameService {
 		} catch (e) {
 		}
 
-		function canonicalize(address: string) {
-			return address.replace(/^cfx.re\/join\//, '');
-		}
-
-		const lastServers = JSON.stringify(
-			this.getServerHistory()
-				.filter(a => canonicalize(a.address) !== canonicalize(entry.address))
-				.concat([entry]));
-
-		entry.address = canonicalize(entry.address);
-
+		const lastServers = JSON.stringify(serverHistory.concat([entry]));
 		localStorage.setItem('lastServers', lastServers);
 		(<any>window).invokeNative('setLastServers', lastServers);
 	}

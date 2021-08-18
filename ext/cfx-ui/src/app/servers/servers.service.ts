@@ -132,41 +132,7 @@ export class ServersService {
 				serverHost = serverHost.substring(20);
 			}
 
-			// try finding the server in server detail
-			if (serverHost.indexOf('.') === -1 && serverHost.indexOf(':') === -1) {
-				try {
-					server = await this.getServer(serverHost, false);
-				} catch {}
-			}
-
-			// not found yet? try finding the join ID at least
-			if (!server) {
-				server = await this.tryGetJoinServer(serverHost);
-			}
-
-			// meh, no progress at all. probably private/unlisted
-			// try getting dynamic.json to at least populate basic details
-			if (!server) {
-				try {
-				    const serverData = await this.httpClient.post('https://nui-internal/gsclient/dynamic', `url=${serverHost}`, {
-                        responseType: 'text'
-                    }).pipe(
-                        timeout(5000),
-                        catchError(e => {
-                            console.log('https://nui-internal/gsclient/dynamic timed out');
-                            return of(null);
-                        })
-                    ).toPromise();
-
-					if (serverData) {
-						const sd = JSON.parse(serverData);
-						sd.addr = serverHost;
-						sd.infoBlob = {};
-
-						server = Server.fromNative(this.domSanitizer, sd);
-					}
-				} catch { }
-			}
+			server = await this.tryGetServerFromHostname(serverHost);
 
 			if (server) {
 				server.connectEndPoints = [serverHost];
@@ -260,6 +226,47 @@ export class ServersService {
 		this.requestEvent.next('https://servers-frontend.fivem.net/api/servers/');
 	}
 
+	public async tryGetServerFromHostname(hostname: string) {
+		let server: Server = null;
+
+		// try finding the server in server detail
+		if (hostname.indexOf('.') === -1 && hostname.indexOf(':') === -1) {
+			try {
+				server = await this.getServer(hostname, false);
+			} catch {}
+		}
+
+		// not found yet? try finding the join ID at least
+		if (!server) {
+			server = await this.tryGetJoinServer(hostname);
+		}
+
+		// meh, no progress at all. probably private/unlisted
+		// try getting dynamic.json to at least populate basic details
+		if (!server) {
+			try {
+				const serverData = await this.httpClient.post('https://nui-internal/gsclient/dynamic', `url=${hostname}`, {
+					responseType: 'text'
+				}).pipe(
+					timeout(5000),
+					catchError(e => {
+						console.log('https://nui-internal/gsclient/dynamic timed out');
+						return of(null);
+					})
+				).toPromise();
+
+				if (serverData) {
+					const sd = JSON.parse(serverData);
+					sd.addr = hostname;
+					sd.infoBlob = {};
+
+					server = Server.fromNative(this.domSanitizer, sd);
+				}
+			} catch { }
+		}
+
+		return server;
+	}
 	public async getServer(address: string, force?: boolean): Promise<Server> {
 		if (this.serverCache[address] && this.serverCache[address].isValid() && !force) {
 			return this.serverCache[address].server;
