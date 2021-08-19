@@ -4,7 +4,7 @@ import { assetApi, projectApi } from "shared/api.events";
 import { ProjectBuildRequest } from "shared/api.requests";
 import { FilesystemEntry, FilesystemEntryMap } from "shared/api.types";
 import { AssetType } from "shared/asset.types";
-import { ProjectAssetBaseConfig, ProjectData, ProjectFsUpdate, ProjectManifest, RecentProject } from "shared/project.types";
+import { ProjectAssetBaseConfig, ProjectData, ProjectFsUpdate, ProjectManifest, ProjectOpenData, ProjectPathsState, RecentProject } from "shared/project.types";
 import { onApiMessage, sendApiMessage } from "utils/api";
 import { getProjectBuildPathVar, getProjectDeployArtifactVar, getProjectSteamWebApiKeyVar, getProjectTebexSecretVar, getProjectUseVersioningVar } from "utils/projectStorage";
 import { onWindowEvent } from "utils/windowMessages";
@@ -29,7 +29,10 @@ class ProjectObject implements ProjectData, DisposableObject {
 
   private disposableContainer: DisposableContainer;
 
-  constructor(projectData: ProjectData) {
+  constructor(
+    projectData: ProjectData,
+    public pathsState: ProjectPathsState,
+  ) {
     this.fs = projectData.fs;
     this.path = projectData.path;
     this.assets = projectData.assets;
@@ -95,6 +98,14 @@ class ProjectObject implements ProjectData, DisposableObject {
 
     sendApiMessage(projectApi.setSystemResources, this.manifest.systemResources);
   }
+
+  readonly setPathState = (path: string, state: boolean) => {
+    this.pathsState[path] = state;
+
+    sendApiMessage(projectApi.setPathsStatePatch, {
+      [path]: state,
+    });
+  };
 
   private update = (projectData: Partial<ProjectData>) => {
     if (projectData.fs) {
@@ -254,12 +265,12 @@ export const ProjectState = new class ProjectState {
     }
   }
 
-  private setOpenProject = (projectData: ProjectData) => {
+  private setOpenProject = ({ project, pathsState }: ProjectOpenData) => {
     this.closeProject();
 
-    this.resourceCreatorDir = projectData.path;
+    this.resourceCreatorDir = project.path;
     this.projectAlreadyOpening = false;
-    this.projectObject = new ProjectObject(projectData);
+    this.projectObject = new ProjectObject(project, pathsState);
 
     localStorage.setItem('last-project-path', this.project.path);
   };

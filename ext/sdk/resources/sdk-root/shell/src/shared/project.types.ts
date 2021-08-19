@@ -20,6 +20,11 @@ export interface ProjectData {
   manifest: ProjectManifest,
 }
 
+export interface ProjectOpenData {
+  project: ProjectData,
+  pathsState: ProjectPathsState,
+}
+
 export interface ProjectAssetBaseConfig {
   enabled: boolean,
 }
@@ -27,9 +32,7 @@ export interface ProjectAssetBaseConfig {
 export interface ProjectManifest {
   name: string,
   createdAt: string,
-  updatedAt: string,
   serverUpdateChannel: ServerUpdateChannel,
-  pathsState: ProjectPathsState,
   assets: {
     [path: string]: ProjectAssetBaseConfig,
   },

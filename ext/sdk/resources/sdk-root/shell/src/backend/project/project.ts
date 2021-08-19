@@ -49,7 +49,7 @@ import { getAssetsPriorityQueue } from './project-utils';
 import { AssetImporterType, AssetMeta, assetMetaFileExt, assetTypes } from 'shared/asset.types';
 import { AssetImporterContribution } from './asset/asset-importer-contribution';
 import { AssetInterface } from '../../assets/core/asset-interface';
-import { ProjectAssetBaseConfig, ProjectData, ProjectManifest, ProjectPathsState } from 'shared/project.types';
+import { ProjectAssetBaseConfig, ProjectData, ProjectManifest, ProjectOpenData, ProjectPathsState } from 'shared/project.types';
 import { isAssetMetaFile, stripAssetMetaExt } from 'utils/project';
 import { ProjectUpgrade } from './project-upgrade';
 import { ServerResourceDescriptor, ServerStartRequest } from 'backend/game-server/game-server-runtime';
@@ -59,7 +59,7 @@ import { disposableFromFunction, DisposableObject } from 'backend/disposable-con
 import { WorldEditorService } from 'backend/world-editor/world-editor-service';
 import { SystemResource } from 'backend/system-resources/system-resources-constants';
 import { SystemResourcesService } from 'backend/system-resources/system-resources-service';
-import { DEFAULT_PROJECT_SYSTEM_RESOURCES } from './project-constants';
+import { DEFAULT_PROJECT_SYSTEM_RESOURCES, PROJECT_PATHS_STATE_FILENAME } from './project-constants';
 
 interface Silentable {
   silent?: boolean,
@@ -142,6 +142,8 @@ export class Project implements ApiContribution {
   private state: ProjectState = ProjectState.Development;
 
   private path: string;
+  private pathsStatePath: string;
+  private pathsStateMapping: FsJsonFileMapping<ProjectPathsState>;
   private manifestMapping: FsJsonFileMapping<ProjectManifest>;
   private manifestPath: string;
   private storagePath: string;
@@ -201,6 +203,13 @@ export class Project implements ApiContribution {
       fs: this.getFs(),
       path: this.getPath(),
       manifest: this.getManifest(),
+    };
+  }
+
+  getProjectOpenData(): ProjectOpenData {
+    return {
+      project: this.getProjectData(),
+      pathsState: this.pathsStateMapping.get(),
     };
   }
 
@@ -275,13 +284,13 @@ export class Project implements ApiContribution {
       this.path = this.fsService.resolvePath(this.fsService.joinPath(request.projectPath, request.projectName));
       this.storagePath = this.fsService.joinPath(this.path, '.fxdk');
 
+      const pathsStatePath = this.fsService.joinPath(this.storagePath, PROJECT_PATHS_STATE_FILENAME);
+
       const projectManifestPath = this.fsService.joinPath(this.path, fxdkProjectFilename);
       const projectManifest: ProjectManifest = {
         name: request.projectName,
         assets: {},
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        pathsState: {},
         serverUpdateChannel: serverUpdateChannels.recommended,
         systemResources: DEFAULT_PROJECT_SYSTEM_RESOURCES,
         variables: {},
@@ -292,7 +301,10 @@ export class Project implements ApiContribution {
 
       await Promise.all([
         // Write project manifest
-        this.fsService.writeFile(projectManifestPath, JSON.stringify(projectManifest, null, 2)),
+        this.fsService.writeFileJson(projectManifestPath, projectManifest),
+
+        // Write paths state
+        this.fsService.writeFileJson(pathsStatePath, {}),
 
         // Write theia-personality settings
         this.theiaService.createDefaultProjectSettings(this.storagePath),
@@ -319,6 +331,7 @@ export class Project implements ApiContribution {
 
     this.manifestPath = this.fsService.joinPath(this.path, fxdkProjectFilename);
     this.storagePath = this.fsService.joinPath(this.path, '.fxdk');
+    this.pathsStatePath = this.fsService.joinPath(this.storagePath, PROJECT_PATHS_STATE_FILENAME);
     this.fxserverCwd = this.fsService.joinPath(this.storagePath, 'fxserver');
 
     try {
@@ -341,6 +354,9 @@ export class Project implements ApiContribution {
       loadTask.setText('Loading manifest...');
       await this.initManifest();
 
+      loadTask.setText('Loading paths state...');
+      await this.initPathsState();
+
       loadTask.setText('Loading project files...');
       await this.initFs();
 
@@ -359,16 +375,22 @@ export class Project implements ApiContribution {
     return this;
   }
 
+  private async initPathsState() {
+    const options: FsJsonFileMappingOptions<ProjectPathsState> = {
+      defaults: {},
+    };
+
+    this.pathsStateMapping = await this.fsService.createJsonFileMapping<ProjectPathsState>(this.pathsStatePath, options);
+  }
+
   private async initManifest() {
     const options: FsJsonFileMappingOptions<ProjectManifest> = {
       defaults: {
         assets: {},
-        pathsState: {},
         serverUpdateChannel: serverUpdateChannels.recommended,
         systemResources: [],
       },
       onApply: () => this.notifyProjectUpdated(),
-      beforeApply: (snapshot) => snapshot.updatedAt = new Date().toISOString(),
     };
 
     this.manifestMapping = await this.fsService.createJsonFileMapping<ProjectManifest>(this.manifestPath, options);
@@ -503,18 +525,15 @@ export class Project implements ApiContribution {
 
   @handlesClientEvent(projectApi.setPathsState)
   setPathsState(pathsState: ProjectPathsState) {
-    this.applyManifest((manifest) => {
-      manifest.pathsState = pathsState;
-    });
+    this.pathsStateMapping.apply(() => pathsState);
   }
 
   @handlesClientEvent(projectApi.setPathsStatePatch)
   setPathsStatePatch(patch: ProjectPathsState) {
-    this.applyManifest((manifest) => {
-      manifest.pathsState = {
-        ...manifest.pathsState,
-        ...patch,
-      };
+    this.pathsStateMapping.apply((pathsState) => {
+      for (const [key, value] of Object.entries(patch)) {
+        pathsState[key] = value;
+      }
     });
   }
 

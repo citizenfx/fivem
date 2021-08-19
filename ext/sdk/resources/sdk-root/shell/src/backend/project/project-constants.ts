@@ -13,3 +13,5 @@ export const DEFAULT_PROJECT_SYSTEM_RESOURCES = [
   SystemResource.WEBPACK,
   SystemResource.YARN,
 ];
+
+export const PROJECT_PATHS_STATE_FILENAME = 'paths-state.json';
