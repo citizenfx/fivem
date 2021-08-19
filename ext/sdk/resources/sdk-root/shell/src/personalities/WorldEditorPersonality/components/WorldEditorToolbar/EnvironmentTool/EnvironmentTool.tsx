@@ -7,6 +7,7 @@ import { BiSun } from 'react-icons/bi';
 import { BsClock } from 'react-icons/bs';
 import s from './EnvironmentTool.module.scss';
 import { IntroForceRecalculate } from 'components/Intro/Intro';
+import { Checkbox } from 'components/controls/Checkbox/Checkbox';
 
 export const EnvironmentTool = observer(function EnvironmentTool() {
   const weatherNodes = Object.keys(WEATHER).map((weather) => (
@@ -32,8 +33,15 @@ export const EnvironmentTool = observer(function EnvironmentTool() {
       <IntroForceRecalculate />
 
       <div className={s.root}>
-        <div className={s.entry}>
-          <BsClock /> {WEEnvState.time}
+        <div className={s['clock-header']}>
+          <div className={s.entry}>
+            <BsClock /> {WEEnvState.time}
+          </div>
+          <Checkbox
+            value={WEEnvState.freezeTime}
+            onChange={(freeze) => WEEnvState.freezeTime = freeze}
+            label="Freeze"
+          />
         </div>
 
         <div className={s.clock}>

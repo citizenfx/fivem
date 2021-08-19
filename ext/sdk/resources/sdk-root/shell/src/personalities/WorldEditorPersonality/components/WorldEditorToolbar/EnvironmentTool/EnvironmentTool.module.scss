@@ -16,6 +16,14 @@
     padding: $q*2;
   }
 
+  .clock-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding-right: $q*2;
+  }
+
   .clock {
     padding: $q*2;
   }

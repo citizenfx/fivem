@@ -33,6 +33,7 @@ export const WEApi = Object.freeze({
 
   EnvironmentSet: define<WESetEnvironmentRequest>('we:setEnvironment'),
   EnvironmentAck: define<WEAckEnvironmentRequest>('we:ackEnvironment'),
+  EnvironmentRequest: define<void>('we:reqeustEnvironment'),
 
   SettingsSet: define<WESettingsChangeRequest>('we:settings'),
 

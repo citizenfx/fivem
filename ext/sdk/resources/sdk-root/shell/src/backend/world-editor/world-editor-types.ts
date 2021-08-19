@@ -48,11 +48,13 @@ export interface WEAckEnvironmentRequest {
 
 export enum WESetEnvirnomentType {
   TIME,
+  FREEZE_TIME,
   PERSISTENT_WEATHER,
   RANDOM_WEATHER,
 }
 export type WESetEnvironmentRequest =
   | { type: WESetEnvirnomentType.TIME, hours: number, minutes: number }
+  | { type: WESetEnvirnomentType.FREEZE_TIME, freeze: boolean }
   | { type: WESetEnvirnomentType.RANDOM_WEATHER }
   | { type: WESetEnvirnomentType.PERSISTENT_WEATHER, weather: string };
 
