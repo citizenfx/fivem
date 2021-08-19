@@ -3,3 +3,30 @@
 .inline {
   display: inline-flex;
 }
+
+.gizmo {
+  display: flex;
+
+  gap: $q;
+
+  .translation,
+  .rotation,
+  .scale {
+    display: block;
+
+    width: 200px;
+    height: 200px;
+
+    background-position: center center;
+  }
+
+  .translation {
+    background-image: url(images/im3d_translation.gif);
+  }
+  .rotation {
+    background-image: url(images/im3d_rotation.gif);
+  }
+  .scale {
+    background-image: url(images/im3d_scale.gif);
+  }
+}

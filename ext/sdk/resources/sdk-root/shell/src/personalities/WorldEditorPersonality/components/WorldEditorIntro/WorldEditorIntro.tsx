@@ -179,6 +179,12 @@ const steps: IntroStep[] = [
         <p>
           The <strong>Gizmo</strong> is the 3D tool which allows you to move, rotate or scale your selection. Use these buttons to change the gizmo mode; from move to rotate to scale.
         </p>
+
+        <div className={s.gizmo}>
+          <div className={s.translation}></div>
+          <div className={s.rotation}></div>
+          <div className={s.scale}></div>
+        </div>
       </>
     ),
     focusElement: 'mode-selector',
@@ -351,6 +357,12 @@ const steps: IntroStep[] = [
 ];
 
 export function WorldEditorIntro() {
+  React.useEffect(() => {
+    WEState.enterIntroScope();
+
+    return () => WEState.exitIntroScope();
+  }, []);
+
   return (
     <Intro
       steps={steps}

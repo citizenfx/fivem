@@ -152,7 +152,7 @@ export const ObjectsBrowser = observer(function ObjectsBrowserDropdown() {
     <div className={s.root}>
       <div className={s.controls}>
         <Input
-          autofocus
+          autofocus={!WEState.showIntro}
           value={filter}
           className={s.filter}
           placeholder="Search objects"

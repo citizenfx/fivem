@@ -76,6 +76,9 @@ export class HotkeyController {
   setScope(scope: HotkeyScope) {
     this.scope = scope;
   }
+  getScope(): HotkeyScope {
+    return this.scope;
+  }
 
   resetState() {
     this.codeState = {};

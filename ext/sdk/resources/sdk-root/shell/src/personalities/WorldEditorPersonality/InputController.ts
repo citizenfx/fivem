@@ -152,6 +152,9 @@ export class InputController {
   setScope(scope: WECommandScope) {
     this.hotkeys.setScope(scope);
   }
+  getScope(): WECommandScope {
+    return WECommandScope[this.hotkeys.getScope()];
+  }
 
   enterFullControl() {
     this.fullControl = true;
