@@ -7,7 +7,9 @@
       "webworker"
     ],
     "types": [],
-	"allowSyntheticDefaultImports": true
+	"allowSyntheticDefaultImports": true,
+	"resolveJsonModule": true,
+	"esModuleInterop": true
   },
   "include": [
     "src/**/*.worker.ts"

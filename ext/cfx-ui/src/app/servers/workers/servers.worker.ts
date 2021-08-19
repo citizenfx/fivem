@@ -9,9 +9,37 @@ import { ServerFilterContainer } from '../components/filters/server-filter-conta
 import { getCanonicalLocale } from '../components/utils';
 import { filterProjectDesc, filterProjectName } from '../server-utils';
 
+import cldrLanguageData from 'cldr-core/supplemental/languageData.json';
+import cldrTerritoryInfo from 'cldr-core/supplemental/territoryInfo.json';
+
+import cldrLanguages from 'cldr-localenames-modern/main/en/languages.json';
+import cldrTerritories from 'cldr-localenames-modern/main/en/territories.json';
+
 function softSlice(arr: Uint8Array, start: number, end?: number) {
     return new Uint8Array(arr.buffer, arr.byteOffset + start, end && end - start);
 }
+
+const validLocales = new Set<string>([
+	...Object.entries(cldrTerritoryInfo.supplemental.territoryInfo).map(([k, v]) => k.toLowerCase()),
+	...Object.entries(cldrLanguageData.supplemental.languageData).map(([k, v]) => k.toLowerCase()),
+]);
+
+function fromEntries<TValue>(iterable: [string, TValue][]): { [key: string]: TValue } {
+	return [...iterable].reduce<{ [key: string]: TValue }>((obj, [key, val]) => {
+		(obj as any)[key] = val;
+		return obj;
+	}, {} as any);
+}
+
+const languageMap = fromEntries(
+	Object.entries(cldrLanguages.main.en.localeDisplayNames.languages)
+		.map(([a, b]) => [b.toLowerCase().replace(/ /g, '-'), a.split('-')[0].toLowerCase()])
+);
+
+const countryMap = fromEntries(
+	Object.entries(cldrTerritories.main.en.localeDisplayNames.territories)
+		.map(([a, b]) => [b.toLowerCase().replace(/ /g, '-'), a.split('-')[0].toLowerCase()])
+);
 
 // this class loosely based on https://github.com/rkusa/frame-stream
 class FrameReader {
@@ -155,6 +183,32 @@ function buildSearchMatch(filterList: ServerFilterContainer) {
 			continue;
 		}
 
+		const lowerSearchGroup = searchGroup.toLowerCase();
+
+		if (searchGroup.length === 2) {
+			if (validLocales.has(lowerSearchGroup)) {
+				const localeMatch = (server: master.IServer) => {
+					const llocale = server.Data.vars?.locale?.toLowerCase() ?? '';
+
+					return (llocale.startsWith(searchGroup) || llocale.endsWith(searchGroup)) === !invertSearch;
+				};
+
+				filterFns.push(localeMatch);
+				continue;
+			}
+		}
+
+		// supplemental filtering: language/region name match
+		let orFilter = (server: master.IServer) => false;
+
+		if (countryMap[lowerSearchGroup]) {
+			const country = `-${countryMap[lowerSearchGroup]}`;
+			orFilter = (server) => server.Data.vars?.locale?.toLowerCase().endsWith(country);
+		} else if (languageMap[lowerSearchGroup]) {
+			const language = `${languageMap[lowerSearchGroup]}-`;
+			orFilter = (server) => server.Data.vars?.locale?.toLowerCase().startsWith(language);
+		}
+
 		const categoryMatch = searchGroup.match(categoryRe);
 
 		if (!categoryMatch) {
@@ -166,7 +220,10 @@ function buildSearchMatch(filterList: ServerFilterContainer) {
 
 			try {
 				const re = new RegExp(reString, 'i');
-				filterFns.push(a => (invertSearch) ? !re.test(stripNames[a.EndPoint]) : re.test(stripNames[a.EndPoint]));
+				filterFns.push(a =>
+					(invertSearch)
+						? (!orFilter(a) && !re.test(stripNames[a.EndPoint]))
+						: (orFilter(a) || re.test(stripNames[a.EndPoint])));
 			} catch (e) { }
 		} else {
 			const category = categoryMatch[1];
@@ -491,6 +548,8 @@ function queryServers(e: MessageEvent) {
                 for (const server of servers) {
 					if (server.Data?.vars?.sv_projectName) {
 						server.Data.vars.sv_projectName = filterProjectName(server.Data.vars.sv_projectName);
+					} else {
+						server.Data.upvotePower = 0;
 					}
 
 					if (server.Data?.vars?.sv_projectDesc) {

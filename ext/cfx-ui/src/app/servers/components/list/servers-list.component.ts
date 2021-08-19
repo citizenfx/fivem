@@ -105,6 +105,9 @@ export class ServersListComponent implements OnInit, OnDestroy {
 	finalFilter(server: master.IServer) {
 		if (this.type === 'pins') {
 			return this.isPinned(server);
+		} else if (Object.entries(this.filtersService.tags.localeList).length > 0 ||
+			Object.entries(this.filtersService.tags.tagList).length > 0) {
+			return !this.isPinned(server);
 		}
 
 		return true;
