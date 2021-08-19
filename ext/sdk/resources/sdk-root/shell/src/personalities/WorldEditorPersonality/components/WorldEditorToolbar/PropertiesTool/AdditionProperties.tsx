@@ -7,7 +7,6 @@ import { BsCameraVideo, BsChevronBarDown } from 'react-icons/bs';
 import { additionsToolIcon, rotateIcon, scaleIcon, translateIcon } from 'personalities/WorldEditorPersonality/constants/icons';
 import { NumberInput } from 'components/controls/NumberInput/NumberInput';
 import { div } from 'utils/styled';
-import { ConfirmationsState } from 'store/ConfirmationsState';
 import { deleteIcon } from 'constants/icons';
 import { Title } from 'components/controls/Title/Title';
 import { WEHotkeysState } from 'personalities/WorldEditorPersonality/store/WEHotkeysState';
@@ -42,17 +41,6 @@ export const AdditionProprties = observer(function AdditionProprties(props: Addi
 
   const [rz, rx, ry] = eulerFromMatrix(unscaledMat);
 
-  const handleConfirmDeletion = React.useCallback(() => {
-    ConfirmationsState.requestConfirm({
-      title: `Delete ${addition.label} addition?`,
-      buttonIcon: deleteIcon,
-      buttonText: 'Delete',
-      onConfirm() {
-        WEState.map.deleteAddition(additionId);
-      },
-    });
-  }, [additionId, addition.label]);
-
   const handleFocusInView = () => {
     WEState.focusInView(addition.cam, [px, py, pz]);
   };
@@ -71,7 +59,7 @@ export const AdditionProprties = observer(function AdditionProprties(props: Addi
         <Controls>
           <Title delay={0} animated={false} fixedOn="top" title="Delete">
             {(ref) => (
-              <button ref={ref} onClick={handleConfirmDeletion}>
+              <button ref={ref} onClick={() => WEState.map.deleteAddition(additionId)}>
                 {deleteIcon}
               </button>
             )}

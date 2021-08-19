@@ -7,10 +7,9 @@ import { BsCameraVideo } from 'react-icons/bs';
 import { patchesToolIcon, rotateIcon, scaleIcon, translateIcon } from 'personalities/WorldEditorPersonality/constants/icons';
 import { NumberInput } from 'components/controls/NumberInput/NumberInput';
 import { div } from 'utils/styled';
-import { ConfirmationsState } from 'store/ConfirmationsState';
 import { deleteIcon } from 'constants/icons';
-import s from './PropertiesTool.module.scss';
 import { Title } from 'components/controls/Title/Title';
+import s from './PropertiesTool.module.scss';
 
 const Header = div(s, 'header');
 const Icon = div(s, 'icon');
@@ -41,17 +40,6 @@ export const PatchProperties = observer(function PatchProperties(props: PatchPro
 
   const [rz, rx, ry] = eulerFromMatrix(unscaledMat);
 
-  const handleConfirmDeletion = React.useCallback(() => {
-    ConfirmationsState.requestConfirm({
-      title: `Delete ${patch.label} patch?`,
-      buttonIcon: deleteIcon,
-      buttonText: 'Delete',
-      onConfirm() {
-        WEState.map.deletePatch(mapdata, entity);
-      },
-    });
-  }, [mapdata, entity, patch.label]);
-
   return (
     <>
       <Header>
@@ -66,7 +54,7 @@ export const PatchProperties = observer(function PatchProperties(props: PatchPro
         <Controls>
           <Title delay={0} animated={false} fixedOn="top" title="Delete">
             {(ref) => (
-              <button ref={ref} onClick={handleConfirmDeletion}>
+              <button ref={ref} onClick={() => WEState.map.deletePatch(mapdata, entity)}>
                 {deleteIcon}
               </button>
             )}
