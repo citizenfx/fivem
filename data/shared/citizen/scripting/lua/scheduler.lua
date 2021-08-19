@@ -605,6 +605,10 @@ function RemoveEventHandler(eventData)
 		error('Invalid event data passed to RemoveEventHandler()')
 	end
 
+	if eventData.__cfxNuiType then
+		UnregisterNuiCallbackType(eventData.__cfxNuiType)
+	end
+
 	-- remove the entry
 	eventHandlers[eventData.name].handlers[eventData.key] = nil
 end
@@ -1183,7 +1187,7 @@ if not isDuplicityVersion then
 	function RegisterNUICallback(type, callback)
 		RegisterNuiCallbackType(type)
 
-		AddEventHandler('__cfx_nui:' .. type, function(body, resultCallback)
+		local eventData = AddEventHandler('__cfx_nui:' .. type, function(body, resultCallback)
 --[[
 			-- Lua 5.4: Create a to-be-closed variable to monitor the NUI callback handle.
 			local hasCallback = false
@@ -1209,7 +1213,12 @@ if not isDuplicityVersion then
 			if err then
 				Citizen.Trace("error during NUI callback " .. type .. ": " .. err .. "\n")
 			end
+
 		end)
+
+		eventData.__cfxNuiType = type
+
+		return eventData
 	end
 
 	local _sendNuiMessage = SendNuiMessage

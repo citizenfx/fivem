@@ -109,6 +109,11 @@ void ResourceUI::AddCallback(const std::string& type, ResUICallback callback)
 	m_callbacks.insert({ type, callback });
 }
 
+void ResourceUI::DeleteCallback(const std::string& type)
+{
+	m_callbacks.erase(type);
+}
+
 bool ResourceUI::InvokeCallback(const std::string& type, const std::string& query, const std::multimap<std::string, std::string>& headers, const std::string& data, ResUIResultCallback resultCB)
 {
 	auto set = fx::GetIteratorView(m_callbacks.equal_range(type));
