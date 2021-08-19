@@ -8,10 +8,11 @@ import { Task } from 'backend/task/task-reporter-service';
 import { injectable, inject } from 'inversify';
 import { serverUpdateChannels } from 'shared/api.types';
 import { AssetMeta, assetMetaFileExt } from 'shared/asset.types';
-import { ProjectManifest } from 'shared/project.types';
+import { ProjectManifest, ProjectPathsState } from 'shared/project.types';
+import { concurrently } from 'utils/concurrently';
 import { omit } from 'utils/omit';
 import { endsWith } from 'utils/stringUtils';
-import { DEFAULT_PROJECT_SYSTEM_RESOURCES } from './project-constants';
+import { DEFAULT_PROJECT_SYSTEM_RESOURCES, PROJECT_PATHS_STATE_FILENAME } from './project-constants';
 
 export interface ProjectUpgradeRequest {
   task: Task,
@@ -47,6 +48,8 @@ export class ProjectUpgrade {
     if (!this.projectFileRestored) {
       await this.maybeUpgradeManifestResourcesToAssets(request);
       await this.maybeUpgradeToSystemResources(request);
+      await this.maybeUpgradePathsState(request);
+      await this.maybeUpgradeUpdatedAt(request);
     }
   }
 
@@ -61,11 +64,9 @@ export class ProjectUpgrade {
 
       const manifest: ProjectManifest = {
         createdAt: stat?.birthtime.toISOString() || defaultDate,
-        updatedAt: stat?.mtime.toISOString() || defaultDate,
         name: this.fsService.basename(request.projectPath),
         serverUpdateChannel: serverUpdateChannels.latest,
         systemResources: DEFAULT_PROJECT_SYSTEM_RESOURCES,
-        pathsState: {},
         assets: {},
         variables: {},
       };
@@ -217,9 +218,9 @@ export class ProjectUpgrade {
           return acc;
         }, {});
 
-        manifest.pathsState = Object.keys(manifest.pathsState).reduce((acc, dirPath) => {
+        (manifest as any).pathsState = Object.keys((manifest as any).pathsState).reduce((acc, dirPath) => {
           if (dirPath.indexOf(sysresPath) !== 0) {
-            acc[dirPath] = manifest.pathsState[dirPath];
+            acc[dirPath] = (manifest as any).pathsState[dirPath];
           }
 
           return acc;
@@ -286,9 +287,9 @@ export class ProjectUpgrade {
     }, {});
 
     // remove all sysres pathsStates
-    manifest.pathsState = Object.keys(manifest.pathsState).reduce((acc, dirPath) => {
+    (manifest as any).pathsState = Object.keys((manifest as any).pathsState).reduce((acc, dirPath) => {
       if (dirPath.indexOf(sysresPath) !== 0) {
-        acc[dirPath] = manifest.pathsState[dirPath];
+        acc[dirPath] = (manifest as any).pathsState[dirPath];
       }
 
       return acc;
@@ -302,5 +303,38 @@ export class ProjectUpgrade {
       'Hey, in-project system-resources is now deprected thus it has been deleted. ' +
       'You can now control what system resources your project needs in Project Settings.',
     );
+  }
+
+  private async maybeUpgradePathsState(request: ProjectUpgradeRequest) {
+    const pathsStatePath = this.fsService.joinPath(request.storagePath, PROJECT_PATHS_STATE_FILENAME);
+    if (await this.fsService.statSafe(pathsStatePath)) {
+      // already upgraded
+      return;
+    }
+
+    const manifest = await this.fsService.readFileJson<ProjectManifest>(request.manifestPath);
+
+    const pathsState: ProjectPathsState | void = (manifest as any).pathsState;
+    if (!pathsState) {
+      // wtf, but ok
+      return this.fsService.writeFileJson(pathsStatePath, {});
+    }
+
+    delete (manifest as any).pathsState;
+
+    await concurrently(
+      this.fsService.writeFileJson(pathsStatePath, pathsState),
+      this.fsService.writeFileJson(request.manifestPath, manifest),
+    );
+  }
+
+  private async maybeUpgradeUpdatedAt(request: ProjectUpgradeRequest) {
+    const manifest = await this.fsService.readFileJson(request.manifestPath);
+
+    if ((manifest as any).updatedAt) {
+      delete (manifest as any).updatedAt;
+
+      return this.fsService.writeFileJson(request.manifestPath, manifest);
+    }
   }
 }

@@ -15,6 +15,7 @@ import { EntryMoveItem } from './item.types';
 import { CopyEntriesRequest, MoveEntryRequest } from 'shared/api.requests';
 import { combineVisibilityFilters, VisibilityFilter } from 'components/Explorer/Explorer.filters';
 import { openInExplorer, openInExplorerAndSelect } from 'utils/natives';
+import { ProjectState } from 'store/ProjectState';
 
 export interface UseExpandedPathHook {
   expanded: boolean,
@@ -24,23 +25,21 @@ export interface UseExpandedPathHook {
 }
 
 export const useExpandablePath = (path: string, expandedByDefault: boolean = true): UseExpandedPathHook => {
-  const { pathsState, setPathState } = React.useContext(ProjectExplorerContext);
-
-  const expanded = path in pathsState
-    ? pathsState[path]
+  const expanded = path in ProjectState.project.pathsState
+    ? ProjectState.project.pathsState[path]
     : expandedByDefault;
 
   const toggleExpanded = React.useCallback(() => {
-    setPathState(path, !expanded);
-  }, [path, expanded, setPathState]);
+    ProjectState.project.setPathState(path, !expanded);
+  }, [path, expanded]);
 
   const forceExpanded = React.useCallback(() => {
-    setPathState(path, true);
-  }, [path, setPathState]);
+    ProjectState.project.setPathState(path, true);
+  }, [path]);
 
   const forceCollapsed = React.useCallback(() => {
-    setPathState(path, false);
-  }, [path, setPathState]);
+    ProjectState.project.setPathState(path, false);
+  }, [path]);
 
   return {
     expanded,
@@ -60,7 +59,6 @@ export interface UseItemHook {
 }
 
 export const useItem = (item: ProjectItemProps, overrideOptions: Partial<ProjectExplorerItemContext> = {}): UseItemHook => {
-  const { setPathState } = React.useContext(ProjectExplorerContext);
   const options = {
     ...React.useContext(ProjectExplorerItemContext),
     ...overrideOptions,
@@ -123,7 +121,7 @@ export const useItem = (item: ProjectItemProps, overrideOptions: Partial<Project
       icon: newDirectoryIcon,
       disabled: options.disableDirectoryCreate,
       onClick: () => {
-        setPathState(item.entry.path, true);
+        ProjectState.project.setPathState(item.entry.path, true);
         openDirectoryCreator();
       },
     },
@@ -133,11 +131,11 @@ export const useItem = (item: ProjectItemProps, overrideOptions: Partial<Project
       icon: newFileIcon,
       disabled: options.disableFileCreate,
       onClick: () => {
-        setPathState(item.entry.path, true);
+        ProjectState.project.setPathState(item.entry.path, true);
         openFileCreator();
       },
     },
-  ], [item, setPathState, openFileCreator, options]);
+  ], [item, openFileCreator, options]);
 
   const requiredContextMenuItems: ContextMenuItem[] = React.useMemo(() => [
     {

@@ -224,7 +224,7 @@ export class ProjectManager implements ApiContribution {
       return;
     }
 
-    this.apiClient.emit(projectApi.open, this.project.getProjectData());
+    this.apiClient.emit(projectApi.open, this.project.getProjectOpenData());
   }
 
   private setCurrentProjectInstanceAsMostRecent() {

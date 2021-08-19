@@ -3,10 +3,7 @@ import { observer } from 'mobx-react-lite';
 import { FilesystemEntry } from 'shared/api.types';
 import { projectApi } from 'shared/api.events';
 import { sendApiMessage } from 'utils/api';
-import { useApiMessage } from 'utils/hooks';
 import { CopyEntryRequest, MoveEntryRequest } from 'shared/api.requests';
-import { ProjectPathsState } from 'shared/project.types';
-import { ProjectState } from 'store/ProjectState';
 
 
 export enum EntryRelocateOperation {
@@ -15,9 +12,6 @@ export enum EntryRelocateOperation {
 }
 
 export interface ProjectExplorerContext {
-  pathsState: ProjectPathsState,
-  setPathState: (path: string, expanded: boolean) => void,
-
   relocateSourceEntry: FilesystemEntry | void,
   relocateOperation: EntryRelocateOperation | void,
   setRelocationContext: (entry: FilesystemEntry, operation: EntryRelocateOperation) => void,
@@ -26,9 +20,6 @@ export interface ProjectExplorerContext {
 }
 
 const defaultValues: ProjectExplorerContext = {
-  pathsState: {},
-  setPathState: () => {},
-
   relocateSourceEntry: undefined,
   relocateOperation: undefined,
   setRelocationContext: () => {},
@@ -39,30 +30,6 @@ const defaultValues: ProjectExplorerContext = {
 export const ProjectExplorerContext = React.createContext<ProjectExplorerContext>(defaultValues);
 
 export const ProjectExplorerContextProvider = observer(function ProjectExplorerContextProvider({ children }) {
-  const project = ProjectState.project;
-  const [pathsState, setPathsState] = React.useState<ProjectPathsState>(defaultValues.pathsState);
-
-  React.useEffect(() => {
-    if (project) {
-      setPathsState(project.manifest.pathsState);
-    }
-  }, [project?.manifest.pathsState]);
-
-  useApiMessage(projectApi.pathsState, (remotePathsState: ProjectPathsState) => {
-    setPathsState(remotePathsState);
-  }, [setPathsState]);
-
-  const setPathState = React.useCallback((path: string, expanded: boolean) => {
-    const newPathsState = {
-      ...pathsState,
-      [path]: expanded,
-    };
-
-    setPathsState(newPathsState);
-
-    sendApiMessage(projectApi.setPathsStatePatch, { [path]: expanded });
-  }, [pathsState, setPathsState]);
-
   const [relocateSourceEntry, setRelocateSourceEntry] = React.useState<FilesystemEntry | void>(undefined);
   const [relocateOperation, setRelocateOperation] = React.useState<EntryRelocateOperation | undefined>(undefined);
 
@@ -105,9 +72,6 @@ export const ProjectExplorerContextProvider = observer(function ProjectExplorerC
   }, [setRelocateSourceEntry, setRelocateOperation, relocateSourceEntry, relocateOperation]);
 
   const value = {
-    pathsState,
-    setPathState,
-
     relocateSourceEntry,
     relocateOperation,
     setRelocationContext,
