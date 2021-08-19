@@ -7,6 +7,7 @@ import {
   WECreateAdditionRequest,
   WECreatePatchRequest,
   WEDeletePatchRequest,
+  WEEntityMatrix,
   WEMap,
   WESelection,
   WESetAdditionRequest,
@@ -32,10 +33,12 @@ export const WEApi = Object.freeze({
 
   EnvironmentSet: define<WESetEnvironmentRequest>('we:setEnvironment'),
   EnvironmentAck: define<WEAckEnvironmentRequest>('we:ackEnvironment'),
+  EnvironmentRequest: define<void>('we:reqeustEnvironment'),
 
   SettingsSet: define<WESettingsChangeRequest>('we:settings'),
 
   AdditionCreate: define<WECreateAdditionRequest>(worldEditorApi.createAddition),
+  AdditionPlaced: define<{ id: string, cam: WECam, mat: WEEntityMatrix }>(worldEditorApi.additionPlaced),
   AdditionSet: define<WESetAdditionRequest>(worldEditorApi.setAddition),
   AdditionApplyChange: define<WEApplyAdditionChangeRequest>(worldEditorApi.applyAdditionChange),
   AdditionSetOnGround: define<string>('we:setAdditionOnGround'),

@@ -16,18 +16,19 @@ import { ObjectManager } from "./object-manager";
 import { SelectionController } from "./selection-controller";
 import { SettingsManager } from "./settings-manager";
 import { drawDebugText, invokeWEApi, invokeWEApiBackend, invokeWEApiBroadcast, onWEApi } from "./utils";
+import { PatchManager, UpdateOrCreateResult } from "./patch-manager";
 
 export const MapManager = new class MapManager {
   private enabled = true;
 
   private map: WEMap | null = null;
-  private activeMapdatas: number[] = [];
   private lastCamString: string = '';
+
   private objects: ObjectManager | null = null;
+  private patches: PatchManager | null = null;
 
   public selection: WESelection = { type: WESelectionType.NONE };
-
-  private patchBackupMatrices: Record<string, Float32Array> = {};
+  private selectionHandle: number | null = null;
 
   enable() {
     this.enabled = true;
@@ -40,13 +41,12 @@ export const MapManager = new class MapManager {
   preinit() {
     EnableEditorRuntime();
 
-    on('mapDataLoaded', (mapdata: number) => this.handleMapdataLoaded(mapdata));
-    on('mapDataUnloaded', (mapdata: number) => this.handleMapdataUnloaded(mapdata));
+    SelectionController.onSelectionChanged(this.handleSelectionChanged);
 
     onWEApi(WEApi.Selection, (selection) => {
       this.selection = selection;
+      this.selectionHandle = null;
 
-      this.prevSelectedEntity = null;
       SelectionController.setSelectedEntity(null);
     });
 
@@ -66,21 +66,25 @@ export const MapManager = new class MapManager {
       }
 
       const handle = this.objects.getObjectHandle(additionId);
-      if (typeof handle === 'number') {
+      if (handle !== null) {
         PlaceObjectOnGroundProperly(handle);
 
         this.updateAddition(additionId, addition, makeEntityMatrix(handle));
       }
     });
 
+    onWEApi(WEApi.PatchCreate, ({ mapDataHash, entityHash, patch }) => {
+      this.patches.set(mapDataHash, entityHash, patch);
+    });
+
     onWEApi(WEApi.PatchApplyChange, (request) => {
       if (request.mat) {
-        this.handleApplyPatchMatrix(request.mapdata, request.entity, request.mat);
+        this.patches.updateMat(request.mapdata, request.entity, request.mat);
       }
     });
 
     onWEApi(WEApi.PatchDelete, ({ mapDataHash, entityHash }) => {
-      this.handleDeletePatch(mapDataHash, entityHash);
+      this.patches.delete(mapDataHash, entityHash);
     });
 
     onWEApi(WEApi.AdditionDelete, this.handleDeleteAddition);
@@ -130,95 +134,99 @@ export const MapManager = new class MapManager {
     }
   }
 
-  private prevSelectedEntity = null;
+  private handleSelectionChanged = ([current, _previous]) => {
+    this.selectionHandle = current;
+
+    if (!current) {
+      this.selection = {
+        type: WESelectionType.NONE,
+      };
+
+      return invokeWEApi(WEApi.Selection, this.selection);
+    }
+
+    const additionId = this.objects.getObjectId(current);
+
+    if (additionId) {
+      this.selection = {
+        type: WESelectionType.ADDITION,
+        id: additionId,
+      };
+
+      return invokeWEApi(WEApi.Selection, this.selection);
+    }
+
+    const [success, mapdata, entity] = GetEntityMapdataOwner(current);
+    if (success) {
+      this.selection = {
+        type: WESelectionType.PATCH,
+        mapdata,
+        entity,
+        label: this.getEntityLabel(current),
+      };
+
+      return invokeWEApi(WEApi.Selection, this.selection);
+    }
+  };
+
   private updateSelectedEntity() {
-    const selectedEntity = SelectionController.getSelectedEntity();
-    const hasSelectedEntityChanged = selectedEntity !== this.prevSelectedEntity;
+    // Happens when dummy<->instantiated transition happens for mapdata entities
+    if (this.selectionHandle !== null && !DoesEntityExist(this.selectionHandle)) {
+      console.log('SELECTED ENTITY DOES NOT EXIST ANYMORE', this.selectionHandle);
+      this.selectionHandle = null;
+      SelectionController.setSelectedEntity(this.selectionHandle);
+    }
 
-    if (selectedEntity !== null) {
-      const entityMatrix = makeEntityMatrix(selectedEntity);
+    // No selection handle but active selection, try acquiring handle
+    if (this.selectionHandle === null && this.selection.type !== WESelectionType.NONE) {
+      switch (this.selection.type) {
+        case WESelectionType.ADDITION: {
+          this.selectionHandle = this.objects.getObjectHandle(this.selection.id);
 
-      const additionId = this.objects.getObjectId(selectedEntity) || '';
-      const addition = this.map.additions[additionId];
+          break;
+        }
+        case WESelectionType.PATCH: {
+          this.selectionHandle = this.patches.getHandle(this.selection.mapdata, this.selection.entity);
 
-      if (hasSelectedEntityChanged) {
-        if (addition) {
-          this.selection = {
-            type: WESelectionType.ADDITION,
-            id: additionId,
-          };
-
-          invokeWEApi(WEApi.Selection, this.selection);
-        } else {
-          const [success, mapdataHash, entityHash] = GetEntityMapdataOwner(selectedEntity);
-          if (success) {
-            // Save initial patch matrix allowing its deletion
-            const key = getPatchKey(mapdataHash, entityHash);
-            if (!this.patchBackupMatrices[key]) {
-              this.patchBackupMatrices[key] = entityMatrix;
-            }
-
-            this.selection = {
-              type: WESelectionType.PATCH,
-              mapdata: mapdataHash,
-              entity: entityHash,
-              label: this.getEntityLabel(selectedEntity),
-            };
-
-            invokeWEApi(WEApi.Selection, this.selection);
-          } else {
-            SelectionController.setSelectedEntity(null);
+          if (this.selectionHandle !== null) {
+            console.log('ACQUIRED NEW HANDLE FOR SELECTED PATCH', this.selectionHandle);
           }
+
+          break;
         }
       }
 
-      // Save initial patch matrix
-      if (!addition && hasSelectedEntityChanged) {
-        const [success, mapdataHash, entityHash] = GetEntityMapdataOwner(selectedEntity);
-        if (success) {
-          const key = getPatchKey(mapdataHash, entityHash);
-          if (!this.patchBackupMatrices[key]) {
-            this.patchBackupMatrices[key] = entityMatrix;
-          }
-        }
-      }
+      SelectionController.setSelectedEntity(this.selectionHandle);
+    }
 
-      if (SettingsManager.settings.showSelectionBoundingBox) {
-        this.drawBoundingBox(selectedEntity);
-      }
+    if (this.selectionHandle === null) {
+      return;
+    }
 
-      if (DrawGizmo(entityMatrix as any, selectedEntity.toString())) {
-        if (addition) {
-          applyAdditionMatrix(selectedEntity, Array.from(entityMatrix));
-          this.updateAddition(additionId, addition, entityMatrix);
-        } else {
-          applyEntityMatrix(selectedEntity, entityMatrix);
-          this.updatePatch(selectedEntity, entityMatrix);
-        }
-      }
-    } else {
-      if (hasSelectedEntityChanged) {
-        invokeWEApi(WEApi.Selection, {
-          type: WESelectionType.NONE,
-        });
-      } else {
-        if (this.selection.type === WESelectionType.ADDITION) {
-          const handle = this.objects.getObjectHandle(this.selection.id);
-          if (typeof handle === 'number') {
-            SelectionController.setSelectedEntity(handle);
-          }
-        }
+    if (SettingsManager.settings.showSelectionBoundingBox) {
+      this.drawBoundingBox(this.selectionHandle);
+    }
 
-        if (this.selection.type === WESelectionType.PATCH) {
-          const [success, handle] = GetMapdataEntityHandle(this.selection.mapdata, this.selection.entity);
-          if (success) {
-            SelectionController.setSelectedEntity(handle);
-          }
+    const entityMatrix = makeEntityMatrix(this.selectionHandle);
+
+    if (DrawGizmo(entityMatrix as any, this.selectionHandle.toString())) {
+      switch (this.selection.type) {
+        case WESelectionType.ADDITION: {
+          const addition = this.map.additions[this.selection.id];
+
+          applyAdditionMatrix(this.selectionHandle, Array.from(entityMatrix));
+          this.updateAddition(this.selection.id, addition, entityMatrix);
+
+          break;
+        }
+        case WESelectionType.PATCH: {
+          applyEntityMatrix(this.selectionHandle, entityMatrix);
+          this.updatePatch(this.selectionHandle, entityMatrix);
+
+          break;
         }
       }
     }
-
-    this.prevSelectedEntity = selectedEntity;
   }
 
   destroy() {
@@ -230,7 +238,6 @@ export const MapManager = new class MapManager {
     }
 
     this.map = null;
-    this.activeMapdatas = [];
   }
 
   private drawBoundingBox(entity: number) {
@@ -298,35 +305,28 @@ export const MapManager = new class MapManager {
   }
 
   private readonly handleSpawnObject = (request: WECreateAdditionRequest) => {
-    if (request.needsPlacement) {
-      const pos = getObjectPosition();
+    const pos = getObjectPosition();
 
-      request.addition.cam = CameraManager.getCamLimitedPrecision();
-      request.addition.mat = prepareEntityMatrix([
-        1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, 1, 0,
-        pos.x, pos.y, pos.z, 1,
-      ]);
+    request.addition.cam = CameraManager.getCamLimitedPrecision();
+    request.addition.mat = prepareEntityMatrix([
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      pos.x, pos.y, pos.z, 1,
+    ]);
 
-      invokeWEApiBroadcast(WEApi.AdditionSet, request);
-    }
+    invokeWEApiBroadcast(WEApi.AdditionPlaced, {
+      id: request.id,
+      cam: request.addition.cam,
+      mat: request.addition.mat,
+    });
 
     this.map.additions[request.id] = request.addition;
     this.objects.set(request.id, request.addition);
   };
 
   handleDeletePatch(mapdataHash: number, entityHash: number) {
-    const key = getPatchKey(mapdataHash, entityHash);
-
-    if (this.patchBackupMatrices[key]) {
-      applyMapdataPatch(mapdataHash, entityHash, this.patchBackupMatrices[key]);
-      delete this.patchBackupMatrices[key];
-    }
-
-    if (this.map.patches[mapdataHash]) {
-      delete this.map.patches[mapdataHash][entityHash];
-    }
+    this.patches.delete(mapdataHash, entityHash);
   }
 
   private readonly handleDeleteAddition = (objectId: string) => {
@@ -341,46 +341,6 @@ export const MapManager = new class MapManager {
       }
     }
   };
-
-  private handleMapdataLoaded(mapdataHash: number) {
-    this.activeMapdatas.push(mapdataHash);
-
-    // if map is not loaded yet - store to pending to load later
-    if (this.map === null) {
-      return;
-    }
-
-    const entities = this.map.patches[mapdataHash];
-
-    if (entities) {
-      for (const [entityHashString, def] of Object.entries(entities)) {
-        const key = getPatchKey(mapdataHash, entityHashString);
-        const entityHash = parseInt(entityHashString, 10);
-
-        if (!this.patchBackupMatrices[key]) {
-          this.patchBackupMatrices[key] = getMapdataEntityMatrix(mapdataHash, entityHash);
-        }
-
-        applyMapdataPatch(mapdataHash, entityHash, def.mat);
-      }
-    }
-  }
-
-  private handleMapdataUnloaded(mapdata: number) {
-    const index = this.activeMapdatas.indexOf(mapdata);
-    if (index > -1) {
-      this.activeMapdatas.splice(index, 1);
-    }
-  }
-
-  private handleApplyPatchMatrix(mapdata: number, entity: number, mat: WEEntityMatrix) {
-    const patch = this.map.patches[mapdata]?.[entity];
-    if (patch) {
-      patch.mat = mat;
-
-      applyMapdataPatch(mapdata, entity, mat);
-    }
-  }
 
   private readonly handleApplyAdditionChange = (request: WEApplyAdditionChangeRequest) => {
     if (this.map === null) {
@@ -407,41 +367,25 @@ export const MapManager = new class MapManager {
     this.objects = new ObjectManager(this.map.additions);
     this.objects.onObjectCreated((additionId: string, handle: number) => {
       if (this.selection.type === WESelectionType.ADDITION && this.selection.id === additionId) {
+        this.selectionHandle = handle;
         SelectionController.setSelectedEntity(handle);
       }
     });
 
-    if (this.activeMapdatas.length) {
-      for (const mapdata of this.activeMapdatas) {
-        if (this.map.patches[mapdata]) {
-          for (const [entity, def] of Object.entries(this.map.patches[mapdata])) {
-            applyMapdataPatch(mapdata, parseInt(entity, 10), def.mat);
-          }
-        }
-      }
-    }
+    this.patches = new PatchManager(this.map.patches);
   }
 
-  private updatePatch(entityGuid: number, mat: Float32Array | WEEntityMatrix) {
-    const [success, mapdata, entity] = GetEntityMapdataOwner(entityGuid);
-    if (success) {
-      applyMapdataPatch(mapdata, entity, mat);
+  private updatePatch(entityGuid: number, rawmat: Float32Array | WEEntityMatrix) {
+    const mat = prepareEntityMatrix(rawmat);
 
-      let patch: WEMapPatch = this.map.patches[mapdata]?.[entity];
-      if (patch) {
-        patch.mat = prepareEntityMatrix(mat);
+    const [result, mapdata, entity] = this.patches.updateOrCreate(entityGuid, mat);
 
-        invokeWEApiBroadcast(WEApi.PatchApplyChange, {
-          mapdata,
-          entity,
-          mat: patch.mat,
-          cam: CameraManager.getCamLimitedPrecision(),
-        });
-      } else {
-        patch = {
+    switch (result) {
+      case UpdateOrCreateResult.CREATE: {
+        const patch: WEMapPatch = {
           label: this.getEntityLabel(entityGuid),
           cam: CameraManager.getCamLimitedPrecision(),
-          mat: prepareEntityMatrix(mat),
+          mat,
         };
 
         this.map.patches[mapdata] ??= {};
@@ -451,6 +395,19 @@ export const MapManager = new class MapManager {
           mapDataHash: mapdata,
           entityHash: entity,
           patch,
+        });
+      }
+      case UpdateOrCreateResult.UPDATE: {
+        const patch = this.map.patches[mapdata][entity];
+
+        patch.cam = CameraManager.getCamLimitedPrecision();
+        patch.mat = mat;
+
+        invokeWEApiBroadcast(WEApi.PatchApplyChange, {
+          mapdata,
+          entity,
+          mat: patch.mat,
+          cam: patch.cam,
         });
       }
     }
@@ -477,25 +434,6 @@ export const MapManager = new class MapManager {
   }
 };
 
-function applyMapdataPatch(mapdata: number, entity: number, mat: Float32Array | number[]) {
-  const md = GetMapdataFromHashKey(mapdata);
-  const ent = GetEntityIndexFromMapdata(md, entity);
-
-  if (ent === -1) {
-    console.error('Failed to get entity index from mapdata', {
-      mapdataHash: mapdata,
-      mapdataIndex: md,
-      entityHash: entity,
-    });
-    return;
-  }
-
-  UpdateMapdataEntity(md, ent, {
-    position: [mat[12], mat[13], mat[14]],
-    matrix: Array.from(mat),
-  });
-}
-
 function getObjectPosition() {
   const cp = CameraManager.getPosition();
   const fw = CameraManager.getForwardVector().copy().mult(100);
@@ -521,36 +459,6 @@ function prepareEntityMatrix(mat: Float32Array | WEEntityMatrix): WEEntityMatrix
   return Array.from(mat) as any;
 }
 
-const GET_MAPDATA_ENTITY_MATRIX = joaat('GET_MAPDATA_ENTITY_MATRIX');
-function getMapdataEntityMatrix(mapdata: number, entity: number): Float32Array {
-  const matrix = new Float32Array(16);
-
-  const success: boolean = Citizen.invokeNative(
-    GET_MAPDATA_ENTITY_MATRIX,
-    mapdata,
-    entity,
-    matrix,
-    Citizen.returnResultAnyway(),
-  );
-
-  if (!success) {
-    console.error('Failed to get mapdata entity matrix', { mapdata, entity });
-  }
-
-  return matrix;
-}
-
-function getPatchKey(mapdata: string | number, entity: string | number): string {
-  return `${mapdata}:${entity}`;
-}
-
 function drawLine(f: [number, number, number] | number[], t: [number, number, number] | number[], c: [number, number, number, number] | number[]) {
   DrawLine(f[0], f[1], f[2], t[0], t[1], t[2], c[0], c[1], c[2], c[3]);
-}
-
-function drawTextAt(t: string, c: [number, number, number] | number[]) {
-  const [success, x, y] = GetScreenCoordFromWorldCoord(c[0], c[1], c[2]);
-  if (success) {
-    drawDebugText(t, x, y);
-  }
 }

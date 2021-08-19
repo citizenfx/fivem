@@ -15,11 +15,22 @@ const int2uint = (() => {
   };
 })();
 
+let lastSetTime: [number, number, number] = [0, 0, 0];
+let freezeTime = false;
+
 onWEApi(WEApi.EnvironmentSet, (request) => {
   switch (request.type) {
     case WESetEnvirnomentType.TIME: {
+      lastSetTime[0] = request.hours;
+      lastSetTime[1] = request.minutes;
       NetworkOverrideClockTime(request.hours, request.minutes, 0);
       ackEnvironment();
+      break;
+    }
+
+    case WESetEnvirnomentType.FREEZE_TIME: {
+      freezeTime = request.freeze;
+      ackEnvironment
       break;
     }
 
@@ -42,6 +53,8 @@ onWEApi(WEApi.EnvironmentSet, (request) => {
 });
 
 setTimeout(() => {
+  invokeWEApi(WEApi.EnvironmentRequest, undefined);
+
   SetOverrideWeather('EXTRASUNNY');
   SetWeatherTypeNow('EXTRASUNNY');
   SetWeatherTypePersist('EXTRASUNNY');
@@ -50,6 +63,10 @@ setTimeout(() => {
 setInterval(ackEnvironment, 500);
 
 setTick(() => {
+  if (freezeTime) {
+    NetworkOverrideClockTime(...lastSetTime);
+  }
+
   const camPos = CameraManager.getPosition();
 
   SetRandomVehicleDensityMultiplierThisFrame(0);
@@ -73,9 +90,14 @@ setTick(() => {
 });
 
 function ackEnvironment() {
+  if (!freezeTime) {
+    lastSetTime[0] = GetClockHours();
+    lastSetTime[1] = GetClockMinutes();
+  }
+
   invokeWEApi(WEApi.EnvironmentAck, {
-    hours: GetClockHours(),
-    minutes: GetClockMinutes(),
+    hours: lastSetTime[0],
+    minutes: lastSetTime[1],
     prevWeather: int2uint(GetPrevWeatherTypeHashName()),
     nextWeather: int2uint(GetPrevWeatherTypeHashName()),
   });

@@ -1,10 +1,19 @@
 import { useKeyMapping } from "./utils";
+import { SingleEventEmitter } from '@sdk-root/utils/singleEventEmitter';
 
+
+type Selection = number | null;
 export const SelectionController = new class SelectionController {
   private selectStart: number = 0;
-  private selectedEntity: number | null = null;
+  private selectedEntity: Selection = null;
 
   private disabled = false;
+
+  private selectionChangedEvent = new SingleEventEmitter<[Selection, Selection]>();
+
+  onSelectionChanged(cb: (arg: [Selection, Selection]) => void) {
+    this.selectionChangedEvent.addListener(cb);
+  }
 
   enable() {
     this.disabled = false;
@@ -31,6 +40,10 @@ export const SelectionController = new class SelectionController {
 
     const selectedEntity = SelectEntityAtCursor(6 | (1 << 5), true);
     if (selectedEntity) {
+      if (this.selectedEntity !== selectedEntity) {
+        this.selectionChangedEvent.emit([selectedEntity, this.selectedEntity]);
+      }
+
       if (this.selectedEntity !== null) {
         SetEntityDrawOutline(this.selectedEntity, false);
         ReleaseScriptGuidFromEntity(this.selectedEntity);
@@ -40,16 +53,17 @@ export const SelectionController = new class SelectionController {
 
       if (this.selectedEntity !== selectedEntity) {
         this.selectedEntity = selectedEntity;
-        SetEntityDrawOutline(this.selectedEntity, true);
+
+        this.draw();
       }
     }
   }
 
-  getSelectedEntity(): number | null {
+  getSelectedEntity(): Selection{
     return this.selectedEntity;
   }
 
-  setSelectedEntity(entity: number | null) {
+  setSelectedEntity(entity: Selection) {
     if (this.selectedEntity !== null) {
       SetEntityDrawOutline(this.selectedEntity, false);
       ReleaseScriptGuidFromEntity(this.selectedEntity);
@@ -59,9 +73,25 @@ export const SelectionController = new class SelectionController {
 
     this.selectedEntity = entity;
 
-    if (this.selectedEntity !== null) {
-      SetEntityDrawOutline(this.selectedEntity, true);
+    if (entity !== null){
+      this.draw();
     }
+  }
+
+  private rAF = false;
+  private draw() {
+    if (this.rAF) {
+      return;
+    }
+
+    this.rAF = true;
+    requestAnimationFrame(() => {
+      this.rAF = false;
+
+      if (this.selectedEntity !== null) {
+        SetEntityDrawOutline(this.selectedEntity, true);
+      }
+    });
   }
 };
 

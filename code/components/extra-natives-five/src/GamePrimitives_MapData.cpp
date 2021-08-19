@@ -17,6 +17,8 @@
 #include <GameInit.h>
 #include <Streaming.h>
 
+#include "EntityExtensions.h"
+
 namespace rage
 {
 struct strLocalIndex
@@ -91,7 +93,7 @@ public:
 
 	static int GetClassId()
 	{
-		return 64;
+		return (int)EntityExtensionClassId::MapDataOwner;
 	}
 
 	std::string Format() const
@@ -160,6 +162,7 @@ static rage::fwEntity* ConstructEntity(fwEntityDef* entityDef, int mapDataIdx, r
 		if (g_isEditorRuntime)
 		{
 			entity->AddExtension(new MapDataOwnerExtension(entityDef, mapDataIdx, g_curEntityIndex));
+			entity->AddExtension(new InstantiatedObjectRefExtension());
 		}
 
 		// check for a custom matrix override that may have been persisted
@@ -188,6 +191,11 @@ static CObject* ConvertDummyToObject(CDummyObject* dummyObject, int type)
 
 	if (object)
 	{
+		if (auto extension = dummyObject->GetExtension<InstantiatedObjectRefExtension>())
+		{
+			extension->SetObjectRef(object);
+		}
+
 		if (auto extension = dummyObject->GetExtension<MapDataOwnerExtension>())
 		{
 			object->AddExtension(extension->Clone());
@@ -292,6 +300,12 @@ static int GetEntityDefFromMapData(int mapData, uint32_t internalIndex)
 
 extern void* MakeStructFromMsgPack(const char* structType, const std::map<std::string, msgpack::object>& data, void* old = nullptr, bool keep = false);
 
+static std::unordered_map<uint64_t, Matrix4x4> g_mapdataEntityOriginalMatrices;
+static uint64_t GetMapdataEntityKey(int32_t mapDataIdx, int32_t entityIdx)
+{
+	return (uint64_t)mapDataIdx + ((uint64_t)entityIdx << 32);
+}
+
 static int UpdateMapdataEntity(int mapDataIdx, int entityIdx, const char* msgData, size_t msgLen)
 {
 	if (entityIdx == -1)
@@ -323,6 +337,20 @@ static int UpdateMapdataEntity(int mapDataIdx, int entityIdx, const char* msgDat
 			{
 				if (entity = (fwEntity*)mapDataContents->entities[entityIdx])
 				{
+					auto key = GetMapdataEntityKey(mapDataIdx, entityIdx);
+
+					if (g_mapdataEntityOriginalMatrices.find(key) == g_mapdataEntityOriginalMatrices.end())
+					{
+						Matrix4x4 matrix = entity->GetTransform();
+
+						matrix._14 = 0.0f;
+						matrix._24 = 0.0f;
+						matrix._34 = 0.0f;
+						matrix._44 = 1.0f;
+
+						g_mapdataEntityOriginalMatrices.insert({ key, matrix });
+					}
+
 					rage::fwModelId id;
 					auto archetype = rage::fwArchetypeManager::GetArchetypeFromHashKey(entityDef->archetypeName, id);
 
@@ -342,6 +370,15 @@ static int UpdateMapdataEntity(int mapDataIdx, int entityIdx, const char* msgDat
 					if (entity)
 					{
 						entity->UpdateTransform(*(Matrix4x4*)matrixArray.data(), true);
+
+						// Also update this dummy's real object, if available
+						if (auto ext = entity->GetExtension<InstantiatedObjectRefExtension>())
+						{
+							if (auto instantiatedObject = ext->GetObjectRef())
+							{
+								instantiatedObject->UpdateTransform(*(Matrix4x4*)matrixArray.data(), true);
+							}
+						}
 					}
 				}
 			}
@@ -351,6 +388,62 @@ static int UpdateMapdataEntity(int mapDataIdx, int entityIdx, const char* msgDat
 	{
 		throw std::runtime_error("Unknown map data index.");
 	}
+}
+
+static bool ResetMapdataEntityMatrix(uint32_t mapDataHash, uint32_t entityHash)
+{
+	auto mapDataIdx = GetMapDataFromHashKey(mapDataHash);
+	auto entityIdx = GetEntityDefFromMapData(mapDataIdx, entityHash);
+
+	if (entityIdx == -1)
+	{
+		return false;
+	}
+
+	auto originalMatrixIter = g_mapdataEntityOriginalMatrices.find(GetMapdataEntityKey(mapDataIdx, entityIdx));
+
+	if (originalMatrixIter != g_mapdataEntityOriginalMatrices.end())
+	{
+		auto matrix = originalMatrixIter->second;
+
+		static auto mapDataStore = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ymap");
+
+		auto pool = (atPoolBase*)((char*)mapDataStore + 56);
+		if (auto entry = pool->GetAt<char>(mapDataIdx))
+		{
+			auto mapDataContents = *(CMapDataContents**)(entry);
+			if (mapDataContents == nullptr)
+			{
+				trace(__FUNCTION__ ": Missing mapDataContents for index %d\n", mapDataIdx);
+				return false;
+			}
+
+			auto mapData = mapDataContents->mapData;
+
+			if (entityIdx < mapDataContents->numEntities)
+			{
+				fwEntity* entity = nullptr;
+
+				if (entity = (fwEntity*)mapDataContents->entities[entityIdx])
+				{
+					entity->UpdateTransform(matrix, true);
+
+					// Also update this dummy's real object, if available
+					if (auto ext = entity->GetExtension<InstantiatedObjectRefExtension>())
+					{
+						if (auto instantiatedObject = ext->GetObjectRef())
+						{
+							instantiatedObject->UpdateTransform(matrix, true);
+						}
+					}
+
+					return true;
+				}
+			}
+		}
+	}
+
+	return false;
 }
 
 static bool GetMapdataEntityMatrix(uint32_t mapDataHash, uint32_t entityHash, float* matrix)
@@ -457,6 +550,7 @@ static InitFunction initFunction([]()
 	scrBindGlobal("ENABLE_EDITOR_RUNTIME", &EnableEditorRuntime);
 	scrBindGlobal("DISABLE_EDITOR_RUNTIME", &DisableEditorRuntime);
 	scrBindGlobal("GET_MAPDATA_ENTITY_HANDLE", &GetMapdataEntityHandle);
+	scrBindGlobal("RESET_MAPDATA_ENTITY_MATRIX", &ResetMapdataEntityMatrix);
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_MAPDATA_ENTITY_MATRIX", [](fx::ScriptContext& context)
 	{

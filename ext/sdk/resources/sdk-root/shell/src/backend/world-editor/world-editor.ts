@@ -77,6 +77,7 @@ export class WorldEditor implements ApiContribution {
     this.onWEApi(WEApi.PatchApplyChange, this.applyPatchChange);
 
     this.onWEApi(WEApi.AdditionSet, this.setAddition);
+    this.onWEApi(WEApi.AdditionPlaced, this.applyAdditionChange);
     this.onWEApi(WEApi.AdditionApplyChange, this.applyAdditionChange);
   }
 

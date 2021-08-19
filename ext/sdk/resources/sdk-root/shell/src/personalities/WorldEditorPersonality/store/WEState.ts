@@ -20,6 +20,7 @@ import { LocalStorageValue } from 'store/generic/LocalStorageValue';
 import { WEHistory } from './history/WEHistory';
 import { invokeWEApi, onWEApi } from '../we-api-utils';
 import { WEApi } from 'backend/world-editor/world-editor-game-api';
+import { WEToolbarState } from './WEToolbarState';
 
 export enum WEMode {
   EDITOR,
@@ -103,7 +104,7 @@ export const WEState = new class WEState {
 
     onWEApi(WEApi.PatchApplyChange, (request) => this.map?.handleApplyPatchChangeRequest(request));
 
-    onWEApi(WEApi.AdditionSet, (request) => this.map?.handleSetAdditionRequest(request));
+    onWEApi(WEApi.AdditionPlaced, (request) => this.map?.handleAdditionPlaced(request));
     onWEApi(WEApi.AdditionApplyChange, (request) => this.map?.handleApplyAdditionChangeRequest(request));
 
     onApiMessage(worldEditorApi.mapLoaded, (map: WEMap) => runInAction(() => {
@@ -151,10 +152,16 @@ export const WEState = new class WEState {
     }, { code: 'Digit3' });
 
     registerCommandBinding({
-      command: WECommand.CONTROL_CLEAR_SELECTION,
+      command: WECommand.CONTROL_ESCAPE,
       scope: WECommandScope.EDITOR,
-      execute: this.clearEditorSelection,
+      execute: this.handleEscape,
     }, { code: 'Esc' });
+
+    registerCommandBinding({
+      command: WECommand.ACTION_DELETE_SELECTION,
+      scope: WECommandScope.EDITOR,
+      execute: this.deleteSelection,
+    }, { code: 'Delete' });
 
     registerCommandBinding({
       command: WECommand.ACTION_SET_ADDITION_ON_GROUND,
@@ -177,6 +184,22 @@ export const WEState = new class WEState {
     }, { code: 'F5' });
   }
 
+  readonly deleteSelection = () => {
+    switch (this.selection.type) {
+      case WESelectionType.NONE: {
+        return;
+      }
+
+      case WESelectionType.PATCH: {
+        return this.map?.deletePatch(this.selection.mapdata, this.selection.entity);
+      }
+
+      case WESelectionType.ADDITION: {
+        return this.map?.deleteAddition(this.selection.id);
+      }
+    }
+  };
+
   readonly openIntro = () => {
     this.forceShowIntro = true;
   };
@@ -188,6 +211,13 @@ export const WEState = new class WEState {
 
     this.forceShowIntro = false;
   };
+
+  enterIntroScope() {
+    this.inputController.setScope(WECommandScope.INTRO);
+  }
+  exitIntroScope() {
+    this.inputController.setScope(WECommandScope.EDITOR);
+  }
 
   readonly enterPlaytestMode = () => {
     if (this.mode === WEMode.PLAYTEST) {
@@ -307,6 +337,14 @@ export const WEState = new class WEState {
     this.updateSelection(selection);
 
     invokeWEApi(WEApi.Selection, selection);
+  };
+
+  readonly handleEscape = () => {
+    if (this.selection.type === WESelectionType.NONE) {
+      return WEToolbarState.closeAllTools();
+    }
+
+    this.clearEditorSelection();
   };
 
   readonly clearEditorSelection = () => {

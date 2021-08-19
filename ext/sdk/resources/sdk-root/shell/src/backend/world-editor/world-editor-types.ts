@@ -21,7 +21,15 @@ export interface WEMapPatch {
   cam: WECam,
 }
 
+export interface WEMapPatchId {
+  mapdata: number,
+  entity: number,
+}
+
 export type WEMapAdditionGroup = -1 | string;
+export interface WEMapAdditionGroupDefinition {
+  label: string,
+}
 
 export interface WEMapAddition {
   label: string,
@@ -40,11 +48,13 @@ export interface WEAckEnvironmentRequest {
 
 export enum WESetEnvirnomentType {
   TIME,
+  FREEZE_TIME,
   PERSISTENT_WEATHER,
   RANDOM_WEATHER,
 }
 export type WESetEnvironmentRequest =
   | { type: WESetEnvirnomentType.TIME, hours: number, minutes: number }
+  | { type: WESetEnvirnomentType.FREEZE_TIME, freeze: boolean }
   | { type: WESetEnvirnomentType.RANDOM_WEATHER }
   | { type: WESetEnvirnomentType.PERSISTENT_WEATHER, weather: string };
 
@@ -72,7 +82,6 @@ export interface WEDeletePatchRequest {
 export interface WECreateAdditionRequest {
   id: string,
   addition: WEMapAddition,
-  needsPlacement?: boolean,
 }
 
 export interface WESetAdditionRequest {
@@ -131,12 +140,8 @@ export interface WEMap {
       [entityHash: number]: WEMapPatch,
     },
   },
-  additionGroups: Record<string, {
-    label: string,
-  }>,
-  additions: {
-    [entityId: string]: WEMapAddition,
-  },
+  additionGroups: Record<string, WEMapAdditionGroupDefinition>,
+  additions: Record<string, WEMapAddition>,
 }
 
 export interface WESettings {

@@ -1,7 +1,9 @@
 import { WEApi } from "backend/world-editor/world-editor-game-api";
 import { WESetEnvirnomentType } from "backend/world-editor/world-editor-types";
 import { makeAutoObservable, runInAction } from "mobx";
+import { LocalStorageValue } from "store/generic/LocalStorageValue";
 import { joaat } from "utils/joaat";
+import { boolean } from "yargs";
 import { invokeWEApi, onWEApi } from "../we-api-utils";
 
 export const WEATHER = {
@@ -29,8 +31,25 @@ Object.keys(WEATHER).forEach((weather) => {
 });
 
 export const WEEnvState = new class WEEnvState {
-  public time: string = '0:0';
-  public timeNum: number = 0;
+  private freezeTimeValue = new LocalStorageValue({
+    key: 'we:freezeTime',
+    defaultValue: false,
+  });
+
+  public get freezeTime(): boolean {
+    return this.freezeTimeValue.get();
+  }
+  public set freezeTime(freeze: boolean) {
+    this.freezeTimeValue.set(freeze);
+
+    invokeWEApi(WEApi.EnvironmentSet, {
+      type: WESetEnvirnomentType.FREEZE_TIME,
+      freeze,
+    });
+  }
+
+  public time: string = '12:0';
+  public timeNum: number = 12 * 60; // 12:00
 
   public prevWeather: WeatherType = 'EXTRASUNNY';
   public prevWeatherHash: number = WEATHER.EXTRASUNNY;
@@ -40,6 +59,12 @@ export const WEEnvState = new class WEEnvState {
 
   constructor() {
     makeAutoObservable(this);
+
+    onWEApi(WEApi.EnvironmentRequest, () => {
+      if (this.freezeTime) {
+        this.freezeTime = this.freezeTime;
+      }
+    });
 
     onWEApi(WEApi.EnvironmentAck, (request) => runInAction(() => {
       this.updateTime(request.hours, request.minutes);

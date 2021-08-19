@@ -1,14 +1,32 @@
 import { WORLD_EDITOR_MAP_NO_GROUP } from "backend/world-editor/world-editor-constants";
 import { WEApi } from "backend/world-editor/world-editor-game-api";
-import { WEApplyAdditionChangeRequest, WEApplyPatchChangeRequest, WECreatePatchRequest, WECam, WECreateAdditionGroupRequest, WECreateAdditionRequest, WEDeleteAdditionGroupRequest, WEDeleteAdditionRequest, WEDeletePatchRequest, WEEntityMatrixIndex, WEMap, WEMapAddition, WEMapAdditionGroup, WEMapPatch, WESetAdditionGroupNameRequest, WESetAdditionRequest } from "backend/world-editor/world-editor-types";
+import {
+  WEApplyAdditionChangeRequest,
+  WEApplyPatchChangeRequest,
+  WECreatePatchRequest,
+  WECam,
+  WECreateAdditionGroupRequest,
+  WECreateAdditionRequest,
+  WEDeleteAdditionGroupRequest,
+  WEDeleteAdditionRequest,
+  WEDeletePatchRequest,
+  WEEntityMatrixIndex,
+  WEMap,
+  WEMapAddition,
+  WEMapAdditionGroup,
+  WEMapPatch,
+  WESetAdditionGroupNameRequest,
+  WESetAdditionRequest,
+  WEMapAdditionGroupDefinition,
+} from "backend/world-editor/world-editor-types";
 import { makeAutoObservable } from "mobx";
 import { worldEditorApi } from "shared/api.events";
 import { applyRotation, applyScale } from "shared/math";
 import { sendApiMessage } from "utils/api";
+import { toNumber } from "utils/conversion";
 import { omit } from "utils/omit";
 import { pick } from "utils/pick";
 import { fastRandomId } from "utils/random";
-import { number } from "yargs";
 import { invokeWEApi } from "../we-api-utils";
 import { WEEvents } from "./Events";
 import { WEHistory } from "./history/WEHistory";
@@ -57,7 +75,9 @@ export class WEMapState {
     return this.map.patches;
   }
 
-  handleCreatePatchRequest({ entityHash, mapDataHash, patch }: WECreatePatchRequest) {
+  handleCreatePatchRequest({ mapDataHash, entityHash, patch }: WECreatePatchRequest) {
+    WEHistory.patchCreated(mapDataHash, entityHash, patch);
+
     if (!this.map.patches[mapDataHash]) {
       this.map.patches[mapDataHash] = {};
     }
@@ -66,10 +86,12 @@ export class WEMapState {
   }
 
   handleApplyPatchChangeRequest(request: WEApplyPatchChangeRequest) {
-    const patch = this.map.patches[request.mapdata]?.[request.entity];
+    const patch = this.getPatch(request.mapdata, request.entity);
     if (!patch) {
       return;
     }
+
+    WEHistory.beginPatchChange(request.mapdata, request.entity, patch);
 
     if (request.mat) {
       patch.mat = request.mat;
@@ -82,99 +104,73 @@ export class WEMapState {
     if (request.cam) {
       patch.cam = request.cam;
     }
+
+    WEHistory.finishPatchChange(patch);
   }
 
   handleApplyAdditionChangeRequest(request: WEApplyAdditionChangeRequest) {
     const addition = this.map.additions[request.id];
     if (addition) {
-      const setAdditionRequest: WESetAdditionRequest = {
-        id: request.id,
-        addition: {
-          ...addition,
-          ...omit(request, 'id'),
-        },
+      WEHistory.beginAdditionChange(request.id, addition);
+
+      const newAddition = {
+        ...addition,
+        ...omit(request, 'id'),
       };
 
-      this.handleSetAdditionRequest(setAdditionRequest);
+      WEHistory.finishAdditionChange(newAddition);
+
+      this.map.additions[request.id] = newAddition;
+      this.updateAdditionInGroups(request.id);
     }
   }
 
-  handleSetAdditionRequest({ id, addition }: WESetAdditionRequest) {
-    this.map.additions[id] = addition;
+  readonly handleAdditionPlaced = ({ id, cam, mat }) => {
+    const addition = this.map.additions[id];
+    if (addition) {
+      addition.cam = cam;
+      addition.mat = mat;
 
-    if (addition.grp !== -1) {
-      if (!this.groupedAdditions[addition.grp]) {
-        this.groupedAdditions[addition.grp] = {};
-      }
+      this.updateAdditionInGroups(id);
 
-      this.groupedAdditions[addition.grp][id] = addition;
-    } else {
-      this.ungroupedAdditions[id] = addition;
+      WEHistory.additionCreated(id, addition);
     }
+  };
+
+  setPatch(mapdata: number, entity: number, patch: WEMapPatch) {
+    if (!this.map.patches[mapdata]) {
+      this.map.patches[mapdata] = {};
+    }
+
+    this.map.patches[mapdata][entity] = patch;
+
+    const request = {
+      mapDataHash: mapdata,
+      entityHash: entity,
+      patch,
+    };
+
+    invokeWEApi(WEApi.PatchCreate, request);
+    sendApiMessage(worldEditorApi.createPatch, request);
   }
 
-  getPatch(mapdata: number, entity: number): WEMapPatch | void {
+  getPatch(mapdata: number | string, entity: number | string): WEMapPatch | void {
     return this.map.patches[mapdata]?.[entity];
   }
 
-  setPatchPosition(mapdata: number, entity: number, x: number, y: number, z: number) {
-    const patch = this.map.patches[mapdata]?.[entity];
-    if (!patch) {
-      return;
-    }
-
+  readonly setPatchPosition = this.patchChangeWrap(['mat'], (patch, x: number, y: number, z: number) => {
     patch.mat[WEEntityMatrixIndex.AX] = x;
     patch.mat[WEEntityMatrixIndex.AY] = y;
     patch.mat[WEEntityMatrixIndex.AZ] = z;
+  });
 
-    const request: WEApplyPatchChangeRequest = {
-      entity,
-      mapdata,
-
-      mat: patch.mat,
-    };
-
-    invokeWEApi(WEApi.PatchApplyChange, request);
-    sendApiMessage(worldEditorApi.applyPatchChange, request);
-  }
-
-  setPatchRotation(mapdata: number, entity: number, x: number, y: number, z: number) {
-    const patch = this.map.patches[mapdata]?.[entity];
-    if (!patch) {
-      return;
-    }
-
+  readonly setPatchRotation = this.patchChangeWrap(['mat'], (patch, x: number, y: number, z: number) => {
     applyRotation(patch.mat, [z, x, y]);
+  });
 
-    const request: WEApplyPatchChangeRequest = {
-      entity,
-      mapdata,
-
-      mat: patch.mat,
-    };
-
-    invokeWEApi(WEApi.PatchApplyChange, request);
-    sendApiMessage(worldEditorApi.applyPatchChange, request);
-  }
-
-  setPatchScale(mapdata: number, entity: number, x: number, y: number, z: number) {
-    const patch = this.map.patches[mapdata]?.[entity];
-    if (!patch) {
-      return;
-    }
-
+  readonly setPatchScale = this.patchChangeWrap(['mat'], (patch, x: number, y: number, z: number) => {
     applyScale(patch.mat, [x, y, z]);
-
-    const request: WEApplyPatchChangeRequest = {
-      entity,
-      mapdata,
-
-      mat: patch.mat,
-    };
-
-    invokeWEApi(WEApi.PatchApplyChange, request);
-    sendApiMessage(worldEditorApi.applyPatchChange, request);
-  }
+  });
 
   getGroupAdditions(grp: string): Record<string, WEMapAddition> {
     return this.groupedAdditions[grp] || {};
@@ -182,16 +178,7 @@ export class WEMapState {
 
   setAddition(id: string, addition: WEMapAddition) {
     this.additions[id] = addition;
-
-    if (addition.grp === WORLD_EDITOR_MAP_NO_GROUP) {
-      this.ungroupedAdditions[id] = addition;
-    } else {
-      if (!this.groupedAdditions[addition.grp]) {
-        this.groupedAdditions[addition.grp] = {};
-      }
-
-      this.groupedAdditions[addition.grp][id] = addition;
-    }
+    this.updateAdditionInGroups(id);
 
     const request: WESetAdditionRequest = {
       id,
@@ -219,21 +206,11 @@ export class WEMapState {
     };
 
     this.map.additions[id] = addition;
-
-    if (grp === WORLD_EDITOR_MAP_NO_GROUP) {
-      this.ungroupedAdditions[id] = addition;
-    } else {
-      if (!this.groupedAdditions[grp]) {
-        this.groupedAdditions[grp] = {};
-      }
-
-      this.groupedAdditions[grp][id] = addition;
-    }
+    this.updateAdditionInGroups(id);
 
     const request: WECreateAdditionRequest = {
       id,
       addition,
-      needsPlacement: true,
     };
 
     invokeWEApi(WEApi.AdditionCreate, request);
@@ -262,29 +239,32 @@ export class WEMapState {
     invokeWEApi(WEApi.AdditionSetOnGround, additionId);
   }
 
-  deletePatch(mapdata: string | number, entity: string | number) {
-    if (this.map.patches[mapdata]) {
-      delete this.map.patches[mapdata][entity];
+  deletePatch(mapdata: string | number, entity: string | number, withHistoryEntry = true) {
+    const patch = this.getPatch(mapdata, entity);
+    if (!patch) {
+      return;
+    }
 
-      if (Object.keys(this.map.patches[mapdata]).length === 0) {
-        delete this.map.patches[mapdata];
-      }
+    if (withHistoryEntry) {
+      WEHistory.patchDeleted(toNumber(mapdata), toNumber(entity), patch);
+    }
+
+    delete this.map.patches[mapdata][entity];
+
+    if (Object.keys(this.map.patches[mapdata]).length === 0) {
+      delete this.map.patches[mapdata];
     }
 
     const request: WEDeletePatchRequest = {
-      mapDataHash: typeof mapdata === 'string'
-        ? parseInt(mapdata, 10)
-        : mapdata,
-      entityHash: typeof entity === 'string'
-        ? parseInt(entity, 10)
-        : entity,
+      mapDataHash: toNumber(mapdata),
+      entityHash: toNumber(entity),
     };
 
     invokeWEApi(WEApi.PatchDelete, request);
     sendApiMessage(worldEditorApi.deletePatch, request);
   }
 
-  deleteAddition(id: string) {
+  deleteAddition(id: string, withHistoryEntry = true) {
     const addition = this.map.additions[id];
     if (addition) {
       if (addition.grp !== WORLD_EDITOR_MAP_NO_GROUP && this.groupedAdditions[addition.grp]) {
@@ -295,7 +275,10 @@ export class WEMapState {
 
       delete this.map.additions[id];
 
-      WEHistory.additionDeleted(id, addition);
+      if (withHistoryEntry) {
+        WEHistory.additionDeleted(id, addition);
+      }
+
       WEEvents.emitAdditionDeleted(id, addition);
 
       invokeWEApi(WEApi.AdditionDelete, id);
@@ -305,7 +288,7 @@ export class WEMapState {
     }
   }
 
-  setAdditionGroup(id: string, grp: WEMapAdditionGroup) {
+  setAdditionGroup(id: string, grp: WEMapAdditionGroup, withHistoryEntry = true) {
     const addition = this.map.additions[id];
     if (addition) {
       if (addition.grp === grp) {
@@ -318,39 +301,62 @@ export class WEMapState {
         delete this.groupedAdditions[addition.grp][id];
       }
 
-      addition.grp = grp;
-
-      if (grp === WORLD_EDITOR_MAP_NO_GROUP) {
-        this.ungroupedAdditions[id] = addition;
-      } else {
-        if (!this.groupedAdditions[grp]) {
-          this.groupedAdditions[grp] = {};
-        }
-
-        this.groupedAdditions[grp][id] = addition;
+      if (withHistoryEntry) {
+        WEHistory.additionGroupChanged(id, addition.grp, grp);
       }
+
+      addition.grp = grp;
+      this.updateAdditionInGroups(id);
 
       this.broadcastAdditionChange(id, { grp });
     }
   }
 
-  createAdditionGroup(label: string): string {
-    const grp = fastRandomId();
-    this.map.additionGroups[grp] = {
-      label,
-    };
+  setAdditionsGroup(grp: string, definition: WEMapAdditionGroupDefinition) {
+    this.map.additionGroups[grp] = definition;
     this.groupedAdditions[grp] = {};
 
     sendApiMessage(worldEditorApi.createAdditionGroup, {
       grp,
-      label,
+      label: definition.label,
     } as WECreateAdditionGroupRequest);
+  }
+
+  createAdditionGroup(label: string): string {
+    const grp = fastRandomId();
+
+    this.setAdditionsGroup(grp, { label });
 
     return grp;
   }
 
-  deleteAdditionGroup(grp: string, deleteAdditions: boolean) {
+  restoreAdditionsGroup(grp: string, definition: WEMapAdditionGroupDefinition, additions: Record<string, WEMapAddition>) {
+    this.setAdditionsGroup(grp, definition);
+
+    if (Object.keys(additions).length > 0) {
+      for (const [id, addition] of Object.entries(additions)) {
+        this.setAddition(id, addition);
+      }
+    }
+  }
+
+  deleteAdditionGroup(grp: string, deleteAdditions: boolean, withHistoryEntry = true) {
     const ids = Object.keys(this.groupedAdditions[grp] || {});
+
+    if (withHistoryEntry) {
+      if (deleteAdditions) {
+        WEHistory.additionsGroupDeleted(
+          grp,
+          this.map.additionGroups[grp],
+          this.groupedAdditions[grp],
+        );
+      } else {
+        WEHistory.additionsGroupDeleted(
+          grp,
+          this.map.additionGroups[grp],
+        );
+      }
+    }
 
     delete this.map.additionGroups[grp];
     delete this.groupedAdditions[grp];
@@ -376,12 +382,29 @@ export class WEMapState {
     } as WEDeleteAdditionGroupRequest);
   }
 
+  setAdditionsGroupDefinition(grp: string, definition: WEMapAdditionGroupDefinition) {
+    this.map.additionGroups[grp] = definition;
+
+    sendApiMessage(worldEditorApi.setAdditionGroupLabel, {
+      grp,
+      label: definition.label,
+    } as WESetAdditionGroupNameRequest);
+  }
+
   setAdditionGroupLabel(grp: string, label: string) {
     if (!label) {
       return;
     }
 
-    this.map.additionGroups[grp].label = label;
+    const definition = this.map.additionGroups[grp];
+    const newDefinition = {
+      ...definition,
+      label,
+    };
+
+    this.map.additionGroups[grp] = newDefinition;
+
+    WEHistory.additionsGroupChanged(grp, definition, newDefinition);
 
     sendApiMessage(worldEditorApi.setAdditionGroupLabel, {
       grp,
@@ -409,26 +432,27 @@ export class WEMapState {
     };
   }
 
-  private applyAdditionChange(id: string, change: Partial<WEMapAddition>) {
-    const origin = this.map.additions[id];
-    const grouped = this.groupedAdditions[origin.grp]?.[id];
-
-    if (origin) {
-      const newAddition = {
-        ...origin,
-        ...change,
-      };
-
-      this.map.additions[id] = newAddition;
-
-      if (grouped) {
-        this.groupedAdditions[newAddition.grp][id] = newAddition;
-      } else {
-        this.ungroupedAdditions[id] = newAddition;
+  private patchChangeWrap<Args extends any[], ChangeKeys extends keyof WEMapPatch>(
+    keys: ChangeKeys[],
+    fn: (patch: WEMapPatch, ...args: Args) => void
+  ): ((mapdata: number | string, entity: number | string, ...args: Args) => void) {
+    return (mapdata, entity, ...args: Args) => {
+      const patch = this.getPatch(mapdata, entity);
+      if (!patch) {
+        return;
       }
 
-      this.broadcastAdditionChange(id, change);
-    }
+      const mapdataNumber = toNumber(mapdata);
+      const entityNumber = toNumber(entity);
+
+      WEHistory.beginPatchChange(mapdataNumber, entityNumber, patch);
+
+      fn(patch, ...args);
+
+      WEHistory.finishPatchChange(patch);
+
+      this.broadcastPatchChange(mapdataNumber, entityNumber, pick(patch, ...keys));
+    };
   }
 
   private broadcastAdditionChange(id: string, change: Partial<WEMapAddition>) {
@@ -439,5 +463,31 @@ export class WEMapState {
 
     invokeWEApi(WEApi.AdditionApplyChange, request);
     sendApiMessage(worldEditorApi.applyAdditionChange, request);
+  }
+
+  private broadcastPatchChange(mapdata: number, entity: number, change: Partial<WEMapPatch>) {
+    const request: WEApplyPatchChangeRequest = {
+      mapdata,
+      entity,
+      ...change,
+    };
+
+    invokeWEApi(WEApi.PatchApplyChange, request);
+    sendApiMessage(worldEditorApi.applyPatchChange, request);
+  }
+
+  private updateAdditionInGroups(id: string) {
+    const addition = this.map.additions[id];
+    if (addition) {
+      if (addition.grp === WORLD_EDITOR_MAP_NO_GROUP) {
+        this.ungroupedAdditions[id] = addition;
+      } else {
+        if (!this.groupedAdditions[addition.grp]) {
+          this.groupedAdditions[addition.grp] = {};
+        }
+
+        this.groupedAdditions[addition.grp][id] = addition;
+      }
+    }
   }
 }

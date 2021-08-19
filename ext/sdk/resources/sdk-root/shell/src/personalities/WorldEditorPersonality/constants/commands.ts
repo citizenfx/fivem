@@ -2,6 +2,7 @@ export enum WECommandScope {
   EDITOR,
   PLAYTEST,
   CONFIGURATOR,
+  INTRO,
 }
 
 export const WECommand = Object.freeze({
@@ -16,8 +17,9 @@ export const WECommand = Object.freeze({
   CONTROL_MODE_ROTATE_TOGGLE: 'control.mode.rotate.toggle',
   CONTROL_MODE_SCALE_TOGGLE: 'control.mode.scale.toggle',
 
-  CONTROL_CLEAR_SELECTION: 'control.clearSelection',
+  CONTROL_ESCAPE: 'control.escape',
 
+  ACTION_DELETE_SELECTION: 'action.deleteSelection',
   ACTION_SET_ADDITION_ON_GROUND: 'action.setAdditionOnGround',
   ACTION_ENTER_PLAYTEST_MODE: 'action.enterPlaytestMode',
 });
