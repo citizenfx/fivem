@@ -215,22 +215,15 @@ static InitFunction initFunctionBuffers([]()
 			{
 				auto drawHandler = *(CEntityDrawHandler**)((char*)ent + 72);
 
-				// #TODO: breaks dummyobject w/o this check
-				if (drawHandler)
+				// support smooth transition of outlined dummy to instantiated
+				if (auto ext = ent->GetExtension<InstantiatedObjectRefExtension>())
 				{
-					auto lastDrawHandler = drawHandler;
-
-					// support smooth transition of outlined dummy to instantiated
-					if (auto ext = ent->GetExtension<InstantiatedObjectRefExtension>())
+					if (auto instantiatedEntity = ext->GetObjectRef())
 					{
-						if (auto instantiatedEntity = ext->GetObjectRef())
+						if (auto newDrawHandler = *(CEntityDrawHandler**)((char*)instantiatedEntity + 72))
 						{
-							drawHandler = *(CEntityDrawHandler**)((char*)instantiatedEntity + 72);
-
-							if (!drawHandler)
-							{
-								drawHandler = lastDrawHandler;
-							}
+							drawHandler = newDrawHandler;
+							ent = instantiatedEntity;
 						}
 					}
 				}
