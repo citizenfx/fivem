@@ -990,6 +990,59 @@ static void Init()
 		context.SetResult(fx::SerializeObject(entityList));
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLES_WITH_TYPE", [](fx::ScriptContext& context)
+	{
+	    // get the current resource manager
+	    auto resourceManager = fx::ResourceManager::GetCurrent();
+
+	    // get the owning server instance
+	    auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+	    // get the server's game state
+	    auto gameState = instance->GetComponent<fx::ServerGameState>();
+
+	    std::vector<int> entityList;
+	    std::shared_lock<std::shared_mutex> lock(gameState->m_entityListMutex);
+
+	    fx::sync::NetObjEntityType objType;
+
+	    std::string vehicleType = context.CheckArgument<const char*>(0);
+
+	    if (vehicleType.compare("automobile") == 0)
+	        objType = fx::sync::NetObjEntityType::Automobile;
+	    else if (vehicleType.compare("bike") == 0)
+	        objType = fx::sync::NetObjEntityType::Bike;
+	    else if (vehicleType.compare("boat") == 0)
+	        objType = fx::sync::NetObjEntityType::Boat;
+	    else if (vehicleType.compare("heli") == 0)
+	        objType = fx::sync::NetObjEntityType::Heli;
+	    else if (vehicleType.compare("plane") == 0)
+	        objType = fx::sync::NetObjEntityType::Plane;
+	    else if (vehicleType.compare("submarine") == 0)
+	        objType = fx::sync::NetObjEntityType::Submarine;
+	    else if (vehicleType.compare("trailer") == 0)
+	        objType = fx::sync::NetObjEntityType::Trailer;
+#ifdef STATE_RDR3
+	    else if (vehicleType.compare("draftveh") == 0)
+	        objType = fx::sync::NetObjEntityType::DraftVeh;
+#endif
+        else if (vehicleType.compare("train") == 0)
+            objType = fx::sync::NetObjEntityType::Train;
+        else
+            throw std::runtime_error(va("Invalid vehicle type: %s", vehicleType));
+
+	    for (auto& entity : gameState->m_entityList)
+	    {
+	        if (entity && entity->type == objType)
+	        {
+	            entityList.push_back(gameState->MakeScriptHandle(entity));
+	        }
+	    }
+
+	    context.SetResult(fx::SerializeObject(entityList));
+	});
+
+
 	fx::ScriptEngine::RegisterNativeHandler("GET_ALL_OBJECTS", [](fx::ScriptContext& context)
 	{
 		// get the current resource manager
