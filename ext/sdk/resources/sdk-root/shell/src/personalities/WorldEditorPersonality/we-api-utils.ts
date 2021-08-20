@@ -6,5 +6,5 @@ export function onWEApi<Method extends WEApiMethod>(method: Method, cb: (request
 }
 
 export function invokeWEApi<Method extends WEApiMethod>(method: Method, request: WEApiMethodRequest<Method>) {
-  sendGameClientEvent(method, JSON.stringify(request));
+  sendGameClientEvent(method, JSON.stringify(request) || '');
 }
