@@ -2134,6 +2134,17 @@ bool CloneManagerLocal::RegisterNetworkObject(rage::netObject* object)
 	m_savedEntitySet.insert(object);
 	m_savedEntityVec.push_back(object);
 
+#ifdef GTA_FIVE
+	if (object->objectType == (uint16_t)NetObjEntityType::Heli)
+	{
+		if (auto gameObject = object->GetGameObject())
+		{
+			// Allow Freeze If No Collision
+			*((char*)gameObject + 392) |= 8;
+		}
+	}
+#endif
+
 	return true;
 }
 
