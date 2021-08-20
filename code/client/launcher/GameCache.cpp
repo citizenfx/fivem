@@ -23,6 +23,12 @@
 #include "InstallerExtraction.h"
 #include <array>
 
+#if defined(LAUNCHER_PERSONALITY_MAIN) || defined(COMPILING_GLUE)
+#define CURL_STATICLIB
+#include <curl/curl.h>
+#include <curl/easy.h>
+#endif
+
 #include <Error.h>
 
 #if defined(GTA_FIVE) || defined(IS_RDR3) || defined(GTA_NY)
@@ -942,7 +948,19 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 			{
 				if (outHash == hashes[0])
 				{
-					CL_QueueDownload(va("file:///%s", converter.to_bytes(entry.GetLocalFileName()).c_str()), converter.to_bytes(entry.GetCacheFileName()).c_str(), entry.localSize, false);
+					std::string escapedUrl;
+
+					{
+						auto curl = curl_easy_init();
+
+						char* escapedUrlRaw = curl_easy_escape(curl, ToNarrow(entry.GetLocalFileName()).c_str(), 0);
+						escapedUrl = escapedUrlRaw;
+
+						curl_free(escapedUrlRaw);
+						curl_easy_cleanup(curl);
+					}
+
+					CL_QueueDownload(va("file:///%s", escapedUrl), converter.to_bytes(entry.GetCacheFileName()).c_str(), entry.localSize, false);
 
 					notificationEntries.push_back({ entry, true });
 				}
