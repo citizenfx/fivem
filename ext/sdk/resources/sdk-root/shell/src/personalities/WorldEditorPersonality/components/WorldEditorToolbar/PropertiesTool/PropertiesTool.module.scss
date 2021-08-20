@@ -50,6 +50,8 @@
       padding: $q*1.5 $q;
       padding-left: 0;
 
+      user-select: none;
+
       > span {
         width: 100%;
         @include ellipsis;
@@ -74,6 +76,8 @@
       font-size: $fs08;
       font-weight: 100;
       color: rgba($fgColor, .75);
+
+      user-select: none;
     }
 
     .label-row {
@@ -131,6 +135,8 @@
       border: none;
 
       cursor: pointer;
+
+      user-select: none;
 
       @include interactiveTransition;
 

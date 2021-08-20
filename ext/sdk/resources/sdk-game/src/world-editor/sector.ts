@@ -1,4 +1,4 @@
-export const SectorSize = 282;
+export const SectorSize = 1000;
 
 type SpatialId = number;
 

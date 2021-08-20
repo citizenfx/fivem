@@ -86,7 +86,13 @@ export class Memoizer<T> {
 }
 
 export function onWEApi<Method extends WEApiMethod>(method: Method, cb: (request: WEApiMethodRequest<Method>) => void) {
-  on(method as string, (data: string) => cb(JSON.parse(data)));
+  on(method as string, (data: string) => {
+    if (!data) {
+      cb(undefined);
+    } else {
+      cb(JSON.parse(data));
+    }
+  });
 }
 
 export function invokeWEApi<Method extends WEApiMethod>(method: Method, request: WEApiMethodRequest<Method>) {

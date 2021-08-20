@@ -435,24 +435,24 @@ export const MapManager = new class MapManager {
 };
 
 function getObjectPosition() {
-  const cp = CameraManager.getPosition();
-  const fw = CameraManager.getForwardVector().copy().mult(100);
+  // const cp = CameraManager.getPosition();
+  // const fw = CameraManager.getForwardVector().copy().mult(100);
 
-  const rh = StartExpensiveSynchronousShapeTestLosProbe(
-    cp.x, cp.y, cp.z,
-    cp.x + fw.x, cp.y + fw.y, cp.z + fw.z,
-    1 | 16 | 256,
-    0,
-    4,
-  );
+  // const rh = StartExpensiveSynchronousShapeTestLosProbe(
+  //   cp.x, cp.y, cp.z,
+  //   cp.x + fw.x, cp.y + fw.y, cp.z + fw.z,
+  //   1 | 16 | 256,
+  //   0,
+  //   4,
+  // );
 
-  const [, hit, endCoords] = GetShapeTestResult(rh);
+  // const [, hit, endCoords] = GetShapeTestResult(rh);
 
-  if (hit) {
-    return new Vec3(endCoords[0], endCoords[1], endCoords[2]);
-  }
+  // if (hit) {
+  //   return new Vec3(endCoords[0], endCoords[1], endCoords[2]);
+  // }
 
-  return CameraManager.getPosition().copy().add(CameraManager.getForwardVector().copy().mult(3));
+  return CameraManager.getPosition().copy().add(CameraManager.getForwardVector().copy().mult(5));
 }
 
 function prepareEntityMatrix(mat: Float32Array | WEEntityMatrix): WEEntityMatrix {
