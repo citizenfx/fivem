@@ -59,9 +59,10 @@ inline ISteamComponent* GetSteam()
 class LovelyThread : public GtaThread
 {
 private:
-	bool m_shouldCreate;
+	bool m_shouldCreate = false;
 
-	bool m_hosted;
+	bool m_hosted = false;
+	bool m_lastOff = false;
 
 public:
 	LovelyThread(bool shouldCreate)
@@ -72,21 +73,34 @@ public:
 	virtual rage::eThreadState Reset(uint32_t scriptHash, void* pArgs, uint32_t argCount) override
 	{
 		m_hosted = false;
+		m_lastOff = false;
 
 		return GtaThread::Reset(scriptHash, pArgs, argCount);
 	}
 
-	virtual void DoRun() override
+	void ProcessPopulationToggle()
 	{
 		// TEMP: force-disable population for 1s big using script
-		auto icgi = Instance<ICoreGameInit>::Get();
+		// should be done natively someday
+		static auto icgi = Instance<ICoreGameInit>::Get();
+		bool currentOff = (icgi->HasVariable("onesync_big") && !icgi->OneSyncBigIdEnabled) || icgi->HasVariable("strict_entity_lockdown");
 
-		if ((icgi->HasVariable("onesync_big") && !icgi->OneSyncBigIdEnabled) || icgi->HasVariable("strict_entity_lockdown"))
+		auto setDispatch = [](bool enable)
 		{
 			for (int i = 1; i <= 15; i++)
 			{
 				// ENABLE_DISPATCH_SERVICE
-				NativeInvoke::Invoke<0xDC0F817884CDD856, int>(i, false);
+				NativeInvoke::Invoke<0xDC0F817884CDD856, int>(i, enable);
+			}
+		};
+
+		if (currentOff)
+		{
+			if (!m_lastOff)
+			{
+				setDispatch(false);
+
+				m_lastOff = true;
 			}
 
 			// SET_PED_DENSITY_MULTIPLIER_THIS_FRAME
@@ -107,6 +121,20 @@ public:
 			// SET_RANDOM_VEHICLE_DENSITY_MULTIPLIER_THIS_FRAME
 			NativeInvoke::Invoke<0xB3B3359379FE77D3, int>(0.0f);
 		}
+		else
+		{
+			if (m_lastOff)
+			{
+				setDispatch(true);
+
+				m_lastOff = false;
+			}
+		}
+	}
+
+	virtual void DoRun() override
+	{
+		ProcessPopulationToggle();
 
 		uint32_t playerPedId = NativeInvoke::Invoke<GET_PLAYER_PED, uint32_t>(-1);
 
