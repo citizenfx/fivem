@@ -73,8 +73,15 @@ static InitFunction initFunction([]()
 		}
 	}
 
+	// don't load hints for chromebrowser subprocess
+	if (wcsstr(GetCommandLineW(), L"_ChromeBrowser"))
+	{
+		return;
+	}
+
 	std::wstring hintsFile = MakeRelativeCitPath(L"citizen\\hints.dat");
 	FILE* hints = _wfopen(hintsFile.c_str(), L"rb");
+	size_t numHints = 0;
 
 	if (hints)
 	{
@@ -87,9 +94,17 @@ static InitFunction initFunction([]()
 			fread(&hint, 1, sizeof(hint), hints);
 
 			hook::pattern::hint(hash, hint);
+
+			numHints++;
 		}
 
 		fclose(hints);
+	}
+
+	// over 48k hints? that might be anomalous: regenerate them
+	if (numHints > (48 * 1024))
+	{
+		_wunlink(hintsFile.c_str());
 	}
 });
 #endif
