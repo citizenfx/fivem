@@ -139,19 +139,6 @@ static void Init()
 		return retval;
 	}));
 
-	fx::ScriptEngine::RegisterNativeHandler("NETWORK_GET_FIRST_ENTITY_OWNER", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
-    {
-        int retval = -1;
-        auto firstOwner = entity->GetFirstOwner();
-
-        if (!entity->firstOwnerDropped)
-        {
-            retval = firstOwner->GetNetId();
-        }
-
-        return retval;
-    }));
-
 	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_COORDS", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
 		float position[3];
