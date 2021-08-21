@@ -1,7 +1,7 @@
 import emojiRegex from 'emoji-regex';
 
 const emojiPreRe = new RegExp('^(?:' + emojiRegex().source + ')', '');
-const SPLIT_RE = /((?<!\.(?:[a-zA-Z]{2,6}))\s?\/+\s?|\||\s[-~]+\s|\s[Il]\s|[\s⠀ㅤ¦]+(?![#0-9])\p{Emoji}|(?<=(?!^)(?![#0-9])\p{Emoji})[\s⠀ㅤ¦]+|・|ㅤ)/u;
+const SPLIT_RE = /((?<!\.(?:[a-zA-Z]{2,6}))\s?\/+\s?|\||\s[-~:]+\s|\s[Il]\s|[\s⠀ㅤ¦\p{Emoji}[]+(?![#0-9])\p{Emoji}|(?<=(?!^)(?![#0-9])\p{Emoji})[\s⠀ㅤ¦]+|[・·•]|(?<=(?:\]|\}))[-\s]|ㅤ)/u;
 const COMMA_SPLIT_RE = /(?:(?<!(?:\d+|Q))\+|,\s*|\.\s+)/u;
 
 function filterSplit(a: string) {
@@ -51,6 +51,7 @@ export function filterProjectName(a: string) {
 			[/^\p{So}/u, ''],
 			[/(\s|\u2800)+/gu, ' '],
 			[/^\^[0-9]/, (regs) => { colorPrefix = regs; return ''; }],
+			[/(?:[0-9]+\+|\+[0-9]+)\s*FPS/g, '+'], // FPS in name
 			[/\^[0-9]/, ''], // any non-prefixed color codes
 			[/[\])]\s*[[(].*$/, ']'], // suffixes after a tag
 			[/,.*$/, ''], // a name usually doesn't contain a comma
