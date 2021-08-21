@@ -189,62 +189,71 @@ static InitFunction initFunctionBuffers([]()
 			return;
 		}
 
-		EnqueueGenericDrawCommand([](uintptr_t, uintptr_t)
+		for (int bucket = 0; bucket < 4; bucket++)
 		{
-			lastZ = GetDepthStencilState();
-			SetDepthStencilState(GetStockStateIdentifier(DepthStencilStateNoDepth));
+			a = bucket;
 
-			lastBlend = GetBlendState();
-			SetBlendState(GetStockStateIdentifier(BlendStateDefault));
-
-			last = *currentShader;
-			*currentShader = _getTechniqueDrawName("unlit");
-
-			// draw bucket 0 pls, not 1
-			// #TODO: set via DC?
-			*g_currentDrawBucket = 0;
-
-			rage::grcTextureFactory::getInstance()->PushRenderTarget(nullptr, maskRenderTarget, nullptr, 0, true, 0);
-			ClearRenderTarget(true, 0, false, 0.0f, false, 0);
-		},
-		&a, &b);
-
-		for (auto& ent : outlineEntities)
-		{
-			if (ent)
+			EnqueueGenericDrawCommand([](uintptr_t bucket, uintptr_t)
 			{
-				auto drawHandler = *(CEntityDrawHandler**)((char*)ent + 72);
+				lastZ = GetDepthStencilState();
+				SetDepthStencilState(GetStockStateIdentifier(DepthStencilStateNoDepth));
 
-				// support smooth transition of outlined dummy to instantiated
-				if (auto ext = ent->GetExtension<InstantiatedObjectRefExtension>())
+				lastBlend = GetBlendState();
+				SetBlendState(GetStockStateIdentifier(BlendStateDefault));
+
+				last = *currentShader;
+				*currentShader = _getTechniqueDrawName("unlit");
+
+				// draw bucket 0 pls, not 1
+				// #TODO: set via DC?
+				*g_currentDrawBucket = bucket;
+
+				rage::grcTextureFactory::getInstance()->PushRenderTarget(nullptr, maskRenderTarget, nullptr, 0, true, 0);
+				ClearRenderTarget(true, 0, false, 0.0f, false, 0);
+			},
+			&a, &b);
+
+			for (auto& ent : outlineEntities)
+			{
+				if (ent)
 				{
-					if (auto instantiatedEntity = ext->GetObjectRef())
+					auto drawHandler = *(CEntityDrawHandler**)((char*)ent + 72);
+
+					// support smooth transition of outlined dummy to instantiated
+					if (auto ext = ent->GetExtension<InstantiatedObjectRefExtension>())
 					{
-						if (auto newDrawHandler = *(CEntityDrawHandler**)((char*)instantiatedEntity + 72))
+						if (auto instantiatedEntity = ext->GetObjectRef())
 						{
-							drawHandler = newDrawHandler;
-							ent = instantiatedEntity;
+							if (auto newDrawHandler = *(CEntityDrawHandler**)((char*)instantiatedEntity + 72))
+							{
+								drawHandler = newDrawHandler;
+								ent = instantiatedEntity;
+							}
 						}
 					}
-				}
 
-				if (drawHandler)
-				{
-					uint8_t meh[64] = { 0, 1, 0 };
-					drawHandler->Draw(ent, &meh);
+					if (drawHandler)
+					{
+						uint8_t meh[64] = { 0, 1, 0 };
+						drawHandler->Draw(ent, &meh);
+					}
 				}
 			}
+
+			EnqueueGenericDrawCommand([](uintptr_t, uintptr_t)
+			{
+				rage::grcTextureFactory::getInstance()->PopRenderTarget(nullptr, nullptr);
+
+				*currentShader = last;
+
+				SetDepthStencilState(lastZ);
+				SetBlendState(lastBlend);
+			},
+			&a, &b);
 		}
 
 		EnqueueGenericDrawCommand([](uintptr_t, uintptr_t)
 		{
-			rage::grcTextureFactory::getInstance()->PopRenderTarget(nullptr, nullptr);
-
-			*currentShader = last;
-
-			SetDepthStencilState(lastZ);
-			SetBlendState(lastBlend);
-
 			DrawScreenSpace();
 		},
 		&a, &b);
