@@ -651,7 +651,7 @@ static HRESULT CreateTexture2DHook(
 
 	auto rv = g_origCreateTexture2D(device, &desc, pInitialData, ppTexture2D);
 
-	if (wrapped)
+	if (wrapped && *ppTexture2D)
 	{
 		auto retVal = WRL::Make<Texture2DWrap>(*ppTexture2D);
 		retVal.CopyTo(ppTexture2D);
@@ -664,18 +664,22 @@ static HRESULT CreateTexture2DHook(
 
 static HRESULT OpenSharedResource1Hook(ID3D11Device1* device, HANDLE hRes, REFIID iid, void** ppRes)
 {
-	auto data = (HANDLE*)MapViewOfFile(hRes, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(HANDLE));
-	HRESULT hr = device->OpenSharedResource(*data, iid, ppRes);
-	// we don't release here as the resource will still get read by a target process
-	UnmapViewOfFile(data);
-
-	if (iid == __uuidof(ID3D11Texture2D))
+	if (auto data = (HANDLE*)MapViewOfFile(hRes, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(HANDLE)))
 	{
-		auto retVal = WRL::Make<Texture2DWrap>((ID3D11Texture2D*)*ppRes);
-		retVal.CopyTo(iid, ppRes);
+		HRESULT hr = device->OpenSharedResource(*data, iid, ppRes);
+		// we don't release here as the resource will still get read by a target process
+		UnmapViewOfFile(data);
+
+		if (iid == __uuidof(ID3D11Texture2D) && *ppRes)
+		{
+			auto retVal = WRL::Make<Texture2DWrap>((ID3D11Texture2D*)*ppRes);
+			retVal.CopyTo(iid, ppRes);
+		}
+
+		return hr;
 	}
 
-	return hr;
+	return E_INVALIDARG;
 }
 
 static HRESULT (*g_origOpenSharedResourceHook)(ID3D11Device* device, HANDLE hRes, REFIID iid, void** ppRes);
