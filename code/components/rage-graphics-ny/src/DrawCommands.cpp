@@ -238,14 +238,14 @@ void PopDrawBlitImShader()
 	_popShaderFn2(*something);
 }
 
-static hook::thiscall_stub<void(rage::grcTexture**)> _setTextureGtaIm([]()
+static hook::thiscall_stub<void(void*)> _setTextureGtaIm([]()
 {
 	return hook::get_pattern("56 8B F1 8B 0D ? ? ? ? FF 36 FF 35");
 });
 
 void SetTextureGtaIm(rage::grcTexture* texture)
 {
-	_setTextureGtaIm(&texture);
+	_setTextureGtaIm((void*)&texture);
 }
 
 static hook::cdecl_stub<void(float, float, float, float, float, float, float, float, float, uint32_t*, int)> _drawImSprite([]()

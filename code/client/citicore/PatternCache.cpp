@@ -65,6 +65,7 @@ extern "C" CORE_EXPORT auto CoreGetPatternHints()
 
 static InitFunction initFunction([]()
 {
+#ifndef GTA_NY
 	if (wcsstr(GetCommandLineW(), L"_ROSLauncher") || wcsstr(GetCommandLineW(), L"_ROSService"))
 	{
 		if (getenv("CitizenFX_ToolMode"))
@@ -72,6 +73,7 @@ static InitFunction initFunction([]()
 			g_currentStub = 0x140000000 + 0x02E23600;
 		}
 	}
+#endif
 
 	// don't load hints for chromebrowser subprocess
 	if (wcsstr(GetCommandLineW(), L"_ChromeBrowser"))

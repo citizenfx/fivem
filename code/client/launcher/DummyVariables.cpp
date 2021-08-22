@@ -26,8 +26,21 @@ extern "C" DLL_EXPORT void GetThreadLocalStorage(void** base, uint32_t* index)
 	*index = _tls_index;
 }
 #elif defined(LAUNCHER_PERSONALITY_GAME)
+#ifdef GTA_NY
+#define DECLARE_TLS_VARS(i) \
+	__declspec(thread) uint8_t tls1[sizeof(int) * i];
+
+ // dummy TLS variables to allocate TLS for the game to use
+#pragma region tls
+DECLARE_TLS_VARS(7096);
+#pragma endregion
+#endif
+
 void InitializeDummies()
 {
+#ifdef GTA_NY
+	tls1[6] = 0;
+#endif
 }
 
 // dummy game memory to overwrite with, well, the game

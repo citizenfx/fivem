@@ -88,7 +88,10 @@ void NUIRenderHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType t
 		UpdatePopup();
 
 		// mark the render buffer as dirty
-		m_owner->GetWindow()->MarkRenderBufferDirty();
+		if (auto w = m_owner->GetWindow())
+		{
+			w->MarkRenderBufferDirty();
+		}
 
 		// unlock the lock
 		lock.unlock();
@@ -180,9 +183,15 @@ void NUIRenderHandler::PaintView(const RectList& dirtyRects, const void* buffer,
 	auto lock = window->GetRenderBufferLock();
 	void* renderBuffer = window->GetRenderBuffer();
 	int roundedWidth = window->GetRoundedWidth();
+	int wheight = window->GetHeight();
 
 	for (auto& rect : dirtyRects)
 	{
+		if ((rect.x + rect.width) > roundedWidth || (rect.y + rect.height) > wheight)
+		{
+			continue;
+		}
+
 		{
 			for (int y = rect.y; y < (rect.y + rect.height); y++)
 			{

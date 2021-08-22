@@ -344,6 +344,7 @@ void ExecutableLoader::LoadIntoModule(HMODULE module)
 		LPVOID* tlsBase = (LPVOID*)__readgsqword(0x58);
 #endif
 
+#ifndef GTA_NY
 		uint32_t tlsIndex = 0;
 		void* tlsInit = nullptr;
 
@@ -365,6 +366,16 @@ void ExecutableLoader::LoadIntoModule(HMODULE module)
 		{
 			hook::put(sourceTls->AddressOfIndex, tlsIndex);
 		}
+#else
+		if (sourceTls->StartAddressOfRawData)
+		{
+			DWORD oldProtect;
+			VirtualProtect((void*)targetTls->StartAddressOfRawData, sourceTls->EndAddressOfRawData - sourceTls->StartAddressOfRawData, PAGE_READWRITE, &oldProtect);
+
+			memcpy(tlsBase[0], reinterpret_cast<void*>(sourceTls->StartAddressOfRawData), sourceTls->EndAddressOfRawData - sourceTls->StartAddressOfRawData);
+			memcpy((void*)targetTls->StartAddressOfRawData, reinterpret_cast<void*>(sourceTls->StartAddressOfRawData), sourceTls->EndAddressOfRawData - sourceTls->StartAddressOfRawData);
+		}
+#endif
 	}
 
 	// store the entry point

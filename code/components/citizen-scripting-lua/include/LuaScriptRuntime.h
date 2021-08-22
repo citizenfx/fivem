@@ -37,7 +37,11 @@
 // Inline utility
 #if !defined(LUA_INLINE)
 #ifdef _MSC_VER
+#ifndef _DEBUG
 #define LUA_INLINE __forceinline
+#else
+#define LUA_INLINE
+#endif
 #elif __has_attribute(__always_inline__)
 #define LUA_INLINE inline __attribute__((__always_inline__))
 #else

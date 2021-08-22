@@ -211,12 +211,6 @@ VOID WINAPI GetStartupInfoWHook(_Out_ LPSTARTUPINFOW lpStartupInfo)
 		return;
 	}
 
-	static HostSharedData<UpdaterUIState> uuiState("CfxUUIState");
-
-	uuiState->SetText(1, "Analyzing game data");
-	uuiState->SetProgress(100.0);
-	uuiState->OpenWhenExpired();
-
 	InitialGameHook();
 
 	if (!g_launcher->PostLoadGame(GetModuleHandle(nullptr), nullptr))
@@ -228,8 +222,6 @@ VOID WINAPI GetStartupInfoWHook(_Out_ LPSTARTUPINFOW lpStartupInfo)
 	{
 		ExitProcess(0);
 	}
-
-	uuiState->Close();
 }
 
 static LONG NTAPI HandleVariant(PEXCEPTION_POINTERS exceptionInfo)
