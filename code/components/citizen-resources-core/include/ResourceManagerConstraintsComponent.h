@@ -33,7 +33,7 @@ public:
 	virtual void RegisterConstraint(const std::string& key, int value) = 0;
 
 	// Registers a flag constraint.
-	virtual void RegisterConstraint(const std::string& key, bool value) = 0;
+	virtual void RegisterConstraintBool(const std::string& key, bool value) = 0;
 
 	// Registers a callback constraint.
 	virtual void RegisterConstraint(const std::string& key, const std::function<bool(std::string_view, std::string*)>& value) = 0;

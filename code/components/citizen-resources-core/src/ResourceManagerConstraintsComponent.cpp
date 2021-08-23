@@ -26,7 +26,7 @@ public:
 		m_constraints[key] = value;
 	}
 
-	virtual void RegisterConstraint(const std::string& key, bool value) override
+	virtual void RegisterConstraintBool(const std::string& key, bool value) override
 	{
 		m_constraints[key] = value;
 	}
