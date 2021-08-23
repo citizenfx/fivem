@@ -28,7 +28,7 @@
 #endif
 
 // a list of variables that *need* to be used with +set (to automatically pre-parse from a config script)
-static std::set<std::string> setList =
+static std::set<std::string, console::IgnoreCaseLess> setList =
 {
 	"onesync",
 	"onesync_enabled",
@@ -36,7 +36,9 @@ static std::set<std::string> setList =
 	"netlib",
 	"onesync_enableInfinity",
 	"onesync_enableBeyond",
-	"gamename"
+	"gamename",
+	"sv_enforceGameBuild",
+	"sv_licenseKey",
 };
 
 namespace fx
