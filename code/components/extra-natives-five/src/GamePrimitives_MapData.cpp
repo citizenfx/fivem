@@ -200,6 +200,8 @@ static CObject* ConvertDummyToObject(CDummyObject* dummyObject, int type)
 		{
 			object->AddExtension(extension->Clone());
 		}
+
+		object->AddExtension(new DummyObjectRefExtension(dummyObject));
 	}
 
 	return object;

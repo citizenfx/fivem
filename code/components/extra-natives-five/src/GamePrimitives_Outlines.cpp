@@ -13,7 +13,12 @@
 
 #include "EntityExtensions.h"
 
-static std::list<rage::fwRegdRef<fwEntity>> outlineEntities;
+static std::vector<fwEntity*> outlineEntities;
+
+inline static decltype(outlineEntities)::iterator FindOutlineEntityByEntity(const fwEntity* entity)
+{
+	return std::find(outlineEntities.begin(), outlineEntities.end(), entity);
+}
 
 struct CEntityDrawHandler
 {
@@ -189,6 +194,13 @@ static InitFunction initFunctionBuffers([]()
 			return;
 		}
 
+		EnqueueGenericDrawCommand([](uintptr_t bucket, uintptr_t)
+		{
+			rage::grcTextureFactory::getInstance()->PushRenderTarget(nullptr, maskRenderTarget, nullptr, 0, true, 0);
+			ClearRenderTarget(true, 0, false, 0.0f, false, 0);
+		},
+		&a, &b);
+
 		for (int bucket = 0; bucket < 4; bucket++)
 		{
 			a = bucket;
@@ -207,13 +219,10 @@ static InitFunction initFunctionBuffers([]()
 				// draw bucket 0 pls, not 1
 				// #TODO: set via DC?
 				*g_currentDrawBucket = bucket;
-
-				rage::grcTextureFactory::getInstance()->PushRenderTarget(nullptr, maskRenderTarget, nullptr, 0, true, 0);
-				ClearRenderTarget(true, 0, false, 0.0f, false, 0);
 			},
 			&a, &b);
 
-			for (auto& ent : outlineEntities)
+			for (auto ent : outlineEntities)
 			{
 				if (ent)
 				{
@@ -242,8 +251,6 @@ static InitFunction initFunctionBuffers([]()
 
 			EnqueueGenericDrawCommand([](uintptr_t, uintptr_t)
 			{
-				rage::grcTextureFactory::getInstance()->PopRenderTarget(nullptr, nullptr);
-
 				*currentShader = last;
 
 				SetDepthStencilState(lastZ);
@@ -254,11 +261,56 @@ static InitFunction initFunctionBuffers([]()
 
 		EnqueueGenericDrawCommand([](uintptr_t, uintptr_t)
 		{
+			rage::grcTextureFactory::getInstance()->PopRenderTarget(nullptr, nullptr);
+
 			DrawScreenSpace();
 		},
 		&a, &b);
 	});
 });
+
+
+// this extension will remove it's entity from the outlineEntities list if entity gets removed
+class OutlineSentinelExtension : public rage::fwExtension
+{
+public:
+	OutlineSentinelExtension()
+	{
+	}
+	virtual ~OutlineSentinelExtension()
+	{
+		if (ref)
+		{
+			if (auto it = FindOutlineEntityByEntity(ref); it != outlineEntities.end())
+			{
+				outlineEntities.erase(it);
+			}
+		}
+	}
+
+	virtual int GetExtensionId() const override
+	{
+		return GetClassId();
+	}
+
+	static int GetClassId()
+	{
+		return (int)EntityExtensionClassId::OutlineSentinel;
+	}
+
+	void SetEntityRef(fwEntity* entity)
+	{
+		ref = entity;
+	}
+
+	void RemoveEntityRef()
+	{
+		ref = nullptr;
+	}
+
+private:
+	fwEntity* ref = nullptr;
+};
 
 static HookFunction hookFunction([]()
 {
@@ -273,23 +325,31 @@ static InitFunction initFunctionScriptBind([]()
 {
 	fx::ScriptEngine::RegisterNativeHandler("SET_ENTITY_DRAW_OUTLINE", [](fx::ScriptContext& context)
 	{
-		fwEntity* entity = rage::fwScriptGuid::GetBaseFromGuid(context.GetArgument<int>(0));
+		int entityHandle = context.GetArgument<int>(0);
+		bool outline = context.GetArgument<bool>(1);
+
+		fwEntity* entity = rage::fwScriptGuid::GetBaseFromGuid(entityHandle);
 		if (!entity)
 		{
 			return;
 		}
 
-		bool outline = context.GetArgument<bool>(1);
-		auto it = std::find_if(outlineEntities.begin(), outlineEntities.end(), [entity](const decltype(outlineEntities)::value_type& find)
-		{
-			return &(*find) == entity;
-		});
+		auto it = FindOutlineEntityByEntity(entity);
 
 		if (outline)
 		{
-
 			if (it == outlineEntities.end())
 			{
+				auto outlineSentinel = entity->GetExtension<OutlineSentinelExtension>();
+
+				if (!outlineSentinel)
+				{
+					outlineSentinel = new OutlineSentinelExtension();
+					entity->AddExtension(outlineSentinel);
+				}
+
+				outlineSentinel->SetEntityRef(entity);
+
 				outlineEntities.push_back(entity);
 			}
 		}
@@ -297,6 +357,11 @@ static InitFunction initFunctionScriptBind([]()
 		{
 			if (it != outlineEntities.end())
 			{
+				if (auto ext = entity->GetExtension<OutlineSentinelExtension>())
+				{
+					ext->RemoveEntityRef();
+				}
+
 				outlineEntities.erase(it);
 			}
 		}
@@ -332,8 +397,67 @@ static InitFunction initFunctionScriptBind([]()
 });
 
 #ifdef _DEBUG
+
+#include <imgui.h>
+
+#include <CoreConsole.h>
+#include <ConsoleHost.h>
+#include <Streaming.h>
+
 static InitFunction initFunction([]()
 {
+	static bool cl_drawOutlinesDebugEnabled = false;
+
+	static ConVar<bool> drawFps("cl_drawOutlinesDebug", ConVar_Archive, false, &cl_drawOutlinesDebugEnabled);
+
+	ConHost::OnShouldDrawGui.Connect([](bool* should)
+	{
+		*should = *should || cl_drawOutlinesDebugEnabled;
+	});
+
+	ConHost::OnDrawGui.Connect([]()
+	{
+		if (!cl_drawOutlinesDebugEnabled)
+		{
+			return;
+		}
+
+		ImGui::SetNextWindowBgAlpha(0.0f);
+		ImGui::SetNextWindowPos(ImVec2(ImGui::GetMainViewport()->Pos.x + 10, ImGui::GetMainViewport()->Pos.y + 150), 0, ImVec2(0.0f, 0.0f));
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+
+		if (ImGui::Begin("DrawOutlinesDebug", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize))
+		{
+			ImGui::Text("%d outline entities", outlineEntities.size());
+						
+			for (auto ent : outlineEntities)
+			{
+				if (ent)
+				{
+					std::string name = fmt::sprintf("%x", ent->GetArchetype()->hash);
+
+					ImGui::Text("0x%lx (%s):", (uint64_t)ent, name);
+
+					if (auto ext = ent->GetExtension<InstantiatedObjectRefExtension>())
+					{
+						ImGui::Text("--> InstatiatedObjectRefExtension, ref (0x%lx) is valid: %d", (uint64_t)ext->GetObjectRef(), ext->GetObjectRef() != nullptr);
+					}
+					if (auto ext = ent->GetExtension<DummyObjectRefExtension>())
+					{
+						ImGui::Text("--> DummyObjectRefExtension, ref (0x%lx) is valid: %d", (uint64_t)ext->GetObjectRef(), ext->GetObjectRef() != nullptr);
+					}
+				}
+				else
+				{
+					ImGui::Text("%lx (null): ref is null", (uint64_t)ent);
+				}
+			}
+		}
+
+		ImGui::PopStyleVar();
+		ImGui::End();
+	});
+
 	static ConsoleCommand castProbe("castSelectionProbe", []()
 	{
 		if (!*g_viewportGame)

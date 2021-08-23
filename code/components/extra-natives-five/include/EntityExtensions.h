@@ -115,7 +115,9 @@ private:
 enum class EntityExtensionClassId : int
 {
 	MapDataOwner = 64,
-	InstantiatedObjectRef = 65,
+	InstantiatedObjectRef,
+	DummyObjectRef,
+	OutlineSentinel,
 };
 
 class InstantiatedObjectRefExtension : public rage::fwExtension
@@ -152,5 +154,39 @@ public:
 	}
 
 private:
-	rage::fwRegdRef<fwEntity> objectRef = nullptr;
+	fwEntity* objectRef = nullptr;
+};
+
+class DummyObjectRefExtension : public rage::fwExtension
+{
+public:
+	DummyObjectRefExtension(fwEntity* object)
+	{
+		objectRef = object;
+	}
+	virtual ~DummyObjectRefExtension()
+	{
+		if (auto ext = objectRef->GetExtension<InstantiatedObjectRefExtension>())
+		{
+			ext->RemoveObjectRef();
+		}
+	}
+
+	virtual int GetExtensionId() const override
+	{
+		return GetClassId();
+	}
+
+	static int GetClassId()
+	{
+		return (int)EntityExtensionClassId::DummyObjectRef;
+	}
+
+	fwEntity* GetObjectRef()
+	{
+		return objectRef;
+	}
+
+private:
+	fwEntity* objectRef = nullptr;
 };
