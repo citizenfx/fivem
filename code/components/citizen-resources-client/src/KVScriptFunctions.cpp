@@ -188,10 +188,9 @@ struct SerializeValue<RawType>
 };
 
 template<typename T>
-static void GetResourceKvp(fx::ScriptContext& context)
+static void GetResourceKvp_Impl(const std::string& key, fx::ScriptContext& context)
 {
 	auto db = EnsureDatabase();
-	auto key = FormatKey(context.GetArgument<const char*>(0));
 
 	std::string value;
 	if (db->Get(leveldb::ReadOptions{}, key, &value).IsNotFound())
@@ -201,6 +200,22 @@ static void GetResourceKvp(fx::ScriptContext& context)
 	}
 
 	SerializeValue<T>::Deserialize(context, value);
+}
+
+template<typename T>
+static void GetResourceKvp(fx::ScriptContext& context)
+{
+	auto key = FormatKey(context.CheckArgument<const char*>(0));
+
+	return GetResourceKvp_Impl<T>(key, context);
+}
+
+template<typename T>
+static void GetExternalKvp(fx::ScriptContext& context)
+{
+	auto key = FormatKey(context.CheckArgument<const char*>(1), context.CheckArgument<const char*>(0));
+
+	return GetResourceKvp_Impl<T>(key, context);
 }
 
 #include <memory>
@@ -226,10 +241,9 @@ static FindHandle* GetFindHandle()
 	return nullptr;
 }
 
-static void StartFindKvp(fx::ScriptContext& context)
+static void StartFindKvp_Impl(const std::string& key, fx::ScriptContext& context)
 {
 	auto db = EnsureDatabase();
-	auto key = FormatKey(context.GetArgument<const char*>(0));
 
 	auto handle = GetFindHandle();
 
@@ -245,6 +259,18 @@ static void StartFindKvp(fx::ScriptContext& context)
 	handle->key = key;
 
 	context.SetResult(handle - g_handles);
+}
+
+static void StartFindKvp(fx::ScriptContext& context)
+{
+	auto key = FormatKey(context.CheckArgument<const char*>(0));
+	return StartFindKvp_Impl(key, context);
+}
+
+static void StartFindExternalKvp(fx::ScriptContext& context)
+{
+	auto key = FormatKey(context.CheckArgument<const char*>(1), context.CheckArgument<const char*>(0));
+	return StartFindKvp_Impl(key, context);
 }
 
 static void FindKvp(fx::ScriptContext& context)
@@ -293,7 +319,7 @@ static void EndFindKvp(fx::ScriptContext& context)
 static void DeleteResourceKvp(fx::ScriptContext& context)
 {
 	auto db = EnsureDatabase();
-	auto key = FormatKey(context.GetArgument<const char*>(0));
+	auto key = FormatKey(context.CheckArgument<const char*>(0));
 
 	db->Delete(leveldb::WriteOptions{}, key);
 }
@@ -547,9 +573,14 @@ static InitFunction initFunction([]()
 	fx::ScriptEngine::RegisterNativeHandler("SET_RESOURCE_KVP_FLOAT", SetResourceKvp<float>);
 	fx::ScriptEngine::RegisterNativeHandler("SET_RESOURCE_RAW_KVP", SetResourceKvpRaw);
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_EXTERNAL_KVP_INT", GetExternalKvp<int>);
+	fx::ScriptEngine::RegisterNativeHandler("GET_EXTERNAL_KVP_STRING", GetExternalKvp<const char*>);
+	fx::ScriptEngine::RegisterNativeHandler("GET_EXTERNAL_KVP_FLOAT", GetExternalKvp<float>);
+
 	fx::ScriptEngine::RegisterNativeHandler("DELETE_RESOURCE_KVP", DeleteResourceKvp);
 
 	fx::ScriptEngine::RegisterNativeHandler("START_FIND_KVP", StartFindKvp);
+	fx::ScriptEngine::RegisterNativeHandler("START_FIND_EXTERNAL_KVP", StartFindExternalKvp);
 	fx::ScriptEngine::RegisterNativeHandler("FIND_KVP", FindKvp);
 	fx::ScriptEngine::RegisterNativeHandler("END_FIND_KVP", EndFindKvp);
 });
