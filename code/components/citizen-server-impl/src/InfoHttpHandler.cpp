@@ -446,6 +446,12 @@ json InfoHttpHandlerComponentLocals::GetInfoJson()
 json InfoHttpHandlerComponentLocals::GetPlayersJson()
 {
 	std::shared_lock<std::shared_mutex> lock(playerBlobMutex);
+
+	if (playerBlob.empty())
+	{
+		return json::array();
+	}
+
 	return json::parse(playerBlob);
 }
 
