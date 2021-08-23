@@ -66,7 +66,7 @@ namespace fx
 
 		void Broadcast(const net::Buffer& buffer);
 
-		std::string GetVariable(const std::string& key);
+		virtual std::string GetVariable(const std::string& key);
 
 		virtual void DropClientv(const fx::ClientSharedPtr& client, const std::string& reason, fmt::printf_args args);
 
