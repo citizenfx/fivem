@@ -1319,9 +1319,16 @@ static InitFunction initFunction([]()
 			{
 				static LuaNativeWrapper nW(GET_GAME_TIMER);
 				LuaNativeContext nCtx(&nW, 0);
+#ifdef GTA_NY
+				nCtx.Push(&g_tickTime);
+#endif
 				nCtx.Invoke(nullptr, GET_GAME_TIMER);
 
+#ifdef IS_FXSERVER
+				g_tickTime = nCtx.GetResult<int64_t>();
+#elif !defined(GTA_NY)
 				g_tickTime = nCtx.GetResult<int32_t>();
+#endif
 			}
 
 			g_hadProfiler = self->GetComponent<fx::ProfilerComponent>()->IsRecording();

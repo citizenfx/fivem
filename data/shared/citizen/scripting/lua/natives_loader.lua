@@ -12,6 +12,7 @@ local rs = rawset
 local _ln = Citizen.LoadNative
 local load = load
 local msgpack = msgpack
+local msgpack_pack = msgpack.pack
 local _tostring = tostring
 local type = type
 local function _ts(num)
@@ -19,6 +20,10 @@ local function _ts(num)
 		return nil
 	end
 	return _tostring(num)
+end
+local function _obj(obj)
+    local s = msgpack_pack(obj)
+    return s, #s
 end
 local function _ch(hash)
 	if g.type(hash) == 'string' then
@@ -41,6 +46,7 @@ end})
 local nativeEnv = {
     Global = Global,
     _mfr = _mfr,
+    _obj = _obj,
     _ch = _ch,
     _ts = _ts,
     msgpack = msgpack,
