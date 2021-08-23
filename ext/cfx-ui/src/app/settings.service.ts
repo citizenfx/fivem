@@ -160,6 +160,15 @@ export class SettingsService {
 				category: '#SettingsCat_Game',
 			});
 
+			this.addSetting('disableCameraShake', {
+				name: '#Settings_CameraShake',
+				description: '#Settings_CameraShakeDesc',
+				type: 'checkbox',
+				getCb: () => this.gameService.getConvar('cam_disableCameraShake').pipe(map(a => a === 'true' ? 'true' : 'false')),
+				setCb: (value) => this.gameService.setConvar('cam_disableCameraShake', value),
+				category: '#SettingsCat_Game',
+			});
+
 			this.addSetting('customEmoji', {
 				name: '#Settings_CustomEmoji',
 				description: '#Settings_CustomEmojiDesc',
