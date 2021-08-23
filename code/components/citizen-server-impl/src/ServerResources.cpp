@@ -3,6 +3,7 @@
 #include <ResourceManager.h>
 #include <ResourceEventComponent.h>
 #include <ResourceMetaDataComponent.h>
+#include <ResourceManagerConstraintsComponent.h>
 
 #include <fxScripting.h>
 
@@ -11,6 +12,8 @@
 
 #include <GameServer.h>
 #include <ServerEventComponent.h>
+
+#include <GameBuilds.h>
 
 #include <RelativeDevice.h>
 
@@ -30,7 +33,10 @@
 
 #include <filesystem>
 
+#include <ScriptEngine.h>
+
 #include <ManifestVersion.h>
+#include <cfx_version.h>
 
 // a set of resources that are system-managed and should not be stopped from script
 static std::set<std::string> g_managedResources = {
@@ -461,6 +467,79 @@ static InitFunction initFunction([]()
 		resman->SetComponent(new fx::ServerInstanceBaseRef(instance));
 		resman->SetComponent(instance->GetComponent<console::Context>());
 		resman->SetComponent(fx::EventReassemblyComponent::Create());
+
+		{
+			auto concom = resman->GetComponent<fx::ResourceManagerConstraintsComponent>();
+			concom->SetEnforcingConstraints(true);
+
+			std::string serverVersion = GIT_TAG;
+			constexpr const auto prefixLen = std::string_view{ "v1.0.0." }.length();
+
+			concom->RegisterConstraint("server", atoi((serverVersion.length() > prefixLen) ? (serverVersion.c_str() + prefixLen) : "99999"));
+			concom->RegisterConstraint("onesync", [instance](std::string_view onesyncCheck, std::string* error) -> bool
+			{
+				if (fx::IsOneSync())
+				{
+					return true;
+				}
+
+				if (error)
+				{
+					*error = "OneSync needs to be enabled";
+				}
+
+				return false;
+			});
+
+			concom->RegisterConstraint("gameBuild", [instance](std::string_view gameBuildCheck, std::string* error) -> bool
+			{
+				auto enforcedBuild = fx::GetEnforcedGameBuildNumber();
+
+				if (enforcedBuild)
+				{
+					fx::GameBuild minBuild;
+
+					if (ConsoleArgumentType<fx::GameBuild>::Parse(std::string(gameBuildCheck), &minBuild))
+					{
+						int minBuildNum = atoi(minBuild.c_str());
+
+						if (enforcedBuild >= minBuildNum)
+						{
+							return true;
+						}
+						else
+						{
+							if (error)
+							{
+								*error = fmt::sprintf("sv_enforceGameBuild needs to be at least %d (current is %d)", minBuildNum, enforcedBuild);
+							}
+						}
+					}
+				}
+
+				return false;
+			});
+
+			concom->RegisterConstraint("native", [](std::string_view nativeHash, std::string* error)
+			{
+				if (nativeHash.length() > 2 && nativeHash.substr(0, 2) == "0x")
+				{
+					uint64_t nativeNum = strtoull(std::string(nativeHash.substr(2)).c_str(), nullptr, 16);
+
+					if (fx::ScriptEngine::GetNativeHandler(nativeNum))
+					{
+						return true;
+					}
+
+					if (error)
+					{
+						*error = fmt::sprintf("native 0x%X isn't supported", nativeNum);
+					}
+				}
+
+				return false;
+			});
+		}
 
 		// TODO: not instanceable
 		auto rac = resman->GetComponent<fx::EventReassemblyComponent>();
