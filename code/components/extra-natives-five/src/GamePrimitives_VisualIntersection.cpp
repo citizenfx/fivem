@@ -18,6 +18,8 @@
 
 #include <im3d.h>
 
+#include "EntityExtensions.h"
+
 #define RAGE_FORMATS_GAME five
 #define RAGE_FORMATS_GAME_FIVE
 #define RAGE_FORMATS_IN_GAME
@@ -302,6 +304,15 @@ fwEntity* DoMouseHitTest(int mX, int mY, const HitFlags& flags)
 		{
 			nth++;
 			hitEnt = entity;
+
+			// use dummy entity, if available
+			if (auto ext = entity->GetExtension<DummyObjectRefExtension>())
+			{
+				if (auto dummyObject = ext->GetObjectRef())
+				{
+					hitEnt = dummyObject;
+				}
+			}
 
 			break;
 		}
