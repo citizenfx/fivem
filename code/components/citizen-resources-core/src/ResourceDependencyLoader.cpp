@@ -4,6 +4,7 @@
 #include <ResourceManager.h>
 
 #include <ResourceMetaDataComponent.h>
+#include <ResourceManagerConstraintsComponent.h>
 
 static InitFunction initFunction([]()
 {
@@ -26,12 +27,32 @@ static InitFunction initFunction([]()
 			fx::ResourceManager* manager = resource->GetManager();
 			manager->MakeCurrent();
 
+			fwRefContainer<fx::ResourceManagerConstraintsComponent> constraintsComponent = manager->GetComponent<fx::ResourceManagerConstraintsComponent>();
 			fwRefContainer<fx::ResourceMetaDataComponent> metaData = resource->GetComponent<fx::ResourceMetaDataComponent>();
+
+			bool success = true;
+			std::vector<std::string> errorList;
 
 			auto loadDeps = [&] (const std::string& type)
 			{
 				for (const auto& dependency : metaData->GetEntries(type))
 				{
+					{
+						std::string constraintError;
+						auto constraintResult = constraintsComponent->MatchConstraint(dependency.second, &constraintError);
+
+						if (constraintResult != fx::ConstraintMatchResult::NoConstraint)
+						{
+							if (constraintResult == fx::ConstraintMatchResult::Fail)
+							{
+								errorList.push_back(constraintError);
+								success = false;
+							}
+
+							continue;
+						}
+					}
+
 					fwRefContainer<fx::Resource> other = manager->GetResource(dependency.second);
 
 					if (!other.GetRef())
@@ -64,7 +85,26 @@ static InitFunction initFunction([]()
 				return true;
 			};
 
-			return loadDeps("dependency") && loadDeps("dependencie"); // dependencies without s
+			bool innerSuccess = loadDeps("dependency") && loadDeps("dependencie"); // dependencies without s
+
+			if (!innerSuccess || !success)
+			{
+				if (!errorList.empty())
+				{
+					trace("Resource '%s' can't run:\n", resource->GetName());
+					int i = 1;
+
+					for (const auto& error : errorList)
+					{
+						trace("% 3d. %s\n", i, error);
+						++i;
+					}
+				}
+
+				return false;
+			}
+
+			return true;
 		}, -9999);
 
 		resource->OnStart.Connect([=]()
