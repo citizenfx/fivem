@@ -10,8 +10,13 @@
 #include <ScriptEngine.h>
 #include <scrEngine.h>
 
+#ifdef GTA_FIVE
 #define DEFAULT_APP_ID "382624125287399424"
 #define DEFAULT_APP_ASSET "fivem_large"
+#elif defined(IS_RDR3)
+#define DEFAULT_APP_ID "879627773839278110"
+#define DEFAULT_APP_ASSET "redm_large"
+#endif
 #define DEFAULT_APP_ASSET_SMALL ""
 #define DEFAULT_APP_ASSET_TEXT ""
 #define DEFAULT_APP_ASSET_SMALL_TEXT ""
