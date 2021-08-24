@@ -140,9 +140,6 @@
 [submodule "vendor/cpp-url"]
 	path = vendor/cpp-url
 	url = https://github.com/cpp-netlib/url.git
-[submodule "vendor/win2d"]
-	path = vendor/win2d
-	url = https://github.com/citizenfx/Win2D.git
 [submodule "vendor/uvw"]
 	path = vendor/uvw
 	url = https://github.com/citizenfx/uvw.git

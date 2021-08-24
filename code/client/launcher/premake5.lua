@@ -56,8 +56,6 @@ local function launcherpersonality_inner(name, aslr)
 		links { "SharedLibc", "dbghelp", "psapi", "comctl32", "breakpad", "wininet", "winhttp", "crypt32" }
 		
 		if isLauncherPersonality(name) then
-			links "Win2D"
-			
 			add_dependencies { 'vendor:minhook-crt' }
 		else
 			targetextension '.bin'
@@ -232,14 +230,3 @@ project 'CitiLaunch_TLSDummy'
 	files {
 		'DummyVariables.cpp'
 	}
-
-externalproject "Win2D"
-	if os.getenv('COMPUTERNAME') ~= 'AVALON' and not os.getenv('CI') then
-		filename "../../../vendor/win2d/winrt/lib/winrt.lib.uap"
-	else
-		filename "../../vendor/win2d/winrt/lib/winrt.lib.uap"
-	end
-	uuid "26b85b6e-3520-42b5-adb6-971010cc99fa"
-	kind "StaticLib"
-	language "C++"
-	
