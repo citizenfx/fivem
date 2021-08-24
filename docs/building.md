@@ -13,7 +13,7 @@ To build FiveM, RedM or FXServer on Windows you need the following dependencies:
   
 * [PowerShell 7](https://aka.ms/powershell-release?tag=stable) or higher.
 * [Boost 1.71.0](https://boostorg.jfrog.io/artifactory/main/release/1.71.0/source/boost_1_71_0.7z), extracted to a path defined by the environment variable `BOOST_ROOT`.
-* [Python 2.7.x](https://python.org/) in your PATH as `python`. This is still Python 2 due to a dependency on Mozilla `xpidl`, which hasn't been updated to a Python 3-compatible version, as well as Chromium build tools.
+* [Python 3.8 or higher](https://python.org/) with the `py` launcher installed.
 * [MSYS2](https://www.msys2.org/) at `C:\msys64\` which is where the installer places it.
 * [Node.js](https://nodejs.org/en/download/) and [Yarn](https://classic.yarnpkg.com/en/docs/install/) in your PATH as `node` and `yarn`.
 
