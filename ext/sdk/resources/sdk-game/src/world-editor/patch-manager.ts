@@ -111,10 +111,6 @@ export class PatchManager {
 }
 
 function applyMapdataPatch(mapdata: number, entity: number, mat: Float32Array | number[]) {
-  if (!activeMapdatas[mapdata]) {
-    return;
-  }
-
   const md = GetMapdataFromHashKey(mapdata);
   const ent = GetEntityIndexFromMapdata(md, entity);
 
