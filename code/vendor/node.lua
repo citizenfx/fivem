@@ -187,7 +187,8 @@ return {
 
 		filter 'files:vendor/node_js2c.py'
 			buildcommands {
-				('python %s %s'):format(
+				('%s %s %s'):format(
+					pythonExecutable,
 					path.getabsolute('vendor/node_js2c.py'),
 					path.getabsolute('../vendor/node/')
 				)
@@ -206,7 +207,8 @@ return {
 		
 		filter 'files:vendor/node_inspector.py'
 			buildcommands {
-				('python %s %s'):format(
+				('%s %s %s'):format(
+					pythonExecutable,
 					path.getabsolute('vendor/node_inspector.py'),
 					path.getabsolute('../vendor/node/')
 				)
