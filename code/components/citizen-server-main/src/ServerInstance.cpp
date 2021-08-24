@@ -170,10 +170,7 @@ namespace fx
 				{
 					if (bit.Count() > 0)
 					{
-						if (bit[0] == "exec")
-						{
-							execList.push(bit[1]);
-						}
+						execContext->ExecuteSingleCommandDirect(bit);
 					}
 				}
 
