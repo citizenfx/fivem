@@ -1462,12 +1462,12 @@ std::map<std::string, std::string> UpdateGameCache()
 	// 1311/1355/1436 toggle
 	if (IsTargetGameBuild<1436>())
 	{
-		g_requiredEntries.push_back({ "RDR2.exe", "af5c7ac8e0364b9f16dd56038514b2b6183a856b", "ipfs://bafybeigxlkqrdkwepcj3svowxfrnkucznuli4ui4xmjxazpl7dp4vhf5my", 89612184 });
-		g_requiredEntries.push_back({ "appdata0_update.rpf", "40c389093bb843235119cf0aaffdc020beba493d", "ipfs://bafybeigobeu5yeiobdsobl3ln6em2djq3dyfq7uqx4z6sq7prpkjlludze", 3164575 });
+		g_requiredEntries.push_back({ "RDR2.exe", "3c7a863dd71ee4dc66b3ee2f031616c53ceb5090", "ipfs://bafybeigsscjuvgk7bz4hryhxrphzmchrrg4trsise2bbvq3utqdryqyddy", 89830808 });
+		g_requiredEntries.push_back({ "appdata0_update.rpf", "9d1d6bbe5aa65adf030ec38c5ab9ecc082840207", "ipfs://bafybeifjzvqpiybxsqvukwa6upnddkgoccsl5okg3hgvw3yyzxz7vca7f4", 3164575 });
 		g_requiredEntries.push_back({ "shaders_x64.rpf", "f4f06c18701d66958eb6f0ac243c8467033b864b", "ipfs://bafybeihfgavfbsihf65dtv6vyipphbcfrrytcj53hulzkoy7nonpwh4h74", 233898030 });
-		g_requiredEntries.push_back({ "update_1.rpf", "e623e54e3e1dd938a84de780d331a939446e4ba0", "ipfs://bafybeiab4wxjx6gynce2za7tkztgdkthiyos4n2t5hbknzh5cts2eemrgq", 2836982634 });
-		g_requiredEntries.push_back({ "update_2.rpf", "e8a1cb04c4c8b4aba5b0a311a6a1e8d547393da4", "ipfs://bafybeiase5grglqhkivcifcllk6tvr2csc4befvtsyej6aph4xb65eyxhi", 152008398 });
-		g_requiredEntries.push_back({ "update_3.rpf", "b7035ca49f70ed0fc79d6f5690376c5b49784d21", "ipfs://bafybeihuvd6hkn6ba75d6xs3o2ecj5q5pkve7yuhf4jox4uhnu3bfq7awq", 132374108 });
+		g_requiredEntries.push_back({ "update_1.rpf", "0853366e69b29daf01c05d643557e75d610933e7", "ipfs://bafybeihk27hp3wz3ud4pzlyobloievuk3xrntxhl26exec3pgrhlplnmly", 2836982634 });
+		g_requiredEntries.push_back({ "update_2.rpf", "3550ce534b2997306ae1bc13fc3abeec4573389f", "ipfs://bafybeiaum2y7k6gzsde2xwlstdidcp5vyb6vyqgl5djkwjpb4uesvz2fde", 152008462 });
+		g_requiredEntries.push_back({ "update_3.rpf", "5f2f26d9eb31f51a21a15f6466814c289906ca35", "ipfs://bafybeic6gss2v42cuc2xol23lc6s36rgoqnmeuuzf72z4wuxdwda4svvf4", 132374108 });
 		g_requiredEntries.push_back({ "update_4.rpf", "39ca2bbb7a0ab8d8e09288ca8783b91654c9b91b", "ipfs://bafybeiefr5ayhajox2zcfwrkjvhoqt7c4ebcfiaxr3grjtrtvefd4en3fy", 2014659811 });
 	}
 	else if (IsTargetGameBuild<1355>())
