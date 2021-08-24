@@ -18,8 +18,7 @@
 	url = https://github.com/citizenfx/breakpad.git
 [submodule "vendor/udis86"]
 	path = vendor/udis86
-	url = https://github.com/vmt/udis86.git
-	branch = master
+	url = https://github.com/citizenfx/udis86.git
 [submodule "vendor/tinyxml2"]
 	path = vendor/tinyxml2
 	url = https://github.com/leethomason/tinyxml2.git
