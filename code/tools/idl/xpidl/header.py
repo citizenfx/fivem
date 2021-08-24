@@ -10,7 +10,7 @@
 import sys
 import os.path
 import re
-import xpidl
+from xpidl import xpidl
 import itertools
 import glob
 
@@ -371,7 +371,7 @@ def write_interface(iface, fd):
 
     names = uuid_decoder.match(iface.attributes.uuid).groupdict()
     m3str = names['m3'] + names['m4']
-    names['m3joined'] = ", ".join(["0x%s" % m3str[i:i+2] for i in xrange(0, 16, 2)])
+    names['m3joined'] = ", ".join(["0x%s" % m3str[i:i+2] for i in range(0, 16, 2)])
 
     if iface.name[2] == 'I':
         implclass = iface.name[:2] + iface.name[3:]

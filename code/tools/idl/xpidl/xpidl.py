@@ -12,6 +12,7 @@ import os.path
 import re
 from ply import lex
 from ply import yacc
+import six
 
 """A type conforms to the following pattern:
 
@@ -36,7 +37,7 @@ def attlistToIDL(attlist):
         return ''
 
     attlist = list(attlist)
-    attlist.sort(cmp=lambda a, b: cmp(a[0], b[0]))
+    attlist.sort(key=lambda a: a[0])
 
     return '[%s] ' % ','.join(["%s%s" % (name, value is not None and '(%s)' % value or '')
                               for name, value, aloc in attlist])
@@ -173,7 +174,7 @@ class Location(object):
 
     def pointerline(self):
         def i():
-            for i in xrange(0, self._colno):
+            for i in range(0, self._colno):
                 yield " "
             yield "^"
 
@@ -201,7 +202,7 @@ class NameMap(object):
         return self._d[key]
 
     def __iter__(self):
-        return self._d.itervalues()
+        return six.itervalues(self._d)
 
     def __contains__(self, key):
         return key in builtinMap or key in self._d
@@ -238,8 +239,14 @@ class IDLError(Exception):
         self.warning = warning
 
     def __str__(self):
-        return "%s: %s, %s" % (self.warning and 'warning' or 'error',
-                               self.message, self.location)
+        try:
+            return "%s: %s, %s" % (
+                self.warning and "warning" or "error",
+                self.message,
+                self.location,
+            )
+        except Exception as e:
+            return "IDLError.__str__ -> %s" % str(e)
 
 
 class Include(object):
@@ -262,7 +269,7 @@ class Include(object):
             if not os.path.exists(file):
                 continue
 
-            self.IDL = parent.parser.parse(open(file).read(), filename=file)
+            self.IDL = parent.parser.parse(open(file, encoding='utf-8').read(), filename=file)
             self.IDL.resolve(parent.incdirs, parent.parser)
             for type in self.IDL.getNames():
                 parent.setName(type)
@@ -374,10 +381,10 @@ class Forward(object):
         # Hack alert: if an identifier is already present, move the doccomments
         # forward.
         if parent.hasName(self.name):
-            for i in xrange(0, len(parent.productions)):
+            for i in range(0, len(parent.productions)):
                 if parent.productions[i] is self:
                     break
-            for i in xrange(i + 1, len(parent.productions)):
+            for i in range(i + 1, len(parent.productions)):
                 if hasattr(parent.productions[i], 'doccomments'):
                     parent.productions[i].doccomments[0:0] = self.doccomments
                     break
@@ -517,7 +524,7 @@ class Interface(object):
         if self.attributes.function:
             has_method = False
             for member in self.members:
-                if member.kind is 'method':
+                if member.kind == 'method':
                     if has_method:
                         raise IDLError("interface '%s' has multiple methods, but marked 'function'" % self.name, self.location)
                     else:
@@ -998,9 +1005,9 @@ class Param(object):
 
         try:
             return self.realtype.nativeType(self.paramtype, **kwargs)
-        except IDLError, e:
+        except IDLError as e:
             raise IDLError(e.message, self.location)
-        except TypeError, e:
+        except TypeError as e:
             raise IDLError("Unexpected parameter attribute", self.location)
 
     def toIDL(self):
@@ -1222,7 +1229,7 @@ class IDLParser(object):
             # forward-declared interface... must not have attributes!
             if len(attlist) != 0:
                 raise IDLError("Forward-declared interface must not have attributes",
-                               list[0][3])
+                               attlist[0][3])
 
             if base is not None:
                 raise IDLError("Forward-declared interface must not have a base",
@@ -1456,5 +1463,5 @@ class IDLParser(object):
 if __name__ == '__main__':
     p = IDLParser()
     for f in sys.argv[1:]:
-        print "Parsing %s" % f
-        p.parse(open(f).read(), filename=f)
+        print("Parsing %s" % f)
+        p.parse(open(f, encoding='utf-8').read(), filename=f)
