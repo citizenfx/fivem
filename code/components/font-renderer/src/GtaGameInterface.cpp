@@ -456,6 +456,11 @@ static InitFunction initFunction([] ()
 				{
 					brandName += L" (b1355)";
 				}
+
+				if (Is1436())
+				{
+					brandName += L" (b1436)";
+				}
 #endif
 
 #if defined(GTA_NY)

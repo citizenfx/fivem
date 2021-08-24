@@ -29,8 +29,6 @@
 
 #include <tbb/concurrent_queue.h>
 
-#include <CrossBuildRuntime.h>
-
 #include <ResourceManager.h>
 #include <StateBagComponent.h>
 #include <IteratorView.h>
@@ -1193,7 +1191,6 @@ bool CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 
 	AssociateSyncTree(obj->GetObjectId(), syncTree);
 
-
 #ifdef IS_RDR3
 	auto check = syncTree->m_18(obj, -1);
 	auto canSync = obj->CanSyncWithNoGameObject();
@@ -2215,7 +2212,7 @@ static hook::cdecl_stub<void(rage::netObjectMgr*, rage::netObject*)> _processRem
 #ifdef GTA_FIVE
 	return hook::get_pattern("39 42 74 75 12 39 42 70 75 0D", -0x11);
 #elif IS_RDR3
-	return hook::get_pattern("74 ? F6 42 48 01 74 ? 45 8B C2 48", -0xD);
+	return hook::get_call(hook::get_pattern("48 8B 7F 10 45 84 FF 74 ? 48 8B D6 ? 8B ? E8", 0xF));
 #endif
 });
 

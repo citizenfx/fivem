@@ -116,6 +116,25 @@ inline bool Is1355()
 
 	return false;
 }
+
+inline bool Is1436()
+{
+#ifdef IS_RDR3
+	static bool retval = ([]()
+	{
+		if (wcsstr(GetCommandLineW(), L"b1436") != nullptr)
+		{
+			return true;
+		}
+
+		return false;
+	})();
+
+	return retval;
+#endif
+
+	return false;
+}
 #pragma endregion
 
 namespace xbr
@@ -150,6 +169,11 @@ inline int GetGameBuild()
 #elif IS_RDR3
 	static int build = ([]()
 	{
+		if (Is1436())
+		{
+			return 1436;
+		}
+
 		if (Is1355())
 		{
 			return 1355;

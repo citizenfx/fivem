@@ -12,7 +12,7 @@ struct netObject
 	char pad[64]; // +0
 	uint16_t objectType; // +64
 	uint16_t objectId; // +66
-	char pad2[1]; // +68 
+	char pad2[1]; // +68
 	uint8_t ownerId; // +69
 	uint8_t nextOwnerId; // +70
 	bool isRemote; // +71
@@ -91,7 +91,7 @@ static hook::cdecl_stub<void(fwEntity*)> deleteObject([]()
 
 static hook::cdecl_stub<void(netObject*, bool)> sendMarkAsNoLongerNeededEvent([]()
 {
-	return hook::get_pattern("49 8B 04 C0 40 84 34 01 0F 84", -47);
+	return hook::get_pattern("48 89 5C 24 08 88 54 24 10 55 56 57 48");
 });
 
 static hook::cdecl_stub<void(fwEntity*, bool)> markAsNoLongerNeeded([]()

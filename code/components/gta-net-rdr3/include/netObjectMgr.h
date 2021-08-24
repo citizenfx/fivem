@@ -1,6 +1,7 @@
 #pragma once
 
 #include <netObject.h>
+#include <CrossBuildRuntime.h>
 
 class CNetGamePlayer;
 
@@ -11,21 +12,48 @@ class netObjectMgr
 public:
 	virtual ~netObjectMgr() = 0;
 
-	virtual void m_8() = 0; // GetObjectIDManagerForPlayer
-	virtual void Initialize() = 0;
-	virtual void Shutdown() = 0;
-	virtual void Update() = 0;
+private:
+	template<typename TMember>
+	inline static TMember get_member(void* ptr)
+	{
+		union member_cast
+		{
+			TMember function;
+			struct
+			{
+				void* ptr;
+				uintptr_t off;
+			};
+		};
 
-	virtual void AddEntity() = 0; // RegisterObject
-	virtual void m_28() = 0; // UnregisterObject
-	virtual void UnregisterNetworkObject(rage::netObject* object, int reason, bool force1, bool force2) = 0;
-	virtual void ChangeOwner(rage::netObject* object, CNetGamePlayer* player, int migrationType) = 0;
-	virtual void m_40() = 0; // PlayerHasJoined
-	virtual void m_48() = 0; // PlayerHasLeft
-	virtual void m_50_1311() = 0; // added in 1311
-	virtual void m_50() = 0;
-	virtual void m_58() = 0;
-	virtual void RegisterNetworkObject(rage::netObject* entity) = 0;
+		member_cast cast;
+		cast.ptr = ptr;
+		cast.off = 0;
+
+		return cast.function;
+	}
+
+#define FORWARD_FUNC(name, offset, ...)    \
+	using TFn = decltype(&netObjectMgr::name); \
+	void** vtbl = *(void***)(this);        \
+	return (this->*(get_member<TFn>(vtbl[(offset / 8) + ((offset > 0x68) ? (xbr::IsGameBuildOrGreater<1436>() ? 1 : 0) : 0)])))(__VA_ARGS__);
+
+public:
+	inline void UnregisterNetworkObject(rage::netObject* object, int reason, bool force1, bool force2)
+	{
+		FORWARD_FUNC(UnregisterNetworkObject, 0x38, object, reason, force1, force2);
+	}
+
+	inline void ChangeOwner(rage::netObject* object, CNetGamePlayer* player, int migrationType)
+	{
+		FORWARD_FUNC(ChangeOwner, 0x40, object, player, migrationType);
+	}
+
+	inline void RegisterNetworkObject(rage::netObject* entity)
+	{
+		// in 1436 R* added 1 more method right before RegisterNetworkObject
+		FORWARD_FUNC(RegisterNetworkObject, 0x70, entity);
+	}
 
 private:
 	struct atDNetObjectNode
