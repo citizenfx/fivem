@@ -63,6 +63,8 @@
     "#Settings_UseAudioFrameLimiterDesc": "Fix hitches at high frame rates by disabling rage::g_audUseFrameLimiter",
     "#Settings_HandbrakeCamera": "Handbrake camera",
     "#Settings_HandbrakeCameraDesc": "Automatically recenter the vehicle-follow camera when using the handbrake",
+    "#Settings_CameraShake": "Disable camera shake",
+    "#Settings_CameraShakeDesc": "Disables third person camera shake while running or driving a vehicle.",
     "#Settings_QueriesPerMinute": "Server browser: Max pings / minute",
     "#Settings_CustomEmoji": "Custom FiveM watermark emoji",
     "#Settings_CustomEmojiDesc": "An emoji to show in the FiveM watermark.",
