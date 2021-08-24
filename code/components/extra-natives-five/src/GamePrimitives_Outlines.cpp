@@ -29,76 +29,35 @@ struct CEntityDrawHandler
 
 static rage::grcRenderTarget *maskRenderTarget, *tempRenderTarget;
 
-#define M_PI 3.14159265358979323846
-#define M_E 2.71828182845904523536
-
-static float Gauss(float x, float stdDev)
-{
-	auto stdDev2 = stdDev * stdDev * 2;
-	auto a = 1 / sqrtf(M_PI * stdDev2);
-	auto gauss = a * powf(M_E, -x * x / stdDev2);
-
-	return gauss;
-}
-
 // for entity prototypes
 static int* currentShader;
 static int* g_currentDrawBucket;
 
-static CRGBA outlineColor{255, 0, 255, 255};
+static CRGBA outlineColor{ 255, 0, 255, 255 };
 
-static int screenSize, intensity, width, color, gaussSamples;
-static int mainTex, maskTex;
-static int h, v;
-static rage::grmShaderFx* shader;
-
-static void DrawScreenSpace()
+class OutlineRenderer
 {
-	float screenSizeF[2] = { 1.0f / (float)GetViewportW(), 1.0f / (float)GetViewportH() };
-	shader->SetParameter(screenSize, screenSizeF, 8, 1);
-
-	int widthF = 30;
-	shader->SetParameter(width, &widthF, 4, 1);
-
-	float colorF[4] = {
-		outlineColor.red / 255.0f,
-		outlineColor.green / 255.0f,
-		outlineColor.blue / 255.0f,
-		1.0f
-	};
-	shader->SetParameter(color, colorF, 16, 1);
-
-	static float gaussSamplesF[32] = { 0.f };
-	static int lastGaussWidth;
-
-	if (lastGaussWidth != widthF)
+public:
+	bool Initialized()
 	{
-		for (int i = 0; i < widthF; i++)
-		{
-			gaussSamplesF[i] = Gauss((float)i, widthF * 0.5f);
-		}
-
-		lastGaussWidth = widthF;
+		return initialized;
 	}
 
-	shader->SetParameter(gaussSamples, gaussSamplesF, 16, (32 * 4) / 16);
+	virtual void Setup() = 0;
+	virtual void DrawScreenSpace() = 0;
 
-	float intensityF = 55.f;
-	shader->SetParameter(intensity, &intensityF, 4, 1);
+	void Init()
+	{
+		if (LoadShader(GetShaderName()))
+		{
+			Setup();
+		}
+	}
 
-	shader->SetSampler(maskTex, maskRenderTarget);
-	shader->SetSampler(mainTex, maskRenderTarget);
+protected:
+	virtual const char* GetShaderName() = 0;
 
-	rage::grcTextureFactory::getInstance()->PushRenderTarget(nullptr, tempRenderTarget, nullptr, 0, true, 0);
-	ClearRenderTarget(true, 0, false, 0.0f, false, 0);
-
-	auto lastZ = GetDepthStencilState();
-	SetDepthStencilState(GetStockStateIdentifier(DepthStencilStateNoDepth));
-
-	auto lastBlend = GetBlendState();
-	SetBlendState(GetStockStateIdentifier(BlendStateDefault));
-
-	auto drawQuad = []()
+	inline void DrawQuad()
 	{
 		rage::grcBegin(4, 4);
 
@@ -110,26 +69,307 @@ static void DrawScreenSpace()
 		rage::grcVertex(1.0f, 1.0f, 0.0f, 0.0f, 0.0f, -1.0f, color, 1.0f, 0.0f);
 
 		rage::grcEnd();
-	};
+	}
 
-	shader->PushTechnique(h, true, 0);
-	shader->PushPass(0);
-	drawQuad();
-	shader->PopPass();
-	shader->PopTechnique();
+	inline void DrawQuadUsingTechnique(int technique)
+	{
+		shader->PushTechnique(technique, true, 0);
+		shader->PushPass(0);
 
-	rage::grcTextureFactory::getInstance()->PopRenderTarget(nullptr, nullptr);
+		DrawQuad();
 
-	shader->SetSampler(mainTex, tempRenderTarget);
+		shader->PopPass();
+		shader->PopTechnique();
+	}
 
-	shader->PushTechnique(v, true, 0);
-	shader->PushPass(0);
-	drawQuad();
-	shader->PopPass();
-	shader->PopTechnique();
+	inline void SetScreenSize(int parameter)
+	{
+		float screenSizeF[2] = { 1.0f / (float)GetViewportW(), 1.0f / (float)GetViewportH() };
+		shader->SetParameter(parameter, screenSizeF, 8, 1);
+	}
 
-	SetDepthStencilState(lastZ);
-	SetBlendState(lastBlend);
+	inline void StoreState()
+	{
+		storedStencilState = GetDepthStencilState();
+		SetDepthStencilState(GetStockStateIdentifier(DepthStencilStateNoDepth));
+
+		storedBlendState = GetBlendState();
+		SetBlendState(GetStockStateIdentifier(BlendStateDefault));
+	}
+
+	inline void RestoreState()
+	{
+		SetDepthStencilState(storedStencilState);
+		SetBlendState(storedBlendState);
+	}
+
+	inline void PushRenderTarget(rage::grcRenderTarget* renderTarget)
+	{
+		rage::grcTextureFactory::getInstance()->PushRenderTarget(nullptr, renderTarget, nullptr, 0, true, 0);
+	}
+
+	inline void PopRenderTarget()
+	{
+		rage::grcTextureFactory::getInstance()->PopRenderTarget(nullptr, nullptr);
+	}
+
+	inline void SetColorNoAlpha(int parameter)
+	{
+		float colorF[4] = {
+			outlineColor.red / 255.0f,
+			outlineColor.green / 255.0f,
+			outlineColor.blue / 255.0f,
+			1.0f
+		};
+		
+		SetColor(parameter, colorF);
+	}
+
+	inline void SetColor(int parameter)
+	{
+		float colorF[4] = {
+			outlineColor.red / 255.0f,
+			outlineColor.green / 255.0f,
+			outlineColor.blue / 255.0f,
+			outlineColor.alpha / 255.0f,
+		};
+		
+		SetColor(parameter, colorF);
+	}
+
+	inline void SetColor(int parameter, const float* colorF)
+	{
+		shader->SetParameter(parameter, colorF, 4 * sizeof(float), 1);
+	}
+
+	bool LoadShader(const char* name)
+	{
+		rage::fiAssetManager::GetInstance()->PushFolder("citizen:/shaderz/");
+		shader = rage::grmShaderFactory::GetInstance()->Create();
+
+		if (!shader->LoadTechnique(name, nullptr, false))
+		{
+			shader = nullptr;
+		}
+
+		rage::fiAssetManager::GetInstance()->PopFolder();
+
+		initialized = shader != nullptr;
+
+		return initialized;
+	}
+
+protected:
+	bool initialized = false;
+	rage::grmShaderFx* shader;
+
+private:
+	int storedStencilState, storedBlendState;
+};
+
+class GaussOutlineRenderer : public OutlineRenderer
+{
+protected:
+	virtual const char* GetShaderName() override
+	{
+		return "outlinez";
+	}
+
+public:
+	virtual void Setup() override
+	{
+		screenSize = shader->GetParameter("ScreenSize");
+		intensity = shader->GetParameter("Intensity");
+		width = shader->GetParameter("Width");
+		color = shader->GetParameter("Color");
+		gaussSamples = shader->GetParameter("GaussSamples");
+
+		mainTex = shader->GetParameter("MainTexSampler");
+		maskTex = shader->GetParameter("MaskTexSampler");
+
+		h = shader->GetTechnique("h");
+		v = shader->GetTechnique("v");
+
+		for (int i = 0; i < m_width; i++)
+		{
+			m_gaussSamples[i] = Gauss((float)i, m_width * 0.5f);
+		}
+	}
+
+	virtual void DrawScreenSpace() override
+	{
+		SetScreenSize(screenSize);
+		SetColorNoAlpha(color);
+
+		shader->SetParameter(width, &m_width, sizeof(m_width), 1);
+		shader->SetParameter(intensity, &m_intensity, sizeof(m_intensity), 1);
+		shader->SetParameter(gaussSamples, m_gaussSamples, sizeof(m_gaussSamples), 1);
+
+		shader->SetSampler(maskTex, maskRenderTarget);
+		shader->SetSampler(mainTex, maskRenderTarget);
+
+		StoreState();
+
+		PushRenderTarget(tempRenderTarget);
+		ClearRenderTarget(true, 0, false, 0.0f, false, 0);
+
+		DrawQuadUsingTechnique(h);
+
+		PopRenderTarget();
+
+
+		shader->SetSampler(mainTex, tempRenderTarget);
+
+		DrawQuadUsingTechnique(v);
+
+
+		RestoreState();
+	}
+
+	static float Gauss(float x, float stdDev)
+	{
+		auto stdDev2 = stdDev * stdDev * 2;
+		auto a = 1 / sqrtf(3.14159265358979323846 * stdDev2);
+		auto gauss = a * powf(2.71828182845904523536, -x * x / stdDev2);
+
+		return gauss;
+	}
+
+private:
+	float m_intensity = 55.f;
+	float m_gaussSamples[32] = { .0f };
+	int m_width = 30;
+
+	int screenSize, intensity, width, color, gaussSamples;
+
+	int mainTex, maskTex;
+
+	int h, v;
+};
+
+class FirmOutlineRenderer : public OutlineRenderer
+{
+protected:
+	virtual const char* GetShaderName() override
+	{
+		return "outlinez_firm";
+	}
+
+public:
+	virtual void Setup() override
+	{
+		screenSize = shader->GetParameter("ScreenSize");
+		width = shader->GetParameter("Width");
+		color = shader->GetParameter("Color");
+
+		mainTex = shader->GetParameter("MainTexSampler");
+		maskTex = shader->GetParameter("MaskTexSampler");
+
+		h = shader->GetTechnique("h");
+		v = shader->GetTechnique("v");
+	}
+
+	virtual void DrawScreenSpace() override
+	{
+		SetScreenSize(screenSize);
+		SetColor(color);
+
+		shader->SetParameter(width, &m_width, sizeof(m_width), 1);
+
+		shader->SetSampler(maskTex, maskRenderTarget);
+		shader->SetSampler(mainTex, maskRenderTarget);
+
+		StoreState();
+
+		PushRenderTarget(tempRenderTarget);
+		ClearRenderTarget(true, 0, false, 0.0f, false, 0);
+
+		DrawQuadUsingTechnique(h);
+
+		PopRenderTarget();
+
+
+		shader->SetSampler(mainTex, tempRenderTarget);
+
+		DrawQuadUsingTechnique(v);
+
+
+		RestoreState();
+	}
+
+private:
+	int m_width = 2;
+
+	int screenSize, width, color;
+
+	int mainTex, maskTex;
+
+	int h, v;
+};
+
+class MaskRenderer : public OutlineRenderer
+{
+protected:
+	virtual const char* GetShaderName() override
+	{
+		return "outlinez_mask";
+	}
+
+public:
+	virtual void Setup() override
+	{
+		screenSize = shader->GetParameter("ScreenSize");
+		color = shader->GetParameter("Color");
+
+		maskTex = shader->GetParameter("MaskTexSampler");
+
+		v = shader->GetTechnique("v");
+	}
+
+	virtual void DrawScreenSpace() override
+	{
+		SetScreenSize(screenSize);
+		SetColor(color);
+
+		shader->SetSampler(maskTex, maskRenderTarget);
+
+		StoreState();
+
+		DrawQuadUsingTechnique(v);
+
+		RestoreState();
+	}
+
+private:
+	int screenSize, color;
+
+	int maskTex;
+
+	int v;
+};
+
+static int g_renderer = 0;
+static std::vector<OutlineRenderer*> g_renderers = {
+	new GaussOutlineRenderer(),
+	new FirmOutlineRenderer(),
+	new MaskRenderer(),
+};
+
+inline static OutlineRenderer* GetRenderer()
+{
+	auto renderer = g_renderers[g_renderer];
+
+	if (renderer->Initialized()) {
+		return renderer;
+	}
+
+	for (auto rendererVariant : g_renderers) {
+		if (rendererVariant->Initialized()) {
+			return rendererVariant;
+		}
+	}
+
+	return nullptr;
 }
 
 static hook::cdecl_stub<int(const char*)> _getTechniqueDrawName([]()
@@ -159,37 +399,15 @@ static InitFunction initFunctionBuffers([]()
 
 		static auto init = ([]()
 		{
-			rage::fiAssetManager::GetInstance()->PushFolder("citizen:/shaderz/");
-			shader = rage::grmShaderFactory::GetInstance()->Create();
-
-			if (!shader->LoadTechnique("outlinez", nullptr, false))
+			for (auto renderer : g_renderers)
 			{
-				shader = nullptr;
+				renderer->Init();
 			}
-
-			rage::fiAssetManager::GetInstance()->PopFolder();
-
-			if (!shader)
-			{
-				return false;
-			}
-
-			screenSize = shader->GetParameter("ScreenSize");
-			intensity = shader->GetParameter("Intensity");
-			width = shader->GetParameter("Width");
-			color = shader->GetParameter("Color");
-			gaussSamples = shader->GetParameter("GaussSamples");
-
-			mainTex = shader->GetParameter("MainTexSampler");
-			maskTex = shader->GetParameter("MaskTexSampler");
-
-			h = shader->GetTechnique("h");
-			v = shader->GetTechnique("v");
 
 			return true;
 		})();
 
-		if (!init)
+		if (!GetRenderer())
 		{
 			return;
 		}
@@ -263,7 +481,11 @@ static InitFunction initFunctionBuffers([]()
 		{
 			rage::grcTextureFactory::getInstance()->PopRenderTarget(nullptr, nullptr);
 
-			DrawScreenSpace();
+			auto renderer = GetRenderer();
+			if (renderer)
+			{
+				renderer->DrawScreenSpace();
+			}
 		},
 		&a, &b);
 	});
@@ -323,6 +545,21 @@ static HookFunction hookFunction([]()
 
 static InitFunction initFunctionScriptBind([]()
 {
+	fx::ScriptEngine::RegisterNativeHandler("SET_ENTITY_DRAW_OUTLINE_COLOR", [](fx::ScriptContext& context)
+	{
+		outlineColor.red = std::clamp(context.GetArgument<int>(0), 0, 255);
+		outlineColor.green = std::clamp(context.GetArgument<int>(1), 0, 255);
+		outlineColor.blue = std::clamp(context.GetArgument<int>(2), 0, 255);
+		outlineColor.alpha = std::clamp(context.GetArgument<int>(3), 0, 255);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_ENTITY_DRAW_OUTLINE_SHADER", [](fx::ScriptContext& context)
+	{
+		int shader = std::clamp(context.GetArgument<int>(0), 0, (int)(g_renderers.size() - 1));
+
+		g_renderer = shader;
+	});
+
 	fx::ScriptEngine::RegisterNativeHandler("SET_ENTITY_DRAW_OUTLINE", [](fx::ScriptContext& context)
 	{
 		int entityHandle = context.GetArgument<int>(0);

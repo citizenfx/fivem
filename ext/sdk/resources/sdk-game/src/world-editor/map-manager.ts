@@ -18,6 +18,8 @@ import { SettingsManager } from "./settings-manager";
 import { drawDebugText, invokeWEApi, invokeWEApiBackend, invokeWEApiBroadcast, onWEApi } from "./utils";
 import { PatchManager, UpdateOrCreateResult } from "./patch-manager";
 
+type NativeVector3 = [number, number, number];
+
 export const MapManager = new class MapManager {
   private enabled = true;
 
@@ -241,28 +243,24 @@ export const MapManager = new class MapManager {
   }
 
   private drawBoundingBox(entity: number) {
-    const pos = GetEntityCoords(entity);
-    const [_min, _max] = GetModelDimensions(GetEntityModel(entity));
+    const [min, max] = GetModelDimensions(GetEntityModel(entity)) as [NativeVector3, NativeVector3];
 
-    const min = [_min[0] + pos[0], _min[1] + pos[1], _min[2] + pos[2]];
-    const max = [_max[0] + pos[0], _max[1] + pos[1], _max[2] + pos[2]];
-
-    const AF = min;
+    const AF = translateEntityCoords(entity, min);
     // drawTextAt('AF', AF);
-    const BF = [min[0], min[1], max[2]];
+    const BF = translateEntityCoords(entity, [min[0], min[1], max[2]]);
     // drawTextAt('BF', BF);
-    const CF = [min[0], max[1], max[2]];
+    const CF = translateEntityCoords(entity, [min[0], max[1], max[2]]);
     // drawTextAt('CF', CF);
-    const DF = [min[0], max[1], min[2]];
+    const DF = translateEntityCoords(entity, [min[0], max[1], min[2]]);
     // drawTextAt('DF', DF);
 
-    const AB = [max[0], min[1], min[2]];
+    const AB = translateEntityCoords(entity, [max[0], min[1], min[2]]);
     // drawTextAt('AB', AB);
-    const BB = [max[0], min[1], max[2]];
+    const BB = translateEntityCoords(entity, [max[0], min[1], max[2]]);
     // drawTextAt('BB', BB);
-    const CB = max;
+    const CB = translateEntityCoords(entity, max);
     // drawTextAt('CB', CB);
-    const DB = [max[0], max[1], min[2]];
+    const DB = translateEntityCoords(entity, [max[0], max[1], min[2]]);
     // drawTextAt('DB', DB);
 
     const c = [255, 255, 255, 255];
@@ -459,6 +457,10 @@ function prepareEntityMatrix(mat: Float32Array | WEEntityMatrix): WEEntityMatrix
   return Array.from(mat) as any;
 }
 
-function drawLine(f: [number, number, number] | number[], t: [number, number, number] | number[], c: [number, number, number, number] | number[]) {
+function drawLine(f: NativeVector3 | number[], t: NativeVector3 | number[], c: [number, number, number, number] | number[]) {
   DrawLine(f[0], f[1], f[2], t[0], t[1], t[2], c[0], c[1], c[2], c[3]);
+}
+
+function translateEntityCoords(entity: number, [x, y, z]: NativeVector3): NativeVector3 {
+  return GetOffsetFromEntityInWorldCoords(entity, x, y, z) as NativeVector3;
 }

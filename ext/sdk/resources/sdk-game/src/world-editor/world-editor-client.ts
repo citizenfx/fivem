@@ -4,6 +4,7 @@ import { MapManager } from './map-manager';
 import { PreviewManager } from './preview-manager';
 import { SettingsManager } from './settings-manager';
 import { Playtest } from './playtest';
+import { SelectionController } from './selection-controller';
 
 SettingsManager.preinit();
 CameraManager.preinit();
@@ -11,6 +12,7 @@ MapManager.preinit();
 Playtest.preinit();
 
 setTimeout(() => {
+  SelectionController.init();
   CameraManager.init();
   MapManager.init();
 
@@ -26,12 +28,14 @@ setTimeout(() => {
 }, 0);
 
 on('disconnecting', () => {
+  SelectionController.destroy();
   CameraManager.destroy();
   MapManager.destroy();
 });
 
 on('onResourceStop', (resourceName: string) => {
   if (resourceName === GetCurrentResourceName()) {
+    SelectionController.destroy();
     CameraManager.destroy();
     MapManager.destroy();
   }
