@@ -144,8 +144,6 @@ local function process_dependencies(list, basename, deps, hasDeps)
 			local match = find_match(dep)
 
 			if match and not hasDeps[match.rawName] then
-				print(basename .. ' dependency on ' .. dep .. ' fulfilled by ' .. match.rawName)
-
 				hasDeps[match.rawName] = true
 				table.insert(deps, { dep = match.rawName, data = match })
 

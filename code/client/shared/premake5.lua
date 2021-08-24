@@ -20,7 +20,7 @@
 			
 			add_dependencies { 'vendor:utfcpp' }
 
-			if os.is('windows') then
+			if os.istarget('windows') then
 				links { libc and 'fmtlib-crt' or 'fmtlib' }
 			end
 
