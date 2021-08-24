@@ -21,7 +21,6 @@ export const Playtest = new class Playtest {
   readonly enable = () => {
     MapManager.disable();
     SelectionController.disable();
-    SelectionController.setSelectedEntity(null);
 
     this.savedCam = CameraManager.getCam();
 

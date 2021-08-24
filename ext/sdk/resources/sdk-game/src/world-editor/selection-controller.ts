@@ -11,6 +11,18 @@ export const SelectionController = new class SelectionController {
 
   private selectionChangedEvent = new SingleEventEmitter<[Selection, Selection]>();
 
+  init() {
+    SetEntityDrawOutlineColor(255, 255, 255, 255);
+    SetEntityDrawOutlineShader(1);
+  }
+
+  destroy() {
+    this.resetSelectedEntity();
+
+    SetEntityDrawOutlineColor(255, 0, 255, 255);
+    SetEntityDrawOutlineShader(0);
+  }
+
   onSelectionChanged(cb: (arg: [Selection, Selection]) => void) {
     this.selectionChangedEvent.addListener(cb);
   }
@@ -22,6 +34,8 @@ export const SelectionController = new class SelectionController {
   disable() {
     this.selectStart = 0;
     this.disabled = true;
+
+    this.resetSelectedEntity();
   }
 
   select(active: boolean) {
@@ -44,12 +58,7 @@ export const SelectionController = new class SelectionController {
         this.selectionChangedEvent.emit([selectedEntity, this.selectedEntity]);
       }
 
-      if (this.selectedEntity !== null) {
-        SetEntityDrawOutline(this.selectedEntity, false);
-        ReleaseScriptGuidFromEntity(this.selectedEntity);
-
-        this.selectedEntity = null;
-      }
+      this.resetSelectedEntity();
 
       if (this.selectedEntity !== selectedEntity) {
         this.selectedEntity = selectedEntity;
@@ -64,17 +73,21 @@ export const SelectionController = new class SelectionController {
   }
 
   setSelectedEntity(entity: Selection) {
-    if (this.selectedEntity !== null) {
-      SetEntityDrawOutline(this.selectedEntity, false);
-      ReleaseScriptGuidFromEntity(this.selectedEntity);
-
-      this.selectedEntity = null;
-    }
+    this.resetSelectedEntity();
 
     this.selectedEntity = entity;
 
     if (entity !== null){
       this.draw();
+    }
+  }
+
+  private resetSelectedEntity() {
+    if (this.selectedEntity !== null) {
+      SetEntityDrawOutline(this.selectedEntity, false);
+      ReleaseScriptGuidFromEntity(this.selectedEntity);
+
+      this.selectedEntity = null;
     }
   }
 
