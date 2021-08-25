@@ -271,4 +271,7 @@ static HookFunction hookFunctionNet([]()
 
 	// don't block ped loco for MP peds if not in MP mode (or SP peds if not in SP mode)
 	hook::jump(hook::get_pattern("75 05 83 FB 01 EB 03 83 FB 02", -0x1C), Return1);
+
+	// ignore collision-related archetype flag in /CREATE_OBJECT(_NO_OFFSET)?/
+	hook::nop(hook::get_pattern("8B 48 50 48 C1 E9 11 F6 C1 01 0F 84 ? ? 00 00 45", 10), 6);
 });
