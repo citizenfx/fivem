@@ -213,19 +213,20 @@ if (!$DontBuild)
 	git submodule init
 	git submodule sync
 
+	Push-Location $WorkDir
 	$SubModules = git submodule | ForEach-Object { New-Object PSObject -Property @{ Hash = $_.Substring(1).Split(' ')[0]; Name = $_.Substring(1).Split(' ')[1] } }
 
 	foreach ($submodule in $SubModules) {
 		$SubmodulePath = git config -f .gitmodules --get "submodule.$($submodule.Name).path"
 
-		if (Test-Path $SubmodulePath) {
+		if ((Test-Path $SubmodulePath) -and (Get-ChildItem $SubmodulePath).Length -gt 0) {
 			continue;
 		}
 		
 		Start-Section "update_submodule_$($submodule.Name)" "Cloning $($submodule.Name)"
 		$SubmoduleRemote = git config -f .gitmodules --get "submodule.$($submodule.Name).url"
 
-		$Tag = (git ls-remote --tags $SubmoduleRemote | Select-String -Pattern $submodule.Hash) -replace '^.*tags/([^^]+).*$','$1'
+		$Tag = (git ls-remote --tags $SubmoduleRemote | Select-String -Pattern $submodule.Hash | Select-Object -First 1) -replace '^.*tags/([^^]+).*$','$1'
 
 		if (!$Tag) {
 			git clone $SubmoduleRemote $SubmodulePath
@@ -235,9 +236,10 @@ if (!$DontBuild)
 
 		End-Section "update_submodule_$($submodule.Name)"
 	}
+	Pop-Location
 
 	Start-Section "update_submodule_git" "Updating all submodules"
-	git submodule update
+	git submodule update --jobs=8
 	End-Section "update_submodule_git"
 
 	Pop-Location
