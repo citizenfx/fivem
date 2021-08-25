@@ -1,9 +1,14 @@
 import { expose } from 'threads/worker';
-import { Searcher } from 'fast-fuzzy';
+import fuzzysort from 'fuzzysort';
 
 const entryCollator = new Intl.Collator(undefined, {
   usage: 'sort',
 });
+
+const fuzzysortOptions: Fuzzysort.Options = {
+  limit: 100,
+  threshold: -10000,
+};
 
 function entriesSorter(a: string, b: string) {
   return entryCollator.compare(a, b);
@@ -11,7 +16,7 @@ function entriesSorter(a: string, b: string) {
 
 let archetypes = [];
 let archetypesReady = false;
-let archetypesSearcher;
+let archetypesPrepared;
 
 const archetypesLoadPromise = (async () => {
   try {
@@ -22,7 +27,7 @@ const archetypesLoadPromise = (async () => {
     }
 
     archetypes = Object.values(await response.json()).flat().sort(entriesSorter);
-    archetypesSearcher = new Searcher(archetypes);
+    archetypesPrepared = archetypes.map((name) => fuzzysort.prepare(name));
 
     console.log('Hi form archetypes worker, archetypes are loaded');
   } catch (e) {
@@ -34,7 +39,11 @@ const archetypesLoadPromise = (async () => {
 
 expose({
   search(term: string) {
-    return archetypesSearcher?.search(term) || [];
+    if (!archetypesPrepared) {
+      return [];
+    }
+
+    return fuzzysort.go(term, archetypesPrepared, fuzzysortOptions).map(({ target }) => target);
   },
   async getAll() {
     if (!archetypesReady) {

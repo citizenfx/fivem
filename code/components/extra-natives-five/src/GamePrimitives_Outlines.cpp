@@ -630,6 +630,15 @@ static InitFunction initFunctionScriptBind([]()
 		addColumn(newMat, 12);
 
 		entity->UpdateTransform(newMat, true);
+
+		// If dummy - update its real object, if available
+		if (auto ext = entity->GetExtension<InstantiatedObjectRefExtension>())
+		{
+			if (auto instantiatedEntity = ext->GetObjectRef())
+			{
+				instantiatedEntity->UpdateTransform(newMat, true, true);
+			}
+		}
 	});
 });
 

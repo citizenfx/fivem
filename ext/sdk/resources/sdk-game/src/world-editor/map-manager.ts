@@ -222,7 +222,6 @@ export const MapManager = new class MapManager {
           break;
         }
         case WESelectionType.PATCH: {
-          applyEntityMatrix(this.selectionHandle, entityMatrix);
           this.updatePatch(this.selectionHandle, entityMatrix);
 
           break;

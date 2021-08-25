@@ -378,7 +378,7 @@ static int UpdateMapdataEntity(int mapDataIdx, int entityIdx, const char* msgDat
 						{
 							if (auto instantiatedObject = ext->GetObjectRef())
 							{
-								instantiatedObject->UpdateTransform(*(Matrix4x4*)matrixArray.data(), true);
+								instantiatedObject->UpdateTransform(*(Matrix4x4*)matrixArray.data(), true, true);
 							}
 						}
 					}
@@ -435,7 +435,7 @@ static bool ResetMapdataEntityMatrix(uint32_t mapDataHash, uint32_t entityHash)
 					{
 						if (auto instantiatedObject = ext->GetObjectRef())
 						{
-							instantiatedObject->UpdateTransform(matrix, true);
+							instantiatedObject->UpdateTransform(matrix, true, true);
 						}
 					}
 
