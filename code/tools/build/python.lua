@@ -1,5 +1,5 @@
 if os.ishost('windows') then
-	pythonExecutable = os.outputof('py -3 -c "import sys; print(sys.executable)"')
+	pythonExecutable = 'py -3'
 else
 	pythonExecutable = 'python3'
 end
