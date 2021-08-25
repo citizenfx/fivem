@@ -16,7 +16,7 @@ def FormatTypemap(typemap_filename):
   with open(typemap_filename) as f:
     typemap_content = f.read().replace('=\n', '=')
   typemap = {}
-  exec typemap_content in typemap
+  exec(typemap_content, typemap)
 
   for header in typemap.get('public_headers', []):
     yield 'public_headers=%s' % header

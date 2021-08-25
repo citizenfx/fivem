@@ -154,7 +154,10 @@ class ReferenceKind(Kind):
          print(b.name)  # Outputs 'test_struct_2'.
     """
     def Get(self):
-      return self.shared_definition[name]
+      try:
+        return self.shared_definition[name]
+      except KeyError:  # Must raise AttributeError if property doesn't exist.
+        raise AttributeError
 
     def Set(self, value):
       self.shared_definition[name] = value
@@ -300,7 +303,9 @@ class Field(object):
         if self.attributes else None
 
 
-class StructField(Field): pass
+class StructField(Field):
+  def __hash__(self):
+    return super(Field, self).__hash__()
 
 
 class UnionField(Field): pass
@@ -779,6 +784,9 @@ class Module(object):
   def __repr__(self):
     # Gives us a decent __repr__ for modules.
     return self.Repr()
+
+  def __hash__(self):
+    return id(self)
 
   def Repr(self, as_ref=True):
     if as_ref:
