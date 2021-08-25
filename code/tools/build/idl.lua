@@ -55,7 +55,7 @@ function files(x)
 				filter 'files:**.idl'
 
 				buildcommands {
-					'python "' .. prj_root .. '/tools/idl/header.py" -o "%{file and file.directory or ""}/%{file and file.basename or ""}.h" %{process_includedirs(prj.includedirs):remove_null()} %{(file and (file.abspath) or ""):remove_null()}'
+					pythonExecutable .. ' "' .. prj_root .. '/tools/idl/header.py" -o "%{file and file.directory or ""}/%{file and file.basename or ""}.h" %{process_includedirs(prj.includedirs):remove_null()} %{(file and (file.abspath) or ""):remove_null()}'
 				}
 
 				buildoutputs { '%{file.abspath:gsub(".idl$", ".h")}' }

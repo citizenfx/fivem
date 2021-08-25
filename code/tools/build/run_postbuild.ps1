@@ -17,6 +17,16 @@ if ($env:CI) {
     return
 }
 
+try {
+	$env:PATH += ";" + (Get-ItemProperty HKLM:\SOFTWARE\WOW6432Node\Yarn).InstallDir + "\bin"
+} catch {}
+
+try {
+	$env:PATH += ";" + (Get-ItemProperty HKLM:\SOFTWARE\Node.js).InstallPath
+} catch {}
+
+$env:PATH += ";C:\Program Files (x86)\Nodist\v-x64\14.17.1"
+
 # Maybe unify with build.ps1?
 $WorkDir = "$InstRoot"
 

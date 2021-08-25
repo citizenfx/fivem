@@ -16,6 +16,7 @@
 #include <winrt/Windows.Storage.Streams.h>
 
 #include "CitiLaunch/BackdropBrush.g.h"
+#include "winrt/Microsoft.Graphics.Canvas.Effects.h"
 
 #include <DirectXMath.h>
 #include <roapi.h>
@@ -25,6 +26,13 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include <d2d1effects.h>
+#include <d2d1_1.h>
+#pragma comment(lib, "dxguid.lib")
+
+#include <windows.graphics.effects.h>
+#include <windows.graphics.effects.interop.h>
+
 #pragma comment(lib, "runtimeobject.lib")
 #pragma comment(lib, "delayimp.lib")
 #pragma comment(lib, "d3d11.lib")
@@ -33,128 +41,128 @@
 #pragma comment(lib, "dwrite.lib")
 #pragma comment(lib, "shcore.lib")
 
-extern "C" DLL_EXPORT HRESULT WINRT_CALL DllGetActivationFactory(HSTRING classId, IActivationFactory** factory);
+using namespace ABI::Windows::Graphics::Effects;
 
-namespace winrt
+struct CompositionEffect : winrt::implements
+	<
+		CompositionEffect,
+		winrt::Windows::Graphics::Effects::IGraphicsEffectSource, 
+		winrt::Windows::Graphics::Effects::IGraphicsEffect,
+		ABI::Windows::Graphics::Effects::IGraphicsEffectD2D1Interop
+	>
 {
-	namespace Microsoft::Graphics::Canvas::Effects
+	CompositionEffect(const GUID& effectId)
 	{
-		class ColorSourceEffect;
-		class Transform2DEffect;
-		class ColorMatrixEffect;
-		class CompositeEffect;
+		m_effectId = effectId;
 	}
 
-	namespace impl
+	winrt::hstring Name()
 	{
-		template <typename Class, typename Interface = Windows::Foundation::IActivationFactory>
-		auto get_local_activation_factory(hresult_error * exception = nullptr) noexcept
+		return m_name;
+	}
+
+	void Name(winrt::hstring const& name)
+	{
+		m_name = name;
+	}
+
+	template<typename T>
+	void SetProperty(const std::string& name, const T& value, GRAPHICS_EFFECT_PROPERTY_MAPPING mapping = GRAPHICS_EFFECT_PROPERTY_MAPPING_DIRECT)
+	{
+		m_properties.emplace_back(name, winrt::box_value(value), mapping);
+	}
+
+	template<int N>
+	void SetProperty(const std::string& name, const float (&value)[N], GRAPHICS_EFFECT_PROPERTY_MAPPING mapping = GRAPHICS_EFFECT_PROPERTY_MAPPING_DIRECT)
+	{
+		m_properties.emplace_back(name, winrt::Windows::Foundation::PropertyValue::CreateSingleArray(winrt::array_view<const float>{ (float*)&value, (float*)&value + N }), mapping);
+	}
+
+	template<>
+	void SetProperty(const std::string& name, const winrt::Windows::UI::Color& color, GRAPHICS_EFFECT_PROPERTY_MAPPING mapping)
+	{
+		float values[] = { color.R / 255.0f, color.G / 255.0f, color.B / 255.0f, color.A / 255.0f };
+		SetProperty(name, values, mapping);
+	}
+
+	template<>
+	void SetProperty(const std::string& name, const winrt::Microsoft::Graphics::Canvas::Effects::Matrix5x4& value, GRAPHICS_EFFECT_PROPERTY_MAPPING mapping)
+	{
+		float mat[5 * 4];
+		memcpy(mat, &value, sizeof(mat));
+		SetProperty(name, mat, mapping);
+	}
+
+	template<>
+	void SetProperty(const std::string& name, const winrt::Windows::Foundation::Numerics::float3x2& value, GRAPHICS_EFFECT_PROPERTY_MAPPING mapping)
+	{
+		float mat[3 * 2];
+		memcpy(mat, &value, sizeof(mat));
+		SetProperty(name, mat, mapping);
+	}
+
+	void AddSource(const winrt::Windows::Graphics::Effects::IGraphicsEffectSource& source)
+	{
+		m_sources.push_back(source);
+	}
+
+	virtual HRESULT __stdcall GetEffectId(GUID* id) override
+	{
+		*id = m_effectId;
+		return S_OK;
+	}
+
+	virtual HRESULT __stdcall GetNamedPropertyMapping(LPCWSTR name, UINT* index, GRAPHICS_EFFECT_PROPERTY_MAPPING* mapping) override
+	{
+		auto nname = ToNarrow(name);
+
+		auto entry = std::find_if(m_properties.begin(), m_properties.end(), [&nname](const auto& property)
 		{
-			param::hstring const name{ name_of<Class>() };
-			impl::com_ref<Interface> object;
-			hresult const hr = ::DllGetActivationFactory((HSTRING)get_abi(name), (IActivationFactory**)put_abi(object));
+			return nname == std::get<0>(property);
+		});
 
-			check_hresult(hr);
-
-			return object;
+		if (entry != m_properties.end())
+		{
+			*index = entry - m_properties.begin();
+			*mapping = std::get<2>(*entry);
+			return S_OK;
 		}
 
-		template <typename Class>
-		struct factory_local_entry
-		{
-			template <typename F>
-			auto call(F&& callback)
-			{
-				{
-					count_guard const guard(m_value.count);
-
-					if (m_value.object)
-					{
-						return callback(*reinterpret_cast<com_ref<Windows::Foundation::IActivationFactory> const*>(&m_value.object));
-					}
-				}
-
-				auto object = get_local_activation_factory<Class>();
-
-				if (!object.template try_as<IAgileObject>())
-				{
-					return callback(object);
-				}
-
-				{
-					count_guard const guard(m_value.count);
-
-					if (nullptr == _InterlockedCompareExchangePointer((void**)& m_value.object, get_abi(object), nullptr))
-					{
-						// This thread successfully updated the entry to hold the factory object. We thus detach, since the
-						// factory_cache_entry now owns the reference, and add the entry to the cache list. The callback
-						// may be safely called using the cached object since the count guard is currently being held.
-						detach_abi(object);
-						get_factory_cache().add(reinterpret_cast<factory_cache_typeless_entry*>(this));
-						return callback(*reinterpret_cast<com_ref<Windows::Foundation::IActivationFactory> const*>(&m_value.object));
-					}
-					else
-					{
-						// This thread failed to update the entry since another thread managed to exchange pointers first.
-						// The callback must still be called and can simply use the temporary factory object before allowing
-						// it to be released. 
-						return callback(object);
-					}
-				}
-			}
-
-		private:
-
-			struct count_guard
-			{
-				count_guard(count_guard const&) = delete;
-				count_guard& operator=(count_guard const&) = delete;
-
-				explicit count_guard(size_t& count) noexcept : m_count(count)
-				{
-#ifdef _WIN64
-					_InterlockedIncrement64((int64_t*)& m_count);
-#else
-					_InterlockedIncrement((long*)& m_count);
-#endif
-				}
-
-				~count_guard() noexcept
-				{
-#ifdef _WIN64
-					_InterlockedDecrement64((int64_t*)& m_count);
-#else
-					_InterlockedDecrement((long*)& m_count);
-#endif
-				}
-
-			private:
-
-				size_t& m_count;
-			};
-
-			struct alignas(sizeof(void*) * 2) object_and_count
-			{
-				void* object;
-				size_t count;
-			};
-
-			object_and_count m_value;
-			alignas(memory_allocation_alignment) slist_entry m_next;
-		};
-
-		#define MAKE_LOCAL_AF(x) \
-			template <> \
-			struct factory_cache_entry<Microsoft::Graphics::Canvas::Effects::x, Windows::Foundation::IActivationFactory> : factory_local_entry<Microsoft::Graphics::Canvas::Effects::x> {};
-
-		MAKE_LOCAL_AF(ColorSourceEffect);
-		MAKE_LOCAL_AF(Transform2DEffect);
-		MAKE_LOCAL_AF(ColorMatrixEffect);
-		MAKE_LOCAL_AF(CompositeEffect);
+		return HRESULT_FROM_WIN32(ERROR_NOT_FOUND);
 	}
-}
 
-#include "winrt/Microsoft.Graphics.Canvas.Effects.h"
+	virtual HRESULT __stdcall GetPropertyCount(UINT* count) override
+	{
+		*count = m_properties.size();
+		return S_OK;
+	}
+
+	virtual HRESULT __stdcall GetProperty(UINT index, ABI::Windows::Foundation::IPropertyValue** value) override
+	{
+		std::get<1>(m_properties[index]).as<ABI::Windows::Foundation::IPropertyValue>().copy_to(value);
+		return S_OK;
+	}
+
+	virtual HRESULT __stdcall GetSource(UINT index, ABI::Windows::Graphics::Effects::IGraphicsEffectSource** source) override
+	{
+		m_sources[index].as<ABI::Windows::Graphics::Effects::IGraphicsEffectSource>().copy_to(source);
+		return S_OK;
+	}
+
+	virtual HRESULT __stdcall GetSourceCount(UINT* count) override
+	{
+		*count = UINT(m_sources.size());
+		return S_OK;
+	}
+
+private:
+	GUID m_effectId;
+
+	winrt::hstring m_name = L"";
+
+	std::vector<std::tuple<std::string, winrt::Windows::Foundation::IInspectable, GRAPHICS_EFFECT_PROPERTY_MAPPING>> m_properties;
+	std::vector<winrt::Windows::Graphics::Effects::IGraphicsEffectSource> m_sources;
+};
 
 static class DPIScaler
 {
@@ -345,14 +353,26 @@ void BackdropBrush::OnConnected()
 {
 	if (!CompositionBrush())
 	{
-		auto effect = winrt::Microsoft::Graphics::Canvas::Effects::ColorSourceEffect();
+		//
+		// !NOTE! if trying to change the following code (add extra effects, change effects, etc.)
+		// 
+		// CLSIDs and properties are from Win2D:
+		//   https://github.com/microsoft/Win2D/tree/99ce19f243c6a6332f0ea312cd29fc3c785a540b/winrt/lib/effects/generated
+		//
+		// The .h files show the CLSID used, the .cpp files the properties with names, type, mapping and default values.
+		// 
+		// Properties *have* to be set in the original order - initial deserialization (at least in wuceffects.dll 10.0.22000)
+		// will check all properties before checking the name mapping. Also, `Source` properties are mapped to the AddSource
+		// list, instead of being a real property.
+		//
+		auto effect = CompositionEffect(CLSID_D2D1Flood);
 
 #ifdef GTA_FIVE
-		effect.Color(winrt::Windows::UI::ColorHelper::FromArgb(255, 0x16, 0x19, 0x23));
+		effect.SetProperty("Color", winrt::Windows::UI::ColorHelper::FromArgb(255, 0x16, 0x19, 0x23));
 #elif defined(IS_RDR3)
-		effect.Color(winrt::Windows::UI::ColorHelper::FromArgb(255, 186, 2, 2));
+		effect.SetProperty("Color", winrt::Windows::UI::ColorHelper::FromArgb(255, 186, 2, 2));
 #elif defined(GTA_NY)
-		effect.Color(winrt::Windows::UI::ColorHelper::FromArgb(255, 0x4D, 0xA6, 0xD3));
+		effect.SetProperty("Color", winrt::Windows::UI::ColorHelper::FromArgb(255, 0x4D, 0xA6, 0xD3));
 #endif
 
 		winrt::Windows::UI::Composition::CompositionEffectSourceParameter sp{ L"layer" };
@@ -364,10 +384,14 @@ void BackdropBrush::OnConnected()
 		auto matrix = XMMatrixTransformation2D(XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f), 0.0f, XMVectorSet(1.0f, 1.0f, 1.0f, 1.0f), XMVectorSet(0.5f, 0.5f, 0.0f, 0.0f), 0.2, XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f));
 		XMStoreFloat3x2(&mat2d, matrix);
 
-		auto layer = winrt::Microsoft::Graphics::Canvas::Effects::Transform2DEffect();
-		layer.Source(sp2);
+		auto layer = CompositionEffect(CLSID_D2D12DAffineTransform);
+		layer.AddSource(sp2);
 		layer.Name(L"xform");
-		layer.TransformMatrix(mat2d);
+
+		layer.SetProperty("InterpolationMode", uint32_t(D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE_LINEAR));
+		layer.SetProperty("BorderMode", uint32_t(D2D1_BORDER_MODE_SOFT));
+		layer.SetProperty("TransformMatrix", mat2d);
+		layer.SetProperty("Sharpness", 0.0f);
 
 		auto mat = winrt::Microsoft::Graphics::Canvas::Effects::Matrix5x4();
 		memset(&mat, 0, sizeof(mat));
@@ -385,13 +409,16 @@ void BackdropBrush::OnConnected()
 		mat.M44 = 0.15f;
 #endif
 
-		auto layerColor = winrt::Microsoft::Graphics::Canvas::Effects::ColorMatrixEffect();
-		layerColor.Source(layer);
-		layerColor.ColorMatrix(mat);
+		auto layerColor = CompositionEffect(CLSID_D2D1ColorMatrix);
+		layerColor.AddSource(layer);
+		layerColor.SetProperty("ColorMatrix", mat);
+		layerColor.SetProperty("AlphaMode", uint32_t(D2D1_COLORMATRIX_ALPHA_MODE_PREMULTIPLIED), GRAPHICS_EFFECT_PROPERTY_MAPPING_COLORMATRIX_ALPHA_MODE);
+		layerColor.SetProperty("ClampOutput", false);
 
-		auto compEffect = winrt::Microsoft::Graphics::Canvas::Effects::CompositeEffect();
-		compEffect.Sources().Append(effect);
-		compEffect.Sources().Append(layerColor);
+		auto compEffect = CompositionEffect(CLSID_D2D1Composite);
+		compEffect.SetProperty("Mode", uint32_t(D2D1_COMPOSITE_MODE_SOURCE_OVER));
+		compEffect.AddSource(effect);
+		compEffect.AddSource(layerColor);
 
 		auto hRsc = FindResource(GetModuleHandle(NULL), MAKEINTRESOURCE(1010), L"MEOW");
 		auto resSize = SizeofResource(GetModuleHandle(NULL), hRsc);
@@ -1437,69 +1464,6 @@ void UI_RegisterClass()
 	RegisterClassEx(&wndClass);
 }
 
-static HANDLE g_actCtx;
-
-bool GenManifest()
-{
-	if (g_actCtx)
-	{
-		return true;
-	}
-
-	auto hRsc = FindResource(GetModuleHandle(NULL), MAKEINTRESOURCE(1), RT_MANIFEST);
-
-	if (hRsc)
-	{
-		auto resSize = SizeofResource(GetModuleHandle(NULL), hRsc);
-		auto resData = LoadResource(GetModuleHandle(NULL), hRsc);
-
-		auto resPtr = static_cast<const char*>(LockResource(resData));
-
-		wchar_t pathInfo[1024];
-		GetModuleFileName(GetModuleHandle(NULL), pathInfo, std::size(pathInfo));
-
-		auto cRef = wcsrchr(pathInfo, L'\\');
-		cRef[0] = L'\0';
-
-		auto pathPtr = cRef + 1;
-
-		std::string manifestData{ resPtr, resSize };
-		std::wstring wideManifest = ToWide(manifestData);
-
-		boost::algorithm::replace_all(wideManifest, L"DELETE-->", "");
-		boost::algorithm::replace_all(wideManifest, L"<!--DELETE", "");
-		boost::algorithm::replace_all(wideManifest, L"FiveM_Ship.exe", std::wstring{ pathPtr });
-
-		manifestData = ToNarrow(wideManifest);
-
-		FILE* f = _wfopen(va(L"%s\\FiveM.manifest.xml", pathInfo), L"wb");
-		if (f)
-		{
-			fwrite(manifestData.c_str(), 1, manifestData.size(), f);
-			fclose(f);
-
-			ACTCTX ac;
-			ac.cbSize = sizeof(ac);
-			ac.dwFlags = 0;
-			ac.lpSource = va(L"%s\\FiveM.manifest.xml", pathInfo);
-
-			g_actCtx = CreateActCtx(&ac);
-			
-			if (g_actCtx)
-			{
-				ULONG_PTR cookie;
-				if (ActivateActCtx(g_actCtx, &cookie))
-				{
-					_wunlink(va(L"%s\\FiveM.manifest.xml", pathInfo));
-					return true;
-				}
-			}
-		}
-	}
-
-	return false;
-}
-
 struct TenUIStorage;
 
 static TenUIStorage* g_tenUI;
@@ -1541,8 +1505,6 @@ struct TenUIStorage : public TenUIBase
 
 std::unique_ptr<TenUIBase> UI_InitTen()
 {
-	bool mf = GenManifest();
-
 	// Windows 10 RS5+ gets a neat UI
 	DWORDLONG viMask = 0;
 	OSVERSIONINFOEXW osvi = { 0 };
@@ -1569,7 +1531,7 @@ std::unique_ptr<TenUIBase> UI_InitTen()
 	forceOff = true;
 #endif
 
-	if (mf && VerifyVersionInfoW(&osvi, VER_BUILDNUMBER, viMask) && !forceOff)
+	if (VerifyVersionInfoW(&osvi, VER_BUILDNUMBER, viMask) && !forceOff)
 	{
 		RO_REGISTRATION_COOKIE cookie;
 
@@ -1782,11 +1744,6 @@ extern "C" DLL_EXPORT HRESULT WINRT_CALL DllGetActivationFactory(HSTRING classId
 	}
 	catch (...) { return winrt::to_hresult(); }
 }
-
-WrlCreatorMapIncludePragma(ColorSourceEffect);
-WrlCreatorMapIncludePragma(ColorMatrixEffect);
-WrlCreatorMapIncludePragma(Transform2DEffect);
-WrlCreatorMapIncludePragma(CompositeEffect);
 #else
 void UI_DoCreation(bool safeMode)
 {

@@ -38,28 +38,4 @@
 		type="win32"
 		name="FiveM"
 		version="1.0.0.0" />
-	<!--DELETE
-	<file name="FiveM_Ship.exe">
-		<activatableClass
-			name="Microsoft.Graphics.Canvas.Effects.ColorSourceEffect"
-			threadingModel="both"
-			xmlns="urn:schemas-microsoft-com:winrt.v1" />
-		<activatableClass
-			name="Microsoft.Graphics.Canvas.Effects.ColorMatrixEffect"
-			threadingModel="both"
-			xmlns="urn:schemas-microsoft-com:winrt.v1" />
-		<activatableClass
-			name="Microsoft.Graphics.Canvas.Effects.Transform2DEffect"
-			threadingModel="both"
-			xmlns="urn:schemas-microsoft-com:winrt.v1" />
-		<activatableClass
-			name="Microsoft.Graphics.Canvas.Effects.BorderEffect"
-			threadingModel="both"
-			xmlns="urn:schemas-microsoft-com:winrt.v1" />
-		<activatableClass
-			name="Microsoft.Graphics.Canvas.Effects.CompositeEffect"
-			threadingModel="both"
-			xmlns="urn:schemas-microsoft-com:winrt.v1" />
-	</file>
-	DELETE-->
 </assembly>

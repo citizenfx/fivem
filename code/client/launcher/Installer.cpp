@@ -1,5 +1,6 @@
 #include "StdInc.h"
 
+#if defined(LAUNCHER_PERSONALITY_MAIN)
 #include <CfxState.h>
 #include <HostSharedData.h>
 
@@ -500,3 +501,9 @@ bool Install_RunInstallMode()
 
 	return Install_PerformInstallation();
 }
+#else
+bool Install_RunInstallMode()
+{
+	return false;
+}
+#endif

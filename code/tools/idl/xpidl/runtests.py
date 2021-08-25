@@ -7,7 +7,7 @@
 
 import mozunit
 import unittest
-import xpidl
+from xpidl import xpidl
 
 
 class TestParser(unittest.TestCase):

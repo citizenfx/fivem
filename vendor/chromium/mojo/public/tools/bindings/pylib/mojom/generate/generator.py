@@ -101,9 +101,15 @@ class Stylizer(object):
 
 def WriteFile(contents, full_path):
   # If |contents| is same with the file content, we skip updating.
+  if not isinstance(contents, bytes):
+    data = contents.encode('utf8')
+  else:
+    data = contents
+
+  # If |contents| is same with the file content, we skip updating.
   if os.path.isfile(full_path):
     with open(full_path, 'rb') as destination_file:
-      if destination_file.read() == contents:
+      if destination_file.read() == data:
         return
 
   # Make sure the containing directory exists.
@@ -112,7 +118,7 @@ def WriteFile(contents, full_path):
 
   # Dump the data to disk.
   with open(full_path, "wb") as f:
-    f.write(contents.encode('utf-8'))
+    f.write(data)
 
 
 def AddComputedData(module):

@@ -24,3 +24,6 @@ dofile('versioning.lua')
 
 -- srv alloc
 dofile('allocator.lua')
+
+-- hunting down python
+dofile('python.lua')

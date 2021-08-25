@@ -2,7 +2,7 @@
 		language "C++"
 		kind "ConsoleApp"
 		
-		defines "COMPILING_LAUNCH"
+		defines { "COMPILING_LAUNCH", "COMPILING_DIAG" }
 
 		symbols "Full"
 		

@@ -50,5 +50,4 @@ def PrecompileTemplates(generator_modules, output_dir):
         os.path.join(output_dir, "%s.zip" % generator.GetTemplatePrefix()),
         extensions=["tmpl"],
         zip="stored",
-        py_compile=True,
         ignore_errors=False)

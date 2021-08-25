@@ -3,6 +3,4 @@ midl /winrt /metadata_dir "%WindowsSdkDir%References\10.0.18362.0\windows.founda
 
 cppwinrt -v -in BackdropBrush.winmd -c -r sdk -o .
 
-cppwinrt -v -in "..\..\..\vendor\win2d\bin\uapx64\debug\MergedWinMD\Microsoft.Graphics.Canvas.winmd" -r sdk -o .
-
 del module.g.cpp

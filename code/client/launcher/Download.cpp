@@ -30,10 +30,12 @@
 #include <curl/easy.h>
 #include <curl/multi.h>
 
+#ifdef CURL_MBEDTLS
 #include <mbedtls/ssl.h>
 #include <mbedtls/x509.h>
 
 #include "SSLRoots.h"
+#endif
 
 #include <math.h>
 #include <queue>
@@ -44,6 +46,7 @@ static std::string_view GetBaseName(std::string_view str)
 	return str.substr(str.find_last_of('/') + 1);
 }
 
+#ifdef CURL_MBEDTLS
 static CURLcode ssl_ctx_callback(CURL* curl, void* ssl_ctx, void* userptr)
 {
 	auto config = (mbedtls_ssl_config*)ssl_ctx;
@@ -54,6 +57,7 @@ static CURLcode ssl_ctx_callback(CURL* curl, void* ssl_ctx, void* userptr)
 
 	return CURLE_OK;
 }
+#endif
 
 static CURL* curl_easy_init_cfx()
 {
@@ -68,12 +72,16 @@ static CURL* curl_easy_init_cfx()
 
 		if (strstr(curlVer, "mbedTLS/") != nullptr)
 		{
+#ifdef CURL_MBEDTLS
 			static mbedtls_x509_crt cacert;
 			mbedtls_x509_crt_init(&cacert);
 			mbedtls_x509_crt_parse(&cacert, sslRoots, sizeof(sslRoots));
 
 			curl_easy_setopt(curlHandle, CURLOPT_SSL_CTX_DATA, &cacert);
 			curl_easy_setopt(curlHandle, CURLOPT_SSL_CTX_FUNCTION, ssl_ctx_callback);
+#else
+			assert(false);
+#endif
 		}
 	}
 

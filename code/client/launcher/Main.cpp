@@ -54,8 +54,9 @@ void InitLogging();
 #include <MinMode.h>
 #include <fstream>
 
-std::shared_ptr<fx::MinModeManifest> InitMinMode()
+auto InitMinMode()
 {
+#if defined(LAUNCHER_PERSONALITY_GAME) || defined(LAUNCHER_PERSONALITY_MAIN)
 	const wchar_t* cli = GetCommandLineW();
 
 	auto minmodePos = wcsstr(cli, L"+set minmodemanifest \"");
@@ -86,6 +87,9 @@ std::shared_ptr<fx::MinModeManifest> InitMinMode()
 	}
 
 	return std::make_shared<fx::MinModeManifest>();
+#else
+	return nullptr;
+#endif
 }
 
 HANDLE g_uiDoneEvent;
@@ -462,6 +466,7 @@ int RealMain()
 
 	if (!toolMode)
 	{
+#if defined(LAUNCHER_PERSONALITY_MAIN)
 		// try removing any old updater files
 		try
 		{
@@ -478,6 +483,7 @@ int RealMain()
 		catch (std::exception&)
 		{
 		}
+#endif
 
 		if (OpenMutex(SYNCHRONIZE, FALSE, L"CitizenFX_LogMutex") == nullptr)
 		{
@@ -507,6 +513,7 @@ int RealMain()
 				}
 			}
 
+#if defined(LAUNCHER_PERSONALITY_MAIN)
 			// also do checks here to complain at BAD USERS
 			if (!GetProcAddress(GetModuleHandle(L"kernel32.dll"), "SetThreadDescription")) // kernel32 forwarder only got this export in 1703, kernelbase.dll got this in 1607.
 			{
@@ -569,6 +576,7 @@ int RealMain()
 					CloseHandle(hFile);
 				}
 			}
+#endif
 		}
 	}
 
@@ -700,7 +708,7 @@ int RealMain()
 			static HostSharedData<CfxState> initState("CfxInitState");
 			static HostSharedData<UpdaterUIState> uuiState("CfxUUIState");
 
-#if !defined(_DEBUG)
+#if !defined(_DEBUG) && defined(LAUNCHER_PERSONALITY_MAIN)
 			auto runUUILoop = [minModeManifest](bool firstLoop)
 			{
 				static constexpr const uint32_t loadWait = 5000;
@@ -821,7 +829,7 @@ int RealMain()
 
 			SetEvent(g_uiDoneEvent);
 
-#if !defined(_DEBUG)
+#if !defined(_DEBUG) && defined(LAUNCHER_PERSONALITY_MAIN)
 			if (!initState->isReverseGame)
 			{
 				// run UI polling loop if need be, anyway
@@ -853,7 +861,9 @@ int RealMain()
 
 	if (!toolMode)
 	{
+#if defined(LAUNCHER_PERSONALITY_GAME) || defined(LAUNCHER_PERSONALITY_MAIN)
 		CitizenGame::SetMinModeManifest(minModeManifest->GetRaw());
+#endif
 
 		wchar_t fxApplicationName[MAX_PATH];
 		GetModuleFileName(GetModuleHandle(nullptr), fxApplicationName, _countof(fxApplicationName));

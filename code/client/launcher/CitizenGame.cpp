@@ -19,8 +19,6 @@
 #include <CfxState.h>
 #include <UUIState.h>
 
-#include <CfxLocale.h>
-
 #include <Error.h>
 
 static ILauncherInterface* g_launcher;
@@ -215,7 +213,7 @@ VOID WINAPI GetStartupInfoWHook(_Out_ LPSTARTUPINFOW lpStartupInfo)
 
 	static HostSharedData<UpdaterUIState> uuiState("CfxUUIState");
 
-	uuiState->SetText(1, gettext("Analyzing game data"));
+	uuiState->SetText(1, "Analyzing game data");
 	uuiState->SetProgress(100.0);
 	uuiState->OpenWhenExpired();
 

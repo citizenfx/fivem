@@ -53,11 +53,9 @@ local function launcherpersonality_inner(name, aslr)
 		symbols "Full"
 		buildoptions "/MP"
 		
-		links { "SharedLibc", "dbghelp", "psapi", "comctl32", "breakpad", "wininet", "winhttp", "crypt32" }
+		links { "dbghelp", "psapi", "comctl32", "wininet", "winhttp", "crypt32" }
 		
 		if isLauncherPersonality(name) then
-			links "Win2D"
-			
 			add_dependencies { 'vendor:minhook-crt' }
 		else
 			targetextension '.bin'
@@ -134,17 +132,17 @@ local function launcherpersonality_inner(name, aslr)
 		pchsource "StdInc.cpp"
 		pchheader "StdInc.h"
 
-		add_dependencies { 'vendor:breakpad', 'vendor:tinyxml2', 'vendor:xz-crt', 'vendor:minizip-crt', 'vendor:tbb-crt', 'vendor:concurrentqueue', 'vendor:boost_locale-crt' }
-		
+		add_dependencies { 'vendor:tinyxml2', 'vendor:concurrentqueue' }
+
 		if isLauncherPersonality(name) then
-			add_dependencies { 'vendor:curl-crt', 'vendor:cpr-crt', 'vendor:mbedtls_crt', 'vendor:hdiffpatch-crt' }
+			staticruntime 'On'
+			links "SharedLibc"
+			add_dependencies { 'vendor:xz-crt', 'vendor:minizip-crt', 'vendor:tbb-crt', 'vendor:boost_locale-crt', 'vendor:breakpad-crt' }
+			add_dependencies { 'vendor:curl-crt', 'vendor:cpr-crt', 'vendor:mbedtls_crt', 'vendor:hdiffpatch-crt', 'vendor:openssl_crypto_crt' }
+		else
+			links "Shared"
+			add_dependencies { 'vendor:tbb', 'vendor:boost_locale', 'vendor:breakpad', 'vendor:openssl_crypto' }
 		end
-
-		add_dependencies { 'vendor:openssl_crypto_crt' }
-		
-		--includedirs { "client/libcef/", "../vendor/breakpad/src/", "../vendor/tinyxml2/" }
-
-		staticruntime 'On'
 
 		filter { "options:game=ny" }
 			targetname "LibertyM"
@@ -232,14 +230,3 @@ project 'CitiLaunch_TLSDummy'
 	files {
 		'DummyVariables.cpp'
 	}
-
-externalproject "Win2D"
-	if os.getenv('COMPUTERNAME') ~= 'AVALON' and not os.getenv('CI') then
-		filename "../../../vendor/win2d/winrt/lib/winrt.lib.uap"
-	else
-		filename "../../vendor/win2d/winrt/lib/winrt.lib.uap"
-	end
-	uuid "26b85b6e-3520-42b5-adb6-971010cc99fa"
-	kind "StaticLib"
-	language "C++"
-	

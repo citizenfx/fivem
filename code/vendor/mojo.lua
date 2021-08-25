@@ -19,7 +19,7 @@ function gen_typemap_args(path)
 	if cache[path] then return cache[path] end
 	
 	local r, e = os.outputof(table.concat({
-		'python',
+		pythonExecutable,
 		'"' .. prj_root .. '/../vendor/chromium/mojo/public/tools/bindings/format_typemap_generator_args.py"',
 		path
 	}, ' '))
@@ -75,7 +75,7 @@ function files(x)
 					buildcommands {
 						'echo TYPEMAP %{file.name}',
 						table.concat({
-							'python',
+							pythonExecutable,
 							'"' .. prj_root .. '/../vendor/chromium/mojo/public/tools/bindings/generate_type_mappings.py"',
 							'%{gen_typemap_args(file.abspath)}',
 							'--output',
@@ -90,7 +90,7 @@ function files(x)
 					buildcommands {
 						'echo MOJOP %{file.name}',
 						table.concat({
-							'python',
+							pythonExecutable,
 							'"' .. prj_root .. '/../vendor/chromium/mojo/public/tools/bindings/mojom_bindings_generator.py"',
 							'parse',
 							'-o',
@@ -116,7 +116,7 @@ function files(x)
 						end
 
 						return table.concat({
-							'python',
+							pythonExecutable,
 							'"' .. prj_root .. '/../vendor/chromium/mojo/public/tools/bindings/mojom_bindings_generator.py"',
 							'generate',
 							'-g',
@@ -185,7 +185,7 @@ return {
 		prebuildcommands {
 			'{MKDIR} %{path.getrelative(".", cfg.buildtarget.directory .. "/gen/")}',
 			table.concat({
-				'python',
+				pythonExecutable,
 				'"' .. prj_root .. '/../vendor/chromium/mojo/public/tools/bindings/mojom_bindings_generator.py"',
 				'precompile',
 				'-o',

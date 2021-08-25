@@ -10,9 +10,9 @@
 #if defined(LAUNCHER_PERSONALITY_MAIN) || defined(LAUNCHER_PERSONALITY_GAME) || defined(COMPILING_GLUE)
 #include <CfxState.h>
 #include <HostSharedData.h>
-#include <CfxLocale.h>
 
 #if defined(LAUNCHER_PERSONALITY_MAIN) || defined(COMPILING_GLUE)
+#include <CfxLocale.h>
 #include <openssl/sha.h>
 #endif
 

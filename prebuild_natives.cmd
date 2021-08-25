@@ -6,7 +6,19 @@ set path=C:\msys64\usr\bin;%path%
 set LUA_PATH=
 set LUA_CPATH=
 
+where /q pacman
+
+if errorlevel 1 (
+    exit /B 1
+)
+
 pacman --noconfirm --needed -Sy make curl diffutils libcurl
+
+where /q curl
+
+if errorlevel 1 (
+    exit /B 1
+)
 
 pushd ext\natives\
 mkdir inp
@@ -52,6 +64,12 @@ popd
 
 pushd ext\native-doc-gen\
 sh build.sh
+
+if errorlevel 1 (
+	popd
+	exit /B 1
+)
+
 popd
 
 pushd ext\natives\

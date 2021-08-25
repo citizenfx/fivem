@@ -1,4 +1,5 @@
 #include "StdInc.h"
+
 #include <wrl.h>
 
 #include <d3d11.h>
@@ -7,7 +8,9 @@
 #include <shellapi.h>
 #include <shlobj.h>
 
+#if defined(LAUNCHER_PERSONALITY_MAIN)
 #include <CfxLocale.h>
+#endif
 
 #pragma comment(lib, "d3d11.lib")
 
@@ -39,6 +42,7 @@ bool DXGICheck()
 
     if (FAILED(hr))
     {
+#if defined(LAUNCHER_PERSONALITY_MAIN)
 		std::wstring suggestion = gettext(L"The game will exit now.");
 
         if (!IsWindows7SP1OrGreater())
@@ -56,6 +60,7 @@ bool DXGICheck()
         {
             ShellExecute(nullptr, L"open", L"https://www.microsoft.com/en-us/download/details.aspx?id=36805", nullptr, nullptr, SW_SHOWNORMAL);
         }
+#endif
 
         return false;
     }
@@ -69,7 +74,9 @@ bool BaseLdrCheck()
 
 	if (addDllDirectory == nullptr)
 	{
+#if defined(LAUNCHER_PERSONALITY_MAIN)
 		MessageBox(nullptr, gettext(L"This product requires Security Update for Windows 7 for x64-based systems (KB2758857) to be installed to run. Please install it, and try again.").c_str(), PRODUCT_NAME, MB_OK | MB_ICONSTOP);
+#endif
 
 		if (!IsWindows8OrGreater())
 		{
@@ -88,12 +95,14 @@ bool MediaFeatureCheck()
 
 	if (!module)
 	{
+#if defined(LAUNCHER_PERSONALITY_MAIN)
 		MessageBox(nullptr, fmt::sprintf(
 			gettext(L"%s requires the Windows Media Feature Pack for Windows N editions to be installed to run. Please install it, and try again."),
 			PRODUCT_NAME)
 		.c_str(), PRODUCT_NAME, MB_OK | MB_ICONSTOP);
 
 		ShellExecute(nullptr, L"open", L"https://support.microsoft.com/help/3145500/media-feature-pack-list-for-windows-n-editions", nullptr, nullptr, SW_SHOWNORMAL);
+#endif
 
 		return false;
 	}

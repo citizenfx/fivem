@@ -18,8 +18,7 @@
 	url = https://github.com/citizenfx/breakpad.git
 [submodule "vendor/udis86"]
 	path = vendor/udis86
-	url = https://github.com/vmt/udis86.git
-	branch = master
+	url = https://github.com/citizenfx/udis86.git
 [submodule "vendor/tinyxml2"]
 	path = vendor/tinyxml2
 	url = https://github.com/leethomason/tinyxml2.git
@@ -141,9 +140,6 @@
 [submodule "vendor/cpp-url"]
 	path = vendor/cpp-url
 	url = https://github.com/cpp-netlib/url.git
-[submodule "vendor/win2d"]
-	path = vendor/win2d
-	url = https://github.com/citizenfx/Win2D.git
 [submodule "vendor/uvw"]
 	path = vendor/uvw
 	url = https://github.com/citizenfx/uvw.git

@@ -277,12 +277,12 @@ def _Struct(module, parsed_struct):
     struct.constants = []
     struct.fields_data = []
   else:
-    struct.enums = map(
+    struct.enums = list(map(
         lambda enum: _Enum(module, enum, struct),
-        _ElemsOfType(parsed_struct.body, ast.Enum, parsed_struct.mojom_name))
-    struct.constants = map(
+        _ElemsOfType(parsed_struct.body, ast.Enum, parsed_struct.mojom_name)))
+    struct.constants = list(map(
         lambda constant: _Constant(module, constant, struct),
-        _ElemsOfType(parsed_struct.body, ast.Const, parsed_struct.mojom_name))
+        _ElemsOfType(parsed_struct.body, ast.Const, parsed_struct.mojom_name)))
     # Stash fields parsed_struct here temporarily.
     struct.fields_data = _ElemsOfType(
         parsed_struct.body, ast.StructField, parsed_struct.mojom_name)
@@ -396,13 +396,13 @@ def _Method(module, parsed_method, interface):
   method = mojom.Method(
       interface, parsed_method.mojom_name,
       ordinal=parsed_method.ordinal.value if parsed_method.ordinal else None)
-  method.parameters = map(
+  method.parameters = list(map(
       lambda parameter: _Parameter(module, parameter, interface),
-      parsed_method.parameter_list)
+      parsed_method.parameter_list))
   if parsed_method.response_parameter_list is not None:
-    method.response_parameters = map(
+    method.response_parameters = list(map(
         lambda parameter: _Parameter(module, parameter, interface),
-                          parsed_method.response_parameter_list)
+                          parsed_method.response_parameter_list))
   method.attributes = _AttributeListToDict(parsed_method.attribute_list)
 
   # Enforce that only methods with response can have a [Sync] attribute.
@@ -427,12 +427,12 @@ def _Interface(module, parsed_iface):
   interface.mojom_name = parsed_iface.mojom_name
   interface.spec = 'x:' + module.mojom_namespace + '.' + interface.mojom_name
   module.kinds[interface.spec] = interface
-  interface.enums = map(
+  interface.enums = list(map(
       lambda enum: _Enum(module, enum, interface),
-      _ElemsOfType(parsed_iface.body, ast.Enum, parsed_iface.mojom_name))
-  interface.constants = map(
+      _ElemsOfType(parsed_iface.body, ast.Enum, parsed_iface.mojom_name)))
+  interface.constants = list(map(
       lambda constant: _Constant(module, constant, interface),
-      _ElemsOfType(parsed_iface.body, ast.Const, parsed_iface.mojom_name))
+      _ElemsOfType(parsed_iface.body, ast.Const, parsed_iface.mojom_name)))
   # Stash methods parsed_iface here temporarily.
   interface.methods_data = _ElemsOfType(
       parsed_iface.body, ast.Method, parsed_iface.mojom_name)
@@ -526,9 +526,9 @@ def _Enum(module, parsed_enum, parent_kind):
   enum.parent_kind = parent_kind
   enum.attributes = _AttributeListToDict(parsed_enum.attribute_list)
   if not enum.native_only:
-    enum.fields = map(
+    enum.fields = list(map(
         lambda field: _EnumField(module, enum, field, parent_kind),
-        parsed_enum.enum_value_list)
+        parsed_enum.enum_value_list))
     enum.min_value, enum.max_value = _ResolveNumericEnumValues(enum.fields)
 
   module.kinds[enum.spec] = enum
@@ -665,9 +665,9 @@ def _Module(tree, path, imports):
   module.interfaces = list(
       map(lambda interface: _Interface(module, interface),
           _ElemsOfType(tree.definition_list, ast.Interface, filename)))
-  module.constants = map(
+  module.constants = list(map(
       lambda constant: _Constant(module, constant, None),
-      _ElemsOfType(tree.definition_list, ast.Const, filename))
+      _ElemsOfType(tree.definition_list, ast.Const, filename)))
 
   # Second pass expands fields and methods. This allows fields and parameters
   # to refer to kinds defined anywhere in the mojom.
@@ -681,13 +681,13 @@ def _Module(tree, path, imports):
     for enum in struct.enums:
       all_defined_kinds[enum.spec] = enum
   for union in module.unions:
-    union.fields = map(lambda field:
-        _UnionField(module, field, union), union.fields_data)
+    union.fields = list(map(lambda field:
+        _UnionField(module, field, union), union.fields_data))
     del union.fields_data
     all_defined_kinds[union.spec] = union
   for interface in module.interfaces:
-    interface.methods = map(lambda method:
-        _Method(module, method, interface), interface.methods_data)
+    interface.methods = list(map(lambda method:
+        _Method(module, method, interface), interface.methods_data))
     del interface.methods_data
     all_defined_kinds[interface.spec] = interface
     for enum in interface.enums:

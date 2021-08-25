@@ -9,7 +9,7 @@
 
 import os
 import sys
-import xpidl
+from xpidl import xpidl
 import xpt
 
 # A map of xpidl.py types to xpt.py types

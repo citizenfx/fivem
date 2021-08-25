@@ -74,6 +74,9 @@ component = function(name)
 	-- add to the list
 	table.insert(components, decoded)
 
+	-- add IDs
+	add_id_matches(decoded)
+
 	-- return a function to allow table merging for additional parameters
 	return function(t)
 		for k, v in pairs(t) do
@@ -102,33 +105,25 @@ vendor_component = function(name)
 	end
 end
 
-local function id_matches(full, partial)
-	local tokenString = ''
-	local partialTemp = partial .. ':'
-
-	for token in string.gmatch(full:gsub('\\[.+\\]', ''), '[^:]+') do
-		tokenString = tokenString .. token .. ':'
-
-		if partialTemp == tokenString then
-			return true
-		end
-	end
-
-	return false
-end
+local component_ids = {}
+local component_ids_direct = {}
 
 local function find_match(id)
-	for _, mcomp in ipairs(components) do
-		if mcomp.name == id then
-			return mcomp
-		end
+	return component_ids_direct[id] or component_ids[id]
+end
 
-		if id_matches(mcomp.name, id) then
-			return mcomp
-		end
+function add_id_matches(component)
+	local cname = component.name
+	component_ids_direct[cname] = component
+
+	local tokenString = ''
+
+	for token in string.gmatch(cname:gsub('\\[.+\\]', ''), '[^:]+') do
+		tokenString = tokenString .. token
+
+		component_ids[tokenString] = component
+		tokenString = tokenString .. ':'
 	end
-
-	return nil
 end
 
 local function process_dependencies(list, basename, deps, hasDeps)
@@ -144,8 +139,6 @@ local function process_dependencies(list, basename, deps, hasDeps)
 			local match = find_match(dep)
 
 			if match and not hasDeps[match.rawName] then
-				print(basename .. ' dependency on ' .. dep .. ' fulfilled by ' .. match.rawName)
-
 				hasDeps[match.rawName] = true
 				table.insert(deps, { dep = match.rawName, data = match })
 
