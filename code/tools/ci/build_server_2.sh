@@ -36,7 +36,7 @@ apk del curl
 apk add --no-cache curl=7.72.0-r99 libssl1.1 libunwind libstdc++ zlib c-ares icu-libs v8 musl-dbg
 
 # install compile-time dependencies
-apk add --no-cache --virtual .dev-deps lld curl-dev=7.72.0-r99 clang clang-dev build-base linux-headers openssl-dev python3 py3-pip py3-setuptools lua5.3 lua5.3-dev mono-reference-assemblies=5.16.1.0-r9990 mono-dev=5.16.1.0-r9990 libmono=5.16.1.0-r9990 mono-corlib=5.16.1.0-r9990 mono=5.16.1.0-r9990 mono-reference-assemblies-4.x=5.16.1.0-r9990 mono-reference-assemblies-facades=5.16.1.0-r9990 mono-csc=5.16.1.0-r9990 mono-runtime=5.16.1.0-r9990 c-ares-dev v8-dev nodejs~=12 nodejs-dev~=12 npm yarn clang-libs git cargo
+apk add --no-cache --virtual .dev-deps lld curl-dev=7.72.0-r99 clang clang-dev build-base linux-headers openssl-dev python2 python3 py3-pip py3-setuptools lua5.3 lua5.3-dev mono-reference-assemblies=5.16.1.0-r9990 mono-dev=5.16.1.0-r9990 libmono=5.16.1.0-r9990 mono-corlib=5.16.1.0-r9990 mono=5.16.1.0-r9990 mono-reference-assemblies-4.x=5.16.1.0-r9990 mono-reference-assemblies-facades=5.16.1.0-r9990 mono-csc=5.16.1.0-r9990 mono-runtime=5.16.1.0-r9990 c-ares-dev v8-dev nodejs~=12 nodejs-dev~=12 npm yarn clang-libs git cargo
 
 # install ply
 python3 -m pip install ply
