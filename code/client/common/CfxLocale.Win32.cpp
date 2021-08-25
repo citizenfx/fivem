@@ -1,4 +1,6 @@
 #include <StdInc.h>
+
+#if !defined(COMPILING_LAUNCH) || defined(LAUNCHER_PERSONALITY_MAIN)
 #include <CfxLocale.h>
 
 #ifndef IS_FXSERVER
@@ -60,4 +62,5 @@ fxlang::LocalizationInstance* GetLocalizationInstance()
 {
 	return new fxlang::LocalizationInstanceImpl();
 }
+#endif
 #endif

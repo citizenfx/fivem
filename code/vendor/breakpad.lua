@@ -1,3 +1,5 @@
+local crt = ...
+
 return {
 	include = function()
 		includedirs "../vendor/breakpad/src/"
@@ -12,7 +14,7 @@ return {
 		language "C++"
 		kind "StaticLib"
 
-		if _OPTIONS['game'] ~= 'server' then
+		if _OPTIONS['game'] ~= 'server' and crt then
 			staticruntime 'On'
 		end
 

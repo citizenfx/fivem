@@ -1,4 +1,6 @@
 #include <StdInc.h>
+
+#ifdef LAUNCHER_PERSONALITY_MAIN
 #include <CfxLocale.h>
 
 extern fxlang::LocalizationInstance* GetLocalizationInstance();
@@ -9,3 +11,4 @@ extern "C" fxlang::LocalizationInstance* CoreGetLocalization()
 
 	return li;
 }
+#endif

@@ -1,6 +1,7 @@
 vendor_component 'tinyxml2'
 vendor_component 'tinyxml2-dll'
 vendor_component 'breakpad'
+vendor_component 'breakpad-crt'
 vendor_component 'yaml-cpp'
 vendor_component 'msgpack-c'
 vendor_component 'protobuf_lite'

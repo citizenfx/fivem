@@ -7,6 +7,10 @@
 
 #include "StdInc.h"
 
+#if defined(COMPILING_LAUNCH) && !defined(LAUNCHER_PERSONALITY_MAIN) && !defined(COMPILING_DIAG)
+#define NON_CRT_LAUNCHER
+#endif
+
 #if !defined(COMPILING_LAUNCH) && !defined(COMPILING_CONSOLE) && !defined(IS_FXSERVER)
 #include <ICoreGameInit.h>
 #endif
@@ -132,7 +136,7 @@ struct ErrorData
 	std::string lastError;
 };
 
-#if defined(COMPILING_CORE) || defined(COMPILING_LAUNCHER)
+#if defined(COMPILING_CORE) || defined(COMPILING_LAUNCH)
 extern "C" DLL_EXPORT ErrorData* GetErrorData()
 {
 	static thread_local ErrorData errorData;
@@ -264,7 +268,14 @@ struct ScopedError
 	}
 };
 
-#if !defined(COMPILING_LAUNCH) && !defined(COMPILING_CONSOLE) && !defined(COMPILING_SHARED_LIBC)
+#if defined(NON_CRT_LAUNCHER)
+void FatalErrorV(const char* string, fmt::printf_args formatList)
+{
+	GlobalErrorHandler(ERR_FATAL, fmt::vsprintf(string, formatList).c_str());
+}
+#endif
+
+#if (!defined(COMPILING_LAUNCH) && !defined(COMPILING_CONSOLE) && !defined(COMPILING_SHARED_LIBC)) || defined(NON_CRT_LAUNCHER)
 int GlobalErrorRealV(const char* file, int line, uint32_t stringHash, const char* string, fmt::printf_args formatList)
 {
 	ScopedError error(file, line, stringHash);
@@ -279,7 +290,7 @@ int FatalErrorRealV(const char* file, int line, uint32_t stringHash, const char*
 
 int FatalErrorNoExceptRealV(const char* file, int line, uint32_t stringHash, const char* string, fmt::printf_args formatList)
 {
-#ifndef IS_FXSERVER
+#if !defined(IS_FXSERVER) && !defined(COMPILING_LAUNCH)
 	auto msg = fmt::vsprintf(string, formatList);
 	trace("NoExcept: %s\n", msg);
 
@@ -314,7 +325,7 @@ void FatalErrorV(const char* string, fmt::printf_args formatList)
 }
 #endif
 
-#if defined(COMPILING_LAUNCH) || defined(COMPILING_CONSOLE) || defined(COMPILING_SHARED_LIBC)
+#if (defined(COMPILING_LAUNCH) || defined(COMPILING_CONSOLE) || defined(COMPILING_SHARED_LIBC)) && !defined(NON_CRT_LAUNCHER)
 #undef _wassert
 
 #include <assert.h>

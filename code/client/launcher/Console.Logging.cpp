@@ -198,6 +198,7 @@ void InitLogging()
 
 		CreateDirectory(MakeRelativeCitPath(L"logs/").c_str(), NULL);
 
+#if defined(LAUNCHER_PERSONALITY_MAIN)
 		SYSTEMTIME curTime;
 		GetSystemTime(&curTime);
 
@@ -230,6 +231,7 @@ void InitLogging()
 				}
 			}
 		}
+#endif
 
 		AsyncTrace(fmt::format("--- BEGIN LOGGING AT {:%c} ---\n", fmt::gmtime(time(NULL))).c_str());
 	}

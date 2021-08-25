@@ -6,6 +6,8 @@
 */
 
 #include "StdInc.h"
+
+#if defined(LAUNCHER_PERSONALITY_MAIN)
 #undef interface
 
 #include <CfxLocale.h>
@@ -603,3 +605,4 @@ bool ExtractInstallerFile(const std::wstring& installerFile, const std::function
 
 	return true;
 }
+#endif
