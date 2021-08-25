@@ -710,6 +710,11 @@ struct LoggedInt
 
 bool IsWaitingForTimeSync();
 
+static int ReturnTrue()
+{
+	return true;
+}
+
 static HookFunction hookFunction([]()
 {
 	static ConsoleCommand quitCommand("quit", [](const std::string& message)
@@ -777,6 +782,9 @@ static HookFunction hookFunction([]()
 	//hook::put<uint8_t>(hook::get_pattern("75 1B 38 1D ? ? ? ? 74 36"), 0xEB);
 
 	rlPresence__m_GamerPresences = hook::get_address<void*>(hook::get_pattern("F6 84 01 ? ? ? ? 02 74 ? 48 05", -4));
+
+	// pretend to have CGameScriptHandlerNetComponent always be host
+	hook::jump(hook::get_pattern("33 DB 48 85 C0 74 17 48 8B 48 10 48 85 C9 74 0E", -10), ReturnTrue);
 
 	static LoggedInt tryHostStage = 0;
 
