@@ -2,11 +2,14 @@ $InstRoot = "$PSScriptRoot\..\..\..\"
 $ErrorActionPreference = "Stop"
 
 if ($env:CI) {
+	Set-Content -Path "$PSScriptRoot\prebuild_run.txt" -Value ($null)
+	(Get-Item "$PSScriptRoot\prebuild_run.txt").LastWriteTime = Get-Date
+
     return 0
 }
 
 try {
-	if (!([string](py --version 2>&1)).StartsWith("Python 3")) {
+	if (!([string](py -3 --version 2>&1)).StartsWith("Python 3")) {
 		"PREBUILD : error PY3X : ``py`` in PATH is not Python 3." | Write-Host
 		return 1;
 	}

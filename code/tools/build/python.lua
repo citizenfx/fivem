@@ -1,6 +1,5 @@
 if os.ishost('windows') then
-	-- TODO: detect executable via e.g. `HKEY_LOCAL_MACHINE\SOFTWARE\Python\PythonCore\3.8`
-	pythonExecutable = 'py'
+	pythonExecutable = os.outputof('py -3 -c "import sys; print(sys.executable)"')
 else
 	pythonExecutable = 'python3'
 end
