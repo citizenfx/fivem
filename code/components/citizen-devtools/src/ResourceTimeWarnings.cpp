@@ -75,10 +75,12 @@ static std::chrono::microseconds lastHitch;
 #ifdef GTA_FIVE
 #include <Hooking.h>
 #include <InputHook.h>
+#include <Error.h>
 
 static decltype(&SetThreadExecutionState) origSetThreadExecutionState;
 static decltype(&PeekMessageW) origPeekMessageW;
 
+static std::chrono::microseconds lastPeekMessage;
 static std::chrono::microseconds currentTotal;
 static bool currentWasFocusEvent = false;
 
@@ -108,6 +110,7 @@ static BOOL WINAPI PeekMessageW_Track(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin
 	auto thisEnd = usec();
 
 	currentTotal += (thisEnd - thisStart);
+	lastPeekMessage = thisEnd;
 
 	// if we're out of events, and didn't get a focus event generated anyway
 	if (!rv && !currentWasFocusEvent)
@@ -119,6 +122,20 @@ static BOOL WINAPI PeekMessageW_Track(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin
 	}
 
 	return rv;
+}
+
+#include <Resource.h>
+#include <ResourceEventComponent.h>
+
+constexpr int NumThreads = 4;
+
+using TThreadStack = std::deque<std::string>;
+
+static TThreadStack g_threadStack;
+
+static TThreadStack* GetThread()
+{
+	return &g_threadStack;
 }
 
 static HookFunction hookFunctionGameTime([]()
@@ -134,6 +151,98 @@ static HookFunction hookFunctionGameTime([]()
 
 	origSetThreadExecutionState = hook::iat("kernel32.dll", SetThreadExecutionState_Track, "SetThreadExecutionState");
 	origPeekMessageW = hook::iat("user32.dll", PeekMessageW_Track, "PeekMessageW");
+
+	fx::Resource::OnInitializeInstance.Connect([](fx::Resource* resource)
+	{
+		auto resourceName = resource->GetName();
+
+		auto ev = resource->GetComponent<fx::ResourceEventComponent>();
+		ev->OnTriggerEvent.Connect([resourceName](const std::string& eventName, const std::string& eventPayload, const std::string& eventSource, bool* eventCanceled)
+		{
+			auto th = GetThread();
+
+			if (th)
+			{
+				th->push_front(fmt::sprintf("%s: event %s", resourceName, eventName));
+			}
+		},
+		-100);
+
+		ev->OnTriggerEvent.Connect([](const std::string& eventName, const std::string& eventPayload, const std::string& eventSource, bool* eventCanceled)
+		{
+			auto th = GetThread();
+
+			if (th)
+			{
+				th->pop_front();
+			}
+		},
+		100);
+
+		resource->OnTick.Connect([resourceName]()
+		{
+			auto th = GetThread();
+
+			if (th)
+			{
+				th->push_front(fmt::sprintf("%s: tick", resourceName));
+			}
+		},
+		INT32_MIN);
+
+		resource->OnTick.Connect([]()
+		{
+			auto th = GetThread();
+
+			if (th)
+			{
+				th->pop_front();
+			}
+		},
+		INT32_MAX);
+	}, INT32_MAX);
+
+	if (!CoreIsDebuggerPresent())
+	{
+		std::thread([]()
+		{
+			using namespace std::chrono_literals;
+
+			SetThreadName(-1, "Window Watchdog");
+
+			while (true)
+			{
+				auto now = usec();
+				Sleep(1000);
+
+				if ((now - lastPeekMessage) > 15s)
+				{
+					std::string reasoning;
+
+					if (!g_threadStack.empty())
+					{
+						std::stringstream s;
+
+						auto& threadStack = g_threadStack;
+
+						for (auto& entry : threadStack)
+						{
+							s << entry << " <- ";
+						}
+
+						s << "root";
+
+						reasoning = fmt::sprintf("\n\nScript stack: %s", s.str());
+					}
+
+					FatalError("FiveM has stopped responding\nThe game stopped responding for %.1f seconds and needs to be restarted. Information on this hang is currently being uploaded.%s",
+					std::chrono::duration_cast<std::chrono::milliseconds>(now - lastPeekMessage).count() / 1000.0,
+					reasoning);
+				}
+			}
+		})
+		.detach();
+	}
 });
 #endif
 
