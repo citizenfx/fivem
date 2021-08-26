@@ -1,8 +1,7 @@
-import { WEApi } from 'backend/world-editor/world-editor-game-api';
 import React from 'react';
+import { WEApi } from 'backend/world-editor/world-editor-game-api';
 import { clamp01 } from 'shared/math';
 import { HotkeyController } from 'utils/HotkeyController';
-import { SingleEventEmitter } from 'utils/singleEventEmitter';
 import { executeCommand, getAllCommandHotkeyBindings, onRegisterCommandBinding } from './command-bindings';
 import { FlashingMessageState } from './components/WorldEditorToolbar/FlashingMessage/FlashingMessageState';
 import { WECommandScope } from './constants/commands';
@@ -26,6 +25,19 @@ export enum MouseButton {
   LEFT = 0,
   MIDDLE = 1,
   RIGHT = 2,
+}
+
+export enum MappedMouseButton {
+  LEFT = 0,
+  MIDDLE = 2,
+  RIGHT = 1,
+}
+
+export enum ICState {
+  IDLE,
+  DRAGGING,
+  CAMERA_CONTROL,
+  FULL_CONTROL,
 }
 
 interface Point {
@@ -82,22 +94,29 @@ export class InputController {
   private hotkeys: HotkeyController;
   private removeRegisterCommandBindingListener: Function;
 
-  private readonly activeKeys: Record<number, boolean> = {};
-  private readonly activeMouseButtons: [boolean, boolean, boolean] = [false, false, false];
+  private state = ICState.IDLE;
 
-  private fullControl = false;
+  private readonly keyState: Record<number, boolean> = {};
+  private readonly mouseButtonState: [boolean, boolean, boolean] = [false, false, false];
 
-  private cameraControlActive = false;
   private cameraMovementBaseMultiplier = 1;
 
   private mousePos: Point = { x: 0, y: 0 };
 
   private get gizmoPrecisionMode(): boolean {
-    return !!this.activeKeys[Key.ALT_LEFT] || !!this.activeKeys[Key.ALT_RIGHT];
+    return !!this.keyState[Key.ALT_LEFT] || !!this.keyState[Key.ALT_RIGHT];
   }
 
-  private get dragging(): boolean {
-    return this.activeMouseButtons[MouseButton.LEFT];
+  private get isFullControl(): boolean {
+    return this.state === ICState.FULL_CONTROL;
+  }
+
+  private get isCameraControl(): boolean {
+    return this.state === ICState.CAMERA_CONTROL;
+  }
+
+  private get isDragging(): boolean {
+    return this.state === ICState.DRAGGING;
   }
 
   constructor(
@@ -107,7 +126,7 @@ export class InputController {
     this.hotkeys = new HotkeyController(
       (binding) => {
         if (binding.interrupting) {
-          this.deactivateCameraControl();
+          this.exitCameraControl();
         }
 
         executeCommand(binding.command);
@@ -152,23 +171,22 @@ export class InputController {
   setScope(scope: WECommandScope) {
     this.hotkeys.setScope(scope);
   }
-  getScope(): WECommandScope {
-    return WECommandScope[this.hotkeys.getScope()];
-  }
 
   enterFullControl() {
-    this.fullControl = true;
+    this.state = ICState.FULL_CONTROL;
 
     this.setScope(WECommandScope.PLAYTEST);
 
-    this.lockPointer();
+    if (!this.lockingPointer) {
+      this.lockPointer();
+    }
 
     this.resetMouseButtonStates();
     this.resetKeysState();
   }
 
   exitFullControl() {
-    this.fullControl = false;
+    this.state = ICState.IDLE;
 
     this.setScope(WECommandScope.EDITOR);
 
@@ -178,28 +196,29 @@ export class InputController {
     this.resetKeysState();
   }
 
-  private escapeFullControlCallback = (relative: boolean) => {};
+  private escapeFullControlCallback = (_relative: boolean) => {};
   onEscapeFullControl(cb: (relative: boolean) => void) {
     this.escapeFullControlCallback = cb;
   }
 
-  deactivateCameraControl() {
-    if (this.cameraControlActive) {
-      this.cameraControlActive = false;
-
+  exitCameraControl() {
+    if (this.isCameraControl) {
+      this.state = ICState.IDLE;
       this.unlockPointer();
+
+      setWorldEditorMouse(this.mousePos.x, this.mousePos.y);
     }
   }
 
   private handleContainerMouseMove = (event: MouseEvent) => {
-    if (this.fullControl || this.cameraControlActive) {
+    if (this.isFullControl || this.isCameraControl) {
       return;
     }
 
     let rx: number;
     let ry: number;
 
-    if (this.dragging) {
+    if (this.isDragging) {
       const movement = this.getScaledMovement(event);
 
       const multiplier = this.gizmoPrecisionMode
@@ -218,16 +237,16 @@ export class InputController {
   private resetKeysState() {
     this.hotkeys.resetState();
 
-    for (const [keyString, active] of Object.entries(this.activeKeys)) {
+    for (const [keyString, active] of Object.entries(this.keyState)) {
       if (active) {
-        this.activeKeys[keyString] = false;
+        this.keyState[keyString] = false;
         setKeyState(parseInt(keyString, 10), false);
       }
     }
   }
 
   private handleKeyState(event: KeyboardEvent, active: boolean) {
-    if (this.fullControl) {
+    if (this.isFullControl) {
       if (event.code === 'Escape') {
         this.escapeFullControlCallback(event.shiftKey);
       } else {
@@ -253,8 +272,8 @@ export class InputController {
   private applyKeyState(event: KeyboardEvent, active: boolean) {
     const key = mapKey(event);
 
-    if (this.activeKeys[key] !== active) {
-      this.activeKeys[key] = active;
+    if (this.keyState[key] !== active) {
+      this.keyState[key] = active;
 
       setKeyState(key, active);
     }
@@ -278,86 +297,88 @@ export class InputController {
   }
 
   private resetMouseButtonStates() {
-    this.activeMouseButtons.forEach((active, button) => {
+    this.mouseButtonState.forEach((active, button) => {
       if (active) {
-        this.activeMouseButtons[button] = false;
+        this.mouseButtonState[button] = false;
         setMouseButtonState(button, false);
       }
     });
   }
   private handleMouseButtonState(event: MouseEvent, active: boolean) {
-    if (this.fullControl) {
-      const button = mapMouseButton(event.button);
+    const lmb = isLMB(event);
+    const rmb = isRMB(event);
+    const button = mapMouseButton(event.button);
+    const changed = this.mouseButtonState[button] !== active;
 
-      if (this.activeMouseButtons[button] !== active) {
-        this.activeMouseButtons[button] = active;
-
-        setMouseButtonState(button, active);
-      }
-
-      return haltEvent(event);
-    }
+    this.mouseButtonState[button] = active;
 
     if (active) {
       (document.activeElement as any).blur();
     }
 
-    const lmb = isLMB(event);
-    const rmb = isRMB(event);
-    const button = mapMouseButton(event.button);
+    switch (this.state) {
+      case ICState.IDLE: {
+        if (!active) {
+          break;
+        }
 
-    if (this.cameraControlActive) {
-      haltEvent(event);
-
-      if (rmb && !active) {
-        this.cameraControlActive = false;
-        this.unlockPointer();
-        return;
-      }
-
-      return;
-    }
-
-    switch (true) {
-      case rmb && active: {
-        this.cameraControlActive = true;
-        this.lockPointer();
-        this.resetMouseButtonStates();
-        break;
-      }
-
-      case lmb: {
-        if (active && !this.activeMouseButtons[button]) {
-          this.activeMouseButtons[button] = true;
+        if (lmb) {
+          this.state = ICState.DRAGGING;
           this.mousePos = this.getEventRelativePos(event);
           setMouseButtonState(button, true);
-
           this.onSelect(true);
+        }
 
-        } else if (!active && this.activeMouseButtons[button]) {
-          this.activeMouseButtons[button] = false;
-          setMouseButtonState(button, false);
-
-          this.onSelect(false);
+        if (rmb) {
+          this.state = ICState.CAMERA_CONTROL;
+          this.mousePos = this.getEventRelativePos(event);
+          setWorldEditorMouse(0, 0);
+          this.lockPointer();
         }
 
         break;
       }
 
-      default: return;
+      case ICState.FULL_CONTROL: {
+        if (!this.lockingPointer) {
+          this.lockPointer();
+        } else if (changed) {
+          setMouseButtonState(button, active);
+        }
+
+        break;
+      }
+
+      case ICState.CAMERA_CONTROL: {
+        if (rmb && !active) {
+          this.exitCameraControl();
+        }
+
+        break;
+      }
+
+      case ICState.DRAGGING: {
+        if (lmb && !active) {
+          this.state = ICState.IDLE;
+          setMouseButtonState(button, false);
+          this.onSelect(false);
+        }
+
+        break;
+      }
     }
 
     haltEvent(event);
   }
 
   private readonly handleWheel = (event: WheelEvent) => {
-    if (this.fullControl) {
+    if (this.isFullControl) {
       sendMouseWheel(-event.deltaY);
 
       return haltEvent(event);
     }
 
-    if (this.cameraControlActive) {
+    if (this.isCameraControl) {
       this.cameraMovementBaseMultiplier += -event.deltaY * 0.001;
 
       if (this.cameraMovementBaseMultiplier < 0.01) {
@@ -412,6 +433,10 @@ export class InputController {
   };
 
   private readonly handleWindowBlur = () => {
+    if (this.lockingPointer) {
+      this.unlockPointer();
+    }
+
     this.hotkeys.resetState();
 
     this.resetKeysState();
