@@ -215,7 +215,7 @@ static HookFunction hookFunctionGameTime([]()
 				auto now = usec();
 				Sleep(1000);
 
-				if ((now - lastPeekMessage) > 15s)
+				if (lastPeekMessage.count() > 0 && (now - lastPeekMessage) > 15s && (now - lastPeekMessage) < 60s)
 				{
 					std::string reasoning;
 
