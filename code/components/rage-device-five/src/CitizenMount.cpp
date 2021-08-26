@@ -13,6 +13,8 @@
 #include <boost/algorithm/hex.hpp>
 #include <boost/algorithm/string.hpp>
 
+#include <openssl/sha.h>
+
 #include <LaunchMode.h>
 
 #include <VFSManager.h>
