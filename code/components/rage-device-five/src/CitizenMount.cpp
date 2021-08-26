@@ -10,6 +10,7 @@
 #include "Hooking.h"
 #include "boost/assign.hpp"
 
+#include <boost/algorithm/hex.hpp>
 #include <boost/algorithm/string.hpp>
 
 #include <LaunchMode.h>
@@ -302,5 +303,52 @@ static InitFunction initFunction([] ()
 		}
 
 		ApplyPaths(relativePaths);
+
+		// validate some game files
+		auto validateFile = [](const std::wstring& fileName, std::string_view hash)
+		{
+			bool valid = false;
+			FILE* f = _wfopen(MakeRelativeCitPath(fileName).c_str(), L"rb");
+			if (f)
+			{
+				SHA256_CTX sha;
+				SHA256_Init(&sha);
+
+				uint8_t hashBuffer[16384];
+				size_t read = 0;
+				do
+				{
+					read = fread(hashBuffer, 1, sizeof(hashBuffer), f);
+
+					if (read > 0)
+					{
+						SHA256_Update(&sha, hashBuffer, read);
+					}
+				} while (read > 0);
+
+				uint8_t sha256[256 / 8];
+				SHA256_Final(sha256, &sha);
+
+				fclose(f);
+
+				std::string tgtHash;
+				boost::algorithm::unhex(hash, std::back_inserter(tgtHash));
+
+				if (tgtHash == std::string_view{ (char*)sha256, sizeof(sha256) })
+				{
+					valid = true;
+				}
+			}
+
+			if (!valid)
+			{
+				trace("%s was invalid - removing/verifying next launch\n", ToNarrow(fileName));
+
+				_wunlink(MakeRelativeCitPath(fileName).c_str());
+				_wunlink(MakeRelativeCitPath(L"content_index.xml").c_str());
+			}
+		};
+
+		validateFile(L"citizen/common/data/gta5_cache_y.dat", "10a43796e911a7aa5b53111a7a91c30bb8b99539f46bd0e6a755fe55de819590");
 	});
 });
