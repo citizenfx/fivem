@@ -369,15 +369,10 @@ static hook::cdecl_stub<bool()> isSessionStarted([] ()
 	return hook::get_call(hook::get_pattern("8B 86 D8 08 00 00 C1 E8 05", 13));
 });
 
-static hook::cdecl_stub<void(int reason, int, int, int, bool)> networkBail([]()
-{
-	if (xbr::IsGameBuildOrGreater<2372>())
-	{
-		return hook::get_pattern("80 3D ? ? ? ? 00 8B 01 48 8B D9 89", -0xD);
-	}
-
-	return hook::get_pattern("41 8B F1 41 8B E8 8B FA 8B D9 74 26", -0x1B);
-});
+// Network bail function definition changed in 2372
+static void* g_NetworkBail = nullptr;
+using networkBail_2372 = void((*)(void*, bool));
+using networkBail_1604 = void((*)(int, int, int, int, bool));
 
 static bool(*_isScWaitingForInit)();
 
@@ -676,13 +671,29 @@ struct
 		{
 			cgi->ClearVariable("networkInited");
 
-			networkBail(7, -1, -1, -1, true);
+			if (xbr::IsGameBuildOrGreater<2372>())
+			{
+				int32_t args[5] = { 7, -1, -1, -1, -1 };
+				((networkBail_2372)g_NetworkBail)(&args, true);
+			}
+			else
+			{
+				((networkBail_1604)g_NetworkBail)(7, -1, -1, -1, true);
+			}
 
 			state = HS_DISCONNECTING;
 		}
 		else if (state == HS_FORCE_DISCONNECT)
 		{
-			networkBail(7, -1, -1, -1, true);
+			if (xbr::IsGameBuildOrGreater<2372>())
+			{
+				int32_t args[5] = { 7, -1, -1, -1, -1 };
+				((networkBail_2372)g_NetworkBail)(&args, true);
+			}
+			else
+			{
+				((networkBail_1604)g_NetworkBail)(7, -1, -1, -1, true);
+			}
 
 			state = HS_DISCONNECTING_FINAL;
 		}
@@ -1515,6 +1526,17 @@ static HookFunction hookFunction([] ()
 	onlineAddressFunc += 0x23;
 
 	g_onlineAddress = (OnlineAddress*)(onlineAddressFunc + *(int32_t*)onlineAddressFunc + 4);
+
+	{
+		if (xbr::IsGameBuildOrGreater<2372>())
+		{
+			g_NetworkBail = hook::get_pattern("80 3D ? ? ? ? 00 8B 01 48 8B D9 89", -0xD);
+		}
+		else
+		{
+			g_NetworkBail = hook::get_pattern("41 8B F1 41 8B E8 8B FA 8B D9 74 26", -0x1B);
+		}
+	}
 
 	//uint64_t* addrThing = (uint64_t*)(netAddressFunc + *(int32_t*)netAddressFunc + 4);
 	//addrThing[0] = 1;
