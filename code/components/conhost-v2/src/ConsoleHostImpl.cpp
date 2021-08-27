@@ -703,6 +703,11 @@ static HookFunction initFunction([]()
 
 			virtual inline void MouseWheel(int delta) override
 			{
+				if (delta == 0)
+				{
+					return;
+				}
+
 				std::unique_lock<std::mutex> g_conHostMutex;
 
 				ImGuiIO& io = ImGui::GetIO();
