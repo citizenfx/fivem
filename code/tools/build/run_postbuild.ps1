@@ -162,6 +162,14 @@ if (!$IsServer) {
     if (Test-Path $LayoutDir\citizen\system_resources\monitor\starter.js) {
         Remove-Item -Force $LayoutDir\citizen\system_resources\monitor\starter.js
     }
+
+	# for public source builds, remove adhesive from the components list
+	if (!(Test-Path $LayoutDir\svadhesive.dll)) {
+		(Get-Content $LayoutDir\components.json | ConvertFrom-Json) | 
+		Where-Object { $_ -ne "svadhesive" } | 
+		ConvertTo-Json | 
+		Set-Content $LayoutDir\components.json
+	}
     
     # useless client-related scripting stuff
     Remove-Item -Force $LayoutDir\citizen\scripting\lua\*.zip
