@@ -7,6 +7,7 @@
 
 #include "StdInc.h"
 
+#ifndef GTA_NY
 #include <scrEngine.h>
 
 #include <NetLibrary.h>
@@ -194,3 +195,4 @@ static InitFunction initFunction([] ()
 		rage::scrEngine::CreateThread(&lovelyThread);
 	});
 });
+#endif

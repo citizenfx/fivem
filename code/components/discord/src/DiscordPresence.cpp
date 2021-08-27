@@ -17,6 +17,8 @@
 #define DEFAULT_APP_ID "879627773839278110"
 #define DEFAULT_APP_ASSET "redm_large"
 #endif
+
+#if defined(DEFAULT_APP_ID)
 #define DEFAULT_APP_ASSET_SMALL ""
 #define DEFAULT_APP_ASSET_TEXT ""
 #define DEFAULT_APP_ASSET_SMALL_TEXT ""
@@ -329,3 +331,4 @@ static InitFunction initFunction([]()
 		g_richPresenceChanged = true;
 	});
 });
+#endif
