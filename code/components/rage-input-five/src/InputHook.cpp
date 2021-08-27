@@ -419,6 +419,8 @@ static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
 	rgd->mouseAbsX = std::clamp(rgd->mouseAbsX + curInput.mouseDeltaX, 0, rgd->twidth);
 	rgd->mouseAbsY = std::clamp(rgd->mouseAbsY + curInput.mouseDeltaY, 0, rgd->theight);
 
+	rgd->mouseWheel = 0;
+
 	g_mouseMovement.x = 0;
 	g_mouseMovement.y = 0;
 
@@ -564,8 +566,8 @@ static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
 		g_input->cursorAbsX() = std::clamp(g_input->cursorAbsX() + curInput.mouseDeltaX, 0, rgd->twidth);
 		g_input->cursorAbsY() = std::clamp(g_input->cursorAbsY() + curInput.mouseDeltaY, 0, rgd->theight);
 
-		g_input->m_Buttons() = rgd->mouseButtons;
-		g_input->m_dZ() = rgd->mouseWheel;
+		g_input->m_Buttons() = curInput.mouseButtons;
+		g_input->m_dZ() = curInput.mouseWheel;
 
 		origSetInput(a1, a2, a3, a4);
 
