@@ -189,7 +189,7 @@ extern "C" void DLL_EXPORT CoreRT_SetupSEHHandler(void* moduleBase, void* module
 	// find the location to hook (RtlpxLookupFunctionTable from RtlLookupFunctionTable)
 	void* baseAddress = GetProcAddress(GetModuleHandle(L"ntdll.dll"), "RtlLookupFunctionTable");
 
-	if (baseAddress)
+	if (baseAddress && GetModuleHandle(L"xtajit64.dll") == nullptr)
 	{
 		void* internalAddress = FindCallFromAddress(baseAddress);
 

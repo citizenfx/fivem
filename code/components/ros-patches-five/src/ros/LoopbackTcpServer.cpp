@@ -1780,7 +1780,7 @@ void OnPreInitHook()
 //	DO_HOOK(L"ws2_32.dll", "FreeAddrInfoW", EP_FreeAddrInfoW, g_oldFreeAddrInfoW); // these three are hook-checked
 
 #ifndef _M_IX86
-	if (CfxIsWine() || GetProcAddress(GetModuleHandle(L"kernel32.dll"), "EnterUmsSchedulingMode") == nullptr) // ARM64X 21277 doesn't expose EnterUmsSchedulingMode
+	if (CfxIsWine() || GetModuleHandle(L"xtajit64.dll") != nullptr) // xtajit64.dll = arm64 jit
 	{
 		DO_HOOK(L"ws2_32.dll", "getaddrinfo", EP_GetAddrInfo, g_oldGetAddrInfo); // enabled because wine, probably going to fail
 	}
