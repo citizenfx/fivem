@@ -1,4 +1,6 @@
 #include <StdInc.h>
+
+#define REPLXX_STATIC
 #include <replxx.hxx>
 
 #ifdef _WIN32
@@ -89,7 +91,7 @@ static InitFunction initFunction([]()
 
 			static auto disableTTYVariable = instance->AddVariable<bool>("con_disableNonTTYReads", ConVar_None, false);
 
-			auto getCmdsForContext = [](const std::string& input, int& contextLen)
+			auto getCmdsForContext = [](const std::string& input, int& contextLen) -> replxx::Replxx::completions_t
 			{
 				static std::set<std::string> cmds;
 
@@ -216,7 +218,13 @@ static InitFunction initFunction([]()
 					break;
 				}
 
-				return std::vector<std::string>{cmds.begin(), cmds.end()};
+				std::vector<replxx::Replxx::Completion> completions;
+				for (auto& cmd : cmds)
+				{
+					completions.push_back(cmd);
+				}
+
+				return completions;
 			};
 
 			using cl = replxx::Replxx::Color;
@@ -256,7 +264,7 @@ static InitFunction initFunction([]()
 
 					if (!cmds.empty())
 					{
-						return { cmds[0] };
+						return { cmds[0].text() };
 					}
 				}
 
