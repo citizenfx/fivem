@@ -1217,7 +1217,9 @@ static int
 enet_protocol_receive_incoming_commands (ENetHost * host, ENetEvent * event)
 {
     int packets;
+    auto end_time = enet_time_get() + 10;
 
+read:
     for (packets = 0; packets < 256; ++ packets)
     {
        int receivedLength;
@@ -1272,6 +1274,11 @@ enet_protocol_receive_incoming_commands (ENetHost * host, ENetEvent * event)
        default:
           break;
        }
+    }
+
+    if (enet_time_get() < end_time)
+    {
+        goto read;
     }
 
     return 0;
