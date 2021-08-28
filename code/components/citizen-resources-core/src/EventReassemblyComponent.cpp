@@ -79,6 +79,10 @@ private:
 		int source;
 		eastl::bitvector<> ackedBits;
 
+		// completion information (used to handle lingering packets after full reassembly)
+		bool completed;
+		std::chrono::milliseconds timeLastAck;
+
 		// we don't reassemble in-flight since a malicious source may try to get us to allocate many in-flight packets to cause memory exhaustion
 		std::map<uint32_t, std::tuple<size_t, std::unique_ptr<uint8_t[]>>> packetData;
 	};
@@ -102,6 +106,9 @@ private:
 	EventId m_eventId;
 
 	std::chrono::milliseconds m_lastTime;
+
+	// Time of last m_receiveList cleanup
+	std::chrono::milliseconds m_lastCleanup;
 };
 
 struct EventPacket
@@ -178,9 +185,10 @@ bool EventPacket::Unparse(rl::MessageBuffer& buffer)
 }
 
 EventReassemblyComponentImpl::EventReassemblyComponentImpl()
-	: m_eventId(0), m_resourceManager(nullptr), m_sink(nullptr), m_lastTime(0)
+	: m_eventId(0), m_resourceManager(nullptr), m_sink(nullptr), m_lastTime(0), m_lastCleanup(0)
 {
 	m_lastTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
+	m_lastCleanup = m_lastTime;
 }
 
 void EventReassemblyComponentImpl::AttachToObject(ResourceManager* object)
@@ -371,54 +379,80 @@ void EventReassemblyComponentImpl::NetworkTick()
 
 					do
 					{
-						// find the first packet we have to send
-						int packetIdx = -1;
+						// All packets have been processed
+						bool hasAll = true;
+
 						auto bc = ackBits.size();
 
+						// check if any 'early' bits still need to be acked.
+						size_t firstPacketIdx = -1;
+						for (size_t bit = 0; bit < targetData->lastBit; bit++)
+						{
+							if (!ackBits[bit])
+							{
+								hasAll = false;
+								firstPacketIdx = bit;
+								break;
+							}
+						}
+
+						// find the first packet we have to send
+						size_t packetIdx = -1;
 						for (size_t bit = targetData->lastBit; bit < bc; bit++)
 						{
 							if (!ackBits[bit])
 							{
+								hasAll = false;
 								packetIdx = bit;
 								break;
 							}
 						}
 
-						if (packetIdx == -1)
+						bool forceBurstDelay = false;
+						if (hasAll)
 						{
 							// hey, we're done with this target!
 							sendPacket->targetData[target] = {};
 							doneTargets.insert(target);
 							break;
 						}
-
-						targetData->lastBit = (packetIdx + 1) % bc;
-
-						// try to send them a packet
-						EventPacket packet;
-						packet.eventId = eventId;
-						packet.packetIdx = packetIdx;
-						packet.totalPackets = ackBits.size();
-
-						size_t offset = (packetIdx * kFragmentSize);
-						size_t size = std::min(sendPacket->sendPayload.size() - offset, size_t(kFragmentSize));
-
-						memcpy(packet.payload.data(), sendPacket->sendPayload.data() + offset, size);
-						packet.thisBytes = size;
-
-						rl::MessageBuffer buf(1536);
-						packet.Unparse(buf);
-
-						m_sink->SendPacket(target, std::string_view{ (char*)buf.GetBuffer().data(), (buf.GetCurrentBit() / 8) + 1 });
-
-						// cut down time
-						if (resTime > latency)
+						else if (packetIdx == -1)
 						{
-							resTime -= latency;
+							forceBurstDelay = true;
+
+							// reset the loop to first packet that has not been ack'd
+							targetData->lastBit = firstPacketIdx;
+						}
+						else
+						{
+							targetData->lastBit = (packetIdx + 1) % bc;
+
+							// try to send them a packet
+							EventPacket packet;
+							packet.eventId = eventId;
+							packet.packetIdx = packetIdx;
+							packet.totalPackets = ackBits.size();
+
+							size_t offset = (packetIdx * kFragmentSize);
+							size_t size = std::min(sendPacket->sendPayload.size() - offset, size_t(kFragmentSize));
+
+							memcpy(packet.payload.data(), sendPacket->sendPayload.data() + offset, size);
+							packet.thisBytes = size;
+
+							rl::MessageBuffer buf(1536);
+							packet.Unparse(buf);
+
+							m_sink->SendPacket(target, std::string_view{ (char*)buf.GetBuffer().data(), buf.GetDataLength() });
+
+							// cut down time
+							if (resTime > latency)
+							{
+								resTime -= latency;
+							}
 						}
 
 						// if we've cycled around fully, set next send time and break out
-						if (targetData->lastBit <= startBit)
+						if (targetData->lastBit <= startBit || forceBurstDelay)
 						{
 							targetData->delayNextSend = timeNow + std::chrono::milliseconds(250);
 							break;
@@ -450,6 +484,20 @@ void EventReassemblyComponentImpl::NetworkTick()
 		for (auto done : dones)
 		{
 			m_sendList.erase(done);
+		}
+
+		// Cleanup ReceiveEvents 2 minutes after completion (& last ACK).
+		static const std::chrono::milliseconds gc_time(120000);
+		for (auto it = m_receiveList.cbegin(); it != m_receiveList.cend(); /* no increment */)
+		{
+			if (it->second->completed && (timeNow - it->second->timeLastAck) >= gc_time)
+			{
+				it = m_receiveList.erase(it);
+			}
+			else
+			{
+				++it;
+			}
 		}
 	}
 }
@@ -498,6 +546,8 @@ void EventReassemblyComponentImpl::HandlePacket(int source, std::string_view dat
 			receiveData = std::make_shared<ReceiveEvent>();
 			receiveData->ackedBits.resize(packet.totalPackets);
 			receiveData->source = source;
+			receiveData->completed = false;
+			receiveData->timeLastAck = std::chrono::milliseconds{ 0 };
 
 			m_receiveList.insert({ { source, packet.eventId }, receiveData });
 		}
@@ -506,11 +556,23 @@ void EventReassemblyComponentImpl::HandlePacket(int source, std::string_view dat
 			receiveData = entryIt->second;
 		}
 
-		if (receiveData->source == source)
-		{
-			// note down as acked
-			auto& ackBits = receiveData->ackedBits;
+		// note down as acked
+		auto& ackBits = receiveData->ackedBits;
+		bool ackedPacket = (packet.packetIdx < ackBits.size()) ? ackBits[packet.packetIdx] : false;
 
+		// Event has already been completed or acked: just send an ACK.
+		if (receiveData->source == source && (receiveData->completed || ackedPacket))
+		{
+			rl::MessageBuffer buf(1536);
+			packet.thisBytes = 0;
+			packet.Unparse(buf);
+
+			m_sink->SendPacket(source, std::string_view{ (char*)buf.GetBuffer().data(), buf.GetDataLength() });
+			receiveData->timeLastAck = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
+		}
+		// Still rebuilding event...
+		else if (receiveData->source == source)
+		{
 			if (packet.packetIdx < ackBits.size())
 			{
 				ackBits.set(packet.packetIdx, true);
@@ -528,7 +590,8 @@ void EventReassemblyComponentImpl::HandlePacket(int source, std::string_view dat
 				packet.thisBytes = 0;
 				packet.Unparse(buf);
 
-				m_sink->SendPacket(source, std::string_view{ (char*)buf.GetBuffer().data(), (buf.GetCurrentBit() / 8) + 1 });
+				m_sink->SendPacket(source, std::string_view{ (char*)buf.GetBuffer().data(), buf.GetDataLength() });
+				receiveData->timeLastAck = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
 			}
 
 			// queue event if we are 'full'
@@ -545,9 +608,13 @@ void EventReassemblyComponentImpl::HandlePacket(int source, std::string_view dat
 
 			if (hasAll)
 			{
+				receiveData->completed = true;
+
 				HandleReceivedPacket(source, receiveData);
 
-				m_receiveList.erase({ source, packet.eventId });
+				// Cleanup will now happen in NetworkTick to prevent any lingering packets from recreating
+				// the ReceiveEvent.
+				//m_receiveList.erase({ source, packet.eventId });
 			}
 		}
 	}
