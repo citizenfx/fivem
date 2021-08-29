@@ -244,53 +244,19 @@ public:
 	}
 };
 
-template<bool IsBoolean>
-struct fwEventConnectProxy
-{
-	template<typename... Args>
-	struct Internal
-	{
-		template<typename TEvent, typename TFunc>
-		static void Proxy(TEvent& event, TFunc func, int order)
-		{
-			event.ConnectInternal(func, order);
-		}
-	};
-};
-
-template<>
-struct fwEventConnectProxy<false>
-{
-	template<typename... Args>
-	struct Internal
-	{
-		template<typename TEvent, typename TFunc>
-		static void Proxy(TEvent& event, TFunc func, int order)
-		{
-			event.ConnectInternal([=] (Args... args)
-			{
-				func(args...);
-				return true;
-			}, order);
-		}
-	};
-};
-
 template<typename... Args>
 class fwEvent
 {
 public:
-	friend struct fwEventConnectProxy<true>;
-	friend struct fwEventConnectProxy<false>;
-
-	typedef std::function<bool(Args...)> TFunc;
+	using TFunc = std::function<bool(Args...)>;
 
 private:
 	struct callback
 	{
 		TFunc function;
-		callback* next;
-		int order;
+		std::unique_ptr<callback> next = nullptr;
+		int order = 0;
+		size_t cookie = -1;
 
 		callback(TFunc func)
 			: function(func)
@@ -299,7 +265,8 @@ private:
 		}
 	};
 
-	callback* m_callbacks;
+	std::unique_ptr<callback> m_callbacks;
+	std::atomic<size_t> m_connectCookie = 0;
 
 public:
 	fwEvent()
@@ -313,77 +280,110 @@ public:
 	}
 
 	template<typename T>
-	void Connect(T func)
+	auto Connect(T func)
 	{
-		fwEventConnectProxy<std::is_same<typename std::result_of<decltype(&T::operator())(T, Args...)>::type, bool>::value>::template Internal<Args...>::Proxy(*this, func, 0);
+		return Connect(func, 0);
 	}
 
 	template<typename T>
-	void Connect(T func, int order)
+	auto Connect(T func, int order)
 	{
-		fwEventConnectProxy<std::is_same<typename std::result_of<decltype(&T::operator())(T, Args...)>::type, bool>::value>::template Internal<Args...>::Proxy(*this, func, order);
+		if constexpr (std::is_same_v<std::invoke_result_t<T, Args...>, bool>)
+		{
+			return ConnectInternal(func, order);
+		}
+		else
+		{
+			return ConnectInternal([func](Args&&... args)
+			{
+				std::invoke(func, args...);
+				return true;
+			},
+			order);
+		}
 	}
 
 	void Reset()
 	{
-		callback* cb = m_callbacks;
-
-		while (cb)
-		{
-			callback* curCB = cb;
-
-			cb = cb->next;
-
-			delete curCB;
-		}
-
-		m_callbacks = nullptr;
+		m_callbacks.reset();
 	}
 
 private:
-	void ConnectInternal(TFunc func, int order)
+	size_t ConnectInternal(TFunc func, int order)
 	{
-		auto cb = new callback(func);
+		auto cookie = m_connectCookie++;
+		auto cb = std::unique_ptr<callback>(new callback(func));
 		cb->order = order;
+		cb->cookie = cookie;
 
 		if (!m_callbacks)
 		{
-			cb->next = nullptr;
-			m_callbacks = cb;
+			m_callbacks = std::move(cb);
 		}
 		else
 		{
-			callback* cur = m_callbacks;
+			auto cur = &m_callbacks;
 			callback* last = nullptr;
 
-			while (cur && order >= cur->order)
+			while (*cur && order >= (*cur)->order)
 			{
-				last = cur;
-				cur = cur->next;
+				last = cur->get();
+				cur = &(*cur)->next;
 			}
 
-			cb->next = cur;
-
-			(!last ? m_callbacks : last->next) = cb;
+			cb->next = std::move(*cur);
+			(!last ? m_callbacks : last->next) = std::move(cb);
 		}
-	}
 
-	void ConnectInternal(TFunc func)
-	{
-		ConnectInternal(func, 0);
+		return cookie;
 	}
 
 public:
-	bool operator()(Args... args)
+	void Disconnect(size_t cookie)
+	{
+		callback* prev = nullptr;
+
+		for (auto cb = m_callbacks.get(); cb; cb = cb->next.get())
+		{
+			if (cb->cookie == cookie)
+			{
+				if (prev)
+				{
+					prev->next = std::move(cb->next);
+				}
+				else
+				{
+					m_callbacks = std::move(cb->next);
+				}
+
+				break;
+			}
+
+			prev = cb;
+		}
+	}
+
+	auto ConnectInternal(TFunc func)
+	{
+		return ConnectInternal(func, 0);
+	}
+
+public:
+	operator bool() const
+	{
+		return m_callbacks.get() != nullptr;
+	}
+
+	bool operator()(Args... args) const
 	{
 		if (!m_callbacks)
 		{
 			return true;
 		}
 
-		for (callback* cb = m_callbacks; cb; cb = cb->next)
+		for (auto cb = m_callbacks.get(); cb; cb = cb->next.get())
 		{
-			if (cb->function && !cb->function(args...))
+			if (cb->function && !std::invoke(cb->function, args...))
 			{
 				return false;
 			}
