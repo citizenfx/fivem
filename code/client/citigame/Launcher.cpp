@@ -19,6 +19,8 @@
 #include <HostSharedData.h>
 #include <CfxState.h>
 
+#include <UUIState.h>
+
 IGameSpecToHooks* g_hooksDLL;
 
 __declspec(dllexport) void SetHooksDll(IGameSpecToHooks* dll);
@@ -62,6 +64,12 @@ bool LauncherInterface::PreLoadGame(void* cefSandbox)
 
 bool LauncherInterface::PostLoadGame(HMODULE hModule, void(**entryPoint)())
 {
+	static HostSharedData<UpdaterUIState> uuiState("CfxUUIState");
+
+	uuiState->SetText(1, "Analyzing game data");
+	uuiState->SetProgress(100.0);
+	uuiState->OpenWhenExpired();
+
 	bool continueRunning = true;
 
 	{
@@ -80,6 +88,9 @@ bool LauncherInterface::PreResumeGame()
 	{
 		component->PreResumeGame();
 	});
+
+	static HostSharedData<UpdaterUIState> uuiState("CfxUUIState");
+	uuiState->Close();
 
 	return true;
 }

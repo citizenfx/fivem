@@ -151,7 +151,7 @@ static InitFunction initFunction([] ()
 	{
 		resource->SetComponent(new ResourceEntryListComponent());
 
-#if __has_include(<streaming.h>) && !defined(GTA_NY)
+#if __has_include(<streaming.h>)
 		resource->OnStart.Connect([=] ()
 		{
 			if (resource->GetName() == "_cfx_internal")

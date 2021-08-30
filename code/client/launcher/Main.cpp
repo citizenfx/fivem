@@ -167,7 +167,9 @@ int RealMain()
 
 	SetDllDirectory(MakeRelativeCitPath(L"bin").c_str()); // to prevent a) current directory DLL search being disabled and b) xlive.dll being taken from system if not overridden
 
+#ifndef GTA_NY
 	tlsDll = LoadLibraryW(MakeRelativeCitPath(L"CitiLaunch_TLSDummy.dll").c_str());
+#endif
 
 	wchar_t initCwd[1024];
 	GetCurrentDirectoryW(std::size(initCwd), initCwd);
@@ -309,11 +311,13 @@ int RealMain()
 	XBR_EarlySelect();
 #endif
 
+#ifndef GTA_NY
 	if (!tlsDll)
 	{
 		tlsDll = LoadLibraryW(MakeRelativeCitPath(L"CitiLaunch_TLSDummy.dll").c_str());
 		assert(tlsDll);
 	}
+#endif
 
 	// add DLL directories post-installer (in case we moved into a Product.app directory)
 	addDllDirs();

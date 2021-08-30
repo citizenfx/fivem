@@ -1716,7 +1716,7 @@ extern "C" HRESULT __stdcall DllCanUnloadNow()
 	return 0; // S_OK
 }
 
-extern "C" DLL_EXPORT HRESULT WINRT_CALL DllGetActivationFactory(HSTRING classId, IActivationFactory** factory)
+extern "C" DLL_EXPORT HRESULT WINAPI DllGetActivationFactory(HSTRING classId, IActivationFactory** factory)
 {
 	try
 	{

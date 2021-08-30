@@ -1300,7 +1300,10 @@ void Initialize(nui::GameInterface* gi)
 		version = atoi(ver);
 	}
 
+	// #TODONY: why is this missing from official CEF?
+#ifndef GTA_NY
 	CefString(&cSettings.user_agent_product).FromWString(fmt::sprintf(L"Chrome/%d.%d.%d.%d CitizenFX/1.0.0.%d", cef_version_info(4), cef_version_info(5), cef_version_info(6), cef_version_info(7), version));
+#endif
 	
 	CefString(&cSettings.log_file).FromWString(MakeRelativeCitPath(L"cef.log"));
 	

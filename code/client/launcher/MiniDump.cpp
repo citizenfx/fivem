@@ -919,7 +919,7 @@ static LPTHREAD_START_ROUTINE GetFunc(HANDLE hProcess, const char* name)
 #endif
 
 	uintptr_t imageBase = 0;
-	size_t memRead = 0;
+	SIZE_T memRead = 0;
 	if (!ReadProcessMemory(hProcess, (char*)pbi.PebBaseAddress + baseOffset, &imageBase, sizeof(imageBase), &memRead) || memRead != sizeof(imageBase))
 	{
 		return NULL;

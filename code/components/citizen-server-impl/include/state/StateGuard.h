@@ -21,7 +21,7 @@ inline bool IsStateGame()
 #endif
 
 #ifdef STATE_FIVE
-	if (gamename->GetValue() == GameName::GTA5)
+	if (gamename->GetValue() == GameName::GTA5 || gamename->GetValue() == GameName::GTA4)
 	{
 		return true;
 	}

@@ -297,7 +297,10 @@ static InitFunction initFunction([] ()
 #include <MissionCleanup.h>
 #include <stack>
 
+#include <scrEngine.h>
+
 GtaThread* g_resourceThread;
+static std::stack<rage::scrThread*> g_lastThreads;
 
 class ResourceMissionCleanupComponentNY : public fwRefCountable, public fx::IAttached<fx::Resource>
 {
@@ -312,6 +315,9 @@ public:
 			{
 				return;
 			}
+
+			g_lastThreads.push(rage::scrEngine::GetActiveThread());
+			rage::scrEngine::SetActiveThread(g_resourceThread);
 
 			// lazy-initialize so we only run when the game has loaded
 			if (!m_cleanup)
@@ -333,6 +339,17 @@ public:
 			// #TODO: do we need a DCHECK?
 			assert(this == ms_activationStack.top().GetRef());
 			ms_activationStack.pop();
+
+			rage::scrThread* lastThread = nullptr;
+
+			if (!g_lastThreads.empty())
+			{
+				lastThread = g_lastThreads.top();
+				g_lastThreads.pop();
+			}
+
+			// restore the last thread
+			rage::scrEngine::SetActiveThread(lastThread);
 		}, INT32_MAX);
 
 		auto cleanupResource = [this]()

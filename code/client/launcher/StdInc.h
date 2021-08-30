@@ -65,6 +65,8 @@ bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::arr
 // cppwinrt is slow, add it to pch
 #include <unknwn.h>
 
+#include <winrt/windows.foundation.h>
+#include <winrt/windows.foundation.collections.h>
 #include <winrt/windows.system.h>
 #include <winrt/windows.ui.composition.core.h>
 #include <winrt/windows.ui.composition.effects.h>
