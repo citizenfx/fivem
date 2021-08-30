@@ -212,10 +212,12 @@ static InitFunction initFunction([]()
 			client->SetNetworkMetricsRecvCallback(RecvFromClient_Callback);
 			client->SetNetworkMetricsSendCallback(SendToClient_Callback);
 
-			client->OnDrop.Connect([client]()
+			auto guid = client->GetGuid();
+
+			client->OnDrop.Connect([guid]()
 			{
 				std::unique_lock lock(g_playerListDataMutex);
-				g_playerListData.erase(client->GetGuid());
+				g_playerListData.erase(guid);
 			});
 		});
 		clientRegistry->OnConnectedClient.Connect([](fx::Client* client)
