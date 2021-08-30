@@ -35,13 +35,14 @@ static std::string g_overrideNextLoadedLevel;
 static std::string g_nextLevelPath;
 
 static bool g_wasLastLevelCustom;
+static bool g_gameUnloaded = false;
 
 static void(*g_origLoadLevelByIndex)(int);
 static void(*g_loadLevel)(const char* levelPath);
 
 enum NativeIdentifiers : uint64_t
 {
-	GET_PLAYER_PED = 0x43A66C31C68491C0,
+	PLAYER_PED_ID = 0xD80958FC74E988A6,
 	SET_ENTITY_COORDS = 0x621873ECE1178967,
 	LOAD_SCENE = 0x4448EB75B4904BDB,
 	SHUTDOWN_LOADING_SCREEN = 0x078EBE9809CCD637,
@@ -55,23 +56,21 @@ private:
 
 public:
 	SpawnThread()
+		: m_doInityThings(false)
 	{
-		m_doInityThings = true;
 	}
 
-	virtual rage::eThreadState Reset(uint32_t scriptHash, void* pArgs, uint32_t argCount) override
+	void ResetInityThings()
 	{
 		m_doInityThings = true;
-
-		return GtaThread::Reset(scriptHash, pArgs, argCount);
 	}
 
 	virtual void DoRun() override
 	{
-		uint32_t playerPedId = NativeInvoke::Invoke<GET_PLAYER_PED, uint32_t>(-1);
-
 		if (m_doInityThings)
 		{
+			uint32_t playerPedId = NativeInvoke::Invoke<PLAYER_PED_ID, uint32_t>();
+
 			NativeInvoke::Invoke<SHUTDOWN_LOADING_SCREEN, int>();
 			NativeInvoke::Invoke<DO_SCREEN_FADE_IN, int>(0);
 
@@ -226,7 +225,7 @@ static void LoadLevel(const char* levelName)
 	{
 		if ((!gameInit->HasVariable("storyMode") && !gameInit->HasVariable("localMode")) || gameInit->HasVariable("editorMode"))
 		{
-			rage::scrEngine::CreateThread(&spawnThread);
+			spawnThread.ResetInityThings();
 		}
 
 		gameInit->LoadGameFirstLaunch([] ()
@@ -242,9 +241,10 @@ static void LoadLevel(const char* levelName)
 		bool lm = gameInit->HasVariable("localMode");
 		bool em = gameInit->HasVariable("editorMode");
 
-		gameInit->KillNetwork((wchar_t*)1);
+		// This function should probably be cognizant of 'g_isNetworkKilled' in BlockLoadSetters.
+		//gameInit->KillNetwork((wchar_t*)1);
 
-		g_onShutdownQueue.push([gameInit, sm, lm, em]()
+		auto fEvent = ([gameInit, sm, lm, em]()
 		{
 			gameInit->ReloadGame();
 
@@ -260,12 +260,25 @@ static void LoadLevel(const char* levelName)
 
 			if (em)
 			{
+				gameInit->SetVariable("localMode"); // see editorModeCommand. 'ShouldSkipLoading' will return false otherwise.
 				gameInit->SetVariable("editorMode");
+				spawnThread.ResetInityThings();
 			}
 
 			gameInit->SetVariable("networkInited");
 			gameInit->ShAllowed = true;
 		});
+
+		if (g_gameUnloaded)
+		{
+			fEvent();
+
+			g_gameUnloaded = false;
+		}
+		else
+		{
+			g_onShutdownQueue.push(fEvent); // OnShutdownSession
+		}
 	}
 }
 
@@ -445,6 +458,16 @@ static InitFunction initFunction([] ()
 		LoadLevel(level.c_str());
 	});
 
+	rage::scrEngine::OnScriptInit.Connect([] ()
+	{
+		rage::scrEngine::CreateThread(&spawnThread);
+	});
+
+	Instance<ICoreGameInit>::Get()->OnGameRequestLoad.Connect([]()
+	{
+		g_gameUnloaded = false;
+	});
+
 	Instance<ICoreGameInit>::Get()->OnShutdownSession.Connect([]()
 	{
 		std::function<void()> fn;
@@ -453,5 +476,7 @@ static InitFunction initFunction([] ()
 		{
 			fn();
 		}
+
+		g_gameUnloaded = true;
 	}, INT32_MAX);
 });
