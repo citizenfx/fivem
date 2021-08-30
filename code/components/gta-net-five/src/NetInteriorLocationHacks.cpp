@@ -33,6 +33,11 @@ public:
 
 	inline uint32_t GetCustomHash()
 	{
+		if (mapIndex == -1)
+		{
+			return -1;
+		}
+
 		static auto store = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ymap");
 		auto pool = ((atPoolBase*)((char*)store + 56));
 
