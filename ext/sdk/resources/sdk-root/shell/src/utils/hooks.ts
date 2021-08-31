@@ -50,11 +50,7 @@ export const useCounter = (initial: number = 0) => {
 };
 
 
-// God damn you create-react-app
-// https://github.com/facebook/create-react-app/issues/9515
-// export type UseOpenFlagHook = [boolean, () => void, () => void, () => void];
-export type UseOpenFlagHook = any;
-
+export type UseOpenFlagHook = [boolean, () => void, () => void, () => void];
 
 export const useOpenFlag = (defaultValue: boolean = false): UseOpenFlagHook => {
   const [isOpen, setIsOpen] = React.useState(defaultValue);

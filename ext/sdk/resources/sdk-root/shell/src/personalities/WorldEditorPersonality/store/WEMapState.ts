@@ -160,6 +160,10 @@ export class WEMapState {
     return this.map.patches[mapdata]?.[entity];
   }
 
+  readonly setPatchLabel = this.patchChangeWrap(['label'], (patch, label: string) => {
+    patch.label = label;
+  });
+
   readonly setPatchPosition = this.patchChangeWrap(['mat'], (patch, x: number, y: number, z: number) => {
     patch.mat[WEEntityMatrixIndex.AX] = x;
     patch.mat[WEEntityMatrixIndex.AY] = y;
