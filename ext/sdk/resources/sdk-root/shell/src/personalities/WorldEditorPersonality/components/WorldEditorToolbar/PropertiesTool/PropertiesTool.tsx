@@ -36,16 +36,9 @@ export const PropertiesTool = observer(function PropertiesTool() {
   }
 
   if (WEState.selection.type === WESelectionType.PATCH) {
-    if (!WEState.map.patches[WEState.selection.mapdata]?.[WEState.selection.entity]) {
-      return null;
-    }
-
     return (
       <div className={rootClassName}>
-        <PatchProperties
-          mapdata={WEState.selection.mapdata}
-          entity={WEState.selection.entity}
-        />
+        <PatchProperties />
       </div>
     );
   }

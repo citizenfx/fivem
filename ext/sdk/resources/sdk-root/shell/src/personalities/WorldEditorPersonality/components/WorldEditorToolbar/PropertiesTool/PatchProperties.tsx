@@ -1,5 +1,5 @@
 import React from 'react';
-import { WEEntityMatrixIndex } from 'backend/world-editor/world-editor-types';
+import { WECam, WEEntityMatrix, WEEntityMatrixIndex, WESelectionType } from 'backend/world-editor/world-editor-types';
 import { observer } from 'mobx-react-lite';
 import { WEState } from 'personalities/WorldEditorPersonality/store/WEState';
 import { applyScale, eulerFromMatrix, getScale } from 'shared/math';
@@ -20,23 +20,51 @@ const LabelRow = div(s, 'label-row');
 const Label = div(s, 'label');
 const Control = div<{ inputs?: boolean }>(s, 'control');
 
-export interface PatchPropertiesProps {
-  mapdata: number,
-  entity: number,
+function usePatch(): { mapdata: number, entity: number, label: string, mat: WEEntityMatrix, cam: WECam } {
+  if (WEState.selection.type !== WESelectionType.PATCH) {
+    return {
+      label: '',
+      mapdata: 0,
+      entity: 0,
+      mat: Array(16).fill(0) as WEEntityMatrix,
+      cam: [0,0,0,0,0,0],
+    }
+  }
+
+  const { mapdata, entity, label, mat, cam } = WEState.selection;
+
+  const patch = WEState.map.patches[mapdata]?.[entity];
+
+  if (patch) {
+    return {
+      mapdata,
+      entity,
+      label: patch.label,
+      mat: patch.mat,
+      cam: patch.cam,
+    };
+  }
+
+  return {
+    mapdata,
+    entity,
+    label,
+    mat,
+    cam,
+  };
 }
 
-export const PatchProperties = observer(function PatchProperties(props: PatchPropertiesProps) {
-  const { mapdata, entity } = props;
-  const patch = WEState.map.patches[mapdata][entity];
+export const PatchProperties = observer(function PatchProperties() {
+  const { mapdata, entity, label, mat, cam } = usePatch();
 
-  const [sx, sy, sz] = getScale(patch.mat);
+  const [sx, sy, sz] = getScale(mat);
 
-  const unscaledMat = Array.from(patch.mat);
+  const unscaledMat = Array.from(mat);
   applyScale(unscaledMat, [1, 1, 1]);
 
-  const px = patch.mat[WEEntityMatrixIndex.AX];
-  const py = patch.mat[WEEntityMatrixIndex.AY];
-  const pz = patch.mat[WEEntityMatrixIndex.AZ];
+  const px = mat[WEEntityMatrixIndex.AX];
+  const py = mat[WEEntityMatrixIndex.AY];
+  const pz = mat[WEEntityMatrixIndex.AZ];
 
   const [rz, rx, ry] = eulerFromMatrix(unscaledMat);
 
@@ -48,7 +76,7 @@ export const PatchProperties = observer(function PatchProperties(props: PatchPro
         </Icon>
         <Name>
           <span>
-            {patch.label}
+            {label}
           </span>
         </Name>
         <Controls>
@@ -61,7 +89,7 @@ export const PatchProperties = observer(function PatchProperties(props: PatchPro
           </Title>
           <Title delay={0} animated={false} fixedOn="top" title="Focus in view">
             {(ref) => (
-              <button ref={ref} onClick={() => WEState.setCam(patch.cam)}>
+              <button ref={ref} onClick={() => WEState.setCam(cam)}>
                 <BsCameraVideo />
               </button>
             )}
