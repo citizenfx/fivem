@@ -26,7 +26,7 @@ namespace fx
 	public:
 		std::map<std::string, std::string> GetFileHashPairs();
 
-		void AddFileToDefaultSet(const std::string& fileName);
+		virtual void AddFileToDefaultSet(const std::string& fileName);
 
 		std::string GetDefaultSetName();
 		

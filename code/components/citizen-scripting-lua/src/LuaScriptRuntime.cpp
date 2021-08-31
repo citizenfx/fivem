@@ -10,6 +10,7 @@
 
 #include "LuaScriptRuntime.h"
 #include "LuaScriptNatives.h"
+#include "ResourceScriptingComponent.h"
 
 #include <msgpack.hpp>
 #include <json.hpp>
@@ -1054,19 +1055,24 @@ result_t LuaScriptRuntime::LoadFileInternal(OMPtr<fxIStream> stream, char* scrip
 		return hr;
 	}
 
-	std::vector<char> fileData(length + 1);
+	std::vector<char> fileData(length);
 	if (FX_FAILED(hr = stream->Read(&fileData[0], length, nullptr)))
 	{
 		return hr;
 	}
 
-	fileData[length] = '\0';
+	fx::Resource* resource = reinterpret_cast<fx::Resource*>(GetParentObject());
+	resource->OnBeforeLoadScript(&fileData);
+
+	length = fileData.size();
+
+	fileData.push_back('\0');
 
 	// create a chunk name prefixed with @ (suppresses '[string "..."]' formatting)
 	fwString chunkName("@");
 	chunkName.append(scriptFile);
 
-	if (luaL_loadbufferx(m_state, &fileData[0], length, chunkName.c_str(), "t") != 0)
+	if (luaL_loadbuffer(m_state, &fileData[0], length, chunkName.c_str()) != 0)
 	{
 		std::string err = luaL_checkstring(m_state, -1);
 		lua_pop(m_state, 1);

@@ -290,41 +290,50 @@ namespace fx
 		{
 			auto rscStream = (rawStream.GetRef()) ? rawStream : stream;
 
-			struct
+			if (m_customValidateFunc)
 			{
-				uint32_t magic;
-				uint32_t version;
-				uint32_t virtPages;
-				uint32_t physPages;
-			} rsc7Header;
-
-			rscStream->Read(&rsc7Header, sizeof(rsc7Header));
-
-			if (rsc7Header.magic == 0x37435352) // RSC7
-			{
-				entry.rscVersion = rsc7Header.version;
-				entry.rscPagesPhysical = rsc7Header.physPages;
-				entry.rscPagesVirtual = rsc7Header.virtPages;
-				entry.isResource = true;
-
-				ValidateSize(entry.entryName, ConvertRSC7Size(rsc7Header.physPages), ConvertRSC7Size(rsc7Header.virtPages));
-			}
-			else if (rsc7Header.magic == 0x05435352) // RSC\x05
-			{
-				entry.rscVersion = rsc7Header.version;
-				entry.rscPagesVirtual = rsc7Header.virtPages;
-				entry.rscPagesPhysical = rsc7Header.version;
-				entry.isResource = true;
-			}
-			else if (rsc7Header.magic == 0x38435352) // RSC8
-			{
-				entry.rscVersion = rsc7Header.version;
-				entry.rscPagesVirtual = rsc7Header.virtPages;
-				entry.rscPagesPhysical = rsc7Header.physPages;
-				entry.isResource = true;
+				m_customValidateFunc(entry, rscStream);
+				rscStream->Seek(0, SEEK_SET);
 			}
 
-			rscStream->Seek(0, SEEK_SET);
+			if (!entry.rscVersion)
+			{
+				struct
+				{
+					uint32_t magic;
+					uint32_t version;
+					uint32_t virtPages;
+					uint32_t physPages;
+				} rsc7Header;
+
+				rscStream->Read(&rsc7Header, sizeof(rsc7Header));
+
+				if (rsc7Header.magic == 0x37435352) // RSC7
+				{
+					entry.rscVersion = rsc7Header.version;
+					entry.rscPagesPhysical = rsc7Header.physPages;
+					entry.rscPagesVirtual = rsc7Header.virtPages;
+					entry.isResource = true;
+
+					ValidateSize(entry.entryName, ConvertRSC7Size(rsc7Header.physPages), ConvertRSC7Size(rsc7Header.virtPages));
+				}
+				else if (rsc7Header.magic == 0x05435352) // RSC\x05
+				{
+					entry.rscVersion = rsc7Header.version;
+					entry.rscPagesVirtual = rsc7Header.virtPages;
+					entry.rscPagesPhysical = rsc7Header.version;
+					entry.isResource = true;
+				}
+				else if (rsc7Header.magic == 0x38435352) // RSC8
+				{
+					entry.rscVersion = rsc7Header.version;
+					entry.rscPagesVirtual = rsc7Header.virtPages;
+					entry.rscPagesPhysical = rsc7Header.physPages;
+					entry.isResource = true;
+				}
+
+				rscStream->Seek(0, SEEK_SET);
+			}
 		}
 
 		{
@@ -510,6 +519,11 @@ namespace fx
 		{
 			m_resourcePairs.clear();
 		}, -500);
+	}
+
+	void ResourceStreamComponent::SetCustomValidateFunction(std::function<void(Entry&, fwRefContainer<vfs::Stream>)> func)
+	{
+		m_customValidateFunc = func;
 	}
 }
 

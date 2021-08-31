@@ -16,6 +16,7 @@
 
 #include <ComponentHolder.h>
 
+#include <rapidjson/document.h>
 #include <tl/expected.hpp>
 
 #include <msgpack.hpp>
@@ -168,6 +169,8 @@ public:
 	fwEvent<> OnTick;
 
 	fwEvent<> OnAfterReset;
+
+	fwEvent<rapidjson::Document&> OnContentManifestDownloaded;
 
 public:
 	//
