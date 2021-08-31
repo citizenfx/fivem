@@ -1,15 +1,19 @@
-import { useKeyMapping } from "./utils";
+import { onWEApi, useKeyMapping } from "./utils";
 import { SingleEventEmitter } from '@sdk-root/utils/singleEventEmitter';
+import { WEApi } from "@sdk-root/backend/world-editor/world-editor-game-api";
 
 
 type Selection = number | null;
 export const SelectionController = new class SelectionController {
-  private selectStart: number = 0;
   private selectedEntity: Selection = null;
 
   private disabled = false;
 
   private selectionChangedEvent = new SingleEventEmitter<[Selection, Selection]>();
+
+  preinit() {
+    onWEApi(WEApi.SelectAtCursor, () => this.select());
+  }
 
   init() {
     SetEntityDrawOutlineColor(255, 255, 255, 255);
@@ -32,40 +36,9 @@ export const SelectionController = new class SelectionController {
   }
 
   disable() {
-    this.selectStart = 0;
     this.disabled = true;
 
     this.resetSelectedEntity();
-  }
-
-  select(active: boolean) {
-    if (this.disabled) {
-      return;
-    }
-
-    if (active) {
-      this.selectStart = GetGameTimer();
-      return;
-    }
-
-    if (GetGameTimer() - this.selectStart > 250) {
-      return;
-    }
-
-    const selectedEntity = SelectEntityAtCursor(6 | (1 << 5), true);
-    if (selectedEntity) {
-      if (this.selectedEntity !== selectedEntity) {
-        this.selectionChangedEvent.emit([selectedEntity, this.selectedEntity]);
-      }
-
-      this.resetSelectedEntity();
-
-      if (this.selectedEntity !== selectedEntity) {
-        this.selectedEntity = selectedEntity;
-
-        this.draw();
-      }
-    }
   }
 
   getSelectedEntity(): Selection{
@@ -79,6 +52,25 @@ export const SelectionController = new class SelectionController {
 
     if (entity !== null){
       this.draw();
+    }
+  }
+
+  private select() {
+    if (this.disabled) {
+      return;
+    }
+
+    const selectedEntity = SelectEntityAtCursor(6 | (1 << 5), true);
+    if (selectedEntity && this.selectedEntity !== selectedEntity) {
+      this.selectionChangedEvent.emit([selectedEntity, this.selectedEntity]);
+
+      this.resetSelectedEntity();
+
+      if (this.selectedEntity !== selectedEntity) {
+        this.selectedEntity = selectedEntity;
+
+        this.draw();
+      }
     }
   }
 
@@ -107,7 +99,3 @@ export const SelectionController = new class SelectionController {
     });
   }
 };
-
-const select = useKeyMapping('we_select', 'Select entity', 'mouse_button', 'mouse_left');
-select.on(() => SelectionController.select(true));
-select.off(() => SelectionController.select(false));

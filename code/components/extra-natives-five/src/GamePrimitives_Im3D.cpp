@@ -355,7 +355,17 @@ static InitFunction initFunctionScriptBind([]()
 {
 	fx::ScriptEngine::RegisterNativeHandler("DRAW_GIZMO", [](fx::ScriptContext& context)
 	{
-		context.SetResult(Im3d::Gizmo(context.CheckArgument<const char*>(1), (float*)context.CheckArgument<float*>(0)));
+		uint32_t uid = Im3d::MakeId(context.CheckArgument<const char*>(1));
+
+		// workaround for bug in Im3d for when you stop drawing gizmo with some control still being active
+		static uint32_t lastuid = 0;
+		if (uid != lastuid)
+		{
+			lastuid = uid;
+			Im3d::GetContext().resetId();
+		}
+
+		context.SetResult(Im3d::Gizmo(uid, (float*)context.CheckArgument<float*>(0)));
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("ENTER_CURSOR_MODE", [](fx::ScriptContext& context)

@@ -310,7 +310,7 @@ export const WEState = new class WEState {
     this.updateEditorControls();
   };
 
-  setEditorSelect = (select: boolean) => {
+  setGizmoControlActive = (select: boolean) => {
     this.editorSelect = select;
     WEEvents.gizmoSelectChanged.emit(select);
 
@@ -352,7 +352,11 @@ export const WEState = new class WEState {
   };
 
   createInputController(container: React.RefObject<HTMLDivElement>) {
-    this.inputController = new InputController(container, this.setEditorSelect);
+    this.inputController = new InputController(
+      container,
+      this.setGizmoControlActive,
+      this.selectEntityAtCursor,
+    );
 
     this.inputController.onEscapeFullControl(this.enterEditorMode);
   }
@@ -365,6 +369,8 @@ export const WEState = new class WEState {
       this.inputController = undefined;
     }
   }
+
+  private selectEntityAtCursor = () => invokeWEApi(WEApi.SelectAtCursor, undefined);
 
   private updateSelection = (selection: WESelection) => {
     this.selection = selection;

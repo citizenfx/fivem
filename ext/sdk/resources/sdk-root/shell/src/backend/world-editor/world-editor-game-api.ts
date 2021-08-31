@@ -26,6 +26,7 @@ export const WEApi = Object.freeze({
   FocusInView: define<{ cam: WECam, lookAt: [number, number, number] }>('we:focusInView'),
   ObjectPreview: define<string>('we:objectPreview'),
 
+  SelectAtCursor: define<void>('we:selectAtCursor'),
   Selection: define<WESelection>('we:selection'),
 
   EnterPlaytestMode: define<void>('we:enterPlaytestMode'),

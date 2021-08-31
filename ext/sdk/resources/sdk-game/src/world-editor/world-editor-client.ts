@@ -6,6 +6,7 @@ import { SettingsManager } from './settings-manager';
 import { Playtest } from './playtest';
 import { SelectionController } from './selection-controller';
 
+SelectionController.preinit();
 SettingsManager.preinit();
 CameraManager.preinit();
 MapManager.preinit();

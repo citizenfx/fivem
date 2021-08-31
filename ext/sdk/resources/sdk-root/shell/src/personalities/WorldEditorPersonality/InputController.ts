@@ -35,6 +35,7 @@ export enum MappedMouseButton {
 
 export enum ICState {
   IDLE,
+  CLICKING,
   DRAGGING,
   CAMERA_CONTROL,
   FULL_CONTROL,
@@ -115,13 +116,18 @@ export class InputController {
     return this.state === ICState.CAMERA_CONTROL;
   }
 
+  private get isClicking(): boolean {
+    return this.state === ICState.CLICKING;
+  }
+
   private get isDragging(): boolean {
     return this.state === ICState.DRAGGING;
   }
 
   constructor(
     private readonly container: React.RefObject<HTMLDivElement>,
-    private readonly onSelect: (select: boolean) => void,
+    private readonly onGizmoControlActive: (active: boolean) => void,
+    private readonly onClick: () => void,
   ) {
     this.hotkeys = new HotkeyController(
       (binding) => {
@@ -213,6 +219,10 @@ export class InputController {
   private handleContainerMouseMove = (event: MouseEvent) => {
     if (this.isFullControl || this.isCameraControl) {
       return;
+    }
+
+    if (this.isClicking) {
+      this.state = ICState.DRAGGING;
     }
 
     let rx: number;
@@ -323,10 +333,9 @@ export class InputController {
         }
 
         if (lmb) {
-          this.state = ICState.DRAGGING;
+          this.state = ICState.CLICKING;
           this.mousePos = this.getEventRelativePos(event);
-          setMouseButtonState(button, true);
-          this.onSelect(true);
+          this.onGizmoControlActive(true);
         }
 
         if (rmb) {
@@ -357,11 +366,18 @@ export class InputController {
         break;
       }
 
+      case ICState.CLICKING: {
+        if (lmb && !active) {
+          this.state = ICState.IDLE;
+          this.onGizmoControlActive(false);
+          this.onClick();
+        }
+      }
+
       case ICState.DRAGGING: {
         if (lmb && !active) {
           this.state = ICState.IDLE;
-          setMouseButtonState(button, false);
-          this.onSelect(false);
+          this.onGizmoControlActive(false);
         }
 
         break;
