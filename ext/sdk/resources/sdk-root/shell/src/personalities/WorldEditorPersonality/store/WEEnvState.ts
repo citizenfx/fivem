@@ -3,7 +3,6 @@ import { WESetEnvirnomentType } from "backend/world-editor/world-editor-types";
 import { makeAutoObservable, runInAction } from "mobx";
 import { LocalStorageValue } from "store/generic/LocalStorageValue";
 import { joaat } from "utils/joaat";
-import { boolean } from "yargs";
 import { invokeWEApi, onWEApi } from "../we-api-utils";
 
 export const WEATHER = {
@@ -64,6 +63,8 @@ export const WEEnvState = new class WEEnvState {
       if (this.freezeTime) {
         this.freezeTime = this.freezeTime;
       }
+
+      notifyTimeChanged(this.timeNum);
     });
 
     onWEApi(WEApi.EnvironmentAck, (request) => runInAction(() => {
@@ -90,23 +91,15 @@ export const WEEnvState = new class WEEnvState {
     });
   }
 
-  setTime(hours: number, minutes: number) {
-    this.updateTime(hours, minutes);
-
-    invokeWEApi(WEApi.EnvironmentSet, {
-      type: WESetEnvirnomentType.TIME,
-      hours,
-      minutes,
-    });
-  }
-
   setTimeNum(numString: string) {
     const num = parseInt(numString, 10);
 
     const hours = num/60|0;
     const minutes = num%60;
 
-    this.setTime(hours, minutes);
+    this.updateTime(hours, minutes);
+
+    notifyTimeChanged(hours, minutes);
   }
 
   private updateTime(hours: number, minutes: number) {
@@ -121,4 +114,25 @@ function leadingZero(n: number): string {
   }
 
   return n.toString();
+}
+
+function notifyTimeChanged(time: number): void;
+function notifyTimeChanged(hours: number, minutes: number): void;
+function notifyTimeChanged(p1: number, p2?: number): void {
+  let hours: number;
+  let minutes: number;
+
+  if (p2 === undefined) {
+    hours = p1/60|0;
+    minutes = p1%60;
+  } else {
+    hours = p1;
+    minutes = p2;
+  }
+
+  invokeWEApi(WEApi.EnvironmentSet, {
+    type: WESetEnvirnomentType.TIME,
+    hours,
+    minutes,
+  });
 }
