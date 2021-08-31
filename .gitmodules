@@ -274,3 +274,6 @@
 [submodule "vendor/wil"]
 	path = vendor/wil
 	url = https://github.com/microsoft/wil.git
+[submodule "vendor/jwt-cpp"]
+	path = vendor/jwt-cpp
+	url = https://github.com/Thalhammer/jwt-cpp.git

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Resource.h>
+#include <VFSStream.h>
 
 namespace fx
 {
@@ -45,6 +46,8 @@ namespace fx
 
 		virtual void AttachToObject(fx::Resource* object) override;
 
+		virtual void SetCustomValidateFunction(std::function<void(Entry&, fwRefContainer<vfs::Stream>)> func);
+
 	private:
 		bool ShouldUpdateSet();
 
@@ -58,6 +61,8 @@ namespace fx
 		std::map<std::string, RuntimeEntry> m_resourcePairs;
 
 		std::map<std::string, RuntimeEntry*> m_hashPairs;
+
+		std::function<void(Entry&, fwRefContainer<vfs::Stream>)> m_customValidateFunc;
 	};
 }
 

@@ -15,7 +15,6 @@ return {
 		
         if os.istarget('windows') then
             flags { "LinkTimeOptimization" }
-            defines { "LUA_BUILD_AS_DLL" }
         elseif os.istarget('linux') then
             defines { "LUA_USE_POSIX" }
         end

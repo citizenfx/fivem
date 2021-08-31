@@ -114,6 +114,11 @@ public:
 	fwEvent<> OnBeforeStart;
 
 	//
+	// An event to handle tasks to be performed before loading a Lua script.
+	//
+	fwEvent<std::vector<char>*> OnBeforeLoadScript;
+
+	//
 	// An event to handle tasks to be performed when starting a resource.
 	//
 	fwEvent<> OnStart;

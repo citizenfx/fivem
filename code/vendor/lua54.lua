@@ -19,7 +19,6 @@ return {
 		
 		if os.istarget('windows') then
 			flags { "LinkTimeOptimization" }
-			defines { "LUA_BUILD_AS_DLL" }
 		elseif os.istarget('linux') then
 			defines { "LUA_USE_POSIX" }
 		end
@@ -30,7 +29,7 @@ return {
 
 			--[[ Lua Flags ]]
 			'LUA_COMPAT_5_3',
-			'LUA_NO_BYTECODE', -- Disables the usage of lua_load with binary chunks
+			-- 'LUA_NO_BYTECODE', -- Disables the usage of lua_load with binary chunks
 
 			--[[ Lua Extensions ]]
 			'LUA_SANDBOX', -- Disable many features within ldblib.c

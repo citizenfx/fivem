@@ -59,6 +59,8 @@
 
 typedef struct lua_State lua_State;
 
+typedef int (*lua_UndumpHook) (const char* p, size_t n);
+
 
 /*
 ** basic types

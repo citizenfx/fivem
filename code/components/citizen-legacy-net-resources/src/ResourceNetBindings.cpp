@@ -353,6 +353,8 @@ static InitFunction initFunction([] ()
 
 				std::vector<std::string> requiredResources;
 
+				manager->OnContentManifestDownloaded(node);
+
 				fx::OnLockStreaming();
 
 				if (hasValidResources)
