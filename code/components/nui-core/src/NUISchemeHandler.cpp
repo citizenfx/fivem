@@ -9,6 +9,7 @@
 #include "CefOverlay.h"
 #include "NUISchemeHandlerFactory.h"
 #include <NUIClient.h>
+#include <CL2LaunchMode.h>
 
 #include <VFSManager.h>
 #include <include/cef_parser.h>
@@ -75,19 +76,26 @@ public:
 
 		if (hostname == L"game" || hostname == L"nui-game-internal")
 		{
-			filename_ = "citizen:/";
+			if (launch::IsSDKGuest() && path.find(L"sdk-root/shell/mpMenu.html") != std::string::npos)
+			{
+				filename_ = "sdk-root:/shell/mpMenu.html";
+			}
+			else
+			{
+				filename_ = "citizen:/";
 
-			if (path == L"/ui/app/")
-			{
-				path += L"index.html";
+				if (path == L"/ui/app/")
+				{
+					path += L"index.html";
+				}
+
+				if (path.find(L"/ui/app/") != std::string::npos && path.find(L"index.html") == std::string::npos)
+				{
+					canCache_ = true;
+				}
+
+				filename_ += ToNarrow(path).substr(1);
 			}
-			
-			if (path.find(L"/ui/app/") != std::string::npos && path.find(L"index.html") == std::string::npos)
-			{
-				canCache_ = true;
-			}
-			
-			filename_ += ToNarrow(path).substr(1);
 		}
 		else
 		{

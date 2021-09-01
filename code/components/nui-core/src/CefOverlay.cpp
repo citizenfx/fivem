@@ -313,7 +313,7 @@ namespace nui
 	{
 		if (frameName == "mpMenu" && launch::IsSDKGuest())
 		{
-			return;
+			frameURL = "https://nui-game-internal/sdk-root/shell/mpMenu.html";
 		}
 
 #ifdef IS_LAUNCHER

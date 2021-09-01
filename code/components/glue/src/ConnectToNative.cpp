@@ -29,6 +29,8 @@
 #include <Shellapi.h>
 #include <HttpClient.h>
 #include <InputHook.h>
+#include <RelativeDevice.h>
+#include <VFSManager.h>
 
 #include <json.hpp>
 
@@ -764,6 +766,17 @@ static InitFunction initFunction([] ()
 
 	if (launch::IsSDKGuest())
 	{
+		std::string sdkRootPath = getenv("CitizenFX_SDK_rootPath");
+
+		if (sdkRootPath.empty() || sdkRootPath == "built-in")
+		{
+			vfs::Mount(new vfs::RelativeDevice(ToNarrow(MakeRelativeCitPath(L"citizen/sdk/sdk-root/"))), "sdk-root:/");
+		}
+		else
+		{
+			vfs::Mount(new vfs::RelativeDevice(sdkRootPath + "/"), "sdk-root:/");
+		}
+
 		fx::ScriptEngine::RegisterNativeHandler("SEND_SDK_MESSAGE", [](fx::ScriptContext& context)
 		{
 			ep.Call("sdk:message", std::string(context.GetArgument<const char*>(0)));
