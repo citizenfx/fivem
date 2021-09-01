@@ -15,7 +15,7 @@ export const ProjectOpener = observer(function ProjectOpener() {
     ? ProjectState.project
     : null;
 
-  const [projectPath, setProjectPath] = React.useState<string>();
+  const [projectPath, setProjectPath] = React.useState<string>('');
 
   const [projectPathChecking, setProjectPathChecking] = React.useState(false);
   const [projectPathOpenable, setProjectPathOpenable] = React.useState(true);
@@ -48,7 +48,7 @@ export const ProjectOpener = observer(function ProjectOpener() {
     ));
 
   return (
-    <Modal fullWidth onClose={ProjectState.closeOpener}>
+    <Modal fullWidth onClose={ProjectState.openerUI.close}>
       <div className={s.root}>
         <div className="modal-header">
           Open project
@@ -87,7 +87,7 @@ export const ProjectOpener = observer(function ProjectOpener() {
           />
           <Button
             text="Cancel"
-            onClick={ProjectState.closeOpener}
+            onClick={ProjectState.openerUI.close}
           />
         </div>
       </div>

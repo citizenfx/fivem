@@ -4,6 +4,10 @@ import ReactDOM from 'react-dom';
 export function attachOutlet(id: string): React.FC {
   const outlet = document.getElementById(id);
 
+  if (!outlet) {
+    throw new Error(`No such dom node with id: ${id}`);
+  }
+
   return ({ children }) => ReactDOM.createPortal(children, outlet);
 }
 

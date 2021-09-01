@@ -26,7 +26,7 @@ const OutsideClickSentinel = React.forwardRef(({ onClose }: { onClose(): void },
 export const StatusCenter = observer(function StatusCenter(props: StatusCenterProps) {
   const { onClose, className } = props;
 
-  const ref = React.useRef();
+  const ref = React.useRef<HTMLDivElement | null>(null);
 
   const tasks = TaskState.values;
   const notifications = NotificationState.values;

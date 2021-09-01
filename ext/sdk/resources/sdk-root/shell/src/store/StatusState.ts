@@ -50,4 +50,4 @@ export const StatusState = new class StatusState {
   private updateStatus = ([name, content]) => {
     this.statuses[name] = content;
   };
-};
+}();

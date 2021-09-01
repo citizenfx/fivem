@@ -160,7 +160,7 @@ export class GameService implements ApiContribution, AppContribution {
 
     on('sdk:refreshArchetypesCollectionDone', () => {
       if (this.rACDeferred) {
-        clearTimeout(this.rACTimeout);
+        clearTimeout(this.rACTimeout!);
         this.rACTimeout = null;
 
         this.rACDeferred.resolve(true);
@@ -242,7 +242,7 @@ export class GameService implements ApiContribution, AppContribution {
 
     this.rACDeferred = new Deferred();
     this.rACTimeout = setTimeout(() => {
-      this.rACDeferred.reject(new Error('Timedout'));
+      this.rACDeferred?.reject(new Error('Timedout'));
       this.rACDeferred = null;
       this.rACTimeout = null;
     }, 60000);

@@ -21,4 +21,4 @@ export const ToolbarState = new class ToolbarState {
   open = () => this.isOpen = true;
   close = () => this.isOpen = false;
   toggle = () => this.isOpen = !this.isOpen;
-};
+}();

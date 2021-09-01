@@ -106,7 +106,7 @@ export const WEEnvState = new class WEEnvState {
     this.time = `${hours}:${leadingZero(minutes)}`;
     this.timeNum = hours * 60 + minutes;
   }
-}
+}();
 
 function leadingZero(n: number): string {
   if (n < 10) {

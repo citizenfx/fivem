@@ -25,7 +25,7 @@ export const ProjectControls = observer(function ProjectControls() {
           <button
             ref={ref}
             className={s.item}
-            onClick={ProjectState.openSettings}
+            onClick={ProjectState.settingsUI.open}
           >
             {projectSettingsIcon}
           </button>

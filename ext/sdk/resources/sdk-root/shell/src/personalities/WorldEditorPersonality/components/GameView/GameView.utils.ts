@@ -110,7 +110,7 @@ export class GameViewRenderer {
   private animationFrame: number;
 
   constructor(canvas: HTMLCanvasElement) {
-    const gl = this.gl = canvas.getContext('webgl', {
+    const gl = canvas.getContext('webgl', {
       antialias: false,
       depth: false,
       alpha: false,
@@ -118,6 +118,12 @@ export class GameViewRenderer {
       desynchronized: true,
       powerPreference: 'high-performance',
     });
+
+    if (!gl) {
+      throw new Error('Failed to acquire webgl context for GameViewRenderer');
+    }
+
+    this.gl = gl;
 
     const tex = createTexture(gl);
     const { program, vloc, tloc } = createProgram(gl);

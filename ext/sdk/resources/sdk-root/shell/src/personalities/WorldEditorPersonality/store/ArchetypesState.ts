@@ -37,4 +37,4 @@ export const ArchetypesState = new class ArchetypesState {
 
     this.load();
   }
-};
+}();

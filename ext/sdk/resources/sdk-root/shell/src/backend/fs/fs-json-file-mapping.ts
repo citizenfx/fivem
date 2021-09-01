@@ -1,6 +1,4 @@
 import { produce } from 'immer';
-import { FsAtomicWriter } from "./fs-atomic-writer";
-
 export interface FsJsonFileMappingOptions<T extends object> {
   defaults?: Partial<T>,
 

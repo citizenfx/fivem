@@ -14,7 +14,7 @@ export function getAssetsPriorityQueue(assetPathsUnsorted: AssetPath[]): string[
       pathsPriorities[assetPath] = 0;
     }
 
-    const pathInTree = [];
+    const pathInTree: string[] = [];
 
     loop: while (true) {
       for (const subAssetPath of Object.keys(currentTree)) {
@@ -53,5 +53,5 @@ export function getAssetsPriorityQueue(assetPathsUnsorted: AssetPath[]): string[
     (acc[priority] || (acc[priority] = [])).push(assetPath);
 
     return acc;
-  }, []);
+  }, [] as string[][]);
 }

@@ -146,7 +146,7 @@ export class InputController {
     });
 
     for (const [event, handler] of Object.entries(this.containerHandlers)) {
-      this.container.current.addEventListener(event, handler);
+      this.container.current!.addEventListener(event, handler);
     }
 
     for (const [event, handler] of Object.entries(this.documentHandlers)) {
@@ -162,7 +162,7 @@ export class InputController {
     this.removeRegisterCommandBindingListener();
 
     for (const [event, handler] of Object.entries(this.containerHandlers)) {
-      this.container.current.removeEventListener(event, handler);
+      this.container.current!.removeEventListener(event, handler);
     }
 
     for (const [event, handler] of Object.entries(this.documentHandlers)) {
@@ -411,7 +411,7 @@ export class InputController {
   };
 
   private getEventRelativePos(event: MouseEvent): Point {
-    const { width, height, x, y } = this.container.current.getBoundingClientRect();
+    const { width, height, x, y } = this.container.current!.getBoundingClientRect();
 
     return {
       x: (event.x - x) / width,
@@ -420,7 +420,7 @@ export class InputController {
   }
 
   private getScaledMovement(event: MouseEvent): Point {
-    const { width, height } = this.container.current.getBoundingClientRect();
+    const { width, height } = this.container.current!.getBoundingClientRect();
 
     return {
       x: event.movementX / width,
@@ -432,7 +432,7 @@ export class InputController {
   private lockPointer() {
     this.lockingPointer = true;
     setRawMouseCapture(true);
-    this.container.current.requestPointerLock();
+    this.container.current!.requestPointerLock();
   }
 
   private unlockPointer() {

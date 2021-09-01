@@ -5,20 +5,21 @@ import { itemsStyles } from "components/Project/ProjectExplorer/item.styles";
 import { observer } from "mobx-react-lite";
 import { FXWorldAssetConfig, FXWORLD_FILE_EXT } from '../fxworld-types';
 import { WEState } from 'personalities/WorldEditorPersonality/store/WEState';
-import { useItem } from 'components/Project/ProjectExplorer/ProjectExplorer.hooks';
+import { useItem, useItemDrag } from 'components/Project/ProjectExplorer/ProjectExplorer.hooks';
 import { ContextMenu, ContextMenuItemsCollection, ContextMenuItemSeparator } from 'components/controls/ContextMenu/ContextMenu';
 import { useOpenFlag } from 'utils/hooks';
 import { checkedIcon, deleteIcon, fxworldIcon, renameIcon, uncheckedIcon } from 'constants/icons';
 import { ProjectExplorerItemContext } from 'components/Project/ProjectExplorer/item.context';
 import { FXWorldRenamer } from './FXWorldRenamer/FXWorldRenamer';
 import { ProjectState } from 'store/ProjectState';
-import { ProjectSetAssetConfigRequest } from 'shared/api.requests';
+import { APIRQ } from 'shared/api.requests';
 import { ResourceAssetConfig } from 'assets/resource/resource-types';
 import { sendApiMessage } from 'utils/api';
 import { projectApi } from 'shared/api.events';
-import { FXWorldDeleter } from './FXWorldDeleter/FXWorldDeleter';
 import { ItemState } from 'components/Project/ProjectExplorer/ItemState';
 import { Title } from 'components/controls/Title/Title';
+import { projectExplorerItemType } from 'components/Project/ProjectExplorer/item.types';
+import mergeRefs from 'utils/mergeRefs';
 
 const defaultFXWorldConfig: FXWorldAssetConfig = {
   enabled: false,
@@ -33,7 +34,6 @@ export const FXWorld = observer(function FXWorld(props: ProjectItemProps) {
   const config: FXWorldAssetConfig = ProjectState.project.getAssetConfig(entry.path, defaultFXWorldConfig);
 
   const [renamerOpen, openRenamer, closeRenamer] = useOpenFlag(false);
-  const [deleterOpen, openDeleter, closeDeleter] = useOpenFlag(false);
 
   const options = React.useContext(ProjectExplorerItemContext);
   const isEnabled = !!config?.enabled;
@@ -43,7 +43,7 @@ export const FXWorld = observer(function FXWorld(props: ProjectItemProps) {
   }, [assetPath]);
 
   const handleToggleEnabled = React.useCallback(() => {
-    const request: ProjectSetAssetConfigRequest<ResourceAssetConfig> = {
+    const request: APIRQ.ProjectSetAssetConfig<ResourceAssetConfig> = {
       assetPath,
       config: {
         enabled: !isEnabled,
@@ -52,6 +52,10 @@ export const FXWorld = observer(function FXWorld(props: ProjectItemProps) {
 
     sendApiMessage(projectApi.setAssetConfig, request);
   }, [assetPath, isEnabled]);
+
+  const handleDelete = React.useCallback(() => {
+    ProjectState.project.deleteEntryConfirmFirst(entry.path, `Delete "${mapName}" map?`, () => null);
+  }, [entry, mapName]);
 
   const { requiredContextMenuItems } = useItem(props);
 
@@ -79,7 +83,7 @@ export const FXWorld = observer(function FXWorld(props: ProjectItemProps) {
       icon: deleteIcon,
       text: 'Delete map',
       disabled: options.disableAssetDelete,
-      onClick: openDeleter,
+      onClick: handleDelete,
     },
     {
       id: 'rename',
@@ -90,16 +94,22 @@ export const FXWorld = observer(function FXWorld(props: ProjectItemProps) {
     },
     ContextMenuItemSeparator,
     ...requiredContextMenuItems,
-  ], [options, isEnabled, requiredContextMenuItems, handleToggleEnabled, handleOpen, openDeleter, openRenamer]);
+  ], [options, isEnabled, requiredContextMenuItems, handleToggleEnabled, handleOpen, handleDelete, openRenamer]);
+
+  const { isDragging, dragRef } = useItemDrag(entry, projectExplorerItemType.ASSET);
+
+  const rootClassName = classnames(itemsStyles.wrapper, {
+    [itemsStyles.dragging]: isDragging,
+  });
 
   const title = `${mapName} • ${config.enabled ? 'Enabled' : 'Disabled'}`;
 
   return (
-    <div className={itemsStyles.wrapper}>
+    <div className={rootClassName}>
       <Title title={title}>
         {(ref) => (
           <ContextMenu
-            ref={ref}
+            ref={mergeRefs(ref, dragRef)}
             className={classnames(itemsStyles.item)}
             activeClassName={itemsStyles.itemActive}
             onClick={handleOpen}
@@ -123,14 +133,6 @@ export const FXWorld = observer(function FXWorld(props: ProjectItemProps) {
           name={mapName}
           path={entry.path}
           onClose={closeRenamer}
-        />
-      )}
-
-      {deleterOpen && (
-        <FXWorldDeleter
-          name={mapName}
-          path={entry.path}
-          onClose={closeDeleter}
         />
       )}
     </div>

@@ -23,7 +23,7 @@ export const Shell = observer(function Shell() {
   const projectLoadingTask = TaskState.get(projectLoadingTaskName);
 
   const showToolbar = Boolean(
-    ProjectState.hasProject || ProjectState.creatorOpen || ProjectState.openerOpen || projectCreatingTask || projectLoadingTask
+    ProjectState.hasProject || ProjectState.creatorUI.isOpen || ProjectState.openerUI.isOpen || projectCreatingTask || projectLoadingTask
   );
   const showWelcome = ShellState.appState === AppStates.ready && !showToolbar;
   const showUpdater = ShellState.appState === AppStates.preparing || ShellState.updaterOpen;

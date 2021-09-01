@@ -1,11 +1,11 @@
 @import "variables";
 
 .item-wrapper {
-  .dropping {
+  &.dropping {
     background-color: rgba($acColor, .25);
   }
 
-  .dragging {
+  &.dragging {
     background-color: $acColor;
   }
 }

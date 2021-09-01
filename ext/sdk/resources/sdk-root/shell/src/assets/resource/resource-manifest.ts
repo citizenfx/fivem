@@ -303,7 +303,7 @@ function serializeToLua(val: unknown, indent = 2): string {
     case 'undefined': 'nil';
 
     case 'object': {
-      if (val === null) {
+      if (!val) {
         return 'nil';
       }
 

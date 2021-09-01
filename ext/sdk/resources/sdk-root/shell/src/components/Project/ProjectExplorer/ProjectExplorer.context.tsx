@@ -3,7 +3,7 @@ import { observer } from 'mobx-react-lite';
 import { FilesystemEntry } from 'shared/api.types';
 import { projectApi } from 'shared/api.events';
 import { sendApiMessage } from 'utils/api';
-import { CopyEntryRequest, MoveEntryRequest } from 'shared/api.requests';
+import { APIRQ } from 'shared/api.requests';
 
 
 export enum EntryRelocateOperation {
@@ -53,7 +53,7 @@ export const ProjectExplorerContextProvider = observer(function ProjectExplorerC
 
     switch (relocateOperation) {
       case EntryRelocateOperation.Move: {
-        const request: MoveEntryRequest = {
+        const request: APIRQ.MoveEntry = {
           sourcePath: relocateSourceEntry.path,
           targetPath: target.path,
         };
@@ -61,7 +61,7 @@ export const ProjectExplorerContextProvider = observer(function ProjectExplorerC
         return sendApiMessage(projectApi.moveEntry, request);
       }
       case EntryRelocateOperation.Copy: {
-        const request: CopyEntryRequest = {
+        const request: APIRQ.CopyEntry = {
           sourcePath: relocateSourceEntry.path,
           targetPath: target.path,
         };

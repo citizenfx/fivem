@@ -260,13 +260,13 @@ export class Resource implements AssetInterface {
     this.loadMetaData();
   }
 
-  async onFsUpdate(updateType: FsWatcherEventType, entry: FilesystemEntry | null, entryPath: string) {
+  async handleFSUpdate(updateType: FsWatcherEventType, entry: FilesystemEntry | null, entryPath: string) {
     // If no more manifest - this no longer a resource, rip
     if (updateType === FsWatcherEventType.DELETED && entryPath === this.manifestPath) {
       this.logService.log(`Releasing ${this.name} as manifest got deleted`);
 
       return this.projectAccess.withInstance((project) => {
-        project.getAssets().release(this.getPath());
+        project.releaseAsset(this.getPath());
       });
     }
 
@@ -289,7 +289,7 @@ export class Resource implements AssetInterface {
       return;
     }
 
-    if (!isChange || !restartOnChange) {
+    if (!isChange || !restartOnChange || !entry) {
       return;
     }
 
@@ -329,8 +329,8 @@ export class Resource implements AssetInterface {
     }, {});
 
     // Killing old promises
-    const oldCommandsPromises = [];
-    const commandHashesToDelete = [];
+    const oldCommandsPromises: Promise<any>[] = [];
+    const commandHashesToDelete: string[] = [];
 
     this.runningWatchCommands.forEach((cmd, hash) => {
       if (!stubs[hash]) {
@@ -481,7 +481,10 @@ export class Resource implements AssetInterface {
 
           this.rebuildRestartInducingPatterns();
           this.ensureWatchCommandsRunning();
-          this.projectAccess.getInstance().getAssets().resolveMetadata(this);
+
+          this.projectAccess.withInstance((project) => {
+            project.refreshAssetInfo(this.getPath());
+          });
 
           return resolve();
         }

@@ -34,4 +34,4 @@ export const OutputState = new class OutputState {
     delete this.channelOutput[channelId];
     delete this.channelLabels[channelId];
   };
-};
+}();

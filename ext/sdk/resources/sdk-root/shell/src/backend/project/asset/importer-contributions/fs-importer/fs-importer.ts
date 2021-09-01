@@ -33,7 +33,7 @@ export class FsImporter implements AssetImporterContribution {
 
     try {
       await this.doImport(importTask, request);
-      this.notificationService.info(`Succefully imported asset from ${request.data.sourcePath}`, 5000);
+      this.notificationService.info(`Succefully imported asset from ${request.data?.sourcePath}`, 5000);
       return true;
     } catch (e) {
       this.notificationService.error(`Failed to import asset: ${e.toString()}`);

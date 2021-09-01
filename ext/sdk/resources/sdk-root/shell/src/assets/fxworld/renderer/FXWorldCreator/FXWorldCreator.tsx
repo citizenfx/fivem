@@ -6,7 +6,7 @@ import { resourceNamePattern } from 'constants/patterns';
 import { ProjectState } from 'store/ProjectState';
 import s from './FXWorldCreator.module.scss';
 import { Button } from 'components/controls/Button/Button';
-import { AssetCreateRequest } from 'shared/api.requests';
+import { APIRQ } from 'shared/api.requests';
 import { assetTypes } from 'shared/asset.types';
 import { sendApiMessage } from 'utils/api';
 import { assetApi } from 'shared/api.events';
@@ -19,7 +19,7 @@ export const FXWorldCreator = observer(function FXWorldCreator() {
       return;
     }
 
-    const request: AssetCreateRequest = {
+    const request: APIRQ.AssetCreate = {
       assetName: mapName,
       assetPath: ProjectState.project.path,
       assetType: assetTypes.fxworld,
@@ -27,11 +27,11 @@ export const FXWorldCreator = observer(function FXWorldCreator() {
 
     sendApiMessage(assetApi.create, request);
 
-    ProjectState.closeMapCreator();
+    ProjectState.mapCreatorUI.close();
   }, [mapName]);
 
   return (
-    <Modal onClose={ProjectState.closeMapCreator}>
+    <Modal onClose={ProjectState.mapCreatorUI.close}>
       <div className={s.root}>
         <div className="modal-header">
           Map creator
@@ -59,7 +59,7 @@ export const FXWorldCreator = observer(function FXWorldCreator() {
 
           <Button
             text="Cancel"
-            onClick={ProjectState.closeMapCreator}
+            onClick={ProjectState.mapCreatorUI.close}
           />
         </div>
       </div>

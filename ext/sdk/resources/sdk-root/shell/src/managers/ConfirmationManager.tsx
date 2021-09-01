@@ -1,7 +1,7 @@
+import React from 'react';
 import { Button } from 'components/controls/Button/Button';
 import { Modal } from 'components/Modal/Modal';
 import { observer } from 'mobx-react-lite';
-import React from 'react';
 import { ConfirmationsState } from 'store/ConfirmationsState';
 
 export const ConfirmationManager = observer(function ConfirmationManager() {

@@ -1,16 +1,20 @@
 import { DisposableContainer, DisposableObject } from "backend/disposable-container";
 import { makeAutoObservable, reaction } from "mobx";
 import { assetApi, projectApi } from "shared/api.events";
-import { ProjectBuildRequest } from "shared/api.requests";
+import { APIRQ } from "shared/api.requests";
 import { FilesystemEntry, FilesystemEntryMap } from "shared/api.types";
 import { AssetType } from "shared/asset.types";
 import { ProjectAssetBaseConfig, ProjectData, ProjectFsUpdate, ProjectManifest, ProjectOpenData, ProjectPathsState, RecentProject } from "shared/project.types";
-import { onApiMessage, sendApiMessage } from "utils/api";
+import { onApiMessage, sendApiMessage, sendApiMessageCallback } from "utils/api";
 import { getProjectBuildPathVar, getProjectDeployArtifactVar, getProjectSteamWebApiKeyVar, getProjectTebexSecretVar, getProjectUseVersioningVar } from "utils/projectStorage";
 import { onWindowEvent } from "utils/windowMessages";
 import { ShellState } from "./ShellState";
 import { TheiaState } from "../personalities/TheiaPersonality/TheiaState";
 import { SystemResource } from "backend/system-resources/system-resources-constants";
+import { OpenFlag } from "./generic/OpenFlag";
+import { ConfirmationsState } from "./ConfirmationsState";
+import { deleteIcon } from "constants/icons";
+import React from "react";
 
 
 class ProjectObject implements ProjectData, DisposableObject {
@@ -47,6 +51,7 @@ class ProjectObject implements ProjectData, DisposableObject {
     this.disposableContainer.add(
       onApiMessage(projectApi.update, this.update),
       onApiMessage(projectApi.fsUpdate, this.updateFs),
+      onApiMessage(projectApi.pathsStateUpdate, this.updatePathsState),
       onApiMessage(assetApi.setConfig, this.setAssetConfig),
       onApiMessage(assetApi.setType, this.setAssetType),
       onApiMessage(assetApi.setDefinition, this.setAssetDefinition),
@@ -107,6 +112,44 @@ class ProjectObject implements ProjectData, DisposableObject {
     });
   };
 
+  readonly deleteEntryConfirmFirst = (entryPath: string, title: string, children: () => React.ReactNode) => {
+    ConfirmationsState.requestConfirm({
+      title,
+      buttonIcon: deleteIcon,
+      buttonText: 'Delete',
+      onConfirm: () => this.deleteEntry(entryPath),
+      children,
+    });
+  };
+
+  readonly deleteEntry = (entryPath: string) => {
+    sendApiMessageCallback(projectApi.deleteEntry, { entryPath }, (error, response) => {
+      if (error) {
+        return;
+      }
+
+      if (response === APIRQ.DeleteEntryResponse.FailedToRecycle) {
+        ConfirmationsState.requestConfirm({
+          title: 'Failed to recycle, delete permanently?',
+          buttonIcon: deleteIcon,
+          buttonText: 'Delete permanently',
+          onConfirm() {
+            const request: APIRQ.DeleteEntry = {
+              entryPath,
+              hardDelete: true,
+            };
+
+            sendApiMessageCallback(projectApi.deleteEntry, request, (error) => {
+              if (error) {
+                console.error(error);
+              }
+            });
+          },
+        });
+      }
+    });
+  };
+
   private update = (projectData: Partial<ProjectData>) => {
     if (projectData.fs) {
       this.fs = projectData.fs;
@@ -146,8 +189,50 @@ class ProjectObject implements ProjectData, DisposableObject {
       this.assetDefs[assetPath] = def;
     }
   };
+
+  private updatePathsState = (pathsState: ProjectPathsState) => {
+    this.pathsState = pathsState;
+  };
 }
 export const ProjectState = new class ProjectState {
+  public creatorUI = new OpenFlag();
+  public openerUI = new OpenFlag();
+  public settingsUI = new OpenFlag();
+  public builderUI = new OpenFlag();
+  public importerUI = new OpenFlag();
+  public directoryCreatorUI = new OpenFlag();
+  public mapCreatorUI = new OpenFlag();
+
+  public resourceCreatorDir = '';
+  public resourceCreatorUI = new OpenFlag();
+
+  public recentProjects: RecentProject[] = [];
+
+  public pendingFolderDeletions = new Set<string>();
+
+  private projectAlreadyOpening = false;
+  private projectObject: ProjectObject | null = null;
+
+  get project(): ProjectObject {
+    if (this.projectObject === null) {
+      throw new Error('Project is not open');
+    }
+
+    return this.projectObject;
+  }
+
+  get projectName(): string {
+    if (this.projectObject) {
+      return this.projectObject.manifest.name;
+    }
+
+    return 'No project open';
+  }
+
+  get hasProject(): boolean {
+    return this.projectObject !== null;
+  }
+
   constructor() {
     makeAutoObservable(this);
 
@@ -172,7 +257,6 @@ export const ProjectState = new class ProjectState {
     });
   }
 
-  public recentProjects: RecentProject[] = [];
   private setRecentProjects = (recentProjects) => {
     this.recentProjects = recentProjects;
 
@@ -188,77 +272,19 @@ export const ProjectState = new class ProjectState {
     }
   };
 
-  public creatorOpen = false;
-  openCreator = () => this.creatorOpen = true;
-  closeCreator = () => this.creatorOpen = false;
-
-  public openerOpen = false;
-  openOpener = () => this.openerOpen = true;
-  closeOpener = () => this.openerOpen = false;
-
-  public settingsOpen = false;
-  openSettings = () => this.settingsOpen = true;
-  closeSettings = () => this.settingsOpen = false;
-
-  public builderOpen = false;
-  openBuilder = () => this.builderOpen = true;
-  closeBuilder = () => this.builderOpen = false;
-
-  public resourceCreatorDir = '';
-  setResourceCreatorDir(dir: string) {
-    this.resourceCreatorDir = dir;
-  }
-
-  public resourceCreatorOpen = false;
-  openResourceCreator = (dir?: string) => {
+  readonly openResourceCreator = (dir?: string) => {
     if (dir) {
       this.resourceCreatorDir = dir;
     }
 
-    this.resourceCreatorOpen = true;
+    this.resourceCreatorUI.open();
   };
-  closeResourceCreator = () => this.resourceCreatorOpen = false;
 
-  public importerOpen = false;
-  openImporter = () => this.importerOpen = true;
-  closeImporter = () => this.importerOpen = false;
-
-  public directoryCreatorOpen = false;
-  openDirectoryCreator = () => this.directoryCreatorOpen = true;
-  closeDirectoryCreator = () => this.directoryCreatorOpen = false;
-
-  public mapCreatorOpen = false;
-  openMapCreator = () => this.mapCreatorOpen = true;
-  closeMapCreator = () => this.mapCreatorOpen = false;
-
-  private projectObject: ProjectObject | null = null;
-
-  get project(): ProjectObject {
-    if (this.projectObject === null) {
-      throw new Error('Project is not open');
-    }
-
-    return this.projectObject;
-  }
-
-  get projectName(): string {
-    if (this.projectObject) {
-      return this.projectObject.manifest.name;
-    }
-
-    return 'No project open';
-  }
-
-  get hasProject(): boolean {
-    return this.projectObject !== null;
-  }
-
-  private projectAlreadyOpening = false;
   openProject(path: string) {
     if (!this.projectAlreadyOpening) {
       this.closeProject();
 
-      this.openerOpen = false;
+      this.openerUI.close();
       this.projectAlreadyOpening = true;
 
       sendApiMessage(projectApi.open, path);
@@ -282,7 +308,7 @@ export const ProjectState = new class ProjectState {
     }
   };
 
-  readonly buildProject = (overrides?: Partial<ProjectBuildRequest>) => {
+  readonly buildProject = (overrides?: Partial<APIRQ.ProjectBuild>) => {
     const project = this.projectObject;
     if (!project) {
       return;
@@ -295,7 +321,7 @@ export const ProjectState = new class ProjectState {
     const tebexSecret = getProjectTebexSecretVar(project);
 
     if (!buildPath) {
-      return this.openBuilder();
+      return this.builderUI.open();
     }
 
     sendApiMessage(projectApi.build, {
@@ -305,7 +331,7 @@ export const ProjectState = new class ProjectState {
       steamWebApiKey,
       tebexSecret,
       ...overrides,
-    } as ProjectBuildRequest);
+    } as APIRQ.ProjectBuild);
   };
 
   openFile(entry: FilesystemEntry) {
@@ -314,8 +340,6 @@ export const ProjectState = new class ProjectState {
     }
   }
 
-  public pendingFolderDeletions = new Set<string>();
-
   addPendingFolderDeletion(path: string) {
     this.pendingFolderDeletions.add(path);
   }
@@ -323,4 +347,4 @@ export const ProjectState = new class ProjectState {
   private freePendingFolderDeletion = (path: string) => {
     this.pendingFolderDeletions.delete(path);
   };
-};
+}();

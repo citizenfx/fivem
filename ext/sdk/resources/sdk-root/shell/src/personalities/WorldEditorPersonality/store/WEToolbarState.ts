@@ -133,4 +133,4 @@ export const WEToolbarState = new class WEToolbarState {
   readonly hideFakeProperties = () => {
     this.showingFakeProperties = false;
   };
-};
+}();

@@ -14,14 +14,15 @@ import { Task, TaskReporterService } from 'backend/task/task-reporter-service';
 import { Stats } from 'fs';
 import { injectable, inject } from 'inversify';
 import { projectApi } from 'shared/api.events';
-import { ProjectBuildRequest } from 'shared/api.requests';
+import { APIRQ } from 'shared/api.requests';
 import { ServerUpdateChannel, ServerUpdateStates } from 'shared/api.types';
 import { ProjectBuildError } from 'shared/project.types';
 import { projectBuildingTaskName, ProjectBuildTaskStage } from 'shared/task.names';
 import { formatDateForFilename } from 'utils/date';
 import { AssetBuildCommandError } from './asset/asset-error';
-import { Project, ProjectState } from './project';
+import { Project } from './project';
 import { ProjectAccess } from './project-access';
+import { ProjectState } from './project-runtime/project-state-runtime';
 
 class BuildError {
   constructor(
@@ -87,7 +88,7 @@ export class ProjectBuilder implements ApiContribution {
   protected systemResourcesService: SystemResourcesService;
 
   @handlesClientEvent(projectApi.build)
-  public async build(request: ProjectBuildRequest) {
+  public async build(request: APIRQ.ProjectBuild) {
     if (!this.projectAccess.hasInstance()) {
       this.notificationService.error('Project build failed: no current project');
 
@@ -129,7 +130,7 @@ export class ProjectBuilder implements ApiContribution {
     }
   }
 
-  protected async doBuildProject(request: ProjectBuildRequest, project: Project, task: Task<ProjectBuildTaskStage>) {
+  protected async doBuildProject(request: APIRQ.ProjectBuild, project: Project, task: Task<ProjectBuildTaskStage>) {
     const { useVersioning, buildPath, deployArtifact, steamWebApiKey, tebexSecret } = request;
 
     if (project.getManifest().systemResources.length > 0 && !(await this.systemResourcesService.getAvailablePromise())) {
@@ -218,7 +219,7 @@ export class ProjectBuilder implements ApiContribution {
     }
   }
 
-  protected async prepareDeployPath(useVersioning: boolean, deployPath: string, deployPathStats: Stats | null, newName: string): Promise<Stats> {
+  protected async prepareDeployPath(useVersioning: boolean, deployPath: string, deployPathStats: Stats | null, newName: string): Promise<Stats | null> {
     const deployPathExists = deployPathStats !== null;
     if (deployPathExists) {
       // If versioned build - back up old deploy

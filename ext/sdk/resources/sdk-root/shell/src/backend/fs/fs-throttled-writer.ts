@@ -10,7 +10,7 @@ export class FsThrottledWriter<ContentType> {
   private pendingDeferred: Deferred<void> | null = null;
   private pendingContent: ContentType | null = null;
 
-  private timer: NodeJS.Timeout;
+  private timer: NullableTimer;
 
   constructor(
     private writer: (content: string | Buffer) => Promise<void>,
@@ -40,7 +40,7 @@ export class FsThrottledWriter<ContentType> {
   }
 
   private flushContent = async () => {
-    this.timer = undefined;
+    this.timer = null;
 
     if (this.pendingDeferred) {
       await this.pendingDeferred.promise;
@@ -48,9 +48,9 @@ export class FsThrottledWriter<ContentType> {
 
     this.pendingDeferred = new Deferred();
 
-    await this.writer(this.options.serialize(this.pendingContent));
+    await this.writer(this.options.serialize(this.pendingContent!));
 
     this.pendingDeferred.resolve();
-    this.pendingDeferred = undefined;
+    this.pendingDeferred = null;
   };
 }

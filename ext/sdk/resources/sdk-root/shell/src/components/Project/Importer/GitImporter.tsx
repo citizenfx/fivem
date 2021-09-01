@@ -12,7 +12,7 @@ import { sendApiMessage } from 'utils/api';
 import { ImporterProps } from './Importer.types';
 import { getRelativePath } from 'components/Explorer/Explorer.utils';
 import { inferAssetName } from './Importer.utils';
-import { FetchReleasesRequest, FetchReleasesResponse, ReleaseInfo } from 'shared/api.requests';
+import { APIRQ } from 'shared/api.requests';
 import { useSendApiMessageCallback } from 'utils/hooks';
 import { Checkbox } from 'components/controls/Checkbox/Checkbox';
 import { ReleaseAssetImportRequest } from 'backend/project/asset/importer-contributions/release-importer/release-importer.types';
@@ -31,7 +31,7 @@ const resourceFolderVisibilityFilter = combineVisibilityFilters(
   visibilityFilters.hideDotFilesAndDirs,
 );
 
-const noReleaseInfo: ReleaseInfo = {
+const noReleaseInfo: APIRQ.ReleaseInfo = {
   name: 'Import git repository as is',
   body: '',
   createdAt: '',
@@ -49,7 +49,7 @@ export const GitImporter = observer(function GitImporter({ onClose }: ImporterPr
 
   const [releaseName, setReleaseName] = React.useState<string | null>(null);
   const [dontRelease, setDontRelease] = React.useState<boolean>(false);
-  const [releases, setReleases] = React.useState<ReleaseInfo[]>([]);
+  const [releases, setReleases] = React.useState<APIRQ.ReleaseInfo[]>([]);
   const [fetchingReleases, setFetchingReleases] = React.useState<boolean>(false);
 
   const doImport = React.useCallback(() => {
@@ -86,7 +86,7 @@ export const GitImporter = observer(function GitImporter({ onClose }: ImporterPr
     onClose();
   }, [repository, assetName, assetBasePath, onClose, releases, releaseName]);
 
-  const fetchReleases = useSendApiMessageCallback<FetchReleasesRequest, FetchReleasesResponse>(githubApi.fetchReleases, (error, response) => {
+  const fetchReleases = useSendApiMessageCallback<APIRQ.FetchReleases, APIRQ.FetchReleasesResponse>(githubApi.fetchReleases, (error, response) => {
     setFetchingReleases(false);
     setReleaseName(null);
 
@@ -111,7 +111,7 @@ export const GitImporter = observer(function GitImporter({ onClose }: ImporterPr
         setAssetName(inferredAssetName);
       }
 
-      const request: FetchReleasesRequest = {
+      const request: APIRQ.FetchReleases = {
         repoUrl: nextRepository,
       };
 

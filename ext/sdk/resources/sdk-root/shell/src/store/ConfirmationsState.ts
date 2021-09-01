@@ -8,13 +8,13 @@ export interface ConfirmationRequest<State extends object = {}> {
 
   state?: State,
 
-  children?(state: State, setState: (newState: State) => void): React.ReactNode,
+  children?(state: State | null, setState: (newState: State) => void): React.ReactNode,
 
-  onConfirm(state: State): void,
+  onConfirm(state: State | null): void,
 }
 
 export const ConfirmationsState = new class ConfirmationsState {
-  public state: object = null;
+  public state: object | null = null;
   public request: ConfirmationRequest | null = null;
 
   constructor() {
@@ -26,7 +26,7 @@ export const ConfirmationsState = new class ConfirmationsState {
   }
 
   readonly confirm = () => {
-    if (this.request === null) {
+    if (!this.request) {
       return;
     }
 
@@ -44,4 +44,4 @@ export const ConfirmationsState = new class ConfirmationsState {
     this.state = null;
     this.request = null;
   };
-};
+}();

@@ -42,7 +42,7 @@ export class ReleaseImporter implements AssetImporterContribution {
       data,
     } = request;
 
-    invariant(data.releaseUrl, `Invalid release asset import request, missing releaseUrl in data`);
+    invariant(data?.releaseUrl, `Invalid release asset import request, missing releaseUrl in data`);
 
     const importTask = this.taskReporterService.create('Importing asset from git');
     importTask.setText('Preparing');
@@ -84,7 +84,7 @@ export class ReleaseImporter implements AssetImporterContribution {
         );
       } catch (e) {
         this.notificationService.error(`Failed to import release: ${e.toString()}`);
-        return;
+        return false;
       }
 
       if (await this.fsService.statSafe(assetPath)) {
@@ -109,7 +109,7 @@ export class ReleaseImporter implements AssetImporterContribution {
           );
         } catch (e) {
           this.notificationService.error(`Failed to import release: ${e.toString()}`);
-          return;
+          return false;
         }
       }
 

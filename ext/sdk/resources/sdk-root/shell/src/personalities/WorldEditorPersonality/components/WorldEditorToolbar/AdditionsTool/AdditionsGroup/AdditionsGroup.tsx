@@ -8,10 +8,10 @@ import { WEState } from 'personalities/WorldEditorPersonality/store/WEState';
 import { ContextMenu, ContextMenuItemsCollection } from 'components/controls/ContextMenu/ContextMenu';
 import { DropTargetMonitor, useDrop } from 'react-dnd';
 import { InPlaceInput } from 'components/controls/InPlaceInput/InPlaceInput';
-import s from './AdditionsGroup.module.scss';
 import { ADDITION_DND_TYPES } from '../AdditionsTool.constants';
 import { Addition } from '../Addition';
 import { AdditionsGroupDeleter } from './AdditionsGroupDeleter/AdditionsGroupDeleter';
+import s from './AdditionsGroup.module.scss';
 
 export interface AdditionsGroupProps {
   grp: string,
@@ -21,7 +21,7 @@ export interface AdditionsGroupProps {
 export const AdditionsGroup = observer(function AdditionsGroup(props: AdditionsGroupProps) {
   const { grp, items } = props;
 
-  const group = WEState.map.additionGroups[grp];
+  const group = WEState.map!.additionGroups[grp];
 
   const [collapsed, _expand, _collapse, toggleCollapsed] = useOpenFlag(false);
 
@@ -32,8 +32,8 @@ export const AdditionsGroup = observer(function AdditionsGroup(props: AdditionsG
         return;
       }
 
-      if (item['id']) {
-        WEState.map.setAdditionGroup(item['id'], grp);
+      if (typeof item === 'object' && item?.['id']) {
+        WEState.map!.setAdditionGroup(item['id'], grp);
       }
     },
     collect: (monitor) =>({
@@ -52,14 +52,14 @@ export const AdditionsGroup = observer(function AdditionsGroup(props: AdditionsG
   const handleGroupLabelChange = React.useCallback((newLabel: string) => {
     closeGroupRenamer();
 
-    WEState.map.setAdditionGroupLabel(grp, newLabel);
+    WEState.map!.setAdditionGroupLabel(grp, newLabel);
   }, [grp, closeGroupRenamer]);
 
   const handleGroupDelete = React.useCallback(() => {
     if (Object.keys(items).length) {
       openGroupDeleter();
     } else {
-      WEState.map.deleteAdditionGroup(grp, false);
+      WEState.map!.deleteAdditionGroup(grp, false);
     }
   }, [grp, items]);
 

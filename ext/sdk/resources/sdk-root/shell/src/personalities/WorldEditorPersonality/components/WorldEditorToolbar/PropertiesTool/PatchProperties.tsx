@@ -31,9 +31,9 @@ function usePatch(): { mapdata: number, entity: number, label: string, mat: WEEn
     }
   }
 
-  const { mapdata, entity, label, mat, cam } = WEState.selection;
+  const { mapdata, entity, label, mat = Array(16).fill(0) as WEEntityMatrix, cam = [0,0,0,0,0,0] } = WEState.selection;
 
-  const patch = WEState.map.patches[mapdata]?.[entity];
+  const patch = WEState.map!.patches[mapdata]?.[entity];
 
   if (patch) {
     return {
@@ -82,7 +82,7 @@ export const PatchProperties = observer(function PatchProperties() {
         <Controls>
           <Title delay={0} animated={false} fixedOn="top" title="Delete">
             {(ref) => (
-              <button ref={ref} onClick={() => WEState.map.deletePatch(mapdata, entity)}>
+              <button ref={ref} onClick={() => WEState.map!.deletePatch(mapdata, entity)}>
                 {deleteIcon}
               </button>
             )}
@@ -105,19 +105,19 @@ export const PatchProperties = observer(function PatchProperties() {
           <NumberInput
             label="x:"
             value={px}
-            onChange={(px) => WEState.map.setPatchPosition(mapdata, entity, px, py, pz)}
+            onChange={(px) => WEState.map!.setPatchPosition(mapdata, entity, px, py, pz)}
             className={s.input}
           />
           <NumberInput
             label="y:"
             value={py}
-            onChange={(py) => WEState.map.setPatchPosition(mapdata, entity, px, py, pz)}
+            onChange={(py) => WEState.map!.setPatchPosition(mapdata, entity, px, py, pz)}
             className={s.input}
           />
           <NumberInput
             label="z:"
             value={pz}
-            onChange={(pz) => WEState.map.setPatchPosition(mapdata, entity, px, py, pz)}
+            onChange={(pz) => WEState.map!.setPatchPosition(mapdata, entity, px, py, pz)}
             className={s.input}
           />
         </Control>
@@ -132,19 +132,19 @@ export const PatchProperties = observer(function PatchProperties() {
           <NumberInput
             label="x:"
             value={rx}
-            onChange={(rx) => WEState.map.setPatchRotation(mapdata, entity, rx, ry, rz)}
+            onChange={(rx) => WEState.map!.setPatchRotation(mapdata, entity, rx, ry, rz)}
             className={s.input}
           />
           <NumberInput
             label="y:"
             value={ry}
-            onChange={(ry) => WEState.map.setPatchRotation(mapdata, entity, rx, ry, rz)}
+            onChange={(ry) => WEState.map!.setPatchRotation(mapdata, entity, rx, ry, rz)}
             className={s.input}
           />
           <NumberInput
             label="z:"
             value={rz}
-            onChange={(rz) => WEState.map.setPatchRotation(mapdata, entity, rx, ry, rz)}
+            onChange={(rz) => WEState.map!.setPatchRotation(mapdata, entity, rx, ry, rz)}
             className={s.input}
           />
         </Control>
@@ -161,7 +161,7 @@ export const PatchProperties = observer(function PatchProperties() {
               {(ref) => (
                 <button
                   ref={ref}
-                  onClick={() => WEState.map.setPatchScale(mapdata, entity, 1, 1, 1)}
+                  onClick={() => WEState.map!.setPatchScale(mapdata, entity, 1, 1, 1)}
                 >
                   1:1
                 </button>
@@ -173,19 +173,19 @@ export const PatchProperties = observer(function PatchProperties() {
           <NumberInput
             label="x:"
             value={sx}
-            onChange={(sx) => WEState.map.setPatchScale(mapdata, entity, sx, sy, sz)}
+            onChange={(sx) => WEState.map!.setPatchScale(mapdata, entity, sx, sy, sz)}
             className={s.input}
           />
           <NumberInput
             label="y:"
             value={sy}
-            onChange={(sy) => WEState.map.setPatchScale(mapdata, entity, sx, sy, sz)}
+            onChange={(sy) => WEState.map!.setPatchScale(mapdata, entity, sx, sy, sz)}
             className={s.input}
           />
           <NumberInput
             label="z:"
             value={sz}
-            onChange={(sz) => WEState.map.setPatchScale(mapdata, entity, sx, sy, sz)}
+            onChange={(sz) => WEState.map!.setPatchScale(mapdata, entity, sx, sy, sz)}
             className={s.input}
           />
         </Control>

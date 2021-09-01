@@ -8,7 +8,7 @@ import { ProjectAccess } from "backend/project/project-access";
 import { __DEBUG_MODE_TOGGLES__ } from "constants/debug-constants";
 import { inject, injectable, postConstruct } from "inversify";
 import { worldEditorApi } from "shared/api.events";
-import { WorldEditorStartRequest } from "shared/api.requests";
+import { APIRQ } from "shared/api.requests";
 import { serverUpdateChannels } from "shared/api.types";
 import { WorldEditor } from "./world-editor";
 
@@ -63,7 +63,7 @@ export class WorldEditorService implements ApiContribution {
   }
 
   @handlesClientEvent(worldEditorApi.start)
-  async start(request: WorldEditorStartRequest) {
+  async start(request: APIRQ.WorldEditorStart) {
     if (this.running) {
       return this.notificationService.error('World editor is already running');
     }
@@ -127,6 +127,10 @@ export class WorldEditorService implements ApiContribution {
 
   @handlesClientEvent(worldEditorApi.stop)
   async stop() {
+    if (!this.isRunning) {
+      return;
+    }
+
     await this.worldEditor?.close();
     this.worldEditor = null;
 

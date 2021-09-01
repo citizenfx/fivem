@@ -8,6 +8,27 @@ export interface ChangelogEntry {
 
 export const changelogEntries: ChangelogEntry[] = [
   {
+    id: '2021-09-01',
+    title: 'September 01, 2021',
+    content: (
+      <>
+        <h3>
+          How did all these project explorer bugs went unseen
+          <img src="https://openmoji.org/data/color/svg/1F972.svg" width={32} height={32} style={{ verticalAlign: 'middle' }} />
+        </h3>
+
+        <ul>
+          <li>
+            You <em>should</em> be able to drag'n'drop anything into anything now
+          </li>
+          <li>
+            That "next big thing", which is pretty much an open secret, is like 99.9% ready!
+          </li>
+        </ul>
+      </>
+    ),
+  },
+  {
     id: '2021-07-20',
     title: 'July 20, 2021',
     content: (

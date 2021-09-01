@@ -219,7 +219,7 @@ export class GameServerFxdkMode implements GameServerMode {
     return this.loadResourcesByUrls(getResourceUrls(resources));
   }
   private async loadResourcesByUrls(resourceUrls: string[]): Promise<void> {
-    const loadResults = await this.ipc.rpc('load', resourceUrls);
+    const loadResults: Record<string, boolean> = await this.ipc.rpc('load', resourceUrls);
 
     const failedResources: string[] = [];
 

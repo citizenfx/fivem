@@ -1,13 +1,13 @@
 import React from 'react';
 import classnames from 'classnames';
 import sBaseTool from '../BaseTool/BaseTool.module.scss';
-import s from './ActiveSelectionTool.module.scss';
 import { observer } from 'mobx-react-lite';
 import { WEState } from 'personalities/WorldEditorPersonality/store/WEState';
 import { WESelectionType } from 'backend/world-editor/world-editor-types';
 import { additionsToolIcon, patchesToolIcon } from 'personalities/WorldEditorPersonality/constants/icons';
 import { closeIcon } from 'constants/icons';
 import { Title } from 'components/controls/Title/Title';
+import s from './ActiveSelectionTool.module.scss';
 
 function getIconNode(): React.ReactNode {
   switch (WEState.selection.type) {
@@ -32,11 +32,11 @@ function getSelectionLabel(): string {
     }
 
     case WESelectionType.ADDITION: {
-      return WEState.map.additions[WEState.selection.id]?.label || '';
+      return WEState.map!.additions[WEState.selection.id]?.label || '';
     }
 
     case WESelectionType.PATCH: {
-      const patch = WEState.map.getPatch(WEState.selection.mapdata, WEState.selection.entity);
+      const patch = WEState.map!.getPatch(WEState.selection.mapdata, WEState.selection.entity);
 
       return patch
         ? patch.label

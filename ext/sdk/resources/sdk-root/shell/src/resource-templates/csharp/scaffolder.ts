@@ -13,7 +13,9 @@ function ucfirst(str: string): string {
 }
 
 function resourceNameToNamespace(resourceName: string): string {
-  return resourceName.match(resourceNameRegexp).map(ucfirst).join('');
+  const matches = resourceName.match(resourceNameRegexp) || [];
+
+  return matches.map(ucfirst).join('');
 }
 
 @injectable()
@@ -41,7 +43,7 @@ export default class CsharpScaffolder implements ResourceTemplateScaffolder {
         'publish', '--configuration', 'Release',
       ]]);
 
-      const promises = [];
+      const promises: Promise<any>[] = [];
       const relativePath = (to: string) => this.fsService.joinPath(resourcePath, to);
 
       // Create solution

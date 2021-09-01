@@ -63,7 +63,7 @@ export const Input = React.memo(function Input(props: InputProps) {
     } else if (type === 'range') {
       if (/^[0-9]*$/.test(value)) {
         const intValue = value | 0;
-        if (value === '' || (intValue >= (parseInt(min, 10)) && intValue <= (parseInt(max, 10)))) {
+        if (value === '' || (intValue >= (parseInt(min || '0', 10)) && intValue <= (parseInt(max || '0', 10)))) {
           onChange(value);
         }
       }

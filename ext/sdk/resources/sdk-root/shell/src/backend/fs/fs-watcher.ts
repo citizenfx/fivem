@@ -138,8 +138,8 @@ export class FsWatcher implements DisposableObject {
 
     Object.values(eventForPath)
       .filter(Boolean)
-      .sort((a, b) => a[1].length - b[1].length)
-      .forEach((event) => this.onEvent(event));
+      .sort((a, b) => a![1].length - b![1].length)
+      .forEach((event) => this.onEvent(event!));
   };
 
   private handleError = (error: string) => {

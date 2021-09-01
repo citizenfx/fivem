@@ -65,7 +65,7 @@ export const GameState = new class GameState {
     this.archetypesCollectionPending = true;
     this.archetypesCollectionReady = false;
 
-    sendApiMessageCallback(gameApi.refreshArchetypesCollection, null, (error: string, data: boolean) => runInAction(() => {
+    sendApiMessageCallback<boolean>(gameApi.refreshArchetypesCollection, null, (error, data) => runInAction(() => {
       this.archetypesCollectionPending = false;
       this.archetypesCollectionReady = true;
 
@@ -76,4 +76,4 @@ export const GameState = new class GameState {
       }
     }));
   }
-};
+}();

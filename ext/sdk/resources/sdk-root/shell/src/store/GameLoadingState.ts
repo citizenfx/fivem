@@ -1,9 +1,7 @@
 import { makeAutoObservable, runInAction } from "mobx"
-import { logger } from "utils/logger";
 import { onLoadingEvent } from "utils/windowMessages";
 
 const log = (...args) => {};
-// const log = logger('GameLoadingState');
 
 export enum InitFunctionType {
   INIT_UNKNOWN = 0,
@@ -82,4 +80,4 @@ export const GameLoadingState = new class GameLoadingState {
   resetLoadingProgress() {
     this.loadingProgress = 0;
   }
-}
+}();

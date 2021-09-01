@@ -77,4 +77,4 @@ export const NotificationState = new class NotificationState {
 
     this.items[id] = notification;
   };
-};
+}();

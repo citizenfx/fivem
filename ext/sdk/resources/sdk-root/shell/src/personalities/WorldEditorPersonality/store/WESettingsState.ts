@@ -70,4 +70,4 @@ export const WESettingsState = new class WESettingsState {
     invokeWEApi(WEApi.SettingsSet, this.settings);
     this.settingsVault.set(this.settings);
   };
-};
+}();

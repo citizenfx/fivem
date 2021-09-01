@@ -1,5 +1,5 @@
 import { ResourceManifest } from "assets/resource/resource-manifest";
-import { AssetCreateRequest } from "shared/api.requests";
+import { APIRQ } from "shared/api.requests";
 
 export interface ResourceTemplateDescriptor {
   id: string,
@@ -12,7 +12,7 @@ export interface ResourceTemplateDescriptor {
 }
 
 export interface ResourceTemplateScaffolderArgs {
-  request: AssetCreateRequest<{ resourceTemplateId?: string }>,
+  request: APIRQ.AssetCreate<{ resourceTemplateId?: string }>,
   manifest: ResourceManifest,
   resourcePath: string,
 }

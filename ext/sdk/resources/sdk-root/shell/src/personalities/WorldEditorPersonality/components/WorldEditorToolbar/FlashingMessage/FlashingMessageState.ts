@@ -1,7 +1,7 @@
 import { makeAutoObservable } from "mobx";
 
-let activityTimer = null;
-let animationTimer = null;
+let activityTimer: NullableTimer = null;
+let animationTimer: NullableTimer = null;
 
 export const FlashingMessageState = new class FlashingMessageState {
   public message: string = '';

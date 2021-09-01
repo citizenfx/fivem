@@ -29,7 +29,7 @@ export class ExampleImporter implements AssetImporterContribution {
 
     try {
       await this.doImport(importTask, request);
-      this.notificationService.info(`Succefully imported ${request.data.exampleName} example`, 5000);
+      this.notificationService.info(`Succefully imported ${request.data?.exampleName} example`, 5000);
       return true;
     } catch (e) {
       this.notificationService.error(`Failed to import example: ${e.toString()}`);

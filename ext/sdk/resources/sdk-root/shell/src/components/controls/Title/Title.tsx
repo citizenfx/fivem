@@ -31,8 +31,8 @@ function getCssStyle(fixed: boolean, delay: number, [x, y]: number[]): React.CSS
   };
 }
 
-function getCoords(ref: React.RefObject<HTMLElement>, fixedOn: FixedOn): [number, number] {
-  const { x, y, width, height } = ref.current.getBoundingClientRect();
+function getCoords(element: HTMLElement, fixedOn: FixedOn): [number, number] {
+  const { x, y, width, height } = element.getBoundingClientRect();
 
   let xOffset: number;
   let yOffset: number;
@@ -106,8 +106,8 @@ export const Title = observer(function Title(props: TitleProps) {
   const activeRef = React.useRef(active);
   activeRef.current = active;
 
-  const mouseOverRef = React.useRef(null);
-  const mouseOutRef = React.useRef(null);
+  const mouseOverRef = React.useRef<NullableTimer>(null);
+  const mouseOutRef = React.useRef<NullableTimer>(null);
 
   React.useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
@@ -133,8 +133,8 @@ export const Title = observer(function Title(props: TitleProps) {
         }
 
         mouseOverRef.current = setTimeout(() => {
-          if (fixedOnRef.current) {
-            setCoords(getCoords(ref, fixedOnRef.current));
+          if (fixedOnRef.current && ref.current) {
+            setCoords(getCoords(ref.current, fixedOnRef.current));
           }
 
           setActive(true);
@@ -188,7 +188,7 @@ export const Title = observer(function Title(props: TitleProps) {
     };
   }, []);
 
-  let titleNode = null;
+  let titleNode: React.ReactNode = null;
   if (active) {
     const wrapperClassName = classnames(s.wrapper, s[`fixed-on-${fixedOn}`], {
       [s.animated]: animated,

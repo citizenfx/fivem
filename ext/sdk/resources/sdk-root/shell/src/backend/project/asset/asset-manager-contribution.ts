@@ -1,5 +1,5 @@
 import { interfaces } from "inversify";
-import { AssetCreateRequest } from "shared/api.requests";
+import { APIRQ } from "shared/api.requests";
 import { FilesystemEntry } from "shared/api.types";
 import { AssetType } from "shared/asset.types";
 import { AssetInterface } from "assets/core/asset-interface";
@@ -7,11 +7,11 @@ import { AssetInterface } from "assets/core/asset-interface";
 
 export const AssetManagerContribution = Symbol('AssetManagerContribution');
 export interface AssetManagerContribution {
-  createAsset(request: AssetCreateRequest): Promise<boolean>;
+  createAsset(request: APIRQ.AssetCreate): Promise<boolean>;
 
   loadAsset(assetEntry: FilesystemEntry): AssetInterface | void;
 
-  onFsEntry?(entry: FilesystemEntry): Promise<void> | void;
+  handleFSEntry?(entry: FilesystemEntry): Promise<void> | void;
 }
 
 export const bindAssetContribution = <T>(container: interfaces.Container, service: interfaces.Newable<T>, assetType: AssetType) => {

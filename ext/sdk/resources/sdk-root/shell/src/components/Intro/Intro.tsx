@@ -145,7 +145,7 @@ function Focuser({ node }: { node: FocusNode | void }) {
 }
 
 function Content({ step, index, node, children }: { step: IntroStep, index: number, node: FocusNode | void, children?: React.ReactNode }) {
-  const ref = React.useRef<HTMLDivElement>();
+  const ref = React.useRef<HTMLDivElement>(null);
   const style = useContentStyle(ref, step, node);
 
   const ContentNode = step.content;

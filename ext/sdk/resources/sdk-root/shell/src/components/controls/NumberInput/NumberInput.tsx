@@ -44,7 +44,7 @@ export function NumberInput(props: NumberInputProps) {
     ? value
     : limitPrecision(value);
 
-  const inputRef = React.useRef<HTMLInputElement>();
+  const inputRef = React.useRef<HTMLInputElement>(null);
   const modifiersRef = React.useRef(DEFAULT_MODIFIERS_STATE);
 
   const mouseDownRef = React.useRef(false);
@@ -106,7 +106,7 @@ export function NumberInput(props: NumberInputProps) {
 
     if (!mouseLockRef.current) {
       mouseLockRef.current = true;
-      inputRef.current.requestPointerLock();
+      inputRef.current?.requestPointerLock();
     } else if (Math.abs(movementX) < 1000) { // prevents weird jumps on start of dragging
       onChange(value + movementX * 0.01);
     }

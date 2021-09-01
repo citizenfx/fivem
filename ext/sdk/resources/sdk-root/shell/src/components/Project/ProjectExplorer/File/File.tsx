@@ -6,7 +6,6 @@ import { ContextMenu, ContextMenuItemsCollection, ContextMenuItemSeparator } fro
 import { deleteIcon, renameIcon } from 'constants/icons';
 import { getFileIcon } from './File.utils';
 import { FileRenamer } from './FileRenamer/FileRenamer';
-import { FileDeleter } from './FileDeleter/FileDeleter';
 import { ProjectExplorerItemContext } from '../item.context';
 import { projectExplorerItemType } from '../item.types';
 import { ProjectItemProps } from '../item';
@@ -24,7 +23,6 @@ export const File = observer(function File(props: ProjectItemProps) {
   const relocateSourceContextMenu = useItemRelocateSourceContextMenu(entry);
 
   const [fileRenamerOpen, openFileRenamer, closeFileRenamer] = useOpenFlag(false);
-  const [fileDeleterOpen, openFileDeleter, closeFileDeleter] = useOpenFlag(false);
 
   const handleClick = React.useCallback(() => {
     if (!options.disableFileOpen) {
@@ -40,7 +38,7 @@ export const File = observer(function File(props: ProjectItemProps) {
       icon: deleteIcon,
       text: 'Delete file',
       disabled: options.disableFileDelete,
-      onClick: openFileDeleter,
+      onClick: () => ProjectState.project!.deleteEntry(entry.path),
     },
     {
       id: 'rename-file',
@@ -56,7 +54,7 @@ export const File = observer(function File(props: ProjectItemProps) {
       text: 'Open in Explorer',
       onClick: () => invokeNative('openFolderAndSelectFile', entry.path),
     },
-  ], [entry, options, openFileDeleter, openFileRenamer, relocateSourceContextMenu]);
+  ], [entry, options, openFileRenamer, relocateSourceContextMenu]);
 
   const icon = getFileIcon(entry);
 
@@ -85,10 +83,6 @@ export const File = observer(function File(props: ProjectItemProps) {
 
       {fileRenamerOpen && (
         <FileRenamer entry={entry} onClose={closeFileRenamer} />
-      )}
-
-      {fileDeleterOpen && (
-        <FileDeleter entry={entry} onClose={closeFileDeleter} />
       )}
     </div>
   );

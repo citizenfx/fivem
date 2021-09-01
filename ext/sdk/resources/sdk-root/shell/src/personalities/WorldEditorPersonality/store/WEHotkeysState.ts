@@ -66,4 +66,4 @@ export const WEHotkeysState = new class WEHotkeysState {
 
     saveHotkeys(this.hotkeys);
   }
-};
+}();

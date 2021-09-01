@@ -17,4 +17,4 @@ export const KeyboardLayout = new class KeyboardLayout {
   private async load() {
     this.map = await navigator.keyboard.getLayoutMap();
   }
-};
+}();

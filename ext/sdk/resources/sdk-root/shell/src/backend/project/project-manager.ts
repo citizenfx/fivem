@@ -8,7 +8,7 @@ import { FsService } from "backend/fs/fs-service";
 import { LogService } from "backend/logger/log-service";
 import { NotificationService } from "backend/notification/notification-service";
 import { projectApi } from "shared/api.events";
-import { ProjectCreateRequest } from "shared/api.requests";
+import { APIRQ } from "shared/api.requests";
 import { ProjectCreateCheckResult, RecentProject } from "shared/project.types";
 import { notNull } from "shared/utils";
 import { Project } from "./project";
@@ -139,7 +139,7 @@ export class ProjectManager implements ApiContribution {
   }
 
   @handlesClientEvent(projectApi.checkCreateRequest)
-  async checkCreateRequest(request: ProjectCreateRequest): Promise<ProjectCreateCheckResult> {
+  async checkCreateRequest(request: APIRQ.ProjectCreate): Promise<ProjectCreateCheckResult> {
     const result: ProjectCreateCheckResult = {};
     const finish = () => {
       this.apiClient.emit(projectApi.checkCreateResult, result);
@@ -161,7 +161,7 @@ export class ProjectManager implements ApiContribution {
   }
 
   @handlesClientEvent(projectApi.create)
-  async createProject(request: ProjectCreateRequest) {
+  async createProject(request: APIRQ.ProjectCreate) {
     if (this.projectLock) {
       throw new Error('Can not create project while another project is being opened or created');
     }

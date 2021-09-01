@@ -2,18 +2,16 @@ import React from 'react';
 import { observer } from 'mobx-react-lite';
 import classnames from 'classnames';
 import { NativeTypes } from 'react-dnd-html5-backend';
-import { BsCheckBox, BsExclamationCircle, BsFillEyeFill, BsSquare } from 'react-icons/bs';
+import { BsExclamationCircle, BsFillEyeFill } from 'react-icons/bs';
 import { useOpenFlag } from 'utils/hooks';
 import { sendApiMessage } from 'utils/api';
 import { projectApi, serverApi } from 'shared/api.events';
 import { ContextMenu, ContextMenuItemsCollection, ContextMenuItemSeparator } from 'components/controls/ContextMenu/ContextMenu';
 import { checkedIcon, deleteIcon, disabledResourceIcon, enabledResourceIcon, refreshIcon, renameIcon, resourceIcon, startIcon, stopIcon, uncheckedIcon } from 'constants/icons';
-import { useExpandablePath, useItem, useItemDrop, useItemRelocateTargetContextMenu } from 'components/Project/ProjectExplorer/ProjectExplorer.hooks';
+import { useExpandablePath, useItem, useItemDragAndDrop, useItemRelocateTargetContextMenu } from 'components/Project/ProjectExplorer/ProjectExplorer.hooks';
 import { ProjectExplorerItemContext, ProjectExplorerItemContextProvider } from 'components/Project/ProjectExplorer/item.context';
-import { projectExplorerItemType } from 'components/Project/ProjectExplorer/item.types';
-import { ResourceDeleter } from './ResourceDeleter/ResourceDeleter';
 import { ResourceRenamer } from './ResourceRenamer/ResourceRenamer';
-import { ProjectSetAssetConfigRequest } from 'shared/api.requests';
+import { APIRQ } from 'shared/api.requests';
 import { StatusState } from 'store/StatusState';
 import { ResourceAssetConfig, ResourceStatus } from 'assets/resource/resource-types';
 import { ServerState } from 'store/ServerState';
@@ -26,6 +24,8 @@ import s from './Resource.module.scss';
 import { SystemResource, SYSTEM_RESOURCES_NAMES } from 'backend/system-resources/system-resources-constants';
 import { ItemState } from 'components/Project/ProjectExplorer/ItemState';
 import { Title } from 'components/controls/Title/Title';
+import mergeRefs from 'utils/mergeRefs';
+import { projectExplorerItemType } from 'components/Project/ProjectExplorer/item.types';
 
 
 const contextOptions: Partial<ProjectExplorerItemContext> = {
@@ -57,8 +57,11 @@ export const Resource = observer(function Resource(props: ProjectItemProps) {
   });
   const { expanded, toggleExpanded } = useExpandablePath(entry.path);
 
-  const [deleterOpen, openDeleter, closeDeleter] = useOpenFlag(false);
   const [renamerOpen, openRenamer, closeRenamer] = useOpenFlag(false);
+
+  const handleDelete = React.useCallback(() => {
+    ProjectState.project.deleteEntryConfirmFirst(entry.path, `Delete resource "${entry.name}"?`, () => null);
+  }, [entry]);
 
   const {
     resourceIsRunning,
@@ -80,7 +83,7 @@ export const Resource = observer(function Resource(props: ProjectItemProps) {
       icon: deleteIcon,
       text: 'Delete resource',
       disabled: options.disableAssetDelete,
-      onClick: openDeleter,
+      onClick: handleDelete,
     },
     {
       id: 'rename',
@@ -97,7 +100,7 @@ export const Resource = observer(function Resource(props: ProjectItemProps) {
     lifecycleContextMenuItems,
     contextMenuItems,
     options,
-    openDeleter,
+    handleDelete,
     openRenamer,
     relocateTargetContextMenu,
     requiredContextMenuItems,
@@ -105,7 +108,7 @@ export const Resource = observer(function Resource(props: ProjectItemProps) {
 
   const children = renderItemChildren();
 
-  const { isDropping, dropRef } = useItemDrop(entry, [
+  const { isDragging, isDropping, dragRef, dropRef } = useItemDragAndDrop(entry, projectExplorerItemType.ASSET, [
     projectExplorerItemType.FILE,
     projectExplorerItemType.FOLDER,
     NativeTypes.FILE,
@@ -113,6 +116,7 @@ export const Resource = observer(function Resource(props: ProjectItemProps) {
 
   const rootClassName = classnames(itemsStyles.wrapper, {
     [itemsStyles.dropping]: isDropping,
+    [itemsStyles.dragging]: isDragging,
   });
 
   const rootTitle = conflictingWithSystemResource
@@ -124,7 +128,7 @@ export const Resource = observer(function Resource(props: ProjectItemProps) {
       <Title title={rootTitle}>
         {(ref) => (
           <ContextMenu
-            ref={ref}
+            ref={mergeRefs(dragRef, ref)}
             className={classnames(itemsStyles.item)}
             activeClassName={itemsStyles.itemActive}
             items={itemContextMenuItems}
@@ -158,9 +162,6 @@ export const Resource = observer(function Resource(props: ProjectItemProps) {
         </div>
       )}
 
-      {deleterOpen && (
-        <ResourceDeleter path={entry.path} name={entry.name} onClose={closeDeleter} />
-      )}
       {renamerOpen && (
         <ResourceRenamer path={entry.path} name={entry.name} onClose={closeRenamer} />
       )}
@@ -243,7 +244,7 @@ function useResourceLifecycle(
   const isAutorestartOnChangeEnabled = !!resourceConfig?.restartOnChange;
 
   const handleToggleEnabled = React.useCallback(() => {
-    const request: ProjectSetAssetConfigRequest<ResourceAssetConfig> = {
+    const request: APIRQ.ProjectSetAssetConfig<ResourceAssetConfig> = {
       assetPath: resourcePath,
       config: {
         enabled: !isEnabled,
@@ -254,7 +255,7 @@ function useResourceLifecycle(
   }, [resourcePath, isEnabled]);
 
   const handleToggleAutorestartEnabled = React.useCallback(() => {
-    const request: ProjectSetAssetConfigRequest<ResourceAssetConfig> = {
+    const request: APIRQ.ProjectSetAssetConfig<ResourceAssetConfig> = {
       assetPath: resourcePath,
       config: {
         restartOnChange: !isAutorestartOnChangeEnabled,
