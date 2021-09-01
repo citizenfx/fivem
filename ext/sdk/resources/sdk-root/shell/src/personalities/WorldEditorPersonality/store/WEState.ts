@@ -116,6 +116,12 @@ export const WEState = new class WEState {
         this.clearEditorSelection();
       }
     });
+
+    WEEvents.patchDeleted.addListener(({ mapdata, entity }) => {
+      if (this.selection.type === WESelectionType.PATCH && this.selection.mapdata === mapdata && this.selection.entity === entity) {
+        this.clearEditorSelection();
+      }
+    });
   }
 
   private readonly handleGameReady = () => {

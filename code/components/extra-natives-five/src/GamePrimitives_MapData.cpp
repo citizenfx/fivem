@@ -214,7 +214,7 @@ static void MapDataContents_Create(CMapDataContents* contents, void* a2, CMapDat
 	g_origMapDataContents_Create(contents, a2, mapData, mapDataIdx);
 
 	// #TODO: use fast listener elision when we implement it
-	fx::ResourceManager::GetCurrent()->GetComponent<fx::ResourceEventManagerComponent>()->QueueEvent2("mapDataLoaded", {}, mapData->name);
+	fx::ResourceManager::GetCurrent()->GetComponent<fx::ResourceEventManagerComponent>()->QueueEvent2("mapDataLoaded", {}, (int32_t)mapData->name);
 }
 
 static void* (*g_origMapDataContents_Remove)(CMapDataContents* contents, void* a2);
@@ -228,7 +228,7 @@ static void* MapDataContents_Remove(CMapDataContents* contents, void* a2)
 		void* result = g_origMapDataContents_Remove(contents, a2);
 
 		// #TODO: use fast listener elision when we implement it
-		fx::ResourceManager::GetCurrent()->GetComponent<fx::ResourceEventManagerComponent>()->QueueEvent2("mapDataUnloaded", {}, mapDataName);
+		fx::ResourceManager::GetCurrent()->GetComponent<fx::ResourceEventManagerComponent>()->QueueEvent2("mapDataUnloaded", {}, (int32_t)mapDataName);
 
 		return result;
 	}

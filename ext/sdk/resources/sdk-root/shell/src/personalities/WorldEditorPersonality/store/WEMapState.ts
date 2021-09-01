@@ -18,6 +18,7 @@ import {
   WESetAdditionGroupNameRequest,
   WESetAdditionRequest,
   WEMapAdditionGroupDefinition,
+  WESelectionType,
 } from "backend/world-editor/world-editor-types";
 import { makeAutoObservable } from "mobx";
 import { worldEditorApi } from "shared/api.events";
@@ -30,6 +31,7 @@ import { fastRandomId } from "utils/random";
 import { invokeWEApi } from "../we-api-utils";
 import { WEEvents } from "./Events";
 import { WEHistory } from "./history/WEHistory";
+import { WEState } from "./WEState";
 
 export class WEMapState {
   private ungroupedAdditions: Record<string, WEMapAddition> = {};
@@ -158,6 +160,10 @@ export class WEMapState {
     return this.map.patches[mapdata]?.[entity];
   }
 
+  readonly setPatchLabel = this.patchChangeWrap(['label'], (patch, label: string) => {
+    patch.label = label;
+  });
+
   readonly setPatchPosition = this.patchChangeWrap(['mat'], (patch, x: number, y: number, z: number) => {
     patch.mat[WEEntityMatrixIndex.AX] = x;
     patch.mat[WEEntityMatrixIndex.AY] = y;
@@ -259,6 +265,8 @@ export class WEMapState {
       mapDataHash: toNumber(mapdata),
       entityHash: toNumber(entity),
     };
+
+    WEEvents.emitPatchDeleted(request.mapDataHash, request.entityHash, patch);
 
     invokeWEApi(WEApi.PatchDelete, request);
     sendApiMessage(worldEditorApi.deletePatch, request);
@@ -437,8 +445,19 @@ export class WEMapState {
     fn: (patch: WEMapPatch, ...args: Args) => void
   ): ((mapdata: number | string, entity: number | string, ...args: Args) => void) {
     return (mapdata, entity, ...args: Args) => {
-      const patch = this.getPatch(mapdata, entity);
+      let patch = this.getPatch(mapdata, entity);
       if (!patch) {
+        const result = this.createPatchFromSelection();
+        if (!result) {
+          return;
+        }
+
+        fn(result.patch, ...args);
+
+        WEHistory.patchCreated(result.mapdata, result.entity, result.patch);
+
+        this.setPatch(result.mapdata, result.entity, result.patch);
+
         return;
       }
 
@@ -452,6 +471,27 @@ export class WEMapState {
       WEHistory.finishPatchChange(patch);
 
       this.broadcastPatchChange(mapdataNumber, entityNumber, pick(patch, ...keys));
+    };
+  }
+
+  private createPatchFromSelection(): { mapdata: number, entity: number, patch: WEMapPatch } | null {
+    if (WEState.selection.type !== WESelectionType.PATCH) {
+      return null;
+    }
+    if (!WEState.selection.mat || !WEState.selection.cam) {
+      return null;
+    }
+
+    const patch: WEMapPatch = {
+      mat: WEState.selection.mat,
+      cam: WEState.selection.cam,
+      label: WEState.selection.label,
+    };
+
+    return {
+      patch,
+      mapdata: WEState.selection.mapdata,
+      entity: WEState.selection.entity,
     };
   }
 

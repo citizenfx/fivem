@@ -78,6 +78,10 @@ export const ObjectsBrowser = observer(function ObjectsBrowserDropdown() {
   }, []);
 
   const handleFilterKeyDown = React.useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.ctrlKey || event.altKey || event.shiftKey) {
+      return;
+    }
+
     const isUp = event.key === 'ArrowUp';
     const isDown = event.key === 'ArrowDown';
     const isEsc = event.key === 'Escape';
