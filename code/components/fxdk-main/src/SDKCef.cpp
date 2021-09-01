@@ -11,6 +11,7 @@
 
 namespace {
 	SDKCefClient* g_instance = NULL;
+	HWND g_mainWindowHandle;
 }
 
 
@@ -43,7 +44,7 @@ void SafeRelease(T** ppT)
 	}
 }
 
-const std::string FxdkSelectFolder(const std::string& startPath, const std::string& title, bool onlyFolders)
+const std::string FxdkSelectFolder(const std::string& startPath, const std::string& title, bool onlyFolders, HWND parentWindow = NULL)
 {
 	IFileDialog* fileDialog;
 
@@ -96,7 +97,7 @@ const std::string FxdkSelectFolder(const std::string& startPath, const std::stri
 
 	fileDialog->SetOptions(options);
 
-	HRESULT showResult = fileDialog->Show(NULL);
+	HRESULT showResult = fileDialog->Show(parentWindow);
 	if (FAILED(showResult) || showResult == HRESULT_FROM_WIN32(ERROR_CANCELLED))
 	{
 		SafeRelease(&fileDialog);
@@ -178,9 +179,16 @@ SDKCefClient* SDKCefClient::GetInstance()
 {
 	return g_instance;
 }
+void SDKCefClient::SetMainWindowHandle(HWND handle)
+{
+	g_mainWindowHandle = handle;
+}
+HWND SDKCefClient::GetMainWindowHandle()
+{
+	return g_mainWindowHandle;
+}
 
-void SDKCefClient::OnTitleChange(CefRefPtr<CefBrowser> browser,
-	const CefString& title)
+void SDKCefClient::OnTitleChange(CefRefPtr<CefBrowser> browser, const CefString& title)
 {
 	CEF_REQUIRE_UI_THREAD();
 
@@ -189,8 +197,10 @@ void SDKCefClient::OnTitleChange(CefRefPtr<CefBrowser> browser,
 	if (browser_view)
 	{
 		CefRefPtr<CefWindow> window = browser_view->GetWindow();
-		if (window)
+		if (window && window->GetWindowHandle() == GetMainWindowHandle())
+		{
 			window->SetTitle(title);
+		}
 	}
 }
 
@@ -325,7 +335,7 @@ bool SDKCefClient::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRe
 	{
 		CefWindowInfo wi;
 
-		wi.SetAsPopup(NULL, "FxDK DevTools");
+		wi.SetAsPopup(GetMainWindowHandle(), "fxdk:devtools");
 
 		CefBrowserSettings s;
 
@@ -343,9 +353,9 @@ bool SDKCefClient::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRe
 		std::string title = message->GetArgumentList()->GetString(1);
 		bool onlyFolders = message->GetArgumentList()->GetBool(2);
 
-		std::thread([=]()
+		std::thread([defaultPath, title, onlyFolders, browser, hwnd = g_mainWindowHandle]()
 		{
-			std::string path = FxdkSelectFolder(defaultPath, title, onlyFolders);
+			std::string path = FxdkSelectFolder(defaultPath, title, onlyFolders, hwnd);
 
 			auto cefMsg = CefProcessMessage::Create("fxdkOpenSelectFolderDialogResult");
 			auto cefMsgArgs = cefMsg->GetArgumentList();

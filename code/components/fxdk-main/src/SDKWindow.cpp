@@ -438,36 +438,39 @@ unsigned char componentIcon[6866] = {
 	0x60, 0x82
 };
 
+static CefRefPtr<CefImage> g_icon;
 #pragma endregion
 
 // When using the Views framework this object provides the delegate
 // implementation for the CefWindow that hosts the Views-based browser.
-SimpleWindowDelegate::SimpleWindowDelegate(CefRefPtr<CefBrowserView> browser_view) : browser_view_(browser_view)
+SDKWindowDelegate::SDKWindowDelegate(CefRefPtr<CefBrowserView> browser_view, const std::wstring& placementKey)
+	: browser_view_(browser_view), placementRegistryKey(placementKey)
 {
 }
 
-static HWND m_mainWindow;
-
-void SimpleWindowDelegate::OnWindowCreated(CefRefPtr<CefWindow> window)
+SDKWindowDelegate::SDKWindowDelegate(CefRefPtr<CefBrowserView> browser_view, const std::wstring& placementKey, const std::string& forceWindowTitle)
+	: browser_view_(browser_view), placementRegistryKey(placementKey), forcedWindowTitle(forceWindowTitle)
 {
-	static bool mainWindowIdSet = false;
+}
 
-	if (!mainWindowIdSet)
+void SDKWindowDelegate::OnWindowCreated(CefRefPtr<CefWindow> window)
+{
+	if (!g_icon)
 	{
-		mainWindowIdSet = true;
-		m_mainWindow = window->GetWindowHandle();
-
-		static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");
-		rgd->mainWindowHandle = window->GetWindowHandle();
+		g_icon = CefImage::CreateImage();
+		g_icon->AddPNG(1.0f, componentIcon, sizeof(componentIcon));
 	}
-
-	auto icon = CefImage::CreateImage();
-	icon->AddPNG(1.0f, componentIcon, sizeof(componentIcon));
 
 	// Add the browser view and show the window.
 	window->AddChildView(browser_view_);
-	window->SetWindowAppIcon(icon);
-	window->SetWindowIcon(icon);
+	window->SetWindowAppIcon(g_icon);
+	window->SetWindowIcon(g_icon);
+
+	if (!forcedWindowTitle.empty())
+	{
+		window->SetTitle(forcedWindowTitle);
+	}
+
 	window->Show();
 	LoadPlacement(window);
 
@@ -475,12 +478,12 @@ void SimpleWindowDelegate::OnWindowCreated(CefRefPtr<CefWindow> window)
 	browser_view_->RequestFocus();
 }
 
-void SimpleWindowDelegate::OnWindowDestroyed(CefRefPtr<CefWindow> window)
+void SDKWindowDelegate::OnWindowDestroyed(CefRefPtr<CefWindow> window)
 {
 	browser_view_ = NULL;
 }
 
-bool SimpleWindowDelegate::CanClose(CefRefPtr<CefWindow> window)
+bool SDKWindowDelegate::CanClose(CefRefPtr<CefWindow> window)
 {
 	SavePlacement(window);
 
@@ -491,66 +494,61 @@ bool SimpleWindowDelegate::CanClose(CefRefPtr<CefWindow> window)
 	return true;
 }
 
-CefSize SimpleWindowDelegate::GetMinimumSize(CefRefPtr<CefView> view)
+CefSize SDKWindowDelegate::GetMinimumSize(CefRefPtr<CefView> view)
 {
 	return CefSize(1360, 768);
 }
 
-void SimpleWindowDelegate::LoadPlacement(CefRefPtr<CefWindow> window)
+void SDKWindowDelegate::LoadPlacement(CefRefPtr<CefWindow> window)
 {
-	// Only load placement for main window
-	if (m_mainWindow != window->GetWindowHandle())
-	{
-		return;
-	}
-
 	DWORD dataSize = 0;
-	if (RegGetValueW(HKEY_CURRENT_USER, L"SOFTWARE\\CitizenFX\\FxDK", L"Last Window Placement", RRF_RT_REG_BINARY, NULL, NULL, &dataSize) == ERROR_SUCCESS)
+	if (RegGetValueW(HKEY_CURRENT_USER, L"SOFTWARE\\CitizenFX\\FxDK", placementRegistryKey.c_str(), RRF_RT_REG_BINARY, NULL, NULL, &dataSize) == ERROR_SUCCESS)
 	{
 		std::vector<uint8_t> data(dataSize);
-		if (RegGetValueW(HKEY_CURRENT_USER, L"SOFTWARE\\CitizenFX\\FxDK", L"Last Window Placement", RRF_RT_REG_BINARY, NULL, data.data(), &dataSize) == ERROR_SUCCESS)
+		if (RegGetValueW(HKEY_CURRENT_USER, L"SOFTWARE\\CitizenFX\\FxDK", placementRegistryKey.c_str(), RRF_RT_REG_BINARY, NULL, data.data(), &dataSize) == ERROR_SUCCESS)
 		{
 			SetWindowPlacement(window->GetWindowHandle(), (const WINDOWPLACEMENT*)data.data());
 		}
 	}
 }
 
-void SimpleWindowDelegate::SavePlacement(CefRefPtr<CefWindow> window)
+void SDKWindowDelegate::SavePlacement(CefRefPtr<CefWindow> window)
 {
-	// Only save placement for main window
-	if (m_mainWindow != window->GetWindowHandle())
-	{
-		return;
-	}
-
 	WINDOWPLACEMENT wndpl = { 0 };
 	wndpl.length = sizeof(wndpl);
 
 	if (GetWindowPlacement(window->GetWindowHandle(), &wndpl))
 	{
-		RegSetKeyValueW(HKEY_CURRENT_USER, L"SOFTWARE\\CitizenFX\\FxDK", L"Last Window Placement", REG_BINARY, &wndpl, sizeof(wndpl));
+		RegSetKeyValueW(HKEY_CURRENT_USER, L"SOFTWARE\\CitizenFX\\FxDK", placementRegistryKey.c_str(), REG_BINARY, &wndpl, sizeof(wndpl));
 	}
 }
 
-SubViewDelegate::SubViewDelegate()
+SDKSubViewDelegate::SDKSubViewDelegate()
 {
 }
 
-CefRefPtr<CefBrowserViewDelegate> SubViewDelegate::GetDelegateForPopupBrowserView(
+CefRefPtr<CefBrowserViewDelegate> SDKSubViewDelegate::GetDelegateForPopupBrowserView(
 	CefRefPtr<CefBrowserView> browser_view,
 	const CefBrowserSettings& settings,
 	CefRefPtr<CefClient> client,
 	bool is_devtools)
 {
-	return new SubViewDelegate();
+	return new SDKSubViewDelegate();
 }
 
-bool SubViewDelegate::OnPopupBrowserViewCreated(
+bool SDKSubViewDelegate::OnPopupBrowserViewCreated(
 	CefRefPtr<CefBrowserView> browser_view,
 	CefRefPtr<CefBrowserView> popup_browser_view,
 	bool is_devtools)
 {
-	CefWindow::CreateTopLevelWindow(new SimpleWindowDelegate(popup_browser_view));
+	std::string forceTitle;
+
+	if (is_devtools)
+	{
+		forceTitle = "FxDK: DevTools";
+	}
+
+	CefRefPtr<CefWindow> wnd = CefWindow::CreateTopLevelWindow(new SDKWindowDelegate(popup_browser_view, L"Last Window Placement Subview", forceTitle));
 
 	return true;
 }

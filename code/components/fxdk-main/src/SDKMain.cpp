@@ -91,6 +91,8 @@ private:
 
 void MakeBrowser(const std::string& url)
 {
+	static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");
+
 	CefRefPtr<SDKCefClient> handler(new SDKCefClient());
 
 	// Specify CEF browser settings here.
@@ -98,10 +100,15 @@ void MakeBrowser(const std::string& url)
 
 	// Create the BrowserView.
 	CefRefPtr<CefBrowserView> browser_view = CefBrowserView::CreateBrowserView(
-	handler, url, browser_settings, {}, NULL, new SubViewDelegate());
+	handler, url, browser_settings, {}, NULL, new SDKSubViewDelegate());
 
 	// Create the Window. It will show itself after creation.
-	CefWindow::CreateTopLevelWindow(new SimpleWindowDelegate(browser_view));
+	CefRefPtr<CefWindow> wnd = CefWindow::CreateTopLevelWindow(new SDKWindowDelegate(browser_view, L"Last Window Placement"));
+
+	auto hwnd = wnd->GetWindowHandle();
+
+	SDKCefClient::SetMainWindowHandle(hwnd);
+	rgd->mainWindowHandle = hwnd;
 }
 
 static bool terminateRenderThread = false;
@@ -155,6 +162,7 @@ void SdkMain()
 	ConVar<std::string> sdkRootPath("sdk_root_path", ConVar_None, "built-in");
 	ConVar<std::string> citizenPath("citizen_path", ConVar_None, ToNarrow(MakeRelativeCitPath(L"citizen/")));
 
+	SetEnvironmentVariable(L"CitizenFX_SDK_rootPath", ToWide(sdkRootPath.GetValue()).c_str());
 	SetEnvironmentVariable(L"CitizenFX_ToolMode", nullptr);
 
 	ipc::Endpoint launcherTalk("launcherTalk", true);
