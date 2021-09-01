@@ -2037,4 +2037,10 @@ static HookFunction hookFunction([] ()
 
 	// don't handle that flag either
 	hook::put<uint8_t>(hook::get_pattern("38 05 ? ? ? ? 8A 0D ? ? ? ? 8A 15 ? ? ? ? 74 08", 18), 0xEB);
+
+	// still set up BeginFrame/BeginDraw when occluded
+	hook::put<int32_t>(hook::get_pattern("85 C0 74 2D 8B C8 E8", 0x2D), 0x81);
+
+	// and when minimized
+	hook::nop(hook::get_pattern("74 0C 84 C9 75 08 84 C0 0F", 8), 6);
 });
