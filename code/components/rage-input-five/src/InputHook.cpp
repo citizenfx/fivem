@@ -497,26 +497,27 @@ static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
 	}
 
 	// mouse buttons
-	for (int i = 1; i <= 3; i++)
+	for (int i = 0; i < 3; i++)
 	{
 		bool pass = true;
 		LRESULT lr;
 
-		int mx = curInput.mouseDeltaX;
-		int my = curInput.mouseDeltaY;
+		int mb = 1 << i;
+		int mx = rgd->mouseAbsX;
+		int my = rgd->mouseAbsY;
 
-		if ((curInput.mouseButtons & i) && !(lastInput.mouseButtons & i))
+		if ((curInput.mouseButtons & mb) && !(lastInput.mouseButtons & mb))
 		{
 			loopTargets([i, mx, my](InputTarget* target)
 			{
-				target->MouseDown(i - 1, mx, my);
+				target->MouseDown(i, mx, my);
 			});
 		}
-		else if (!(curInput.mouseButtons & i) && (lastInput.mouseButtons & i))
+		else if (!(curInput.mouseButtons & mb) && (lastInput.mouseButtons & mb))
 		{
 			loopTargets([i, mx, my](InputTarget* target)
 			{
-				target->MouseUp(i - 1, mx, my);
+				target->MouseUp(i, mx, my);
 			});
 		}
 	}
