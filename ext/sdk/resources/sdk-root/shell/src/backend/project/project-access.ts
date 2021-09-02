@@ -18,7 +18,7 @@ export class ProjectAccess {
       throw new Error('No project');
     }
 
-    return this.project;
+    return this.project!;
   }
 
   async withInstance<T>(cb: (project: Project) => Promise<T> | T): Promise<T | void> {
@@ -26,6 +26,6 @@ export class ProjectAccess {
       return;
     }
 
-    return await cb(this.project);
+    return await cb(this.project!);
   }
 }

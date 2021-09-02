@@ -105,6 +105,9 @@ export class ApiClient {
 
     if (args[0] === '@@cb') {
       const [, id, type, data] = args;
+      if (!type) {
+        throw new Error(`No type specified in message ${message}`);
+      }
 
       const listener = this.eventTypeCallbackListener[type];
       if (!listener) {

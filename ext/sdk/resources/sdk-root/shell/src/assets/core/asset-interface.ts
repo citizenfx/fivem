@@ -9,6 +9,10 @@ export interface AssetDeployablePathsDescriptor {
   paths: string[],
 }
 
+export interface AssetDefinition {
+  convarCategories?: any,
+}
+
 export interface AssetInterface extends DisposableObject {
   readonly type: AssetType;
 
@@ -16,12 +20,12 @@ export interface AssetInterface extends DisposableObject {
   getPath(): string;
 
   setEntry?(entry: FilesystemEntry): Promise<void> | void;
-  onFsUpdate?(updateType: FsWatcherEventType, entry: FilesystemEntry | null, entryPath: string): Promise<void> | void;
+  handleFSUpdate?(updateType: FsWatcherEventType, entry: FilesystemEntry | null, entryPath: string): Promise<void> | void;
 
   getDeployablePathsDescriptor?(): Promise<AssetDeployablePathsDescriptor>;
 
   getResourceDescriptor?(): ServerResourceDescriptor | void;
-  getDefinition?(): Record<string, unknown>;
+  getDefinition?(): AssetDefinition | void;
 
   build?(): Promise<void> | void;
 }

@@ -1,11 +1,11 @@
 import * as React from 'react';
 import ReactMarkdown from 'react-markdown';
 import classnames from 'classnames';
+import { APIRQ } from 'shared/api.requests';
 import s from './Release.module.scss';
-import { ReleaseInfo } from 'shared/api.requests';
 
 export interface ReleaseProps {
-  info: ReleaseInfo,
+  info: APIRQ.ReleaseInfo,
 
   checked?: boolean,
   onClick?: () => void,

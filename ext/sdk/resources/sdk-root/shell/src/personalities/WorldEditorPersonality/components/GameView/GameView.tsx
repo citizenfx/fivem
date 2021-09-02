@@ -4,9 +4,13 @@ import { GameViewRenderer } from './GameView.utils';
 import s from './GameView.module.scss';
 
 export const GameView = observer(function GameView() {
-  const canvasRef = React.useRef();
+  const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
 
   React.useEffect(() => {
+    if (!canvasRef.current) {
+      return;
+    }
+
     let width: number;
     let height: number;
     let debounce: any;

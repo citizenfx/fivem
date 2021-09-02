@@ -76,7 +76,7 @@ export class GameServerService implements AppContribution, ApiContribution {
 
   private disposeServer() {
     if (this.server) {
-      this.server.dispose();
+      this.server.dispose?.();
       this.server = null;
     }
   }
@@ -196,7 +196,7 @@ export class GameServerService implements AppContribution, ApiContribution {
       } catch (e) {
         this.notificationService.error(`Failed to stop server: ${e.toString()}`);
       } finally {
-        this.stopTask.done();
+        this.stopTask!.done();
         this.stopTask = null;
         this.unlock();
       }

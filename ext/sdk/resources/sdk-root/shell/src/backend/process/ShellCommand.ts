@@ -5,7 +5,7 @@ import { Deferred } from 'backend/deferred';
 
 export type ShellCommandDataListener = (data: Buffer) => void;
 export type ShellCommandErrorListener = (error: Error) => void;
-export type ShellCommandCloseListener = (code: number, signal: NodeJS.Signals) => void;
+export type ShellCommandCloseListener = (code: number, signal: NodeJS.Signals | null) => void;
 
 export class ShellCommand implements OutputChannelProvider {
   private proc: cp.ChildProcess | null = null;
@@ -71,7 +71,7 @@ export class ShellCommand implements OutputChannelProvider {
 
   writeStdin(data: Buffer | string) {
     if (this.proc) {
-      this.proc.stdin.write(data);
+      this.proc.stdin?.write(data);
     }
   }
 
@@ -82,11 +82,11 @@ export class ShellCommand implements OutputChannelProvider {
       windowsHide: true,
     });
 
-    this.proc.stdout.on('data', (data) => {
+    this.proc.stdout?.on('data', (data) => {
       this.stdoutListeners.forEach((listener) => listener(data));
     });
 
-    this.proc.stderr.on('data', (data) => {
+    this.proc.stderr?.on('data', (data) => {
       this.stdoutListeners.forEach((listener) => listener(data));
       this.stderrListeners.forEach((listener) => listener(data));
     });

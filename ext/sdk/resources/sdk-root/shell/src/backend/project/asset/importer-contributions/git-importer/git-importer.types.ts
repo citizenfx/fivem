@@ -1,3 +1,3 @@
-import { AssetImportRequest } from "shared/api.requests";
+import { APIRQ } from "shared/api.requests";
 
-export type GitAssetImportRequest = AssetImportRequest<{ repoUrl: string }>;
+export type GitAssetImportRequest = APIRQ.AssetImport<{ repoUrl: string }>;

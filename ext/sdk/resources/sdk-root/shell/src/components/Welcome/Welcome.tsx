@@ -41,11 +41,11 @@ export const Welcome = observer(function Welcome() {
         <Button
           text="Create New Project"
           theme="primary"
-          onClick={ProjectState.openCreator}
+          onClick={ProjectState.creatorUI.open}
         />
         <Button
           text="Open Project"
-          onClick={ProjectState.openOpener}
+          onClick={ProjectState.openerUI.open}
         />
       </div>
     </div>

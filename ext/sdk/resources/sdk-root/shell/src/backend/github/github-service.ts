@@ -4,7 +4,7 @@ import { ApiContribution } from 'backend/api/api-contribution';
 import { handlesClientCallbackEvent } from 'backend/api/api-decorators';
 import { LogService } from 'backend/logger/log-service';
 import { githubApi } from 'shared/api.events';
-import { FetchReleasesRequest, FetchReleasesResponse, ReleaseInfo } from 'shared/api.requests';
+import { APIRQ } from 'shared/api.requests';
 
 export const githubRepositoryUrlRegexp = /github.com\/([^\/]+)\/([^\/?]+)/;
 
@@ -29,11 +29,11 @@ export class GithubService implements ApiContribution {
   }
 
   @handlesClientCallbackEvent(githubApi.fetchReleases)
-  async fetchReleases(request: FetchReleasesRequest): Promise<FetchReleasesResponse> {
+  async fetchReleases(request: APIRQ.FetchReleases): Promise<APIRQ.FetchReleasesResponse> {
     this.logService.log('Fetching github releases', request);
 
     let success = false;
-    let releases = [];
+    let releases: APIRQ.ReleaseInfo[] = [];
 
     const match = request.repoUrl.match(githubRepositoryUrlRegexp);
 
@@ -43,9 +43,9 @@ export class GithubService implements ApiContribution {
 
         if (releasesResult.status >= 200 && releasesResult.status < 299) {
           releases = releasesResult.data.map(release => {
-            const info: ReleaseInfo = {
-              name: release.name,
-              body: release.body ?? '',
+            const info: APIRQ.ReleaseInfo = {
+              name: release.name || '',
+              body: release.body || '',
               createdAt: release.created_at,
               downloadUrl: release.assets?.[0]?.browser_download_url ?? release.zipball_url,
             };

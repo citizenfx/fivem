@@ -140,10 +140,12 @@ export interface UseOpenFolderSelectDialogOptions {
 export const useOpenFolderSelectDialog = (options: UseOpenFolderSelectDialogOptions, onSelected: (folderPath: string | null) => void) => {
   const { startPath, dialogTitle, notOnlyFolders = false } = options;
 
-  const callbackRef = React.useRef(onSelected);
+  const callbackRef = React.useRef<((folderPath: string | null) => void) | null>(onSelected);
   callbackRef.current = onSelected;
 
-  React.useEffect(() => () => callbackRef.current = null, []);
+  React.useEffect(() => () => {
+    callbackRef.current = null;
+  }, []);
 
   return React.useCallback(() => {
     if (notOnlyFolders) {
@@ -156,7 +158,7 @@ export const useOpenFolderSelectDialog = (options: UseOpenFolderSelectDialogOpti
 
 export const useSendApiMessageCallback = <Data, ResponseData>(type: string, callback: ApiMessageCallback<ResponseData>) => {
   const disposerRef = React.useRef<Function | null>(null);
-  const callbackRef = React.useRef<ApiMessageCallback<ResponseData>>(callback);
+  const callbackRef = React.useRef<ApiMessageCallback<ResponseData> | null>(callback);
   callbackRef.current = callback;
 
   React.useEffect(() => () => {
@@ -170,16 +172,23 @@ export const useSendApiMessageCallback = <Data, ResponseData>(type: string, call
       return;
     }
 
-    disposerRef.current = sendApiMessageCallback(type, data, (error, response) => {
+    disposerRef.current = sendApiMessageCallback(type, data, (error: string | null, response: ResponseData | void) => {
       disposerRef.current = null;
 
-      callbackRef.current?.(error, response as any);
+      const cb = callbackRef.current;
+      if (cb) {
+        if (error) {
+          cb(error);
+        } else {
+          cb(null, response as any);
+        }
+      }
     });
   }, [type]);
 };
 
 export const useOutsideClick = (ref, callback) => {
-  const callbackRef = React.useRef<Function>();
+  const callbackRef = React.useRef(callback);
   callbackRef.current = callback;
 
   const handleClick = (e) => {

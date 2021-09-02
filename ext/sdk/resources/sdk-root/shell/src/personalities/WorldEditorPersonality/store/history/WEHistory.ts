@@ -66,18 +66,18 @@ export const WEHistory = new class WEHistory {
     switch (item.op) {
       case HistoryOp.ADDITION_CREATED: {
         if (redo) {
-          WEState.map.setAddition(item.id, JSON.parse(item.addition));
+          WEState.map!.setAddition(item.id, JSON.parse(item.addition));
         } else {
-          WEState.map.deleteAddition(item.id, false);
+          WEState.map!.deleteAddition(item.id, false);
         }
 
         break;
       }
       case HistoryOp.ADDITION_DELETED: {
         if (redo) {
-          WEState.map.deleteAddition(item.id, false);
+          WEState.map!.deleteAddition(item.id, false);
         } else {
-          WEState.map.setAddition(item.id, JSON.parse(item.addition));
+          WEState.map!.setAddition(item.id, JSON.parse(item.addition));
         }
 
         break;
@@ -88,27 +88,27 @@ export const WEHistory = new class WEHistory {
             return;
           }
 
-          WEState.map.setAddition(item.id, JSON.parse(item.next));
+          WEState.map!.setAddition(item.id, JSON.parse(item.next));
         } else {
-          WEState.map.setAddition(item.id, JSON.parse(item.prev));
+          WEState.map!.setAddition(item.id, JSON.parse(item.prev));
         }
 
         break;
       }
       case HistoryOp.ADDITION_GROUP_CHANGED: {
         if (redo) {
-          WEState.map.setAdditionGroup(item.id, item.next, false);
+          WEState.map!.setAdditionGroup(item.id, item.next, false);
         } else {
-          WEState.map.setAdditionGroup(item.id, item.prev, false);
+          WEState.map!.setAdditionGroup(item.id, item.prev, false);
         }
 
         break;
       }
       case HistoryOp.ADDITIONS_GROUP_DELETED: {
         if (redo) {
-          WEState.map.deleteAdditionGroup(item.grp, !!item.additions, false);
+          WEState.map!.deleteAdditionGroup(item.grp, !!item.additions, false);
         } else {
-          WEState.map.restoreAdditionsGroup(
+          WEState.map!.restoreAdditionsGroup(
             item.grp,
             item.grpDefinition,
             item.additions
@@ -121,9 +121,9 @@ export const WEHistory = new class WEHistory {
       }
       case HistoryOp.ADDITIONS_GROUP_CHANGED: {
         if (redo) {
-          WEState.map.setAdditionsGroupDefinition(item.grp, JSON.parse(item.next));
+          WEState.map!.setAdditionsGroupDefinition(item.grp, JSON.parse(item.next));
         } else {
-          WEState.map.setAdditionsGroupDefinition(item.grp, JSON.parse(item.prev));
+          WEState.map!.setAdditionsGroupDefinition(item.grp, JSON.parse(item.prev));
         }
 
         break;
@@ -132,9 +132,9 @@ export const WEHistory = new class WEHistory {
         const { mapdata, entity } = this.parsePatchId(item.id);
 
         if (redo) {
-          WEState.map.setPatch(mapdata, entity, JSON.parse(item.patch));
+          WEState.map!.setPatch(mapdata, entity, JSON.parse(item.patch));
         } else {
-          WEState.map.deletePatch(mapdata, entity, false);
+          WEState.map!.deletePatch(mapdata, entity, false);
         }
 
         break;
@@ -143,9 +143,9 @@ export const WEHistory = new class WEHistory {
         const { mapdata, entity } = this.parsePatchId(item.id);
 
         if (redo) {
-          WEState.map.setPatch(mapdata, entity, JSON.parse(item.next));
+          WEState.map!.setPatch(mapdata, entity, JSON.parse(item.next));
         } else {
-          WEState.map.setPatch(mapdata, entity, JSON.parse(item.prev));
+          WEState.map!.setPatch(mapdata, entity, JSON.parse(item.prev));
         }
 
         break;
@@ -154,9 +154,9 @@ export const WEHistory = new class WEHistory {
         const { mapdata, entity } = this.parsePatchId(item.id);
 
         if (redo) {
-          WEState.map.deletePatch(mapdata, entity, false);
+          WEState.map!.deletePatch(mapdata, entity, false);
         } else {
-          WEState.map.setPatch(mapdata, entity, JSON.parse(item.patch));
+          WEState.map!.setPatch(mapdata, entity, JSON.parse(item.patch));
         }
 
         break;
@@ -348,4 +348,4 @@ export const WEHistory = new class WEHistory {
   private resetUndoRedo() {
     this.undoredo = new UndoRedo<WEHistoryUndoRedoItem>(200);
   }
-};
+}();

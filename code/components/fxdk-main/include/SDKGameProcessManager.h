@@ -12,7 +12,6 @@ public:
 	};
 
 	void StartGame();
-	void RestartGame();
 	void StopGame();
 
 	inline GameProcessState GetGameProcessState()

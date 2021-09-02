@@ -6,7 +6,7 @@ import { projectNamePattern } from 'constants/patterns';
 import { projectApi } from 'shared/api.events';
 import { sendApiMessage } from 'utils/api';
 import { useApiMessage, useDebouncedCallback } from 'utils/hooks';
-import { ProjectCreateRequest } from 'shared/api.requests';
+import { APIRQ } from 'shared/api.requests';
 import { ProjectCreateCheckResult } from 'shared/project.types';
 import { PathSelector } from 'components/controls/PathSelector/PathSelector';
 import { BsBoxArrowUpRight } from 'react-icons/bs';
@@ -35,7 +35,7 @@ export const ProjectCreator = observer(function ProjectCreator() {
   const [checkResult, setCheckResult] = React.useState<ProjectCreateCheckResult>({});
 
   // Whenever we see project open - close creator
-  useApiMessage(projectApi.open, ProjectState.closeCreator);
+  useApiMessage(projectApi.open, ProjectState.creatorUI.close);
 
   useApiMessage(projectApi.checkCreateResult, (results) => {
     setCheckResult(results);
@@ -46,7 +46,7 @@ export const ProjectCreator = observer(function ProjectCreator() {
       return;
     }
 
-    const request: ProjectCreateRequest = {
+    const request: APIRQ.ProjectCreate = {
       projectPath,
       projectName,
     };
@@ -56,7 +56,7 @@ export const ProjectCreator = observer(function ProjectCreator() {
 
   const handleCreateProject = React.useCallback(() => {
     if (projectPath) {
-      const request: ProjectCreateRequest = {
+      const request: APIRQ.ProjectCreate = {
         projectPath,
         projectName,
       };
@@ -79,7 +79,7 @@ export const ProjectCreator = observer(function ProjectCreator() {
   const canCreate = projectPath && projectName;
 
   return (
-    <Modal fullWidth onClose={ProjectState.closeCreator}>
+    <Modal fullWidth onClose={ProjectState.creatorUI.close}>
       <div className={s.root}>
         <h3 className="modal-header">
           Create New Project
@@ -118,7 +118,7 @@ export const ProjectCreator = observer(function ProjectCreator() {
             onClick={handleCreateProject}
           />
 
-          <Button text="Cancel" onClick={ProjectState.closeCreator} />
+          <Button text="Cancel" onClick={ProjectState.creatorUI.close} />
         </div>
       </div>
     </Modal>

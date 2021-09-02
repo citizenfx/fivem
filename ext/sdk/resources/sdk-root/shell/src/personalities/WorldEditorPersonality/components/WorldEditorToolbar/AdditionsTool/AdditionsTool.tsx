@@ -7,7 +7,6 @@ import { WEState } from 'personalities/WorldEditorPersonality/store/WEState';
 import { DropTargetMonitor, useDrop } from 'react-dnd';
 import { ADDITION_DND_TYPES } from './AdditionsTool.constants';
 import { WORLD_EDITOR_MAP_NO_GROUP } from 'backend/world-editor/world-editor-constants';
-import s from './AdditionsTool.module.scss';
 import { newDirectoryIcon } from 'constants/icons';
 import { ContextMenu, ContextMenuItemsCollection } from 'components/controls/ContextMenu/ContextMenu';
 import { InPlaceInput } from 'components/controls/InPlaceInput/InPlaceInput';
@@ -18,6 +17,7 @@ import { observer } from 'mobx-react-lite';
 import { WESelectionType } from 'backend/world-editor/world-editor-types';
 import { additionsToolIcon } from 'personalities/WorldEditorPersonality/constants/icons';
 import { IntroForceRecalculate } from 'components/Intro/Intro';
+import s from './AdditionsTool.module.scss';
 
 export const AdditionsTool = observer(function AdditionsTool() {
   const [groupCreatorOpen, openGroupCreator, closeGroupCreator] = useOpenFlag(false);
@@ -26,7 +26,7 @@ export const AdditionsTool = observer(function AdditionsTool() {
     closeGroupCreator();
 
     if (newGroupName) {
-      WEState.map.createAdditionGroup(newGroupName);
+      WEState.map!.createAdditionGroup(newGroupName);
     }
   }, [closeGroupCreator]);
 
@@ -37,8 +37,8 @@ export const AdditionsTool = observer(function AdditionsTool() {
         return;
       }
 
-      if (item['id']) {
-        WEState.map.setAdditionGroup(item['id'], WORLD_EDITOR_MAP_NO_GROUP);
+      if (typeof item === 'object' && item?.['id']) {
+        WEState.map!.setAdditionGroup(item['id'], WORLD_EDITOR_MAP_NO_GROUP);
       }
     },
     collect: (monitor) => ({
@@ -59,8 +59,8 @@ export const AdditionsTool = observer(function AdditionsTool() {
     },
   ] as ContextMenuItemsCollection, [openGroupCreator]);
 
-  const hasGroups = Object.keys(WEState.map.additionGroups).length > 0;
-  const hasAdditions = Object.keys(WEState.map.additions).length > 0;
+  const hasGroups = Object.keys(WEState.map!.additionGroups).length > 0;
+  const hasAdditions = Object.keys(WEState.map!.additions).length > 0;
 
   const showPlaceholder = !hasGroups && !hasAdditions;
 
@@ -95,12 +95,12 @@ export const AdditionsTool = observer(function AdditionsTool() {
           </div>
         )}
 
-        {Object.keys(WEState.map.additionGroups).map((grp) => {
+        {Object.keys(WEState.map!.additionGroups).map((grp) => {
           return (
             <AdditionsGroup
               key={grp}
               grp={grp}
-              items={WEState.map.getGroupAdditions(grp)}
+              items={WEState.map!.getGroupAdditions(grp)}
             />
           );
         })}
@@ -111,7 +111,7 @@ export const AdditionsTool = observer(function AdditionsTool() {
           </div>
         )}
 
-        {Object.keys(WEState.map.additionsUngrouped).map((id) => (
+        {Object.keys(WEState.map!.additionsUngrouped).map((id) => (
           <Addition
             id={id}
             key={id}

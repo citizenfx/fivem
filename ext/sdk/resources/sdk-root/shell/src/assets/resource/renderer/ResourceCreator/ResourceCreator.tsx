@@ -8,7 +8,7 @@ import { resourceNamePattern } from 'constants/patterns';
 import { sendApiMessage } from 'utils/api';
 import { assetApi } from 'shared/api.events';
 import { FilesystemEntry } from 'shared/api.types';
-import { AssetCreateRequest } from 'shared/api.requests';
+import { APIRQ } from 'shared/api.requests';
 import { combineVisibilityFilters, visibilityFilters } from 'components/Explorer/Explorer.filters';
 import { getRelativePath } from 'components/Explorer/Explorer.utils';
 import { ResourceTemplate } from './ResourceTemplate/ResourceTemplate';
@@ -41,7 +41,7 @@ export const ResourceCreator = observer(function ResourceCreator() {
 
   const handleCreateResource = React.useCallback(() => {
     if (resourceName && project) {
-      const request: AssetCreateRequest = {
+      const request: APIRQ.AssetCreate = {
         assetType: assetTypes.resource,
         assetName: resourceName,
         assetPath: resourcePath,
@@ -52,7 +52,7 @@ export const ResourceCreator = observer(function ResourceCreator() {
 
       sendApiMessage(assetApi.create, request);
 
-      ProjectState.closeResourceCreator();
+      ProjectState.resourceCreatorUI.close();
     }
   }, [resourceName, project, resourcePath, resourceTemplateId]);
 
@@ -62,7 +62,7 @@ export const ResourceCreator = observer(function ResourceCreator() {
     : `Location: ${resourceRelativePath}`;
 
   return (
-    <Modal fullWidth onClose={ProjectState.closeResourceCreator}>
+    <Modal fullWidth onClose={ProjectState.resourceCreatorUI.close}>
       <div className={s.root}>
         <div className="modal-header">
           Create Resource
@@ -115,7 +115,7 @@ export const ResourceCreator = observer(function ResourceCreator() {
           />
           <Button
             text="Cancel"
-            onClick={ProjectState.closeResourceCreator}
+            onClick={ProjectState.resourceCreatorUI.close}
           />
         </div>
       </div>

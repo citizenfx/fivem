@@ -37,7 +37,7 @@ export const Importer = observer(function Importer() {
   const ImporterRenderer = importerRenderers[importerType];
 
   return (
-    <Modal fullWidth onClose={ProjectState.closeImporter}>
+    <Modal fullWidth onClose={ProjectState.importerUI.close}>
       <div className={s.root}>
         <div className="modal-header">
           Import asset
@@ -51,7 +51,7 @@ export const Importer = observer(function Importer() {
           />
         </div>
 
-        <ImporterRenderer onClose={ProjectState.closeImporter} />
+        <ImporterRenderer onClose={ProjectState.importerUI.close} />
       </div>
     </Modal>
   );

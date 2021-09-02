@@ -34,4 +34,4 @@ export const WEEvents = new class WEEvents {
   emitPatchDeleted(mapdata: number, entity: number, patch: WEMapPatch) {
     this.patchDeleted.emit({ mapdata, entity, patch });
   }
-};
+}();

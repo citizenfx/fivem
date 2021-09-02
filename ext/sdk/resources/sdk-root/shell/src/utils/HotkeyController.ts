@@ -219,7 +219,7 @@ export function getEventKeystroke(event: KeyboardEvent): Keystroke | void {
 }
 
 export function getPrintableKeystroke(keystroke: Keystroke): string {
-  const parts = [];
+  const parts: string[] = [];
 
   if (keystroke.alt) {
     parts.push('Alt');

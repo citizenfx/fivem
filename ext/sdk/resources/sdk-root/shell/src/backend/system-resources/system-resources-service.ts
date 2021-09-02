@@ -11,20 +11,22 @@ import { TaskReporterService } from 'backend/task/task-reporter-service';
 import { SystemResource, SYSTEM_RESOURCES_DEPENDENCIES, SYSTEM_RESOURCES_MAPPING, SYSTEM_RESOURCES_URL } from './system-resources-constants';
 
 function getNormalizedDeps(resourceName: SystemResource): SystemResource[] {
-  if (!SYSTEM_RESOURCES_DEPENDENCIES[resourceName]) {
+  let deps = SYSTEM_RESOURCES_DEPENDENCIES[resourceName];
+
+  if (!deps) {
     return [];
   }
 
-  const deps = SYSTEM_RESOURCES_DEPENDENCIES[resourceName].slice();
+  deps = deps.slice();
 
-  for (const dep of SYSTEM_RESOURCES_DEPENDENCIES[resourceName]) {
+  for (const dep of deps) {
     deps.push(...getNormalizedDeps(dep));
   }
 
   return deps;
 }
 
-const normalizedDependencies = Object.keys(SYSTEM_RESOURCES_DEPENDENCIES).reduce((acc, resourceName: SystemResource) => {
+const normalizedDependencies: Record<string, SystemResource[]> = Object.keys(SYSTEM_RESOURCES_DEPENDENCIES).reduce((acc, resourceName: SystemResource) => {
   acc[resourceName] = getNormalizedDeps(resourceName);
 
   return acc;
@@ -70,18 +72,20 @@ export class SystemResourcesService implements AppContribution {
     const cacheKey = JSON.stringify(resourceNames);
 
     if (!resolvedResourceDescriptorsCache[cacheKey]) {
-      const resourceNamesSet = new Set(
+      const resourceNamesSet = new Set<SystemResource>(
         resourceNames
           .filter((resourceName) => SYSTEM_RESOURCES_MAPPING[resourceName])
           .reduce((acc, resourceName) => {
-            if (!normalizedDependencies[resourceName]) {
+            const deps = normalizedDependencies[resourceName];
+
+            if (!deps) {
               acc.push(resourceName);
 
               return acc;
             }
 
-            return acc.concat(normalizedDependencies[resourceName]);
-          }, []),
+            return acc.concat(deps);
+          }, [] as SystemResource[]),
       );
 
       const resourceDescriptors: ServerResourceDescriptor[] = Array(resourceNamesSet.size);

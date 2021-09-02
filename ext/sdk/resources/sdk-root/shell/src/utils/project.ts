@@ -7,7 +7,7 @@ export const filesystemEntryToTheiaResource = (entry: FilesystemEntry): string =
 };
 
 export const isReadOnlyEntry = (entry: FilesystemEntry): boolean => {
-  return !!entry.meta.assetMeta?.flags.readOnly;
+  return !!entry.meta.assetMeta?.flags?.readOnly;
 };
 
 export const getFoldersForTheia = (project: ProjectData, pendingDeletions: Set<string>): string[] => {
@@ -40,7 +40,7 @@ export const stripAssetMetaExt = (str: string): string => {
 export const isAssetMetaFile = (str: string): boolean => {
   const index = str.indexOf(assetMetaFileExt);
   if (index === -1) {
-    return;
+    return false;
   }
 
   return (index + assetMetaFileExt.length) === str.length;

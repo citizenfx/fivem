@@ -105,17 +105,6 @@ export class ExplorerService implements ApiContribution {
     this.apiClient.emit(explorerApi.dirRecursive, pathsMap);
   };
 
-  @handlesClientEvent(explorerApi.createDir)
-  async createDir(dir: string): Promise<void> {
-    try {
-      await fs.promises.stat(dir);
-    } catch (e) {
-      await mkdirp(dir);
-    } finally {
-      return this.apiClient.emit(explorerApi.newDir, dir);
-    }
-  }
-
   async readDrives() {
     if (!this.drivesInitialized) {
       this.drivesInitialized = true;

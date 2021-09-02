@@ -1,6 +1,6 @@
 import { makeAutoObservable } from "mobx";
 import { projectApi, serverApi } from "shared/api.events";
-import { ProjectStartServerRequest } from "shared/api.requests";
+import { APIRQ } from "shared/api.requests";
 import { ServerStates, ServerUpdateChannel, ServerUpdateStates } from "shared/api.types";
 import { onApiMessage, sendApiMessage } from "utils/api";
 import { getProjectTebexSecretVar } from "utils/projectStorage";
@@ -78,7 +78,7 @@ export const ServerState = new class ServerState {
       sendApiMessage(projectApi.startServer, {
         steamWebApiKey,
         tebexSecret,
-      } as ProjectStartServerRequest);
+      } as APIRQ.ProjectStartServer);
     }
   }
 
@@ -124,4 +124,4 @@ export const ServerState = new class ServerState {
   private setResourcesState = (state) => {
     this.resourcesState = state;
   };
-};
+}();

@@ -162,7 +162,7 @@ export const ProjectSettings = observer(function ProjectSettings() {
   }
 
   return (
-    <Modal fullWidth fullHeight onClose={ProjectState.closeSettings}>
+    <Modal fullWidth fullHeight onClose={ProjectState.settingsUI.close}>
       <div className={s.root}>
         <div className={s.left}>
           <div className="modal-header">
@@ -178,7 +178,7 @@ export const ProjectSettings = observer(function ProjectSettings() {
           <div className={s.actions}>
             <Button
               text="Close"
-              onClick={ProjectState.closeSettings}
+              onClick={ProjectState.settingsUI.close}
             />
           </div>
         </div>

@@ -17,6 +17,8 @@ import s from './Toolbar.module.scss';
 import { useOpenFlag } from 'utils/hooks';
 import { Hasher } from './Hasher/Hasher';
 import { Title } from 'components/controls/Title/Title';
+import { VscDebugRestart } from 'react-icons/vsc';
+import { GameState } from 'store/GameState';
 
 const handleMenuClick = (openMenu) => openMenu();
 const handleGetMenuCoords = () => ({
@@ -55,13 +57,13 @@ export const Toolbar = observer(function Toolbar() {
       id: 'open-project',
       text: 'Open Project',
       icon: openProjectIcon,
-      onClick: ProjectState.openOpener,
+      onClick: ProjectState.openerUI.open,
     },
     {
       id: 'new-project',
       text: 'New Project',
       icon: newProjectIcon,
-      onClick: ProjectState.openCreator,
+      onClick: ProjectState.creatorUI.open,
     },
     ...(
       ProjectState.hasProject
@@ -71,13 +73,13 @@ export const Toolbar = observer(function Toolbar() {
             id: 'project-settings',
             text: 'Project settings',
             icon: projectSettingsIcon,
-            onClick: ProjectState.openSettings,
+            onClick: ProjectState.settingsUI.open,
           },
           {
             id: 'build-project',
             text: 'Build Project',
             icon: projectBuildIcon,
-            onClick: ProjectState.openBuilder,
+            onClick: ProjectState.builderUI.open,
           },
         ] as ContextMenuItemsCollection
         : []
@@ -108,6 +110,13 @@ export const Toolbar = observer(function Toolbar() {
       text: 'Tour',
       icon: mapIcon,
       onClick: () => setTourVisible(true),
+    },
+    ContextMenuItemSeparator,
+    {
+      id: 'restart-game',
+      text: 'Restart game',
+      icon: <VscDebugRestart />,
+      onClick: GameState.restart,
     },
   ], [ProjectState.hasProject]);
 

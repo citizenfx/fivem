@@ -14,7 +14,7 @@ export const ImportAsset = React.memo(function ImportAsset({ className }: Import
         <button
           ref={ref}
           className={className}
-          onClick={ProjectState.openImporter}
+          onClick={ProjectState.importerUI.open}
         >
           {importAssetIcon}
         </button>

@@ -9,57 +9,51 @@ import { Importer } from './Importer/Importer';
 import { ProjectState } from 'store/ProjectState';
 import { ProjectCreator } from './ProjectCreator/ProjectCreator';
 import { ProjectOpener } from './ProjectOpener/ProjectOpener';
-import s from './Project.module.scss';
 import { StatusState } from 'store/StatusState';
 import { Feature } from 'shared/api.types';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+import s from './Project.module.scss';
 
 
 export const Project = observer(function Project() {
-  const {
-    builderOpen,
-    settingsOpen,
-    importerOpen,
-    creatorOpen,
-    openerOpen,
-    resourceCreatorOpen,
-    mapCreatorOpen,
-  } = ProjectState;
-
   const worldEditorAvailable = StatusState.getFeature(Feature.worldEditor);
 
   return (
     <>
-      {creatorOpen && (
+      {ProjectState.creatorUI.isOpen && (
         <ProjectCreator />
       )}
 
-      {openerOpen && (
+      {ProjectState.openerUI.isOpen && (
         <ProjectOpener />
       )}
 
-      {ProjectState.hasProject && settingsOpen && (
+      {ProjectState.hasProject && ProjectState.settingsUI.isOpen && (
         <ProjectSettings />
       )}
 
-      {ProjectState.hasProject && builderOpen && (
+      {ProjectState.hasProject && ProjectState.builderUI.isOpen && (
         <ProjectBuilder />
       )}
 
-      {ProjectState.hasProject && importerOpen && (
+      {ProjectState.hasProject && ProjectState.importerUI.isOpen && (
         <Importer />
       )}
 
-      {ProjectState.hasProject && resourceCreatorOpen && (
+      {ProjectState.hasProject && ProjectState.resourceCreatorUI.isOpen && (
         <ResourceCreator />
       )}
 
-      {worldEditorAvailable && ProjectState.hasProject && mapCreatorOpen && (
+      {worldEditorAvailable && ProjectState.hasProject && ProjectState.mapCreatorUI.isOpen && (
         <FXWorldCreator />
       )}
 
       <div className={s.root}>
         {ProjectState.hasProject && (
-          <ProjectExplorer />
+          <DndProvider backend={HTML5Backend}>
+            <ProjectExplorer />
+          </DndProvider>
         )}
       </div>
     </>

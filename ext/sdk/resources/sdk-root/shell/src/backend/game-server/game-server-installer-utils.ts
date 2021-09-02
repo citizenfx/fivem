@@ -26,7 +26,7 @@ export class GameServerInstallerUtils {
 
     return new Promise((resolve, reject) => {
       https.get(options, (res) => {
-        if (res.statusCode >= 400) {
+        if (res.statusCode && res.statusCode >= 400) {
           return reject(`Artifact server responded with status code: ${res.statusCode}`);
         }
 

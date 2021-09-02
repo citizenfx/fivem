@@ -23,13 +23,13 @@ export const PatchesTool = observer(function PatchesTool() {
       <IntroForceRecalculate />
 
       <div className={s.root}>
-        {Object.keys(WEState.map.patches).length === 0 && (
+        {Object.keys(WEState.map!.patches).length === 0 && (
           <div className={s.placeholder}>
             Modify map objects and their patches will appear here!
           </div>
         )}
 
-        {Object.entries(WEState.map.patches).map(([mapData, entities]) => Object.keys(entities).map((id) => {
+        {Object.entries(WEState.map!.patches).map(([mapData, entities]) => Object.keys(entities).map((id) => {
           return (
             <Patch
               key={mapData + id}

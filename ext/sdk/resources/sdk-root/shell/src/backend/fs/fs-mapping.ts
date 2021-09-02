@@ -10,7 +10,7 @@ import { Queue } from "backend/queue";
 export type FsMappingCreatedHandler = (entry: FilesystemEntry) => void | Promise<void>;
 export type FsMappingDeletedHandler = (entryPath: string) => void | Promise<void>;
 export type FsMappingModifiedHandler = (entry: FilesystemEntry) => void | Promise<void>;
-export type FsMappingRenamedHandler = (entry: FilesystemEntry, oldEntryPath: string) => void | Promise<void>;
+export type FsMappingRenamedHandler = (entry: FilesystemEntry, oldEntryPath: string | void) => void | Promise<void>;
 
 export type FsMappingProcessEntry = (entry: FilesystemEntry) => void | Promise<void>;
 export type FsMappingShouldProcessUpdate = (path: string) => boolean;
@@ -85,7 +85,7 @@ export class FsMapping {
   protected queue: Queue<FsWatcherEvent>;
 
   hasUpdates(): boolean {
-    return this.pendingUpdates.delete.length > 0 && Object.keys(this.pendingUpdates.replace).length > 0;
+    return (this.pendingUpdates.delete.length > 0) || (Object.keys(this.pendingUpdates.replace).length > 0);
   }
 
   flushUpdates(): ProjectFsUpdate {
@@ -168,7 +168,7 @@ export class FsMapping {
 
     // First apply changes
     const parent = this.map[parentPath];
-    const promises = [];
+    const promises: Array<Promise<any> | void> = [];
 
     switch (type) {
       case FsWatcherEventType.CREATED: {
@@ -178,8 +178,7 @@ export class FsMapping {
         }
 
         if (entry.isDirectory) {
-          this.map[entryPath] = [];
-          this.pendingUpdates.replace[entryPath] = [];
+          await this.addFolderToMap(entry.path);
         }
 
         if (parent) {
@@ -193,11 +192,9 @@ export class FsMapping {
         break;
       }
       case FsWatcherEventType.DELETED: {
-        this.logService.log('DELETED!', entryPath);
-
+        // If folder - delete everything nested
         if (this.map[entryPath]) {
-          this.pendingUpdates.delete.push(entryPath);
-          delete this.map[entryPath];
+          this.deleteFolderFromMap(entryPath);
         }
 
         if (parent) {
@@ -225,8 +222,11 @@ export class FsMapping {
 
           if (updatedEntryIndex > -1) {
             parent[updatedEntryIndex] = entry;
-            this.pendingUpdates.replace[parentPath] = parent;
+          } else {
+            parent.push(entry);
           }
+
+          this.pendingUpdates.replace[parentPath] = parent;
         }
 
         this.onModified(entry);
@@ -240,14 +240,10 @@ export class FsMapping {
           return;
         }
 
-        // If that was a dir - scan it
-        if (this.map[oldEntryPath]) {
-          delete this.map[oldEntryPath];
-
-          Object.assign(this.map, await this.scanDir(entryPath));
-
-          this.pendingUpdates.delete.push(oldEntryPath);
-          this.pendingUpdates.replace[entryPath] = this.map[entryPath];
+        // If that was a folder - delete everything nested for old path and add new
+        if (oldEntryPath && this.map[oldEntryPath]) {
+          this.deleteFolderFromMap(oldEntryPath);
+          await this.addFolderToMap(entry.path);
         }
 
         if (parent) {
@@ -269,5 +265,25 @@ export class FsMapping {
     await Promise.all(promises);
 
     this.afterUpdate(type, entryPath, entry);
+  }
+
+  private deleteFolderFromMap(folderPath: string) {
+    const pathsToDelete: string[] = [];
+
+    for (const mapPath of Object.keys(this.map)) {
+      if (mapPath.indexOf(folderPath) === 0) {
+        pathsToDelete.push(mapPath);
+        delete this.map[mapPath];
+      }
+    }
+
+    this.pendingUpdates.delete = this.pendingUpdates.delete.concat(pathsToDelete);
+  }
+
+  private async addFolderToMap(folderPath: string) {
+    const dirMap = await this.scanDir(folderPath);
+
+    Object.assign(this.map, dirMap);
+    Object.assign(this.pendingUpdates.replace, dirMap);
   }
 }

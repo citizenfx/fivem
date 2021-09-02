@@ -269,7 +269,7 @@ export class FsService {
         reader.on('data', (chunk) => {
           doneSize += chunk.length;
 
-          options.onProgress(doneSize / totalSize);
+          options.onProgress?.(doneSize / totalSize);
         });
       }
 

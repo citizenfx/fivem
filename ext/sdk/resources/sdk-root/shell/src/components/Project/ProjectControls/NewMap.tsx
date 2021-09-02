@@ -14,7 +14,7 @@ export const NewMap = React.memo(function NewMap({ className }: NewMapProps) {
         <button
           ref={ref}
           className={className}
-          onClick={ProjectState.openMapCreator}
+          onClick={ProjectState.mapCreatorUI.open}
         >
           {fxworldIcon}
         </button>

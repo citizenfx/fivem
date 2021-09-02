@@ -42,7 +42,7 @@ const ObjectItem = React.memo(function ObjectItem({ active, name, style, spawn, 
 });
 
 export const ObjectsBrowser = observer(function ObjectsBrowserDropdown() {
-  const listRef = React.useRef<FixedSizeList>();
+  const listRef = React.useRef<FixedSizeList | null>(null);
 
   const [filter, setFilter] = React.useState('');
   const [filtered, setFiltered] = React.useState<string[]>([]);
@@ -131,7 +131,7 @@ export const ObjectsBrowser = observer(function ObjectsBrowserDropdown() {
 
       if (newIndex !== activeIndex) {
         setActiveIndex(newIndex);
-        listRef.current.scrollToItem(newIndex);
+        listRef.current?.scrollToItem(newIndex);
       }
 
       return true;
@@ -140,7 +140,7 @@ export const ObjectsBrowser = observer(function ObjectsBrowserDropdown() {
 
   const handleCreateAddition = React.useCallback((objectName: string) => {
     if (objectName) {
-      WEState.map.createAddition(objectName, WORLD_EDITOR_MAP_NO_GROUP);
+      WEState.map!.createAddition(objectName, WORLD_EDITOR_MAP_NO_GROUP);
     }
 
     WEToolbarState.closeTool(WETool.AddObject);

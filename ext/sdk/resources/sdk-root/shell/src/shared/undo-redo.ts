@@ -37,9 +37,14 @@ export class UndoRedo<Item extends UndoRedoItem> {
       return null;
     }
 
+    const item = this.items.get(this.ptr);
+    if (!item) {
+      return null;
+    }
+
     this.ptr--;
 
-    return this.items.get(this.ptr);
+    return item;
   }
 
   redo(): Item | null {
@@ -48,6 +53,9 @@ export class UndoRedo<Item extends UndoRedoItem> {
     }
 
     const item = this.items.get(this.ptr);
+    if (!item) {
+      return null;
+    }
 
     this.ptr++;
 

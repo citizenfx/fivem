@@ -5,6 +5,10 @@
   // weird flex hacks...
   height: 1px;
 
+  &.dropping {
+    background-color: rgba($acColor, .25);
+  }
+
   .creator {
     position: relative;
 

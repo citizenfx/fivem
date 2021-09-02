@@ -114,7 +114,7 @@ export class WorldEditor implements ApiContribution {
     await this.mapWriter.flush();
 
     // Ask asset to build itself
-    await this.projectAccess.withInstance((project) => project.getAssets().get(this.mapPath)?.build?.());
+    await this.projectAccess.withInstance((project) => project.getAsset(this.mapPath)?.build?.());
   }
 
   @handlesClientEvent(worldEditorApi.setCam)

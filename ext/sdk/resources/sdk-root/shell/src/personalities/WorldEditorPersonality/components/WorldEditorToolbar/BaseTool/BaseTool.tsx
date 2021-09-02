@@ -49,7 +49,7 @@ export const BaseTool = observer(function BaseTool(props: BaseToolProps) {
     [s.right]: getToolSide(tool) === 'right',
   });
 
-  let childrenNode = null;
+  let childrenNode: React.ReactNode = null;
   if (children && (renderAlways || toolIsOpen)) {
     childrenNode = (
       <div className={panelClassName} {...panelProps}>

@@ -3,7 +3,6 @@ import classnames from 'classnames';
 import { newDirectoryIcon, openDirectoryIcon } from 'constants/icons';
 import { DropTargetMonitor, useDrop } from 'react-dnd';
 import { ADDITION_DND_TYPES } from '../AdditionsTool.constants';
-import { WORLD_EDITOR_MAP_NO_GROUP } from 'backend/world-editor/world-editor-constants';
 import { WEState } from 'personalities/WorldEditorPersonality/store/WEState';
 import s from './AdditionsNewGroup.module.scss';
 
@@ -15,10 +14,10 @@ export const AdditionsNewGroup = React.memo(function AdditionsNewGroup() {
         return;
       }
 
-      if (item['id']) {
-        const grp = WEState.map.createAdditionGroup(`New group (${WEState.map.additions[item['id']].label})`);
+      if (typeof item === 'object' && item?.['id']) {
+        const grp = WEState.map!.createAdditionGroup(`New group (${WEState.map!.additions[item['id']].label})`);
 
-        WEState.map.setAdditionGroup(item['id'], grp);
+        WEState.map!.setAdditionGroup(item['id'], grp);
       }
     },
     collect: (monitor) => ({
@@ -28,7 +27,7 @@ export const AdditionsNewGroup = React.memo(function AdditionsNewGroup() {
   });
 
   const handleCreateGroup = React.useCallback(() => {
-    WEState.map.createAdditionGroup('New group');
+    WEState.map!.createAdditionGroup('New group');
   }, []);
 
   const rootClassName = classnames(s.root, {

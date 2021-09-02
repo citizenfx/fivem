@@ -12,37 +12,25 @@ export const projectApi = {
   setSystemResources: 'project:setSystemResources',
   setVariable: 'project:setVariable',
 
-  upgradeRecommendations: 'project.upgradeRecommendations',
-
   getRecents: 'project:getRecents',
   recents: 'project:recents',
   removeRecent: 'project:removeRecent',
 
-  setPathsState: 'project:setPathsState',
+  pathsStateUpdate: 'project:pathsStateUpdate',
   setPathsStatePatch: 'project:setPathsStatePatch',
-  pathsState: 'project:pathsState',
 
-  updateResources: 'project:updateResources',
   setAssetConfig: 'project:setResourceConfig',
 
   fsUpdate: 'project:fsUpdate',
-  resourcesUpdate: 'project:resourcesUpdate',
-
-  createDirectory: 'project:createDirectory',
-  renameDirectory: 'project:renameDirectory',
-  deleteDirectory: 'project:deleteDirectory',
-  hardDeleteDirectory: 'project:hardDeleteDirectory',
-
-  freePendingFolderDeletion: 'project:freePendingFolderDeletion',
 
   createFile: 'project:createFile',
-  renameFile: 'project:renameFile',
-  deleteFile: 'project:deleteFile',
-  hardDeleteFile: 'project:hardDeleteFile',
-
+  createDirectory: 'project:createDirectory',
+  renameEntry: 'project.renameEntry',
   moveEntry: 'project:moveEntry',
+  deleteEntry: 'project:deleteEntry',
   copyEntry: 'project:copyEntry',
   copyEntries: 'project:copyEntries',
+  freePendingFolderDeletion: 'project:freePendingFolderDeletion',
 
   startServer: 'project:startServer',
   stopServer: 'project:stopServer',
@@ -51,8 +39,6 @@ export const projectApi = {
 export const assetApi = {
   create: 'asset:create',
   import: 'asset:import',
-  rename: 'asset:rename',
-  delete: 'asset:delete',
 
   setConfig: 'asset:setConfig',
   setType: 'asset:setType',
@@ -81,8 +67,6 @@ export const explorerApi = {
   dirRecursive: 'explorer:dirRecursive',
   roots: 'explorer:roots',
   root: 'explorer:root',
-  newDir: 'explorer:newDir',
-  createDir: 'explorer:createDir',
 };
 
 export const serverApi = {

@@ -12,9 +12,10 @@ enableLogger('host');
 
 export const ANY_MESSAGE = Symbol('ANY_MESSAGE');
 export type ApiMessageListener = (data: any, type: string | typeof ANY_MESSAGE) => void;
-export type ApiMessageCallback<Data> =
-  | ((error: string) => void)
-  | ((error: null, data: Data) => void);
+export interface ApiMessageCallback<Data> {
+  (error: string, data: void): void;
+  (error: null, data: Data): void;
+}
 
 const messageListeners: {
   [eventType: string]: Set<ApiMessageListener>,

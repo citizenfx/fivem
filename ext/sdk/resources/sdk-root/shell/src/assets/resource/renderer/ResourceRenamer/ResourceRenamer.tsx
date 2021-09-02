@@ -3,8 +3,8 @@ import { Button } from 'components/controls/Button/Button';
 import { Input } from 'components/controls/Input/Input';
 import { Modal } from 'components/Modal/Modal';
 import { resourceNamePattern } from 'constants/patterns';
-import { AssetRenameRequest } from 'shared/api.requests';
-import { assetApi } from 'shared/api.events';
+import { APIRQ } from 'shared/api.requests';
+import { projectApi } from 'shared/api.events';
 import { sendApiMessage } from 'utils/api';
 import s from './ResourceRenamer.module.scss';
 
@@ -19,12 +19,12 @@ export const ResourceRenamer = React.memo(function ResourceRenamer({ name, path,
   const [newName, setNewName] = React.useState(name);
 
   const handleRenameResource = React.useCallback(() => {
-    const request: AssetRenameRequest = {
-      assetPath: path,
-      newAssetName: newName,
+    const request: APIRQ.RenameEntry = {
+      entryPath: path,
+      newName,
     };
 
-    sendApiMessage(assetApi.rename, request);
+    sendApiMessage(projectApi.renameEntry, request);
 
     onClose();
   }, [path, newName, onClose]);

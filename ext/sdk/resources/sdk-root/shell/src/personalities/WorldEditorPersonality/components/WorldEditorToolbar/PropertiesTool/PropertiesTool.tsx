@@ -22,7 +22,7 @@ export const PropertiesTool = observer(function PropertiesTool() {
   }
 
   if (WEState.selection.type === WESelectionType.ADDITION) {
-    if (!WEState.map.additions[WEState.selection.id]) {
+    if (!WEState.map!.additions[WEState.selection.id]) {
       return null;
     }
 

@@ -2,7 +2,6 @@ import React from 'react';
 import { observer } from 'mobx-react-lite';
 import classnames from 'classnames';
 import { BsFolder, BsFolderFill, BsPuzzle } from 'react-icons/bs';
-import { DirectoryDeleteConfirmation } from './DirectoryDeleteConfirmation/DirectoryDeleteConfirmation';
 import { useDirectoryContextMenu } from './Directory.hooks';
 import { ProjectItemProps } from '../item';
 import { useExpandablePath, useItem, useItemDragAndDrop, useItemRelocateSourceContextMenu, useItemRelocateTargetContextMenu } from '../ProjectExplorer.hooks';
@@ -41,7 +40,7 @@ export const Directory = observer(function Directory(props: DirectoryProps) {
   const assetMetaFlags = entry.meta?.assetMeta?.flags;
   const itemContext = React.useMemo(() => {
     if (!assetMetaFlags) {
-      return null;
+      return {};
     }
 
     const ctx: Partial<ProjectExplorerItemContext> = {};
@@ -65,12 +64,9 @@ export const Directory = observer(function Directory(props: DirectoryProps) {
 
   const {
     directoryContextMenuItems,
-    deleteConfirmationOpen,
-    closeDeleteConfirmation,
-    deleteDirectory,
     closeDirectoryRename,
     directoryRenameOpen,
-  } = useDirectoryContextMenu(entry.path, directoryChildren.length, itemContext);
+  } = useDirectoryContextMenu(entry, directoryChildren.length, itemContext);
 
   const { contextMenuItems, requiredContextMenuItems, renderItemControls, renderItemChildren } = useItem(props, itemContext);
 
@@ -95,6 +91,7 @@ export const Directory = observer(function Directory(props: DirectoryProps) {
   const { isDragging, isDropping, dragRef, dropRef } = useItemDragAndDrop(entry, projectExplorerItemType.FOLDER, [
     projectExplorerItemType.FILE,
     projectExplorerItemType.FOLDER,
+    projectExplorerItemType.ASSET,
     NativeTypes.FILE,
   ]);
 
@@ -138,14 +135,6 @@ export const Directory = observer(function Directory(props: DirectoryProps) {
             {nodes}
           </ProjectExplorerItemContextProvider>
         </div>
-      )}
-
-      {deleteConfirmationOpen && (
-        <DirectoryDeleteConfirmation
-          entry={entry}
-          onClose={closeDeleteConfirmation}
-          onDelete={deleteDirectory}
-        />
       )}
 
       {directoryRenameOpen && (

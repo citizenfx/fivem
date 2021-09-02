@@ -7,6 +7,7 @@ import { FilesystemEntry } from 'shared/api.types';
 import { projectApi } from 'shared/api.events';
 import { sendApiMessage } from 'utils/api';
 import s from './FileRenamer.module.scss';
+import { APIRQ } from 'shared/api.requests';
 
 
 export interface FileRenamerProps {
@@ -22,10 +23,10 @@ export const FileRenamer = React.memo(function FileRenamer(props: FileRenamerPro
   const handleRename = React.useCallback(() => {
     onClose();
 
-    sendApiMessage(projectApi.renameFile, {
-      filePath: entry.path,
-      newFileName,
-    });
+    sendApiMessage(projectApi.renameEntry, {
+      entryPath: entry.path,
+      newName: newFileName,
+    } as APIRQ.RenameEntry);
   }, [entry, newFileName, onClose]);
 
   return (

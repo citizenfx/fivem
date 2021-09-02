@@ -11,7 +11,7 @@ import { WorldEditorIntro } from './components/WorldEditorIntro/WorldEditorIntro
 import s from './WorldEditorPersonality.module.scss';
 
 export const WorldEditorPersonality = observer(function WorldEditorPersonality() {
-  const gameViewRef = React.useRef<HTMLDivElement>();
+  const gameViewRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     WEState.createInputController(gameViewRef);

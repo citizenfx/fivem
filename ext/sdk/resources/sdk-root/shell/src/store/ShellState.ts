@@ -59,4 +59,4 @@ export const ShellState = new class ShellState {
   disableIframeCover() {
     this.coverIframes--;
   }
-};
+}();

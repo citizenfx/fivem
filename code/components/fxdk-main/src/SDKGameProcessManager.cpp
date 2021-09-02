@@ -108,9 +108,3 @@ void SDKGameProcessManager::StopGame()
 
 	TerminateProcess(gameProcessInfo.hProcess, 0);
 }
-
-void SDKGameProcessManager::RestartGame()
-{
-	StopGame();
-	StartGame();
-}

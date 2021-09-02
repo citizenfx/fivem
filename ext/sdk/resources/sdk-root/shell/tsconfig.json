@@ -16,6 +16,7 @@
     "resolveJsonModule": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
+    "strictNullChecks": true,
     "jsx": "react",
     "plugins": [
       {

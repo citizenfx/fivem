@@ -93,6 +93,7 @@ if exist %BuildRoot%\resource rmdir /s /q %BuildRoot%\resource
 
 xcopy /y %FXDKRoot%\fxmanifest.lua %BuildRoot%\resource\
 xcopy /y %FXDKShell%\index.js      %BuildRoot%\resource\shell\
+xcopy /y %FXDKShell%\mpMenu.html   %BuildRoot%\resource\shell\
 
 move %FXDKShell%\build                 %BuildRoot%\resource\shell\build
 move %FXDKShell%\build_server          %BuildRoot%\resource\shell\build_server

@@ -28,7 +28,7 @@ export interface AdditionProprtiesProps {
 
 export const AdditionProprties = observer(function AdditionProprties(props: AdditionProprtiesProps) {
   const { additionId } = props;
-  const addition = WEState.map.additions[additionId];
+  const addition = WEState.map!.additions[additionId];
 
   const [sx, sy, sz] = getScale(addition.mat);
 
@@ -59,7 +59,7 @@ export const AdditionProprties = observer(function AdditionProprties(props: Addi
         <Controls>
           <Title delay={0} animated={false} fixedOn="top" title="Delete">
             {(ref) => (
-              <button ref={ref} onClick={() => WEState.map.deleteAddition(additionId)}>
+              <button ref={ref} onClick={() => WEState.map!.deleteAddition(additionId)}>
                 {deleteIcon}
               </button>
             )}
@@ -90,7 +90,7 @@ export const AdditionProprties = observer(function AdditionProprties(props: Addi
               {(ref) => (
                 <button
                   ref={ref}
-                  onClick={() => WEState.map.setAdditionOnGround(additionId)}
+                  onClick={() => WEState.map!.setAdditionOnGround(additionId)}
                 >
                   <BsChevronBarDown />
                 </button>
@@ -102,19 +102,19 @@ export const AdditionProprties = observer(function AdditionProprties(props: Addi
           <NumberInput
             label="x:"
             value={px}
-            onChange={(px) => WEState.map.setAdditionPosition(additionId, px, py, pz)}
+            onChange={(px) => WEState.map!.setAdditionPosition(additionId, px, py, pz)}
             className={s.input}
           />
           <NumberInput
             label="y:"
             value={py}
-            onChange={(py) => WEState.map.setAdditionPosition(additionId, px, py, pz)}
+            onChange={(py) => WEState.map!.setAdditionPosition(additionId, px, py, pz)}
             className={s.input}
           />
           <NumberInput
             label="z:"
             value={pz}
-            onChange={(pz) => WEState.map.setAdditionPosition(additionId, px, py, pz)}
+            onChange={(pz) => WEState.map!.setAdditionPosition(additionId, px, py, pz)}
             className={s.input}
           />
         </Control>
@@ -129,19 +129,19 @@ export const AdditionProprties = observer(function AdditionProprties(props: Addi
           <NumberInput
             label="x:"
             value={rx}
-            onChange={(rx) => WEState.map.setAdditionRotation(additionId, rx, ry, rz)}
+            onChange={(rx) => WEState.map!.setAdditionRotation(additionId, rx, ry, rz)}
             className={s.input}
           />
           <NumberInput
             label="y:"
             value={ry}
-            onChange={(ry) => WEState.map.setAdditionRotation(additionId, rx, ry, rz)}
+            onChange={(ry) => WEState.map!.setAdditionRotation(additionId, rx, ry, rz)}
             className={s.input}
           />
           <NumberInput
             label="z:"
             value={rz}
-            onChange={(rz) => WEState.map.setAdditionRotation(additionId, rx, ry, rz)}
+            onChange={(rz) => WEState.map!.setAdditionRotation(additionId, rx, ry, rz)}
             className={s.input}
           />
         </Control>
@@ -158,7 +158,7 @@ export const AdditionProprties = observer(function AdditionProprties(props: Addi
               {(ref) => (
                 <button
                   ref={ref}
-                  onClick={() => WEState.map.setAdditionScale(additionId, 1, 1, 1)}
+                  onClick={() => WEState.map!.setAdditionScale(additionId, 1, 1, 1)}
                 >
                   1:1
                 </button>
@@ -170,19 +170,19 @@ export const AdditionProprties = observer(function AdditionProprties(props: Addi
           <NumberInput
             label="x:"
             value={sx}
-            onChange={(sx) => WEState.map.setAdditionScale(additionId, sx, sy, sz)}
+            onChange={(sx) => WEState.map!.setAdditionScale(additionId, sx, sy, sz)}
             className={s.input}
           />
           <NumberInput
             label="y:"
             value={sy}
-            onChange={(sy) => WEState.map.setAdditionScale(additionId, sx, sy, sz)}
+            onChange={(sy) => WEState.map!.setAdditionScale(additionId, sx, sy, sz)}
             className={s.input}
           />
           <NumberInput
             label="z:"
             value={sz}
-            onChange={(sz) => WEState.map.setAdditionScale(additionId, sx, sy, sz)}
+            onChange={(sz) => WEState.map!.setAdditionScale(additionId, sx, sy, sz)}
             className={s.input}
           />
         </Control>

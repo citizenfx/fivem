@@ -50,6 +50,12 @@ export class ConfigService {
   readonly archetypesCollectionPath: string;
 
   constructor() {
+    const { LOCALAPPDATA } = process.env;
+
+    if (!LOCALAPPDATA) {
+      throw new Error('No LOCALAPPDATA in env variables');
+    }
+
     this.shellBackendPort = 35419;
     this.theiaBackendPort = 35420;
 
@@ -59,7 +65,7 @@ export class ConfigService {
     this.realCwd = process.cwd();
     this.citizen = path.normalize(GetConvar('citizen_path'));
 
-    this.cfxLocalAppData = path.join(process.env.LOCALAPPDATA, 'citizenfx');
+    this.cfxLocalAppData = path.join(LOCALAPPDATA, 'citizenfx');
 
     // __dirname will be like `resources/sdk-root/shell/build_server/index.js`
     this.sdkResources = path.join(__dirname, '../../..');

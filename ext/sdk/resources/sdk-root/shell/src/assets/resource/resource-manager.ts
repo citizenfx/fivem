@@ -1,5 +1,5 @@
 import { inject, injectable } from 'inversify';
-import { AssetCreateRequest } from 'shared/api.requests';
+import { APIRQ } from 'shared/api.requests';
 import { AssetManagerContribution } from 'backend/project/asset/asset-manager-contribution';
 import { ApiClient } from 'backend/api/api-client';
 import { LogService } from 'backend/logger/log-service';
@@ -31,7 +31,7 @@ export class ResourceManager implements AssetManagerContribution {
   @inject(ProjectAccess)
   protected readonly projectAccess: ProjectAccess;
 
-  async createAsset(request: AssetCreateRequest): Promise<boolean> {
+  async createAsset(request: APIRQ.AssetCreate): Promise<boolean> {
     this.logService.log('Creating resource asset', request);
 
     const resourcePath = this.fsService.joinPath(request.assetPath, request.assetName);
@@ -84,7 +84,7 @@ export class ResourceManager implements AssetManagerContribution {
     return resource;
   }
 
-  onFsEntry(entry: FilesystemEntry) {
+  handleFSEntry(entry: FilesystemEntry) {
     const resourceManifestKind = getResourceManifestKind(entry);
     if (resourceManifestKind === ResourceManifestKind.none) {
       return;
@@ -95,7 +95,7 @@ export class ResourceManager implements AssetManagerContribution {
 
       // It might be so folder entry was process before manifest file created leading us to having no resource asset at all
       if (!project.isAsset(entryParentDirPath, Resource)) {
-        project.fsMapping.forceEntryScan(entryParentDirPath);
+        project.forceFSScan(entryParentDirPath);
       }
     });
   }
@@ -108,7 +108,12 @@ export class ResourceManager implements AssetManagerContribution {
   }
 
   private async scaffold(args: ResourceTemplateScaffolderArgs) {
-    const scaffolderCtor = resourceTemplateScaffolders[args.request.data?.resourceTemplateId];
+    const resourceTemplateId = args.request.data?.resourceTemplateId;
+    if (!resourceTemplateId) {
+      return;
+    }
+
+    const scaffolderCtor = resourceTemplateScaffolders[resourceTemplateId];
     if (!scaffolderCtor) {
       return;
     }

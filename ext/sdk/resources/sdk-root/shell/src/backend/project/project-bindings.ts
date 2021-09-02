@@ -6,12 +6,8 @@ import { ProjectAccess } from "./project-access";
 import { ProjectBuilder } from "./project-builder";
 import { ProjectUpgrade } from "./project-upgrade";
 import { ProjectAssetManagers } from "./project-asset-managers";
-import { ProjectAssets } from "./project-assets";
 
 export const bindProject = (container: interfaces.Container) => {
-  // Always create new instance
-  container.bind(ProjectAssets).toDynamicValue((ctx) => ctx.container.resolve(ProjectAssets));
-
   container.bind(ProjectAccess).toSelf().inSingletonScope();
   container.bind(ProjectUpgrade).toSelf().inSingletonScope();
   container.bind(ProjectAssetManagers).toSelf().inSingletonScope();

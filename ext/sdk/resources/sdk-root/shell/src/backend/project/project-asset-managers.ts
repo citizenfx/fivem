@@ -49,11 +49,11 @@ export class ProjectAssetManagers {
     return this.managersValues;
   }
 
-  fsEntry(entry: FilesystemEntry) {
+  handleFSEntry(entry: FilesystemEntry) {
     this.ensureManagers();
 
     for (const manager of this.managersValues) {
-      manager.onFsEntry?.(entry);
+      manager.handleFSEntry?.(entry);
     }
   }
 }

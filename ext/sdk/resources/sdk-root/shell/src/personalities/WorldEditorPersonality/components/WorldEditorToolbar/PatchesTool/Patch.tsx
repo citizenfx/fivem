@@ -16,7 +16,7 @@ export interface PatchProps {
 
 export const Patch = observer(function Patch(props: PatchProps) {
   const { mapData, entityId } = props;
-  const patch = WEState.map.patches[mapData][entityId];
+  const patch = WEState.map!.patches[mapData][entityId];
 
   const [editing, enterEditing, exitEditing] = useOpenFlag(false);
   const handleLabelChange = React.useCallback((newLabel: string) => {
@@ -38,7 +38,7 @@ export const Patch = observer(function Patch(props: PatchProps) {
       id: 'delete',
       icon: deleteIcon,
       text: 'Delete patch',
-      onClick: () => WEState.map.deletePatch(mapData, entityId),
+      onClick: () => WEState.map!.deletePatch(mapData, entityId),
     }
   ] as ContextMenuItemsCollection, [mapData, entityId, enterEditing]);
 

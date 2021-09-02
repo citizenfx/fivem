@@ -8,11 +8,10 @@ import { InputController } from "../InputController";
 import { ShellPersonality, ShellState } from 'store/ShellState';
 import { FilesystemEntry } from 'shared/api.types';
 import { FXWORLD_FILE_EXT } from 'assets/fxworld/fxworld-types';
-import { WorldEditorStartRequest } from 'shared/api.requests';
+import { APIRQ } from 'shared/api.requests';
 import { WEMap, WESelectionType, WESelection, WECam } from 'backend/world-editor/world-editor-types';
 import { WEMapState } from './WEMapState';
 import { GameState } from 'store/GameState';
-import { FlashingMessageState } from '../components/WorldEditorToolbar/FlashingMessage/FlashingMessageState';
 import { registerCommandBinding } from '../command-bindings';
 import { WECommand, WECommandScope } from '../constants/commands';
 import { WEEvents } from './Events';
@@ -34,7 +33,7 @@ export enum EditorMode {
 }
 
 export const WEState = new class WEState {
-  private inputController: InputController;
+  private inputController!: InputController;
 
   public ready = false;
 
@@ -274,7 +273,7 @@ export const WEState = new class WEState {
 
     sendApiMessage(worldEditorApi.start, {
       mapPath: entry.path,
-    } as WorldEditorStartRequest);
+    } as APIRQ.WorldEditorStart);
 
     ShellState.setPersonality(ShellPersonality.WORLD_EDITOR);
   };
@@ -372,7 +371,6 @@ export const WEState = new class WEState {
 
     if (this.inputController) {
       this.inputController.destroy();
-      this.inputController = undefined;
     }
   }
 
@@ -386,4 +384,4 @@ export const WEState = new class WEState {
   private updateEditorControls() {
     setWorldEditorControls(this.editorSelect, this.editorMode, this.editorLocal);
   }
-};
+}();

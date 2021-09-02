@@ -55,7 +55,7 @@ export class GameServerIPC implements DisposableObject {
       this.netConn.on('data', (data) => this.handleData(data));
 
       this.writeQueue.forEach((packet) => {
-        this.netConn.write(packet);
+        this.netConn?.write(packet);
       });
 
       this.connection.resolve();

@@ -1,3 +1,3 @@
-import { AssetImportRequest } from "shared/api.requests";
+import { APIRQ } from "shared/api.requests";
 
-export type FsAssetImportRequest = AssetImportRequest<{ sourcePath: string }>;
+export type FsAssetImportRequest = APIRQ.AssetImport<{ sourcePath: string }>;

@@ -14,7 +14,7 @@ function entriesSorter(a: string, b: string) {
   return entryCollator.compare(a, b);
 };
 
-let archetypes = [];
+let archetypes: string[] = [];
 let archetypesReady = false;
 let archetypesPrepared;
 
@@ -26,7 +26,7 @@ const archetypesLoadPromise = (async () => {
       throw new Error('Archetypes unavailable');
     }
 
-    archetypes = Object.values(await response.json()).flat().sort(entriesSorter);
+    archetypes = Object.values(await response.json()).flat().sort(entriesSorter) as string[];
     archetypesPrepared = archetypes.map((name) => fuzzysort.prepare(name));
 
     console.log('Hi form archetypes worker, archetypes are loaded');

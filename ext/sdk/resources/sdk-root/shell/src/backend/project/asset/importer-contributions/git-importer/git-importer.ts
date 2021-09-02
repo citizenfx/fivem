@@ -40,7 +40,7 @@ export class GitImporter implements AssetImporterContribution {
       data,
     } = request;
 
-    invariant(data.repoUrl, `Invalid git asset import request, missing repoUrl in data`);
+    invariant(data?.repoUrl, `Invalid git asset import request, missing repoUrl in data`);
 
     const importTask = this.taskReporterService.create('Importing asset from git');
     importTask.setText('Preparing');

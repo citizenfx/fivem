@@ -60,7 +60,7 @@ export const ProjectBuilder = observer(function ProjectBuilder() {
       return;
     }
 
-    ProjectState.closeBuilder();
+    ProjectState.builderUI.close();
   }, [buildTask]);
 
   const [useVersioning, setUseVersioning] = useProjectUseVersioningVar(project);

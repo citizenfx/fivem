@@ -34,6 +34,8 @@ declare global {
 
   var dev: any;
 
+  type NullableTimer = NodeJS.Timeout | null;
+
   // Thanks TS...
   var ResizeObserver: any;
   var requestIdleCallback: (cb: () => unknown) => number;

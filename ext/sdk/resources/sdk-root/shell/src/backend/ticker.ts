@@ -18,3 +18,11 @@ export class Ticker {
     }
   }
 }
+
+export function wrapWithWhenTickEnds<Args extends any[]>(fn: (...args: Args) => void): ((...args: Args) => void) {
+  const ticker = new Ticker();
+
+  return (...args: Args) => {
+    ticker.whenTickEnds(() => fn(...args));
+  };
+}

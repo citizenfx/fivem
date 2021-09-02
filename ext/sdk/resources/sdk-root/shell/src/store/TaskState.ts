@@ -67,4 +67,4 @@ export const TaskState = new class TaskState {
 
     delete this.tasks[taskId];
   };
-};
+}();

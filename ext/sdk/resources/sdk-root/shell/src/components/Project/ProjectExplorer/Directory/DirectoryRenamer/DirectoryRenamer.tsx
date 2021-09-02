@@ -6,7 +6,7 @@ import { fileNamePattern } from 'constants/patterns';
 import { FilesystemEntry } from 'shared/api.types';
 import { projectApi } from 'shared/api.events';
 import { sendApiMessage } from 'utils/api';
-import { ProjectRenameDirectoryRequest } from 'shared/api.requests';
+import { APIRQ } from 'shared/api.requests';
 import s from './DirectoryRenamer.module.scss';
 
 
@@ -23,10 +23,10 @@ export const DirectoryRenamer = React.memo(function DirectoryRenamer(props: Dire
   const handleRename = React.useCallback(() => {
     onClose();
 
-    sendApiMessage(projectApi.renameDirectory, {
-      directoryPath: entry.path,
-      newDirectoryName,
-    } as ProjectRenameDirectoryRequest);
+    sendApiMessage(projectApi.renameEntry, {
+      entryPath: entry.path,
+      newName: newDirectoryName,
+    } as APIRQ.RenameEntry);
   }, [entry, newDirectoryName, onClose]);
 
   return (

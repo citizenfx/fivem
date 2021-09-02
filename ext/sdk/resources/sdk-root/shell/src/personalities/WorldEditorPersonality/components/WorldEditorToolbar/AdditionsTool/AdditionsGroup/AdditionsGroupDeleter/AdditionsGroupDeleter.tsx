@@ -15,15 +15,15 @@ export interface AdditionsGroupDeleterProps {
 export const AdditionsGroupDeleter = observer(function AdditionsGroupDeleter(props: AdditionsGroupDeleterProps) {
   const { grp, onClose } = props;
 
-  const group = WEState.map.additionGroups[grp];
-  const additions = Object.values(WEState.map.getGroupAdditions(grp));
+  const group = WEState.map!.additionGroups[grp];
+  const additions = Object.values(WEState.map!.getGroupAdditions(grp));
 
   const [deleteAdditions, setDeleteAdditions] = React.useState(false);
 
   const handleDelete = React.useCallback(() => {
     onClose();
 
-    WEState.map.deleteAdditionGroup(grp, deleteAdditions);
+    WEState.map!.deleteAdditionGroup(grp, deleteAdditions);
   }, [grp, onClose, deleteAdditions]);
 
   return (

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>mpMenu</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+    }
+
+    body {
+      --fg-color: hsl(60, 100%, 97%);
+      --bg-color: hsl(226, 23%, 13%);
+
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+
+      gap: 16px;
+
+      font-size: 16px;
+      font-family: Arial, Helvetica, sans-serif;
+      text-align: center;
+
+      color: var(--fg-color);
+      background-color: var(--bg-color);
+
+      background-image: url(https://fivem.net/e6bab6e0eb003ff2ee71bc8e4330cff1.png);
+      background-size: 250px;
+
+      user-select: none;
+    }
+
+    .rld {
+      position: fixed;
+      top: 0;
+      left: 0;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+
+      height: 16px;
+    }
+    .btn svg {
+      width: 24px;
+      height: 24px;
+    }
+    /* TODO: Actually make it clickable */
+    /* .btn:hover {
+      background-color: #f405528f;
+      box-shadow: 0 0 0 4px #f405528f;
+    } */
+
+    .dimmed {
+      opacity: .5;
+    }
+
+    .hint {
+      display: flex;
+      align-self: center;
+      justify-content: center;
+
+      gap: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div>
+    <span class="dimmed">Game is running, but server is not</span>
+  </div>
+
+  <div class="hint">
+    <span class="dimmed">Press the</span>
+    <div class="btn">
+      <svg viewBox="0 0 16 16" fill="currentColor">
+        <path
+          fillRule="evenodd"
+          clipRule="evenodd"
+          d="M10.804 8L5 4.633v6.734L10.804 8zm.792-.696a.802.802 0 010 1.392l-6.363 3.692C4.713 12.69 4 12.345 4 11.692V4.308c0-.653.713-.998 1.233-.696l6.363 3.692z"
+        />
+      </svg>
+
+      Start server
+    </div>
+    <span class="dimmed" style="margin-left: 4px;">button to load into the game</span>
+  </div>
+</body>
+</html>

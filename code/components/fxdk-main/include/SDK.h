@@ -119,6 +119,9 @@ public:
 	// Provide access to the single global instance of this object.
 	static SDKCefClient* GetInstance();
 
+	static void SetMainWindowHandle(HWND handle);
+	static HWND GetMainWindowHandle();
+
 	// CefClient methods:
 	virtual CefRefPtr<CefDisplayHandler> GetDisplayHandler() OVERRIDE
 	{
@@ -215,10 +218,11 @@ private:
 	IMPLEMENT_REFCOUNTING(SDKCefApp);
 };
 
-class SimpleWindowDelegate : public CefWindowDelegate
+class SDKWindowDelegate : public CefWindowDelegate
 {
 public:
-	explicit SimpleWindowDelegate(CefRefPtr<CefBrowserView> browser_view);
+	explicit SDKWindowDelegate(CefRefPtr<CefBrowserView> browser_view, const std::wstring& placementKey);
+	explicit SDKWindowDelegate(CefRefPtr<CefBrowserView> browser_view, const std::wstring& placementKey, const std::string& forceWindowTitle);
 
 	void OnWindowCreated(CefRefPtr<CefWindow> window) OVERRIDE;
 	void OnWindowDestroyed(CefRefPtr<CefWindow> window) OVERRIDE;
@@ -232,22 +236,24 @@ private:
 	void SavePlacement(CefRefPtr<CefWindow> window);
 
 private:
+	std::string forcedWindowTitle;
+	std::wstring placementRegistryKey;
 	CefRefPtr<CefBrowserView> browser_view_;
 
-	IMPLEMENT_REFCOUNTING(SimpleWindowDelegate);
-	DISALLOW_COPY_AND_ASSIGN(SimpleWindowDelegate);
+	IMPLEMENT_REFCOUNTING(SDKWindowDelegate);
+	DISALLOW_COPY_AND_ASSIGN(SDKWindowDelegate);
 };
 
-class SubViewDelegate : public CefBrowserViewDelegate
+class SDKSubViewDelegate : public CefBrowserViewDelegate
 {
 public:
-	SubViewDelegate();
+	SDKSubViewDelegate();
 
 	virtual CefRefPtr<CefBrowserViewDelegate> GetDelegateForPopupBrowserView(CefRefPtr<CefBrowserView> browser_view, const CefBrowserSettings& settings, CefRefPtr<CefClient> client, bool is_devtools);
 
 	virtual bool OnPopupBrowserViewCreated(CefRefPtr<CefBrowserView> browser_view, CefRefPtr<CefBrowserView> popup_browser_view, bool is_devtools);
 
 private:
-	IMPLEMENT_REFCOUNTING(SubViewDelegate);
-	DISALLOW_COPY_AND_ASSIGN(SubViewDelegate);
+	IMPLEMENT_REFCOUNTING(SDKSubViewDelegate);
+	DISALLOW_COPY_AND_ASSIGN(SDKSubViewDelegate);
 };
