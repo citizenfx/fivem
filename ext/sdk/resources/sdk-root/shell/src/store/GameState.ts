@@ -53,6 +53,10 @@ export const GameState = new class GameState {
     this.connectionState = current;
   }
 
+  readonly restart = () => {
+    sendApiMessage(gameApi.restart);
+  };
+
   public archetypesCollectionPending = false;
   public archetypesCollectionReady = false;
 

@@ -120,11 +120,12 @@ export class GameService implements ApiContribution, AppContribution {
       }
 
       if (current === SDKGameProcessState.GP_STOPPED) {
+        this.startGame();
+
         if (this.restartPending) {
           this.restartPending = false;
         } else {
           this.notificationService.error('It looks like game has crashed, restarting it now', 5000);
-          this.startGame();
         }
       }
 
@@ -212,12 +213,8 @@ export class GameService implements ApiContribution, AppContribution {
   @handlesClientEvent(gameApi.restart)
   restartGame() {
     this.restartPending = true;
-    this.gameLaunched = false;
-    this.gameUnloaded = true;
 
-    this.toGameState(GameStates.NOT_RUNNING);
-
-    emit('sdk:restartGame');
+    this.stopGame();
   }
 
   onBackendMessage(type: string, handler: Function): Function {

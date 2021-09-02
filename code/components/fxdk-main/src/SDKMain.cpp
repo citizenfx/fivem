@@ -356,10 +356,6 @@ void SdkMain()
 		{
 			gameProcessManager.StopGame();
 		}
-		else if (eventName == "sdk:restartGame")
-		{
-			gameProcessManager.RestartGame();
-		}
 		else if (eventName == "sdk:api:send")
 		{
 			// deserialize the arguments
