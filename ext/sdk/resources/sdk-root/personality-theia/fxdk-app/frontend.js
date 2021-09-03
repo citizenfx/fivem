@@ -1,6 +1,6 @@
-// @ts-check
 require('es6-promise/auto');
 require('reflect-metadata');
+require('setimmediate');
 require('./frontend-appearance')();
 const { Container } = require('inversify');
 const { FrontendApplicationConfigProvider } = require('@theia/core/lib/browser/frontend-application-config-provider');

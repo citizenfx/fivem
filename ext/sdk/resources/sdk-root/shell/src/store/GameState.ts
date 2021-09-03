@@ -4,6 +4,7 @@ import { gameApi } from "shared/api.events";
 import { NetLibraryConnectionState, SDKGameProcessState } from "shared/native.enums";
 import { onApiMessage, sendApiMessage, sendApiMessageCallback } from "utils/api";
 import { SingleEventEmitter } from "utils/singleEventEmitter";
+import { onWindowEvent } from "utils/windowMessages";
 import { GameLoadingState } from "./GameLoadingState";
 import { NotificationState } from "./NotificationState";
 
@@ -23,6 +24,23 @@ export const GameState = new class GameState {
     onApiMessage(gameApi.gameLaunched, this.setLaunched);
     onApiMessage(gameApi.gameProcessStateChanged, this.setProcessState);
     onApiMessage(gameApi.connectionStateChanged, this.setConnectionState);
+
+    onWindowEvent('fxdk:loadingScreenWarning', () => {
+      const msg = [
+        'Loading screen has not been shut down for 15 seconds',
+        `This is the reason why you see the "Awaiting scripts" message in bottom right corner of the game-view`,
+        '',
+        'Check if the "Spawn manager" system resource is enabled in Project settings,',
+        `or if using custom spawn manager, check if you're shutting down loading screen properly`,
+      ].join('\n');
+
+      NotificationState.warning(msg);
+    });
+
+    onWindowEvent('fxdk:gameFatalError', (error: string) => {
+      NotificationState.error(error);
+      this.restart();
+    });
   }
 
   public ack() {

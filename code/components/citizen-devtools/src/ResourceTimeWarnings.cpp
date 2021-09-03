@@ -25,6 +25,18 @@ inline std::chrono::microseconds usec()
 	return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
 }
 
+template<typename T>
+static void SendSdkMessage(const std::string& type, const T& payload)
+{
+	static constexpr uint32_t SEND_SDK_MESSAGE = HashString("SEND_SDK_MESSAGE");
+
+	nlohmann::json resourceDatasJson;
+	resourceDatasJson["type"] = type;
+	resourceDatasJson["data"] = payload;
+
+	NativeInvoke::Invoke<SEND_SDK_MESSAGE, const char*>(resourceDatasJson.dump().c_str());
+}
+
 static ImVec4 GetColorForRange(float min, float max, float num)
 {
 	float avg = (min + max) / 2.0f;
@@ -235,9 +247,22 @@ static HookFunction hookFunctionGameTime([]()
 						reasoning = fmt::sprintf("\n\nScript stack: %s", s.str());
 					}
 
-					FatalError("FiveM has stopped responding\nThe game stopped responding for %.1f seconds and needs to be restarted. Information on this hang is currently being uploaded.%s",
-					std::chrono::duration_cast<std::chrono::milliseconds>(now - lastPeekMessage).count() / 1000.0,
-					reasoning);
+					auto unresponsiveFor = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastPeekMessage).count() / 1000.0;
+
+					std::string errorMessage = fmt::sprintf(
+						"The game stopped responding for %.1f seconds and will be restarted soon.%s",
+						unresponsiveFor,
+						reasoning
+					);
+
+					SendSdkMessage("fxdk:gameFatalError", errorMessage);
+
+					if (!launch::IsSDKGuest())
+					{
+						FatalError("FiveM has stopped responding\nThe game stopped responding for %.1f seconds and needs to be restarted. Information on this hang is currently being uploaded.%s",
+						unresponsiveFor,
+						reasoning);
+					}
 				}
 			}
 		})
@@ -352,19 +377,13 @@ static InitFunction initFunction([]()
 				// only send data thrice a second
 				if (usec() - lastSendTime >= maxPause)
 				{
-					static constexpr uint32_t SEND_SDK_MESSAGE = HashString("SEND_SDK_MESSAGE");
-
 					std::vector<std::tuple<std::string, double, double, int64_t, int64_t>> resourceDatasClean;
 					for (const auto& data : resourceDatas)
 					{
 						resourceDatasClean.push_back(tuple_slice<0, std::tuple_size_v<decltype(resourceDatasClean)::value_type>>(data));
 					}
 
-					nlohmann::json resourceDatasJson;
-					resourceDatasJson["type"] = "fxdk:clientResourcesData";
-					resourceDatasJson["data"] = resourceDatasClean;
-
-					NativeInvoke::Invoke<SEND_SDK_MESSAGE, const char*>(resourceDatasJson.dump().c_str());
+					SendSdkMessage("fxdk:clientResourcesData", resourceDatasClean);
 
 					lastSendTime = usec();
 				}

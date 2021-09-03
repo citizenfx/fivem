@@ -35,9 +35,7 @@ export const NotificationItem = React.memo(function NotificationItem({ item }: N
         <div className={s.icon}>
           {typeIcons[item.type]}
         </div>
-        <div className={s.text}>
-          {item.text}
-        </div>
+        <div className={s.text} dangerouslySetInnerHTML={{ __html: item.text.replace(/\n/g, '<br>') }} />
       </div>
 
       <div className={s.actions}>
