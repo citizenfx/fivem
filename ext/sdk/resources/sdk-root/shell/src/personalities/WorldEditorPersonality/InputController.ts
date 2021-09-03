@@ -6,6 +6,7 @@ import { executeCommand, getAllCommandHotkeyBindings, onRegisterCommandBinding }
 import { FlashingMessageState } from './components/WorldEditorToolbar/FlashingMessage/FlashingMessageState';
 import { WECommandScope } from './constants/commands';
 import { invokeWEApi } from './we-api-utils';
+import { WEEvents } from './store/WEEvents';
 
 export enum Key {
   ALT = 18,
@@ -223,6 +224,7 @@ export class InputController {
 
     if (this.isClicking) {
       this.state = ICState.DRAGGING;
+      WEEvents.inputDragStart.emit();
     }
 
     let rx: number;
@@ -377,6 +379,7 @@ export class InputController {
       case ICState.DRAGGING: {
         if (lmb && !active) {
           this.state = ICState.IDLE;
+          WEEvents.inputDragEnd.emit();
           this.onGizmoControlActive(false);
         }
 

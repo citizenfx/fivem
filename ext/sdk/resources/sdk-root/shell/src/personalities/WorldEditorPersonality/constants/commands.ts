@@ -19,9 +19,11 @@ export const WECommand = Object.freeze({
 
   CONTROL_ESCAPE: 'control.escape',
 
+  ACTION_DUPLICATE_SELECTION: 'action.duplicateSelection',
   ACTION_DELETE_SELECTION: 'action.deleteSelection',
   ACTION_SET_ADDITION_ON_GROUND: 'action.setAdditionOnGround',
   ACTION_ENTER_PLAYTEST_MODE: 'action.enterPlaytestMode',
+  ACTION_FOCUS_SELECTION_IN_VIEW: 'action.focusSelectionInView',
 });
 
 export type WECommandType = (typeof WECommand)[keyof typeof WECommand];

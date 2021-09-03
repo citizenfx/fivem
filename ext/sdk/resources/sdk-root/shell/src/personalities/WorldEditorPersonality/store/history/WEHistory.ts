@@ -1,4 +1,4 @@
-import { WEMapAddition, WEMapAdditionGroup, WEMapAdditionGroupDefinition, WEMapPatch, WEMapPatchId } from "backend/world-editor/world-editor-types";
+import { WEMapAddition, WEMapAdditionGroup, WEMapAdditionGroupDefinition, WEMapPatch, WEMapPatchId, WESelectionType } from "backend/world-editor/world-editor-types";
 import { registerCommandBinding } from "personalities/WorldEditorPersonality/command-bindings";
 import { FlashingMessageState } from "personalities/WorldEditorPersonality/components/WorldEditorToolbar/FlashingMessage/FlashingMessageState";
 import { WECommandScope } from "personalities/WorldEditorPersonality/constants/commands";
@@ -78,6 +78,13 @@ export const WEHistory = new class WEHistory {
           WEState.map!.deleteAddition(item.id, false);
         } else {
           WEState.map!.setAddition(item.id, JSON.parse(item.addition));
+
+          if (item.wasSelected) {
+            WEState.setEditorSelection({
+              type: WESelectionType.ADDITION,
+              id: item.id,
+            });
+          }
         }
 
         break;
@@ -156,7 +163,18 @@ export const WEHistory = new class WEHistory {
         if (redo) {
           WEState.map!.deletePatch(mapdata, entity, false);
         } else {
-          WEState.map!.setPatch(mapdata, entity, JSON.parse(item.patch));
+          const patch: WEMapPatch = JSON.parse(item.patch);
+
+          WEState.map!.setPatch(mapdata, entity, patch);
+
+          if (item.wasSelected) {
+            WEState.setEditorSelection({
+              type: WESelectionType.PATCH,
+              mapdata,
+              entity,
+              label: patch.label,
+            });
+          }
         }
 
         break;
@@ -228,6 +246,7 @@ export const WEHistory = new class WEHistory {
       op: HistoryOp.PATCH_DELETED,
       id: this.getPatchId(mapdata, entity),
       patch: JSON.stringify(patch),
+      wasSelected: WEState.isPatchSelected(mapdata, entity),
     } as PatchDeletedItem);
   }
 
@@ -272,6 +291,7 @@ export const WEHistory = new class WEHistory {
       op: HistoryOp.ADDITION_DELETED,
       id,
       addition: JSON.stringify(addition),
+      wasSelected: WEState.isAdditionSelected(id),
     } as AdditionDeletedItem);
   }
 

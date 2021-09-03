@@ -1,5 +1,5 @@
 import React from 'react';
-import { BiWorld } from 'react-icons/bi';
+import { BiDuplicate, BiWorld } from 'react-icons/bi';
 import {
   BsDiamond,
   BsFolderFill,
@@ -55,6 +55,7 @@ export const importAssetIcon = <BsBoxArrowInDownRight />;
 
 export const deleteIcon = <BsTrash />;
 export const renameIcon = <BsPencil />;
+export const duplicateIcon = <BiDuplicate />;
 
 export const RefreshIconComponent = BsArrowRepeat;
 export const refreshIcon = <RefreshIconComponent />;

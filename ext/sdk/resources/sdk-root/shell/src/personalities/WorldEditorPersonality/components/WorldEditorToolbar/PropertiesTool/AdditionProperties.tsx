@@ -7,7 +7,7 @@ import { BsCameraVideo, BsChevronBarDown } from 'react-icons/bs';
 import { additionsToolIcon, rotateIcon, scaleIcon, translateIcon } from 'personalities/WorldEditorPersonality/constants/icons';
 import { NumberInput } from 'components/controls/NumberInput/NumberInput';
 import { div } from 'utils/styled';
-import { deleteIcon } from 'constants/icons';
+import { deleteIcon, duplicateIcon } from 'constants/icons';
 import { Title } from 'components/controls/Title/Title';
 import { WEHotkeysState } from 'personalities/WorldEditorPersonality/store/WEHotkeysState';
 import { WECommand } from 'personalities/WorldEditorPersonality/constants/commands';
@@ -41,10 +41,6 @@ export const AdditionProprties = observer(function AdditionProprties(props: Addi
 
   const [rz, rx, ry] = eulerFromMatrix(unscaledMat);
 
-  const handleFocusInView = () => {
-    WEState.focusInView(addition.cam, [px, py, pz]);
-  };
-
   return (
     <>
       <Header>
@@ -57,16 +53,23 @@ export const AdditionProprties = observer(function AdditionProprties(props: Addi
           </span>
         </Name>
         <Controls>
-          <Title delay={0} animated={false} fixedOn="top" title="Delete">
+          <Title delay={0} animated={false} fixedOn="top" title="Duplicate" shortcut={WEHotkeysState.getCommandHotkey(WECommand.ACTION_DUPLICATE_SELECTION)}>
+            {(ref) => (
+              <button ref={ref} onClick={() => WEState.map!.duplicateAddition(additionId)}>
+                {duplicateIcon}
+              </button>
+            )}
+          </Title>
+          <Title delay={0} animated={false} fixedOn="top" title="Delete" shortcut={WEHotkeysState.getCommandHotkey(WECommand.ACTION_DELETE_SELECTION)}>
             {(ref) => (
               <button ref={ref} onClick={() => WEState.map!.deleteAddition(additionId)}>
                 {deleteIcon}
               </button>
             )}
           </Title>
-          <Title delay={0} animated={false} fixedOn="top" title="Focus in view">
+          <Title delay={0} animated={false} fixedOn="top" title="Focus in view" shortcut={WEHotkeysState.getCommandHotkey(WECommand.ACTION_FOCUS_SELECTION_IN_VIEW)}>
             {(ref) => (
-              <button ref={ref} onClick={handleFocusInView}>
+              <button ref={ref} onClick={WEState.focusSelectionInView}>
                 <BsCameraVideo />
               </button>
             )}

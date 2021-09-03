@@ -37,14 +37,9 @@ export class UndoRedo<Item extends UndoRedoItem> {
       return null;
     }
 
-    const item = this.items.get(this.ptr);
-    if (!item) {
-      return null;
-    }
-
     this.ptr--;
 
-    return item;
+    return this.items.get(this.ptr) || null;
   }
 
   redo(): Item | null {
@@ -53,13 +48,10 @@ export class UndoRedo<Item extends UndoRedoItem> {
     }
 
     const item = this.items.get(this.ptr);
-    if (!item) {
-      return null;
-    }
 
     this.ptr++;
 
-    return item;
+    return item || null;
   }
 
   private rIC: number | null = null;
