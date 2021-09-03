@@ -6,7 +6,7 @@ console.log('sdk-game:client started!');
 
 switch (getGameMode()) {
   case GameMode.NORMAL: {
-    require('./data-mode/data-mode');
+    require('./sdk-support-mode/sdk-support-mode');
     break;
   }
 

@@ -39,13 +39,16 @@ export const NotificationState = new class NotificationState {
     sendApiMessage(notificationsApi.ack);
   }
 
+  public info(text: string, expireAt?: number) {
+    this.createLocal(NotificationType.info, text, expireAt);
+  }
+
+  public warning(text: string, expireAt?: number) {
+    this.createLocal(NotificationType.warning, text, expireAt);
+  }
+
   public error(text: string, expireAt?: number) {
-    this.create({
-      id: fastRandomId(),
-      type: NotificationType.error,
-      text,
-      expireAt,
-    });
+    this.createLocal(NotificationType.error, text, expireAt);
   }
 
   readonly delete = (id: string) => {
@@ -60,6 +63,15 @@ export const NotificationState = new class NotificationState {
       sendApiMessage(notificationsApi.delete, id);
     }
   };
+
+  private createLocal(type: NotificationType, text: string, expireAt?: number) {
+    this.create({
+      id: fastRandomId(),
+      type,
+      text,
+      expireAt,
+    });
+  }
 
   private create = ({ id, type, text, expireAt }: NotificationItem) => {
     const notification = new Notification(id, type, text);

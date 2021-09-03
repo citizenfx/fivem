@@ -25,6 +25,18 @@ export const GameState = new class GameState {
     onApiMessage(gameApi.gameProcessStateChanged, this.setProcessState);
     onApiMessage(gameApi.connectionStateChanged, this.setConnectionState);
 
+    onWindowEvent('fxdk:loadingScreenWarning', () => {
+      const msg = [
+        'Loading screen has not been shut down for 15 seconds',
+        `This is the reason why you see the "Awaiting scripts" message in bottom right corner of the game-view`,
+        '',
+        'Check if the "Spawn manager" system resource is enabled in Project settings,',
+        `or if using custom spawn manager, check if you're shutting down loading screen properly`,
+      ].join('\n');
+
+      NotificationState.warning(msg);
+    });
+
     onWindowEvent('fxdk:gameFatalError', (error: string) => {
       NotificationState.error(error);
       this.restart();
