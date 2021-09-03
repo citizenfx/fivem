@@ -400,6 +400,72 @@ static BOOL WINAPI GetFileAttributesExWStub(_In_ LPCWSTR lpFileName, _In_ GET_FI
 	return g_origGetFileAttributesExW(fileName.c_str(), fInfoLevelId, lpFileInformation);
 }
 
+#pragma comment(lib, "version")
+
+static bool CheckGraphicsLibrary(const std::wstring& realPath)
+{
+	auto path = L"\\\\?\\" + realPath;
+
+	DWORD versionInfoSize = GetFileVersionInfoSize(path.c_str(), nullptr);
+
+	if (versionInfoSize)
+	{
+		std::vector<uint8_t> versionInfo(versionInfoSize);
+
+		if (GetFileVersionInfo(path.c_str(), 0, versionInfo.size(), &versionInfo[0]))
+		{
+			struct LANGANDCODEPAGE
+			{
+				WORD wLanguage;
+				WORD wCodePage;
+			} * lpTranslate;
+
+			UINT cbTranslate = 0;
+
+			// Read the list of languages and code pages.
+
+			VerQueryValue(&versionInfo[0],
+			TEXT("\\VarFileInfo\\Translation"),
+			(LPVOID*)&lpTranslate,
+			&cbTranslate);
+
+			if (cbTranslate > 0)
+			{
+				void* productNameBuffer;
+				UINT productNameSize = 0;
+
+				VerQueryValue(&versionInfo[0],
+				va(L"\\StringFileInfo\\%04x%04x\\ProductName", lpTranslate[0].wLanguage, lpTranslate[0].wCodePage),
+				&productNameBuffer,
+				&productNameSize);
+
+				void* fixedInfoBuffer;
+				UINT fixedInfoSize = 0;
+
+				VerQueryValue(&versionInfo[0], L"\\", &fixedInfoBuffer, &fixedInfoSize);
+
+				VS_FIXEDFILEINFO* fixedInfo = reinterpret_cast<VS_FIXEDFILEINFO*>(fixedInfoBuffer);
+
+				if (productNameSize > 0 && fixedInfoSize > 0)
+				{
+					if (wcscmp((wchar_t*)productNameBuffer, L"ReShade") == 0)
+					{
+						// ReShade <3.1 is invalid
+						if (fixedInfo->dwProductVersionMS < 0x30001)
+						{
+							return true;
+						}
+
+						return false;
+					}
+				}
+			}
+		}
+	}
+
+	return false;
+}
+
 NTSTATUS NTAPI LdrLoadDllStub(const wchar_t* fileName, uint32_t* flags, UNICODE_STRING* moduleName, HANDLE* handle)
 {
 	UNICODE_STRING newString;
@@ -417,6 +483,20 @@ NTSTATUS NTAPI LdrLoadDllStub(const wchar_t* fileName, uint32_t* flags, UNICODE_
 	}
 
 	std::transform(moduleNameStr.begin(), moduleNameStr.end(), moduleNameStr.begin(), ::tolower);
+
+	if (moduleNameStr.find(L"dxgi.dll") != std::string::npos)
+	{
+		if (CheckGraphicsLibrary(moduleNameStr))
+		{
+			static wchar_t systemPath[512];
+			GetSystemDirectory(systemPath, _countof(systemPath));
+			wcscat_s(systemPath, L"\\dxgi.dll");
+
+			RtlInitUnicodeString(&newString, systemPath);
+
+			moduleName = &newString;
+		}
+	}
 
 	// anything in this if statement **has to be lowercase**, see line above
 	if (moduleNameStr.find(L"fraps64.dll") != std::string::npos || moduleNameStr.find(L"avghooka.dll") != std::string::npos ||
