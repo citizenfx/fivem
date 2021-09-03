@@ -735,8 +735,8 @@ export class CfxGameService extends GameService {
 
 			if (resp.ok) {
 				const blob = await resp.blob();
-				const bitmap = (await (<any>createImageBitmap)(blob, {
-					resizeQuality: 'high',
+				const bitmap = (await createImageBitmap(blob, {
+					resizeQuality: 'medium',
 					resizeWidth: 16,
 					resizeHeight: 16
 				})) as ImageBitmap;
