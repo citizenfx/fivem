@@ -2,28 +2,49 @@ import { GameStates } from "backend/game/game-contants";
 import { makeAutoObservable, runInAction } from "mobx";
 import { gameApi } from "shared/api.events";
 import { NetLibraryConnectionState, SDKGameProcessState } from "shared/native.enums";
-import { onApiMessage, sendApiMessage, sendApiMessageCallback } from "utils/api";
+import { sendApiMessage, sendApiMessageCallback } from "utils/api";
 import { SingleEventEmitter } from "utils/singleEventEmitter";
 import { onWindowEvent } from "utils/windowMessages";
 import { GameLoadingState } from "./GameLoadingState";
 import { NotificationState } from "./NotificationState";
+import { onApiMessageAction } from "./utils/setterHelpers";
 
 export const GameState = new class GameState {
+  public state = GameStates.NOT_RUNNING;
+  public launched = false;
+  public processState = SDKGameProcessState.GP_STOPPED;
+  public connectionState = NetLibraryConnectionState.CS_IDLE;
+
+  public archetypesCollectionPending = false;
+  public archetypesCollectionReady = false;
+
   constructor() {
     makeAutoObservable(this);
 
-    onApiMessage(gameApi.ack, (data) => runInAction(() => {
+    onApiMessageAction(gameApi.ack, (data) => {
       this.state = data.gameState;
       this.launched = data.gameLaunched;
       this.processState = data.gameProcessState;
       this.connectionState = data.connectionState;
       this.archetypesCollectionReady = data.archetypesCollectionReady;
-    }));
+    });
 
-    onApiMessage(gameApi.gameState, this.setState);
-    onApiMessage(gameApi.gameLaunched, this.setLaunched);
-    onApiMessage(gameApi.gameProcessStateChanged, this.setProcessState);
-    onApiMessage(gameApi.connectionStateChanged, this.setConnectionState);
+    onApiMessageAction(gameApi.gameState, (state) => {
+      this.state = state;
+
+      if (this.state === GameStates.LOADING) {
+        GameLoadingState.resetLoadingProgress();
+      }
+    });
+    onApiMessageAction(gameApi.gameLaunched, (launched) => {
+      this.launched = launched;
+    });
+    onApiMessageAction(gameApi.gameProcessStateChanged, ({ current }) => {
+      this.processState = current;
+    });
+    onApiMessageAction(gameApi.connectionStateChanged, ({ current }) => {
+      this.connectionState = current;
+    });
 
     onWindowEvent('fxdk:loadingScreenWarning', () => {
       const msg = [
@@ -47,36 +68,9 @@ export const GameState = new class GameState {
     sendApiMessage(gameApi.ack);
   }
 
-  public state = GameStates.NOT_RUNNING;
-  private setState = (state) => {
-    this.state = state;
-
-    if (this.state === GameStates.LOADING) {
-      GameLoadingState.resetLoadingProgress();
-    }
-  };
-
-  public launched = false;
-  private setLaunched = (launched) => {
-    this.launched = launched;
-  };
-
-  public processState = SDKGameProcessState.GP_STOPPED;
-  private setProcessState = ({ current }) => {
-    this.processState = current;
-  };
-
-  public connectionState = NetLibraryConnectionState.CS_IDLE;
-  private setConnectionState = ({ current }) => {
-    this.connectionState = current;
-  }
-
   readonly restart = () => {
     sendApiMessage(gameApi.restart);
   };
-
-  public archetypesCollectionPending = false;
-  public archetypesCollectionReady = false;
 
   private archetypesCollectionReadyEvent = new SingleEventEmitter<void>();
   onArchetypeCollectionReady(cb: () => void) {

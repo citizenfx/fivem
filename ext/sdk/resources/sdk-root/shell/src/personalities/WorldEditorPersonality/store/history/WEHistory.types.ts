@@ -52,6 +52,7 @@ export interface AdditionDeletedItem {
   op: HistoryOp.ADDITION_DELETED,
   id: string,
   addition: string, // WEMapAddition json
+  wasSelected: boolean,
 }
 
 export interface PatchCreatedItem {
@@ -71,6 +72,7 @@ export interface PatchDeletedItem {
   op: HistoryOp.PATCH_DELETED,
   id: string, // WEMapPatchId json
   patch: string, // WEMapPatch json
+  wasSelected: boolean,
 }
 
 export type WEHistoryUndoRedoItem =

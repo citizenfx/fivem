@@ -1,5 +1,5 @@
 import React from 'react';
-import { WECam, WEEntityMatrix, WEEntityMatrixIndex, WESelectionType } from 'backend/world-editor/world-editor-types';
+import { WEEntityMatrix, WEEntityMatrixIndex, WESelectionType } from 'backend/world-editor/world-editor-types';
 import { observer } from 'mobx-react-lite';
 import { WEState } from 'personalities/WorldEditorPersonality/store/WEState';
 import { applyScale, eulerFromMatrix, getScale } from 'shared/math';
@@ -10,6 +10,8 @@ import { div } from 'utils/styled';
 import { deleteIcon } from 'constants/icons';
 import { Title } from 'components/controls/Title/Title';
 import s from './PropertiesTool.module.scss';
+import { WEHotkeysState } from 'personalities/WorldEditorPersonality/store/WEHotkeysState';
+import { WECommand } from 'personalities/WorldEditorPersonality/constants/commands';
 
 const Header = div(s, 'header');
 const Icon = div(s, 'icon');
@@ -20,14 +22,13 @@ const LabelRow = div(s, 'label-row');
 const Label = div(s, 'label');
 const Control = div<{ inputs?: boolean }>(s, 'control');
 
-function usePatch(): { mapdata: number, entity: number, label: string, mat: WEEntityMatrix, cam: WECam } {
+function usePatch(): { mapdata: number, entity: number, label: string, mat: WEEntityMatrix } {
   if (WEState.selection.type !== WESelectionType.PATCH) {
     return {
       label: '',
       mapdata: 0,
       entity: 0,
       mat: Array(16).fill(0) as WEEntityMatrix,
-      cam: [0,0,0,0,0,0],
     }
   }
 
@@ -41,7 +42,6 @@ function usePatch(): { mapdata: number, entity: number, label: string, mat: WEEn
       entity,
       label: patch.label,
       mat: patch.mat,
-      cam: patch.cam,
     };
   }
 
@@ -50,12 +50,11 @@ function usePatch(): { mapdata: number, entity: number, label: string, mat: WEEn
     entity,
     label,
     mat,
-    cam,
   };
 }
 
 export const PatchProperties = observer(function PatchProperties() {
-  const { mapdata, entity, label, mat, cam } = usePatch();
+  const { mapdata, entity, label, mat } = usePatch();
 
   const [sx, sy, sz] = getScale(mat);
 
@@ -80,16 +79,16 @@ export const PatchProperties = observer(function PatchProperties() {
           </span>
         </Name>
         <Controls>
-          <Title delay={0} animated={false} fixedOn="top" title="Delete">
+          <Title delay={0} animated={false} fixedOn="top" title="Delete" shortcut={WEHotkeysState.getCommandHotkey(WECommand.ACTION_DELETE_SELECTION)}>
             {(ref) => (
               <button ref={ref} onClick={() => WEState.map!.deletePatch(mapdata, entity)}>
                 {deleteIcon}
               </button>
             )}
           </Title>
-          <Title delay={0} animated={false} fixedOn="top" title="Focus in view">
+          <Title delay={0} animated={false} fixedOn="top" title="Focus in view" shortcut={WEHotkeysState.getCommandHotkey(WECommand.ACTION_FOCUS_SELECTION_IN_VIEW)}>
             {(ref) => (
-              <button ref={ref} onClick={() => WEState.setCam(cam)}>
+              <button ref={ref} onClick={WEState.focusSelectionInView}>
                 <BsCameraVideo />
               </button>
             )}

@@ -19,6 +19,7 @@ import {
   WESetAdditionRequest,
   WEMapAdditionGroupDefinition,
   WESelectionType,
+  WEEntityMatrix,
 } from "backend/world-editor/world-editor-types";
 import { makeAutoObservable } from "mobx";
 import { worldEditorApi } from "shared/api.events";
@@ -29,7 +30,7 @@ import { omit } from "utils/omit";
 import { pick } from "utils/pick";
 import { fastRandomId } from "utils/random";
 import { invokeWEApi } from "../we-api-utils";
-import { WEEvents } from "./Events";
+import { WEEvents } from "./WEEvents";
 import { WEHistory } from "./history/WEHistory";
 import { WEState } from "./WEState";
 
@@ -221,6 +222,25 @@ export class WEMapState {
 
     invokeWEApi(WEApi.AdditionCreate, request);
     sendApiMessage(worldEditorApi.createAddition, request);
+  }
+
+  duplicateAddition(additionId: string) {
+    const addition = this.map.additions[additionId];
+    if (addition) {
+      const newAdditionId = fastRandomId();
+      const newAddition: WEMapAddition = {
+        ...addition,
+        mat: Array.from(addition.mat) as WEEntityMatrix,
+      };
+
+      this.setAddition(newAdditionId, newAddition);
+      WEHistory.additionCreated(newAdditionId, newAddition);
+
+      WEEvents.selectionChangeRequest.emit({
+        type: WESelectionType.ADDITION,
+        id: newAdditionId,
+      });
+    }
   }
 
   readonly setAdditionPosition = this.additionChangeWrap(['mat'], (addition, x: number, y: number, z: number) => {

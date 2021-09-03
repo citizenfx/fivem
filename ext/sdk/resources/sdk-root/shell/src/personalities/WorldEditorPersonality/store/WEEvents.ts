@@ -13,9 +13,13 @@ export interface PatchEvent {
 }
 
 export const WEEvents = new class WEEvents {
+  public readonly inputDragStart = new SingleEventEmitter<void>();
+  public readonly inputDragEnd = new SingleEventEmitter<void>();
+
   public readonly gizmoSelectChanged = new SingleEventEmitter<boolean>();
 
   public readonly selectionChanged = new SingleEventEmitter<WESelection>();
+  public readonly selectionChangeRequest = new SingleEventEmitter<WESelection>();
 
   public readonly additionCreated = new SingleEventEmitter<WECreateAdditionRequest>();
   public readonly additionChanged = new SingleEventEmitter<AdditionEvent>();

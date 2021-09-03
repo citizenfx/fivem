@@ -1,25 +1,27 @@
 import { __DEBUG_MODE_TOGGLES__ } from 'constants/debug-constants';
 
 import React from 'react';
-import { makeAutoObservable, runInAction } from "mobx";
+import { makeAutoObservable } from "mobx";
 import { worldEditorApi } from "shared/api.events";
-import { onApiMessage, sendApiMessage } from "utils/api";
+import { sendApiMessage } from "utils/api";
 import { InputController } from "../InputController";
 import { ShellPersonality, ShellState } from 'store/ShellState';
 import { FilesystemEntry } from 'shared/api.types';
 import { FXWORLD_FILE_EXT } from 'assets/fxworld/fxworld-types';
 import { APIRQ } from 'shared/api.requests';
-import { WEMap, WESelectionType, WESelection, WECam } from 'backend/world-editor/world-editor-types';
+import { WEMap, WESelectionType, WESelection, WECam, WEEntityMatrixIndex, WEMapPatch, WEMapAddition, WEEntityMatrix } from 'backend/world-editor/world-editor-types';
 import { WEMapState } from './WEMapState';
 import { GameState } from 'store/GameState';
 import { registerCommandBinding } from '../command-bindings';
 import { WECommand, WECommandScope } from '../constants/commands';
-import { WEEvents } from './Events';
+import { WEEvents } from './WEEvents';
 import { LocalStorageValue } from 'store/generic/LocalStorageValue';
 import { WEHistory } from './history/WEHistory';
 import { invokeWEApi, onWEApi } from '../we-api-utils';
 import { WEApi } from 'backend/world-editor/world-editor-game-api';
 import { WEToolbarState } from './WEToolbarState';
+import { onApiMessageAction } from 'store/utils/setterHelpers';
+import { toNumber } from 'utils/conversion';
 
 export enum WEMode {
   EDITOR,
@@ -106,9 +108,9 @@ export const WEState = new class WEState {
     onWEApi(WEApi.AdditionPlaced, (request) => this.map?.handleAdditionPlaced(request));
     onWEApi(WEApi.AdditionApplyChange, (request) => this.map?.handleApplyAdditionChangeRequest(request));
 
-    onApiMessage(worldEditorApi.mapLoaded, (map: WEMap) => runInAction(() => {
+    onApiMessageAction(worldEditorApi.mapLoaded, (map: WEMap) => {
       this.map = new WEMapState(map);
-    }));
+    });
 
     WEEvents.additionDeleted.addListener(({ id }) => {
       if (this.selection.type === WESelectionType.ADDITION && this.selection.id === id) {
@@ -120,6 +122,10 @@ export const WEState = new class WEState {
       if (this.selection.type === WESelectionType.PATCH && this.selection.mapdata === mapdata && this.selection.entity === entity) {
         this.clearEditorSelection();
       }
+    });
+
+    WEEvents.selectionChangeRequest.addListener((selection) => {
+      this.setEditorSelection(selection);
     });
   }
 
@@ -169,6 +175,14 @@ export const WEState = new class WEState {
     }, { code: 'Delete' });
 
     registerCommandBinding({
+      command: WECommand.ACTION_DUPLICATE_SELECTION,
+      label: 'Duplicate selected addition',
+      configurable: true,
+      scope: WECommandScope.EDITOR,
+      execute: this.duplicateSelection,
+    }, { code: 'KeyD', ctrl: true });
+
+    registerCommandBinding({
       command: WECommand.ACTION_SET_ADDITION_ON_GROUND,
       label: 'Set selected addition on ground',
       configurable: true,
@@ -187,6 +201,14 @@ export const WEState = new class WEState {
       scope: WECommandScope.EDITOR,
       execute: this.enterPlaytestMode,
     }, { code: 'F5' });
+
+    registerCommandBinding({
+      command: WECommand.ACTION_FOCUS_SELECTION_IN_VIEW,
+      label: 'Focus selection in view',
+      configurable: true,
+      scope: WECommandScope.EDITOR,
+      execute: this.focusSelectionInView,
+    }, { code: 'KeyF', ctrl: true, shift: true });
   }
 
   readonly deleteSelection = () => {
@@ -202,6 +224,12 @@ export const WEState = new class WEState {
       case WESelectionType.ADDITION: {
         return this.map?.deleteAddition(this.selection.id);
       }
+    }
+  };
+
+  readonly duplicateSelection = () => {
+    if (this.selection.type === WESelectionType.ADDITION) {
+      this.map?.duplicateAddition(this.selection.id);
     }
   };
 
@@ -257,6 +285,41 @@ export const WEState = new class WEState {
   setCam(cam: number[]) {
     invokeWEApi(WEApi.SetCam, cam as WECam);
   }
+
+  focusSelectionInView = () => {
+    let mat: WEEntityMatrix | void;
+    let cam: WECam | void;
+
+    switch (this.selection.type) {
+      case WESelectionType.ADDITION: {
+        const addition = this.map?.additions[this.selection.id];
+
+        mat = addition?.mat;
+        cam = addition?.cam;
+        break;
+      }
+
+      case WESelectionType.PATCH: {
+        const patch = this.map?.patches[this.selection.mapdata]?.[this.selection.entity];
+        if (patch) {
+          mat = patch.mat;
+          cam = patch.cam;
+        } else if (this.selection.mat && this.selection.cam) {
+          mat = this.selection.mat;
+          cam = this.selection.cam;
+        }
+        break;
+      }
+    }
+
+    if (cam && mat) {
+      this.focusInView(cam, [
+        mat[WEEntityMatrixIndex.AX],
+        mat[WEEntityMatrixIndex.AY],
+        mat[WEEntityMatrixIndex.AZ],
+      ]);
+    }
+  };
 
   focusInView(cam: WECam, lookAt: [number, number, number]) {
     invokeWEApi(WEApi.FocusInView, {
@@ -330,12 +393,12 @@ export const WEState = new class WEState {
     return this.selection.id === additionId;
   }
 
-  isPatchSelected(mapdata: string, entity: string) {
+  isPatchSelected(mapdata: string | number, entity: string | number) {
     if (this.selection.type !== WESelectionType.PATCH) {
       return false;
     }
 
-    return this.selection.mapdata === parseInt(mapdata, 10) && this.selection.entity === parseInt(entity, 10);
+    return this.selection.mapdata === toNumber(mapdata) && this.selection.entity === toNumber(entity);
   }
 
   readonly setEditorSelection = (selection: WESelection) => {
