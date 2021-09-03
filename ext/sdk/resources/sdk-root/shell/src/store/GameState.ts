@@ -4,6 +4,7 @@ import { gameApi } from "shared/api.events";
 import { NetLibraryConnectionState, SDKGameProcessState } from "shared/native.enums";
 import { onApiMessage, sendApiMessage, sendApiMessageCallback } from "utils/api";
 import { SingleEventEmitter } from "utils/singleEventEmitter";
+import { onWindowEvent } from "utils/windowMessages";
 import { GameLoadingState } from "./GameLoadingState";
 import { NotificationState } from "./NotificationState";
 
@@ -23,6 +24,11 @@ export const GameState = new class GameState {
     onApiMessage(gameApi.gameLaunched, this.setLaunched);
     onApiMessage(gameApi.gameProcessStateChanged, this.setProcessState);
     onApiMessage(gameApi.connectionStateChanged, this.setConnectionState);
+
+    onWindowEvent('fxdk:gameFatalError', (error: string) => {
+      NotificationState.error(error);
+      this.restart();
+    });
   }
 
   public ack() {
