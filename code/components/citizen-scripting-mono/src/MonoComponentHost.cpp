@@ -16,7 +16,7 @@
 
 #include <Error.h>
 
-#include <EASTL/fixed_map.h>
+#include <EASTL/fixed_hash_map.h>
 
 #include <mono/jit/jit.h>
 #include <mono/utils/mono-logger.h>
@@ -176,11 +176,12 @@ struct _MonoProfiler
 
 MonoProfiler _monoProfiler;
 
-static eastl::fixed_map<MonoDomain*, uint64_t, 4096, false> g_memoryUsages;
-
+static eastl::fixed_hash_map<int32_t, uint64_t, 4096, 4096 + 1, false> g_memoryUsages;
+static std::array<uint64_t, 128> g_memoryUsagesById;
 static std::shared_mutex g_memoryUsagesMutex;
 
 static bool g_requestedMemoryUsage;
+static bool g_enableMemoryUsage = true;
 
 #ifndef IS_FXSERVER
 static void gc_event(MonoProfiler *profiler, MonoGCEvent event, int generation)
@@ -198,15 +199,25 @@ static void gc_event(MonoProfiler* profiler, MonoProfilerGCEvent event, uint32_t
 	//
 	// therefore, we assume the comment is wrong (a typo?) and the implementation is correct, and this should indeed be pre-start-world
 	case MONO_GC_EVENT_PRE_START_WORLD:
-		if (g_requestedMemoryUsage)
+		if (g_requestedMemoryUsage && g_enableMemoryUsage)
 		{
 			std::unique_lock<std::shared_mutex> lock(g_memoryUsagesMutex);
 
 			g_memoryUsages.clear();
+			memset(g_memoryUsagesById.data(), 0, g_memoryUsagesById.size() * sizeof(uint64_t));
 
 			mono_gc_walk_heap(0, [](MonoObject *obj, MonoClass *klass, uintptr_t size, uintptr_t num, MonoObject **refs, uintptr_t *offsets, void *data) -> int
 			{
-				g_memoryUsages[mono_object_get_domain(obj)] += size;
+				auto did = mono_domain_get_id(mono_object_get_domain(obj));
+
+				if (did < 0 || did >= std::size(g_memoryUsagesById))
+				{
+					g_memoryUsages[did] += size;
+				}
+				else
+				{
+					g_memoryUsagesById[did] += size;
+				}
 
 				return 0;
 			}, nullptr);
@@ -225,7 +236,16 @@ static uint64_t GI_GetMemoryUsage()
 	g_requestedMemoryUsage = true;
 
 	std::shared_lock<std::shared_mutex> lock(g_memoryUsagesMutex);
-	return g_memoryUsages[monoDomain];
+	auto did = mono_domain_get_id(monoDomain);
+
+	if (did < 0 || did >= std::size(g_memoryUsagesById))
+	{
+		return g_memoryUsages[did];
+	}
+	else
+	{
+		return g_memoryUsagesById[did];
+	}
 }
 
 static bool GI_SnapshotStackBoundary(MonoArray** blob)
@@ -435,7 +455,12 @@ static void InitMono()
 	// API isn't exposed, and it's clearly not meant for embedding, we just switch to the old non-coop suspender.
 	putenv("MONO_THREADS_SUSPEND=preemptive");
 
-	putenv("MONO_DEBUG=casts");
+	// unsure why this is there
+	//putenv("MONO_DEBUG=casts");
+
+	// low-pause GC mode (with 5ms target pause duration), quadruple default nursery size to ensure first-phase allocs
+	// see https://www.mono-project.com/docs/advanced/garbage-collector/sgen/working-with-sgen/
+	putenv("MONO_GC_PARAMS=mode=pause:5,nursery-size=16m");
 
 #ifndef IS_FXSERVER
 	mono_security_enable_core_clr();
@@ -630,6 +655,8 @@ std::vector<guid_t> MonoGetImplementedClasses(const guid_t& iid)
 
 static InitFunction initFunction([] ()
 {
+	static ConVar<bool> memoryUsageVar("mono_enableMemoryUsageTracking", ConVar_None, true, &g_enableMemoryUsage);
+
 	// should've been ResourceManager but ResourceManager OnTick happens _after_ individual resource ticks
 	// which is too early for on-start Mono resources to have run
 	fx::Resource::OnInitializeInstance.Connect([](fx::Resource* instance)
