@@ -409,6 +409,36 @@ static WRL::ComPtr<IShellLink> MakeShellLink(const ServerLink& link)
 	return psl;
 }
 
+static void SetShellIcon(const std::string& rawIcon)
+{
+	WRL::ComPtr<ITaskbarList3> tbl;
+	if (FAILED(CoCreateInstance(CLSID_TaskbarList,
+		NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&tbl))))
+	{
+		return;
+	}
+
+	auto gameWindow = FindWindowW(xbr::GetGameWndClass(), NULL);
+
+	if (!rawIcon.empty())
+	{
+		try
+		{
+			auto data = Botan::base64_decode(rawIcon);
+			HICON hIcon = CreateIconFromResourceEx(data.data(), data.size(), TRUE, 0x30000, 16, 16, LR_DEFAULTCOLOR);
+			tbl->SetOverlayIcon(gameWindow, hIcon, L"Server");
+			DeleteObject(hIcon);
+		}
+		catch (...)
+		{
+		}
+	}
+	else
+	{
+		tbl->SetOverlayIcon(gameWindow, nullptr, nullptr);
+	}
+}
+
 static void UpdateJumpList(const std::vector<ServerLink>& links)
 {
 	PWSTR aumid;
@@ -514,7 +544,10 @@ static InitFunction initFunction([] ()
 
 				if (auto it = info.find("icon"); it != info.end())
 				{
-					iconUri = "data:image/png;base64," + it.value().get<std::string>();
+					auto iconStr = it.value().get<std::string>();
+					iconUri = "data:image/png;base64," + iconStr;
+
+					SetShellIcon(iconStr);
 				}
 
 				if (auto it = info.find("vars"); it != info.end())
@@ -762,6 +795,8 @@ static InitFunction initFunction([] ()
 	OnKillNetwork.Connect([](const char*)
 	{
 		g_connected = false;
+
+		SetShellIcon("");
 	});
 
 	if (launch::IsSDKGuest())
