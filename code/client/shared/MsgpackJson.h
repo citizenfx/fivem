@@ -132,7 +132,24 @@ inline void ConvertToJSON(const msgpack::object& object, rapidjson::Value& value
 
 		case msgpack::type::MAP:
 		{
-			auto list = object.as<std::map<std::string, msgpack::object>>();
+			std::map<std::string, msgpack::object> list;
+
+			if (object.via.map.ptr)
+			{
+				if (object.via.map.ptr->key.type == msgpack::type::STR)
+				{
+					object.convert(list);
+				}
+				else
+				{
+					auto intList = object.as<std::map<int, msgpack::object>>();
+					for (auto& [key, value] : intList)
+					{
+						list[std::to_string(key)] = std::move(value);
+					}
+				}
+			}
+
 			value.SetObject();
 
 			for (auto& entry : list)
