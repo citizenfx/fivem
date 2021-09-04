@@ -364,6 +364,9 @@ static InitFunction initFunction([]()
 		}
 #endif
 
+		// #TODO: SDK should explicitly notify the resource monitor is opened
+		resourceMonitor->SetShouldGetMemory(taskMgrEnabled || launch::IsSDKGuest());
+
 #ifndef IS_FXSERVER
 		if (launch::IsSDKGuest())
 		{

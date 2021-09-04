@@ -194,7 +194,7 @@ namespace fx
 		});
 #endif
 
-		fx::Resource::OnInitializeInstance.Connect([](fx::Resource* resource)
+		fx::Resource::OnInitializeInstance.Connect([this](fx::Resource* resource)
 		{
 			resource->OnStart.Connect([resource]()
 			{
@@ -217,12 +217,12 @@ namespace fx
 			},
 			-99999999);
 
-			resource->OnTick.Connect([resource]()
+			resource->OnTick.Connect([this, resource]()
 			{
 				auto& metric = *g_metrics[resource->GetName()];
 				metric.ticks.Append(usec() - metric.tickStart);
 
-				if ((usec() - metric.memoryLastFetched) > 500ms)
+				if ((usec() - metric.memoryLastFetched) > 500ms && m_shouldGetMemory)
 				{
 					int64_t totalBytes = GetTotalBytes(resource);
 
@@ -303,77 +303,7 @@ namespace fx
 						showWarning = true;
 						warningText += fmt::sprintf("%s is taking %.2f ms (or -%.1f FPS @ 60 Hz)\n", key, avgTickTime.count() / 1000.0, fpsCount);
 					}
-
-					if (metric.memorySize > (50 * 1024 * 1024))
-					{
-						showWarning = true;
-						warningText += fmt::sprintf("%s is using %.2f MiB of RAM\n", key, metric.memorySize / 1024.0 / 1024.0);
-					}
 				}
-
-#if 0
-						auto avgFrameTime = gameFrameMetrics.GetAverage();
-						auto avgScriptTime = scriptFrameMetrics.GetAverage();
-
-						double avgFrameMs = (avgFrameTime.count() / 1000.0);
-						double avgScriptMs = (avgScriptTime.count() / 1000.0);
-
-						if (avgFrameTime > 0us)
-						{
-							double avgFrameFraction = (avgScriptMs / avgFrameMs);
-
-							bool wouldBeOver60 = false;
-
-							// if <60 FPS (minus render frame queueing guess)
-							if (avgFrameMs >= 15.66)
-							{
-								// and without scripts it would be 60 FPS
-								if ((avgFrameMs - avgScriptMs) < 15.6666)
-								{
-									// use a 30% threshold in that case
-									wouldBeOver60 = (avgFrameFraction >= 0.3);
-								}
-							}
-
-							// 60%, when a frame takes more than 8.33ms (<120 FPS)
-							if ((avgFrameFraction >= 0.6 && avgFrameMs >= 8.33) || wouldBeOver60)
-							{
-								std::vector<std::tuple<uint64_t, std::string>> topEntries;
-
-								for (const auto& [key, metricRef] : metrics)
-								{
-									if (!metricRef)
-									{
-										continue;
-									}
-
-									auto& metric = *metricRef;
-									auto avgTickTime = metric.ticks.GetAverage();
-
-									topEntries.emplace_back(avgTickTime.count(), key);
-								}
-
-								std::sort(topEntries.begin(), topEntries.end());
-
-								std::string topList = "";
-								int c = 0;
-
-								for (auto it = topEntries.rbegin(); it != topEntries.rend(); it++)
-								{
-									if (c >= 3)
-									{
-										break;
-									}
-
-									topList += ((c != 0) ? " " : "") + std::get<1>(*it);
-									c++;
-								}
-
-								showWarning = true;
-								warningText += fmt::sprintf("Total script tick time of %.2fms is %.1f percent of total frame time (%.2fms)%s\nTop resources: [%s]\n", avgScriptMs, avgFrameFraction * 100.0, avgFrameMs, wouldBeOver60 ? "\nOptimizing slow scripts might bring you above 60 FPS. Open the Resource Monitor in F8 to begin." : "", topList);
-							}
-						}
-#endif
 
 				if (showWarning)
 				{

@@ -87,10 +87,18 @@ namespace fx
 		virtual double GetAvgScriptMs();
 		virtual double GetAvgFrameMs();
 
+		inline void SetShouldGetMemory(bool should)
+		{
+			m_shouldGetMemory = should;
+		}
+
 	public:
 		static DEVTOOLS_EXPORT ResourceMonitor* GetCurrent();
 
 		static DEVTOOLS_EXPORT fwEvent<const std::string&> OnWarning;
 		static DEVTOOLS_EXPORT fwEvent<> OnWarningGone;
+
+	private:
+		bool m_shouldGetMemory = false;
 	};
 }
