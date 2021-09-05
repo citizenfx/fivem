@@ -25,8 +25,9 @@
     </div>
     <div class="message-body">
         <article class="media">
-            <figure class="media-left" *ngIf="tweet.image">
-                <img src="{{tweet.image}}" (click)="zoomImage()" loading="lazy">
+            <figure class="media-left" *ngIf="tweet.image" (click)="zoomImage()">
+                <img src="{{tweet.image}}" loading="lazy">
+				<span *ngIf="tweet.video"><span class="material-icons-outlined">play_arrow</span></span>
             </figure>
             <div class="media-content">
                 <div class="content __cfx_ap_content" (click)="clickContent($event)">
@@ -43,6 +44,7 @@
 
 <ng-template #cdkPortal>
 	<div class="image-zoom" [class.active]="zoomedImageUrl" (click)="zoomedImageUrl = undefined">
-		<img [src]="zoomedImageUrl">
+		<img [src]="zoomedImageUrl" *ngIf="!tweet.video">
+		<video autoplay [src]="tweet.video.url" controls *ngIf="zoomedImageUrl && tweet.video"></video>
 	</div>
 </ng-template>

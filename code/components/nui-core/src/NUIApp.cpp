@@ -221,11 +221,6 @@ void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRef
 	// CORB is not handled by CEF CefAddCrossOriginWhitelistEntry, disable CORS entirely
 	command_line->AppendSwitch("disable-web-security");
 
-	// disable these to verify impact on GPU crashes
-	command_line->AppendSwitch("disable-accelerated-video-decode");
-	command_line->AppendSwitch("disable-accelerated-video-encode");
-	command_line->AppendSwitch("disable-accelerated-mjpeg-decode");
-
 	// register the CitizenFX game view plugin
 	// in M73+ it ends up entirely breaking UI rendering
 #if !GTA_NY

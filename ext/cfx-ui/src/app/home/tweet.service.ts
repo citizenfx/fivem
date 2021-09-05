@@ -21,6 +21,10 @@ export class Tweet {
     readonly url: string;
 
     image: string;
+    video: {
+        content_type: string;
+        url: string;
+    };
 
     constructor(json: any) {
         if (json.retweeted_status) {
@@ -33,7 +37,7 @@ export class Tweet {
         this.user_displayname = json.user.name;
         this.user_screenname = json.user.screen_name;
 
-        this.content = this.parseEntities(json.text, json.entities);
+        this.content = this.parseEntities(json.text, json.entities, json.extended_entities || json.entities);
 
         this.date = new Date(json.created_at);
         this.avatar = json.user.profile_image_url_https;
@@ -44,7 +48,7 @@ export class Tweet {
     // based on https://gist.github.com/darul75/88fc42a21f6113708a0b
     // * Copyright 2010, Wade Simmons
     // * Licensed under the MIT license
-    private parseEntities(content: string, entities: any): string {
+    private parseEntities(content: string, entities: any, extended_entities: any): string {
         if (!entities) {
             return content;
         }
@@ -53,9 +57,19 @@ export class Tweet {
 
         entities.urls.forEach(entry => index_map[entry.indices[0]] = [entry.indices[1], text => entry.expanded_url]);
 
-        (entities.media || []).forEach(entry => {
+        (extended_entities.media || []).forEach(entry => {
             if (entry.type === 'photo') {
                 this.image = entry.media_url_https || entry.media_url;
+            } else if (entry.type === 'video') {
+                this.image = entry.media_url_https || entry.media_url;
+
+                const videoVariants: any[] = entry.video_info?.variants || [];
+                const video = videoVariants.sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0))[0];
+
+                this.video = {
+                    url: video.url,
+                    content_type: video.content_type
+                };
             }
 
             index_map[entry.indices[0]] = [entry.indices[1], text => ''];

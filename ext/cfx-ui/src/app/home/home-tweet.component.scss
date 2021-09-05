@@ -71,6 +71,27 @@
             height: auto;
 		}
 
+		figure {
+			position: relative;
+
+			> span {
+				position: absolute;
+				top: 0;
+				left: 0;
+				right: 0;
+				bottom: 0;
+
+				display: flex;
+				align-items: center;
+				justify-content: center;
+
+				span {
+					font-size: var(--q3);
+					text-shadow: rgba(0, 0, 0, .5) 0px 0px var(--qh);
+				}
+			}
+		}
+
 		font-size: var(--fs-075);
 
 		p {
@@ -111,7 +132,7 @@
 		opacity: .5;
 	}
 
-	img, ::ng-deep img {
+	img, ::ng-deep img, video, ::ng-deep video {
 		max-width: 100%;
 		max-height: 100%;
 
@@ -129,7 +150,7 @@
 
 		z-index: 1000;
 
-		img, ::ng-deep img {
+		img, ::ng-deep img, video, ::ng-deep video {
 			transform: scale(1);
 		}
 	}
