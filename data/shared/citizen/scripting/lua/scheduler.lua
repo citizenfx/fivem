@@ -291,7 +291,7 @@ local function resumeThread(thread, coro) -- Internal utility
 		local fst = FormatStackTrace()
 		
 		if fst then
-			Citizen.Trace("^1SCRIPT ERROR: " .. wakeTimeOrErr .. "^7\n")
+			Citizen.Trace("^1SCRIPT ERROR: " .. tostring(wakeTimeOrErr) .. "^7\n")
 			Citizen.Trace(fst)
 		end
 	end
@@ -1207,7 +1207,7 @@ if not isDuplicityVersion then
 			end)
 
 			if err then
-				Citizen.Trace("error during NUI callback " .. type .. ": " .. err .. "\n")
+				Citizen.Trace("error during NUI callback " .. type .. ": " .. tostring(err) .. "\n")
 			end
 		end)
 	end
