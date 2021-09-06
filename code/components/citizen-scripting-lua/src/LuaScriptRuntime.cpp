@@ -59,6 +59,23 @@ static constexpr std::pair<const char*, ManifestVersion> g_scriptVersionPairs[] 
 // Additional flag to denote the profiler was created by IScriptProfiler
 #define LMPROF_STATE_FX_PROFILER 0x80000000
 
+// Utility for sanitizing error messages in an unprotected states. Avoid string coercion (cvt2str) to ensure errors 
+// do not compound.
+#define LUA_SCRIPT_TRACE(L, MSG, ...)                     \
+    try                                                   \
+    {                                                     \
+        const char* err = "error object is not a string"; \
+        if (lua_type((L), -1) == LUA_TSTRING)             \
+        {                                                 \
+            err = lua_tostring((L), -1);                  \
+        }                                                 \
+        ScriptTrace(MSG ": %s\n", ##__VA_ARGS__, err);    \
+    }                                                     \
+    catch (...)                                           \
+    {                                                     \
+    }                                                     \
+    lua_pop((L), 1)
+
 /// <summary>
 /// </summary>
 uint8_t g_metaFields[(size_t)LuaMetaFields::Max];
@@ -280,12 +297,7 @@ static int Lua_SetTickRoutine(lua_State* L)
 		// invoke the tick routine
 		if (lua_pcall(L, 2, 0, eh) != 0)
 		{
-			// Copies the contents of the string, ensuring the pointer remains
-			// valid after lua_pop()
-			std::string err = luaL_checkstring(L, -1);
-			lua_pop(L, 1);
-
-			ScriptTrace("Error running system tick function for resource %s: %s\n", luaRuntime->GetResourceName(), err.c_str());
+			LUA_SCRIPT_TRACE(L, "Error running system tick function for resource %s", luaRuntime->GetResourceName());
 		}
 
 		lua_pop(L, 1);
@@ -364,10 +376,7 @@ static int Lua_SetStackTraceRoutine(lua_State* L)
 		// invoke the tick routine
 		if (lua_pcall(L, 4, 1, eh) != 0)
 		{
-			std::string err = luaL_checkstring(L, -1);
-			lua_pop(L, 1);
-
-			ScriptTrace("Error running stack trace function for resource %s: %s\n", luaRuntime->GetResourceName(), err.c_str());
+			LUA_SCRIPT_TRACE(L, "Error running stack trace function for resource %s", luaRuntime->GetResourceName());
 
 			*blob = nullptr;
 			*size = 0;
@@ -424,10 +433,7 @@ static int Lua_SetEventRoutine(lua_State* L)
 		// invoke the tick routine
 		if (lua_pcall(L, 3, 0, eh) != 0)
 		{
-			std::string err = luaL_checkstring(L, -1);
-			lua_pop(L, 1);
-
-			ScriptTrace("Error running system event handling function for resource %s: %s\n", luaRuntime->GetResourceName(), err.c_str());
+			LUA_SCRIPT_TRACE(L, "Error running system event handling function for resource %s", luaRuntime->GetResourceName());
 		}
 
 		lua_pop(L, 1);
@@ -467,10 +473,7 @@ static int Lua_SetCallRefRoutine(lua_State* L)
 		// invoke the tick routine
 		if (lua_pcall(L, 2, 1, eh) != 0)
 		{
-			std::string err = luaL_checkstring(L, -1);
-			lua_pop(L, 1);
-
-			ScriptTrace("Error running call reference function for resource %s: %s\n", luaRuntime->GetResourceName(), err.c_str());
+			LUA_SCRIPT_TRACE(L, "Error running call reference function for resource %s", luaRuntime->GetResourceName());
 
 			*retval = nullptr;
 			*retvalLength = 0;
@@ -525,10 +528,7 @@ static int Lua_SetDeleteRefRoutine(lua_State* L)
 		// invoke the routine
 		if (lua_pcall(L, 1, 0, eh) != 0)
 		{
-			std::string err = luaL_checkstring(L, -1);
-			lua_pop(L, 1);
-
-			ScriptTrace("Error running system ref deletion function for resource %s: %s\n", luaRuntime->GetResourceName(), err.c_str());
+			LUA_SCRIPT_TRACE(L, "Error running system ref deletion function for resource %s", luaRuntime->GetResourceName());
 		}
 
 		lua_pop(L, 1);
@@ -568,10 +568,7 @@ static int Lua_SetDuplicateRefRoutine(lua_State* L)
 		// invoke the routine
 		if (lua_pcall(L, 1, 1, eh) != 0)
 		{
-			std::string err = luaL_checkstring(L, -1);
-			lua_pop(L, 1);
-
-			ScriptTrace("Error running system ref duplication function for resource %s: %s\n", luaRuntime->GetResourceName(), err.c_str());
+			LUA_SCRIPT_TRACE(L, "Error running system ref duplication function for resource %s", luaRuntime->GetResourceName());
 		}
 		else
 		{
@@ -1074,10 +1071,7 @@ result_t LuaScriptRuntime::LoadFileInternal(OMPtr<fxIStream> stream, char* scrip
 
 	if (luaL_loadbuffer(m_state, &fileData[0], length, chunkName.c_str()) != 0)
 	{
-		std::string err = luaL_checkstring(m_state, -1);
-		lua_pop(m_state, 1);
-
-		ScriptTrace("Error parsing script %s in resource %s: %s\n", scriptFile, GetResourceName(), err.c_str());
+		LUA_SCRIPT_TRACE(m_state, "Error parsing script %s in resource %s", scriptFile, GetResourceName());
 
 		// TODO: change?
 		return FX_E_INVALIDARG;
@@ -1179,10 +1173,7 @@ result_t LuaScriptRuntime::RunFileInternal(char* scriptName, std::function<resul
 
 	if (lua_pcall(m_state, 0, 0, eh) != 0)
 	{
-		std::string err = luaL_checkstring(m_state, -1);
-		lua_pop(m_state, 1);
-
-		ScriptTrace("Error loading script %s in resource %s: %s\n", scriptName, GetResourceName(), err.c_str());
+		LUA_SCRIPT_TRACE(m_state, "Error loading script %s in resource %s", scriptName, GetResourceName());
 
 		return FX_E_INVALIDARG;
 	}
