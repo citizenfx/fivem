@@ -461,7 +461,7 @@ static InitFunction initFunction([] ()
 	rage::scrEngine::OnScriptInit.Connect([] ()
 	{
 		rage::scrEngine::CreateThread(&spawnThread);
-	});
+	}, INT32_MAX);
 
 	Instance<ICoreGameInit>::Get()->OnGameRequestLoad.Connect([]()
 	{
