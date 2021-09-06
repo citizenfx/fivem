@@ -221,8 +221,12 @@ void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRef
 	// CORB is not handled by CEF CefAddCrossOriginWhitelistEntry, disable CORS entirely
 	command_line->AppendSwitch("disable-web-security");
 
+	// disable accelerated video decoding, something in M91 upgrade broke this (instant hang when playing Twitter video)
+	command_line->AppendSwitch("disable-accelerated-video-decode");
+	command_line->AppendSwitch("disable-accelerated-video-encode");
+	command_line->AppendSwitch("disable-accelerated-mjpeg-decode");
+
 	// register the CitizenFX game view plugin
-	// in M73+ it ends up entirely breaking UI rendering
 #if !GTA_NY
 	command_line->AppendSwitchWithValue("register-pepper-plugins", fmt::sprintf("%s;application/x-cfx-game-view", ToNarrow(MakeRelativeCitPath(L"bin\\d3d_rendering.dll"))));
 #endif
