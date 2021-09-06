@@ -136,11 +136,12 @@ static void HandleServerEvent(fx::ServerInstanceBase* instance, const fx::Client
 
 	if (!netEventSizeRateLimiter->Consume(netId, double(dataLength)))
 	{
-		gscomms_execute_callback_on_main_thread([client, instance]()
+		std::string eventName(eventNameBuffer.begin(), eventNameBuffer.end());
+		gscomms_execute_callback_on_main_thread([client, instance, eventName]()
 		{
 			// if this happens, try increasing rateLimiter_netEventSize_rate and rateLimiter_netEventSize_burst
 			// preferably, fix client scripts to not have this large a set of events with high frequency
-			instance->GetComponent<fx::GameServer>()->DropClient(client, "Reliable network event size overflow.");
+			instance->GetComponent<fx::GameServer>()->DropClient(client, "Reliable network event size overflow: %s", eventName);
 		});
 
 		return;
