@@ -199,10 +199,8 @@ static void Init()
 		return resultVec;
 	}));
 
-	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_ROTATION", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	static auto GetEntityRotation = [](const fx::sync::SyncEntityPtr& entity, scrVector& resultVec)
 	{
-		scrVector resultVec = { 0 };
-
 		if (entity->type == fx::sync::NetObjEntityType::Player || entity->type == fx::sync::NetObjEntityType::Ped)
 		{
 			resultVec.x = 0.0f;
@@ -261,46 +259,20 @@ static void Init()
 				}
 			}
 		}
+	};
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_ROTATION", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		scrVector resultVec = { 0 };
+		GetEntityRotation(entity, resultVec);
 		return resultVec;
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_HEADING", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
-		float heading = 0.0f;
-
-		if (entity->type == fx::sync::NetObjEntityType::Player || entity->type == fx::sync::NetObjEntityType::Ped)
-		{
-			auto pn = entity->syncTree->GetPedOrientation();
-
-			if (pn)
-			{
-				heading = pn->currentHeading * 180.0 / pi;
-			}
-		}
-		else
-		{
-			auto en = entity->syncTree->GetEntityOrientation();
-
-			if (en)
-			{
-#if 0
-				heading = en->rotZ * 180.0 / pi;
-#else
-				float qx, qy, qz, qw;
-				en->quat.Save(qx, qy, qz, qw);
-
-				auto m4 = glm::toMat4(glm::quat{ qw, qx, qy, qz });
-
-				float _, z;
-				glm::extractEulerAngleZXY(m4, z, _, _);
-
-				heading = glm::degrees(z);
-#endif
-			}
-		}
-
-		return (heading < 0) ? 360.0f + heading : heading;
+		scrVector resultVec = { 0 };
+		GetEntityRotation(entity, resultVec);
+		return (resultVec.z < 0) ? 360.0f + resultVec.z : resultVec.z;
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_POPULATION_TYPE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
