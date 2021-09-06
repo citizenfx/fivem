@@ -512,14 +512,11 @@ static int ReturnTrueFromScript(void* a1, void* a2)
 	return true;
 }
 
-static void(*g_origResetOwnedThreads)();
+static void(*g_CTheScripts__Shutdown)(void);
 
-static void ResetOwnedThreads()
+static void CTheScripts__Shutdown()
 {
-	if (Instance<ICoreGameInit>::Get()->HasVariable("storyMode"))
-	{
-		return g_origResetOwnedThreads();
-	}
+	g_CTheScripts__Shutdown();
 
 	for (auto& thread : g_ownedThreads)
 	{
@@ -632,7 +629,8 @@ static HookFunction hookFunction([] ()
 
 		// replace `startup` initialization with resetting all owned threads
 		//hook::jump(hook::get_pattern("48 63 18 83 FB FF 0F 84 D6", -0x34), ResetOwnedThreads);
-		MH_CreateHook(hook::get_pattern("48 63 18 83 FB FF 0F 84 D6", -0x34), ResetOwnedThreads, (void**)&g_origResetOwnedThreads);
+		//MH_CreateHook(hook::get_pattern("48 63 18 83 FB FF 0F 84 D6", -0x34), ResetOwnedThreads, (void**)&g_origResetOwnedThreads);
+		MH_CreateHook(hook::get_pattern("48 8B 0D ? ? ? ? 33 D2 48 8B 01 FF 10", -0x58), CTheScripts__Shutdown, (void**)&g_CTheScripts__Shutdown);
 
 		MH_EnableHook(MH_ALL_HOOKS);
 	}

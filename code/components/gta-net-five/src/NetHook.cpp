@@ -966,6 +966,7 @@ static HookFunction initFunction([]()
 			OnKillNetwork.Connect([](const char*)
 			{
 				gameLoaded = false;
+				Instance<ICoreGameInit>::Get()->ClearVariable("networkTimedOut");
 			});
 
 			if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
