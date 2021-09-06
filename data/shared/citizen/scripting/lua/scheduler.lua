@@ -348,13 +348,13 @@ function Citizen.Await(promise)
 	-- Indicates if the promise has already been resolved or rejected
 	-- This is a hack since the API does not expose its state
 	local isDone = false
-	local result, err
-	promise = promise:next(function(...)
+	local resolve, reject
+	promise = promise:next(function(result)
 		isDone = true
-		result = {...}
-	end,function(error)
+		resolve = {result}
+	end,function(err)
 		isDone = true
-		err = error
+		reject = {err}
 	end)
 
 	if not isDone then
@@ -375,11 +375,11 @@ function Citizen.Await(promise)
 		Citizen.Wait(0)
 	end
 
-	if err then
-		error(err)
+	if reject then
+		return table_unpack(reject)
 	end
 
-	return table_unpack(result)
+	return table_unpack(resolve)
 end
 
 function Citizen.SetTimeout(msec, callback)
