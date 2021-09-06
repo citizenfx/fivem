@@ -190,7 +190,7 @@ void TraceRealV(const char* channel, const char* func, const char* file, int lin
 		InitializeCriticalSectionAndSpinCount(&dbgCritSec, 100);
 	}
 
-#if not defined(GTA_NY)
+#if !defined(GTA_NY)
 	if (CoreIsDebuggerPresent())
 	{
 		// thanks to anti-debug workarounds (IsBeingDebugged == FALSE), we'll have to raise the exception to the debugger ourselves.

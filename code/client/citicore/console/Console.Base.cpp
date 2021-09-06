@@ -212,7 +212,8 @@ bool GIsPrinting()
 
 namespace console
 {
-static std::vector<void(*)(ConsoleChannel, const char*)> g_printListeners = { PrintfTraceListener };
+static fwEvent<ConsoleChannel, const char*> g_printFilter;
+static std::vector<void (*)(ConsoleChannel, const char*)> g_printListeners = { PrintfTraceListener };
 static int g_useDeveloper;
 
 void Printfv(ConsoleChannel channel, std::string_view format, fmt::printf_args argList)
@@ -223,6 +224,12 @@ void Printfv(ConsoleChannel channel, std::string_view format, fmt::printf_args a
 	if (buffer.find('\0') != std::string::npos)
 	{
 		boost::algorithm::replace_all(buffer, std::string_view{ "\0", 1 }, "^5<\\0>^7");
+	}
+
+	// run print filter
+	if (!g_printFilter(channel, buffer.data()))
+	{
+		return;
 	}
 
 	// print to all interested listeners
@@ -258,6 +265,11 @@ static ConVar<int> developerVariable(GetDefaultContext(), "developer", ConVar_Ar
 extern "C" DLL_EXPORT void CoreAddPrintListener(void(*function)(ConsoleChannel, const char*))
 {
 	console::g_printListeners.push_back(function);
+}
+
+extern "C" DLL_EXPORT fwEvent<ConsoleChannel, const char*>* CoreGetPrintFilterEvent()
+{
+	return &console::g_printFilter;
 }
 
 extern "C" DLL_EXPORT void CoreSetPrintFunction(void(*function)(const char*))

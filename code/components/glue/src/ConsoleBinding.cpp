@@ -60,8 +60,19 @@ static InitFunction initFunction([]()
 
 	auto execRoot = []()
 	{
+		// hide any console prints from this early execution
+		auto& printFilterEvent = *console::CoreGetPrintFilterEvent();
+		auto filter = printFilterEvent.Connect([](ConsoleChannel, const char*)
+		{
+			return false;
+		});
+
+		// actually execute commands
 		se::ScopedPrincipal seContext(se::Principal{ "system.console" });
 		console::GetDefaultContext()->ExecuteSingleCommandDirect(ProgramArguments{ "exec", fmt::sprintf("%s%s%s.cfg", (safeExec) ? "fxd:/" : "", CONFIG_NAME, launch::IsSDKGuest() ? "_sdk" : "") });
+
+		// remove the filter
+		printFilterEvent.Disconnect(filter);
 	};
 
 	rage::fiDevice::OnInitialMount.Connect([execRoot]()
