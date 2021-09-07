@@ -518,6 +518,7 @@ namespace fx
 		object->OnStop.Connect([=]()
 		{
 			m_resourcePairs.clear();
+			m_hashPairs.clear();
 		}, -500);
 	}
 
