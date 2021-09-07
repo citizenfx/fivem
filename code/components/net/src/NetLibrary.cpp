@@ -610,7 +610,7 @@ void NetLibrary::RunFrame()
 		case CS_CONNECTING:
 			if ((GetTickCount() - m_lastConnect) > 5000 && m_impl->IsDisconnected())
 			{
-				m_impl->SendConnect(fmt::sprintf("token=%s&guid=%llu", m_token, (uint64_t)GetGUID()));
+				m_impl->SendConnect(m_token, fmt::sprintf("token=%s&guid=%llu", m_token, (uint64_t)GetGUID()));
 
 				m_lastConnect = GetTickCount();
 
@@ -649,7 +649,7 @@ void NetLibrary::RunFrame()
 			{
 				if ((GetTickCount() - m_lastReconnect) > 5000)
 				{
-					m_impl->SendConnect(fmt::sprintf("token=%s&guid=%llu", m_token, (uint64_t)GetGUID()));
+					m_impl->SendConnect(m_token, fmt::sprintf("token=%s&guid=%llu", m_token, (uint64_t)GetGUID()));
 
 					m_lastReconnect = GetTickCount();
 

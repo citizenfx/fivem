@@ -115,6 +115,7 @@ enet_host_create (const ENetAddress * address, size_t peerCount, size_t channelL
 
     host -> intercept = NULL;
     host -> peerTimeoutCb = NULL;
+    host -> validateDataCb = NULL;
 
     enet_list_clear (& host -> dispatchQueue);
 

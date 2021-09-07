@@ -324,6 +324,9 @@ enet_protocol_handle_connect (ENetHost * host, ENetProtocolHeader * header, ENet
     if (peer == NULL || duplicatePeers >= host -> duplicatePeers)
       return NULL;
 
+    if (host -> validateDataCb && !host -> validateDataCb (host, &host->receivedAddress, ENET_NET_TO_HOST_32(command->connect.data)))
+        return NULL;
+
     if (channelCount > host -> channelLimit)
       channelCount = host -> channelLimit;
     peer -> channels = (ENetChannel *) enet_malloc (channelCount * sizeof (ENetChannel));
