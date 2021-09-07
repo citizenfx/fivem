@@ -15,6 +15,7 @@ import { OpenFlag } from "./generic/OpenFlag";
 import { ConfirmationsState } from "./ConfirmationsState";
 import { deleteIcon } from "constants/icons";
 import React from "react";
+import { AssetDefinition } from "assets/core/asset-interface";
 
 
 class ProjectObject implements ProjectData, DisposableObject {
@@ -53,8 +54,7 @@ class ProjectObject implements ProjectData, DisposableObject {
       onApiMessage(projectApi.fsUpdate, this.updateFs),
       onApiMessage(projectApi.pathsStateUpdate, this.updatePathsState),
       onApiMessage(assetApi.setConfig, this.setAssetConfig),
-      onApiMessage(assetApi.setType, this.setAssetType),
-      onApiMessage(assetApi.setDefinition, this.setAssetDefinition),
+      onApiMessage(assetApi.updates, this.handleAssetUpdates),
     );
   }
 
@@ -174,20 +174,15 @@ class ProjectObject implements ProjectData, DisposableObject {
     }
   };
 
-  private setAssetType = (assetTypes: Record<string, AssetType | void>) => {
-    for (const [assetPath, assetType] of Object.entries(assetTypes)) {
-      this.assetTypes[assetPath] = assetType;
+  private readonly handleAssetUpdates = (updates: Record<string, { type: AssetType | void, def: AssetDefinition | void }>) => {
+    for (const [assetPath, { type, def }] of Object.entries(updates)) {
+      this.assetTypes[assetPath] = type;
+      this.assetDefs[assetPath] = def;
     }
   };
 
   private setAssetConfig = ([assetPath, config]) => {
     this.assets[assetPath] = config;
-  };
-
-  private setAssetDefinition = (assetDefs: Record<string, any>) => {
-    for (const [assetPath, def] of Object.entries(assetDefs)) {
-      this.assetDefs[assetPath] = def;
-    }
   };
 
   private updatePathsState = (pathsState: ProjectPathsState) => {

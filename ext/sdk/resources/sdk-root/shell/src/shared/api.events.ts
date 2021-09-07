@@ -41,8 +41,8 @@ export const assetApi = {
   import: 'asset:import',
 
   setConfig: 'asset:setConfig',
-  setType: 'asset:setType',
-  setDefinition: 'asset:setDefinition',
+
+  updates: 'asset:updates',
 };
 
 export const githubApi = {
