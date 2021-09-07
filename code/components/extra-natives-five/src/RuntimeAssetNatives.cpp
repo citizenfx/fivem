@@ -253,6 +253,16 @@ RuntimeTex* RuntimeTxd::CreateTexture(const char* name, int width, int height)
 		return nullptr;
 	}
 
+	if (width <= 0 || width > 8192)
+	{
+		return nullptr;
+	}
+
+	if (height <= 0 || height > 8192)
+	{
+		return nullptr;
+	}
+
 	auto tex = std::make_shared<RuntimeTex>(name, width, height);
 	m_txd->Add(name, tex->GetTexture());
 
