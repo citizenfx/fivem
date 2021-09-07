@@ -1,5 +1,5 @@
 import { inject, injectable, named } from "inversify";
-import { AssetInterface } from "assets/core/asset-interface";
+import { AssetDefinition, AssetInterface } from "assets/core/asset-interface";
 import { DisposableObject } from "backend/disposable-container";
 import { FilesystemEntry } from "shared/api.types";
 import { isChildAssetPath, isParentAssetPath } from "utils/project";
@@ -49,8 +49,8 @@ export class ProjectAssetsRuntime implements DisposableObject {
   private assets: Record<string, AssetInterface> = Object.create(null);
 
   private assetTypeSetTicker = new Ticker();
-  private pendingAssetTypesSet: Record<string, AssetType | void> | void;
-  private pendingAssetDefsSet: Record<string, any> | void;
+
+  private pendingAssetUpdates: Record<string, { type: AssetType | void, def: AssetDefinition | void }> | void;
 
   async init(rt: ProjectRuntime) {
     this.rt = rt;
@@ -103,7 +103,7 @@ export class ProjectAssetsRuntime implements DisposableObject {
 
       if (asset) {
         this.assets[assetEntry.path] = asset;
-        this.setAssetInformation(assetEntry.path, asset.type, asset.getDefinition?.() ?? {});
+        this.updateAssetInfo(asset);
         return true;
       }
     }
@@ -113,7 +113,7 @@ export class ProjectAssetsRuntime implements DisposableObject {
 
   async dispose() {
     for (const asset of Object.values(this.assets)) {
-      this.setAssetInformation(asset.getPath(), undefined, undefined);
+      this.deleteAssetInfo(asset);
       await asset.dispose?.();
     }
   }
@@ -125,7 +125,7 @@ export class ProjectAssetsRuntime implements DisposableObject {
     }
 
     for (const asset of this.findAssetWithChildren(assetPath)) {
-      this.setAssetInformation(asset.getPath(), undefined, undefined);
+      this.deleteAssetInfo(asset);
       delete this.assets[assetPath];
       await asset.dispose?.();
     }
@@ -312,34 +312,37 @@ export class ProjectAssetsRuntime implements DisposableObject {
   refreshInfo(assetPath: string) {
     const asset = this.get(assetPath);
     if (asset) {
-      this.setAssetInformation(assetPath, asset.type, asset.getDefinition?.() ?? {});
+      this.updateAssetInfo(asset);
     }
   }
 
-  resolveMetadata(asset: AssetInterface) {
-    this.setAssetInformation(asset.getPath(), asset.type, asset.getDefinition?.() ?? {});
+  private updateAssetInfo(asset: AssetInterface) {
+    this.setAssetInfo(asset.getPath(), asset.type, asset.getDefinition?.() ?? {});
   }
 
-  private setAssetInformation(assetPath: string, assetType: AssetType | void, assetDef: any) {
-    if (!this.pendingAssetTypesSet) {
-      this.pendingAssetTypesSet = {};
-    }
+  private deleteAssetInfo(asset: AssetInterface) {
+    this.setAssetInfo(asset.getPath());
+  }
 
-    if (!this.pendingAssetDefsSet) {
-      this.pendingAssetDefsSet = {};
+  private setAssetInfo(assetPath: string, assetType?: AssetType, assetDef?: AssetDefinition) {
+    if (!this.pendingAssetUpdates) {
+      this.pendingAssetUpdates = {};
     }
 
     this.logService.log('Queueing asset info set', { assetPath, assetType, assetDef });
 
-    this.pendingAssetTypesSet[assetPath] = assetType;
-    this.pendingAssetDefsSet[assetPath] = assetDef;
+    this.pendingAssetUpdates[assetPath] = {
+      type: assetType,
+      def: assetDef,
+    };
+
+    this.logService.log('Queued asset info', this.pendingAssetUpdates);
 
     this.assetTypeSetTicker.whenTickEnds(() => {
-      this.logService.log('Setting asset infos', this.pendingAssetTypesSet, this.pendingAssetDefsSet);
-      this.apiClient.emit(assetApi.setType, this.pendingAssetTypesSet);
-      this.apiClient.emit(assetApi.setDefinition, this.pendingAssetDefsSet);
-      this.pendingAssetTypesSet = undefined;
-      this.pendingAssetDefsSet = undefined;
+      this.logService.log('Setting asset infos', this.pendingAssetUpdates);
+
+      this.apiClient.emit(assetApi.updates, this.pendingAssetUpdates);
+      this.pendingAssetUpdates = undefined;
     });
   }
 

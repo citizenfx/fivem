@@ -182,7 +182,8 @@ export class FsMapping {
         }
 
         if (parent) {
-          parent.push(entry);
+          this.setEntry(parent, entry);
+
           this.pendingUpdates.replace[parentPath] = parent;
         }
 
@@ -218,13 +219,7 @@ export class FsMapping {
         }
 
         if (parent) {
-          const updatedEntryIndex = parent.findIndex((entry) => entry.path === entryPath);
-
-          if (updatedEntryIndex > -1) {
-            parent[updatedEntryIndex] = entry;
-          } else {
-            parent.push(entry);
-          }
+          this.setEntry(parent, entry);
 
           this.pendingUpdates.replace[parentPath] = parent;
         }
@@ -265,6 +260,15 @@ export class FsMapping {
     await Promise.all(promises);
 
     this.afterUpdate(type, entryPath, entry);
+  }
+
+  private setEntry(at: FilesystemEntry[], entry: FilesystemEntry) {
+    const idx = at.findIndex(({ path }) => entry.path === path);
+    if (idx > -1) {
+      at[idx] = entry;
+    } else {
+      at.push(entry);
+    }
   }
 
   private deleteFolderFromMap(folderPath: string) {
