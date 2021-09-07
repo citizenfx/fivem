@@ -551,7 +551,7 @@ namespace rage
 	{
 		_audSoundInitParams_ctor(this);
 
-		m_pad[0x9A] = *initParamVal;
+		SetAllocationBucket(*initParamVal);
 	}
 
 	class audRequestedSettings
@@ -1094,7 +1094,7 @@ void MumbleAudioEntity::Poll(int samples)
 	}
 }
 
-static constexpr int kExtraAudioBuckets = 4;
+static constexpr int kExtraAudioBuckets = 6;
 static uint32_t bucketsUsed[kExtraAudioBuckets];
 
 void MumbleAudioEntity::MInit()
