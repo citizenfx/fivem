@@ -40,7 +40,7 @@ export class ProjectStateRuntime {
     return this._fxserverCwd;
   }
 
-  init(path: string) {
+  async init(path: string) {
     this._path = path;
 
     this._manifestPath = this.fsService.joinPath(this._path, fxdkProjectFilename);
@@ -49,6 +49,12 @@ export class ProjectStateRuntime {
     this._pathsStatePath = this.fsService.joinPath(this._storagePath, PROJECT_PATHS_STATE_FILENAME);
 
     this._fxserverCwd = this.fsService.joinPath(this._storagePath, 'fxserver');
+
+    // this will create, if needed:
+    //   this.path
+    //   this.storagePath
+    //   this.fxserverCwd
+    await this.fsService.mkdirp(this._fxserverCwd);
   }
 
   getState(): ProjectState {

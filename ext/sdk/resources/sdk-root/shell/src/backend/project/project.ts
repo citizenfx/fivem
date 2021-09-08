@@ -210,7 +210,7 @@ export class Project implements ApiContribution {
     const creatingTask = this.taskReporterService.createNamed(projectCreatingTaskName, `Creating project ${request.projectName}`);
 
     this.rt = this.containerAccess.resolve(ProjectRuntime);
-    this.rt.initState(this.fsService.joinPath(request.projectPath, request.projectName));
+    await this.rt.initState(this.fsService.joinPath(request.projectPath, request.projectName));
 
     const projectManifest: ProjectManifest = {
       name: request.projectName,
@@ -222,9 +222,6 @@ export class Project implements ApiContribution {
     };
 
     try {
-      // This will create this.path as well
-      await this.fsService.mkdirp(this.rt.state.storagePath);
-
       await Promise.all([
         // Write project manifest
         this.fsService.writeFileJson(this.rt.state.manifestPath, projectManifest),
@@ -246,9 +243,9 @@ export class Project implements ApiContribution {
     return this.load(false);
   }
 
-  open(projectPath: string): Promise<Project> {
+  async open(projectPath: string): Promise<Project> {
     this.rt = this.containerAccess.resolve(ProjectRuntime);
-    this.rt.initState(this.fsService.resolvePath(projectPath));
+    await this.rt.initState(this.fsService.resolvePath(projectPath));
 
     return this.load(true);
   }
