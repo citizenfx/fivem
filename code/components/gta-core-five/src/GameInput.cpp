@@ -350,6 +350,7 @@ Binding::~Binding()
 
 static void* g_control;
 static uint32_t g_mapperOffset;
+static std::multiset<std::string, std::less<>> g_downSet;
 
 static hook::cdecl_stub<bool(int)> _isMenuActive([]
 {
@@ -395,7 +396,11 @@ void Binding::Update(rage::ioMapper* mapper)
 
 	if (isDownEvent || isUpEvent)
 	{
-		const auto& commandString = m_command;
+		std::string_view commandString = m_command;
+		if (commandString.find("~!") == 0)
+		{
+			commandString = commandString.substr(2);
+		}
 
 		// split the string by ';' (so button bindings get handled separately)
 		int i = 0;
@@ -430,14 +435,31 @@ void Binding::Update(rage::ioMapper* mapper)
 					{
 						if (isDownEvent)
 						{
-							// TODO: add key code arguments
-							console::GetDefaultContext()->AddToBuffer(thisString + "\n");
+							// if it wasn't pressed yet, submit the `+` ('down') command
+							if (g_downSet.find(thisString) == g_downSet.end())
+							{
+								// TODO: add key code arguments
+								console::GetDefaultContext()->AddToBuffer(thisString + "\n");
+							}
+							
+							// add a reference to the multiset
+							g_downSet.insert(thisString);
 						}
 						else
 						{
-							// up event is -[button cmd]
-							// TODO: add key code arguments
-							console::GetDefaultContext()->AddToBuffer("-" + thisString.substr(1) + "\n");
+							// remove *one* reference to the key
+							if (auto it = g_downSet.find(thisString); it != g_downSet.end())
+							{
+								g_downSet.erase(it);
+							}
+
+							// if this was the last reference, run the `-` ('up') command
+							if (g_downSet.find(thisString) == g_downSet.end())
+							{
+								// up event is -[button cmd]
+								// TODO: add key code arguments
+								console::GetDefaultContext()->AddToBuffer("-" + thisString.substr(1) + "\n");
+							}
 						}
 
 						hadButtonEvent = true;
@@ -951,18 +973,16 @@ static void* GetBindingForControl(void* control, rage::ioInputSource* outBinding
 		outBinding->source = -1;
 		outBinding->unk = -1;
 
-		if (subIdx == 0)
-		{
-			auto controlRef = GetRegisteredBindingByHash(controlId);
+		auto controlRef = GetRegisteredBindingByHash(controlId);
+		auto commandMatch = fmt::sprintf("%s%s", (subIdx == 0) ? "" : "~!", controlRef.first);
 
-			for (auto& bindingSet : bindingManager.GetBindings())
+		for (auto& bindingSet : bindingManager.GetBindings())
+		{
+			if (bindingSet.second->GetCommand() == commandMatch && IsTagActive(bindingSet.second->GetTag()))
 			{
-				if (bindingSet.second->GetCommand() == controlRef.first && IsTagActive(bindingSet.second->GetTag()))
-				{
-					bindingSet.second->GetBinding(*outBinding);
-					outBinding->unk = source;
-					break;
-				}
+				bindingSet.second->GetBinding(*outBinding);
+				outBinding->unk = source;
+				break;
 			}
 		}
 
@@ -1028,9 +1048,9 @@ static void MapControlInternal(void* control, uint32_t controlId, int sourceIdx,
 			auto ioSource = input->source;
 			auto ioParameter = input->parameter;
 
-			bindingManager.QueueOnFrame([ioSource, ioParameter, pair]()
+			bindingManager.QueueOnFrame([ioSource, ioParameter, pair, subIdx]()
 			{
-				auto binding = bindingManager.Bind(ioSource, ioParameter, pair.first);
+				auto binding = bindingManager.Bind(ioSource, ioParameter, fmt::sprintf("%s%s", (subIdx == 0) ? "" : "~!", pair.first));
 
 				if (binding)
 				{
