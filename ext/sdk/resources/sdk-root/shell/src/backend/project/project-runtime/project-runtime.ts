@@ -33,7 +33,7 @@ export class ProjectRuntime {
 
   initState(projectPath: string) {
     this.state = this.containerAccess.resolve(ProjectStateRuntime);
-    this.state.init(projectPath);
+    return this.state.init(projectPath);
   }
 
   async init(task: Task) {
