@@ -34,7 +34,7 @@ public:
 
 	virtual void Flush() override;
 
-	virtual void SendConnect(const std::string& connectData) override;
+	virtual void SendConnect(const std::string& m_token, const std::string& connectData) override;
 
 	virtual bool IsDisconnected() override;
 
@@ -44,8 +44,6 @@ public:
 
 private:
 	void ProcessPacket(const uint8_t* data, size_t size, NetPacketMetrics& metrics, ENetPacketFlag flags);
-
-	void SendPacketQueue();
 
 private:
 	std::string m_connectData;
@@ -315,13 +313,13 @@ void NetLibraryImplV2::RunFrame()
 	}
 }
 
-void NetLibraryImplV2::SendConnect(const std::string& connectData)
+void NetLibraryImplV2::SendConnect(const std::string& token, const std::string& connectData)
 {
 	m_timedOut = false;
 	m_connectData = connectData;
 
 	auto addr = m_base->GetCurrentServer().GetENetAddress();
-	m_serverPeer = enet_host_connect(m_host, &addr, 2, 0);
+	m_serverPeer = enet_host_connect(m_host, &addr, 2, HashString(token.c_str()));
 
 	// all-but-disable the backoff-based timeout, and set the hard timeout to 30 seconds (equivalent to server-side check!)
 	enet_peer_timeout(m_serverPeer, 10000000, 10000000, 30000);

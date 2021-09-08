@@ -153,9 +153,11 @@ namespace fx
 		GameServerNetImplENet(GameServer* server)
 			: m_server(server), m_basePeerId(1)
 		{
+			m_clientRegistry = m_server->GetInstance()->GetComponent<fx::ClientRegistry>();
+
 			static ConsoleCommand cmd("force_enet_disconnect", [this](int peerIdx)
 			{
-				auto client = m_server->GetInstance()->GetComponent<fx::ClientRegistry>()->GetClientByNetID(peerIdx);
+				auto client = m_clientRegistry->GetClientByNetID(peerIdx);
 
 				if (!client)
 				{
@@ -223,6 +225,11 @@ namespace fx
 				}
 				}
 			}
+		}
+
+		bool OnValidateData(ENetHost* host, const ENetAddress* address, uint32_t data)
+		{
+			return m_clientRegistry->HasClientByConnectionTokenHash(data);
 		}
 
 		void OnTimeout(ENetHost* host, ENetPeer* peer)
@@ -450,6 +457,11 @@ namespace fx
 				return g_hostInstances[host]->OnTimeout(host, peer);
 			};
 
+			host->validateDataCb = [](ENetHost* host, const ENetAddress* address, uint32_t data)
+			{
+				return g_hostInstances[host]->OnValidateData(host, address, data);
+			};
+
 			this->hosts.push_back(THostPtr{ host });
 
 			this->OnHostRegistered(host);
@@ -467,6 +479,8 @@ namespace fx
 
 	private:
 		GameServer* m_server;
+
+		fwRefContainer<fx::ClientRegistry> m_clientRegistry;
 
 	public:
 		friend class NetPeerImplENet;

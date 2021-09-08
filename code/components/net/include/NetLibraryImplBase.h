@@ -42,7 +42,7 @@ public:
 		return SendReliableCommand(type, buffer, length);
 	}
 
-	virtual void SendConnect(const std::string& connectData) = 0;
+	virtual void SendConnect(const std::string& token, const std::string& connectData) = 0;
 
 	virtual bool HasTimedOut() = 0;
 

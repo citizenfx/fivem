@@ -92,6 +92,7 @@ namespace fx
 			m_clientsByPeer[client->GetPeer()].reset();
 			m_clientsByNetId[client->GetNetId()].reset();
 			m_clientsByConnectionToken[client->GetConnectionToken()].reset();
+			m_clientsByConnectionTokenHash[HashString(client->GetConnectionToken().c_str())].reset();
 
 			if (client->GetSlotId() >= 0 && client->GetSlotId() < m_clientsBySlotId.size())
 			{
@@ -198,6 +199,16 @@ namespace fx
 			return ptr;
 		}
 
+		inline bool HasClientByConnectionTokenHash(uint32_t hash)
+		{
+			if (auto it = m_clientsByConnectionTokenHash.find(hash); it != m_clientsByConnectionTokenHash.end())
+			{
+				return it->second.lock();
+			}
+
+			return false;
+		}
+
 		template<typename TFn>
 		inline void ForAllClientsLocked(TFn&& cb)
 		{
@@ -260,6 +271,7 @@ namespace fx
 		tbb::concurrent_unordered_map<net::PeerAddress, fx::ClientWeakPtr> m_clientsByEndPoint;
 		tbb::concurrent_unordered_map<std::string, fx::ClientWeakPtr> m_clientsByTcpEndPoint;
 		tbb::concurrent_unordered_map<std::string, fx::ClientWeakPtr> m_clientsByConnectionToken;
+		tbb::concurrent_unordered_map<uint32_t, fx::ClientWeakPtr> m_clientsByConnectionTokenHash;
 		tbb::concurrent_unordered_map<int, fx::ClientWeakPtr> m_clientsByPeer;
 
 		std::mutex m_clientSlotMutex;

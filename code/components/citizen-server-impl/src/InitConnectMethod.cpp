@@ -435,19 +435,11 @@ static InitFunction initFunction([]()
 			auto gameBuild = (gameBuildIt != postMap.end()) ? gameBuildIt->second : "0";
 			auto gameName = (gameNameIt != postMap.end()) ? gameNameIt->second : "";
 
-			if (protocol < 6)
+			if (protocol < 12)
 			{
-				sendError("Client/server version mismatch.");
+				sendError("Client/server version mismatch. Restart your game client to update. If that did not help, "
+					"this server is using too new a version for the current game client.");
 				return;
-			}
-
-			if (fx::IsOneSync())
-			{
-				if (protocol < 11)
-				{
-					sendError("Client/server version mismatch.");
-					return;
-				}
 			}
 
 			// verify game name

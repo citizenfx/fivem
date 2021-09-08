@@ -407,6 +407,7 @@ typedef struct _ENetHost
    size_t               maximumWaitingData;          /**< the maximum aggregate amount of buffer space a peer may use waiting for packets to be delivered */
 
    void                 (*peerTimeoutCb)(_ENetHost* host, ENetPeer* peer);
+   bool                 (*validateDataCb)(_ENetHost* host, const ENetAddress* address, enet_uint32 data);
 } ENetHost;
 
 /**

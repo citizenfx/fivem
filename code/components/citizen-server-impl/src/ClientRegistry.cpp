@@ -135,7 +135,13 @@ namespace fx
 
 		client->OnAssignConnectionToken.Connect([this, weakClient]()
 		{
-			m_clientsByConnectionToken[weakClient.lock()->GetConnectionToken()] = weakClient;
+			auto client = weakClient.lock();
+
+			if (client)
+			{
+				m_clientsByConnectionToken[client->GetConnectionToken()] = weakClient;
+				m_clientsByConnectionTokenHash[HashString(client->GetConnectionToken().c_str())] = weakClient;
+			}
 		});
 
 		OnClientCreated(client);
