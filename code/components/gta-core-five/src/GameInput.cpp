@@ -343,6 +343,7 @@ Binding::~Binding()
 {
 	for (rage::ioMapper* mapper : m_mappers)
 	{
+		mapper->RemoveDeviceMappings(m_value, -1);
 		mapper->RemoveDeviceMappings(m_value, -4);
 	}
 }
@@ -1236,6 +1237,17 @@ static HookFunction hookFunction([]()
 
 		// return array index (force to 0)
 		hook::put<uint32_t>(location + 0x24, 0x90DB3148);
+	}
+
+	// rage::ioMapper::Scan missing pad 0
+	hook::put<uint8_t>(hook::get_pattern("75 E9 41 8D 78 03", 5), 2);
+
+	// pad ignoring for control binds
+	{
+		auto location = hook::get_pattern<char>("83 F8 FD 75 49", 3);
+		hook::nop(location, 2);
+		hook::nop(location + 13, 2);
+		hook::nop(location + 69, 6);
 	}
 
 	// control
