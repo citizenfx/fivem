@@ -263,7 +263,8 @@ std::string GetAuthSessionTicket(uint32_t appID)
 	} shutdown;
 
 	// get local ownership
-	if (!SteamApps()->BIsSubscribedApp(appID))
+	if (!SteamApps()->BIsSubscribed() ||
+		SteamApps()->GetAppOwner() != SteamUser()->GetSteamID())
 	{
 		return "";
 	}
