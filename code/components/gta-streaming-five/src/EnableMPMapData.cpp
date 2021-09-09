@@ -8,18 +8,30 @@
 #include <StdInc.h>
 #include <Hooking.h>
 
+#include <ICoreGameInit.h>
 #include <LaunchMode.h>
+
+uint32_t GetCurrentMapGroup()
+{
+	bool isSP = (CfxIsSinglePlayer() || Instance<ICoreGameInit>::Get()->HasVariable("storyMode"));
+	return (isSP) ? HashString("GROUP_MAP_SP") : HashString("GROUP_MAP");
+}
+
+static void (*origEnableGroup)(void*, uint32_t);
+
+static void _enableGroupHook(void* self, uint32_t group)
+{
+	origEnableGroup(self, GetCurrentMapGroup());
+}
 
 static HookFunction hookFunction([] ()
 {
-	if (CfxIsSinglePlayer())
 	{
-		return;
+		// replace default loading of GROUP_MAP_SP DLC with loading of GROUP_MAP (MP) DLC.
+		auto location = hook::get_pattern<char>("75 0D BA E2 99 8F 57", 0);
+
+		hook::nop(location, 2);
+		hook::set_call(&origEnableGroup, location + 10);
+		hook::call(location + 10, _enableGroupHook);
 	}
-
-	// replace default loading of GROUP_MAP_SP DLC in some cases with consistent loading of GROUP_MAP (MP) DLC.
-	char* location = hook::pattern("75 0D BA E2 99 8F 57").count(1).get(0).get<char>(0);
-
-	hook::nop(location, 2);
-	hook::put(location + 3, 0xBCC89179); // GROUP_MAP
 });

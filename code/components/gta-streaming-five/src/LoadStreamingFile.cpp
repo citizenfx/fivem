@@ -844,6 +844,8 @@ extern std::unordered_map<int, std::string> g_handlesToTag;
 fwEvent<> OnReloadMapStore;
 
 #ifdef GTA_FIVE
+extern uint32_t GetCurrentMapGroup();
+
 static hook::cdecl_stub<void()> _reloadMapIfNeeded([]()
 {
 	return hook::get_pattern("74 1F 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? C6 05", -0xB);
@@ -984,13 +986,21 @@ static void ReloadMapStore()
 	else
 #endif
 	{
+		uint32_t mapGroup =
+#ifdef GTA_FIVE
+		GetCurrentMapGroup()
+#else
+		HashString("GROUP_MAP")
+#endif
+		;
+
 		// workaround by unloading/reloading MP map group
-		g_disableContentGroup(*g_extraContentManager, 0xBCC89179); // GROUP_MAP
+		g_disableContentGroup(*g_extraContentManager, mapGroup); // GROUP_MAP
 
 		// again for enablement
 		OnReloadMapStore();
 
-		g_enableContentGroup(*g_extraContentManager, 0xBCC89179);
+		g_enableContentGroup(*g_extraContentManager, mapGroup);
 	}
 
 #ifdef GTA_FIVE
