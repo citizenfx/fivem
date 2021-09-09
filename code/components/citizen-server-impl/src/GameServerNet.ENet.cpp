@@ -149,6 +149,12 @@ namespace fx
 
 	class GameServerNetImplENet : public GameServerNetBase
 	{
+		struct ConnectionUsage
+		{
+			in6_addr address;
+			size_t count = 0;
+		};
+
 	public:
 		GameServerNetImplENet(GameServer* server)
 			: m_server(server), m_basePeerId(1)
@@ -189,6 +195,21 @@ namespace fx
 		}
 
 	private:
+		void OnDisconnect(ENetPeer* peer)
+		{
+			console::DPrintf("enet", "Peer %s disconnected from ENet.\n", GetPeerAddress(peer->address).ToString());
+
+			auto peerId = static_cast<int>(reinterpret_cast<uintptr_t>(peer->data));
+			m_peerHandles.erase(peerId);
+
+			// reset connection data (in case of a reconnect from the same client)
+			if (auto it = m_peerData.find(peerId); it != m_peerData.end())
+			{
+				m_connectionUsage.erase(it->second);
+				m_peerData.erase(it);
+			}
+		}
+
 		void ProcessHost(ENetHost* host)
 		{
 			ENetEvent event;
@@ -205,13 +226,15 @@ namespace fx
 					auto peerId = ++m_basePeerId;
 					event.peer->data = reinterpret_cast<void*>(peerId);
 					m_peerHandles.emplace(peerId, event.peer);
+					m_peerData.emplace(peerId, event.data);
+
+					auto& usage = m_connectionUsage[event.data];
+					usage.count = 9999; // set high enough to invalidate down below
 					break;
 				}
 				case ENET_EVENT_TYPE_DISCONNECT:
 				{
-					console::DPrintf("enet", "Peer %s disconnected from ENet.\n", GetPeerAddress(event.peer->address).ToString());
-
-					m_peerHandles.erase(static_cast<int>(reinterpret_cast<uintptr_t>(event.peer->data)));
+					OnDisconnect(event.peer);
 					break;
 				}
 				case ENET_EVENT_TYPE_RECEIVE:
@@ -229,7 +252,42 @@ namespace fx
 
 		bool OnValidateData(ENetHost* host, const ENetAddress* address, uint32_t data)
 		{
-			return m_clientRegistry->HasClientByConnectionTokenHash(data);
+			bool valid = true;
+
+			if (!m_clientRegistry->HasClientByConnectionTokenHash(data))
+			{
+				valid = false;
+			}
+
+			// if it's still valid
+			if (valid)
+			{
+				auto& usage = m_connectionUsage[data];
+
+				// if this is the first use of this token, set the address
+				if (!usage.count)
+				{
+					usage.address = address->host;
+				}
+				else
+				{
+					// if it's been used too many times already, stop it
+					if (usage.count > 3)
+					{
+						valid = false;
+					}
+					// or if the address is suddenly different from a prior retry
+					else if (memcmp(&usage.address, &address->host, sizeof(in6_addr)) != 0)
+					{
+						valid = false;
+					}
+				}
+
+				// increment usage
+				usage.count++;
+			}
+
+			return valid;
 		}
 
 		void OnTimeout(ENetHost* host, ENetPeer* peer)
@@ -347,6 +405,10 @@ namespace fx
 				return;
 			}
 
+			// enet_peer_reset will not trigger a disconnect event, so we'll manually run that
+			OnDisconnect(peerPair->second);
+
+			// reset the peer
 			enet_peer_reset(peerPair->second);
 		}
 
@@ -482,6 +544,8 @@ namespace fx
 
 		fwRefContainer<fx::ClientRegistry> m_clientRegistry;
 
+		std::unordered_map<uint32_t, ConnectionUsage> m_connectionUsage;
+
 	public:
 		friend class NetPeerImplENet;
 
@@ -492,6 +556,7 @@ namespace fx
 		std::vector<THostPtr> hosts;
 
 		std::map<int, ENetPeer*> m_peerHandles;
+		std::map<int, uint32_t> m_peerData;
 
 		fwEvent<ENetHost*> OnHostRegistered;
 
