@@ -19,6 +19,9 @@ return {
 		
 		if os.istarget('windows') then
 			flags { "LinkTimeOptimization" }
+
+			-- longjmp *should* be exception-safe on Windows non-x86
+			defines { "LUA_USE_LONGJMP" }
 		elseif os.istarget('linux') then
 			defines { "LUA_USE_POSIX" }
 		end
@@ -33,8 +36,9 @@ return {
 
 			--[[ Lua Extensions ]]
 			'LUA_SANDBOX', -- Disable many features within ldblib.c
-			'LUA_C99_MATHLIB ', -- Include c99 math functions in lmathlib
-			'LUA_CPP_EXCEPTIONS', -- @EXPERIMENT: unprotected calls are wrapped in typed C++ exceptions
+			'LUA_C99_MATHLIB', -- Include c99 math functions in lmathlib
+			-- disabled (worse yield performance)
+			--'LUA_CPP_EXCEPTIONS', -- @EXPERIMENT: unprotected calls are wrapped in typed C++ exceptions
 			'GRIT_POWER_COMPOUND', -- Add compound operators
 			'GRIT_POWER_INTABLE', -- Support for unpacking named values from tables using the 'in' keyword
 			'GRIT_POWER_TABINIT', -- Syntactic sugar to improve the syntax for specifying sets
