@@ -180,6 +180,8 @@ void NetLibraryImplV2::Reset()
 	if (m_serverPeer)
 	{
 		enet_peer_disconnect(m_serverPeer, 0);
+		Flush();
+		Flush();
 	}
 }
 
