@@ -847,6 +847,23 @@ struct LuaArgumentParser
 		static_assert(sizeof(T) == 0, "Invalid PushObject");
 	}
 
+	template<typename T>
+	static LUA_INLINE T ParseInteger(lua_State* L, int idx)
+	{
+		const TValue* value = LUA_VALUE(L, idx);
+
+		if (ttisinteger(value))
+		{
+			return static_cast<T>(ivalue(value));
+		}
+		else if (ttisnumber(value))
+		{
+			return static_cast<T>(fltvalue(value));
+		}
+
+		return (!l_isfalse(value) ? 1 : 0);
+	}
+
 	static LUA_INLINE const char* ParseFunctionReference(lua_State* L, int idx)
 	{
 		return lua_tostring(L, idx); // @TODO: maybe?
@@ -893,30 +910,26 @@ LUA_INLINE double LuaArgumentParser::ParseArgument<double>(lua_State* L, int idx
 template<>
 LUA_INLINE int16_t LuaArgumentParser::ParseArgument<int16_t>(lua_State* L, int idx)
 {
-	const TValue* value = LUA_VALUE(L, idx);
-	return ttisnumber(value) ? sc_nvalue(value, int16_t) : (!l_isfalse(value) ? 1 : 0);
+	return ParseInteger<int16_t>(L, idx);
 }
 
 template<>
 LUA_INLINE int32_t LuaArgumentParser::ParseArgument<int32_t>(lua_State* L, int idx)
 {
-	const TValue* value = LUA_VALUE(L, idx);
-	return ttisnumber(value) ? sc_nvalue(value, int32_t) : (!l_isfalse(value) ? 1 : 0);
+	return ParseInteger<int32_t>(L, idx);
 }
 
 template<>
 LUA_INLINE int64_t LuaArgumentParser::ParseArgument<int64_t>(lua_State* L, int idx)
 {
-	const TValue* value = LUA_VALUE(L, idx);
-	return ttisnumber(value) ? sc_nvalue(value, int64_t) : (!l_isfalse(value) ? 1 : 0);
+	return ParseInteger<int64_t>(L, idx);
 }
 
 #if defined(__GNUC__)
 template<>
 LUA_INLINE lua_Integer LuaArgumentParser::ParseArgument<lua_Integer>(lua_State* L, int idx)
 {
-	const TValue* value = LUA_VALUE(L, idx);
-	return ttisnumber(value) ? sc_nvalue(value, lua_Integer) : (!l_isfalse(value) ? 1 : 0);
+	return ParseInteger<lua_Integer>(L, idx);
 }
 #endif
 

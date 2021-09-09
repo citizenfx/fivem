@@ -172,8 +172,10 @@ if (!$IsServer) {
 	}
     
     # useless client-related scripting stuff
-    Remove-Item -Force $LayoutDir\citizen\scripting\lua\*.zip
+    Remove-Item -Force $LayoutDir\citizen\scripting\lua\natives_0*.zip
+    Remove-Item -Force $LayoutDir\citizen\scripting\lua\natives_2*.zip
     Remove-Item -Force $LayoutDir\citizen\scripting\lua\*_universal.lua
+    Remove-Item -Force $LayoutDir\citizen\scripting\lua\*_universal.zip
     Remove-Item -Force $LayoutDir\citizen\scripting\lua\natives_0*.lua
     Remove-Item -Force $LayoutDir\citizen\scripting\lua\natives_2*.lua
     
