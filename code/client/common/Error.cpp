@@ -69,7 +69,7 @@ static bool IsUserConnected()
 static int SysError(const char* buffer)
 {
 #ifdef WIN32
-	HWND wnd = FindWindowW(xbr::GetGameWndClass(), nullptr);
+	HWND wnd = CoreGetGameWindow();
 
 #if !defined(COMPILING_LAUNCH) && !defined(COMPILING_CONSOLE)
 	if (CoreIsDebuggerPresent())

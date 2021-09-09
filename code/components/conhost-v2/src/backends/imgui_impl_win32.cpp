@@ -958,7 +958,7 @@ void ImGui_ImplWin32_InitPlatformInterface()
 #ifdef IS_FXSERVER
 	data->Hwnd = g_hWnd;
 #else
-	data->Hwnd = FindWindow(xbr::GetGameWndClass(), NULL);
+	data->Hwnd = CoreGetGameWindow();
 #endif
 	data->HwndOwned = false;
 	main_viewport->PlatformUserData = data;

@@ -418,7 +418,7 @@ static void SetShellIcon(const std::string& rawIcon)
 		return;
 	}
 
-	auto gameWindow = FindWindowW(xbr::GetGameWndClass(), NULL);
+	auto gameWindow = CoreGetGameWindow();
 
 	if (!rawIcon.empty())
 	{
@@ -905,7 +905,7 @@ static InitFunction initFunction([] ()
 
 	ep.Bind("resizeWindow", [](int w, int h)
 	{
-		auto wnd = FindWindow(L"grcWindow", NULL);
+		auto wnd = CoreGetGameWindow();
 
 		SetWindowPos(wnd, NULL, 0, 0, w, h, SWP_NOZORDER | SWP_FRAMECHANGED | SWP_ASYNCWINDOWPOS);
 	});
@@ -1008,7 +1008,7 @@ static InitFunction initFunction([] ()
 			{
 				UiDone();
 
-				auto hWnd = FindWindowW(L"grcWindow", NULL);
+				auto hWnd = CoreGetGameWindow();
 				ShowWindow(hWnd, SW_SHOW);
 
 				// game code locks it
@@ -1558,7 +1558,7 @@ static InitFunction connectInitFunction([]()
 			auto connectData = nlohmann::json::parse(connectMsg);
 			ConnectTo(connectData["host"], false, connectData["params"]);
 
-			SetForegroundWindow(FindWindow(L"grcWindow", nullptr));
+			SetForegroundWindow(CoreGetGameWindow());
 		}
 
 		err = nng_recv(netAuthSocket, &buffer, &bufLen, NNG_FLAG_NONBLOCK | NNG_FLAG_ALLOC);
@@ -1570,7 +1570,7 @@ static InitFunction connectInitFunction([]()
 
 			HandleAuthPayload(msg);
 
-			SetForegroundWindow(FindWindow(L"grcWindow", nullptr));
+			SetForegroundWindow(CoreGetGameWindow());
 		}
 	});
 });

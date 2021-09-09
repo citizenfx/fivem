@@ -400,7 +400,7 @@ int GetCefMouseModifiers(WPARAM wparam);
 			current_drag_data_ = drag_data->Clone();
 			current_drag_data_->ResetFileContents();
 
-			AttachThreadInput(GetCurrentThreadId(), GetWindowThreadProcessId(FindWindow(xbr::GetGameWndClass(), nullptr), nullptr), TRUE);
+			AttachThreadInput(GetCurrentThreadId(), GetWindowThreadProcessId(CoreGetGameWindow(), nullptr), TRUE);
 
 			HRESULT res = DoDragDrop(dataObject, dropSource, effect, &resEffect);
 			if (res != DRAGDROP_S_DROP)

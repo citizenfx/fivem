@@ -17,6 +17,8 @@
 
 #include <Error.h>
 
+#include <CrossBuildRuntime.h>
+#include <LaunchMode.h>
 #include <CL2LaunchMode.h>
 
 #include <CoreConsole.h>
@@ -1684,12 +1686,30 @@ void GfxForceVsync(bool enabled)
 }
 
 static HWND g_gtaWindow;
+static decltype(&CreateWindowExW) g_origCreateWindowExW;
 
 static HWND WINAPI HookCreateWindowExW(_In_ DWORD dwExStyle, _In_opt_ LPCWSTR lpClassName, _In_opt_ LPCWSTR lpWindowName, _In_ DWORD dwStyle, _In_ int X, _In_ int Y, _In_ int nWidth, _In_ int nHeight, _In_opt_ HWND hWndParent, _In_opt_ HMENU hMenu, _In_opt_ HINSTANCE hInstance, _In_opt_ LPVOID lpParam)
 {
-	static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");
+	static HostSharedData<CfxState> initState("CfxInitState");
+	HWND w;
 
-	auto w = CreateWindowExW(dwExStyle, lpClassName, lpWindowName, WS_POPUP | WS_CLIPSIBLINGS, 0, 0, rgd->width, rgd->height, NULL, hMenu, hInstance, lpParam);
+	auto wndName = (CfxIsSinglePlayer()) ? L"Grand Theft Auto V (FiveM SP)" : L"FiveM";
+
+	if (initState->isReverseGame)
+	{
+		static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");
+
+		w = g_origCreateWindowExW(dwExStyle, lpClassName, wndName, WS_POPUP | WS_CLIPSIBLINGS, 0, 0, rgd->width, rgd->height, NULL, hMenu, hInstance, lpParam);
+	}
+	else
+	{
+		w = g_origCreateWindowExW(dwExStyle, lpClassName, wndName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
+	}
+
+	if (lpClassName && wcscmp(lpClassName, L"grcWindow") == 0)
+	{
+		CoreSetGameWindow(w);
+	}
 	
 	g_gtaWindow = w;
 
@@ -1984,12 +2004,13 @@ static HookFunction hookFunction([] ()
 	MH_CreateHook(hook::get_pattern("48 8B D9 48 89 01 48 8B 49 28 E8 ? ? ? ? 48 8D", -0xD), grcTextureDtorHook, (void**)&g_origGrcTextureDtor);
 	MH_EnableHook(MH_ALL_HOOKS);
 
+	g_origCreateWindowExW = hook::iat("user32.dll", HookCreateWindowExW, "CreateWindowExW");
+
 	static HostSharedData<CfxState> initState("CfxInitState");
 
 	if (initState->isReverseGame)
 	{
 		// make window a child
-		hook::iat("user32.dll", HookCreateWindowExW, "CreateWindowExW");
 		hook::iat("user32.dll", HookShowWindow, "ShowWindow");
 		hook::iat("user32.dll", HookGetForegroundWindow, "GetForegroundWindow");
 		hook::iat("user32.dll", HookSetFocus, "SetFocus");

@@ -340,7 +340,7 @@ void NetLibrary::ProcessOOB(const NetAddress& from, const char* oob, size_t leng
 				StripColors(hostname, cleaned, 8192);
 
 #if defined(GTA_FIVE) || defined(GTA_NY)
-				SetWindowText(FindWindow(xbr::GetGameWndClass(), nullptr), va(
+				SetWindowText(CoreGetGameWindow(), va(
 #ifdef GTA_FIVE
 					L"FiveM"
 #elif defined(IS_RDR3)

@@ -441,7 +441,7 @@ static InitFunction initFunction([] ()
 		{
 			POINT cursorPos;
 			GetCursorPos(&cursorPos);
-			ScreenToClient(FindWindow(xbr::GetGameWndClass(), nullptr), &cursorPos);
+			ScreenToClient(CoreGetGameWindow(), &cursorPos);
 
 			*context.GetArgument<int*>(0) = cursorPos.x;
 			*context.GetArgument<int*>(1) = cursorPos.y;
