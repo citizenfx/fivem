@@ -429,8 +429,10 @@ if (!$DontBuild -and $IsServer) {
 	Remove-Item -Force $WorkDir\out\server\citizen\system_resources\monitor\scripts\menu\client\cl_menu.lua
 	
 	# useless client-related scripting stuff
-	Remove-Item -Force $WorkDir\out\server\citizen\scripting\lua\*.zip
+	Remove-Item -Force $WorkDir\out\server\citizen\scripting\lua\natives_0*.zip
+	Remove-Item -Force $WorkDir\out\server\citizen\scripting\lua\natives_2*.zip
 	Remove-Item -Force $WorkDir\out\server\citizen\scripting\lua\*_universal.lua
+	Remove-Item -Force $WorkDir\out\server\citizen\scripting\lua\*_universal.zip
 	Remove-Item -Force $WorkDir\out\server\citizen\scripting\lua\natives_0*.lua
 	Remove-Item -Force $WorkDir\out\server\citizen\scripting\lua\natives_2*.lua
 	

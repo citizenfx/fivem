@@ -100,7 +100,7 @@ export NATIVES_NY_FOOTER
 all: out \
 	out/NativesFive.cs out/NativesServer.cs out/NativesRDR3.cs out/NativesNY.cs \
 	out/rpc_natives.json \
-	out/natives_server.lua out/natives_server.d.ts out/natives_server.js \
+	out/natives_server.lua out/natives_server.d.ts out/natives_server.js out/natives_server.zip \
 	out/Natives.h out/NativesRDR.h out/NativesServer.h out/NativesNY.h \
 	$(GTA_OUTPUTS_LUA) $(GTA_OUTPUTS_JS) $(GTA_OUTPUTS_DTS) $(GTA_OUTPUTS_ZIP) \
 	$(RDR_OUTPUTS_LUA) $(RDR_OUTPUTS_JS) $(RDR_OUTPUTS_DTS) $(RDR_OUTPUTS_ZIP) \
@@ -160,6 +160,13 @@ out/natives_server.d.ts: $(CODEGEN_SCRIPTS) inp/natives_global.lua codegen_out_d
 
 out/natives_server.js: $(CODEGEN_SCRIPTS) inp/natives_global.lua codegen_out_js.lua rpc_spec_natives.lua
 	./lua53 codegen.lua inp/natives_global.lua js server > $@
+
+out/natives_server.zip: inp/natives_global.lua $(CODEGEN_SCRIPTS) codegen_out_lua.lua codegen_out_slua.lua  rpc_spec_natives.lua
+	$(eval DIR := $(shell mktemp -d -p out/))
+	rm $@ || true
+	NATIVES_DIR="$(DIR)" ./lua53 codegen.lua inp/natives_global.lua slua server > /dev/null
+	sh -c 'pushd $(DIR) && ../../../../code/tools/ci/7z.exe a -mx=0 ../../$@ \*.lua && popd'
+	rm -r $(DIR) || true
 
 out/natives_%.lua: inp/natives_global.lua inp/natives_rdr3.lua $(CODEGEN_SCRIPTS) codegen_out_lua.lua
 	./lua53 codegen.lua $< lua > $@

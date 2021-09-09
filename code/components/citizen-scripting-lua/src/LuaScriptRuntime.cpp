@@ -989,15 +989,13 @@ result_t LuaScriptRuntime::Create(IScriptHost* scriptHost)
 	return FX_S_OK;
 }
 
+extern bool mountedAnyNatives;
+
 result_t LuaScriptRuntime::LoadNativesBuild(const std::string& nativesBuild)
 {
 	result_t hr = FX_S_OK;
 
-	bool useLazyNatives = false;
-
-#if !defined(IS_FXSERVER)
-	useLazyNatives = true;
-#endif
+	bool useLazyNatives = mountedAnyNatives;
 
 	if (!useLazyNatives)
 	{
