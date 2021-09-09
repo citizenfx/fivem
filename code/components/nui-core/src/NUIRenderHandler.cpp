@@ -20,7 +20,7 @@ extern OsrImeHandlerWin* g_imeHandler;
 NUIRenderHandler::NUIRenderHandler(NUIClient* client)
 	: m_paintingPopup(false), m_owner(client), m_currentDragOp(DRAG_OPERATION_NONE)
 {
-	auto hWnd = FindWindow(xbr::GetGameWndClass(), nullptr);
+	auto hWnd = CoreGetGameWindow();
 
 	m_dropTarget = DropTargetWin::Create(this, hWnd);
 }
@@ -274,7 +274,7 @@ bool NUIRenderHandler::StartDragging(CefRefPtr<CefBrowser> browser, CefRefPtr<Ce
 	m_currentDragOp = DRAG_OPERATION_NONE;
 	POINT pt = {};
 	GetCursorPos(&pt);
-	ScreenToClient(FindWindow(xbr::GetGameWndClass(), nullptr), &pt);
+	ScreenToClient(CoreGetGameWindow(), &pt);
 
 	browser->GetHost()->DragSourceEndedAt(
 		pt.x,

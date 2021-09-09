@@ -142,11 +142,6 @@ bool InputHook::IsKeyDown(int vk_keycode)
 
 LRESULT APIENTRY grcWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	if (uMsg == WM_CREATE)
-	{
-		SetWindowText(FindWindow(L"grcWindow", nullptr), (CfxIsSinglePlayer()) ? L"Grand Theft Auto V (FiveM SP)" : L"FiveM");
-	}
-
 	// inform the game of being minimized
 	static bool minimized = false;
 

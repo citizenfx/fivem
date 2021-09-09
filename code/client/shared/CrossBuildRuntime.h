@@ -217,3 +217,40 @@ inline const wchar_t* GetGameWndClass()
 }
 #endif
 }
+
+#ifdef _WIN32
+#ifdef COMPILING_CORE
+extern "C" HWND DLL_EXPORT CoreGetGameWindow();
+extern "C" void DLL_EXPORT CoreSetGameWindow(HWND hWnd);
+#else
+inline HWND CoreGetGameWindow()
+{
+	static decltype(&CoreGetGameWindow) func;
+
+	if (!func)
+	{
+		if (auto coreRT = GetModuleHandleW(L"CoreRT.dll"))
+		{
+			func = (decltype(func))GetProcAddress(coreRT, "CoreGetGameWindow");
+		}
+	}
+
+	return (!func) ? false : func();
+}
+
+inline void CoreSetGameWindow(HWND hWnd)
+{
+	static decltype(&CoreSetGameWindow) func;
+
+	if (!func)
+	{
+		if (auto coreRT = GetModuleHandleW(L"CoreRT.dll"))
+		{
+			func = (decltype(func))GetProcAddress(coreRT, "CoreSetGameWindow");
+		}
+	}
+
+	return (!func) ? void() : func(hWnd);
+}
+#endif
+#endif

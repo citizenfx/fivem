@@ -136,7 +136,7 @@ bool XBR_InterceptCancelDefer()
 
 HWND UI_GetWindowHandle()
 {
-	return FindWindow(xbr::GetGameWndClass(), NULL);
+	return CoreGetGameWindow();
 }
 
 bool UI_IsCanceled()

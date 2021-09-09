@@ -81,7 +81,7 @@ public:
 
 	virtual HWND GetHWND() override
 	{
-		return FindWindowW(xbr::GetGameWndClass(), NULL);
+		return CoreGetGameWindow();
 	}
 
 	virtual void BlitTexture(fwRefContainer<GITexture> dst, fwRefContainer<GITexture> src) override

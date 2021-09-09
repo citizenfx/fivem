@@ -7,6 +7,7 @@
 #include <fiDevice.h>
 #include <Hooking.h>
 
+#include <CrossBuildRuntime.h>
 #include <MinHook.h>
 
 #include <boost/algorithm/string.hpp>
@@ -301,7 +302,7 @@ static InitFunction initFunction([]()
 					pair.origLabel.empty() ? "" : fmt::sprintf(" (%s)", pair.origLabel)));
 			}
 
-			HMONITOR monitor = MonitorFromWindow(FindWindow(L"grcWindow", NULL), MONITOR_DEFAULTTOPRIMARY);
+			HMONITOR monitor = MonitorFromWindow(CoreGetGameWindow(), MONITOR_DEFAULTTOPRIMARY);
 
 			MONITORINFO mi;
 			mi.cbSize = sizeof(mi);
