@@ -10,6 +10,14 @@ float GET_VEHICLE_CLUTCH(Vehicle vehicle);
 
 
 ## Parameters
-* **vehicle**: 
+* **vehicle**: The target vehicle.
 
 ## Return value
+Returns vehicle's clutch system.
+
+
+## Examples
+```lua
+local veh = GetVehiclePedIsIn(PlayerPedId(), false)
+print(GetVehicleClutch(veh))
+```
