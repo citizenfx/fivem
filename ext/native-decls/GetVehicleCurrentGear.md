@@ -10,6 +10,13 @@ int GET_VEHICLE_CURRENT_GEAR(Vehicle vehicle);
 
 
 ## Parameters
-* **vehicle**: 
+* **vehicle**: The vehicle to check.
 
 ## Return value
+Return current gear value from vehicle
+
+## Examples
+```lua
+local veh = GetVehiclePedIsIn(PlayerPedId(), false)
+print(GetVehicleCurrentGear(veh))
+```
