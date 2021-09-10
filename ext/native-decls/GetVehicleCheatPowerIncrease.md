@@ -14,4 +14,10 @@ A getter for [SET_VEHICLE_CHEAT_POWER_INCREASE](#_0xB59E4BD37AE292DB).
 * **vehicle**: The target vehicle.
 
 ## Return value
-Returns vehicle's cheat power increase modifier value.
+Returns vehicle's cheat power increase modifier value based on SetVehicleCheatPowerIncrease. Default value will return 1.0.
+
+## Examples
+```lua
+local veh = GetVehiclePedIsIn(PlayerPedId(), false)
+print(GetVehicleCheatPowerIncrease(veh))
+```
