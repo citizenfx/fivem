@@ -90,7 +90,26 @@ const EXT_LOCALFUNCREF = 11;
 					case 0:
 						return undefined;
 					case 1:
-						return retvals[0];
+						const rv = retvals[0];
+						if (rv && rv['__cfx_async_retval']) {
+							return new Promise((res, rej) => {
+								rv['__cfx_async_retval']((v, e) => {
+									if (e != null)
+										rej(e);
+									else {
+										switch(v.length) {
+											case 0:
+												res(undefined);
+											case 1:
+												res(v[0]);
+											default:
+												res(v);
+										}
+									}
+								});
+							});
+						}
+						return rv;
 					default:
 						return retvals;
 				}
@@ -98,6 +117,8 @@ const EXT_LOCALFUNCREF = 11;
 		};
 	}
 
+	const AsyncFunction = (async () => {}).constructor;
+	codec.addExtPacker(EXT_FUNCREF, AsyncFunction, refFunctionPacker);
 	codec.addExtPacker(EXT_FUNCREF, Function, refFunctionPacker);
 	codec.addExtUnpacker(EXT_FUNCREF, refFunctionUnpacker);
 	codec.addExtUnpacker(EXT_LOCALFUNCREF, refFunctionUnpacker);
@@ -132,7 +153,19 @@ const EXT_LOCALFUNCREF = 11;
 
 		try {
 			return runWithBoundaryStart(() => {
-				return pack([refFunctionsMap.get(ref).callback(...unpack(argsSerialized))]);
+				const rv = refFunctionsMap.get(ref).callback(...unpack(argsSerialized));
+				if (rv instanceof Promise) {
+					return pack([{'__cfx_async_retval': (cb) => {
+						rv.then(v => {
+							if (cb != null)
+								cb([v], null);
+						}).catch(err => {
+							if (cb != null)
+								cb(null, err);
+						});
+					}}]);
+				}
+				return pack([rv]);
 			});
 		} catch (e) {
 			global.printError('call ref', e);
