@@ -460,6 +460,25 @@ static InitFunction initFunction([]()
 {
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
+		{
+			g_citizenDir = instance->AddVariable<std::string>("citizen_dir", ConVar_None, ToNarrow(MakeRelativeCitPath(L"citizen")));
+
+			// create cache directory if needed
+			auto device = vfs::GetDevice(instance->GetRootPath());
+			auto cacheDir = instance->GetRootPath() + "/cache/";
+
+			if (device.GetRef())
+			{
+				device->CreateDirectory(cacheDir);
+
+				// precreate cache/files/ so that later components won't have to
+				device->CreateDirectory(cacheDir + "files/");
+			}
+
+			vfs::Mount(new vfs::RelativeDevice(g_citizenDir->GetValue() + "/"), "citizen:/");
+			vfs::Mount(new vfs::RelativeDevice(cacheDir), "cache:/");
+		}
+
 		instance->SetComponent(fx::CreateResourceManager());
 		instance->SetComponent(new fx::ServerEventComponent());
 		instance->SetComponent(new fx::TokenRateLimiter(1.0f, 3.0f));
@@ -734,25 +753,6 @@ static InitFunction initFunction([]()
 				});
 			}, -1000);
 		});
-
-		{
-			g_citizenDir = instance->AddVariable<std::string>("citizen_dir", ConVar_None, ToNarrow(MakeRelativeCitPath(L"citizen")));
-
-			// create cache directory if needed
-			auto device = vfs::GetDevice(instance->GetRootPath());
-			auto cacheDir = instance->GetRootPath() + "/cache/";
-
-			if (device.GetRef())
-			{
-				device->CreateDirectory(cacheDir);
-
-				// precreate cache/files/ so that later components won't have to
-				device->CreateDirectory(cacheDir + "files/");
-			}
-
-			vfs::Mount(new vfs::RelativeDevice(g_citizenDir->GetValue() + "/"), "citizen:/");
-			vfs::Mount(new vfs::RelativeDevice(cacheDir), "cache:/");
-		}
 
 		ScanResources(instance);
 
