@@ -38,6 +38,8 @@
 #include <ManifestVersion.h>
 #include <cfx_version.h>
 
+#include <boost/algorithm/string.hpp>
+
 // a set of resources that are system-managed and should not be stopped from script
 static std::set<std::string> g_managedResources = {
 	"spawnmanager",
@@ -184,7 +186,9 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 
 	// save scanned resource names so we don't scan them twice
 	std::set<std::string> scannedNow;
+	std::set<std::string> updatedNow;
 	size_t newResources = 0;
+	size_t updatedResources = 0;
 	size_t reloadedResources = 0;
 
 	trace("^2Scanning resources.^7\n", newResources);
@@ -249,13 +253,51 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 
 						if (oldRes.GetRef())
 						{
-							oldRes->GetComponent<fx::ResourceMetaDataComponent>()->LoadMetaData(resPath);
+							auto metaDataComponent = oldRes->GetComponent<fx::ResourceMetaDataComponent>();
+
+							// filter function to remove _extra entries (Lua table ordering determinism)
+							auto filterMetadata = [](auto&& metadataIn)
+							{
+								for (auto it = metadataIn.begin(); it != metadataIn.end(); )
+								{
+									if (boost::algorithm::ends_with(it->first, "_extra"))
+									{
+										it = metadataIn.erase(it);
+									}
+									else
+									{
+										++it;
+									}
+								}
+
+								return std::move(metadataIn);
+							};
+
+							// save the old metadata for comparison
+							auto oldMetaData = filterMetadata(metaDataComponent->GetAllEntries());
+
+							// load new metadata
+							metaDataComponent->LoadMetaData(resPath);
+							
+							// compare differences
+							auto newMetaData = filterMetadata(metaDataComponent->GetAllEntries());
+							bool different = (newMetaData.size() != oldMetaData.size()) || (newMetaData != oldMetaData);
+
+							// if different, track as updated
+							if (different)
+							{
+								updatedNow.insert(resourceName);
+								updatedResources++;
+							}
+
+							// track resource as reloaded
 							reloadedResources++;
 						}
 						else
 						{
 							console::DPrintf("resources", "Found new resource %s in %s\n", resourceName, resPath);
 							newResources++;
+							updatedNow.insert(resourceName);
 
 							auto path = std::filesystem::u8path(resPath);
 
@@ -344,7 +386,7 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 
 	if (reloadedResources > 0)
 	{
-		trace("^2Found %d resources, and refreshed %d resources.^7\n", newResources, reloadedResources);
+		trace("^2Found %d new resources, and refreshed %d/%d resources.^7\n", newResources, updatedResources, reloadedResources);
 	}
 	else
 	{
@@ -357,7 +399,7 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 	// check for outdated
 	std::set<std::string> nonManifestResources;
 
-	resMan->ForAllResources([&nonManifestResources](const fwRefContainer<fx::Resource>& resource)
+	resMan->ForAllResources([&updatedNow, &nonManifestResources](const fwRefContainer<fx::Resource>& resource)
 	{
 		auto md = resource->GetComponent<fx::ResourceMetaDataComponent>();
 
@@ -370,7 +412,13 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 			{
 				if (!md->GlobEntriesVector("client_script").empty())
 				{
-					nonManifestResources.insert(resource->GetName());
+					auto resourceName = resource->GetName();
+
+					// only alert if a resource updated this iteration
+					if (updatedNow.find(resourceName) != updatedNow.end())
+					{
+						nonManifestResources.insert(resourceName);
+					}
 				}
 			}
 		}
