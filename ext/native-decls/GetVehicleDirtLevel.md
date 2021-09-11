@@ -10,6 +10,13 @@ float GET_VEHICLE_DIRT_LEVEL(Vehicle vehicle);
 
 
 ## Parameters
-* **vehicle**: 
+* **vehicle**: The vehicle to check
 
 ## Return value
+Return current vehicle dirty level.
+
+## Examples
+```lua
+local veh = GetVehiclePedIsIn(PlayerPedId(), false)
+print(GetVehicleDirtLevel(veh))
+```
