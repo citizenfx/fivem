@@ -155,19 +155,6 @@ static void PrintfTraceListener(ConsoleChannel channel, const char* out)
 				g_allowVt = true;
 			}
 		}
-
-		{
-			HANDLE hConsole = GetStdHandle(STD_INPUT_HANDLE);
-
-			DWORD consoleMode;
-			if (GetConsoleMode(hConsole, &consoleMode))
-			{
-				consoleMode |= ENABLE_EXTENDED_FLAGS;
-				consoleMode &= ~ENABLE_QUICK_EDIT_MODE;
-
-				SetConsoleMode(hConsole, consoleMode);
-			}
-		}
 	});
 #else
 	g_allowVt = true;

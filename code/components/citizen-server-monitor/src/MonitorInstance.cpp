@@ -176,6 +176,24 @@ namespace fx
 
 )");
 
+		// disable QuickEdit in *monitor mode only*
+		// #TODO: detect if we're running under Windows Terminal, in which case
+		//        selection isn't suspending
+#ifdef _WIN32
+		{
+			HANDLE hConsole = GetStdHandle(STD_INPUT_HANDLE);
+
+			DWORD consoleMode;
+			if (GetConsoleMode(hConsole, &consoleMode))
+			{
+				consoleMode |= ENABLE_EXTENDED_FLAGS;
+				consoleMode &= ~ENABLE_QUICK_EDIT_MODE;
+
+				SetConsoleMode(hConsole, consoleMode);
+			}
+		}
+#endif
+
 		// initialize the server configuration
 		std::shared_ptr<ConVar<std::string>> rootVar;
 
