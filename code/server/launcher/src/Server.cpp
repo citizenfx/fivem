@@ -10,6 +10,8 @@
 #include <ComponentLoader.h>
 #include <Server.h>
 
+#include <cfx_version.h>
+
 class ServerMain
 {
 public:
@@ -49,6 +51,28 @@ namespace fx
 		if (argStr.find("\"+exec\" ") == std::string::npos)
 		{
 			compName = "citizen:server:monitor";
+		}
+
+		if ((argStr.find("\"--version\"") != std::string::npos &&
+			argStr.find("\"--start-node\"") == std::string::npos) ||
+			argStr.find("\"-V\"") != std::string::npos)
+		{
+			fmt::printf("Cfx.re Platform Server (FXServer) %s\n", GIT_DESCRIPTION);
+			fmt::printf("Build date: %s\n", __DATE__);
+			fmt::printf("\n");
+			fmt::printf("Usage restrictions apply, see <https://fivem.net/terms> for further information.\n");
+			fmt::printf("Commercial usage is not permitted without prior approval.\n");
+			return;
+		}
+
+		if ((argStr.find("\"--help\"") != std::string::npos &&
+			argStr.find("\"--start-node\"") == std::string::npos) ||
+			argStr.find("\"-?\"") != std::string::npos)
+		{
+			fmt::printf("Usage:\n\n\t%s <+startupargs>\n\nSee https://docs.fivem.net/ for more usage information.\n", argv[0]);
+			fmt::printf("\n");
+			fmt::printf("Now... go make something great.\n");
+			return;
 		}
 
 #ifdef _WIN32
