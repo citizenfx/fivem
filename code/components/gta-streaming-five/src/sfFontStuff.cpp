@@ -161,36 +161,47 @@ struct GFxMovieRoot
 static GFxMovieDef* g_md;
 static GFxMovieRoot* g_movie;
 
+static uint32_t g_idx = 0;
+static void** g_scaleformMgr;
+
+static void InitEarlyLoading()
+{
+	if (g_idx != 0)
+	{
+		return;
+	}
+
+	if (!*g_scaleformMgr)
+	{
+		return;
+	}
+
+	uint32_t fileId = 0;
+	streaming::RegisterRawStreamingFile(&fileId, "citizen:/font_lib_cfx.gfx", true, "font_lib_cfx.gfx", false);
+
+	g_idx = fileId;
+
+	auto gfxStore = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("gfx");
+	auto pool = (atPoolBase*)((char*)gfxStore + 56);
+	auto refBase = pool->GetAt<char>(g_idx - gfxStore->baseIdx);
+	refBase[50] = true; // 'create movie once loaded' flag
+
+	// '7' flag so the game won't try unloading it
+	streaming::Manager::GetInstance()->RequestObject(g_idx, 7);
+
+	// we should load *now*
+	streaming::LoadObjectsNow(false);
+}
+
 template<typename TFn>
 static void HandleEarlyLoading(TFn&& cb)
 {
-	static uint32_t idx = 0;
-
-	if (idx == 0)
-	{
-		uint32_t fileId = 0;
-		streaming::RegisterRawStreamingFile(&fileId, "citizen:/font_lib_cfx.gfx", true, "font_lib_cfx.gfx", false);
-
-		idx = fileId;
-
-		auto gfxStore = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("gfx");
-		auto pool = (atPoolBase*)((char*)gfxStore + 56);
-		auto refBase = pool->GetAt<char>(idx - gfxStore->baseIdx);
-		refBase[50] = true; // 'create movie once loaded' flag
-
-		// '7' flag so the game won't try unloading it
-		streaming::Manager::GetInstance()->RequestObject(idx, 7);
-
-		// we should load *now*
-		streaming::LoadObjectsNow(false);
-	}
-
-	if (idx != 0)
+	if (g_idx != 0)
 	{
 		auto gfxStore = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("gfx");
 
 		auto pool = (atPoolBase*)((char*)gfxStore + 56);
-		auto refBase = pool->GetAt<char*>(idx - gfxStore->baseIdx);
+		auto refBase = pool->GetAt<char*>(g_idx - gfxStore->baseIdx);
 
 		auto ref = *refBase;
 
@@ -532,6 +543,16 @@ static HookFunction hookFunction([]()
 		hook::set_call(&assignFontLib, location + 32);
 		hook::call(location + 32, AssignFontLibWrap);
 	}
+
+	{
+		auto location = hook::get_pattern<char>("74 1A 80 3D ? ? ? ? 00 74 11 E8 ? ? ? ? 48 8B");
+		g_scaleformMgr = hook::get_address<void**>(location + 19);
+	}
+
+	OnLookAliveFrame.Connect([]()
+	{
+		InitEarlyLoading();
+	});
 
 	OnMainGameFrame.Connect([]()
 	{
