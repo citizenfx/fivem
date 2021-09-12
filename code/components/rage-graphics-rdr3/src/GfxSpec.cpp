@@ -425,19 +425,22 @@ static void InvokeRender()
 		return;
 	}
 
-	uint32_t state[9];
-	state[0] = 0x1010100;
-	state[1] = 0;
-	state[2] = 0x101;
-	state[3] = 0;
-	state[4] = 0;
-	state[5] = 0;
-	state[6] = 0;
-	state[7] = 0;
-	state[8] = 0x41400000; // 12.0f
+	if (!pointSampler)
+	{
+		uint32_t state[9];
+		state[0] = 0x1010100;
+		state[1] = 0;
+		state[2] = 0x101;
+		state[3] = 0;
+		state[4] = 0;
+		state[5] = 0;
+		state[6] = 0;
+		state[7] = 0;
+		state[8] = 0x41400000; // 12.0f
 
-	static auto fn = hook::get_call(hook::get_pattern("66 C7 45 E1 01 00 40 88 7D E3", 14));
-	pointSampler = ((uint8_t(*)(void* state))fn)(&state);
+		static auto fn = hook::get_call(hook::get_pattern("66 C7 45 E1 01 00 40 88 7D E3", 14));
+		pointSampler = ((uint8_t(*)(void* state))fn)(&state);
+	}
 
 	static std::once_flag of;
 
