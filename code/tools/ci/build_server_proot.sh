@@ -17,7 +17,7 @@ curl -H "Content-Type: application/json" -s -d "$json" "$TG_WEBHOOK" || true
 curl -H "Content-Type: application/json" -s -d "$json" "$DISCORD_WEBHOOK" || true
 
 # get an alpine rootfs
-curl -sLo alpine-minirootfs-3.11.5-x86_64.tar.gz http://dl-cdn.alpinelinux.org/alpine/v3.11/releases/x86_64/alpine-minirootfs-3.11.5-x86_64.tar.gz
+curl -sLo alpine-minirootfs-3.14.2-x86_64.tar.gz https://dl-cdn.alpinelinux.org/alpine/v3.14/releases/x86_64/alpine-minirootfs-3.14.2-x86_64.tar.gz
 
 cd ..
 
@@ -48,7 +48,7 @@ adduser -D -u 1000 build
 # extract the alpine root FS
 mkdir alpine
 cd alpine
-tar xf ../alpine-minirootfs-3.11.5-x86_64.tar.gz
+tar xf ../alpine-minirootfs-3.14.2-x86_64.tar.gz
 cd ..
 
 export CI_BRANCH=$CI_BUILD_REF_NAME
