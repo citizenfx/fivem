@@ -273,23 +273,6 @@ namespace fx
 			m_syncData = ptr;
 		}
 
-		inline void PushReplayPacket(int channel, const net::Buffer& buffer)
-		{
-			m_replayQueue.push({ buffer, channel });
-		}
-
-		inline void ReplayPackets()
-		{
-			std::tuple<net::Buffer, int> value;
-
-			while (m_replayQueue.try_pop(value))
-			{
-				const auto&[buffer, channel] = value;
-
-				SendPacket(channel, buffer, NetPacketType_Reliable);
-			}
-		}
-
 		inline bool IsDropping() const
 		{
 			return m_dropping;
@@ -407,9 +390,6 @@ namespace fx
 
 		// whether the client has sent a routing msg once
 		bool m_hasRouted;
-
-		// packets to resend when a new peer connects using this client
-		tbb::concurrent_queue<std::tuple<net::Buffer, int>> m_replayQueue;
 
 		// an arbitrary set of data
 		std::shared_mutex m_userDataMutex;

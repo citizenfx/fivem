@@ -1419,7 +1419,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 									{
 										int otherSlot = plit->second;
 
-										sec->TriggerClientEventReplayed("onPlayerDropped", fmt::sprintf("%d", client->GetNetId()), ownerNetId, ownerRef->GetName(), otherSlot);
+										sec->TriggerClientEvent("onPlayerDropped", fmt::sprintf("%d", client->GetNetId()), ownerNetId, ownerRef->GetName(), otherSlot);
 
 										/*NETEV playerLeftScope SERVER
 								/#*
@@ -1562,7 +1562,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 									clientData->playersInScope[slotId] = entityClient->GetNetId();
 									clientData->playersToSlots[entityClient->GetNetId()] = slotId;
 
-									sec->TriggerClientEventReplayed("onPlayerJoining", fmt::sprintf("%d", client->GetNetId()), entityClient->GetNetId(), entityClient->GetName(), slotId);
+									sec->TriggerClientEvent("onPlayerJoining", fmt::sprintf("%d", client->GetNetId()), entityClient->GetNetId(), entityClient->GetName(), slotId);
 
 									auto ecData = GetClientDataUnlocked(this, entityClient);
 
@@ -2138,7 +2138,7 @@ void ServerGameState::SendWorldGrid(void* entry /* = nullptr */, const fx::Clien
 
 				msg.Write(reinterpret_cast<char*>(grid->state) + base, length);
 
-				client->SendPacket(1, msg, NetPacketType_ReliableReplayed);
+				client->SendPacket(1, msg, NetPacketType_Reliable);
 			}
 		}
 	};
@@ -2645,7 +2645,7 @@ void ServerGameState::HandleClientDrop(const fx::ClientSharedPtr& client, uint16
 			if (si != clientData->playersToSlots.end())
 			{
 				fwRefContainer<ServerEventComponent> events = m_instance->GetComponent<ServerEventComponent>();
-				events->TriggerClientEventReplayed("onPlayerDropped", fmt::sprintf("%d", tgtClient->GetNetId()), netId, client->GetName(), si->second);
+				events->TriggerClientEvent("onPlayerDropped", fmt::sprintf("%d", tgtClient->GetNetId()), netId, client->GetName(), si->second);
 
 				clientData->playersInScope.reset(si->second);
 				clientData->playersToSlots.erase(si);
@@ -3771,7 +3771,7 @@ void ServerGameState::SendObjectIds(const fx::ClientSharedPtr& client, int numId
 		outBuffer.Write<uint16_t>(size);
 	}
 
-	client->SendPacket(1, outBuffer, NetPacketType_ReliableReplayed);
+	client->SendPacket(1, outBuffer, NetPacketType_Reliable);
 }
 
 template<int MaxElemSize, int Count>
@@ -3995,7 +3995,7 @@ void ServerGameState::SendPacket(int peer, std::string_view data)
 		buffer.Write<uint32_t>(HashRageString("msgStateBag"));
 		buffer.Write(data.data(), data.size());
 
-		client->SendPacket(1, buffer, NetPacketType_ReliableReplayed);
+		client->SendPacket(1, buffer, NetPacketType_Reliable);
 	}
 }
 
@@ -5833,7 +5833,7 @@ static InitFunction initFunction([]()
 			netBuffer.Write<uint32_t>(reqSeq);
 			netBuffer.Write<uint32_t>((msec().count()) & 0xFFFFFFFF);
 
-			client->SendPacket(1, netBuffer, NetPacketType_ReliableReplayed);
+			client->SendPacket(1, netBuffer, NetPacketType_Reliable);
 		} });
 	}, 999999);
 });

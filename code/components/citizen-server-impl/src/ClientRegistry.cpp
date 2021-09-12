@@ -203,14 +203,14 @@ namespace fx
 			fwRefContainer<ServerEventComponent> events = m_instance->GetComponent<ServerEventComponent>();
 
 			// send every player information about the joining client
-			events->TriggerClientEventReplayed("onPlayerJoining", std::optional<std::string_view>(), client->GetNetId(), client->GetName(), client->GetSlotId());
+			events->TriggerClientEvent("onPlayerJoining", std::optional<std::string_view>(), client->GetNetId(), client->GetName(), client->GetSlotId());
 
 			// send the JOINING CLIENT information about EVERY OTHER CLIENT
 			std::string target = fmt::sprintf("%d", client->GetNetId());
 
 			ForAllClients([&](const fx::ClientSharedPtr& otherClient)
 			{
-				events->TriggerClientEventReplayed("onPlayerJoining", target, otherClient->GetNetId(), otherClient->GetName(), otherClient->GetSlotId());
+				events->TriggerClientEvent("onPlayerJoining", target, otherClient->GetNetId(), otherClient->GetName(), otherClient->GetSlotId());
 			});
 		}
 		else
@@ -220,7 +220,7 @@ namespace fx
 			std::string target = fmt::sprintf("%d", client->GetNetId());
 			uint32_t bigModeSlot = (m_instance->GetComponent<fx::GameServer>()->GetGameName() == fx::GameName::GTA5) ? 128 : 16;
 
-			events->TriggerClientEventReplayed("onPlayerJoining", target, client->GetNetId(), client->GetName(), bigModeSlot);
+			events->TriggerClientEvent("onPlayerJoining", target, client->GetNetId(), client->GetName(), bigModeSlot);
 		}
 
 		// trigger connection handlers
