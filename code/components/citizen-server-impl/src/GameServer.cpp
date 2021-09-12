@@ -589,20 +589,6 @@ namespace fx
 
 	void GameServer::InternalSendPacket(fx::Client* client, int peer, int channel, const net::Buffer& buffer, NetPacketType type)
 	{
-		// TODO: think of a more uniform way to determine null peers
-		NetPeerStackBuffer stackBuffer;
-		m_net->GetPeer(peer, stackBuffer);
-		if (stackBuffer.GetBase()->GetPing() == -1)
-		{
-			if (type == NetPacketType_ReliableReplayed)
-			{
-				client->PushReplayPacket(channel, buffer);
-			}
-
-			return;
-		}
-
-
 		GameServerPacket* packet = m_packetPool.construct(peer, channel, buffer, type);
 		m_netSendList.push(&packet->queueKey);
 	}
@@ -736,8 +722,6 @@ namespace fx
 					outMsg.Write(outStr.c_str(), outStr.size());
 
 					client->SendPacket(0, outMsg, NetPacketType_Reliable);
-
-					client->ReplayPackets();
 
 					if (wasNew)
 					{
@@ -1140,7 +1124,7 @@ namespace fx
 			if (!fx::IsBigMode() && isFinal)
 			{
 				// send every player information about the dropping client
-				events->TriggerClientEventReplayed("onPlayerDropped", std::optional<std::string_view>(), client->GetNetId(), client->GetName(), client->GetSlotId());
+				events->TriggerClientEvent("onPlayerDropped", std::optional<std::string_view>(), client->GetNetId(), client->GetName(), client->GetSlotId());
 			}
 		}
 
@@ -1484,7 +1468,7 @@ namespace fx
 					hostBroadcast.Write(client->GetNetBase());
 
 					gameServer->Broadcast(hostBroadcast);
-					//client->SendPacket(1, hostBroadcast, NetPacketType_ReliableReplayed);
+					//client->SendPacket(1, hostBroadcast, NetPacketType_Reliable);
 				}
 			}
 

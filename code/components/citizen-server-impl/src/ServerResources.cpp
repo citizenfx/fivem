@@ -762,7 +762,7 @@ static InitFunction initFunction([]()
 
 				clientRegistry->ForAllClients([&](const fx::ClientSharedPtr& client)
 				{
-					client->SendPacket(0, outBuffer, NetPacketType_ReliableReplayed);
+					client->SendPacket(0, outBuffer, NetPacketType_Reliable);
 
 					trl->ReturnToken(client->GetConnectionToken());
 				});
@@ -797,7 +797,7 @@ static InitFunction initFunction([]()
 
 				clientRegistry->ForAllClients([&](const fx::ClientSharedPtr& client)
 				{
-					client->SendPacket(0, outBuffer, NetPacketType_ReliableReplayed);
+					client->SendPacket(0, outBuffer, NetPacketType_Reliable);
 				});
 			}, -1000);
 		});
@@ -1049,7 +1049,7 @@ static InitFunction initFunction([]()
 #include <ScriptEngine.h>
 #include <optional>
 
-void fx::ServerEventComponent::TriggerClientEvent(const std::string_view& eventName, const void* data, size_t dataLen, const std::optional<std::string_view>& targetSrc, bool replayed)
+void fx::ServerEventComponent::TriggerClientEvent(const std::string_view& eventName, const void* data, size_t dataLen, const std::optional<std::string_view>& targetSrc)
 {
 	// build the target event
 	net::Buffer outBuffer;
@@ -1079,14 +1079,14 @@ void fx::ServerEventComponent::TriggerClientEvent(const std::string_view& eventN
 		if (client)
 		{
 			// TODO(fxserver): >MTU size?
-			client->SendPacket(0, outBuffer, (!replayed) ? NetPacketType_Reliable : NetPacketType_ReliableReplayed);
+			client->SendPacket(0, outBuffer, NetPacketType_Reliable);
 		}
 	}
 	else
 	{
 		clientRegistry->ForAllClients([&](const fx::ClientSharedPtr& client)
 		{
-			client->SendPacket(0, outBuffer, (!replayed) ? NetPacketType_Reliable : NetPacketType_ReliableReplayed);
+			client->SendPacket(0, outBuffer, NetPacketType_Reliable);
 		});
 	}
 }

@@ -81,7 +81,7 @@ static InitFunction initFunction([]()
 					{
 						for (auto& [ native, buffer ] : entry.second)
 						{
-							unsafeClient->SendPacket(0, buffer, NetPacketType_ReliableReplayed);
+							unsafeClient->SendPacket(0, buffer, NetPacketType_Reliable);
 						}
 					}
 				}
@@ -486,7 +486,7 @@ static InitFunction initFunction([]()
 				{
 					if (cl)
 					{
-						cl->SendPacket(0, buffer, NetPacketType_ReliableReplayed);
+						cl->SendPacket(0, buffer, NetPacketType_Reliable);
 					}
 				};
 
@@ -497,7 +497,7 @@ static InitFunction initFunction([]()
 						std::unique_lock<std::shared_mutex> _(entity->guidMutex);
 						entity->onCreationRPC.push_back([buffer](const fx::ClientSharedPtr& client)
 						{
-							client->SendPacket(0, buffer, NetPacketType_ReliableReplayed);
+							client->SendPacket(0, buffer, NetPacketType_Reliable);
 						});
 					}
 				}
