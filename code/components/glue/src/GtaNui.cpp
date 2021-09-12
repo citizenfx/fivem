@@ -35,10 +35,6 @@ private:
 
 	uint32_t m_oldDepthStencilState;
 
-	uint32_t m_oldSamplerState;
-
-	uint32_t m_pointSamplerState;
-
 	bool m_targetMouseFocus = true;
 
 	bool m_lastTargetMouseFocus = true;
@@ -605,8 +601,6 @@ void GtaNuiInterface::SetTexture(fwRefContainer<GITexture> texture, bool pm)
 	SetTextureGtaIm(static_cast<GtaNuiTexture*>(texture.GetRef())->GetTexture());
 
 #if _HAVE_GRCORE_NEWSTATES
-	m_oldSamplerState = GetImDiffuseSamplerState();
-
 	m_oldRasterizerState = GetRasterizerState();
 	SetRasterizerState(GetStockStateIdentifier(RasterizerStateNoCulling));
 
@@ -662,7 +656,6 @@ void GtaNuiInterface::UnsetTexture()
 	SetRasterizerState(m_oldRasterizerState);
 	SetBlendState(m_oldBlendState);
 	SetDepthStencilState(m_oldDepthStencilState);
-	SetImDiffuseSamplerState(m_oldSamplerState);
 #endif
 
 	g_currentTexture = {};
