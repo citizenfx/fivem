@@ -405,11 +405,14 @@ namespace fx
 				return;
 			}
 
+			// save the peer as m_peerHandles will see an erase
+			auto peer = peerPair->second;
+
 			// enet_peer_reset will not trigger a disconnect event, so we'll manually run that
-			OnDisconnect(peerPair->second);
+			OnDisconnect(peer);
 
 			// reset the peer
-			enet_peer_reset(peerPair->second);
+			enet_peer_reset(peer);
 		}
 
 		virtual TimeoutInfo GatherTimeoutInfo(int peerId) override
