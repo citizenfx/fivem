@@ -89,6 +89,12 @@ namespace fx
 
 		inline void RemoveClient(const fx::ClientSharedPtr& client)
 		{
+			if (!client->IsDropping())
+			{
+				// some code expects OnDrop to follow any OnClientCreated
+				client->OnDrop();
+			}
+
 			m_clientsByPeer[client->GetPeer()].reset();
 			m_clientsByNetId[client->GetNetId()].reset();
 			m_clientsByConnectionToken[client->GetConnectionToken()].reset();

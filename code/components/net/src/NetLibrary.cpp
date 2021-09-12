@@ -1890,6 +1890,10 @@ void NetLibrary::Disconnect(const char* reason)
 		if (m_impl)
 		{
 			m_impl->Flush();
+
+			// this is *somewhat* needed to ensure the server gets our msgIQuit first
+			Sleep(std::min(750, m_impl->GetPing() + abs(m_impl->GetVariance())));
+
 			m_impl->Reset();
 		}
 
