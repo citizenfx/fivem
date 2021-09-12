@@ -278,7 +278,7 @@ local function resumeThread(thread, coro) -- Internal utility
 		Citizen_SubmitBoundaryStart(thread[4 --[[SLQ_BOUNDARY]]], coro)
 	end
 	
-	local ok, wakeTimeOrErr = coroutine_resume(coro)
+	local ok, wakeTimeOrErr = coroutine_resume(coro, curTime)
 	
 	if ok then
 		thread = thread_lu[coro]
@@ -314,7 +314,7 @@ function Citizen.CreateThread(threadFunction)
 end
 
 function Citizen.Wait(msec)
-	coroutine_yield(curTime + msec)
+	return coroutine_yield(curTime + msec)
 end
 
 -- legacy alias (and to prevent people from calling the game's function)
