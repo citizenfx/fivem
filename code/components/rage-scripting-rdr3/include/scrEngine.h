@@ -189,42 +189,27 @@ public:
 	}
 };
 
-struct pass
-{
-	template<typename ...T> pass(T...) {}
-};
-
 class NativeInvoke
 {
-private:
-	static inline void Invoke(NativeContext *cxt, uint64_t hash)
-	{
-		auto fn = rage::scrEngine::GetNativeHandler(hash);
-
-		// Commented out to reduce debug spam.
-		//LogDebug("Invoking native: %s", name);
-
-		if (fn != 0)
-		{
-			fn(cxt);
-		}
-	}
-
 public:
-
 	template<uint64_t Hash, typename R, typename... Args>
 	static inline R Invoke(Args... args)
 	{
 		NativeContext cxt;
+		(cxt.Push(args), ...);
 
-		pass{([&] ()
+		static auto fn = rage::scrEngine::GetNativeHandler(Hash);
+		if (fn != 0)
 		{
-			cxt.Push(args);
-		}(), 1)...};
+			fn(&cxt);
+		}
 
-		Invoke(&cxt, Hash);
+		cxt.SetVectorResults();
 
-		return cxt.GetResult<R>();
+		if constexpr (!std::is_void_v<R>)
+		{
+			return cxt.GetResult<R>();
+		}
 	}
 };
 

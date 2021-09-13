@@ -1174,11 +1174,6 @@ namespace fx
 
 	namespace ServerDecorators
 	{
-		struct pass
-		{
-			template<typename ...T> pass(T...) {}
-		};
-
 		fwRefContainer<fx::GameServer> NewGameServer()
 		{
 			return new fx::GameServer();

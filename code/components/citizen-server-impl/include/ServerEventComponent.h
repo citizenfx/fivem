@@ -13,12 +13,6 @@ namespace fx
 {
 	class ServerEventComponent : public fwRefCountable, public IAttached<ServerInstanceBase>
 	{
-	private:
-		struct pass
-		{
-			template<typename ...T> pass(T...) {}
-		};
-
 	public:
 		virtual void TriggerClientEvent(const std::string_view& eventName, const void* data, size_t dataLen, const std::optional<std::string_view>& targetSrc = std::optional<std::string_view>());
 
@@ -42,7 +36,7 @@ namespace fx
 
 			// pack the argument pack as array
 			packer.pack_array(sizeof...(args));
-			pass{ (packer.pack(args), 0)... };
+			(packer.pack(args), ...);
 
 			TriggerClientEvent(eventName, buf.data(), buf.size(), targetSrc);
 		}

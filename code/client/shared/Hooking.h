@@ -103,11 +103,6 @@ T get_tls()
 	return (T)tlsBase[*tlsIndex];
 }
 
-struct pass
-{
-	template<typename ...T> pass(T...) {}
-};
-
 #ifdef JITASM_H
 #pragma region assembly generator
 class FunctionAssembly
@@ -603,17 +598,17 @@ public:
 		uint32_t argOffset = sizeof(uintptr_t) * 2; // as frame pointers are also kept here
 		uint32_t argCleanup = 0;
 
-		pass{([&]
+		([&]
 		{
 			int size = std::min(sizeof(Args), sizeof(uintptr_t));
 
 			argOffset += size;
-		}(), 1)...};
+		}(), ...);
 
 		// as this is the end, and the last argument isn't past the end
 		argOffset -= 4;
 		
-		pass{([&]
+		([&]
 		{
 			mov(eax, dword_ptr[esp + stackOffset + argOffset]);
 			push(eax);
@@ -623,7 +618,7 @@ public:
 			stackOffset += size;
 			argCleanup += size;
 			argOffset -= size;
-		}(), 1)...};
+		}(), ...);
 
 		mov(eax, (uintptr_t)m_target);
 		call(eax);

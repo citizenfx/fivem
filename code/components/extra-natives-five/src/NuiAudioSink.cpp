@@ -1457,32 +1457,6 @@ void MumbleAudioSink::PushAudio(int16_t* pcm, int len)
 	}
 }
 
-class FxNativeInvoke
-{
-private:
-	static inline void Invoke(fx::ScriptContext& cxt, const boost::optional<fx::TNativeHandler>& handler)
-	{
-		(*handler)(cxt);
-	}
-
-public:
-	template<typename R, typename... Args>
-	static inline R Invoke(const boost::optional<fx::TNativeHandler>& handler, Args... args)
-	{
-		fx::ScriptContextBuffer cxt;
-
-		pass{ ([&]()
-		{
-			cxt.Push(args);
-		}(),
-		1)... };
-
-		Invoke(cxt, handler);
-
-		return cxt.GetResult<R>();
-	}
-};
-
 void MumbleAudioSink::Process()
 {
 	static auto getByServerId = fx::ScriptEngine::GetNativeHandler(HashString("GET_PLAYER_FROM_SERVER_ID"));
