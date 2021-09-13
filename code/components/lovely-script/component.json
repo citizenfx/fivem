@@ -4,6 +4,7 @@
 	"dependencies": [
 		"fx[2]",
 		"rage:scripting",
+		"gta:mission-cleanup",
 		"font-renderer",
 		"steam",
 		"net"
