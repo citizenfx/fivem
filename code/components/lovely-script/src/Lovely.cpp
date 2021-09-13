@@ -16,6 +16,10 @@
 
 #include <ICoreGameInit.h>
 
+#ifdef GTA_FIVE
+#include <ScriptHandlerMgr.h>
+#endif
+
 // BLIP_8 in global.gxt2 -> 'Waypoint'
 #define BLIP_WAYPOINT 8
 
@@ -39,8 +43,11 @@ class LovelyThread : public GtaThread
 private:
 	bool m_shouldCreate = false;
 
+	bool m_attached = false;
 	bool m_hosted = false;
 	bool m_lastOff = false;
+
+	int m_blockingArea = -1;
 
 public:
 	LovelyThread(bool shouldCreate)
@@ -50,6 +57,7 @@ public:
 
 	virtual rage::eThreadState Reset(uint32_t scriptHash, void* pArgs, uint32_t argCount) override
 	{
+		m_attached = false;
 		m_hosted = false;
 		m_lastOff = false;
 
@@ -58,6 +66,13 @@ public:
 
 	void ProcessPopulationToggle()
 	{
+#ifdef GTA_FIVE
+		if (!m_attached)
+		{
+			CGameScriptHandlerMgr::GetInstance()->AttachScript(this);
+			m_attached = true;
+		}
+
 		// TEMP: force-disable population for 1s big using script
 		// should be done natively someday
 		static auto icgi = Instance<ICoreGameInit>::Get();
@@ -77,6 +92,9 @@ public:
 			if (!m_lastOff)
 			{
 				setDispatch(false);
+
+				// ADD_SCENARIO_BLOCKING_AREA
+				m_blockingArea = NativeInvoke::Invoke<0x1B5C85C612E5256E, int>(-8192.0, -8192.0, -1024.0, 8192.0f, 8192.0f, 1024.0f, false, true, true, true);
 
 				m_lastOff = true;
 			}
@@ -105,9 +123,17 @@ public:
 			{
 				setDispatch(true);
 
+				if (m_blockingArea != -1)
+				{
+					// REMOVE_SCENARIO_BLOCKING_AREA
+					NativeInvoke::Invoke<0x31D16B74C6E29D66, int>(m_blockingArea, false);
+					m_blockingArea = -1;
+				}
+
 				m_lastOff = false;
 			}
 		}
+#endif
 	}
 
 	virtual void DoRun() override
