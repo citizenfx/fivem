@@ -55,32 +55,6 @@ static inline void CallHandler(const THandler& handler, uint64_t nativeIdentifie
 	}
 }
 
-class FxNativeInvoke
-{
-private:
-	static inline void Invoke(fx::ScriptContext& cxt, const boost::optional<fx::TNativeHandler>& handler)
-	{
-		(*handler)(cxt);
-	}
-
-public:
-	template<typename R, typename... Args>
-	static inline R Invoke(const boost::optional<fx::TNativeHandler>& handler, Args... args)
-	{
-		fx::ScriptContextBuffer cxt;
-
-		pass{ ([&]()
-		{
-			cxt.Push(args);
-		}(),
-		1)... };
-
-		Invoke(cxt, handler);
-
-		return cxt.GetResult<R>();
-	}
-};
-
 static std::shared_ptr<RpcConfiguration> g_rpcConfiguration;
 
 struct ResourceActivationScope

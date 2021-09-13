@@ -56,11 +56,6 @@ private:
 		}
 	};
 
-	struct pass
-	{
-		template<typename ...T> pass(T...) {}
-	};
-
 	RefCount m_refCount;
 
 protected:
@@ -91,7 +86,7 @@ public:
 	{
 		result_t result = FX_E_NOINTERFACE;
 
-		pass{ ([&]
+		([&]
 		{
 			if (result == FX_E_NOINTERFACE)
 			{
@@ -103,7 +98,7 @@ public:
 					AddRef();
 				}
 			}
-		}(), 1)... };
+		}(), ...);
 
 		if (result == FX_E_NOINTERFACE)
 		{

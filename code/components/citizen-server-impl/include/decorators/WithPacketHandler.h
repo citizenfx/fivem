@@ -23,14 +23,14 @@ namespace fx
 				bool handled = false;
 
 				// any fast-path handlers?
-				pass{ ([&]
+				([&]
 				{
 					if (!handled && packetId == const_uint32<HashRageString(THandler::GetPacketId())>())
 					{
 						THandler::Handle(server->GetInstance(), client, packet);
 						handled = true;
 					}
-				}(), 1)... };
+				}(), ...);
 
 				// regular handler map
 				if (!handled)

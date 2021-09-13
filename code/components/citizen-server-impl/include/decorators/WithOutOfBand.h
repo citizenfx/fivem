@@ -12,11 +12,11 @@ namespace fx
 			// this is static because GCC seems to get really confused when things are wrapped in a lambda
 			static std::map<std::string, std::function<void(const fwRefContainer<fx::GameServer>& server, const net::PeerAddress& from, const std::string_view& data)>, std::less<>> processors;
 
-			pass{ ([&]()
+			([&]()
 			{
 				auto oob = TOOB();
 				processors.insert({ oob.GetName(), std::bind(&std::remove_reference_t<decltype(oob)>::Process, &oob, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3) });
-			}(), 1)... };
+			}(), ...);
 
 			server->AddRawInterceptor([server](const uint8_t* receivedData, size_t receivedDataLength, const net::PeerAddress& receivedAddress)
 			{

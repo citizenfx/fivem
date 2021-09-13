@@ -60,12 +60,6 @@ public:
 
 	void QueueEvent(const std::string& eventName, const std::string& eventPayload, const std::string& eventSource = std::string());
 
-private:
-	struct pass
-	{
-		template<typename ...T> pass(T...) {}
-	};
-
 public:
 	//
 	// Enqueues a formatted event on the resource.
@@ -78,7 +72,7 @@ public:
 
 		// pack the argument pack as array
 		packer.pack_array(sizeof...(args));
-		pass{ (packer.pack(args), 0)... };
+		(packer.pack(args), ...);
 
 		QueueEvent(std::string(eventName), std::string(buf.data(), buf.size()), std::string(targetSrc.value_or("")));
 	}
@@ -148,12 +142,6 @@ public:
 	//
 	void QueueEvent(const std::string& eventName, const std::string& eventPayload, const std::string& eventSource = std::string());
 
-private:
-	struct pass
-	{
-		template<typename ...T> pass(T...) {}
-	};
-
 public:
 	//
 	// Triggers a formatted event on the manager.
@@ -166,7 +154,7 @@ public:
 
 		// pack the argument pack as array
 		packer.pack_array(sizeof...(args));
-		pass{ (packer.pack(args), 0)... };
+		(packer.pack(args), ...);
 
 		return TriggerEvent(std::string(eventName), std::string(buf.data(), buf.size()), std::string(targetSrc.value_or("")));
 	}
@@ -182,7 +170,7 @@ public:
 
 		// pack the argument pack as array
 		packer.pack_array(sizeof...(args));
-		pass{ (packer.pack(args), 0)... };
+		(packer.pack(args), ...);
 
 		QueueEvent(std::string(eventName), std::string(buf.data(), buf.size()), std::string(targetSrc.value_or("")));
 	}
