@@ -3353,7 +3353,6 @@ struct SyncTree : public SyncTreeBase
 	{
 		std::unique_lock<std::mutex> lock(mutex);
 
-		//trace("parsing root\n");
 		state.objType = 0;
 
 		if (state.syncType == 2 || state.syncType == 4)

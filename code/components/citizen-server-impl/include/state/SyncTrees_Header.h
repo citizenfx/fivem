@@ -232,7 +232,7 @@ struct ParentNode : public NodeBase
 		return LoopChildrenNode<TData, I + 1>();
 	}
 
-	virtual bool Parse(SyncParseState& state) final override
+	bool Parse(SyncParseState& state)
 	{
 		if (shouldRead(state, TIds::GetIds()))
 		{
@@ -245,7 +245,7 @@ struct ParentNode : public NodeBase
 		return true;
 	}
 
-	virtual bool Unparse(SyncUnparseState& state) final override
+	bool Unparse(SyncUnparseState& state)
 	{
 		bool should = false;
 
@@ -263,7 +263,7 @@ struct ParentNode : public NodeBase
 		return should;
 	}
 
-	virtual bool Visit(const SyncTreeVisitor& visitor) final override
+	bool Visit(const SyncTreeVisitor& visitor)
 	{
 		visitor(*this);
 
@@ -275,7 +275,7 @@ struct ParentNode : public NodeBase
 		return true;
 	}
 
-	virtual bool IsAdditional() override
+	bool IsAdditional()
 	{
 		return (std::get<2>(TIds::GetIds()) & 1);
 	}
@@ -317,7 +317,7 @@ struct NodeWrapper : public NodeBase
 		return 0;
 	}
 
-	virtual bool Parse(SyncParseState& state) final override
+	bool Parse(SyncParseState& state)
 	{
 		/*auto isWrite = state.buffer.ReadBit();
 
@@ -368,7 +368,7 @@ struct NodeWrapper : public NodeBase
 		return true;
 	}
 
-	virtual bool Unparse(SyncUnparseState& state) final override
+	bool Unparse(SyncUnparseState& state)
 	{
 		bool hasData = (length > 0);
 
@@ -422,14 +422,14 @@ struct NodeWrapper : public NodeBase
 		return false;
 	}
 
-	virtual bool Visit(const SyncTreeVisitor& visitor) final override
+	bool Visit(const SyncTreeVisitor& visitor)
 	{
 		visitor(*this);
 
 		return true;
 	}
 
-	virtual bool IsAdditional() override
+	bool IsAdditional()
 	{
 		return (std::get<2>(TIds::GetIds()) & 1);
 	}
