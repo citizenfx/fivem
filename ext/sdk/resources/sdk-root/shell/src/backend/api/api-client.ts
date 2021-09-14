@@ -4,6 +4,11 @@ import { SingleEventEmitter } from 'utils/singleEventEmitter';
 import { LogService } from 'backend/logger/log-service';
 import { ShellBackend } from 'backend/shell-backend';
 
+const wsSendOptions = {
+  binary: true,
+  compress: true,
+};
+
 export type ApiEventListener = <T extends any>(data: T) => void | Promise<void>;
 export type ApiEventListenerDisposer = () => void;
 
@@ -24,30 +29,6 @@ export class ApiClient {
 
   @postConstruct()
   protected initialize() {
-    // on('sdk:api:recv', (msg: string) => {
-    //   let type, data;
-
-    //   try {
-    //     [type, data] = JSON.parse(msg);
-    //   } catch (e) {
-    //     return this.logService.log('Invalid api message:', msg, e);
-    //   }
-
-    //   const typedListeners = this.eventTypeListeners[type];
-    //   if (!typedListeners?.size) {
-    //     return console.log('No listeners for event of type:', type);
-    //   }
-
-    //   typedListeners.forEach(async (listener) => {
-    //     try {
-    //       await listener(data);
-    //     } catch (e) {
-    //       this.onEventListenerError.emit(e);
-    //       this.logService.log('Unexpected error occured:', e);
-    //     }
-    //   });
-    // });
-
     this.shellBackend.expressApp.ws('/api', (ws) => {
       this.clients.add(ws);
 
@@ -57,14 +38,11 @@ export class ApiClient {
   }
 
   emit<T extends any>(eventType: string, data?: T) {
-    const message = JSON.stringify(
+    this.broadcastMessage(JSON.stringify(
       typeof data !== 'undefined'
         ? [eventType, data]
         : [eventType],
-    );
-
-    // emit('sdk:api:send', message);
-    this.clients.forEach((client) => client.send(message));
+    ));
   }
 
   on(eventType: string, listener: ApiEventListener): ApiEventListenerDisposer {
@@ -97,7 +75,7 @@ export class ApiClient {
     let args: [string, any] | ['@@cb', string, string, any];
 
     try {
-      args = JSON.parse(message);
+      args = JSON.parse(message.toString());
     } catch (e) {
       this.logService.log('Invalid api message:', message, e);
       return;
@@ -140,20 +118,18 @@ export class ApiClient {
   }
 
   private emitCallbackError(id: string, error: Error) {
-    const message = JSON.stringify(
+    this.broadcastMessage(JSON.stringify(
       ['@@cb', [ id, 'error', error + ''] ],
-    );
-
-    // emit('sdk:api:send', message);
-    this.clients.forEach((client) => client.send(message));
+    ));
   }
 
   private emitCallbackResponse(id: string, response: any) {
-    const message = JSON.stringify(
+    this.broadcastMessage(JSON.stringify(
       ['@@cb', [ id, 'response', response] ],
-    );
+    ));
+  }
 
-    // emit('sdk:api:send', message);
-    this.clients.forEach((client) => client.send(message));
+  private broadcastMessage(message: string) {
+    this.clients.forEach((client) => client.send(Buffer.from(message), wsSendOptions));
   }
 }
