@@ -241,6 +241,16 @@ void DrawDevGui();
 
 static std::mutex g_conHostMutex;
 ImFont* consoleFontSmall;
+ImFont* consoleFontTiny;
+
+static ImFont* g_font14;
+static ImFont* g_font16;
+static ImFont* g_font18;
+static ImFont* g_font20;
+static ImFont* g_font22;
+static ImFont* g_font24;
+static ImFont* g_font26;
+static ImFont* g_font28;
 
 void DrawMiniConsole();
 
@@ -325,23 +335,73 @@ DLL_EXPORT void OnConsoleFrameDraw(int width, int height)
 		}
 	}
 
+	{
+		// Scale style/font based on resolution
+		ImGuiStyle default_style;
+		int x, y;
+		static int lastX = 0;
+
+		GetGameResolution(x, y);
+
+		if (x != lastX)
+		{
+			if (x >= 3840)
+			{
+				default_style.ScaleAllSizes(2.0f);
+				consoleFontSmall = g_font26;
+				consoleFontTiny = g_font24;
+				ImGui::GetIO().FontDefault = g_font28;
+			}
+			else if (x >= 2560)
+			{
+				default_style.ScaleAllSizes(1.5f);
+				consoleFontSmall = g_font24;
+				consoleFontTiny = g_font22;
+				ImGui::GetIO().FontDefault = g_font26;
+			}
+			else if (x >= 1920)
+			{
+				default_style.ScaleAllSizes(1.0f);
+				consoleFontSmall = g_font22;
+				consoleFontTiny = g_font20;
+				ImGui::GetIO().FontDefault = g_font24;
+			}
+			else if (x >= 1280)
+			{
+				float scale = ((float)x * (float)y) / (1920.0f * 1080.0f);
+				default_style.ScaleAllSizes(scale);
+				consoleFontSmall = g_font20;
+				consoleFontTiny = g_font18;
+				ImGui::GetIO().FontDefault = g_font22;
+			}
+			else
+			{
+				float scale = ((float)x * (float)y) / (1920.0f * 1080.0f);
+				default_style.ScaleAllSizes(scale);
+				consoleFontSmall = g_font16;
+				consoleFontTiny = g_font14;
+				ImGui::GetIO().FontDefault = g_font18;
+			}
+
+			default_style.MouseCursorScale = 1.0f;
+			default_style.WindowRounding = 0.0f;
+			default_style.ChildRounding = 0.0f;
+			default_style.FrameRounding = 0.0f;
+			default_style.GrabRounding = 0.0f;
+			default_style.PopupRounding = 0.0f;
+			default_style.ScrollbarRounding = 0.0f;
+			default_style.TabRounding = 0.0f;
+			ImGuiStyle& style = ImGui::GetStyle();
+			style = default_style;
+
+			lastX = x;
+		}
+	}
+
 	ImGui_ImplDX11_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 
 	ImGui::NewFrame();
-
-	bool wasSmallFont = false;
-
-	{
-		int x, y;
-		GetGameResolution(x, y);
-
-		if (x <= 1920 && y <= 1080)
-		{
-			ImGui::PushFont(consoleFontSmall);
-			wasSmallFont = true;
-		}
-	}
 
 	if (g_consoleFlag)
 	{
@@ -353,12 +413,8 @@ DLL_EXPORT void OnConsoleFrameDraw(int width, int height)
 
 	ConHost::OnDrawGui();
 
-	if (wasSmallFont)
-	{
-		ImGui::PopFont();
-	}
-
 	ImGui::Render();
+
 	RenderDrawLists(ImGui::GetDrawData());
 
     ImGui::UpdatePlatformWindows();
@@ -381,9 +437,9 @@ static void OnConsoleWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, 
 	}
 
 	std::unique_lock<std::mutex> g_conHostMutex;
-	ImGuiIO& io = ImGui::GetIO();
 
 #if 0
+	ImGuiIO& io = ImGui::GetIO();
 	switch (msg)
 	{
 		case WM_LBUTTONDOWN:
@@ -466,8 +522,6 @@ DLL_EXPORT void RunConsoleWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPa
 	ProcessWndProc(hWnd, msg, wParam, lParam, pass, result);
 	OnConsoleWndProc(hWnd, msg, wParam, lParam, pass, result);
 }
-
-ImFont* consoleFontTiny;
 
 #pragma comment(lib, "d3d11.lib")
 
@@ -621,10 +675,14 @@ static HookFunction initFunction([]()
 			fread(&fontData[0], 1, fontSize, font);
 			fclose(font);
 
-			io.Fonts->AddFontFromMemoryTTF(fontData, fontSize, 22.0f);
-
-			consoleFontSmall = io.Fonts->AddFontFromMemoryTTF(fontData, fontSize, 18.0f);
-			consoleFontTiny = io.Fonts->AddFontFromMemoryTTF(fontData, fontSize, 14.0f);
+			g_font28 = io.Fonts->AddFontFromMemoryTTF(fontData, fontSize, 28.0f);
+			g_font26 = io.Fonts->AddFontFromMemoryTTF(fontData, fontSize, 26.0f);
+			g_font24 = io.Fonts->AddFontFromMemoryTTF(fontData, fontSize, 24.0f);
+			g_font22 = io.Fonts->AddFontFromMemoryTTF(fontData, fontSize, 22.0f);
+			g_font20 = io.Fonts->AddFontFromMemoryTTF(fontData, fontSize, 20.0f);
+			g_font18 = io.FontDefault = io.Fonts->AddFontFromMemoryTTF(fontData, fontSize, 18.0f);
+			g_font16 = consoleFontSmall = io.Fonts->AddFontFromMemoryTTF(fontData, fontSize, 16.0f);
+			g_font14 = consoleFontTiny = io.Fonts->AddFontFromMemoryTTF(fontData, fontSize, 14.0f);
 		}
 	}
 

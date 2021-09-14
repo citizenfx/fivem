@@ -5,6 +5,11 @@
 #include <HostSharedData.h>
 #include <ReverseGameData.h>
 
+#ifdef _WIN32
+#include <ShellScalingApi.h>
+#pragma comment(lib, "Shcore.lib")
+#endif
+
 extern nui::GameInterface* g_nuiGi;
 
 #include "memdbgon.h"
@@ -152,7 +157,30 @@ static HookFunction initFunction([] ()
 
 				nui::ResultingRectangle rr;
 				rr.color = (g_isDragging) ? CRGBA(0xaa, 0xaa, 0xaa, 0xff) : CRGBA(0xff, 0xff, 0xff, 0xff);
-				rr.rectangle = CRect(cursorPos.x, cursorPos.y, cursorPos.x + 32.0f, cursorPos.y + 32.0f);
+
+				// defaults
+				static float cursorWidth = 32.0f;
+				static float cursorHeight = 32.0f;
+
+#ifdef _WIN32
+				int resX, resY;
+				static int lastResX = 0;
+				g_nuiGi->GetGameResolution(&resX, &resY);
+				if (resX != lastResX)
+				{
+					DEVICE_SCALE_FACTOR scaleFactor;
+					if (::GetScaleFactorForMonitor(MonitorFromWindow(g_nuiGi->GetHWND(), MONITOR_DEFAULTTOPRIMARY), &scaleFactor) == S_OK)
+					{
+						// Convert 100 -> 1.00
+						float scale = scaleFactor / 100.0f;
+						cursorWidth = std::clamp(32.0f * scale, 32.0f, 64.0f);
+						cursorHeight = cursorWidth;
+					}
+					lastResX = resX;
+				}
+#endif
+				
+				rr.rectangle = CRect(cursorPos.x, cursorPos.y, cursorPos.x + cursorWidth, cursorPos.y + cursorHeight);
 
 				g_nuiGi->DrawRectangles(1, &rr);
 
