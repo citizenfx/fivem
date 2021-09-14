@@ -505,40 +505,40 @@ static InitFunction initFunction([]()
 
 			TicketData ticketData;
 
-			if (!lanVar->GetValue())
-			{
-				auto ticketIt = postMap.find("cfxTicket");
+			auto ticketIt = postMap.find("cfxTicket");
 
-				if (ticketIt == postMap.end())
+			if (ticketIt == postMap.end() and !lanVar->GetValue())
+			{
+				sendError("No authentication ticket was specified.");
+				return;
+			}
+
+			try
+			{
+				std::string ticketError;
+
+				if (!VerifyTicket(guid, ticketIt->second, &ticketError) and !lanVar->GetValue())
 				{
-					sendError("No authentication ticket was specified.");
+					sendError(fmt::sprintf("Ticket authorization failed. %s", ticketError));
 					return;
 				}
 
-				try
+				auto optionalTicket = VerifyTicketEx(ticketIt->second);
+
+				if (!optionalTicket and !lanVar->GetValue())
 				{
-					std::string ticketError;
-
-					if (!VerifyTicket(guid, ticketIt->second, &ticketError))
-					{
-						sendError(fmt::sprintf("Ticket authorization failed. %s", ticketError));
-						return;
-					}
-
-					auto optionalTicket = VerifyTicketEx(ticketIt->second);
-
-					if (!optionalTicket)
-					{
-						sendError("Ticket authorization failed. (2)");
-						return;
-					}
-
-					ticketData = *optionalTicket;
+					sendError("Ticket authorization failed. (2)");
+					return;
 				}
-				catch (const std::exception& e)
+
+				ticketData = *optionalTicket;
+			}
+			catch (const std::exception& e)
+			{
+				if (!lanVar->GetValue())
 				{
 					sendError(fmt::sprintf("Parsing error while verifying ticket. %s", e.what()));
-					return;
+					return;	
 				}
 			}
 
