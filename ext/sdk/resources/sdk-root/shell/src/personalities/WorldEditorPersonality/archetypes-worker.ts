@@ -1,5 +1,7 @@
 import { expose } from 'threads/worker';
 import fuzzysort from 'fuzzysort';
+import { Archetypes } from 'backend/world-editor/world-editor-archetypes-types';
+import { ARCHETYPE_FILE_INDEX, ARCHETYPE_LOD_DIST } from 'backend/world-editor/world-editor-archetypes-constants';
 
 const entryCollator = new Intl.Collator(undefined, {
   usage: 'sort',
@@ -14,6 +16,7 @@ function entriesSorter(a: string, b: string) {
   return entryCollator.compare(a, b);
 };
 
+let archetypesData: Archetypes;
 let archetypes: string[] = [];
 let archetypesReady = false;
 let archetypesPrepared;
@@ -26,7 +29,9 @@ const archetypesLoadPromise = (async () => {
       throw new Error('Archetypes unavailable');
     }
 
-    archetypes = Object.values(await response.json()).flat().sort(entriesSorter) as string[];
+    archetypesData = await response.json();
+
+    archetypes = Object.keys(archetypesData.archetypes).sort(entriesSorter) as string[];
     archetypesPrepared = archetypes.map((name) => fuzzysort.prepare(name));
 
     console.log('Hi form archetypes worker, archetypes are loaded');
@@ -44,6 +49,20 @@ expose({
     }
 
     return fuzzysort.go(term, archetypesPrepared, fuzzysortOptions).map(({ target }) => target);
+  },
+  async getArchetypeFileName(archetypeName: string) {
+    if (!archetypesReady) {
+      await archetypesLoadPromise;
+    }
+
+    return archetypesData.files[archetypesData.archetypes[archetypeName]?.[ARCHETYPE_FILE_INDEX]];
+  },
+  async getArchetypeLodDist(archetypeName: string) {
+    if (!archetypesReady) {
+      await archetypesLoadPromise;
+    }
+
+    return archetypesData.archetypes[archetypeName]?.[ARCHETYPE_LOD_DIST];
   },
   async getAll() {
     if (!archetypesReady) {

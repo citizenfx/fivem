@@ -9,6 +9,7 @@ import { FsService } from "backend/fs/fs-service";
 import { LogService } from "backend/logger/log-service";
 import { NotificationService } from "backend/notification/notification-service";
 import { emitSystemEvent, onSystemEvent } from "backend/system-events";
+import { WorldEditorArchetypesService } from "backend/world-editor/world-editor-archetypes-service";
 import { inject, injectable } from "inversify";
 import { gameApi } from "shared/api.events";
 import { NetLibraryConnectionState, SDKGameProcessState } from "shared/native.enums";
@@ -35,6 +36,9 @@ export class GameService implements ApiContribution, AppContribution {
 
   @inject(NotificationService)
   protected readonly notificationService: NotificationService;
+
+  @inject(WorldEditorArchetypesService)
+  protected readonly archetypesService: WorldEditorArchetypesService;
 
   private gameState = GameStates.NOT_RUNNING;
 
@@ -70,7 +74,7 @@ export class GameService implements ApiContribution, AppContribution {
   }
 
   async boot() {
-    this.archetypesCollectionReady = Boolean(await this.fsService.statSafe(this.configService.archetypesCollectionPath));
+    this.archetypesCollectionReady = Boolean(await this.archetypesService.isValid());
 
     const gameBuildNumberDeferred = new Deferred<number>();
 
@@ -166,6 +170,8 @@ export class GameService implements ApiContribution, AppContribution {
 
         this.rACDeferred.resolve(true);
         this.rACDeferred = null;
+
+        this.archetypesService.refresh();
       }
     });
 
@@ -242,7 +248,7 @@ export class GameService implements ApiContribution, AppContribution {
       this.rACDeferred?.reject(new Error('Timedout'));
       this.rACDeferred = null;
       this.rACTimeout = null;
-    }, 60000);
+    }, 5 * 60000);// 5 minutes timeout
 
     emit('sdk:refreshArchetypesCollection');
 

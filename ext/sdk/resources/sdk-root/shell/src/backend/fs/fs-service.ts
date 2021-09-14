@@ -139,6 +139,16 @@ export class FsService {
     return fs.promises.readFile(entryPath);
   }
 
+  async readFileFirstBytes(entryPath: string, bytes: number): Promise<string> {
+    const fd = await fs.promises.open(entryPath, 'r');
+    const buffer = Buffer.allocUnsafe(bytes);
+
+    await fd.read(buffer, 0, bytes, 0);
+    await fd.close();
+
+    return buffer.toString();
+  }
+
   async readFileString(entryPath: string): Promise<string> {
     return (await this.readFile(entryPath)).toString();
   }

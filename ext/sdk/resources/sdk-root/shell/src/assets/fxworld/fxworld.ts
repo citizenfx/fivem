@@ -1,6 +1,7 @@
 import { AssetDeployablePathsDescriptor, AssetInterface } from "assets/core/asset-interface";
 import { ApiClientScoped } from "backend/api/api-client-scoped";
 import { ApiContribution } from "backend/api/api-contribution";
+import { handlesClientEvent } from "backend/api/api-decorators";
 import { FsService } from "backend/fs/fs-service";
 import { ServerResourceDescriptor } from "backend/game-server/game-server-runtime";
 import { ProjectAccess } from "backend/project/project-access";
@@ -9,6 +10,7 @@ import { WorldEditorService } from "backend/world-editor/world-editor-service";
 import { inject, injectable, postConstruct } from "inversify";
 import { FilesystemEntry } from "shared/api.types";
 import { assetTypes } from "shared/asset.types";
+import { fxworldRecompile } from "./fxworld-constants";
 import { FXWORLD_FILE_EXT } from "./fxworld-types";
 
 @injectable()
@@ -55,6 +57,7 @@ export class FXWorld implements AssetInterface, ApiContribution {
     this.apiClient.setScope(this.entry.name);
   }
 
+  @handlesClientEvent(fxworldRecompile)
   async build() {
     return this.compileMap();
   }

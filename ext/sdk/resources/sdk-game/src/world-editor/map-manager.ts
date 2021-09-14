@@ -1,4 +1,3 @@
-import { joaat } from "../shared";
 import { CameraManager } from "./camera-manager";
 import {
   WEApplyAdditionChangeRequest,
@@ -11,11 +10,11 @@ import {
   WESelection,
 } from "@sdk-root/backend/world-editor/world-editor-types";
 import { WEApi } from '@sdk-root/backend/world-editor/world-editor-game-api';
-import { applyAdditionMatrix, applyEntityMatrix, makeEntityMatrix, Vec3 } from "./math";
+import { applyAdditionMatrix, makeEntityMatrix } from "./math";
 import { ObjectManager } from "./object-manager";
 import { SelectionController } from "./selection-controller";
 import { SettingsManager } from "./settings-manager";
-import { drawDebugText, invokeWEApi, invokeWEApiBackend, invokeWEApiBroadcast, onWEApi } from "./utils";
+import { invokeWEApi, invokeWEApiBackend, invokeWEApiBroadcast, onWEApi } from "./utils";
 import { PatchManager, UpdateOrCreateResult } from "./patch-manager";
 
 type NativeVector3 = [number, number, number];
@@ -231,7 +230,7 @@ export const MapManager = new class MapManager {
   }
 
   destroy() {
-    Citizen.invokeNative(joaat('DISABLE_EDITOR_RUNTIME'));
+    DisableEditorRuntime();
 
     if (this.objects) {
       this.objects.destroy();

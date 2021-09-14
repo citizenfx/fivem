@@ -1,4 +1,6 @@
-export const projectApi = {
+import { apiEndpointsGroup } from "./api.protocol";
+
+export const projectApi = apiEndpointsGroup({
   checkCreateRequest: 'project:checkCreateRequest',
   checkCreateResult: 'project:checkCreateResult',
   checkOpenRequest: 'project:checkOpenRequest',
@@ -34,30 +36,30 @@ export const projectApi = {
 
   startServer: 'project:startServer',
   stopServer: 'project:stopServer',
-};
+});
 
-export const assetApi = {
+export const assetApi = apiEndpointsGroup({
   create: 'asset:create',
   import: 'asset:import',
 
   setConfig: 'asset:setConfig',
 
   updates: 'asset:updates',
-};
+});
 
-export const githubApi = {
+export const githubApi = apiEndpointsGroup({
   fetchReleases: 'github:fetchReleases',
-};
+});
 
-export const stateApi = {
+export const stateApi = apiEndpointsGroup({
   ackState: 'ackState',
   state: 'state',
   serverDataState: 'serverDataState',
   gameLaunched: 'state:gameLaunched',
   setUserId: 'state:setUserId',
-};
+});
 
-export const explorerApi = {
+export const explorerApi = apiEndpointsGroup({
   readDirRecursive: 'explorer:readDirRecursive',
   readDir: 'explorer:readDir',
   readRoots: 'explorer:readRoots',
@@ -67,9 +69,9 @@ export const explorerApi = {
   dirRecursive: 'explorer:dirRecursive',
   roots: 'explorer:roots',
   root: 'explorer:root',
-};
+});
 
-export const serverApi = {
+export const serverApi = apiEndpointsGroup({
   ackState: 'server:ackState',
   state: 'server:state',
 
@@ -90,35 +92,35 @@ export const serverApi = {
   ackUpdateChannelsState: 'server:ackUpdateChannelsState',
   checkForUpdates: 'server:checkForUpdates',
   installUpdate: 'server:installUpdate',
-};
+});
 
-export const statusesApi = {
+export const statusesApi = apiEndpointsGroup({
   ack: 'statuses:ack',
   update: 'statuses:update',
   statuses: 'statuses:statuses',
-};
+});
 
-export const notificationsApi = {
+export const notificationsApi = apiEndpointsGroup({
   ack: 'notifications:ack',
   create: 'notifications:create',
   delete: 'notifications:delete',
-};
+});
 
-export const taskReporterApi = {
+export const taskReporterApi = apiEndpointsGroup({
   ackTasks: 'taskReporter:ackTasks',
   tasks: 'taskReporter:tasks',
   taskAdded: 'taskReporter:taskAdded',
   taskChanged: 'taskReporter:taskChanged',
   taskDeleted: 'taskReporter:taskDeleted',
-};
+});
 
-export const outputApi = {
+export const outputApi = apiEndpointsGroup({
   output: 'output:output',
   outputLabel: 'output:outputLabel',
   flush: 'output:flush',
-};
+});
 
-export const gameApi = {
+export const gameApi = apiEndpointsGroup({
   ack: 'game:ack',
   gameState: 'game:gameState',
   gameLaunched: 'game:gameLaunched',
@@ -128,9 +130,9 @@ export const gameApi = {
   stop: 'game:stop',
   restart: 'game:restart',
   refreshArchetypesCollection: 'game:refreshArchetypesCollection',
-};
+});
 
-export const worldEditorApi = {
+export const worldEditorApi = apiEndpointsGroup({
   start: 'we:start',
   stop: 'we:stop',
   stopped: 'we:stopped',
@@ -149,4 +151,4 @@ export const worldEditorApi = {
   createAdditionGroup: 'we:createAdditionGroup',
   deleteAdditionGroup: 'we:deleteAdditionGroup',
   setAdditionGroupLabel: 'we:setAdditionGroupName',
-};
+});
