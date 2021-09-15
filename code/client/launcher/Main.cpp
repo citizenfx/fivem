@@ -319,6 +319,48 @@ int RealMain()
 	}
 #endif
 
+	// remove any app compat layers, if present
+	{
+		HKEY hKey;
+		if (RegOpenKeyW(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers", &hKey) == ERROR_SUCCESS)
+		{
+			std::vector<wchar_t> valueName(32768);
+			std::wstring citPath = MakeRelativeCitPath(L"");
+
+			// get the canonical version of the path
+			wchar_t finalPath[512];
+			GetFullPathNameW(citPath.c_str(), std::size(finalPath), finalPath, NULL);
+
+			auto finalPathLength = wcslen(finalPath);
+			std::vector<std::wstring> toDelete;
+
+			for (DWORD i = 0; ; i++)
+			{
+				DWORD cchValueName = valueName.size();
+				auto error = RegEnumValueW(hKey, i, valueName.data(), &cchValueName, NULL, NULL, NULL, NULL);
+
+				if (error != ERROR_SUCCESS)
+				{
+					break;
+				}
+
+				// if the key is in 'our' path
+				if (_wcsnicmp(valueName.data(), finalPath, finalPathLength) == 0)
+				{
+					toDelete.push_back(valueName.data());
+				}
+			}
+
+			// delete any queued values
+			for (auto& value : toDelete)
+			{
+				RegDeleteValueW(hKey, value.c_str());
+			}
+
+			RegCloseKey(hKey);
+		}
+	}
+
 	// add DLL directories post-installer (in case we moved into a Product.app directory)
 	addDllDirs();
 
