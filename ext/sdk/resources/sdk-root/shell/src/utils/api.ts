@@ -1,4 +1,3 @@
-import { Deferred } from 'backend/deferred';
 import ReconnectingWebScoket from 'reconnectingwebsocket';
 import { getScopedEventName } from './apiScope';
 import { enableLogger, errorLog, logger, rootLogger } from './logger';
@@ -20,7 +19,6 @@ export interface ApiMessageCallback<Data> {
 const messageListeners: {
   [eventType: string]: Set<ApiMessageListener>,
 } = {};
-const callbackDeferreds: Record<string, Deferred<unknown>> = {};
 const messageCallbacks: Record<string, ApiMessageCallback<any>> = {};
 
 let pendingMessages: string[] = [];
@@ -28,20 +26,29 @@ let connected = false;
 const backlog: { [type: string]: any[] } = {};
 
 const ws = new ReconnectingWebScoket('ws://localhost:35419/api');
+const wsSendOptions = {
+  binary: true,
+  compress: true,
+};
+
+function sendRaw(packet: string) {
+  ws.send(Buffer.from(packet), wsSendOptions);
+}
+
 ws.addEventListener('open', () => {
   connected = true;
 
   if (pendingMessages.length > 0) {
-    pendingMessages.forEach((message) => ws.send(message));
+    pendingMessages.forEach((message) => sendRaw(message));
     pendingMessages = [];
   }
 });
 ws.addEventListener('close', () => {
   connected = false;
 });
-ws.addEventListener('message', (event: MessageEvent) => {
+ws.addEventListener('message', async (event: MessageEvent) => {
   try {
-    const [type, data] = JSON.parse(event.data);
+    const [type, data] = JSON.parse(await event.data.text());
 
     if (type === '@@log') {
       const [msg, ...args] = data;
@@ -92,51 +99,16 @@ ws.addEventListener('message', (event: MessageEvent) => {
   }
 });
 
-// window.addEventListener('message', (event) => {
-//   try {
-//     if (event.data.type !== 'sdkApiMessage') {
-//       return;
-//     }
-
-//     const [type, data] = event.data.data;
-
-//     if (type === '@@log') {
-//       const [msg, ...args] = data;
-
-//       return hostLog(msg, ...args);
-//     }
-
-//     apiRxLog(type, data);
-
-//     const typeListeners = new Set(messageListeners[type]);
-//     const anyListeners = new Set(messageListeners[ANY_MESSAGE as any]);
-
-//     if (typeListeners) {
-//       typeListeners.forEach((listener) => listener(data, type));
-//     }
-
-//     if (anyListeners) {
-//       anyListeners.forEach((listener) => listener(data, type));
-//     }
-//   } catch (e) {
-//     errorLog(e);
-//   }
-// });
-
 export interface ApiMessage {
   type: string,
   data?: any,
 };
 
 export const sendApiMessage = (type: string, data?: any) => {
-  // apiTxLog(type, data);
-
   const message = JSON.stringify([type, data]);
 
-  // fxdkSendApiMessage(message);
-
   if (connected) {
-    ws.send(message);
+    sendRaw(message);
   } else {
     pendingMessages.push(message);
   }
@@ -151,10 +123,9 @@ export const sendApiMessageCallback = <ResponseData>(type: string, data: any, ca
   messageCallbacks[id] = callback;
 
   const message = JSON.stringify(['@@cb', id, type, data]);
-  console.log(message);
 
   if (connected) {
-    ws.send(message);
+    sendRaw(message);
   } else {
     pendingMessages.push(message);
   }

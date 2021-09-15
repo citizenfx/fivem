@@ -3,9 +3,12 @@ import { LogService } from "backend/logger/log-service";
 import { inject, injectable } from "inversify";
 import { formatDateForFilename } from "utils/date";
 import Flatbush from 'flatbush';
-import { WEMap } from "./world-editor-types";
+import { WEEntityMatrixIndex, WEMap } from "./world-editor-types";
 import { concurrently } from "utils/concurrently";
 import { joaat } from "utils/joaat";
+import { FXWORLD_FILE_EXT } from "assets/fxworld/fxworld-types";
+import { eulerFromMatrix } from "shared/math";
+import { WorldEditorArchetypesService } from "./world-editor-archetypes-service";
 
 const WORLD_EDITOR_MAP_INDEX_RUNTIME = require('./world-editor-map-runtime/map-index.raw.js');
 const WORLD_EDITOR_MAP_ADDITIONS_RUNTIME = require('./world-editor-map-runtime/map-additions.raw.js');
@@ -17,6 +20,7 @@ export interface WorldEditorMapCompileRequest {
 
 interface CompilationData {
   map: WEMap,
+  name: string,
   compiled: string[],
 }
 
@@ -28,11 +32,15 @@ export class WorldEditorMapCompiler {
   @inject(LogService)
   protected readonly logService: LogService;
 
+  @inject(WorldEditorArchetypesService)
+  protected readonly archetypesService: WorldEditorArchetypesService;
+
   async compile(request: WorldEditorMapCompileRequest) {
     await this.prepareCompilationSite(request);
 
     const compilationData: CompilationData = {
       map: await this.fsService.readFileJson(request.mapFilePath),
+      name: this.getMapName(request.mapFilePath),
       compiled: [],
     };
 
@@ -52,12 +60,11 @@ export class WorldEditorMapCompiler {
   private async compileHeader(data: CompilationData) {
     data.compiled.push(
       '// AUTOMATICALLY GENERATED FILE',
-      '// ANY CHANGES MADE TO THIS FILE WILL BE OVERWRITTEN',
+      '// ANY CHANGES TO THIS FILE WILL BE OVERWRITTEN',
       '//',
       `// Compiled at ${formatDateForFilename(new Date())}`,
-      'setTimeout(() => EnableEditorRuntime(), 0)',
-      WORLD_EDITOR_MAP_INDEX_RUNTIME,
-      '',
+      'setTimeout(EnableEditorRuntime, 0);',
+      `on('onResourceStop', (name) => { if (name === GetCurrentResourceName()) DisableEditorRuntime(); });`,
     );
   }
 
@@ -109,8 +116,8 @@ export class WorldEditorMapCompiler {
         );
       });
 
-      data.compiled.push(`const ${vars[0]},`);
-      data.compiled.push(vars.slice(1).join(',\n') + ';');
+      data.compiled.push(`const`);
+      data.compiled.push(vars.join(',\n') + ';');
 
       data.compiled.push(
         `on('mapDataLoaded',(md)=>{switch(md){`,
@@ -131,26 +138,42 @@ export class WorldEditorMapCompiler {
     const additions: string[] = [];
 
     for (const addition of Object.values(data.map.additions)) {
-      const x = addition.mat[12];
-      const y = addition.mat[13];
+      let viewDistance = addition.vd || 0;
 
-      additions[index.add(x, y, x, y)] = JSON.stringify([
+      // last attempt to get correct view distance
+      // mainly for old maps that was created before we introduced saving of view distance
+      if (typeof addition.vd === 'undefined' && typeof addition.mdl === 'string') {
+        viewDistance = this.archetypesService.getArchetypeLodDist(addition.mdl) || 0;
+      }
+
+      // we add addition to index as a square, so we make it a tad bigger to compensate for it not being a circle
+      // so it'd get created earlier than LOD kicks in
+      const size = viewDistance / 2 + 5;
+
+      const x = addition.mat[WEEntityMatrixIndex.AX];
+      const y = addition.mat[WEEntityMatrixIndex.AY];
+
+      additions[index.add(x - size, y - size, x + size, y + size)] = JSON.stringify([
+        // number type of addition model is deprecated and this only to support old maps with it being a number
         typeof addition.mdl === 'string'
           ? joaat(addition.mdl)
           : addition.mdl,
         addition.mat,
+        addition.label,
+        eulerFromMatrix(addition.mat),
       ]);
     }
 
     index.finish();
 
     data.compiled.push(
-      '',
+      WORLD_EDITOR_MAP_INDEX_RUNTIME,
       '// Map additions',
       `const mai=Flatbush.from(new Uint8Array(${JSON.stringify(Array.from(new Uint8Array(index.data)))}).buffer)`,
       `const mad=[`,
       additions.join(',\n'),
       `]`,
+      `const additionCreatedEventName='${data.name}:additionCreated', additionDeletedEventName='${data.name}:additionDeleted'`,
       WORLD_EDITOR_MAP_ADDITIONS_RUNTIME,
     );
   }
@@ -161,16 +184,27 @@ export class WorldEditorMapCompiler {
 
     await concurrently(
       this.fsService.writeFile(filePath, data.compiled.join('\n')),
-      this.fsService.writeFile(manifestPath, `fx_version 'bodacious'; game 'gta5'; client_script 'map.js'`),
+      this.fsService.writeFile(manifestPath, [
+        '-- AUTOMATICALLY GENERATED FILE',
+        '-- ANY CHANGES TO THIS FILE WILL BE OVERWRITTEN',
+        '',
+        `fx_version 'bodacious'`,
+        `game 'gta5'`,
+        `client_script 'map.js'`,
+      ].join('\n')),
     );
+  }
+
+  private getMapName(mapFilePath: string): string {
+    return this.fsService.basename(mapFilePath, FXWORLD_FILE_EXT);
   }
 }
 
 function getPatchVarName(mapdata: string | number, entity: string | number): string {
-  return `mp${n2s(mapdata)}_${n2s(entity)}`;
+  return `mp${hashToVariableName(mapdata)}_${hashToVariableName(entity)}`;
 }
 
-function n2s(n: string | number): string {
+function hashToVariableName(n: string | number): string {
   const ns = n.toString();
 
   if (ns[0] === '-') {

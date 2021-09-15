@@ -27,20 +27,16 @@ export class ShellBackend implements AppContribution {
 
     // Wrapping with WebSockets support
     expressWs(this.expressApp);
+
+    // Applying CORS
+    this.expressApp.use(cors({ origin: '*' }));
   }
 
   boot() {
     const expressAppBootComplete = new Deferred();
 
-    // Applying CORS
-    this.expressApp.use(cors({ origin: '*' }));
-
     // Setting up static folder to serve
     this.expressApp.use(express.static(this.configService.sdkRootShellBuild));
-
-    this.expressApp.get('/archetypes.json', (_req, res) => {
-      res.sendFile(this.configService.archetypesCollectionPath);
-    });
 
     this.expressApp.listen(this.configService.shellBackendPort, () => {
       this.logService.log(`Shell backend is listening on http://localhost:${this.configService.shellBackendPort}`);

@@ -21,7 +21,7 @@ import {
   WESelectionType,
   WEEntityMatrix,
 } from "backend/world-editor/world-editor-types";
-import { makeAutoObservable } from "mobx";
+import { makeAutoObservable, runInAction } from "mobx";
 import { worldEditorApi } from "shared/api.events";
 import { applyRotation, applyScale } from "shared/math";
 import { sendApiMessage } from "utils/api";
@@ -33,6 +33,7 @@ import { invokeWEApi } from "../we-api-utils";
 import { WEEvents } from "./WEEvents";
 import { WEHistory } from "./history/WEHistory";
 import { WEState } from "./WEState";
+import { ArchetypesState } from "./ArchetypesState";
 
 export class WEMapState {
   private ungroupedAdditions: Record<string, WEMapAddition> = {};
@@ -196,10 +197,11 @@ export class WEMapState {
     sendApiMessage(worldEditorApi.setAddition, request);
   }
 
-  createAddition(mdl: string, grp: WEMapAdditionGroup) {
+  async createAddition(mdl: string, grp: WEMapAdditionGroup) {
     const id = fastRandomId();
 
     const addition: WEMapAddition = {
+      vd: await ArchetypesState.getArchetypeLodDist(mdl),
       mdl,
       grp,
       cam: [0, 0, 100, 0, 0, -45],
@@ -212,8 +214,11 @@ export class WEMapState {
       ],
     };
 
-    this.map.additions[id] = addition;
-    this.updateAdditionInGroups(id);
+    // as we're running async
+    runInAction(() => {
+      this.map.additions[id] = addition;
+      this.updateAdditionInGroups(id);
+    });
 
     const request: WECreateAdditionRequest = {
       id,

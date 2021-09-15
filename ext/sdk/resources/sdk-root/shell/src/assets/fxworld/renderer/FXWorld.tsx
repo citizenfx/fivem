@@ -14,12 +14,13 @@ import { FXWorldRenamer } from './FXWorldRenamer/FXWorldRenamer';
 import { ProjectState } from 'store/ProjectState';
 import { APIRQ } from 'shared/api.requests';
 import { ResourceAssetConfig } from 'assets/resource/resource-types';
-import { sendApiMessage } from 'utils/api';
+import { sendApiMessage, sendApiMessageScoped } from 'utils/api';
 import { projectApi } from 'shared/api.events';
 import { ItemState } from 'components/Project/ProjectExplorer/ItemState';
 import { Title } from 'components/controls/Title/Title';
 import { projectExplorerItemType } from 'components/Project/ProjectExplorer/item.types';
 import mergeRefs from 'utils/mergeRefs';
+import { fxworldRecompile } from '../fxworld-constants';
 
 const defaultFXWorldConfig: FXWorldAssetConfig = {
   enabled: false,
@@ -29,7 +30,8 @@ export const FXWorld = observer(function FXWorld(props: ProjectItemProps) {
   const { entry } = props;
 
   const assetPath = entry.path;
-  const mapName = entry.name.replace(FXWORLD_FILE_EXT, '');
+  const assetName = entry.name;
+  const mapName = assetName.replace(FXWORLD_FILE_EXT, '');
 
   const config: FXWorldAssetConfig = ProjectState.project.getAssetConfig(entry.path, defaultFXWorldConfig);
 
@@ -57,6 +59,10 @@ export const FXWorld = observer(function FXWorld(props: ProjectItemProps) {
     ProjectState.project.deleteEntryConfirmFirst(entry.path, `Delete "${mapName}" map?`, () => null);
   }, [entry, mapName]);
 
+  const handleRecompile = React.useCallback(() => {
+    sendApiMessageScoped(fxworldRecompile, assetName);
+  }, [assetName]);
+
   const { requiredContextMenuItems } = useItem(props);
 
   const contextMenuItems: ContextMenuItemsCollection = React.useMemo(() => [
@@ -77,6 +83,11 @@ export const FXWorld = observer(function FXWorld(props: ProjectItemProps) {
         : 'Enable map',
       onClick: handleToggleEnabled,
     },
+    {
+      id: 'recompile',
+      text: 'Recompile map',
+      onClick: handleRecompile,
+    },
     ContextMenuItemSeparator,
     {
       id: 'delete',
@@ -94,7 +105,7 @@ export const FXWorld = observer(function FXWorld(props: ProjectItemProps) {
     },
     ContextMenuItemSeparator,
     ...requiredContextMenuItems,
-  ], [options, isEnabled, requiredContextMenuItems, handleToggleEnabled, handleOpen, handleDelete, openRenamer]);
+  ], [options, isEnabled, requiredContextMenuItems, handleToggleEnabled, handleOpen, handleDelete, openRenamer, handleRecompile]);
 
   const { isDragging, dragRef } = useItemDrag(entry, projectExplorerItemType.ASSET);
 

@@ -21,6 +21,14 @@ export const ArchetypesState = new class ArchetypesState {
     return pool.queue((searcher) => searcher.search(term));
   }
 
+  async getArchetypeFileName(archetypeName: string): Promise<string | undefined> {
+    return pool.queue((searcher) => searcher.getArchetypeFileName(archetypeName));
+  }
+
+  async getArchetypeLodDist(archetypeName: string): Promise<number | undefined> {
+    return pool.queue((searcher) => searcher.getArchetypeLodDist(archetypeName));
+  }
+
   async load() {
     if (!pool) {
       return;

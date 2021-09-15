@@ -17,7 +17,15 @@ export type WEEntityMatrix = [
 
 export interface WEMapPatch {
   label: string,
+
+  /**
+   * Transformation matrix
+   */
   mat: WEEntityMatrix,
+
+  /**
+   * Last editing cam state, updated every time one uses gizmo to edit it
+   */
   cam: WECam,
 }
 
@@ -33,10 +41,38 @@ export interface WEMapAdditionGroupDefinition {
 
 export interface WEMapAddition {
   label: string,
+
+  /**
+   * Addition's model, number type is deprecated
+   */
   mdl: number | string,
+
+  /**
+   * Addition group
+   */
   grp: WEMapAdditionGroup,
+
+  /**
+   * Transformation matrix
+   */
   mat: WEEntityMatrix,
+
+  /**
+   * Last editing cam state, updated every time one uses gizmo to edit it
+   */
   cam: WECam,
+
+  /**
+   * Visibility distance
+   */
+  vd?: number | undefined,
+
+  /**
+   * Event that will be triggered when addition gets created
+   *
+   * Only triggered when running normally, not from World Editor
+   */
+  ce?: string | undefined,
 }
 
 export interface WEAckEnvironmentRequest {

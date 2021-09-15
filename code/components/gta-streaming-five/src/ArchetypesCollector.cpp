@@ -29,6 +29,7 @@
 struct MapTypesFile {
 	std::string filename;
 	std::vector<std::string> archetypeNames;
+	std::vector<float> archetypeLodDists;
 };
 
 static std::unordered_map<uint32_t, MapTypesFile> g_mapTypesFiles;
@@ -61,6 +62,7 @@ static void* CMapTypes_Load(void* a1, uint32_t a2, CMapTypes** data)
 		if (!archetypeName.empty())
 		{
 			file.archetypeNames.push_back(archetypeName);
+			file.archetypeLodDists.push_back(archetype->lodDist);
 		}
 	}
 
@@ -80,43 +82,61 @@ static void WriteArchetypesFile()
 
 	std::ofstream archetypesFileStream(archetypesFilePath);
 
+	// header
+	archetypesFileStream << "{\"____v\":1";
 
-	archetypesFileStream << '{';
-
-	bool firstFile = true;
-
-	for (auto& [filenameHash, mapTypesFile] : g_mapTypesFiles)
+	// first write file names
 	{
-		if (mapTypesFile.archetypeNames.size() > 0)
+		archetypesFileStream << ",\"files\":[";
+
+		bool first = true;
+
+		for (auto& [_filenameHash, mapfile] : g_mapTypesFiles)
 		{
-			if (firstFile)
+			if (mapfile.archetypeNames.size() == 0)
 			{
-				firstFile = false;
-			}
-			else
-			{
-				archetypesFileStream << ',';
+				continue;
 			}
 
-			archetypesFileStream << '"' << mapTypesFile.filename << "\":[";
-			bool firstArchetype = true;
+			if (first) first = false;
+			else archetypesFileStream << ',';
 
-			for (auto& archetypeName : mapTypesFile.archetypeNames)
-			{
-				if (firstArchetype)
-				{
-					firstArchetype = false;
-				}
-				else
-				{
-					archetypesFileStream << ',';
-				}
-
-				archetypesFileStream << '"' << archetypeName << '"';
-			}
-
-			archetypesFileStream << ']';
+			archetypesFileStream << '"' << mapfile.filename << '"';
 		}
+
+		archetypesFileStream << ']';
+	}
+
+	// now archetypes
+	{
+		archetypesFileStream << ",\"archetypes\":{";
+
+		bool first = true;
+		auto fileIdx = 0;
+
+		for (auto& [_filenameHash, mapfile] : g_mapTypesFiles)
+		{
+			if (mapfile.archetypeNames.size() == 0)
+			{
+				continue;
+			}
+
+			auto i = 0;
+
+			for (auto& archetypeName : mapfile.archetypeNames)
+			{
+				if (first) first = false;
+				else archetypesFileStream << ',';
+
+				archetypesFileStream << '"' << archetypeName << "\":" << '[' << fileIdx << ',' << mapfile.archetypeLodDists[i] << ']';
+
+				i++;
+			}
+
+			fileIdx++;
+		}
+
+		archetypesFileStream << '}';
 	}
 
 	archetypesFileStream << '}';
