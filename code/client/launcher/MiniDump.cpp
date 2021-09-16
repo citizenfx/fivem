@@ -322,6 +322,26 @@ static std::string ParseLinks(const T& text)
 	return oss.str();
 }
 
+static std::string GetErrorPickup()
+{
+	json pickup = load_error_pickup();
+
+	if (!pickup.is_null())
+	{
+		std::string errDescription = pickup["message"].get<std::string>();
+
+		if (errDescription.find('\n') != std::string::npos)
+		{
+			auto nlPos = errDescription.find_first_of("\r\n");
+			return errDescription.substr(0, nlPos);
+		}
+
+		return errDescription;
+	}
+
+	return "";
+}
+
 static void OverloadCrashData(TASKDIALOGCONFIG* config)
 {
 	// error files?
@@ -1423,6 +1443,11 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 						friendlyReason = gettext("Unhandled exception: ") + exType;
 					}
 
+					if (auto errorPickup = GetErrorPickup(); !errorPickup.empty())
+					{
+						friendlyReason = errorPickup;
+					}
+
 					friendlyReason = gettext("Game crashed: ") + friendlyReason;
 
 					LPVOID memPtr = VirtualAllocEx(gameProcess, NULL, friendlyReason.size() + 1, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
@@ -1463,7 +1488,14 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 			{ 42, saveStr.c_str() }
 		};
 
-		static std::wstring tempSignature = fmt::sprintf(gettext(L"Crash signature: %s\nReport ID: ... [uploading]\nYou can press Ctrl-C to copy this message and paste it elsewhere."), crashHash);
+		static std::wstring crashHashString = fmt::sprintf(gettext(L"Crash signature: %s\n"), crashHash);
+
+		if (!load_error_pickup().is_null())
+		{
+			crashHashString = L"";
+		}
+
+		static std::wstring tempSignature = fmt::sprintf(gettext(L"%sReport ID: ... [uploading]\nYou can press Ctrl-C to copy this message and paste it elsewhere."), crashHashString);
 		static bool isDisconnectMessage = false;
 		isDisconnectMessage = false;
 
@@ -1526,11 +1558,11 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 				{
 					if (!crashId->empty())
 					{
-						SendMessage(hWnd, TDM_SET_ELEMENT_TEXT, TDE_EXPANDED_INFORMATION, (WPARAM)va(gettext(L"Crash signature: %s\nReport ID: %s\nYou can press Ctrl-C to copy this message and paste it elsewhere."), crashHash.c_str(), crashId->c_str()));
+						SendMessage(hWnd, TDM_SET_ELEMENT_TEXT, TDE_EXPANDED_INFORMATION, (WPARAM)va(gettext(L"%sReport ID: %s\nYou can press Ctrl-C to copy this message and paste it elsewhere."), crashHashString, crashId->c_str()));
 					}
 					else if (crashIdError && !crashIdError->empty())
 					{
-						SendMessage(hWnd, TDM_SET_ELEMENT_TEXT, TDE_EXPANDED_INFORMATION, (WPARAM)va(gettext(L"Crash signature: %s\n%s\nYou can press Ctrl-C to copy this message and paste it elsewhere."), crashHash.c_str(), crashIdError->c_str()));
+						SendMessage(hWnd, TDM_SET_ELEMENT_TEXT, TDE_EXPANDED_INFORMATION, (WPARAM)va(gettext(L"%s%s\nYou can press Ctrl-C to copy this message and paste it elsewhere."), crashHashString, crashIdError->c_str()));
 					}
 
 					SendMessage(hWnd, TDM_ENABLE_BUTTON, IDCLOSE, 1);
