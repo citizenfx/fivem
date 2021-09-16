@@ -4,7 +4,7 @@
   "license": "MIT",
   "private": true,
   "resolutions": {
-    "electron-rebuild": "https://runtime.fivem.net/build/node/electron-rebuild-0.0.0-development-cfx.tgz"
+    "electron-rebuild": "https://runtime.fivem.net/build/node/electron-rebuild-0.0.3-development-cfx.tgz"
   },
   "scripts": {
     "lerna": "lerna",

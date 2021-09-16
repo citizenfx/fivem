@@ -544,7 +544,7 @@ void SdkMain()
 		
 		url.set_hash(*skyr::percent_encode("sdk-root", skyr::encode_set::fragment));
 
-		trace("USING SDK_ROOT PATH: %s", url.href());
+		trace("USING SDK_ROOT PATH: %s\n", url.href());
 
 		resman->AddResource(url.href())
 		.then([loop](fwRefContainer<fx::Resource> resource)

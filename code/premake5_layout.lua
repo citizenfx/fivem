@@ -35,7 +35,7 @@ project 'CfxPostbuild'
 		
 		buildcommands {
 			-- directly use $(TargetDir) and remove trailing \ so pwsh doesn't get upset
-			([["%s" "$(TargetDir.TrimEnd('\'))" %s]]):format(
+			([["%s" "$(TargetDir.TrimEnd('\'))" %s "$(Configuration)"]]):format(
 				path.getabsolute('tools/build/run_postbuild.cmd'),
 				_OPTIONS['game']
 			)

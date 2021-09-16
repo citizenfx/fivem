@@ -1,9 +1,8 @@
 {
-	"name": "citizen:scripting:v8next",
+	"name": "citizen:scripting:v8node",
 	"version": "0.1.0",
 	"dependencies": [
 		"fx[2]",
-		"vendor:node",
 		"net:tcp-server",
 		"citizen:scripting:core"
 	],

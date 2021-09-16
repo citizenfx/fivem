@@ -5,7 +5,11 @@ param (
 
     [Parameter()]
     [string]
-    $Game
+    $Game,
+
+	[Parameter()]
+	[string]
+	$Configuration
 )
 
 $LayoutDir = Resolve-Path $LayoutDir
@@ -29,6 +33,12 @@ $env:PATH += ";C:\Program Files (x86)\Nodist\v-x64\14.17.1"
 
 # Maybe unify with build.ps1?
 $WorkDir = "$InstRoot"
+
+$IsDebug = $false
+
+if ($Configuration -eq "Debug") {
+	$IsDebug = $true
+}
 
 $IsRDR = $false
 $IsLauncher = $false
@@ -151,8 +161,6 @@ if (!$IsServer) {
     New-Item -ItemType Directory -Force $LayoutDir\citizen | Out-Null
 
     Copy-Item -Force -Recurse $WorkDir\data\shared\* $LayoutDir\
-    Copy-Item -Force -Recurse $WorkDir\data\client\v8* $LayoutDir\
-    Copy-Item -Force -Recurse $WorkDir\data\client\bin\icu* $LayoutDir\
     Copy-Item -Force -Recurse $WorkDir\data\server\* $LayoutDir\
     Copy-Item -Force -Recurse $WorkDir\data\server_windows\* $LayoutDir\
 
