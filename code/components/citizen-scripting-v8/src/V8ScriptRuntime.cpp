@@ -2109,7 +2109,7 @@ result_t V8ScriptRuntime::Destroy()
 	m_deleteRefRoutine = TDeleteRefRoutine();
 	m_duplicateRefRoutine = TDuplicateRefRoutine();
 
-	fx::PushEnvironment pushed(this);
+	V8PushEnvironment pushed(this);
 
 #ifdef V8_NODE
 	if (UseNode())
