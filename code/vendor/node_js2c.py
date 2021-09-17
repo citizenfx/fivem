@@ -320,5 +320,4 @@ for inFile in deps:
 outFile = os.path.join(noderoot, 'src/node_javascript.cc')
 
 if not os.path.exists(outFile) or os.path.getmtime(outFile) < mtimes[0]:
-	#subprocess.check_call(['python', 'tools/js2c.py'] + minputs + ['--target', 'src/node_javascript.cc'], cwd = noderoot)
-	subprocess.check_call(['python', 'tools/js2c.py', '--directory', 'lib', '--target', 'src/node_javascript.cc', 'config.gypi'] + deps, cwd = noderoot)
+	subprocess.check_call([sys.executable, 'tools/js2c.py', '--directory', 'lib', '--target', 'src/node_javascript.cc', 'config.gypi'] + deps, cwd = noderoot)
