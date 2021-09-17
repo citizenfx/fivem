@@ -1,7 +1,15 @@
-links { 'v8', 'v8_libplatform' }
+local isNode = ...
 
---defines { 'USING_V8_SHARED' }
+return function()
+	defines { 'V8_VERSION=93' }
+	add_dependencies { 'vendor:v8-93' }
 
-if os.istarget('windows') then
-	includedirs { '../../deplibs/include/include/' }
+	if os.istarget('windows') then
+		add_dependencies { 'vendor:minhook' }
+	end
+
+	if isNode then
+		defines { 'V8_NODE' }
+		add_dependencies { 'vendor:node' }
+	end
 end

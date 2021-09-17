@@ -1,6 +1,6 @@
 @echo off
 
-set NodeVersion=v12.13.0
+set NodeVersion=v16.9.0
 set NodeRoot=%~dp0\tmp\node-%NodeVersion%
 set ProjectRoot=%~dp0\..\..\
 

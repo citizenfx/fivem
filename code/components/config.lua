@@ -20,7 +20,7 @@ if _OPTIONS['game'] == 'server' then
 	--[[if os.is('windows') then
 		component 'citizen-ssh-server'
 	end]]
-	component 'citizen-scripting-v8'
+	component 'citizen-scripting-v8node'
 	component 'citizen-scripting-mono'
 	component 'citizen-server-instance'
 	component 'citizen-server-impl'
@@ -67,8 +67,8 @@ else
 	component 'citizen-scripting-mono'
 
 	if _OPTIONS['game'] ~= 'ny' then
-		component 'citizen-scripting-v8'
-		component 'citizen-scripting-v8next'
+		component 'citizen-scripting-v8client'
+		component 'citizen-scripting-v8node'
 	end
 
 	--component 'n19ui'

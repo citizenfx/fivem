@@ -7,7 +7,7 @@
 
 #include "StdInc.h"
 
-#include <include/v8-profiler.h>
+#include <v8-profiler.h>
 
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
@@ -37,9 +37,6 @@ void SaveProfileNodeToValue(const CpuProfileNode* node, rapidjson::Value& value,
 	value.AddMember("functionName", rapidjson::Value(*functionName, allocator), allocator);
 	value.AddMember("url", rapidjson::Value(*url, allocator), allocator);
 	value.AddMember("lineNumber", rapidjson::Value(node->GetLineNumber()), allocator);
-#ifndef IS_V8_NEXT
-	value.AddMember("callUID", rapidjson::Value(node->GetCallUid()), allocator);
-#endif
 	value.AddMember("bailoutReason", rapidjson::Value(node->GetBailoutReason(), allocator), allocator);
 	value.AddMember("id", rapidjson::Value(node->GetNodeId()), allocator);
 	value.AddMember("scriptId", rapidjson::Value(node->GetScriptId()), allocator);
