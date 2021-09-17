@@ -325,6 +325,18 @@ public:
 	NS_DECL_ISCRIPTSTACKWALKINGRUNTIME;
 };
 
+static Local<Value> GetStackTrace(TryCatch& eh, V8ScriptRuntime* runtime)
+{
+	auto stackTraceHandle = eh.StackTrace(runtime->GetContext());
+
+	if (stackTraceHandle.IsEmpty())
+	{
+		return String::NewFromUtf8(GetV8Isolate(), "<empty stack trace>").ToLocalChecked();
+	}
+
+	return stackTraceHandle.ToLocalChecked();
+}
+
 static OMPtr<V8ScriptRuntime> g_currentV8Runtime;
 
 class FxMicrotaskScope
@@ -571,7 +583,7 @@ static void V8_SetTickFunction(const v8::FunctionCallbackInfo<v8::Value>& args)
 			if (value.IsEmpty())
 			{
 				String::Utf8Value str(GetV8Isolate(), eh.Exception());
-				String::Utf8Value stack(GetV8Isolate(), eh.StackTrace(runtime->GetContext()).ToLocalChecked());
+				String::Utf8Value stack(GetV8Isolate(), GetStackTrace(eh, runtime));
 
 				ScriptTrace("Error calling system tick function in resource %s: %s\nstack:\n%s\n", runtime->GetResourceName(), *str, *stack);
 			}
@@ -607,7 +619,7 @@ static void V8_SetEventFunction(const v8::FunctionCallbackInfo<v8::Value>& args)
 			if (eh.HasCaught())
 			{
 				String::Utf8Value str(GetV8Isolate(), eh.Exception());
-				String::Utf8Value stack(GetV8Isolate(), eh.StackTrace(runtime->GetContext()).ToLocalChecked());
+				String::Utf8Value stack(GetV8Isolate(), GetStackTrace(eh, runtime));
 
 				ScriptTrace("Error calling system event handling function in resource %s: %s\nstack:\n%s\n", runtime->GetResourceName(), *str, *stack);
 			}
@@ -645,7 +657,7 @@ static void V8_SetCallRefFunction(const v8::FunctionCallbackInfo<v8::Value>& arg
 			if (eh.HasCaught())
 			{
 				String::Utf8Value str(GetV8Isolate(), eh.Exception());
-				String::Utf8Value stack(GetV8Isolate(), eh.StackTrace(runtime->GetContext()).ToLocalChecked());
+				String::Utf8Value stack(GetV8Isolate(), GetStackTrace(eh, runtime));
 
 				ScriptTrace("Error calling system call ref function in resource %s: %s\nstack:\n%s\n", runtime->GetResourceName(), *str, *stack);
 			}
@@ -695,7 +707,7 @@ static void V8_SetDeleteRefFunction(const v8::FunctionCallbackInfo<v8::Value>& a
 			if (eh.HasCaught())
 			{
 				String::Utf8Value str(GetV8Isolate(), eh.Exception());
-				String::Utf8Value stack(GetV8Isolate(), eh.StackTrace(runtime->GetContext()).ToLocalChecked());
+				String::Utf8Value stack(GetV8Isolate(), GetStackTrace(eh, runtime));
 
 				ScriptTrace("Error calling system delete ref function in resource %s: %s\nstack:\n%s\n", runtime->GetResourceName(), *str, *stack);
 			}
@@ -725,7 +737,7 @@ static void V8_SetDuplicateRefFunction(const v8::FunctionCallbackInfo<v8::Value>
 			if (eh.HasCaught())
 			{
 				String::Utf8Value str(GetV8Isolate(), eh.Exception());
-				String::Utf8Value stack(GetV8Isolate(), eh.StackTrace(runtime->GetContext()).ToLocalChecked());
+				String::Utf8Value stack(GetV8Isolate(), GetStackTrace(eh, runtime));
 
 				ScriptTrace("Error calling system duplicate ref function in resource %s: %s\nstack:\n%s\n", runtime->GetResourceName(), *str, *stack);
 			}
@@ -792,7 +804,7 @@ static void V8_SetStackTraceRoutine(const v8::FunctionCallbackInfo<v8::Value>& a
 			if (eh.HasCaught())
 			{
 				String::Utf8Value str(GetV8Isolate(), eh.Exception());
-				String::Utf8Value stack(GetV8Isolate(), eh.StackTrace(runtime->GetContext()).ToLocalChecked());
+				String::Utf8Value stack(GetV8Isolate(), GetStackTrace(eh, runtime));
 
 				ScriptTrace("Error calling system stack trace function in resource %s: %s\nstack:\n%s\n", runtime->GetResourceName(), *str, *stack);
 			}
@@ -854,7 +866,7 @@ static void V8_SetUnhandledPromiseRejectionRoutine(const v8::FunctionCallbackInf
 			if (value.IsEmpty())
 			{
 				String::Utf8Value str(GetV8Isolate(), eh.Exception());
-				String::Utf8Value stack(GetV8Isolate(), eh.StackTrace(runtime->GetContext()).ToLocalChecked());
+				String::Utf8Value stack(GetV8Isolate(), GetStackTrace(eh, runtime));
 
 				ScriptTrace("Unhandled error during handling of unhandled promise rejection in resource %s: %s\nstack:\n%s\n", runtime->GetResourceName(), *str, *stack);
 			}
@@ -2234,7 +2246,7 @@ result_t V8ScriptRuntime::RunFileInternal(char* scriptName, std::function<result
 		if (value.IsEmpty())
 		{
 			String::Utf8Value str(GetV8Isolate(), eh.Exception());
-			String::Utf8Value stack(GetV8Isolate(), eh.StackTrace(GetContext()).ToLocalChecked());
+			String::Utf8Value stack(GetV8Isolate(), GetStackTrace(eh, this));
 
 			ScriptTrace("Error loading script %s in resource %s: %s\nstack:\n%s\n", scriptName, GetResourceName(), *str, *stack);
 
