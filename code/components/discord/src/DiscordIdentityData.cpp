@@ -1,8 +1,13 @@
 #include <StdInc.h>
 
-#ifdef GTA_FIVE
 #define CNL_ENDPOINT "https://lambda.fivem.net"
+#ifdef GTA_FIVE
+#define DEFAULT_APP_ID "382624125287399424"
+#elif defined(IS_RDR3)
+#define DEFAULT_APP_ID "879627773839278110"
+#endif
 
+#if defined(DEFAULT_APP_ID)
 #include <LegitimacyAPI.h>
 #include <CL2LaunchMode.h>
 
@@ -50,7 +55,7 @@ static HookFunction initFunction([]()
 
 		writePipe(0 /* HANDSHAKE */, json::object({
 			{ "v", 1},
-			{ "client_id", "382624125287399424"}
+			{ "client_id", DEFAULT_APP_ID}
 		}));
 
 		auto closeConnection = [&writePipe, &hPipe]()
@@ -86,7 +91,7 @@ static HookFunction initFunction([]()
 								{ "cmd", "AUTHORIZE" },
 								{ "args", json::object({
 									{ "scopes", json::array({"identify", "guilds.join"}) },
-									{ "client_id", "382624125287399424" },
+									{ "client_id", DEFAULT_APP_ID },
 									{ "redirect_url", "https://cfx.re" },
 									{ "prompt", "none" },
 								}) },
