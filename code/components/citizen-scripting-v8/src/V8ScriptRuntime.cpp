@@ -2667,9 +2667,12 @@ void V8ScriptGlobals::Initialize()
 	const char* flags = "--turbo-inline-js-wasm-calls --expose_gc --harmony-top-level-await";
 	V8::SetFlagsFromString(flags, strlen(flags));
 
+	auto icuDataPath = MakeRelativeCitPath(fmt::sprintf(_P("citizen/scripting/v8/%d.%d/icudtl.dat"), V8_MAJOR_VERSION, V8_MINOR_VERSION));
+
 #ifdef _WIN32
-	auto icuDataPath = MakeRelativeCitPath(fmt::sprintf(L"citizen/scripting/v8/%d.%d/icudtl.dat", V8_MAJOR_VERSION, V8_MINOR_VERSION));
 	V8::InitializeICUDefaultLocation(ToNarrow(MakeRelativeCitPath(L"dummy")).c_str(), ToNarrow(icuDataPath).c_str());
+#else
+	V8::InitializeICU(icuDataPath.c_str());
 #endif
 
 	// initialize global V8

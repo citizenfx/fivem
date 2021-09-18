@@ -25,18 +25,19 @@ return {
 	run = function()
 		kind 'Utility'
 
-		if os.istarget('windows') then
-			files {
-				('../vendor/v8/%s/tag.txt'):format(baseVersion)
-			}
+		files {
+			('../vendor/v8/%s/tag.txt'):format(baseVersion)
+		}
 
+		local v8share = ('vendor/v8/%s/share/'):format(baseVersion)
+		local v8sharedir = path.getabsolute('../') .. '/' .. v8share
+
+		if os.istarget('windows') then
 			filter 'files:**/tag.txt'
 				buildmessage 'Preparing V8'
 
 				local v8bin = ('vendor/v8/%s/bin/%%{cfg.shortname:lower()}'):format(baseVersion)
 				local v8bindir = path.getabsolute('../') .. '/' .. v8bin
-				local v8share = ('vendor/v8/%s/share/'):format(baseVersion)
-				local v8sharedir = path.getabsolute('../') .. '/' .. v8share
 				local v8url = baseURL .. '/' .. v8bin
 				local v8dll = ('v8-%s.dll'):format(version)
 
@@ -61,6 +62,26 @@ return {
 					('{COPY} %s/%s %%{cfg.targetdir}/citizen/scripting/v8/%s/'):format(v8bindir, 'snapshot_blob.bin', baseVersion),
 					('{COPY} %s/%s %%{cfg.targetdir}/citizen/scripting/v8/%s/'):format(v8sharedir, '*.dat', baseVersion),
 				}
+		else
+			filter 'files:**/tag.txt'
+				buildmessage 'Preparing V8'
+
+				buildinputs {
+					v8sharedir .. '/icudtl.dat',
+					v8sharedir .. '/icudtl_extra.dat'
+				}
+
+				buildoutputs {
+					('%%{cfg.targetdir}/citizen/scripting/v8/%s/icudtl.dat'):format(baseVersion),
+					('%%{cfg.targetdir}/citizen/scripting/v8/%s/icudtl_extra.dat'):format(baseVersion)
+				}
+
+				buildcommands {
+					('{MKDIR} %%{cfg.targetdir}/citizen/scripting/v8/%s/'):format(baseVersion),
+					('{COPY} %s/%s %%{cfg.targetdir}/citizen/scripting/v8/%s/'):format(v8sharedir, '*.dat', baseVersion),
+				}
 		end
+
+		filter {}
 	end
 }
