@@ -23,10 +23,22 @@ namespace CitizenFX.Core
 
 		private static readonly object ms_lock = new object();
 
+		private static byte[] ms_stringHeap = new byte[1024 * 256];
+		private static int ms_stringHeapPointer = 0;
+		private static GCHandle ms_stringHeapHandle;
+		private static IntPtr ms_stringHeapHandlePtr;
+
 		internal static object Lock => ms_lock;
 
 		[ThreadStatic]
 		internal static ContextType m_extContext = new ContextType();
+
+		[SecuritySafeCritical]
+		static ScriptContext()
+		{
+			ms_stringHeapHandle = GCHandle.Alloc(ms_stringHeap, GCHandleType.Pinned);
+			ms_stringHeapHandlePtr = ms_stringHeapHandle.AddrOfPinnedObject();
+		}
 
 		[SecuritySafeCritical]
 		public static void Reset()
@@ -167,14 +179,29 @@ namespace CitizenFX.Core
 
 			if (str != null)
 			{
-				var b = Encoding.UTF8.GetBytes(str);
+				var len = str.Length;
+				var sptr = ms_stringHeapPointer;
 
-				ptr = Marshal.AllocHGlobal(b.Length + 1);
+				// worst-case UTF8 length
+				if ((len + sptr) < ((1024 * 64) - 1))
+				{
+					var blen = Encoding.UTF8.GetBytes(str, 0, len, ms_stringHeap, sptr);
+					ms_stringHeap[sptr + blen] = 0;
+					ms_stringHeapPointer += blen + 1;
 
-				Marshal.Copy(b, 0, ptr, b.Length);
-				Marshal.WriteByte(ptr, b.Length, 0);
+					ptr = ms_stringHeapHandlePtr + sptr;
+				}
+				else
+				{
+					// too long/doesn't fit, alloc traditionally
+					var b = Encoding.UTF8.GetBytes(str);
+					ptr = Marshal.AllocHGlobal(b.Length + 1);
 
-				ms_finalizers.Enqueue(() => Free(ptr));
+					Marshal.Copy(b, 0, ptr, b.Length);
+					Marshal.WriteByte(ptr, b.Length, 0);
+
+					ms_finalizers.Enqueue(() => Free(ptr));
+				}
 			}
 
 			unsafe
@@ -443,13 +470,12 @@ namespace CitizenFX.Core
 
 		internal static void GlobalCleanUp()
 		{
-			lock (ms_lock)
+			while (ms_finalizers.TryDequeue(out var cb))
 			{
-				while (ms_finalizers.TryDequeue(out var cb))
-				{
-					cb();
-				}
+				cb();
 			}
+
+			ms_stringHeapPointer = 0;
 		}
 	}
 }

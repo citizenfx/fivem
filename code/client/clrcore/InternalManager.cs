@@ -336,10 +336,14 @@ namespace CitizenFX.Core
 
 				using (var scope = new ProfilerScope(() => "c# schedule"))
 				{
+					var flowBlock = CitizenTaskScheduler.SuppressFlow();
+
 					foreach (var script in ms_definedScripts.ToArray())
 					{
 						script.ScheduleRun();
 					}
+
+					flowBlock?.Undo();
 				}
 
 				using (var scope = new ProfilerScope(() => "c# tasks"))
