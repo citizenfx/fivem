@@ -449,17 +449,27 @@ LUA_SCRIPT_LINKAGE int SAFE_BUFFERS Lua_GetNativeHandler(lua_State* L)
 
 static LONG ShouldHandleUnwind(DWORD exceptionCode, uint64_t identifier);
 
+static uint64_t g_nativeIdentifier;
+static void* exceptionAddress;
+
+static __declspec(noinline) LONG FilterFunc(PEXCEPTION_POINTERS exceptionInformation)
+{
+	exceptionAddress = exceptionInformation->ExceptionRecord->ExceptionAddress;
+	
+	return ShouldHandleUnwind(exceptionInformation->ExceptionRecord->ExceptionCode, g_nativeIdentifier);
+}
+
 static LUA_INLINE void CallHandler(void* handler, uint64_t nativeIdentifier, rage::scrNativeCallContext& rageContext)
 {
 	// call the original function
-	static void* exceptionAddress;
-
 	__try
 	{
+		g_nativeIdentifier = nativeIdentifier;
+
 		auto rageHandler = (rage::scrEngine::NativeHandler)handler;
 		rageHandler(&rageContext);
 	}
-	__except (exceptionAddress = (GetExceptionInformation())->ExceptionRecord->ExceptionAddress, ShouldHandleUnwind((GetExceptionInformation())->ExceptionRecord->ExceptionCode, nativeIdentifier))
+	__except (FilterFunc(GetExceptionInformation()))
 	{
 		throw std::exception(va("Error executing native 0x%016llx at address %p.", nativeIdentifier, exceptionAddress));
 	}
