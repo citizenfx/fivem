@@ -562,7 +562,7 @@ void RunLegitimacyNui()
 
 	CefString(&settings.log_file).FromWString(MakeRelativeCitPath(L"cef.log"));
 
-	CefString(&settings.browser_subprocess_path).FromWString(MakeCfxSubProcess(L"AuthBrowser"));
+	CefString(&settings.browser_subprocess_path).FromWString(MakeCfxSubProcess(L"AuthBrowser", L"chrome"));
 
 	CefString(&settings.locale).FromASCII("en-US");
 
