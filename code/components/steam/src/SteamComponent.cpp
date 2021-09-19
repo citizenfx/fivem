@@ -350,7 +350,7 @@ void SteamComponent::InitializePresence()
 	m_parentAppID = parentAppID;
 
 	// create a fake app to hold our gameid
-	uint64_t gameID = 0xA18F2DAB01000000 | parentAppID; // crc32 for 'kekking' + mod
+	uint64_t gameID = 0xD8A9994402000000 | parentAppID; // crc32 for 'cfx' + shortcut
 
 	InterfaceMapper steamAppsInterface(m_clientEngine->GetIClientApps(m_steamUser, m_steamPipe, "CLIENTAPPS_INTERFACE_VERSION001"));
 
@@ -359,7 +359,7 @@ void SteamComponent::InitializePresence()
 	builder.PackString("name", PRODUCT_DISPLAY_NAME);
 	builder.PackUint64("gameid", gameID);
 	builder.PackString("installed", "1");
-	builder.PackString("gamedir", "kekking");
+	builder.PackString("gamedir", "cfx");
 	builder.PackString("serverbrowsername", "lovely!");
 	builder.PackEnd();
 
