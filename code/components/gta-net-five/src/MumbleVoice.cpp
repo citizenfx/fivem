@@ -705,21 +705,37 @@ static HookFunction hookFunction([]()
 			}
 		});
 
+        fx::ScriptEngine::RegisterNativeHandler("MUMBLE_REMOVE_VOICE_TARGET_CHANNEL", [](fx::ScriptContext& context)
+        {
+            auto id = context.GetArgument<int>(0);
+            auto channel = context.GetArgument<int>(1);
+
+            if (id >= 0 && id < 31)
+            {
+                auto targetChannel = fmt::sprintf("Game Channel %d", channel);
+                auto& targets = vtConfigs[id].targets;
+				targets.remove_if([targetChannel](auto& target)
+				{
+					if (target.channel == targetChannel)
+						return true;
+				});
+
+                g_mumbleClient->UpdateVoiceTarget(id, vtConfigs[id]);
+            }
+        });
+
 		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_CLEAR_VOICE_TARGET_CHANNELS", [](fx::ScriptContext& context)
 		{
 			auto id = context.GetArgument<int>(0);
 
 			if (id >= 0 && id < 31)
 			{
-				std::vector<VoiceTargetConfig::Target>& targets = vtConfigs[id].targets;
-				for (size_t i = targets.size(); i--;)
+				auto& targets = vtConfigs[id].targets;
+				targets.remove_if([](auto& target)
 				{
-					VoiceTargetConfig::Target& target = targets[i];
-					if (!target.channel.empty())
-					{
-						targets.erase(targets.begin() + i);
-					}
-				}
+					if (target.channel.empty())
+						return true;
+				});
 
 				g_mumbleClient->UpdateVoiceTarget(id, vtConfigs[id]);
 			}
@@ -732,15 +748,13 @@ static HookFunction hookFunction([]()
 
 			if (id >= 0 && id < 31)
 			{
-				std::vector<VoiceTargetConfig::Target>& targets = vtConfigs[id].targets;
-				for (size_t i = targets.size(); i--;)
+				auto& targets = vtConfigs[id].targets;
+				targets.remove_if([](auto& target)
 				{
-					VoiceTargetConfig::Target& target = targets[i];
 					if (target.users.size() > 0)
-					{
-						targets.erase(targets.begin() + i);
-					}
-				}
+						return true;
+				});
+
 
 				g_mumbleClient->UpdateVoiceTarget(id, vtConfigs[id]);
 			}

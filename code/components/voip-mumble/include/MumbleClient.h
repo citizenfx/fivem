@@ -64,7 +64,7 @@ struct VoiceTargetConfig
 		}
 	};
 
-	std::vector<Target> targets;
+	std::list<Target> targets;
 };
 
 class IMumbleClient : public fwRefCountable
