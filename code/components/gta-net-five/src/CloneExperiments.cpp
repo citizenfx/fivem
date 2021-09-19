@@ -1623,7 +1623,7 @@ static HookFunction hookFunction([]()
 #ifdef GTA_FIVE
 		auto location = hook::get_pattern("74 ? 48 8B 88 ? ? ? ? 48 85 C9 74 ? E8 ? ? ? ? 0F B6", 14);
 #elif IS_RDR3
-		auto location = hook::get_pattern("48 85 C9 74 ? E8 ? ? ? ? 0F B6 C0 EB", 5);
+		auto location = hook::get_pattern("48 85 C9 74 ? E8 ? ? ? ? 0F B6 C0 EB 05", 5);
 #endif
 		hook::set_call(&g_origGetOwnerPlayerId, location);
 		hook::call(location, netObject__GetPlayerOwnerId);
