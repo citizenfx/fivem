@@ -2121,15 +2121,17 @@ result_t V8ScriptRuntime::Destroy()
 	m_deleteRefRoutine = TDeleteRefRoutine();
 	m_duplicateRefRoutine = TDuplicateRefRoutine();
 
+#ifdef V8_NODE
 	V8PushEnvironment pushed(this);
 
-#ifdef V8_NODE
 	if (UseNode())
 	{
 		g_envRuntimes.erase(m_nodeEnvironment);
 
 		node::FreeEnvironment(m_nodeEnvironment);
 	}
+#else
+	fx::PushEnvironment pushed(this);
 #endif
 
 	m_context.Reset();
