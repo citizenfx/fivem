@@ -36,7 +36,7 @@ namespace CitizenFX.Core
 			}
 		}
 
-		private struct TickHandler
+		private class TickHandler
 		{
 			public Func<Task> tick;
 			public int hashCode;
