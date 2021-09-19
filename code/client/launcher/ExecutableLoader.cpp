@@ -475,3 +475,5 @@ HMODULE ExecutableLoader::ResolveLibrary(const char* name)
 {
 	return m_libraryLoader(name);
 }
+
+//
