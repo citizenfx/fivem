@@ -97,7 +97,7 @@ static uint64_t _getAvailableMemoryForStreamer(void* self)
 	if (auto strMgr = streaming::Manager::GetInstance())
 	{
 		// loaded list length (max is ~32k)
-		if (*(uint32_t*)((char*)strMgr + 264) >= 31500)
+		if (*(uint32_t*)((char*)strMgr + 264) >= 30000)
 		{
 			return 0;
 		}
