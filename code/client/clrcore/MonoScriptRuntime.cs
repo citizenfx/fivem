@@ -12,11 +12,15 @@ namespace CitizenFX.Core
 	[Guid("C068E0AB-DD9C-48F2-A7F3-69E866D27F17")]
 	class MonoScriptRuntime : IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntime, IScriptEventRuntime, IScriptRefRuntime, IScriptMemInfoRuntime, IScriptStackWalkingRuntime
 	{
+		// disable IDE warning: this is used to retain a reference to unmanaged stuff
+#pragma warning disable IDE0052 // Remove unread private members
 		private IScriptHost m_scriptHost;
+#pragma warning restore IDE0052 // Remove unread private members
 		private readonly int m_instanceId;
 		private AppDomain m_appDomain;
 		private InternalManager m_intManager;
 		private IntPtr m_parentObject;
+		private IntPtr m_comRuntime;
 
 		private static readonly Random ms_random = new Random();
 
@@ -86,6 +90,8 @@ namespace CitizenFX.Core
 				m_intManager.SetScriptHost(new WrapScriptHost(host), m_instanceId);
 #else
 				m_intManager.SetScriptHost(Marshal.GetIUnknownForObject(host), m_instanceId);
+
+				m_comRuntime = Marshal.GetComInterfaceForObject(this, typeof(IScriptRuntime));
 #endif
 			}
 			catch (Exception e)
@@ -295,7 +301,7 @@ namespace CitizenFX.Core
 
 		public PushRuntime GetPushRuntime()
 		{
-			return new PushRuntime(this);
+			return new PushRuntime(this, m_comRuntime);
 		}
 
 		public class WrapIStream : MarshalByRefObject, fxIStream, IDisposable

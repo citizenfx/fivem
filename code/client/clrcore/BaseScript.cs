@@ -16,6 +16,8 @@ namespace CitizenFX.Core
 {
 	public abstract class BaseScript
 	{
+		private string m_typeName;
+
 		// based on answer from
 		// https://stackoverflow.com/a/6624385
 		private class DelegateEqualityComparer : IEqualityComparer<Delegate>
@@ -36,7 +38,7 @@ namespace CitizenFX.Core
 			}
 		}
 
-		private struct TickHandler
+		private class TickHandler
 		{
 			public Func<Task> tick;
 			public int hashCode;
@@ -57,6 +59,11 @@ namespace CitizenFX.Core
 		{
 			add
 			{
+				if (m_typeName == null)
+				{
+					m_typeName = GetType().Name;
+				}
+
 				m_tickList.Add(new TickHandler()
 				{
 					tick = value,
@@ -123,16 +130,12 @@ namespace CitizenFX.Core
 		[SecuritySafeCritical]
 		internal void ScheduleRun()
 		{
-			var flowBlock = CitizenTaskScheduler.SuppressFlow();
-
 			var calls = m_tickList;
 
 			foreach (var call in calls)
 			{
 				ScheduleTick(call);
 			}
-
-			flowBlock?.Undo();
 		}
 
 		internal void RegisterTick(Func<Task> tick)
@@ -145,29 +148,32 @@ namespace CitizenFX.Core
 			EventHandlers[eventName] += callback;
 		}
 
+		private string GetCurName(TickHandler callWrap)
+		{
+			return $"{m_typeName} -> tick {callWrap.name}";
+		}
+
 		private void ScheduleTick(TickHandler callWrap)
 		{
 			if (!CurrentTaskList.ContainsKey(callWrap.hashCode))
 			{
 				var call = callWrap.tick;
 
-				var curName = $"{GetType().Name} -> tick {callWrap.name}";
-
 				try
 				{
-					ms_curName = curName;
+					ms_curName = callWrap.name;
 
-					using (var scope = new ProfilerScope(() => curName))
+					using (var scope = new ProfilerScope(() => ms_curName = GetCurName(callWrap)))
 					{
 						CurrentTaskList.TryAdd(callWrap.hashCode, CitizenTaskScheduler.Factory.StartNew(() =>
 						{
-							ms_curName = curName;
-
 							try
 							{
-								using (var innerScope = new ProfilerScope(() => curName))
+								ms_curName = callWrap.name;
+
+								using (var innerScope = new ProfilerScope(() => ms_curName = GetCurName(callWrap)))
 								{
-									var t = ((Func<Task>)call)();
+									var t = call();
 
 									return t;
 								}
