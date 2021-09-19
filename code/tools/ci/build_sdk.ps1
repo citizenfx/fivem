@@ -47,8 +47,6 @@ xcopy /y /e $WorkDir\ext\sdk\resources\sdk-game\sdk-server.js $CacheDir\fxdk-fiv
 
 Copy-Item -Force "$WorkRootDir\tools\ci\xz.exe" xz.exe
 
-Invoke-Expression "& $WorkRootDir\tools\ci\BuildCacheMeta.exe"
-
 Move-Item -Force $CacheDir\caches.xml $CacheDir\caches_sdk.xml
 
 if (Test-Path $WorkDir\caches) {

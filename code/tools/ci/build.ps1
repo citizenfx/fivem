@@ -607,8 +607,6 @@ if (!$DontBuild -and !$IsServer) {
 
 	Copy-Item -Force "$WorkRootDir\tools\ci\xz.exe" xz.exe
 
-	#Invoke-Expression "& $WorkRootDir\tools\ci\BuildCacheMeta.exe"
-
 	# build bootstrap executable
 	if (!$IsLauncher -and !$IsRDR) {
 		Copy-Item -Force $BinRoot\five\release\FiveM.exe CitizenFX.exe
