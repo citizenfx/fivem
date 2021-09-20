@@ -65,6 +65,15 @@ void XBR_EarlySelect()
 #endif
 		;
 
+	// specify a different saved build for first runs in release to save download time for first launch
+#ifndef _DEBUG
+	uint32_t initialBuild = defaultBuild;
+
+#ifdef GTA_FIVE
+	initialBuild = 2372;
+#endif
+#endif
+
 	// we *can't* call xbr:: APIs here since they'll `static`-initialize and break GameCache later
 	uint32_t builds[] = { 372, 1604, 2060, 2189, 2372, 1311, 1355, 1436, 43 };
 	uint32_t requestedBuild = defaultBuild;
@@ -86,7 +95,7 @@ void XBR_EarlySelect()
 
 		if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
 		{
-			auto retainedBuild = GetPrivateProfileInt(L"Game", L"SavedBuildNumber", defaultBuild, fpath.c_str());
+			auto retainedBuild = GetPrivateProfileInt(L"Game", L"SavedBuildNumber", initialBuild, fpath.c_str());
 
 			// wcsstr is in case we have a `b1604` argument e.g. and we therefore want to ignore the saved build
 			if (retainedBuild != defaultBuild && !wcsstr(GetCommandLineW(), va(L"b%d", defaultBuild)))
