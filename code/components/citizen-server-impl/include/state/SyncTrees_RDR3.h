@@ -1200,7 +1200,7 @@ struct SyncTree : public SyncTreeBase
 			*modelHash = objectCreationNode->m_model;
 			return true;
 		}
-#if 0
+
 		auto[hasPan, playerAppearanceNode] = GetData<CPlayerAppearanceDataNode>();
 
 		if (hasPan)
@@ -1209,7 +1209,6 @@ struct SyncTree : public SyncTreeBase
 			return true;
 		}
 
-#endif
 		return false;
 	}
 
