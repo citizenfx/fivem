@@ -66,9 +66,9 @@ void XBR_EarlySelect()
 		;
 
 	// specify a different saved build for first runs in release to save download time for first launch
-#ifndef _DEBUG
 	uint32_t initialBuild = defaultBuild;
 
+#ifndef _DEBUG
 #ifdef GTA_FIVE
 	initialBuild = 2372;
 #endif
