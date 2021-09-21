@@ -1101,7 +1101,20 @@ static InitFunction initFunction2([]()
 		{
 			auto j = nlohmann::json::parse(jsonData);
 
-			StructuredTrace({ "type", "script_structured_trace" }, { "payload", j });
+			auto resourceName = nlohmann::json(nullptr);
+			fx::OMPtr<IScriptRuntime> runtime;
+
+			if (FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+			{
+				fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
+
+				if (resource)
+				{
+					resourceName = resource->GetName();
+				}
+			}
+
+			StructuredTrace({ "type", "script_structured_trace" }, { "payload", j }, { "resource", resourceName });
 		}
 		catch (std::exception& e)
 		{
