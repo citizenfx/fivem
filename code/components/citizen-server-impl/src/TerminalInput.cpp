@@ -5,6 +5,8 @@
 #include <io.h>
 #else
 #include <unistd.h>
+
+#include <fcntl.h>
 #endif
 
 #include <CoreConsole.h>
@@ -286,6 +288,13 @@ static InitFunction initFunction([]()
 					{
 						std::this_thread::sleep_for(25ms);
 					}
+
+					// make stdin blocking again
+#ifndef _WIN32
+					auto flags = fcntl(0, F_GETFL);
+					flags &= ~O_NONBLOCK;
+					fcntl(0, F_SETFL, flags);
+#endif
 
 					const char* result = rxx.input("cfx> ");
 
