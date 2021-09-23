@@ -581,7 +581,7 @@ rdr3::grmShaderGroup* convert(five::grmShaderGroup* shaderGroup)
 		}
 		else if (shs == HashString("trees") || shs == HashString("trees_lod") || shs == HashString("trees_lod2") || shs == HashString("trees_camera_aligned") || shs == HashString("trees_camera_facing") || shs == HashString("trees_lod_tnt") || shs == HashString("trees_lod2d"))
 		{
-			shs = HashString("cutout");
+			shs = HashString("default");
 		}	
 		else if (shs == HashString("trees_normal"))
 		{
@@ -594,6 +594,10 @@ rdr3::grmShaderGroup* convert(five::grmShaderGroup* shaderGroup)
 		else if (shs == HashString("trees_normal_spec") || shs == HashString("trees_normal_spec_camera_aligned") || shs == HashString("trees_normal_spec_camera_aligned_tnt") || shs == HashString("trees_normal_spec_camera_facing") || shs == HashString("trees_normal_spec_camera_facing_tnt"))
 		{
 			shs = HashString("normal_spec");
+		}
+		else if (shs == HashString("normal_spec_detail_dpm_tnt") || shs == HashString("normal_diffspec_detail_dpm_tnt"))
+		{
+			shs = HashString("normal_spec_detail_tnt");
 		}
 
 		rdr3::grmShaderFx* shader = new (false) rdr3::grmShaderFx;
