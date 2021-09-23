@@ -3,6 +3,7 @@ context_rpc 'SET_ENTITY_COORDS' { 'GET_ENTITY_COORDS' } -- bad getter example as
 context_rpc 'SET_ENTITY_ROTATION'
 context_rpc 'SET_ENTITY_VELOCITY'
 context_rpc 'SET_ENTITY_HEADING'
+context_rpc 'SET_ENTITY_HEALTH'
 context_rpc 'SET_ENTITY_ROTATION_VELOCITY'
 context_rpc 'FREEZE_ENTITY_POSITION'
 context_rpc 'APPLY_FORCE_TO_ENTITY'
