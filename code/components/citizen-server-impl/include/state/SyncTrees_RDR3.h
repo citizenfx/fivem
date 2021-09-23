@@ -264,9 +264,6 @@ struct CPedCreationDataNode : GenericSerializeDataNode<CPedCreationDataNode>
 	uint32_t m_model;
 	ePopType m_popType;
 
-	bool isRespawnObjectId;
-	bool respawnFlaggedForRemoval;
-
 	template<typename TSerializer>
 	bool Serialize(TSerializer& s)
 	{ 
