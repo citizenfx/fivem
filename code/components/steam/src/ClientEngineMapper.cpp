@@ -121,7 +121,8 @@ bool ClientEngineMapper::IsMethodAnInterface(void* methodPtr, bool* isUser, bool
 	// matching callback
 	auto matchPtr = [&] (const char* operandPtr)
 	{
-		if (_strnicmp(operandPtr, "Assertion Failed:", 17) == 0)
+		// Update 9/23/21: Steam removes most of the "Assertion Failed:" prefixes from assert strings
+		if (_strnicmp(operandPtr, "Assertion Failed:", 17) == 0 || _strnicmp(operandPtr, "i != ", 5) == 0)
 		{
 			if (!child)
 			{
