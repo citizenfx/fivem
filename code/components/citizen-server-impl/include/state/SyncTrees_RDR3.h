@@ -14,19 +14,22 @@
 
 namespace fx::sync
 {
-struct CVehicleCreationDataNode
+struct CVehicleCreationDataNode : GenericSerializeDataNode<CVehicleCreationDataNode>
 { 
 	uint32_t m_model;
 	ePopType m_popType;
 
-	bool Parse(SyncParseState& state)
+	template<typename Serializer>
+	bool Serialize(Serializer& s)
 	{
-		uint32_t model = state.buffer.Read<uint32_t>(32);
-		m_model = model;
+		// model
+		s.Serialize(32, m_model);
 
-		uint8_t popType = state.buffer.Read<uint8_t>(4);
+		// 4
+		auto popType = (int)m_popType;
+		s.Serialize(4, popType);
 		m_popType = (ePopType)popType;
-		
+
 		return true; 
 	} 
 };
@@ -261,10 +264,13 @@ struct CPedCreationDataNode : GenericSerializeDataNode<CPedCreationDataNode>
 	uint32_t m_model;
 	ePopType m_popType;
 
+	bool isRespawnObjectId;
+	bool respawnFlaggedForRemoval;
+
 	template<typename TSerializer>
 	bool Serialize(TSerializer& s)
 	{ 
-		// 7(?)
+		// 4
 		auto popType = (int)m_popType;
 		s.Serialize(4, popType);
 		m_popType = (ePopType)popType;
@@ -400,19 +406,17 @@ struct CDoorScriptGameStateDataNode { bool Parse(SyncParseState& state) { return
 struct CHeliHealthDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CHeliControlDataNode { bool Parse(SyncParseState& state) { return true; } };
 
-struct CObjectCreationDataNode
+struct CObjectCreationDataNode  : GenericSerializeDataNode<CObjectCreationDataNode>
 {
 	uint32_t m_model;
+	bool m_hasInitPhysics;
 
-	bool Unparse(SyncUnparseState& state)
+	template<typename Serializer>
+	bool Serialize(Serializer& s)
 	{
-		state.buffer.Write<uint32_t>(32, m_model);
+		s.Serialize(32, m_model);
+		s.Serialize(m_hasInitPhysics);
 
-		return true;
-	}
-
-	bool Parse(SyncParseState& state)
-	{ 
 		return true;
 	}
 };
@@ -1192,7 +1196,7 @@ struct SyncTree : public SyncTreeBase
 			*modelHash = pedCreationNode->m_model;
 			return true;
 		}
-
+#if 0
 		auto[hasOcn, objectCreationNode] = GetData<CObjectCreationDataNode>();
 
 		if (hasOcn)
@@ -1200,7 +1204,7 @@ struct SyncTree : public SyncTreeBase
 			*modelHash = objectCreationNode->m_model;
 			return true;
 		}
-
+#endif
 		auto[hasPan, playerAppearanceNode] = GetData<CPlayerAppearanceDataNode>();
 
 		if (hasPan)
