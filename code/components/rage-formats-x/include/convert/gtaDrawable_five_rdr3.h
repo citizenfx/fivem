@@ -575,9 +575,9 @@ rdr3::grmShaderGroup* convert(five::grmShaderGroup* shaderGroup)
 		{
 			shs = HashString("default");
 		}
-		else if (shs == HashString("emissive_clip") || shs == HashString("emissivenight") || shs == HashString("emissive_additive_alpha") || shs == HashString("emissive_speclum") || shs == HashString("emissive_tnt") || shs == HashString("emissivenight_geomnightonly"))
+		else if (shs == HashString("emissive_clip") || shs == HashString("emissivenight") || shs == HashString("emissive_additive_alpha") || shs == HashString("emissive_speclum") || shs == HashString("emissive_tnt") || shs == HashString("emissivenight_geomnightonly") || shs == HashString("decal_emissive_only") || shs == HashString("decal_emissivenight_only"))
 		{
-			shs = HashString("emissive");
+			shs = HashString("emissivestrong");
 		}
 		else if (shs == HashString("trees") || shs == HashString("trees_lod") || shs == HashString("trees_lod2") || shs == HashString("trees_camera_aligned") || shs == HashString("trees_camera_facing") || shs == HashString("trees_lod_tnt") || shs == HashString("trees_lod2d"))
 		{
@@ -595,9 +595,14 @@ rdr3::grmShaderGroup* convert(five::grmShaderGroup* shaderGroup)
 		{
 			shs = HashString("normal_spec");
 		}
-		else if (shs == HashString("normal_spec_detail_dpm_tnt") || shs == HashString("normal_diffspec_detail_dpm_tnt"))
+		else if (shs == HashString("normal_spec_detail_dpm_tnt") || shs == HashString("normal_diffspec_detail_dpm_tnt") || shs == HashString("normal_spec_detail_dpm_vertdecal_tnt"))
 		{
 			shs = HashString("normal_spec_detail_tnt");
+		}
+		
+		else if (shs == HashString("cloth_spec_alpha"))
+		{
+			shs = HashString("cloth_default");
 		}
 
 		rdr3::grmShaderFx* shader = new (false) rdr3::grmShaderFx;
