@@ -55,17 +55,33 @@
 		<p
 			class="content"
 			(click)="clickContent($event)"
+			*ngIf="overlayMessage && overlayMessage !== '[html]'"
 			[innerHTML]="overlayMessage|translate:locale.language:overlayMessageData|linky:{ hashtag: 'twitter', mention: 'twitter', sanitizeHtml: true, replaceFn: replaceFn }|nl2br|allowify|rejectify:{server:serverData}"
 		></p>
+		<div class="body" *ngIf="overlayMessage === '[html]'" [innerHTML]="overlayHTML">
+
+		</div>
 		<div class="card" #card></div>
-		<button
-			class="cfx-button primary"
-            [style.opacity]="overlayClosable === true ? 1.0 : 0.0"
-			[class.active]="overlayClosable"
-			(click)="closeOverlay(); false"
-		>
-			{{closeLabel|translate:locale.language}}
-		</button>
+
+		<div class="buttons">
+			<button
+				*ngFor="let button of extraActions"
+				class="cfx-button"
+				[class.active]="true"
+				(click)="button.action()"
+			>
+				{{button.title}}
+			</button>
+
+			<button
+				class="cfx-button primary"
+				[style.opacity]="overlayClosable === true ? 1.0 : 0.0"
+				[class.active]="overlayClosable"
+				(click)="closeOverlay(); false"
+			>
+				{{closeLabel|translate:locale.language}}
+			</button>
+		</div>
 	</div>
 	</div>
 </div>
