@@ -214,7 +214,7 @@ add_build_id()
 	printf "$(echo $sha1 | sed -e 's/../\\x&/g')" >> $tmp
 
 	objcopy --remove-section .note.gnu.build-id $exename || true
-	objcopy --add-section .note.gnu.build-id=$tmp $exename
+	objcopy --add-section .note.gnu.build-id=$tmp $exename || true
 	rm $tmp
 }
 
