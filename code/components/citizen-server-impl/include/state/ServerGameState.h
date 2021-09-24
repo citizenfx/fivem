@@ -111,14 +111,6 @@ public:
 	uint64_t frameIndex;
 
 	uint32_t timestamp;
-
-	virtual bool Parse(SyncParseState& state) = 0;
-
-	virtual bool Unparse(SyncUnparseState& state) = 0;
-
-	virtual bool Visit(const SyncTreeVisitor& visitor) = 0;
-
-	virtual bool IsAdditional() = 0;
 };
 
 struct CDoorMovementDataNodeData

@@ -232,7 +232,7 @@ struct ParentNode : public NodeBase
 		return LoopChildrenNode<TData, I + 1>();
 	}
 
-	virtual bool Parse(SyncParseState& state) final override
+	bool Parse(SyncParseState& state)
 	{
 		if (shouldRead(state, TIds::GetIds()))
 		{
@@ -245,7 +245,7 @@ struct ParentNode : public NodeBase
 		return true;
 	}
 
-	virtual bool Unparse(SyncUnparseState& state) final override
+	bool Unparse(SyncUnparseState& state)
 	{
 		bool should = false;
 
@@ -263,7 +263,7 @@ struct ParentNode : public NodeBase
 		return should;
 	}
 
-	virtual bool Visit(const SyncTreeVisitor& visitor) final override
+	bool Visit(const SyncTreeVisitor& visitor)
 	{
 		visitor(*this);
 
@@ -275,22 +275,22 @@ struct ParentNode : public NodeBase
 		return true;
 	}
 
-	virtual bool IsAdditional() override
+	bool IsAdditional()
 	{
 		return (std::get<2>(TIds::GetIds()) & 1);
 	}
 };
 
-template<typename TIds, typename TNode, typename = void>
+template<typename TIds, typename TNode, size_t Length = 1024, typename = void>
 struct NodeWrapper : public NodeBase
 {
-	std::array<uint8_t, 1024> data;
+	eastl::fixed_vector<uint8_t, Length> data;
 	uint32_t length;
 
 	TNode node;
 
 	NodeWrapper()
-		: length(0)
+		: data(Length), length(0)
 	{
 		ackedPlayers.set();
 	}
@@ -317,15 +317,8 @@ struct NodeWrapper : public NodeBase
 		return 0;
 	}
 
-	virtual bool Parse(SyncParseState& state) final override
+	bool Parse(SyncParseState& state)
 	{
-		/*auto isWrite = state.buffer.ReadBit();
-
-		if (!isWrite)
-		{
-			return true;
-		}*/
-
 		auto curBit = state.buffer.GetCurrentBit();
 
 		if (shouldRead(state, TIds::GetIds()))
@@ -335,8 +328,12 @@ struct NodeWrapper : public NodeBase
 			auto endBit = state.buffer.GetCurrentBit();
 
 			auto leftoverLength = length;
+			auto leftoverByteLength = std::min(uint32_t(1024), (leftoverLength / 8) + ((leftoverLength % 8) ? 1 : 0));
 
-			auto oldData = data;
+			if (data.size() < leftoverByteLength)
+			{
+				data.resize(leftoverByteLength);
+			}
 
 			this->length = leftoverLength;
 			state.buffer.ReadBits(data.data(), std::min(uint32_t(data.size() * 8), leftoverLength));
@@ -349,18 +346,14 @@ struct NodeWrapper : public NodeBase
 			// parse
 			node.Parse(state);
 
-			//if (memcmp(oldData.data(), data.data(), data.size()) != 0)
+			frameIndex = state.frameIndex;
+
+			if (frameIndex > state.entity->lastFrameIndex)
 			{
-				//trace("resetting acks on node %s\n", boost::typeindex::type_id<TNode>().pretty_name());
-				frameIndex = state.frameIndex;
-
-				if (frameIndex > state.entity->lastFrameIndex)
-				{
-					state.entity->lastFrameIndex = frameIndex;
-				}
-
-				ackedPlayers.reset();
+				state.entity->lastFrameIndex = frameIndex;
 			}
+
+			ackedPlayers.reset();
 
 			state.buffer.SetCurrentBit(endBit + length);
 		}
@@ -368,7 +361,7 @@ struct NodeWrapper : public NodeBase
 		return true;
 	}
 
-	virtual bool Unparse(SyncUnparseState& state) final override
+	bool Unparse(SyncUnparseState& state)
 	{
 		bool hasData = (length > 0);
 
@@ -422,14 +415,14 @@ struct NodeWrapper : public NodeBase
 		return false;
 	}
 
-	virtual bool Visit(const SyncTreeVisitor& visitor) final override
+	bool Visit(const SyncTreeVisitor& visitor)
 	{
 		visitor(*this);
 
 		return true;
 	}
 
-	virtual bool IsAdditional() override
+	bool IsAdditional()
 	{
 		return (std::get<2>(TIds::GetIds()) & 1);
 	}
