@@ -28,6 +28,8 @@
 #include <CrossBuildRuntime.h>
 #include <CoreConsole.h>
 
+#include <CfxLocale.h>
+
 #include <json.hpp>
 
 using json = nlohmann::json;
@@ -57,18 +59,44 @@ static std::string CollectTimeoutInfo()
 
 	auto gatherInfo = [begin](uint32_t* list) -> std::string
 	{
-		std::stringstream ss;
+		double total = 0;
+		double average = 0;
+		double variance = 0;
 
-		for (int i = 0; i < TIMEOUT_DATA_SIZE; i++)
+		// gather tick delta
+		size_t ticks[TIMEOUT_DATA_SIZE];
+
+		for (int i = 1; i < TIMEOUT_DATA_SIZE; i++)
 		{
-			ss << fmt::sprintf("-%d ", begin - list[i]);
+			ticks[i - 1] = list[i] - list[i - 1];
 		}
 
-		return ss.str();
+		ticks[TIMEOUT_DATA_SIZE - 1] = timeGetTime() - list[TIMEOUT_DATA_SIZE - 1];
+
+		// calculate total/average/variance
+		for (auto val : ticks)
+		{
+			total += val;
+		}
+
+		average = total / std::size(ticks);
+
+		// variance
+		total = 0;
+
+		for (auto val : ticks)
+		{
+			total += pow(abs(val - average), 2);
+		}
+
+		variance = sqrt(total / std::size(ticks));
+
+		// actual count
+		return fmt::sprintf("%.2f ±%.2f ~%d", average, variance, ticks[TIMEOUT_DATA_SIZE - 1]);
 	};
 
 	return fmt::sprintf(
-		"TIMEOUT INFO:\nRun game frame: %s\nReceive data from server: %s\nSend data to server: %s\n\nGuide to interpreting above data: each number is the amount of milliseconds between now and a 'tick' of this type.\nIf any are above ~5000, the specified row is likely to be an issue.",
+		gettext("**Timeout info**: game=%s, recv=%s, send=%s\n"),
 		gatherInfo(g_runFrameTicks),
 		gatherInfo(g_receiveDataTicks),
 		gatherInfo(g_sendDataTicks)
@@ -420,15 +448,18 @@ void NetLibrary::ProcessOOB(const NetAddress& from, const char* oob, size_t leng
 			{
 				const char* errorStr = &oob[6];
 				auto errText = std::string(errorStr, length - 6);
+				auto errHeading = "Disconnected by server";
 
 				if (strstr(errorStr, "Timed out") != nullptr || strstr(errorStr, "timed out") != nullptr)
 				{
-					errText += fmt::sprintf("\n%s", CollectTimeoutInfo());
+					errHeading = "Timed out";
+					errText += fmt::sprintf("\n\n---\n\n%s", CollectTimeoutInfo());
+					errText += "\n[Reconnect](cfx.re://reconnect)";
 				}
 
 				if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
 				{
-					GlobalError("Disconnected by server: %s", errText);
+					GlobalError("[md]# %s\n%s", errHeading, errText);
 				}
 				else
 				{
@@ -603,7 +634,7 @@ void NetLibrary::RunFrame()
 
 				OnConnectionTimedOut();
 
-				GlobalError("Failed to getinfo server after 3 attempts.");
+				GlobalError("[md]%s", fmt::sprintf(gettext("# Couldn't connect\nFailed to get info from server (tried 3 times).\n\n---\n\nIf you are the server owner, are you sure you are allowing UDP packets to and from the server?")));
 			}
 			break;
 
@@ -640,41 +671,10 @@ void NetLibrary::RunFrame()
 
 				OnConnectionTimedOut();
 
-				GlobalError("Server connection timed out after 15 seconds.\n%s", CollectTimeoutInfo());
+				GlobalError("[md]%s", fmt::sprintf(gettext("# Timed out\nClient -> server connection timed out. Please try again later.\n\n---\n\n%s\n[Reconnect](cfx.re://reconnect)"), CollectTimeoutInfo()));
 
 				m_connectionState = CS_IDLE;
 				m_currentServer = NetAddress();
-			}
-			else if (m_impl->IsDisconnected())
-			{
-				if ((GetTickCount() - m_lastReconnect) > 5000)
-				{
-					m_impl->SendConnect(m_token, fmt::sprintf("token=%s&guid=%llu", m_token, (uint64_t)GetGUID()));
-
-					m_lastReconnect = GetTickCount();
-
-					m_reconnectAttempts++;
-
-					// advertise status
-					auto specStatus = (m_reconnectAttempts > 1) ? fmt::sprintf(" (attempt %d)", m_reconnectAttempts) : "";
-
-					OnReconnectProgress(fmt::sprintf("Connection interrupted!\nReconnecting to server...%s", specStatus));
-				}
-				else if (m_reconnectAttempts == 0)
-				{
-					Instance<ICoreGameInit>::Get()->SetVariable("networkTimedOut");
-
-					OnReconnectProgress("Connection interrupted!\nReconnecting to server SOON!");
-				}
-
-				if (m_reconnectAttempts > 10)
-				{
-					Disconnect("Connection timed out.");
-
-					OnConnectionTimedOut();
-
-					GlobalError("Failed to reconnect to server after 10 attempts.");
-				}
 			}
 			else
 			{
@@ -706,7 +706,7 @@ static void tohex(unsigned char* in, size_t insz, char* out, size_t outsz)
     {
         pout[0] = hex[(*pin >> 4) & 0xF];
         pout[1] = hex[*pin & 0xF];
-        if (pout + 3 - out > outsz)
+        if (size_t(pout + 3 - out) > outsz)
         {
             break;
         }
@@ -1580,6 +1580,8 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 						OnConnectionError(e.what());
 						m_connectionState = CS_IDLE;
 					}
+
+					return false;
 				};
 
 				if (bitVersion >= 0x202004201223)
@@ -2053,7 +2055,7 @@ void NetLibrary::SendNetEvent(const std::string& eventName, const std::string& j
 		buffer.Write<uint16_t>(i);
 	}
 
-	buffer.Write<uint16_t>(eventNameLength + 1);
+	buffer.Write<uint16_t>(uint16_t(eventNameLength + 1));
 	buffer.Write(eventName.c_str(), eventNameLength + 1);
 
 	buffer.Write(jsonString.c_str(), jsonString.size());

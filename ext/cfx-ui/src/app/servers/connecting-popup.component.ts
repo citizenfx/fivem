@@ -5,12 +5,20 @@ import { L10N_LOCALE, L10nLocale } from 'angular-l10n';
 import { ActionAlignment } from 'adaptivecards';
 import { DiscourseService } from 'app/discourse.service';
 import { Avatar } from './avatar';
-import { DomSanitizer } from '@angular/platform-browser';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Server } from './server';
+import * as markdownIt from 'markdown-it';
 
 // Matches `<ip>:<port>` and `<ip> port <port>`
 const ipRegex = Array(4).fill('(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)').join('\\.');
 const serverAddressRegex = new RegExp(String.raw`\b${ipRegex}(\s+port\s+|:)\d+\b`, 'g');
+
+const md = markdownIt();
+
+interface ExtraAction {
+	title: string;
+	action: () => void;
+}
 
 @Component({
 	moduleId: module.id,
@@ -39,6 +47,8 @@ export class ConnectingPopupComponent implements OnInit {
 	retry = new EventEmitter();
 
 	@ViewChild('card') cardElement: ElementRef;
+	overlayHTML: SafeHtml;
+	extraActions: ExtraAction[] = [];
 
 	constructor(
 		private gameService: GameService,
@@ -104,6 +114,7 @@ export class ConnectingPopupComponent implements OnInit {
     }
 
 	ngOnInit() {
+		// #TODO: unify the dupe code in these event handlers
 		this.gameService.connecting.subscribe(a => {
 			this.overlayTitle = '#Servers_Connecting';
 			this.overlayMessage = this.gameService.streamerMode
@@ -115,6 +126,7 @@ export class ConnectingPopupComponent implements OnInit {
 			this.showOverlay = true;
 			this.gameService.showConnectingOverlay = true;
 			this.overlayClosable = false;
+			this.extraActions = [];
 
             if (a) {
                 this.lastServer = a;
@@ -129,9 +141,15 @@ export class ConnectingPopupComponent implements OnInit {
 		});
 
 		this.gameService.connectFailed.subscribe(([server, message, extra]) => {
-			this.overlayTitle = '#Servers_ConnectFailed';
-			this.overlayMessage = '#Servers_Message';
-			this.overlayMessageData = { message };
+			if (message.startsWith('[md]')) {
+				this.loadFormattedMessage(message);
+			} else {
+				this.overlayTitle = '#Servers_ConnectFailed';
+				this.overlayMessage = '#Servers_Message';
+				this.overlayMessageData = { message };
+				this.extraActions = [];
+			}
+
 			this.showOverlay = true;
 			this.gameService.showConnectingOverlay = true;
 			this.overlayClosable = true;
@@ -148,12 +166,19 @@ export class ConnectingPopupComponent implements OnInit {
 		});
 
 		this.gameService.connectStatus.subscribe(a => {
-			this.overlayTitle = '#Servers_Connecting';
-			this.overlayMessage = '#Servers_Message';
-			this.overlayMessageData = {
-				message: a.message,
-				serverName: this.gameService.minmodeBlob.productName,
-			};
+			if (a.message.startsWith('[md]')) {
+				this.loadFormattedMessage(a.message);
+			} else {
+				this.overlayTitle = '#Servers_Connecting';
+				this.overlayMessage = '#Servers_Message';
+				this.overlayMessageData = {
+					message: a.message,
+					serverName: this.gameService.minmodeBlob.productName,
+				};
+
+				this.extraActions = [];
+			}
+
 			this.showOverlay = true;
 			this.gameService.showConnectingOverlay = true;
 			this.overlayClosable = a.cancelable;
@@ -176,6 +201,11 @@ export class ConnectingPopupComponent implements OnInit {
 
 			this.showOverlay = true;
 			this.gameService.showConnectingOverlay = true;
+
+			AdaptiveCards.AdaptiveCard.onProcessMarkdown = (text, result) => {
+				result.outputHtml = md.render(text);
+				result.didProcess = true;
+			};
 
 			const adaptiveCard = new AdaptiveCards.AdaptiveCard();
 			adaptiveCard.hostConfig = new AdaptiveCards.HostConfig({
@@ -381,9 +411,16 @@ export class ConnectingPopupComponent implements OnInit {
 		});
 
 		this.gameService.errorMessage.subscribe(message => {
-			this.overlayTitle = '#Servers_Error';
-			this.overlayMessage = '#Servers_Message';
-			this.overlayMessageData = { message };
+			if (message.startsWith('[md]')) {
+				this.loadFormattedMessage(message);
+			} else {
+				this.overlayTitle = '#Servers_Error';
+				this.overlayMessage = '#Servers_Message';
+				this.overlayMessageData = { message };
+
+				this.extraActions = [];
+			}
+
 			this.showOverlay = true;
 			this.gameService.showConnectingOverlay = true;
 			this.overlayClosable = true;
@@ -393,9 +430,16 @@ export class ConnectingPopupComponent implements OnInit {
 		});
 
 		this.gameService.infoMessage.subscribe(message => {
-			this.overlayTitle = '#Servers_Info';
-			this.overlayMessage = '#Servers_Message';
-			this.overlayMessageData = { message };
+			if (message.startsWith('[md]')) {
+				this.loadFormattedMessage(message);
+			} else {
+				this.overlayTitle = '#Servers_Info';
+				this.overlayMessage = '#Servers_Message';
+				this.overlayMessageData = { message };
+
+				this.extraActions = [];
+			}
+
 			this.showOverlay = true;
 			this.gameService.showConnectingOverlay = true;
 			this.overlayClosable = true;
@@ -403,6 +447,45 @@ export class ConnectingPopupComponent implements OnInit {
 
 			this.clearElements();
 		});
+	}
+
+	loadFormattedMessage(message: string) {
+		message = message.replace(/^\[md\]/, '');
+		message = md.render(message);
+
+		const extraActions: ExtraAction[] = [];
+
+		const parser = new DOMParser();
+		const doc = parser.parseFromString(`<div>${message}</div>`, 'text/html');
+		for (const el of Array.from(doc.querySelectorAll('a[href^="cfx.re://"]'))) {
+			const getAction = (action: string) => {
+				if (action === 'cfx.re://reconnect') {
+					return () => (window as any).invokeNative('reconnect', '');
+				}
+
+				return () => {};
+			}
+
+			extraActions.push({
+				title: el.innerHTML,
+				action: getAction((el as HTMLAnchorElement).href)
+			});
+
+			el.parentNode.removeChild(el);
+		}
+
+		const heading = doc.querySelector('h1');
+		if (heading) {
+			this.overlayTitle = heading.innerText;
+			heading.parentNode.removeChild(heading);
+		}
+
+		const serializer = new XMLSerializer();
+		const newText = serializer.serializeToString(doc);
+
+		this.overlayMessage = '[html]';
+		this.overlayHTML = this.sanitizer.bypassSecurityTrustHtml(newText);
+		this.extraActions = extraActions;
 	}
 
 	updateStatus() {

@@ -984,6 +984,8 @@ static InitFunction initFunction([] ()
 
 	nui::OnInvokeNative.Connect([](const wchar_t* type, const wchar_t* arg)
 	{
+		static std::string lastHostName;
+
 		if (!_wcsicmp(type, L"getFavorites"))
 		{
 			UpdatePendingAuthPayload();
@@ -1031,6 +1033,10 @@ static InitFunction initFunction([] ()
 				initSwitched = true;
 			}
 		}
+		else if (!_wcsicmp(type, L"reconnect"))
+		{
+			ConnectTo(lastHostName, true);
+		}
 		else if (!_wcsicmp(type, L"connectTo"))
 		{
 			std::string hostName = ToNarrow(arg);
@@ -1049,6 +1055,7 @@ static InitFunction initFunction([] ()
 			{
 			}
 
+			lastHostName = hostName;
 			ConnectTo(hostName, true);
 		}
 		else if (!_wcsicmp(type, L"cancelDefer"))

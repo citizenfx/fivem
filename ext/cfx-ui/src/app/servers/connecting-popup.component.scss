@@ -116,8 +116,48 @@
 			}
 		}
 
-		.cfx-button {
+		.buttons {
 			margin-top: var(--q1);
+
+			> .cfx-button {
+				margin-right: var(--qh);
+			}
+		}
+
+		.body {
+			width: 100%;
+			user-select: text;
+
+			::ng-deep {
+				* {
+					user-select: text;
+				}
+
+				p, hr {
+					margin-top: var(--qh);
+					margin-bottom: var(--qh);
+				}
+
+				hr {
+					border: 0;
+
+					@include theme using ($theme) {
+						box-shadow: 0 0 0 1px rgba(gtv($theme, fgColor), .5);
+					}
+				}
+
+				hr + p, hr + p + p {
+					font-size: 70%;
+
+					@include theme using ($theme) {
+						color: rgba(gtv($theme, fgColor), .8);
+					}
+				}
+			}
+
+			+ .card + .buttons {
+				margin-top: 0;
+			}
 		}
 
         .friendly {

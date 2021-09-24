@@ -40,6 +40,7 @@
     "@types/cldrjs": "^0.4.22",
     "@types/color": "^3.0.2",
     "@types/js-md5": "0.4.2",
+    "@types/markdown-it": "^12.2.1",
     "@types/node-forge": "^0.10.2",
     "adaptivecards": "^2.9.0",
     "angular-l10n": "^12.0.0",
@@ -61,6 +62,7 @@
     "idb": "^6.1.2",
     "int64-buffer": "^1.0.0",
     "js-md5": "0.7.3",
+    "markdown-it": "^12.2.0",
     "mini-css-extract-plugin": "^2.2.0",
     "ngx-date-fns": "^8.2.0",
     "ngx-filesize": "^2.0.16",
@@ -107,12 +109,12 @@
   "resolutions": {
     "tar": "^6.1.2",
     "@npmcli/git": "^2.0.8",
-	"glob-parent": "^5.1.2",
-	"**/postcss-preset-env/**/postcss": "^7.0.36",
-	"resolve-url-loader/postcss": "^7.0.36",
-	"postcss": "^8.3.6",
-	"minimist": "^1.2.3",
-	"css-what": "^5.0.1",
-	"@angular-devkit/build-angular": "git+https://github.com/angular/angular-devkit-build-angular-builds.git#416117166d0a4cd1f708e0f9587642e03c80baad"
+    "glob-parent": "^5.1.2",
+    "**/postcss-preset-env/**/postcss": "^7.0.36",
+    "resolve-url-loader/postcss": "^7.0.36",
+    "postcss": "^8.3.6",
+    "minimist": "^1.2.3",
+    "css-what": "^5.0.1",
+    "@angular-devkit/build-angular": "git+https://github.com/angular/angular-devkit-build-angular-builds.git#416117166d0a4cd1f708e0f9587642e03c80baad"
   }
 }
