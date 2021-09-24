@@ -2590,13 +2590,15 @@ void V8ScriptGlobals::Initialize()
 				rootPath,
 				rootPath);
 
+				auto icuDataPath = MakeRelativeCitPath(fmt::sprintf(_P("citizen/scripting/v8/%d.%d/icudtl.dat"), V8_MAJOR_VERSION, V8_MINOR_VERSION));
+				auto icuEnv = fmt::format(_P("CFX_ICU_PATH={}"), icuDataPath);
+
 #ifdef _WIN32
 				g_argv[0] = const_cast<char*>(selfPath.c_str());
 
-				auto icuDataPath = MakeRelativeCitPath(fmt::sprintf(L"citizen/scripting/v8/%d.%d/icudtl.dat", V8_MAJOR_VERSION, V8_MINOR_VERSION));
-				auto icuEnv = fmt::format("CFX_ICU_PATH={}", ToNarrow(icuDataPath));
-
-				_wputenv(ToWide(icuEnv).c_str());
+				_wputenv(icuEnv.c_str());
+#else
+				putenv(const_cast<char*>(icuEnv.c_str()));
 #endif
 
 				const char* execArgv[] = {
