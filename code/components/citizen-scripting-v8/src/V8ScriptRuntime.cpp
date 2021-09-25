@@ -1104,6 +1104,11 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 	// pushing function
 	auto push = [&](const auto & value)
 	{
+		if (context.numArguments >= std::size(context.arguments))
+		{
+			return;
+		}
+
 		*reinterpret_cast<uintptr_t*>(&context.arguments[context.numArguments]) = 0;
 		*reinterpret_cast<std::decay_t<decltype(value)>*>(&context.arguments[context.numArguments]) = value;
 		context.numArguments++;

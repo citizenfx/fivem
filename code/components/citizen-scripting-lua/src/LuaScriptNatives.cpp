@@ -39,16 +39,21 @@ extern bool g_hadProfiler;
 /// <summary>
 /// </summary>
 template<bool IsPtr>
-static int SAFE_BUFFERS Lua_PushContextArgument(lua_State* L, int idx, fxLuaNativeContext<IsPtr>& context, fxLuaResult& result);
+static int Lua_PushContextArgument(lua_State* L, int idx, fxLuaNativeContext<IsPtr>& context, fxLuaResult& result);
 
 /// <summary>
 /// Pushing function
 /// </summary>
 template<bool IsPtr, typename T>
-static SAFE_BUFFERS LUA_INLINE void fxLuaNativeContext_PushArgument(fxLuaNativeContext<IsPtr>& context, T value)
+static LUA_INLINE void fxLuaNativeContext_PushArgument(fxLuaNativeContext<IsPtr>& context, T value)
 {
 	using TVal = std::decay_t<decltype(value)>;
 	const int na = context.numArguments;
+
+	if (context.numArguments >= std::size(context.arguments))
+	{
+		return;
+	}
 
 	LUA_IF_CONSTEXPR(sizeof(TVal) < sizeof(uintptr_t))
 	{
@@ -77,9 +82,9 @@ static SAFE_BUFFERS LUA_INLINE void fxLuaNativeContext_PushArgument(fxLuaNativeC
 }
 
 template<bool IsPtr>
-static SAFE_BUFFERS LUA_INLINE int fxLuaNativeContext_PushPointer(lua_State* L, fxLuaNativeContext<IsPtr>& context, fxLuaResult& result, LuaMetaFields metaField)
+static LUA_INLINE int fxLuaNativeContext_PushPointer(lua_State* L, fxLuaNativeContext<IsPtr>& context, fxLuaResult& result, LuaMetaFields metaField)
 {
-	if (result.numReturnValues >= _countof(result.retvals))
+	if (result.numReturnValues >= std::size(result.retvals))
 	{
 		lua_pushliteral(L, "too many return value arguments");
 		return lua_error(L);
@@ -100,7 +105,7 @@ static SAFE_BUFFERS LUA_INLINE int fxLuaNativeContext_PushPointer(lua_State* L, 
 
 // table parsing implementation
 template<bool IsPtr>
-static SAFE_BUFFERS LUA_INLINE int fxLuaNativeContext_PushTable(lua_State* L, int idx, fxLuaNativeContext<IsPtr>& context, fxLuaResult& result)
+static LUA_INLINE int fxLuaNativeContext_PushTable(lua_State* L, int idx, fxLuaNativeContext<IsPtr>& context, fxLuaResult& result)
 {
 	const int t_idx = lua_absindex(L, idx);
 	luaL_checkstack(L, 2, "table arguments");
@@ -148,7 +153,7 @@ static SAFE_BUFFERS LUA_INLINE int fxLuaNativeContext_PushTable(lua_State* L, in
 }
 
 template<bool IsPtr>
-static SAFE_BUFFERS LUA_INLINE void fxLuaNativeContext_PushUserdata(lua_State* L, fxLuaNativeContext<IsPtr>& context, fxLuaResult& result, uint8_t* ptr)
+static LUA_INLINE void fxLuaNativeContext_PushUserdata(lua_State* L, fxLuaNativeContext<IsPtr>& context, fxLuaResult& result, uint8_t* ptr)
 {
 	// if the pointer is a metafield
 	if (ptr >= g_metaFields && ptr < &g_metaFields[(int)LuaMetaFields::Max])
@@ -251,7 +256,7 @@ static LUA_INLINE const TValue* __index2value(lua_State* L, int idx)
 /// <param name="context"></param>
 /// <returns></returns>
 template<bool IsPtr>
-static int SAFE_BUFFERS Lua_PushContextArgument(lua_State* L, int idx, fxLuaNativeContext<IsPtr>& context, fxLuaResult& result)
+static int Lua_PushContextArgument(lua_State* L, int idx, fxLuaNativeContext<IsPtr>& context, fxLuaResult& result)
 {
 #if LUA_VERSION_NUM == 504
 	const TValue* value = LUA_VALUE(L, idx);
@@ -435,7 +440,7 @@ struct FastNativeHandler
 	rage::scrEngine::NativeHandler handler;
 };
 
-LUA_SCRIPT_LINKAGE int SAFE_BUFFERS Lua_GetNativeHandler(lua_State* L)
+LUA_SCRIPT_LINKAGE int Lua_GetNativeHandler(lua_State* L)
 {
 	auto hash = lua_tointeger(L, 1);
 	auto handler = (!launch::IsSDK()) ? rage::scrEngine::GetNativeHandler(hash) : nullptr;
@@ -515,7 +520,7 @@ static void __declspec(safebuffers) CallHandlerUniversal(void* handler, uint64_t
 #endif
 
 template<bool IsPtr>
-static int SAFE_BUFFERS __Lua_InvokeNative(lua_State* L)
+static int __Lua_InvokeNative(lua_State* L)
 {
 	std::conditional_t<IsPtr, void*, uint64_t> hash;
 	uint64_t origHash;
@@ -746,12 +751,12 @@ static int SAFE_BUFFERS __Lua_InvokeNative(lua_State* L)
 	return numResults;
 }
 
-LUA_SCRIPT_LINKAGE int SAFE_BUFFERS Lua_InvokeNative(lua_State* L)
+LUA_SCRIPT_LINKAGE int Lua_InvokeNative(lua_State* L)
 {
 	return __Lua_InvokeNative<false>(L);
 }
 
-LUA_SCRIPT_LINKAGE int SAFE_BUFFERS Lua_InvokeNative2(lua_State* L)
+LUA_SCRIPT_LINKAGE int Lua_InvokeNative2(lua_State* L)
 {
 	return __Lua_InvokeNative<true>(L);
 }
