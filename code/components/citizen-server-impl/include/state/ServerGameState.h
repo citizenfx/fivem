@@ -106,6 +106,9 @@ using SyncTreeVisitor = std::function<bool(NodeBase&)>;
 struct NodeBase
 {
 public:
+	// required so ackedPlayers offsetof isn't 0
+	uint64_t unusedSentinel = 0;
+
 	eastl::bitset<roundToWord(MAX_CLIENTS)> ackedPlayers;
 
 	uint64_t frameIndex;

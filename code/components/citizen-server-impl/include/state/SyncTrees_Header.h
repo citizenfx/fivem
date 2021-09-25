@@ -284,10 +284,12 @@ struct ParentNode : public NodeBase
 template<typename TIds, typename TNode, size_t Length = 1024, typename = void>
 struct NodeWrapper : public NodeBase
 {
-	eastl::fixed_vector<uint8_t, Length> data;
 	uint32_t length;
 
 	TNode node;
+
+	// this **HAS** to be the last field as some callers may not be aware of the correct Length template argument
+	eastl::fixed_vector<uint8_t, Length> data;
 
 	NodeWrapper()
 		: data(Length), length(0)
