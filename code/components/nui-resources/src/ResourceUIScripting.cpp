@@ -328,7 +328,18 @@ static InitFunction initFunction([] ()
 		}
 
 		{
-			auto shouldKeepInput = !focusKeepInputVotes.empty();
+			// find if the keep-input list overlaps with the general vote list
+			bool shouldKeepInput = false;
+
+			for (const auto& resource : focusKeepInputVotes)
+			{
+				if (focusVotes.find(resource) != focusVotes.end() ||
+					focusCursorVotes.find(resource) != focusCursorVotes.end())
+				{
+					shouldKeepInput = true;
+					break;
+				}
+			}
 
 			if (shouldKeepInput != lastFocusKeepInput)
 			{
