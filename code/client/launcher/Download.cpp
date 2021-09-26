@@ -165,11 +165,8 @@ void CL_InitDownloadQueue()
 	dls.totalBytes = 0;
 	dls.doneTotalBytes = 0;
 	
-	std::queue<std::shared_ptr<download_t>> empty;
-	std::swap(dls.downloadQueue, empty);
+	dls.downloadQueue = {};
 }
-
-//void CL_QueueDownload(const char* url, const char* file, int64_t size, bool compressed, const uint8_t* hash, uint32_t hashLen);
 
 void CL_QueueDownload(const char* url, const char* file, int64_t size, bool compressed)
 {

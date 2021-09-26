@@ -420,6 +420,7 @@ bool Updater_RunUpdate(std::initializer_list<std::string> wantedCachesList)
 	}
 
 	UI_DoCreation();
+	CL_InitDownloadQueue();
 
 	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
 
