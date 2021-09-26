@@ -38,7 +38,6 @@ context_rpc 'SET_PED_RESET_FLAG'
 context_rpc 'SET_PED_TO_RAGDOLL'
 context_rpc 'SET_PED_TO_RAGDOLL_WITH_FALL'
 
-
 -- WEAPON
 context_rpc 'GIVE_WEAPON_TO_PED' { 'HAS_PED_GOT_WEAPON' }
 context_rpc 'GIVE_WEAPON_COMPONENT_TO_PED'
@@ -48,7 +47,6 @@ context_rpc 'REMOVE_WEAPON_COMPONENT_FROM_PED'
 context_rpc 'SET_CURRENT_PED_WEAPON'
 context_rpc 'SET_PED_AMMO' { 'GET_AMMO_IN_PED_WEAPON' }
 context_rpc { 'IS_PED_ARMED' }
-
 
 -- TASK
 context_rpc 'TASK_REACT_AND_FLEE_PED'
