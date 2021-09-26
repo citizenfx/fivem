@@ -40,6 +40,10 @@ local function launcherpersonality_inner(name, aslr)
 		projectName = projectName .. '_aslr'
 	end
 
+	if not isLauncherPersonality(name) then
+		group 'subprocess'
+	end
+
 	project(projectName)
 		language "C++"
 		kind "WindowedApp"
@@ -204,6 +208,8 @@ local function launcherpersonality_inner(name, aslr)
 		end
 			
 			linkoptions "/DELAYLOAD:d3d11.dll /DELAYLOAD:d2d1.dll /DELAYLOAD:d3dcompiler_47.dll /DELAYLOAD:dwrite.dll /DELAYLOAD:ole32.dll /DELAYLOAD:shcore.dll /DELAYLOAD:api-ms-win-core-winrt-error-l1-1-1.dll /DELAYLOAD:api-ms-win-core-winrt-l1-1-0.dll /DELAYLOAD:api-ms-win-core-winrt-error-l1-1-0.dll /DELAYLOAD:api-ms-win-core-winrt-string-l1-1-0.dll /DELAYLOAD:api-ms-win-shcore-stream-winrt-l1-1-0.dll"
+
+	group ''
 end
 
 local function launcherpersonality(name)
@@ -233,6 +239,7 @@ elseif _OPTIONS['game'] == 'ny' then
 	launcherpersonality 'game_43'
 end
 
+group 'subprocess'
 project 'CitiLaunch_TLSDummy'
 	kind 'SharedLib'
 	language 'C++'
@@ -244,3 +251,5 @@ project 'CitiLaunch_TLSDummy'
 	files {
 		'DummyVariables.cpp'
 	}
+
+group ''

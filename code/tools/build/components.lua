@@ -226,6 +226,11 @@ local do_component = function(name, comp)
 		groupName = groupName .. '/' .. val
 	end
 
+	-- hack: `net` breaks premake/.vs group generator
+	if comp.name == 'net' then
+		groupName = groupName .. '/net'
+	end
+
 	if comp.private then
 		groupName = '/private' .. groupName
 	end

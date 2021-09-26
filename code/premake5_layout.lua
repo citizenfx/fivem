@@ -1,4 +1,6 @@
 -- setup pre-build and post-build layouts
+group 'helpers'
+
 project 'CfxPrebuild'
 	kind 'Utility'
 	
@@ -42,3 +44,5 @@ project 'CfxPostbuild'
 		}
 		
 		buildoutputs { 'tools/build/dummy_dont_generate.txt' }
+
+group ''
