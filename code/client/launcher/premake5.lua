@@ -70,6 +70,20 @@ local function launcherpersonality_inner(name, aslr)
 			"../common/Error.cpp",
 			"../common/CfxLocale.Win32.cpp",
 		}
+
+		-- remove MAIN-only files so that these don't trigger a rebuild in child procs
+		if not isLauncherPersonality(name) then
+			removefiles {
+				"Bootstrap.cpp",
+				"CrossBuildLaunch.cpp",
+				"DisableNVSP.cpp",
+				"Download.cpp",
+				"GameSelect.cpp",
+				"Installer.cpp",
+				"Updater.cpp",
+				"UpdaterUI.cpp",
+			}
+		end
 		
 		if isGamePersonality(name) then
 			if _OPTIONS['game'] == 'five' then

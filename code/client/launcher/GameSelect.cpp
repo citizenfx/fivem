@@ -334,9 +334,4 @@ std::optional<int> EnsureGamePath()
 
 	return {};
 }
-#else
-std::optional<int> EnsureGamePath()
-{
-	return {};
-}
 #endif
