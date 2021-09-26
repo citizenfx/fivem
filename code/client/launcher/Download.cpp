@@ -17,13 +17,10 @@
 #define MAX_CONCURRENT_DOWNLOADS_HUGE 2
 
 // what to consider a huge file
-#define HUGE_SIZE (5 * 1024 * 1024)
+#define HUGE_SIZE (10 * 1024 * 1024)
 
 // what to consider a mega-huge file (should be the sole file)
-#define MEGA_HUGE_SIZE (25 * 1024 * 1024)
-
-// rockstar: meta-protocol base URL
-#define ROCKSTAR_BASE_URL "http://gtavp.citizen.re/file?name=%s"
+#define MEGA_HUGE_SIZE (40 * 1024 * 1024)
 
 #define CURL_STATICLIB
 #include <curl/curl.h>
@@ -132,11 +129,12 @@ struct dlState
 	int64_t totalSize;
 	int64_t completedSize;
 
-	uint32_t lastTime;
+	uint64_t lastTime;
 	int64_t lastBytes;
 	int bytesPerSecond;
 
-	uint32_t lastPoll;
+	uint64_t lastPoll;
+	uint64_t lastPump;
 
 	// these are global?!
 	int64_t totalBytes;
@@ -256,14 +254,6 @@ void DL_DequeueDownload()
 
 	dls.currentDownloads.push_back(download);
 
-	// process Rockstar URLs
-	if (_strnicmp(download->url, "rockstar:", 9) == 0)
-	{
-		std::string newUrl = va(ROCKSTAR_BASE_URL, &download->url[9]);
-
-		strcpy_s(download->url, sizeof(download->url), newUrl.c_str());
-	}
-
 	dls.downloadQueue.pop();
 }
 
@@ -288,7 +278,7 @@ size_t DL_WriteToFile(void *ptr, size_t size, size_t nmemb, download_t* download
 		{
 			download->memoryStream << std::string(reinterpret_cast<char*>(ptr), size * nmemb);
 
-			written = size * nmemb;
+			written = nmemb;
 		}
 		else
 		{
@@ -323,23 +313,35 @@ size_t DL_WriteToFile(void *ptr, size_t size, size_t nmemb, download_t* download
 			}
 		}
 
-		written = size * nmemb;
+		written = nmemb;
 	}
 
 	// do size calculations
+	auto now = GetTickCount64();
+
 	download->progress += (size * nmemb);
 	dls.completedSize += (size * nmemb);
-	if ((dls.lastTime + 1000) < GetTickCount())
+	if ((now - dls.lastTime) > 1000)
 	{
 		dls.bytesPerSecond = (int)(dls.completedSize - dls.lastBytes);
-		dls.lastTime = GetTickCount();
+		dls.lastTime = now;
 		dls.lastBytes = dls.completedSize;
 	}
 
-	if ((GetTickCount() - dls.lastPoll) > 50)
+	if ((now - dls.lastPoll) > 50)
 	{
 		DL_UpdateGlobalProgress(size * nmemb);
 
+		dls.lastPoll = now;
+	}
+	else
+	{
+		// this is usually done in DL_UpdateGlobalProgress
+		dls.doneTotalBytes += size * nmemb;
+	}
+
+	if ((now - dls.lastPump) > 100)
+	{
 		// poll message loop in case of file:// transfers or similar
 		MSG msg;
 		while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
@@ -348,11 +350,7 @@ size_t DL_WriteToFile(void *ptr, size_t size, size_t nmemb, download_t* download
 			DispatchMessage(&msg);
 		}
 
-		dls.lastPoll = GetTickCount();
-	}
-	else
-	{
-		dls.doneTotalBytes += size * nmemb;
+		dls.lastPump = now;
 	}
 
 	return written;
@@ -669,12 +667,14 @@ bool DL_ProcessDownload()
 
 		if (download->progress == 0)
 		{
-			lzma_stream_decoder(&download->strm, UINT32_MAX, 0);
+			lzma_stream_decoder(&download->strm, UINT64_MAX, 0);
 			download->strm.avail_out = sizeof(download->strmOut);
 			download->strm.next_out = download->strmOut;
 		}
 
 		curl_multi_add_handle(dls.curl, curlHandle);
+
+		return true;
 	};
 
 	auto onSuccess = [](decltype(dls.currentDownloads.begin()) it)
@@ -848,7 +848,7 @@ bool DL_ProcessDownload()
 					std::string str = download->memoryStream.str();
 
 					DWORD bytesWritten = 0;
-					BOOL success = WriteFile(hFile, str.c_str(), str.size(), &bytesWritten, nullptr);
+					BOOL success = WriteFile(hFile, str.c_str(), DWORD(str.size()), &bytesWritten, nullptr);
 
 					if (!success || bytesWritten != str.size())
 					{
