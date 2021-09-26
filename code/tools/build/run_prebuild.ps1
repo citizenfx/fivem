@@ -60,7 +60,12 @@ if (!(Test-Path $InstRoot\vendor\udis86\libudis86\itab.c)) {
 	}
 }
 
-if (!(Test-Path $InstRoot\code\tools\idl\deps) -or ((Get-ChildItem $InstRoot\code\tools\idl\deps).Length -eq 0)) {
+$env:PYTHONPATH = "$InstRoot\code\tools\idl\deps\"
+py -3 -c "import six; import jinja2; import markupsafe; import ply"
+$HasPython = $?
+$env:PYTHONPATH = ""
+
+if (!($HasPython)) {
     Invoke-Expression "$InstRoot\code\prebuild_misc.cmd"
 
 	if (!$?) {
@@ -76,10 +81,6 @@ if (!(Test-Path $InstRoot\code\client\clrcore\NativesFive.cs)) {
 
 if (!(Test-Path $InstRoot\vendor\udis86\libudis86\itab.c)) {
 	throw "udis failed 2"
-}
-
-if (!(Test-Path $InstRoot\code\tools\idl\deps) -or ((Get-ChildItem $InstRoot\code\tools\idl\deps).Length -eq 0)) {
-	throw "misc failed 2"
 }
 
 Set-Content -Path "$PSScriptRoot\prebuild_run.txt" -Value ($null)
