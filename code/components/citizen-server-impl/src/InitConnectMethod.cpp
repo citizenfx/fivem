@@ -738,7 +738,7 @@ static InitFunction initFunction([]()
 
 					if (ref1)
 					{
-						(*ref1)(json::object({ { "defer", true }, { "message", message }, { "deferVersion", 2 } }));
+						(*ref1)(json::object({ { "defer", true }, { "message", message.empty() ? json(nullptr) : json(message) }, { "deferVersion", 2 } }));
 					}
 				});
 
