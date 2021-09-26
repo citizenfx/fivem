@@ -47,6 +47,7 @@ context_rpc 'REMOVE_WEAPON_COMPONENT_FROM_PED'
 context_rpc 'SET_CURRENT_PED_WEAPON'
 context_rpc 'SET_PED_AMMO'
 
+
 -- TASK
 context_rpc 'TASK_REACT_AND_FLEE_PED'
 context_rpc 'TASK_SHOOT_AT_COORD'
@@ -67,6 +68,7 @@ context_rpc 'TASK_LEAVE_VEHICLE'
 context_rpc 'TASK_GO_STRAIGHT_TO_COORD'
 context_rpc 'TASK_GO_TO_COORD_ANY_MEANS'
 context_rpc 'TASK_GO_TO_ENTITY'
+context_rpc 'TASK_WANDER_STANDARD'
 
 -- VEHICLE
 entity_rpc 'CREATE_VEHICLE'
