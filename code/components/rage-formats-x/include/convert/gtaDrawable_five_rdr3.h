@@ -587,11 +587,11 @@ rdr3::grmShaderGroup* convert(five::grmShaderGroup* shaderGroup)
 		{
 			shs = HashString("normal");
 		}
-		else if (shs == HashString("trees_normal_spec_tnt"))
+		else if (shs == HashString("trees_normal_spec_tnt") || shs == HashString("trees_normal_diffspec_tnt"))
 		{
 			shs = HashString("normal_spec_tnt");
 		}
-		else if (shs == HashString("trees_normal_spec") || shs == HashString("trees_normal_spec_camera_aligned") || shs == HashString("trees_normal_spec_camera_aligned_tnt") || shs == HashString("trees_normal_spec_camera_facing") || shs == HashString("trees_normal_spec_camera_facing_tnt"))
+		else if (shs == HashString("trees_normal_spec") || shs == HashString("trees_normal_spec_camera_aligned") || shs == HashString("trees_normal_spec_camera_aligned_tnt") || shs == HashString("trees_normal_spec_camera_facing") || shs == HashString("trees_normal_spec_camera_facing_tnt") || shs == HashString("normal_spec_dpm") )
 		{
 			shs = HashString("normal_spec");
 		}
@@ -603,6 +603,10 @@ rdr3::grmShaderGroup* convert(five::grmShaderGroup* shaderGroup)
 		else if (shs == HashString("cloth_spec_alpha"))
 		{
 			shs = HashString("cloth_default");
+		}
+				else if (shs == HashString("normal_terrain_wet"))
+		{
+			shs = HashString("default_terrain_wet");
 		}
 
 		rdr3::grmShaderFx* shader = new (false) rdr3::grmShaderFx;
@@ -711,7 +715,7 @@ rdr3::grmShaderGroup* convert(five::grmShaderGroup* shaderGroup)
 
 				if (pn == HashString("Specular"))
 				{
-					*(float*)(value.data()) /= 20.f;
+					*(float*)(value.data()) /= 40.f;
 				}
 
 				paramRefs.emplace_back(pn, value);
