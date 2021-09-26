@@ -47,7 +47,6 @@ context_rpc 'REMOVE_WEAPON_COMPONENT_FROM_PED'
 context_rpc 'SET_CURRENT_PED_WEAPON'
 context_rpc 'SET_PED_AMMO'
 
-
 -- TASK
 context_rpc 'TASK_REACT_AND_FLEE_PED'
 context_rpc 'TASK_SHOOT_AT_COORD'
