@@ -2,32 +2,6 @@
 local components = { }
 
 dependency = function(name)
-	-- find a matching component
-	--[[local cname
-
-	for _, c in ipairs(components) do
-		if c == name then
-			cname = c
-			break
-		else
-			local basename = c:gsub('(.+)-ny', '%1')
-
-			if basename == name then
-				cname = c
-				break
-			end
-		end
-	end
-
-	if not cname then
-		error("Component " .. name .. " seems unknown.")
-	end
-
-	includedirs { '../' .. name .. '/include/' }
-
-	links { name }]]
-
-	return
 end
 
 package.path = '?.lua'
@@ -57,6 +31,10 @@ component = function(name)
 		decoded = name
 
 		decoded.dummy = true
+	end
+
+	if _G.inPrivates then
+		decoded.private = true
 	end
 
 	-- check if the project name ends in a known game name, and if we should ignore it
@@ -226,13 +204,40 @@ local do_component = function(name, comp)
 	-- path stuff
 	local relPath = path.getrelative(path.getabsolute(''), comp.absPath)
 
-	-- set group depending on privateness
-	if comp.private then
-		group 'components/private'
-	else
-		group 'components'
+	-- set group depending on origin
+	local groupName = ''
+	local nonGameName = comp.name
+
+	-- prefix with a game name, if any
+	for _, gname in ipairs(gamenames) do
+		-- if it ends in the current game name...
+		if comp.name:ends(':' .. gname) then
+			groupName = '/' .. gname
+			nonGameName = comp.name:gsub(':' .. gname, '')
+			break
+		end
 	end
 
+	if groupName == '' then
+		groupName = '/common'
+	end
+
+	for val in nonGameName:gmatch('([^:]+):') do
+		groupName = groupName .. '/' .. val
+	end
+
+	-- hack: `net` breaks premake/.vs group generator
+	if comp.name == 'net' then
+		groupName = groupName .. '/net'
+	end
+
+	if comp.private then
+		groupName = '/private' .. groupName
+	end
+
+	group('components' .. groupName)
+
+	-- project itself
 	project(name)
 
 	language "C++"

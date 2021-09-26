@@ -830,6 +830,7 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 {
 	// create UI
 	UI_DoCreation();
+	CL_InitDownloadQueue();
 
 	// hash local files for those that *do* exist, add those that don't match to the download queue and add those that do match to be copied locally
 	std::set<std::string> referencedFiles; // remote URLs that we already requested

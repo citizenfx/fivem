@@ -93,24 +93,21 @@ void XBR_EarlySelect()
 	{
 		std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
 
-		if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
+		auto retainedBuild = GetPrivateProfileInt(L"Game", L"SavedBuildNumber", initialBuild, fpath.c_str());
+
+		// wcsstr is in case we have a `b1604` argument e.g. and we therefore want to ignore the saved build
+		if (retainedBuild != defaultBuild && !wcsstr(GetCommandLineW(), va(L"b%d", defaultBuild)))
 		{
-			auto retainedBuild = GetPrivateProfileInt(L"Game", L"SavedBuildNumber", initialBuild, fpath.c_str());
+			g_intendedBuild = retainedBuild;
 
-			// wcsstr is in case we have a `b1604` argument e.g. and we therefore want to ignore the saved build
-			if (retainedBuild != defaultBuild && !wcsstr(GetCommandLineW(), va(L"b%d", defaultBuild)))
-			{
-				g_intendedBuild = retainedBuild;
+			DisableToolHelpScope scope;
 
-				DisableToolHelpScope scope;
-
-				MH_Initialize();
-				MH_CreateHookApi(L"kernelbase.dll", "GetCommandLineW", GetCommandLineWStub<&g_origGetCommandLineWBase>, (void**)&g_origGetCommandLineWBase);
-				MH_CreateHookApi(L"kernel32.dll", "GetCommandLineW", GetCommandLineWStub<&g_origGetCommandLineW32>, (void**)&g_origGetCommandLineW32);
-				MH_CreateHookApi(L"kernelbase.dll", "GetCommandLineA", GetCommandLineAStub<&g_origGetCommandLineABase>, (void**)&g_origGetCommandLineABase);
-				MH_CreateHookApi(L"kernel32.dll", "GetCommandLineA", GetCommandLineAStub<&g_origGetCommandLineA32>, (void**)&g_origGetCommandLineA32);
-				MH_EnableHook(MH_ALL_HOOKS);
-			}
+			MH_Initialize();
+			MH_CreateHookApi(L"kernelbase.dll", "GetCommandLineW", GetCommandLineWStub<&g_origGetCommandLineWBase>, (void**)&g_origGetCommandLineWBase);
+			MH_CreateHookApi(L"kernel32.dll", "GetCommandLineW", GetCommandLineWStub<&g_origGetCommandLineW32>, (void**)&g_origGetCommandLineW32);
+			MH_CreateHookApi(L"kernelbase.dll", "GetCommandLineA", GetCommandLineAStub<&g_origGetCommandLineABase>, (void**)&g_origGetCommandLineABase);
+			MH_CreateHookApi(L"kernel32.dll", "GetCommandLineA", GetCommandLineAStub<&g_origGetCommandLineA32>, (void**)&g_origGetCommandLineA32);
+			MH_EnableHook(MH_ALL_HOOKS);
 		}
 	}
 }

@@ -426,18 +426,13 @@ result_t ScriptRuntimeHandler::GetInvokingRuntime(IScriptRuntime** runtime)
 		return FX_E_INVALIDARG;
 	}
 
-	// std::stack is bad, even more so as we're copying the entire stack
-	// TODO: redo since we're a deque now
-	auto copyStack = ms_runtimeStack;
-	copyStack.pop_front();
-
-	if (copyStack.empty())
+	if (ms_runtimeStack.size() <= 1)
 	{
 		*runtime = nullptr;
 	}
 	else
 	{
-		auto lastRuntime = copyStack.front();
+		auto lastRuntime = *(ms_runtimeStack.begin() + 1);
 		*runtime = lastRuntime;
 
 		// conventions state we should AddRef anything we return, so we will
