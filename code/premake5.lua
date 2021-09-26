@@ -152,19 +152,19 @@ workspace "CitizenMP"
 		configuration "game=five"
 			defines "GTA_FIVE"
 
-			filter 'language:C or language:C++'
+			filter 'language:C or language:C++ or language:C#'
 				architecture 'x64'
 	elseif _OPTIONS["game"] == "rdr3" then
 		configuration "game=rdr3"
 			defines "IS_RDR3"
 
-			filter 'language:C or language:C++'
+			filter 'language:C or language:C++ or language:C#'
 				architecture 'x64'
 	elseif _OPTIONS["game"] == "launcher" then
 		configuration "game=launcher"
 			defines "IS_LAUNCHER"
 
-			filter 'language:C or language:C++'
+			filter 'language:C or language:C++ or language:C#'
 				architecture 'x64'
 	end
 
