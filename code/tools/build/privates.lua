@@ -6,7 +6,9 @@ function private_repo(repoPath)
 	table.insert(private_repos, path.getabsolute(repoPath))
 
 	-- load component config
+	_G.inPrivates = true
 	dofile(repoPath .. '/components/config.lua')
+	_G.inPrivates = false
 end
 
 function all_private_repos()
