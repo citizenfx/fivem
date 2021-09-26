@@ -97,8 +97,15 @@
 
 			overflow: auto;
 
-			::ng-deep * {
-				user-select: text;
+			::ng-deep {
+				* {
+					user-select: text;
+				}
+
+				p {
+					margin-top: var(--qh);
+					margin-bottom: var(--qh);
+				}
 			}
 
 			&:not(:empty) {

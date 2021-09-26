@@ -13,7 +13,9 @@ import * as markdownIt from 'markdown-it';
 const ipRegex = Array(4).fill('(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)').join('\\.');
 const serverAddressRegex = new RegExp(String.raw`\b${ipRegex}(\s+port\s+|:)\d+\b`, 'g');
 
-const md = markdownIt();
+const md = markdownIt({
+	breaks: true
+});
 
 interface ExtraAction {
 	title: string;
