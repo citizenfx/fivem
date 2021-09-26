@@ -353,4 +353,11 @@ static HookFunction hookFunction([]()
 		hook::put<int32_t>(location, (char*)mnbvhList - location + 4);
 		hook::put<int32_t>(location + 8, 4004);
 	}
+	
+	{
+		// fix R* bug causing CEntityDef tint values to not work in interiors
+		auto location = hook::get_pattern<char>("81 A3 ? ? ? ? 03 FF FF FF 0F B6");
+		hook::nop(location, 10);
+		hook::nop(location + 33, 6);
+	}
 });
