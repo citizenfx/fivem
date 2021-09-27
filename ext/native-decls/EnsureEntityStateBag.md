@@ -1,6 +1,6 @@
 ---
 ns: CFX
-apiset: server
+apiset: shared
 ---
 ## ENSURE_ENTITY_STATE_BAG
 

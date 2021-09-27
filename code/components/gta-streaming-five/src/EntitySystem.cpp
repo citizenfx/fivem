@@ -8,9 +8,19 @@ static hook::cdecl_stub<fwEntity* (int handle)> getScriptEntity([]()
 	return hook::pattern("44 8B C1 49 8B 41 08 41 C1 F8 08 41 38 0C 00").count(1).get(0).get<void>(-12);
 });
 
+static hook::cdecl_stub<uint32_t(fwEntity*)> getScriptGuidForEntity([]()
+{
+	return hook::get_pattern("48 F7 F9 49 8B 48 08 48 63 D0 C1 E0 08 0F B6 1C 11 03 D8", -0x68);
+});
+
 fwEntity* rage::fwScriptGuid::GetBaseFromGuid(int handle)
 {
 	return getScriptEntity(handle);
+}
+
+int rage::fwScriptGuid::GetGuidFromBase(rage::fwEntity* base)
+{
+	return int(getScriptGuidForEntity(base));
 }
 
 static hook::cdecl_stub<void* (fwExtensionList*, uint32_t)> getExtension([]()

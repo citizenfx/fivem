@@ -33,5 +33,31 @@ static InitFunction initFunction([]
 		*/
 		rec->QueueEvent2("gameEventTriggered", {}, std::string(data.name), argTable);
 	});
+
+	OnEntityDamaged.Connect([](const DamageEventMetaData& data)
+	{
+		auto resman = Instance<fx::ResourceManager>::Get();
+
+		auto rec = resman->GetComponent<fx::ResourceEventManagerComponent>();
+
+		/*NETEV entityDamaged CLIENT
+		/#*
+		 * An event that is triggered when an entity is *locally* damaged.
+		 *
+		 * @param victim - The entity which is damaged, or 0 if none.
+		 * @param culprit - The damaging entity, or 0 if none.
+		 * @param weapon - The hash of the weapon inflicting damage.
+		 * @param baseDamage - The base amount of damage inflicted, discounting any modifiers.
+		 #/
+		declare function entityDamaged(victim: number, culprit: number, weapon: number, baseDamage: number): void;
+		*/
+		rec->QueueEvent2(
+			"entityDamaged",
+			{},
+			data.victim ? rage::fwScriptGuid::GetGuidFromBase(data.victim) : 0,
+			data.culprit ? rage::fwScriptGuid::GetGuidFromBase(data.culprit) : 0,
+			int64_t(int(data.weapon)),
+			data.baseDamage);
+	});
 });
 #endif
