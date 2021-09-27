@@ -92,6 +92,49 @@ static void OnEntityTakeDmg(rage::netObject* thisptr, void* dmgInfo, uint8_t unk
 	return origOnEntityTakeDmg(thisptr, dmgInfo, unk);
 }
 
+#if 0
+struct Damage
+{
+	rage::fwEntity* culprit;
+	float baseDamage;
+	uint32_t weapon;
+
+	// more fields follow
+};
+
+static bool (*origDamageProcess)(Damage* damage, rage::fwEntity* victim, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t a6);
+
+bool DamageProcess(Damage* damage, rage::fwEntity* victim, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t a6)
+{
+	bool rv = origDamageProcess(damage, victim, a3, a4, a5, a6);
+
+	DamageEventMetaData md;
+	md.baseDamage = damage->baseDamage;
+	md.victim = victim;
+	md.culprit = damage->culprit;
+	md.weapon = damage->weapon;
+
+	OnEntityDamaged(md);
+
+	return rv;
+}
+#endif
+
+static void (*origEntityLogDamage)(void* victim, void* culprit, uint32_t weapon, uint32_t time, bool a5);
+
+static void EntityLogDamage(rage::fwEntity* victim, rage::fwEntity* culprit, uint32_t weapon, uint32_t time, bool a5)
+{
+	origEntityLogDamage(victim, culprit, weapon, time, a5);
+
+	DamageEventMetaData md;
+	md.baseDamage = 0.0f;
+	md.victim = victim;
+	md.culprit = culprit;
+	md.weapon = weapon;
+
+	OnEntityDamaged(md);
+}
+
 static HookFunction hookFunction([]()
 {
 	MH_Initialize();
@@ -122,6 +165,19 @@ static HookFunction hookFunction([]()
 		MH_CreateHook((LPVOID)cNetObjPhys_vtable[127], OnEntityTakeDmg, (void**)&origOnEntityTakeDmg);
 	}
 
+	MH_CreateHook(hook::get_pattern("21 4D D8 21 4D DC 41 8B D8", -0x1F), EntityLogDamage, (void**)&origEntityLogDamage);
+
+	/* // ped damage specific
+	if (xbr::IsGameBuildOrGreater<2060>())
+	{
+		MH_CreateHook(hook::get_pattern("41 8A 40 08 84 C1", -0x56), DamageProcess, (void**)&origDamageProcess);
+	}
+	else
+	{
+		MH_CreateHook(hook::get_pattern("41 80 60 09 FC 24 40", -0x5D), DamageProcess, (void**)&origDamageProcess);
+	}
+	*/
+
 	MH_EnableHook(MH_ALL_HOOKS);
 
 	/*
@@ -142,3 +198,4 @@ static HookFunction hookFunction([]()
 });
 
 fwEvent<const GameEventMetaData&> OnTriggerGameEvent;
+fwEvent<const DamageEventMetaData&> OnEntityDamaged;

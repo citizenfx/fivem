@@ -39,6 +39,8 @@ namespace rage
 	{
 	public:
 		static fwEntity* GetBaseFromGuid(int handle);
+
+		static int GetGuidFromBase(fwEntity* base);
 	};
 
 	using fwEntity = ::fwEntity;
@@ -700,6 +702,16 @@ struct GameEventMetaData
 };
 
 STREAMING_EXPORT extern fwEvent<const GameEventMetaData&> OnTriggerGameEvent;
+
+struct DamageEventMetaData
+{
+	rage::fwEntity* victim;
+	rage::fwEntity* culprit;
+	float baseDamage;
+	uint32_t weapon;
+};
+
+STREAMING_EXPORT extern fwEvent<const DamageEventMetaData&> OnEntityDamaged;
 
 class CMapData;
 
