@@ -598,10 +598,19 @@ const EXT_LOCALFUNCREF = 11;
 
 	global.GlobalState = NewStateBag('global');
 
+	function getEntityStateBagId(entityGuid) {
+		if (isDuplicityVersion || NetworkGetEntityIsNetworked(entityGuid)) {
+			return `entity:${NetworkGetNetworkIdFromEntity(entityGuid)}`;
+		} else {
+			EnsureEntityStateBag(entityGuid);
+			return `localEntity:${entityGuid}`;
+		}
+	}
+
 	const entityTM = {
 		get(t, k) {
 			if (k === 'state') {
-				const es = `entity:${NetworkGetNetworkIdFromEntity(t.__data)}`;
+				const es = getEntityStateBagId(t.__data);
 
 				if (isDuplicityVersion) {
 					EnsureEntityStateBag(t.__data);

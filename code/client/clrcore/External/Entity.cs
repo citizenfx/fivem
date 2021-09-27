@@ -1234,6 +1234,13 @@ namespace CitizenFX.Core
 		{
 			get
 			{
+				if (!API.NetworkGetEntityIsNetworked(Handle))
+				{
+					API.EnsureEntityStateBag(Handle);
+
+					return new StateBag($"localEntity:{Handle}");
+				}
+
 				return new StateBag("entity:" + NetworkId);
 			}
 		}
