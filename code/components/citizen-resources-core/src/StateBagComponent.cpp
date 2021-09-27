@@ -85,7 +85,7 @@ public:
 	virtual ~StateBagImpl() override;
 
 	virtual std::optional<std::string> GetKey(std::string_view key) override;
-	virtual void SetKey(std::string_view key, std::string_view data, bool replicated = true) override;
+	virtual void SetKey(int source, std::string_view key, std::string_view data, bool replicated = true) override;
 	virtual void SetRoutingTargets(const std::set<int>& peers) override;
 
 	virtual void AddRoutingTarget(int peer) override;
@@ -137,8 +137,29 @@ std::optional<std::string> StateBagImpl::GetKey(std::string_view key)
 	return {};
 }
 
-void StateBagImpl::SetKey(std::string_view key, std::string_view data, bool replicated /* = true */)
+void StateBagImpl::SetKey(int source, std::string_view key, std::string_view data, bool replicated /* = true */)
 {
+	const auto& sbce = m_parent->OnStateBagChange;
+
+	if (sbce)
+	{
+		msgpack::unpacked up;
+
+		try
+		{
+			up = msgpack::unpack(data.data(), data.size());
+		}
+		catch (...)
+		{
+			return;
+		}
+
+		if (!sbce(source, m_id, key, up.get(), replicated))
+		{
+			return;
+		}
+	}
+
 	std::string lastValue;
 
 	{
@@ -505,6 +526,7 @@ void StateBagComponentImpl::HandlePacket(int source, std::string_view dataRaw)
 		}
 
 		bagRef->SetKey(
+			source,
 			std::string_view{ keyBuffer.data(), keyBuffer.size() },
 			std::string_view{ reinterpret_cast<char*>(data.data()), data.size() },
 			m_role == StateBagRole::Server);

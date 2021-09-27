@@ -5,6 +5,8 @@
 #include <optional>
 #include <string_view>
 
+#include <msgpack.hpp>
+
 #ifdef COMPILING_CITIZEN_RESOURCES_CORE
 #define CRC_EXPORT DLL_EXPORT
 #else
@@ -53,7 +55,7 @@ public:
 	//
 	// Sets data for a key.
 	//
-	virtual void SetKey(std::string_view key, std::string_view data, bool replicated = true) = 0;
+	virtual void SetKey(int source, std::string_view key, std::string_view data, bool replicated = true) = 0;
 
 	//
 	// Sets the owning peer ID.
@@ -111,6 +113,11 @@ public:
 	// Marks a given prefix as 'safe to pre-create'.
 	//
 	virtual void AddSafePreCreatePrefix(std::string_view idPrefix) = 0;
+
+	//
+	// An event handling a state bag value change.
+	//
+	fwEvent<int, std::string_view, std::string_view, const msgpack::object&, bool> OnStateBagChange;
 
 public:
 	static fwRefContainer<StateBagComponent> Create(StateBagRole role);

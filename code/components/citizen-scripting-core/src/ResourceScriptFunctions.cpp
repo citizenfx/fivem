@@ -16,8 +16,12 @@
 
 #include <ScriptSerialization.h>
 
+#include <ResourceCallbackComponent.h>
+
 #include <CoreConsole.h>
 #include <se/Security.h>
+
+#include <SharedFunction.h>
 
 struct CommandObject
 {
@@ -325,12 +329,70 @@ static InitFunction initFunction([] ()
 
 		if (auto bag = sbac->GetStateBag(bagName); bag)
 		{
-			bag->SetKey(keyName, std::string_view{ keyValue, keySize }, replicated);
+			bag->SetKey(0, keyName, std::string_view{ keyValue, keySize }, replicated);
 			context.SetResult(true);
 
 			return;
 		}
 
 		context.SetResult(false);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("ADD_STATE_BAG_CHANGE_HANDLER", [](fx::ScriptContext& context)
+	{
+		fx::OMPtr<IScriptRuntime> runtime;
+
+		static std::map<std::string, std::string> outerRefs;
+
+		if (!FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+		{
+			return;
+		}
+
+		fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
+
+		if (!resource)
+		{
+			return;
+		}
+
+		auto keyName = context.GetArgument<const char*>(0);
+		auto bagName = context.GetArgument<const char*>(1);
+
+		std::string keyNameRef = (keyName) ? keyName : "";
+		std::string bagNameRef = (bagName) ? bagName : "";
+		auto cbRef = fx::FunctionRef{ context.CheckArgument<const char*>(2) };
+
+		auto rm = fx::ResourceManager::GetCurrent();
+		auto sbac = rm->GetComponent<fx::StateBagComponent>();
+
+		auto cookie = sbac->OnStateBagChange.Connect(make_shared_function([rm, keyNameRef, bagNameRef, cbRef = std::move(cbRef)](int source, std::string_view bagName, std::string_view key, const msgpack::object& value, bool replicated)
+		{
+			if (keyNameRef.empty() || key == keyNameRef)
+			{
+				if (bagNameRef.empty() || bagName == bagNameRef)
+				{
+					rm->CallReference<void>(cbRef.GetRef(), std::string{ bagName }, std::string{ key }, value, source, replicated);
+				}
+			}
+
+			return true;
+		}));
+
+		resource->OnStop.Connect([sbac, cookie]()
+		{
+			sbac->OnStateBagChange.Disconnect(cookie);
+		});
+
+		context.SetResult(cookie);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("REMOVE_STATE_BAG_CHANGE_HANDLER", [](fx::ScriptContext& context)
+	{
+		auto cookie = context.GetArgument<int>(0);
+		auto rm = fx::ResourceManager::GetCurrent();
+		auto sbac = rm->GetComponent<fx::StateBagComponent>();
+
+		sbac->OnStateBagChange.Disconnect(size_t(cookie));
 	});
 });
