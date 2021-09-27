@@ -10,6 +10,8 @@
 #include <rapidjson/writer.h>
 
 #include <SharedFunction.h>
+#include <UvLoopManager.h>
+
 #include <MonoThreadAttachment.h>
 
 namespace fx
@@ -17,12 +19,58 @@ namespace fx
 ClientDeferral::ClientDeferral(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client)
 	: m_client(client), m_instance(instance), m_completed(false)
 {
-
 }
 
 ClientDeferral::~ClientDeferral()
 {
-	
+	if (auto loop = std::move(m_loop); loop.GetRef())
+	{
+		if (auto kat = std::move(m_keepAliveTimer))
+		{
+			loop->EnqueueCallback([kat]()
+			{
+				kat->clear();
+				kat->once<uvw::CloseEvent>([kat](const uvw::CloseEvent&, uvw::TimerHandle& h)
+				{
+					(void)kat;
+				});
+
+				kat->close();
+			});
+		}
+	}
+}
+
+void ClientDeferral::StartTimer()
+{
+	using namespace std::chrono_literals;
+
+	auto loop = Instance<net::UvLoopManager>::Get()->GetOrCreate("svMain");
+	m_loop = loop;
+
+	auto thisRef = weak_from_this();
+
+	loop->EnqueueCallback([thisRef]()
+	{
+		if (auto self = thisRef.lock())
+		{
+			self->StartTimerOnLoopThread();
+		}
+	});
+}
+
+void ClientDeferral::StartTimerOnLoopThread()
+{
+	m_keepAliveTimer = m_loop->Get()->resource<uvw::TimerHandle>();
+	m_keepAliveTimer->on<uvw::TimerEvent>([this](const uvw::TimerEvent&, uvw::TimerHandle& h)
+	{
+		if (const auto& cb = m_messageCallback)
+		{
+			cb("");
+		}
+	});
+
+	m_keepAliveTimer->start(1000ms, 1000ms);
 }
 
 bool ClientDeferral::IsDeferred()
@@ -119,16 +167,9 @@ TCallbackMap ClientDeferral::GetCallbacks()
 	{
 		return [ref, cb](const msgpack::unpacked& unpacked)
 		{
-			auto& deferral = ref->deferral;
+			auto defRef = ref->deferral.lock();
 
-			if (deferral.expired())
-			{
-				return;
-			}
-
-			auto defRef = deferral.lock();
-
-			if (defRef->m_completed)
+			if (!defRef || defRef->m_completed)
 			{
 				return;
 			}
@@ -159,6 +200,8 @@ TCallbackMap ClientDeferral::GetCallbacks()
 		self->m_deferralStates[deferralKey] = std::move(ds);
 
 		self->UpdateDeferrals();
+
+		self->StartTimer();
 	}));
 
 	cbs["update"] = cbComponent->CreateCallback(createDeferralCallback([](const std::shared_ptr<ClientDeferral>& self, const std::string& deferralKey, const msgpack::unpacked& unpacked)
