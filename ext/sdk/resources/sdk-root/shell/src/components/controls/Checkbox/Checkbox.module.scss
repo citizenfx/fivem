@@ -20,27 +20,27 @@
     width: $q*3;
     height: $q*3;
 
-    margin: $q/2;
+    margin: $q*0.5;
     margin-top: $q; // Compensating for line height
 
-    border: solid $q/2 transparent;
-    box-shadow: 0 0 0 $q/2 rgba($fgColor, .75), 0 0 0 0 rgba($fgColor, .75) inset;
+    border: solid $q*0.5 transparent;
+    box-shadow: 0 0 0 $q*0.5 rgba($fgColor, .75), 0 0 0 0 rgba($fgColor, .75) inset;
 
     transition: box-shadow .2s ease, border .2s ease;
   }
 
   input:checked + .indicator {
-    box-shadow: 0 0 0 $q/2 rgba($fgColor, .75), 0 0 0 $q*4 rgba($fgColor, .75) inset;
+    box-shadow: 0 0 0 $q*0.5 rgba($fgColor, .75), 0 0 0 $q*4 rgba($fgColor, .75) inset;
   }
 
   &:hover {
     .indicator {
-      box-shadow: 0 0 0 $q/2 $acColor, 0 0 0 0 rgba($fgColor, .75) inset;
+      box-shadow: 0 0 0 $q*0.5 $acColor, 0 0 0 0 rgba($fgColor, .75) inset;
       transition: none;
     }
 
     input:checked + .indicator {
-      box-shadow: 0 0 0 $q/2 $acColor, 0 0 0 $q*4 rgba($fgColor, .75) inset;
+      box-shadow: 0 0 0 $q*0.5 $acColor, 0 0 0 $q*4 rgba($fgColor, .75) inset;
       transition: none;
     }
   }

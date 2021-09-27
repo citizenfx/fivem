@@ -44,7 +44,7 @@ popd
 pushd %FXDKTheia%
 if exist build rmdir /s /q build
 set NODE_OPTIONS=--max_old_space_size=4096
-call yarn install --frozen-lockfile --ignore-scripts
+call yarn install --frozen-lockfile --ignore-scripts --ignore-engines
 call yarn build
 xcopy /y /e fxdk-app\lib\*.* 	    build\lib\
 xcopy /y    fxdk-app\backend.js     build\
@@ -53,7 +53,7 @@ xcopy /y    yarn.lock               build\
 echo F|xcopy /y    fxdk-app\backend-package.json build\package.json
 echo F|xcopy /y    build.yarnclean               build\.yarnclean
 
-call yarn --cwd build install --frozen-lockfile --production
+call yarn --cwd build install --frozen-lockfile --production --ignore-engines
 
 :: copy these as they have backend parts, other exts will end up bundled in theia frontend
 xcopy /y /e node_modules\fxdk-project\lib\*.*       build\node_modules\fxdk-project\lib\

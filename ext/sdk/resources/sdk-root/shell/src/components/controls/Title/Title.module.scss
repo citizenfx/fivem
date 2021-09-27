@@ -1,3 +1,5 @@
+@use "sass:math";
+
 @import 'variables';
 
 .wrapper {
@@ -78,7 +80,7 @@
   .root {
     flex-shrink: 0;
 
-    padding: $q/1.5 $q;
+    padding: math.div($q, 1.5) $q;
 
     font-size: $fs08;
     font-weight: 400;

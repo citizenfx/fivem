@@ -7,13 +7,12 @@
   "private": true,
   "scripts": {
     "install:shell": "yarn --cwd resources/sdk-root/shell install --pure-lockfile",
-    "install:theia": "yarn --cwd resources/sdk-root/personality-theia install --pure-lockfile",
+    "install:theia": "yarn --cwd resources/sdk-root/personality-theia install --pure-lockfile --ignore-engines",
     "install:game": "yarn --cwd resources/sdk-game install --pure-lockfile",
     "postinstall": "yarn run install:shell && yarn run install:theia && yarn run install:game",
     "start:shell": "yarn --cwd resources/sdk-root/shell run start",
     "start:game": "yarn --cwd resources/sdk-game run start",
-    "start": "concurrently --names \"shell,sdk-game\" \"yarn run start:shell --norebuild\" \"yarn run start:game\"",
-    "we:build-archetypes": "node resources/sdk-root/shell/scripts/build-archetypes"
+    "start": "concurrently --names \"shell,sdk-game\" \"yarn run start:shell\" \"yarn run start:game\""
   },
   "devDependencies": {
     "concurrently": "^5.3.0"

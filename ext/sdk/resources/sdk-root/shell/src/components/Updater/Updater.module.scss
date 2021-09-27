@@ -22,7 +22,7 @@
     background-color: rgba($bgColor, .5);
 
     .content {
-      box-shadow: 0 0 0 $q/2 $borderColor;
+      box-shadow: 0 0 0 $q*0.5 $borderColor;
 
       .title ul {
         animation: none;

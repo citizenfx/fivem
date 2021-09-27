@@ -1,4 +1,5 @@
 import ReconnectingWebScoket from 'reconnectingwebsocket';
+import { apiHost } from './apiHost';
 import { getScopedEventName } from './apiScope';
 import { enableLogger, errorLog, logger, rootLogger } from './logger';
 import { fastRandomId } from './random';
@@ -25,7 +26,7 @@ let pendingMessages: string[] = [];
 let connected = false;
 const backlog: { [type: string]: any[] } = {};
 
-const ws = new ReconnectingWebScoket('ws://localhost:35419/api');
+const ws = new ReconnectingWebScoket(`ws://${apiHost.host}:${apiHost.port}/api`);
 const wsSendOptions = {
   binary: true,
   compress: true,
