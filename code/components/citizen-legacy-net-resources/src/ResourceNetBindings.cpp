@@ -56,6 +56,7 @@ static bool IsBlockedResource(const std::string& resourceName, std::string* why)
 	return false;
 }
 
+static tbb::concurrent_queue<std::function<void()>> executeNextGameFrame;
 static NetAddress g_netAddress;
 
 static std::mutex g_resourceStartRequestMutex;
@@ -118,7 +119,25 @@ static pplx::task<std::vector<ResultTuple>> DownloadResources(std::vector<std::s
 
 			if (oldResource.GetRef())
 			{
-				manager->RemoveResource(oldResource);
+				// removing resources should happen on the main thread to prevent deadlocks in odd ScRTs
+				static auto icgi = Instance<ICoreGameInit>::Get();
+				if (icgi->GetGameLoaded())
+				{
+					pplx::task_completion_event<void> tce;
+
+					executeNextGameFrame.push([tce, manager, oldResource]()
+					{
+						manager->RemoveResource(oldResource);
+
+						tce.set();
+					});
+
+					co_await pplx::task<void>{ tce };
+				}
+				else
+				{
+					manager->RemoveResource(oldResource);
+				}
 			}
 		}
 
@@ -174,8 +193,6 @@ static InitFunction initFunction([] ()
 	NetLibrary::OnNetLibraryCreate.Connect([] (NetLibrary* netLibrary)
 	{
 		g_netLibrary = netLibrary;
-
-		static tbb::concurrent_queue<std::function<void()>> executeNextGameFrame;
 
 		auto urlEncodeWrap = [](const std::string& base, const std::string& str)
 		{
