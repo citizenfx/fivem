@@ -435,6 +435,35 @@ Citizen.SetTickRoutine(function(tickTime, profilerEnabled)
 	end
 end)
 
+Citizen.SetInterval = setmetatable({currentId = 0}, {
+	__call = function(self, callback, timer)
+		local di = debug_getinfo(callback, 'S')
+		local id = self.currentId + 1
+		self.currentId = id
+		self[id] = timer or 0
+		SLQ_AppendTail(thread_queue[1 --[[SLQ_T_NEW]]], thread_createRecord(function()
+			repeat
+				local interval = self[id]
+				coroutine_yield(curTime + interval)
+				callback(interval)
+			until interval == -1
+			self[id] = nil
+		end, ('interval [%s[%s]]'):format(di.short_src, id)))
+		hadThread = true
+		return id
+	end
+})
+
+SetInterval = Citizen.SetInterval
+
+function Citizen.ClearInterval(id)
+	if Citizen.SetInterval[id] then
+		Citizen.SetInterval[id] = -1
+	end
+end
+
+ClearInterval = Citizen.ClearInterval
+
 --[[
 
 	Event handling
