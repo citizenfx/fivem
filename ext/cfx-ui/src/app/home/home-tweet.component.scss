@@ -102,6 +102,7 @@
 
 .image-zoom {
 	opacity: 0;
+	display: none;
 	pointer-events: none;
 
 	position: fixed;
@@ -110,7 +111,6 @@
 	right: 0;
 	bottom: 0;
 
-	display: flex;
 	align-items: center;
 	justify-content: center;
 
@@ -145,6 +145,7 @@
 	}
 
 	&.active {
+		display: flex;
 		opacity: 1;
 		pointer-events: all;
 

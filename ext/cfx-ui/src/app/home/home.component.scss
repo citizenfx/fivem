@@ -257,23 +257,48 @@
 
 			.card {
 				@include borderedPane;
-				@include patternBackground;
-
-				@keyframes bganim {
-					0% {
-						background-position: 0px 0px;
-					}
-					50% {
-						background-position: 500px -500px;
-					}
-					100% {
-						background-position: 1000px -1000px;
-					}
-				}
-				animation: bganim 40s linear 0s infinite;
 
 				@include theme() using ($theme) {
 					box-shadow: 0 0 0 2px rgba(gtv($theme, accentColor1), .5) inset;
+				}
+
+				display: flex;
+				flex-direction: column;
+				position: relative;
+				overflow: hidden;
+
+				.bg {
+					@include patternBackground;
+
+					@keyframes bganim {
+						0% {
+							transform: translate(0px, 0px);
+						}
+						50% {
+							transform: translate(500px, -500px);
+						}
+						100% {
+							transform: translate(1000px, -1000px);
+						}
+					}
+
+					will-change: transform, background-position;
+
+					animation: bganim 40s linear 0s infinite;
+					position: absolute;
+					top: 0px;
+					left: -1000px;
+					right: 0px;
+					bottom: -1000px;
+				}
+
+				.content {
+					z-index: 10;
+					flex-grow: 1;
+
+					display: flex;
+					flex-direction: column;
+					justify-content: space-between;
 				}
 
 				&:hover, &:focus {
