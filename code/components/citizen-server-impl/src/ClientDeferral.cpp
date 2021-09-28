@@ -61,12 +61,17 @@ void ClientDeferral::StartTimer()
 
 void ClientDeferral::StartTimerOnLoopThread()
 {
+	auto thisWeak = weak_from_this();
+
 	m_keepAliveTimer = m_loop->Get()->resource<uvw::TimerHandle>();
-	m_keepAliveTimer->on<uvw::TimerEvent>([this](const uvw::TimerEvent&, uvw::TimerHandle& h)
+	m_keepAliveTimer->on<uvw::TimerEvent>([thisWeak](const uvw::TimerEvent&, uvw::TimerHandle& h)
 	{
-		if (const auto& cb = m_messageCallback)
+		if (auto self = thisWeak.lock())
 		{
-			cb("");
+			if (auto cb = self->m_messageCallback)
+			{
+				cb("");
+			}
 		}
 	});
 
