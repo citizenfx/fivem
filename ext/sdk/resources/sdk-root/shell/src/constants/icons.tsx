@@ -24,7 +24,9 @@ import {
   BsMap,
   BsBoxArrowInDownRight,
   BsCheckBox,
-  BsSquare
+  BsSquare,
+  BsInfo,
+  BsInfoCircle
 } from 'react-icons/bs';
 import { VscSettingsGear } from 'react-icons/vsc';
 
@@ -72,3 +74,5 @@ export const fxworldIcon = <BiWorld />;
 
 export const checkedIcon = <BsCheckBox />;
 export const uncheckedIcon = <BsSquare />;
+
+export const infoIcon = <BsInfoCircle />;

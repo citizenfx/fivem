@@ -3,8 +3,9 @@ const MODEL_LOADING = -1;
 
 const DATA_MODEL = 0;
 const DATA_MATRIX = 1;
-const DATA_LABEL = 2;
-const DATA_ROT = 3;
+const DATA_ROT = 2;
+const DATA_EVCREATED = 3;
+const DATA_EVDELETED = 4;
 
 const RAD_TO_DEG = 180 / Math.PI;
 
@@ -37,7 +38,9 @@ setTick(() => {
       if (handle > MODEL_LOADING) {
         DeleteObject(handle);
 
-        emit(additionDeletedEventName, data[DATA_LABEL]);
+        if (data[DATA_EVDELETED]) {
+          emit(data[DATA_EVDELETED], handle);
+        }
       }
 
       delete objects[i];
@@ -58,7 +61,9 @@ setTick(() => {
 
         applyAdditionMatrix(handle, mat, data[DATA_ROT]);
 
-        emit(additionCreatedEventName, data[DATA_LABEL], handle, data[DATA_MODEL], data[DATA_MATRIX]);
+        if (data[DATA_EVCREATED]) {
+          emit(data[DATA_EVCREATED], handle);
+        }
       }
     }
   }

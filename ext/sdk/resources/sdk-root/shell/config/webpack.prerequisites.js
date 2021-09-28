@@ -73,6 +73,10 @@ module.exports = {
       /No instantiations of threads\.js workers found/, // temp hack, tho workers are working fine with hacked loader in ArchetypesState.ts
     ],
     performance: false,
+    stats: {
+      assets: false,
+      modules: false,
+    },
     resolve: {
       alias: fs.readdirSync(paths.src).reduce((acc, file) => {
         acc[file] = path.join(paths.src, file);
