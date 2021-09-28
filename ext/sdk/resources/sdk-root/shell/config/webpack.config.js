@@ -3,9 +3,12 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const webpack = require('webpack');
+const NotifierPlugin = require('./notifier-plugin');
 
 module.exports = (env, args) => {
   const isProd = prerequisites.isProd(env, args);
+
+  const notifierPlugin = !isProd && (NotifierPlugin.init(), new NotifierPlugin());
 
   return {
     mode: prerequisites.getMode(env, args),
@@ -104,6 +107,9 @@ module.exports = (env, args) => {
       }),
       new HtmlWebpackPlugin({
         template: prerequisites.publicPath('index.html'),
+        templateParameters: {
+          notifierPlugin: notifierPlugin?.client || '',
+        },
       }),
       isProd && new MiniCssExtractPlugin({
         filename: 'static/css/[name].css',
@@ -112,6 +118,7 @@ module.exports = (env, args) => {
       new webpack.ProvidePlugin({
         Buffer: ['buffer', 'Buffer'],
       }),
+      !isProd && notifierPlugin,
     ].filter(Boolean),
 
     ...prerequisites.common,
