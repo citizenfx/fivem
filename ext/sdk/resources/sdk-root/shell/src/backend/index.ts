@@ -39,7 +39,7 @@ import { bindGithub } from './github/github-bindings';
 import { bindGit } from './git/git-bindings';
 import { bindWorldEditor } from './world-editor/world-editor-bindings';
 import { bindSystemResources } from './system-resources/system-resources-bindings';
-
+console.log(process.versions);
 const appContainer = new Container();
 
 const configService = new ConfigService();

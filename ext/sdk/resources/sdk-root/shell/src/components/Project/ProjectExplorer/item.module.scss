@@ -107,9 +107,9 @@
       justify-content: center;
 
       margin-left: $q;
-      padding: $q/2 $q;
+      padding: $q*0.5 $q;
 
-      border-radius: $q/2;
+      border-radius: $q*0.5;
 
       --status-entry-color: #{rgba($fgColor, .25)};
 

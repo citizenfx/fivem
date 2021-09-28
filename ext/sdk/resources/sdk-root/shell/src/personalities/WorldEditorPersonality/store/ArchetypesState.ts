@@ -3,7 +3,7 @@ import { GameState } from "store/GameState";
 import { spawn, Worker, Pool } from 'threads';
 
 function spawnPool() {
-  return Pool(() => spawn(new Worker('../archetypes-worker.ts')), 3);
+  return Pool(() => spawn(new Worker('/static/js/archetypes-worker.js')), 3);
 }
 
 let pool = spawnPool();

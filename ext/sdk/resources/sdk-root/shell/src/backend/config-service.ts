@@ -1,5 +1,6 @@
 import { injectable } from "inversify";
 import path from 'path';
+import { URL } from 'url';
 
 if (!process.env.LOCALAPPDATA) {
   console.error('No LOCALAPPDATA env variable');
@@ -56,11 +57,11 @@ export class ConfigService {
       throw new Error('No LOCALAPPDATA in env variables');
     }
 
-    this.shellBackendPort = 35419;
-    this.theiaBackendPort = 35420;
-
     this.sdkUrl = GetConvar('sdk_url');
     this.selfHosted = this.sdkUrl === 'http://localhost:35419/';
+
+    this.shellBackendPort = parseInt(new URL(this.sdkUrl).port, 10) || 80;
+    this.theiaBackendPort = this.shellBackendPort + 1;
 
     this.realCwd = process.cwd();
     this.citizen = path.normalize(GetConvar('citizen_path'));

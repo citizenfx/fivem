@@ -269,7 +269,7 @@ input[type=range]::-webkit-slider-thumb {
   height: $q*2;
   width: $q*5;
 
-  margin-top: -$q/2;
+  margin-top: -$q*0.5;
 
   border: none;
 

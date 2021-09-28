@@ -9,7 +9,7 @@
 
   padding: $q*2;
 
-  box-shadow: 0 0 0 $q/2 transparent inset;
+  box-shadow: 0 0 0 $q*0.5 transparent inset;
   transition: all .2s ease;
 
   user-select: none;
@@ -59,14 +59,14 @@
 
   &.checked,
   &.checked:hover {
-    box-shadow: 0 0 0 $q/2 $acColor inset;
+    box-shadow: 0 0 0 $q*0.5 $acColor inset;
     transition: none;
 
     max-height: fit-content;
   }
 
   &:hover {
-    box-shadow: 0 0 0 $q/2 rgba($fgColor, .5) inset;
+    box-shadow: 0 0 0 $q*0.5 rgba($fgColor, .5) inset;
     transition: none;
   }
 

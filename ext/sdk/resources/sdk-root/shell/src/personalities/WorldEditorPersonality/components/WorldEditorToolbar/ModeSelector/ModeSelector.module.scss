@@ -104,8 +104,8 @@
 .coords {
   position: relative;
 
-  width: $weToolbarHeight/2;
-  height: $weToolbarHeight/2;
+  width: $weToolbarHeight*0.5;
+  height: $weToolbarHeight*0.5;
 
   &.global {
     display: block;

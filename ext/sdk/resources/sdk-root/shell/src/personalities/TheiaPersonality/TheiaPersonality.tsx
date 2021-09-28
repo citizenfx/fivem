@@ -6,12 +6,13 @@ import { ToolbarState } from 'store/ToolbarState';
 import { observer } from 'mobx-react-lite';
 import { ProjectState } from 'store/ProjectState';
 import { TheiaState } from './TheiaState';
+import { apiHost } from 'utils/apiHost';
 import s from './TheiaPersonality.module.scss';
 
 
 const address = {
-  hostname: window.location.hostname,
-  port: parseInt(window.location.port, 10) + 1,
+  hostname: apiHost.host,
+  port: apiHost.port + 1,
 };
 
 export const TheiaPersonality = observer(function TheiaPersonality() {
