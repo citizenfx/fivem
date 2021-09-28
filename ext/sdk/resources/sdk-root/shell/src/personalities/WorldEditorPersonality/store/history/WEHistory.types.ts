@@ -1,4 +1,4 @@
-import { WEMapAdditionGroup, WEMapAdditionGroupDefinition, WEMapPatchId } from "backend/world-editor/world-editor-types";
+import { WEMapAdditionGroup, WEMapAdditionGroupDefinition } from "backend/world-editor/world-editor-types";
 
 export enum HistoryOp {
   PATCH_CREATED,

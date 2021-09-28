@@ -1,7 +1,12 @@
 @import '../../../vars.scss';
 
 .root {
+  display: flex;
+  flex-direction: column;
+
   width: $wePanelWidth;
+
+  height: auto;
   max-height: $wePanelHeight;
 
   overflow-y: auto;
@@ -18,9 +23,8 @@
 
     height: var(--height);
 
-    margin-bottom: $q;
-
     background-color: rgba($bgColor, .5);
+    border-bottom: solid 1px rgba($fgColor, .1);
 
     .icon {
       flex-shrink: 0;
@@ -29,10 +33,11 @@
       align-items: center;
       justify-content: center;
 
-      padding: $q*1.5 $q;
+      width: $q*4;
 
       svg {
-        font-size: $fs08;
+        flex-shrink: 0;
+        font-size: $fs06;
 
         color: $scColor;
       }
@@ -60,7 +65,7 @@
   }
 
   .block {
-    padding: $q;
+    padding: $q 0;
 
     --height: #{$q*4};
 
@@ -147,6 +152,59 @@
       &:active {
         background-color: rgba($fgColor, .5);
       }
+    }
+
+    span {
+      font-size: $fs08;
+
+      color: rgba($fgColor, .75);
+    }
+  }
+
+  .section {
+    box-shadow: 0 -1px 0 rgba($fgColor, .1) inset;
+
+    &.open {
+      .content {
+        display: block;
+      }
+    }
+
+    &:last-of-type {
+      box-shadow: none;
+    }
+
+    .toggle {
+      display: flex;
+      align-items: center;
+
+      gap: $q*.5;
+
+      padding: $q*.5 0;
+
+      cursor: pointer;
+
+      color: rgba($fgColor, .5);
+      font-size: $fs08;
+      font-weight: 100;
+
+      .icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        width: $q*4;
+
+        font-size: $fs06;
+      }
+    }
+
+    .content {
+      display: none;
+
+      padding-left: $q*4;
+      padding-right: $q;
+      padding-bottom: $q;
     }
   }
 }

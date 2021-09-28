@@ -1,3 +1,9 @@
+export enum WEMapVersion {
+  V1 = 1,
+  V2 = 2,
+  V3 = 3,
+}
+
 //                   posX    posY    posZ    rotX    rotY    rotZ
 export type WECam = [number, number, number, number, number, number];
 
@@ -68,11 +74,13 @@ export interface WEMapAddition {
   vd?: number | undefined,
 
   /**
-   * Event that will be triggered when addition gets created
-   *
-   * Only triggered when running normally, not from World Editor
+   * User-defined event name triggered when objects gets created
    */
-  ce?: string | undefined,
+  evcreated?: string | undefined,
+  /**
+   * User-defined event name triggered when object gets deleted due to that it went out of range
+   */
+  evdeleted?: string | undefined,
 }
 
 export interface WEAckEnvironmentRequest {
@@ -158,12 +166,6 @@ export interface WESetAdditionGroupNameRequest {
 
 export interface WEDeleteAdditionRequest {
   id: string,
-}
-
-export enum WEMapVersion {
-  V1 = 1,
-  V2 = 2,
-  V3 = 3,
 }
 
 export interface WEMap {

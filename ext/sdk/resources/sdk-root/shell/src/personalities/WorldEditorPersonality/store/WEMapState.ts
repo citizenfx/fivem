@@ -266,6 +266,14 @@ export class WEMapState {
     addition.label = label;
   });
 
+  readonly setAdditionCreatedEvent = this.additionChangeWrap(['evcreated'], (addition, evcreated: string) => {
+    addition.evcreated = evcreated;
+  });
+
+  readonly setAdditionDeletedEvent = this.additionChangeWrap(['evdeleted'], (addition, evdeleted: string) => {
+    addition.evdeleted = evdeleted;
+  });
+
   setAdditionOnGround(additionId: string) {
     invokeWEApi(WEApi.AdditionSetOnGround, additionId);
   }

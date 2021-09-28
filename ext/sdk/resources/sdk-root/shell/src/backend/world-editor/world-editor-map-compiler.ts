@@ -159,8 +159,9 @@ export class WorldEditorMapCompiler {
           ? joaat(addition.mdl)
           : addition.mdl,
         addition.mat,
-        addition.label,
         eulerFromMatrix(addition.mat),
+        addition.evcreated || '',
+        addition.evdeleted || '',
       ]);
     }
 

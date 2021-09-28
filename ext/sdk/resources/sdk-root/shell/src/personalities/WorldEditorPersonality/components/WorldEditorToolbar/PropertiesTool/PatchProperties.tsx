@@ -9,9 +9,12 @@ import { NumberInput } from 'components/controls/NumberInput/NumberInput';
 import { div } from 'utils/styled';
 import { deleteIcon } from 'constants/icons';
 import { Title } from 'components/controls/Title/Title';
-import s from './PropertiesTool.module.scss';
 import { WEHotkeysState } from 'personalities/WorldEditorPersonality/store/WEHotkeysState';
 import { WECommand } from 'personalities/WorldEditorPersonality/constants/commands';
+import { makeAutoObservable } from 'mobx';
+import { LocalStorageValue } from 'store/generic/LocalStorageValue';
+import { PropertiesToolSection } from './PropertiesTool.Section';
+import s from './PropertiesTool.module.scss';
 
 const Header = div(s, 'header');
 const Icon = div(s, 'icon');
@@ -32,7 +35,7 @@ function usePatch(): { mapdata: number, entity: number, label: string, mat: WEEn
     }
   }
 
-  const { mapdata, entity, label, mat = Array(16).fill(0) as WEEntityMatrix, cam = [0,0,0,0,0,0] } = WEState.selection;
+  const { mapdata, entity, label, mat = Array(16).fill(0) as WEEntityMatrix, cam = [0, 0, 0, 0, 0, 0] } = WEState.selection;
 
   const patch = WEState.map!.patches[mapdata]?.[entity];
 
@@ -96,99 +99,128 @@ export const PatchProperties = observer(function PatchProperties() {
         </Controls>
       </Header>
 
-      <Block>
-        <Label>
-          {translateIcon} Position:
-        </Label>
-        <Control inputs>
-          <NumberInput
-            label="x:"
-            value={px}
-            onChange={(px) => WEState.map!.setPatchPosition(mapdata, entity, px, py, pz)}
-            className={s.input}
-          />
-          <NumberInput
-            label="y:"
-            value={py}
-            onChange={(py) => WEState.map!.setPatchPosition(mapdata, entity, px, py, pz)}
-            className={s.input}
-          />
-          <NumberInput
-            label="z:"
-            value={pz}
-            onChange={(pz) => WEState.map!.setPatchPosition(mapdata, entity, px, py, pz)}
-            className={s.input}
-          />
-        </Control>
-      </Block>
-
-      <Block>
-        <Label>
-          {rotateIcon}
-          Rotation:
-        </Label>
-        <Control inputs>
-          <NumberInput
-            label="x:"
-            value={rx}
-            onChange={(rx) => WEState.map!.setPatchRotation(mapdata, entity, rx, ry, rz)}
-            className={s.input}
-          />
-          <NumberInput
-            label="y:"
-            value={ry}
-            onChange={(ry) => WEState.map!.setPatchRotation(mapdata, entity, rx, ry, rz)}
-            className={s.input}
-          />
-          <NumberInput
-            label="z:"
-            value={rz}
-            onChange={(rz) => WEState.map!.setPatchRotation(mapdata, entity, rx, ry, rz)}
-            className={s.input}
-          />
-        </Control>
-      </Block>
-
-      <Block>
-        <LabelRow>
+      <PropertiesToolSection
+        title="Transform & position"
+        open={PatchPropertiesState.transformSectionOpen}
+        onOpenToggle={PatchPropertiesState.toggleTransformSectionOpen}
+      >
+        <Block>
           <Label>
-            {scaleIcon}
-            Scale:
+            {translateIcon} Position:
           </Label>
-          <Controls>
-            <Title delay={0} animated={false} fixedOn="right" title="Scale to 1,1,1">
-              {(ref) => (
-                <button
-                  ref={ref}
-                  onClick={() => WEState.map!.setPatchScale(mapdata, entity, 1, 1, 1)}
-                >
-                  1:1
-                </button>
-              )}
-            </Title>
-          </Controls>
-        </LabelRow>
-        <Control inputs>
-          <NumberInput
-            label="x:"
-            value={sx}
-            onChange={(sx) => WEState.map!.setPatchScale(mapdata, entity, sx, sy, sz)}
-            className={s.input}
-          />
-          <NumberInput
-            label="y:"
-            value={sy}
-            onChange={(sy) => WEState.map!.setPatchScale(mapdata, entity, sx, sy, sz)}
-            className={s.input}
-          />
-          <NumberInput
-            label="z:"
-            value={sz}
-            onChange={(sz) => WEState.map!.setPatchScale(mapdata, entity, sx, sy, sz)}
-            className={s.input}
-          />
-        </Control>
-      </Block>
+          <Control inputs>
+            <NumberInput
+              label="x:"
+              value={px}
+              onChange={(px) => WEState.map!.setPatchPosition(mapdata, entity, px, py, pz)}
+              className={s.input}
+            />
+            <NumberInput
+              label="y:"
+              value={py}
+              onChange={(py) => WEState.map!.setPatchPosition(mapdata, entity, px, py, pz)}
+              className={s.input}
+            />
+            <NumberInput
+              label="z:"
+              value={pz}
+              onChange={(pz) => WEState.map!.setPatchPosition(mapdata, entity, px, py, pz)}
+              className={s.input}
+            />
+          </Control>
+        </Block>
+
+        <Block>
+          <Label>
+            {rotateIcon}
+            Rotation:
+          </Label>
+          <Control inputs>
+            <NumberInput
+              label="x:"
+              value={rx}
+              onChange={(rx) => WEState.map!.setPatchRotation(mapdata, entity, rx, ry, rz)}
+              className={s.input}
+            />
+            <NumberInput
+              label="y:"
+              value={ry}
+              onChange={(ry) => WEState.map!.setPatchRotation(mapdata, entity, rx, ry, rz)}
+              className={s.input}
+            />
+            <NumberInput
+              label="z:"
+              value={rz}
+              onChange={(rz) => WEState.map!.setPatchRotation(mapdata, entity, rx, ry, rz)}
+              className={s.input}
+            />
+          </Control>
+        </Block>
+
+        <Block>
+          <LabelRow>
+            <Label>
+              {scaleIcon}
+              Scale:
+            </Label>
+            <Controls>
+              <Title delay={0} animated={false} fixedOn="right" title="Scale to 1,1,1">
+                {(ref) => (
+                  <button
+                    ref={ref}
+                    onClick={() => WEState.map!.setPatchScale(mapdata, entity, 1, 1, 1)}
+                  >
+                    1:1
+                  </button>
+                )}
+              </Title>
+            </Controls>
+          </LabelRow>
+          <Control inputs>
+            <NumberInput
+              label="x:"
+              value={sx}
+              onChange={(sx) => WEState.map!.setPatchScale(mapdata, entity, sx, sy, sz)}
+              className={s.input}
+            />
+            <NumberInput
+              label="y:"
+              value={sy}
+              onChange={(sy) => WEState.map!.setPatchScale(mapdata, entity, sx, sy, sz)}
+              className={s.input}
+            />
+            <NumberInput
+              label="z:"
+              value={sz}
+              onChange={(sz) => WEState.map!.setPatchScale(mapdata, entity, sx, sy, sz)}
+              className={s.input}
+            />
+          </Control>
+        </Block>
+      </PropertiesToolSection>
     </>
   );
 });
+
+const PatchPropertiesState = new class PatchPropertiesState {
+  private transformSectionOpenValue = new LocalStorageValue({
+    key: 'we:patch-properties:transform-open',
+    defaultValue: true,
+  });
+
+  get transformSectionOpen(): boolean {
+    return this.transformSectionOpenValue.get();
+  }
+  set transformSectionOpen(open: boolean) {
+    this.transformSectionOpenValue.set(open);
+  }
+
+  constructor() {
+    makeAutoObservable(this);
+  }
+
+  readonly toggleTransformSectionOpen = () => {
+    this.transformSectionOpen = !this.transformSectionOpen;
+  };
+}();
+
