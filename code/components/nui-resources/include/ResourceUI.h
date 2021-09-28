@@ -58,6 +58,8 @@ public:
 
 	void AddCallback(const std::string& type, ResUICallback callback);
 
+	void RemoveCallback(const std::string& type);
+
 	bool InvokeCallback(const std::string& type, const std::string& query, const std::multimap<std::string, std::string>& headers, const std::string& data, ResUIResultCallback resultCB);
 
 	void SignalPoll();

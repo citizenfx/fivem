@@ -128,4 +128,26 @@ static InitFunction initFunction([] ()
 			}
 		}
 	});
+
+	fx::ScriptEngine::RegisterNativeHandler("UNREGISTER_RAW_NUI_CALLBACK", [](fx::ScriptContext& ctx)
+	{
+		fx::OMPtr<IScriptRuntime> runtime;
+
+		if (FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+		{
+			fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
+
+			if (resource)
+			{
+				fwRefContainer<ResourceUI> resourceUI = resource->GetComponent<ResourceUI>();
+
+				if (resourceUI.GetRef())
+				{
+					std::string type = ctx.CheckArgument<const char*>(0);
+
+					resourceUI->RemoveCallback(type);
+				}
+			}
+		}
+	});
 });
