@@ -238,6 +238,7 @@
 	padding-top: calc((100vh - var(--app-height)) / 2);
 	padding-left: calc((100vw - var(--app-width)) / 2);
 
+	display: none;
 	opacity: 0;
 	pointer-events: none;
 
@@ -250,6 +251,7 @@
 	transition: all .2s ease;
 
 	&.active {
+		display: block;
 		opacity: 1;
 		pointer-events: all;
 	}

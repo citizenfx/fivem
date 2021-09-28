@@ -104,9 +104,9 @@ $blurSize: 20px;
 	bottom: 0px;
 	right: 0px;
 
-	transform: translate3d(0, 0, 0);
-
-	will-change: transform;
+	canvas {
+		will-change: transform;
+	}
 
 	background:
 		transparent center center/cover no-repeat;

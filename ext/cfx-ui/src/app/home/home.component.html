@@ -70,23 +70,26 @@
 	<div class="layout">
 		<div class="play">
 			<a class="card servers_link" [routerLink]="['/servers']">
-				<div class="top">
-					<h1 class="card_title">
-						<svg>
-							<use [attr.xlink:href]="'#logo-' + gameName"></use>
-						</svg>
-						<span l10nTranslate>
-							#BottomNav_Play
-						</span>
-					</h1>
-					<div *ngIf="currentAccount" class="nickname">
-						Welcome back, {{ currentAccount.username }}
+				<div class="content">
+					<div class="top">
+						<h1 class="card_title">
+							<svg>
+								<use [attr.xlink:href]="'#logo-' + gameName"></use>
+							</svg>
+							<span l10nTranslate>
+								#BottomNav_Play
+							</span>
+						</h1>
+						<div *ngIf="currentAccount" class="nickname">
+							Welcome back, {{ currentAccount.username }}
+						</div>
+					</div>
+					<div class="memeing">
+						<article [innerHTML]="welcomeMessage | dompurify" (click)="clickContent($event)">
+						</article>
 					</div>
 				</div>
-				<div class="memeing">
-					<article [innerHTML]="welcomeMessage | dompurify" (click)="clickContent($event)">
-					</article>
-				</div>
+				<div class="bg"></div>
 			</a>
 
 			<div class="last-server" *ngIf="lastServer" (click)="attemptConnectTo(lastServer)">
