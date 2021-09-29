@@ -277,3 +277,6 @@
 [submodule "vendor/jwt-cpp"]
 	path = vendor/jwt-cpp
 	url = https://github.com/Thalhammer/jwt-cpp.git
+[submodule "ext/sdk/resources/sdk-root/fxcode"]
+	path = ext/sdk/resources/sdk-root/fxcode
+	url = git@github.com:citizenfx/fxcode.git
