@@ -316,7 +316,7 @@ static InitFunction initFunction([]()
 		{
 			lastProfile = json;
 
-			ShellExecuteW(nullptr, L"open", fmt::sprintf(L"http://frontend.chrome-dev.tools/serve_rev/@901bcc219d9204748f9c256ceca0f2cd68061006/inspector.html?loadTimelineFromURL=http://localhost:%d/profileData.json", tcpServerPort).c_str(), NULL, NULL, SW_SHOW);
+			ShellExecuteW(nullptr, L"open", fmt::sprintf(L"https://frontend.chrome-dev.tools/serve_rev/@901bcc219d9204748f9c256ceca0f2cd68061006/inspector.html?loadTimelineFromURL=http://localhost:%d/profileData.json", tcpServerPort).c_str(), NULL, NULL, SW_SHOW);
 		});
 	}, INT32_MAX);
 
