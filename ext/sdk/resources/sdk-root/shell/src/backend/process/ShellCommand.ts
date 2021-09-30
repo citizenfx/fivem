@@ -1,7 +1,8 @@
 import * as cp from 'child_process';
-import treeKill from 'tree-kill';
 import { OutputListener, OutputChannelProvider } from 'backend/output/output-types';
 import { Deferred } from 'backend/deferred';
+import { getContainer } from 'backend/container-access';
+import { ConfigService } from 'backend/config-service';
 
 export type ShellCommandDataListener = (data: Buffer) => void;
 export type ShellCommandErrorListener = (error: Error) => void;
@@ -152,7 +153,15 @@ export class ShellCommand implements OutputChannelProvider {
         resolve({ code, signal });
       });
 
-      treeKill(this.proc.pid, 'SIGKILL');
+      const { pid } = this.proc;
+
+      cp.exec(`taskkill /pid ${pid} /T /F`, {
+        cwd: getContainer().get(ConfigService).realCwd,
+      }, (error) => {
+        if (error) {
+          console.error(`Failed to kill child process, pid: ${pid}`, error);
+        }
+      });
     });
   }
 }

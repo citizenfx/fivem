@@ -31,7 +31,7 @@ import { bindLogger } from './logger/logger-bindings';
 import { bindTheia } from './theia/theia-bindings';
 import { bindGameServer } from './game-server/game-server-bindings';
 import { bindProject } from './project/project-bindings';
-import { ContainerAccess } from './container-access';
+import { ContainerAccess, setContainer } from './container-access';
 import { bindTask } from './task/task-bindings';
 import { bindOutput } from './output/output-bindings';
 import { bindGame } from './game/game-bindings';
@@ -39,8 +39,10 @@ import { bindGithub } from './github/github-bindings';
 import { bindGit } from './git/git-bindings';
 import { bindWorldEditor } from './world-editor/world-editor-bindings';
 import { bindSystemResources } from './system-resources/system-resources-bindings';
-console.log(process.versions);
+
 const appContainer = new Container();
+
+setContainer(appContainer);
 
 const configService = new ConfigService();
 appContainer.bind(ConfigService).toConstantValue(configService);
