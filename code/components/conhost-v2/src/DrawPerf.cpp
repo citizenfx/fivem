@@ -271,7 +271,15 @@ static InitFunction initFunction([]()
 
 						if (SUCCEEDED(D3DKMTQueryAdapterInfo(&queryAdapterInfo)))
 						{
-							metrics.push_back(fmt::sprintf("GPU Temp: %.0f\xC2\xB0""C", adapterPerfData.Temperature / 10.f));
+							float fracTemp = adapterPerfData.Temperature / 10.f;
+
+							// some (AMD?) GPU drivers return temperatures of '6900 C' here, so we divide those to be within range again
+							if (fracTemp > 200) // 200 is a bit outrageous
+							{
+								fracTemp /= 100.0f;
+							}
+
+							metrics.push_back(fmt::sprintf("GPU Temp: %.0f\xC2\xB0""C", fracTemp));
 						}
 					}
 				}
