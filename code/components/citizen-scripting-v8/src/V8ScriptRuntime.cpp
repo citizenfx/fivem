@@ -2019,19 +2019,46 @@ result_t V8ScriptRuntime::Create(IScriptHost* scriptHost)
 		auto env = node::CreateEnvironment(GetNodeIsolate(), context, argv, execArgv);
 		node::LoadEnvironment(
 			env,
-			"const { addBuiltinLibsToObject } = require('internal/modules/cjs/helpers');"
-			"addBuiltinLibsToObject(global);"
+			R"(
+function defineStream(name, getter) {
+  Object.defineProperty(process, name, {
+    configurable: true,
+    enumerable: true,
+    get: getter
+  });
+}
 
-			"const Module = require('module');"
+defineStream('stdin', getStdin);
 
-			"const m = new Module('dummy.js');"
-			"m.filename = Citizen.getResourcePath() + '/dummy.js';"
-			"m.paths = Module._nodeModulePaths(Citizen.getResourcePath() + '/');"
+let stdin;
 
-			"const script = 'module.exports = {require};';"
-			"const result = m._compile(script, 'dummy-wrapper');"
+function getStdin() {
+  if (stdin) return stdin;
+  const fd = 0;
 
-			"global.require = m.exports.require;"
+  const { Readable } = require('stream');
+  stdin = new Readable({ read() {} });
+  stdin.push(null);
+
+  stdin.fd = 0;
+
+  return stdin;
+}
+
+const { addBuiltinLibsToObject } = require('internal/modules/cjs/helpers');
+addBuiltinLibsToObject(global);
+
+const Module = require('module');
+
+const m = new Module('dummy.js');
+m.filename = Citizen.getResourcePath() + '/dummy.js';
+m.paths = Module._nodeModulePaths(Citizen.getResourcePath() + '/');
+
+const script = 'module.exports = {require};';
+const result = m._compile(script, 'dummy-wrapper');
+
+global.require = m.exports.require;
+)"
 		);
 
 		g_envRuntimes[env] = this;
