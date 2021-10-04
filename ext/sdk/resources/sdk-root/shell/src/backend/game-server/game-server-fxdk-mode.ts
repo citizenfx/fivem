@@ -48,6 +48,8 @@ export class GameServerFxdkMode implements GameServerMode {
   private pipeAppendix: string = '';
   private task: Task;
 
+  private stopping = false;
+
   private reconciler = new GameServerResourcesReconciler();
 
   private resourcesStateTicker = new Ticker();
@@ -97,6 +99,7 @@ export class GameServerFxdkMode implements GameServerMode {
 
   async stop(task: Task) {
     if (this.shellCommand) {
+      this.stopping = true;
       await this.shellCommand.stop();
     }
   }
@@ -219,6 +222,8 @@ export class GameServerFxdkMode implements GameServerMode {
     return this.loadResourcesByUrls(getResourceUrls(resources));
   }
   private async loadResourcesByUrls(resourceUrls: string[]): Promise<void> {
+    await this.startedDeferred.promise;
+
     const loadResults: Record<string, boolean> = await this.ipc.rpc('load', resourceUrls);
 
     const failedResources: string[] = [];
@@ -261,8 +266,10 @@ export class GameServerFxdkMode implements GameServerMode {
     // Clean up resources folder after legacy mode
     await this.fsService.rimraf(this.fsService.joinPath(fxserverCwd, 'resources'));
 
+    const serverBinaryPath = this.gameServerManagerService.getServerBinaryPath(updateChannel);
+
     this.shellCommand = new ShellCommand(
-      this.gameServerManagerService.getServerBinaryPath(updateChannel),
+      serverBinaryPath,
       ['-fxdk', this.pipeAppendix],
       fxserverCwd,
     );
@@ -270,7 +277,11 @@ export class GameServerFxdkMode implements GameServerMode {
     const closeErrorHandler = (error?: Error) => {
       this.ipc.dispose();
 
-      this.onCloseEvent.emit(error);
+      if (!error && !this.stopping) {
+        this.onCloseEvent.emit(new Error(`Server stopped unexpectedly, probably see crashes at ${this.fsService.joinPath(serverBinaryPath, 'crashes')}`));
+      } else {
+        this.onCloseEvent.emit(error);
+      }
     };
 
     this.shellCommand.onClose(() => closeErrorHandler());
@@ -305,7 +316,7 @@ export class GameServerFxdkMode implements GameServerMode {
   }
 
   private async startIpc() {
-    this.pipeAppendix = await this.ipc.start('test');
+    this.pipeAppendix = await this.ipc.start();
   }
 
   private async serverInitSequence({ fxserverCwd, steamWebApiKey, tebexSecret, cmdList }: ServerStartRequest) {
@@ -340,7 +351,7 @@ export class GameServerFxdkMode implements GameServerMode {
     this.task.setText('Init done');
 
     await this.startedDeferred.promise;
-    this.task.setText('Started');
+    this.task.setText('Started, loading resources');
 
     const resources = {
       names: [

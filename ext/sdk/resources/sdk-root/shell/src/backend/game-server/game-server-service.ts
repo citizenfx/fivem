@@ -58,9 +58,6 @@ export class GameServerService implements AppContribution, ApiContribution {
 
   protected server: GameServerMode | null = null;
 
-  protected startTask: Task | null = null;
-  protected stopTask: Task | null = null;
-
   protected serverLock = new Deferred<void>();
   protected serverLocked = false;
 
@@ -85,7 +82,7 @@ export class GameServerService implements AppContribution, ApiContribution {
     this.serverLock.resolve();
     process.on('exit', () => {
       if (this.server) {
-        this.server.stop(this.stopTask = this.taskReporterService.create('Stopping server'));
+        this.server.stop(this.taskReporterService.create('Stopping server'));
       }
     });
   }
@@ -142,7 +139,8 @@ export class GameServerService implements AppContribution, ApiContribution {
 
     this.toState(ServerStates.booting);
     this.logService.log('Starting server', request);
-    this.startTask = this.taskReporterService.create('Starting server');
+
+    const startTask = this.taskReporterService.create('Starting server');
 
     const blankPath = this.fsService.joinPath(fxserverCwd, 'blank.cfg');
     if (!await this.fsService.statSafe(blankPath)) {
@@ -162,12 +160,13 @@ export class GameServerService implements AppContribution, ApiContribution {
         if (error) {
           this.notificationService.error(`Server error: ${error.toString()}`);
         }
+
         this.toState(ServerStates.down);
 
         this.serverStopEvent.emit(error);
       });
 
-      await this.server.start(request, this.startTask);
+      await this.server.start(request, startTask);
 
       this.toState(ServerStates.up);
 
@@ -178,26 +177,27 @@ export class GameServerService implements AppContribution, ApiContribution {
       this.notificationService.error(`Failed to start server: ${e.toString()}`);
 
     } finally {
-      this.startTask.done();
-      this.stopTask = null;
+      startTask.done();
       this.unlock();
     }
   }
 
   async stop() {
+    await this.serverLock.promise;
+
     if (this.server) {
       this.lock();
+
+      const stopTask = this.taskReporterService.create('Stopping server');
 
       this.gameService.beginUnloading();
 
       try {
-        this.stopTask = this.taskReporterService.create('Stopping server');
-        await this.server.stop(this.stopTask);
+        await this.server.stop(stopTask);
       } catch (e) {
         this.notificationService.error(`Failed to stop server: ${e.toString()}`);
       } finally {
-        this.stopTask!.done();
-        this.stopTask = null;
+        stopTask.done();
         this.unlock();
       }
     }
