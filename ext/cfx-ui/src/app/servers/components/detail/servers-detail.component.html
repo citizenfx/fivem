@@ -23,10 +23,11 @@
 
 <div class="page" *ngIf="server">
 	<div class="content-wrapper">
-		<div class="banner" *ngIf="server.data.vars.banner_detail" style="--banner-image: url({{server.data.vars.banner_detail}})"></div>
+		<div class="content" #content [style.--pad-top]="negPadTop">
+			<div class="banner" [class.scrolled]="headerScrolled" #banner [class.hidden]="!server.data.vars.banner_detail" style="--banner-image: url({{server.data.vars.banner_detail}})"></div>
+			<div class="header" [class.scrolled]="headerScrolled" #header>
+				<div class="bg"></div>
 
-		<div class="content">
-			<div class="header">
 				<figure class="icon">
 					<img [src]="(server && server.sanitizedUri)||'http://picsum.photos/128/128'">
 				</figure>
@@ -110,17 +111,10 @@
 				</div>
 			</div>
 
+			<div class="header-push" [style.marginTop]="padTop"></div>
+
 			<div class="details">
-				<div class="details-panel feed" *ngIf="communityTweets.length > 0">
-					<div class="title">
-						{{'#ServerDetail_Updates' | translate:locale.language}} ({{ communityTweets.length }})
-					</div>
-
-					<app-home-tweet class="message" *ngFor="let tweet of communityTweets" [tweet]="tweet">
-					</app-home-tweet>
-				</div>
-
-				<div class="details-panel resources">
+				<div class="details-panel resources noHorizScroll" #resourcesPane>
 					<div class="title">
 						{{'#ServerDetail_Resources' | translate:locale.language}} ({{ resourceCount }})
 					</div>
@@ -130,13 +124,14 @@
 					</ul>
 				</div>
 
-				<div class="details-panel players">
+				<div class="details-panel players noHorizScroll" #playersPane>
 					<div class="title">
 						{{'#ServerDetail_Players' | translate:locale.language}} ({{ server.data.players.length }})
 					</div>
 
 					<ul>
 						<li *ngFor="let player of playersSorted; trackBy: trackPlayer">
+							<i></i>
 							<app-player-avatar [player]="player"></app-player-avatar>
 							<span>
 								{{player.name}}
@@ -144,7 +139,22 @@
 						</li>
 					</ul>
 				</div>
+
+				<div class="details-panel feed" *ngIf="communityTweets.length > 0">
+					<div class="title">
+						{{'#ServerDetail_Updates' | translate:locale.language}} ({{ communityTweets.length }})
+					</div>
+
+					<ngx-masonry [ordered]="true" [options]="{gutter: 10}">
+						<app-home-tweet class="message" *ngFor="let tweet of communityTweets" [tweet]="tweet" ngxMasonryItem>
+						</app-home-tweet>
+					</ngx-masonry>
+				</div>
 			</div>
+
+			<app-server-reviews *ngIf="canHaveReviews" [server]="server"></app-server-reviews>
+
+			<div class="header-pull" *ngIf="communityTweets.length < 1" [style.marginTop]="padTop"></div>
 		</div>
 	</div>
 </div>

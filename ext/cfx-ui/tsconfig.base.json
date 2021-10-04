@@ -9,7 +9,7 @@
     "emitDecoratorMetadata": true,
 	"experimentalDecorators": true,
 	"downlevelIteration": true,
-    "target": "es2018",
+    "target": "es2019",
     "typeRoots": [
       "node_modules/@types",
       "./src/typings"
@@ -18,8 +18,7 @@
       "@types/offscreencanvas"
     ],
     "lib": [
-      "es2016",
-      "es2017.object",
+      "es2019",
       "dom"
     ],
     "module": "es2020"

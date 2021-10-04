@@ -1,0 +1,280 @@
+@import "variables";
+@import "./review-shared";
+
+div.body ::ng-deep {
+	img.emoji {
+		width: var(--q1);
+		height: var(--q1);
+		vertical-align: middle;
+	}
+
+	p {
+		margin-bottom: calc(var(--qh) * 0.5);
+	}
+
+	ul {
+		padding-left: 1.5em;
+	}
+}
+
+.review {
+	margin: 0px var(--q1);
+	padding: var(--q1) 0px;
+
+	:host:not(:first-of-type) & {
+		@include theme() using ($theme) {
+			box-shadow: 0 -2px 0 rgba(gtv($theme, fgColor), 0.25);
+		}
+	}
+
+	:host:not(:last-of-type) & {
+		padding-bottom: var(--q1);
+	}
+
+	:host:not(:first-of-type) & {
+		padding-top: var(--q1);
+	}
+
+	:host:first-of-type & {
+		margin-top: 0;
+	}
+
+	height: calc(var(--q1) * 16);
+	overflow: hidden;
+
+	&.more {
+		height: fit-content;
+	}
+
+	&.more .more.usable {
+		display: none !important;
+	}
+
+	display: flex;
+
+	> div {
+		display: flex;
+		flex-direction: column;
+
+		h1 {
+			margin-bottom: var(--qh);
+			font-size: var(--fs-2);
+			line-height: 1;
+
+			@include fontMontserrat;
+		}
+
+		.body {
+			overflow: hidden;
+
+			font-size: calc(var(--fs-1) * .9);
+		}
+
+		.more {
+			display: none;
+
+			&.usable {
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				justify-content: flex-end;
+
+				height: 1px;
+			}
+
+			a {
+				display: block;
+
+				width: 100%;
+
+				padding-top: var(--q1);
+				padding-bottom: calc(var(--qh) / 2);
+
+				text-align: center;
+
+				text-transform: uppercase;
+				text-decoration: none;
+				letter-spacing: 1px;
+				font-size: var(--fs-075);
+				font-weight: 400;
+
+				transition: transform .2s ease;
+
+				@include theme() using ($theme) {
+					text-shadow: 0 0 2.5px gtv($theme, bgColor), 0 0 2.5px gtv($theme, bgColor), 0 0 5px gtv($theme, bgColor);
+
+					color: gtv($theme, fgColor);
+					background-image: linear-gradient(transparent, rgba(gtv($theme, bgColor), 0.75) 50%, rgba(gtv($theme, bgColor), 1.0));
+
+					&:hover {
+						transform: translateY(4px);
+						background-image: linear-gradient(transparent, rgba(gtv($theme, accentColor1), 0.75) 50%, rgba(gtv($theme, accentColor1), 1.0));
+					}
+				}
+			}
+		}
+
+		.push {
+			flex-grow: 1;
+		}
+
+		.like-actions {
+			/*
+			@include theme() using ($theme) {
+				border-top: 1px solid rgba(gtv($theme, textColor), 0.3);
+			}
+			*/
+
+			margin-top: var(--qh);
+		}
+
+		.like-actions, .likes {
+			font-size: 80%;
+
+			@include theme() using ($theme) {
+				color: rgba(gtv($theme, textColor), 0.8);
+			}
+		}
+	}
+
+	> aside {
+		.title {
+			margin-bottom: var(--qh);
+
+			@include fontMontserrat;
+			font-size: var(--fs-2);
+			line-height: 1;
+			letter-spacing: 2px;
+			text-transform: uppercase;
+
+			opacity: .25;
+
+			text-align: justify;
+		}
+
+		flex-shrink: 0;
+		width: calc(var(--q1) * 12);
+		overflow: hidden;
+
+		div.profile {
+			display: flex;
+			align-items: center;
+
+			img {
+				flex-shrink: 0;
+
+				width: var(--q2);
+				padding-right: calc(var(--qh) * 0.5);
+			}
+
+			div {
+				display: flex;
+				flex-direction: column;
+
+				flex-grow: 1;
+
+				strong {
+					font-size: var(--fs-075);
+					font-weight: normal;
+
+					overflow: hidden;
+					text-overflow: ellipsis;
+				}
+
+				.hours {
+					font-size: var(--fs-075);
+					opacity: .75;
+				}
+			}
+		}
+
+		p.date {
+			font-size: var(--fs-075);
+			opacity: .5;
+		}
+	}
+}
+
+h1 > span {
+	font-size: 1em;
+	padding-right: 0.25em;
+
+	&.thumb-up {
+		@include theme() using ($theme) {
+			color: gtv($theme, activeColor);
+			filter: drop-shadow(0px 0px 5px rgba(gtv($theme, activeColor), 0.5));
+		}
+	}
+	&.thumb-down {
+		@include theme() using ($theme) {
+			color: gtv($theme,  redColor);
+		}
+	}
+}
+
+.modalOverlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+
+	display: flex;
+
+	align-items: center;
+	justify-content: center;
+
+	background-color: rgba(hsl(226, 23%, 11%), .8);
+
+	strong {
+		font-weight: normal;
+		font-size: var(--fs-1);
+		display: block;
+
+		margin-bottom: 0.25em;
+	}
+
+	textarea {
+		font-size: var(--fs-075);
+		width: calc(var(--q1) * 20);
+		height: var(--q5);
+
+		resize: none;
+	}
+
+	.description {
+		font-size: var(--fs-075);
+	}
+
+	.wrap {
+		display: flex;
+		justify-content: center;
+		width: 100%; /* aspectLimited will override this, but for more narrow sizes, keep it */
+		pointer-events: none;
+		@include aspectLimited();
+	}
+
+	.inner {
+		pointer-events: initial;
+		flex-direction: column;
+		align-items: flex-start;
+
+		width: 60%;
+		max-height: calc(100vh - 4px);
+
+		padding: var(--q1);
+
+		background: linear-gradient(45deg, rgba(hsl(226, 23%, 11%), .5), rgba(hsl(226, 23%, 11%), .75));
+		background-color: hsl(226, 23%, 11%);
+		box-shadow: 0 0 0 2px rgba(hsl(60, 100%, 97%), .5);
+	}
+
+	h3, .radio {
+		margin-bottom: var(--qh);
+	}
+
+	::ng-deep a {
+        color: inherit;
+		text-decoration: none;
+    }
+}

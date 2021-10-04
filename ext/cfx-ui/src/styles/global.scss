@@ -228,6 +228,9 @@ button {
 		background-color: gtv($theme, accentColor1);
 	}
 }
+.noHorizScroll::-webkit-scrollbar {
+	height: 0px;
+}
 
 .ac-container {
 	max-width: 100% !important;

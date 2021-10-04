@@ -160,7 +160,7 @@ function sortName(server: master.IServerData) {
 
 function buildSearchMatch(filterList: ServerFilterContainer) {
 	const filters = filterList.filters;
-	const searchText = filters.searchText;
+	const searchText = filters?.searchText;
 	const filterFns: ((server: master.IServer) => boolean)[] = [];
 
 	const searchRe = /((?:~?\/.*?\/)|(?:[^\s]+))\s?/g;
@@ -339,20 +339,20 @@ function getFilter(pinConfig: PinConfigCached, filterList: ServerFilterContainer
 		return !matchesLocales;
 	};
 
-	const shownAsPin = (server: master.IServer) => (filters.searchText === '' && isPinned(pinConfig, server) && listType === 'browse');
+	const shownAsPin = (server: master.IServer) => (filters?.searchText === '' && isPinned(pinConfig, server) && listType === 'browse');
 
 	return (server) => {
 		if (!nameMatchCallback(server)) {
 			return false;
 		}
 
-		if (server.Data.clients === 0 && filters.hideEmpty) {
+		if (server.Data.clients === 0 && filters?.hideEmpty) {
 			if (!isPinned(pinConfig, server) || !pinConfig.data.pinIfEmpty) {
 				return false;
 			}
 		}
 
-		if (server.Data.clients >= server.Data.svMaxclients && filters.hideFull) {
+		if (server.Data.clients >= server.Data.svMaxclients && filters?.hideFull) {
 			return false;
 		}
 
@@ -627,7 +627,7 @@ function sortServers(e: MessageEvent) {
 	const sortList = [
 		(a: master.IServer, b: master.IServer) => {
 			if (filterRequest.listType === 'browse' &&
-				(filterRequest.filters.filters.searchText ?? '') === '') {
+				(filterRequest.filters?.filters?.searchText ?? '') === '') {
 				return 0;
 			}
 
@@ -642,11 +642,11 @@ function sortServers(e: MessageEvent) {
 				return 1;
 			}
 		},
-		sortSortable(filterRequest.sortOrder),
+		filterRequest.sortOrder ? sortSortable(filterRequest.sortOrder) : null,
 		sortSortable(['upvotePower', '-']),
 		sortSortable(['players', '-']),
 		sortSortable(['name', '+'])
-	];
+	].filter(a => a);
 
 	servers.sort((a, b) => {
 		return sortChain(

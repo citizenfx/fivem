@@ -1,0 +1,85 @@
+@import "variables";
+@import "./review-shared";
+
+.review-wrap {
+	@include backdropPane;
+}
+
+.review-form {
+	@include backdropPane;
+
+	margin-bottom: var(--qh);
+	padding: var(--q1);
+
+	.review-disclaimer {
+		display: block;
+
+		margin-bottom: var(--qh);
+
+		font-size: var(--fs-075);
+	}
+
+	.actual-form {
+		width: 60%;
+		display: flex;
+
+		> aside {
+			display: flex;
+
+			gap: calc(var(--qh) * 0.5);
+
+			width: calc(var(--q1) * 12);
+
+			img {
+				flex-grow: 0;
+				flex-shrink: 0;
+
+				width: var(--q2);
+				height: var(--q2);
+			}
+
+			.username {
+				font-size: var(--fs-075);
+
+				overflow: hidden;
+				text-overflow: ellipsis;
+			}
+			.playtime {
+				font-size: var(--fs-075);
+				opacity: .75;
+			}
+		}
+
+		> main {
+			flex-grow: 1;
+
+			input[type="text"] {
+				margin-bottom: var(--qh);
+				z-index: 10;
+			}
+
+			textarea {
+				width: 100%;
+				height: calc(var(--q1) * 6);
+				resize: none;
+
+				font-size: 80%;
+			}
+
+			> div > div {
+				display: flex;
+
+				button:last-of-type {
+					margin-left: auto;
+					margin-right: 0;
+				}
+			}
+		}
+	}
+
+	.errors {
+		@include theme() using ($theme) {
+			color: gtv($theme,  redColor);
+		}
+	}
+}

@@ -1,4 +1,5 @@
-import { Component, Input, ViewChild, EmbeddedViewRef, ComponentFactoryResolver, ApplicationRef, Injector, AfterViewInit, OnDestroy, ViewContainerRef, TemplateRef, OnInit } from '@angular/core';
+import { Component, Input, ViewChild, EmbeddedViewRef,
+	ComponentFactoryResolver, ApplicationRef, Injector, AfterViewInit, OnDestroy, ViewContainerRef, TemplateRef, OnInit, ElementRef } from '@angular/core';
 import { GameService } from '../game.service';
 import { Tweet } from './tweet.service';
 import { DomPortalOutlet, TemplatePortal } from '@angular/cdk/portal';
@@ -13,6 +14,9 @@ export class HomeTweetComponent implements AfterViewInit, OnInit, OnDestroy {
 	@ViewChild('cdkPortal')
 	portal: TemplateRef<any>;
 
+	@ViewChild('media')
+	media: ElementRef<HTMLElement>;
+
 	private embeddedViewRef: EmbeddedViewRef<any>;
 
 	@Input()
@@ -20,6 +24,8 @@ export class HomeTweetComponent implements AfterViewInit, OnInit, OnDestroy {
 
 	@Input()
 	public actuallyTweet: boolean;
+
+	imageWidth = '100%';
 
 	zoomedImageUrl = '';
 
@@ -36,6 +42,16 @@ export class HomeTweetComponent implements AfterViewInit, OnInit, OnDestroy {
 			this.zoomedImageUrl = undefined;
 		}
 	};
+
+	get imageHeight() {
+		if (this.imageWidth !== '100%') {
+			if (this.tweet.imageSize[0] > 0) {
+				return (this.tweet.imageSize[1] / this.tweet.imageSize[0]) * parseInt(this.imageWidth, 10);
+			}
+		}
+
+		return null;
+	}
 
 	openTweet(id) {
 		this.gameService.openUrl(this.tweet.url);
@@ -73,6 +89,12 @@ export class HomeTweetComponent implements AfterViewInit, OnInit, OnDestroy {
 				this.injector,
 			).attach(new TemplatePortal(this.portal, this.vcr));
 		}
+
+		setTimeout(() => {
+			if (this.media?.nativeElement) {
+				this.imageWidth = this.media.nativeElement.clientWidth?.toString() || '100%';
+			}
+		}, 0);
 	}
 
 	ngOnInit() {

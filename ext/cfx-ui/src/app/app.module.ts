@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClientModule, HttpHeaders, HttpClient } from '@angular/common/http';
 import { NgSelectModule } from '@ng-select/ng-select';
 import { Nl2BrPipeModule } from 'nl2br-pipe';
+import { NgxMasonryModule } from 'ngx-masonry';
 import { Router } from '@angular/router';
 import * as Sentry from '@sentry/angular';
 
@@ -18,6 +19,7 @@ import { ScrollingModule as ExperimentalScrollingModule } from '@angular/cdk-exp
 import { DateFnsConfigurationService } from 'ngx-date-fns';
 import {
   FormatDistanceToNowPipeModule,
+  FormatDurationPipeModule,
   ParsePipeModule
 } from 'ngx-date-fns';
 
@@ -85,6 +87,9 @@ import { CreateEditorComponent } from './create/create-editor/create-editor.comp
 import { DirectConnectBackendComponent } from './servers/direct/direct-connect-backend.component';
 import { FiltersService } from './servers/filters.service';
 import { AuthModalComponent } from './auth-modal/auth-modal.component';
+import { ServerReviewsComponent } from './servers/components/reviews/server-reviews.component';
+import { ForumSignoutInterceptorState, httpInterceptorProviders } from './http-interceptors';
+import { ServerReviewComponent } from './servers/components/reviews/server-review.component';
 
 @Injectable() export class TranslationFallback implements L10nTranslationFallback {
 
@@ -153,6 +158,8 @@ export function localStorageFactory() {
 		ServerFilterComponent,
 		ServerTagFilterComponent,
 		ServersDetailComponent,
+		ServerReviewComponent,
+		ServerReviewsComponent,
 		DirectConnectComponent,
 		DirectConnectBackendComponent,
 		PlayerAvatarComponent,
@@ -169,7 +176,7 @@ export function localStorageFactory() {
 		CreateHomeComponent,
 		StoryHomeComponent,
 		CreateEditorComponent,
-		AuthModalComponent,
+		AuthModalComponent
 	],
 	imports: [
 		NgDompurifyModule,
@@ -182,6 +189,7 @@ export function localStorageFactory() {
 		ExperimentalScrollingModule,
 
 		FormatDistanceToNowPipeModule,
+		FormatDurationPipeModule,
 		ParsePipeModule,
 
 		HttpClientModule,
@@ -193,6 +201,7 @@ export function localStorageFactory() {
 		BrowserAnimationsModule,
 		NgxFilesizeModule,
 		Nl2BrPipeModule,
+		NgxMasonryModule,
 	],
 	providers: [
 		{
@@ -232,6 +241,8 @@ export function localStorageFactory() {
 		},
 		ModsService,
 		DateFnsConfigurationService,
+		ForumSignoutInterceptorState,
+		httpInterceptorProviders,
 	],
 	bootstrap: [
 		AppComponent

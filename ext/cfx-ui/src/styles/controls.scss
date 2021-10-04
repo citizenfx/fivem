@@ -1,7 +1,8 @@
 input[type="text"],
 input[type="email"],
 input[type="search"],
-input[type="password"] {
+input[type="password"],
+textarea {
 	@include backdropPane;
 
 	@include themeNoHost() using ($theme) {
@@ -135,6 +136,12 @@ input[type="password"] {
 		}
 	}
 
+	&.radio {
+		.cfx-checkbox-indicator	{
+			border-radius: 100%;
+		}
+	}
+
 	input {
 		width: 0;
 		height: 0;
@@ -180,6 +187,7 @@ input[type="password"] {
 			bottom: 2px;
 
 			transition: box-shadow .2s ease;
+			border-radius: 100%;
 		}
 	}
 }

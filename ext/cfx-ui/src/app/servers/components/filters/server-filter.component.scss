@@ -303,6 +303,14 @@
 				}
 			}
 
+			&:not(:hover) {
+				.dropdown {
+					::ng-deep .flag-icon {
+						background-image: none !important;
+					}
+				}
+			}
+
 			&:hover, &:focus-within {
 				@include theme() using($theme) {
 					.trigger {

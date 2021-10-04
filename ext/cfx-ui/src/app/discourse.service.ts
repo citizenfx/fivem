@@ -7,6 +7,9 @@ import * as query from 'query-string';
 import { BehaviorSubject } from 'rxjs';
 import { GameService } from './game.service';
 import { environment } from 'environments/environment';
+import { HttpClient, HttpHeaders, HttpRequest } from '@angular/common/http';
+import { Site } from './servers/components/reviews/discourse-models';
+import { ForumSignoutInterceptorState } from './http-interceptors';
 
 class RSAKeyCollection {
 	public: string;
@@ -30,8 +33,7 @@ export class DiscourseUser {
 	isPremium: boolean;
 
 	getAvatarUrl(size = 250): string {
-		const prefix = this.avatarTemplate[0] === '/' ? 'https://forum.cfx.re' : '';
-		return prefix + this.avatarTemplate.replace('{size}', size.toString());
+		return DiscourseService.getAvatarUrlForUser(this.avatarTemplate, size);
 	}
 
 	getAvatarUrlForCss(size = 250): string {
@@ -92,7 +94,15 @@ export class DiscourseService {
     public authModalOpenChange = new BehaviorSubject<boolean>(true);
     public authModalClosedEvent = new EventEmitter<{ where?: string, ignored?: boolean }>();
 
-	public constructor(private serversService: ServersService, private gameService: GameService) {
+	public siteData: Site;
+
+	static getAvatarUrlForUser(template: string, size = 250): string {
+		const prefix = template[0] === '/' ? 'https://forum.cfx.re' : '';
+		return prefix + template.replace('{size}', size.toString());
+	}
+
+	public constructor(private serversService: ServersService, private gameService: GameService,
+		private signoutInterceptor: ForumSignoutInterceptorState, private http: HttpClient) {
         const storedAuthModalState = window.localStorage.getItem(DISCOURSE_AUTH_MODAL_STATE) as any;
 
         this.authModalState = new BehaviorSubject(
@@ -130,6 +140,10 @@ export class DiscourseService {
 			if (environment.web) {
 				return;
 			}
+
+			this.apiCallObservable<Site>('/site').subscribe(site => {
+				this.siteData = site;
+			})
 
 			this.externalCall('https://servers-frontend.fivem.net/api/upvote/', 'GET').then(result => {
 				if (result.status < 400) {
@@ -173,6 +187,18 @@ export class DiscourseService {
 		this.gameService.authPayloadSet.subscribe((payload: string) => {
 			this.handleAuthPayload(payload);
 		})
+
+		this.signoutInterceptor.onSignout.subscribe(() => {
+			this.handleSignout();
+		});
+	}
+
+	handleSignout() {
+		window.localStorage.setItem('discourseAuthToken', '');
+		this.authToken = '';
+
+		this.signinChange.next(null);
+		this.currentUser = null;
 	}
 
 	private setComputerName(computerName: string) {
@@ -183,50 +209,43 @@ export class DiscourseService {
 		this.ownershipTicket = ticket;
 	}
 
-	public async apiCall(path: string, method?: string, data?: any) {
-		console.log(`calling ${DiscourseService.BASE_URL}${path}`);
-
-		const clientId = await this.getClientId();
+	public apiCallObservable<T>(path: string, method?: string, data?: any) {
+		const clientId = this.getClientId();
 
 		const finalMethod = method || 'GET';
 
-		const headers = {
-			'User-Agent': 'CitizenFX/Five',
+		const headers: Record<string, string> = {
 			'Content-Type': 'application/json',
-			'User-Api-Client-Id': clientId,
-			'User-Api-Key': this.authToken
+			'Accept': 'application/json',
 		};
+
+		if (clientId && this.authToken) {
+			headers['User-Api-Client-Id'] = clientId;
+			headers['User-Api-Key'] = this.authToken;
+		}
 
 		const finalData = (data) ? JSON.stringify(data) : undefined;
 
-		const req = new Request(DiscourseService.BASE_URL + path, {
-			headers,
-			method: finalMethod,
-			body: finalData
-		})
+		return this.http.request<T>(
+			finalMethod,
+			DiscourseService.BASE_URL + path,
+			{
+				headers: new HttpHeaders(headers),
+				responseType: 'json',
+				body: finalData,
+			}
+		);
+	}
 
-		const res = await window.fetch(req);
+	public async apiCall(path: string, method?: string, data?: any) {
+		const call = this.apiCallObservable<any>(path, method, data);
+		const response = (await call.toPromise());
 
-		if (res.ok) {
-			return await res.json();
-		}
-
-		if (res.status === 403) {
-			window.localStorage.setItem('discourseAuthToken', '');
-			this.authToken = '';
-
-			this.signinChange.next(null);
-			this.currentUser = null;
-
-			throw new Error('User was logged out.');
-			return;
-		}
-
-		throw new Error('Failed to fetch API, status code: ' + res.status);
+		return response;
 	}
 
 	public async externalCall(url: string, method?: string, data?: any) {
-		const clientId = await this.getClientId();
+		const clientId = this.getClientId();
 
 		const finalMethod = method || 'GET';
 
@@ -313,7 +332,7 @@ export class DiscourseService {
 
 	public async generateAuthURL() {
 		const rsaKeys = await this.ensureRSAKeys();
-		const clientId = await this.getClientId(true);
+		const clientId = this.getClientId(true);
 		const nonce = await this.generateNonce();
 
 		const deviceName = `FiveM client on ${await this.getComputerName()}`;
@@ -557,7 +576,7 @@ export class DiscourseService {
 		return this.nonce;
 	}
 
-	private async getClientId(regenerate?: boolean) {
+	private getClientId(regenerate?: boolean) {
 		if (!regenerate) {
 			if (this.clientId) {
 				return this.clientId;

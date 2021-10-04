@@ -141,7 +141,7 @@ export class ServerFilterComponent implements OnInit, OnDestroy {
 		filtersService.filtersUpdates.subscribe((filters) => {
 			this.filters = filters;
 
-			if (this.filters.searchText !== this.lastSearchText) {
+			if (this.filters?.searchText !== this.lastSearchText) {
 				this.lastSearchText = this.filters.searchText;
 
 				const autocompleteBitMatch = /\s?([^\s]*)$/.exec(this.lastSearchText)[1];
