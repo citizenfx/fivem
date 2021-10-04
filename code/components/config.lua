@@ -33,7 +33,6 @@ if _OPTIONS['game'] == 'server' then
 	component 'vfs-impl-server'
 else
 	component 'citizen-devtools'
-	component 'legacy-game-re3'
 	component 'sticky'
 	component 'steam'
 

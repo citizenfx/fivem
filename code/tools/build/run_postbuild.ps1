@@ -113,10 +113,6 @@ if (!$IsServer) {
     if (!$IsLauncher -and !$IsRDR -and !$IsNY) {
         Copy-Item -Force -Recurse $WorkDir\data\shared\* $LayoutDir\
         Copy-Item -Force -Recurse $WorkDir\data\client\* $LayoutDir\
-
-        if (!(Test-Path $LayoutDir\citizen\re3.rpf)) {
-            curl.exe -Lo "$LayoutDir\citizen\re3.rpf" "https://runtime.fivem.net/client/re3.rpf"
-        }
     } elseif ($IsLauncher) {
         Copy-Item -Force -Recurse $WorkDir\data\launcher\* $LayoutDir\
         Copy-Item -Force -Recurse $WorkDir\data\client\bin\* $LayoutDir\bin\

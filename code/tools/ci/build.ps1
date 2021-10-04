@@ -266,16 +266,6 @@ if (!$DontBuild)
 			return
 		}
 		End-Section "dl_chrome"
-		
-		Start-Section "dl_re3" "Downloading RE3"
-		try {
-			if (!(Test-Path "$SaveDir\re3.rpf")) {
-				Invoke-WebRequest -UseBasicParsing -OutFile "$SaveDir\re3.rpf" "https://runtime.fivem.net/client/re3.rpf"
-			}
-		} catch {
-			return
-		}
-		End-Section "dl_re3"
 	}
 
 	Start-Section "build" "Building"
@@ -511,7 +501,7 @@ if (!$DontBuild -and !$IsServer) {
 	}
 	
 	Start-Section "caches" "Gathering caches"
-	Copy-Item -Force $SaveDir\re3.rpf $CacheDir\fivereborn\citizen\re3.rpf
+	Remove-Item -Force $CacheDir\fivereborn\citizen\re3.rpf
 
 	# copy output files
 	New-Item -ItemType Directory -Force $CacheDir\fivereborn\bin

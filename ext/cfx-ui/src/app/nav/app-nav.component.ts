@@ -78,13 +78,6 @@ export class AppNavComponent {
 		gameService.languageChange.subscribe(value => this.language = value);
 	}
 
-	goThere() {
-		if (this.gameName !== 'rdr3') {
-			(<any>window).invokeNative('enterGameplay', '');
-			document.body.style.visibility = 'hidden';
-		}
-	}
-
 	exitGame() {
 		this.gameService.exitGame();
 	}
