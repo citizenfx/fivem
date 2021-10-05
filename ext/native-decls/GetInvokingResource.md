@@ -9,4 +9,20 @@ char* GET_INVOKING_RESOURCE();
 ```
 
 
-## Return value
+## Example
+
+```lua
+AddEventHandler("event", function(cb)
+    cb(GetInvokingResource())
+end)
+
+--Script1
+TriggerEvent("event", function(resource) 
+    print(resource) -- Will print Script1
+end)
+
+--Script2
+TriggerEvent("event", function(resource) 
+    print(resource) -- Will print Script2
+end)
+```
