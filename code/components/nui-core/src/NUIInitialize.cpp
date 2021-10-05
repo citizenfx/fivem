@@ -1073,6 +1073,12 @@ extern bool g_inited;
 
 void Component_RunPreInit()
 {
+	// Don't run CEF init if we want node
+	if (wcsstr(GetCommandLine(), L"--start-node"))
+	{
+		return;
+	}
+
 #ifdef _M_AMD64
 	// again, a Win7 SP1 check (Chromium x64 isn't supported below this operating level)
 	if (!IsWindows7SP1OrGreater())
