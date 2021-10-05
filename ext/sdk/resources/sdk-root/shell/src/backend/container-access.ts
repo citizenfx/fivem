@@ -20,3 +20,13 @@ export class ContainerAccess {
     return task(container);
   }
 }
+
+let container: interfaces.Container;
+
+export function setContainer(c: interfaces.Container) {
+  container = c;
+}
+
+export function getContainer(): interfaces.Container {
+  return container;
+}
