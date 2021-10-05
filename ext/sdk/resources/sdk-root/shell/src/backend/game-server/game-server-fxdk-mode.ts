@@ -110,6 +110,8 @@ export class GameServerFxdkMode implements GameServerMode {
       return;
     }
 
+    this.task?.done();
+
     this.disposed = true;
     this.disposableContainer.dispose();
     this.ipc.dispose();

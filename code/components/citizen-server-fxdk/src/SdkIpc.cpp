@@ -104,11 +104,27 @@ namespace fxdk
 	public:
 		void OnRpc(const std::string& name, TRpcHandler&& handler)
 		{
-			m_rpcHandlers.insert(std::make_pair(name, handler));
+			auto svMainHandler = [handler](const json& data, const uint32_t callId, fwRefContainer<IpcConnection> connection)
+			{
+				Instance<net::UvLoopManager>::Get()->GetOrCreate("svMain")->EnqueueCallback([=]()
+				{
+					handler(data, callId, connection);
+				});
+			};
+
+			m_rpcHandlers.insert(std::make_pair(name, svMainHandler));
 		}
 		void OnEvent(const std::string& name, TEventHandler&& handler)
 		{
-			m_eventHandlers.insert(std::make_pair(name, handler));
+			auto svMainHandler = [handler](const json& data, fwRefContainer<IpcConnection> connection)
+			{
+				Instance<net::UvLoopManager>::Get()->GetOrCreate("svMain")->EnqueueCallback([=]()
+				{
+					handler(data, connection);
+				});
+			};
+
+			m_eventHandlers.insert(std::make_pair(name, svMainHandler));
 		}
 
 	public:
