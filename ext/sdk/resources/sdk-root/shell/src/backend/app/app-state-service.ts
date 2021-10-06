@@ -3,7 +3,6 @@ import { ApiClient } from "backend/api/api-client";
 import { SingleEventEmitter } from "utils/singleEventEmitter";
 import { stateApi } from "shared/api.events";
 import { ServerDataStates, AppStates } from "shared/api.types";
-import { handlesClientEvent } from "backend/api/api-decorators";
 import { ApiContribution } from "backend/api/api-contribution";
 import { AppContribution } from "./app-contribution";
 import { LogService } from "backend/logger/log-service";
@@ -33,6 +32,8 @@ export class AppStateService implements ApiContribution, AppContribution {
   protected gameLaunched: boolean = false;
 
   async boot() {
+    this.apiClient.onClientConnected.addListener(() => this.onAckState());
+
     on('sdk:gameLaunched', () => {
       this.gameLaunched = true;
       this.apiClient.emit(stateApi.gameLaunched);
@@ -59,7 +60,6 @@ export class AppStateService implements ApiContribution, AppContribution {
     return this.serverDataState;
   }
 
-  @handlesClientEvent(stateApi.ackState)
   onAckState() {
     this.ackState();
 

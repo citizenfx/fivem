@@ -1,9 +1,9 @@
 import { inject, injectable } from "inversify";
 import { ApiClient } from "backend/api/api-client";
 import { statusesApi } from "shared/api.events";
-import { handlesClientEvent } from "backend/api/api-decorators";
 import { ApiContribution } from "backend/api/api-contribution";
 import { DisposableObject } from "backend/disposable-container";
+import { AppContribution } from "backend/app/app-contribution";
 
 export interface StatusProxy<T> extends DisposableObject {
   getValue(): T | void;
@@ -14,7 +14,7 @@ export interface StatusProxy<T> extends DisposableObject {
 }
 
 @injectable()
-export class StatusService implements ApiContribution {
+export class StatusService implements ApiContribution, AppContribution {
   getId() {
     return 'StatusService';
   }
@@ -23,6 +23,10 @@ export class StatusService implements ApiContribution {
 
   @inject(ApiClient)
   protected readonly apiClient: ApiClient;
+
+  boot() {
+    this.apiClient.onClientConnected.addListener(() => this.ack());
+  }
 
   get<T>(statusName: string): T | void {
     return this.statuses[statusName];
@@ -44,7 +48,6 @@ export class StatusService implements ApiContribution {
     return new StatusProxyImpl(this, statusName);
   }
 
-  @handlesClientEvent(statusesApi.ack)
   private ack() {
     this.apiClient.emit(statusesApi.statuses, this.statuses);
   }

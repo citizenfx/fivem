@@ -1,17 +1,21 @@
 import React from 'react';
 import { observer } from 'mobx-react-lite';
-import { Input } from 'components/controls/Input/Input';
-import { Modal } from 'components/Modal/Modal';
+import { Input } from 'fxdk/ui/controls/Input/Input';
+import { Modal } from 'fxdk/ui/Modal/Modal';
 import { resourceNamePattern } from 'constants/patterns';
 import { ProjectState } from 'store/ProjectState';
-import s from './FXWorldCreator.module.scss';
-import { Button } from 'components/controls/Button/Button';
+import { Button } from 'fxdk/ui/controls/Button/Button';
 import { APIRQ } from 'shared/api.requests';
 import { assetTypes } from 'shared/asset.types';
-import { sendApiMessage } from 'utils/api';
 import { assetApi } from 'shared/api.events';
+import { Api } from 'fxdk/browser/Api';
+import s from './FXWorldCreator.module.scss';
 
-export const FXWorldCreator = observer(function FXWorldCreator() {
+export interface FXWorldCreatorProps {
+  close(): void;
+}
+
+export const FXWorldCreator = observer(function FXWorldCreator({ close }: FXWorldCreatorProps) {
   const [mapName, setMapName] = React.useState('');
 
   const handleCreateMap = React.useCallback(() => {
@@ -25,13 +29,13 @@ export const FXWorldCreator = observer(function FXWorldCreator() {
       assetType: assetTypes.fxworld,
     };
 
-    sendApiMessage(assetApi.create, request);
+    Api.send(assetApi.create, request);
 
-    ProjectState.mapCreatorUI.close();
-  }, [mapName]);
+    close();
+  }, [mapName, close]);
 
   return (
-    <Modal onClose={ProjectState.mapCreatorUI.close}>
+    <Modal onClose={close}>
       <div className={s.root}>
         <div className="modal-header">
           Map creator
@@ -59,7 +63,7 @@ export const FXWorldCreator = observer(function FXWorldCreator() {
 
           <Button
             text="Cancel"
-            onClick={ProjectState.mapCreatorUI.close}
+            onClick={close}
           />
         </div>
       </div>

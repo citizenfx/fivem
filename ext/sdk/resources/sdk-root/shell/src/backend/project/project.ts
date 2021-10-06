@@ -12,7 +12,6 @@ import { debounce } from 'shared/utils';
 import { GameServerService } from 'backend/game-server/game-server-service';
 import { TaskReporterService } from 'backend/task/task-reporter-service';
 import { projectCreatingTaskName, projectLoadingTaskName } from 'shared/task.names';
-import { TheiaService } from 'backend/theia/theia-service';
 import { getAssetsPriorityQueue } from './project-utils';
 import { AssetMeta } from 'shared/asset.types';
 import { AssetInterface } from '../../assets/core/asset-interface';
@@ -28,6 +27,8 @@ import { AssetConfigChangedListener, ProjectRuntime } from './project-runtime/pr
 import { ProjectState } from './project-runtime/project-state-runtime';
 import { GetAssetMetaOptions } from './project-runtime/project-assets-runtime';
 import { ContainerAccess } from 'backend/container-access';
+import { ProjectEvents } from './project-events';
+import { concurrently } from 'utils/concurrently';
 
 @injectable()
 export class Project implements ApiContribution {
@@ -57,9 +58,6 @@ export class Project implements ApiContribution {
 
   @inject(TaskReporterService)
   protected readonly taskReporterService: TaskReporterService;
-
-  @inject(TheiaService)
-  protected readonly theiaService: TheiaService;
 
   @inject(ProjectUpgrade)
   protected readonly projectUpgrade: ProjectUpgrade;
@@ -222,16 +220,13 @@ export class Project implements ApiContribution {
     };
 
     try {
-      await Promise.all([
+      await concurrently(
         // Write project manifest
         this.fsService.writeFileJson(this.rt.state.manifestPath, projectManifest),
 
         // Write paths state
         this.fsService.writeFileJson(this.rt.state.pathsStatePath, {}),
-
-        // Write theia-personality settings
-        this.theiaService.createDefaultProjectSettings(this.rt.state.storagePath),
-      ]);
+      );
 
       this.logService.log('Done creating project', request);
     } catch (e) {
@@ -240,6 +235,8 @@ export class Project implements ApiContribution {
       creatingTask.done();
     }
 
+    await ProjectEvents.Created.emit(this.rt.state);
+
     return this.load(false);
   }
 
@@ -247,11 +244,15 @@ export class Project implements ApiContribution {
     this.rt = this.containerAccess.resolve(ProjectRuntime);
     await this.rt.initState(this.fsService.resolvePath(projectPath));
 
+    await ProjectEvents.Opened.emit(this.rt.state);
+
     return this.load(true);
   }
 
   private async load(runUpgradeRoutines: boolean): Promise<Project> {
     const loadTask = this.taskReporterService.createNamed(projectLoadingTaskName, `Loading project ${this.rt.state.path}`);
+
+    await ProjectEvents.BeforeLoad.emit(this.rt.state);
 
     try {
       if (runUpgradeRoutines) {
@@ -276,6 +277,8 @@ export class Project implements ApiContribution {
       this.gcManifestResources();
 
       this.refreshEnabledResources();
+
+      await ProjectEvents.Loaded.emit(this.rt);
     } catch (e) {
       throw e;
     } finally {
@@ -288,8 +291,7 @@ export class Project implements ApiContribution {
   async unload() {
     this.logService.log(`Unloading project(${this.getName()})...`);
 
-    await this.gameServerService.stop();
-    await this.worldEditorService.stop();
+    await ProjectEvents.BeforeUnload.emit(this.rt);
 
     this.apiClient.emit(projectApi.close);
 

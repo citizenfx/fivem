@@ -1,1 +1,0 @@
-## FxDK Theia services extension

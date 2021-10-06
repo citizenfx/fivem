@@ -1,12 +1,12 @@
 import React from 'react';
-import { Button } from 'components/controls/Button/Button';
-import { Input } from 'components/controls/Input/Input';
-import { Modal } from 'components/Modal/Modal';
+import { Button } from 'fxdk/ui/controls/Button/Button';
+import { Input } from 'fxdk/ui/controls/Input/Input';
+import { Modal } from 'fxdk/ui/Modal/Modal';
 import { resourceNamePattern } from 'constants/patterns';
 import { APIRQ } from 'shared/api.requests';
 import { projectApi } from 'shared/api.events';
-import { sendApiMessage } from 'utils/api';
 import { FXWORLD_FILE_EXT } from 'assets/fxworld/fxworld-types';
+import { Api } from 'fxdk/browser/Api';
 import s from './FXWorldRenamer.module.scss';
 
 
@@ -25,7 +25,7 @@ export const FXWorldRenamer = React.memo(function FXWorldRenamer({ name, path, o
       newName: newName + FXWORLD_FILE_EXT,
     };
 
-    sendApiMessage(projectApi.renameEntry, request);
+    Api.send(projectApi.renameEntry, request);
 
     onClose();
   }, [path, newName, onClose]);

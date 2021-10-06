@@ -22,7 +22,7 @@ const loadableFeatures: LoadableFeature[] = [
   {
     key: 'world-editor',
     feature: Feature.worldEditor,
-    enabledByDefault: false,
+    enabledByDefault: true,
   }
 ];
 

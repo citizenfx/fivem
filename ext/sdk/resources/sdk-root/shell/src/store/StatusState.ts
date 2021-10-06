@@ -1,9 +1,9 @@
 import { ResourceStatus } from "assets/resource/resource-types";
+import { Api } from "fxdk/browser/Api";
 import { makeAutoObservable } from "mobx";
 import { statusesApi } from "shared/api.events";
 import { featuresStatuses } from "shared/api.statuses";
 import { Feature } from "shared/api.types";
-import { onApiMessage, sendApiMessage } from "utils/api";
 
 const defaultFeaturesStatusContent = Object.create(null);
 
@@ -17,12 +17,8 @@ export const StatusState = new class StatusState {
   constructor() {
     makeAutoObservable(this);
 
-    onApiMessage(statusesApi.statuses, this.setStatuses);
-    onApiMessage(statusesApi.update, this.updateStatus);
-  }
-
-  public ack() {
-    sendApiMessage(statusesApi.ack);
+    Api.on(statusesApi.statuses, this.setStatuses);
+    Api.on(statusesApi.update, this.updateStatus);
   }
 
   get<T>(name: string, defaultValue: T): T {

@@ -1,7 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import mkdirp from 'mkdirp';
-import cp from 'child_process';
 import { inject, injectable } from 'inversify';
 import { ApiClient } from '../api/api-client';
 import { LogService } from 'backend/logger/log-service';
@@ -48,46 +46,6 @@ export class ExplorerService implements ApiContribution {
   @inject(NotificationService)
   protected readonly notificationService: NotificationService;
 
-  private drives: string[] = [];
-  private drivesInitialized = false;
-
-  @handlesClientEvent(explorerApi.readRoots)
-  async readRoots() {
-    const drives = await this.readDrives();
-
-    const roots: FilesystemEntry[] = (await Promise.all(
-      drives.map(async (drive) => {
-        let children;
-        try {
-          children = await this.readDir(drive + '/');
-        } catch (e) {
-          this.notificationService.warning(`Failed to read drive ${drive}: ${e.toString()}`);
-
-          return null;
-        }
-
-        return {
-          path: drive,
-          name: drive,
-          meta: {},
-          isFile: false,
-          isDirectory: true,
-          isSymbolicLink: false,
-          children,
-        };
-      }),
-    )).filter(notNull);
-
-    this.apiClient.emit(explorerApi.roots, roots);
-  }
-
-  @handlesClientEvent(explorerApi.readRoot)
-  async readRoot(dir: string) {
-    const entry = await this.getEntry(dir);
-
-    this.apiClient.emit(explorerApi.root, entry);
-  };
-
   @handlesClientEvent(explorerApi.readDir)
   async readDirToClient(dir: string) {
     const children = await this.readDir(dir);
@@ -104,22 +62,6 @@ export class ExplorerService implements ApiContribution {
 
     this.apiClient.emit(explorerApi.dirRecursive, pathsMap);
   };
-
-  async readDrives() {
-    if (!this.drivesInitialized) {
-      this.drivesInitialized = true;
-
-      this.drives = await new Promise((resolve) => {
-        cp.exec('wmic logicaldisk get name', { windowsHide: true }, (error, stdout) => {
-          resolve(stdout.split('\n')
-            .filter(value => /[A-Za-z]:/.test(value))
-            .map(value => value.trim()));
-        });
-      });
-    }
-
-    return this.drives;
-  }
 
   async isFxdkProject(dir: string): Promise<boolean> {
     const manifestPath = path.join(dir, fxdkProjectFilename);

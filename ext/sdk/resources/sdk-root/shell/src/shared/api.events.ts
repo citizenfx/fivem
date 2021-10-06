@@ -28,8 +28,11 @@ export const projectApi = apiEndpointsGroup({
   createFile: 'project:createFile',
   createDirectory: 'project:createDirectory',
   renameEntry: 'project.renameEntry',
+  entryRenamed: 'project.entryRenamed',
   moveEntry: 'project:moveEntry',
+  entryMoved: 'porject.entryMoved',
   deleteEntry: 'project:deleteEntry',
+  entryDeleted: 'project.entryDeleted',
   copyEntry: 'project:copyEntry',
   copyEntries: 'project:copyEntries',
   freePendingFolderDeletion: 'project:freePendingFolderDeletion',
@@ -62,13 +65,9 @@ export const stateApi = apiEndpointsGroup({
 export const explorerApi = apiEndpointsGroup({
   readDirRecursive: 'explorer:readDirRecursive',
   readDir: 'explorer:readDir',
-  readRoots: 'explorer:readRoots',
-  readRoot: 'explorer:readRoot',
 
   dir: 'explorer:dir',
   dirRecursive: 'explorer:dirRecursive',
-  roots: 'explorer:roots',
-  root: 'explorer:root',
 });
 
 export const serverApi = apiEndpointsGroup({

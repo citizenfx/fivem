@@ -1,8 +1,7 @@
+import { Api, ApiMessageCallback, ApiMessageListener } from 'fxdk/browser/Api';
 import React from 'react';
 import { ShellState } from 'store/ShellState';
-import { ANY_MESSAGE, ApiMessageCallback, ApiMessageListener, onApiMessage, onApiMessageScoped, sendApiMessageCallback } from './api';
 import { fastRandomId } from './random';
-import { onWindowEvent, WindowEventListener } from './windowMessages';
 
 export const useSid = (watchers: React.DependencyList = []) => {
   const initialSid = React.useMemo(fastRandomId, []);
@@ -15,18 +14,14 @@ export const useSid = (watchers: React.DependencyList = []) => {
   return sidRef.current;
 };
 
-export const useApiMessage = (type: string | typeof ANY_MESSAGE, cb: ApiMessageListener, deps: React.DependencyList = []) => {
-  React.useEffect(() => onApiMessage(type, cb), deps); // eslint-disable-line react-hooks/exhaustive-deps
+export const useApiMessage = (type: string, cb: ApiMessageListener, deps: React.DependencyList = []) => {
+  React.useEffect(() => Api.on(type, cb), deps); // eslint-disable-line react-hooks/exhaustive-deps
 };
 
 export const useApiMessageScoped = (type: string, scope: string, cb: ApiMessageListener, deps: React.DependencyList = []) => {
   React.useEffect(() => {
-    return onApiMessageScoped(type, scope, cb);
+    return Api.onScoped(type, scope, cb);
   }, [...deps, scope]);
-};
-
-export const useWindowEvent = <T>(type: string, cb: WindowEventListener<T>, deps: React.DependencyList = []) => {
-  React.useEffect(() => onWindowEvent(type, cb), [type, cb, ...deps]);
 };
 
 export const useCounter = (initial: number = 0) => {
@@ -172,7 +167,7 @@ export const useSendApiMessageCallback = <Data, ResponseData>(type: string, call
       return;
     }
 
-    disposerRef.current = sendApiMessageCallback(type, data, (error: string | null, response: ResponseData | void) => {
+    disposerRef.current = Api.sendCallback(type, data, (error: string | null, response: ResponseData | void) => {
       disposerRef.current = null;
 
       const cb = callbackRef.current;

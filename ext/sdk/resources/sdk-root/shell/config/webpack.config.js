@@ -17,8 +17,8 @@ module.exports = (env, args) => {
       : 'eval',
 
     entry: {
-      main: prerequisites.srcPath('index.tsx'),
-      'archetypes-worker': prerequisites.srcPath('personalities/WorldEditorPersonality/archetypes-worker.ts'),
+      main: prerequisites.srcPath('fxdk/browser/Shell.tsx'),
+      'archetypes-worker': prerequisites.srcPath('personalities/world-editor/archetypes-worker.ts'),
     },
     output: {
       path: prerequisites.paths.buildClient,

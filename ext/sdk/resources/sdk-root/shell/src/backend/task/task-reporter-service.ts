@@ -1,6 +1,6 @@
 import { ApiClient } from "backend/api/api-client";
 import { ApiContribution } from "backend/api/api-contribution";
-import { handlesClientEvent } from "backend/api/api-decorators";
+import { AppContribution } from "backend/app/app-contribution";
 import { inject, injectable } from "inversify";
 import { taskReporterApi } from "shared/api.events";
 import { TaskData, TaskId } from "shared/task.types";
@@ -8,7 +8,7 @@ import { throttle } from "shared/utils";
 import { fastRandomId } from "utils/random";
 
 @injectable()
-export class TaskReporterService implements ApiContribution {
+export class TaskReporterService implements ApiContribution, AppContribution {
   getId() {
     return 'TaskReporterService';
   }
@@ -17,6 +17,10 @@ export class TaskReporterService implements ApiContribution {
   protected readonly apiClient: ApiClient;
 
   protected tasks: Record<TaskId, Task<any>> = {};
+
+  boot() {
+    this.apiClient.onClientConnected.addListener(() => this.ackTasks());
+  }
 
   create<StageType = number>(title: string): Task<StageType> {
     return this.startWithId(fastRandomId(), title);
@@ -63,8 +67,7 @@ export class TaskReporterService implements ApiContribution {
     return task;
   }
 
-  @handlesClientEvent(taskReporterApi.ackTasks)
-  ackTasks() {
+  private ackTasks() {
     const jsonified = Object.values(this.tasks).map((task) => task.toTaskData());
 
     this.apiClient.emit(taskReporterApi.tasks, jsonified);

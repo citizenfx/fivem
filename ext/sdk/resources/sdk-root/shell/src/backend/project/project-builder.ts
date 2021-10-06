@@ -242,6 +242,8 @@ export class ProjectBuilder implements ApiContribution {
       .map((asset) => [asset.getResourceDescriptor?.(), asset.getDeployablePathsDescriptor?.()])
       .filter(([assetResourceDescriptor]) => !!assetResourceDescriptor) as any; // thanks ts, again
 
+    this.logService.log('Deployable resources', deployableResources);
+
     const resourceConfig: string[] = [];
 
     if (project.getManifest().systemResources.length > 0) {
@@ -250,15 +252,19 @@ export class ProjectBuilder implements ApiContribution {
 
       await this.fsService.mkdirp(systemResourcesDeployPath);
 
+      this.logService.log('System resources to deploy', systemResourcesDescriptors);
+
       await Promise.all(
         systemResourcesDescriptors.map(({ name, path }) => this.fsService.copyDirContent(
           path,
           this.fsService.joinPath(systemResourcesDeployPath, name),
-        )),
+        ).then(() => this.logService.log('Deployed system resource', name, path)).catch((e) => this.logService.error(e))),
       );
 
       resourceConfig.push('ensure [system]');
     }
+
+    this.logService.log('Deployed system resources');
 
     const resourcesCount = deployableResources.length;
     if (resourcesCount) {

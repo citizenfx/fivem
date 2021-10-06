@@ -1,0 +1,31 @@
+@import "variables";
+
+.os-theme-fxdk {
+  .os-scrollbar {
+    padding: 0;
+
+    .os-scrollbar-vertical .os-scrollbar-handle {
+      width: 10px;
+    }
+    .os-scrollbar-horizontal .os-scrollbar-handle {
+      height: 10px;
+    }
+
+    .os-scrollbar-track {
+      border-radius: 0;
+
+      .os-scrollbar-handle {
+        background-color: rgba($fgColor, .1);
+        border-radius: 0;
+      }
+
+      .os-scrollbar-handle:hover {
+        background-color: rgba($fgColor, .25);
+      }
+
+      .os-scrollbar-handle.active {
+        background-color: rgba($fgColor, .5);
+      }
+    }
+  }
+}

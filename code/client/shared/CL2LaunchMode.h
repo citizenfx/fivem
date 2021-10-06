@@ -35,7 +35,22 @@ inline bool IsSDKGuest()
 
 	return isSdkGuest;
 }
-	
+
+inline bool IsFXNode()
+{
+	static auto isFXNode = ([]()
+	{
+		if (wcsstr(GetCommandLineW(), L"--start-node") != nullptr)
+		{
+			return true;
+		}
+
+		return false;
+	})();
+
+	return isFXNode;
+}
+
 inline bool IsSDK()
 {
 	static auto isSdk = ([]()

@@ -184,7 +184,7 @@ void SdkMain()
 	});
 	launcherTalk.Bind("sdk:message", [](const std::string& message)
 	{
-		ExecuteJavascriptOnMainFrame(fmt::sprintf("window.postMessage(%s, '*')", message), "fxdk://sdk-message");
+		ExecuteJavascriptOnMainFrame(fmt::sprintf("window.shellApi?.events.emitByObject(%s)", message), "native-fxdk-main");
 	});
 	launcherTalk.Bind("sdk:backendMessage", [resman](const std::string& message)
 	{
@@ -193,50 +193,38 @@ void SdkMain()
 	launcherTalk.Bind("sdk:consoleMessage", [](const std::string& channel, const std::string& message)
 	{
 		auto msg = nlohmann::json::object({
-			{"type", "game:consoleMessage"},
-			{"data", {{"channel", channel}, {"message", message}}}
+			{"channel", channel},
+			{"message", message}
 		});
 
-		ExecuteJavascriptOnMainFrame(
-			fmt::sprintf("window.postMessage(%s, '*')", msg.dump()),
-			"fxdk://console-message"
-		);
+		ExecuteJavascriptOnMainFrame(fmt::sprintf("window.shellApi?.events.emit('game:consoleMessage', %s)", msg.dump()), "native-fxdk-main");
 	});
 	launcherTalk.Bind("connectionStateChanged", [resman](const int currentState, const int previousState)
 	{
 		resman->GetComponent<fx::ResourceEventManagerComponent>()->QueueEvent2("sdk:connectionStateChanged", {}, (int)currentState, (int)previousState);
 
 		ExecuteJavascriptOnMainFrame(
-			fmt::sprintf("window.postMessage({type: 'connection-state-changed', data: {current:%d, previous:%d}}, '*')", currentState, previousState),
-			"fxdk://connection-state-changed"
+			fmt::sprintf("window.shellApi?.events.emit('connection-state-changed', {current:%d, previous:%d})", currentState, previousState),
+			"native-fxdk-main"
 		);
 	});
 	launcherTalk.Bind("loading", [resman]()
 	{
 		resman->GetComponent<fx::ResourceEventManagerComponent>()->QueueEvent2("sdk:gameLoading", {});
 
-		ExecuteJavascriptOnMainFrame(
-			"window.postMessage({type: 'game-loading'}, '*')",
-			"fxdk://game-loading"
-		);
+		ExecuteJavascriptOnMainFrame("window.shellApi?.events.emit('game-loading')", "native-fxdk-main");
 	});
 	launcherTalk.Bind("unloading", [resman]()
 	{
 		resman->GetComponent<fx::ResourceEventManagerComponent>()->QueueEvent2("sdk:gameUnloading", {});
 
-		ExecuteJavascriptOnMainFrame(
-			"window.postMessage({type: 'game-unloading'}, '*')",
-			"fxdk://game-loading"
-		);
+		ExecuteJavascriptOnMainFrame("window.shellApi?.events.emit('game-unloading')", "native-fxdk-main");
 	});
 	launcherTalk.Bind("unloaded", [resman]()
 	{
 		resman->GetComponent<fx::ResourceEventManagerComponent>()->QueueEvent2("sdk:gameUnloaded", {});
 
-		ExecuteJavascriptOnMainFrame(
-			"window.postMessage({type: 'game-unloaded'}, '*')",
-			"fxdk://game-loading"
-		);
+		ExecuteJavascriptOnMainFrame("window.shellApi?.events.emit('game-unloaded')", "native-fxdk-main");
 	});
 	launcherTalk.Bind("sdk:refreshArchetypesCollectionDone", [resman]()
 	{
@@ -255,8 +243,8 @@ void SdkMain()
 		resman->GetComponent<fx::ResourceEventManagerComponent>()->QueueEvent2("sdk:gameProcessStateChanged", {}, (int)state, (int)previousState);
 
 		ExecuteJavascriptOnMainFrame(
-			fmt::sprintf("window.postMessage({type: 'game-process-state-changed', data: {current:%d, previous:%d}}, '*')", (int)state, (int)previousState),
-			"fxdk://game-process-state-changed"
+			fmt::sprintf("window.shellApi?.events.emit('game-process-state-changed', {current:%d, previous:%d})", (int)state, (int)previousState),
+			"native-fxdk-main"
 		);
 
 		previousState = state;
@@ -472,6 +460,7 @@ void SdkMain()
 
 	// Specify CEF global settings here.
 	CefSettings settings;
+
 	settings.no_sandbox = true;
 
 	settings.background_color = 0xFF161923;

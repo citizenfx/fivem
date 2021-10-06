@@ -1,26 +1,26 @@
 import React from 'react';
 import classnames from 'classnames';
-import { ProjectItemProps } from "components/Project/ProjectExplorer/item";
-import { itemsStyles } from "components/Project/ProjectExplorer/item.styles";
+import { ProjectItemProps } from "fxdk/project/browser/ProjectExplorer/item";
+import { itemsStyles } from "fxdk/project/browser/ProjectExplorer/item.styles";
 import { observer } from "mobx-react-lite";
 import { FXWorldAssetConfig, FXWORLD_FILE_EXT } from '../fxworld-types';
-import { WEState } from 'personalities/WorldEditorPersonality/store/WEState';
-import { useItem, useItemDrag } from 'components/Project/ProjectExplorer/ProjectExplorer.hooks';
-import { ContextMenu, ContextMenuItemsCollection, ContextMenuItemSeparator } from 'components/controls/ContextMenu/ContextMenu';
+import { WEState } from 'personalities/world-editor/store/WEState';
+import { useItem, useItemDrag } from 'fxdk/project/browser/ProjectExplorer/ProjectExplorer.hooks';
+import { ContextMenu, ContextMenuItemsCollection, ContextMenuItemSeparator } from 'fxdk/ui/controls/ContextMenu/ContextMenu';
 import { useOpenFlag } from 'utils/hooks';
 import { checkedIcon, deleteIcon, fxworldIcon, renameIcon, uncheckedIcon } from 'constants/icons';
-import { ProjectExplorerItemContext } from 'components/Project/ProjectExplorer/item.context';
+import { ProjectExplorerItemContext } from 'fxdk/project/browser/ProjectExplorer/item.context';
 import { FXWorldRenamer } from './FXWorldRenamer/FXWorldRenamer';
 import { ProjectState } from 'store/ProjectState';
 import { APIRQ } from 'shared/api.requests';
 import { ResourceAssetConfig } from 'assets/resource/resource-types';
-import { sendApiMessage, sendApiMessageScoped } from 'utils/api';
 import { projectApi } from 'shared/api.events';
-import { ItemState } from 'components/Project/ProjectExplorer/ItemState';
-import { Title } from 'components/controls/Title/Title';
-import { projectExplorerItemType } from 'components/Project/ProjectExplorer/item.types';
+import { ItemState } from 'fxdk/project/browser/ProjectExplorer/ItemState';
+import { Title } from 'fxdk/ui/controls/Title/Title';
+import { projectExplorerItemType } from 'fxdk/project/browser/ProjectExplorer/item.types';
 import mergeRefs from 'utils/mergeRefs';
 import { fxworldRecompile } from '../fxworld-constants';
+import { Api } from 'fxdk/browser/Api';
 
 const defaultFXWorldConfig: FXWorldAssetConfig = {
   enabled: false,
@@ -52,7 +52,7 @@ export const FXWorld = observer(function FXWorld(props: ProjectItemProps) {
       },
     };
 
-    sendApiMessage(projectApi.setAssetConfig, request);
+    Api.send(projectApi.setAssetConfig, request);
   }, [assetPath, isEnabled]);
 
   const handleDelete = React.useCallback(() => {
@@ -60,7 +60,7 @@ export const FXWorld = observer(function FXWorld(props: ProjectItemProps) {
   }, [entry, mapName]);
 
   const handleRecompile = React.useCallback(() => {
-    sendApiMessageScoped(fxworldRecompile, assetName);
+    Api.sendScoped(fxworldRecompile, assetName);
   }, [assetName]);
 
   const { requiredContextMenuItems } = useItem(props);

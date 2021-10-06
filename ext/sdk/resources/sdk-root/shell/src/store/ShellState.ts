@@ -1,11 +1,10 @@
-import { hasNewChangelogEntries } from 'components/Changelog/Changelog.utils';
+import { Api } from 'fxdk/browser/Api';
 import { makeAutoObservable } from 'mobx';
 import { stateApi } from 'shared/api.events';
 import { AppStates } from 'shared/api.types';
-import { onApiMessage, sendApiMessage } from 'utils/api';
 
 export enum ShellPersonality {
-  THEIA,
+  MAIN,
   WORLD_EDITOR,
 }
 
@@ -13,22 +12,18 @@ export const ShellState = new class ShellState {
   constructor() {
     makeAutoObservable(this);
 
-    onApiMessage(stateApi.state, this.setAppState);
+    Api.on(stateApi.state, this.setAppState);
   }
 
-  public ack() {
-    sendApiMessage(stateApi.ackState);
-  }
-
-  public personality = ShellPersonality.THEIA;
+  public personality = ShellPersonality.MAIN;
   setPersonality(personality: ShellPersonality) {
     this.personality = personality;
   }
 
-  get isTheia(): boolean {
-    return this.personality === ShellPersonality.THEIA;
+  get isMainPersonality(): boolean {
+    return this.personality === ShellPersonality.MAIN;
   }
-  get isWorldEditor(): boolean {
+  get isWorldEditorPersonality(): boolean {
     return this.personality === ShellPersonality.WORLD_EDITOR;
   }
 
@@ -38,14 +33,6 @@ export const ShellState = new class ShellState {
   get isReady(): boolean {
     return this.appState === AppStates.ready;
   }
-
-  public updaterOpen = hasNewChangelogEntries();
-  openUpdater = () => this.updaterOpen = true;
-  closeUpdater = () => this.updaterOpen = false;
-
-  public changelogOpen = false;
-  openChangelog = () => this.changelogOpen = true;
-  closeChangelog = () => this.changelogOpen = false;
 
   private coverIframes = 0;
 

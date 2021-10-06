@@ -1,4 +1,4 @@
-import { inject, injectable } from "inversify";
+import { inject, injectable, postConstruct } from "inversify";
 import { ApiClient } from "backend/api/api-client";
 import { ApiContribution, ApiContributionFactory } from "backend/api/api-contribution";
 import { handlesClientCallbackEvent, handlesClientEvent } from "backend/api/api-decorators";
@@ -43,6 +43,13 @@ export class ProjectManager implements ApiContribution {
 
   protected project: Project | null = null;
   protected projectLock: boolean = false;
+
+  @postConstruct()
+  initialize() {
+    this.apiClient.onClientConnected.addListener(() => {
+      this.updateRecentProjects();
+    });
+  }
 
   getProject() {
     return this.project;

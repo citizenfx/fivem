@@ -15,6 +15,7 @@ process.on('unhandledRejection', (error) => {
   process.exit(-1);
 });
 
+import { __DEBUG_MODE_TOGGLES__ } from 'constants/debug-constants';
 import { Container } from 'inversify';
 import { ConfigService } from './config-service';
 import { AppService } from './app/app-service';
@@ -28,7 +29,6 @@ import { bindApp } from './app/app-bindings';
 import { bindStatus } from './status/status-bindings';
 import { bindUpdater } from './updater/updater-bindings';
 import { bindLogger } from './logger/logger-bindings';
-import { bindTheia } from './theia/theia-bindings';
 import { bindGameServer } from './game-server/game-server-bindings';
 import { bindProject } from './project/project-bindings';
 import { ContainerAccess, setContainer } from './container-access';
@@ -39,6 +39,7 @@ import { bindGithub } from './github/github-bindings';
 import { bindGit } from './git/git-bindings';
 import { bindWorldEditor } from './world-editor/world-editor-bindings';
 import { bindSystemResources } from './system-resources/system-resources-bindings';
+import { bindFXCode } from './fxcode/fxcode-bindings';
 
 const appContainer = new Container();
 
@@ -62,12 +63,13 @@ bindApi(appContainer);
 bindGame(appContainer);
 bindGameServer(appContainer);
 bindUpdater(appContainer);
-bindTheia(appContainer);
 bindProject(appContainer);
 bindGithub(appContainer);
 bindGit(appContainer);
 bindWorldEditor(appContainer);
 bindSystemResources(appContainer);
+
+bindFXCode(appContainer);
 
 
 appContainer.get(AppService).startContributions().catch((e) => {

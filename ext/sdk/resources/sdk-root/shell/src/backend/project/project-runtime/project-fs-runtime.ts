@@ -86,7 +86,12 @@ export class ProjectFsRuntime {
   async renameEntry(request: APIRQ.RenameEntry) {
     const newEntryPath = this.fsService.joinPath(this.fsService.dirname(request.entryPath), request.newName);
 
-    return this.fsService.rename(request.entryPath, newEntryPath);
+    await this.fsService.rename(request.entryPath, newEntryPath);
+
+    this.apiClient.emit(projectApi.entryRenamed, {
+      fromEntryPath: request.entryPath,
+      toEntryPath: newEntryPath,
+    } as APIRQ.EntryRenamed);
   }
 
   async moveEntry(request: APIRQ.MoveEntry) {
@@ -104,6 +109,11 @@ export class ProjectFsRuntime {
       oldPath: sourcePath,
       newPath,
     });
+
+    this.apiClient.emit(projectApi.entryMoved, {
+      fromEntryPath: sourcePath,
+      toEntryPath: newPath,
+    } as APIRQ.EntryMoved);
   }
 
   async deleteEntry(request: APIRQ.DeleteEntry): Promise<APIRQ.DeleteEntryResponse> {
@@ -124,6 +134,10 @@ export class ProjectFsRuntime {
         return APIRQ.DeleteEntryResponse.FailedToRecycle;
       }
     }
+
+    this.apiClient.emit(projectApi.entryDeleted, {
+      entryPath,
+    } as APIRQ.EntryDeleted);
 
     return APIRQ.DeleteEntryResponse.Ok;
   }

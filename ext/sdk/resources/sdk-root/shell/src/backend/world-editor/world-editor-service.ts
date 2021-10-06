@@ -5,6 +5,7 @@ import { ServerResourceDescriptor, ServerStartRequest } from "backend/game-serve
 import { GameServerService } from "backend/game-server/game-server-service";
 import { NotificationService } from "backend/notification/notification-service";
 import { ProjectAccess } from "backend/project/project-access";
+import { ProjectEvents } from "backend/project/project-events";
 import { __DEBUG_MODE_TOGGLES__ } from "constants/debug-constants";
 import { inject, injectable, postConstruct } from "inversify";
 import { worldEditorApi } from "shared/api.events";
@@ -43,6 +44,8 @@ export class WorldEditorService implements ApiContribution {
 
   @postConstruct()
   init() {
+    ProjectEvents.BeforeUnload.addListener(() => this.stop());
+
     this.gameServerService.onServerStop((error) => {
       if (this.running) {
         this.running = false;

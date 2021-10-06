@@ -71,15 +71,26 @@ export namespace APIRQ {
     entryPath: string,
     newName: string,
   }
+  export interface EntryRenamed {
+    fromEntryPath: string,
+    toEntryPath: string,
+  }
 
   export interface MoveEntry {
     sourcePath: string,
     targetPath: string,
   }
+  export interface EntryMoved {
+    fromEntryPath: string,
+    toEntryPath: string,
+  }
 
   export interface DeleteEntry {
     entryPath: string,
     hardDelete?: boolean,
+  }
+  export interface EntryDeleted {
+    entryPath: string,
   }
   export enum DeleteEntryResponse {
     Ok,

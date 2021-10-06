@@ -51,7 +51,6 @@ export interface FilesystemEntry {
   isFile: boolean,
   isDirectory: boolean,
   isSymbolicLink: boolean,
-  children?: FilesystemEntry[],
 }
 
 export type ExplorerChildsMap = {

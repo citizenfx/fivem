@@ -82,7 +82,9 @@ module.exports = {
         acc[file] = path.join(paths.src, file);
 
         return acc;
-      }, {}),
+      }, {
+        'vs': path.join(__dirname, '../../fxcode/src/vs'),
+      }),
       extensions: ['.ts', '.tsx', '.js'],
     },
   },

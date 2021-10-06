@@ -15,8 +15,9 @@ export type ApiEventListenerDisposer = () => void;
 @injectable()
 export class ApiClient {
   public readonly onEventListenerError = new SingleEventEmitter<Error>();
+  public readonly onClientConnected = new SingleEventEmitter<void>();
 
-  protected clients: Set<ws> = new Set();
+  protected clients: Set<ws.WebSocket> = new Set();
 
   protected eventTypeListeners: Record<string, Set<ApiEventListener>> = {};
   protected eventTypeCallbackListener: Record<string, ApiEventListener> = {};
@@ -29,11 +30,13 @@ export class ApiClient {
 
   @postConstruct()
   protected initialize() {
-    this.shellBackend.expressApp.ws('/api', (ws) => {
+    this.shellBackend.useWS('/api', (ws) => {
       this.clients.add(ws);
 
       ws.on('close', () => this.clients.delete(ws));
       ws.on('message', (message: string) => this.handleMessage(message));
+
+      this.onClientConnected.emit();
     });
   }
 
@@ -130,6 +133,12 @@ export class ApiClient {
   }
 
   private broadcastMessage(message: string) {
-    this.clients.forEach((client) => client.send(Buffer.from(message), wsSendOptions));
+    let messageBuffer = Buffer.from(message);
+
+    while (messageBuffer.readUInt8(0) !== message.charCodeAt(0)) {
+      messageBuffer = Buffer.from(message);
+    }
+
+    this.clients.forEach((client) => client.send(messageBuffer, wsSendOptions));
   }
 }

@@ -74,6 +74,8 @@ export class GameService implements ApiContribution, AppContribution {
   }
 
   async boot() {
+    this.apiClient.onClientConnected.addListener(() => this.ack());
+
     this.archetypesCollectionReady = Boolean(await this.archetypesService.isValid());
 
     const gameBuildNumberDeferred = new Deferred<number>();
@@ -190,7 +192,6 @@ export class GameService implements ApiContribution, AppContribution {
     this.toGameState(GameStates.UNLOADING);
   }
 
-  @handlesClientEvent(gameApi.ack)
   ack() {
     this.apiClient.emit(gameApi.ack, {
       gameState: this.gameState,

@@ -33,6 +33,15 @@ static float clamp01(float num)
 	return num;
 }
 
+class ClipboardCloser
+{
+public:
+	~ClipboardCloser()
+	{
+		CloseClipboard();
+	}
+};
+
 static InitFunction initFunction([]()
 {
 	auto nuiApp = Instance<NUIApp>::Get();
@@ -297,5 +306,60 @@ static InitFunction initFunction([]()
 		selectFolderDialogCallback.second = nullptr;
 
 		return true;
+	});
+
+	nuiApp->AddV8Handler("fxdkClipboardRead", [](const CefV8ValueList& arguments, CefString& exception)
+	{
+		if (OpenClipboard(nullptr))
+		{
+			ClipboardCloser closer;
+
+			if (HANDLE ptr = GetClipboardData(CF_UNICODETEXT))
+			{
+				if (wchar_t* text = static_cast<wchar_t*>(GlobalLock(ptr)))
+				{
+					std::wstring textString(text);
+
+					GlobalUnlock(ptr);
+
+					return CefV8Value::CreateString(textString);
+				}
+			}
+		}
+
+		return CefV8Value::CreateString("");
+	});
+	nuiApp->AddV8Handler("fxdkClipboardWrite", [](const CefV8ValueList& arguments, CefString& exception)
+	{
+		if (arguments.size() == 0 || !arguments[0]->IsString())
+		{
+			exception.FromString("Argument must be a string");
+
+			return CefV8Value::CreateUndefined();
+		}
+
+		const std::wstring text(arguments[0]->GetStringValue().c_str());
+		const size_t textSize = text.size() + 1;
+
+		if (OpenClipboard(nullptr))
+		{
+			ClipboardCloser closer;
+
+			if (HGLOBAL mem = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, static_cast<const size_t>(textSize * sizeof(wchar_t))))
+			{
+				if (wchar_t* ptr = static_cast<wchar_t*>(GlobalLock(mem)))
+				{
+					wcscpy_s(ptr, textSize, text.c_str());
+
+					GlobalUnlock(mem);
+
+					SetClipboardData(CF_UNICODETEXT, mem);
+				}
+
+				GlobalFree(mem);
+			}
+		}
+
+		return CefV8Value::CreateUndefined();
 	});
 }, 1);

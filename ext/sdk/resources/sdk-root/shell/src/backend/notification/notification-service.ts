@@ -25,6 +25,8 @@ export class NotificationService implements AppContribution, ApiContribution {
   protected readonly notifications: Record<string, NotificationItem> = {};
 
   boot() {
+    this.apiClient.onClientConnected.addListener(() => this.ack());
+
     this.apiClient.onEventListenerError.addListener((error: Error) => {
       this.error(`Unexpected error occured: ${error.toString()}`);
     });
@@ -65,7 +67,6 @@ export class NotificationService implements AppContribution, ApiContribution {
     return this.create(NotificationType.error, text, timeout);
   }
 
-  @handlesClientEvent(notificationsApi.ack)
   private ack() {
     Object.values(this.notifications).forEach((notification) => {
       this.apiClient.emit(notificationsApi.create, notification);

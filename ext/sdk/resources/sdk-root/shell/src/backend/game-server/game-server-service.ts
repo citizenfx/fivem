@@ -8,7 +8,7 @@ import { FsService } from 'backend/fs/fs-service';
 import { LogService } from 'backend/logger/log-service';
 import { GameServerManagerService } from './game-server-manager-service';
 import { ApiClient } from 'backend/api/api-client';
-import { Task, TaskReporterService } from 'backend/task/task-reporter-service';
+import { TaskReporterService } from 'backend/task/task-reporter-service';
 import { NotificationService } from 'backend/notification/notification-service';
 import { GameService } from 'backend/game/game-service';
 import { Deferred } from 'backend/deferred';
@@ -20,6 +20,7 @@ import { GameServerFxdkMode } from './game-server-fxdk-mode';
 import { GameServerLegacyMode } from "./game-server-legacy-mode";
 import { SingleEventEmitter } from "utils/singleEventEmitter";
 import { Disposable } from "backend/disposable-container";
+import { ProjectEvents } from "backend/project/project-events";
 
 @injectable()
 export class GameServerService implements AppContribution, ApiContribution {
@@ -79,6 +80,10 @@ export class GameServerService implements AppContribution, ApiContribution {
   }
 
   boot() {
+    ProjectEvents.BeforeUnload.addListener(() => this.stop());
+
+    this.apiClient.onClientConnected.addListener(() => this.ackState());
+
     this.serverLock.resolve();
     process.on('exit', () => {
       if (this.server) {
@@ -95,7 +100,6 @@ export class GameServerService implements AppContribution, ApiContribution {
     return this.state === ServerStates.up;
   }
 
-  @handlesClientEvent(serverApi.ackState)
   ackState() {
     this.apiClient.emit(serverApi.state, this.state);
   }

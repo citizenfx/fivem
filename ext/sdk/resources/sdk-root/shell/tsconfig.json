@@ -23,11 +23,14 @@
         "name": "typescript-plugin-css-modules"
       }
     ],
-    "baseUrl": "src",
     "forceConsistentCasingInFileNames": true,
     "isolatedModules": true,
     "noEmit": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "baseUrl": "src",
+    "paths": {
+      "vs/*": ["../../fxcode/src/vs/*"]
+    }
   },
   "include": [
     "src"

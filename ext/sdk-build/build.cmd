@@ -13,8 +13,8 @@ set FXDK=..\sdk\resources
 set FXDKGame=..\sdk\resources\sdk-game
 set FXDKRoot=..\sdk\resources\sdk-root
 
-set FXDKTheia=%FXDKRoot%\personality-theia
 set FXDKShell=%FXDKRoot%\shell
+set FXDKFXCode=%FXDKRoot%\fxcode
 
 
 :: build sdk-game
@@ -39,53 +39,19 @@ popd
 :: /build shell
 
 
+:: build fxcode
+pushd %FXDKFXCode%
 
-:: build theia
-pushd %FXDKTheia%
-if exist build rmdir /s /q build
-set NODE_OPTIONS=--max_old_space_size=4096
-call yarn install --frozen-lockfile --ignore-scripts --ignore-engines
-call yarn build
-xcopy /y /e fxdk-app\lib\*.* 	    build\lib\
-xcopy /y    fxdk-app\backend.js     build\
-xcopy /y    yarn.lock               build\
+call yarn install --frozen-lockfile --ignore-engines
+call yarn download-builtin-extensions
+call yarn --cwd fxdk install --frozen-lockfile
+call yarn --cwd fxdk rebuild-native-modules
+call yarn --cwd fxdk build
 
-echo F|xcopy /y    fxdk-app\backend-package.json build\package.json
-echo F|xcopy /y    build.yarnclean               build\.yarnclean
+%~dp0\..\..\code\tools\ci\7z a -mx=0 fxcode.tar out-fxdk-pkg\*
 
-call yarn --cwd build install --frozen-lockfile --production --ignore-engines
-
-:: copy these as they have backend parts, other exts will end up bundled in theia frontend
-xcopy /y /e node_modules\fxdk-project\lib\*.*       build\node_modules\fxdk-project\lib\
-xcopy /y    node_modules\fxdk-project\package.json  build\node_modules\fxdk-project\
-xcopy /y /e node_modules\fxdk-services\lib\*.*      build\node_modules\fxdk-services\lib\
-xcopy /y    node_modules\fxdk-services\package.json build\node_modules\fxdk-services\
-
-for %%m in (find-git-repositories, drivelist, @theia/node-pty, native-keymap) do (
-	call yarn electron-rebuild -f -m build\node_modules\%%m
-)
-call yarn autoclean --force
-
-:: make a cleanup
-del /q /f /s "build\*.gz"
-del /q /f /s "build\lib\*.map"
-del /q /f /s "build\node_modules\*.map"
-del build\yarn.lock
-del build\.yarnclean
-rmdir /s /q build\node_modules\font-awesome
-rmdir /s /q build\node_modules\@theia\editor
-rmdir /s /q build\node_modules\@theia\monaco
-rmdir /s /q build\node_modules\@theia\outline-view
-rmdir /s /q build\node_modules\@theia\monaco-editor-core
-
-for /d %%G in ("build\node_modules\react*") do rmdir /s /q %%G
-
-%~dp0\..\..\code\tools\ci\7z a -mx=0 personality-theia.tar build\*
-
-rmdir /s /q build
 popd
-:: /build theia
-
+:: /build fxcode
 
 
 :: move builds
@@ -97,7 +63,7 @@ xcopy /y %FXDKShell%\mpMenu.html   %BuildRoot%\resource\shell\
 
 move %FXDKShell%\build                 %BuildRoot%\resource\shell\build
 move %FXDKShell%\build_server          %BuildRoot%\resource\shell\build_server
-move %FXDKTheia%\personality-theia.tar %BuildRoot%\resource\personality-theia.tar
+move %FXDKFXCode%\fxcode.tar           %BuildRoot%\resource\fxcode.tar
 :: /move builds
 
 

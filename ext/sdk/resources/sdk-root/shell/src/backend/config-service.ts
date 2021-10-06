@@ -10,7 +10,7 @@ if (!process.env.LOCALAPPDATA) {
 @injectable()
 export class ConfigService {
   readonly shellBackendPort: number;
-  readonly theiaBackendPort: number;
+  readonly editorBackendPort: number;
 
   readonly sdkUrl: string;
   readonly selfHosted: boolean;
@@ -28,11 +28,10 @@ export class ConfigService {
   readonly sdkRootShell: string;
   readonly sdkRootShellBuild: string;
 
-  readonly theiaConfigPath: string;
-  readonly theiaPluginsPath: string;
+  readonly sdkRootFXCode: string;
+  readonly sdkRootFXCodeArchive: string;
 
-  readonly sdkRootTheia: string;
-  readonly sdkRootTheiaArchive: string;
+  readonly fxcodeDataPath: string;
 
   readonly sdkStorage: string;
   readonly serverArtifacts: string;
@@ -42,7 +41,6 @@ export class ConfigService {
   readonly systemResourcesRoot: string;
   readonly systemResourcesPath: string;
 
-  readonly nativesDocluaPath: string;
   readonly recentProjectsFilePath: string;
   readonly featuresFilePath: string;
 
@@ -61,10 +59,12 @@ export class ConfigService {
     this.selfHosted = this.sdkUrl === 'http://localhost:35419/';
 
     this.shellBackendPort = parseInt(new URL(this.sdkUrl).port, 10) || 80;
-    this.theiaBackendPort = this.shellBackendPort + 1;
+    this.editorBackendPort = this.shellBackendPort + 1;
 
     this.realCwd = process.cwd();
     this.citizen = path.normalize(GetConvar('citizen_path'));
+
+    process.env.CITIZEN_PATH = this.citizen;
 
     this.cfxLocalAppData = path.join(LOCALAPPDATA, 'citizenfx');
 
@@ -77,12 +77,10 @@ export class ConfigService {
     this.sdkRootShell = path.join(this.sdkRoot, 'shell');
     this.sdkRootShellBuild = path.join(this.sdkRootShell, 'build');
 
-    // Also defined at personality-theia/fxdk-project/src/backend/rebindEnvVariablesServerImpl.ts
-    this.theiaConfigPath = path.join(this.cfxLocalAppData, 'sdk-personality-theia');
-    this.theiaPluginsPath = path.join(this.cfxLocalAppData, 'sdk-personality-theia-plugins');
+    this.fxcodeDataPath = path.join(this.cfxLocalAppData, 'sdk-personality-fxcode');
 
-    this.sdkRootTheia = path.join(this.sdkRoot, 'personality-theia');
-    this.sdkRootTheiaArchive = path.join(this.sdkRoot, 'personality-theia.tar');
+    this.sdkRootFXCode = path.join(this.sdkRoot, 'fxcode');
+    this.sdkRootFXCodeArchive = path.join(this.sdkRoot, 'fxcode.tar');
 
     this.sdkStorage = path.join(this.cfxLocalAppData, 'sdk-storage');
 
@@ -90,7 +88,6 @@ export class ConfigService {
     this.serverContainer = path.join(this.sdkStorage, 'server');
     this.serverDataPath = path.join(this.sdkStorage, 'serverData');
 
-    this.nativesDocluaPath = path.join(this.cfxLocalAppData, 'natives-doclua');
     this.recentProjectsFilePath = path.join(this.sdkStorage, 'recent-projects.json');
     this.featuresFilePath = path.join(this.sdkStorage, 'features.json');
 

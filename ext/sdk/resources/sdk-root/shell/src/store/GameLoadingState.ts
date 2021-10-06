@@ -1,5 +1,5 @@
 import { makeAutoObservable, runInAction } from "mobx"
-import { onLoadingEvent } from "utils/windowMessages";
+import { onGameLoadingEvent } from "utils/gameLoadingEvent";
 
 const log = (...args) => {};
 
@@ -17,7 +17,7 @@ export const GameLoadingState = new class GameLoadingState {
   constructor() {
     makeAutoObservable(this);
 
-    onLoadingEvent('loadProgress', ({ loadFraction }) => {
+    onGameLoadingEvent('loadProgress', ({ loadFraction }) => {
       log('loadProgress', loadFraction);
 
       runInAction(() => {
@@ -25,11 +25,11 @@ export const GameLoadingState = new class GameLoadingState {
       });
     });
 
-    onLoadingEvent('startInitFunction', ({ type }) => {
+    onGameLoadingEvent('startInitFunction', ({ type }) => {
       log('startInitFunction', type);
     });
 
-    onLoadingEvent('startInitFunctionOrder', ({ type, order, count }) => {
+    onGameLoadingEvent('startInitFunctionOrder', ({ type, order, count }) => {
       log('startInitFunctionOrder', {
         type,
         order,
@@ -37,7 +37,7 @@ export const GameLoadingState = new class GameLoadingState {
       });
     });
 
-    onLoadingEvent('initFunctionInvoking', ({ type, name, idx }) => {
+    onGameLoadingEvent('initFunctionInvoking', ({ type, name, idx }) => {
       log('initFunctionInvoking', {
         type,
         name,
@@ -45,26 +45,26 @@ export const GameLoadingState = new class GameLoadingState {
       });
     });
 
-    onLoadingEvent('initFunctionInvoked', ({ type, name }) => {
+    onGameLoadingEvent('initFunctionInvoked', ({ type, name }) => {
       log('initFunctionInvoked', {
         type,
         name,
       });
     });
 
-    onLoadingEvent('endInitFunction', ({ type }) => {
+    onGameLoadingEvent('endInitFunction', ({ type }) => {
       log('endInitFunction', type);
     });
 
-    onLoadingEvent('startDataFileEntries', ({ count }) => {
+    onGameLoadingEvent('startDataFileEntries', ({ count }) => {
       log('startDataFileEntries', count);
     });
 
-    onLoadingEvent('performMapLoadFunction', ({ idx }) => {
+    onGameLoadingEvent('performMapLoadFunction', ({ idx }) => {
       log('performMapLoadFunction', idx);
     });
 
-    onLoadingEvent('onDataFileEntry', ({ type, isNew, name }) => {
+    onGameLoadingEvent('onDataFileEntry', ({ type, isNew, name }) => {
       log('onDataFileEntry', {
         type,
         isNew,
@@ -72,7 +72,7 @@ export const GameLoadingState = new class GameLoadingState {
       });
     });
 
-    onLoadingEvent('onLogLine', ({ message }) => {
+    onGameLoadingEvent('onLogLine', ({ message }) => {
       log('onLogLine', message);
     });
   }

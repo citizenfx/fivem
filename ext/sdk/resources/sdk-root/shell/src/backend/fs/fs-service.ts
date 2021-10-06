@@ -4,6 +4,8 @@ import path from 'path';
 import fg from 'fast-glob';
 import mkdirp from 'mkdirp';
 import rimrafSync from 'rimraf';
+import { jsonc } from 'jsonc';
+import fxp from 'fast-xml-parser';
 import { promisify } from 'util';
 import { inject, injectable } from "inversify";
 import { FsAtomicWriter } from './fs-atomic-writer';
@@ -159,12 +161,28 @@ export class FsService {
     return JSON.parse(content);
   }
 
+  async readFileJsonc<T>(entryPath: string): Promise<T> {
+    const content = await this.readFileString(entryPath);
+
+    return jsonc.parse(content);
+  }
+
+  async readFileXML<T>(entryPath: string, options?: fxp.X2jOptionsOptional): Promise<T> {
+    const content = await this.readFileString(entryPath);
+
+    return fxp.parse(content, options);
+  }
+
   writeFile(entryPath: string, content: string | Buffer) {
     return fs.promises.writeFile(entryPath, content);
   }
 
   writeFileJson<T>(entryPath: string, content: T, pretty = true) {
     return this.writeFile(entryPath, JSON.stringify(content, undefined, pretty ? 2 : undefined));
+  }
+
+  writeFileJsonc<T>(entryPath: string, content: T, pretty = true) {
+    return this.writeFile(entryPath, jsonc.stringify(content, undefined, pretty ? 2 : undefined));
   }
 
   createAtomicWriter(entryPath: string) {
@@ -420,5 +438,11 @@ export class FsService {
 
       on('sdk:recycleShellItemsResponse', handler);
     });
+  }
+
+  async ensureFile(entryPath: string, content = '') {
+    if (!(await this.statSafe(entryPath))) {
+      await this.writeFile(entryPath, content);
+    }
   }
 }

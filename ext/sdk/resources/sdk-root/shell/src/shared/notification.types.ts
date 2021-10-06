@@ -1,3 +1,10 @@
+
+export interface INotificationAction {
+  id: string,
+  label: string,
+  commandId: string,
+}
+
 export enum NotificationType {
   info,
   warning,
@@ -9,4 +16,5 @@ export interface NotificationItem {
   type: NotificationType,
   text: string,
   expireAt?: number,
+  actions?: INotificationAction[],
 }

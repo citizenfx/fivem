@@ -111,6 +111,40 @@ void ComponentLoader::Initialize()
 				continue;
 			}
 		}
+
+		// don't load some useless stuff for FXNode as well
+		if (launch::IsFXNode()) {
+			std::vector<std::wstring> neededComponentsList = {
+				L"citizen-scripting-v8node",
+				L"citizen-scripting-core",
+				L"citizen-resources-core",
+				L"scripting-gta",
+				L"rage-scripting-five",
+				L"rage-allocator-five",
+				L"http-client",
+				L"citizen-scripting-core",
+				L"conhost-v2",
+				L"vfs-core",
+				L"net-tcp-server",
+				L"net-base",
+			};
+
+			bool wantThisComponent = false;
+
+			for (auto& componentName : neededComponentsList)
+			{
+				if (nameWide == componentName)
+				{
+					wantThisComponent = true;
+					break;
+				}
+			}
+
+			if (!wantThisComponent)
+			{
+				continue;
+			}
+		}
 #endif
 
 #ifndef IS_FXSERVER

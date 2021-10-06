@@ -5,8 +5,13 @@ function clampToolbarWidth(width: number): number {
 };
 
 export const ToolbarState = new class ToolbarState {
-  public isOpen = true;
   public width = clampToolbarWidth(parseInt(localStorage.toolbarWidth, 0) || 430);
+
+  public get cssVariables(): React.CSSProperties {
+    return {
+      '--toolbar-width': `${this.width}px`,
+    } as any;
+  }
 
   constructor() {
     makeAutoObservable(this);
@@ -17,8 +22,4 @@ export const ToolbarState = new class ToolbarState {
 
     localStorage.toobarWidth = this.width;
   }
-
-  open = () => this.isOpen = true;
-  close = () => this.isOpen = false;
-  toggle = () => this.isOpen = !this.isOpen;
 }();

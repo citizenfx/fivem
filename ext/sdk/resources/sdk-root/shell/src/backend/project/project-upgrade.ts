@@ -41,7 +41,10 @@ export class ProjectUpgrade {
   private projectFileRestored = false;
 
   async maybeUpgradeProject(request: ProjectUpgradeRequest) {
+    this.maybeTheiaCleanup(request);
+
     await this.maybeUpgrateAssetMetas(request);
+    await this.maybeDeleteStaleCfxServerData(request);
 
     await this.maybeRestoreProjectFile(request);
 
@@ -335,6 +338,36 @@ export class ProjectUpgrade {
       delete (manifest as any).updatedAt;
 
       return this.fsService.writeFileJson(request.manifestPath, manifest);
+    }
+  }
+
+  private async maybeDeleteStaleCfxServerData(request: ProjectUpgradeRequest) {
+    const entryPath = this.fsService.joinPath(request.projectPath, 'cfx-server-data');
+    const entryMetaPath = this.fsService.joinPath(request.projectPath, 'cfx-server-data.fxmeta');
+
+    const [hasEntry, hasEntryMeta] = await Promise.all([
+      this.fsService.statSafe(entryPath),
+      this.fsService.statSafe(entryMetaPath),
+    ]);
+
+    if (hasEntryMeta && !hasEntry) {
+      try {
+        await this.fsService.unlink(entryMetaPath);
+      } catch (e) {
+        // don't care as doesn't affect anything
+      }
+    }
+  }
+
+  private async maybeTheiaCleanup(request: ProjectUpgradeRequest) {
+    const theiaSettingsPath = this.fsService.joinPath(request.storagePath, 'theia-settings.json');
+
+    if (await this.fsService.statSafe(theiaSettingsPath)) {
+      try {
+        await this.fsService.unlink(theiaSettingsPath);
+      } catch (e) {
+        // don't really care
+      }
     }
   }
 }

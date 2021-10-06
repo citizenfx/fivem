@@ -87,7 +87,7 @@ static void InvokeNUIScript(const std::string& eventName, rapidjson::Document& j
 		{
 			static constexpr uint32_t SEND_SDK_MESSAGE = HashString("SEND_SDK_MESSAGE");
 
-			NativeInvoke::Invoke<SEND_SDK_MESSAGE, const char*>(sb.GetString());
+			NativeInvoke::Invoke<SEND_SDK_MESSAGE, const char*>(fmt::sprintf("{type:'game:loadingScreen',data:%s}", sb.GetString()).c_str());
 		}
 
 		nui::PostFrameMessage("loadingScreen", sb.GetString());

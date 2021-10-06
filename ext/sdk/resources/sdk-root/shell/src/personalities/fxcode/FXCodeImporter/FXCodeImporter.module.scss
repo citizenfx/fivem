@@ -1,0 +1,46 @@
+@import "variables";
+
+.root {
+  display: flex;
+  flex-direction: column;
+
+  height: $modalContentHeight;
+  max-height: $modalContentHeight;
+
+  :global(.modal-header),
+  :global(.modal-actions) {
+    flex-shrink: 0;
+  }
+
+  .content {
+    flex-grow: 1;
+
+    overflow-x: hidden;
+  }
+
+  .toggles {
+    display: flex;
+    flex-direction: column;
+
+    gap: $q * 2;
+
+    details {
+      summary {
+        cursor: pointer;
+        user-select: none;
+      }
+    }
+
+    .toggleAll {
+      margin-top: $q;
+      margin-bottom: $q;
+      margin-left: $q * 4.5;
+    }
+
+    .toggle {
+      margin-left: $q * 4.5;
+
+      @include fontMonospace();
+    }
+  }
+}

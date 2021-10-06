@@ -1,24 +1,47 @@
+import React from "react";
+import { Api } from "fxdk/browser/Api";
+import { APIRQ } from "shared/api.requests";
 import { DisposableContainer, DisposableObject } from "backend/disposable-container";
 import { makeAutoObservable, reaction } from "mobx";
 import { assetApi, projectApi } from "shared/api.events";
-import { APIRQ } from "shared/api.requests";
 import { FilesystemEntry, FilesystemEntryMap } from "shared/api.types";
 import { AssetType } from "shared/asset.types";
 import { ProjectAssetBaseConfig, ProjectData, ProjectFsUpdate, ProjectManifest, ProjectOpenData, ProjectPathsState, RecentProject } from "shared/project.types";
-import { onApiMessage, sendApiMessage, sendApiMessageCallback } from "utils/api";
 import { getProjectBuildPathVar, getProjectDeployArtifactVar, getProjectSteamWebApiKeyVar, getProjectTebexSecretVar, getProjectUseVersioningVar } from "utils/projectStorage";
-import { onWindowEvent } from "utils/windowMessages";
 import { ShellState } from "./ShellState";
-import { TheiaState } from "../personalities/TheiaPersonality/TheiaState";
 import { SystemResource } from "backend/system-resources/system-resources-constants";
 import { OpenFlag } from "./generic/OpenFlag";
 import { ConfirmationsState } from "./ConfirmationsState";
 import { deleteIcon } from "constants/icons";
-import React from "react";
 import { AssetDefinition } from "assets/core/asset-interface";
+import { FXCodeState } from "personalities/fxcode/FXCodeState";
+import { ShellEvents } from "shell-api/events";
+import { ShellCommands } from "shell-api/commands";
+import { ProjectBuilderCommands } from "fxdk/project/contrib/builder/builder.commands";
+import { __DEBUG_MODE_TOGGLES__ } from "constants/debug-constants";
+import { ResourceCommands } from "assets/resource/renderer/resource.commands";
 
+export interface FsTreeEntryAccessor {
+  setSelected(selected: boolean): void,
+}
 
-class ProjectObject implements ProjectData, DisposableObject {
+const fsTreeAccessors: Record<string, FsTreeEntryAccessor> = {};
+
+export function useFsTreeEntryAccessor(entryPath: string, accessorFactory: () => FsTreeEntryAccessor) {
+  React.useEffect(() => {
+    const accessor = fsTreeAccessors[entryPath] = accessorFactory();
+
+    if (entryPath === ProjectState.project?.selectedEntryPath) {
+      accessor.setSelected(true);
+    }
+
+    return () => {
+      delete fsTreeAccessors[entryPath];
+    };
+  }, []);
+}
+
+export class ProjectObject implements ProjectData, DisposableObject {
   public fs: FilesystemEntryMap;
 
   public path: string;
@@ -33,6 +56,8 @@ class ProjectObject implements ProjectData, DisposableObject {
   public assetTypes: Record<string, AssetType | void> = {};
 
   private disposableContainer: DisposableContainer;
+
+  public selectedEntryPath = '';
 
   constructor(
     projectData: ProjectData,
@@ -50,11 +75,12 @@ class ProjectObject implements ProjectData, DisposableObject {
     this.disposableContainer = new DisposableContainer();
 
     this.disposableContainer.add(
-      onApiMessage(projectApi.update, this.update),
-      onApiMessage(projectApi.fsUpdate, this.updateFs),
-      onApiMessage(projectApi.pathsStateUpdate, this.updatePathsState),
-      onApiMessage(assetApi.setConfig, this.setAssetConfig),
-      onApiMessage(assetApi.updates, this.handleAssetUpdates),
+      Api.on(projectApi.update, this.update),
+      Api.on(projectApi.fsUpdate, this.updateFs),
+      Api.on(projectApi.pathsStateUpdate, this.updatePathsState),
+      Api.on(assetApi.setConfig, this.setAssetConfig),
+      Api.on(assetApi.updates, this.handleAssetUpdates),
+      ShellEvents.on('fxdk:revealFile', this.revealFile),
     );
   }
 
@@ -101,15 +127,33 @@ class ProjectObject implements ProjectData, DisposableObject {
       this.manifest.systemResources.push(resource);
     }
 
-    sendApiMessage(projectApi.setSystemResources, this.manifest.systemResources);
+    Api.send(projectApi.setSystemResources, this.manifest.systemResources);
+  }
+
+  select(entryPath: string) {
+    if (this.selectedEntryPath) {
+      fsTreeAccessors[this.selectedEntryPath]?.setSelected(false);
+    }
+
+    this.selectedEntryPath = entryPath;
+
+    fsTreeAccessors[entryPath]?.setSelected(true);
   }
 
   readonly setPathState = (path: string, state: boolean) => {
     this.pathsState[path] = state;
 
-    sendApiMessage(projectApi.setPathsStatePatch, {
+    Api.send(projectApi.setPathsStatePatch, {
       [path]: state,
     });
+  };
+
+  readonly setPathsState = (patch: Record<string, boolean>) => {
+    for (const [key, value] of Object.entries(patch)) {
+      this.pathsState[key] = value;
+    }
+
+    Api.send(projectApi.setPathsStatePatch, patch);
   };
 
   readonly deleteEntryConfirmFirst = (entryPath: string, title: string, children: () => React.ReactNode) => {
@@ -123,7 +167,7 @@ class ProjectObject implements ProjectData, DisposableObject {
   };
 
   readonly deleteEntry = (entryPath: string) => {
-    sendApiMessageCallback(projectApi.deleteEntry, { entryPath }, (error, response) => {
+    Api.sendCallback(projectApi.deleteEntry, { entryPath }, (error, response) => {
       if (error) {
         return;
       }
@@ -139,7 +183,7 @@ class ProjectObject implements ProjectData, DisposableObject {
               hardDelete: true,
             };
 
-            sendApiMessageCallback(projectApi.deleteEntry, request, (error) => {
+            Api.sendCallback(projectApi.deleteEntry, request, (error) => {
               if (error) {
                 console.error(error);
               }
@@ -188,18 +232,55 @@ class ProjectObject implements ProjectData, DisposableObject {
   private updatePathsState = (pathsState: ProjectPathsState) => {
     this.pathsState = pathsState;
   };
+
+  private revealFile = (entryPathRaw: unknown) => {
+    if (typeof entryPathRaw !== 'string') {
+      return;
+    }
+
+    if (!entryPathRaw.startsWith(this.path.toLowerCase())) {
+      return;
+    }
+
+    const relativeEntryPath = entryPathRaw.substr(this.path.length + 1);
+    if (!relativeEntryPath) {
+      return;
+    }
+
+    // FXCode will always lower-case drive letter, so we fix it
+    const entryPath = `${this.path}\\${relativeEntryPath}`;
+
+    const [, ...pathParts] = relativeEntryPath.split('\\').reverse();
+    pathParts.reverse();
+
+    const entryDirPath = [this.path, ...pathParts].join('\\');
+
+    // Is this file even real?
+    if (!this.fs[entryDirPath]?.find((dirEntry) => dirEntry.path === entryPath)) {
+      return;
+    }
+
+    // Open corresponding paths, if not in project root
+    if (entryDirPath !== this.path) {
+      let dirPath = this.path;
+      const patch: Record<string, boolean> = {};
+
+      while (pathParts.length) {
+        dirPath += '\\' + pathParts.shift();
+
+        patch[dirPath] = true;
+      }
+
+      this.setPathsState(patch);
+    }
+
+    this.select(entryPath);
+  };
 }
 export const ProjectState = new class ProjectState {
-  public creatorUI = new OpenFlag();
-  public openerUI = new OpenFlag();
-  public settingsUI = new OpenFlag();
-  public builderUI = new OpenFlag();
-  public importerUI = new OpenFlag();
   public directoryCreatorUI = new OpenFlag();
-  public mapCreatorUI = new OpenFlag();
 
   public resourceCreatorDir = '';
-  public resourceCreatorUI = new OpenFlag();
 
   public recentProjects: RecentProject[] = [];
 
@@ -207,6 +288,7 @@ export const ProjectState = new class ProjectState {
 
   private projectAlreadyOpening = false;
   private projectObject: ProjectObject | null = null;
+  private recentProjectsLoading = true;
 
   get project(): ProjectObject {
     if (this.projectObject === null) {
@@ -224,6 +306,14 @@ export const ProjectState = new class ProjectState {
     return 'No project open';
   }
 
+  get areRecentProjectsLoading(): boolean {
+    return this.recentProjectsLoading;
+  }
+
+  get isProjectOpening(): boolean {
+    return this.projectAlreadyOpening;
+  }
+
   get hasProject(): boolean {
     return this.projectObject !== null;
   }
@@ -231,28 +321,18 @@ export const ProjectState = new class ProjectState {
   constructor() {
     makeAutoObservable(this);
 
-    reaction(
-      () => ShellState.isReady,
-      (isReady) => {
-        if (isReady) {
-          sendApiMessage(projectApi.getRecents);
-        }
-      },
-    );
+    Api.on(projectApi.recents, this.setRecentProjects);
 
-    onApiMessage(projectApi.recents, this.setRecentProjects);
+    Api.on(projectApi.open, this.setOpenProject);
+    Api.on(projectApi.close, this.destroyProject);
 
-    onApiMessage(projectApi.open, this.setOpenProject);
-    onApiMessage(projectApi.close, this.closeProject);
+    Api.on(projectApi.freePendingFolderDeletion, this.freePendingFolderDeletion);
 
-    onApiMessage(projectApi.freePendingFolderDeletion, this.freePendingFolderDeletion);
-
-    onWindowEvent('fxdk:buildProject', () => {
-      this.buildProject();
-    });
+    ShellEvents.on('fxdk:buildProject', this.buildProject);
   }
 
   private setRecentProjects = (recentProjects) => {
+    this.recentProjectsLoading = false;
     this.recentProjects = recentProjects;
 
     const lastProjectPath = localStorage.getItem('last-project-path');
@@ -262,6 +342,7 @@ export const ProjectState = new class ProjectState {
       const [lastProject] = recentProjects;
 
       if (lastProject && lastProject.path === lastProjectPath) {
+        console.log('Opening recent', lastProject);
         this.openProject(lastProject.path);
       }
     }
@@ -272,22 +353,21 @@ export const ProjectState = new class ProjectState {
       this.resourceCreatorDir = dir;
     }
 
-    this.resourceCreatorUI.open();
+    ShellCommands.invoke(ResourceCommands.OPEN_CREATOR);
   };
 
   openProject(path: string) {
     if (!this.projectAlreadyOpening) {
-      this.closeProject();
+      this.destroyProject();
 
-      this.openerUI.close();
       this.projectAlreadyOpening = true;
 
-      sendApiMessage(projectApi.open, path);
+      Api.send(projectApi.open, path);
     }
   }
 
   private setOpenProject = ({ project, pathsState }: ProjectOpenData) => {
-    this.closeProject();
+    this.destroyProject();
 
     this.resourceCreatorDir = project.path;
     this.projectAlreadyOpening = false;
@@ -296,7 +376,13 @@ export const ProjectState = new class ProjectState {
     localStorage.setItem('last-project-path', this.project.path);
   };
 
-  private closeProject = () => {
+  public readonly closeProject = () => {
+    localStorage.removeItem('last-project-path');
+
+    this.destroyProject();
+  };
+
+  private readonly destroyProject = () => {
     if (this.projectObject) {
       this.projectObject.dispose();
       this.projectObject = null;
@@ -316,10 +402,10 @@ export const ProjectState = new class ProjectState {
     const tebexSecret = getProjectTebexSecretVar(project);
 
     if (!buildPath) {
-      return this.builderUI.open();
+      return ShellCommands.invoke(ProjectBuilderCommands.OPEN);
     }
 
-    sendApiMessage(projectApi.build, {
+    Api.send(projectApi.build, {
       buildPath,
       useVersioning,
       deployArtifact,
@@ -329,9 +415,10 @@ export const ProjectState = new class ProjectState {
     } as APIRQ.ProjectBuild);
   };
 
-  openFile(entry: FilesystemEntry) {
+  openFile(entry: FilesystemEntry, pinned = false) {
     if (this.hasProject) {
-      TheiaState.openFile(entry.path);
+      FXCodeState.openFile(entry.path, pinned);
+      this.project.select(entry.path);
     }
   }
 

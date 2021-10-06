@@ -7,9 +7,15 @@
   "private": true,
   "scripts": {
     "install:shell": "yarn --cwd resources/sdk-root/shell install --pure-lockfile",
-    "install:theia": "yarn --cwd resources/sdk-root/personality-theia install --pure-lockfile --ignore-engines",
+    "install:fxcode-main": "yarn --cwd resources/sdk-root/fxcode install --pure-lockfile --ignore-engines",
+    "install:fxcode-fxdk": "yarn --cwd resources/sdk-root/fxcode/fxdk install --pure-lockfile --ignore-engines",
+    "install:fxcode-extensions-compile": "yarn --cwd resources/sdk-root/fxcode gulp compile-extensions",
+    "install:fxcode-extensions-download": "yarn --cwd resources/sdk-root/fxcode download-extensions",
+    "install:fxcode-extensions": "yarn run install:fxcode-extensions-compile && yarn run install:fxcode-extensions-download",
+    "install:fxcode-rebuild": "yarn --cwd resources/sdk-root/fxcode/fxdk rebuild-native-modules",
+    "install:fxcode": "yarn run install:fxcode-main && yarn run install:fxcode-fxdk && yarn run install:fxcode-extensions && yarn run install:fxcode-rebuild",
     "install:game": "yarn --cwd resources/sdk-game install --pure-lockfile",
-    "postinstall": "yarn run install:shell && yarn run install:theia && yarn run install:game",
+    "postinstall": "yarn run install:shell && yarn run install:fxcode && yarn run install:game",
     "start:shell": "yarn --cwd resources/sdk-root/shell run start",
     "start:game": "yarn --cwd resources/sdk-game run start",
     "start": "concurrently --names \"shell,sdk-game\" \"yarn run start:shell\" \"yarn run start:game\""

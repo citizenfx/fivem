@@ -1,20 +1,20 @@
 import React from 'react';
 import { observer } from 'mobx-react-lite';
-import { Button } from 'components/controls/Button/Button';
-import { Input } from 'components/controls/Input/Input';
-import { Explorer } from 'components/Explorer/Explorer';
-import { Modal } from 'components/Modal/Modal';
+import { Button } from 'fxdk/ui/controls/Button/Button';
+import { Input } from 'fxdk/ui/controls/Input/Input';
+import { Explorer } from 'fxdk/ui/Explorer/Explorer';
+import { Modal } from 'fxdk/ui/Modal/Modal';
 import { resourceNamePattern } from 'constants/patterns';
-import { sendApiMessage } from 'utils/api';
 import { assetApi } from 'shared/api.events';
 import { FilesystemEntry } from 'shared/api.types';
 import { APIRQ } from 'shared/api.requests';
-import { combineVisibilityFilters, visibilityFilters } from 'components/Explorer/Explorer.filters';
-import { getRelativePath } from 'components/Explorer/Explorer.utils';
+import { combineVisibilityFilters, visibilityFilters } from 'fxdk/ui/Explorer/Explorer.filters';
+import { getRelativePath } from 'fxdk/ui/Explorer/Explorer.utils';
 import { ResourceTemplate } from './ResourceTemplate/ResourceTemplate';
 import { resourceTemplateDescriptors } from 'resource-templates/descriptors-list';
 import { assetTypes } from 'shared/asset.types';
 import { ProjectState } from 'store/ProjectState';
+import { Api } from 'fxdk/browser/Api';
 import s from './ResourceCreator.module.scss';
 
 
@@ -27,7 +27,11 @@ const resourceFolderVisibilityFilter = combineVisibilityFilters(
   visibilityFilters.hideDotFilesAndDirs,
 );
 
-export const ResourceCreator = observer(function ResourceCreator() {
+export interface ResourceCreatorProps {
+  close: () => void,
+}
+
+export const ResourceCreator = observer(function ResourceCreator({ close }: ResourceCreatorProps) {
   const project = ProjectState.project;
 
   const [resourceName, setResourceName] = React.useState('');
@@ -40,7 +44,7 @@ export const ResourceCreator = observer(function ResourceCreator() {
   }, [ProjectState.resourceCreatorDir, setResourcePath]);
 
   const handleCreateResource = React.useCallback(() => {
-    if (resourceName && project) {
+    if (resourceName) {
       const request: APIRQ.AssetCreate = {
         assetType: assetTypes.resource,
         assetName: resourceName,
@@ -50,11 +54,11 @@ export const ResourceCreator = observer(function ResourceCreator() {
         },
       };
 
-      sendApiMessage(assetApi.create, request);
+      Api.send(assetApi.create, request);
 
-      ProjectState.resourceCreatorUI.close();
+      close();
     }
-  }, [resourceName, project, resourcePath, resourceTemplateId]);
+  }, [resourceName, project, resourcePath, resourceTemplateId, close]);
 
   const resourceRelativePath = getRelativePath(project.path, resourcePath);
   const resourcePathHint = resourcePath === project.path
@@ -62,7 +66,7 @@ export const ResourceCreator = observer(function ResourceCreator() {
     : `Location: ${resourceRelativePath}`;
 
   return (
-    <Modal fullWidth onClose={ProjectState.resourceCreatorUI.close}>
+    <Modal fullWidth onClose={close}>
       <div className={s.root}>
         <div className="modal-header">
           Create Resource
@@ -115,7 +119,7 @@ export const ResourceCreator = observer(function ResourceCreator() {
           />
           <Button
             text="Cancel"
-            onClick={ProjectState.resourceCreatorUI.close}
+            onClick={close}
           />
         </div>
       </div>

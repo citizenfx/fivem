@@ -1,13 +1,12 @@
 import { GameStates } from "backend/game/game-contants";
+import { Api } from "fxdk/browser/Api";
 import { makeAutoObservable, runInAction } from "mobx";
 import { gameApi } from "shared/api.events";
 import { NetLibraryConnectionState, SDKGameProcessState } from "shared/native.enums";
-import { sendApiMessage, sendApiMessageCallback } from "utils/api";
+import { ShellEvents } from "shell-api/events";
 import { SingleEventEmitter } from "utils/singleEventEmitter";
-import { onWindowEvent } from "utils/windowMessages";
 import { GameLoadingState } from "./GameLoadingState";
 import { NotificationState } from "./NotificationState";
-import { onApiMessageAction } from "./utils/setterHelpers";
 
 export const GameState = new class GameState {
   public state = GameStates.NOT_RUNNING;
@@ -21,7 +20,7 @@ export const GameState = new class GameState {
   constructor() {
     makeAutoObservable(this);
 
-    onApiMessageAction(gameApi.ack, (data) => {
+    Api.onWithAction(gameApi.ack, (data) => {
       this.state = data.gameState;
       this.launched = data.gameLaunched;
       this.processState = data.gameProcessState;
@@ -29,24 +28,24 @@ export const GameState = new class GameState {
       this.archetypesCollectionReady = data.archetypesCollectionReady;
     });
 
-    onApiMessageAction(gameApi.gameState, (state) => {
+    Api.onWithAction(gameApi.gameState, (state) => {
       this.state = state;
 
       if (this.state === GameStates.LOADING) {
         GameLoadingState.resetLoadingProgress();
       }
     });
-    onApiMessageAction(gameApi.gameLaunched, (launched) => {
+    Api.onWithAction(gameApi.gameLaunched, (launched) => {
       this.launched = launched;
     });
-    onApiMessageAction(gameApi.gameProcessStateChanged, ({ current }) => {
+    Api.onWithAction(gameApi.gameProcessStateChanged, ({ current }) => {
       this.processState = current;
     });
-    onApiMessageAction(gameApi.connectionStateChanged, ({ current }) => {
+    Api.onWithAction(gameApi.connectionStateChanged, ({ current }) => {
       this.connectionState = current;
     });
 
-    onWindowEvent('fxdk:loadingScreenWarning', () => {
+    ShellEvents.on('fxdk:loadingScreenWarning', () => {
       const msg = [
         'Loading screen has not been shut down for 15 seconds',
         `This is the reason why you see the "Awaiting scripts" message in bottom right corner of the game-view`,
@@ -58,38 +57,34 @@ export const GameState = new class GameState {
       NotificationState.warning(msg);
     });
 
-    onWindowEvent('fxdk:gameFatalError', (error: string) => {
+    ShellEvents.on('fxdk:gameFatalError', (error: string) => {
       NotificationState.error(error);
       this.restart();
     });
   }
 
-  public ack() {
-    sendApiMessage(gameApi.ack);
-  }
-
-  readonly restart = () => {
-    sendApiMessage(gameApi.restart);
-  };
+  readonly restart = () => Api.send(gameApi.restart);
 
   private archetypesCollectionReadyEvent = new SingleEventEmitter<void>();
   onArchetypeCollectionReady(cb: () => void) {
     this.archetypesCollectionReadyEvent.addListener(cb);
   }
 
-  refreshArchetypesCollection() {
+  async refreshArchetypesCollection() {
     this.archetypesCollectionPending = true;
     this.archetypesCollectionReady = false;
 
-    sendApiMessageCallback<boolean>(gameApi.refreshArchetypesCollection, null, (error, data) => runInAction(() => {
-      this.archetypesCollectionPending = false;
-      this.archetypesCollectionReady = true;
+    try {
+      await Api.sendPromise(gameApi.refreshArchetypesCollection);
 
-      if (!data && error) {
-        NotificationState.error(`Failed to obtain object list: ${error}`);
-      } else {
-        this.archetypesCollectionReadyEvent.emit();
-      }
-    }));
+      this.archetypesCollectionReadyEvent.emit();
+    } catch (e) {
+      NotificationState.error(`Failed to obtain object list: ${e}`);
+    } finally {
+      runInAction(() => {
+        this.archetypesCollectionPending = false;
+        this.archetypesCollectionReady = true;
+      });
+    }
   }
 }();

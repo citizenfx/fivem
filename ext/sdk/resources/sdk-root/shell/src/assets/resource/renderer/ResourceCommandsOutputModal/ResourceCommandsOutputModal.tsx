@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { ResourceStatus } from 'assets/resource/resource-types';
-import { Modal } from 'components/Modal/Modal';
-import { Output } from 'components/Output/Output';
-import { Button } from 'components/controls/Button/Button';
-import { Select, SelectOption } from 'components/controls/Select/Select';
+import { Modal } from 'fxdk/ui/Modal/Modal';
+import { Output } from 'fxdk/ui/Output/Output';
+import { Button } from 'fxdk/ui/controls/Button/Button';
+import { Select, SelectOption } from 'fxdk/ui/controls/Select/Select';
 import { observer } from 'mobx-react-lite';
 import { OutputState } from 'store/OutputState';
 import s from './ResourceCommandsOutputModal.module.scss';

@@ -71,6 +71,8 @@ export class GameServerManagerService implements AppContribution, ApiContributio
   protected updateChannelPromises: Set<{ deferred: Deferred<void>, channel: ServerUpdateChannel, state: ServerUpdateStates }> = new Set();
 
   boot() {
+    this.apiClient.onClientConnected.addListener(() => this.ackUpdateChannelsState());
+
     if (!this.forceServerLocation) {
       this.updateChannelsState = {
         [serverUpdateChannels.recommended]: ServerUpdateStates.checking,
@@ -408,7 +410,6 @@ export class GameServerManagerService implements AppContribution, ApiContributio
     return this.fsService.joinPath(this.configService.serverArtifacts, `${updateChannel}.${version}.fxdkdownload`);
   }
 
-  @handlesClientEvent(serverApi.ackUpdateChannelsState)
   private ackUpdateChannelsState() {
     this.apiClient.emit(serverApi.updateChannelsState, this.updateChannelsState);
 

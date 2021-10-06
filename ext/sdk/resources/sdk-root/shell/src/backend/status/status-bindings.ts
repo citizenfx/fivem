@@ -1,8 +1,10 @@
 import { interfaces } from "inversify";
-import { ApiContribution } from "backend/api/api-contribution";
+import { bindApiContribution } from "backend/api/api-contribution";
 import { StatusService } from "./status-service";
+import { bindAppContribution } from "backend/app/app-contribution";
 
 export const bindStatus = (container: interfaces.Container) => {
   container.bind(StatusService).toSelf().inSingletonScope();
-  container.bind(ApiContribution).toService(StatusService);
+  bindApiContribution(container, StatusService);
+  bindAppContribution(container, StatusService);
 };

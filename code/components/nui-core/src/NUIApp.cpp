@@ -162,6 +162,8 @@ void NUIApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
 			"fxdkSendApiMessage",
 			"fxdkOpenSelectFolderDialog",
 			"fxdkOpenSelectFileDialog",
+			"fxdkClipboardRead",
+			"fxdkClipboardWrite"
 		};
 
 		for (auto const& handler : fxdkHandlers)

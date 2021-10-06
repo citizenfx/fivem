@@ -1,28 +1,26 @@
+import { Api } from "fxdk/browser/Api";
+import { ShellLifecycle, ShellLifecyclePhase } from "fxdk/browser/shellLifecycle";
 import { makeAutoObservable } from "mobx";
 import { projectApi, serverApi } from "shared/api.events";
 import { APIRQ } from "shared/api.requests";
 import { ServerStates, ServerUpdateChannel, ServerUpdateStates } from "shared/api.types";
-import { onApiMessage, sendApiMessage } from "utils/api";
+import { ShellEvents } from "shell-api/events";
 import { getProjectTebexSecretVar } from "utils/projectStorage";
 import { sendCommandToGameClient } from "utils/sendCommand";
-import { onWindowEvent } from "utils/windowMessages";
 import { ProjectState } from "./ProjectState";
 
 export const ServerState = new class ServerState {
   constructor() {
     makeAutoObservable(this);
 
-    onApiMessage(serverApi.state, this.setState);
-    onApiMessage(serverApi.updateChannelsState, this.setUpdateChannelsState);
-    onApiMessage(serverApi.resourcesState, this.setResourcesState);
+    ShellLifecycle.onPhase(ShellLifecyclePhase.Booting, () => sendCommandToGameClient('sdk:ackConnected'));
 
-    onWindowEvent('server:sendCommand', (cmd: string) => {
-      this.sendCommand(cmd);
-    });
+    Api.on(serverApi.state, this.setState);
+    Api.on(serverApi.updateChannelsState, this.setUpdateChannelsState);
+    Api.on(serverApi.resourcesState, this.setResourcesState);
 
-    onWindowEvent('fxdk:startServer', () => {
-      this.startServer();
-    });
+    ShellEvents.on('server:sendCommand', this.sendCommand.bind(this));
+    ShellEvents.on('fxdk:startServer', this.startServer.bind(this));
   }
 
   public state: ServerStates | null = null;
@@ -32,13 +30,6 @@ export const ServerState = new class ServerState {
   public clientConnected = false;
 
   public resourcesState = Object.create(null);
-
-  public ack() {
-    sendApiMessage(serverApi.ackState);
-    sendApiMessage(serverApi.ackUpdateChannelsState);
-
-    sendCommandToGameClient('sdk:ackConnected');
-  }
 
   isResourceRunning(resourceName: string): boolean {
     return !!this.resourcesState[resourceName];
@@ -75,7 +66,7 @@ export const ServerState = new class ServerState {
       const steamWebApiKey = ''; //getProjectSteamWebApiKeyVar(project);
       const tebexSecret = getProjectTebexSecretVar(project);
 
-      sendApiMessage(projectApi.startServer, {
+      Api.send(projectApi.startServer, {
         steamWebApiKey,
         tebexSecret,
       } as APIRQ.ProjectStartServer);
@@ -83,7 +74,7 @@ export const ServerState = new class ServerState {
   }
 
   stopServer() {
-    sendApiMessage(projectApi.stopServer);
+    Api.send(projectApi.stopServer);
   }
 
   toggleServer() {
@@ -96,20 +87,20 @@ export const ServerState = new class ServerState {
   }
 
   sendCommand(cmd: string) {
-    sendApiMessage(serverApi.sendCommand, cmd);
+    Api.send(serverApi.sendCommand, cmd);
   }
 
   checkForUpdates(updateChannel: ServerUpdateChannel) {
-    sendApiMessage(serverApi.checkForUpdates, updateChannel);
+    Api.send(serverApi.checkForUpdates, updateChannel);
   }
 
   installUpdate(updateChannel: ServerUpdateChannel) {
-    sendApiMessage(serverApi.checkForUpdates, updateChannel);
+    Api.send(serverApi.checkForUpdates, updateChannel);
   }
 
   private setState = (state: ServerStates) => {
     if (state === ServerStates.up) {
-      sendApiMessage(serverApi.ackResourcesState);
+      Api.send(serverApi.ackResourcesState);
     } else if (state === ServerStates.down) {
       this.resourcesState = Object.create(null);
     }

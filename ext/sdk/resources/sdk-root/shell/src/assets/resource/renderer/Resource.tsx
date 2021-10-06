@@ -4,28 +4,28 @@ import classnames from 'classnames';
 import { NativeTypes } from 'react-dnd-html5-backend';
 import { BsExclamationCircle, BsFillEyeFill } from 'react-icons/bs';
 import { useOpenFlag } from 'utils/hooks';
-import { sendApiMessage } from 'utils/api';
 import { projectApi, serverApi } from 'shared/api.events';
-import { ContextMenu, ContextMenuItemsCollection, ContextMenuItemSeparator } from 'components/controls/ContextMenu/ContextMenu';
+import { ContextMenu, ContextMenuItemsCollection, ContextMenuItemSeparator } from 'fxdk/ui/controls/ContextMenu/ContextMenu';
 import { checkedIcon, deleteIcon, disabledResourceIcon, enabledResourceIcon, refreshIcon, renameIcon, resourceIcon, startIcon, stopIcon, uncheckedIcon } from 'constants/icons';
-import { useExpandablePath, useItem, useItemDragAndDrop, useItemRelocateTargetContextMenu } from 'components/Project/ProjectExplorer/ProjectExplorer.hooks';
-import { ProjectExplorerItemContext, ProjectExplorerItemContextProvider } from 'components/Project/ProjectExplorer/item.context';
+import { useExpandablePath, useItem, useItemDragAndDrop, useItemRelocateTargetContextMenu } from 'fxdk/project/browser/ProjectExplorer/ProjectExplorer.hooks';
+import { ProjectExplorerItemContext, ProjectExplorerItemContextProvider } from 'fxdk/project/browser/ProjectExplorer/item.context';
 import { ResourceRenamer } from './ResourceRenamer/ResourceRenamer';
 import { APIRQ } from 'shared/api.requests';
 import { StatusState } from 'store/StatusState';
 import { ResourceAssetConfig, ResourceStatus } from 'assets/resource/resource-types';
 import { ServerState } from 'store/ServerState';
 import { ResourceCommandsOutputModal } from './ResourceCommandsOutputModal/ResourceCommandsOutputModal';
-import { itemsStyles } from 'components/Project/ProjectExplorer/item.styles';
-import { ProjectItemProps } from 'components/Project/ProjectExplorer/item';
+import { itemsStyles } from 'fxdk/project/browser/ProjectExplorer/item.styles';
+import { ProjectItemProps } from 'fxdk/project/browser/ProjectExplorer/item';
 import { FilesystemEntry } from 'shared/api.types';
 import { ProjectState } from 'store/ProjectState';
 import s from './Resource.module.scss';
 import { SystemResource, SYSTEM_RESOURCES_NAMES } from 'backend/system-resources/system-resources-constants';
-import { ItemState } from 'components/Project/ProjectExplorer/ItemState';
-import { Title } from 'components/controls/Title/Title';
+import { ItemState } from 'fxdk/project/browser/ProjectExplorer/ItemState';
+import { Title } from 'fxdk/ui/controls/Title/Title';
 import mergeRefs from 'utils/mergeRefs';
-import { projectExplorerItemType } from 'components/Project/ProjectExplorer/item.types';
+import { projectExplorerItemType } from 'fxdk/project/browser/ProjectExplorer/item.types';
+import { Api } from 'fxdk/browser/Api';
 
 
 const contextOptions: Partial<ProjectExplorerItemContext> = {
@@ -251,7 +251,7 @@ function useResourceLifecycle(
       },
     };
 
-    sendApiMessage(projectApi.setAssetConfig, request);
+    Api.send(projectApi.setAssetConfig, request);
   }, [resourcePath, isEnabled]);
 
   const handleToggleAutorestartEnabled = React.useCallback(() => {
@@ -262,17 +262,17 @@ function useResourceLifecycle(
       },
     };
 
-    sendApiMessage(projectApi.setAssetConfig, request);
+    Api.send(projectApi.setAssetConfig, request);
   }, [resourcePath, isAutorestartOnChangeEnabled]);
 
   const handleRestart = React.useCallback(() => {
-    sendApiMessage(serverApi.restartResource, resourceName);
+    Api.send(serverApi.restartResource, resourceName);
   }, [resourceName]);
   const handleStop = React.useCallback(() => {
-    sendApiMessage(serverApi.stopResource, resourceName);
+    Api.send(serverApi.stopResource, resourceName);
   }, [resourceName]);
   const handleStart = React.useCallback(() => {
-    sendApiMessage(serverApi.startResource, resourceName);
+    Api.send(serverApi.startResource, resourceName);
   }, [resourceName]);
 
   const lifecycleContextMenuItems: ContextMenuItemsCollection = React.useMemo(() => {

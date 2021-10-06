@@ -1,6 +1,6 @@
+import { Api } from "fxdk/browser/Api";
 import { makeAutoObservable } from "mobx";
 import { outputApi } from "shared/api.events";
-import { onApiMessage } from "utils/api";
 
 export const OutputState = new class OutputState {
   private channelOutput: Record<string, string> = Object.create(null);
@@ -9,9 +9,9 @@ export const OutputState = new class OutputState {
   constructor() {
     makeAutoObservable(this);
 
-    onApiMessage(outputApi.output, this.appendChannelOutput);
-    onApiMessage(outputApi.outputLabel, this.setChannelLabel);
-    onApiMessage(outputApi.flush, this.flushChannel);
+    Api.on(outputApi.output, this.appendChannelOutput);
+    Api.on(outputApi.outputLabel, this.setChannelLabel);
+    Api.on(outputApi.flush, this.flushChannel);
   }
 
   getOutput(channelId: string): string {
