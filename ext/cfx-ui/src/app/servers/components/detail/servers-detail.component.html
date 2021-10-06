@@ -154,7 +154,7 @@
 
 			<app-server-reviews *ngIf="canHaveReviews" [server]="server"></app-server-reviews>
 
-			<div class="header-pull" *ngIf="communityTweets.length < 1" [style.marginTop]="padTop"></div>
+			<div class="header-pull" *ngIf="communityTweets.length <= 3" [style.marginTop]="padTop"></div>
 		</div>
 	</div>
 </div>
