@@ -60,7 +60,7 @@ export class ServersListComponent implements OnInit, OnDestroy {
 		this.updateScreenHeight();
 
 		this.serversService.serversLoadedUpdate.subscribe((loaded) => {
-			this.serversLoaded = loaded;
+			this.serversLoaded = true;
 			this.changeDetectorRef.markForCheck();
 		});
 

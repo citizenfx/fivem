@@ -1,6 +1,6 @@
 <div>
     <div class="message-header">
-		<img class="avatar" src="{{tweet.avatar}}" loading="lazy">
+		<img class="avatar" src="{{tweet.avatar}}" loading="lazy" masonryLazy>
 		<div class="info">
 			<div class="top">
 				<strong>{{tweet.user_displayname}}</strong>
@@ -24,9 +24,9 @@
 		</div>
     </div>
     <div class="message-body">
-        <article class="media">
+        <article class="media" #media>
             <figure class="media-left" *ngIf="tweet.image" (click)="zoomImage()">
-                <img src="{{tweet.image}}" loading="lazy">
+                <img src="{{tweet.image}}" loading="lazy" masonryLazy [width]="imageWidth" [height]="imageHeight">
 				<span *ngIf="tweet.video"><span class="material-icons-outlined">play_arrow</span></span>
             </figure>
             <div class="media-content">

@@ -1,0 +1,109 @@
+<div *ngIf="review.detail | async as detail; else loading" class="review" [class.more]="isMore">
+	<aside>
+		<div class="title" *ngIf="isFirst">
+			{{'#Reviews' | translate:locale.language}}
+		</div>
+
+		<div class="profile">
+			<img [src]="getAvatar(detail.post_stream.posts[0].avatar_template)" />
+
+			<div>
+				<strong>{{detail.post_stream.posts[0].username}}</strong>
+				<span *ngIf="detail.post_stream.posts[0].user_id == myId" class="you" l10nTranslate>#Reviews_You</span>
+				<ng-container *ngIf="detail.post_stream.posts[0].user_id != myId">
+					<span *ngIf="playtimes['fivem:' + detail.post_stream.posts[0].user_id] as playtime; else neverPlayed" class="hours">
+						{{duration(playtime) | dfnsFormatDuration:{
+							format: ['days', 'hours', 'minutes'],
+							locale: shortEnLocale
+						} }} played
+					</span>
+
+					<ng-template #neverPlayed>
+						<span class="hours" l10nTranslate>#Reviews_NeverPlayed</span>
+					</ng-template>
+				</ng-container>
+			</div>
+		</div>
+
+		<p class="date">{{ date(review.topic.created_at) | dfnsFormatDistanceToNow:{ addSuffix: true } }}</p>
+	</aside>
+	<div *ngIf="getFipo(detail.post_stream.posts[0]) as fipo">
+		<h1>
+			<span class="material-icons-outlined thumb-up" *ngIf="review.topic.tags.includes('recommended')">thumb_up</span>
+			<span class="material-icons-outlined thumb-down" *ngIf="review.topic.tags.includes('unrecommended')">thumb_down</span>
+			{{review.topic.title}}
+		</h1>
+
+		<div class="body" #more [innerHTML]="fipo.cooked | safehtml">
+		</div>
+
+		<div class="more" [class.usable]="hasMore" (click)="readMore($event)"><a href="#" l10nTranslate>#Reviews_More</a></div>
+
+		<div class="push"></div>
+
+		<div class="like-actions" *ngIf="myId != 0 && fipo.user_id != myId">
+			<p l10nTranslate>@Review_HelpfulPrompt</p>
+			<button [disabled]="!canAct(fipo, 'heart')" [class.checked]="hasActed(fipo, 'heart')" (click)="act(fipo.id, 'heart')">
+				<span class="material-icons-outlined">thumb_up</span> {{'@Review_Helpful'|translate:locale.language}}
+			</button>
+			<button [disabled]="!canAct(fipo, 'angry')" [class.checked]="hasActed(fipo, 'angry')" (click)="act(fipo.id, 'angry')">
+				<span class="material-icons-outlined">thumb_down</span> {{'@Review_Unhelpful'|translate:locale.language}}
+			</button>
+			<button [disabled]="!canAct(fipo, 'laughing')" [class.checked]="hasActed(fipo, 'laughing')" (click)="act(fipo.id, 'laughing')">
+				<span class="material-icons-outlined">sentiment_very_satisfied</span> {{'@Review_Funny'|translate:locale.language}}
+			</button>
+			<button [disabled]="!canFlag(fipo)" (click)="openFlagModal(fipo)">
+				<span class="material-icons-outlined">flag</span>
+			</button>
+		</div>
+
+		<p class="likes">
+			<ng-container *ngIf="getLikes(fipo.reactions) != 0">
+				{{abs(getLikes(fipo.reactions)) |
+					i18nPlural: (getLikes(fipo.reactions) >= 0 ? helpfulMapping : unhelpfulMapping) |
+					translate: locale.language:{count: abs(getLikes(fipo.reactions))} }}<br>
+			</ng-container>
+			<ng-container *ngIf="getLaughs(fipo.reactions) != 0">
+				{{abs(getLaughs(fipo.reactions)) |
+					i18nPlural: funnyMapping |
+					translate: locale.language:{count: abs(getLaughs(fipo.reactions))} }}
+			</ng-container>
+		</p>
+	</div>
+</div>
+
+<ng-template #loading>
+	<div class="review loading" l10nTranslate>#Settings_BoostLoading</div>
+</ng-template>
+
+<ng-template #flagModal>
+	<div class="modalOverlay" *ngIf="modalActive" (click)="toggleModalVisiblityOuter($event)" #flagModalSelf>
+		<div class="wrap">
+			<div class="inner">
+				<form>
+					<h3 l10nTranslate>#Review_Flag</h3>
+
+					<br/>
+
+					<label class="cfx-checkbox radio" *ngFor="let flag of getFlags(flagPost)">
+						<input name="post_action_type_index" [(ngModel)]="flagActionKey" type="radio" [value]="flag.name_key">
+						<div class="cfx-checkbox-indicator"></div>
+						<div class="flag-action-type-details">
+							<strong>{{flag.name}}</strong>
+							<div *ngIf="!flag.is_custom_flag || flagActionKey != flag.name_key" class="description" [innerHTML]="flag.description | safehtml"></div>
+							<textarea
+								*ngIf="flag.is_custom_flag && flagActionKey == flag.name_key"
+								[placeholder]="flag.short_description"
+								name="message"
+								[(ngModel)]="flagMessage"></textarea>
+						  </div>
+					</label>
+
+					<br/>
+
+					<button class="cfx-button primary" [disabled]="!canSubmitFlag" (click)="submitFlag()" l10nTranslate>#Review_FlagCTA</button>
+				</form>
+			</div>
+		</div>
+	</div>
+</ng-template>

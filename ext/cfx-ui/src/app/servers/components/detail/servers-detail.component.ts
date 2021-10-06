@@ -1,4 +1,5 @@
-import { Component, OnInit, OnDestroy, ViewChildren, ChangeDetectorRef, Inject, PLATFORM_ID } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChildren,
+	ChangeDetectorRef, Inject, PLATFORM_ID, ViewChild, ElementRef, AfterViewInit, QueryList } from '@angular/core';
 import { Location } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { DomSanitizer } from '@angular/platform-browser';
@@ -15,6 +16,9 @@ import { isPlatformBrowser } from '@angular/common';
 import { L10N_LOCALE, L10nLocale, L10nTranslationService } from 'angular-l10n';
 import { ServerTagsService } from '../../server-tags.service';
 import { environment } from 'environments/environment';
+import { NgxMasonryComponent } from 'ngx-masonry';
+import { startWith } from 'rxjs/operators';
+import { FiltersService } from 'app/servers/filters.service';
 
 class VariablePair {
 	public key: string;
@@ -28,7 +32,7 @@ class VariablePair {
 	styleUrls: ['servers-detail.component.scss']
 })
 
-export class ServersDetailComponent implements OnInit, OnDestroy {
+export class ServersDetailComponent implements OnInit, AfterViewInit, OnDestroy {
 	addr = '';
 	lastAddr = '';
 	server: Server;
@@ -38,6 +42,18 @@ export class ServersDetailComponent implements OnInit, OnDestroy {
 	resources: string[] = [];
 	error = '';
 	canRefresh = true;
+	headerScrolled = false;
+	padTop = '0px';
+	negPadTop = '0px';
+	apFeedInitialized = false;
+
+	@ViewChild(NgxMasonryComponent) masonry: NgxMasonryComponent;
+	@ViewChildren('content') content: QueryList<ElementRef<HTMLDivElement>>;
+	@ViewChildren('banner') bannerList: QueryList<ElementRef<HTMLDivElement>>;
+	@ViewChildren('header') headerList: QueryList<ElementRef<HTMLDivElement>>;
+
+	header: ElementRef<HTMLDivElement> = null;
+	banner: ElementRef<HTMLDivElement> = null;
 
 	interval: ReturnType<typeof setInterval>;
 
@@ -61,6 +77,12 @@ export class ServersDetailComponent implements OnInit, OnDestroy {
 	];
 
 	communityTweets: Tweet[] = [];
+
+	@ViewChildren('resourcesPane')
+	resourcesPane: QueryList<ElementRef<HTMLDivElement>>;
+
+	@ViewChildren('playersPane')
+	playersPane: QueryList<ElementRef<HTMLDivElement>>;
 
 	collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'});
 
@@ -155,9 +177,14 @@ export class ServersDetailComponent implements OnInit, OnDestroy {
 	}
 
 	get playersSorted() {
-		const players = (this.server?.data?.players || []).slice();
+		const players: any[] = (this.server?.data?.players || []).slice();
+		const sorted = players.sort((a, b) => this.collator.compare(a.name, b.name));
 
-		return players.sort((a, b) => this.collator.compare(a.name, b.name));
+		if (sorted.length > 75) {
+			sorted.length = 75;
+		}
+
+		return sorted;
 	}
 
     get eol() {
@@ -189,6 +216,7 @@ export class ServersDetailComponent implements OnInit, OnDestroy {
 		private router: Router, @Inject(PLATFORM_ID) private platformId: any,
 		private tagService: ServerTagsService, private tweetService: TweetService,
         private translation: L10nTranslationService, private location: Location,
+		private filtersService: FiltersService,
 		@Inject(L10N_LOCALE) public locale: L10nLocale) {
 		this.filterFuncs['sv_scriptHookAllowed'] = (pair) => {
 			return {
@@ -226,7 +254,13 @@ export class ServersDetailComponent implements OnInit, OnDestroy {
 		return this.serversService.getNameForPremium(this.server.premium);
 	}
 
-	apFeedInitialized = false;
+	isPinned(server: Server) {
+		return this.filtersService.pinConfig.pinnedServers.has(server?.address);
+	}
+
+	get canHaveReviews() {
+		return this.server.data?.vars?.can_review || this.isPinned(this.server);
+	}
 
 	private updateServer() {
 		this.serversService.getServer(this.currentAddr)
@@ -251,6 +285,7 @@ export class ServersDetailComponent implements OnInit, OnDestroy {
 					.filter(({ key }) => this.disallowedVars.indexOf(key) < 0)
 					.filter(({ key }) => key.indexOf('banner_') < 0)
 					.filter(({ key }) => key.indexOf('sv_project') < 0)
+					.filter(({ key }) => key.indexOf('can_review') < 0)
 					.filter(({ key }) => key.toLowerCase().indexOf('version') < 0)
 					.filter(({ key }) => key.toLowerCase().indexOf('uuid') < 0)
 					.filter(({ key, value }) => key !== 'sv_enforceGameBuild' || (value !== '1604' && value !== '1311'))
@@ -347,8 +382,68 @@ export class ServersDetailComponent implements OnInit, OnDestroy {
 					];
 
 					this.communityTweets.sort((a: Tweet, b: Tweet) => b.date.valueOf() - a.date.valueOf());
+
+					setTimeout(() => {
+						this.masonry?.reloadItems();
+						this.masonry?.layout();
+					}, 100);
 				});
 		}
+	}
+
+	ngAfterViewInit() {
+		this.resourcesPane.changes.pipe(startWith(0)).subscribe((_) => {
+			if (this.resourcesPane.first) {
+				this.setupScroll(this.resourcesPane.first.nativeElement);
+			}
+		});
+
+		this.playersPane.changes.pipe(startWith(0)).subscribe((_) => {
+			if (this.playersPane.first) {
+				this.setupScroll(this.playersPane.first.nativeElement);
+			}
+		});
+
+		this.bannerList.changes.pipe(startWith(0)).subscribe((_) => {
+			this.banner = this.bannerList.first;
+		});
+
+		this.headerList.changes.pipe(startWith(0)).subscribe(_ => {
+			this.header = this.headerList.first;
+		});
+
+		this.content.changes.pipe(startWith(0)).subscribe(_ => {
+			const element = this.content.first?.nativeElement;
+
+			element?.addEventListener('scroll', () => {
+				const bannerHeight = this.banner?.nativeElement?.clientHeight;
+				const refHeight = this.header?.nativeElement?.clientHeight;
+				this.headerScrolled = element.scrollTop >= bannerHeight;
+
+				if (this.headerScrolled) {
+					if (this.padTop === '0px') {
+						this.padTop = (refHeight + 1) + 'px';
+						this.negPadTop = (refHeight - bannerHeight) + 'px';
+					}
+				} else {
+					this.padTop = '0px';
+					this.negPadTop = '0px';
+				}
+			});
+		});
+	}
+
+	setupScroll(element: HTMLDivElement) {
+		if (!element) {
+			return;
+		}
+
+		element.addEventListener('wheel', (wheelEvent) => {
+			if (wheelEvent.deltaY !== 0) {
+				element.scrollLeft += wheelEvent.deltaY;
+				wheelEvent.preventDefault();
+			}
+		});
 	}
 
 	ngOnDestroy() {

@@ -67,6 +67,8 @@ export class FiltersService {
 			if (loaded && this.sortingPending) {
 				this.sortingPending = false;
 				this.sortAndFilterServers(false);
+			} else if (!loaded) {
+				this.sortAndFilterServers(false);
 			}
 		});
 	}
@@ -155,6 +157,8 @@ export class FiltersService {
 			return;
 		}
 
+		const shouldProgressSort = (fromInteraction || this.sortingPending);
+
 		const willSort = this.serversService.sortAndFilter({
 			filters: {
 				filters: this.filters,
@@ -178,10 +182,12 @@ export class FiltersService {
 				});
 			this.sortedServersUpdate.next(this.sortedServers);
 
-			this.finishSorting();
+			if (shouldProgressSort) {
+				this.finishSorting();
+			}
 		});
 
-		if (willSort) {
+		if (willSort && shouldProgressSort) {
 			this.beginSorting();
 		}
 	}

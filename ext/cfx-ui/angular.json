@@ -67,7 +67,14 @@
                   "with": "src/environments/environment.web.ts"
                 }
               ],
-              "baseHref": "/"
+              "baseHref": "/",
+			  "optimization": false,
+			  "sourceMap": true,
+			  "namedChunks": true,
+			  "extractLicenses": false,
+			  "vendorChunk": true,
+			  "buildOptimizer": false,
+			  "budgets": []
             },
             "game": {
               "fileReplacements": [
@@ -78,6 +85,22 @@
               ],
               "baseHref": "."
             },
+            "gameDev": {
+				"fileReplacements": [
+					{
+						"replace": "src/environments/environment.ts",
+						"with": "src/environments/environment.game.ts"
+					}
+				],
+				"baseHref": ".",
+				"optimization": false,
+				"sourceMap": true,
+				"namedChunks": true,
+				"extractLicenses": false,
+				"vendorChunk": true,
+				"buildOptimizer": false,
+				"budgets": []
+			},
             "webprod": {
               "optimization": true,
               "outputHashing": "all",
@@ -140,7 +163,7 @@
               "browserTarget": "cfx-ui:build:webprod"
             },
             "game": {
-              "browserTarget": "cfx-ui:build:game"
+              "browserTarget": "cfx-ui:build:gameDev"
             }
           }
         },

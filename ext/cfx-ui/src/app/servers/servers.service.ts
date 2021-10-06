@@ -75,6 +75,8 @@ export class ServersService {
 
 	private topServer: Server = undefined;
 
+	private firstLoad = false;
+
 	constructor(private httpClient: HttpClient, private domSanitizer: DomSanitizer, private zone: NgZone,
 		private gameService: GameService, @Inject(PLATFORM_ID) private platformId: any) {
 		this.requestEvent = new Subject<string>();
@@ -95,8 +97,14 @@ export class ServersService {
 								}
 							}
 						}
+
+						if (!this.firstLoad) {
+							this.serversLoadedUpdate.next(false);
+							this.firstLoad = true;
+						}
 					} else if (event.data.type === 'serversDone') {
 						this.serversLoadedUpdate.next(true);
+						this.firstLoad = false;
 					} else if (event.data.type === 'sortedServers') {
 						if (this.onSortCB.length) {
 							zone.run(() => {

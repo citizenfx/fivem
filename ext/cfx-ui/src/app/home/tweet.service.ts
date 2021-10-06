@@ -21,6 +21,7 @@ export class Tweet {
     readonly url: string;
 
     image: string;
+	imageSize: [number, number] = [0, 0];
     video: {
         content_type: string;
         url: string;
@@ -222,6 +223,7 @@ export class TweetService {
                         if (object.attachment && object.attachment[0] &&
                             object.attachment[0].mediaType === 'image/png') {
                             t.image = object.attachment[0].url;
+							t.imageSize = [object.attachment[0].width, object.attachment[0].height];
                         }
 
                         if (!this.sentMap.has(t.id)) {
