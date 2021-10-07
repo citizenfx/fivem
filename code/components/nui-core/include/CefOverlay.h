@@ -185,6 +185,19 @@ namespace nui
 			return false;
 		}
 
+		virtual void SetHostCursorEnabled(bool enabled)
+		{
+		}
+
+		virtual void SetHostCursor(HCURSOR cursor)
+		{
+		}
+
+		virtual bool CanDrawHostCursor()
+		{
+			return false;
+		}
+
 		fwEvent<HWND, UINT, WPARAM, LPARAM, bool&, LRESULT&> OnWndProc;
 
 		fwEvent<std::vector<InputTarget*>&> QueryInputTarget;

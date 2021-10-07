@@ -122,7 +122,10 @@ static HookFunction initFunction([] ()
 			}
 		}
 
-		if ((nui::HasMainUI() || g_hasCursor) && !g_shouldHideCursor)
+		bool needsNuiCursor = (nui::HasMainUI() || g_hasCursor) && !g_shouldHideCursor;
+		g_nuiGi->SetHostCursorEnabled(needsNuiCursor);
+
+		if (needsNuiCursor)
 		{
 			POINT cursorPos = g_cursorPos;
 
@@ -139,7 +142,7 @@ static HookFunction initFunction([] ()
 				ScreenToClient(g_nuiGi->GetHWND(), &cursorPos);
 			}
 
-			if (g_cursorTexture.GetRef())
+			if (g_cursorTexture.GetRef() && !g_nuiGi->CanDrawHostCursor())
 			{
 				g_nuiGi->SetTexture(g_cursorTexture);
 

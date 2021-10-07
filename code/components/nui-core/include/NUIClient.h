@@ -144,6 +144,8 @@ protected:
 protected:
 	virtual bool OnConsoleMessage(CefRefPtr<CefBrowser> browser, cef_log_severity_t level, const CefString& message, const CefString& source, int line) override;
 
+	virtual bool OnCursorChange(CefRefPtr<CefBrowser> browser, CefCursorHandle cursor, cef_cursor_type_t type, const CefCursorInfo& custom_cursor_info) override;
+
 #ifdef NUI_WITH_MEDIA_ACCESS
 // CefMediaAccessHandler
 protected:
