@@ -487,7 +487,7 @@ int RealMain()
 	loadSystemDll(L"\\dxgi.dll");
 
 	// don't load d3d11.dll from game dir for subprocesses or invalid cases
-	if ((!initState->IsMasterProcess() && !initState->IsGameProcess()) || IsUnsafeGraphicsLibrary())
+	//if ((!initState->IsMasterProcess() && !initState->IsGameProcess()) || IsUnsafeGraphicsLibrary())
 	{
 		loadSystemDll(L"\\d3d11.dll");
 	}
