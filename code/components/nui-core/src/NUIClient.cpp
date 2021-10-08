@@ -20,6 +20,8 @@
 
 #include <sstream>
 
+extern nui::GameInterface* g_nuiGi;
+
 static nui::IAudioSink* g_audioSink;
 
 namespace nui
@@ -211,6 +213,13 @@ bool NUIClient::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPt
 void NUIClient::OnBeforeContextMenu(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefContextMenuParams> params, CefRefPtr<CefMenuModel> model)
 {
 	model->Clear();
+}
+
+bool NUIClient::OnCursorChange(CefRefPtr<CefBrowser> browser, CefCursorHandle cursor, cef_cursor_type_t type, const CefCursorInfo& custom_cursor_info)
+{
+	g_nuiGi->SetHostCursor(cursor);
+
+	return true;
 }
 
 bool NUIClient::OnConsoleMessage(CefRefPtr<CefBrowser> browser, cef_log_severity_t level, const CefString& message, const CefString& source, int line)

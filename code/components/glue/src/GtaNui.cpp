@@ -112,6 +112,14 @@ public:
 	}
 
 	virtual bool RequestMediaAccess(const std::string& frameOrigin, const std::string& url, int permissions, const std::function<void(bool, int)>& onComplete) override;
+
+#ifdef INPUT_HOOK_HOST_CURSOR_SUPPORT
+	virtual bool CanDrawHostCursor() override;
+
+	virtual void SetHostCursorEnabled(bool enabled) override;
+
+	virtual void SetHostCursor(HCURSOR cursor) override;
+#endif
 };
 
 static tbb::concurrent_queue<std::function<void()>> g_onRenderQueue;
@@ -667,6 +675,36 @@ bool GtaNuiInterface::RequestMediaAccess(const std::string& frameOrigin, const s
 {
 	return HandleMediaRequest(frameOrigin, url, permissions, onComplete);
 }
+
+#ifdef INPUT_HOOK_HOST_CURSOR_SUPPORT
+bool GtaNuiInterface::CanDrawHostCursor()
+{
+	return true;
+}
+
+void GtaNuiInterface::SetHostCursor(HCURSOR cursor)
+{
+	SetClassLongPtr(CoreGetGameWindow(), GCLP_HCURSOR,
+		static_cast<LONG>(reinterpret_cast<LONG_PTR>(cursor)));
+
+	SetCursor(cursor);
+}
+
+void GtaNuiInterface::SetHostCursorEnabled(bool enabled)
+{
+	static bool wasEnabled;
+
+	if (!enabled && wasEnabled)
+	{
+		SetClassLongPtr(CoreGetGameWindow(), GCLP_HCURSOR,
+			static_cast<LONG>(reinterpret_cast<LONG_PTR>(IDC_ARROW)));
+	}
+
+	wasEnabled = enabled;
+
+	InputHook::SetHostCursorEnabled(enabled);
+}
+#endif
 
 static GtaNuiInterface nuiGi;
 

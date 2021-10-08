@@ -62,6 +62,46 @@ static void EnableFocus()
 	}
 }
 
+static bool g_useHostCursor;
+
+void EnableHostCursor()
+{
+	while (ShowCursor(TRUE) < 0)
+		;
+}
+
+void DisableHostCursor()
+{
+	while (ShowCursor(FALSE) >= 0)
+		;
+}
+
+static INT HookShowCursor(BOOL show)
+{
+	if (g_useHostCursor)
+	{
+		return (show) ? 0 : -1;
+	}
+
+	return ShowCursor(show);
+}
+
+void InputHook::SetHostCursorEnabled(bool enabled)
+{
+	static bool lastEnabled = false;
+
+	if (!lastEnabled && enabled)
+	{
+		EnableHostCursor();
+	}
+	else if (lastEnabled && !enabled)
+	{
+		DisableHostCursor();
+	}
+
+	g_useHostCursor = enabled;
+}
+
 static char* g_gameKeyArray;
 
 static std::atomic<int> g_isFocusStolenCount;
@@ -703,6 +743,8 @@ static HookFunction hookFunction([]()
 
 	// don't allow SetCursorPos during focus
 	hook::iat("user32.dll", SetCursorPosWrap, "SetCursorPos");
+
+	hook::iat("user32.dll", HookShowCursor, "ShowCursor");
 
 	// NOTE: this specific flow should *only* be used if RG!
 	// there's a call above in OnGameFrame which handles all other ancillary responsibilities

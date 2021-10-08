@@ -162,6 +162,9 @@ struct ioMouse
 	DECLARE_ACCESSOR(mouseDiffDirectionY);
 };
 }
+
+#define INPUT_HOOK_HOST_CURSOR_SUPPORT
+
 namespace InputHook
 {
 struct ControlBypass
@@ -185,4 +188,6 @@ INPUT_DECL void EnableSetCursorPos(bool enabled);
 INPUT_DECL bool IsMouseButtonDown(int buttonFlag);
 
 INPUT_DECL bool IsKeyDown(int vk_keycode);
+
+INPUT_DECL void SetHostCursorEnabled(bool enabled);
 }
