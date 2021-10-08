@@ -200,9 +200,6 @@
 [submodule "vendor/xenium"]
 	path = vendor/xenium
 	url = https://github.com/citizenfx/xenium.git
-[submodule "vendor/re3"]
-	path = vendor/re3
-	url = https://git.gta.re/blattersturm/re3.git
 [submodule "vendor/rocksdb"]
 	path = vendor/rocksdb
 	url = https://github.com/facebook/rocksdb.git

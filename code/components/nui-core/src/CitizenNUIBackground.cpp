@@ -219,9 +219,7 @@ void CitizenNUIBackground::Initialize()
 
 		if (isMainUI)
 		{
-#ifndef GTA_FIVE
 			DrawBackground(m_backdropTexture, CRGBA(255, 255, 255, 255), true);
-#endif
 		}
 	});
 }
@@ -270,7 +268,6 @@ fwRefContainer<nui::GITexture> g_cursorTexture;
 
 void CitizenNUIBackground::EnsureTextures()
 {
-#ifndef GTA_FIVE
 	if (!m_backdropTexture.GetRef())
 	{
 		m_backdropTexture = InitializeTextureFromFile("citizen:/ui/app/bg-night.bb1065920b7124650a88.jpg");
@@ -280,7 +277,6 @@ void CitizenNUIBackground::EnsureTextures()
 			m_backdropTexture = InitializeTextureFromFile("citizen:/resources/background_main.jpg");
 		}
 	}
-#endif
 
 	if (!g_cursorTexture.GetRef())
 	{
