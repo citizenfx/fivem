@@ -9,7 +9,7 @@ import { startWith } from 'rxjs/operators';
 import { Post, Reaction } from './discourse-models';
 import { TopicEntry } from './server-reviews.component';
 
-const formatDistanceLocale = { xSeconds: '{{count}} sec', xMinutes: '{{count}} min', xHours: '{{count}} h' };
+const formatDistanceLocale = { xSeconds: '{{count}} sec', xMinutes: '{{count}} min', xHours: '{{count}} h', xDays: '{{count}} d' };
 const shortEnLocale: Locale = { formatDistance: (token, count) => formatDistanceLocale[token].replace('{{count}}', count) };
 
 @Component({

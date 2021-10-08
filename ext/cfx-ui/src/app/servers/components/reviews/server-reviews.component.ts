@@ -10,7 +10,7 @@ import { Observable, of } from 'rxjs';
 import { concatMap, map } from 'rxjs/operators';
 import { PostCreateResponse, TagTopicsResponse, Topic, TopicResponse } from './discourse-models';
 
-const formatDistanceLocale = { xSeconds: '{{count}} sec', xMinutes: '{{count}} min', xHours: '{{count}} h' };
+const formatDistanceLocale = { xSeconds: '{{count}} sec', xMinutes: '{{count}} min', xHours: '{{count}} h', xDays: '{{count}} d' };
 const shortEnLocale: Locale = { formatDistance: (token, count) => formatDistanceLocale[token].replace('{{count}}', count) };
 
 export interface TopicEntry {
