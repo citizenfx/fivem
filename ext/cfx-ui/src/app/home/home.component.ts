@@ -50,6 +50,8 @@ export class HomeComponent implements OnInit, OnDestroy {
 
 	topServer: Server;
 
+	pinConfigPromise = this.serversService.loadPinConfig();
+
 	constructor(
 		private tweetService: TweetService,
 		private gameService: GameService,
@@ -59,10 +61,12 @@ export class HomeComponent implements OnInit, OnDestroy {
 		public changeDetectorRef: ChangeDetectorRef,
 		@Inject(L10N_LOCALE) public locale: L10nLocale,
 	) {
-		discourseService.signinChange.subscribe((user) => {
-			this.currentAccount = user;
+		discourseService.initialAuthComplete.subscribe(done => {
+			if (done) {
+				this.currentAccount = this.discourseService.currentUser;
 
-			this.loadTopServer();
+				this.loadTopServer();
+			}
 		});
 
 		this.serviceMessage = cachedServiceMessage;
@@ -110,7 +114,6 @@ export class HomeComponent implements OnInit, OnDestroy {
 		this.statusInterval = this.startStatusCheckerLoop();
 
 		this.loadLastServer();
-		this.loadTopServer();
 	}
 
 	ngOnDestroy() {
@@ -119,7 +122,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 
 	async loadTopServer() {
 		if (this.currentAccount) {
-			const pinConfig = await this.serversService.loadPinConfig();
+			const pinConfig = await this.pinConfigPromise;
 
 			this.topServer = await this.serversService.getServer(pinConfig.noAdServerId);
 		} else {
