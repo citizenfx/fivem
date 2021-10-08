@@ -194,8 +194,8 @@ export class DiscourseService {
 	}
 
 	handleSignout() {
-		window.localStorage.setItem('discourseAuthToken', '');
-		this.authToken = '';
+		window.localStorage.removeItem('discourseAuthToken');
+		this.authToken = null;
 
 		this.signinChange.next(null);
 		this.currentUser = null;

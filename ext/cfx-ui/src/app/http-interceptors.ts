@@ -1,6 +1,7 @@
-import { HttpEvent, HttpHandler, HttpInterceptor, HttpRequest, HttpResponse, HTTP_INTERCEPTORS } from '@angular/common/http';
+import { HttpErrorResponse, HttpHandler, HttpInterceptor, HttpRequest, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { EventEmitter, Injectable } from '@angular/core';
-import { map } from 'rxjs/operators';
+import { of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 @Injectable()
 export class ForumSignoutInterceptorState {
@@ -21,15 +22,15 @@ export class ForumSignoutInterceptor implements HttpInterceptor {
 	}
 
 	private handleForumRequest(req: HttpRequest<any>, next: HttpHandler) {
-		return next.handle(req).pipe(map(event => this.handleForumResponse(event)));
+		return next.handle(req).pipe(catchError(event => this.handleForumResponseError(event)));
 	}
 
-	private handleForumResponse(event: HttpEvent<any>) {
-		if (event instanceof HttpResponse && event.status === 403) {
+	private handleForumResponseError(error: any) {
+		if (error instanceof HttpErrorResponse && error.status === 403) {
 			this.state.onSignout.emit();
 		}
 
-		return event;
+		return of(error);
 	}
 }
 
