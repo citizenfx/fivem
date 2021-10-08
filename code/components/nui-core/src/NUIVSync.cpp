@@ -2,6 +2,9 @@
 
 // TODO: decouple for specific D3D11 features
 #ifndef IS_RDR3
+#include <HostSharedData.h>
+#include <CfxState.h>
+
 #include <dxgi.h>
 #include <d3d11.h>
 #include <wrl.h>
@@ -48,8 +51,14 @@ namespace gl {
 	}  // namespace
 
 	   
-	static HookFunction postInitFunction([]()
+	static InitFunction postInitFunction([]()
 	{
+		static HostSharedData<CfxState> initState("CfxInitState");
+		if (!initState->IsMasterProcess() && !initState->IsGameProcess())
+		{
+			return;
+		}
+
 		std::thread([]()
 		{
 			SetThreadName(-1, "GPUVsync");
@@ -62,6 +71,9 @@ namespace gl {
 			{
 				if (!g_nuiGi || !g_nuiGi->GetD3D11Device())
 				{
+					auto vsync_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
+					OnVSync(vsync_time, std::chrono::milliseconds(50));
+
 					Sleep(50);
 					continue;
 				}
@@ -117,7 +129,7 @@ namespace gl {
 				OnVSync(vsync_time, std::chrono::duration_cast<std::chrono::microseconds>(interval));
 			}
 		}).detach();
-	});
+	}, INT32_MAX);
 
 }  // namespace gl
 #endif

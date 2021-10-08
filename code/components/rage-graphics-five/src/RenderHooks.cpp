@@ -564,6 +564,8 @@ static bool IsSafeToUseDXGI()
 	return true;
 }
 
+extern HRESULT RootD3D11CreateDevice(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _COM_Outptr_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _COM_Outptr_opt_ ID3D11DeviceContext** ppImmediateContext);
+
 static HRESULT CreateD3D11DeviceWrapOrig(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _In_opt_ CONST DXGI_SWAP_CHAIN_DESC* pSwapChainDesc, _Out_opt_ IDXGISwapChain** ppSwapChain, _Out_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _Out_opt_ ID3D11DeviceContext** ppImmediateContext)
 {
 	{
@@ -613,12 +615,12 @@ static HRESULT CreateD3D11DeviceWrapOrig(_In_opt_ IDXGIAdapter* pAdapter, D3D_DR
 
 	if (!IsWindows10OrGreater())
 	{
-		return D3D11CreateDeviceAndSwapChain(/*pAdapter*/pAdapter, /*DriverType*/ pAdapter ? D3D_DRIVER_TYPE_UNKNOWN : D3D_DRIVER_TYPE_HARDWARE, Software, Flags | D3D11_CREATE_DEVICE_BGRA_SUPPORT, pFeatureLevels, FeatureLevels/*nullptr, 0*/, SDKVersion, pSwapChainDesc, ppSwapChain, ppDevice, pFeatureLevel, ppImmediateContext);
+		return D3D11CreateDeviceAndSwapChain(/*pAdapter*/ pAdapter, /*DriverType*/ pAdapter ? D3D_DRIVER_TYPE_UNKNOWN : D3D_DRIVER_TYPE_HARDWARE, Software, Flags | D3D11_CREATE_DEVICE_BGRA_SUPPORT, pFeatureLevels, FeatureLevels /*nullptr, 0*/, SDKVersion, pSwapChainDesc, ppSwapChain, ppDevice, pFeatureLevel, ppImmediateContext);
 	}
 
 	OnFlipModelHook(&g_useFlipModel);
 
-	HRESULT hr = D3D11CreateDevice(pAdapter, /*DriverType*/ pAdapter ? D3D_DRIVER_TYPE_UNKNOWN : D3D_DRIVER_TYPE_HARDWARE, Software, Flags | D3D11_CREATE_DEVICE_BGRA_SUPPORT/* | D3D11_CREATE_DEVICE_DEBUG*/, pFeatureLevels, FeatureLevels/*nullptr, 0*/, SDKVersion, ppDevice, pFeatureLevel, ppImmediateContext);
+	HRESULT hr = RootD3D11CreateDevice(pAdapter, /*DriverType*/ pAdapter ? D3D_DRIVER_TYPE_UNKNOWN : D3D_DRIVER_TYPE_HARDWARE, Software, Flags | D3D11_CREATE_DEVICE_BGRA_SUPPORT/* | D3D11_CREATE_DEVICE_DEBUG*/, pFeatureLevels, FeatureLevels/*nullptr, 0*/, SDKVersion, ppDevice, pFeatureLevel, ppImmediateContext);
 
 	WRL::ComPtr<IDXGIFactory2> dxgiFactory;
 
@@ -1508,6 +1510,9 @@ void CaptureBufferOutput()
 	RenderBufferToBuffer(rtv);
 }
 
+extern void RootCheckPresented(int& flags);
+extern void RootSetPresented();
+
 void D3DPresent(int syncInterval, int flags)
 {
 #if __has_include(<ENBApi.h>)
@@ -1525,6 +1530,7 @@ void D3DPresent(int syncInterval, int flags)
 		syncInterval = 1;
 	}
 
+	RootCheckPresented(flags);
 	OnPreD3DPresent(*g_dxgiSwapChain, syncInterval, flags);
 
 	if (IsWindows10OrGreater())
@@ -1562,6 +1568,7 @@ void D3DPresent(int syncInterval, int flags)
 	}
 
 	OnPostD3DPresent(*g_dxgiSwapChain, syncInterval, flags);
+	RootSetPresented();
 
 #if __has_include(<ENBApi.h>)
 	if (afterPresent)

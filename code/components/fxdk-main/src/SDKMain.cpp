@@ -481,7 +481,7 @@ void SdkMain()
 
 	CefString(&settings.log_file).FromWString(MakeRelativeCitPath(L"cef.log"));
 
-	CefString(&settings.browser_subprocess_path).FromWString(MakeCfxSubProcess(L"SDKBrowser"));
+	CefString(&settings.browser_subprocess_path).FromWString(MakeCfxSubProcess(L"SDKBrowser", L"chrome"));
 
 	CefString(&settings.locale).FromASCII("en-US");
 

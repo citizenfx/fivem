@@ -17,6 +17,9 @@
 				<li (click)="openLink('https://patreon.com/fivem')" aria-label="Opens in browser" data-balloon-pos="right">
 					Patreon
 				</li>
+				<li (click)="openLink('https://discord.gg/fivem')" aria-label="Opens in browser" data-balloon-pos="right" *ngIf="this.statusLevel === 1">
+					Discord
+				</li>
 			</ul>
 
 			<!--Template for content: <div class="danger|warning">Shit <a href="shit">meh</a></div>-->
@@ -188,8 +191,6 @@
 			</h3>
 			<p>
 				Play GTA V story mode in FiveM, with addons loaded, FiveM's engine improvements and seamless integration.
-				<br/>
-				You can place saved games in %USERPROFILE%\Saved Games\CitizenFX\GTA5.
 			</p>
 		</a>
 

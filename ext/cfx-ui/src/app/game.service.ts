@@ -392,7 +392,6 @@ export class CfxGameService extends GameService {
 				setTimeout(() => {
 					if (this.ownershipTicket !== this.getConvarValue('cl_ownershipTicket')) {
 						this.ownershipTicket = this.getConvarValue('cl_ownershipTicket');
-						this.updateProfiles();
 
 						this.ownershipTicketChange.emit(this.getConvarValue('cl_ownershipTicket'));
 					}

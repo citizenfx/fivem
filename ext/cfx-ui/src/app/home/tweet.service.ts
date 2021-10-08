@@ -221,7 +221,8 @@ export class TweetService {
                         });
 
                         if (object.attachment && object.attachment[0] &&
-                            object.attachment[0].mediaType === 'image/png') {
+                            object.attachment[0].mediaType.startsWith('image/') &&
+							object.attachment[0].mediaType !== 'image/gif') {
                             t.image = object.attachment[0].url;
 							t.imageSize = [object.attachment[0].width, object.attachment[0].height];
                         }

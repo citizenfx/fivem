@@ -12,6 +12,9 @@
 #include <ShlObj.h>
 #include <CfxLocale.h>
 
+#include <HostSharedData.h>
+#include <CfxState.h>
+
 #include <wrl.h>
 
 namespace WRL = Microsoft::WRL;
@@ -223,7 +226,8 @@ std::optional<int> EnsureGamePath()
 				fileDialog->SetFolder(item.Get());
 
 #ifdef GTA_FIVE
-				if (checkFile(L"x64a.rpf") && checkFile(L"x64b.rpf") && checkFile(L"x64g.rpf") && checkFile(L"common.rpf") && checkFile(L"bink2w64.dll") && checkFile(L"x64\\audio\\audio_rel.rpf") && checkFile(L"GTA5.exe") && checkFile(L"update\\x64\\dlcpacks\\mpheist3\\dlc.rpf"))
+				if (checkFile(L"x64a.rpf") && checkFile(L"x64b.rpf") && checkFile(L"x64g.rpf") && checkFile(L"common.rpf") && checkFile(L"bink2w64.dll") && checkFile(L"x64\\audio\\audio_rel.rpf") && checkFile(L"GTA5.exe") && checkFile(L"update\\x64\\dlcpacks\\mpheist3\\dlc.rpf") &&
+					checkFile(L"update\\x64\\dlcpacks\\mptuner\\dlc.rpf"))
 #elif defined(IS_RDR3)
 				if (checkFile(L"common.rpf") && checkFile(L"appdata0_update.rpf") && checkFile(L"levels_7.rpf") && checkFile(L"RDR2.exe") && checkFile(L"x64\\dlcpacks\\mp007\\dlc.rpf"))
 #elif defined(GTA_NY)
@@ -329,6 +333,11 @@ std::optional<int> EnsureGamePath()
 	}
 
 	WritePrivateProfileString(L"Game", pathKey, resultPath, fpath.c_str());
+
+	{
+		static HostSharedData<CfxState> initState("CfxInitState");
+		initState->gameDirectory[0] = L'\0';
+	}
 
 	CoTaskMemFree(resultPath);
 
