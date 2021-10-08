@@ -136,7 +136,11 @@ export class DiscourseService {
             this.initialAuthComplete.next(true);
         }
 
-		this.signinChange.subscribe(() => {
+		this.initialAuthComplete.subscribe(complete => {
+			if (!complete) {
+				return;
+			}
+
 			if (environment.web) {
 				return;
 			}
@@ -144,6 +148,10 @@ export class DiscourseService {
 			this.apiCallObservable<Site>('/site').subscribe(site => {
 				this.siteData = site;
 			})
+
+			if (!this.currentUser) {
+				return;
+			}
 
 			this.externalCall('https://servers-frontend.fivem.net/api/upvote/', 'GET').then(result => {
 				if (result.status < 400) {
@@ -321,6 +329,7 @@ export class DiscourseService {
 
 			// this.messageEvent.emit(`Thanks for linking your FiveM user account, ${userInfo.username}.`);
 			this.signinChange.next(userInfo);
+			this.initialAuthComplete.next(true);
 
 			this.currentUser = userInfo;
 		} catch (e) {

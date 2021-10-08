@@ -227,13 +227,6 @@ export class ServersService {
 		return Object.values(this.servers);
 	}
 
-	private get httpSource() {
-		return this.requestEvent
-			.asObservable()
-			.mergeMap(url => this.httpClient.get(url + 'proto/', { responseType: 'arraybuffer' }))
-			.mergeMap(result => master.Servers.decode(new Uint8Array(result)).servers);
-	}
-
 	private matchesGame(server: master.IServer) {
 		const serverGame = server?.Data?.vars?.gamename || '';
 
@@ -310,7 +303,7 @@ export class ServersService {
 		}
 
 		const server = await (async () => {
-			const languages = this.gameService.systemLanguages;
+			const languages = this.gameService.systemLanguages.filter((v, i, a) => a.indexOf(v) === i);
 
 			for (const language of languages) {
 				try {
