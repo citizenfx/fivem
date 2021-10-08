@@ -139,6 +139,10 @@ textarea {
 	&.radio {
 		.cfx-checkbox-indicator	{
 			border-radius: 100%;
+
+			&::after {
+				border-radius: 100%;
+			}
 		}
 	}
 
@@ -187,7 +191,6 @@ textarea {
 			bottom: 2px;
 
 			transition: box-shadow .2s ease;
-			border-radius: 100%;
 		}
 	}
 }
