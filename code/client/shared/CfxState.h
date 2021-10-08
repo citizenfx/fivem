@@ -15,6 +15,8 @@ struct CfxState
 
 	wchar_t initPathGame[1024];
 	wchar_t initPathLauncher[1024];
+	
+	wchar_t gameDirectory[1024];
 
 	wchar_t gameExePath[1024];
 
@@ -23,6 +25,7 @@ struct CfxState
 		memset(initPathGame, 0, sizeof(initPathGame));
 		memset(initPathLauncher, 0, sizeof(initPathLauncher));
 		memset(gameExePath, 0, sizeof(gameExePath));
+		memset(gameDirectory, 0, sizeof(gameDirectory));
 
 		initialGamePid = 0;
 		initialLauncherPid = 0;

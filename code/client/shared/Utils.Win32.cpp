@@ -100,9 +100,10 @@ fwPlatformString GetAbsoluteCitPath()
 
 fwPlatformString GetAbsoluteGamePath()
 {
-	static fwPlatformString gamePath;
+#ifndef IS_FXSERVER
+	static HostSharedData<CfxState> initState("CfxInitState");
 
-	if (!gamePath.size())
+	if (!initState->gameDirectory[0])
 	{
 		std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
 
@@ -122,11 +123,14 @@ fwPlatformString GetAbsoluteGamePath()
 
 		GetPrivateProfileString(L"Game", pathKey, L"", path, _countof(path), fpath.c_str());
 
-		gamePath = path;
-		gamePath += L"\\";
+		wcscpy_s(initState->gameDirectory, path);
+		wcscat_s(initState->gameDirectory, L"\\");
 	}
 
-	return gamePath;
+	return initState->gameDirectory;
+#else
+	return {};
+#endif
 }
 
 bool IsRunningTests()
