@@ -1426,11 +1426,31 @@ void Initialize(nui::GameInterface* gi)
 
 		for (auto zip : zips)
 		{
-			fwRefContainer<vfs::ZipFile> file = new vfs::ZipFile();
+			static std::map<std::string, std::vector<uint8_t>> storedFiles;
 
-			if (file->OpenArchive(zip))
+			const void* thisData = nullptr;
+			size_t thisDataSize = 0;
+
 			{
-				vfs::Mount(file, "citizen:/ui/");
+				auto stream = vfs::OpenRead(zip);
+
+				if (stream.GetRef())
+				{
+					storedFiles[zip] = stream->ReadToEnd();
+
+					thisData = storedFiles[zip].data();
+					thisDataSize = storedFiles[zip].size();
+				}
+			}
+
+			if (thisData)
+			{
+				fwRefContainer<vfs::ZipFile> file = new vfs::ZipFile();
+
+				if (file->OpenArchive(fmt::sprintf("memory:$%016llx,%d,0:%s", (uintptr_t)thisData, thisDataSize, "ui")))
+				{
+					vfs::Mount(file, "citizen:/ui/");
+				}
 			}
 		}
 	}
