@@ -41,7 +41,7 @@ bool ResourceFileDatabase::Load(const std::string& fileName)
 				{
 					// assume the format here is going to be 'sane'
 					std::string name = elem["n"].GetString();
-					std::time_t mtime = elem["mt"].GetUint64();
+					std::time_t mtime = elem["mt"].GetInt64();
 					uint64_t size = elem["s"].GetUint64();
 					auto id = Botan::base64_decode(elem["i"].GetString());
 
@@ -72,7 +72,7 @@ bool ResourceFileDatabase::Save(const std::string& fileName)
 		entryVal.SetObject();
 
 		entryVal.AddMember("n", rapidjson::Value(entryPair.first.c_str(), entryPair.first.size()), doc.GetAllocator());
-		entryVal.AddMember("mt", rapidjson::Value(entryPair.second.mtime), doc.GetAllocator());
+		entryVal.AddMember("mt", rapidjson::Value(int64_t(entryPair.second.mtime)), doc.GetAllocator());
 		entryVal.AddMember("s", rapidjson::Value(entryPair.second.size), doc.GetAllocator());
 
 		auto id = Botan::base64_encode(entryPair.second.fileId.data(), entryPair.second.fileId.size());
