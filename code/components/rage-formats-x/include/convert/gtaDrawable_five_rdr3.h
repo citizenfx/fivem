@@ -583,7 +583,7 @@ rdr3::grmShaderGroup* convert(five::grmShaderGroup* shaderGroup)
 		{
 			shs = HashString("default");
 		}	
-		else if (shs == HashString("trees_normal"))
+		else if (shs == HashString("trees_normal")|| shs == HashString("normal_diffspec")
 		{
 			shs = HashString("normal");
 		}
@@ -598,6 +598,10 @@ rdr3::grmShaderGroup* convert(five::grmShaderGroup* shaderGroup)
 		else if (shs == HashString("normal_spec_detail_dpm_tnt") || shs == HashString("normal_diffspec_detail_dpm_tnt") || shs == HashString("normal_spec_detail_dpm_vertdecal_tnt"))
 		{
 			shs = HashString("normal_spec_detail_tnt");
+		}
+		else if (shs == HashString("normal_diffspec_detail_dpm_tnt"))
+		{
+			shs = HashString("normal_spec_detail");
 		}
 		
 		else if (shs == HashString("cloth_spec_alpha"))
