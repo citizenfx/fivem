@@ -125,7 +125,7 @@ static void Mumble_Connect(bool isReconnect = false)
 			 * An event triggered when the game completes (re)connecting to a Mumble server.
 			 *
 			 * @param address - The address of the Mumble server connected to.
-             * @param reconnecting - Is this a reconnection to a Mumble server.
+			 * @param reconnecting - Is this a reconnection to a Mumble server.
 			 #/
 			declare function mumbleConnected(address: string, reconnecting: boolean): void;
 			*/
@@ -163,21 +163,21 @@ static void Mumble_Disconnect(bool reconnect = false)
 
 	g_mumbleClient->DisconnectAsync().then([=]()
 	{
-        if (!reconnect && mumbleConnectionInfo)
-        {
-            auto eventManager = Instance<fx::ResourceManager>::Get()->GetComponent<fx::ResourceEventManagerComponent>();
+		if (!reconnect && mumbleConnectionInfo)
+		{
+			auto eventManager = Instance<fx::ResourceManager>::Get()->GetComponent<fx::ResourceEventManagerComponent>();
 
-		    /*NETEV mumbleDisconnected CLIENT
-		    /#*
-		     * An event triggered when the game disconnects from a Mumble server without being reconnected.
-		     *
-		     * @param address - The address of the Mumble server disconnected from.
-		     #/
-		    declare function mumbleDisconnected(address: string): void;
-		    */
-		    eventManager->QueueEvent2("mumbleDisconnected", {}, mumbleConnectionInfo ? mumbleConnectionInfo->address.ToString() : NULL);
-        }
-        
+			/*NETEV mumbleDisconnected CLIENT
+			/#*
+			 * An event triggered when the game disconnects from a Mumble server without being reconnected.
+			 *
+			 * @param address - The address of the Mumble server disconnected from.
+			 #/
+			declare function mumbleDisconnected(address: string): void;
+			*/
+			eventManager->QueueEvent2("mumbleDisconnected", {}, mumbleConnectionInfo ? mumbleConnectionInfo->address.ToString() : NULL);
+		}
+		
 		if (reconnect && Mumble_ShouldConnect())
 		{
 			Mumble_Connect(true);
@@ -700,7 +700,81 @@ static HookFunction hookFunction([]()
 
 			if (id >= 0 && id < 31)
 			{
-				vtConfigs[id] = {};
+				if (g_mumble.connected)
+				{
+					vtConfigs[id] = {};
+					g_mumbleClient->UpdateVoiceTarget(id, vtConfigs[id]);
+				}
+			}
+		});
+
+		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_REMOVE_VOICE_TARGET_CHANNEL", [](fx::ScriptContext& context)
+		{
+			auto id = context.GetArgument<int>(0);
+			auto channel = context.GetArgument<int>(1);
+
+			if (id >= 0 && id < 31)
+			{
+				if (g_mumble.connected)
+				{
+					auto targetChannel = fmt::sprintf("Game Channel %d", channel);
+					auto& targets = vtConfigs[id].targets;
+					targets.remove_if([targetChannel](auto& target)
+					{
+						return target.channel == targetChannel;
+					});
+
+					g_mumbleClient->UpdateVoiceTarget(id, vtConfigs[id]);
+				}
+			}
+		});
+
+		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_REMOVE_VOICE_TARGET_PLAYER", [](fx::ScriptContext& context)
+		{
+			auto id = context.GetArgument<int>(0);
+			auto playerId = context.GetArgument<int>(1);
+
+			if (id >= 0 && id < 31)
+			{
+				if (g_mumble.connected)
+				{
+					std::wstring targetName = ToWide(fmt::sprintf("[%d] %s",
+						FxNativeInvoke::Invoke<int>(getServerId, playerId),
+						FxNativeInvoke::Invoke<const char*>(getPlayerName, playerId)));
+
+					auto& targets = vtConfigs[id].targets;
+					targets.remove_if([targetName](auto& target)
+					{
+						return target.users.size() > 0 && std::find(target.users.begin(), target.users.end(), targetName) != target.users.end();
+					});
+
+					g_mumbleClient->UpdateVoiceTarget(id, vtConfigs[id]);
+				}
+			}
+		});
+
+		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_REMOVE_VOICE_TARGET_PLAYER_BY_SERVER_ID", [](fx::ScriptContext& context)
+		{
+			auto id = context.GetArgument<int>(0);
+			auto serverId = context.GetArgument<int>(1);
+
+			if (id >= 0 && id < 31)
+			{
+				if (g_mumble.connected)
+				{
+					VoiceTargetConfig::Target ch;
+					std::wstring targetName = g_mumbleClient->GetPlayerNameFromServerId(serverId);
+
+					if (!targetName.empty())
+					{
+						auto& targets = vtConfigs[id].targets;
+						targets.remove_if([targetName](auto& target)
+						{
+							return target.users.size() > 0 && std::find(target.users.begin(), target.users.end(), targetName) != target.users.end();
+						});
+					}
+				}
+
 				g_mumbleClient->UpdateVoiceTarget(id, vtConfigs[id]);
 			}
 		});
@@ -711,17 +785,16 @@ static HookFunction hookFunction([]()
 
 			if (id >= 0 && id < 31)
 			{
-				std::vector<VoiceTargetConfig::Target>& targets = vtConfigs[id].targets;
-				for (size_t i = targets.size(); i--;)
+				if (g_mumble.connected)
 				{
-					VoiceTargetConfig::Target& target = targets[i];
-					if (!target.channel.empty())
+					auto& targets = vtConfigs[id].targets;
+					targets.remove_if([](auto& target)
 					{
-						targets.erase(targets.begin() + i);
-					}
-				}
+						return !target.channel.empty();
+					});
 
-				g_mumbleClient->UpdateVoiceTarget(id, vtConfigs[id]);
+					g_mumbleClient->UpdateVoiceTarget(id, vtConfigs[id]);
+				}
 			}
 		});
 		
@@ -732,17 +805,16 @@ static HookFunction hookFunction([]()
 
 			if (id >= 0 && id < 31)
 			{
-				std::vector<VoiceTargetConfig::Target>& targets = vtConfigs[id].targets;
-				for (size_t i = targets.size(); i--;)
+				if (g_mumble.connected)
 				{
-					VoiceTargetConfig::Target& target = targets[i];
-					if (target.users.size() > 0)
+					auto& targets = vtConfigs[id].targets;
+					targets.remove_if([](auto& target)
 					{
-						targets.erase(targets.begin() + i);
-					}
-				}
+						return target.users.size() > 0;
+					});
 
-				g_mumbleClient->UpdateVoiceTarget(id, vtConfigs[id]);
+					g_mumbleClient->UpdateVoiceTarget(id, vtConfigs[id]);
+				}
 			}
 		});
 
