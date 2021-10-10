@@ -23,15 +23,21 @@ static InitFunction initFunction([]()
 		{
 			fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
 
-			game::SetBindingTagActive(resource->GetName(), true);
-
-			resource->OnStop.Connect([resource]()
-			{
-				game::SetBindingTagActive(resource->GetName(), false);
-			});
-
 			game::RegisterBindingForTag(resource->GetName(), commandString, description, defaultMapper, defaultParameter);
 		}
+	});
+
+	fx::Resource::OnInitializeInstance.Connect([](fx::Resource* resource)
+	{
+		resource->OnStart.Connect([resource]()
+		{
+			game::SetBindingTagActive(resource->GetName(), true);
+		});
+
+		resource->OnStop.Connect([resource]()
+		{
+			game::SetBindingTagActive(resource->GetName(), false);
+		});
 	});
 });
 #endif
