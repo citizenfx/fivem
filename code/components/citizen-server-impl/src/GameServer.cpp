@@ -979,12 +979,34 @@ namespace fx
 					};
 					ro.addErrorBody = true;
 
+					static bool firstRun = true;
+
 					Instance<HttpClient>::Get()->DoPostRequest(std::string{ masterName }, json.dump(), ro, [](bool success, const char* d, size_t s)
 					{
 						if (!success)
 						{
 							console::DPrintf("citizen-server-impl", "error submitting to ingress: %s\n", std::string{ d, s });
+							return;
 						}
+
+						try
+						{
+							// don't return a query error for the first run (may be residual)
+							if (!firstRun)
+							{
+								auto j = nlohmann::json::parse(d, d + s);
+								if (j.is_object() && j.contains("lastError"))
+								{
+									auto lastError = j["lastError"].get<std::string>();
+									console::Printf("citizen-server-impl", "^1Server list query returned an error: %s^7\n", lastError.substr(0, lastError.find_first_of("\r\n")));
+								}
+							}
+						}
+						catch (...)
+						{
+						}
+
+						firstRun = false;
 					});
 				}
 			};
