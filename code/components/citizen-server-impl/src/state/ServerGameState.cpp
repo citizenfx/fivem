@@ -3127,6 +3127,12 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 			entity->creationToken = creationToken;
 			entity->syncTree = MakeSyncTree(objectType);
 
+			// no sync tree -> invalid object type -> nah
+			if (!entity->syncTree)
+			{
+				return false;
+			}
+
 			auto data = GetClientDataUnlocked(this, client);
 			entity->routingBucket = data->routingBucket;
 
@@ -3405,6 +3411,12 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 
 bool ServerGameState::ValidateEntity(EntityLockdownMode entityLockdownMode, const fx::sync::SyncEntityPtr& entity)
 {
+	// can't validate an entity without sync tree
+	if (!entity->syncTree)
+	{
+		return false;
+	}
+
 	bool allowed = false;
 	// allow auto-generated population in non-strict lockdown
 	if (entityLockdownMode != EntityLockdownMode::Strict)
