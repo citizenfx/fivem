@@ -8,6 +8,7 @@ return function()
 
 	files {
 		'components/vfs-impl-server/src/PlatformDevice.Win32.cpp',
+		'components/vfs-impl-server/src/MemoryDevice.cpp',
 		'components/vfs-impl-server/include/**.h',
 	}
 	

@@ -597,6 +597,11 @@ public:
 
 static std::multimap<std::string, fwRefContainer<vfs::Device>> g_mountCache;
 
+namespace vfs
+{
+fwRefContainer<Device> MakeMemoryDevice();
+}
+
 fwRefContainer<vfs::Device> RageVFSManager::GetDevice(const std::string& path)
 {
 	std::unique_lock<std::recursive_mutex> lock(m_managerLock);
@@ -628,6 +633,13 @@ fwRefContainer<vfs::Device> RageVFSManager::GetDevice(const std::string& path)
 			g_citizenDevice->SetPathPrefix("citizen:/");
 
 			return g_citizenDevice;
+		}
+
+		if (_strnicmp(path.c_str(), "memory:", 7) == 0)
+		{
+			static fwRefContainer<vfs::Device> memoryDevice = vfs::MakeMemoryDevice();
+
+			return memoryDevice;
 		}
 
 		static fwRefContainer<vfs::LocalDevice> g_localDevice = new vfs::LocalDevice;
