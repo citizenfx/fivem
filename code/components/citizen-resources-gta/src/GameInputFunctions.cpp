@@ -32,12 +32,12 @@ static InitFunction initFunction([]()
 		resource->OnStart.Connect([resource]()
 		{
 			game::SetBindingTagActive(resource->GetName(), true);
-		});
+		}, INT32_MIN);
 
 		resource->OnStop.Connect([resource]()
 		{
 			game::SetBindingTagActive(resource->GetName(), false);
-		});
+		}, INT32_MAX);
 	});
 });
 #endif
