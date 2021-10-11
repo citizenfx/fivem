@@ -1,6 +1,6 @@
 import { HttpErrorResponse, HttpHandler, HttpInterceptor, HttpRequest, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { EventEmitter, Injectable } from '@angular/core';
-import { of } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
 @Injectable()
@@ -25,12 +25,14 @@ export class ForumSignoutInterceptor implements HttpInterceptor {
 		return next.handle(req).pipe(catchError(event => this.handleForumResponseError(event)));
 	}
 
-	private handleForumResponseError(error: any) {
-		if (error instanceof HttpErrorResponse && error.status === 403) {
-			this.state.onSignout.emit();
+	private handleForumResponseError(error: any): Observable<any> {
+		if (error instanceof HttpErrorResponse) {
+			if (error.status === 403) {
+				this.state.onSignout.emit();
+			}
 		}
 
-		return of(error);
+		throw error;
 	}
 }
 
