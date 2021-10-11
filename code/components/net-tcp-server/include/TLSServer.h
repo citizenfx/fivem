@@ -15,6 +15,7 @@
 #endif
 
 #include <botan/auto_rng.h>
+#include <botan/system_rng.h>
 
 #include <botan/tls_server.h>
 #include <botan/tls_session_manager.h>
@@ -38,7 +39,11 @@ private:
 
 	TLSServer* m_parentServer;
 
+#ifdef IS_FXSERVER
 	Botan::AutoSeeded_RNG m_rng;
+#else
+	Botan::System_RNG m_rng;
+#endif
 
 	std::unique_ptr<Botan::TLS::Session_Manager> m_sessionManager;
 
