@@ -1781,6 +1781,7 @@ void OnPreInitHook()
 	g_manager = new LoopbackTcpServerManager();
 	Instance<LoopbackTcpServerManager>::Set(g_manager);
 
+	if (getenv("CitizenFX_ToolMode"))
 	{
 		wchar_t computerName[512];
 		DWORD len = std::size(computerName);
