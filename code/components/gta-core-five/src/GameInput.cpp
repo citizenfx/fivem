@@ -595,6 +595,16 @@ void BindingManager::Initialize()
 			ioParameter = _ungetParameterIndex(ioSource, it->second);
 		}
 
+		for (const auto& binding : m_bindings)
+		{
+			if (binding.second->GetCommand() == commandString &&
+				binding.second->GetTag() == tag &&
+				binding.first == std::make_tuple(ioSource, ioParameter))
+			{
+				return;
+			}
+		}
+
 		auto binding = std::make_shared<Binding>(commandString);
 		binding->SetBinding({ ioSource, ioParameter });
 		binding->SetTag(tag);
