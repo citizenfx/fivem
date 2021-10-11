@@ -84,7 +84,7 @@ int LoopbackTcpServerStream::HandleWrite(char* buffer, size_t length)
 
 net::PeerAddress LoopbackTcpServerStream::GetPeerAddress()
 {
-	return net::PeerAddress::FromString("127.0.0.1:65535").get();
+	return net::PeerAddress::FromString("127.0.0.1:65535", 65535, net::PeerAddress::LookupType::NoResolution).get();
 }
 
 void LoopbackTcpServerStream::Write(const std::vector<uint8_t>& data, TCompleteCallback&& onComplete)
@@ -141,7 +141,7 @@ bool LoopbackTcpServerManager::GetHostByName(const char* name, hostent** outValu
 	scoped_lock lock(m_loopbackLock);
 
 	// hash the hostname for lookup in the server dictionary
-	uint32_t hostHash = HashRageString(name);
+	uint32_t hostHash = HashString(name);
 
 	hostHash &= 0xFFFFFF; // for adding the 127.x netname
 
@@ -176,7 +176,7 @@ bool LoopbackTcpServerManager::GetAddrInfoA(const char* name, const char* servic
 	scoped_lock lock(m_loopbackLock);
 
 	// hash the hostname for lookup in the server dictionary
-	uint32_t hostHash = HashRageString(name);
+	uint32_t hostHash = HashString(name);
 
 	hostHash &= 0xFFFFFF; // for adding the 127.x netname
 
@@ -212,7 +212,7 @@ bool LoopbackTcpServerManager::GetAddrInfo(const char* name, const wchar_t* serv
 	scoped_lock lock(m_loopbackLock);
 
 	// hash the hostname for lookup in the server dictionary
-	uint32_t hostHash = HashRageString(name);
+	uint32_t hostHash = HashString(name);
 
 	hostHash &= 0xFFFFFF; // for adding the 127.x netname
 
@@ -269,7 +269,7 @@ bool LoopbackTcpServerManager::GetAddrInfoEx(const char* name, const wchar_t* se
 	scoped_lock lock(m_loopbackLock);
 
 	// hash the hostname for lookup in the server dictionary
-	uint32_t hostHash = HashRageString(name);
+	uint32_t hostHash = HashString(name);
 
 	hostHash &= 0xFFFFFF; // for adding the 127.x netname
 
@@ -607,7 +607,7 @@ fwRefContainer<LoopbackTcpServer> LoopbackTcpServerManager::RegisterTcpServer(co
 	scoped_write_lock lock(m_loopbackLock);
 
 	fwRefContainer<LoopbackTcpServer> server = new LoopbackTcpServer(this);
-	m_tcpServers.insert({ HashRageString(hostName.c_str()) & 0xFFFFFF, server });
+	m_tcpServers.insert({ HashString(hostName.c_str()) & 0xFFFFFF, server });
 
 	return server;
 }
@@ -964,6 +964,15 @@ static int __stdcall EP_GetPeerName(SOCKET s, sockaddr* name, int* namelen)
 	}
 
 	return g_oldGetPeerName(s, name, namelen);
+}
+
+static int(__stdcall* g_oldGetHostName)(char* name, int namelen);
+
+static int __stdcall EP_GetHostName(char* name, int namelen)
+{
+	DWORD len = namelen;
+	GetComputerNameA(name, &len);
+	return 0;
 }
 
 #include <mswsock.h>
@@ -1619,6 +1628,13 @@ static DWORD __stdcall EP_GetModuleFileNameW(HMODULE module, LPWSTR fileName, DW
 
 #pragma comment(lib, "wininet.lib")
 
+static BOOL(WINAPI* g_oldInternetGetConnectedState)(LPDWORD lpdwFlags, DWORD dwReserved);
+
+static BOOL WINAPI EP_InternetGetConnectedState(LPDWORD lpdwFlags, DWORD dwReserved)
+{
+	return TRUE;
+}
+
 static HINTERNET(__stdcall* g_oldInternetOpenW)(LPCTSTR lpszAgent, DWORD dwAccessType, LPCTSTR lpszProxyName, LPCTSTR lpszProxyBypass, DWORD dwFlags);
 
 static HINTERNET __stdcall EP_InternetOpenW(LPCTSTR lpszAgent, DWORD dwAccessType, LPCTSTR lpszProxyName, LPCTSTR lpszProxyBypass, DWORD dwFlags)
@@ -1756,6 +1772,14 @@ void OnPreInitHook()
 	g_manager = new LoopbackTcpServerManager();
 	Instance<LoopbackTcpServerManager>::Set(g_manager);
 
+	{
+		wchar_t computerName[512];
+		DWORD len = std::size(computerName);
+		GetComputerNameW(computerName, &len);
+
+		static auto localServer = g_manager->RegisterTcpServer(ToNarrow(computerName));
+	}
+
 	MH_Initialize();
 
 	LoadLibrary(L"wininet.dll");
@@ -1775,6 +1799,7 @@ void OnPreInitHook()
 	DO_HOOK(L"ws2_32.dll", "getsockname", EP_GetSockName, g_oldGetSockName);
 	DO_HOOK(L"ws2_32.dll", "getpeername", EP_GetPeerName, g_oldGetPeerName);
 	DO_HOOK(L"ws2_32.dll", "setsockopt", EP_SetSockOpt, g_oldSetSockOpt);
+	DO_HOOK(L"ws2_32.dll", "gethostname", EP_GetHostName, g_oldGetHostName);
 	DO_HOOK(L"ws2_32.dll", "GetAddrInfoW", EP_GetAddrInfoW, g_oldGetAddrInfoW);
 	DO_HOOK(L"ws2_32.dll", "GetAddrInfoExW", EP_GetAddrInfoExW, g_oldGetAddrInfoExW);
 //	DO_HOOK(L"ws2_32.dll", "FreeAddrInfoW", EP_FreeAddrInfoW, g_oldFreeAddrInfoW); // these three are hook-checked
@@ -1816,6 +1841,7 @@ void OnPreInitHook()
 
 	DO_HOOK(L"wininet.dll", "HttpQueryInfoW", EP_HttpQueryInfoW, g_oldHttpQueryInfoW);
 	DO_HOOK(L"wininet.dll", "InternetOpenW", EP_InternetOpenW, g_oldInternetOpenW);
+	DO_HOOK(L"wininet.dll", "InternetGetConnectedState", EP_InternetGetConnectedState, g_oldInternetGetConnectedState);
 
 	DO_HOOK(L"kernel32.dll", "CreateFileA", CreateFileAStub, g_oldCreateFileA);
 	DO_HOOK(L"kernel32.dll", "OpenFileMappingA", OpenFileMappingAStub, g_oldOpenFileMappingA);
