@@ -486,6 +486,49 @@ static BOOL WINAPI Process32NextWHook(HANDLE hSnapshot, LPPROCESSENTRY32W lppe)
 	return rv;
 }
 
+static DWORD WINAPI GetLogicalDrivesStub()
+{
+	wchar_t windir[MAX_PATH];
+	GetWindowsDirectoryW(windir, std::size(windir));
+
+	return (1 << DWORD(windir[0] - 'A')) | (1 << DWORD('C' - 'A'));
+}
+
+static DWORD WINAPI GetLogicalDriveStringsWStub(DWORD nBufferLength, LPWSTR lpBuffer)
+{
+	wchar_t windir[MAX_PATH];
+	GetWindowsDirectoryW(windir, std::size(windir));
+
+	if (toupper(windir[0]) == 'C')
+	{
+		if (nBufferLength && lpBuffer)
+		{
+			lpBuffer[0] = windir[0];
+			lpBuffer[1] = windir[1];
+			lpBuffer[2] = windir[2];
+			lpBuffer[3] = L'\0';
+			lpBuffer[4] = L'\0';
+		}
+		
+		return 4;
+	}
+
+	if (nBufferLength && lpBuffer)
+	{
+		lpBuffer[0] = L'C';
+		lpBuffer[1] = L':';
+		lpBuffer[2] = L'\\';
+		lpBuffer[3] = L'\0';
+		lpBuffer[4] = windir[0];
+		lpBuffer[5] = windir[1];
+		lpBuffer[6] = windir[2];
+		lpBuffer[7] = L'\0';
+		lpBuffer[8] = L'\0';
+	}
+
+	return 8;
+}
+
 extern HRESULT WINAPI __stdcall CoCreateInstanceStub(_In_ REFCLSID rclsid, _In_opt_ LPUNKNOWN pUnkOuter, _In_ DWORD dwClsContext, _In_ REFIID riid, _COM_Outptr_ _At_(*ppv, _Post_readable_size_(_Inexpressible_(varies))) LPVOID FAR* ppv);
 extern BOOL WINAPI __stdcall CreateProcessAStub(_In_opt_ LPCSTR lpApplicationName, _Inout_opt_ LPSTR lpCommandLine, _In_opt_ LPSECURITY_ATTRIBUTES lpProcessAttributes, _In_opt_ LPSECURITY_ATTRIBUTES lpThreadAttributes, _In_ BOOL bInheritHandles, _In_ DWORD dwCreationFlags, _In_opt_ LPVOID lpEnvironment, _In_opt_ LPCSTR lpCurrentDirectory, _In_ LPSTARTUPINFOA lpStartupInfo, _Out_ LPPROCESS_INFORMATION lpProcessInformation);
 extern BOOL WINAPI __stdcall CreateProcessWStub(_In_opt_ LPCWSTR lpApplicationName, _Inout_opt_ LPWSTR lpCommandLine, _In_opt_ LPSECURITY_ATTRIBUTES lpProcessAttributes, _In_opt_ LPSECURITY_ATTRIBUTES lpThreadAttributes, _In_ BOOL bInheritHandles, _In_ DWORD dwCreationFlags, _In_opt_ LPVOID lpEnvironment, _In_opt_ LPCWSTR lpCurrentDirectory, _In_ LPSTARTUPINFOW lpStartupInfo, _Out_ LPPROCESS_INFORMATION lpProcessInformation);
@@ -581,6 +624,8 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 			DisableToolHelpScope scope;
 			MH_Initialize();
 			MH_CreateHookApi(L"kernel32.dll", "GetComputerNameExW", GetComputerNameExWStub, NULL);
+			MH_CreateHookApi(L"kernel32.dll", "GetLogicalDriveStringsW", GetLogicalDriveStringsWStub, NULL);
+			MH_CreateHookApi(L"kernel32.dll", "GetLogicalDrives", GetLogicalDrivesStub, NULL);
 			MH_EnableHook(MH_ALL_HOOKS);
 		}
 #endif

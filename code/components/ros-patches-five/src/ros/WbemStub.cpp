@@ -4,6 +4,8 @@
 
 #if !defined(_M_IX86)
 #include <wrl.h>
+
+#include <shobjidl.h>
 #include <wbemidl.h>
 #include <propvarutil.h>
 
@@ -447,8 +449,7 @@ public:
 
 HRESULT WINAPI CoCreateInstanceStub(_In_ REFCLSID rclsid, _In_opt_ LPUNKNOWN pUnkOuter, _In_ DWORD dwClsContext, _In_ REFIID riid, _COM_Outptr_ _At_(*ppv, _Post_readable_size_(_Inexpressible_(varies))) LPVOID FAR* ppv)
 {
-
-#if !GTA_NY
+#if !defined(GTA_NY)
 	if (riid == __uuidof(IWbemLocator))
 	{
 		auto locator = WRL::Make<WbemLocator>();
@@ -457,6 +458,11 @@ HRESULT WINAPI CoCreateInstanceStub(_In_ REFCLSID rclsid, _In_opt_ LPUNKNOWN pUn
 		return S_OK;
 	}
 #endif
+
+	if (getenv("CitizenFX_ToolMode") && riid == __uuidof(IShellLink))
+	{
+		return E_NOINTERFACE;
+	}
 
 	return CoCreateInstance(rclsid, pUnkOuter, dwClsContext, riid, ppv);
 }
