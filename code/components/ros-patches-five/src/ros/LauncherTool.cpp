@@ -389,6 +389,8 @@ static BOOL WINAPI SetForegroundWindowStub(_In_ HWND hWnd)
 
 void DoLauncherUiSkip()
 {
+	DisableToolHelpScope scope;
+
 	MH_Initialize();
 	MH_CreateHookApi(L"user32.dll", "CreateWindowExW", CreateWindowExWStub, (void**)&g_origCreateWindowExW);
 	MH_CreateHookApi(L"user32.dll", "SetForegroundWindow", SetForegroundWindowStub, (void**)NULL);
@@ -462,6 +464,28 @@ static BOOL WINAPI GetComputerNameExWStub(COMPUTER_NAME_FORMAT NameType, LPWSTR 
 	return GetComputerNameW(lpBuffer, nSize);
 }
 
+#include <shlwapi.h>
+#include <tlhelp32.h>
+
+static BOOL WINAPI Process32NextWHook(HANDLE hSnapshot, LPPROCESSENTRY32W lppe)
+{
+	auto rv = Process32NextW(hSnapshot, lppe);
+
+	if (rv)
+	{
+		while (rv &&
+			(StrStrIW(lppe->szExeFile, L"GTA5.exe") ||
+			 StrStrIW(lppe->szExeFile, L"RDR2.exe") ||
+			 StrStrIW(lppe->szExeFile, L"FiveM") ||
+			 StrStrIW(lppe->szExeFile, L"RedM")))
+		{
+			rv = Process32NextW(hSnapshot, lppe);
+		}
+	}
+
+	return rv;
+}
+
 extern HRESULT WINAPI __stdcall CoCreateInstanceStub(_In_ REFCLSID rclsid, _In_opt_ LPUNKNOWN pUnkOuter, _In_ DWORD dwClsContext, _In_ REFIID riid, _COM_Outptr_ _At_(*ppv, _Post_readable_size_(_Inexpressible_(varies))) LPVOID FAR* ppv);
 extern BOOL WINAPI __stdcall CreateProcessAStub(_In_opt_ LPCSTR lpApplicationName, _Inout_opt_ LPSTR lpCommandLine, _In_opt_ LPSECURITY_ATTRIBUTES lpProcessAttributes, _In_opt_ LPSECURITY_ATTRIBUTES lpThreadAttributes, _In_ BOOL bInheritHandles, _In_ DWORD dwCreationFlags, _In_opt_ LPVOID lpEnvironment, _In_opt_ LPCSTR lpCurrentDirectory, _In_ LPSTARTUPINFOA lpStartupInfo, _Out_ LPPROCESS_INFORMATION lpProcessInformation);
 extern BOOL WINAPI __stdcall CreateProcessWStub(_In_opt_ LPCWSTR lpApplicationName, _Inout_opt_ LPWSTR lpCommandLine, _In_opt_ LPSECURITY_ATTRIBUTES lpProcessAttributes, _In_opt_ LPSECURITY_ATTRIBUTES lpThreadAttributes, _In_ BOOL bInheritHandles, _In_ DWORD dwCreationFlags, _In_opt_ LPVOID lpEnvironment, _In_opt_ LPCWSTR lpCurrentDirectory, _In_ LPSTARTUPINFOW lpStartupInfo, _Out_ LPPROCESS_INFORMATION lpProcessInformation);
@@ -525,6 +549,8 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 		hook::iat("kernel32.dll", CreateMutexWStub, "CreateMutexW");
 		hook::iat("kernel32.dll", CreateNamedPipeAHookL, "CreateNamedPipeA");
 
+		hook::iat("kernel32.dll", Process32NextWHook, "Process32NextW");
+
 		hook::iat("shell32.dll", ShellExecuteExWStub, "ShellExecuteExW");
 		hook::iat("shell32.dll", ShellExecuteWStub, "ShellExecuteW");
 
@@ -576,7 +602,7 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 			{
 				auto path = it->path();
 
-				if (path.filename().string().find("in-", 0) == 0)
+				if (path.filename().string().find("in-", 0) == 0 || path.filename().string().find("out-", 0) == 0)
 				{
 					boost::filesystem::remove(path, ec);
 				}
