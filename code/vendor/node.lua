@@ -11,7 +11,6 @@ return {
 		includedirs { '../vendor/node/gen/' }
 		includedirs { '../vendor/node/gen/src/' }
 		includedirs { '../vendor/node/gen/src/node/inspector/protocol/' }
-
 		includedirs { '../vendor/node/deps/cares/include/' }
 		includedirs { '../vendor/node/deps/histogram/src/' }
 		includedirs { '../vendor/node/deps/llhttp/include/' }
@@ -19,6 +18,7 @@ return {
 		includedirs { '../vendor/node/deps/uvwasi/include/' }
 		includedirs { '../vendor/node/deps/googletest/include/' }
 		includedirs { '../vendor/node/deps/icu-small/source/common/' }
+		includedirs { '../vendor/node/deps/icu-small/source/i18n/' }
 
 		add_dependencies 'vendor:nghttp2'
 		add_dependencies 'vendor:libuv'
@@ -27,7 +27,7 @@ return {
 		add_dependencies 'vendor:openssl_ssl'
 		add_dependencies 'vendor:v8-93'
 
-		defines { 'NODE_WANT_INTERNALS=1', 'NODE_ARCH="x64"', 'NODE_NO_BROWSER_GLOBALS', 'NODE_USE_V8_PLATFORM', 'HAVE_OPENSSL', 'OPENSSL_NO_ENGINE', 'NODE_OPENSSL_SYSTEM_CERT_PATH=""', 'HAVE_INSPECTOR' }
+		defines { 'NODE_WANT_INTERNALS=1', 'NODE_ARCH="x64"', 'NODE_NO_BROWSER_GLOBALS', 'NODE_USE_V8_PLATFORM', 'HAVE_OPENSSL', 'OPENSSL_NO_ENGINE', 'NODE_OPENSSL_SYSTEM_CERT_PATH=""', 'HAVE_INSPECTOR', 'NODE_HAVE_I18N_SUPPORT' }
 		
 		if os.istarget('windows') then
 			defines { 'NODE_PLATFORM="win32"', 'NOMINMAX', '_UNICODE=1' }
@@ -38,16 +38,12 @@ return {
 		elseif os.istarget('linux') then
 			defines { 'NODE_PLATFORM="linux"', '__POSIX__' }
 		end
-		
-		defines { 'U_STATIC_IMPLEMENTATION', 'U_COMMON_IMPLEMENTATION' }
-		
-		files_project '../vendor/node/deps/icu-small/' {
-			'source/common/*.cpp',
-			'source/stubdata/*.cpp',
-		}
 
+		defines { 'U_STATIC_IMPLEMENTATION' }
+		links 'icu-small'
+		
 		if os.istarget('windows') then
-			defines { 'CARES_PULL_WS2TCPIP_H=1', '_WINSOCK_DEPRECATED_NO_WARNINGS', 'WIN32' }
+			defines { 'CARES_PULL_WS2TCPIP_H=1', '_WINSOCK_DEPRECATED_NO_WARNINGS', 'WIN32', 'CARES_BUILDING_LIBRARY' }
 			
 			includedirs { '../vendor/node/deps/cares/config/win32/' }
 
@@ -596,5 +592,111 @@ return {
 			'src/inspector/worker_inspector.cc',
 			'src/inspector/worker_inspector.h',
 		}
+
+		project 'icu-base'
+			language 'C++'
+			kind 'StaticLib'
+
+			defines { 'U_STATIC_IMPLEMENTATION' }
+			
+			if os.istarget('windows') then
+				buildoptions '/utf-8'
+			end
+
+			includedirs { '../vendor/node/deps/icu-small/source/common/' }
+			includedirs { '../vendor/node/deps/icu-small/source/i18n/' }
+
+			files_project '../vendor/node/deps/icu-small/' {
+				'source/common/*.cpp',
+				'source/i18n/*.cpp',
+			}
+
+			filter 'files:**/icu-small/source/common/*.cpp'
+				defines { 'U_COMMON_IMPLEMENTATION' }
+	
+			filter 'files:**/icu-small/source/i18n/*.cpp'
+				defines { 'U_I18N_IMPLEMENTATION' }
+
+			filter {}
+
+		project 'genccode'
+			language 'C++'
+			kind 'ConsoleApp'
+			targetdir '../vendor/node/gen/'
+			links 'icu-base'
+
+			defines { 'U_STATIC_IMPLEMENTATION', 'U_TOOLUTIL_IMPLEMENTATION' }
+
+			includedirs { '../vendor/node/deps/icu-small/source/common/' }
+			includedirs { '../vendor/node/deps/icu-small/source/i18n/' }
+			includedirs { '../vendor/node/deps/icu-small/source/tools/toolutil/' }
+
+			files_project '../vendor/node/deps/icu-small/' {
+				'source/stubdata/*.cpp',
+				'source/tools/genccode/genccode.c',
+				'source/tools/toolutil/*.cpp'
+			}
+
+		project 'icu-small'
+			language 'C++'
+			kind 'StaticLib'
+			dependson 'genccode'
+			links 'icu-base'
+
+			defines { 'U_STATIC_IMPLEMENTATION' }
+
+			includedirs { '../vendor/node/deps/icu-small/source/common/' }
+			includedirs { '../vendor/node/deps/icu-small/source/i18n/' }
+
+			local icudtlExt = '.c'
+			local icudtlOpt = ''
+
+			if os.istarget('windows') then
+				icudtlExt = '.obj'
+				icudtlOpt = '-o'
+			else
+				icudtlExt = '.S'
+				icudtlOpt = '-a gcc'
+			end
+
+			files_project '../vendor/node/' {
+				'gen/icudt69l_dat' .. icudtlExt,
+				'deps/icu-small/source/data/in/icudt69l.dat.bz2'
+			}
+
+			filter 'files:**/source/data/in/icudt69l.dat.bz2'
+				local icuSmallRoot = path.getabsolute('../vendor/node/deps/icu-small')
+
+				local unzipCommand
+
+				if os.istarget('linux') then
+					unzipCommand =
+						('bunzip2 -k %s/source/data/in/icudt69l.dat.bz2'):format(
+							icuSmallRoot
+						)
+				else
+					unzipCommand =
+						(_ROOTPATH .. '/tools/ci/7z.exe x -o%s/source/data/in/ %s/source/data/in/icudt69l.dat.bz2'):format(
+							icuSmallRoot,
+							icuSmallRoot
+						)
+				end
+
+				buildcommands {
+					unzipCommand,
+					('%s %s -d %s -e icudt69 -n icudata %s'):format(
+						path.getabsolute('../vendor/node/gen/genccode'),
+						icudtlOpt,
+						path.getabsolute('../vendor/node/gen/'),
+						icuSmallRoot .. '/source/data/in/icudt69l.dat'
+					),
+					('{DELETE} %s'):format(icuSmallRoot .. '/source/data/in/icudt69l.dat')
+				}
+				
+				buildinputs { '../vendor/node/deps/icu-small/source/data/in/icudt69l.dat.bz2' }
+				buildoutputs { '../vendor/node/gen/icudt69l_dat' .. icudtlExt }
+	
+			filter {}
+	
 	end
 }
