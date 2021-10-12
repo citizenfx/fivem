@@ -259,12 +259,35 @@ struct GameErrorData
 	}
 };
 
+static auto GetMinidumpGamePath() -> std::wstring
+{
+	std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+
+	if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
+	{
+		wchar_t path[512];
+
+		const wchar_t* pathKey = L"IVPath";
+
+		if (wcsstr(GetCommandLine(), L"cl2"))
+		{
+			pathKey = L"PathCL2";
+		}
+
+		GetPrivateProfileString(L"Game", pathKey, L"", path, _countof(path), fpath.c_str());
+
+		return path;
+	}
+
+	return L"null";
+}
+
 static GameErrorData LookupError(uint32_t hash)
 {
 #ifdef IS_RDR3
-	FILE* f = _wfopen(MakeRelativeGamePath(L"x64/data/errorcodes/american.txt").c_str(), L"r");
+	FILE* f = _wfopen(fmt::format(L"{}/x64/data/errorcodes/american.txt", GetMinidumpGamePath()).c_str(), L"r");
 #else
-	FILE* f = _wfopen(MakeRelativeGamePath(L"update/x64/data/errorcodes/american.txt").c_str(), L"r");
+	FILE* f = _wfopen(fmt::format(L"{}/update/x64/data/errorcodes/american.txt", GetMinidumpGamePath()).c_str(), L"r");
 #endif
 
 	if (f)
@@ -693,17 +716,7 @@ static HRESULT GetUIObjectOfFile(HWND hwnd, LPCWSTR pszPath, REFIID riid, void**
 	return hr;
 }
 
-struct TickCountData
-{
-	uint64_t tickCount;
-	SYSTEMTIME initTime;
-
-	TickCountData()
-	{
-		tickCount = GetTickCount64();
-		GetSystemTime(&initTime);
-	}
-};
+#include "TickCountData.h"
 
 static void GatherCrashInformation()
 {
@@ -719,7 +732,7 @@ static void GatherCrashInformation()
 	mz_zip_writer_set_compress_level(writer, 9);
 	mz_zip_writer_set_compress_method(writer, MZ_COMPRESS_METHOD_DEFLATE);
 
-	static HostSharedData<TickCountData> initTickCount("CFX_SharedTickCount");
+	HostSharedData<TickCountData> initTickCount("CFX_SharedTickCount");
 
 	bool success = false;
 	
@@ -857,59 +870,6 @@ bool LoadOwnershipTicket()
 	return false;
 }
 
-// copied here so that we don't have to rebuild Shared (and HostSharedData does not support custom names)
-struct MDSharedTickCount
-{
-	struct Data
-	{
-		uint64_t tickCount;
-
-		Data()
-		{
-			tickCount = GetTickCount64();
-		}
-	};
-
-	MDSharedTickCount()
-	{
-		m_data = &m_fakeData;
-
-		bool initTime = true;
-		m_fileMapping = CreateFileMapping(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, sizeof(Data), L"CFX_SharedTickCount");
-
-		if (m_fileMapping != nullptr)
-		{
-			if (GetLastError() == ERROR_ALREADY_EXISTS)
-			{
-				initTime = false;
-			}
-
-			m_data = (Data*)MapViewOfFile(m_fileMapping, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(Data));
-
-			if (initTime)
-			{
-				m_data = new(m_data) Data();
-			}
-		}
-	}
-
-	inline Data& operator*()
-	{
-		return *m_data;
-	}
-
-	inline Data* operator->()
-	{
-		return m_data;
-	}
-
-private:
-	HANDLE m_fileMapping;
-	Data* m_data;
-
-	Data m_fakeData;
-};
-
 #include "UserLibrary.h"
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
@@ -974,6 +934,9 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 	{
 
 	};
+
+	static std::thread thread;
+	static std::thread saveThread;
 
 	CrashGenerationServer::OnClientDumpRequestCallback dumpCallback = [] (void*, const ClientInfo* info, const std::wstring* filePath)
 	{
@@ -1292,8 +1255,8 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		parameters[L"AdditionalData"] = GetAdditionalData();
 
 		{
-			static MDSharedTickCount tickCount;
-			parameters[L"StartTime"] = fmt::sprintf(L"%lld", _time64(nullptr) - ((GetTickCount64() - tickCount->tickCount) / 1000));
+			HostSharedData<TickCountData> initTickCount("CFX_SharedTickCount");
+			parameters[L"StartTime"] = fmt::sprintf(L"%lld", _time64(nullptr) - ((GetTickCount64() - initTickCount->tickCount) / 1000));
 		}
 
 		std::wstring responseBody;
@@ -1302,9 +1265,14 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		std::map<std::wstring, std::wstring> files;
 		files[L"upload_file_minidump"] = *filePath;
 
-		static HostSharedData<TickCountData> initTickCount("CFX_SharedTickCount");
-		static fwPlatformString dateStamp = fmt::sprintf(L"%04d-%02d-%02dT%02d%02d%02d", initTickCount->initTime.wYear, initTickCount->initTime.wMonth,
-			initTickCount->initTime.wDay, initTickCount->initTime.wHour, initTickCount->initTime.wMinute, initTickCount->initTime.wSecond);
+		static fwPlatformString dateStamp;
+
+		if (dateStamp.empty())
+		{
+			HostSharedData<TickCountData> initTickCount("CFX_SharedTickCount");
+			dateStamp = fmt::sprintf(L"%04d-%02d-%02dT%02d%02d%02d", initTickCount->initTime.wYear, initTickCount->initTime.wMonth,
+				initTickCount->initTime.wDay, initTickCount->initTime.wHour, initTickCount->initTime.wMinute, initTickCount->initTime.wSecond);
+		}
 
 		static fwPlatformString fp = MakeRelativeCitPath(fmt::sprintf(L"logs/CitizenFX_log_%s.log", dateStamp));
 
@@ -1421,7 +1389,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		{
 			std::thread([csignature]()
 			{
-				static HostSharedData<CfxState> hostData("CfxInitState");
+				HostSharedData<CfxState> hostData("CfxInitState");
 				HANDLE gameProcess = OpenProcess(PROCESS_CREATE_THREAD | PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION, FALSE, hostData->gamePid);
 
 				if (!gameProcess)
@@ -1508,8 +1476,6 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 			isDisconnectMessage = true;
 		}
-
-		static std::thread saveThread;
 
 		static TASKDIALOGCONFIG taskDialogConfig = { 0 };
 		taskDialogConfig.cbSize = sizeof(taskDialogConfig);
@@ -1604,7 +1570,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 		g_dumpPath = *filePath;
 
-		auto thread = std::thread([=]()
+		thread = std::thread([=]()
 		{
 			// Should not show taskdialog when in fxdk mode
 			if (shouldTerminate && !launch::IsSDKGuest())
@@ -1668,20 +1634,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		crashId = L"";
 #endif
 
-		if (thread.joinable())
-		{
-			thread.join();
-		}
-
-		if (saveThread.joinable())
-		{
-			saveThread.join();
-		}
-
 		SetEvent(crashReport);
-
-		_wunlink(MakeRelativeCitPath(L"data\\cache\\extra_dump_info.bin").c_str());
-		_wunlink(MakeRelativeCitPath(L"data\\cache\\extra_dump_info2.bin").c_str());
 	};
 
 	CrashGenerationServer::OnClientExitedCallback exitCallback = [] (void*, const ClientInfo* info)
@@ -1697,16 +1650,28 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 	std::wstring pipeName = L"\\\\.\\pipe\\CitizenFX_Dump";
 
-	CrashGenerationServer server(pipeName, nullptr, connectCallback, nullptr, dumpCallback, nullptr, exitCallback, nullptr, uploadCallback, nullptr, true, &crashDirectory);
-	if (server.Start())
 	{
-		SetEvent(inheritedHandleBit);
+		CrashGenerationServer server(pipeName, nullptr, connectCallback, nullptr, dumpCallback, nullptr, exitCallback, nullptr, uploadCallback, nullptr, true, &crashDirectory);
+		if (server.Start())
+		{
+			SetEvent(inheritedHandleBit);
 
-		OnStartSession();
+			OnStartSession();
+		}
+
+		WaitForSingleObject(parentProcess, INFINITE);
+		WaitForSingleObject(crashReport, 15000);
 	}
 
-	WaitForSingleObject(parentProcess, INFINITE);
-	WaitForSingleObject(crashReport, 15000);
+	if (saveThread.joinable())
+	{
+		saveThread.join();
+	}
+
+	if (thread.joinable())
+	{
+		thread.join();
+	}
 
 	// at this point we can safely perform some cleanup tasks, no matter whether the game exited cleanly or crashed
 
@@ -1723,7 +1688,13 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 #endif
 
 	// delete steam_appid.txt on last process exit to curb paranoia about MTL mod checks
-	_wunlink(MakeRelativeGamePath(L"steam_appid.txt").c_str());
+	// we don't use MakeRelativeGamePath as this'll make a `static` CfxInitState
+	{
+		_wunlink(fmt::format(L"{}\\steam_appid.txt", GetMinidumpGamePath()).c_str());
+	}
+
+	_wunlink(MakeRelativeCitPath(L"data\\cache\\extra_dump_info.bin").c_str());
+	_wunlink(MakeRelativeCitPath(L"data\\cache\\extra_dump_info2.bin").c_str());
 }
 #endif
 
@@ -1783,6 +1754,24 @@ extern "C" DLL_EXPORT bool TerminateForException(PEXCEPTION_POINTERS exception)
 	return false;
 }
 
+bool InitializeExceptionServer()
+{
+	wchar_t* dumpServerBit = wcsstr(GetCommandLine(), L"-dumpserver");
+
+	if (dumpServerBit)
+	{
+		wchar_t* parentPidBit = wcsstr(GetCommandLine(), L"-parentpid:");
+
+#if defined(LAUNCHER_PERSONALITY_MAIN)
+		InitializeDumpServer(wcstol(&dumpServerBit[12], nullptr, 10), wcstol(&parentPidBit[11], nullptr, 10));
+#endif
+
+		return true;
+	}
+
+	return false;
+}
+
 extern "C" DLL_EXPORT bool InitializeExceptionHandler()
 {
 	if (initialized)
@@ -1791,6 +1780,11 @@ extern "C" DLL_EXPORT bool InitializeExceptionHandler()
 	}
 
 	initialized = true;
+
+	if (InitializeExceptionServer())
+	{
+		return true;
+	}
 
 	AllocateExceptionBuffer();
 
@@ -1804,19 +1798,6 @@ extern "C" DLL_EXPORT bool InitializeExceptionHandler()
 
 	std::wstring crashDirectory = MakeRelativeCitPath(L"crashes");
 	CreateDirectory(crashDirectory.c_str(), nullptr);
-
-	wchar_t* dumpServerBit = wcsstr(GetCommandLine(), L"-dumpserver");
-
-	if (dumpServerBit)
-	{
-		wchar_t* parentPidBit = wcsstr(GetCommandLine(), L"-parentpid:");
-
-#if defined(LAUNCHER_PERSONALITY_MAIN)
-		InitializeDumpServer(wcstol(&dumpServerBit[12], nullptr, 10), wcstol(&parentPidBit[11], nullptr, 10));
-#endif
-
-		return true;
-	}
 
 	bool bigMemoryDump = false;
 
@@ -1852,7 +1833,7 @@ extern "C" DLL_EXPORT bool InitializeExceptionHandler()
 
 		HANDLE initEvent = CreateEvent(&securityAttributes, TRUE, FALSE, nullptr);
 
-		static HostSharedData<CfxState> hostData("CfxInitState");
+		HostSharedData<CfxState> hostData("CfxInitState");
 
 		// create the command line including argument
 		wchar_t commandLine[MAX_PATH * 8];

@@ -5,18 +5,7 @@
 #include <fmt/chrono.h>
 
 #include <HostSharedData.h>
-
-struct TickCountData
-{
-	uint64_t tickCount;
-	SYSTEMTIME initTime;
-
-	TickCountData()
-	{
-		tickCount = GetTickCount64();
-		GetSystemTime(&initTime);
-	}
-};
+#include "TickCountData.h"
 
 static std::string GetProcessName()
 {
@@ -93,7 +82,15 @@ static void PerformFileLog(const std::tuple<std::string, std::string>& pair)
 	static size_t lineIndex;
 	static SRWLOCK logMutex = SRWLOCK_INIT;
 
-	static HostSharedData<TickCountData> initTickCount("CFX_SharedTickCount");
+	static TickCountData initTickCountBacking;
+
+	{
+		HostSharedData<TickCountData> initTickCountRef("CFX_SharedTickCount");
+		initTickCountBacking = *initTickCountRef;
+	}
+
+	auto initTickCount = &initTickCountBacking;
+
 	static std::string* processName = new std::string(GetProcessName());
 
 	{

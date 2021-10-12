@@ -29,6 +29,21 @@ public:
 		}
 	}
 
+	~HostSharedData()
+	{
+		if (m_data && m_data != &m_fakeData)
+		{
+			UnmapViewOfFile(m_data);
+			m_data = nullptr;
+		}
+
+		if (m_fileMapping)
+		{
+			CloseHandle(m_fileMapping);
+			m_fileMapping = nullptr;
+		}
+	}
+
 	inline TData& operator*()
 	{
 		return *m_data;

@@ -15,6 +15,7 @@
 
 #include <CfxState.h>
 #include <UUIState.h>
+#include "TickCountData.h"
 #include <HostSharedData.h>
 
 #include <array>
@@ -35,6 +36,7 @@ void InitializeDummies();
 std::optional<int> EnsureGamePath();
 
 extern "C" bool InitializeExceptionHandler();
+bool InitializeExceptionServer();
 
 std::map<std::string, std::string> UpdateGameCache();
 
@@ -115,6 +117,12 @@ int RealMain()
 	if (!toolMode)
 	{
 #ifdef LAUNCHER_PERSONALITY_MAIN
+		// run exception handler
+		if (InitializeExceptionServer())
+		{
+			return 0;
+		}
+
 		// bootstrap the game
 		if (Bootstrap_RunInit())
 		{
@@ -156,6 +164,31 @@ int RealMain()
 
 	// delete any old .exe.new file
 	_unlink("CitizenFX.exe.new");
+
+	// toggle wait for switch
+	if (wcsstr(GetCommandLineW(), L"-switchcl"))
+	{
+		// if this isn't a subprocess
+		wchar_t fxApplicationName[MAX_PATH];
+		GetModuleFileName(GetModuleHandle(nullptr), fxApplicationName, _countof(fxApplicationName));
+
+		if (wcsstr(fxApplicationName, L"subprocess") == nullptr)
+		{
+			HostSharedData<CfxState> initStateOld("CfxInitState");
+
+			HANDLE hProcess = OpenProcess(SYNCHRONIZE, FALSE, initStateOld->initialGamePid);
+
+			if (hProcess)
+			{
+				WaitForSingleObject(hProcess, INFINITE);
+				CloseHandle(hProcess);
+			}
+		}
+	}
+
+	// initialize our initState instance
+	// this needs to be before *any* MakeRelativeCitPath use in main process
+	HostSharedData<CfxState> initState("CfxInitState");
 
 	// path environment appending of our primary directories
 	static wchar_t pathBuf[32768];
@@ -236,29 +269,6 @@ int RealMain()
 
 	SetCurrentProcessExplicitAppUserModelID(va(L"CitizenFX.%s.%s", PRODUCT_NAME, launch::IsSDK() ? L"SDK" : L"Client"));
 
-	// toggle wait for switch
-	if (wcsstr(GetCommandLineW(), L"-switchcl"))
-	{
-		// if this isn't a subprocess
-		wchar_t fxApplicationName[MAX_PATH];
-		GetModuleFileName(GetModuleHandle(nullptr), fxApplicationName, _countof(fxApplicationName));
-
-		if (wcsstr(fxApplicationName, L"subprocess") == nullptr)
-		{
-			static HostSharedData<CfxState> initStateOld("CfxInitState");
-
-			HANDLE hProcess = OpenProcess(SYNCHRONIZE, FALSE, initStateOld->initialGamePid);
-
-			if (hProcess)
-			{
-				WaitForSingleObject(hProcess, INFINITE);
-				CloseHandle(hProcess);
-			}
-		}
-	}
-
-	static HostSharedData<CfxState> initState("CfxInitState");
-
 #ifdef IS_LAUNCHER
 	initState->isReverseGame = true;
 #endif
@@ -286,6 +296,8 @@ int RealMain()
 	}
 
 #ifdef LAUNCHER_PERSONALITY_MAIN
+	static HostSharedData<TickCountData> initTickCount("CFX_SharedTickCount");
+
 	// if not the master process, force devmode
 	if (!devMode)
 	{
@@ -307,6 +319,9 @@ int RealMain()
 			return 0;
 		}
 	}
+
+	// in case Bootstrap_* didn't set this
+	initState->ranPastInstaller = true;
 
 	XBR_EarlySelect();
 #endif
