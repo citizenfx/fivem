@@ -603,6 +603,10 @@ rdr3::grmShaderGroup* convert(five::grmShaderGroup* shaderGroup)
 		{
 			shs = HashString("normal_spec_detail");
 		}
+		else if (shs == HashString("normal_diffspec_detail_dpm"))
+		{
+			shs = HashString("normal_detail");
+		}
 		
 		else if (shs == HashString("cloth_spec_alpha"))
 		{
