@@ -157,6 +157,11 @@ inline const wchar_t* MakeCfxSubProcess(const std::wstring& processType, const s
 
 	if (GetFileAttributes(outPath.c_str()) == INVALID_FILE_ATTRIBUTES)
 	{
+		if (processType != L"DumpServer")
+		{
+			__debugbreak();
+		}
+
 		return va(L"%s", fxApplicationName);
 	}
 
