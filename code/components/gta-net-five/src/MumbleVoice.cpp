@@ -606,6 +606,13 @@ static std::shared_ptr<lab::AudioContext> getAudioContextByServerId(int serverId
 	return g_mumbleClient->GetAudioContext(name);
 }
 
+std::wstring getMumbleName(int playerId)
+{
+	return ToWide(fmt::sprintf("[%d] %s",
+		FxNativeInvoke::Invoke<int>(getServerId, playerId),
+		FxNativeInvoke::Invoke<const char*>(getPlayerName, playerId)));
+}
+
 #include <scrBind.h>
 
 static HookFunction hookFunction([]()
@@ -673,9 +680,7 @@ static HookFunction hookFunction([]()
 
 			if (g_mumble.connected)
 			{
-				std::wstring name = ToWide(fmt::sprintf("[%d] %s",
-					FxNativeInvoke::Invoke<int>(getServerId, playerId),
-					FxNativeInvoke::Invoke<const char*>(getPlayerName, playerId)));
+				std::wstring name = getMumbleName(playerId);
 
 				g_mumbleClient->SetClientVolumeOverride(name, volume);
 			}
@@ -738,9 +743,7 @@ static HookFunction hookFunction([]()
 			{
 				if (g_mumble.connected)
 				{
-					std::wstring targetName = ToWide(fmt::sprintf("[%d] %s",
-						FxNativeInvoke::Invoke<int>(getServerId, playerId),
-						FxNativeInvoke::Invoke<const char*>(getPlayerName, playerId)));
+					std::wstring targetName = getMumbleName(playerId);
 
 					auto& targets = vtConfigs[id].targets;
 					targets.remove_if([targetName](auto& target)
@@ -866,9 +869,7 @@ static HookFunction hookFunction([]()
 				if (g_mumble.connected)
 				{
 					VoiceTargetConfig::Target ch;
-					std::wstring name = ToWide(fmt::sprintf("[%d] %s",
-						FxNativeInvoke::Invoke<int>(getServerId, playerId),
-						FxNativeInvoke::Invoke<const char*>(getPlayerName, playerId)));
+					std::wstring name = getMumbleName(playerId);
 
 					ch.users.push_back(name);
 
