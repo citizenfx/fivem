@@ -103,7 +103,7 @@ std::string GetEntitlementBlock(uint64_t accountId, const std::string& machineHa
 		FatalError("RS10");
 	}
 
-	std::string filePath = GetFilePath(fmt::sprintf("%08x_%lld", HashString(machineHash.c_str()), accountId));
+	std::string filePath = GetFilePath(fmt::sprintf("%08x_%lld_v2", HashString(machineHash.c_str()), accountId));
 
 	FILE* f = _wfopen(ToWide(filePath).c_str(), L"rb");
 
