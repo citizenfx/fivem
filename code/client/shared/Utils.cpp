@@ -284,7 +284,7 @@ std::string ToNarrow(const std::wstring& wide)
 	outVec.reserve(wide.size());
 
 #ifdef _WIN32
-	utf8::utf16to8(wide.begin(), wide.end(), std::back_inserter(outVec));
+	utf8::unchecked::utf16to8(wide.begin(), wide.end(), std::back_inserter(outVec));
 #else
 	utf8::utf32to8(wide.begin(), wide.end(), std::back_inserter(outVec));
 #endif
