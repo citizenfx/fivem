@@ -35,8 +35,8 @@
 #include "client.h"
 #include "list.h"
 
-#define TARGET_MAX_CHANNELS 16
-#define TARGET_MAX_SESSIONS 32
+#define TARGET_MAX_CHANNELS 256
+#define TARGET_MAX_SESSIONS 256
 
 typedef struct {
 	int channel;
