@@ -5,6 +5,7 @@
 
 #include <ServerMumbleVoice.h>
 #include "channel.h"
+#include "client.h"
 
 void fx::MumbleVoice::CreateChannel(const int id)
 {
@@ -43,5 +44,20 @@ static InitFunction initFunction([]()
 		{
 			fx::MumbleVoice::CreateChannel(channelId);
 		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("MUMBLE_IS_PLAYER_MUTED", [](fx::ScriptContext& context)
+	{
+		int serverId = context.GetArgument<int>(0);
+
+		context.SetResult<bool>(Client_is_player_muted(serverId));
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("MUMBLE_SET_PLAYER_MUTED", [](fx::ScriptContext& context)
+	{
+		int serverId = context.GetArgument<int>(0);
+		bool toggle = context.GetArgument<bool>(1);
+
+		Client_set_player_muted(serverId, toggle);
 	});
 });
