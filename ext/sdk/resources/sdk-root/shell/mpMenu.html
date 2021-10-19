@@ -77,11 +77,26 @@
 
       gap: 4px;
     }
+
+    .disclaimer {
+      margin-top: 32px;
+
+      padding: 16px;
+
+      text-align: center;
+      font-weight: 100;
+      font-size: .8rem;
+      line-height: 1.2;
+
+      border-radius: 4px;
+
+      background-color: rgba(0, 0, 0, .25);
+    }
   </style>
 </head>
 <body>
   <div>
-    <span class="dimmed">Game is running, but server is not</span>
+    <span class="dimmed">Game is ready</span>
   </div>
 
   <div class="hint">
@@ -98,6 +113,19 @@
       Start server
     </div>
     <span class="dimmed" style="margin-left: 4px;">button to load into the game</span>
+  </div>
+
+  <div class="disclaimer">
+    <span class="dimmed">
+      If server is running (button is green) - game is probably unloading from previous load and you need to wait for it to unload first,
+      <br/>
+      once game is done unloading - this message will disappear
+    </span>
+    <br/>
+    <br/>
+    <span class="dimmed">
+      Otherwise - please report issue on forums under FxDK category, don't forget the logs!
+    </span>
   </div>
 </body>
 </html>

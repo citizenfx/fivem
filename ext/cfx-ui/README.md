@@ -8,8 +8,7 @@ See [ui-build](../ui-build/) for building a full version of `cfx-ui`.
 
 ## Developing (game)
 ```
-yarn
-node_modules\.bin\ng serve -c game --host %COMPUTERNAME% --disableHostCheck
+yarn ng serve -c game --host %COMPUTERNAME% --disable-host-check
 ```
 
 Then run the game with `+set ui_url http://COMPUTERNAME:4200/`, where `COMPUTERNAME` is your local computer name.

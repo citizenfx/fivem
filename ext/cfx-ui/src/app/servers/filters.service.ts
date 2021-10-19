@@ -28,8 +28,8 @@ export class FiltersService {
 	pinConfigUpdates: Subject<PinConfig> = new Subject();
 	sortOrderUpdates: Subject<ServerSorting> = new Subject();
 
-	filters: ServerFilters;
-	tags: ServerTags;
+	filters = new ServerFilters();
+	tags = new ServerTags();
 	pinConfig = new PinConfigCached(null);
 	sortOrder: ServerSorting;
 

@@ -252,6 +252,11 @@ export class ServersListItemComponent implements OnInit, OnChanges, OnDestroy, A
 				this.discourseService.currentBoost.address = this.rawServer.address;
 				this.discourseService.currentBoost.server = this.rawServer;
 
+				const boostPower = parseInt(response.data.power, 10);
+				if (boostPower) {
+					this.rawServer.upvotePower += boostPower;
+				}
+
 				this.gameService.invokeInformational(
 					`Your BOOST™ is now assigned to this server (with an admirable strength of ${response.data.power})! `
 					+ 'Thanks for helping the server go higher.'
