@@ -76,11 +76,10 @@ export class SystemResourcesService implements AppContribution {
         resourceNames
           .filter((resourceName) => SYSTEM_RESOURCES_MAPPING[resourceName])
           .reduce((acc, resourceName) => {
+            acc.push(resourceName);
+
             const deps = normalizedDependencies[resourceName];
-
             if (!deps) {
-              acc.push(resourceName);
-
               return acc;
             }
 
