@@ -52,6 +52,7 @@ export class Server {
     currentPlayers: number;
     ping = 9999;
     upvotePower = 0;
+	burstPower = 0;
     isDefaultIcon = false;
 
     public static fromObject(sanitizer: DomSanitizer, address: string, object: master.IServerData): Server {
@@ -133,6 +134,7 @@ export class Server {
         }
 
         this.upvotePower = object.upvotePower || 0;
+        this.burstPower = object.burstPower || 0;
         this.data = object;
         this.int = object;
         this.connectEndPoints = object.connectEndPoints;

@@ -1,5 +1,4 @@
 import * as $protobuf from "protobufjs";
-
 /** Namespace master. */
 export namespace master {
 
@@ -7,23 +6,23 @@ export namespace master {
     interface IPlayer {
 
         /** Player name */
-        name?: string;
+        name?: (string|null);
 
         /** Player identifiers */
-        identifiers?: string[];
+        identifiers?: (string[]|null);
 
         /** Player endpoint */
-        endpoint?: string;
+        endpoint?: (string|null);
 
         /** Player ping */
-        ping?: number;
+        ping?: (number|null);
 
         /** Player id */
-        id?: number;
+        id?: (number|null);
     }
 
     /** Represents a Player. */
-    class Player {
+    class Player implements IPlayer {
 
         /**
          * Constructs a new Player.
@@ -121,50 +120,53 @@ export namespace master {
     interface IServerData {
 
         /** ServerData svMaxclients */
-        svMaxclients?: number;
+        svMaxclients?: (number|null);
 
         /** ServerData clients */
-        clients?: number;
+        clients?: (number|null);
 
         /** ServerData protocol */
-        protocol?: number;
+        protocol?: (number|null);
 
         /** ServerData hostname */
-        hostname?: string;
+        hostname?: (string|null);
 
         /** ServerData gametype */
-        gametype?: string;
+        gametype?: (string|null);
 
         /** ServerData mapname */
-        mapname?: string;
+        mapname?: (string|null);
 
         /** ServerData resources */
-        resources?: string[];
+        resources?: (string[]|null);
 
         /** ServerData server */
-        server?: string;
+        server?: (string|null);
 
         /** ServerData players */
-        players?: master.IPlayer[];
+        players?: (master.IPlayer[]|null);
 
         /** ServerData iconVersion */
-        iconVersion?: number;
+        iconVersion?: (number|null);
 
         /** ServerData vars */
-        vars?: { [k: string]: string };
+        vars?: ({ [k: string]: string }|null);
 
         /** ServerData enhancedHostSupport */
-        enhancedHostSupport?: boolean;
+        enhancedHostSupport?: (boolean|null);
 
         /** ServerData upvotePower */
-        upvotePower?: number;
+        upvotePower?: (number|null);
+
+        /** ServerData burstPower */
+        burstPower?: (number|null);
 
         /** ServerData connectEndPoints */
-        connectEndPoints?: string[];
+        connectEndPoints?: (string[]|null);
     }
 
     /** Represents a ServerData. */
-    class ServerData {
+    class ServerData implements IServerData {
 
         /**
          * Constructs a new ServerData.
@@ -210,6 +212,9 @@ export namespace master {
 
         /** ServerData upvotePower. */
         public upvotePower: number;
+
+        /** ServerData burstPower. */
+        public burstPower: number;
 
         /** ServerData connectEndPoints. */
         public connectEndPoints: string[];
@@ -289,14 +294,14 @@ export namespace master {
     interface IServer {
 
         /** Server EndPoint */
-        EndPoint?: string;
+        EndPoint?: (string|null);
 
         /** Server Data */
-        Data?: master.IServerData;
+        Data?: (master.IServerData|null);
     }
 
     /** Represents a Server. */
-    class Server {
+    class Server implements IServer {
 
         /**
          * Constructs a new Server.
@@ -385,11 +390,11 @@ export namespace master {
     interface IServers {
 
         /** Servers servers */
-        servers?: master.IServer[];
+        servers?: (master.IServer[]|null);
     }
 
     /** Represents a Servers. */
-    class Servers {
+    class Servers implements IServers {
 
         /**
          * Constructs a new Servers.
@@ -475,17 +480,17 @@ export namespace master {
     interface IServerIcon {
 
         /** ServerIcon endPoint */
-        endPoint?: string;
+        endPoint?: (string|null);
 
         /** ServerIcon icon */
-        icon?: Uint8Array;
+        icon?: (Uint8Array|null);
 
         /** ServerIcon iconVersion */
-        iconVersion?: number;
+        iconVersion?: (number|null);
     }
 
     /** Represents a ServerIcon. */
-    class ServerIcon {
+    class ServerIcon implements IServerIcon {
 
         /**
          * Constructs a new ServerIcon.
@@ -577,11 +582,11 @@ export namespace master {
     interface IServerIcons {
 
         /** ServerIcons icons */
-        icons?: master.IServerIcon[];
+        icons?: (master.IServerIcon[]|null);
     }
 
     /** Represents a ServerIcons. */
-    class ServerIcons {
+    class ServerIcons implements IServerIcons {
 
         /**
          * Constructs a new ServerIcons.

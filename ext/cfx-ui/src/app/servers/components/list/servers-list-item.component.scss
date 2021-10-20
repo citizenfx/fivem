@@ -130,6 +130,15 @@
 		}
 	}
 
+	.flame {
+        font-size: calc(var(--fs-1) / 1.5);
+        opacity: 0;
+
+        &.visible {
+            opacity: 1;
+        }
+    }
+
 	.locale {
 		margin-left: var(--qh);
 
@@ -328,6 +337,39 @@
 					transition: all .2s ease;
 				}
 
+				&.upvotes {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+
+                    width: var(--q3);
+                    height: 100%;
+
+                    padding: calc(var(--qh) / 1.5);
+
+                    @include theme() using ($theme) {
+                        color: gtv($theme, fgColor);
+                        border-left: solid 2px rgba(gtv($theme, accentColor1), .5);
+                        border-top: none;
+                        border-bottom: none;
+                        border-right: none;
+                    };
+
+                    font-size: calc(var(--fs-1) / 1.5);
+                    font-weight: 500;
+                    line-height: 1;
+
+                    opacity: 0;
+
+                    transition: .5s;
+                    transform: translateX(calc(var(--qh)+15px));
+
+                    &.visible {
+                        opacity: 1;
+                        transform: translateX(calc(var(--qh)-13));
+                    }
+                }
+
 				&:hover, &:focus {
 					.booster {
 						opacity: 1;
@@ -365,8 +407,12 @@
 		};
 
 		.actions {
-			width: var(--q6);
+			width: var(--q10);
 			display: flex;
+
+			&.wide {
+				width: var(--q13);
+			}
 
             &.web {
                 width: auto;

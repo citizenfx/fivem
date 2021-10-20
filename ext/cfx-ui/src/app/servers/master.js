@@ -1,4 +1,4 @@
-/*eslint-disable block-scoped-var, no-redeclare, no-control-regex, no-prototype-builtins*/
+/*eslint-disable block-scoped-var, id-length, no-control-regex, no-magic-numbers, no-prototype-builtins, no-redeclare, no-shadow, no-var, sort-vars*/
 "use strict";
 
 var $protobuf = require("protobufjs/minimal");
@@ -24,17 +24,18 @@ $root.master = (function() {
          * Properties of a Player.
          * @memberof master
          * @interface IPlayer
-         * @property {string} [name] Player name
-         * @property {Array.<string>} [identifiers] Player identifiers
-         * @property {string} [endpoint] Player endpoint
-         * @property {number} [ping] Player ping
-         * @property {number} [id] Player id
+         * @property {string|null} [name] Player name
+         * @property {Array.<string>|null} [identifiers] Player identifiers
+         * @property {string|null} [endpoint] Player endpoint
+         * @property {number|null} [ping] Player ping
+         * @property {number|null} [id] Player id
          */
 
         /**
          * Constructs a new Player.
          * @memberof master
          * @classdesc Represents a Player.
+         * @implements IPlayer
          * @constructor
          * @param {master.IPlayer=} [properties] Properties to set
          */
@@ -48,7 +49,7 @@ $root.master = (function() {
 
         /**
          * Player name.
-         * @member {string}name
+         * @member {string} name
          * @memberof master.Player
          * @instance
          */
@@ -56,7 +57,7 @@ $root.master = (function() {
 
         /**
          * Player identifiers.
-         * @member {Array.<string>}identifiers
+         * @member {Array.<string>} identifiers
          * @memberof master.Player
          * @instance
          */
@@ -64,7 +65,7 @@ $root.master = (function() {
 
         /**
          * Player endpoint.
-         * @member {string}endpoint
+         * @member {string} endpoint
          * @memberof master.Player
          * @instance
          */
@@ -72,7 +73,7 @@ $root.master = (function() {
 
         /**
          * Player ping.
-         * @member {number}ping
+         * @member {number} ping
          * @memberof master.Player
          * @instance
          */
@@ -80,7 +81,7 @@ $root.master = (function() {
 
         /**
          * Player id.
-         * @member {number}id
+         * @member {number} id
          * @memberof master.Player
          * @instance
          */
@@ -110,16 +111,16 @@ $root.master = (function() {
         Player.encode = function encode(message, writer) {
             if (!writer)
                 writer = $Writer.create();
-            if (message.name != null && message.hasOwnProperty("name"))
+            if (message.name != null && Object.hasOwnProperty.call(message, "name"))
                 writer.uint32(/* id 1, wireType 2 =*/10).string(message.name);
             if (message.identifiers != null && message.identifiers.length)
                 for (var i = 0; i < message.identifiers.length; ++i)
                     writer.uint32(/* id 2, wireType 2 =*/18).string(message.identifiers[i]);
-            if (message.endpoint != null && message.hasOwnProperty("endpoint"))
+            if (message.endpoint != null && Object.hasOwnProperty.call(message, "endpoint"))
                 writer.uint32(/* id 3, wireType 2 =*/26).string(message.endpoint);
-            if (message.ping != null && message.hasOwnProperty("ping"))
+            if (message.ping != null && Object.hasOwnProperty.call(message, "ping"))
                 writer.uint32(/* id 4, wireType 0 =*/32).int32(message.ping);
-            if (message.id != null && message.hasOwnProperty("id"))
+            if (message.id != null && Object.hasOwnProperty.call(message, "id"))
                 writer.uint32(/* id 5, wireType 0 =*/40).int32(message.id);
             return writer;
         };
@@ -316,26 +317,28 @@ $root.master = (function() {
          * Properties of a ServerData.
          * @memberof master
          * @interface IServerData
-         * @property {number} [svMaxclients] ServerData svMaxclients
-         * @property {number} [clients] ServerData clients
-         * @property {number} [protocol] ServerData protocol
-         * @property {string} [hostname] ServerData hostname
-         * @property {string} [gametype] ServerData gametype
-         * @property {string} [mapname] ServerData mapname
-         * @property {Array.<string>} [resources] ServerData resources
-         * @property {string} [server] ServerData server
-         * @property {Array.<master.IPlayer>} [players] ServerData players
-         * @property {number} [iconVersion] ServerData iconVersion
-         * @property {Object.<string,string>} [vars] ServerData vars
-         * @property {boolean} [enhancedHostSupport] ServerData enhancedHostSupport
-         * @property {number} [upvotePower] ServerData upvotePower
-         * @property {Array.<string>} [connectEndPoints] ServerData connectEndPoints
+         * @property {number|null} [svMaxclients] ServerData svMaxclients
+         * @property {number|null} [clients] ServerData clients
+         * @property {number|null} [protocol] ServerData protocol
+         * @property {string|null} [hostname] ServerData hostname
+         * @property {string|null} [gametype] ServerData gametype
+         * @property {string|null} [mapname] ServerData mapname
+         * @property {Array.<string>|null} [resources] ServerData resources
+         * @property {string|null} [server] ServerData server
+         * @property {Array.<master.IPlayer>|null} [players] ServerData players
+         * @property {number|null} [iconVersion] ServerData iconVersion
+         * @property {Object.<string,string>|null} [vars] ServerData vars
+         * @property {boolean|null} [enhancedHostSupport] ServerData enhancedHostSupport
+         * @property {number|null} [upvotePower] ServerData upvotePower
+         * @property {number|null} [burstPower] ServerData burstPower
+         * @property {Array.<string>|null} [connectEndPoints] ServerData connectEndPoints
          */
 
         /**
          * Constructs a new ServerData.
          * @memberof master
          * @classdesc Represents a ServerData.
+         * @implements IServerData
          * @constructor
          * @param {master.IServerData=} [properties] Properties to set
          */
@@ -352,7 +355,7 @@ $root.master = (function() {
 
         /**
          * ServerData svMaxclients.
-         * @member {number}svMaxclients
+         * @member {number} svMaxclients
          * @memberof master.ServerData
          * @instance
          */
@@ -360,7 +363,7 @@ $root.master = (function() {
 
         /**
          * ServerData clients.
-         * @member {number}clients
+         * @member {number} clients
          * @memberof master.ServerData
          * @instance
          */
@@ -368,7 +371,7 @@ $root.master = (function() {
 
         /**
          * ServerData protocol.
-         * @member {number}protocol
+         * @member {number} protocol
          * @memberof master.ServerData
          * @instance
          */
@@ -376,7 +379,7 @@ $root.master = (function() {
 
         /**
          * ServerData hostname.
-         * @member {string}hostname
+         * @member {string} hostname
          * @memberof master.ServerData
          * @instance
          */
@@ -384,7 +387,7 @@ $root.master = (function() {
 
         /**
          * ServerData gametype.
-         * @member {string}gametype
+         * @member {string} gametype
          * @memberof master.ServerData
          * @instance
          */
@@ -392,7 +395,7 @@ $root.master = (function() {
 
         /**
          * ServerData mapname.
-         * @member {string}mapname
+         * @member {string} mapname
          * @memberof master.ServerData
          * @instance
          */
@@ -400,7 +403,7 @@ $root.master = (function() {
 
         /**
          * ServerData resources.
-         * @member {Array.<string>}resources
+         * @member {Array.<string>} resources
          * @memberof master.ServerData
          * @instance
          */
@@ -408,7 +411,7 @@ $root.master = (function() {
 
         /**
          * ServerData server.
-         * @member {string}server
+         * @member {string} server
          * @memberof master.ServerData
          * @instance
          */
@@ -416,7 +419,7 @@ $root.master = (function() {
 
         /**
          * ServerData players.
-         * @member {Array.<master.IPlayer>}players
+         * @member {Array.<master.IPlayer>} players
          * @memberof master.ServerData
          * @instance
          */
@@ -424,7 +427,7 @@ $root.master = (function() {
 
         /**
          * ServerData iconVersion.
-         * @member {number}iconVersion
+         * @member {number} iconVersion
          * @memberof master.ServerData
          * @instance
          */
@@ -432,7 +435,7 @@ $root.master = (function() {
 
         /**
          * ServerData vars.
-         * @member {Object.<string,string>}vars
+         * @member {Object.<string,string>} vars
          * @memberof master.ServerData
          * @instance
          */
@@ -440,7 +443,7 @@ $root.master = (function() {
 
         /**
          * ServerData enhancedHostSupport.
-         * @member {boolean}enhancedHostSupport
+         * @member {boolean} enhancedHostSupport
          * @memberof master.ServerData
          * @instance
          */
@@ -448,15 +451,23 @@ $root.master = (function() {
 
         /**
          * ServerData upvotePower.
-         * @member {number}upvotePower
+         * @member {number} upvotePower
          * @memberof master.ServerData
          * @instance
          */
         ServerData.prototype.upvotePower = 0;
 
         /**
+         * ServerData burstPower.
+         * @member {number} burstPower
+         * @memberof master.ServerData
+         * @instance
+         */
+        ServerData.prototype.burstPower = 0;
+
+        /**
          * ServerData connectEndPoints.
-         * @member {Array.<string>}connectEndPoints
+         * @member {Array.<string>} connectEndPoints
          * @memberof master.ServerData
          * @instance
          */
@@ -486,38 +497,40 @@ $root.master = (function() {
         ServerData.encode = function encode(message, writer) {
             if (!writer)
                 writer = $Writer.create();
-            if (message.svMaxclients != null && message.hasOwnProperty("svMaxclients"))
+            if (message.svMaxclients != null && Object.hasOwnProperty.call(message, "svMaxclients"))
                 writer.uint32(/* id 1, wireType 0 =*/8).int32(message.svMaxclients);
-            if (message.clients != null && message.hasOwnProperty("clients"))
+            if (message.clients != null && Object.hasOwnProperty.call(message, "clients"))
                 writer.uint32(/* id 2, wireType 0 =*/16).int32(message.clients);
-            if (message.protocol != null && message.hasOwnProperty("protocol"))
+            if (message.protocol != null && Object.hasOwnProperty.call(message, "protocol"))
                 writer.uint32(/* id 3, wireType 0 =*/24).int32(message.protocol);
-            if (message.hostname != null && message.hasOwnProperty("hostname"))
+            if (message.hostname != null && Object.hasOwnProperty.call(message, "hostname"))
                 writer.uint32(/* id 4, wireType 2 =*/34).string(message.hostname);
-            if (message.gametype != null && message.hasOwnProperty("gametype"))
+            if (message.gametype != null && Object.hasOwnProperty.call(message, "gametype"))
                 writer.uint32(/* id 5, wireType 2 =*/42).string(message.gametype);
-            if (message.mapname != null && message.hasOwnProperty("mapname"))
+            if (message.mapname != null && Object.hasOwnProperty.call(message, "mapname"))
                 writer.uint32(/* id 6, wireType 2 =*/50).string(message.mapname);
             if (message.resources != null && message.resources.length)
                 for (var i = 0; i < message.resources.length; ++i)
                     writer.uint32(/* id 8, wireType 2 =*/66).string(message.resources[i]);
-            if (message.server != null && message.hasOwnProperty("server"))
+            if (message.server != null && Object.hasOwnProperty.call(message, "server"))
                 writer.uint32(/* id 9, wireType 2 =*/74).string(message.server);
             if (message.players != null && message.players.length)
                 for (var i = 0; i < message.players.length; ++i)
                     $root.master.Player.encode(message.players[i], writer.uint32(/* id 10, wireType 2 =*/82).fork()).ldelim();
-            if (message.iconVersion != null && message.hasOwnProperty("iconVersion"))
+            if (message.iconVersion != null && Object.hasOwnProperty.call(message, "iconVersion"))
                 writer.uint32(/* id 11, wireType 0 =*/88).int32(message.iconVersion);
-            if (message.vars != null && message.hasOwnProperty("vars"))
+            if (message.vars != null && Object.hasOwnProperty.call(message, "vars"))
                 for (var keys = Object.keys(message.vars), i = 0; i < keys.length; ++i)
                     writer.uint32(/* id 12, wireType 2 =*/98).fork().uint32(/* id 1, wireType 2 =*/10).string(keys[i]).uint32(/* id 2, wireType 2 =*/18).string(message.vars[keys[i]]).ldelim();
-            if (message.enhancedHostSupport != null && message.hasOwnProperty("enhancedHostSupport"))
+            if (message.enhancedHostSupport != null && Object.hasOwnProperty.call(message, "enhancedHostSupport"))
                 writer.uint32(/* id 16, wireType 0 =*/128).bool(message.enhancedHostSupport);
-            if (message.upvotePower != null && message.hasOwnProperty("upvotePower"))
+            if (message.upvotePower != null && Object.hasOwnProperty.call(message, "upvotePower"))
                 writer.uint32(/* id 17, wireType 0 =*/136).int32(message.upvotePower);
             if (message.connectEndPoints != null && message.connectEndPoints.length)
                 for (var i = 0; i < message.connectEndPoints.length; ++i)
                     writer.uint32(/* id 18, wireType 2 =*/146).string(message.connectEndPoints[i]);
+            if (message.burstPower != null && Object.hasOwnProperty.call(message, "burstPower"))
+                writer.uint32(/* id 19, wireType 0 =*/152).int32(message.burstPower);
             return writer;
         };
 
@@ -548,7 +561,7 @@ $root.master = (function() {
         ServerData.decode = function decode(reader, length) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
-            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.master.ServerData(), key;
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.master.ServerData(), key, value;
             while (reader.pos < end) {
                 var tag = reader.uint32();
                 switch (tag >>> 3) {
@@ -587,18 +600,35 @@ $root.master = (function() {
                     message.iconVersion = reader.int32();
                     break;
                 case 12:
-                    reader.skip().pos++;
                     if (message.vars === $util.emptyObject)
                         message.vars = {};
-                    key = reader.string();
-                    reader.pos++;
-                    message.vars[key] = reader.string();
+                    var end2 = reader.uint32() + reader.pos;
+                    key = "";
+                    value = "";
+                    while (reader.pos < end2) {
+                        var tag2 = reader.uint32();
+                        switch (tag2 >>> 3) {
+                        case 1:
+                            key = reader.string();
+                            break;
+                        case 2:
+                            value = reader.string();
+                            break;
+                        default:
+                            reader.skipType(tag2 & 7);
+                            break;
+                        }
+                    }
+                    message.vars[key] = value;
                     break;
                 case 16:
                     message.enhancedHostSupport = reader.bool();
                     break;
                 case 17:
                     message.upvotePower = reader.int32();
+                    break;
+                case 19:
+                    message.burstPower = reader.int32();
                     break;
                 case 18:
                     if (!(message.connectEndPoints && message.connectEndPoints.length))
@@ -694,6 +724,9 @@ $root.master = (function() {
             if (message.upvotePower != null && message.hasOwnProperty("upvotePower"))
                 if (!$util.isInteger(message.upvotePower))
                     return "upvotePower: integer expected";
+            if (message.burstPower != null && message.hasOwnProperty("burstPower"))
+                if (!$util.isInteger(message.burstPower))
+                    return "burstPower: integer expected";
             if (message.connectEndPoints != null && message.hasOwnProperty("connectEndPoints")) {
                 if (!Array.isArray(message.connectEndPoints))
                     return "connectEndPoints: array expected";
@@ -760,6 +793,8 @@ $root.master = (function() {
                 message.enhancedHostSupport = Boolean(object.enhancedHostSupport);
             if (object.upvotePower != null)
                 message.upvotePower = object.upvotePower | 0;
+            if (object.burstPower != null)
+                message.burstPower = object.burstPower | 0;
             if (object.connectEndPoints) {
                 if (!Array.isArray(object.connectEndPoints))
                     throw TypeError(".master.ServerData.connectEndPoints: array expected");
@@ -801,6 +836,7 @@ $root.master = (function() {
                 object.iconVersion = 0;
                 object.enhancedHostSupport = false;
                 object.upvotePower = 0;
+                object.burstPower = 0;
             }
             if (message.svMaxclients != null && message.hasOwnProperty("svMaxclients"))
                 object.svMaxclients = message.svMaxclients;
@@ -843,6 +879,8 @@ $root.master = (function() {
                 for (var j = 0; j < message.connectEndPoints.length; ++j)
                     object.connectEndPoints[j] = message.connectEndPoints[j];
             }
+            if (message.burstPower != null && message.hasOwnProperty("burstPower"))
+                object.burstPower = message.burstPower;
             return object;
         };
 
@@ -866,14 +904,15 @@ $root.master = (function() {
          * Properties of a Server.
          * @memberof master
          * @interface IServer
-         * @property {string} [EndPoint] Server EndPoint
-         * @property {master.IServerData} [Data] Server Data
+         * @property {string|null} [EndPoint] Server EndPoint
+         * @property {master.IServerData|null} [Data] Server Data
          */
 
         /**
          * Constructs a new Server.
          * @memberof master
          * @classdesc Represents a Server.
+         * @implements IServer
          * @constructor
          * @param {master.IServer=} [properties] Properties to set
          */
@@ -886,7 +925,7 @@ $root.master = (function() {
 
         /**
          * Server EndPoint.
-         * @member {string}EndPoint
+         * @member {string} EndPoint
          * @memberof master.Server
          * @instance
          */
@@ -894,7 +933,7 @@ $root.master = (function() {
 
         /**
          * Server Data.
-         * @member {(master.IServerData|null|undefined)}Data
+         * @member {master.IServerData|null|undefined} Data
          * @memberof master.Server
          * @instance
          */
@@ -924,9 +963,9 @@ $root.master = (function() {
         Server.encode = function encode(message, writer) {
             if (!writer)
                 writer = $Writer.create();
-            if (message.EndPoint != null && message.hasOwnProperty("EndPoint"))
+            if (message.EndPoint != null && Object.hasOwnProperty.call(message, "EndPoint"))
                 writer.uint32(/* id 1, wireType 2 =*/10).string(message.EndPoint);
-            if (message.Data != null && message.hasOwnProperty("Data"))
+            if (message.Data != null && Object.hasOwnProperty.call(message, "Data"))
                 $root.master.ServerData.encode(message.Data, writer.uint32(/* id 2, wireType 2 =*/18).fork()).ldelim();
             return writer;
         };
@@ -1080,13 +1119,14 @@ $root.master = (function() {
          * Properties of a Servers.
          * @memberof master
          * @interface IServers
-         * @property {Array.<master.IServer>} [servers] Servers servers
+         * @property {Array.<master.IServer>|null} [servers] Servers servers
          */
 
         /**
          * Constructs a new Servers.
          * @memberof master
          * @classdesc Represents a Servers.
+         * @implements IServers
          * @constructor
          * @param {master.IServers=} [properties] Properties to set
          */
@@ -1100,7 +1140,7 @@ $root.master = (function() {
 
         /**
          * Servers servers.
-         * @member {Array.<master.IServer>}servers
+         * @member {Array.<master.IServer>} servers
          * @memberof master.Servers
          * @instance
          */
@@ -1287,15 +1327,16 @@ $root.master = (function() {
          * Properties of a ServerIcon.
          * @memberof master
          * @interface IServerIcon
-         * @property {string} [endPoint] ServerIcon endPoint
-         * @property {Uint8Array} [icon] ServerIcon icon
-         * @property {number} [iconVersion] ServerIcon iconVersion
+         * @property {string|null} [endPoint] ServerIcon endPoint
+         * @property {Uint8Array|null} [icon] ServerIcon icon
+         * @property {number|null} [iconVersion] ServerIcon iconVersion
          */
 
         /**
          * Constructs a new ServerIcon.
          * @memberof master
          * @classdesc Represents a ServerIcon.
+         * @implements IServerIcon
          * @constructor
          * @param {master.IServerIcon=} [properties] Properties to set
          */
@@ -1308,7 +1349,7 @@ $root.master = (function() {
 
         /**
          * ServerIcon endPoint.
-         * @member {string}endPoint
+         * @member {string} endPoint
          * @memberof master.ServerIcon
          * @instance
          */
@@ -1316,7 +1357,7 @@ $root.master = (function() {
 
         /**
          * ServerIcon icon.
-         * @member {Uint8Array}icon
+         * @member {Uint8Array} icon
          * @memberof master.ServerIcon
          * @instance
          */
@@ -1324,7 +1365,7 @@ $root.master = (function() {
 
         /**
          * ServerIcon iconVersion.
-         * @member {number}iconVersion
+         * @member {number} iconVersion
          * @memberof master.ServerIcon
          * @instance
          */
@@ -1354,11 +1395,11 @@ $root.master = (function() {
         ServerIcon.encode = function encode(message, writer) {
             if (!writer)
                 writer = $Writer.create();
-            if (message.endPoint != null && message.hasOwnProperty("endPoint"))
+            if (message.endPoint != null && Object.hasOwnProperty.call(message, "endPoint"))
                 writer.uint32(/* id 1, wireType 2 =*/10).string(message.endPoint);
-            if (message.icon != null && message.hasOwnProperty("icon"))
+            if (message.icon != null && Object.hasOwnProperty.call(message, "icon"))
                 writer.uint32(/* id 2, wireType 2 =*/18).bytes(message.icon);
-            if (message.iconVersion != null && message.hasOwnProperty("iconVersion"))
+            if (message.iconVersion != null && Object.hasOwnProperty.call(message, "iconVersion"))
                 writer.uint32(/* id 3, wireType 0 =*/24).int32(message.iconVersion);
             return writer;
         };
@@ -1489,7 +1530,13 @@ $root.master = (function() {
             var object = {};
             if (options.defaults) {
                 object.endPoint = "";
-                object.icon = options.bytes === String ? "" : [];
+                if (options.bytes === String)
+                    object.icon = "";
+                else {
+                    object.icon = [];
+                    if (options.bytes !== Array)
+                        object.icon = $util.newBuffer(object.icon);
+                }
                 object.iconVersion = 0;
             }
             if (message.endPoint != null && message.hasOwnProperty("endPoint"))
@@ -1521,13 +1568,14 @@ $root.master = (function() {
          * Properties of a ServerIcons.
          * @memberof master
          * @interface IServerIcons
-         * @property {Array.<master.IServerIcon>} [icons] ServerIcons icons
+         * @property {Array.<master.IServerIcon>|null} [icons] ServerIcons icons
          */
 
         /**
          * Constructs a new ServerIcons.
          * @memberof master
          * @classdesc Represents a ServerIcons.
+         * @implements IServerIcons
          * @constructor
          * @param {master.IServerIcons=} [properties] Properties to set
          */
@@ -1541,7 +1589,7 @@ $root.master = (function() {
 
         /**
          * ServerIcons icons.
-         * @member {Array.<master.IServerIcon>}icons
+         * @member {Array.<master.IServerIcon>} icons
          * @memberof master.ServerIcons
          * @instance
          */

@@ -143,9 +143,11 @@ body {
 
 	--header-height: var(--q3);
 	--header-safe-left-raw: var(--q3);
-	--header-safe-right-raw: var(--q12);
+	--header-safe-right-raw: var(--q9);
 	--header-safe-left: calc(var(--header-safe-left-raw) + var(--qh));
 	--header-safe-right: calc(var(--header-safe-right-raw) + var(--qh));
+
+	--scrollbar-width: 5px;
 }
 
 .ad {
@@ -214,10 +216,10 @@ button {
 }
 
 ::-webkit-scrollbar {
-	width: 5px;
+	width: var(--scrollbar-width);
 }
 ::-webkit-scrollbar-thumb {
-	width: 5px;
+	width: var(--scrollbar-width);
 	@include themeNoHost() using ($theme) {
 		background-color: rgba(gtv($theme, fgColor), .5);
 	}

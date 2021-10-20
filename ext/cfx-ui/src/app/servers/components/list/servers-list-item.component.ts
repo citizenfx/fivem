@@ -45,6 +45,9 @@ export class ServersListItemComponent implements OnInit, OnChanges, OnDestroy, A
 
     private tagSubscription: Subscription;
 
+	public serverHovering = false;
+	public boostHovering = false;
+
 	constructor(private gameService: GameService, private discourseService: DiscourseService, private tagService: ServerTagsService,
 		private serversService: ServersService, private router: Router, private elementRef: ElementRef,
 		private zone: NgZone, private renderer: Renderer2, private cdr: ChangeDetectorRef) {
@@ -68,6 +71,18 @@ export class ServersListItemComponent implements OnInit, OnChanges, OnDestroy, A
 
 	get premiumName() {
 		return this.serversService.getNameForPremium(this.premium);
+	}
+
+	get isShortBurst(): boolean {
+		return this.burstPower > 0;
+	}
+
+	get burstPower(): number {
+		return this.rawServer.burstPower;
+	}
+
+	get upvotePower(): number {
+		return this.rawServer.upvotePower;
 	}
 
 	public ngOnInit() {
@@ -252,10 +267,11 @@ export class ServersListItemComponent implements OnInit, OnChanges, OnDestroy, A
 				this.discourseService.currentBoost.address = this.rawServer.address;
 				this.discourseService.currentBoost.server = this.rawServer;
 
-				const boostPower = parseInt(response.data.power, 10);
-				if (boostPower) {
-					this.rawServer.upvotePower += boostPower;
-				}
+				// refresh server data to update upvote and burst powers
+				this.serversService.getServer(this.rawServer.address, true).then((server) => {
+					this.rawServer.burstPower = server.burstPower;
+					this.rawServer.upvotePower = server.upvotePower;
+				});
 
 				this.gameService.invokeInformational(
 					`Your BOOST™ is now assigned to this server (with an admirable strength of ${response.data.power})! `

@@ -4,6 +4,8 @@
 	[class.pinned]="pinned"
 	[class.isPinList]="isPinList"
 	(click)="showServerDetail()"
+	(mouseenter) ="serverHovering=true"
+    (mouseleave)="serverHovering=false"
 	tabindex="0"
 >
 	<div
@@ -45,9 +47,24 @@
 		</span>
 	</div>
 
-    <div class="actions" *ngIf="!isPinList" [class.web]="isWeb">
+	<div *ngIf="isShortBurst && !isPinList" class="flame" [class.visible]="!serverHovering">🔥</div>
+    <div *ngIf="!isPinList" class="actions" [class.web]="isWeb" [class.wide]="isShortBurst">
+		<button *ngIf="isShortBurst" class="boost upvotes" [class.visible]="boostHovering">
+            <span class="upvote-icon">🔥</span>
+            <span class="boosts-counter">{{burstPower}}</span>
+        </button>
+
+		<button class="boost upvotes" [class.visible]="boostHovering">
+            <span class="material-icons-outlined upvote-icon">arrow_upward</span>
+            <span class="boosts-counter">
+                {{upvotePower - burstPower}}
+            </span>
+        </button>
+
 		<button
 			(click)="enableBoost($event)"
+			(mouseenter) ="boostHovering=true"
+            (mouseleave)="boostHovering=false"
 			[class.active]="isBoost() && !isWeb"
             [class.web]="isWeb"
 			aria-label="Give this server a BOOST™!"
@@ -57,7 +74,7 @@
 		>
             <span class="material-icons-outlined">arrow_upward</span>
 			<span class="boosts-counter">
-				{{rawServer.upvotePower}}
+				{{upvotePower}}
 			</span>
 
 			<div class="booster" *ngIf="!isWeb">

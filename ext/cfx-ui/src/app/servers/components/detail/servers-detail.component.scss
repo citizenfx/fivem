@@ -180,7 +180,7 @@
 				&.scrolled {
 					position: fixed;
 					left: 0;
-					right: 0;
+					right: var(--scrollbar-width);
 				}
 
 				padding: var(--q1);
@@ -202,40 +202,37 @@
 				}
 
 				&.scrolled {
-					.info .title {
-						white-space: nowrap;
-					}
-
-					.info .tags {
-						display: none;
-					}
-
-					.info .connect-bar {
-						margin-top: var(--qh);
-					}
-
-					.info .title {
-						overflow: hidden;
-						font-size: var(--fs-2);
-						transition: all .2s ease;
-
-						> span {
-							overflow: hidden;
-						}
-					}
-
-					.connect-bar {
-						--q1: calc(var(--quant) * 0.6);
-						--q2: calc(var(--q1) * 2);
-						--qh: calc(var(--q1) * 0.5);
-						--font-size: calc(var(--quant) * 0.6);
-						--fs-075: calc(var(--font-size) * 0.75);
-						--fs-1: var(--font-size);
-						font-size: var(--font-size);
-					}
-
 					.icon {
 						--icon-size: calc((var(--app-width) / 17.268) - (var(--q1) * 2));
+					}
+
+					.info {
+						.title {
+							overflow: hidden;
+							white-space: nowrap;
+							font-size: var(--fs-2);
+							transition: all .2s ease;
+
+							> span {
+								overflow: hidden;
+							}
+						}
+
+						.tags {
+							display: none;
+						}
+
+						.connect-bar {
+							--q1: calc(var(--quant) * 0.6);
+							--q2: calc(var(--q1) * 2);
+							--qh: calc(var(--q1) * 0.5);
+							--font-size: calc(var(--quant) * 0.6);
+							--fs-075: calc(var(--font-size) * 0.75);
+							--fs-1: var(--font-size);
+
+							margin-top: var(--qh);
+							font-size: var(--font-size);
+						}
 					}
 				}
 
