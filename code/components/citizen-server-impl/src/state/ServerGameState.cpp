@@ -2636,7 +2636,10 @@ void ServerGameState::HandleClientDrop(const fx::ClientSharedPtr& client, uint16
 
 	if (fx::IsBigMode())
 	{
-		clientRegistry->ForAllClients([this, &client, netId](const fx::ClientSharedPtr& tgtClient)
+		fwRefContainer<ServerEventComponent> events = m_instance->GetComponent<ServerEventComponent>();
+		fwRefContainer<fx::ResourceEventManagerComponent> evMan = m_instance->GetComponent<fx::ResourceManager>()->GetComponent<fx::ResourceEventManagerComponent>();
+
+		clientRegistry->ForAllClients([this, &client, netId, &events, &evMan](const fx::ClientSharedPtr& tgtClient)
 		{
 			auto [lock, clientData] = GetClientData(this, tgtClient);
 
@@ -2644,8 +2647,8 @@ void ServerGameState::HandleClientDrop(const fx::ClientSharedPtr& client, uint16
 
 			if (si != clientData->playersToSlots.end())
 			{
-				fwRefContainer<ServerEventComponent> events = m_instance->GetComponent<ServerEventComponent>();
 				events->TriggerClientEvent("onPlayerDropped", fmt::sprintf("%d", tgtClient->GetNetId()), netId, client->GetName(), si->second);
+				evMan->QueueEvent2("playerLeftScope", {}, std::map<std::string, std::string>{ { "player", fmt::sprintf("%d", netId) }, { "for", fmt::sprintf("%d", tgtClient->GetNetId()) } });
 
 				clientData->playersInScope.reset(si->second);
 				clientData->playersToSlots.erase(si);
