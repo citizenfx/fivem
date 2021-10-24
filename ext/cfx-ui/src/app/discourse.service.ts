@@ -364,6 +364,7 @@ export class DiscourseService {
 			headers: {
 				"x-requested-with": 'XMLHttpRequest',
 				"discourse-present": 'true',
+				'Cfx-Entitlement-Ticket': this.ownershipTicket,
 			},
 			credentials: 'include',
 		});
@@ -394,6 +395,7 @@ export class DiscourseService {
 				"x-requested-with": 'XMLHttpRequest',
 				"discourse-present": 'true',
 				"x-csrf-token": csrf.csrf,
+				'Cfx-Entitlement-Ticket': this.ownershipTicket,
 			},
 			credentials: 'include',
 			body: loggingInFormData
@@ -412,6 +414,7 @@ export class DiscourseService {
 					headers: {
 						"x-requested-with": 'XMLHttpRequest',
 						"discourse-present": 'true',
+						'Cfx-Entitlement-Ticket': this.ownershipTicket,
 					},
 					credentials: 'include',
 				});
@@ -434,6 +437,7 @@ export class DiscourseService {
 					headers: {
 						"x-requested-with": 'XMLHttpRequest',
 						"discourse-present": 'true',
+						'Cfx-Entitlement-Ticket': this.ownershipTicket,
 					},
 					body: authFormData
 				});
@@ -458,6 +462,7 @@ export class DiscourseService {
 			headers: {
 				"x-requested-with": 'XMLHttpRequest',
 				"discourse-present": 'true',
+				'Cfx-Entitlement-Ticket': this.ownershipTicket,
 			},
 			credentials: 'include',
 		})).json();
@@ -474,6 +479,7 @@ export class DiscourseService {
 		const newUser = await window.fetch('https://forum.cfx.re/u', {
 			method: 'POST',
 			headers: {
+				'Cfx-Entitlement-Ticket': this.ownershipTicket,
 				"x-requested-with": 'XMLHttpRequest',
 				"discourse-present": 'true',
 				"x-csrf-token": csrf.csrf,
@@ -494,6 +500,7 @@ export class DiscourseService {
 		await window.fetch('https://forum.cfx.re/u/action/send_activation_email', {
 			method: 'POST',
 			headers: {
+				'Cfx-Entitlement-Ticket': this.ownershipTicket,
 				"x-requested-with": 'XMLHttpRequest',
 				"discourse-present": 'true',
 				"x-csrf-token": csrf.csrf,
@@ -515,6 +522,7 @@ export class DiscourseService {
 			await window.fetch('https://forum.cfx.re/session/forgot_password', {
 				method: 'POST',
 				headers: {
+					'Cfx-Entitlement-Ticket': this.ownershipTicket,
 					"x-requested-with": 'XMLHttpRequest',
 					"discourse-present": 'true',
 					"x-csrf-token": csrf.csrf,
