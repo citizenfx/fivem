@@ -928,10 +928,13 @@ struct ClientEntityData
 	sync::SyncEntityPtr GetEntity(fx::ServerGameState* sgs) const;
 };
 
+enum class PoolIndex : int;
+
 struct EntityDeletionData
 {
 	bool outOfScope; // is this a deletion due to being out-of-scope?
 	bool forceSteal; // should we force a steal from the client?
+	PoolIndex poolIndex; // the pool to untrack
 };
 
 struct ClientEntityState
@@ -1061,6 +1064,11 @@ struct GameStateClientData : public sync::ClientSyncDataBase
 	// use fixed_map to make insertion into the vector_map cheap (as sorted)
 	eastl::fixed_map<uint32_t, SyncedEntityData, 256> syncedEntities;
 	eastl::fixed_hash_map<uint32_t, std::tuple<sync::SyncEntityPtr, EntityDeletionData>, 16> entitiesToDestroy;
+
+	std::array<std::atomic<uint64_t>, (int)PoolIndex::Max> poolEntityCounts = {};
+
+	void TrackEntity(const fx::sync::SyncEntityPtr& entity);
+	void UntrackPoolEntity(PoolIndex index);
 
 	uint32_t syncTs = 0;
 	uint32_t ackTs = 0;
