@@ -2325,6 +2325,18 @@ void CloneManagerLocal::WriteUpdates()
 		// store a reference to the object tracking data
 		auto& objectData = m_trackedObjects[objectId];
 
+#ifdef IS_RDR3
+		if (objectData.lastSyncTime == 0ms && object->GetObjectType() == (int)NetObjEntityType::DraftVeh)
+		{
+			uint32_t reason = 0;
+
+			if (!object->CanClone(GetLocalPlayer(), &reason))
+			{
+				return;
+			}
+		}
+#endif
+
 		// allocate a RAGE buffer
 		uint8_t packetStub[1200] = { 0 };
 		rage::datBitBuffer rlBuffer(packetStub, sizeof(packetStub));
