@@ -342,6 +342,11 @@ int RealMain()
 			std::vector<wchar_t> valueName(32768);
 			std::wstring citPath = MakeRelativeCitPath(L"");
 
+			if (citPath.find(L".app") != std::string::npos)
+			{
+				citPath += L"..\\";
+			}
+
 			// get the canonical version of the path
 			wchar_t finalPath[512];
 			GetFullPathNameW(citPath.c_str(), std::size(finalPath), finalPath, NULL);
