@@ -1685,6 +1685,9 @@ bool HandleMediaRequest(const std::string& frameOrigin, const std::string& url, 
 		return true;
 	}
 
+	// do not allow desktop video capture (this has been shown to be abused and users do not understand security implications)
+	permissions &= ~nui::NUI_MEDIA_PERMISSION_DESKTOP_VIDEO_CAPTURE;
+
 	// if this server+resource already has permission, keep it
 	auto origin = netLibrary->GetCurrentPeer().ToString() + ":" + frameOrigin;
 	int hadPermissions = 0;
