@@ -3745,6 +3745,27 @@ static bool PopulationPedCheck(int num)
 
 	return true;
 }
+#elif IS_RDR3
+bool(*g_origDoesLocalPlayerOwnWaterGrid)(int unk);
+
+bool DoesLocalPlayerOwnWaterGrid(int unk)
+{
+	if (!icgi->OneSyncEnabled)
+	{
+		return g_origDoesLocalPlayerOwnWaterGrid(unk);
+	}
+
+	auto localPed = (fwEntity*)getPlayerPedForNetPlayer(g_playerMgr->localPlayer);
+
+	if (localPed)
+	{
+		auto position = (float*)&localPed->GetPosition();
+		return DoesLocalPlayerOwnWorldGrid(position);
+	}
+
+	return false;
+}
+
 #endif
 
 static HookFunction hookFunctionWorldGrid([]()
@@ -3785,6 +3806,7 @@ static HookFunction hookFunctionWorldGrid([]()
 	MH_CreateHook(hook::get_pattern("44 8A 40 ? 41 80 F8 FF 0F", -0x1B), DoesLocalPlayerOwnWorldGrid, (void**)&g_origDoesLocalPlayerOwnWorldGrid);
 #elif IS_RDR3
 	MH_CreateHook(hook::get_pattern("44 0F B6 C0 F3 0F 5F C3 41 0F B6 04 10", -0x35), DoesLocalPlayerOwnWorldGrid, (void**)&g_origDoesLocalPlayerOwnWorldGrid);
+	MH_CreateHook(hook::get_pattern("83 A4 24 ? ? ? ? 00 48 8B D8 85 FF 74", -0x25), DoesLocalPlayerOwnWaterGrid, (void**)&g_origDoesLocalPlayerOwnWaterGrid);
 #endif
 
 	MH_EnableHook(MH_ALL_HOOKS);
