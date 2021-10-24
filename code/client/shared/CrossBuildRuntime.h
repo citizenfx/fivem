@@ -1,195 +1,85 @@
 #pragma once
 
-#pragma region GTA5_builds
-inline bool Is2372()
-{
+#include <boost/preprocessor/seq/for_each.hpp>
+#include <boost/preprocessor/wstringize.hpp>
+
 #ifdef GTA_FIVE
-	static bool retval = ([]()
-	{
-		if (wcsstr(GetCommandLineW(), L"b2372") != nullptr)
-		{
-			return true;
-		}
-
-		return false;
-	})();
-
-	return retval;
+#define GAME_BUILDS \
+	(2372) \
+	(2189) \
+	(2060) \
+	(372 ) \
+	(1604)
+#elif defined(IS_RDR3)
+#define GAME_BUILDS \
+	(1436) \
+	(1355) \
+	(1311)
+#elif defined(GTA_NY)
+#define GAME_BUILDS \
+	(43)
+#else
+#define GAME_BUILDS \
+	(0)
 #endif
-
-	return false;
-}
-
-inline bool Is2189()
-{
-#ifdef GTA_FIVE
-	static bool retval = ([]()
-	{
-		if (wcsstr(GetCommandLineW(), L"b2189") != nullptr)
-		{
-			return true;
-		}
-
-		return false;
-	})();
-
-	return retval;
-#endif
-
-	return false;
-}
-
-inline bool Is2060()
-{
-#ifdef GTA_FIVE
-	static bool retval = ([]()
-	{
-		if (wcsstr(GetCommandLineW(), L"b2060") != nullptr)
-		{
-			return true;
-		}
-
-		return false;
-	})();
-
-	return retval;
-#endif
-
-	return false;
-}
-
-inline bool Is372()
-{
-#ifdef GTA_FIVE
-	static bool retval = ([]()
-	{
-		if (wcsstr(GetCommandLineW(), L"b372") != nullptr)
-		{
-			return true;
-		}
-
-		return false;
-	})();
-
-	return retval;
-#endif
-
-	return false;
-}
-#pragma endregion
-
-#pragma region RDR3_builds
-inline bool Is1311()
-{
-#ifdef IS_RDR3
-	static bool retval = ([]()
-	{
-		if (wcsstr(GetCommandLineW(), L"b1311") != nullptr)
-		{
-			return true;
-		}
-
-		return false;
-	})();
-
-	return retval;
-#endif
-
-	return false;
-}
-
-inline bool Is1355()
-{
-#ifdef IS_RDR3
-	static bool retval = ([]()
-	{
-		if (wcsstr(GetCommandLineW(), L"b1355") != nullptr)
-		{
-			return true;
-		}
-
-		return false;
-	})();
-
-	return retval;
-#endif
-
-	return false;
-}
-
-inline bool Is1436()
-{
-#ifdef IS_RDR3
-	static bool retval = ([]()
-	{
-		if (wcsstr(GetCommandLineW(), L"b1436") != nullptr)
-		{
-			return true;
-		}
-
-		return false;
-	})();
-
-	return retval;
-#endif
-
-	return false;
-}
-#pragma endregion
 
 namespace xbr
 {
 inline int GetGameBuild()
 {
-#ifdef GTA_FIVE
-	static int build = ([]()
+	static int buildNumber = -1;
+
+	if (buildNumber != -1)
 	{
-		if (Is2372())
-		{
-			return 2372;
-		}
+		return buildNumber;
+	}
 
-		if (Is2189())
-		{
-			return 2189;
-		}
+	constexpr const std::pair<std::wstring_view, int> buildNumbers[] = {
+#define EXPAND(_, __, x) \
+	{ BOOST_PP_WSTRINGIZE(BOOST_PP_CAT(b, x)), x },
 
-		if (Is2060())
-		{
-			return 2060;
-		}
+		BOOST_PP_SEQ_FOR_EACH(EXPAND, , GAME_BUILDS)
 
-		if (Is372())
-		{
-			return 372;
-		}
+#undef EXPAND
+	};
 
-		return 1604;
-	})();
-#elif IS_RDR3
-	static int build = ([]()
+	std::wstring_view cli = GetCommandLineW();
+	buildNumber = std::get<1>(buildNumbers[std::size(buildNumbers) - 1]);
+
+	for (auto [build, number] : buildNumbers)
 	{
-		if (Is1436())
+		if (cli.find(build) != std::string_view::npos)
 		{
-			return 1436;
+			buildNumber = number;
+			break;
 		}
+	}
 
-		if (Is1355())
-		{
-			return 1355;
-		}
-
-		return 1311;
-	})();
-#elif GTA_NY
-	static int build = 43;
-#else
-	static int build = 0;
-#endif
-
-	return build;
+	return buildNumber;
+}
 }
 
+#define EXPAND2(_, __, x) \
+	inline bool BOOST_PP_CAT(Is, x)() \
+	{ \
+		static bool retval; \
+		static bool inited = false; \
+		\
+		if (!inited) \
+		{ \
+			retval = xbr::GetGameBuild() == x; \
+			inited = true; \
+		} \
+		\
+		return retval; \
+	}
+
+BOOST_PP_SEQ_FOR_EACH(EXPAND2, , GAME_BUILDS)
+
+#undef EXPAND2
+
+namespace xbr
+{
 template<int Build>
 inline bool IsGameBuildOrGreater()
 {

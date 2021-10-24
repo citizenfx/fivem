@@ -52,7 +52,7 @@ void ComponentLoader::Initialize()
 		componentsName = _P("components-sp.json");
 	}
 
-	if (Is372())
+	if (xbr::IsGameBuild<372>())
 	{
 		componentsName = _P("components-sp372.json");
 	}

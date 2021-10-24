@@ -94,10 +94,10 @@ void RestartGameToOtherBuild(int build = 0)
 	{
 		cli = va(L"\"%s\" %s -switchcl \"fivem://connect/%s\"",
 		hostData->gameExePath,
-		Is2060() ? L"" : L"-b2060",
+		xbr::IsGameBuild<2060>() ? L"" : L"-b2060",
 		ToWide(g_lastConn));
 
-		build = (Is2060()) ? 1604 : 2060;
+		build = (xbr::IsGameBuild<2060>()) ? 1604 : 2060;
 	}
 	else
 	{

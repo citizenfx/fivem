@@ -965,13 +965,12 @@ IRgsc* GetScSdkStub()
 	
 	if (!g_rgsc)
 	{
-		if (getenv("CitizenFX_ToolMode") || Is372())
+		if (getenv("CitizenFX_ToolMode") || xbr::IsGameBuild<372>())
 		{
 			g_rgsc = (RgscStub*)getFunc();
 		}
 		else
 		{
-			//g_rgsc = (RgscStub*)getFunc();
 			g_rgsc = new RgscStub(getFunc());
 		}
 	}

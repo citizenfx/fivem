@@ -228,11 +228,11 @@ static DWORD WINAPI CertGetNameStringStubA(_In_ PCCERT_CONTEXT pCertContext, _In
 	{
 		newName = "Entrust Code Signing CA - OVCS1";
 	}
-	else if (Is372() && certString == "Entrust Code Signing CA - OVCS1")
+	else if (xbr::IsGameBuild<372>() && certString == "Entrust Code Signing CA - OVCS1")
 	{
 		newName = "Entrust Code Signing Certification Authority - L1D";
 	}
-	else if (Is372() && certString == "Rockstar Games, Inc.")
+	else if (xbr::IsGameBuild<372>() && certString == "Rockstar Games, Inc.")
 	{
 		newName = "Take-Two Interactive Software, Inc.";
 	}
@@ -780,9 +780,7 @@ static HookFunction hookFunction([] ()
 	}
 
 	
-#if !GTA_NY
-	if (Is372())
-#endif
+	if (xbr::IsGameBuild<372>())
 	{
 		hook::iat("crypt32.dll", CertGetNameStringStubW, "CertGetNameStringW");
 		hook::iat("crypt32.dll", CertGetNameStringStubA, "CertGetNameStringA");

@@ -741,7 +741,7 @@ mapper->AddGameService("ugc.asmx/Publish", [](const std::string& body)
 			auto rs = rss.str();
 			rs = "";
 
-			if (Is1436())
+			if (xbr::IsGameBuild<1436>())
 			{
 				return fmt::sprintf(R"(
 <?xml version="1.0" encoding="utf-8"?>
@@ -763,7 +763,7 @@ mapper->AddGameService("ugc.asmx/Publish", [](const std::string& body)
 </Response>)",
 				rs);
 			}
-			else if (Is1355())
+			else if (xbr::IsGameBuild<1355>())
 			{
 				return fmt::sprintf(R"(
 <?xml version="1.0" encoding="utf-8"?>
@@ -808,7 +808,7 @@ mapper->AddGameService("ugc.asmx/Publish", [](const std::string& body)
 		}
 		else if (postData["branchAccessToken"].find("GTA5") != std::string::npos)
 		{
-			if (Is372())
+			if (xbr::IsGameBuild<372>())
 			{
 				return fmt::sprintf(R"(
 <?xml version="1.0" encoding="utf-8"?>
@@ -828,7 +828,7 @@ mapper->AddGameService("ugc.asmx/Publish", [](const std::string& body)
   </Result>
 </Response>)");
 			}
-			else if (Is2372())
+			else if (xbr::IsGameBuild<2372>())
 			{
 				return fmt::sprintf(R"(
 <?xml version="1.0" encoding="utf-8"?>
@@ -848,7 +848,7 @@ mapper->AddGameService("ugc.asmx/Publish", [](const std::string& body)
   </Result>
 </Response>)");
 			}
-			else if (Is2189())
+			else if (xbr::IsGameBuild<2189>())
 			{
 				return fmt::sprintf(R"(
 <?xml version="1.0" encoding="utf-8"?>
@@ -868,7 +868,7 @@ mapper->AddGameService("ugc.asmx/Publish", [](const std::string& body)
   </Result>
 </Response>)");
 			}
-			else if (Is2060())
+			else if (xbr::IsGameBuild<2060>())
 			{
 				return fmt::sprintf(R"(
 <?xml version="1.0" encoding="utf-8"?>
@@ -1044,8 +1044,8 @@ mapper->AddGameService("ugc.asmx/Publish", [](const std::string& body)
     </App>
   </Result>
 </Response>)",
-		Is372() ? 4 : (Is2060() ? 83 : (Is2372() ? 92 : (Is2189() ? 88 : 80))),
-		Is1355() ? 80 : (Is1436() ? 82 : 79));
+		xbr::IsGameBuild<372>() ? 4 : (xbr::IsGameBuild<2060>() ? 83 : (xbr::IsGameBuild<2372>() ? 92 : (xbr::IsGameBuild<2189>() ? 88 : 80))),
+		xbr::IsGameBuild<1355>() ? 80 : (xbr::IsGameBuild<1436>() ? 82 : 79));
 	});
 
 
