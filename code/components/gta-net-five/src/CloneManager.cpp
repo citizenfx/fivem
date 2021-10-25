@@ -2371,7 +2371,12 @@ void CloneManagerLocal::WriteUpdates()
 		}
 
 		// if this object doesn't have a game object, but it should, ignore it
+#ifdef GTA_FIVE
 		if (object->GetObjectType() != (uint16_t)NetObjEntityType::PickupPlacement)
+#elif IS_RDR3
+		if (object->GetObjectType() != (uint16_t)NetObjEntityType::PickupPlacement &&
+			object->GetObjectType() != (uint16_t)NetObjEntityType::PropSet)
+#endif
 		{
 			if (object->GetGameObject() == nullptr)
 			{
