@@ -71,8 +71,6 @@
     "#Settings_CustomEmojiUpsell": "Unavailable! Pledge $5/month or more to the FiveM Patreon and link your FiveM account to set a custom emoji for the FiveM watermark.",
     "#Settings_InProcessGpu": "NUI in-process GPU",
     "#Settings_InProcessGpuDesc": "Fix 'UI lag' at high GPU usage, but may cause reliability issues with GPU crashes (requires restart)",
-    "#Settings_InProcessGpu2": "Disable priority boost",
-    "#Settings_InProcessGpuDesc2": "Fix 'UI lag' at high GPU usage by disabling Windows priority auto-boost (requires restart)",
     "#Settings_ConnectedProfiles": "Linked identities",
     "#Settings_UpdateChannel": "Update channel",
     "#Settings_UpdateChannelDesc": "Try out new features and changes before they launch. Has a chance of breaking.",

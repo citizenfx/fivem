@@ -1524,14 +1524,6 @@ void Initialize(nui::GameInterface* gi)
 		}
 #endif
 	});
-
-	
-	static ConVar<bool> nuiUseInProcessGpu("nui_useInProcessGpu", ConVar_Archive, false);
-
-	if (nuiUseInProcessGpu.GetValue())
-	{
-		SetProcessPriorityBoost(GetCurrentProcess(), TRUE);
-	}
 }
 }
 

@@ -125,8 +125,8 @@ export class SettingsService {
 			});
 
 			this.addSetting('inProcessGpu', {
-				name: '#Settings_InProcessGpu2',
-				description: '#Settings_InProcessGpuDesc2',
+				name: '#Settings_InProcessGpu',
+				description: '#Settings_InProcessGpuDesc',
 				type: 'checkbox',
 				getCb: () => this.gameService.getConvar('nui_useInProcessGpu').pipe(map(a => a === 'true' ? 'true' : 'false')),
 				setCb: (value) => this.gameService.setConvar('nui_useInProcessGpu', value),
