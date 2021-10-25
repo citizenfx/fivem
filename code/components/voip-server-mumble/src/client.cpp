@@ -110,6 +110,36 @@ int Client_getfds(struct pollfd *pollfds)
 	return 0;
 }
 
+bool Client_is_player_muted(int serverId)
+{
+	auto convertedServerId = fmt::sprintf("[%d]", serverId);
+	struct dlist *itr, *save;
+	list_iterate_safe(itr, save, &clients)
+	{
+		client_t* c;
+		c = list_get_entry(itr, client_t, node);
+		if (strstr(c->username, convertedServerId.c_str()))
+		{
+			return c->mute;
+		}
+	}
+}
+
+void Client_set_player_muted(int serverId, bool muted)
+{
+	auto convertedServerId = fmt::sprintf("[%d]", serverId);
+	struct dlist *itr, *save;
+	list_iterate_safe(itr, save, &clients)
+	{
+		client_t* c;
+		c = list_get_entry(itr, client_t, node);
+		if (strstr(c->username, convertedServerId.c_str())) {
+			c->mute = muted;
+			break;
+		}
+	}
+}
+
 void Client_janitor()
 {
 	std::unique_lock<std::recursive_mutex> lock(g_mumbleClientMutex);
