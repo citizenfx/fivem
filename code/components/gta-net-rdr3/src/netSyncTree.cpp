@@ -8,7 +8,7 @@ const char* GetNetObjEntityName(uint16_t type)
 	switch ((NetObjEntityType)type)
 	{
 	case NetObjEntityType::Animal: return "CNetObjAnimal";
-	case NetObjEntityType::Automobile: return "CNetObjAnimal";
+	case NetObjEntityType::Automobile: return "CNetObjAutomobile";
 	case NetObjEntityType::Bike: return "CNetObjBike";
 	case NetObjEntityType::Boat: return "CNetObjBoat";
 	case NetObjEntityType::Door: return "CNetObjDoor";

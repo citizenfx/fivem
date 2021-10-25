@@ -119,7 +119,7 @@ public:
 	virtual void PostDependencyThreadUpdate() = 0;
 	virtual void StartSynchronising() = 0;
 	virtual void StopSynchronising() = 0;
-	virtual bool CanClone(void* player, void* unk) = 0; // 50
+	virtual bool CanClone(void* player, uint32_t* reason) = 0; // 50
 	virtual bool CanSync(void* player) = 0;
 	virtual void m_910() = 0;
 	virtual bool CanSynchronise(bool, int*) = 0;
