@@ -715,6 +715,79 @@ struct CObjectSectorDataNode
 	}
 };
 
+struct CPropSetCreationDataNode
+{
+	uint32_t m_modelHash;
+	bool m_unk1;
+	uint16_t m_unk2;
+
+	bool m_rootPosition;
+	
+	float m_posX;
+	float m_posY;
+	float m_posZ;
+
+	uint8_t m_variationIndex;
+	float m_heading;
+	float m_unk3;
+	uint8_t m_unk4;
+	bool m_unk5;
+
+	bool m_hasParent;
+	uint16_t m_parentId;
+	uint32_t m_parentModelHash;
+	bool m_unk6;
+	uint8_t m_unk7;
+
+	bool Parse(SyncParseState& state)
+	{
+		m_modelHash = state.buffer.Read<uint32_t>(32);
+		m_unk1 = state.buffer.ReadBit();
+		m_unk2 = (m_unk1) ? state.buffer.Read<uint16_t>(16) : 0;
+		m_rootPosition = state.buffer.ReadBit();
+
+		if (!m_rootPosition)
+		{
+			m_posX = state.buffer.ReadSignedFloat(31, 27648.0f);
+			m_posY = state.buffer.ReadSignedFloat(31, 27648.0f);
+			m_posZ = state.buffer.ReadFloat(31, 4416.0f) - 1700.0f;
+		}
+		else
+		{
+			m_posX = 0.0f;
+			m_posY = 0.0f;
+			m_posZ = 0.0f;
+		}
+
+		m_variationIndex = state.buffer.Read<uint8_t>(4);
+		m_heading = state.buffer.ReadSignedFloat(31, 6.28318548f);
+		m_unk3 = state.buffer.ReadSignedFloat(31, 1200.0f);
+		m_unk4 = state.buffer.Read<uint8_t>(3);
+		m_unk5 = state.buffer.ReadBit();
+
+		m_hasParent = state.buffer.ReadBit();
+
+		if (m_hasParent)
+		{
+			m_parentId = state.buffer.Read<uint16_t>(13);
+			m_parentModelHash = state.buffer.Read<uint32_t>(32);
+			m_unk6 = state.buffer.ReadBit();
+			m_unk7 = (m_unk6) ? state.buffer.Read<uint8_t>(4) : -1;
+		}
+		else
+		{
+			m_parentId = 0;
+			m_parentModelHash = 0;
+			m_unk6 = 0;
+			m_unk7 = -1;
+		}
+
+		// ...
+
+		return true;
+	}
+};
+
 struct CDraftVehCreationDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CStatsTrackerGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CWorldStateBaseDataNode { bool Parse(SyncParseState& state) { return true; } };
@@ -733,7 +806,6 @@ struct CAnimSceneInfrequentDataNode { bool Parse(SyncParseState& state) { return
 struct CGroupScenarioFrequentDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CGroupScenarioEntitiesDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CGroupScenarioCreationDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPropSetCreationDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPlayerWeaponInventoryDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPropSetGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPropSetUncommonGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
@@ -884,6 +956,7 @@ struct SyncTree : public SyncTreeBase
 		auto [hasOspdn, objectSecPosDataNode] = GetData<CObjectSectorPosNode>();
 		auto [hasPspmdn, pedSecPosMapDataNode] = GetData<CPedSectorPosMapNode>();
 		auto [hasDoor, doorCreationDataNode] = GetData<CDoorCreationDataNode>();
+		auto [hasPropSet, propSetCreationDataNode] = GetData<CPropSetCreationDataNode>();
 		auto [hasHpn, herdPosNode] = GetData<CHerdPositionNode>();
 
 		auto sectorX =
@@ -940,6 +1013,32 @@ struct SyncTree : public SyncTreeBase
 			posOut[0] = doorCreationDataNode->m_posX;
 			posOut[1] = doorCreationDataNode->m_posY;
 			posOut[2] = doorCreationDataNode->m_posZ;
+		}
+
+		if (hasPropSet)
+		{
+			// if prop set attached, get parent's position instead
+			if (propSetCreationDataNode->m_hasParent && g_serverGameState)
+			{
+				auto entity = g_serverGameState->GetEntity(0, propSetCreationDataNode->m_parentId);
+
+				if (entity && entity->type != fx::sync::NetObjEntityType::PropSet)
+				{
+					entity->syncTree->GetPosition(posOut);
+
+					// apply attachment offset
+					posOut[0] += propSetCreationDataNode->m_posX;
+					posOut[1] += propSetCreationDataNode->m_posY;
+					posOut[2] += propSetCreationDataNode->m_posZ;
+
+				}
+			}
+			else
+			{
+				posOut[0] = propSetCreationDataNode->m_posX;
+				posOut[1] = propSetCreationDataNode->m_posY;
+				posOut[2] = propSetCreationDataNode->m_posZ;
+			}
 		}
 	}
 
