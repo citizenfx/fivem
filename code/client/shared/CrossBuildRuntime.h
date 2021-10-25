@@ -27,6 +27,7 @@ namespace xbr
 {
 inline int GetGameBuild()
 {
+#ifndef IS_FXSERVER
 	static int buildNumber = -1;
 
 	if (buildNumber != -1)
@@ -56,6 +57,9 @@ inline int GetGameBuild()
 	}
 
 	return buildNumber;
+#else
+	return 0;
+#endif
 }
 }
 
