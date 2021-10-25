@@ -739,16 +739,6 @@ void GameStateClientData::MaybeFlushAcks()
 	}
 }
 
-void GameStateClientData::TrackEntity(const fx::sync::SyncEntityPtr& entity)
-{
-	poolEntityCounts[(size_t)GetPoolForEntityType(entity->type)]++;
-}
-
-void GameStateClientData::UntrackPoolEntity(PoolIndex poolIndex)
-{
-	poolEntityCounts[(size_t)poolIndex]--;
-}
-
 void sync::SyncCommandList::Execute(const fx::ClientSharedPtr& client)
 {
 	static thread_local SyncCommandState scs(16384);
@@ -1240,7 +1230,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				else if (entityData.hasCreated || entityData.hasNAckedCreate)
 				{
 					GS_LOG("destroying entity %d:%d for client %d due to scope exit\n", entity->handle, entity->uniqifier, client->GetNetId());
-					clientDataUnlocked->entitiesToDestroy[entIdentifier] = { entity, { true, false, GetPoolForEntityType(entity->type) } };
+					clientDataUnlocked->entitiesToDestroy[entIdentifier] = { entity, { true, false } };
 				}
 			}
 			
@@ -1343,7 +1333,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			if (entity->deleting)
 			{
 				GS_LOG("deleting [obj:%d:%d] because it's deleting\n", entity->handle, entity->uniqifier);
-				entitiesToDestroy[identPair] = { entity, { false, false, GetPoolForEntityType(entity->type) } };
+				entitiesToDestroy[identPair] = { entity, { false, false } };
 				syncedEntities.erase(oldIt);
 			}
 		}
@@ -1498,14 +1488,6 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 		// #IFNAK
 		if (m_syncStyle == SyncStyle::NAK)
 		{
-			for (auto& [_entityPair, _entity] : entitiesToDestroy)
-			{
-				auto [entity, _deletionData] = _entity;
-				auto deletionData = _deletionData;
-
-				clientDataUnlocked->UntrackPoolEntity(deletionData.poolIndex);
-			}
-
 			entitiesToDestroy.clear();
 		}
 
@@ -1622,7 +1604,11 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				// check if the player has too many entities already
 				auto compareType = GetPoolForEntityType(entity->type);
 
-				size_t numExistent = clientDataUnlocked->poolEntityCounts[(size_t)compareType];
+				// count_if with a deref *may* be slow, but this is a good way to ensure we don't have bookkeeping failures at first iteration
+				auto numExistent = std::count_if(syncedEntities.begin(), syncedEntities.end(), [compareType](const auto& handlePair)
+				{
+					return handlePair.second.hasCreated && GetPoolForEntityType(handlePair.second.entity->type) == compareType;
+				});
 
 				if (numExistent >= GetLimitForPool(compareType))
 				{
@@ -1855,7 +1841,6 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 						if (m_syncStyle == SyncStyle::NAK)
 						{
 							syncData.hasCreated = true;
-							clientDataUnlocked->TrackEntity(entity);
 						}
 
 						// first-frame update
@@ -3310,7 +3295,7 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 			// if the entity isn't added yet, the owner should be told of its deletion too
 			{
 				auto [lock, data] = GetClientData(this, client);
-				data->entitiesToDestroy[MakeHandleUniqifierPair(objectId, uniqifier)] = { entity, { false, false, GetPoolForEntityType(entity->type) } };
+				data->entitiesToDestroy[MakeHandleUniqifierPair(objectId, uniqifier)] = { entity, { false, false } };
 			}
 		};
 
@@ -3355,7 +3340,6 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 
 			data->syncedEntities[identPair] = { 0ms, 10ms, entity, false, true, false };
 			data->pendingCreates.erase(identPair);
-			data->TrackEntity(entity);
 		}
 
 		{
@@ -3591,7 +3575,6 @@ void ServerGameState::ParseAckPacket(const fx::ClientSharedPtr& client, net::Buf
 						if (auto secIt = clientData->syncedEntities.find(MakeHandleUniqifierPair(objectId, uniqifier)); secIt != clientData->syncedEntities.end())
 						{
 							secIt->second.hasCreated = true;
-							clientData->TrackEntity(entity);
 						}
 					}
 				}
@@ -3604,14 +3587,7 @@ void ServerGameState::ParseAckPacket(const fx::ClientSharedPtr& client, net::Buf
 				auto uniqifier = msgBuf.Read<uint16_t>(16);
 
 				auto [lock, clientData] = GetClientData(this, client);
-
-				auto pair = MakeHandleUniqifierPair(objectId, uniqifier);
-				{
-					auto& [ _, deletionData ] = clientData->entitiesToDestroy[pair];
-
-					clientData->UntrackPoolEntity(deletionData.poolIndex);
-				}
-				clientData->entitiesToDestroy.erase(pair);
+				clientData->entitiesToDestroy.erase(MakeHandleUniqifierPair(objectId, uniqifier));
 
 				GS_LOG("handle remove ack for [obj:%d:%d]\n", objectId, uniqifier);
 
