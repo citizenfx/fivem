@@ -187,10 +187,7 @@ void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRef
 {
 	static ConVar<bool> nuiUseInProcessGpu("nui_useInProcessGpu", ConVar_Archive, false);
 
-	// weird dlls crash
-	bool hasWeirdStuff = (GetFileAttributes(MakeRelativeGamePath(L"d3d11.dll").c_str()) != INVALID_FILE_ATTRIBUTES);
-
-	if (nuiUseInProcessGpu.GetValue() && !hasWeirdStuff)
+	if (nuiUseInProcessGpu.GetValue())
 	{
 		command_line->AppendSwitch("in-process-gpu");
 	}
