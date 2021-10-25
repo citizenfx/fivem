@@ -534,6 +534,12 @@ static int __Lua_InvokeNative(lua_State* L)
 	else
 	{
 		auto handlerRef = (FastNativeHandler*)lua_touserdata(L, 1);
+		if (!handlerRef)
+		{
+			luaL_error(L, "not a userdata");
+			return 0;
+		}
+
 		hash = handlerRef->handler;
 		origHash = handlerRef->hash;
 	}
