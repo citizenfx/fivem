@@ -1008,14 +1008,18 @@ static InitFunction initFunction([] ()
 #ifdef GTA_FIVE
 			static bool done = ([]
 			{
-				UiDone();
+				std::thread([]
+				{
+					UiDone();
 
-				auto hWnd = CoreGetGameWindow();
-				ShowWindow(hWnd, SW_SHOW);
+					auto hWnd = CoreGetGameWindow();
+					ShowWindow(hWnd, SW_SHOW);
 
-				// game code locks it
-				LockSetForegroundWindow(LSFW_UNLOCK);
-				SetForegroundWindow(hWnd);
+					// game code locks it
+					LockSetForegroundWindow(LSFW_UNLOCK);
+					SetForegroundWindow(hWnd);
+				})
+				.detach();
 
 				return true;
 			})();
