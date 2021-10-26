@@ -1388,6 +1388,8 @@ static void ExitCleanly()
 {
 	g_quitMsg = "Exiting";
 	ExitProcess(0);
+
+	__debugbreak();
 }
 
 #include <shellapi.h>
@@ -1414,7 +1416,7 @@ static HookFunction hookFunction([] ()
 	});
 
 	// exit game on game exit from alt-f4
-	hook::jump(hook::get_pattern("48 83 F8 04 75 ? 40 88", 6), ExitCleanly);
+	hook::call(hook::get_pattern("48 83 F8 04 75 ? 40 88", 6), ExitCleanly);
 
 	// no netgame jumpouts in alt-f4
 	hook::put<uint8_t>(hook::get_pattern("40 38 35 ? ? ? ? 74 0A 48 8B CF", 7), 0xEB);
