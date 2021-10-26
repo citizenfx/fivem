@@ -25,6 +25,9 @@
 
 #include <CrossBuildRuntime.h>
 
+#include <CfxState.h>
+#include <HostSharedData.h>
+
 NetLibrary* g_netLibrary;
 
 #include <ws2tcpip.h>
@@ -1396,13 +1399,14 @@ static void ExitCleanly()
 
 static BOOL ShellExecuteExAHook(SHELLEXECUTEINFOA *pExecInfo)
 {
-	auto cli = const_cast<char*>(va("\"%s\" %s -switchcl", pExecInfo->lpFile, pExecInfo->lpParameters));
+	static HostSharedData<CfxState> hostData("CfxInitState");
+	auto cli = const_cast<wchar_t*>(va(L"\"%s\" %s -switchcl", hostData->gameExePath, ToWide(pExecInfo->lpParameters)));
 
-	STARTUPINFOA si = { 0 };
+	STARTUPINFOW si = { 0 };
 	si.cb = sizeof(si);
 
 	PROCESS_INFORMATION pi;
-	CreateProcessA(NULL, cli, NULL, NULL, FALSE, CREATE_BREAKAWAY_FROM_JOB, NULL, NULL, &si, &pi);
+	CreateProcessW(NULL, cli, NULL, NULL, FALSE, CREATE_BREAKAWAY_FROM_JOB, NULL, NULL, &si, &pi);
 	
 	return TRUE;
 }
