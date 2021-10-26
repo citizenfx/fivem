@@ -1384,6 +1384,27 @@ static bool BeforeReplayLoadHook()
 	return g_origBeforeReplayLoad();
 }
 
+static void ExitCleanly()
+{
+	g_quitMsg = "Exiting";
+	ExitProcess(0);
+}
+
+#include <shellapi.h>
+
+static BOOL ShellExecuteExAHook(SHELLEXECUTEINFOA *pExecInfo)
+{
+	auto cli = const_cast<char*>(va("\"%s\" %s -switchcl", pExecInfo->lpFile, pExecInfo->lpParameters));
+
+	STARTUPINFOA si = { 0 };
+	si.cb = sizeof(si);
+
+	PROCESS_INFORMATION pi;
+	CreateProcessA(NULL, cli, NULL, NULL, FALSE, CREATE_BREAKAWAY_FROM_JOB, NULL, NULL, &si, &pi);
+	
+	return TRUE;
+}
+
 static HookFunction hookFunction([] ()
 {
 	static ConsoleCommand quitCommand("quit", [](const std::string& message)
@@ -1391,6 +1412,19 @@ static HookFunction hookFunction([] ()
 		g_quitMsg = message;
 		ExitProcess(-1);
 	});
+
+	// exit game on game exit from alt-f4
+	hook::jump(hook::get_pattern("48 83 F8 04 75 ? 40 88", 6), ExitCleanly);
+
+	// no netgame jumpouts in alt-f4
+	hook::put<uint8_t>(hook::get_pattern("40 38 35 ? ? ? ? 74 0A 48 8B CF", 7), 0xEB);
+	hook::put<uint8_t>(hook::get_pattern("40 38 35 ? ? ? ? 74 0A E8 ? ? ? ? E9", 7), 0xEB);
+
+	// fix 'restart' handling to not ask MTL to restart, but relaunch 'ourselves' (eg on settings change)
+	hook::put<uint8_t>(hook::get_pattern("48 85 C9 74 15 40 38 31 74", 3), 0xEB);
+
+	// shellexecuteexa -switch add so it can wait
+	hook::iat("shell32.dll", ShellExecuteExAHook, "ShellExecuteExA");
 
 	if (xbr::IsGameBuildOrGreater<2372>())
 	{
