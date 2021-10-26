@@ -4013,8 +4013,12 @@ void ServerGameState::SendPacket(int peer, std::string_view data)
 
 ServerGameState::ArrayHandlerData::ArrayHandlerData()
 {
+#ifdef STATE_FIVE
 	handlers[4] = std::make_shared<ArrayHandler<128, 50>>(4);
 	handlers[7] = std::make_shared<ArrayHandler<128, 50>>(7);
+#elif STATE_RDR3
+	handlers[16] = std::make_shared<ArrayHandler<128, 400>>(16);
+#endif
 }
 
 auto ServerGameState::GetEntityLockdownMode(const fx::ClientSharedPtr& client) -> EntityLockdownMode

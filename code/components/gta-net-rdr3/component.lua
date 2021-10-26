@@ -13,6 +13,7 @@ return function()
 		'components/gta-net-five/src/ClientRPC.cpp',
 		'components/gta-net-five/src/CloneDebug.cpp',
 		'components/gta-net-five/src/CloneExperiments.cpp',
+		'components/gta-net-five/src/CloneExperiments_ArrayHandler.cpp',
 		'components/gta-net-five/src/CloneManager.cpp',
 		'components/gta-net-five/src/CloneObjectManager.cpp',
 		'components/gta-net-five/src/ObjectIdManager.cpp',

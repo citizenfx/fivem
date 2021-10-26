@@ -3872,9 +3872,7 @@ static std::map<int, ObjectData> trackedObjects;
 
 #include <lz4.h>
 
-#ifdef GTA_FIVE
 extern void ArrayManager_Update();
-#endif
 
 static InitFunction initFunction([]()
 {
@@ -3902,10 +3900,7 @@ static InitFunction initFunction([]()
 			return;
 		}
 
-#ifdef GTA_FIVE
 		ArrayManager_Update();
-#endif
-
 		EventManager_Update();
 		TheClones->Update();
 	});
