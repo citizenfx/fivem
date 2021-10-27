@@ -61,6 +61,7 @@ public:
 	}
 
 public:
+#ifdef GTA_FIVE
 	uint8_t m_pad[244 - 8]; // +8
 	uint16_t m_index; // 244
 	uint16_t m_count; // 246
@@ -68,6 +69,16 @@ public:
 	uint8_t m_elementSize; // 249
 	uint8_t m_pad2[14]; // 250
 	void* m_array; // 264
+#elif IS_RDR3
+	uint8_t m_pad[308 - 8]; // +8
+	uint16_t m_index; // 308
+	uint8_t m_pad2[130]; // 310
+	uint16_t m_count; // 440
+	uint8_t m_pad3[6]; // 442
+	uint8_t m_elementSize; // 448
+	uint8_t m_pad4[23]; // 449
+	void* m_array; // 472
+#endif
 };
 
 class netArrayManager
@@ -97,7 +108,7 @@ struct ArrayHandlerInfo
 	std::vector<size_t> hashes;
 };
 
-static std::array<std::unique_ptr<ArrayHandlerInfo>, 16> arrayHandlers;
+static std::array<std::unique_ptr<ArrayHandlerInfo>, 20> arrayHandlers;
 
 static auto GetArrayHandlerInfo(int index, rage::netArrayHandlerBase* handler)
 {
@@ -120,8 +131,12 @@ void ArrayManager_Update()
 	}
 
 	static const int arrayHandlers[] = {
+#ifdef GTA_FIVE
 		4, // incidents
 		7, // sticky bombs
+#elif IS_RDR3
+		16, // world doors
+#endif
 	};
 
 	for (int arrayIndex : arrayHandlers)

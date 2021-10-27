@@ -1254,7 +1254,7 @@ public:
 private:
 	struct ArrayHandlerData
 	{
-		std::array<std::shared_ptr<ArrayHandlerBase>, 16> handlers;
+		std::array<std::shared_ptr<ArrayHandlerBase>, 20> handlers;
 
 		ArrayHandlerData();
 	};
