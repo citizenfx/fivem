@@ -9,6 +9,45 @@ $SDKCommit = (git rev-list -1 HEAD ext/sdk-build/ ext/sdk/ code/tools/ci/build_s
 $SDKVersion = ((git rev-list $SDKCommit | measure-object).Count * 10) + 1100000
 Pop-Location
 
+Start-Section "update_submodules" "Updating submodules"
+Push-Location $WorkDir
+
+git submodule init
+git submodule sync
+
+Push-Location $WorkDir
+$SubModules = git submodule | ForEach-Object { New-Object PSObject -Property @{ Hash = $_.Substring(1).Split(' ')[0]; Name = $_.Substring(1).Split(' ')[1] } }
+
+foreach ($submodule in $SubModules) {
+    $SubmodulePath = git config -f .gitmodules --get "submodule.$($submodule.Name).path"
+
+    if ((Test-Path $SubmodulePath) -and (Get-ChildItem $SubmodulePath).Length -gt 0) {
+        continue;
+    }
+    
+    Start-Section "update_submodule_$($submodule.Name)" "Cloning $($submodule.Name)"
+    $SubmoduleRemote = git config -f .gitmodules --get "submodule.$($submodule.Name).url"
+
+    $Tag = (git ls-remote --tags $SubmoduleRemote | Select-String -Pattern $submodule.Hash | Select-Object -First 1) -replace '^.*tags/([^^]+).*$','$1'
+
+    if (!$Tag) {
+        git clone $SubmoduleRemote $SubmodulePath
+    } else {
+        git clone -b $Tag --depth 1 --single-branch $SubmoduleRemote $SubmodulePath
+    }
+
+    End-Section "update_submodule_$($submodule.Name)"
+}
+Pop-Location
+
+Start-Section "update_submodule_git" "Updating all submodules"
+git submodule update --jobs=8
+End-Section "update_submodule_git"
+
+Pop-Location
+
+End-Section "update_submodules"
+
 # start building SDK
 # copied from run_postbuild.ps1
 Push-Location $WorkDir\ext\sdk-build
