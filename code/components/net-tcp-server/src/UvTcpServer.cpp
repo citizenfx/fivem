@@ -310,6 +310,11 @@ void UvTcpServerStream::CloseClient()
 		if (writeCallback)
 		{
 			writeCallback->clear();
+
+			writeCallback->once<uvw::CloseEvent>([writeCallback](const uvw::CloseEvent&, uvw::AsyncHandle& h)
+			{
+				(void)writeCallback;
+			});
 			writeCallback->close();
 		}
 
@@ -322,6 +327,11 @@ void UvTcpServerStream::CloseClient()
 		if (writeTimeout)
 		{
 			writeTimeout->clear();
+
+			writeTimeout->once<uvw::CloseEvent>([writeTimeout](const uvw::CloseEvent&, uvw::TimerHandle& h)
+			{
+				(void)writeTimeout;
+			});
 			writeTimeout->close();
 		}
 

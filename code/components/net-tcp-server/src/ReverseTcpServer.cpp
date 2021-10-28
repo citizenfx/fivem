@@ -119,6 +119,11 @@ namespace net
 					});
 
 					worker->shutdown();
+
+					writeCallback->once<uvw::CloseEvent>([writeCallback](const uvw::CloseEvent&, uvw::AsyncHandle& h)
+					{
+						(void)writeCallback;
+					});
 					writeCallback->close();
 
 					thisRef->m_writeCallback = {};
