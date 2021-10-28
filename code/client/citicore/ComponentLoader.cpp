@@ -112,6 +112,7 @@ void ComponentLoader::Initialize()
 			}
 		}
 
+#ifndef IS_FXSERVER
 		// don't load some useless stuff for FXNode as well
 		if (launch::IsFXNode()) {
 			std::vector<std::wstring> neededComponentsList = {
@@ -145,6 +146,7 @@ void ComponentLoader::Initialize()
 				continue;
 			}
 		}
+#endif
 #endif
 
 #ifndef IS_FXSERVER
