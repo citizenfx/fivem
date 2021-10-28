@@ -3964,7 +3964,7 @@ void ServerGameState::HandleArrayUpdate(const fx::ClientSharedPtr& client, net::
 
 	auto& ah = gridRef->second;
 
-	if (arrayIndex > ah->handlers.size())
+	if (arrayIndex >= ah->handlers.size())
 	{
 		return;
 	}
