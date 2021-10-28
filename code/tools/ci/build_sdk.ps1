@@ -1,3 +1,21 @@
+function Start-Section
+{
+    param([Parameter(Position=0)][string]$Id, [Parameter(Position=1)][string]$Name)
+    
+    $ts = (Get-Date -UFormat %s -Millisecond 0)
+    $esc = $([char]27)
+    Write-Host "section_start:$($ts):$Id`r$esc[0K$Name"
+}
+
+function End-Section
+{
+    param([Parameter(Position=0)][string]$Id)
+    
+    $ts = (Get-Date -UFormat %s -Millisecond 0)
+    $esc = $([char]27)
+    Write-Host "section_end:$($ts):$Id`r$esc[0K"
+}
+
 $ErrorActionPreference = "Stop"
 $SaveDir = "C:\f\save"
 
