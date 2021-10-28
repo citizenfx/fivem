@@ -19,6 +19,16 @@ function End-Section
 $ErrorActionPreference = "Stop"
 $SaveDir = "C:\f\save"
 
+$FXCodeSubmoduleName = "ext/sdk/resources/sdk-root/fxcode"
+$LastFXCodeCommitPath = "$SaveDir\.fxcodecommit"
+$LastFXCodeCommit = ""
+
+if (Test-Path $LastFXCodeCommitPath) {
+    $LastFXCodeCommit = Get-Content $LastFXCodeCommitPath
+}
+
+$ShouldBuildFXCode = $false
+
 $WorkDir = $env:CI_PROJECT_DIR -replace '/','\'
 $WorkRootDir = "$WorkDir\code"
 
@@ -37,6 +47,13 @@ Push-Location $WorkDir
 $SubModules = git submodule | ForEach-Object { New-Object PSObject -Property @{ Hash = $_.Substring(1).Split(' ')[0]; Name = $_.Substring(1).Split(' ')[1] } }
 
 foreach ($submodule in $SubModules) {
+    if ($submodule.Name -eq $FXCodeSubmoduleName) {
+        if ($submodule.Hash -ne $LastFXCodeCommit) {
+            $ShouldBuildFXCode = $true
+            $submodule.Hash | Out-File -Encoding ascii -NoNewline $LastFXCodeCommitPath
+        }
+    }
+
     $SubmodulePath = git config -f .gitmodules --get "submodule.$($submodule.Name).path"
 
     if ((Test-Path $SubmodulePath) -and (Get-ChildItem $SubmodulePath).Length -gt 0) {
@@ -66,20 +83,20 @@ Pop-Location
 
 End-Section "update_submodules"
 
+Start-Section "sdk_build" "Building SDK"
 # start building SDK
 # copied from run_postbuild.ps1
 Push-Location $WorkDir\ext\sdk-build
 if (!(Test-Path sdk-root\.commit) -or $SDKCommit -ne (Get-Content sdk-root\.commit)) {
-    .\build.cmd
-
+    .\build.cmd --build-fxcode=$ShouldBuildFXCode
     if (!$?) {
         throw "Build failed!";
     }
     
     $SDKCommit | Out-File -Encoding ascii -NoNewline sdk-root\.commit
 }
-
 Pop-Location
+End-Section "sdk_build"
 
 # create save directory
 New-Item -ItemType Directory -Force $SaveDir | Out-Null

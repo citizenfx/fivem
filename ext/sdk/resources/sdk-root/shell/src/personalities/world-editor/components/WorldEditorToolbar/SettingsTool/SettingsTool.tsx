@@ -11,9 +11,9 @@ import { useOpenFlag } from 'utils/hooks';
 import { Button } from 'fxdk/ui/controls/Button/Button';
 import { GoKeyboard } from 'react-icons/go';
 import { Hotkeys } from './Hotkeys/Hotkeys';
-import s from './SettingsTool.module.scss';
 import { IntroForceRecalculate } from 'fxdk/ui/Intro/Intro';
 import { WEState } from 'personalities/world-editor/store/WEState';
+import s from './SettingsTool.module.scss';
 
 const Root = div(s, 'root');
 const Block = div(s, 'block');
@@ -37,7 +37,7 @@ export const SettingsTool = observer(function SettingsTool() {
       <Root>
         <Block>
           <Label>
-            Mouse sensetivity
+            Mouse sensitivity
           </Label>
           <Control>
             <input
@@ -92,7 +92,7 @@ export const SettingsTool = observer(function SettingsTool() {
         </Block>
 
         <Block>
-          <a href="javascript:void(0)" onClick={WEState.openIntro}>
+          <a href="#" onClick={WEState.openIntro}>
             Show intro tour
           </a>
         </Block>

@@ -60,6 +60,10 @@ export const ServerState = new class ServerState {
   }
 
   startServer() {
+    if (this.state !== ServerStates.down) {
+      return;
+    }
+
     if (ProjectState.hasProject) {
       const project = ProjectState.project;
 
