@@ -7,6 +7,8 @@
 
 #include <Hooking.h>
 #include <CoreConsole.h>
+#include <Resource.h>
+#include <fxScripting.h>
 
 #include <nutsnbolts.h>
 
@@ -132,9 +134,50 @@ struct scrVector
 	int _pad3;
 };
 
+struct camBaseObject
+{
+	virtual void DESTROY() = 0;
+	virtual bool IsHashTypeOf(int hash) = 0;
+	virtual int GetCamHash() = 0;
+	virtual int GetHash2() = 0;   // Added in 2189, not unique, maybe a category
+	virtual bool CanUpdate() = 0; // Checks realtime - lastUpdatedTime > metadata.TimeoutMS
+	virtual void sub_1402D5D94() = 0;
+	virtual void UpdateCameraState() = 0;
+	virtual void sub_14026DF58() = 0;
+	virtual void sub_1402E8C64() = 0;
+	virtual void sub_14030443C() = 0;
+	virtual bool ReturnMetadataBool() = 0;
+};
+
+typedef bool (*camCanUpdateFn)(camBaseObject* thisptr);
+static camCanUpdateFn origCamCinematicOnFootIdleContext_CanUpdate;
+
+static std::atomic_bool g_DISABLE_IDLE_CAM = false;
+
+static bool CamCinematicOnFootIdleContext_CanUpdate(camBaseObject* thisptr)
+{
+	if (!g_DISABLE_IDLE_CAM)
+	{
+		return origCamCinematicOnFootIdleContext_CanUpdate(thisptr);
+	}
+	return false;
+}
+
 static HookFunction hookFunction([]()
 {
 	hook::call(hook::get_pattern("48 8D 4D 20 44 89 75 20 E8 ? ? ? ? 48 85 C0", 8), GetCameraMetadataWrap);
+
+	uintptr_t* camCinematicOnFootIdleContext_vtable = hook::get_address<uintptr_t*>(hook::get_pattern<unsigned char>("48 8D 05 ? ? ? ? 48 89 07 48 8B C7 F3 0F 10 ? ? ? ? 02 F3 0F 11 47 60", 3));
+
+	int index = 3;
+	// 2189 Added another vfunc between
+	if (xbr::IsGameBuildOrGreater<2189>())
+	{
+		index++;
+	}
+
+	origCamCinematicOnFootIdleContext_CanUpdate = (camCanUpdateFn)camCinematicOnFootIdleContext_vtable[index];
+	hook::put(&camCinematicOnFootIdleContext_vtable[index], (uintptr_t)CamCinematicOnFootIdleContext_CanUpdate);
 });
 
 static InitFunction initFunction([]()
@@ -177,6 +220,23 @@ static InitFunction initFunction([]()
 			copyVector(readMatrix->m[1], forwardVector);
 			copyVector(readMatrix->m[2], upVector);
 			copyVector(readMatrix->m[3], atVector);
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("DISABLE_IDLE_CAMERA", [](fx::ScriptContext& context)
+	{
+		bool value = context.GetArgument<bool>(0);
+		g_DISABLE_IDLE_CAM = value;
+
+		fx::OMPtr<IScriptRuntime> runtime;
+		if (FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+		{
+			fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
+
+			resource->OnStop.Connect([]()
+			{
+				g_DISABLE_IDLE_CAM = false;
+			});
 		}
 	});
 
