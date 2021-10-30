@@ -1601,20 +1601,6 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 					}
 				}
 
-				// check if the player has too many entities already
-				auto compareType = GetPoolForEntityType(entity->type);
-
-				// count_if with a deref *may* be slow, but this is a good way to ensure we don't have bookkeeping failures at first iteration
-				auto numExistent = std::count_if(syncedEntities.begin(), syncedEntities.end(), [compareType](const auto& handlePair)
-				{
-					return handlePair.second.hasCreated && GetPoolForEntityType(handlePair.second.entity->type) == compareType;
-				});
-
-				if (numExistent >= GetLimitForPool(compareType))
-				{
-					canCreate = false;
-				}
-
 				if (!canCreate)
 				{
 					// darn
