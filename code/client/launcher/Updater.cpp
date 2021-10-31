@@ -622,7 +622,7 @@ bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::arr
 				{
 					if (GetLastError() != ERROR_IO_PENDING && GetLastError() != ERROR_HANDLE_EOF)
 					{
-						MessageBox(NULL, va(L"Reading of %s failed with error %i.", fileName, GetLastError()), L"O\x448\x438\x431\x43A\x430", MB_OK | MB_ICONSTOP);
+						UI_DisplayError(va(L"Reading of %s failed with error %i.", fileName, GetLastError()));
 						return false;
 					}
 

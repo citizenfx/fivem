@@ -19,6 +19,7 @@ extern void RestartGameToOtherBuild(int build);
 static std::function<void(const std::string&)> g_submitFn;
 static bool g_cancelable;
 static bool g_canceled;
+static bool g_hadError;
 
 void PerformBuildSwitch(int build);
 
@@ -28,6 +29,7 @@ void InitializeBuildSwitch(int build)
 	{
 		g_canceled = false;
 		g_cancelable = true;
+		g_hadError = false;
 
 		auto j = nlohmann::json::object({
 			{ "build", build },
@@ -60,6 +62,11 @@ void PerformBuildSwitch(int build)
 		if (!UpdateGameCache().empty())
 		{
 			RestartGameToOtherBuild(gameCacheTargetBuild);
+		}
+		// display a generic error if we failed
+		else if (!g_hadError)
+		{
+			netLibrary->OnConnectionError("Changing game build failed: An unknown error occurred");
 		}
 
 		gameCacheTargetBuild = 0;
@@ -182,4 +189,12 @@ void UI_UpdateText(int textControl, const wchar_t* text)
 	(textControl == 0 ? g_topText : g_bottomText) = ToNarrow(text);
 
 	UpdateProgressUX();
+}
+
+void UI_DisplayError(const wchar_t* error)
+{
+	trace("Game cache error: %s\n", ToNarrow(error));
+
+	g_hadError = true;
+	netLibrary->OnConnectionError(fmt::sprintf("Changing game build failed: %s", ToNarrow(error)).c_str());
 }

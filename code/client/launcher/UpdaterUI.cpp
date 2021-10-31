@@ -1696,6 +1696,11 @@ bool UI_IsCanceled()
 	return g_uui.canceled;
 }
 
+void UI_DisplayError(const wchar_t* error)
+{
+	MessageBoxW(UI_GetWindowHandle(), error, L"Error", MB_OK | MB_ICONSTOP);
+}
+
 #include <wrl/module.h>
 
 extern "C" HRESULT __stdcall DllCanUnloadNow()

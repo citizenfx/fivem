@@ -48,6 +48,7 @@ void UI_DoCreation(bool safeMode = false);
 void UI_DoDestruction();
 void UI_UpdateText(int textControl, const wchar_t* text);
 void UI_UpdateProgress(double percentage);
+void UI_DisplayError(const wchar_t* error);
 bool UI_IsCanceled();
 HWND UI_GetWindowHandle();
 

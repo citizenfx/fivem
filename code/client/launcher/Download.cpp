@@ -299,7 +299,7 @@ size_t DL_WriteToFile(void *ptr, size_t size, size_t nmemb, download_t* download
 
 			if (ret != LZMA_OK && ret != LZMA_STREAM_END)
 			{
-				MessageBoxA(NULL, va("LZMA decoding error %i in %s.", ret, download->file), "Error", MB_OK | MB_ICONSTOP);
+				UI_DisplayError(va(L"LZMA decoding error %i in %s.", ret, ToWide(download->file)));
 				return 0;
 			}
 
@@ -621,7 +621,7 @@ bool DL_ProcessDownload()
 			if (!fp)
 			{
 				dls.isDownloading = false;
-				MessageBox(NULL, va(L"Unable to open %s for writing.", ToWide(opath).c_str()), L"Error", MB_OK | MB_ICONSTOP);
+				UI_DisplayError(va(L"Unable to open %s for writing.", ToWide(opath).c_str()));
 
 				return false;
 			}
@@ -695,8 +695,7 @@ bool DL_ProcessDownload()
 					// let's try asking the shell
 					if (!ReallyMoveFile(opathWide, toDeleteName))
 					{
-						//MessageBoxA(NULL, va("Deleting old %s failed (err = %d) - make sure you don't have any existing FiveM processes running", download->url, GetLastError()), "Error", MB_OK | MB_ICONSTOP);
-
+						UI_DisplayError(va(L"Moving of %s failed (err = %d) and the shell didn't help fix this", ToWide(download->url), GetLastError()));
 						return false;
 					}
 				}
@@ -705,7 +704,7 @@ bool DL_ProcessDownload()
 
 		if (MoveFile(tmpPathWide.c_str(), opathWide.c_str()) == 0)
 		{
-			MessageBoxA(NULL, va("Moving of %s failed (err = %d) - make sure you don't have any existing FiveM processes running", download->url, GetLastError()), "Error", MB_OK | MB_ICONSTOP);
+			UI_DisplayError(va(L"Moving of %s failed (err = %d) - make sure you don't have any existing FiveM processes running", ToWide(download->url), GetLastError()));
 			DeleteFile(tmpPathWide.c_str());
 
 			return false;
@@ -759,9 +758,9 @@ bool DL_ProcessDownload()
 			else
 			{
 				std::wstring tmpPathWide = ToWide(download->tmpPath);
-
 				_wunlink(tmpPathWide.c_str());
-				MessageBoxA(NULL, va("Downloading of %s failed - %s", download->url, download->curlError), "Error", MB_OK | MB_ICONSTOP);
+
+				UI_DisplayError(va(L"Downloading of %s failed - %s", ToWide(download->url), ToWide(download->curlError)));
 
 				return false;
 			}
@@ -840,7 +839,7 @@ bool DL_ProcessDownload()
 						DWORD errNo = GetLastError();
 
 						dls.isDownloading = false;
-						MessageBox(NULL, va(L"Unable to open %s for writing. Windows error code %d was returned.", tmpPathWide, errNo), L"Error", MB_OK | MB_ICONSTOP);
+						UI_DisplayError(va(L"Unable to open %s for writing. Windows error code %d was returned.", tmpPathWide, errNo));
 
 						return false;
 					}
@@ -854,15 +853,13 @@ bool DL_ProcessDownload()
 					{
 						DWORD errNo = GetLastError();
 
-						MessageBox(NULL,
+						UI_DisplayError(
 							va(
 								L"Unable to write to %s. Windows error code %d was returned.%s",
 								tmpPathWide,
 								errNo,
 								(errNo == ERROR_VIRUS_INFECTED) ? L"\nThis is usually caused by anti-malware software. Please report this issue to your anti-malware software vendor." : L""
-							),
-							L"Error",
-							MB_OK | MB_ICONSTOP);
+							));
 
 						return false;
 					}
@@ -901,7 +898,11 @@ bool DL_ProcessDownload()
 						lzma_end(&download->strm);
 
 						_wunlink(tmpPathWide.c_str());
-						MessageBoxA(NULL, va("Downloading %s failed with CURLcode %d - %s%s", GetBaseName(download->url), (int)code, download->curlError, (code == CURLE_WRITE_ERROR) ? "\nAre you sure you have enough disk space on all drives?" : ""), "Error", MB_OK | MB_ICONSTOP);
+						UI_DisplayError(va(L"Downloading %s failed with CURLcode %d - %s%s",
+							ToWide(std::string{ GetBaseName(download->url) }),
+							(int)code,
+							ToWide(download->curlError),
+							(code == CURLE_WRITE_ERROR) ? L"\nAre you sure you have enough disk space on all drives?" : L""));
 
 						return false;
 					}

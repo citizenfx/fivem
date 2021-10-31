@@ -1073,11 +1073,12 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 
 					auto openRead = [](hpatch_TStreamInput* entry, const std::wstring& fn) 
 					{
+						entry->streamImport = nullptr;
 						FILE* f = _wfopen(fn.c_str(), L"rb");
 
 						if (!f)
 						{
-							return;
+							return false;
 						}
 
 						fseek(f, 0, SEEK_END);
@@ -1092,6 +1093,8 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 
 							return (fread(begin, 1, size, f) == size);
 						};
+
+						return true;
 					};
 
 					UI_UpdateText(1, va(L"Patching %s", ToWide(entry.filename)));
@@ -1100,11 +1103,12 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 
 					auto openWrite = [outSize](hpatch_TStreamOutput* entry, const std::wstring& fn)
 					{
+						entry->streamImport = nullptr;
 						FILE* f = _wfopen(fn.c_str(), L"wb");
 
 						if (!f)
 						{
-							return;
+							return false;
 						}
 
 						entry->streamImport = (void*)f;
@@ -1143,19 +1147,25 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 
 							return (fwrite(begin, 1, size, f) == size);
 						};
+
+						return true;
 					};
 
-					auto doClose = [](const auto* entry) 
+					auto doClose = [](auto* entry) 
 					{
-						fclose((FILE*)entry->streamImport);
+						if (entry->streamImport)
+						{
+							fclose((FILE*)entry->streamImport);
+							entry->streamImport = nullptr;
+						}
 					};
 
 					auto theFile = entry.GetCacheFileName();
 					auto tmpFile = theFile + L".tmp";
 
-					openRead(&oldFile, entry.GetLocalFileName());
-					openRead(&deltaFile, deltaEntry.GetLocalFileName());
-					openWrite(&outFile, tmpFile);
+					retval = retval && openRead(&oldFile, entry.GetLocalFileName());
+					retval = retval && openRead(&deltaFile, deltaEntry.GetLocalFileName());
+					retval = retval && openWrite(&outFile, tmpFile);
 
 					retval = retval && patch_decompress(&outFile, &oldFile, &deltaFile, &zlibDecompressPlugin);
 
@@ -1170,7 +1180,7 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 					}
 					else
 					{
-						MessageBoxW(NULL, va(L"Could not patch %s. Do you have enough free disk space on all drives? (~2 GB)", ToWide(entry.filename)), L"Error", MB_OK | MB_ICONSTOP);
+						UI_DisplayError(va(L"Could not patch %s. Do you have enough free disk space on all drives? (~2 GB)", ToWide(entry.filename)));
 
 						_wunlink(tmpFile.c_str());
 					}
