@@ -5,8 +5,9 @@ import { AfterViewInit, ApplicationRef, Component,
 import { L10nLocale, L10nTranslationService, L10N_LOCALE } from 'angular-l10n';
 import { DiscourseService } from 'app/discourse.service';
 import { intervalToDuration, Locale } from 'date-fns';
-import { startWith } from 'rxjs/operators';
-import { Post, Reaction } from './discourse-models';
+import { Observable } from 'rxjs';
+import { startWith, tap } from 'rxjs/operators';
+import { Post, Reaction, Site, Type } from './discourse-models';
 import { TopicEntry } from './server-reviews.component';
 
 const formatDistanceLocale = { xSeconds: '{{count}} sec', xMinutes: '{{count}} min', xHours: '{{count}} h', xDays: '{{count}} d' };
@@ -41,6 +42,7 @@ export class ServerReviewComponent implements AfterViewInit, OnInit, OnDestroy {
 	fipo: Post = null;
 
 	flagPost: Post = null;
+	flagPostFlags: Observable<Type[]> = null;
 	modalActive = false;
 
 	flagActionKey: string;
@@ -68,6 +70,8 @@ export class ServerReviewComponent implements AfterViewInit, OnInit, OnDestroy {
 
 	@ViewChildren('more')
 	more: QueryList<ElementRef<HTMLElement>>;
+
+	siteData: Site;
 
 	constructor(private discourse: DiscourseService,
 		private translation: L10nTranslationService,
@@ -97,21 +101,26 @@ export class ServerReviewComponent implements AfterViewInit, OnInit, OnDestroy {
 	}
 
 	canFlag(post: Post) {
-		return this.getFlags(post).length > 0;
+		// 2 seems to be 'like', explicitly ignore before we try to fetch /site
+		return post.actions_summary.filter(a => a.can_act && a.id !== 2).length > 0;
 	}
 
 	getFlags(post: Post) {
 		return this
 			.discourse
 			.siteData
-			.post_action_types
-				.filter(a => post.actions_summary.find(b => b.id === a.id)?.can_act)
-				.filter(a => a.is_flag)
-				.filter(a => a.name_key !== 'notify_user');
+			.pipe(tap(sd => this.siteData = sd))
+			.map(d =>
+				d.post_action_types
+					.filter(a => post.actions_summary.find(b => b.id === a.id)?.can_act)
+					.filter(a => a.is_flag)
+					.filter(a => a.name_key !== 'notify_user')
+			);
 	}
 
 	openFlagModal(post: Post) {
 		this.flagPost = post;
+		this.flagPostFlags = this.getFlags(post);
 		this.modalActive = true;
 	}
 
@@ -138,7 +147,7 @@ export class ServerReviewComponent implements AfterViewInit, OnInit, OnDestroy {
 	}
 
 	get flagType() {
-		return this.discourse.siteData.post_action_types.find(a => a.name_key === this.flagActionKey);
+		return this.siteData?.post_action_types.find(a => a.name_key === this.flagActionKey);
 	}
 
 	get canSubmitFlag() {

@@ -85,19 +85,21 @@
 
 					<br/>
 
-					<label class="cfx-checkbox radio" *ngFor="let flag of getFlags(flagPost)">
-						<input name="post_action_type_index" [(ngModel)]="flagActionKey" type="radio" [value]="flag.name_key">
-						<div class="cfx-checkbox-indicator"></div>
-						<div class="flag-action-type-details">
-							<strong>{{flag.name}}</strong>
-							<div *ngIf="!flag.is_custom_flag || flagActionKey != flag.name_key" class="description" [innerHTML]="flag.description | safehtml"></div>
-							<textarea
-								*ngIf="flag.is_custom_flag && flagActionKey == flag.name_key"
-								[placeholder]="flag.short_description"
-								name="message"
-								[(ngModel)]="flagMessage"></textarea>
-						  </div>
-					</label>
+					<ng-container *ngIf="flagPostFlags | async as flags; else flagsLoading">
+						<label class="cfx-checkbox radio" *ngFor="let flag of flags">
+							<input name="post_action_type_index" [(ngModel)]="flagActionKey" type="radio" [value]="flag.name_key">
+							<div class="cfx-checkbox-indicator"></div>
+							<div class="flag-action-type-details">
+								<strong>{{flag.name}}</strong>
+								<div *ngIf="!flag.is_custom_flag || flagActionKey != flag.name_key" class="description" [innerHTML]="flag.description | safehtml"></div>
+								<textarea
+									*ngIf="flag.is_custom_flag && flagActionKey == flag.name_key"
+									[placeholder]="flag.short_description"
+									name="message"
+									[(ngModel)]="flagMessage"></textarea>
+							</div>
+						</label>
+					</ng-container>
 
 					<br/>
 
@@ -106,4 +108,8 @@
 			</div>
 		</div>
 	</div>
+</ng-template>
+
+<ng-template #flagsLoading>
+	<label class="cfx-checkbox radio" l10nTranslate>#Settings_BoostLoading</label>
 </ng-template>

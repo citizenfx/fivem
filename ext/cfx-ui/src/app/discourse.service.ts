@@ -4,7 +4,7 @@ import { ServersService } from './servers/servers.service';
 
 import * as forge from 'node-forge';
 import * as query from 'query-string';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, Observable } from 'rxjs';
 import { GameService } from './game.service';
 import { environment } from 'environments/environment';
 import { HttpClient, HttpHeaders, HttpRequest } from '@angular/common/http';
@@ -94,7 +94,7 @@ export class DiscourseService {
     public authModalOpenChange = new BehaviorSubject<boolean>(true);
     public authModalClosedEvent = new EventEmitter<{ where?: string, ignored?: boolean }>();
 
-	public siteData: Site;
+	public siteData: Observable<Site>;
 
 	static getAvatarUrlForUser(template: string, size = 250): string {
 		const prefix = template[0] === '/' ? 'https://forum.cfx.re' : '';
@@ -145,9 +145,7 @@ export class DiscourseService {
 				return;
 			}
 
-			this.apiCallObservable<Site>('/site').subscribe(site => {
-				this.siteData = site;
-			})
+			this.siteData = this.apiCallObservable<Site>('/site');
 
 			if (!this.currentUser) {
 				return;
