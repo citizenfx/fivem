@@ -40,10 +40,12 @@ inline bool IsFXNode()
 {
 	static auto isFXNode = ([]()
 	{
+#ifndef IS_FXSERVER
 		if (wcsstr(GetCommandLineW(), L"--start-node") != nullptr)
 		{
 			return true;
 		}
+#endif
 
 		return false;
 	})();
