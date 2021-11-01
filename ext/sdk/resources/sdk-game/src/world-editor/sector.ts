@@ -29,8 +29,8 @@ export class Sector {
         return Sector.spatialIdFromCoord(x) * 1000 + Sector.spatialIdFromCoord(y);
     }
 
-    static affectedSectorIdsFromCoords(x: number, y: number, r: number = SectorSize/2): SectorId[] {
-        const sectors: { [key: string]: boolean } = {};
+    static affectedSectorIdsFromCoords(x: number, y: number, r: number = SectorSize/2): Record<SectorId, true> {
+        const sectors: Record<SectorId, true> = {};
 
         // top left                   top center                  top right
         addSector(sectors, x-r, y-r); addSector(sectors, x, y-r); addSector(sectors, x+r, y-r);
@@ -41,7 +41,7 @@ export class Sector {
         // bottom left                bottom center               bottom right
         addSector(sectors, x-r, y+r); addSector(sectors, x, y+r); addSector(sectors, x+r, y+r);
 
-        return Object.keys(sectors).map(stringToSectorId);
+        return sectors;
     }
 }
 
