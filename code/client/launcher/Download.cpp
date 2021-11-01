@@ -162,6 +162,7 @@ void CL_InitDownloadQueue()
 	dls.bytesPerSecond = 0;
 	dls.totalBytes = 0;
 	dls.doneTotalBytes = 0;
+	dls.error = false;
 	
 	dls.downloadQueue = {};
 }

@@ -7,7 +7,7 @@
 
 #include "StdInc.h"
 
-#if defined(LAUNCHER_PERSONALITY_MAIN)
+#if defined(LAUNCHER_PERSONALITY_MAIN) || defined(COMPILING_GLUE)
 #undef interface
 
 #include <CfxLocale.h>

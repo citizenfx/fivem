@@ -151,11 +151,6 @@ bool UI_IsCanceled()
 	return g_canceled;
 }
 
-bool ExtractInstallerFile(const std::wstring& installerFile, const std::function<void(const InstallerInterface&)>& fileFindCallback)
-{
-	return false;
-}
-
 void UI_DoCreation(bool)
 {
 

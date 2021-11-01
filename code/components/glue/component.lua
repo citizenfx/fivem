@@ -12,5 +12,6 @@ return function()
 		'client/launcher/GameCache.cpp',
 		'client/launcher/Updater.cpp',
 		'client/launcher/Download.cpp',
+		'client/launcher/InstallerExtraction.cpp',
 	}
 end
