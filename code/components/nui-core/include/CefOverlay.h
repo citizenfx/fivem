@@ -369,6 +369,7 @@ namespace nui
 	bool OVERLAY_DECL HasMainUI();
 	void OVERLAY_DECL SetMainUI(bool enable);
 	void OVERLAY_DECL SetHideCursor(bool hide);
+	void OVERLAY_DECL CursorType(int cursorType);
 
 	void ProcessInput();
 

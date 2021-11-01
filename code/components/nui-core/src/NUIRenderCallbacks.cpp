@@ -11,6 +11,8 @@ extern nui::GameInterface* g_nuiGi;
 
 extern bool g_hasCursor;
 extern bool g_shouldHideCursor;
+extern int g_cursorType;
+
 extern POINT g_cursorPos;
 
 extern bool g_isDragging;
@@ -132,9 +134,14 @@ static HookFunction initFunction([] ()
 
 		// are we in any situation where we need a cursor?
 		bool needsNuiCursor = (nui::HasMainUI() || g_hasCursor) && !g_shouldHideCursor;
-		g_nuiGi->SetHostCursorEnabled(needsNuiCursor);
 
-		// we set the host cursor above unconditionally- this is for cases where the host cursor isn't sufficient
+		if (g_cursorType != 1)
+		{
+			g_nuiGi->SetHostCursorEnabled(needsNuiCursor);
+		}
+		
+
+		// we set the host cursor above if not disabled by SetNuiCursorType - this is for cases where the host cursor isn't sufficient
 		if (needsNuiCursor)
 		{
 			// do we need to draw a non-host cursor?
@@ -147,6 +154,10 @@ static HookFunction initFunction([] ()
 			}
 			// if we're SDK guest, also draw the cursor texture
 			else if (launch::IsSDKGuest())
+			{
+				shouldDrawCursorTexture = true;
+			}
+			else if (g_cursorType == 1)
 			{
 				shouldDrawCursorTexture = true;
 			}

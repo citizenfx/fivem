@@ -153,7 +153,7 @@ static InitFunction initFunction([] ()
 			fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
 
 			++nuiWindowIdx;
-			
+
 			m_autogenHandle = fmt::sprintf("nui_resource_%d", nuiWindowIdx);
 
 			nui::CreateNUIWindow(m_autogenHandle, width, height, url);
@@ -302,7 +302,7 @@ static InitFunction initFunction([] ()
 		.AddMethod("SEND_DUI_MOUSE_DOWN", &NUIWindowWrapper::InjectMouseDown)
 		.AddMethod("SEND_DUI_MOUSE_UP", &NUIWindowWrapper::InjectMouseUp)
 		.AddMethod("SEND_DUI_MOUSE_WHEEL", &NUIWindowWrapper::InjectMouseWheel)
-		.AddMethod("DESTROY_DUI", &NUIWindowWrapper::Destroy);		
+		.AddMethod("DESTROY_DUI", &NUIWindowWrapper::Destroy);
 
 	// this *was* a multiset before but some resources would not correctly pair set/unset and then be stuck in 'set' state
 	static std::unordered_set<std::string> focusVotes;
@@ -489,5 +489,15 @@ static InitFunction initFunction([] ()
 				updateFocus();
 			}
 		}
+	});
+	fx::ScriptEngine::RegisterNativeHandler("SET_NUI_CURSOR_TYPE", [](fx::ScriptContext& context)
+	{
+		fx::OMPtr<IScriptRuntime> runtime;
+
+		if (FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+		{
+			nui::CursorType(context.GetArgument<int>(0));
+		}
+		
 	});
 });

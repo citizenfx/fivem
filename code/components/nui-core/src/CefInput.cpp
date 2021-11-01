@@ -26,6 +26,7 @@ static bool g_hasFocus = false;
 bool g_hasCursor = false;
 bool g_keepInput = false;
 static bool g_hasOverriddenFocus = false;
+int g_cursorType = 0;
 extern bool g_mainUIFlag;
 POINT g_cursorPos;
 
@@ -140,7 +141,7 @@ namespace nui
 					NUIRenderHandler* nrh = (NUIRenderHandler*)rh.get();
 
 					RevokeDragDrop(g_nuiGi->GetHWND());
-					
+
 					HRESULT hr = RegisterDragDrop(g_nuiGi->GetHWND(), nrh->GetDropTarget());
 					if (FAILED(hr))
 					{
@@ -210,7 +211,12 @@ namespace nui
 	void ProcessInput()
 	{
 	}
-}
+
+	void CursorType(int cursorType)
+	{
+		g_cursorType = cursorType;
+	}
+	}
 
 int GetCefKeyboardModifiers(WPARAM wparam, LPARAM lparam)
 {
@@ -404,7 +410,7 @@ static HookFunction initFunction([] ()
 				{
 					keyEvent.character = '\r';
 					keyEvent.unmodified_character = '\r';
-					
+
 					browser->GetHost()->SendKeyEvent(keyEvent);
 
 					keyEvent.type = KEYEVENT_CHAR;
@@ -638,15 +644,15 @@ static HookFunction initFunction([] ()
 			case WM_LBUTTONDOWN:
 			case WM_RBUTTONDOWN:
 			case WM_MBUTTONDOWN:
-			case WM_LBUTTONDBLCLK: 
-			case WM_RBUTTONDBLCLK: 
+			case WM_LBUTTONDBLCLK:
+			case WM_RBUTTONDBLCLK:
 			case WM_MBUTTONDBLCLK: {
 				int x = GET_X_LPARAM(lParam);
 				int y = GET_Y_LPARAM(lParam);
 				int btnType =
 					((msg == WM_LBUTTONDOWN || msg == WM_LBUTTONDBLCLK) ? 0 : (
 						(msg == WM_RBUTTONDOWN || msg == WM_RBUTTONDBLCLK) ? 1 : 2));
-				
+
 				inputTarget.MouseEvent(btnType, x, y, true);
 
 				if (!g_keepInput)
