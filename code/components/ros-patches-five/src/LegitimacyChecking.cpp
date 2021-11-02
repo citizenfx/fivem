@@ -626,6 +626,7 @@ HRESULT RunCor(PCWSTR pszVersion, PCWSTR pszAssemblyName,
 void RunLegitimacyNui();
 
 std::string g_rosData;
+bool g_oldAge;
 
 #include <array>
 #if defined(IS_RDR3) || defined(GTA_FIVE) || defined(GTA_NY)
@@ -758,8 +759,11 @@ bool VerifyRetailOwnershipInternal(int pass)
 									// epic
 									if (entitlementCode == "04541FB36991EF2C43B38659B204EC3B941649666404498FB2CAD04B29E64A33" || entitlementCode == "F17551269FFD860D9749C30B21BDD96BF2613D26FEB3CCAFDC1D5AC9A1DE65F4")
 									{
-										valid = true;
-										match = entitlementCode;
+										if (!g_oldAge)
+										{
+											valid = true;
+											match = entitlementCode;
+										}
 									}
 #endif
 

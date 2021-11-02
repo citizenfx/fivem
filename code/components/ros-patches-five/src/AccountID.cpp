@@ -119,13 +119,15 @@ std::string GetExternalSteamTicket()
 	return "";
 }
 
+std::string g_rosEmail;
+
 std::string GetROSEmail()
 {
 	static HostSharedData<ExternalROSBlob> blob("Cfx_ExtRosBlob");
 
 	if (!blob->valid)
 	{
-		return "";
+		return g_rosEmail;
 	}
 
 	auto accountBlob = blob->data;

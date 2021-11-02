@@ -312,7 +312,9 @@ auto SimpleHandler::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPt
 	return RV_CONTINUE;
 }
 
-extern std::string g_rosData;;
+extern std::string g_rosData;
+extern bool g_oldAge;
+extern std::string g_rosEmail;
 
 bool SimpleHandler::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefProcessId source_process, CefRefPtr<CefProcessMessage> message)
 {
@@ -343,6 +345,15 @@ bool SimpleHandler::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefR
 
 			auto json = nlohmann::json::parse(messageData.ToString());
 			auto response = json["XMLResponse"];
+
+			auto age = json["Age"].get<int>();
+			g_rosEmail = json["Email"].get<std::string>();
+
+			// 1900 age
+			if (age >= 120)
+			{
+				g_oldAge = true;
+			}
 
 			std::string responseDec;
 			UrlDecode(response, responseDec);
@@ -419,30 +430,12 @@ function RGSC_GET_COMMAND_LINE_ARGUMENTS()
 	});
 }
 
-var rosCredentials = {};
-
 function RGSC_SIGN_IN(s)
 {
 	var data = JSON.parse(s);
 
 	if (data.XMLResponse)
 	{
-		// TODO: store other credentials in native code
-		rosCredentials.Ticket = data.ticket;
-
-		var profileData = {
-			Local: false,
-			RockstarId: data.RockstarId,
-			LastSignInTime: new Date().getTime(),
-			AvatarUrl: data.AvatarUrl,
-			Nickname: data.Nickname,
-			SaveEmail: data.SaveEmail || data.SavePassword || data.AutoSignIn,
-			SavePassword: data.SavePassword || data.AutoSignIn,
-			AutoSignIn: data.AutoSignIn,
-			Password: (data.SavePassword || data.AutoSignIn) ? data.Password : '',
-			Email: (data.SaveEmail || data.SavePassword || data.AutoSignIn) ? data.Email : ''
-		};
-
 		window.invokeNative('signin', s);
 	}
 
@@ -516,7 +509,7 @@ if (!localStorage.getItem('loadedOnce')) {
 	}, 500);
 }
 
-var css = '.rememberContainer, p.Header__signUp { display: none; } .SignInForm__descriptionText .Alert__text { display: none; } .SignInForm__descriptionText .Alert__content:after { content: \'A Rockstar Games Social Club account owning %s is required to play %s.\'; max-width: 600px; display: inline-block; }',
+var css = '.rememberContainer, p[class^="AuthHeader__signUpLink"] { display: none; } .UI__Alert__info .UI__Alert__text { display: none; } .UI__Alert__info .UI__Alert__content:after { content: \'A Rockstar Games Social Club account owning %s is required to play %s.\'; max-width: 600px; display: inline-block; }',
     head = document.head || document.getElementsByTagName('head')[0],
     style = document.createElement('style');
 
