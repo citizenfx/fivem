@@ -1013,8 +1013,16 @@ static const char* GetNameForControl(uint32_t controlId)
 		static std::string str;
 		str = fmt::sprintf("INPUT_%08X", HashString(pair.first.c_str()));
 
+		// #TODO: replace once GH-1111 is done
+		auto resourceName = std::get<0>(pair.second);
+
+		if (resourceName == "monitor")
+		{
+			resourceName = "txAdmin";
+		}
+
 		// lame hack
-		game::AddCustomText(HashString(str.c_str()), fmt::sprintf("%s (%s)", std::get<1>(pair.second), std::get<0>(pair.second)));
+		game::AddCustomText(HashString(str.c_str()), fmt::sprintf("~HC_3~(%s)~s~ %s", resourceName, std::get<1>(pair.second)));
 
 		return str.c_str();
 	}
