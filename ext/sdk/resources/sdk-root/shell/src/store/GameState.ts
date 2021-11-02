@@ -1,4 +1,4 @@
-import { GameStates } from "backend/game/game-contants";
+import { GameStates } from "backend/game/game-constants";
 import { Api } from "fxdk/browser/Api";
 import { makeAutoObservable, runInAction } from "mobx";
 import { gameApi } from "shared/api.events";

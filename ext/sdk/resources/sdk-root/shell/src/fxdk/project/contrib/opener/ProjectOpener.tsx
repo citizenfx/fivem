@@ -4,15 +4,16 @@ import { Button } from 'fxdk/ui/controls/Button/Button';
 import { Modal } from 'fxdk/ui/Modal/Modal';
 import { RecentProjectItem } from 'fxdk/project/contrib/opener/RecentProjectItem/RecentProjectItem';
 import { useSendApiMessageCallback } from 'utils/hooks';
-import { projectApi } from 'shared/api.events';
 import { PathSelector } from 'fxdk/ui/controls/PathSelector/PathSelector';
-import { ProjectState } from 'store/ProjectState';
 import { ProjectOpenerState } from './ProjectOpenerState';
+import { ProjectLoader } from 'fxdk/project/browser/state/projectLoader';
+import { Project } from 'fxdk/project/browser/state/project';
 import s from './ProjectOpener.module.scss';
+import { ProjectApi } from 'fxdk/project/common/project.api';
 
 export const ProjectOpener = observer(function ProjectOpener() {
-  const project = ProjectState.hasProject
-    ? ProjectState.project
+  const currentProjectPath = ProjectLoader.hasProject
+    ? Project.path
     : null;
 
   const [projectPath, setProjectPath] = React.useState<string>('');
@@ -20,14 +21,14 @@ export const ProjectOpener = observer(function ProjectOpener() {
   const [projectPathChecking, setProjectPathChecking] = React.useState(false);
   const [projectPathOpenable, setProjectPathOpenable] = React.useState(true);
 
-  const checkProjectPath = useSendApiMessageCallback<string, boolean>(projectApi.checkOpenRequest, (error, result) => {
+  const checkProjectPath = useSendApiMessageCallback<string, boolean>(ProjectApi.LoaderEndpoints.checkOpenRequest, (error, result) => {
     setProjectPathChecking(false);
     setProjectPathOpenable(result && !error);
   });
 
   const openSelectedProject = React.useCallback(() => {
     if (projectPath && projectPathOpenable) {
-      ProjectState.openProject(projectPath);
+      ProjectLoader.open(projectPath);
       ProjectOpenerState.close();
     }
   }, [projectPath, projectPathOpenable]);
@@ -38,9 +39,9 @@ export const ProjectOpener = observer(function ProjectOpener() {
     checkProjectPath(newProjectPath);
   }, [setProjectPath, checkProjectPath, setProjectPathChecking]);
 
-  const recents = ProjectState.recentProjects
+  const recents = ProjectLoader.recentProjects
     // No need to show current open porject
-    .filter((recentProject) => project?.path !== recentProject.path)
+    .filter((recentProject) => currentProjectPath !== recentProject.path)
     .map((recentProject) => (
       <RecentProjectItem
         key={recentProject.path}

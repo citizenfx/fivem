@@ -1,4 +1,3 @@
-import { AssetImporterType, AssetMetaFlags, AssetType } from "./asset.types";
 import { ProjectAssetBaseConfig } from "./project.types";
 
 export namespace APIRQ {
@@ -20,24 +19,6 @@ export namespace APIRQ {
   export interface ProjectCreateFile {
     filePath: string,
     fileName: string,
-  }
-
-  export interface AssetCreate<T extends object = object> {
-    assetType: AssetType,
-    assetPath: string,
-    assetName: string,
-    assetMetaFlags?: AssetMetaFlags,
-    data?: T,
-    callback?: () => void,
-  }
-
-  export interface AssetImport<T extends object = object> {
-    importerType: AssetImporterType,
-    assetName: string,
-    assetBasePath: string,
-    assetMetaFlags?: AssetMetaFlags,
-    data?: T,
-    callback?: () => void,
   }
 
   export interface FetchReleases {

@@ -1,28 +1,12 @@
+import { AssetName, IFsEntry, IProjectVariable, ProjectPathsState } from "fxdk/project/common/project.types";
 import { SystemResource } from "backend/system-resources/system-resources-constants";
-import { FilesystemEntry, FilesystemEntryMap, ServerUpdateChannel } from "./api.types";
-import { AssetType } from "./asset.types";
-
-
-export type ProjectPathsState = {
-  [path: string]: boolean,
-};
-
-export interface ProjectData {
-  fs: FilesystemEntryMap,
-  path: string,
-  assets: {
-    [path: string]: ProjectAssetBaseConfig,
-  },
-  assetTypes: Record<string, AssetType | void>,
-  assetDefs: {
-    [path: string]: any,
-  },
-  manifest: ProjectManifest,
-}
+import { ServerUpdateChannel } from "./api.types";
 
 export interface ProjectOpenData {
-  project: ProjectData,
+  path: string,
+  manifest: ProjectManifest,
   pathsState: ProjectPathsState,
+  rootFsEntry: IFsEntry,
 }
 
 export interface ProjectAssetBaseConfig {
@@ -37,16 +21,7 @@ export interface ProjectManifest {
     [path: string]: ProjectAssetBaseConfig,
   },
   systemResources: SystemResource[],
-  variables?: {
-    [key: string]: string
-  },
-}
-
-export interface ProjectFsUpdate {
-  replace: {
-    [path: string]: FilesystemEntry[],
-  },
-  delete: string[],
+  variables?: Record<AssetName, IProjectVariable>,
 }
 
 export interface RecentProject {

@@ -49,6 +49,14 @@ module.exports = {
     const sentryRelease = isProd && `cfx-${process.env.CI_PIPELINE_ID}`;
 
     return [
+      // !isProd && new webpack.EvalDevToolModulePlugin({ sourceUrlComment: '' }),
+
+      // isProd
+      //   ? new webpack.SourceMapDevToolPlugin()
+      //   : new webpack.EvalSourceMapDevToolPlugin({
+      //     exclude: ['node_modules'],
+      //   }),
+
       new ForkTsCheckerWebpackPlugin(),
       new webpack.DefinePlugin({
         'process.env.CI_PIPELINE_ID': JSON.stringify(process.env.CI_PIPELINE_ID || 'dev'),

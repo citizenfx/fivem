@@ -19,6 +19,11 @@
   background-color: rgba($fgColor, .1);
   box-shadow: 0 2px 0 0 rgba($fgColor, .25) inset, 0 -2px 0 0 rgba($fgColor, .25) inset;
 
+  &.small {
+    height: $q*7;
+    font-size: $fs08;
+  }
+
   option {
     font-size: $fs1;
 

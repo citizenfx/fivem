@@ -1,6 +1,6 @@
 import * as os from 'os';
-import { ApiContribution } from "backend/api/api-contribution";
-import { AppContribution } from "backend/app/app-contribution";
+import { ApiContribution } from "backend/api/api.extensions";
+import { AppContribution } from "backend/app/app.extensions";
 import { FsService } from "backend/fs/fs-service";
 import { inject, injectable } from "inversify";
 import { FXCodeImportConfig, IKeybinding } from './fxcode-types';

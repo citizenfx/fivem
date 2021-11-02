@@ -1,6 +1,6 @@
 import { AppendableBuffer } from "backend/appendable-buffer";
 import { Deferred } from "backend/deferred";
-import { DisposableObject } from "backend/disposable-container";
+import { IDisposableObject } from "fxdk/base/disposable";
 import net from 'net';
 import { TextDecoder, TextEncoder } from 'util';
 
@@ -15,7 +15,7 @@ function randomUInt32(): number {
   return (Math.random() * 0x7FffFFff) | 0;
 }
 
-export class GameServerIPC implements DisposableObject {
+export class GameServerIPC implements IDisposableObject {
   private eventListeners: Record<string, Function> = Object.create(null);
   private rpcDeferreds: Record<number, Deferred<any>> = Object.create(null);
   private closeHandler: (() => void) = () => {};

@@ -1,7 +1,6 @@
-import React from 'react';
 import classnames from 'classnames';
-import s from './Keystroke.module.scss';
 import { getPrintableKeystroke, Keystroke as TKeystroke } from 'utils/HotkeyController';
+import s from './Keystroke.module.scss';
 
 export interface KeystrokeProps {
   combination: string | TKeystroke,

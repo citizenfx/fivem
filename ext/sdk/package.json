@@ -16,9 +16,8 @@
     "install:fxcode": "yarn run install:fxcode-main && yarn run install:fxcode-fxdk && yarn run install:fxcode-extensions && yarn run install:fxcode-rebuild",
     "install:game": "yarn --cwd resources/sdk-game install --pure-lockfile",
     "postinstall": "yarn run install:shell && yarn run install:fxcode && yarn run install:game",
-    "start:shell": "yarn --cwd resources/sdk-root/shell run start",
-    "start:game": "yarn --cwd resources/sdk-game run start",
-    "start": "concurrently --names \"shell,sdk-game\" \"yarn run start:shell\" \"yarn run start:game\""
+    "start": "yarn --cwd resources/sdk-root/shell run start",
+    "build:shell": "yarn --cwd resources/sdk-root/shell run build"
   },
   "devDependencies": {
     "concurrently": "^5.3.0"

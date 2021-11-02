@@ -1,11 +1,14 @@
 import React from 'react';
+import { noop, returnTrue } from 'fxdk/base/functional';
 
 export interface InPlaceProps {
   type?: string,
   value: string,
-  onChange: (value: string) => void,
+  onChange(value: string): void,
   placeholder?: string,
   className?: string,
+  validate?(value: string): boolean,
+  onIntermediateChange?(value: string): void,
 }
 
 export function InPlaceInput(props: InPlaceProps) {
@@ -15,6 +18,8 @@ export function InPlaceInput(props: InPlaceProps) {
     onChange,
     placeholder,
     className = '',
+    validate = returnTrue,
+    onIntermediateChange = noop,
   } = props;
 
   const [intermediateValue, setIntermediateValue] = React.useState(value);
@@ -37,12 +42,19 @@ export function InPlaceInput(props: InPlaceProps) {
     onChange(value);
   }, [onChange, value])
 
+  const handleChange = React.useCallback(({ target: { value } }) => {
+    if (validate(value)) {
+      setIntermediateValue(value);
+      onIntermediateChange(value);
+    }
+  }, [setIntermediateValue, validate, onIntermediateChange]);
+
   return (
     <input
       autoFocus
       type={type}
       value={intermediateValue}
-      onChange={({ target }) => setIntermediateValue(target.value)}
+      onChange={handleChange}
       placeholder={placeholder}
       onBlur={handleBlur}
       onKeyDown={handleKeyDown}

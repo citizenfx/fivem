@@ -1,6 +1,6 @@
 import { injectable, inject } from 'inversify';
 import { Octokit } from "@octokit/rest";
-import { ApiContribution } from 'backend/api/api-contribution';
+import { ApiContribution } from 'backend/api/api.extensions';
 import { handlesClientCallbackEvent } from 'backend/api/api-decorators';
 import { LogService } from 'backend/logger/log-service';
 import { githubApi } from 'shared/api.events';

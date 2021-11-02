@@ -10,10 +10,8 @@ module.exports = (env, args) => {
       __dirname: false,
     },
     mode: prerequisites.getMode(env, args),
-    devtool: isProd
-      ? 'source-map'
-      : 'eval',
-    entry: prerequisites.srcPath('backend/index.ts'),
+    devtool: false,
+    entry: prerequisites.srcPath('fxdk/node/server.ts'),
     output: {
       path: prerequisites.paths.buildServer,
       filename: 'index.js',

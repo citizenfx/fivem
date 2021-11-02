@@ -7,7 +7,7 @@
 
   height: $q*9;
 
-  border: solid 2px $fgColor;
+  box-shadow: 0 0 0 2px rgba($fgColor, .25) inset;
 
   user-select: none;
 
@@ -23,7 +23,6 @@
   .description {
     position: absolute;
     bottom: 0;
-    left: -2px; // as there's also border
 
     padding-top: $q*2;
 
@@ -35,7 +34,13 @@
   }
 
   .option {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
     padding: $q*2 $q*3;
+
+    cursor: pointer;
 
     &:hover {
       background-color: rgba($fgColor, .25);
@@ -43,7 +48,7 @@
 
     &.active {
       color: $bgColor;
-      background-color: $fgColor;
+      background-color: rgba($fgColor, .75);
     }
   }
 }

@@ -1,10 +1,9 @@
-import React from 'react';
 import { observer } from 'mobx-react-lite';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { ProjectExplorer } from './ProjectExplorer/ProjectExplorer';
 import { ProjectParticipants } from './projectExtensions';
 import { renderViewRegistryItems } from 'fxdk/base/viewRegistry';
+import { ExplorerView } from '../contrib/explorer/ExplorerView';
 import s from './Project.module.scss';
 
 export const ProjectView = observer(function ProjectView() {
@@ -15,7 +14,7 @@ export const ProjectView = observer(function ProjectView() {
       <DndProvider backend={HTML5Backend}>
         {renderNodes}
 
-        <ProjectExplorer />
+        <ExplorerView />
       </DndProvider>
     </div>
   );

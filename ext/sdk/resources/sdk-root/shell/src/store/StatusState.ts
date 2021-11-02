@@ -1,5 +1,5 @@
-import { ResourceStatus } from "assets/resource/resource-types";
 import { Api } from "fxdk/browser/Api";
+import { ResourceStatus } from "fxdk/contrib/assets/resource/common/resource.types";
 import { makeAutoObservable } from "mobx";
 import { statusesApi } from "shared/api.events";
 import { featuresStatuses } from "shared/api.statuses";

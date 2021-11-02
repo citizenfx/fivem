@@ -1,22 +1,21 @@
-import { DisposableContainer, DisposableObject } from "backend/disposable-container";
+import { Disposer, IDisposableObject } from "fxdk/base/disposable";
 import { inject, injectable } from "inversify";
 import { getScopedEventName } from "utils/apiScope";
 import { ApiClient, ApiEventListener } from "./api-client";
-import { ApiContribution } from "./api-contribution";
 import { getClientCallbackEventHandlers, getClientEventHandlers } from "./api-decorators";
 
 @injectable()
-export class ApiClientScoped implements DisposableObject {
+export class ApiClientScoped implements IDisposableObject {
   @inject(ApiClient)
   protected readonly apiClient: ApiClient;
 
   private scope = '';
-  private scopeDisposer = new DisposableContainer();
+  private scopeDisposer = new Disposer();
 
   private eventBindings: Record<string, ApiEventListener> = Object.create(null);
   private callbackBindings: Record<string, ApiEventListener> = Object.create(null);
 
-  init(contribution: ApiContribution) {
+  init(contribution: Object) {
     const eventBindings = getClientEventHandlers(contribution);
     for (const { propKey, eventName } of eventBindings) {
       if (!contribution[propKey]) {
@@ -42,7 +41,7 @@ export class ApiClientScoped implements DisposableObject {
     if (!this.scopeDisposer.empty()) {
       this.scopeDisposer.dispose();
 
-      this.scopeDisposer = new DisposableContainer();
+      this.scopeDisposer = new Disposer();
     }
 
     for (const [eventName, eventHandler] of Object.entries(this.eventBindings)) {

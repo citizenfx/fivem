@@ -1,0 +1,68 @@
+@import "variables";
+
+.tabs {
+  flex-grow: 1;
+}
+
+.releases {
+  display: flex;
+  flex-direction: column;
+
+  padding: 0 $q*4;
+  margin-bottom: $q*4;
+
+  overflow-y: auto;
+
+  & > * {
+    flex-grow: 1;
+
+    text-overflow: ellipsis;
+
+    margin-bottom: $q*2;
+
+    cursor: pointer;
+  }
+}
+
+.checkbox {
+  padding: 0 $q*4;
+  margin: $q 0;
+}
+
+.examples {
+  display: flex;
+  flex-wrap: wrap;
+
+  gap: $q*4;
+
+  .example-resource {
+    flex-grow: 1;
+
+    display: flex;
+    flex-direction: column;
+
+    padding: $q*3;
+
+    background-color: rgba($fgColor, .05);
+
+    cursor: pointer;
+    user-select: none;
+
+    @include interactiveTransition;
+
+    .description {
+      margin-top: $q*2;
+
+      font-size: $fs08;
+      color: rgba($fgColor, .75);
+    }
+
+    &:hover {
+      box-shadow: 0 0 0 2px $acColor inset;
+    }
+
+    &.active {
+      box-shadow: 0 0 0 2px rgba($fgColor, .5) inset;
+    }
+  }
+}

@@ -26,10 +26,8 @@ export default class CsharpScaffolder implements ResourceTemplateScaffolder {
   @inject(TaskReporterService)
   protected readonly taskReporterService: TaskReporterService;
 
-  async scaffold({ request, manifest, resourcePath }: ResourceTemplateScaffolderArgs) {
-    this.taskReporterService.wrap(`Scaffolding ${request.assetName} resource from C# template`, async () => {
-      const resourceName = request.assetName;
-
+  async scaffold({ manifest, resourceName, resourcePath, resourceTemplateId }: ResourceTemplateScaffolderArgs) {
+    this.taskReporterService.wrap(`Scaffolding ${resourceName} resource from C# template`, async () => {
       manifest.files.push('Client/bin/Release/**/publish/*.dll');
       manifest.clientScripts.push('Client/bin/Release/**/publish/*.net.dll');
       manifest.serverScripts.push('Server/bin/Release/**/publish/*.net.dll');

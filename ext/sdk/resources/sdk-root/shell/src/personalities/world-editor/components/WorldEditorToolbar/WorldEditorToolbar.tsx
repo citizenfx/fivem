@@ -8,7 +8,7 @@ import { GameState } from 'store/GameState';
 import { PatchesTool } from './PatchesTool/PatchesTool';
 import { AdditionsTool } from './AdditionsTool/AdditionsTool';
 import { AddObjectTool } from './AddObjectTool/AddObjectTool';
-import { closeIcon } from 'constants/icons';
+import { closeIcon } from 'fxdk/ui/icons';
 import { ActiveSelectionTool } from './ActiveSelectionTool/ActiveSelectionTool';
 import { EnvironmentTool } from './EnvironmentTool/EnvironmentTool';
 import { FlashingMessage } from './FlashingMessage/FlashingMessage';

@@ -4,14 +4,15 @@ import { ProjectSettings } from './ProjectSettings';
 import { ShellCommands } from 'shell-api/commands';
 import { ProjectSettingsCommands } from './settings.commands';
 import { SettingsState } from './SettingsState';
-import { ToolbarParticipants } from 'fxdk/contrib/toolbar/toolbarExtensions';
-import { projectSettingsIcon } from 'constants/icons';
+import { ToolbarParticipants } from 'fxdk/contrib/toolbar/browser/toolbarExtensions';
+import { projectSettingsIcon } from 'fxdk/ui/icons';
+import { ProjectLoader } from 'fxdk/project/browser/state/projectLoader';
 
 ShellCommands.register(ProjectSettingsCommands.OPEN, SettingsState.open);
 
 ProjectParticipants.registerRender({
   id: 'settings-render',
-  isVisible: () => SettingsState.isOpen,
+  isVisible: () => ProjectLoader.hasProject && SettingsState.isOpen,
   render: () => <ProjectSettings />,
 });
 

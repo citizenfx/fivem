@@ -12,9 +12,9 @@ module.exports = (env, args) => {
 
   return {
     mode: prerequisites.getMode(env, args),
-    devtool: isProd
-      ? 'source-map'
-      : 'eval',
+
+    // We leverage fine-grained control of using plugins directly
+    devtool: false,
 
     entry: {
       main: prerequisites.srcPath('fxdk/browser/Shell.tsx'),
@@ -64,8 +64,8 @@ module.exports = (env, args) => {
                   mode: 'local',
                   auto: (resourcePath) => resourcePath.endsWith('.module.scss'),
                   localIdentName: isProd
-                    ? '[hash:base64:6]'
-                    : '[local]_[hash:base64:6]',
+                    ? '[hash:base64:8]'
+                    : '[name]_[local]_[hash:base64:6]',
                 },
               },
             },

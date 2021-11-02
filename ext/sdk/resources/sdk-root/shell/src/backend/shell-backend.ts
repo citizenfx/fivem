@@ -2,13 +2,14 @@ import * as ws from 'ws';
 import http from 'http';
 import cors from 'cors';
 import express from 'express';
-import { Container, inject, injectable } from 'inversify';
+import { inject, injectable } from 'inversify';
 import { ConfigService } from './config-service';
 import { SingleEventEmitter } from '../utils/singleEventEmitter';
 import { LogService } from './logger/log-service';
-import { AppContribution, bindAppContribution } from './app/app-contribution';
+import { AppContribution, registerAppContribution } from './app/app.extensions';
 import { Deferred } from './deferred';
 import { URL } from 'url';
+import { registerSingleton } from './container-access';
 
 type Socket = import('net').Socket;
 type UpgradeHandler = (request: http.IncomingMessage, socket: Socket, head: Buffer) => void | Promise<void>;
@@ -102,7 +103,6 @@ export class ShellBackend implements AppContribution {
   }
 }
 
-export const bindShellBackend = (container: Container) => {
-  container.bind(ShellBackend).toSelf().inSingletonScope();
-  bindAppContribution(container, ShellBackend);
-};
+registerAppContribution(
+  registerSingleton(ShellBackend)
+);

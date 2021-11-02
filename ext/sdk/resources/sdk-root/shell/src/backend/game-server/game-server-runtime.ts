@@ -1,5 +1,5 @@
 import { injectable } from "inversify";
-import { disposableFromFunction, DisposableObject } from "backend/disposable-container";
+import { disposableFromFunction, IDisposableObject } from "fxdk/base/disposable";
 import { SingleEventEmitter } from "utils/singleEventEmitter";
 import { Ticker } from "backend/ticker";
 import { ServerUpdateChannel } from "shared/api.types";
@@ -27,7 +27,7 @@ export class GameServerRuntime {
 
   protected readonly setResourcesEvent = new SingleEventEmitter<ServerResourceDescriptor[]>();
   protected serverResources: ServerResourceDescriptor[] = [];
-  onSetResources(cb: (resources: ServerResourceDescriptor[]) => void): DisposableObject {
+  onSetResources(cb: (resources: ServerResourceDescriptor[]) => void): IDisposableObject {
     return disposableFromFunction(this.setResourcesEvent.addListener(cb));
   }
   setResources(resources: ServerResourceDescriptor[]) {
@@ -41,7 +41,7 @@ export class GameServerRuntime {
   }
 
   protected readonly startResourceEvent = new SingleEventEmitter<string>();
-  onStartResource(cb: (resourceName: string) => void): DisposableObject {
+  onStartResource(cb: (resourceName: string) => void): IDisposableObject {
     return disposableFromFunction(this.startResourceEvent.addListener(cb));
   }
   startResource(resourceName: string) {
@@ -49,7 +49,7 @@ export class GameServerRuntime {
   }
 
   protected readonly stopResourceEvent = new SingleEventEmitter<string>();
-  onStopResource(cb: (resourceName: string) => void): DisposableObject {
+  onStopResource(cb: (resourceName: string) => void): IDisposableObject {
     return disposableFromFunction(this.stopResourceEvent.addListener(cb));
   }
   stopResource(resourceName: string) {
@@ -57,7 +57,7 @@ export class GameServerRuntime {
   }
 
   protected readonly restartResourceEvent = new SingleEventEmitter<string>();
-  onRestartResource(cb: (resourceName: string) => void): DisposableObject {
+  onRestartResource(cb: (resourceName: string) => void): IDisposableObject {
     return disposableFromFunction(this.restartResourceEvent.addListener(cb));
   }
   restartResource(resourceName: string) {
@@ -65,7 +65,7 @@ export class GameServerRuntime {
   }
 
   protected readonly reloadResourceEvent = new SingleEventEmitter<string>();
-  onReloadResource(cb: (resourceName: string) => void): DisposableObject {
+  onReloadResource(cb: (resourceName: string) => void): IDisposableObject {
     return disposableFromFunction(this.reloadResourceEvent.addListener(cb));
   }
   reloadResource(resourceName: string) {
@@ -73,7 +73,7 @@ export class GameServerRuntime {
   }
 
   protected readonly sendCommandEvent = new SingleEventEmitter<string>();
-  onSendCommand(cb: (cmd: string) => void): DisposableObject {
+  onSendCommand(cb: (cmd: string) => void): IDisposableObject {
     return disposableFromFunction(this.sendCommandEvent.addListener(cb));
   }
   sendCommand(cmd: string) {

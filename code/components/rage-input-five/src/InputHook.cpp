@@ -587,7 +587,7 @@ static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
 		int off = ((*g_inputOffset - 1) & 1) ? 1 : 0;
 
 		// TODO: handle flush of keyboard
-		memcpy(g_gameKeyArray, rgd->keyboardState, 256);
+		memcpy(g_gameKeyArray, curInput.keyboardState, 256);
 		if (off)
 		{
 			g_input->m_lastDX() = curInput.mouseDeltaX;

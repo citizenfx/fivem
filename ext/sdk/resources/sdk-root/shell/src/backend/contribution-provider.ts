@@ -1,4 +1,5 @@
 import { interfaces } from "inversify";
+import { getContainer } from "./container-access";
 
 export const ContributionProvider = Symbol('ContributionProvider');
 export interface ContributionProvider<T> {
@@ -35,8 +36,8 @@ class ContributionProviderImpl<T> implements ContributionProvider<T> {
  * @inject(ContributionProvider) @named(YourContribution)
  * protected readonly yourContributionProvider: ContributionProvider<YourContribution>;
  */
-export const bindContributionProvider = (container: interfaces.Container, serviceId: symbol | string) => {
-  container.bind(ContributionProvider)
+export const registerContributionProvider = (serviceId: symbol | string) => {
+  getContainer().bind(ContributionProvider)
     .toDynamicValue((ctx: interfaces.Context) => new ContributionProviderImpl(serviceId, ctx.container))
     .inSingletonScope()
     .whenTargetNamed(serviceId);

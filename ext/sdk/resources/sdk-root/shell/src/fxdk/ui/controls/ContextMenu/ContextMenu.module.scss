@@ -17,13 +17,18 @@
     align-items: stretch;
     justify-content: stretch;
 
-    border: solid 2px $acColor;
-    background-color: rgba($bgColor, .5);
-    backdrop-filter: blur($blurSize);
+    padding-top: $q;
+    padding-bottom: $q;
 
-    box-shadow: 0 0 $q*8 $bgColor;
+    border-radius: $q;
+
+    background-color: mix($bgColor, $fgColor, 95%);
+
+    box-shadow: 0 $q*2.5 $q*10 $shadowColor;
 
     pointer-events: all;
+
+    overflow: hidden;
 
     z-index: 9001;
 

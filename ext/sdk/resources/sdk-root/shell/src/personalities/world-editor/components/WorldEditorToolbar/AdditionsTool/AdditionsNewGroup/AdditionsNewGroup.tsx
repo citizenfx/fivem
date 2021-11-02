@@ -1,6 +1,6 @@
 import React from 'react';
 import classnames from 'classnames';
-import { newDirectoryIcon, openDirectoryIcon } from 'constants/icons';
+import { newDirectoryIcon, openDirectoryIcon } from 'fxdk/ui/icons';
 import { DropTargetMonitor, useDrop } from 'react-dnd';
 import { ADDITION_DND_TYPES } from '../AdditionsTool.constants';
 import { WEState } from 'personalities/world-editor/store/WEState';

@@ -5,14 +5,13 @@ import { BsExclamationDiamondFill, BsExclamationTriangleFill, BsPlay, BsStop } f
 import { ServerUpdateStates } from 'shared/api.types';
 import { Indicator } from 'fxdk/ui/Indicator/Indicator';
 import { ServerState } from 'store/ServerState';
-import { ProjectState } from 'store/ProjectState';
-import s from './ServerButton.module.scss';
 import { Title } from 'fxdk/ui/controls/Title/Title';
+import { Project } from '../../state/project';
+import s from './ServerButton.module.scss';
 
 
 export const ServerButton = observer(function Server({ className }: { className: string }) {
-  const project = ProjectState.project;
-  const updateChannelState = ServerState.getUpdateChannelState(project.manifest.serverUpdateChannel);
+  const updateChannelState = ServerState.getUpdateChannelState(Project.manifest.serverUpdateChannel);
 
   const rootClassName = classnames(s.root, className, {
     [s.up]: ServerState.isUp,
@@ -72,8 +71,8 @@ export const ServerButton = observer(function Server({ className }: { className:
   }
 
   const handleClick = React.useCallback(() => {
-    if (project && updateChannelState === ServerUpdateStates.updateRequired) {
-      return ServerState.installUpdate(project.manifest.serverUpdateChannel);
+    if (updateChannelState === ServerUpdateStates.updateRequired) {
+      return ServerState.installUpdate(Project.manifest.serverUpdateChannel);
     }
 
     if (updateChannelState !== ServerUpdateStates.ready) {
@@ -81,7 +80,7 @@ export const ServerButton = observer(function Server({ className }: { className:
     }
 
     ServerState.toggleServer();
-  }, [project, updateChannelState]);
+  }, [updateChannelState]);
 
   return (
     <Title animated={false} delay={0} title={title} fixedOn="bottom">

@@ -1,0 +1,54 @@
+@import "variables";
+
+.root {
+  width: 100%;
+
+  padding: $q*2 $q*4;
+
+  background-color: rgba($fgColor, .05);
+
+  user-select: none;
+
+  .entry {
+    .name {
+      display: flex;
+      align-items: center;
+
+      padding: $q;
+      font-size: $fs08;
+
+      border-radius: 2px;
+
+      &:hover:not(.disabled) {
+        color: $fgColor;
+        background-color: $acColor;
+
+        .icon {
+          color: rgba($fgColor, .5);
+        }
+      }
+
+      &.selected {
+        background-color: rgba($fgColor, .25);
+      }
+
+      &.disabled {
+        opacity: 0.5;
+      }
+
+      .icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        margin-right: $q;
+
+        color: rgba($fgColor, .5);
+      }
+    }
+
+    .children {
+      margin-left: $q*2;
+    }
+  }
+}

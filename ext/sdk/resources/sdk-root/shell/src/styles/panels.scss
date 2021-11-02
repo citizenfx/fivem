@@ -17,4 +17,9 @@
     --panel-color: #{$scColor};
     --panel-border-color: #{rgba($scColor, .5)};
   }
+
+  &.panel-error {
+    --panel-color: #{$erColor};
+    --panel-border-color: #{rgba($erColor, .5)};
+  }
 }

@@ -1,11 +1,11 @@
 import { ApiClient } from "backend/api/api-client";
-import { ApiContribution, ApiContributionFactory } from "backend/api/api-contribution";
+import { ApiContribution, ApiContributionFactory } from "backend/api/api.extensions";
 import { handlesClientEvent } from "backend/api/api-decorators";
 import { ServerResourceDescriptor, ServerStartRequest } from "backend/game-server/game-server-runtime";
 import { GameServerService } from "backend/game-server/game-server-service";
 import { NotificationService } from "backend/notification/notification-service";
-import { ProjectAccess } from "backend/project/project-access";
-import { ProjectEvents } from "backend/project/project-events";
+import { ProjectAccess } from "fxdk/project/node/project-access";
+import { ProjectEvents } from "fxdk/project/node/project-events";
 import { __DEBUG_MODE_TOGGLES__ } from "constants/debug-constants";
 import { inject, injectable, postConstruct } from "inversify";
 import { worldEditorApi } from "shared/api.events";

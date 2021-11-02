@@ -17,7 +17,11 @@
     border-bottom: solid 2px rgba($fgColor, .2);
 
     user-select: none;
-    cursor: default;
+    cursor: pointer;
+
+    &:hover {
+      background-color: rgba($fgColor, .1);
+    }
 
     &.active {
       padding-bottom: $q*2 + 2px;
@@ -39,13 +43,21 @@
     min-width: 250px;
 
     .item {
+      display: flex;
+      align-items: center;
+
+      gap: $q;
+
       width: 100%;
-      padding: $q*2 $q*4;
+      height: $q*8;
+
+      padding: 0 $q*4;
       border: none;
 
       svg {
-        margin-right: $q;
         height: $fs08;
+
+        opacity: .75;
       }
 
       &:hover {

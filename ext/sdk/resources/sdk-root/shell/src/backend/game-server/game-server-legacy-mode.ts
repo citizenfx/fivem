@@ -2,7 +2,7 @@ import fs from 'fs';
 import net from 'net';
 import byline from 'byline';
 import { ApiClient } from 'backend/api/api-client';
-import { DisposableContainer, disposableFromFunction } from 'backend/disposable-container';
+import { Disposer, disposableFromFunction } from 'fxdk/base/disposable';
 import { FsService } from 'backend/fs/fs-service';
 import { GameService } from 'backend/game/game-service';
 import { LogService } from 'backend/logger/log-service';
@@ -55,7 +55,7 @@ export class GameServerLegacyMode implements GameServerMode {
   private fxserverCwd = '';
   private pipeAppendix = '';
 
-  private disposableContainer = new DisposableContainer();
+  private disposableContainer = new Disposer();
 
   private serverCmd: ShellCommand | null = null;
 

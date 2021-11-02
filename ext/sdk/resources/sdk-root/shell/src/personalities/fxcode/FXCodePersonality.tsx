@@ -7,13 +7,14 @@ import { FXCodeImporter } from './FXCodeImporter/FXCodeImporter';
 import s from './FXCodePersonality.module.scss';
 
 export const FXCodePersonality = observer(function FXCodePersonality() {
+  // return null;
+
   return (
     <>
       <iframe
         ref={FXCodeState.ref}
         style={ToolbarState.cssVariables}
         className={s.root}
-        title="FXCode personality"
         src={FXCodeState.iframeSrc}
         frameBorder="0"
         allowFullScreen={true}

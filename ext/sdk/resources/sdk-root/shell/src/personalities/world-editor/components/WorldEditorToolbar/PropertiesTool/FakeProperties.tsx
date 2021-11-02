@@ -3,7 +3,7 @@ import { BsCameraVideo, BsChevronBarDown } from 'react-icons/bs';
 import { additionsToolIcon, rotateIcon, scaleIcon, translateIcon } from 'personalities/world-editor/constants/icons';
 import { NumberInput } from 'fxdk/ui/controls/NumberInput/NumberInput';
 import { div } from 'utils/styled';
-import { deleteIcon } from 'constants/icons';
+import { deleteIcon } from 'fxdk/ui/icons';
 import { IntroForceRecalculate } from 'fxdk/ui/Intro/Intro';
 import { PropertiesToolSection } from './PropertiesTool.Section';
 import s from './PropertiesTool.module.scss';

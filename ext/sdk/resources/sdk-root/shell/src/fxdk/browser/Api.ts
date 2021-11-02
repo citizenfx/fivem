@@ -145,44 +145,54 @@ export const Api = new class Api {
 
       // apiRxLog(type, data);
 
-      switch (type) {
-        case '@@log': return hostLog(...(data as [string, ...any]));
-
-        case '@@cb': {
-          const [id, type, res] = data;
-
-          const cb = this.callbacks[id];
-          if (!cb) {
-            apiRxLog('No callback for', id);
-            return;
-          }
-
-          delete this.callbacks[id];
-
-          if (type === 'error') {
-            return cb(res, undefined);
-          }
-
-          return cb(null, res);
+      if (type === '##mq') {
+        for (const [stype, sdata] of data) {
+          this.handleSingleMessage(stype, sdata);
         }
-
-        default: {
-          const listeners = this.listeners[type];
-          if (!listeners || listeners.size === 0) {
-            this.incomingStash[type] ??= [];
-            this.incomingStash[type].push(data);
-            return;
-          }
-
-          for (const listener of listeners) {
-            listener(data, type);
-          }
-        }
+      } else {
+        this.handleSingleMessage(type, data);
       }
     } catch (e) {
       errorLog(e);
     }
   };
+
+  private handleSingleMessage(type: string, data: any) {
+    switch (type) {
+      case '@@log': return hostLog(...(data as [string, ...any]));
+
+      case '@@cb': {
+        const [id, type, res] = data;
+
+        const cb = this.callbacks[id];
+        if (!cb) {
+          apiRxLog('No callback for', id);
+          return;
+        }
+
+        delete this.callbacks[id];
+
+        if (type === 'error') {
+          return cb(res, undefined);
+        }
+
+        return cb(null, res);
+      }
+
+      default: {
+        const listeners = this.listeners[type];
+        if (!listeners || listeners.size === 0) {
+          this.incomingStash[type] ??= [];
+          this.incomingStash[type].push(data);
+          return;
+        }
+
+        for (const listener of listeners) {
+          listener(data, type);
+        }
+      }
+    }
+  }
 
   private sendPacket(packet: string) {
     if (!this.ws || !this.connection.isOpen) {

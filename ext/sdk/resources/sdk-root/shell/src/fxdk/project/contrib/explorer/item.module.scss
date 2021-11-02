@@ -1,0 +1,148 @@
+@import "variables";
+
+.root {
+  &.dropping {
+    background-color: rgba($acColor, .25);
+  }
+
+  .label-container {
+    display: flex;
+    align-items: center;
+
+    width: 100%;
+    height: $q * 8;
+
+    color: rgba($fgColor, .5);
+    font-size: $fs08;
+
+    &:hover,
+    &.active {
+      color: $fgColor;
+    }
+
+    .label {
+      position: relative;
+
+      flex-grow: 1;
+
+      height: 100%;
+
+      display: flex;
+      align-items: center;
+
+      padding-left: $q*2.5;
+
+      font-weight: 300;
+      cursor: pointer;
+
+      user-select: none;
+
+      &.renaming {
+        color: $fgColor;
+      }
+
+      &.active {
+        color: $fgColor;
+        background-color: rgba($acColor, .25);
+      }
+
+      &.selected {
+        color: $scColor;
+      }
+
+      &.dragging {
+        background-color: $acColor;
+      }
+
+      .state {
+        position: absolute;
+
+        $size: 4px;
+
+        top: $q*2;
+        left: $q*2.5;
+
+        width: $size;
+        height: $size;
+        border-radius: $size;
+
+        background-color: transparent;
+
+        z-index: 1;
+
+        &.enabled,
+        &.running {
+          box-shadow: 0 0 0 1px $bgColor;
+        }
+
+        &.enabled {
+          background-color: $acColor;
+        }
+
+        &.running {
+          background-color: $scColor;
+        }
+      }
+
+      .icon {
+        flex-shrink: 0;
+
+        position: relative;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        svg {
+          font-size: $fs08;
+        }
+      }
+
+      .title {
+        flex-grow: 1;
+
+        display: flex;
+        align-items: center;
+
+        width: 100%;
+        height: 100%;
+
+        margin-left: $q;
+
+        @include ellipsis;
+      }
+
+      .renamer {
+        flex-grow: 1;
+
+        height: calc(100% - #{$q * 2});
+
+        padding-left: $q;
+
+        @include fontPrimary;
+        font-size: $fs08;
+
+        box-shadow: 0 0 0 1px rgba($fgColor, .2) inset;
+        border: none;
+
+        color: $fgColor;
+        background-color: rgba($fgColor, .1);
+      }
+    }
+
+    .status {
+      flex-shrink: 0;
+
+      display: flex;
+      align-items: center;
+
+      padding-right: $q*2;
+    }
+  }
+
+  .children {
+    margin-left: $q*4;
+
+    box-shadow: -1px 0 0 0 rgba($fgColor, .05);
+  }
+}

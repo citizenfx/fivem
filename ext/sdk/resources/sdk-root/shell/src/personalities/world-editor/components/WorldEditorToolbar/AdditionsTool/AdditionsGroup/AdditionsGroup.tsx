@@ -3,7 +3,7 @@ import classnames from 'classnames';
 import { WEMapAddition } from 'backend/world-editor/world-editor-types';
 import { observer } from 'mobx-react-lite';
 import { useOpenFlag } from 'utils/hooks';
-import { closedDirectoryIcon, deleteIcon, openDirectoryIcon, renameIcon } from 'constants/icons';
+import { closedDirectoryIcon, deleteIcon, openDirectoryIcon, renameIcon } from 'fxdk/ui/icons';
 import { WEState } from 'personalities/world-editor/store/WEState';
 import { ContextMenu, ContextMenuItemsCollection } from 'fxdk/ui/controls/ContextMenu/ContextMenu';
 import { DropTargetMonitor, useDrop } from 'react-dnd';

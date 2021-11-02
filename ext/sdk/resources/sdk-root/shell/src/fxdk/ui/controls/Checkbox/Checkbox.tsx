@@ -34,6 +34,7 @@ export const Checkbox = React.memo(function Checkbox(props: CheckboxProps) {
       <input
         type="checkbox"
         checked={value}
+        disabled={disabled}
         onChange={handleChange}
       />
       <div className={s.indicator}/>

@@ -1,0 +1,32 @@
+@import "variables";
+
+.root {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: $q;
+
+  padding: $q*0.5 $q;
+
+  border-radius: $q*0.5;
+
+  color: currentColor;
+  font-size: $fs08;
+  font-weight: 100;
+
+  &.clickable {
+    cursor: pointer;
+
+    @include interactiveTransition;
+
+    &:hover {
+      color: $fgColor;
+      background-color: rgba($fgColor, .2);
+    }
+    &:active {
+      color: $fgColor;
+      background-color: rgba($fgColor, .1);
+    }
+  }
+}

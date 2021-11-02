@@ -1,122 +1,310 @@
 import React from 'react';
+import classnames from 'classnames';
 import { observer } from "mobx-react-lite";
-import { ProjectState } from 'store/ProjectState';
 import { Checkbox } from 'fxdk/ui/controls/Checkbox/Checkbox';
-import { projectApi } from 'shared/api.events';
 import { Input } from 'fxdk/ui/controls/Input/Input';
-import { Switch } from 'fxdk/ui/controls/Switch/Switch';
-import { Api } from 'fxdk/browser/Api';
+import { Project } from 'fxdk/project/browser/state/project';
+import { computeVariables, Conflict } from './variablesCompiler';
+import { ConvarKind, IConvarCategory, IConvarEntry, ProjectVariableSetter } from 'fxdk/project/common/project.types';
+import { useOpenFlag } from 'utils/hooks';
+import { Select } from 'fxdk/ui/controls/Select/Select';
+import { RangeInput } from 'fxdk/ui/controls/RangeInput/RangeInput';
+import s from './ProjectVariables.module.scss';
+import { BsExclamationCircle, BsExclamationTriangle } from 'react-icons/bs';
+import { Title } from 'fxdk/ui/controls/Title/Title';
+import { Button } from 'fxdk/ui/controls/Button/Button';
+import { deleteIcon } from 'fxdk/ui/icons';
+import { noop } from 'fxdk/base/functional';
 
-type ConVarType = 'CV_BOOL' | 'CV_INT' | 'CV_SLIDER' | 'CV_COMBI' | 'CV_STRING' | 'CV_PASSWORD' | 'CV_MULTI';
+const errorHint = (
+  <>
+    Conflicting definition
+    <br />
+    <br />
+    To fix either make all definitions compatible
+    <br />
+    or change name, <strong>namespacing works best</strong>
+  </>
+);
 
-const Setting = observer(function Setting({ setting }: { setting: any }) {
-  const project = ProjectState.project;
-  const [title, id, type, def, ...more]: [string, string, ConVarType, any, ...any] = setting;
-
-  const variable = project.manifest.variables?.[id] ?? def;
-  const updateVariable = React.useCallback((value: string) => {
-    Api.send(projectApi.setVariable, { key: id, value: value + '' });
-  }, [id]);
-
-  if (type === 'CV_BOOL') {
-    const setVariable = (value: boolean) => {
-      updateVariable(value ? 'true' : 'false');
-    };
-
-    return <div className="modal-block"><Checkbox
-      value={variable === '1' || variable === 'true' || variable === true}
-      onChange={setVariable}
-      label={title}
-    /></div>
-  } else if (type === 'CV_STRING') {
-    return <div className="modal-block"><Input
-      value={variable}
-      onChange={updateVariable}
-      label={title}
-    /></div>
-  } else if (type === 'CV_INT') {
-    return <div className="modal-block"><Input
-      value={variable}
-      onChange={updateVariable}
-      label={title}
-      pattern={/^[0-9]+$/}
-    /></div>
-  } else if (type === 'CV_PASSWORD') {
-    return <div className="modal-block"><Input
-      value={variable}
-      onChange={updateVariable}
-      label={title}
-      type="password"
-    /></div>
-  } else if (type === 'CV_MULTI') {
-    return <>
-      <div className="modal-label">{title}</div>
-      <div className="modal-block">
-        <Switch
-          value={variable}
-          options={def.map(option => ({
-            label: option[0],
-            value: option[1]
-          }))}
-          onChange={updateVariable}
-        />
-      </div>
-    </>
-  } else if (type === 'CV_SLIDER' || type === 'CV_COMBI') {
-    return <div className="modal-block"><Input
-      type="range"
-      value={variable}
-      combi={type === 'CV_COMBI'}
-      min={more[0]}
-      max={more[1]}
-      onChange={updateVariable}
-      label={title}
-    /></div>
+function getSetterLabel(setter: ProjectVariableSetter): string {
+  switch (setter) {
+    case ProjectVariableSetter.INFORMATION: return 'Information';
+    case ProjectVariableSetter.REPLICATED: return 'Replicated';
+    case ProjectVariableSetter.SERVER_ONLY: return 'Server only';
   }
-
-  return <span>Unsupported type: {type}</span>;
-});
+}
 
 export const ProjectResourceSettings = observer(function ProjectResourceSettings() {
-  const project = ProjectState.project;
-  const assetDefs = project.assetDefs;
-  const convarCategories = Object.entries(assetDefs)
-    .map(([_, value]) => value?.convarCategories);
+  const { categoriesMap, typeConflicts, strandedVariables } = computeVariables();
 
-  const categoryMapping = {};
-  for (const categories of convarCategories) {
-    if (!categories) {
-      continue;
+  const categories = Object.entries(categoriesMap).map(([name, category]) => {
+    return (
+      <Category key={name} name={name} category={category} conflicts={typeConflicts} />
+    );
+  });
+
+  return (
+    <div className={s.root}>
+      {Boolean(Object.keys(strandedVariables).length) && Object.entries(strandedVariables).map(([variable, { setter, value }]) => (
+        <div className={s.stranded}>
+          <div className={s.header}>
+            <div className={s.title}>
+              <div className={s.icon}>
+                <BsExclamationTriangle />
+              </div>
+
+              <div className={s.tuple}>
+                {variable}
+                <span className={s.setter}>
+                  {getSetterLabel(setter)}
+                </span>
+              </div>
+            </div>
+
+            <div className={s.subtitle}>
+              This variable is not defined by any asset, most likely a leftover
+            </div>
+          </div>
+
+          <div className={s.value}>
+            <Input
+              disabled
+              size="small"
+              value={String(value)}
+              onChange={noop}
+            />
+          </div>
+
+          <div className={s.control}>
+            <Button
+              size="small"
+              icon={deleteIcon}
+              onClick={() => Project.deleteVariable(variable)}
+            />
+          </div>
+        </div>
+      ))}
+
+      {Object.entries(typeConflicts).map(([name, conflict]) => (
+        <RConflict key={name} name={name} conflict={conflict} />
+      ))}
+
+      {categories}
+    </div>
+  );
+});
+
+const RConflict = (function RConflict(props: { name: string, conflict: Conflict }) {
+  const { name, conflict } = props;
+
+  return (
+    <div className={s.conflict}>
+      <div className={s.header}>
+        <div className={s.title}>
+          <Title fixedOn="right" delay={0} title={errorHint}>
+            {(ref) => (
+              <div ref={ref} className={s.icon}>
+                <BsExclamationCircle />
+              </div>
+            )}
+          </Title>
+          {name}
+        </div>
+        <div className={s.subtitle}>
+          Incompatible definitions:
+        </div>
+      </div>
+
+      <ul>
+        {Object.values(conflict).flat().map(({ categoryName, entry }) => (
+          <li key={`${categoryName}-${entry.setter}-${entry.kind}`}>
+            <div className={s.setter}>
+              {getSetterLabel(entry.setter)}
+            </div>
+            <div className={s.type}>
+              {entry.kind}
+            </div>
+            <div>
+              under&nbsp;
+              <span
+                className={s.link}
+                onClick={() => document.getElementById(categoryName + entry.variable)?.scrollIntoView(true)}
+              >
+                {categoryName}
+              </span>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+});
+
+const Category = observer(function Category(props: { name: string, category: IConvarCategory, conflicts: Record<string, Conflict> }) {
+  const { name, category, conflicts } = props;
+
+  const [expanded, _expand, _collapse, toggleExpanded] = useOpenFlag(true);
+
+  const categoryClassName = classnames(s.category, {
+    [s.expanded]: expanded,
+  });
+
+  const variableNodes = category.entries.map((entry) => (
+    <Variable
+      key={entry.title}
+      entry={entry}
+      conflict={conflicts[entry.variable]}
+      categoryName={name}
+    />
+  ));
+
+  return (
+    <div className={categoryClassName} id={name}>
+      <div className={s.header}>
+        <div className={s.title}>
+          {name}
+        </div>
+
+        <div className={s.subtitle}>
+          {category.subtitle}
+        </div>
+      </div>
+
+      {expanded && (
+        <div className={s.variables}>
+          {variableNodes}
+        </div>
+      )}
+    </div>
+  );
+});
+
+const Variable = observer(function Variable(props: { categoryName: string, entry: IConvarEntry, conflict: Conflict | undefined }) {
+  const { entry, categoryName, conflict } = props;
+
+  return (
+    <div className={classnames(s.entry, { [s.error]: !!conflict })} id={categoryName + entry.variable}>
+      <div className={s.header}>
+        <div className={s.title}>
+          {!!conflict && (
+            <Title fixedOn="right" delay={0} title={errorHint}>
+              {(ref) => (
+                <div ref={ref} className={s.icon}>
+                  <BsExclamationCircle />
+                </div>
+              )}
+            </Title>
+          )}
+
+          <div className={s.tuple}>
+            {entry.variable}
+            <span className={s.setter}>{getSetterLabel(entry.setter)}</span>
+          </div>
+        </div>
+        <div className={s.subtitle}>
+          {entry.title}
+        </div>
+      </div>
+      <div className={s.control}>
+        {getVariableControl(entry, !!conflict)}
+      </div>
+      <div className={s.control}>
+        <Button
+          size="small"
+          icon={deleteIcon}
+          disabled={typeof Project.manifest.variables?.[entry.variable] === 'undefined'}
+          onClick={() => Project.deleteVariable(entry.variable)}
+        />
+      </div>
+    </div>
+  );
+});
+
+function getVariableControl(entry: IConvarEntry, disabled: boolean): React.ReactNode {
+  const handleChange = React.useCallback((value) => {
+    Project.setVariable(entry.variable, entry.setter, value);
+  }, [entry]);
+
+  switch (entry.kind) {
+    case ConvarKind.Bool: {
+      return (
+        <Checkbox
+          value={Boolean(valueOrDefault(entry))}
+          onChange={handleChange}
+          disabled={disabled}
+        />
+      );
     }
 
-    for (const [title, data] of categories) {
-      const [subtitle, entries] = data;
-      if (!categoryMapping[title]) {
-        categoryMapping[title] = {
-          subtitle,
-          entries
-        };
-      } else {
-        categoryMapping[title].entries.push(...entries);
-      }
-    }
+    case ConvarKind.Int: return (
+      <Input
+        size="small"
+        type="number"
+        value={String(valueOrDefault(entry))}
+        onChange={(value) => handleChange(parseInt(value, 10))}
+        pattern={/^[0-9]+$/}
+        min={entry.minValue}
+        max={entry.maxValue}
+        disabled={disabled}
+      />
+    );
+
+    case ConvarKind.Combi:
+    case ConvarKind.Slider: return (
+      <>
+        <RangeInput
+          size="small"
+          value={Number(valueOrDefault(entry))}
+          onChange={handleChange}
+          min={entry.minValue}
+          max={entry.maxValue}
+          disabled={disabled}
+        />
+        <Input
+          size="small"
+          type="number"
+          value={String(valueOrDefault(entry))}
+          onChange={(value) => handleChange(parseInt(value, 10))}
+          pattern={/^[0-9]+$/}
+          min={entry.minValue}
+          max={entry.maxValue}
+          disabled={disabled || (entry.kind !== ConvarKind.Combi)}
+        />
+      </>
+    );
+
+    case ConvarKind.String: return (
+      <Input
+        size="small"
+        value={String(valueOrDefault(entry))}
+        onChange={handleChange}
+        disabled={disabled}
+      />
+    );
+
+    case ConvarKind.Multi: return (
+      <Select
+        size="small"
+        value={String(valueOrDefault(entry))}
+        options={entry.entries.map((v) => ({ value: v, title: v }))}
+        onChange={handleChange}
+        disabled={disabled}
+      />
+    );
+  }
+}
+
+function valueOrDefault(entry: IConvarEntry): string | number | boolean {
+  const value = Project.manifest.variables?.[entry.variable]?.value;
+
+  if (typeof value !== 'undefined') {
+    return value;
   }
 
-  const entries = (data: any[]) => {
-    return (<>
-      {data.map(setting => <Setting setting={setting} />)}
-    </>);
-  };
+  if (entry.kind === ConvarKind.Multi) {
+    return entry.entries[0];
+  }
 
-  return <>
-    {Object.entries(categoryMapping)
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([title, data]: [string, any]) => <>
-        <div className="modal-category">
-          <h1>{title}</h1>
-          {data.subtitle && <h2>{data.subtitle}</h2>}
-        </div>
-        {entries(data.entries)}
-      </>)}
-  </>;
-});
+  return entry.defaultValue;
+}

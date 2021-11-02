@@ -3,7 +3,6 @@ import { Button } from 'fxdk/ui/controls/Button/Button';
 import { Input } from 'fxdk/ui/controls/Input/Input';
 import { Modal } from 'fxdk/ui/Modal/Modal';
 import { projectNamePattern } from 'constants/patterns';
-import { projectApi } from 'shared/api.events';
 import { useApiMessage, useDebouncedCallback } from 'utils/hooks';
 import { APIRQ } from 'shared/api.requests';
 import { ProjectCreateCheckResult } from 'shared/project.types';
@@ -13,6 +12,7 @@ import { observer } from 'mobx-react-lite';
 import { Api } from 'fxdk/browser/Api';
 import { ProjectCreatorState } from './ProjectCreatorState';
 import s from './ProjectCreator.module.scss';
+import { ProjectApi } from 'fxdk/project/common/project.api';
 
 
 function formatProjectPathHint(projectPath: string, projectName: string) {
@@ -34,7 +34,7 @@ export const ProjectCreator = observer(function ProjectCreator() {
   const [projectPath, setProjectPath] = React.useState('');
   const [checkResult, setCheckResult] = React.useState<ProjectCreateCheckResult>({});
 
-  useApiMessage(projectApi.checkCreateResult, (results) => {
+  useApiMessage(ProjectApi.LoaderEndpoints.checkCreateResult, (results) => {
     setCheckResult(results);
   }, [setCheckResult]);
 
@@ -48,7 +48,7 @@ export const ProjectCreator = observer(function ProjectCreator() {
       projectName,
     };
 
-    Api.send(projectApi.checkCreateRequest, request);
+    Api.send(ProjectApi.LoaderEndpoints.checkCreateRequest, request);
   }, 250);
 
   const handleCreateProject = React.useCallback(() => {
@@ -58,7 +58,7 @@ export const ProjectCreator = observer(function ProjectCreator() {
         projectName,
       };
 
-      Api.send(projectApi.create, request);
+      Api.send(ProjectApi.LoaderEndpoints.create, request);
 
       ProjectCreatorState.close();
     }

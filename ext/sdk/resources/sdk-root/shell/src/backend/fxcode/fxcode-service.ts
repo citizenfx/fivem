@@ -1,9 +1,9 @@
-import { AppContribution } from "backend/app/app-contribution";
+import { AppContribution } from "backend/app/app.extensions";
 import { ConfigService } from "backend/config-service";
 import { FsService } from "backend/fs/fs-service";
 import { LogService } from "backend/logger/log-service";
-import { ProjectEvents } from "backend/project/project-events";
-import { ProjectStateRuntime } from "backend/project/project-runtime/project-state-runtime";
+import { ProjectEvents } from "fxdk/project/node/project-events";
+import { ProjectStateRuntime } from "fxdk/project/node/runtime/project-state-runtime";
 import { inject, injectable, postConstruct } from "inversify";
 import { concurrently } from "utils/concurrently";
 import { ShellBackend } from 'backend/shell-backend';

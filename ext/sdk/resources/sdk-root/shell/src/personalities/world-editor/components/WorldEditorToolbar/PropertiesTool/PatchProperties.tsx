@@ -7,7 +7,7 @@ import { BsCameraVideo } from 'react-icons/bs';
 import { patchesToolIcon, rotateIcon, scaleIcon, translateIcon } from 'personalities/world-editor/constants/icons';
 import { NumberInput } from 'fxdk/ui/controls/NumberInput/NumberInput';
 import { div } from 'utils/styled';
-import { deleteIcon } from 'constants/icons';
+import { deleteIcon } from 'fxdk/ui/icons';
 import { Title } from 'fxdk/ui/controls/Title/Title';
 import { WEHotkeysState } from 'personalities/world-editor/store/WEHotkeysState';
 import { WECommand } from 'personalities/world-editor/constants/commands';

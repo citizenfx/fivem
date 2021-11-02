@@ -3,7 +3,7 @@ import classnames from 'classnames';
 import { observer } from 'mobx-react-lite';
 import { WEState } from 'personalities/world-editor/store/WEState';
 import { ContextMenu, ContextMenuItemsCollection } from 'fxdk/ui/controls/ContextMenu/ContextMenu';
-import { deleteIcon, renameIcon } from 'constants/icons';
+import { deleteIcon, renameIcon } from 'fxdk/ui/icons';
 import s from './PatchesTool.module.scss';
 import { WESelectionType } from 'backend/world-editor/world-editor-types';
 import { useOpenFlag } from 'utils/hooks';

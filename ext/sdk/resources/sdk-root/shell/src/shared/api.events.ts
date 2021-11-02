@@ -1,55 +1,5 @@
 import { apiEndpointsGroup } from "./api.protocol";
 
-export const projectApi = apiEndpointsGroup({
-  checkCreateRequest: 'project:checkCreateRequest',
-  checkCreateResult: 'project:checkCreateResult',
-  checkOpenRequest: 'project:checkOpenRequest',
-  create: 'project:create',
-  open: 'project:open',
-  close: 'project:close',
-  update: 'project:update',
-  build: 'project:build',
-  buildError: 'project:buildError',
-  setServerUpdateChannel: 'project:setServerUpdateChannel',
-  setSystemResources: 'project:setSystemResources',
-  setVariable: 'project:setVariable',
-
-  getRecents: 'project:getRecents',
-  recents: 'project:recents',
-  removeRecent: 'project:removeRecent',
-
-  pathsStateUpdate: 'project:pathsStateUpdate',
-  setPathsStatePatch: 'project:setPathsStatePatch',
-
-  setAssetConfig: 'project:setResourceConfig',
-
-  fsUpdate: 'project:fsUpdate',
-
-  createFile: 'project:createFile',
-  createDirectory: 'project:createDirectory',
-  renameEntry: 'project.renameEntry',
-  entryRenamed: 'project.entryRenamed',
-  moveEntry: 'project:moveEntry',
-  entryMoved: 'porject.entryMoved',
-  deleteEntry: 'project:deleteEntry',
-  entryDeleted: 'project.entryDeleted',
-  copyEntry: 'project:copyEntry',
-  copyEntries: 'project:copyEntries',
-  freePendingFolderDeletion: 'project:freePendingFolderDeletion',
-
-  startServer: 'project:startServer',
-  stopServer: 'project:stopServer',
-});
-
-export const assetApi = apiEndpointsGroup({
-  create: 'asset:create',
-  import: 'asset:import',
-
-  setConfig: 'asset:setConfig',
-
-  updates: 'asset:updates',
-});
-
 export const githubApi = apiEndpointsGroup({
   fetchReleases: 'github:fetchReleases',
 });

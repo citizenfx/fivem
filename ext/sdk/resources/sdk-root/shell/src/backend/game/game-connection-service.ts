@@ -1,9 +1,9 @@
-import { AppContribution } from "backend/app/app-contribution";
+import { AppContribution } from "backend/app/app.extensions";
 import { GameServerService } from "backend/game-server/game-server-service";
 import { LogService } from "backend/logger/log-service";
 import { inject, injectable } from "inversify";
 import { ServerStates } from "shared/api.types";
-import { GameStates } from "./game-contants";
+import { GameStates } from "./game-constants";
 import { GameService } from "./game-service";
 
 @injectable()

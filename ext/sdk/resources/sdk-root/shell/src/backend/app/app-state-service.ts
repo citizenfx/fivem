@@ -3,8 +3,8 @@ import { ApiClient } from "backend/api/api-client";
 import { SingleEventEmitter } from "utils/singleEventEmitter";
 import { stateApi } from "shared/api.events";
 import { ServerDataStates, AppStates } from "shared/api.types";
-import { ApiContribution } from "backend/api/api-contribution";
-import { AppContribution } from "./app-contribution";
+import { ApiContribution } from "backend/api/api.extensions";
+import { AppContribution } from "./app.extensions";
 import { LogService } from "backend/logger/log-service";
 
 @injectable()
