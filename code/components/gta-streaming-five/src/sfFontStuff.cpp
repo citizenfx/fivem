@@ -742,6 +742,54 @@ static HookFunction hookFunction([]()
 
 	hook::call(hook::get_pattern("F3 0F 58 55 34 F3 0F 11 4D C0 F3 0F 11 55 CC", 24), lineBufferStub.GetCode());
 
+	// fix bug when img tag is last in a text formatting tag (https://github.com/citizenfx/fivem/issues/1112)
+	static void (*origPopBack)(void* vec, size_t len);
+
+	struct TextFormat
+	{
+		char pad[66];
+		uint16_t presentMask;
+		char pad2[12];
+	};
+
+	struct ElemDesc
+	{
+		char pad[32];
+		TextFormat fmt;
+		char paraFmt[24];
+	};
+
+	static struct : jitasm::Frontend
+	{
+		void InternalMain() override
+		{
+			lea(r8, qword_ptr[rbp + 0x300]);
+			mov(rax, (uint64_t)ParseHtmlReset);
+			jmp(rax);
+		}
+
+		static void ParseHtmlReset(ElemDesc** vec, size_t len, TextFormat* format)
+		{
+			if (len > 0)
+			{
+				(*vec)[len - 1].fmt.presentMask |= (*vec)[len].fmt.presentMask;
+			}
+			else
+			{
+				format->presentMask |= (*vec)[len].fmt.presentMask;
+			}
+
+			origPopBack(vec, len);
+		}
+	} parseHtmlStub;
+
+	{
+		auto location = hook::get_pattern<char>("49 8D 54 24 FF 48 8D 4D 80 E8", 9);
+		hook::set_call(&origPopBack, location);
+		hook::call(location, parseHtmlStub.GetCode());
+		hook::call(location + 0x62, parseHtmlStub.GetCode());
+	}
+
 	// formerly debuggability for GFx heap, but as it seems now this is required to not get memory corruption
 	// (memory locking, maybe? GFx allows disabling thread safety of its heap)
 	// TODO: figure this out
