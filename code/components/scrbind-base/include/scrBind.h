@@ -41,7 +41,6 @@ struct scrBindArgument<std::shared_ptr<TPtr>>
 struct scrObjectRef
 {
 	size_t length;
-	char data[];
 };
 
 namespace
@@ -49,7 +48,7 @@ namespace
 	template<typename TObject>
 	auto DeserializeObject(scrObjectRef* ref)
 	{
-		return msgpack::unpack(ref->data, ref->length).get().as<TObject>();
+		return msgpack::unpack((char*)(&ref[1]), ref->length).get().as<TObject>();
 	}
 }
 

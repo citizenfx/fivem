@@ -471,7 +471,7 @@ private:
 	void* m_netObject;
 };
 
-STREAMING_EXPORT class VehicleSeatManager
+class STREAMING_EXPORT VehicleSeatManager
 {
 public:
 	inline int GetNumSeats()
@@ -743,8 +743,9 @@ struct MapDataVec4
 	}
 };
 
-struct STREAMING_EXPORT CMapData : rage::sysUseAllocator
+class STREAMING_EXPORT CMapData : public rage::sysUseAllocator
 {
+public:
 	CMapData();
 	virtual ~CMapData() = default;
 

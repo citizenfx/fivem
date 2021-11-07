@@ -15,25 +15,25 @@ public:
 	}
 
 	inline MessageBuffer(const std::vector<uint8_t>& data)
-		: m_data(data), m_curBit(0), m_maxBit(data.size() * 8)
+		: m_data(data), m_curBit(0), m_maxBit(int(data.size() * 8))
 	{
 		
 	}
 
 	inline MessageBuffer(std::vector<uint8_t>&& data)
-		: m_data(std::move(data)), m_curBit(0), m_maxBit(data.size() * 8)
+		: m_data(std::move(data)), m_curBit(0), m_maxBit(int(data.size() * 8))
 	{
 
 	}
 
 	inline explicit MessageBuffer(size_t size)
-		: m_data(size), m_curBit(0), m_maxBit(size * 8)
+		: m_data(size), m_curBit(0), m_maxBit(int(size * 8))
 	{
 
 	}
 
 	inline MessageBuffer(const void* data, size_t size)
-		: m_data(reinterpret_cast<const uint8_t*>(data), reinterpret_cast<const uint8_t*>(data) + size), m_curBit(0), m_maxBit(size * 8)
+		: m_data(reinterpret_cast<const uint8_t*>(data), reinterpret_cast<const uint8_t*>(data) + size), m_curBit(0), m_maxBit(int(size * 8))
 	{
 
 	}
@@ -200,7 +200,7 @@ public:
 				v14 = v12 << v11;
 				v15 = v13 << v11;
 				v16 = v8 - 9;
-				if (v16 < ~(uint32_t)a3)
+				if (uint32_t(v16) < ~(uint32_t)a3)
 					v16 = !(uint32_t)a3;
 				v17 = (((unsigned int)(v5 & 7) - 10 - v16) >> 3) + 1;
 				v18 = (uint8_t*)(result + ((int64_t)((uint64_t)a4 << 32) >> 35) + 1);
@@ -262,7 +262,7 @@ public:
 				v43 = v9[v27] >> (8 - v31) << (32 - v31);
 				v44 = 8 - v41;
 				*(uint8_t*)(v7 + v40) = (v43 >> 24 >> v41) | *(uint8_t*)(v7 + v40) & ~(v42 >> 24 >> v41);
-				if (8 - v41 < v31)
+				if (uint32_t(8 - v41) < v31)
 				{
 					v45 = v42 << v44;
 					v46 = v43 << v44;

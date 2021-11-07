@@ -22,7 +22,7 @@ private:
 
 public:
 	template<typename T>
-	T* GetAt(int index) const
+	T* GetAt(size_t index) const
 	{
 		if (m_flags[index] < 0)
 		{
@@ -74,7 +74,7 @@ public:
 
 	void Clear()
 	{
-		for (int i = 0; i < m_count; i++)
+		for (size_t i = 0; i < m_count; i++)
 		{
 			if (m_flags[i] >= 0)
 			{

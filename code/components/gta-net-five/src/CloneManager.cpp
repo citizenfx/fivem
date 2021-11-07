@@ -717,7 +717,7 @@ void CloneManagerLocal::HandleCloneAcksNew(const char* data, size_t len)
 	}
 
 	uint8_t bufferData[16384] = { 0 };
-	int bufferLength = LZ4_decompress_safe(reinterpret_cast<const char*>(&buffer.GetData()[buffer.GetCurOffset()]), reinterpret_cast<char*>(bufferData), buffer.GetRemainingBytes(), sizeof(bufferData));
+	int bufferLength = LZ4_decompress_safe(reinterpret_cast<const char*>(&buffer.GetData()[buffer.GetCurOffset()]), reinterpret_cast<char*>(bufferData), int(buffer.GetRemainingBytes()), int(sizeof(bufferData)));
 
 	if (bufferLength > 0)
 	{
@@ -938,7 +938,7 @@ void msgClone::Read(int syncType, rl::MessageBuffer& buffer)
 	auto length = buffer.Read<uint16_t>(12);
 
 	m_cloneData.resize(length);
-	buffer.ReadBits(m_cloneData.data(), m_cloneData.size() * 8);
+	buffer.ReadBits(m_cloneData.data(), int(m_cloneData.size() * 8));
 }
 
 class msgPackedClones
@@ -980,7 +980,7 @@ void msgPackedClones::Read(net::Buffer& buffer)
 	m_frameIndex = buffer.Read<uint64_t>();
 
 	uint8_t bufferData[16384] = { 0 };
-	int bufferLength = LZ4_decompress_safe(reinterpret_cast<const char*>(&buffer.GetData()[buffer.GetCurOffset()]), reinterpret_cast<char*>(bufferData), buffer.GetRemainingBytes(), sizeof(bufferData));
+	int bufferLength = LZ4_decompress_safe(reinterpret_cast<const char*>(&buffer.GetData()[buffer.GetCurOffset()]), reinterpret_cast<char*>(bufferData), int(buffer.GetRemainingBytes()), int(sizeof(bufferData)));
 
 	if (bufferLength > 0)
 	{
@@ -1212,7 +1212,7 @@ bool CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 	syncTree->ApplyToObject(obj, nullptr);
 
 	// again, ensure it's not local
-	if (obj->syncData.isRemote != isRemote || obj->syncData.ownerId != owner)
+	if (bool(obj->syncData.isRemote) != isRemote || obj->syncData.ownerId != owner)
 	{
 		console::DPrintf("onesync", "Treason! Owner ID changed to %d.\n", obj->syncData.ownerId);
 		Log("%s: Treason! Owner ID changed to %d.\n", __func__, obj->syncData.ownerId);
@@ -1238,7 +1238,7 @@ bool CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 	obj->m_1C0();
 
 	// for the last time, ensure it's not local
-	if (obj->syncData.isRemote != isRemote || obj->syncData.ownerId != owner)
+	if (bool(obj->syncData.isRemote) != isRemote || obj->syncData.ownerId != owner)
 	{
 		console::DPrintf("onesync", "Treason (2)! Owner ID changed to %d.\n", obj->syncData.ownerId);
 		Log("%s: Treason (2)! Owner ID changed to %d.\n", __func__, obj->syncData.ownerId);
@@ -2571,7 +2571,7 @@ void CloneManagerLocal::WriteUpdates()
 						netBuffer.Write(g_netObjectTypeBitLength, objectType);
 					}
 
-					uint32_t len = rlBuffer.GetDataLength();
+					uint32_t len = uint32_t(rlBuffer.GetDataLength());
 					netBuffer.Write(12, len); // length (short)
 
 					if (len > 0)
@@ -2697,7 +2697,7 @@ void CloneManagerLocal::AttemptFlushAckBuffer()
 void CloneManagerLocal::AttemptFlushNetBuffer(rl::MessageBuffer& buffer, uint32_t msgType)
 {
 	// flush the send buffer in case it could compress to >1100 bytes
-	if (LZ4_compressBound(buffer.GetDataLength()) > 1100)
+	if (LZ4_compressBound(int(buffer.GetDataLength())) > 1100)
 	{
 		SendUpdates(buffer, msgType);
 	}
@@ -2716,23 +2716,23 @@ void CloneManagerLocal::SendUpdates(rl::MessageBuffer& buffer, uint32_t msgType)
 		};
 
 		// compress and send data
-		std::vector<char> outData(LZ4_compressBound(buffer.GetDataLength()) + 4);
+		std::vector<char> outData(size_t(LZ4_compressBound(int(buffer.GetDataLength()))) + 4);
 		int len = 0;
 
 		if (icgi->NetProtoVersion >= 0x202103292050)
 		{
-			LZ4_loadDictHC(&m_compStream, reinterpret_cast<const char*>(dictBuffer), std::size(dictBuffer));
-			len = LZ4_compress_HC_continue(&m_compStream, reinterpret_cast<const char*>(buffer.GetBuffer().data()), outData.data() + 4, buffer.GetDataLength(), outData.size() - 4);
+			LZ4_loadDictHC(&m_compStream, reinterpret_cast<const char*>(dictBuffer), int(std::size(dictBuffer)));
+			len = LZ4_compress_HC_continue(&m_compStream, reinterpret_cast<const char*>(buffer.GetBuffer().data()), outData.data() + 4, int(buffer.GetDataLength()), int(outData.size() - 4));
 		}
 		else
 		{
-			len = LZ4_compress_default(reinterpret_cast<const char*>(buffer.GetBuffer().data()), outData.data() + 4, buffer.GetDataLength(), outData.size() - 4);
+			len = LZ4_compress_default(reinterpret_cast<const char*>(buffer.GetBuffer().data()), outData.data() + 4, int(buffer.GetDataLength()), int(outData.size() - 4));
 		}
 
 		Log("compressed %d bytes to %d bytes\n", buffer.GetDataLength(), len);
 
 		*(uint32_t*)(outData.data()) = msgType;
-		m_netLibrary->RoutePacket(outData.data(), len + 4, 0xFFFF);
+		m_netLibrary->RoutePacket(outData.data(), size_t(len) + 4, 0xFFFF);
 
 #if _DEBUG && WRITE_BYTEHUNK
 		static int byteHunkId;

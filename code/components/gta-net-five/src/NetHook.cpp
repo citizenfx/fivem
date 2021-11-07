@@ -70,7 +70,7 @@ int __stdcall CfxRecvFrom(SOCKET s, char * buf, int len, int flags, sockaddr * f
 				trace("CfxRecvFrom (from %i %s) %i bytes on %p\n", netID, addr, length, (void*)s);
 			}*/
 
-			return fwMin((size_t)len, length);
+			return std::min(len, int(length));
 		}
 		else
 		{
@@ -157,7 +157,7 @@ int __stdcall CfxSelect(_In_ int nfds, _Inout_opt_ fd_set FAR *readfds, _Inout_o
 
 	if (readfds)
 	{
-		for (int i = 0; i < readfds->fd_count; i++)
+		for (size_t i = 0; i < readfds->fd_count; i++)
 		{
 			if (readfds->fd_array[i] == g_gameSocket)
 			{

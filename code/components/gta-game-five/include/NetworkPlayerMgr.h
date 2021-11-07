@@ -84,7 +84,7 @@ private:
 	union
 	{
 		Impl<12, 0, 28> m1604;
-		Impl<20, 0, 0> m2060;
+		Impl<20, 0, /*0*/ sizeof(size_t)> m2060; // 0-sized array leads to compiler complaining, and we don't take size here
 		Impl<0, 4, 16> m2372;
 	} impl;
 

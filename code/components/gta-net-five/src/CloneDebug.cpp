@@ -323,7 +323,7 @@ static void RenderNetObjectTree()
 							ImGui::TreePop();
 						}
 					}
-					catch (std::exception& e)
+					catch (...)
 					{
 
 					}
@@ -588,9 +588,9 @@ static void InitTree(rage::netSyncTree* tree)
 			else if (node->IsDataNode())
 			{
 #ifdef GTA_FIVE
-				*((uint8_t*)node + 66) = idx++;
+				*((uint8_t*)node + 66) = uint8_t(idx++);
 #elif IS_RDR3
-				*((uint8_t*)node + 68) = idx++;
+				*((uint8_t*)node + 68) = uint8_t(idx++);
 #endif
 			}
 
@@ -1053,8 +1053,8 @@ static InitFunction initFunctionDrilldown([]()
 	});
 });
 
-static std::map<uint32_t, ClonePacketData> g_drilldownData;
-static std::map<uint32_t, ClonePacketData> g_drilldownDataOut;
+static std::map<size_t, ClonePacketData> g_drilldownData;
+static std::map<size_t, ClonePacketData> g_drilldownDataOut;
 
 namespace sync
 {

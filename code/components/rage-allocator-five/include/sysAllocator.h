@@ -1,9 +1,9 @@
 #pragma once
 
 #ifdef COMPILING_RAGE_ALLOCATOR_FIVE
-#define GAMESPEC_EXPORT __declspec(dllexport)
+#define ALLOCATOR_EXPORT __declspec(dllexport)
 #else
-#define GAMESPEC_EXPORT __declspec(dllimport)
+#define ALLOCATOR_EXPORT __declspec(dllimport)
 #endif
 
 namespace rage
@@ -49,14 +49,14 @@ namespace rage
 		// and a lot of other functions below that aren't needed right now
 
 	public:
-		static GAMESPEC_EXPORT uint32_t GetAllocatorTlsOffset();
+		static ALLOCATOR_EXPORT uint32_t GetAllocatorTlsOffset();
 
-		static GAMESPEC_EXPORT sysMemAllocator* UpdateAllocatorValue();
+		static ALLOCATOR_EXPORT sysMemAllocator* UpdateAllocatorValue();
 	};
 
-	GAMESPEC_EXPORT sysMemAllocator* GetAllocator();
+	ALLOCATOR_EXPORT sysMemAllocator* GetAllocator();
 
-	class GAMESPEC_EXPORT sysUseAllocator
+	class ALLOCATOR_EXPORT sysUseAllocator
 	{
 	public:
 		void* operator new(size_t size);

@@ -180,7 +180,7 @@ void ArrayManager_Update()
 
 					outBuffer.Write<uint8_t>(arrayIndex);
 					outBuffer.Write<uint16_t>(elem);
-					outBuffer.Write<uint16_t>(sv.size());
+					outBuffer.Write<uint16_t>(uint16_t(sv.size()));
 					outBuffer.Write(sv.data(), sv.size());
 
 					g_netLibrary->SendReliableCommand("msgArrayUpdate", (const char*)outBuffer.GetData().data(), outBuffer.GetCurOffset());

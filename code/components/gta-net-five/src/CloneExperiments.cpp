@@ -2245,7 +2245,7 @@ static void SendGameEventRaw(uint16_t eventId, rage::netGameEvent* ev)
 		}
 	}
 
-	outBuffer.Write<uint8_t>(targetPlayers.size());
+	outBuffer.Write<uint8_t>(uint8_t(targetPlayers.size()));
 
 	for (int playerId : targetPlayers)
 	{
@@ -2256,7 +2256,7 @@ static void SendGameEventRaw(uint16_t eventId, rage::netGameEvent* ev)
 	outBuffer.Write<uint8_t>(0);
 	outBuffer.Write<uint16_t>(ev->eventType);
 
-	uint32_t len = rlBuffer.GetDataLength();
+	uint32_t len = uint32_t(rlBuffer.GetDataLength());
 	outBuffer.Write<uint16_t>(len); // length (short)
 	outBuffer.Write(rlBuffer.m_data, len); // data
 
@@ -2472,7 +2472,7 @@ static void DecideNetGameEvent(rage::netGameEvent* ev, CNetGamePlayer* player, C
 			outBuffer.Write<uint8_t>(1);
 			outBuffer.Write<uint16_t>(ev->eventType);
 
-			uint32_t len = rlBuffer.GetDataLength();
+			uint32_t len = uint32_t(rlBuffer.GetDataLength());
 			outBuffer.Write<uint16_t>(len); // length (short)
 			outBuffer.Write(rlBuffer.m_data, len); // data
 
