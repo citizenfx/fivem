@@ -2571,8 +2571,6 @@ void CloneManagerLocal::WriteUpdates()
 						netBuffer.Write(g_netObjectTypeBitLength, objectType);
 					}
 
-					//netBuffer.Write<uint32_t>(rage::netInterface_queryFunctions::GetInstance()->GetTimestamp()); // timestamp?
-
 					uint32_t len = rlBuffer.GetDataLength();
 					netBuffer.Write(12, len); // length (short)
 

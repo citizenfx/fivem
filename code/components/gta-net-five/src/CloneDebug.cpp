@@ -646,6 +646,13 @@ static void StorePlayerAppearanceDataNode(rage::netSyncNodeBase* node);
 
 bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object, rage::datBitBuffer* buffer, uint32_t time, void* logger, uint8_t targetPlayer, void* outNull, uint32_t* lastChangeTime)
 {
+	auto syncData = g_syncData[object->GetObjectId()].get();
+
+	if (!syncData)
+	{
+		return false;
+	}
+
 	InitTree(this);
 
 	WriteTreeState state;
@@ -690,7 +697,7 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 	eastl::bitset<200> processedNodes;
 
 	// callback
-	auto nodeWriter = [this, sizeLength, &processedNodes](WriteTreeState& state, rage::netSyncNodeBase* node, const std::function<bool()>& cb)
+	auto nodeWriter = [this, sizeLength, syncData, &processedNodes](WriteTreeState& state, rage::netSyncNodeBase* node, const std::function<bool()>& cb)
 	{
 		auto buffer = state.buffer;
 		bool didWrite = false;
@@ -726,7 +733,7 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 			else
 			{
 				// compare last data for the node
-				auto nodeData = &g_syncData[state.object->GetObjectId()]->nodes[nodeIdx];
+				auto nodeData = &syncData->nodes[nodeIdx];
 				uint32_t nodeSyncDelay = GetDelayForUpdateFrequency(node->GetUpdateFrequency(UpdateLevel::VERY_HIGH));
 
 				// throttle sends by waiting for the requested node delay
@@ -734,10 +741,10 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 
 				if (state.pass == 1 && (lastChangeDelta > nodeSyncDelay || nodeData->manuallyDirtied))
 				{
-					auto updateNode = [this, &state, &processedNodes, sizeLength](rage::netSyncDataNodeBase* dataNode, bool force) -> bool
+					auto updateNode = [this, syncData, &state, &processedNodes, sizeLength](rage::netSyncDataNodeBase* dataNode, bool force) -> bool
 					{
 						size_t dataNodeIdx = GET_NIDX(this, dataNode);
-						auto nodeData = &g_syncData[state.object->GetObjectId()]->nodes[dataNodeIdx];
+						auto nodeData = &syncData->nodes[dataNodeIdx];
 
 						if (processedNodes.test(dataNodeIdx))
 						{
@@ -812,7 +819,7 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 							for (int child = 0; child < childCount; child++)
 							{
 								size_t childIdx = GET_NIDX(this, children[child]);
-								auto childData = &g_syncData[state.object->GetObjectId()]->nodes[childIdx];
+								auto childData = &syncData->nodes[childIdx];
 
 								written |= updateNode(children[child], nodeData->manuallyDirtied || childData->manuallyDirtied || written);
 							}
@@ -973,13 +980,20 @@ struct AckState
 
 void netSyncTree::AckCfx(netObject* object, uint32_t timestamp)
 {
+	auto syncData = g_syncData[object->GetObjectId()].get();
+
+	if (!syncData)
+	{
+		return;
+	}
+
 	InitTree(this);
 
 	AckState state;
 	state.object = object;
 	state.time = timestamp;
 
-	TraverseTree<AckState>(this, state, [this](AckState& state, rage::netSyncNodeBase* node, const std::function<bool()>& cb)
+	TraverseTree<AckState>(this, state, [this, syncData](AckState& state, rage::netSyncNodeBase* node, const std::function<bool()>& cb)
 	{
 		if (node->IsParentNode())
 		{
@@ -989,9 +1003,9 @@ void netSyncTree::AckCfx(netObject* object, uint32_t timestamp)
 		{
 			size_t nodeIdx = GET_NIDX(this, node);
 
-			if (state.time > g_syncData[state.object->GetObjectId()]->nodes[nodeIdx].lastAck)
+			if (state.time > syncData->nodes[nodeIdx].lastAck)
 			{
-				g_syncData[state.object->GetObjectId()]->nodes[nodeIdx].lastAck = state.time;
+				syncData->nodes[nodeIdx].lastAck = state.time;
 			}
 		}
 
@@ -1228,7 +1242,14 @@ void RenderSyncNodeDetail(rage::netObject* netObject, rage::netSyncNodeBase* nod
 	auto t = g_netObjectNodeMapping[netObject->GetObjectId()][node];
 
 	InitTree(netObject->GetSyncTree());
-	auto& sd = rage::g_syncData[netObject->GetObjectId()]->nodes[GET_NIDX(netObject->GetSyncTree(), node)];
+	const auto& snd = rage::g_syncData[netObject->GetObjectId()];
+
+	if (!snd)
+	{
+		return;
+	}
+
+	const auto& sd = snd->nodes[GET_NIDX(netObject->GetSyncTree(), node)];
 
 	ImGui::Text("Last %s: %d ms ago", std::get<int>(t) ? "written" : "read", rage::netInterface_queryFunctions::GetInstance()->GetTimestamp() - std::get<uint32_t>(t));
 	ImGui::Text("Last ack: %d ms ago", rage::netInterface_queryFunctions::GetInstance()->GetTimestamp() - sd.lastAck);
