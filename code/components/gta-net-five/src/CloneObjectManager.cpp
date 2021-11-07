@@ -61,15 +61,15 @@ void ObjectIds_ReturnObjectId(uint16_t objectId);
 
 static void netObjectMgrBase__DestroyNetworkObject(rage::netObjectMgr* manager, rage::netObject* object)
 {
-	CD_FreeSyncData(object->GetObjectId());
-
 	if (!icgi->OneSyncEnabled)
 	{
+		CD_FreeSyncData(object->GetObjectId());
 		return g_orig_netObjectMgrBase__DestroyNetworkObject(manager, object);
 	}
 
 	if (!object->syncData.shouldNotBeDeleted)
 	{
+		CD_FreeSyncData(object->GetObjectId());
 		CloneObjectMgr->DestroyNetworkObject(object);
 
 		if (!object->syncData.isRemote && object->syncData.nextOwnerId == 0xFF)
