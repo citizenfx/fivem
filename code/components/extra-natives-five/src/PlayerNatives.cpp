@@ -51,6 +51,8 @@ static int VehicleDefenseModifierOffset;
 static int WeaponDefenseModifier2Offset;
 static int MeleeWeaponDamageModifierOffset;
 static int MeleeWeaponDefenseModifierOffset;
+static int PlayerStaminaOffset;
+static int PlayerMaxStaminaOffset;
 
 static HookFunction hookFunction([]()
 {
@@ -61,6 +63,9 @@ static HookFunction hookFunction([]()
 	WeaponDefenseModifier2Offset = *hook::get_pattern<int>("F3 0F 11 80 ? ? ? ? 8A 87 ? ? ? ? C0 E0", 0x4);
 	MeleeWeaponDamageModifierOffset = *hook::get_pattern<int>("F3 0F 11 80 ? ? ? ? F3 0F 10 8F ? ? ? ? 48 8B 85", 0x4);
 	MeleeWeaponDefenseModifierOffset = *hook::get_pattern<int>("45 84 ? ? 74 ? 48 8B 83", 0x11);
+
+	PlayerStaminaOffset = *hook::get_pattern<int>("F3 0F 58 F2 0F 2F F0 F3 0F", 0xB);
+	PlayerMaxStaminaOffset = PlayerStaminaOffset + 4;
 
 	{
 		auto location = hook::get_pattern<char>("48 8B F8 E8 ? ? ? ? F3 0F 10 00 F3 0F 10 48 04", -0x5A);
@@ -95,6 +100,55 @@ static HookFunction hookFunction([]()
 			auto address = (char*)entity;
 			DWORD flag = *(DWORD *)(address + 0x188);  
 			result = ((flag & (1 << 8)) != 0) || ((flag & (1 << 9)) != 0);
+		}
+
+		context.SetResult<bool>(result);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_STAMINA", [](fx::ScriptContext& context)
+	{
+		readPlayerInfoMemory<float, &PlayerStaminaOffset>(context, 0.0f);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_MAX_STAMINA", [](fx::ScriptContext& context)
+	{
+		readPlayerInfoMemory<float, &PlayerMaxStaminaOffset>(context, 0.0f);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_PLAYER_STAMINA", [](fx::ScriptContext& context)
+	{
+		bool result = false;
+
+		void* playerInfo = getAndCheckPlayerInfo(context);
+
+		if (playerInfo)
+		{
+			float newStamina = context.GetArgument<float>(1);
+			float maxStamina = *((float*)((char*)playerInfo + PlayerMaxStaminaOffset));
+			if (newStamina && newStamina <= maxStamina)
+			{
+				*((float*)((char*)playerInfo + PlayerStaminaOffset)) = newStamina;
+				result = true;
+			}
+		}
+
+		context.SetResult<bool>(result);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_PLAYER_MAX_STAMINA", [](fx::ScriptContext& context)
+	{
+		bool result = false;
+
+		void* playerInfo = getAndCheckPlayerInfo(context);
+
+		if (playerInfo)
+		{
+			float newMaxStamina = context.GetArgument<float>(1);
+			if (newMaxStamina && newMaxStamina > 0.0)
+			{
+				*((float*)((char*)playerInfo + PlayerMaxStaminaOffset)) = newMaxStamina;
+				result = true;
+			}
 		}
 
 		context.SetResult<bool>(result);
