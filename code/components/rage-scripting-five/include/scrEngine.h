@@ -172,9 +172,9 @@ public:
 		uintptr_t tempValues[MaxNativeParams];
 		uintptr_t* args = (uintptr_t*)m_pArgs;
 
-		for (size_t i = 0; i < m_nArgCount; i++)
+		for (int i = 0; i < m_nArgCount; i++)
 		{
-			size_t target = m_nArgCount - i - 1;
+			int target = m_nArgCount - i - 1;
 
 			tempValues[target] = args[i];
 		}

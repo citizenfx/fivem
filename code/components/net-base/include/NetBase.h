@@ -14,9 +14,7 @@ typedef SOCKET PlatformSocketType;
 
 #define GetLastNetError() WSAGetLastError()
 
-#ifndef EAGAIN
 #define EAGAIN WSAEWOULDBLOCK
-#endif
 #else
 #include <arpa/inet.h>
 #include <netdb.h>
