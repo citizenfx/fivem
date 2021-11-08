@@ -608,6 +608,24 @@ static HookFunction initFunction([]()
 	{
 		FILE* font = _wfopen(MakeRelativeCitPath(L"citizen/mensch.ttf").c_str(), L"rb");
 
+		ImVector<ImWchar> ranges;
+		ImFontGlyphRangesBuilder builder;
+
+		static const ImWchar extra_ranges[] =
+		{
+			0x0100, 0x017F, // Latin Extended-A
+			0x0180, 0x024F, // Latin Extended-B
+			0x0370, 0x03FF, // Greek and Coptic
+			0x10A0, 0x10FF, // Georgian
+			0x1E00, 0x1EFF, // Latin Extended Additional
+			0,
+		};
+
+		builder.AddRanges(io.Fonts->GetGlyphRangesDefault());
+		builder.AddRanges(io.Fonts->GetGlyphRangesCyrillic());
+		builder.AddRanges(&extra_ranges[0]);
+		builder.BuildRanges(&ranges);
+
 		if (font)
 		{
 			fseek(font, 0, SEEK_END);
@@ -621,10 +639,11 @@ static HookFunction initFunction([]()
 			fread(&fontData[0], 1, fontSize, font);
 			fclose(font);
 
-			io.Fonts->AddFontFromMemoryTTF(fontData, fontSize, 22.0f);
+			io.Fonts->AddFontFromMemoryTTF(fontData, fontSize, 22.0f, NULL, ranges.Data);
 
-			consoleFontSmall = io.Fonts->AddFontFromMemoryTTF(fontData, fontSize, 18.0f);
-			consoleFontTiny = io.Fonts->AddFontFromMemoryTTF(fontData, fontSize, 14.0f);
+			consoleFontSmall = io.Fonts->AddFontFromMemoryTTF(fontData, fontSize, 18.0f, NULL, ranges.Data);
+			consoleFontTiny = io.Fonts->AddFontFromMemoryTTF(fontData, fontSize, 14.0f, NULL, ranges.Data);
+			io.Fonts->Build();
 		}
 	}
 
