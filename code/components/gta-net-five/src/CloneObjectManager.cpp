@@ -90,10 +90,12 @@ static void netObjectMgrBase__ChangeOwner(rage::netObjectMgr* manager, rage::net
 		return g_orig_netObjectMgrBase__ChangeOwner(manager, object, targetPlayer, migrationType);
 	}
 
+	auto oldOwnerId = object->syncData.ownerId;
+
 	object->ChangeOwner(targetPlayer, migrationType);
 	object->PostMigrate(migrationType);
 
-	CloneObjectMgr->ChangeOwner(object, targetPlayer, migrationType);
+	CloneObjectMgr->ChangeOwner(object, oldOwnerId, targetPlayer, migrationType);
 }
 
 static rage::netObject* (*g_orig_netObjectMgrBase__GetNetworkObject)(rage::netObjectMgr* manager, uint16_t id, bool evenIfDeleting);

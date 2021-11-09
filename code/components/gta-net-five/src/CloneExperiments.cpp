@@ -1498,6 +1498,93 @@ static HookFunction hookFunction([]()
 #endif
 
 #ifdef GTA_FIVE
+	// use cached sector if no gameobject (weird check in IProximityMigrateableNodeDataAccessor impl)
+	hook::nop(hook::get_pattern("FF 90 80 00 00 00 33 C9 48 85 C0 74 4C", 11), 2);
+
+	// dummy/ambient object player list ordering logic
+
+	// CNetObjObject/creation node
+	{
+		static struct : jitasm::Frontend
+		{
+			void InternalMain() override
+			{
+				sub(rsp, 0x20);
+				push(rax); // we want to save al
+
+				mov(rcx, r13); // netobj is in r13
+				mov(rax, (uint64_t)Fn);
+				call(rax);
+
+				pop(rax);
+				add(rsp, 0x20);
+
+				mov(dl, al);
+				ret();
+			}
+
+			static bool Fn(rage::netObject* object)
+			{
+				auto localId = g_netLibrary->GetServerNetID();
+				auto ownerId = TheClones->GetClientId(object);
+
+				if (localId < ownerId)
+				{
+					ownerId = localId;
+				}
+
+				return (localId == ownerId);
+			}
+		} playerListOrder;
+
+		hook::call_rcx(hook::get_pattern("0F 42 D3 3A DA 0F 94 C2", 3), playerListOrder.GetCode());
+	}
+
+	// TODO: same as above for door
+	// TODO: similar for pickup/placement
+
+	// CNetObjObject ownership-conflict deletion
+	{
+		static struct : jitasm::Frontend
+		{
+			// input:  rbx -> object a1
+			//         rdi -> object from list
+			// output: rdi -> object from list (again)
+			//         al  -> treat as return
+			void InternalMain() override
+			{
+				sub(rsp, 0x28);
+
+				mov(rcx, rbx);
+				mov(rdx, rdi);
+
+				mov(rax, (uint64_t)Fn);
+				call(rax);
+
+				add(rsp, 0x28);
+				ret();
+			}
+
+			static bool Fn(rage::netObject* selfObject, rage::netObject* listObject)
+			{
+				auto selfId = TheClones->GetClientId(selfObject);
+				auto listId = TheClones->GetClientId(listObject);
+
+				if (selfId < listId)
+				{
+					selfId = listId;
+				}
+
+				return (selfId != listId);
+			}
+		} ownerLoop;
+
+		auto location = hook::get_pattern<char>("48 8B CB E8 ? ? ? ? 48 85 C0 74 4F");
+		hook::nop(location, 0x3F);
+		hook::call_rcx(location, ownerLoop.GetCode());
+		hook::put<uint16_t>(location + 0x3F, 0xC084); // test al, al
+	}
+
 	// net damage array, size 32*4
 	uint32_t* damageArrayReplacement = (uint32_t*)hook::AllocateStubMemory(256 * sizeof(uint32_t));
 	memset(damageArrayReplacement, 0, 256 * sizeof(uint32_t));

@@ -50,7 +50,7 @@ public:
 
 	virtual void DestroyNetworkObject(rage::netObject* object) = 0;
 
-	virtual void ChangeOwner(rage::netObject* object, CNetGamePlayer* player, int migrationType) = 0;
+	virtual void ChangeOwner(rage::netObject* object, int oldOwnerId, CNetGamePlayer* player, int migrationType) = 0;
 
 	virtual rage::netObject* GetNetworkObject(uint16_t id) = 0;
 

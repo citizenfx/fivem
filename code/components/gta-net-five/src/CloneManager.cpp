@@ -137,7 +137,7 @@ public:
 
 	virtual void DestroyNetworkObject(rage::netObject* object) override;
 
-	virtual void ChangeOwner(rage::netObject* object, CNetGamePlayer* player, int migrationType) override;
+	virtual void ChangeOwner(rage::netObject* object, int oldOwnerId, CNetGamePlayer* player, int migrationType) override;
 
 	virtual rage::netObject* GetNetworkObject(uint16_t id) override;
 
@@ -2177,15 +2177,15 @@ void CloneManagerLocal::DestroyNetworkObject(rage::netObject* object)
 	m_savedEntityVec.erase(std::remove(m_savedEntityVec.begin(), m_savedEntityVec.end(), object), m_savedEntityVec.end());
 }
 
-void CloneManagerLocal::ChangeOwner(rage::netObject* object, CNetGamePlayer* player, int migrationType)
+void CloneManagerLocal::ChangeOwner(rage::netObject* object, int oldOwnerId, CNetGamePlayer* player, int migrationType)
 {
-	if (object->syncData.ownerId != player->physicalPlayerIndex())
+	if (oldOwnerId != player->physicalPlayerIndex())
 	{
 		GiveObjectToClient(object, g_netIdsByPlayer[player]);
 	}
 
 	m_netObjects[31].erase(object->GetObjectId());
-	m_netObjects[object->syncData.ownerId].erase(object->GetObjectId());
+	m_netObjects[oldOwnerId].erase(object->GetObjectId());
 	m_netObjects[player->physicalPlayerIndex()][object->GetObjectId()] = object;
 }
 
@@ -2371,12 +2371,12 @@ void CloneManagerLocal::WriteUpdates()
 		}
 
 		// if this object doesn't have a game object, but it should, ignore it
-#ifdef GTA_FIVE
-		if (object->GetObjectType() != (uint16_t)NetObjEntityType::PickupPlacement)
-#elif IS_RDR3
 		if (object->GetObjectType() != (uint16_t)NetObjEntityType::PickupPlacement &&
-			object->GetObjectType() != (uint16_t)NetObjEntityType::PropSet)
+			object->GetObjectType() != (uint16_t)NetObjEntityType::Object // CNetObjObject *may* be a dummy object that's not converted to a world object yet
+#ifdef IS_RDR3
+			&& object->GetObjectType() != (uint16_t)NetObjEntityType::PropSet
 #endif
+		)
 		{
 			if (object->GetGameObject() == nullptr)
 			{
