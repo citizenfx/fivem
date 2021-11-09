@@ -74,9 +74,6 @@ export const ProjectSettings = observer(function ProjectSettings() {
   const project = ProjectState.project;
 
   const updateChannel = project.manifest.serverUpdateChannel;
-  const handleUpdateChannelChange = React.useCallback((updateChannel: ServerUpdateChannel) => {
-    Api.send(projectApi.setServerUpdateChannel, updateChannel);
-  }, []);
 
   const [steamWebApiKey, setSteamWebApiKey] = useProjectSteamWebApiKeyVar(project);
   const [tebexSecret, setTebexSecret] = useProjectTebexSecretVar(project);
@@ -85,6 +82,12 @@ export const ProjectSettings = observer(function ProjectSettings() {
   const [useTxAdmin, setUseTxAdmin] = useProjectUseTxAdminVar(project);
 
   const [currentTab, setCurrentTab] = React.useState<ProjectSettingsTab>(projectSettingsTabs.variables);
+  const [currentUpdateChannel, setCurrentUpdateChannel] = React.useState<string>(updateChannel);
+
+  const handleUpdateChannelChange = React.useCallback((selectedUpdateChannel: ServerUpdateChannel) => {
+    Api.send(projectApi.setServerUpdateChannel, selectedUpdateChannel);
+    setCurrentUpdateChannel(selectedUpdateChannel);
+  }, []);
 
   let tabNode: React.ReactNode;
 
@@ -97,7 +100,7 @@ export const ProjectSettings = observer(function ProjectSettings() {
           </div>
           <div className="modal-block">
             <Switch
-              value={updateChannel}
+              value={currentUpdateChannel}
               options={updateChannelOptions}
               onChange={handleUpdateChannelChange}
             />
