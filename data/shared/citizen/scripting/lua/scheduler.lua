@@ -482,6 +482,8 @@ Citizen.SetEventRoutine(function(eventName, eventPayload, eventSource)
 
 		-- if this is a table...
 		if type(data) == 'table' then
+			TriggerEvent("netEvent", eventName, table_unpack(data))
+				
 			-- loop through all the event handlers
 			for k, handler in pairs(eventHandlerEntry.handlers) do
 				local handlerFn = handler
