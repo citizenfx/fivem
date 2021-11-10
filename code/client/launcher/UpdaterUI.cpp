@@ -1300,7 +1300,7 @@ void UI_CreateWindow()
 		{
 			auto sc = ui.FindName(L"Overlay").as<winrt::Windows::UI::Xaml::Controls::SwapChainPanel>();
 
-			if (_time64(NULL) < 1643670000)
+			if (_time64(NULL) < 1609632000)
 			{
 				InitializeRenderOverlay(sc, g_dpi.ScaleX(wwidth), g_dpi.ScaleY(wheight));
 			}
