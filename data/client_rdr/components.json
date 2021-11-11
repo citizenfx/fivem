@@ -50,5 +50,6 @@
 	"tool:formats",
 	"citizen:devtools",
 	"lovely-script",
-	"discord"
+	"discord",
+	"voip:mumble"
 ]
