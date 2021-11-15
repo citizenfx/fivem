@@ -279,4 +279,4 @@
 	url = https://github.com/citizenfx/fxcode.git
 [submodule "vendor/rnnoise"]
 	path = vendor/rnnoise
-	url = https://github.com/almoghamdani/rnnoise-cmake
+	url = https://github.com/Vinipux322/rnnoise
