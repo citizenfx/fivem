@@ -169,6 +169,15 @@ export class SettingsService {
 				category: '#SettingsCat_Game',
 			});
 
+			this.addSetting('mumbleNoiseSuppression', {
+				name: '#Settings_MumbleNoiseSuppression',
+				description: '#Settings_MumbleNoiseSuppressionDesc',
+				type: 'checkbox',
+				getCb: () => this.gameService.getConvar('mumble_enableNoiseSuppression').pipe(map(a => a === 'true' ? 'true' : 'false')),
+				setCb: (value) => this.gameService.setConvar('mumble_enableNoiseSuppression', value),
+				category: '#SettingsCat_Game',
+			});
+
 			this.addSetting('customEmoji', {
 				name: '#Settings_CustomEmoji',
 				description: '#Settings_CustomEmojiDesc',
