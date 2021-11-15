@@ -276,7 +276,7 @@ void MumbleAudioInput::HandleData(const uint8_t* buffer, size_t numBytes)
 
 				rnnoise_process_frame(denoiseState, bufferForRNNoise, bufferForRNNoise);
 
-				short* outBuffer = new int16_t[480];
+				int16_t* outBuffer = new int16_t[480];
 				for (int i = 0; i < 480; i++)
 				{
 					outBuffer[i] = bufferForRNNoise[i];
