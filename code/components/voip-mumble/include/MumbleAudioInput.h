@@ -27,6 +27,8 @@ extern "C"
 #include <webrtc/modules/interface/module_common_types.h>
 #include <webrtc/system_wrappers/include/trace.h>
 
+#include <rnnoise.h>
+
 #include <opus.h>
 
 #include <queue>
@@ -59,6 +61,8 @@ private:
 	webrtc::AudioProcessing* m_apm;
 
 	uint8_t* m_resampledBytes;
+
+	DenoiseState* denoiseState;
 
 	uint32_t m_cachedLen;
 

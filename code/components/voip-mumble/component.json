@@ -12,6 +12,7 @@
 		"vendor:webrtc-audio-processing",
 		"vendor:labsound",
 		"vendor:speexdsp",
+		"vendor:rnnoise",
 		"scrbind:base"
 	],
 	"provides": []

@@ -23,6 +23,8 @@ extern "C"
 #include <libswresample/swresample.h>
 };
 
+static std::shared_ptr<ConVar<bool>> g_noiseSuppression;
+
 MumbleAudioInput::MumbleAudioInput()
 	: m_likelihood(MumbleVoiceLikelihood::ModerateLikelihood), m_ptt(false), m_mode(MumbleActivationMode::VoiceActivity), m_deviceId(""), m_audioLevel(0.0f),
 	  m_avr(nullptr), m_opus(nullptr), m_apm(nullptr), m_isTalking(false), m_lastBitrate(48000), m_curBitrate(48000)
@@ -55,6 +57,8 @@ void MumbleAudioInput::Initialize()
 
 	m_sequence = 0;
 	m_cachedLen = 0;
+
+	denoiseState = rnnoise_create(NULL);
 }
 
 static webrtc::VoiceDetection::Likelihood ConvertLikelihood(MumbleVoiceLikelihood likelihood);
@@ -259,6 +263,27 @@ void MumbleAudioInput::HandleData(const uint8_t* buffer, size_t numBytes)
 		for (int off = 0; off < frameSize; off += 10)
 		{
 			int frameStart = (off * 48 * sizeof(int16_t)); // 1ms = 48 samples
+
+			if (g_noiseSuppression->GetValue()) {
+				uint8_t* tmpBuffer = new uint8_t[960];
+				memcpy(tmpBuffer, &m_resampledBytes[frameStart], 480 * sizeof(int16_t));
+
+				float* bufferForRNNoise = new float[480];
+				for (int i = 0; i < 480; i++)
+				{
+					bufferForRNNoise[i] = ((int16_t*)tmpBuffer)[i];
+				}
+
+				rnnoise_process_frame(denoiseState, bufferForRNNoise, bufferForRNNoise);
+
+				short* outBuffer = new int16_t[480];
+				for (int i = 0; i < 480; i++)
+				{
+					outBuffer[i] = bufferForRNNoise[i];
+				}
+
+				memcpy(&m_resampledBytes[frameStart], outBuffer, 480 * sizeof(int16_t));
+			}
 
 			// is this voice?
 			webrtc::AudioFrame frame;
@@ -697,4 +722,6 @@ static InitFunction initFunction([]()
 	{
 		g_curInputIntentMode = InputIntentMode::SPEECH;
 	});
+
+	g_noiseSuppression = std::make_shared<ConVar<bool>>("mumble_enableNoiseSuppression", ConVar_Archive, false);
 });
