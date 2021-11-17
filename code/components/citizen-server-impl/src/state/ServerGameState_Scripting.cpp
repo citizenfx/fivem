@@ -1633,6 +1633,28 @@ static void Init()
 
 		return speed;
 	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_ATTACHED_TO", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		int handle = 0;
+
+		if (auto attachment = entity->syncTree->GetAttachment())
+		{
+			if (attachment->attached)
+			{
+				auto resman = fx::ResourceManager::GetCurrent();
+				auto instance = resman->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+				auto gameState = instance->GetComponent<fx::ServerGameState>();
+
+				if (auto entity = gameState->GetEntity(0, attachment->attachedTo))
+				{
+					handle = gameState->MakeScriptHandle(entity);
+				}
+			}
+		}
+
+		return handle;
+	}));
 }
 
 static InitFunction initFunction([]()
