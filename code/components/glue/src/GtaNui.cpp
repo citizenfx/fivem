@@ -692,16 +692,6 @@ void GtaNuiInterface::SetHostCursor(HCURSOR cursor)
 
 void GtaNuiInterface::SetHostCursorEnabled(bool enabled)
 {
-	static bool wasEnabled;
-
-	if (!enabled && wasEnabled)
-	{
-		SetClassLongPtr(CoreGetGameWindow(), GCLP_HCURSOR,
-			static_cast<LONG>(reinterpret_cast<LONG_PTR>(IDC_ARROW)));
-	}
-
-	wasEnabled = enabled;
-
 	InputHook::SetHostCursorEnabled(enabled);
 }
 #endif

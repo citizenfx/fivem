@@ -215,9 +215,18 @@ void NUIClient::OnBeforeContextMenu(CefRefPtr<CefBrowser> browser, CefRefPtr<Cef
 	model->Clear();
 }
 
+extern HCURSOR g_defaultCursor;
+
 bool NUIClient::OnCursorChange(CefRefPtr<CefBrowser> browser, CefCursorHandle cursor, cef_cursor_type_t type, const CefCursorInfo& custom_cursor_info)
 {
-	g_nuiGi->SetHostCursor(cursor);
+	if (!cursor || type == CT_POINTER)
+	{
+		g_nuiGi->SetHostCursor(g_defaultCursor);
+	}
+	else
+	{
+		g_nuiGi->SetHostCursor(cursor);
+	}
 
 	return true;
 }
