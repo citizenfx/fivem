@@ -23,6 +23,9 @@ extern std::shared_mutex g_nuiFocusStackMutex;
 extern std::list<std::string> g_nuiFocusStack;
 #endif
 
+HCURSOR g_defaultCursor;
+extern HCURSOR InitDefaultCursor();
+
 static HookFunction initFunction([] ()
 {
 #ifndef IS_RDR3
@@ -42,6 +45,14 @@ static HookFunction initFunction([] ()
 
 	g_nuiGi->OnRender.Connect([]()
 	{
+		static auto initCursor = ([]()
+		{
+			g_defaultCursor = InitDefaultCursor();
+			g_nuiGi->SetHostCursor(g_defaultCursor);
+
+			return true;
+		})();
+
 		// if we're in the main UI, make sure it has focus
 		if (nui::HasMainUI())
 		{
