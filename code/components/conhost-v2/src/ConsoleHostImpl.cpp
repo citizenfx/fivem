@@ -504,6 +504,7 @@ static HookFunction initFunction([]()
 	io.ConfigWindowsResizeFromEdges = true;
 
 	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+	io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
 
 	io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos; // We can honor io.WantSetMousePos requests (optional, rarely used)
 	io.BackendFlags |= ImGuiBackendFlags_PlatformHasViewports; // We can create multi-viewports on the Platform side (optional)
