@@ -202,6 +202,18 @@ void MumbleAudioInput::HandleData(const uint8_t* buffer, size_t numBytes)
 	}
 
 	int frameSize = 40;
+	bool noiseSuppression = g_noiseSuppression->GetValue();
+
+	uint8_t* rnnoiseTmpBuffer;
+	float* rnnoiseProcessingBuffer;
+	int16_t* rnnoiseOutBuffer;
+
+	if (noiseSuppression)
+	{
+		rnnoiseTmpBuffer = new uint8_t[960];
+		rnnoiseProcessingBuffer = new float[480];
+		rnnoiseOutBuffer = new int16_t[960];
+	}
 
 	// split to a multiple of [frameSize]ms chunks
 	int chunkLength = (m_waveFormat.nSamplesPerSec / (1000 / frameSize)) * (m_waveFormat.wBitsPerSample / 8) * m_waveFormat.nChannels;
@@ -264,25 +276,22 @@ void MumbleAudioInput::HandleData(const uint8_t* buffer, size_t numBytes)
 		{
 			int frameStart = (off * 48 * sizeof(int16_t)); // 1ms = 48 samples
 
-			if (g_noiseSuppression->GetValue()) {
-				uint8_t* tmpBuffer = new uint8_t[960];
-				memcpy(tmpBuffer, &m_resampledBytes[frameStart], 480 * sizeof(int16_t));
+			if (noiseSuppression) {
+				memcpy(rnnoiseTmpBuffer, &m_resampledBytes[frameStart], 480 * sizeof(int16_t));
 
-				float* bufferForRNNoise = new float[480];
 				for (int i = 0; i < 480; i++)
 				{
-					bufferForRNNoise[i] = ((int16_t*)tmpBuffer)[i];
+					rnnoiseProcessingBuffer[i] = ((int16_t*)rnnoiseTmpBuffer)[i];
 				}
 
-				rnnoise_process_frame(denoiseState, bufferForRNNoise, bufferForRNNoise);
+				rnnoise_process_frame(denoiseState, rnnoiseProcessingBuffer, rnnoiseProcessingBuffer);
 
-				int16_t* outBuffer = new int16_t[480];
 				for (int i = 0; i < 480; i++)
 				{
-					outBuffer[i] = bufferForRNNoise[i];
+					rnnoiseOutBuffer[i] = rnnoiseProcessingBuffer[i];
 				}
 
-				memcpy(&m_resampledBytes[frameStart], outBuffer, 480 * sizeof(int16_t));
+				memcpy(&m_resampledBytes[frameStart], rnnoiseOutBuffer, 480 * sizeof(int16_t));
 			}
 
 			// is this voice?
@@ -374,6 +383,13 @@ void MumbleAudioInput::HandleData(const uint8_t* buffer, size_t numBytes)
 	if (freeBuffer)
 	{
 		delete[] buffer;
+	}
+
+	if (noiseSuppression)
+	{
+		delete[] rnnoiseTmpBuffer;
+		delete[] rnnoiseProcessingBuffer;
+		delete[] rnnoiseOutBuffer;
 	}
 
 	SendQueuedOpusPackets();
