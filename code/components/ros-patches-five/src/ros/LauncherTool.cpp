@@ -421,7 +421,7 @@ static HANDLE CreateMutexWStub(_In_opt_ LPSECURITY_ATTRIBUTES lpMutexAttributes,
 	return CreateMutexW(lpMutexAttributes, bInitialOwner, lpName);
 }
 
-static LONG __stdcall WinVerifyTrustStub(HWND hwnd, GUID* pgActionID, LPVOID pWVTData)
+LONG __stdcall WinVerifyTrustStub(HWND hwnd, GUID* pgActionID, LPVOID pWVTData)
 {
 	return 0;
 }
