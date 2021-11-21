@@ -1,5 +1,4 @@
 return function()
-	configuration {}
 	filter {}
 
 	linkoptions "/DELAYLOAD:libcef.dll"
@@ -11,8 +10,7 @@ return function()
 	links { "libcef_dll", "delayimp", "libGLESv2" }
 	links { "libcef" }
 	add_dependencies { 'vendor:mojo' }
-	
-	configuration {}
+
 	filter {}
 	
 	includedirs {

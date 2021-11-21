@@ -9,7 +9,6 @@ return {
 		kind "StaticLib"
 
 		if os.istarget('windows') then
-			configuration "windows"
 			buildoptions "/MP /wd4244 /wd4267 /wd4018 /wd4355 /wd4800 /wd4251 /wd4996 /wd4146 /wd4305"
 		elseif os.istarget('linux') then
 			defines { 'HAVE_PTHREAD' }

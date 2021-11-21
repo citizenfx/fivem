@@ -1,6 +1,5 @@
 return function()
 	filter {}
-	configuration {}
 
 	linkoptions "/DELAYLOAD:libcef.dll"
 	links { "libcef_dll", "delayimp", "libGLESv2" }

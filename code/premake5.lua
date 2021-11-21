@@ -67,9 +67,12 @@ workspace "CitizenMP"
 		os.getenv("BOOST_ROOT")
 	}
 
-	defines { "GTEST_HAS_PTHREAD=0", "BOOST_ALL_NO_LIB" }
+	filter { 'language:C or language:C++'}
+		defines { "GTEST_HAS_PTHREAD=0", "BOOST_ALL_NO_LIB" }
 
-	defines { "_HAS_AUTO_PTR_ETC" } -- until boost gets fixed
+		defines { "_HAS_AUTO_PTR_ETC" } -- until boost gets fixed
+
+	filter {}
 
 	libdirs { "deplibs/lib/" }
 
@@ -122,53 +125,54 @@ workspace "CitizenMP"
 	filter {}
 
 	-- debug output
-	configuration "Debug*"
+	filter { "configurations:Debug" }
 		targetdir (binroot .. "/debug")
 		defines "NDEBUG"
-
-		-- this slows down the application a lot
-		defines { '_ITERATOR_DEBUG_LEVEL=0' }
+		justmycode 'Off'
 
 		-- allow one level of inlining
 		if os.istarget('windows') then
-			buildoptions { '/Ob1', '/JMC-' }
+			buildoptions { '/Ob1' }
 		end
 
+	-- this slows down the application a lot
+	filter { 'configurations:Debug', 'language:C or language:C++'}
+		defines { '_ITERATOR_DEBUG_LEVEL=0' }
+
 	-- release output
-	configuration "Release*"
+	filter { "configurations:Release" }
 		targetdir (binroot .. "/release")
 		defines "NDEBUG"
 		optimize "Speed"
+
+	filter {}
 
 	if _OPTIONS["game"] == "ny" then
 		filter { "configurations:Release*", "kind:SharedLib or kind:ConsoleApp or kind:WindowedApp" }
 			linkoptions "/SAFESEH:NO"
 
-		configuration "game=ny"
+		filter {}
 			defines "GTA_NY"
 
 			architecture 'x86'
 	elseif _OPTIONS["game"] == "five" then
-		configuration "game=five"
-			defines "GTA_FIVE"
+		defines "GTA_FIVE"
 
-			filter 'language:C or language:C++ or language:C#'
-				architecture 'x64'
+		filter 'language:C or language:C++ or language:C#'
+			architecture 'x64'
 	elseif _OPTIONS["game"] == "rdr3" then
-		configuration "game=rdr3"
-			defines "IS_RDR3"
+		defines "IS_RDR3"
 
-			filter 'language:C or language:C++ or language:C#'
-				architecture 'x64'
+		filter 'language:C or language:C++ or language:C#'
+			architecture 'x64'
 	elseif _OPTIONS["game"] == "launcher" then
-		configuration "game=launcher"
-			defines "IS_LAUNCHER"
+		defines "IS_LAUNCHER"
 
-			filter 'language:C or language:C++ or language:C#'
-				architecture 'x64'
+		filter 'language:C or language:C++ or language:C#'
+			architecture 'x64'
 	end
 
-	configuration "windows"
+	filter { "system:windows", 'language:C or language:C++' }
 		links { "winmm" }
 
 	filter { 'system:not windows', 'language:C or language:C++' }
@@ -343,13 +347,21 @@ premake.override(premake.vstudio.nuget2010, "supportsPackageReferences", functio
 	return false
 end)
 
-premake.override(premake.vstudio.dotnetbase, "nuGetReferences", function(base, prj)
+premake.override(premake.vstudio.dotnetbase, "nuGetReferences", function(base, cfgOrPrj)
 	-- and this'll fail as GenAPI doesn't have any lib/.../*.dll file
+	local prj = cfgOrPrj
+
+	-- this changed to be a config, not a project
+	-- https://github.com/premake/premake-core/commit/cd276f8971008d1f19cf25e6a19a362884ae85d0
+	if prj.project then
+		prj = prj.project
+	end
+
 	if prj.name == 'CitiMono' then
 		return
 	end
 
-	return base(prj)
+	return base(cfgOrPrj)
 end)
 
 if _OPTIONS['game'] ~= 'launcher' then
@@ -417,10 +429,10 @@ if _OPTIONS['game'] ~= 'launcher' then
 
 		buildoptions '/debug:portable /langversion:7.3'
 
-		configuration "Debug*"
+		filter { "configurations:Debug" }
 			targetdir (binroot .. '/debug/citizen/clr2/lib/mono/4.5/')
 
-		configuration "Release*"
+		filter { "configurations:Release" }
 			targetdir (binroot .. '/release/citizen/clr2/lib/mono/4.5/')
 
 	if _OPTIONS['game'] ~= 'server' then
@@ -435,10 +447,10 @@ if _OPTIONS['game'] ~= 'launcher' then
 				"client/clrref/System.Drawing.cs"
 			}
 
-			configuration "Debug*"
+			filter { "configurations:Debug" }
 				targetdir (binroot .. '/debug/citizen/clr2/lib/mono/4.5/')
 
-			configuration "Release*"
+			filter { "configurations:Release" }
 				targetdir (binroot .. '/release/citizen/clr2/lib/mono/4.5/')
 	end
 
@@ -465,10 +477,10 @@ if _OPTIONS['game'] ~= 'launcher' then
 			
 			buildoptions '/debug:portable /langversion:7.3'
 
-			configuration "Debug*"
+			filter { "configurations:Debug" }
 				targetdir (binroot .. '/debug/citizen/clr2/lib/mono/4.5/ref/')
 
-			configuration "Release*"
+			filter { "configurations:Release" }
 				targetdir (binroot .. '/release/citizen/clr2/lib/mono/4.5/ref/')
 	end
 end

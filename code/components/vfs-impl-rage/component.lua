@@ -1,5 +1,4 @@
 return function()
-	configuration {}
 	filter {}
 	
 	includedirs {

@@ -5,7 +5,6 @@ includedirs {
 return function()
 	add_dependencies { 'citizen:resources:client', 'vendor:concurrentqueue' }
 
-	configuration {}
 	filter {}
 
 	files {

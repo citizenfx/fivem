@@ -16,7 +16,6 @@ links { "libcef" }
 
 return function()
 	filter {}
-	configuration {}
 
 	linkoptions ("/DELAYLOAD:api-ms-win-core-winrt-error-l1-1-1.dll /DELAYLOAD:api-ms-win-core-winrt-l1-1-0.dll /DELAYLOAD:api-ms-win-core-winrt-error-l1-1-0.dll /DELAYLOAD:api-ms-win-core-winrt-string-l1-1-0.dll /DELAYLOAD:ole32.dll")
 	add_dependencies { 'vendor:tbb' }

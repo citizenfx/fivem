@@ -22,11 +22,11 @@
 
 		targetextension '.com'
 
-		configuration "game=ny"
+		filter { "options:game=ny" }
 			targetname "LibertyM"
 
-		configuration "game=payne"
+		filter { "options:game=payne" }
 			targetname "CitizenPayne"
 
-		configuration "game=five"
+		filter { "options:game=five" }
 			targetname "FiveM"

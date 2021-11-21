@@ -41,7 +41,7 @@
 				files("**.asm")
 			end
 
-			configuration "not windows"
+			filter { "system:not windows" }
 				excludes { "Hooking.*", "*.asm" }
 	end
 

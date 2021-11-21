@@ -1,6 +1,5 @@
 return function()
 	filter {}
-	configuration {}
 	
 	add_dependencies { 'vendor:mbedtls', 'vendor:xz', 'vendor:hdiffpatch', 'vendor:openssl_crypto', 'vendor:tinyxml2-dll', 'ros-patches' }
 

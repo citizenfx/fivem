@@ -29,5 +29,8 @@ project "CitiCore"
 
 	defines "COMPILING_CORE"
 
-	configuration "not windows"
+	filter { "system:not windows" }
 		links { "dl" }
+
+	filter { "system:windows" }
+		buildoptions { "/MP" }

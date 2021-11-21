@@ -95,7 +95,7 @@ return {
 		filter { "files:**.c" }
 			compileas "C++"
 
-		configuration "Release"
+		filter { "configurations:Release" }
 			optimize "Speed"
 	end
 }

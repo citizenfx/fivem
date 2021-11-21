@@ -160,7 +160,6 @@ add_dependencies = function(list)
 		local dep = v.dep
 		local data = v.data
 
-		configuration {}
 		filter {}
 
 		if not data.vendor or not data.vendor.dummy then
@@ -175,7 +174,6 @@ add_dependencies = function(list)
 			data.vendor.include()
 		end
 
-		configuration {}
 		filter {}
 
 		if data.vendor and data.vendor.depend then
@@ -295,7 +293,7 @@ local do_component = function(name, comp)
 		local dep = v.dep
 		local data = v.data
 
-		configuration {}
+		filter {}
 
 		if not data.vendor or not data.vendor.dummy then
 			links { dep }
@@ -312,13 +310,13 @@ local do_component = function(name, comp)
 
 	_G._ROOTPATH = path.getabsolute('.')
 
-	configuration {}
+	filter {}
 	local postCb = dofile(comp.absPath .. '/component.lua')
 	local postCbs = {}
 	
 	table.insert(postCbs, postCb)
 	
-	configuration {}
+	filter {}
 	if not comp.private then
 		for k, repo in all_private_repos() do
 			local repoRel = path.getrelative(path.getabsolute(''), repo) .. '/components/' .. name .. '/component_override.lua'
@@ -335,7 +333,7 @@ local do_component = function(name, comp)
 		local dep = v.dep
 		local data = v.data
 
-		configuration {}
+		filter {}
 
 		if data.vendor then
 			if data.vendor.depend then
@@ -346,14 +344,14 @@ local do_component = function(name, comp)
 		end
 	end
 
-	configuration "windows"
+	filter { "system:windows" }
 		buildoptions "/MP"
 
 		files {
 			relPath .. "/component.rc",
 		}
 
-	configuration "not windows"
+	filter { "system:not windows" }
 		files {
 			relPath .. "/component.json"
 		}

@@ -1,6 +1,5 @@
 -- we don't want this to infect any of our dependants
 return function()
-	configuration {}
 	filter {}
 	
 	if not os.istarget('windows') then
