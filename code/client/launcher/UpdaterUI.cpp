@@ -1727,7 +1727,7 @@ extern "C" DLL_EXPORT HRESULT WINAPI DllGetActivationFactory(HSTRING classId, IA
 	{
 		*factory = nullptr;
 		uint32_t length{};
-		wchar_t const* const buffer = WINRT_WindowsGetStringRawBuffer(classId, &length);
+		wchar_t const* const buffer = WindowsGetStringRawBuffer(classId, &length);
 		std::wstring_view const name{ buffer, length };
 
 		auto requal = [](std::wstring_view const& left, std::wstring_view const& right) noexcept

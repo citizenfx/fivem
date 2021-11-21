@@ -56,6 +56,7 @@ workspace "CitizenMP"
 	flags { "NoIncrementalLink", "NoMinimalRebuild" } -- this breaks our custom section ordering in citilaunch, and is kind of annoying otherwise
 
 	editandcontinue 'Off'
+	justmycode 'Off'
 
 	includedirs {
 		"shared/",
@@ -85,7 +86,7 @@ workspace "CitizenMP"
 			buildoptions { '/await', '/d2FH4-' }
 		end
 
-		systemversion '10.0.18362.0'
+		systemversion '10.0.22000.0'
 	else
 		vectorextensions 'SSSE3'
 	end
@@ -128,7 +129,6 @@ workspace "CitizenMP"
 	filter { "configurations:Debug" }
 		targetdir (binroot .. "/debug")
 		defines "NDEBUG"
-		justmycode 'Off'
 
 		-- allow one level of inlining
 		if os.istarget('windows') then

@@ -5,7 +5,9 @@ return {
 		if os.istarget('windows') then
 			includedirs { "../vendor/curl/include/" }
 
-			links { 'ws2_32', 'crypt32' }
+			if not static then
+				links { 'ws2_32', 'crypt32' }
+			end
 		else
 			links { 'curl' }
 			
