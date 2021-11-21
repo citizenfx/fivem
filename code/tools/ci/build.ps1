@@ -81,10 +81,10 @@ function Invoke-WebHook
 		return
 	}
 
-	iwr -UseBasicParsing -Uri $env:TG_WEBHOOK -Method POST -Headers @{'Content-Type' = 'application/json'} -Body (ConvertTo-Json -Compress -InputObject $payload) | out-null
+	Invoke-WebRequest -UseBasicParsing -Uri $env:TG_WEBHOOK -Method POST -Headers @{'Content-Type' = 'application/json'} -Body (ConvertTo-Json -Compress -InputObject $payload) | out-null
 
 	$payload.text += " <:mascot:780071492469653515>"
-	iwr -UseBasicParsing -Uri $env:DISCORD_WEBHOOK -Method POST -Headers @{'Content-Type' = 'application/json'} -Body (ConvertTo-Json -Compress -InputObject $payload) | out-null
+	Invoke-WebRequest -UseBasicParsing -Uri $env:DISCORD_WEBHOOK -Method POST -Headers @{'Content-Type' = 'application/json'} -Body (ConvertTo-Json -Compress -InputObject $payload) | out-null
 }
 
 $UseNewCI = $true
@@ -107,8 +107,6 @@ if ($env:IS_FXSERVER -eq 1) {
 }
 
 if ($env:CI) {
-	$inCI = $true
-
 	if ($env:APPVEYOR) {
 		$Branch = $env:APPVEYOR_REPO_BRANCH
 		$WorkDir = $env:APPVEYOR_BUILD_FOLDER -replace '/','\'
@@ -165,7 +163,7 @@ New-Item -ItemType Directory -Force $BuildRoot | Out-Null
 
 Set-Location $WorkRootDir
 
-if ((Get-Command "python.exe" -ErrorAction SilentlyContinue) -eq $null) {
+if ($null -eq (Get-Command "python.exe" -ErrorAction SilentlyContinue)) {
 	$env:Path = "C:\python27\;" + $env:Path
 }
 
@@ -193,9 +191,16 @@ if (!$DontBuild)
 
 	Start-Section "vs_setup" "Setting up VS"
 
-	$ci_dir = $env:CI_PROJECT_DIR -replace '/','\'
-
 	$VCDir = (& "$WorkDir\code\tools\ci\vswhere.exe" -latest -prerelease -property installationPath -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64)
+
+	$VSVersion = [System.Version]::Parse((& "$WorkDir\code\tools\ci\vswhere.exe" -prerelease -latest -property catalog_buildVersion -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64))
+	if ($VSVersion -ge [System.Version]::Parse("17.0")) {
+		$VSLine = "vs2022"
+	} elseif ($VSVersion -ge [System.Version]::Parse("16.0")) {
+		$VSLine = "vs2019"
+	} else {
+		throw "Unknown or invalid VS version."
+	}
 
 	if (!(Test-Path Env:\DevEnvDir)) {
 		Invoke-BatchFile "$VCDir\VC\Auxiliary\Build\vcvars64.bat"
@@ -284,15 +289,15 @@ if (!$DontBuild)
 		if (!(Test-Path fivem-private)) {
 			git clone -b $CIBranch $env:FIVEM_PRIVATE_URI
 		} else {
-			cd fivem-private
+			Set-Location fivem-private
 
 			git fetch origin | Out-Null
 			git reset --hard origin/$CIBranch | Out-Null
 
-			cd ..
+			Set-Location ..
 		}
 
-		echo "private_repo '../../fivem-private/'" | Out-File -Encoding ascii $WorkRootDir\privates_config.lua
+		Write-Output "private_repo '../../fivem-private/'" | Out-File -Encoding ascii $WorkRootDir\privates_config.lua
 
 		Pop-Location
 		End-Section "private"
@@ -317,7 +322,7 @@ if (!$DontBuild)
 	}
 
 	Start-Section "premake" "Running premake"
-	Invoke-Expression "& $WorkRootDir\tools\ci\premake5 vs2019 --game=$GameName --builddir=$BuildRoot --bindir=$BinRoot"
+	Invoke-Expression "& $WorkRootDir\tools\ci\premake5 $VSLine --game=$GameName --builddir=$BuildRoot --bindir=$BinRoot"
 	End-Section "premake"
 
 	"#pragma once
