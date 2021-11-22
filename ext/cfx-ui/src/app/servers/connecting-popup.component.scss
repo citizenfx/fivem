@@ -115,8 +115,8 @@
 				margin-right: calc(var(--q1) * -1);
 
 				width: calc(100% + var(--q2));
-
-				padding: 0 !important;
+				padding: var(--q2);
+				
 				background-color: transparent !important;
 			}
 		}
