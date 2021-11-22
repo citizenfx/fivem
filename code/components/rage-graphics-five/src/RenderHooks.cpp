@@ -33,9 +33,6 @@ void WakeWindowThreadFor(std::function<void()>&& func);
 fwEvent<> OnGrcCreateDevice;
 fwEvent<> OnPostFrontendRender;
 
-fwEvent<IDXGISwapChain*, int, int> OnPreD3DPresent;
-fwEvent<IDXGISwapChain*, int, int> OnPostD3DPresent;
-
 DLL_EXPORT fwEvent<bool*> OnFlipModelHook;
 
 fwEvent<bool*> OnRequestInternalScreenshot;
@@ -1531,7 +1528,6 @@ void D3DPresent(int syncInterval, int flags)
 	}
 
 	RootCheckPresented(flags);
-	OnPreD3DPresent(*g_dxgiSwapChain, syncInterval, flags);
 
 	if (IsWindows10OrGreater())
 	{
@@ -1567,7 +1563,6 @@ void D3DPresent(int syncInterval, int flags)
 		LimitFrameTime(fpsTimer, 20);
 	}
 
-	OnPostD3DPresent(*g_dxgiSwapChain, syncInterval, flags);
 	RootSetPresented();
 
 #if __has_include(<ENBApi.h>)

@@ -440,14 +440,6 @@ static InitFunction initFunction([]()
 		rage::scrEngine::CreateThread(&g_fish);
 	});
 
-	OnPreD3DPresent.Connect([](IDXGISwapChain* sc, int, int)
-	{
-		for (auto& cb : g_presentCallbacks)
-		{
-			cb(sc);
-		}
-	});
-
 	InputHook::QueryInputTarget.Connect([](std::vector<InputTarget*>& targets)
 	{
 		static struct : InputTarget
