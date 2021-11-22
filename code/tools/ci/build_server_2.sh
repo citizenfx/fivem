@@ -105,7 +105,7 @@ mv boost_* boost || true
 export BOOST_ROOT=/tmp/boost/
 
 # download and build premake
-curl --http1.1 -sLo /tmp/premake.zip https://github.com/premake/premake-core/releases/download/v5.0.0-alpha13/premake-5.0.0-alpha13-src.zip
+curl --http1.1 -sLo /tmp/premake.zip https://github.com/premake/premake-core/releases/download/v5.0.0-beta1/premake-5.0.0-beta1-src.zip
 
 cd /tmp
 unzip -q premake.zip
