@@ -1056,91 +1056,97 @@ const BYTE g_VertyShader[] = {
 
 static void InitializeRenderOverlay(winrt::Windows::UI::Xaml::Controls::SwapChainPanel swapChainPanel, int w, int h)
 {
-	auto loadSystemDll = [](auto dll)
-	{
-		wchar_t systemPath[512];
-		GetSystemDirectory(systemPath, _countof(systemPath));
-
-		wcscat_s(systemPath, dll);
-
-		return LoadLibrary(systemPath);
-	};
-
-	ComPtr<ID3D11Device> g_pd3dDevice = NULL;
-	ComPtr<ID3D11DeviceContext> g_pd3dDeviceContext = NULL;
-	ComPtr<IDXGISwapChain1> g_pSwapChain = NULL;
-	ComPtr<ID3D11RenderTargetView> g_mainRenderTargetView = NULL;
-
-	// Setup swap chain
-	DXGI_SWAP_CHAIN_DESC1 sd;
-	ZeroMemory(&sd, sizeof(sd));
-	sd.BufferCount = 2;
-	sd.Width = w;
-	sd.Height = h;
-	sd.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-	sd.AlphaMode = DXGI_ALPHA_MODE_PREMULTIPLIED;
-	sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	sd.SampleDesc.Count = 1;
-	sd.SampleDesc.Quality = 0;
-	sd.Scaling = DXGI_SCALING_STRETCH;
-	sd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
-
-	UINT createDeviceFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
-	//createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
-	D3D_FEATURE_LEVEL featureLevel;
-	const D3D_FEATURE_LEVEL featureLevelArray[2] = {
-		D3D_FEATURE_LEVEL_11_0,
-		D3D_FEATURE_LEVEL_10_0,
-	};
-
-	auto d3d11 = loadSystemDll(L"\\d3d11.dll");
-	auto _D3D11CreateDevice = (decltype(&D3D11CreateDevice))GetProcAddress(d3d11, "D3D11CreateDevice");
-
-	if (_D3D11CreateDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &g_pd3dDevice, &featureLevel, &g_pd3dDeviceContext) != S_OK)
-	{
-		return;
-	}
-
-	ComPtr<IDXGIDevice1> device1;
-	if (FAILED(g_pd3dDevice.As(&device1)))
-	{
-		return;
-	}
-
-	ComPtr<IDXGIAdapter> adapter;
-	if (FAILED(device1->GetAdapter(&adapter)))
-	{
-		return;
-	}
-
-	ComPtr<IDXGIFactory> parent;
-	if (FAILED(adapter->GetParent(__uuidof(IDXGIFactory), &parent)))
-	{
-		return;
-	}
-
-	ComPtr<IDXGIFactory3> factory3;
-	if (FAILED(parent.As(&factory3)))
-	{
-		return;
-	}
-
-	if (FAILED(factory3->CreateSwapChainForComposition(g_pd3dDevice.Get(), &sd, NULL, &g_pSwapChain)))
-	{
-		return;
-	}
-
-	{
-		ComPtr<ID3D11Texture2D> pBackBuffer;
-		g_pSwapChain->GetBuffer(0, IID_PPV_ARGS(&pBackBuffer));
-		g_pd3dDevice->CreateRenderTargetView(pBackBuffer.Get(), NULL, &g_mainRenderTargetView);
-	}
-	
 	auto nativePanel = swapChainPanel.as<ISwapChainPanelNative>();
-	nativePanel->SetSwapChain(g_pSwapChain.Get());
 
-	std::thread([g_pd3dDevice, g_pd3dDeviceContext, g_pSwapChain, g_mainRenderTargetView, w, h]()
+	std::thread([w, h, swapChainPanel, nativePanel]()
 	{
+		auto loadSystemDll = [](auto dll)
+		{
+			wchar_t systemPath[512];
+			GetSystemDirectory(systemPath, _countof(systemPath));
+
+			wcscat_s(systemPath, dll);
+
+			return LoadLibrary(systemPath);
+		};
+
+		ComPtr<ID3D11Device> g_pd3dDevice = NULL;
+		ComPtr<ID3D11DeviceContext> g_pd3dDeviceContext = NULL;
+		ComPtr<IDXGISwapChain1> g_pSwapChain = NULL;
+		ComPtr<ID3D11RenderTargetView> g_mainRenderTargetView = NULL;
+
+		// Setup swap chain
+		DXGI_SWAP_CHAIN_DESC1 sd;
+		ZeroMemory(&sd, sizeof(sd));
+		sd.BufferCount = 2;
+		sd.Width = w;
+		sd.Height = h;
+		sd.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+		sd.AlphaMode = DXGI_ALPHA_MODE_PREMULTIPLIED;
+		sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+		sd.SampleDesc.Count = 1;
+		sd.SampleDesc.Quality = 0;
+		sd.Scaling = DXGI_SCALING_STRETCH;
+		sd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
+
+		UINT createDeviceFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
+		//createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
+		D3D_FEATURE_LEVEL featureLevel;
+		const D3D_FEATURE_LEVEL featureLevelArray[2] = {
+			D3D_FEATURE_LEVEL_11_0,
+			D3D_FEATURE_LEVEL_10_0,
+		};
+
+		auto d3d11 = loadSystemDll(L"\\d3d11.dll");
+		auto _D3D11CreateDevice = (decltype(&D3D11CreateDevice))GetProcAddress(d3d11, "D3D11CreateDevice");
+
+		if (_D3D11CreateDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &g_pd3dDevice, &featureLevel, &g_pd3dDeviceContext) != S_OK)
+		{
+			return;
+		}
+
+		ComPtr<IDXGIDevice1> device1;
+		if (FAILED(g_pd3dDevice.As(&device1)))
+		{
+			return;
+		}
+
+		ComPtr<IDXGIAdapter> adapter;
+		if (FAILED(device1->GetAdapter(&adapter)))
+		{
+			return;
+		}
+
+		ComPtr<IDXGIFactory> parent;
+		if (FAILED(adapter->GetParent(__uuidof(IDXGIFactory), &parent)))
+		{
+			return;
+		}
+
+		ComPtr<IDXGIFactory3> factory3;
+		if (FAILED(parent.As(&factory3)))
+		{
+			return;
+		}
+
+		if (FAILED(factory3->CreateSwapChainForComposition(g_pd3dDevice.Get(), &sd, NULL, &g_pSwapChain)))
+		{
+			return;
+		}
+
+		{
+			ComPtr<ID3D11Texture2D> pBackBuffer;
+			g_pSwapChain->GetBuffer(0, IID_PPV_ARGS(&pBackBuffer));
+			g_pd3dDevice->CreateRenderTargetView(pBackBuffer.Get(), NULL, &g_mainRenderTargetView);
+		}
+
+		swapChainPanel.Dispatcher().TryRunAsync(
+		winrt::Windows::UI::Core::CoreDispatcherPriority::Normal,
+		[g_pSwapChain, nativePanel]()
+		{
+			nativePanel->SetSwapChain(g_pSwapChain.Get());
+		});
+
 		ComPtr<ID3D11VertexShader> vs;
 		ComPtr<ID3D11PixelShader> ps;
 
@@ -1300,7 +1306,7 @@ void UI_CreateWindow()
 		{
 			auto sc = ui.FindName(L"Overlay").as<winrt::Windows::UI::Xaml::Controls::SwapChainPanel>();
 
-			if (_time64(NULL) < 1609632000)
+			if (_time64(NULL) < 1643670000)
 			{
 				InitializeRenderOverlay(sc, g_dpi.ScaleX(wwidth), g_dpi.ScaleY(wheight));
 			}
