@@ -359,7 +359,7 @@ namespace CitizenFX.Core
 				{
 					return;
 				}
-				MemoryAccess.WriteInt(memoryAddress + 80, Color.ToArgb());
+				MemoryAccess.WriteInt(memoryAddress + 80, value.ToArgb());
 			}
 		}
 		/// <summary>
@@ -383,7 +383,7 @@ namespace CitizenFX.Core
 				{
 					return;
 				}
-				MemoryAccess.WriteInt(memoryAddress + 84, Color.ToArgb());
+				MemoryAccess.WriteInt(memoryAddress + 84, value.ToArgb());
 			}
 		}
 
