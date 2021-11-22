@@ -784,6 +784,15 @@ void VHook(intptr_t& ref, TFnLeft fn, TFnRight out)
 	ref = (intptr_t)fn;
 }
 
+static std::recursive_mutex g_d3d11Mutex;
+static void (__stdcall *g_origFlush)(void*);
+
+static void __stdcall FlushHook(void* cxt)
+{
+	std::unique_lock _(g_d3d11Mutex);
+	g_origFlush(cxt);
+}
+
 static void PatchCreateResults(ID3D11Device** ppDevice, ID3D11DeviceContext** ppImmediateContext, bool forceGPU)
 {
 	bool can = true;
@@ -805,6 +814,7 @@ static void PatchCreateResults(ID3D11Device** ppDevice, ID3D11DeviceContext** pp
 		auto ourVtblCxt = new intptr_t[640];
 		memcpy(ourVtblCxt, vtblCxt, 640 * sizeof(intptr_t));
 
+		VHook(ourVtblCxt[111], &FlushHook, &g_origFlush);
 		VHook(ourVtblCxt[47], &CopyResourceHook, &g_origCopyResource);
 
 		**(intptr_t***)ppDevice = ourVtbl;
@@ -911,6 +921,8 @@ static HMODULE g_sysD3D11;
 
 static HRESULT D3D11CreateDeviceAndSwapChainHook(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _In_opt_ CONST DXGI_SWAP_CHAIN_DESC* pSwapChainDesc, _COM_Outptr_opt_ IDXGISwapChain** ppSwapChain, _COM_Outptr_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _COM_Outptr_opt_ ID3D11DeviceContext** ppImmediateContext)
 {
+	std::unique_lock _(g_d3d11Mutex);
+
 	PatchAdapter(&pAdapter);
 
 	if (pAdapter)
@@ -928,6 +940,8 @@ static HRESULT D3D11CreateDeviceAndSwapChainHook(_In_opt_ IDXGIAdapter* pAdapter
 
 static HRESULT D3D11CreateDeviceHook(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _COM_Outptr_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _COM_Outptr_opt_ ID3D11DeviceContext** ppImmediateContext)
 {
+	std::unique_lock _(g_d3d11Mutex);
+
 	// if this is the OS calling us, we need to be special and *somehow* convince any hook to give up their true colors
 	// since D3D11CoreCreateDevice is super obscure, we'll use *that*
 	if (g_d3d11->IsInSet(_ReturnAddress()))
