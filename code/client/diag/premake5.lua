@@ -22,5 +22,5 @@
 		
 		staticruntime 'On'
 
-		configuration "game=five"
+		filter { "options:game=five" }
 			targetname "FiveM_Diag"

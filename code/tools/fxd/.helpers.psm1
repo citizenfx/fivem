@@ -23,7 +23,7 @@ function Invoke-BatchFile
 	
 
 function Invoke-VSInit {
-	$VCDir = (& "$PSScriptRoot\..\ci\vswhere.exe" -latest -property installationPath -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64)
+	$VCDir = (& "$PSScriptRoot\..\ci\vswhere.exe" -prerelease -latest -property installationPath -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64)
 
 	if (!(Test-Path Env:\DevEnvDir)) {
 		Invoke-BatchFile "$VCDir\VC\Auxiliary\Build\vcvars64.bat"

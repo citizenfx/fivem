@@ -2,7 +2,6 @@ local cwd = os.getcwd()
 
 return function()
 	filter {}
-	configuration {}
 	
 	add_dependencies { 'vendor:eastl' }
 

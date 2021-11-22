@@ -39,7 +39,7 @@
 	url = https://github.com/citizenfx/leveldb.git
 [submodule "vendor/minhook"]
 	path = vendor/minhook
-	url = https://github.com/TsudaKageyu/minhook.git
+	url = https://github.com/citizenfx/minhook.git
 [submodule "vendor/rapidjson"]
 	path = vendor/rapidjson
 	url = https://github.com/miloyip/rapidjson.git

@@ -1,6 +1,5 @@
 return function()
 	filter {}
-	configuration {}
 
 	if _OPTIONS['game'] ~= 'server' then
 		add_dependencies { "citizen:resources:client" }

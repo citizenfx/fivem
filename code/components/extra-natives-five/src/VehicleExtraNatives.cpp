@@ -28,6 +28,8 @@
 #include <MinHook.h>
 
 #include <xinput.h>
+
+#include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.Gaming.Input.h>
 
 using namespace winrt::Windows::Gaming::Input;

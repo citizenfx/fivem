@@ -5,7 +5,7 @@ local oldRun = tbl.run
 tbl.run = function()
 	oldRun()
 	
-	configuration {}
+	filter {}
 		rtti 'Off'
 end
 

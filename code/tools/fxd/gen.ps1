@@ -21,6 +21,15 @@ param(
 	[string]$Game = 'five'
 )
 
+$VSVersion = [System.Version]::Parse((& "$PSScriptRoot\..\ci\vswhere.exe" -prerelease -latest -property catalog_buildVersion -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64))
+if ($VSVersion -ge [System.Version]::Parse("17.0")) {
+	$VSLine = "vs2022"
+} elseif ($VSVersion -ge [System.Version]::Parse("16.0")) {
+	$VSLine = "vs2019"
+} else {
+	throw "Unknown or invalid VS version."
+}
+
 Push-Location "$PSScriptRoot\..\..\"
-& "$PSScriptRoot\..\ci\premake5.exe" vs2019 "--game=$Game"
+& "$PSScriptRoot\..\ci\premake5.exe" $VSLine "--game=$Game"
 Pop-Location

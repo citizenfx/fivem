@@ -3,7 +3,6 @@ includedirs {
 }
 
 return function()
-	configuration {}
 	filter {}
 
 	files {

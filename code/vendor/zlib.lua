@@ -16,7 +16,8 @@ return {
 		files { "../vendor/zlib/*.c", "../vendor/zlib/*.h" }
 		excludes { "../vendor/zlib/example.c", "../vendor/zlib/minigzip.c" }
 
-		configuration "windows"
+		if os.istarget('windows') then
 			defines { "WIN32" }
+		end
 	end
 }

@@ -2,7 +2,6 @@ links { "ws2_32" }
 
 return function()
 	filter {}
-	configuration {}
 	
 	if _OPTIONS["game"] == 'ny' then
 		add_dependencies {

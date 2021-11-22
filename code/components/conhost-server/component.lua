@@ -1,6 +1,5 @@
 return function()
 	filter {}
-	configuration {}
 	
 	if os.istarget('windows') then
 		add_dependencies { "vendor:imgui" }
