@@ -112,7 +112,7 @@ unzip -q premake.zip
 rm premake.zip
 cd premake-*
 
-cd build/gmake.unix/
+cd build/gmake*.unix/
 make -j${JOB_SLOTS}
 cd ../../
 
