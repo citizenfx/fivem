@@ -1988,6 +1988,9 @@ static hook::cdecl_stub<void(void*, void* packfile, const char*, bool)> loadMani
 	return hook::get_pattern("83 A5 ? ? ? ? 00 E8 ? ? ? ? 48 8B C8 4C", -0x38);
 });
 #endif
+
+static std::unordered_multimap<uint32_t, uint32_t> g_itypToMapDataDeps;
+
 void LoadManifest(const char* tagName)
 {
 	auto range = g_manifestNames.equal_range(tagName);
@@ -2036,9 +2039,19 @@ void LoadManifest(const char* tagName)
 			atArray<uint32_t> itypDepArray;
 		};
 
+		struct CImapDependencies
+		{
+			uint32_t imapName;
+			uint32_t manifestFlags;
+
+			atArray<uint32_t> imapDepArray;
+		};
+
 		struct manifestData
 		{
-			char pad[48];
+			char pad[16];
+			atArray<CImapDependencies> imapDependencies_2;
+			char pad2[16];
 			atArray<CItypDependencies> itypDependencies;
 		}* manifestChunk = (manifestData*)manifestChunkPtr;
 
@@ -2055,6 +2068,14 @@ void LoadManifest(const char* tagName)
 				strcpy_s(entry.name, name.c_str());
 
 				mounter->UnmountFile(&entry);
+			}
+		}
+
+		for (auto& dep : manifestChunk->imapDependencies_2)
+		{
+			for (auto idx : dep.imapDepArray)
+			{
+				g_itypToMapDataDeps.emplace(idx, dep.imapName);
 			}
 		}
 #endif
@@ -3123,6 +3144,7 @@ static HookFunction hookFunction([]()
 			CfxCollection_RemoveStreamingTag(tag);
 		}
 
+		auto mapDataStore = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ymap");
 		auto typesStore = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ytyp");
 		auto navMeshStore = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ynv");
 		auto staticBoundsStore = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ybn");
@@ -3133,10 +3155,78 @@ static HookFunction hookFunction([]()
 			if (module == typesStore)
 			{
 #ifdef GTA_FIVE
+				struct fwMapDataDef
+				{
+					uint8_t pad[24];
+					union
+					{
+						uint32_t idx;
+						uint32_t* idxArray;
+					} dependencies;
+
+					uint8_t pad2[6];
+					uint16_t dependencyCount;
+
+					void RemoveDependency(uint32_t idx)
+					{
+						if (dependencyCount == 1)
+						{
+							if (dependencies.idx == idx)
+							{
+								dependencyCount = 0;
+								dependencies.idx = -1;
+							}
+						}
+						else
+						{
+							for (int i = 0; i < dependencyCount; i++)
+							{
+								if (dependencies.idxArray[i] == idx)
+								{
+									if ((i + 1) < dependencyCount)
+									{
+										memmove(&dependencies.idxArray[i], &dependencies.idxArray[i + 1], sizeof(uint32_t) * (dependencyCount - i));
+									}
+
+									dependencyCount--;
+									i--;
+								}
+							}
+
+							// move out of array if we're 1 now
+							if (dependencyCount == 1)
+							{
+								auto soleIdx = dependencies.idxArray[0];
+								rage::GetAllocator()->Free(dependencies.idxArray);
+
+								dependencies.idx = soleIdx;
+							}
+						}
+					}
+				};
+
 				atPoolBase* entryPool = (atPoolBase*)((char*)module + 56);
 				auto entry = entryPool->GetAt<char>(idx);
 
 				*(uint16_t*)(entry + 16) &= ~0x14;
+
+				// remove from any dependent mapdata
+				for (auto entry : fx::GetIteratorView(g_itypToMapDataDeps.equal_range(*(uint32_t*)(entry + 12))))
+				{
+					auto mapDataHash = entry.second;
+					auto mapDataIdx = streaming::GetStreamingIndexForLocalHashKey(mapDataStore, mapDataHash);
+
+					if (mapDataIdx != -1)
+					{
+						atPoolBase* entryPool = (atPoolBase*)((char*)mapDataStore + 56);
+						auto mdEntry = entryPool->GetAt<fwMapDataDef>(mapDataIdx);
+
+						if (mdEntry)
+						{
+							mdEntry->RemoveDependency(idx);
+						}
+					}
+				}
 #elif IS_RDR3
 				atPoolBase* entryPool = (atPoolBase*)((char*)module + 64);
 				auto entry = entryPool->GetAt<char>(idx);

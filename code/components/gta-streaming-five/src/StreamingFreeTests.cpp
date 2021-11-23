@@ -98,6 +98,10 @@ static std::unordered_map<std::string, uint32_t> g_streamingNamesToIndices;
 static std::unordered_map<uint32_t, std::string> g_streamingIndexesToNames;
 static std::unordered_map<uint32_t, std::string> g_streamingHashesToNames;
 #endif
+
+// TODO: unordered_map with a custom hash
+static std::map<std::tuple<streaming::strStreamingModule*, uint32_t>, uint32_t> g_streamingHashStoresToIndices;
+
 extern std::unordered_set<std::string> g_streamingSuffixSet;
 
 #ifdef GTA_FIVE
@@ -138,9 +142,12 @@ uint32_t* AddStreamingFileWrap(uint32_t* indexRet)
 		}
 #endif
 
+		auto store = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule(*indexRet);
+		auto baseIdx = store->baseIdx;
+
 		if (sfLog)
 		{
-			fprintf(sfLog, "registered %s as %d\n", g_lastStreamingName.c_str(), *indexRet);
+			fprintf(sfLog, "registered %s as %d (%d+%d)\n", g_lastStreamingName.c_str(), *indexRet, baseIdx, *indexRet - baseIdx);
 			fflush(sfLog);
 		}
 
@@ -149,6 +156,7 @@ uint32_t* AddStreamingFileWrap(uint32_t* indexRet)
 
 		auto baseFn = g_lastStreamingName.substr(0, g_lastStreamingName.find_last_of('.'));
 		g_streamingHashesToNames[HashString(baseFn.c_str())] = baseFn;
+		g_streamingHashStoresToIndices[{ store, HashString(baseFn.c_str()) }] = *indexRet - baseIdx;
 
 		auto splitIdx = g_lastStreamingName.find_first_of("_");
 
@@ -182,6 +190,18 @@ namespace streaming
 	const std::string& GetStreamingBaseNameForHash(uint32_t hash)
 	{
 		return g_streamingHashesToNames[hash];
+	}
+
+	uint32_t GetStreamingIndexForLocalHashKey(streaming::strStreamingModule* module, uint32_t hash)
+	{
+		auto entry = g_streamingHashStoresToIndices.find({ module, hash });
+
+		if (entry != g_streamingHashStoresToIndices.end())
+		{
+			return entry->second;
+		}
+
+		return -1;
 	}
 }
 
