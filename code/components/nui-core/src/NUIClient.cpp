@@ -138,7 +138,7 @@ Object.prototype.__defineGetter__ = function(prop, func) {
 	}
 
 	// enter push function
-	if (frame->IsMain() && m_window->GetName() == "nui_mpMenu")
+	if (frame->IsMain() && m_window && m_window->GetName() == "nui_mpMenu")
 	{
 		frame->ExecuteJavaScript(R"(
 (() => {
