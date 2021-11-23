@@ -4,6 +4,7 @@
 
 const EXT_FUNCREF = 10;
 const EXT_LOCALFUNCREF = 11;
+const EXT_TABLE = 12;
 
 (function (global) {
 	let boundaryIdx = 1;
@@ -122,6 +123,7 @@ const EXT_LOCALFUNCREF = 11;
 	codec.addExtPacker(EXT_FUNCREF, Function, refFunctionPacker);
 	codec.addExtUnpacker(EXT_FUNCREF, refFunctionUnpacker);
 	codec.addExtUnpacker(EXT_LOCALFUNCREF, refFunctionUnpacker);
+	codec.addExtUnpacker(EXT_TABLE, unpack);
 
 	/**
 	 * Deletes ref function
