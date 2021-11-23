@@ -16,9 +16,14 @@
 
 #include <Error.h>
 
+namespace
+{
+static fwPlatformString g_citizenPath;
+}
+
 fwPlatformString GetAbsoluteCitPath()
 {
-	static fwPlatformString citizenPath;
+	auto& citizenPath = g_citizenPath;
 
 	bool installStateChanged = false;
 
@@ -106,7 +111,7 @@ fwPlatformString GetAbsoluteCitPath()
 fwPlatformString GetAbsoluteGamePath()
 {
 #ifndef IS_FXSERVER
-	static HostSharedData<CfxState> initState("CfxInitState");
+	HostSharedData<CfxState> initState("CfxInitState");
 
 	if (!initState->gameDirectory[0])
 	{
