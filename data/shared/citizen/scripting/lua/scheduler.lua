@@ -1086,6 +1086,32 @@ msgpack.extend({
 
 msgpack.settype("function", EXT_FUNCREF)
 
+--[[ Register msgpack extension for tables --]]
+local EXT_TABLE = 12
+
+msgpack.extend_clear(EXT_TABLE)
+
+msgpack.extend({
+	__ext = EXT_TABLE,
+
+	__pack = function(self, tag)
+		local userdata = msgpack.new()
+		userdata:_table(self)
+
+		local mt = getmetatable(self)
+		if mt then userdata:table(mt) end
+
+		return tostring(userdata), not mt and true
+	end,
+
+	__unpack = function(data, tag)
+		local tbl, mt = msgpack.unpack(data)
+		return setmetatable(tbl, mt)
+	end,
+})
+
+msgpack.settype("table", EXT_TABLE)
+
 -- exports compatibility
 local function getExportEventName(resource, name)
 	return string.format('__cfx_export_%s_%s', resource, name)
