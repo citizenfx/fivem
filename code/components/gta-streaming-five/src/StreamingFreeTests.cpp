@@ -99,8 +99,10 @@ static std::unordered_map<uint32_t, std::string> g_streamingIndexesToNames;
 static std::unordered_map<uint32_t, std::string> g_streamingHashesToNames;
 #endif
 
+#ifdef GTA_FIVE
 // TODO: unordered_map with a custom hash
 static std::map<std::tuple<streaming::strStreamingModule*, uint32_t>, uint32_t> g_streamingHashStoresToIndices;
+#endif
 
 extern std::unordered_set<std::string> g_streamingSuffixSet;
 
@@ -192,6 +194,7 @@ namespace streaming
 		return g_streamingHashesToNames[hash];
 	}
 
+#ifdef GTA_FIVE
 	uint32_t GetStreamingIndexForLocalHashKey(streaming::strStreamingModule* module, uint32_t hash)
 	{
 		auto entry = g_streamingHashStoresToIndices.find({ module, hash });
@@ -203,6 +206,7 @@ namespace streaming
 
 		return -1;
 	}
+#endif
 }
 
 #ifdef GTA_FIVE
