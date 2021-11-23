@@ -39,6 +39,8 @@ using namespace google_breakpad;
 
 #include <fmt/chrono.h>
 
+#include <boost/algorithm/string/replace.hpp>
+
 using json = nlohmann::json;
 
 static json load_json_file(const std::wstring& path)
@@ -230,7 +232,7 @@ static void add_crashometry(json& data)
 
 	for (const auto& pair : map)
 	{
-		data["crashometry_" + pair.first] = pair.second;
+		data["crashometry_" + pair.first] = boost::algorithm::replace_all_copy(pair.second, "\n", "~n~");
 	}
 
 	if (!crashHash.empty())
