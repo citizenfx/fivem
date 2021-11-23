@@ -125,7 +125,6 @@ Object.prototype.__defineGetter__ = function(prop, func) {
 		"nui://patches", 0);
 	}
 
-#ifndef USE_NUI_ROOTLESS
 	if (url == "nui://game/ui/root.html")
 	{
 		static ConVar<std::string> uiUrlVar("ui_url", ConVar_None, "https://nui-game-internal/ui/app/index.html");
@@ -137,9 +136,9 @@ Object.prototype.__defineGetter__ = function(prop, func) {
 			nui::CreateFrame("mpMenu", uiUrlVar.GetValue());
 		}
 	}
-#else
+
 	// enter push function
-	if (frame->IsMain())
+	if (frame->IsMain() && m_window->GetName() == "nui_mpMenu")
 	{
 		frame->ExecuteJavaScript(R"(
 (() => {
@@ -183,7 +182,6 @@ Object.prototype.__defineGetter__ = function(prop, func) {
 			m_window->ProcessLoadQueue();
 		}
 	}
-#endif
 }
 
 void NUIClient::OnAfterCreated(CefRefPtr<CefBrowser> browser)

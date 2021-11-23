@@ -1483,7 +1483,10 @@ void Initialize(nui::GameInterface* gi)
 	g_nuiGi->OnInitRenderer.Connect([]()
 	{
 		g_rendererInit = true;
-		Instance<NUIWindowManager>::Get()->GetRootWindow()->InitializeRenderBacking();
+		Instance<NUIWindowManager>::Get()->ForAllWindows([](auto window)
+		{
+			window->InitializeRenderBacking();
+		});
 	});
 
 	g_nuiGi->OnRender.Connect([]()

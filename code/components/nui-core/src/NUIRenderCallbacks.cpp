@@ -84,7 +84,8 @@ static HookFunction initFunction([] ()
 		std::list<std::string> windowOrder =
 #ifndef USE_NUI_ROOTLESS
 		{
-			"root"
+			"nui_mpMenu",
+			"root",
 		}
 #else
 		g_nuiFocusStack
