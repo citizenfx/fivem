@@ -183,6 +183,7 @@ static hook::cdecl_stub<bool()> isNetworkHost([]()
 	return hook::get_pattern("33 DB 38 1D ? ? ? ? 75 1B 38 1D", -6);
 });
 
+void MumbleVoice_BindNetLibrary(NetLibrary*);
 void ObjectIds_BindNetLibrary(NetLibrary*);
 
 #include <CloneManager.h>
@@ -194,6 +195,8 @@ static HookFunction initFunction([]()
 	Instance<NetLibrary>::Set(g_netLibrary);
 
 	TheClones->BindNetLibrary(g_netLibrary);
+
+	MumbleVoice_BindNetLibrary(g_netLibrary);
 
 	ObjectIds_BindNetLibrary(g_netLibrary);
 

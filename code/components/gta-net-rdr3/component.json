@@ -13,6 +13,7 @@
 		"citizen:resources:core",
 		"citizen:scripting:core",
 		"ros-patches",
+		"voip:mumble",
 		"vendor:websocketpp",
 		"vendor:protobuf_lite",
 		"vendor:msgpack-c",

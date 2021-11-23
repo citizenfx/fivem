@@ -17,5 +17,6 @@ return function()
 		'components/gta-net-five/src/CloneObjectManager.cpp',
 		'components/gta-net-five/src/ObjectIdManager.cpp',
 		'components/gta-net-five/src/rlNetBuffer.cpp',
+		'components/gta-net-five/src/MumbleVoice.cpp',
 	}
 end
