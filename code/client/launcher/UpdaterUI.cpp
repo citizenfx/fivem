@@ -1052,7 +1052,10 @@ const BYTE g_VertyShader[] = {
 	0, 0, 0, 0
 };
 
+#include <dwmapi.h>
 #include <mmsystem.h>
+
+#pragma comment(lib, "dwmapi")
 
 static void InitializeRenderOverlay(winrt::Windows::UI::Xaml::Controls::SwapChainPanel swapChainPanel, int w, int h)
 {
@@ -1231,7 +1234,8 @@ static void InitializeRenderOverlay(winrt::Windows::UI::Xaml::Controls::SwapChai
 			g_pd3dDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 			g_pd3dDeviceContext->Draw(4, 0);
 
-			g_pSwapChain->Present(1, 0);
+			g_pSwapChain->Present(0, 0);
+			DwmFlush();
 		}
 
 		// prevent the thread from exiting (the CRT is broken and will crash on thread exit in some cases)
