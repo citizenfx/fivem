@@ -1236,6 +1236,22 @@ static HookFunction hookFunction([]()
 			g_mumbleClient->SetAudioOutputDistance(dist);
 		});
 
+		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_CLEAR_VOICE_CHANNEL", [](fx::ScriptContext& context)
+		{
+			if (g_mumble.connected)
+			{
+				g_mumbleClient->SetChannel("Root");
+			}
+		});
+
+		fx::ScriptEngine::RegisterNativeHandler("MUMBLE_SET_VOICE_CHANNEL", [](fx::ScriptContext& context)
+		{
+			if (g_mumble.connected)
+			{
+				g_mumbleClient->SetChannel(fmt::sprintf("Game Channel %d", context.GetArgument<int>(0)));
+			}
+		});
+
 		scrBindGlobal("GET_AUDIOCONTEXT_FOR_CLIENT", getAudioContext);
 		scrBindGlobal("GET_AUDIOCONTEXT_FOR_SERVERID", getAudioContextByServerId);
 
