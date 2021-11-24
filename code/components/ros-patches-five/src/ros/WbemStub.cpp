@@ -1,11 +1,11 @@
 #include <StdInc.h>
 
 #include <Shlwapi.h>
+#include <shobjidl.h>
 
 #if !defined(_M_IX86)
 #include <wrl.h>
 
-#include <shobjidl.h>
 #include <wbemidl.h>
 #include <propvarutil.h>
 
