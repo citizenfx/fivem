@@ -243,6 +243,36 @@ static void* CTaskAimGunOnFoot_ProcessStages(unsigned char* thisptr, int stage, 
 	return origCTaskAimGunOnFoot_ProcessStages(thisptr, stage, substage);
 }
 
+static std::atomic_bool g_actionStateAimCooldownEnabled = false;
+static std::atomic_int g_actionStateAimCooldownMS = 0;
+static bool (*g_origShouldAim)(void*);
+// This function is inside of CTaskMotionPed::ProcessFSM()
+//    -- Stage 16_1(action ready state) where it would normally transition to Stage 13(shooting state)
+static bool ShouldAim(void* cTaskMotionPed)
+{
+	void* taskPed = *(void**)((uintptr_t)cTaskMotionPed + 0x10);
+	if (taskPed != getLocalPlayerPed())
+	{
+		goto orig;
+	}
+
+	if (g_actionStateAimCooldownEnabled)
+	{
+		static DWORD lastAimMS = 0;
+
+		if ((GetTickCount() - lastAimMS) > g_actionStateAimCooldownMS)
+		{
+			lastAimMS = GetTickCount();
+			return g_origShouldAim(cTaskMotionPed);
+		}
+		return false;
+	}
+
+orig:
+	return g_origShouldAim(cTaskMotionPed);
+}
+
+
 static HookFunction hookFunction([]()
 {
 	{
@@ -328,6 +358,25 @@ static HookFunction hookFunction([]()
 		}
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("SET_AIM_COOLDOWN", [](fx::ScriptContext& context)
+	{
+		int value = context.GetArgument<int>(0);
+
+		g_actionStateAimCooldownEnabled = (value > 0);
+		g_actionStateAimCooldownMS = value;
+
+		fx::OMPtr<IScriptRuntime> runtime;
+		if (FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+		{
+			fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
+
+			resource->OnStop.Connect([]()
+			{
+				g_actionStateAimCooldownEnabled = false;
+			});
+		}
+	});
+
 	Instance<ICoreGameInit>::Get()->OnShutdownSession.Connect([]()
 	{
 		g_SET_FLASH_LIGHT_KEEP_ON_WHILE_MOVING = false;
@@ -379,4 +428,9 @@ static HookFunction hookFunction([]()
 	uintptr_t* cTaskAimGun_vtable = hook::get_address<uintptr_t*>(hook::get_pattern<unsigned char>("48 89 44 24 20 E8 ? ? ? ? 48 8D 05 ? ? ? ? 48 8D 8B 20 01", 13));
 	origCTaskAimGunOnFoot_ProcessStages = (CTaskAimGunOnFootProcessStagesFn)cTaskAimGun_vtable[14];
 	hook::put(&cTaskAimGun_vtable[14], (uintptr_t)CTaskAimGunOnFoot_ProcessStages);
+
+	// Hook inside of CTaskMotionPed - Stage 16_1 -- Used for a cooldown on spamming movements+aiming to optionally hinder 'speedboosting'
+	void* shouldAimCall = hook::pattern("E8 ? ? ? ? 84 C0 0F 84 ? ? ? ? 48 8B CB E8 ? ? ? ? 84 C0 0F 84 ? ? ? ? F3 0F 10 B7 80 05 00 00").count(4).get(0).get<void>();
+	hook::set_call(&g_origShouldAim, shouldAimCall);
+	hook::call(shouldAimCall, ShouldAim);
 });
