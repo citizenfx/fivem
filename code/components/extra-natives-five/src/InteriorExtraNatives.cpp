@@ -252,6 +252,28 @@ static CMloEntitySet* GetInteriorEntitySet(int interiorId, int setId)
 	return &(arch->entitySets->Get(setId));
 }
 
+static iCEntityDef* GetInteriorPortalEntityDef(int interiorId, int portalId, int entityId)
+{
+	CMloModelInfo* arch = GetInteriorArchetype(interiorId);
+	if (arch == nullptr)
+	{
+		return nullptr;
+	}
+
+	CMloPortalDef* portalDef = GetInteriorPortalDef(interiorId, portalId);
+	if (portalDef == nullptr)
+	{
+		return nullptr;
+	}
+
+	if (entityId < 0 || entityId > (portalDef->attachedObjects.GetCount()) - 1)
+	{
+		return nullptr;
+	}
+
+	return arch->entities->Get(portalDef->attachedObjects[entityId]);
+}
+
 static CMloTimeCycleModifier* GetInteriorTimecycleModifier(int interiorId, int modId)
 {
 	CMloModelInfo* arch = GetInteriorArchetype(interiorId);
@@ -739,5 +761,108 @@ static HookFunction initFunction([]()
 		}
 
 		context.SetResult<int>(result);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_INTERIOR_PORTAL_ENTITY_COUNT", [=](fx::ScriptContext& context)
+	{
+		auto interiorId = context.GetArgument<int>(0);
+		auto portalId = context.GetArgument<int>(1);
+		auto result = 0;
+
+		CMloPortalDef* portalDef = GetInteriorPortalDef(interiorId, portalId);
+		if (portalDef != nullptr)
+		{
+			result = portalDef->attachedObjects.GetCount();
+		}
+
+		context.SetResult<int>(result);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_INTERIOR_PORTAL_ENTITY_ARCHETYPE", [=](fx::ScriptContext& context)
+	{
+		auto interiorId = context.GetArgument<int>(0);
+		auto portalId = context.GetArgument<int>(1);
+		auto entityId = context.GetArgument<int>(2);
+		auto result = 0;
+
+		iCEntityDef* entityDef = GetInteriorPortalEntityDef(interiorId, portalId, entityId);
+		if (entityDef != nullptr)
+		{
+			result = entityDef->archetypeName;
+		}
+
+		context.SetResult<int>(result);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_INTERIOR_PORTAL_ENTITY_FLAG", [=](fx::ScriptContext& context)
+	{
+		auto interiorId = context.GetArgument<int>(0);
+		auto portalId = context.GetArgument<int>(1);
+		auto entityId = context.GetArgument<int>(2);
+		auto result = -1;
+
+		iCEntityDef* entityDef = GetInteriorPortalEntityDef(interiorId, portalId, entityId);
+		if (entityDef != nullptr)
+		{
+			result = entityDef->flags;
+		}
+
+		context.SetResult<int>(result);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_INTERIOR_PORTAL_ENTITY_FLAG", [=](fx::ScriptContext& context)
+	{
+		auto interiorId = context.GetArgument<int>(0);
+		auto portalId = context.GetArgument<int>(1);
+		auto entityId = context.GetArgument<int>(2);
+		auto newValue = context.GetArgument<int>(3);
+
+		iCEntityDef* entityDef = GetInteriorPortalEntityDef(interiorId, portalId, entityId);
+		if (entityDef != nullptr)
+		{
+			entityDef->flags = newValue;
+			return true;
+		}
+
+		return false;
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_INTERIOR_PORTAL_ENTITY_POSITION", [=](fx::ScriptContext& context)
+	{
+		auto interiorId = context.GetArgument<int>(0);
+		auto portalId = context.GetArgument<int>(1);
+		auto entityId = context.GetArgument<int>(2);
+
+		iCEntityDef* entityDef = GetInteriorPortalEntityDef(interiorId, portalId, entityId);
+		if (entityDef == nullptr)
+		{
+			return false;
+		}
+
+		*context.GetArgument<float*>(3) = entityDef->position.x;
+		*context.GetArgument<float*>(4) = entityDef->position.y;
+		*context.GetArgument<float*>(5) = entityDef->position.z;
+
+		return true;
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_INTERIOR_PORTAL_ENTITY_ROTATION", [=](fx::ScriptContext& context)
+	{
+		auto interiorId = context.GetArgument<int>(0);
+		auto portalId = context.GetArgument<int>(1);
+		auto entityId = context.GetArgument<int>(2);
+
+		iCEntityDef* entityDef = GetInteriorPortalEntityDef(interiorId, portalId, entityId);
+		if (entityDef == nullptr)
+		{
+			return false;
+		}
+
+		*context.GetArgument<float*>(3) = entityDef->rotation.x;
+		*context.GetArgument<float*>(4) = entityDef->rotation.y;
+		*context.GetArgument<float*>(5) = entityDef->rotation.z;
+		*context.GetArgument<float*>(6) = entityDef->rotation.w;
+
+		return true;
 	});
 });
