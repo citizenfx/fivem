@@ -138,6 +138,7 @@ static std::atomic_bool g_SET_WEAPONS_NO_AUTORELOAD = false;
 static std::atomic_bool g_SET_WEAPONS_NO_AUTOSWAP = false;
 
 static bool (*origCPedWeapMgr_AutoSwap)(unsigned char*, bool, bool);
+static std::atomic_bool attemptedSwap = false;
 static bool __fastcall CPedWeaponManager_AutoSwap(unsigned char* thisptr, bool opt1, bool opt2)
 {
 	if (!g_SET_WEAPONS_NO_AUTOSWAP || *(CPed**)(thisptr + 16) != getLocalPlayerPed())
@@ -145,7 +146,7 @@ static bool __fastcall CPedWeaponManager_AutoSwap(unsigned char* thisptr, bool o
 		return origCPedWeapMgr_AutoSwap(thisptr, opt1, opt2);
 	}
 
-	// Don't do the autoswap
+	attemptedSwap = true;
 	return false;
 }
 
@@ -210,13 +211,26 @@ static bool __fastcall CPedEquippedWeapon_SetupAsWeapon( unsigned char* thisptr,
 	return result;
 }
 
+static void* (*g_TransitionStageFunc)(void*, int);
+static void* CTaskGun_Stage1_1_TransitionStage(void* CTask, int newStage)
+{
+	CPed* ped = *(CPed**)(uintptr_t(CTask) + 16);
+
+	if (ped == getLocalPlayerPed() && attemptedSwap)
+	{
+		attemptedSwap = false;
+		return g_TransitionStageFunc(CTask, 1);
+	}
+	return g_TransitionStageFunc(CTask, newStage);
+}
+
 typedef void* (*CTaskAimGunOnFootProcessStagesFn)(unsigned char*, int, int);
 static CTaskAimGunOnFootProcessStagesFn origCTaskAimGunOnFoot_ProcessStages;
 static void* CTaskAimGunOnFoot_ProcessStages(unsigned char* thisptr, int stage, int substage)
 {
 	// Borrow the GetWeapon() and offset into Ped from another vfunc in this class.
 	static unsigned char* addr = hook::get_pattern<unsigned char>("0F 84 ? ? ? ? 48 8B 8F ? ? ? ? E8 ? ? ? ? 48 8B F0");
-	static uint32_t pedOffsetToWeapon = *(uint32_t*)(addr + 9);
+	static uint32_t pedOffsetToWeaponMgr = *(uint32_t*)(addr + 9);
 	typedef CWeapon* (*GetWeaponFn)(void*);
 	static GetWeaponFn GetWeapon = hook::get_address<GetWeaponFn>((uintptr_t)addr + 13, 1, 5);
 
@@ -229,14 +243,11 @@ static void* CTaskAimGunOnFoot_ProcessStages(unsigned char* thisptr, int stage, 
 
 	if (stage == 2 && substage == 1)
 	{
-		CWeapon* pWeap = GetWeapon(*(void**)(uintptr_t(ped) + pedOffsetToWeapon));
+		CWeapon* pWeap = GetWeapon(*(void**)(uintptr_t(ped) + pedOffsetToWeaponMgr));
 		if (pWeap && !pWeap->ammoInClip)
 		{
-			// Gradual state step-down from shooting to idle. (return value is unused)
-			// this is to fix a spasm when running out of ammo
-			origCTaskAimGunOnFoot_ProcessStages(thisptr, 2, 2);
-			origCTaskAimGunOnFoot_ProcessStages(thisptr, 1, 0);
-			return origCTaskAimGunOnFoot_ProcessStages(thisptr, 1, 1);
+			// Change state from shooting to idle - this is to fix a spasm when running out of ammo
+			g_TransitionStageFunc(thisptr, 5);
 		}
 	}
 
@@ -350,10 +361,14 @@ static HookFunction hookFunction([]()
 		}
 		else
 		{
-			autoswap = hook::get_pattern("48 8B 8B ? ? 00 00 45 33 C0 33 D2 E8 ? ? ? ? EB", 12);
+			autoswap = hook::get_pattern("EB ? 45 33 C0 33 D2 E8 ? ? ? ? EB ? 41", 7);
 		}
 		hook::set_call(&origCPedWeapMgr_AutoSwap, autoswap);
 		hook::call(autoswap, CPedWeaponManager_AutoSwap);
+
+		void* cTaskGun_Stage1_1_TransitionStage = hook::get_pattern("48 8B CF E8 ? ? ? ? E9 ? ? ? ? ? 85 ? 0F 84 ? ? ? ? 8A 83", 3);
+		hook::set_call(&g_TransitionStageFunc, cTaskGun_Stage1_1_TransitionStage);
+		hook::call(cTaskGun_Stage1_1_TransitionStage, CTaskGun_Stage1_1_TransitionStage);
 	}
 
 	// Disable auto-reloads
