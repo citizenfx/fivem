@@ -96,6 +96,11 @@ export interface User {
     trust_level:        number;
 }
 
+export interface TopicPostsResponse {
+    post_stream:             PostStream;
+    id:                      number;
+}
+
 export interface TopicResponse {
     post_stream:             PostStream;
     timeline_lookup:         Array<number[]>;
