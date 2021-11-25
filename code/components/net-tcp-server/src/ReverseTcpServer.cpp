@@ -1,5 +1,6 @@
 #include <StdInc.h>
 
+#include <CoreConsole.h>
 #include <ReverseTcpServer.h>
 
 #include <UvLoopManager.h>
@@ -469,7 +470,7 @@ namespace net
 			}
 			else if (type == "error")
 			{
-				trace("Proxy error: %s\n", message[1].get<std::string>());
+				console::DPrintf("net", "Proxy error: %s\n", message[1].get<std::string>());
 			}
 		});
 
