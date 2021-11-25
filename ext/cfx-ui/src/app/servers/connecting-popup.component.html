@@ -58,7 +58,7 @@
 			*ngIf="overlayMessage && overlayMessage !== '[html]'"
 			[innerHTML]="overlayMessage|translate:locale.language:overlayMessageData|linky:{ hashtag: 'twitter', mention: 'twitter', sanitizeHtml: true, replaceFn: replaceFn }|nl2br|allowify|rejectify:{server:serverData}"
 		></p>
-		<div class="body" *ngIf="overlayMessage === '[html]'" [innerHTML]="overlayHTML">
+		<div class="body" *ngIf="overlayMessage === '[html]'" [innerHTML]="overlayHTML" (click)="clickContent($event)">
 
 		</div>
 		<div class="card" #card></div>
