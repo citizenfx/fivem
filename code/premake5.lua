@@ -316,6 +316,10 @@ premake.override(premake.vstudio.dotnetbase, "compilerProps", function(base, cfg
     premake.w('<GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>')
 end)
 
+premake.override(premake.vstudio.cs2005, "referencePath", function(base, prj)
+    premake.w('<ReferencePath>' .. path.getabsolute("deplibs/libs") .. '</ReferencePath>')
+end)
+
 premake.override(premake.vstudio.cs2005, "targets", function(base, prj)
     base(prj)
 
