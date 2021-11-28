@@ -93,6 +93,14 @@ interface IScriptTickRuntime : fxIBase
 	void Tick();
 };
 
+[ptr] native u64Ptr(uint64_t);
+
+[uuid(195FB3BD-1A64-4EBD-A1CC-8052ED7EB0BD)]
+interface IScriptTickRuntimeWithBookmarks : fxIBase
+{
+	void TickBookmarks(in u64Ptr bookmarks, in int32_t numBookmarks);
+};
+
 [uuid(637140DB-24E5-46BF-A8BD-08F2DBAC519A)]
 interface IScriptEventRuntime : fxIBase
 {
@@ -159,6 +167,13 @@ interface IScriptDebugRuntime : fxIBase
 	void SetScriptIdentifier(in charPtr fileName, in int32_t scriptId);
 };
 
+[uuid(2A7E092D-6CE9-4B9D-AC4F-8DA818BD0DA4)]
+interface IScriptHostWithBookmarks : fxIBase
+{
+	void ScheduleBookmark(in IScriptTickRuntimeWithBookmarks runtime, in uint64_t bookmark, in int64_t deadline);
+
+	void RemoveBookmarks(in IScriptTickRuntimeWithBookmarks runtime);
+};
 
 %{C++
 #include "PushEnvironment.h"

@@ -16,8 +16,6 @@
 #include <GameInit.h>
 #endif
 
-#include <optick.h>
-
 extern fwRefContainer<fx::ResourceManager> g_resourceManager;
 
 bool DLL_IMPORT UpdateScriptInitialization();
@@ -26,8 +24,6 @@ class TestScriptThread : public GtaThread
 {
 	virtual void DoRun() override
 	{
-		OPTICK_EVENT();
-
 		static bool initedGame = false;
 		static int tickCount = 0;
 
@@ -77,42 +73,6 @@ class TestScriptThread : public GtaThread
 TestScriptThread thread;
 extern GtaThread* g_resourceThread;
 
-#if USE_OPTICK
-class ProfilerEventHolder : public fwRefCountable
-{
-public:
-	ProfilerEventHolder(fx::Resource* resource)
-		: m_desc(nullptr)
-	{
-		resource->OnTick.Connect([=]() { StartTick(resource); }, -10000000);
-		resource->OnTick.Connect([=]() { EndTick(); }, 10000000);
-	}
-
-private:
-	void StartTick(fx::Resource* resource)
-	{
-		if (!m_desc)
-		{
-			m_desc = Optick::EventDescription::Create(va("Resource::Tick %s", resource->GetName()), __FILE__, __LINE__, Optick::Color::GreenYellow);
-		}
-
-		m_event = std::make_unique<Optick::Event>(*m_desc);
-	}
-
-	void EndTick()
-	{
-		m_event = nullptr;
-	}
-
-private:
-	Optick::EventDescription* m_desc;
-
-	std::unique_ptr<Optick::Event> m_event;
-};
-
-DECLARE_INSTANCE_TYPE(ProfilerEventHolder);
-#endif
-
 #include <stack>
 
 static InitFunction initFunction([] ()
@@ -139,13 +99,6 @@ static InitFunction initFunction([] ()
 			rage::scrEngine::SetActiveThread(lastActiveThread.top());
 			lastActiveThread.pop();
 		}, 999);
-	});
-#endif
-
-#if USE_OPTICK
-	fx::Resource::OnInitializeInstance.Connect([](fx::Resource* resource)
-	{
-		resource->SetComponent(new ProfilerEventHolder(resource));
 	});
 #endif
 });

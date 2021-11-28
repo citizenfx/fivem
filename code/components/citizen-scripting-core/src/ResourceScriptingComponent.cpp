@@ -7,6 +7,7 @@
 
 #include "StdInc.h"
 #include "Resource.h"
+#include "ResourceManager.h"
 #include "ResourceEventComponent.h"
 #include "ResourceMetaDataComponent.h"
 #include "ResourceScriptingComponent.h"
@@ -16,11 +17,43 @@
 #endif
 
 #include <DebugAlias.h>
+#include <ETWProviders/etwprof.h>
 
 #include <Error.h>
 
 namespace fx
 {
+class ResourceScriptingManagerComponent : public fwRefCountable, public fx::IAttached<ResourceManager>
+{
+public:
+	virtual void AttachToObject(ResourceManager* manager) override
+	{
+		manager->OnTick.Connect([this]()
+		{
+			// execute resource tick functions
+			// #FIXME: nested iteration safety?
+			for (const auto& resourcePair : m_resources)
+			{
+				const auto& component = resourcePair.second;
+				component->Tick();
+			}
+		});
+	}
+
+	void AddResource(Resource* resource)
+	{
+		resource->OnRemove.Connect([this, resource]()
+		{
+			m_resources.erase(resource);
+		});
+
+		m_resources[resource] = resource->GetComponent<ResourceScriptingComponent>();
+	}
+
+private:
+	std::unordered_map<fx::Resource*, fwRefContainer<ResourceScriptingComponent>> m_resources;
+};
+
 static tbb::concurrent_queue<std::tuple<std::string, std::function<void()>>> g_onNetInitCbs;
 
 OMPtr<IScriptHost> GetScriptHostForResource(Resource* resource);
@@ -162,14 +195,6 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 		}
 	});
 
-	resource->OnTick.Connect([=] ()
-	{
-		for (const auto& [id, tickRuntime] : m_tickRuntimes)
-		{
-			tickRuntime->Tick();
-		}
-	});
-
 	resource->OnStop.Connect([=] ()
 	{
 		if (m_resource->GetName() == "_cfx_internal")
@@ -184,6 +209,22 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 
 		m_tickRuntimes.clear();
 		m_scriptRuntimes.clear();
+	});
+}
+
+void ResourceScriptingComponent::Tick()
+{
+	// #TODO: 32 bit
+#ifdef _M_AMD64
+	CETWScope etwScope(fmt::format("{} tick", m_resource->GetName()).c_str());
+#endif
+
+	m_resource->Run([this]()
+	{
+		for (const auto& [id, tickRuntime] : m_tickRuntimes)
+		{
+			tickRuntime->Tick();
+		}
 	});
 }
 
@@ -314,6 +355,11 @@ void ResourceScriptingComponent::CreateEnvironments()
 			}
 		}
 	}
+
+	if (!m_tickRuntimes.empty())
+	{
+		m_resource->GetManager()->GetComponent<ResourceScriptingManagerComponent>()->AddResource(m_resource);
+	}
 }
 
 void ResourceScriptingComponent::CreateEmptyEnvironments()
@@ -335,6 +381,11 @@ static InitFunction initFunction([]()
 	fx::Resource::OnInitializeInstance.Connect([](fx::Resource* resource)
 	{
 		resource->SetComponent<fx::ResourceScriptingComponent>(new fx::ResourceScriptingComponent(resource));
+	});
+
+	fx::ResourceManager::OnInitializeInstance.Connect([](fx::ResourceManager* resourceManager)
+	{
+		resourceManager->SetComponent(new fx::ResourceScriptingManagerComponent());
 	});
 });
 
@@ -381,3 +432,5 @@ bool DLL_EXPORT UpdateScriptInitialization()
 	return fx::g_onNetInitCbs.empty();
 }
 #endif
+
+DECLARE_INSTANCE_TYPE(fx::ResourceScriptingManagerComponent);

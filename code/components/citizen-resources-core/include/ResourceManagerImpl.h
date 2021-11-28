@@ -15,7 +15,7 @@
 
 namespace fx
 {
-class ResourceManagerImpl : public ResourceManager
+class ResourceManagerImpl final : public ResourceManager
 {
 private:
 	std::recursive_mutex m_resourcesMutex;

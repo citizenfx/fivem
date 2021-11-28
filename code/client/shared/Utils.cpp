@@ -183,13 +183,6 @@ void TraceRealV(const char* channel, const char* func, const char* file, int lin
 	CoreTrace(channel, func, file, line, buffer.data());
 
 #ifdef _WIN32
-	static CRITICAL_SECTION dbgCritSec;
-
-	if (!dbgCritSec.DebugInfo)
-	{
-		InitializeCriticalSectionAndSpinCount(&dbgCritSec, 100);
-	}
-
 #if !defined(GTA_NY)
 	if (CoreIsDebuggerPresent())
 	{

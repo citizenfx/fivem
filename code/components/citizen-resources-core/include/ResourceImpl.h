@@ -13,7 +13,7 @@ namespace fx
 {
 class ResourceManagerImpl;
 
-class ResourceImpl : public Resource
+class ResourceImpl final : public Resource
 {
 private:
 	std::string m_name;
@@ -41,7 +41,7 @@ public:
 
 	virtual bool Stop() override;
 
-	virtual void Tick() override;
+	virtual void Run(std::function<void()>&& fn) override;
 
 	virtual ResourceManager* GetManager() override;
 

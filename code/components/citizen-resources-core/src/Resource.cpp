@@ -126,7 +126,7 @@ bool ResourceImpl::Stop()
 	return true;
 }
 
-void ResourceImpl::Tick()
+void ResourceImpl::Run(std::function<void()>&& fn)
 {
 	if (m_state != ResourceState::Started)
 	{
@@ -135,11 +135,14 @@ void ResourceImpl::Tick()
 
 	// save data in case we need to trace this back from dumps
 	char resourceNameBit[128];
-	strncpy(resourceNameBit, GetName().c_str(), std::size(resourceNameBit));
+	memcpy(resourceNameBit, GetName().c_str(), std::min(std::size(resourceNameBit), GetName().length() + 1));
 	debug::Alias(resourceNameBit);
 
-	// process tick
-	OnTick();
+	OnEnter();
+	fn();
+
+	// #TODO: unwind-dtor
+	OnLeave();
 }
 
 void ResourceImpl::Destroy()

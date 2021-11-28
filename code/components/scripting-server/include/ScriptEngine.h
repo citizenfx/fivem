@@ -162,3 +162,28 @@ namespace fx
 		static void RegisterNativeHandler(const std::string& nativeName, TNativeHandler function);
 	};
 }
+
+// common helper
+class FxNativeInvoke
+{
+private:
+	static inline void Invoke(fx::ScriptContext& cxt, const boost::optional<fx::TNativeHandler>& handler)
+	{
+		(*handler)(cxt);
+	}
+
+public:
+	template<typename R, typename... Args>
+	static inline R Invoke(const boost::optional<fx::TNativeHandler>& handler, Args... args)
+	{
+		fx::ScriptContextBuffer cxt;
+		(cxt.Push(args), ...);
+
+		Invoke(cxt, handler);
+
+		if constexpr (!std::is_void_v<R>)
+		{
+			return cxt.GetResult<R>();
+		}
+	}
+};

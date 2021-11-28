@@ -9,6 +9,8 @@
 
 #include <condition_variable>
 
+#include <ResourceMonitor.h>
+
 #include <UvLoopManager.h>
 #include <ResourceManager.h>
 #include <ServerInstanceBase.h>
@@ -103,6 +105,8 @@ namespace fxdk
 		fwRefContainer<fx::ServerInstanceBase> m_instance;
 
 		SingleshotSemaphore m_inited;
+
+		std::unique_ptr<fx::ResourceMonitor> m_resourceMonitor;
 
 		void Quit(const std::string& error);
 	};

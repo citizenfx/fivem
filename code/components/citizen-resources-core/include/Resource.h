@@ -98,9 +98,9 @@ public:
 	virtual bool Stop() = 0;
 
 	//
-	// Executes a tick on the resource.
+	// Runs a top-level execution callback.
 	//
-	virtual void Tick() = 0;
+	virtual void Run(std::function<void()>&& func) = 0;
 
 	//
 	// Gets a reference to the owning resource manager.
@@ -129,9 +129,14 @@ public:
 	fwEvent<> OnStop;
 
 	//
-	// An event to handle tasks to be performed when the resource ticks.
+	// An event invoked when the resource enters a top-level execution cycle.
 	//
-	fwEvent<> OnTick;
+	fwEvent<> OnEnter;
+
+	//
+	// An event invoked when the resource leaves a top-level execution cycle.
+	//
+	fwEvent<> OnLeave;
 
 	//
 	// An event to handle tasks to be performed when a resource is created, after the game loads.

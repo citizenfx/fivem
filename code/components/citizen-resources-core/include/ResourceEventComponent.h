@@ -37,17 +37,6 @@ private:
 
 	ResourceEventManagerComponent* m_managerComponent;
 
-private:
-	struct EventData
-	{
-		std::string eventName;
-		std::string eventSource;
-		std::string eventPayload;
-	};
-
-private:
-	tbb::concurrent_queue<EventData> m_eventQueue;
-
 public:
 	ResourceEventComponent();
 
@@ -97,6 +86,7 @@ private:
 		std::string eventName;
 		std::string eventSource;
 		std::string eventPayload;
+		ResourceEventComponent* filter = nullptr;
 	};
 
 private:
@@ -135,12 +125,12 @@ public:
 	//
 	// Triggers an event immediately. Returns a value indicating whether the event was not canceled.
 	//
-	bool TriggerEvent(const std::string& eventName, const std::string& eventPayload, const std::string& eventSource = std::string());
+	bool TriggerEvent(const std::string& eventName, const std::string& eventPayload, const std::string& eventSource = std::string(), ResourceEventComponent* filter = nullptr);
 
 	//
 	// Enqueues an event for execution on the next resource manager tick.
 	//
-	void QueueEvent(const std::string& eventName, const std::string& eventPayload, const std::string& eventSource = std::string());
+	void QueueEvent(const std::string& eventName, const std::string& eventPayload, const std::string& eventSource = std::string(), ResourceEventComponent* filter = nullptr);
 
 public:
 	//

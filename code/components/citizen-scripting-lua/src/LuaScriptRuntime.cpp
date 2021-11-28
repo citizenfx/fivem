@@ -8,6 +8,8 @@
 #include "StdInc.h"
 #include "fxScripting.h"
 
+#include <ScriptEngine.h>
+
 #include "LuaScriptRuntime.h"
 #include "LuaScriptNatives.h"
 #include "ResourceScriptingComponent.h"
@@ -270,39 +272,6 @@ static int Lua_Trace(lua_State* L)
 
 static int Lua_SetTickRoutine(lua_State* L)
 {
-	// push the routine to reference and add a reference
-	lua_pushvalue(L, 1);
-
-	const int ref = luaL_ref(L, LUA_REGISTRYINDEX);
-
-	// set the tick callback in the current routine
-	auto luaRuntime = LuaScriptRuntime::GetCurrent().GetRef();
-
-	luaRuntime->SetTickRoutine([=](uint64_t time, bool hadProfiler)
-	{
-		LuaProfilerScope _profile(luaRuntime);
-
-		// set the error handler
-		lua_pushcfunction(L, luaRuntime->GetDbTraceback());
-
-		const int eh = lua_gettop(L);
-
-		// get the referenced function
-		lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
-
-		// push the current time/profiler argument
-		lua_pushinteger(L, time);
-		lua_pushboolean(L, hadProfiler);
-
-		// invoke the tick routine
-		if (lua_pcall(L, 2, 0, eh) != 0)
-		{
-			LUA_SCRIPT_TRACE(L, "Error running system tick function for resource %s", luaRuntime->GetResourceName());
-		}
-
-		lua_pop(L, 1);
-	});
-
 	return 0;
 }
 
@@ -341,6 +310,11 @@ static int Lua_SetStackTraceRoutine(lua_State* L)
 				lua_pushthread(startRef->thread);
 				lua_xmove(startRef->thread, L, 1);
 			}
+			else if (auto thread = luaRuntime->GetRunningThread())
+			{
+				lua_pushthread(thread);
+				lua_xmove(thread, L, 1);
+			}
 			else
 			{
 				lua_pushnil(L);
@@ -349,7 +323,16 @@ static int Lua_SetStackTraceRoutine(lua_State* L)
 		else
 		{
 			lua_pushnil(L);
-			lua_pushnil(L);
+
+			if (auto thread = luaRuntime->GetRunningThread())
+			{
+				lua_pushthread(thread);
+				lua_xmove(thread, L, 1);
+			}
+			else
+			{
+				lua_pushnil(L);
+			}
 		}
 
 		if (end)
@@ -399,6 +382,19 @@ static int Lua_SetStackTraceRoutine(lua_State* L)
 
 		lua_pop(L, 1);
 	});
+
+	return 0;
+}
+
+static int Lua_SetBoundaryRoutine(lua_State* L)
+{
+	// push the routine to reference and add a reference
+	lua_pushvalue(L, 1);
+
+	int ref = luaL_ref(L, LUA_REGISTRYINDEX);
+	auto luaRuntime = LuaScriptRuntime::GetCurrent().GetRef();
+
+	luaRuntime->SetBoundaryRoutine(ref);
 
 	return 0;
 }
@@ -766,10 +762,327 @@ static int Lua_Require(lua_State* L)
 	return luaL_error(L, "module '%s' not found", name);
 }
 
+//
+// Scheduling
+//
+lua_State* LuaScriptRuntime::GetRunningThread()
+{
+	if (!m_runningThreads.empty())
+	{
+		return m_runningThreads.front();
+	}
+
+	return nullptr;
+}
+
+static int Lua_Resume(lua_State* L)
+{
+	LuaScriptRuntime* lsRT = (LuaScriptRuntime*)lua_touserdata(L, lua_upvalueindex(1));
+
+	auto bookmark = lua_tointeger(L, lua_upvalueindex(2));
+	lsRT->RunBookmark(bookmark);
+
+	return 0;
+}
+
+bool LuaScriptRuntime::RunBookmark(uint64_t bookmark)
+{
+	// --- get the ref
+	lua_State* L = m_state;
+	lua_rawgeti(L, LUA_REGISTRYINDEX, bookmark);
+	// Lua stack: [t]
+
+	// -- get the thread from the ref
+	lua_rawgeti(L, -1, 1);
+	// Lua stack: [coro, t]
+
+	std::string_view name;
+	lua_State* thread = lua_tothread(L, -1);
+
+	// -- boundary ID
+	lua_pop(L, 1);
+
+	lua_rawgeti(L, -1, 3);
+	// Lua stack: [bid, t]
+
+	auto bid = lua_tointeger(L, -1);
+
+	// -- profiler meta (name)
+	bool hadProfiler = g_hadProfiler;
+
+	if (hadProfiler)
+	{
+		lua_pop(L, 1);
+		// Lua stack: [t]
+
+		// -- get the name from the ref
+		lua_rawgeti(L, -1, 2);
+		// Lua stack: [name, t]
+
+		{
+			size_t len = 0;
+			const char* nameRef = lua_tolstring(L, -1, &len);
+
+			if (nameRef)
+			{
+				name = { nameRef, len };
+			}
+		}
+	}
+
+	// since we're done getting stuff, remove both 't' and the last field
+	lua_pop(L, 2);
+	// Lua stack: []
+
+	// --- if coroutine status is dead...
+	bool coroDead = false;
+
+	{
+		auto status = lua_status(thread);
+
+		if (status == LUA_OK)
+		{
+			lua_Debug ar;
+			if (lua_getstack(thread, 0, &ar) <= 0 && lua_gettop(thread) == 0)
+			{
+				coroDead = true;
+			}
+		}
+		else if (status != LUA_YIELD)
+		{
+			coroDead = true;
+		}
+	}
+
+	// -- kill the thread.
+	if (coroDead)
+	{
+		luaL_unref(L, LUA_REGISTRYINDEX, bookmark);
+		return false;
+	}
+
+	// -- running stack
+	m_runningThreads.push_front(thread);
+
+	// --- enter profiler scope
+	if (hadProfiler)
+	{
+		static auto profiler = fx::ResourceManager::GetCurrent()->GetComponent<fx::ProfilerComponent>();
+		profiler->EnterScope(std::string{ name });
+	}
+
+	// --- submit boundary start
+	{
+		LuaBoundary b;
+		b.hint = bid;
+		b.thread = thread;
+
+		m_scriptHost->SubmitBoundaryStart((char*)&b, sizeof(b));
+	}
+
+#if LUA_VERSION_NUM >= 504
+	int nrv;
+	int resumeValue = lua_resume(thread, L, 0, &nrv);
+#else
+	int resumeValue = lua_resume(thread, L, 0);
+#endif
+
+	if (resumeValue == LUA_YIELD)
+	{
+		auto type = lua_type(thread, -1);
+
+		if (type == LUA_TNUMBER || type == LUA_TNIL)
+		{
+			auto wakeTime = (type == LUA_TNUMBER) ? lua_tointeger(thread, -1) : 0;
+			lua_pop(thread, 1);
+
+			m_bookmarkHost->ScheduleBookmark(this, bookmark, -wakeTime);
+		}
+		else if (type == LUA_TLIGHTUSERDATA)
+		{
+			auto userData = lua_touserdata(thread, -1);
+			lua_pop(thread, 1);
+
+			if (userData == &g_metaFields[(int)LuaMetaFields::AwaitSentinel])
+			{
+				// resume again with a reattach callback
+				lua_pushlightuserdata(thread, this);
+				// Lua stack: [runtime]
+
+				lua_pushinteger(thread, bookmark);
+				// Lua stack: [bookmark, runtime]
+
+				lua_pushcclosure(thread, Lua_Resume, 2);
+				// Lua stack: [resume func]
+
+#if LUA_VERSION_NUM >= 504
+				resumeValue = lua_resume(thread, L, 1, &nrv);
+#else
+				resumeValue = lua_resume(thread, L, 1);
+#endif
+
+				// if LUA_YIELD, cya later!
+				if (resumeValue != LUA_YIELD)
+				{
+					// bye, thread
+					luaL_unref(L, LUA_REGISTRYINDEX, bookmark);
+				}
+			}
+		}
+	}
+	else
+	{
+		if (resumeValue != LUA_OK)
+		{
+			std::string err = "error object is not a string";
+			if (lua_type(thread, -1) == LUA_TSTRING)
+			{
+				err = lua_tostring(thread, -1);
+			}                        
+
+			static auto formatStackTrace = fx::ScriptEngine::GetNativeHandler(HashString("FORMAT_STACK_TRACE"));
+			std::string stack = FxNativeInvoke::Invoke<const char*>(formatStackTrace, nullptr, 0);
+			
+			ScriptTrace("^1SCRIPT ERROR: %s^7\n", err);
+			ScriptTrace("%s", stack);
+		}
+
+		luaL_unref(L, LUA_REGISTRYINDEX, bookmark);
+	}
+
+	m_runningThreads.pop_front();
+
+	if (hadProfiler)
+	{
+		static auto profiler = fx::ResourceManager::GetCurrent()->GetComponent<fx::ProfilerComponent>();
+		profiler->ExitScope();
+	}
+
+	return (resumeValue == LUA_YIELD);
+}
+
+int Lua_Wait(lua_State* L)
+{
+	lua_yield(L, 1);
+	return 0;
+}
+
+static int Lua_CreateThreadInternal(lua_State* L, bool now, int timeout, int funcArg = 1)
+{
+	// Lua stack: [a1]
+	const auto& luaRuntime = LuaScriptRuntime::GetCurrent();
+	
+	// --- get debug info
+	lua_pushvalue(L, 1);
+	// Lua stack: [a1, a1]
+
+	lua_Debug dbgInfo;
+	lua_getinfo(L, ">S", &dbgInfo);
+	// Lua stack: [a1]
+
+	// -- format and store debug info
+	auto name = fmt::sprintf("thread %s[%d..%d]", dbgInfo.short_src, dbgInfo.linedefined, dbgInfo.lastlinedefined);
+
+	// --- create coroutine
+	lua_State* thread = lua_newthread(L);
+	// Lua stack: [thread, a1]
+
+	lua_rawgeti(L, LUA_REGISTRYINDEX, luaRuntime->GetBoundaryRoutine());
+	// Lua stack: [br, thread, a1]
+
+	lua_pushvalue(L, funcArg);
+	// Lua stack: [a1, br, thread, a1]
+
+	lua_call(L, 1, 2);
+	// Lua stack: [fn, bid, thread, a1]
+	
+	lua_xmove(L, thread, 1);
+	// Lua stack: [bid, thread, a1]
+	// thread stack: [fn]
+
+	// -- get boundary ID
+	auto bid = lua_tointeger(L, -1);
+	lua_pop(L, 1);
+	// Lua stack: [thread, a1]
+
+	// --- store name and coroutine
+
+	lua_createtable(L, 3, 0);
+	// Lua stack: [t, thread, a1]
+
+	// -- set thread
+
+	lua_pushvalue(L, -2);
+	// Lua stack: [thread, t, thread, a1]
+
+	// t[1] = thread
+	lua_rawseti(L, -2, 1);
+	// Lua stack: [t, thread, a1]
+
+	// -- set name
+
+	lua_pushlstring(L, name.c_str(), name.length());
+	// Lua stack: [name, t, thread, a1]
+
+	// t[2] = name
+	lua_rawseti(L, -2, 2);
+	// Lua stack: [t, thread, a1]
+
+	// -- set bid
+	lua_pushinteger(L, bid);
+	// Lua stack: [bid, t, thread, a1]
+
+	// t[2] = name
+	lua_rawseti(L, -2, 3);
+	// Lua stack: [t, thread, a1]
+
+	int ref = luaL_ref(L, LUA_REGISTRYINDEX);
+	// Lua stack: [thread, a1]
+
+	lua_pop(L, 1);
+
+	// Lua stack: [a1]
+	// thread stack: same
+
+	if (!now)
+	{
+		auto sh = luaRuntime->GetScriptHostWithBookmarks();
+		sh->ScheduleBookmark(luaRuntime.GetRef(), ref, -timeout);
+
+		return 0;
+	}
+	else
+	{
+		lua_pushboolean(L, luaRuntime->RunBookmark(ref));
+		return 1;
+	}
+}
+
+static int Lua_CreateThread(lua_State* L)
+{
+	return Lua_CreateThreadInternal(L, false, 0);
+}
+
+static int Lua_CreateThreadNow(lua_State* L)
+{
+	return Lua_CreateThreadInternal(L, true, 0);
+}
+
+static int Lua_SetTimeout(lua_State* L)
+{
+	auto timeout = luaL_checkinteger(L, 1);
+	return Lua_CreateThreadInternal(L, false, timeout, 2);
+}
+
 static const struct luaL_Reg g_citizenLib[] = {
+	{ "SetBoundaryRoutine", Lua_SetBoundaryRoutine },
 	{ "SetTickRoutine", Lua_SetTickRoutine },
 	{ "SetEventRoutine", Lua_SetEventRoutine },
 	{ "Trace", Lua_Trace },
+	{ "CreateThread", Lua_CreateThread },
+	{ "CreateThreadNow", Lua_CreateThreadNow },
+	{ "Wait", Lua_Wait },
+	{ "SetTimeout", Lua_SetTimeout },
 	{ "InvokeNative", Lua_InvokeNative },
 #ifndef IS_FXSERVER
 	{ "GetNative", Lua_GetNativeHandler },
@@ -799,6 +1112,7 @@ static const struct luaL_Reg g_citizenLib[] = {
 	{ "ResultAsString", Lua_GetMetaField<LuaMetaFields::ResultAsString> },
 	{ "ResultAsVector", Lua_GetMetaField<LuaMetaFields::ResultAsVector> },
 	{ "ResultAsObject", Lua_GetMetaField<LuaMetaFields::ResultAsObject> },
+	{ "AwaitSentinel", Lua_GetMetaField<LuaMetaFields::AwaitSentinel> },
 	{ nullptr, nullptr }
 };
 }
@@ -887,6 +1201,14 @@ result_t LuaScriptRuntime::Create(IScriptHost* scriptHost)
 		ptr.As(&manifestPtr);
 
 		m_manifestHost = manifestPtr.GetRef();
+	}
+
+	{
+		fx::OMPtr<IScriptHost> ptr(scriptHost);
+		fx::OMPtr<IScriptHostWithBookmarks> resourcePtr;
+		ptr.As(&resourcePtr);
+
+		m_bookmarkHost = resourcePtr.GetRef();
 	}
 
 	std::string nativesBuild = "natives_21e43a33.lua";
@@ -1019,6 +1341,8 @@ result_t LuaScriptRuntime::LoadNativesBuild(const std::string& nativesBuild)
 
 result_t LuaScriptRuntime::Destroy()
 {
+	m_bookmarkHost->RemoveBookmarks(this);
+
 	// destroy any routines that may be referencing the Lua state
 	m_eventRoutine = TEventRoutine();
 	m_tickRoutine = {};
@@ -1027,7 +1351,7 @@ result_t LuaScriptRuntime::Destroy()
 	m_duplicateRefRoutine = TDuplicateRefRoutine();
 
 	// we need to push the environment before closing as items may have __gc callbacks requiring a current runtime to be set
-	// in addition, we can't do this in the destructor due to refcounting odditiies (PushEnvironment adds a reference, causing infinite deletion loops)
+	// in addition, we can't do this in the destructor due to refcounting oddities (PushEnvironment adds a reference, causing infinite deletion loops)
 	LuaPushEnvironment pushed(this);
 	m_state.Close();
 
@@ -1207,13 +1531,17 @@ int32_t LuaScriptRuntime::HandlesFile(char* fileName, IScriptHostWithResourceDat
 	return false;
 }
 
-result_t LuaScriptRuntime::Tick()
+result_t LuaScriptRuntime::TickBookmarks(uint64_t* bookmarks, int numBookmarks)
 {
-	if (m_tickRoutine)
+	if (numBookmarks > 0)
 	{
 		LuaPushEnvironment pushed(this);
+		LuaProfilerScope _profile(this);
 
-		m_tickRoutine(g_tickTime, g_hadProfiler);
+		for (auto bookmarkIdx = 0; bookmarkIdx < numBookmarks; bookmarkIdx++)
+		{
+			RunBookmark(bookmarks[bookmarkIdx]);
+		}
 	}
 
 	return FX_S_OK;
