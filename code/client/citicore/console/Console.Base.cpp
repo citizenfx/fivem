@@ -9,6 +9,8 @@
 #include <tbb/concurrent_queue.h>
 #include <boost/algorithm/string/replace.hpp>
 
+#include <condition_variable>
+
 namespace console
 {
 static bool g_allowVt;
