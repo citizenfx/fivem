@@ -941,10 +941,15 @@ bool LuaScriptRuntime::RunBookmark(uint64_t bookmark)
 			}                        
 
 			static auto formatStackTrace = fx::ScriptEngine::GetNativeHandler(HashString("FORMAT_STACK_TRACE"));
-			std::string stack = FxNativeInvoke::Invoke<const char*>(formatStackTrace, nullptr, 0);
+			auto stack = FxNativeInvoke::Invoke<const char*>(formatStackTrace, nullptr, 0);
+			std::string stackData = "(nil stack trace)";
 			
+			if (stack)
+			{
+				stackData = stack;
+			}
 			ScriptTrace("^1SCRIPT ERROR: %s^7\n", err);
-			ScriptTrace("%s", stack);
+			ScriptTrace("%s", stackData);
 		}
 
 		luaL_unref(L, LUA_REGISTRYINDEX, bookmark);
