@@ -750,12 +750,15 @@ namespace fxdk
 
 		g_messagesQueue.clear();
 
-		m_resourceMonitor = std::make_unique<fx::ResourceMonitor>();
-
 		m_timer = GetSdkIpcLoop()->resource<uvw::TimerHandle>();
 
 		m_timer->on<uvw::TimerEvent>([this, ipc](const uvw::TimerEvent& evt, uvw::TimerHandle&)
 		{
+			if (!m_resourceMonitor)
+			{
+				m_resourceMonitor = std::make_unique<fx::ResourceMonitor>();
+			}
+
 			const auto& resourceDatas = m_resourceMonitor->GetResourceDatas();
 
 			std::vector<std::tuple<std::string, double, double, int64_t, int64_t>> resourceDatasClean;
