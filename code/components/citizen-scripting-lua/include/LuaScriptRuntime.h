@@ -13,6 +13,8 @@
 
 #include "StdInc.h"
 
+#include <deque>
+
 #include <fxScripting.h>
 
 #include <Resource.h>
@@ -72,6 +74,7 @@ enum class LuaMetaFields : uint8_t
 	ResultAsString,
 	ResultAsVector,
 	ResultAsObject,
+	AwaitSentinel,
 	Max
 };
 
@@ -164,7 +167,7 @@ public:
 	}
 };
 
-class LuaScriptRuntime : public OMClass<LuaScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntime, IScriptEventRuntime, IScriptRefRuntime, IScriptMemInfoRuntime, IScriptStackWalkingRuntime, IScriptDebugRuntime, IScriptProfiler>
+class LuaScriptRuntime : public OMClass<LuaScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntimeWithBookmarks, IScriptEventRuntime, IScriptRefRuntime, IScriptMemInfoRuntime, IScriptStackWalkingRuntime, IScriptDebugRuntime, IScriptProfiler>
 {
 private:
 	typedef std::function<void(const char*, const char*, size_t, const char*)> TEventRoutine;
@@ -180,13 +183,15 @@ private:
 private:
 	LuaStateHolder m_state;
 
-	lua_CFunction m_dbTraceback;
+	lua_CFunction m_dbTraceback = nullptr;
 
-	IScriptHost* m_scriptHost;
+	IScriptHost* m_scriptHost = nullptr;
 
-	IScriptHostWithResourceData* m_resourceHost;
+	IScriptHostWithBookmarks* m_bookmarkHost = nullptr;
 
-	IScriptHostWithManifest* m_manifestHost;
+	IScriptHostWithResourceData* m_resourceHost = nullptr;
+
+	IScriptHostWithManifest* m_manifestHost = nullptr;
 
 	OMPtr<IDebugEventListener> m_debugListener;
 
@@ -202,7 +207,9 @@ private:
 
 	TStackTraceRoutine m_stackTraceRoutine;
 
-	void* m_parentObject;
+	int m_boundaryRoutine = 0;
+
+	void* m_parentObject = nullptr;
 
 	PointerField m_pointerFields[3];
 
@@ -215,6 +222,8 @@ private:
 	int m_profilingId = 0; // Timeline identifier from fx::ProfilerComponent
 
 	LuaProfilingMode m_profilingMode = LuaProfilingMode::None; // Current fx::ProfilerComponent state.
+
+	std::deque<lua_State*> m_runningThreads;
 
 public:
 	LuaScriptRuntime()
@@ -263,6 +272,19 @@ public:
 		}
 	}
 
+	LUA_INLINE auto GetBoundaryRoutine()
+	{
+		return m_boundaryRoutine;
+	}
+
+	LUA_INLINE void SetBoundaryRoutine(int routine)
+	{
+		if (!m_boundaryRoutine)
+		{
+			m_boundaryRoutine = routine;
+		}
+	}
+
 	LUA_INLINE IScriptHost* GetScriptHost()
 	{
 		return m_scriptHost;
@@ -271,6 +293,11 @@ public:
 	LUA_INLINE IScriptHostWithResourceData* GetScriptHost2()
 	{
 		return m_resourceHost;
+	}
+
+	LUA_INLINE IScriptHostWithBookmarks* GetScriptHostWithBookmarks()
+	{
+		return m_bookmarkHost;
 	}
 
 	LUA_INLINE PointerField* GetPointerFields()
@@ -296,6 +323,8 @@ public:
 		return m_dbTraceback;
 	}
 
+	lua_State* GetRunningThread();
+
 	/// <summary>
 	/// Manage the fx::ProfilerComponent state while the script runtime is active
 	///
@@ -320,11 +349,14 @@ private:
 	result_t LoadNativesBuild(const std::string& nativeBuild);
 
 public:
+	bool RunBookmark(uint64_t bookmark);
+
+public:
 	NS_DECL_ISCRIPTRUNTIME;
 
 	NS_DECL_ISCRIPTFILEHANDLINGRUNTIME;
 
-	NS_DECL_ISCRIPTTICKRUNTIME;
+	NS_DECL_ISCRIPTTICKRUNTIMEWITHBOOKMARKS;
 
 	NS_DECL_ISCRIPTEVENTRUNTIME;
 

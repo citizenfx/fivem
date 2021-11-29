@@ -77,26 +77,33 @@ private:
 	fx::Resource* m_resource;
 };
 
-class RpcNextTickQueue : public fwRefCountable, public fx::IAttached<fx::Resource>
+class RpcNextTickQueue : public fwRefCountable, public fx::IAttached<fx::ResourceManager>
 {
 private:
 	struct QueuedEvent
 	{
+		std::string resource;
 		std::function<void()> fn;
 		std::function<bool()> cond;
 	};
 
 public:
-	virtual void AttachToObject(fx::Resource* resource) override
+	virtual void AttachToObject(fx::ResourceManager* resourceManager) override
 	{
-		resource->OnTick.Connect([=]()
+		resourceManager->OnTick.Connect([=]()
 		{
 			QueuedEvent entry;
 			std::unique_ptr<std::queue<QueuedEvent>> pushQueue;
 
 			while (m_queue.try_dequeue(entry))
 			{
-				ResourceActivationScope activationScope(resource);
+				auto resource = resourceManager->GetResource(entry.resource);
+				if (!resource.GetRef())
+				{
+					continue;
+				}
+
+				ResourceActivationScope activationScope(resource.GetRef());
 
 				if (entry.cond && !entry.cond())
 				{
@@ -116,9 +123,16 @@ public:
 			{
 				while (!pushQueue->empty())
 				{
-					ResourceActivationScope activationScope(resource);
-
 					auto& entry = pushQueue->front();
+
+					auto resource = resourceManager->GetResource(entry.resource);
+					if (!resource.GetRef())
+					{
+						continue;
+					}
+
+					ResourceActivationScope activationScope(resource.GetRef());
+
 					m_queue.enqueue(std::move(entry));
 
 					pushQueue->pop();
@@ -127,9 +141,9 @@ public:
 		});
 	}
 
-	void Enqueue(const std::function<void()>& fn, const std::function<bool()>& condition = {})
+	void Enqueue(fx::Resource* resource, const std::function<void()>& fn, const std::function<bool()>& condition = {})
 	{
-		m_queue.enqueue({ fn, condition });
+		m_queue.enqueue({ resource->GetName(), fn, condition });
 	}
 
 private:
@@ -194,9 +208,9 @@ extern int getPlayerId();
 
 static InitFunction initFunction([]()
 {
-	fx::Resource::OnInitializeInstance.Connect([](fx::Resource* resource)
+	fx::ResourceManager::OnInitializeInstance.Connect([](fx::ResourceManager* resourceManager)
 	{
-		resource->SetComponent(new RpcNextTickQueue());
+		resourceManager->SetComponent(new RpcNextTickQueue());
 	});
 
 	OnGameFrame.Connect([]()
@@ -304,7 +318,7 @@ static InitFunction initFunction([]()
 					if (resource)
 					{
 						// gather conditions
-						auto ntq = resource->GetComponent<RpcNextTickQueue>();
+						auto ntq = manager->GetComponent<RpcNextTickQueue>();
 
 						int i = 0;
 
@@ -368,7 +382,7 @@ static InitFunction initFunction([]()
 
 								if (native->GetRpcType() == RpcConfiguration::RpcType::EntityCreate || rage::fwArchetypeManager::GetArchetypeFromHashKey(hash, idx))
 								{
-									ntq->Enqueue([=]()
+									ntq->Enqueue(resource, [=]()
 									{
 #ifdef GTA_FIVE
 										const uint64_t REQUEST_MODEL = 0x963D27A58DF860AC;
@@ -450,7 +464,7 @@ static InitFunction initFunction([]()
 						}
 
 						// execute native
-						ntq->Enqueue([=]()
+						ntq->Enqueue(resource, [=]()
 						{
 							buf->Seek(startPosition);
 

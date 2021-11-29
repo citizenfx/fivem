@@ -673,21 +673,24 @@ namespace profilerCommand {
 		}
 	};
 
-	static ConsoleCommand profilerCmd0("profiler", []()
+	static InitFunction initFunction([]
 	{
-		Execute(ProgramArguments{});
-	});
-	static ConsoleCommand profilerCmd1("profiler", [](std::string subcmd)
-	{
-		Execute(ProgramArguments{ subcmd });
-	});
-	static ConsoleCommand profilerCmd2("profiler", [](std::string subcmd, std::string arg)
-	{
-		Execute(ProgramArguments{ subcmd, arg });
-	});
-	static ConsoleCommand profilerCmd3("profiler", [](std::string subcmd, std::string arg, std::string arg2)
-	{
-		Execute(ProgramArguments{ subcmd, arg, arg2 });
+		static ConsoleCommand profilerCmd0("profiler", []()
+		{
+			Execute(ProgramArguments{});
+		});
+		static ConsoleCommand profilerCmd1("profiler", [](std::string subcmd)
+		{
+			Execute(ProgramArguments{ subcmd });
+		});
+		static ConsoleCommand profilerCmd2("profiler", [](std::string subcmd, std::string arg)
+		{
+			Execute(ProgramArguments{ subcmd, arg });
+		});
+		static ConsoleCommand profilerCmd3("profiler", [](std::string subcmd, std::string arg, std::string arg2)
+		{
+			Execute(ProgramArguments{ subcmd, arg, arg2 });
+		});
 	});
 }
 
@@ -736,7 +739,7 @@ namespace fx {
 	void ProfilerComponent::BeginTick(ProfilerEvent::memory_t memoryUsage)
 	{
 		PushEvent(TRACE_THREAD_MAIN, fx::ProfilerEventType::BEGIN_TICK, memoryUsage);
-		EnterScope("Resource Tick", memoryUsage);
+		EnterScope("Resource Manager Tick", memoryUsage);
 
 		if (--m_frames == 0) {
 			ProfilerComponent::StopRecording();
@@ -873,19 +876,19 @@ static InitFunction initFunction([]()
 {
 	fx::ScriptEngine::RegisterNativeHandler("PROFILER_ENTER_SCOPE", [](fx::ScriptContext& ctx)
 	{
-		auto profiler = fx::ResourceManager::GetCurrent()->GetComponent<fx::ProfilerComponent>();
+		static auto profiler = fx::ResourceManager::GetCurrent()->GetComponent<fx::ProfilerComponent>();
 		profiler->EnterScope(ctx.GetArgument<const char*>(0));
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("PROFILER_EXIT_SCOPE", [](fx::ScriptContext& ctx)
 	{
-		auto profiler = fx::ResourceManager::GetCurrent()->GetComponent<fx::ProfilerComponent>();
+		static auto profiler = fx::ResourceManager::GetCurrent()->GetComponent<fx::ProfilerComponent>();
 		profiler->ExitScope();
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("PROFILER_IS_RECORDING", [](fx::ScriptContext& ctx)
 	{
-		auto profiler = fx::ResourceManager::GetCurrent()->GetComponent<fx::ProfilerComponent>();
+		static auto profiler = fx::ResourceManager::GetCurrent()->GetComponent<fx::ProfilerComponent>();
 		ctx.SetResult<int>(profiler->IsRecording());
 	});
 
@@ -893,13 +896,14 @@ static InitFunction initFunction([]()
 	{
 		auto resname = res->GetName();
 		auto profiler = res->GetManager()->GetComponent<fx::ProfilerComponent>();
-
-		res->OnTick.Connect([res, profiler, resname]()
+		
+		res->OnEnter.Connect([res, profiler, resname]()
 		{
 			profiler->EnterResource(resname, "tick");
 			profiler->SetupScriptConnection(res);
 		}, INT32_MIN);
-		res->OnTick.Connect([profiler, resname]()
+
+		res->OnLeave.Connect([profiler, resname]()
 		{
 			profiler->ExitResource();
 		}, INT32_MAX);

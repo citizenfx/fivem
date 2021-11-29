@@ -191,18 +191,18 @@ static HookFunction hookFunctionGameTime([]()
 		},
 		100);
 
-		resource->OnTick.Connect([resourceName]()
+		resource->OnActivate.Connect([resourceName]()
 		{
 			auto th = GetThread();
 
 			if (th)
 			{
-				th->push_front(fmt::sprintf("%s: tick", resourceName));
+				th->push_front(fmt::sprintf("%s: activated", resourceName));
 			}
 		},
 		INT32_MIN);
 
-		resource->OnTick.Connect([]()
+		resource->OnDeactivate.Connect([]()
 		{
 			auto th = GetThread();
 
@@ -273,7 +273,7 @@ static HookFunction hookFunctionGameTime([]()
 
 static InitFunction initFunction([]()
 {
-	static auto* resourceMonitor = fx::ResourceMonitor::GetCurrent();
+	static std::unique_ptr<fx::ResourceMonitor> resourceMonitor;
 
 	static bool resourceTimeWarningShown;
 	static std::chrono::microseconds warningLastShown;
@@ -365,10 +365,25 @@ static InitFunction initFunction([]()
 #endif
 
 		// #TODO: SDK should explicitly notify the resource monitor is opened
-		resourceMonitor->SetShouldGetMemory(taskMgrEnabled || launch::IsSDKGuest());
+		if (taskMgrEnabled || launch::IsSDKGuest())
+		{
+			if (!resourceMonitor)
+			{
+				resourceMonitor = std::make_unique<fx::ResourceMonitor>();
+
+				resourceMonitor->SetShouldGetMemory(true);
+			}
+		}
+		else
+		{
+			if (resourceMonitor)
+			{
+				resourceMonitor = {};
+			}
+		}
 
 #ifndef IS_FXSERVER
-		if (launch::IsSDKGuest())
+		if (launch::IsSDKGuest() && resourceMonitor)
 		{
 			const auto& resourceDatas = resourceMonitor->GetResourceDatas();
 
@@ -394,7 +409,7 @@ static InitFunction initFunction([]()
 		}
 #endif
 
-		if (taskMgrEnabled)
+		if (taskMgrEnabled && resourceMonitor)
 		{
 			if (ImGui::Begin("Resource Monitor", &taskMgrEnabled) && ImGui::BeginTable("##resmon", 5, ImGuiTableFlags_Resizable | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Sortable))
 			{

@@ -8,7 +8,7 @@
 #include "StdInc.h"
 #include <om/OMComponent.h>
 
-#include <Resource.h>
+#include <ResourceManager.h>
 
 #include <fxScripting.h>
 
@@ -582,7 +582,7 @@ struct MonoAttachment
 	}
 };
 
-DLL_EXPORT void MonoEnsureThreadAttached()
+extern "C" DLL_EXPORT void MonoEnsureThreadAttached()
 {
 	if (!g_rootDomain)
 	{
@@ -657,9 +657,7 @@ static InitFunction initFunction([] ()
 {
 	static ConVar<bool> memoryUsageVar("mono_enableMemoryUsageTracking", ConVar_None, true, &g_enableMemoryUsage);
 
-	// should've been ResourceManager but ResourceManager OnTick happens _after_ individual resource ticks
-	// which is too early for on-start Mono resources to have run
-	fx::Resource::OnInitializeInstance.Connect([](fx::Resource* instance)
+	fx::ResourceManager::OnInitializeInstance.Connect([](fx::ResourceManager* instance)
 	{
 		instance->OnTick.Connect([]()
 		{

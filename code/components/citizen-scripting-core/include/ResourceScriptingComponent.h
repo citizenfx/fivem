@@ -14,11 +14,17 @@
 
 #include "ResourceMetaDataComponent.h"
 
+#ifdef COMPILING_CITIZEN_SCRIPTING_CORE
+#define SCRIPTING_CORE_EXPORT DLL_EXPORT
+#else
+#define SCRIPTING_CORE_EXPORT DLL_IMPORT
+#endif
+
 namespace fx
 {
 class Resource;
 
-class ResourceScriptingComponent : public fwRefCountable
+class ResourceScriptingComponent final : public fwRefCountable
 {
 private:
 	Resource* m_resource;
@@ -27,7 +33,7 @@ private:
 
 	tbb::concurrent_unordered_map<int32_t, fx::OMPtr<IScriptRuntime>> m_scriptRuntimes;
 
-	tbb::concurrent_unordered_map<int32_t, fx::OMPtr<IScriptTickRuntime>> m_tickRuntimes;
+	std::unordered_map<int32_t, fx::OMPtr<IScriptTickRuntime>> m_tickRuntimes;
 
 	tbb::concurrent_unordered_set<std::string> m_eventsHandled;
 
@@ -82,6 +88,8 @@ public:
 	{
 		m_eventsHandled.insert(eventName);
 	}
+
+	SCRIPTING_CORE_EXPORT void Tick();
 };
 
 class ScriptMetaDataComponent : public OMClass<ScriptMetaDataComponent, IScriptHostWithResourceData, IScriptHostWithManifest>

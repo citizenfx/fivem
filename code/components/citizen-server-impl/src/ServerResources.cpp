@@ -4,6 +4,7 @@
 #include <ResourceEventComponent.h>
 #include <ResourceMetaDataComponent.h>
 #include <ResourceManagerConstraintsComponent.h>
+#include <ResourceScriptingComponent.h>
 
 #include <fxScripting.h>
 
@@ -1231,7 +1232,9 @@ static InitFunction initFunction2([]()
 			if (resource.GetRef())
 			{
 				resource->GetManager()->MakeCurrent();
-				resource->Tick();
+
+				// #TODOTICKLESS: handle bookmark-based resources
+				resource->GetComponent<fx::ResourceScriptingComponent>()->Tick();
 			}
 		}, true);
 	});

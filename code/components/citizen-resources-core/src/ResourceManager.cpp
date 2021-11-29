@@ -12,8 +12,6 @@
 
 #include <skyr/url.hpp>
 
-#include <ETWProviders/etwprof.h>
-
 static fx::ResourceManager* g_globalManager;
 static thread_local fx::ResourceManager* g_currentManager;
 
@@ -22,19 +20,6 @@ namespace fx
 ResourceManagerImpl::ResourceManagerImpl()
 {
 	OnInitializeInstance(this);
-
-	OnTick.Connect([this]()
-	{
-		// execute resource tick functions
-		ForAllResources([](fwRefContainer<Resource> resource)
-		{
-			// #TODO: 32 bit
-#ifdef _M_AMD64
-			CETWScope etwScope(va("%s tick", resource->GetName()));
-#endif
-			resource->Tick();
-		});
-	});
 }
 
 fwRefContainer<ResourceMounter> ResourceManagerImpl::GetMounterForUri(const std::string& uri)

@@ -270,7 +270,7 @@ struct WatchdogWarningComponent : public fwRefCountable, public fx::IAttached<fx
 			}
 		}, 100);
 
-		resource->OnTick.Connect([resourceName]()
+		resource->OnEnter.Connect([resourceName]()
 		{
 			auto th = GetThread();
 
@@ -280,7 +280,7 @@ struct WatchdogWarningComponent : public fwRefCountable, public fx::IAttached<fx
 			}
 		}, INT32_MIN);
 
-		resource->OnTick.Connect([]()
+		resource->OnLeave.Connect([]()
 		{
 			auto th = GetThread();
 
