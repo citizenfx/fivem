@@ -720,6 +720,8 @@ static HRESULT GetUIObjectOfFile(HWND hwnd, LPCWSTR pszPath, REFIID riid, void**
 
 #include "TickCountData.h"
 
+static TickCountData* initTickCount;
+
 static void GatherCrashInformation()
 {
 	void* writer = nullptr;
@@ -733,8 +735,6 @@ static void GatherCrashInformation()
 	mz_zip_writer_create(&writer);
 	mz_zip_writer_set_compress_level(writer, 9);
 	mz_zip_writer_set_compress_method(writer, MZ_COMPRESS_METHOD_DEFLATE);
-
-	HostSharedData<TickCountData> initTickCount("CFX_SharedTickCount");
 
 	bool success = false;
 	
@@ -927,6 +927,14 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 	// needed to initialize logging(!)
 	trace("DumpServer is active and waiting.\n");
+
+	{
+		static TickCountData tickCountStorage;
+		HostSharedData<TickCountData> initTickCountRef("CFX_SharedTickCount");
+
+		tickCountStorage = *initTickCountRef;
+		initTickCount = &tickCountStorage;
+	}
 
 	HANDLE inheritedHandleBit = (HANDLE)inheritedHandle;
 	static HANDLE parentProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_TERMINATE | SYNCHRONIZE | PROCESS_CREATE_THREAD | PROCESS_VM_READ | PROCESS_VM_WRITE, FALSE, parentPid);
@@ -1256,10 +1264,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 		parameters[L"AdditionalData"] = GetAdditionalData();
 
-		{
-			HostSharedData<TickCountData> initTickCount("CFX_SharedTickCount");
-			parameters[L"StartTime"] = fmt::sprintf(L"%lld", _time64(nullptr) - ((GetTickCount64() - initTickCount->tickCount) / 1000));
-		}
+		parameters[L"StartTime"] = fmt::sprintf(L"%lld", _time64(nullptr) - ((GetTickCount64() - initTickCount->tickCount) / 1000));
 
 		std::wstring responseBody;
 		int responseCode = 0;
@@ -1271,7 +1276,6 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 		if (dateStamp.empty())
 		{
-			HostSharedData<TickCountData> initTickCount("CFX_SharedTickCount");
 			dateStamp = fmt::sprintf(L"%04d-%02d-%02dT%02d%02d%02d", initTickCount->initTime.wYear, initTickCount->initTime.wMonth,
 				initTickCount->initTime.wDay, initTickCount->initTime.wHour, initTickCount->initTime.wMinute, initTickCount->initTime.wSecond);
 		}

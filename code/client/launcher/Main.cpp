@@ -105,8 +105,6 @@ HMODULE tlsDll;
 
 int RealMain()
 {
-	//SetEnvironmentVariableW(L"CitizenFX_ToolMode", L"1");
-
 	bool toolMode = false;
 
 	if (getenv("CitizenFX_ToolMode"))
@@ -117,6 +115,8 @@ int RealMain()
 	if (!toolMode)
 	{
 #ifdef LAUNCHER_PERSONALITY_MAIN
+		static HostSharedData<TickCountData> initTickCount("CFX_SharedTickCount");
+
 		// run exception handler
 		if (InitializeExceptionServer())
 		{
@@ -296,8 +296,6 @@ int RealMain()
 	}
 
 #ifdef LAUNCHER_PERSONALITY_MAIN
-	static HostSharedData<TickCountData> initTickCount("CFX_SharedTickCount");
-
 	// if not the master process, force devmode
 	if (!devMode)
 	{
