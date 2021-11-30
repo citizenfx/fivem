@@ -1346,7 +1346,10 @@ result_t LuaScriptRuntime::LoadNativesBuild(const std::string& nativesBuild)
 
 result_t LuaScriptRuntime::Destroy()
 {
-	m_bookmarkHost->RemoveBookmarks(this);
+	if (m_bookmarkHost)
+	{
+		m_bookmarkHost->RemoveBookmarks(this);
+	}
 
 	// destroy any routines that may be referencing the Lua state
 	m_eventRoutine = TEventRoutine();
