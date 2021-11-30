@@ -1299,7 +1299,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 				shouldTerminate = false;
 
 				// we want a cef.log and don't want the core log (given its frequency)
-				files[L"cef_log"] = MakeRelativeCitPath(L"cef.log");
+				files[L"cef_log"] = MakeRelativeCitPath(L"cef_console.txt");
 				files.erase(L"upload_file_log");
 			}
 

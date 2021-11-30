@@ -1292,6 +1292,7 @@ void Initialize(nui::GameInterface* gi)
 
 	// delete any old CEF logs
 	DeleteFile(MakeRelativeCitPath(L"cef.log").c_str());
+	DeleteFile(MakeRelativeCitPath(L"cef_console.txt").c_str());
 
 	auto selfApp = Instance<NUIApp>::Get();
 
@@ -1325,7 +1326,7 @@ void Initialize(nui::GameInterface* gi)
 	CefString(&cSettings.user_agent_product).FromWString(fmt::sprintf(L"Chrome/%d.%d.%d.%d CitizenFX/1.0.0.%d", cef_version_info(4), cef_version_info(5), cef_version_info(6), cef_version_info(7), version));
 #endif
 	
-	CefString(&cSettings.log_file).FromWString(MakeRelativeCitPath(L"cef.log"));
+	CefString(&cSettings.log_file).FromWString(MakeRelativeCitPath(L"cef_console.txt"));
 	
 	CefString(&cSettings.browser_subprocess_path).FromWString(MakeCfxSubProcess(L"ChromeBrowser", L"chrome"));
 

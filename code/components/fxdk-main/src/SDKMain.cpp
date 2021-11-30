@@ -468,7 +468,7 @@ void SdkMain()
 	settings.remote_debugging_port = 13173;
 	settings.log_severity = LOGSEVERITY_DEFAULT;
 
-	CefString(&settings.log_file).FromWString(MakeRelativeCitPath(L"cef.log"));
+	CefString(&settings.log_file).FromWString(MakeRelativeCitPath(L"cef_console.txt"));
 
 	CefString(&settings.browser_subprocess_path).FromWString(MakeCfxSubProcess(L"SDKBrowser", L"chrome"));
 
