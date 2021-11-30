@@ -67,7 +67,15 @@ namespace fx
 {
 struct ResourceMonitorImpl : public ResourceMonitorImplBase
 {
+	ResourceMonitorImpl()
+		: tickIndex(std::make_shared<size_t>(0)), scriptFrameMetrics(tickIndex), gameFrameMetrics(tickIndex)
+	{
+		
+	}
+
 	virtual ~ResourceMonitorImpl() = default;
+
+	std::shared_ptr<size_t> tickIndex;
 
 	tbb::concurrent_unordered_map<std::string, std::optional<ResourceMetrics>> metrics;
 	TickMetrics<64> scriptFrameMetrics;
@@ -294,13 +302,16 @@ namespace fx
 
 				resEvents2.emplace_back(resource->OnRemove, [this, resource]()
 				{
-					GetImpl()->resEvents.erase(resource);
+					auto impl = GetImpl();
+
+					impl->metrics[resource->GetName()] = {};
+					impl->resEvents.erase(resource);
 				});
 			}
 
 			auto processStart = [this, resource]()
 			{
-				GetImpl()->metrics[resource->GetName()] = ResourceMetrics{};
+				GetImpl()->metrics[resource->GetName()] = ResourceMetrics{ GetImpl()->tickIndex };
 
 				GetImpl()->metrics[resource->GetName()]->ticks.Reset();
 			};
@@ -383,6 +394,7 @@ namespace fx
 
 		GetImpl()->events.emplace_back(resourceManager->OnTick, [this]()
 		{
+			(*(GetImpl()->tickIndex))++;
 			GetImpl()->scriptBeginTime = usec();
 		},
 		INT32_MIN);

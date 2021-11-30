@@ -538,7 +538,7 @@ static InitFunction initFunction([]()
 						},
 						(void*)recentTicks.get().tickTimes,
 						std::size(TTick{}) / sampleCount,
-						recentTicks.get().curTickTime / sampleCount,
+						*recentTicks.get().curTickTime / sampleCount,
 						nullptr,
 						0.0f,
 						2.5f,
