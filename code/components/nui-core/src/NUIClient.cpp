@@ -236,7 +236,10 @@ bool NUIClient::OnConsoleMessage(CefRefPtr<CefBrowser> browser, cef_log_severity
 
 	// skip websocket error messages and mpMenu messages
 	// some of these can't be blocked from script and users get very confused by them appearing in console
-	if (messageStr.find(L"WebSocket connection to") != std::string::npos || sourceStr.find(L"nui-game-internal") != std::string::npos || sourceStr.find(L"chrome-devtools") != std::string::npos)
+	if (messageStr.find(L"WebSocket connection to") != std::string::npos || sourceStr.find(L"nui-game-internal") != std::string::npos || sourceStr.find(L"chrome-devtools") != std::string::npos ||
+		// some weird loading screen embeds use this, but newer Chrome writes to log in that case
+		// users get confused, again, as well: 'I'm stuck in loading due to this error, what is this?'
+		messageStr.find(L"target-densitydpi") != std::string::npos)
 	{
 		return false;
 	}
