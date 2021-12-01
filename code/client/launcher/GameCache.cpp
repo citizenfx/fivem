@@ -1047,7 +1047,7 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 		StartIPFS();
 	}
 
-	UI_UpdateText(0, gettext(L"Updating game cache...").c_str());
+	UI_UpdateText(0, gettext(L"Updating game storage...").c_str());
 
 	bool retval = DL_RunLoop();
 
