@@ -893,7 +893,7 @@ bool LuaScriptRuntime::RunBookmark(uint64_t bookmark)
 
 		if (type == LUA_TNUMBER || type == LUA_TNIL)
 		{
-			auto wakeTime = (type == LUA_TNUMBER) ? lua_tointeger(thread, -1) : 0;
+			auto wakeTime = (type == LUA_TNUMBER) ? (int64_t)lua_tonumber(thread, -1) : 0;
 			lua_pop(thread, 1);
 
 			m_bookmarkHost->ScheduleBookmark(this, bookmark, -wakeTime);
