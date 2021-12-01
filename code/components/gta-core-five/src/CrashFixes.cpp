@@ -538,6 +538,24 @@ static const uint64_t* SafeMILookup(void* archetype)
 	return mi;
 }
 
+struct clockInfo
+{
+	char pad[12];
+	int year;
+};
+
+static int (*g_origCalculateLeap)(clockInfo* clock);
+
+static int _calculateLeapFix(clockInfo* clock)
+{
+	if (clock->year > 2025)
+	{
+		clock->year = 2025;
+	}
+
+	return g_origCalculateLeap(clock);
+}
+
 static HookFunction hookFunction{[] ()
 {
 	// CModelInfoStreamingModule LookupModelId null return
@@ -1163,6 +1181,9 @@ static HookFunction hookFunction{[] ()
 
 	// very hacky patch to not unload base game data from 'vehiclelayouts' CVehicleMetadataMgr
 	VehicleMetadataUnloadMagic();
+
+	// mitigate crazy year corruption causing slowdown in render/timecycle leap year computation
+	MH_CreateHook(hook::get_pattern("BB 6C 07 00 00 33 FF 48", -15), _calculateLeapFix, (void**)&g_origCalculateLeap);
 
 	MH_EnableHook(MH_ALL_HOOKS);
 } };
