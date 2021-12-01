@@ -1576,14 +1576,14 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 		g_dumpPath = *filePath;
 
-		thread = std::thread([=]()
+		// Should not show taskdialog when in fxdk mode
+		if (shouldTerminate && !launch::IsSDKGuest())
 		{
-			// Should not show taskdialog when in fxdk mode
-			if (shouldTerminate && !launch::IsSDKGuest())
+			thread = std::thread([=]()
 			{
 				TaskDialogIndirect(&taskDialogConfig, nullptr, nullptr, nullptr);
-			}
-		});
+			});
+		}
 
 		std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
 
@@ -1640,7 +1640,10 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		crashId = L"";
 #endif
 
-		SetEvent(crashReport);
+		if (shouldTerminate)
+		{
+			SetEvent(crashReport);
+		}
 	};
 
 	CrashGenerationServer::OnClientExitedCallback exitCallback = [] (void*, const ClientInfo* info)
