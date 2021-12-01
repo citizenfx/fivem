@@ -30,8 +30,6 @@
 #include <CfxLocale.h>
 #include <filesystem>
 
-extern "C" BOOL WINAPI _CRT_INIT(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved);
-
 void InitializeDummies();
 std::optional<int> EnsureGamePath();
 
@@ -43,8 +41,6 @@ std::map<std::string, std::string> UpdateGameCache();
 #pragma comment(lib, "version.lib")
 
 std::map<std::string, std::string> g_redirectionData;
-
-extern "C" int wmainCRTStartup();
 
 void DoPreLaunchTasks();
 void NVSP_DisableOnStartup();
