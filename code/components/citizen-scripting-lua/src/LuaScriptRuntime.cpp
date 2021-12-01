@@ -968,7 +968,13 @@ bool LuaScriptRuntime::RunBookmark(uint64_t bookmark)
 
 int Lua_Wait(lua_State* L)
 {
+	// push argument 1
+	lua_pushvalue(L, 1);
+
+	// yield with argument
 	lua_yield(L, 1);
+
+	// no return values
 	return 0;
 }
 
