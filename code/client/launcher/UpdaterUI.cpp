@@ -1095,9 +1095,10 @@ static void InitializeRenderOverlay(winrt::Windows::UI::Xaml::Controls::SwapChai
 		UINT createDeviceFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 		//createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
 		D3D_FEATURE_LEVEL featureLevel;
-		const D3D_FEATURE_LEVEL featureLevelArray[2] = {
+
+		// so we'll fail if FL11 isn't supported
+		const D3D_FEATURE_LEVEL featureLevelArray[1] = {
 			D3D_FEATURE_LEVEL_11_0,
-			D3D_FEATURE_LEVEL_10_0,
 		};
 
 		auto d3d11 = loadSystemDll(L"\\d3d11.dll");
