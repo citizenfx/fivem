@@ -47,11 +47,28 @@ struct AutoConnect
 		};
 	}
 
+	template<typename TEvent, typename TFunc>
+	AutoConnect(const std::shared_ptr<bool>& defuser, TEvent& ev, TFunc&& func)
+		: AutoConnect(defuser, ev, std::move(func), 0)
+	{
+	}
+
+	template<typename TEvent, typename TFunc>
+	AutoConnect(const std::shared_ptr<bool>& defuser, TEvent& ev, TFunc&& func, int order)
+		: AutoConnect(ev, func, order)
+	{
+		this->defuser = defuser;
+	}
+
 	~AutoConnect()
 	{
 		if (dtor)
 		{
-			dtor();
+			if (!defuser || !*defuser)
+			{
+				dtor();
+			}
+
 			dtor = {};
 		}
 	}
@@ -61,6 +78,7 @@ struct AutoConnect
 
 private:
 	std::function<void()> dtor;
+	std::shared_ptr<bool> defuser;
 };
 
 namespace fx
@@ -300,12 +318,18 @@ namespace fx
 			{
 				auto& resEvents2 = GetImpl()->resEvents2[resource];
 
-				resEvents2.emplace_back(resource->OnRemove, [this, resource]()
+				// we use an external defuser here so if OnRemove got used, we do not try to Disconnect on the dead resource when
+				// the AutoEvent is removed
+				auto defuser = std::make_shared<bool>(false);
+
+				resEvents2.emplace_back(defuser, resource->OnRemove, [this, resource, defuser]()
 				{
 					auto impl = GetImpl();
 
 					impl->metrics[resource->GetName()] = {};
 					impl->resEvents.erase(resource);
+
+					*defuser = true;
 				});
 			}
 
