@@ -338,7 +338,7 @@ static Local<Value> GetStackTrace(TryCatch& eh, V8ScriptRuntime* runtime)
 	return stackTraceHandle.ToLocalChecked();
 }
 
-static OMPtr<V8ScriptRuntime> g_currentV8Runtime;
+static thread_local OMPtr<V8ScriptRuntime> g_currentV8Runtime;
 
 class FxMicrotaskScope
 {
@@ -2506,6 +2506,10 @@ V8ScriptGlobals::V8ScriptGlobals()
 {
 }
 
+#ifdef V8_NODE
+static thread_local std::stack<std::unique_ptr<BasePushEnvironment>> g_envStack;
+#endif
+
 void V8ScriptGlobals::Initialize()
 {
 	if (m_inited)
@@ -2776,8 +2780,6 @@ void V8ScriptGlobals::Initialize()
 		v8::HandleScope handle_scope(m_isolate);
 		node::MultiIsolatePlatform* nodePlatform = static_cast<node::MultiIsolatePlatform*>(m_platform.get());
 
-		static std::stack<std::unique_ptr<BasePushEnvironment>> envStack;
-
 		node::SetScopeHandler([](const node::Environment* env)
 		{
 			auto runtime = GetEnvRuntime(env);
@@ -2788,7 +2790,7 @@ void V8ScriptGlobals::Initialize()
 				// other approach would be to add refcount to topmost push env
 				if (g_currentV8Runtime.GetRef() == runtime)
 				{
-					envStack.push(std::make_unique<V8NoopPushEnvironment>());
+					g_envStack.push(std::make_unique<V8NoopPushEnvironment>());
 					return;
 				}
 
@@ -2802,26 +2804,26 @@ void V8ScriptGlobals::Initialize()
 
 					if (PushEnvironment::TryPush(OMPtr{ runtime }, pe))
 					{
-						envStack.push(std::make_unique<V8LitePushEnvironment>(std::move(pe), runtime, env));
+						g_envStack.push(std::make_unique<V8LitePushEnvironment>(std::move(pe), runtime, env));
 					}
 					else
 					{
-						envStack.push(std::make_unique<V8LiteNoRuntimePushEnvironment>(env));
+						g_envStack.push(std::make_unique<V8LiteNoRuntimePushEnvironment>(env));
 					}
 
 					return;
 				}
 
-				envStack.push(std::make_unique<V8LitePushEnvironment>(runtime, env));
+				g_envStack.push(std::make_unique<V8LitePushEnvironment>(runtime, env));
 			}
 			else
 			{
-				envStack.push(std::make_unique<V8LiteNoRuntimePushEnvironment>(env));
+				g_envStack.push(std::make_unique<V8LiteNoRuntimePushEnvironment>(env));
 			}
 		},
 		[](const node::Environment* env)
 		{
-			envStack.pop();
+			g_envStack.pop();
 		});
 
 #ifndef IS_FXSERVER
