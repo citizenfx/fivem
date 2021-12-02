@@ -1081,7 +1081,7 @@ static int Lua_CreateThreadNow(lua_State* L)
 
 static int Lua_SetTimeout(lua_State* L)
 {
-	auto timeout = luaL_checkinteger(L, 1);
+	auto timeout = (int)luaL_checknumber(L, 1);
 	return Lua_CreateThreadInternal(L, false, timeout, 2);
 }
 
