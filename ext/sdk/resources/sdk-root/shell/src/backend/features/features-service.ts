@@ -3,7 +3,7 @@ import cp from 'child_process';
 import { inject, injectable } from "inversify";
 import { ApiClient } from "backend/api/api-client";
 import { StatusService } from "backend/status/status-service";
-import { AppContribution } from "backend/app/app-contribution";
+import { AppContribution } from "backend/app/app.extensions";
 import { Deferred } from "backend/deferred";
 import { FsService } from "backend/fs/fs-service";
 import { LogService } from "backend/logger/log-service";

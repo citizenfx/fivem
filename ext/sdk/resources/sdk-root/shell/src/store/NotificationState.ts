@@ -90,3 +90,7 @@ export const NotificationState = new class NotificationState {
     this.items[notification.id] = notification;
   };
 }();
+
+export function getExpireAt(afterMilliseconds: number): number {
+  return Date.now() + afterMilliseconds;
+}

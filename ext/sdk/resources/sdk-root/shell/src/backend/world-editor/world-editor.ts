@@ -1,6 +1,6 @@
 import deepmerge from 'deepmerge';
 import { inject, injectable, postConstruct } from "inversify";
-import { ApiContribution } from "backend/api/api-contribution";
+import { ApiContribution } from "backend/api/api.extensions";
 import { FsService } from "backend/fs/fs-service";
 import { LogService } from "backend/logger/log-service";
 import {
@@ -27,9 +27,10 @@ import { ChangeAwareContainer } from 'backend/change-aware-container';
 import { FsThrottledWriter } from 'backend/fs/fs-throttled-writer';
 import { ApiClient } from 'backend/api/api-client';
 import { omit } from 'utils/omit';
-import { ProjectAccess } from 'backend/project/project-access';
+import { ProjectAccess } from 'fxdk/project/node/project-access';
 import { WorldEditorMapUpgrader } from './world-editor-map-upgrader';
 import { WEApi, WEApiMethod, WEApiMethodRequest } from './world-editor-game-api';
+import { dispose, IDisposable } from 'fxdk/base/disposable';
 
 @injectable()
 export class WorldEditor implements ApiContribution {
@@ -37,7 +38,7 @@ export class WorldEditor implements ApiContribution {
     return `WorldEditor(${this.mapPath})`;
   }
 
-  eventDisposers: Function[] = [];
+  eventDisposers: IDisposable[] = [];
 
   @inject(FsService)
   protected readonly fsService: FsService;
@@ -109,7 +110,7 @@ export class WorldEditor implements ApiContribution {
   }
 
   async close() {
-    this.eventDisposers.forEach((disposer) => disposer());
+    this.eventDisposers.forEach(dispose);
 
     await this.mapWriter.flush();
 

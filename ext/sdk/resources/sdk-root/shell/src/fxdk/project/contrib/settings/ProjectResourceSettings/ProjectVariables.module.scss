@@ -1,0 +1,190 @@
+@import "variables";
+
+.root {
+  display: flex;
+  flex-direction: column;
+
+  gap: $q*4;
+
+  padding: $q*4;
+
+  .setter,
+  .type {
+    padding: $q;
+
+    font-size: $fs08;
+
+    border: solid 1px rgba($bgColor, .5);
+    border-radius: $q;
+
+    color: rgba($fgColor, .75);
+    background-color: rgba($bgColor, .5);
+  }
+
+  .header {
+    display: flex;
+    flex-direction: column;
+
+    gap: $q;
+
+    .title {
+      display: flex;
+      align-items: center;
+
+      gap: $q*2;
+
+      font-size: $fs1;
+
+      .tuple {
+        display: flex;
+        align-items: baseline;
+
+        gap: $q*2;
+      }
+    }
+
+    .subtitle {
+      font-size: $fs08;
+      color: rgba($fgColor, .5);
+    }
+  }
+
+  .stranded {
+    display: flex;
+    align-items: center;
+
+    gap: $q*2;
+
+    padding: $q*2;
+    border-radius: $q;
+
+    background-color: rgba($wrColor, .25);
+
+    .header {
+      flex-grow: 1;
+
+      .title {
+        .icon {
+          color: $wrColor;
+        }
+      }
+    }
+  }
+
+  .conflict {
+    display: flex;
+    flex-direction: column;
+
+    gap: $q*2;
+
+    padding: $q*2;
+    border-radius: $q;
+
+    background-color: rgba($erColor, .25);
+
+    .header {
+      display: flex;
+      flex-direction: column;
+
+      gap: $q;
+
+      .title {
+        display: flex;
+        align-items: center;
+
+        gap: $q*2;
+
+        font-size: $fs1;
+
+        .icon {
+          color: $erColor;
+        }
+      }
+
+      .subtitle {
+        font-size: $fs08;
+        color: rgba($fgColor, .5);
+      }
+    }
+
+    ul {
+      display: flex;
+      flex-direction: column;
+
+      gap: $q;
+
+      list-style: none;
+
+      li {
+        display: flex;
+        align-items: baseline;
+
+        gap: $q;
+
+        .link {
+          border-bottom: currentColor;
+
+          cursor: pointer;
+        }
+      }
+    }
+  }
+
+  .category {
+    display: flex;
+    flex-direction: column;
+
+    gap: $q*2;
+
+    .header {
+      .title {
+        font-weight: 500;
+      }
+    }
+
+    .variables {
+      display: flex;
+      flex-direction: column;
+
+      gap: $q;
+
+      .entry {
+        display: flex;
+        align-items: center;
+
+        gap: $q*2;
+
+        padding: $q*2;
+        border-radius: $q;
+
+        background-color: rgba($fgColor, .05);
+
+        &.error {
+          background-color: rgba($erColor, .25);
+
+          .header {
+            .title {
+              .icon {
+                color: $erColor;
+              }
+            }
+          }
+        }
+
+        .header {
+          flex-grow: 1;
+
+          .title {
+            font-weight: 300;
+          }
+        }
+
+        .control {
+          display: flex;
+
+          gap: $q;
+        }
+      }
+    }
+  }
+}

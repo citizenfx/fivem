@@ -4,8 +4,31 @@ import classnames from 'classnames';
 import s from './ContextMenu.module.scss';
 import { BsAlt } from 'react-icons/bs';
 
+type ReactNodeOrFactory =
+  | React.ReactNode
+  | (() => React.ReactNode);
+
+type Disablement =
+  | boolean
+  | (() => boolean);
 
 const noop = () => {};
+
+function renderReactNodeOrFactory(node: ReactNodeOrFactory): React.ReactNode {
+  if (typeof node === 'function') {
+    return node();
+  }
+
+  return node;
+}
+
+function isDisabled(disablement: Disablement | undefined): boolean {
+  if (typeof disablement === 'function') {
+    return disablement();
+  }
+
+  return !!disablement;
+}
 
 function ifVisible(item: IContextMenuItem): boolean {
   if (item === ContextMenuItemSeparator) {
@@ -23,8 +46,8 @@ export const ContextMenuItemSeparator = Symbol('context-menu-separator');
 
 export interface ContextMenuItem {
   id: string,
-  text: React.ReactNode,
-  icon?: React.ReactNode,
+  text: ReactNodeOrFactory,
+  icon?: ReactNodeOrFactory,
   onClick: () => void,
   disabled?: boolean,
   visible?: () => boolean,
@@ -47,8 +70,8 @@ export type ContextMenuItemsCollection = Array<IContextMenuItem>;
 
 export interface ContextMenuProps {
   children: React.ReactNode,
-  items: ContextMenuItemsCollection,
-  disabled?: boolean,
+  items: Readonly<ContextMenuItemsCollection>,
+  disabled?: boolean | (() => boolean),
   title?: string,
   className?: string,
   activeClassName?: string,
@@ -80,6 +103,8 @@ export const ContextMenu = React.forwardRef(function ContextMenu(props: ContextM
     onMouseOver = noop,
     onMouseOut = noop,
   } = props;
+
+  const itemsLength = items.length;
 
   const [coords, setCoords] = React.useState<Coords | null>(null);
   const [outlet, setOutlet] = React.useState<HTMLElement | null>(null);
@@ -122,11 +147,11 @@ export const ContextMenu = React.forwardRef(function ContextMenu(props: ContextM
     return (
       <div
         key={item.id}
-        className={classnames(s.item, { [s.disabled]: item.disabled })}
+        className={classnames(s.item, { [s.disabled]: isDisabled(item.disabled) })}
         onMouseUp={handleItemMouseup}
       >
-        {item.icon || <BsAlt className={s.dummy} />}
-        {item.text}
+        {renderReactNodeOrFactory(item.icon) || <BsAlt className={s.dummy} />}
+        {renderReactNodeOrFactory(item.text)}
       </div>
     );
   }, []);
@@ -134,6 +159,10 @@ export const ContextMenu = React.forwardRef(function ContextMenu(props: ContextM
   const handleOpenMenu = React.useCallback((event: MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
+
+    if (!itemsLength) {
+      return false;
+    }
 
     let coords;
 
@@ -149,7 +178,7 @@ export const ContextMenu = React.forwardRef(function ContextMenu(props: ContextM
     setCoords(coords);
 
     return false;
-  }, [getCoords]);
+  }, [getCoords, itemsLength]);
 
   const handleBackdropMouseDown = React.useCallback((event: MouseEvent) => {
     if (backdropRef.current === event.target) {

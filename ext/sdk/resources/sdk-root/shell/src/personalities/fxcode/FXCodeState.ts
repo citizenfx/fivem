@@ -1,11 +1,10 @@
 import React from "react";
 import { makeAutoObservable, reaction, runInAction } from "mobx";
-import { projectApi, serverApi } from "shared/api.events";
+import { serverApi } from "shared/api.events";
 import { GameState } from "store/GameState";
 import { ShellPersonality, ShellState } from "store/ShellState";
-import { GameStates } from "backend/game/game-contants";
+import { GameStates } from "backend/game/game-constants";
 import { apiHost } from "utils/apiHost";
-import { ProjectState } from "store/ProjectState";
 import { LocalStorageValue } from "store/generic/LocalStorageValue";
 import { IFxDKGlue } from 'vs/fxdk/browser/glue';
 import { ShellEvents } from "shell-api/events";
@@ -17,6 +16,8 @@ import { TaskState } from "store/TaskState";
 import { ShellCommands } from "shell-api/commands";
 import { OpenFlag } from "store/generic/OpenFlag";
 import { Api } from "fxdk/browser/Api";
+import { Project } from "fxdk/project/browser/state/project";
+import { ProjectApi } from "fxdk/project/common/project.api";
 
 const fxcodeRef = React.createRef<HTMLIFrameElement>();
 
@@ -53,7 +54,7 @@ export const FXCodeState = new class FXCodeState {
   }
 
   get iframeSrc(): string {
-    return `${this.originUrl}/fxcode-root?path=${ProjectState.project.path.replace(/\\/g, '/')}`;
+    return `${this.originUrl}/fxcode-root?path=${Project.path.replace(/\\/g, '/')}`;
   }
 
   private get glue(): IFxDKGlue | void {
@@ -88,9 +89,8 @@ export const FXCodeState = new class FXCodeState {
     Api.on(serverApi.clearOutput, this.glued((glue) => glue.dataService.clearAllServerOutputs()));
     Api.on(serverApi.resourceDatas, this.glued((glue, data) => glue.dataService.setServerResourcesData(data)));
 
-    Api.on(projectApi.entryRenamed, this.glued((glue, { fromEntryPath, toEntryPath }) => glue.emitFileMoved(fromEntryPath, toEntryPath)));
-    Api.on(projectApi.entryMoved, this.glued((glue, { fromEntryPath, toEntryPath }) => glue.emitFileMoved(fromEntryPath, toEntryPath)));
-    Api.on(projectApi.entryDeleted, this.glued((glue, { entryPath }) => glue.emitFileDeleted(entryPath)));
+    Api.on(ProjectApi.FsEndpoints.entryRenamed, this.glued((glue, { fromEntryPath, toEntryPath }) => glue.emitFileMoved(fromEntryPath, toEntryPath)));
+    Api.on(ProjectApi.FsEndpoints.entryDeleted, this.glued((glue, { entryPath }) => glue.emitFileDeleted(entryPath)));
 
     ShellEvents.on('fxdk:data', this.glued((glue, data) => glue.dataService.acceptData(data)));
     ShellEvents.on('game:consoleMessage', this.glued((glue, data) => glue.dataService.receiveStructuredGameMessage(data)));

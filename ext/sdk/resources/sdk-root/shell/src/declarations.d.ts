@@ -1,5 +1,3 @@
-/// <reference types="react-scripts" />
-
 // So, yeah, TS needs import for this file to work, yay
 import "react";
 
@@ -31,8 +29,6 @@ declare global {
   var fxdkSendApiMessage: (msg: string) => boolean;
   var fxdkOpenSelectFolderDialog: (startPath: string, dialogTitle: string, callback: (selectedFolder: string | null) => void) => boolean;
   var fxdkOpenSelectFileDialog: (startPath: string, dialogTitle: string, callback: (selectedFolder: string | null) => void) => boolean;
-
-  var dev: any;
 
   type NullableTimer = NodeJS.Timeout | null;
 

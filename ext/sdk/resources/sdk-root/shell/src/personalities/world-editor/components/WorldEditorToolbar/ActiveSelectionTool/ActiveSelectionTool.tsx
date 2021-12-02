@@ -5,7 +5,7 @@ import { observer } from 'mobx-react-lite';
 import { WEState } from 'personalities/world-editor/store/WEState';
 import { WESelectionType } from 'backend/world-editor/world-editor-types';
 import { additionsToolIcon, patchesToolIcon } from 'personalities/world-editor/constants/icons';
-import { closeIcon } from 'constants/icons';
+import { closeIcon } from 'fxdk/ui/icons';
 import { Title } from 'fxdk/ui/controls/Title/Title';
 import s from './ActiveSelectionTool.module.scss';
 

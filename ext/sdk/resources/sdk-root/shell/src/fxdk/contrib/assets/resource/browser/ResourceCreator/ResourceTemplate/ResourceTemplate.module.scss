@@ -1,0 +1,69 @@
+@import "variables";
+
+.root {
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+
+  background-color: rgba($fgColor, .05);
+
+  padding: $q*2;
+
+  box-shadow: 0 0 0 $q*0.5 transparent inset;
+  transition: all .2s ease;
+
+  user-select: none;
+
+  &.checked,
+  &.checked:hover {
+    box-shadow: 0 0 0 $q*0.5 rgba($fgColor, .5) inset;
+    transition: none;
+  }
+
+  &.disabled {
+    opacity: .75;
+
+    pointer-events: none;
+  }
+
+  &:hover {
+    box-shadow: 0 0 0 $q*0.5 $acColor inset;
+    transition: none;
+  }
+
+  .icon {
+    flex-shrink: 0;
+
+    width: $q*10;
+    height: $q*10;
+
+    opacity: .75;
+
+    & > * {
+      width: 100%;
+      height: 100%;
+    }
+  }
+
+  .content {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: stretch;
+
+    margin-left: $q*2;
+
+    .title {
+      font-size: $fs2;
+      @include fontPrimary;
+    }
+
+    .description {
+      margin-top: $q;
+
+      color: rgba($fgColor, .5);
+      font-size: $fs08;
+      @include fontPrimary;
+    }
+  }
+}

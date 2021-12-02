@@ -480,6 +480,14 @@ public:
 	{
 	}
 };
+
+class V8NoopPushEnvironment : public BasePushEnvironment
+{
+public:
+	inline ~V8NoopPushEnvironment()
+	{
+	}
+};
 #endif
 
 static V8ScriptRuntime* GetScriptRuntimeFromArgs(const v8::FunctionCallbackInfo<v8::Value>& args)
@@ -2776,6 +2784,14 @@ void V8ScriptGlobals::Initialize()
 
 			if (runtime)
 			{
+				// if already have current runtime on top - push noop env so we won't run microtasks on push env dtor
+				// other approach would be to add refcount to topmost push env
+				if (g_currentV8Runtime.GetRef() == runtime)
+				{
+					envStack.push(std::make_unique<V8NoopPushEnvironment>());
+					return;
+				}
+
 				// since the V8 locker might be held by our caller, lock order for V8LitePushEnvironment might not be correct
 				// instead, we will just dare to not push the runtime if we don't need to (and we're already locked)
 

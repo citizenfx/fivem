@@ -1,10 +1,10 @@
 import { ApiClient } from "backend/api/api-client";
-import { ApiContribution } from "backend/api/api-contribution";
+import { ApiContribution } from "backend/api/api.extensions";
 import { handlesClientCallbackEvent, handlesClientEvent } from "backend/api/api-decorators";
-import { AppContribution } from "backend/app/app-contribution";
+import { AppContribution } from "backend/app/app.extensions";
 import { ConfigService } from "backend/config-service";
 import { Deferred } from "backend/deferred";
-import { Disposable } from "backend/disposable-container";
+import { IDisposable } from "fxdk/base/disposable";
 import { FsService } from "backend/fs/fs-service";
 import { LogService } from "backend/logger/log-service";
 import { NotificationService } from "backend/notification/notification-service";
@@ -14,7 +14,7 @@ import { inject, injectable } from "inversify";
 import { gameApi } from "shared/api.events";
 import { NetLibraryConnectionState, SDKGameProcessState } from "shared/native.enums";
 import { SingleEventEmitter } from "utils/singleEventEmitter";
-import { GameStates } from "./game-contants";
+import { GameStates } from "./game-constants";
 
 @injectable()
 export class GameService implements ApiContribution, AppContribution {
@@ -61,7 +61,7 @@ export class GameService implements ApiContribution, AppContribution {
   private rACTimeout: NodeJS.Timeout | null = null;
 
   private readonly gameStateChangeEvent = new SingleEventEmitter<GameStates>();
-  onGameStateChange(cb: (gameState: GameStates) => void): Disposable {
+  onGameStateChange(cb: (gameState: GameStates) => void): IDisposable {
     return this.gameStateChangeEvent.addListener(cb);
   }
 
@@ -224,7 +224,7 @@ export class GameService implements ApiContribution, AppContribution {
     this.stopGame();
   }
 
-  onBackendMessage(type: string, handler: Function): Function {
+  onBackendMessage(type: string, handler: Function): IDisposable {
     if (!this.messageHandlers[type]) {
       this.messageHandlers[type] = new Set();
     }

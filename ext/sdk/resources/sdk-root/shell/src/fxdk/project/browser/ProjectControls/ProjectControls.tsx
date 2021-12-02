@@ -1,16 +1,17 @@
 import React from 'react';
 import classnames from 'classnames';
 import { ServerButton } from './ServerButton/ServerButton';
-import { NewDirectory } from './NewDirectory';
-import { projectSettingsIcon } from 'constants/icons';
+import { projectSettingsIcon } from 'fxdk/ui/icons';
 import { observer } from 'mobx-react-lite';
 import { AiOutlinePlus } from 'react-icons/ai';
-import { Title } from 'fxdk/ui/controls/Title/Title';
+import { Title, TitleProps } from 'fxdk/ui/controls/Title/Title';
 import { useIntroIsFocusedNode } from 'fxdk/ui/Intro/Intro';
-import { ProjectParticipants } from '../projectExtensions';
+import { IProjectControlParticipant, IProjectStackedControlsParticipant, ProjectParticipants } from '../projectExtensions';
 import { ShellCommands } from 'shell-api/commands';
-import s from './ProjectControls.module.scss';
 import { ProjectSettingsCommands } from 'fxdk/project/contrib/settings/settings.commands';
+import { ProjectExplorerParticipants } from '../../contrib/explorer/projectExplorerExtensions';
+import { ExplorerRuntime } from '../../contrib/explorer/explorer.runtime';
+import s from './ProjectControls.module.scss';
 
 const CREATE_PROJECT_ITEM_INTRO_NODE_ID = 'create-project-item';
 
@@ -20,18 +21,23 @@ export const ProjectControls = observer(function ProjectControls() {
     [s.focused]: createProjectItemFocusedInIntro,
   });
 
-  const itemCreatorNodes = ProjectParticipants.getAllEnabledItemCreators().map((creator) => {
-    const handleClick = () => ShellCommands.invoke(creator.commandId);
+  const itemCreatorNodes = ProjectExplorerParticipants.getAllItemCreators().map((creator) => {
+    const commandId = ExplorerRuntime.getOrCreateRootItemCreatorCommandId(creator);
+    const icon = typeof creator.icon === 'function'
+      ? creator.icon('')
+      : creator.icon;
+
+    const handleClick = () => ShellCommands.invoke(commandId);
 
     return (
-      <Title key={creator.id} animated={false} delay={0} title={creator.label} fixedOn="right">
+      <Title key={creator.id} animated={false} delay={0} title={`New ${creator.label}`} fixedOn="right">
         {(ref) => (
           <button
             ref={ref}
             className={s.item}
             onClick={handleClick}
           >
-            {creator.icon}
+            {icon}
           </button>
         )}
       </Title>
@@ -39,22 +45,11 @@ export const ProjectControls = observer(function ProjectControls() {
   });
 
   const controlNodes = ProjectParticipants.getAllEnabledControls().map((control) => {
-    const handleClick = () => ShellCommands.invoke(control.commandId);
+    if ('controls' in control) {
+      return renderStackedControl(control);
+    }
 
-    return (
-      <Title key={control.id} animated={false} delay={0} title={control.label} fixedOn="bottom">
-        {(ref) => (
-          <button
-            ref={ref}
-            className={s.item}
-            onClick={handleClick}
-            data-intro-id={control.introId || ''}
-          >
-            {control.icon}
-          </button>
-        )}
-      </Title>
-    );
+    return renderNormalControl(control);
   });
 
   return (
@@ -77,8 +72,6 @@ export const ProjectControls = observer(function ProjectControls() {
         </button>
 
         <div className={s.stack} data-intro-id={CREATE_PROJECT_ITEM_INTRO_NODE_ID}>
-          <NewDirectory className={s.item} />
-
           {itemCreatorNodes}
         </div>
       </div>
@@ -89,3 +82,40 @@ export const ProjectControls = observer(function ProjectControls() {
     </>
   );
 });
+
+function renderStackedControl(control: IProjectStackedControlsParticipant): React.ReactNode {
+  return (
+    <div key={control.id} className={s['item-stack']}>
+      <button className={s.item}>
+        {control.icon}
+      </button>
+
+      <div className={s.stack} data-intro-id={control.introId}>
+        {control.controls.map((control) => renderNormalControl(control, 'right'))}
+      </div>
+    </div>
+  );
+}
+
+function renderNormalControl(control: IProjectControlParticipant, titleFixedOn: TitleProps['fixedOn'] = 'bottom'): React.ReactNode {
+  if (control.enabled && !control.enabled()) {
+    return null;
+  }
+
+  const handleClick = () => ShellCommands.invokeWithArgs(control.commandId, control.commandArgs);
+
+  return (
+    <Title key={control.id} animated={false} delay={0} title={control.label} fixedOn={titleFixedOn}>
+      {(ref) => (
+        <button
+          ref={ref}
+          className={s.item}
+          onClick={handleClick}
+          data-intro-id={control.introId || ''}
+        >
+          {control.icon}
+        </button>
+      )}
+    </Title>
+  );
+}

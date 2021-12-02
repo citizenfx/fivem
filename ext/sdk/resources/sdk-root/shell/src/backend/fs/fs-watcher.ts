@@ -1,5 +1,10 @@
-import { DisposableObject } from "backend/disposable-container";
+import * as path from 'path';
+import { IDisposableObject } from "fxdk/base/disposable";
 import { fastRandomId } from "utils/random";
+
+function normalizeRawEvent([action, fromDir, fromFile, toDir, toFile]: RawEvent): FsWatcherEvent {
+  return [action, path.join(fromDir, fromFile), (toDir && toFile) && path.join(toDir, toFile)];
+}
 
 type RawEventFromDirectory = string;
 type RawEventFromFile = string;
@@ -41,6 +46,10 @@ export enum FsWatcherEventType {
   RENAMED = 3,
 }
 
+export function createFsWatcherEvent(type: FsWatcherEventType, entryPath: string, oldEntryPath?: string): FsWatcherEvent {
+  return [type, entryPath, oldEntryPath];
+}
+
 type EntryPath = string;
 type OldEntryPath = string;
 export type FsWatcherEvent = [FsWatcherEventType, EntryPath, OldEntryPath?];
@@ -50,16 +59,18 @@ export interface FsWatcherOptions {
   ignoredPaths: string[],
 
   onEvent?(event: FsWatcherEvent): void,
+  onEvents?(events: FsWatcherEvent[]): void,
 
   logger?: (...args: any[]) => void,
 }
 
-export class FsWatcher implements DisposableObject {
+export class FsWatcher implements IDisposableObject {
   private watcherId: number = -1;
   private ignoredPaths: string[];
   private logger: (...args: any[]) => void;
 
   protected onEvent = (event: FsWatcherEvent) => this.logger('Event!', event);
+  protected onEvents?: (events: FsWatcherEvent[]) => void;
 
   constructor(options: FsWatcherOptions) {
     this.ignoredPaths = options.ignoredPaths;
@@ -67,6 +78,10 @@ export class FsWatcher implements DisposableObject {
 
     if (options.onEvent) {
       this.onEvent = options.onEvent;
+    }
+
+    if (options.onEvents) {
+      this.onEvents = options.onEvents;
     }
 
     const requestId = fastRandomId();
@@ -96,50 +111,68 @@ export class FsWatcher implements DisposableObject {
   }
 
   private handleEvents = (rawEvents: RawEvent[]) => {
-    const eventForPath: Record<string, [FsWatcherEventType, string, string?] | null> = Object.create(null);
+    const eventForPath: Record<string, FsWatcherEvent | null> = Object.create(null);
 
-    rawEvents.forEach(([action, fromDirectory, fromFile, toDirectory, toFile]) => {
-      const fromEntryPath = `${fromDirectory}\\${fromFile}`;
-      const toEntryPath = `${toDirectory}\\${toFile}`;
+    for (const rawEvent of rawEvents) {
+      const [action, fromEntryPath, toEntryPath] = normalizeRawEvent(rawEvent);
 
       // Untill we have "complete" git integration - don't care about that
-      if (fromEntryPath.indexOf('\\.git\\') > -1 || fromFile === '.git') {
-        return;
+      // TODO: Git integration
+      if (fromEntryPath.indexOf('\\.git\\') > -1 || rawEvent[2] === '.git') {
+        continue;
       }
 
       if (this.ignoredPaths.some((ignoredPath) => fromEntryPath.indexOf(ignoredPath) > -1)) {
-        return;
+        continue;
       }
 
       if (action === FsWatcherEventType.RENAMED) {
         eventForPath[fromEntryPath] = null;
-        eventForPath[toEntryPath] = [action, toEntryPath, fromEntryPath];
-        return;
+        eventForPath[toEntryPath!] = [action, toEntryPath!, fromEntryPath];
+        continue;
       }
 
       const event = eventForPath[fromEntryPath];
 
-      // This path is ignored
+      // Event is obsolete
       if (event === null) {
-        return;
+        continue;
       }
 
+      // No event yet - record it
       if (!event) {
         eventForPath[fromEntryPath] = [action, fromEntryPath];
-        return;
+        continue;
       }
 
-      // CREATED -> [] -> DELETED in one batch - why bother then
+      // CREATED -> DELETED in one batch - obsolete
       if (action === FsWatcherEventType.DELETED && event[0] === FsWatcherEventType.CREATED) {
         eventForPath[fromEntryPath] = null;
-        return;
+        continue;
       }
-    });
 
-    Object.values(eventForPath)
+      // MODIFIED|RENAMED -> DELETED in one batch - only keep deleted
+      if (action === FsWatcherEventType.DELETED && event[0] > FsWatcherEventType.DELETED) {
+        eventForPath[fromEntryPath] = [action, fromEntryPath];
+        continue;
+      }
+    }
+
+    const events: FsWatcherEvent[] = Object.values(eventForPath)
       .filter(Boolean)
-      .sort((a, b) => a![1].length - b![1].length)
-      .forEach((event) => this.onEvent(event!));
+      .sort((a, b) => b![1].length - a![1].length) as any;
+
+    if (!events.length) {
+      return;
+    }
+
+    if (this.onEvents) {
+      return this.onEvents(events);
+    } else {
+      for (const event of events) {
+        this.onEvent(event);
+      }
+    }
   };
 
   private handleError = (error: string) => {

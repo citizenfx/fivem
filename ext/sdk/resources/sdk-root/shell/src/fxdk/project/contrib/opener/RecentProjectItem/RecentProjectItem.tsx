@@ -1,12 +1,12 @@
 import React from 'react';
 import { Button } from 'fxdk/ui/controls/Button/Button';
-import { closeIcon, projectIcon } from 'constants/icons';
-import { projectApi } from 'shared/api.events';
+import { closeIcon, projectIcon } from 'fxdk/ui/icons';
 import { RecentProject } from 'shared/project.types';
-import { ProjectState } from 'store/ProjectState';
 import { ShellCommands } from 'shell-api/commands';
 import { ProjectOpenerCommands } from 'fxdk/project/contrib/opener/opener.commands';
 import { Api } from 'fxdk/browser/Api';
+import { ProjectLoader } from 'fxdk/project/browser/state/projectLoader';
+import { ProjectApi } from 'fxdk/project/common/project.api';
 import s from './RecentProjectItem.module.scss';
 
 export interface RecentProjectItemProps {
@@ -15,12 +15,12 @@ export interface RecentProjectItemProps {
 
 export const RecentProjectItem = React.memo(function RecentProjectItem({ recentProject }: RecentProjectItemProps) {
   const openProject = React.useCallback(() => {
-    ProjectState.openProject(recentProject.path);
+    ProjectLoader.open(recentProject.path);
     ShellCommands.invoke(ProjectOpenerCommands.CLOSE);
   }, [recentProject.path]);
 
   const removeRecentProject = React.useCallback(() => {
-    Api.send(projectApi.removeRecent, recentProject.path);
+    Api.send(ProjectApi.LoaderEndpoints.removeRecent, recentProject.path);
   }, [recentProject.path]);
 
   return (
@@ -42,7 +42,6 @@ export const RecentProjectItem = React.memo(function RecentProjectItem({ recentP
 
       <div className={s.actions}>
         <Button
-          theme="transparent"
           icon={closeIcon}
           onClick={removeRecentProject}
           title="Remove recent project from the list"

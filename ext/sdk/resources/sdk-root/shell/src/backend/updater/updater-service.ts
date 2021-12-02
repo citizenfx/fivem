@@ -1,6 +1,6 @@
 import { inject, injectable, named } from "inversify";
 import { StatusService } from "backend/status/status-service";
-import { AppContribution } from "backend/app/app-contribution";
+import { AppContribution } from "backend/app/app.extensions";
 import { updaterStatuses } from "shared/api.statuses";
 import { ContributionProvider } from 'backend/contribution-provider';
 import { UpdaterContribution } from './updater-contribution';

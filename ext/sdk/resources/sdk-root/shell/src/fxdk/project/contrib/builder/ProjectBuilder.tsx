@@ -1,30 +1,33 @@
-import * as React from 'react';
+import React from 'react';
 import { observer } from 'mobx-react-lite';
 import { Button } from 'fxdk/ui/controls/Button/Button';
-import { Input } from 'fxdk/ui/controls/Input/Input';
 import { Modal } from 'fxdk/ui/Modal/Modal';
-import { BsBoxArrowUpRight, BsExclamationCircle } from 'react-icons/bs';
+import { BsExclamationCircle } from 'react-icons/bs';
 import { projectBuildingTaskName, ProjectBuildTaskStage } from 'shared/task.names';
 import { useApiMessage, useOpenFolderSelectDialog, UseOpenFolderSelectDialogOptions } from 'utils/hooks';
-import {
-  useProjectBuildPathVar,
-  useProjectDeployArtifactVar,
-  useProjectSteamWebApiKeyVar,
-  useProjectTebexSecretVar,
-  useProjectUseVersioningVar,
-} from 'utils/projectStorage';
 import { Stepper } from 'fxdk/ui/controls/Stepper/Stepper';
 import { Checkbox } from 'fxdk/ui/controls/Checkbox/Checkbox';
-import { openInExplorerIcon, projectBuildIcon } from 'constants/icons';
+import { openInExplorerIcon, projectBuildIcon } from 'fxdk/ui/icons';
 import { openInExplorerAndSelect } from 'utils/natives';
 import { serverUpdateChannels } from 'shared/api.types';
-import { projectApi } from 'shared/api.events';
 import { ProjectBuildError } from 'shared/project.types';
 import { TaskState } from 'store/TaskState';
 import { ProjectBuilderError } from './ProjectBuilderError';
-import { ProjectState } from 'store/ProjectState';
 import { BuilderState } from './BuilderState';
+import { Project } from 'fxdk/project/browser/state/project';
+import { PathSelector } from 'fxdk/ui/controls/PathSelector/PathSelector';
+import { ProjectApi } from 'fxdk/project/common/project.api';
 import s from './ProjectBuilder.module.scss';
+
+function getBuildPath(): string {
+  if (Project.localStorage.buildPath) {
+    return Project.localStorage.buildPath;
+  }
+
+  const [projectDirName, ...parts] = Project.path.split(/[\\/]/).reverse();
+
+  return parts.reverse().join('\\') + '\\' + `${projectDirName}-build`;
+}
 
 const buildSteps: Record<ProjectBuildTaskStage, React.ReactNode> = {
   [ProjectBuildTaskStage.VerifyingBuildSite]: 'Verifying build site',
@@ -35,13 +38,11 @@ const buildSteps: Record<ProjectBuildTaskStage, React.ReactNode> = {
 };
 
 export const ProjectBuilder = observer(function ProjectBuilder() {
-  const project = ProjectState.project;
-
   const buildTask = TaskState.get(projectBuildingTaskName);
   const buildInProgress = !!buildTask;
 
   const [buildError, setBuildError] = React.useState<ProjectBuildError | null>(null);
-  useApiMessage(projectApi.buildError, (projectBuildError: ProjectBuildError) => {
+  useApiMessage(ProjectApi.BuilderEndpoints.error, (projectBuildError: ProjectBuildError) => {
     setBuildError(projectBuildError);
   }, [setBuildError]);
 
@@ -64,25 +65,15 @@ export const ProjectBuilder = observer(function ProjectBuilder() {
     BuilderState.close();
   }, [buildTask]);
 
-  const [useVersioning, setUseVersioning] = useProjectUseVersioningVar(project);
-  const [deployArtifact, setDeployArtifact] = useProjectDeployArtifactVar(project);
-  const [steamWebApiKey, setSteamWebApiKey] = useProjectSteamWebApiKeyVar(project);
-  const [tebexSecret, setTebexSecret] = useProjectTebexSecretVar(project);
-
-  const [buildPath, setBuildPath] = useProjectBuildPathVar(project);
-
-  // This is so we actually save default buildPath to localstorage allowing for fast-project-build next time w/o showing this modal
-  React.useEffect(() => {
-    setBuildPath(buildPath);
-  }, []);
+  const buildPath = getBuildPath();
 
   const folderSelectOptions: UseOpenFolderSelectDialogOptions = React.useMemo(() => ({
-    startPath: project.path,
+    startPath: Project.path,
     dialogTitle: 'Select Project Build Folder...',
-  }), [project.path]);
+  }), [Project.path]);
   const openFolderSelectDialog = useOpenFolderSelectDialog(folderSelectOptions, (folderPath) => {
     if (folderPath) {
-      setBuildPath(folderPath);
+      Project.localStorage.buildPath = folderPath;
     }
   });
 
@@ -93,8 +84,7 @@ export const ProjectBuilder = observer(function ProjectBuilder() {
   const buildPathDescription = buildPath
     ? (
       <>
-        {buildPath}\resources directory will be created containing project resources.
-        &nbsp;<a onClick={openBuildPath}>Open Build Path {openInExplorerIcon}</a>
+        <a onClick={openBuildPath}>{buildPath}\resources {openInExplorerIcon}</a> directory will be created containing project resources.
       </>
     )
     : 'Select build folder';
@@ -103,19 +93,10 @@ export const ProjectBuilder = observer(function ProjectBuilder() {
     setBuildTriggered(false);
     setBuildError(null);
 
-    ProjectState.buildProject({
-      useVersioning,
-      deployArtifact,
-      steamWebApiKey,
-      tebexSecret,
-    });
+    Project.buildProject();
   }, [
     setBuildTriggered,
     setBuildError,
-    useVersioning,
-    deployArtifact,
-    steamWebApiKey,
-    tebexSecret,
   ]);
 
   const buildAllowed = !buildInProgress && !!buildPath;
@@ -131,25 +112,14 @@ export const ProjectBuilder = observer(function ProjectBuilder() {
           Build directory:
         </div>
         <div className="modal-block">
-          <div className={s['folder-select']}>
-            <Input
-              noSpellCheck
-              className={s.input}
-              value={buildPath}
-              onChange={setBuildPath}
-              placeholder="Select build directory"
-              disabled={buildInProgress}
-              description={buildPathDescription}
-            />
-
-            <Button
-              className={s.button}
-              text="Select"
-              icon={<BsBoxArrowUpRight />}
-              disabled={buildInProgress}
-              onClick={openFolderSelectDialog}
-            />
-          </div>
+          <PathSelector
+            value={buildPath}
+            onChange={(value) => Project.localStorage.buildPath = value}
+            startPath={Project.path}
+            dialogTitle="Select Project Build Folder..."
+            disabled={buildInProgress}
+            description={buildPathDescription}
+          />
         </div>
 
         <div className="modal-label">
@@ -157,14 +127,14 @@ export const ProjectBuilder = observer(function ProjectBuilder() {
         </div>
         <div className="modal-block modal-combine">
           <Checkbox
-            value={useVersioning}
-            onChange={setUseVersioning}
+            value={Project.localStorage.buildUseVersioning}
+            onChange={(value) => Project.localStorage.buildUseVersioning = value}
             label="If possible, save previous build allowing build rollback"
           />
           <Checkbox
-            value={deployArtifact}
-            onChange={setDeployArtifact}
-            label={`Include ${serverUpdateChannels[project.manifest.serverUpdateChannel]} server artifact`}
+            value={Project.localStorage.buildUseArtifact}
+            onChange={(value) => Project.localStorage.buildUseArtifact = value}
+            label={`Include ${serverUpdateChannels[Project.manifest.serverUpdateChannel]} server artifact`}
           />
         </div>
 

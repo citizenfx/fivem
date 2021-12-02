@@ -5,8 +5,6 @@ import { makeAutoObservable } from "mobx";
 import { worldEditorApi } from "shared/api.events";
 import { InputController } from "../InputController";
 import { ShellPersonality, ShellState } from 'store/ShellState';
-import { FilesystemEntry } from 'shared/api.types';
-import { FXWORLD_FILE_EXT } from 'assets/fxworld/fxworld-types';
 import { APIRQ } from 'shared/api.requests';
 import { WEMap, WESelectionType, WESelection, WECam, WEEntityMatrixIndex, WEEntityMatrix } from 'backend/world-editor/world-editor-types';
 import { WEMapState } from './WEMapState';
@@ -21,6 +19,8 @@ import { WEApi } from 'backend/world-editor/world-editor-game-api';
 import { WEToolbarState } from './WEToolbarState';
 import { toNumber } from 'utils/conversion';
 import { Api } from 'fxdk/browser/Api';
+import { IFsEntry } from 'fxdk/project/common/project.types';
+import { FXWORLD_FILE_EXT } from 'fxdk/contrib/assets/fxworld/common/fxworld-types';
 
 export enum WEMode {
   EDITOR,
@@ -47,7 +47,7 @@ export const WEState = new class WEState {
   public selection: WESelection = { type: WESelectionType.NONE };
 
   public map: WEMapState | null = null;
-  private mapEntry: FilesystemEntry | null = null;
+  private mapEntry: { name: string, path: string } | null = null;
 
   private introSeen = new LocalStorageValue({
     key: 'we:introSeen',
@@ -327,14 +327,17 @@ export const WEState = new class WEState {
     });
   }
 
-  openMap = (entry: FilesystemEntry) => {
+  openMap = (entry: IFsEntry, entryPath: string) => {
     this.map = null;
-    this.mapEntry = entry;
+    this.mapEntry = {
+      name: entry.name,
+      path: entryPath,
+    };
 
     WEHistory.reset();
 
     Api.send(worldEditorApi.start, {
-      mapPath: entry.path,
+      mapPath: entryPath,
     } as APIRQ.WorldEditorStart);
 
     ShellState.setPersonality(ShellPersonality.WORLD_EDITOR);

@@ -1,7 +1,7 @@
 import { inject, injectable } from "inversify";
 import { ApiClient } from "backend/api/api-client";
-import { ApiContribution } from "backend/api/api-contribution";
-import { DisposableContainer, DisposableObject } from "backend/disposable-container";
+import { ApiContribution } from "backend/api/api.extensions";
+import { Disposer, IDisposableObject } from "fxdk/base/disposable";
 import { outputApi } from "shared/api.events";
 import { OutputChannelProvider } from "./output-types";
 
@@ -18,7 +18,7 @@ export class OutputService implements ApiContribution {
 
   createOutputChannelFromProvider(provider: OutputChannelProvider): OutputChannel {
     const channelId = provider.getOutputChannelId();
-    const disposableContainer = new DisposableContainer();
+    const disposableContainer = new Disposer();
 
     const channel = new OutputChannel(
       this.apiClient,
@@ -42,13 +42,13 @@ export class OutputService implements ApiContribution {
   }
 }
 
-export class OutputChannel implements DisposableObject {
+export class OutputChannel implements IDisposableObject {
   private disposed = false;
 
   constructor(
     protected readonly apiClient: ApiClient,
     protected readonly channelId: string,
-    protected readonly disposableContainer: DisposableContainer,
+    protected readonly disposableContainer: Disposer,
   ) { }
 
   write(data: string | Buffer) {

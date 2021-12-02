@@ -63,7 +63,7 @@ export const CameraManager = new class CameraManager {
     }
 
     FreezeEntityPosition(ped, false);
-    SetPlayerInvincible(ped, invincible);
+    SetPlayerInvincible(PlayerId(), invincible);
     ClearPedTasksImmediately(ped);
 
     if (shouldClearFocus) {

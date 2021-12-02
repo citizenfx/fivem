@@ -4,7 +4,7 @@ import { LogService } from "backend/logger/log-service";
 import { AppStates } from "shared/api.types";
 import { ContributionProvider } from "backend/contribution-provider";
 import { ShellBackend } from "backend/shell-backend";
-import { AppContribution } from "./app-contribution";
+import { AppContribution } from "./app.extensions";
 import { AppStateService } from "./app-state-service";
 import { setupWellKnownPaths } from "./setup-wellknown-paths";
 

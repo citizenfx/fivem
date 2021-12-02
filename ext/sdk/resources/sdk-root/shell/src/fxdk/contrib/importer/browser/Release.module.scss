@@ -1,0 +1,96 @@
+@import "variables";
+
+.root {
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+
+  background-color: rgba($fgColor, .05);
+
+  padding: $q*2;
+
+  box-shadow: 0 0 0 $q*0.5 transparent inset;
+  transition: all .2s ease;
+
+  user-select: none;
+
+  max-height: 150px;
+  width: 100%;
+
+  h1, h2, h3, h4, p, li, ul, ol {
+    &:first-child {
+      margin-top: 0;
+    }
+  }
+
+  h1, h2, h3, h4 {
+    font-family: inherit;
+    letter-spacing: normal;
+    margin-top: 1em;
+    margin-bottom: 0;
+  }
+
+  h1 + h2, h2 + h3, h3 + h4 {
+    margin-top: 0.25em;
+  }
+
+  h1 {
+    font-size: 1.3em;
+    line-height: 1.3;
+    font-weight: 500;
+  }
+
+  h2 {
+    font-size: 1.2em;
+    line-height: 1.2;
+    font-weight: 400;
+    font-style: italic;
+  }
+
+  p, li {
+    margin-top: 0.5em;
+  }
+
+  ul, ol {
+    list-style-type: initial;
+    padding-left: 20px;
+    margin-top: 1em;
+  }
+
+  &.checked,
+  &.checked:hover {
+    box-shadow: 0 0 0 2px rgba($fgColor, .5) inset;
+    transition: none;
+
+    max-height: fit-content;
+  }
+
+  &:hover {
+    box-shadow: 0 0 0 2px $acColor inset;
+    transition: none;
+  }
+
+  .content {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: stretch;
+
+    margin-left: $q*2;
+
+    .title {
+      font-size: $fs2;
+      @include fontPrimary;
+    }
+
+    .description {
+      margin-top: $q;
+
+      color: rgba($fgColor, .5);
+      font-size: $fs08;
+      @include fontPrimary;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+}

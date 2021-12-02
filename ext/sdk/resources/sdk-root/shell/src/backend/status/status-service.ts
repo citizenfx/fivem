@@ -1,11 +1,11 @@
 import { inject, injectable } from "inversify";
 import { ApiClient } from "backend/api/api-client";
 import { statusesApi } from "shared/api.events";
-import { ApiContribution } from "backend/api/api-contribution";
-import { DisposableObject } from "backend/disposable-container";
-import { AppContribution } from "backend/app/app-contribution";
+import { ApiContribution } from "backend/api/api.extensions";
+import { IDisposableObject } from "fxdk/base/disposable";
+import { AppContribution } from "backend/app/app.extensions";
 
-export interface StatusProxy<T> extends DisposableObject {
+export interface StatusProxy<T> extends IDisposableObject {
   getValue(): T | void;
   setValue(value: T | void): void;
   deleteValue(): void;

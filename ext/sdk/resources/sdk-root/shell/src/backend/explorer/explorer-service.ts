@@ -10,7 +10,7 @@ import { ExplorerChildsMap, FilesystemEntry, FilesystemEntryMeta } from 'shared/
 import { notNull } from 'shared/utils';
 import { fxdkProjectFilename, resourceManifestFilename, resourceManifestLegacyFilename } from '../constants';
 import { NotificationService } from 'backend/notification/notification-service';
-import { ApiContribution } from 'backend/api/api-contribution';
+import { ApiContribution } from 'backend/api/api.extensions';
 
 export type EntryMetaExtras = {
   [key: string]: (entryPath: string) => Promise<any>,
@@ -119,6 +119,7 @@ export class ExplorerService implements ApiContribution {
       }
 
       return {
+        handle: isDirectory ? 'directory' : 'file',
         path: entryPath,
         name: path.basename(entryPath),
         meta,

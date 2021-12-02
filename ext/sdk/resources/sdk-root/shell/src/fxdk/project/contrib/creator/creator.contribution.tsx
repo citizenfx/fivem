@@ -2,8 +2,8 @@ import React from 'react';
 import { ProjectCreator } from './ProjectCreator';
 import { ShellCommands } from 'shell-api/commands';
 import { ProjectCreatorState } from './ProjectCreatorState';
-import { ToolbarParticipants } from 'fxdk/contrib/toolbar/toolbarExtensions';
-import { newProjectIcon } from 'constants/icons';
+import { ToolbarParticipants } from 'fxdk/contrib/toolbar/browser/toolbarExtensions';
+import { newProjectIcon } from 'fxdk/ui/icons';
 import { ShellViewParticipants } from 'fxdk/browser/shellExtensions';
 import { ProjectCreatorCommands } from './creator.commands';
 

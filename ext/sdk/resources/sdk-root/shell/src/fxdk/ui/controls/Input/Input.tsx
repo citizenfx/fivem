@@ -5,7 +5,8 @@ import { Indicator } from 'fxdk/ui/Indicator/Indicator';
 
 
 export interface InputProps {
-  type?: 'text' | 'password' | 'search' | 'range',
+  size?: 'normal' | 'small',
+  type?: 'text' | 'password' | 'search' | 'number',
   tabIndex?: number,
   disabled?: boolean,
   autofocus?: boolean,
@@ -17,10 +18,12 @@ export interface InputProps {
   description?: React.ReactNode,
   value: string,
 
+  decorator?(): React.ReactNode,
+
   // for 'range' inputs
   combi?: boolean,
-  min?: string,
-  max?: string,
+  min?: number | undefined,
+  max?: number | undefined,
 
   onChange: (value: string) => void,
   onSubmit?: () => void,
@@ -48,6 +51,8 @@ export const Input = React.memo(function Input(props: InputProps) {
     inputClassName = '',
     description = '',
     type = 'text',
+    size = 'normal',
+    decorator,
     combi,
     min,
     max
@@ -60,10 +65,18 @@ export const Input = React.memo(function Input(props: InputProps) {
       if (pattern.test(value)) {
         onChange(value);
       }
-    } else if (type === 'range') {
+    } else if (type === 'number') {
       if (/^[0-9]*$/.test(value)) {
-        const intValue = value | 0;
-        if (value === '' || (intValue >= (parseInt(min || '0', 10)) && intValue <= (parseInt(max || '0', 10)))) {
+        const intValue = parseInt(value, 10);
+
+        const minValue = typeof min === 'undefined'
+          ? Number.MIN_SAFE_INTEGER
+          : min;
+        const maxValue = typeof max === 'undefined'
+          ? Number.MAX_SAFE_INTEGER
+          : max;
+
+        if (value === '' || (intValue >= minValue && intValue <= maxValue)) {
           onChange(value);
         }
       }
@@ -82,31 +95,12 @@ export const Input = React.memo(function Input(props: InputProps) {
     }
   }, [onSubmit, onKeyDown]);
 
-  const loaderNode = showLoader
+  const decoratorNode = (showLoader || !!decorator)
     ? (
-      <div className={s.loader}>
-        <Indicator />
+      <div className={s.decorator}>
+        {!!showLoader && <Indicator />}
+        {!!decorator && decorator()}
       </div>
-    )
-    : null;
-
-  const curNode = (!combi && type === 'range')
-    ? (
-      <span>{value}</span>
-    )
-    : null;
-
-  const textNode = (combi && type === 'range')
-    ? (
-        <input
-        type='text'
-        className={inputClassName}
-        value={value}
-        disabled={disabled}
-        onChange={handleChange}
-        onKeyDown={handleKeyDown}
-        spellCheck={false}
-      />
     )
     : null;
 
@@ -126,9 +120,7 @@ export const Input = React.memo(function Input(props: InputProps) {
         min={min}
         max={max}
       />
-      {curNode}
-      {textNode}
-      {loaderNode}
+      {decoratorNode}
     </div>
   );
 
@@ -150,7 +142,7 @@ export const Input = React.memo(function Input(props: InputProps) {
     : inputNode;
 
   return (
-    <div className={classnames(s.root, className)}>
+    <div className={classnames(s.root, s[size], className)}>
       {contentNode}
       {descriptionNode}
     </div>

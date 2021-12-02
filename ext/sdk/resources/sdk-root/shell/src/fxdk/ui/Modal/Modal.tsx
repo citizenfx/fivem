@@ -44,10 +44,34 @@ export const Modal = React.memo(function Modal(props: ModalProps) {
     <ModalOutlet>
       <div className={rootClassName}>
         <div className={s.backdrop} onClick={onClose} />
-        <div className={s.content}>
+        <div className={s.modal}>
           {children}
         </div>
       </div>
     </ModalOutlet>
   );
 });
+
+export function ModalHeader({ children }) {
+  return (
+    <div className={s.header}>
+      {children}
+    </div>
+  );
+}
+
+export function ModalContent({ children }) {
+  return (
+    <div className={s.content}>
+      {children}
+    </div>
+  );
+}
+
+export function ModalActions({ children }) {
+  return (
+    <div className={s.actions}>
+      {children}
+    </div>
+  );
+}

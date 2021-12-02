@@ -74,6 +74,7 @@ setTick(() => {
 
   SetPedDensityMultiplierThisFrame(0);
   SetVehicleDensityMultiplierThisFrame(0);
+  SetScenarioPedDensityMultiplierThisFrame(0, 0);
 
   SetGarbageTrucks(false);
   SetRandomBoats(false);

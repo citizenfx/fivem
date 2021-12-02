@@ -8,6 +8,8 @@
   line-height: 1.2;
   user-select: none;
 
+  cursor: pointer;
+
   @include fontPrimary;
   color: rgba($fgColor, .75);
 
@@ -33,15 +35,21 @@
     box-shadow: 0 0 0 $q*0.5 rgba($fgColor, .75), 0 0 0 $q*4 rgba($fgColor, .75) inset;
   }
 
-  &:hover {
-    .indicator {
-      box-shadow: 0 0 0 $q*0.5 $acColor, 0 0 0 0 rgba($fgColor, .75) inset;
-      transition: none;
-    }
+  &.disabled {
+    cursor: not-allowed;
+    opacity: .5;
+  }
+  &:not(.disabled) {
+    &:hover {
+      .indicator {
+        box-shadow: 0 0 0 $q*0.5 $acColor, 0 0 0 0 rgba($fgColor, .75) inset;
+        transition: none;
+      }
 
-    input:checked + .indicator {
-      box-shadow: 0 0 0 $q*0.5 $acColor, 0 0 0 $q*4 rgba($fgColor, .75) inset;
-      transition: none;
+      input:checked + .indicator {
+        box-shadow: 0 0 0 $q*0.5 $acColor, 0 0 0 $q*4 rgba($fgColor, .75) inset;
+        transition: none;
+      }
     }
   }
 
@@ -49,10 +57,5 @@
     .indicator {
       margin-right: $q*2;
     }
-  }
-
-  &.disabled {
-    pointer-events: none;
-    opacity: .5;
   }
 }

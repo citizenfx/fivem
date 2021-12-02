@@ -1,6 +1,6 @@
 import { inject, injectable } from "inversify";
-import { ApiContribution } from "backend/api/api-contribution";
-import { AppContribution } from "backend/app/app-contribution";
+import { ApiContribution } from "backend/api/api.extensions";
+import { AppContribution } from "backend/app/app.extensions";
 import { ServerStates, ServerUpdateStates } from 'shared/api.types';
 import { handlesClientEvent } from 'backend/api/api-decorators';
 import { serverApi } from 'shared/api.events';
@@ -19,8 +19,8 @@ import { GameServerRuntime, ServerResourceDescriptor, ServerStartRequest } from 
 import { GameServerFxdkMode } from './game-server-fxdk-mode';
 import { GameServerLegacyMode } from "./game-server-legacy-mode";
 import { SingleEventEmitter } from "utils/singleEventEmitter";
-import { Disposable } from "backend/disposable-container";
-import { ProjectEvents } from "backend/project/project-events";
+import { IDisposable } from "fxdk/base/disposable";
+import { ProjectEvents } from "fxdk/project/node/project-events";
 
 @injectable()
 export class GameServerService implements AppContribution, ApiContribution {
@@ -63,12 +63,12 @@ export class GameServerService implements AppContribution, ApiContribution {
   protected serverLocked = false;
 
   private readonly serverStopEvent = new SingleEventEmitter<Error | void>();
-  onServerStop(cb: (error: Error | void) => void): Disposable {
+  onServerStop(cb: (error: Error | void) => void): IDisposable {
     return this.serverStopEvent.addListener(cb);
   }
 
   private readonly serverStateChangeEvent = new SingleEventEmitter<ServerStates>();
-  onServerStateChange(cb: (serverStart: ServerStates) => void): Disposable {
+  onServerStateChange(cb: (serverStart: ServerStates) => void): IDisposable {
     return this.serverStateChangeEvent.addListener(cb);
   }
 

@@ -14,6 +14,7 @@ export interface SelectProps<T> {
 
   className?: string,
   disabled?: boolean,
+  size?: 'normal' | 'small',
 }
 
 export const Select = function Select<T extends string | number>(props: SelectProps<T>) {
@@ -22,18 +23,20 @@ export const Select = function Select<T extends string | number>(props: SelectPr
     options,
     onChange,
 
+    size = 'normal',
     disabled = false,
     className,
   } = props;
 
   const handleChange = React.useCallback(({ target }) => onChange(target.value), [onChange]);
 
-  const rootClassName = classnames(s.root, className, {
+  const rootClassName = classnames(s.root, s[size], className, {
     [s.disabled]: disabled,
   });
 
   return (
     <select
+      disabled={disabled}
       className={rootClassName}
       value={value}
       onChange={handleChange}

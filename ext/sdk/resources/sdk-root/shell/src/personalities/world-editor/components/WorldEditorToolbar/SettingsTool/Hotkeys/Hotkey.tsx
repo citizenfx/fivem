@@ -8,7 +8,7 @@ import s from './Hotkeys.module.scss';
 import { Keystroke } from 'fxdk/ui/Keystroke/Keystroke';
 import { useOpenFlag } from 'utils/hooks';
 import { BsCheck } from 'react-icons/bs';
-import { closeIcon } from 'constants/icons';
+import { closeIcon } from 'fxdk/ui/icons';
 import { BiReset } from 'react-icons/bi';
 import { getEventKeystroke } from 'utils/HotkeyController';
 

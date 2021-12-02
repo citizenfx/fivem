@@ -7,7 +7,7 @@ import { WEState } from 'personalities/world-editor/store/WEState';
 import { DropTargetMonitor, useDrop } from 'react-dnd';
 import { ADDITION_DND_TYPES } from './AdditionsTool.constants';
 import { WORLD_EDITOR_MAP_NO_GROUP } from 'backend/world-editor/world-editor-constants';
-import { newDirectoryIcon } from 'constants/icons';
+import { newDirectoryIcon } from 'fxdk/ui/icons';
 import { ContextMenu, ContextMenuItemsCollection } from 'fxdk/ui/controls/ContextMenu/ContextMenu';
 import { InPlaceInput } from 'fxdk/ui/controls/InPlaceInput/InPlaceInput';
 import { Addition } from './Addition';

@@ -6,21 +6,6 @@
 
   overflow: hidden;
 
-  .folder-select {
-    display: flex;
-    align-items: flex-start;
-
-    .button {
-      flex-grow: 0;
-
-      margin-left: $q*2;
-    }
-
-    .input {
-      flex-grow: 1;
-    }
-  }
-
   .error {
     background-color: rgba($erColor, .5);
 

@@ -6,6 +6,7 @@ import mkdirp from 'mkdirp';
 import rimrafSync from 'rimraf';
 import { jsonc } from 'jsonc';
 import fxp from 'fast-xml-parser';
+import filesize from 'filesize';
 import { promisify } from 'util';
 import { inject, injectable } from "inversify";
 import { FsAtomicWriter } from './fs-atomic-writer';
@@ -16,6 +17,7 @@ import { NotificationService } from 'backend/notification/notification-service';
 import { concurrently } from 'utils/concurrently';
 import { fastRandomId } from 'utils/random';
 import { FsThrottledWriterOptions, FsThrottledWriter } from './fs-throttled-writer';
+import { awaitableTimeout } from 'fxdk/base/async';
 
 const rimraf = promisify(rimrafSync);
 
@@ -28,6 +30,8 @@ export interface CopyOptions {
  */
 @injectable()
 export class FsService {
+  static readonly separator = path.sep;
+
   @inject(LogService)
   protected readonly logService: LogService;
 
@@ -49,12 +53,20 @@ export class FsService {
     return path.dirname(entryPath);
   }
 
+  filesizeToHumanReadable(size: number): string {
+    return filesize(size);
+  }
+
   isAbsolutePath(entryPath: string) {
     return path.isAbsolute(entryPath);
   }
 
   relativePath(from: string, to: string) {
     return path.relative(from, to);
+  }
+
+  splitPath(entryPath: string): string[] {
+    return entryPath.split(path.sep);
   }
 
   joinPath(...args: string[]) {
@@ -71,6 +83,22 @@ export class FsService {
     } catch (e) {
       return null;
     }
+  }
+
+  async statSafeRetries(entryPath: string, retries = 3, waitTimeout = 25): Promise<fs.Stats | null> {
+    let retriesLeft = retries;
+
+    do {
+      const stat = await this.statSafe(entryPath);
+
+      if (stat) {
+        return stat;
+      }
+
+      await awaitableTimeout(waitTimeout);
+    } while (retriesLeft--);
+
+    return null;
   }
 
   stat(entryPath: string) {
@@ -196,10 +224,15 @@ export class FsService {
     const writer = this.createAtomicWriter(entryPath);
     const reader = async () => {
       const content = await this.readFile(entryPath);
-      return {
-        ...(options?.defaults || null),
-        ...JSON.parse(content.toString()),
-      };
+
+      try {
+        return {
+          ...(options?.defaults || null),
+          ...JSON.parse(content.toString()),
+        };
+      } catch (e) {
+        return options?.defaults || {};
+      }
     };
 
     const snapshot = await reader();

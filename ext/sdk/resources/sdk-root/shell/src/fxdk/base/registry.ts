@@ -1,4 +1,4 @@
-import { makeAutoObservable } from "mobx";
+import { makeAutoObservable, observable } from "mobx";
 
 export interface IBaseRegistryItem {
   readonly id: string;
@@ -32,5 +32,45 @@ export class Registry<Item extends IBaseRegistryItem> {
 
   getAll() {
     return this.items;
+  }
+}
+
+export class AssocRegistry<Item, Key = string> {
+  private items = new Map<Key, Item>();
+
+  constructor(
+    private registryName: string,
+    _observable = false,
+  ) {
+    if (_observable) {
+      makeAutoObservable(this, {
+        // @ts-expect-error it's fine though
+        items: observable.shallow,
+      });
+    }
+  }
+
+  register(key: Key, item: Item) {
+    this.items.set(key, item);
+  }
+
+  has(key: Key): boolean {
+    return this.items.has(key);
+  }
+
+  get(key: Key): Item | undefined {
+    return this.items.get(key);
+  }
+
+  getAll() {
+    return this.items.values();
+  }
+
+  unregister(key: Key) {
+    this.items.delete(key);
+  }
+
+  reset() {
+    this.items.clear();
   }
 }

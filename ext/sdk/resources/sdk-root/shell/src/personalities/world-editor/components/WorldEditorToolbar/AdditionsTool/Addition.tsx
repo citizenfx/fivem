@@ -5,7 +5,7 @@ import { useOpenFlag } from 'utils/hooks';
 import { WEState } from 'personalities/world-editor/store/WEState';
 import { InPlaceInput } from 'fxdk/ui/controls/InPlaceInput/InPlaceInput';
 import { ContextMenu, ContextMenuItemsCollection } from 'fxdk/ui/controls/ContextMenu/ContextMenu';
-import { deleteIcon, renameIcon } from 'constants/icons';
+import { deleteIcon, renameIcon } from 'fxdk/ui/icons';
 import { useDrag } from 'react-dnd';
 import s from './AdditionsTool.module.scss';
 import { ADDITION_DND_TYPES } from './AdditionsTool.constants';

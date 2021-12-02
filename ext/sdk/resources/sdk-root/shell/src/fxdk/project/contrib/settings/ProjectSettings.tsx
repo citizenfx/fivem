@@ -1,28 +1,20 @@
 import React from 'react';
 import { observer } from 'mobx-react-lite';
 import { Switch, SwitchOption } from 'fxdk/ui/controls/Switch/Switch';
-import { ServerUpdateChannel, serverUpdateChannels } from 'shared/api.types';
-import { projectApi } from 'shared/api.events';
-import { Modal } from 'fxdk/ui/Modal/Modal';
+import { serverUpdateChannels } from 'shared/api.types';
+import { Modal, ModalActions, ModalHeader } from 'fxdk/ui/Modal/Modal';
 import { Button } from 'fxdk/ui/controls/Button/Button';
-import {
-  useProjectDeployArtifactVar,
-  useProjectSteamWebApiKeyVar,
-  useProjectTebexSecretVar,
-  useProjectUseTxAdminVar,
-  useProjectUseVersioningVar,
-} from 'utils/projectStorage';
 import { Input } from 'fxdk/ui/controls/Input/Input';
-import { ProjectState } from 'store/ProjectState';
 import { ProjectSystemResources } from './ProjectSystemResources/ProjectSystemResources';
 import { TabItem, TabSelector } from 'fxdk/ui/controls/TabSelector/TabSelector';
 import { VscSymbolProperty } from 'react-icons/vsc';
-import { enabledResourceIcon, projectBuildIcon } from 'constants/icons';
+import { closedResourceIcon, projectBuildIcon } from 'fxdk/ui/icons';
 import { Checkbox } from 'fxdk/ui/controls/Checkbox/Checkbox';
 import { ProjectResourceSettings } from './ProjectResourceSettings/ProjectResourceSettings';
 import { SettingsState } from './SettingsState';
-import { Api } from 'fxdk/browser/Api';
+import { Project } from 'fxdk/project/browser/state/project';
 import s from './ProjectSettings.module.scss';
+import { SplitHorizontal } from 'fxdk/ui/Modal/SplitHorizontalLayout';
 
 const updateChannelOptions: SwitchOption[] = [
   {
@@ -61,7 +53,7 @@ const settingsTabOptions: TabItem[] = [
   {
     label: 'Resources',
     value: projectSettingsTabs.resources,
-    icon: enabledResourceIcon,
+    icon: closedResourceIcon,
   },
   {
     label: 'Build Options',
@@ -71,19 +63,6 @@ const settingsTabOptions: TabItem[] = [
 ];
 
 export const ProjectSettings = observer(function ProjectSettings() {
-  const project = ProjectState.project;
-
-  const updateChannel = project.manifest.serverUpdateChannel;
-  const handleUpdateChannelChange = React.useCallback((updateChannel: ServerUpdateChannel) => {
-    Api.send(projectApi.setServerUpdateChannel, updateChannel);
-  }, []);
-
-  const [steamWebApiKey, setSteamWebApiKey] = useProjectSteamWebApiKeyVar(project);
-  const [tebexSecret, setTebexSecret] = useProjectTebexSecretVar(project);
-  const [useVersioning, setUseVersioning] = useProjectUseVersioningVar(project);
-  const [deployArtifact, setDeployArtifact] = useProjectDeployArtifactVar(project);
-  const [useTxAdmin, setUseTxAdmin] = useProjectUseTxAdminVar(project);
-
   const [currentTab, setCurrentTab] = React.useState<ProjectSettingsTab>(projectSettingsTabs.variables);
 
   let tabNode: React.ReactNode;
@@ -97,9 +76,9 @@ export const ProjectSettings = observer(function ProjectSettings() {
           </div>
           <div className="modal-block">
             <Switch
-              value={updateChannel}
+              value={Project.manifest.serverUpdateChannel}
               options={updateChannelOptions}
-              onChange={handleUpdateChannelChange}
+              onChange={Project.setServerUpdateChannel}
             />
           </div>
 
@@ -107,15 +86,15 @@ export const ProjectSettings = observer(function ProjectSettings() {
             <Input
               type="password"
               label="Steam API key:"
-              value={steamWebApiKey}
-              onChange={setSteamWebApiKey}
+              value={Project.localStorage.steamWebApiKey}
+              onChange={(value) => Project.localStorage.steamWebApiKey = value}
               description={<>Used only for build. If you want to use Steam authentication — <a href="https://steamcommunity.com/dev/apikey">get a key</a></>}
             />
             <Input
               type="password"
               label="Tebex secret:"
-              value={tebexSecret}
-              onChange={setTebexSecret}
+              value={Project.localStorage.tebexSecret}
+              onChange={(value) => Project.localStorage.tebexSecret = value}
               description={<a href="https://server.tebex.io/settings/servers">Get Tebex secret</a>}
             />
           </div>
@@ -143,16 +122,16 @@ export const ProjectSettings = observer(function ProjectSettings() {
           </div>
           <div className="modal-block">
             <Checkbox
-              value={useVersioning}
-              onChange={setUseVersioning}
+              value={Project.localStorage.buildUseVersioning}
+              onChange={(value) => Project.localStorage.buildUseVersioning = value}
               label="If possible, save previous build allowing build rollback"
             />
           </div>
           <div className="modal-block">
             <Checkbox
-              value={deployArtifact}
-              onChange={setDeployArtifact}
-              label={`Include ${serverUpdateChannels[project.manifest.serverUpdateChannel]} server artifact`}
+              value={Project.localStorage.buildUseArtifact}
+              onChange={(value) => Project.localStorage.buildUseArtifact = value}
+              label={`Include ${serverUpdateChannels[Project.manifest.serverUpdateChannel]} server artifact`}
             />
           </div>
           {/*<div className="modal-block">
@@ -170,11 +149,12 @@ export const ProjectSettings = observer(function ProjectSettings() {
 
   return (
     <Modal fullWidth fullHeight onClose={SettingsState.close}>
-      <div className={s.root}>
-        <div className={s.left}>
-          <div className="modal-header">
-            Project settings
-          </div>
+      <SplitHorizontal.Layout>
+        <SplitHorizontal.Left>
+          <ModalHeader>
+            Project Settings
+          </ModalHeader>
+
           <TabSelector
             className={s.tabs}
             value={currentTab}
@@ -182,18 +162,19 @@ export const ProjectSettings = observer(function ProjectSettings() {
             onChange={setCurrentTab}
             vertical
           />
-          <div className={s.actions}>
+
+          <ModalActions>
             <Button
               text="Close"
               onClick={SettingsState.close}
             />
-          </div>
-        </div>
+          </ModalActions>
+        </SplitHorizontal.Left>
 
-        <div className={s.right}>
+        <SplitHorizontal.Right>
           {tabNode}
-        </div>
-      </div>
+        </SplitHorizontal.Right>
+      </SplitHorizontal.Layout>
     </Modal>
   );
 });

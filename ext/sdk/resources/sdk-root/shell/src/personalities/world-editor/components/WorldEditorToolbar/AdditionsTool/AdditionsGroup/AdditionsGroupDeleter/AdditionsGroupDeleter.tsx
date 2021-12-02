@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from 'fxdk/ui/controls/Button/Button';
 import { Checkbox } from 'fxdk/ui/controls/Checkbox/Checkbox';
 import { Modal } from 'fxdk/ui/Modal/Modal';
-import { deleteIcon } from 'constants/icons';
+import { deleteIcon } from 'fxdk/ui/icons';
 import { observer } from 'mobx-react-lite';
 import { WEState } from 'personalities/world-editor/store/WEState';
 import s from './AdditionsGroupDeleter.module.scss';

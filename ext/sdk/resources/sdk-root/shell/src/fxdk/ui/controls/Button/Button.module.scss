@@ -5,13 +5,17 @@
 	align-items: center;
 	justify-content: center;
 
-	padding: $q*2 $q*4;
+  gap: $q*2;
+
+  --height: #{$q*9};
+
+  height: var(--height);
+	padding: 0 $q*4;
 
 	border: none;
 	outline: none;
 	user-select: none;
 
-  background-color: rgba($bgColor, .8);
   backdrop-filter: blur($blurSize);
 
 	@include fontPrimary;
@@ -22,39 +26,73 @@
 
   cursor: pointer;
 
+  border: solid 2px;
+  border-radius: $q;
+
 	color: $fgColor;
-  border: solid 2px rgba($fgColor, .75);
+  border-color: transparent;
+  background-color: rgba($fgColor, .15);
 
   @include interactiveTransition;
 
-  &:hover {
-    color: $bgColor;
-    background-color: $fgColor;
-  }
-
-  &.disabled {
+  &:disabled {
+    cursor: not-allowed;
     opacity: .5;
-    pointer-events: none;
   }
-
-  &.autofocus:focus {
-    box-shadow: 0 0 $q*4 rgba($acColor, .75);
-  }
-
-  &.primary {
-    border-color: $acColor;
-
+  &:not(:disabled) {
     &:hover {
-      color: $fgColor;
-      background-color: $acColor;
-
-      transition: none;
+      border-color: rgba($fgColor, .05);
+      background-color: rgba($fgColor, .1);
+    }
+    &:active {
+      border-color: rgba($fgColor, .15);
+      background-color: transparent;
+    }
+    &:focus:not(:active):not(:hover) {
+      box-shadow: 0 0 0 2px rgba($acColor, .5);
     }
   }
 
+  &.icon {
+     padding: 0;
+     width: var(--height);
+  }
+
+  // theme primary
+  &.primary {
+    color: $fgColor;
+
+    border-color: mix($acColor, $bgColor, 75%);
+    background-color: mix($acColor, $bgColor, 75%);
+
+    &:not(:disabled) {
+      &:hover {
+        background-color: mix($acColor, $bgColor, 55%);
+      }
+      &:active {
+        background-color: transparent;
+      }
+    }
+  }
+
+  // theme transparent
   &.transparent {
     border-color: transparent;
     backdrop-filter: none;
     background-color: transparent;
+  }
+
+  // size small
+  &.small {
+    --height: #{$q*7};
+
+    font-size: $fs08;
+  }
+
+  .icon-node {
+    display: flex;
+    align-items: center;
+
+    height: 100%;
   }
 }

@@ -8,7 +8,7 @@ import { GameState } from 'store/GameState';
 import { PatchesTool } from './PatchesTool/PatchesTool';
 import { AdditionsTool } from './AdditionsTool/AdditionsTool';
 import { AddObjectTool } from './AddObjectTool/AddObjectTool';
-import { closeIcon } from 'constants/icons';
+import { closeIcon } from 'fxdk/ui/icons';
 import { ActiveSelectionTool } from './ActiveSelectionTool/ActiveSelectionTool';
 import { EnvironmentTool } from './EnvironmentTool/EnvironmentTool';
 import { FlashingMessage } from './FlashingMessage/FlashingMessage';
@@ -19,7 +19,8 @@ import { PlayButton } from './PlayButton/PlayButton';
 import { PlayExitMessage } from './PlayExitMessage/PlayExitMessage';
 import s from './WorldEditorToolbar.module.scss';
 import sBaseTool from './BaseTool/BaseTool.module.scss';
-// import { DebugRestartSdkGameTool } from './DebugRestartSdkGameTool';
+import { DebugRestartSdkGameTool } from './DebugRestartSdkGameTool';
+import { __DEBUG_MODE_TOGGLES__ } from 'constants/debug-constants';
 
 function CloseButton() {
   const rootClassName = classnames(sBaseTool.toggle, sBaseTool.labelled, sBaseTool.hoverable);
@@ -62,7 +63,9 @@ export const WorldEditorToolbar = observer(function WorldEditorToolbar() {
           </>
         )}
 
-        {/* <DebugRestartSdkGameTool /> */}
+        {__DEBUG_MODE_TOGGLES__.WORLD_EDITOR_DEBUG_STUFF && (
+          <DebugRestartSdkGameTool />
+        )}
       </div>
 
       <div className={classnames(s['top-center'], s.hideable)}>

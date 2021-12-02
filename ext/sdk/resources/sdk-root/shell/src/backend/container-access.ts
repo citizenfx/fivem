@@ -1,4 +1,5 @@
-import { injectable, interfaces } from "inversify";
+import { Container, injectable, interfaces } from "inversify";
+import getDecorators from 'inversify-inject-decorators';
 
 @injectable()
 export class ContainerAccess {
@@ -21,12 +22,25 @@ export class ContainerAccess {
   }
 }
 
-let container: interfaces.Container;
-
-export function setContainer(c: interfaces.Container) {
-  container = c;
-}
+let container = new Container();
+let decorators = getDecorators(container);
 
 export function getContainer(): interfaces.Container {
   return container;
+}
+
+export const lazyInject = (...args: Parameters<(typeof decorators)['lazyInject']>) => decorators!.lazyInject(...args);
+
+export function registerSingleton<T>(service: interfaces.Newable<T>) {
+  container.bind(service).toSelf().inSingletonScope();
+
+  return service;
+}
+
+export function registerDynamic<T>(service: interfaces.ServiceIdentifier<T>, factory: (context: interfaces.Context) => T) {
+  container.bind(service).toDynamicValue(factory);
+}
+
+export function registerFactory<T>(service: interfaces.ServiceIdentifier<T>, factory: interfaces.FactoryCreator<T>) {
+  container.bind(service).toFactory(factory);
 }

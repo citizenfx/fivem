@@ -75,7 +75,7 @@ function getCoords(element: HTMLElement, fixedOn: FixedOn): [number, number] {
 }
 
 export interface TitleProps {
-  title: React.ReactNode,
+  title?: React.ReactNode,
   shortcut?: string,
 
   delay?: number,
@@ -189,7 +189,7 @@ export const Title = observer(function Title(props: TitleProps) {
   }, []);
 
   let titleNode: React.ReactNode = null;
-  if (active) {
+  if (active && title) {
     const wrapperClassName = classnames(s.wrapper, s[`fixed-on-${fixedOn}`], {
       [s.animated]: animated,
     });

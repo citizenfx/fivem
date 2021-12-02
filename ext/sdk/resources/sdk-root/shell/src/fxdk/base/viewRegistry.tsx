@@ -7,7 +7,7 @@ export interface IBaseViewRegistryItem extends IBaseRegistryItem {
   render(): React.ReactNode;
 }
 
-export function viewRegistryVisibilityFilter(item: IBaseViewRegistryItem): boolean {
+export function viewRegistryVisibilityFilter(item: { isVisible?(): boolean }): boolean {
   if (item.isVisible) {
     return item.isVisible();
   }

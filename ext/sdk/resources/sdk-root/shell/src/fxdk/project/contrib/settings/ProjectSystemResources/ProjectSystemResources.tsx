@@ -2,20 +2,20 @@ import React from 'react';
 import classnames from 'classnames';
 import { observer } from 'mobx-react-lite';
 import { SystemResourceDescriptor, systemResourcesDescriptors } from './system-resources';
-import { ProjectState } from 'store/ProjectState';
 import { SystemResource, SYSTEM_RESOURCES_NAMES } from 'backend/system-resources/system-resources-constants';
+import { Project } from 'fxdk/project/browser/state/project';
 import s from './ProjectSystemResources.module.scss';
 
 export const ProjectSystemResources = observer(function ProjectSystemResources() {
   const nodes = Object.entries(systemResourcesDescriptors).map(([categoryName, descriptors]) => {
     const resourcesNodes = Object.entries(descriptors).map(([resourceName, descriptor]: [SystemResource, SystemResourceDescriptor]) => {
-      const handleClick = () => ProjectState.project.toggleSystemResource(resourceName);
+      const handleClick = () => Project.toggleSystemResource(resourceName);
 
       return (
         <div
           key={resourceName}
           onClick={handleClick}
-          className={classnames(s.resource, { [s.active]: ProjectState.project.manifest.systemResources.includes(resourceName) })}
+          className={classnames(s.resource, { [s.active]: Project.manifest.systemResources.includes(resourceName) })}
         >
           <div className={s.row}>
             <div className={s.name}>

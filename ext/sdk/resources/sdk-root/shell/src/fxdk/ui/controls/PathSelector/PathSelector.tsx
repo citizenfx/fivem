@@ -3,7 +3,10 @@ import classnames from 'classnames';
 import { Input } from '../Input/Input';
 import { Button } from '../Button/Button';
 import { useOpenFolderSelectDialog } from 'utils/hooks';
+import { BsBoxArrowUpRight } from 'react-icons/bs';
 import s from './PathSelector.module.scss';
+
+const defaultButtonIcon = <BsBoxArrowUpRight />;
 
 export interface PathSelectorProps {
   value: string,
@@ -28,7 +31,7 @@ export const PathSelector = React.memo(function PathSelector(props: PathSelector
     startPath = '',
     dialogTitle = 'Select Folder...',
     buttonText = 'Select',
-    buttonIcon = null,
+    buttonIcon = defaultButtonIcon,
     placeholder = '',
     description = '',
     disabled = false,
@@ -61,14 +64,15 @@ export const PathSelector = React.memo(function PathSelector(props: PathSelector
         disabled={disabled}
         description={description}
         showLoader={showLoader}
-      />
-
-      <Button
-        className={s.button}
-        text={buttonText}
-        icon={buttonIcon}
-        disabled={disabled}
-        onClick={openFolderSelectDialog}
+        decorator={() => (
+          <Button
+            text={buttonText}
+            size="small"
+            icon={buttonIcon}
+            disabled={disabled}
+            onClick={openFolderSelectDialog}
+          />
+        )}
       />
     </div>
   );

@@ -1,3 +1,4 @@
+import { getContainer } from "backend/container-access";
 import { interfaces } from "inversify";
 
 export const UpdaterContribution = Symbol('UpdaterContribution');
@@ -5,6 +6,8 @@ export interface UpdaterContribution {
   update(): Promise<void>;
 }
 
-export const bindUpdaterContribution = <T>(container: interfaces.Container, serviceId: interfaces.ServiceIdentifier<T>) => {
-  container.bind(UpdaterContribution).toService(serviceId);
+export const registerUpdaterContribution = <T>(serviceId: interfaces.ServiceIdentifier<T>) => {
+  getContainer().bind(UpdaterContribution).toService(serviceId);
+
+  return serviceId;
 };

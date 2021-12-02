@@ -45,6 +45,7 @@ export interface FilesystemEntryMeta {
 }
 
 export interface FilesystemEntry {
+  handle: string,
   path: string,
   name: string,
   meta: FilesystemEntryMeta,

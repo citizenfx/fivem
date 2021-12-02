@@ -1,6 +1,6 @@
 import { inject, injectable } from "inversify";
-import { ApiContribution } from "backend/api/api-contribution";
-import { AppContribution } from "backend/app/app-contribution";
+import { ApiContribution } from "backend/api/api.extensions";
+import { AppContribution } from "backend/app/app.extensions";
 import { notificationsApi } from "shared/api.events";
 import { NotificationItem, NotificationType } from "shared/notification.types";
 import { fastRandomId } from "utils/random";

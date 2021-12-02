@@ -1,12 +1,12 @@
 import * as ws from 'ws';
 import { inject, injectable, postConstruct } from 'inversify';
 import { SingleEventEmitter } from 'utils/singleEventEmitter';
-import { LogService } from 'backend/logger/log-service';
 import { ShellBackend } from 'backend/shell-backend';
+import { ScopedLogService } from 'backend/logger/scoped-logger';
+import { Ticker } from 'backend/ticker';
 
 const wsSendOptions = {
   binary: true,
-  compress: true,
 };
 
 export type ApiEventListener = <T extends any>(data: T) => void | Promise<void>;
@@ -25,8 +25,7 @@ export class ApiClient {
   @inject(ShellBackend)
   protected readonly shellBackend: ShellBackend;
 
-  @inject(LogService)
-  protected readonly logService: LogService;
+  protected readonly logService = new ScopedLogService('ApiClient');
 
   @postConstruct()
   protected initialize() {
@@ -41,11 +40,11 @@ export class ApiClient {
   }
 
   emit<T extends any>(eventType: string, data?: T) {
-    this.broadcastMessage(JSON.stringify(
+    this.broadcastMessage(
       typeof data !== 'undefined'
         ? [eventType, data]
         : [eventType],
-    ));
+    );
   }
 
   on(eventType: string, listener: ApiEventListener): ApiEventListenerDisposer {
@@ -121,24 +120,38 @@ export class ApiClient {
   }
 
   private emitCallbackError(id: string, error: Error) {
-    this.broadcastMessage(JSON.stringify(
-      ['@@cb', [ id, 'error', error + ''] ],
-    ));
+    this.broadcastMessage(['@@cb', [id, 'error', error + '']]);
   }
 
   private emitCallbackResponse(id: string, response: any) {
-    this.broadcastMessage(JSON.stringify(
-      ['@@cb', [ id, 'response', response] ],
-    ));
+    this.broadcastMessage(['@@cb', [id, 'response', response]]);
   }
 
-  private broadcastMessage(message: string) {
-    let messageBuffer = Buffer.from(message);
+  private messagesQueue: [string, any?][] = [];
+  private messagesQueueTicker = new Ticker();
 
-    while (messageBuffer.readUInt8(0) !== message.charCodeAt(0)) {
-      messageBuffer = Buffer.from(message);
+  private broadcastMessage(message: [string, any?]) {
+    this.messagesQueue.push(message);
+
+    this.messagesQueueTicker.whenTickEnds(this.workMessageQueue);
+  }
+
+  private readonly workMessageQueue = () => {
+    const mq = this.messagesQueue;
+    this.messagesQueue = [];
+
+    let ms: string;
+
+    if (mq.length === 1) {
+      ms = JSON.stringify(mq[0]);
+    } else {
+      ms = JSON.stringify(['##mq', mq]);
     }
 
-    this.clients.forEach((client) => client.send(messageBuffer, wsSendOptions));
-  }
+    const mb = Buffer.from(ms);
+
+    for (const client of this.clients) {
+      client.send(mb, wsSendOptions);
+    }
+  };
 }

@@ -1,13 +1,14 @@
 import { Api } from "fxdk/browser/Api";
 import { ShellLifecycle, ShellLifecyclePhase } from "fxdk/browser/shellLifecycle";
+import { Project } from "fxdk/project/browser/state/project";
+import { ProjectLoader } from "fxdk/project/browser/state/projectLoader";
+import { ProjectApi } from "fxdk/project/common/project.api";
 import { makeAutoObservable } from "mobx";
-import { projectApi, serverApi } from "shared/api.events";
+import { serverApi } from "shared/api.events";
 import { APIRQ } from "shared/api.requests";
 import { ServerStates, ServerUpdateChannel, ServerUpdateStates } from "shared/api.types";
 import { ShellEvents } from "shell-api/events";
-import { getProjectTebexSecretVar } from "utils/projectStorage";
 import { sendCommandToGameClient } from "utils/sendCommand";
-import { ProjectState } from "./ProjectState";
 
 export const ServerState = new class ServerState {
   constructor() {
@@ -64,13 +65,11 @@ export const ServerState = new class ServerState {
       return;
     }
 
-    if (ProjectState.hasProject) {
-      const project = ProjectState.project;
+    if (ProjectLoader.hasProject) {
+      const steamWebApiKey = ''; //Project.localStorage.steamWebApiKey;
+      const tebexSecret = Project.localStorage.tebexSecret;
 
-      const steamWebApiKey = ''; //getProjectSteamWebApiKeyVar(project);
-      const tebexSecret = getProjectTebexSecretVar(project);
-
-      Api.send(projectApi.startServer, {
+      Api.send(ProjectApi.ServerEndpoints.start, {
         steamWebApiKey,
         tebexSecret,
       } as APIRQ.ProjectStartServer);
@@ -78,7 +77,7 @@ export const ServerState = new class ServerState {
   }
 
   stopServer() {
-    Api.send(projectApi.stopServer);
+    Api.send(ProjectApi.ServerEndpoints.stop);
   }
 
   toggleServer() {
@@ -89,6 +88,10 @@ export const ServerState = new class ServerState {
       this.startServer();
     }
   }
+
+  readonly stopResource = (name: string) => Api.send(serverApi.stopResource, name);
+  readonly startResource = (name: string) => Api.send(serverApi.startResource, name);
+  readonly restartResource = (name: string) => Api.send(serverApi.restartResource, name);
 
   sendCommand(cmd: string) {
     Api.send(serverApi.sendCommand, cmd);

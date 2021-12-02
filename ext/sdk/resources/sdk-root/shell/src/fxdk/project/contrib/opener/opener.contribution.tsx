@@ -4,11 +4,11 @@ import { ShellViewParticipants } from 'fxdk/browser/shellExtensions';
 import { ShellCommands } from 'shell-api/commands';
 import { ProjectOpenerCommands } from './opener.commands';
 import { ProjectOpenerState } from './ProjectOpenerState';
-import { ToolbarParticipants } from 'fxdk/contrib/toolbar/toolbarExtensions';
-import { openProjectIcon } from 'constants/icons';
-import { WelcomeParticipants } from 'fxdk/contrib/welcome/welcomeExtensions';
-import { ProjectState } from 'store/ProjectState';
+import { ToolbarParticipants } from 'fxdk/contrib/toolbar/browser/toolbarExtensions';
+import { openProjectIcon } from 'fxdk/ui/icons';
+import { WelcomeParticipants } from 'fxdk/contrib/welcome/browser/welcomeExtensions';
 import { WelcomeView } from './WelcomeView';
+import { ProjectLoader } from 'fxdk/project/browser/state/projectLoader';
 
 ShellCommands.register(ProjectOpenerCommands.OPEN, ProjectOpenerState.open);
 ShellCommands.register(ProjectOpenerCommands.CLOSE, ProjectOpenerState.close);
@@ -33,6 +33,6 @@ ToolbarParticipants.registerMenuItem({
 
 WelcomeParticipants.regsiterView({
   id: 'recent-projects',
-  isVisible: () => ProjectState.recentProjects.length > 0,
+  isVisible: () => ProjectLoader.recentProjects.length > 0,
   render: () => <WelcomeView />,
 });

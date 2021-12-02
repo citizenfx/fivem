@@ -8,7 +8,7 @@ import { Button } from 'fxdk/ui/controls/Button/Button';
 import { ScrollContainer } from 'fxdk/ui/ScrollContainer/ScrollContainer';
 import { BsExclamationCircle } from 'react-icons/bs';
 import { Indicator } from 'fxdk/ui/Indicator/Indicator';
-import { infoIcon } from 'constants/icons';
+import { infoIcon } from 'fxdk/ui/icons';
 import { FXCodeState } from '../FXCodeState';
 
 export interface FXCodeImportProps {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { projectSettingsIcon } from 'constants/icons';
+import { projectSettingsIcon } from 'fxdk/ui/icons';
 import { observer } from 'mobx-react-lite';
 import { WETool } from 'personalities/world-editor/store/WEToolbarState';
 import { BaseTool } from '../BaseTool/BaseTool';

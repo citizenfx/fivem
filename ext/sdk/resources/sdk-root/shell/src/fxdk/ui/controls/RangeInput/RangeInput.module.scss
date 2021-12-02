@@ -1,0 +1,65 @@
+@import "variables";
+
+.root {
+  display: flex;
+  align-items: center;
+
+  height: $q*9;
+
+  &.small {
+    height: $q*7;
+
+    font-size: $fs08;
+  }
+
+  &.disabled {
+    .min,
+    .max {
+      opacity: .5;
+      pointer-events: none;
+    }
+
+    input {
+      opacity: .5;
+    }
+  }
+
+  .min,
+  .max {
+    display: flex;
+    align-items: center;
+
+    height: 100%;
+
+    padding: 0 $q*2;
+
+    cursor: pointer;
+
+    border-radius: $q;
+
+    @include interactiveTransition;
+  }
+
+  .min {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+
+    &:hover {
+      background-image: linear-gradient(90deg, rgba($fgColor, .2), rgba($fgColor, 0));
+    }
+    &:active {
+      background-image: linear-gradient(90deg, rgba($fgColor, .1), rgba($fgColor, 0));
+    }
+  }
+  .max {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+
+    &:hover {
+      background-image: linear-gradient(-90deg, rgba($fgColor, .2), rgba($fgColor, 0));
+    }
+    &:active {
+      background-image: linear-gradient(-90deg, rgba($fgColor, .1), rgba($fgColor, 0));
+    }
+  }
+}

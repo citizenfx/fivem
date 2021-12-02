@@ -2,9 +2,28 @@
   "compilerOptions": {
     "target": "ES2020",
     "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
+      "ES2016",
+			"ES2017.Object",
+			"ES2017.String",
+			"ES2017.Intl",
+			"ES2017.TypedArrays",
+			"ES2018.AsyncIterable",
+			"ES2018.AsyncGenerator",
+			"ES2018.Promise",
+			"ES2018.Regexp",
+			"ES2018.Intl",
+			"ES2019.Array",
+			"ES2019.Object",
+			"ES2019.String",
+			"ES2019.Symbol",
+			"ES2020.BigInt",
+			"ES2020.Promise",
+			"ES2020.String",
+			"ES2020.Symbol.WellKnown",
+			"ES2020.Intl",
+			"DOM",
+			"DOM.Iterable",
+			"WebWorker.ImportScripts"
     ],
     "allowJs": true,
     "skipLibCheck": true,
@@ -17,7 +36,7 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "strictNullChecks": true,
-    "jsx": "react",
+    "jsx": "react-jsx",
     "plugins": [
       {
         "name": "typescript-plugin-css-modules"

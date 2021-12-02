@@ -1,3 +1,4 @@
+import { getContainer } from "backend/container-access";
 import { interfaces } from "inversify";
 
 export const LogProvider = Symbol('LogProvider');
@@ -9,6 +10,6 @@ export interface LogProvider {
   error?<T extends Error>(error: T, extra?: Record<string, any>): void;
 }
 
-export const bindLogProvider = <T>(container: interfaces.Container, service: interfaces.ServiceIdentifier<T>) => {
-  container.bind(LogProvider).toService(service);
+export function registerLogProvider<T>(service: interfaces.ServiceIdentifier<T>) {
+  getContainer().bind(LogProvider).toService(service);
 };

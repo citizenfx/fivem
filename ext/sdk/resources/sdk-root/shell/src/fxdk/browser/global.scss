@@ -67,6 +67,14 @@ h6 {
   margin-bottom: $q * 4;
 }
 
+// utils
+.text-fgColor { color: $fgColor !important }
+.text-bgColor { color: $bgColor !important }
+.text-scColor { color: $scColor !important }
+.text-erColor { color: $erColor !important }
+.text-wrColor { color: $wrColor !important }
+// /utils
+
 .dimmed {
   opacity: .75;
 }

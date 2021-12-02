@@ -1,6 +1,6 @@
 import { ApiClient } from "backend/api/api-client";
-import { ApiContribution } from "backend/api/api-contribution";
-import { AppContribution } from "backend/app/app-contribution";
+import { ApiContribution } from "backend/api/api.extensions";
+import { AppContribution } from "backend/app/app.extensions";
 import { inject, injectable } from "inversify";
 import { taskReporterApi } from "shared/api.events";
 import { TaskData, TaskId } from "shared/task.types";

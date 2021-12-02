@@ -83,7 +83,6 @@ Pop-Location
 
 End-Section "update_submodules"
 
-Start-Section "sdk_build" "Building SDK"
 # start building SDK
 # copied from run_postbuild.ps1
 Push-Location $WorkDir\ext\sdk-build
@@ -96,7 +95,6 @@ if (!(Test-Path sdk-root\.commit) -or $SDKCommit -ne (Get-Content sdk-root\.comm
     $SDKCommit | Out-File -Encoding ascii -NoNewline sdk-root\.commit
 }
 Pop-Location
-End-Section "sdk_build"
 
 # create save directory
 New-Item -ItemType Directory -Force $SaveDir | Out-Null

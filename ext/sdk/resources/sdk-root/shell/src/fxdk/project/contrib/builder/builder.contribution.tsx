@@ -1,14 +1,19 @@
 import React from 'react';
 import { ProjectParticipants } from 'fxdk/project/browser/projectExtensions';
 import { ShellCommands } from 'shell-api/commands';
-import { ProjectState } from 'store/ProjectState';
 import { ProjectBuilderCommands } from './builder.commands';
 import { ProjectBuilder } from './ProjectBuilder';
-import { projectBuildIcon } from 'constants/icons';
+import { projectBuildIcon, projectSettingsIcon } from 'fxdk/ui/icons';
 import { BuilderState } from './BuilderState';
-import { ToolbarParticipants } from 'fxdk/contrib/toolbar/toolbarExtensions';
+import { ToolbarParticipants } from 'fxdk/contrib/toolbar/browser/toolbarExtensions';
+import { ProjectLoader } from 'fxdk/project/browser/state/projectLoader';
+import { Project } from 'fxdk/project/browser/state/project';
 
-ShellCommands.register(ProjectBuilderCommands.BUILD, ProjectState.buildProject);
+ShellCommands.register(ProjectBuilderCommands.BUILD, (...args) => {
+  if (ProjectLoader.hasProject) {
+    Project.buildProject(...args);
+  }
+});
 ShellCommands.register(ProjectBuilderCommands.OPEN, BuilderState.open);
 
 ProjectParticipants.registerRender({
@@ -20,9 +25,21 @@ ProjectParticipants.registerRender({
 ProjectParticipants.registerControl({
   id: 'build',
   icon: projectBuildIcon,
-  label: 'Build Project',
-  commandId: ProjectBuilderCommands.BUILD,
   introId: 'project-build',
+  controls: [
+    {
+      id: 'fast-build',
+      icon: projectBuildIcon,
+      label: 'Build Project',
+      commandId: ProjectBuilderCommands.BUILD,
+    },
+    {
+      id: 'open-build-modal',
+      icon: projectSettingsIcon,
+      label: 'Open build modal',
+      commandId: ProjectBuilderCommands.OPEN,
+    },
+  ],
 });
 
 ToolbarParticipants.registerMenuItem({
