@@ -1,5 +1,5 @@
 import React from 'react';
-import { Disposer, IDisposable } from "fxdk/base/disposable";
+import { dispose, Disposer, IDisposable } from "fxdk/base/disposable";
 import { convertMenuItemsToContextMenuItems, IMenuItem } from "fxdk/base/menu";
 import { ContextMenuItemsCollection } from "fxdk/ui/controls/ContextMenu/ContextMenu";
 import { checkedIcon, deleteIcon, openInExplorerIcon, renameIcon, uncheckedIcon } from "fxdk/ui/icons";
@@ -57,6 +57,10 @@ export abstract class ProjectExplorerFileSystemItem<TRuntimeData = any> implemen
   abstract getDefaultIcon(expanded: boolean): React.ReactNode;
   abstract getIcon(): IProjectExplorer.ItemIcon;
   abstract getLabel(): IProjectExplorer.ItemLabel;
+
+  dispose() {
+    dispose(this.toDispose);
+  }
 
   acceptParentContext(ownContext: IProjectExplorer.ItemContext) {
     this.context = ownContext;

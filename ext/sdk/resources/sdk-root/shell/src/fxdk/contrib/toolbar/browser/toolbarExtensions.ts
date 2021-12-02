@@ -71,5 +71,5 @@ export const ToolbarParticipants = new class ToolbarParticipants {
 }();
 
 function menuItemsSorter(a: IToolbarMainMenuAddition, b: IToolbarMainMenuAddition): number {
-  return (a.order || Number.MAX_SAFE_INTEGER) - (b.order || Number.MAX_SAFE_INTEGER);
+  return (a.order ?? Number.MAX_SAFE_INTEGER) - (b.order ?? Number.MAX_SAFE_INTEGER);
 }

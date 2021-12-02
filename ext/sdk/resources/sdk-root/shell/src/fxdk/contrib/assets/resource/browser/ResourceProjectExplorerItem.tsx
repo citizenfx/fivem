@@ -157,7 +157,7 @@ export class ResourceProjectExplorerItem extends ProjectExplorerFileSystemItem<I
 
     this.register(disposableIdleCallback(() => {
       this.register(ProjectParticipants.registerDynamicVariablesProvider(this.entryPath, {
-        label: Project.getRelativePath(this.entryPath),
+        label: Project.getRelativePath(this.entryPath).replace(/\\/g, '/'),
         getConvarCategories: () => {
           return this.runtimeData?.convarCategories || {};
         },

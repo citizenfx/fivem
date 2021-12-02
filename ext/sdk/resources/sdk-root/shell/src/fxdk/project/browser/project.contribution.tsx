@@ -11,6 +11,7 @@ import { EntryRelocateOperation } from 'fxdk/project/browser/state/parts/Relocat
 import { Project } from './state/project';
 import { ProjectLoader } from './state/projectLoader';
 import { ProjectApi } from '../common/project.api';
+import { closeIcon } from 'fxdk/ui/icons';
 
 ShellCommands.register(ProjectCommands.ASSET_SET_ENABLED, (assetPath: string, enabled: boolean) => {
   Project.setAssetConfig(assetPath, {
@@ -88,7 +89,8 @@ ToolbarParticipants.registerMenuItem({
   group: 'project-switch',
   item: {
     id: 'project-close',
-    text: 'Close project',
+    text: 'Close Project',
+    icon: closeIcon,
     onClick: ProjectLoader.close,
   },
 });

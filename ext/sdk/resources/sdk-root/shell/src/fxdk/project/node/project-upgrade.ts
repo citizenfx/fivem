@@ -13,7 +13,7 @@ import { concurrently } from 'utils/concurrently';
 import { omit } from 'utils/omit';
 import { endsWith } from 'utils/stringUtils';
 import { DEFAULT_PROJECT_SYSTEM_RESOURCES, PROJECT_PATHS_STATE_FILENAME } from '../common/project.constants';
-import { ProjectPathsState } from '../common/project.types';
+import { ProjectPathsState, ProjectVariableSetter } from '../common/project.types';
 
 export interface ProjectUpgradeRequest {
   task: Task,
@@ -54,6 +54,7 @@ export class ProjectUpgrade {
       await this.maybeUpgradeToSystemResources(request);
       await this.maybeUpgradePathsState(request);
       await this.maybeUpgradeUpdatedAt(request);
+      await this.maybeUpgradeVariables(request);
     }
   }
 
@@ -337,6 +338,39 @@ export class ProjectUpgrade {
 
       return this.fsService.writeFileJson(request.manifestPath, manifest);
     }
+  }
+
+  private async maybeUpgradeVariables(request: ProjectUpgradeRequest) {
+    const manifest: any = await this.fsService.readFileJson(request.manifestPath);
+    if (!manifest.variables) {
+      return;
+    }
+
+    const oldValues = Object.values(manifest.variables);
+    if (!oldValues.length) {
+      return;
+    }
+
+    if (typeof oldValues[0] === 'object') {
+      return;
+    }
+
+    const newVariables: ProjectManifest['variables'] = {};
+
+    for (const [variable, value] of Object.entries(manifest.variables)) {
+      if (typeof value !== 'object') {
+        newVariables[variable] = {
+          value: value as any,
+          setter: ProjectVariableSetter.SERVER_ONLY,
+        };
+      } else if (value !== null && ('setter' in value) && ('value' in value)) {
+        newVariables[variable] = value as any;
+      }
+    }
+
+    manifest.variables = newVariables;
+
+    return this.fsService.writeFileJson(request.manifestPath, manifest);
   }
 
   private async maybeDeleteStaleCfxServerData(request: ProjectUpgradeRequest) {
