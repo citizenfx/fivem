@@ -12,8 +12,10 @@
     width: 100%;
     height: $q * 8;
 
-    color: rgba($fgColor, .5);
+    color: rgba($fgColor, .75);
     font-size: $fs08;
+    font-weight: 100;
+    letter-spacing: .25px;
 
     &:hover,
     &.active {
@@ -95,6 +97,7 @@
 
         svg {
           font-size: $fs08;
+          color: rgba($fgColor, .5);
         }
       }
 
