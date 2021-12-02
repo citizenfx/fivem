@@ -26,7 +26,7 @@
 struct cache_t
 {
 	std::string name;
-	int version;
+	int version = 0;
 	std::string manifest;
 	std::string manifestUrl;
 };
@@ -99,19 +99,34 @@ public:
 
 struct manifestFile_t
 {
-	using TTuple = std::tuple<std::string, size_t, std::array<uint8_t, 20>>;
+	using TTuple = std::tuple<std::string, int64_t, std::array<uint8_t, 20>>;
 
 	std::string name;
-	size_t downloadSize = 0;
-	size_t localSize = 0;
+	int64_t downloadSize = 0;
+	int64_t localSize = 0;
 	bool compressed = false;
 	bool hash256Valid = false;
+	compressionAlgo_e algorithm = compressionAlgo_e::XZ;
 	std::array<uint8_t, 20> hash = { 0 };
 	std::array<uint8_t, 32> hash256 = { 0 };
 
 	TTuple ToTuple() const
 	{
 		return { name, localSize, hash };
+	}
+
+	std::string_view AlgoSuffix() const
+	{
+		switch (algorithm)
+		{
+			case compressionAlgo_e::XZ:
+				return ".xz";
+			case compressionAlgo_e::Zstd:
+				return ".zst";
+			case compressionAlgo_e::None:
+			default:
+				return "";
+		}
 	}
 };
 
@@ -146,13 +161,25 @@ public:
 			manifestFile_t file;
 			file.name = fileElement->Attribute("Name");
 
-			int size, compressedSize;
-			size = atoi(fileElement->Attribute("Size"));
-			compressedSize = atoi(fileElement->Attribute("CompressedSize"));
+			int64_t size, compressedSize, compressedSizeZstd;
+			size = strtoll(fileElement->Attribute("Size"), nullptr, 10);
+			compressedSize = strtoll(fileElement->Attribute("CompressedSize"), nullptr, 10);
+			compressedSizeZstd = 0;
+
+			if (auto zstdSize = fileElement->Attribute("CompressedSizeZstd"))
+			{
+				compressedSizeZstd = strtoll(zstdSize, nullptr, 10);
+				file.algorithm = compressionAlgo_e::Zstd;
+			}
 
 			file.compressed = (size != compressedSize);
 			file.downloadSize = compressedSize;
 			file.localSize = size;
+
+			if (!file.compressed)
+			{
+				file.algorithm = compressionAlgo_e::None;
+			}
 
 			ParseHash(fileElement->Attribute("SHA1Hash"), file.hash.data());
 
@@ -422,15 +449,13 @@ bool Updater_RunUpdate(std::initializer_list<std::string> wantedCachesList)
 	UI_DoCreation();
 	CL_InitDownloadQueue();
 
-	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
-
 	uint64_t fileStart = 0;
 	uint64_t fileTotal = 0;
 
 	for (auto& filePair : queuedFiles)
 	{
 		struct _stat64 stat;
-		if (_wstat64(MakeRelativeCitPath(converter.from_bytes(filePair.second.name)).c_str(), &stat) >= 0)
+		if (_wstat64(MakeRelativeCitPath(ToWide(filePair.second.name)).c_str(), &stat) >= 0)
 		{
 			// if the size is wrong.. why verify? -> we don't count this file so don't add it to verifying
 			if (stat.st_size == filePair.second.localSize)
@@ -457,7 +482,7 @@ bool Updater_RunUpdate(std::initializer_list<std::string> wantedCachesList)
 			formattedHash << fmt::sprintf("%02X", (uint32_t)b);
 		}
 
-		bool fileOutdated = CheckFileOutdatedWithUI(MakeRelativeCitPath(converter.from_bytes(file.name)).c_str(), { hashEntry }, &fileStart, fileTotal, nullptr, filePair.second.localSize);
+		bool fileOutdated = CheckFileOutdatedWithUI(MakeRelativeCitPath(ToWide(file.name)).c_str(), { hashEntry }, &fileStart, fileTotal, nullptr, filePair.second.localSize);
 
 		if (fileOutdated)
 		{
@@ -467,10 +492,10 @@ bool Updater_RunUpdate(std::initializer_list<std::string> wantedCachesList)
 				hashString << fmt::sprintf("%02x", b);
 			}
 
-			std::string url = GetObjectURL(hashString.str(), (file.compressed) ? ".xz" : "");
-			std::string outPath = converter.to_bytes(MakeRelativeCitPath(converter.from_bytes(file.name)));
+			std::string url = GetObjectURL(hashString.str(), file.AlgoSuffix());
+			std::string outPath = ToNarrow(MakeRelativeCitPath(ToWide(file.name)));
 
-			CL_QueueDownload(url.c_str(), outPath.c_str(), file.downloadSize, file.compressed);
+			CL_QueueDownload(url.c_str(), outPath.c_str(), file.downloadSize, file.algorithm);
 		}
 	}
 
@@ -483,7 +508,7 @@ bool Updater_RunUpdate(std::initializer_list<std::string> wantedCachesList)
 	for (const auto& [name, size] : deleteFiles)
 	{
 		struct _stat64 stat;
-		auto fn = MakeRelativeCitPath(converter.from_bytes(name));
+		auto fn = MakeRelativeCitPath(ToWide(name));
 		if (_wstat64(fn.c_str(), &stat) >= 0)
 		{
 			if (stat.st_size == size)

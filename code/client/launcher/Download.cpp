@@ -90,6 +90,8 @@ static CURL* curl_easy_init_cfx()
 #include <lzma.h>
 #undef restrict
 
+#include <zstd.h>
+
 typedef struct download_s
 {
 	std::string opath;
@@ -100,7 +102,7 @@ typedef struct download_s
 	int64_t size;
 	CURL* curlHandles[10];
 	FILE* fp[10];
-	bool compressed;
+	compressionAlgo_e algorithm;
 	bool conditionalDL;
 	bool doneExternal;
 	bool successExternal;
@@ -114,6 +116,10 @@ typedef struct download_s
 
 	lzma_stream strm;
 	uint8_t strmOut[65535];
+
+	ZSTD_DStream* zstrm;
+	ZSTD_inBuffer zin;
+	ZSTD_outBuffer zout;
 
 	int64_t progress = 0;
 	int numRetries = 10;
@@ -167,18 +173,18 @@ void CL_InitDownloadQueue()
 	dls.downloadQueue = {};
 }
 
-void CL_QueueDownload(const char* url, const char* file, int64_t size, bool compressed)
+void CL_QueueDownload(const char* url, const char* file, int64_t size, compressionAlgo_e algo)
 {
-	CL_QueueDownload(url, file, size, compressed, 1);
+	CL_QueueDownload(url, file, size, algo, 1);
 }
 
-void CL_QueueDownload(const char* url, const char* file, int64_t size, bool compressed, int segments)
+void CL_QueueDownload(const char* url, const char* file, int64_t size, compressionAlgo_e algo, int segments)
 {
 	if (strcmp(url, "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_1604_0.exe") == 0)
 	{
 		for (int i = 0; i <= 9; i++)
 		{
-			CL_QueueDownload(va("https://content.cfx.re/mirrors/emergency_mirror/GTAV1604.exe%02d", i), va("%s.%d", file, i), i == 9 ? 87584200 : 104857600, false, 1);
+			CL_QueueDownload(va("https://content.cfx.re/mirrors/emergency_mirror/GTAV1604.exe%02d", i), va("%s.%d", file, i), i == 9 ? 87584200 : 104857600, compressionAlgo_e::None, 1);
 		}
 
 		return;
@@ -190,7 +196,7 @@ void CL_QueueDownload(const char* url, const char* file, int64_t size, bool comp
 	sprintf_s(download.url, sizeof(download.url), "%s", url);
 	strcpy_s(download.file, sizeof(download.file), file);
 	download.size = size;
-	download.compressed = compressed;
+	download.algorithm = algo;
 	download.segments = segments;
 
 	for (int i = 0; i < segments; i++)
@@ -273,7 +279,7 @@ size_t DL_WriteToFile(void *ptr, size_t size, size_t nmemb, download_t* download
 {
 	size_t written = 0;
 
-	if (!download->compressed)
+	if (download->algorithm == compressionAlgo_e::None)
 	{
 		if (download->writeToMemory)
 		{
@@ -286,7 +292,7 @@ size_t DL_WriteToFile(void *ptr, size_t size, size_t nmemb, download_t* download
 			written = fwrite(ptr, size, nmemb, download->fp[0]);
 		}
 	}
-	else
+	else if (download->algorithm == compressionAlgo_e::XZ)
 	{
 		download->strm.next_in = (uint8_t*)ptr;
 		download->strm.avail_in = size * nmemb;
@@ -311,6 +317,34 @@ size_t DL_WriteToFile(void *ptr, size_t size, size_t nmemb, download_t* download
 			else
 			{
 				fwrite(download->strmOut, 1, (sizeof(download->strmOut) - download->strm.avail_out), download->fp[0]);
+			}
+		}
+
+		written = nmemb;
+	}
+	else if (download->algorithm == compressionAlgo_e::Zstd)
+	{
+		download->zin = { (uint8_t*)ptr, size * nmemb, 0 };
+
+		while (download->zin.pos < download->zin.size)
+		{
+			download->zout = { download->strmOut, sizeof(download->strmOut), 0 };
+
+			size_t ret = ZSTD_decompressStream(download->zstrm, &download->zout, &download->zin);
+
+			if (ZSTD_isError(ret))
+			{
+				UI_DisplayError(va(L"ZSTD decoding error %i (%s) in %s.", ret, ToWide(ZSTD_getErrorName(ret)), ToWide(download->file)));
+				return 0;
+			}
+
+			if (download->writeToMemory)
+			{
+				download->memoryStream << std::string(reinterpret_cast<char*>(download->strmOut), download->zout.pos);
+			}
+			else
+			{
+				fwrite(download->strmOut, 1, download->zout.pos, download->fp[0]);
 			}
 		}
 
@@ -668,9 +702,17 @@ bool DL_ProcessDownload()
 
 		if (download->progress == 0)
 		{
-			lzma_stream_decoder(&download->strm, UINT64_MAX, 0);
-			download->strm.avail_out = sizeof(download->strmOut);
-			download->strm.next_out = download->strmOut;
+			if (download->algorithm == compressionAlgo_e::XZ)
+			{
+				lzma_stream_decoder(&download->strm, UINT64_MAX, 0);
+				download->strm.avail_out = sizeof(download->strmOut);
+				download->strm.next_out = download->strmOut;
+			}
+			else if (download->algorithm == compressionAlgo_e::Zstd)
+			{
+				download->zstrm = ZSTD_createDStream();
+				download->zout = { download->strmOut, sizeof(download->strmOut), 0 };
+			}
 		}
 
 		curl_multi_add_handle(dls.curl, curlHandle);
@@ -770,8 +812,6 @@ bool DL_ProcessDownload()
 		return true;
 	};
 
-	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
-
 	// create new handles if we don't have one yet
 	for (auto& download : dls.currentDownloads)
 	{
@@ -821,7 +861,7 @@ bool DL_ProcessDownload()
 
 				bool allOK = true;
 
-				std::wstring tmpPathWide = converter.from_bytes(download->tmpPath);
+				std::wstring tmpPathWide = ToWide(download->tmpPath);
 
 				if (!download->writeToMemory)
 				{
@@ -873,7 +913,14 @@ bool DL_ProcessDownload()
 
 				if (code == CURLE_OK)
 				{
-					lzma_end(&download->strm);
+					if (download->algorithm == compressionAlgo_e::XZ)
+					{
+						lzma_end(&download->strm);
+					}
+					else if (download->algorithm == compressionAlgo_e::Zstd)
+					{
+						ZSTD_freeDStream(download->zstrm);
+					}
 
 					if (!onSuccess(it))
 					{

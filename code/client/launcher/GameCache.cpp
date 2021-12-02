@@ -959,7 +959,7 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 						curl_easy_cleanup(curl);
 					}
 
-					CL_QueueDownload(va("file:///%s", escapedUrl), converter.to_bytes(entry.GetCacheFileName()).c_str(), entry.localSize, false);
+					CL_QueueDownload(va("file:///%s", escapedUrl), converter.to_bytes(entry.GetCacheFileName()).c_str(), entry.localSize, compressionAlgo_e::None);
 
 					notificationEntries.push_back({ entry, true });
 				}
@@ -969,7 +969,7 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 					{
 						if (outHash == deltaEntry.fromChecksum)
 						{
-							CL_QueueDownload(deltaEntry.remoteFile.c_str(), ToNarrow(deltaEntry.GetLocalFileName()).c_str(), deltaEntry.dlSize, false);
+							CL_QueueDownload(deltaEntry.remoteFile.c_str(), ToNarrow(deltaEntry.GetLocalFileName()).c_str(), deltaEntry.dlSize, compressionAlgo_e::None);
 
 							notificationEntries.push_back({ deltaEntry.MakeEntry(), false });
 							theseDeltas.emplace_back(deltaEntry, entry);
@@ -995,7 +995,7 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 				}
 
 				// if the file isn't of the original size
-				CL_QueueDownload(remotePath, localFileName.c_str(), entry.remoteSize, (entry.remoteSize != entry.localSize && !entry.archivedFile));
+				CL_QueueDownload(remotePath, localFileName.c_str(), entry.remoteSize, ((entry.remoteSize != entry.localSize && !entry.archivedFile) ? compressionAlgo_e::XZ : compressionAlgo_e::None));
 
 				if (strncmp(remotePath, "ipfs://", 7) == 0)
 				{

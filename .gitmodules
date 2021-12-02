@@ -277,3 +277,6 @@
 [submodule "ext/sdk/resources/sdk-root/fxcode"]
 	path = ext/sdk/resources/sdk-root/fxcode
 	url = https://github.com/citizenfx/fxcode.git
+[submodule "vendor/zstd"]
+	path = vendor/zstd
+	url = https://github.com/facebook/zstd.git

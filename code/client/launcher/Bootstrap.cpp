@@ -27,7 +27,7 @@ static bool Bootstrap_UpdateEXE(int exeSize, const std::string& objectHash)
 	_unlink("CitizenFX.exe.new");
 
 	const char* fn = "CitizenFX.exe.new";
-	CL_QueueDownload(GetObjectURL(objectHash, ".xz").c_str(), fn, exeSize, true);
+	CL_QueueDownload(GetObjectURL(objectHash, ".xz").c_str(), fn, exeSize, compressionAlgo_e::XZ);
 
 	UI_DoCreation(true);
 

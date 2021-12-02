@@ -155,7 +155,7 @@ local function launcherpersonality_inner(name, aslr)
 		if isLauncherPersonality(name) then
 			staticruntime 'On'
 			links "SharedLibc"
-			add_dependencies { 'vendor:xz-crt', 'vendor:minizip-crt', 'vendor:tbb-crt', 'vendor:boost_locale-crt', 'vendor:breakpad-crt' }
+			add_dependencies { 'vendor:xz-crt', 'vendor:zstd-crt', 'vendor:minizip-crt', 'vendor:tbb-crt', 'vendor:boost_locale-crt', 'vendor:breakpad-crt' }
 			add_dependencies { 'vendor:curl-crt', 'vendor:cpr-crt', 'vendor:mbedtls_crt', 'vendor:hdiffpatch-crt', 'vendor:openssl_crypto_crt' }
 		else
 			links "Shared"
