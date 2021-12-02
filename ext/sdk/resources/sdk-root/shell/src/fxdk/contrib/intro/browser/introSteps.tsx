@@ -137,7 +137,7 @@ export const introTourSteps: IntroStep[] = [
           </p>
 
           <p>
-            Get in touch with other users of FxDK in our <a href="https://dicord.gg/fivem">discord guild</a> in <strong>#fxdk-discussion</strong> channel.
+            Get in touch with other users of FxDK in our <a href="https://discord.gg/fivem">discord guild</a> in <strong>#fxdk-discussion</strong> channel.
           </p>
         </>
       );
