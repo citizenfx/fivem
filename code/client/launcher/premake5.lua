@@ -1,3 +1,43 @@
+local delayDLLs = {
+}
+
+if os.istarget('windows') then
+	delayDLLs = {
+		"d3d11.dll",
+		"d2d1.dll",
+		"d3dcompiler_47.dll",
+		"dwrite.dll",
+		"ole32.dll",
+		"shcore.dll",
+		"api-ms-win-core-winrt-error-l1-1-1.dll",
+		"api-ms-win-core-winrt-l1-1-0.dll",
+		"api-ms-win-core-winrt-error-l1-1-0.dll",
+		"api-ms-win-core-winrt-string-l1-1-0.dll",
+		"api-ms-win-shcore-stream-winrt-l1-1-0.dll",
+		"version.dll",
+		"dwmapi.dll",
+		"bcrypt.dll",
+		"wininet.dll",
+		"rpcrt4.dll",
+		"winmm.dll",
+		"dbghelp.dll",
+		"shlwapi.dll",
+		"ws2_32.dll",
+	}
+end
+
+do
+	local delayList = ""
+
+	for _, v in ipairs(delayDLLs) do
+		delayList = delayList .. ("L\"%s\",\n"):format(v)
+	end
+
+	if io.readfile('DelayList.h') ~= delayList then
+		io.writefile('DelayList.h', delayList)
+	end
+end
+
 -- is updater?
 local function isLauncherPersonality(name)
 	return name == 'main'
@@ -207,7 +247,9 @@ local function launcherpersonality_inner(name, aslr)
 			linkoptions "/STACK:0x800000"
 		end
 			
-			linkoptions "/DELAYLOAD:d3d11.dll /DELAYLOAD:d2d1.dll /DELAYLOAD:d3dcompiler_47.dll /DELAYLOAD:dwrite.dll /DELAYLOAD:ole32.dll /DELAYLOAD:shcore.dll /DELAYLOAD:api-ms-win-core-winrt-error-l1-1-1.dll /DELAYLOAD:api-ms-win-core-winrt-l1-1-0.dll /DELAYLOAD:api-ms-win-core-winrt-error-l1-1-0.dll /DELAYLOAD:api-ms-win-core-winrt-string-l1-1-0.dll /DELAYLOAD:api-ms-win-shcore-stream-winrt-l1-1-0.dll"
+		for _, dll in ipairs(delayDLLs) do
+			linkoptions("/DELAYLOAD:" .. dll)
+		end
 
 	group ''
 end

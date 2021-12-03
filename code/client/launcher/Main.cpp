@@ -99,8 +99,34 @@ void UI_DestroyTen();
 
 HMODULE tlsDll;
 
+// list of DLLs to load from system before any other code execution
+const static const wchar_t* g_delayDLLs[] = {
+#include "DelayList.h"
+};
+
 int RealMain()
 {
+	if (auto setSearchPathMode = (decltype(&SetSearchPathMode))GetProcAddress(GetModuleHandleW(L"kernel32.dll"), "SetSearchPathMode"))
+	{
+		setSearchPathMode(BASE_SEARCH_PATH_ENABLE_SAFE_SEARCHMODE | BASE_SEARCH_PATH_PERMANENT);
+	}
+
+	// load early (delayimp'd) system DLLs
+	auto loadSystemDll = [](auto dll)
+	{
+		wchar_t systemPath[512];
+		GetSystemDirectoryW(systemPath, _countof(systemPath));
+
+		StringCchCat(systemPath, std::size(systemPath), dll);
+
+		LoadLibraryW(systemPath);
+	};
+
+	for (auto dll : g_delayDLLs)
+	{
+		loadSystemDll(dll);
+	}
+
 	bool toolMode = false;
 
 	if (getenv("CitizenFX_ToolMode"))
@@ -390,16 +416,6 @@ int RealMain()
 	}
 
 	InitLogging();
-
-	auto loadSystemDll = [](auto dll)
-	{
-		wchar_t systemPath[512];
-		GetSystemDirectory(systemPath, _countof(systemPath));
-
-		wcscat_s(systemPath, dll);
-
-		LoadLibrary(systemPath);
-	};
 
 	// load some popular DLLs as system-wide variants instead of game variants
 	auto systemDlls = {
