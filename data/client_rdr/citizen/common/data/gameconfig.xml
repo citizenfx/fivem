@@ -1724,10 +1724,18 @@
           <PoolName>CScenarioPropManager::ActiveSchedule</PoolName>
           <PoolSize value="32"/>
         </Item>
-                <Item>
-	              <PoolName>CGameScriptHandlerNetwork</PoolName>
-	              <PoolSize value="50"/>
-	            </Item>
+        <Item>
+          <PoolName>CGameScriptHandlerNetwork</PoolName>
+          <PoolSize value="750"/>
+        </Item>
+        <Item>
+          <PoolName>CGameScriptHandlerNetComponent</PoolName>
+          <PoolSize value="850"/>
+        </Item>
+        <Item>
+          <PoolName>CGameScriptHandler</PoolName>
+          <PoolSize value="750"/>
+        </Item>
 				<Item>
 					<PoolName>NavMeshRoute</PoolName>
 					<PoolSize value="200"/>
