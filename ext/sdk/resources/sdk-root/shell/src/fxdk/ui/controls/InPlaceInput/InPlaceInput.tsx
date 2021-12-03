@@ -43,7 +43,10 @@ export function InPlaceInput(props: InPlaceProps) {
   }, [onChange, value])
 
   const handleChange = React.useCallback(({ target: { value } }) => {
-    if (validate(value)) {
+    if (!value) {
+      setIntermediateValue('');
+      onIntermediateChange('');
+    } else if (validate(value)) {
       setIntermediateValue(value);
       onIntermediateChange(value);
     }
