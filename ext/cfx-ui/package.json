@@ -59,7 +59,7 @@
     "emoji.json": "^13.1.0",
     "flag-icon-css": "^3.5.0",
     "hoverintent": "^2.2.1",
-    "idb": "^6.1.2",
+    "idb": "^7.0.0",
     "int64-buffer": "^1.0.0",
     "js-md5": "0.7.3",
     "markdown-it": "^12.2.0",
