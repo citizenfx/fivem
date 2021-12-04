@@ -527,6 +527,10 @@ NTSTATUS NTAPI LdrLoadDllStub(const wchar_t* fileName, uint32_t* flags, UNICODE_
 		moduleNameStr.find(L"crashhandler64.dll") != std::string::npos ||
 		// Ad Muncher, causes LoopbackTcpServer to crash
 		moduleNameStr.find(L"am64-34121.dll") != std::string::npos ||
+		// 'Overwolf', corrupts memory on RDR (and is generally undesirable)
+		moduleNameStr.find(L"owclient.dll") != std::string::npos ||
+		moduleNameStr.find(L"ow-graphics-vulkan.dll") != std::string::npos ||
+		moduleNameStr.find(L"ow-graphics-hook64.dll") != std::string::npos ||
 #if !defined(IS_RDR3)
 		// VulkanRT loader, we don't use Vulkan, CEF does (to 'collect info'), and this crashes a lot of Vulkan drivers
 		moduleNameStr.find(L"vulkan-1.dll") != std::string::npos ||
