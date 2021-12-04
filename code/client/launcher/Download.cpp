@@ -738,7 +738,7 @@ bool DL_ProcessDownload()
 					// let's try asking the shell
 					if (!ReallyMoveFile(opathWide, toDeleteName))
 					{
-						UI_DisplayError(va(L"Moving of %s failed (err = %d) and the shell didn't help fix this", ToWide(download->url), GetLastError()));
+						UI_DisplayError(va(L"Moving of %s failed (err = %d). Check your system for any conflicting software.", ToWide(download->file), GetLastError()));
 						return false;
 					}
 				}
@@ -747,7 +747,7 @@ bool DL_ProcessDownload()
 
 		if (MoveFile(tmpPathWide.c_str(), opathWide.c_str()) == 0)
 		{
-			UI_DisplayError(va(L"Moving of %s failed (err = %d) - make sure you don't have any existing FiveM processes running", ToWide(download->url), GetLastError()));
+			UI_DisplayError(va(L"Moving of %s failed (err = %d) - make sure you don't have any existing FiveM processes running", ToWide(download->file), GetLastError()));
 			DeleteFile(tmpPathWide.c_str());
 
 			return false;
