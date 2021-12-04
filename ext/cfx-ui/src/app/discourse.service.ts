@@ -337,7 +337,6 @@ export class DiscourseService {
 		try {
 			const userInfo = await this.getCurrentUser();
 
-			// this.messageEvent.emit(`Thanks for linking your FiveM user account, ${userInfo.username}.`);
 			this.signinChange.next(userInfo);
 			this.initialAuthComplete.next(true);
 
@@ -345,7 +344,17 @@ export class DiscourseService {
 		} catch (e) {
 			console.log(e);
 
-			this.messageEvent.emit('Authentication failure connecting to FiveM account.');
+			let helpful = '';
+
+			if (e instanceof HttpErrorResponse) {
+				if (e.status >= 500) {
+					helpful = ' This may be related to a server-side outage. Please try again later.';
+				}
+			}
+
+			this.handleOutage(e);
+
+			this.messageEvent.emit('Authentication failure connecting to Cfx.re account.' + helpful);
 		}
 	}
 

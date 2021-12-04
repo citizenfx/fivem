@@ -57,6 +57,12 @@ export class AuthModalComponent {
         return this.accountInfoLoaded && this.completeRegister;
     }
 
+	get canBrowser() {
+		// since we only have a `fivem://` protocol handler at this time, we can't handle browser
+		// sign-in on other games.
+		return this.gameService.gameName === 'gta5';
+	}
+
     constructor(
         private gameService: GameService,
         private discourseService: DiscourseService,

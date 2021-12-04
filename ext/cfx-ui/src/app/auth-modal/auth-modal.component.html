@@ -37,7 +37,7 @@
             </div>
 
             <div class="login" *ngIf="!displayTOTP">
-                <div class="login__oneclick">
+                <div class="login__oneclick" *ngIf="canBrowser">
                     <p class="oneclick__info">Already signed in via your browser?</p>
                     <button class="cfx-button" (click)="oneClickDiscourseLogin()">
                         <svg>
@@ -46,7 +46,7 @@
                         <div class="oneclick__btntext">BROWSER LOGIN</div>
                     </button>
                 </div>
-                <div class="line">
+                <div class="line" *ngIf="canBrowser">
                     or
                 </div>
                 <div class="login__traditional">
