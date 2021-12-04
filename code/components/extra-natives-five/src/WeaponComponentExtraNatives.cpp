@@ -91,7 +91,10 @@ static HookFunction hookFunction([]()
 		if (auto component = getWeaponComponent(context))
 		{
 			auto accuracyModifier = *reinterpret_cast<uint64_t*>((uint64_t)component + AccuracyModifierPtrOffset);
-			result = *(float*)(accuracyModifier);
+			if (accuracyModifier)
+			{
+				result = *(float*)(accuracyModifier);
+			}
 		}
 
 		context.SetResult(result);
@@ -104,7 +107,11 @@ static HookFunction hookFunction([]()
 		if (auto component = getWeaponComponent(context))
 		{
 			auto damageModifier = *reinterpret_cast<uint64_t*>((uint64_t)component + DamageModifierPtrOffset);
-			result = *(float*)(damageModifier);
+
+			if (damageModifier)
+			{
+				result = *(float*)(damageModifier);
+			}
 		}
 
 		context.SetResult(result);
@@ -117,7 +124,11 @@ static HookFunction hookFunction([]()
 		if (auto component = getWeaponComponent(context))
 		{
 			auto rangeModifier = *reinterpret_cast<uint64_t*>((uint64_t)component + RangeModifierPtrOffset);
-			result = *(float*)(rangeModifier);
+
+			if (rangeModifier)
+			{
+				result = *(float*)(rangeModifier);
+			}
 		}
 
 		context.SetResult(result);
@@ -130,7 +141,11 @@ static HookFunction hookFunction([]()
 		if (auto component = getWeaponComponent(context))
 		{
 			auto rangeModifier = *reinterpret_cast<uint64_t*>((uint64_t)component + RangeModifierPtrOffset);
-			result = *(float*)(rangeModifier + RangeModifierDamageModifierOffset);
+
+			if (rangeModifier)
+			{
+				result = *(float*)(rangeModifier + RangeModifierDamageModifierOffset);
+			}
 		}
 
 		context.SetResult(result);
