@@ -98,6 +98,10 @@ export class HomeComponent implements OnInit, OnDestroy {
 		});
 	}
 
+	get accountOutage() {
+		return this.discourseService.outage;
+	}
+
 	get topFlagCountry() {
 		return this.topServer?.data?.vars?.locale?.split('-')[1]?.toLowerCase() ?? 'aq';
 	}

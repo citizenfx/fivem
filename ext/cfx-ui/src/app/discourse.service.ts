@@ -7,7 +7,7 @@ import * as query from 'query-string';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { GameService } from './game.service';
 import { environment } from 'environments/environment';
-import { HttpClient, HttpHeaders, HttpRequest } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpHeaders, HttpRequest } from '@angular/common/http';
 import { Site } from './servers/components/reviews/discourse-models';
 import { ForumSignoutInterceptorState } from './http-interceptors';
 
@@ -95,6 +95,7 @@ export class DiscourseService {
     public authModalClosedEvent = new EventEmitter<{ where?: string, ignored?: boolean }>();
 
 	public siteData: Observable<Site>;
+	public outage = false;
 
 	static getAvatarUrlForUser(template: string, size = 250): string {
 		const prefix = template[0] === '/' ? 'https://forum.cfx.re' : '';
@@ -128,7 +129,9 @@ export class DiscourseService {
                 }
 
                 this.initialAuthComplete.next(true);
-			}).catch(() => {
+			}).catch(err => {
+				this.handleOutage(err);
+
                 // failed, perhaps as user revoked token?
                 this.initialAuthComplete.next(true);
             });
@@ -213,6 +216,15 @@ export class DiscourseService {
 
 	private setOwnershipTicket(ticket: string) {
 		this.ownershipTicket = ticket;
+	}
+
+	private handleOutage(err: any) {
+		if (err instanceof HttpErrorResponse) {
+			if (err.status >= 500) {
+				this.closeAuthModal();
+				this.outage = true;
+			}
+		}
 	}
 
 	public apiCallObservable<T>(path: string, method?: string, data?: any) {

@@ -55,7 +55,7 @@
 					data-balloon-pos="left"
 				><span class="material-icons-outlined trending">trending_up</span> {{playerStats[2]}}k</div>
 			</div>
-			<button *ngIf="!currentAccount" class="cfx-button primary account-link" (click)="toggleAuthModal()">
+			<button *ngIf="!currentAccount && !accountOutage" class="cfx-button primary account-link" (click)="toggleAuthModal()">
 				Link account
 			</button>
 			<div
