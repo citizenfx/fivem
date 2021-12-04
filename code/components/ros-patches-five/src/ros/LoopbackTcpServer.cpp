@@ -1503,6 +1503,58 @@ void WaitForLauncher()
 
 extern void SetCanSafelySkipLauncher(bool value);
 
+extern "C" DLL_EXPORT DWORD WINAPI ROSFailure(LPVOID)
+{
+	FatalError("Timed out while waiting for the Rockstar Games Launcher (ROS/MTL).\nPlease check your system for third-party software (antivirus, etc.) that might be interfering with the 'embedded' RGL launching the game.\n\nIf asking for support, please save and upload the log file from the 'Save information' button.\n\nAgain, please save and UPLOAD the log file from the 'Save information' button to https://forum.cfx.re/t/2009848 and provide as much information as possible (how often you get this, any installed antivirus or overlays, and so on).");
+	return 0;
+}
+
+static const void* GetRemoteProcAddress(HANDLE hProcess, const void* function)
+{
+	HMODULE localModule = nullptr;
+	GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT | GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, (LPCWSTR)function, &localModule);
+
+	if (localModule)
+	{
+		uintptr_t rva = reinterpret_cast<uintptr_t>(function) - reinterpret_cast<uintptr_t>(localModule);
+
+		const wchar_t* baseName = nullptr;
+
+		{
+			wchar_t moduleName[MAX_PATH * 2];
+			GetModuleFileNameW(localModule, moduleName, std::size(moduleName));
+
+			baseName = wcsrchr(moduleName, L'\\') + 1;
+		}
+
+		DWORD processLen = 0;
+		if (EnumProcessModules(hProcess, nullptr, 0, &processLen))
+		{
+			std::vector<HMODULE> buffer(processLen / sizeof(HMODULE));
+
+			if (EnumProcessModules(hProcess, buffer.data(), buffer.size() * sizeof(HMODULE), &processLen))
+			{
+				for (HMODULE module : buffer)
+				{
+					wchar_t remoteModuleName[MAX_PATH * 2];
+
+					if (GetModuleFileNameExW(hProcess, module, remoteModuleName, std::size(remoteModuleName)))
+					{
+						const wchar_t* remoteBaseName = wcsrchr(remoteModuleName, L'\\') + 1;
+
+						if (wcsicmp(baseName, remoteBaseName) == 0)
+						{
+							return reinterpret_cast<const void*>(reinterpret_cast<uintptr_t>(module) + rva);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return nullptr;
+}
+
 static void SetLauncherWaitCB(HANDLE hEvent, HANDLE hProcess, BOOL doBreak, DWORD timeout = INFINITE)
 {
 	g_waitForLauncherCB = [=]()
@@ -1535,7 +1587,7 @@ static void SetLauncherWaitCB(HANDLE hEvent, HANDLE hProcess, BOOL doBreak, DWOR
 				{
 					auto waitedFor = (GetTickCount64() - startTime) / 1000;
 
-					if (waitedFor > 90)
+					if (waitedFor >= 45)
 					{
 						SetCanSafelySkipLauncher(false);
 
@@ -1553,16 +1605,14 @@ static void SetLauncherWaitCB(HANDLE hEvent, HANDLE hProcess, BOOL doBreak, DWOR
 						backOffFile(L"data\\game-storage\\ros_launcher_game2");
 						backOffFile(L"data\\game-storage\\ros_profiles");
 
-						FatalError("Timed out while waiting for ROS/MTL to clear launch. Please check your system for third-party software (antivirus, etc.) that might be interfering with ROS.\nIf asking for support, please save and upload the log file from the 'Save information' button.\n\nAgain, please save and UPLOAD the log file from the 'Save information' button to https://forum.cfx.re/t/2009848 or anywhere you're asking for help!");
-					}
+						auto threadStart = GetRemoteProcAddress(hProcess, &ROSFailure);
 
-					// lucky hang tracing
-					if (waitedFor > 30)
-					{
 						DWORD tid;
-						CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)GetProcAddress(GetModuleHandleW(L"kernel32.dll"), "DebugBreak"), NULL, 0, &tid);
+						CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)threadStart, NULL, 0, &tid);
 
 						WaitForSingleObject(GetCurrentProcess(), 30000);
+
+						__debugbreak();
 					}
 
 					trace("^3ROS/MTL still hasn't cleared launch (waited %d seconds) - if this ends up timing out, please solve this!\n", waitedFor);
