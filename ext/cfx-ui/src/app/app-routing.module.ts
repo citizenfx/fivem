@@ -104,7 +104,7 @@ const routes: Routes = [
 ];
 
 @NgModule({
-	imports: [RouterModule.forRoot(routes, { useHash: !environment.web, relativeLinkResolution: 'legacy' })],
+	imports: [RouterModule.forRoot(routes, { useHash: false })],
 	exports: [RouterModule]
 })
 export class AppRoutingModule {
