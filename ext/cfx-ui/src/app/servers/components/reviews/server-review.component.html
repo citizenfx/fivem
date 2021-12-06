@@ -1,4 +1,6 @@
-<div *ngIf="review.detail | async as detail; else loading" class="review" [class.more]="isMore">
+<div #outer class="review" [class.more]="isMore">
+<ng-container *ngIf="visible | async">
+<ng-container *ngIf="review.detail | async as detail; else loading">
 	<aside>
 		<div class="title" *ngIf="isFirst">
 			{{'#Reviews' | translate:locale.language}}
@@ -70,10 +72,12 @@
 			</ng-container>
 		</p>
 	</div>
+</ng-container>
+</ng-container>
 </div>
 
 <ng-template #loading>
-	<div class="review loading" l10nTranslate>#Settings_BoostLoading</div>
+	<div class="loading" l10nTranslate>#Settings_BoostLoading</div>
 </ng-template>
 
 <ng-template #flagModal>

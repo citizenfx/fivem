@@ -90,6 +90,7 @@ import { AuthModalComponent } from './auth-modal/auth-modal.component';
 import { ServerReviewsComponent } from './servers/components/reviews/server-reviews.component';
 import { ForumSignoutInterceptorState, httpInterceptorProviders } from './http-interceptors';
 import { ServerReviewComponent } from './servers/components/reviews/server-review.component';
+import { VisibilityService } from './servers/visibility.service';
 
 @Injectable() export class TranslationFallback implements L10nTranslationFallback {
 
@@ -240,6 +241,7 @@ export function localStorageFactory() {
 			multi: true
 		},
 		ModsService,
+		VisibilityService,
 		DateFnsConfigurationService,
 		ForumSignoutInterceptorState,
 		httpInterceptorProviders,

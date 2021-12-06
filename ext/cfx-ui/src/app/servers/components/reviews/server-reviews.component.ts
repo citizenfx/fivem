@@ -183,10 +183,6 @@ export class ServerReviewsComponent implements OnInit {
 			.pipe(catchError(_ => this.topicCatch()));
 	}
 
-	private fetchTopic(id: number) {
-		return this.discourse.apiCallObservable<TopicResponse>(`/t/${id}.json`);
-	}
-
 	private fetchTopicPosts(topicId: number) {
 		return this.discourse.apiCallObservable<TopicPostsResponse>(`/t/${topicId}/posts.json`);
 	}

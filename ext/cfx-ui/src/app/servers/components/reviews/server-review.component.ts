@@ -4,9 +4,10 @@ import { AfterViewInit, ApplicationRef, Component,
 	OnInit, QueryList, TemplateRef, ViewChild, ViewChildren, ViewContainerRef } from '@angular/core';
 import { L10nLocale, L10nTranslationService, L10N_LOCALE } from 'angular-l10n';
 import { DiscourseService } from 'app/discourse.service';
+import { VisibilityService } from 'app/servers/visibility.service';
 import { intervalToDuration, Locale } from 'date-fns';
 import { Observable } from 'rxjs';
-import { startWith, tap } from 'rxjs/operators';
+import { filter, startWith, take, tap } from 'rxjs/operators';
 import { Post, Reaction, Site, Type } from './discourse-models';
 import { TopicEntry } from './server-reviews.component';
 
@@ -34,6 +35,9 @@ export class ServerReviewComponent implements AfterViewInit, OnInit, OnDestroy {
 
 	@ViewChild('flagModalSelf')
 	modalSelf: ElementRef<any>;
+
+	@ViewChild('outer')
+	outer: ElementRef<any>;
 
 	private embeddedViewRef: EmbeddedViewRef<any>;
 
@@ -72,6 +76,7 @@ export class ServerReviewComponent implements AfterViewInit, OnInit, OnDestroy {
 	more: QueryList<ElementRef<HTMLElement>>;
 
 	siteData: Site;
+	visible: Observable<boolean>;
 
 	constructor(private discourse: DiscourseService,
 		private translation: L10nTranslationService,
@@ -79,11 +84,16 @@ export class ServerReviewComponent implements AfterViewInit, OnInit, OnDestroy {
 		private cfr: ComponentFactoryResolver,
 		private ar: ApplicationRef,
 		private injector: Injector,
-		private vcr: ViewContainerRef) {
+		private vcr: ViewContainerRef,
+		private visibility: VisibilityService) {
 
 	}
 
 	ngAfterViewInit() {
+		this.visible = this.visibility
+			.elementInSight(this.outer)
+			.pipe(filter(visible => visible), take(1));
+
 		this.embeddedViewRef = new DomPortalOutlet(
 			document.getElementById('overlays'),
 			this.cfr,
