@@ -1299,7 +1299,7 @@
                 </Item>
                 <Item>
                   <PoolName>MapDataStore</PoolName>
-                  <PoolSize value="8100"/>
+                  <PoolSize value="15000"/>
                 </Item>
                 <Item>
                   <PoolName>MapTypesStore</PoolName>
