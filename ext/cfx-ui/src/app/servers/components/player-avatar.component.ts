@@ -175,7 +175,7 @@ export class PlayerAvatarComponent implements OnInit, OnChanges {
 					.pipe(catchError(() => of({})))
 					.map((a: any) => {
 						if (a?.avatar_template) {
-							const av = DiscourseService.getAvatarUrlForUser(a.avatar_template);
+							const av = DiscourseService.getAvatarUrlForUser(a.avatar_template, 32);
 							this.cacheAvatar(stringId, av);
 							return av;
 						}
