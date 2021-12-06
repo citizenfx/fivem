@@ -58,7 +58,7 @@
                   "with": "src/environments/environment.prod.ts"
                 }
               ],
-              "baseHref": "."
+              "baseHref": "/ui/app/"
             },
             "web": {
               "fileReplacements": [
