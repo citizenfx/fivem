@@ -693,7 +693,7 @@
 		<ButtonPrompts>
 			<CMenuButton> <hButtonHash>HUD_INPUT1C</hButtonHash>		<ButtonInputGroup>INPUTGROUP_FRONTEND_BUMPERS</ButtonInputGroup> 	<Contexts>*NONE*,TABS_ARE_COLUMNS,NAVIGATING_CONTENT,MENU_OFF</Contexts>				</CMenuButton>
 			<CMenuButton> <hButtonHash>IB_HIDEMENU</hButtonHash>		<ButtonInput>INPUT_FRONTEND_Y</ButtonInput> 						<Contexts>*ALL*,CAN_TOGGLE_MENU,		 *NONE*,MENU_OFF, NAVIGATING_CONTENT</Contexts> </CMenuButton>
-			<CMenuButton> <hButtonHash>IB_SOCIALCLUB_UI</hButtonHash>	<ButtonInput>INPUT_FRONTEND_SELECT</ButtonInput> 					<Contexts>*ALL*,x64,		 *NONE*,MENU_OFF, NAVIGATING_CONTENT</Contexts> </CMenuButton>
+			<CMenuButton> <hButtonHash>IB_SOCIALCLUB_UI</hButtonHash>	<ButtonInput>INPUT_FRONTEND_SELECT</ButtonInput> 					<Contexts>*ALL*,x64,		 *NONE*, SCBUTTON_OFF, MENU_OFF, NAVIGATING_CONTENT</Contexts> </CMenuButton>
 			<CMenuButton> <hButtonHash>IB_SHOWMENU</hButtonHash>		<ButtonInput>INPUT_FRONTEND_Y</ButtonInput> 						<Contexts>*ALL*,CAN_TOGGLE_MENU,MENU_OFF,*NONE*,		  NAVIGATING_CONTENT</Contexts> </CMenuButton>
 			<CMenuButton> <hButtonHash>IB_SELECT</hButtonHash>			<ButtonInput>INPUT_FRONTEND_ACCEPT</ButtonInput> 					<Contexts>*NONE*,MENU_OFF,HIDE_ACCEPTBUTTON,HasContextMenu</Contexts> 					</CMenuButton>
       <CMenuButton> <hButtonHash>IB_MORDEETS</hButtonHash>			<ButtonInput>INPUT_FRONTEND_X</ButtonInput> 					<Contexts>*ALL*,ON_VIDEO_TAB, SHOW_VIDEO_BUTTON</Contexts> 					</CMenuButton>
@@ -1975,7 +1975,7 @@
 				<ButtonPrompts  IncludeDefaults="false">
 					<CMenuButton> <hButtonHash>HUD_INPUT1C</hButtonHash>		<ButtonInputGroup>INPUTGROUP_FRONTEND_BUMPERS</ButtonInputGroup> 	<Contexts>*NONE*,TABS_ARE_COLUMNS,NAVIGATING_CONTENT,MENU_OFF</Contexts>				</CMenuButton>
 					<CMenuButton> <hButtonHash>IB_HIDEMENU</hButtonHash>		<ButtonInput>INPUT_FRONTEND_Y</ButtonInput> 						<Contexts>*ALL*,CAN_TOGGLE_MENU,		 *NONE*,MENU_OFF, NAVIGATING_CONTENT</Contexts> </CMenuButton>
-					<CMenuButton> <hButtonHash>IB_SOCIALCLUB_UI</hButtonHash>	<ButtonInput>INPUT_FRONTEND_SELECT</ButtonInput> 						<Contexts>*ALL*,x64,		 *NONE*,MENU_OFF, NAVIGATING_CONTENT</Contexts> </CMenuButton>
+					<CMenuButton> <hButtonHash>IB_SOCIALCLUB_UI</hButtonHash>	<ButtonInput>INPUT_FRONTEND_SELECT</ButtonInput> 						<Contexts>*ALL*,x64,		 *NONE*, SCBUTTON_OFF, MENU_OFF, NAVIGATING_CONTENT</Contexts> </CMenuButton>
 					<CMenuButton> <hButtonHash>IB_SHOWMENU</hButtonHash>		<ButtonInput>INPUT_FRONTEND_Y</ButtonInput> 						<Contexts>*ALL*,CAN_TOGGLE_MENU,MENU_OFF,*NONE*,		  NAVIGATING_CONTENT</Contexts> </CMenuButton>
 					<CMenuButton> <hButtonHash>IB_SELECT</hButtonHash>			<ButtonInput>INPUT_FRONTEND_ACCEPT</ButtonInput> 					<Contexts>*NONE*,MENU_OFF,HIDE_ACCEPTBUTTON,HasContextMenu,NO_SAVEGAMES</Contexts> 					</CMenuButton>
 					<CMenuButton> <hButtonHash>IB_OPTIONS</hButtonHash>			<ButtonInput>INPUT_FRONTEND_ACCEPT</ButtonInput> 					<Contexts>*NONE*,MENU_OFF,HIDE_ACCEPTBUTTON,*ALL*,HasContextMenu</Contexts> 			</CMenuButton>
