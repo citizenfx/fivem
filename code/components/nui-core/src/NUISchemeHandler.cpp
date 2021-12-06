@@ -18,7 +18,7 @@
 
 static nui::TResourceLookupFn g_resourceLookupFunc;
 
-extern const std::map<std::string, std::string, std::less<>> g_mimeTypeMap;
+extern const std::map<std::string_view, std::string_view, std::less<>> g_mimeTypeMap;
 
 namespace nui
 {
@@ -31,128 +31,132 @@ namespace nui
 class NUIResourceHandler : public CefResourceHandler
 {
 private:
-	std::string mimeType_;
+	std::string mimeType_ = "text/html";
 
-	bool dataManaged_;
-
-	int read_;
+	int read_ = 0;
 
 	fwRefContainer<vfs::Device> device_;
 
-	std::string filename_;
-
-	uintptr_t file_;
-
-	bool closed_;
+	uintptr_t file_ = vfs::Device::InvalidHandle;
 
 	bool canCache_ = false;
 
 public:
-	NUIResourceHandler()
-	{
-		closed_ = false;
-		file_ = -1;
-	}
-
 	virtual ~NUIResourceHandler()
 	{
-		if (file_ && file_ != -1 && !closed_)
-		{
-			device_->Close(file_);
-		}
+		Close();
 	}
 
 	virtual bool ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback)
 	{
-		std::string url = request->GetURL();
-		std::wstring hostname;
 		std::wstring path;
+		std::vector<std::string> tryFiles;
 
-		CefURLParts parts;
-		CefParseURL(url, parts);
-
-		hostname = CefString(&parts.host);
-		path = CefString(&parts.path);
-
-		if (hostname == L"game" || hostname == L"nui-game-internal")
 		{
-			if (launch::IsSDKGuest() && path.find(L"sdk-root/shell/mpMenu.html") != std::string::npos)
+			std::string url = request->GetURL();
+			std::wstring hostname;
+
+			CefURLParts parts;
+			CefParseURL(url, parts);
+
+			hostname = CefString(&parts.host);
+			path = CefString(&parts.path);
+
+			std::string reqFilename;
+
+			if (hostname == L"game" || hostname == L"nui-game-internal")
 			{
-				filename_ = "sdk-root:/shell/mpMenu.html";
+				if (launch::IsSDKGuest() && path.find(L"sdk-root/shell/mpMenu.html") != std::string::npos)
+				{
+					reqFilename = "sdk-root:/shell/mpMenu.html";
+				}
+				else
+				{
+					reqFilename = "citizen:/";
+
+					if (path == L"/ui/app/")
+					{
+						path += L"index.html";
+					}
+
+					if (path.find(L"/ui/app/") != std::string::npos && path.find(L"index.html") == std::string::npos)
+					{
+						canCache_ = true;
+					}
+
+					reqFilename += ToNarrow(path).substr(1);
+				}
 			}
 			else
 			{
-				filename_ = "citizen:/";
-
-				if (path == L"/ui/app/")
+				if (hostname.find(L"cfx-nui-") == 0)
 				{
-					path += L"index.html";
+					hostname = hostname.substr(8);
 				}
 
-				if (path.find(L"/ui/app/") != std::string::npos && path.find(L"index.html") == std::string::npos)
+				if (g_resourceLookupFunc)
 				{
-					canCache_ = true;
+					reqFilename = g_resourceLookupFunc(ToNarrow(hostname), ToNarrow(path));
+				}
+				else
+				{
+					reqFilename = "resources:/";
+					reqFilename += ToNarrow(hostname) + "/";
+					reqFilename += ToNarrow(path);
+				}
+			}
+
+			// remove # parts
+			auto hash = reqFilename.find_first_of(L'#');
+
+			if (hash != std::string::npos)
+			{
+				reqFilename.erase(hash);
+			}
+
+			hash = reqFilename.find_first_of(L'?');
+
+			if (hash != std::string::npos)
+			{
+				reqFilename.erase(hash);
+			}
+
+			if (reqFilename.length() >= 256)
+			{
+				reqFilename = reqFilename.substr(0, 255);
+			}
+
+			tryFiles.push_back(reqFilename);
+		}
+
+		if (path.find(L"/ui/app/") != std::string::npos)
+		{
+			tryFiles.push_back("citizen:/ui/app/index.html");
+		}
+
+		for (auto& filename : tryFiles)
+		{
+			device_ = vfs::GetDevice(filename);
+
+			if (device_.GetRef() && filename.find("..") == std::string::npos)
+			{
+				file_ = device_->Open(filename.c_str(), true);
+			}
+
+			if (file_ != vfs::Device::InvalidHandle)
+			{
+				// set mime type
+				std::string ext = filename.substr(filename.rfind('.') + 1);
+
+				auto it = g_mimeTypeMap.find(ext);
+
+				if (it != g_mimeTypeMap.end())
+				{
+					mimeType_ = it->second;
 				}
 
-				filename_ += ToNarrow(path).substr(1);
+				break;
 			}
-		}
-		else
-		{
-			if (hostname.find(L"cfx-nui-") == 0)
-			{
-				hostname = hostname.substr(8);
-			}
-
-			if (g_resourceLookupFunc)
-			{
-				filename_ = g_resourceLookupFunc(ToNarrow(hostname), ToNarrow(path));
-			}
-			else
-			{
-				filename_ = "resources:/";
-				filename_ += ToNarrow(hostname) + "/";
-				filename_ += ToNarrow(path);
-			}
-		}
-
-		// remove # parts
-		auto hash = filename_.find_first_of(L'#');
-
-		if (hash != std::string::npos)
-		{
-			filename_.erase(hash);
-		}
-
-		hash = filename_.find_first_of(L'?');
-
-		if (hash != std::string::npos)
-		{
-			filename_.erase(hash);
-		}
-
-		if (filename_.length() >= 256)
-		{
-			filename_ = filename_.substr(0, 255);
-		}
-
-		device_ = vfs::GetDevice(filename_);
-
-		if (device_.GetRef() && filename_.find("..") == std::string::npos)
-		{
-			file_ = device_->Open(filename_.c_str(), true);
-		}
-
-		// set mime type
-		std::string ext = url.substr(url.rfind('.') + 1);
-
-		mimeType_ = "text/html";
-
-		auto it = g_mimeTypeMap.find(ext);
-
-		if (it != g_mimeTypeMap.end())
-		{
-			mimeType_ = it->second;
 		}
 
 		callback->Continue();
@@ -164,7 +168,7 @@ public:
 	{
 		response->SetMimeType(mimeType_);
 
-		if (file_ == -1)
+		if (file_ == vfs::Device::InvalidHandle)
 		{
 			response->SetStatus(404);
 		}
@@ -196,7 +200,7 @@ public:
 
 		response->SetHeaderMap(map);
 
-		if (file_ != -1)
+		if (file_ != vfs::Device::InvalidHandle)
 		{
 			response_length = device_->GetLength(file_);
 		}
@@ -206,19 +210,25 @@ public:
 		}
 	}
 
-	virtual void Cancel()
+	void Close()
 	{
-		closed_ = true;
-
-		if (file_ != -1)
+		if (device_.GetRef() && file_ != vfs::Device::InvalidHandle)
 		{
 			device_->Close(file_);
 		}
+
+		device_ = {};
+		file_ = vfs::Device::InvalidHandle;
+	}
+
+	virtual void Cancel()
+	{
+		Close();
 	}
 
 	virtual bool ReadResponse(void* data_out, int bytes_to_read, int& bytes_read, CefRefPtr<CefCallback> callback)
 	{
-		if (file_ != -1)
+		if (file_ != vfs::Device::InvalidHandle)
 		{
 			bytes_read = device_->Read(file_, data_out, bytes_to_read);
 
@@ -226,8 +236,7 @@ public:
 
 			if (!readMore)
 			{
-				device_->Close(file_);
-				file_ = -1;
+				Close();
 			}
 
 			return readMore;
@@ -324,7 +333,7 @@ CefRefPtr<CefResourceHandler> NUISchemeHandlerFactory::Create(CefRefPtr<CefBrows
 
 OVERLAY_DECL fwEvent<const char*, CefRefPtr<CefRequest>, CefRefPtr<CefResourceHandler>&> OnSchemeCreateRequest;
 
-const std::map<std::string, std::string, std::less<>> g_mimeTypeMap = {
+const std::map<std::string_view, std::string_view, std::less<>> g_mimeTypeMap{
 	{ "*3gpp", "audio/3gpp" },
 	{ "*jpm", "video/jpm" },
 	{ "*mp3", "audio/mp3" },
