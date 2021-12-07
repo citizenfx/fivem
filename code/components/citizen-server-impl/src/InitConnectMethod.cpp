@@ -892,6 +892,11 @@ static InitFunction initFunction([]()
 					}),
 					deferralsRef->GetCallbacks())) : false;
 
+					if (deferralsRef)
+					{
+						deferralsRef->RanEvents();
+					}
+
 					if (!shouldAllow)
 					{
 						clientRegistry->RemoveClient(lockedClient);
