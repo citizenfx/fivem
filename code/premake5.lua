@@ -309,6 +309,15 @@ local function WriteDocumentationFileXml(_premake, _cfg)
     _premake.w('<DocumentationFile>' .. string.gsub(_cfg.buildtarget.relpath, ".dll", ".xml") .. '</DocumentationFile>')
 end
 
+premake.override(premake.vstudio.dotnetbase, "propertyGroup", function(base, cfg)
+    if cfg.project.name == 'CitiMonoRef' then
+        premake.push('<PropertyGroup %s>', premake.vstudio.dotnetbase.condition(cfg))
+        return
+    end
+
+    base(cfg)
+end)
+
 premake.override(premake.vstudio.dotnetbase, "compilerProps", function(base, cfg)
     base(cfg)
     WriteDocumentationFileXml(premake, cfg)
