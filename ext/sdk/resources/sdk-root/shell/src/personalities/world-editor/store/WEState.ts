@@ -111,6 +111,8 @@ export const WEState = new class WEState {
       this.map = new WEMapState(map);
     });
 
+    Api.on(worldEditorApi.stopped, this.handleWorldEditorStopped);
+
     WEEvents.additionDeleted.addListener(({ id }) => {
       if (this.selection.type === WESelectionType.ADDITION && this.selection.id === id) {
         this.clearEditorSelection();
@@ -354,6 +356,16 @@ export const WEState = new class WEState {
     Api.send(worldEditorApi.stop);
 
     ShellState.setPersonality(ShellPersonality.MAIN);
+  };
+
+  private handleWorldEditorStopped = () => {
+    if (!ShellState.isMainPersonality) {
+      this.ready = false;
+      this.map = null;
+      this.mapEntry = null;
+
+      ShellState.setPersonality(ShellPersonality.MAIN);
+    }
   };
 
   enableTranslation = () => {
