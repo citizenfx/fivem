@@ -70,6 +70,16 @@ interface CitizenInterface {
     makeRefFunction(refFunction: Function): string
 }
 
+interface CitizenTimer {
+    ref(): void,
+    unref(): void,
+    hasRef(): boolean,
+    refresh(): void,
+    [Symbol.toPrimitive](): number,
+};
+
+type CitizenImmediate = Omit<CitizenTimer, 'refresh'>;
+
 declare var Citizen: CitizenInterface;
 
 declare function addRawEventListener(eventName: string, callback: Function): void
@@ -99,6 +109,15 @@ declare function TriggerClientEvent(eventName: string, target: number|string, ..
 declare function TriggerLatentClientEvent(eventName: string, target: number|string, bps: number, ...args: any[]): void
 
 declare function removeEventListener(eventName: string, callback: Function): void
+
+declare function setTimeout<T extends any[]>(callback: (...args: T) => void, ms?: number, ...args: T): CitizenTimer;
+declare function clearTimeout(timeout: CitizenTimer): void;
+
+declare function setInterval<T extends any[]>(callback: (...args: T) => void, ms?: number, ...args: T): CitizenTimer;
+declare function clearInterval(interval: CitizenTimer): void;
+
+declare function setImmediate<T extends any[]>(callback: (...args: T) => void, ...args: T): CitizenImmediate;
+declare function clearImmediate(immediate: CitizenImmediate): void;
 
 declare function setTick(callback: Function): number
 declare function clearTick(callback: number): void
