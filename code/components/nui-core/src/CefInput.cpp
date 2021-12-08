@@ -635,6 +635,23 @@ static HookFunction initFunction([] ()
 
 			switch (msg)
 			{
+			case WM_XBUTTONUP: {
+				auto button = GET_XBUTTON_WPARAM(wParam);
+				auto browser = GetFocusBrowser();
+
+				// we have a MainUI check here so that behavior for *existing* code doesn't change
+				if (browser && nui::HasMainUI())
+				{
+					if (button == XBUTTON1 && browser->CanGoBack())
+					{
+						browser->GoBack();
+					}
+					else if (button == XBUTTON2 && browser->CanGoForward())
+					{
+						browser->GoForward();
+					}
+				}
+			} break;
 			case WM_LBUTTONDOWN:
 			case WM_RBUTTONDOWN:
 			case WM_MBUTTONDOWN:
