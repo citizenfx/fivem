@@ -39,7 +39,7 @@ static bool ValidateURL(std::string url)
 		FatalError("file:// URI requests in DUI are not supported.\nRequested URL: %s", url);
 	}
 
-	return (lowerURL.find("http://") == 0 || lowerURL.find("https://") == 0 || lowerURL.find("nui://") == 0);
+	return (lowerURL.find("http://") == 0 || lowerURL.find("https://") == 0 || lowerURL.find("nui://") == 0 || lowerURL.find("about:") == 0);
 }
 
 static InitFunction initFunction([] ()
