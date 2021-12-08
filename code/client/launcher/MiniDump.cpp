@@ -24,6 +24,8 @@
 using namespace google_breakpad;
 
 #if defined(LAUNCHER_PERSONALITY_MAIN)
+#include <CrossBuildRuntime.h>
+
 #include <commctrl.h>
 #include <shellapi.h>
 
@@ -161,14 +163,7 @@ static void OnStartSession()
 
 	std::time_t t = std::time(nullptr);
 
-	static std::string curChannel;
-
-	wchar_t resultPath[1024];
-
-	static std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
-	GetPrivateProfileString(L"Game", L"UpdateChannel", L"production", resultPath, std::size(resultPath), fpath.c_str());
-
-	curChannel = ToNarrow(resultPath);
+	static std::string curChannel = GetUpdateChannel();
 
 	auto session = json::object({ 
 		{ "sid", sid },
@@ -1144,7 +1139,9 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 		auto crashometry = load_crashometry();
 
-		parameters[L"ReleaseChannel"] = L"release";
+		parameters[L"Product"] = PRODUCT_NAME;
+		parameters[L"GameBuild"] = fmt::sprintf(L"%d", xbr::GetGameBuild());
+		parameters[L"ReleaseChannel"] = ToWide(GetUpdateChannel());
 
 		parameters[L"AdditionalData"] = GetAdditionalData();
 
@@ -1498,6 +1495,8 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		}
 
 		int timeout = 20000;
+
+		parameters[L"Fatal"] = (shouldTerminate) ? L"true" : L"false";
 
 		// upload the actual minidump file as well
 #if defined(GTA_FIVE)
