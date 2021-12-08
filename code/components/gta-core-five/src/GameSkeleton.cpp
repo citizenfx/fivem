@@ -52,6 +52,11 @@ namespace rage
 		{
 			AddCrashometry("init_function", "%s:%s", InitFunctionTypeToString(type), func->GetName());
 
+			if (IsErrorException(exception))
+			{
+				return EXCEPTION_CONTINUE_SEARCH;
+			}
+
 			if ((uintptr_t)exception->ExceptionRecord->ExceptionAddress >= hook::get_adjusted(0x140000000) &&
 				(uintptr_t)exception->ExceptionRecord->ExceptionAddress < hook::get_adjusted(0x146000000))
 			{

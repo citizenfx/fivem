@@ -3,6 +3,13 @@
 #if !defined(COMPILING_LAUNCH) && !defined(COMPILING_CONSOLE) && !defined(COMPILING_SHARED_LIBC)
 #include <fnv.h>
 
+#ifdef _WIN32
+#define ERROR_CRASH_MAGIC 0xDEED
+bool IsErrorException(PEXCEPTION_POINTERS ep);
+#else
+#define ERROR_CRASH_MAGIC 0x0
+#endif
+
 int GlobalErrorRealV(const char* file, int line, uint32_t stringHash, const char* string, fmt::printf_args formatList);
 int FatalErrorRealV(const char* file, int line, uint32_t stringHash, const char* string, fmt::printf_args formatList);
 int FatalErrorNoExceptRealV(const char* file, int line, uint32_t stringHash, const char* string, fmt::printf_args formatList);
@@ -37,8 +44,8 @@ inline uint32_t const_uint32()
 #define _CFX_FILE __FILE__
 #endif
 
-#define GlobalError(f, ...) do { if (GlobalErrorReal(_CFX_FILE, __LINE__, const_uint32<fnv1a_t<4>::Hash(f)>(), f, ##__VA_ARGS__) < 0) { *(volatile int*)0 = 0; } } while(false)
-#define FatalError(f, ...) do { if (FatalErrorReal(_CFX_FILE, __LINE__, const_uint32<fnv1a_t<4>::Hash(f)>(), f, ##__VA_ARGS__) < 0) { *(volatile int*)0 = 0; } } while(false)
+#define GlobalError(f, ...) do { if (GlobalErrorReal(_CFX_FILE, __LINE__, const_uint32<fnv1a_t<4>::Hash(f)>(), f, ##__VA_ARGS__) < 0) { *(volatile int*)ERROR_CRASH_MAGIC = 0; } } while(false)
+#define FatalError(f, ...) do { if (FatalErrorReal(_CFX_FILE, __LINE__, const_uint32<fnv1a_t<4>::Hash(f)>(), f, ##__VA_ARGS__) < 0) { *(volatile int*)ERROR_CRASH_MAGIC = 0; } } while(false)
 #define FatalErrorNoExcept(f, ...) do { if (FatalErrorNoExceptReal(_CFX_FILE, 99999, const_uint32<fnv1a_t<4>::Hash(f)>(), f, ##__VA_ARGS__) < 0) { } } while(false)
 #else
 void GlobalErrorV(const char* string, fmt::printf_args formatList);

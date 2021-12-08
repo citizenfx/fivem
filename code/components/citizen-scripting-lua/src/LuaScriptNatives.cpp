@@ -9,6 +9,7 @@
 
 #if defined(_DEBUG) || defined(BUILD_LUA_SCRIPT_NATIVES)
 #include <fxScripting.h>
+#include <Error.h>
 
 #include <vector>
 #include <map>
@@ -452,7 +453,7 @@ LUA_SCRIPT_LINKAGE int Lua_GetNativeHandler(lua_State* L)
 	return 1;
 }
 
-static LONG ShouldHandleUnwind(DWORD exceptionCode, uint64_t identifier);
+static LONG ShouldHandleUnwind(PEXCEPTION_POINTERS ep, DWORD exceptionCode, uint64_t identifier);
 
 static uint64_t g_nativeIdentifier;
 static void* exceptionAddress;
@@ -461,7 +462,7 @@ static __declspec(noinline) LONG FilterFunc(PEXCEPTION_POINTERS exceptionInforma
 {
 	exceptionAddress = exceptionInformation->ExceptionRecord->ExceptionAddress;
 	
-	return ShouldHandleUnwind(exceptionInformation->ExceptionRecord->ExceptionCode, g_nativeIdentifier);
+	return ShouldHandleUnwind(exceptionInformation, exceptionInformation->ExceptionRecord->ExceptionCode, g_nativeIdentifier);
 }
 
 static LUA_INLINE void CallHandler(void* handler, uint64_t nativeIdentifier, rage::scrNativeCallContext& rageContext)
@@ -1218,8 +1219,13 @@ struct LuaNativeWrapper
 	}
 };
 
-static LONG ShouldHandleUnwind(DWORD exceptionCode, uint64_t identifier)
+static LONG ShouldHandleUnwind(PEXCEPTION_POINTERS ep, DWORD exceptionCode, uint64_t identifier)
 {
+	if (IsErrorException(ep))
+	{
+		return EXCEPTION_CONTINUE_SEARCH;
+	}
+
 	// C++ exceptions?
 	if (exceptionCode == 0xE06D7363)
 	{
@@ -1258,7 +1264,7 @@ struct LuaNativeContext
 		{
 			nw->handler(&rawCxt);
 		}
-		__except (exceptionAddress = (GetExceptionInformation())->ExceptionRecord->ExceptionAddress, ShouldHandleUnwind((GetExceptionInformation())->ExceptionRecord->ExceptionCode, hash))
+		__except (exceptionAddress = (GetExceptionInformation())->ExceptionRecord->ExceptionAddress, ShouldHandleUnwind(GetExceptionInformation(), (GetExceptionInformation())->ExceptionRecord->ExceptionCode, hash))
 		{
 			throw std::exception(va("Error executing native 0x%016llx at address %p.", hash, exceptionAddress));
 		}

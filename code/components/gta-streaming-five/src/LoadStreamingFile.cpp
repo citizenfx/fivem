@@ -634,6 +634,11 @@ static std::vector<std::string> g_oldEntryList;
 
 static int SehRoutine(const char* whatPtr, PEXCEPTION_POINTERS exception)
 {
+	if (IsErrorException(exception))
+	{
+		return EXCEPTION_CONTINUE_SEARCH;
+	}
+
 	if (exception->ExceptionRecord->ExceptionCode & 0x80000000)
 	{
 		if (!whatPtr)

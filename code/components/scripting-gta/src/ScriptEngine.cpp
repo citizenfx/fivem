@@ -19,8 +19,15 @@
 
 #include <CL2LaunchMode.h>
 
-static LONG ShouldHandleUnwind(DWORD exceptionCode, uint64_t identifier)
+#include <Error.h>
+
+static LONG ShouldHandleUnwind(PEXCEPTION_POINTERS ep, DWORD exceptionCode, uint64_t identifier)
 {
+	if (IsErrorException(ep))
+	{
+		return EXCEPTION_CONTINUE_SEARCH;
+	}
+
 	// C++ exceptions?
 	if (exceptionCode == 0xE06D7363)
 	{
@@ -54,7 +61,7 @@ static inline void CallHandler(const THandler& rageHandler, uint64_t nativeIdent
 		rageHandler(&rageContext);
 //#ifndef _DEBUG
 	}
-	__except (exceptionAddress = (GetExceptionInformation())->ExceptionRecord->ExceptionAddress, ShouldHandleUnwind((GetExceptionInformation())->ExceptionRecord->ExceptionCode, nativeIdentifier))
+	__except (exceptionAddress = (GetExceptionInformation())->ExceptionRecord->ExceptionAddress, ShouldHandleUnwind(GetExceptionInformation(), (GetExceptionInformation())->ExceptionRecord->ExceptionCode, nativeIdentifier))
 	{
 		throw std::exception(va("Error executing native 0x%016llx at address %p.", nativeIdentifier, exceptionAddress));
 	}
