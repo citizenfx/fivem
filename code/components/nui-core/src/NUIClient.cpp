@@ -16,6 +16,7 @@
 
 #include <CoreConsole.h>
 
+#include <boost/algorithm/string/case_conv.hpp>
 #include <rapidjson/document.h>
 
 #include <sstream>
@@ -297,6 +298,11 @@ auto NUIClient::OnBeforePopup(CefRefPtr<CefBrowser> browser,
 auto NUIClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefRequestCallback> callback) -> ReturnValue
 {
 	auto url = request->GetURL().ToString();
+
+	if (boost::algorithm::to_lower_copy(url).find("file://") != std::string::npos)
+	{
+		return RV_CANCEL;
+	}
 
 #if !defined(USE_NUI_ROOTLESS) && !defined(_DEBUG)
 	if (frame->IsMain())
