@@ -245,22 +245,6 @@ static void add_crashometry(json& data)
 	}
 }
 
-struct GameErrorData
-{
-	std::string errorName;
-	std::string errorDescription;
-
-	GameErrorData()
-	{
-	}
-
-	GameErrorData(const std::string& errorName, const std::string& errorDescription)
-		: errorName(errorName), errorDescription(errorDescription)
-	{
-
-	}
-};
-
 static auto GetMinidumpGamePath() -> std::wstring
 {
 	std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
@@ -282,56 +266,6 @@ static auto GetMinidumpGamePath() -> std::wstring
 	}
 
 	return L"null";
-}
-
-static GameErrorData LookupError(uint32_t hash)
-{
-#ifdef IS_RDR3
-	FILE* f = _wfopen(fmt::format(L"{}/x64/data/errorcodes/american.txt", GetMinidumpGamePath()).c_str(), L"r");
-#else
-	FILE* f = _wfopen(fmt::format(L"{}/update/x64/data/errorcodes/american.txt", GetMinidumpGamePath()).c_str(), L"r");
-#endif
-
-	if (f)
-	{
-		char line[8192] = { 0 };
-
-		while (fgets(line, 8191, f))
-		{
-			if (line[0] == '[')
-			{
-				strrchr(line, ']')[0] = '\0';
-
-				if (HashString(&line[1]) == hash)
-				{
-					char data[8192] = { 0 };
-					fgets(data, 8191, f);
-
-					return GameErrorData{ &line[1], data };
-				}
-			}
-		}
-	}
-
-	return GameErrorData{};
-}
-
-static std::optional<std::tuple<GameErrorData, uint64_t>> LoadErrorData()
-{
-	FILE* f = _wfopen(MakeRelativeCitPath(L"data\\cache\\error_out").c_str(), L"rb");
-
-	if (f)
-	{
-		uint32_t error;
-		uint64_t retAddr;
-		fread(&error, 1, 4, f);
-		fread(&retAddr, 1, 8, f);
-		fclose(f);
-
-		return { { LookupError(error), retAddr } };
-	}
-
-	return {};
 }
 
 template<typename T>
@@ -369,38 +303,6 @@ static std::string GetErrorPickup()
 
 static void OverloadCrashData(TASKDIALOGCONFIG* config)
 {
-	// error files?
-	{
-		auto data = LoadErrorData();
-
-		if (data)
-		{
-			_wunlink(MakeRelativeCitPath(L"data\\cache\\error_out").c_str());
-
-			static GameErrorData errData = std::get<GameErrorData>(*data);
-			static uint64_t retAddr = std::get<uint64_t>(*data);
-
-			if (errData.errorName.empty())
-			{
-				errData.errorName = "UNKNOWN";
-				errData.errorDescription = "";
-			}
-
-			static std::wstring errTitle = fmt::sprintf(gettext(L"RAGE error: %s"), ToWide(errData.errorName));
-			static std::wstring errDescription = fmt::sprintf(gettext(L"A game error (at %016llx) caused %s to stop working. "
-				L"A crash report has been uploaded to the %s developers.\n\n%s"),
-				retAddr,
-				PRODUCT_NAME,
-				PRODUCT_NAME,
-				ToWide(ParseLinks(errData.errorDescription)));
-
-			config->pszMainInstruction = errTitle.c_str();
-			config->pszContent = errDescription.c_str();
-
-			return;
-		}
-	}
-
 	// FatalError crash pickup?
 	{
 		json pickup = load_error_pickup();
@@ -481,24 +383,6 @@ static std::string exWhat;
 
 static std::wstring GetAdditionalData()
 {
-	{
-		auto errorData = LoadErrorData();
-
-		if (errorData)
-		{
-			json jsonData = json::object({
-				{ "type", "rage_error" },
-				{ "key", std::get<GameErrorData>(*errorData).errorName },
-				{ "description", std::get<GameErrorData>(*errorData).errorDescription },
-				{ "retAddr", std::get<uint64_t>(*errorData) },
-			});
-
-			add_crashometry(jsonData);
-
-			return ToWide(jsonData.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace));
-		}
-	}
-
 	{
 		json error_pickup = load_error_pickup();
 
