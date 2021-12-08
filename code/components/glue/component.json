@@ -5,6 +5,7 @@
 		"fx[2]",
 		"net",
 		"nui:core",
+		"nui:resources",
 		"gta:core",
 		"scripting:gta",
 		"rage:device",
