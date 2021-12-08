@@ -25,6 +25,23 @@
 #include <sstream>
 #include <string_view>
 
+#include <Error.h>
+
+#include <boost/algorithm/string/case_conv.hpp>
+
+static bool ValidateURL(std::string url)
+{
+	auto lowerURL = boost::algorithm::to_lower_copy(url);
+
+	if (lowerURL.find("file://") == 0)
+	{
+		// log an error so that we have insight as to any frequency of use
+		FatalError("file:// URI requests in DUI are not supported.\nRequested URL: %s", url);
+	}
+
+	return (lowerURL.find("http://") == 0 || lowerURL.find("https://") == 0 || lowerURL.find("nui://") == 0);
+}
+
 static InitFunction initFunction([] ()
 {
 	static auto sendMessageToFrame = [](fx::ScriptContext& context, const char* native, auto& execFn)
@@ -150,6 +167,11 @@ static InitFunction initFunction([] ()
 				return;
 			}
 
+			if (!url || !ValidateURL(url))
+			{
+				return;
+			}
+
 			fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
 
 			++nuiWindowIdx;
@@ -164,6 +186,11 @@ static InitFunction initFunction([] ()
 
 		void SetURL(const char* url)
 		{
+			if (!url || !ValidateURL(url))
+			{
+				return;
+			}
+
 			nui::SetNUIWindowURL(m_autogenHandle, url);
 		}
 
