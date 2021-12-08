@@ -87,6 +87,7 @@ void ClientDeferral::UpdateDeferrals()
 {
 	if (!m_ranEvents)
 	{
+		m_pending = true;
 		return;
 	}
 
@@ -150,7 +151,12 @@ void ClientDeferral::UpdateDeferrals()
 void ClientDeferral::RanEvents()
 {
 	m_ranEvents = true;
-	UpdateDeferrals();
+
+	if (m_pending)
+	{
+		UpdateDeferrals();
+		m_pending = false;
+	}
 
 	if (auto card = std::move(m_nextCard); !card.empty())
 	{

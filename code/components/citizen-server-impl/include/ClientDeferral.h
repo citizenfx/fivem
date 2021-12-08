@@ -116,6 +116,7 @@ private:
 
 	bool m_completed;
 	bool m_ranEvents = false;
+	bool m_pending = false;
 
 	fx::ServerInstanceBase* m_instance;
 
