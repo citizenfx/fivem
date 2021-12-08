@@ -34,7 +34,7 @@ using json = nlohmann::json;
 #include <signal.h>
 #endif
 
-#ifdef ERROR_CRASH_MAGIC
+#if defined(ERROR_CRASH_MAGIC) && defined(_WIN32)
 bool IsErrorException(PEXCEPTION_POINTERS ep)
 {
 	return (ep->ExceptionRecord->ExceptionCode == EXCEPTION_ACCESS_VIOLATION && ep->ExceptionRecord->ExceptionInformation[1] == ERROR_CRASH_MAGIC);
