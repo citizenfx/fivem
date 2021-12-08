@@ -98,7 +98,7 @@ public:
 			while (m_queue.try_dequeue(entry))
 			{
 				auto resource = resourceManager->GetResource(entry.resource);
-				if (!resource.GetRef())
+				if (!resource.GetRef() || resource->GetState() != fx::ResourceState::Started)
 				{
 					continue;
 				}
