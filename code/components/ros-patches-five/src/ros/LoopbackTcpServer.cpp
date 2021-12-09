@@ -1652,7 +1652,7 @@ void RunLauncherAwait()
 		}
 	}
 
-	HANDLE hProcess = OpenProcess(SYNCHRONIZE, FALSE, launcherState->pid);
+	HANDLE hProcess = OpenProcess(SYNCHRONIZE | PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, launcherState->pid);
 
 	SetLauncherWaitCB(hEvent, hProcess, TRUE);
 }
