@@ -246,7 +246,7 @@ static HookFunction hookFunctionGameTime([]()
 
 						s << "root";
 
-						reasoning = fmt::sprintf("\n\nScript stack: %s", s.str());
+						reasoning = fmt::sprintf("\n\nThis is likely caused by a resource/script, the script stack is as follows: %s", s.str());
 					}
 
 					if (auto nvDLL = GetModuleHandleW(L"nvwgf2umx.dll"))
