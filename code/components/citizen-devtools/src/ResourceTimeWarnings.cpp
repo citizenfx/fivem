@@ -150,6 +150,8 @@ static TThreadStack* GetThread()
 	return &g_threadStack;
 }
 
+#pragma comment(lib, "version.lib")
+
 static HookFunction hookFunctionGameTime([]()
 {
 	InputHook::DeprecatedOnWndProc.Connect([](HWND, UINT uMsg, WPARAM, LPARAM, bool&, LRESULT&)
@@ -245,6 +247,39 @@ static HookFunction hookFunctionGameTime([]()
 						s << "root";
 
 						reasoning = fmt::sprintf("\n\nScript stack: %s", s.str());
+					}
+
+					if (auto nvDLL = GetModuleHandleW(L"nvwgf2umx.dll"))
+					{
+						wchar_t nvDllPath[MAX_PATH];
+						GetModuleFileNameW(nvDLL, nvDllPath, std::size(nvDllPath));
+
+						DWORD versionInfoSize = GetFileVersionInfoSize(nvDllPath, nullptr);
+
+						if (versionInfoSize)
+						{
+							std::vector<uint8_t> versionInfo(versionInfoSize);
+
+							if (GetFileVersionInfo(nvDllPath, 0, versionInfo.size(), &versionInfo[0]))
+							{
+								void* fixedInfoBuffer;
+								UINT fixedInfoSize;
+
+								VerQueryValue(&versionInfo[0], L"\\", &fixedInfoBuffer, &fixedInfoSize);
+
+								VS_FIXEDFILEINFO* fixedInfo = reinterpret_cast<VS_FIXEDFILEINFO*>(fixedInfoBuffer);
+
+								// convert versions like 30.0.14.9649 to a decimal like 49649
+								uint32_t nvidiaVersion = (fixedInfo->dwFileVersionLS & 0xFFFF) + (((fixedInfo->dwFileVersionLS >> 16) % 10) * 10000);
+
+								if (nvidiaVersion >= 47200 && nvidiaVersion < 49700)
+								{
+									reasoning += fmt::sprintf("\n\nThis may be related to a known issue in your NVIDIA GeForce drivers (version %03d.%02d). Upgrade to version 497.09 or higher (https://www.nvidia.com/en-us/geforce/drivers/), downgrade to version 471.68 or below, or disable any overlays/graphics mods (such as Steam or ENBSeries) to fix this.",
+										nvidiaVersion / 100,
+										nvidiaVersion % 100);
+								}
+							}
+						}
 					}
 
 					auto unresponsiveFor = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastPeekMessage).count() / 1000.0;
