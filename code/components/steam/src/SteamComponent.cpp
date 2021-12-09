@@ -83,13 +83,13 @@ SteamComponent::SteamComponent()
 
 }
 
-static void RunChildLauncher()
+static void RunChildLauncher(bool syncWait = false)
 {
 	// get the base executable path
 	auto ourPath = MakeCfxSubProcess(L"SteamChild.exe");
 
 	wchar_t ourDirectory[MAX_PATH];
-	GetCurrentDirectory(sizeof(ourDirectory), ourDirectory);
+	GetCurrentDirectory(std::size(ourDirectory), ourDirectory);
 
 	std::wstring commandLine = va(L"\"%s\" -steamparent:%d", ourPath, GetCurrentProcessId());
 
@@ -99,12 +99,24 @@ static void RunChildLauncher()
 
 	CreateProcess(ourPath, (wchar_t*)commandLine.c_str(), nullptr, nullptr, FALSE, 0, nullptr, ourDirectory, &si, &pi);
 
-	// wait for it to finish
-	WaitForSingleObject(pi.hProcess, 15000);
+	auto wait = [pi = std::move(pi)]()
+	{
+		// wait for it to finish
+		WaitForSingleObject(pi.hProcess, 15000);
 
-	// and close up afterwards
-	CloseHandle(pi.hProcess);
-	CloseHandle(pi.hThread);
+		// and close up afterwards
+		CloseHandle(pi.hProcess);
+		CloseHandle(pi.hThread);
+	};
+
+	if (syncWait)
+	{
+		wait();
+	}
+	else
+	{
+		std::thread(wait).detach();
+	}
 }
 
 #include <base64.h>
@@ -132,7 +144,7 @@ void SteamComponent::Initialize()
 		InitializePublicAPI();
 
 		// run the child launcher
-		RunChildLauncher();
+		RunChildLauncher(true);
 
 		// initialize the private Steam API
 		InitializeClientAPI();
