@@ -173,6 +173,8 @@ interface IScriptHostWithBookmarks : fxIBase
 	void ScheduleBookmark(in IScriptTickRuntimeWithBookmarks runtime, in uint64_t bookmark, in int64_t deadline);
 
 	void RemoveBookmarks(in IScriptTickRuntimeWithBookmarks runtime);
+
+	void CreateBookmarks(in IScriptTickRuntimeWithBookmarks runtime);
 };
 
 %{C++

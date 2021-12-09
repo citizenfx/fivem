@@ -1220,6 +1220,7 @@ result_t LuaScriptRuntime::Create(IScriptHost* scriptHost)
 		ptr.As(&resourcePtr);
 
 		m_bookmarkHost = resourcePtr.GetRef();
+		m_bookmarkHost->CreateBookmarks(this);
 	}
 
 	std::string nativesBuild = "natives_21e43a33.lua";

@@ -40,25 +40,48 @@ struct Bookmark
 	std::chrono::microseconds deadline;
 	IScriptTickRuntimeWithBookmarks* scRT;
 	uint64_t bookmark;
+
+	inline Bookmark(IScriptTickRuntimeWithBookmarks* scRT, std::nullptr_t)
+		: resource(nullptr), deadline(0), scRT(scRT), bookmark(0)
+	{
+		
+	}
+
+	inline Bookmark(fx::Resource* resource,
+					std::chrono::microseconds deadline,
+					IScriptTickRuntimeWithBookmarks * scRT,
+					uint64_t bookmark)
+		: resource(resource), deadline(deadline), scRT(scRT), bookmark(bookmark)
+	{
+	
+	}
 };
 
 static struct  
 {
 	std::list<Bookmark> list;
-	std::list<Bookmark> newList;
 	std::list<IScriptTickRuntimeWithBookmarks*> removeList;
+
+	std::unordered_map<IScriptTickRuntimeWithBookmarks*, std::list<Bookmark>::iterator> resourceInsertionIterators;
 
 	bool executing = false;
 } bookmarkRefs;
 
 static void QueueBookmark(fx::Resource* resource, IScriptTickRuntimeWithBookmarks* scRT, uint64_t bookmark, std::chrono::microseconds deadline)
 {
-	bookmarkRefs.newList.push_back(Bookmark{ resource, deadline, scRT, bookmark });
+	auto refIt = bookmarkRefs.resourceInsertionIterators.find(scRT);
+	assert(refIt != bookmarkRefs.resourceInsertionIterators.end());
+	bookmarkRefs.list.insert(refIt->second, Bookmark{ resource, deadline, scRT, bookmark });
+}
+
+static void CreateBookmarks(IScriptTickRuntimeWithBookmarks* scRT)
+{
+	bookmarkRefs.resourceInsertionIterators.emplace(scRT, bookmarkRefs.list.insert(bookmarkRefs.list.end(), Bookmark{ scRT, nullptr }));
 }
 
 static void DoRemoveBookmarks(IScriptTickRuntimeWithBookmarks* scRT)
 {
-	for (auto list : { &bookmarkRefs.list, &bookmarkRefs.newList })
+	for (auto list : { &bookmarkRefs.list })
 	{
 		for (auto it = list->begin(); it != list->end();)
 		{
@@ -72,6 +95,8 @@ static void DoRemoveBookmarks(IScriptTickRuntimeWithBookmarks* scRT)
 			}
 		}
 	}
+
+	bookmarkRefs.resourceInsertionIterators.erase(scRT);
 }
 
 static void RemoveBookmarks(IScriptTickRuntimeWithBookmarks* scRT)
@@ -109,13 +134,11 @@ static void RunBookmarks()
 		}
 	};
 
-	bookmarkRefs.list.splice(bookmarkRefs.list.end(), bookmarkRefs.newList);
-
 	for (auto it = bookmarkRefs.list.begin(); it != bookmarkRefs.list.end();)
 	{
 		const auto& entry = *it;
 
-		if (entry.deadline <= now)
+		if (entry.resource && entry.deadline <= now)
 		{
 			auto scRT = entry.scRT;
 
@@ -127,6 +150,7 @@ static void RunBookmarks()
 			}
 
 			nextBookmarks.push_back(entry.bookmark);
+
 			it = bookmarkRefs.list.erase(it);
 		}
 		else
@@ -439,6 +463,12 @@ result_t TestScriptHost::SubmitBoundaryEnd(char* boundaryData, int boundarySize)
 		}
 	}
 
+	return FX_S_OK;
+}
+
+result_t TestScriptHost::CreateBookmarks(IScriptTickRuntimeWithBookmarks* scRT)
+{
+	::CreateBookmarks(scRT);
 	return FX_S_OK;
 }
 
