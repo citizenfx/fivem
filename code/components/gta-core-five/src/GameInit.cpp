@@ -103,23 +103,29 @@ static hook::cdecl_stub<void(rage::InitFunctionType)> gamerInfoMenu__shutdown([]
 	return hook::get_pattern("83 F9 08 75 46 53 48 83 EC 20 48 83", 0);
 });
 
-static void(*g_origLoadMultiplayerTextChat)();
+static void** g_textChat;
+static void(*g_origLoadMultiplayerTextChat)(void*);
 
 static void** g_textInputBox;
 
+#include <MinHook.h>
+
+void Void()
+{
+}
+
 static HookFunction hookFunction([]()
 {
-	// really bad pattern pointing to switch-to-netgame
-	if (!xbr::IsGameBuildOrGreater<2060>() && !Is372())
+	MH_Initialize();
+
+	if (!Is372())
 	{
-		auto location = hook::get_pattern("E8 ? ? ? ? B9 08 00 00 00 E8 ? ? ? ? E8", 15);
+		MH_CreateHook(hook::get_pattern("74 07 B0 01 E9 ? ? ? ? 83 65", (xbr::IsGameBuildOrGreater<2372>() ? -0x23 : -0x26)), Void, (void**)&g_origLoadMultiplayerTextChat);
 
-		hook::set_call(&g_origLoadMultiplayerTextChat, location);
-		hook::nop(location, 5);
-
-		// 1737: screwed by Arxan
-		// #TODO1737
+		g_textChat = hook::get_address<void**>(hook::get_pattern("74 04 C6 40 01 01 48 8B 0D", 9));
 	}
+
+	MH_EnableHook(MH_ALL_HOOKS);
 
 	if (!Is372())
 	{
@@ -172,13 +178,10 @@ static InitFunction initFunction([] ()
 
 			// also early-load MULTIPLAYER_TEXT_CHAT gfx, this changed sometime between 323 and 505
 			// and also causes a blocking load.
-			if (!xbr::IsGameBuildOrGreater<2060>() && g_origLoadMultiplayerTextChat)
+			if (g_origLoadMultiplayerTextChat && g_textChat && *g_textChat)
 			{
-				g_origLoadMultiplayerTextChat();
+				g_origLoadMultiplayerTextChat(*g_textChat);
 			}
-
-			// 1737: screwed by Arxan
-			// #TODO1737
 
 			if (!Is372())
 			{
