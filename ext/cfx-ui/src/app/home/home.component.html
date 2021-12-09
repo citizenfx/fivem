@@ -44,8 +44,8 @@
 				</div>
 			</div>
 		</div>
-		<div class="right" *ngIf="gameName != 'rdr3' && gameName != 'ny'">
-			<div class="player-stats" *ngIf="playerStats">
+		<div class="right">
+			<div class="player-stats" *ngIf="playerStats && gameName != 'rdr3' && gameName != 'ny'">
 				<div
 					aria-label="Current players count"
 					data-balloon-pos="left"

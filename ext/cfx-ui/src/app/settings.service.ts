@@ -200,34 +200,34 @@ export class SettingsService {
 			category: '#SettingsCat_Account',
 		});
 
+		this.addSetting('accountButton', {
+			name: '#Settings_Account',
+			type: 'button',
+			description: '#Settings_AccountLink',
+			setCb: (value) => this.linkAccount(),
+			showCb: () => discourseService.signinChange.pipe(map(user => !user)),
+			category: '#SettingsCat_Account',
+		});
+
+		this.addSetting('accountLabel', {
+			name: '#Settings_Account',
+			type: 'label',
+			showCb: () => discourseService.signinChange.pipe(map(user => !!user)),
+			labelCb: () =>
+				combineLatest([
+					gameService.streamerModeChange,
+					discourseService.signinChange,
+					translation.onChange()
+				]).pipe(map(
+					([streamerMode, user, _]) =>
+						translation.translate('#Settings_AccountLinked', {
+							username: streamerMode ? '<HIDDEN>' : (user?.username ?? '')
+						})
+				)),
+			category: '#SettingsCat_Account',
+		});
+
 		if (this.gameService.gameName !== 'rdr3' && this.gameService.gameName !== 'ny') {
-			this.addSetting('accountButton', {
-				name: '#Settings_Account',
-				type: 'button',
-				description: '#Settings_AccountLink',
-				setCb: (value) => this.linkAccount(),
-				showCb: () => discourseService.signinChange.pipe(map(user => !user)),
-				category: '#SettingsCat_Account',
-			});
-
-			this.addSetting('accountLabel', {
-				name: '#Settings_Account',
-				type: 'label',
-				showCb: () => discourseService.signinChange.pipe(map(user => !!user)),
-				labelCb: () =>
-					combineLatest([
-						gameService.streamerModeChange,
-						discourseService.signinChange,
-						translation.onChange()
-					]).pipe(map(
-						([streamerMode, user, _]) =>
-							translation.translate('#Settings_AccountLinked', {
-								username: streamerMode ? '<HIDDEN>' : (user?.username ?? '')
-							})
-					)),
-				category: '#SettingsCat_Account',
-			});
-
 			this.addSetting('boostLoading', {
 				name: '#Settings_Boost',
 				type: 'label',
