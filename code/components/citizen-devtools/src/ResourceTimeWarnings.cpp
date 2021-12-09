@@ -259,8 +259,7 @@ static HookFunction hookFunctionGameTime([]()
 
 					if (!launch::IsSDKGuest())
 					{
-						FatalError("FiveM has stopped responding\nThe game stopped responding for %.1f seconds and needs to be restarted. Information on this hang is currently being uploaded.%s",
-						unresponsiveFor,
+						FatalError("FiveM has stopped responding\nThe game stopped responding for too long and needs to be restarted. When asking for help, please click 'Save information' and upload the file that is saved when you click the button.%s",
 						reasoning);
 					}
 				}
