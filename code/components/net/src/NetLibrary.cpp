@@ -1944,28 +1944,20 @@ bool NetLibrary::IsPendingInGameReconnect()
 	return (m_connectionState == CS_ACTIVE && m_impl->IsDisconnected());
 }
 
+static std::string g_steamPersonaName;
+
 const char* NetLibrary::GetPlayerName()
 {
-	if (!m_playerName.empty()) return m_playerName.c_str();
-
-	auto steamComponent = GetSteam();
-
-	if (steamComponent)
+	// if a higher-level component set a name, use that name instead
+	if (!m_playerName.empty())
 	{
-		IClientEngine* steamClient = steamComponent->GetPrivateClient();
+		return m_playerName.c_str();
+	}
 
-		if (steamClient)
-		{
-			InterfaceMapper steamFriends(steamClient->GetIClientFriends(steamComponent->GetHSteamUser(), steamComponent->GetHSteamPipe(), "CLIENTFRIENDS_INTERFACE_VERSION001"));
-
-			if (steamFriends.IsValid())
-			{
-				// TODO: name changing
-				static std::string personaName = steamFriends.Invoke<const char*>("GetPersonaName");
-
-				return personaName.c_str();
-			}
-		}
+	// do we have a Steam name?
+	if (!g_steamPersonaName.empty())
+	{
+		return g_steamPersonaName.c_str();
 	}
 
 	static std::wstring returnNameWide;
@@ -2104,6 +2096,25 @@ NetLibrary* NetLibrary::Create()
 			lib->Disconnect((const char*)reason);
 		}
 	});
+	
+	auto steamComponent = GetSteam();
+
+	if (steamComponent)
+	{
+		IClientEngine* steamClient = steamComponent->GetPrivateClient();
+
+		if (steamClient)
+		{
+			InterfaceMapper steamFriends(steamClient->GetIClientFriends(steamComponent->GetHSteamUser(), steamComponent->GetHSteamPipe(), "CLIENTFRIENDS_INTERFACE_VERSION001"));
+
+			if (steamFriends.IsValid())
+			{
+				g_steamPersonaName = steamFriends.Invoke<const char*>("GetPersonaName");
+			}
+		}
+	}
+
+	static ConVar<std::string> extNicknameVar("ui_extNickname", ConVar_ReadOnly, g_steamPersonaName);
 
 	return lib;
 }

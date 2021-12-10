@@ -21,6 +21,7 @@ export class Setting {
 	category?: string;
 	displayDefault?: string;
 
+	placeholderCb?: () => Observable<string>;
 	getCb?: () => Observable<string>;
 	setCb?: (value: string) => void;
 
@@ -48,6 +49,7 @@ export class SettingsService {
 			name: '#Settings_Nickname',
 			description: '#Settings_Nickname',
 			type: 'text',
+			placeholderCb: () => this.gameService.getConvar('ui_extNickname'),
 			getCb: () => this.gameService.nicknameChange,
 			setCb: (value) => this.gameService.nickname = value,
 			category: '#SettingsCat_Connection',

@@ -17,6 +17,7 @@ class DisplaySetting {
     category: string;
     optionsArray: SelectOption[] = [];
 
+	private _placeholder: string;
     private _value: string;
     private subscriptions: Subscription[] = [];
 
@@ -40,10 +41,22 @@ class DisplaySetting {
             this.subscriptions.push(setting.labelCb().subscribe(value => this.label = value));
         }
 
+		if (setting.placeholderCb) {
+			this.subscriptions.push(setting.placeholderCb().subscribe(value => {
+				if (value && value !== '') {
+					this._placeholder = value
+				}
+			}));
+		}
+
         if (setting.options) {
             this.optionsArray = Object.entries(setting.options).map(([ value, name ]) => ({ name, value }));
 		}
     }
+
+	public get placeholder() {
+		return this._placeholder || this.setting.description;
+	}
 
     public get value(): string {
         return this._value;
