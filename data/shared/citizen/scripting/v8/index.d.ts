@@ -76,7 +76,7 @@ interface CitizenTimer {
     hasRef(): boolean,
     refresh(): void,
     [Symbol.toPrimitive](): number,
-};
+}
 
 type CitizenImmediate = Omit<CitizenTimer, 'refresh'>;
 
