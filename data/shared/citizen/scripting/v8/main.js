@@ -1,5 +1,4 @@
 // CFX JS runtime
-/// <reference path="./natives_blank.d.ts" />
 /// <reference path="./natives_server.d.ts" />
 
 const EXT_FUNCREF = 10;
@@ -400,7 +399,7 @@ const EXT_LOCALFUNCREF = 11;
 
 	function processErrorQueue() {
 		for (const error of errorQueue) {
-			console.log(error.error);
+			console.log(getError('promise (unhandled)', error.error));
 		}
 
 		errorQueue = [];
@@ -413,13 +412,17 @@ const EXT_LOCALFUNCREF = 11;
 			let error = '';
 
 			if (value instanceof Error) {
-				error = getError('promise (unhandled)', value);
+				error = value;
 			} else {
-				error = getError('promise (unhandled)', new Error((value || '').toString()));
+				error = new Error((value || '').toString());
 			}
+
+			// grab the stack early so it'll remain valid
+			const stack = error.stack;
 
 			errorQueue.push({
 				error,
+				stack,
 				promise
 			});
 
