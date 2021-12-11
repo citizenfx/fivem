@@ -74,3 +74,82 @@ extern GFX_EXPORT GraphicsAPI GetCurrentGraphicsAPI();
 
 // VK context or D3D12 device
 extern GFX_EXPORT void* GetGraphicsDriverHandle();
+
+namespace rage::sga
+{
+class GFX_EXPORT GraphicsContext
+{
+public:
+	// GetCurrent returns the current GraphicsContext
+	static GraphicsContext* GetCurrent();
+};
+
+// MapData stores information for a Map/Unmap operation
+class MapData
+{
+private:
+	char m_pad[68];
+
+public:
+	inline MapData()
+	{
+		memset(m_pad, 0, sizeof(m_pad));
+		m_pad[64] = 1;
+	}
+
+	inline void* GetBuffer()
+	{
+		return *(void**)&m_pad[0];
+	}
+
+	inline int GetStride()
+	{
+		return *(int*)&m_pad[8];
+	}
+};
+}
+
+namespace rage::sga::ext
+{
+// DynamicResource wraps multiple underlying resources to simplify renaming operations for per-frame mapping
+// (since D3D12/Vulkan do not do automatic renaming for Map/Unmap operations)
+class GFX_EXPORT DynamicResource
+{
+private:
+	char m_pad[96];
+
+public:
+	DynamicResource();
+
+	// GetResourceIdx returns the index of this frame's underlying resource
+	int GetResourceIdx();
+
+	// UnmapBase is called by derived Unmap implementations
+	void UnmapBase(GraphicsContext* context /* can be null for current */, const MapData& mapData);
+};
+
+// DynamicTexture2 is an implementation of DynamicResource for a 2D texture
+class GFX_EXPORT DynamicTexture2 : DynamicResource
+{
+public:
+	~DynamicTexture2();
+
+	// Init sets up the underlying resources
+	void Init(int flags /* usually 3? */, void* unk_nullptr /* seems to be a lambda argument */, const ImageParams& imageParams, int bufferType, uint32_t flags1, void* memInfo, uint32_t flags2, int cpuAccessType, void* clearValue);
+
+	// Map maps writable memory to the MapData
+	bool Map(GraphicsContext* context, MapData& mapData);
+
+	// Unmap finalizes a Map operation and updates the resource
+	void Unmap(GraphicsContext* context, const MapData& mapData);
+
+	// MakeReady assigns the DynamicTexture2 to a GraphicsContext
+	void MakeReady(GraphicsContext* context /* can *not* be null */);
+
+	// GetTexture gets the current readable texture
+	Texture* GetTexture();
+
+private:
+	void UnmapInternal(GraphicsContext* context, const MapData& mapData);
+};
+}

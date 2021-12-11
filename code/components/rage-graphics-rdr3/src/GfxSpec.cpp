@@ -558,6 +558,108 @@ namespace rage::sga
 	{
 		(*(void(__fastcall**)(__int64, void*))(**(uint64_t**)sgaDriver + 440i64))(*(uint64_t*)sgaDriver, texture);
 	}
+
+	GraphicsContext* GraphicsContext::GetCurrent()
+	{
+		return reinterpret_cast<GraphicsContext*>(get_sgaGraphicsContext());
+	}
+}
+
+static hook::thiscall_stub<int(rage::sga::ext::DynamicResource*)> _dynamicResource_GetResourceIdx([]()
+{
+	if (xbr::IsGameBuildOrGreater<1436>())
+	{
+		return hook::get_call(hook::get_pattern("0F B7 56 6A 8B C0 4C 8B 04 C3 65", -5));
+	}
+
+	return hook::get_call(hook::get_pattern("48 8B 47 30 48 8B 1C D8 48 8B CB E8", 11));
+});
+
+static hook::thiscall_stub<void(rage::sga::ext::DynamicResource*, rage::sga::GraphicsContext*, const rage::sga::MapData&)> _dynamicResource_UnmapBase([]()
+{
+	return hook::get_call(hook::get_pattern("4C 8D 45 B0 33 D2 48 8B CF E8 ? ? ? ? 4C 8D", 9));
+});
+
+static hook::thiscall_stub<void(rage::sga::ext::DynamicTexture2*, rage::sga::GraphicsContext*, const rage::sga::MapData&)> _dynamicTexture2_UnmapInternal([]()
+{
+	return hook::get_call(hook::get_pattern("4C 8D 45 B0 33 D2 48 8B CF E8 ? ? ? ? 4C 8D", 0x17));
+});
+
+static hook::thiscall_stub<int(rage::sga::ext::DynamicTexture2*, rage::sga::GraphicsContext*, rage::sga::MapData&)> _dynamicTexture2_Map([]()
+{
+	return hook::get_call(hook::get_pattern("48 89 5D E0 48 89 5D E8 E8 ? ? ? ? 48 8B CF", 8));
+});
+
+static hook::thiscall_stub<void(rage::sga::ext::DynamicTexture2*, rage::sga::GraphicsContext*)> _dynamicTexture2_MakeReady([]()
+{
+	return hook::get_call(hook::get_pattern("48 8B 14 2A E8 ? ? ? ? 48 8D 5B 08", 4));
+});
+
+static hook::thiscall_stub<void(rage::sga::ext::DynamicTexture2*, int flags, void* unk_nullptr, const rage::sga::ImageParams& imageParams, int bufferType, uint32_t flags1, void* memInfo, uint32_t flags2, int cpuAccessType, void* clearValue)> _dynamicTexture2_Init([]()
+{
+	return hook::get_call(hook::get_pattern("C7 44 24 28 02 00 00 00 C6 44 24 20 01 E8 ? ? ? ? 48 8B CB E8", 13));
+});
+
+static hook::thiscall_stub<void(rage::sga::ext::DynamicTexture2*)> _dynamicTexture2_dtor([]()
+{
+	// this is actually rage::sga::ext::DynamicTextureUav::~dtor
+	//return hook::pattern("48 8D 59 60 BD 04 00 00 00 48 8B 3B 48").count(2).get(0).get<void>(-0x17);
+
+	return hook::get_pattern("BE 04 00 00 00 48 8B F9 8B EE", -0x14);
+});
+
+namespace rage::sga::ext
+{
+DynamicResource::DynamicResource()
+{
+	memset(m_pad, 0, sizeof(m_pad));
+}
+
+int DynamicResource::GetResourceIdx()
+{
+	return _dynamicResource_GetResourceIdx(this);
+}
+
+void DynamicResource::UnmapBase(GraphicsContext* context, const MapData& mapData)
+{
+	return _dynamicResource_UnmapBase(this, context, mapData);
+}
+
+DynamicTexture2::~DynamicTexture2()
+{
+	_dynamicTexture2_dtor(this);
+}
+
+void DynamicTexture2::MakeReady(GraphicsContext* context)
+{
+	return _dynamicTexture2_MakeReady(this, context);
+}
+
+void DynamicTexture2::Init(int flags, void* unk_nullptr, const ImageParams& imageParams, int bufferType, uint32_t flags1, void* memInfo, uint32_t flags2, int cpuAccessType, void* clearValue)
+{
+	return _dynamicTexture2_Init(this, flags, unk_nullptr, imageParams, bufferType, flags1, memInfo, flags2, cpuAccessType, clearValue);
+}
+
+Texture* DynamicTexture2::GetTexture()
+{
+	return ((Texture**)this)[GetResourceIdx()];
+}
+
+bool DynamicTexture2::Map(GraphicsContext* context, MapData& mapData)
+{
+	return _dynamicTexture2_Map(this, context, mapData);
+}
+
+void DynamicTexture2::Unmap(GraphicsContext* context, const MapData& mapData)
+{
+	UnmapBase(context, mapData);
+	UnmapInternal(context, mapData);
+}
+
+void DynamicTexture2::UnmapInternal(GraphicsContext* context, const MapData& mapData)
+{
+	return _dynamicTexture2_UnmapInternal(this, context, mapData);
+}
 }
 
 static HookFunction hookFunction([]()

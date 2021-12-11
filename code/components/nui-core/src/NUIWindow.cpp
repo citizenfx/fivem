@@ -360,6 +360,14 @@ void NUIWindow::Initialize(CefString url)
 	static ConVar<bool> nuiSharedResources("nui_useSharedResources", ConVar_Archive, true, &nuiSharedResourcesEnabled);
 #endif
 
+	// Vulkan/D3D12(on7) don't support shared resources before Windows 10
+#if defined(IS_RDR3)
+	if (!IsWindows10OrGreater())
+	{
+		nuiSharedResourcesEnabled = false;
+	}
+#endif
+
 	if (m_renderBuffer)
 	{
 		delete[] m_renderBuffer;

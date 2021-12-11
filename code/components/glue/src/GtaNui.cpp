@@ -126,7 +126,13 @@ static tbb::concurrent_queue<std::function<void()>> g_onRenderQueue;
 static tbb::concurrent_queue<std::function<void()>> g_earlyOnRenderQueue;
 static std::mutex g_frontendDeletionMutex;
 
-class GtaNuiTexture : public nui::GITexture
+class GtaNuiTextureBase : public nui::GITexture
+{
+public:
+	virtual rage::grcTexture* GetTexture() = 0;
+};
+
+class GtaNuiTexture final : public GtaNuiTextureBase
 {
 private:
 	rage::grcTexture* m_texture;
@@ -222,7 +228,7 @@ public:
 		m_overriddenSRV = true;
 	}
 
-	inline rage::grcTexture* GetTexture() { return m_texture; }
+	virtual rage::grcTexture* GetTexture() override { return m_texture; }
 
 	virtual void* GetNativeTexture() override
 	{
@@ -297,6 +303,100 @@ public:
 	}
 };
 
+#ifdef IS_RDR3
+class GtaNuiDynamicTexture final : public GtaNuiTextureBase
+{
+private:
+	rage::sga::ext::DynamicTexture2* m_texture;
+
+	std::shared_ptr<GtaNuiDynamicTexture*> m_canary;
+
+public:
+	explicit GtaNuiDynamicTexture(std::function<rage::sga::ext::DynamicTexture2*(GtaNuiDynamicTexture*)> fn)
+		: m_texture(nullptr)
+	{
+		m_canary = std::make_shared<GtaNuiDynamicTexture*>(this);
+
+		// make a weak reference to the class pointer, so if it gets `delete`d, we can just ignore this creation attempt
+		std::weak_ptr<GtaNuiDynamicTexture*> weakCanary = m_canary;
+
+		g_onRenderQueue.push([weakCanary, fn]()
+		{
+			std::unique_lock<std::mutex> lock(g_frontendDeletionMutex);
+			auto ref = weakCanary.lock();
+
+			if (ref)
+			{
+				(*ref)->m_texture = fn(*ref);
+			}
+			else
+			{
+			}
+		});
+	}
+
+	virtual ~GtaNuiDynamicTexture()
+	{
+		auto texture = m_texture;
+		m_texture = nullptr;
+
+		g_onRenderQueue.push([texture]()
+		{
+			delete texture;
+		});
+	}
+
+	inline rage::grcTexture* GetTexture()
+	{
+		if (m_texture)
+		{
+			return static_cast<rage::grcTexture*>(m_texture->GetTexture());
+		}
+
+		return nullptr;
+	}
+
+	virtual void* GetNativeTexture() override
+	{
+		return GetTexture();
+	}
+
+	virtual void* GetHostTexture() override
+	{
+		return m_texture;
+	}
+
+	virtual bool Map(int numSubLevels, int subLevel, nui::GILockedTexture* lockedTexture, nui::GILockFlags flags) override
+	{
+		if (m_texture)
+		{
+			m_texture->MakeReady(rage::sga::GraphicsContext::GetCurrent());
+
+			rage::sga::MapData mapData;
+			if (m_texture->Map(nullptr, mapData))
+			{
+				lockedTexture->pBits = mapData.GetBuffer();
+				lockedTexture->pitch = mapData.GetStride();
+
+				lastMapData = mapData;
+
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	virtual void Unmap(nui::GILockedTexture* lockedTexture) override
+	{
+		m_texture->Unmap(nullptr, lastMapData);
+	}
+
+private:
+	rage::sga::MapData lastMapData;
+};
+#endif
+
 void GtaNuiInterface::GetGameResolution(int* width, int* height)
 {
 	int w, h;
@@ -368,6 +468,21 @@ fwRefContainer<GITexture> GtaNuiInterface::CreateTextureBacking(int width, int h
 	textureDef.arraySize = 1;
 
 	return new GtaNuiTexture(rage::grcTextureFactory::getInstance()->createManualTexture(width, height, 2 /* maps to BGRA DXGI format */, nullptr, true, &textureDef));
+#elif defined(IS_RDR3)
+	return new GtaNuiDynamicTexture([width, height](GtaNuiDynamicTexture*)
+	{
+		rage::sga::ImageParams ip;
+		ip.width = width;
+		ip.height = height;
+		ip.depth = 1;
+		ip.levels = 1;
+		ip.dimension = 1;
+		ip.bufferFormat = rage::sga::BufferFormat::B8G8R8A8_UNORM;
+
+		auto texture = new rage::sga::ext::DynamicTexture2();
+		texture->Init(3, nullptr, ip, 0, 2, nullptr, 8, 1, nullptr);
+		return texture;
+	});
 #else
 	return new GtaNuiTexture([width, height](GtaNuiTexture*)
 	{
@@ -606,7 +721,7 @@ void GtaNuiInterface::SetTexture(fwRefContainer<GITexture> texture, bool pm)
 
 	g_currentTexture = texture;
 
-	SetTextureGtaIm(static_cast<GtaNuiTexture*>(texture.GetRef())->GetTexture());
+	SetTextureGtaIm(static_cast<GtaNuiTextureBase*>(texture.GetRef())->GetTexture());
 
 #if _HAVE_GRCORE_NEWSTATES
 	m_oldRasterizerState = GetRasterizerState();
