@@ -198,28 +198,6 @@ inline ISteamComponent* GetSteam()
 	return steamComponent;
 }
 
-inline bool HasDefaultName()
-{
-	auto steamComponent = GetSteam();
-
-	if (steamComponent)
-	{
-		IClientEngine* steamClient = steamComponent->GetPrivateClient();
-
-		if (steamClient)
-		{
-			InterfaceMapper steamFriends(steamClient->GetIClientFriends(steamComponent->GetHSteamUser(), steamComponent->GetHSteamPipe(), "CLIENTFRIENDS_INTERFACE_VERSION001"));
-
-			if (steamFriends.IsValid())
-			{
-				return true;
-			}
-		}
-	}
-
-	return false;
-}
-
 NetLibrary* netLibrary;
 static bool g_connected;
 
@@ -239,7 +217,7 @@ static void SetNickname(const std::string& name)
 
 	const char* text = netLibrary->GetPlayerName();
 
-	if (text != name && !HasDefaultName())
+	if (text != name && !name.empty())
 	{
 		trace("Loaded nickname: %s\n", name);
 		netLibrary->SetPlayerName(name.c_str());
