@@ -431,12 +431,34 @@ static int ReturnFalse()
 	return 0;
 }
 
+static BOOL WINAPI GetExitCodeProcessStub(_In_ HANDLE hProcess, _Out_ LPDWORD lpExitCode)
+{
+	if (!GetExitCodeProcess(hProcess, lpExitCode))
+	{
+		*lpExitCode = 0;
+	}
+
+	return TRUE;
+}
+
 static BOOL WINAPI ShellExecuteExWStub(_Inout_ SHELLEXECUTEINFOW *pExecInfo)
 {
 	if (pExecInfo->lpFile && wcsstr(pExecInfo->lpFile, L"RockstarService"))
 	{
 		// setting SEE_MASK_FLAG_NO_UI bypasses some slow stuff
 		pExecInfo->fMask |= SEE_MASK_FLAG_NO_UI;
+
+		if (CfxIsWine())
+		{
+			STARTUPINFOW siw = { sizeof(STARTUPINFOW) };
+			PROCESS_INFORMATION pi = { 0 };
+			CreateProcessW(NULL, const_cast<wchar_t*>(va(L"\"%s\" %s", pExecInfo->lpFile, pExecInfo->lpParameters)), NULL, NULL, FALSE, 0, NULL, pExecInfo->lpDirectory, &siw, &pi);
+
+			pExecInfo->hProcess = pi.hProcess;
+			CloseHandle(pi.hThread);
+			
+			return TRUE;
+		}
 
 		return ShellExecuteExW(pExecInfo);
 	}
@@ -596,6 +618,8 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 
 		hook::iat("shell32.dll", ShellExecuteExWStub, "ShellExecuteExW");
 		hook::iat("shell32.dll", ShellExecuteWStub, "ShellExecuteW");
+
+		hook::iat("kernel32.dll", GetExitCodeProcessStub, "GetExitCodeProcess");
 
 		DoLauncherUiSkip();
 

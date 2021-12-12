@@ -88,6 +88,11 @@ SC_HANDLE OpenServiceWHook(_In_ SC_HANDLE hSCManager, _In_ LPCWSTR lpServiceName
 	return (SC_HANDLE)4096;
 }
 
+BOOL CloseServiceHandleHook(_In_ SC_HANDLE hSCObject)
+{
+	return TRUE;
+}
+
 BOOL StartServiceCtrlDispatcherWHook(_In_ CONST SERVICE_TABLE_ENTRYW* lpServiceStartTable)
 {
 	const wchar_t* a = L"";
@@ -145,6 +150,7 @@ static std::vector<std::tuple<const char*, void*, const char*>> g_serviceHooks =
 	{ "kernel32.dll", CreateFileMappingAHook, "CreateFileMappingA" },
 	{ "advapi32.dll", QueryServiceStatusExHook, "QueryServiceStatusEx" },
 	{ "advapi32.dll", OpenServiceWHook, "OpenServiceW" },
+	{ "advapi32.dll", CloseServiceHandleHook, "CloseServiceHandle" },
 	{ "advapi32.dll", QueryServiceConfigWHook, "QueryServiceConfigW" },
 	{ "shell32.dll", ShellExecuteWStub, "ShellExecuteW" },
 	{ "wintrust.dll", WinVerifyTrustStub, "WinVerifyTrust" },

@@ -335,6 +335,8 @@ bool LoopbackTcpServerManager::Connect(SOCKET s, const sockaddr* name, int namel
 				TriggerSocketEvent(s, FD_CONNECT);
 				TriggerSocketEvent(s, FD_WRITE);
 
+				WSASetLastError(WSAEWOULDBLOCK);
+
 				return true;
 			}
 		}
@@ -1006,7 +1008,8 @@ static int __stdcall EP_GetAddrInfo(const char* name, const char* serviceName, c
 {
 	int outValue;
 
-	if (!ShouldBeHooked(_ReturnAddress()) || !g_manager->GetAddrInfoA(name, serviceName, hints, result, &outValue))
+	// we aren't doing a ShouldBeHooked check here, since this will be used for e.g. `ros.citizenfx.internal` which we *do* want to hook
+	if (!g_manager->GetAddrInfoA(name, serviceName, hints, result, &outValue))
 	{
 		return g_oldGetAddrInfo(name, serviceName, hints, result);
 	}
@@ -1283,19 +1286,13 @@ static BOOL __stdcall EP_CreateProcessW(const wchar_t* applicationName, wchar_t*
 	bool isSubprocess = wcsstr(commandLine, L"subprocess.exe") || StrStrIW(commandLine, L"SocialClubHelper.exe");
 	bool isService = wcsstr(commandLine, L"RockstarService.exe");
 
-	if (/*socialClubLib && */applicationName || isSubprocess)
+	if (applicationName || isSubprocess || isService)
 	{
-		/*wchar_t rosFolder[MAX_PATH];
-		GetModuleFileName(socialClubLib, rosFolder, _countof(rosFolder));
-
-		wcsrchr(rosFolder, L'\\')[1] = L'\0';
-		wcscat(rosFolder, L"subprocess.exe");*/
-
-		//if (boost::filesystem::equivalent(rosFolder, applicationName))
 		if (isSubprocess ||
-			boost::filesystem::path(applicationName).filename() == "subprocess.exe" ||
-			boost::filesystem::path(applicationName).filename() == "SocialClubHelper.exe" ||
-			boost::filesystem::path(applicationName).filename() == "socialclubhelper.exe")
+			(applicationName && (
+				boost::filesystem::path(applicationName).filename() == "subprocess.exe" ||
+				boost::filesystem::path(applicationName).filename() == "SocialClubHelper.exe" ||
+				boost::filesystem::path(applicationName).filename() == "socialclubhelper.exe")))
 		{
 			HANDLE hProcess = OpenProcess(SYNCHRONIZE, FALSE, g_rosParentPid);
 
@@ -1307,73 +1304,10 @@ static BOOL __stdcall EP_CreateProcessW(const wchar_t* applicationName, wchar_t*
 			SubprocessPipe(commandLine);
 
 			return TRUE;
-
-            // don't create any more subprocesses if this is the case :/
-            if (g_subProcessHandles.size() == 42)
-            {
-                HANDLE hProcess = OpenProcess(SYNCHRONIZE, FALSE, g_rosParentPid);
-
-                information->dwProcessId = g_rosParentPid;
-                information->dwThreadId = 0;
-                information->hProcess = hProcess;
-                information->hThread = INVALID_HANDLE_VALUE;
-
-                return TRUE;
-            }
-
-			BOOL retval;
-
-			// parse the existing environment block
-			EnvironmentMap environmentMap;
-
-			{
-				wchar_t* environmentStrings = GetEnvironmentStrings();
-
-				ParseEnvironmentBlock(environmentStrings, environmentMap);
-
-				FreeEnvironmentStrings(environmentStrings);
-			}
-
-			// insert tool mode value
-			environmentMap[L"CitizenFX_ToolMode"] = L"1";
-
-			// output the environment into a new block
-			std::vector<wchar_t> newEnvironment;
-
-			BuildEnvironmentBlock(environmentMap, newEnvironment);
-
-			// not as safe as recreating the environment block, but easier
-			//SetEnvironmentVariable(L"CitizenFX_ToolMode", L"1");
-
-			auto fxApplicationName = MakeCfxSubProcess(L"ROSSubProcess");
-
-			// set the command line
-			const wchar_t* newCommandLine = va(L"\"%s\" ros:subprocess %s --remote-debugging-port=13171 --ignore-certificate-errors", fxApplicationName, commandLine);
-
-			// and go create the new fake process
-			retval = g_oldCreateProcessW(fxApplicationName, const_cast<wchar_t*>(newCommandLine), processAttributes, threadAttributes, inheritHandles, creationFlags | CREATE_UNICODE_ENVIRONMENT, &newEnvironment[0], currentDirectory, startupInfo, information);
-
-			if (!retval)
-			{
-				auto error = GetLastError();
-
-				trace("Creating subprocess failed - %d\n", error);
-			}
-			else
-			{
-				trace("Got ROS subprocess - pid %d\n", information->dwProcessId);
-
-				g_subProcessHandles.push_back(information->dwProcessId);
-			}
-
-			// unset the environment variable
-			//SetEnvironmentVariable(L"CitizenFX_ToolMode", L"0");
-
-			return retval;
 		}
 
 		if (isService ||
-			boost::filesystem::path(applicationName).filename() == "RockstarService.exe")
+			(applicationName && boost::filesystem::path(applicationName).filename() == "RockstarService.exe"))
 		{
 			auto mutex = OpenMutexW(SYNCHRONIZE, FALSE, va(L"Cfx_ROSServiceMutex_%s", ToWide(launch::GetLaunchModeKey())));
 
@@ -1407,7 +1341,7 @@ static BOOL __stdcall EP_CreateProcessW(const wchar_t* applicationName, wchar_t*
 			auto fxApplicationName = MakeCfxSubProcess(L"ROSService", L"game_mtl");
 
 			// set the command line
-			const wchar_t* newCommandLine = va(L"\"%s\" ros:service", fxApplicationName, commandLine);
+			const wchar_t* newCommandLine = va(L"\"%s\" ros:service", fxApplicationName);
 
 			// and go create the new fake process
 			retval = g_oldCreateProcessW(fxApplicationName, const_cast<wchar_t*>(newCommandLine), processAttributes, threadAttributes, inheritHandles, creationFlags | CREATE_UNICODE_ENVIRONMENT | CREATE_SUSPENDED, &newEnvironment[0], currentDirectory, startupInfo, information);
@@ -1445,15 +1379,6 @@ static BOOL __stdcall EP_CreateProcessW(const wchar_t* applicationName, wchar_t*
 				SetEvent(hEvent);
 				CloseHandle(hEvent);
 			}
-
-			/*for (auto& subProcess : g_subProcessHandles)
-			{
-				HANDLE hSub = OpenProcess(PROCESS_TERMINATE, FALSE, subProcess);
-				TerminateProcess(hSub, 42);
-				CloseHandle(hSub);
-
-                g_subProcessHandles.resize(42);
-			}*/
 
 			HANDLE hProcess = OpenProcess(SYNCHRONIZE, FALSE, g_rosParentPid);
 
@@ -1984,7 +1909,14 @@ void OnPreInitHook()
 		DO_HOOK_NO_ASSERT(L"kernel32.dll", "CallbackMayRunLong", EP_CallbackMayRunLong, g_oldCallbackMayRunLong);
 	}
 
-	DO_HOOK(L"kernel32.dll", "CreateProcessW", EP_CreateProcessW, g_oldCreateProcessW);
+	if (!CfxIsWine())
+	{
+		DO_HOOK(L"kernel32.dll", "CreateProcessW", EP_CreateProcessW, g_oldCreateProcessW);
+	}
+	else
+	{
+		DO_HOOK(L"kernelbase.dll", "CreateProcessW", EP_CreateProcessW, g_oldCreateProcessW);
+	}
 
 	if (getenv("CitizenFX_ToolMode") && !strstr(GetCommandLineA(), "ros:launcher")) // hacky...
 	{

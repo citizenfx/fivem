@@ -716,6 +716,67 @@ NTSTATUS WINAPI NtDeleteFileStub(POBJECT_ATTRIBUTES objectAttributes)
 	return g_origNtDeleteFile(objectAttributes);
 }
 
+static DWORD(WINAPI* g_origRtlGetFullPathName_U)(const WCHAR* name, ULONG size, WCHAR* buffer, WCHAR** file_part);
+
+static DWORD WINAPI RtlGetFullPathName_UStub(const WCHAR* name, ULONG size, WCHAR* buffer, WCHAR** file_part)
+{
+	auto tls = GetTls();
+
+	if (!tls->inQueryAttributes)
+	{
+		tls->inQueryAttributes = true;
+
+		if (IsMappedFilename(name))
+		{
+			auto rv = g_origRtlGetFullPathName_U(MapRedirectedFilename(name).c_str(), size, buffer, file_part);
+			tls->inQueryAttributes = false;
+			return rv;
+		}
+
+		tls->inQueryAttributes = false;
+	}
+
+	return g_origRtlGetFullPathName_U(name, size, buffer, file_part);
+}
+
+NTSTATUS(WINAPI* g_origNtQueryFullAttributesFile)(POBJECT_ATTRIBUTES objectAttributes, void* networkInformation);
+
+NTSTATUS WINAPI NtQueryFullAttributesFileStub(POBJECT_ATTRIBUTES objectAttributes, void* networkInformation)
+{
+	auto tls = GetTls();
+
+	if (!tls->inQueryAttributes)
+	{
+		tls->inQueryAttributes = true;
+
+		OBJECT_ATTRIBUTES attributes = *objectAttributes;
+		UNICODE_STRING newString;
+
+		// map the filename
+		std::wstring moduleNameStr(objectAttributes->ObjectName->Buffer, objectAttributes->ObjectName->Length / sizeof(wchar_t));
+
+		if (IsMappedFilename(moduleNameStr))
+		{
+			moduleNameStr = MapRedirectedNtFilename(moduleNameStr.c_str());
+
+			// NT doesn't like slashes
+			std::replace(moduleNameStr.begin(), moduleNameStr.end(), L'/', L'\\');
+
+			// set stuff
+			RtlInitUnicodeString(&newString, moduleNameStr.c_str());
+			attributes.ObjectName = &newString;
+		}
+
+		tls->inQueryAttributes = false;
+
+		NTSTATUS retval = g_origNtQueryFullAttributesFile(&attributes, networkInformation);
+
+		return retval;
+	}
+
+	return g_origNtQueryFullAttributesFile(objectAttributes, networkInformation);
+}
+
 NTSTATUS(WINAPI* g_origNtQueryAttributesFile)(POBJECT_ATTRIBUTES objectAttributes, void* basicInformation);
 
 NTSTATUS WINAPI NtQueryAttributesFileStub(POBJECT_ATTRIBUTES objectAttributes, void* basicInformation)
@@ -1034,8 +1095,10 @@ extern "C" DLL_EXPORT void CoreSetMappingFunction(MappingFunctionType function)
 	MH_CreateHookApi(L"ntdll.dll", "NtOpenFile", NtOpenFileStub, (void**)&g_origNtOpenFile);
 	MH_CreateHookApi(L"ntdll.dll", "NtDeleteFile", NtDeleteFileStub, (void**)&g_origNtDeleteFile);
 	MH_CreateHookApi(L"ntdll.dll", "NtQueryAttributesFile", NtQueryAttributesFileStub, (void**)&g_origNtQueryAttributesFile);
+	MH_CreateHookApi(L"ntdll.dll", "NtQueryFullAttributesFile", NtQueryFullAttributesFileStub, (void**)&g_origNtQueryFullAttributesFile);
 	MH_CreateHookApi(L"ntdll.dll", "LdrLoadDll", LdrLoadDllStub, (void**)&g_origLoadDll);
 	MH_CreateHookApi(L"ntdll.dll", "LdrGetProcedureAddress", LdrGetProcedureAddressStub, (void**)&g_origGetProcedureAddress);
+	MH_CreateHookApi(L"ntdll.dll", "RtlGetFullPathName_U", RtlGetFullPathName_UStub, (void**)&g_origRtlGetFullPathName_U);
 	MH_CreateHookApi(L"version.dll", "GetFileVersionInfoSizeW", GetFileVersionInfoSizeWStub, (void**)&g_origGetFileVersionInfoSizeW);
 	MH_CreateHookApi(L"version.dll", "GetFileVersionInfoSizeA", GetFileVersionInfoSizeAStub, (void**)&g_origGetFileVersionInfoSizeA);
 	MH_CreateHookApi(L"version.dll", "GetFileVersionInfoW", GetFileVersionInfoWStub, (void**)&g_origGetFileVersionInfoW);

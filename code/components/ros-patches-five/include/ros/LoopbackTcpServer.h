@@ -84,7 +84,7 @@ public:
 	fwRefContainer<LoopbackTcpServerStream> CreateConnection(SOCKET socket);
 };
 
-#include <concurrent_unordered_map.h>
+#include <tbb/concurrent_unordered_map.h>
 
 class LoopbackTcpServerManager : public fwRefCountable
 {
@@ -98,7 +98,7 @@ private:
 private:
 	std::multimap<uint32_t, fwRefContainer<LoopbackTcpServer>> m_tcpServers;
 
-	concurrency::concurrent_unordered_map<SOCKET, fwRefContainer<LoopbackTcpServerStream>> m_socketStreams;
+	tbb::concurrent_unordered_map<SOCKET, fwRefContainer<LoopbackTcpServerStream>> m_socketStreams;
 
 	std::multimap<SOCKET, WSAEVENT> m_socketEvents;
 
