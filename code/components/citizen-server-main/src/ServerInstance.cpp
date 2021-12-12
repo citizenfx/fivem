@@ -77,6 +77,7 @@ namespace fx
 
 		auto quit = [this](const std::string& reason)
 		{
+			trace("-> Quitting: %s\n", reason);
 			OnRequestQuit(reason);
 
 			m_shouldTerminate = true;

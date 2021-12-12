@@ -411,10 +411,11 @@ bool InitializeExceptionHandler(int argc, char* argv[])
 
 	if (access("/lib/ld-musl-x86_64.so.1", F_OK) != -1)
 	{
-		args.resize(argc + 3);
-		memcpy(args.data(), argv, argc * sizeof(char*));
-		args[argc] = strdup(va("-dumpserver:%d", server_fd));
-		args[argc + 1] = strdup(va("-parentppe:%d", fds[1]));
+		args.resize(3);
+		args[0] = strdup(MakeRelativeCitPath(L"FXServer").c_str());
+		args[1] = strdup(va("-dumpserver:%d", server_fd));
+		args[2] = strdup(va("-parentppe:%d", fds[1]));
+		args.push_back(nullptr);
 	}
 	else
 	{

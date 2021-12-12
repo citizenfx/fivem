@@ -34,4 +34,6 @@ int main(int argc, char* argv[])
 
 	fx::Server server;
 	server.Start(argc, argv);
+
+	return 1;
 }
