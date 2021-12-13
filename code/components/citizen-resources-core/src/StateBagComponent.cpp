@@ -1,6 +1,8 @@
 #include <StdInc.h>
 #include <StateBagComponent.h>
 
+#include <ResourceManager.h>
+
 #include <shared_mutex>
 #include <unordered_set>
 
@@ -61,6 +63,9 @@ private:
 	StateBagRole m_role;
 
 	std::unordered_set<int> m_targets;
+
+	std::unordered_set<std::string> m_erasureList;
+	std::shared_mutex m_erasureMutex;
 
 	// TODO: evaluate transparent usage when we switch to C++20 compiler modes
 	std::unordered_map<std::string, std::weak_ptr<StateBagImpl>> m_stateBags;
@@ -336,6 +341,7 @@ void StateBagComponentImpl::SetGameInterface(StateBagGameInterface* gi)
 std::shared_ptr<StateBag> StateBagComponentImpl::RegisterStateBag(std::string_view id)
 {
 	std::shared_ptr<StateBagImpl> bag;
+	std::string strId{ id };
 
 	{
 		std::unique_lock lock(m_mapMutex);
@@ -360,7 +366,12 @@ std::shared_ptr<StateBag> StateBagComponentImpl::RegisterStateBag(std::string_vi
 
 		// *only* start making a new one here as otherwise we'll delete the existing bag
 		bag = std::make_shared<StateBagImpl>(this, id);
-		m_stateBags[std::string{ id }] = bag;
+		m_stateBags[strId] = bag;
+	}
+
+	{
+		std::unique_lock _(m_erasureMutex);
+		m_erasureList.erase(strId);
 	}
 
 	return bag;
@@ -368,8 +379,8 @@ std::shared_ptr<StateBag> StateBagComponentImpl::RegisterStateBag(std::string_vi
 
 void StateBagComponentImpl::UnregisterStateBag(std::string_view id)
 {
-	std::unique_lock lock(m_mapMutex);
-	m_stateBags.erase(std::string{ id });
+	std::unique_lock _(m_erasureMutex);
+	m_erasureList.emplace(id);
 }
 
 std::shared_ptr<StateBag> StateBagComponentImpl::GetStateBag(std::string_view id)
@@ -462,7 +473,38 @@ std::shared_ptr<StateBag> StateBagComponentImpl::PreCreateStateBag(std::string_v
 
 void StateBagComponentImpl::AttachToObject(fx::ResourceManager* object)
 {
+	object->OnTick.Connect([this]()
+	{
+		bool isEmpty = true;
 
+		{
+			std::shared_lock _(m_erasureMutex);
+			isEmpty = m_erasureList.empty();
+		}
+
+		if (isEmpty)
+		{
+			return;
+		}
+
+		decltype(m_erasureList) erasureList;
+
+		{
+			std::unique_lock _(m_erasureMutex);
+			erasureList = std::move(m_erasureList);
+		}
+
+		if (!erasureList.empty())
+		{
+			std::unique_lock lock(m_mapMutex);
+
+			for (const auto& id : erasureList)
+			{
+				m_stateBags.erase(id);
+			}
+		}
+	},
+	INT32_MIN);
 }
 
 void StateBagComponentImpl::HandlePacket(int source, std::string_view dataRaw)
