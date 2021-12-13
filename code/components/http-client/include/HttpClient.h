@@ -85,7 +85,7 @@ using HttpRequestPtr = std::shared_ptr<HttpRequestHandle>;
 class HTTP_EXPORT HttpClient
 {
 public:
-	HttpClient(const wchar_t* userAgent = L"CitizenFX/1");
+	HttpClient(const wchar_t* userAgent = L"CitizenFX/1", const std::string& loopId = {});
 	virtual ~HttpClient();
 
 	std::string BuildPostString(const std::map<std::string, std::string>& fields);

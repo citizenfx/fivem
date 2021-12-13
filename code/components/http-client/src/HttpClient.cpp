@@ -307,7 +307,7 @@ static int CurlStartTimeout(CURLM* multi, long timeout_ms, void* userp)
 	return 0;
 }
 
-HttpClient::HttpClient(const wchar_t* userAgent /* = L"CitizenFX/1" */)
+HttpClient::HttpClient(const wchar_t* userAgent /* = L"CitizenFX/1" */, const std::string& loopId)
 	: m_impl(new HttpClientImpl())
 {
 	m_impl->client = this;
@@ -320,7 +320,7 @@ HttpClient::HttpClient(const wchar_t* userAgent /* = L"CitizenFX/1" */)
 	curl_multi_setopt(m_impl->multi, CURLMOPT_TIMERFUNCTION, CurlStartTimeout);
 	curl_multi_setopt(m_impl->multi, CURLMOPT_TIMERDATA, m_impl);
 	
-	auto loop = Instance<net::UvLoopManager>::Get()->GetOrCreate("httpClient");
+	auto loop = Instance<net::UvLoopManager>::Get()->GetOrCreate(loopId.empty() ? "httpClient" : loopId);
 	m_impl->loop = loop->GetLoop();
 
 	loop->EnqueueCallback([this, loop]()
