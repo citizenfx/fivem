@@ -100,6 +100,8 @@ public:
 
 	void SendAll(int target);
 
+	void SendAllInitial(int target);
+
 private:
 	StateBagComponentImpl* m_parent;
 
@@ -212,6 +214,19 @@ void StateBagImpl::SendAll(int target)
 	{
 		SendKey(target, key);
 	}
+}
+
+void StateBagImpl::SendAllInitial(int target)
+{
+	{
+		std::shared_lock _(m_routingTargetsMutex);
+		if (!m_routingTargets.empty() && m_routingTargets.find(target) == m_routingTargets.end())
+		{
+			return;
+		}
+	}
+
+	SendAll(target);
 }
 
 void StateBagImpl::SendKeyAll(std::string_view key)
@@ -390,7 +405,7 @@ void StateBagComponentImpl::RegisterTarget(int id)
 
 			if (entry)
 			{
-				entry->SendAll(id);
+				entry->SendAllInitial(id);
 			}
 		}
 	}
