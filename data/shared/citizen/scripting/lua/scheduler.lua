@@ -532,7 +532,6 @@ Citizen.SetCallRefRoutine(function(refId, argsSerialized)
 
 	if not waited then
 		if err then
-			--error(err)
 			if err ~= '' then
 				Citizen.Trace(err)
 			end
@@ -761,6 +760,10 @@ funcref_mt = msgpack.extend({
 
 				return table_unpack(Citizen.Await(p))
 			end
+			
+			if not rvs then
+				error()
+			end
 
 			return table_unpack(rvs)
 		else
@@ -849,7 +852,7 @@ end
 local function exportProcessResult(resource, k, status, ...)
 	if not status then
 		local result = tostring(select(1, ...))
-		error('An error happened while calling export ' .. k .. ' of resource ' .. resource .. ' (' .. result .. '), see above for details')
+		error('An error occurred while calling export ' .. k .. ' of resource ' .. resource .. ' (' .. result .. '), see above for details')
 	end
 	return ...
 end
