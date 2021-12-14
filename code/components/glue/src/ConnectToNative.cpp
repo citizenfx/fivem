@@ -1142,7 +1142,6 @@ static InitFunction initFunction([] ()
 				TerminateProcess(GetCurrentProcess(), 0);
 			});
 		}
-#ifdef GTA_FIVE
 		else if (!_wcsicmp(type, L"setDiscourseIdentity"))
 		{
 			try
@@ -1203,7 +1202,6 @@ static InitFunction initFunction([] ()
 				trace("failed to set discourse identity: %s\n", e.what());
 			}
 		}
-#endif
 		else if (!_wcsicmp(type, L"submitCardResponse"))
 		{
 			try
