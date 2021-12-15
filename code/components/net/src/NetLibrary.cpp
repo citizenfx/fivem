@@ -1435,6 +1435,12 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 														policies.insert("subdir_file_mapping");
 													}
 
+													// dev server
+													if (maxClients <= 8)
+													{
+														policies.insert("local_evaluation");
+													}
+
 													// format policy string and store it
 													std::stringstream policyStr;
 

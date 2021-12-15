@@ -43,6 +43,179 @@ static void(*dataFileMgr__loadDat)(void*, const char*, bool, void*);
 static void(*dataFileMgr__loadDefDat)(void*, const char*, bool, void*);
 #endif
 
+static bool IsEvaluationServer()
+{
+	std::string policyVal;
+
+	if (Instance<ICoreGameInit>::Get()->GetData("policy", &policyVal))
+	{
+#ifndef _DEBUG
+		if (policyVal.find("[local_evaluation]") != std::string::npos)
+#endif
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+// blocked assets part of 2545
+static const std::set<std::string> g_blockedNames2372 =
+{
+	"astron.yft",
+	"astron.ytd",
+	"astron_hi.yft",
+	"champion.yft",
+	"champion.ytd",
+	"champion_hi.yft",
+	"cinquemila.yft",
+	"cinquemila.ytd",
+	"cinquemila_hi.yft",
+	"deity.yft",
+	"deity.ytd",
+	"deity_hi.yft",
+	"ignus.yft",
+	"ignus.ytd",
+	"ignus_hi.yft",
+	"iwagen.yft",
+	"iwagen.ytd",
+	"iwagen_hi.yft",
+	"jubilee.yft",
+	"jubilee.ytd",
+	"jubilee_hi.yft",
+	"reever.yft",
+	"reever.ytd",
+	"reever_hi.yft",
+	"shinobi.yft",
+	"shinobi.ytd",
+	"shinobi_hi.yft",
+	"zeno.yft",
+	"zeno.ytd",
+	"zeno_hi.yft",
+	"zeno+hi.ytd",
+	"sf_mp_apa_crashed_usaf.ytyp",
+	"sf_mp_apa_crashed_usaf_01a.ydr",
+	"sf_mp_apa_crashed_usaf_crashed_usaf_01a.ytd",
+	"sf_mp_apa_yacht.ydr",
+	"sf_mp_apa_yacht.ytyp",
+	"sf_mp_apa_yacht_win.ydr",
+	"sf_mp_apa_yacht_door.ydr",
+	"sf_mp_apa_yacht_door.ytd",
+	"sf_mp_apa_yacht_door.ytyp",
+	"sf_mp_apa_yacht_door2.ydr",
+	"sf_mp_apa_yacht_jacuzzi.ycd",
+	"sf_mp_apa_yacht_jacuzzi.ytyp",
+	"sf_mp_apa_yacht_jacuzzi_camera.ydr",
+	"sf_mp_apa_yacht_jacuzzi_ripple003.ydr",
+	"sf_mp_apa_yacht_jacuzzi_ripple1.ydr",
+	"sf_mp_apa_yacht_jacuzzi_ripple1.ytd",
+	"sf_mp_apa_yacht_jacuzzi_ripple2.ydr",
+	"sf_mp_apa_y1_l1a.ydr",
+	"sf_mp_apa_y1_l1b.ydr",
+	"sf_mp_apa_y1_l1c.ydr",
+	"sf_mp_apa_y1_l1d.ydr",
+	"sf_mp_apa_y1_l2a.ydr",
+	"sf_mp_apa_y1_l2b.ydr",
+	"sf_mp_apa_y1_l2c.ydr",
+	"sf_mp_apa_y1_l2d.ydr",
+	"sf_mp_apa_y2_l1a.ydr",
+	"sf_mp_apa_y2_l1b.ydr",
+	"sf_mp_apa_y2_l1c.ydr",
+	"sf_mp_apa_y2_l1d.ydr",
+	"sf_mp_apa_y2_l2a.ydr",
+	"sf_mp_apa_y2_l2b.ydr",
+	"sf_mp_apa_y2_l2c.ydr",
+	"sf_mp_apa_y2_l2d.ydr",
+	"sf_mp_apa_y3_l1a.ydr",
+	"sf_mp_apa_y3_l1b.ydr",
+	"sf_mp_apa_y3_l1c.ydr",
+	"sf_mp_apa_y3_l1d.ydr",
+	"sf_mp_apa_y3_l2a.ydr",
+	"sf_mp_apa_y3_l2b.ydr",
+	"sf_mp_apa_y3_l2c.ydr",
+	"sf_mp_apa_y3_l2d.ydr",
+	"sf_mp_apa_yacht_light.ytd",
+	"sf_mp_apa_yacht_lightrig.ytyp",
+	"sf_mp_apa_yacht_text.ytyp",
+	"sf_prop_ap_name_text.ydr",
+	"sf_prop_ap_port_text.ydr",
+	"sf_prop_ap_starb_text.ydr",
+	"sf_prop_ap_stern_text.ydr",
+	"sf_p_sf_grass_gls_s_01a.yft",
+	"sf_p_sf_grass_gls_s_02a.yft",
+	"sf_prop_sf_accs_02.ytyp",
+	"sf_prop_sf_apple_01a.ydr",
+	"sf_prop_sf_apple_01b.ydr",
+	"sf_prop_sf_bed_dog_01a.ydr",
+	"sf_prop_sf_bed_dog_01a+hidr.ytd",
+	"sf_prop_sf_bed_dog_01b.ydr",
+	"sf_prop_sf_bed_dog_01b+hidr.ytd",
+	"sf_prop_sf_bong_01a.ydr",
+	"sf_prop_sf_bot_broken_01a.ydr",
+	"sf_prop_sf_bowl_fruit_01a.ydr",
+	"sf_prop_sf_bowl_fruit_01a.ytd",
+	"sf_prop_sf_can_01a.ydr",
+	"sf_prop_sf_cleaning_pad_01a.ydr",
+	"sf_prop_sf_g_bong_01a.ydr",
+	"sf_prop_sf_game_clock_01a.ydr",
+	"sf_prop_sf_helmet_01a.ydr",
+	"sf_prop_sf_npc_phone_01a.ydr",
+	"sf_prop_sf_pack_can_01a.ydr",
+	"sf_prop_sf_scr_m_lrg_01a.ydr",
+	"sf_prop_sf_scr_m_lrg_01b.ydr",
+	"sf_prop_sf_scr_m_lrg_01c.ydr",
+	"sf_prop_sf_scrn_drp_01a.ydr",
+	"sf_prop_sf_scrn_la_01a.ydr",
+	"sf_prop_sf_scrn_la_02a.ydr",
+	"sf_prop_sf_scrn_la_03a.ydr",
+	"sf_prop_sf_scrn_la_04a.ydr",
+	"sf_prop_sf_scrn_ppp_01a.ydr",
+	"sf_prop_sf_scrn_tablet_01a.ydr",
+	"sf_prop_sf_scrn_tablet_01a+hidr.ytd",
+	"sf_prop_sf_scrn_tr_01a.ydr",
+	"sf_prop_sf_scrn_tr_02a.ydr",
+	"sf_prop_sf_scrn_tr_03a.ydr",
+	"sf_prop_sf_scrn_tr_04a.ydr",
+	"sf_prop_sf_sign_neon_01a.ydr",
+	"sf_prop_sf_tablet_01a.ydr",
+	"sf_prop_sf_tablet_01a.ytd",
+	"sf_prop_sf_tv_flat_scr_01a.ydr",
+	"sf_prop_sf_usb_drive_01a.ydr",
+	"w_am_jerrycan_sf.ydr",
+	"w_am_jerrycan_sf.ytd",
+	"w_ar_heavyrifleh.ydr",
+	"w_ar_heavyrifleh.ytd",
+	"w_ar_heavyrifleh_hi.ydr",
+	"w_ar_heavyrifleh_sight.ydr",
+	"w_ar_heavyrifleh_sight.ytd",
+	"w_ar_heavyrifleh_sight_hi.ydr",
+	"w_at_hrh_camo1.ydr",
+	"w_at_hrh_camo1.ytd",
+	"w_lr_compactml.ydr",
+	"w_lr_compactml.ytd",
+	"w_lr_compactml_hi.ydr",
+	"w_lr_compactml_mag1.ydr",
+	"w_lr_compactml_mag1.ytd",
+	"w_lr_ml_40mm.ydr",
+	"w_lr_ml_40mm.ytd",
+	"w_pi_appistol_sts.ydr",
+	"w_pi_appistol_sts.ytd",
+	"w_pi_appistol_sts_hi.ydr",
+	"w_pi_appistol_sts_mag1.ydr",
+	"w_pi_appistol_sts_mag1.ytd",
+	"w_pi_appistol_sts_mag2.ydr",
+	"w_pi_appistol_sts_mag2.ytd",
+	"w_sb_microsmg_las.ydr",
+	"w_sb_microsmg_las.ytd",
+	"w_sb_microsmg_las_hi.ydr",
+	"w_sb_microsmg_las_mag1.ydr",
+	"w_sb_microsmg_las_mag2.ydr",
+	"w_sg_pumpshotgun_chs.ydr",
+	"w_sg_pumpshotgun_chs.ytd",
+	"w_sg_pumpshotgun_chs_hi.ydr",
+};
+
 // blocked assets on 2189 and below
 static const std::set<std::string> g_blockedNames2189 =
 {
@@ -1615,6 +1788,14 @@ static void LoadStreamingFiles(LoadType loadType)
 		if (!xbr::IsGameBuildOrGreater<2372>() && g_blockedNames2189.find(baseName) != g_blockedNames2189.end())
 		{
 			trace("ignoring %s: it's a file for GTA V build 2372 or above\n", file);
+
+			it = g_customStreamingFiles.erase(it);
+			continue;
+		}
+
+		if (!xbr::IsGameBuildOrGreater<2545>() && g_blockedNames2372.find(baseName) != g_blockedNames2372.end() && !IsEvaluationServer())
+		{
+			trace("ignoring %s: it's a file for GTA V build 2545 or above, _or_ a local evaluation server\n", file);
 
 			it = g_customStreamingFiles.erase(it);
 			continue;
