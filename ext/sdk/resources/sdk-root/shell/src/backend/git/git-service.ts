@@ -49,11 +49,20 @@ export class GitService {
     });
   }
 
-  fastForwrad(dir: string) {
+  fastForward(dir: string) {
     return git.fastForward({
       fs,
       dir,
       http,
+    });
+  }
+
+  checkout(dir: string, ref: string, force = false) {
+    return git.checkout({
+      fs,
+      dir,
+      ref,
+      force,
     });
   }
 
