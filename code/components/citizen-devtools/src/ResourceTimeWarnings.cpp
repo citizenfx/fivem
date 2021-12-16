@@ -249,7 +249,7 @@ static HookFunction hookFunctionGameTime([]()
 						reasoning = fmt::sprintf("\n\nThis is likely caused by a resource/script, the script stack is as follows: %s", s.str());
 					}
 
-					if (auto nvDLL = GetModuleHandleW(L"nvwgf2umx.dll"))
+					if (auto nvDLL = GetModuleHandleW(L"nvwgf2umx.dll"); nvDLL && reasoning.empty())
 					{
 						wchar_t nvDllPath[MAX_PATH];
 						GetModuleFileNameW(nvDLL, nvDllPath, std::size(nvDllPath));
