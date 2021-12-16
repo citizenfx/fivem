@@ -1,7 +1,8 @@
 const path = require('path');
-const { Color, getArg, exec, printError, logPrefix, pathExists, rmdir, yarn, del, print, xcopy, move } = require('./utils');
+const { Color, getArg, exec, printError, logPrefix, pathExists, rmdir, yarn, del, print, xcopy, move, rewriteFile } = require('./utils');
 
 const ShouldBuildFXCode = (getArg('--build-fxcode') || '').toLowerCase() === 'true';
+const FXCodeCommitHash = getArg('--fxcode-commit') || 'unknown';
 
 const SevenZip = path.join(__dirname, '../../code/tools/ci/7z');
 
@@ -80,6 +81,17 @@ async function buildFXCode() {
     await yarn(name, cwd, 'install', '--frozen-lockfile');
     await yarn(name, cwd, 'rebuild-native-modules');
     await yarn(name, cwd, 'build');
+
+    // Writing date and commit hash
+    function rewriter(content) {
+        return content
+            .replaceAll('@@COMMIT@@', FXCodeCommitHash)
+            .replaceAll('@@DATE@@', new Date().toISOString());
+    }
+
+    print(name, 'Writing variables');
+    await rewriteFile(path.join(FXCode, 'out-fxdk-pkg/out/vs/fxdk/browser/workbench/workbench.js'), rewriter);
+    print(name, 'Done writing variables');
 }
 
 async function packFXCode() {
