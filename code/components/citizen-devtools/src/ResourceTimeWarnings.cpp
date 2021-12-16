@@ -152,6 +152,24 @@ static TThreadStack* GetThread()
 
 #pragma comment(lib, "version.lib")
 
+#define STOPPED_RESPONDING_MESSAGE(x) \
+	"FiveM has stopped responding " x "\nThe game stopped responding for too long and needs to be restarted. When asking for help, please click 'Save information' and upload the file that is saved when you click the button.%s"
+
+static void __declspec(noinline) StoppedRespondingNVIDIA(const std::string& reasoning)
+{
+	FatalError(STOPPED_RESPONDING_MESSAGE("(NVIDIA drivers)"), reasoning);
+}
+
+static void __declspec(noinline) StoppedRespondingScripts(const std::string& reasoning)
+{
+	FatalError(STOPPED_RESPONDING_MESSAGE("(script deadloop)"), reasoning);
+}
+
+static void __declspec(noinline) StoppedRespondingGeneric(const std::string& reasoning)
+{
+	FatalError(STOPPED_RESPONDING_MESSAGE(""), reasoning);
+}
+
 static HookFunction hookFunctionGameTime([]()
 {
 	InputHook::DeprecatedOnWndProc.Connect([](HWND, UINT uMsg, WPARAM, LPARAM, bool&, LRESULT&)
@@ -232,6 +250,7 @@ static HookFunction hookFunctionGameTime([]()
 				if (lastPeekMessage.count() > 0 && (now - lastPeekMessage) > 45s && (now - lastPeekMessage) < 90s)
 				{
 					std::string reasoning;
+					bool scripts = false;
 
 					if (!g_threadStack.empty())
 					{
@@ -247,7 +266,10 @@ static HookFunction hookFunctionGameTime([]()
 						s << "root";
 
 						reasoning = fmt::sprintf("\n\nThis is likely caused by a resource/script, the script stack is as follows: %s", s.str());
+						scripts = true;
 					}
+
+					bool nvidia = false;
 
 					if (auto nvDLL = GetModuleHandleW(L"nvwgf2umx.dll"); nvDLL && reasoning.empty())
 					{
@@ -274,6 +296,8 @@ static HookFunction hookFunctionGameTime([]()
 
 								if (nvidiaVersion >= 47200 && nvidiaVersion <= 49710)
 								{
+									nvidia = true;
+
 									reasoning += fmt::sprintf("\n\nThis may be related to a known issue in your NVIDIA GeForce drivers (version %03d.%02d). Downgrade to version 471.68 or below (https://www.nvidia.com/en-us/geforce/drivers/), or disable any overlays/graphics mods (such as Steam or ENBSeries) to fix this.",
 										nvidiaVersion / 100,
 										nvidiaVersion % 100);
@@ -294,8 +318,16 @@ static HookFunction hookFunctionGameTime([]()
 
 					if (!launch::IsSDKGuest())
 					{
-						FatalError("FiveM has stopped responding\nThe game stopped responding for too long and needs to be restarted. When asking for help, please click 'Save information' and upload the file that is saved when you click the button.%s",
-						reasoning);
+						if (scripts)
+						{
+							StoppedRespondingScripts(reasoning);
+						}
+						else if (nvidia)
+						{
+							StoppedRespondingNVIDIA(reasoning);
+						}
+
+						StoppedRespondingGeneric(reasoning);
 					}
 				}
 			}
