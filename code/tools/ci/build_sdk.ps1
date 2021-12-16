@@ -19,6 +19,9 @@ function End-Section
 $ErrorActionPreference = "Stop"
 $SaveDir = "C:\f\save"
 
+$WorkDir = $env:CI_PROJECT_DIR -replace '/','\'
+$WorkRootDir = "$WorkDir\code"
+
 $FXCodeSubmodulePath = "$WorkDir\ext\sdk\resources\sdk-root\fxcode"
 $LastFXCodeCommitPath = "$SaveDir\.fxcodecommit"
 $LastFXCodeCommit = ""
@@ -28,9 +31,6 @@ if (Test-Path $LastFXCodeCommitPath) {
 }
 
 $ShouldBuildFXCode = $false
-
-$WorkDir = $env:CI_PROJECT_DIR -replace '/','\'
-$WorkRootDir = "$WorkDir\code"
 
 Push-Location $WorkDir
 $SDKCommit = (git rev-list -1 HEAD ext/sdk-build/ ext/sdk/ code/tools/ci/build_sdk.ps1)
