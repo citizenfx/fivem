@@ -554,12 +554,12 @@ public:
 
 	inline uint32_t GetCurrentBit()
 	{
-		return m_curBit;
+		return std::min(m_curBit, m_maxBit);
 	}
 
 	inline void SetCurrentBit(uint32_t bit)
 	{
-		m_curBit = bit;
+		m_curBit = std::min(bit, uint32_t(m_maxBit));
 	}
 
 	inline bool IsAtEnd()

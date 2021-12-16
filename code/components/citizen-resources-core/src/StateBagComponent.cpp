@@ -549,6 +549,11 @@ void StateBagComponentImpl::HandlePacket(int source, std::string_view dataRaw)
 	// read data
 	size_t dataLength = (buffer.GetLength() * 8) - buffer.GetCurrentBit();
 
+	if (dataLength == 0)
+	{
+		return;
+	}
+
 	std::vector<uint8_t> data(dataLength / 8);
 	buffer.ReadBits(data.data(), dataLength);
 
