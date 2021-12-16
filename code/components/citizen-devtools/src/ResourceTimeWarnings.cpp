@@ -272,9 +272,9 @@ static HookFunction hookFunctionGameTime([]()
 								// convert versions like 30.0.14.9649 to a decimal like 49649
 								uint32_t nvidiaVersion = (fixedInfo->dwFileVersionLS & 0xFFFF) + (((fixedInfo->dwFileVersionLS >> 16) % 10) * 10000);
 
-								if (nvidiaVersion >= 47200 && nvidiaVersion < 49700)
+								if (nvidiaVersion >= 47200 && nvidiaVersion <= 49710)
 								{
-									reasoning += fmt::sprintf("\n\nThis may be related to a known issue in your NVIDIA GeForce drivers (version %03d.%02d). Upgrade to version 497.09 or higher (https://www.nvidia.com/en-us/geforce/drivers/), downgrade to version 471.68 or below, or disable any overlays/graphics mods (such as Steam or ENBSeries) to fix this.",
+									reasoning += fmt::sprintf("\n\nThis may be related to a known issue in your NVIDIA GeForce drivers (version %03d.%02d). Downgrade to version 471.68 or below (https://www.nvidia.com/en-us/geforce/drivers/), or disable any overlays/graphics mods (such as Steam or ENBSeries) to fix this.",
 										nvidiaVersion / 100,
 										nvidiaVersion % 100);
 								}
