@@ -102,6 +102,14 @@ async function pathExists(cwd, ...args) {
     }
 }
 
+async function statSafe(cwd, ...args) {
+    try {
+        return await fs.promises.stat(path.join(cwd, ...args));
+    } catch (e) {
+        return null;
+    }
+}
+
 function rmdir(name, cwd, dirPath) {
     return exec({
         name,
@@ -147,6 +155,21 @@ function move(name, from, to) {
     });
 }
 
+async function rewriteFile(filePath, rewriter) {
+    const fileStat = await statSafe(filePath);
+
+    if (!fileStat) {
+        throw new Error(`Failed to rewrite ${filePath}, file does not exist`);
+    }
+    if (fileStat.isDirectory()) {
+        throw new Error(`Failed to rewrite ${filePath}, not a file`);
+    }
+
+    const content = (await fs.promises.readFile(filePath)).toString();
+
+    await fs.promises.writeFile(filePath, rewriter(content));
+}
+
 module.exports = {
     Color,
     print,
@@ -161,4 +184,5 @@ module.exports = {
     yarn,
     xcopy,
     move,
+    rewriteFile,
 };
