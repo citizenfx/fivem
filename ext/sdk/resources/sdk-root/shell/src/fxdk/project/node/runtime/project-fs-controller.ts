@@ -1,5 +1,5 @@
 import { FsService } from "backend/fs/fs-service";
-import { dispose, Disposer, IDisposableObject } from "fxdk/base/disposable";
+import { dispose, Disposer, IDisposable, IDisposableObject } from "fxdk/base/disposable";
 import { createFsWatcherEvent, FsWatcher, FsWatcherEvent, FsWatcherEventType } from 'backend/fs/fs-watcher';
 import { FsUpdateKind, IFsEntry, IFsUpdate } from "../../common/project.types";
 import { AssetMeta, assetMetaFileExt } from "shared/asset.types";
@@ -14,6 +14,7 @@ import { isAssetMetaFile, stripAssetMetaExt } from "utils/project";
 import { ScopedLogService } from "backend/logger/scoped-logger";
 import { lazyInject } from "backend/container-access";
 import { ProjectApi } from "fxdk/project/common/project.api";
+import { disposableTimeout } from "fxdk/base/async";
 
 function hashFsWatcherEvent(event: FsWatcherEvent): string {
   return joaatString(`${event[0]}:${event[1]}:${event[2] ?? null}`);
@@ -49,6 +50,8 @@ export class ProjectFsController implements IDisposableObject {
     [FsWatcherEventType.MODIFIED]: new Set(),
     [FsWatcherEventType.RENAMED]: new Set(),
   };
+
+  private fsUpdateErrorDisposals: Record<string, IDisposable> = {};
 
   constructor() {
     this.fsEventsQueue = this.toDispose.register(new UniqueQueue(this.processFsEvent, hashFsWatcherEvent));
@@ -113,6 +116,10 @@ export class ProjectFsController implements IDisposableObject {
 
   async dispose() {
     dispose(this.toDispose);
+
+    for (const disposable of Object.values(this.fsUpdateErrorDisposals)) {
+      dispose(disposable);
+    }
   }
 
   //#region API
@@ -257,12 +264,12 @@ export class ProjectFsController implements IDisposableObject {
     return fsEntry;
   }
 
-  private async updateFsEntry(entryPath: string, fsEntry: IFsEntry): Promise<Partial<IFsEntry>> {
+  private async updateFsEntry(entryPath: string, fsEntry: IFsEntry): Promise<Partial<IFsEntry> | null> {
     const mainStat = await this.fsService.statSafeRetries(entryPath);
     if (!mainStat) {
-      const error = new Error(`FsEntry disappeared while updating? ${entryPath}`);
-      this.logService.error(error);
-      throw error;
+      // It could be that we have a delete event in the next events batch, so delay this error a bit
+      this.addFsUpdateErrorNoEntry(entryPath);
+      return null;
     }
 
     ([fsEntry.handle, fsEntry.fxmeta] = await Promise.all([
@@ -281,6 +288,24 @@ export class ProjectFsController implements IDisposableObject {
       ctime: fsEntry.ctime,
       mtime: fsEntry.mtime,
     };
+  }
+
+  private addFsUpdateErrorNoEntry(entryPath: string) {
+    this.extinguishFsUpdateError(entryPath);
+
+    this.fsUpdateErrorDisposals[entryPath] = disposableTimeout(
+      () => {
+        this.logService.error(new Error(`Failed to update fs entry as it is missing in filesystem`), { entryPath });
+      },
+      1000, // defensively large timeout
+    );
+  }
+
+  private extinguishFsUpdateError(entryPath: string) {
+    if (this.fsUpdateErrorDisposals[entryPath]) {
+      dispose(this.fsUpdateErrorDisposals[entryPath]);
+      delete this.fsUpdateErrorDisposals[entryPath];
+    }
   }
 
   private async scanFsEntryChildren(entryPath: string, fsEntry: IFsEntry, depth = ScanDepth.Auto) {
@@ -422,6 +447,9 @@ export class ProjectFsController implements IDisposableObject {
     }
 
     const update = await this.updateFsEntry(entryPath, fsEntry);
+    if (!update) {
+      return;
+    }
 
     this.sendFsUpdate({
       kind: FsUpdateKind.Update,
@@ -438,7 +466,8 @@ export class ProjectFsController implements IDisposableObject {
 
     const fsEntry = this.getFsEntryByPath(oldEntryPathParts);
     if (!fsEntry) {
-      throw new Error(`Unable to handle rename event of entry that did not exist in project tree before`);
+      this.logService.log(`Unable to handle rename event of entry that did not exist in project tree before`);
+      return;
     }
 
     const newEntryPathParts = this.getEntryPathParts(entryPath);
@@ -473,6 +502,9 @@ export class ProjectFsController implements IDisposableObject {
   }
 
   private async processDeleted(oldEntryPath: string) {
+    // There could be an update error pending
+    this.extinguishFsUpdateError(oldEntryPath);
+
     const entryPathParts = this.getEntryPathParts(oldEntryPath);
 
     const parentEntryPathParts = this.getEntryPathPartsParent(entryPathParts);
