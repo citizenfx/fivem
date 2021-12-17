@@ -121,13 +121,17 @@ export class SystemResourcesService implements AppContribution {
     try {
       const [remoteHash, localHash] = await Promise.all([
         this.gitService.getRemoteBranchRef(this.configService.systemResourcesRoot, 'origin', 'master'),
-        this.gitService.getLocalBranchRef(this.configService.systemResourcesRoot, 'master'),
+        this.gitService.getLocalBranchRef(this.configService.systemResourcesRoot, 'HEAD'),
       ]);
 
       this.localHash = localHash || '';
 
       if (remoteHash !== localHash) {
-        await this.gitService.fastForwrad(this.configService.systemResourcesRoot);
+        try {
+          await this.gitService.fastForward(this.configService.systemResourcesRoot);
+        } catch (e) {
+          await this.gitService.checkout(this.configService.systemResourcesRoot, 'origin/master', true);
+        }
       }
     } catch (e) {
       this.logService.error(e);

@@ -35,7 +35,7 @@
     "immer": "^8.0.0",
     "inversify": "^5.0.1",
     "inversify-inject-decorators": "^3.1.0",
-    "isomorphic-git": "^1.8.1",
+    "isomorphic-git": "^1.10.2",
     "jsonc": "^2.0.0",
     "minimatch": "^3.0.4",
     "mkdirp": "^1.0.4",

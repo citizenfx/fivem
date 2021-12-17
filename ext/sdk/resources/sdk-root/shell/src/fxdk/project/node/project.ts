@@ -163,10 +163,19 @@ export class ProjectInstanceService implements ApiContribution {
   async create(request: APIRQ.ProjectCreate): Promise<ProjectInstanceService> {
     this.logService.log('Creating project', request);
 
+    const projectParentPath = this.fsService.resolvePath(request.projectPath);
+    const projectParentPathStat = await this.fsService.statSafe(projectParentPath);
+
+    if (!projectParentPathStat) {
+      throw new Error(`The folder to create project in does not exist: ${projectParentPath}`);
+    }
+
+    const fullProjectPath = this.fsService.joinPath(projectParentPath, request.projectName);
+
     const creatingTask = this.taskReporterService.createNamed(projectCreatingTaskName, `Creating project ${request.projectName}`);
 
     this.rt = this.containerAccess.resolve(ProjectRuntime);
-    await this.rt.initState(this.fsService.joinPath(request.projectPath, request.projectName));
+    await this.rt.initState(fullProjectPath);
 
     const projectManifest: ProjectManifest = {
       name: request.projectName,
