@@ -4,7 +4,7 @@
 
 To build FiveM, RedM or FXServer on Windows you need the following dependencies:
 
-* A Windows machine with Visual Studio 2019 (Build Tools/Community is fine) installed with the following workloads:
+* A Windows machine with Visual Studio 2022 (Build Tools/Community is fine) installed with the following workloads:
   - .NET desktop environment
   - Desktop development with C++
   - Universal Windows Platform development
