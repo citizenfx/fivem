@@ -131,6 +131,16 @@ static InitFunction initFunction([] ()
 
 	InputHook::DeprecatedOnWndProc.Connect([](HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, bool& pass, LRESULT& lresult)
 	{
+		// prevent the game from knowing we pressed F8
+		if (msg == WM_KEYDOWN || msg == WM_KEYUP)
+		{
+			if (wParam == VK_F8)
+			{
+				pass = false;
+			}
+		}
+
+		// save the last console flag
 		hadConsoleFlag = g_consoleFlag;
 
 		ProcessWndProc(hWnd, msg, wParam, lParam, pass, lresult);
