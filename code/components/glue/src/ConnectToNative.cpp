@@ -479,11 +479,21 @@ static void UpdatePendingAuthPayload()
 	}
 }
 
+static void DisconnectCmd()
+{
+	if (netLibrary->GetConnectionState() != 0)
+	{
+		OnKillNetwork("Disconnected.");
+		OnMsgConfirm();
+	}
+}
+
 static InitFunction initFunction([] ()
 {
 	static std::function<void()> g_onYesCallback;
 	static std::function<void()> backfillDoneEvent;
 	static bool mpMenuExpectsBackfill;
+	static bool disconnect;
 
 	static ipc::Endpoint ep("launcherTalk", false);
 
@@ -494,12 +504,34 @@ static InitFunction initFunction([] ()
 
 	OnGameFrame.Connect([]()
 	{
+		if (disconnect)
+		{
+			DisconnectCmd();
+			disconnect = false;
+		}
+
 		ep.RunFrame();
 	});
 
 	Instance<ICoreGameInit>::Get()->OnGameRequestLoad.Connect([]()
 	{
 		ep.Call("loading");
+	});
+
+	InputHook::DeprecatedOnWndProc.Connect([](HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, bool& pass, LRESULT& lresult)
+	{
+		// we don't want the game to be informed about the system entering a low-power state
+		if (msg == WM_POWERBROADCAST)
+		{
+			// if the system is resumed, we do want to try to manually disconnect
+			if (wParam == PBT_APMRESUMEAUTOMATIC || wParam == PBT_APMRESUMESUSPEND)
+			{
+				disconnect = true;
+			}
+
+			pass = false;
+			lresult = true;
+		}
 	});
 
 	NetLibrary::OnNetLibraryCreate.Connect([] (NetLibrary* lib)
@@ -913,11 +945,7 @@ static InitFunction initFunction([] ()
 
 	static ConsoleCommand disconnectCommand("disconnect", []()
 	{
-		if (netLibrary->GetConnectionState() != 0)
-		{
-			OnKillNetwork("Disconnected.");
-			OnMsgConfirm();
-		}
+		DisconnectCmd();
 	});
 
 	static std::string curChannel;
