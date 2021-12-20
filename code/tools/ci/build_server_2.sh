@@ -9,7 +9,6 @@ JOB_SLOTS=${JOB_SLOTS:-24}
 # upgrade to edge (keep v3.12 for downgrades)
 echo http://dl-cdn.alpinelinux.org/alpine/v3.12/main > /etc/apk/repositories
 echo http://dl-cdn.alpinelinux.org/alpine/v3.14/main >> /etc/apk/repositories
-echo http://dl-cdn.alpinelinux.org/alpine/v3.15/main >> /etc/apk/repositories
 echo http://dl-cdn.alpinelinux.org/alpine/edge/main >> /etc/apk/repositories
 echo http://dl-cdn.alpinelinux.org/alpine/edge/community >> /etc/apk/repositories
 echo http://dl-cdn.alpinelinux.org/alpine/edge/testing >> /etc/apk/repositories
@@ -40,8 +39,7 @@ apk del curl
 apk add --no-cache curl=7.72.0-r99 libssl1.1 libcrypto1.1 libunwind libstdc++ zlib c-ares v8 musl-dbg libatomic
 
 # install compile-time dependencies
-# 3.9.7-r4 is a WORKAROUND for Alpine shipping broken py3-pip in 'edge' (as of 2021-12-16)
-apk add --no-cache --virtual .dev-deps lld curl-dev=7.72.0-r99 clang clang-dev build-base linux-headers openssl1.1-compat-dev python2 python3~=3.9 py3-pip=20.3.4-r1 py3-setuptools=52.0.0-r4 py3-appdirs=1.4.4-r2 py3-packaging~=20.9 py3-parsing=2.4.7-r2 py3-ordered-set=4.0.2-r2 lua5.3 lua5.3-dev mono-reference-assemblies=5.16.1.0-r9991 mono-dev=5.16.1.0-r9991 libmono=5.16.1.0-r9991 mono-corlib=5.16.1.0-r9991 mono=5.16.1.0-r9991 mono-reference-assemblies-4.x=5.16.1.0-r9991 mono-reference-assemblies-facades=5.16.1.0-r9991 mono-csc=5.16.1.0-r9991 mono-runtime=5.16.1.0-r9991 c-ares-dev v8-dev nodejs~=12 nodejs-dev~=12 npm yarn clang-libs git cargo
+apk add --no-cache --virtual .dev-deps lld curl-dev=7.72.0-r99 clang clang-dev build-base linux-headers openssl1.1-compat-dev python2 python3 py3-pip lua5.3 lua5.3-dev mono-reference-assemblies=5.16.1.0-r9991 mono-dev=5.16.1.0-r9991 libmono=5.16.1.0-r9991 mono-corlib=5.16.1.0-r9991 mono=5.16.1.0-r9991 mono-reference-assemblies-4.x=5.16.1.0-r9991 mono-reference-assemblies-facades=5.16.1.0-r9991 mono-csc=5.16.1.0-r9991 mono-runtime=5.16.1.0-r9991 c-ares-dev v8-dev nodejs~=12 nodejs-dev~=12 npm yarn clang-libs git cargo
 
 # install python deps
 python3 -m pip install ply six Jinja2 MarkupSafe
