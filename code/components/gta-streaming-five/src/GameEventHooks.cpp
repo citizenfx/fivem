@@ -111,9 +111,10 @@ void* HandleEventWrapReact(rage::fwEventGroup* group, rage::fwEvent* event)
 				{
 					const float* position = (const float*)(event + 8);
 					rage::fwEntity* entity = ((rage::fwEntity**)event)[13];
-					data.entity = entity ? rage::fwScriptGuid::GetGuidFromBase(entity) : 0;
+					uint32_t id = entity ? rage::fwScriptGuid::GetGuidFromBase(entity) : 0;
 
-					data.arguments.reserve(3);
+					data.arguments.reserve(4);
+					data.arguments.emplace_back(id);
 					data.arguments.emplace_back(position[0]);
 					data.arguments.emplace_back(position[1]);
 					data.arguments.emplace_back(position[2]);
@@ -125,14 +126,24 @@ void* HandleEventWrapReact(rage::fwEventGroup* group, rage::fwEvent* event)
 					// TODO: check how we will do this without a strcmp
 					if (strcmp(data.name + 15, "WalkIntoVehicle") == 0)
 					{
-						const float* position = (const float*)(event + 11);
+						const float* position = (const float*)(event + 5);
 						rage::fwEntity* entity = ((rage::fwEntity**)event)[8];
-						data.entity = entity ? rage::fwScriptGuid::GetGuidFromBase(entity) : 0;
+						uint32_t id = entity ? rage::fwScriptGuid::GetGuidFromBase(entity) : 0;
 
-						data.arguments.reserve(3);
+						data.arguments.reserve(4);
+						data.arguments.emplace_back(id);
 						data.arguments.emplace_back(position[0]);
 						data.arguments.emplace_back(position[1]);
 						data.arguments.emplace_back(position[2]);
+					}
+					else if (strcmp(data.name + 15, "GetRunOver") == 0)
+					{
+						const float* position = (const float*)(event + 10);
+						rage::fwEntity* entity = ((rage::fwEntity**)event)[6];
+						uint32_t id = entity ? rage::fwScriptGuid::GetGuidFromBase(entity) : 0;
+
+						data.arguments.emplace_back(id);
+						// doesn't seem there is a vector3, might have other info, speed, vector2?
 					}
 
 					break;
@@ -187,36 +198,6 @@ void* HandleEventWrapEmit(rage::fwEventGroup* group, rage::fwEvent* event)
 					data.arguments.emplace_back(position[0]);
 					data.arguments.emplace_back(position[1]);
 					data.arguments.emplace_back(position[2]);
-					break;
-				}
-				case 0x6169746e65746f50u: // "Potentia" little endian
-				{
-					// TODO: check how we will do this without a strcmp
-					if (strcmp(data.name + 15, "WalkIntoVehicle") == 0)
-					{
-						const float* position = (const float*)(event + 11);
-						rage::fwEntity* entity = ((rage::fwEntity**)event)[8];
-						uint32_t id = entity ? rage::fwScriptGuid::GetGuidFromBase(entity) : 0;
-
-						data.arguments.reserve(4);
-						data.arguments.emplace_back(id);
-						data.arguments.emplace_back(position[0]);
-						data.arguments.emplace_back(position[1]);
-						data.arguments.emplace_back(position[2]);
-					}
-					else if (strcmp(data.name + 15, "GetRunOver") == 0)
-					{
-						const float* position = (const float*)(event + 10);
-						rage::fwEntity* entity = ((rage::fwEntity**)event)[6];
-						uint32_t id = entity ? rage::fwScriptGuid::GetGuidFromBase(entity) : 0;
-
-						data.arguments.reserve(4);
-						data.arguments.emplace_back(id);
-						data.arguments.emplace_back(position[0]);
-						data.arguments.emplace_back(position[1]);
-						data.arguments.emplace_back(position[2]);
-					}
-
 					break;
 				}
 			}
