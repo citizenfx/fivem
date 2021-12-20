@@ -9,6 +9,44 @@
 
 static InitFunction initFunction([]
 {
+	OnTriggerGameEventReact.Connect([](const GameEventReactData& data)
+	{
+		auto resman = Instance<fx::ResourceManager>::Get();
+		auto rec = resman->GetComponent<fx::ResourceEventManagerComponent>();
+
+		/*NETEV gameEventReact CLIENT
+		/#*
+		 * An event that is triggered when the game triggers an internal network event.
+		 *
+		 * @param name - The name of the triggered event.
+		 * @param id - The id of the triggered event.
+		 * @param entity - The entity reacting.
+		 * @param data - The type-specific event data.
+		 #/
+		declare function gameEventReact(name: string, id: number, entity: number, data: var[]): void;
+		*/
+		rec->QueueEvent2("gameEventReact", {}, std::string(data.name), data.id, data.entity, data.arguments);
+	});
+
+	OnTriggerGameEventEmit.Connect([](const GameEventEmitData& data)
+	{
+		auto resman = Instance<fx::ResourceManager>::Get();
+		auto rec = resman->GetComponent<fx::ResourceEventManagerComponent>();
+
+		/*NETEV gameEventEmit CLIENT
+		/#*
+		 * An event that is triggered when the game triggers an internal network event.
+		 *
+		 * @param name - The name of the triggered event.
+		 * @param id - The id of the triggered event.
+		 * @param entities - The entities being alerted.
+		 * @param data - The type-specific event data.
+		 #/
+		declare function gameEventEmit(name: string, id: number, entities: number[], data: var[]): void;
+		*/
+		rec->QueueEvent2("gameEventEmit", {}, std::string(data.name), data.id, data.entities, data.arguments);
+	});
+
 	OnTriggerGameEvent.Connect([](const GameEventMetaData& data)
 	{
 		auto resman = Instance<fx::ResourceManager>::Get();

@@ -6,6 +6,7 @@
 #include <Pool.h>
 
 #include <boost/type_index/ctti_type_index.hpp>
+#include <msgpack.hpp>
 
 #include <directxmath.h>
 
@@ -696,12 +697,32 @@ STREAMING_EXPORT extern fwEvent<PopulationCreationState*> OnCreatePopulationPed;
 
 struct GameEventMetaData
 {
-	char name[256];
+	const char* name;
 	size_t numArguments;
-	uintptr_t arguments[48];
+	size_t arguments[48];
 };
 
 STREAMING_EXPORT extern fwEvent<const GameEventMetaData&> OnTriggerGameEvent;
+
+struct GameEventReactData
+{
+	int32_t id;
+	const char* name;
+	uint32_t entity;
+	std::vector<msgpack::object> arguments;
+};
+
+STREAMING_EXPORT extern fwEvent<const GameEventReactData&> OnTriggerGameEventReact;
+
+struct GameEventEmitData
+{
+	int32_t id;
+	const char* name;
+	std::vector<uint32_t> entities;
+	std::vector<msgpack::object> arguments;
+};
+
+STREAMING_EXPORT extern fwEvent<const GameEventEmitData&> OnTriggerGameEventEmit;
 
 struct DamageEventMetaData
 {

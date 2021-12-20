@@ -4,7 +4,8 @@
 	"dependencies": [
 		"fx[2]",
 		"scripting",
-		"gta:streaming:five"
+		"gta:streaming:five",
+		"vendor:msgpack-c"
 	],
 	"provides": []
 }
