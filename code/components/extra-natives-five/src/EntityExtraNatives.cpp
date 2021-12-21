@@ -5,11 +5,14 @@
 
 #include <Streaming.h>
 
-static std::string GetEntityArchetypeName(int entityHandle)
+static const char* GetEntityArchetypeName(int entityHandle)
 {
 	if (auto entity = rage::fwScriptGuid::GetBaseFromGuid(entityHandle))
 	{
-		return streaming::GetStreamingBaseNameForHash(entity->GetArchetype()->hash);
+		static std::string lastReturn;
+		lastReturn = streaming::GetStreamingBaseNameForHash(entity->GetArchetype()->hash);
+
+		return lastReturn.c_str();
 	}
 
 	return "";
