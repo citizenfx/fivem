@@ -6,6 +6,7 @@
 #include <MinHook.h>
 
 #include <sstream>
+#include <msgpack.hpp>
 
 namespace rage
 {
@@ -48,9 +49,27 @@ namespace rage
 	};
 }
 
-void*(*g_eventCall1)(void* group, void* event);
-void*(*g_eventCall2)(void* group, void* event);
-void*(*g_eventCall3)(void* group, void* event);
+template<typename... TArg>
+inline void msgpack_array(msgpack::packer<msgpack::sbuffer>& p, const TArg&... args)
+{
+	p.pack_array(sizeof...(args));
+	(p.pack(args), ...);
+}
+
+template<typename... TArg>
+inline void msgpack_pack(msgpack::packer<msgpack::sbuffer>& p, const TArg&... args)
+{
+	(p.pack(args), ...);
+}
+
+inline uint32_t GetGuidFromBaseSafe(rage::fwEntity* entity)
+{
+	return entity ? rage::fwScriptGuid::GetGuidFromBase(entity) : 0;
+}
+
+void* (*g_eventCall1)(void* group, void* event);
+void* (*g_eventCall2)(void* group, void* event);
+void* (*g_eventCall3)(void* group, void* event);
 
 template<decltype(g_eventCall3)* TFunc>
 void* HandleEventWrap(rage::fwEventGroup* group, rage::fwEvent* event)
@@ -98,62 +117,52 @@ void* HandleEventWrapReact(rage::fwEventGroup* group, rage::fwEvent* event)
 		 * as well as in group->entities[18].
 		 */
 
-		// AFAIK this doesn't throw exceptions
 		try
 		{
-			GameEventReactData data{ event->GetId(), typeid(*event).name() + 6, 0 };
+			msgpack::sbuffer buf;
+			msgpack::packer packer(buf);
+
+			const char* eventName = typeid(*event).name() + 6;
+			rage::fwEntity* entity = group->entities[17];
+
+			packer.pack_array(4); // we'll offer 4 parameters
+			msgpack_pack(packer, eventName, event->GetId(), GetGuidFromBaseSafe(entity));
 
 			// Quick 8 bytes check, i.e.: no strcmp
 			// this will turn the first 8 bytes after "CEvent" into an uint64 and check against that value
-			switch (*(uint64_t*)(data.name + 6))
+			switch ((uint64_t&)(eventName[6]))
 			{
 				case 0x676e696b636f6853u: // "Shocking"
 				{
-					const float* position = (const float*)(event + 8);
-					rage::fwEntity* entity = ((rage::fwEntity**)event)[13];
-					uint32_t id = entity ? rage::fwScriptGuid::GetGuidFromBase(entity) : 0;
-
-					data.arguments.reserve(4);
-					data.arguments.emplace_back(id);
-					data.arguments.emplace_back(position[0]);
-					data.arguments.emplace_back(position[1]);
-					data.arguments.emplace_back(position[2]);
-
+					msgpack_array(packer, GetGuidFromBaseSafe((rage::fwEntity*&)event[13]), (float(&)[3])event[8]);
 					break;
 				}
 				case 0x6169746e65746f50u: // "Potentia" little endian
 				{
 					// TODO: check how we will do this without a strcmp
-					if (strcmp(data.name + 15, "WalkIntoVehicle") == 0)
+					if (strcmp(eventName + 15, "WalkIntoVehicle") == 0)
 					{
-						const float* position = (const float*)(event + 5);
-						rage::fwEntity* entity = ((rage::fwEntity**)event)[8];
-						uint32_t id = entity ? rage::fwScriptGuid::GetGuidFromBase(entity) : 0;
-
-						data.arguments.reserve(4);
-						data.arguments.emplace_back(id);
-						data.arguments.emplace_back(position[0]);
-						data.arguments.emplace_back(position[1]);
-						data.arguments.emplace_back(position[2]);
+						msgpack_array(packer, GetGuidFromBaseSafe((rage::fwEntity*&)event[8]), (float(&)[3])event[5]);
 					}
-					else if (strcmp(data.name + 15, "GetRunOver") == 0)
+					else if (strcmp(eventName + 15, "GetRunOver") == 0)
 					{
-						const float* position = (const float*)(event + 10);
-						rage::fwEntity* entity = ((rage::fwEntity**)event)[6];
-						uint32_t id = entity ? rage::fwScriptGuid::GetGuidFromBase(entity) : 0;
-
-						data.arguments.emplace_back(id);
+						msgpack_array(packer, GetGuidFromBaseSafe((rage::fwEntity*&)(event[6])));
 						// doesn't seem there is a vector3, might have other info, speed, vector2?
 					}
-
+					else
+					{
+						packer.pack_array(0); // empty array
+					}
+					break;
+				}
+				default:
+				{
+					packer.pack_array(0); // empty array
 					break;
 				}
 			}
 
-			rage::fwEntity* entity = group->entities[17];
-			data.entity = entity ? rage::fwScriptGuid::GetGuidFromBase(entity) : 0;
-
-			OnTriggerGameEventReact(data);
+			OnTriggerGameEventReact({ buf.data(), buf.size() });
 		}
 		catch (std::exception& e)
 		{
@@ -178,45 +187,47 @@ void* HandleEventWrapEmit(rage::fwEventGroup* group, rage::fwEvent* event)
 		 * where it ends with 0x0 or a repeating entity ptr.
 		 */
 
-		// AFAIK this doesn't throw exceptions
 		try
 		{
-			GameEventEmitData data{ event->GetId(), typeid(*event).name() + 6 };
+			msgpack::sbuffer buf;
+			msgpack::packer packer(buf);
+
+			const char* eventName = typeid(*event).name() + 6;
+
+			packer.pack_array(4); // we'll offer 4 parameters
+			msgpack_pack(packer, eventName, event->GetId());
+
+			// retrieve all entities
+			rage::fwEntity* ent2 = nullptr; // to ignore duplicates on the end
+			rage::fwEntity** ent1 = group->entities; // to ignore duplicates on the end
+			
+			// iterate ptrs until we find a nullptr, a duplicate, or if we reached the end of the buffer size
+			size_t size = 0;
+			for (; *ent1 && *ent1 != ent2 && ++size < _countof(group->entities); ent2 = *ent1++);
+			packer.pack_array(size);
+
+			for (size_t i = 0; i < size; ++i)
+			{
+				packer.pack(rage::fwScriptGuid::GetGuidFromBase(group->entities[i]));
+			}
 
 			// Quick 8 bytes check, i.e.: no strcmp
 			// this will turn the first 8 bytes after "CEvent" into an uint64 and check against that value
-			switch (*(uint64_t*)(data.name + 6))
+			switch ((uint64_t&)(eventName[6]))
 			{
 				case 0x676e696b636f6853u: // "Shocking"
 				{
-					const float* position = (const float*)(event + 8);
-					rage::fwEntity* entity = ((rage::fwEntity**)event)[13];
-					uint32_t id = entity ? rage::fwScriptGuid::GetGuidFromBase(entity) : 0;
-
-					data.arguments.reserve(4);
-					data.arguments.emplace_back(id);
-					data.arguments.emplace_back(position[0]);
-					data.arguments.emplace_back(position[1]);
-					data.arguments.emplace_back(position[2]);
+					msgpack_array(packer, GetGuidFromBaseSafe((rage::fwEntity*&)event[13]), (float(&)[3])event[8]);
 					break;
 				}
-			}
-
-			// retrieve all entities
-			rage::fwEntity* prevEntity = nullptr; // to ignore duplicates on the end
-			for (size_t i = 0; i < _countof(group->entities); ++i)
-			{
-				rage::fwEntity* entity = group->entities[i];
-				if (entity && entity != prevEntity)
+				default:
 				{
-					data.entities.push_back(rage::fwScriptGuid::GetGuidFromBase(entity));
-					prevEntity = entity;
-				}
-				else
+					packer.pack_array(0); // empty array
 					break;
+				}
 			}
 
-			OnTriggerGameEventEmit(data);
+			OnTriggerGameEventEmit({ buf.data(), buf.size() });
 		}
 		catch (std::exception& e)
 		{
@@ -347,6 +358,6 @@ static HookFunction hookFunction([]()
 });
 
 fwEvent<const GameEventMetaData&> OnTriggerGameEvent;
-fwEvent<const GameEventEmitData&> OnTriggerGameEventEmit;
-fwEvent<const GameEventReactData&> OnTriggerGameEventReact;
+fwEvent<std::string_view> OnTriggerGameEventEmit;
+fwEvent<std::string_view> OnTriggerGameEventReact;
 fwEvent<const DamageEventMetaData&> OnEntityDamaged;

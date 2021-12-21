@@ -6,7 +6,6 @@
 #include <Pool.h>
 
 #include <boost/type_index/ctti_type_index.hpp>
-#include <msgpack.hpp>
 
 #include <directxmath.h>
 
@@ -704,25 +703,9 @@ struct GameEventMetaData
 
 STREAMING_EXPORT extern fwEvent<const GameEventMetaData&> OnTriggerGameEvent;
 
-struct GameEventReactData
-{
-	int32_t id;
-	const char* name;
-	uint32_t entity;
-	std::vector<msgpack::object> arguments;
-};
+STREAMING_EXPORT extern fwEvent<std::string_view> OnTriggerGameEventReact;
 
-STREAMING_EXPORT extern fwEvent<const GameEventReactData&> OnTriggerGameEventReact;
-
-struct GameEventEmitData
-{
-	int32_t id;
-	const char* name;
-	std::vector<uint32_t> entities;
-	std::vector<msgpack::object> arguments;
-};
-
-STREAMING_EXPORT extern fwEvent<const GameEventEmitData&> OnTriggerGameEventEmit;
+STREAMING_EXPORT extern fwEvent<std::string_view> OnTriggerGameEventEmit;
 
 struct DamageEventMetaData
 {

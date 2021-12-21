@@ -9,7 +9,7 @@
 
 static InitFunction initFunction([]
 {
-	OnTriggerGameEventReact.Connect([](const GameEventReactData& data)
+	OnTriggerGameEventReact.Connect([](std::string_view data)
 	{
 		auto resman = Instance<fx::ResourceManager>::Get();
 		auto rec = resman->GetComponent<fx::ResourceEventManagerComponent>();
@@ -25,10 +25,10 @@ static InitFunction initFunction([]
 		 #/
 		declare function gameEventReact(name: string, id: number, entity: number, data: var[]): void;
 		*/
-		rec->QueueEvent2("gameEventReact", {}, std::string(data.name), data.id, data.entity, data.arguments);
+		rec->QueueEvent("gameEventReact", std::string(data), "");
 	});
 
-	OnTriggerGameEventEmit.Connect([](const GameEventEmitData& data)
+	OnTriggerGameEventEmit.Connect([](std::string_view data)
 	{
 		auto resman = Instance<fx::ResourceManager>::Get();
 		auto rec = resman->GetComponent<fx::ResourceEventManagerComponent>();
@@ -44,7 +44,7 @@ static InitFunction initFunction([]
 		 #/
 		declare function gameEventEmit(name: string, id: number, entities: number[], data: var[]): void;
 		*/
-		rec->QueueEvent2("gameEventEmit", {}, std::string(data.name), data.id, data.entities, data.arguments);
+		rec->QueueEvent("gameEventEmit", std::string(data), "");
 	});
 
 	OnTriggerGameEvent.Connect([](const GameEventMetaData& data)
