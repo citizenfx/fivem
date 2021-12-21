@@ -49,22 +49,33 @@ namespace rage
 	};
 }
 
-template<typename... TArg>
-inline void msgpack_array(msgpack::packer<msgpack::sbuffer>& p, const TArg&... args)
+namespace
 {
-	p.pack_array(sizeof...(args));
-	(p.pack(args), ...);
-}
+	template<typename... TArg>
+	inline void msgpack_array(msgpack::packer<msgpack::sbuffer>& p, const TArg&... args)
+	{
+		p.pack_array(sizeof...(args));
+		(p.pack(args), ...);
+	}
 
-template<typename... TArg>
-inline void msgpack_pack(msgpack::packer<msgpack::sbuffer>& p, const TArg&... args)
-{
-	(p.pack(args), ...);
-}
+	template<typename... TArg>
+	inline void msgpack_pack(msgpack::packer<msgpack::sbuffer>& p, const TArg&... args)
+	{
+		(p.pack(args), ...);
+	}
 
-inline uint32_t GetGuidFromBaseSafe(rage::fwEntity* entity)
-{
-	return entity ? rage::fwScriptGuid::GetGuidFromBase(entity) : 0;
+	inline uint32_t GetGuidFromBaseSafe(rage::fwEntity* entity)
+	{
+		return entity ? rage::fwScriptGuid::GetGuidFromBase(entity) : 0;
+	}
+
+	// Practically a *reinterpret_cast<uint64_t>(v) for compile time evaluation
+	inline constexpr uint32_t ct_uint32(const char (&v)[5])
+	{
+		// little endian
+		return static_cast<uint32_t>(v[0]) + (static_cast<uint32_t>(v[1]) << 8)
+			   + (static_cast<uint32_t>(v[2]) << 16) + (static_cast<uint32_t>(v[3]) << 24);
+	}
 }
 
 void* (*g_eventCall1)(void* group, void* event);
@@ -123,21 +134,20 @@ void* HandleEventWrapReact(rage::fwEventGroup* group, rage::fwEvent* event)
 			msgpack::packer packer(buf);
 
 			const char* eventName = typeid(*event).name() + 6;
-			rage::fwEntity* entity = group->entities[17];
 
 			packer.pack_array(4); // we'll offer 4 parameters
-			msgpack_pack(packer, eventName, event->GetId(), GetGuidFromBaseSafe(entity));
+			msgpack_pack(packer, eventName, event->GetId(), GetGuidFromBaseSafe(group->entities[17]));
 
-			// Quick 8 bytes check, i.e.: no strcmp
-			// this will turn the first 8 bytes after "CEvent" into an uint64 and check against that value
-			switch ((uint64_t&)(eventName[6]))
+			// Quick 4 bytes check, i.e.: no strcmp
+			// this will turn the first 4 bytes after "CEvent" into an uint32 and check against that value
+			switch ((uint32_t&)eventName[6])
 			{
-				case 0x676e696b636f6853u: // "Shocking"
+				case ct_uint32("Shoc"): // Shocking
 				{
 					msgpack_array(packer, GetGuidFromBaseSafe((rage::fwEntity*&)event[13]), (float(&)[3])event[8]);
 					break;
 				}
-				case 0x6169746e65746f50u: // "Potentia" little endian
+				case ct_uint32("Pote"): // Potential
 				{
 					// TODO: check how we will do this without a strcmp
 					if (strcmp(eventName + 15, "WalkIntoVehicle") == 0)
@@ -211,11 +221,11 @@ void* HandleEventWrapEmit(rage::fwEventGroup* group, rage::fwEvent* event)
 				packer.pack(rage::fwScriptGuid::GetGuidFromBase(group->entities[i]));
 			}
 
-			// Quick 8 bytes check, i.e.: no strcmp
-			// this will turn the first 8 bytes after "CEvent" into an uint64 and check against that value
-			switch ((uint64_t&)(eventName[6]))
+			// Quick 4 bytes check, i.e.: no strcmp
+			// this will turn the first 4 bytes after "CEvent" into an uint32 and check against that value
+			switch ((uint32_t&)eventName[6])
 			{
-				case 0x676e696b636f6853u: // "Shocking"
+				case ct_uint32("Shoc"): // Shocking
 				{
 					msgpack_array(packer, GetGuidFromBaseSafe((rage::fwEntity*&)event[13]), (float(&)[3])event[8]);
 					break;
