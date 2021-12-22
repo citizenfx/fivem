@@ -4,6 +4,21 @@
 
 enum class NetObjEntityType;
 
+inline int MapNetObjectMethod(int offset)
+{
+	if (offset >= 0x78 && xbr::IsGameBuildOrGreater<2545>())
+	{
+		offset += 0x10;
+	}
+
+	if (offset >= 0x330 && xbr::IsGameBuildOrGreater<2189>())
+	{
+		offset += 0x8;
+	}
+
+	return offset;
+}
+
 namespace rage
 {
 class netBlender;
@@ -62,6 +77,8 @@ public:
 class netObject
 {
 public:
+	virtual ~netObject() = 0;
+
 	uint16_t objectType;
 	uint16_t objectId;
 	uint32_t pad;
@@ -72,110 +89,6 @@ public:
 	{
 		return *(netBlender**)((uintptr_t)this + 88);
 	}
-
-	virtual ~netObject() = 0;
-
-	virtual void m_8() = 0;
-	virtual void m_10() = 0;
-	virtual void m_18() = 0;
-	virtual void* m_20() = 0;
-	virtual void m_28() = 0;
-	virtual netSyncTree* GetSyncTree() = 0;
-	virtual void m_38() = 0;
-	virtual void m_40() = 0;
-	virtual void m_48() = 0;
-	virtual void m_50() = 0;
-	virtual void m_58() = 0;
-	virtual void m_60() = 0;
-	virtual void m_68() = 0;
-	virtual void m_70() = 0;
-	virtual void m_78() = 0;
-	virtual void* GetGameObject() = 0;
-	virtual void m_88() = 0;
-	virtual void m_90() = 0;
-	virtual void m_98() = 0;
-	virtual int GetObjectFlags() = 0;
-	virtual void m_A8() = 0;
-	virtual void CreateNetBlender() = 0;
-	virtual void m_B8() = 0;
-	virtual void m_C0() = 0;
-	virtual void m_C8() = 0;
-	virtual int GetSyncFrequency() = 0;
-	virtual void m_D8() = 0;
-	virtual void m_E0() = 0;
-	virtual void m_E8() = 0;
-	virtual void m_F0() = 0;
-	virtual void m_F8() = 0;
-	virtual void Update() = 0;
-	virtual bool m_108_1604() = 0; // added in 1604
-	virtual void StartSynchronising() = 0;
-	virtual void m_110() = 0;
-	virtual void m_118() = 0;
-	virtual void m_120() = 0;
-	virtual bool CanSynchronise(bool) = 0;
-	virtual void m_130() = 0;
-	virtual void m_138() = 0;
-	virtual void m_140() = 0;
-	virtual void m_148() = 0;
-	virtual void m_150() = 0;
-	virtual bool m_158(void* player, int type, int* outReason) = 0;
-	virtual void m_160() = 0;
-	virtual bool m_168(int* outReason) = 0;
-	virtual void m_170() = 0;
-	virtual void m_178() = 0;
-	virtual void ChangeOwner(CNetGamePlayer* player, int migrationType) = 0;
-	virtual void OnRegistered() = 0;
-	virtual void m_190() = 0;
-	virtual void m_198() = 0;
-	virtual void m_1A0() = 0;
-	virtual void m_1A8() = 0;
-	virtual void m_1B0() = 0;
-	virtual void m_1B8() = 0;
-	virtual void m_1C0() = 0;
-	virtual void m_1C8() = 0;
-	virtual void m_1D0() = 0;
-	virtual void PostMigrate(int migrationType) = 0;
-	virtual void m_1E0() = 0;
-	virtual void m_1E8() = 0;
-	virtual const char* GetTypeString() = 0;
-	virtual void m_1F8() = 0;
-	virtual void m_200() = 0;
-	virtual void m_208() = 0;
-	virtual void m_210() = 0;
-	virtual void m_218() = 0;
-	virtual void m_220() = 0;
-	virtual void m_228() = 0;
-	virtual void m_230() = 0;
-	virtual void m_238() = 0;
-	virtual void m_240() = 0;
-	virtual void m_248() = 0;
-	virtual void m_250() = 0;
-	virtual void m_258() = 0;
-	virtual void m_260() = 0;
-	virtual void m_268() = 0;
-	virtual void m_270() = 0;
-	virtual void m_278() = 0;
-	virtual void m_280() = 0;
-	virtual void m_288() = 0;
-	virtual void m_290() = 0;
-	virtual void m_298() = 0;
-	virtual void m_2A0() = 0;
-	virtual void m_2A8() = 0;
-	virtual void m_2B0() = 0;
-	virtual void m_2B8() = 0;
-	virtual void m_2C0() = 0;
-	virtual void m_2C8() = 0;
-	virtual void m_2D0() = 0;
-	virtual void m_2D8() = 0;
-	virtual void m_2E0() = 0;
-	virtual void m_2E8() = 0;
-	virtual void m_2F0() = 0;
-	virtual void m_2F8() = 0;
-	virtual void m_300() = 0;
-	virtual void m_308() = 0;
-	virtual void m_310() = 0;
-	virtual void m_318() = 0;
-	virtual void m_320() = 0;
 
 private:
 	template<typename TMember>
@@ -200,15 +113,94 @@ private:
 
 public:
 #undef FORWARD_FUNC
-#define FORWARD_FUNC(name, offset, ...)    \
+#define FORWARD_FUNC(name, offset, ...)     \
 	using TFn = decltype(&netObject::name); \
-	void** vtbl = *(void***)(this);        \
-	return (this->*(get_member<TFn>(vtbl[(offset) / 8])))(__VA_ARGS__);
+	void** vtbl = *(void***)(this);         \
+	return (this->*(get_member<TFn>(vtbl[MapNetObjectMethod(offset) / 8])))(__VA_ARGS__);
 
+	inline void* GetSyncData()
+	{
+		FORWARD_FUNC(GetSyncData, 0x20);
+	}
+
+	inline netSyncTree* GetSyncTree()
+	{
+		FORWARD_FUNC(GetSyncTree, 0x30);
+	}
+
+	inline void* GetGameObject()
+	{
+		FORWARD_FUNC(GetGameObject, 0x80);
+	}
+
+	inline void* CreateNetBlender()
+	{
+		FORWARD_FUNC(CreateNetBlender, 0xB0);
+	}
+
+	inline int GetSyncFrequency()
+	{
+		FORWARD_FUNC(GetSyncFrequency, 0xD0);
+	}
+
+	inline void Update()
+	{
+		FORWARD_FUNC(Update, 0x100);
+	}
+
+	inline void StartSynchronising()
+	{
+		FORWARD_FUNC(StartSynchronising, 0x110);
+	}
+
+	inline bool CanSynchronise(bool unk)
+	{
+		FORWARD_FUNC(CanSynchronise, 0x130, unk);
+	}
+
+	inline bool CanPassControl(CNetGamePlayer* player, int type, int* outReason)
+	{
+		FORWARD_FUNC(CanPassControl, 0x160, player, type, outReason);
+	}
+
+	inline bool CanBlend(int* outReason)
+	{
+		FORWARD_FUNC(CanBlend, 0x170, outReason);
+	}
+
+	inline void ChangeOwner(CNetGamePlayer* player, int migrationType)
+	{
+		FORWARD_FUNC(ChangeOwner, 0x188, player, migrationType);
+	}
+
+	inline void OnRegistered()
+	{
+		FORWARD_FUNC(OnRegistered, 0x190);
+	}
+
+	inline void PostMigrate(int migrationType)
+	{
+		FORWARD_FUNC(PostMigrate, 0x1E0, migrationType);
+	}
+
+	inline void PostCreate()
+	{
+		FORWARD_FUNC(PostCreate, 0x1C8);
+	}
+
+	inline void PostSync()
+	{
+		FORWARD_FUNC(PostSync, 0x1D8);
+	}
+
+	inline const char* GetTypeString()
+	{
+		FORWARD_FUNC(GetTypeString, 0x1F8);
+	}
 
 	inline void UpdatePendingVisibilityChanges()
 	{
-		FORWARD_FUNC(UpdatePendingVisibilityChanges, (xbr::IsGameBuildOrGreater<2189>()) ? 0x338 : 0x330);
+		FORWARD_FUNC(UpdatePendingVisibilityChanges, 0x330);
 	}
 
 #undef FORWARD_FUNC
@@ -231,4 +223,3 @@ public:
 
 netObject* CreateCloneObject(NetObjEntityType type, uint16_t objectId, uint8_t a2, int a3, int a4);
 }
-

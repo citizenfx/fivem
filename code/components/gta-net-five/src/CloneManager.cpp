@@ -534,7 +534,7 @@ void CloneManagerLocal::ProcessSyncAck(uint16_t objId, uint16_t uniqifier)
 			auto syncTree = netObj->GetSyncTree();
 			syncTree->AckCfx(netObj, m_ackTimestamp);
 
-			if (netObj->m_20())
+			if (netObj->GetSyncData())
 			{
 				_processAck(syncTree, netObj, 31, 0 /* seq? */, m_ackTimestamp, 0xFFFFFFFF);
 			}
@@ -1229,13 +1229,13 @@ bool CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 	{
 		obj->GetBlender()->SetTimestamp(msg.GetTimestamp());
 
-		obj->m_1D0();
+		obj->PostSync();
 
 		obj->GetBlender()->ApplyBlend();
 		obj->GetBlender()->m_38();
 	}
 
-	obj->m_1C0();
+	obj->PostCreate();
 
 	// for the last time, ensure it's not local
 	if (obj->syncData.isRemote != isRemote || obj->syncData.ownerId != owner)
@@ -1421,7 +1421,7 @@ AckResult CloneManagerLocal::HandleCloneUpdate(const msgClone& msg)
 		syncTree->ApplyToObject(obj, nullptr);
 
 		// call post-apply
-		obj->m_1D0();
+		obj->PostSync();
 	}
 
 	// update client id if changed
@@ -2469,7 +2469,7 @@ void CloneManagerLocal::WriteUpdates()
 			// set sync priority
 			object->syncData.SetCloningFrequency(31, object->GetSyncFrequency());
 
-			char* syncData = (char*)object->m_20();
+			char* syncData = (char*)object->GetSyncData();
 
 			if (syncData)
 			{
@@ -2535,7 +2535,7 @@ void CloneManagerLocal::WriteUpdates()
 					AssociateSyncTree(object->GetObjectId(), syncTree);
 
 					// instantly mark player 31 as acked
-					if (object->m_20())
+					if (object->GetSyncData())
 					{
 						// 1290
 						//((void(*)(rage::netSyncTree*, rage::netObject*, uint8_t, uint16_t, uint32_t, int))0x1415D94F0)(syncTree, object, 31, 0 /* seq? */, 0x7FFFFFFF, 0xFFFFFFFF);

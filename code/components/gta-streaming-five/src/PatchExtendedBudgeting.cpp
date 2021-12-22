@@ -13,6 +13,7 @@
 
 #include <dxgi1_4.h>
 #include <wrl.h>
+#include <CrossBuildRuntime.h>
 
 namespace WRL = Microsoft::WRL;
 
@@ -116,7 +117,7 @@ static HookFunction hookFunction([]()
 		*_budgetScale = 0;
 		*isStereo = 1;
 
-		auto location = hook::get_pattern<char>("84 C0 0F 84 4A 01 00 00 0F B6", -0x46);
+		auto location = xbr::IsGameBuildOrGreater<2545>() ? hook::get_pattern<char>("84 C0 0F 84 4B 01 00 00 0F B6", -0x46) : hook::get_pattern<char>("84 C0 0F 84 4A 01 00 00 0F B6", -0x46);
 		hook::nop(location + 0x48, 6);
 		hook::put<int32_t>(location + 0xA6, (intptr_t)_budgetScale - ((intptr_t)location + 0xA6 + 4));
 		hook::put<int32_t>(location + 0xBA, (intptr_t)isStereo - ((intptr_t)location + 0xBA + 5));

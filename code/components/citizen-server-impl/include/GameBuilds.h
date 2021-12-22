@@ -89,6 +89,11 @@ struct ConsoleArgumentType<fx::GameBuild>
 			*out = "2372";
 			return true;
 		}
+		else if (_stricmp(inputStr.c_str(), "mpsecurity") == 0)
+		{
+			*out = "2545";
+			return true;
+		}
 
 		// not an int or a known alias
 		return false;

@@ -892,10 +892,10 @@ static void SetOwnerStub(rage::netObject* netObject, CNetGamePlayer* newOwner)
 	TheClones->SetTargetOwner(netObject, g_netIdsByPlayer[newOwner]);
 }
 
-static bool m158Stub(rage::netObject* object, CNetGamePlayer* player, int type, int* outReason)
+static bool netObject__CanPassControl(rage::netObject* object, CNetGamePlayer* player, int type, int* outReason)
 {
 	int reason;
-	bool rv = object->m_158(player, type, &reason);
+	bool rv = object->CanPassControl(player, type, &reason);
 
 	if (!rv)
 	{
@@ -906,10 +906,10 @@ static bool m158Stub(rage::netObject* object, CNetGamePlayer* player, int type, 
 }
 
 #ifdef GTA_FIVE
-static bool m168Stub(rage::netObject* object, int* outReason)
+static bool netObject__CanBlend(rage::netObject* object, int* outReason)
 {
 	int reason;
-	bool rv = object->m_168(&reason);
+	bool rv = object->CanBlend(&reason);
 
 	if (!rv)
 	{
@@ -1499,7 +1499,14 @@ static HookFunction hookFunction([]()
 
 #ifdef GTA_FIVE
 	// use cached sector if no gameobject (weird check in IProximityMigrateableNodeDataAccessor impl)
-	hook::nop(hook::get_pattern("FF 90 80 00 00 00 33 C9 48 85 C0 74 4C", 11), 2);
+	if (xbr::IsGameBuildOrGreater<2545>())
+	{
+		hook::nop(hook::get_pattern("FF 90 90 00 00 00 33 C9 48 85 C0 74 4C", 11), 2);
+	}
+	else
+	{
+		hook::nop(hook::get_pattern("FF 90 80 00 00 00 33 C9 48 85 C0 74 4C", 11), 2);
+	}
 
 	// dummy/ambient object player list ordering logic
 
@@ -1630,7 +1637,7 @@ static HookFunction hookFunction([]()
 	MH_Initialize();
 
 #ifdef GTA_FIVE
-	MH_CreateHook(hook::get_pattern("48 89 03 33 C0 B1 0A 48 89", -0x15), NetworkObjectMgrCtorStub, (void**)&g_origNetworkObjectMgrCtor);
+	MH_CreateHook((xbr::IsGameBuildOrGreater<2545>()) ? hook::get_pattern("B1 0A 48 89 03 33 C0 48 89", -0x1F) : hook::get_pattern("48 89 03 33 C0 B1 0A 48 89", -0x15), NetworkObjectMgrCtorStub, (void**)&g_origNetworkObjectMgrCtor);
 	MH_CreateHook(hook::get_pattern("4C 8B F1 41 BD 05", -0x22), PassObjectControlStub, (void**)&g_origPassObjectControl);
 	MH_CreateHook(hook::get_pattern("8A 41 49 4C 8B F2 48 8B", -0x10), SetOwnerStub, (void**)&g_origSetOwner);
 #elif IS_RDR3
@@ -1677,18 +1684,21 @@ static HookFunction hookFunction([]()
 		auto location = hook::get_pattern("45 8D 41 03 FF 90 ? ? ? ? 84 C0 0F", 4);
 #endif
 		hook::nop(location, 6);
-		hook::call(location, m158Stub);
+
+		// 0x160 in 1604 - 0x170 in 2545
+		hook::call(location, netObject__CanPassControl);
 	}
 
-	{
 #ifdef GTA_FIVE
-		auto location = hook::get_pattern("48 8B CF FF 90 70 01 00 00 84 C0 74 12 48 8B CF", 3);
+	{
+		// General area: 8B 05 ? ? ? ? FF C8 44 3B E8 75
+		auto location = hook::get_pattern("48 8B CF FF 90 ? ? 00 00 84 C0 74 12 48 8B CF", 3);
 		hook::nop(location, 6);
 
-		// m170 in 1604 now
-		hook::call(location, m168Stub);
-#endif
+		// 0x170 in 1604 - 0x180 in 2545
+		hook::call(location, netObject__CanBlend);
 	}
+#endif
 
 #ifdef GTA_FIVE
 	MH_CreateHook(hook::get_pattern("33 DB 48 8B F9 48 39 99 ? ? 00 00 74 ? 48 81 C1 E0", -10), AllocateNetPlayer, (void**)&g_origAllocateNetPlayer);
@@ -1830,12 +1840,20 @@ static HookFunction hookFunction([]()
 	MH_CreateHook(hook::get_pattern("78 18 4C 8B 05", -10), GetScenarioTaskScenario, (void**)&g_origGetScenarioTaskScenario);
 
 	// #TODO1S: fix player/ped groups so we don't need this workaround anymore
-	MH_CreateHook(hook::get_call(hook::get_pattern("48 83 C1 10 48 C1 E0 06 48 03 C8 E8", -21)), GetNetObjPlayerGroup, (void**)&g_origGetNetObjPlayerGroup);
+	MH_CreateHook(hook::get_call(hook::get_pattern("48 8B 04 28 4D 8B 3C 2C 49 89 04 2C", 24)), GetNetObjPlayerGroup, (void**)&g_origGetNetObjPlayerGroup);
 #endif
 
 #ifdef GTA_FIVE
 	MH_CreateHook(hook::get_pattern("45 8D 65 20 C6 81 ? ? 00 00 01 48 8D 59 08", -0x2F), ObjectManager_End, (void**)&g_origObjectManager_End);
-	MH_CreateHook(hook::get_call(hook::get_call(hook::get_pattern<char>("48 8D 05 ? ? ? ? 48 8B D9 48 89 01 E8 ? ? ? ? 84 C0 74 08 48 8B CB E8", -0x19) + 0x32)), PlayerManager_End, (void**)&g_origPlayerManager_End);
+	
+	if (xbr::IsGameBuildOrGreater<2545>())
+	{
+		MH_CreateHook(hook::get_call(hook::get_call(hook::get_pattern<char>("84 C0 74 14 48 8B CB E8 ? ? ? ? 48 8D 8B", 7))), PlayerManager_End, (void**)&g_origPlayerManager_End);
+	}
+	else
+	{
+		MH_CreateHook(hook::get_call(hook::get_call(hook::get_pattern<char>("48 8D 05 ? ? ? ? 48 8B D9 48 89 01 E8 ? ? ? ? 84 C0 74 08 48 8B CB E8", -0x19) + 0x32)), PlayerManager_End, (void**)&g_origPlayerManager_End);
+	}
 #elif IS_RDR3
 	MH_CreateHook(hook::get_pattern("48 83 EC 30 45 33 FF 48 8B F1 44 38 B9", -0x18), ObjectManager_End, (void**)&g_origObjectManager_End);
 	MH_CreateHook(hook::get_call(hook::get_call(hook::get_pattern<char>("48 8D 05 ? ? ? ? 48 8B F9 48 89 01 E8 ? ? ? ? 84 C0 74 08 48 8B ? E8", -0xF) + 0x28)), PlayerManager_End, (void**)&g_origPlayerManager_End);
@@ -1926,7 +1944,7 @@ static HookFunction hookFunction([]()
 	// always write up-to-date data to nodes, not the cached data from syncdata
 	{
 #ifdef GTA_FIVE
-		auto location = hook::get_pattern("FF 90 D0 00 00 00 84 C0 0F 84 80 00 00 00", 0);
+		auto location = hook::get_pattern("FF 90 ? ? ? ? 84 C0 0F 84 80 00 00 00 49", 0);
 #elif IS_RDR3
 		auto location = hook::get_pattern("44 8A 84 24 ? ? ? ? ? 8B D5 48 8B CF FF 90", 14);
 #endif
@@ -2909,18 +2927,18 @@ static bool ReadDataNodeStub(void* node, uint32_t flags, void* mA0, rage::datBit
 }
 
 #ifdef GTA_FIVE
-static char(*g_origWriteDataNode)(void* node, uint32_t flags, void* mA0, rage::netObject* object, rage::datBitBuffer* buffer, int time, void* playerObj, char playerId, void* unk);
+static char(*g_origWriteDataNode)(void* node, uint32_t flags, void* mA0, rage::netObject* object, rage::datBitBuffer* buffer, int time, void* playerObj, char playerId, void* unk, void* unk2545);
 
-static bool WriteDataNodeStub(void* node, uint32_t flags, void* mA0, rage::netObject* object, rage::datBitBuffer* buffer, int time, void* playerObj, char playerId, void* unk)
+static bool WriteDataNodeStub(void* node, uint32_t flags, void* mA0, rage::netObject* object, rage::datBitBuffer* buffer, int time, void* playerObj, char playerId, void* unk, void* unk2545)
 {
 	if (!icgi->OneSyncEnabled)
 	{
-		return g_origWriteDataNode(node, flags, mA0, object, buffer, time, playerObj, playerId, unk);
+		return g_origWriteDataNode(node, flags, mA0, object, buffer, time, playerObj, playerId, unk, unk2545);
 	}
 
 	if (playerId != 31 || flags == 4)
 	{
-		return g_origWriteDataNode(node, flags, mA0, object, buffer, time, playerObj, playerId, unk);
+		return g_origWriteDataNode(node, flags, mA0, object, buffer, time, playerObj, playerId, unk, unk2545);
 	}
 	else
 	{
@@ -2929,7 +2947,7 @@ static bool WriteDataNodeStub(void* node, uint32_t flags, void* mA0, rage::netOb
 		buffer->WriteBit(false);
 		buffer->WriteUns(0, 11);
 
-		bool rv = g_origWriteDataNode(node, flags, mA0, object, buffer, time, playerObj, playerId, unk);
+		bool rv = g_origWriteDataNode(node, flags, mA0, object, buffer, time, playerObj, playerId, unk, unk2545);
 
 		// write the actual length on top of the position
 		uint32_t endPosition = buffer->GetPosition();
@@ -3010,15 +3028,15 @@ static bool WriteDataNodeStub(void* node, uint32_t flags, uint32_t objectFlags, 
 }
 #endif
 
-static void(*g_origUpdateSyncDataOn108)(void* node, void* object);
-
-static void UpdateSyncDataOn108Stub(void* node, void* object)
-{
-	//if (!icgi->OneSyncEnabled)
-	{
-		g_origUpdateSyncDataOn108(node, object);
-	}
-}
+//
+//static void(*g_origUpdateSyncDataOn108)(void* node, void* object);
+//static void UpdateSyncDataOn108Stub(void* node, void* object)
+//{
+//	//if (!icgi->OneSyncEnabled)
+//	{
+//		g_origUpdateSyncDataOn108(node, object);
+//	}
+//}
 
 static void(*g_origManuallyDirtyNode)(void* node, void* object);
 
@@ -3130,15 +3148,15 @@ static HookFunction hookFunction2([]()
 
 #ifdef GTA_FIVE
 		{
-			auto floc = hook::get_pattern<char>("84 C0 0F 84 39 01 00 00 48 83 7F", -0x29);
+			auto floc = xbr::IsGameBuildOrGreater<2545>() ? hook::get_pattern<char>("84 C0 0F 84 39 01 00 00 48 39 77", -0x2B) : hook::get_pattern<char>("84 C0 0F 84 39 01 00 00 48 83 7F", -0x29);
 			hook::set_call(&g_origCallSkip, floc + 0xD9);
 			hook::call(floc + 0xD9, SkipCopyIf1s);
-			MH_CreateHook(floc, UpdateSyncDataOn108Stub, (void**)&g_origUpdateSyncDataOn108);
+			// MH_CreateHook(floc, UpdateSyncDataOn108Stub, (void**)&g_origUpdateSyncDataOn108);
 		}
 #endif
 
 #ifdef GTA_FIVE
-		MH_CreateHook(hook::get_pattern("48 83 79 48 00 48 8B D9 74 19", -6), ManuallyDirtyNodeStub, (void**)&g_origManuallyDirtyNode);
+		MH_CreateHook(xbr::IsGameBuildOrGreater<2545>() ? hook::get_pattern("48 83 79 48 00 48 8B FA 48 8B D9 74 40", -10) : hook::get_pattern("48 83 79 48 00 48 8B D9 74 19", -6), ManuallyDirtyNodeStub, (void**)&g_origManuallyDirtyNode);
 		MH_CreateHook(hook::get_pattern("85 51 28 0F 84 E4 00 00 00 33 DB", -0x24), netSyncDataNode_ForceSendStub, (void**)&g_orig_netSyncDataNode_ForceSend);
 		MH_CreateHook(hook::get_pattern("44 85 41 28 74 73 83 79 30 00", -0x1F), netSyncDataNode_ForceSendToPlayerStub, (void**)&g_orig_netSyncDataNode_ForceSendToPlayer);
 #elif IS_RDR3
@@ -4190,7 +4208,7 @@ static InitFunction initFunction([]()
 
 #ifdef IS_RDR3
 		auto check2 = (*(unsigned __int8(__fastcall**)(void*))(*(uint64_t*)obj + 0x98))(obj);
-		auto check = st->m_18(obj, -1);
+		auto check = st->InitialiseNode(obj, -1);
 
 		if (!check && !check2)
 		{
@@ -4326,7 +4344,7 @@ static InitFunction initFunction([]()
 		//obj->GetBlender()->ApplyBlend();
 		//obj->GetBlender()->m_38();
 
-		//obj->m_1C0();
+		//obj->PostCreate();
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("EXPERIMENTAL_BLEND", [](fx::ScriptContext& context)
@@ -4400,12 +4418,12 @@ static InitFunction initFunction([]()
 		obj->GetBlender()->SetTimestamp(rage::netInterface_queryFunctions::GetInstance()->GetTimestamp());
 		//obj->SetBlenderTimestamp(rage::netInterface_queryFunctions::GetInstance()->GetTimestamp());
 
-		obj->m_1D0();
+		obj->PostSync();
 
 		obj->GetBlender()->ApplyBlend();
 		obj->GetBlender()->m_38();
 
-		obj->m_1C0();
+		obj->PostCreate();
 
 		trace("got game object %llx\n", (uintptr_t)obj->GetGameObject());
 	});

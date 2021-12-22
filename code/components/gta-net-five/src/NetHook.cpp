@@ -319,6 +319,10 @@ static hook::cdecl_stub<void(int, int, int)> hostGame([] () -> void*
 		return (void*)hook::get_adjusted(0x1410646BC);
 	}
 
+	if (xbr::IsGameBuild<2545>())
+	{
+		return (void*)hook::get_adjusted(0x14106FF30);
+	}
 	// 1737
 	//return (void*)0x141029A20;
 
@@ -1324,13 +1328,14 @@ static void WaitForScAndLoadMeta(const char* fn, bool a2, uint32_t a3)
 {
 	while (_isScWaitingForInit())
 	{
-		// 1365
-		// 1493
-		// 1604
-		// 1737
-		// 1868
-		// 2060
-		if (xbr::IsGameBuildOrGreater<2372>())
+		if (xbr::IsGameBuildOrGreater<2545>())
+		{
+			((void (*)())hook::get_adjusted(0x140006A28))();
+			((void (*)())hook::get_adjusted(0x1407FB28C))();
+			((void (*)())hook::get_adjusted(0x1400275C8))();
+			((void (*)(void*))hook::get_adjusted(0x141612950))((void*)hook::get_adjusted(0x142E6F960));
+		}
+		else if (xbr::IsGameBuildOrGreater<2372>())
 		{
 			((void (*)())hook::get_adjusted(0x140006718))();
 			((void (*)())hook::get_adjusted(0x1407F6050))();

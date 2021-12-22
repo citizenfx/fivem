@@ -803,7 +803,7 @@ namespace rage
 
 	static hook::cdecl_stub<audWaveSlot*(uint32_t)> _findWaveSlot([]()
 	{
-		return hook::get_call(hook::get_pattern("B9 A1 C7 05 92 E8", 5));
+		return hook::get_call(hook::get_pattern("0F 85 ? ? ? ? B9 A1 C7 05 92 E8", 11));
 	});
 
 	audWaveSlot* audWaveSlot::FindWaveSlot(uint32_t hash)

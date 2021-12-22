@@ -1410,6 +1410,11 @@ std::map<std::string, std::string> UpdateGameCache()
 		g_requiredEntries.push_back({ "GTA5.exe", "ae6e9cc116e8435e4dcfb5b870deee00a8b0904c", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_372_2.exe", "$/GTA5.exe", 55559560, 399999536 });
 		g_requiredEntries.push_back({ "update/update.rpf", "b72884c9af7170908f558ec5d629d805857b80f2", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_372_2.exe", "$/update/update.rpf", 352569344, 399999536 });
 	}
+	else if (IsTargetGameBuild<2545>())
+	{
+		g_requiredEntries.push_back({ "GTA5.exe", "517556bb548880362c18d502361ce374070994c2", "https://content.cfx.re/mirrors/patches/2545.0/GTA5.exe", 59988376 });
+		g_requiredEntries.push_back({ "update/update.rpf", "2993b3c30f61cbbb8dbce859604d7fb717ff8dae", "https://content.cfx.re/mirrors/patches/2545.0/update.rpf", 1366638592 });
+	}
 	else if (IsTargetGameBuild<2372>())
 	{
 		g_requiredEntries.push_back({ "GTA5.exe", "470235e04299b02aa3aef834ef1ff834cac2327f", "https://content.cfx.re/mirrors/patches/2372.0/GTA5.exe", 59716912 });
@@ -1472,6 +1477,12 @@ std::map<std::string, std::string> UpdateGameCache()
 	if (IsTargetGameBuildOrGreater<2372>())
 	{
 		g_requiredEntries.push_back({ "update/x64/dlcpacks/mptuner/dlc.rpf", "7a7521b3396701f4fe8ae51347c6206c46306648", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 3482869760 });
+	}
+
+	if (IsTargetGameBuildOrGreater<2545>())
+	{
+		g_requiredEntries.push_back({ "update/x64/dlcpacks/mpsecurity/dlc.rpf", "27c8100da2537472ad012df036a95da08188d54a", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 1978963968 });
+		g_requiredEntries.push_back({ "update/x64/dlcpacks/mpsecurity/dlc1.rpf", "82f34009966d790a2987c70a2872a5658a71f198", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 1308874752 });
 	}
 #elif IS_RDR3
 	// 1311/1355/1436 toggle

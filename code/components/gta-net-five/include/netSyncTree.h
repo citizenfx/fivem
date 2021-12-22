@@ -1,5 +1,7 @@
 #pragma once
 
+#include <CrossBuildRuntime.h>
+
 enum class NetObjEntityType
 {
 	Automobile = 0,
@@ -19,6 +21,16 @@ enum class NetObjEntityType
 	Max = 14
 };
 
+inline int MapNetSyncTreeMethod(int offset)
+{
+	if (offset >= 0xD0 && xbr::IsGameBuildOrGreater<2545>())
+	{
+		offset += 0x10;
+	}
+
+	return offset;
+}
+
 namespace rage
 {
 class netObject;
@@ -30,59 +42,55 @@ class netSyncTree
 public:
 	virtual ~netSyncTree() = 0;
 
-	virtual void WriteTree(int flags, int objFlags, netObject* object, datBitBuffer* buffer, uint32_t time, void* logger, uint8_t targetPlayer, void* outNull) = 0;
+private:
+	template<typename TMember>
+	inline static TMember get_member(void* ptr)
+	{
+		union member_cast
+		{
+			TMember function;
+			struct
+			{
+				void* ptr;
+				uintptr_t off;
+			};
+		};
 
-	virtual void ApplyToObject(netObject* object, void*) = 0;
+		member_cast cast;
+		cast.ptr = ptr;
+		cast.off = 0;
 
-	virtual void m_18() = 0;
+		return cast.function;
+	}
 
-	virtual void m_20(uint32_t, uint32_t, rage::datBitBuffer*, void*) = 0;
+public:
+#undef FORWARD_FUNC
+#define FORWARD_FUNC(name, offset, ...)     \
+	using TFn = decltype(&netSyncTree::name); \
+	void** vtbl = *(void***)(this);         \
+	return (this->*(get_member<TFn>(vtbl[MapNetSyncTreeMethod(offset) / 8])))(__VA_ARGS__);
 
-	virtual void m_28() = 0;
+	inline void WriteTree(int flags, int objFlags, netObject* object, datBitBuffer* buffer, uint32_t time, void* logger, uint8_t targetPlayer, void* outNull)
+	{
+		FORWARD_FUNC(WriteTree, 0x8, flags, objFlags, object, buffer, time, logger, targetPlayer, outNull);
+	}
 
-	virtual void m_30() = 0;
+	inline void ApplyToObject(netObject* object, void* unk)
+	{
+		FORWARD_FUNC(ApplyToObject, 0x10, object, unk);
+	}
 
-	virtual void m_38() = 0;
+	inline void* GetCreationDataNode()
+	{
+		FORWARD_FUNC(GetCreationDataNode, 0x50);
+	}
 
-	virtual void m_40() = 0;
+	inline bool m_D0(int unk)
+	{
+		FORWARD_FUNC(m_D0, 0xD0, unk);
+	}
 
-	virtual void m_48() = 0;
-
-	virtual void* GetCreationDataNode() = 0;
-
-	virtual void m_58() = 0;
-
-	virtual void m_60(rage::netObject* object, void*, uint8_t) = 0;
-
-	virtual void m_68() = 0;
-
-	virtual void m_70() = 0;
-
-	virtual void m_78() = 0;
-
-	virtual void m_80() = 0;
-
-	virtual void m_88() = 0;
-
-	virtual void m_90() = 0;
-
-	virtual void m_98() = 0;
-
-	virtual void m_A0() = 0;
-
-	virtual void m_A8() = 0;
-
-	virtual void m_B0() = 0;
-
-	virtual void m_B8() = 0;
-
-	virtual void m_C0() = 0;
-
-	virtual void m_C8() = 0;
-
-	virtual bool m_D0(int) = 0;
-
-	virtual void m_D8() = 0;
+#undef FORWARD_FUNC
 
 public:
 	bool CanApplyToObject(netObject* object);

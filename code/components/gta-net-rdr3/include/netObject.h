@@ -74,7 +74,7 @@ public:
 	virtual void m_8() = 0;
 	virtual void m_10() = 0;
 	virtual void m_18() = 0;
-	virtual void* m_20() = 0; // GetSyncData
+	virtual void* GetSyncData() = 0;
 	virtual void m_28() = 0;
 	virtual netSyncTree* GetSyncTree() = 0;
 	virtual bool HasGameObject() = 0;
@@ -128,9 +128,9 @@ public:
 	virtual bool CanCreateWithNoGameObject() = 0;
 	virtual bool CanPassControlWithNoGameObject() = 0;
 	virtual bool CanReassignWithNoGameObject() = 0;
-	virtual bool m_158(void* player, int type, int* outReason) = 0; // CanPassControl
+	virtual bool CanPassControl(CNetGamePlayer* player, int type, int* outReason) = 0;
 	virtual bool CanAcceptControl(void* player, int type, int* outReason) = 0; // 60
-	virtual bool m_168(int* outReason) = 0; // CanBlend
+	virtual bool CanBlend(int* outReason) = 0;
 	virtual bool NetworkBlenderIsOverridden(void* unk) = 0;
 	virtual bool NetworkAttachmentIsOverridden() = 0;
 	virtual void ChangeOwner(void* player, int migrationType) = 0;
@@ -142,9 +142,9 @@ public:
 	virtual int CalcReassignPriority() = 0; // 70
 	virtual void PlayerHasJoined(void* player) = 0;
 	virtual void PlayerHasLeft(void* player) = 0;
-	virtual void m_1C0() = 0; // PostCreate
+	virtual void PostCreate() = 0;
 	virtual void PreSync() = 0;
-	virtual void m_1D0() = 0; // PostSync
+	virtual void PostSync() = 0;
 	virtual void PostMigrate(int migrationType) = 0;
 	virtual void SetBlenderTimestamp(uint32_t) = 0;
 	virtual bool CheckPlayerHasAuthorityOverObject(void*) = 0;

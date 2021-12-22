@@ -1049,7 +1049,11 @@ static HookFunction hookFunction{[] ()
 	}
 	else
 	{
-		hook::put<uint16_t>(hook::get_pattern("83 E8 12 75 6A 48 8B 03 48 8B CB", 5), 0x76EB);
+		// #TODO2545
+		if (!xbr::IsGameBuildOrGreater<2545>())
+		{
+			hook::put<uint16_t>(hook::get_pattern("83 E8 12 75 6A 48 8B 03 48 8B CB", 5), 0x76EB);
+		}
 	}
 
 	// vehicles.meta explosionInfo field invalidity
