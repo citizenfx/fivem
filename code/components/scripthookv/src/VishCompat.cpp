@@ -268,6 +268,7 @@ enum eGameVersion : int
 	VER_1_0_2060_0_NOSTEAM = 60,
 	VER_1_0_2189_0_NOSTEAM = 64,
 	VER_1_0_2372_0_NOSTEAM = 70,
+	VER_1_0_2545_0_NOSTEAM = 72,
 };
 
 // ScriptHookV uses incremental numbers instead of build
@@ -278,6 +279,7 @@ DLL_EXPORT eGameVersion getGameVersion()
 	if (xbr::IsGameBuild<2060>()) return VER_1_0_2060_0_NOSTEAM;
 	if (xbr::IsGameBuild<2189>()) return VER_1_0_2189_0_NOSTEAM;
 	if (xbr::IsGameBuild<2372>()) return VER_1_0_2372_0_NOSTEAM;
+	if (xbr::IsGameBuild<2545>()) return VER_1_0_2545_0_NOSTEAM;
 
 	return VER_1_0_1604_0_NOSTEAM; // Default build
 }
