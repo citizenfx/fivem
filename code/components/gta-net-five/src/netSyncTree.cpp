@@ -2,6 +2,7 @@
 #include <Hooking.h>
 
 #include <netSyncTree.h>
+#include <CrossBuildRuntime.h>
 
 static hook::cdecl_stub<rage::netSyncTree*(void*, int)> getSyncTreeForType([]()
 {
@@ -20,7 +21,7 @@ static hook::cdecl_stub<bool(rage::netSyncTree* self, rage::netObject* obj)> net
 
 static hook::cdecl_stub<bool(rage::netSyncTree* self, rage::netObject* obj)> netSyncTree_PrepareObject([]()
 {
-	return hook::get_pattern("48 85 D2 74 4E 48 8B 02 48 8B CA", -0x21);
+	return xbr::IsGameBuildOrGreater<2545>() ? hook::get_pattern("48 85 D2 74 45 48 8B 02 48 8B CA FF 50", -0x21) : hook::get_pattern("48 85 D2 74 4E 48 8B 02 48 8B CA", -0x21);
 });
 
 namespace rage

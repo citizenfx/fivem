@@ -9,6 +9,7 @@
 #include "Hooking.h"
 
 #include <Error.h>
+#include <CrossBuildRuntime.h>
 
 #include <typeinfo>
 
@@ -54,5 +55,12 @@ static void PurecallHandler(VirtualBase* self)
 
 static HookFunction hookFunction([] ()
 {
-	hook::jump(hook::pattern("48 83 EC 28 B9 79 38 F4 43 E8").count(1).get(0).get<void>(0), PurecallHandler);
+	if (xbr::IsGameBuildOrGreater<2545>())
+	{
+		hook::jump(hook::pattern("74 02 FF D0 B9 19 00 00 00").count(1).get(0).get<void>(-20), PurecallHandler);
+	}
+	else
+	{
+		hook::jump(hook::pattern("48 83 EC 28 B9 79 38 F4 43 E8").count(1).get(0).get<void>(0), PurecallHandler);
+	}
 });

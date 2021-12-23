@@ -828,6 +828,26 @@ mapper->AddGameService("ugc.asmx/Publish", [](const std::string& body)
   </Result>
 </Response>)");
 			}
+			else if (xbr::IsGameBuild<2545>())
+			{
+				return fmt::sprintf(R"(
+<?xml version="1.0" encoding="utf-8"?>
+<Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ms="0" xmlns="GetBuildManifestFull">
+  <Status>1</Status>
+  <Result BuildId="94" VersionNumber="1.0.2545.0" BuildDateUtc="2021-11-05T11:39:37.0266667">
+    <FileManifest>
+		<FileDetails FileEntryId="9178" FileEntryVersionId="9648" FileSize="59988376" TimestampUtc="2021-11-05T11:39:34.8800000">
+			<RelativePath>GTA5.exe</RelativePath>
+			<SHA256Hash>964a8c25af4f622aedcd0de13717d261a07ccfcc734f5885bcfd5f173330cd06</SHA256Hash>
+			<FileChunks>
+				<Chunk FileChunkId="13046" SHA256Hash="964a8c25af4f622aedcd0de13717d261a07ccfcc734f5885bcfd5f173330cd06" StartByteOffset="0" Size="59988376" />
+			</FileChunks>
+		</FileDetails>
+    </FileManifest>
+    <IsPreload>false</IsPreload>
+  </Result>
+</Response>)");
+			}
 			else if (xbr::IsGameBuild<2372>())
 			{
 				return fmt::sprintf(R"(
@@ -1044,7 +1064,7 @@ mapper->AddGameService("ugc.asmx/Publish", [](const std::string& body)
     </App>
   </Result>
 </Response>)",
-		xbr::IsGameBuild<372>() ? 4 : (xbr::IsGameBuild<2060>() ? 83 : (xbr::IsGameBuild<2372>() ? 92 : (xbr::IsGameBuild<2189>() ? 88 : 80))),
+		xbr::IsGameBuild<372>() ? 4 : (xbr::IsGameBuild<2060>() ? 83 : (xbr::IsGameBuild<2545>() ? 94 : (xbr::IsGameBuild<2372>() ? 92 : (xbr::IsGameBuild<2189>() ? 88 : 80)))),
 		xbr::IsGameBuild<1355>() ? 80 : (xbr::IsGameBuild<1436>() ? 82 : 79));
 	});
 

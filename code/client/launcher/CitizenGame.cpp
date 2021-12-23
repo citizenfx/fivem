@@ -163,7 +163,7 @@ static void InitialGameHook()
 	hook::call(hook::get_pattern("8B F8 48 85 C0 74 47 48 8B C8 E8 ? ? ? ? 4C", -6), DeleteVideo);
 	
 	// draw loading screen even if 'not' enabled
-	hook::nop(hook::get_pattern("0F 29 74 24 30 85 DB", 7), 6);
+	hook::nop(hook::get_pattern("85 DB 0F 84 ? ? ? ? 8B 05 ? ? ? ? A8 01 75 15 83", 2), 6);
 }
 #elif defined(IS_RDR3)
 static void* g_f;

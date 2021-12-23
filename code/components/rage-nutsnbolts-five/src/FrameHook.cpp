@@ -216,7 +216,7 @@ static HookFunction hookFunction([] ()
 	g_isD3DInvalid = (bool*)(location + *(int32_t*)location + 4);
 
 	// allow resizing window in all cases
-	hook::nop(hook::get_pattern("45 8D 67 01 74 05 41 8B C4", 4), 2);
+	hook::nop(hook::get_pattern("74 05 41 8B C4 EB 0E"), 2);
 
 	std::thread(RunCriticalGameLoop).detach();
 

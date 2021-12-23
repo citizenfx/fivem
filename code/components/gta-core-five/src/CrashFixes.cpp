@@ -1049,7 +1049,11 @@ static HookFunction hookFunction{[] ()
 	}
 	else
 	{
-		hook::put<uint16_t>(hook::get_pattern("83 E8 12 75 6A 48 8B 03 48 8B CB", 5), 0x76EB);
+		// #TODO2545
+		if (!xbr::IsGameBuildOrGreater<2545>())
+		{
+			hook::put<uint16_t>(hook::get_pattern("83 E8 12 75 6A 48 8B 03 48 8B CB", 5), 0x76EB);
+		}
 	}
 
 	// vehicles.meta explosionInfo field invalidity
@@ -1186,4 +1190,44 @@ static HookFunction hookFunction{[] ()
 	MH_CreateHook(hook::get_pattern("BB 6C 07 00 00 33 FF 48", -15), _calculateLeapFix, (void**)&g_origCalculateLeap);
 
 	MH_EnableHook(MH_ALL_HOOKS);
-} };
+
+	// fix crash caused by lack of nullptr check for CWeaponInfo, introduced as a R* bug in 2545
+	if (xbr::IsGameBuildOrGreater<2545>())
+	{
+		auto location = hook::get_pattern("41 81 7F 10 F3 9C CD 45");
+
+		static struct : jitasm::Frontend
+		{
+			intptr_t location;
+			intptr_t retSuccess;
+			intptr_t retFail;
+
+			void Init(intptr_t location)
+			{
+				this->location = location;
+				this->retSuccess = location + 8;
+				this->retFail = location + 0x37;
+			}
+
+			void InternalMain() override
+			{
+				test(r15, r15); // CWeaponInfo or nullptr, missing in original code
+				jz("fail"); 
+
+				cmp(dword_ptr[r15 + 0x10], 0x45CD9CF3); // original check of weapon_stungun_mp
+				jnz("fail"); 
+
+				mov(rax, retSuccess);
+				jmp(rax);
+
+				L("fail");
+				mov(rax, retFail);
+				jmp(rax);
+			}
+		} patchStub;
+
+		patchStub.Init(reinterpret_cast<intptr_t>(location));
+		hook::nop(location, 8);
+		hook::jump(location, patchStub.GetCode());
+	}
+}};

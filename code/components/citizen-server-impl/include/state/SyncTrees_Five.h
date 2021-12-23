@@ -150,6 +150,8 @@ struct CPhysicalGameStateDataNode : GenericSerializeDataNode<CPhysicalGameStateD
 
 	int val1;
 
+	bool unk5;
+
 	template<typename Serializer>
 	bool Serialize(Serializer& s)
 	{
@@ -173,6 +175,11 @@ struct CPhysicalGameStateDataNode : GenericSerializeDataNode<CPhysicalGameStateD
 		else
 		{
 			val1 = 0;
+		}
+
+		if (Is2545())
+		{
+			s.Serialize(unk5);
 		}
 
 		return true;

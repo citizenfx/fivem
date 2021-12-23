@@ -424,7 +424,7 @@ static HookFunction hookFunction([]()
 	{
 		MH_Initialize();
 		MH_CreateHook(hook::get_pattern("40 53 48 83 EC 20 4C 8B 49 40 33 DB"), WantsReload, (void**)&origWantsReload);
-		MH_CreateHook(hook::get_pattern("48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 41 56 41 57 48 83 EC 30 48 8B 44 24 78 41 8A"), CPedEquippedWeapon_SetupAsWeapon, (void**)&origSetupAsWeapon);
+		MH_CreateHook(hook::get_address<LPVOID>(hook::get_pattern("45 33 C9 45 33 C0 48 8B D0 48 8B CB E8 ? ? ? ? 48 83 C4 40", 12), 1, 5), CPedEquippedWeapon_SetupAsWeapon, (void**)&origSetupAsWeapon);
 		MH_EnableHook(MH_ALL_HOOKS);
 
 		// Get the original CWeapon vtable - We will plant a vmt-hook on weapons that we own so we can track their destruction.

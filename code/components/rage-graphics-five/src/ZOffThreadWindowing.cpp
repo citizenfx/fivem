@@ -2,6 +2,7 @@
 #include <Hooking.h>
 
 #include <concurrent_queue.h>
+#include <CrossBuildRuntime.h>
 
 static decltype(&CreateWindowExW) g_origCreateWindowExW;
 
@@ -366,7 +367,7 @@ static HookFunction hookFunction([]()
 
 	g_origCreateWindowExW = hook::iat("user32.dll", CreateWindowExWStub, "CreateWindowExW");
 
-	char* location = hook::pattern("48 8D 05 ? ? ? ? 33 C9 44 89 75 20 4C 89 7D").count(1).get(0).get<char>(3);
+	char* location = xbr::IsGameBuildOrGreater<2545>() ? hook::pattern("48 8D 05 ? ? ? ? 33 C9 89 75 20 4C 89 7D").count(1).get(0).get<char>(3) : hook::pattern("48 8D 05 ? ? ? ? 33 C9 44 89 75 20 4C 89 7D").count(1).get(0).get<char>(3);
 	g_origWndProc = (WNDPROC)(location + *(int32_t*)location + 4);
 	*(int32_t*)location = (intptr_t)(hook::AllocateFunctionStub(NewWndProc)) - (intptr_t)location - 4;
 

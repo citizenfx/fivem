@@ -40,7 +40,7 @@ namespace rage
 
 static HookFunction hookFunction([]()
 {
-	auto location = hook::get_pattern<char>("0F 8E 12 03 00 00 41 8A 57", 22);
+	auto location = hook::get_pattern<char>("0F 8E 12 03 00 00 41 8A", 22);
 
 	createCloneFuncs[(int)NetObjEntityType::Ped]				= (TCreateCloneObjFn)hook::get_call(location);
 	createCloneFuncs[(int)NetObjEntityType::Object]				= (TCreateCloneObjFn)hook::get_call(location + 0x39);

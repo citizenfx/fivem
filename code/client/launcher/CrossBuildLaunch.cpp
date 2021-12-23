@@ -78,7 +78,7 @@ void XBR_EarlySelect()
 #endif
 
 	// we *can't* call xbr:: APIs here since they'll `static`-initialize and break GameCache later
-	uint32_t builds[] = { 372, 1604, 2060, 2189, 2372, 1311, 1355, 1436, 43 };
+	uint32_t builds[] = { 372, 1604, 2060, 2189, 2372, 2545, 1311, 1355, 1436, 43 };
 	uint32_t requestedBuild = defaultBuild;
 
 	auto realCli = GetCommandLineW();

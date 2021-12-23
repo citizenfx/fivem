@@ -60,8 +60,8 @@ static HookFunction hookFunction([]()
 	WeaponDefenseModifierOffset = *hook::get_pattern<int>("F3 0F 11 80 ? ? ? ? F3 0F 10 87 ? ? ? ? 48", 0x4);
 	VehicleDamageModifierOffset = *hook::get_pattern<int>("74 ? 48 8B 80 ? ? ? ? F3 44 0F 59 88", 0xE);
 	VehicleDefenseModifierOffset = *hook::get_pattern<int>("F6 C1 ? 75 ? 48 8B 83 ? ? ? ? 48 8B 4E", 0x13);
-	WeaponDefenseModifier2Offset = *hook::get_pattern<int>("F3 0F 11 80 ? ? ? ? 8A 87 ? ? ? ? C0 E0", 0x4);
-	MeleeWeaponDamageModifierOffset = *hook::get_pattern<int>("F3 0F 11 80 ? ? ? ? F3 0F 10 8F ? ? ? ? 48 8B 85", 0x4);
+	WeaponDefenseModifier2Offset = *hook::get_pattern<int>("F3 0F 11 ? ? ? ? ? 8A 87 ? ? ? ? C0 E0", 0x4);
+	MeleeWeaponDamageModifierOffset = *hook::get_pattern<int>("48 8B 85 ? ? ? ? 0F 2F CE 77 ? 0F 28 CE 49", -0xC);
 	MeleeWeaponDefenseModifierOffset = *hook::get_pattern<int>("45 84 ? ? 74 ? 48 8B 83", 0x11);
 
 	PlayerStaminaOffset = *hook::get_pattern<int>("F3 0F 58 F2 0F 2F F0 F3 0F", 0xB);
