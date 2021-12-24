@@ -814,7 +814,15 @@ static InitFunction initFunction([]()
 
 			if (resourceName[0] == '[' && resourceName[resourceName.size() - 1] == ']')
 			{
-				for (const auto& resource : g_resourcesByComponent[resourceName])
+				auto category = g_resourcesByComponent.find(resourceName);
+
+				if (category == g_resourcesByComponent.end())
+				{
+					trace("^3Couldn't find resource category %s.^7\n", resourceName);
+					return;
+				}
+
+				for (const auto& resource : category->second)
 				{
 					auto conCtx = instance->GetComponent<console::Context>();
 					conCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", resource });
@@ -850,7 +858,15 @@ static InitFunction initFunction([]()
 
 			if (resourceName[0] == '[' && resourceName[resourceName.size() - 1] == ']')
 			{
-				for (const auto& resource : g_resourcesByComponent[resourceName])
+				auto category = g_resourcesByComponent.find(resourceName);
+
+				if (category == g_resourcesByComponent.end())
+				{
+					trace("^3Couldn't find resource category %s.^7\n", resourceName);
+					return;
+				}
+
+				for (const auto& resource : category->second)
 				{
 					auto conCtx = instance->GetComponent<console::Context>();
 					conCtx->ExecuteSingleCommandDirect(ProgramArguments{ "stop", resource });
@@ -904,7 +920,15 @@ static InitFunction initFunction([]()
 		{
 			if (resourceName[0] == '[' && resourceName[resourceName.size() - 1] == ']')
 			{
-				for (const auto& resource : g_resourcesByComponent[resourceName])
+				auto category = g_resourcesByComponent.find(resourceName);
+
+				if (category == g_resourcesByComponent.end())
+				{
+					trace("^3Couldn't find resource category %s.^7\n", resourceName);
+					return;
+				}
+
+				for (const auto& resource : category->second)
 				{
 					auto conCtx = instance->GetComponent<console::Context>();
 					conCtx->ExecuteSingleCommandDirect(ProgramArguments{ "ensure", resource });
