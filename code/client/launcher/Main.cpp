@@ -222,7 +222,10 @@ int RealMain()
 
 	SetDllDirectory(MakeRelativeCitPath(L"bin").c_str()); // to prevent a) current directory DLL search being disabled and b) xlive.dll being taken from system if not overridden
 
-#ifndef GTA_NY
+	// GTA_NY can't use TLS DLL since it doesn't consistently use the TLS index variable
+	// this is also only important for 'game'-type processes, and may be wrong/unsafe in any other types
+#if !defined(GTA_NY) && defined(LAUNCHER_PERSONALITY_GAME)
+	// first attempt at loading the TLS holder DLL
 	tlsDll = LoadLibraryW(MakeRelativeCitPath(L"CitiLaunch_TLSDummy.dll").c_str());
 #endif
 
@@ -346,7 +349,8 @@ int RealMain()
 	XBR_EarlySelect();
 #endif
 
-#ifndef GTA_NY
+	// try loading TLS DLL a second time, and ensure it *is* loaded
+#if !defined(GTA_NY) && defined(LAUNCHER_PERSONALITY_GAME)
 	if (!tlsDll)
 	{
 		tlsDll = LoadLibraryW(MakeRelativeCitPath(L"CitiLaunch_TLSDummy.dll").c_str());
