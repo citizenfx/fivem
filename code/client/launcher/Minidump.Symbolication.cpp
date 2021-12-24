@@ -8,6 +8,8 @@
 #include <sstream>
 #include <regex>
 
+#include <CrossBuildRuntime.h>
+
 #include <boost/algorithm/string.hpp>
 
 #include <cpr/cpr.h>
@@ -34,13 +36,13 @@ void ParseSymbolicCrash(nlohmann::json& crash, std::string* signature, std::stri
 				}
 			}
 
-			if (modName == "FiveM_GTAProcess.exe")
+			if (modName.find("GTAProcess") != std::string::npos ||
+				modName.find("GameProcess") != std::string::npos)
 			{
-				modName = "GTA5.exe";
-			}
-			else if (modName == "RedM_GTAProcess.exe" || modName == "RedM.exe")
-			{
-				modName = "RDR2.exe";
+				auto baseGame = ToNarrow(GAME_EXECUTABLE);
+				baseGame = baseGame.substr(0, baseGame.rfind(L'.'));
+
+				modName = fmt::sprintf("%s_b%d.exe", baseGame, xbr::GetGameBuild());
 			}
 
 			std::string lineDetail = "";

@@ -442,6 +442,15 @@ static std::wstring UnblameCrash(const std::wstring& hash)
 		retval = L"RDR2+" + retval.substr(9);
 	}
 
+	if (hash.find(L"GTAProcess") != std::string::npos ||
+		hash.find(L"GameProcess") != std::string::npos)
+	{
+		auto baseGame = std::wstring_view{ GAME_EXECUTABLE };
+		baseGame = baseGame.substr(0, baseGame.rfind(L'.'));
+
+		retval = fmt::sprintf(L"%s_b%d.exe%s", baseGame, xbr::GetGameBuild(), retval.substr(retval.find_first_of(L"+!")));
+	}
+
 	return retval;
 }
 
