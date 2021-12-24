@@ -94,7 +94,7 @@ HANDLE g_uiDoneEvent;
 HANDLE g_uiExitEvent;
 
 bool IsUnsafeGraphicsLibrary();
-void MigrateCacheFromat202105();
+void MigrateCacheFormat202105();
 void UI_DestroyTen();
 
 HMODULE tlsDll;
@@ -411,7 +411,7 @@ int RealMain()
 	// we have to migrate *before* launching the crash handler as that will otherwise create data/cache/
 	if (initState->IsMasterProcess())
 	{
-		MigrateCacheFromat202105();
+		MigrateCacheFormat202105();
 	}
 
 	if (InitializeExceptionHandler())

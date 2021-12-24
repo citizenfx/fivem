@@ -170,7 +170,7 @@ void DoPreLaunchTasks()
 	}
 }
 
-void MigrateCacheFromat202105()
+void MigrateCacheFormat202105()
 {
 	// execute the big cache emigration
 	CreateDirectoryW(MakeRelativeCitPath(L"data/").c_str(), NULL);
