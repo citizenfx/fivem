@@ -115,33 +115,19 @@ Citizen.AwaitSentinel = nil
 
 function Citizen.Await(promise)
 	local coro = coroutine_running()
-	if not coro then
-		error("Current execution context is not in the scheduler, you should use CreateThread / SetTimeout or Event system (AddEventHandler) to be able to Await")
-	end
+	assert(coro, "Current execution context is not in the scheduler, you should use CreateThread / SetTimeout or Event system (AddEventHandler) to be able to Await")
 
-	-- Indicates if the promise has already been resolved or rejected
-	-- This is a hack since the API does not expose its state
-	local isDone = false
-	local result, err
-	promise = promise:next(function(...)
-		isDone = true
-		result = {...}
-	end,function(error)
-		isDone = true
-		err = error
-	end)
-
-	if not isDone then
+	if promise.state == 0 then
 		local reattach = coroutine_yield(AwaitSentinel)
 		promise:next(reattach, reattach)
 		coroutine_yield()
 	end
 
-	if err then
-		error(err)
+	if promise.state == 2 then
+		error(promise.value, 0)
 	end
 
-	return table_unpack(result)
+	return promise.value
 end
 
 Citizen.SetBoundaryRoutine(function(f)
@@ -760,7 +746,7 @@ funcref_mt = msgpack.extend({
 
 				return table_unpack(Citizen.Await(p))
 			end
-			
+
 			if not rvs then
 				error()
 			end
@@ -849,10 +835,10 @@ local function lazyEventHandler() -- lazy initializer so we don't add an event w
 end
 
 -- Handle an export with multiple return values.
-local function exportProcessResult(resource, k, status, ...)
+local function exportProcessResult(resource, exportName, status, ...)
 	if not status then
 		local result = tostring(select(1, ...))
-		error('An error occurred while calling export ' .. k .. ' of resource ' .. resource .. ' (' .. result .. '), see above for details')
+		error(('An error occurred while calling export %s of resource %s\n%s'):format(exportName, resource, result))
 	end
 	return ...
 end
