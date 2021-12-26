@@ -686,6 +686,10 @@ const EXT_LOCALFUNCREF = 11;
 		return ent;
 	};
 
+	if (!isDuplicityVersion) {
+		global.LocalPlayer = Player(-1);
+	}
+
 	/*
 	BEGIN
 	https://github.com/errwischt/stacktrace-parser/blob/0121cc6e7d57495437818676f6b69be7d34c2fa7/src/stack-trace-parser.js
