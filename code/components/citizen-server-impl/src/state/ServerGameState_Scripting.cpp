@@ -1243,7 +1243,7 @@ static void Init()
 
 	fx::ScriptEngine::RegisterNativeHandler("ENSURE_ENTITY_STATE_BAG", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
-		if (!entity->stateBag)
+		if (!entity->HasStateBag())
 		{
 			// get the current resource manager
 			auto resourceManager = fx::ResourceManager::GetCurrent();
@@ -1253,7 +1253,7 @@ static void Init()
 
 			// get the server's game state
 			auto gameState = instance->GetComponent<fx::ServerGameState>();
-			entity->stateBag = gameState->GetStateBags()->RegisterStateBag(fmt::sprintf("entity:%d", entity->handle & 0xFFFF));
+			auto stateBag = gameState->GetStateBags()->RegisterStateBag(fmt::sprintf("entity:%d", entity->handle & 0xFFFF));
 
 			std::set<int> rts{ -1 };
 
@@ -1262,18 +1262,20 @@ static void Init()
 				rts.insert(i);
 			}
 
-			entity->stateBag->SetRoutingTargets(rts);
+			stateBag->SetRoutingTargets(rts);
 
 			auto client = entity->GetClient();
 
 			if (client)
 			{
-				entity->stateBag->SetOwningPeer(client->GetSlotId());
+				stateBag->SetOwningPeer(client->GetSlotId());
 			}
 			else
 			{
-				entity->stateBag->SetOwningPeer(-1);
+				stateBag->SetOwningPeer(-1);
 			}
+
+			entity->SetStateBag(std::move(stateBag));
 		}
 
 		return 0;

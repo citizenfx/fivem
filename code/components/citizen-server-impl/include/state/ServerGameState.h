@@ -655,13 +655,34 @@ struct SyncEntityState
 
 	std::list<std::function<void(const fx::ClientSharedPtr& ptr)>> onCreationRPC;
 
+private:
+	std::shared_mutex stateBagPtrMutex;
 	std::shared_ptr<fx::StateBag> stateBag;
 
+public:
 	SyncEntityState();
 
 	SyncEntityState(const SyncEntityState&) = delete;
 
 	virtual ~SyncEntityState();
+
+	inline bool HasStateBag()
+	{
+		std::shared_lock _(stateBagPtrMutex);
+		return (stateBag) ? true : false;
+	}
+
+	inline auto GetStateBag()
+	{
+		std::shared_lock _(stateBagPtrMutex);
+		return stateBag;
+	}
+
+	inline void SetStateBag(std::shared_ptr<fx::StateBag>&& newStateBag)
+	{
+		std::unique_lock _(stateBagPtrMutex);
+		stateBag = std::move(newStateBag);
+	}
 
 	inline float GetDistanceCullingRadius(float playerCullingRadius)
 	{

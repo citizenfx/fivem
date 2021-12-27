@@ -1462,7 +1462,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 			if (entity)
 			{
-				if (auto stateBag = entity->stateBag)
+				if (auto stateBag = entity->GetStateBag())
 				{
 					stateBag->RemoveRoutingTarget(slotId);
 				}
@@ -1682,7 +1682,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 					syncData.nextSync = curTime + syncData.syncDelta;
 				}
 
-				if (auto stateBag = entity->stateBag)
+				if (auto stateBag = entity->GetStateBag())
 				{
 					stateBag->AddRoutingTarget(slotId);
 				}
@@ -2421,15 +2421,15 @@ void ServerGameState::ReassignEntity(uint32_t entityHandle, const fx::ClientShar
 		entity->GetLastOwnerUnsafe() = oldClientRef;
 		entity->GetClientUnsafe() = targetClient;
 		
-		if (entity->stateBag)
+		if (auto stateBag = entity->GetStateBag())
 		{
 			if (targetClient)
 			{
-				entity->stateBag->SetOwningPeer(targetClient->GetSlotId());
+				stateBag->SetOwningPeer(targetClient->GetSlotId());
 			}
 			else
 			{
-				entity->stateBag->SetOwningPeer(-1);
+				stateBag->SetOwningPeer(-1);
 			}
 		}
 
@@ -3387,9 +3387,9 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 		data->pendingCreates.erase(MakeHandleUniqifierPair(objectId, uniqifier));
 	}
 
-	if (entity->stateBag)
+	if (auto stateBag = entity->GetStateBag())
 	{
-		entity->stateBag->AddRoutingTarget(slotId);
+		stateBag->AddRoutingTarget(slotId);
 	}
 
 	return true;
