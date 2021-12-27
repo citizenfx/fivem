@@ -872,7 +872,11 @@ static int LookupDataFileType(const std::string& type)
 #ifdef GTA_FIVE
 	int typesCount = 0xC9;
 
-	if (xbr::IsGameBuildOrGreater<2189>())
+	if (xbr::IsGameBuildOrGreater<2545>())
+	{
+		typesCount = 0xCE;
+	}
+	else if (xbr::IsGameBuildOrGreater<2189>())
 	{
 		typesCount = 0xCB;
 	}
