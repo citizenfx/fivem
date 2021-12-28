@@ -2000,6 +2000,14 @@ static HookFunction hookFunction([] ()
 	hook::nop(loc + 2, 5);
 	hook::call(loc + 7, DisplayD3DCrashMessage);
 
+	// remove infinite loop before grcResourceCache D3D failure
+	{
+		if (auto pattern = hook::pattern("EB FE 8B CF").count_hint(1); pattern.size() > 0)
+		{
+			hook::nop(pattern.get(0).get<void>(), 2);
+		}
+	}
+
 	// texture overrides
 	MH_Initialize();
 	MH_CreateHook(hook::get_pattern("48 8B CE 48 8B 74 24 38 48 6B C9 2A 48 03 CF", -0x45), SetTextureHook, (void**)&g_origSetTexture);
