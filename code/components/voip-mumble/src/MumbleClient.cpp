@@ -99,6 +99,7 @@ void MumbleClient::Initialize()
 
 			// this is real-time audio, we don't want nagling
 			m_tcp->noDelay(true);
+			m_tcp->keepAlive(true);
 
 			m_tcp->on<uvw::ConnectEvent>([this](const uvw::ConnectEvent& ev, uvw::TCPHandle& tcp)
 			{
