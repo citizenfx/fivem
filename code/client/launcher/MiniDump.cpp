@@ -1344,7 +1344,8 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		}
 
 		static std::optional<std::wstring> crashId;
-		static std::optional<std::wstring> crashIdError;
+		static bool uploadError;
+		uploadError = false;
 
 		static auto saveStr = gettext(L"Save information\nStores a file with crash information that you should copy and upload when asking for help.");
 
@@ -1422,9 +1423,9 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 					{
 						SendMessage(hWnd, TDM_SET_ELEMENT_TEXT, TDE_EXPANDED_INFORMATION, (WPARAM)va(gettext(L"%sReport ID: %s\nYou can press Ctrl-C to copy this message and paste it elsewhere."), crashHashString, crashId->c_str()));
 					}
-					else if (crashIdError && !crashIdError->empty())
+					else if (uploadError)
 					{
-						SendMessage(hWnd, TDM_SET_ELEMENT_TEXT, TDE_EXPANDED_INFORMATION, (WPARAM)va(gettext(L"%s%s\nYou can press Ctrl-C to copy this message and paste it elsewhere."), crashHashString, crashIdError->c_str()));
+						SendMessage(hWnd, TDM_SET_ELEMENT_TEXT, TDE_EXPANDED_INFORMATION, (WPARAM)va(gettext(L"%sYou can press Ctrl-C to copy this message and paste it elsewhere."), crashHashString));
 					}
 
 					SendMessage(hWnd, TDM_ENABLE_BUTTON, IDCLOSE, 1);
@@ -1518,17 +1519,14 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		{
 			if (shouldUpload)
 			{
-				crashIdError = fmt::sprintf(L"Error uploading: HTTP %d%s", responseCode, !responseBody.empty() ? L" (" + responseBody + L")" : L"");
-			}
-			else
-			{
-				crashIdError = L"Crash reporting is disabled for this crash type.";
+				trace("Error uploading crash: HTTP %d%s\n", responseCode, !responseBody.empty() ? " (" + ToNarrow(responseBody) + ")" : "");
 			}
 
+			uploadError = true;
 			crashId = L"";
 		}
 #else
-		crashIdError = L"Crash reporting is disabled for this title.";
+		uploadError = true;
 		crashId = L"";
 #endif
 
