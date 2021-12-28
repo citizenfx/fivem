@@ -18,14 +18,15 @@ MumbleMessageHandlerBase::MumbleMessageHandlerBase(MumbleMessageType messageType
 
 MumbleMessageHandlerBase* MumbleMessageHandlerBase::GetHandlerFor(MumbleMessageType type)
 {
-	return ms_messageHandlerRegistry[(int)type];
+	auto intType = static_cast<int>(type);
+
+	if (intType < 0 || intType >= std::size(ms_messageHandlerRegistry))
+	{
+		return nullptr;
+	}
+
+	return ms_messageHandlerRegistry[intType];
 }
-
-/*MumbleMessageHandler::MumbleMessageHandler(MumbleMessageType messageType, HandlerType handler)
-	: MumbleMessageHandlerBase(messageType), m_handler(handler)
-{
-
-}*/
 
 void MumbleMessageHandler::HandleMessage(const uint8_t* message, size_t length)
 {
