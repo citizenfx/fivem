@@ -581,7 +581,7 @@ static InitFunction initFunction([]()
 
 					if (avgTickMs >= 0.0)
 					{
-						using TTick = decltype(recentTicks.get().tickTimes);
+						using TTick = decltype(recentTicks->tickTimes);
 						static constexpr const size_t sampleCount = 2;
 
 						ImGui::TextColored(GetColorForRange(1.0f, 8.0f, avgTickMs), "%.2f ms", avgTickMs);
@@ -603,9 +603,9 @@ static InitFunction initFunction([]()
 
 							return curSample / float(sampleCount);
 						},
-						(void*)recentTicks.get().tickTimes,
+						(void*)recentTicks->tickTimes,
 						std::size(TTick{}) / sampleCount,
-						*recentTicks.get().curTickTime / sampleCount,
+						*recentTicks->curTickTime / sampleCount,
 						nullptr,
 						0.0f,
 						2.5f,

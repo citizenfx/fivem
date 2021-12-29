@@ -106,8 +106,8 @@ struct TickMetrics
 
 struct ResourceMetrics
 {
-	TickMetrics<64, 200> ticks;
-	TickMetrics<64, 200> totalTicks;
+	std::shared_ptr<TickMetrics<64, 200>> ticks;
+	std::shared_ptr<TickMetrics<64, 200>> totalTicks;
 
 	std::chrono::microseconds memoryLastFetched{ 0 };
 
@@ -118,13 +118,15 @@ struct ResourceMetrics
 #endif
 
 	ResourceMetrics()
-		: ticks({}), totalTicks({})
+		: ticks(std::make_shared<TickMetrics<64, 200>>(nullptr)),
+		  totalTicks(std::make_shared<TickMetrics<64, 200>>(nullptr))
 	{
 	
 	}
 
 	ResourceMetrics(const std::shared_ptr<uint64_t>& curTickTime)
-		: ticks(curTickTime), totalTicks(curTickTime)
+		: ticks(std::make_shared<TickMetrics<64, 200>>(curTickTime)),
+		  totalTicks(std::make_shared<TickMetrics<64, 200>>(curTickTime))
 	{
 	
 	}
@@ -145,7 +147,7 @@ namespace fx
 	class DEVTOOLS_EXPORT ResourceMonitor
 	{
 	public:
-		using ResourceDatas = std::vector<std::tuple<std::string, double, double, int64_t, int64_t, std::reference_wrapper<const TickMetrics<64, 200>>, double, std::reference_wrapper<const TickMetrics<64, 200>>>>;
+		using ResourceDatas = std::vector<std::tuple<std::string, double, double, int64_t, int64_t, std::shared_ptr<const TickMetrics<64, 200>>, double, std::shared_ptr<const TickMetrics<64, 200>>>>;
 
 	public:
 		ResourceMonitor();
