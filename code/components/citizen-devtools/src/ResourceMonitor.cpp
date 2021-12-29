@@ -81,6 +81,8 @@ private:
 	std::shared_ptr<bool> defuser;
 };
 
+struct Stopwatch;
+
 namespace fx
 {
 struct ResourceMonitorImpl : public ResourceMonitorImplBase
@@ -109,7 +111,16 @@ struct ResourceMonitorImpl : public ResourceMonitorImplBase
 	std::unordered_map<fx::Resource*, std::list<AutoConnect>> resEvents;
 	std::unordered_map<fx::Resource*, std::list<AutoConnect>> resEvents2;
 
-	std::chrono::microseconds scriptBeginTime;
+	// a stack of nested resource activations
+	std::deque<fx::Resource*> resStack;
+
+	// a reference-counted list of nested stopwatches to stop
+	std::unordered_multiset<fx::Resource*> resSet;
+
+	// current resource stopwatches
+	std::unordered_map<fx::Resource*, std::shared_ptr<Stopwatch>> resWatches;
+
+	std::chrono::microseconds scriptBeginTime{ 0 };
 
 	void RecalculateResourceDatas();
 };
@@ -119,6 +130,78 @@ inline std::chrono::microseconds usec()
 {
 	return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
 }
+
+struct Stopwatch
+{
+	void Start()
+	{
+		start = resume = usec();
+		total = self = std::chrono::microseconds{ 0 };
+	}
+
+	void Pause()
+	{
+		if (resume.count() == 0)
+		{
+			return;
+		}
+
+		auto now = usec();
+		self += now - resume;
+		resume = std::chrono::microseconds{ 0 };
+	}
+
+	void Resume()
+	{
+		if (resume.count() != 0)
+		{
+			return;
+		}
+
+		resume = usec();
+	}
+
+	void Stop()
+	{
+		if (start.count() == 0)
+		{
+			return;
+		}
+
+		auto now = usec();
+
+		if (resume.count() != 0)
+		{
+			self += now - resume;
+		}
+
+		total += now - start;
+		start = resume = std::chrono::microseconds{ 0 };
+	}
+
+	auto GetTotal() const
+	{
+		return total;
+	}
+
+	auto GetSelf() const
+	{
+		return self;
+	}
+
+private:
+	// the *total* between Start and Stop
+	std::chrono::microseconds total{ 0 };
+
+	// the total where this was not paused
+	std::chrono::microseconds self{ 0 };
+
+	// timer to indicate the last Resume call
+	std::chrono::microseconds resume{ 0 };
+
+	// timer to indicate the last Start call
+	std::chrono::microseconds start{ 0 };
+};
 
 static int64_t GetTotalBytes(const fwRefContainer<fx::Resource>& resource)
 {
@@ -182,7 +265,7 @@ void fx::ResourceMonitorImpl::RecalculateResourceDatas()
 	avgScriptMs = (avgScriptTime.count() / 1000.0);
 
 	auto avgFrameTime = gameFrameMetrics.GetAverage();
-	double g_avgFrameMs = (avgFrameTime.count() / 1000.0);
+	avgFrameMs = (avgFrameTime.count() / 1000.0);
 
 	std::map<std::string, fwRefContainer<fx::Resource>> resourceList;
 
@@ -200,6 +283,7 @@ void fx::ResourceMonitorImpl::RecalculateResourceDatas()
 	{
 		auto metric = metrics.find(resourceName);
 		double avgTickMs = -1.0;
+		double avgTotalMs = -1.0;
 		double avgFrameFraction = -1.0f;
 		int64_t memorySize = -1;
 		int64_t streamingSize = -1;
@@ -211,6 +295,9 @@ void fx::ResourceMonitorImpl::RecalculateResourceDatas()
 
 			auto avgTickTime = value.ticks.GetAverage();
 			avgTickMs = (avgTickTime.count() / 1000.0);
+
+			auto avgTotalTime = value.totalTicks.GetAverage();
+			avgTotalMs = (avgTotalTime.count() / 1000.0);
 
 			if (avgScriptMs != 0.0f)
 			{
@@ -231,7 +318,7 @@ void fx::ResourceMonitorImpl::RecalculateResourceDatas()
 			}
 #endif
 
-			resourceDatas.emplace_back(resource->GetName(), avgTickMs, avgFrameFraction, memorySize, streamingSize, value.ticks);
+			resourceDatas.emplace_back(resource->GetName(), avgTickMs, avgFrameFraction, memorySize, streamingSize, value.ticks, avgTotalMs, value.totalTicks);
 		}
 	}
 }
@@ -247,21 +334,11 @@ namespace fx
 
 		GetImpl()->events.emplace_back(OnBeginGameFrame, [this]()
 		{
-			if (!m_shouldGetTime)
-			{
-				return;
-			}
-
 			frameBegin = usec();
 		});
 
 		GetImpl()->events.emplace_back(OnEndGameFrame, [this]()
 		{
-			if (!m_shouldGetTime)
-			{
-				return;
-			}
-
 			auto now = usec();
 			auto frameTime = now - frameBegin;
 
@@ -286,16 +363,18 @@ namespace fx
 		auto resourceManager = fx::ResourceManager::GetCurrent();
 
 		GetImpl()->events.emplace_back(
-		resourceManager->OnTick, [this]()
+		resourceManager->OnTick, [this, resourceManager]()
 		{
-			if (!m_pendingMetrics.empty())
+			auto now = usec();
+				
+			resourceManager->ForAllResources([this, now](const fwRefContainer<fx::Resource>& resource)
 			{
-				auto now = usec();
-
-				for (const auto& [resource, duration] : m_pendingMetrics)
+				auto& metric = *GetImpl()->metrics[resource->GetName()];
+					
+				if (auto it = m_pendingMetrics.find(resource.GetRef()); it != m_pendingMetrics.end())
 				{
-					auto& metric = *GetImpl()->metrics[resource->GetName()];
-					metric.ticks.Append(duration);
+					metric.ticks.Append(std::get<0>(it->second));
+					metric.totalTicks.Append(std::get<1>(it->second));
 
 					if ((now - metric.memoryLastFetched) > 500ms && m_shouldGetMemory)
 					{
@@ -305,9 +384,14 @@ namespace fx
 						metric.memoryLastFetched = now;
 					}
 				}
+				else
+				{
+					metric.ticks.Append(std::chrono::microseconds{ 0 });
+					metric.totalTicks.Append(std::chrono::microseconds{ 0 });
+				}
+			});
 
-				m_pendingMetrics.clear();
-			}
+			m_pendingMetrics.clear();
 		},
 		INT32_MAX);
 
@@ -328,6 +412,7 @@ namespace fx
 
 					impl->metrics[resource->GetName()] = {};
 					impl->resEvents.erase(resource);
+					impl->resWatches.erase(resource);
 
 					*defuser = true;
 				});
@@ -358,19 +443,75 @@ namespace fx
 			9999);
 #endif
 
-			// #TODOTICKLESS: OnActivate tick attribution stack instead on OnEnter/OnLeave only
-			auto tickStart = std::make_shared<std::chrono::microseconds>();
+			GetImpl()->resWatches[resource] = std::make_shared<Stopwatch>();
 
-			resEvents.emplace_back(resource->OnEnter, [tickStart]()
+			resEvents.emplace_back(resource->OnActivate, [this, resource]()
 			{
-				*tickStart = usec();
+				auto impl = GetImpl();
+
+				// pause the current top resource
+				if (!impl->resStack.empty())
+				{
+					auto topResource = impl->resStack.front();
+
+					if (auto watch = impl->resWatches[topResource])
+					{
+						watch->Pause();
+					}
+				}
+
+				// push this resource
+				impl->resStack.push_front(resource);
+
+				// check if it was already in, if not, start the stopwatch
+				if (impl->resSet.find(resource) == impl->resSet.end())
+				{
+					if (auto watch = impl->resWatches[resource])
+					{
+						watch->Start();
+					}
+				}
+				
+				impl->resSet.insert(resource);
 			},
 			-99999999);
 
-			resEvents.emplace_back(resource->OnLeave, [this, resource, tickStart]()
+			resEvents.emplace_back(resource->OnDeactivate, [this, resource]()
 			{
-				auto now = usec();
-				m_pendingMetrics[resource] += now - *tickStart;
+				auto impl = GetImpl();
+
+				// pop (this) resource
+				impl->resStack.pop_front();
+
+				// resume the last resource
+				if (!impl->resStack.empty())
+				{
+					auto topResource = impl->resStack.front();
+
+					if (auto watch = impl->resWatches[topResource])
+					{
+						watch->Resume();
+					}
+				}
+
+				// remove one of us from the set
+				if (auto it = impl->resSet.find(resource); it != impl->resSet.end())
+				{
+					impl->resSet.erase(it);
+				}
+
+				// if we're gone, stop and append
+				if (impl->resSet.find(resource) == impl->resSet.end())
+				{
+					if (auto watch = impl->resWatches[resource])
+					{
+						watch->Stop();
+
+						auto& pending = m_pendingMetrics[resource];
+						std::get<0>(pending) += watch->GetSelf();
+						std::get<1>(pending) += watch->GetTotal();
+					}
+				}
 			},
 			99999999);
 

@@ -477,11 +477,12 @@ static InitFunction initFunction([]()
 
 		if (taskMgrEnabled && resourceMonitor)
 		{
-			if (ImGui::Begin("Resource Monitor", &taskMgrEnabled) && ImGui::BeginTable("##resmon", 5, ImGuiTableFlags_Resizable | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Sortable))
+			if (ImGui::Begin("Resource Monitor", &taskMgrEnabled) && ImGui::BeginTable("##resmon", 6, ImGuiTableFlags_Resizable | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Sortable))
 			{
 				ImGui::TableSetupColumn("Resource");
 				ImGui::TableSetupColumn("CPU msec", ImGuiTableColumnFlags_PreferSortDescending);
 				ImGui::TableSetupColumn("Time %", ImGuiTableColumnFlags_PreferSortDescending);
+				ImGui::TableSetupColumn("CPU (inclusive)", ImGuiTableColumnFlags_PreferSortDescending);
 				ImGui::TableSetupColumn("Memory", ImGuiTableColumnFlags_PreferSortDescending);
 				ImGui::TableSetupColumn("Streaming", ImGuiTableColumnFlags_PreferSortDescending);
 				ImGui::TableHeadersRow();
@@ -552,10 +553,10 @@ static InitFunction initFunction([]()
 										delta = compare(std::get<2>(left), std::get<2>(right));
 										break;
 									case 3:
-										delta = compare(std::get<3>(left), std::get<3>(right));
+										delta = compare(std::get<6>(left), std::get<6>(right));
 										break;
 									case 4:
-										delta = compare(std::get<4>(left), std::get<4>(right));
+										delta = compare(std::get<3>(left), std::get<3>(right));
 										break;
 								}
 								if (delta > 0)
@@ -569,7 +570,7 @@ static InitFunction initFunction([]()
 					}
 				}
 
-				for (const auto& [resourceName, avgTickMs, avgFrameFraction, memorySize, streamingUsage, recentTicks] : resourceDatas)
+				for (const auto& [resourceName, avgTickMs, avgFrameFraction, memorySize, streamingUsage, recentTicks, avgTotalMs, recentTotals] : resourceDatas)
 				{
 					ImGui::TableNextRow();
 
@@ -631,6 +632,17 @@ static InitFunction initFunction([]()
 
 					ImGui::TableSetColumnIndex(3);
 
+					if (avgTotalMs >= 0.0)
+					{
+						ImGui::TextColored(GetColorForRange(1.0f, 8.0f, avgTotalMs), "%.2f ms", avgTotalMs);
+					}
+					else
+					{
+						ImGui::Text("-");
+					}
+
+					ImGui::TableSetColumnIndex(4);
+
 					int64_t totalBytes = memorySize;
 
 					if (totalBytes == 0 || totalBytes == -1)
@@ -657,7 +669,7 @@ static InitFunction initFunction([]()
 						ImGui::Text("%s+", humanSize.c_str());
 					}
 
-					ImGui::TableSetColumnIndex(4);
+					ImGui::TableSetColumnIndex(5);
 
 					if (streamingUsage > 0)
 					{

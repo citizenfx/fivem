@@ -107,6 +107,7 @@ struct TickMetrics
 struct ResourceMetrics
 {
 	TickMetrics<64, 200> ticks;
+	TickMetrics<64, 200> totalTicks;
 
 	std::chrono::microseconds memoryLastFetched{ 0 };
 
@@ -117,13 +118,13 @@ struct ResourceMetrics
 #endif
 
 	ResourceMetrics()
-		: ticks({})
+		: ticks({}), totalTicks({})
 	{
 	
 	}
 
 	ResourceMetrics(const std::shared_ptr<uint64_t>& curTickTime)
-		: ticks(curTickTime)
+		: ticks(curTickTime), totalTicks(curTickTime)
 	{
 	
 	}
@@ -144,7 +145,7 @@ namespace fx
 	class DEVTOOLS_EXPORT ResourceMonitor
 	{
 	public:
-		typedef std::vector<std::tuple<std::string, double, double, int64_t, int64_t, std::reference_wrapper<const TickMetrics<64, 200>>>> ResourceDatas;
+		using ResourceDatas = std::vector<std::tuple<std::string, double, double, int64_t, int64_t, std::reference_wrapper<const TickMetrics<64, 200>>, double, std::reference_wrapper<const TickMetrics<64, 200>>>>;
 
 	public:
 		ResourceMonitor();
@@ -158,20 +159,14 @@ namespace fx
 			m_shouldGetMemory = should;
 		}
 
-		inline void SetShouldGetTime(bool should)
-		{
-			m_shouldGetTime = should;
-		}
-
 	public:
 		static fwEvent<const std::string&> OnWarning;
 		static fwEvent<> OnWarningGone;
 
 	private:
 		bool m_shouldGetMemory = false;
-		bool m_shouldGetTime = false;
 
-		std::unordered_map<fx::Resource*, std::chrono::microseconds> m_pendingMetrics;
+		std::unordered_map<fx::Resource*, std::tuple<std::chrono::microseconds, std::chrono::microseconds>> m_pendingMetrics;
 
 		ResourceMonitorImpl* GetImpl();
 
