@@ -1083,8 +1083,37 @@ static auto GetBackbuf()
 	return *g_backBuffer;
 }
 
+static auto GetInvariantD3D11Device()
+{
+	WRL::ComPtr<IDXGIDevice> realDeviceDxgi;
+	WRL::ComPtr<ID3D11Device> realDevice;
+
+	GetD3D11Device()->QueryInterface(IID_PPV_ARGS(&realDeviceDxgi));
+	realDeviceDxgi.As(&realDevice);
+
+	return realDevice;
+}
+
+static auto GetInvariantD3D11DeviceContext()
+{
+	WRL::ComPtr<IUnknown> realDeviceContextUnk;
+	WRL::ComPtr<ID3D11DeviceContext> realDeviceContext;
+
+	GetD3D11DeviceContext()->QueryInterface(IID_PPV_ARGS(&realDeviceContextUnk));
+	realDeviceContextUnk.As(&realDeviceContext);
+
+	return realDeviceContext;
+}
+
 void RenderBufferToBuffer(ID3D11RenderTargetView* rtv, int width = 0, int height = 0)
 {
+	static auto didCallCrashometry = ([]()
+	{
+		AddCrashometry("did_render_backbuf", "true");
+
+		return true;
+	})();
+
 	D3D11_TEXTURE2D_DESC resDesc = { 0 };
 	auto backBuf = GetBackbuf();
 
@@ -1105,17 +1134,8 @@ void RenderBufferToBuffer(ID3D11RenderTargetView* rtv, int width = 0, int height
 		backBuf->m_srv2->QueryInterface(IID_PPV_ARGS(&realSrvUnk));
 		realSrvUnk.As(&realSrv);
 
-		WRL::ComPtr<IDXGIDevice> realDeviceDxgi;
-		WRL::ComPtr<ID3D11Device> realDevice;
-
-		GetD3D11Device()->QueryInterface(IID_PPV_ARGS(&realDeviceDxgi));
-		realDeviceDxgi.As(&realDevice);
-
-		WRL::ComPtr<IUnknown> realDeviceContextUnk;
-		WRL::ComPtr<ID3D11DeviceContext> realDeviceContext;
-
-		GetD3D11DeviceContext()->QueryInterface(IID_PPV_ARGS(&realDeviceContextUnk));
-		realDeviceContextUnk.As(&realDeviceContext);
+		auto realDevice = GetInvariantD3D11Device();
+		auto realDeviceContext = GetInvariantD3D11DeviceContext();
 
 		auto m_width = resDesc.Width;
 		auto m_height = resDesc.Height;
@@ -1143,8 +1163,8 @@ void RenderBufferToBuffer(ID3D11RenderTargetView* rtv, int width = 0, int height
 			realDevice->CreatePixelShader(quadPS, sizeof(quadPS), nullptr, &ps);
 		});
 
-		ID3DUserDefinedAnnotation* pPerf = NULL;
-		realDeviceContext->QueryInterface(__uuidof(pPerf), reinterpret_cast<void**>(&pPerf));
+		WRL::ComPtr<ID3DUserDefinedAnnotation> pPerf = NULL;
+		realDeviceContext->QueryInterface(IID_PPV_ARGS(&pPerf));
 
 		if (pPerf)
 		{
@@ -1153,15 +1173,15 @@ void RenderBufferToBuffer(ID3D11RenderTargetView* rtv, int width = 0, int height
 
 		auto deviceContext = realDeviceContext;
 		
-		ID3D11RenderTargetView* oldRtv = nullptr;
-		ID3D11DepthStencilView* oldDsv = nullptr;
+		WRL::ComPtr<ID3D11RenderTargetView> oldRtv;
+		WRL::ComPtr<ID3D11DepthStencilView> oldDsv;
 		deviceContext->OMGetRenderTargets(1, &oldRtv, &oldDsv);
 
-		ID3D11SamplerState* oldSs;
-		ID3D11BlendState* oldBs;
-		ID3D11PixelShader* oldPs;
-		ID3D11VertexShader* oldVs;
-		ID3D11ShaderResourceView* oldSrv;
+		WRL::ComPtr<ID3D11SamplerState> oldSs;
+		WRL::ComPtr<ID3D11BlendState> oldBs;
+		WRL::ComPtr<ID3D11PixelShader> oldPs;
+		WRL::ComPtr<ID3D11VertexShader> oldVs;
+		WRL::ComPtr<ID3D11ShaderResourceView> oldSrv;
 
 		D3D11_VIEWPORT oldVp;
 		UINT numVPs = 1;
@@ -1207,63 +1227,21 @@ void RenderBufferToBuffer(ID3D11RenderTargetView* rtv, int width = 0, int height
 
 		deviceContext->Draw(4, 0);
 
-		deviceContext->OMSetRenderTargets(1, &oldRtv, oldDsv);
+		deviceContext->OMSetRenderTargets(1, oldRtv.GetAddressOf(), oldDsv.Get());
 
 		deviceContext->IASetPrimitiveTopology(oldTopo);
 		deviceContext->IASetInputLayout(oldLayout);
 
-		deviceContext->VSSetShader(oldVs, nullptr, 0);
-		deviceContext->PSSetShader(oldPs, nullptr, 0);
-		deviceContext->PSSetSamplers(0, 1, &oldSs);
-		deviceContext->PSSetShaderResources(0, 1, &oldSrv);
-		deviceContext->OMSetBlendState(oldBs, nullptr, 0xffffffff);
+		deviceContext->VSSetShader(oldVs.Get(), nullptr, 0);
+		deviceContext->PSSetShader(oldPs.Get(), nullptr, 0);
+		deviceContext->PSSetSamplers(0, 1, oldSs.GetAddressOf());
+		deviceContext->PSSetShaderResources(0, 1, oldSrv.GetAddressOf());
+		deviceContext->OMSetBlendState(oldBs.Get(), nullptr, 0xffffffff);
 		deviceContext->RSSetViewports(1, &oldVp);
-
-		if (oldVs)
-		{
-			oldVs->Release();
-		}
-
-		if (oldPs)
-		{
-			oldPs->Release();
-		}
-
-		if (oldBs)
-		{
-			oldBs->Release();
-		}
-
-		if (oldSs)
-		{
-			oldSs->Release();
-		}
-
-		if (oldSrv)
-		{
-			oldSrv->Release();
-		}
-
-		if (oldRtv)
-		{
-			oldRtv->Release();
-		}
-
-		if (oldDsv)
-		{
-			oldDsv->Release();
-		}
-
-		if (oldLayout)
-		{
-			oldLayout->Release();
-		}
 
 		if (pPerf)
 		{
 			pPerf->EndEvent();
-
-			pPerf->Release();
 		}
 	}
 }
@@ -1309,14 +1287,14 @@ void CaptureInternalScreenshot()
 			texDesc.MiscFlags = 0;
 
 			WRL::ComPtr<ID3D11Texture2D> d3dTex;
-			HRESULT hr = GetD3D11Device()->CreateTexture2D(&texDesc, nullptr, &d3dTex);
+			HRESULT hr = GetInvariantD3D11Device()->CreateTexture2D(&texDesc, nullptr, &d3dTex);
 			if FAILED(hr)
 			{
 				return;
 			}
 
 			D3D11_RENDER_TARGET_VIEW_DESC rtDesc = CD3D11_RENDER_TARGET_VIEW_DESC(d3dTex.Get(), D3D11_RTV_DIMENSION_TEXTURE2D);
-			GetD3D11Device()->CreateRenderTargetView(d3dTex.Get(), &rtDesc, &rtv);
+			GetInvariantD3D11Device()->CreateRenderTargetView(d3dTex.Get(), &rtDesc, &rtv);
 
 			d3dTex.CopyTo(&myTexture);
 		}
@@ -1336,7 +1314,7 @@ void CaptureInternalScreenshot()
 			texDesc.MiscFlags = 0;
 
 			WRL::ComPtr<ID3D11Texture2D> d3dTex;
-			HRESULT hr = GetD3D11Device()->CreateTexture2D(&texDesc, nullptr, &d3dTex);
+			HRESULT hr = GetInvariantD3D11Device()->CreateTexture2D(&texDesc, nullptr, &d3dTex);
 			if FAILED(hr)
 			{
 				return;
@@ -1360,17 +1338,17 @@ void CaptureInternalScreenshot()
 
 	RenderBufferToBuffer(rtv, resDesc.Width / 4, resDesc.Height / 4);
 
-	GetD3D11DeviceContext()->CopyResource(myStagingTexture, myTexture);
+	GetInvariantD3D11DeviceContext()->CopyResource(myStagingTexture, myTexture);
 
 	D3D11_MAPPED_SUBRESOURCE msr;
 	
-	if (SUCCEEDED(GetD3D11DeviceContext()->Map(myStagingTexture, 0, D3D11_MAP_READ, 0, &msr)))
+	if (SUCCEEDED(GetInvariantD3D11DeviceContext()->Map(myStagingTexture, 0, D3D11_MAP_READ, 0, &msr)))
 	{
 		size_t blen = (resDesc.Height / 4) * msr.RowPitch;
 		std::unique_ptr<uint8_t[]> data(new uint8_t[blen]);
 		memcpy(data.get(), msr.pData, blen);
 
-		GetD3D11DeviceContext()->Unmap(myStagingTexture, 0);
+		GetInvariantD3D11DeviceContext()->Unmap(myStagingTexture, 0);
 
 		// convert RGBA to RGB
 		int w = (resDesc.Width / 4);
@@ -1419,6 +1397,10 @@ void CaptureBufferOutput()
 			handleData->height = resDesc.Height;
 		}
 	}
+	else
+	{
+		return;
+	}
 
 	bool change = false;
 	static ID3D11Texture2D* myTexture;
@@ -1461,15 +1443,14 @@ void CaptureBufferOutput()
 		texDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
 
 		WRL::ComPtr<ID3D11Texture2D> d3dTex;
-		HRESULT hr = GetD3D11Device()->CreateTexture2D(&texDesc, nullptr, &d3dTex);
-		if FAILED(hr)
+		HRESULT hr = GetInvariantD3D11Device()->CreateTexture2D(&texDesc, nullptr, &d3dTex);
+		if (FAILED(hr))
 		{
 			return;
-			// error handling code
 		}
 
 		D3D11_RENDER_TARGET_VIEW_DESC rtDesc = CD3D11_RENDER_TARGET_VIEW_DESC(d3dTex.Get(), D3D11_RTV_DIMENSION_TEXTURE2D);
-		GetD3D11Device()->CreateRenderTargetView(d3dTex.Get(), &rtDesc, &rtv);
+		GetInvariantD3D11Device()->CreateRenderTargetView(d3dTex.Get(), &rtDesc, &rtv);
 
 		d3dTex.CopyTo(&myTexture);
 
@@ -1478,14 +1459,13 @@ void CaptureBufferOutput()
 		hr = d3dTex.As(&dxgiResource);
 		if (FAILED(hr))
 		{
-			// error handling code
 			return;
 		}
 
 		hr = dxgiResource->GetSharedHandle(&sharedHandle);
-		if FAILED(hr)
+		if (FAILED(hr))
 		{
-			// error handling code
+			// no error handling for safety
 		}
 
 		handleData->handle = sharedHandle;
