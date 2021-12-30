@@ -1191,6 +1191,17 @@ static HookFunction hookFunction{[] ()
 
 	MH_EnableHook(MH_ALL_HOOKS);
 
+	// don't fastfail from game CRT code
+	{
+		auto pattern = hook::pattern("B9 ? ? ? ? CD 29").count_hint(3);
+
+		for (size_t i = 0; i < pattern.size(); i++)
+		{
+			// replace with a `ud2` instruction
+			hook::put<uint16_t>(pattern.get(i).get<void>(5), 0x0B0F);
+		}
+	}
+
 	// fix crash caused by lack of nullptr check for CWeaponInfo, introduced as a R* bug in 2545
 	if (xbr::IsGameBuildOrGreater<2545>())
 	{
