@@ -219,6 +219,26 @@ static InitFunction initFunction([] ()
 		assert(!"_assert command used");
 	});
 
+	static ConsoleCommand crashGameCmd("_crash", [](bool game)
+	{
+#ifndef _DEBUG
+		if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
+		{
+			return;
+		}
+#endif
+
+		if (game)
+		{
+			auto gameCrashPattern = hook::pattern("45 33 C9 49 8B D2 48 8B 01 48 FF 60 10").count_hint(2).get(1).get<void>();
+			hook::put<uint8_t>(gameCrashPattern, 0xCC);
+		}
+		else
+		{
+			CrashCommand();
+		}
+	});
+
 	static ConsoleCommand crashCmd("_crash", []()
 	{
 #ifndef _DEBUG
