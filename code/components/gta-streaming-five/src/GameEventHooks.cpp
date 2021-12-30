@@ -68,19 +68,11 @@ namespace
 	{
 		return entity ? rage::fwScriptGuid::GetGuidFromBase(entity) : 0;
 	}
-
-	// Practically a *reinterpret_cast<uint64_t>(v) for compile time evaluation
-	inline constexpr uint32_t ct_uint32(const char (&v)[5])
-	{
-		// little endian
-		return static_cast<uint32_t>(v[0]) + (static_cast<uint32_t>(v[1]) << 8)
-			   + (static_cast<uint32_t>(v[2]) << 16) + (static_cast<uint32_t>(v[3]) << 24);
-	}
 }
 
-void* (*g_eventCall1)(void* group, void* event);
-void* (*g_eventCall2)(void* group, void* event);
-void* (*g_eventCall3)(void* group, void* event);
+void*(*g_eventCall1)(void* group, void* event);
+void*(*g_eventCall2)(void* group, void* event);
+void*(*g_eventCall3)(void* group, void* event);
 
 template<decltype(g_eventCall3)* TFunc>
 void* HandleEventWrap(rage::fwEventGroup* group, rage::fwEvent* event)
@@ -130,52 +122,52 @@ void* HandleEventWrapReact(rage::fwEventGroup* group, rage::fwEvent* event)
 
 		try
 		{
+			GameEventData data{ typeid(*event).name() + 6 };
+
 			msgpack::sbuffer buf;
 			msgpack::packer packer(buf);
 
-			const char* eventName = typeid(*event).name() + 6;
+			packer.pack_array(2); // we'll offer 2 parameters
+			msgpack_pack(packer, GetGuidFromBaseSafe(group->entities[17]));
 
-			packer.pack_array(4); // we'll offer 4 parameters
-			msgpack_pack(packer, eventName, event->GetId(), GetGuidFromBaseSafe(group->entities[17]));
+			// retrieve the event specific data
+			const char* eventSubName = data.name + 6; // get part after "CEvent"
 
-			// Quick 4 bytes check, i.e.: no strcmp
-			// this will turn the first 4 bytes after "CEvent" into an uint32 and check against that value
-			switch ((uint32_t&)eventName[6])
+			if (memcmp(eventSubName, "Shoc", 4) == 0) // Shocking
 			{
-				case ct_uint32("Shoc"): // Shocking
+				msgpack_array(packer, GetGuidFromBaseSafe((rage::fwEntity*&)event[13]), (float(&)[3])event[8]);
+			}
+			else if (memcmp(eventSubName, "Pote", 4) == 0) // Potential
+			{
+				eventSubName = data.name + 15; // get part after "CEventPotential"
+
+				// TODO: check how we will do this without a strcmp, will a memcmp suffice?
+				if (strcmp(eventSubName, "WalkIntoVehicle") == 0)
 				{
-					msgpack_array(packer, GetGuidFromBaseSafe((rage::fwEntity*&)event[13]), (float(&)[3])event[8]);
-					break;
+					msgpack_array(packer, GetGuidFromBaseSafe((rage::fwEntity*&)event[8]), (float(&)[3])event[5]);
 				}
-				case ct_uint32("Pote"): // Potential
+				else if (strcmp(eventSubName, "GetRunOver") == 0)
 				{
-					// TODO: check how we will do this without a strcmp
-					if (strcmp(eventName + 15, "WalkIntoVehicle") == 0)
-					{
-						msgpack_array(packer, GetGuidFromBaseSafe((rage::fwEntity*&)event[8]), (float(&)[3])event[5]);
-					}
-					else if (strcmp(eventName + 15, "GetRunOver") == 0)
-					{
-						msgpack_array(packer, GetGuidFromBaseSafe((rage::fwEntity*&)(event[6])));
-						// doesn't seem there is a vector3, might have other info, speed, vector2?
-					}
-					else
-					{
-						packer.pack_array(0); // empty array
-					}
-					break;
+					msgpack_array(packer, GetGuidFromBaseSafe((rage::fwEntity*&)(event[6])));
+					// doesn't seem there is a vector3, might have other info, speed, vector2?
 				}
-				default:
+				else
 				{
 					packer.pack_array(0); // empty array
-					break;
 				}
 			}
+			else
+			{
+				packer.pack_array(0); // empty array
+			}
 
-			OnTriggerGameEventReact({ buf.data(), buf.size() });
+			data.argsData = std::string_view(buf.data(), buf.size());
+			OnTriggerGameEventReact(data);
 		}
 		catch (std::exception& e)
 		{
+			// an std::bad_alloc could be thrown when packing (msgpack);
+			// should we do anything else except for not sending this to scripts?
 		}
 	}
 
@@ -199,48 +191,53 @@ void* HandleEventWrapEmit(rage::fwEventGroup* group, rage::fwEvent* event)
 
 		try
 		{
+			GameEventData data{ typeid(*event).name() + 6 };
+
 			msgpack::sbuffer buf;
 			msgpack::packer packer(buf);
 
-			const char* eventName = typeid(*event).name() + 6;
-
-			packer.pack_array(4); // we'll offer 4 parameters
-			msgpack_pack(packer, eventName, event->GetId());
+			packer.pack_array(2); // we'll offer 2 parameters
+			msgpack_pack(packer);
 
 			// retrieve all entities
-			rage::fwEntity* ent2 = nullptr; // to ignore duplicates on the end
-			rage::fwEntity** ent1 = group->entities; // to ignore duplicates on the end
-			
-			// iterate ptrs until we find a nullptr, a duplicate, or if we reached the end of the buffer size
-			size_t size = 0;
-			for (; *ent1 && *ent1 != ent2 && ++size < _countof(group->entities); ent2 = *ent1++);
-			packer.pack_array(size);
-
-			for (size_t i = 0; i < size; ++i)
 			{
-				packer.pack(rage::fwScriptGuid::GetGuidFromBase(group->entities[i]));
-			}
+				size_t size = 0;
+				rage::fwEntity** entity = group->entities; // to ignore duplicates on the end
+				rage::fwEntity* prevEntity = nullptr; // to ignore duplicates on the end
 
-			// Quick 4 bytes check, i.e.: no strcmp
-			// this will turn the first 4 bytes after "CEvent" into an uint32 and check against that value
-			switch ((uint32_t&)eventName[6])
-			{
-				case ct_uint32("Shoc"): // Shocking
+				// iterate ptrs until we find a nullptr, a duplicate, or if we reached the end of the buffer size
+				while (*entity && *entity != prevEntity && ++size < std::size(group->entities))
 				{
-					msgpack_array(packer, GetGuidFromBaseSafe((rage::fwEntity*&)event[13]), (float(&)[3])event[8]);
-					break;
+					prevEntity = *entity++;
 				}
-				default:
+
+				packer.pack_array(size);
+
+				for (size_t i = 0; i < size; ++i)
 				{
-					packer.pack_array(0); // empty array
-					break;
+					packer.pack(rage::fwScriptGuid::GetGuidFromBase(group->entities[i]));
 				}
 			}
 
-			OnTriggerGameEventEmit({ buf.data(), buf.size() });
+			// retrieve the event specific data
+			const char* eventSubName = data.name + 6; // get part after "CEvent"
+
+			if (memcmp(eventSubName, "Shoc", 4) == 0) // Shocking
+			{
+				msgpack_array(packer, GetGuidFromBaseSafe((rage::fwEntity*&)event[13]), (float(&)[3])event[8]);
+			}
+			else
+			{
+				packer.pack_array(0); // empty array
+			}
+
+			data.argsData = std::string_view(buf.data(), buf.size());
+			OnTriggerGameEventEmit(data);
 		}
 		catch (std::exception& e)
 		{
+			// an std::bad_alloc could be thrown when packing (msgpack);
+			// should we do anything else except for not sending this to scripts?
 		}
 	}
 
@@ -368,6 +365,6 @@ static HookFunction hookFunction([]()
 });
 
 fwEvent<const GameEventMetaData&> OnTriggerGameEvent;
-fwEvent<std::string_view> OnTriggerGameEventEmit;
-fwEvent<std::string_view> OnTriggerGameEventReact;
+fwEvent<const GameEventData&> OnTriggerGameEventEmit;
+fwEvent<const GameEventData&> OnTriggerGameEventReact;
 fwEvent<const DamageEventMetaData&> OnEntityDamaged;

@@ -703,9 +703,15 @@ struct GameEventMetaData
 
 STREAMING_EXPORT extern fwEvent<const GameEventMetaData&> OnTriggerGameEvent;
 
-STREAMING_EXPORT extern fwEvent<std::string_view> OnTriggerGameEventReact;
+struct GameEventData
+{
+	const char* name;
+	std::string_view argsData;
+};
 
-STREAMING_EXPORT extern fwEvent<std::string_view> OnTriggerGameEventEmit;
+STREAMING_EXPORT extern fwEvent<const GameEventData&> OnTriggerGameEventReact;
+
+STREAMING_EXPORT extern fwEvent<const GameEventData&> OnTriggerGameEventEmit;
 
 struct DamageEventMetaData
 {
