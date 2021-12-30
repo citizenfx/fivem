@@ -433,17 +433,10 @@ static std::wstring UnblameCrash(const std::wstring& hash)
 {
 	auto retval = hash;
 
-	if (_wcsnicmp(hash.c_str(), L"fivem.exe+", 10) == 0)
-	{
-		retval = L"GTA5+" + retval.substr(10);
-	}
-	else if (_wcsnicmp(hash.c_str(), L"redm.exe+", 9) == 0)
-	{
-		retval = L"RDR2+" + retval.substr(9);
-	}
-
 	if (hash.find(L"GTAProcess") != std::string::npos ||
-		hash.find(L"GameProcess") != std::string::npos)
+		hash.find(L"GameProcess") != std::string::npos ||
+		_wcsnicmp(hash.c_str(), L"fivem.exe+", 10) == 0 ||
+		_wcsnicmp(hash.c_str(), L"redm.exe+", 9) == 0)
 	{
 		auto baseGame = std::wstring_view{ GAME_EXECUTABLE };
 		baseGame = baseGame.substr(0, baseGame.rfind(L'.'));
@@ -1353,7 +1346,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 			{ 42, saveStr.c_str() }
 		};
 
-		static std::wstring crashHashString = fmt::sprintf(gettext(L"Crash signature: %s\n"), crashHash);
+		static std::wstring crashHashString = fmt::sprintf(gettext(L"Crash signature: %s\n"), UnblameCrash(crashHash));
 
 		if (!load_error_pickup().is_null())
 		{
