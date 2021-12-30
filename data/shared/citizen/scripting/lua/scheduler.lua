@@ -368,6 +368,13 @@ if isDuplicityVersion then
 
 		return TriggerClientEventInternal(eventName, playerId, payload, payload:len())
 	end
+
+	function TriggerClientsEvent(eventName, playersId, ...)
+		local payload = msgpack_pack_args(...)
+		local playersIdPayload = msgpack_pack(playersId)
+
+		return TriggerClientsEventInternal(eventName, playersIdPayload, playersIdPayload:len(), payload, payload:len())
+	end
 	
 	function TriggerLatentClientEvent(eventName, playerId, bps, ...)
 		local payload = msgpack_pack_args(...)

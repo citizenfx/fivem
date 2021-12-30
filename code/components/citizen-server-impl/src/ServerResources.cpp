@@ -1116,6 +1116,39 @@ void fx::ServerEventComponent::TriggerClientEvent(const std::string_view& eventN
 	}
 }
 
+void fx::ServerEventComponent::TriggerClientsEvent(const std::string_view& eventName, const void* data, size_t dataLen, const std::vector<std::string>& targets)
+{
+	// build the target event
+	net::Buffer outBuffer;
+	outBuffer.Write(0x7337FD7A);
+
+	// source netId
+	outBuffer.Write<uint16_t>(-1);
+
+	// event name
+	outBuffer.Write<uint16_t>(eventName.size() + 1);
+	outBuffer.Write(eventName.data(), eventName.size());
+	outBuffer.Write<uint8_t>(0);
+
+	// payload
+	outBuffer.Write(data, dataLen);
+
+	// get the game server and client registry
+	auto gameServer = m_instance->GetComponent<fx::GameServer>();
+	auto clientRegistry = m_instance->GetComponent<fx::ClientRegistry>();
+
+	for (const std::string& targetSrc : targets)
+	{
+		int targetNetId = atoi(targetSrc.c_str());
+		auto client = clientRegistry->GetClientByNetID(targetNetId);
+
+		if (client)
+		{
+			client->SendPacket(0, outBuffer, NetPacketType_Reliable);
+		}
+	}
+}
+
 static InitFunction initFunction2([]()
 {
 	fx::ScriptEngine::RegisterNativeHandler("PRINT_STRUCTURED_TRACE", [](fx::ScriptContext& context)
@@ -1190,6 +1223,28 @@ static InitFunction initFunction2([]()
 		auto rac = resourceManager->GetComponent<fx::EventReassemblyComponent>();
 
 		rac->TriggerEvent(std::stoi(targetSrcIdx), std::string_view{ eventName.c_str(), eventName.size() + 1 }, std::string_view{ reinterpret_cast<const char*>(data), dataLen }, bps);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("TRIGGER_CLIENTS_EVENT_INTERNAL", [](fx::ScriptContext& context)
+	{
+		std::string_view eventName = context.CheckArgument<const char*>(0);
+
+		const char* targetsData = context.CheckArgument<const char*>(1);
+		uint32_t targetsLen = context.CheckArgument<uint32_t>(2);
+
+		auto obj = msgpack::unpack(targetsData, targetsLen);
+		std::vector<std::string> targets = obj->as<std::vector<std::string>>();
+
+		const void* data = context.GetArgument<const void*>(3);
+		uint32_t dataLen = context.GetArgument<uint32_t>(4);
+
+		// get the current resource manager
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		// get the owning server instance
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		instance->GetComponent<fx::ServerEventComponent>()->TriggerClientsEvent(eventName, data, dataLen, targets);
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("START_RESOURCE", [](fx::ScriptContext& context)
