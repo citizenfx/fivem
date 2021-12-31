@@ -89,5 +89,6 @@
     "#Settings_StreamerMode": "Streamer-Modus",
     "#Settings_LowPerf_Off": "Aus",
     "#Settings_LowPerf_ReduceBackdrop": "Nur Hintergrund",
-    "#Settings_LowPerf_ReduceFull": "Keine Unschärfe"
+    "#Settings_LowPerf_ReduceFull": "Keine Unschärfe",
+    "#Home_AdDetail": "Meistgevoteter Server in deiner Region"
 }
