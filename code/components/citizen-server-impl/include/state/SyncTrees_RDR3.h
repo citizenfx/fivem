@@ -403,20 +403,7 @@ struct CDoorScriptGameStateDataNode { bool Parse(SyncParseState& state) { return
 struct CHeliHealthDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CHeliControlDataNode { bool Parse(SyncParseState& state) { return true; } };
 
-struct CObjectCreationDataNode  : GenericSerializeDataNode<CObjectCreationDataNode>
-{
-	uint32_t m_model;
-	bool m_hasInitPhysics;
-
-	template<typename Serializer>
-	bool Serialize(Serializer& s)
-	{
-		s.Serialize(32, m_model);
-		s.Serialize(m_hasInitPhysics);
-
-		return true;
-	}
-};
+struct CObjectCreationDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CObjectGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CObjectScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPhysicalHealthDataNode { bool Parse(SyncParseState& state) { return true; } };
