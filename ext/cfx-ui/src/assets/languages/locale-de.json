@@ -90,5 +90,6 @@
     "#Settings_LowPerf_Off": "Aus",
     "#Settings_LowPerf_ReduceBackdrop": "Nur Hintergrund",
     "#Settings_LowPerf_ReduceFull": "Keine Unschärfe",
-    "#Home_AdDetail": "Meistgevoteter Server in deiner Region"
+    "#Home_AdDetail": "Meistgevoteter Server in deiner Region",
+    "#Servers_ConnectingToServer": "Mit dem Server verbinden....."
 }
