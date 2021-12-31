@@ -85,5 +85,9 @@
     "#Settings_UpdateChannel": "Aktualisierungsmodus",
     "#Settings_QueriesPerMinute": "Server-Browser: Maximalping / Minute",
     "#BottomNav_ReplayEditor": "Replay-Bearbeitung",
-    "#ServerList_StreamerModeWarning": "Streamer Mode ist aktiv - Eingabe versteckt"
+    "#ServerList_StreamerModeWarning": "Streamer Mode ist aktiv - Eingabe versteckt",
+    "#Settings_StreamerMode": "Streamer-Modus",
+    "#Settings_LowPerf_Off": "Aus",
+    "#Settings_LowPerf_ReduceBackdrop": "Nur Hintergrund",
+    "#Settings_LowPerf_ReduceFull": "Keine Unschärfe"
 }
