@@ -71,10 +71,10 @@ interface CitizenInterface {
 }
 
 interface CitizenTimer {
-    ref(): void,
-    unref(): void,
+    ref(): CitizenTimer,
+    unref(): CitizenTimer,
     hasRef(): boolean,
-    refresh(): void,
+    refresh(): CitizenTimer,
     [Symbol.toPrimitive](): number,
 }
 
