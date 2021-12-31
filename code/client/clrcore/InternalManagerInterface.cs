@@ -8,6 +8,8 @@ namespace CitizenFX.Core
 
 		void CreateTaskScheduler();
 
+		void SetConfiguration(bool syncContext = false);
+
 		void Destroy();
 
 		void SetScriptHost(IScriptHost host, int instanceId);

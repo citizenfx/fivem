@@ -46,6 +46,7 @@ namespace CitizenFX.Core
 				string resourceName = Marshal.PtrToStringAnsi(nameString);
 
 				bool useTaskScheduler = true;
+				bool useSyncContext = false;
 
 #if IS_FXSERVER
 				string basePath = "";
@@ -56,6 +57,7 @@ namespace CitizenFX.Core
 
 					basePath = Native.API.GetResourcePath(resourceName);
 					useTaskScheduler = Native.API.GetNumResourceMetadata(resourceName, "clr_disable_task_scheduler") == 0;
+					useSyncContext = Native.API.GetNumResourceMetadata(resourceName, "clr_experimental_2021_12_31_use_sync_context") > 0;
 
 					if (host is IScriptHostWithManifest manifestHost)
 					{
@@ -82,6 +84,8 @@ namespace CitizenFX.Core
 				{
 					m_intManager.CreateTaskScheduler();
 				}
+
+				m_intManager.SetConfiguration(useSyncContext: useSyncContext);
 
 				m_intManager.SetResourceName(resourceName);
 

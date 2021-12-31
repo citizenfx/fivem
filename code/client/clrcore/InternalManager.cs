@@ -19,6 +19,7 @@ namespace CitizenFX.Core
 		private static readonly List<BaseScript> ms_definedScripts = new List<BaseScript>();
 		private static readonly List<Tuple<DateTime, AsyncCallback, string>> ms_delays = new List<Tuple<DateTime, AsyncCallback, string>>();
 		private static int ms_instanceId;
+		private static bool ms_useSyncContext;
 
 		private string m_resourceName;
 
@@ -68,6 +69,11 @@ namespace CitizenFX.Core
 		public void SetResourceName(string resourceName)
 		{
 			m_resourceName = resourceName;
+		}
+
+		public void SetConfiguration(bool useSyncContext)
+		{
+			ms_useSyncContext = useSyncContext;
 		}
 
 		[SecuritySafeCritical]
@@ -366,60 +372,89 @@ namespace CitizenFX.Core
 			}
 		}
 
+		private class SyncContextScope : IDisposable
+		{
+			private static SynchronizationContext citizenContext = new CitizenSynchronizationContext();
+			private SynchronizationContext oldContext;
+
+			public SyncContextScope()
+			{
+				if (ms_useSyncContext)
+				{
+					oldContext = SynchronizationContext.Current;
+					SynchronizationContext.SetSynchronizationContext(citizenContext);
+				}
+			}
+
+			public void Dispose()
+			{
+				if (oldContext != null)
+				{
+					SynchronizationContext.SetSynchronizationContext(oldContext);
+				}
+			}
+		}
+
 		[SecuritySafeCritical]
 		public void TriggerEvent(string eventName, byte[] argsSerialized, string sourceString)
 		{
-			if (GameInterface.SnapshotStackBoundary(out var bo))
-			{
-				ScriptHost.SubmitBoundaryStart(bo, bo.Length);
-			}
-
-			try
-			{
+			// not using using statements here as old Mono on Linux build doesn't know of these
 #if IS_FXSERVER
-				var netSource = (sourceString.StartsWith("net") || sourceString.StartsWith("internal-net")) ? sourceString : null;
-#else
-				var netSource = sourceString.StartsWith("net") ? sourceString : null;
+			using (var syncContext = new SyncContextScope())
 #endif
-
-				var obj = MsgPackDeserializer.Deserialize(argsSerialized, netSource) as List<object> ?? (IEnumerable<object>)new object[0];
-
-				var scripts = ms_definedScripts.ToArray();
-
-				var objArray = obj.ToArray();
-
-				NetworkFunctionManager.HandleEventTrigger(eventName, objArray, sourceString);
-
-				foreach (var script in scripts)
+			{
+				if (GameInterface.SnapshotStackBoundary(out var bo))
 				{
-					Task.Factory.StartNew(() =>
-					{
-						BaseScript.CurrentName = $"eventHandler {script.GetType().Name} -> {eventName}";
-						var t = script.EventHandlers.Invoke(eventName, sourceString, objArray);
-						BaseScript.CurrentName = null;
-
-						return t;
-					}, CancellationToken.None, TaskCreationOptions.None, CitizenTaskScheduler.Instance).Unwrap().ContinueWith(a =>
-					{
-						if (a.IsFaulted)
-						{
-							Debug.WriteLine($"Error invoking event handlers for {eventName}: {a.Exception?.InnerExceptions.Aggregate("", (b, s) => s + b.ToString() + "\n")}");
-						}
-					});
+					ScriptHost.SubmitBoundaryStart(bo, bo.Length);
 				}
 
-				ExportDictionary.Invoke(eventName, objArray);
+				try
+				{
+#if IS_FXSERVER
+					var netSource = (sourceString.StartsWith("net") || sourceString.StartsWith("internal-net")) ? sourceString : null;
+#else
+					var netSource = sourceString.StartsWith("net") ? sourceString : null;
+#endif
 
-				// invoke a single task tick
-				CitizenTaskScheduler.Instance.Tick();
-			}
-			catch (Exception e)
-			{
-				PrintError($"event ({eventName})", e);
-			}
-			finally
-			{
-				ScriptHost.SubmitBoundaryStart(null, 0);
+					var obj = MsgPackDeserializer.Deserialize(argsSerialized, netSource) as List<object> ?? (IEnumerable<object>)new object[0];
+
+					var scripts = ms_definedScripts.ToArray();
+
+					var objArray = obj.ToArray();
+
+					NetworkFunctionManager.HandleEventTrigger(eventName, objArray, sourceString);
+
+					foreach (var script in scripts)
+					{
+						Task.Factory.StartNew(() =>
+						{
+							BaseScript.CurrentName = $"eventHandler {script.GetType().Name} -> {eventName}";
+							var t = script.EventHandlers.Invoke(eventName, sourceString, objArray);
+							BaseScript.CurrentName = null;
+
+							return t;
+						}, CancellationToken.None, TaskCreationOptions.None, CitizenTaskScheduler.Instance).Unwrap().ContinueWith(a =>
+						{
+							if (a.IsFaulted)
+							{
+								Debug.WriteLine($"Error invoking event handlers for {eventName}: {a.Exception?.InnerExceptions.Aggregate("", (b, s) => s + b.ToString() + "\n")}");
+							}
+						});
+					}
+
+					ExportDictionary.Invoke(eventName, objArray);
+
+					// invoke a single task tick
+					CitizenTaskScheduler.Instance.Tick();
+				}
+				catch (Exception e)
+				{
+					PrintError($"event ({eventName})", e);
+				}
+				finally
+				{
+					ScriptHost.SubmitBoundaryStart(null, 0);
+				}
 			}
 		}
 
@@ -440,46 +475,53 @@ namespace CitizenFX.Core
 		[SecuritySafeCritical]
 		public void CallRef(int refIndex, byte[] argsSerialized, out IntPtr retvalSerialized, out int retvalSize)
 		{
-			if (GameInterface.SnapshotStackBoundary(out var b))
+			// not using using statements here as old Mono on Linux build doesn't know of these
+#if IS_FXSERVER
+			using (var syncContext = new SyncContextScope())
+#endif
 			{
-				ScriptHost.SubmitBoundaryStart(b, b.Length);
-			}
 
-			try
-			{
-				var retvalData = FunctionReference.Invoke(refIndex, argsSerialized);
-
-				if (retvalData != null)
+				if (GameInterface.SnapshotStackBoundary(out var b))
 				{
-					if (m_retvalBuffer == IntPtr.Zero)
-					{
-						m_retvalBuffer = Marshal.AllocHGlobal(32768);
-						m_retvalBufferSize = 32768;
-					}
-
-					if (m_retvalBufferSize < retvalData.Length)
-					{
-						m_retvalBuffer = Marshal.ReAllocHGlobal(m_retvalBuffer, new IntPtr(retvalData.Length));
-						m_retvalBufferSize = retvalData.Length;
-					}
-
-					Marshal.Copy(retvalData, 0, m_retvalBuffer, retvalData.Length);
-
-					retvalSerialized = m_retvalBuffer;
-					retvalSize = retvalData.Length;
+					ScriptHost.SubmitBoundaryStart(b, b.Length);
 				}
-				else
+
+				try
+				{
+					var retvalData = FunctionReference.Invoke(refIndex, argsSerialized);
+
+					if (retvalData != null)
+					{
+						if (m_retvalBuffer == IntPtr.Zero)
+						{
+							m_retvalBuffer = Marshal.AllocHGlobal(32768);
+							m_retvalBufferSize = 32768;
+						}
+
+						if (m_retvalBufferSize < retvalData.Length)
+						{
+							m_retvalBuffer = Marshal.ReAllocHGlobal(m_retvalBuffer, new IntPtr(retvalData.Length));
+							m_retvalBufferSize = retvalData.Length;
+						}
+
+						Marshal.Copy(retvalData, 0, m_retvalBuffer, retvalData.Length);
+
+						retvalSerialized = m_retvalBuffer;
+						retvalSize = retvalData.Length;
+					}
+					else
+					{
+						retvalSerialized = IntPtr.Zero;
+						retvalSize = 0;
+					}
+				}
+				catch (Exception e)
 				{
 					retvalSerialized = IntPtr.Zero;
 					retvalSize = 0;
-				}
-			}
-			catch (Exception e)
-			{
-				retvalSerialized = IntPtr.Zero;
-				retvalSize = 0;
 
-				PrintError($"reference call", e.InnerException ?? e);
+					PrintError($"reference call", e.InnerException ?? e);
+				}
 			}
 		}
 
@@ -519,6 +561,11 @@ namespace CitizenFX.Core
 		public override object InitializeLifetimeService()
 		{
 			return null;
+		}
+
+		internal static void PrintErrorInternal(string where, Exception what)
+		{
+			GlobalManager?.PrintError(where, what);
 		}
 
 		[SecuritySafeCritical]

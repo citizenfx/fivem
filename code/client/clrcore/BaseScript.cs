@@ -210,7 +210,7 @@ namespace CitizenFX.Core
 		/// <returns>An awaitable task.</returns>
 		public static Task Delay(int msecs)
 		{
-			return CitizenTaskScheduler.Factory.FromAsync(BeginDelay, EndDelay, msecs, CitizenTaskScheduler.Instance);
+			return CitizenTaskScheduler.Factory.FromAsync(BeginDelay, EndDelay, msecs, null);
 		}
 
 		[SecuritySafeCritical]
