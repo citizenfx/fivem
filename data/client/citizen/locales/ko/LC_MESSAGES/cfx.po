@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-06-26 23:42+0200\n"
+"POT-Creation-Date: 2021-12-30 22:37+0100\n"
 "PO-Revision-Date: 2020-12-27 17:57+0000\n"
 "Last-Translator: whoisme <activate@kakao.com>\n"
 "Language-Team: Korean <http://translations.cfx.re/projects/citizenfx/client/"
@@ -19,7 +19,7 @@ msgstr ""
 "Plural-Forms: nplurals=1; plural=0;\n"
 "X-Generator: Weblate 4.3\n"
 
-#: client/launcher/MiniDump.cpp:1208
+#: client/launcher/MiniDump.cpp:1264
 #, c-format
 msgid ""
 "\n"
@@ -30,7 +30,7 @@ msgstr ""
 "\n"
 "오류 상세 정보: %s"
 
-#: client/launcher/MiniDump.cpp:1213
+#: client/launcher/MiniDump.cpp:1269
 #, c-format
 msgid ""
 "\n"
@@ -41,235 +41,362 @@ msgstr ""
 "\n"
 "충돌 해시: %s"
 
-#: client/launcher/MiniDump.cpp:1277
-msgid ""
-"\n"
-"\n"
-"This is a fatal error because game unloading failed. Please report this issue and how to cause it (what server you played on, any resources/scripts, etc.) so this can be solved."
-msgstr ""
-"\n"
-"\n"
-"치명적 오류가 발생하여 게임을 정상적으로 종료하지 못했습니다. 이 오류가 해결될 수 있도록 이 오류가 왜 발생했는지(어느 서버를 플레이 "
-"했는지, 어떤 리소스나 스크립트를 사용했는지 등)을 보고해주세요."
-
-#: client/launcher/MiniDump.cpp:1204
-#, c-format
-msgid "%s caused %s to stop working. A crash report is being uploaded to the %s developers."
-msgstr "%s 으(로) 인해 %s 이(가) 작동이 중지되었습니다. 충돌 보고서 %s(을)를 개발자들에게 보내고 있습니다."
-
-#: client/launcher/Main.cpp:510
-#, c-format
-msgid "%s could not create a file in the folder it is placed in. Please move your installation out of Program Files or another protected folder."
-msgstr ""
-"%s 이(가) 있는 폴더에 파일을 만들 수 없습니다. 설치 폴더를 \"Program Files\" 또는 기타 보호된 폴더로 옮겨주세요."
-
-#: client/launcher/MiniDump.cpp:340
+#: client/launcher/MiniDump.cpp:1274
 #, c-format
 msgid ""
-"A game error (at %016llx) caused %s to stop working. A crash report has been uploaded to the %s developers.\n"
 "\n"
+"Stack trace:\n"
 "%s"
 msgstr ""
-"게임 오류(%016llx 에서)로 인하여 %s 의 작동이 중지되었습니다. %s에게 충돌 보고서가 업로드 되었습니다.\n"
+
+#: components/net/src/NetLibrary.cpp:637
+msgid ""
+"# Couldn't connect\n"
+"Failed to get info from server (tried 3 times).\n"
 "\n"
-"%s"
-
-#: client/launcher/MiniDump.cpp:1179
-#, c-format
-msgid "An error at %s"
-msgstr "%s 에서 오류가 발생했습니다"
-
-#: client/launcher/Installer.cpp:126
-#, c-format
-msgid "Are you sure you want to remove %s from the installation root at %s?"
-msgstr "정말 %s 을(를) %s 에서 제거하시겠습니까?"
-
-#: client/launcher/Bootstrap.cpp:35
-#, c-format
-msgid "Bootstrapping %s..."
-msgstr "%s을(를) 초기화 중..."
-
-#: client/launcher/Updater.cpp:360
-#, c-format
-msgid "Checking %s"
-msgstr "%s을(를) 확인 중"
-
-#: client/launcher/MiniDump.cpp:1333
-#, c-format
-msgid ""
-"Crash signature: %s\n"
-"%s\n"
-"You can press Ctrl-C to copy this message and paste it elsewhere."
+"---\n"
+"\n"
+"If you are the server owner, are you sure you are allowing UDP packets to "
+"and from the server?"
 msgstr ""
-"충돌 서명: %s\n"
-"%s\n"
-"Ctrl-C를 눌러 이 정보를 복사 할 수 있습니다."
 
-#: client/launcher/MiniDump.cpp:1329
+#: components/net/src/NetLibrary.cpp:674
 #, c-format
 msgid ""
-"Crash signature: %s\n"
-"Report ID: %s\n"
+"# Timed out\n"
+"Client -> server connection timed out. Please try again later.\n"
+"\n"
+"---\n"
+"\n"
+"%s\n"
+"[Reconnect](cfx.re://reconnect)"
+msgstr ""
+
+#: client/launcher/MiniDump.cpp:1260
+#, c-format
+msgid ""
+"%s caused %s to stop working. A crash report is being uploaded to the %s "
+"developers."
+msgstr ""
+"%s 으(로) 인해 %s 이(가) 작동이 중지되었습니다. 충돌 보고서 %s(을)를 개발자들"
+"에게 보내고 있습니다."
+
+#: client/launcher/Main.cpp:652
+#, c-format
+msgid ""
+"%s could not create a file in the folder it is placed in. Please move your "
+"installation out of Program Files or another protected folder."
+msgstr ""
+"%s 이(가) 있는 폴더에 파일을 만들 수 없습니다. 설치 폴더를 \"Program Files\" "
+"또는 기타 보호된 폴더로 옮겨주세요."
+
+#: client/launcher/ViabilityChecks.cpp:100
+#, fuzzy, c-format
+#| msgid ""
+#| "This product requires Security Update for Windows 7 for x64-based systems "
+#| "(KB2758857) to be installed to run. Please install it, and try again."
+msgid ""
+"%s requires the Windows Media Feature Pack for Windows N editions to be "
+"installed to run. Please install it, and try again."
+msgstr ""
+"이 프로그램을 실행하려면 64비트 기반 시스템에 대한 Windows 7 보안 업데이트"
+"(KB2758857)가 설치되어 있어야 합니다. 설치한 후 다시 시도하십시오."
+
+#: client/launcher/MiniDump.cpp:1417
+#, fuzzy, c-format
+#| msgid ""
+#| "Crash signature: %s\n"
+#| "Report ID: %s\n"
+#| "You can press Ctrl-C to copy this message and paste it elsewhere."
+msgid ""
+"%sReport ID: %s\n"
 "You can press Ctrl-C to copy this message and paste it elsewhere."
 msgstr ""
 "충돌 서명: %s\n"
 "보고 ID: %s\n"
 "Ctrl-C를 눌러 이 정보를 복사 할 수 있습니다."
 
-#: client/launcher/MiniDump.cpp:1270
-#, c-format
+#: client/launcher/MiniDump.cpp:1356
+#, fuzzy, c-format
+#| msgid ""
+#| "Crash signature: %s\n"
+#| "Report ID: ... [uploading]\n"
+#| "You can press Ctrl-C to copy this message and paste it elsewhere."
 msgid ""
-"Crash signature: %s\n"
-"Report ID: ... [uploading]\n"
+"%sReport ID: ... [uploading]\n"
 "You can press Ctrl-C to copy this message and paste it elsewhere."
 msgstr ""
 "충돌 서명: %s\n"
 "보고 ID: ... [업로드 중]\n"
 "Ctrl-C를 눌러 이 정보를 복사 할 수 있습니다."
 
-#: client/launcher/GameCache.cpp:643
-msgid "DLC files are missing (or corrupted) in your game installation. Please update or verify the game using Steam or the Social Club launcher and try again. See http://rsg.ms/verify step 4 for more info."
+#: client/launcher/MiniDump.cpp:1421
+#, fuzzy, c-format
+#| msgid ""
+#| "Crash signature: %s\n"
+#| "%s\n"
+#| "You can press Ctrl-C to copy this message and paste it elsewhere."
+msgid "%sYou can press Ctrl-C to copy this message and paste it elsewhere."
 msgstr ""
-"게임 파일에 DLC 파일이 없거나 손상되었습니다. 스팀 또는 소셜 클럽 런처를 사용하여 게임을 업데이트하거나 확인한 후 다시 시도하세요. "
-"자세한 정보는 http://rsg.ms/verify의 4번째 단계를 확인하세요."
+"충돌 서명: %s\n"
+"%s\n"
+"Ctrl-C를 눌러 이 정보를 복사 할 수 있습니다."
 
-#: client/launcher/ViabilityChecks.cpp:53
+#: components/net/src/NetLibrary.cpp:99
+#, c-format
+msgid "**Timeout info**: game=%s, recv=%s, send=%s\n"
+msgstr ""
+
+#: components/citizen-devtools/src/ResourceTimeWarnings.cpp:426
+msgid ""
+"A call into the Windows API took too long recently and led to a game stutter."
+msgstr ""
+
+#: client/launcher/MiniDump.cpp:1235
+#, c-format
+msgid "An error at %s"
+msgstr "%s 에서 오류가 발생했습니다"
+
+#: client/launcher/Installer.cpp:127
+#, c-format
+msgid "Are you sure you want to remove %s from the installation root at %s?"
+msgstr "정말 %s 을(를) %s 에서 제거하시겠습니까?"
+
+#: client/launcher/Bootstrap.cpp:34
+#, c-format
+msgid "Bootstrapping %s..."
+msgstr "%s을(를) 초기화 중..."
+
+#: client/launcher/Updater.cpp:624
+#, c-format
+msgid "Checking %s"
+msgstr "%s을(를) 확인 중"
+
+#: client/launcher/MiniDump.cpp:1349
+#, c-format
+msgid "Crash signature: %s\n"
+msgstr ""
+
+#: client/launcher/GameCache.cpp:794
+#, fuzzy, c-format
+#| msgid ""
+#| "DLC files are missing (or corrupted) in your game installation. Please "
+#| "update or verify the game using Steam or the Social Club launcher and try "
+#| "again. See http://rsg.ms/verify step 4 for more info."
+msgid ""
+"DLC files are missing (or corrupted) in your game installation. Please "
+"update or verify the game using Steam, Epic Games Launcher or Rockstar Games "
+"Launcher and try again. See http://rsg.ms/verify step 4 for more info.\n"
+"Currently, the game installation in '%s' is being used.\n"
+"Relevant files: \n"
+"%s"
+msgstr ""
+"게임 파일에 DLC 파일이 없거나 손상되었습니다. 스팀 또는 소셜 클럽 런처를 사용"
+"하여 게임을 업데이트하거나 확인한 후 다시 시도하세요. 자세한 정보는 http://"
+"rsg.ms/verify의 4번째 단계를 확인하세요."
+
+#: client/launcher/ViabilityChecks.cpp:57
 #, c-format
 msgid "DXGI 1.2 support is required to run this product %s"
 msgstr "이 제품을 실행하려면 DXGI 1.2 지원이 필요합니다 %s"
 
-#: client/launcher/Download.cpp:222
+#: client/launcher/Download.cpp:273
 #, c-format
 msgid "Downloaded %.2f/%.2f MB (%.0f%%, %.1f MB/s)"
 msgstr "%.2f/%.2f MB가 다운로드됨 (%.0f%%, %.1f MB/s)"
 
-#: client/launcher/MiniDump.cpp:1175
+#: client/launcher/MiniDump.cpp:1231
 #, c-format
 msgid "Error %s"
 msgstr "오류 %s"
 
-#: client/launcher/InstallerExtraction.cpp:532
+#: client/launcher/InstallerExtraction.cpp:534
 #, c-format
 msgid "Extracting %s"
 msgstr "%s 추출중"
 
-#: client/launcher/InstallerExtraction.cpp:268
+#: client/launcher/InstallerExtraction.cpp:270
 #, c-format
 msgid "Extracting %s (scanning)"
 msgstr "%s 추출중 (스캔하는중)"
 
-#: client/launcher/MiniDump.cpp:1189
+#: client/launcher/MiniDump.cpp:1245
 msgid "FiveM crashed... but we're on it!"
 msgstr "FiveM이 충돌하였습니다... 하지만 우리가 해결할게요!"
 
-#: client/launcher/Main.cpp:491
+#: client/launcher/Main.cpp:633
 msgid ""
-"FiveM does not support running under elevated privileges. Please change your Windows settings to not run FiveM as administrator.\n"
+"FiveM does not support running under elevated privileges. Please change your "
+"Windows settings to not run FiveM as administrator.\n"
 "The game will exit now."
 msgstr ""
-"FiveM은 관리자 권한으로 실행 할 수 없습니다. FiveM을 관리자 권한으로 실행하지 않도록 윈도우 설정을 변경해주세요.\n"
+"FiveM은 관리자 권한으로 실행 할 수 없습니다. FiveM을 관리자 권한으로 실행하"
+"지 않도록 윈도우 설정을 변경해주세요.\n"
 "게임이 곧 종료 됩니다."
 
-#: client/launcher/MiniDump.cpp:1237
+#: client/launcher/MiniDump.cpp:1308
 msgid "Game crashed: "
 msgstr "게임 충돌: "
 
-#: client/launcher/ViabilityChecks.cpp:46
+#: components/citizen-devtools/src/ResourceTimeWarnings.cpp:428
+msgid ""
+"Please close any software you have running in the background (including "
+"Windows apps such as File Explorer or Task Manager)."
+msgstr ""
+
+#: client/launcher/ViabilityChecks.cpp:50
 msgid "Please install Windows 7 SP1 or greater, and try again."
 msgstr "윈도우 7 SP1보다 높은 버전을 설치한뒤 시도해주세요."
 
-#: client/launcher/ViabilityChecks.cpp:50
+#: client/launcher/ViabilityChecks.cpp:54
 msgid "Please install the Platform Update for Windows 7, and try again."
 msgstr "윈도우7 용 플랫폼 업데이트를 설치한 후 다시 시도해주세요."
 
-#: client/launcher/MiniDump.cpp:339
-#, c-format
-msgid "RAGE error: %s"
-msgstr "RAGE 오류: %s"
+#: client/launcher/MiniDump.cpp:328 client/launcher/MiniDump.cpp:1447
+msgid "Save information"
+msgstr ""
 
-#: client/launcher/MiniDump.cpp:1267
+#: client/launcher/MiniDump.cpp:1343
 msgid ""
 "Save information\n"
-"Stores a file with crash information that you should copy and upload when asking for help."
+"Stores a file with crash information that you should copy and upload when "
+"asking for help."
 msgstr ""
 "정보 저장\n"
 "충돌 정보를 저장하고, 도움이 필요할 때 복사하여 업로드하세요."
 
-#: client/launcher/GameSelect.cpp:107
+#: client/launcher/GameSelect.cpp:194
 msgid "Select the folder containing Grand Theft Auto V"
 msgstr "Grand Theft Auto V가 있는 폴더를 선택하세요"
 
-#: client/launcher/Download.cpp:423
+#: components/ros-patches-five/src/AccountID.cpp:265
+msgid "Signing in with Epic"
+msgstr ""
+
+#: components/ros-patches-five/src/AccountID.cpp:229
+msgid "Signing in with Steam"
+msgstr ""
+
+#: components/citizen-devtools/src/ResourceTimeWarnings.cpp:424
+msgid "Slow system performance detected"
+msgstr ""
+
+#: client/launcher/Download.cpp:511
 msgid "Starting IPFS discovery..."
 msgstr "IPFS 검색 시작..."
 
-#: client/launcher/ViabilityChecks.cpp:42
+#: client/launcher/ViabilityChecks.cpp:46
 msgid "The game will exit now."
 msgstr "게임이 종료됩니다."
 
-#: client/launcher/GameCache.cpp:635
-#, c-format
+#: client/launcher/GameCache.cpp:783
+#, fuzzy, c-format
+#| msgid ""
+#| "The local %s game cache is outdated, and needs to be updated. This will "
+#| "copy %.2f MB of data from the local disk, and download %.2f MB of data "
+#| "from the internet.\n"
+#| "Do you wish to continue?"
 msgid ""
-"The local %s game cache is outdated, and needs to be updated. This will copy %.2f MB of data from the local disk, and download %.2f MB of data from the internet.\n"
+"The local %s game data is outdated, and needs to be updated. This will copy "
+"%.2f MB of data from the local disk, and download %.2f MB of data from the "
+"internet.\n"
 "Do you wish to continue?"
 msgstr ""
-"로컬 %s 의게임 캐시가 오래되었으므로 업데이트해야 합니다. 로컬 디스크에서 %.2f MB의 데이터를 복사하고 인터넷에서 %.2f MB의 "
-"데이터를 다운로드합니다.\n"
+"로컬 %s 의게임 캐시가 오래되었으므로 업데이트해야 합니다. 로컬 디스크에서 "
+"%.2f MB의 데이터를 복사하고 인터넷에서 %.2f MB의 데이터를 다운로드합니다.\n"
 "계속하시겠습니까?"
 
-#: client/launcher/GameSelect.cpp:202
+#: client/launcher/GameSelect.cpp:329
 #, c-format
 msgid "The selected path does not contain a %s file."
 msgstr "선택된 경로는 %s파일을 포함하고 있지 않습니다."
 
-#: client/launcher/ViabilityChecks.cpp:72
-msgid "This product requires Security Update for Windows 7 for x64-based systems (KB2758857) to be installed to run. Please install it, and try again."
+#: client/launcher/ViabilityChecks.cpp:78
+msgid ""
+"This product requires Security Update for Windows 7 for x64-based systems "
+"(KB2758857) to be installed to run. Please install it, and try again."
 msgstr ""
-"이 프로그램을 실행하려면 64비트 기반 시스템에 대한 Windows 7 보안 업데이트(KB2758857)가 설치되어 있어야 합니다. "
-"설치한 후 다시 시도하십시오."
+"이 프로그램을 실행하려면 64비트 기반 시스템에 대한 Windows 7 보안 업데이트"
+"(KB2758857)가 설치되어 있어야 합니다. 설치한 후 다시 시도하십시오."
 
-#: client/launcher/Main.cpp:634
+#: client/launcher/Main.cpp:809
 msgid "Transitioning to another build..."
 msgstr "다른 빌드로 전환중입니다..."
 
-#: client/launcher/MiniDump.cpp:1234
+#: client/launcher/MiniDump.cpp:1300
 msgid "Unhandled exception: "
 msgstr "처리 되지 않은 예외: "
 
-#: client/launcher/Installer.cpp:124
+#: client/launcher/Installer.cpp:125
 #, c-format
 msgid "Uninstall %s"
 msgstr "%s 을(를) 제거합니다"
 
-#: client/launcher/Installer.cpp:125
+#: client/launcher/Installer.cpp:126
 #, c-format
 msgid "Uninstall %s?"
 msgstr "%s 을(를) 제거 하시겠습니까?"
 
-#: client/launcher/Updater.cpp:297
+#: client/launcher/Updater.cpp:502
 #, c-format
 msgid "Updating %s..."
 msgstr "%s 업데이트 중..."
 
-#: client/launcher/GameCache.cpp:845
-msgid "Updating game cache..."
+#: client/launcher/GameCache.cpp:1050
+#, fuzzy
+#| msgid "Updating game cache..."
+msgid "Updating game storage..."
 msgstr "게임 캐시 업데이트 중..."
 
-#: client/launcher/Updater.cpp:268
+#: client/launcher/Updater.cpp:468
 msgid "Verifying content..."
 msgstr "파일 검증 중..."
 
-#: client/launcher/GameCache.cpp:714
+#: client/launcher/GameCache.cpp:883
 msgid "Verifying game content..."
 msgstr "게임 파일 검증 중..."
 
-#: client/launcher/Main.cpp:638
+#: client/launcher/Main.cpp:810
 msgid "We're getting there."
 msgstr "거의 다 됐습니다."
 
-#: client/launcher/Main.cpp:471
+#: client/launcher/Main.cpp:613
 #, c-format
-msgid "You are currently using an outdated version of Windows. This may lead to issues using the %s client. Please update to Windows 10 version 1703 (\"Creators Update\") or higher in case you are experiencing any issues. The game will continue to start now."
+msgid ""
+"You are currently using an outdated version of Windows. This may lead to "
+"issues using the %s client. Please update to Windows 10 version 1703 "
+"(\"Creators Update\") or higher in case you are experiencing any issues. The "
+"game will continue to start now."
 msgstr ""
-"현재 구 버전의 Windows를 사용하고 있습니다. %s 클라이언트를 사용하면 문제가 발생할 수 있습니다. 만약 문제가 발생할 경우, "
-"Windows 10 1703 (\"크리에이터 업데이트\") 이상의 버전으로 업데이트 하세요. 게임은 지금 시작됩니다."
+"현재 구 버전의 Windows를 사용하고 있습니다. %s 클라이언트를 사용하면 문제가 "
+"발생할 수 있습니다. 만약 문제가 발생할 경우, Windows 10 1703 (\"크리에이터 업"
+"데이트\") 이상의 버전으로 업데이트 하세요. 게임은 지금 시작됩니다."
+
+#~ msgid ""
+#~ "\n"
+#~ "\n"
+#~ "This is a fatal error because game unloading failed. Please report this "
+#~ "issue and how to cause it (what server you played on, any resources/"
+#~ "scripts, etc.) so this can be solved."
+#~ msgstr ""
+#~ "\n"
+#~ "\n"
+#~ "치명적 오류가 발생하여 게임을 정상적으로 종료하지 못했습니다. 이 오류가 해"
+#~ "결될 수 있도록 이 오류가 왜 발생했는지(어느 서버를 플레이 했는지, 어떤 리"
+#~ "소스나 스크립트를 사용했는지 등)을 보고해주세요."
+
+#, c-format
+#~ msgid ""
+#~ "A game error (at %016llx) caused %s to stop working. A crash report has "
+#~ "been uploaded to the %s developers.\n"
+#~ "\n"
+#~ "%s"
+#~ msgstr ""
+#~ "게임 오류(%016llx 에서)로 인하여 %s 의 작동이 중지되었습니다. %s에게 충돌 "
+#~ "보고서가 업로드 되었습니다.\n"
+#~ "\n"
+#~ "%s"
+
+#, c-format
+#~ msgid "RAGE error: %s"
+#~ msgstr "RAGE 오류: %s"

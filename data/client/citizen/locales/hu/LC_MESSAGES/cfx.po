@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-06-26 23:42+0200\n"
+"POT-Creation-Date: 2021-12-30 22:37+0100\n"
 "PO-Revision-Date: 2021-02-02 15:53+0000\n"
 "Last-Translator: Bence Biró <birobence19@gmail.com>\n"
 "Language-Team: Hungarian <http://translations.cfx.re/projects/citizenfx/"
@@ -18,7 +18,7 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
 "X-Generator: Weblate 4.3\n"
 
-#: client/launcher/MiniDump.cpp:1208
+#: client/launcher/MiniDump.cpp:1264
 #, c-format
 msgid ""
 "\n"
@@ -29,7 +29,7 @@ msgstr ""
 "\n"
 "Kivétel részletei: %s"
 
-#: client/launcher/MiniDump.cpp:1213
+#: client/launcher/MiniDump.cpp:1269
 #, c-format
 msgid ""
 "\n"
@@ -40,136 +40,194 @@ msgstr ""
 "\n"
 "Hagyományos összeomlási hash: %s"
 
-#: client/launcher/MiniDump.cpp:1277
+#: client/launcher/MiniDump.cpp:1274
+#, c-format
 msgid ""
 "\n"
-"\n"
-"This is a fatal error because game unloading failed. Please report this issue and how to cause it (what server you played on, any resources/scripts, etc.) so this can be solved."
+"Stack trace:\n"
+"%s"
 msgstr ""
-"\n"
-"\n"
-"Ez egy végzetes hiba mivel a játék kitöltése meghiúsult. Kérjük jelentsd ezt "
-"a hibát és azt hogy mi okozta ( melyik szerveren játszottál, bármilyen forrá"
-"s/scriptek, stb.) hogy meg tudjuk oldani ezt a hibát."
 
-#: client/launcher/MiniDump.cpp:1204
+#: components/net/src/NetLibrary.cpp:637
+msgid ""
+"# Couldn't connect\n"
+"Failed to get info from server (tried 3 times).\n"
+"\n"
+"---\n"
+"\n"
+"If you are the server owner, are you sure you are allowing UDP packets to "
+"and from the server?"
+msgstr ""
+
+#: components/net/src/NetLibrary.cpp:674
 #, c-format
-msgid "%s caused %s to stop working. A crash report is being uploaded to the %s developers."
+msgid ""
+"# Timed out\n"
+"Client -> server connection timed out. Please try again later.\n"
+"\n"
+"---\n"
+"\n"
+"%s\n"
+"[Reconnect](cfx.re://reconnect)"
+msgstr ""
+
+#: client/launcher/MiniDump.cpp:1260
+#, c-format
+msgid ""
+"%s caused %s to stop working. A crash report is being uploaded to the %s "
+"developers."
 msgstr ""
 "%s okozott %s a folyamat leállásában. Az összeomlási jelentést feltöltjük a "
 "%s fejlesztőknek."
 
-#: client/launcher/Main.cpp:510
+#: client/launcher/Main.cpp:652
 #, c-format
-msgid "%s could not create a file in the folder it is placed in. Please move your installation out of Program Files or another protected folder."
+msgid ""
+"%s could not create a file in the folder it is placed in. Please move your "
+"installation out of Program Files or another protected folder."
 msgstr ""
 "%s nem tudta létrehozni a fájlt a mappában ahová helyezve lett. Kérlek "
 "helyezd át a telepítést a „Program FIles”-ból vagy a védett mappából."
 
-#: client/launcher/MiniDump.cpp:340
-#, c-format
+#: client/launcher/ViabilityChecks.cpp:100
+#, fuzzy, c-format
+#| msgid ""
+#| "This product requires Security Update for Windows 7 for x64-based systems "
+#| "(KB2758857) to be installed to run. Please install it, and try again."
 msgid ""
-"A game error (at %016llx) caused %s to stop working. A crash report has been uploaded to the %s developers.\n"
-"\n"
-"%s"
+"%s requires the Windows Media Feature Pack for Windows N editions to be "
+"installed to run. Please install it, and try again."
 msgstr ""
-"Egy játékhiba (%016llx) okozta a %s folyamat leállását. Az összeomlási "
-"jelentést feltöltjük a %s fejlesztőknek.\n"
-"\n"
-"%s"
+"Ez a termék igényli hogy telepítve legyen a „Biztonsági frissítés Windows 7 "
+"for x64-based Systems rendszerhez (KB2758857)”. Kérlek telepítsd, és próbáld "
+"újra."
 
-#: client/launcher/MiniDump.cpp:1179
-#, c-format
-msgid "An error at %s"
-msgstr "Egy hiba a(z) %s"
-
-#: client/launcher/Installer.cpp:126
-#, c-format
-msgid "Are you sure you want to remove %s from the installation root at %s?"
-msgstr "Biztos hogy törölni akarod a %s a %s telepítési mappából?"
-
-#: client/launcher/Bootstrap.cpp:35
-#, c-format
-msgid "Bootstrapping %s..."
-msgstr "Bootstrapelés %s..."
-
-#: client/launcher/Updater.cpp:360
-#, c-format
-msgid "Checking %s"
-msgstr "%s ellenőrzése"
-
-#: client/launcher/MiniDump.cpp:1333
-#, c-format
+#: client/launcher/MiniDump.cpp:1417
+#, fuzzy, c-format
+#| msgid ""
+#| "Crash signature: %s\n"
+#| "Report ID: %s\n"
+#| "You can press Ctrl-C to copy this message and paste it elsewhere."
 msgid ""
-"Crash signature: %s\n"
-"%s\n"
-"You can press Ctrl-C to copy this message and paste it elsewhere."
-msgstr ""
-"Összeomlás alaírása: %s\n"
-"%s\n"
-"Megnyomhatod a Ctrl-C-t hogy másold ezt az üzenetet és beilleszd valahová."
-
-#: client/launcher/MiniDump.cpp:1329
-#, c-format
-msgid ""
-"Crash signature: %s\n"
-"Report ID: %s\n"
+"%sReport ID: %s\n"
 "You can press Ctrl-C to copy this message and paste it elsewhere."
 msgstr ""
 "Összeomlás alaírása: %s\n"
 "Jelentés sorszáma: %s\n"
 "Megnyomhatod a Ctrl-C-t hogy másold ezt az üzenetet és beilleszd valahová."
 
-#: client/launcher/MiniDump.cpp:1270
-#, c-format
+#: client/launcher/MiniDump.cpp:1356
+#, fuzzy, c-format
+#| msgid ""
+#| "Crash signature: %s\n"
+#| "Report ID: ... [uploading]\n"
+#| "You can press Ctrl-C to copy this message and paste it elsewhere."
 msgid ""
-"Crash signature: %s\n"
-"Report ID: ... [uploading]\n"
+"%sReport ID: ... [uploading]\n"
 "You can press Ctrl-C to copy this message and paste it elsewhere."
 msgstr ""
 "Összeomlás alaírása: %s\n"
 "Jelentés sorszáma: ... [feltöltés alatt]\n"
 "Megnyomhatod a Ctrl-C-t hogy másold ezt az üzenetet és beilleszd valahová."
 
-#: client/launcher/GameCache.cpp:643
-msgid "DLC files are missing (or corrupted) in your game installation. Please update or verify the game using Steam or the Social Club launcher and try again. See http://rsg.ms/verify step 4 for more info."
+#: client/launcher/MiniDump.cpp:1421
+#, fuzzy, c-format
+#| msgid ""
+#| "Crash signature: %s\n"
+#| "%s\n"
+#| "You can press Ctrl-C to copy this message and paste it elsewhere."
+msgid "%sYou can press Ctrl-C to copy this message and paste it elsewhere."
+msgstr ""
+"Összeomlás alaírása: %s\n"
+"%s\n"
+"Megnyomhatod a Ctrl-C-t hogy másold ezt az üzenetet és beilleszd valahová."
+
+#: components/net/src/NetLibrary.cpp:99
+#, c-format
+msgid "**Timeout info**: game=%s, recv=%s, send=%s\n"
+msgstr ""
+
+#: components/citizen-devtools/src/ResourceTimeWarnings.cpp:426
+msgid ""
+"A call into the Windows API took too long recently and led to a game stutter."
+msgstr ""
+
+#: client/launcher/MiniDump.cpp:1235
+#, c-format
+msgid "An error at %s"
+msgstr "Egy hiba a(z) %s"
+
+#: client/launcher/Installer.cpp:127
+#, c-format
+msgid "Are you sure you want to remove %s from the installation root at %s?"
+msgstr "Biztos hogy törölni akarod a %s a %s telepítési mappából?"
+
+#: client/launcher/Bootstrap.cpp:34
+#, c-format
+msgid "Bootstrapping %s..."
+msgstr "Bootstrapelés %s..."
+
+#: client/launcher/Updater.cpp:624
+#, c-format
+msgid "Checking %s"
+msgstr "%s ellenőrzése"
+
+#: client/launcher/MiniDump.cpp:1349
+#, c-format
+msgid "Crash signature: %s\n"
+msgstr ""
+
+#: client/launcher/GameCache.cpp:794
+#, fuzzy, c-format
+#| msgid ""
+#| "DLC files are missing (or corrupted) in your game installation. Please "
+#| "update or verify the game using Steam or the Social Club launcher and try "
+#| "again. See http://rsg.ms/verify step 4 for more info."
+msgid ""
+"DLC files are missing (or corrupted) in your game installation. Please "
+"update or verify the game using Steam, Epic Games Launcher or Rockstar Games "
+"Launcher and try again. See http://rsg.ms/verify step 4 for more info.\n"
+"Currently, the game installation in '%s' is being used.\n"
+"Relevant files: \n"
+"%s"
 msgstr ""
 "A DLC fájlok hiányoznak (vagy sérültek) a játék telepítésében. Kérlek "
 "frissítsd vagy erősitsd meg a fájlokat a Steam vagy a Social Club launcher "
 "használatával. Nézd meg a http://rsg.ms/verify 4. lépését további infokért."
 
-#: client/launcher/ViabilityChecks.cpp:53
+#: client/launcher/ViabilityChecks.cpp:57
 #, c-format
 msgid "DXGI 1.2 support is required to run this product %s"
 msgstr "DXGI 1.2 támogatás szükséges hogy futtasd ezt a terméket %s"
 
-#: client/launcher/Download.cpp:222
+#: client/launcher/Download.cpp:273
 #, c-format
 msgid "Downloaded %.2f/%.2f MB (%.0f%%, %.1f MB/s)"
 msgstr "%.2f/%.2f MB letöltve... (%.0f%%, %.1f MB/s)"
 
-#: client/launcher/MiniDump.cpp:1175
+#: client/launcher/MiniDump.cpp:1231
 #, c-format
 msgid "Error %s"
 msgstr "Hiba %s"
 
-#: client/launcher/InstallerExtraction.cpp:532
+#: client/launcher/InstallerExtraction.cpp:534
 #, c-format
 msgid "Extracting %s"
 msgstr "%s kibontása"
 
-#: client/launcher/InstallerExtraction.cpp:268
+#: client/launcher/InstallerExtraction.cpp:270
 #, c-format
 msgid "Extracting %s (scanning)"
 msgstr "%s kibontása (ellenőrzés)"
 
-#: client/launcher/MiniDump.cpp:1189
+#: client/launcher/MiniDump.cpp:1245
 msgid "FiveM crashed... but we're on it!"
 msgstr "A FiveM crashelt... de rajta vagyunk!"
 
-#: client/launcher/Main.cpp:491
+#: client/launcher/Main.cpp:633
 msgid ""
-"FiveM does not support running under elevated privileges. Please change your Windows settings to not run FiveM as administrator.\n"
+"FiveM does not support running under elevated privileges. Please change your "
+"Windows settings to not run FiveM as administrator.\n"
 "The game will exit now."
 msgstr ""
 "A FiveM nem támogatja a megemelt jogosultságokkal való futtatást. Kérjük, "
@@ -177,110 +235,172 @@ msgstr ""
 "rendszergazdaként.\n"
 "A játék most kilép."
 
-#: client/launcher/MiniDump.cpp:1237
+#: client/launcher/MiniDump.cpp:1308
 msgid "Game crashed: "
 msgstr "A játék összeomlott: "
 
-#: client/launcher/ViabilityChecks.cpp:46
+#: components/citizen-devtools/src/ResourceTimeWarnings.cpp:428
+msgid ""
+"Please close any software you have running in the background (including "
+"Windows apps such as File Explorer or Task Manager)."
+msgstr ""
+
+#: client/launcher/ViabilityChecks.cpp:50
 msgid "Please install Windows 7 SP1 or greater, and try again."
 msgstr "Kérlek használj Windows 7 SP1 vagy újabb rendszert majd próbáld újra."
 
-#: client/launcher/ViabilityChecks.cpp:50
+#: client/launcher/ViabilityChecks.cpp:54
 msgid "Please install the Platform Update for Windows 7, and try again."
 msgstr "Kérlek telepítsd a Platform Frissítést Windows 7-re majd próbáld újra."
 
-#: client/launcher/MiniDump.cpp:339
-#, c-format
-msgid "RAGE error: %s"
-msgstr "RAGE hiba: %s"
+#: client/launcher/MiniDump.cpp:328 client/launcher/MiniDump.cpp:1447
+msgid "Save information"
+msgstr ""
 
-#: client/launcher/MiniDump.cpp:1267
+#: client/launcher/MiniDump.cpp:1343
 msgid ""
 "Save information\n"
-"Stores a file with crash information that you should copy and upload when asking for help."
+"Stores a file with crash information that you should copy and upload when "
+"asking for help."
 msgstr ""
 "Mentési információ\n"
 "Eltárol egy fájlt, crash információkkal amit ki kell másolnod és fel kell "
 "töltened amikor segítséget kérsz."
 
-#: client/launcher/GameSelect.cpp:107
+#: client/launcher/GameSelect.cpp:194
 msgid "Select the folder containing Grand Theft Auto V"
 msgstr "Válaszd ki a mappát amely tartalmazza a Grand Theft Auto V-t"
 
-#: client/launcher/Download.cpp:423
+#: components/ros-patches-five/src/AccountID.cpp:265
+msgid "Signing in with Epic"
+msgstr ""
+
+#: components/ros-patches-five/src/AccountID.cpp:229
+msgid "Signing in with Steam"
+msgstr ""
+
+#: components/citizen-devtools/src/ResourceTimeWarnings.cpp:424
+msgid "Slow system performance detected"
+msgstr ""
+
+#: client/launcher/Download.cpp:511
 msgid "Starting IPFS discovery..."
 msgstr "IPFS felfedezés elindulása..."
 
-#: client/launcher/ViabilityChecks.cpp:42
+#: client/launcher/ViabilityChecks.cpp:46
 msgid "The game will exit now."
 msgstr "A játék most kilép."
 
-#: client/launcher/GameCache.cpp:635
-#, c-format
+#: client/launcher/GameCache.cpp:783
+#, fuzzy, c-format
+#| msgid ""
+#| "The local %s game cache is outdated, and needs to be updated. This will "
+#| "copy %.2f MB of data from the local disk, and download %.2f MB of data "
+#| "from the internet.\n"
+#| "Do you wish to continue?"
 msgid ""
-"The local %s game cache is outdated, and needs to be updated. This will copy %.2f MB of data from the local disk, and download %.2f MB of data from the internet.\n"
+"The local %s game data is outdated, and needs to be updated. This will copy "
+"%.2f MB of data from the local disk, and download %.2f MB of data from the "
+"internet.\n"
 "Do you wish to continue?"
 msgstr ""
 "A helyi %s játék gyorsítótára elavult és frissíteni kell. Ez át fog másolni "
 "%.2f MB adatot a helyi lemezről, és letölt %.2f MB adatot az internetről.\n"
 "Kivánod folytatni?"
 
-#: client/launcher/GameSelect.cpp:202
+#: client/launcher/GameSelect.cpp:329
 #, c-format
 msgid "The selected path does not contain a %s file."
 msgstr "A kiválasztott útvonal nem tartalmazza a %s fájlt."
 
-#: client/launcher/ViabilityChecks.cpp:72
-msgid "This product requires Security Update for Windows 7 for x64-based systems (KB2758857) to be installed to run. Please install it, and try again."
+#: client/launcher/ViabilityChecks.cpp:78
+msgid ""
+"This product requires Security Update for Windows 7 for x64-based systems "
+"(KB2758857) to be installed to run. Please install it, and try again."
 msgstr ""
 "Ez a termék igényli hogy telepítve legyen a „Biztonsági frissítés Windows 7 "
 "for x64-based Systems rendszerhez (KB2758857)”. Kérlek telepítsd, és próbáld "
 "újra."
 
-#: client/launcher/Main.cpp:634
+#: client/launcher/Main.cpp:809
 msgid "Transitioning to another build..."
 msgstr "Átváltás egy másik verzióra..."
 
-#: client/launcher/MiniDump.cpp:1234
+#: client/launcher/MiniDump.cpp:1300
 msgid "Unhandled exception: "
 msgstr "Nem kezelt kivétel: "
 
-#: client/launcher/Installer.cpp:124
+#: client/launcher/Installer.cpp:125
 #, c-format
 msgid "Uninstall %s"
 msgstr "%s eltávolítása"
 
-#: client/launcher/Installer.cpp:125
+#: client/launcher/Installer.cpp:126
 #, c-format
 msgid "Uninstall %s?"
 msgstr "%s eltávolítása?"
 
-#: client/launcher/Updater.cpp:297
+#: client/launcher/Updater.cpp:502
 #, c-format
 msgid "Updating %s..."
 msgstr "%s frissítése..."
 
-#: client/launcher/GameCache.cpp:845
-msgid "Updating game cache..."
+#: client/launcher/GameCache.cpp:1050
+#, fuzzy
+#| msgid "Updating game cache..."
+msgid "Updating game storage..."
 msgstr "Játék gyorsítótár frissítése..."
 
-#: client/launcher/Updater.cpp:268
+#: client/launcher/Updater.cpp:468
 msgid "Verifying content..."
 msgstr "Tartalom ellenőrzése..."
 
-#: client/launcher/GameCache.cpp:714
+#: client/launcher/GameCache.cpp:883
 msgid "Verifying game content..."
 msgstr "Játék tartalom ellenőrzése..."
 
-#: client/launcher/Main.cpp:638
+#: client/launcher/Main.cpp:810
 msgid "We're getting there."
 msgstr "Haladunk a cél felé."
 
-#: client/launcher/Main.cpp:471
+#: client/launcher/Main.cpp:613
 #, c-format
-msgid "You are currently using an outdated version of Windows. This may lead to issues using the %s client. Please update to Windows 10 version 1703 (\"Creators Update\") or higher in case you are experiencing any issues. The game will continue to start now."
+msgid ""
+"You are currently using an outdated version of Windows. This may lead to "
+"issues using the %s client. Please update to Windows 10 version 1703 "
+"(\"Creators Update\") or higher in case you are experiencing any issues. The "
+"game will continue to start now."
 msgstr ""
 "Jelenleg egy elavult verziót használsz a Windows-ból. Ez hibákhoz vezethet a "
-"%s kliens használata közben. Kérjük frissíts Windows 10 1703 verzióra ("
-"\"Creators Update\") vagy magasabbra abban az esetben ha hibákat "
+"%s kliens használata közben. Kérjük frissíts Windows 10 1703 verzióra "
+"(\"Creators Update\") vagy magasabbra abban az esetben ha hibákat "
 "tapasztalsz. A játék most folytatja az elindulást."
+
+#~ msgid ""
+#~ "\n"
+#~ "\n"
+#~ "This is a fatal error because game unloading failed. Please report this "
+#~ "issue and how to cause it (what server you played on, any resources/"
+#~ "scripts, etc.) so this can be solved."
+#~ msgstr ""
+#~ "\n"
+#~ "\n"
+#~ "Ez egy végzetes hiba mivel a játék kitöltése meghiúsult. Kérjük jelentsd "
+#~ "ezt a hibát és azt hogy mi okozta ( melyik szerveren játszottál, "
+#~ "bármilyen forrás/scriptek, stb.) hogy meg tudjuk oldani ezt a hibát."
+
+#, c-format
+#~ msgid ""
+#~ "A game error (at %016llx) caused %s to stop working. A crash report has "
+#~ "been uploaded to the %s developers.\n"
+#~ "\n"
+#~ "%s"
+#~ msgstr ""
+#~ "Egy játékhiba (%016llx) okozta a %s folyamat leállását. Az összeomlási "
+#~ "jelentést feltöltjük a %s fejlesztőknek.\n"
+#~ "\n"
+#~ "%s"
+
+#, c-format
+#~ msgid "RAGE error: %s"
+#~ msgstr "RAGE hiba: %s"
