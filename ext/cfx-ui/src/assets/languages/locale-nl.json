@@ -152,5 +152,7 @@
     "#Review_Flag": "Rapporteren",
     "#Review_FlagCTA": "Bericht rapporteren",
     "#Review_WriteAbout_Prefix": "Schrijf een review over",
-    "#Review_WriteAbout_Postfix": " "
+    "#Review_WriteAbout_Postfix": " ",
+    "#Settings_CameraShake": "Cameratrilling uitschakelen",
+    "#Settings_CameraShakeDesc": "Schakelt cameratrilling uit tijdens het rennen of besturen van een voertuig."
 }
