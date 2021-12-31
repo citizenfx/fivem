@@ -91,5 +91,8 @@
     "#Settings_LowPerf_ReduceBackdrop": "Nur Hintergrund",
     "#Settings_LowPerf_ReduceFull": "Keine Unschärfe",
     "#Home_AdDetail": "Meistgevoteter Server in deiner Region",
-    "#Servers_ConnectingToServer": "Mit dem Server verbinden....."
+    "#Servers_ConnectingToServer": "Mit dem Server verbinden.....",
+    "#ServerList_SearchHint": "Suchbegriff oder IP-Adresse eingeben",
+    "#ServerList_SearchHintWeb": "Suchen",
+    "#Settings_StreamerModeDesc": "Verstecke sensitive Informationen (z.B. IP-Adressen)"
 }
