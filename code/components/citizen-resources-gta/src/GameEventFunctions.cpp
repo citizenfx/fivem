@@ -9,45 +9,6 @@
 
 static InitFunction initFunction([]
 {
-	OnTriggerGameEventReact.Connect([](const GameEventData& data)
-	{
-		auto resman = Instance<fx::ResourceManager>::Get();
-		auto rec = resman->GetComponent<fx::ResourceEventManagerComponent>();
-
-		/*NETEV gameEventReact:CEventName CLIENT
-		/#*
-		 * An event that is triggered when the game triggers an internal network event.
-		 * CEventName can be any event name that GTA 5 throws, e.g.: "gameEventEmit:CEventShockingCarCrash".
-		 * see: https://docs.fivem.net/docs/game-references/game-events/ for a list of known events.
-		 *
-		 * @param entity - The entity reacting.
-		 * @param data - The type-specific event data.
-		 #/
-		declare function gameEventReact:CEventName(entity: number, data: var[]): void;
-		*/
-		
-		rec->QueueEvent(std::string("gameEventReact:") + data.name, std::string(data.argsData), "");
-	});
-
-	OnTriggerGameEventEmit.Connect([](const GameEventData& data)
-	{
-		auto resman = Instance<fx::ResourceManager>::Get();
-		auto rec = resman->GetComponent<fx::ResourceEventManagerComponent>();
-
-		/*NETEV gameEventEmit:CEventName CLIENT
-		/#*
-		 * An event that is triggered when the game triggers an internal network event.
-		 * CEventName can be any event name that GTA 5 throws, e.g.: "gameEventEmit:CEventShockingCarCrash".
-		 * see: https://docs.fivem.net/docs/game-references/game-events/ for a list of known events.
-		 *
-		 * @param entities - The entities being alerted (can be empty).
-		 * @param data - The type-specific event data.
-		 #/
-		declare function gameEventEmit:CEventName(entities: number[], data: var[]): void;
-		*/
-		rec->QueueEvent(std::string("gameEventEmit:") + data.name, std::string(data.argsData), "");
-	});
-
 	OnTriggerGameEvent.Connect([](const GameEventMetaData& data)
 	{
 		auto resman = Instance<fx::ResourceManager>::Get();

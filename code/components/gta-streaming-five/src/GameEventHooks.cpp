@@ -5,13 +5,8 @@
 
 #include <MinHook.h>
 
-#include <sstream>
-#include <msgpack.hpp>
-
 namespace rage
 {
-	class netObject;
-
 	class fwEvent
 	{
 	public:
@@ -33,62 +28,30 @@ namespace rage
 
 		virtual bool m_40(rage::fwEvent* other) = 0;
 	};
-
-	class fwEventGroup
-	{
-	public:
-		// somehow always ended up to be 0x0000000000000000
-		size_t unk;
-
-		// How much would there be, it looked like it was filling it with 30-ish 64 bit values
-		// or maybe we should check until 17 (16?) like the HandleEventWrapReact version?
-		// Until now I got a total of 13 entities at once
-		fwEntity* entities[24];
-
-		virtual ~fwEventGroup() = 0;
-	};
-}
-
-namespace
-{
-	template<typename... TArg>
-	inline void msgpack_array(msgpack::packer<msgpack::sbuffer>& p, const TArg&... args)
-	{
-		p.pack_array(sizeof...(args));
-		(p.pack(args), ...);
-	}
-
-	template<typename... TArg>
-	inline void msgpack_pack(msgpack::packer<msgpack::sbuffer>& p, const TArg&... args)
-	{
-		(p.pack(args), ...);
-	}
-
-	inline uint32_t GetGuidFromBaseSafe(rage::fwEntity* entity)
-	{
-		return entity ? rage::fwScriptGuid::GetGuidFromBase(entity) : 0;
-	}
 }
 
 void*(*g_eventCall1)(void* group, void* event);
 void*(*g_eventCall2)(void* group, void* event);
 void*(*g_eventCall3)(void* group, void* event);
 
-template<decltype(g_eventCall3)* TFunc>
-void* HandleEventWrap(rage::fwEventGroup* group, rage::fwEvent* event)
+template<decltype(g_eventCall1)* TFunc>
+void* HandleEventWrap(void* group, rage::fwEvent* event)
 {
 	if (event)
 	{
 		try
 		{
-			GameEventMetaData data{ typeid(*event).name() + 6, 0 };
+			const char* eventName = typeid(*event).name();
+
+			GameEventMetaData data = { 0 };
+			strcpy(data.name, &eventName[6]);
+			data.numArguments = 0;
 
 			// brute-force the argument count
 			// since these functions should early exit, most cost here will be VMT dispatch
-			// ^ as these functions have a hardcoded size check, though not all...
 			for (int i = 0; i < _countof(data.arguments); i++)
 			{
-				if (event->GetArguments(data.arguments, i * sizeof(size_t)))
+				if (event->GetArguments(data.arguments, i * sizeof(uintptr_t)))
 				{
 					data.numArguments = i;
 					break;
@@ -99,149 +62,18 @@ void* HandleEventWrap(rage::fwEventGroup* group, rage::fwEvent* event)
 		}
 		catch (std::exception& e)
 		{
+		
 		}
 	}
 
 	return (*TFunc)(group, event);
 }
 
-template<decltype(g_eventCall1)* TFunc>
-void* HandleEventWrapReact(rage::fwEventGroup* group, rage::fwEvent* event)
+#include <sstream>
+
+namespace rage
 {
-	if (event)
-	{
-		/*
-		 * event:
-		 * These events are stored with different member variables and with different layouts per class/struct,
-		 * so we have to investigate them case by case.
-		 * 
-		 * group:
-		 * In this reacting version the entity that triggers this event is stored in group->entities[17]
-		 * as well as in group->entities[18].
-		 */
-
-		try
-		{
-			GameEventData data{ typeid(*event).name() + 6 };
-
-			msgpack::sbuffer buf;
-			msgpack::packer packer(buf);
-
-			packer.pack_array(2); // we'll offer 2 parameters
-			msgpack_pack(packer, GetGuidFromBaseSafe(group->entities[17]));
-
-			// retrieve the event specific data
-			const char* eventSubName = data.name + 6; // get part after "CEvent"
-
-			if (memcmp(eventSubName, "Shoc", 4) == 0) // Shocking
-			{
-				msgpack_array(packer, GetGuidFromBaseSafe((rage::fwEntity*&)event[13]), (float(&)[3])event[8]);
-			}
-			else if (memcmp(eventSubName, "Pote", 4) == 0) // Potential
-			{
-				eventSubName = data.name + 15; // get part after "CEventPotential"
-
-				// TODO: check how we will do this without a strcmp, will a memcmp suffice?
-				if (strcmp(eventSubName, "WalkIntoVehicle") == 0)
-				{
-					msgpack_array(packer, GetGuidFromBaseSafe((rage::fwEntity*&)event[8]), (float(&)[3])event[5]);
-				}
-				else if (strcmp(eventSubName, "GetRunOver") == 0)
-				{
-					msgpack_array(packer, GetGuidFromBaseSafe((rage::fwEntity*&)(event[6])));
-					// doesn't seem there is a vector3, might have other info, speed, vector2?
-				}
-				else
-				{
-					packer.pack_array(0); // empty array
-				}
-			}
-			else
-			{
-				packer.pack_array(0); // empty array
-			}
-
-			data.argsData = std::string_view(buf.data(), buf.size());
-			OnTriggerGameEventReact(data);
-		}
-		catch (std::exception& e)
-		{
-			// an std::bad_alloc could be thrown when packing (msgpack);
-			// should we do anything else except for not sending this to scripts?
-		}
-	}
-
-	return (*TFunc)(group, event);
-}
-
-template<decltype(g_eventCall2)* TFunc>
-void* HandleEventWrapEmit(rage::fwEventGroup* group, rage::fwEvent* event)
-{
-	if (event)
-	{
-		/*
-		 * event:
-		 * These events are stored with different member variables and with different layouts per class/struct,
-		 * so we have to investigate them case by case.
-		 * 
-		 * group:
-		 * In this emitting version they store them from group->entities[0] to group->entities[n] 
-		 * where it ends with 0x0 or a repeating entity ptr.
-		 */
-
-		try
-		{
-			GameEventData data{ typeid(*event).name() + 6 };
-
-			msgpack::sbuffer buf;
-			msgpack::packer packer(buf);
-
-			packer.pack_array(2); // we'll offer 2 parameters
-			msgpack_pack(packer);
-
-			// retrieve all entities
-			{
-				size_t size = 0;
-				rage::fwEntity** entity = group->entities; // to ignore duplicates on the end
-				rage::fwEntity* prevEntity = nullptr; // to ignore duplicates on the end
-
-				// iterate ptrs until we find a nullptr, a duplicate, or if we reached the end of the buffer size
-				while (*entity && *entity != prevEntity && ++size < std::size(group->entities))
-				{
-					prevEntity = *entity++;
-				}
-
-				packer.pack_array(size);
-
-				for (size_t i = 0; i < size; ++i)
-				{
-					packer.pack(rage::fwScriptGuid::GetGuidFromBase(group->entities[i]));
-				}
-			}
-
-			// retrieve the event specific data
-			const char* eventSubName = data.name + 6; // get part after "CEvent"
-
-			if (memcmp(eventSubName, "Shoc", 4) == 0) // Shocking
-			{
-				msgpack_array(packer, GetGuidFromBaseSafe((rage::fwEntity*&)event[13]), (float(&)[3])event[8]);
-			}
-			else
-			{
-				packer.pack_array(0); // empty array
-			}
-
-			data.argsData = std::string_view(buf.data(), buf.size());
-			OnTriggerGameEventEmit(data);
-		}
-		catch (std::exception& e)
-		{
-			// an std::bad_alloc could be thrown when packing (msgpack);
-			// should we do anything else except for not sending this to scripts?
-		}
-	}
-
-	return (*TFunc)(group, event);
+class netObject;
 }
 
 typedef void (*OnEntityTakeDmgFn)(rage::netObject*, void*, uint8_t);
@@ -310,16 +142,17 @@ static HookFunction hookFunction([]()
 	// 8-bit event pools
 
 	// these are for ped events, we don't handle getting entities/positions from aiEvent instances yet
-	{
+	/*{
 		auto matches = hook::pattern("83 BF ? ? 00 00 ? 75 ? 48 8B CF E8 ? ? ? ? 83 BF").count(2);
 
-		MH_CreateHook(matches.get(0).get<void>(-0x36), HandleEventWrapReact<&g_eventCall1>, (void**)&g_eventCall1);
-		MH_CreateHook(matches.get(1).get<void>(-0x36), HandleEventWrapEmit<&g_eventCall2>, (void**)&g_eventCall2);
-	}
+		MH_CreateHook(matches.get(0).get<void>(-0x36), HandleEventWrap<&g_eventCall1>, (void**)&g_eventCall1);
+		MH_CreateHook(matches.get(1).get<void>(-0x36), HandleEventWrap<&g_eventCall2>, (void**)&g_eventCall2);
+	}*/
 
 	{
 		MH_CreateHook(hook::get_pattern("81 BF ? ? 00 00 ? ?  00 00 75 ? 48 8B CF E8", -0x36), HandleEventWrap<&g_eventCall3>, (void**)&g_eventCall3);
 	}
+
 
 	// fix for invalid damage sources in events
 	uintptr_t* cNetObjPhys_vtable = hook::get_address<uintptr_t*>(hook::get_pattern<unsigned char>("88 44 24 20 E8 ? ? ? ? 33 C9 48 8D 05", 14));
@@ -365,6 +198,4 @@ static HookFunction hookFunction([]()
 });
 
 fwEvent<const GameEventMetaData&> OnTriggerGameEvent;
-fwEvent<const GameEventData&> OnTriggerGameEventEmit;
-fwEvent<const GameEventData&> OnTriggerGameEventReact;
 fwEvent<const DamageEventMetaData&> OnEntityDamaged;
