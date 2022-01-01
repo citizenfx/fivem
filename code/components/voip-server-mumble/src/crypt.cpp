@@ -92,7 +92,7 @@ void CryptState_setKey(cryptState_t *cs, const unsigned char *rkey, const unsign
 	memcpy(cs->encrypt_iv, eiv, AES_BLOCK_SIZE);
 	memcpy(cs->decrypt_iv, div, AES_BLOCK_SIZE);
 
-	CRYPT_SET_ENC_KEY(&cs->encrypt_key, cs->decrypt_iv, 128);
+	CRYPT_SET_ENC_KEY(&cs->encrypt_key, cs->raw_key, 128);
 	CRYPT_SET_DEC_KEY(&cs->decrypt_key, cs->raw_key, 128);
 
 	cs->bInit = true;

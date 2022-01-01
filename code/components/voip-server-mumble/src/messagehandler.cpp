@@ -387,7 +387,7 @@ void Mh_handle_message(client_t *client, message_t *msg)
 		Log_debug("Voice channel crypt resync requested");
 		if (!msg->payload.cryptSetup->has_client_nonce()) {
 			sendmsg = Msg_create(CryptSetup);
-			sendmsg->payload.cryptSetup->set_server_nonce(client->cryptState.decrypt_iv, AES_BLOCK_SIZE);
+			sendmsg->payload.cryptSetup->set_server_nonce(client->cryptState.encrypt_iv, AES_BLOCK_SIZE);
 			Client_send_message(client, sendmsg);
 		} else {
 			memcpy(client->cryptState.decrypt_iv, msg->payload.cryptSetup->client_nonce().data(), AES_BLOCK_SIZE);
