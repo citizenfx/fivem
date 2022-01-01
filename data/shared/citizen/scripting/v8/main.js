@@ -237,6 +237,10 @@ const EXT_LOCALFUNCREF = 11;
 		global.emitNet = (name, source, ...args) => {
 			const dataSerialized = pack(args);
 
+			if (Array.isArray(source)) {
+				source = source.join(' ');
+			}
+
 			TriggerClientEventInternal(name, source, dataSerialized, dataSerialized.length);
 		};
 

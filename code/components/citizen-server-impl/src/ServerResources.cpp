@@ -39,6 +39,17 @@
 #include <ManifestVersion.h>
 #include <cfx_version.h>
 
+#define FOLLY_NO_CONFIG
+
+#ifdef _WIN32
+#undef ssize_t
+#else
+#include <sys/types.h>
+#endif
+
+#include <folly/String.h>
+#include <folly/Conv.h>
+
 #include <boost/algorithm/string.hpp>
 
 // a set of resources that are system-managed and should not be stopped from script
@@ -1098,13 +1109,29 @@ void fx::ServerEventComponent::TriggerClientEvent(const std::string_view& eventN
 	// do we have a specific client to send to?
 	if (targetSrc)
 	{
-		int targetNetId = atoi(targetSrc->data());
-		auto client = clientRegistry->GetClientByNetID(targetNetId);
+		std::string targetSrcData = targetSrc->data();
 
-		if (client)
+		auto sendEventToNetId = [&](int targetNetId)
 		{
-			// TODO(fxserver): >MTU size?
-			client->SendPacket(0, outBuffer, NetPacketType_Reliable);
+			auto client = clientRegistry->GetClientByNetID(targetNetId);
+
+			if (client)
+			{
+				// TODO(fxserver): >MTU size?
+				client->SendPacket(0, outBuffer, NetPacketType_Reliable);
+			}
+		};
+
+		if (!strstr(targetSrcData.c_str(), " "))
+		{
+			sendEventToNetId(atoi(targetSrc->data()));
+		}
+		else
+		{
+			for (auto item : fx::GetIteratorView(std::make_pair(boost::algorithm::make_split_iterator(targetSrcData, boost::algorithm::token_finder(boost::algorithm::is_space(), boost::algorithm::token_compress_on)), boost::algorithm::split_iterator<std::string::iterator>())))
+			{
+				sendEventToNetId(folly::to<int>(folly::range(&*item.begin(), &*item.end())));
+			}
 		}
 	}
 	else

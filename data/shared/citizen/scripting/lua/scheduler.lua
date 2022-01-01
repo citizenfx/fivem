@@ -366,6 +366,10 @@ if isDuplicityVersion then
 	function TriggerClientEvent(eventName, playerId, ...)
 		local payload = msgpack_pack_args(...)
 
+		if type(playerId) == "table" then
+			playerId = table.concat(playerId, " ")
+		end
+
 		return TriggerClientEventInternal(eventName, playerId, payload, payload:len())
 	end
 	
