@@ -1275,7 +1275,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 								onesyncType = "onesync_medium";
 							}
 						}
-						else if (maxClients <= 1024)
+						else if (maxClients <= 2048)
 						{
 							onesyncType = "onesync_big";
 						}
@@ -1351,7 +1351,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 											if (policies.find("onesync_big") != policies.end())
 											{
-												maxSlots = 1024;
+												maxSlots = 2048;
 											}
 
 											OnConnectionError(fmt::sprintf("This server uses more slots than allowed by policy. The allowed slot count is %d, but the server has a maximum slot count of %d.",

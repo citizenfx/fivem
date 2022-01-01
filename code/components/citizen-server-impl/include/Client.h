@@ -23,7 +23,7 @@
 
 #include <shared_mutex>
 
-#define MAX_CLIENTS (1024 + 1) // don't change this past 256 ever, also needs to be synced with client code
+constexpr auto MAX_CLIENTS = (2048 + 1);
 
 namespace {
 	using namespace std::literals::chrono_literals;
@@ -406,7 +406,7 @@ namespace fx
 		void (*m_clientNetworkMetricsRecvCallback)(Client *thisptr, uint32_t packetId, net::Buffer& packet);
 	};
 
-	extern SERVER_IMPL_EXPORT object_pool<Client, 512 * 1024> clientPool;
+	extern SERVER_IMPL_EXPORT object_pool<Client, 512 * MAX_CLIENTS> clientPool;
 
 	using ClientSharedPtr = shared_reference<Client, &clientPool>;
 	using ClientWeakPtr = weak_reference<ClientSharedPtr>;

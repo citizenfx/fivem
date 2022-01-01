@@ -499,7 +499,7 @@ namespace fx
 		{
 			// create an ENet host
 			ENetAddress addr = GetENetAddress(address);
-			ENetHost* host = enet_host_create(&addr, 1024, 2, 0, 0);
+			ENetHost* host = enet_host_create(&addr, std::min(MAX_CLIENTS + 32, int(ENET_PROTOCOL_MAXIMUM_PEER_ID)), 2, 0, 0);
 
 			// ensure the host exists
 			if (!host)

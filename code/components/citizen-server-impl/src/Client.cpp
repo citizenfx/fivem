@@ -111,5 +111,5 @@ namespace fx
 		}
 	}
 
-	DLL_EXPORT object_pool<Client, 512 * 1024> clientPool;
+	DLL_EXPORT object_pool<Client, 512 * MAX_CLIENTS> clientPool;
 }
