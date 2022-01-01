@@ -8,6 +8,7 @@
 		"gta:core",
 		"vfs:core",
 		"rage:formats",
+		"vendor:msgpack-c",
 		"vendor:tbb"
 	],
 	"provides": []
