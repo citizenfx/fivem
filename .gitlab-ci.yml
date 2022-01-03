@@ -297,6 +297,47 @@ deploy_prod_rdr3:
     IS_RDR3: '1'
   only:
     - master
+
+# this needs updating to share common content w/ `<<` includes
+deploy_beta:
+  stage: deploy
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR\$CI_BUILD_REF_NAME\fivem
+  needs:
+    - job: build_client
+      artifacts: true
+    - job: build_sdk
+      artifacts: true
+  script:
+    - ".\\code\\tools\\ci\\build.ps1 -DontBuild $true"
+  environment:
+    name: beta
+  when: manual
+  tags:
+    - vs2017
+    - client
+  only:
+    - master
+
+deploy_beta_rdr3:
+  stage: deploy
+  needs:
+    - job: build_client_rdr3
+      artifacts: true
+  script:
+    - ".\\code\\tools\\ci\\build.ps1 -DontBuild $true"
+  environment:
+    name: beta
+  when: manual
+  tags:
+    - vs2017
+    - client2
+  variables:
+    IS_FXSERVER: '0'
+    IS_LAUNCHER: '0'
+    IS_RDR3: '1'
+  only:
+    - master
     
 typings_server:
   stage: deploy
