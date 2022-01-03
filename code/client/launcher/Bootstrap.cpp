@@ -71,42 +71,74 @@ bool Install_RunInstallMode();
 
 bool VerifyViability();
 
+extern void ResetUpdateChannel();
+
 bool Bootstrap_DoBootstrap()
 {
 	// first check the bootstrapper version
 	char bootstrapVersion[256];
 
 	auto contentHeaders = std::make_shared<HttpHeaderList>();
-	int result = DL_RequestURL(va(CONTENT_URL "/heads/" CONTENT_NAME "/%s?time=%lld", GetUpdateChannel(), _time64(NULL)), bootstrapVersion, sizeof(bootstrapVersion), contentHeaders);
+
+	auto fetchContent = [&contentHeaders, &bootstrapVersion](const std::string& updateChannel)
+	{
+		return DL_RequestURL(va(CONTENT_URL "/heads/" CONTENT_NAME "/%s?time=%lld", updateChannel, _time64(NULL)), bootstrapVersion, sizeof(bootstrapVersion), contentHeaders);
+	};
+
+	int result = fetchContent(GetUpdateChannel());
+	bool updateDataValid = true;
 
 	if (result != 0)
 	{
-		if (GetFileAttributes(MakeRelativeCitPath(L"CoreRT.dll").c_str()) == INVALID_FILE_ATTRIBUTES)
+		bool recovered = false;
+
+		// if not production, try to recover
+		if (GetUpdateChannel() != "production")
 		{
-			MessageBox(NULL, va(L"An error (%i, %s) occurred while checking the bootstrapper version. Check if " CONTENT_URL_WIDE L" is available in your web browser.", result, ToWide(DL_RequestURLError())), L"O\x448\x438\x431\x43A\x430", MB_OK | MB_ICONSTOP);
-			return false;
+			int newResult = fetchContent("production");
+
+			if (newResult == 0)
+			{
+				ResetUpdateChannel();
+				recovered = true;
+			}
 		}
 
-		return true;
+		if (!recovered)
+		{
+			if (GetFileAttributes(MakeRelativeCitPath(L"CoreRT.dll").c_str()) == INVALID_FILE_ATTRIBUTES)
+			{
+				MessageBox(NULL, va(L"An error (%i, %s) occurred while checking the bootstrapper version. Check if " CONTENT_URL_WIDE L" is available in your web browser.", result, ToWide(DL_RequestURLError())), L"O\x448\x438\x431\x43A\x430", MB_OK | MB_ICONSTOP);
+				return false;
+			}
+
+			updateDataValid = false;
+		}
 	}
 
-	int version = std::stoi((*contentHeaders)["x-amz-meta-bootstrap-version"]);
-	int exeSize = std::stoi((*contentHeaders)["x-amz-meta-bootstrap-size"]);
-
-	if (version == 0 || exeSize == 0)
+	if (updateDataValid)
 	{
-		if (GetFileAttributes(MakeRelativeCitPath(L"CoreRT.dll").c_str()) == INVALID_FILE_ATTRIBUTES)
+		int version = std::stoi((*contentHeaders)["x-amz-meta-bootstrap-version"]);
+		int exeSize = std::stoi((*contentHeaders)["x-amz-meta-bootstrap-size"]);
+
+		if (version == 0 || exeSize == 0)
 		{
-			MessageBox(NULL, va(L"An error (%i, %s) occurred while checking the bootstrapper version. Check if " CONTENT_URL_WIDE L" is available in your web browser.", result, ToWide(DL_RequestURLError())), L"O\x448\x438\x431\x43A\x430", MB_OK | MB_ICONSTOP);
-			return false;
+			if (GetFileAttributes(MakeRelativeCitPath(L"CoreRT.dll").c_str()) == INVALID_FILE_ATTRIBUTES)
+			{
+				MessageBox(NULL, va(L"An error (%i, %s) occurred while checking the bootstrapper version. Check if " CONTENT_URL_WIDE L" is available in your web browser.", result, ToWide(DL_RequestURLError())), L"O\x448\x438\x431\x43A\x430", MB_OK | MB_ICONSTOP);
+				return false;
+			}
+
+			updateDataValid = false;
 		}
 
-		return true;
-	}
-
-	if (version != BASE_EXE_VERSION && GetFileAttributes(MakeRelativeCitPath(L"nobootstrap.txt").c_str()) == INVALID_FILE_ATTRIBUTES)
-	{
-		return Bootstrap_UpdateEXE(exeSize, (*contentHeaders)["x-amz-meta-bootstrap-object"]);
+		if (updateDataValid)
+		{
+			if (version != BASE_EXE_VERSION && GetFileAttributes(MakeRelativeCitPath(L"nobootstrap.txt").c_str()) == INVALID_FILE_ATTRIBUTES)
+			{
+				return Bootstrap_UpdateEXE(exeSize, (*contentHeaders)["x-amz-meta-bootstrap-object"]);
+			}
+		}
 	}
 
 	// after self-updating, attempt to run install mode if needed
@@ -132,14 +164,19 @@ bool Bootstrap_DoBootstrap()
         return false;
     }
 
-#ifdef GTA_FIVE
-	if (launch::IsSDK())
+	if (updateDataValid)
 	{
-		return Updater_RunUpdate({ CONTENT_NAME, "fxdk-five" });
-	}
+#ifdef GTA_FIVE
+		if (launch::IsSDK())
+		{
+			return Updater_RunUpdate({ CONTENT_NAME, "fxdk-five" });
+		}
 #endif
 
-	return Updater_RunUpdate({ CONTENT_NAME });
+		return Updater_RunUpdate({ CONTENT_NAME });
+	}
+
+	return true;
 }
 
 void Bootstrap_ReplaceExecutable(const wchar_t* fileName, const std::wstring& passThrough)

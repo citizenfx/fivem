@@ -279,14 +279,14 @@ FontRendererGameInterface* CreateGameInterface()
 
 #include <random>
 
-static bool IsCanary()
+static std::wstring GetUpdateChannel()
 {
 	wchar_t resultPath[1024];
 
 	static std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
 	GetPrivateProfileString(L"Game", L"UpdateChannel", L"production", resultPath, std::size(resultPath), fpath.c_str());
 
-	return (_wcsicmp(resultPath, L"canary") == 0);
+	return resultPath;
 }
 
 #if GTA_NY
@@ -347,7 +347,7 @@ static InitFunction initFunction([] ()
 		int gameWidth, gameHeight;
 		GetGameResolution(gameWidth, gameHeight);
 
-		static bool isCanary = IsCanary();
+		static auto updateChannel = GetUpdateChannel();
 
 		std::wstring brandingString = L"";
 		std::wstring brandingEmoji = L"";
@@ -477,9 +477,13 @@ static InitFunction initFunction([] ()
 				{
 					brandName += L" (SDK)";
 				}
-				else if (isCanary)
+				else if (updateChannel == L"canary")
 				{
 					brandName += L" (Canary)";
+				}
+				else if (updateChannel == L"beta")
+				{
+					brandName += L" (Beta)";
 				}
 			}
 		}
@@ -507,7 +511,17 @@ static InitFunction initFunction([] ()
 				return version;
 			})();
 
-			brandName = fmt::sprintf(L"Ver. %d", version);
+			static auto updateChannelTag = ([]() -> std::wstring
+			{
+				if (updateChannel != L"production")
+				{
+					return fmt::sprintf(L"/%s", updateChannel);
+				}
+
+				return L"";
+			})();
+
+			brandName = fmt::sprintf(L"Ver. %d%s", version, updateChannelTag);
 		}
 
 		static int anchorPosBase = ([]()

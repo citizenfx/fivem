@@ -738,10 +738,22 @@ bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::arr
 	return fileOutdated;
 }
 
+static std::string updateChannel;
+
+void ResetUpdateChannel()
+{
+	std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+
+	if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
+	{
+		WritePrivateProfileString(L"Game", L"UpdateChannel", L"production", fpath.c_str());
+	}
+
+	updateChannel = "";
+}
+
 const char* GetUpdateChannel()
 {
-	static std::string updateChannel;
-
 	if (!updateChannel.size())
 	{
 		std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
@@ -764,6 +776,21 @@ const char* GetUpdateChannel()
 		if (updateChannel == "prod")
 		{
 			updateChannel = "production";
+		}
+
+		// check file age, and revert to 'beta' if it's old
+		if (updateChannel == "canary")
+		{
+			struct _stati64 st;
+			if (_wstati64(fpath.c_str(), &st) >= 0)
+			{
+				// Mon Jan 03 2022 12:00:00 GMT+0000
+				if (st.st_mtime < 1641211200)
+				{
+					updateChannel = "beta";
+					WritePrivateProfileString(L"Game", L"UpdateChannel", L"beta", fpath.c_str());
+				}
+			}
 		}
 	}
 

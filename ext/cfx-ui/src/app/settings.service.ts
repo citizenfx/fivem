@@ -279,7 +279,8 @@ export class SettingsService {
 			setCb: (value) => this.gameService.setConvar('ui_updateChannel', value),
 			options: {
 				'production': 'Release',
-				'canary': 'Canary (Experimental/Unstable)',
+				'beta': 'Beta',
+				'canary': 'Latest (Unstable)',
 			},
 			category: '#SettingsCat_Game',
 		});
