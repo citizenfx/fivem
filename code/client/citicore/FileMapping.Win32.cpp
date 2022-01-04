@@ -111,6 +111,11 @@ static std::wstring MapRedirectedFilename(const wchar_t* origFileName)
 		return MakeRelativeCitPath(L"data\\cache\\") + &wcsstr(origFileName, L"NVIDIA Corporation\\NV_Cache")[19];
 	}
 
+	if (wcsstr(origFileName, L"NVIDIA\\DXCache") != nullptr)
+	{
+		return MakeRelativeCitPath(L"data\\cache\\NV_") + &wcsstr(origFileName, L"NVIDIA\\DXCache")[14];
+	}
+
 	// Program Files
 	if (wcsstr(origFileName, L"Files\\Rockstar Games\\Launcher") != nullptr || wcsstr(origFileName, g_launcherFilesRoot.c_str()) != nullptr)
 	{
@@ -247,7 +252,8 @@ static bool IsMappedFilename(const std::wstring& fileName)
 		return true;
 	}
 
-	if (fileName.find(L"NVIDIA Corporation\\NV_Cache") != std::string::npos)
+	if (fileName.find(L"NVIDIA Corporation\\NV_Cache") != std::string::npos ||
+		fileName.find(L"NVIDIA\\DXCache") != std::string::npos)
 	{
 		return true;
 	}
