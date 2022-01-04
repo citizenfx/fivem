@@ -1405,7 +1405,10 @@ static void ExitCleanly()
 static BOOL ShellExecuteExAHook(SHELLEXECUTEINFOA *pExecInfo)
 {
 	static HostSharedData<CfxState> hostData("CfxInitState");
-	auto cli = const_cast<wchar_t*>(va(L"\"%s\" %s -switchcl", hostData->gameExePath, ToWide(pExecInfo->lpParameters)));
+	auto cli = const_cast<wchar_t*>(va(L"\"%s\" %s -switchcl", hostData->gameExePath, ToWide(
+		pExecInfo->lpParameters ?
+			pExecInfo->lpParameters : ""
+	)));
 
 	STARTUPINFOW si = { 0 };
 	si.cb = sizeof(si);
