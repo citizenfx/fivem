@@ -52,6 +52,11 @@ bool RcdBaseStream::EnsureRead(const std::function<void(bool, const std::string&
 		{
 			auto task = m_fetcher->FetchEntry(m_fileName);
 
+			if (task == concurrency::task<RcdFetchResult>{ })
+			{
+				throw RcdFetchFailedException(fmt::sprintf("Failed to get entry for %s\n", m_fileName));
+			}
+
 			if (cb)
 			{
 				task.then([this, cb](concurrency::task<RcdFetchResult> task)
