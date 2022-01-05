@@ -518,34 +518,12 @@ static HookFunction initFunction([]()
 	ID3D11Device* device;
 	ID3D11DeviceContext* immcon;
 
-	// use the system function as many proxy DLLs don't like multiple devices being made in the game process
-	// and they're 'closed source' and 'undocumented' so we can't reimplement the same functionality natively
-
-	// also, create device here and not after the game's or nui:core hacks will mismatch with proxy DLLs
-	wchar_t systemD3D11Name[512];
-	GetSystemDirectoryW(systemD3D11Name, std::size(systemD3D11Name));
-	wcscat(systemD3D11Name, L"\\d3d11.dll");
-
-	auto systemD3D11 = LoadLibraryW(systemD3D11Name);
-	assert(systemD3D11);
-
-	auto systemD3D11CreateDevice = (decltype(&D3D11CreateDevice))GetProcAddress(systemD3D11, "D3D11CreateDevice");
-
-	systemD3D11CreateDevice(NULL,
-	D3D_DRIVER_TYPE_HARDWARE,
-	nullptr,
-	0,
-	nullptr,
-	0,
-	D3D11_SDK_VERSION,
-	&device,
-	nullptr,
-	&immcon);
-
-	OnGrcCreateDevice.Connect([io, device, immcon]()
+	auto setupDevice = [](ID3D11Device* device, ID3D11DeviceContext* immcon)
 	{
-		if (device)
+		if (device && immcon)
 		{
+			auto& io = ImGui::GetIO();
+
 			if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 			{
 				ImGui_ImplWin32_InitPlatformInterface();
@@ -553,7 +531,61 @@ static HookFunction initFunction([]()
 
 			ImGui_ImplDX11_Init(device, immcon);
 		}
+	};
+
+	bool usedSharedD3D11 = false;
+
+	// 'GTA_FIVE' is a D3D11 game so we can use the native D3D11 device
+#ifdef GTA_FIVE
+	// #TODO: if this turns out breaking, check for 'bad' graphics mods and only run this code if none is present
+	usedSharedD3D11 = true;
+
+	OnGrcCreateDevice.Connect([setupDevice]()
+	{
+		struct
+		{
+			void* vtbl;
+			ID3D11Device* rawDevice;
+		}* deviceStuff = (decltype(deviceStuff))GetD3D11Device();
+
+		setupDevice(deviceStuff->rawDevice, GetD3D11DeviceContext());
 	});
+#endif
+
+	if (!usedSharedD3D11)
+	{
+		// use the system function as many proxy DLLs don't like multiple devices being made in the game process
+		// and they're 'closed source' and 'undocumented' so we can't reimplement the same functionality natively
+
+		// also, create device here and not after the game's or nui:core hacks will mismatch with proxy DLLs
+		wchar_t systemD3D11Name[512];
+		GetSystemDirectoryW(systemD3D11Name, std::size(systemD3D11Name));
+		wcscat(systemD3D11Name, L"\\d3d11.dll");
+
+		auto systemD3D11 = LoadLibraryW(systemD3D11Name);
+		assert(systemD3D11);
+
+		auto systemD3D11CreateDevice = (decltype(&D3D11CreateDevice))GetProcAddress(systemD3D11, "D3D11CreateDevice");
+
+		systemD3D11CreateDevice(NULL,
+		D3D_DRIVER_TYPE_HARDWARE,
+		nullptr,
+		0,
+		nullptr,
+		0,
+		D3D11_SDK_VERSION,
+		&device,
+		nullptr,
+		&immcon);
+
+		OnGrcCreateDevice.Connect([device, immcon, setupDevice]()
+		{
+			if (device)
+			{
+				setupDevice(device, immcon);
+			}
+		});
+	}
 
 	io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;
 
