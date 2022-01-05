@@ -192,25 +192,28 @@ struct CVehicleGameStateDataNode
 
 	bool Parse(SyncParseState& state)
 	{
-		int radioStation = state.buffer.Read<int>(6);
-		data.radioStation = radioStation;
-
+		int radioStation; 
+		if (Is2545())
+		{
+			radioStation = state.buffer.Read<int>(7);
+		}
+		else
+		{
+			radioStation = state.buffer.Read<int>(6);
+		}
 		bool unk1 = state.buffer.ReadBit();
-
 		int isEngineOn = state.buffer.ReadBit();
-		data.isEngineOn = isEngineOn;
-
 		int isEngineStarting = state.buffer.ReadBit();
-		data.isEngineStarting = isEngineStarting;
-
 		bool unk4 = state.buffer.ReadBit();
-
 		int handbrake = state.buffer.ReadBit();
-		data.handbrake = handbrake;
-
 		bool unk6 = state.buffer.ReadBit();
 		bool unk7 = state.buffer.ReadBit();
 		int unk8 = state.buffer.ReadBit();
+
+		data.radioStation = radioStation;
+		data.isEngineOn = isEngineOn;
+		data.isEngineStarting = isEngineStarting;
+		data.handbrake = handbrake;
 
 		if (!unk8)
 		{
