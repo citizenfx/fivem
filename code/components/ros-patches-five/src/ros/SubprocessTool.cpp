@@ -186,15 +186,42 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 					static bool verified;
 					static bool launched;
 					static bool verifying;
+					static bool signInComplete;
 					static bool launchDone;
+
+					auto checkVerify = [this, targetTitle]()
+					{
+						if (signInComplete && verifying)
+						{
+							child->SendJSCallback("RGSC_RAISE_UI_EVENT", json::object({ { "EventId", 2 }, // LauncherV3UiEvent
+
+																						{ "Data", json::object({ { "Action", "Install" },
+																								{ "Parameter", json::object({ { "titleName", targetTitle },
+																												{ "location", "C:\\Program Files\\Rockstar Games\\Games" },
+																												{ "desktopShortcut", false },
+																												{ "startMenuShortcut", false } }) } }) } })
+																			.dump());
+
+							signInComplete = false;
+						}
+					};
 
 					for (json& cmd : j["Commands"])
 					{
 						auto c = cmd.value("Command", "");
 						const json& p = cmd["Parameter"];
 
-						trace("SC JS message: %s -> %s\n", c, p.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace));
+						// additional suffix info
+						std::string pinfo;
 
+						if (c == "SetTitleInfo")
+						{
+							pinfo = fmt::sprintf(" (%s)", p.value("titleName", ""));
+						}
+
+						trace("SC JS message: %s%s -> %s\n", c, pinfo, p.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace));
+
+						// main command loop
 						if (c == "SetGameLaunchState")
 						{
 							if (p.value("launchState", "") == "failed")
@@ -204,32 +231,22 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 
 							launchDone = true;
 						}
-
-						if (c == "SignInComplete")
+						else if (c == "SignInComplete")
 						{
 							child->SendJSCallback("RGSC_RAISE_UI_EVENT", json::object({ { "EventId", 2 }, // LauncherV3UiEvent
 
 																					  { "Data", json::object({ { "Action", "EnableDownloading" } }) } })
 																		 .dump());
 
-							if (verifying)
-							{
-								child->SendJSCallback("RGSC_RAISE_UI_EVENT", json::object({ { "EventId", 2 }, // LauncherV3UiEvent
-
-													{ "Data", json::object({ { "Action", "Install" },
-															{ "Parameter", json::object({ { "titleName", targetTitle },
-																			{ "location", "C:\\Program Files\\Rockstar Games\\Games" },
-																			{ "desktopShortcut", false },
-																			{ "startMenuShortcut", false } }) } }) } })
-										.dump());
-							}
+							signInComplete = true;
+							checkVerify();
 						}
 						else if (c == "SetTitleInfo") {
 							if (p.value("titleName", "") == targetTitle) {
-								if (p["status"].value("entitlement", false) && !p["status"].value("install", false) && !verified) {
-									if (!verifying) {
-										verifying = true;
-									}
+								if (p["status"].value("entitlement", false) && !p["status"].value("install", false) &&
+									p["status"].value("releaseState", "preload") == "available" && !verified) {
+									verifying = true;
+									checkVerify();
 								}
 								else if (p["status"].value("install", false) &&
 									(p["status"].value("updateState", "") == "notUpdating" ||
