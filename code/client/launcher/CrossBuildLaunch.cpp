@@ -70,10 +70,9 @@ void XBR_EarlySelect()
 
 #ifndef _DEBUG
 #ifdef GTA_FIVE
-	initialBuild = 2372;
+	initialBuild = 2545;
 #elif defined(IS_RDR3)
-	// RDR3 1311 has a few odd DRM issues so isn't suited for first launch
-	initialBuild = 1355;
+	initialBuild = 1436;
 #endif
 #endif
 
