@@ -1328,6 +1328,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 										auto oneSyncPolicyFailure = [this, onesyncType, maxClients, big1s]()
 										{
 											int maxSlots = 48;
+											std::string extraText;
 
 											if (policies.find("onesync") != policies.end())
 											{
@@ -1339,6 +1340,10 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 												if (policies.find("onesync_plus") != policies.end())
 												{
 													maxSlots = 128;
+												}
+												else if (maxSlots >= 64 && maxClients > 64)
+												{
+													extraText = "\nUsing 128 slots with 'Element Club Aurum' requires you to enable OneSync 'on' (formerly named 'Infinity'), not 'legacy'. Check your server configuration.";
 												}
 											}
 											else
@@ -1354,13 +1359,14 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 												maxSlots = 2048;
 											}
 
-											OnConnectionError(fmt::sprintf("This server uses more slots than allowed by policy. The allowed slot count is %d, but the server has a maximum slot count of %d.",
+											OnConnectionError(fmt::sprintf("This server uses more slots than allowed by the current subscription. The allowed slot count is %d, but the server has a maximum slot count of %d.%s",
 												maxSlots,
-												maxClients),
+												maxClients,
+												extraText),
 												json::object({
-													{ "fault", "either" },
+													{ "fault", "server" },
 													{ "status", true },
-													{ "action", "#ErrorAction_TryAgainCheckStatus" },
+													{ "action", "#ErrorAction_TryAgainContactOwner" },
 												}).dump());
 
 											m_connectionState = CS_IDLE;
