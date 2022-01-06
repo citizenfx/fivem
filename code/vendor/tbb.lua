@@ -57,6 +57,8 @@ return {
 		filter { 'system:not windows' }
 			defines { 'USE_PTHREAD' }
 
+			buildoptions { '-mrtm', '-mwaitpkg' }
+
 		filter { 'system:windows' }
 			defines { 'USE_WINTHREAD' }
 	end
