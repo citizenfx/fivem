@@ -7,7 +7,7 @@ return {
 		includedirs "../vendor/tbb/include/"
 
 		if os.istarget('linux') then
-			defines { 'TBB_USE_GLIBCXX_VERSION=90200', '__TBB_WIN8UI_SUPPORT=1' }
+			defines { 'TBB_USE_GLIBCXX_VERSION=90200', '__TBB_RESUMABLE_TASKS_USE_THREADS' }
 		end
 	end,
 
