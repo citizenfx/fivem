@@ -51,7 +51,15 @@ namespace fx
 
 		std::shared_ptr<ConVar<bool>> m_dnsRegisterVar;
 
-		tbb::concurrent_unordered_map<std::array<uint8_t, 16>, std::atomic<int>> m_tcpLimitByHost;
+		struct HostHash
+		{
+			inline size_t operator()(const std::array<uint8_t, 16>& a) const
+			{
+				return std::hash<std::string_view>()(std::string_view{ reinterpret_cast<const char*>(a.data()), a.size() });
+			}
+		};
+
+		tbb::concurrent_unordered_map<std::array<uint8_t, 16>, std::atomic<int>, HostHash> m_tcpLimitByHost;
 
 		int m_tcpLimit = 16;
 

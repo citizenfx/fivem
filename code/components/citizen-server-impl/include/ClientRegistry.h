@@ -7,16 +7,16 @@
 
 #include <tbb/concurrent_unordered_map.h>
 
-namespace tbb
+namespace std
 {
-	namespace interface5
+template<>
+struct hash<net::PeerAddress>
+{
+	inline size_t operator()(const net::PeerAddress& addr) const
 	{
-		template<>
-		inline size_t tbb_hasher(const net::PeerAddress& addr)
-		{
-			return std::hash<std::string_view>()(std::string_view{ (const char*)addr.GetSocketAddress(), (size_t)addr.GetSocketAddressLength() });
-		}
+		return std::hash<std::string_view>()(std::string_view{ (const char*)addr.GetSocketAddress(), (size_t)addr.GetSocketAddressLength() });
 	}
+};
 }
 
 namespace fx

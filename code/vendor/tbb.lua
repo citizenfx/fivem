@@ -23,40 +23,35 @@ return {
 
 		defines { '__TBB_BUILD', '__TBB_DYNAMIC_LOAD_ENABLED=0', '_TBB_USE_DEBUG=0', '_HAS_STD_BYTE=0' }
 
-		files_project "../vendor/tbb/" {
-			"src/tbb/concurrent_hash_map.cpp",
-			"src/tbb/concurrent_queue.cpp",
-			"src/tbb/concurrent_vector.cpp",
-			"src/tbb/dynamic_link.cpp",
-			"src/tbb/itt_notify.cpp",
-			"src/tbb/cache_aligned_allocator.cpp",
-			"src/tbb/pipeline.cpp",
-			"src/tbb/queuing_mutex.cpp",
-			"src/tbb/queuing_rw_mutex.cpp",
-			"src/tbb/reader_writer_lock.cpp",
-			"src/tbb/spin_rw_mutex.cpp",
-			"src/tbb/x86_rtm_rw_mutex.cpp",
-			"src/tbb/spin_mutex.cpp",
-			"src/tbb/critical_section.cpp",
-			"src/tbb/mutex.cpp",
-			"src/tbb/recursive_mutex.cpp",
-			"src/tbb/condition_variable.cpp",
-			"src/tbb/tbb_thread.cpp",
-			"src/tbb/concurrent_monitor.cpp",
-			"src/tbb/semaphore.cpp",
-			"src/tbb/private_server.cpp",
-			"src/rml/client/rml_tbb.cpp",
-			"src/tbb/tbb_misc.cpp",
-			"src/tbb/tbb_misc_ex.cpp",
-			"src/tbb/task.cpp",
-			"src/tbb/task_group_context.cpp",
-			"src/tbb/governor.cpp",
-			"src/tbb/market.cpp",
-			"src/tbb/arena.cpp",
-			"src/tbb/scheduler.cpp",
-			"src/tbb/observer_proxy.cpp",
-			"src/tbb/tbb_statistics.cpp",
-			"src/tbb/tbb_main.cpp"
+		files_project "../vendor/tbb/src/tbb/" {
+			"address_waiter.cpp",
+			"allocator.cpp",
+			"arena.cpp",
+			"arena_slot.cpp",
+			"concurrent_bounded_queue.cpp",
+			"dynamic_link.cpp",
+			"exception.cpp",
+			"governor.cpp",
+			"global_control.cpp",
+			"itt_notify.cpp",
+			"main.cpp",
+			"market.cpp",
+			"misc.cpp",
+			"misc_ex.cpp",
+			"observer_proxy.cpp",
+			"parallel_pipeline.cpp",
+			"private_server.cpp",
+			"profiling.cpp",
+			"rml_tbb.cpp",
+			"rtm_mutex.cpp",
+			"rtm_rw_mutex.cpp",
+			"semaphore.cpp",
+			"small_object_pool.cpp",
+			"task.cpp",
+			"task_dispatcher.cpp",
+			"task_group_context.cpp",
+			"version.cpp",
+			"queuing_rw_mutex.cpp",
 		}
 
 		filter { 'system:not windows' }
@@ -64,17 +59,5 @@ return {
 
 		filter { 'system:windows' }
 			defines { 'USE_WINTHREAD' }
-
-		filter { 'system:windows', 'architecture:x64' }
-			files_project "../vendor/tbb/" {
-				'src/tbb/intel64-masm/intel64_misc.asm',
-				'src/tbb/intel64-masm/atomic_support.asm',
-			}
-		
-		filter { 'system:windows', 'architecture:x86' }
-			files_project "../vendor/tbb/" {
-				'src/tbb/ia32-masm/lock_byte.asm',
-				'src/tbb/ia32-masm/atomic_support.asm',
-			}
 	end
 }

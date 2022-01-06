@@ -146,7 +146,7 @@ namespace fx {
 		/// Return a map of resource <resourceIdentifier, <thread, isProfiling>>
 		/// associations. Allowing a TraceEvent timeline per resource.
 		/// </summary>
-		const tbb::concurrent_unordered_map<const std::string, std::tuple<fx::ProfilerEvent::thread_t, bool>>& Threads();
+		const tbb::concurrent_unordered_map<std::string, std::tuple<fx::ProfilerEvent::thread_t, bool>>& Threads();
 
 	public:
 		fwEvent<const nlohmann::json&> OnRequestView;
@@ -166,7 +166,7 @@ namespace fx {
 		bool m_script = false; // Is script profiling.
 		bool m_shutdown_next = false;
 		std::string m_resource_name = ""; // Resource identifier: name or * for all resources
-		tbb::concurrent_unordered_map<const std::string, std::tuple<fx::ProfilerEvent::thread_t, bool>> m_resources;
+		tbb::concurrent_unordered_map<std::string, std::tuple<fx::ProfilerEvent::thread_t, bool>> m_resources;
 	};
 }
 

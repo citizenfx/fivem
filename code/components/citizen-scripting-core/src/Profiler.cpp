@@ -812,7 +812,7 @@ namespace fx {
 		return IsScriptRecording() && m_shutdown_next;
 	}
 
-	const tbb::concurrent_unordered_map<const std::string, std::tuple<fx::ProfilerEvent::thread_t, bool>>& ProfilerComponent::Threads()
+	const tbb::concurrent_unordered_map<std::string, std::tuple<fx::ProfilerEvent::thread_t, bool>>& ProfilerComponent::Threads()
 	{
 		return m_resources;
 	}
