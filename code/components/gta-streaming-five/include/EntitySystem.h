@@ -696,12 +696,20 @@ STREAMING_EXPORT extern fwEvent<PopulationCreationState*> OnCreatePopulationPed;
 
 struct GameEventMetaData
 {
-	char name[256];
+	const char* name;
 	size_t numArguments;
-	uintptr_t arguments[48];
+	size_t arguments[48];
 };
 
 STREAMING_EXPORT extern fwEvent<const GameEventMetaData&> OnTriggerGameEvent;
+
+struct GameEventData
+{
+	const char* name;
+	std::string_view argsData;
+};
+
+STREAMING_EXPORT extern fwEvent<const GameEventData&> OnTriggerGameEventExt;
 
 struct DamageEventMetaData
 {
