@@ -978,7 +978,7 @@ int Lua_Wait(lua_State* L)
 	return 0;
 }
 
-static int Lua_CreateThreadInternal(lua_State* L, bool now, int timeout, int funcArg = 1)
+static int Lua_CreateThreadInternal(lua_State* L, bool now, int timeout, int funcArg = 1, const std::string& nameOverride = {})
 {
 	// Lua stack: [a1]
 	const auto& luaRuntime = LuaScriptRuntime::GetCurrent();
@@ -992,7 +992,9 @@ static int Lua_CreateThreadInternal(lua_State* L, bool now, int timeout, int fun
 	// Lua stack: [a1]
 
 	// -- format and store debug info
-	auto name = fmt::sprintf("thread %s[%d..%d]", dbgInfo.short_src, dbgInfo.linedefined, dbgInfo.lastlinedefined);
+	auto name = (nameOverride.empty())
+		? fmt::sprintf("thread %s[%d..%d]", dbgInfo.short_src, dbgInfo.linedefined, dbgInfo.lastlinedefined)
+		: nameOverride;
 
 	// --- create coroutine
 	lua_State* thread = lua_newthread(L);
@@ -1076,7 +1078,14 @@ static int Lua_CreateThread(lua_State* L)
 
 static int Lua_CreateThreadNow(lua_State* L)
 {
-	return Lua_CreateThreadInternal(L, true, 0);
+	std::string name;
+
+	if (lua_gettop(L) >= 2)
+	{
+		name = lua_tostring(L, 2);
+	}
+
+	return Lua_CreateThreadInternal(L, true, 0, 1, name);
 }
 
 static int Lua_SetTimeout(lua_State* L)
