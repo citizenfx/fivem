@@ -139,20 +139,21 @@ int VoiceChatPrefs::GetChatMode()
 #elif IS_RDR3
 struct VoiceChatMgrPrefs
 {
-	bool m_voiceChatEnabled;
+	bool m_voiceEnabled;
+	bool m_voiceOutput;
+	bool m_talkEnabled;
 	bool m_unk1;
-	bool m_micEnabled;
-	bool m_unk2;
-	int m_voiceChatVolume;
+	int m_volume;
 	int m_micVolume;
 	uint16_t m_micSensitivity;
-	uint16_t m_unk3;
+	uint16_t m_unk2;
 	int m_inputDevice;
 	int m_outputDevice;
 	int m_voiceChatMode;
 };
 
 static VoiceChatMgrPrefs* g_voiceChatMgrPrefs;
+static bool g_voiceChatPrefEnabled;
 static void* g_voiceChatMgr;
 
 void VoiceChatPrefs::InitConfig()
@@ -162,12 +163,12 @@ void VoiceChatPrefs::InitConfig()
 
 bool VoiceChatPrefs::IsEnabled()
 {
-	return g_voiceChatMgrPrefs->m_voiceChatEnabled;
+	return g_voiceChatPrefEnabled;
 }
 
 bool VoiceChatPrefs::IsMicEnabled()
 {
-	return g_voiceChatMgrPrefs->m_micEnabled;
+	return g_voiceChatMgrPrefs->m_talkEnabled;
 }
 
 int VoiceChatPrefs::GetOutputDevice()
@@ -182,7 +183,7 @@ int VoiceChatPrefs::GetInputDevice()
 
 int VoiceChatPrefs::GetOutputVolume()
 {
-	return g_voiceChatMgrPrefs->m_voiceChatVolume;
+	return g_voiceChatMgrPrefs->m_volume;
 }
 
 int VoiceChatPrefs::GetMicSensitivity()
@@ -759,6 +760,11 @@ static void(*g_origInitVoiceEngine)(void* engine, char* config);
 
 static void _filterVoiceChatConfig(void* engine, char* config)
 {
+#ifdef IS_RDR3
+	// cache enabled state preference
+	g_voiceChatPrefEnabled = *config;
+#endif
+
 	// disable voice if mumble is used
 	if (g_mumble.connected)
 	{
