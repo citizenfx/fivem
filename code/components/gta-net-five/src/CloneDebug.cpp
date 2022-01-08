@@ -1352,11 +1352,33 @@ static InitFunction initFunction([]()
 
 	ConHost::OnShouldDrawGui.Connect([](bool* should)
 	{
-		*should = *should || netViewerEnabled || timeWindowEnabled || drilldownWindowEnabled;
+		*should = *should || netViewerEnabled || timeWindowEnabled || drilldownWindowEnabled || g_captureSyncLog;
 	});
 
 	ConHost::OnDrawGui.Connect([]()
 	{
+		if (g_captureSyncLog)
+		{
+			const float DISTANCE = 10.0f;
+			ImVec2 window_pos = ImVec2(ImGui::GetMainViewport()->Pos.x + ImGui::GetIO().DisplaySize.x - DISTANCE, ImGui::GetMainViewport()->Pos.y + ImGui::GetIO().DisplaySize.y - DISTANCE);
+			ImVec2 window_pos_pivot = ImVec2(1.0f, 1.0f);
+			ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
+
+			ImGui::SetNextWindowBgAlpha(0.3f); // Transparent background
+			if (ImGui::Begin("Net Warning", NULL, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
+			{
+				ImGui::Text("/!\\ Performance warning");
+				ImGui::Separator();
+				ImGui::Text("The 'netobjviewer_syncLog' setting is enabled, which may lead to reduced performance\n"
+					        "in busy parts of the game world."
+					        "\n\n"
+					        "Disable it by using `netobjviewer_syncLog 0` in the F8 console, or by using F8 -> Tools\n"
+					        "-> Network -> OneSync -> Network SyncLog.");
+			}
+
+			ImGui::End();
+		}
+
 		if (drilldownWindowEnabled)
 		{
 			RenderNetDrilldownWindow();
