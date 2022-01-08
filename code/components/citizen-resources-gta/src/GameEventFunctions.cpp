@@ -9,6 +9,27 @@
 
 static InitFunction initFunction([]
 {
+	OnTriggerGameEventExt.Connect([](const GameEventData& data)
+	{
+		auto resman = Instance<fx::ResourceManager>::Get();
+		auto rec = resman->GetComponent<fx::ResourceEventManagerComponent>();
+
+		/*NETEV CEventName CLIENT
+		/#*
+		 * An event that is triggered when the game triggers an internal network event.
+		 * CEventName can be any event name that GTA 5 throws, e.g.: "CEventShockingCarCrash".
+		 * see: https://docs.fivem.net/docs/game-references/game-events/ for a list of known events.
+		 *
+		 * @param entities - All entities receiving/emitting the event, can be empty.
+		 * @param eventEntity - Entity the event is related to.
+		 * @param data - Extra event data.
+		 #/
+		declare function CEventName(entities: number[], eventEntity: number, data: var[]): void;
+		*/
+		
+		rec->QueueEvent(std::string(data.name), std::string(data.argsData), "");
+	});
+
 	OnTriggerGameEvent.Connect([](const GameEventMetaData& data)
 	{
 		auto resman = Instance<fx::ResourceManager>::Get();

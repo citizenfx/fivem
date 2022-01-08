@@ -5,8 +5,13 @@
 
 #include <MinHook.h>
 
+#include <sstream>
+#include <msgpack.hpp>
+
 namespace rage
 {
+	class netObject;
+
 	class fwEvent
 	{
 	public:
@@ -27,31 +32,108 @@ namespace rage
 		virtual bool m_38() = 0;
 
 		virtual bool m_40(rage::fwEvent* other) = 0;
+
+		virtual bool m_0x9() = 0;
+		virtual bool m_0xA() = 0;
+		virtual bool m_0xB() = 0;
+		virtual bool m_0xC() = 0;
+		virtual bool m_0xD() = 0;
+		virtual bool m_0xE() = 0;
+		virtual void m_0xF() = 0;
+		virtual bool m_0x10() = 0;
+		virtual bool m_0x11() = 0;
+		virtual bool m_0x12() = 0;
+		virtual bool m_0x13() = 0;
+		virtual bool m_0x14() = 0;
+		virtual uint32_t m_0x15() = 0;
+		virtual uint32_t m_0x16() = 0;
+		virtual uint32_t m_0x17() = 0;
+		virtual bool m_0x18(void*, void*) = 0;
+
+		// vtable[25]: retrieve the entity associated with this event object
+		virtual fwEntity* GetEntity() = 0;
 	};
+
+	class fwEventGroup
+	{
+	public:		
+		size_t unk; // somehow always ended up to be 0x0000000000000000
+
+		// it looked like it was filling 30-ish 64 bit values.
+		// until now I got a total of 13 events at one time.
+		fwEvent* events[30];
+				
+		uint32_t unk2;
+		uint32_t unk3; // it's like this one is used to store how much of these event wrappers are processed.
+		uint32_t eventsCount; // Stores the amount of events, there's an exception case for a count of 32.
+		uint32_t unk4;
+
+		size_t unk5;
+
+		virtual ~fwEventGroup() = 0;
+	};
+
+	class fwEventGroup2
+	{
+	public:
+		size_t unk0; // somehow always ended up to be 0x0000000000000000
+
+		// a known case where it was filled with 1 was when I was punching,
+		// it contained a ptr to the same entity stored in this object's entity members.
+		fwEvent* events[15];
+
+		size_t eventsCount_1; // stores the size of events, difference with eventsCount_2 is unknown.
+		size_t eventsCount_2; // stores the size of events, difference with eventsCount_1 is unknown.
+
+		fwEntity* entity; // the entity reacting
+		fwEntity* entityDuplicate; // stores same as entity
+				
+		size_t unk1[8]; // more allocated data filled with 0x0, size is unknown
+
+		virtual ~fwEventGroup2() = 0;
+	};
+}
+
+namespace
+{
+	template<typename... TArg>
+	inline void msgpack_array(msgpack::packer<msgpack::sbuffer>& p, const TArg&... args)
+	{
+		p.pack_array(sizeof...(args));
+		(p.pack(args), ...);
+	}
+
+	template<typename... TArg>
+	inline void msgpack_pack(msgpack::packer<msgpack::sbuffer>& p, const TArg&... args)
+	{
+		(p.pack(args), ...);
+	}
+
+	inline uint32_t GetGuidFromBaseSafe(rage::fwEntity* entity)
+	{
+		return entity ? rage::fwScriptGuid::GetGuidFromBase(entity) : 0;
+	}
 }
 
 void*(*g_eventCall1)(void* group, void* event);
 void*(*g_eventCall2)(void* group, void* event);
 void*(*g_eventCall3)(void* group, void* event);
 
-template<decltype(g_eventCall1)* TFunc>
-void* HandleEventWrap(void* group, rage::fwEvent* event)
+template<decltype(g_eventCall3)* TFunc>
+void* HandleEventWrap(rage::fwEventGroup* group, rage::fwEvent* event)
 {
 	if (event)
 	{
 		try
 		{
-			const char* eventName = typeid(*event).name();
-
-			GameEventMetaData data = { 0 };
-			strcpy(data.name, &eventName[6]);
-			data.numArguments = 0;
+			GameEventMetaData data{ typeid(*event).name() + 6, 0 };
 
 			// brute-force the argument count
 			// since these functions should early exit, most cost here will be VMT dispatch
+			// ^ as these functions have a hardcoded size check, though not all...
 			for (int i = 0; i < _countof(data.arguments); i++)
 			{
-				if (event->GetArguments(data.arguments, i * sizeof(uintptr_t)))
+				if (event->GetArguments(data.arguments, i * sizeof(size_t)))
 				{
 					data.numArguments = i;
 					break;
@@ -62,18 +144,76 @@ void* HandleEventWrap(void* group, rage::fwEvent* event)
 		}
 		catch (std::exception& e)
 		{
-		
 		}
 	}
 
 	return (*TFunc)(group, event);
 }
 
-#include <sstream>
-
-namespace rage
+template<decltype(g_eventCall1)* TFunc, int stream>
+void* HandleEventWrapExt(rage::fwEventGroup* group, rage::fwEvent* event)
 {
-class netObject;
+	if (event)
+	{
+		/*
+		 * event:
+		 * These events are stored with different member variables and with different layouts per class/struct,
+		 * to get more data from them we'll have to investigate them case by case.
+		 */
+
+		try
+		{
+			GameEventData data{ typeid(*event).name() + 6 };
+
+			msgpack::sbuffer buf;
+			msgpack::packer packer(buf);
+
+			packer.pack_array(3); // we'll offer 3 parameters
+
+			if constexpr (stream == 1)
+			{
+				// retrieve all entities this event is being sent to
+				size_t size = group->eventsCount;
+				packer.pack_array(size);
+
+				for (size_t i = 0; i < size; ++i)
+				{
+					packer.pack(GetGuidFromBaseSafe(group->events[i]->GetEntity()));
+				}
+			}
+			else
+			{
+				// retrieve entity who is triggering this
+				// this group has a different layout
+				msgpack_array(packer, GetGuidFromBaseSafe(reinterpret_cast<rage::fwEventGroup2*>(group)->entity));
+			}
+
+			// retrieve entity related to the event
+			msgpack_pack(packer, GetGuidFromBaseSafe(event->GetEntity()));
+
+			// retrieve extra event data
+			const char* eventSubName = data.name + 6; // get part after "CEvent"
+
+			if (memcmp(eventSubName, "Shoc", 4) == 0) // Shocking
+			{
+				msgpack_array(packer, (float(&)[3])event[8]);
+			}
+			else
+			{
+				packer.pack_array(0); // empty array
+			}
+
+			data.argsData = std::string_view(buf.data(), buf.size());
+			OnTriggerGameEventExt(data);
+		}
+		catch (std::exception&)
+		{
+			// an std::bad_alloc could be thrown when packing (msgpack);
+			// should we do anything else except for not sending this to scripts?
+		}
+	}
+
+	return (*TFunc)(group, event);
 }
 
 typedef void (*OnEntityTakeDmgFn)(rage::netObject*, void*, uint8_t);
@@ -142,12 +282,12 @@ static HookFunction hookFunction([]()
 	// 8-bit event pools
 
 	// these are for ped events, we don't handle getting entities/positions from aiEvent instances yet
-	/*{
+	{
 		auto matches = hook::pattern("83 BF ? ? 00 00 ? 75 ? 48 8B CF E8 ? ? ? ? 83 BF").count(2);
 
-		MH_CreateHook(matches.get(0).get<void>(-0x36), HandleEventWrap<&g_eventCall1>, (void**)&g_eventCall1);
-		MH_CreateHook(matches.get(1).get<void>(-0x36), HandleEventWrap<&g_eventCall2>, (void**)&g_eventCall2);
-	}*/
+		MH_CreateHook(matches.get(0).get<void>(-0x36), HandleEventWrapExt<&g_eventCall1, 0>, (void**)&g_eventCall1);
+		MH_CreateHook(matches.get(1).get<void>(-0x36), HandleEventWrapExt<&g_eventCall2, 1>, (void**)&g_eventCall2);
+	}
 
 	{
 		MH_CreateHook(hook::get_pattern("81 BF ? ? 00 00 ? ?  00 00 75 ? 48 8B CF E8", -0x36), HandleEventWrap<&g_eventCall3>, (void**)&g_eventCall3);
@@ -198,4 +338,5 @@ static HookFunction hookFunction([]()
 });
 
 fwEvent<const GameEventMetaData&> OnTriggerGameEvent;
+fwEvent<const GameEventData&> OnTriggerGameEventExt;
 fwEvent<const DamageEventMetaData&> OnEntityDamaged;
