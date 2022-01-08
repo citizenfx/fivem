@@ -114,11 +114,18 @@ private:
 	pgPtr<const char> m_name;
 #endif
 
+#ifndef RAGE_FORMATS_GAME_RDR3
 	pgArray<CLightAttr> m_lightAttrs;
+#endif
 
 #if defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_RDR3)
 	pgPtr<void> m_unk1;
 	pgPtr<phBound> m_bound;
+#endif
+
+#ifdef RAGE_FORMATS_GAME_RDR3
+	pgPtr<void> m_samplers;
+	pgPtr<void> m_unk2;
 #endif
 
 public:
@@ -126,9 +133,11 @@ public:
 	{
 		rmcDrawable::Resolve(blockMap);
 
+#ifndef RAGE_FORMATS_GAME_RDR3
 		m_lightAttrs.Resolve(blockMap);
+#endif
 
-#ifdef RAGE_FORMATS_GAME_FIVE
+#if defined(RAGE_FORMATS_GAME_FIVE) || defined(RAGE_FORMATS_GAME_RDR3) 
 		m_name.Resolve(blockMap);
 
 		m_unk1.Resolve(blockMap);
@@ -152,12 +161,18 @@ public:
 		m_name = pgStreamManager::StringDup(name);
 	}
 
+	inline phBound* GetBound()
+	{
+		return *m_bound;
+	}
+
 	inline void SetBound(phBound* bound)
 	{
 		m_bound = bound;
 	}
 #endif
 
+#ifndef RAGE_FORMATS_GAME_RDR3
 	inline uint16_t GetNumLightAttrs()
 	{
 		return m_lightAttrs.GetCount();
@@ -172,6 +187,7 @@ public:
 	{
 		m_lightAttrs.SetFrom(attrs, count);
 	}
+#endif
 };
 
 #endif

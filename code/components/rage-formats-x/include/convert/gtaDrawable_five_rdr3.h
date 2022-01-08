@@ -38,6 +38,9 @@ enum
 
 namespace rage
 {
+template<>
+rdr3::phBound* convert(five::phBound* bound);
+
 enum class FVFType
 {
 	Nothing = 0,
@@ -860,6 +863,12 @@ rdr3::gtaDrawable* convert(five::gtaDrawable* drawable)
 	auto out = new (false) rdr3::gtaDrawable;
 
 	ConvertBaseDrawable(drawable, out);
+
+	if (auto bound = drawable->GetBound())
+	{
+		auto newBound = convert<rdr3::phBound*>(bound);
+		out->SetBound(newBound);
+	}
 
 	return out;
 }
