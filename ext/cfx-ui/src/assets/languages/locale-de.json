@@ -43,7 +43,7 @@
     "#Settings_MenuAudio": "Hauptmenü Audio",
     "#Settings_MenuAudioDesc": "Aktiviere Hintergrundmusik während Inaktivität im Hauptmenü",
     "#Settings_GameStreamProgress": "Streaming-Fortschritt",
-    "#Settings_GameStreamProgressDesc": "Zeigt den Fortschritt beim Herunterladen von im Spiel gestreamten Inhalten an. (BETA™)",
+    "#Settings_GameStreamProgressDesc": "Zeigt den Fortschritt beim Herunterladen von im Spiel gestreamten Inhalten an. (nicht für Installationen auf einer HDD geeignet.)",
     "#DirectConnect_TimedOut": "Zeitüberschreitung der Serveranfrage.",
     "#DirectConnect_Failed": "Server konnte nicht abgefragt werden.",
     "#DirectConnect_ServerInvalid": "Server konnte nicht gefunden werden",
@@ -85,5 +85,15 @@
     "#Settings_UpdateChannel": "Aktualisierungsmodus",
     "#Settings_QueriesPerMinute": "Server-Browser: Maximalping / Minute",
     "#BottomNav_ReplayEditor": "Replay-Bearbeitung",
-    "#ServerList_StreamerModeWarning": "Streamer Mode ist aktiv - Eingabe versteckt"
+    "#ServerList_StreamerModeWarning": "Streamer Mode ist aktiv - Eingabe versteckt",
+    "#Settings_StreamerMode": "Streamer-Modus",
+    "#Settings_LowPerf_Off": "Aus",
+    "#Settings_LowPerf_ReduceBackdrop": "Nur Hintergrund",
+    "#Settings_LowPerf_ReduceFull": "Keine Unschärfe",
+    "#Home_AdDetail": "Meistgevoteter Server in deiner Region",
+    "#Servers_ConnectingToServer": "Mit dem Server verbinden.....",
+    "#ServerList_SearchHint": "Suchbegriff oder IP-Adresse eingeben",
+    "#ServerList_SearchHintWeb": "Suchen",
+    "#Settings_StreamerModeDesc": "Verstecke sensitive Informationen (z.B. IP-Adressen)",
+    "#Settings_LocalhostPort2": "Lokaler Port"
 }
