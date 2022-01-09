@@ -201,6 +201,7 @@ void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRef
 	command_line->AppendSwitch("disable-gpu-driver-bug-workarounds");
 	command_line->AppendSwitchWithValue("default-encoding", "utf-8");
 	command_line->AppendSwitchWithValue("autoplay-policy", "no-user-gesture-required");
+	command_line->AppendSwitchWithValue("disable-features", "HardwareMediaKeyHandling");
 
 #if !GTA_NY
 	command_line->AppendSwitch("enable-gpu-rasterization");
