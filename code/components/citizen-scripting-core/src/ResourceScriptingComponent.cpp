@@ -215,8 +215,9 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 void ResourceScriptingComponent::Tick()
 {
 	// #TODO: 32 bit
-#ifdef _M_AMD64
-	CETWScope etwScope(fmt::format("{} tick", m_resource->GetName()).c_str());
+#if defined(_M_AMD64) && defined(ETW_MARKS_ENABLED)
+	std::string message(fmt::format("{} tick", m_resource->GetName()));
+	CETWScope etwScope(message.c_str());
 #endif
 
 	m_resource->Run([this]()
