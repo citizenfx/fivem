@@ -1657,6 +1657,20 @@ static void Init()
 
 		return handle;
 	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_HELI_MAIN_ROTOR_HEALTH", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto heliHealth = entity->syncTree->GetHeliHealth();
+
+		return heliHealth ? float(heliHealth->mainRotorHealth) : 0.0f;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_HELI_TAIL_ROTOR_HEALTH", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto heliHealth = entity->syncTree->GetHeliHealth();
+
+		return heliHealth ? float(heliHealth->tailRotorHealth) : 0.0f;
+	}));
 }
 
 static InitFunction initFunction([]()
