@@ -476,17 +476,24 @@ static InitFunction initFunction([] ()
 								}
 
 								uint32_t size = i->value["size"].GetUint();
+								auto rawSize = size;
 
 								// skip >16 MiB resources
 								if (size >= (16 * 1024 * 1024))
 								{
+#ifdef GTA_FIVE
+									// special marker size to indicate reading this from *raw* data
+									size = 0xFFFFFF;
+#else
 									continue;
+#endif
 								}
 
 								mounter->AddResourceEntry(resourceName, filename, hash, urlEncodeWrap(resourceBaseUrl, filename), size, {
 									{ "rscVersion", std::to_string(entry.rscVersion) },
 									{ "rscPagesPhysical", std::to_string(entry.rscPagesPhysical) },
 									{ "rscPagesVirtual", std::to_string(entry.rscPagesVirtual) },
+									{ "rawSize", std::to_string(rawSize) },
 								});
 
 								entry.filePath = mounter->FormatPath(resourceName, filename);

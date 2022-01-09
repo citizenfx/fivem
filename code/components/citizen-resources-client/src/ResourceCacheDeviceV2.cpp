@@ -191,6 +191,18 @@ RcdBulkStream::~RcdBulkStream()
 
 size_t RcdBulkStream::ReadBulk(uint64_t ptr, void* outBuffer, size_t size)
 {
+	// if this is a read request for 'real' size data, satisfy it with such
+	if (ptr == 0 && size == 16 && m_realSize > 0)
+	{
+		uint8_t* data = (uint8_t*)outBuffer;
+		memset(data, 0, size);
+		data[7] = ((m_realSize >> 0) & 0xFF);
+		data[14] = ((m_realSize >> 8) & 0xFF);
+		data[5] = ((m_realSize >> 16) & 0xFF);
+		data[2] = ((m_realSize >> 24) & 0xFF);
+		return 16;
+	}
+
 	if (size == 0xFFFFFFFC)
 	{
 		return m_fetcher->ExistsOnDisk(m_fileName) ? 2048 : 0;
@@ -252,14 +264,33 @@ std::shared_ptr<RcdStream> ResourceCacheDeviceV2::CreateStream(const std::string
 
 std::shared_ptr<RcdBulkStream> ResourceCacheDeviceV2::OpenBulkStream(const std::string& fileName, uint64_t* ptr)
 {
-	if (!GetEntryForFileName(fileName))
+	auto entry = GetEntryForFileName(fileName);
+
+	if (!entry)
 	{
 		return {};
 	}
 
 	*ptr = 0;
 
-	return std::make_shared<RcdBulkStream>(static_cast<RcdFetcher*>(this), fileName);
+	return std::make_shared<RcdBulkStream>(static_cast<RcdFetcher*>(this), fileName, GetRealSize(entry->get()));
+}
+
+size_t ResourceCacheDeviceV2::GetRealSize(const ResourceCacheEntryList::Entry& entry)
+{
+	size_t realSize = 0;
+
+	if (entry.size == 0xFFFFFF)
+	{
+		const auto& extData = entry.extData;
+
+		if (auto it = extData.find("rawSize"); it != extData.end())
+		{
+			realSize = std::stoi(it->second);
+		}
+	}
+
+	return realSize;
 }
 
 bool ResourceCacheDeviceV2::ExistsOnDisk(const std::string& fileName)
