@@ -242,7 +242,7 @@ static void Mumble_Connect(bool isReconnect = false)
 
 	VoiceChatPrefs::InitConfig();
 
-	g_mumbleClient->ConnectAsync(g_mumble.overridePeer ? *g_mumble.overridePeer : g_netLibrary->GetCurrentPeer(), fmt::sprintf("[%d] %s", g_netLibrary->GetServerNetID(), g_netLibrary->GetPlayerName())).then([&](concurrency::task<MumbleConnectionInfo*> task)
+	g_mumbleClient->ConnectAsync(g_mumble.overridePeer ? *g_mumble.overridePeer : g_netLibrary->GetCurrentPeer(), fmt::sprintf("[%d] %s", g_netLibrary->GetServerNetID(), g_netLibrary->GetPlayerName())).then([isReconnect](concurrency::task<MumbleConnectionInfo*> task)
 	{
 		try
 		{
