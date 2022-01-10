@@ -1213,7 +1213,8 @@
 				<ButtonPrompts>
 				
 					<CMenuButton> <hButtonHash>IB_MS_WARP</hButtonHash>		<ButtonInput>INPUT_FRONTEND_ACCEPT</ButtonInput> <Contexts>*ALL*,MAP_CanWarp, *NONE*,CORONA_BIGMAP_CLOSE, CORONA_BIGMAP_CLOSE_KM</Contexts></CMenuButton>
-					<CMenuButton> <hButtonHash>IB_WAYPOINT</hButtonHash>	<ButtonInput>INPUT_FRONTEND_ACCEPT</ButtonInput> <Contexts>*ALL*,MAP_Waypoint, *NONE*,CORONA_BIGMAP_CLOSE, CORONA_BIGMAP_CLOSE_KM</Contexts></CMenuButton>
+					<CMenuButton> <hButtonHash>IB_WAYPOINT</hButtonHash>	<ButtonInput>INPUT_FRONTEND_ACCEPT</ButtonInput> <Contexts>*ALL*,MAP_Waypoint, *NONE*,CORONA_BIGMAP_CLOSE, CORONA_BIGMAP_CLOSE_KM, MAP_Destination</Contexts></CMenuButton>
+          			<!--2545--> <CMenuButton> <hButtonHash>IB_SETDEST</hButtonHash>	<ButtonInput>INPUT_FRONTEND_ACCEPT</ButtonInput> <Contexts>*ALL*,MAP_Destination, *NONE*,CORONA_BIGMAP_CLOSE, CORONA_BIGMAP_CLOSE_KM</Contexts></CMenuButton>
 					<CMenuButton> <hButtonHash>IB_ZOOM</hButtonHash>		<ButtonInputGroup>INPUTGROUP_FRONTEND_TRIGGERS</ButtonInputGroup> <Contexts>*ALL*,MAP_CanZoom</Contexts></CMenuButton>
 					<CMenuButton> <hButtonHash>IB_POI</hButtonHash>		<ButtonInput>INPUT_FRONTEND_Y</ButtonInput> <Contexts>*ALL*,MAP_CanDropPOI, *NONE*,CORONA_BIGMAP_CLOSE, CORONA_BIGMAP_CLOSE_KM</Contexts></CMenuButton>
 				<!--	<CMenuButton> <hButtonHash>IB_CRIMINAL</hButtonHash>	<ButtonInput>INPUT_FRONTEND_CANCEL</ButtonInput> <Contexts>*ALL*,MAP_Criminal</Contexts></CMenuButton> -->
@@ -1225,6 +1226,7 @@
 					<CMenuButton> <hButtonHash>IB_BLIPVIS1</hButtonHash>		<ButtonInput>INPUT_FRONTEND_RS</ButtonInput> <Contexts>*ALL*,MAP_VisHigh, *NONE*,CORONA_BIGMAP_CLOSE, CORONA_BIGMAP_CLOSE_KM</Contexts></CMenuButton>
 					<CMenuButton> <hButtonHash>IB_BLIPVIS0</hButtonHash>		<ButtonInput>INPUT_FRONTEND_RS</ButtonInput> <Contexts>*ALL*,MAP_VisLow, *NONE*,CORONA_BIGMAP_CLOSE, CORONA_BIGMAP_CLOSE_KM</Contexts></CMenuButton>
 					<CMenuButton> <hButtonHash>IB_SRTMISS</hButtonHash>		<ButtonInput>INPUT_FRONTEND_X</ButtonInput> <Contexts>*ALL*,MAP_CanStartMiss, *NONE*,CORONA_BIGMAP_CLOSE, CORONA_BIGMAP_CLOSE_KM</Contexts></CMenuButton>
+          			<!--2545--> <CMenuButton> <hButtonHash>BLIP_CONT</hButtonHash>		<ButtonInput>INPUT_FRONTEND_X</ButtonInput> <Contexts>*ALL*,MAP_CanContact, *NONE*,CORONA_BIGMAP_CLOSE, CORONA_BIGMAP_CLOSE_KM</Contexts></CMenuButton>
 					<CMenuButton> <hButtonHash>IB_BACK</hButtonHash> 		<ButtonInput>INPUT_FRONTEND_CANCEL</ButtonInput> <Contexts>*NONE*,CORONA_BIGMAP_CLOSE, CORONA_BIGMAP_CLOSE_KM</Contexts> </CMenuButton>
 					
 					<CMenuButton> <hButtonHash>FM_COR_HIDE_BIGMAP</hButtonHash>		<ButtonInput>INPUT_FRONTEND_Y</ButtonInput>			<Contexts>*ALL*, CORONA_BIGMAP_CLOSE, *NONE*</Contexts> </CMenuButton>
