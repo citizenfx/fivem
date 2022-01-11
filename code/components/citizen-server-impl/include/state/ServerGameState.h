@@ -474,6 +474,11 @@ struct CHeliHealthNodeData
 	int tailRotorHealth;
 };
 
+struct CVehicleSteeringNodeData
+{
+	float steeringAngle;
+};
+
 enum ePopType
 {
 	POPTYPE_UNKNOWN = 0,
@@ -555,6 +560,8 @@ public:
 	virtual CDummyObjectCreationNodeData* GetDummyObjectState() = 0;
 
 	virtual CHeliHealthNodeData* GetHeliHealth() = 0;
+
+	virtual CVehicleSteeringNodeData* GetVehicleSteeringData() = 0;
 
 	virtual void CalculatePosition() = 0;
 
