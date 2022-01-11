@@ -10,6 +10,7 @@
 #include <MinHook.h>
 
 static int WeaponDamageModifierOffset;
+static int WeaponAnimationOverrideOffset;
 
 static uint16_t* g_weaponCount;
 static uint64_t** g_weaponList;
@@ -295,6 +296,7 @@ static HookFunction hookFunction([]()
 
 	{
 		WeaponDamageModifierOffset = *hook::get_pattern<int>("48 85 C9 74 ? F3 0F 10 81 ? ? ? ? F3 0F 59 81", 9);
+		WeaponAnimationOverrideOffset = *hook::get_pattern<int>("8B 9F ? ? ? ? 85 DB 75 3E", 2);
 	}
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_WEAPON_DAMAGE_MODIFIER", [](fx::ScriptContext& context)
@@ -386,6 +388,19 @@ static HookFunction hookFunction([]()
 				g_actionStateAimCooldownEnabled = false;
 			});
 		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_WEAPON_ANIMATION_OVERRIDE", [](fx::ScriptContext& context)
+	{
+		uint32_t animation = 0;
+		fwEntity* entity = rage::fwScriptGuid::GetBaseFromGuid(context.GetArgument<int>(0));
+
+		if (entity && entity->IsOfType<CPed>())
+		{
+			animation = *(uint32_t*)((char*)entity + WeaponAnimationOverrideOffset);
+		}
+
+		context.SetResult<uint32_t>(animation);
 	});
 
 	Instance<ICoreGameInit>::Get()->OnShutdownSession.Connect([]()
