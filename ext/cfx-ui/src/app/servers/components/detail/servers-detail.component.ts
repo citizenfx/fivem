@@ -133,12 +133,12 @@ export class ServersDetailComponent implements OnInit, AfterViewInit, OnDestroy 
     }
 
 	get joinableLabel() {
-		if (this.eol) {
-			return this.eolLabel;
-		}
-
 		if (this.server.data?.private) {
 			return this.privateLabel;
+		}
+
+		if (this.eol) {
+			return this.eolLabel;
 		}
 
 		if (this.server.data?.fallback) {
@@ -149,16 +149,16 @@ export class ServersDetailComponent implements OnInit, AfterViewInit, OnDestroy 
 	}
 
 	get serverWarning() {
+		if (this.server.data?.private) {
+			return '#ServerDetail_PrivateWarning';
+		}
+
 		if (this.eol) {
 			return '#ServerDetail_EOLWarning';
 		}
 
 		if (this.eos) {
 			return '#ServerDetail_SupportWarning';
-		}
-
-		if (this.server.data?.private) {
-			return '#ServerDetail_PrivateWarning';
 		}
 
 		if (this.server.data?.fallback) {
