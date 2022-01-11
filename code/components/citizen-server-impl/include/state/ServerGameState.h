@@ -468,6 +468,12 @@ struct CPlayerGameStateNodeData
 	bool isSuperJumpEnabled;
 };
 
+struct CHeliHealthNodeData
+{
+	int mainRotorHealth;
+	int tailRotorHealth;
+};
+
 enum ePopType
 {
 	POPTYPE_UNKNOWN = 0,
@@ -547,6 +553,8 @@ public:
 	virtual CObjectGameStateNodeData* GetObjectGameState() = 0;
 
 	virtual CDummyObjectCreationNodeData* GetDummyObjectState() = 0;
+
+	virtual CHeliHealthNodeData* GetHeliHealth() = 0;
 
 	virtual void CalculatePosition() = 0;
 

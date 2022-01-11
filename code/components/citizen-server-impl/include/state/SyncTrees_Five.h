@@ -1640,7 +1640,20 @@ struct CDoorScriptGameStateDataNode
 	}
 };
 
-struct CHeliHealthDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CHeliHealthDataNode
+{
+	CHeliHealthNodeData data;
+
+	bool Parse(SyncParseState& state)
+	{
+		data.mainRotorHealth = state.buffer.Read<int>(17);
+		data.tailRotorHealth = state.buffer.Read<int>(17);
+
+		bool boomBroken = state.buffer.ReadBit();
+
+		return true;
+	}
+};
 
 struct CHeliControlDataNode
 {
@@ -3266,6 +3279,13 @@ struct SyncTree : public SyncTreeBase
 		}
 
 		return nullptr;
+	}
+
+	virtual CHeliHealthNodeData* GetHeliHealth() override
+	{
+		auto [hasNode, node] = GetData<CHeliHealthDataNode>();
+
+		return hasNode ? &node->data : nullptr;
 	}
 
 	virtual void CalculatePosition() override

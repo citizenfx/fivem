@@ -1198,6 +1198,11 @@ struct SyncTree : public SyncTreeBase
 		return nullptr;
 	}
 
+	virtual CHeliHealthNodeData* GetHeliHealth() override
+	{
+		return nullptr;
+	}
+
 	virtual void CalculatePosition() override
 	{
 		// TODO: cache it?
