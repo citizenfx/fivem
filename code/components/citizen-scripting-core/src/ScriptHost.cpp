@@ -65,6 +65,7 @@ static struct
 	std::unordered_map<IScriptTickRuntimeWithBookmarks*, std::list<Bookmark>::iterator> resourceInsertionIterators;
 
 	bool executing = false;
+	std::list<Bookmark>::iterator* executingIt = nullptr;
 } bookmarkRefs;
 
 static void QueueBookmark(fx::Resource* resource, IScriptTickRuntimeWithBookmarks* scRT, uint64_t bookmark, std::chrono::microseconds deadline)
@@ -79,15 +80,25 @@ static void CreateBookmarks(IScriptTickRuntimeWithBookmarks* scRT)
 	bookmarkRefs.resourceInsertionIterators.emplace(scRT, bookmarkRefs.list.insert(bookmarkRefs.list.end(), Bookmark{ scRT, nullptr }));
 }
 
-static void DoRemoveBookmarks(IScriptTickRuntimeWithBookmarks* scRT)
+static void RemoveBookmarks(IScriptTickRuntimeWithBookmarks* scRT)
 {
-	for (auto list : { &bookmarkRefs.list })
+	auto exIt = (bookmarkRefs.executing) ? bookmarkRefs.executingIt : nullptr;
+
+	auto list = &bookmarkRefs.list;
+
 	{
 		for (auto it = list->begin(); it != list->end();)
 		{
 			if (it->scRT == scRT)
 			{
-				it = list->erase(it);
+				if (exIt && *exIt == it)
+				{
+					*exIt = it = list->erase(it);
+				}
+				else
+				{
+					it = list->erase(it);
+				}
 			}
 			else
 			{
@@ -97,17 +108,6 @@ static void DoRemoveBookmarks(IScriptTickRuntimeWithBookmarks* scRT)
 	}
 
 	bookmarkRefs.resourceInsertionIterators.erase(scRT);
-}
-
-static void RemoveBookmarks(IScriptTickRuntimeWithBookmarks* scRT)
-{
-	if (bookmarkRefs.executing)
-	{
-		bookmarkRefs.removeList.push_back(scRT);
-		return;
-	}
-
-	DoRemoveBookmarks(scRT);
 }
 
 static void RunBookmarks()
@@ -144,7 +144,21 @@ static void RunBookmarks()
 
 			if (lastScRT != scRT)
 			{
+				auto saveIt = it;
+				bookmarkRefs.executingIt = &it;
 				deq();
+
+				bookmarkRefs.executingIt = nullptr;
+
+				// if deq() has been changing the executingIt, we should skip the next execution outright
+				// as it was a removed resource
+				if (it != saveIt)
+				{
+					lastScRT = nullptr;
+					lastResource = nullptr;
+					continue;
+				}
+
 				lastScRT = scRT;
 				lastResource = entry.resource;
 			}
