@@ -474,6 +474,13 @@ struct CHeliHealthNodeData
 	int tailRotorHealth;
 };
 
+struct CVehicleDamageStatusNodeData
+{
+	bool damagedByBullets;
+	bool anyWindowBroken;
+	bool windowsState[8];
+};
+
 enum ePopType
 {
 	POPTYPE_UNKNOWN = 0,
@@ -555,6 +562,8 @@ public:
 	virtual CDummyObjectCreationNodeData* GetDummyObjectState() = 0;
 
 	virtual CHeliHealthNodeData* GetHeliHealth() = 0;
+
+	virtual CVehicleDamageStatusNodeData* GetVehicleDamageStatus() = 0;
 
 	virtual void CalculatePosition() = 0;
 

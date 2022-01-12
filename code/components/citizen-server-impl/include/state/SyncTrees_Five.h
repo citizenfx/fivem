@@ -831,7 +831,91 @@ struct CVehicleAppearanceDataNode {
 	}
 };
 
-struct CVehicleDamageStatusDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CVehicleDamageStatusDataNode
+{
+	CVehicleDamageStatusNodeData data;
+
+	bool Parse(SyncParseState& state)
+	{
+		bool anyBodyDeformation = state.buffer.ReadBit();
+
+		if (anyBodyDeformation)
+		{
+			uint8_t frontDamageLevel = state.buffer.Read<uint8_t>(2);
+			uint8_t rearDamageLevel = state.buffer.Read<uint8_t>(2);
+			uint8_t leftDamageLevel = state.buffer.Read<uint8_t>(2);
+			uint8_t rightDamageLevel = state.buffer.Read<uint8_t>(2);
+			uint8_t rearLeftLevel = state.buffer.Read<uint8_t>(2);
+			uint8_t rearRightLevel = state.buffer.Read<uint8_t>(2);
+		}
+
+		data.damagedByBullets = state.buffer.ReadBit();
+
+		if (data.damagedByBullets)
+		{
+			for (int i = 0; i < 6; i++)
+			{
+				uint8_t bulletsCount = state.buffer.Read<uint8_t>(8);
+			}
+		}
+
+		bool anyBumperBroken = state.buffer.ReadBit();
+
+		if (anyBumperBroken)
+		{
+			uint8_t frontBumperState = state.buffer.Read<uint8_t>(2);
+			uint8_t rearBumperState = state.buffer.Read<uint8_t>(2);
+		}
+
+		bool anyLightBroken = state.buffer.ReadBit();
+
+		if (anyLightBroken)
+		{
+			for (int i = 0; i < 22; i++)
+			{
+				bool lightBroken = state.buffer.ReadBit();
+			}
+		}
+
+		data.anyWindowBroken = state.buffer.ReadBit();
+
+		if (data.anyWindowBroken)
+		{
+			for (int i = 0; i < 8; i++)
+			{
+				data.windowsState[i] = state.buffer.ReadBit();
+			}
+		}
+
+		bool unk = state.buffer.ReadBit();
+
+		if (unk)
+		{
+			for (int i = 0; i < 8; i++)
+			{
+				float unk2 = state.buffer.ReadSignedFloat(10, 100.0f);
+
+				if (unk2 != 100.0f)
+				{
+					int unk3 = state.buffer.Read<int>(8);
+				}
+			}
+		}
+
+		bool anySirenBroken = state.buffer.ReadBit();
+
+		if (anySirenBroken)
+		{
+			for (int i = 0; i < 20; i++)
+			{
+				bool sirenBroken = state.buffer.ReadBit();
+			}
+		}
+
+		return true;
+	}
+};
+
 struct CVehicleComponentReservationDataNode { bool Parse(SyncParseState& state) { return true; } };
 
 struct CVehicleHealthDataNode
@@ -3284,6 +3368,13 @@ struct SyncTree : public SyncTreeBase
 	virtual CHeliHealthNodeData* GetHeliHealth() override
 	{
 		auto [hasNode, node] = GetData<CHeliHealthDataNode>();
+
+		return hasNode ? &node->data : nullptr;
+	}
+
+	virtual CVehicleDamageStatusNodeData* GetVehicleDamageStatus() override
+	{
+		auto [hasNode, node] = GetData<CVehicleDamageStatusDataNode>();
 
 		return hasNode ? &node->data : nullptr;
 	}

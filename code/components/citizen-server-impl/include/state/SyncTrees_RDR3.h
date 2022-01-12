@@ -1203,6 +1203,11 @@ struct SyncTree : public SyncTreeBase
 		return nullptr;
 	}
 
+	virtual CVehicleDamageStatusNodeData* GetVehicleDamageStatus() override
+	{
+		return nullptr;
+	}
+
 	virtual void CalculatePosition() override
 	{
 		// TODO: cache it?

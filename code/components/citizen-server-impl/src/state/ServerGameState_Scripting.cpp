@@ -1671,6 +1671,31 @@ static void Init()
 
 		return heliHealth ? float(heliHealth->tailRotorHealth) : 0.0f;
 	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("HAS_VEHICLE_BEEN_DAMAGED_BY_BULLETS", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto status = entity->syncTree->GetVehicleDamageStatus();
+
+		return status ? status->damagedByBullets : false;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_VEHICLE_WINDOW_INTACT", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto status = entity->syncTree->GetVehicleDamageStatus();
+		int index = context.GetArgument<int>(1);
+
+		if (!status)
+		{
+			return false;
+		}
+
+		if (index < 0 || index > 7)
+		{
+			return false;
+		}
+
+		return status->anyWindowBroken ? !status->windowsState[index] : true;
+	}));
 }
 
 static InitFunction initFunction([]()
