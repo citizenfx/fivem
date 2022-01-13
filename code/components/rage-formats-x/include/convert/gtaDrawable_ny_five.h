@@ -269,14 +269,14 @@ five::grmShaderGroup* convert(ny::grmShaderGroup* shaderGroup)
 
 				if (newShader->GetParameter("specularIntensityMult"))
 				{
-					newShader->SetParameter("specularIntensityMult", &multiplier, 4);
+					newShader->SetParameter("specularIntensityMult", &multiplier, 1.25);
 				}
 
 				multiplier[0] *= 12.5f;
 
 				if (newShader->GetParameter("SpecularFalloffMult"))
 				{
-					newShader->SetParameter("SpecularFalloffMult", &multiplier, 4);
+					newShader->SetParameter("SpecularFalloffMult", &multiplier, 1.25);
 				}
 			}
 		}
