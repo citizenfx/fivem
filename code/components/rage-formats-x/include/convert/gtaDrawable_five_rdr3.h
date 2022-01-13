@@ -731,7 +731,7 @@ rdr3::grmShaderGroup* convert(five::grmShaderGroup* shaderGroup)
 				
 				if (pn == HashString("Specular"))
 				{
-					*(float*)(value.data()) /= 40.f;
+					*(float*)(value.data()) /= 160.f;
 				}
 
 				paramRefs.emplace_back(pn, value);
