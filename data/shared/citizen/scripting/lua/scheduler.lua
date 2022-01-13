@@ -153,10 +153,65 @@ Citizen.SetBoundaryRoutine(function(f)
 	end
 end)
 
+local intervals = {}
+
+local function checkInterval(a1, atype, pos, a2)
+	if intervals[a1] then
+		assert(atype == 'number', ("bad argument #%s to 'SetInterval' (number expected, got %s)"):format(pos, atype))
+		intervals[a1] = a2 or 0
+		return
+	elseif intervals[a2] then
+		assert(atype == 'number', ("bad argument #%s to 'SetInterval' (number expected, got %s)"):format(pos, atype))
+		intervals[a2] = a1 or 0
+		return
+	end
+
+	return a2, a1 or 0
+end
+
+function Citizen.SetInterval(callback, interval, ...)
+	local t1 = type(callback)
+	local t2 = type(interval)
+
+	if t1 == 'number' then
+		callback, interval = checkInterval(callback, t2, 2, interval)
+	elseif t2 == 'number' then
+		callback, interval = checkInterval(interval, t1, 1, callback)
+	end
+
+	if not interval then return end
+
+	assert(callback, ("'SetInterval' expects a number and function as arguments. Received %s and %s."):format(t1, t2))
+
+	local id
+	local args = {...}
+
+	Citizen.CreateThreadNow(function(ref)
+		id = ref
+		intervals[id] = interval or 0
+		repeat
+			interval = intervals[id]
+			Wait(interval)
+			callback(table_unpack(args))
+		until interval < 0
+		intervals[id] = nil
+	end)
+
+	return id
+end
+
+function Citizen.ClearInterval(id)
+	assert(type(id) == 'number', ("bad argument #1 to 'ClearInterval' (number expected, got %s)"):format(type(id)))
+	assert(intervals[id], ("Invalid id sent to 'ClearInterval' (received %s)"):format(id))
+	intervals[id] = -1
+end
+
 -- root-level alias (to prevent people from calling the game's function accidentally)
 Wait = Citizen.Wait
 CreateThread = Citizen.CreateThread
 SetTimeout = Citizen.SetTimeout
+SetInterval = Citizen.SetInterval
+ClearInterval = Citizen.ClearInterval
 
 --[[
 
