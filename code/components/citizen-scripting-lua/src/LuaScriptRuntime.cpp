@@ -1081,8 +1081,18 @@ static int Lua_CreateThreadNow(lua_State* L)
 
 static int Lua_SetTimeout(lua_State* L)
 {
-	auto timeout = (int)luaL_checknumber(L, 1);
-	return Lua_CreateThreadInternal(L, false, timeout, 2);
+	if (lua_isfunction(L, 2))
+	{
+		auto timeout = (int)luaL_checknumber(L, 1);
+		return Lua_CreateThreadInternal(L, false, timeout, 2);
+	}
+	else if (lua_isfunction(L, 1))
+	{
+		auto timeout = (int)luaL_checknumber(L, 2);
+		return Lua_CreateThreadInternal(L, false, timeout, 1);
+	}
+
+	return luaL_error(L, "'SetTimeout' expects a number and function as arguments. Received %s and %s.", luaL_typename(L, 1), luaL_typename(L, 2));
 }
 
 static const struct luaL_Reg g_citizenLib[] = {
