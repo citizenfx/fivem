@@ -590,6 +590,19 @@ static HRESULT CreateD3D11DeviceWrapOrig(_In_opt_ IDXGIAdapter* pAdapter, D3D_DR
 					continue;
 				}
 
+				LARGE_INTEGER umd_version;
+				hr = adapter->CheckInterfaceSupport(__uuidof(IDXGIDevice), &umd_version);
+				if (SUCCEEDED(hr))
+				{
+					AddCrashometry(
+					"gpu_driver_version",
+					"%d.%d.%d.%d",
+					HIWORD(umd_version.HighPart),
+					LOWORD(umd_version.HighPart),
+					HIWORD(umd_version.LowPart),
+					LOWORD(umd_version.LowPart));
+				}
+
 				AddCrashometry("gpu_name", "%s", ToNarrow(desc.Description));
 				AddCrashometry("gpu_id", "%04x:%04x", desc.VendorId, desc.DeviceId);
 
