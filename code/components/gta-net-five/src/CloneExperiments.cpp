@@ -2143,6 +2143,194 @@ namespace rage
 		}
 #endif
 	};
+
+#ifdef GTA_FIVE
+	class datBase
+	{
+	public:
+		virtual ~datBase() = default;
+	};
+
+	template<typename TNode>
+	class atDLList
+	{
+	public:
+		void Add(TNode* node)
+		{
+			if (tail)
+			{
+				node->prev = tail;
+				node->next = tail->next;
+
+				if (tail->next)
+				{
+					tail->next->prev = node;
+				}
+
+				tail->next = node;
+			}
+			else
+			{
+				head = node;
+			}
+
+			tail = node;
+		}
+
+		void Remove(TNode* node)
+		{
+			if (node == head)
+			{
+				head = (decltype(head))node->next;
+			}
+
+			if (node == tail)
+			{
+				tail = (decltype(tail))node->prev;
+			}
+
+			node->Unlink();
+
+			delete node;
+		}
+
+		template<typename Data>
+		void RemoveData(Data* data)
+		{
+			for (auto node = head; node->next; node = (decltype(node))node->next)
+			{
+				if (node->data == data)
+				{
+					Remove(node);
+					break;
+				}
+			}
+		}
+
+		template<typename Data>
+		inline bool Has(Data* data) const
+		{
+			for (auto node = head; node->next; node = (decltype(node))node->next)
+			{
+				if (node->data == data)
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		void Clear()
+		{
+			auto node = head;
+
+			while (node)
+			{
+				auto next = node->next;
+				delete node;
+
+				node = (decltype(node))next;
+			}
+
+			head = tail = nullptr;
+		}
+
+	private:
+		TNode* head;
+		TNode* tail;
+	};
+
+	template<typename Data, typename Base>
+	class atDNode : public Base
+	{
+	public:
+		inline atDNode()
+		{
+			data = nullptr;
+			next = nullptr;
+			prev = nullptr;
+		}
+
+		inline Data* GetData() const
+		{
+			return data;
+		}
+
+		inline void SetData(Data* data)
+		{
+			this->data = data;
+		}
+
+		void Unlink()
+		{
+			if (next)
+			{
+				next->prev = prev;
+			}
+
+			if (prev)
+			{
+				prev->next = next;
+			}
+
+			next = nullptr;
+			prev = nullptr;
+		}
+
+	public:
+		Data* data;
+		atDNode* next;
+		atDNode* prev;
+	};
+
+	class netEventMgr
+	{
+	public:
+		class atDNetEventNode : public atDNode<netGameEvent, datBase>, public PoolAllocated<atDNetEventNode>
+		{
+		public:
+			static constexpr const uint32_t kHash = HashString("atDNetEventNode");
+		};
+
+		void AddEvent(netGameEvent* event);
+
+		void RemoveEvent(netGameEvent* event);
+
+		bool HasEvent(netGameEvent* event);
+
+		void ClearEvents();
+
+	private:
+		char pad[40];
+		atDLList<atDNetEventNode> eventList;
+	};
+
+	void netEventMgr::AddEvent(netGameEvent* event)
+	{
+		auto node = new atDNetEventNode();
+		if (node)
+		{
+			node->SetData(event);
+			eventList.Add(node);
+		}
+	}
+
+	void netEventMgr::RemoveEvent(netGameEvent* event)
+	{
+		eventList.RemoveData(event);
+	}
+
+	bool netEventMgr::HasEvent(netGameEvent* event)
+	{
+		return eventList.Has(event);
+	}
+
+	void netEventMgr::ClearEvents()
+	{
+		eventList.Clear();
+	}
+#endif
 }
 
 bool EnsurePlayer31()
@@ -2264,11 +2452,18 @@ static void EventMgr_AddEvent(void* eventMgr, rage::netGameEvent* ev)
 
 	auto eventId = (ev->hasEventId) ? ev->eventId : g_eventHeader++;
 
-	auto [ it, inserted ] = g_events.insert({ { ev->eventType, eventId }, { ev, msec() } });
+	auto [it, inserted] = g_events.insert({ { ev->eventType, eventId }, { ev, msec() } });
 
 	if (!inserted)
 	{
 		delete ev;
+	}
+	else
+	{
+#if defined(GTA_FIVE)
+		auto em = reinterpret_cast<rage::netEventMgr*>(eventMgr);
+		em->AddEvent(ev);
+#endif
 	}
 }
 
@@ -2412,6 +2607,11 @@ static void EventManager_Update()
 
 			if (ev->HasTimedOut() || (msec() - evSet.time) > expiryDuration)
 			{
+#if defined(GTA_FIVE)
+				auto em = reinterpret_cast<rage::netEventMgr*>(*(char**)g_netEventMgr);
+				em->RemoveEvent(ev);
+#endif
+
 				delete ev;
 
 				toRemove.insert(eventPair.first);
@@ -2499,6 +2699,11 @@ static void HandleNetGameEvent(const char* idata, size_t len)
 				ev->HandleExtraData(&rlBuffer, true, player, g_playerMgr->localPlayer);
 #elif IS_RDR3
 				ev->HandleExtraData(&rlBuffer, player, g_playerMgr->localPlayer);
+#endif
+
+#if defined(GTA_FIVE)
+				auto em = reinterpret_cast<rage::netEventMgr*>(*(char**)g_netEventMgr);
+				em->RemoveEvent(ev);
 #endif
 
 				delete ev;
@@ -2796,6 +3001,9 @@ static HookFunction hookFunctionEv([]()
 
 		g_netEventMgr = hook::get_address<void*>(location);
 		MH_CreateHook(hook::get_call(location + 7), EventMgr_AddEvent, (void**)&g_origAddEvent);
+
+		// no event processing
+		hook::put<uint16_t>(hook::get_pattern("4D 85 FF 0F 84 ? ? ? ? 4D 8B 77 08 4D 8B", 3), 0xE990);
 #elif IS_RDR3
 		auto location = hook::get_pattern<char>("C6 47 50 01 4C 8B C3 49 8B D7", (xbr::IsGameBuildOrGreater<1436>()) ? 0x59 : 0x21);
 
@@ -4012,6 +4220,11 @@ static InitFunction initFunction([]()
 
 	OnKillNetwork.Connect([](const char*)
 	{
+#if defined(GTA_FIVE)
+		auto em = reinterpret_cast<rage::netEventMgr*>(*(char**)g_netEventMgr);
+		em->ClearEvents();
+#endif
+
 		g_events.clear();
 		g_reEventQueue.clear();
 	});
