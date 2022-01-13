@@ -64,6 +64,8 @@ json.setoption('with_hole', true)
 -- temp
 local _in = Citizen.InvokeNative
 
+local errorHandlers = {}
+
 local function FormatStackTrace()
 	return _in(`FORMAT_STACK_TRACE` & 0xFFFFFFFF, nil, 0, Citizen.ResultAsString())
 end
@@ -128,6 +130,18 @@ function Citizen.Await(promise)
 	end
 
 	return promise.value
+end
+
+function Citizen.RegisterErrorHandler(callback)
+	local invokingResource = GetCurrentResourceName()
+
+	-- check if a table exists for the calling resource to insert a callback
+	if errorHandlers[invokingResource] == nil then
+		errorHandlers[invokingResource] = {}
+	end
+
+	-- insert the callback
+	table.insert(errorHandlers[invokingResource], callback)
 end
 
 Citizen.SetBoundaryRoutine(function(f)
@@ -476,10 +490,29 @@ end
 
 local function doStackFormat(err)
 	local fst = FormatStackTrace()
-	
+
 	-- already recovering from an error
 	if not fst then
 		return nil
+	end
+
+	local invokingResource = GetCurrentResourceName()
+
+	-- check if any error handlers are registered for the current resource
+	if errorHandlers[invokingResource] ~= nil then
+		for callbackIndex=1, #errorHandlers[invokingResource] do
+			-- check whether the callback is still valid
+			if errorHandlers[invokingResource][callbackIndex] ~= nil then
+				-- return the error and stack trace to the associated resource callbacks, removing any color codes
+				errorHandlers[invokingResource][callbackIndex]({
+					err = err,
+					fst = fst:gsub("%^%d", "")
+				})
+			else
+				-- remove the callback if it no longer exists
+				table.remove(handlerCallbacks, callbackIndex)
+			end
+		end
 	end
 
 	return '^1SCRIPT ERROR: ' .. err .. "^7\n" .. fst
