@@ -1,6 +1,6 @@
 #include <StdInc.h>
 
-#ifdef GTA_FIVE
+#if defined(GTA_FIVE) || defined(IS_RDR3)
 #define CNL_ENDPOINT "https://lambda.fivem.net"
 
 #include <LegitimacyAPI.h>
