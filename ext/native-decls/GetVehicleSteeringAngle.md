@@ -1,6 +1,6 @@
 ---
 ns: CFX
-apiset: client
+apiset: shared
 ---
 ## GET_VEHICLE_STEERING_ANGLE
 

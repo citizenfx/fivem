@@ -1671,6 +1671,13 @@ static void Init()
 
 		return heliHealth ? float(heliHealth->tailRotorHealth) : 0.0f;
 	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_STEERING_ANGLE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto steeringData = entity->syncTree->GetVehicleSteeringData();
+
+		return steeringData ? steeringData->steeringAngle * (180.0f / pi) : 0.0f;
+	}));
 }
 
 static InitFunction initFunction([]()

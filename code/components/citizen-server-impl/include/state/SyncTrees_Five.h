@@ -1347,7 +1347,18 @@ struct CVehicleAngVelocityDataNode
 	}
 };
 
-struct CVehicleSteeringDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CVehicleSteeringDataNode
+{
+	CVehicleSteeringNodeData data;
+
+	bool Parse(SyncParseState& state)
+	{
+		data.steeringAngle = state.buffer.ReadSignedFloat(10, 1.0f);
+
+		return true;
+	}
+};
+
 struct CVehicleControlDataNode { bool Parse(SyncParseState& state) { return true; } };
 
 struct CVehicleGadgetDataNode
@@ -3284,6 +3295,13 @@ struct SyncTree : public SyncTreeBase
 	virtual CHeliHealthNodeData* GetHeliHealth() override
 	{
 		auto [hasNode, node] = GetData<CHeliHealthDataNode>();
+
+		return hasNode ? &node->data : nullptr;
+	}
+
+	virtual CVehicleSteeringNodeData* GetVehicleSteeringData() override
+	{
+		auto [hasNode, node] = GetData<CVehicleSteeringDataNode>();
 
 		return hasNode ? &node->data : nullptr;
 	}
