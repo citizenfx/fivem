@@ -2460,7 +2460,7 @@ static void EventMgr_AddEvent(void* eventMgr, rage::netGameEvent* ev)
 	}
 	else
 	{
-#if defined(GTA_FIVE)
+#if defined(GTA_FIVE) && 0
 		auto em = reinterpret_cast<rage::netEventMgr*>(eventMgr);
 		em->AddEvent(ev);
 #endif
@@ -2607,7 +2607,7 @@ static void EventManager_Update()
 
 			if (ev->HasTimedOut() || (msec() - evSet.time) > expiryDuration)
 			{
-#if defined(GTA_FIVE)
+#if defined(GTA_FIVE) && 0
 				auto em = reinterpret_cast<rage::netEventMgr*>(*(char**)g_netEventMgr);
 				em->RemoveEvent(ev);
 #endif
@@ -2701,7 +2701,7 @@ static void HandleNetGameEvent(const char* idata, size_t len)
 				ev->HandleExtraData(&rlBuffer, player, g_playerMgr->localPlayer);
 #endif
 
-#if defined(GTA_FIVE)
+#if defined(GTA_FIVE) && 0
 				auto em = reinterpret_cast<rage::netEventMgr*>(*(char**)g_netEventMgr);
 				em->RemoveEvent(ev);
 #endif
@@ -3002,8 +3002,25 @@ static HookFunction hookFunctionEv([]()
 		g_netEventMgr = hook::get_address<void*>(location);
 		MH_CreateHook(hook::get_call(location + 7), EventMgr_AddEvent, (void**)&g_origAddEvent);
 
-		// no event processing
-		hook::put<uint16_t>(hook::get_pattern("4D 85 FF 0F 84 ? ? ? ? 4D 8B 77 08 4D 8B", 3), 0xE990);
+#if 0
+		static auto eventLoc = hook::get_pattern("4D 85 FF 0F 84 ? ? ? ? 4D 8B 77 08 4D 8B", 3); //, 0xE990);
+		static auto origEvent = *(uint16_t*)eventLoc;
+
+		Instance<ICoreGameInit>::Get()->OnSetVariable.Connect([](const std::string& varName, bool newValue)
+		{
+			if (varName == "onesync")
+			{
+				if (!newValue)
+				{
+					// who knows, put back origEvent
+				}
+				else
+				{
+					// write 0xE990;
+				}
+			}
+		});
+#endif
 #elif IS_RDR3
 		auto location = hook::get_pattern<char>("C6 47 50 01 4C 8B C3 49 8B D7", (xbr::IsGameBuildOrGreater<1436>()) ? 0x59 : 0x21);
 
@@ -4220,7 +4237,7 @@ static InitFunction initFunction([]()
 
 	OnKillNetwork.Connect([](const char*)
 	{
-#if defined(GTA_FIVE)
+#if defined(GTA_FIVE) && 0
 		auto em = reinterpret_cast<rage::netEventMgr*>(*(char**)g_netEventMgr);
 
 		if (em)
