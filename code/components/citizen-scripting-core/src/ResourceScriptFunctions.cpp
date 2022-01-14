@@ -26,14 +26,15 @@
 struct CommandObject
 {
 	std::string name;
+	int32_t arity;
 
-	CommandObject(const std::string& name)
-		: name(name)
+	CommandObject(const std::string& name, size_t arity)
+		: name(name), arity(arity)
 	{
 
 	}
 
-	MSGPACK_DEFINE_MAP(name);
+	MSGPACK_DEFINE_MAP(name, arity);
 };
 
 static InitFunction initFunction([] ()
@@ -178,9 +179,9 @@ static InitFunction initFunction([] ()
 				auto resourceManager = resource->GetManager();
 				auto consoleCxt = resourceManager->GetComponent<console::Context>();
 
-				consoleCxt->GetCommandManager()->ForAllCommands([&](const std::string& commandName)
+				consoleCxt->GetCommandManager()->ForAllCommands2([&commandList](const console::CommandMetadata& command)
 				{
-					commandList.emplace_back(commandName);
+					commandList.emplace_back(command.GetName(), (command.GetArity() == -1) ? -1 : int32_t(command.GetArity()));
 				});
 
 				context.SetResult(fx::SerializeObject(commandList));

@@ -41,6 +41,41 @@ struct ConsoleExecutionContext
 	}
 };
 
+namespace console
+{
+class CommandMetadata
+{
+public:
+	inline CommandMetadata(std::nullptr_t)
+	{
+	}
+
+	inline CommandMetadata(const std::string& name, size_t arity)
+		: m_name(name), m_arity(arity)
+	{
+	}
+
+	inline operator bool() const
+	{
+		return !m_name.empty();
+	}
+
+	inline const auto& GetName() const
+	{
+		return m_name;
+	}
+
+	inline auto GetArity() const
+	{
+		return m_arity;
+	}
+
+private:
+	std::string m_name;
+	size_t m_arity = -1;
+};
+}
+
 class ConsoleCommandManager
 {
 private:
@@ -51,7 +86,7 @@ public:
 
 	virtual ~ConsoleCommandManager();
 
-	virtual int Register(const std::string& name, const THandler& handler);
+	virtual int Register(const std::string& name, const THandler& handler, size_t arity = -1);
 
 	virtual void Unregister(int token);
 
@@ -60,6 +95,8 @@ public:
 	virtual void Invoke(const std::string& commandString, const std::string& executionContext = std::string());
 
 	virtual void ForAllCommands(const std::function<void(const std::string&)>& callback);
+
+	virtual void ForAllCommands2(const std::function<void(const console::CommandMetadata&)>& callback);
 
 	virtual bool HasCommand(const std::string& name);
 
@@ -75,9 +112,10 @@ private:
 		THandler function;
 
 		int token;
+		size_t arity;
 
-		inline Entry(const std::string& name, const THandler& function, int token)
-		    : name(name), function(function), token(token)
+		inline Entry(const std::string& name, const THandler& function, int token, size_t arity = -1)
+			: name(name), function(function), token(token), arity(arity)
 		{
 		}
 	};
@@ -324,12 +362,15 @@ std::string UnparseArgument(const TArgument& input)
 template <class TFunc>
 struct ConsoleCommandFunction
 {
+	constexpr static const size_t kNumArguments = -1;
 };
 
 template <typename... Args>
 struct ConsoleCommandFunction<std::function<void(Args...)>>
 {
 	using TFunc = std::function<void(Args...)>;
+
+	constexpr static const auto kNumArguments = sizeof...(Args);
 
 	using ArgTuple = std::tuple<Args...>;
 
