@@ -4222,7 +4222,11 @@ static InitFunction initFunction([]()
 	{
 #if defined(GTA_FIVE)
 		auto em = reinterpret_cast<rage::netEventMgr*>(*(char**)g_netEventMgr);
-		em->ClearEvents();
+
+		if (em)
+		{
+			em->ClearEvents();
+		}
 #endif
 
 		g_events.clear();
