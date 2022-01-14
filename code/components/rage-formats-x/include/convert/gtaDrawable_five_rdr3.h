@@ -724,9 +724,13 @@ rdr3::grmShaderGroup* convert(five::grmShaderGroup* shaderGroup)
 				std::array<uint8_t, 16> value;
 				memcpy(value.data(), params[i].GetValue(), 16);
 
-				if (pn == HashString("Specular"))
+				if (pn == HashString("SpecularColor"))
 				{
-					*(float*)(value.data()) /= 40.f;
+					*(float*)(value.data()) /= 4.f;
+				}
+				else if (pn == HashString("Specular"))
+				{
+					*(float*)(value.data()) /= 160.f;
 				}
 
 				paramRefs.emplace_back(pn, value);
