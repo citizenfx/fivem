@@ -1678,6 +1678,27 @@ static void Init()
 
 		return steeringData ? steeringData->steeringAngle * (180.0f / pi) : 0.0f;
 	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_FLASH_LIGHT_ON", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto gameState = entity->syncTree->GetPedGameState();
+
+		return gameState ? gameState->isFlashlightOn : false;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_PED_USING_ACTION_MODE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto gameState = entity->syncTree->GetPedGameState();
+
+		return gameState ? gameState->actionModeEnabled : false;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_PED_HANDCUFFED", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto gameState = entity->syncTree->GetPedGameState();
+
+		return gameState ? gameState->isHandcuffed : false;
+	}));
 }
 
 static InitFunction initFunction([]()

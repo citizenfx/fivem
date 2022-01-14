@@ -1123,12 +1123,12 @@ struct CPedGameStateDataNode
 
 	bool Parse(SyncParseState& state)
 	{
+		auto keepTasksAfterCleanup = state.buffer.ReadBit();
 		auto bool1 = state.buffer.ReadBit();
 		auto bool2 = state.buffer.ReadBit();
 		auto bool3 = state.buffer.ReadBit();
 		auto bool4 = state.buffer.ReadBit();
 		auto bool5 = state.buffer.ReadBit();
-		auto bool6 = state.buffer.ReadBit();
 
 		if (Is2060())
 		{
@@ -1236,6 +1236,46 @@ struct CPedGameStateDataNode
 			data.curVehicle = -1;
 			data.curVehicleSeat = -1;
 		}
+
+		bool bool6 = state.buffer.ReadBit();
+
+		if (bool6)
+		{
+			bool bool7 = state.buffer.ReadBit();
+		}
+
+		bool hasCustodianOrArrestFlags = state.buffer.ReadBit();
+
+		if (hasCustodianOrArrestFlags)
+		{
+			uint16_t custodianId = state.buffer.Read<uint16_t>(13);
+			bool isHandcuffed = state.buffer.ReadBit();
+			bool canPerformArrest = state.buffer.ReadBit();
+			bool canPerformUncuff = state.buffer.ReadBit();
+			bool canBeArrested = state.buffer.ReadBit();
+			bool isInCustody = state.buffer.ReadBit();
+
+			data.isHandcuffed = isHandcuffed;
+		}
+		else
+		{
+			data.isHandcuffed = false;
+		}
+
+		bool isFlashLightOn = state.buffer.ReadBit();
+		bool actionModeEnabled = state.buffer.ReadBit();
+		bool stealthModeEnabled = state.buffer.ReadBit();
+
+		if (actionModeEnabled || stealthModeEnabled)
+		{
+			uint32_t actionModeOverride = state.buffer.Read<uint32_t>(32);
+		}
+
+		bool killedByStealth = state.buffer.ReadBit();
+		bool killedByTakedown = state.buffer.ReadBit();
+		
+		data.actionModeEnabled = actionModeEnabled;
+		data.isFlashlightOn = isFlashLightOn;
 
 		// TODO
 
