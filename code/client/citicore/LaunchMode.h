@@ -1,7 +1,5 @@
 #pragma once
 
-#include <CoreConsole.h>
-
 inline bool CfxIsSinglePlayer()
 {
 #ifdef _WIN32

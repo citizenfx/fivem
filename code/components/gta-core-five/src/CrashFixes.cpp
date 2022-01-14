@@ -15,6 +15,7 @@
 #include <ICoreGameInit.h>
 #include <gameSkeleton.h>
 
+#include <CoreConsole.h>
 #include <LaunchMode.h>
 #include <CrossBuildRuntime.h>
 

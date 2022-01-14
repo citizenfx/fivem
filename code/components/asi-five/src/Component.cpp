@@ -13,6 +13,7 @@
 #include <filesystem>
 #include <wchar.h>
 
+#include <CoreConsole.h>
 #include <LaunchMode.h>
 
 #include <Error.h>
