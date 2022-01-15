@@ -49,3 +49,11 @@ int wmain(int argc, const wchar_t** argv)
 
 	return 0;
 }
+
+extern "C" DLL_EXPORT void AsyncTrace(const char* string)
+{
+	if (std::string_view{ string }.find("Error:") == 0)
+	{
+		fprintf(stderr, "%s", string);
+	}
+}
