@@ -127,6 +127,11 @@ private:
 	uint16_t m_count;
 	uint16_t m_size;
 
+	// ensure 8-byte padding
+#if defined(RAGE_FORMATS_GAME_FIVE)
+	uint32_t m_padding;
+#endif
+
 public:
 	pgObjectArray()
 	{
