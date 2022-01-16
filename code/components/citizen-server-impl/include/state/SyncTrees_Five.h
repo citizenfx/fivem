@@ -430,7 +430,207 @@ struct CVehicleGameStateDataNode
 
 struct CEntityScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPhysicalScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CVehicleScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
+
+struct CVehicleScriptGameStateDataNode
+{
+	CVehicleScriptGameStateNodeData data;
+
+	bool Parse(SyncParseState& state)
+	{
+		bool hasFreebies = state.buffer.ReadBit();
+		bool canBeVisiblyDamaged = state.buffer.ReadBit();
+		bool isDrowning = state.buffer.ReadBit();
+		bool isPartOfConvoy = state.buffer.ReadBit();
+		bool canBeTargetted = state.buffer.ReadBit();
+		bool takeLessDamage = state.buffer.ReadBit(); // SET_VEHICLE_STRONG
+		bool consideredByPlayer = state.buffer.ReadBit();
+		bool lockedForNonScriptPlayers = state.buffer.ReadBit();
+		bool respectLocksWhenHasDriver = state.buffer.ReadBit();
+		bool locksDoorOnCleanup = state.buffer.ReadBit();
+		bool shouldFixIfNoCollision = state.buffer.ReadBit();
+		bool automaticallyAttaches = state.buffer.ReadBit();
+		bool scansWithNonPlayerDriver = state.buffer.ReadBit();
+		bool disableExplodeOnContact = state.buffer.ReadBit();
+
+		bool unk1 = state.buffer.ReadBit();
+		bool unk2 = state.buffer.ReadBit();
+		bool canBeUsedByFleeingPeds = state.buffer.ReadBit();
+		bool unk3 = state.buffer.ReadBit();
+		bool unk4 = state.buffer.ReadBit();
+		bool unk5 = state.buffer.ReadBit();
+		bool unk6 = state.buffer.ReadBit();
+		bool explodesOnHighExplosionDamage = state.buffer.ReadBit();
+		bool unk7 = state.buffer.ReadBit();
+		bool isSilent = state.buffer.ReadBit();
+		bool unk8 = state.buffer.ReadBit();
+		bool unk9 = state.buffer.ReadBit();
+		bool unk10 = state.buffer.ReadBit();
+		bool isTowingDisabled = state.buffer.ReadBit();
+		bool unk11 = state.buffer.ReadBit();
+		bool unk12 = state.buffer.ReadBit();
+		bool unk13 = state.buffer.ReadBit();
+
+		if (Is2060())
+		{
+			bool unk14 = state.buffer.ReadBit();
+		}
+
+		bool isInAir = state.buffer.ReadBit();
+		bool isParachuteActive = state.buffer.ReadBit();
+
+		if (isParachuteActive)
+		{
+			float yawControl = state.buffer.ReadSignedFloat(8, 1.0f);
+			float pitchControl = state.buffer.ReadSignedFloat(8, 1.0f);
+		}
+
+		uint8_t popType = state.buffer.Read<uint8_t>(4);
+
+		bool unk15 = state.buffer.ReadBit();
+
+		if (unk15)
+		{
+			int unk16 = state.buffer.Read<int>(16);
+			bool unk17 = state.buffer.ReadBit();
+
+			if (unk17)
+			{
+				uint32_t unk18 = state.buffer.Read<uint32_t>(32);
+			}
+		}
+
+		bool unk19 = state.buffer.ReadBit();
+
+		if (unk19)
+		{
+			uint8_t unk20 = state.buffer.Read<uint8_t>(5);
+		}
+
+		bool unk21 = state.buffer.ReadBit();
+
+		if (unk21)
+		{
+			int unk22 = state.buffer.Read<int>(13);
+		}
+
+		bool unk23 = state.buffer.ReadBit();
+
+		if (unk23)
+		{
+			int unk24 = state.buffer.Read<int>(10);
+		}
+
+		bool unk25 = state.buffer.ReadBit();
+
+		if (unk25)
+		{
+			uint8_t unk26 = state.buffer.Read<uint8_t>(6);
+		}
+
+		bool unk27 = state.buffer.ReadBit();
+		bool unk28 = state.buffer.ReadBit();
+		int unk29 = state.buffer.Read<int>(13);
+
+		bool unk30 = state.buffer.ReadBit();
+
+		if (unk30)
+		{
+			int unk31 = state.buffer.Read<int>(13);
+		}
+
+		bool unk32 = state.buffer.ReadBit();
+
+		if (unk32)
+		{
+			uint16_t unk33 = state.buffer.Read<uint16_t>(8);
+		}
+
+		bool unk34 = state.buffer.ReadBit();
+
+		if (unk34)
+		{
+			int unk35 = state.buffer.Read<int>(10);
+		}
+
+		bool unk36 = state.buffer.ReadBit();
+
+		if (unk36)
+		{
+			int unk37 = state.buffer.Read<int>(10);
+		}
+
+		bool unk38 = state.buffer.ReadBit();
+		int unk39 = state.buffer.Read<int>(14);
+		bool unk40 = state.buffer.ReadBit();
+		bool unk41 = state.buffer.ReadBit();
+		bool unk42 = state.buffer.ReadBit();
+
+		int weaponIndex = 0;
+
+		do
+		{
+			bool weaponCapacityLimited = state.buffer.ReadBit(); // weaponCapacity != -1
+
+			if (weaponCapacityLimited)
+			{
+				data.weaponsCapacities[weaponIndex] = state.buffer.Read<int>(11);
+			}
+			else
+			{
+				data.weaponsCapacities[weaponIndex] = -1;
+			}
+
+			++weaponIndex;
+		} while (weaponIndex < 6);
+
+		bool unk44 = state.buffer.ReadBit();
+		bool unk45 = state.buffer.ReadBit();
+
+		if (unk45)
+		{
+			int unk46 = state.buffer.Read<int>(10);
+		}
+
+		bool unk47 = state.buffer.ReadBit();
+
+		if (unk47)
+		{
+			uint16_t unk48 = state.buffer.Read<uint16_t>(8);
+		}
+
+		bool unk49 = state.buffer.ReadBit();
+
+		if (unk49)
+		{
+			uint8_t unk50 = state.buffer.Read<uint8_t>(4);
+		}
+
+		bool unk51 = state.buffer.ReadBit();
+		bool unk52 = state.buffer.ReadBit();
+
+		if (unk52)
+		{
+			uint8_t unk53 = state.buffer.Read<uint8_t>(2);
+		}
+
+		bool unk54 = state.buffer.ReadBit();
+		bool unk55 = state.buffer.ReadBit();
+		bool unk56 = state.buffer.ReadBit();
+
+		int bombCount = state.buffer.Read<int>(10);
+		int counterMeasureCount = state.buffer.Read<int>(10);
+
+		// TODO
+
+		data.canBeVisiblyDamaged = canBeVisiblyDamaged;
+		data.isDrowning = isDrowning;
+		data.isParachuteActive = isParachuteActive;
+		data.bombCount = bombCount;
+		data.counterMeasureCount = counterMeasureCount;
+
+		return true;
+	}
+};
 
 struct CEntityScriptInfoDataNode
 {
@@ -3302,6 +3502,13 @@ struct SyncTree : public SyncTreeBase
 	virtual CVehicleSteeringNodeData* GetVehicleSteeringData() override
 	{
 		auto [hasNode, node] = GetData<CVehicleSteeringDataNode>();
+
+		return hasNode ? &node->data : nullptr;
+	}
+
+	virtual CVehicleScriptGameStateNodeData* GetVehicleScriptGameState() override
+	{
+		auto [hasNode, node] = GetData<CVehicleScriptGameStateDataNode>();
 
 		return hasNode ? &node->data : nullptr;
 	}
