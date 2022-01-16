@@ -40,6 +40,14 @@ static decltype(&CreateFileW) createFileW;
 
 static HANDLE WINAPI CreateFileWDummy(_In_ LPCWSTR lpFileName, _In_ DWORD dwDesiredAccess, _In_ DWORD dwShareMode, _In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes, _In_ DWORD dwCreationDisposition, _In_ DWORD dwFlagsAndAttributes, _In_opt_ HANDLE hTemplateFile)
 {
+	WIN32_FILE_ATTRIBUTE_DATA outData = { 0 };
+	if (GetFileAttributesEx(lpFileName, GetFileExInfoStandard, &outData))
+	{
+		if (outData.dwFileAttributes & FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS)
+		{
+			return INVALID_HANDLE_VALUE;
+		}
+	}
 	return createFileW(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
 }
 
@@ -48,8 +56,6 @@ static void ResetPackfile(const char* archive)
 	// if this is update.rpf, maybe we should do something about that?
 	if (strcmp(archive, "update/update.rpf") == 0)
 	{
-		createFileW = hook::iat("kernel32.dll", CreateFileWDummy, "CreateFileW");
-
 		HANDLE hFile = createFileW(L"update/update.rpf", GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, 0, NULL);
 
 		if (hFile != INVALID_HANDLE_VALUE)
@@ -110,7 +116,10 @@ static bool OpenArchiveWrap(rage::fiPackfile* packfile, const char* archive, boo
 
 	if (!retval)
 	{
-		FatalError("Could not open %s\nPlease try to verify your GTA V files, see http://rsg.ms/verify for more information.\n\nCurrently, the installation directory %s is being used.", archive, ToNarrow(MakeRelativeGamePath(L"")));
+		FatalError("Could not open %s\nPlease try to verify your GTA V files, see http://rsg.ms/verify for more information.\n\n"
+			"You should also make sure your game files are not on cloud storage or OneDrive, but on a physical hard drive.\n\n"
+			"Currently, the installation directory %s is being used.",
+			archive, ToNarrow(MakeRelativeGamePath(L"")));
 	}
 
 	return retval;
@@ -201,4 +210,6 @@ static HookFunction hookFunction([] ()
 		auto location = hook::get_pattern("41 8B D6 E9 7C 02 00 00", 4);
 		*(int*)location -= 0x12;
 	}
+
+	createFileW = hook::iat("kernel32.dll", CreateFileWDummy, "CreateFileW");
 });
