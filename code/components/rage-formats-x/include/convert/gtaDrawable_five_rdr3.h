@@ -828,16 +828,20 @@ inline void ConvertBaseDrawable(five::rmcDrawable* drawable, rdr3::gtaDrawable* 
 
 	for (int i = 0; i < 4; i++)
 	{
-		auto oldModel = oldLodGroup.GetModel(i);
+		auto oldLod = oldLodGroup.GetLod(i);
 
-		if (oldModel)
+		if (oldLod)
 		{
-			auto newModel = convert<rdr3::grmModel*>(oldModel);
+			size_t numModels = 0;
+			rage::rdr3::grmModel* newModels[64];
 
-			lodGroup.SetModel(i, newModel);
-			lodGroup.SetDrawBucketMask(i, oldLodGroup.GetDrawBucketMask(i));
-
+			for (auto mI = 0; mI < oldLod->GetCount(); mI++)
 			{
+				auto oldModel = oldLod->Get(mI);
+				auto newModel = convert<rdr3::grmModel*>(oldModel);
+				newModels[mI] = newModel;
+				numModels++;
+
 				auto oldBounds = oldModel->GetGeometryBounds();
 
 				int extraSize = 0;
@@ -855,6 +859,9 @@ inline void ConvertBaseDrawable(five::rmcDrawable* drawable, rdr3::gtaDrawable* 
 
 				newModel->SetGeometryBounds(newModel->GetGeometries().GetCount() + extraSize, (rage::rdr3::GeometryBound*)oldBounds);
 			}
+
+			lodGroup.SetLod(i, newModels, numModels);
+			lodGroup.SetDrawBucketMask(i, oldLodGroup.GetDrawBucketMask(i));
 		}
 	}
 

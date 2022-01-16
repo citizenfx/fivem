@@ -523,16 +523,23 @@ inline void ConvertBaseDrawable(ny::rmcDrawable* drawable, five::gtaDrawable* ou
 
 	for (int i = 0; i < 4; i++)
 	{
-		auto oldModel = oldLodGroup.GetModel(i);
+		auto oldLod = oldLodGroup.GetLod(i);
 
-		if (oldModel)
+		if (oldLod)
 		{
-			auto newModel = convert<five::grmModel*>(oldModel);
+			size_t numModels = 0;
+			int drawBucketMask = 0;
+			rage::five::grmModel* newModels[64];
 
-			lodGroup.SetModel(i, newModel);
-			lodGroup.SetDrawBucketMask(i, newModel->CalcDrawBucketMask(out->GetShaderGroup())); // TODO: change this
-
+			for (auto mI = 0; mI < oldLod->GetCount(); mI++)
 			{
+				auto oldModel = oldLod->Get(mI);
+				auto newModel = convert<five::grmModel*>(oldModel);
+				newModels[mI] = newModel;
+				numModels++;
+
+				drawBucketMask |= newModel->CalcDrawBucketMask(out->GetShaderGroup());
+
 				Vector4* oldBounds = oldModel->GetGeometryBounds();
 
 				if (oldBounds)
@@ -555,6 +562,9 @@ inline void ConvertBaseDrawable(ny::rmcDrawable* drawable, five::gtaDrawable* ou
 					newModel->SetGeometryBounds(geometryBounds.size(), &geometryBounds[0]);
 				}
 			}
+
+			lodGroup.SetLod(i, newModels, numModels);
+			lodGroup.SetDrawBucketMask(i, drawBucketMask);
 		}
 	}
 
