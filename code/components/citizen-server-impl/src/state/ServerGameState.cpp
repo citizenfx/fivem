@@ -5076,6 +5076,34 @@ struct CNetworkPtFXEvent
 
 	MSGPACK_DEFINE_MAP(effectHash, assetHash, posX, posY, posZ, offsetX, offsetY, offsetZ, rotX, rotY, rotZ, scale, axisBitset, isOnEntity, entityNetId, f109, f92, f110, f105, f106, f107, f111, f100);
 };
+
+/*NETEV requestControlEvent SERVER
+/#*
+ * Triggered when a player request the control of an entity.
+ *
+ * @param sender - The ID of the player that triggered the event.
+ * @param data - The event data.
+ #/
+declare function requestControlEvent(sender: number, data: {
+	entityNetId: number
+}): void;
+*/
+struct CRequestControlEvent
+{
+	void Parse(rl::MessageBuffer& buffer)
+	{
+		entityNetId = buffer.Read<uint16_t>(13);
+	}
+
+	inline std::string GetName()
+	{
+		return "requestControlEvent";
+	}
+
+	uint16_t entityNetId;
+
+	MSGPACK_DEFINE_MAP(entityNetId);
+};
 #endif
 
 template<typename TEvent>
@@ -5369,6 +5397,7 @@ static std::function<bool()> GetEventHandler(fx::ServerInstanceBase* instance, c
 
 	switch(eventType)
 	{
+		case REQUEST_CONTROL_EVENT: return GetHandler<CRequestControlEvent>(instance, client, std::move(buffer));
 		case WEAPON_DAMAGE_EVENT: return GetHandler<CWeaponDamageEvent>(instance, client, std::move(buffer));
 		case RESPAWN_PLAYER_PED_EVENT: return GetHandler<CRespawnPlayerPedEvent>(instance, client, std::move(buffer));
 		case GIVE_WEAPON_EVENT: return GetHandler<CGiveWeaponEvent>(instance, client, std::move(buffer));
