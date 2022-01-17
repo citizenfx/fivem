@@ -1527,7 +1527,7 @@ static void SetLauncherWaitCB(HANDLE hEvent, HANDLE hProcess, BOOL doBreak, DWOR
 						backOffFile(L"data\\game-storage\\ros_launcher_appdata3");
 						backOffFile(L"data\\game-storage\\ros_launcher_data3");
 						backOffFile(L"data\\game-storage\\ros_launcher_documents2");
-						backOffFile(L"data\\game-storage\\ros_launcher_game2");
+						backOffFile(fmt::sprintf(L"data\\game-storage\\ros_launcher_game_%d", xbr::GetGameBuild()));
 						backOffFile(L"data\\game-storage\\ros_profiles");
 
 						auto threadStart = GetRemoteProcAddress(hProcess, &ROSFailure);
