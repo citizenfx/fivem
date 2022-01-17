@@ -1433,10 +1433,10 @@ static void SetLauncherWaitCB(HANDLE hEvent, HANDLE hProcess, BOOL doBreak, DWOR
 						};
 
 						backOffFile(L"data\\game-storage\\ros_documents");
-						backOffFile(L"data\\game-storage\\ros_launcher_appdata3");
-						backOffFile(L"data\\game-storage\\ros_launcher_data3");
-						backOffFile(L"data\\game-storage\\ros_launcher_documents2");
-						backOffFile(L"data\\game-storage\\ros_launcher_game2");
+						backOffFile(L"data\\game-storage\\ros_launcher_appdata4");
+						backOffFile(L"data\\game-storage\\ros_launcher_data4");
+						backOffFile(L"data\\game-storage\\ros_launcher_documents3");
+						backOffFile(L"data\\game-storage\\ros_launcher_game3");
 						backOffFile(L"data\\game-storage\\ros_profiles");
 
 						auto threadStart = GetRemoteProcAddress(hProcess, &ROSFailure);
