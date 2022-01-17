@@ -603,7 +603,7 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 		}
 
 #ifdef _DEBUG
-		hook::jump(hook::get_pattern("4C 89 44 24 18 4C 89 4C 24 20 48 83 EC 28 48 8D"), LogStuff);
+		//hook::jump(hook::get_pattern("4C 89 44 24 18 4C 89 4C 24 20 48 83 EC 28 48 8D"), LogStuff);
 #endif
 
 		hook::iat("version.dll", GetFileVersionInfoAStub, "GetFileVersionInfoA");
