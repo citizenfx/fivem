@@ -1255,7 +1255,7 @@ static BOOL __stdcall EP_CreateProcessW(const wchar_t* applicationName, wchar_t*
 			const wchar_t* newCommandLine = va(L"\"%s\" ros:service", fxApplicationName);
 
 			// and go create the new fake process
-			retval = g_oldCreateProcessW(fxApplicationName, const_cast<wchar_t*>(newCommandLine), processAttributes, threadAttributes, inheritHandles, creationFlags | CREATE_UNICODE_ENVIRONMENT | CREATE_SUSPENDED, &newEnvironment[0], currentDirectory, startupInfo, information);
+			retval = g_oldCreateProcessW(fxApplicationName, const_cast<wchar_t*>(newCommandLine), processAttributes, threadAttributes, inheritHandles, creationFlags | CREATE_UNICODE_ENVIRONMENT, &newEnvironment[0], MakeRelativeCitPath(L"data\\game-storage\\launcher").c_str(), startupInfo, information);
 
 			if (!retval)
 			{
@@ -1555,7 +1555,7 @@ void RunLauncher(const wchar_t* toolName, bool instantWait)
 
 	PROCESS_INFORMATION pi;
 	STARTUPINFO si = { sizeof(STARTUPINFO) };
-	BOOL retval = g_oldCreateProcessW(fxApplicationName, const_cast<wchar_t*>(newCommandLine), nullptr, nullptr, FALSE, CREATE_UNICODE_ENVIRONMENT | (isLauncher ? CREATE_SUSPENDED : 0), &newEnvironment[0], MakeRelativeCitPath(L"").c_str(), &si, &pi);
+	BOOL retval = g_oldCreateProcessW(fxApplicationName, const_cast<wchar_t*>(newCommandLine), nullptr, nullptr, FALSE, CREATE_UNICODE_ENVIRONMENT, &newEnvironment[0], MakeRelativeCitPath(L"data\\game-storage\\launcher").c_str(), &si, &pi);
 
 	if (!retval)
 	{
