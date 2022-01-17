@@ -186,7 +186,9 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 					static bool verified;
 					static bool launched;
 					static bool verifying;
+					static bool launching;
 					static bool signInComplete;
+					static bool signInComplete2;
 					static bool launchDone;
 
 					auto checkVerify = [this, targetTitle]()
@@ -203,6 +205,35 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 																			.dump());
 
 							signInComplete = false;
+						}
+					};
+
+					auto checkLaunch = [this, targetTitle]()
+					{
+						if (signInComplete2 && !launched && launching)
+						{
+							launched = true;
+
+							for (int i = 0; i < 3; i++)
+							{
+								if (launchDone || g_launchDone)
+								{
+									break;
+								}
+
+								child->SendJSCallback("RGSC_SET_CLOUD_SAVE_ENABLED", json::object({ { "Enabled", false },
+																								  { "RosTitleName", targetTitle } })
+																					 .dump());
+
+								child->SendJSCallback("RGSC_RAISE_UI_EVENT", json::object({ { "EventId", 2 }, // LauncherV3UiEvent
+
+																						  { "Data", json::object({ { "Action", "Launch" },
+																									{ "Parameter", json::object({ { "titleName", targetTitle },
+																												   { "args", "" } }) } }) } })
+																			 .dump());
+
+								Sleep(10000);
+							}
 						}
 					};
 
@@ -239,7 +270,9 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 																		 .dump());
 
 							signInComplete = true;
+							signInComplete2 = true;
 							checkVerify();
+							checkLaunch();
 						}
 						else if (c == "SetTitleInfo") {
 							if (p.value("titleName", "") == targetTitle) {
@@ -253,37 +286,8 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 										p["status"].value("updateState", "") == "updateQueued" ||
 										p["status"].value("updateState", "") == "verifyQueued"))
 								{
-									if (!launched)
-									{
-										launched = true;
-
-										for (int i = 0; i < 3; i++)
-										{
-											if (launchDone || g_launchDone)
-											{
-												break;
-											}
-
-											child->SendJSCallback("RGSC_SET_CLOUD_SAVE_ENABLED", json::object({
-												{ "Enabled", false },
-												{ "RosTitleName", targetTitle }
-												}).dump());
-
-											child->SendJSCallback("RGSC_RAISE_UI_EVENT", json::object({
-												{ "EventId", 2 }, // LauncherV3UiEvent
-
-												{"Data", json::object({
-													{"Action", "Launch"},
-													{"Parameter", json::object({
-														{ "titleName", targetTitle },
-														{"args", ""}
-													})}
-												})}
-												}).dump());
-
-											Sleep(10000);
-										}
-									}
+									launching = true;
+									checkLaunch();
 								}
 							}
 						}
