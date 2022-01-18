@@ -177,8 +177,6 @@ static std::wstring MapRedirectedFilename(const wchar_t* origFileName)
 		else if (wcsstr(origFileName, L"Rockstar Games\\Games") != nullptr)
 		{
 			CreateDirectoryW(gameDir().c_str(), NULL);
-			RemoveDirectoryW((gameDir() + L"\\Grand Theft Auto V").c_str());
-			RemoveDirectoryW((gameDir() + L"\\Red Dead Redemption 2").c_str());
 
 			return gameDir() + &wcsstr(origFileName, L"ar Games\\Games")[14];
 		}
