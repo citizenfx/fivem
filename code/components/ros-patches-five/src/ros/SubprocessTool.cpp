@@ -103,6 +103,8 @@ constexpr const int ViewHostMsg_OnJavascriptCallbackSync = 0x2000D;
 constexpr const int ViewHostMsg_CreateIpcChannel = 0x20020;
 #endif
 
+extern void BackOffMtl();
+
 struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 {
 	HANDLE hPipe;
@@ -226,6 +228,8 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 						{
 							if (p.value("launchState", "") == "failed")
 							{
+								BackOffMtl();
+
 								FatalError("Failed to launch through MTL.");
 							}
 

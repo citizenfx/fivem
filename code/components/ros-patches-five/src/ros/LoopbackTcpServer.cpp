@@ -1480,6 +1480,25 @@ static const void* GetRemoteProcAddress(HANDLE hProcess, const void* function)
 	return nullptr;
 }
 
+void BackOffMtl()
+{
+	SetCanSafelySkipLauncher(false);
+
+	auto backOffSuffix = fmt::sprintf(L"%d", GetTickCount64());
+
+	auto backOffFile = [backOffSuffix](const std::wstring& fileName)
+	{
+		MoveFileW(MakeRelativeCitPath(fileName).c_str(), MakeRelativeCitPath(fileName + L".old" + backOffSuffix).c_str());
+	};
+
+	backOffFile(L"data\\game-storage\\ros_documents");
+	backOffFile(L"data\\game-storage\\ros_launcher_appdata3");
+	backOffFile(L"data\\game-storage\\ros_launcher_data3");
+	backOffFile(L"data\\game-storage\\ros_launcher_documents2");
+	backOffFile(fmt::sprintf(L"data\\game-storage\\ros_launcher_game_%d", xbr::GetGameBuild()));
+	backOffFile(L"data\\game-storage\\ros_profiles");
+}
+
 static void SetLauncherWaitCB(HANDLE hEvent, HANDLE hProcess, BOOL doBreak, DWORD timeout = INFINITE)
 {
 	g_waitForLauncherCB = [=]()
@@ -1514,21 +1533,7 @@ static void SetLauncherWaitCB(HANDLE hEvent, HANDLE hProcess, BOOL doBreak, DWOR
 
 					if (waitedFor >= 45)
 					{
-						SetCanSafelySkipLauncher(false);
-
-						auto backOffSuffix = fmt::sprintf(L"%d", GetTickCount64());
-						
-						auto backOffFile = [backOffSuffix](const std::wstring& fileName)
-						{
-							MoveFileW(MakeRelativeCitPath(fileName).c_str(), MakeRelativeCitPath(fileName + L".old" + backOffSuffix).c_str());
-						};
-
-						backOffFile(L"data\\game-storage\\ros_documents");
-						backOffFile(L"data\\game-storage\\ros_launcher_appdata3");
-						backOffFile(L"data\\game-storage\\ros_launcher_data3");
-						backOffFile(L"data\\game-storage\\ros_launcher_documents2");
-						backOffFile(fmt::sprintf(L"data\\game-storage\\ros_launcher_game_%d", xbr::GetGameBuild()));
-						backOffFile(L"data\\game-storage\\ros_profiles");
+						BackOffMtl();
 
 						auto threadStart = GetRemoteProcAddress(hProcess, &ROSFailure);
 
