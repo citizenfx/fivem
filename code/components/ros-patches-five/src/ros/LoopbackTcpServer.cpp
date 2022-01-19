@@ -1400,7 +1400,7 @@ void BackOffMtl()
 		MoveFileW(MakeRelativeCitPath(fileName).c_str(), MakeRelativeCitPath(fileName + L".old" + backOffSuffix).c_str());
 	};
 
-	backOffFile(L"data\\game-storage\\ros_documents");
+	backOffFile(L"data\\game-storage\\ros_documents3");
 	backOffFile(L"data\\game-storage\\ros_launcher_appdata4");
 	backOffFile(L"data\\game-storage\\ros_launcher_data4");
 	backOffFile(L"data\\game-storage\\ros_launcher_documents3");
