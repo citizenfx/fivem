@@ -1,5 +1,4 @@
 import { ResourceManifest } from "fxdk/contrib/assets/resource/common/resourceManifest";
-import { APIRQ } from "shared/api.requests";
 
 export interface ResourceTemplateDescriptor {
   id: string,
