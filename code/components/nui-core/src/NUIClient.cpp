@@ -75,6 +75,11 @@ NUIClient::NUIClient(NUIWindow* window)
 
 void NUIClient::OnLoadStart(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, TransitionType transitionType)
 {
+	if (frame->IsMain() && m_window && m_window->GetName() == "nui_mpMenu")
+	{
+		m_loadedMainFrame = false;
+	}
+
 	if (g_audioSink)
 	{
 		browser->GetHost()->SetAudioMuted(true);
