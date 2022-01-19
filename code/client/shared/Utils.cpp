@@ -183,7 +183,7 @@ void TraceRealV(const char* channel, const char* func, const char* file, int lin
 	CoreTrace(channel, func, file, line, buffer.data());
 
 #ifdef _WIN32
-#if !defined(GTA_NY)
+#if defined(_M_AMD64)
 	if (CoreIsDebuggerPresent())
 	{
 		// thanks to anti-debug workarounds (IsBeingDebugged == FALSE), we'll have to raise the exception to the debugger ourselves.

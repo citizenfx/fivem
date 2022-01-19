@@ -339,33 +339,6 @@ void AAD_Initialize()
 
 	// set GlobalFlags
 	*(DWORD*)((char*)peb + 0xBC) &= ~0x70;
-
-	if (CoreIsDebuggerPresent())
-	{
-		/*HANDLE hdl;
-		DWORD len = 0;
-		NtQueryInformationProcess(GetCurrentProcess(), (PROCESSINFOCLASS)0x1E, &hdl, sizeof(hdl), &len);
-
-		PSECURITY_DESCRIPTOR sd;
-		ULONG cb;
-
-		ConvertStringSecurityDescriptorToSecurityDescriptor(TEXT("D:(A;;0;;;OW)"),
-			SDDL_REVISION_1, &sd, &cb);
-
-		SetKernelObjectSecurity(hdl, DACL_SECURITY_INFORMATION, sd);
-
-		LocalFree(sd);
-
-		// NOP OutputDebugStringA; the debugger doesn't like multiple async exceptions
-		uint8_t* func = (uint8_t*)OutputDebugStringA;
-
-		DWORD oldProtect;
-		VirtualProtect(func, 1, PAGE_EXECUTE_READWRITE, &oldProtect);
-
-		//*func = 0xC3;
-
-		VirtualProtect(func, 1, oldProtect, &oldProtect);*/
-	}
 #elif defined(GTA_NY)
 	// set BeingDebugged
 	PPEB peb = (PPEB)__readfsdword(0x30);

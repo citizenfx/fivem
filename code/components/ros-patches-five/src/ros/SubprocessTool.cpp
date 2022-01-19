@@ -187,13 +187,17 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 
 					static bool verified;
 					static bool launched;
+					static bool installing;
 					static bool verifying;
+					static bool launchedVerify;
+					static bool launching;
 					static bool signInComplete;
+					static bool signInComplete2;
 					static bool launchDone;
 
-					auto checkVerify = [this, targetTitle]()
+					auto checkInstall = [this, targetTitle]()
 					{
-						if (signInComplete && verifying)
+						if (signInComplete && installing)
 						{
 							child->SendJSCallback("RGSC_RAISE_UI_EVENT", json::object({ { "EventId", 2 }, // LauncherV3UiEvent
 
@@ -205,6 +209,53 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 																			.dump());
 
 							signInComplete = false;
+						}
+					};
+
+					auto checkVerify = [this, targetTitle]()
+					{
+						if (signInComplete2 && !verified && !launchedVerify && verifying)
+						{
+							Sleep(500);
+
+							child->SendJSCallback("RGSC_RAISE_UI_EVENT", json::object({ { "EventId", 2 }, // LauncherV3UiEvent
+
+																					  { "Data", json::object({ { "Action", "Verify" },
+																								{ "Parameter", json::object({
+																											   { "titleName", targetTitle },
+																											   }) } }) } })
+																		 .dump());
+
+							launchedVerify = true;
+						}
+					};
+
+					auto checkLaunch = [this, targetTitle]()
+					{
+						if (signInComplete2 && !launched && launching /* && verified*/)
+						{
+							launched = true;
+
+							for (int i = 0; i < 3; i++)
+							{
+								if (launchDone || g_launchDone)
+								{
+									break;
+								}
+
+								child->SendJSCallback("RGSC_SET_CLOUD_SAVE_ENABLED", json::object({ { "Enabled", false },
+																								  { "RosTitleName", targetTitle } })
+																					 .dump());
+
+								child->SendJSCallback("RGSC_RAISE_UI_EVENT", json::object({ { "EventId", 2 }, // LauncherV3UiEvent
+
+																						  { "Data", json::object({ { "Action", "Launch" },
+																									{ "Parameter", json::object({ { "titleName", targetTitle },
+																												   { "args", "" } }) } }) } })
+																			 .dump());
+
+								Sleep(10000);
+							}
 						}
 					};
 
@@ -243,51 +294,32 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 																		 .dump());
 
 							signInComplete = true;
+							signInComplete2 = true;
+							checkInstall();
 							checkVerify();
+							checkLaunch();
 						}
 						else if (c == "SetTitleInfo") {
 							if (p.value("titleName", "") == targetTitle) {
 								if (p["status"].value("entitlement", false) && !p["status"].value("install", false) &&
 									p["status"].value("releaseState", "preload") == "available" && !verified) {
-									verifying = true;
-									checkVerify();
+									installing = true;
+									checkInstall();
 								}
 								else if (p["status"].value("install", false) &&
 									(p["status"].value("updateState", "") == "notUpdating" ||
 										p["status"].value("updateState", "") == "updateQueued" ||
 										p["status"].value("updateState", "") == "verifyQueued"))
 								{
-									if (!launched)
-									{
-										launched = true;
+									launching = true;
+									verifying = true;
+									checkVerify();
+									checkLaunch();
+								}
 
-										for (int i = 0; i < 3; i++)
-										{
-											if (launchDone || g_launchDone)
-											{
-												break;
-											}
-
-											child->SendJSCallback("RGSC_SET_CLOUD_SAVE_ENABLED", json::object({
-												{ "Enabled", false },
-												{ "RosTitleName", targetTitle }
-												}).dump());
-
-											child->SendJSCallback("RGSC_RAISE_UI_EVENT", json::object({
-												{ "EventId", 2 }, // LauncherV3UiEvent
-
-												{"Data", json::object({
-													{"Action", "Launch"},
-													{"Parameter", json::object({
-														{ "titleName", targetTitle },
-														{"args", ""}
-													})}
-												})}
-												}).dump());
-
-											Sleep(10000);
-										}
-									}
+								if (p["status"].value("updateState", "") == "verifying")
+								{
+									verified = true;
 								}
 							}
 						}
