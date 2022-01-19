@@ -8,6 +8,8 @@
 #include "StdInc.h"
 #include "CitizenGame.h"
 
+// *NASTY* include path
+#include <../citicore/LaunchMode.h>
 #include <CL2LaunchMode.h>
 
 #include <io.h>
@@ -615,7 +617,13 @@ int RealMain()
 				}
 			}
 
-#ifndef _DEBUG
+			bool checkElevation = !CfxIsWine();
+
+#ifdef _DEBUG
+			checkElevation = false;
+#endif
+
+			if (checkElevation)
 			{
 				HANDLE hToken;
 
@@ -638,7 +646,6 @@ int RealMain()
 					CloseHandle(hToken);
 				}
 			}
-#endif
 
 			{
 				HANDLE hFile = CreateFile(MakeRelativeCitPath(L"writable_test").c_str(), GENERIC_WRITE, FILE_SHARE_DELETE, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_TEMPORARY | FILE_FLAG_DELETE_ON_CLOSE, nullptr);
