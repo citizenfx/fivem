@@ -387,6 +387,8 @@ static BOOL WINAPI SetForegroundWindowStub(_In_ HWND hWnd)
 	return TRUE;
 }
 
+static std::vector<std::tuple<const char*, void*, const char*>>* g_refLauncherHooks;
+
 void DoLauncherUiSkip()
 {
 	DisableToolHelpScope scope;
@@ -400,10 +402,10 @@ void DoLauncherUiSkip()
 
 	if (CanSafelySkipLauncher())
 	{
-		hook::iat("user32.dll", AnimateWindowStub, "AnimateWindow");
-		hook::iat("user32.dll", ShowWindowStub, "ShowWindow");
-		hook::iat("user32.dll", SetWindowPosStub, "SetWindowPos");
-		hook::iat("shell32.dll", Shell_NotifyIconWStub, "Shell_NotifyIconW");
+		g_refLauncherHooks->emplace_back("user32.dll", AnimateWindowStub, "AnimateWindow");
+		g_refLauncherHooks->emplace_back("user32.dll", ShowWindowStub, "ShowWindow");
+		g_refLauncherHooks->emplace_back("user32.dll", SetWindowPosStub, "SetWindowPos");
+		g_refLauncherHooks->emplace_back("shell32.dll", Shell_NotifyIconWStub, "Shell_NotifyIconW");
 	}
 
 	MH_EnableHook(MH_ALL_HOOKS);
@@ -556,12 +558,55 @@ extern BOOL WINAPI __stdcall CreateProcessAStub(_In_opt_ LPCSTR lpApplicationNam
 extern BOOL WINAPI __stdcall CreateProcessWStub(_In_opt_ LPCWSTR lpApplicationName, _Inout_opt_ LPWSTR lpCommandLine, _In_opt_ LPSECURITY_ATTRIBUTES lpProcessAttributes, _In_opt_ LPSECURITY_ATTRIBUTES lpThreadAttributes, _In_ BOOL bInheritHandles, _In_ DWORD dwCreationFlags, _In_opt_ LPVOID lpEnvironment, _In_opt_ LPCWSTR lpCurrentDirectory, _In_ LPSTARTUPINFOW lpStartupInfo, _Out_ LPPROCESS_INFORMATION lpProcessInformation);
 HANDLE WINAPI __stdcall CreateNamedPipeAHookL(_In_ LPCSTR lpName, _In_ DWORD dwOpenMode, _In_ DWORD dwPipeMode, _In_ DWORD nMaxInstances, _In_ DWORD nOutBufferSize, _In_ DWORD nInBufferSize, _In_ DWORD nDefaultTimeOut, _In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes);
 
+static std::vector<std::tuple<const char*, void*, const char*>> g_launcherHooks = {
+	{ "version.dll", GetFileVersionInfoAStub, "GetFileVersionInfoA" },
+
+	{ "user32.dll", LoadIconStub, "LoadIconA" },
+	{ "user32.dll", LoadIconStub, "LoadIconW" },
+
+	{ "kernel32.dll", CreateMutexWStub, "CreateMutexW" },
+	{ "kernel32.dll", CreateNamedPipeAHookL, "CreateNamedPipeA" },
+
+	{ "kernel32.dll", Process32NextWHook, "Process32NextW" },
+
+	{ "shell32.dll", ShellExecuteExWStub, "ShellExecuteExW" },
+	{ "shell32.dll", ShellExecuteWStub, "ShellExecuteW" },
+
+	{ "kernel32.dll", GetExitCodeProcessStub, "GetExitCodeProcess" },
+
+	{ "crypt32.dll", CertGetNameStringStubW, "CertGetNameStringW" },
+	{ "crypt32.dll", CertGetNameStringStubA, "CertGetNameStringA" },
+	{ "wintrust.dll", WinVerifyTrustStub, "WinVerifyTrust" },
+
+	{ "kernel32.dll", GetModuleFileNameWStub, "GetModuleFileNameW" },
+
+	{ "ole32.dll", CoCreateInstanceStub, "CoCreateInstance" },
+	{ "kernel32.dll", CreateProcessAStub, "CreateProcessA" },
+	{ "kernel32.dll", CreateProcessWStub, "CreateProcessW" },
+};
+
+static FARPROC GetProcAddressHook(HMODULE hModule, LPCSTR funcName)
+{
+	if (!IS_INTRESOURCE(funcName))
+	{
+		for (const auto& h : g_launcherHooks)
+		{
+			if (strcmp(std::get<2>(h), funcName) == 0)
+			{
+				return (FARPROC)std::get<1>(h);
+			}
+		}
+	}
+
+	return GetProcAddressStub(hModule, funcName);
+}
+
 static void Launcher_Run(const boost::program_options::variables_map& map)
 {
 	// make firstrun.dat so the launcher won't whine/crash
 	{
-		CreateDirectoryW(MakeRelativeCitPath(L"data\\game-storage\\ros_launcher_appdata3").c_str(), NULL);
-		FILE* f = _wfopen(MakeRelativeCitPath(L"data\\game-storage\\ros_launcher_appdata3\\firstrun.dat").c_str(), L"wb");
+		CreateDirectoryW(MakeRelativeCitPath(L"data\\game-storage\\ros_launcher_appdata4").c_str(), NULL);
+		FILE* f = _wfopen(MakeRelativeCitPath(L"data\\game-storage\\ros_launcher_appdata4\\firstrun.dat").c_str(), L"wb");
 
 		if (f)
 		{
@@ -602,37 +647,15 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 			((void(*)(const wchar_t*))GetProcAddress(rosDll, "run"))(MakeRelativeCitPath(L"").c_str());
 		}
 
-#ifdef _DEBUG
-		hook::jump(hook::get_pattern("4C 89 44 24 18 4C 89 4C 24 20 48 83 EC 28 48 8D"), LogStuff);
-#endif
-
-		hook::iat("version.dll", GetFileVersionInfoAStub, "GetFileVersionInfoA");
-
-        hook::iat("user32.dll", LoadIconStub, "LoadIconA");
-        hook::iat("user32.dll", LoadIconStub, "LoadIconW");
-
-		hook::iat("kernel32.dll", CreateMutexWStub, "CreateMutexW");
-		hook::iat("kernel32.dll", CreateNamedPipeAHookL, "CreateNamedPipeA");
-
-		hook::iat("kernel32.dll", Process32NextWHook, "Process32NextW");
-
-		hook::iat("shell32.dll", ShellExecuteExWStub, "ShellExecuteExW");
-		hook::iat("shell32.dll", ShellExecuteWStub, "ShellExecuteW");
-
-		hook::iat("kernel32.dll", GetExitCodeProcessStub, "GetExitCodeProcess");
-
+		g_refLauncherHooks = &g_launcherHooks;
 		DoLauncherUiSkip();
 
-		hook::iat("crypt32.dll", CertGetNameStringStubW, "CertGetNameStringW");
-		hook::iat("crypt32.dll", CertGetNameStringStubA, "CertGetNameStringA");
-		hook::iat("wintrust.dll", WinVerifyTrustStub, "WinVerifyTrust");
+		hook::iat("kernel32.dll", GetProcAddressHook, "GetProcAddress");
 
-		hook::iat("kernel32.dll", GetProcAddressStub, "GetProcAddress");
-		hook::iat("kernel32.dll", GetModuleFileNameWStub, "GetModuleFileNameW");
-
-		hook::iat("ole32.dll", CoCreateInstanceStub, "CoCreateInstance");
-		hook::iat("kernel32.dll", CreateProcessAStub, "CreateProcessA");
-		hook::iat("kernel32.dll", CreateProcessWStub, "CreateProcessW");
+		for (const auto& h : g_launcherHooks)
+		{
+			hook::iat(std::get<0>(h), std::get<1>(h), std::get<2>(h));
+		}
 
 		HMODULE hSteam = LoadLibrary(L"C:\\Program Files\\Rockstar Games\\Launcher\\steam_api64.dll");
 
@@ -650,6 +673,11 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 			MH_CreateHookApi(L"kernel32.dll", "GetComputerNameExW", GetComputerNameExWStub, NULL);
 			MH_CreateHookApi(L"kernel32.dll", "GetLogicalDriveStringsW", GetLogicalDriveStringsWStub, NULL);
 			MH_CreateHookApi(L"kernel32.dll", "GetLogicalDrives", GetLogicalDrivesStub, NULL);
+
+#ifdef _DEBUG
+			MH_CreateHook(hook::get_pattern("4C 89 44 24 18 4C 89 4C 24 20 48 83 EC 28 48 8D"), LogStuff, NULL);
+#endif
+
 			MH_EnableHook(MH_ALL_HOOKS);
 		}
 #endif

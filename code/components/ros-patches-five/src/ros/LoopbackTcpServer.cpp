@@ -1187,95 +1187,6 @@ std::vector<int> g_subProcessHandles;
 
 extern void SubprocessPipe(const std::wstring& s);
 
-// hack to ensure MTL service pipe is *consistently* encrypted on Intel ADL+ hybrid CPUs, as the key depends on some CPU-incoherent property
-// weird part: it breaks intermittently even across hyperthreads or E-core clusters, L1 cache coherence? -> needs to be pinned to one CPU only
-static void SetupAffinity(const PROCESS_INFORMATION* information)
-{
-	auto _GetSystemCpuSetInformation = (decltype(&GetSystemCpuSetInformation))GetProcAddress(GetModuleHandleW(L"kernel32.dll"), "GetSystemCpuSetInformation");
-
-	if (_GetSystemCpuSetInformation)
-	{
-		auto curProc = GetCurrentProcess();
-		ULONG size = 0;
-		_GetSystemCpuSetInformation(nullptr, 0, &size, curProc, 0);
-
-		std::unique_ptr<uint8_t[]> buffer(new uint8_t[size]);
-		PSYSTEM_CPU_SET_INFORMATION cpuSets = reinterpret_cast<PSYSTEM_CPU_SET_INFORMATION>(buffer.get());
-		PSYSTEM_CPU_SET_INFORMATION nextCPUSet = cpuSets;
-
-		if (_GetSystemCpuSetInformation(cpuSets, size, &size, curProc, 0))
-		{
-			// we're not using multimap since we want to get amount of unique keys + get data from each
-			std::map<BYTE /* efficiency class */, std::vector<ULONG /* CPU set ID */>> cpusByEfficiency;
-			std::map<ULONG /* CPU set ID */, BYTE /* core index */> coresByCPU;
-			std::map<BYTE /* core index */, std::vector<BYTE /* logical processor index (for affinity) */>> affinitiesByCore;
-
-			for (DWORD offset = 0;
-				 offset + sizeof(SYSTEM_CPU_SET_INFORMATION) <= size;
-				 offset += sizeof(SYSTEM_CPU_SET_INFORMATION), nextCPUSet++)
-			{
-				if (nextCPUSet->Type == CPU_SET_INFORMATION_TYPE::CpuSetInformation && nextCPUSet->CpuSet.Group == 0)
-				{
-					cpusByEfficiency[nextCPUSet->CpuSet.EfficiencyClass].push_back(nextCPUSet->CpuSet.Id);
-					affinitiesByCore[nextCPUSet->CpuSet.CoreIndex].push_back(nextCPUSet->CpuSet.LogicalProcessorIndex);
-					coresByCPU[nextCPUSet->CpuSet.Id] = nextCPUSet->CpuSet.CoreIndex;
-				}
-			}
-
-			// if this is a heterogeneous system
-			if (cpusByEfficiency.size() > 1)
-			{
-				trace("Hybrid CPU detected: setting CPU affinity to work around MTL DRM issue.\n");
-
-				std::vector<BYTE> targetCPUs;
-
-				// set the process to a single *core*, from highest performance down
-				for (auto it = cpusByEfficiency.rbegin(); it != cpusByEfficiency.rend(); it++)
-				{
-					for (ULONG cpu : it->second)
-					{
-						// find this in the by-core list
-						if (auto cit = coresByCPU.find(cpu); cit != coresByCPU.end())
-						{
-							targetCPUs = affinitiesByCore[cit->second];
-							break;
-						}
-					}
-
-					if (!targetCPUs.empty())
-					{
-						break;
-					}
-				}
-
-				if (!targetCPUs.empty())
-				{
-					trace("Setting logical CPUs: ");
-
-					DWORD_PTR affinity = 0;
-
-					for (auto cpuy : targetCPUs)
-					{
-						trace("%d ", cpuy);
-						affinity |= DWORD_PTR(1) << DWORD_PTR(cpuy);
-
-						// ?! even HT is potentially broken
-						break;
-					}
-
-					trace("\n");
-
-					SetProcessAffinityMask(information->hProcess, affinity);
-					SetThreadAffinityMask(information->hThread, affinity);
-				}
-			}
-		}
-	}
-
-	ResumeThread(information->hThread);
-	CloseHandle(information->hThread);
-}
-
 static BOOL __stdcall EP_CreateProcessW(const wchar_t* applicationName, wchar_t* commandLine, SECURITY_ATTRIBUTES* processAttributes, SECURITY_ATTRIBUTES* threadAttributes,
 										BOOL inheritHandles, DWORD creationFlags, void* environment, const wchar_t* currentDirectory, STARTUPINFOW* startupInfo,
 										PROCESS_INFORMATION* information)
@@ -1344,7 +1255,7 @@ static BOOL __stdcall EP_CreateProcessW(const wchar_t* applicationName, wchar_t*
 			const wchar_t* newCommandLine = va(L"\"%s\" ros:service", fxApplicationName);
 
 			// and go create the new fake process
-			retval = g_oldCreateProcessW(fxApplicationName, const_cast<wchar_t*>(newCommandLine), processAttributes, threadAttributes, inheritHandles, creationFlags | CREATE_UNICODE_ENVIRONMENT | CREATE_SUSPENDED, &newEnvironment[0], currentDirectory, startupInfo, information);
+			retval = g_oldCreateProcessW(fxApplicationName, const_cast<wchar_t*>(newCommandLine), processAttributes, threadAttributes, inheritHandles, (creationFlags | CREATE_UNICODE_ENVIRONMENT) & ~CREATE_SUSPENDED, &newEnvironment[0], MakeRelativeCitPath(L"data\\game-storage\\launcher").c_str(), startupInfo, information);
 
 			if (!retval)
 			{
@@ -1355,8 +1266,6 @@ static BOOL __stdcall EP_CreateProcessW(const wchar_t* applicationName, wchar_t*
 			else
 			{
 				trace("Got ROS service - pid %d\n", information->dwProcessId);
-
-				SetupAffinity(information);
 			}
 
 			information->hThread = NULL;
@@ -1492,9 +1401,9 @@ void BackOffMtl()
 	};
 
 	backOffFile(L"data\\game-storage\\ros_documents");
-	backOffFile(L"data\\game-storage\\ros_launcher_appdata3");
-	backOffFile(L"data\\game-storage\\ros_launcher_data3");
-	backOffFile(L"data\\game-storage\\ros_launcher_documents2");
+	backOffFile(L"data\\game-storage\\ros_launcher_appdata4");
+	backOffFile(L"data\\game-storage\\ros_launcher_data4");
+	backOffFile(L"data\\game-storage\\ros_launcher_documents3");
 	backOffFile(fmt::sprintf(L"data\\game-storage\\ros_launcher_game_%d", xbr::GetGameBuild()));
 	backOffFile(L"data\\game-storage\\ros_profiles");
 }
@@ -1651,7 +1560,7 @@ void RunLauncher(const wchar_t* toolName, bool instantWait)
 
 	PROCESS_INFORMATION pi;
 	STARTUPINFO si = { sizeof(STARTUPINFO) };
-	BOOL retval = g_oldCreateProcessW(fxApplicationName, const_cast<wchar_t*>(newCommandLine), nullptr, nullptr, FALSE, CREATE_UNICODE_ENVIRONMENT | (isLauncher ? CREATE_SUSPENDED : 0), &newEnvironment[0], MakeRelativeCitPath(L"").c_str(), &si, &pi);
+	BOOL retval = g_oldCreateProcessW(fxApplicationName, const_cast<wchar_t*>(newCommandLine), nullptr, nullptr, FALSE, CREATE_UNICODE_ENVIRONMENT, &newEnvironment[0], MakeRelativeCitPath(L"data\\game-storage\\launcher").c_str(), &si, &pi);
 
 	if (!retval)
 	{
@@ -1665,7 +1574,6 @@ void RunLauncher(const wchar_t* toolName, bool instantWait)
 
 		if (isLauncher)
 		{
-			SetupAffinity(&pi);
 			launcherState->pid = pi.dwProcessId;
 		}
 
