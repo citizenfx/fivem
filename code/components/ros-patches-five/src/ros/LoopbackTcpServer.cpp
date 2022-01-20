@@ -18,6 +18,8 @@
 #include <HostSharedData.h>
 #include <CrossBuildRuntime.h>
 
+#include <ROSSuffix.h>
+
 #include <Error.h>
 
 struct LauncherState
@@ -1400,11 +1402,11 @@ void BackOffMtl()
 		MoveFileW(MakeRelativeCitPath(fileName).c_str(), MakeRelativeCitPath(fileName + L".old" + backOffSuffix).c_str());
 	};
 
-	backOffFile(L"data\\game-storage\\ros_documents_576");
-	backOffFile(L"data\\game-storage\\ros_launcher_appdata_576");
-	backOffFile(L"data\\game-storage\\ros_launcher_data_576");
-	backOffFile(L"data\\game-storage\\ros_launcher_documents_576");
-	backOffFile(L"data\\game-storage\\ros_launcher_game_576");
+	backOffFile(L"data\\game-storage\\ros_documents" ROS_SUFFIX_W);
+	backOffFile(L"data\\game-storage\\ros_launcher_appdata" ROS_SUFFIX_W);
+	backOffFile(L"data\\game-storage\\ros_launcher_data" ROS_SUFFIX_W);
+	backOffFile(L"data\\game-storage\\ros_launcher_documents" ROS_SUFFIX_W);
+	backOffFile(L"data\\game-storage\\ros_launcher_game" ROS_SUFFIX_W);
 	backOffFile(L"data\\game-storage\\ros_profiles");
 }
 

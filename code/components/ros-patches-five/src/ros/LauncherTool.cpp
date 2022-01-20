@@ -25,6 +25,7 @@
 #include <LaunchMode.h>
 #include <MinHook.h>
 
+#include <ROSSuffix.h>
 #include <CrossBuildRuntime.h>
 
 #include "Hooking.h"
@@ -605,8 +606,8 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 {
 	// make firstrun.dat so the launcher won't error out/crash
 	{
-		CreateDirectoryW(MakeRelativeCitPath(L"data\\game-storage\\ros_launcher_appdata_576").c_str(), NULL);
-		FILE* f = _wfopen(MakeRelativeCitPath(L"data\\game-storage\\ros_launcher_appdata_576\\firstrun.dat").c_str(), L"wb");
+		CreateDirectoryW(MakeRelativeCitPath(L"data\\game-storage\\ros_launcher_appdata" ROS_SUFFIX_W).c_str(), NULL);
+		FILE* f = _wfopen(MakeRelativeCitPath(L"data\\game-storage\\ros_launcher_appdata" ROS_SUFFIX_W L"\\firstrun.dat").c_str(), L"wb");
 
 		if (f)
 		{

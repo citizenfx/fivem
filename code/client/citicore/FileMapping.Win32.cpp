@@ -14,6 +14,8 @@
 #include "Hooking.Aux.h"
 #include <minhook.h>
 
+#include <ROSSuffix.h>
+
 #pragma comment(lib, "ntdll.lib")
 
 #include <shlobj.h>
@@ -125,22 +127,22 @@ static std::wstring MapRedirectedFilename(const wchar_t* origFileName)
 	// ProgramData
 	if (wcsstr(origFileName, L"Data\\Rockstar Games\\Launcher") != nullptr || wcsstr(origFileName, g_launcherProgramDataRoot.c_str()) != nullptr)
 	{
-		return MakeRelativeCitPath(L"data\\game-storage\\ros_launcher_data_576") + &wcsstr(origFileName, L"Games\\Launcher")[14];
+		return MakeRelativeCitPath(L"data\\game-storage\\ros_launcher_data" ROS_SUFFIX_W) + &wcsstr(origFileName, L"Games\\Launcher")[14];
 	}
 
 	if (wcsstr(origFileName, L"Local\\Rockstar Games\\Launcher") != nullptr || wcsstr(origFileName, g_launcherAppDataRoot.c_str()) != nullptr)
 	{
-		return MakeRelativeCitPath(L"data\\game-storage\\ros_launcher_appdata_576") + &wcsstr(origFileName, L"Games\\Launcher")[14];
+		return MakeRelativeCitPath(L"data\\game-storage\\ros_launcher_appdata" ROS_SUFFIX_W) + &wcsstr(origFileName, L"Games\\Launcher")[14];
 	}
 
 	if (wcsstr(origFileName, L"Documents\\Rockstar Games\\Social Club") != nullptr || wcsstr(origFileName, g_scDocumentsRoot.c_str()) != nullptr)
 	{
-		return MakeRelativeCitPath(L"data\\game-storage\\ros_documents_576") + &wcsstr(origFileName, L"Games\\Social Club")[17];
+		return MakeRelativeCitPath(L"data\\game-storage\\ros_documents" ROS_SUFFIX_W) + &wcsstr(origFileName, L"Games\\Social Club")[17];
 	}
 
 	if (wcsstr(origFileName, L"Documents\\Rockstar Games\\Launcher") != nullptr || wcsstr(origFileName, g_launcherDocumentsRoot.c_str()) != nullptr)
 	{
-		return MakeRelativeCitPath(L"data\\game-storage\\ros_launcher_documents_576") + &wcsstr(origFileName, L"Games\\Launcher")[14];
+		return MakeRelativeCitPath(L"data\\game-storage\\ros_launcher_documents" ROS_SUFFIX_W) + &wcsstr(origFileName, L"Games\\Launcher")[14];
 	}
 
 	if (getenv("CitizenFX_ToolMode"))
@@ -152,7 +154,7 @@ static std::wstring MapRedirectedFilename(const wchar_t* origFileName)
 
 		auto gameDir = []()
 		{
-			return MakeRelativeCitPath(L"data\\game-storage\\ros_launcher_game_576");
+			return MakeRelativeCitPath(L"data\\game-storage\\ros_launcher_game" ROS_SUFFIX_W);
 		};
 
 		if (wcsstr(origFileName, L".exe.part") != nullptr)

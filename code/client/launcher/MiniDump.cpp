@@ -24,6 +24,8 @@
 using namespace google_breakpad;
 
 #if defined(LAUNCHER_PERSONALITY_MAIN)
+#include <ROSSuffix.h>
+
 #include <CrossBuildRuntime.h>
 
 #include <commctrl.h>
@@ -639,9 +641,9 @@ static void GatherCrashInformation()
 				auto extraDumpFiles = {
 					L"data\\cache\\extra_dump_info.bin",
 					L"data\\cache\\extra_dump_info2.bin",
-					L"data\\game-storage\\ros_launcher_documents_576\\launcher.log",
-					L"data\\game-storage\\ros_documents_576\\socialclub.log",
-					L"data\\game-storage\\ros_documents_576\\socialclub_launcher.log"
+					L"data\\game-storage\\ros_launcher_documents" ROS_SUFFIX_W L"\\launcher.log",
+					L"data\\game-storage\\ros_documents" ROS_SUFFIX_W L"\\socialclub.log",
+					L"data\\game-storage\\ros_documents" ROS_SUFFIX_W L"\\socialclub_launcher.log"
 				};
 
 				for (auto path : extraDumpFiles)
