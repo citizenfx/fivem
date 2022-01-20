@@ -682,6 +682,61 @@ NTSTATUS WINAPI NtOpenFileStub(PHANDLE fileHandle, ACCESS_MASK desiredAccess, PO
 	return g_origNtOpenFile(fileHandle, desiredAccess, objectAttributes, ioBlock, shareAccess, openOptions);
 }
 
+typedef struct _FILE_RENAME_INFORMATION
+{
+	union
+	{
+		BOOLEAN ReplaceIfExists; // FileRenameInformation
+		ULONG Flags; // FileRenameInformationEx
+	} DUMMYUNIONNAME;
+	HANDLE RootDirectory;
+	ULONG FileNameLength;
+	WCHAR FileName[1];
+} FILE_RENAME_INFORMATION;
+
+static NTSTATUS(WINAPI* g_origNtSetInformationFile)(HANDLE, PIO_STATUS_BLOCK, PVOID, ULONG, FILE_INFORMATION_CLASS);
+
+static NTSTATUS WINAPI NtSetInformationFileStub(HANDLE handle, PIO_STATUS_BLOCK sb, PVOID inf, ULONG infSize, FILE_INFORMATION_CLASS cla)
+{
+	auto tls = GetTls();
+
+	if (!tls->inOpenFile)
+	{
+		tls->inOpenFile = true;
+
+		if (cla == 10 /* FileRenameInformation */ || cla == 65 /* FileRenameInformationEx */)
+		{
+			auto origInfo = (const FILE_RENAME_INFORMATION*)inf;
+			std::wstring origFileName{ origInfo->FileName, origInfo->FileNameLength / sizeof(wchar_t) };
+			if (IsMappedFilename(origFileName))
+			{
+				auto newName = MapRedirectedNtFilename(origFileName.c_str());
+
+				// NT doesn't like slashes
+				std::replace(newName.begin(), newName.end(), L'/', L'\\');
+
+				std::vector<uint8_t> info(sizeof(FILE_RENAME_INFORMATION) + (newName.length() * 2));
+				auto newInfo = (FILE_RENAME_INFORMATION*)info.data();
+				newInfo->Flags = origInfo->Flags;
+				newInfo->RootDirectory = origInfo->RootDirectory;
+				newInfo->FileNameLength = newName.size() * sizeof(wchar_t);
+				memcpy(newInfo->FileName, newName.c_str(), newInfo->FileNameLength);
+
+				tls->inOpenFile = false;
+
+				return g_origNtSetInformationFile(handle, sb, info.data(), info.size(), cla);
+			}
+		}
+
+		tls->inOpenFile = false;
+
+		return g_origNtSetInformationFile(handle, sb, inf, infSize, cla);
+	}
+
+
+	return g_origNtSetInformationFile(handle, sb, inf, infSize, cla);
+}
+
 NTSTATUS(WINAPI* g_origNtDeleteFile)(POBJECT_ATTRIBUTES objectAttributes);
 
 NTSTATUS WINAPI NtDeleteFileStub(POBJECT_ATTRIBUTES objectAttributes)
@@ -1100,6 +1155,7 @@ extern "C" DLL_EXPORT void CoreSetMappingFunction(MappingFunctionType function)
 	MH_CreateHookApi(L"ntdll.dll", "NtDeleteFile", NtDeleteFileStub, (void**)&g_origNtDeleteFile);
 	MH_CreateHookApi(L"ntdll.dll", "NtQueryAttributesFile", NtQueryAttributesFileStub, (void**)&g_origNtQueryAttributesFile);
 	MH_CreateHookApi(L"ntdll.dll", "NtQueryFullAttributesFile", NtQueryFullAttributesFileStub, (void**)&g_origNtQueryFullAttributesFile);
+	MH_CreateHookApi(L"ntdll.dll", "NtSetInformationFile", NtSetInformationFileStub, (void**)&g_origNtSetInformationFile);
 	MH_CreateHookApi(L"ntdll.dll", "LdrLoadDll", LdrLoadDllStub, (void**)&g_origLoadDll);
 	MH_CreateHookApi(L"ntdll.dll", "LdrGetProcedureAddress", LdrGetProcedureAddressStub, (void**)&g_origGetProcedureAddress);
 	MH_CreateHookApi(L"ntdll.dll", "RtlGetFullPathName_U", RtlGetFullPathName_UStub, (void**)&g_origRtlGetFullPathName_U);
