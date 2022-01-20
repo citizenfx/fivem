@@ -125,22 +125,22 @@ static std::wstring MapRedirectedFilename(const wchar_t* origFileName)
 	// ProgramData
 	if (wcsstr(origFileName, L"Data\\Rockstar Games\\Launcher") != nullptr || wcsstr(origFileName, g_launcherProgramDataRoot.c_str()) != nullptr)
 	{
-		return MakeRelativeCitPath(L"data\\game-storage\\ros_launcher_data4") + &wcsstr(origFileName, L"Games\\Launcher")[14];
+		return MakeRelativeCitPath(L"data\\game-storage\\ros_launcher_data_576") + &wcsstr(origFileName, L"Games\\Launcher")[14];
 	}
 
 	if (wcsstr(origFileName, L"Local\\Rockstar Games\\Launcher") != nullptr || wcsstr(origFileName, g_launcherAppDataRoot.c_str()) != nullptr)
 	{
-		return MakeRelativeCitPath(L"data\\game-storage\\ros_launcher_appdata4") + &wcsstr(origFileName, L"Games\\Launcher")[14];
+		return MakeRelativeCitPath(L"data\\game-storage\\ros_launcher_appdata_576") + &wcsstr(origFileName, L"Games\\Launcher")[14];
 	}
 
 	if (wcsstr(origFileName, L"Documents\\Rockstar Games\\Social Club") != nullptr || wcsstr(origFileName, g_scDocumentsRoot.c_str()) != nullptr)
 	{
-		return MakeRelativeCitPath(L"data\\game-storage\\ros_documents3") + &wcsstr(origFileName, L"Games\\Social Club")[17];
+		return MakeRelativeCitPath(L"data\\game-storage\\ros_documents_576") + &wcsstr(origFileName, L"Games\\Social Club")[17];
 	}
 
 	if (wcsstr(origFileName, L"Documents\\Rockstar Games\\Launcher") != nullptr || wcsstr(origFileName, g_launcherDocumentsRoot.c_str()) != nullptr)
 	{
-		return MakeRelativeCitPath(L"data\\game-storage\\ros_launcher_documents3") + &wcsstr(origFileName, L"Games\\Launcher")[14];
+		return MakeRelativeCitPath(L"data\\game-storage\\ros_launcher_documents_576") + &wcsstr(origFileName, L"Games\\Launcher")[14];
 	}
 
 	if (getenv("CitizenFX_ToolMode"))
@@ -152,7 +152,7 @@ static std::wstring MapRedirectedFilename(const wchar_t* origFileName)
 
 		auto gameDir = []()
 		{
-			return MakeRelativeCitPath(fmt::sprintf(L"data\\game-storage\\ros_launcher_game_%d", xbr::GetGameBuild()));
+			return MakeRelativeCitPath(fmt::sprintf(L"data\\game-storage\\ros_launcher_game_576_b%d", xbr::GetGameBuild()));
 		};
 
 		if (wcsstr(origFileName, L".exe.part") != nullptr)

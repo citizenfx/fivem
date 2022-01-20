@@ -603,10 +603,10 @@ static FARPROC GetProcAddressHook(HMODULE hModule, LPCSTR funcName)
 
 static void Launcher_Run(const boost::program_options::variables_map& map)
 {
-	// make firstrun.dat so the launcher won't whine/crash
+	// make firstrun.dat so the launcher won't error out/crash
 	{
-		CreateDirectoryW(MakeRelativeCitPath(L"data\\game-storage\\ros_launcher_appdata4").c_str(), NULL);
-		FILE* f = _wfopen(MakeRelativeCitPath(L"data\\game-storage\\ros_launcher_appdata4\\firstrun.dat").c_str(), L"wb");
+		CreateDirectoryW(MakeRelativeCitPath(L"data\\game-storage\\ros_launcher_appdata_576").c_str(), NULL);
+		FILE* f = _wfopen(MakeRelativeCitPath(L"data\\game-storage\\ros_launcher_appdata_576\\firstrun.dat").c_str(), L"wb");
 
 		if (f)
 		{

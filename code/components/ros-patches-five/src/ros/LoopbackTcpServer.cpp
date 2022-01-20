@@ -1400,11 +1400,11 @@ void BackOffMtl()
 		MoveFileW(MakeRelativeCitPath(fileName).c_str(), MakeRelativeCitPath(fileName + L".old" + backOffSuffix).c_str());
 	};
 
-	backOffFile(L"data\\game-storage\\ros_documents3");
-	backOffFile(L"data\\game-storage\\ros_launcher_appdata4");
-	backOffFile(L"data\\game-storage\\ros_launcher_data4");
-	backOffFile(L"data\\game-storage\\ros_launcher_documents3");
-	backOffFile(fmt::sprintf(L"data\\game-storage\\ros_launcher_game_%d", xbr::GetGameBuild()));
+	backOffFile(L"data\\game-storage\\ros_documents_576");
+	backOffFile(L"data\\game-storage\\ros_launcher_appdata_576");
+	backOffFile(L"data\\game-storage\\ros_launcher_data_576");
+	backOffFile(L"data\\game-storage\\ros_launcher_documents_576");
+	backOffFile(fmt::sprintf(L"data\\game-storage\\ros_launcher_game_576_b%d", xbr::GetGameBuild()));
 	backOffFile(L"data\\game-storage\\ros_profiles");
 }
 
