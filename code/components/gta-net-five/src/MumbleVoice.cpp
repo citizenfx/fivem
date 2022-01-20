@@ -476,9 +476,14 @@ static void Mumble_RunFrame()
 #endif
 
 		constexpr const uint32_t PLAYER_CONTROL = 0;
+#ifdef GTA_FIVE
 		static auto isControlPressed = fx::ScriptEngine::GetNativeHandler(0xF3A21BCD95725A4A);
-		static auto isControlEnabled = fx::ScriptEngine::GetNativeHandler(0x1CEA6BFDF248E5D9);
 		bool pushToTalkPressed = FxNativeInvoke::Invoke<bool>(isControlPressed, PLAYER_CONTROL, INPUT_PUSH_TO_TALK);
+#elif IS_RDR3
+		static auto isDisabledControlPressed = fx::ScriptEngine::GetNativeHandler(0xE2587F8CBBD87B1D);
+		bool pushToTalkPressed = FxNativeInvoke::Invoke<bool>(isDisabledControlPressed, PLAYER_CONTROL, INPUT_PUSH_TO_TALK);
+#endif
+		static auto isControlEnabled = fx::ScriptEngine::GetNativeHandler(0x1CEA6BFDF248E5D9);
 		bool pushToTalkEnabled = FxNativeInvoke::Invoke<bool>(isControlEnabled, PLAYER_CONTROL, INPUT_PUSH_TO_TALK);
 
 #if __has_include(<GameInput.h>)
