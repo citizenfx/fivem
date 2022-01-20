@@ -232,7 +232,7 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 
 					auto checkLaunch = [this, targetTitle]()
 					{
-						if (signInComplete2 && !launched && launching /* && verified*/)
+						if (signInComplete2 && !launched && launching && verified)
 						{
 							launched = true;
 
