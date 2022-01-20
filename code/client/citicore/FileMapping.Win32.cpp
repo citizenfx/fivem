@@ -152,7 +152,7 @@ static std::wstring MapRedirectedFilename(const wchar_t* origFileName)
 
 		auto gameDir = []()
 		{
-			return MakeRelativeCitPath(fmt::sprintf(L"data\\game-storage\\ros_launcher_game_576_b%d", xbr::GetGameBuild()));
+			return MakeRelativeCitPath(L"data\\game-storage\\ros_launcher_game_576");
 		};
 
 		if (wcsstr(origFileName, L".exe.part") != nullptr)

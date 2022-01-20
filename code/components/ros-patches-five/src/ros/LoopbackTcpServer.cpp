@@ -1404,7 +1404,7 @@ void BackOffMtl()
 	backOffFile(L"data\\game-storage\\ros_launcher_appdata_576");
 	backOffFile(L"data\\game-storage\\ros_launcher_data_576");
 	backOffFile(L"data\\game-storage\\ros_launcher_documents_576");
-	backOffFile(fmt::sprintf(L"data\\game-storage\\ros_launcher_game_576_b%d", xbr::GetGameBuild()));
+	backOffFile(L"data\\game-storage\\ros_launcher_game_576");
 	backOffFile(L"data\\game-storage\\ros_profiles");
 }
 
