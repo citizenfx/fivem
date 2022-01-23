@@ -136,10 +136,44 @@ int RealMain()
 		toolMode = true;
 	}
 
+	auto isSubProcess = []()
+	{
+		wchar_t fxApplicationName[MAX_PATH];
+		GetModuleFileName(GetModuleHandle(nullptr), fxApplicationName, _countof(fxApplicationName));
+
+		return wcsstr(fxApplicationName, L"subprocess") != nullptr;
+	}();
+
+#ifdef LAUNCHER_PERSONALITY_MAIN
+	// toggle wait for switch
+	if (wcsstr(GetCommandLineW(), L"-switchcl"))
+	{
+		if (!isSubProcess)
+		{
+			HANDLE hProcess = NULL;
+
+			{
+				HostSharedData<CfxState> initStateOld("CfxInitState");
+
+				hProcess = OpenProcess(SYNCHRONIZE, FALSE, initStateOld->initialGamePid);
+			}
+
+			if (hProcess)
+			{
+				WaitForSingleObject(hProcess, INFINITE);
+				CloseHandle(hProcess);
+			}
+		}
+	}
+#endif
+
 	if (!toolMode)
 	{
 #ifdef LAUNCHER_PERSONALITY_MAIN
-		static HostSharedData<TickCountData> initTickCount("CFX_SharedTickCount");
+		if (!isSubProcess)
+		{
+			static HostSharedData<TickCountData> initTickCount("CFX_SharedTickCount");
+		}
 
 		// run exception handler
 		if (InitializeExceptionServer())
@@ -188,27 +222,6 @@ int RealMain()
 
 	// delete any old .exe.new file
 	_unlink("CitizenFX.exe.new");
-
-	// toggle wait for switch
-	if (wcsstr(GetCommandLineW(), L"-switchcl"))
-	{
-		// if this isn't a subprocess
-		wchar_t fxApplicationName[MAX_PATH];
-		GetModuleFileName(GetModuleHandle(nullptr), fxApplicationName, _countof(fxApplicationName));
-
-		if (wcsstr(fxApplicationName, L"subprocess") == nullptr)
-		{
-			HostSharedData<CfxState> initStateOld("CfxInitState");
-
-			HANDLE hProcess = OpenProcess(SYNCHRONIZE, FALSE, initStateOld->initialGamePid);
-
-			if (hProcess)
-			{
-				WaitForSingleObject(hProcess, INFINITE);
-				CloseHandle(hProcess);
-			}
-		}
-	}
 
 	// initialize our initState instance
 	// this needs to be before *any* MakeRelativeCitPath use in main process

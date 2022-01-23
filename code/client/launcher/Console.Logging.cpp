@@ -82,12 +82,11 @@ static void PerformFileLog(const std::tuple<std::string, std::string>& pair)
 	static size_t lineIndex;
 	static SRWLOCK logMutex = SRWLOCK_INIT;
 
-	static TickCountData initTickCountBacking;
-
+	static TickCountData initTickCountBacking = ([]()
 	{
 		HostSharedData<TickCountData> initTickCountRef("CFX_SharedTickCount");
-		initTickCountBacking = *initTickCountRef;
-	}
+		return *initTickCountRef;
+	})();
 
 	auto initTickCount = &initTickCountBacking;
 
