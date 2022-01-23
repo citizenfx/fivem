@@ -82,6 +82,8 @@ void TaskDialogEmulated(TASKDIALOGCONFIG* config, int* button, void*, void*)
 	{
 		*button = 42;
 		netLibrary->OnConnectionError(ToNarrow(config->pszContent).c_str());
+
+		g_hadError = true;
 	}
 	else
 	{
