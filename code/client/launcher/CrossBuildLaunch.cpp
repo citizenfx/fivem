@@ -4,6 +4,8 @@
 #include <MinHook.h>
 #include <Hooking.Aux.h>
 
+#include <CfxState.h>
+
 static decltype(&GetCommandLineW) g_origGetCommandLineWBase;
 static decltype(&GetCommandLineW) g_origGetCommandLineW32;
 static decltype(&GetCommandLineA) g_origGetCommandLineABase;
@@ -101,6 +103,9 @@ void XBR_EarlySelect()
 		if (retainedBuild != defaultBuild && !wcsstr(GetCommandLineW(), va(L"b%d", defaultBuild)))
 		{
 			g_intendedBuild = retainedBuild;
+
+			auto state = CfxState::Get();
+			wcscat(state->initCommandLine, va(L" -b%d", g_intendedBuild));
 
 			DisableToolHelpScope scope;
 
