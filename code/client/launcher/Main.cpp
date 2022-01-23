@@ -1004,6 +1004,11 @@ int RealMain()
 						gameProc();
 					}
 				}
+				else
+				{
+					// a bit of a lie, but it has some of the same causes so should be bucketed together
+					FatalError("Could not load CitizenGame.dll.");
+				}
 
 				return 0;
 			}
