@@ -1678,6 +1678,27 @@ static void Init()
 
 		return steeringData ? steeringData->steeringAngle * (180.0f / pi) : 0.0f;
 	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PED_STEALTH_MOVEMENT", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto movementGroup = entity->syncTree->GetPedMovementGroup();
+
+		return movementGroup ? movementGroup->isStealthy : false;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_PED_STRAFING", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto movementGroup = entity->syncTree->GetPedMovementGroup();
+
+		return movementGroup ? movementGroup->isStrafing : false;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_PED_RAGDOLL", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto movementGroup = entity->syncTree->GetPedMovementGroup();
+
+		return movementGroup ? movementGroup->isRagdolling : false;
+	}));
 }
 
 static InitFunction initFunction([]()
