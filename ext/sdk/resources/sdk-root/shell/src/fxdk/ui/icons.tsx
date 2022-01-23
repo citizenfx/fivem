@@ -24,6 +24,7 @@ import {
   BsBoxArrowInDownRight,
   BsCheckSquare,
   BsSquare,
+  BsSearch,
   BsInfoCircle
 } from 'react-icons/bs';
 import { VscSettingsGear } from 'react-icons/vsc';
@@ -73,3 +74,5 @@ export const checkedIcon = <BsCheckSquare />;
 export const uncheckedIcon = <BsSquare />;
 
 export const infoIcon = <BsInfoCircle />;
+
+export const searchIcon = <BsSearch />;

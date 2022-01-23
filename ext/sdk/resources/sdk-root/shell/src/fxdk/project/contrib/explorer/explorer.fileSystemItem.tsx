@@ -2,7 +2,7 @@ import React from 'react';
 import { dispose, Disposer, IDisposable } from "fxdk/base/disposable";
 import { convertMenuItemsToContextMenuItems, IMenuItem } from "fxdk/base/menu";
 import { ContextMenuItemsCollection } from "fxdk/ui/controls/ContextMenu/ContextMenu";
-import { checkedIcon, deleteIcon, openInExplorerIcon, renameIcon, uncheckedIcon } from "fxdk/ui/icons";
+import { checkedIcon, deleteIcon, openInExplorerIcon, renameIcon, searchIcon, uncheckedIcon } from "fxdk/ui/icons";
 import { IShellCommandId, ShellCommands } from "shell-api/commands";
 import { OpenFlag } from "store/generic/OpenFlag";
 import { ProjectCommands } from "../../browser/project.commands";
@@ -16,6 +16,7 @@ import { convertItemCreatorToMenuItem } from './itemCreatorToMenuItem';
 import { IFsEntry } from 'fxdk/project/common/project.types';
 import { Project } from 'fxdk/project/browser/state/project';
 import { AssetRuntimeData } from 'fxdk/project/browser/state/primitives/AssetRuntimeData';
+import { FXCodeState } from 'personalities/fxcode/FXCodeState';
 
 export abstract class ProjectExplorerFileSystemItem<TRuntimeData = any> implements IProjectExplorerItem {
   readonly id: string;
@@ -154,6 +155,18 @@ export abstract class ProjectExplorerFileSystemItem<TRuntimeData = any> implemen
         commandId: this._renamer.command.id,
       });
     }
+
+    items.push({
+      id: 'find-in-folder',
+      label: 'Find in Folder...',
+      icon: searchIcon,
+      order: Number.MIN_SAFE_INTEGER,
+      group: ProjectExplorerItemMenuGroups.SEARCH,
+      disabled: () => !FXCodeState.isReady,
+      visible: () => this.entry.isDirectory,
+      commandId: ProjectCommands.FIND_IN_FOLDER,
+      commandArgs: () => [entryPath],
+    });
 
     // Enable asset menu
     if (!options?.notAnAsset) {
