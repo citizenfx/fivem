@@ -129,6 +129,10 @@ export class ProjectInstance implements IDisposableObject {
     this.select(filePath);
   }
 
+  revealInTerminal(entryPath: string) {
+    FXCodeState.revealInTerminal(entryPath.replace(/\w*\..*$/, ''));
+  }
+
   getRelativePath(inProjectPath: string): string {
     return inProjectPath.substr(this.path.length + 1);
   }

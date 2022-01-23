@@ -16,6 +16,7 @@ import { convertItemCreatorToMenuItem } from './itemCreatorToMenuItem';
 import { IFsEntry } from 'fxdk/project/common/project.types';
 import { Project } from 'fxdk/project/browser/state/project';
 import { AssetRuntimeData } from 'fxdk/project/browser/state/primitives/AssetRuntimeData';
+import { FXCodeState } from 'personalities/fxcode/FXCodeState';
 
 export abstract class ProjectExplorerFileSystemItem<TRuntimeData = any> implements IProjectExplorerItem {
   readonly id: string;
@@ -154,6 +155,15 @@ export abstract class ProjectExplorerFileSystemItem<TRuntimeData = any> implemen
         commandId: this._renamer.command.id,
       });
     }
+
+    items.push({
+      id: 'reveal-in-terminal',
+      label: 'Open in Integrated Terminal',
+      group: ProjectExplorerItemMenuGroups.CREATE,
+      disabled: () => !FXCodeState.isReady,
+      commandId: ProjectCommands.REVEAL_IN_TERMINAL,
+      commandArgs: () => [entryPath],
+    });
 
     // Enable asset menu
     if (!options?.notAnAsset) {
