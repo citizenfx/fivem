@@ -263,19 +263,24 @@ int RealMain()
 	addDllDirs();
 
 	// determine dev mode and do updating
-	wchar_t exeName[512];
-	GetModuleFileName(GetModuleHandle(NULL), exeName, sizeof(exeName) / 2);
-
-	wchar_t* exeBaseName = wcsrchr(exeName, L'\\');
-	exeBaseName[0] = L'\0';
-	exeBaseName++;
-
 #ifdef LAUNCHER_PERSONALITY_MAIN
 	bool devMode = toolMode;
 
-	if (GetFileAttributes(va(L"%s.formaldev", exeBaseName)) != INVALID_FILE_ATTRIBUTES)
 	{
-		devMode = true;
+		wchar_t exeName[512];
+		GetModuleFileName(GetModuleHandle(NULL), exeName, std::size(exeName));
+
+		std::wstring exeNameSaved = exeName;
+
+		wchar_t* exeBaseName = wcsrchr(exeName, L'\\');
+		exeBaseName[0] = L'\0';
+		exeBaseName++;
+
+		if (GetFileAttributes(MakeRelativeCitPath(fmt::sprintf(L"%s.formaldev", exeBaseName)).c_str()) != INVALID_FILE_ATTRIBUTES ||
+			GetFileAttributes(fmt::sprintf(L"%s.formaldev", exeNameSaved).c_str()) != INVALID_FILE_ATTRIBUTES)
+		{
+			devMode = true;
+		}
 	}
 #else
 	bool devMode = true;
