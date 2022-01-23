@@ -318,10 +318,16 @@ DLL_EXPORT void OnConsoleFrameDraw(int width, int height)
 	{
 		MSG msg = { 0 };
 
-		while (PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE))
+		// run a separate filtered message loop *per window* as we don't want to include the game window here
+		for (size_t viewport = 1; viewport < ImGui::GetPlatformIO().Viewports.Size; viewport++)
 		{
-			TranslateMessage(&msg);
-			DispatchMessageW(&msg);
+			auto hWnd = (HWND)ImGui::GetPlatformIO().Viewports[viewport]->PlatformHandleRaw;
+
+			while (PeekMessageW(&msg, hWnd, 0, 0, PM_REMOVE))
+			{
+				TranslateMessage(&msg);
+				DispatchMessageW(&msg);
+			}
 		}
 	}
 
