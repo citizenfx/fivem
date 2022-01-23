@@ -3,6 +3,9 @@
 #include <boost/preprocessor/seq/for_each.hpp>
 #include <boost/preprocessor/wstringize.hpp>
 
+#include <HostSharedData.h>
+#include <CfxState.h>
+
 #ifdef GTA_FIVE
 #define GAME_BUILDS \
 	(2545) \
@@ -45,7 +48,8 @@ inline int GetGameBuild()
 #undef EXPAND
 	};
 
-	std::wstring_view cli = GetCommandLineW();
+	auto sharedData = CfxState::Get();
+	std::wstring_view cli = (sharedData->initCommandLine[0]) ? sharedData->initCommandLine : GetCommandLineW();
 	buildNumber = std::get<1>(buildNumbers[std::size(buildNumbers) - 1]);
 
 	for (auto [build, number] : buildNumbers)

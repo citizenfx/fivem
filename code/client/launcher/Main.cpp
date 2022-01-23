@@ -214,6 +214,12 @@ int RealMain()
 	// this needs to be before *any* MakeRelativeCitPath use in main process
 	HostSharedData<CfxState> initState("CfxInitState");
 
+	// copy main process command line, if needed
+	if (initState->IsMasterProcess())
+	{
+		wcsncpy(initState->initCommandLine, GetCommandLineW(), std::size(initState->initCommandLine) - 1);
+	}
+
 	// path environment appending of our primary directories
 	static wchar_t pathBuf[32768];
 	GetEnvironmentVariable(L"PATH", pathBuf, std::size(pathBuf));

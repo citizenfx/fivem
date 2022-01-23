@@ -1,5 +1,6 @@
 #pragma once
 
+#include <HostSharedData.h>
 #include <windows.h>
 
 struct CfxState
@@ -20,12 +21,15 @@ struct CfxState
 
 	wchar_t gameExePath[1024];
 
+	wchar_t initCommandLine[2048];
+
 	CfxState()
 	{
 		memset(initPathGame, 0, sizeof(initPathGame));
 		memset(initPathLauncher, 0, sizeof(initPathLauncher));
 		memset(gameExePath, 0, sizeof(gameExePath));
 		memset(gameDirectory, 0, sizeof(gameDirectory));
+		memset(initCommandLine, 0, sizeof(initCommandLine));
 
 		initialGamePid = 0;
 		initialLauncherPid = 0;
@@ -126,5 +130,10 @@ struct CfxState
 	inline bool IsGameProcess()
 	{
 		return (gamePid == GetCurrentProcessId());
+	}
+
+	inline static auto Get()
+	{
+		return HostSharedData<CfxState>{ "CfxInitState" };
 	}
 };

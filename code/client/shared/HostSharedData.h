@@ -29,6 +29,14 @@ public:
 		}
 	}
 
+	HostSharedData(const HostSharedData&) = delete;
+	HostSharedData(HostSharedData&& right)
+	{
+		m_fileMapping = std::move(right.m_fileMapping);
+		m_data = std::move(right.m_data);
+		m_fakeData = std::move(right.m_fakeData);
+	}
+
 	~HostSharedData()
 	{
 		if (m_data && m_data != &m_fakeData)
