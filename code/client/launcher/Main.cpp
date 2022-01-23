@@ -29,6 +29,8 @@
 
 #include <shobjidl.h>
 
+#include <Error.h>
+
 #include <CfxLocale.h>
 #include <filesystem>
 

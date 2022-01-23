@@ -3,8 +3,10 @@
 #include <boost/preprocessor/seq/for_each.hpp>
 #include <boost/preprocessor/wstringize.hpp>
 
+#ifndef IS_FXSERVER
 #include <HostSharedData.h>
 #include <CfxState.h>
+#endif
 
 #ifdef GTA_FIVE
 #define GAME_BUILDS \
