@@ -229,12 +229,6 @@ int RealMain()
 	// this needs to be before *any* MakeRelativeCitPath use in main process
 	HostSharedData<CfxState> initState("CfxInitState");
 
-	// copy main process command line, if needed
-	if (initState->IsMasterProcess())
-	{
-		wcsncpy(initState->initCommandLine, GetCommandLineW(), std::size(initState->initCommandLine) - 1);
-	}
-
 	// path environment appending of our primary directories
 	static wchar_t pathBuf[32768];
 	GetEnvironmentVariable(L"PATH", pathBuf, std::size(pathBuf));
@@ -348,6 +342,14 @@ int RealMain()
 		}
 	}
 
+	// MasterProcess is safe from this point on
+
+	// copy main process command line, if needed
+	if (initState->IsMasterProcess())
+	{
+		wcsncpy(initState->initCommandLine, GetCommandLineW(), std::size(initState->initCommandLine) - 1);
+	}
+
 #ifdef LAUNCHER_PERSONALITY_MAIN
 	// if not the master process, force devmode
 	if (!devMode)
@@ -376,6 +378,8 @@ int RealMain()
 
 	XBR_EarlySelect();
 #endif
+
+	// crossbuildruntime is safe from this point on
 
 	// try loading TLS DLL a second time, and ensure it *is* loaded
 #if !defined(GTA_NY) && defined(LAUNCHER_PERSONALITY_GAME)
