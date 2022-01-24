@@ -194,6 +194,7 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 					static bool signInComplete;
 					static bool signInComplete2;
 					static bool launchDone;
+					static std::string updateState;
 
 					auto checkInstall = [this, targetTitle]()
 					{
@@ -214,9 +215,19 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 
 					auto checkVerify = [this, targetTitle]()
 					{
+						if (updateState != "notUpdating")
+						{
+							return;
+						}
+
 						if (signInComplete2 && !verified && !launchedVerify && verifying)
 						{
 							Sleep(500);
+
+							if (updateState != "notUpdating")
+							{
+								return;
+							}
 
 							child->SendJSCallback("RGSC_RAISE_UI_EVENT", json::object({ { "EventId", 2 }, // LauncherV3UiEvent
 
@@ -288,6 +299,15 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 						}
 						else if (c == "SignInComplete")
 						{
+#if 0
+							child->SendJSCallback("RGSC_RAISE_UI_EVENT", json::object({ { "EventId", 2 }, // LauncherV3UiEvent
+
+																					  {
+																					  "Data", json::object({ { "Action", "UpdateSetting" },
+																							  { "Parameter", json::object({ { "titles", json::object({ { std::string{ targetTitle }, json::object({ { "autoUpdate", false } }) } }) } }) } }) } })
+																		 .dump());
+#endif
+
 							child->SendJSCallback("RGSC_RAISE_UI_EVENT", json::object({ { "EventId", 2 }, // LauncherV3UiEvent
 
 																					  { "Data", json::object({ { "Action", "EnableDownloading" } }) } })
@@ -301,6 +321,8 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 						}
 						else if (c == "SetTitleInfo") {
 							if (p.value("titleName", "") == targetTitle) {
+								updateState = p["status"].value("updateState", "");
+
 								if (p["status"].value("entitlement", false) && !p["status"].value("install", false) &&
 									p["status"].value("releaseState", "preload") == "available" && !verified) {
 									installing = true;
