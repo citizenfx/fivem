@@ -188,6 +188,7 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 					static bool launched;
 					static bool installing;
 					static bool launching;
+					static bool didUpdate;
 					static bool signInComplete;
 					static bool signInComplete2;
 					static bool launchDone;
@@ -224,8 +225,7 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 
 							std::thread([this, targetTitle]()
 							{
-								WaitForSingleObject(updateStateEvent, 1500);
-								Sleep(500); // big hack, should somehow wait some other way to see any `updateQueued` settle!
+								WaitForSingleObject(updateStateEvent, 2500);
 
 								for (int i = 0; i < 4; i++)
 								{
@@ -314,7 +314,15 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 
 								if (signInComplete2)
 								{
-									SetEvent(updateStateEvent);
+									if (p["status"].value("updateState", "") == "updateQueued" ||
+										p["status"].value("updateState", "") == "starting")
+									{
+										didUpdate = true;
+									}
+									else if (didUpdate && p["status"].value("updateState", "") == "notUpdating")
+									{
+										SetEvent(updateStateEvent);
+									}
 								}
 
 								if (p["status"].value("entitlement", false) && !p["status"].value("install", false) &&
@@ -329,6 +337,16 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 								{
 									launching = true;
 									checkLaunch();
+								}
+								else if (p["status"].value("install", false) && p["status"].value("updateState", "") == "updatePaused")
+								{
+									Sleep(150);
+
+									child->SendJSCallback("RGSC_RAISE_UI_EVENT", json::object({ { "EventId", 2 }, // LauncherV3UiEvent
+
+																							  { "Data", json::object({ { "Action", "Update" },
+																										{ "Parameter", json::object({ { "titleName", targetTitle } }) } }) } })
+																				 .dump());
 								}
 							}
 						}
