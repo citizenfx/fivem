@@ -185,11 +185,8 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 #endif
 						;
 
-					static bool verified;
 					static bool launched;
 					static bool installing;
-					static bool verifying;
-					static bool launchedVerify;
 					static bool launching;
 					static bool signInComplete;
 					static bool signInComplete2;
@@ -213,60 +210,41 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 						}
 					};
 
-					auto checkVerify = [this, targetTitle]()
+					auto checkLaunch = [this, targetTitle]()
 					{
 						if (updateState != "notUpdating")
 						{
 							return;
 						}
 
-						if (signInComplete2 && !verified && !launchedVerify && verifying)
-						{
-							Sleep(500);
-
-							if (updateState != "notUpdating")
-							{
-								return;
-							}
-
-							child->SendJSCallback("RGSC_RAISE_UI_EVENT", json::object({ { "EventId", 2 }, // LauncherV3UiEvent
-
-																					  { "Data", json::object({ { "Action", "Verify" },
-																								{ "Parameter", json::object({
-																											   { "titleName", targetTitle },
-																											   }) } }) } })
-																		 .dump());
-
-							launchedVerify = true;
-						}
-					};
-
-					auto checkLaunch = [this, targetTitle]()
-					{
-						if (signInComplete2 && !launched && launching && verified)
+						if (signInComplete2 && !launched && launching)
 						{
 							launched = true;
 
-							for (int i = 0; i < 3; i++)
+							std::thread([this, targetTitle]()
 							{
-								if (launchDone || g_launchDone)
+								for (int i = 0; i < 3; i++)
 								{
-									break;
+									if (launchDone || g_launchDone)
+									{
+										break;
+									}
+
+									child->SendJSCallback("RGSC_SET_CLOUD_SAVE_ENABLED", json::object({ { "Enabled", false },
+																									  { "RosTitleName", targetTitle } })
+																						 .dump());
+
+									child->SendJSCallback("RGSC_RAISE_UI_EVENT", json::object({ { "EventId", 2 }, // LauncherV3UiEvent
+
+																							  { "Data", json::object({ { "Action", "Launch" },
+																										{ "Parameter", json::object({ { "titleName", targetTitle },
+																													   { "args", "" } }) } }) } })
+																				 .dump());
+
+									Sleep(10000);
 								}
-
-								child->SendJSCallback("RGSC_SET_CLOUD_SAVE_ENABLED", json::object({ { "Enabled", false },
-																								  { "RosTitleName", targetTitle } })
-																					 .dump());
-
-								child->SendJSCallback("RGSC_RAISE_UI_EVENT", json::object({ { "EventId", 2 }, // LauncherV3UiEvent
-
-																						  { "Data", json::object({ { "Action", "Launch" },
-																									{ "Parameter", json::object({ { "titleName", targetTitle },
-																												   { "args", "" } }) } }) } })
-																			 .dump());
-
-								Sleep(10000);
-							}
+							})
+							.detach();
 						}
 					};
 
@@ -314,9 +292,11 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 																		 .dump());
 
 							signInComplete = true;
-							signInComplete2 = true;
 							checkInstall();
-							checkVerify();
+						}
+						else if (c == "TitlePlayTime")
+						{
+							signInComplete2 = true;
 							checkLaunch();
 						}
 						else if (c == "SetTitleInfo") {
@@ -324,7 +304,7 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 								updateState = p["status"].value("updateState", "");
 
 								if (p["status"].value("entitlement", false) && !p["status"].value("install", false) &&
-									p["status"].value("releaseState", "preload") == "available" && !verified) {
+									p["status"].value("releaseState", "preload") == "available") {
 									installing = true;
 									checkInstall();
 								}
@@ -334,14 +314,7 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 										p["status"].value("updateState", "") == "verifyQueued"))
 								{
 									launching = true;
-									verifying = true;
-									checkVerify();
 									checkLaunch();
-								}
-
-								if (p["status"].value("updateState", "") == "verifying")
-								{
-									verified = true;
 								}
 							}
 						}
