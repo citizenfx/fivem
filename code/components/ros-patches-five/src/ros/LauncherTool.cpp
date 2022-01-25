@@ -636,7 +636,14 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 
 		if (!scDll)
 		{
-			FatalError("Couldn't load SC SDK: Windows error code %d", GetLastError());
+			auto errorCode = GetLastError();
+
+			wchar_t errorText[512];
+			errorText[0] = L'\0';
+
+			FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_MAX_WIDTH_MASK, nullptr, errorCode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), errorText, std::size(errorText), nullptr);
+
+			FatalError("Couldn't load Social Club SDK (socialclub.dll): Windows error code %d. %s", errorCode, ToNarrow(errorText));
 		}
 
 #if !GTA_NY

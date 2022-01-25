@@ -43,7 +43,14 @@ void ExecutableLoader::LoadImports(IMAGE_NT_HEADERS* ntHeader)
 
 		if (!module)
 		{
-			FatalError("Could not load dependent module %s. Error code was %i.\n", name, GetLastError());
+			auto errorCode = GetLastError();
+
+			wchar_t errorText[512];
+			errorText[0] = L'\0';
+
+			FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_MAX_WIDTH_MASK, nullptr, errorCode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), errorText, std::size(errorText), nullptr);
+
+			FatalError("Could not load dependent module %s. Error code %i -> %s\n", name, errorCode, ToNarrow(errorText));
 		}
 
 		// "don't load"
