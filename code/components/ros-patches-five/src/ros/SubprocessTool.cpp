@@ -225,6 +225,7 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 							std::thread([this, targetTitle]()
 							{
 								WaitForSingleObject(updateStateEvent, 1500);
+								Sleep(500); // big hack, should somehow wait some other way to see any `updateQueued` settle!
 
 								for (int i = 0; i < 4; i++)
 								{
