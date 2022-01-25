@@ -158,6 +158,7 @@ int RealMain()
 				HostSharedData<CfxState> initStateOld("CfxInitState");
 
 				hProcess = OpenProcess(SYNCHRONIZE, FALSE, initStateOld->initialGamePid);
+				initStateOld->initialGamePid = 0;
 			}
 
 			if (hProcess)
