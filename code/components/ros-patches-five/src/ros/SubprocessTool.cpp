@@ -192,6 +192,7 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 					static bool signInComplete2;
 					static bool launchDone;
 					static std::string updateState;
+					static HANDLE updateStateEvent = CreateEventW(NULL, TRUE, FALSE, NULL);
 
 					auto checkInstall = [this, targetTitle]()
 					{
@@ -223,11 +224,20 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 
 							std::thread([this, targetTitle]()
 							{
-								for (int i = 0; i < 3; i++)
+								WaitForSingleObject(updateStateEvent, 1500);
+
+								for (int i = 0; i < 4; i++)
 								{
 									if (launchDone || g_launchDone)
 									{
 										break;
+									}
+
+									if (updateState != "notUpdating")
+									{
+										i--;
+										Sleep(500);
+										continue;
 									}
 
 									child->SendJSCallback("RGSC_SET_CLOUD_SAVE_ENABLED", json::object({ { "Enabled", false },
@@ -293,15 +303,18 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 
 							signInComplete = true;
 							checkInstall();
-						}
-						else if (c == "TitlePlayTime")
-						{
+
 							signInComplete2 = true;
 							checkLaunch();
 						}
 						else if (c == "SetTitleInfo") {
 							if (p.value("titleName", "") == targetTitle) {
 								updateState = p["status"].value("updateState", "");
+
+								if (signInComplete2)
+								{
+									SetEvent(updateStateEvent);
+								}
 
 								if (p["status"].value("entitlement", false) && !p["status"].value("install", false) &&
 									p["status"].value("releaseState", "preload") == "available") {
