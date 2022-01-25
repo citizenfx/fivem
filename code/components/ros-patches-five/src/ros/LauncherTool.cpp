@@ -658,7 +658,7 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 			hook::iat(std::get<0>(h), std::get<1>(h), std::get<2>(h));
 		}
 
-		HMODULE hSteam = LoadLibrary(L"C:\\Program Files\\Rockstar Games\\Launcher\\steam_api64.dll");
+		HMODULE hSteam = LoadLibrary(L"C:\\Program Files\\Rockstar Games\\Launcher\\ThirdParty\\Steam\\steam_api64.dll");
 
 		if (hSteam)
 		{
