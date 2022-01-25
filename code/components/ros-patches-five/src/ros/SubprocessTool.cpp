@@ -225,7 +225,8 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 
 							std::thread([this, targetTitle]()
 							{
-								WaitForSingleObject(updateStateEvent, 2500);
+								// this timer *should* never actually get hit, but it's a safeguard from 'eternal stuckness'
+								WaitForSingleObject(updateStateEvent, 12500);
 
 								for (int i = 0; i < 4; i++)
 								{
