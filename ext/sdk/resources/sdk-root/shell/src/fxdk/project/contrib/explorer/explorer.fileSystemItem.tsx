@@ -2,7 +2,7 @@ import React from 'react';
 import { dispose, Disposer, IDisposable } from "fxdk/base/disposable";
 import { convertMenuItemsToContextMenuItems, IMenuItem } from "fxdk/base/menu";
 import { ContextMenuItemsCollection } from "fxdk/ui/controls/ContextMenu/ContextMenu";
-import { checkedIcon, deleteIcon, openInExplorerIcon, renameIcon, searchIcon, uncheckedIcon } from "fxdk/ui/icons";
+import { checkedIcon, deleteIcon, openInExplorerIcon, renameIcon, searchIcon, terminalIcon, uncheckedIcon } from "fxdk/ui/icons";
 import { IShellCommandId, ShellCommands } from "shell-api/commands";
 import { OpenFlag } from "store/generic/OpenFlag";
 import { ProjectCommands } from "../../browser/project.commands";
@@ -171,6 +171,7 @@ export abstract class ProjectExplorerFileSystemItem<TRuntimeData = any> implemen
     items.push({
       id: 'reveal-in-terminal',
       label: 'Open in Integrated Terminal',
+      icon: terminalIcon,
       group: ProjectExplorerItemMenuGroups.SEARCH,
       disabled: () => !FXCodeState.isReady,
       visible: () => this.entry.isDirectory,

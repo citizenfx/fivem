@@ -76,3 +76,5 @@ export const uncheckedIcon = <BsSquare />;
 export const infoIcon = <BsInfoCircle />;
 
 export const searchIcon = <BsSearch />;
+
+export const terminalIcon = <BsTerminal />;
