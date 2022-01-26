@@ -1,6 +1,8 @@
 export namespace ProjectCommands {
   export const ASSET_SET_ENABLED = 'fxdk.project.assets.setEnabled';
 
+  export const FIND_IN_FOLDER = 'fxdk.project.search.findInFolder';
+
   export const SET_COPY_RELOCATION_CONTEXT = 'fxdk.project.relocation.setContext.copy';
   export const SET_MOVE_RELOCATION_CONTEXT = 'fxdk.project.relocation.setContext.cut';
   export const APPLY_RELOCATION = 'fxdk.project.relocation.apply';
