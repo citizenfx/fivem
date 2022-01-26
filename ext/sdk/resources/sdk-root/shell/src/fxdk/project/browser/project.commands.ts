@@ -14,4 +14,5 @@ export namespace ProjectCommands {
   export const DELETE_ENTRY_CONFIRM_FIRST = 'fxdk.project.entry.deleteConfirmFirst';
 
   export const OPEN_IN_EXPLORER = 'fxdk.project.entry.openInExplorer';
+  export const REVEAL_IN_TERMINAL = 'fxdk.project.entry.revealInTerminal';
 }

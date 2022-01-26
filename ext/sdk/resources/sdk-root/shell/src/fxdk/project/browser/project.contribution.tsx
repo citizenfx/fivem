@@ -56,6 +56,10 @@ ShellCommands.register(ProjectCommands.FIND_IN_FOLDER, async (entryPath: string)
   Project.findInFiles(entryPath);
 });
 
+ShellCommands.register(ProjectCommands.REVEAL_IN_TERMINAL, async (entryPath: string) => {
+  Project.revealInTerminal(entryPath);
+});
+
 ShellCommands.register(ProjectCommands.CREATE_DIRECTORY, (directoryPath: string, directoryName: string) => {
   Api.send(ProjectApi.FsEndpoints.createDirectory, {
     directoryPath,

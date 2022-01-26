@@ -168,6 +168,16 @@ export abstract class ProjectExplorerFileSystemItem<TRuntimeData = any> implemen
       commandArgs: () => [entryPath],
     });
 
+    items.push({
+      id: 'reveal-in-terminal',
+      label: 'Open in Integrated Terminal',
+      group: ProjectExplorerItemMenuGroups.SEARCH,
+      disabled: () => !FXCodeState.isReady,
+      visible: () => this.entry.isDirectory,
+      commandId: ProjectCommands.REVEAL_IN_TERMINAL,
+      commandArgs: () => [entryPath],
+    });
+
     // Enable asset menu
     if (!options?.notAnAsset) {
       items.push({

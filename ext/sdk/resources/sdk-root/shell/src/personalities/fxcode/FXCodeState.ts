@@ -145,6 +145,8 @@ export const FXCodeState = new class FXCodeState {
 
   readonly findInFiles = this.glued((glue, entryPath: string) => glue.findInFiles(entryPath));
 
+  readonly revealInTerminal = this.glued((glue, entryPath: string) => glue.revealInTerminal(entryPath));
+
   readonly openGameView = this.glued((glue) => glue.openGameView());
 
   readonly setIsActive = this.glued((glue, isActive: boolean) => glue.dataService.setFXCodeIsActive(isActive));
