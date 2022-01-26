@@ -6,6 +6,8 @@
 #include <CfxState.h>
 #include <HostSharedData.h>
 
+#include <CrossBuildRuntime.h>
+
 #include <Utils.h>
 
 inline const wchar_t* MakeCfxSubProcess(const std::wstring& processType, const std::wstring& origin = L"")
@@ -73,41 +75,9 @@ inline const wchar_t* MakeCfxSubProcess(const std::wstring& processType, const s
 	
 	if ((origin.find(L"game") == 0 && origin != L"game_mtl") || processType == L"DumpServer")
 	{
-#ifdef GTA_FIVE
-		if (wcsstr(GetCommandLine(), L"b2545") != nullptr)
-		{
-			productName += L"b2545_";
-		}
-
-		if (wcsstr(GetCommandLine(), L"b2372") != nullptr)
-		{
-			productName += L"b2372_";
-		}
-
-		if (wcsstr(GetCommandLine(), L"b2189") != nullptr)
-		{
-			productName += L"b2189_";
-		}
-
-		if (wcsstr(GetCommandLine(), L"b2060") != nullptr)
-		{
-			productName += L"b2060_";
-		}
-
-		if (wcsstr(GetCommandLine(), L"b372") != nullptr)
-		{
-			productName += L"b372_";
-		}
-#elif IS_RDR3
-		if (wcsstr(GetCommandLine(), L"b1355") != nullptr)
-		{
-			productName += L"b1355_";
-		}
-
-		if (wcsstr(GetCommandLine(), L"b1436") != nullptr)
-		{
-			productName += L"b1436_";
-		}
+#if defined(GTA_FIVE) || defined(IS_RDR3)
+		auto buildNumber = xbr::GetGameBuild();
+		productName += fmt::sprintf(L"b%d_", buildNumber);
 #endif
 #endif
 	}
