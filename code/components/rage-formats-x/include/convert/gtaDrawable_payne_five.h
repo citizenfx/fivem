@@ -666,7 +666,11 @@ inline std::string LookupSpsName(uint32_t spsHash)
 		{
 			if (sps == "normal_spec_noreflect.sps")
 			{
-				return "normal_spec.sps";
+				return "normal_spec_reflect_decal.sps";
+			}
+			else if (sps == "normal_spec_noreflect_decal.sps")
+			{
+				return "normal_spec_decal.sps";
 			}
 			else if (sps == "micromovement.sps")
 			{
