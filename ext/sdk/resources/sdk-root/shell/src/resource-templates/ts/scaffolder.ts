@@ -10,8 +10,8 @@ export default class TsScaffolder implements ResourceTemplateScaffolder {
   protected readonly fsService: FsService;
 
   async scaffold({ manifest, resourceName, resourcePath }: ResourceTemplateScaffolderArgs) {
-    manifest.clientScripts.push('dist/client.ts');
-    manifest.serverScripts.push('dist/server.ts');
+    manifest.clientScripts.push('dist/client.js');
+    manifest.serverScripts.push('dist/server.js');
 
     manifest.fxdkWatchCommands.push([
       "yarn",
@@ -63,9 +63,8 @@ export default class TsScaffolder implements ResourceTemplateScaffolder {
 }
 
 function getIgnore(): string {
-  return `client/
-server/
-node_modules/
+  return `client/*
+server/*
 package.json
 build.js
 `;
