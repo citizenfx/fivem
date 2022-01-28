@@ -1789,7 +1789,7 @@
             <Priority>PRIO_ABOVE_NORMAL</Priority>
           </Item>
           <Item key="ResourcePlacementThread">
-            <Priority>PRIO_LOWEST</Priority>
+            <Priority>PRIO_NORMAL</Priority>
           </Item>
           <Item key="RageAudioMixThread">
             <Priority>PRIO_TIME_CRITICAL</Priority>
@@ -1798,10 +1798,10 @@
             <Priority>PRIO_NORMAL</Priority>
           </Item>
           <Item key="RageDvdStreamer">
-            <Priority>PRIO_BELOW_NORMAL</Priority>
+            <Priority>PRIO_ABOVE_NORMAL</Priority>
           </Item>
           <Item key="RageHddStreamer">
-            <Priority>PRIO_LOWEST</Priority>
+            <Priority>PRIO_ABOVE_NORMAL</Priority>
           </Item>
           <Item key="Render">
             <Priority>PRIO_ABOVE_NORMAL</Priority>
