@@ -257,7 +257,36 @@ static void SetHandlingDataInternal(fx::ScriptContext& context, CHandlingData* h
 
 	auto parserStructure = rage::GetStructureDefinition(handlingClass);
 
-	if (_stricmp(handlingClass, "CHandlingData") == 0)
+	char* handlingChar = (char*)handlingData;
+
+	// Update the pointer if using the CCarHandlingData SubHandlingData
+	if (_stricmp(handlingClass, "CCarHandlingData") == 0)
+	{
+		atArray<CBaseSubHandlingData*> subHandlingData = handlingData->GetSubHandlingData();
+		// Not every car will have the handling entry defined for CCarHandlingData
+		bool subHandlingFound = false;
+
+		for (int i = 0; i < subHandlingData.GetCount(); i++)
+		{
+			// CCarHandlingData
+			if (subHandlingData.Get(i) && subHandlingData.Get(i)->GetTypeIndex() == 8)
+			{
+				handlingChar = (char*)subHandlingData.Get(i);
+				subHandlingFound = true;
+				break;
+			}
+		}
+
+		if (!subHandlingFound)
+		{
+			trace("No such field %s during %s.\n", handlingField, fromFunction);
+
+			context.SetResult(false);
+			return;
+		}
+	}
+
+	if (_stricmp(handlingClass, "CHandlingData") == 0 || _stricmp(handlingClass, "CCarHandlingData") == 0)
 	{
 		uint32_t fieldHash = HashRageString(handlingField);
 
@@ -268,7 +297,6 @@ static void SetHandlingDataInternal(fx::ScriptContext& context, CHandlingData* h
 		{
 			if (member->m_definition->hash == fieldHash)
 			{
-				char* handlingChar = (char*)handlingData;
 				uint32_t offset = member->m_definition->offset;
 
 				switch (member->m_definition->type)
@@ -322,7 +350,7 @@ static void SetHandlingDataInternal(fx::ScriptContext& context, CHandlingData* h
 	}
 	else
 	{
-		trace("%s only supports CHandlingData currently\n", fromFunction);
+		trace("%s only supports CHandlingData and CCarHandlingData currently\n", fromFunction);
 
 		context.SetResult(false);
 	}
@@ -354,7 +382,36 @@ void GetVehicleHandling(fx::ScriptContext& context, const char* fromFunction)
 
 		auto parserStructure = rage::GetStructureDefinition(handlingClass);
 
-		if (_stricmp(handlingClass, "CHandlingData") == 0)
+		char* handlingChar = (char*)handlingData;
+
+		// Update the pointer if using the CCarHandlingData SubHandlingData
+		if (_stricmp(handlingClass, "CCarHandlingData") == 0)
+		{
+			atArray<CBaseSubHandlingData*> subHandlingData = vehicle->GetHandlingData()->GetSubHandlingData();
+			// Not every car will have the handling entry defined for CCarHandlingData
+			bool subHandlingFound = false;
+
+			for (int i = 0; i < subHandlingData.GetCount(); i++)
+			{
+				// CCarHandlingData
+				if (subHandlingData.Get(i) && subHandlingData.Get(i)->GetTypeIndex() == 8)
+				{
+					handlingChar = (char*)subHandlingData.Get(i);
+					subHandlingFound = true;
+					break;
+				}
+			}
+
+			if (!subHandlingFound)
+			{
+				trace("No such field %s during %s.\n", handlingField, fromFunction);
+
+				context.SetResult(false);
+				return;
+			}
+		}
+
+		if (_stricmp(handlingClass, "CHandlingData") == 0 || _stricmp(handlingClass, "CCarHandlingData") == 0)
 		{
 			uint32_t fieldHash = HashRageString(handlingField);
 
@@ -365,7 +422,6 @@ void GetVehicleHandling(fx::ScriptContext& context, const char* fromFunction)
 			{
 				if (member->m_definition->hash == fieldHash)
 				{
-					char* handlingChar = (char*)handlingData;
 					uint32_t offset = member->m_definition->offset;
 
 					switch (member->m_definition->type)
@@ -411,7 +467,7 @@ void GetVehicleHandling(fx::ScriptContext& context, const char* fromFunction)
 		}
 		else
 		{
-			trace("%s only supports CHandlingData currently\n", fromFunction);
+			trace("%s only supports CHandlingData and CCarHandlingData currently\n", fromFunction);
 
 			context.SetResult(false);
 		}
