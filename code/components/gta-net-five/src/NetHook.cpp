@@ -1419,8 +1419,21 @@ static BOOL ShellExecuteExAHook(SHELLEXECUTEINFOA *pExecInfo)
 	return TRUE;
 }
 
+static int* g_clipsetManager_networkState;
+static void (*g_orig_fwClipSetManager_StartNetworkSession)();
+
+static void fwClipSetManager_StartNetworkSessionHook()
+{
+	if (*g_clipsetManager_networkState != 2)
+	{
+		g_orig_fwClipSetManager_StartNetworkSession();
+	}
+}
+
 static HookFunction hookFunction([] ()
 {
+	MH_Initialize();
+
 	static ConsoleCommand quitCommand("quit", [](const std::string& message)
 	{
 		g_quitMsg = message;
@@ -1672,12 +1685,12 @@ static HookFunction hookFunction([] ()
 		hook::return_function(hook::get_pattern("48 8D 0D ? ? ? ? E8 ? ? ? ? 48 83 3D ? ? ? ? FF 74", -16));
 	}
 
-	// don't switch clipset manager to network mode
+	// don't redundantly switch clipset manager to network mode
 	// (blocks on a LoadAllObjectsNow after scene has initialized already)
-	if (!xbr::IsGameBuildOrGreater<2060>()) // arxan
-	{
-		hook::nop(hook::get_pattern("84 C0 75 33 E8 ? ? ? ? 83", 4), 5);
-	}
+	g_clipsetManager_networkState =
+		hook::get_address<int*>(hook::get_pattern("0F 85 6B FF FF FF C7 05", 6), 2, 10);
+	MH_CreateHook(hook::get_pattern("83 E1 02 74 34 A8 04 75", -0x36),
+		fwClipSetManager_StartNetworkSessionHook, (void**)&g_orig_fwClipSetManager_StartNetworkSession);
 
 	// don't switch to SP mode either
 	hook::return_function(hook::get_pattern("48 8D 2D ? ? ? ? 8B F0 85 C0 0F", -0x15));
@@ -1687,7 +1700,6 @@ static HookFunction hookFunction([] ()
 	hook::put<uint8_t>(hook::get_pattern("F6 44 07 04 02 74 7A", 4), 4); // check persistent sp flag -> persistent mp
 
 	// exitprocess -> terminateprocess
-	MH_Initialize();
 	MH_CreateHookApi(L"kernel32.dll", "ExitProcess", ExitProcessReplacement, nullptr);
 	MH_EnableHook(MH_ALL_HOOKS);
 
