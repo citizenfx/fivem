@@ -60,4 +60,25 @@ static InitFunction initFunction([]()
 			context.SetResult(atoi(var->GetValue().c_str()));
 		}
 	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_CONVAR_FLOAT", [](fx::ScriptContext& context)
+	{
+		// get the server's console context
+		auto consoleContext = console::GetDefaultContext();
+
+		// get the variable manager
+		auto varMan = consoleContext->GetVariableManager();
+
+		// get the variable
+		auto var = varMan->FindEntryRaw(context.CheckArgument<const char*>(0));
+
+		if (!var)
+		{
+			context.SetResult<float>(context.GetArgument<float>(1));
+		}
+		else
+		{
+			context.SetResult<float>(atof(var->GetValue().c_str()));
+		}
+	});
 });

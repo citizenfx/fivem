@@ -1397,6 +1397,33 @@ static InitFunction initFunction2([]()
 		}
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_CONVAR_FLOAT", [](fx::ScriptContext& context)
+	{
+		// get the current resource manager
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		// get the owning server instance
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		// get the server's console context
+		auto consoleContext = instance->GetComponent<console::Context>();
+
+		// get the variable manager
+		auto varMan = consoleContext->GetVariableManager();
+
+		// get the variable
+		auto var = varMan->FindEntryRaw(context.CheckArgument<const char*>(0));
+
+		if (!var)
+		{
+			context.SetResult<float>(context.GetArgument<float>(1));
+		}
+		else
+		{
+			context.SetResult<float>(atof(var->GetValue().c_str()));
+		}
+	});
+
 	fx::ScriptEngine::RegisterNativeHandler("SET_CONVAR", [](fx::ScriptContext& context)
 	{
 		// get the current resource manager
