@@ -72,6 +72,7 @@ fwPlatformString GetAbsoluteCitPath()
 		}
 
 		// is this subdirectory-based Citizen? if so, append the subdirectory
+		if (GetFileAttributes((citizenPath + L"CoreRT.dll").c_str()) == INVALID_FILE_ATTRIBUTES)
 		{
 			std::wstring subPath = citizenPath +
 #ifdef IS_RDR3
@@ -80,12 +81,10 @@ fwPlatformString GetAbsoluteCitPath()
 				L"FiveM.app";
 #endif
 
-			if (GetFileAttributes(subPath.c_str()) != INVALID_FILE_ATTRIBUTES)
+			if (GetFileAttributes(subPath.c_str()) != INVALID_FILE_ATTRIBUTES &&
+				(GetFileAttributes(subPath.c_str()) & FILE_ATTRIBUTE_DIRECTORY) != 0)
 			{
-				if (GetFileAttributes(subPath.c_str()) & FILE_ATTRIBUTE_DIRECTORY)
-				{
-					citizenPath = subPath + L"\\";
-				}
+				citizenPath = subPath + L"\\";
 			}
 		}
 #else
