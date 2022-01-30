@@ -98,7 +98,9 @@ static float getFloatField(char* handlingChar, uint32_t offset, const char* fiel
 	{
 		// empty
 	}
-	else if (hash == HashRageString("fSteeringLock") || hash == HashRageString("fTractionCurveLateral"))
+	else if (hash == HashRageString("fSteeringLock") || hash == HashRageString("fTractionCurveLateral") || 
+		hash == HashRageString("fMaxBankAngle") || hash == HashRageString("fFullAnimAngle") ||
+		hash == HashRageString("fBikeOnStandLeanAngle"))
 	{
 		return *(float*)(handlingChar + offset) / 0.017453292f; // rad to deg
 	}
@@ -244,6 +246,13 @@ static void setFloatField(char* handlingChar, uint32_t offset, float value, cons
 
 		return;
 	}
+	else if (hash == HashRageString("fMaxBankAngle") || hash == HashRageString("fFullAnimAngle")|| 
+		hash == HashRageString("fBikeOnStandLeanAngle"))
+	{
+		*(float*)(handlingChar + offset) = value * 0.017453292f; // deg to rad
+
+		return;
+	}
 
 	*(float*)(handlingChar + offset) = value;
 }
@@ -257,7 +266,35 @@ static void SetHandlingDataInternal(fx::ScriptContext& context, CHandlingData* h
 
 	auto parserStructure = rage::GetStructureDefinition(handlingClass);
 
-	if (_stricmp(handlingClass, "CHandlingData") == 0)
+	char* handlingChar = (char*)handlingData;
+	bool isCHandling = _stricmp(handlingClass, "CHandlingData") == 0;
+	bool isSubHandling = false; // Not every car will have the handling entry defined for the sub type
+
+	if (!isCHandling)
+	{
+		atArray<CBaseSubHandlingData*> subHandlingData = handlingData->GetSubHandlingData();
+
+		for (int i = 0; i < subHandlingData.GetCount(); i++)
+		{
+			CBaseSubHandlingData* sub = subHandlingData.Get(i);
+			if (sub && _stricmp(handlingClass, typeid(*sub).name() + 6) == 0) // Compare +6 since the name is technically "class xyz"
+			{
+				handlingChar = (char*)subHandlingData.Get(i); // Update the pointer if using SubHandlingData
+				isSubHandling = true;
+				break;
+			}
+		}
+
+		if (!isSubHandling)
+		{
+			trace("No such field %s during %s.\n", handlingField, fromFunction);
+
+			context.SetResult(false);
+			return;
+		}
+	}
+
+	if (isCHandling || isSubHandling)
 	{
 		uint32_t fieldHash = HashRageString(handlingField);
 
@@ -268,7 +305,6 @@ static void SetHandlingDataInternal(fx::ScriptContext& context, CHandlingData* h
 		{
 			if (member->m_definition->hash == fieldHash)
 			{
-				char* handlingChar = (char*)handlingData;
 				uint32_t offset = member->m_definition->offset;
 
 				switch (member->m_definition->type)
@@ -322,7 +358,7 @@ static void SetHandlingDataInternal(fx::ScriptContext& context, CHandlingData* h
 	}
 	else
 	{
-		trace("%s only supports CHandlingData currently\n", fromFunction);
+		trace("%s does not support %s\n", fromFunction, handlingClass);
 
 		context.SetResult(false);
 	}
@@ -354,7 +390,35 @@ void GetVehicleHandling(fx::ScriptContext& context, const char* fromFunction)
 
 		auto parserStructure = rage::GetStructureDefinition(handlingClass);
 
-		if (_stricmp(handlingClass, "CHandlingData") == 0)
+		char* handlingChar = (char*)handlingData;
+		bool isCHandling = _stricmp(handlingClass, "CHandlingData") == 0;
+		bool isSubHandling = false; // Not every car will have the handling entry defined for the sub type
+
+		if (!isCHandling)
+		{
+			atArray<CBaseSubHandlingData*> subHandlingData = vehicle->GetHandlingData()->GetSubHandlingData();
+
+			for (int i = 0; i < subHandlingData.GetCount(); i++)
+			{
+				CBaseSubHandlingData* sub = subHandlingData.Get(i);
+				if (sub && _stricmp(handlingClass, typeid(*sub).name() + 6) == 0) // Compare +6 since the name is technically "class xyz"
+				{
+					handlingChar = (char*)subHandlingData.Get(i); // Update the pointer if using SubHandlingData
+					isSubHandling = true;
+					break;
+				}
+			}
+
+			if (!isSubHandling)
+			{
+				trace("No such field %s during %s.\n", handlingField, fromFunction);
+
+				context.SetResult(false);
+				return;
+			}
+		}
+
+		if (isCHandling || isSubHandling)
 		{
 			uint32_t fieldHash = HashRageString(handlingField);
 
@@ -365,7 +429,6 @@ void GetVehicleHandling(fx::ScriptContext& context, const char* fromFunction)
 			{
 				if (member->m_definition->hash == fieldHash)
 				{
-					char* handlingChar = (char*)handlingData;
 					uint32_t offset = member->m_definition->offset;
 
 					switch (member->m_definition->type)
@@ -411,7 +474,7 @@ void GetVehicleHandling(fx::ScriptContext& context, const char* fromFunction)
 		}
 		else
 		{
-			trace("%s only supports CHandlingData currently\n", fromFunction);
+			trace("%s does not support %s\n", fromFunction, handlingClass);
 
 			context.SetResult(false);
 		}
