@@ -429,6 +429,12 @@ static void (*setupBusySpinner)(bool);
 static void (*updateBusySpinner)();
 static bool* spinnerDep;
 
+// CScaleformMgr::UpdateAtEndOfFrame
+static hook::cdecl_stub<void(bool)> _sf_updateEndOfFrame([]()
+{
+	return hook::get_pattern("45 33 FF 44 8A F1 44 38 ? ? ? ? 01 0F 85", -0x18);
+});
+
 static HookFunction hookFunctionSpinner([]()
 {
 	// set up GFx bits
@@ -467,6 +473,8 @@ static InitFunction initFunction([] ()
 				setupBusySpinner(1);
 				*spinnerDep = true;
 				updateBusySpinner();
+
+				_sf_updateEndOfFrame(false);
 			}
 		}
 	});
