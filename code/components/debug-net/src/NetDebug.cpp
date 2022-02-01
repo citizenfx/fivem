@@ -57,16 +57,27 @@ private:
 	std::map<uint32_t, std::string_view> m_lookupList;
 };
 
+// rg -i '"msg' | grep -oP '"msg[A-Z].*?"' | sed 's/"$/",/g' | sort -u | clip
 static const char* g_knownPackets[]
 {
+	"msgArrayUpdate",
+	"msgCloneAcks",
+	"msgCloneRemove",
 	"msgConVars",
+	"msgConfirm",
 	"msgEnd",
 	"msgEntityCreate",
+	"msgFrame",
+	"msgHeHost",
+	"msgIHost",
+	"msgIQuit",
+	"msgNetEvent",
 	"msgNetGameEvent",
 	"msgObjectIds",
 	"msgPackedAcks",
 	"msgPackedClones",
 	"msgPaymentRequest",
+	"msgReassembledEvent",
 	"msgRequestObjectIds",
 	"msgResStart",
 	"msgResStop",
@@ -75,15 +86,15 @@ static const char* g_knownPackets[]
 	"msgRpcNative",
 	"msgServerCommand",
 	"msgServerEvent",
+	"msgStateBag",
 	"msgTimeSync",
 	"msgTimeSyncReq",
 	"msgWorldGrid",
-	"msgFrame",
-	"msgIHost",
+	"msgWorldGrid3",
+
+	// manual list that doesn't start with 'msg'
 	"gameStateAck",
 	"gameStateNAck",
-	"msgNetEvent",
-	"msgServerEvent",
 };
 
 static RageHashList g_hashes{ g_knownPackets };
