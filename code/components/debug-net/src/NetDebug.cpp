@@ -301,7 +301,7 @@ NetOverlayMetricSink::NetOverlayMetricSink()
 					ImGui::Text("%s", (reliable.find(entry.first)->second ? "R" : "U"));
 					ImGui::NextColumn();
 
-					ImGui::Text("%s", g_hashes.LookupHash(entry.first));
+					ImGui::Text("%s", g_hashes.LookupHash(entry.first).c_str());
 					ImGui::NextColumn();
 
 					ImGui::Text("%d B", entry.second);
@@ -329,7 +329,7 @@ NetOverlayMetricSink::NetOverlayMetricSink()
 				{
 					if (i < m_lastIncomingData.size())
 					{
-						ImGui::Text("%d. %s (%d)", i + 1, g_hashes.LookupHash(std::get<0>(m_lastIncomingData[i])), std::get<1>(m_lastIncomingData[i]));
+						ImGui::Text("%d. %s (%d)", i + 1, g_hashes.LookupHash(std::get<0>(m_lastIncomingData[i])).c_str(), std::get<1>(m_lastIncomingData[i]));
 					}
 					else
 					{
@@ -340,7 +340,7 @@ NetOverlayMetricSink::NetOverlayMetricSink()
 
 					if (i < m_lastOutgoingData.size())
 					{
-						ImGui::Text("%d. %s (%d)", i + 1, g_hashes.LookupHash(std::get<0>(m_lastOutgoingData[i])), std::get<1>(m_lastOutgoingData[i]));
+						ImGui::Text("%d. %s (%d)", i + 1, g_hashes.LookupHash(std::get<0>(m_lastOutgoingData[i])).c_str(), std::get<1>(m_lastOutgoingData[i]));
 					}
 					else
 					{
