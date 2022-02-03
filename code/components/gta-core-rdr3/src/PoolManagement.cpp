@@ -534,6 +534,22 @@ static const char* poolEntriesTable[] = {
 "cbullet::sbulletinstance",
 "itemsetbuffer",
 "itemset",
+"tasksequenceinfo",
+"ceventnetwork",
+"scriptshapetestresult",
+"cnamedpatrolroute",
+"explosiontype",
+"camsplinenode",
+"clandinggear_qkdfqq",
+"collision_5plvhjd",
+"shapetesttaskdata",
+"scenariopoint",
+"ceventdecisionmaker",
+"musicevent",
+"musicaction",
+"ccargenforscenarios",
+"vehicleaudioentity",
+#include "RDR3VtableList.h"
 };
 
 static RageHashList poolEntries(poolEntriesTable);
