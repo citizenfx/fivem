@@ -109,7 +109,7 @@ struct GameCacheEntry
 	// methods
 	bool IsPrimitiveFile() const
 	{
-		return std::string(filename).find("ros_") == 0 || std::string(filename).find("launcher/") == 0;
+		return std::string_view{ filename }.find("ros_") == 0 || std::string_view{ filename }.find("launcher/") == 0;
 	}
 
 	std::wstring GetCacheFileName() const
@@ -137,39 +137,45 @@ struct GameCacheEntry
 
 	std::wstring GetLocalFileName() const
 	{
-		using namespace std::string_literals;
-
 		if (_strnicmp(filename, "launcher/", 9) == 0)
 		{
-			wchar_t rootBuf[1024] = { 0 };
-			DWORD rootLength = sizeof(rootBuf);
+			static auto mtlPath = ([]()
+			{
+				wchar_t rootBuf[1024] = { 0 };
+				DWORD rootLength = sizeof(rootBuf);
 
-			RegGetValue(HKEY_LOCAL_MACHINE,
+				RegGetValue(HKEY_LOCAL_MACHINE,
 				L"SOFTWARE\\WOW6432Node\\Rockstar Games\\Launcher", L"InstallFolder",
 				RRF_RT_REG_SZ, nullptr, rootBuf, &rootLength);
+				
+				return std::wstring{ rootBuf };
+			})();
 
-			return rootBuf + L"\\"s + ToWide(&filename[9]);
+			return mtlPath + L"\\" + ToWide(&filename[9]);
 		}
 
 		if (_strnicmp(filename, "ros_", 4) == 0)
 		{
-			LPWSTR rootPath;
-			if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_ProgramFiles, 0, nullptr, &rootPath)))
+			static auto scPath = ([]() -> std::wstring
 			{
-				std::wstring pathRef = rootPath;
-				CoTaskMemFree(rootPath);
+				LPWSTR rootPath;
+				if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_ProgramFiles, 0, nullptr, &rootPath)))
+				{
+					std::wstring pathRef = rootPath;
+					CoTaskMemFree(rootPath);
 
-				return pathRef + L"\\Rockstar Games\\Social Club\\"s + ToWide(strchr(filename, L'/') + 1);
-			}
+					return pathRef;
+				}
 
-			wchar_t rootBuf[1024] = { 0 };
-			DWORD rootLength = sizeof(rootBuf);
+				wchar_t rootBuf[1024] = { 0 };
+				DWORD rootLength = sizeof(rootBuf);
 
-			RegGetValue(HKEY_LOCAL_MACHINE,
+				RegGetValue(HKEY_LOCAL_MACHINE,
 				L"SOFTWARE\\WOW6432Node\\Rockstar Games\\Rockstar Games Social Club", L"InstallFolder",
 				RRF_RT_REG_SZ, nullptr, rootBuf, &rootLength);
+			})();
 
-			return rootBuf + L"\\"s + ToWide(&filename[9]);
+			return scPath + L"\\" + ToWide(strchr(filename, L'/') + 1);
 		}
 
 		return MakeRelativeGamePath(ToWide(filename));
@@ -207,11 +213,6 @@ struct GameCacheStorageEntry
 static std::vector<GameCacheEntry> g_requiredEntries =
 {
 #if defined(GTA_FIVE)
-	//{ "GTA5.exe", "79a272830be65afae4acd520bfbfe176e0b142f3", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_1737_0.exe", "$/GTA5.exe", 77631632, 1189307336 },
-	//{ "update/update.rpf", "8a98e0879b91661dd2aa23f86abdf91ee741b237", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_1737_0.exe", "$/update/update.rpf", 1171902464, 1189307336 },
-
-	//{ L"update/update.rpf", "c819ecc1df08f3a90bc144fce0bba08bb7b6f893", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfupdate.rpf", 560553984 },
-	//{ "update/update.rpf", "319d867a44746885427d9c40262e9d735cd2a169", "Game_EFIGS/GTA_V_Patch_1_0_1011_1.exe", "$/update/update.rpf", 701820928, SIZE_MAX },
 	{ "update/x64/dlcpacks/patchday4ng/dlc.rpf", "124c908d82724258a5721535c87f1b8e5c6d8e57", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfpatchday4ng/dlc.rpf", 312438784 },
 	{ "update/x64/dlcpacks/mpluxe/dlc.rpf", "78f7777b49f4b4d77e3da6db728cb3f7ec51e2fc", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpluxe/dlc.rpf", 226260992 },
 
@@ -436,10 +437,6 @@ static std::vector<GameCacheEntry> g_requiredEntries =
 	{ "ros_2079_x86/swiftshader/libEGL.dll", "315BE829397C2C65B4401DE0A9F634D2DF864CD4", "https://content.cfx.re/mirrors/emergency_mirror/ros_2079_x86/swiftshader/libEGL.dll", 338312 },
 	{ "ros_2079_x86/swiftshader/libGLESv2.dll", "E62DA6B61D963AB9CD242C2811AC9D7ADA2613AB", "https://content.cfx.re/mirrors/emergency_mirror/ros_2079_x86/swiftshader/libGLESv2.dll", 3017608 },
 #endif
-
-#if defined(_M_IX86)
-	// #TODOLIBERTY: ROS 2.0.7.x for 32-bit
-#endif
 };
 
 static bool ParseCacheFileName(const char* inString, std::string& fileNameOut, std::string& hashOut)
@@ -521,8 +518,6 @@ static std::vector<GameCacheStorageEntry> LoadCacheStorage()
 
 	HANDLE hFind = FindFirstFile(MakeRelativeCitPath(L"data\\game-storage\\*.*").c_str(), &findData);
 
-	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
-
 	if (hFind != INVALID_HANDLE_VALUE)
 	{
 		do 
@@ -531,7 +526,7 @@ static std::vector<GameCacheStorageEntry> LoadCacheStorage()
 			std::string fileName;
 			std::string fileHash;
 
-			if (ParseCacheFileName(converter.to_bytes(findData.cFileName).c_str(), fileName, fileHash))
+			if (ParseCacheFileName(ToNarrow(findData.cFileName).c_str(), fileName, fileHash))
 			{
 				// add the entry, if so
 				LARGE_INTEGER quadTime;
@@ -872,8 +867,6 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 			}
 		}
 
-		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
-
 		// if not, copy it from the local filesystem (we're abusing the download code here a lot)
 		if (!fileOutdated)
 		{
@@ -910,7 +903,7 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 						curl_easy_cleanup(curl);
 					}
 
-					CL_QueueDownload(va("file:///%s", escapedUrl), converter.to_bytes(entry.GetCacheFileName()).c_str(), entry.localSize, compressionAlgo_e::None);
+					CL_QueueDownload(va("file:///%s", escapedUrl), ToNarrow(entry.GetCacheFileName()).c_str(), entry.localSize, compressionAlgo_e::None);
 
 					notificationEntries.push_back({ entry, true });
 				}
@@ -937,7 +930,7 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 			if (referencedFiles.find(entry.remotePath) == referencedFiles.end())
 			{
 				// download it from the rockstar service
-				std::string localFileName = (entry.archivedFile) ? converter.to_bytes(entry.GetRemoteBaseName()) : converter.to_bytes(entry.GetCacheFileName());
+				std::string localFileName = (entry.archivedFile) ? ToNarrow(entry.GetRemoteBaseName()) : ToNarrow(entry.GetCacheFileName());
 				const char* remotePath = entry.remotePath;
 
 				if (_strnicmp(remotePath, "http", 4) != 0 && _strnicmp(remotePath, "ipfs", 4) != 0)
@@ -1608,7 +1601,6 @@ std::map<std::string, std::string> UpdateGameCache()
 
 	// get a list of cache files that should be mapped given an updated cache
 	std::map<std::string, std::string> retval;
-	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
 
 	for (auto& entry : g_requiredEntries)
 	{
@@ -1626,7 +1618,7 @@ std::map<std::string, std::string> UpdateGameCache()
 
 		if (GetFileAttributes(entry.GetCacheFileName().c_str()) != INVALID_FILE_ATTRIBUTES)
 		{
-			retval.insert({ origFileName, converter.to_bytes(entry.GetCacheFileName()) });
+			retval.insert({ origFileName, ToNarrow(entry.GetCacheFileName()) });
 		}
 	}
 

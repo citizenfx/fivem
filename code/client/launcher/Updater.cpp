@@ -583,7 +583,6 @@ bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::arr
 	bool fileOutdated = true;
 
 	HANDLE hFile = CreateFile(fileName, GENERIC_READ | SYNCHRONIZE, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL);
-	HANDLE hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
 
 	if (hFile != INVALID_HANDLE_VALUE)
 	{
@@ -642,13 +641,13 @@ bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::arr
 				overlapped.OffsetHigh = fileOffset >> 32;
 				overlapped.Offset = fileOffset;
 
-				char buffer[131072];
-				if (ReadFile(hFile, buffer, sizeof(buffer), NULL, &overlapped) == FALSE)
+				std::vector<char> buffer(131072);
+				if (ReadFile(hFile, buffer.data(), buffer.size(), NULL, &overlapped) == FALSE)
 				{
 					if (GetLastError() != ERROR_IO_PENDING && GetLastError() != ERROR_HANDLE_EOF)
 					{
 						UI_DisplayError(va(L"Reading of %s failed with error %i.", fileName, GetLastError()));
-						return false;
+						return true;
 					}
 
 					if (GetLastError() == ERROR_HANDLE_EOF)
@@ -686,9 +685,9 @@ bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::arr
 				BOOL olResult = GetOverlappedResult(hFile, &overlapped, &bytesRead, FALSE);
 				DWORD err = GetLastError();
 
-				SHA1_Update(&ctx, (uint8_t*)buffer, bytesRead);
+				SHA1_Update(&ctx, (uint8_t*)buffer.data(), bytesRead);
 
-				if (bytesRead < sizeof(buffer) || (!olResult && err == ERROR_HANDLE_EOF))
+				if (bytesRead < buffer.size() || (!olResult && err == ERROR_HANDLE_EOF))
 				{
 					doneReading = true;
 				}
@@ -713,17 +712,17 @@ bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::arr
 
 			*fileStart += fileOffset;
 
-			uint8_t outHash[20];
-			SHA1_Final(outHash, &ctx);
+			std::array<uint8_t, 20> outHash;
+			SHA1_Final(outHash.data(), &ctx);
 
 			if (foundHash)
 			{
-				memcpy(foundHash->data(), outHash, foundHash->size());
+				*foundHash = outHash;
 			}
 
 			for (auto& hash : validHashes)
 			{
-				if (memcmp(hash.data(), outHash, 20) == 0)
+				if (hash == outHash)
 				{
 					fileOutdated = false;
 				}
@@ -732,8 +731,6 @@ bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::arr
 
 		CloseHandle(hFile);
 	}
-
-	CloseHandle(hEvent);
 
 	return fileOutdated;
 }
