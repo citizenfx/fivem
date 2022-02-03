@@ -126,6 +126,8 @@ local function launcherpersonality_inner(name, aslr)
 				"Installer.cpp",
 				"Updater.cpp",
 				"UpdaterUI.cpp",
+				"MiniDump.cpp",
+				"Minidump.Symbolication.cpp",
 			}
 		end
 		

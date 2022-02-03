@@ -272,10 +272,21 @@ void MumbleAudioOutput::ClientAudioState::OnBufferEnd(void* cxt)
 {
 	auto buffer = reinterpret_cast<int16_t*>(cxt);
 
-	_aligned_free(buffer);
+	if (buffer != nullptr) // Preemptively handle pBufferContext being NULL. Even if never in this case
+	{
+		_aligned_free(buffer);
+	}
 
 	XAUDIO2_VOICE_STATE vs;
-	voice->GetState(&vs);
+	{
+		vs.BuffersQueued = 0;
+
+		std::lock_guard _(m_render);
+		if (voice != nullptr)
+		{
+			voice->GetState(&vs);
+		}
+	}
 
 	if (vs.BuffersQueued == 0)
 	{
@@ -379,6 +390,13 @@ struct XA2DestinationNode : public lab::AudioDestinationNode
 		// work around XA2.7 issue (for Win7) where >64 buffers being enqueued are a fatal error (leading to __debugbreak)
 		// "SimpList: non-growable list ran out of room for new elements"
 
+		// @FIX(fillet-zulu-mississippi)
+		std::lock_guard _(state->m_render);
+		if (state->voice == nullptr)
+		{
+			return;
+		}
+
 		XAUDIO2_VOICE_STATE vs;
 		state->voice->GetState(&vs);
 
@@ -435,6 +453,13 @@ void MumbleAudioOutput::ClientAudioState::PushSoundInternal(uint16_t* voiceBuffe
 
 MumbleAudioOutput::ClientAudioState::~ClientAudioState()
 {
+	// Hopefully @FIX(pasta-pizza-purple): the voice object exists (rcx).
+	// However, its vtable "mov rax, [rcx]" is 0x0.
+	//
+	// This will likely do nothing for friend-two-oranges, as that issue seems
+	// correlated to offloading audio context deconstruction duties onto another
+	// thread
+	std::lock_guard _(m_render);
 	lab::AudioContext* contextRef = context.get();
 
 	if (contextRef)
@@ -1159,6 +1184,7 @@ void MumbleAudioOutput::ClientAudioState::PushPosition(MumbleAudioOutput* baseIo
 {
 	using namespace DirectX;
 
+	std::lock_guard _(m_render);
 	auto client = this;
 
 	if (voice)

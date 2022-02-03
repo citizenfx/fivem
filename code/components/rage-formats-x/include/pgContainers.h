@@ -65,6 +65,11 @@ public:
 		return (*m_offset)[offset];
 	}
 
+	inline auto& operator[](TIndex offset)
+	{
+		return Get(offset);
+	}
+
 	void Expand(TIndex newSize)
 	{
 		if (m_size >= newSize)
@@ -77,6 +82,7 @@ public:
 
 		delete[] *m_offset;
 		m_offset = newOffset;
+		m_size = newSize;
 	}
 
 	pgArray* MakeSaveable()
@@ -192,6 +198,7 @@ public:
 
 		delete[] *m_objects;
 		m_objects = newObjects;
+		m_size = newSize;
 	}
 
 	TValue* Get(uint16_t offset)
@@ -202,6 +209,11 @@ public:
 		}
 
 		return *((*m_objects)[offset]);
+	}
+
+	inline auto& operator[](uint16_t offset)
+	{
+		return ((*m_objects)[offset]);
 	}
 
 	pgObjectArray* MakeSaveable()
@@ -332,6 +344,33 @@ public:
 
 	inline void Add(uint32_t keyHash, TValue* value)
 	{
+		for (size_t idx = 0; idx < m_hashes.GetCount(); idx++)
+		{
+			if (m_hashes[idx] == keyHash)
+			{
+				// dupe
+				return;
+			}
+			else if (m_hashes[idx] > keyHash)
+			{
+				// expand array
+				auto lastCount = m_hashes.GetCount();
+
+				m_hashes.Set(m_hashes.GetCount(), 0);
+				m_values.Set(m_values.GetCount(), nullptr);
+
+				// move
+				std::move_backward(&m_hashes[idx], &m_hashes[lastCount], &m_hashes[lastCount + 1]);
+				std::move_backward(&m_values[idx], &m_values[lastCount], &m_values[lastCount + 1]);
+
+				// insert
+				m_hashes.Set(idx, keyHash);
+				m_values.Set(idx, value);
+
+				return;
+			}
+		}
+
 		m_hashes.Set(m_hashes.GetCount(), keyHash);
 		m_values.Set(m_values.GetCount(), value);
 	}

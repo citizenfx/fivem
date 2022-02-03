@@ -1,6 +1,8 @@
 export namespace ProjectCommands {
   export const ASSET_SET_ENABLED = 'fxdk.project.assets.setEnabled';
 
+  export const FIND_IN_FOLDER = 'fxdk.project.search.findInFolder';
+
   export const SET_COPY_RELOCATION_CONTEXT = 'fxdk.project.relocation.setContext.copy';
   export const SET_MOVE_RELOCATION_CONTEXT = 'fxdk.project.relocation.setContext.cut';
   export const APPLY_RELOCATION = 'fxdk.project.relocation.apply';
@@ -12,4 +14,5 @@ export namespace ProjectCommands {
   export const DELETE_ENTRY_CONFIRM_FIRST = 'fxdk.project.entry.deleteConfirmFirst';
 
   export const OPEN_IN_EXPLORER = 'fxdk.project.entry.openInExplorer';
+  export const REVEAL_IN_TERMINAL = 'fxdk.project.entry.revealInTerminal';
 }

@@ -128,8 +128,12 @@ void ParseSymbolicCrash(nlohmann::json& crash, std::string* signature, std::stri
 	}
 }
 
-nlohmann::json SymbolicateCrash(HANDLE hProcess, HANDLE hThread, PEXCEPTION_RECORD er, PCONTEXT ctx)
+static std::mutex dbgHelpMutex;
+
+static nlohmann::json SymbolicateCrashRequest(HANDLE hProcess, HANDLE hThread, PEXCEPTION_RECORD er, PCONTEXT ctx)
 {
+	std::lock_guard _(dbgHelpMutex);
+
 	auto threads = nlohmann::json::array();
 	auto modules = nlohmann::json::array();
 
@@ -253,6 +257,15 @@ nlohmann::json SymbolicateCrash(HANDLE hProcess, HANDLE hThread, PEXCEPTION_RECO
 		{ "stacktraces", threads },
 		{ "modules", modules }
 	});
+
+	SymCleanup(hProcess);
+
+	return std::move(symb);
+}
+
+nlohmann::json SymbolicateCrash(HANDLE hProcess, HANDLE hThread, PEXCEPTION_RECORD er, PCONTEXT ctx)
+{
+	auto symb = SymbolicateCrashRequest(hProcess, hThread, er, ctx);
 
 	auto r = cpr::Post(cpr::Url{ "https://crash-ingress.fivem.net/symbolicate?timeout=5" }, cpr::Body{ symb.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace) },
 	cpr::Timeout{ std::chrono::seconds(10) }, cpr::Header{ { "content-type", "application/json" } }, cpr::VerifySsl{ false });

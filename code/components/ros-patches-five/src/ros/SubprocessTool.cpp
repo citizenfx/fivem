@@ -185,15 +185,15 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 #endif
 						;
 
-					static bool verified;
 					static bool launched;
 					static bool installing;
-					static bool verifying;
-					static bool launchedVerify;
 					static bool launching;
+					static bool didUpdate;
 					static bool signInComplete;
 					static bool signInComplete2;
 					static bool launchDone;
+					static std::string updateState;
+					static HANDLE updateStateEvent = CreateEventW(NULL, TRUE, FALSE, NULL);
 
 					auto checkInstall = [this, targetTitle]()
 					{
@@ -212,50 +212,51 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 						}
 					};
 
-					auto checkVerify = [this, targetTitle]()
-					{
-						if (signInComplete2 && !verified && !launchedVerify && verifying)
-						{
-							Sleep(500);
-
-							child->SendJSCallback("RGSC_RAISE_UI_EVENT", json::object({ { "EventId", 2 }, // LauncherV3UiEvent
-
-																					  { "Data", json::object({ { "Action", "Verify" },
-																								{ "Parameter", json::object({
-																											   { "titleName", targetTitle },
-																											   }) } }) } })
-																		 .dump());
-
-							launchedVerify = true;
-						}
-					};
-
 					auto checkLaunch = [this, targetTitle]()
 					{
-						if (signInComplete2 && !launched && launching && verified)
+						if (updateState != "notUpdating")
+						{
+							return;
+						}
+
+						if (signInComplete2 && !launched && launching)
 						{
 							launched = true;
 
-							for (int i = 0; i < 3; i++)
+							std::thread([this, targetTitle]()
 							{
-								if (launchDone || g_launchDone)
+								// this timer *should* never actually get hit, but it's a safeguard from 'eternal stuckness'
+								WaitForSingleObject(updateStateEvent, 12500);
+
+								for (int i = 0; i < 4; i++)
 								{
-									break;
+									if (launchDone || g_launchDone)
+									{
+										break;
+									}
+
+									if (updateState != "notUpdating")
+									{
+										i--;
+										Sleep(500);
+										continue;
+									}
+
+									child->SendJSCallback("RGSC_SET_CLOUD_SAVE_ENABLED", json::object({ { "Enabled", false },
+																									  { "RosTitleName", targetTitle } })
+																						 .dump());
+
+									child->SendJSCallback("RGSC_RAISE_UI_EVENT", json::object({ { "EventId", 2 }, // LauncherV3UiEvent
+
+																							  { "Data", json::object({ { "Action", "Launch" },
+																										{ "Parameter", json::object({ { "titleName", targetTitle },
+																													   { "args", "" } }) } }) } })
+																				 .dump());
+
+									Sleep(10000);
 								}
-
-								child->SendJSCallback("RGSC_SET_CLOUD_SAVE_ENABLED", json::object({ { "Enabled", false },
-																								  { "RosTitleName", targetTitle } })
-																					 .dump());
-
-								child->SendJSCallback("RGSC_RAISE_UI_EVENT", json::object({ { "EventId", 2 }, // LauncherV3UiEvent
-
-																						  { "Data", json::object({ { "Action", "Launch" },
-																									{ "Parameter", json::object({ { "titleName", targetTitle },
-																												   { "args", "" } }) } }) } })
-																			 .dump());
-
-								Sleep(10000);
-							}
+							})
+							.detach();
 						}
 					};
 
@@ -288,21 +289,45 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 						}
 						else if (c == "SignInComplete")
 						{
+#if 0
+							child->SendJSCallback("RGSC_RAISE_UI_EVENT", json::object({ { "EventId", 2 }, // LauncherV3UiEvent
+
+																					  {
+																					  "Data", json::object({ { "Action", "UpdateSetting" },
+																							  { "Parameter", json::object({ { "titles", json::object({ { std::string{ targetTitle }, json::object({ { "autoUpdate", false } }) } }) } }) } }) } })
+																		 .dump());
+#endif
+
 							child->SendJSCallback("RGSC_RAISE_UI_EVENT", json::object({ { "EventId", 2 }, // LauncherV3UiEvent
 
 																					  { "Data", json::object({ { "Action", "EnableDownloading" } }) } })
 																		 .dump());
 
 							signInComplete = true;
-							signInComplete2 = true;
 							checkInstall();
-							checkVerify();
+
+							signInComplete2 = true;
 							checkLaunch();
 						}
 						else if (c == "SetTitleInfo") {
 							if (p.value("titleName", "") == targetTitle) {
+								updateState = p["status"].value("updateState", "");
+
+								if (signInComplete2)
+								{
+									if (p["status"].value("updateState", "") == "updateQueued" ||
+										p["status"].value("updateState", "") == "starting")
+									{
+										didUpdate = true;
+									}
+									else if (didUpdate && p["status"].value("updateState", "") == "notUpdating")
+									{
+										SetEvent(updateStateEvent);
+									}
+								}
+
 								if (p["status"].value("entitlement", false) && !p["status"].value("install", false) &&
-									p["status"].value("releaseState", "preload") == "available" && !verified) {
+									p["status"].value("releaseState", "preload") == "available") {
 									installing = true;
 									checkInstall();
 								}
@@ -312,14 +337,17 @@ struct MyListener : public IPC::Listener, public IPC::MessageReplyDeserializer
 										p["status"].value("updateState", "") == "verifyQueued"))
 								{
 									launching = true;
-									verifying = true;
-									checkVerify();
 									checkLaunch();
 								}
-
-								if (p["status"].value("updateState", "") == "verifying")
+								else if (p["status"].value("install", false) && p["status"].value("updateState", "") == "updatePaused")
 								{
-									verified = true;
+									Sleep(150);
+
+									child->SendJSCallback("RGSC_RAISE_UI_EVENT", json::object({ { "EventId", 2 }, // LauncherV3UiEvent
+
+																							  { "Data", json::object({ { "Action", "Update" },
+																										{ "Parameter", json::object({ { "titleName", targetTitle } }) } }) } })
+																				 .dump());
 								}
 							}
 						}

@@ -1916,11 +1916,15 @@ void NetLibrary::Disconnect(const char* reason)
 		m_connectionState = CS_IDLE;
 		m_currentServer = NetAddress();
 
-		auto steam = GetSteam();
-
-		if (steam)
+		// we don't want to tell Steam to launch a new child as we're exiting
+		if (reason != std::string_view{ "Exiting" })
 		{
-			steam->SetRichPresenceValue(0, "");
+			auto steam = GetSteam();
+
+			if (steam)
+			{
+				steam->SetRichPresenceValue(0, "");
+			}
 		}
 	}
 }

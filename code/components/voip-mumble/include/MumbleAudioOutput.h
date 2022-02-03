@@ -206,6 +206,11 @@ private:
 
 	struct ClientAudioState : public BaseAudioState, public IXAudio2VoiceCallback
 	{
+		/// <summary>
+		/// @FIX(wyoming-papa-chicken): PushPosition happens on MainThrd,
+		/// destroyVoice happens on the UV Loop, OnBufferEnd exists on XA2.
+		/// </summary>
+		std::mutex m_render;
 		IXAudio2SourceVoice* voice;
 		volatile bool shuttingDown;
 

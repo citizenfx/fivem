@@ -29,6 +29,8 @@
 
 #include <shobjidl.h>
 
+#include <Error.h>
+
 #include <CfxLocale.h>
 #include <filesystem>
 
@@ -136,10 +138,45 @@ int RealMain()
 		toolMode = true;
 	}
 
+	auto isSubProcess = []()
+	{
+		wchar_t fxApplicationName[MAX_PATH];
+		GetModuleFileName(GetModuleHandle(nullptr), fxApplicationName, _countof(fxApplicationName));
+
+		return wcsstr(fxApplicationName, L"subprocess") != nullptr;
+	}();
+
+#ifdef LAUNCHER_PERSONALITY_MAIN
+	// toggle wait for switch
+	if (wcsstr(GetCommandLineW(), L"-switchcl"))
+	{
+		if (!isSubProcess)
+		{
+			HANDLE hProcess = NULL;
+
+			{
+				HostSharedData<CfxState> initStateOld("CfxInitState");
+
+				hProcess = OpenProcess(SYNCHRONIZE, FALSE, initStateOld->initialGamePid);
+				initStateOld->initialGamePid = 0;
+			}
+
+			if (hProcess)
+			{
+				WaitForSingleObject(hProcess, INFINITE);
+				CloseHandle(hProcess);
+			}
+		}
+	}
+#endif
+
 	if (!toolMode)
 	{
 #ifdef LAUNCHER_PERSONALITY_MAIN
-		static HostSharedData<TickCountData> initTickCount("CFX_SharedTickCount");
+		if (!isSubProcess)
+		{
+			static HostSharedData<TickCountData> initTickCount("CFX_SharedTickCount");
+		}
 
 		// run exception handler
 		if (InitializeExceptionServer())
@@ -188,27 +225,6 @@ int RealMain()
 
 	// delete any old .exe.new file
 	_unlink("CitizenFX.exe.new");
-
-	// toggle wait for switch
-	if (wcsstr(GetCommandLineW(), L"-switchcl"))
-	{
-		// if this isn't a subprocess
-		wchar_t fxApplicationName[MAX_PATH];
-		GetModuleFileName(GetModuleHandle(nullptr), fxApplicationName, _countof(fxApplicationName));
-
-		if (wcsstr(fxApplicationName, L"subprocess") == nullptr)
-		{
-			HostSharedData<CfxState> initStateOld("CfxInitState");
-
-			HANDLE hProcess = OpenProcess(SYNCHRONIZE, FALSE, initStateOld->initialGamePid);
-
-			if (hProcess)
-			{
-				WaitForSingleObject(hProcess, INFINITE);
-				CloseHandle(hProcess);
-			}
-		}
-	}
 
 	// initialize our initState instance
 	// this needs to be before *any* MakeRelativeCitPath use in main process
@@ -263,19 +279,24 @@ int RealMain()
 	addDllDirs();
 
 	// determine dev mode and do updating
-	wchar_t exeName[512];
-	GetModuleFileName(GetModuleHandle(NULL), exeName, sizeof(exeName) / 2);
-
-	wchar_t* exeBaseName = wcsrchr(exeName, L'\\');
-	exeBaseName[0] = L'\0';
-	exeBaseName++;
-
 #ifdef LAUNCHER_PERSONALITY_MAIN
 	bool devMode = toolMode;
 
-	if (GetFileAttributes(va(L"%s.formaldev", exeBaseName)) != INVALID_FILE_ATTRIBUTES)
 	{
-		devMode = true;
+		wchar_t exeName[512];
+		GetModuleFileName(GetModuleHandle(NULL), exeName, std::size(exeName));
+
+		std::wstring exeNameSaved = exeName;
+
+		wchar_t* exeBaseName = wcsrchr(exeName, L'\\');
+		exeBaseName[0] = L'\0';
+		exeBaseName++;
+
+		if (GetFileAttributes(MakeRelativeCitPath(fmt::sprintf(L"%s.formaldev", exeBaseName)).c_str()) != INVALID_FILE_ATTRIBUTES ||
+			GetFileAttributes(fmt::sprintf(L"%s.formaldev", exeNameSaved).c_str()) != INVALID_FILE_ATTRIBUTES)
+		{
+			devMode = true;
+		}
 	}
 #else
 	bool devMode = true;
@@ -322,6 +343,14 @@ int RealMain()
 		}
 	}
 
+	// MasterProcess is safe from this point on
+
+	// copy main process command line, if needed
+	if (initState->IsMasterProcess())
+	{
+		wcsncpy(initState->initCommandLine, GetCommandLineW(), std::size(initState->initCommandLine) - 1);
+	}
+
 #ifdef LAUNCHER_PERSONALITY_MAIN
 	// if not the master process, force devmode
 	if (!devMode)
@@ -350,6 +379,8 @@ int RealMain()
 
 	XBR_EarlySelect();
 #endif
+
+	// crossbuildruntime is safe from this point on
 
 	// try loading TLS DLL a second time, and ensure it *is* loaded
 #if !defined(GTA_NY) && defined(LAUNCHER_PERSONALITY_GAME)
@@ -1003,6 +1034,11 @@ int RealMain()
 					{
 						gameProc();
 					}
+				}
+				else
+				{
+					// a bit of a lie, but it has some of the same causes so should be bucketed together
+					FatalError("Could not load CitizenGame.dll.");
 				}
 
 				return 0;

@@ -7,6 +7,11 @@ export namespace ProjectExplorerItemMenuGroups {
   export const ASSET = '2_asset';
 
   /**
+   * Search related menu items, such as find in folder
+   */
+  export const SEARCH = '3_search';
+
+  /**
    * Default group of menu items contributed by IProjectExplorerItem
    */
   export const EXTRAS = '6_extras';

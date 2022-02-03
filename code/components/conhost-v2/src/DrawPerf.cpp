@@ -18,6 +18,8 @@ DLL_EXPORT fwEvent<int, int> OnPushNetMetrics;
 #include <winternl.h>
 #include <d3dkmthk.h>
 
+#include "FpsTracker.h"
+
 #pragma comment(lib, "pdh.lib")
 
 static InitFunction initFunction([]()
@@ -51,16 +53,8 @@ static InitFunction initFunction([]()
 
 		auto& io = ImGui::GetIO();
 
-		static std::chrono::high_resolution_clock::duration previous;
-		static uint32_t index;
-		static std::chrono::microseconds previousTimes[6];
-
-		auto t = std::chrono::high_resolution_clock::now().time_since_epoch();
-		auto frameTime = std::chrono::duration_cast<std::chrono::microseconds>(t - previous);
-		previous = t;
-
-		previousTimes[index % std::size(previousTimes)] = frameTime;
-		index++;
+		static FpsTracker fpsTracker;
+		fpsTracker.Tick();
 
 		ImGui::SetNextWindowPos(ImVec2(ImGui::GetMainViewport()->Pos.x, ImGui::GetMainViewport()->Pos.y), 0, ImVec2(0, 0));
 		ImGui::SetNextWindowSize(ImVec2(0, 0));
@@ -71,24 +65,9 @@ static InitFunction initFunction([]()
 			std::vector<std::string> metrics;
 
 			// FPS
-			if (index > 6)
+			if (fpsTracker.CanGet())
 			{
-				std::chrono::microseconds total{ 0 };
-
-				for (int i = 0; i < std::size(previousTimes); i++)
-				{
-					total += previousTimes[i];
-				}
-
-				if (total.count() == 0)
-				{
-					total = { 1 };
-				}
-
-				uint64_t fps = ((uint64_t)1000000 * 1000) * std::size(previousTimes) / total.count();
-				fps = (fps + 500) / 1000;
-
-				metrics.push_back(fmt::sprintf("FPS: %llu", fps));
+				metrics.push_back(fmt::sprintf("FPS: %llu", fpsTracker.Get()));
 			}
 
 			// Latency

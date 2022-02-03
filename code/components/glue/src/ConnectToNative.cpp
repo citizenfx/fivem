@@ -123,6 +123,8 @@ void RestartGameToOtherBuild(int build = 0)
 		SaveBuildNumber(defaultBuild);
 	}
 
+	trace("Switching from build %d to build %d...\n", xbr::GetGameBuild(), build);
+
 	STARTUPINFOW si = { 0 };
 	si.cb = sizeof(si);
 

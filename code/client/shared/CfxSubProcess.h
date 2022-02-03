@@ -6,13 +6,15 @@
 #include <CfxState.h>
 #include <HostSharedData.h>
 
+#include <CrossBuildRuntime.h>
+
 #include <Utils.h>
 
 inline const wchar_t* MakeCfxSubProcess(const std::wstring& processType, const std::wstring& origin = L"")
 {
 	// get the current EXE name
 	wchar_t fxApplicationName[MAX_PATH];
-	static HostSharedData<CfxState> initState("CfxInitState");
+	auto initState = CfxState::Get();
 
 	if (initState->gameExePath[0])
 	{
@@ -71,43 +73,18 @@ inline const wchar_t* MakeCfxSubProcess(const std::wstring& processType, const s
 		productName += L"fxdk_";
 	}
 	
-#ifdef GTA_FIVE
-	if (wcsstr(GetCommandLine(), L"b2545") != nullptr)
+	if ((origin.find(L"game") == 0 && origin != L"game_mtl") || processType == L"DumpServer")
 	{
-		productName += L"b2545_";
-	}
+#if defined(GTA_FIVE) || defined(IS_RDR3)
+		auto buildNumber = xbr::GetGameBuild();
 
-	if (wcsstr(GetCommandLine(), L"b2372") != nullptr)
-	{
-		productName += L"b2372_";
-	}
-
-	if (wcsstr(GetCommandLine(), L"b2189") != nullptr)
-	{
-		productName += L"b2189_";
-	}
-
-	if (wcsstr(GetCommandLine(), L"b2060") != nullptr)
-	{
-		productName += L"b2060_";
-	}
-
-	if (wcsstr(GetCommandLine(), L"b372") != nullptr)
-	{
-		productName += L"b372_";
-	}
-#elif IS_RDR3
-	if (wcsstr(GetCommandLine(), L"b1355") != nullptr)
-	{
-		productName += L"b1355_";
-	}
-
-	if (wcsstr(GetCommandLine(), L"b1436") != nullptr)
-	{
-		productName += L"b1436_";
-	}
+		if (buildNumber != 1604 && buildNumber != 1311)
+		{
+			productName += fmt::sprintf(L"b%d_", buildNumber);
+		}
 #endif
 #endif
+	}
 
 	outPath += productName + processType;
 

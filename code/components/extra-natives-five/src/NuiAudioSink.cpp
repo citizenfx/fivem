@@ -999,6 +999,12 @@ public:
 	void Poll(int samples);
 
 private:
+	/// <summary>
+	/// @FIX(mockingbird-burger-timing): MShutdown is executed on MainThrd while
+	/// accessed on NorthAudioUpdate; handle race condition.
+	/// </summary>
+	std::mutex m_render;
+
 	rage::audExternalStreamSound* m_sound;
 	uint8_t m_soundBucket = -1;
 
@@ -1099,6 +1105,7 @@ static uint32_t bucketsUsed[kExtraAudioBuckets];
 
 void MumbleAudioEntity::MInit()
 {
+	std::lock_guard _(m_render);
 	m_environmentGroup = naEnvironmentGroup::Create();
 	m_environmentGroup->Init(nullptr, 20.0f, 1000, 4000, 0.5f, 1000);
 	m_environmentGroup->SetPosition(m_position);
@@ -1180,6 +1187,7 @@ void MumbleAudioEntity::MInit()
 
 void MumbleAudioEntity::MShutdown()
 {
+	std::lock_guard _(m_render);
 	auto sound = m_sound;
 
 	if (sound)
@@ -1223,6 +1231,7 @@ static hook::thiscall_stub<void(fwEntity*, rage::fwInteriorLocation&)> _entity_g
 
 void MumbleAudioEntity::PreUpdateService(uint32_t)
 {
+	std::lock_guard _(m_render);
 	if (m_sound)
 	{
 		auto settings = m_sound->GetRequestedSettings();
@@ -1339,6 +1348,8 @@ void MumbleAudioEntity::PreUpdateService(uint32_t)
 
 void MumbleAudioEntity::PushAudio(int16_t* pcm, int len)
 {
+	// Only required if polling happens somewhere other than RageAudioMixThread.
+	// std::lock_guard _(m_render);
 	if (m_buffer)
 	{
 		// push audio to the buffer
@@ -1365,6 +1376,11 @@ public:
 private:
 	std::wstring m_name;
 	int m_serverId;
+
+	/// <summary>
+	/// Process/MShutdown is executed on MainThrd while PushAudio on NorthAudioUpdate.
+	/// </summary>
+	std::mutex m_entity_mutex;
 	std::shared_ptr<MumbleAudioEntity> m_entity;
 
 	alignas(16) rage::Vec3V m_position;
@@ -1451,6 +1467,7 @@ void MumbleAudioSink::SetPosition(float position[3], float distance, float overr
 
 void MumbleAudioSink::PushAudio(int16_t* pcm, int len)
 {
+	std::lock_guard _(m_entity_mutex);
 	if (m_entity)
 	{
 		m_entity->PushAudio(pcm, len);
@@ -1489,6 +1506,8 @@ void MumbleAudioSink::Process()
 		}
 	}
 
+	// @TODO: Refactor logic to reduce lock scope. Only required at MInit at the moment
+	std::lock_guard _(m_entity_mutex);
 	if (isNoPlayer && m_overrideVolume <= 0.0f)
 	{
 		m_entity = {};
