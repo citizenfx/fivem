@@ -248,7 +248,7 @@ int RageVFSDeviceAdapter::GetResourceVersion(const char* file, rage::ResourceFla
 	memset(version, 0, sizeof(*version));
 #endif
 
-	trace(__FUNCTION__ " not implemented");
+	trace(__FUNCTION__ " not implemented\n");
 
 	return 0;
 }
