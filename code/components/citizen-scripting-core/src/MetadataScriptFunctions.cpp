@@ -102,8 +102,26 @@ static InitFunction initFunction([] ()
 			return;
 		}
 
+		const auto& rootPath = resource->GetPath();
+
+		// an empty root path would read from `/...`
+		if (rootPath.empty())
+		{
+			context.SetResult(nullptr);
+			return;
+		}
+
+#ifndef IS_FXSERVER
+		// only load from `resources:/` for client (see CachedResourceMounter)
+		if (rootPath.find("resources:/") != 0) // find != 0 is equivalent to a !starts_with
+		{
+			context.SetResult(nullptr);
+			return;
+		}
+#endif
+
 		// try opening the file from the resource's home directory
-		fwRefContainer<vfs::Stream> stream = vfs::OpenRead(resource->GetPath() + "/" + context.GetArgument<const char*>(1));
+		fwRefContainer<vfs::Stream> stream = vfs::OpenRead(rootPath + "/" + context.GetArgument<const char*>(1));
 
 		if (!stream.GetRef())
 		{
