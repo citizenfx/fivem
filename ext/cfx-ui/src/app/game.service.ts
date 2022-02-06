@@ -98,6 +98,9 @@ export abstract class GameService {
 	buildSwitchTimeout;
 	buildSwitchUItimeouts = [];
 
+	shModeSwitchTimeout;
+	shModeSwitchUITimeouts = [];
+
 	get systemLanguages(): string[] {
 		return ['en-us'];
 	}
@@ -440,6 +443,11 @@ export class CfxGameService extends GameService {
 							this.invokeBuildSwitch(
 								this.lastServer, event.data.data.title, event.data.data.content));
 						break;
+					case 'connectShModeSwitchRequest':
+						this.zone.run(() =>
+							this.invokeShModeSwitchRequest(
+								this.lastServer, event.data.data.enable));
+						break;
 					case 'serverAdd':
 						if (event.data.addr in this.pingList) {
 							this.pingListEvents.push([event.data.addr, event.data.ping]);
@@ -642,7 +650,7 @@ export class CfxGameService extends GameService {
 				gameBrand = 'FiveM';
 			}
 
-			const heading = new TextBlock(this.translation.translate('#BuildSwitch_Heading', { build, gameBrand }));
+			const heading = new TextBlock(this.translation.translate('#GameNeedsToRestart', { build, gameBrand }));
 			heading.size = TextSize.ExtraLarge;
 			card.addItem(heading);
 
@@ -652,12 +660,12 @@ export class CfxGameService extends GameService {
 
 			const cancelAction = new SubmitAction();
 			cancelAction.data = { action: 'cancel' };
-			cancelAction.title = this.translation.translate('#BuildSwitch_Cancel');
+			cancelAction.title = this.translation.translate('#Cancel');
 
 			const okAction = new SubmitAction();
 			okAction.data = { action: 'ok' };
 			okAction.style = 'positive';
-			okAction.title = this.translation.translate('#BuildSwitch_OK', { seconds });
+			okAction.title = this.translation.translate('#OK_WithSeconds', { seconds });
 
 			const actionSet = new ActionSet();
 			actionSet.addAction(cancelAction);
@@ -722,6 +730,79 @@ export class CfxGameService extends GameService {
 			server: server,
 			card: JSON.stringify(card.toJSON())
 		});
+	}
+
+	protected invokeShModeSwitchRequest(server: Server, enable: boolean) {
+		this.card = true;
+
+		const presentCard = (seconds: number) => {
+			if (!this.card) {
+				return;
+			}
+
+			const card = new AdaptiveCard();
+			card.version = new Version(1, 0);
+
+			let gameBrand = 'CitizenFX';
+
+			if (this.gameName === 'rdr3') {
+				gameBrand = 'RedM';
+			} else if (this.gameName === 'gta5') {
+				gameBrand = 'FiveM';
+			}
+
+			let zero = 0;
+
+			const heading = new TextBlock(this.translation.translate('#GameNeedsToRestart', { zero, gameBrand }));
+			heading.size = TextSize.ExtraLarge;
+			card.addItem(heading);
+			
+			const msgLabel = enable ? "#ShMode_Enable" : "#ShMode_Disable";
+
+			const body = new TextBlock(this.translation.translate(msgLabel, { zero, seconds }));
+			body.wrap = true;
+			card.addItem(body);
+
+			const cancelAction = new SubmitAction();
+			cancelAction.data = { action: 'cancel' };
+			cancelAction.title = this.translation.translate('#Cancel');
+
+			const okAction = new SubmitAction();
+			okAction.data = { action: 'ok' };
+			okAction.style = 'positive';
+			okAction.title = this.translation.translate('#OK_WithSeconds', { seconds });
+
+			const actionSet = new ActionSet();
+			actionSet.addAction(cancelAction);
+			actionSet.addAction(okAction);
+			card.addItem(actionSet);
+
+			this.connectCard.emit({
+				server: server,
+				card: JSON.stringify(card.toJSON())
+			});
+		};
+
+		this.shModeSwitchUITimeouts.forEach(clearTimeout);
+        this.shModeSwitchUITimeouts.length = 0;
+
+		for (let i = 0; i < 10; i++) {
+			const msec = (10 - i) * 1000;
+			const sec = i;
+
+            this.shModeSwitchUITimeouts.push(setTimeout(() => presentCard(sec), msec));
+		}
+
+        if (this.shModeSwitchTimeout) {
+            clearTimeout(this.buildSwitchTimeout);
+        }
+        this.shModeSwitchTimeout = setTimeout(() => {
+			if (this.card) {
+				this.submitCardResponse({
+					action: 'ok'
+				});
+			}
+		}, 10000);
 	}
 
 	get systemLanguages(): string[] {

@@ -10,6 +10,7 @@
 #include <boost/algorithm/string.hpp>
 
 #include <CrossBuildRuntime.h>
+#include <ShModeLaunch.h>
 #include <filesystem>
 #include <wchar.h>
 
@@ -84,6 +85,13 @@ static bool IsCLRAssembly(const std::vector<uint8_t>& libraryBuffer)
 bool ComponentInstance::DoGameLoad(void* module)
 {
 	HookFunction::RunAll();
+
+
+	if (!shmr::IsShMode())
+	{
+		trace("Skipping .asi file loading - sh mode disabled \n");
+		return true;
+	}
 
 	try
 	{

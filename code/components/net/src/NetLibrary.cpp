@@ -29,6 +29,7 @@
 #include <CoreConsole.h>
 
 #include <CfxLocale.h>
+#include <ShModeLaunch.h>
 
 #include <json.hpp>
 
@@ -1774,15 +1775,35 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 			try
 			{
 				json info = json::parse(data, data + size);
+
 #if defined(GTA_FIVE) || defined(IS_RDR3)
 				if (info.is_object() && info["vars"].is_object())
 				{
-					auto val = info["vars"].value("sv_enforceGameBuild", "");
+					auto shVal = info["vars"].value("sv_scriptHookAllowed", "");
+					if (!shVal.empty()) {
+						bool shAllowed = shVal == "true" ? true : false;
+
+						if (shAllowed && !shmr::IsShMode())
+						{
+							OnRequestShModeSwitch(true);
+							m_connectionState = CS_IDLE;
+							return;
+						}
+						else if (!shAllowed && shmr::IsShMode())
+						{
+							OnRequestShModeSwitch(false);
+							m_connectionState = CS_IDLE;
+							return;
+						}
+
+					}
+
+					auto buildVal = info["vars"].value("sv_enforceGameBuild", "");
 					int buildRef = 0;
 
-					if (!val.empty())
+					if (!buildVal.empty())
 					{
-						buildRef = std::stoi(val);
+						buildRef = std::stoi(buildVal);
 
 						if (buildRef != 0 && buildRef != xbr::GetGameBuild())
 						{

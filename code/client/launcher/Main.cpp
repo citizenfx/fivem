@@ -50,6 +50,7 @@ void DoPreLaunchTasks();
 void NVSP_DisableOnStartup();
 void SteamInput_Initialize();
 void XBR_EarlySelect();
+void SHMR_EarlySelect();
 bool ExecutablePreload_Init();
 void InitLogging();
 
@@ -378,6 +379,7 @@ int RealMain()
 	initState->ranPastInstaller = true;
 
 	XBR_EarlySelect();
+	SHMR_EarlySelect();
 #endif
 
 	// crossbuildruntime is safe from this point on

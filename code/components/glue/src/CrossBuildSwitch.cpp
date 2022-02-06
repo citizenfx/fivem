@@ -18,8 +18,9 @@ extern void RestartGameToOtherBuild(int build);
 
 static std::function<void(const std::string&)> g_submitFn;
 static bool g_cancelable;
-static bool g_canceled;
 static bool g_hadError;
+
+bool g_canceled;
 
 void PerformBuildSwitch(int build);
 
