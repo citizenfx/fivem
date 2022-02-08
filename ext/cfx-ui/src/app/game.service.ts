@@ -95,11 +95,15 @@ export abstract class GameService {
 	convars: { [name: string]: ConvarWrapper } = {};
 	showConnectingOverlay: boolean;
 
-	buildSwitchTimeout;
-	buildSwitchUItimeouts = [];
 
-	shModeSwitchTimeout;
-	shModeSwitchUITimeouts = [];
+	switchTimeout;
+	switchUITimeouts = [];
+
+	//buildSwitchTimeout;
+	//buildSwitchUItimeouts = [];
+
+	//shModeSwitchTimeout;
+	//shModeSwitchUITimeouts = [];
 
 	get systemLanguages(): string[] {
 		return ['en-us'];
@@ -678,20 +682,20 @@ export class CfxGameService extends GameService {
 			});
 		};
 
-		this.buildSwitchUItimeouts.forEach(clearTimeout);
-        this.buildSwitchUItimeouts.length = 0;
+		this.switchUITimeouts.forEach(clearTimeout);
+        this.switchUITimeouts.length = 0;
 
 		for (let i = 0; i < 10; i++) {
 			const msec = (10 - i) * 1000;
 			const sec = i;
 
-            this.buildSwitchUItimeouts.push(setTimeout(() => presentCard(sec), msec));
+            this.switchUITimeouts.push(setTimeout(() => presentCard(sec), msec));
 		}
 
-        if (this.buildSwitchTimeout) {
-            clearTimeout(this.buildSwitchTimeout);
+        if (this.switchTimeout) {
+            clearTimeout(this.switchTimeout);
         }
-        this.buildSwitchTimeout = setTimeout(() => {
+        this.switchTimeout = setTimeout(() => {
 			if (this.card) {
 				this.submitCardResponse({
 					action: 'ok'
@@ -783,20 +787,20 @@ export class CfxGameService extends GameService {
 			});
 		};
 
-		this.shModeSwitchUITimeouts.forEach(clearTimeout);
-        this.shModeSwitchUITimeouts.length = 0;
+		this.switchUITimeouts.forEach(clearTimeout);
+        this.switchUITimeouts.length = 0;
 
 		for (let i = 0; i < 10; i++) {
 			const msec = (10 - i) * 1000;
 			const sec = i;
 
-            this.shModeSwitchUITimeouts.push(setTimeout(() => presentCard(sec), msec));
+            this.switchUITimeouts.push(setTimeout(() => presentCard(sec), msec));
 		}
 
-        if (this.shModeSwitchTimeout) {
-            clearTimeout(this.buildSwitchTimeout);
+        if (this.switchTimeout) {
+            clearTimeout(this.switchTimeout);
         }
-        this.shModeSwitchTimeout = setTimeout(() => {
+        this.switchTimeout = setTimeout(() => {
 			if (this.card) {
 				this.submitCardResponse({
 					action: 'ok'
