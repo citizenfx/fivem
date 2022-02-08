@@ -1263,6 +1263,7 @@ struct LuaNativeContext
 		__try
 		{
 			nw->handler(&rawCxt);
+			// rawCxt.SetVectorResults(); // codegen_out_native_lua should handle this operation
 		}
 		__except (exceptionAddress = (GetExceptionInformation())->ExceptionRecord->ExceptionAddress, ShouldHandleUnwind(GetExceptionInformation(), (GetExceptionInformation())->ExceptionRecord->ExceptionCode, hash))
 		{

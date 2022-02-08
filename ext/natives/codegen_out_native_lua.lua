@@ -265,6 +265,7 @@ local function printNative(native)
 	local t = "\t"
 	
 	local refValNum = 0
+	local refHasVector = false
 	local expectedArgs = #native.arguments
 
 	for argn=1,#native.arguments do
@@ -277,6 +278,9 @@ local function printNative(native)
 		if ptr then
 			refValNum = refValNum + 1
 			local refName = 'ref_' .. name
+			if arg.type.nativeType == 'vector3' then
+				refHasVector = true
+			end
 
 			n = n .. t .. type .. ' ' .. refName
 			
@@ -325,6 +329,11 @@ local function printNative(native)
 	
 	n = n .. t .. ("LUA_EXC_WRAP_START(0x%016x)\n"):format(native.hash)
 	n = n .. t .. ("nCtx.Invoke(L, 0x%016x);\n"):format(native.hash)
+	if refHasVector then
+		n = n .. t .. "#if !defined(IS_FXSERVER)\n"
+		n = n .. t .. "nCtx.rawCxt.SetVectorResults();\n"
+		n = n .. t .. "#endif\n"
+	end
 	n = n .. t .. ("LUA_EXC_WRAP_END(0x%016x)\n"):format(native.hash)
 	
 	local retValNum = refValNum
