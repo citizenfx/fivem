@@ -11,12 +11,11 @@ void SHMR_EarlySelect()
 	std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
 	auto shMode = GetPrivateProfileInt(L"Game", L"ShMode", 0, fpath.c_str());
 
-	if (shMode && !wcsstr(realCli, L"sh"))
+	if (shMode && !wcsstr(realCli, L"-sh"))
 	{
-		wcscat(state->initCommandLine, L"sh");
+		wcscat(state->initCommandLine, L"-sh");
 	}
 
 }
-
 
 #endif

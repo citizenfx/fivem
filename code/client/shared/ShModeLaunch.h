@@ -21,7 +21,7 @@ bool IsShMode()
 		auto sharedData = CfxState::Get();
 		std::wstring_view cli = (sharedData->initCommandLine[0]) ? sharedData->initCommandLine : GetCommandLineW();
 
-		if (cli.find(L"sh") != std::wstring_view::npos)
+		if (cli.find(L"-sh") != std::wstring_view::npos)
 		{
 			isShMode = true;
 		}

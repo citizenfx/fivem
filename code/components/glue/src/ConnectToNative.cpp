@@ -165,17 +165,17 @@ void RestartGameToSwitchShMode(bool shAllowed)
 
 	const wchar_t* cli = va(L"\"%s\" %s -switchcl \"fivem://connect/%s\"",
 	hostData->gameExePath,
-	shAllowed ? L"sh" : L"",
+	shAllowed ? L"-sh" : L"",
 	ToWide(g_lastConn));
 
 	trace("Switching sh mode to %d...\n", shAllowed);
 
 	if (!StartNewProcessWithCli(cli))
 	{
-		trace("failed to exit: %d\n", GetLastError());
+		trace("Failed to exit: %d\n", GetLastError());
 	}
 
-	ExitProcess(0x1377);
+	ExitProcess(0x1337);
 
 }
 
