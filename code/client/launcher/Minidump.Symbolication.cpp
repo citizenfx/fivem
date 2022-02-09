@@ -134,6 +134,27 @@ static nlohmann::json SymbolicateCrashRequest(HANDLE hProcess, HANDLE hThread, P
 {
 	std::lock_guard _(dbgHelpMutex);
 
+	auto dbgHelpLib = LoadLibraryW(MakeRelativeCitPath(L"bin\\dbghelp.dll").c_str());
+
+	if (!dbgHelpLib)
+	{
+		dbgHelpLib = LoadLibraryW(L"dbghelp.dll");
+	}
+
+#define GET_FN(X) \
+	auto _##X = (decltype(&X))GetProcAddress(dbgHelpLib, #X);
+
+	GET_FN(SymInitializeW);
+	GET_FN(SymCleanup);
+	GET_FN(SymGetModuleInfoW64);
+	GET_FN(SymLoadModuleExW);
+	GET_FN(SymUnloadModule64);
+	GET_FN(StackWalk64);
+	GET_FN(SymFunctionTableAccess64);
+	GET_FN(SymGetModuleBase64);
+
+#undef GET_FN
+
 	auto threads = nlohmann::json::array();
 	auto modules = nlohmann::json::array();
 
@@ -141,7 +162,7 @@ static nlohmann::json SymbolicateCrashRequest(HANDLE hProcess, HANDLE hThread, P
 	DWORD cbNeeded;
 	EnumProcessModules(hProcess, &moduleHandles[0], 4096 * sizeof(HMODULE), &cbNeeded);
 
-	SymInitializeW(hProcess, L"", TRUE);
+	_SymInitializeW(hProcess, L"", TRUE);
 
 	for (int i = 0; i < cbNeeded / sizeof(HMODULE); i++)
 	{
@@ -150,7 +171,7 @@ static nlohmann::json SymbolicateCrashRequest(HANDLE hProcess, HANDLE hThread, P
 		IMAGEHLP_MODULEW64 moduleInfo;
 		moduleInfo.SizeOfStruct = sizeof(moduleInfo);
 
-		if (!SymGetModuleInfoW64(hProcess, (DWORD64)moduleHandle, &moduleInfo))
+		if (!_SymGetModuleInfoW64(hProcess, (DWORD64)moduleHandle, &moduleInfo))
 		{
 			continue;
 		}
@@ -159,19 +180,19 @@ static nlohmann::json SymbolicateCrashRequest(HANDLE hProcess, HANDLE hThread, P
 		if (moduleInfo.CVData[0] == L'\0')
 		{
 			HANDLE hFile = CreateFile(moduleInfo.ImageName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-			auto hLoad = SymLoadModuleExW(hProcess, hFile, L"game.exe", L"game.exe", 0x280000000, 0, NULL, 0);
+			auto hLoad = _SymLoadModuleExW(hProcess, hFile, L"game.exe", L"game.exe", 0x280000000, 0, NULL, 0);
 
 			IMAGEHLP_MODULEW64 moduleInfo2;
 			moduleInfo2.SizeOfStruct = sizeof(moduleInfo2);
 
-			if (SymGetModuleInfoW64(hProcess, (DWORD64)hLoad, &moduleInfo2))
+			if (_SymGetModuleInfoW64(hProcess, (DWORD64)hLoad, &moduleInfo2))
 			{
 				memcpy(&moduleInfo.CVData, &moduleInfo2.CVData, sizeof(moduleInfo.CVData));
 				memcpy(&moduleInfo.PdbAge, &moduleInfo2.PdbAge, sizeof(moduleInfo.PdbAge));
 				memcpy(&moduleInfo.PdbSig70, &moduleInfo2.PdbSig70, sizeof(moduleInfo.PdbSig70));
 			}
 
-			SymUnloadModule64(hProcess, hLoad);
+			_SymUnloadModule64(hProcess, hLoad);
 		}
 
 		wchar_t uuid[256];
@@ -217,7 +238,7 @@ static nlohmann::json SymbolicateCrashRequest(HANDLE hProcess, HANDLE hThread, P
 	auto frames = nlohmann::json::array();
 	auto ctx2 = *ctx;
 
-	while (StackWalk64(IMAGE_FILE_MACHINE_AMD64, hProcess, hThread, &frame, &ctx2, NULL, SymFunctionTableAccess64, SymGetModuleBase64, NULL))
+	while (_StackWalk64(IMAGE_FILE_MACHINE_AMD64, hProcess, hThread, &frame, &ctx2, NULL, _SymFunctionTableAccess64, _SymGetModuleBase64, NULL))
 	{
 		frames.push_back(nlohmann::json::object({ 
 			{ "instruction_addr", fmt::sprintf("0x%x", frame.AddrPC.Offset) }
@@ -258,7 +279,7 @@ static nlohmann::json SymbolicateCrashRequest(HANDLE hProcess, HANDLE hThread, P
 		{ "modules", modules }
 	});
 
-	SymCleanup(hProcess);
+	_SymCleanup(hProcess);
 
 	return std::move(symb);
 }
