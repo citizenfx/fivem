@@ -1442,10 +1442,16 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 				{
 					auto selfRef = this->shared_from_this();
 
-					thread = std::thread([this, selfRef]()
+					static std::mutex m;
+					std::unique_lock _(m);
+
+					if (!thread.joinable())
 					{
-						TaskDialogIndirect(&taskDialogConfig, nullptr, nullptr, nullptr);
-					});
+						thread = std::thread([this, selfRef]()
+						{
+							TaskDialogIndirect(&taskDialogConfig, nullptr, nullptr, nullptr);
+						});
+					}
 				}
 
 				std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
