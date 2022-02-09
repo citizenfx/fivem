@@ -765,7 +765,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 	CrashGenerationServer::OnClientDumpRequestCallback dumpCallback = [] (void*, const ClientInfo* info, const std::wstring* filePath)
 	{
 		// we're going to be reporting, make a new event
-		auto crashReportIdx = InterlockedIncrement(&numCrashReports);
+		auto crashReportIdx = InterlockedIncrement(&numCrashReports) - 1;
 		HANDLE crashReport = NULL;
 		crashReport = crashReports[crashReportIdx % std::size(crashReports)] = CreateEvent(NULL, TRUE, FALSE, NULL);
 
