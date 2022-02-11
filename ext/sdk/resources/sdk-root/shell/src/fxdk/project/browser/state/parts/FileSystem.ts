@@ -51,8 +51,13 @@ export class ProjectFsState implements IDisposableObject {
         const oldParentFsEntry = this.getFsEntry(update.oldParentPath);
         const newParentFsEntry = this.getFsEntry(update.newParentPath);
 
-        const oldFsEntry = oldParentFsEntry?.children[update.oldName];
-        delete oldParentFsEntry?.children[update.oldName];
+        if (!oldParentFsEntry) {
+          console.error('Unable to perform rename, no parent fs entry', { update, oldParentFsEntry, newParentFsEntry });
+          break;
+        }
+
+        const oldFsEntry = oldParentFsEntry.children[update.oldName];
+        delete oldParentFsEntry.children[update.oldName];
 
         if (oldFsEntry && newParentFsEntry) {
           oldFsEntry.name = update.newName;
