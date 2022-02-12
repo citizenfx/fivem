@@ -161,9 +161,6 @@ Citizen.SetEventRoutine(function(eventName, eventPayload, eventSource)
 	-- try finding an event handler for the event
 	local eventHandlerEntry = eventHandlers[eventName]
 
-	-- deserialize the event structure (so that we end up adding references to delete later on)
-	local data = msgpack_unpack(eventPayload)
-
 	if eventHandlerEntry and eventHandlerEntry.handlers then
 		-- if this is a net event and we don't allow this event to be triggered from the network, return
 		if eventSource:sub(1, 3) == 'net' then
@@ -180,6 +177,9 @@ Citizen.SetEventRoutine(function(eventName, eventPayload, eventSource)
 			deserializingNetEvent = { source = eventSource:sub(10) }
 			_G.source = tonumber(eventSource:sub(14))
 		end
+
+		-- deserialize the event structure (so that we end up adding references to delete later on)
+		local data = msgpack_unpack(eventPayload)
 
 		-- return an empty table if the data is nil
 		if not data then
