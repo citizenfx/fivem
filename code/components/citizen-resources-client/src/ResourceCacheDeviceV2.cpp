@@ -499,8 +499,12 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::DoFetch(const ResourceC
 
 			options.addErrorBody = true;
 
-			auto req = Instance<HttpClient>::Get()->DoFileGetRequest(entry.remoteUrl, vfs::GetDevice(outFileName), outFileName, options, [tce, outFileName](bool result, const char* errorData, size_t outSize)
+			std::string referenceHash = entry.referenceHash;
+
+			auto req = Instance<HttpClient>::Get()->DoFileGetRequest(entry.remoteUrl, vfs::GetDevice(outFileName), outFileName, options, [this, referenceHash, tce, outFileName](bool result, const char* errorData, size_t outSize)
 			{
+				RemoveHttpRequest(referenceHash);
+
 				if (result)
 				{
 					auto device = vfs::GetDevice(outFileName);
@@ -513,6 +517,8 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::DoFetch(const ResourceC
 					tce.set({ false, std::string(errorData, outSize) });
 				}
 			});
+
+			StoreHttpRequest(referenceHash, req);
 
 			auto fetchResult = co_await concurrency::task<FetchResultT>{tce};
 			
@@ -561,6 +567,66 @@ fwRefContainer<vfs::Stream> ResourceCacheDeviceV2::GetVerificationStream(const R
 void ResourceCacheDeviceV2::AddEntryToCache(const std::string& outFileName, std::map<std::string, std::string>& metaData, const ResourceCacheEntryList::Entry& entry)
 {
 	m_cache->AddEntry(outFileName, metaData);
+}
+
+void ResourceCacheDeviceV2::StoreHttpRequest(const std::string& hash, const HttpRequestPtr& request)
+{
+	int changeWeight = -1;
+
+	{
+		std::shared_lock _(m_pendingRequestWeightsMutex);
+		if (auto it = m_pendingRequestWeights.find(hash); it != m_pendingRequestWeights.end())
+		{
+			changeWeight = it->second;
+		}
+	}
+
+	if (changeWeight != -1)
+	{
+		request->SetRequestWeight(changeWeight);
+
+		std::unique_lock _(m_pendingRequestWeightsMutex);
+		m_pendingRequestWeights.erase(hash);
+	}
+
+	{
+		std::unique_lock _(m_requestMapMutex);
+		m_requestMap[hash] = request;
+	}
+}
+
+void ResourceCacheDeviceV2::RemoveHttpRequest(const std::string& hash)
+{
+	std::unique_lock _(m_requestMapMutex);
+	m_requestMap.erase(hash);
+}
+
+void ResourceCacheDeviceV2::SetRequestWeight(const std::string& hash, int newWeight)
+{
+	HttpRequestPtr requestPtr;
+
+	{
+		std::shared_lock _(m_requestMapMutex);
+		if (auto it = m_requestMap.find(hash); it != m_requestMap.end())
+		{
+			requestPtr = it->second;
+		}
+	}
+
+	if (requestPtr)
+	{
+		requestPtr->SetRequestWeight(newWeight);
+	}
+	else if (newWeight != -1)
+	{
+		std::unique_lock _(m_pendingRequestWeightsMutex);
+		m_pendingRequestWeights[hash] = newWeight;
+	}
+	else // if !requestPtr && newWeight == -1
+	{
+		std::unique_lock _(m_pendingRequestWeightsMutex);
+		m_pendingRequestWeights.erase(hash);
+	}
 }
 
 std::optional<std::reference_wrapper<const ResourceCacheEntryList::Entry>> ResourceCacheDeviceV2::GetEntryForFileName(std::string_view fileName)
@@ -638,6 +704,14 @@ struct RequestHandleExtension
 {
 	vfs::Device::THandle handle;
 	std::function<void(bool success, const std::string& error)> onRead;
+};
+
+#define VFS_RCD_SET_WEIGHT 0x30004
+
+struct SetWeightExtension
+{
+	const char* fileName;
+	int newWeight;
 };
 
 struct tp_work
@@ -776,6 +850,18 @@ bool ResourceCacheDeviceV2::ExtensionCtl(int controlIdx, void* controlData, size
 		vfs::GetLastErrorExtension* data = (vfs::GetLastErrorExtension*)controlData;
 
 		data->outError = m_lastError;
+
+		return true;
+	}
+	else if (controlIdx == VFS_RCD_SET_WEIGHT)
+	{
+		auto data = (SetWeightExtension*)controlData;
+		auto entry = GetEntryForFileName(data->fileName);
+
+		if (entry)
+		{
+			SetRequestWeight(entry->get().referenceHash, data->newWeight);
+		}
 
 		return true;
 	}

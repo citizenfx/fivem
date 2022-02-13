@@ -10,6 +10,9 @@
 #include <VFSManager.h>
 #include <VFSStreamDevice.h>
 
+struct HttpRequestHandle;
+using HttpRequestPtr = std::shared_ptr<HttpRequestHandle>;
+
 namespace resources
 {
 class RcdFetcher;
@@ -204,6 +207,20 @@ protected:
 
 private:
 	concurrency::task<RcdFetchResult> DoFetch(const ResourceCacheEntryList::Entry& entry);
+
+private:
+	void StoreHttpRequest(const std::string& hash, const HttpRequestPtr& request);
+
+	void RemoveHttpRequest(const std::string& hash);
+
+	void SetRequestWeight(const std::string& hash, int newWeight);
+
+private:
+	std::shared_mutex m_pendingRequestWeightsMutex;
+	std::unordered_map<std::string, int> m_pendingRequestWeights;
+
+	std::shared_mutex m_requestMapMutex;
+	std::unordered_map<std::string, HttpRequestPtr> m_requestMap;
 
 protected:
 	static tbb::concurrent_unordered_map<std::string, std::optional<concurrency::task<RcdFetchResult>>> ms_entries;
