@@ -257,7 +257,7 @@ static void* PoolAllocateWrap(atPoolBase* pool)
 
 		AddCrashometry("pool_error", "%s (%d)", poolName, pool->GetSize());
 
-		FatalErrorNoExcept("%s Pool Full, Size == %d%s", poolName, pool->GetSize());
+		FatalErrorNoExcept("%s Pool Full, Size == %d", poolName, pool->GetSize());
 	}
 
 	return value;
