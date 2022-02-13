@@ -179,13 +179,24 @@ namespace streaming
 		strStreamingModule* GetStreamingModule(int index);
 
 		strStreamingModule* GetStreamingModule(const char* extension);
+
+	private:
+		char pad[16];
+
+	public:
+		atArray<strStreamingModule*> modules;
 	};
 
 	// actually CStreaming
 	class STREAMING_EXPORT Manager
 	{
 	private:
-		inline Manager() {}
+		inline Manager()
+		{
+#ifdef GTA_FIVE
+			static_assert(offsetof(Manager, NumPendingRequests) == 0x1E0);
+#endif
+		}
 
 	public:
 		void RequestObject(uint32_t objectId, int flags);
@@ -229,8 +240,6 @@ namespace streaming
 #endif
 
 		strStreamingModuleMgr moduleMgr;
-
-		char pad4[32];
 
 		int NumPendingRequests;
 		int NumPendingRequests3;

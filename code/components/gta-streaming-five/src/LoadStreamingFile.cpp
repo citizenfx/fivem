@@ -1825,6 +1825,13 @@ static void LoadStreamingFiles(LoadType loadType)
 			continue;
 		}
 
+		// this may get used on unloading
+		if (baseName == "busy_spinner.gfx")
+		{
+			it = g_customStreamingFiles.erase(it);
+			continue;
+		}
+
 		if (loadType == LoadType::Startup)
 		{
 			if (ext != "ytd" && ext != "gfx")
@@ -2739,6 +2746,50 @@ static hook::cdecl_stub<void()> _unloadTextureLODs([]()
 #endif
 });
 
+#ifdef GTA_FIVE
+int* g_archetypeStreamingIndex;
+
+static void FlushCustomAssets()
+{
+	auto strManager = streaming::Manager::GetInstance();
+
+	for (size_t i = 0; i < strManager->numEntries; i++)
+	{
+		auto& entry = strManager->Entries[i];
+
+		// if loaded or loading
+		if ((entry.flags & 3) == 2 || (entry.flags & 3) == 3)
+		{
+			// if this is registered by us
+			// #TODO: check if model info streaming module
+			if (g_handlesToTag.find(entry.handle) != g_handlesToTag.end() ||
+				strManager->moduleMgr.GetStreamingModule(i) == strManager->moduleMgr.modules[*g_archetypeStreamingIndex])
+			{
+				// force-unload the object (canceling the request)
+				// if this breaks next reload, 'so be it', we just want to get to the main menu safely
+
+				// copied/adapted from unloading code above
+				if (entry.flags & 0xFFFC)
+				{
+					entry.flags &= ~0xFFFC;
+				}
+
+				if (entry.flags & 0x40000000)
+				{
+					entry.flags &= ~0x40000000;
+				}
+
+				// ClearRequiredFlag
+				strManager->ReleaseObject(i, 0xF1);
+
+				// RemoveObject
+				strManager->ReleaseObject(i);
+			}
+		}
+	}
+}
+#endif
+
 static void SafelyDrainStreamer()
 {
 	g_unloadingCfx = true;
@@ -2746,6 +2797,12 @@ static void SafelyDrainStreamer()
 	trace("Shutdown: waiting for streaming to finish\n");
 
 	_waitUntilStreamerClear();
+
+#ifdef GTA_FIVE
+	trace("Shutdown: canceling requests\n");
+
+	FlushCustomAssets();
+#endif
 
 	trace("Shutdown: updating GTA streamer state\n");
 
@@ -3177,6 +3234,8 @@ static HookFunction hookFunction([]()
 		MH_CreateHook(location, FreeArchetypesHook, (void**)&g_origFreeArchetypes);
 		MH_EnableHook(location);
 	}
+
+	g_archetypeStreamingIndex = hook::get_address<int*>(hook::get_pattern("48 83 7B 68 00 44 8B 05 ? ? ? ? 48 8B 15", 8));
 #endif
 
 	// process streamer-loaded resource: check 'free instantly' flag even if no dependencies exist (change jump target)
@@ -3293,6 +3352,11 @@ static HookFunction hookFunction([]()
 	});
 
 #ifdef GTA_FIVE
+	OnKillNetwork.Connect([](auto)
+	{
+		FlushCustomAssets();
+	}, 0);
+
 	OnKillNetworkDone.Connect([]()
 	{
 		g_pedsToRegister.clear();
