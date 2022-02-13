@@ -295,14 +295,25 @@ static HookFunction hookFunction([]()
 
 
 	// fix for invalid damage sources in events
-	uintptr_t* cNetObjPhys_vtable = hook::get_address<uintptr_t*>(hook::get_pattern<unsigned char>("88 44 24 20 E8 ? ? ? ? 33 C9 48 8D 05", 14));
-	if (xbr::IsGameBuildOrGreater<2189>())
+	if (xbr::IsGameBuildOrGreater<2060>())
 	{
-		MH_CreateHook((LPVOID)cNetObjPhys_vtable[128], OnEntityTakeDmg, (void**)&origOnEntityTakeDmg);
-	}
-	else if (xbr::IsGameBuildOrGreater<2060>())
-	{
-		MH_CreateHook((LPVOID)cNetObjPhys_vtable[127], OnEntityTakeDmg, (void**)&origOnEntityTakeDmg);
+		void** cNetObjPhys_vtable = hook::get_address<void**>(hook::get_pattern<unsigned char>("88 44 24 20 E8 ? ? ? ? 33 C9 48 8D 05", 14));
+		int vtableIdx = 0;
+
+		if (xbr::IsGameBuildOrGreater<2545>())
+		{
+			vtableIdx = 130;
+		}
+		else if (xbr::IsGameBuildOrGreater<2189>())
+		{
+			vtableIdx = 128;
+		}
+		else if (xbr::IsGameBuildOrGreater<2060>())
+		{
+			vtableIdx = 127;
+		}
+
+		MH_CreateHook(cNetObjPhys_vtable[vtableIdx], OnEntityTakeDmg, (void**)&origOnEntityTakeDmg);
 	}
 
 	MH_CreateHook(hook::get_pattern("21 4D D8 21 4D DC 41 8B D8", -0x1F), EntityLogDamage, (void**)&origEntityLogDamage);
