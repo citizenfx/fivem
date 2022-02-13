@@ -313,11 +313,14 @@ static hook::cdecl_stub<void()> g_runWarning([]()
 	return hook::get_pattern("83 F9 FF 74 0E E8 ? ? ? ? 84 C0 0F 94", -0x22);
 });
 
+DLL_EXPORT fwEvent<> PreSetupLoadingScreens;
+
 static void(*g_origRunInitState)();
 static void WrapRunInitState()
 {
 	if (g_setLoadingScreens)
 	{
+		PreSetupLoadingScreens();
 		setupLoadingScreens(10, 0);
 
 		g_setLoadingScreens = false;

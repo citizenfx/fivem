@@ -3200,9 +3200,18 @@ static void FreeArchetypesHook(uint32_t idx)
 }
 #endif
 
+#ifdef GTA_FIVE
+DLL_IMPORT extern fwEvent<> PreSetupLoadingScreens;
+#endif
+
 static HookFunction hookFunction([]()
 {
 #ifdef GTA_FIVE
+	PreSetupLoadingScreens.Connect([]()
+	{
+		FlushCustomAssets();
+	});
+
 	{
 		auto location = hook::pattern("BA A1 85 94 52 41 B8 01").count(1).get(0).get<char>(0x34);
 		g_interiorProxyPool = (decltype(g_interiorProxyPool))(location + *(int32_t*)location + 4);
