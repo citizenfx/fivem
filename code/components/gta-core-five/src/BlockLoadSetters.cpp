@@ -99,7 +99,22 @@ static void WaitForInitLoopWrap()
 
 static volatile bool g_isNetworkKilled;
 
-static hook::cdecl_stub<void(int, int)> setupLoadingScreens([]()
+enum LoadingScreenContext
+{
+	LOADINGSCREEN_CONTEXT_NONE = 0,
+	LOADINGSCREEN_CONTEXT_INTRO_MOVIE = 1,
+	LOADINGSCREEN_CONTEXT_LEGALSPLASH = 2,
+	LOADINGSCREEN_CONTEXT_LEGALMAIN = 3,
+	LOADINGSCREEN_CONTEXT_SWAP = 4,
+	LOADINGSCREEN_CONTEXT_PC_LANDING = 5,
+	LOADINGSCREEN_CONTEXT_LOADGAME = 6,
+	LOADINGSCREEN_CONTEXT_INSTALL = 7,
+	LOADINGSCREEN_CONTEXT_LOADLEVEL = 8,
+	LOADINGSCREEN_CONTEXT_MAPCHANGE = 9,
+	LOADINGSCREEN_CONTEXT_LAST_FRAME = 10,
+};
+
+static hook::cdecl_stub<void(LoadingScreenContext, int)> setupLoadingScreens([]()
 {
 	// trailing byte differs between 323 and 505
 	if (Is372())
@@ -109,6 +124,15 @@ static hook::cdecl_stub<void(int, int)> setupLoadingScreens([]()
 
 	return hook::get_call(hook::get_pattern("8D 4F 08 33 D2 E8 ? ? ? ? C6", 5));
 });
+
+class CLoadingScreens
+{
+public:
+	static void Init(LoadingScreenContext context, int a2)
+	{
+		return setupLoadingScreens(context, a2);
+	}
+};
 
 static bool g_setLoadingScreens;
 static bool g_shouldKillNetwork;
@@ -321,7 +345,13 @@ static void WrapRunInitState()
 	if (g_setLoadingScreens)
 	{
 		PreSetupLoadingScreens();
-		setupLoadingScreens(10, 0);
+		
+		// code here used to use LOADINGSCREEN_CONTEXT_LAST_FRAME, but this also
+		// triggered the loading spinner and/or some other render thread hang.
+		//
+		// LOADINGSCREEN_CONTEXT_INSTALL seems to be relatively neutral as it
+		// would normally be used when copying disc content.
+		CLoadingScreens::Init(LOADINGSCREEN_CONTEXT_INSTALL, 0);
 
 		g_setLoadingScreens = false;
 	}
