@@ -8,7 +8,7 @@ apiset: client
 void SET_VEHICLE_AUTO_REPAIR_DISABLED(Vehicle vehicle, BOOL value);
 ```
 
-Disables the vehicle from being repaired when a vehicle extra is enabled.
+Disables the vehicle from being repaired when a vehicle extra is enabled. However, if you use this native and set **value** to true, you cannot add any extras when your vehicle is damaged.
 
 ## Parameters
 * **vehicle**: The vehicle to set disable auto vehicle repair.
