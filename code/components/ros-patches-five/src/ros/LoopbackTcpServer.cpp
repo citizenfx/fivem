@@ -24,12 +24,7 @@
 
 struct LauncherState
 {
-	volatile DWORD pid;
-
-	LauncherState()
-		: pid(0)
-	{
-	}
+	volatile DWORD pid = 0;
 };
 
 #ifdef GTA_FIVE
@@ -1270,6 +1265,9 @@ static BOOL __stdcall EP_CreateProcessW(const wchar_t* applicationName, wchar_t*
 				trace("Got ROS service - pid %d\n", information->dwProcessId);
 			}
 
+			static HostSharedData<LauncherState> hsd("CFX_ServicePid");
+			hsd->pid = information->dwProcessId;
+
 			SetPriorityClass(information->hProcess, ABOVE_NORMAL_PRIORITY_CLASS);
 
 			information->hThread = NULL;
@@ -1414,11 +1412,26 @@ void BackOffMtl()
 	backOffFile(L"data\\game-storage\\ros_profiles");
 }
 
-static void SetLauncherWaitCB(HANDLE hEvent, HANDLE hProcess, BOOL doBreak, DWORD timeout = INFINITE)
+void RunLauncher(const wchar_t* toolName, bool instantWait);
+
+static void SetLauncherWaitCB(HANDLE hEvent, HANDLE hProcessIn, BOOL doBreak, DWORD timeout = INFINITE)
 {
+	static bool inWait = false;
+	static HANDLE hProcess;
+
+	hProcess = hProcessIn;
+
+	if (inWait)
+	{
+		return;
+	}
+
 	g_waitForLauncherCB = [=]()
 	{
+		inWait = true;
+
 		bool done = false;
+		static int retries = 1;
 		static uint64_t startTime = GetTickCount64();
 		uint64_t endTime = GetTickCount64() + timeout;
 
@@ -1448,16 +1461,35 @@ static void SetLauncherWaitCB(HANDLE hEvent, HANDLE hProcess, BOOL doBreak, DWOR
 
 					if (waitedFor >= 45)
 					{
-						BackOffMtl();
+						if (retries >= 3)
+						{
+							BackOffMtl();
 
-						auto threadStart = GetRemoteProcAddress(hProcess, &ROSFailure);
+							auto threadStart = GetRemoteProcAddress(hProcess, &ROSFailure);
 
-						DWORD tid;
-						CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)threadStart, NULL, 0, &tid);
+							DWORD tid;
+							CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)threadStart, NULL, 0, &tid);
 
-						WaitForSingleObject(GetCurrentProcess(), 30000);
+							WaitForSingleObject(GetCurrentProcess(), 30000);
 
-						__debugbreak();
+							__debugbreak();
+						}
+
+						++retries;
+						trace("^3Retrying ROS launch (attempt %d/%d)\n", retries, 3);
+
+						HostSharedData<LauncherState> hsd("CFX_ServicePid");
+
+						auto service = OpenProcess(PROCESS_TERMINATE, FALSE, hsd->pid);
+						TerminateProcess(service, 0);
+						TerminateProcess(hProcess, 0);
+
+						Sleep(1500);
+
+						startTime = GetTickCount64();
+						RunLauncher(L"ros:launcher", false);
+
+						continue;
 					}
 
 					trace("^3ROS/MTL still hasn't cleared launch (waited %d seconds) - if this ends up timing out, please solve this!\n", waitedFor);
@@ -1473,6 +1505,8 @@ static void SetLauncherWaitCB(HANDLE hEvent, HANDLE hProcess, BOOL doBreak, DWOR
 				}
 			}
 		}
+
+		inWait = false;
 	};
 }
 
