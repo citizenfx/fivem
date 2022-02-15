@@ -1432,8 +1432,12 @@ void MumbleAudioOutput::SetMatrix(float position[3], float front[3], float up[3]
 
 void MumbleAudioOutput::HandleClientDisconnect(const MumbleUser& user)
 {
-	std::unique_lock<std::shared_mutex> _(m_clientsMutex);
-	m_clients[user.GetSessionId()] = nullptr;
+	std::shared_ptr<BaseAudioState> ptr;
+
+	{
+		std::unique_lock<std::shared_mutex> _(m_clientsMutex);
+		std::swap(ptr, m_clients[user.GetSessionId()]);
+	}
 }
 
 void MumbleAudioOutput::GetTalkers(std::vector<uint32_t>* talkers)
