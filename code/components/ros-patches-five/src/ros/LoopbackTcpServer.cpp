@@ -1270,6 +1270,8 @@ static BOOL __stdcall EP_CreateProcessW(const wchar_t* applicationName, wchar_t*
 				trace("Got ROS service - pid %d\n", information->dwProcessId);
 			}
 
+			SetPriorityClass(information->hProcess, ABOVE_NORMAL_PRIORITY_CLASS);
+
 			information->hThread = NULL;
 			information->hProcess = CreateEventW(NULL, TRUE, FALSE, va(L"Cfx_ROSServiceEvent_%s", ToWide(launch::GetLaunchModeKey())));
 
@@ -1302,6 +1304,8 @@ static BOOL __stdcall EP_CreateProcessW(const wchar_t* applicationName, wchar_t*
 
 				hProcess = GetCurrentProcess();
 			}
+
+			SetPriorityClass(GetCurrentProcess(), NORMAL_PRIORITY_CLASS);
 
 			// disable D3D present function
 			// TODO for MTL
@@ -1585,6 +1589,8 @@ void RunLauncher(const wchar_t* toolName, bool instantWait)
 		{
 			timeout = 30000;
 		}
+
+		SetPriorityClass(pi.hProcess, ABOVE_NORMAL_PRIORITY_CLASS);
 
 		SetLauncherWaitCB(hEvent, pi.hProcess, isLauncher, timeout);
 
