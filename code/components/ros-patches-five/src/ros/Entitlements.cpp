@@ -167,9 +167,9 @@ std::string GetEntitlementBlock(uint64_t accountId, const std::string& machineHa
 				{ "rosId", fmt::sprintf("%lld", accountId) }
 			});
 
-		if (r.status_code != 200)
+		if (r.error || r.status_code >= 400)
 		{
-			if (r.status_code < 500)
+			if (r.status_code == 401)
 			{
 				DeleteFileW(ToWide(GetOwnershipPath()).c_str());
 			}
