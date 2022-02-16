@@ -22,6 +22,7 @@
 #include <VFSManager.h>
 
 #include <EntitySystem.h>
+#include <GameInit.h>
 
 #include <tbb/concurrent_queue.h>
 
@@ -445,18 +446,43 @@ static bool CEntity_SetModelIdWrap(rage::fwEntity* entity, rage::fwModelId* id)
 	return rv;
 }
 
+static hook::thiscall_stub<void(void*, const rage::fwModelId&)> _fwEntity_SetModelId([]()
+{
+	return hook::get_pattern("E8 ? ? ? ? 45 33 D2 3B 05", -12);
+});
+
 static void (*g_orig_fwEntity_Dtor)(void* entity);
 
 static void fwEntity_DtorWrap(rage::fwEntity* entity)
 {
 	if (auto archetype = entity->GetArchetype())
 	{
+		auto midx = GetModelIndex(archetype);
+
+		// check if the archetype is actually valid for this model index
+		// (some bad asset setups lead to a corrupted archetype list)
+		//
+		// to do this, we use a little hack to not have to manually read the archetype list:
+		// the base rage::fwEntity::SetModelId doesn't do anything other than setting (rcx + 32)
+		// to the resolved archetype, or nullptr if none
+		rage::fwModelId modelId;
+		modelId.id = midx;
+
+		void* fakeEntity[40 / 8] = { 0 };
+		_fwEntity_SetModelId(fakeEntity, modelId);
+
+		// not the same archetype - bail out
+		if (fakeEntity[4] != archetype)
+		{
+			return g_orig_fwEntity_Dtor(entity);
+		}
+
 		auto mgr = streaming::Manager::GetInstance();
 
 		// TODO: recurse?
 		uint32_t outDeps[150];
 		auto module = GetArchetypeModule();
-		auto numDeps = module->GetDependencies(GetModelIndex(archetype), outDeps, std::size(outDeps));
+		auto numDeps = module->GetDependencies(midx, outDeps, std::size(outDeps));
 
 		for (size_t depIdx = 0; depIdx < numDeps; depIdx++)
 		{
@@ -576,4 +602,10 @@ static HookFunction hookFunction([] ()
 		MH_CreateHook(location, fwEntity_DtorWrap, (void**)&g_orig_fwEntity_Dtor);
 		MH_EnableHook(location);
 	}
+
+	OnKillNetworkDone.Connect([]()
+	{
+		std::unique_lock _(strRefCountsMutex);
+		strRefCounts.clear();
+	});
 });
