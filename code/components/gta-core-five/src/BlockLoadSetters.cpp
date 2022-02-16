@@ -283,15 +283,14 @@ struct InitFunctionStub : public jitasm::Frontend
 
 		mov(rax, (uintptr_t)LogStub);
 		call(rax);
-		
-		mov(ecx, r14d);
-		call(rax);
 
+		// unwind
 		add(rsp, 0x20);
 
+		mov(ecx, r14d);
 		pop(r14);
 
-		ret();
+		jmp(rax);
 	}
 };
 
