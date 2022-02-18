@@ -684,7 +684,7 @@ static int __Lua_InvokeNative(lua_State* L)
 			case LuaMetaFields::ResultAsObject:
 			{
 				scrObject object = *reinterpret_cast<scrObject*>(&context.arguments[0]);
-				lua_pushlstring(L, object.data, object.length);
+				luaRuntime->ResultAsObject(L, std::string_view{ object.data, object.length });
 				break;
 			}
 			case LuaMetaFields::ResultAsInteger:

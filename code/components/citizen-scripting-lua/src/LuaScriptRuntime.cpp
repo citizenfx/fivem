@@ -682,6 +682,44 @@ static int Lua_GetMetaField(lua_State* L)
 	return 1;
 }
 
+static int Lua_ResultAsObject(lua_State* L)
+{
+	// push the routine to reference and add a reference
+	lua_pushvalue(L, 1);
+
+	int ref = luaL_ref(L, LUA_REGISTRYINDEX);
+
+	// set the event callback in the current routine
+	auto luaRuntime = LuaScriptRuntime::GetCurrent().GetRef();
+
+	luaRuntime->SetResultAsObjectRoutine([luaRuntime, ref](lua_State* L, std::string_view object)
+	{
+		LuaProfilerScope _profile(luaRuntime);
+
+		// set the error handler
+		lua_pushcfunction(L, luaRuntime->GetDbTraceback());
+
+		int eh = lua_gettop(L);
+
+		// get the referenced function
+		lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
+
+		// push arguments on the stack
+		lua_pushlstring(L, object.data(), object.size());
+
+		// invoke the tick routine
+		if (lua_pcall(L, 1, 1, eh) != 0)
+		{
+			LUA_SCRIPT_TRACE(L, "Error running deserialization function for resource %s", luaRuntime->GetResourceName());
+			lua_pushnil(L);
+		}
+
+		lua_remove(L, eh);
+	});
+
+	return Lua_GetMetaField<LuaMetaFields::ResultAsObject>(L);
+}
+
 template<LuaMetaFields MetaField>
 static int Lua_GetPointerField(lua_State* L)
 {
@@ -1131,7 +1169,7 @@ static const struct luaL_Reg g_citizenLib[] = {
 	{ "ResultAsFloat", Lua_GetMetaField<LuaMetaFields::ResultAsFloat> },
 	{ "ResultAsString", Lua_GetMetaField<LuaMetaFields::ResultAsString> },
 	{ "ResultAsVector", Lua_GetMetaField<LuaMetaFields::ResultAsVector> },
-	{ "ResultAsObject", Lua_GetMetaField<LuaMetaFields::ResultAsObject> },
+	{ "ResultAsObject2", Lua_ResultAsObject },
 	{ "AwaitSentinel", Lua_GetMetaField<LuaMetaFields::AwaitSentinel> },
 	{ nullptr, nullptr }
 };

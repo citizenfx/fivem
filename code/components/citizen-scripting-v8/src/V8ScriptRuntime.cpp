@@ -27,6 +27,9 @@
 #include <scrEngine.h>
 #endif
 
+#include <rapidjson/writer.h>
+#include <MsgpackJson.h>
+
 inline static std::chrono::milliseconds msec()
 {
 	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
@@ -1364,7 +1367,7 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 		uintptr_t length;
 	};
 
-	// number of Lua results
+	// JS results
 	Local<Value> returnValue = Undefined(args.GetIsolate());
 	int numResults = 0;
 
@@ -1412,14 +1415,45 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 		{
 			scrObject object = *reinterpret_cast<scrObject*>(&context.arguments[0]);
 
-			Local<ArrayBuffer> outValueBuffer = ArrayBuffer::New(GetV8Isolate(), object.length);
+			// try parsing
+			returnValue = Null(GetV8Isolate());
 
-			auto abs = outValueBuffer->GetBackingStore();
-			memcpy(abs->Data(), object.data, object.length);
+			try
+			{
+				msgpack::unpacked unpacked;
+				msgpack::unpack(unpacked, object.data, object.length);
 
-			Local<Uint8Array> outArray = Uint8Array::New(outValueBuffer, 0, object.length);
+				// and convert to a rapidjson object
+				rapidjson::Document document;
+				ConvertToJSON(unpacked.get(), document, document.GetAllocator());
 
-			returnValue = outArray;
+				// write as a json string
+				rapidjson::StringBuffer sb;
+				rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+
+				if (document.Accept(writer))
+				{
+					if (sb.GetString() && sb.GetSize())
+					{
+						auto maybeString = String::NewFromUtf8(GetV8Isolate(), sb.GetString(), NewStringType::kNormal, sb.GetSize());
+						Local<String> string;
+
+						if (maybeString.ToLocal(&string))
+						{
+							auto maybeValue = v8::JSON::Parse(runtime->GetContext(), string);
+							Local<Value> value;
+
+							if (maybeValue.ToLocal(&value))
+							{
+								returnValue = value;
+							}
+						}
+					}
+				}
+			}
+			catch (std::exception& e)
+			{
+			}
 
 			break;
 		}
@@ -1836,7 +1870,7 @@ static std::pair<std::string, FunctionCallback> g_citizenFunctions[] =
 	{ "resultAsFloat", V8_GetMetaField<V8MetaFields::ResultAsFloat> },
 	{ "resultAsString", V8_GetMetaField<V8MetaFields::ResultAsString> },
 	{ "resultAsVector", V8_GetMetaField<V8MetaFields::ResultAsVector> },
-	{ "resultAsObject", V8_GetMetaField<V8MetaFields::ResultAsObject> },
+	{ "resultAsObject2", V8_GetMetaField<V8MetaFields::ResultAsObject> },
 	{ "getResourcePath", V8_GetResourcePath },
 };
 

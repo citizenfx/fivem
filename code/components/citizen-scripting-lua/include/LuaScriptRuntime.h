@@ -180,6 +180,8 @@ private:
 
 	typedef std::function<void(void*, void*, char**, size_t*)> TStackTraceRoutine;
 
+	using TResultAsObjectRoutine = std::function<void(lua_State*, std::string_view)>;
+
 private:
 	LuaStateHolder m_state;
 
@@ -206,6 +208,8 @@ private:
 	TDeleteRefRoutine m_deleteRefRoutine;
 
 	TStackTraceRoutine m_stackTraceRoutine;
+
+	TResultAsObjectRoutine m_resultAsObjectRoutine;
 
 	int m_boundaryRoutine = 0;
 
@@ -282,6 +286,26 @@ public:
 		if (!m_boundaryRoutine)
 		{
 			m_boundaryRoutine = routine;
+		}
+	}
+
+	LUA_INLINE void SetResultAsObjectRoutine(const TResultAsObjectRoutine& routine)
+	{
+		if (!m_resultAsObjectRoutine)
+		{
+			m_resultAsObjectRoutine = routine;
+		}
+	}
+
+	LUA_INLINE void ResultAsObject(lua_State* L, std::string_view object)
+	{
+		if (m_resultAsObjectRoutine)
+		{
+			m_resultAsObjectRoutine(L, object);
+		}
+		else
+		{
+			lua_pushnil(L);
 		}
 	}
 
