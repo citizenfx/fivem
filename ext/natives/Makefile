@@ -101,7 +101,7 @@ all: out \
 	out/NativesFive.cs out/NativesServer.cs out/NativesRDR3.cs out/NativesNY.cs \
 	out/rpc_natives.json \
 	out/natives_server.lua out/natives_server.d.ts out/natives_server.js out/natives_server.zip \
-	out/Natives.h out/NativesRDR.h out/NativesServer.h out/NativesNY.h \
+	out/Natives.h out/NativesRDR.h out/NativesServer.h out/NativesNY.h out/PASGen.h \
 	$(GTA_OUTPUTS_LUA) $(GTA_OUTPUTS_JS) $(GTA_OUTPUTS_DTS) $(GTA_OUTPUTS_ZIP) \
 	$(RDR_OUTPUTS_LUA) $(RDR_OUTPUTS_JS) $(RDR_OUTPUTS_DTS) $(RDR_OUTPUTS_ZIP) \
 	$(NY_OUTPUTS_LUA) $(NY_OUTPUTS_JS) $(NY_OUTPUTS_DTS) $(NY_OUTPUTS_ZIP)
@@ -148,6 +148,9 @@ out/NativesNY.h: inp/natives_ny.lua $(CODEGEN_SCRIPTS) codegen_out_native_lua.lu
 
 out/NativesServer.h: inp/natives_global.lua $(CODEGEN_SCRIPTS) codegen_out_native_lua.lua rpc_spec_natives.lua
 	./lua53 codegen.lua inp/natives_global.lua native_lua server > $@
+
+out/PASGen.h: inp/natives_global.lua $(CODEGEN_SCRIPTS) codegen_out_pointer_args.lua
+	./lua53 codegen.lua inp/natives_global.lua pointer_args > $@
 
 out/rpc_natives.json: $(CODEGEN_SCRIPTS) inp/natives_global.lua codegen_out_rpc.lua rpc_spec_natives.lua
 	./lua53 codegen.lua inp/natives_global.lua rpc server > $@

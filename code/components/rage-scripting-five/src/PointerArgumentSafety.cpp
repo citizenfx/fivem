@@ -3,23 +3,41 @@
 
 #include <ICoreGameInit.h>
 
+#include <psapi.h>
+
+static ptrdiff_t GetMainImageSize()
+{
+	MODULEINFO mi;
+	auto mainModule = GetModuleHandle(NULL);
+	if (GetModuleInformation(GetCurrentProcess(), mainModule, &mi, sizeof(mi)))
+	{
+		return mi.SizeOfImage;
+	}
+
+	return 0x68000000;
+}
+
 static uintptr_t rangeStart = (uintptr_t)GetModuleHandle(NULL);
-static uintptr_t rangeEnd = rangeStart + 0x6000000;
+static uintptr_t rangeEnd = rangeStart + GetMainImageSize();
 static ICoreGameInit* icgi;
 bool storyMode;
 
 static bool ValidateArg(void* arg)
 {
+	if (storyMode)
+	{
+		return true;
+	}
+
 	if ((uintptr_t)arg >= rangeStart && (uintptr_t)arg < rangeEnd)
 	{
-		if (!storyMode)
-		{
-			return false;
-		}
+		return false;
 	}
 
 	return true;
 }
+
+#include "PASGen.h"
 
 void PointerArgumentSafety()
 {
@@ -32,6 +50,5 @@ void PointerArgumentSafety()
 		}
 	});
 
-// lua53 codegen.lua inp\natives_global.lua pointer_args > ..\..\code\components\rage-scripting-five\src\PASGen.h
-#include "PASGen.h"
+	PointerArgumentSafety_Impl();
 }

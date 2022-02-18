@@ -84,7 +84,8 @@ if errorlevel 1 (
 	xcopy /y out\*.zip ..\..\data\shared\citizen\scripting\lua
 
 	xcopy /y out\*.cs ..\..\code\client\clrcore
-	xcopy /y out\*.h ..\..\code\components\citizen-scripting-lua\src
+	xcopy /y out\Natives*.h ..\..\code\components\citizen-scripting-lua\src
+	xcopy /y out\PASGen.h ..\..\code\components\rage-scripting-five\src
 )
 
 popd

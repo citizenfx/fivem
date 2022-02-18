@@ -86,7 +86,7 @@ protected:
 
 public:
 	template<typename T>
-	inline T GetArgument(int idx)
+	inline T& GetArgument(int idx)
 	{
 		intptr_t* arguments = (intptr_t*)m_pArgs;
 
