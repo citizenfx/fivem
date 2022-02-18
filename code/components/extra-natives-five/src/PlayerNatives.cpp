@@ -110,6 +110,12 @@ static HookFunction hookFunction([]()
 		readPlayerInfoMemory<float, &PlayerStaminaOffset>(context, 0.0f);
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_IS_STREAMERMODE_ACTIVE", [](fx::ScriptContext& context)
+	{
+		static ConVar<bool> streamerMode("ui_streamerMode", ConVar_None, false);
+		context.SetResult<bool>(streamerMode.GetValue());
+	});
+
 	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_MAX_STAMINA", [](fx::ScriptContext& context)
 	{
 		readPlayerInfoMemory<float, &PlayerMaxStaminaOffset>(context, 0.0f);
