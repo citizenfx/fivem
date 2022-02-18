@@ -590,6 +590,11 @@ static int __Lua_InvokeNative(lua_State* L)
 
 	// invoke the native on the script host
 #ifndef IS_FXSERVER
+	// preemptive safety check for the input argument to *not* show up in the output
+	int a1type = lua_type(L, 2);
+	bool hadComplexType = (a1type != LUA_TNUMBER && a1type != LUA_TNIL && a1type != LUA_TBOOLEAN);
+	auto initialArg1 = context.arguments[0];
+
 	LUA_IF_CONSTEXPR(IsPtr)
 	{
 		// zero out three following arguments
@@ -634,6 +639,21 @@ static int __Lua_InvokeNative(lua_State* L)
 			lua_error(L);
 		}
 	}
+
+#ifndef IS_FXSERVER
+	// clean up the result
+	if (hadComplexType && context.numArguments > 0)
+	{
+		// if the complex argument return value is the same as the initial argument, clear the result (result was no-op)
+		if (context.arguments[0] == initialArg1)
+		{
+			context.arguments[0] = 0;
+			context.arguments[1] = 0;
+			context.arguments[2] = 0;
+			context.arguments[3] = 0;
+		}
+	}
+#endif
 
 	// number of Lua results
 	int numResults = 0;

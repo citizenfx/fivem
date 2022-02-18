@@ -1104,6 +1104,12 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 	auto cxt = runtime->GetContext();
 
 	// the big argument loop
+	Local<Value> a1;
+	if (HashGetter::BaseArgs < numArgs)
+	{
+		a1 = args[HashGetter::BaseArgs];
+	}
+
 	for (int i = HashGetter::BaseArgs; i < numArgs; i++)
 	{
 		// get the type and decide what to do based on it
@@ -1331,6 +1337,11 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 		}
 	}
 
+#ifndef IS_FXSERVER
+	bool hadComplexType = !a1.IsEmpty() && (!a1->IsNumber() && !a1->IsBoolean() && !a1->IsNull());
+	auto initialArg1 = context.arguments[0];
+#endif
+
 	// invoke the native on the script host
 	if (!FX_SUCCEEDED(scriptHost->InvokeNative(context)))
 	{
@@ -1339,6 +1350,21 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 
 		return throwException(fmt::sprintf("Execution of native %016x in script host failed: %s", hash, error));
 	}
+
+#ifndef IS_FXSERVER
+	// clean up the result
+	if (hadComplexType && context.numArguments > 0)
+	{
+		// if the complex argument return value is the same as the initial argument, clear the result (result was no-op)
+		if (context.arguments[0] == initialArg1)
+		{
+			context.arguments[0] = 0;
+			context.arguments[1] = 0;
+			context.arguments[2] = 0;
+			context.arguments[3] = 0;
+		}
+	}
+#endif
 
 	// padded vector struct
 	struct scrVector
