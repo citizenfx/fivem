@@ -12,9 +12,10 @@ namespace CitizenFX.Core
 		public string Command;
 		public bool Restricted = false;
 
-		public CommandAttribute(string command)
+		public CommandAttribute(string command, bool restricted = false)
 		{
 			Command = command;
+			Restricted = restricted;
 		}
 	}
 }
