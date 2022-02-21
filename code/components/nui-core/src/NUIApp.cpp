@@ -11,6 +11,8 @@
 #include <CoreConsole.h>
 #include "memdbgon.h"
 
+#include <include/cef_parser.h>
+
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.System.UserProfile.h>
 #pragma comment(lib, "runtimeobject")
@@ -188,6 +190,21 @@ void NUIApp::OnContextReleased(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame
 void NUIApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRefPtr<CefCommandLine> command_line)
 {
 	static ConVar<bool> nuiUseInProcessGpu("nui_useInProcessGpu", ConVar_Archive, false);
+
+	static std::string defaultUiUrl = "https://nui-game-internal/ui/app/index.html";
+	static ConVar<std::string> uiUrlVar("ui_url", ConVar_None, defaultUiUrl);
+
+	if (uiUrlVar.GetValue() != defaultUiUrl)
+	{
+		CefString uiUrl(uiUrlVar.GetValue());
+		CefURLParts uiUrlParts;
+
+		if (CefParseURL(uiUrl, uiUrlParts) && uiUrlParts.origin.length > 0)
+		{
+			// Allow secure context for insecure localhost
+			command_line->AppendSwitchWithValue("unsafely-treat-insecure-origin-as-secure", uiUrlParts.origin.str);
+		}
+	}
 
 	if (nuiUseInProcessGpu.GetValue())
 	{
