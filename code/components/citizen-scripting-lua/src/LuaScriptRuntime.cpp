@@ -1132,6 +1132,11 @@ static int Lua_SetTimeout(lua_State* L)
 	return Lua_CreateThreadInternal(L, false, timeout, 2);
 }
 
+static int Lua_Noop(lua_State* L)
+{
+	return 0;
+}
+
 static const struct luaL_Reg g_citizenLib[] = {
 	{ "SetBoundaryRoutine", Lua_SetBoundaryRoutine },
 	{ "SetTickRoutine", Lua_SetTickRoutine },
@@ -1169,6 +1174,7 @@ static const struct luaL_Reg g_citizenLib[] = {
 	{ "ResultAsFloat", Lua_GetMetaField<LuaMetaFields::ResultAsFloat> },
 	{ "ResultAsString", Lua_GetMetaField<LuaMetaFields::ResultAsString> },
 	{ "ResultAsVector", Lua_GetMetaField<LuaMetaFields::ResultAsVector> },
+	{ "ResultAsObject", Lua_Noop }, // for compatibility
 	{ "ResultAsObject2", Lua_ResultAsObject },
 	{ "AwaitSentinel", Lua_GetMetaField<LuaMetaFields::AwaitSentinel> },
 	{ nullptr, nullptr }
