@@ -797,6 +797,11 @@ namespace fx {
 		return m_frames;
 	}
 
+	std::string ProfilerComponent::GetDevToolsURL()
+	{
+		return "https://chrome-devtools-frontend.appspot.com/serve_rev/@901bcc219d9204748f9c256ceca0f2cd68061006/inspector.html";
+	}
+
 	bool ProfilerComponent::IsScriptRecording()
 	{
 		return IsRecording() && m_script;

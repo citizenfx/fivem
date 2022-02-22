@@ -412,8 +412,8 @@ void InfoHttpHandlerComponentLocals::AttachToObject(fx::ServerInstanceBase* inst
 			
 		if (baseUrl)
 		{
-			console::Printf("profiler", "You can view the recorded profile data at ^4https://frontend.chrome-dev.tools/serve_rev/@901bcc219d9204748f9c256ceca0f2cd68061006/inspector.html?loadTimelineFromURL=https://%s/profileData.json^7 in Chrome (or compatible).\n",
-				baseUrl->GetValue());
+			console::Printf("profiler", "You can view the recorded profile data at ^4%s?loadTimelineFromURL=https://%s/profileData.json^7 in Chrome (or compatible).\n",
+				fx::ProfilerComponent::GetDevToolsURL(), baseUrl->GetValue());
 		}
 	});
 

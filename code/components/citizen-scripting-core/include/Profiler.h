@@ -113,6 +113,8 @@ namespace fx {
 		void StopRecording();
 		auto Get() -> const tbb::concurrent_vector<ProfilerEvent>&;
 
+		static std::string GetDevToolsURL();
+
 		/// <summary>
 		/// Return true if the active profiler is configured for IScriptProfiler
 		/// bridging.
