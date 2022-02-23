@@ -1630,14 +1630,6 @@ void UI_DoDestruction()
 
 	ShowWindow(g_uui.rootWindow, SW_HIDE);
 
-	if (g_uui.ten)
-	{
-		if (g_uui.ten->uiSource)
-		{
-			g_uui.ten->uiSource.Close();
-		}
-	}
-
 	g_uui.ten = {};
 
 	DestroyWindow(g_uui.rootWindow);
