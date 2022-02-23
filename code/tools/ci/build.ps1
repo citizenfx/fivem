@@ -332,9 +332,11 @@ if (!$DontBuild)
 		Remove-Item -Force shared\citversion.h
 		Move-Item -Force shared\citversion.h.tmp shared\citversion.h
 
-		"#pragma once
-		#define EXE_VERSION ${env:CI_PIPELINE_ID}
+		if (Test-Path env:\CI_PIPELINE_ID) {
+			"#pragma once
+			#define EXE_VERSION ${env:CI_PIPELINE_ID}
 " | Out-File -Force shared\launcher_version.h
+		}
 	}
 
 	"#pragma once
