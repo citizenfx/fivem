@@ -122,7 +122,7 @@ uint32_t rage::ioMapper::Map(uint32_t mapperSource, uint32_t key, ioValue& value
 
 static hook::cdecl_stub<void(rage::ioMapper*, int, const rage::ioInputSource&, rage::ioValue&)> _ioMapper_UpdateMap([]()
 {
-	return hook::get_pattern("33 C0 4D  8B D0 44 8B D8 8B D8 48", -0x0D);
+	return hook::get_pattern("33 C0 4D 8B D0 44 8B D8 8B D8 48", -0x0D);
 });
 
 void rage::ioMapper::UpdateMap(int max_k, const rage::ioInputSource& info, rage::ioValue& value)
@@ -276,7 +276,9 @@ public:
 
 	~Binding();
 
-	void Update(rage::ioMapper* mapper);
+	bool PreUpdate(rage::ioMapper* mapper);
+
+	void Update();
 
 	void UpdateMap(rage::ioMapper* mapper)
 	{
@@ -291,6 +293,8 @@ public:
 	{
 		return m_value;
 	}
+
+	bool IsActive() const;
 
 	inline void SetBinding(std::tuple<int, int> binding)
 	{
@@ -320,6 +324,9 @@ public:
 	}
 
 private:
+	void Unmap();
+
+private:
 	rage::ioValue m_value;
 
 	bool m_wasDown;
@@ -341,11 +348,7 @@ Binding::Binding(const std::string& command)
 
 Binding::~Binding()
 {
-	for (rage::ioMapper* mapper : m_mappers)
-	{
-		mapper->RemoveDeviceMappings(m_value, -1);
-		mapper->RemoveDeviceMappings(m_value, -4);
-	}
+	Unmap();
 }
 
 static void* g_control;
@@ -369,16 +372,43 @@ static hook::thiscall_stub<rage::ioInputSource*(void* control, rage::ioInputSour
 
 bool IsTagActive(const std::string& tag);
 
-void Binding::Update(rage::ioMapper* mapper)
+void Binding::Unmap()
 {
-	if (!IsTagActive(m_tag))
+	for (rage::ioMapper* mapper : m_mappers)
 	{
-		return;
+		mapper->RemoveDeviceMappings(m_value, -1);
+		mapper->RemoveDeviceMappings(m_value, -4);
+	}
+
+	m_mappers.clear();
+}
+
+bool Binding::IsActive() const
+{
+	return IsTagActive(m_tag);
+}
+
+bool Binding::PreUpdate(rage::ioMapper* mapper)
+{
+	if (!IsActive())
+	{
+		Unmap();
+		return false;
 	}
 
 	if (Instance<ICoreGameInit>::Get()->GetGameLoaded() && mapper == (rage::ioMapper*)((char*)g_control + g_mapperOffset) && !_isMenuActive(1))
 	{
 		UpdateMap(mapper);
+	}
+
+	return true;
+}
+
+void Binding::Update()
+{
+	if (!IsActive())
+	{
+		return;
 	}
 
 	bool down = m_value.IsDown(0.5f, rage::ioValue::NO_DEAD_ZONE);
@@ -691,14 +721,60 @@ std::shared_ptr<Binding> BindingManager::Bind(int ioSource, int ioParameter, con
 
 void BindingManager::Update(rage::ioMapper* mapper, uint32_t time)
 {
-	static uint8_t counter = 0;
-	counter++;
+	// since ioMapper has a limit of stored ioValue instances, we canonicalize duplicate bindings here with a multi-pass op
+	// Note: 'The order of the key-value pairs whose keys compare equivalent is the order of insertion and does not change.'
+	// -> we can ensure the first entry is the canonical entry
+	std::multimap<std::tuple<int, int>, std::shared_ptr<Binding>> bindings;
 
+	// gather: process and store canonical entry
 	for (auto& bindingPair : m_bindings)
 	{
 		auto [source, binding] = bindingPair;
 
-		binding->Update(mapper);
+		if (auto it = bindings.find(source); it != bindings.end())
+		{
+			// if duplicate, just insert as non-canonical 'for later'
+			// we will only insert if active (see below, PreUpdate condition), so this doesn't need another IsActive check
+			bindings.insert(bindingPair);
+		}
+		else
+		{
+			if (binding->PreUpdate(mapper))
+			{
+				bindings.insert(bindingPair);
+			}
+		}
+	}
+
+	// copy values from canonical (mapped) to ours
+	{
+		std::tuple<int, int> lastSource{ -1, -1 };
+		rage::ioValue lastInitValue;
+
+		for (auto& bindingPair : bindings)
+		{
+			auto [source, binding] = bindingPair;
+
+			// first in a list?
+			if (lastSource != source)
+			{
+				lastSource = source;
+				lastInitValue = binding->GetValue();
+			}
+			else
+			{
+				// later entry: copy the value
+				binding->GetValue() = lastInitValue;
+			}
+		}
+	}
+
+	// we only stored canonicalized/active bindings in our list, so we can just process this one instead
+	for (auto& bindingPair : bindings)
+	{
+		auto [source, binding] = bindingPair;
+
+		binding->Update();
 	}
 
 	std::function<void()> func;
