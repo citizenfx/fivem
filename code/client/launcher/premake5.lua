@@ -226,15 +226,6 @@ local function launcherpersonality_inner(name, aslr)
 		linkoptions "/IGNORE:4254 /LARGEADDRESSAWARE" -- 4254 is the section type warning we tend to get
 		
 		if isGamePersonality(name) then
-			if not aslr and not isLauncherPersonality(name) then
-				linkoptions { "/SAFESEH:NO", "/DYNAMICBASE:NO" }
-			else
-				filter { "configurations:Debug" }
-					linkoptions { "/SAFESEH:NO", "/DYNAMICBASE:NO" }
-
-				filter {}
-			end
-
 			-- VS14 linker behavior change causes the usual workaround to no longer work, use an undocumented linker switch instead
 			-- note that pragma linker directives ignore these (among other juicy arguments like /WBRDDLL, /WBRDTESTENCRYPT and other
 			-- Microsoft Warbird-specific DRM functions... third-party vendors have to handle their own way of integrating
@@ -243,6 +234,15 @@ local function launcherpersonality_inner(name, aslr)
 
 			-- V8 requires a 1.5 MB stack at minimum (default is 1 MB stack space for V8 only, so 512 kB safety)
 			linkoptions "/STACK:0x180000"
+
+			if not aslr and not isLauncherPersonality(name) then
+				linkoptions { "/SAFESEH:NO", "/DYNAMICBASE:NO" }
+			else
+				filter { "configurations:Debug" }
+					linkoptions { "/SAFESEH:NO", "/DYNAMICBASE:NO" }
+			end
+
+			-- add NOTHING below here (`filter` from `isGamePersonality` would break, otherwise)
 		end
 		
 		-- reset isGamePersonality bit
