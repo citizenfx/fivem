@@ -331,6 +331,10 @@ if (!$DontBuild)
 	if ((!(Test-Path shared\citversion.h)) -or ($null -ne (Compare-Object (Get-Content shared\citversion.h.tmp) (Get-Content shared\citversion.h)))) {
 		Remove-Item -Force shared\citversion.h
 		Move-Item -Force shared\citversion.h.tmp shared\citversion.h
+
+		"#pragma once
+		#define EXE_VERSION ${env:CI_PIPELINE_ID}
+" | Out-File -Force shared\launcher_version.h
 	}
 
 	"#pragma once

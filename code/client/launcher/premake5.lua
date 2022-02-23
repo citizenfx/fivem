@@ -92,6 +92,10 @@ local function launcherpersonality_inner(name, aslr)
 		
 		defines("LAUNCHER_PERSONALITY_" .. name:upper())
 
+		if name:match('^game_') then
+			defines "LAUNCHER_PERSONALITY_ANY_GAME"
+		end
+
 		flags { "NoManifest", "NoImportLib" }
 		
 		symbols "Full"
