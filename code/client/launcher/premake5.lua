@@ -240,6 +240,9 @@ local function launcherpersonality_inner(name, aslr)
 			-- Microsoft Warbird-specific DRM functions... third-party vendors have to handle their own way of integrating
 			-- PE parsing and writing, yet Microsoft has their feature hidden in the exact linker those vendors use...)
 			linkoptions "/LAST:.zdata"
+
+			-- V8 requires a 1.5 MB stack at minimum (default is 1 MB stack space for V8 only, so 512 kB safety)
+			linkoptions "/STACK:0x180000"
 		end
 		
 		-- reset isGamePersonality bit

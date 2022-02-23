@@ -10,6 +10,10 @@
 			links { "psapi", "wininet", "winhttp" }
 			flags { "NoManifest", "NoImportLib" }
 			files { "server.rc" }
+
+			-- match the 4 MB stack size set on Linux in Main.cpp
+			-- again: 1.5 MB is required for V8
+			linkoptions '/STACK:0x400000'
 		else
 			links { 'dl', 'pthread' }
 		end
