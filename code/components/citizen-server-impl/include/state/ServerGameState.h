@@ -479,6 +479,14 @@ struct CVehicleSteeringNodeData
 	float steeringAngle;
 };
 
+struct CBoatGameStateNodeData
+{
+	bool lockedToXY;
+	float sinkEndTime;
+	int wreckedAction;
+	bool isWrecked;
+};
+
 enum ePopType
 {
 	POPTYPE_UNKNOWN = 0,
@@ -562,6 +570,8 @@ public:
 	virtual CHeliHealthNodeData* GetHeliHealth() = 0;
 
 	virtual CVehicleSteeringNodeData* GetVehicleSteeringData() = 0;
+
+	virtual CBoatGameStateNodeData* GetBoatGameState() = 0;
 
 	virtual void CalculatePosition() = 0;
 

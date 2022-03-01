@@ -1529,7 +1529,38 @@ struct CPhysicalMigrationDataNode { bool Parse(SyncParseState& state) { return t
 struct CPhysicalScriptMigrationDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CVehicleProximityMigrationDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CBikeGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CBoatGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
+
+struct CBoatGameStateDataNode {
+	CBoatGameStateNodeData data;
+
+	bool Parse(SyncParseState& state) {
+		bool lockedToXY = state.buffer.ReadBit();
+		int boatWreckedAction = state.buffer.Read<int>(2);
+		bool forcedBoatLocationWhenAnchored = state.buffer.ReadBit();
+
+		bool unk = state.buffer.ReadBit();
+		bool interiorLightEnabled = state.buffer.ReadBit();
+
+		float sinkEndTime = state.buffer.ReadSignedFloat(14, 1.0f);
+		bool movementResistant = state.buffer.ReadBit(); // movementResistance >= 0.0
+
+		if (movementResistant)
+		{
+			bool unk3 = state.buffer.ReadBit(); // movementResistance > 1000.0
+
+			if (!unk3)
+			{
+				float movementResistance = state.buffer.ReadSignedFloat(16, 1000.0f);
+			}
+		}
+
+		data.lockedToXY = lockedToXY;
+		data.sinkEndTime = sinkEndTime;
+		data.wreckedAction = boatWreckedAction;
+
+		return true;
+	}
+};
 
 struct CDoorCreationDataNode
 {
@@ -3302,6 +3333,13 @@ struct SyncTree : public SyncTreeBase
 	virtual CVehicleSteeringNodeData* GetVehicleSteeringData() override
 	{
 		auto [hasNode, node] = GetData<CVehicleSteeringDataNode>();
+
+		return hasNode ? &node->data : nullptr;
+	}
+
+	virtual CBoatGameStateNodeData* GetBoatGameState() override
+	{
+		auto [hasNode, node] = GetData<CBoatGameStateDataNode>();
 
 		return hasNode ? &node->data : nullptr;
 	}

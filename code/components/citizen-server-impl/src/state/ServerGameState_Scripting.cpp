@@ -1678,6 +1678,31 @@ static void Init()
 
 		return steeringData ? steeringData->steeringAngle * (180.0f / pi) : 0.0f;
 	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_BOAT_ANCHORED_AND_FROZEN", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto boatGameState = entity->syncTree->GetBoatGameState();
+
+		return boatGameState ? boatGameState->lockedToXY : false;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_BOAT_WRECKED", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto boatGameState = entity->syncTree->GetBoatGameState();
+
+#ifndef STATE_RDR3
+		return boatGameState ? (boatGameState->sinkEndTime == 0.0f) : false;
+#else
+		return boatGameState ? boatGameState->isWrecked : false;
+#endif
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("DOES_BOAT_SINK_WHEN_WRECKED", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto boatGameState = entity->syncTree->GetBoatGameState();
+
+		return boatGameState ? (boatGameState->wreckedAction == 2) : true;
+	}));
 }
 
 static InitFunction initFunction([]()

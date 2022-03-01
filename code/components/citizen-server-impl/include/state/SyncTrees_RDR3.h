@@ -407,7 +407,80 @@ struct CPhysicalMigrationDataNode { bool Parse(SyncParseState& state) { return t
 struct CPhysicalScriptMigrationDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CVehicleProximityMigrationDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CBikeGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CBoatGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
+
+struct CBoatGameStateDataNode
+{
+	CBoatGameStateNodeData data;
+
+	bool Parse(SyncParseState& state)
+	{
+		bool lockedToXY = state.buffer.ReadBit();
+
+		if (lockedToXY)
+		{
+			float frontAnchorCoordsX = state.buffer.ReadSignedFloat(19, 27648.0f);
+			float frontAnchorCoordsY = state.buffer.ReadSignedFloat(19, 27648.0f);
+			float frontAnchorCoordsZ = state.buffer.ReadSignedFloat(19, 4416.0f) - 1700.0f;
+
+			float backAnchorCoordsX = state.buffer.ReadSignedFloat(19, 27648.0f);
+			float backAnchorCoordsY = state.buffer.ReadSignedFloat(19, 27648.0f);
+			float backAnchorCoordsZ = state.buffer.ReadSignedFloat(19, 4416.0f) - 1700.0f;
+		}
+
+		int boatWreckedAction = state.buffer.Read<int>(2);
+		bool unk48 = state.buffer.ReadBit(); // 0x75B49ACD73617437
+		bool unk49 = state.buffer.ReadBit(); // 0x850C940EE3E7B8B5
+		bool unk50 = state.buffer.ReadBit();
+		bool unk55 = state.buffer.ReadBit();
+		bool unk52 = state.buffer.ReadBit();
+		bool forcedBoatLocationWhenAnchored = state.buffer.ReadBit();
+		bool unk54 = state.buffer.ReadBit();
+
+		bool movementResistant = state.buffer.ReadBit(); // resistance >= 0.0
+
+		if (movementResistant)
+		{
+			bool fullMovementResistance = state.buffer.ReadBit(); // resistance > 1000.0
+
+			if (!fullMovementResistance)
+			{
+				float movementResistance = state.buffer.ReadSignedFloat(16, 1000.0f);
+			}
+		}
+
+		bool unk51 = state.buffer.ReadBit();
+
+		// Related to move controls
+		if (unk51)
+		{
+			int unk12 = state.buffer.Read<int>(4);
+			int unk13 = state.buffer.Read<int>(2);
+			bool unk57 = state.buffer.ReadBit();
+			bool unk58 = state.buffer.ReadBit();
+		}
+
+		bool unk59 = state.buffer.ReadBit();
+
+		if (unk59)
+		{
+			float sinkEndTime = state.buffer.ReadSignedFloat(8, 1.0f);
+			bool isWrecked = state.buffer.ReadBit();
+
+			data.sinkEndTime = sinkEndTime;
+			data.isWrecked = isWrecked;
+		}
+		else
+		{
+			data.sinkEndTime = 0.0f;
+			data.isWrecked = false;
+		}
+
+		data.lockedToXY = lockedToXY;
+
+		return true;
+	}
+};
+
 struct CDoorMovementDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CDoorScriptInfoDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CDoorScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
@@ -1253,6 +1326,13 @@ struct SyncTree : public SyncTreeBase
 	virtual CVehicleSteeringNodeData* GetVehicleSteeringData() override
 	{
 		auto [hasNode, node] = GetData<CVehicleSteeringDataNode>();
+
+		return hasNode ? &node->data : nullptr;
+	}
+
+	virtual CBoatGameStateNodeData* GetBoatGameState() override
+	{
+		auto [hasNode, node] = GetData<CBoatGameStateDataNode>();
 
 		return hasNode ? &node->data : nullptr;
 	}
