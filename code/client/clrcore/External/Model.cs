@@ -404,11 +404,14 @@ namespace CitizenFX.Core
 
 		public static bool operator ==(Model left, Model right)
 		{
-			return left.Equals(right);
+  			if (left == null)
+    			return right == null;
+
+  			return left.Equals(right);
 		}
 		public static bool operator !=(Model left, Model right)
 		{
-			return !left.Equals(right);
+			return !(left==right);
 		}
 	}
 }
