@@ -67,5 +67,6 @@
     "#BottomNav_Story": "Storia",
     "#BottomNav_Play": "Gioca",
     "#ServerList_SearchHint": "Cerca o inserisci un indirizzo IP",
-    "#ServerList_SearchHintWeb": "Cerca"
+    "#ServerList_SearchHintWeb": "Cerca",
+    "#Servers_Retry": "Riprova"
 }
