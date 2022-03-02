@@ -1250,7 +1250,11 @@ private:
 public:
 	bool MoveEntityToCandidate(const fx::sync::SyncEntityPtr& entity, const fx::ClientSharedPtr& client);
 
-	void SendPacket(int peer, std::string_view data);
+	void SendPacket(int peer, std::string_view data) override;
+
+	bool IsAsynchronous() override;
+
+	void QueueTask(std::function<void()>&& task) override;
 
 	inline const fwRefContainer<fx::StateBagComponent>& GetStateBags()
 	{

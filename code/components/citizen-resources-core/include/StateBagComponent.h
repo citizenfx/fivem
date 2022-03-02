@@ -17,13 +17,30 @@ namespace fx
 {
 class ResourceManager;
 
-class StateBagGameInterface
+class CRC_EXPORT StateBagGameInterface
 {
 public:
 	//
 	// SendPacket should submit the passed data to the specified peer.
 	//
 	virtual void SendPacket(int peer, std::string_view data) = 0;
+
+	//
+	// IsAsynchronous returns whether or not this game interface requires thread marshaling
+	// before executing user code.
+	//
+	virtual bool IsAsynchronous()
+	{
+		return false;
+	}
+
+	//
+	// QueueTask enqueues a task on the game interface's user code thread.
+	//
+	virtual void QueueTask(std::function<void()>&& task)
+	{
+		task();
+	}
 };
 
 enum class StateBagRole
@@ -32,7 +49,7 @@ enum class StateBagRole
 	Server
 };
 
-class CRC_EXPORT StateBag
+class CRC_EXPORT StateBag : public std::enable_shared_from_this<StateBag>
 {
 public:
 	virtual ~StateBag() = default;

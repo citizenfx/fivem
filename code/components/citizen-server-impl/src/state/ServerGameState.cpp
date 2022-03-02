@@ -3997,6 +3997,16 @@ void ServerGameState::SendPacket(int peer, std::string_view data)
 	}
 }
 
+bool ServerGameState::IsAsynchronous()
+{
+	return true;
+}
+
+void ServerGameState::QueueTask(std::function<void()>&& task)
+{
+	gscomms_execute_callback_on_main_thread(task);
+}
+
 ServerGameState::ArrayHandlerData::ArrayHandlerData()
 {
 #ifdef STATE_FIVE

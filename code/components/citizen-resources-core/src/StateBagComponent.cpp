@@ -9,6 +9,7 @@
 #include <EASTL/fixed_set.h>
 #include <EASTL/fixed_vector.h>
 
+#include <SharedFunction.h>
 #include <state/RlMessageBuffer.h>
 
 namespace fx
@@ -56,6 +57,11 @@ public:
 	bool IsSafePreCreateName(std::string_view id);
 
 	std::shared_ptr<StateBag> PreCreateStateBag(std::string_view id);
+
+	inline StateBagGameInterface* GetGameInterface() const
+	{
+		return m_gameInterface;
+	}
 
 private:
 	StateBagGameInterface* m_gameInterface;
@@ -108,6 +114,9 @@ public:
 	void SendAllInitial(int target);
 
 private:
+	void SetKeyInternal(int source, std::string_view key, std::string_view data, bool replicated);
+
+private:
 	StateBagComponentImpl* m_parent;
 
 	std::string m_id;
@@ -146,10 +155,20 @@ std::optional<std::string> StateBagImpl::GetKey(std::string_view key)
 
 void StateBagImpl::SetKey(int source, std::string_view key, std::string_view data, bool replicated /* = true */)
 {
+	// prepare a potentially async continuation
+	auto thisRef = shared_from_this();
+
+	auto continuation = [thisRef, source, replicated](std::string_view key, std::string_view data)
+	{
+		static_cast<StateBagImpl*>(thisRef.get())->SetKeyInternal(source, key, data, replicated);
+	};
+
 	const auto& sbce = m_parent->OnStateBagChange;
 
 	if (sbce)
 	{
+		// #TODOPERF: this will unconditionally unpack and call into svMain if *any* change handler is reg'd
+		// -> ideally we'd have a separate event so we can poll if there's a match for script filters before doing this
 		msgpack::unpacked up;
 
 		try
@@ -161,12 +180,46 @@ void StateBagImpl::SetKey(int source, std::string_view key, std::string_view dat
 			return;
 		}
 
+		auto gameInterface = m_parent->GetGameInterface();
+
+		if (gameInterface->IsAsynchronous())
+		{
+			const auto& id = m_id;
+			auto parent = m_parent;
+			std::string keyStr{ key };
+			std::string dataStr{ data };
+
+			gameInterface->QueueTask(make_shared_function([
+				parent,
+				source,
+				replicated,
+				id,
+				continuation = std::move(continuation),
+				key = std::move(keyStr),
+				data = std::move(dataStr),
+				up = std::move(up)
+			]()
+			{
+				if (parent->OnStateBagChange(source, id, key, up.get(), replicated))
+				{
+					continuation(key, data);
+				}
+			}));
+
+			return;
+		}
+
 		if (!sbce(source, m_id, key, up.get(), replicated))
 		{
 			return;
 		}
 	}
 
+	continuation(key, data);
+}
+
+void StateBagImpl::SetKeyInternal(int source, std::string_view key, std::string_view data, bool replicated)
+{
 	std::string lastValue;
 
 	{
