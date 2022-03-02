@@ -124,12 +124,6 @@ static CNetGamePlayer* __fastcall GetPlayerByIndex(uint8_t index)
 		return g_origGetPlayerByIndex(index);
 	}
 
-	// temp hack
-	/*if (index == 0)
-	{
-		return g_playerMgr->localPlayer;
-	}*/
-
 	if (index < 0 || index >= 256)
 	{
 		return nullptr;
@@ -138,18 +132,8 @@ static CNetGamePlayer* __fastcall GetPlayerByIndex(uint8_t index)
 	return g_players[index];
 }
 
-#ifdef GTA_FIVE
-static void(*g_origJoinBubble)(void* bubbleMgr, CNetGamePlayer* player);
-
-static void JoinPhysicalPlayerOnHost(void* bubbleMgr, CNetGamePlayer* player)
+static void SetupLocalPlayer(CNetGamePlayer* player)
 {
-	g_origJoinBubble(bubbleMgr, player);
-
-	if (!icgi->OneSyncEnabled)
-	{
-		return;
-	}
-
 	if (player != g_playerMgr->localPlayer)
 	{
 		return;
@@ -177,6 +161,19 @@ static void JoinPhysicalPlayerOnHost(void* bubbleMgr, CNetGamePlayer* player)
 
 	// don't add to g_playerListRemote(!)
 }
+
+#ifdef GTA_FIVE
+static void(*g_origJoinBubble)(void* bubbleMgr, CNetGamePlayer* player);
+
+static void JoinPhysicalPlayerOnHost(void* bubbleMgr, CNetGamePlayer* player)
+{
+	g_origJoinBubble(bubbleMgr, player);
+
+	if (icgi->OneSyncEnabled)
+	{
+		SetupLocalPlayer(player);
+	}
+}
 #elif IS_RDR3
 static void*(*g_origJoinBubble)(void* bubbleMgr, void* scSessionImpl, void* playerDataMsg, void* a4, uint8_t slotIndex);
 
@@ -187,31 +184,8 @@ static void* JoinPhysicalPlayerOnHost(void* bubbleMgr, void* scSessionImpl, void
 		return g_origJoinBubble(bubbleMgr, scSessionImpl, playerDataMsg, a4, slotIndex);
 	}
 
-	console::DPrintf("onesync", "Assigning physical player index for the local player.\n");
-
-	auto clientId = g_netLibrary->GetServerNetID();
-	auto idx = g_netLibrary->GetServerSlotID();
-
-	auto result = g_origJoinBubble(bubbleMgr, scSessionImpl, playerDataMsg, a4, idx);
-
-	auto player = g_playerMgr->localPlayer;
-	player->physicalPlayerIndex() = idx;
-
-	g_players[idx] = player;
-
-	g_playersByNetId[clientId] = player;
-	g_netIdsByPlayer[player] = clientId;
-
-	// add to sequential list
-	g_playerList[g_playerListCount] = player;
-	g_playerListCount++;
-
-	g_playerBags[clientId] = Instance<fx::ResourceManager>::Get()
-		->GetComponent<fx::StateBagComponent>()
-		->RegisterStateBag(fmt::sprintf("player:%d", clientId));
-
-	// don't add to g_playerListRemote(!)
-
+	auto result = g_origJoinBubble(bubbleMgr, scSessionImpl, playerDataMsg, a4, g_netLibrary->GetServerSlotID());
+	SetupLocalPlayer(g_playerMgr->localPlayer);
 	return result;
 }
 #endif
@@ -306,6 +280,36 @@ static hook::cdecl_stub<void(uint8_t)> _initUnkPlayerArray([]()
 
 namespace sync
 {
+	static void SetupRemotePlayer(uint16_t clientId, CNetGamePlayer* player, int idx)
+	{
+		player->physicalPlayerIndex() = idx;
+		g_players[idx] = player;
+
+		g_playersByNetId[clientId] = player;
+		g_netIdsByPlayer[player] = clientId;
+
+		g_playerList[g_playerListCount] = player;
+		g_playerListCount++;
+
+		g_playerListRemote[g_playerListCountRemote] = player;
+		g_playerListCountRemote++;
+
+		// resort player lists
+		std::sort(g_playerList, g_playerList + g_playerListCount, [](CNetGamePlayer* left, CNetGamePlayer* right)
+		{
+			return (left->physicalPlayerIndex() < right->physicalPlayerIndex());
+		});
+
+		std::sort(g_playerListRemote, g_playerListRemote + g_playerListCountRemote, [](CNetGamePlayer* left, CNetGamePlayer* right)
+		{
+			return (left->physicalPlayerIndex() < right->physicalPlayerIndex());
+		});
+
+		g_playerBags[clientId] = Instance<fx::ResourceManager>::Get()
+								 ->GetComponent<fx::StateBagComponent>()
+								 ->RegisterStateBag(fmt::sprintf("player:%d", clientId));
+	}
+
 #ifdef GTA_FIVE
 	template<int Build>
 	void TempHackMakePhysicalPlayerImpl(uint16_t clientId, int idx = -1)
@@ -349,32 +353,7 @@ namespace sync
 			g_physIdx++;
 		}
 
-		player->physicalPlayerIndex() = idx;
-		g_players[idx] = player;
-
-		g_playersByNetId[clientId] = player;
-		g_netIdsByPlayer[player] = clientId;
-
-		g_playerList[g_playerListCount] = player;
-		g_playerListCount++;
-
-		g_playerListRemote[g_playerListCountRemote] = player;
-		g_playerListCountRemote++;
-
-		// resort player lists
-		std::sort(g_playerList, g_playerList + g_playerListCount, [](CNetGamePlayer * left, CNetGamePlayer * right)
-		{
-			return (left->physicalPlayerIndex() < right->physicalPlayerIndex());
-		});
-
-		std::sort(g_playerListRemote, g_playerListRemote + g_playerListCountRemote, [](CNetGamePlayer* left, CNetGamePlayer* right)
-		{
-			return (left->physicalPlayerIndex() < right->physicalPlayerIndex());
-		});
-
-		g_playerBags[clientId] = Instance<fx::ResourceManager>::Get()
-			->GetComponent<fx::StateBagComponent>()
-			->RegisterStateBag(fmt::sprintf("player:%d", clientId));
+		SetupRemotePlayer(clientId, player, idx);
 	}
 
 	void TempHackMakePhysicalPlayer(uint16_t clientId, int idx = -1)
@@ -417,33 +396,7 @@ namespace sync
 		}
 
 		_initUnkPlayerArray(idx);
-
-		player->physicalPlayerIndex() = idx;
-		g_players[idx] = player;
-
-		g_playersByNetId[clientId] = player;
-		g_netIdsByPlayer[player] = clientId;
-
-		g_playerList[g_playerListCount] = player;
-		g_playerListCount++;
-
-		g_playerListRemote[g_playerListCountRemote] = player;
-		g_playerListCountRemote++;
-
-		// resort player lists
-		std::sort(g_playerList, g_playerList + g_playerListCount, [](CNetGamePlayer* left, CNetGamePlayer* right)
-		{
-			return (left->physicalPlayerIndex() < right->physicalPlayerIndex());
-		});
-
-		std::sort(g_playerListRemote, g_playerListRemote + g_playerListCountRemote, [](CNetGamePlayer* left, CNetGamePlayer* right)
-		{
-			return (left->physicalPlayerIndex() < right->physicalPlayerIndex());
-		});
-
-		g_playerBags[clientId] = Instance<fx::ResourceManager>::Get()
-			->GetComponent<fx::StateBagComponent>()
-			->RegisterStateBag(fmt::sprintf("player:%d", clientId));
+		SetupRemotePlayer(clientId, player, idx);
 	}
 #endif
 }
