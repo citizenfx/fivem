@@ -65,5 +65,7 @@
     "#No": "No",
     "#BottomNav_Create": "Crea",
     "#BottomNav_Story": "Storia",
-    "#BottomNav_Play": "Gioca"
+    "#BottomNav_Play": "Gioca",
+    "#ServerList_SearchHint": "Cerca o inserisci un indirizzo IP",
+    "#ServerList_SearchHintWeb": "Cerca"
 }
