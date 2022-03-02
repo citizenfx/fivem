@@ -1128,6 +1128,7 @@ void PlayerManager_End(void* mgr)
 	{
 		g_netIdsByPlayer.clear();
 		g_playersByNetId.clear();
+		g_playerBags.clear();
 
 		for (auto& p : g_players)
 		{
