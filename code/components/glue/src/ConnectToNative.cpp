@@ -84,28 +84,15 @@ static void SaveBuildNumber(uint32_t build)
 	}
 }
 
-void RestartGameToOtherBuild(int build = 0)
+void RestartGameToOtherBuild(int build)
 {
 #if defined(GTA_FIVE) || defined(IS_RDR3)
 	static HostSharedData<CfxState> hostData("CfxInitState");
-	const wchar_t* cli;
-
-	if (!build)
-	{
-		cli = va(L"\"%s\" %s -switchcl \"fivem://connect/%s\"",
-		hostData->gameExePath,
-		xbr::IsGameBuild<2060>() ? L"" : L"-b2060",
-		ToWide(g_lastConn));
-
-		build = (xbr::IsGameBuild<2060>()) ? 1604 : 2060;
-	}
-	else
-	{
-		cli = va(L"\"%s\" %s -switchcl \"fivem://connect/%s\"",
-		hostData->gameExePath,
-		build == 1604 ? L"" : fmt::sprintf(L"-b%d", build),
-		ToWide(g_lastConn));
-	}
+	auto cli = fmt::sprintf(L"\"%s\" %s %s -switchcl \"fivem://connect/%s\"",
+	hostData->gameExePath,
+	build == 1604 ? L"" : fmt::sprintf(L"-b%d", build),
+	IsCL2() ? L"-cl2" : L"",
+	ToWide(g_lastConn));
 
 	uint32_t defaultBuild =
 #ifdef GTA_FIVE
@@ -130,7 +117,7 @@ void RestartGameToOtherBuild(int build = 0)
 
 	PROCESS_INFORMATION pi;
 
-	if (!CreateProcessW(NULL, const_cast<wchar_t*>(cli), NULL, NULL, FALSE, CREATE_BREAKAWAY_FROM_JOB, NULL, NULL, &si, &pi))
+	if (!CreateProcessW(NULL, const_cast<wchar_t*>(cli.c_str()), NULL, NULL, FALSE, CREATE_BREAKAWAY_FROM_JOB, NULL, NULL, &si, &pi))
 	{
 		trace("failed to exit: %d\n", GetLastError());
 	}
@@ -598,13 +585,6 @@ static InitFunction initFunction([] ()
 		netLibrary->OnConnectionErrorRichEvent.Connect([] (const std::string& errorOrig, const std::string& metaData)
 		{
 			std::string error = errorOrig;
-
-#ifdef GTA_FIVE
-			if (strstr(error.c_str(), "This server requires a different game build"))
-			{
-				RestartGameToOtherBuild();
-			}
-#endif
 
 			if ((strstr(error.c_str(), "steam") || strstr(error.c_str(), "Steam")) && !strstr(error.c_str(), ".ms/verify"))
 			{
