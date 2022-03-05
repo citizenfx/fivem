@@ -284,7 +284,8 @@ namespace CitizenFX.Core
 
 		public static void AddDelay(int delay, AsyncCallback callback, string name = null)
 		{
-			ms_delays.Add(Tuple.Create(DateTime.UtcNow.AddMilliseconds(delay), callback, name));
+			lock (ms_delays)
+				ms_delays.Add(Tuple.Create(DateTime.UtcNow.AddMilliseconds(delay), callback, name));
 		}
 
 		public static void TickGlobal()
@@ -312,30 +313,33 @@ namespace CitizenFX.Core
 				using (var scope = new ProfilerScope(() => "c# deferredDelay"))
 				{
 					var now = DateTime.UtcNow;
-					var count = ms_delays.Count;
-
-					for (int delayIdx = 0; delayIdx < count; delayIdx++)
+					lock (ms_delays)
 					{
-						var delay = ms_delays[delayIdx];
+						var count = ms_delays.Count;
 
-						if (now >= delay.Item1)
+						for (int delayIdx = 0; delayIdx < count; delayIdx++)
 						{
-							using (var inScope = new ProfilerScope(() => delay.Item3))
-							{
-								try
-								{
-									BaseScript.CurrentName = delay.Item3;
-									delay.Item2(new DummyAsyncResult());
-								}
-								finally
-								{
-									BaseScript.CurrentName = null;
-								}
-							}
+							var delay = ms_delays[delayIdx];
 
-							ms_delays.RemoveAt(delayIdx);
-							delayIdx--;
-							count--;
+							if (now >= delay.Item1)
+							{
+								using (var inScope = new ProfilerScope(() => delay.Item3))
+								{
+									try
+									{
+										BaseScript.CurrentName = delay.Item3;
+										delay.Item2(new DummyAsyncResult());
+									}
+									finally
+									{
+										BaseScript.CurrentName = null;
+									}
+								}
+
+								ms_delays.RemoveAt(delayIdx);
+								delayIdx--;
+								count--;
+							}
 						}
 					}
 				}
