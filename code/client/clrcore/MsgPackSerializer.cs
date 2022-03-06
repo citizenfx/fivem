@@ -25,7 +25,7 @@ namespace CitizenFX.Core
         }
 
         private static readonly Type[] WriteTypes = new[] {
-            typeof(string), typeof(DateTime), typeof(Enum), 
+            typeof(string), typeof(DateTime),
             typeof(decimal), typeof(Guid),
         };
 
@@ -74,6 +74,13 @@ namespace CitizenFX.Core
             {
                 packer.Pack(obj);
             }
+			else if (type.IsEnum)
+			{
+				var eTypeInfo = type.GetTypeInfo();
+				var eValueType = eTypeInfo.DeclaredFields.First(x => x.Name == "value__").FieldType;
+				var eAsNumber = Convert.ChangeType(obj, eValueType);
+				packer.Pack(eAsNumber);
+			}
 			else if (obj is byte[] bytes)
 			{
 				packer.Pack(bytes);

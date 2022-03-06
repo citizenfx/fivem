@@ -140,6 +140,10 @@ namespace CitizenFX.Core
 				{
 					return value;
 				}
+				else if (type.IsEnum)
+				{
+					return Enum.ToObject(type, value);
+				}
 				else if (value is IConvertible)
 				{
 					return Convert.ChangeType(value, type);
