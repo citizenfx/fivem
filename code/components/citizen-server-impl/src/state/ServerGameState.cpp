@@ -5086,6 +5086,70 @@ struct CNetworkPtFXEvent
 
 	MSGPACK_DEFINE_MAP(effectHash, assetHash, posX, posY, posZ, offsetX, offsetY, offsetZ, rotX, rotY, rotZ, scale, axisBitset, isOnEntity, entityNetId, f109, f92, f110, f105, f106, f107, f111, f100);
 };
+
+/*NETEV playSoundEvent SERVER
+/#*
+ * Triggered when a player starts playing a sound
+ *
+ * @param sender - The ID of the player that triggered the event.
+ * @param data - The event data.
+ #/
+declare function playSoundEvent(sender: number, data: {
+	isOnEntity: boolean, 
+	audioHash: number, 
+	audioRefHash: number,
+	soundId: number, 
+	unk1: boolean, 
+	entityNetId: number, 
+	posX: number, 
+	posY: number, 
+	posZ: number,
+}): void;
+*/
+struct CNetworkPlaySoundEvent
+{
+	void Parse(rl::MessageBuffer& buffer)
+	{
+		isOnEntity = buffer.Read<uint8_t>(1);
+
+		if (isOnEntity)
+		{
+			entityNetId = buffer.Read<uint16_t>(16);
+		}
+		else
+		{
+			posX = buffer.ReadSignedFloat(19, 27648.0f);
+			posY = buffer.ReadSignedFloat(19, 27648.0f);
+			posZ = buffer.ReadFloat(19, 4416.0f) - 1700.0f;
+		}
+
+		unk1 = buffer.Read<uint8_t>(1);
+		audioRefHash = buffer.Read<uint32_t>(32);
+		audioHash = buffer.Read<uint32_t>(32);
+		soundId = buffer.Read<uint8_t>(8);
+	}
+
+	inline std::string GetName()
+	{
+		return "playSoundEvent";
+	}
+
+	bool isOnEntity;
+	
+	uint32_t audioHash;
+	uint32_t audioRefHash;
+	uint8_t soundId;
+	
+	bool unk1;
+	
+	uint16_t entityNetId;
+	
+	float posX;
+	float posY;
+	float posZ;
+
+	MSGPACK_DEFINE_MAP(isOnEntity, audioHash, audioRefHash, soundId, unk1, entityNetId, posX, posY, posZ);
+};
 #endif
 
 template<typename TEvent>
@@ -5379,6 +5443,7 @@ static std::function<bool()> GetEventHandler(fx::ServerInstanceBase* instance, c
 
 	switch(eventType)
 	{
+		case NETWORK_PLAY_SOUND_EVENT: return GetHandler<CNetworkPlaySoundEvent>(instance, client, std::move(buffer));
 		case WEAPON_DAMAGE_EVENT: return GetHandler<CWeaponDamageEvent>(instance, client, std::move(buffer));
 		case RESPAWN_PLAYER_PED_EVENT: return GetHandler<CRespawnPlayerPedEvent>(instance, client, std::move(buffer));
 		case GIVE_WEAPON_EVENT: return GetHandler<CGiveWeaponEvent>(instance, client, std::move(buffer));
