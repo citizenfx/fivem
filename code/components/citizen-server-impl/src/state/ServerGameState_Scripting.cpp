@@ -1678,6 +1678,20 @@ static void Init()
 
 		return steeringData ? steeringData->steeringAngle * (180.0f / pi) : 0.0f;
 	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_COLLISION_DISABLED", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto scriptGameState = entity->syncTree->GetEntityScriptGameState();
+
+		return scriptGameState ? !scriptGameState->usesCollision : false;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_ENTITY_POSITION_FROZEN", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto scriptGameState = entity->syncTree->GetEntityScriptGameState();
+
+		return scriptGameState ? scriptGameState->isFixed : false;
+	}));
 }
 
 static InitFunction initFunction([]()

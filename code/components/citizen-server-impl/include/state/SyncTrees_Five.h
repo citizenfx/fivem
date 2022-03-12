@@ -428,7 +428,21 @@ struct CVehicleGameStateDataNode
 	}
 };
 
-struct CEntityScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CEntityScriptGameStateDataNode
+{
+	CEntityScriptGameStateNodeData data;
+
+	bool Parse(SyncParseState& state)
+	{
+		data.usesCollision = state.buffer.ReadBit();
+		data.isFixed = state.buffer.ReadBit();
+
+		bool completelyDisabledCollision = state.buffer.ReadBit();
+
+		return true;
+	}
+};
+
 struct CPhysicalScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CVehicleScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 
@@ -3302,6 +3316,13 @@ struct SyncTree : public SyncTreeBase
 	virtual CVehicleSteeringNodeData* GetVehicleSteeringData() override
 	{
 		auto [hasNode, node] = GetData<CVehicleSteeringDataNode>();
+
+		return hasNode ? &node->data : nullptr;
+	}
+
+	virtual CEntityScriptGameStateNodeData* GetEntityScriptGameState() override
+	{
+		auto [hasNode, node] = GetData<CEntityScriptGameStateDataNode>();
 
 		return hasNode ? &node->data : nullptr;
 	}

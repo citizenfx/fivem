@@ -1,6 +1,6 @@
 ---
 ns: CFX
-apiset: client
+apiset: shared
 ---
 ## IS_ENTITY_POSITION_FROZEN
 
