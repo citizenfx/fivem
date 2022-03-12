@@ -458,7 +458,7 @@
 						</Item>
 						<Item>
 							<PoolName>TxdStore</PoolName>
-							<PoolSize value="85500"/>
+							<PoolSize value="105500"/>
 						</Item>
 						<Item>
 							<PoolName>CNetObjVehicle</PoolName>
