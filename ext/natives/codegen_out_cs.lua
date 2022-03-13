@@ -207,9 +207,14 @@ end
 local function parseArgument(argument, native)
 	local argType
 
-	-- Check if the cs_type annotation references a codegen type. Note, pointer
-	-- arguments must use the "${Type}Ptr" naming convention.
+	-- Check if the cs_type annotation references a codegen type.
 	local cs_type = (argument.annotations and argument.annotations['cs_type']) or nil
+
+	if cs_type then
+		-- doc authors may assume `cs_type(T*)` works, so we try to correct them here
+		cs_type = cs_type:gsub("%*$", "Ptr")
+	end
+
 	if cs_type and codeEnvironment[cs_type] then
 		argument = codeEnvironment[cs_type](argument.name)
 	end
