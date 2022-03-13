@@ -37,6 +37,14 @@ static bool ValidateArg(void* arg)
 	return true;
 }
 
+static void NullifyAny(void*& arg)
+{
+	if (!storyMode)
+	{
+		arg = nullptr;
+	}
+}
+
 #include "PASGen.h"
 
 void PointerArgumentSafety()

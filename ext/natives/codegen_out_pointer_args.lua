@@ -18,7 +18,7 @@ for _, v in pairs(_natives) do
         for _, a in ipairs(v.arguments) do
             -- 'Any*' can't be guaranteed-safe
             if a.pointer and a.type.name == 'Any' and not v.name:match('^_?GET_') then -- hackaround to allow GET_ dataview prevalent-stuff
-                avs = avs .. ('\tcxt->GetArgument<void*>(%d) = nullptr; // Any* %s\n'):format(i, a.name)
+                avs = avs .. ('\tNullifyAny(cxt->GetArgument<void*>(%d)); // Any* %s\n'):format(i, a.name)
             end
 
             if a.pointer or a.type.name == 'Any' then
