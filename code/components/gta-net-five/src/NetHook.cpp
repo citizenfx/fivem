@@ -1559,8 +1559,8 @@ static HookFunction hookFunction([] ()
 
 		onlineAddressFunc = hook::get_call(netAddressFunc + 0x2D);
 		
-		char* netUnkFunc = hook::get_pattern<char>("48 8D 0D ? ? ? ? 48 8D 14 03");
-		bool* didNetAddressBool = hook::get_address<bool*>(netUnkFunc + 0x19);
+		char* rlCreateUUID = hook::get_pattern<char>("48 8D 0D ? ? ? ? 48 8D 14 03", -0x31);
+		bool* didNetAddressBool = hook::get_address<bool*>(rlCreateUUID + 0x48, 2, 7);
 		*didNetAddressBool = true;
 
 		hook::call(sessionKeyAddress, GetOurSessionKeyWrap);
