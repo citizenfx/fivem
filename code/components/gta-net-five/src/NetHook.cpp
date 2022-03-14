@@ -1444,7 +1444,7 @@ static HookFunction hookFunction([] ()
 	hook::call(hook::get_pattern("48 83 F8 04 75 ? 40 88", 6), ExitCleanly);
 
 	// no netgame jumpouts in alt-f4
-	hook::return_function(hook::get_call(hook::get_pattern("40 38 35 ? ? ? ? 74 0A 48 8B CF", 12)));
+	hook::put<uint8_t>(hook::get_pattern("40 38 35 ? ? ? ? 74 0A 48 8B CF", 7), 0xEB);
 
 	// fix 'restart' handling to not ask MTL to restart, but relaunch 'ourselves' (eg on settings change)
 	hook::put<uint8_t>(hook::get_pattern("48 85 C9 74 15 40 38 31 74", 3), 0xEB);
