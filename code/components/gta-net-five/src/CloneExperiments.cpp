@@ -272,9 +272,14 @@ static hook::cdecl_stub<void(void*)> _pCtor([]()
 });
 
 #ifdef IS_RDR3
-static hook::cdecl_stub<void(uint8_t)> _initUnkPlayerArray([]()
+static hook::cdecl_stub<void(uint8_t)> _addCachedPlayerArrayEntry([]()
 {
 	return hook::get_call(hook::get_pattern("48 8B CB E8 ? ? ? ? 8A 4B 19 48 83 C4", 0x10));
+});
+
+static hook::cdecl_stub<void(uint8_t)> _removeCachedPlayerArrayEntry([]()
+{
+	return hook::get_call(hook::get_pattern("40 8A CD E8 ? ? ? ? 48 8B 6C 24 38", 3));
 });
 #endif
 
@@ -395,7 +400,7 @@ namespace sync
 			g_physIdx++;
 		}
 
-		_initUnkPlayerArray(idx);
+		_addCachedPlayerArrayEntry(idx);
 		SetupRemotePlayer(clientId, player, idx);
 	}
 #endif
@@ -519,6 +524,10 @@ void HandleClientDrop(const NetLibraryClientInfo& info)
 		// TEMP: properly handle order so that we don't have to fake out the game
 		g_playersByNetId[info.netId] = nullptr;
 		g_netIdsByPlayer[player] = -1;
+
+#ifdef IS_RDR3
+		_removeCachedPlayerArrayEntry(info.slotId);
+#endif
 
 		for (int i = 0; i < g_playerListCount; i++)
 		{
