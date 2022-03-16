@@ -1485,7 +1485,7 @@
 				</Item>
                 <Item>
 					<PoolName>PortalInst</PoolName>
-					<PoolSize value="300" />
+					<PoolSize value="600" />
 				</Item>
 				<Item>
                   <PoolName>PoseMatcherStore</PoolName>
