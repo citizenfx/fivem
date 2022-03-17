@@ -1896,6 +1896,35 @@ static HookFunction hookFunction([]()
 	}
 #endif
 
+	// unsafe CNetGamePlayer player ped getter call patch
+#ifdef IS_RDR3
+	static struct : public jitasm::Frontend
+	{
+		virtual void InternalMain() override
+		{
+			movzx(ecx, dl);
+			mov(rax, (uintptr_t)&GetNetPlayerPedSafe);
+			jmp(rax);
+		}
+
+		static void* GetNetPlayerPedSafe(uint8_t index)
+		{
+			if (auto player = GetPlayerByIndex(index))
+			{
+				return getPlayerPedForNetPlayer(player);
+			}
+
+			return nullptr;
+		}
+	} playerPedGetterStub;
+
+	{
+		auto location = hook::get_pattern("48 8B 05 ? ? ? ? 0F B6 CA 48 8B 8C C8 ? ? ? ? E8");
+		hook::nop(location, 23);
+		hook::call(location, playerPedGetterStub.GetCode());
+	}
+#endif
+
 	// clobber nodes for all players, not just when connected to netplayermgr
 	// not working, maybe?
 #ifdef GTA_FIVE
