@@ -20,6 +20,8 @@
 #include "LuaScriptNatives.h"
 #include "LuaScriptRuntime.h"
 
+#include <shared_mutex>
+
 extern LUA_INTERNAL_LINKAGE
 {
 #include <lobject.h>
@@ -806,9 +808,24 @@ LUA_SCRIPT_LINKAGE int Lua_InvokeNative2(lua_State* L)
 
 #pragma region Lua_LoadNative
 
+// mutex may not be needed, but better safe than sorry!
+static std::shared_mutex nonExistentNativesMutex;
+static std::unordered_set<uint32_t> nonExistentNatives;
+
 LUA_SCRIPT_LINKAGE int Lua_LoadNative(lua_State* L)
 {
 	const char* fn = luaL_checkstring(L, 1);
+	auto fnHash = HashRageString(fn);
+
+	{
+		std::shared_lock _(nonExistentNativesMutex);
+
+		if (nonExistentNatives.find(fnHash) != nonExistentNatives.end())
+		{
+			lua_pushnil(L);
+			return 1;
+		}
+	}
 
 	auto& runtime = fx::LuaScriptRuntime::GetCurrent();
 
@@ -837,10 +854,18 @@ LUA_SCRIPT_LINKAGE int Lua_LoadNative(lua_State* L)
 
 		fx::OMPtr<fxIStream> stream;
 
-		result_t hr = runtime->GetScriptHost()->OpenSystemFile(const_cast<char*>(va("%s0x%08x.lua", runtime->GetNativesDir(), HashRageString(fn))), stream.GetAddressOf());
+		result_t hr = runtime->GetScriptHost()->OpenSystemFile(const_cast<char*>(va("%s0x%08x.lua", runtime->GetNativesDir(), fnHash)), stream.GetAddressOf());
+
+		auto invalid = [fnHash]()
+		{
+			std::unique_lock _(nonExistentNativesMutex);
+			nonExistentNatives.insert(fnHash);
+		};
 
 		if (!FX_SUCCEEDED(hr))
 		{
+			invalid();
+
 			lua_pushnil(L);
 			return 1;
 		}
@@ -850,6 +875,8 @@ LUA_SCRIPT_LINKAGE int Lua_LoadNative(lua_State* L)
 
 		if (FX_FAILED(hr = stream->GetLength(&length)))
 		{
+			invalid();
+
 			lua_pushnil(L);
 			return 1;
 		}
@@ -857,6 +884,8 @@ LUA_SCRIPT_LINKAGE int Lua_LoadNative(lua_State* L)
 		std::vector<char> fileData(length + 1);
 		if (FX_FAILED(hr = stream->Read(&fileData[0], length, nullptr)))
 		{
+			invalid();
+
 			lua_pushnil(L);
 			return 1;
 		}
