@@ -421,6 +421,9 @@ if (!$DontBuild -and $IsServer) {
 	Copy-Item -Force -Recurse $WorkDir\data\server_windows\* $WorkDir\out\server\
 
 	Remove-Item -Force $WorkDir\out\server\citizen\.gitignore
+
+	# breaks downlevel OS compat
+	Remove-Item -Force $WorkDir\out\server\dbghelp.dll
 	
 	# old filenames
 	Remove-Item -Force $WorkDir\out\server\citizen\system_resources\monitor\starter.js
