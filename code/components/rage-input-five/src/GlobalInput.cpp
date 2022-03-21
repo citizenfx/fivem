@@ -4,6 +4,7 @@
 #include <StdInc.h>
 #include <GlobalInput.h>
 #include <CL2LaunchMode.h>
+#include <USKeyboardMapping.h>
 
 #include <hidsdi.h>
 #include <hidpi.h>
@@ -142,12 +143,6 @@ LRESULT GlobalInputHandlerLocal::WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam
 	return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
-static auto GetUSKeyboard()
-{
-	static HKL usKeyboard = LoadKeyboardLayoutW(L"00000409", 0);
-	return usKeyboard;
-}
-
 static uint16_t MapGameE1(const uint16_t virtualKey)
 {
 	uint16_t extFlag = 0;
@@ -190,7 +185,7 @@ static uint16_t MapGameKey(const uint16_t virtualKey, const uint16_t scanCode, b
 		return VK_PAUSE;
 	}
 
-	auto newVk = MapVirtualKeyExW(scanCode, MAPVK_VSC_TO_VK, GetUSKeyboard());
+	auto newVk = MapVirtualKeyInternal(scanCode, MAPVK_VSC_TO_VK);
 
 	switch (newVk)
 	{
