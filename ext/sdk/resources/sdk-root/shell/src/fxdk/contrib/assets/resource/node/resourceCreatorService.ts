@@ -29,41 +29,39 @@ export class ResourceCreatorService {
   protected readonly projectAccess: ProjectAccess;
 
   @handlesClientEvent(ResourceApi.Endpoints.create)
-  async createAsset(request: ResourceApi.CreateRequest): Promise<boolean> {
-    this.logService.log('Creating resource asset', request);
+  async createAsset(request: ResourceApi.CreateRequest) {
+    await this.projectAccess.useInstance('create resource asset', async (project) => {
+      this.logService.log('Creating resource asset', request);
 
-    const resourcePath = this.fsService.joinPath(request.basePath, request.name);
+      const resourcePath = this.fsService.joinPath(request.basePath, request.name);
 
-    await this.fsService.mkdirp(resourcePath);
+      await this.fsService.mkdirp(resourcePath);
 
-    // tap manifest file so fxdk knows it is a resource
-    await this.fsService.writeFile(this.fsService.joinPath(resourcePath, 'fxmanifest.lua'), '');
+      // tap manifest file so project explorer know it's a resource
+      await this.fsService.writeFile(this.fsService.joinPath(resourcePath, 'fxmanifest.lua'), '');
 
-    this.projectAccess.withInstance((project) => {
       project.setAssetConfig(resourcePath, {
         enabled: true,
         restartOnChange: true,
       } as ResourceAssetConfig);
+
+      const resourceManifest = new ResourceManifest();
+
+      if (request.resourceTemplateId) {
+        const scaffoldingArgs: ResourceTemplateScaffolderArgs = {
+          manifest: resourceManifest,
+          resourceName: request.name,
+          resourcePath,
+          resourceTemplateId: request.resourceTemplateId,
+        };
+
+        await this.scaffold(scaffoldingArgs);
+      }
+
+      await this.saveResourceManifest(resourcePath, resourceManifest);
+
+      this.logService.log('Finished creating asset', request);
     });
-
-    const resourceManifest = new ResourceManifest();
-
-    if (request.resourceTemplateId) {
-      const scaffoldingArgs: ResourceTemplateScaffolderArgs = {
-        manifest: resourceManifest,
-        resourceName: request.name,
-        resourcePath,
-        resourceTemplateId: request.resourceTemplateId,
-      };
-
-      await this.scaffold(scaffoldingArgs);
-    }
-
-    await this.saveResourceManifest(resourcePath, resourceManifest);
-
-    this.logService.log('Finished creating asset', request);
-
-    return true;
   }
 
   private async saveResourceManifest(resourcePath: string, resourceManifest: ResourceManifest) {

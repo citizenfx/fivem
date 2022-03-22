@@ -122,10 +122,7 @@ export class ProjectManager implements ApiContribution {
     this.projectLock = true;
 
     try {
-      if (this.project) {
-        await this.project.unload();
-        this.projectAccess.setInstance(null);
-      }
+      await this.unloadCurrentProject();
 
       this.project = await this.createProjectInstance().open(projectPath);
 
@@ -177,10 +174,7 @@ export class ProjectManager implements ApiContribution {
     }
 
     try {
-      if (this.project) {
-        await this.project.unload();
-        this.projectAccess.setInstance(null);
-      }
+      await this.unloadCurrentProject();
 
       this.project = await this.createProjectInstance().create(request);
 
@@ -190,6 +184,14 @@ export class ProjectManager implements ApiContribution {
       throw e;
     } finally {
       this.projectLock = false;
+    }
+  }
+
+  private async unloadCurrentProject() {
+    if (this.project) {
+      await this.projectAccess.getNoUsagePromise();
+      await this.project.unload();
+      this.projectAccess.setInstance(null);
     }
   }
 

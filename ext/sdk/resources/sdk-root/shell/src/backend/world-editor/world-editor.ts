@@ -27,7 +27,7 @@ import { ChangeAwareContainer } from 'backend/change-aware-container';
 import { FsThrottledWriter } from 'backend/fs/fs-throttled-writer';
 import { ApiClient } from 'backend/api/api-client';
 import { omit } from 'utils/omit';
-import { ProjectAccess } from 'fxdk/project/node/project-access';
+import { ProjectAccess, SilentUsageReason } from 'fxdk/project/node/project-access';
 import { WorldEditorMapUpgrader } from './world-editor-map-upgrader';
 import { WEApi, WEApiMethod, WEApiMethodRequest } from './world-editor-game-api';
 import { dispose, IDisposable } from 'fxdk/base/disposable';
@@ -115,7 +115,9 @@ export class WorldEditor implements ApiContribution {
     await this.mapWriter.flush();
 
     // Ask asset to build itself
-    await this.projectAccess.withInstance((project) => project.getAsset(this.mapPath)?.build?.());
+    await this.projectAccess.useInstance(SilentUsageReason('rebuild map after WorldEditor close'), (project) => {
+      return project.getAsset(this.mapPath)?.build?.();
+    });
   }
 
   @handlesClientEvent(worldEditorApi.setCam)

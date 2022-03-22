@@ -5,8 +5,9 @@ import { LogService } from "backend/logger/log-service";
 import { NotificationService } from "backend/notification/notification-service";
 import { DEFAULT_WORLD_EDITOR_MAP } from "backend/world-editor/world-editor-constants";
 import { WEMap } from "backend/world-editor/world-editor-types";
+import { ProjectAccess } from "fxdk/project/node/project-access";
 import { inject, injectable } from "inversify";
-import { FXWORLD_FILE_EXT } from "../common/fxworld-types";
+import { FXWorldAssetConfig, FXWORLD_FILE_EXT } from "../common/fxworld-types";
 import { FXWorldApi } from "../common/fxworld.api";
 
 @injectable()
@@ -23,22 +24,28 @@ export class FXWorldCreatorService {
   @inject(ContainerAccess)
   protected readonly containerAccess: ContainerAccess;
 
+  @inject(ProjectAccess)
+  protected readonly projectAccess: ProjectAccess;
+
   @handlesClientEvent(FXWorldApi.Endpoints.create)
-  async create(request: FXWorldApi.CreateRequest): Promise<boolean> {
-    this.logService.log('Creating map asset', request);
+  async create(request: FXWorldApi.CreateRequest) {
+    await this.projectAccess.useInstance('create map asset', async (project) => {
+      this.logService.log('Creating map asset', request);
 
-    const mapFilePath = this.fsService.joinPath(request.basePath, request.name + FXWORLD_FILE_EXT);
+      const mapFilePath = this.fsService.joinPath(request.basePath, request.name + FXWORLD_FILE_EXT);
 
-    if (await this.fsService.statSafe(mapFilePath)) {
-      this.notificationService.error(`Unable to create map ${request.name} as file with the same name already exists`);
+      if (await this.fsService.statSafe(mapFilePath)) {
+        this.notificationService.error(`Unable to create map ${request.name} as file with the same name already exists`);
+        return;
+      }
 
-      return false;
-    }
+      project.setAssetConfig(mapFilePath, {
+        enabled: true,
+      } as FXWorldAssetConfig);
 
-    const mapContent: WEMap = DEFAULT_WORLD_EDITOR_MAP;
+      const mapContent: WEMap = DEFAULT_WORLD_EDITOR_MAP;
 
-    await this.fsService.writeFileJson(mapFilePath, mapContent, false);
-
-    return true;
+      await this.fsService.writeFileJson(mapFilePath, mapContent, false);
+    });
   }
 }
