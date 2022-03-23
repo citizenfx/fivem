@@ -289,6 +289,8 @@ struct CVehicleAppearanceNodeData
 	{
 		memset(plate, 0, sizeof(plate));
 	}
+
+	int tintIndex;
 };
 
 struct CVehicleHealthNodeData
@@ -436,6 +438,13 @@ struct CTrainGameStateDataNodeData
 	int engineCarriage;
 
 	int carriageIndex;
+
+	bool isWhistling;
+	bool isBellRinging;
+	bool isHalted;
+
+	int cruiseSpeed;
+	int maxSpeed;
 };
 
 struct CPlayerGameStateNodeData
@@ -477,6 +486,14 @@ struct CHeliHealthNodeData
 struct CVehicleSteeringNodeData
 {
 	float steeringAngle;
+};
+
+struct CDoorCreationNodeData
+{
+	float posX;
+	float posY;
+	float posZ;
+	float openRatio;
 };
 
 enum ePopType
@@ -562,6 +579,8 @@ public:
 	virtual CHeliHealthNodeData* GetHeliHealth() = 0;
 
 	virtual CVehicleSteeringNodeData* GetVehicleSteeringData() = 0;
+
+	virtual CDoorCreationNodeData* GetDoorCreationData() = 0;
 
 	virtual void CalculatePosition() = 0;
 
