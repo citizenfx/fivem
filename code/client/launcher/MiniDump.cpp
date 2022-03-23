@@ -803,6 +803,8 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 				auto process_handle = info->process_handle();
 				DWORD exceptionCode = 0;
 
+				bool isAccessDeath = false;
+
 				json symCrash;
 
 				{
@@ -846,6 +848,8 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 									}
 								}
 
+								HMODULE baseModule = nullptr;
+
 								bool moduleFound = false;
 								DWORD processLen = 0;
 								if (EnumProcessModules(process_handle, nullptr, 0, &processLen))
@@ -854,6 +858,11 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 									if (EnumProcessModules(process_handle, buffer.data(), buffer.size() * sizeof(HMODULE), &processLen))
 									{
+										if (processLen > 0)
+										{
+											baseModule = buffer[0];
+										}
+
 										for (HMODULE module : buffer)
 										{
 											const wchar_t* moduleBaseString = L"";
@@ -971,6 +980,19 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 												}
 											}
 										}
+									}
+								}
+
+								if (baseModule)
+								{
+									uintptr_t moduleBase = (uintptr_t)baseModule;
+
+									if (ex.ExceptionCode == STATUS_ACCESS_VIOLATION &&
+										ex.ExceptionInformation[0] == EXCEPTION_EXECUTE_FAULT &&
+										(uintptr_t)ex.ExceptionAddress >= (moduleBase + 0x1000) &&
+										(uintptr_t)ex.ExceptionAddress < (moduleBase + 0x2000))
+									{
+										isAccessDeath = true;
 									}
 								}
 
@@ -1247,6 +1269,13 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 					content += fmt::sprintf(gettext(L"\nStack trace:\n%s"), ToWide(stackTrace));
 				}
 
+				if (isAccessDeath)
+				{
+					windowTitle = L"Fatal Error";
+					mainInstruction = L"Early-exit trap";
+					content = fmt::sprintf(L"A problem while running %s has tripped an early-exit trap.\n\nIf asking for support, please provide a readable 'report ID' from the expanded information below.", PRODUCT_NAME);
+				}
+
 				if (shouldTerminate)
 				{
 					std::thread([csignature]()
@@ -1416,13 +1445,18 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 				};
 
 				// make the disconnect message less confusing
-				if (isDisconnectMessage)
+				if (isDisconnectMessage || isAccessDeath)
 				{
 					taskDialogConfig.dwFlags &= ~(TDF_USE_COMMAND_LINKS | TDF_EXPANDED_BY_DEFAULT);
 					taskDialogConfig.pszMainIcon = TD_WARNING_ICON;
 
 					saveStr = gettext(L"Save information");
 					buttons[0].pszButtonText = saveStr.c_str();
+
+					if (isAccessDeath)
+					{
+						taskDialogConfig.dwFlags |= TDF_EXPANDED_BY_DEFAULT;
+					}
 				}
 
 				OverloadCrashData(&taskDialogConfig);
