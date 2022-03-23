@@ -18,3 +18,4 @@ static UINT MapScanCodeToKey(UINT input, bool isEx, PKBDTABLES kbdTables);
 static UINT MapKeyToWchar(UINT input, PKBDTABLES kbdTables);
 static UINT InternalMapVirtualKeyEx(UINT input, UINT type, PKBDTABLES kbdTables);
 UINT MapVirtualKeyInternal(UINT input, UINT type);
+uint16_t MapGameKey(const uint16_t virtualKey, const uint16_t scanCode, bool isE0);
