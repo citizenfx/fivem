@@ -14,6 +14,7 @@
 #include "StdInc.h"
 
 #include <deque>
+#include <unordered_set>
 
 #include <fxScripting.h>
 
@@ -229,6 +230,8 @@ private:
 
 	std::deque<lua_State*> m_runningThreads;
 
+	std::unordered_set<uint32_t> m_nonExistentNatives;
+
 public:
 	LuaScriptRuntime()
 	{
@@ -279,6 +282,11 @@ public:
 	LUA_INLINE auto GetBoundaryRoutine()
 	{
 		return m_boundaryRoutine;
+	}
+
+	LUA_INLINE auto& GetNonExistentNativesList()
+	{
+		return m_nonExistentNatives;
 	}
 
 	LUA_INLINE void SetBoundaryRoutine(int routine)
