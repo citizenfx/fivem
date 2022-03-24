@@ -14,6 +14,7 @@
 
 #include <CfxLocale.h>
 
+#include <ResourceManager.h>
 #include "ResourceMonitor.h"
 
 DLL_IMPORT ImFont* GetConsoleFontTiny();
@@ -339,7 +340,8 @@ static HookFunction hookFunctionGameTime([]()
 
 static InitFunction initFunction([]()
 {
-	static std::unique_ptr<fx::ResourceMonitor> resourceMonitor;
+	static std::shared_mutex gResourceMonitorMutex;
+	static std::shared_ptr<fx::ResourceMonitor> gResourceMonitor;
 
 	static bool resourceTimeWarningShown;
 	static std::chrono::microseconds warningLastShown;
@@ -349,6 +351,39 @@ static InitFunction initFunction([]()
 	static bool taskMgrEnabled;
 
 	static ConVar<bool> taskMgrVar("resmon", ConVar_Archive, false, &taskMgrEnabled);
+
+	fx::ResourceManager::OnInitializeInstance.Connect([](fx::ResourceManager* manager)
+	{
+		manager->OnTick.Connect([]()
+		{
+			bool hadMonitor = false;
+
+			{
+				std::shared_lock _(gResourceMonitorMutex);
+				hadMonitor = gResourceMonitor.get() != nullptr;
+			}
+
+			// #TODO: SDK should explicitly notify the resource monitor is opened
+			if (taskMgrEnabled || launch::IsSDKGuest())
+			{
+				if (!hadMonitor)
+				{
+					std::unique_lock _(gResourceMonitorMutex);
+					gResourceMonitor = std::make_shared<fx::ResourceMonitor>();
+
+					gResourceMonitor->SetShouldGetMemory(true);
+				}
+			}
+			else
+			{
+				if (hadMonitor)
+				{
+					std::unique_lock _(gResourceMonitorMutex);
+					gResourceMonitor = {};
+				}
+			}
+		}, INT32_MIN);
+	});
 
 	fx::ResourceMonitor::OnWarning.Connect([](const std::string& warningText)
 	{
@@ -430,22 +465,11 @@ static InitFunction initFunction([]()
 		}
 #endif
 
-		// #TODO: SDK should explicitly notify the resource monitor is opened
-		if (taskMgrEnabled || launch::IsSDKGuest())
-		{
-			if (!resourceMonitor)
-			{
-				resourceMonitor = std::make_unique<fx::ResourceMonitor>();
+		std::shared_ptr<fx::ResourceMonitor> resourceMonitor;
 
-				resourceMonitor->SetShouldGetMemory(true);
-			}
-		}
-		else
 		{
-			if (resourceMonitor)
-			{
-				resourceMonitor = {};
-			}
+			std::shared_lock _(gResourceMonitorMutex);
+			resourceMonitor = gResourceMonitor;
 		}
 
 #ifndef IS_FXSERVER
