@@ -213,6 +213,30 @@ struct FiveMConsoleBase
 
 extern float g_menuHeight;
 
+#ifndef IS_FXSERVER
+#include <HostSharedData.h>
+#include <../launcher/TickCountData.h>
+
+#include <shellapi.h>
+
+static void OpenLogFile()
+{
+	static TickCountData initTickCount = ([]()
+	{
+		HostSharedData<TickCountData> initTickCountRef("CFX_SharedTickCount");
+		return *initTickCountRef;
+	})();
+
+	static fwPlatformString dateStamp = fmt::sprintf(L"%04d-%02d-%02dT%02d%02d%02d", initTickCount.initTime.wYear, initTickCount.initTime.wMonth,
+	initTickCount.initTime.wDay, initTickCount.initTime.wHour, initTickCount.initTime.wMinute, initTickCount.initTime.wSecond);
+
+	auto fileName = MakeRelativeCitPath(fmt::sprintf(L"logs/CitizenFX_log_%s.log", dateStamp));
+
+	ShellExecuteW(NULL, L"open", fileName.c_str(), NULL, NULL, SW_SHOWNORMAL);
+}
+
+#endif
+
 struct CfxBigConsole : FiveMConsoleBase
 {
 	char InputBuf[1024];
@@ -345,8 +369,14 @@ struct CfxBigConsole : FiveMConsoleBase
 		ImGui::Separator();
 
 		// Command-line
-		ImGui::PushItemWidth(-1.0f);
-		if (ImGui::InputText("_", InputBuf, _countof(InputBuf), ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CallbackCompletion | ImGuiInputTextFlags_CallbackHistory, &TextEditCallbackStub, (void*)this))
+		float w = 0.0f;
+		
+#ifndef IS_FXSERVER
+		w = (ImGui::CalcTextSize("Open log").x + (ImGui::GetStyle().ItemSpacing.x * 4));
+#endif
+
+		ImGui::PushItemWidth(ImGui::GetWindowWidth() - w);
+		if (ImGui::InputText("##_Input", InputBuf, _countof(InputBuf), ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CallbackCompletion | ImGuiInputTextFlags_CallbackHistory, &TextEditCallbackStub, (void*)this))
 		{
 			char* input_end = InputBuf + strlen(InputBuf);
 			while (input_end > InputBuf && input_end[-1] == ' ') input_end--; *input_end = 0;
@@ -359,6 +389,23 @@ struct CfxBigConsole : FiveMConsoleBase
 		// Demonstrate keeping auto focus on the input box
 		if (ImGui::IsItemHovered() || (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && !ImGui::IsAnyItemActive() && !ImGui::IsMouseClicked(0)))
 			ImGui::SetKeyboardFocusHere(-1); // Auto focus previous widget
+
+#ifndef IS_FXSERVER
+		ImGui::SameLine();
+
+		static bool shouldOpenLog;
+
+		if (shouldOpenLog)
+		{
+			OpenLogFile();
+			shouldOpenLog = false;
+		}
+
+		if (ImGui::Button("Open log"))
+		{
+			shouldOpenLog = true;
+		}
+#endif
 
 		ImGui::End();
 
