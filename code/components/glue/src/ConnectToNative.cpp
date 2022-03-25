@@ -64,6 +64,9 @@ static std::string g_connectNonce;
 extern bool XBR_InterceptCardResponse(const nlohmann::json& j);
 extern bool XBR_InterceptCancelDefer();
 
+extern bool SHMR_InterceptCardResponse(const nlohmann::json& j);
+extern bool SHMR_InterceptCancelDefer();
+
 static LONG WINAPI TerminateInstantly(LPEXCEPTION_POINTERS pointers)
 {
 	if (pointers->ExceptionRecord->ExceptionCode == STATUS_BREAKPOINT)
@@ -82,6 +85,27 @@ static void SaveBuildNumber(uint32_t build)
 	{
 		WritePrivateProfileString(L"Game", L"SavedBuildNumber", fmt::sprintf(L"%d", build).c_str(), fpath.c_str());
 	}
+}
+
+static void SaveShMode(bool shAllowed)
+{
+	std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+
+	if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
+	{
+		WritePrivateProfileString(L"Game", L"ShMode", fmt::sprintf(L"%d", shAllowed).c_str(), fpath.c_str());
+	}
+}
+
+
+static BOOL StartNewProcessWithCli(const wchar_t* cli)
+{
+	STARTUPINFOW si = { 0 };
+	si.cb = sizeof(si);
+
+	PROCESS_INFORMATION pi;
+
+	return CreateProcessW(NULL, const_cast<wchar_t*>(cli), NULL, NULL, FALSE, CREATE_BREAKAWAY_FROM_JOB, NULL, NULL, &si, &pi);
 }
 
 void RestartGameToOtherBuild(int build)
@@ -112,12 +136,8 @@ void RestartGameToOtherBuild(int build)
 
 	trace("Switching from build %d to build %d...\n", xbr::GetGameBuild(), build);
 
-	STARTUPINFOW si = { 0 };
-	si.cb = sizeof(si);
 
-	PROCESS_INFORMATION pi;
-
-	if (!CreateProcessW(NULL, const_cast<wchar_t*>(cli.c_str()), NULL, NULL, FALSE, CREATE_BREAKAWAY_FROM_JOB, NULL, NULL, &si, &pi))
+	if (!StartNewProcessWithCli(cli.c_str()))
 	{
 		trace("failed to exit: %d\n", GetLastError());
 	}
@@ -126,7 +146,29 @@ void RestartGameToOtherBuild(int build)
 #endif
 }
 
+void RestartGameToSwitchShMode(bool shAllowed)
+{
+	static HostSharedData<CfxState> hostData("CfxInitState");
+
+	SaveShMode(shAllowed);
+
+	const wchar_t* cli = va(L"\"%s\" %s -switchcl \"fivem://connect/%s\"",
+	hostData->gameExePath,
+	shAllowed ? L"-sh" : L"",
+	ToWide(g_lastConn));
+
+	trace("Switching sh mode to %d...\n", shAllowed);
+
+	if (!StartNewProcessWithCli(cli))
+	{
+		trace("failed to exit: %d\n", GetLastError());
+	}
+
+	ExitProcess(0x1337);
+}
+
 extern void InitializeBuildSwitch(int build);
+extern void InitializeShModeSwitch(bool shAllowed);
 
 void saveSettings(const wchar_t *json) {
 	PWSTR appDataPath;
@@ -581,6 +623,13 @@ static InitFunction initFunction([] ()
 			InitializeBuildSwitch(build);
 			g_connected = false;
 		});
+
+		netLibrary->OnRequestShModeSwitch.Connect([](bool shAllowed)
+		{
+			InitializeShModeSwitch(shAllowed);
+			g_connected = false;
+		});
+
 
 		netLibrary->OnConnectionErrorRichEvent.Connect([] (const std::string& errorOrig, const std::string& metaData)
 		{
@@ -1052,7 +1101,7 @@ static InitFunction initFunction([] ()
 		}
 		else if (!_wcsicmp(type, L"cancelDefer"))
 		{
-			if (!XBR_InterceptCancelDefer())
+			if (!XBR_InterceptCancelDefer() && !SHMR_InterceptCancelDefer())
 			{
 				netLibrary->CancelDeferredConnection();
 			}
@@ -1218,7 +1267,7 @@ static InitFunction initFunction([] ()
 			{
 				auto json = nlohmann::json::parse(ToNarrow(arg));
 
-				if (!XBR_InterceptCardResponse(json))
+				if (!XBR_InterceptCardResponse(json) && !SHMR_InterceptCardResponse(json))
 				{
 					if (!g_cardConnectionToken.empty())
 					{

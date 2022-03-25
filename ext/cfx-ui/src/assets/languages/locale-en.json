@@ -117,10 +117,14 @@
     "#Changelogs": "Change logs",
     "#Yes": "Yes",
 	"#No": "No",
-    "#BuildSwitch_Heading": "{{gameBrand}} needs to restart",
+    "#GameNeedsToRestart": "{{gameBrand}} needs to restart",
     "#BuildSwitch_Body": "The server you are joining requires a different game version ({{build}}). The game will close and restart shortly to change to this version and connect to the server.",
-    "#BuildSwitch_Cancel": "Cancel",
-    "#BuildSwitch_OK": "OK ({{seconds}})",
+    "#Cancel": "Cancel",
+    "#OK_WithSeconds": "OK ({{seconds}})",
+
+    "#ShMode_Enable": "The server you are joining requires scripthook mode to be enabled. The game will close and restart shortly to enable it and connect to the server.",
+    "#ShMode_Disable": "The server you are joining requires scripthook mode to be disabled. The game will close and restart shortly to disable it and connect to the server.",
+
 	"#EmptyServers_History": "Servers you have played on before will appear here. Check out the server list and join one now!",
 	"#EmptyServers_Favorites": "Your favorite servers will appear here, just click the star icon next to your favorite server!",
 	"#RentServer": "Rent a server",

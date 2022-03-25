@@ -333,6 +333,8 @@ public:
 
 	fwEvent<int> OnRequestBuildSwitch;
 
+	fwEvent<bool> OnRequestShModeSwitch;
+
 	fwEvent<const char*> OnAttemptDisconnect;
 
 	fwEvent<NetAddress> OnInitReceived;
