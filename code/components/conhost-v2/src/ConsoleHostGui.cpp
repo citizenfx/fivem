@@ -609,7 +609,7 @@ struct CfxBigConsole : FiveMConsoleBase
 			return true;
 		}
 
-		if (channel == "script:game:nui")
+		if (channel == "script:game:nui" || channel == "script:monitor" || channel == "script:monitor:nui")
 		{
 			return false;
 		}
