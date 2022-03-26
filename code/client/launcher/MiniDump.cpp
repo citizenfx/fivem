@@ -1089,8 +1089,8 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 					}
 				}
 
+				// *final* checkpoint for reading `info`
 				info = nullptr;
-				SetEvent(hDone);
 
 				std::map<std::wstring, std::wstring> parameters;
 #ifdef GTA_NY
@@ -1199,6 +1199,15 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 					}
 				}
 
+				// do *not* modify shouldTerminate past this point
+
+				// if we should terminate the game, wait before marking the dump as 'done'
+				// we can't do this before, as we haven't set shouldTerminate yet
+				if (!shouldTerminate)
+				{
+					SetEvent(hDone);
+				}
+
 				windowTitle = PRODUCT_NAME;
 				mainInstruction = PRODUCT_NAME L" has stopped working";
 
@@ -1278,7 +1287,9 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 				if (shouldTerminate)
 				{
-					std::thread([csignature]()
+					auto hDoneRef = hDone;
+
+					std::thread([csignature, hDone = hDoneRef]()
 					{
 						HostSharedData<CfxState> hostData("CfxInitState");
 						HANDLE gameProcess = OpenProcess(PROCESS_CREATE_THREAD | PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION, FALSE, hostData->gamePid);
@@ -1329,6 +1340,10 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 								}
 							}
 						}
+
+						// this only runs if shouldTerminate, right before termination (and after calling the terminate handler)
+						// if this is the game process crashing, we need to hold off on 'releasing' the dump until the last chance we get
+						SetEvent(hDone);
 
 						TerminateProcess(parentProcess, -2);
 					})
