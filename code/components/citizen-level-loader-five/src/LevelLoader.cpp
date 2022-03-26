@@ -366,6 +366,7 @@ static InitFunction initFunction([] ()
 	static ConsoleCommand localGameCommand("localGame", [](const std::string& resourceDir)
 	{
 		Instance<ICoreGameInit>::Get()->SetVariable("localMode");
+		Instance<ICoreGameInit>::Get()->SetData("localResource", resourceDir);
 
 		fx::ResourceManager* resourceManager = Instance<fx::ResourceManager>::Get();
 		resourceManager->AddMounter(new SPResourceMounter(resourceManager));

@@ -70,8 +70,15 @@ static void UpdatePresence()
 			g_richPresenceValues[7]
 		);
 
-		std::string line1 = formattedRichPresence.substr(formattedRichPresence.find_first_of("\n") + 1);
-		std::string line2 = formattedRichPresence.substr(0, formattedRichPresence.find_first_of("\n"));
+		auto lineOff = formattedRichPresence.find_first_of("\n");
+
+		std::string line1 = formattedRichPresence.substr(0, lineOff);
+		std::string line2;
+
+		if (lineOff != std::string::npos)
+		{
+			line2 = formattedRichPresence.substr(lineOff + 1);
+		}
 
 		if (!g_richPresenceOverride.empty())
 		{
@@ -163,18 +170,24 @@ static InitFunction initFunction([]()
 	{
 		g_startTime = time(nullptr);
 
-		g_richPresenceTemplate = text;
+		if (g_richPresenceTemplate != text)
+		{
+			g_richPresenceTemplate = text;
 
-		g_richPresenceChanged = true;
+			g_richPresenceChanged = true;
+		}
 	});
 
 	OnRichPresenceSetValue.Connect([](int idx, const std::string& value)
 	{
 		assert(idx >= 0 && idx < _countof(g_richPresenceValues));
 
-		g_richPresenceValues[idx] = value;
+		if (g_richPresenceValues[idx] != value)
+		{
+			g_richPresenceValues[idx] = value;
 
-		g_richPresenceChanged = true;
+			g_richPresenceChanged = true;
+		}
 	});
 
 	OnRichPresenceSetTemplate("In the menus\n");

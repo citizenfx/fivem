@@ -146,7 +146,48 @@ public:
 #elif defined(IS_RDR3)
 		uint32_t playerPedId = NativeInvoke::Invoke<0x096275889B8E0EE0, uint32_t>();
 #endif
-		
+
+		auto setPresenceTemplate = [](std::string_view value)
+		{
+			static auto steam = GetSteam();
+			std::string valueStr{ value };
+
+			if (steam)
+			{
+				steam->SetRichPresenceTemplate(valueStr);
+			}
+
+			OnRichPresenceSetTemplate(valueStr);
+		};
+
+		auto setPresenceValue = [](int idx, std::string_view value)
+		{
+			static auto steam = GetSteam();
+			std::string valueStr{ value };
+
+			if (steam)
+			{
+				steam->SetRichPresenceValue(idx, valueStr);
+			}
+
+			OnRichPresenceSetValue(idx, valueStr);
+		};
+
+		static auto icgi = Instance<ICoreGameInit>::Get();
+
+		if (icgi->HasVariable("localMode"))
+		{
+			std::string localName = "None?!";
+			icgi->GetData("localResource", &localName);
+
+			setPresenceTemplate("Playing a localGame: {0}");
+			setPresenceValue(0, localName);
+		}
+		else if (icgi->HasVariable("storyMode"))
+		{
+			// #TODO: find a way to fake out scripts' IS_XBOX360_VERSION/.. calls for NETWORK_SET_RICH_PRESENCE et al.
+			setPresenceTemplate("Playing Story Mode");
+		}
 
 		if (playerPedId != -1 && playerPedId != 0)
 		{
@@ -159,7 +200,7 @@ public:
 
 				static auto icgi = Instance<ICoreGameInit>::Get();
 
-				if (!icgi->HasVariable("storyMode"))
+				if (!icgi->HasVariable("storyMode") && !icgi->HasVariable("localMode"))
 				{
 					color = CRGBA(200, 0, 0, 180);
 					TheFonts->DrawRectangle(rect, color);
@@ -170,8 +211,6 @@ public:
 			if (NativeInvoke::Invoke<0x9DE624D2FC4B603F, bool>())
 #endif
 			{
-				auto steam = GetSteam();
-
 				int playerCount = 0;
 
 				for (int i = 0; i < 256; i++)
@@ -187,12 +226,7 @@ public:
 
 				if (playerCount != lastPlayerCount)
 				{
-					if (steam)
-					{
-						steam->SetRichPresenceValue(1, fmt::sprintf("%d player%s", playerCount, (playerCount != 1) ? "s" : ""));
-					}
-
-					OnRichPresenceSetValue(1, fmt::sprintf("%d player%s", playerCount, (playerCount != 1) ? "s" : ""));
+					setPresenceValue(1, fmt::sprintf("%d player%s", playerCount, (playerCount != 1) ? "s" : ""));
 					lastPlayerCount = playerCount;
 				}
 			}
