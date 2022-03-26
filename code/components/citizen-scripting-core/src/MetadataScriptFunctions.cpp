@@ -33,7 +33,7 @@ static InitFunction initFunction([] ()
 	{
 		// find the resource
 		fx::ResourceManager* resourceManager = fx::ResourceManager::GetCurrent();
-		fwRefContainer<fx::Resource> resource = resourceManager->GetResource(context.GetArgument<const char*>(0));
+		fwRefContainer<fx::Resource> resource = resourceManager->GetResource(context.CheckArgument<const char*>(0));
 
 		if (!resource.GetRef())
 		{
@@ -45,7 +45,7 @@ static InitFunction initFunction([] ()
 		fwRefContainer<fx::ResourceMetaDataComponent> component = resource->GetComponent<fx::ResourceMetaDataComponent>();
 
 		// find all matching entries
-		auto entries = component->GetEntries(context.GetArgument<const char*>(1));
+		auto entries = component->GetEntries(context.CheckArgument<const char*>(1));
 
 		// and count them
 		auto numEntries = std::distance(entries.begin(), entries.end());
@@ -57,7 +57,7 @@ static InitFunction initFunction([] ()
 	{
 		// find the resource
 		fx::ResourceManager* resourceManager = fx::ResourceManager::GetCurrent();
-		fwRefContainer<fx::Resource> resource = resourceManager->GetResource(context.GetArgument<const char*>(0));
+		fwRefContainer<fx::Resource> resource = resourceManager->GetResource(context.CheckArgument<const char*>(0));
 
 		if (!resource.GetRef())
 		{
@@ -69,7 +69,7 @@ static InitFunction initFunction([] ()
 		fwRefContainer<fx::ResourceMetaDataComponent> component = resource->GetComponent<fx::ResourceMetaDataComponent>();
 
 		// find matching entries
-		auto entries = component->GetEntries(context.GetArgument<const char*>(1));
+		auto entries = component->GetEntries(context.CheckArgument<const char*>(1));
 		int entryIndex = context.GetArgument<int>(2);
 
 		// and loop over the entries to see if we find anything
@@ -94,7 +94,7 @@ static InitFunction initFunction([] ()
 	{
 		// find the resource
 		fx::ResourceManager* resourceManager = fx::ResourceManager::GetCurrent();
-		fwRefContainer<fx::Resource> resource = resourceManager->GetResource(context.GetArgument<const char*>(0));
+		fwRefContainer<fx::Resource> resource = resourceManager->GetResource(context.CheckArgument<const char*>(0));
 
 		if (!resource.GetRef())
 		{
@@ -121,7 +121,7 @@ static InitFunction initFunction([] ()
 #endif
 
 		// try opening the file from the resource's home directory
-		fwRefContainer<vfs::Stream> stream = vfs::OpenRead(rootPath + "/" + context.GetArgument<const char*>(1));
+		fwRefContainer<vfs::Stream> stream = vfs::OpenRead(rootPath + "/" + context.CheckArgument<const char*>(1));
 
 		if (!stream.GetRef())
 		{
@@ -154,7 +154,7 @@ static InitFunction initFunction([] ()
 	{
 		// find the resource
 		fx::ResourceManager* resourceManager = fx::ResourceManager::GetCurrent();
-		fwRefContainer<fx::Resource> resource = resourceManager->GetResource(context.GetArgument<const char*>(0));
+		fwRefContainer<fx::Resource> resource = resourceManager->GetResource(context.CheckArgument<const char*>(0));
 
 		if (!resource.GetRef())
 		{
@@ -169,7 +169,7 @@ static InitFunction initFunction([] ()
 	{
 		// find the resource
 		fx::ResourceManager* resourceManager = fx::ResourceManager::GetCurrent();
-		fwRefContainer<fx::Resource> resource = resourceManager->GetResource(context.GetArgument<const char*>(0));
+		fwRefContainer<fx::Resource> resource = resourceManager->GetResource(context.CheckArgument<const char*>(0));
 
 		if (!resource.GetRef())
 		{
@@ -178,7 +178,7 @@ static InitFunction initFunction([] ()
 		}
 
 		// try opening a writable file in the resource's home directory
-		std::string filePath = resource->GetPath() + "/" + context.GetArgument<const char*>(1);
+		std::string filePath = resource->GetPath() + "/" + context.CheckArgument<const char*>(1);
 
 		fwRefContainer<vfs::Device> device = vfs::GetDevice(filePath);
 		auto handle = device->Create(filePath);
