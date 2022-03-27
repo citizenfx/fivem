@@ -150,9 +150,41 @@ void ComponentLoader::Initialize()
 #endif
 
 #ifndef IS_FXSERVER
-		if (nameWide == L"adhesive" && (launch::IsSDK() || launch::IsSDKGuest()))
+		if (nameWide == L"adhesive")
 		{
-			continue;
+			if (launch::IsSDK() || launch::IsSDKGuest())
+			{
+				continue;
+			}
+
+			if (CfxIsWine() || GetModuleHandleW(L"xtajit64.dll") != nullptr)
+			{
+				auto cfxState = CfxState::Get();
+				if (cfxState->IsMasterProcess())
+				{
+					std::wstring environmentType;
+
+					if (CfxIsWine())
+					{
+						environmentType = L"Wine";
+					}
+					else if (GetModuleHandleW(L"xtajit64.dll") != nullptr)
+					{
+						environmentType = L"Windows on ARM";
+					}
+
+					MessageBoxW(NULL, 
+						va(
+							L"The game is running in insecure mode because %s is not supported by the anti-cheat components at this time.\n"
+							L"Most servers, as well as some authentication features will be unavailable.",
+							environmentType),
+						L"Cfx.re: Insecure mode", MB_OK | MB_ICONWARNING);
+				}
+
+				AddComponent(new DllGameComponent(va(PLATFORM_LIBRARY_STRING, L"sticky")));
+
+				continue;
+			}
 		}
 #endif
 
