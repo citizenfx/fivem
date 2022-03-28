@@ -2447,6 +2447,20 @@ void ServerGameState::ReassignEntity(uint32_t entityHandle, const fx::ClientShar
 		{
 			auto [lock, targetData] = GetClientData(this, targetClient);
 			targetData->objectIds.insert(entityHandle);
+			
+			auto evComponent = m_instance->GetComponent<fx::ResourceManager>()->GetComponent<fx::ResourceEventManagerComponent>();
+
+			/*NETEV entityOwnerChanged SERVER
+			/#*
+			 * Triggered when an entity get a new network owner
+			 *
+			 * @param entity - The handle of the entity that got removed.
+			 * @param oldOwner - The old owner of the entity.
+			 * @param newOwner - The new owner of the entity.
+			 #/
+			declare function entityOwnerChanged(entity: number, oldOwner: number, newOwner: number): void;
+			*/
+			evComponent->TriggerEvent2("entityOwnerChanged", { }, MakeScriptHandle(entity), fmt::sprintf("%d", (!oldClientRef) ? -1 : oldClientRef->GetNetId()), fmt::sprintf("%d", (targetClient) ? targetClient->GetNetId() : -1));
 		}
 	}
 
