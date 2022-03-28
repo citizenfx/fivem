@@ -169,10 +169,30 @@ namespace rage
 				outPolys[i].poly.triangleArea = calculateArea(outPolys[i]);
 				outPolys[i].type = 0;
 			}
-			else
-			{
-				printf("unhandled primitive type %d\n", inPolys[i].type);
-				__debugbreak();
+			else if (inPolys[i].type == 1)
+			{ // Sphere
+				outPolys[i].sphere.index = inPolys[i].sphere.index;
+				outPolys[i].sphere.radius = inPolys[i].sphere.radius;
+				outPolys[i].type = 1;
+			}
+			else if (inPolys[i].type == 2)
+			{ // Capsule
+				outPolys[i].capsule.index = inPolys[i].capsule.index;
+				outPolys[i].capsule.indexB = inPolys[i].capsule.indexB;
+				outPolys[i].capsule.length = inPolys[i].capsule.length;
+				outPolys[i].type = 2;
+			}
+			else if (inPolys[i].type == 3)
+			{ // Box
+				memcpy(&outPolys[i].box.indices, &inPolys[i].box.indices, sizeof(inPolys[i].box.indices));
+				outPolys[i].type = 3;
+			}
+			else if (inPolys[i].type == 4)
+			{ // Cylinder
+				outPolys[i].capsule.index = inPolys[i].capsule.index;
+				outPolys[i].capsule.indexB = inPolys[i].capsule.indexB;
+				outPolys[i].capsule.length = inPolys[i].capsule.length;
+				outPolys[i].type = 4;
 			}
 		}
 

@@ -901,26 +901,39 @@ public:
 
 		struct  
 		{
-			uint16_t type; // 1
+#ifdef RAGE_FORMATS_GAME_RDR3
 			uint16_t index;
-
-			float radius;
-		} sphere;
-
-		struct  
-		{
+			uint16_t type;
+#else
 			uint16_t type; // 2
 			uint16_t index;
+#endif
+			float radius;
+			uint32_t unk0;
+			uint32_t unk1;
+		} sphere;
 
+		struct
+		{
+#ifdef RAGE_FORMATS_GAME_RDR3
+			uint16_t index;
+			uint16_t type;
+#else
+			uint16_t type; // 1
+			uint16_t index;
+#endif
 			float length;
-			int16_t indexB;
+			uint16_t indexB;
+			uint16_t unk0;
+			uint32_t unk1;
 		} capsule;
 
-		struct  
+		struct
 		{
 			uint32_t type; // 3
 
-			int16_t indices[4];
+			uint16_t indices[4];
+			uint32_t unk0;
 		} box;
 
 		struct  
