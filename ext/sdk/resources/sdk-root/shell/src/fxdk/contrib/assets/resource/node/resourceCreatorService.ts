@@ -40,11 +40,6 @@ export class ResourceCreatorService {
       // tap manifest file so project explorer know it's a resource
       await this.fsService.writeFile(this.fsService.joinPath(resourcePath, 'fxmanifest.lua'), '');
 
-      project.setAssetConfig(resourcePath, {
-        enabled: true,
-        restartOnChange: true,
-      } as ResourceAssetConfig);
-
       const resourceManifest = new ResourceManifest();
 
       if (request.resourceTemplateId) {
@@ -59,6 +54,11 @@ export class ResourceCreatorService {
       }
 
       await this.saveResourceManifest(resourcePath, resourceManifest);
+
+      project.setAssetConfig(resourcePath, {
+        enabled: true,
+        restartOnChange: true,
+      } as ResourceAssetConfig);
 
       this.logService.log('Finished creating asset', request);
     });

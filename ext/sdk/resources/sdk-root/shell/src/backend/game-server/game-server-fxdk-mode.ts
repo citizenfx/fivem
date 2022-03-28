@@ -17,6 +17,7 @@ import { GameServerManagerService } from './game-server-manager-service';
 import { GameServerResourcesReconciler } from './game-server-resources-reconciler';
 import { GameServerRuntime, ServerResourceDescriptor, ServerStartRequest, ServerVariableDescriptor } from './game-server-runtime';
 import { getResourceNames, getResourceUrl, getResourceUrls } from './game-server-utils';
+import { ScopedLogService } from 'backend/logger/scoped-logger';
 
 @injectable()
 export class GameServerFxdkMode implements GameServerMode {
@@ -35,8 +36,7 @@ export class GameServerFxdkMode implements GameServerMode {
   @inject(ApiClient)
   protected readonly apiClient: ApiClient;
 
-  @inject(LogService)
-  protected readonly logService: LogService;
+  protected readonly logService = new ScopedLogService('GameServerFxdkMode');
 
   @inject(FsService)
   protected readonly fsService: FsService;

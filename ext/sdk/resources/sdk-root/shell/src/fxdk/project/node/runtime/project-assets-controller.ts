@@ -77,6 +77,8 @@ export class ProjectAssetsController implements IDisposableObject {
       asset?.init();
     }
 
+    ProjectEvents.AssetSpawned.emit(asset);
+
     return asset;
   }
 

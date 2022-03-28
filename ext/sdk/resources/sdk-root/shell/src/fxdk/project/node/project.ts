@@ -231,9 +231,14 @@ export class ProjectInstanceService implements ApiContribution {
         });
       }
 
-      this.toDispose.register(ProjectEvents.ManifestUpdated.addListener(() => {
-        this.refreshEnabledResources();
-      }));
+      this.toDispose.add(
+        ProjectEvents.ManifestUpdated.addListener(() => {
+          this.refreshEnabledResources();
+        }),
+        ProjectEvents.AssetSpawned.addListener(() => {
+          this.refreshEnabledResources();
+        }),
+      );
 
       await this.rt.init(loadTask);
 

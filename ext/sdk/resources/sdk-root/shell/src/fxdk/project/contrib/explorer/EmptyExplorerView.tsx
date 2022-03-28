@@ -18,7 +18,7 @@ export const EmptyExplorerView = observer(function EmptyExplorerView() {
     const handleClick = () => ShellCommands.invoke(ExplorerRuntime.getOrCreateRootItemCreatorCommandId(creator));
 
     return (
-      <button onClick={handleClick}>
+      <button key={creator.id} onClick={handleClick}>
         {getCreatorIcon(creator)}
 
         New {creator.label}

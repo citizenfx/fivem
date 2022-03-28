@@ -39,13 +39,13 @@ export class FXWorldCreatorService {
         return;
       }
 
-      project.setAssetConfig(mapFilePath, {
-        enabled: true,
-      } as FXWorldAssetConfig);
-
       const mapContent: WEMap = DEFAULT_WORLD_EDITOR_MAP;
 
       await this.fsService.writeFileJson(mapFilePath, mapContent, false);
+
+      project.setAssetConfig(mapFilePath, {
+        enabled: true,
+      } as FXWorldAssetConfig);
     });
   }
 }
