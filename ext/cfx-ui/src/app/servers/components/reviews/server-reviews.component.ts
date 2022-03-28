@@ -127,7 +127,7 @@ export class ServerReviewsComponent implements OnInit {
 	}
 
 	get myPlaytime() {
-		return this.playtimes[this.myId] || 0;
+		return this.playtimes[`fivem:${this.myId}`] || 0;
 	}
 
 	get projectName() {
