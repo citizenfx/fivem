@@ -15,7 +15,7 @@ import { Deferred } from 'backend/deferred';
 import { isPortAvailable } from 'backend/net-utils';
 import { ContainerAccess } from 'backend/container-access';
 import { GameServerMode } from './game-server-interface';
-import { GameServerRuntime, ServerResourceDescriptor, ServerStartRequest } from "./game-server-runtime";
+import { GameServerRuntime, ServerResourceDescriptor, ServerStartRequest, ServerVariableDescriptor } from "./game-server-runtime";
 import { GameServerFxdkMode } from './game-server-fxdk-mode';
 import { GameServerLegacyMode } from "./game-server-legacy-mode";
 import { SingleEventEmitter } from "utils/singleEventEmitter";
@@ -239,9 +239,15 @@ export class GameServerService implements AppContribution, ApiContribution {
   setResources(resources: ServerResourceDescriptor[]) {
     this.gameServerRuntime.setResources(resources);
   }
-
   getResources(): ServerResourceDescriptor[] {
     return this.gameServerRuntime.getResources();
+  }
+
+  setVariables(variables: ServerVariableDescriptor[]) {
+    this.gameServerRuntime.setVariables(variables);
+  }
+  getVariables(): ServerVariableDescriptor[] {
+    return this.gameServerRuntime.getVariables();
   }
 
   @handlesClientEvent(serverApi.sendCommand)

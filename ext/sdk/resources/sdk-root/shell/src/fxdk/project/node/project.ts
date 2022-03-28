@@ -15,7 +15,7 @@ import { getAssetsPriorityQueue } from './project-utils';
 import { AssetMeta } from 'shared/asset.types';
 import { ProjectAssetBaseConfig, ProjectManifest, ProjectOpenData } from 'shared/project.types';
 import { ProjectUpgrade } from './project-upgrade';
-import { ServerResourceDescriptor, ServerStartRequest } from 'backend/game-server/game-server-runtime';
+import { ServerResourceDescriptor, ServerStartRequest, ServerVariableDescriptor } from 'backend/game-server/game-server-runtime';
 import { dispose, Disposer, IDisposable } from 'fxdk/base/disposable';
 import { WorldEditorService } from 'backend/world-editor/world-editor-service';
 import { SystemResource } from 'backend/system-resources/system-resources-constants';
@@ -423,29 +423,18 @@ export class ProjectInstanceService implements ApiContribution {
     // });
   }, 1000);
 
-  private refreshVariables() {
-    if (this.worldEditorService.isRunning()) {
-      return;
-    }
-
-    const { variables } = this.getManifest();
-    if (!variables) {
-      return;
-    }
-
-    for (const convarCommand of this.getAssetsConvarCommands()) {
-      this.gameServerService.sendCommand(convarCommand);
-    }
-  }
-
-  *getAssetsConvarCommands() {
+  *getAssetsConvarDescriptors(): Iterable<ServerVariableDescriptor> {
     const { variables } = this.getManifest();
     if (!variables) {
       return;
     }
 
     for (const [variableName, variable] of Object.entries(variables)) {
-      yield `${variable.setter} ${JSON.stringify(variableName)} ${JSON.stringify(variable.value)}`;
+      yield {
+        name: variableName,
+        value: variable.value,
+        setter: variable.setter,
+      } as ServerVariableDescriptor;
     }
   }
 
@@ -453,6 +442,8 @@ export class ProjectInstanceService implements ApiContribution {
     if (this.worldEditorService.isRunning()) {
       return;
     }
+
+    this.refreshVariables();
 
     const enabledSystemResources = this.getManifest().systemResources;
 
@@ -469,8 +460,20 @@ export class ProjectInstanceService implements ApiContribution {
     }
 
     this.gameServerService.setResources(resourceDescriptors);
+  }
 
-    // also update variables as resource config may have changed
-    this.refreshVariables();
+  private refreshVariables() {
+    if (this.worldEditorService.isRunning()) {
+      return;
+    }
+
+    const { variables } = this.getManifest();
+    if (!variables) {
+      return;
+    }
+
+    this.gameServerService.setVariables([
+      ...this.getAssetsConvarDescriptors(),
+    ]);
   }
 }

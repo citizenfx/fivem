@@ -21,9 +21,15 @@ export interface ServerResourceDescriptor {
   path: string,
 }
 
+export interface ServerVariableDescriptor {
+  name: string,
+  setter: string,
+  value: string,
+}
+
 @injectable()
 export class GameServerRuntime {
-  protected serverResourcesTicker = new Ticker();
+  protected serverChangesTicker = new Ticker();
 
   protected readonly setResourcesEvent = new SingleEventEmitter<ServerResourceDescriptor[]>();
   protected serverResources: ServerResourceDescriptor[] = [];
@@ -33,11 +39,24 @@ export class GameServerRuntime {
   setResources(resources: ServerResourceDescriptor[]) {
     this.serverResources = resources;
 
-    // Make it emit once per tick
-    this.serverResourcesTicker.whenTickEnds(() => this.setResourcesEvent.emit(this.serverResources));
+    this.propagateChanges();
   }
   getResources(): ServerResourceDescriptor[] {
     return this.serverResources;
+  }
+
+  protected readonly setVariablesEvent = new SingleEventEmitter<ServerVariableDescriptor[]>();
+  protected serverVariables: ServerVariableDescriptor[] = [];
+  onSetVariables(cb: (variables: ServerVariableDescriptor[]) => void): IDisposableObject {
+    return disposableFromFunction(this.setVariablesEvent.addListener(cb));
+  }
+  setVariables(variables: ServerVariableDescriptor[]) {
+    this.serverVariables = variables;
+
+    this.propagateChanges();
+  }
+  getVariables(): ServerVariableDescriptor[] {
+    return this.serverVariables;
   }
 
   protected readonly startResourceEvent = new SingleEventEmitter<string>();
@@ -86,5 +105,12 @@ export class GameServerRuntime {
   }
   requestResourcesState() {
     this.requestResourcesStateEvent.emit();
+  }
+
+  private propagateChanges() {
+    this.serverChangesTicker.whenTickEnds(() => {
+      this.setVariablesEvent.emit(this.serverVariables);
+      this.setResourcesEvent.emit(this.serverResources);
+    });
   }
 }
