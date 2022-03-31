@@ -119,12 +119,21 @@ static void CfxPrintf(const std::string& str)
 	g_printf(buf.str().c_str());
 }
 
-static std::once_flag g_initConsoleFlag;
-static std::condition_variable g_consoleCondVar;
-static std::mutex g_consoleMutex;
+static void PrintfTraceListener(ConsoleChannel channel, const char* out);
 
-static tbb::concurrent_queue<std::tuple<std::string, std::string>> g_consolePrintQueue;
-static bool g_isPrinting;
+static struct consoleBase
+{
+	std::once_flag initConsoleFlag;
+	std::condition_variable consoleCondVar;
+	std::mutex consoleMutex;
+
+	tbb::concurrent_queue<std::tuple<std::string, std::string>> consolePrintQueue;
+	bool isPrinting = false;
+
+	fwEvent<ConsoleChannel, const char*> printFilter;
+	std::vector<void (*)(ConsoleChannel, const char*)> printListeners = { PrintfTraceListener };
+	int useDeveloper = 0;
+}* gConsole = new consoleBase();
 
 static void PrintfTraceListener(ConsoleChannel channel, const char* out)
 {
@@ -162,7 +171,7 @@ static void PrintfTraceListener(ConsoleChannel channel, const char* out)
 	g_allowVt = true;
 #endif
 
-	std::call_once(g_initConsoleFlag, []()
+	std::call_once(gConsole->initConsoleFlag, []()
 	{
 		std::thread([]()
 		{
@@ -171,40 +180,36 @@ static void PrintfTraceListener(ConsoleChannel channel, const char* out)
 			while (true)
 			{
 				{
-					std::unique_lock<std::mutex> lock(g_consoleMutex);
-					g_consoleCondVar.wait(lock);
+					std::unique_lock<std::mutex> lock(gConsole->consoleMutex);
+					gConsole->consoleCondVar.wait(lock);
 				}
 
 				std::tuple<std::string, std::string> strRef;
 
-				while (g_consolePrintQueue.try_pop(strRef))
+				while (gConsole->consolePrintQueue.try_pop(strRef))
 				{
-					g_isPrinting = true;
+					gConsole->isPrinting = true;
 					g_printChannel = std::get<0>(strRef);
 					CfxPrintf(std::get<1>(strRef));
 					g_printChannel = "";
-					g_isPrinting = false;
+					gConsole->isPrinting = false;
 				}
 			}
 		}).detach();
 	});
 
-	g_consolePrintQueue.push({ channel, std::string{ out } });
-	g_consoleCondVar.notify_all();
+	gConsole->consolePrintQueue.push({ channel, std::string{ out } });
+	gConsole->consoleCondVar.notify_all();
 }
 }
 
 bool GIsPrinting()
 {
-	return !console::g_consolePrintQueue.empty() || console::g_isPrinting;
+	return !console::gConsole->consolePrintQueue.empty() || console::gConsole->isPrinting;
 }
 
 namespace console
 {
-static fwEvent<ConsoleChannel, const char*> g_printFilter;
-static std::vector<void (*)(ConsoleChannel, const char*)> g_printListeners = { PrintfTraceListener };
-static int g_useDeveloper;
-
 void Printfv(ConsoleChannel channel, std::string_view format, fmt::printf_args argList)
 {
 	auto buffer = fmt::vsprintf(format, argList);
@@ -216,13 +221,13 @@ void Printfv(ConsoleChannel channel, std::string_view format, fmt::printf_args a
 	}
 
 	// run print filter
-	if (!g_printFilter(channel, buffer.data()))
+	if (!gConsole->printFilter(channel, buffer.data()))
 	{
 		return;
 	}
 
 	// print to all interested listeners
-	for (auto& listener : g_printListeners)
+	for (auto& listener : gConsole->printListeners)
 	{
 		listener(channel, buffer.data());
 	}
@@ -230,7 +235,7 @@ void Printfv(ConsoleChannel channel, std::string_view format, fmt::printf_args a
 
 void DPrintfv(ConsoleChannel channel, std::string_view format, fmt::printf_args argList)
 {
-	if (g_useDeveloper > 0)
+	if (gConsole->useDeveloper > 0)
 	{
 		Printfv(channel, format, argList);
 	}
@@ -248,17 +253,17 @@ void PrintErrorv(ConsoleChannel channel, std::string_view format, fmt::printf_ar
 	Printf(channel, "^1Error: %s^7", fmt::vsprintf(format, argList));
 }
 
-static ConVar<int> developerVariable(GetDefaultContext(), "developer", ConVar_Archive, 0, &g_useDeveloper);
+static ConVar<int> developerVariable(GetDefaultContext(), "developer", ConVar_Archive, 0, &gConsole->useDeveloper);
 }
 
 extern "C" DLL_EXPORT void CoreAddPrintListener(void(*function)(ConsoleChannel, const char*))
 {
-	console::g_printListeners.push_back(function);
+	console::gConsole->printListeners.push_back(function);
 }
 
 extern "C" DLL_EXPORT fwEvent<ConsoleChannel, const char*>* CoreGetPrintFilterEvent()
 {
-	return &console::g_printFilter;
+	return &console::gConsole->printFilter;
 }
 
 extern "C" DLL_EXPORT void CoreSetPrintFunction(void(*function)(const char*))
