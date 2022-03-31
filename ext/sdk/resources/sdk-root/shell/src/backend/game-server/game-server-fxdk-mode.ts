@@ -306,6 +306,8 @@ export class GameServerFxdkMode implements GameServerMode {
       }
     };
 
+    this.shellCommand.onStdout((data) => this.logService.log(`[FXSERVER STDOUT] ${data}`));
+
     this.shellCommand.onClose(() => closeErrorHandler());
     this.shellCommand.onError(closeErrorHandler);
 

@@ -77,7 +77,7 @@ export class ShellCommand implements OutputChannelProvider {
   }
 
   async start() {
-    this.proc = cp.spawn(this.command, this.args, {
+    this.proc = cp.spawn(JSON.stringify(this.command), this.args, {
       cwd: this.cwd,
       shell: true,
       windowsHide: true,
