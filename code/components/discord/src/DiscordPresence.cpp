@@ -8,7 +8,6 @@
 #include <NetLibrary.h>
 
 #include <ScriptEngine.h>
-#include <scrEngine.h>
 
 #ifdef GTA_FIVE
 #define DEFAULT_APP_ID "382624125287399424"
@@ -82,7 +81,7 @@ static void UpdatePresence()
 
 		if (!g_richPresenceOverride.empty())
 		{
-			line1 = g_richPresenceOverride;
+			line2 = g_richPresenceOverride;
 		}
 
 		if (g_discordAppId != g_lastDiscordAppId) 
@@ -215,18 +214,18 @@ static InitFunction initFunction([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_RICH_PRESENCE", [](fx::ScriptContext& context)
 	{
-		const char* str = context.GetArgument<const char*>(0);
+		std::string newValue;
 
-		if (str)
+		if (const char* str = context.GetArgument<const char*>(0))
 		{
-			g_richPresenceOverride = str;
-		}
-		else
-		{
-			g_richPresenceOverride = "";
+			newValue = str;
 		}
 
-		g_richPresenceChanged = true;
+		if (g_richPresenceOverride != newValue)
+		{
+			g_richPresenceOverride = newValue;
+			g_richPresenceChanged = true;
+		}
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_DISCORD_RICH_PRESENCE_ACTION", [](fx::ScriptContext& context)
