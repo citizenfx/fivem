@@ -1598,7 +1598,7 @@
                 </Item>
                 <Item>
                   <PoolName>atDScriptObjectNode</PoolName>
-                  <PoolSize value="500"/>
+                  <PoolSize value="10000"/>
                 </Item>
                 <Item>
                   <PoolName>CRemoteScriptArgs</PoolName>
