@@ -865,7 +865,7 @@ inline void ConvertBaseDrawable(five::rmcDrawable* drawable, rdr3::gtaDrawable* 
 		}
 	}
 
-	out->SetName("drawable_from_redm_exporter_see_redm.gg.#dr");
+	out->SetName(drawable.#dr);
 }
 
 template<>
