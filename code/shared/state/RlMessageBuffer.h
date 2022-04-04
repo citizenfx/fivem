@@ -21,7 +21,7 @@ public:
 	}
 
 	inline MessageBuffer(std::vector<uint8_t>&& data)
-		: m_data(std::move(data)), m_curBit(0), m_maxBit(data.size() * 8)
+		: m_data(std::move(data)), m_curBit(0), m_maxBit(m_data.size() * 8)
 	{
 
 	}
