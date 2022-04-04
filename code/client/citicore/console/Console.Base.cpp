@@ -241,16 +241,27 @@ void DPrintfv(ConsoleChannel channel, std::string_view format, fmt::printf_args 
 	}
 }
 
+static void AddColorTerminator(std::string& str)
+{
+	auto insertionPoint = str.find_last_not_of('\n');
+	if (insertionPoint != std::string::npos)
+	{
+		str.insert(insertionPoint + 1, "^7");
+	}
+}
+
 void PrintWarningv(ConsoleChannel channel, std::string_view format, fmt::printf_args argList)
 {
-	// print the string directly
-	Printf(channel, "^3Warning: %s^7", fmt::vsprintf(format, argList));
+	std::string warningText = "^3Warning: " + fmt::vsprintf(format, argList);
+	AddColorTerminator(warningText);
+	Printf(channel, "%s", warningText);
 }
 
 void PrintErrorv(ConsoleChannel channel, std::string_view format, fmt::printf_args argList)
 {
-	// print the string directly
-	Printf(channel, "^1Error: %s^7", fmt::vsprintf(format, argList));
+	std::string errorText = "^1Error: " + fmt::vsprintf(format, argList);
+	AddColorTerminator(errorText);
+	Printf(channel, "%s", errorText);
 }
 
 static ConVar<int> developerVariable(GetDefaultContext(), "developer", ConVar_Archive, 0, &gConsole->useDeveloper);
