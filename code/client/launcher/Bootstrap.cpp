@@ -19,6 +19,7 @@
 #include <HostSharedData.h>
 
 #include <citversion.h>
+#include <os/Firewall.h>
 
 extern std::string GetObjectURL(std::string_view objectHash, std::string_view suffix = "");
 
@@ -73,6 +74,30 @@ bool VerifyViability();
 
 extern void ResetUpdateChannel();
 
+static void MessageBox_OnFailedRequestURL(int result)
+{
+	switch(result)
+	{
+	case 7: // CURL ERROR 7 Failed to connect, request is blocked by a firewall (or similar) on current computer or somewhere else on the network.
+	{
+		std::wstring firewall = ::os::GetActiveFirewallName(L"");
+		if (!firewall.empty())
+			firewall = L" (" + firewall + L")";
+
+		MessageBox(NULL, va(L"An error (%i, %s) occurred while checking the bootstrapper version. A request to " CONTENT_URL_WIDE L" is being blocked by your firewall or somewhere else on your network.\n\n"
+							L"Possible solutions:\n"
+							L"  1. Allow " PRODUCT_NAME L" through your firewall%s or disable it.\n"
+							L"  2. Contact your network administrator.",
+						 result, ToWide(DL_RequestURLError()), firewall),
+					L"O\x448\x438\x431\x43A\x430", MB_OK | MB_ICONSTOP);
+		break;
+	}
+	default:
+		MessageBox(NULL, va(L"An error (%i, %s) occurred while checking the bootstrapper version. Check if " CONTENT_URL_WIDE L" is available in your web browser.", result, ToWide(DL_RequestURLError())), L"O\x448\x438\x431\x43A\x430", MB_OK | MB_ICONSTOP);
+		break;
+	}
+}
+
 bool Bootstrap_DoBootstrap()
 {
 	// first check the bootstrapper version
@@ -108,7 +133,7 @@ bool Bootstrap_DoBootstrap()
 		{
 			if (GetFileAttributes(MakeRelativeCitPath(L"CoreRT.dll").c_str()) == INVALID_FILE_ATTRIBUTES)
 			{
-				MessageBox(NULL, va(L"An error (%i, %s) occurred while checking the bootstrapper version. Check if " CONTENT_URL_WIDE L" is available in your web browser.", result, ToWide(DL_RequestURLError())), L"O\x448\x438\x431\x43A\x430", MB_OK | MB_ICONSTOP);
+				MessageBox_OnFailedRequestURL(result);
 				return false;
 			}
 
@@ -125,7 +150,7 @@ bool Bootstrap_DoBootstrap()
 		{
 			if (GetFileAttributes(MakeRelativeCitPath(L"CoreRT.dll").c_str()) == INVALID_FILE_ATTRIBUTES)
 			{
-				MessageBox(NULL, va(L"An error (%i, %s) occurred while checking the bootstrapper version. Check if " CONTENT_URL_WIDE L" is available in your web browser.", result, ToWide(DL_RequestURLError())), L"O\x448\x438\x431\x43A\x430", MB_OK | MB_ICONSTOP);
+				MessageBox_OnFailedRequestURL(result);
 				return false;
 			}
 
