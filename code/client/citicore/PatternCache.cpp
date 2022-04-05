@@ -70,7 +70,7 @@ static InitFunction initFunction([]()
 	{
 		if (getenv("CitizenFX_ToolMode"))
 		{
-			g_currentStub = 0x140000000 + 0x02E23600;
+			g_currentStub = 0x140000000 + 0x0339A600;
 		}
 	}
 #endif
