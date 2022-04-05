@@ -1093,19 +1093,12 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 				info = nullptr;
 
 				std::map<std::wstring, std::wstring> parameters;
-#ifdef GTA_NY
-				parameters[L"ProductName"] = L"CitizenFX";
-				parameters[L"Version"] = L"1.0";
-				parameters[L"BuildID"] = L"20141213000000"; // todo i bet
-#elif defined(GTA_FIVE)
 				LoadOwnershipTicket();
 
 				if (g_entitlementSource.empty())
 				{
 					g_entitlementSource = "default";
 				}
-
-				parameters[L"ProductName"] = L"FiveM";
 
 				FILE* f = _wfopen(MakeRelativeCitPath(L"citizen/release.txt").c_str(), L"r");
 
@@ -1125,10 +1118,6 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 				parameters[L"BuildID"] = L"20170101";
 				parameters[L"UserID"] = ToWide(g_entitlementSource);
-
-				parameters[L"prod"] = L"FiveM";
-				parameters[L"ver"] = L"1.0";
-#endif
 
 				auto crashometry = load_crashometry();
 
@@ -1536,7 +1525,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 				parameters[L"Fatal"] = (shouldTerminate) ? L"true" : L"false";
 
 				// upload the actual minidump file as well
-#if defined(GTA_FIVE)
+#if defined(GTA_FIVE) || defined(IS_RDR3)
 				if (uploadCrashes && shouldUpload && HTTPUpload::SendMultipartPostRequest(L"https://crash-ingress.fivem.net/post", parameters, files, &timeout, &responseBody, &responseCode))
 				{
 					trace("Crash report service returned %s\n", ToNarrow(responseBody));

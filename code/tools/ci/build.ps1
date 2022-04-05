@@ -627,8 +627,6 @@ if (!$DontBuild -and !$IsServer) {
 	Start-Section "caches_fin" "Gathering more caches"
 	Invoke-Expression "& $WorkRootDir\tools\ci\xz.exe -9 CitizenFX.exe"
 
-	Invoke-WebRequest -Method POST -UseBasicParsing "https://crashes.fivem.net/management/add-version/1.3.0.$GameVersion"
-
 	$uri = 'https://sentry.fivem.net/api/0/organizations/citizenfx/releases/'
 	$json = @{
 		version = "cfx-${env:CI_PIPELINE_ID}"
@@ -638,7 +636,7 @@ if (!$DontBuild -and !$IsServer) {
 				commit = $env:CI_COMMIT_SHA
 			}
 		)
-		projects = @("fivem-client-1604")
+		projects = @("fivem-client-1604", "redm")
 	} | ConvertTo-Json
 
 	$headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"

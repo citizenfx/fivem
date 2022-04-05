@@ -136,8 +136,11 @@ local function launcherpersonality_inner(name, aslr)
 		end
 		
 		if isGamePersonality(name) then
+			local gameBuild
+			local gameDump
+
 			if _OPTIONS['game'] == 'five' then
-				local gameBuild = '1604'
+				gameBuild = '1604'
 
 				if name == 'game_2545' then gameBuild = '2545_0' end
 				if name == 'game_2372' then gameBuild = '2372_0' end
@@ -145,45 +148,39 @@ local function launcherpersonality_inner(name, aslr)
 				if name == 'game_2060' then gameBuild = '2060_2' end
 				if name == 'game_372' then gameBuild = '372' end
 
-				local gameDump = ("C:\\f\\GTA5_%s_dump.exe"):format(gameBuild)
+				gameDump = ("C:\\f\\GTA5_%s_dump.exe"):format(gameBuild)
+			elseif _OPTIONS['game'] == 'rdr3' then
+				gameBuild = '1311'
 
-				if name == 'game_mtl' then
-					gameDump = "C:\\f\\Launcher.exe"
-					gameBuild = 'mtl'
-				end
-			
+				if name == 'game_1355' then gameBuild = '1355_18' end
+				if name == 'game_1436' then gameBuild = '1436_28' end
+
+				gameDump = ("C:\\f\\RDR2_%s.exe"):format(gameBuild)
+			end
+
+			if name == 'game_mtl' then
+				gameDump = "C:\\f\\Launcher.exe"
+				gameBuild = 'mtl'
+			end
+
+			if gameDump then
 				postbuildcommands {
 					("if exist %s ( %%{cfg.buildtarget.directory}\\retarget_pe \"%%{cfg.buildtarget.abspath}\" %s )"):format(
 						gameDump, gameDump
-					),
+					)
+				}
+			end
+
+			if gameBuild then
+				postbuildcommands {
 					("if exist \"%s\" ( %%{cfg.buildtarget.directory}\\pe_debug \"%%{cfg.buildtarget.abspath}\" \"%s\" )"):format(
 						path.getabsolute(('../../tools/dbg/dump_%s.txt'):format(gameBuild)),
 						path.getabsolute(('../../tools/dbg/dump_%s.txt'):format(gameBuild))
 					)
 				}
-
-				resign()
-			elseif _OPTIONS['game'] == 'rdr3' then
-				local gameBuild = '1311'
-				
-				if name == 'game_1355' then gameBuild = '1355_18' end
-				if name == 'game_1436' then gameBuild = '1436_28' end
-
-				local gameDump = ("C:\\f\\RDR2_%s.exe"):format(gameBuild)
-
-				if name == 'game_mtl' then
-					gameDump = "C:\\f\\Launcher.exe"
-					gameBuild = 'mtl'
-				end
-			
-				postbuildcommands {
-					("if exist %s ( %%{cfg.buildtarget.directory}\\retarget_pe \"%%{cfg.buildtarget.abspath}\" %s )"):format(
-						gameDump, gameDump
-					),
-				}
-
-				resign()
 			end
+
+			resign()
 		end
 		
 		filter {}
