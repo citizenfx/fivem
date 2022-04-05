@@ -1500,11 +1500,15 @@ namespace fx
 			std::map<uint32_t, int> voteCounts;
 		};
 
-		// TODO: replace with system using dissectors
 		struct HeHostPacketHandler
 		{
 			inline static void Handle(ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& packet)
 			{
+				if (IsOneSync())
+				{
+					return;
+				}
+
 				auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
 				auto gameServer = instance->GetComponent<fx::GameServer>();
 
