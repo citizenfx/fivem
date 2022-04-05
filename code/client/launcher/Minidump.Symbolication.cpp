@@ -73,7 +73,7 @@ void ParseSymbolicCrash(nlohmann::json& crash, std::string* signature, std::stri
 					
 					if (!appPath.empty())
 					{
-						lineDetail = fmt::sprintf(" (<A HREF=\"https://github.com/citizenfx/fivem/blob/master/%s#L%d\">%s:%d</A>)",
+						lineDetail = fmt::sprintf(" (<A HREF=\"https://sourcegraph.com/github.com/citizenfx/fivem/-/blob/%s?L%d\">%s:%d</A>)",
 						appPath,
 						frame.value("lineno", 0),
 						fn,
