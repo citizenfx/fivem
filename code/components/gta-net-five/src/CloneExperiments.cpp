@@ -2828,7 +2828,7 @@ static void HandleNetGameEvent(const char* idata, size_t len)
 
 			auto eh = eventHandlerList[eventType];
 
-			if (eh && (uintptr_t)eh >= hook::get_adjusted(0x140000000) && (uintptr_t)eh < hook::get_adjusted(0x146000000))
+			if (eh && (uintptr_t)eh >= hook::get_adjusted(0x140000000) && (uintptr_t)eh < hook::get_adjusted(hook::exe_end()))
 			{
 				eh(&rlBuffer, player, g_playerMgr->localPlayer, eventHeader, 0, 0);
 				rejected = g_lastEventGotRejected;
