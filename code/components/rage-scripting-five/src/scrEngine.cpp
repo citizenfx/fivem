@@ -467,6 +467,7 @@ scrEngine::NativeHandler GetNativeHandlerDo(uint64_t origHash, uint64_t hash)
 					BLOCK_NATIVE(0x8EF07E15701D61ED);
 					BLOCK_NATIVE(0x933D6A9EEC1BACD0);
 					BLOCK_NATIVE(0x213AEB2B90CBA7AC);
+					BLOCK_NATIVE(0xC6ED9D5092438D91);
 				}
 
 				g_fastPathMap[NativeHash{ origHash }] = handler;
