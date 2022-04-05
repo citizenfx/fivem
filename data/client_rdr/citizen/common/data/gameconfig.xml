@@ -947,7 +947,7 @@
                 </Item>
                 <Item>
                   <PoolName>CScriptEntityExtension</PoolName>
-                  <PoolSize value="600"/>
+                  <PoolSize value="10000"/>
                 </Item>
                 <Item>
                   <PoolName>CScriptEntityIdExtension</PoolName>
