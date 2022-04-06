@@ -46,17 +46,6 @@ void ComponentLoader::Initialize()
 
 	// parse and load additional components
 	fwPlatformString componentsName = _P("components.json");
-
-	if (CfxIsSinglePlayer())
-	{
-		componentsName = _P("components-sp.json");
-	}
-
-	if (xbr::IsGameBuild<372>())
-	{
-		componentsName = _P("components-sp372.json");
-	}
-
 	FILE* componentCache = _pfopen(MakeRelativeCitPath(componentsName).c_str(), _P("rb"));
 	if (!componentCache)
 	{
