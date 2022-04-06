@@ -309,13 +309,23 @@ bool Updater_RunUpdate(std::initializer_list<std::string> wantedCachesList)
 	cacheFile_t localCacheFile;
 	std::list<std::tuple<std::optional<cache_ptr>, cache_ptr>> needsUpdate;
 
-	// workaround: if the user removed citizen/, make sure we re-verify, as that's just silly
+	// workaround: if the user removed citizen/ (or its contents), make sure we re-verify, as that's just silly
 	bool shouldVerify = false;
 
-	if (GetFileAttributesW(MakeRelativeCitPath(L"citizen/").c_str()) == INVALID_FILE_ATTRIBUTES)
+	if (GetFileAttributesW(MakeRelativeCitPath(L"citizen/").c_str()) == INVALID_FILE_ATTRIBUTES ||
+		GetFileAttributesW(MakeRelativeCitPath(L"citizen/version.txt").c_str()) == INVALID_FILE_ATTRIBUTES ||
+		GetFileAttributesW(MakeRelativeCitPath(L"citizen/release.txt").c_str()) == INVALID_FILE_ATTRIBUTES)
 	{
 		shouldVerify = true;
 	}
+
+	// additional check for Five/RDR
+#if defined(GTA_FIVE) || defined(IS_RDR3)
+	if (GetFileAttributesW(MakeRelativeCitPath(L"citizen/ros/ros.crt").c_str()) == INVALID_FILE_ATTRIBUTES)
+	{
+		shouldVerify = true;
+	}
+#endif
 
 	FILE* cachesReader = NULL;
 	
