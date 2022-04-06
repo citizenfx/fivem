@@ -40,6 +40,7 @@ build_sdk:
     paths:
       - caches/
       - caches/caches_sdk.xml
+    expire_in: 1 month
   cache:
     key: sdk
   except:
@@ -56,12 +57,13 @@ build_client_rdr3:
     IS_FXSERVER: '0'
     IS_LAUNCHER: '0'
     IS_RDR3: '1'
+    GIT_CLONE_PATH: $CI_BUILDS_DIR\$CI_BUILD_REF_NAME\fivem
   artifacts:
     paths:
       - caches/
     expire_in: 1 month
   cache:
-    key: rdr3
+    key: rdr3_$CI_BUILD_REF_NAME
     untracked: true
     paths:
       - code/shared/citversion.h
@@ -110,6 +112,7 @@ build_server_windows:
     paths:
       - out/server.zip
       - out/server.7z
+    expire_in: 1 month
   except:
     - tags
     - fxdk-releng
@@ -130,6 +133,7 @@ build_proot_linux:
   artifacts:
     paths:
       - fx.tar.xz
+    expire_in: 1 month
   except:
     - tags
     #- master
@@ -183,6 +187,7 @@ deploy_rdr3_specific:
     IS_FXSERVER: '0'
     IS_LAUNCHER: '0'
     IS_RDR3: '1'
+    GIT_CLONE_PATH: $CI_BUILDS_DIR\$CI_BUILD_REF_NAME\fivem
   except:
     - master
     - server-ci
@@ -238,6 +243,7 @@ deploy_canary_rdr3:
     IS_FXSERVER: '0'
     IS_LAUNCHER: '0'
     IS_RDR3: '1'
+    GIT_CLONE_PATH: $CI_BUILDS_DIR\$CI_BUILD_REF_NAME\fivem
   only:
     - master
     
@@ -295,6 +301,7 @@ deploy_prod_rdr3:
     IS_FXSERVER: '0'
     IS_LAUNCHER: '0'
     IS_RDR3: '1'
+    GIT_CLONE_PATH: $CI_BUILDS_DIR\$CI_BUILD_REF_NAME\fivem
   only:
     - master
 
@@ -336,6 +343,7 @@ deploy_beta_rdr3:
     IS_FXSERVER: '0'
     IS_LAUNCHER: '0'
     IS_RDR3: '1'
+    GIT_CLONE_PATH: $CI_BUILDS_DIR\$CI_BUILD_REF_NAME\fivem
   only:
     - master
     
