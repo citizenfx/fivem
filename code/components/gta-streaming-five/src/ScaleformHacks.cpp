@@ -35,8 +35,13 @@ struct GFxDisplayInfo
 	double FOV;
 	float ViewMatrix3D[4][4];
 	float ProjectionMatrix3D[4][4];
-	uint8_t VarsSet;
+	uint16_t VarsSet;
 };
+
+static hook::cdecl_stub<bool(GFxObjectInterface*, void*, GFxDisplayInfo*)> __GFxObjectInterface_GetDisplayInfo([]()
+{
+	return hook::get_pattern("83 65 9B 00 83 65 97 00 F2", -0x60);
+});
 
 static hook::cdecl_stub<bool(GFxObjectInterface*, void*, const GFxDisplayInfo&)> __GFxObjectInterface_SetDisplayInfo([]()
 {
@@ -142,6 +147,11 @@ struct GFxValue
 	inline bool CreateEmptyMovieClip(GFxValue* movieClip, const char* instanceName)
 	{
 		return __GFxObjectInterface_CreateEmptyMovieClip(pObjectInterface, mValue.pData, movieClip, instanceName);
+	}
+
+	inline bool GetDisplayInfo(GFxDisplayInfo* info)
+	{
+		return __GFxObjectInterface_GetDisplayInfo(pObjectInterface, mValue.pData, info);
 	}
 
 	inline bool SetDisplayInfo(const GFxDisplayInfo& info)

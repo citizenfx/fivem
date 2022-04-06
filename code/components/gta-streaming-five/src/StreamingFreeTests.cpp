@@ -131,8 +131,6 @@ rage::strStreamingModule** GetStreamingModuleWithValidate(void* streamingModuleM
 
 extern std::string g_lastStreamingName;
 
-static FILE* sfLog;// = fopen("B:\\sf.log", "w");
-
 uint32_t* AddStreamingFileWrap(uint32_t* indexRet)
 {
 	if (*indexRet != -1)
@@ -146,12 +144,6 @@ uint32_t* AddStreamingFileWrap(uint32_t* indexRet)
 
 		auto store = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule(*indexRet);
 		auto baseIdx = store->baseIdx;
-
-		if (sfLog)
-		{
-			fprintf(sfLog, "registered %s as %d (%d+%d)\n", g_lastStreamingName.c_str(), *indexRet, baseIdx, *indexRet - baseIdx);
-			fflush(sfLog);
-		}
 
 		g_streamingNamesToIndices[g_lastStreamingName] = *indexRet;
 		g_streamingIndexesToNames[*indexRet] = g_lastStreamingName;

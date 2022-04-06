@@ -84,8 +84,6 @@ CNetGamePlayer* GetLocalPlayer();
 
 CNetGamePlayer* GetPlayerByNetId(uint16_t);
 
-void UpdateTime(uint64_t serverTime, bool isInit = false);
-
 bool IsWaitingForTimeSync();
 
 extern uint32_t* rage__s_NetworkTimeThisFrameStart;

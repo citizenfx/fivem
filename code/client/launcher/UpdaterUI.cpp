@@ -1061,7 +1061,7 @@ static void InitializeRenderOverlay(winrt::Windows::UI::Xaml::Controls::SwapChai
 {
 	auto nativePanel = swapChainPanel.as<ISwapChainPanelNative>();
 
-	std::thread([w, h, swapChainPanel, nativePanel]()
+	auto run = [w, h, swapChainPanel, nativePanel]()
 	{
 		auto loadSystemDll = [](auto dll)
 		{
@@ -1238,6 +1238,11 @@ static void InitializeRenderOverlay(winrt::Windows::UI::Xaml::Controls::SwapChai
 			g_pSwapChain->Present(0, 0);
 			DwmFlush();
 		}
+	};
+
+	std::thread([run]()
+	{
+		run();
 
 		// prevent the thread from exiting (the CRT is broken and will crash on thread exit in some cases)
 		WaitForSingleObject(GetCurrentProcess(), INFINITE);

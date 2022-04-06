@@ -121,7 +121,7 @@ static void rage__audMixerDevice__GeneratePcm(rage::audMixerDevice* thisptr)
 	int maxWavePlayers = thisptr->GetMaxWavePlayers();
 	int* refArray = thisptr->GetRefArray();
 	int numActivePlayers = 0;
-	int i = 0;
+
 	// original size is 64, problem is that numActivePlayers can go up to the maxWavePlayers(0x300)
 	rage::wavePlayerStruct audMixerSyncSignalArray[0x301];
 
