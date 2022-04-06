@@ -69,6 +69,11 @@ static void UpdatePresence()
 			g_richPresenceValues[7]
 		);
 
+		if (!g_richPresenceOverride.empty())
+		{
+			formattedRichPresence = g_richPresenceOverride;
+		}
+
 		auto lineOff = formattedRichPresence.find_first_of("\n");
 
 		std::string line1 = formattedRichPresence.substr(0, lineOff);
@@ -77,11 +82,6 @@ static void UpdatePresence()
 		if (lineOff != std::string::npos)
 		{
 			line2 = formattedRichPresence.substr(lineOff + 1);
-		}
-
-		if (!g_richPresenceOverride.empty())
-		{
-			line2 = g_richPresenceOverride;
 		}
 
 		if (g_discordAppId != g_lastDiscordAppId) 
