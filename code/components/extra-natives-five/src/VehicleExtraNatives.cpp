@@ -364,8 +364,12 @@ TrainDoor* GetTrainDoor(fwEntity* train, uint32_t index)
 	return &(*((TrainDoor**)(((char*)train) + TrainDoorArrayPointerOffset)))[index];
 }
 
+static bool* isNetworkGame;
+
 static HookFunction initFunction([]()
 {
+	isNetworkGame = hook::get_address<bool*>(hook::get_pattern("24 07 3C 03 75 12 40 38 35 ? ? ? ? 75 09 83", 9));
+
 	{
 		ModelInfoPtrOffset = *hook::get_pattern<uint8_t>("48 8B 40 ? 0F B6 80 ? ? ? ? 83 E0 1F", 3);
 		GravityOffset = *hook::get_pattern<uint32_t>("0F C6 F6 00 F3 0F 59 05", -4);
@@ -1188,7 +1192,7 @@ static HookFunction initFunction([]()
 
 	OnMainGameFrame.Connect([]()
 	{
-		*g_flyThroughWindscreenDisabled = !isFlyThroughWindscreenEnabledConVar;
+		*g_flyThroughWindscreenDisabled = *isNetworkGame && !isFlyThroughWindscreenEnabledConVar;
 	});
 
 	OnKillNetworkDone.Connect([]()
