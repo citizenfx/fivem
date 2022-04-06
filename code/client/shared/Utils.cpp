@@ -270,10 +270,9 @@ bool UrlDecode(const std::string& in, std::string& out)
 	return true;
 }
 
-std::string ToNarrow(const std::wstring& wide)
+std::string ToNarrow(std::wstring_view wide)
 {
-	// TODO: replace with something faster if needed
-	std::vector<char> outVec;
+	std::string outVec;
 	outVec.reserve(wide.size());
 
 #ifdef _WIN32
@@ -282,15 +281,15 @@ std::string ToNarrow(const std::wstring& wide)
 	utf8::utf32to8(wide.begin(), wide.end(), std::back_inserter(outVec));
 #endif
 	
-	return std::string(outVec.begin(), outVec.end());
+	return std::move(outVec);
 }
 
-std::wstring ToWide(const std::string& narrow)
+std::wstring ToWide(std::string_view narrow)
 {
 	std::vector<uint8_t> cleanVec;
 	cleanVec.reserve(narrow.size());
 
-	std::vector<wchar_t> outVec;
+	std::wstring outVec;
 	outVec.reserve(cleanVec.size());
 
 	try
@@ -308,5 +307,5 @@ std::wstring ToWide(const std::string& narrow)
 
 	}
 
-	return std::wstring(outVec.begin(), outVec.end());
+	return std::move(outVec);
 }

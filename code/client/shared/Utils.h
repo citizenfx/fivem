@@ -291,8 +291,8 @@ void CreateDirectoryAnyDepth(const char *path);
 
 void SetThreadName(int threadId, const char* threadName);
 
-std::wstring ToWide(const std::string& narrow);
-std::string ToNarrow(const std::wstring& wide);
+std::wstring ToWide(std::string_view narrow);
+std::string ToNarrow(std::wstring_view wide);
 
 #ifdef COMPILING_CORE
 extern "C" bool DLL_EXPORT CoreIsDebuggerPresent();

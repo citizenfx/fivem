@@ -66,5 +66,5 @@ private:
 	HANDLE m_fileMapping;
 	TData* m_data;
 
-	TData m_fakeData;
+	inline static TData m_fakeData;
 };
