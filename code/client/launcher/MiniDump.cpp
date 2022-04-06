@@ -81,19 +81,35 @@ static json load_json_file(const std::wstring& path)
 
 static void send_sentry_session(const json& data)
 {
+	constexpr int sentryProjectId =
+#ifndef IS_RDR3
+	2
+#else
+	11
+#endif
+	;
+
+	constexpr std::string_view sentryKey =
+#ifndef IS_RDR3
+	"9902acf744d546e98ca357203f19278b"
+#else
+	"22f37206f3a64544bbd9b3ca9c5c2891"
+#endif
+	;
+
 	std::stringstream bodyData;
 	bodyData << "{}\n";
 	bodyData << R"({"type":"session"})" << "\n";
 	bodyData << data.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace) << "\n";
 
 	auto r = cpr::Post(
-	cpr::Url{ "https://sentry.fivem.net/api/2/envelope/" },
+	cpr::Url{ fmt::sprintf("https://sentry.fivem.net/api/%d/envelope/", sentryProjectId) },
 	cpr::Body{bodyData.str()},
 	cpr::VerifySsl{ false },
 	cpr::Header{
 		{
 			"X-Sentry-Auth",
-			fmt::sprintf("Sentry sentry_version=7, sentry_key=9902acf744d546e98ca357203f19278b")
+			fmt::sprintf("Sentry sentry_version=7, sentry_key=%s", sentryKey)
 		}
 	},
 	cpr::Timeout{ 2500 });
