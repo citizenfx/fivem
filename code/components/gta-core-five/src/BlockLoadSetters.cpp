@@ -422,44 +422,7 @@ void ShutdownSessionWrap()
 		OnGameFrame();
 		OnMainGameFrame();
 
-		// 1604 (same as nethook)
-		// 1868
-		// 2060
-		if (Is2545())
-		{
-			((void (*)())hook::get_adjusted(0x140006A28))();
-			((void (*)())hook::get_adjusted(0x1407FB28C))();
-			((void (*)())hook::get_adjusted(0x1400275C8))();
-			((void (*)(void*))hook::get_adjusted(0x141612950))((void*)hook::get_adjusted(0x142E6F960));
-		}
-		else if (Is2372())
-		{
-			((void (*)())hook::get_adjusted(0x140006718))();
-			((void (*)())hook::get_adjusted(0x1407F6050))();
-			((void (*)())hook::get_adjusted(0x1400263CC))();
-			((void (*)(void*))hook::get_adjusted(0x14160104C))((void*)hook::get_adjusted(0x142E34900));
-		}
-		else if (Is2189())
-		{
-			((void (*)())hook::get_adjusted(0x140006748))();
-			((void (*)())hook::get_adjusted(0x1407F4150))();
-			((void (*)())hook::get_adjusted(0x140026120))();
-			((void (*)(void*))hook::get_adjusted(0x1415E4AC8))((void*)hook::get_adjusted(0x142E5C2D0));
-		}
-		else if (!Is2060())
-		{
-			((void(*)())hook::get_adjusted(0x1400067E8))();
-			((void(*)())hook::get_adjusted(0x1407D1960))();
-			((void(*)())hook::get_adjusted(0x140025F7C))();
-			((void(*)(void*))hook::get_adjusted(0x141595FD4))((void*)hook::get_adjusted(0x142DC9BA0));
-		}
-		else
-		{
-			((void (*)())hook::get_adjusted(0x140006A80))();
-			((void (*)())hook::get_adjusted(0x1407EB39C))();
-			((void (*)())hook::get_adjusted(0x1400263A4))();
-			((void (*)(void*))hook::get_adjusted(0x1415CF268))((void*)hook::get_adjusted(0x142D3DCC0));
-		}
+		RunRlInitServicing();
 
 		g_runWarning();
 	}

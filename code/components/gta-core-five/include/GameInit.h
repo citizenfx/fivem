@@ -61,3 +61,24 @@ extern
 	__declspec(dllimport)
 	#endif
 	fwEvent<> OnKillNetworkDone;
+
+extern
+#ifdef COMPILING_GTA_CORE_FIVE
+DLL_EXPORT
+#endif
+void
+WaitForRlInit();
+
+extern
+#ifdef COMPILING_GTA_CORE_FIVE
+DLL_EXPORT
+#endif
+void
+RunRlInitServicing();
+
+extern
+#ifdef COMPILING_GTA_CORE_FIVE
+DLL_EXPORT
+#endif
+void
+SetScInitWaitCallback(bool(*cb)());
