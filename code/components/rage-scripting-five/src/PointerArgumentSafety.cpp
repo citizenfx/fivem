@@ -49,6 +49,11 @@ static void NullifyAny(void*& arg)
 
 void PointerArgumentSafety()
 {
+	PointerArgumentSafety_Impl();
+}
+
+static HookFunction hookFunction([]
+{
 	icgi = Instance<ICoreGameInit>::Get();
 	icgi->OnSetVariable.Connect([](const std::string& name, bool value)
 	{
@@ -57,6 +62,4 @@ void PointerArgumentSafety()
 			storyMode = value;
 		}
 	});
-
-	PointerArgumentSafety_Impl();
-}
+});
