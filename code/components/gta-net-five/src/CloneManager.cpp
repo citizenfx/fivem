@@ -494,7 +494,16 @@ void CloneManagerLocal::ProcessCreateAck(uint16_t objId, uint16_t uniqifier)
 		return;
 	}
 
-	m_trackedObjects[objId].lastSyncAck = msec();
+	auto& lastSynAck = m_trackedObjects[objId];
+	
+	// first creation ACK, server acknowledged the entity is present on the server, so start sending extra data relevant to this entity (if any)
+	if (lastSynAck.lastSyncAck.count() == 0 && lastSynAck.stateBag)
+	{
+		lastSynAck.stateBag->EnableImmediateReplication(true);
+		lastSynAck.stateBag->SendQueuedUpdates();
+	}
+
+	lastSynAck.lastSyncAck = msec();
 
 	Log("%s: create ack %d\n", __func__, objId);
 }
@@ -2099,7 +2108,8 @@ bool CloneManagerLocal::RegisterNetworkObject(rage::netObject* object)
 
 	if (!m_trackedObjects[object->GetObjectId()].stateBag)
 	{
-		m_trackedObjects[object->GetObjectId()].stateBag = m_sbac->RegisterStateBag(fmt::sprintf("entity:%d", object->GetObjectId()));
+		auto& stateBag = m_trackedObjects[object->GetObjectId()].stateBag = m_sbac->RegisterStateBag(fmt::sprintf("entity:%d", object->GetObjectId()));
+		stateBag->EnableImmediateReplication(false); // #TODO: potentially remove once throttling is implemented
 	}
 
 	Log("%s: registering %s (uniqifier: %d)\n", __func__, object->ToString(), m_trackedObjects[object->GetObjectId()].uniqifier);
