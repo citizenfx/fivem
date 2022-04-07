@@ -21,6 +21,10 @@ export class ChangelogService {
 		const versions = await this.getVersions();
 		const savedVersions = await this.getSavedVersions();
 
+		if (!versions || typeof versions[Symbol.iterator] !== 'function') {
+			return 0;
+		}
+
 		if (savedVersions.size === 0) {
 			return 1;
 		}
