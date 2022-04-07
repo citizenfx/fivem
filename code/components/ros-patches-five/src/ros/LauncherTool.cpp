@@ -31,6 +31,11 @@
 #include "Hooking.h"
 #include "Hooking.Aux.h"
 
+#include <wrl.h>
+#include <d2d1.h>
+
+namespace WRL = Microsoft::WRL;
+
 bool CanSafelySkipLauncher()
 {
 	FILE* f = _wfopen(MakeRelativeCitPath(L"data\\cache\\launcher_skip_mtl2").c_str(), L"rb");
@@ -390,6 +395,94 @@ static BOOL WINAPI SetForegroundWindowStub(_In_ HWND hWnd)
 
 static std::vector<std::tuple<const char*, void*, const char*>>* g_refLauncherHooks;
 
+class MyFactory : public WRL::RuntimeClass<WRL::RuntimeClassFlags<WRL::ClassicCom>, ID2D1Factory>
+{
+	WRL::ComPtr<ID2D1Factory> m_orig;
+
+public:
+	MyFactory(WRL::ComPtr<ID2D1Factory> orig)
+		: m_orig(orig)
+	{
+	}
+
+	virtual HRESULT __stdcall ReloadSystemMetrics() override
+	{
+		return m_orig->ReloadSystemMetrics();
+	}
+	virtual void __stdcall GetDesktopDpi(FLOAT* dpiX, FLOAT* dpiY) override
+	{
+		return m_orig->GetDesktopDpi(dpiX, dpiY);
+	}
+	virtual HRESULT __stdcall CreateRectangleGeometry(const D2D1_RECT_F* rectangle, ID2D1RectangleGeometry** rectangleGeometry) override
+	{
+		return m_orig->CreateRectangleGeometry(rectangle, rectangleGeometry);
+	}
+	virtual HRESULT __stdcall CreateRoundedRectangleGeometry(const D2D1_ROUNDED_RECT* roundedRectangle, ID2D1RoundedRectangleGeometry** roundedRectangleGeometry) override
+	{
+		return m_orig->CreateRoundedRectangleGeometry(roundedRectangle, roundedRectangleGeometry);
+	}
+	virtual HRESULT __stdcall CreateEllipseGeometry(const D2D1_ELLIPSE* ellipse, ID2D1EllipseGeometry** ellipseGeometry) override
+	{
+		return m_orig->CreateEllipseGeometry(ellipse, ellipseGeometry);
+	}
+	virtual HRESULT __stdcall CreateGeometryGroup(D2D1_FILL_MODE fillMode, ID2D1Geometry** geometries, UINT32 geometriesCount, ID2D1GeometryGroup** geometryGroup) override
+	{
+		return m_orig->CreateGeometryGroup(fillMode, geometries, geometriesCount, geometryGroup);
+	}
+	virtual HRESULT __stdcall CreateTransformedGeometry(ID2D1Geometry* sourceGeometry, const D2D1_MATRIX_3X2_F* transform, ID2D1TransformedGeometry** transformedGeometry) override
+	{
+		return m_orig->CreateTransformedGeometry(sourceGeometry, transform, transformedGeometry);
+	}
+	virtual HRESULT __stdcall CreatePathGeometry(ID2D1PathGeometry** pathGeometry) override
+	{
+		return m_orig->CreatePathGeometry(pathGeometry);
+	}
+	virtual HRESULT __stdcall CreateStrokeStyle(const D2D1_STROKE_STYLE_PROPERTIES* strokeStyleProperties, const FLOAT* dashes, UINT32 dashesCount, ID2D1StrokeStyle** strokeStyle) override
+	{
+		return m_orig->CreateStrokeStyle(strokeStyleProperties, dashes, dashesCount, strokeStyle);
+	}
+	virtual HRESULT __stdcall CreateDrawingStateBlock(const D2D1_DRAWING_STATE_DESCRIPTION* drawingStateDescription, IDWriteRenderingParams* textRenderingParams, ID2D1DrawingStateBlock** drawingStateBlock) override
+	{
+		return m_orig->CreateDrawingStateBlock(drawingStateDescription, textRenderingParams, drawingStateBlock);
+	}
+	virtual HRESULT __stdcall CreateWicBitmapRenderTarget(IWICBitmap* target, const D2D1_RENDER_TARGET_PROPERTIES* renderTargetProperties, ID2D1RenderTarget** renderTarget) override
+	{
+		return m_orig->CreateWicBitmapRenderTarget(target, renderTargetProperties, renderTarget);
+	}
+	virtual HRESULT __stdcall CreateHwndRenderTarget(const D2D1_RENDER_TARGET_PROPERTIES* renderTargetProperties, const D2D1_HWND_RENDER_TARGET_PROPERTIES* hwndRenderTargetProperties, ID2D1HwndRenderTarget** hwndRenderTarget) override
+	{
+		return m_orig->CreateHwndRenderTarget(renderTargetProperties, hwndRenderTargetProperties, hwndRenderTarget);
+	}
+	virtual HRESULT __stdcall CreateDxgiSurfaceRenderTarget(IDXGISurface* dxgiSurface, const D2D1_RENDER_TARGET_PROPERTIES* renderTargetProperties, ID2D1RenderTarget** renderTarget) override
+	{
+		return m_orig->CreateDxgiSurfaceRenderTarget(dxgiSurface, renderTargetProperties, renderTarget);
+	}
+	virtual HRESULT __stdcall CreateDCRenderTarget(const D2D1_RENDER_TARGET_PROPERTIES* renderTargetProperties, ID2D1DCRenderTarget** dcRenderTarget) override
+	{
+		auto myRenderTargetProperties = *renderTargetProperties;
+		myRenderTargetProperties.type = D2D1_RENDER_TARGET_TYPE_SOFTWARE;
+		return m_orig->CreateDCRenderTarget(&myRenderTargetProperties, dcRenderTarget);
+	}
+};
+
+static HRESULT WINAPI D2D1CreateFactoryWrap(D2D1_FACTORY_TYPE factoryType, REFIID riid, const D2D1_FACTORY_OPTIONS* fo, ID2D1Factory** factory)
+{
+	HRESULT hr = E_FAIL;
+	
+	if (auto d2d1 = GetModuleHandleW(L"d2d1.dll"))
+	{
+		hr = ((decltype(&D2D1CreateFactoryWrap))GetProcAddress(d2d1, "D2D1CreateFactory"))(factoryType, riid, fo, factory);
+	}
+
+	if (SUCCEEDED(hr))
+	{
+		auto myFactory = WRL::Make<MyFactory>(*factory);
+		hr = myFactory.CopyTo(factory);
+	}
+
+	return hr;
+}
+
 void DoLauncherUiSkip()
 {
 	DisableToolHelpScope scope;
@@ -408,6 +501,8 @@ void DoLauncherUiSkip()
 		g_refLauncherHooks->emplace_back("user32.dll", SetWindowPosStub, "SetWindowPos");
 		g_refLauncherHooks->emplace_back("shell32.dll", Shell_NotifyIconWStub, "Shell_NotifyIconW");
 	}
+
+	g_refLauncherHooks->emplace_back("d2d1.dll", D2D1CreateFactoryWrap, "d2d1.dll#1");
 
 	MH_EnableHook(MH_ALL_HOOKS);
 }
@@ -588,14 +683,25 @@ static std::vector<std::tuple<const char*, void*, const char*>> g_launcherHooks 
 
 static FARPROC GetProcAddressHook(HMODULE hModule, LPCSTR funcName)
 {
-	if (!IS_INTRESOURCE(funcName))
+	auto testFuncName = funcName;
+
+	if (IS_INTRESOURCE(funcName))
 	{
-		for (const auto& h : g_launcherHooks)
+		char fileName[MAX_PATH];
+		GetModuleFileNameA(hModule, fileName, std::size(fileName));
+		auto fn = strrchr(fileName, L'\\');
+
+		if (fn)
 		{
-			if (strcmp(std::get<2>(h), funcName) == 0)
-			{
-				return (FARPROC)std::get<1>(h);
-			}
+			testFuncName = va("%s#%d", &fn[1], (DWORD_PTR)funcName);
+		}
+	}
+
+	for (const auto& h : g_launcherHooks)
+	{
+		if (_stricmp(std::get<2>(h), testFuncName) == 0)
+		{
+			return (FARPROC)std::get<1>(h);
 		}
 	}
 
