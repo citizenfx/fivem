@@ -180,8 +180,22 @@ _paq.push(['enableLinkTracking']);
 	_paq.push(['setCustomDimension', customDimensionId = 2, customDimensionValue = navigator.hardwareConcurrency]);
 	_paq.push(['setCookieSameSite', 'None']);
 	_paq.push(['setSecureCookie', true]);
-	var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
-	g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'piwik.js?2'; s.parentNode.insertBefore(g,s);
+
+	fetch(u+'piwik.js?2').then((response) => {
+		if (response.ok) {
+			return response.blob();
+		}
+
+		return false;
+	}).then((blob) => {
+		if (!blob) {
+			return;
+		}
+
+		const blobUrl = URL.createObjectURL(blob);
+		var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+		g.type='text/javascript'; g.async=true; g.defer=true; g.src=blobUrl; s.parentNode.insertBefore(g,s);
+	});
 })();
 </script>
 </body>
