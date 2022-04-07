@@ -80,25 +80,10 @@ public:
 static InitFunction initFunction([] ()
 {
 	// create the handler
-	VersioningHandler* handler = new VersioningHandler("/prod/gtav/", { "versioning.xml", "launcher_online_config.xml", "splash.png", "logotype.ttf", "fontawesome-webfont.ttf", "font-awesome.css", "roboto.ttf" } );
-	handler->AddRef();
-
 	VersioningHandler* publicHandler = new VersioningHandler("/public/", { "title_metadata.json", "launcher_online_config.xml", "recognised_titles.json", "legacy_titles.json" });
 	publicHandler->AddRef();
 
 	LoopbackTcpServerManager* tcpServerManager = Instance<LoopbackTcpServerManager>::Get();
-
-	net::HttpServer* httpServer = new net::HttpServerImpl();
-	httpServer->AddRef();
-	httpServer->RegisterHandler(handler);
-
-	// create the backend server
-	fwRefContainer<LoopbackTcpServer> insecureServer = tcpServerManager->RegisterTcpServer("patches.rockstargames.com");
-	insecureServer->AddRef();
-	insecureServer->SetPort(80);
-
-	// attach the HTTP server
-	httpServer->AttachToServer(insecureServer);
 
 	// create public handler
 	net::HttpServer* httpServer2 = new net::HttpServerImpl();
@@ -118,9 +103,7 @@ static InitFunction initFunction([] ()
 
 	// also register the versioning handler for ROS SCUI
 	EndpointMapper* endpointMapper = Instance<EndpointMapper>::Get();
-
-	endpointMapper->AddPrefix("/prod/gtav/", handler);
-	endpointMapper->AddPrefix("/public/", publicHandler);
+		endpointMapper->AddPrefix("/public/", publicHandler);
 });
 
 void* operator new[](size_t size, const char* pName, int flags, unsigned debugFlags, const char* file, int line)
