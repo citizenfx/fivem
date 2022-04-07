@@ -120,6 +120,24 @@ const doHook = () => {
 	});
 };
 
+for (const old of ['profile', 'profileEnd']) {
+	const oldProfile = console[old];
+	Object.defineProperty(console, old, {
+		get: () => {
+			return (...args) => {
+				for (const arg of args) {
+					try {
+						arg.toString();
+					} catch {
+					}
+				}
+
+				return oldProfile(...args);
+			};
+		}
+	});
+}
+
 const oldDefineGetter = Object.prototype.__defineGetter__;
 Object.prototype.__defineGetter__ = function(prop, func) {
 	if (prop === 'id') {
