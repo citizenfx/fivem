@@ -248,7 +248,8 @@ void DLL_EXPORT CoreRT_SetupSEHHandler(...)
 static LONG (*g_exceptionHandler)(EXCEPTION_POINTERS*);
 static BOOLEAN(WINAPI *g_origRtlDispatchException)(EXCEPTION_RECORD* record, CONTEXT* context);
 
-static thread_local std::tuple<EXCEPTION_RECORD*, CONTEXT*> g_lastExc;
+static auto g_lastExc0Index = FlsAlloc(NULL);
+static auto g_lastExc1Index = FlsAlloc(NULL);
 
 static PIMAGE_SECTION_HEADER GetSection(std::string_view name, int off = 0)
 {
@@ -371,13 +372,13 @@ static BOOLEAN WINAPI RtlDispatchExceptionStub(EXCEPTION_RECORD* record, CONTEXT
 	}
 #endif
 
-#ifndef _M_IX86
-	g_lastExc = { record, context };
-#endif
+	FlsSetValue(g_lastExc0Index, record);
+	FlsSetValue(g_lastExc1Index, context);
+
 	BOOLEAN success = g_origRtlDispatchException(record, context);
-#ifndef _M_IX86
-	g_lastExc = { nullptr, nullptr };
-#endif
+
+	FlsSetValue(g_lastExc0Index, nullptr);
+	FlsSetValue(g_lastExc1Index, nullptr);
 
 	if (CoreIsDebuggerPresent())
 	{
@@ -414,13 +415,13 @@ static bool (*_TerminateForException)(PEXCEPTION_POINTERS exc);
 
 static void terminateStub()
 {
-	auto exc = std::get<0>(g_lastExc);
+	auto exc = reinterpret_cast<PEXCEPTION_RECORD>(FlsGetValue(g_lastExc0Index));
 
 	if (exc && exc->ExceptionCode == 0xE06D7363)
 	{
 		EXCEPTION_POINTERS ptrs;
 		ptrs.ExceptionRecord = exc;
-		ptrs.ContextRecord = std::get<1>(g_lastExc);
+		ptrs.ContextRecord = reinterpret_cast<PCONTEXT>(FlsGetValue(g_lastExc1Index));
 
 		_TerminateForException(&ptrs);
 	}
