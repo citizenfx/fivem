@@ -40,11 +40,59 @@ static void MountNatives(const std::string& name)
 	}
 }
 
+class MarkerDevice : public vfs::Device
+{
+	// Inherited via Device
+	virtual THandle Open(const std::string& fileName, bool readOnly) override
+	{
+		if (fileName == "n:m:a:r:k:e:r" && readOnly)
+		{
+			return 1;
+		}
+
+		return vfs::Device::InvalidHandle;
+	}
+
+	virtual size_t Read(THandle handle, void* outBuffer, size_t size) override
+	{
+		return -1;
+	}
+
+	virtual size_t Seek(THandle handle, intptr_t offset, int seekType) override
+	{
+		return -1;
+	}
+
+	virtual bool Close(THandle handle) override
+	{
+		return true;
+	}
+
+	virtual THandle FindFirst(const std::string& folder, vfs::FindData* findData) override
+	{
+		return vfs::Device::InvalidHandle;
+	}
+
+	virtual bool FindNext(THandle handle, vfs::FindData* findData) override
+	{
+		return false;
+	}
+
+	virtual void FindClose(THandle handle) override
+	{
+	}
+};
+
 static InitFunction initFunction([]()
 {
 	fx::ResourceManager::OnInitializeInstance.Connect([](fx::ResourceManager*)
 	{
-		static bool mountedFiles = false;
+		bool mountedFiles = false;
+
+		if (auto device = vfs::GetDevice("nativesLua:/marker/"); device.GetRef())
+		{
+			mountedFiles = device->Open("n:m:a:r:k:e:r", true) != vfs::Device::InvalidHandle;
+		}
 
 		if (!mountedFiles)
 		{
@@ -60,7 +108,7 @@ static InitFunction initFunction([]()
 			MountNatives("natives_server");
 #endif
 
-			mountedFiles = true;
+			vfs::Mount(new MarkerDevice(), "nativesLua:/marker/");
 		}
 	});
 });
