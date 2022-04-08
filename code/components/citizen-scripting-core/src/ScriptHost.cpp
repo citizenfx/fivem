@@ -716,7 +716,7 @@ static InitFunction initFunction([]()
 				auto& b = bit->first;
 				auto& e = bit->second;
 
-				srt->WalkStack(e ? (char*)e->data() : NULL, e ? e->size() : 0, b ? (char*)b->data() : NULL, b ? b->size() : NULL, vis.GetRef());
+				srt->WalkStack(e ? (char*)e->data() : NULL, e ? e->size() : 0, b ? (char*)b->data() : NULL, b ? b->size() : 0, vis.GetRef());
 			}
 		}
 
