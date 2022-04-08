@@ -27,6 +27,7 @@ build_client:
     untracked: true
     paths:
       - code/shared/citversion.h
+      - code/shared/launcher_version.h
       - code/build/
   except:
     - server-ci
@@ -67,6 +68,7 @@ build_client_rdr3:
     untracked: true
     paths:
       - code/shared/citversion.h
+      - code/shared/launcher_version.h
       - code/build/
   except:
     - server-ci
@@ -93,6 +95,7 @@ build_launcher:
     untracked: true
     paths:
       - code/shared/citversion.h
+      - code/shared/launcher_version.h
       - code/build/
   except:
     - master
