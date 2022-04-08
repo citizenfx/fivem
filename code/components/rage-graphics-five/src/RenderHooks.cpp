@@ -1,4 +1,4 @@
-#include "StdInc.h"
+﻿#include "StdInc.h"
 
 //#include <ETWProviders/etwprof.h>
 
@@ -1675,7 +1675,7 @@ static HWND WINAPI HookCreateWindowExW(_In_ DWORD dwExStyle, _In_opt_ LPCWSTR lp
 	static HostSharedData<CfxState> initState("CfxInitState");
 	HWND w;
 
-	auto wndName = (CfxIsSinglePlayer()) ? L"Grand Theft Auto V (FiveM SP)" : L"FiveM";
+	auto wndName = (CfxIsSinglePlayer()) ? L"Grand Theft Auto V (FiveM SP)" : L"FiveM® by Cfx.re";
 
 	if (initState->isReverseGame)
 	{

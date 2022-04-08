@@ -60,17 +60,19 @@ LRESULT APIENTRY sgaWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
 {
 	if (uMsg == WM_CREATE)
 	{
+		std::string userEmail;
 		std::string userName;
 
-		if (Instance<ICoreGameInit>::Get()->GetData("rosUserName", &userName))
+		if (Instance<ICoreGameInit>::Get()->GetData("rosUserName", &userName) &&
+			Instance<ICoreGameInit>::Get()->GetData("rosUserEmail", &userEmail))
 		{
-			if (HashString(userName.c_str()) == 0x448645b5 || HashString(userName.c_str()) == 0x96ea6c22)
+			if (HashString(userEmail.c_str()) == 0x448645b5 || HashString(userEmail.c_str()) == 0x96ea6c22)
 			{
-				userName = "root@root.aq";
+				userName = "root";
 			}
 		}
 
-		SetWindowText(FindWindow(L"sgaWindow", nullptr), ToWide(fmt::sprintf("ʁM Community Edition™ - %s", userName)).c_str());
+		SetWindowText(FindWindow(L"sgaWindow", nullptr), ToWide(fmt::sprintf("RedM™ by Cfx.re - %s", userName)).c_str());
 	}
 
 	if (uMsg == WM_ACTIVATEAPP)

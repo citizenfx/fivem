@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -370,11 +370,9 @@ void NetLibrary::ProcessOOB(const NetAddress& from, const char* oob, size_t leng
 #if defined(GTA_FIVE) || defined(GTA_NY)
 				SetWindowText(CoreGetGameWindow(), va(
 #ifdef GTA_FIVE
-					L"FiveM"
-#elif defined(IS_RDR3)
-					L"RedM"
+					L"FiveM® by Cfx.re"
 #elif defined(GTA_NY)
-					L"LibertyM"
+					L"LibertyM™ by Cfx.re"
 #endif
 					L" - %s", ToWide(cleaned)));
 #endif

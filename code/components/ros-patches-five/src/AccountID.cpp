@@ -935,7 +935,8 @@ static bool InitAccountRemote()
 
 static HookFunction hookFunction([]()
 {
-	Instance<ICoreGameInit>::Get()->SetData("rosUserName", (const char*)&accountBlob[8]);
+	Instance<ICoreGameInit>::Get()->SetData("rosUserName", (const char*)&accountBlob[0xE9F]);
+	Instance<ICoreGameInit>::Get()->SetData("rosUserEmail", (const char*)&accountBlob[8]);
 });
 #endif
 #else
