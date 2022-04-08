@@ -102,9 +102,24 @@ void ComponentLoader::Initialize()
 		}
 
 #ifndef IS_FXSERVER
+		std::vector<std::wstring> neededComponentsList;
+
+#ifdef GTA_FIVE
+		if (wcsstr(moduleName, L"_ROS"))
+		{
+			neededComponentsList = {
+				L"ros-patches-five",
+				L"net-http-server",
+				L"net-tcp-server",
+				L"net-base",
+			};
+		}
+#endif
+
 		// don't load some useless stuff for FXNode as well
-		if (launch::IsFXNode()) {
-			std::vector<std::wstring> neededComponentsList = {
+		if (launch::IsFXNode())
+		{
+			neededComponentsList = {
 				L"citizen-scripting-v8node",
 				L"citizen-scripting-core",
 				L"citizen-resources-core",
@@ -118,7 +133,10 @@ void ComponentLoader::Initialize()
 				L"net-tcp-server",
 				L"net-base",
 			};
+		}
 
+		if (!neededComponentsList.empty())
+		{
 			bool wantThisComponent = false;
 
 			for (auto& componentName : neededComponentsList)
