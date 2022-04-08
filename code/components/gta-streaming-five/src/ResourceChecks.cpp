@@ -39,15 +39,19 @@ public:
 	atArray<char> name;
 };
 
-static void CallBeforeStreamingLoad(strStreamingModule* strModule, uint32_t index, void* data)
-{
-	uint32_t moduleBase = strModule->baseIdx;
+static thread_local void* g_currentStreamingModuleCallback;
 
-	g_currentStreamingName = streaming::GetStreamingNameForIndex(moduleBase + index);
+static void SetCurrentStreamingModuleCallback(void* func)
+{
+	g_currentStreamingModuleCallback = func;
 }
 
-static void CallAfterStreamingLoad(strStreamingModule* strModule, uint32_t index, void* data)
+static void WrapStreamingLoad(strStreamingModule* strModule, uint32_t index, void* data, void* a4)
 {
+	uint32_t moduleBase = strModule->baseIdx;
+	g_currentStreamingName = streaming::GetStreamingNameForIndex(moduleBase + index);
+
+	((decltype(&WrapStreamingLoad))g_currentStreamingModuleCallback)(strModule, index, data, a4);
 	g_currentStreamingName = "";
 }
 
@@ -74,28 +78,23 @@ static int InsertStreamingModuleWrap(void* moduleMgr, void* strModule)
 
 			sub(rsp, 0x28);
 
+			// save arguments
 			mov(rbx, rcx); // streaming module
 			mov(rsi, rdx); // index in module
 			mov(rbp, r8);  // data pointer
 			mov(rdi, r9);  // unknown
 
-			mov(rax, (uintptr_t)CallBeforeStreamingLoad);
+			// save the current callback
+			mov(rcx, (uintptr_t)m_origFunc);
+
+			mov(rax, (uintptr_t)SetCurrentStreamingModuleCallback);
 			call(rax);
 
+			// return original arguments
 			mov(rcx, rbx);
 			mov(rdx, rsi);
 			mov(r8, rbp);
 			mov(r9, rdi);
-
-			mov(rax, (uintptr_t)m_origFunc);
-			call(rax);
-
-			mov(rcx, rbx);
-			mov(rdx, rsi);
-			mov(r8, rbp);
-
-			mov(rax, (uintptr_t)CallAfterStreamingLoad);
-			call(rax);
 
 			add(rsp, 0x28);
 
@@ -104,7 +103,8 @@ static int InsertStreamingModuleWrap(void* moduleMgr, void* strModule)
 			pop(rsi);
 			pop(rbx);
 
-			ret();
+			mov(rax, (uintptr_t)WrapStreamingLoad);
+			jmp(rax);
 		}
 	};
 
