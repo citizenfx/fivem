@@ -16,6 +16,7 @@
 
 #include <ResourceManager.h>
 
+#include <boost/algorithm/string/predicate.hpp>
 #include <mutex>
 
 ResourceUI::ResourceUI(Resource* resource)
@@ -151,13 +152,40 @@ static std::mutex g_resourceUIMutex;
 
 #include <boost/algorithm/string.hpp>
 
+static bool NameMatches(std::string_view name, std::string_view match)
+{
+	if (name == match)
+	{
+		return true;
+	}
+
+	if (boost::algorithm::starts_with(name, match))
+	{
+		if (name[match.length()] == '/')
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 static InitFunction initFunction([] ()
 {
 	fx::ResourceManager::OnInitializeInstance.Connect([](fx::ResourceManager* manager)
 	{
 		nui::SetResourceLookupFunction([manager](const std::string& resourceName, const std::string& fileName) -> std::string
 		{
-			auto resource = manager->GetResource(resourceName);
+			fwRefContainer<fx::Resource> resource;
+
+			fx::ResourceManager* resourceManager = Instance<fx::ResourceManager>::Get();
+			resourceManager->ForAllResources([&resourceName, &resource](const fwRefContainer<fx::Resource>& resourceRef)
+			{
+				if (_stricmp(resourceRef->GetName().c_str(), resourceName.c_str()) == 0)
+				{
+					resource = resourceRef;
+				}
+			});
 
 			if (resource.GetRef())
 			{
@@ -189,21 +217,21 @@ static InitFunction initFunction([] ()
 				auto mdComponent = resource->GetComponent<fx::ResourceMetaDataComponent>();
 				bool valid = false;
 
-				if (nfn == "__resource.lua" || nfn == "fxmanifest.lua")
+				if (NameMatches(nfn, "__resource.lua") || NameMatches(nfn, "fxmanifest.lua"))
 				{
 					return "common:/data/gameconfig.xml";
 				}
 				
 				for (auto& entry : mdComponent->GlobEntriesVector("client_script"))
 				{
-					if (nfn == entry)
+					if (NameMatches(nfn, entry))
 					{
 						auto files = mdComponent->GlobEntriesVector("file");
 						bool isFile = false;
 
 						for (auto& fileEntry : files)
 						{
-							if (nfn == fileEntry)
+							if (NameMatches(nfn, fileEntry))
 							{
 								isFile = true;
 								break;
