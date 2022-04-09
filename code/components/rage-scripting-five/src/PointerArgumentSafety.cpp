@@ -45,6 +45,14 @@ static void NullifyAny(void*& arg)
 	}
 }
 
+static void NullifyVoid(rage::scrNativeCallContext* cxt)
+{
+	if (!storyMode)
+	{
+		cxt->SetResult(0, intptr_t(0));
+	}
+}
+
 #include "PASGen.h"
 
 void PointerArgumentSafety()

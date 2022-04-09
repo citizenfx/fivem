@@ -8,10 +8,14 @@ local function hasPointerArg(v)
     return false
 end
 
+local function hasVoid(v)
+    return v.returns == nil
+end
+
 print('void PointerArgumentSafety_Impl()\n{')
 
 for _, v in pairs(_natives) do
-	if matchApiSet(v) and hasPointerArg(v) then
+	if matchApiSet(v) and (hasPointerArg(v) or hasVoid(v)) then
         local avs = ''
         local i = 0
 
@@ -28,15 +32,30 @@ for _, v in pairs(_natives) do
             i = i + 1
         end
 
+        local rvs = ''
+        if hasVoid(v) then
+            rvs = rvs .. '\tNullifyVoid(cxt);\n'
+        end
+
+        avs = avs:gsub("%s+$", "")
+        rvs = rvs:gsub("%s+$", "")
+
+        if avs ~= '' then
+            avs = avs .. '\n'
+        end
+
+        if rvs ~= '' then
+            rvs = '\n' .. rvs
+        end
+
         local a = (([[
 // NAME
 static auto nh_HASH = rage::scrEngine::GetNativeHandler(HASH);
 rage::scrEngine::RegisterNativeHandler(HASH, [](rage::scrNativeCallContext* cxt)
 {
-ARG_VALIDATORS
-    nh_HASH(cxt);
+ARG_VALIDATORS\tnh_HASH(cxt);RESULT_VALIDATORS
 });
-        ]]):gsub('HASH', v.hash):gsub("ARG_VALIDATORS", avs)):gsub('NAME', v.ns .. '/' .. v.name):gsub('\n', '\n\t'):gsub('^', '\t')
+        ]]):gsub('\\t', "\t"):gsub('HASH', v.hash):gsub("ARG_VALIDATORS", avs):gsub("RESULT_VALIDATORS", rvs)):gsub('NAME', v.ns .. '/' .. v.name):gsub('\n', '\n\t'):gsub('^', '\t')
 
         print(a)
     end
