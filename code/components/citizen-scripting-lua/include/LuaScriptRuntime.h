@@ -402,5 +402,13 @@ public:
 
 	NS_DECL_ISCRIPTPROFILER;
 };
+
+void ScriptTraceV(const char* string, fmt::printf_args formatList);
+
+template<typename... TArgs>
+LUA_INLINE void ScriptTrace(const char* string, const TArgs&... args)
+{
+	ScriptTraceV(string, fmt::make_printf_args(args...));
+}
 }
 #endif

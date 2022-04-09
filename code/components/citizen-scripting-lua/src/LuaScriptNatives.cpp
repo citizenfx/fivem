@@ -625,7 +625,7 @@ static int __Lua_InvokeNative(lua_State* L)
 		}
 		catch (std::exception& e)
 		{
-			trace("%s: execution failed: %s\n", __func__, e.what());
+			fx::ScriptTrace("%s: execution failed: %s\n", __func__, e.what());
 			lua_pushstring(L, va("Execution of native %016llx in script host failed: %s", origHash, e.what()));
 			lua_error(L);
 		}
