@@ -1151,6 +1151,47 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 				std::map<std::wstring, std::wstring> files;
 				files[L"upload_file_minidump"] = *filePath;
 
+				// ask the game if it has any additional information to share
+				{
+					HostSharedData<CfxState> hostData("CfxInitState");
+					HANDLE gameProcess = OpenProcess(PROCESS_CREATE_THREAD | PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION, FALSE, hostData->gamePid);
+
+					if (!gameProcess)
+					{
+						gameProcess = parentProcess;
+					}
+
+					if (gameProcess)
+					{
+						std::string logPath = fmt::sprintf("%s.gamelog", ToNarrow(*filePath));
+
+						LPVOID memPtr = VirtualAllocEx(gameProcess, NULL, logPath.size() + 1, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+
+						if (memPtr)
+						{
+							WriteProcessMemory(gameProcess, memPtr, logPath.data(), logPath.size() + 1, NULL);
+						}
+
+						auto func = GetFunc(gameProcess, "TryCollectCrashLog");
+
+						if (func)
+						{
+							HANDLE hThread = CreateRemoteThread(gameProcess, NULL, 0, func, memPtr, 0, NULL);
+
+							if (hThread)
+							{
+								WaitForSingleObject(hThread, 7500);
+								CloseHandle(hThread);
+
+								if (GetFileAttributesW(ToWide(logPath).c_str()) != INVALID_FILE_ATTRIBUTES)
+								{
+									files[L"upload_file_gamelog"] = ToWide(logPath);
+								}
+							}
+						}
+					}
+				}
+
 				// *instance global* initTickCount snapshot
 				static fwPlatformString dateStamp;
 

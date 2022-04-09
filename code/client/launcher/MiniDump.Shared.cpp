@@ -159,6 +159,34 @@ extern "C" DLL_EXPORT DWORD WINAPI BeforeTerminateHandler(LPVOID arg)
 	return 0;
 }
 
+extern "C" DLL_EXPORT DWORD WINAPI TryCollectCrashLog(LPVOID arg)
+{
+	auto argString = (const char*)arg;
+
+	if (argString)
+	{
+		__try
+		{
+			auto coreRt = GetModuleHandleW(L"CoreRT.dll");
+
+			if (coreRt)
+			{
+				auto func = (bool (*)(const char*))GetProcAddress(coreRt, "CoreCollectCrashLog");
+
+				if (func)
+				{
+					func(argString);
+				}
+			}
+		}
+		__except (EXCEPTION_EXECUTE_HANDLER)
+		{
+		}
+	}
+
+	return 0;
+}
+
 extern "C" DLL_EXPORT bool InitializeExceptionHandler()
 {
 	if (initialized)
