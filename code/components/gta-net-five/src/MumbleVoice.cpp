@@ -436,14 +436,19 @@ static void Mumble_RunFrame()
 #ifdef GTA_FIVE
 	static auto getCam1 = fx::ScriptEngine::GetNativeHandler(0x19CAFA3C87F7C2FF);
 	static auto getCam2 = fx::ScriptEngine::GetNativeHandler(0xEE778F8C7E1142E2);
+	bool isInFirstPerson = FxNativeInvoke::Invoke<int>(getCam2, FxNativeInvoke::Invoke<int>(getCam1)) == 4;
+#elif IS_RDR3
+	static auto isInFullFirstPersonMode = fx::ScriptEngine::GetNativeHandler(0xD1BA66940E94C547);
+	static auto isFirstPersonCameraActive = fx::ScriptEngine::GetNativeHandler(0xA24C1D341C6E0D53);
+	bool isInFirstPerson = FxNativeInvoke::Invoke<bool>(isInFullFirstPersonMode) && FxNativeInvoke::Invoke<bool>(isFirstPersonCameraActive, 1, 0, 0);
+#endif
 
-	if (FxNativeInvoke::Invoke<int>(getCam2, FxNativeInvoke::Invoke<int>(getCam1)) == 4)
+	if (isInFirstPerson)
 	{
 		actorPos[0] = cameraPos[0];
 		actorPos[1] = cameraPos[1];
 		actorPos[2] = cameraPos[2];
 	}
-#endif
 
 	g_mumbleClient->SetListenerMatrix(actorPos, cameraFront, cameraTop);
 	g_mumbleClient->SetActorPosition(actorPos);
