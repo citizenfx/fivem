@@ -90,7 +90,7 @@ namespace CitizenFX.Core
 				m_intManager.SetResourceName(resourceName);
 
 				// TODO: figure out a cleaner solution to Mono JIT corruption so server doesn't have to be slower
-#if IS_FXSERVER
+#if IS_FXSERVER && !OS_WIN
 				m_intManager.SetScriptHost(new WrapScriptHost(host), m_instanceId);
 #else
 				m_intManager.SetScriptHost(Marshal.GetIUnknownForObject(host), m_instanceId);
@@ -166,7 +166,7 @@ namespace CitizenFX.Core
 		{
 			using (GetPushRuntime())
 			{
-#if IS_FXSERVER
+#if IS_FXSERVER && !OS_WIN
 				m_intManager?.Tick();
 #else
 				// we *shouldn't* do .Id here as that's yet another free remoting call
@@ -182,7 +182,7 @@ namespace CitizenFX.Core
 		private static extern IntPtr GetProcAddress(IntPtr hModule, string procedureName);
 
 		private static FastMethod<Action<AppDomain>> ms_fastTickInDomain =
-#if IS_FXSERVER
+#if IS_FXSERVER && !OS_WIN
 			null;
 #else
 			BuildFastTick();
@@ -291,7 +291,7 @@ namespace CitizenFX.Core
 
 			var frames = (IEnumerable<object>)MsgPackDeserializer.Deserialize(data);
 
-#if !IS_FXSERVER
+#if !IS_FXSERVER || OS_WIN
 			visitor = new DirectVisitor(visitor);
 #endif
 

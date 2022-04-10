@@ -419,6 +419,7 @@ if _OPTIONS['game'] ~= 'launcher' then
 		end
 
 		if os.istarget('windows') then
+			defines { 'OS_WIN' }
 			nuget {
 				"Microsoft.DotNet.GenAPI:6.0.0-beta.21063.5",
 				"Microsoft.DotNet.GenFacades:6.0.0-beta.21063.5",
