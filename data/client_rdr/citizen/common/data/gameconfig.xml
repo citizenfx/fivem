@@ -1051,7 +1051,7 @@
                 </Item>
                 <Item>
                   <PoolName>Dummy Object</PoolName>
-                  <PoolSize value="13500"/>
+                  <PoolSize value="30000"/>
                 </Item>
                 <Item>
                   <PoolName>CPropSetObjectExtension</PoolName>
@@ -1291,7 +1291,7 @@
                 </Item>
                 <Item>
                   <PoolName>CLightEntity</PoolName>
-                  <PoolSize value="4400"/>
+                  <PoolSize value="8800"/>
                 </Item>
                 <Item>
                   <PoolName>MapDataLoadedNode</PoolName>
@@ -1303,7 +1303,7 @@
                 </Item>
                 <Item>
                   <PoolName>MapTypesStore</PoolName>
-                  <PoolSize value="2600"/>
+                  <PoolSize value="3200"/>
                 </Item>
                 <Item>
                   <PoolName>MetaDataStore</PoolName>
@@ -1485,7 +1485,7 @@
 				</Item>
                 <Item>
 					<PoolName>PortalInst</PoolName>
-					<PoolSize value="300" />
+					<PoolSize value="600" />
 				</Item>
 				<Item>
                   <PoolName>PoseMatcherStore</PoolName>
