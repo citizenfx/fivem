@@ -316,10 +316,6 @@ if (!$DontBuild)
 		$GameName = "rdr3"
 		$BuildPath = "$BuildRoot\rdr3"
 	}
-	
-	if ($IsServer) {
-		Invoke-Expression "& $WorkRootDir\tools\ci\build_rs.cmd"
-	}
 
 	Start-Section "premake" "Running premake"
 	Invoke-Expression "& $WorkRootDir\tools\ci\premake5 $VSLine --game=$GameName --builddir=$BuildRoot --bindir=$BinRoot"

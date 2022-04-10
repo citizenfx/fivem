@@ -19,30 +19,98 @@
 #include <StructuredTrace.h>
 
 #include <json.hpp>
-
-#if __has_include(<jexl_eval.h>)
-#include <jexl_eval.h>
-
-#ifdef _WIN32
-#pragma comment(lib, "userenv")
-#endif
+#include <lua.hpp>
+#include <lua_rapidjsonlib.h>
 
 using json = nlohmann::json;
 
-static json EvaluateJexl(const std::string& in, const json& context)
+struct Lua
 {
-	char* out = jexl_eval(in.c_str(), context.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace).c_str());
-	json rv;
-
-	if (out)
+	Lua()
+		: L(nullptr)
 	{
-		std::string outStr = out;
-		jexl_free(out);
+		static const luaL_Reg lualibs[] = {
+			{ "_G", luaopen_base },
+			{ LUA_TABLIBNAME, luaopen_table },
+			{ LUA_STRLIBNAME, luaopen_string },
+			{ LUA_MATHLIBNAME, luaopen_math },
+			{ LUA_UTF8LIBNAME, luaopen_utf8 },
+			{ "json", luaopen_rapidjson },
+			{ NULL, NULL }
+		};
 
-		rv = json::parse(outStr);
+		L = luaL_newstate();
+
+		const luaL_Reg* lib = lualibs;
+		for (; lib->func; lib++)
+		{
+			luaL_requiref(L, lib->name, lib->func, 1);
+			lua_pop(L, 1);
+		}
 	}
 
-	return rv;
+	~Lua()
+	{
+		if (L)
+		{
+			lua_close(L);
+			L = nullptr;
+		}
+	}
+
+	std::optional<bool> EvaluateExpression(const std::string& expr, const json& context)
+	{
+		if (luaL_loadbufferx(L, expr.c_str(), expr.size(), "@expr", "t") != LUA_OK)
+		{
+			return {};
+		}
+
+		// stack: [expr chunk]
+
+		lua_getglobal(L, "json");
+		lua_getfield(L, -1, "decode");
+		lua_remove(L, -2);
+
+		// stack: [expr chunk], [json.decode]
+
+		auto j = context.dump(-1, ' ', false, nlohmann::detail::error_handler_t::ignore);
+		lua_pushlstring(L, j.c_str(), j.size());
+		if (lua_pcall(L, 1, 1, 0) != LUA_OK)
+		{
+			return {};
+		}
+
+		// stack: [expr chunk], [json table]
+
+		// store _G in new env
+		lua_pushglobaltable(L);
+		lua_setfield(L, -2, "_G");
+
+		// set _ENV to the JSON chunk
+		lua_setupvalue(L, -2, 1);
+
+		// stack: [expr chunk, with json table as env]
+		if (lua_pcall(L, 0, 1, 0) != LUA_OK)
+		{
+			const char* e = lua_tostring(L, -1);
+			return {};
+		}
+
+		// stack: retval
+		auto rv = lua_toboolean(L, -1);
+		lua_pop(L, 1);
+
+		return rv;
+	}
+
+private:
+	lua_State* L;
+};
+
+static std::optional<bool> EvaluateLua(const std::string& in, const json& context)
+{
+	Lua l;
+	return l.EvaluateExpression(in, context);
 }
 
 static void DisplayNotices(fx::ServerInstanceBase* server, HttpClient* httpClient)
@@ -79,7 +147,7 @@ static void DisplayNotices(fx::ServerInstanceBase* server, HttpClient* httpClien
 
 				for (auto& [ noticeType, data ] : noticeBlob.get<json::object_t>())
 				{
-					auto& conditions = data["conditions"];
+					auto& conditions = data["conditions_lua"];
 					auto& actions = data["actions"];
 
 					if (conditions.is_array())
@@ -87,9 +155,14 @@ static void DisplayNotices(fx::ServerInstanceBase* server, HttpClient* httpClien
 						for (auto& condition : conditions)
 						{
 							auto cond = condition.get<std::string>();
-							auto rv = EvaluateJexl(cond, contextBlob);
+							if (cond.find("--[[]]") != 0)
+							{
+								cond = "return " + cond;
+							}
 
-							if (rv.is_boolean() && rv.get<bool>())
+							auto rv = EvaluateLua(cond, contextBlob);
+
+							if (rv && *rv)
 							{
 								// evaluate actions
 								if (actions.is_array())
@@ -129,12 +202,6 @@ static void DisplayNotices(fx::ServerInstanceBase* server, HttpClient* httpClien
 		}
 	});
 }
-#else
-static void DisplayNotices(fx::ServerInstanceBase* server, HttpClient* httpClient)
-{
-
-}
-#endif
 
 static InitFunction initFunction([]()
 {
