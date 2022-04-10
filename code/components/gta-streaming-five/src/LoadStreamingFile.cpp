@@ -1346,8 +1346,6 @@ public:
 
 	virtual void UnloadDataFile(CDataFileMgr::DataFile* entry) override
 	{
-		CDataFileMount::sm_Interfaces[174]->UnloadDataFile(entry);
-
 		std::string baseName = ParseBaseName(entry);
 
 		uint32_t slotId;
@@ -1372,6 +1370,8 @@ public:
 				}
 			}
 		}
+
+		CDataFileMount::sm_Interfaces[174]->UnloadDataFile(entry);
 	}
 };
 
