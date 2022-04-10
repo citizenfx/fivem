@@ -144,8 +144,17 @@ public:
 
 struct grcManualTextureDef
 {
+	// bit flag:
+	// | 1 -> dynamic texture (no internal staging texture)
+	// | 2 -> unknown
 	int isStaging;
-	char pad[20];
+	int unk1;
+	// flag, sorta:
+	// == 0 -> immutable
+	// == 1 -> writable?
+	// == 2 -> other weird case
+	int usage;
+	char pad[12];
 	int isRenderTarget;
 	char pad2[8];
 	int arraySize;

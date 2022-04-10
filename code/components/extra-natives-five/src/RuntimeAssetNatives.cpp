@@ -114,14 +114,15 @@ RuntimeTex::RuntimeTex(const char* name, int width, int height)
 {
 	rage::grcManualTextureDef textureDef;
 	memset(&textureDef, 0, sizeof(textureDef));
-	textureDef.isStaging = 0;
+	textureDef.isStaging = 1;
+	textureDef.usage = 1;
 	textureDef.arraySize = 1;
 
 	m_texture = rage::grcTextureFactory::getInstance()->createManualTexture(width, height, 2, nullptr, true, &textureDef);
 
 	rage::grcLockedTexture lockedTexture;
 
-	if (m_texture->Map(0, 0, &lockedTexture, rage::grcLockFlags::Write))
+	if (m_texture->Map(0, 0, &lockedTexture, rage::grcLockFlags::WriteDiscard))
 	{
 		memset(lockedTexture.pBits, 0, lockedTexture.pitch * lockedTexture.height);
 		m_backingPixels.resize(lockedTexture.pitch * lockedTexture.height);
@@ -195,7 +196,7 @@ bool RuntimeTex::SetPixelData(const void* data, size_t length)
 
 	rage::grcLockedTexture lockedTexture;
 
-	if (m_texture->Map(0, 0, &lockedTexture, rage::grcLockFlags::Write))
+	if (m_texture->Map(0, 0, &lockedTexture, rage::grcLockFlags::WriteDiscard))
 	{
 		memcpy(lockedTexture.pBits, data, length);
 		memcpy(m_backingPixels.data(), data, length);
@@ -209,7 +210,7 @@ void RuntimeTex::Commit()
 {
 	rage::grcLockedTexture lockedTexture;
 
-	if (m_texture->Map(0, 0, &lockedTexture, rage::grcLockFlags::Write))
+	if (m_texture->Map(0, 0, &lockedTexture, rage::grcLockFlags::WriteDiscard))
 	{
 		memcpy(lockedTexture.pBits, m_backingPixels.data(), m_backingPixels.size());
 		m_texture->Unmap(&lockedTexture);
