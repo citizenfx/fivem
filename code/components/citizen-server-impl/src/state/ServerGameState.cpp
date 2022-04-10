@@ -593,7 +593,10 @@ FocusResult GetPlayerFocusPos(const fx::sync::SyncEntityPtr& entity)
 ServerGameState::ServerGameState()
 	: m_frameIndex(1), m_entitiesById(MaxObjectId), m_entityLockdownMode(EntityLockdownMode::Inactive)
 {
+#ifdef USE_ASYNC_SCL_POSTING
 	m_tg = std::make_unique<ThreadPool>();
+#endif
+
 	fx::g_serverGameState = this;
 }
 

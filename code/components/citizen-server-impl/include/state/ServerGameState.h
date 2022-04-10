@@ -1153,7 +1153,9 @@ public:
 private:
 	fx::ServerInstanceBase* m_instance;
 
+#ifdef USE_ASYNC_SCL_POSTING
 	std::unique_ptr<ThreadPool> m_tg;
+#endif
 
 	// as bitset is not thread-safe
 	std::shared_mutex m_objectIdsMutex;
