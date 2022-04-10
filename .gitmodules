@@ -133,7 +133,7 @@
 	url = https://github.com/blattersturm/replxx.git
 [submodule "vendor/thread-pool-cpp"]
 	path = vendor/thread-pool-cpp
-	url = https://github.com/inkooboo/thread-pool-cpp.git
+	url = https://github.com/yvoinov/thread-pool-cpp.git
 [submodule "vendor/ben-demystifier"]
 	path = vendor/ben-demystifier
 	url = https://github.com/citizenfx/Ben.Demystifier.git
