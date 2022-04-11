@@ -64,7 +64,7 @@ void PerformBuildSwitch(int build)
 			RestartGameToOtherBuild(gameCacheTargetBuild);
 		}
 		// display a generic error if we failed
-		else if (!g_hadError)
+		else if (!g_hadError && !g_canceled)
 		{
 			netLibrary->OnConnectionError("Changing game build failed: An unknown error occurred");
 		}
@@ -169,6 +169,12 @@ static double g_percentage;
 
 static void UpdateProgressUX()
 {
+	// don't submit more progress when we're canceled
+	if (g_canceled)
+	{
+		return;
+	}
+
 	auto text = fmt::sprintf("%s (%.0f%s)\n%s", g_topText, round(g_percentage), "%", g_bottomText);
 
 	netLibrary->OnConnectionProgress(text, 0, 100, true);
