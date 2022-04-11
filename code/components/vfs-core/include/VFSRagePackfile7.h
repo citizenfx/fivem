@@ -81,6 +81,8 @@ namespace vfs
 	public:
 		RagePackfile7();
 
+		static void SetValidationCallback(const std::function<bool(const std::vector<uint8_t>& sig, const std::vector<uint8_t>& data)>& func);
+
 		virtual ~RagePackfile7() override;
 
 		virtual THandle Open(const std::string& fileName, bool readOnly) override;
