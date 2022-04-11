@@ -171,6 +171,7 @@ void CL_InitDownloadQueue()
 	dls.error = false;
 	
 	dls.downloadQueue = {};
+	dls.currentDownloads = {};
 }
 
 void CL_QueueDownload(const char* url, const char* file, int64_t size, compressionAlgo_e algo)
@@ -225,6 +226,14 @@ void DL_Initialize()
 
 void DL_Shutdown()
 {
+	for (const auto& download : dls.currentDownloads)
+	{
+		if (download->fp[0])
+		{
+			fclose(download->fp[0]);
+		}
+	}
+
 	curl_multi_cleanup(dls.curl);
 	dls.downloadInitialized = false;
 }
@@ -1139,6 +1148,7 @@ bool DL_RunLoop()
 
 		if (UI_IsCanceled())
 		{
+			DL_Shutdown();
 			return false;
 		}
 	}
