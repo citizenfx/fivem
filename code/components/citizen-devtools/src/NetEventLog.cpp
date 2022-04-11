@@ -1,5 +1,6 @@
 #include <StdInc.h>
 
+#ifndef IS_FXSERVER
 #include <ResourceEventComponent.h>
 #include <ResourceManager.h>
 
@@ -104,3 +105,4 @@ static InitFunction initFunction([]()
 		});
 	});
 });
+#endif
