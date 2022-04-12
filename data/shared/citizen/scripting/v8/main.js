@@ -276,6 +276,42 @@ const EXT_LOCALFUNCREF = 11;
 
 			return t;
 		};
+		
+		const httpDispatch = {}
+
+                on('__cfx_internal:httpResponse', (token, status, body, headers, errorData) => {
+                    if (httpDispatch[token]) {
+                        const userCallback = httpDispatch[token];
+                        delete httpDispatch[token];
+                        userCallback({ status, body, headers, errorData });
+                    }
+                });
+
+                global.PerformHttpRequest = (url, method='GET', data='', headers={}, options) => {
+                    let followLocation = true;
+  
+                    if (options && options.followLocation != null) {
+                        followLocation = options.followLocation;
+                    }
+		    
+		    // If data is an object, set headers and call JSON.stringify
+	            if (typeof data === 'object' && data != null) {
+	                data = JSON.stringify(data);
+			options['Content-Type'] = 'application/json';
+		    }
+
+                    const request = { url, method, data, headers, followLocation };
+
+                    return new Promise((resolve, reject) => {
+                        const id = PerformHttpRequestInternalEx(request);
+
+                        if (id != -1) {
+                            httpDispatch[id] = resolve;
+                        } else {
+                            reject(Error('Failure handling HTTP request'));
+                        }
+                    })
+               };
 	} else {
 		global.SendNUIMessage = (data) => {
 			const dataJson = JSON.stringify(data)
