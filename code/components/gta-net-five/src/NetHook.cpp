@@ -1391,6 +1391,16 @@ static void fwClipSetManager_StartNetworkSessionHook()
 	}
 }
 
+static void (*g_origPoliceScanner_Stop)(void*, int);
+
+static void PoliceScanner_StopWrap(void* self, int a2)
+{
+	if (!isSessionStarted())
+	{
+		g_origPoliceScanner_Stop(self, a2);
+	}
+}
+
 static HookFunction hookFunction([] ()
 {
 	MH_Initialize();
@@ -1783,6 +1793,13 @@ static HookFunction hookFunction([] ()
 		auto location = hook::get_pattern("0F 85 ? ? ? ? 33 DB 38 1D ? ? ? ? 75", -0x14);
 		MH_CreateHook(location, BeforeReplayLoadHook, (void**)&g_origBeforeReplayLoad);
 		MH_EnableHook(MH_ALL_HOOKS);
+	}
+
+	// don't stop police scanner reports when changing time in a networked game (really?)
+	{
+		auto location = hook::get_pattern("48 8D 0D ? ? ? ? 33 D2 E8 ? ? ? ? 48 8B 05 ? ? ? ? 48 8B 48 08", 9);
+		hook::set_call(&g_origPoliceScanner_Stop, location);
+		hook::call(location, PoliceScanner_StopWrap);
 	}
 
 	// default netnoupnp and netnopcp to true
