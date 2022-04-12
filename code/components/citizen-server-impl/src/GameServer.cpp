@@ -233,6 +233,12 @@ namespace fx
 						m_mainThreadCallbacks->Run();
 					}));
 
+					// run remaining callbacks before we remove this callback list
+					if (m_mainThreadCallbacks)
+					{
+						m_mainThreadCallbacks->Run();
+					}
+
 					m_mainThreadCallbacks = std::make_unique<CallbackListUv>(mainData->callbackAsync);
 					m_mainThreadCallbacks->AttachToThread();
 
