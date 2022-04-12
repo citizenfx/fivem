@@ -640,11 +640,15 @@ void SteamComponent::SetRichPresenceValue(int idx, const std::string& value)
 {
 	assert(idx >= 0 && idx < _countof(m_richPresenceValues));
 
+	// special case for 0 as we use that for the server name suffix.
+	// we should only launch a new Steam child if the game name changes.
+	bool updateGameName = (idx == 0 && m_richPresenceValues[0] != value);
+
 	m_richPresenceValues[idx] = value;
 
 	m_richPresenceChanged = true;
 
-	if (idx == 0)
+	if (updateGameName)
 	{
 		static HostSharedData<CfxPresenceState> gameData("PresenceState");
 		gameData->needRefresh = true;
