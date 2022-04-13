@@ -7,6 +7,8 @@ apk update
 # install build dependencies
 apk add curl git xz sudo rsync openssh-client
 
+sh ./code/tools/ci/unfuck_git.sh
+
 # announce building
 text="Woop, building a new $CI_PROJECT_NAME $CI_BUILD_REF_NAME SERVER/LINUX-PROOT build, triggered by $GITLAB_USER_EMAIL"
 
