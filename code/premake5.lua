@@ -175,7 +175,7 @@ workspace "CitizenMP"
 	filter { "system:windows", 'language:C or language:C++' }
 		links { "winmm" }
 
-		buildoptions { '/Zc:__cplusplus' }
+		buildoptions { '/Zc:__cplusplus', '/utf-8' }
 
 	filter { 'system:not windows', 'language:C or language:C++' }
 		architecture 'x64'
