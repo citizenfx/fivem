@@ -968,7 +968,8 @@ local function GetEntityStateBagId(entityGuid)
 	end
 end
 
-local entityTM = {
+local entityMT
+entityMT = {
 	__index = function(t, s)
 		if s == 'state' then
 			local es = GetEntityStateBagId(t.__data)
@@ -998,13 +999,14 @@ local entityTM = {
 		
 		return setmetatable({
 			__data = ref
-		}, entityTM)
+		}, entityMT)
 	end
 }
 
-msgpack.extend(entityTM)
+msgpack.extend(entityMT)
 
-local playerTM = {
+local playerMT
+playerMT = {
 	__index = function(t, s)
 		if s == 'state' then
 			local pid = t.__data
@@ -1036,17 +1038,17 @@ local playerTM = {
 		
 		return setmetatable({
 			__data = ref
-		}, playerTM)
+		}, playerMT)
 	end
 }
 
-msgpack.extend(playerTM)
+msgpack.extend(playerMT)
 
 function Entity(ent)
 	if type(ent) == 'number' then
 		return setmetatable({
 			__data = ent
-		}, entityTM)
+		}, entityMT)
 	end
 	
 	return ent
@@ -1056,7 +1058,7 @@ function Player(ent)
 	if type(ent) == 'number' or type(ent) == 'string' then
 		return setmetatable({
 			__data = tonumber(ent)
-		}, playerTM)
+		}, playerMT)
 	end
 	
 	return ent
