@@ -32,6 +32,8 @@
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.Gaming.Input.h>
 
+#include <math/Interpolation.h>
+
 using namespace winrt::Windows::Gaming::Input;
 
 struct PatternPair
@@ -1387,28 +1389,33 @@ static DWORD WINAPI XInputGetStateHook(_In_ DWORD dwUserIndex, _Out_ XINPUT_STAT
 			{
 				// #TODO: gun recoil
 				// #TODO: take trigger swap into account
-				int veh = NativeInvoke::Invoke<0x6094AD011A2EA87D, int>(NativeInvoke::Invoke<0xD80958FC74E988A6, int>());
+				int vehicleId = NativeInvoke::Invoke<0x6094AD011A2EA87D, int>(NativeInvoke::Invoke<0xD80958FC74E988A6, int>());
 
-				CVehicle* currentPlayerVehicle = nullptr;
-
-				if (veh)
+				if (vehicleId)
 				{
-					currentPlayerVehicle = (CVehicle*)rage::fwScriptGuid::GetBaseFromGuid(veh);
-				}
+					CVehicle* currentPlayerVehicle = (CVehicle*)rage::fwScriptGuid::GetBaseFromGuid(vehicleId);
 
-				if (currentPlayerVehicle)
-				{
-					if (GetWheelCount(currentPlayerVehicle) == 2 || GetWheelCount(currentPlayerVehicle) == 4)
+					if (currentPlayerVehicle)
 					{
-						double leftTrigger = CalculateWheelValue(currentPlayerVehicle, GetWheelCount(currentPlayerVehicle), false) / 2.5f;
-						double rightTrigger = CalculateWheelValue(currentPlayerVehicle, GetWheelCount(currentPlayerVehicle), true) / 2.5f;
+						const int wheelCount = GetWheelCount(currentPlayerVehicle);
+						if (wheelCount == 2 || wheelCount == 4)
+						{
+							// change these settings to fit your needs
+							constexpr double minValue = 0.875;		// <= at which vibration is off
+							constexpr double maxValue = 62.5;		// >= at which vibration is at max, see maxVibration
+							constexpr double bezierBias = 0.3;		// < 0.5 will keep values low until the end, > 0.5 will increase numbers fast at the beginning, 0.5 will turn this into linear interpolation
+							constexpr double maxVibration = 1.0;	// the max vibration we'll let the controller do, 1.0 = max, 0.0 = off
 
-						// #TODO: make these tunable as some sort of 3-point curve
-						leftTrigger = std::clamp(leftTrigger - 0.35f, 0.0, 25.0);
-						rightTrigger = std::clamp(rightTrigger - 0.35f, 0.0, 25.0);
+							double leftTrigger = CalculateWheelValue(currentPlayerVehicle, wheelCount, false);
+							double rightTrigger = CalculateWheelValue(currentPlayerVehicle, wheelCount, true);
 
-						vibration.LeftTrigger = std::clamp(reading.LeftTrigger * (leftTrigger / 25.0f), 0.0, 1.0);
-						vibration.RightTrigger = std::clamp(reading.RightTrigger * (rightTrigger / 25.0f), 0.0, 1.0);
+							constexpr double maxMultiply = 1.0 / (maxValue - minValue);
+							leftTrigger = reading.LeftTrigger * std::clamp((leftTrigger - minValue) * maxMultiply, 0.0, 1.0);
+							rightTrigger = reading.RightTrigger * std::clamp((rightTrigger - minValue) * maxMultiply, 0.0, 1.0);
+
+							vibration.LeftTrigger = math::interpolation::QuadraticBezier(0.0, bezierBias * maxVibration, maxVibration, leftTrigger);
+							vibration.RightTrigger = math::interpolation::QuadraticBezier(0.0, bezierBias * maxVibration, maxVibration, rightTrigger);
+						}
 					}
 				}
 			}
