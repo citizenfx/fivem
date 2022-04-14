@@ -118,7 +118,7 @@ bool Client_is_player_muted(int serverId)
 	{
 		client_t* c;
 		c = list_get_entry(itr, client_t, node);
-		if (strstr(c->username, convertedServerId.c_str()))
+		if (c->username && strstr(c->username, convertedServerId.c_str()))
 		{
 			return c->mute;
 		}
@@ -133,7 +133,7 @@ void Client_set_player_muted(int serverId, bool muted)
 	{
 		client_t* c;
 		c = list_get_entry(itr, client_t, node);
-		if (strstr(c->username, convertedServerId.c_str())) {
+		if (c->username && strstr(c->username, convertedServerId.c_str())) {
 			c->mute = muted;
 			break;
 		}
