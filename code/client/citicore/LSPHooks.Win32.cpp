@@ -149,6 +149,17 @@ NTSTATUS NTAPI NtCloseHook(IN HANDLE Handle)
 	return STATUS_SUCCESS;
 }
 
+static NTSTATUS(NTAPI* g_origRtlQueryProcessDebugInformation)(_In_ HANDLE UniqueProcessId, _In_ ULONG Flags, _Inout_ void* Buffer);
+NTSTATUS NTAPI RtlQueryProcessDebugInformationHook(_In_ HANDLE UniqueProcessId, _In_ ULONG Flags, _Inout_ void* Buffer)
+{
+	// Crashfix for this function being called with NULL Buffer, seems to be related to outside apps injecting threads and gathering info(process explorer/hacker?)
+	if (!Buffer)
+	{
+		return STATUS_INVALID_PARAMETER;
+	}
+
+	return g_origRtlQueryProcessDebugInformation(UniqueProcessId, Flags, Buffer);
+}
 
 void LSP_InitializeHooks()
 {
@@ -161,6 +172,7 @@ void LSP_InitializeHooks()
 	{
 		//MH_CreateHookApi(L"ntdll.dll", "NtQueryInformationProcess", NtQueryInformationProcessHook, (void**)&origQIP);
 		//MH_CreateHookApi(L"ntdll.dll", "NtClose", NtCloseHook, (void**)&origClose);
+		MH_CreateHookApi(L"ntdll.dll", "RtlQueryProcessDebugInformation", RtlQueryProcessDebugInformationHook, (void**)g_origRtlQueryProcessDebugInformation);
 		if (!origQIP)
 		{
 			origQIP = (decltype(origQIP))GetProcAddress(GetModuleHandle(L"ntdll.dll"), "NtQueryInformationProcess");
