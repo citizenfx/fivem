@@ -17,7 +17,7 @@ To build FiveM, RedM or FXServer on Windows you need the following dependencies:
 * [MSYS2](https://www.msys2.org/) at `C:\msys64\` which is where the installer places it.
 * [Node.js](https://nodejs.org/en/download/) and [Yarn](https://classic.yarnpkg.com/en/docs/install/) in your PATH as `node` and `yarn`.
 
-Then, execute the following commands in a `cmd.exe` shell to set up the build environment:
+Then, execute the following commands in a `cmd.exe` shell with administrative rights to set up the build environment:
 
 ```bat
 set BOOST_ROOT=C:\libraries\boost_1_71_0
