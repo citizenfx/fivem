@@ -149,16 +149,19 @@ NTSTATUS NTAPI NtCloseHook(IN HANDLE Handle)
 	return STATUS_SUCCESS;
 }
 
-static NTSTATUS(NTAPI* g_origRtlQueryProcessDebugInformation)(_In_ HANDLE UniqueProcessId, _In_ ULONG Flags, _Inout_ void* Buffer);
-NTSTATUS NTAPI RtlQueryProcessDebugInformationHook(_In_ HANDLE UniqueProcessId, _In_ ULONG Flags, _Inout_ void* Buffer)
+static void(NTAPI* _RtlExitUserThread)(DWORD status);
+
+static NTSTATUS(NTAPI* g_origRtlpQueryProcessDebugInformationRemote)(PVOID Section);
+static NTSTATUS NTAPI RtlpQueryProcessDebugInformationRemoteHook(PVOID Section)
 {
 	// Crashfix for this function being called with NULL Buffer, seems to be related to outside apps injecting threads and gathering info(process explorer/hacker?)
-	if (!Buffer)
+	if (!Section)
 	{
+		_RtlExitUserThread(STATUS_INVALID_PARAMETER);
 		return STATUS_INVALID_PARAMETER;
 	}
 
-	return g_origRtlQueryProcessDebugInformation(UniqueProcessId, Flags, Buffer);
+	return g_origRtlpQueryProcessDebugInformationRemote(Section);
 }
 
 void LSP_InitializeHooks()
@@ -168,15 +171,15 @@ void LSP_InitializeHooks()
 
 	MH_CreateHookApi(L"kernelbase.dll", "RegOpenKeyExA", ProcessLSPRegOpenKeyExA, (void**)&g_origRegOpenKeyExA);
 
-	//if (CoreIsDebuggerPresent())
+	if (auto ntdll = GetModuleHandleW(L"ntdll.dll"))
 	{
-		//MH_CreateHookApi(L"ntdll.dll", "NtQueryInformationProcess", NtQueryInformationProcessHook, (void**)&origQIP);
-		//MH_CreateHookApi(L"ntdll.dll", "NtClose", NtCloseHook, (void**)&origClose);
-		MH_CreateHookApi(L"ntdll.dll", "RtlQueryProcessDebugInformation", RtlQueryProcessDebugInformationHook, (void**)g_origRtlQueryProcessDebugInformation);
+		_RtlExitUserThread = (decltype(_RtlExitUserThread))GetProcAddress(ntdll, "RtlExitUserThread");
+		MH_CreateHookApi(L"ntdll.dll", "RtlpQueryProcessDebugInformationRemote", RtlpQueryProcessDebugInformationRemoteHook, (void**)&g_origRtlpQueryProcessDebugInformationRemote);
+
 		if (!origQIP)
 		{
-			origQIP = (decltype(origQIP))GetProcAddress(GetModuleHandle(L"ntdll.dll"), "NtQueryInformationProcess");
-			origClose = (decltype(origClose))GetProcAddress(GetModuleHandle(L"ntdll.dll"), "NtClose");
+			origQIP = (decltype(origQIP))GetProcAddress(ntdll, "NtQueryInformationProcess");
+			origClose = (decltype(origClose))GetProcAddress(ntdll, "NtClose");
 		}
 	}
 
