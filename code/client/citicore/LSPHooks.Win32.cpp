@@ -161,7 +161,15 @@ static NTSTATUS NTAPI RtlpQueryProcessDebugInformationRemoteHook(PVOID Section)
 		return STATUS_INVALID_PARAMETER;
 	}
 
-	return g_origRtlpQueryProcessDebugInformationRemote(Section);
+	__try
+	{
+		return g_origRtlpQueryProcessDebugInformationRemote(Section);
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+		_RtlExitUserThread(STATUS_INVALID_PARAMETER);
+		return STATUS_INVALID_PARAMETER;
+	}
 }
 
 void LSP_InitializeHooks()
