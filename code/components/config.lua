@@ -1,4 +1,3 @@
-component 'comptest'
 component 'http-client'
 component 'glue'
 component 'font-renderer'

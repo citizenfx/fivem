@@ -16,7 +16,6 @@ CitizenFX implementation components.
 * [**citizen-scripting-lua/**](./citizen-scripting-lua): Lua ScRT.
 * [**citizen-scripting-mono/**](./citizen-scripting-mono): Mono ScRT loader. Most of the implementation is in `CitizenFX.Core.dll`.
 * [**citizen-scripting-v8/**](./citizen-scripting-v8): V8 ScRT.
-* [**comptest/**](./comptest): Testing component.
 * [**conhost-posh/**](./conhost-posh): Deprecated PowerShell console host.
 * [**conhost-v2/**](./conhost-v2): dear ImGui-based console host.
 * [**debug-net/**](./debug-net): Debug visualizations for `net`.
