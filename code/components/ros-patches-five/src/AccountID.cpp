@@ -595,6 +595,7 @@ void ValidateEpic(int parentPid)
 	strcpy((char*)&blob->data[3312], tree.get<std::string>("Response.SessionTicket").c_str());
 	memcpy(&blob->data[0x10D8], sessionKey.data(), sessionKey.size());
 	strcpy((char*)&blob->data[8], j.value("Email", "").c_str());
+	strcpy((char*)&blob->data[0xE9F], j.value("Nickname", "").c_str());
 
 	j = nlohmann::json::object({
 #ifdef IS_RDR3
@@ -749,6 +750,7 @@ void ValidateSteam(int parentPid)
 	strcpy((char*)&blob->data[3312], tree.get<std::string>("Response.SessionTicket").c_str());
 	memcpy(&blob->data[0x10D8], sessionKey.data(), sessionKey.size());
 	strcpy((char*)&blob->data[8], j.value("Email", "").c_str());
+	strcpy((char*)&blob->data[0xE9F], j.value("Nickname", "").c_str());
 
 	j = nlohmann::json::object({
 		{ "title", appName },
