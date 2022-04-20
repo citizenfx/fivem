@@ -4,12 +4,18 @@ set -xe
 
 ROOT=$(pwd)
 LUA53=lua5.3
+NODE=node
+YARN=yarn
 
-[ "x$OS" == "xWindows_NT" ] && LUA53=./lua53
+[ "$OS" == "Windows_NT" ] && LUA53=./lua53
+[ "$OS" == "Windows_NT" ] && NODE=$ROOT/node
+[ "$OS" == "Windows_NT" ] && YARN="$NODE $ROOT/yarn_cli.js"
+
+[ "$OS" == "Windows_NT" ] && curl -z node.exe -Lo node.exe https://nodejs.org/dist/v18.0.0/win-x64/node.exe && curl -z yarn_cli.js -Lo yarn_cli.js https://github.com/yarnpkg/yarn/releases/download/v1.22.18/yarn-1.22.18.js
 
 # install yarn deps
 cd $ROOT/../native-doc-tooling/
-yarn
+$YARN
 
 cd $ROOT/../natives/
 
@@ -23,12 +29,12 @@ mkdir out || true
 cd out
 
 # setup clang and build
-[ "x$OS" == "xWindows_NT" ] && cp -a $ROOT/libclang.dll $PWD/libclang.dll || true
-node $ROOT/../native-doc-tooling/index.js $ROOT/../native-decls/
+[ "$OS" == "Windows_NT" ] && cp -a $ROOT/libclang.dll $PWD/libclang.dll || true
+$NODE $ROOT/../native-doc-tooling/index.js $ROOT/../native-decls/
 
 mkdir -p $ROOT/../natives/inp/ || true
 
-NODE_PATH=$ROOT/../native-doc-tooling/node_modules/ node $ROOT/../native-doc-tooling/build-template.js lua CFX > $ROOT/../natives/inp/natives_cfx_new.lua
+NODE_PATH=$ROOT/../native-doc-tooling/node_modules/ $NODE $ROOT/../native-doc-tooling/build-template.js lua CFX > $ROOT/../natives/inp/natives_cfx_new.lua
 rm $PWD/libclang.dll || true
 
 # copy outputs
