@@ -224,6 +224,7 @@ struct FindHandle
 {
 	std::shared_ptr<leveldb::Iterator> dbIter;
 	std::string key;
+	size_t prefixLength = 0;
 };
 
 static FindHandle g_handles[64];
@@ -241,7 +242,7 @@ static FindHandle* GetFindHandle()
 	return nullptr;
 }
 
-static void StartFindKvp_Impl(const std::string& key, fx::ScriptContext& context)
+static void StartFindKvp_Impl(const std::string& key, size_t prefixLength, fx::ScriptContext& context)
 {
 	auto db = EnsureDatabase();
 
@@ -257,6 +258,7 @@ static void StartFindKvp_Impl(const std::string& key, fx::ScriptContext& context
 	handle->dbIter->Seek(key);
 
 	handle->key = key;
+	handle->prefixLength = prefixLength;
 
 	context.SetResult(handle - g_handles);
 }
@@ -264,13 +266,14 @@ static void StartFindKvp_Impl(const std::string& key, fx::ScriptContext& context
 static void StartFindKvp(fx::ScriptContext& context)
 {
 	auto key = FormatKey(context.CheckArgument<const char*>(0));
-	return StartFindKvp_Impl(key, context);
+	return StartFindKvp_Impl(key, FormatKey("").length(), context);
 }
 
 static void StartFindExternalKvp(fx::ScriptContext& context)
 {
-	auto key = FormatKey(context.CheckArgument<const char*>(1), context.CheckArgument<const char*>(0));
-	return StartFindKvp_Impl(key, context);
+	auto resourceName = context.CheckArgument<const char*>(0);
+	auto key = FormatKey(context.CheckArgument<const char*>(1), resourceName);
+	return StartFindKvp_Impl(key, FormatKey("", resourceName).length(), context);
 }
 
 static void FindKvp(fx::ScriptContext& context)
@@ -295,7 +298,7 @@ static void FindKvp(fx::ScriptContext& context)
 	static std::string keyName;
 	std::string k(handle->dbIter->key().data(), handle->dbIter->key().size());
 
-	keyName = k.substr(FormatKey("").size());
+	keyName = k.substr(handle->prefixLength);
 
 	context.SetResult<const char*>(keyName.c_str());
 
