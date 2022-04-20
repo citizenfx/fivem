@@ -266,6 +266,11 @@ void Chan_freeChannel(channel_t *ch)
 {
 	list_del(&ch->node);
 	list_del(&ch->flatlist_node);
+	free(ch->name);
+	if (ch->desc)
+		free(ch->desc);
+	if (ch->password)
+		free(ch->password);
 	free(ch);
 }
 
