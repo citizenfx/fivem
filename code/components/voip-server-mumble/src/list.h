@@ -44,7 +44,7 @@ static inline int list_empty(struct dlist *list)
         ((_entry_)->next)
 
 #define list_get_entry(entry, type, structmember) \
-        ((type *) ((char *)(entry) - (unsigned long)(&((type *)0)->structmember)))
+        ((type *) ((char *)(entry) - (uintptr_t)(&((type *)0)->structmember)))
 
 #define list_iterate(entry, listhead) \
         for(entry = (listhead)->next; entry != (listhead); entry = entry->next)
