@@ -1122,6 +1122,11 @@ public:
 
 	void ForAllEntities(const std::function<void(sync::Entity*)>& cb);
 
+	inline auto GetServerInstance() const
+	{
+		return m_instance;
+	}
+
 private:
 	void ProcessCloneCreate(const fx::ClientSharedPtr& client, rl::MessageBuffer& inPacket, AckPacketWrapper& ackPacket);
 
@@ -1146,7 +1151,7 @@ private:
 	bool ValidateEntity(EntityLockdownMode entityLockdownMode, const fx::sync::SyncEntityPtr& entity);
 
 public:
-	std::function<bool()> GetGameEventHandler(const fx::ClientSharedPtr& client, net::Buffer&& buffer);
+	std::function<bool()> GetGameEventHandler(const fx::ClientSharedPtr& client, const std::vector<uint16_t>& targetPlayers, net::Buffer&& buffer);
 
 private:
 	std::function<bool()> GetRequestControlEventHandler(const fx::ClientSharedPtr& client, net::Buffer&& buffer);

@@ -4387,6 +4387,8 @@ struct CWeaponDamageEvent
 {
 	void Parse(rl::MessageBuffer& buffer);
 
+	void SetTargetPlayers(fx::ServerGameState* sgs, const std::vector<uint16_t>& targetPlayers);
+
 	inline std::string GetName()
 	{
 		return "weaponDamageEvent";
@@ -4426,6 +4428,8 @@ struct CWeaponDamageEvent
 	uint16_t parentGlobalId; // Source entity?
 	uint16_t hitGlobalId; // Target entity?
 
+	std::vector<uint16_t> hitGlobalIds;
+
 	uint8_t tyreIndex;
 	uint8_t suspensionIndex;
 	uint8_t hitComponent;
@@ -4437,7 +4441,7 @@ struct CWeaponDamageEvent
 	float impactDirY;
 	float impactDirZ;
 
-	MSGPACK_DEFINE_MAP(damageType, weaponType, overrideDefaultDamage, hitEntityWeapon, hitWeaponAmmoAttachment, silenced, damageFlags, hasActionResult, actionResultName, actionResultId, f104, weaponDamage, isNetTargetPos, localPosX, localPosY, localPosZ, f112, damageTime, willKill, f120, hasVehicleData, f112_1, parentGlobalId, hitGlobalId, tyreIndex, suspensionIndex, hitComponent, f133, hasImpactDir, impactDirX, impactDirY, impactDirZ);
+	MSGPACK_DEFINE_MAP(damageType, weaponType, overrideDefaultDamage, hitEntityWeapon, hitWeaponAmmoAttachment, silenced, damageFlags, hasActionResult, actionResultName, actionResultId, f104, weaponDamage, isNetTargetPos, localPosX, localPosY, localPosZ, f112, damageTime, willKill, f120, hasVehicleData, f112_1, parentGlobalId, hitGlobalId, tyreIndex, suspensionIndex, hitComponent, f133, hasImpactDir, impactDirX, impactDirY, impactDirZ, hitGlobalIds);
 };
 
 void CWeaponDamageEvent::Parse(rl::MessageBuffer& buffer)
@@ -4551,6 +4555,48 @@ void CWeaponDamageEvent::Parse(rl::MessageBuffer& buffer)
 		impactDirX = buffer.ReadSignedFloat(16, 6.2831854820251f);  // divisor: 0x40C90FDB
 		impactDirY = buffer.ReadSignedFloat(16, 6.2831854820251f);
 		impactDirZ = buffer.ReadSignedFloat(16, 6.2831854820251f);
+	}
+}
+
+void CWeaponDamageEvent::SetTargetPlayers(fx::ServerGameState* sgs, const std::vector<uint16_t>& targetPlayers)
+{
+	if (hitGlobalId == 0)
+	{
+		if (!targetPlayers.empty())
+		{
+			auto instance = sgs->GetServerInstance();
+			auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
+
+			for (uint16_t player : targetPlayers)
+			{
+				if (auto client = clientRegistry->GetClientByNetID(player))
+				{
+					auto clientDataUnlocked = GetClientDataUnlocked(sgs, client);
+
+					fx::sync::SyncEntityPtr playerEntity;
+					{
+						std::shared_lock _lock(clientDataUnlocked->playerEntityMutex);
+						playerEntity = clientDataUnlocked->playerEntity.lock();
+					}
+
+					if (playerEntity)
+					{
+						uint16_t objectId = playerEntity->handle & 0xFFFF;
+
+						if (hitGlobalId == 0)
+						{
+							hitGlobalId = objectId;
+						}
+
+						hitGlobalIds.push_back(objectId);
+					}
+				}
+			}
+		}
+	}
+	else
+	{
+		hitGlobalIds.push_back(hitGlobalId);
 	}
 }
 
@@ -5147,7 +5193,19 @@ inline bool ParseEvent(net::Buffer&& buffer, rl::MessageBuffer* outBuffer)
 }
 
 template<typename TEvent>
-inline auto GetHandler(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer&& buffer) -> std::function<bool()>
+static constexpr auto HasTargetPlayerSetter(char)
+{
+	return false;
+}
+
+template<typename TEvent>
+static constexpr auto HasTargetPlayerSetter(int) -> decltype(std::is_same_v<decltype(std::declval<TEvent>().SetTargetPlayers(std::declval<fx::ServerGameState*>(), std::declval<const std::vector<uint16_t>&>())), void>)
+{
+	return true;
+}
+
+template<typename TEvent>
+inline auto GetHandler(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer&& buffer, const std::vector<uint16_t>& targetPlayers = {}) -> std::function<bool()>
 {
 	rl::MessageBuffer msgBuf;
 
@@ -5161,6 +5219,11 @@ inline auto GetHandler(fx::ServerInstanceBase* instance, const fx::ClientSharedP
 
 	auto ev = std::make_shared<TEvent>();
 	ev->Parse(msgBuf);
+
+	if constexpr (HasTargetPlayerSetter<TEvent>(0))
+	{
+		ev->SetTargetPlayers(instance->GetComponent<fx::ServerGameState>().GetRef(), targetPlayers);
+	}
 
 	return [instance, client, ev = std::move(ev)]()
 	{
@@ -5621,7 +5684,7 @@ std::function<bool()> fx::ServerGameState::GetRequestControlEventHandler(const f
 #endif
 }
 
-std::function<bool()> fx::ServerGameState::GetGameEventHandler(const fx::ClientSharedPtr& client, net::Buffer&& buffer)
+std::function<bool()> fx::ServerGameState::GetGameEventHandler(const fx::ClientSharedPtr& client, const std::vector<uint16_t>& targetPlayers, net::Buffer&& buffer)
 {
 	auto instance = m_instance;
 
@@ -5657,7 +5720,7 @@ std::function<bool()> fx::ServerGameState::GetGameEventHandler(const fx::ClientS
 
 	switch(eventType)
 	{
-		case WEAPON_DAMAGE_EVENT: return GetHandler<CWeaponDamageEvent>(instance, client, std::move(buffer));
+		case WEAPON_DAMAGE_EVENT: return GetHandler<CWeaponDamageEvent>(instance, client, std::move(buffer), targetPlayers);
 		case RESPAWN_PLAYER_PED_EVENT: return GetHandler<CRespawnPlayerPedEvent>(instance, client, std::move(buffer));
 		case GIVE_WEAPON_EVENT: return GetHandler<CGiveWeaponEvent>(instance, client, std::move(buffer));
 		case REMOVE_WEAPON_EVENT: return GetHandler<CRemoveWeaponEvent>(instance, client, std::move(buffer));
@@ -5811,7 +5874,7 @@ static InitFunction initFunction([]()
 			auto copyBuf = netBuffer.Clone();
 			copyBuf.Seek(6);
 
-			auto eventHandler = sgs->GetGameEventHandler(client, std::move(copyBuf));
+			auto eventHandler = sgs->GetGameEventHandler(client, targetPlayers, std::move(copyBuf));
 
 			if (eventHandler)
 			{
