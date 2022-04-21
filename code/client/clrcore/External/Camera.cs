@@ -526,7 +526,15 @@ namespace CitizenFX.Core
 		/// </summary>
 		public static Vector3 ForwardVector
 		{
-			get { return MemoryAccess.ReadVector3(MemoryAddress + 0x200); }
+			//get { return MemoryAccess.ReadVector3(MemoryAddress + 0x200); } 
+			get
+			{
+				Vector3 rot = Rotation;
+				float rotX = (float)rot.X / 57.295779513082320876798154814105f;
+				float rotZ = (float)rot.Z / 57.295779513082320876798154814105f;
+				float multXY = (float)Math.Abs(Math.Cos(rotX));
+				return new Vector3((float)(-Math.Sin(rotZ) * multXY), (float)(Math.Cos(rotZ) * multXY), (float)System.Math.Sin(rotX));
+			}
 		}
 		/// <summary>
 		/// Gets the right vector of the <see cref="GameplayCamera"/>.
