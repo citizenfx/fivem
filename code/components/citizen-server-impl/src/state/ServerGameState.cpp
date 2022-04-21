@@ -5686,7 +5686,7 @@ static InitFunction initFunction([]()
 			return;
 		}
 
-		g_requestControlVar = instance->AddVariable<int>("sv_filterRequestControl", ConVar_None, (int)RequestControlFilterMode::Default, (int*)&g_requestControlFilterState);
+		g_requestControlVar = instance->AddVariable<int>("sv_filterRequestControl", ConVar_None, (int)RequestControlFilterMode::NoFilter, (int*)&g_requestControlFilterState);
 		g_requestControlSettleVar = instance->AddVariable<int>("sv_filterRequestControlSettleTimer", ConVar_None, 30000, &g_requestControlSettleDelay);
 
 		fx::SetOneSyncGetCallback([]()
