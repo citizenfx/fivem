@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -38,5 +38,15 @@ namespace CitizenFX.Core
             Heading = MathUtil.DegreesToRadians(Heading);
             return new Vector3((float)-Math.Sin(Heading), (float)Math.Cos(Heading), 0.0f);
         }
-    }
+
+		public static bool PointIsWithinCircle(float circleRadius, float circleCenterPointX, float circleCenterPointY, float pointToCheckX, float pointToCheckY)
+		{
+			return (Math.Pow(pointToCheckX - circleCenterPointX, 2) + Math.Pow(pointToCheckY - circleCenterPointY, 2)) < (Math.Pow(circleRadius, 2));
+		}
+
+		public static bool PointIsWithinSphere(float sphereRadius, Vector3 SphereCenter, Vector3 PointToCheck)
+		{
+			return (Math.Pow(SphereCenter.X - PointToCheck.X, 2) + Math.Pow(SphereCenter.Y - PointToCheck.Y, 2) + Math.Pow(SphereCenter.Z - PointToCheck.Z, 2)) < Math.Pow(sphereRadius, 2);
+		}
+	}
 }
