@@ -15,6 +15,8 @@ YARN=yarn
 
 # install yarn deps
 cd $ROOT/../native-doc-tooling/
+
+[ "$OS" == "Windows_NT" ] && $YARN global add node-gyp
 $YARN
 
 cd $ROOT/../natives/
