@@ -36,7 +36,7 @@ namespace CitizenFX.Core
 		/// Checks if the current input is by controller or keyboard
 		/// </summary>
 		/// <returns>True if player is using the controller.</returns>
-		public static bool WasLastInputFromController() => !IsUsingKeyboard(controllerControlGroup);
+		public static bool WasLastInputFromController() => !API.IsUsingKeyboard(controllerControlGroup);
 
 		/// <summary>
 		/// Checks if a control modifier (alt, ctrl, shift) has been pressed.
@@ -52,7 +52,7 @@ namespace CitizenFX.Core
 				ControlModifier BitMask = 0;
 				ModifierFlagToKeyCode.ToList().ForEach(w =>
 				{
-					if (Game.IsControlPressed(defaultControlGroup, (Control)w.Value) && IsUsingKeyboard(2)) BitMask |= w.Key;
+					if (Game.IsControlPressed(defaultControlGroup, (Control)w.Value) && API.IsUsingKeyboard(2)) BitMask |= w.Key;
 				});
 
 				if (BitMask == modifier)
