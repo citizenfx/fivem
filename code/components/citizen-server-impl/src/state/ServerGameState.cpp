@@ -4383,6 +4383,106 @@ void CExplosionEvent::Parse(rl::MessageBuffer& buffer)
 	}
 }
 
+/*NETEV weaponDamageEvent SERVER
+/#*
+ * Triggered when a client wants to apply damage to a remotely-owned entity. This event can be canceled.
+ *
+ * @param sender - The server-side player ID of the player that triggered the event.
+ * @param data - The event data.
+ #/
+declare function weaponDamageEvent(sender: number, data: {
+	/#*
+	 * A value (between 0 and 3) containing an internal damage type.
+	 * Specific values are currently unknown.
+	 #/
+	damageType: number,
+
+	/#*
+	 * The weapon hash for the inflicted damage.
+	 #/
+	weaponType: number,
+
+	/#*
+	 * If set, 'weaponDamage' is valid. If unset, the game infers the damage from weapon metadata.
+	 #/
+	overrideDefaultDamage: boolean,
+
+	/#*
+	 * Whether the damage should be inflicted as if it hit the weapon the entity is carrying.
+	 * This likely applies to grenades being hit, which should explode, but also normal weapons, which should not harm the player much.
+	 #/
+	hitEntityWeapon: boolean,
+
+	/#*
+	 * Whether the damage should be inflicted as if it hit an ammo attachment component on the weapon.
+	 * This applies to players/peds carrying weapons where another player shooting the ammo component makes the weapon explode.
+	 #/
+	hitWeaponAmmoAttachment: boolean,
+
+	/#*
+	 * Set when the damage is applied using a silenced weapon.
+	 #/
+	silenced: boolean,
+
+	damageFlags: number,
+	hasActionResult: boolean,
+
+	actionResultName: number,
+	actionResultId: number,
+	f104: number,
+
+	/#*
+	 * The amount of damage inflicted, if `overrideDefaultDamage` is set. If not, this value is set to `0`.
+	 #/
+	weaponDamage: number,
+
+	isNetTargetPos: boolean,
+
+	localPosX: number,
+	localPosY: number,
+	localPosZ: number,
+
+	f112: boolean,
+
+	/#*
+	 * The timestamp the damage was originally inflicted at. This should match the global network timer.
+	 #/
+	damageTime: number,
+
+	/#*
+	 * Whether the originating client thinks this should be instantly-lethal damage, such as a critical headshot.
+	 #/
+	willKill: boolean,
+
+	f120: number,
+	hasVehicleData: boolean,
+
+	f112_1: number,
+
+	parentGlobalId: number,
+
+	/#*
+	 * The network ID of the victim entity.
+	 #/
+	hitGlobalId: number,
+
+	/#*
+	 * An array containing network IDs of victim entities. If there is more than one, the first one will be set in `hitGlobalId`.
+	 #/
+	hitGlobalIds: number[],
+
+	tyreIndex: number,
+	suspensionIndex: number,
+	hitComponent: number,
+
+	f133: boolean,
+	hasImpactDir: boolean,
+
+	impactDirX: number,
+	impactDirY: number,
+	impactDirZ: number,
+}): void;
+*/
 struct CWeaponDamageEvent
 {
 	void Parse(rl::MessageBuffer& buffer);

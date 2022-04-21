@@ -24,7 +24,7 @@ static InitFunction initFunction([]
 		 * @param eventEntity - Entity the event is related to.
 		 * @param data - Extra event data.
 		 #/
-		declare function CEventName(entities: number[], eventEntity: number, data: var[]): void;
+		declare function CEventName(entities: number[], eventEntity: number, data: any[]): void;
 		*/
 		
 		rec->QueueEvent(std::string(data.name), std::string(data.argsData), "");
