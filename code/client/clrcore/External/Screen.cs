@@ -402,7 +402,7 @@ namespace CitizenFX.Core.UI
         /// <returns>A Raycast handle in the given direction</returns>
 		public static RaycastResult ScreenToWorld(IntersectOptions flags, Entity ignore)
 		{
-			Vector3 pos = API.GetPauseMenuCursorPosition();
+			PointF pos = new PointF(API.GetControlNormal(0, 239) * (scaleWidth ? ScaledWidth : Width), API.GetControlNormal(0, 240) * Height);
 			var absoluteX = Math.Abs(pos.X);
 			var absoluteY = Math.Abs(pos.Y);
 
