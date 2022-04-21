@@ -394,6 +394,12 @@ namespace CitizenFX.Core.UI
 			return point3Dret;
 		}
 
+		/// <summary>
+        /// Sends a raycast to the mouse position on screen.
+        /// </summary>
+        /// <param name="flags">Raycast flags</param>
+        /// <param name="ignore">Ignored entity</param>
+        /// <returns>A Raycast handle in the given direction</returns>
 		public static RaycastResult ScreenToWorld(IntersectOptions flags, Entity ignore)
 		{
 			Vector3 pos = API.GetPauseMenuCursorPosition();
@@ -410,7 +416,6 @@ namespace CitizenFX.Core.UI
 
 			return World.Raycast(from, to, flags, ignore);
 		}
-
 
 		public static class LoadingPrompt
 		{
