@@ -48,5 +48,52 @@ namespace CitizenFX.Core
 		{
 			return (Math.Pow(SphereCenter.X - PointToCheck.X, 2) + Math.Pow(SphereCenter.Y - PointToCheck.Y, 2) + Math.Pow(SphereCenter.Z - PointToCheck.Z, 2)) < Math.Pow(sphereRadius, 2);
 		}
+
+		private static Vector3 PolarSphereToWorld3D(Vector3 center, float radius, float polarAngleDeg, float azimuthAngleDeg)
+		{
+			var polarAngleRad = MathUtil.DegreesToRadians(polarAngleDeg);
+			var azimuthAngleRad = MathUtil.DegreesToRadians(azimuthAngleDeg);
+			return new Vector3(
+				center.X + radius * ((float)Math.Sin(azimuthAngleRad) * (float)Math.Cos(polarAngleRad)),
+				center.Y - radius * ((float)Math.Sin(azimuthAngleRad) * (float)Math.Sin(polarAngleRad)),
+				center.Z - radius * (float)Math.Cos(azimuthAngleRad)
+			);
+		}
+
+		public static Vector2 ToVector2(this float[] xyArray)
+		{
+			if (xyArray.Length >= 2)
+				return new Vector2(xyArray[0], xyArray[1]);
+			return Vector2.Zero;
+		}
+
+		public static Vector2 ToVector2(this Vector3 vector)
+		{
+			return new Vector2(vector.X, vector.Y);
+		}
+
+		public static Vector2 ToVector2(this Vector4 vector)
+		{
+			return new Vector2(vector.X, vector.Y);
+		}
+
+		public static Vector3 ToVector3(this float[] xyzArray)
+		{
+			if (xyzArray.Length >= 3)
+				return new Vector3(xyzArray[0], xyzArray[1], xyzArray[2]);
+			return Vector3.Zero;
+		}
+
+		public static Vector3 ToVector3(this Vector4 vector)
+		{
+			return new Vector3(vector.X, vector.Y, vector.Z);
+		}
+
+		public static Vector4 ToVector4(this float[] xyzwArray)
+		{
+			if (xyzwArray.Length >= 4)
+				return new Vector4(xyzwArray[0], xyzwArray[1], xyzwArray[2], xyzwArray[3]);
+			return Vector4.Zero;
+		}
 	}
 }
