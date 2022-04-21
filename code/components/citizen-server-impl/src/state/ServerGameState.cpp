@@ -54,6 +54,22 @@ namespace rl
 CPool<fx::ScriptGuid>* g_scriptHandlePool;
 std::shared_mutex g_scriptHandlePoolMutex;
 
+enum class RequestControlFilterMode : int
+{
+	// Default is currently equivalent to FilterPlayer
+	Default = -1,
+	// NoFilter will not filter any control requests
+	NoFilter = 0,
+	// FilterPlayerSettled will filter control requests targeting player-controlled settled entities
+	FilterPlayerSettled,
+	// FilterPlayer will filter control requests targeting any player-controlled entities
+	FilterPlayer,
+	// FilterPlayerPlusNonPlayerSettled will filter control requests targeting player-controlled entities, or settled entities
+	FilterPlayerPlusNonPlayerSettled,
+	// FilterAll will filter all control requests, i.e. allow none
+	FilterAll,
+};
+
 std::shared_ptr<ConVar<bool>> g_oneSyncEnabledVar;
 std::shared_ptr<ConVar<bool>> g_oneSyncCulling;
 std::shared_ptr<ConVar<bool>> g_oneSyncVehicleCulling;
@@ -66,6 +82,12 @@ std::shared_ptr<ConVar<bool>> g_oneSyncLengthHack;
 std::shared_ptr<ConVar<fx::OneSyncState>> g_oneSyncVar;
 std::shared_ptr<ConVar<bool>> g_oneSyncPopulation;
 std::shared_ptr<ConVar<bool>> g_oneSyncARQ;
+
+static std::shared_ptr<ConVar<int>> g_requestControlVar;
+static std::shared_ptr<ConVar<int>> g_requestControlSettleVar;
+
+static RequestControlFilterMode g_requestControlFilterState;
+static int g_requestControlSettleDelay;
 
 static uint32_t MakeHandleUniqifierPair(uint16_t objectId, uint16_t uniqifier)
 {
@@ -3016,6 +3038,7 @@ auto ServerGameState::CreateEntityFromTree(sync::NetObjEntityType type, const st
 	entity->handle = MakeEntityHandle(id);
 	entity->uniqifier = rand();
 	entity->creationToken = msec().count();
+	entity->createdAt = msec();
 	entity->passedFilter = true;
 
 	entity->syncTree = tree;
@@ -3115,6 +3138,7 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 			entity->uniqifier = uniqifier;
 			entity->creationToken = creationToken;
 			entity->syncTree = MakeSyncTree(objectType);
+			entity->createdAt = msec();
 
 			// no sync tree -> invalid object type -> nah
 			if (!entity->syncTree)
@@ -5106,22 +5130,35 @@ struct CNetworkPtFXEvent
 };
 #endif
 
-template<typename TEvent>
-inline auto GetHandler(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer&& buffer) -> std::function<bool()>
+inline bool ParseEvent(net::Buffer&& buffer, rl::MessageBuffer* outBuffer)
 {
 	uint16_t length = buffer.Read<uint16_t>();
 
 	if (length == 0)
 	{
-		return []() {
-			return false;
-		};
+		return false;
 	}
 
 	std::vector<uint8_t> data(length);
 	buffer.Read(data.data(), data.size());
 
-	rl::MessageBuffer msgBuf(data);
+	*outBuffer = rl::MessageBuffer{ std::move(data) };
+	return true;
+}
+
+template<typename TEvent>
+inline auto GetHandler(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer&& buffer) -> std::function<bool()>
+{
+	rl::MessageBuffer msgBuf;
+
+	if (!ParseEvent(std::move(buffer), &msgBuf))
+	{
+		return []()
+		{
+			return false;
+		};
+	}
+
 	auto ev = std::make_shared<TEvent>();
 	ev->Parse(msgBuf);
 
@@ -5368,8 +5405,226 @@ enum GTA_EVENT_IDS
 #endif
 };
 
-static std::function<bool()> GetEventHandler(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer&& buffer)
+#ifdef STATE_FIVE
+namespace fx
 {
+template<RequestControlFilterMode Mode>
+inline bool RequestControlHandler(fx::ServerGameState* sgs, const fx::ClientSharedPtr& client, uint32_t objectId, const char** reason = nullptr)
+{
+	auto entity = sgs->GetEntity(0, objectId);
+
+	// nonexistent entities should be ignored, anyway
+	if (!entity)
+	{
+		if (reason)
+		{
+			*reason = "Entity doesn't exist";
+		}
+
+		return false;
+	}
+
+	// silly, but the game will ignore this anyway
+	if (entity->type == sync::NetObjEntityType::Player)
+	{
+		if (reason)
+		{
+			*reason = "Entity is a player";
+		}
+
+		return false;
+	}
+
+	// if the sender is strict, nope
+	if (sgs->GetEntityLockdownMode(client) == fx::EntityLockdownMode::Strict)
+	{
+		if (reason)
+		{
+			*reason = "Strict entity lockdown is active";
+		}
+
+		return false;
+	}
+
+	// if the sender isn't in the same bucket as the entity, nope either
+	{
+		auto clientData = GetClientDataUnlocked(sgs, client);
+		
+		if (clientData->routingBucket != entity->routingBucket)
+		{
+			if (reason)
+			{
+				*reason = "Entity is in a different routing bucket";
+			}
+
+			return false;
+		}
+	}
+
+	// if we need to, check if the entity is player-controlled
+	// for now, this means a vehicle that's occupied by a player.
+	// in the future, we could track e.g. attachment state or pending component control
+	bool playerControlled = false;
+
+	if constexpr (Mode == RequestControlFilterMode::FilterPlayer || Mode == RequestControlFilterMode::FilterPlayerSettled || Mode == RequestControlFilterMode::FilterPlayerPlusNonPlayerSettled)
+	{
+		// #TODO: turn this into a 'is this type a vehicle' helper
+		if (entity->type == sync::NetObjEntityType::Automobile || entity->type == sync::NetObjEntityType::Bike || entity->type == sync::NetObjEntityType::Boat || entity->type == sync::NetObjEntityType::Heli || entity->type == sync::NetObjEntityType::Plane || entity->type == sync::NetObjEntityType::Submarine || entity->type == sync::NetObjEntityType::Trailer ||
+#ifdef STATE_RDR3
+			entity->type == sync::NetObjEntityType::DraftVeh ||
+#endif
+			entity->type == sync::NetObjEntityType::Train)
+		{
+			if (auto syncTree = entity->syncTree)
+			{
+				auto vehicleData = entity->syncTree->GetVehicleGameState();
+				if (vehicleData->playerOccupants.any())
+				{
+					playerControlled = true;
+				}
+			}
+		}
+	}
+
+	// verify the entity's age, if needed
+	bool settled = false;
+
+	if constexpr (Mode == RequestControlFilterMode::FilterPlayerSettled || Mode == RequestControlFilterMode::FilterPlayerPlusNonPlayerSettled)
+	{
+		auto entityAge = msec() - entity->createdAt;
+		if (entityAge >= std::chrono::milliseconds{ g_requestControlSettleDelay })
+		{
+			settled = true;
+		}
+	}
+
+	// check the policy
+	if constexpr (Mode == RequestControlFilterMode::FilterPlayerPlusNonPlayerSettled)
+	{
+		if (playerControlled || settled)
+		{
+			if (reason)
+			{
+				if (playerControlled)
+				{
+					*reason = "Entity is controlled by a player";
+				}
+				else if (settled)
+				{
+					*reason = "Entity has been settled";
+				}
+			}
+
+			return false;
+		}
+	}
+	else if constexpr (Mode == RequestControlFilterMode::FilterPlayer)
+	{
+		if (playerControlled)
+		{
+			if (reason)
+			{
+				*reason = "Entity is controlled by a player";
+			}
+
+			return false;
+		}
+	}
+	else if constexpr (Mode == RequestControlFilterMode::FilterPlayerSettled)
+	{
+		if (playerControlled && settled)
+		{
+			if (reason)
+			{
+				*reason = "Entity is controlled by a player and has been settled";
+			}
+
+			return false;
+		}
+	}
+
+	// #whatever
+	return true;
+}
+}
+#endif
+
+std::function<bool()> fx::ServerGameState::GetRequestControlEventHandler(const fx::ClientSharedPtr& client, net::Buffer&& buffer)
+{
+#ifndef STATE_FIVE
+	return {};
+#else
+	if (g_requestControlFilterState == RequestControlFilterMode::NoFilter)
+	{
+		return {};
+	}
+	else if (g_requestControlFilterState == RequestControlFilterMode::FilterAll)
+	{
+		return []
+		{
+			return false;
+		};
+	}
+
+	uint32_t objectId = 0;
+	rl::MessageBuffer msg;
+
+	if (ParseEvent(std::move(buffer), &msg))
+	{
+		objectId = msg.Read<uint32_t>(13);
+	}
+
+	return [this, client, objectId]()
+	{
+		auto handler = []
+		{
+			switch (g_requestControlFilterState)
+			{
+				case RequestControlFilterMode::FilterPlayerPlusNonPlayerSettled:
+					return &fx::RequestControlHandler<RequestControlFilterMode::FilterPlayerPlusNonPlayerSettled>;
+				case RequestControlFilterMode::Default:
+				case RequestControlFilterMode::FilterPlayer:
+				default:
+					return &fx::RequestControlHandler<RequestControlFilterMode::FilterPlayer>;
+				case RequestControlFilterMode::FilterPlayerSettled:
+					return &fx::RequestControlHandler<RequestControlFilterMode::FilterPlayerSettled>;
+			}
+		}();
+
+		const char* reason = nullptr;
+		bool result = handler(this, client, objectId, &reason);
+
+		if (!result)
+		{
+			static std::chrono::milliseconds lastWarn{ -120 * 1000 };
+
+			if (g_requestControlFilterState == RequestControlFilterMode::Default)
+			{
+				auto now = msec();
+
+				if ((now - lastWarn) > std::chrono::seconds{ 120 })
+				{
+					console::PrintWarning("sync", "A client (slotID %d) tried to use NetworkRequestControlOfEntity (entity network ID %d), but it was rejected (%s).\n"
+												  "NetworkRequestControlOfEntity is deprecated, and should not be used because of potential abuse by cheaters. To disable this check, set \"sv_filterRequestControl\" \"0\".\n"
+												  "See https://aka.cfx.re/rcmitigation for more information.\n",
+					client->GetSlotId(),
+					objectId,
+					reason);
+
+					lastWarn = now;
+				}
+			}
+		}
+
+		return result;
+	};
+#endif
+}
+
+std::function<bool()> fx::ServerGameState::GetGameEventHandler(const fx::ClientSharedPtr& client, net::Buffer&& buffer)
+{
+	auto instance = m_instance;
+
 	buffer.Read<uint16_t>(); // eventHeader
 	bool isReply = buffer.Read<uint8_t>(); // is reply
 	uint16_t eventType = buffer.Read<uint16_t>(); // event ID
@@ -5378,6 +5633,11 @@ static std::function<bool()> GetEventHandler(fx::ServerInstanceBase* instance, c
 	if (Is2060() && eventType > 55) // patch for 1868+ game build as `NETWORK_AUDIO_BARK_EVENT` was added
 	{
 		eventType--;
+	}
+
+	if (eventType == REQUEST_CONTROL_EVENT)
+	{
+		return GetRequestControlEventHandler(client, std::move(buffer));
 	}
 
 	if (isReply)
@@ -5425,6 +5685,9 @@ static InitFunction initFunction([]()
 		{
 			return;
 		}
+
+		g_requestControlVar = instance->AddVariable<int>("sv_filterRequestControl", ConVar_None, (int)RequestControlFilterMode::Default, (int*)&g_requestControlFilterState);
+		g_requestControlSettleVar = instance->AddVariable<int>("sv_filterRequestControlSettleTimer", ConVar_None, 30000, &g_requestControlSettleDelay);
 
 		fx::SetOneSyncGetCallback([]()
 		{
@@ -5548,7 +5811,7 @@ static InitFunction initFunction([]()
 			auto copyBuf = netBuffer.Clone();
 			copyBuf.Seek(6);
 
-			auto eventHandler = GetEventHandler(instance, client, std::move(copyBuf));
+			auto eventHandler = sgs->GetGameEventHandler(client, std::move(copyBuf));
 
 			if (eventHandler)
 			{

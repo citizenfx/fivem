@@ -653,6 +653,7 @@ struct SyncEntityState
 	// #IFARQ this means lastFramesSent
 	std::array<uint64_t, MAX_CLIENTS> lastFramesPreSent;
 
+	std::chrono::milliseconds createdAt{ 0 };
 	std::chrono::milliseconds lastReceivedAt;
 	std::chrono::milliseconds lastMigratedAt;
 
@@ -1143,6 +1144,12 @@ private:
 	void ParseAckPacket(const fx::ClientSharedPtr& client, net::Buffer& buffer);
 
 	bool ValidateEntity(EntityLockdownMode entityLockdownMode, const fx::sync::SyncEntityPtr& entity);
+
+public:
+	std::function<bool()> GetGameEventHandler(const fx::ClientSharedPtr& client, net::Buffer&& buffer);
+
+private:
+	std::function<bool()> GetRequestControlEventHandler(const fx::ClientSharedPtr& client, net::Buffer&& buffer);
 
 public:
 	fx::sync::SyncEntityPtr GetEntity(uint8_t playerId, uint16_t objectId);
