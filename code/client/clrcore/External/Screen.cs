@@ -332,7 +332,7 @@ namespace CitizenFX.Core.UI
 			var z = MathUtil.DegreesToRadians(rotation.Z);
 			var x = MathUtil.DegreesToRadians(rotation.X);
 			float num = (float)Math.Abs(Math.Cos(x));
-			return new((float)-Math.Sin(z) * num, (float)Math.Cos(z) * num, (float)Math.Sin(x));
+			return new Vector3((float)-Math.Sin(z) * num, (float)Math.Cos(z) * num, (float)Math.Sin(x));
 		}
 
 		private static PointF ProcessCoordinates(PointF coords)
@@ -351,7 +351,7 @@ namespace CitizenFX.Core.UI
 			else
 				relativeY = Math.Abs(relativeY);
 
-			return new(relativeX, relativeY);
+			return new PointF(relativeX, relativeY);
 		}
 
 		private static Vector3 _cameraScreen2World(Vector3 camPos, float relX, float relY)
@@ -407,7 +407,7 @@ namespace CitizenFX.Core.UI
 			var absoluteY = Math.Abs(pos.Y);
 
 			var camPos = API.GetGameplayCamCoord();
-			var processedCoords = ProcessCoordinates(new(absoluteX, absoluteY));
+			var processedCoords = ProcessCoordinates(new PointF(absoluteX, absoluteY));
 			var target = _cameraScreen2World(camPos, absoluteX, absoluteY);
 
 			var dir = Vector3.Subtract(target, camPos);
