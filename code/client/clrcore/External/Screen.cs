@@ -400,7 +400,7 @@ namespace CitizenFX.Core.UI
 			var absoluteX = Math.Abs(pos.X);
 			var absoluteY = Math.Abs(pos.Y);
 
-			var camPos = GetGameplayCamCoord();
+			var camPos = API.GetGameplayCamCoord();
 			var processedCoords = ProcessCoordinates(new(absoluteX, absoluteY));
 			var target = _cameraScreen2World(camPos, absoluteX, absoluteY);
 
