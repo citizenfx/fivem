@@ -10,7 +10,17 @@ namespace CitizenFX.Core
 {
     public static class Debug
     {
-        [SecuritySafeCritical]
+		public const string LIGHT_RED = "^1";
+		public const string LIGHT_GREEN = "^2";
+		public const string YELLOW = "^3";
+		public const string DARK_BLUE = "^4";
+		public const string LIGHT_BLUE = "^5";
+		public const string PURPLE = "^6";
+		public const string WHITE = "^7";
+		public const string DARK_RED = "^8";
+		public const string PINK = "^9";
+
+		[SecuritySafeCritical]
         public static void Write(string data)
         {
 			var channel = "script:" + ((InternalManager.GlobalManager?.ResourceName) ?? "mono");
