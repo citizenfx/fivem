@@ -391,8 +391,12 @@ public:
 			return true;
 		}
 
-		for (auto cb = m_callbacks.get(); cb; cb = cb->next.get())
+		decltype(m_callbacks.get()) next = {};
+
+		for (auto cb = m_callbacks.get(); cb; cb = next)
 		{
+			next = cb->next.get();
+
 			if (!std::invoke(cb->function, args...))
 			{
 				return false;
