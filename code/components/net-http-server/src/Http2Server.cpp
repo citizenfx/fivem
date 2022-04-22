@@ -9,6 +9,7 @@
 #include "HttpServer.h"
 #include "HttpServerImpl.h"
 
+#include <EASTL/fixed_vector.h>
 #include <nghttp2/nghttp2.h>
 
 #include <deque>
@@ -328,16 +329,26 @@ public:
 
 		auto statusCodeStr = std::to_string(statusCode);
 
-		m_headers = headers;
-		m_headers.insert({ ":status", HeaderString{ statusCodeStr.c_str(), statusCodeStr.size() } });
+		m_headers.emplace_back(":status", HeaderString{ statusCodeStr.c_str(), statusCodeStr.size() });
 
-		for (auto& header : m_headerList)
+		auto addHeader = [this](const auto& header)
 		{
-			m_headers.insert(header);
+			// don't have transfer_encoding at all!
+			if (_stricmp(header.first.c_str(), "transfer-encoding") != 0)
+			{
+				m_headers.push_back(header);
+			}
+		};
+
+		for (const auto& header : headers)
+		{
+			addHeader(header);
 		}
 
-		// don't have transfer_encoding at all!
-		m_headers.erase("transfer-encoding");
+		for (const auto& header : m_headerList)
+		{
+			addHeader(header);
+		}
 
 		auto stream = m_tcpStream;
 
@@ -526,7 +537,7 @@ private:
 
 	int m_stream;
 
-	HeaderMap m_headers;
+	eastl::fixed_vector<eastl::pair<HeaderString, HeaderString>, 16> m_headers;
 
 	ZeroCopyByteBuffer m_buffer;
 
