@@ -155,7 +155,7 @@ namespace CitizenFX.Core
 		ArmWrestling,
 		AmmuNationShootingRange = 313,
 		RaceAir,
-		RaceCar,
+		RaceLand,
 		RaceSea,
 		GarbageTruck = 318,
 		SafehouseForSale = 350,
@@ -227,7 +227,136 @@ namespace CitizenFX.Core
 		Stopwatch = 430,
 		DollarSignCircled,
 		Crosshair2,
-		DollarSignSquared = 434
+		DollarSignSquared = 434,
+		RaceStunt,
+		HotProperty,
+		UrbanWarfare,
+		Crown = 439,
+		PennedIn = 441,
+		Beast,
+		Benny = 446,
+		Yacth,
+		Seashark = 471,
+		Warehouse = 473,
+		Office = 475,
+		Truck = 477,
+		Trailer = 479,
+		Cargobob = 481,
+		Ghost = 484,
+		Detonator,
+		Bomb,
+		Armour,
+		Heart = 489,
+		Clubhouse = 492,
+		Weed = 496,
+		Crack,
+		FakeId,
+		Meth,
+		Money,
+		Package,
+		Quad,
+		Bus,
+		DrugsPackage,
+		Laptop = 521,
+		Deadline,
+		SportsCar,
+		WarehouseVehicle,
+		RegPapers,
+		Junkyard = 527,
+		ExVech1,
+		ExVech2,
+		ExVech3,
+		ExVech4,
+		ExVech5,
+		ExVech6,
+		ExVech7,
+		Juggernaut,
+		SteeringWheel = 545,
+		Trophy,
+		Fifteen = 553,
+		Twenty,
+		Thirty,
+		Supplies,
+		Bunker,
+		SmugglerHangar,
+		NightClub = 614,
+		Jewelry = 617,
+		Gold,
+		Keypad,
+		Drone = 627,
+		CashRegister,
+		CCTV,
+		Blimp2 = 638,
+		Oppressor2,
+		RCCar = 646,
+		RemoteController,
+		Bruiser = 658,
+		Brutus,
+		Cerberus,
+		Deathbike,
+		Dominator,
+		Impaler,
+		Imperator,
+		Issi,
+		Sasquatch,
+		Scarab,
+		Slamvan,
+		Zr380,
+		ComicStore = 671,
+		Rucksack = 676,
+		Container,
+		Agatha,
+		Casino,
+		CasinoPoker,
+		CasinoWheel,
+		CasinoChips = 683,
+		CasinoHorseRace,
+		Limousine = 724,
+		RaceOpenWheel = 726,
+		ScubaGear = 729,
+		SnowTruck = 734,
+		Buggy1,
+		Buggy2,
+		Zhaba,
+		Gerald,
+		Ron,
+		Arcade,
+		RCTank = 742,
+		Stairs,
+		Winky = 745,
+		MiniSub,
+		KartRetro,
+		KartModern,
+		MilitaryQuad,
+		MilitaryTruck,
+		ShipWheel,
+		Ufo,
+		SeaSparrow,
+		BoltCutters = 761,
+		RappelGear,
+		Keykard,
+		Password,
+		ControlTower = 767,
+		UnderwaterGate,
+		PowerSwitch,
+		CompundGate,
+		RappelPoint,
+		SubControls = 773,
+		SubPeriscope,
+		SubMissile,
+		Painting,
+		Present = 781,
+		Securoserv = 788,
+		Train = 795,
+		ContstructionWorker = 801,
+		Keys = 811,
+		Suv,
+		SecurityControl,
+		Safe,
+		PayPhone = 817,
+		MusicStudio = 819,
+		ExplosiveCharge = 822,
+		Agency = 826
 	}
 
 	public sealed class Blip : PoolObject, IEquatable<Blip>
@@ -235,6 +364,8 @@ namespace CitizenFX.Core
 		public Blip(int handle) : base(handle)
 		{
 		}
+
+#if !IS_FXSERVER
 
 		/// <summary>
 		/// Gets or sets the position of this <see cref="Blip"/>.
@@ -329,20 +460,25 @@ namespace CitizenFX.Core
 				API.SetBlipColour(Handle, (int)value);
 			}
 		}
+#endif
 		/// <summary>
 		/// Gets or sets the sprite of this <see cref="Blip"/>.
 		/// </summary>
 		public BlipSprite Sprite
 		{
+#if !IS_FXSERVER
 			get
 			{
 				return (BlipSprite)API.GetBlipSprite(Handle);
 			}
+#endif
 			set
 			{
 				API.SetBlipSprite(Handle, (int)value);
 			}
 		}
+#if !IS_FXSERVER
+
 		/// <summary>
 		/// Sets this <see cref="Blip"/>s label to the given string.
 		/// </summary>
@@ -355,6 +491,7 @@ namespace CitizenFX.Core
 				API.EndTextCommandSetBlipName(Handle);
 			}
 		}
+
 		/// <summary>
 		/// Gets the <see cref="Entity"/> this <see cref="Blip"/> is attached to.
 		/// </summary>
@@ -474,6 +611,8 @@ namespace CitizenFX.Core
 			API.HideNumberOnBlip(Handle);
 		}
 
+#endif
+
 		/// <summary>
 		/// Removes this <see cref="Blip"/>.
 		/// </summary>
@@ -482,6 +621,8 @@ namespace CitizenFX.Core
 		{
 			_Delete();
 		}
+
+#if !IS_FXSERVER
 
 		[SecuritySafeCritical]
 		private void _Delete()
@@ -498,7 +639,20 @@ namespace CitizenFX.Core
 				Handle = handle;
 			}
 		}
+#elif IS_FXSERVER
+		[SecuritySafeCritical]
+		private void _Delete()
+		{
+			int handle = Handle;
+			unsafe
+			{
+				API.RemoveBlip(ref handle);
+			}
+			Handle = handle;
+		}
+#endif
 
+#if !IS_FXSERVER
 		public override bool Exists()
 		{
 			return API.DoesBlipExist(Handle);
@@ -508,6 +662,7 @@ namespace CitizenFX.Core
 			return !ReferenceEquals(blip, null) && blip.Exists();
 		}
 
+#endif
 		public bool Equals(Blip blip)
 		{
 			return !ReferenceEquals(blip, null) && Handle == blip.Handle;
