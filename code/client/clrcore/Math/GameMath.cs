@@ -60,36 +60,36 @@ namespace CitizenFX.Core
 			);
 		}
 
-		public static Vector2 ToVector2(this float[] xyArray)
+		public static Vector2 ToVector2(float[] xyArray)
 		{
 			if (xyArray.Length >= 2)
 				return new Vector2(xyArray[0], xyArray[1]);
 			return Vector2.Zero;
 		}
 
-		public static Vector2 ToVector2(this Vector3 vector)
+		public static Vector2 ToVector2(Vector3 vector)
 		{
 			return new Vector2(vector.X, vector.Y);
 		}
 
-		public static Vector2 ToVector2(this Vector4 vector)
+		public static Vector2 ToVector2(Vector4 vector)
 		{
 			return new Vector2(vector.X, vector.Y);
 		}
 
-		public static Vector3 ToVector3(this float[] xyzArray)
+		public static Vector3 ToVector3(float[] xyzArray)
 		{
 			if (xyzArray.Length >= 3)
 				return new Vector3(xyzArray[0], xyzArray[1], xyzArray[2]);
 			return Vector3.Zero;
 		}
 
-		public static Vector3 ToVector3(this Vector4 vector)
+		public static Vector3 ToVector3(Vector4 vector)
 		{
 			return new Vector3(vector.X, vector.Y, vector.Z);
 		}
 
-		public static Vector4 ToVector4(this float[] xyzwArray)
+		public static Vector4 ToVector4(float[] xyzwArray)
 		{
 			if (xyzwArray.Length >= 4)
 				return new Vector4(xyzwArray[0], xyzwArray[1], xyzwArray[2], xyzwArray[3]);
