@@ -7,7 +7,7 @@ apiset: client
 ```c
 int GET_VEHICLE_ALARM_TIME_LEFT(Vehicle vehicle);
 ```
-Returns vehicle alarm time left(Millisecond).<br />
+Returns vehicle alarm time left(Millisecond).  
 You can set time left with [SET_VEHICLE_ALARM_TIME_LEFT](#_0xC108EE6F)
 
 ## Parameters
