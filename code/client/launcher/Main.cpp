@@ -159,6 +159,13 @@ int RealMain()
 
 				hProcess = OpenProcess(SYNCHRONIZE, FALSE, initStateOld->initialGamePid);
 				initStateOld->initialGamePid = 0;
+
+				if (auto eventStr = wcsstr(GetCommandLineW(), L"-switchcl:"))
+				{
+					HANDLE eventHandle = reinterpret_cast<HANDLE>(wcstoull(&eventStr[10], nullptr, 10));
+					SetEvent(eventHandle);
+					CloseHandle(eventHandle);
+				}
 			}
 
 			if (hProcess)

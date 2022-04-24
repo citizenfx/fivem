@@ -87,11 +87,17 @@ static void SaveBuildNumber(uint32_t build)
 void RestartGameToOtherBuild(int build)
 {
 #if defined(GTA_FIVE) || defined(IS_RDR3)
+	SECURITY_ATTRIBUTES securityAttributes = { 0 };
+	securityAttributes.bInheritHandle = TRUE;
+
+	HANDLE switchEvent = CreateEventW(&securityAttributes, TRUE, FALSE, NULL);
+
 	static HostSharedData<CfxState> hostData("CfxInitState");
-	auto cli = fmt::sprintf(L"\"%s\" %s %s -switchcl \"fivem://connect/%s\"",
+	auto cli = fmt::sprintf(L"\"%s\" %s %s -switchcl:%d \"fivem://connect/%s\"",
 	hostData->gameExePath,
 	build == 1604 ? L"" : fmt::sprintf(L"-b%d", build),
 	IsCL2() ? L"-cl2" : L"",
+	(uintptr_t)switchEvent,
 	ToWide(g_lastConn));
 
 	uint32_t defaultBuild =
@@ -112,14 +118,32 @@ void RestartGameToOtherBuild(int build)
 
 	trace("Switching from build %d to build %d...\n", xbr::GetGameBuild(), build);
 
-	STARTUPINFOW si = { 0 };
-	si.cb = sizeof(si);
+	SIZE_T size = 0;
+	InitializeProcThreadAttributeList(NULL, 1, 0, &size);
+
+	std::vector<uint8_t> attListData(size);
+	auto attList = (LPPROC_THREAD_ATTRIBUTE_LIST)attListData.data();
+
+	assert(attList);
+
+	InitializeProcThreadAttributeList(attList, 1, 0, &size);
+	UpdateProcThreadAttribute(attList, 0, PROC_THREAD_ATTRIBUTE_HANDLE_LIST, &switchEvent, sizeof(HANDLE), NULL, NULL);
+
+	STARTUPINFOEXW si = { 0 };
+	si.StartupInfo.cb = sizeof(si);
+	si.lpAttributeList = attList;
 
 	PROCESS_INFORMATION pi;
 
-	if (!CreateProcessW(NULL, const_cast<wchar_t*>(cli.c_str()), NULL, NULL, FALSE, CREATE_BREAKAWAY_FROM_JOB, NULL, NULL, &si, &pi))
+	if (!CreateProcessW(NULL, const_cast<wchar_t*>(cli.c_str()), NULL, NULL, TRUE, CREATE_BREAKAWAY_FROM_JOB | EXTENDED_STARTUPINFO_PRESENT, NULL, NULL, &si.StartupInfo, &pi))
 	{
 		trace("failed to exit: %d\n", GetLastError());
+	}
+	else
+	{
+		// to silence VS analyzers
+		CloseHandle(pi.hProcess);
+		CloseHandle(pi.hThread);
 	}
 
 	ExitProcess(0x69);
