@@ -319,7 +319,7 @@ function RemoveEventHandler(eventData)
 end
 
 local ignoreNetEvent = {
-	'__cfx_internal:commandFallback'
+	['__cfx_internal:commandFallback'] = true,
 }
 
 function RegisterNetEvent(eventName, cb)
