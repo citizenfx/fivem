@@ -1464,6 +1464,11 @@ public:
 };
 
 static CfxProxyInteriorOrderMounter g_proxyInteriorOrderMounter;
+
+static hook::cdecl_stub<void()> _initVehiclePaintRamps([]()
+{
+	return xbr::IsGameBuildOrGreater<2545>() ? hook::get_pattern("83 F9 FF 74 52", -0x34) : nullptr;
+});
 #endif
 
 static CDataFileMountInterface* LookupDataFileMounter(const std::string& type)
@@ -3616,6 +3621,13 @@ static HookFunction hookFunction([]()
 			LoadStreamingFiles(LoadType::AfterSessionEarlyStage);
 			LoadStreamingFiles(LoadType::AfterSession);
 			LoadDataFiles();
+
+#ifdef GTA_FIVE
+			if (xbr::IsGameBuildOrGreater<2545>())
+			{
+				_initVehiclePaintRamps();
+			}
+#endif
 		}
 	});
 
