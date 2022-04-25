@@ -1442,6 +1442,21 @@ result_t LuaScriptRuntime::LoadFileInternal(OMPtr<fxIStream> stream, char* scrip
 		return hr;
 	}
 
+	std::string_view fn = scriptFile;
+	if (fn.length() > 1 && fn[0] == '@' && fn.find_first_of('/') != std::string::npos)
+	{
+		std::string_view resName = fn.substr(1, fn.find_first_of('/') - 1);
+		fn = fn.substr(1 + resName.length() + 1);
+
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+		auto resource = resourceManager->GetResource(std::string(resName));
+
+		if (resource.GetRef())
+		{
+			resource->OnBeforeLoadScript(&fileData);
+		}
+	}
+
 	fx::Resource* resource = reinterpret_cast<fx::Resource*>(GetParentObject());
 	resource->OnBeforeLoadScript(&fileData);
 
