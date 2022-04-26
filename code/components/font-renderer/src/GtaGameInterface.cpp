@@ -428,25 +428,7 @@ static InitFunction initFunction([] ()
 					brandName += L"*";
 				}
 
-				if (Is2060())
-				{
-					brandName += L" (b2060)";
-				}
-
-				if (Is2189())
-				{
-					brandName += L" (b2189)";
-				}
-
-				if (Is2372())
-				{
-					brandName += L" (b2372)";
-				}
-
-				if (Is2545())
-				{
-					brandName += L" (b2545)";
-				}
+				brandName += fmt::sprintf(L" (b%d)", xbr::GetGameBuild());
 #endif 
 
 #if defined(IS_RDR3)

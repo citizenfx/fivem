@@ -1164,7 +1164,7 @@ static void ReloadMapStore()
 
 #ifdef GTA_FIVE
 	// needs verification for newer builds
-	if (!xbr::IsGameBuildOrGreater<2545 + 1>())
+	if (!xbr::IsGameBuildOrGreater<2612 + 1>())
 	{
 		ReloadMapStoreNative();
 	}
@@ -3723,7 +3723,7 @@ static HookFunction hookFunction([]()
 
 	// do not ever register our streaming files as part of DLC packfile dependencies
 	{
-		auto location = hook::get_pattern("48 8B CE C6 85 ? 00 00 00 01 89 44 24 20 E8", 14);
+		auto location = hook::get_pattern("48 8B CE C6 85 ? ? 00 00 01 89 44 24 20 E8", 14);
 		hook::set_call(&g_origAddMapBoolEntry, location);
 		hook::call(location, WrapAddMapBoolEntry);
 	}

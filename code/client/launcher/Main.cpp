@@ -774,29 +774,8 @@ int RealMain()
 				VS_FIXEDFILEINFO* fixedInfo = reinterpret_cast<VS_FIXEDFILEINFO*>(fixedInfoBuffer);
 
 #if defined(GTA_FIVE)
-				auto expectedVersion = 1604;
+				auto expectedVersion = xbr::GetGameBuild();
 
-				if (Is372())
-				{
-					expectedVersion = 372;
-				}
-				else if (Is2060())
-				{
-					expectedVersion = 2060;
-				}
-				else if (Is2189())
-				{
-					expectedVersion = 2189;
-				}
-				else if (Is2372())
-				{
-					expectedVersion = 2372;
-				}
-				else if (Is2545())
-				{
-					expectedVersion = 2545;
-				}
-				
 				if ((fixedInfo->dwFileVersionLS >> 16) != expectedVersion)
 #else
 				auto expectedVersion = 43;
@@ -804,7 +783,7 @@ int RealMain()
 				if ((fixedInfo->dwFileVersionLS & 0xFFFF) != expectedVersion)
 #endif
 				{
-					MessageBox(nullptr, va(L"The found game executable (%s) has version %d.%d.%d.%d, but we're trying to run with 1.0.%d.0. Please obtain this version, and try again.",
+					MessageBox(nullptr, va(L"The found game executable (%s) has version %d.%d.%d.%d, but we're trying to run build %d. Please obtain this version, and try again.",
 										   gameExecutable.c_str(),
 										   (fixedInfo->dwFileVersionMS >> 16),
 										   (fixedInfo->dwFileVersionMS & 0xFFFF),

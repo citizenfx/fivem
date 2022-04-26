@@ -828,6 +828,26 @@ mapper->AddGameService("ugc.asmx/Publish", [](const std::string& body)
   </Result>
 </Response>)");
 			}
+			else if (xbr::IsGameBuild<2612>())
+			{
+					return fmt::sprintf(R"(
+<?xml version="1.0" encoding="utf-8"?>
+<Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ms="0" xmlns="GetBuildManifestFull">
+  <Status>1</Status>
+  <Result BuildId="95" VersionNumber="1.0.2612.1" BuildDateUtc="2021-11-05T11:39:37.0266667">
+    <FileManifest>
+		<FileDetails FileEntryId="9178" FileEntryVersionId="9648" FileSize="60351952" TimestampUtc="2021-11-05T11:39:34.8800000">
+			<RelativePath>GTA5.exe</RelativePath>
+			<SHA256Hash>06b59a02747c3d9f74c6c3621756387f4d85b148a882f4a6735a03383875c1f9</SHA256Hash>
+			<FileChunks>
+				<Chunk FileChunkId="13046" SHA256Hash="06b59a02747c3d9f74c6c3621756387f4d85b148a882f4a6735a03383875c1f9" StartByteOffset="0" Size="60351952" />
+			</FileChunks>
+		</FileDetails>
+    </FileManifest>
+    <IsPreload>false</IsPreload>
+  </Result>
+</Response>)");
+			}
 			else if (xbr::IsGameBuild<2545>())
 			{
 				return fmt::sprintf(R"(
@@ -991,6 +1011,22 @@ mapper->AddGameService("ugc.asmx/Publish", [](const std::string& body)
 
 	mapper->AddGameService("app.asmx/GetApps", [](const std::string& body)
 	{
+		static std::map<int, int> fiveBuildsToVersions{
+			{ 372, 4 },
+			{ 1604, 80 },
+			{ 2060, 83 },
+			{ 2189, 88 },
+			{ 2372, 92 },
+			{ 2545, 94 },
+			{ 2612, 95 },
+		};
+
+		static std::map<int, int> rdrBuildsToVersions{
+			{ 1311, 79 },
+			{ 1355, 80 },
+			{ 1436, 83 },
+		};
+
 		return fmt::sprintf(R"(<?xml version="1.0" encoding="utf-8"?>
 <Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ms="0" xmlns="GetApps">
   <Status>1</Status>
@@ -1064,8 +1100,8 @@ mapper->AddGameService("ugc.asmx/Publish", [](const std::string& body)
     </App>
   </Result>
 </Response>)",
-		xbr::IsGameBuild<372>() ? 4 : (xbr::IsGameBuild<2060>() ? 83 : (xbr::IsGameBuild<2545>() ? 94 : (xbr::IsGameBuild<2372>() ? 92 : (xbr::IsGameBuild<2189>() ? 88 : 80)))),
-		xbr::IsGameBuild<1355>() ? 80 : (xbr::IsGameBuild<1436>() ? 83 : 79));
+		fiveBuildsToVersions[xbr::GetGameBuild()],
+		rdrBuildsToVersions[xbr::GetGameBuild()]);
 	});
 
 
