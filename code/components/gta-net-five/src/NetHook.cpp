@@ -323,6 +323,12 @@ static hook::cdecl_stub<void(int, int, int)> hostGame([] () -> void*
 	{
 		return (void*)hook::get_adjusted(0x14106FF30);
 	}
+	
+	if (xbr::IsGameBuild<2612>())
+	{
+		return (void*)hook::get_adjusted(0x141071468);
+	}
+
 	// 1737
 	//return (void*)0x141029A20;
 

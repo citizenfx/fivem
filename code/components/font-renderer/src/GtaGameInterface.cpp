@@ -447,6 +447,11 @@ static InitFunction initFunction([] ()
 				{
 					brandName += L" (b2545)";
 				}
+
+				if (Is2612())
+				{
+					brandName += L" (b2612)";
+				}
 #endif 
 
 #if defined(IS_RDR3)

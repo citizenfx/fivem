@@ -796,7 +796,11 @@ int RealMain()
 				{
 					expectedVersion = 2545;
 				}
-				
+				else if (Is2612())
+				{
+					expectedVersion = 2612;
+				}
+
 				if ((fixedInfo->dwFileVersionLS >> 16) != expectedVersion)
 #else
 				auto expectedVersion = 43;

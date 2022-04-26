@@ -575,7 +575,11 @@ static HookFunction hookFunction([] ()
 	}
 	else
 	{
-		if (xbr::IsGameBuildOrGreater<2545>())
+		if (xbr::IsGameBuildOrGreater<2612>())
+		{
+			scrThreadId = hook::get_address<uint32_t*>(hook::get_pattern("8B 15 ? ? ? ? 48 8B 05 ? ? ? ? FF C2 89 15 ? ? ? ? 48 8B 0C D8", 2));
+		}
+		else if (xbr::IsGameBuildOrGreater<2545>())
 		{
 			scrThreadId = hook::get_address<uint32_t*>(hook::get_pattern("8B 15 ? ? ? ? 48 8B 05 ? ? ? ? FF C2 89 15 ? ? ? ? E9", 2));
 		}
