@@ -330,17 +330,17 @@ static void DoMapping(std::map<int, std::shared_ptr<FunctionTable>>& functionTab
 	{
 		assert(maxVersion == 24);
 	}
-	else if (Is2545())
+	else if (Is2545() || Is2612())
 	{
 		assert(maxVersion == 25);
 	}
-	else if (Is2612())
+	else if (Is1604())
 	{
-		assert(maxVersion == 25);
+		assert(maxVersion == 19);
 	}
 	else
 	{
-		assert(maxVersion == 19);
+		assert(!"Didn't define maxVersion assertion!");
 	}
 
 	for (auto& nativeEntry : crossMapping_universal)
