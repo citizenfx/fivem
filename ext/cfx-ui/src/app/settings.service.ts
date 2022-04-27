@@ -284,6 +284,15 @@ export class SettingsService {
 			},
 			category: '#SettingsCat_Game',
 		});
+
+		this.addSetting('requestOnBuildSwitch', {
+			name: '#Settings_RequestOnBuildSwitch',
+			description: '#Settings_RequestOnBuildSwitchDesc',
+			type: 'checkbox',
+			getCb: () => this.gameService.requestOnBuildSwitchChange.map(a => a ? 'true' : 'false'),
+			setCb: (value) => this.gameService.requestOnBuildSwitch = (value === 'true'),
+			category: '#SettingsCat_Interface',
+		});
 	}
 
 	public addSetting(label: string, setting: Setting) {

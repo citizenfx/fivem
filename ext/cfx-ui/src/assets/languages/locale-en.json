@@ -85,6 +85,8 @@
     "#SettingsCat_Interface": "Interface",
     "#SettingsCat_Game": "Game",
     "#SettingsCat_Account": "Account",
+    "#Settings_RequestOnBuildSwitch": "Build Switch Confirmation",
+    "#Settings_RequestOnBuildSwitchDesc": "Show confirmation message before switching to another build.",
     "#DirectConnect_TimedOut": "Server query timed out.",
     "#DirectConnect_Failed": "Failed to query server.",
     "#DirectConnect_Loading": "Loading",

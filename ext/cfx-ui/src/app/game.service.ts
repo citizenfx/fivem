@@ -74,6 +74,7 @@ export abstract class GameService {
 	streamerModeChange = new BehaviorSubject<boolean>(false);
 	devModeChange = new BehaviorSubject<boolean>(false);
 	darkThemeChange = new BehaviorSubject<boolean>(true);
+	requestOnBuildSwitchChange = new BehaviorSubject<boolean>(true);
 	nicknameChange = new BehaviorSubject<string>('');
 	localhostPortChange = new BehaviorSubject<string>('');
 	localServerChange = new BehaviorSubject<LocalhostAvailability>(new LocalhostAvailability(false));
@@ -148,6 +149,14 @@ export abstract class GameService {
 	}
 
 	set devMode(value: boolean) {
+
+	}
+
+	get requestOnBuildSwitch(): boolean {
+		return true;
+	}
+
+	set requestOnBuildSwitch(value: boolean) {
 
 	}
 
@@ -274,6 +283,10 @@ export abstract class GameService {
 	protected invokeDevModeChanged(value: boolean) {
 		this.devModeChange.next(value);
 	}
+	
+	protected invokeRequestOnBuildSwitchChanged(value: boolean) {
+		this.requestOnBuildSwitchChange.next(value);
+	}
 
 	protected invokeDarkThemeChanged(value: boolean) {
 		this.darkThemeChange.next(value);
@@ -328,6 +341,7 @@ export abstract class GameService {
 export class CfxGameService extends GameService {
 	private _streamerMode = false;
 	private _devMode = false;
+	private _requestOnBuildSwitch = true;
 	private _darkTheme = true;
 
 	private profileListChange = new BehaviorSubject<boolean>(false);
@@ -565,6 +579,10 @@ export class CfxGameService extends GameService {
 			this.nickname = localStorage.getItem('nickOverride');
 		}
 
+		if (localStorage.getItem('requestOnBuildSwitch')) {
+			this.requestOnBuildSwitch = localStorage.getItem('requestOnBuildSwitch') !== 'no';
+		}
+
 		if (localStorage.getItem('darkThemeNew')) {
 			this.darkTheme = localStorage.getItem('darkThemeNew') !== 'no';
 		}
@@ -626,70 +644,77 @@ export class CfxGameService extends GameService {
 	protected invokeBuildSwitchRequest(server: Server, build: number) {
 		this.card = true;
 
-		const presentCard = (seconds: number) => {
-			if (!this.card) {
-				return;
-			}
-
-			const card = new AdaptiveCard();
-			card.version = new Version(1, 0);
-
-			let gameBrand = 'CitizenFX';
-
-			if (this.gameName === 'rdr3') {
-				gameBrand = 'RedM';
-			} else if (this.gameName === 'gta5') {
-				gameBrand = 'FiveM';
-			}
-
-			const heading = new TextBlock(this.translation.translate('#BuildSwitch_Heading', { build, gameBrand }));
-			heading.size = TextSize.ExtraLarge;
-			card.addItem(heading);
-
-			const body = new TextBlock(this.translation.translate('#BuildSwitch_Body', { build, seconds }));
-			body.wrap = true;
-			card.addItem(body);
-
-			const cancelAction = new SubmitAction();
-			cancelAction.data = { action: 'cancel' };
-			cancelAction.title = this.translation.translate('#BuildSwitch_Cancel');
-
-			const okAction = new SubmitAction();
-			okAction.data = { action: 'ok' };
-			okAction.style = 'positive';
-			okAction.title = this.translation.translate('#BuildSwitch_OK', { seconds });
-
-			const actionSet = new ActionSet();
-			actionSet.addAction(cancelAction);
-			actionSet.addAction(okAction);
-			card.addItem(actionSet);
-
-			this.connectCard.emit({
-				server: server,
-				card: JSON.stringify(card.toJSON())
-			});
-		};
-
-		this.buildSwitchUItimeouts.forEach(clearTimeout);
-        this.buildSwitchUItimeouts.length = 0;
-
-		for (let i = 0; i < 10; i++) {
-			const msec = (10 - i) * 1000;
-			const sec = i;
-
-            this.buildSwitchUItimeouts.push(setTimeout(() => presentCard(sec), msec));
-		}
-
-        if (this.buildSwitchTimeout) {
-            clearTimeout(this.buildSwitchTimeout);
-        }
-        this.buildSwitchTimeout = setTimeout(() => {
-			if (this.card) {
-				this.submitCardResponse({
-					action: 'ok'
+		if (this.requestOnBuildSwitch) {
+			const presentCard = (seconds: number) => {
+				if (!this.card) {
+					return;
+				}
+	
+				const card = new AdaptiveCard();
+				card.version = new Version(1, 0);
+	
+				let gameBrand = 'CitizenFX';
+	
+				if (this.gameName === 'rdr3') {
+					gameBrand = 'RedM';
+				} else if (this.gameName === 'gta5') {
+					gameBrand = 'FiveM';
+				}
+	
+				const heading = new TextBlock(this.translation.translate('#BuildSwitch_Heading', { build, gameBrand }));
+				heading.size = TextSize.ExtraLarge;
+				card.addItem(heading);
+	
+				const body = new TextBlock(this.translation.translate('#BuildSwitch_Body', { build, seconds }));
+				body.wrap = true;
+				card.addItem(body);
+	
+				const cancelAction = new SubmitAction();
+				cancelAction.data = { action: 'cancel' };
+				cancelAction.title = this.translation.translate('#BuildSwitch_Cancel');
+	
+				const okAction = new SubmitAction();
+				okAction.data = { action: 'ok' };
+				okAction.style = 'positive';
+				okAction.title = this.translation.translate('#BuildSwitch_OK', { seconds });
+	
+				const actionSet = new ActionSet();
+				actionSet.addAction(cancelAction);
+				actionSet.addAction(okAction);
+				card.addItem(actionSet);
+	
+				this.connectCard.emit({
+					server: server,
+					card: JSON.stringify(card.toJSON())
 				});
+			};
+	
+			this.buildSwitchUItimeouts.forEach(clearTimeout);
+			this.buildSwitchUItimeouts.length = 0;
+	
+			for (let i = 0; i < 10; i++) {
+				const msec = (10 - i) * 1000;
+				const sec = i;
+	
+				this.buildSwitchUItimeouts.push(setTimeout(() => presentCard(sec), msec));
 			}
-		}, 10000);
+	
+			if (this.buildSwitchTimeout) {
+				clearTimeout(this.buildSwitchTimeout);
+			}
+			this.buildSwitchTimeout = setTimeout(() => {
+				if (this.card) {
+					this.submitCardResponse({
+						action: 'ok'
+					});
+				}
+			}, 10000);
+		}
+		else {
+			this.submitCardResponse({
+				action: 'ok'
+			});
+		}
 	}
 
 	protected invokeBuildSwitch(server: Server, title: string, content: string) {
@@ -801,6 +826,16 @@ export class CfxGameService extends GameService {
 		if (this.realNickname && this.realNickname !== '') {
 			(<any>window).invokeNative('checkNickname', this.realNickname);
 		}
+	}
+	
+	get requestOnBuildSwitch(): boolean {
+		return this._requestOnBuildSwitch;
+	}
+
+	set requestOnBuildSwitch(value: boolean) {
+		this._requestOnBuildSwitch = value;
+		localStorage.setItem('requestOnBuildSwitch', value ? 'yes' : 'no');
+		this.invokeRequestOnBuildSwitchChanged(value);
 	}
 
 	get darkTheme(): boolean {
