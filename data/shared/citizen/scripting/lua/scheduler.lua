@@ -352,7 +352,7 @@ if isDuplicityVersion then
 	function SpustitUdalostKlienta(eventName, playerId, ...)
 		local payload = msgpack_pack_args(...)
 
-		return SpustitUdalostKlientaInternal(eventName, playerId, payload, payload:len())
+		return TriggerClientEventInternal(eventName, playerId, payload, payload:len())
 	end
 	
 	function TriggerLatentClientEvent(eventName, playerId, bps, ...)
@@ -361,7 +361,7 @@ if isDuplicityVersion then
 		return TriggerLatentClientEventInternal(eventName, playerId, payload, payload:len(), tonumber(bps))
 	end
 
-	ZaregistrovatSitovouUdalost = ZaregistrovatSitovouUdalost
+	ZaregistrovatSitovouUdalost = RegisterNetEvent
 	RconPrint = Citizen.Trace
 	GetPlayerEP = GetPlayerEndpoint
 	RconLog = function() end
@@ -423,7 +423,7 @@ if isDuplicityVersion then
 			followLocation = followLocation
 		}
 
-		local id = ProvedHttpPozadavekInternalEx(t)
+		local id = PerformHttpRequestInternalEx(t)
 
 		if id ~= -1 then
 			httpDispatch[id] = cb
@@ -435,7 +435,7 @@ else
 	function SpustitUdalostServeru(eventName, ...)
 		local payload = msgpack_pack_args(...)
 
-		return SpustitUdalostServeruInternal(eventName, payload, payload:len())
+		return TriggerServerEventInternal(eventName, payload, payload:len())
 	end
 	
 	function TriggerLatentServerEvent(eventName, bps, ...)
@@ -961,7 +961,7 @@ GlobalState = NewStateBag('global')
 
 local function GetEntityStateBagId(entityGuid)
 	if isDuplicityVersion or NetworkGetEntityIsNetworked(entityGuid) then
-		return ('entity:%d'):format(NetworkGetNetworkIdFromBytost(entityGuid))
+		return ('entity:%d'):format(NetworkGetNetworkIdFromEntity(entityGuid))
 	else
 		EnsureEntityStateBag(entityGuid)
 		return ('localEntity:%d'):format(entityGuid)
@@ -991,7 +991,7 @@ entityMT = {
 	__ext = EXT_ENTITY,
 	
 	__pack = function(self, t)
-		return tostring(NetworkGetNetworkIdFromBytost(self.__data))
+		return tostring(NetworkGetNetworkIdFromEntity(self.__data))
 	end,
 	
 	__unpack = function(data, t)
