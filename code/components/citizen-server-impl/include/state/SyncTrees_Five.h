@@ -430,7 +430,213 @@ struct CVehicleGameStateDataNode
 
 struct CEntityScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPhysicalScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CVehicleScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
+	
+struct CVehicleScriptGameStateDataNode
+{
+	bool Parse(SyncParseState& state)
+	{
+		state.buffer.ReadBit();
+		bool canBeVisiblyDamaged = state.buffer.ReadBit();
+		bool isDrowning = state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		bool canBeTargetted = state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		bool lockedForNonScriptPlayers = state.buffer.ReadBit();
+
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		bool automaticallyAttach = state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		bool canBeLockedOn = state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+
+		if (Is2060())
+		{
+			state.buffer.ReadBit();
+		}
+
+		bool isInAir = state.buffer.ReadBit();
+
+		bool unk0 = state.buffer.ReadBit();
+
+		if (unk0)
+		{
+			state.buffer.Read<int>(8);
+			state.buffer.Read<int>(8);
+		}
+
+		uint8_t popType = state.buffer.Read<uint8_t>(4);
+
+		bool lockedForTeam = state.buffer.ReadBit();
+		if (lockedForTeam)
+		{
+			state.buffer.Read<int>(16); // Teams
+			bool unk2 = state.buffer.ReadBit();
+
+			if (unk2)
+			{
+				state.buffer.Read<int>(32);
+			}
+		}
+
+		bool unk3 = state.buffer.ReadBit();
+		if (unk3)
+		{
+			state.buffer.Read<int>(5);
+		}
+
+		bool unk4 = state.buffer.ReadBit();
+		if (unk4)
+		{
+			state.buffer.Read<int>(13);
+		}
+
+		bool unk5 = state.buffer.ReadBit();
+		if (unk5)
+		{
+			state.buffer.Read<int>(10);
+		}
+
+		bool unk6 = state.buffer.ReadBit();
+		if (unk6)
+		{
+			state.buffer.Read<int>(6);
+		}
+
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+
+		bool unk7 = state.buffer.ReadBit();
+		if (unk7)
+		{
+			state.buffer.ReadBit();
+		}
+
+		bool unk8 = state.buffer.ReadBit();
+		if (unk8)
+		{
+			state.buffer.Read<int>(8);
+		}
+
+		bool unk9 = state.buffer.ReadBit();
+		if (unk9)
+		{
+			state.buffer.Read<int>(10);
+		}
+
+		state.buffer.ReadBit();
+		state.buffer.Read<int>(14);
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+
+		int v24 = 0;
+
+		do
+		{
+			bool hasVehicleWeapon = state.buffer.ReadBit();
+			if (hasVehicleWeapon)
+			{
+				int capacity = state.buffer.Read<int>(11);
+			}
+		} while (v24 < 6);
+
+		state.buffer.ReadBit();
+
+		bool unk11 = state.buffer.ReadBit();
+		if (unk11)
+		{
+			state.buffer.Read<int>(10);
+		}
+
+		bool unk12 = state.buffer.ReadBit();
+		if (unk12)
+		{
+			state.buffer.Read<int>(8);
+		}
+
+		bool unk13 = state.buffer.ReadBit();
+		if (unk13)
+		{
+			state.buffer.Read<int>(4);
+		}
+
+		state.buffer.ReadBit();
+
+		bool unk14 = state.buffer.ReadBit();
+		if (unk14)
+		{
+			state.buffer.Read<int>(2);
+		}
+
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		int bombCount = state.buffer.Read<int>(10);
+		int countermeasuresCount = state.buffer.Read<int>(10);
+		state.buffer.ReadBit();
+
+		bool unk15 = state.buffer.ReadBit();
+		if (unk15)
+		{
+			state.buffer.Read<int>(10);
+		}
+
+		bool unk16 = state.buffer.ReadBit();
+		if (unk16)
+		{
+			state.buffer.Read<int>(8);
+		}
+
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+
+		bool hoverEnabled = state.buffer.ReadBit();
+		if (hoverEnabled)
+		{
+			bool isHovering = state.buffer.ReadBit();
+		}
+
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		bool hoverTransformEnabled = state.buffer.ReadBit();
+
+		if (!Is2060())
+		{
+			bool unk18 = state.buffer.ReadBit();
+			if (unk18)
+			{
+				state.buffer.Read<int>(7);
+			}
+		}
+
+		state.buffer.ReadBit();
+
+		return true;
+	}
+};
 
 struct CEntityScriptInfoDataNode
 {
