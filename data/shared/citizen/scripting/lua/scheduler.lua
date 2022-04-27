@@ -115,7 +115,7 @@ Citizen.AwaitSentinel = nil
 
 function Citizen.Await(promise)
 	local coro = coroutine_running()
-	assert(coro, "Current execution context is not in the scheduler, you should use CreateThread / SetTimeout or Event system (AddEventHandler) to be able to Await")
+	assert(coro, "Current execution context is not in the scheduler, you should use CreateThread / SetTimeout or Event system (PridatObsluznouRutinuUdalosti) to be able to Await")
 
 	if promise.state == 0 then
 		local reattach = coroutine_yield(AwaitSentinel)
@@ -140,9 +140,9 @@ Citizen.SetBoundaryRoutine(function(f)
 end)
 
 -- root-level alias (to prevent people from calling the game's function accidentally)
-Wait = Citizen.Wait
-CreateThread = Citizen.CreateThread
-SetTimeout = Citizen.SetTimeout
+Pockej = Citizen.Wait
+VytvorVlakno = Citizen.CreateThread
+NastavCasovyLimit = Citizen.SetTimeout
 
 --[[
 
@@ -285,7 +285,7 @@ end)
 
 local eventKey = 10
 
-function AddEventHandler(eventName, eventRoutine)
+function PridatObsluznouRutinuUdalosti(eventName, eventRoutine)
 	local tableEntry = eventHandlers[eventName]
 
 	if not tableEntry then
@@ -309,9 +309,9 @@ function AddEventHandler(eventName, eventRoutine)
 	}
 end
 
-function RemoveEventHandler(eventData)
+function OdstranitObsluznouRutinuUdalosti(eventData)
 	if not eventData.key and not eventData.name then
-		error('Invalid event data passed to RemoveEventHandler()')
+		error('Invalid event data passed to OdstranitObsluznouRutinuUdalosti()')
 	end
 
 	-- remove the entry
@@ -322,7 +322,7 @@ local ignoreNetEvent = {
 	['__cfx_internal:commandFallback'] = true,
 }
 
-function RegisterNetEvent(eventName, cb)
+function ZaregistrovatSitovouUdalost(eventName, cb)
 	if not ignoreNetEvent[eventName] then
 		local tableEntry = eventHandlers[eventName]
 
@@ -336,11 +336,11 @@ function RegisterNetEvent(eventName, cb)
 	end
 
 	if cb then
-		return AddEventHandler(eventName, cb)
+		return PridatObsluznouRutinuUdalosti(eventName, cb)
 	end
 end
 
-function TriggerEvent(eventName, ...)
+function SpustitUdalost(eventName, ...)
 	local payload = msgpack_pack_args(...)
 
 	return runWithBoundaryEnd(function()
@@ -349,10 +349,10 @@ function TriggerEvent(eventName, ...)
 end
 
 if isDuplicityVersion then
-	function TriggerClientEvent(eventName, playerId, ...)
+	function SpustitUdalostKlienta(eventName, playerId, ...)
 		local payload = msgpack_pack_args(...)
 
-		return TriggerClientEventInternal(eventName, playerId, payload, payload:len())
+		return SpustitUdalostKlientaInternal(eventName, playerId, payload, payload:len())
 	end
 	
 	function TriggerLatentClientEvent(eventName, playerId, bps, ...)
@@ -361,12 +361,12 @@ if isDuplicityVersion then
 		return TriggerLatentClientEventInternal(eventName, playerId, payload, payload:len(), tonumber(bps))
 	end
 
-	RegisterServerEvent = RegisterNetEvent
+	ZaregistrovatSitovouUdalost = ZaregistrovatSitovouUdalost
 	RconPrint = Citizen.Trace
 	GetPlayerEP = GetPlayerEndpoint
 	RconLog = function() end
 
-	function GetPlayerIdentifiers(player)
+	function ZiskatIdentifikatoryHrace(player)
 		local numIds = GetNumPlayerIdentifiers(player)
 		local t = {}
 
@@ -377,7 +377,7 @@ if isDuplicityVersion then
 		return t
 	end
 
-	function GetPlayerTokens(player)
+	function ZiskatTokenyHrace(player)
 		local numIds = GetNumPlayerTokens(player)
 		local t = {}
 
@@ -388,7 +388,7 @@ if isDuplicityVersion then
 		return t
 	end
 
-	function GetPlayers()
+	function ZiskatHrace()
 		local num = GetNumPlayerIndices()
 		local t = {}
 
@@ -400,7 +400,7 @@ if isDuplicityVersion then
 	end
 
 	local httpDispatch = {}
-	AddEventHandler('__cfx_internal:httpResponse', function(token, status, body, headers, errorData)
+	PridatObsluznouRutinuUdalosti('__cfx_internal:httpResponse', function(token, status, body, headers, errorData)
 		if httpDispatch[token] then
 			local userCallback = httpDispatch[token]
 			httpDispatch[token] = nil
@@ -408,7 +408,7 @@ if isDuplicityVersion then
 		end
 	end)
 
-	function PerformHttpRequest(url, cb, method, data, headers, options)
+	function ProvedHttpPozadavek(url, cb, method, data, headers, options)
 		local followLocation = true
 		
 		if options and options.followLocation ~= nil then
@@ -423,7 +423,7 @@ if isDuplicityVersion then
 			followLocation = followLocation
 		}
 
-		local id = PerformHttpRequestInternalEx(t)
+		local id = ProvedHttpPozadavekInternalEx(t)
 
 		if id ~= -1 then
 			httpDispatch[id] = cb
@@ -432,10 +432,10 @@ if isDuplicityVersion then
 		end
 	end
 else
-	function TriggerServerEvent(eventName, ...)
+	function SpustitUdalostServeru(eventName, ...)
 		local payload = msgpack_pack_args(...)
 
-		return TriggerServerEventInternal(eventName, payload, payload:len())
+		return SpustitUdalostServeruInternal(eventName, payload, payload:len())
 	end
 	
 	function TriggerLatentServerEvent(eventName, bps, ...)
@@ -565,16 +565,16 @@ local InvokeRpcEvent
 if GetCurrentResourceName() == 'sessionmanager' then
 	local rpcEvName = ('__cfx_rpcReq')
 
-	RegisterNetEvent(rpcEvName)
+	ZaregistrovatSitovouUdalost(rpcEvName)
 
-	AddEventHandler(rpcEvName, function(retEvent, retId, refId, args)
+	PridatObsluznouRutinuUdalosti(rpcEvName, function(retEvent, retId, refId, args)
 		local source = source
 
-		local eventTriggerFn = TriggerServerEvent
+		local eventTriggerFn = SpustitUdalostServeru
 		
 		if isDuplicityVersion then
 			eventTriggerFn = function(name, ...)
-				TriggerClientEvent(name, source, ...)
+				SpustitUdalostKlienta(name, source, ...)
 			end
 		end
 
@@ -624,9 +624,9 @@ local playerPromises = {}
 -- RPC REPLY HANDLER
 local repName = ('__cfx_rpcRep:%s'):format(GetCurrentResourceName())
 
-RegisterNetEvent(repName)
+ZaregistrovatSitovouUdalost(repName)
 
-AddEventHandler(repName, function(retId, args, err)
+PridatObsluznouRutinuUdalosti(repName, function(retId, args, err)
 	local promise = rpcPromises[retId]
 	rpcPromises[retId] = nil
 
@@ -645,7 +645,7 @@ AddEventHandler(repName, function(retId, args, err)
 end)
 
 if isDuplicityVersion then
-	AddEventHandler('playerDropped', function(reason)
+	PridatObsluznouRutinuUdalosti('playerDropped', function(reason)
 		local source = source
 
 		if playerPromises[source] then
@@ -675,11 +675,11 @@ InvokeRpcEvent = function(source, ref, args)
 
 	local src = source
 
-	local eventTriggerFn = TriggerServerEvent
+	local eventTriggerFn = SpustitUdalostServeru
 
 	if isDuplicityVersion then
 		eventTriggerFn = function(name, ...)
-			TriggerClientEvent(name, src, ...)
+			SpustitUdalostKlienta(name, src, ...)
 		end
 	end
 
@@ -816,7 +816,7 @@ do
 	for i = 0, numMetaData-1 do
 		local exportName = GetResourceMetadata(resource, exportKey, i)
 
-		AddEventHandler(getExportEventName(resource, exportName), function(setCB)
+		PridatObsluznouRutinuUdalosti(getExportEventName(resource, exportName), function(setCB)
 			-- get the entry from *our* global table and invoke the set callback
 			if _G[exportName] then
 				setCB(_G[exportName])
@@ -827,7 +827,7 @@ end
 
 -- Remove cache when resource stop to avoid calling unexisting exports
 local function lazyEventHandler() -- lazy initializer so we don't add an event we don't need
-	AddEventHandler(('on%sResourceStop'):format(isDuplicityVersion and 'Server' or 'Client'), function(resource)
+	PridatObsluznouRutinuUdalosti(('on%sResourceStop'):format(isDuplicityVersion and 'Server' or 'Client'), function(resource)
 		exportsCallbackCache[resource] = {}
 	end)
 
@@ -884,7 +884,7 @@ setmetatable(exports, {
 	end,
 
 	__call = function(t, exportName, func)
-		AddEventHandler(getExportEventName(GetCurrentResourceName(), exportName), function(setCB)
+		PridatObsluznouRutinuUdalosti(getExportEventName(GetCurrentResourceName(), exportName), function(setCB)
 			setCB(func)
 		end)
 	end
@@ -892,10 +892,10 @@ setmetatable(exports, {
 
 -- NUI callbacks
 if not isDuplicityVersion then
-	function RegisterNUICallback(type, callback)
-		RegisterNuiCallbackType(type)
+	function ZaregistrovatZpetneVolaniNUI(type, callback)
+		RegisterNUICallbackType(type)
 
-		AddEventHandler('__cfx_nui:' .. type, function(body, resultCallback)
+		PridatObsluznouRutinuUdalosti('__cfx_nui:' .. type, function(body, resultCallback)
 --[[
 			-- Lua 5.4: Create a to-be-closed variable to monitor the NUI callback handle.
 			local hasCallback = false
@@ -961,7 +961,7 @@ GlobalState = NewStateBag('global')
 
 local function GetEntityStateBagId(entityGuid)
 	if isDuplicityVersion or NetworkGetEntityIsNetworked(entityGuid) then
-		return ('entity:%d'):format(NetworkGetNetworkIdFromEntity(entityGuid))
+		return ('entity:%d'):format(NetworkGetNetworkIdFromBytost(entityGuid))
 	else
 		EnsureEntityStateBag(entityGuid)
 		return ('localEntity:%d'):format(entityGuid)
@@ -991,7 +991,7 @@ entityMT = {
 	__ext = EXT_ENTITY,
 	
 	__pack = function(self, t)
-		return tostring(NetworkGetNetworkIdFromEntity(self.__data))
+		return tostring(NetworkGetNetworkIdFromBytost(self.__data))
 	end,
 	
 	__unpack = function(data, t)
@@ -1012,7 +1012,7 @@ playerMT = {
 			local pid = t.__data
 			
 			if pid == -1 then
-				pid = GetPlayerServerId(PlayerId())
+				pid = ZiskatHraceerverId(PlayerId())
 			end
 			
 			local es = ('player:%d'):format(pid)
@@ -1044,7 +1044,7 @@ playerMT = {
 
 msgpack.extend(playerMT)
 
-function Entity(ent)
+function Bytost(ent)
 	if type(ent) == 'number' then
 		return setmetatable({
 			__data = ent
@@ -1054,7 +1054,7 @@ function Entity(ent)
 	return ent
 end
 
-function Player(ent)
+function Hrac(ent)
 	if type(ent) == 'number' or type(ent) == 'string' then
 		return setmetatable({
 			__data = tonumber(ent)
@@ -1065,5 +1065,5 @@ function Player(ent)
 end
 
 if not isDuplicityVersion then
-	LocalPlayer = Player(-1)
+	LocalPlayer = Hrac(-1)
 end
