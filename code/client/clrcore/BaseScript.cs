@@ -94,7 +94,7 @@ namespace CitizenFX.Core
 #if !IS_FXSERVER && !IS_RDR3 && !GTA_NY
 		private Player m_player;
 
-		protected Player LocalPlayer
+		public Player LocalPlayer
 		{
 			get
 			{
