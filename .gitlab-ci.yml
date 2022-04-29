@@ -1,21 +1,26 @@
+# ------------
+# -- STAGES --
+# ------------
 stages:
   - build
   - deploy
   - postdeploy
 
-.buildscript: &build_windows
+# --------------------------
+# -- SHARED WINDOWS BUILD --
+# --------------------------
+.build_windows:
   stage: build
   script:
     - ".\\code\\tools\\ci\\build.ps1 -DontUpload $true"
-
-build_client:
-  <<: *build_windows
-  tags:
-    - vs2017
-    - client
   variables:
-    IS_FXSERVER: '0'
     IS_LAUNCHER: '0'
+  except:
+    - tags
+
+.build_client:
+  extends: .build_windows
+  variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR\$CI_BUILD_REF_NAME\fivem
   artifacts:
     paths:
@@ -23,16 +28,49 @@ build_client:
       - ext/native-doc-gen/natives_cfx.json
     expire_in: 1 month
   cache:
-    key: client_$CI_BUILD_REF_NAME
+    key: $CI_JOB_NAME-$CI_BUILD_REF_NAME
     untracked: true
     paths:
       - code/shared/citversion.h
       - code/shared/launcher_version.h
       - code/build/
-  except:
-    - server-ci
-    - tags
-    
+
+# -------------------
+# -- WINDOWS BUILD --
+# -------------------
+build_client:
+  extends: .build_client
+  tags:
+    - client
+    - vs2017
+  variables:
+    IS_FXSERVER: '0'
+
+build_client_rdr3:
+  extends: .build_client
+  tags:
+    - client2
+    - vs2017
+  variables:
+    IS_FXSERVER: '0'
+    IS_RDR3: '1'
+
+build_server_windows:
+  extends: .build_windows
+  tags:
+    - server
+    - vs2017
+  variables:
+    IS_FXSERVER: '1'
+  artifacts:
+    paths:
+      - out/server.zip
+      - out/server.7z
+    expire_in: 1 month
+  cache:
+    key: server
+    untracked: true
+
 build_sdk:
   stage: build
   tags:
@@ -49,80 +87,9 @@ build_sdk:
   script:
     - ".\\code\\tools\\ci\\build_sdk.ps1"
 
-build_client_rdr3:
-  <<: *build_windows
-  tags:
-    - vs2017
-    - client2
-  variables:
-    IS_FXSERVER: '0'
-    IS_LAUNCHER: '0'
-    IS_RDR3: '1'
-    GIT_CLONE_PATH: $CI_BUILDS_DIR\$CI_BUILD_REF_NAME\fivem
-  artifacts:
-    paths:
-      - caches/
-    expire_in: 1 month
-  cache:
-    key: rdr3_$CI_BUILD_REF_NAME
-    untracked: true
-    paths:
-      - code/shared/citversion.h
-      - code/shared/launcher_version.h
-      - code/build/
-  except:
-    - server-ci
-    - tags
-    - fxdk-releng
-    
-build_launcher:
-  <<: *build_windows
-  tags:
-    - vs2017
-    - client
-  variables:
-    IS_FXSERVER: '0'
-    IS_LAUNCHER: '1'
-  artifacts:
-    paths:
-      - caches/diff/
-      - caches/caches.xml
-      - caches/CitizenFX.exe.xz
-      - caches/version.txt
-    expire_in: 1 month
-  cache:
-    key: launcher
-    untracked: true
-    paths:
-      - code/shared/citversion.h
-      - code/shared/launcher_version.h
-      - code/build/
-  except:
-    - master
-    - server-ci
-    - tags
-    - fxdk-releng
-
-build_server_windows:
-  <<: *build_windows
-  tags:
-    - vs2017
-    - server
-  variables:
-    IS_FXSERVER: '1'
-    IS_LAUNCHER: '0'
-  artifacts:
-    paths:
-      - out/server.zip
-      - out/server.7z
-    expire_in: 1 month
-  except:
-    - tags
-    - fxdk-releng
-  cache:
-    key: server
-    untracked: true
-
+# -----------------
+# -- LINUX BUILD --
+# -----------------
 build_proot_linux:
   stage: build
   image: mcr.microsoft.com/dotnet/core/sdk:3.1-alpine3.13
@@ -139,217 +106,100 @@ build_proot_linux:
     expire_in: 1 month
   except:
     - tags
-    #- master
-    - feature/update-to-1365
-    - feature/update-to-1604
-    - feature/cloning-stuff-releng
-    - feature/cloning-plus
-    - portability-rdr3
-    - fxdk-releng
   tags:
     - linux
 
-deploy_specific:
+# -------------------
+# -- CLIENT DEPLOY --
+# -------------------
+
+.deploy:
   stage: deploy
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR\$CI_BUILD_REF_NAME\fivem
+  script:
+    - ".\\code\\tools\\ci\\build.ps1 -DontBuild $true"
+
+.deploy_five:
+  extends: .deploy
+  tags:
+    - vs2017
+    - client
   needs:
     - job: build_client
       artifacts: true
     - job: build_sdk
       artifacts: true
+
+.deploy_rdr3:
+  extends: .deploy
+  tags:
+    - vs2017
+    - client2
+  needs:
+    - job: build_client_rdr3
+      artifacts: true
   variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR\$CI_BUILD_REF_NAME\fivem
-  script:
-    - ".\\code\\tools\\ci\\build.ps1 -DontBuild $true"
+    IS_RDR3: '1'
+
+.deploy_specific:
   environment:
     name: specific/$CI_BUILD_REF_NAME
   only:
     - branches
-  tags:
-    - vs2017
-    - client
   except:
     - master
-    - server-ci
     - tags
+
+.deploy_manual:
+  when: manual
+  only:
+   - master
+
+.deploy_canary:
+  environment:
+    name: canary
+  only:
+    - master
+
+# -------------------------
+# -- CLIENT DEPLOY IMPLS --
+# -------------------------
+deploy_specific:
+  extends: [.deploy_five, .deploy_specific]
     
 deploy_rdr3_specific:
-  stage: deploy
-  needs:
-    - job: build_client_rdr3
-      artifacts: true
-  script:
-    - ".\\code\\tools\\ci\\build.ps1 -DontBuild $true"
-  environment:
-    name: specific/$CI_BUILD_REF_NAME
-  only:
-    - branches
-  tags:
-    - vs2017
-    - client2
-  variables:
-    IS_FXSERVER: '0'
-    IS_LAUNCHER: '0'
-    IS_RDR3: '1'
-    GIT_CLONE_PATH: $CI_BUILDS_DIR\$CI_BUILD_REF_NAME\fivem
-  except:
-    - master
-    - server-ci
-    - tags
-    - fxdk-releng
-
-upload_review:
-  stage: postdeploy
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR\$CI_BUILD_REF_NAME\fivem
-  needs:
-    - job: build_client
-      artifacts: true
-  script:
-    - ".\\code\\tools\\ci\\upload_review.ps1"
-  tags:
-    - vs2017
-  only:
-    - master
+  extends: [.deploy_rdr3, .deploy_specific]
 
 deploy_canary:
-  stage: deploy
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR\$CI_BUILD_REF_NAME\fivem
-  needs:
-    - job: build_client
-      artifacts: true
-    - job: build_sdk
-      artifacts: true
-  script:
-    - ".\\code\\tools\\ci\\build.ps1 -DontBuild $true"
-  environment:
-    name: canary
-  tags:
-    - vs2017
-    - client
-  only:
-    - master
-    
+  extends: [.deploy_five, .deploy_canary]
+
 deploy_canary_rdr3:
-  stage: deploy
-  needs:
-    - job: build_client_rdr3
-      artifacts: true
-  script:
-    - ".\\code\\tools\\ci\\build.ps1 -DontBuild $true"
-  environment:
-    name: canary
-  tags:
-    - vs2017
-    - client2
-  variables:
-    IS_FXSERVER: '0'
-    IS_LAUNCHER: '0'
-    IS_RDR3: '1'
-    GIT_CLONE_PATH: $CI_BUILDS_DIR\$CI_BUILD_REF_NAME\fivem
-  only:
-    - master
-    
-deploy_launcher:
-  stage: deploy
-  needs:
-    - job: build_launcher
-      artifacts: true
-  variables:
-    IS_LAUNCHER: '1'
-  script:
-    - ".\\code\\tools\\ci\\build.ps1 -DontBuild $true"
-  environment:
-    name: canary
-  tags:
-    - vs2017
-    - client
-  only:
-    - nah
+  extends: [.deploy_rdr3, .deploy_canary]
 
-deploy_prod:
-  stage: deploy
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR\$CI_BUILD_REF_NAME\fivem
-  needs:
-    - job: build_client
-      artifacts: true
-    - job: build_sdk
-      artifacts: true
-  script:
-    - ".\\code\\tools\\ci\\build.ps1 -DontBuild $true"
-  environment:
-    name: production
-  when: manual
-  tags:
-    - vs2017
-    - client
-  only:
-    - master
-    
-deploy_prod_rdr3:
-  stage: deploy
-  needs:
-    - job: build_client_rdr3
-      artifacts: true
-  script:
-    - ".\\code\\tools\\ci\\build.ps1 -DontBuild $true"
-  environment:
-    name: production
-  when: manual
-  tags:
-    - vs2017
-    - client2
-  variables:
-    IS_FXSERVER: '0'
-    IS_LAUNCHER: '0'
-    IS_RDR3: '1'
-    GIT_CLONE_PATH: $CI_BUILDS_DIR\$CI_BUILD_REF_NAME\fivem
-  only:
-    - master
-
-# this needs updating to share common content w/ `<<` includes
 deploy_beta:
-  stage: deploy
-  variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR\$CI_BUILD_REF_NAME\fivem
-  needs:
-    - job: build_client
-      artifacts: true
-    - job: build_sdk
-      artifacts: true
-  script:
-    - ".\\code\\tools\\ci\\build.ps1 -DontBuild $true"
+  extends: [.deploy_five, .deploy_manual]
   environment:
     name: beta
-  when: manual
-  tags:
-    - vs2017
-    - client
-  only:
-    - master
 
 deploy_beta_rdr3:
-  stage: deploy
-  needs:
-    - job: build_client_rdr3
-      artifacts: true
-  script:
-    - ".\\code\\tools\\ci\\build.ps1 -DontBuild $true"
+  extends: [.deploy_rdr3, .deploy_manual]
   environment:
     name: beta
-  when: manual
-  tags:
-    - vs2017
-    - client2
-  variables:
-    IS_FXSERVER: '0'
-    IS_LAUNCHER: '0'
-    IS_RDR3: '1'
-    GIT_CLONE_PATH: $CI_BUILDS_DIR\$CI_BUILD_REF_NAME\fivem
-  only:
-    - master
-    
+
+deploy_prod:
+  extends: [.deploy_five, .deploy_manual]
+  environment:
+    name: production
+
+deploy_prod_rdr3:
+  extends: [.deploy_rdr3, .deploy_manual]
+  environment:
+    name: production
+
+# -------------------
+# -- ScRT PACKAGES --
+# -------------------
 typings_server:
   stage: deploy
   needs:
@@ -402,3 +252,30 @@ nuget_server:
     - master
   script:
     - "cmd /c ext\\nuget\\server\\build.bat"
+
+# ------------------------
+# -- SHARED POST-DEPLOY --
+# ------------------------
+
+.upload_review:
+  stage: postdeploy
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR\$CI_BUILD_REF_NAME\fivem
+  script:
+    - ".\\code\\tools\\ci\\upload_review.ps1"
+  tags:
+    - vs2017
+  only:
+    - master
+
+upload_review:
+  extends: .upload_review
+  needs:
+    - job: build_client
+      artifacts: true
+
+upload_review_rdr3:
+  extends: .upload_review
+  needs:
+    - job: build_client_rdr3
+      artifacts: true
