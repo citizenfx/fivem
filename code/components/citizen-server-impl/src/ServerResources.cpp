@@ -1216,15 +1216,7 @@ static InitFunction initFunction2([]()
 
 		if (resource.GetRef())
 		{
-			fx::OMPtr<IScriptRuntime> runtime;
-			std::string currentResourceName;
-
-			if (FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
-			{
-				currentResourceName = reinterpret_cast<fx::Resource*>(runtime->GetParentObject())->GetName();
-			}
-
-			if (g_managedResources.find(resource->GetName()) != g_managedResources.end() || resource->GetName() == currentResourceName)
+			if (g_managedResources.find(resource->GetName()) != g_managedResources.end())
 			{
 				success = false;
 			}
