@@ -1078,7 +1078,7 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 	int numArgs = args.Length();
 
 	// verify argument count
-	if (numArgs < 1)
+	if (numArgs < HashGetter::BaseArgs)
 	{
 		return throwException("wrong argument count (needs at least a hash string)");
 	}
