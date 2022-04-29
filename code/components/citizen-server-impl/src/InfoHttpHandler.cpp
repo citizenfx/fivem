@@ -476,6 +476,7 @@ json InfoHttpHandlerComponentLocals::GetDynamicJson()
 		{ "clients", numClients },
 		{ "iv", server->GetVariable("sv_infoVersion") },
 		{ "sv_maxclients", server->GetVariable("sv_maxclients") },
+		{ "serverstarted", server->HasSettled() }
 	});
 
 	return json;
