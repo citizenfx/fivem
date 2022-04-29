@@ -1542,6 +1542,27 @@ static void SyncDataSizeCalculatorSerializePlayerIndex(rage::CSyncDataSizeCalcul
 
 	syncData->m_size += kPlayerNetIdLength;
 }
+
+static rlGamerInfo* (*g_origNetGamePlayerGetGamerInfo)(CNetGamePlayer*);
+
+static rlGamerInfo* NetGamePlayerGetGamerInfo(CNetGamePlayer* self)
+{
+	if (!icgi->OneSyncEnabled)
+	{
+		return g_origNetGamePlayerGetGamerInfo(self);
+	}
+
+	if (auto playerInfo = self->GetPlayerInfo())
+	{
+		return (rlGamerInfo*)((char*)playerInfo + 0x20);
+	}
+
+	FatalError("CNetGamePlayer::GetGamerInfo returned nullptr, this is a fatal error.\n"
+		"Physical player index: %d\nActive player index: %d\nPlayer address: %x\n\n"
+		"Please report this issue, together with the information from 'Save information' down below on\n"
+		"https://forum.cfx.re/t/cnetgameplayer-getgamerinfo-returns-nullptr-causing-crashes",
+		self->physicalPlayerIndex(), self->activePlayerIndex(), (uint64_t)self);
+}
 #endif
 
 static HookFunction hookFunction([]()
@@ -2025,6 +2046,13 @@ static HookFunction hookFunction([]()
 		auto sizeCalculatorVtable = hook::get_address<uintptr_t*>(hook::get_pattern("B8 BF FF 00 00 48 8B CF 66 21 87", 27));
 		g_origSyncDataSizeCalculatorSerializePlayerIndex = (decltype(g_origSyncDataSizeCalculatorSerializePlayerIndex))sizeCalculatorVtable[25];
 		hook::put(&sizeCalculatorVtable[25], (uintptr_t)SyncDataSizeCalculatorSerializePlayerIndex);
+	}
+
+	// attempt to get some information about CNetGamePlayer::GetGamerInfo related crashes
+	{
+		auto netGamePlayerVtable = hook::get_address<uintptr_t*>(hook::get_pattern("E8 ? ? ? ? 33 F6 48 8D 05 ? ? ? ? 48 8D 8B", 10));
+		g_origNetGamePlayerGetGamerInfo = (decltype(g_origNetGamePlayerGetGamerInfo))netGamePlayerVtable[12];
+		hook::put(&netGamePlayerVtable[12], (uintptr_t)NetGamePlayerGetGamerInfo);
 	}
 #endif
 

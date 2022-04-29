@@ -76,7 +76,7 @@ private:
 		uint8_t activePlayerIndex; // +24
 		uint8_t physicalPlayerIndex; // +25
 		char pad2[270]; // +26;
-		void* entity; // +296
+		void* pedPlayerComponent; // +296
 	};
 
 	union
@@ -87,11 +87,9 @@ private:
 public:
 	void* GetPlayerInfo()
 	{
-		auto entity = *(uint64_t*)(impl.m1311.entity);
-
-		if (entity)
+		if (auto pedPlayerComponent = (void*)(impl.m1311.pedPlayerComponent))
 		{
-			return (void*)(entity + 304);
+			return (void*)((char*)pedPlayerComponent + 0x130);
 		}
 
 		return nullptr;
