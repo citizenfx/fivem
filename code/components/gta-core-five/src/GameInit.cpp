@@ -44,9 +44,15 @@ static hook::cdecl_stub<int(bool, int)> getWarningResult([] ()
 
 static bool g_showWarningMessage;
 static std::string g_warningMessage;
+extern volatile bool g_isNetworkKilled;
 
 void FiveGameInit::KillNetwork(const wchar_t* errorString)
 {
+	if (g_isNetworkKilled)
+	{
+		return;
+	}
+
 	if (errorString == (wchar_t*)1)
 	{
 		OnKillNetwork("Reloading game.");

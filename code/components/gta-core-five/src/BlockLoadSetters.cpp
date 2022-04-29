@@ -97,7 +97,7 @@ static void WaitForInitLoopWrap()
 	WaitForInitLoop();
 }
 
-static volatile bool g_isNetworkKilled;
+volatile bool g_isNetworkKilled;
 
 enum LoadingScreenContext
 {

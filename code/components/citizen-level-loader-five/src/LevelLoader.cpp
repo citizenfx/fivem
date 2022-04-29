@@ -215,7 +215,7 @@ static concurrency::concurrent_queue<std::function<void()>> g_onShutdownQueue;
 
 static void LoadLevel(const char* levelName)
 {
-	ICoreGameInit* gameInit = Instance<ICoreGameInit>::Get();
+	static auto gameInit = Instance<ICoreGameInit>::Get();
 
 	gameInit->SetVariable("networkInited");
 
@@ -241,10 +241,9 @@ static void LoadLevel(const char* levelName)
 		bool lm = gameInit->HasVariable("localMode");
 		bool em = gameInit->HasVariable("editorMode");
 
-		// This function should probably be cognizant of 'g_isNetworkKilled' in BlockLoadSetters.
-		//gameInit->KillNetwork((wchar_t*)1);
+		gameInit->KillNetwork((wchar_t*)1);
 
-		auto fEvent = ([gameInit, sm, lm, em]()
+		auto fEvent = ([sm, lm, em]()
 		{
 			gameInit->ReloadGame();
 
