@@ -14,7 +14,6 @@ return {
 	end,
 
 	run = function()
-		targetname "lua54"
 		language "C++"
 		kind "StaticLib"
 		vectorextensions "SSE2" -- @EXPERIMENT
