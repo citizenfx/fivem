@@ -1,3 +1,5 @@
+local noGLM = ...
+
 return {
 	include = function()
 		includedirs { "../vendor/lua/" }
@@ -84,6 +86,12 @@ return {
 			'GLM_FORCE_SSE2',
 			--'GLM_FORCE_SSE3', -- Change vectorextensions
 		}
+
+		if noGLM then
+			removedefines {
+				'LUA_INCLUDE_LIBGLM',
+			}
+		end
 
 		files {
 			"../vendor/lua/onelua.c",
