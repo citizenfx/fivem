@@ -560,9 +560,8 @@ function queryServers(e: MessageEvent) {
 						serverTagsWorker.addServerTags(server);
 						serverTagsWorker.addLocaleIndex(server);
 						serverAutoCompleteWorker.addAutocompleteIndex(server);
+						cachedServers[server.EndPoint] = server.Data;
 					}
-
-					cachedServers[server.EndPoint] = server.Data;
 				}
 
 				postMessage({ type: 'addServers', servers });
