@@ -108,31 +108,6 @@ static std::wstring MapRedirectedFilename(const wchar_t* origFileName)
 		return MakeRelativeCitPath(L"nodontfuckingplaygtav.exe");
 	}
 
-	// since NVIDIA drivers refactored the "NvShaderDiskCache" perf strategy, it's been causing a lot of 'long load' failures
-	// we don't have debug info/code to know what this refactored logic is doing, we also don't have any contact at NVIDIA to report this to/ask,
-	// and no repro either to do further investigation.
-	//
-	// instead, we'll redirect the default cache directory to a dummy directory, and create the "CYA_DISABLE_CACHE_FILENAME" ('disable.txt')
-	// in this directory, to disable the shader cache and the corruption it causes.
-	//
-	// *technically*, we could've just set the PS_SHADERDISKCACHE boolean DRS to FALSE, but there's no API to set a DRS for the current process,
-	// and the existent NVAPI is a mess (you have to create a new profile for your process and so on), but since the cover-their-arse filename
-	// exists and is still checked for even 2 refactors later, we'll just do this.
-	//
-	// we could've also set PS_SHADERDISKCACHE_PATH, but that's equally silly.
-	if (auto subs = wcsstr(origFileName, L"NVIDIA\\DXCache"); subs != nullptr)
-	{
-		auto basePath = MakeRelativeCitPath(L"data\\cache\\NV_DXCache");
-		CreateDirectoryW(basePath.c_str(), NULL);
-
-		if (FILE* f = _wfopen((basePath + L"\\disable.txt").c_str(), L"wb"))
-		{
-			fclose(f);
-		}
-
-		return basePath + &subs[14];
-	}
-
 	// Program Files
 	if (wcsstr(origFileName, L"Files\\Rockstar Games\\Launcher") != nullptr || wcsstr(origFileName, g_launcherFilesRoot.c_str()) != nullptr)
 	{
@@ -263,11 +238,6 @@ static bool IsMappedFilename(const std::wstring& fileName)
 
 	if (fileName.find(L"Data\\Rockstar Games\\Launcher") != std::string::npos ||
 		fileName.find(g_launcherProgramDataRoot) != std::string::npos)
-	{
-		return true;
-	}
-
-	if (fileName.find(L"NVIDIA\\DXCache") != std::string::npos)
 	{
 		return true;
 	}
