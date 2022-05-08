@@ -721,6 +721,11 @@ void Mh_handle_message(client_t *client, message_t *msg)
 			sendPermissionDenied(client, "Channel name too long");
 			break;
 		}
+		/* Check description length */
+		if (strlen(msg->payload.channelState->description().c_str()) > MAX_TEXT) {
+			sendPermissionDenied(client, "Description too long");
+			break;
+		}
 
 		parent = Chan_fromId(msg->payload.channelState->parent());
 		if (parent == NULL)

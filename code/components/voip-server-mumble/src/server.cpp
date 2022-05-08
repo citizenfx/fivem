@@ -296,6 +296,8 @@ static std::map<net::PeerAddress, bool> mumblePairs;
 static std::mutex retryPairsMutex;
 static std::map<net::PeerAddress, int> retryPairs;
 
+static std::map<std::string, int> clientsPerIP;
+
 extern std::recursive_mutex g_mumbleClientMutex;
 
 void Server_onFree(client_t* client)
@@ -327,14 +329,34 @@ void CleanupMumblePairs()
 	}
 }
 
+static bool mumbleServerInitialized;
+
+static void EnsureServerInitialized()
+{
+	if (!mumbleServerInitialized)
+	{
+		Chan_init();
+		Client_init();
+		// Ban_init();
+		mumbleServerInitialized = true;
+	}
+}
+
+std::shared_ptr<ConVar<bool>> mumble_disableServer;
+std::shared_ptr<ConVar<int>> mumble_maxClientsPerIP;
+
 static InitFunction initFunction([]()
 {
-	Chan_init();
-	Client_init();
-//	Ban_init();
+	mumble_disableServer = std::make_shared<ConVar<bool>>("mumble_disableServer", ConVar_None, false);
+	mumble_maxClientsPerIP = std::make_shared<ConVar<int>>("mumble_maxClientsPerIP", ConVar_None, 32);
 
 	OnCreateTlsMultiplex.Connect([=](fwRefContainer<net::MultiplexTcpServer> multiplex)
 	{
+		if (mumble_disableServer->GetValue())
+			return;
+
+		EnsureServerInitialized();
+
 		auto server = multiplex->CreateServer([](const std::vector<uint8_t>& bytes)
 		{
 			if (bytes.size() > 6)
@@ -365,6 +387,24 @@ static InitFunction initFunction([]()
 
 			{
 				std::unique_lock<std::recursive_mutex> lock(g_mumbleClientMutex);
+
+				auto hostIP = stream->GetPeerAddress().GetHost();
+				auto mapEntry = clientsPerIP.find(hostIP);
+				if (mapEntry != clientsPerIP.end())
+				{
+					auto maxClientCount = mumble_maxClientsPerIP->GetValue();
+					if (mapEntry->second >= maxClientCount)
+					{
+						trace("IP %s already has %d Mumble connections active, rejecting client. This limit can be changed using the mumble_maxClientsPerIP ConVar.\n",
+						hostIP.c_str(), maxClientCount);
+						return;
+					}
+					mapEntry->second++;
+				}
+				else
+				{
+					clientsPerIP.insert({ hostIP, 1 });
+				}
 
 				Client_add(stream, &client);
 			}
@@ -472,6 +512,11 @@ static InitFunction initFunction([]()
 			stream->SetCloseCallback([=]()
 			{
 				std::unique_lock<std::recursive_mutex> lock(g_mumbleClientMutex);
+				auto mapEntry = clientsPerIP.find(client->remote_tcp.GetHost());
+				if (mapEntry->second == 1)
+					clientsPerIP.erase(mapEntry);
+				else
+					mapEntry->second--;
 				Client_free(client);
 			});
 		});
@@ -503,6 +548,11 @@ static InitFunction initFunction([]()
 
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
+		if (mumble_disableServer->GetValue())
+			return;
+
+		EnsureServerInitialized();
+
 		auto interceptor = instance->GetComponent<fx::UdpInterceptor>();
 
 		interceptor->OnIntercept.Connect([interceptor](const net::PeerAddress& address, const uint8_t* data, size_t len, bool* intercepted)
