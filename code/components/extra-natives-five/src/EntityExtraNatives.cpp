@@ -36,4 +36,23 @@ static InitFunction initFunction([]()
 
 		context.SetResult<bool>(result);
 	});
+
+	/* original setter is SET_ENTITY_ONLY_DAMAGED_BY_RELATIONSHIP_GROUP, perhaps this is for entities too? */
+	fx::ScriptEngine::RegisterNativeHandler("CAN_ENTITY_ONLY_BE_DAMAGED_BY_A_RELATIONSHIP_GROUP", [](fx::ScriptContext& context)
+	{
+		bool result = false;
+		fwEntity* entity = rage::fwScriptGuid::GetBaseFromGuid(context.GetArgument<int>(0));
+
+		if (entity)
+		{
+			auto address = (char*)entity;
+			DWORD flag = *(DWORD*)(address + 0x188);
+			result = (flag & (1 << 12)) != 0;
+
+			if (auto relationshipHashPtr = context.GetArgument<int*>(1))
+				*relationshipHashPtr = *reinterpret_cast<int*>(address + 0x194);
+		}
+
+		context.SetResult<bool>(result);
+	});
 });
