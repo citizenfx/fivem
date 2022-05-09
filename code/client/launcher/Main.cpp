@@ -557,14 +557,13 @@ int RealMain()
 		return *gamePathExit;
 	}
 
-	// don't load anything resembling ReShade *at all* until the game is loading(!)
+	// don't load anything resembling ReShade/ENBSeries *at all* until the game is loading(!)
 	loadSystemDll(L"\\dxgi.dll");
-
-	// don't load d3d11.dll from game dir for subprocesses or invalid cases
-	//if ((!initState->IsMasterProcess() && !initState->IsGameProcess()) || IsUnsafeGraphicsLibrary())
-	{
-		loadSystemDll(L"\\d3d11.dll");
-	}
+	loadSystemDll(L"\\d3d9.dll");
+	loadSystemDll(L"\\d3d10.dll");
+	loadSystemDll(L"\\d3d10_1.dll");
+	loadSystemDll(L"\\d3d11.dll");
+	loadSystemDll(L"\\opengl32.dll");
 
 #ifndef LAUNCHER_PERSONALITY_CHROME
 	LoadLibrary(MakeRelativeCitPath(L"botan.dll").c_str());
