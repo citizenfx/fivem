@@ -2,7 +2,7 @@ local a = ...
 
 return {
 	include = function()
-		includedirs "../vendor/cpr/include/"
+		includedirs { "../vendor/cpr/include/", "vendor/cpr/include/" }
 		
 		if not os.istarget('windows') then
 			linkoptions { '/usr/lib/libcurl.so' }

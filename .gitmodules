@@ -51,10 +51,10 @@
 	url = https://github.com/fmtlib/fmt.git
 [submodule "vendor/nghttp2"]
 	path = vendor/nghttp2
-	url = https://github.com/nghttp2/nghttp2
+	url = https://github.com/nghttp2/nghttp2.git
 [submodule "vendor/cpr"]
 	path = vendor/cpr
-	url = https://github.com/whoshuu/cpr.git
+	url = https://github.com/libcpr/cpr.git
 [submodule "vendor/enet"]
 	path = vendor/enet
 	url = https://github.com/freeminer/enet.git
