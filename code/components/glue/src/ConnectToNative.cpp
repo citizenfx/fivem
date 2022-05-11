@@ -58,6 +58,19 @@
 #include <ArchetypesCollector.h>
 #endif
 
+inline auto& GetEarlyGameFrame()
+{
+	auto& earlyGameFrame =
+#if defined(HAS_EARLY_GAME_FRAME)
+	OnEarlyGameFrame
+#else
+	OnGameFrame
+#endif
+	;
+
+	return earlyGameFrame;
+}
+
 std::string g_lastConn;
 static std::string g_connectNonce;
 
@@ -1167,7 +1180,7 @@ static InitFunction initFunction([] ()
 		else if (!_wcsicmp(type, L"exit"))
 		{
 			// queue an ExitProcess on the next game frame
-			OnGameFrame.Connect([] ()
+			GetEarlyGameFrame().Connect([]()
 			{
 				AddVectoredExceptionHandler(FALSE, TerminateInstantly);
 
@@ -1301,7 +1314,7 @@ static InitFunction initFunction([] ()
 		}
 	});
 
-	OnGameFrame.Connect([]()
+	GetEarlyGameFrame().Connect([]()
 	{
 		static bool hi;
 
@@ -1557,7 +1570,7 @@ static InitFunction connectInitFunction([]()
 	nng_pull0_open(&netAuthSocket);
 	nng_listen(netAuthSocket, "ipc:///tmp/fivem_auth", &authListener, 0);
 
-	OnGameFrame.Connect([]()
+	GetEarlyGameFrame().Connect([]()
 	{
 		if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
 		{
