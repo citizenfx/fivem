@@ -64,7 +64,7 @@
 	url = https://github.com/citizenfx/imgui.git
 [submodule "vendor/tbb"]
 	path = vendor/tbb
-	url = https://github.com/01org/tbb.git
+	url = https://github.com/citizenfx/oneTBB.git
 [submodule "vendor/cpprestsdk"]
 	path = vendor/cpprestsdk
 	url = https://github.com/Microsoft/cpprestsdk.git
