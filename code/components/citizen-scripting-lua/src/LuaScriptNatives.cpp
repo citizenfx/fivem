@@ -666,9 +666,13 @@ static int __Lua_InvokeNative(lua_State* L)
 			}
 
 			// if any result is requested and there was *no* change, zero out
-			context.arguments[1] = 0;
-			context.arguments[2] = 0;
-			context.arguments[3] = 0;
+			// *unless this is a vector result
+			if (result.returnValueCoercion != LuaMetaFields::ResultAsVector)
+			{
+				context.arguments[1] = 0;
+				context.arguments[2] = 0;
+				context.arguments[3] = 0;
+			}
 		}
 	}
 #endif
