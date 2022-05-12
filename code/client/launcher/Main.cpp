@@ -559,10 +559,14 @@ int RealMain()
 
 	// don't load anything resembling ReShade/ENBSeries *at all* until the game is loading(!)
 	loadSystemDll(L"\\dxgi.dll");
+
+	// *must* load a d3d11.dll before anything else!
+	// if not, system d3d10.dll etc. may load a d3d11.dll from search path anyway and this may be a 'weird' one
+	loadSystemDll(L"\\d3d11.dll");
+
 	loadSystemDll(L"\\d3d9.dll");
 	loadSystemDll(L"\\d3d10.dll");
 	loadSystemDll(L"\\d3d10_1.dll");
-	loadSystemDll(L"\\d3d11.dll");
 	loadSystemDll(L"\\opengl32.dll");
 
 #ifndef LAUNCHER_PERSONALITY_CHROME
