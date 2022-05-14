@@ -1592,17 +1592,18 @@ static HookFunction hookFunction([]()
 		{
 			void InternalMain() override
 			{
+				push(rax); // we want to save al ('Player Wants Control' bool)
 				sub(rsp, 0x20);
-				push(rax); // we want to save al
 
 				mov(rcx, r13); // netobj is in r13
 				mov(rax, (uint64_t)Fn);
 				call(rax);
 
-				pop(rax);
-				add(rsp, 0x20);
-
 				mov(dl, al);
+
+				add(rsp, 0x20);
+				pop(rax);
+
 				ret();
 			}
 
