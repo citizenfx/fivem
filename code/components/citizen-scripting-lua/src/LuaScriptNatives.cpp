@@ -650,7 +650,8 @@ static int __Lua_InvokeNative(lua_State* L)
 	if ((needsResultCheck || hadComplexType) && context.numArguments > 0)
 	{
 		// if the first value (usually result) is the same as the initial argument, clear the result (usually, result was no-op)
-		if (context.arguments[0] == initialArg1)
+		// (if vector results, these aren't directly unsafe, and may get incorrectly seen as complex)
+		if (context.arguments[0] == initialArg1 && result.returnValueCoercion != LuaMetaFields::ResultAsVector)
 		{
 			// complex type in first result means we have to clear that result
 			if (hadComplexType)
@@ -666,13 +667,9 @@ static int __Lua_InvokeNative(lua_State* L)
 			}
 
 			// if any result is requested and there was *no* change, zero out
-			// *unless this is a vector result
-			if (result.returnValueCoercion != LuaMetaFields::ResultAsVector)
-			{
-				context.arguments[1] = 0;
-				context.arguments[2] = 0;
-				context.arguments[3] = 0;
-			}
+			context.arguments[1] = 0;
+			context.arguments[2] = 0;
+			context.arguments[3] = 0;
 		}
 	}
 #endif
