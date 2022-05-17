@@ -8,7 +8,7 @@
 #include <algorithm>
 
 #define RAGE_FORMATS_FILE pgContainers
-#include <formats-header.h>
+#include "formats-header.h"
 
 #ifdef RAGE_FORMATS_OK
 #if defined(RAGE_FORMATS_GAME_NY)
@@ -450,4 +450,4 @@ public:
 };
 #endif
 
-#include <formats-footer.h>
+#include "formats-footer.h"

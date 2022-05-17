@@ -5,10 +5,10 @@
  * regarding licensing.
  */
 
-#include <rageVectors.h>
+#include "rageVectors.h"
 
 #define RAGE_FORMATS_FILE datBase
-#include <formats-header.h>
+#include "formats-header.h"
 
 #ifdef RAGE_FORMATS_OK
 
@@ -74,4 +74,4 @@ public:
 };
 #endif
 
-#include <formats-footer.h>
+#include "formats-footer.h"
