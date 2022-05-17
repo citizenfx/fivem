@@ -164,7 +164,7 @@ static void ProcessRemoval()
 	}
 }
 
-static bool IsHandleCache(uint32_t handle, std::string* outFileName)
+bool IsHandleCache(uint32_t handle, std::string* outFileName)
 {
 	if (outFileName)
 	{

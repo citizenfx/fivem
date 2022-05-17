@@ -21,10 +21,16 @@
 static int(*g_origInsertModule)(void*, void*);
 
 static thread_local std::string g_currentStreamingName;
+static thread_local uint32_t g_currentStreamingIndex;
 
 std::string GetCurrentStreamingName()
 {
 	return g_currentStreamingName;
+}
+
+uint32_t GetCurrentStreamingIndex()
+{
+	return g_currentStreamingIndex;
 }
 
 class strStreamingModule
@@ -50,9 +56,11 @@ static void WrapStreamingLoad(strStreamingModule* strModule, uint32_t index, voi
 {
 	uint32_t moduleBase = strModule->baseIdx;
 	g_currentStreamingName = streaming::GetStreamingNameForIndex(moduleBase + index);
+	g_currentStreamingIndex = moduleBase + index;
 
 	((decltype(&WrapStreamingLoad))g_currentStreamingModuleCallback)(strModule, index, data, a4);
 	g_currentStreamingName = "";
+	g_currentStreamingIndex = 0;
 }
 
 static int InsertStreamingModuleWrap(void* moduleMgr, void* strModule)
