@@ -41,7 +41,7 @@
 
 // DirectX data
 static ID3D11Device*            g_pd3dDevice = NULL;
-static ID3D11DeviceContext*     g_pd3dDeviceContext = NULL;
+ID3D11DeviceContext*     g_pd3dDeviceContext = NULL;
 static IDXGIFactory*            g_pFactory = NULL;
 static ID3D11Buffer*            g_pVB = NULL;
 static ID3D11Buffer*            g_pIB = NULL;

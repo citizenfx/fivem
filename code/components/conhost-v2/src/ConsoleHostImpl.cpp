@@ -269,7 +269,16 @@ static void HandleFxDKInput(ImGuiIO& io)
 	}
 }
 
+void OnConsoleFrameDraw(int width, int height, bool usedSharedD3D11);
+
 DLL_EXPORT void OnConsoleFrameDraw(int width, int height)
+{
+	return OnConsoleFrameDraw(width, height, false);
+}
+
+extern ID3D11DeviceContext* g_pd3dDeviceContext;
+
+void OnConsoleFrameDraw(int width, int height, bool usedSharedD3D11)
 {
 	if (!g_conHostMutex.try_lock())
 	{
@@ -367,8 +376,33 @@ DLL_EXPORT void OnConsoleFrameDraw(int width, int height)
 	ImGui::Render();
 	RenderDrawLists(ImGui::GetDrawData());
 
+	ID3D11RenderTargetView* oldRTV = nullptr;
+	ID3D11DepthStencilView* oldDSV = nullptr;
+
+	if (usedSharedD3D11)
+	{
+		g_pd3dDeviceContext->OMGetRenderTargets(1, &oldRTV, &oldDSV);
+	}
+
     ImGui::UpdatePlatformWindows();
 	ImGui::RenderPlatformWindowsDefault();
+
+	if (usedSharedD3D11)
+	{
+		g_pd3dDeviceContext->OMSetRenderTargets(1, &oldRTV, oldDSV);
+
+		if (oldRTV)
+		{
+			oldRTV->Release();
+			oldRTV = nullptr;
+		}
+
+		if (oldDSV)
+		{
+			oldDSV->Release();
+			oldDSV = nullptr;
+		}
+	}
 
 	lastDrawTime = timeGetTime();
 
@@ -800,12 +834,12 @@ static HookFunction initFunction([]()
 		}
 	});
 
-	OnPostFrontendRender.Connect([]()
+	OnPostFrontendRender.Connect([usedSharedD3D11]()
 	{
 		int width, height;
 		GetGameResolution(width, height);
 
-		OnConsoleFrameDraw(width, height);
+		OnConsoleFrameDraw(width, height, usedSharedD3D11);
 	});
 #endif
 });
