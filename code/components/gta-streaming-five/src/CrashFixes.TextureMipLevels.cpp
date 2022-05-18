@@ -57,7 +57,10 @@ static void* grcTexturePC_CtorWrap(rage::grcTexturePC* texture, void* resource)
 		auto pixelFormat = texture->GetPixelFormat();
 		auto dxgiFmt = _mapD3DFMT(pixelFormat, *((uint8_t*)texture + 95));
 
-		if (DirectX::IsCompressed(dxgiFmt))
+		// as to the stride check:
+		//     it seems R* at times makes this mistake as well, and their resource compiler compensates
+		//     for this by allocating a larger buffer, but not fixing the format.
+		if (DirectX::IsCompressed(dxgiFmt) && texture->GetStride() < (texture->GetWidth() * 4))
 		{
 			// wrong, these should never be compressed
 			uintptr_t& dataPtr = *(uintptr_t*)((char*)texture + 112);
@@ -109,7 +112,7 @@ static void* grcTexturePC_CtorWrap(rage::grcTexturePC* texture, void* resource)
 			*(uint32_t*)((char*)texture + 88) = D3DFMT_A8B8G8R8;
 
 			// log what we did
-			std::string resourceName = "_";
+			std::string resourceName;
 
 			if (auto index = GetCurrentStreamingIndex(); index != 0)
 			{
@@ -124,7 +127,8 @@ static void* grcTexturePC_CtorWrap(rage::grcTexturePC* texture, void* resource)
 				}
 			}
 
-			console::PrintWarning(fmt::sprintf("script:%s:stream", resourceName), "Texture %s (in txd %s) was set to a compressed texture format, but 'script_rt' textures should always be uncompressed.\nThis file was likely processed by a bad tool. To improve load performance and reduce the risk of it crashing, fix or update the tool used.\n", texture->GetName(), GetCurrentStreamingName());
+			auto channel = (!resourceName.empty()) ? fmt::sprintf("script:%s:stream", resourceName) : "streaming";
+			console::PrintWarning(channel, "Texture %s (in txd %s) was set to a compressed texture format, but 'script_rt' textures should always be uncompressed.\nThis file was likely processed by a bad tool. To improve load performance and reduce the risk of it crashing, fix or update the tool used.\n", texture->GetName(), GetCurrentStreamingName());
 		}
 	}
 
