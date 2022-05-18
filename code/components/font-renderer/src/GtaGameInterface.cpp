@@ -303,7 +303,7 @@ static InitFunction initFunction([] ()
 	static bool inGame = false;
 
 #ifdef GTA_NY
-	shouldDraw = true;
+	inGame = true;
 #endif
 
 	if (!CfxIsSinglePlayer() && !getenv("CitizenFX_ToolMode"))
