@@ -588,6 +588,10 @@ CNetGamePlayer* netObject__GetPlayerOwner(rage::netObject* object)
 			return player;
 		}
 
+#ifdef IS_RDR3
+		return nullptr;
+#endif
+
 		EnsurePlayer31();
 		return g_player31;
 	}
@@ -604,7 +608,9 @@ static uint8_t netObject__GetPlayerOwnerId(rage::netObject* object)
 		return g_origGetOwnerPlayerId(object);
 	}
 
-	return netObject__GetPlayerOwner(object)->physicalPlayerIndex();
+	auto owner = netObject__GetPlayerOwner(object);
+
+	return owner ? owner->physicalPlayerIndex() : 0xFF;
 }
 
 static CNetGamePlayer*(*g_origGetPendingPlayerOwner)(rage::netObject*);
@@ -757,7 +763,9 @@ static void PassObjectControlStub(CNetGamePlayer* player, rage::netObject* netOb
 		return g_origPassObjectControl(player, netObject, a3);
 	}
 
-	if (player->physicalPlayerIndex() == netObject__GetPlayerOwner(netObject)->physicalPlayerIndex())
+	auto owner = netObject__GetPlayerOwner(netObject);
+
+	if (!owner || player->physicalPlayerIndex() == owner->physicalPlayerIndex())
 	{
 		return;
 	}
@@ -4398,7 +4406,7 @@ static InitFunction initFunction([]()
 		}
 
 		auto owner = netObject__GetPlayerOwner(netObj);
-		context.SetResult<int>(owner->physicalPlayerIndex());
+		context.SetResult<int>(owner ? owner->physicalPlayerIndex() : 0xFF);
 	});
 
 #ifdef ONESYNC_CLONING_NATIVES
