@@ -130,14 +130,14 @@ static HookFunction _([]()
 	{
 		static auto icgi = Instance<ICoreGameInit>::Get();
 
-		if (icgi->HasVariable("storyMode"))
+		if (icgi->HasVariable("storyMode") || !*g_contextViewModeList)
 		{
 			return;
 		}
 
 		static uint64_t dirtyTime;
 
-		if (g_contextViewModeList && memcmp(*g_contextViewModeList, g_lastContextViewModes, sizeof(g_lastContextViewModes)) != 0)
+		if (memcmp(*g_contextViewModeList, g_lastContextViewModes, sizeof(g_lastContextViewModes)) != 0)
 		{
 			dirtyTime = GetTickCount64();
 			memcpy(g_lastContextViewModes, *g_contextViewModeList, sizeof(g_lastContextViewModes));
