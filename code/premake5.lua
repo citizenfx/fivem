@@ -217,10 +217,13 @@ if _OPTIONS['game'] ~= 'server' then
 		{
 			"client/common/Error.cpp",
 			"client/citigame/Launcher.cpp",
+			"client/citigame/NvCacheWorkaround.cpp",
 			"client/common/StdInc.cpp"
 		}
 
-		links { "Shared", "citicore" }
+		links { "Shared", "CitiCore" }
+
+		add_dependencies { 'vendor:nvapi' }
 
 		defines "COMPILING_GAME"
 

@@ -51,6 +51,7 @@ if os.target() == 'windows' then
 	vendor_component 'minhook-crt'
 	vendor_component 'fx11'
 	vendor_component 'im3d'
+	vendor_component 'nvapi'
 end
 
 vendor_component 'hdiffpatch'
