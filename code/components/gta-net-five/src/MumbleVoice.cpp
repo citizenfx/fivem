@@ -728,11 +728,14 @@ static bool _isPlayerTalking(void* mgr, char* playerData)
 		if (netObj)
 		{
 			// actually: netobj owner
-			auto index = netObject__GetPlayerOwner(netObj)->physicalPlayerIndex();
-
-			if (g_talkers.test(index) || o_talkers.test(index))
+			if (auto owner = netObject__GetPlayerOwner(netObj))
 			{
-				return true;
+				auto index = owner->physicalPlayerIndex();
+
+				if (g_talkers.test(index) || o_talkers.test(index))
+				{
+					return true;
+				}
 			}
 		}
 	}
