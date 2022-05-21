@@ -62,7 +62,7 @@ void HttpClientImpl::AddCurlHandle(CURL* easy)
 	}
 }
 
-class CurlData
+class CurlData final
 {
 public:
 	std::string url;
@@ -75,6 +75,7 @@ public:
 	char errBuffer[CURL_ERROR_SIZE];
 	CURL* curlHandle;
 	HttpClientImpl* impl;
+	curl_slist* headersSList = nullptr;
 	int defaultWeight;
 	int weight;
 	HttpHeaderListPtr responseHeaders;
@@ -86,6 +87,8 @@ public:
 
 	CurlData();
 
+	virtual ~CurlData();
+
 	void HandleResult(CURL* handle, CURLcode result);
 
 	size_t HandleWrite(const void* data, size_t size, size_t nmemb);
@@ -96,11 +99,17 @@ CurlData::CurlData()
 	timeoutNoResponse = std::chrono::milliseconds(0);
 	reqStart = std::chrono::high_resolution_clock::duration(0);
 
-	writeFunction = [=] (const void* data, size_t size)
+	writeFunction = [this] (const void* data, size_t size)
 	{
 		ss << std::string((const char*)data, size);
 		return size;
 	};
+}
+
+CurlData::~CurlData()
+{
+	curl_slist_free_all(headersSList);
+	headersSList = nullptr;
 }
 
 size_t CurlData::HandleWrite(const void* data, size_t size, size_t nmemb)
@@ -180,6 +189,26 @@ static curl_context_t* CreateCurlContext(HttpClientImpl* i, curl_socket_t sockfd
 	return context;
 }
 
+static void FinalizeCurlHandle(CURLM* multi, CURL* curl, const CURLcode* result = nullptr)
+{
+	char* dataPtr;
+	curl_easy_getinfo(curl, CURLINFO_PRIVATE, &dataPtr);
+
+	auto data = reinterpret_cast<std::shared_ptr<CurlData>*>(dataPtr);
+
+	if (result)
+	{
+		(*data)->HandleResult(curl, *result);
+	}
+
+	curl_multi_remove_handle(multi, curl);
+	curl_easy_cleanup(curl);
+
+	// delete data
+	(*data)->curlHandle = nullptr;
+	delete data;
+}
+
 static void CheckMultiInfo(HttpClientImpl* impl)
 {
 	// read infos
@@ -197,18 +226,7 @@ static void CheckMultiInfo(HttpClientImpl* impl)
 			CURL* curl = msg->easy_handle;
 			CURLcode result = msg->data.result;
 
-			char* dataPtr;
-			curl_easy_getinfo(curl, CURLINFO_PRIVATE, &dataPtr);
-
-			auto data = reinterpret_cast<std::shared_ptr<CurlData>*>(dataPtr);
-			(*data)->HandleResult(curl, result);
-
-			curl_multi_remove_handle(impl->multi, curl);
-			curl_easy_cleanup(curl);
-
-			// delete data
-			(*data)->curlHandle = nullptr;
-			delete data;
+			FinalizeCurlHandle(impl->multi, curl, &result);
 		}
 	} while (msg);
 }
@@ -523,6 +541,8 @@ static std::tuple<CURL*, std::shared_ptr<CurlData>> SetupCURLHandle(HttpClientIm
 		headers = curl_slist_append(headers, va("%s: %s", header.first, header.second));
 	}
 
+	curlData->headersSList = headers;
+
 	curl_easy_setopt(curlHandle, CURLOPT_HTTPHEADER, headers);
 
 	if (options.ipv4)
@@ -535,7 +555,7 @@ static std::tuple<CURL*, std::shared_ptr<CurlData>> SetupCURLHandle(HttpClientIm
 	return { curlHandle, curlData };
 }
 
-class HttpRequestHandleImpl : public HttpRequestHandle
+class HttpRequestHandleImpl final : public HttpRequestHandle
 {
 private:
 	std::shared_ptr<CurlData> m_request;
@@ -597,20 +617,7 @@ public:
 			if (curl == nullptr)
 				return;
 
-			// delete the data pointer
-			char* dataPtr;
-			curl_easy_getinfo(curl, CURLINFO_PRIVATE, &dataPtr);
-
-			auto data = reinterpret_cast<std::shared_ptr<CurlData>*>(dataPtr);
-
-			// remove and delete the handle
-			curl_multi_remove_handle(impl->multi, curl);
-			curl_easy_cleanup(curl);
-
-			// delete cURL data
-			(*data)->curlHandle = nullptr;
-
-			delete data;
+			FinalizeCurlHandle(impl->multi, curl);
 		});
 
 		std::shared_lock<std::shared_mutex> _(request->impl->mutex);
