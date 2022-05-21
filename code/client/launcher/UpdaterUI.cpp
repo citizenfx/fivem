@@ -203,6 +203,7 @@ struct TenUI
 {
 	DesktopWindowXamlSource uiSource{ nullptr };
 
+	winrt::Windows::UI::Xaml::UIElement snailContainer{ nullptr };
 	winrt::Windows::UI::Xaml::Controls::TextBlock topStatic{ nullptr };
 	winrt::Windows::UI::Xaml::Controls::TextBlock bottomStatic{ nullptr };
 	winrt::Windows::UI::Xaml::Controls::ProgressBar progressBar{ nullptr };
@@ -334,6 +335,11 @@ R"(         </Viewbox>
 				<ProgressBar x:Name="progressBar" Foreground="White" Width="250" />
 			</Grid>
             <TextBlock x:Name="static2" Text=" " TextAlignment="Center" Foreground="#ffeeeeee" FontSize="18" />
+			<StackPanel Orientation="Horizontal" HorizontalAlignment="Center" x:Name="snailContainer" Visibility="Collapsed">
+				<TextBlock TextAlignment="Center" Foreground="#ddeeeeee" FontSize="14" Width="430" TextWrapping="Wrap">
+					🐌 RedM game storage downloads are peer-to-peer and may be slower than usual downloads. Please be patient.
+				</TextBlock>
+			</StackPanel>
         </StackPanel>
     </Grid>
 </Grid>
@@ -1328,6 +1334,7 @@ void UI_CreateWindow()
 		ten->topStatic = ui.FindName(L"static1").as<winrt::Windows::UI::Xaml::Controls::TextBlock>();
 		ten->bottomStatic = ui.FindName(L"static2").as<winrt::Windows::UI::Xaml::Controls::TextBlock>();
 		ten->progressBar = ui.FindName(L"progressBar").as<winrt::Windows::UI::Xaml::Controls::ProgressBar>();
+		ten->snailContainer = ui.FindName(L"snailContainer").as<winrt::Windows::UI::Xaml::UIElement>();
 
 		ten->uiSource.Content(ui);
 
@@ -1638,6 +1645,16 @@ void UI_DoDestruction()
 	g_uui.ten = {};
 
 	DestroyWindow(g_uui.rootWindow);
+}
+
+void UI_SetSnailState(bool snail)
+{
+	if (g_uui.ten)
+	{
+		g_uui.ten->snailContainer.Visibility(snail ? winrt::Windows::UI::Xaml::Visibility::Visible : winrt::Windows::UI::Xaml::Visibility::Collapsed);
+
+		return;
+	}
 }
 
 void UI_UpdateText(int textControl, const wchar_t* text)

@@ -533,7 +533,8 @@ if (!$DontBuild -and !$IsServer) {
 		Copy-Item -Force -Recurse $WorkDir\data\client\* $CacheDir\fivereborn\
 		Copy-Item -Force -Recurse $WorkDir\data\redist\crt\* $CacheDir\fivereborn\bin\
 		
-		Copy-Item -Force -Recurse C:\f\grpc-ipfs.dll $CacheDir\fivereborn\
+		Remove-Item -Force -Recurse $CacheDir\fivereborn\grpc-ipfs.dll
+		Remove-Item -Force -Recurse $CacheDir\fivereborn\ipfsdl.dll
 	} elseif ($IsLauncher) {
 		Copy-Item -Force -Recurse $WorkDir\data\launcher\* $CacheDir\fivereborn\
 		Copy-Item -Force -Recurse $WorkDir\data\client\bin\* $CacheDir\fivereborn\bin\
