@@ -772,7 +772,9 @@ HttpRequestPtr HttpClient::DoFileGetRequest(const std::wstring& host, uint16_t p
 	return DoFileGetRequest(host, port, url, vfs::GetNativeDevice(outDevice), outFilename, callback);
 }
 
+#if defined(COMPILING_HTTP_CLIENT)
 static InitFunction initFunction([]()
 {
 	Instance<HttpClient>::Set(new HttpClient());
 });
+#endif
