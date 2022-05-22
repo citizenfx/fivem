@@ -91,13 +91,6 @@ void MumbleAudioInput::ThreadFunc()
 	// initialize COM for the current thread
 	CoInitialize(nullptr);
 
-	HRESULT hr = CoCreateInstance(CLSID_MMDeviceEnumerator, nullptr, CLSCTX_INPROC_SERVER, IID_IMMDeviceEnumerator, (void**)m_mmDeviceEnumerator.GetAddressOf());
-
-	if (FAILED(hr))
-	{
-		return;
-	}
-
 	InitializeAudioDevice();
 
 	// save settings that occurred during creation now, since they might change while we wait to activate
@@ -480,6 +473,8 @@ WRL::ComPtr<IMMDevice> GetMMDeviceFromGUID(bool input, const std::string& guid);
 
 void DuckingOptOut(WRL::ComPtr<IMMDevice> device);
 
+extern std::mutex g_mmDeviceMutex;
+
 void MumbleAudioInput::InitializeAudioDevice()
 {
 	// destroy
@@ -504,43 +499,58 @@ void MumbleAudioInput::InitializeAudioDevice()
 	HRESULT hr = 0;
 	ComPtr<IMMDevice> device;
 
-	std::string lastDeviceId;
-
-	while (!device.Get())
+	// same Steam race condition workaround as in MumbleAudioOutput.cpp
 	{
-		if (m_deviceId.empty())
+		std::unique_lock _(g_mmDeviceMutex);
+
+		if (!m_mmDeviceEnumerator)
 		{
-			if (FAILED(hr = m_mmDeviceEnumerator->GetDefaultAudioEndpoint(eCapture, eCommunications, device.ReleaseAndGetAddressOf())))
+			HRESULT hr = CoCreateInstance(CLSID_MMDeviceEnumerator, nullptr, CLSCTX_INPROC_SERVER, IID_IMMDeviceEnumerator, (void**)m_mmDeviceEnumerator.GetAddressOf());
+
+			if (FAILED(hr))
 			{
-				console::DPrintf("voip:mumble", __FUNCTION__ ": Obtaining default audio endpoint failed. HR = 0x%08x\n", hr);
-
-				// retry with the last device in case the only device was intermittently unplugged
-				// #TODO: retry default device on change/preferred device on return
-				Sleep(5000);
-
-				m_deviceId = lastDeviceId;
+				return;
 			}
 		}
-		else
+
+		std::string lastDeviceId;
+
+		while (!device.Get())
 		{
-			device = GetMMDeviceFromGUID(true, m_deviceId);
-
-			if (!device)
+			if (m_deviceId.empty())
 			{
-				lastDeviceId = m_deviceId;
+				if (FAILED(hr = m_mmDeviceEnumerator->GetDefaultAudioEndpoint(eCapture, eCommunications, device.ReleaseAndGetAddressOf())))
+				{
+					console::DPrintf("voip:mumble", __FUNCTION__ ": Obtaining default audio endpoint failed. HR = 0x%08x\n", hr);
 
-				trace(__FUNCTION__ ": Obtaining audio device for %s failed.\n", m_deviceId);
-				m_deviceId = "";
+					// retry with the last device in case the only device was intermittently unplugged
+					// #TODO: retry default device on change/preferred device on return
+					Sleep(5000);
+
+					m_deviceId = lastDeviceId;
+				}
+			}
+			else
+			{
+				device = GetMMDeviceFromGUID(true, m_deviceId);
+
+				if (!device)
+				{
+					lastDeviceId = m_deviceId;
+
+					trace(__FUNCTION__ ": Obtaining audio device for %s failed.\n", m_deviceId);
+					m_deviceId = "";
+				}
 			}
 		}
-	}
 
-	DuckingOptOut(device);
+		DuckingOptOut(device);
 
-	if (FAILED(hr = device->Activate(IID_IAudioClient, CLSCTX_INPROC_SERVER, nullptr, (void**)m_audioClient.ReleaseAndGetAddressOf())))
-	{
-		trace(__FUNCTION__ ": Activating IAudioClient for capture device failed. HR = %08x\n", hr);
-		return;
+		if (FAILED(hr = device->Activate(IID_IAudioClient, CLSCTX_INPROC_SERVER, nullptr, (void**)m_audioClient.ReleaseAndGetAddressOf())))
+		{
+			trace(__FUNCTION__ ": Activating IAudioClient for capture device failed. HR = %08x\n", hr);
+			return;
+		}
 	}
 
 	WAVEFORMATEX* waveFormat;

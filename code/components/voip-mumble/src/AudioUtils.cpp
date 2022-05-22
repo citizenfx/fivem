@@ -101,7 +101,7 @@ WRL::ComPtr<IMMDevice> GetMMDeviceFromGUID(bool input, const std::string& guid)
 	return nullptr;
 }
 
-void DuckingOptOut(WRL::ComPtr<IMMDevice> device)
+void DuckingOptOutInner(const WRL::ComPtr<IMMDevice>& device)
 {
 	WRL::ComPtr<IAudioSessionManager2> sessionManager;
 
@@ -119,3 +119,23 @@ void DuckingOptOut(WRL::ComPtr<IMMDevice> device)
 		}
 	}
 }
+
+// SEH wrapper to prevent crashing from a Steam 'gameoverlayrenderer' bug
+void DuckingOptOutOuter(const WRL::ComPtr<IMMDevice>& device)
+{
+	__try
+	{
+		DuckingOptOutInner(device);
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+	
+	}
+}
+
+void DuckingOptOut(WRL::ComPtr<IMMDevice> device)
+{
+	DuckingOptOutOuter(device);
+}
+
+std::mutex g_mmDeviceMutex;
