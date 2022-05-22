@@ -858,7 +858,7 @@ struct SyncCommandState
 struct SyncCommand
 {
 	using SyncCommandKey = typename detached_scsc_queue<SyncCommand>::key;
-	using SyncCommandCallback = delegate::Delegate<void, SyncCommandState&>;
+	using SyncCommandCallback = tp::FixedFunction<void(SyncCommandState&), 128>;
 
 	SyncCommandCallback callback;
 	SyncCommandKey commandKey = {};
