@@ -48,6 +48,11 @@ bool ResourceImpl::LoadFrom(const std::string& rootPath, std::string* errorState
 
 	m_state = ResourceState::Stopped;
 
+	if (!retval)
+	{
+		OnLoad();
+	}
+
 	return !retval.is_initialized();
 }
 
