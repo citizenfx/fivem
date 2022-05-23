@@ -501,10 +501,9 @@ void MumbleAudioInput::InitializeAudioDevice()
 
 	// same Steam race condition workaround as in MumbleAudioOutput.cpp
 	{
-		std::unique_lock _(g_mmDeviceMutex);
-
 		if (!m_mmDeviceEnumerator)
 		{
+			std::unique_lock _(g_mmDeviceMutex);
 			HRESULT hr = CoCreateInstance(CLSID_MMDeviceEnumerator, nullptr, CLSCTX_INPROC_SERVER, IID_IMMDeviceEnumerator, (void**)m_mmDeviceEnumerator.GetAddressOf());
 
 			if (FAILED(hr))
@@ -519,7 +518,12 @@ void MumbleAudioInput::InitializeAudioDevice()
 		{
 			if (m_deviceId.empty())
 			{
-				if (FAILED(hr = m_mmDeviceEnumerator->GetDefaultAudioEndpoint(eCapture, eCommunications, device.ReleaseAndGetAddressOf())))
+				{
+					std::unique_lock _(g_mmDeviceMutex);
+					hr = m_mmDeviceEnumerator->GetDefaultAudioEndpoint(eCapture, eCommunications, device.ReleaseAndGetAddressOf());
+				}
+
+				if (FAILED(hr))
 				{
 					console::DPrintf("voip:mumble", __FUNCTION__ ": Obtaining default audio endpoint failed. HR = 0x%08x\n", hr);
 
@@ -532,7 +536,10 @@ void MumbleAudioInput::InitializeAudioDevice()
 			}
 			else
 			{
-				device = GetMMDeviceFromGUID(true, m_deviceId);
+				{
+					std::unique_lock _(g_mmDeviceMutex);
+					device = GetMMDeviceFromGUID(true, m_deviceId);
+				}
 
 				if (!device)
 				{
@@ -544,12 +551,15 @@ void MumbleAudioInput::InitializeAudioDevice()
 			}
 		}
 
-		DuckingOptOut(device);
-
-		if (FAILED(hr = device->Activate(IID_IAudioClient, CLSCTX_INPROC_SERVER, nullptr, (void**)m_audioClient.ReleaseAndGetAddressOf())))
 		{
-			trace(__FUNCTION__ ": Activating IAudioClient for capture device failed. HR = %08x\n", hr);
-			return;
+			std::unique_lock _(g_mmDeviceMutex);
+			DuckingOptOut(device);
+
+			if (FAILED(hr = device->Activate(IID_IAudioClient, CLSCTX_INPROC_SERVER, nullptr, (void**)m_audioClient.ReleaseAndGetAddressOf())))
+			{
+				trace(__FUNCTION__ ": Activating IAudioClient for capture device failed. HR = %08x\n", hr);
+				return;
+			}
 		}
 	}
 
