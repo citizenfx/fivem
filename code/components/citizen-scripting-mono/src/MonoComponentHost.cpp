@@ -376,7 +376,7 @@ static bool GI_WalkStackBoundary(MonoString* resourceName, MonoArray* start, Mon
 	return true;
 }
 
-#if !defined(IS_FXSERVER) || defined(_WIN32)
+#ifndef IS_FXSERVER
 MonoMethod* g_tickMethod;
 
 extern "C" DLL_EXPORT void GI_TickInDomain(MonoAppDomain* domain)
@@ -540,7 +540,7 @@ static void InitMono()
 	method_search("CitizenFX.Core.RuntimeManager:CreateObjectInstance", g_createObjectMethod);
 	method_search("System.Diagnostics.EnhancedStackTrace:GetMethodDisplayString", g_getMethodDisplayStringMethod);
 
-#if !defined(IS_FXSERVER) || defined(_WIN32)
+#ifndef IS_FXSERVER
 	method_search("CitizenFX.Core.InternalManager:TickGlobal", g_tickMethod);
 #endif
 
