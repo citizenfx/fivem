@@ -271,3 +271,6 @@
 [submodule "vendor/zstd"]
 	path = vendor/zstd
 	url = https://github.com/facebook/zstd.git
+[submodule "vendor/freetype"]
+	path = vendor/freetype
+	url = https://github.com/freetype/freetype.git
