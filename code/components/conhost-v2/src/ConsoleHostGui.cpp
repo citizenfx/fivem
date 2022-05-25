@@ -179,7 +179,7 @@ struct FiveMConsoleBase
 				color.alpha *= 0.8f;
 			}
 
-			dl->AddRectFilled(ImVec2(startPos.x, startPos.y + 1.0f), ImVec2(startPos.x + textSize.x + itemSize.x + 8.0f, startPos.y + 22.f - 1.0f), color.AsARGB(), fullBg ? 10.0f : 6.0f);
+			dl->AddRectFilled(ImVec2(startPos.x, startPos.y + 1.0f), ImVec2(startPos.x + textSize.x + itemSize.x + 8.0f, startPos.y + textSize.y - 1.0f), color.AsARGB(), fullBg ? 10.0f : 6.0f);
 			ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 4.0f);
 
 			//ImGui::PushStyleColor(ImGuiCol_Text, col);
