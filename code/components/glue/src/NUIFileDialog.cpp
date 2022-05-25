@@ -139,6 +139,4 @@ static InitFunction initFunction([]()
 		}
 	});
 });
-
-#include "imfd/ImFileDialog-inl.h"
 #endif

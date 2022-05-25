@@ -52,6 +52,13 @@ namespace ifd {
 
 		class FileTreeNode {
 		public:
+#ifdef _WIN32
+			FileTreeNode(const std::wstring& path) {
+				Path = std::filesystem::path(path);
+				Read = false;
+			}
+#endif
+
 			FileTreeNode(const std::string& path) {
 				Path = std::filesystem::u8path(path);
 				Read = false;
@@ -101,7 +108,7 @@ namespace ifd {
 
 		std::string m_filter;
 		std::vector<std::vector<std::string>> m_filterExtensions;
-		int m_filterSelection;
+		size_t m_filterSelection;
 		void m_parseFilter(const std::string& filter);
 
 		std::vector<int> m_iconIndices;
@@ -131,7 +138,4 @@ namespace ifd {
 		void m_renderPopups();
 		void m_renderFileDialog();
 	};
-
-	static const char* GetDefaultFolderIcon();
-	static const char* GetDefaultFileIcon();
 }

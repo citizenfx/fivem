@@ -265,20 +265,21 @@ static InitFunction initFunction([]()
 			}
 
 			int i = 0;
+			float spacing = ImGui::GetStyle().ItemSpacing.x;
 
 			for (auto& metric : metrics)
 			{
 				ImGui::Text("%s", metric.c_str());
 				i++;
 
-				ImGui::SameLine(i * 150.f);
+				ImGui::SameLine(i * spacing * 20);
 				
 				if (i != metrics.size())
 				{
 					// hacky separator
 					ImDrawList* draw_list = ImGui::GetWindowDrawList();
 					ImVec2 p = ImGui::GetCursorScreenPos();
-					draw_list->AddLine(ImVec2(p.x - 10.f, p.y - 9999.f), ImVec2(p.x - 10.f, p.y + 9999.f), ImGui::GetColorU32(ImGuiCol_Border));
+					draw_list->AddLine(ImVec2(p.x - spacing, p.y - 9999.f), ImVec2(p.x - spacing, p.y + 9999.f), ImGui::GetColorU32(ImGuiCol_Border));
 				}
 			}
 		}

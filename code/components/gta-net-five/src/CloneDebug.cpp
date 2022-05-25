@@ -1152,7 +1152,9 @@ void RenderNetDrilldownWindow()
 
 		if (g_recordingDrilldown)
 		{
-			ImGui::ButtonEx("Recording", {}, ImGuiButtonFlags_Disabled);
+			ImGui::BeginDisabled();
+			ImGui::Button("Recording");
+			ImGui::EndDisabled();
 		}
 
 		if (g_recordedDrilldown)

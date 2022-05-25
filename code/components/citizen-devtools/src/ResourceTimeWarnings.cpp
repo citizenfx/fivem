@@ -563,7 +563,7 @@ static InitFunction initFunction([]()
 
 							for (int n = 0; n < sortSpecs->SpecsCount; n++)
 							{
-								const ImGuiTableSortSpecsColumn* sortSpec = &sortSpecs->Specs[n];
+								const ImGuiTableColumnSortSpecs* sortSpec = &sortSpecs->Specs[n];
 								int delta = 0;
 								switch (sortSpec->ColumnIndex)
 								{

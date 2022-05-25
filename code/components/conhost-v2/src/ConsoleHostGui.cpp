@@ -361,7 +361,7 @@ struct CfxBigConsole : FiveMConsoleBase
 		}
 
 		if (ScrollToBottom)
-			ImGui::SetScrollHere();
+			ImGui::SetScrollHereY();
 
 		ScrollToBottom = false;
 		ImGui::PopStyleVar();
@@ -444,13 +444,13 @@ struct CfxBigConsole : FiveMConsoleBase
 		}
 	}
 
-	static int TextEditCallbackStub(ImGuiTextEditCallbackData* data) // In C++11 you are better off using lambdas for this sort of forwarding callbacks
+	static int TextEditCallbackStub(ImGuiInputTextCallbackData* data) // In C++11 you are better off using lambdas for this sort of forwarding callbacks
 	{
 		CfxBigConsole* console = (CfxBigConsole*)data->UserData;
 		return console->TextEditCallback(data);
 	}
 
-	int TextEditCallback(ImGuiTextEditCallbackData* data)
+	int TextEditCallback(ImGuiInputTextCallbackData* data)
 	{
 		//AddLog("cursor: %d, selection: %d-%d", data->CursorPos, data->SelectionStart, data->SelectionEnd);
 		switch (data->EventFlag)
@@ -730,7 +730,7 @@ struct MiniConsole : CfxBigConsole
 				}
 			}
 
-			ImGui::SetScrollHere();
+			ImGui::SetScrollHereY();
 		}
 
 		ImGui::PopStyleVar();
