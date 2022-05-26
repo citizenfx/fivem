@@ -1768,13 +1768,27 @@ static LONG_PTR SetWindowLongPtrAHook(HWND hWnd,
 #include <concurrent_unordered_map.h>
 
 static concurrency::concurrent_unordered_map<void*, bool> g_queriesSetUp;
-static void(*g_origWaitForQuery)(void*);
+static bool (*g_isQueryPending)(void*);
+
+static std::atomic<int> g_isInRenderQuery;
+
+DLL_EXPORT bool IsInRenderQuery()
+{
+	return g_isInRenderQuery > 0;
+}
 
 static void WaitForQueryHook(void* query)
 {
 	if (g_queriesSetUp[query])
 	{
-		g_origWaitForQuery(query);
+		++g_isInRenderQuery;
+
+		while (g_isQueryPending(query))
+		{
+			Sleep(1);
+		}
+
+		--g_isInRenderQuery;
 	}
 
 	g_queriesSetUp[query] = false;
@@ -2019,7 +2033,13 @@ static HookFunction hookFunction([] ()
 
 	// disable render queries if in load screen thread
 	MH_Initialize();
-	MH_CreateHook(hook::get_pattern("84 C0 75 E8 48 83 C4 20 5B C3", -0x1F), WaitForQueryHook, (void**)&g_origWaitForQuery);
+
+	{
+		auto location = hook::get_pattern<char>("84 C0 75 E8 48 83 C4 20 5B C3", -0x1F);
+		hook::set_call(&g_isQueryPending, location + 0x1A);
+		MH_CreateHook(location, WaitForQueryHook, NULL);
+	}
+
 	MH_CreateHook(hook::get_pattern("41 3B C3 74 30 4C 63 CB 44", -0x1F), SetupQueryHook, (void**)&g_origSetupQuery);
 	MH_EnableHook(MH_ALL_HOOKS);
 

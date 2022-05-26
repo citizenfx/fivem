@@ -166,10 +166,19 @@ static void __declspec(noinline) StoppedRespondingScripts(const std::string& rea
 	FatalError(STOPPED_RESPONDING_MESSAGE("(script deadloop)"), reasoning);
 }
 
+static void __declspec(noinline) StoppedRespondingRenderQuery(const std::string& reasoning)
+{
+	FatalError(STOPPED_RESPONDING_MESSAGE("(DirectX query)"), reasoning);
+}
+
 static void __declspec(noinline) StoppedRespondingGeneric(const std::string& reasoning)
 {
 	FatalError(STOPPED_RESPONDING_MESSAGE(""), reasoning);
 }
+
+#ifdef GTA_FIVE
+extern DLL_IMPORT bool IsInRenderQuery();
+#endif
 
 static HookFunction hookFunctionGameTime([]()
 {
@@ -252,6 +261,7 @@ static HookFunction hookFunctionGameTime([]()
 				{
 					std::string reasoning;
 					bool scripts = false;
+					bool renderQuery = false;
 
 					if (!g_threadStack.empty())
 					{
@@ -269,6 +279,14 @@ static HookFunction hookFunctionGameTime([]()
 						reasoning = fmt::sprintf("\n\nThis is likely caused by a resource/script, the script stack is as follows: %s", s.str());
 						scripts = true;
 					}
+
+#ifdef GTA_FIVE
+					if (IsInRenderQuery())
+					{
+						reasoning += fmt::sprintf("\n\nGame code was waiting for the GPU to complete the last frame, but this timed out (the GPU got stuck?) - this could be caused by bad assets or graphics mods.");
+						renderQuery = true;
+					}
+#endif
 
 					bool nvidia = false;
 
@@ -322,6 +340,10 @@ static HookFunction hookFunctionGameTime([]()
 						if (scripts)
 						{
 							StoppedRespondingScripts(reasoning);
+						}
+						else if (renderQuery)
+						{
+							StoppedRespondingRenderQuery(reasoning);
 						}
 						else if (nvidia)
 						{
