@@ -410,7 +410,7 @@ static InitFunction initFunction([]()
 				readQueue.resize(origSize + data.size());
 
 				// close the stream if the length is too big
-				if (readQueue.size() > (1024 * 1024 * 5))
+				if (readQueue.size() > (1024 * 1024 * 25))
 				{
 					stream->Close();
 					return;
