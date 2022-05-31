@@ -1867,6 +1867,30 @@ struct scrBindArgument<lab::FilterType>
 	}
 };
 
+template<>
+struct scrBindArgument<lab::NoiseNode::NoiseType>
+{
+	static lab::NoiseNode::NoiseType Get(fx::ScriptContext& cxt, int i)
+	{
+		std::string_view a = cxt.CheckArgument<const char*>(i);
+
+		if (a == "pink")
+		{
+			return lab::NoiseNode::NoiseType::PINK;
+		}
+		else if (a == "brown")
+		{
+			return lab::NoiseNode::NoiseType::BROWN;
+		}
+		else if (a == "white")
+		{
+			return lab::NoiseNode::NoiseType::WHITE;
+		}
+
+		return lab::NoiseNode::NoiseType::PINK;;
+	}
+};
+
 static std::shared_ptr<lab::BiquadFilterNode> createBiquadFilterNode(lab::AudioContext* self)
 {
 	return std::make_shared<lab::BiquadFilterNode>();
@@ -1875,6 +1899,21 @@ static std::shared_ptr<lab::BiquadFilterNode> createBiquadFilterNode(lab::AudioC
 static std::shared_ptr<lab::WaveShaperNode> createWaveShaperNode(lab::AudioContext* self)
 {
 	return std::make_shared<lab::WaveShaperNode>();
+}
+
+static std::shared_ptr<lab::StereoPannerNode> createStereoPannerNode(lab::AudioContext* self)
+{
+	return std::make_shared<lab::StereoPannerNode>();
+}
+
+static std::shared_ptr<lab::NoiseNode> createNoiseNode(lab::AudioContext* self)
+{
+	return std::make_shared<lab::NoiseNode>();
+}
+
+static std::shared_ptr<lab::PeakCompNode> createPeakCompNode(lab::AudioContext* self)
+{
+	return std::make_shared<lab::PeakCompNode>();
 }
 
 static std::shared_ptr<lab::AudioSourceNode> getSource(lab::AudioContext* self)
@@ -1891,7 +1930,12 @@ static InitFunction initFunctionScript([]()
 		.AddMethod("AUDIOCONTEXT_GET_SOURCE", &getSource)
 		.AddMethod("AUDIOCONTEXT_GET_DESTINATION", &lab::AudioContext::destination)
 		.AddMethod("AUDIOCONTEXT_CREATE_BIQUADFILTERNODE", &createBiquadFilterNode)
-		.AddMethod("AUDIOCONTEXT_CREATE_WAVESHAPERNODE", &createWaveShaperNode);
+		.AddMethod("AUDIOCONTEXT_CREATE_WAVESHAPERNODE", &createWaveShaperNode)
+		.AddMethod("AUDIOCONTEXT_CREATE_STEREOPANNERNODE", &createStereoPannerNode)
+		.AddMethod("AUDIOCONTEXT_CREATE_PEAKCOMPNODE", &createPeakCompNode);
+
+	scrBindClass<std::shared_ptr<lab::AudioNode>>()
+		.AddMethod("AUDIOCONTEXT_GET_NODE_PARAM", &lab::AudioNode::getParam);
 	
 	scrBindClass<std::shared_ptr<lab::BiquadFilterNode>>()
 		.AddMethod("BIQUADFILTERNODE_SET_TYPE", &lab::BiquadFilterNode::setType)
@@ -1908,6 +1952,16 @@ static InitFunction initFunctionScript([]()
 		//.AddMethod("WAVESHAPERNODE_GET_CURVE", &lab::WaveShaperNode::curve)
 		.AddMethod("WAVESHAPERNODE_SET_CURVE", &lab::WaveShaperNode::setCurve)
 		.AddDestructor("WAVESHAPERNODE_DESTROY");
+
+	scrBindClass<std::shared_ptr<lab::StereoPannerNode>>()
+		.AddDestructor("STEREOPANNERNODE_DESTROY");
+
+	scrBindClass<std::shared_ptr<lab::PeakCompNode>>()
+		.AddDestructor("PEAKCOMPNODE_DESTROY");
+
+	scrBindClass<std::shared_ptr<lab::NoiseNode>>()
+		.AddMethod("NOISENODE_SET_TYPE", &lab::NoiseNode::setType)
+		.AddDestructor("NOISENODE_DESTROY");
 
 	scrBindClass<std::shared_ptr<lab::AudioParam>>()
 		.AddMethod("AUDIOPARAM_SET_VALUE", &lab::AudioParam::setValue)
