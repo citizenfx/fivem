@@ -1887,7 +1887,7 @@ struct scrBindArgument<lab::NoiseNode::NoiseType>
 			return lab::NoiseNode::NoiseType::WHITE;
 		}
 
-		return lab::NoiseNode::NoiseType::PINK;;
+		return lab::NoiseNode::NoiseType::PINK;
 	}
 };
 
