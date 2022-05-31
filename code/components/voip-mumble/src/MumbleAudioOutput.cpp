@@ -1932,6 +1932,7 @@ static InitFunction initFunctionScript([]()
 		.AddMethod("AUDIOCONTEXT_CREATE_BIQUADFILTERNODE", &createBiquadFilterNode)
 		.AddMethod("AUDIOCONTEXT_CREATE_WAVESHAPERNODE", &createWaveShaperNode)
 		.AddMethod("AUDIOCONTEXT_CREATE_STEREOPANNERNODE", &createStereoPannerNode)
+		.AddMethod("AUDIOCONTEXT_CREATE_NOISENODE", &createNoiseNode)
 		.AddMethod("AUDIOCONTEXT_CREATE_PEAKCOMPNODE", &createPeakCompNode);
 
 	scrBindClass<std::shared_ptr<lab::AudioNode>>()
