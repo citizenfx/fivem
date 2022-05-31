@@ -1,4 +1,4 @@
-﻿namespace Test;
+﻿namespace ClrTests;
 
 using System.Reflection;
 using CitizenFX.Core;

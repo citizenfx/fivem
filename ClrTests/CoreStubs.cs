@@ -6,6 +6,7 @@ namespace CitizenFX.Core;
 public class EventHandlerDictionary : Dictionary<string, EventHandlerEntry>
 {
 }
+
 public class Player
 {
     public Player(int id)
