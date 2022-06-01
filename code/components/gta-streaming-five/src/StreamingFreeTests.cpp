@@ -89,6 +89,8 @@ bool rage::fwAssetStoreBase::IsResourceValid(uint32_t idx)
 }
 #endif
 
+static std::shared_mutex g_streamingMapMutex;
+
 #ifdef _DEBUG
 static std::map<std::string, uint32_t, std::less<>> g_streamingNamesToIndices;
 static std::map<uint32_t, std::string> g_streamingIndexesToNames;
@@ -120,7 +122,7 @@ rage::strStreamingModule** GetStreamingModuleWithValidate(void* streamingModuleM
 	{
 		if (!assetStore->IsResourceValid(index - assetStore->baseIdx))
 		{
-			trace("Tried to %s non-existent streaming asset %s (%d) in module %s\n", (IsRequest) ? "request" : "release", g_streamingIndexesToNames[index].c_str(), index, typeName.c_str());
+			trace("Tried to %s non-existent streaming asset %s (%d) in module %s\n", (IsRequest) ? "request" : "release", streaming::GetStreamingNameForIndex(index), index, typeName.c_str());
 
 			AddCrashometry("streaming_free_validation", "true");
 		}
@@ -144,13 +146,16 @@ uint32_t* AddStreamingFileWrap(uint32_t* indexRet)
 
 		auto store = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule(*indexRet);
 		auto baseIdx = store->baseIdx;
-
-		g_streamingNamesToIndices[g_lastStreamingName] = *indexRet;
-		g_streamingIndexesToNames[*indexRet] = g_lastStreamingName;
-
 		auto baseFn = g_lastStreamingName.substr(0, g_lastStreamingName.find_last_of('.'));
-		g_streamingHashesToNames[HashString(baseFn.c_str())] = baseFn;
-		g_streamingHashStoresToIndices[{ store, HashString(baseFn.c_str()) }] = *indexRet - baseIdx;
+
+		{
+			std::unique_lock _(g_streamingMapMutex);
+			g_streamingNamesToIndices[g_lastStreamingName] = *indexRet;
+			g_streamingIndexesToNames[*indexRet] = g_lastStreamingName;
+
+			g_streamingHashesToNames[HashString(baseFn.c_str())] = baseFn;
+			g_streamingHashStoresToIndices[{ store, HashString(baseFn.c_str()) }] = *indexRet - baseIdx;
+		}
 
 		auto splitIdx = g_lastStreamingName.find_first_of("_");
 
@@ -173,17 +178,44 @@ namespace streaming
 {
 	uint32_t GetStreamingIndexForName(const std::string& name)
 	{
-		return g_streamingNamesToIndices[name];
+		std::shared_lock _(g_streamingMapMutex);
+
+		auto it = g_streamingNamesToIndices.find(name);
+
+		if (it != g_streamingNamesToIndices.end())
+		{
+			return it->second;
+		}
+
+		return 0;
 	}
 
-	const std::string& GetStreamingNameForIndex(uint32_t index)
+	std::string GetStreamingNameForIndex(uint32_t index)
 	{
-		return g_streamingIndexesToNames[index];
+		std::shared_lock _(g_streamingMapMutex);
+
+		auto it = g_streamingIndexesToNames.find(index);
+
+		if (it != g_streamingIndexesToNames.end())
+		{
+			return it->second;
+		}
+
+		return "";
 	}
 
-	const std::string& GetStreamingBaseNameForHash(uint32_t hash)
+	std::string GetStreamingBaseNameForHash(uint32_t hash)
 	{
-		return g_streamingHashesToNames[hash];
+		std::shared_lock _(g_streamingMapMutex);
+
+		auto it = g_streamingHashesToNames.find(hash);
+
+		if (it != g_streamingHashesToNames.end())
+		{
+			return it->second;
+		}
+
+		return "";
 	}
 
 #ifdef GTA_FIVE
@@ -223,7 +255,7 @@ void WrapAssetRelease(AssetStore* assetStore, uint32_t entry)
 	}
 	else
 	{
-		trace("didn't like entry %d - %s :(\n", entry, g_streamingIndexesToNames[assetStore->baseIndex + entry].c_str());
+		trace("didn't like entry %d - %s :(\n", entry, streaming::GetStreamingNameForIndex(assetStore->baseIndex + entry));
 	}
 }
 

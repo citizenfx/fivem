@@ -250,9 +250,9 @@ namespace streaming
 
 	uint32_t STREAMING_EXPORT GetStreamingIndexForName(const std::string& name);
 
-	STREAMING_EXPORT const std::string& GetStreamingNameForIndex(uint32_t index);
+	STREAMING_EXPORT std::string GetStreamingNameForIndex(uint32_t index);
 
-	STREAMING_EXPORT const std::string& GetStreamingBaseNameForHash(uint32_t hash);
+	STREAMING_EXPORT std::string GetStreamingBaseNameForHash(uint32_t hash);
 
 	uint32_t STREAMING_EXPORT GetStreamingIndexForLocalHashKey(streaming::strStreamingModule* module, uint32_t hash);
 

@@ -216,9 +216,7 @@ void StreamingListView::getCellData(size_t row, size_t column, CellData& cellDat
 	}
 	case 3:
 	{
-		const auto& entryName = streaming::GetStreamingNameForIndex(num);
-
-		cellDataOut.customText = entryName.c_str();
+		cellDataOut.customText = va("%s", streaming::GetStreamingNameForIndex(num));
 		break;
 	}
 	case 4:
@@ -364,7 +362,7 @@ static InitFunction initFunction([]()
 				switch (column)
 				{
 				case 0:
-					return streaming::GetStreamingNameForIndex(idx).c_str();
+					return va("%s", streaming::GetStreamingNameForIndex(idx));
 				case 1:
 					return va("%.2f MiB", virtualMemory / 1024.0 / 1024.0);
 				case 2:
