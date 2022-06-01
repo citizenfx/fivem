@@ -7,6 +7,7 @@
 
 #include "StdInc.h"
 
+#include <shared_mutex>
 #include <unordered_set>
 
 #ifdef GTA_FIVE
