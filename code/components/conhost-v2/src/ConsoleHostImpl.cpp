@@ -317,6 +317,11 @@ void OnConsoleFrameDraw(int width, int height, bool usedSharedD3D11)
 	static float lastScale = 1.0f;
 	float scale = ImGui_ImplWin32_GetWindowDpiScale(ImGui::GetMainViewport());
 
+	if (scale > 2.0f)
+	{
+		scale = 2.0f;
+	}
+
 	if (scale != lastScale)
 	{
 		ImGui::GetStyle() = InitStyle();
