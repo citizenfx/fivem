@@ -8,6 +8,8 @@
 #include "StdInc.h"
 
 #include <imgui.h>
+
+#define GImGui ImGui::GetCurrentContext()
 #include <imgui_internal.h>
 #include <ConsoleHost.h>
 
@@ -376,6 +378,8 @@ struct CfxBigConsole : FiveMConsoleBase
 #endif
 
 		ImGui::PushItemWidth(ImGui::GetWindowWidth() - w);
+
+		bool reclaim_focus = false;
 		if (ImGui::InputText("##_Input", InputBuf, _countof(InputBuf), ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CallbackCompletion | ImGuiInputTextFlags_CallbackHistory, &TextEditCallbackStub, (void*)this))
 		{
 			char* input_end = InputBuf + strlen(InputBuf);
@@ -383,12 +387,22 @@ struct CfxBigConsole : FiveMConsoleBase
 			if (InputBuf[0])
 				ExecCommand(InputBuf);
 			strcpy(InputBuf, "");
+			reclaim_focus = true;
 		}
 		ImGui::PopItemWidth();
 
-		// Demonstrate keeping auto focus on the input box
-		if (ImGui::IsItemHovered() || (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && !ImGui::IsAnyItemActive() && !ImGui::IsMouseClicked(0)))
+		// Auto-focus on window apparition
+		ImGui::SetItemDefaultFocus();
+		if (ImGui::IsWindowAppearing())
+		{
+			ImGui::ActivateItem(ImGui::GetItemID());
+			GImGui->NavNextActivateFlags = ImGuiActivateFlags_PreferInput;
+		}
+
+		if (reclaim_focus)
+		{
 			ImGui::SetKeyboardFocusHere(-1); // Auto focus previous widget
+		}
 
 #ifndef IS_FXSERVER
 		ImGui::SameLine();
@@ -685,7 +699,7 @@ struct MiniConsole : CfxBigConsole
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 4)); // Tighten spacing
 
-		if (ImGui::Begin("MiniCon", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar))
+		if (ImGui::Begin("MiniCon", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoFocusOnAppearing))
 		{
 			auto t = msec();
 
@@ -835,7 +849,7 @@ void DrawConsole()
 	EnsureConsoles();
 
 	static bool pOpen = true;
-	g_consoles[0]->Draw("", &pOpen);
+	g_consoles[0]->Draw("##_BigConsole", &pOpen);
 }
 
 void DrawMiniConsole()
@@ -843,7 +857,7 @@ void DrawMiniConsole()
 	EnsureConsoles();
 
 	static bool pOpen = true;
-	g_consoles[1]->Draw("", &pOpen);
+	g_consoles[1]->Draw("##_MiniConsole", &pOpen);
 }
 
 #include <sstream>
