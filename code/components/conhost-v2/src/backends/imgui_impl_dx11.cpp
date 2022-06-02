@@ -381,6 +381,30 @@ static void ImGui_ImplDX11_CreateFontsTexture()
     }
 }
 
+void ImGui_ImplDX11_RecreateFontsTexture()
+{
+	ImGui_ImplDX11_Data* bd = ImGui_ImplDX11_GetBackendData();
+
+	// we don't want to *re*create fonts if we never had them (ImGui_ImplDX11_CreateDeviceObjects uses this info to find out if it has
+	// already been created)
+	if (!bd->pFontSampler)
+	{
+		return;
+	}
+
+	if (bd->pFontSampler)
+	{
+		bd->pFontSampler->Release();
+		bd->pFontSampler = nullptr;
+	}
+
+	if (bd->pFontTextureView)
+	{
+		bd->pFontTextureView->Release();
+		bd->pFontTextureView = nullptr;
+	}
+}
+
 bool    ImGui_ImplDX11_CreateDeviceObjects()
 {
     ImGui_ImplDX11_Data* bd = ImGui_ImplDX11_GetBackendData();

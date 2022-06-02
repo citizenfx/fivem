@@ -304,6 +304,7 @@ DLL_EXPORT void OnConsoleFrameDraw(int width, int height)
 extern ID3D11DeviceContext* g_pd3dDeviceContext;
 
 extern float ImGui_ImplWin32_GetWindowDpiScale(ImGuiViewport* viewport);
+extern void ImGui_ImplDX11_RecreateFontsTexture();
 
 void OnConsoleFrameDraw(int width, int height, bool usedSharedD3D11)
 {
@@ -323,6 +324,9 @@ void OnConsoleFrameDraw(int width, int height, bool usedSharedD3D11)
 
 		BuildFont(scale);
 		CreateFontTexture();
+
+		ImGui_ImplDX11_RecreateFontsTexture();
+
 		lastScale = scale;
 	}
 
@@ -557,6 +561,7 @@ static void BuildFont(float scale)
 {
 	auto& io = ImGui::GetIO();
 	io.Fonts->Clear();
+	io.Fonts->SetTexID(nullptr);
 
 	FILE* font = _wfopen(MakeRelativeCitPath(L"citizen/consolefont.ttf").c_str(), L"rb");
 
