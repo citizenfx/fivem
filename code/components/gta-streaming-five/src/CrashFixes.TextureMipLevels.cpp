@@ -1,5 +1,6 @@
 #include <StdInc.h>
 #include <Hooking.h>
+#include <Hooking.Stubs.h>
 
 #include <CoreConsole.h>
 #include <sysAllocator.h>
@@ -28,9 +29,11 @@ using grcTexturePC = rage::five::grcTexturePC;
 }
 
 static rage::grcTexturePC* (*g_texturePCCtor_Resource_orig)(rage::grcTexturePC* texture, void* resource);
+static rage::grcTexturePC* (*g_textureDX11Ctor_Resource_orig)(rage::grcTexturePC* texture, void* resource);
 static ptrdiff_t (*_resolvePtr_Orig)(void* resource, uintptr_t ptr);
 
 static thread_local bool ignoreNextPtr = false;
+static thread_local bool setNextBufferFlag = false;
 
 extern std::string GetCurrentStreamingName();
 extern uint32_t GetCurrentStreamingIndex();
@@ -88,13 +91,21 @@ static void* grcTexturePC_CtorWrap(rage::grcTexturePC* texture, void* resource)
 
 			// get the future allocator
 			auto globalAllocator = rage::GetAllocator();
-			auto otherAllocator = globalAllocator->GetAllocator(1);
 			auto streamingAllocator = globalAllocator->GetAllocator(3);
+
+			// this should be allocator #1. #2 and #3 are the same allocator so will fail the 'is streaming' test.
+			// however, if `(+95) & 0x10` isn't set, this will get freed from the multiallocator which will
+			// ignore allocator #1 and #3 (and #0/#4/above are fixed-size so won't be suited for long-lived
+			// large allocations)
+			//
+			// we'll set (+95) & 0x10 from a check further in as this flag also affects other game code
+			auto otherAllocator = globalAllocator->GetAllocator(1);
+			setNextBufferFlag = true;
 
 			void* data = (void*)dataPtr;
 
 			// then free the original buffer (if applicable)
-			// there's a & 0x10 check but this only matters *after* we try to create resources
+			// there's a & 0x10 check but this only matters *after* game code tries to create resources
 			if (!streamingAllocator->GetSize(data))
 			{
 				globalAllocator->TryFree(data);
@@ -135,6 +146,19 @@ static void* grcTexturePC_CtorWrap(rage::grcTexturePC* texture, void* resource)
 	return texture;
 }
 
+static rage::grcTexturePC* grcTextureDX11_CtorWrap(rage::grcTexturePC* texture, void* resource)
+{
+	auto rv = g_textureDX11Ctor_Resource_orig(texture, resource);
+
+	if (setNextBufferFlag)
+	{
+		*((char*)texture + 95) |= 0x10;
+		setNextBufferFlag = false;
+	}
+
+	return rv;
+}
+
 static HookFunction hookFunction([]
 {
 	auto location = hook::get_pattern<char>("8A 53 5F 8B 4B 58 E8 ? ? ? ? B9", -0x34);
@@ -143,4 +167,6 @@ static HookFunction hookFunction([]
 
 	hook::set_call(&_resolvePtr_Orig, location + 0x2B);
 	hook::call(location + 0x2B, grcTextureDX11_resolvePtr);
+
+	g_textureDX11Ctor_Resource_orig = hook::trampoline(location, grcTextureDX11_CtorWrap);
 });
