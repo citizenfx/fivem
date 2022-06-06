@@ -1,2 +1,4 @@
 out/
 *.json
+node.exe
+yarn_cli.js
