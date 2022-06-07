@@ -47,6 +47,8 @@ private:
 public:
 	NUIClient(NUIWindow* window);
 
+	void Initialize();
+
 	inline NUIWindow* GetWindow()
 	{
 		return m_window;
