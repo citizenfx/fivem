@@ -649,6 +649,12 @@ static int __Lua_InvokeNative(lua_State* L)
 	// clean up the result
 	if ((needsResultCheck || hadComplexType) && context.numArguments > 0)
 	{
+		// if this is scrstring but nothing changed (very weird!), fatally fail
+		if (static_cast<uint32_t>(context.arguments[2]) == SCRSTRING_MAGIC_BINARY && initialArg3 == context.arguments[2])
+		{
+			FatalError("Invalid native call in resource '%s'. Please see https://aka.cfx.re/scrstring-mitigation for more information.", luaRuntime->GetResourceName());
+		}
+
 		// if the first value (usually result) is the same as the initial argument, clear the result (usually, result was no-op)
 		// (if vector results, these aren't directly unsafe, and may get incorrectly seen as complex)
 		if (context.arguments[0] == initialArg1 && result.returnValueCoercion != LuaMetaFields::ResultAsVector)
@@ -657,13 +663,6 @@ static int __Lua_InvokeNative(lua_State* L)
 			if (hadComplexType)
 			{
 				context.arguments[0] = 0;
-			}
-
-			// if this is scrstring but nothing changed (very weird!), fatally fail
-			if (static_cast<uint32_t>(context.arguments[2]) == SCRSTRING_MAGIC_BINARY &&
-				initialArg3 == context.arguments[2])
-			{
-				FatalError("Invalid native call in resource '%s'. Please see https://aka.cfx.re/scrstring-mitigation for more information.", luaRuntime->GetResourceName());
 			}
 
 			// if any result is requested and there was *no* change, zero out
