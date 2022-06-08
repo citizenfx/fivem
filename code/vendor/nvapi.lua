@@ -10,7 +10,7 @@ return {
 
 		filter 'architecture:x86'
 			libdirs '../vendor/nvapi/x86/'
-			links 'nvapi'
+			links 'nvapi32'
 
 		filter {}
 	end,
