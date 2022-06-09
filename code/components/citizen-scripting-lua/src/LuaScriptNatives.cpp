@@ -8,6 +8,10 @@
 #include "StdInc.h"
 
 #if defined(_DEBUG) || defined(BUILD_LUA_SCRIPT_NATIVES)
+#if __has_include(<PointerArgumentHints.h>)
+#include <PointerArgumentHints.h>
+#endif
+
 #include <fxScripting.h>
 #include <Error.h>
 
@@ -590,6 +594,30 @@ static int __Lua_InvokeNative(lua_State* L)
 		}
 	}
 
+#if __has_include(<PointerArgumentHints.h>)
+	fx::scripting::ResultType resultTypeIntent = fx::scripting::ResultType::None;
+
+	if (!result.returnResultAnyway)
+	{
+		resultTypeIntent = fx::scripting::ResultType::Void;
+	}
+	else if (result.returnValueCoercion == LuaMetaFields::ResultAsString)
+	{
+		resultTypeIntent = fx::scripting::ResultType::String;
+	}
+	else if (result.returnValueCoercion == LuaMetaFields::ResultAsInteger ||
+		result.returnValueCoercion == LuaMetaFields::ResultAsLong ||
+		result.returnValueCoercion == LuaMetaFields::ResultAsFloat ||
+		result.returnValueCoercion == LuaMetaFields::Max /* bool */)
+	{
+		resultTypeIntent = fx::scripting::ResultType::Scalar;
+	}
+	else if (result.returnValueCoercion == LuaMetaFields::ResultAsVector)
+	{
+		resultTypeIntent = fx::scripting::ResultType::Vector;
+	}
+#endif
+
 	// invoke the native on the script host
 #ifndef IS_FXSERVER
 	// preemptive safety check for the input argument to *not* show up in the output
@@ -670,6 +698,13 @@ static int __Lua_InvokeNative(lua_State* L)
 			context.arguments[2] = 0;
 			context.arguments[3] = 0;
 		}
+	}
+#endif
+
+#if __has_include(<PointerArgumentHints.h>)
+	if (resultTypeIntent != fx::scripting::ResultType::None)
+	{
+		fx::scripting::PointerArgumentHints::CleanNativeResult(origHash, resultTypeIntent, context.arguments);
 	}
 #endif
 

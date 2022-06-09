@@ -1,5 +1,7 @@
 #include <StdInc.h>
-#include <scrEngine.h>
+
+#include "PointerArgumentHints.h"
+#include "scrEngine.h"
 
 #include <ICoreGameInit.h>
 
@@ -51,6 +53,52 @@ static void NullifyVoid(rage::scrNativeCallContext* cxt)
 	{
 		cxt->SetResult(0, intptr_t(0));
 	}
+}
+
+template<typename T>
+static void ResultCleaner(void* results, fx::scripting::ResultType hint)
+{
+	using fx::scripting::ResultType;
+
+	if constexpr (std::is_same_v<char*, std::decay_t<T>>)
+	{
+		if (hint != ResultType::String)
+		{
+			*(uintptr_t*)results = 0;
+			return;
+		}
+	}
+	else if constexpr (std::is_arithmetic_v<T> || std::is_same_v<std::decay_t<T>, bool>)
+	{
+		if (hint == ResultType::String)
+		{
+			*(uintptr_t*)results = 0;
+			return;
+		}
+	}
+}
+
+static std::unordered_map<uint64_t, decltype(&ResultCleaner<int>)> g_resultCleaners;
+
+static void AddResultCleaner(uint64_t hash, decltype(g_resultCleaners)::mapped_type cleaner)
+{
+	g_resultCleaners[hash] = cleaner;
+}
+
+namespace fx::scripting
+{
+void PointerArgumentHints::CleanNativeResult(uint64_t nativeIdentifier, ResultType resultType, void* resultBuffer)
+{
+	if (resultType == fx::scripting::ResultType::None)
+	{
+		return;
+	}
+
+	if (auto cleaner = g_resultCleaners.find(nativeIdentifier); cleaner != g_resultCleaners.end())
+	{
+		cleaner->second(resultBuffer, resultType);
+	}
+}
 }
 
 #include "PASGen.h"
