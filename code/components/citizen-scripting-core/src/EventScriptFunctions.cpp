@@ -23,7 +23,7 @@ static InitFunction initFunction([] ()
 		static fwRefContainer<fx::ResourceEventManagerComponent> eventManager = manager->GetComponent<fx::ResourceEventManagerComponent>();
 
 		// trigger the event
-		bool wasCanceled = eventManager->TriggerEvent(context.CheckArgument<const char*>(0), std::string(context.GetArgument<const char*>(1), context.GetArgument<uint32_t>(2)));
+		bool wasCanceled = eventManager->TriggerEvent(context.CheckArgument<const char*>(0), std::string(context.CheckArgument<const char*>(1), context.GetArgument<uint32_t>(2)));
 
 		// set the result for convenience
 		context.SetResult(wasCanceled);
