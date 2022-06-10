@@ -163,15 +163,39 @@ DLL_EXPORT int createTexture(const char* fileName)
  	}
 
 	// convert the filename from UTF-8...
-	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
-	std::wstring passedFileName = converter.from_bytes(fileNameStr);
+	std::wstring passedFileName = ([&fileNameStr]() -> std::wstring
+	{
+		try
+		{
+			std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
+			return converter.from_bytes(fileNameStr);
+		}
+		catch (...)
+		{
+			// not valid UTF-8, try CP_ACP instead
+			int length = MultiByteToWideChar(CP_ACP, 0, fileNameStr.c_str(), fileNameStr.length(), nullptr, 0);
+
+			if (length >= 0)
+			{
+				std::wstring wideName;
+				wideName.resize(length);
+
+				MultiByteToWideChar(CP_ACP, 0, fileNameStr.c_str(), fileNameStr.length(), wideName.data(), wideName.size());
+
+				return wideName;
+			}
+		}
+
+		return L"";
+	})();
+
 	std::wstring retFileName = passedFileName;
 
 	// then, try finding the requested file in various locations
 	bool found = false;
 
 	// absolute path?
-	if (passedFileName[1] == L':' || passedFileName[0] == '\\')
+	if (passedFileName.length() > 2 && passedFileName[1] == L':' || passedFileName[0] == '\\')
 	{
 		found = true;
 	}
@@ -211,7 +235,7 @@ DLL_EXPORT int createTexture(const char* fileName)
 
 	if (!texture)
 	{
-		GlobalError("Failed to initialize ViSH compatibility texture %s.", converter.to_bytes(retFileName).c_str());
+		GlobalError("Failed to initialize ViSH compatibility texture %s.", ToNarrow(retFileName).c_str());
 
 		return -1;
 	}
