@@ -1199,6 +1199,10 @@ static HookFunction hookFunctionSteamBlob([]()
 
 			*useSteam = 1;
 			*steamAppId = strdup(va("%d", blob->steamAppId));
+
+			// Steam language takes precedence over the -rglLanguage CLI argument (if the Steam API returned a known language)
+			// This is inconsistent so we'll treat this like any other platform, ignoring the Steam language.
+			hook::put<uint8_t>(hook::get_pattern("44 38 25 ? ? ? ? 74 15 48 8B", 7), 0xEB);
 		}
 		else if (blob->epicSize)
 		{
