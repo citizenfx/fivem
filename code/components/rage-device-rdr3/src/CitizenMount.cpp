@@ -10,6 +10,8 @@
 #include "Hooking.h"
 #include "boost/assign.hpp"
 
+#include <CrossBuildRuntime.h>
+
 #include <boost/algorithm/string.hpp>
 
 #include <LaunchMode.h>
@@ -168,6 +170,8 @@ static InitFunction initFunction([] ()
 			}
 		}
 
+		std::string settingsPath = fmt::sprintf("fxd:/rdr3_settings%s/", (!xbr::IsGameBuildOrGreater<1436>()) ? fmt::sprintf("_b%d", xbr::GetGameBuild()) : "");
+
 		{
 			PWSTR appDataPath;
 			if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, nullptr, &appDataPath)))
@@ -182,7 +186,7 @@ static InitFunction initFunction([] ()
 				fxUserDevice->SetPath(converter.to_bytes(profilePath).c_str(), false);
 				fxUserDevice->Mount("fxd:/");
 
-				fxUserDevice->CreateDirectory("fxd:/rdr3_settings/");
+				fxUserDevice->CreateDirectory(settingsPath.c_str());
 
 				CoTaskMemFree(appDataPath);
 			}
@@ -222,7 +226,7 @@ static InitFunction initFunction([] ()
 		}
 
 		auto settingsDevice = new rage::fiDeviceRelative();
-		settingsDevice->SetPath("fxd:/rdr3_settings/", false);
+		settingsDevice->SetPath(settingsPath.c_str(), false);
 		settingsDevice->Mount("settings:/");
 	});
 });
