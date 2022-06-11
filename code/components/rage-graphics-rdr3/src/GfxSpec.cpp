@@ -662,8 +662,16 @@ void DynamicTexture2::UnmapInternal(GraphicsContext* context, const MapData& map
 }
 }
 
+static bool ShouldUsePipelineCache(const char* pipelineCachePrefix)
+{
+	// #TODO: check for ERR_GFX_STATE or similar failures last launch?
+	return true;
+}
+
 static HookFunction hookFunction([]()
 {
+	hook::jump(hook::get_pattern("48 83 EC 28 48 8D 15 ? ? ? ? 48 2B D1 8A 01"), ShouldUsePipelineCache);
+
 	MH_Initialize();
 	MH_CreateHook(hook::get_pattern("48 8B CB E8 ? ? ? ? 48 8B 0D ? ? ? ? 0F 57 ED", -0x1D), WrapEndDraw, (void**)&origEndDraw);
 
