@@ -161,7 +161,7 @@ static InitFunction initFunctionTwo([]()
 		{
 			while (!canContinueLoad || (g_callBeforeLoad && !g_callBeforeLoad()))
 			{
-				Sleep(0);
+				Sleep(50);
 
 				_doLookAlive();
 
