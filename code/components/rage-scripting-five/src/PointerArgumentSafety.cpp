@@ -98,6 +98,10 @@ void PointerArgumentHints::CleanNativeResult(uint64_t nativeIdentifier, ResultTy
 	{
 		cleaner->second(resultBuffer, resultType);
 	}
+	else if (auto handler = rage::scrEngine::GetNativeHandler(nativeIdentifier); !handler)
+	{
+		*(uintptr_t*)resultBuffer = 0;
+	}
 }
 }
 
