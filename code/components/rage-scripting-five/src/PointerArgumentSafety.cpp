@@ -78,11 +78,16 @@ static void ResultCleaner(void* results, fx::scripting::ResultType hint)
 	}
 }
 
+namespace rage
+{
+extern uint64_t MapNative(uint64_t inNative);
+}
+
 static std::unordered_map<uint64_t, decltype(&ResultCleaner<int>)> g_resultCleaners;
 
 static void AddResultCleaner(uint64_t hash, decltype(g_resultCleaners)::mapped_type cleaner)
 {
-	g_resultCleaners[hash] = cleaner;
+	g_resultCleaners[rage::MapNative(hash)] = cleaner;
 }
 
 namespace fx::scripting
@@ -93,6 +98,8 @@ void PointerArgumentHints::CleanNativeResult(uint64_t nativeIdentifier, ResultTy
 	{
 		return;
 	}
+
+	nativeIdentifier = rage::MapNative(nativeIdentifier);
 
 	if (auto cleaner = g_resultCleaners.find(nativeIdentifier); cleaner != g_resultCleaners.end())
 	{
