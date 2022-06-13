@@ -577,7 +577,11 @@ for _, v in pairs(_natives) do
         if returnType ~= '' then
             print(("\t\t\t// %s"):format((v.ns or '') .. '/' .. v.name))
 
-            print(("\t\t\tAddResultCleaner(%s, ResultCleaner_%s);\n"):format(v.hash, returnType))
+			if v.name == 'INVOKE_FUNCTION_REFERENCE' then
+				returnType = 'FuncRef'
+			end
+			
+			print(("\t\t\tAddResultCleaner(%s, ResultCleaner_%s);\n"):format(v.hash, returnType))
         end
     end
 end

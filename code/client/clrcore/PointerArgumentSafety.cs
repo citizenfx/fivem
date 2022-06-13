@@ -41,6 +41,11 @@ namespace CitizenFX.Core.Native
 			return type != typeof(string);
 		}
 
+		private static bool ResultCleaner_FuncRef(Type type)
+		{
+			return type != typeof(string) && type != typeof(IntPtr);
+		}
+
 		private static ulong MapNative(ulong hash)
 		{
 #if GTA_FIVE
