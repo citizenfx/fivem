@@ -9,6 +9,10 @@
 #include "fxScripting.h"
 #include <ManifestVersion.h>
 
+#if __has_include(<PointerArgumentHints.h>)
+#include <PointerArgumentHints.h>
+#endif
+
 #include <ResourceCallbackComponent.h>
 
 #include <chrono>
@@ -1200,6 +1204,7 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 				case V8MetaFields::ResultAsFloat:
 				case V8MetaFields::ResultAsVector:
 				case V8MetaFields::ResultAsObject:
+					returnResultAnyway = true;
 					returnValueCoercion = metaField;
 					break;
 				}
@@ -1337,9 +1342,33 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 		}
 	}
 
+#if __has_include(<PointerArgumentHints.h>)
+	fx::scripting::ResultType resultTypeIntent = fx::scripting::ResultType::None;
+
+	if (!returnResultAnyway)
+	{
+		resultTypeIntent = fx::scripting::ResultType::Void;
+	}
+	else if (returnValueCoercion == V8MetaFields::ResultAsString)
+	{
+		resultTypeIntent = fx::scripting::ResultType::String;
+	}
+	else if (returnValueCoercion == V8MetaFields::ResultAsInteger || returnValueCoercion == V8MetaFields::ResultAsLong || returnValueCoercion == V8MetaFields::ResultAsFloat || returnValueCoercion == V8MetaFields::Max /* bool */)
+	{
+		resultTypeIntent = fx::scripting::ResultType::Scalar;
+	}
+	else if (returnValueCoercion == V8MetaFields::ResultAsVector)
+	{
+		resultTypeIntent = fx::scripting::ResultType::Vector;
+	}
+#endif
+
 #ifndef IS_FXSERVER
+	bool needsResultCheck = (numReturnValues == 0 || returnResultAnyway);
 	bool hadComplexType = !a1.IsEmpty() && (!a1->IsNumber() && !a1->IsBoolean() && !a1->IsNull());
+
 	auto initialArg1 = context.arguments[0];
+	auto initialArg3 = context.arguments[2];
 #endif
 
 	// invoke the native on the script host
@@ -1353,16 +1382,36 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 
 #ifndef IS_FXSERVER
 	// clean up the result
-	if (hadComplexType && context.numArguments > 0)
+	if ((needsResultCheck || hadComplexType) && context.numArguments > 0)
 	{
-		// if the complex argument return value is the same as the initial argument, clear the result (result was no-op)
-		if (context.arguments[0] == initialArg1)
+		// if this is scrstring but nothing changed (very weird!), fatally fail
+		if (static_cast<uint32_t>(context.arguments[2]) == 0xFEED1212 && initialArg3 == context.arguments[2])
 		{
-			context.arguments[0] = 0;
+			FatalError("Invalid native call in V8 resource '%s'. Please see https://aka.cfx.re/scrstring-mitigation for more information.", runtime->GetResourceName());
+		}
+
+		// if the first value (usually result) is the same as the initial argument, clear the result (usually, result was no-op)
+		// (if vector results, these aren't directly unsafe, and may get incorrectly seen as complex)
+		if (context.arguments[0] == initialArg1 && returnValueCoercion != V8MetaFields::ResultAsVector)
+		{
+			// complex type in first result means we have to clear that result
+			if (hadComplexType)
+			{
+				context.arguments[0] = 0;
+			}
+
+			// if any result is requested and there was *no* change, zero out
 			context.arguments[1] = 0;
 			context.arguments[2] = 0;
 			context.arguments[3] = 0;
 		}
+	}
+#endif
+
+#if __has_include(<PointerArgumentHints.h>)
+	if (resultTypeIntent != fx::scripting::ResultType::None)
+	{
+		fx::scripting::PointerArgumentHints::CleanNativeResult(hash, resultTypeIntent, context.arguments);
 	}
 #endif
 
