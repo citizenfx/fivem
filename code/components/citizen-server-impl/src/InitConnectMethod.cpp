@@ -304,6 +304,7 @@ static InitFunction initFunction([]()
 		auto maxVarianceVar = instance->AddVariable<int>("sv_authMaxVariance", ConVar_None, 5);
 		maxVarianceVar->GetHelper()->SetConstraints(1, 5);
 
+		auto pureVar = instance->AddVariable<int>("sv_pureLevel", ConVar_ServerInfo, 0);
 		auto shVar = instance->AddVariable<bool>("sv_scriptHookAllowed", ConVar_ServerInfo, false);
 		auto ehVar = instance->AddVariable<bool>("sv_enhancedHostSupport", ConVar_ServerInfo, false);
 
@@ -547,6 +548,7 @@ static InitFunction initFunction([]()
 			json data = json::object();
 			data["protocol"] = 5;
 			data["bitVersion"] = 0x202103292050;
+			data["pure"] = pureVar->GetValue();
 			data["sH"] = shVar->GetValue();
 			data["enhancedHostSupport"] = ehVar->GetValue() && !fx::IsOneSync();
 			data["onesync"] = fx::IsOneSync();

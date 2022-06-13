@@ -4,6 +4,7 @@
 #include <json.hpp>
 
 #include <CrossBuildRuntime.h>
+#include <PureModeState.h>
 
 #include <CommCtrl.h>
 
@@ -14,16 +15,16 @@ int gameCacheTargetBuild;
 extern NetLibrary* netLibrary;
 extern std::map<std::string, std::string> UpdateGameCache();
 
-extern void RestartGameToOtherBuild(int build);
+extern void RestartGameToOtherBuild(int build, int pureLevel);
 
 static std::function<void(const std::string&)> g_submitFn;
 static bool g_cancelable;
 static bool g_canceled;
 static bool g_hadError;
 
-void PerformBuildSwitch(int build);
+void PerformStateSwitch(int build, int pureLevel);
 
-void InitializeBuildSwitch(int build)
+void InitializeBuildSwitch(int build, int pureLevel)
 {
 	if (nui::HasMainUI())
 	{
@@ -33,21 +34,24 @@ void InitializeBuildSwitch(int build)
 
 		auto j = nlohmann::json::object({
 			{ "build", build },
+			{ "pureLevel", pureLevel },
+			{ "currentBuild", xbr::GetGameBuild() },
+			{ "currentPureLevel", fx::client::GetPureLevel() },
 		});
 
 		nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "connectBuildSwitchRequest", "data": %s })", j.dump()));
 
-		g_submitFn = [build](const std::string& action)
+		g_submitFn = [build, pureLevel](const std::string& action)
 		{
 			if (action == "ok")
 			{
-				PerformBuildSwitch(build);
+				PerformStateSwitch(build, pureLevel);
 			}
 		};
 	}
 }
 
-void PerformBuildSwitch(int build)
+void PerformStateSwitch(int build, int pureLevel)
 {
 	if (gameCacheTargetBuild != 0)
 	{
@@ -56,12 +60,12 @@ void PerformBuildSwitch(int build)
 
 	gameCacheTargetBuild = build;
 
-	std::thread([]()
+	std::thread([pureLevel]()
 	{
 		// let's try to update the game cache
 		if (!UpdateGameCache().empty())
 		{
-			RestartGameToOtherBuild(gameCacheTargetBuild);
+			RestartGameToOtherBuild(gameCacheTargetBuild, pureLevel);
 		}
 		// display a generic error if we failed
 		else if (!g_hadError && !g_canceled)

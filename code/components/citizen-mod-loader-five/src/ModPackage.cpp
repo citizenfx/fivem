@@ -9,6 +9,8 @@
 #include <fiDevice.h>
 #include <VFSRagePackfile7.h>
 
+#include <PureModeState.h>
+
 #include <boost/algorithm/string.hpp>
 
 namespace fx
@@ -118,6 +120,11 @@ struct IgnoreCaseLess
 
 static HookFunction hookFunction([]()
 {
+	if (fx::client::GetPureLevel() >= 2)
+	{
+		return;
+	}
+
 	rage::fiDevice::OnInitialMount.Connect([]()
 	{
 		auto cfxDevice = rage::fiDevice::GetDevice("cfx:/mods/", true);

@@ -23,6 +23,7 @@
 
 #include <CL2LaunchMode.h>
 #include <CrossBuildRuntime.h>
+#include <PureModeState.h>
 
 #include <Error.h>
 
@@ -83,12 +84,33 @@ int someFunc(void* a1, void* a2, const char* a3)
 
 static HookFunction hookFunction([]()
 {
-	hook::set_call(&origSetFunc, hook::pattern("66 39 79 38 74 06 4C 8B  41 30 EB 07 4C 8D").count(1).get(0).get<void>(19));
-	hook::call(hook::pattern("66 39 79 38 74 06 4C 8B  41 30 EB 07 4C 8D").count(1).get(0).get<void>(19), someFunc);
+	if (fx::client::GetPureLevel() >= 1)
+	{
+		return;
+	}
+
+	auto dlcPattern = hook::get_pattern("66 39 79 38 74 06 4C 8B 41 30 EB 07 4C 8D", 19);
+	hook::set_call(&origSetFunc, dlcPattern);
+	hook::call(dlcPattern, someFunc);
 });
 
 #include <ShlObj.h>
 #include <boost/algorithm/string.hpp>
+
+#include <unordered_set>
+
+static std::unordered_set<std::string> g_basePaths{
+	// common/
+	"data/gameconfig.xml",
+	"data/gta5_cache_y.dat",
+	"data/ui/pausemenu.xml",
+
+	// platform/
+	"audio/config/categories.dat22.rel",
+	"data/control/default.meta",
+	"data/control/settings.meta",
+	"data/control/keyboard layout/da.meta",
+};
 
 class PathFilteringDevice : public vfs::RelativeDevice
 {
@@ -101,10 +123,17 @@ public:
 
 	bool FilterFile(const std::string& fileName)
 	{
-		std::string relPath = fileName.substr(strlen("commonFilter:/"));
-
+		std::string relPath = fileName.substr(fileName.find(":/"));
 		boost::algorithm::replace_all(relPath, "\\", "/");
 		boost::algorithm::to_lower(relPath);
+
+		if (fx::client::GetPureLevel() >= 1)
+		{
+			if (g_basePaths.find(relPath) == g_basePaths.end())
+			{
+				return true;
+			}
+		}
 
 		if (relPath == "data/levels/gta5/trains.xml" ||
 			relPath == "data/materials/materials.dat" ||
@@ -208,17 +237,8 @@ static InitFunction initFunction([] ()
 
 		if (!Is372())
 		{
-			std::string targetPath;
-
-			if (!CfxIsSinglePlayer())
-			{
-				relativePaths.emplace_back("commonFilter:/", new PathFilteringDevice(ToNarrow(MakeRelativeCitPath(L"citizen\\common\\"s))));
-				targetPath = "commonFilter:/";
-			}
-			else if (CfxIsSinglePlayer())
-			{
-				targetPath = ToNarrow(MakeRelativeCitPath(L"citizen\\common-sp"s));
-			}
+			std::string targetPath = "commonFilter:/";
+			relativePaths.emplace_back("commonFilter:/", new PathFilteringDevice(ToNarrow(MakeRelativeCitPath(L"citizen\\common\\"s))));
 
 			relativePaths.emplace_back("common:/", targetPath);
 			relativePaths.emplace_back("commoncrc:/", targetPath);
@@ -226,19 +246,22 @@ static InitFunction initFunction([] ()
 		}
 
 		{
-			auto targetPath = ToNarrow(MakeRelativeCitPath(L"citizen\\platform"s + (CfxIsSinglePlayer() ? L"-sp" : L"")));
+			std::string targetPath = "platformFilter:/";
+			relativePaths.emplace_back("platformFilter:/", new PathFilteringDevice(ToNarrow(MakeRelativeCitPath(L"citizen\\platform"))));
 
 			relativePaths.emplace_back("platform:/", targetPath);
 			relativePaths.emplace_back("platformcrc:/", targetPath);
 		}
 
 		{
-			auto targetPath = ToNarrow(MakeRelativeCitPath(fmt::sprintf(L"citizen\\platform-%d", xbr::GetGameBuild())));
+			std::string targetPath = "platformFilterV:/";
+			auto platformPath = ToNarrow(MakeRelativeCitPath(fmt::sprintf(L"citizen\\platform-%d", xbr::GetGameBuild())));
+			relativePaths.emplace_back("platformFilterV:/", new PathFilteringDevice(platformPath));
 
 			relativePaths.emplace_back("platform:/", targetPath);
 			relativePaths.emplace_back("platformcrc:/", targetPath);
 
-			if (xbr::IsGameBuildOrGreater<2060>() && GetFileAttributes(ToWide(targetPath).c_str()) == INVALID_FILE_ATTRIBUTES)
+			if (xbr::IsGameBuildOrGreater<2060>() && GetFileAttributes(ToWide(platformPath).c_str()) == INVALID_FILE_ATTRIBUTES)
 			{
 				trace("game build %d is expected to have a platform directory, but it doesn't\n", xbr::GetGameBuild());
 
@@ -251,6 +274,7 @@ static InitFunction initFunction([] ()
 		// we will try to fetch `cfx:/` soon, so apply current state
 		ApplyPaths(relativePaths);
 
+		if (fx::client::GetPureLevel() == 0)
 		{
 			auto cfxDevice = rage::fiDevice::GetDevice("cfx:/", true);
 

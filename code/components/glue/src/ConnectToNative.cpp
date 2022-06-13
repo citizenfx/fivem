@@ -97,7 +97,7 @@ static void SaveBuildNumber(uint32_t build)
 	}
 }
 
-void RestartGameToOtherBuild(int build)
+void RestartGameToOtherBuild(int build, int pureLevel)
 {
 #if defined(GTA_FIVE) || defined(IS_RDR3)
 	SECURITY_ATTRIBUTES securityAttributes = { 0 };
@@ -106,10 +106,11 @@ void RestartGameToOtherBuild(int build)
 	HANDLE switchEvent = CreateEventW(&securityAttributes, TRUE, FALSE, NULL);
 
 	static HostSharedData<CfxState> hostData("CfxInitState");
-	auto cli = fmt::sprintf(L"\"%s\" %s %s -switchcl:%d \"fivem://connect/%s\"",
+	auto cli = fmt::sprintf(L"\"%s\" %s %s %s -switchcl:%d \"fivem://connect/%s\"",
 	hostData->gameExePath,
 	build == 1604 ? L"" : fmt::sprintf(L"-b%d", build),
 	IsCL2() ? L"-cl2" : L"",
+	pureLevel == 0 ? L"" : fmt::sprintf(L"-pure_%d", pureLevel),
 	(uintptr_t)switchEvent,
 	ToWide(g_lastConn));
 
@@ -163,7 +164,7 @@ void RestartGameToOtherBuild(int build)
 #endif
 }
 
-extern void InitializeBuildSwitch(int build);
+extern void InitializeBuildSwitch(int build, int pureLevel);
 
 void saveSettings(const wchar_t *json) {
 	PWSTR appDataPath;
@@ -613,9 +614,9 @@ static InitFunction initFunction([] ()
 			nui::PostRootMessage(fmt::sprintf(R"({ "type": "setServerAddress", "data": "%s" })", peerAddress));
 		});
 
-		netLibrary->OnRequestBuildSwitch.Connect([](int build)
+		netLibrary->OnRequestBuildSwitch.Connect([](int build, int pureLevel)
 		{
-			InitializeBuildSwitch(build);
+			InitializeBuildSwitch(build, pureLevel);
 			g_connected = false;
 		});
 

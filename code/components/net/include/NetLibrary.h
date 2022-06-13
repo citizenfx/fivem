@@ -331,7 +331,7 @@ public:
 #endif
 		fwEvent<NetLibrary*> OnNetLibraryCreate;
 
-	fwEvent<int> OnRequestBuildSwitch;
+	fwEvent<int /* build */, int /* pure level */> OnRequestBuildSwitch;
 
 	fwEvent<const char*> OnAttemptDisconnect;
 

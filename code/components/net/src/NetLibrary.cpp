@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -26,6 +26,7 @@
 #include <ppltasks.h>
 
 #include <CrossBuildRuntime.h>
+#include <PureModeState.h>
 #include <CoreConsole.h>
 
 #include <CfxLocale.h>
@@ -1777,6 +1778,13 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 #if defined(GTA_FIVE) || defined(IS_RDR3)
 				if (info.is_object() && info["vars"].is_object())
 				{
+					int pureLevel = 0;
+
+					if (auto pureVal = info["vars"].value("sv_pureLevel", "0"); !pureVal.empty())
+					{
+						pureLevel = std::stoi(pureVal);
+					}
+
 					auto val = info["vars"].value("sv_enforceGameBuild", "");
 					int buildRef = 0;
 
@@ -1784,7 +1792,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 					{
 						buildRef = std::stoi(val);
 
-						if (buildRef != 0 && buildRef != xbr::GetGameBuild())
+						if ((buildRef != 0 && buildRef != xbr::GetGameBuild()) || (pureLevel != fx::client::GetPureLevel()))
 						{
 #if defined(GTA_FIVE)
 							if (buildRef != 1604 && buildRef != 2060 && buildRef != 2189 && buildRef != 2372 && buildRef != 2545 && buildRef != 2612)
@@ -1801,7 +1809,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 								return;
 							}
 
-							OnRequestBuildSwitch(buildRef);
+							OnRequestBuildSwitch(buildRef, pureLevel);
 							m_connectionState = CS_IDLE;
 							return;
 						}
@@ -1810,7 +1818,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 #if defined(GTA_FIVE)
 					if (xbr::GetGameBuild() != 1604 && buildRef == 0)
 					{
-						OnRequestBuildSwitch(1604);
+						OnRequestBuildSwitch(1604, 0);
 						m_connectionState = CS_IDLE;
 						return;
 					}
