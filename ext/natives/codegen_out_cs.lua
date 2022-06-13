@@ -551,3 +551,35 @@ end
 
 print('\t}')
 -- print('}')
+
+-- PAS bits
+print('\tinternal static partial class PointerArgumentSafety\n\t{')
+print('\t\tstatic PointerArgumentSafety()\n\t\t{')
+
+for _, v in pairs(_natives) do
+    if matchApiSet(v) and v.returns then
+        local returnType = ''
+
+        if v.returns.nativeType == 'string' then
+            returnType = 'string'
+        elseif v.returns.nativeType == 'float' then
+            returnType = 'float'
+        elseif v.returns.nativeType == 'bool' then
+            returnType = 'bool'
+        elseif v.returns.nativeType == 'int' then
+            returnType = 'int'
+        elseif v.returns.nativeType == 'Any' and not v.returns.pointer then
+            returnType = 'int'
+        elseif v.returns.nativeType == 'Vector3' then
+            returnType = 'int'
+        end
+
+        if returnType ~= '' then
+            print(("\t\t\t// %s"):format((v.ns or '') .. '/' .. v.name))
+
+            print(("\t\t\tAddResultCleaner(%s, ResultCleaner_%s);\n"):format(v.hash, returnType))
+        end
+    end
+end
+
+print('\t\t}\n\t}')

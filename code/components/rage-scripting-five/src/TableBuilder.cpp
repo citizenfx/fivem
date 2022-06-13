@@ -189,6 +189,11 @@ namespace rage
 	}
 }
 
+extern "C" DLL_EXPORT uint64_t MapNative(uint64_t inNative)
+{
+	return rage::MapNative(inNative);
+}
+
 static TableGenerator tableGen;
 
 static void(*registerNative)(void*, uint64_t, void*);
