@@ -207,6 +207,8 @@ static json load_error_pickup()
 	return load_json_file(L"data\\cache\\error-pickup");
 }
 
+static std::map<std::string, std::string> g_lastCrashometry;
+
 static std::map<std::string, std::string> load_crashometry()
 {
 	std::map<std::string, std::string> rv;
@@ -236,6 +238,8 @@ static std::map<std::string, std::string> load_crashometry()
 		fclose(f);
 	}
 
+	g_lastCrashometry = rv;
+
 	return rv;
 }
 
@@ -243,14 +247,12 @@ static std::wstring crashHash;
 
 static std::wstring HashCrash(const std::wstring& key);
 
-static void add_crashometry(json& data)
+template<bool Replace, typename TMap>
+static void ConvertCrashometry(const TMap& map, json& data)
 {
-	auto map = load_crashometry();
-	_wunlink(MakeRelativeCitPath(L"data\\cache\\crashometry").c_str());
-
 	for (const auto& pair : map)
 	{
-		data["crashometry_" + pair.first] = boost::algorithm::replace_all_copy(pair.second, "\n", "~n~");
+		data["crashometry_" + pair.first] = (Replace) ? boost::algorithm::replace_all_copy(pair.second, "\n", "~n~") : pair.second;
 	}
 
 	if (!crashHash.empty())
@@ -261,6 +263,14 @@ static void add_crashometry(json& data)
 		data["crash_hash_id"] = HashString(ch.c_str());
 		data["crash_hash_key"] = ToNarrow(HashCrash(crashHash));
 	}
+}
+
+static void add_crashometry(json& data)
+{
+	auto map = load_crashometry();
+	_wunlink(MakeRelativeCitPath(L"data\\cache\\crashometry").c_str());
+
+	ConvertCrashometry<true>(map, data);
 }
 
 static auto GetMinidumpGamePath() -> std::wstring
@@ -600,6 +610,21 @@ static void GatherCrashInformation()
 					{
 						mz_zip_writer_add_path(writer, ToNarrow(extraDumpPath).c_str(), nullptr, false, false);
 					}
+				}
+
+				if (!g_lastCrashometry.empty())
+				{
+					json j = json::object();
+					ConvertCrashometry<false>(g_lastCrashometry, j);
+
+					mz_zip_file info = { 0 };
+					info.filename = "crashometry.json";
+					info.filename_size = strlen("crashometry.json") + 1;
+					info.compression_method = MZ_COMPRESS_METHOD_DEFLATE;
+					info.modified_date = time(NULL);
+
+					std::string dumped = j.dump(4, ' ', false, nlohmann::detail::error_handler_t::replace);
+					mz_zip_writer_add_buffer(writer, const_cast<char*>(dumped.c_str()), dumped.length(), &info);
 				}
 
 				success = true;
