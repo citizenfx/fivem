@@ -76,20 +76,33 @@ void DisableNvCache()
 		}
 	}
 
-	NVDRS_SETTING setting = { 0 };
-	setting.version = NVDRS_SETTING_VER;
-	setting.settingId = PS_SHADERDISKCACHE_ID;
-	setting.settingType = NVDRS_DWORD_TYPE;
-	setting.settingLocation = NVDRS_CURRENT_PROFILE_LOCATION;
-	setting.isCurrentPredefined = 0;
-	setting.isPredefinedValid = 0;
-	setting.u32CurrentValue = PS_SHADERDISKCACHE_OFF;
-	setting.u32PredefinedValue = PS_SHADERDISKCACHE_OFF;
+	auto settings = {
+		// important: disable shader disk cache
+		std::make_tuple(PS_SHADERDISKCACHE_ID, (DWORD)PS_SHADERDISKCACHE_OFF), // 'Enables/Disables strategy' -> Off
 
-	status = NvAPI_DRS_SetSetting(session, profile, &setting);
-	if (status != NVAPI_OK)
+		// mobile GPUs that use profile overrides need this manually replaced
+		std::make_tuple(SHIM_MCCOMPAT_ID, (DWORD)SHIM_MCCOMPAT_ENABLE), // 'White list for shim layer' -> 'Run on DGPU'
+		std::make_tuple(SHIM_RENDERING_MODE_ID, (DWORD)SHIM_RENDERING_MODE_ENABLE), // 'White list for shim layer per application' -> 'Run on DGPU'
+		std::make_tuple(SHIM_RENDERING_OPTIONS_ID, (DWORD)SHIM_RENDERING_OPTIONS_DEFAULT_RENDERING_MODE), // 'Rendering Mode Options for shim layer per application' -> 'No overrides for Shim rendering methods'
+	};
+
+	for (const auto& [id, value] : settings)
 	{
-		return;
+		NVDRS_SETTING setting = { 0 };
+		setting.version = NVDRS_SETTING_VER;
+		setting.settingId = id;
+		setting.settingType = NVDRS_DWORD_TYPE;
+		setting.settingLocation = NVDRS_CURRENT_PROFILE_LOCATION;
+		setting.isCurrentPredefined = 0;
+		setting.isPredefinedValid = 0;
+		setting.u32CurrentValue = value;
+		setting.u32PredefinedValue = value;
+
+		status = NvAPI_DRS_SetSetting(session, profile, &setting);
+		if (status != NVAPI_OK)
+		{
+			continue;
+		}
 	}
 
 	NvAPI_DRS_SaveSettings(session);
