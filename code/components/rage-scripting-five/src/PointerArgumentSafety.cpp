@@ -3,9 +3,12 @@
 #include "PointerArgumentHints.h"
 #include "scrEngine.h"
 
+#include <CL2LaunchMode.h>
 #include <ICoreGameInit.h>
 
 #include <psapi.h>
+
+static bool g_sdk;
 
 static ptrdiff_t GetMainImageSize()
 {
@@ -94,7 +97,7 @@ namespace fx::scripting
 {
 void PointerArgumentHints::CleanNativeResult(uint64_t nativeIdentifier, ResultType resultType, void* resultBuffer)
 {
-	if (resultType == fx::scripting::ResultType::None)
+	if (resultType == fx::scripting::ResultType::None || g_sdk)
 	{
 		return;
 	}
@@ -118,6 +121,14 @@ void PointerArgumentSafety()
 {
 	PointerArgumentSafety_Impl();
 }
+
+static InitFunction initFunction([]
+{
+	if (launch::IsSDK())
+	{
+		g_sdk = true;
+	}
+});
 
 static HookFunction hookFunction([]
 {
