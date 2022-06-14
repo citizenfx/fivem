@@ -123,7 +123,7 @@ public:
 
 	bool FilterFile(const std::string& fileName)
 	{
-		std::string relPath = fileName.substr(fileName.find(":/"));
+		std::string relPath = fileName.substr(fileName.find(":/") + 2);
 		boost::algorithm::replace_all(relPath, "\\", "/");
 		boost::algorithm::to_lower(relPath);
 
