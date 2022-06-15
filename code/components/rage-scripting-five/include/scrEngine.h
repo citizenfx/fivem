@@ -153,11 +153,9 @@ public:
 	template <typename T>
 	inline void Push(T value)
 	{
-		if (sizeof(T) > ArgSize)
-		{
-			throw "Argument has an invalid size";
-		}
-		else if (sizeof(T) < ArgSize)
+		static_assert(sizeof(T) <= ArgSize, "Argument has an invalid size");
+
+		if constexpr (sizeof(T) < ArgSize)
 		{
 			// Ensure we don't have any stray data
 			*reinterpret_cast<uintptr_t*>(m_TempStack + ArgSize * m_nArgCount) = 0;
@@ -165,21 +163,6 @@ public:
 
 		*reinterpret_cast<T*>(m_TempStack + ArgSize * m_nArgCount) = value;
 		m_nArgCount++;
-	}
-
-	inline void Reverse()
-	{
-		uintptr_t tempValues[MaxNativeParams];
-		uintptr_t* args = (uintptr_t*)m_pArgs;
-
-		for (int i = 0; i < m_nArgCount; i++)
-		{
-			int target = m_nArgCount - i - 1;
-
-			tempValues[target] = args[i];
-		}
-
-		memcpy(m_TempStack, tempValues, sizeof(m_TempStack));
 	}
 
 	template <typename T>

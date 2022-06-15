@@ -302,7 +302,7 @@ static void DoMapping(std::map<int, std::shared_ptr<FunctionTable>>& functionTab
 	// if 393, this will likely be true
 	bool isPostNativeVersion = true;
 
-	static CrossMappingEntry crossMapping_universal[] =
+	static const CrossMappingEntry crossMapping_universal[] =
 	{
 #include "CrossMapping_Universal.h"
 	};
