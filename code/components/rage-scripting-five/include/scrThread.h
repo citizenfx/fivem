@@ -98,7 +98,10 @@ public:
 	{
 		intptr_t* returnValues = (intptr_t*)m_pReturn;
 
-		*(T*)&returnValues[idx] = value;
+		if (returnValues)
+		{
+			*(T*)&returnValues[idx] = value;
+		}
 	}
 
 	inline int GetArgumentCount()
@@ -111,7 +114,12 @@ public:
 	{
 		intptr_t* returnValues = (intptr_t*)m_pReturn;
 
-		return *(T*)&returnValues[idx];
+		if (returnValues)
+		{
+			return *(T*)&returnValues[idx];
+		}
+
+		return T{};
 	}
 
 	inline void* GetArgumentBuffer()
