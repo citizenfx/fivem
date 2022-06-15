@@ -351,47 +351,21 @@ static InitFunction initFunction([]()
 
 		ImGui::SetNextWindowSize(ImVec2(500.0f, 300.0f), ImGuiCond_FirstUseEver);
 
-		struct StreamingMemoryInfo : ImGui::ListView::ItemBase
+		struct StreamingMemoryInfo
 		{
 			uint32_t idx;
 			size_t physicalMemory;
 			size_t virtualMemory;
-
-			virtual const char* getCustomText(size_t column) const
-			{
-				switch (column)
-				{
-				case 0:
-					return va("%s", streaming::GetStreamingNameForIndex(idx));
-				case 1:
-					return va("%.2f MiB", virtualMemory / 1024.0 / 1024.0);
-				case 2:
-					return va("%.2f MiB", physicalMemory / 1024.0 / 1024.0);
-				}
-			}
-			
-			virtual const void* getDataPtr(size_t column) const
-			{
-				switch (column)
-				{
-				case 0:
-					return &idx;
-				case 1:
-					return &virtualMemory;
-				case 2:
-					return &physicalMemory;
-				}
-			}
 		};
 
 		auto avMem = 0x40000000;//streamingAllocator->GetMemoryAvailable()
 
 		if (ImGui::Begin("Streaming Memory", &streamingMemoryEnabled))
 		{
-			static std::vector<StreamingMemoryInfo> entryList(streaming->numEntries);
-			entryList.resize(streaming->numEntries);
+			static std::vector<StreamingMemoryInfo> entryList;
+			entryList.reserve(streaming->numEntries);
+			entryList.resize(0); // basically: invalidate counter
 
-			int entryIdx = 0;
 			size_t lockedMem = 0;
 			size_t flag10Mem = 0;
 			size_t usedMem = 0;
@@ -408,11 +382,9 @@ static InitFunction initFunction([]()
 					info.virtualMemory = entry.ComputeVirtualSize(i, nullptr, false);
 					info.physicalMemory = entry.ComputePhysicalSize(i);
 
-					if (entryIdx < entryList.size())
+					if (info.virtualMemory > 8192 || info.physicalMemory > 8192)
 					{
-						entryList[entryIdx] = info;
-
-						entryIdx++;
+						entryList.push_back(info);
 					}
 
 					if (!streaming->IsObjectReadyToDelete(i, 0xF1 | 8))
@@ -425,14 +397,6 @@ static InitFunction initFunction([]()
 						flag10Mem += info.virtualMemory;
 
 						flag10Mem += CountDependencyMemory(streaming, i);
-						// wrong way around
-						/*atArray<uint32_t> depArray;
-						streaming->FindAllDependents(depArray, i);
-
-						for (uint32_t dependent : depArray)
-						{
-							flag10Mem += streaming->Entries[dependent].ComputeVirtualSize(dependent, nullptr, false);
-						}*/
 					}
 
 					usedMem += info.virtualMemory;
@@ -457,31 +421,89 @@ static InitFunction initFunction([]()
 				rage::grcResourceCache::GetInstance()->GetUsedPhysicalMemory() / 1024.0 / 1024.0,
 				rage::grcResourceCache::GetInstance()->GetTotalPhysicalMemory() / 1024.0 / 1024.0);
 
-			static ImGui::ListView lv;
-
-			if (lv.headers.empty())
+			if (ImGui::BeginTable("##strmem", 4, ImGuiTableFlags_ScrollY | ImGuiTableFlags_Resizable | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Sortable))
 			{
-				lv.headers.push_back(ImGui::ListView::Header{ "Name", "", ImGui::ListViewBase::HT_CUSTOM, 0, 16.0f });
-				lv.headers.push_back(ImGui::ListView::Header{ "Virt", "", ImGui::ListViewBase::HT_CUSTOM, 0, 16.0f });
-				lv.headers.push_back(ImGui::ListView::Header{ "Phys", "", ImGui::ListViewBase::HT_CUSTOM, 0, 16.0f });
+				ImGui::TableSetupScrollFreeze(0, 1);
+				ImGui::TableSetupColumn("Name");
+				ImGui::TableSetupColumn("Virt", ImGuiTableColumnFlags_PreferSortDescending);
+				ImGui::TableSetupColumn("Phys", ImGuiTableColumnFlags_PreferSortDescending);
+				ImGui::TableSetupColumn("Total", ImGuiTableColumnFlags_PreferSortDescending | ImGuiTableColumnFlags_DefaultSort);
+				ImGui::TableHeadersRow();
+
+				{
+					auto sortSpecs = ImGui::TableGetSortSpecs();
+
+					if (sortSpecs && sortSpecs->SpecsCount > 0)
+					{
+						std::sort(entryList.begin(), entryList.end(), [sortSpecs](const StreamingMemoryInfo& left, const StreamingMemoryInfo& right)
+						{
+							auto compare = [](const auto& left, const auto& right)
+							{
+								if (left < right)
+									return -1;
+
+								if (left > right)
+									return 1;
+
+								return 0;
+							};
+
+							for (int n = 0; n < sortSpecs->SpecsCount; n++)
+							{
+								const ImGuiTableColumnSortSpecs* sortSpec = &sortSpecs->Specs[n];
+								int delta = 0;
+								switch (sortSpec->ColumnIndex)
+								{
+									case 0:
+										delta = compare(streaming::GetStreamingNameForIndex(left.idx), streaming::GetStreamingNameForIndex(right.idx));
+										break;
+									case 1:
+										delta = compare(left.virtualMemory, right.virtualMemory);
+										break;
+									case 2:
+										delta = compare(left.physicalMemory, right.physicalMemory);
+										break;
+									case 3:
+										delta = compare(left.virtualMemory + left.physicalMemory, right.virtualMemory + right.physicalMemory);
+										break;
+								}
+								if (delta > 0)
+									return (sortSpec->SortDirection == ImGuiSortDirection_Ascending) ? false : true;
+								if (delta < 0)
+									return (sortSpec->SortDirection == ImGuiSortDirection_Ascending) ? true : false;
+							}
+
+							return left.idx < right.idx;
+						});
+					}
+				}
+
+				ImGuiListClipper clipper;
+				clipper.Begin(entryList.size());
+
+				while (clipper.Step())
+				{
+					for (int row = clipper.DisplayStart; row < clipper.DisplayEnd; row++)
+					{
+						const auto& item = entryList[row];
+						ImGui::TableNextRow();
+
+						ImGui::TableSetColumnIndex(0);
+						ImGui::Text("%s", streaming::GetStreamingNameForIndex(item.idx).c_str());
+
+						ImGui::TableSetColumnIndex(1);
+						ImGui::Text("%.2f MiB", item.virtualMemory / 1024.0 / 1024.0);
+
+						ImGui::TableSetColumnIndex(2);
+						ImGui::Text("%.2f MiB", item.physicalMemory / 1024.0 / 1024.0);
+
+						ImGui::TableSetColumnIndex(3);
+						ImGui::Text("%.2f MiB", (item.virtualMemory + item.physicalMemory) / 1024.0 / 1024.0);
+					}
+				}
+
+				ImGui::EndTable();
 			}
-
-			lv.items.clear();
-
-			for (int i = 0; i < entryIdx; i++)
-			{
-				lv.items.push_back(&entryList[i]);
-			}
-
-			std::sort(lv.items.begin(), lv.items.end(), [](const ImGui::ListView::ItemBase* leftPtr, const ImGui::ListView::ItemBase* rightPtr)
-			{
-				auto& left = *(const StreamingMemoryInfo*)leftPtr;
-				auto& right = *(const StreamingMemoryInfo*)rightPtr;
-
-				return (left.physicalMemory + left.virtualMemory) > (right.physicalMemory + right.virtualMemory);
-			});
-
-			lv.render();
 		}
 
 		ImGui::End();
