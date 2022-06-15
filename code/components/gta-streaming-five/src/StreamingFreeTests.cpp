@@ -291,8 +291,16 @@ static void pgBaseDtorHook(rage::pgBase* self)
 {
 	g_origPgBaseDtor(self);
 
-	delete self->pageMap;
-	self->pageMap = nullptr;
+	if (self->pageMap)
+	{
+		auto extraAllocator = rage::GetAllocator()->GetAllocator(1);
+
+		if (extraAllocator->GetSize(self->pageMap))
+		{
+			extraAllocator->Free(self->pageMap);
+			self->pageMap = nullptr;
+		}
+	}
 }
 
 static void(*g_origMakeDefragmentable)(rage::pgBase*, const rage::datResourceMap&, bool);
@@ -301,9 +309,10 @@ static void MakeDefragmentableHook(rage::pgBase* self, const rage::datResourceMa
 {
 	auto pageMap = self->pageMap;
 
-	if (pageMap)
+	if (pageMap && (pageMap->f8 != map.numPages1 || pageMap->f9 != map.numPages2))
 	{
-		auto newPageMap = new rage::PageMap;
+		auto extraAllocator = rage::GetAllocator()->GetAllocator(1);
+		auto newPageMap = (rage::PageMap*)extraAllocator->Allocate(sizeof(rage::PageMap), 16, 0);
 		memcpy(newPageMap, pageMap, offsetof(rage::PageMap, pageInfo) + (3 * sizeof(void*) * (map.numPages1 + map.numPages2)));
 
 		self->pageMap = newPageMap;
@@ -329,39 +338,57 @@ static strStreamingInterface** g_strStreamingInterface;
 
 static void(*g_origArchetypeDtor)(fwArchetype* at);
 
-static std::map<uint32_t, std::deque<uint32_t>> g_archetypeDeletionStack;
+static std::shared_mutex g_archetypeDeletionStackMutex;
+static std::unordered_map<uint32_t, std::deque<uint32_t>> g_archetypeDeletionStack;
 static atHashMapReal<uint32_t>* g_archetypeHash;
 static char** g_archetypeStart;
 static size_t* g_archetypeLength;
 
 static void ArchetypeDtorHook1(fwArchetype* at)
 {
-	auto& stack = g_archetypeDeletionStack[at->hash];
+	auto hash = at->hash;
 
-	if (!stack.empty())
 	{
-		// get our index
-		auto atIdx = *g_archetypeHash->find(at->hash);
+		std::shared_lock _(g_archetypeDeletionStackMutex);
 
-		// delete ourselves from the stack
-		for (auto it = stack.begin(); it != stack.end();)
+		if (auto stackIt = g_archetypeDeletionStack.find(hash); stackIt != g_archetypeDeletionStack.end())
 		{
-			if (*it == atIdx)
-			{
-				it = stack.erase(it);
-			}
-			else
-			{
-				it++;
-			}
-		}
+			auto& stack = stackIt->second;
 
-		if (!stack.empty())
-		{
-			// update hash map with the front
-			auto oldArchetype = stack.front();
+			if (!stack.empty())
+			{
+				// get our index
+				auto atIdx = *g_archetypeHash->find(hash);
 
-			*g_archetypeHash->find(at->hash) = oldArchetype;
+				// delete ourselves from the stack
+				for (auto it = stack.begin(); it != stack.end();)
+				{
+					if (*it == atIdx)
+					{
+						it = stack.erase(it);
+					}
+					else
+					{
+						it++;
+					}
+				}
+
+				if (!stack.empty())
+				{
+					// update hash map with the front
+					auto oldArchetype = stack.front();
+
+					*g_archetypeHash->find(hash) = oldArchetype;
+				}
+			}
+
+			if (stack.empty())
+			{
+				_.unlock();
+
+				std::unique_lock _2(g_archetypeDeletionStackMutex);
+				g_archetypeDeletionStack.erase(stackIt);
+			}
 		}
 	}
 
@@ -372,13 +399,30 @@ static void(*g_origArchetypeInit)(void* at, void* a3, fwArchetypeDef* def, void*
 
 static void ArchetypeInitHook(void* at, void* a3, fwArchetypeDef* def, void* a4)
 {
+	uint32_t last = 0;
+
+	{
+		auto lastIdx = g_archetypeHash->find(def->name);
+
+		if (lastIdx)
+		{
+			last = *lastIdx;
+		}
+	}
+
 	g_origArchetypeInit(at, a3, def, a4);
 
-	auto atIdx = g_archetypeHash->find(def->name);
-
-	if (atIdx)
+	if (last)
 	{
-		g_archetypeDeletionStack[def->name].push_front(*atIdx);
+		std::unique_lock _(g_archetypeDeletionStackMutex);
+		g_archetypeDeletionStack[def->name].push_front(last);
+
+		auto atIdx = g_archetypeHash->find(def->name);
+
+		if (atIdx)
+		{
+			g_archetypeDeletionStack[def->name].push_front(*atIdx);
+		}
 	}
 }
 
