@@ -33,7 +33,7 @@ static rage::grcTexturePC* (*g_textureDX11Ctor_Resource_orig)(rage::grcTexturePC
 static ptrdiff_t (*_resolvePtr_Orig)(void* resource, uintptr_t ptr);
 
 static thread_local bool ignoreNextPtr = false;
-static thread_local bool setNextBufferFlag = false;
+static thread_local bool clearNextBufferFlag = false;
 
 extern std::string GetCurrentStreamingName();
 extern uint32_t GetCurrentStreamingIndex();
@@ -97,10 +97,8 @@ static void* grcTexturePC_CtorWrap(rage::grcTexturePC* texture, void* resource)
 			// however, if `(+95) & 0x10` isn't set, this will get freed from the multiallocator which will
 			// ignore allocator #1 and #3 (and #0/#4/above are fixed-size so won't be suited for long-lived
 			// large allocations)
-			//
-			// we'll set (+95) & 0x10 from a check further in as this flag also affects other game code
 			auto otherAllocator = globalAllocator->GetAllocator(1);
-			setNextBufferFlag = true;
+			clearNextBufferFlag = true;
 
 			void* data = (void*)dataPtr;
 
@@ -150,10 +148,19 @@ static rage::grcTexturePC* grcTextureDX11_CtorWrap(rage::grcTexturePC* texture, 
 {
 	auto rv = g_textureDX11Ctor_Resource_orig(texture, resource);
 
-	if (setNextBufferFlag)
+	if (clearNextBufferFlag)
 	{
-		*((char*)texture + 95) |= 0x10;
-		setNextBufferFlag = false;
+		auto globalAllocator = rage::GetAllocator();
+		auto otherAllocator = globalAllocator->GetAllocator(1);
+
+		void* dataPtr = *(void**)((char*)texture + 112);
+
+		if (dataPtr && otherAllocator->GetSize(dataPtr))
+		{
+			otherAllocator->Free(dataPtr);
+		}
+
+		clearNextBufferFlag = false;
 	}
 
 	return rv;
