@@ -55,7 +55,9 @@ static InitFunction initFunction([] ()
 
 			if (resource)
 			{
-				resource->GetComponent<fx::ResourceScriptingComponent>()->AddHandledEvent(context.CheckArgument<const char*>(0));
+				std::string eventName = context.CheckArgument<const char*>(0);
+				resource->GetComponent<fx::ResourceScriptingComponent>()->AddHandledEvent(eventName);
+				resource->GetManager()->GetComponent<fx::ResourceEventManagerComponent>()->AddResourceHandledEvent(resource->GetName(), eventName);
 			}
 		}
 	});
