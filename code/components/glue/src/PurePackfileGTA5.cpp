@@ -6,7 +6,7 @@
 #include <PureModeState.h>
 #include <botan/sha2_32.h>
 
-DLL_IMPORT void SetPackfileValidationRoutine(bool (*routine)(const uint8_t*, size_t));
+DLL_IMPORT void SetPackfileValidationRoutine(bool (*routine)(const char*, const uint8_t*, size_t));
 
 static InitFunction initFunction([]
 {
@@ -5451,8 +5451,20 @@ static InitFunction initFunction([]
 		return list;
 	})();
 
-	auto validationCallback = [](const uint8_t* header, size_t headerLength)
+	auto validationCallback = [](const char* path, const uint8_t* header, size_t headerLength)
 	{
+		if (fx::client::GetPureLevel() == 1)
+		{
+			std::string_view pathTest{ path };
+			if (pathTest == "x64/audio/sfx/RESIDENT.rpf" ||
+				pathTest == "x64/audio/sfx/WEAPONS_PLAYER.rpf" ||
+				pathTest.find("x64/audio/sfx/STREAMED_VEHICLES") == 0 ||
+				pathTest.find("x64/audio/sfx/RADIO") == 0)
+			{
+				return true;
+			}
+		}
+
 		std::vector<uint8_t> fixedHeader(header, header + headerLength);
 
 		for (size_t i = 0; i < fixedHeader.size(); i += 16)
