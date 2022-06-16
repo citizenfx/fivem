@@ -336,9 +336,8 @@ static strStreamingInterface** g_strStreamingInterface;
 #include <stack>
 #include <atHashMap.h>
 
-static void(*g_origArchetypeDtor)(fwArchetype* at);
+static void (*g_origArchetypeDtor)(fwArchetype* at);
 
-static std::shared_mutex g_archetypeDeletionStackMutex;
 static std::unordered_map<uint32_t, std::deque<uint32_t>> g_archetypeDeletionStack;
 static atHashMapReal<uint32_t>* g_archetypeHash;
 static char** g_archetypeStart;
@@ -346,83 +345,57 @@ static size_t* g_archetypeLength;
 
 static void ArchetypeDtorHook1(fwArchetype* at)
 {
-	auto hash = at->hash;
-
+	if (auto stackIt = g_archetypeDeletionStack.find(at->hash); stackIt != g_archetypeDeletionStack.end())
 	{
-		std::shared_lock _(g_archetypeDeletionStackMutex);
+		auto& stack = stackIt->second;
 
-		if (auto stackIt = g_archetypeDeletionStack.find(hash); stackIt != g_archetypeDeletionStack.end())
+		if (!stack.empty())
 		{
-			auto& stack = stackIt->second;
+			// get our index
+			auto atIdx = *g_archetypeHash->find(at->hash);
+
+			// delete ourselves from the stack
+			for (auto it = stack.begin(); it != stack.end();)
+			{
+				if (*it == atIdx)
+				{
+					it = stack.erase(it);
+				}
+				else
+				{
+					it++;
+				}
+			}
 
 			if (!stack.empty())
 			{
-				// get our index
-				auto atIdx = *g_archetypeHash->find(hash);
+				// update hash map with the front
+				auto oldArchetype = stack.front();
 
-				// delete ourselves from the stack
-				for (auto it = stack.begin(); it != stack.end();)
-				{
-					if (*it == atIdx)
-					{
-						it = stack.erase(it);
-					}
-					else
-					{
-						it++;
-					}
-				}
-
-				if (!stack.empty())
-				{
-					// update hash map with the front
-					auto oldArchetype = stack.front();
-
-					*g_archetypeHash->find(hash) = oldArchetype;
-				}
+				*g_archetypeHash->find(at->hash) = oldArchetype;
 			}
+		}
 
-			if (stack.empty())
-			{
-				_.unlock();
-
-				std::unique_lock _2(g_archetypeDeletionStackMutex);
-				g_archetypeDeletionStack.erase(stackIt);
-			}
+		if (stack.empty())
+		{
+			g_archetypeDeletionStack.erase(stackIt);
 		}
 	}
 
 	g_origArchetypeDtor(at);
 }
 
-static void(*g_origArchetypeInit)(void* at, void* a3, fwArchetypeDef* def, void* a4);
+static void (*g_origArchetypeInit)(void* at, void* a3, fwArchetypeDef* def, void* a4);
 
 static void ArchetypeInitHook(void* at, void* a3, fwArchetypeDef* def, void* a4)
 {
-	uint32_t last = 0;
-
-	{
-		auto lastIdx = g_archetypeHash->find(def->name);
-
-		if (lastIdx)
-		{
-			last = *lastIdx;
-		}
-	}
-
 	g_origArchetypeInit(at, a3, def, a4);
 
-	if (last)
+	auto atIdx = g_archetypeHash->find(def->name);
+
+	if (atIdx)
 	{
-		std::unique_lock _(g_archetypeDeletionStackMutex);
-		g_archetypeDeletionStack[def->name].push_front(last);
-
-		auto atIdx = g_archetypeHash->find(def->name);
-
-		if (atIdx)
-		{
-			g_archetypeDeletionStack[def->name].push_front(*atIdx);
-		}
+		g_archetypeDeletionStack[def->name].push_front(*atIdx);
 	}
 }
 
