@@ -439,8 +439,8 @@ static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
 	WaitForSingleObject(rgd->inputMutex, INFINITE);
 
 	std::vector<InputTarget*> inputTargets;
-	static bool lastCaught;
-	bool caught = !InputHook::QueryInputTarget(inputTargets);
+	static bool lastBlockGameInput;
+	bool blockGameInput = !InputHook::QueryInputTarget(inputTargets);
 
 
 	curInput = ReverseGameInputState{ *rgd };
@@ -451,59 +451,114 @@ static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
 		curInput.mouseDeltaY = g_mouseMovement.y;
 	}
 
+	g_mouseMovement.x = 0;
+	g_mouseMovement.y = 0;
+	rgd->mouseWheel = 0;
+
 	rgd->mouseAbsX = std::clamp(rgd->mouseAbsX + curInput.mouseDeltaX, 0, rgd->twidth);
 	rgd->mouseAbsY = std::clamp(rgd->mouseAbsY + curInput.mouseDeltaY, 0, rgd->theight);
 
-	rgd->mouseWheel = 0;
-
-	g_mouseMovement.x = 0;
-	g_mouseMovement.y = 0;
-
-	static POINT mousePos[2];
-
-	if (caught != lastCaught)
+	// handling switching between game input states
+	if (blockGameInput != lastBlockGameInput)
 	{
-		mousePos[caught ? 1 : 0] = { curInput.mouseDeltaX, curInput.mouseDeltaY };
+		static POINT mousePos[2];
 
-		curInput.mouseDeltaX = mousePos[lastCaught ? 1 : 0].x;
-		curInput.mouseDeltaY = mousePos[lastCaught ? 1 : 0].y;
+		mousePos[blockGameInput ? 1 : 0] = { curInput.mouseDeltaX, curInput.mouseDeltaY };
+
+		curInput.mouseDeltaX = mousePos[lastBlockGameInput ? 1 : 0].x;
+		curInput.mouseDeltaY = mousePos[lastBlockGameInput ? 1 : 0].y;
 
 		rgd->mouseDeltaX = curInput.mouseDeltaX;
 		rgd->mouseDeltaY = curInput.mouseDeltaY;
 	}
 
-	lastCaught = caught;
+	lastBlockGameInput = blockGameInput;
 
-	auto loopTargets = [&inputTargets](const auto& fn)
+	// propagate input to input targets
+	if (inputTargets.size())
 	{
-		for (InputTarget* t : inputTargets)
+		auto loopTargets = [&inputTargets](const auto& fn)
 		{
-			fn(t);
-		}
-	};
-
-	// attempt input synthesis for standard key up/down and mouse events
-	for (size_t i = 0; i < std::size(curInput.keyboardState); i++)
-	{
-		bool pass = true;
-		LRESULT lr;
-
-		// TODO: key repeat
-		if (curInput.keyboardState[i] && !lastInput.keyboardState[i])
-		{
-			loopTargets([i](InputTarget* target)
+			for (InputTarget* t : inputTargets)
 			{
-				target->KeyDown(i, 0);
+				fn(t);
+			}
+		};
+
+		// attempt input synthesis for standard key up/down and mouse events
+		for (size_t i = 0; i < std::size(curInput.keyboardState); i++)
+		{
+			bool pass = true;
+			LRESULT lr;
+
+			// TODO: key repeat
+			if (curInput.keyboardState[i] && !lastInput.keyboardState[i])
+			{
+				loopTargets([i](InputTarget* target)
+				{
+					target->KeyDown(i, 0);
+				});
+			}
+			else if (!curInput.keyboardState[i] && lastInput.keyboardState[i])
+			{
+				loopTargets([i](InputTarget* target)
+				{
+					target->KeyUp(i, 0);
+				});
+			}
+		}
+
+		// mouse buttons
+		for (int i = 0; i < 3; i++)
+		{
+			bool pass = true;
+			LRESULT lr;
+
+			int mb = 1 << i;
+			int mx = rgd->mouseAbsX;
+			int my = rgd->mouseAbsY;
+
+			if ((curInput.mouseButtons & mb) && !(lastInput.mouseButtons & mb))
+			{
+				loopTargets([i, mx, my](InputTarget* target)
+				{
+					target->MouseDown(i, mx, my);
+				});
+			}
+			else if (!(curInput.mouseButtons & mb) && (lastInput.mouseButtons & mb))
+			{
+				loopTargets([i, mx, my](InputTarget* target)
+				{
+					target->MouseUp(i, mx, my);
+				});
+			}
+		}
+
+		// mouse wheel
+		if (curInput.mouseWheel != lastInput.mouseWheel)
+		{
+			int mw = curInput.mouseWheel;
+
+			loopTargets([mw](InputTarget* target)
+			{
+				target->MouseWheel(mw);
 			});
 		}
-		else if (!curInput.keyboardState[i] && lastInput.keyboardState[i])
+
+		// mouse movement
+		if (curInput.mouseDeltaX != lastInput.mouseDeltaX || curInput.mouseDeltaY != lastInput.mouseDeltaY)
 		{
-			loopTargets([i](InputTarget* target)
+			int mx = rgd->mouseAbsX;
+			int my = rgd->mouseAbsY;
+
+			loopTargets([mx, my](InputTarget* target)
 			{
-				target->KeyUp(i, 0);
+				target->MouseMove(mx, my);
 			});
 		}
 	}
+
+	lastInput = curInput;
 
 	// keys typed
 	{
@@ -531,58 +586,7 @@ static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
 		}
 	}
 
-	// mouse buttons
-	for (int i = 0; i < 3; i++)
-	{
-		bool pass = true;
-		LRESULT lr;
-
-		int mb = 1 << i;
-		int mx = rgd->mouseAbsX;
-		int my = rgd->mouseAbsY;
-
-		if ((curInput.mouseButtons & mb) && !(lastInput.mouseButtons & mb))
-		{
-			loopTargets([i, mx, my](InputTarget* target)
-			{
-				target->MouseDown(i, mx, my);
-			});
-		}
-		else if (!(curInput.mouseButtons & mb) && (lastInput.mouseButtons & mb))
-		{
-			loopTargets([i, mx, my](InputTarget* target)
-			{
-				target->MouseUp(i, mx, my);
-			});
-		}
-	}
-
-	// mouse wheel
-	if (curInput.mouseWheel != lastInput.mouseWheel)
-	{
-		int mw = curInput.mouseWheel;
-
-		loopTargets([mw](InputTarget* target)
-		{
-			target->MouseWheel(mw);
-		});
-	}
-
-	// mouse movement
-	if (curInput.mouseDeltaX != lastInput.mouseDeltaX || curInput.mouseDeltaY != lastInput.mouseDeltaY)
-	{
-		int mx = rgd->mouseAbsX;
-		int my = rgd->mouseAbsY;
-
-		loopTargets([mx, my](InputTarget* target)
-		{
-			target->MouseMove(mx, my);
-		});
-	}
-
-	lastInput = curInput;
-
-	if (!a1 && !caught)
+	if (!a1 && !blockGameInput)
 	{
 		int off = ((*g_inputOffset - 1) & 1) ? 1 : 0;
 
@@ -609,7 +613,11 @@ static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
 
 		off = 0;
 
-		memcpy(rgd->keyboardState, g_gameKeyArray, 256);
+		if (!rgd->skipKeyboardStateCopyback)
+		{
+			memcpy(rgd->keyboardState, g_gameKeyArray, 256);
+		}
+
 		if (off)
 		{
 			rgd->mouseDeltaX = g_input->m_lastDX();
