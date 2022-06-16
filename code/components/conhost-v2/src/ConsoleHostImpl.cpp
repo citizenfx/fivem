@@ -805,7 +805,7 @@ static HookFunction initFunction([]()
 
 				if (vKey < 256)
 				{
-					io.AddKeyEvent(vKey, true);
+					io.KeysDown[vKey] = true;
 				}
 			}
 
@@ -817,7 +817,7 @@ static HookFunction initFunction([]()
 
 				if (vKey < 256)
 				{
-					io.AddKeyEvent(vKey, false);
+					io.KeysDown[vKey] = false;
 				}
 			}
 
