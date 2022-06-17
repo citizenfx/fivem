@@ -4887,8 +4887,8 @@ struct CGiveWeaponEvent
     {
         pedId = buffer.Read<uint16_t>(13);
         weaponType = buffer.Read<uint32_t>(32);
-        unk1 = buffer.Read<uint8_t>(1);
-        ammo = buffer.Read<uint16_t>(15);
+        ammo = buffer.ReadSigned<int>(16);
+        unk1 = ammo < 0; // this used to represent the sign
         givenAsPickup = buffer.Read<uint8_t>(1);
     }
 
