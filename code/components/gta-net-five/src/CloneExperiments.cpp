@@ -2570,12 +2570,38 @@ static void EventMgr_AddEvent(void* eventMgr, rage::netGameEvent* ev)
 	}
 #endif
 
+	// checks (for events where Equals() may modify the left-hand-side event) if the event
+	// has already been sent, and Equals() + deletion may therefore be destructive to the unique data
+	//
+	// see GH-1490
+	auto isSentModifying = [](const netGameEventState& eventTuple)
+	{
+		static const auto weaponDamageEventHash = HashString("WEAPON_DAMAGE_EVENT");
+		static const auto giveWeaponEventHash = HashString("GIVE_WEAPON_EVENT");
+		static const auto updateSyncedSceneEventHash = HashString("NETWORK_UPDATE_SYNCED_SCENE_EVENT");
+		static const auto givePickupRewardsEventHash = HashString("NETWORK_GIVE_PICKUP_REWARDS_EVENT");
+		static const auto scriptedGameEventHash = HashString("SCRIPTED_GAME_EVENT");
+
+		if (eventTuple.sent)
+		{
+			auto thisEventHash = HashString(eventTuple.ev->GetName());
+
+			return thisEventHash == weaponDamageEventHash ||
+				thisEventHash == giveWeaponEventHash ||
+				thisEventHash == updateSyncedSceneEventHash ||
+				thisEventHash == givePickupRewardsEventHash ||
+				thisEventHash == scriptedGameEventHash;
+		}
+
+		return false;
+	};
+
 	// is this a duplicate event?
 	for (auto& eventPair : g_events)
 	{
 		auto [key, tup] = eventPair;
 
-		if (tup.ev && tup.ev->Equals(ev))
+		if (tup.ev && !isSentModifying(tup) && tup.ev->Equals(ev))
 		{
 			delete ev;
 			return;
