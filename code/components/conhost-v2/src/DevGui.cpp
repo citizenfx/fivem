@@ -274,7 +274,12 @@ devgui_convar "Game/SFX Volume" profile_sfxVolume
 devgui_cmd "Game/Mute" "vstr game_mute"
 devgui_cmd "Game/Unmute" "vstr game_unmute"
 
-devgui_convar "Overlays/Draw Performance" cl_drawPerf
+devgui_convar "Overlays/Performance/Draw FPS" cl_drawPerf
+devgui_convar "Overlays/Performance/Draw Packet Loss" cl_drawPacketLoss
+devgui_convar "Overlays/Performance/Draw Ping" cl_drawPing
+devgui_convar "Overlays/Performance/Draw CPU Usage" cl_drawCpuUsage
+devgui_convar "Overlays/Performance/Draw GPU Usage" cl_drawGpuUsage
+devgui_convar "Overlays/Performance/Draw GPU Temperature" cl_drawGpuTemp
 )");
 
 	if (IsNonProduction())
