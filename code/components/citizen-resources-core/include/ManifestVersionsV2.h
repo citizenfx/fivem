@@ -15,3 +15,7 @@
 // cerulean
 // Cerulean, also spelled caerulean, is a shade of blue ranging between azure and a darker sky blue.
 "cerulean",
+
+// diabolical
+// Evil, like my mother.
+"diabolical",
