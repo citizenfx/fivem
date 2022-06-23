@@ -43,10 +43,12 @@ rage::netObject* g_curNetObject;
 static std::set<uint16_t> g_dontParrotDeletionAcks;
 
 #ifdef GTA_FIVE
-static constexpr int g_netObjectTypeBitLength = 4;
+static constexpr int kNetObjectTypeBitLength = 4;
 #elif IS_RDR3
-static constexpr int g_netObjectTypeBitLength = 5;
+static constexpr int kNetObjectTypeBitLength = 5;
 #endif
+
+static constexpr int kSyncPacketMaxLength = 2400;
 
 void ObjectIds_AddObjectId(int objectId);
 void ObjectIds_StealObjectId(int objectId);
@@ -908,7 +910,7 @@ void msgClone::Read(int syncType, rl::MessageBuffer& buffer)
 
 	if (syncType == 1)
 	{
-		m_entityType = (NetObjEntityType)buffer.Read<uint8_t>(g_netObjectTypeBitLength);
+		m_entityType = (NetObjEntityType)buffer.Read<uint8_t>(kNetObjectTypeBitLength);
 		m_creationToken = 0;
 
 		if (icgi->NetProtoVersion >= 0x202002271209)
@@ -2336,7 +2338,7 @@ void CloneManagerLocal::WriteUpdates()
 #endif
 
 		// allocate a RAGE buffer
-		uint8_t packetStub[1200] = { 0 };
+		uint8_t packetStub[kSyncPacketMaxLength] = { 0 };
 		rage::datBitBuffer rlBuffer(packetStub, sizeof(packetStub));
 
 		// if we want to delete this object
@@ -2566,7 +2568,7 @@ void CloneManagerLocal::WriteUpdates()
 							netBuffer.Write(32, g_objectIdToCreationToken[objectId]);
 						}
 
-						netBuffer.Write(g_netObjectTypeBitLength, objectType);
+						netBuffer.Write(kNetObjectTypeBitLength, objectType);
 					}
 
 					uint32_t len = rlBuffer.GetDataLength();
