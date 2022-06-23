@@ -127,6 +127,7 @@ static InitFunction initFunction([]()
 		if (ImGui::Begin("DrawPerf", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize))
 		{
 			std::vector<std::string> metrics;
+			int enabledMetricsCount = 0;
 
 			for (const auto& [var, module] : drawPerfModules)
 			{
@@ -138,6 +139,8 @@ static InitFunction initFunction([]()
 					{
 						metrics.emplace_back(std::move(result));
 					}
+
+					enabledMetricsCount++;
 				}
 			}
 
@@ -159,6 +162,13 @@ static InitFunction initFunction([]()
 					draw_list->AddLine(ImVec2(p.x - spacing, p.y - 9999.f), ImVec2(p.x - spacing, p.y + 9999.f), ImGui::GetColorU32(ImGuiCol_Border));
 				}
 			}
+
+			// Disable performance overlay when there is nothing to draw
+			if (!enabledMetricsCount)
+			{
+				se::ScopedPrincipal principalScope(se::Principal{ "system.extConsole" });
+				console::GetDefaultContext()->ExecuteSingleCommandDirect(ProgramArguments{ "cl_drawPerf",  "false" });
+			}	
 		}
 
 		ImGui::PopStyleVar();
