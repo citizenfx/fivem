@@ -14,13 +14,13 @@ A getter for [SET_RESOURCE_KVP_FLOAT](#_0x9ADD2938).
 * **key**: The key to fetch
 
 ## Return value
-A float that contains the value stored in the Kvp or nil/null if none.
+The floating-point value stored under the specified key, or 0.0 if not found.
 
 ## Examples
 
 ```lua
-local kvpValue = GetResourceKvpInt('mollis') 
-if kvpValue then
+local kvpValue = GetResourceKvpFloat('mollis')
+if kvpValue ~= 0.0 then
 	-- do something!
 end
 ```

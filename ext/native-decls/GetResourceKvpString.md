@@ -14,7 +14,7 @@ A getter for [SET_RESOURCE_KVP](#_0x21C7A35B).
 * **key**: The key to fetch
 
 ## Return value
-A string that contains the value stored in the Kvp or nil/null if none.
+The string value stored under the specified key, or nil/null if not found.
 
 ## Examples
 
