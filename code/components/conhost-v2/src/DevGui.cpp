@@ -129,6 +129,12 @@ static void DevGui_Draw(const DevGuiNode* node)
 	}
 	else if (node->type == DevGuiNode::DevGuiNode_Command)
 	{
+		if (!node->name.empty() && node->name[0] == '-' && node->name[node->name.length() - 1] == '-')
+		{
+			ImGui::Separator();
+			return;
+		}
+
 		if (ImGui::MenuItem(node->name.c_str()))
 		{
 			se::ScopedPrincipal scope{
@@ -162,7 +168,7 @@ static void DevGui_Draw(const DevGuiNode* node)
 				auto value = boolEntry->GetRawValue();
 				auto initialValue = value;
 
-				ImGui::Checkbox(node->name.c_str(), &value);
+				ImGui::MenuItem(node->name.c_str(), nullptr, &value);
 
 				if (initialValue != value)
 				{
