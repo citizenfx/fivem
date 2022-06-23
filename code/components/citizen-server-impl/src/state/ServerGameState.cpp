@@ -38,10 +38,13 @@
 #include <citizen_util/shared_reference.h>
 
 #ifdef STATE_FIVE
-static constexpr int g_netObjectTypeBitLength = 4;
+static constexpr int kNetObjectTypeBitLength = 4;
 #elif defined(STATE_RDR3)
-static constexpr int g_netObjectTypeBitLength = 5;
+static constexpr int kNetObjectTypeBitLength = 5;
 #endif
+
+static constexpr int kSyncPacketMaxLength = 2400;
+static constexpr int kPacketWarnLength = 1300;
 
 namespace rl
 {
@@ -720,10 +723,16 @@ static void FlushBuffer(rl::MessageBuffer& buffer, uint32_t msgType, uint64_t fr
 		*(uint32_t*)(outData.data()) = msgType;
 		*(uint64_t*)(outData.data() + 4) = newFrame.full;
 
-		net::Buffer netBuffer(reinterpret_cast<uint8_t*>(outData.data()), len + 4 + 8);
-		netBuffer.Seek(len + 4 + 8); // since the buffer constructor doesn't actually set the offset
+		int bufferLen = len + 4 + 8;
+		net::Buffer netBuffer(reinterpret_cast<uint8_t*>(outData.data()), bufferLen);
+		netBuffer.Seek(bufferLen); // since the buffer constructor doesn't actually set the offset
 
-		GS_LOG("flushBuffer: sending %d bytes to %d\n", len + 4 + 8, client->GetNetId());
+	    if (bufferLen >= kPacketWarnLength)
+		{
+			console::DPrintf("net", "Sending a large packet (%d compressed bytes) to client %d, report if there will be any sync issues\n", bufferLen, client->GetNetId());
+		}
+
+		GS_LOG("flushBuffer: sending %d bytes to %d\n", bufferLen, client->GetNetId());
 
 		client->SendPacket(1, netBuffer, NetPacketType_Unreliable);
 
@@ -1748,7 +1757,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 						preCb(frameIndex, isFirstFrameUpdate);
 
 						// create a buffer once (per thread) to save allocations
-						static thread_local rl::MessageBuffer mb(1200);
+						static thread_local rl::MessageBuffer mb(kSyncPacketMaxLength);
 
 						mb.SetCurrentBit(0);
 
@@ -1809,7 +1818,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 							if (syncType == 1)
 							{
-								cmdState.cloneBuffer.Write(g_netObjectTypeBitLength, (uint8_t)entity->type);
+								cmdState.cloneBuffer.Write(kNetObjectTypeBitLength, (uint8_t)entity->type);
 								cmdState.cloneBuffer.Write(32, entity->creationToken);
 							}
 
@@ -3085,7 +3094,7 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 	{
 		creationToken = inPacket.Read<uint32_t>(32);
 
-		objectType = (sync::NetObjEntityType)inPacket.Read<uint8_t>(g_netObjectTypeBitLength);
+		objectType = (sync::NetObjEntityType)inPacket.Read<uint8_t>(kNetObjectTypeBitLength);
 	}
 
 	auto length = inPacket.Read<uint16_t>(12);
