@@ -124,23 +124,23 @@ static InitFunction initFunction([]()
 		ImGui::SetNextWindowSize(ImVec2(0, 0));
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.0f);
 
-		if (ImGui::Begin("DrawPerf", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize))
+		std::vector<std::string> metrics;
+
+		for (const auto& [var, module] : drawPerfModules)
 		{
-			std::vector<std::string> metrics;
-
-			for (const auto& [var, module] : drawPerfModules)
+			if (var->GetValue())
 			{
-				if (var->GetValue())
-				{
-					auto result = module();
+				auto result = module();
 
-					if (!result.empty())
-					{
-						metrics.emplace_back(std::move(result));
-					}
+				if (!result.empty())
+				{
+					metrics.emplace_back(std::move(result));
 				}
 			}
+		}
 
+		if (!metrics.empty() && ImGui::Begin("DrawPerf", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize))
+		{
 			int i = 0;
 			float spacing = ImGui::GetStyle().ItemSpacing.x;
 
