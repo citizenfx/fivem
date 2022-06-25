@@ -12,10 +12,6 @@
 #include <Hooking.h>
 #include <scrEngine.h>
 
-static hook::cdecl_stub<bool(fwEntity*, uint8_t)> isVehicleWindowValid([]()
-{
-	return hook::get_pattern("85 D2 78 ? 48 8B 49 ? 4C 8B 81", -2);
-});
 
 static void FixVehicleWindowNatives()
 {
@@ -48,7 +44,7 @@ static void FixVehicleWindowNatives()
 			{
 				auto windowIndex = ctx.GetArgument<int>(1);
 
-				if (isVehicleWindowValid(vehicle, windowIndex))
+				if (windowIndex >= 0 && windowIndex <= 7)
 				{
 					return (*handler)(ctx);
 				}
