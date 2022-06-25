@@ -45,7 +45,6 @@ console::Context* GetConsoleContext()
 }
 
 extern ImFont* consoleFontSmall;
-extern ImFont* consoleFontTiny;
 
 // following 2 functions based on https://www.programmingalgorithms.com/algorithm/hsl-to-rgb/cpp/
 static float HueToRGB(float v1, float v2, float vH) {
@@ -153,8 +152,6 @@ struct FiveMConsoleBase
 
 		if (strlen(key.c_str()) > 0 && strlen(item.c_str()) > 0)
 		{
-			ImGui::PushFont(consoleFontSmall);
-
 			auto hue = int{ HashRageString(key.c_str()) % 360 };
 			auto color = HSLToRGB(HSL{ hue, 0.8f, 0.4f });
 			color.alpha = alpha * 255.0f;
@@ -187,8 +184,6 @@ struct FiveMConsoleBase
 			//ImGui::PushStyleColor(ImGuiCol_Text, col);
 			ImGui::TextUnformatted(key.c_str());
 			//ImGui::PopStyleColor();
-
-			ImGui::PopFont();
 
 			ImGui::SameLine(textSize.x + 16.0f);
 		}
