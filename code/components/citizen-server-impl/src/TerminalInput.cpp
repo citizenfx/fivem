@@ -273,8 +273,19 @@ static InitFunction initFunction([]()
 			rxx.set_complete_on_empty(true);
 			rxx.set_beep_on_ambiguous_completion(true);
 
+			static bool ctrlC = false;
+
+			rxx.bind_key(replxx::Replxx::KEY::control('C'), [](char32_t code)
+			{
+				ctrlC = true;
+
+				return rxx.invoke(replxx::Replxx::ACTION::COMMIT_LINE, code);
+			});
+
 			std::thread([=]()
 			{
+				int numLineAbort = 0;
+
 				while (true)
 				{
 					if (disableTTYVariable->GetValue() && !isatty(fileno(stdin)))
@@ -298,12 +309,51 @@ static InitFunction initFunction([]()
 
 					const char* result = rxx.input("cfx> ");
 
+					bool exit = false;
+
+					if (ctrlC)
+					{
+						ctrlC = false;
+
+						if (!result || result[0] == '\0')
+						{
+							// ctrl-c (line abort)
+							numLineAbort++;
+
+							if (numLineAbort < 2)
+							{
+								rxx.print("Press Ctrl-C again (or type `quit`) to exit.\n");
+							}
+							else
+							{
+								exit = true;
+							}
+						}
+						else
+						{
+							rxx.print("^C\r\n");
+						}
+
+						result = nullptr;
+					}
+					else if (!result)
+					{
+						// EOF or similar
+						exit = true;
+					}
+
 					// null result?
-					if (result == nullptr)
+					if (exit)
 					{
 						con->AddToBuffer(fmt::sprintf("quit \"Ctrl-C pressed in server console.\"\n"));
 						break;
 					}
+					else if (!result)
+					{
+						continue;
+					}
+
+					numLineAbort = 0;
 
 					// make a string and free
 					std::string resultStr = result;
