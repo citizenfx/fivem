@@ -6,6 +6,9 @@
 
 #include <CrossBuildRuntime.h>
 
+#include <gameSkeleton.h>
+#include <ICoreGameInit.h>
+
 #include <MinHook.h>
 
 static bool* audioNotFocused;
@@ -15,6 +18,8 @@ bool DLL_EXPORT ShouldMuteGameAudio()
 {
 	return *audioNotFocused && *muteOnFocusLoss;
 }
+
+bool g_audUseFrameLimiterConVar;
 
 namespace rage
 {
@@ -304,11 +309,35 @@ static HookFunction hookFunction([]()
 		static auto asynchronousAudio = hook::get_address<bool*>(hook::get_pattern("E8 ? ? ? ? 40 38 35 ? ? ? ? 75 05", 8));
 		static auto audioTimeout = hook::get_address<int*>(hook::get_pattern("8B 15 ? ? ? ? 41 03 D6 3B", 2));
 
+		// See https://github.com/citizenfx/fivem/issues/1446 comments for a more viable solution:
+		//
+		// > Took a look at this to see if there was an elegant solution besides force-enabling (e.g., similar to
+		// > disq's windscreen stub) g_audUseFrameLimiter while editorMode is active.
+		// >
+		// > On editor export, there is a circular dependency(Mutexes and Semaphores and Deadlocks, Oh My !) between
+		// > RageAudioEngineThread, MainThread, and Fake Audio Mixer, that requires(or seems to require) RageAudioEngineThread
+		// > to sleep through at least the first frame render so those other threads can initialize(catch - up).
+		//
+		// For the time being, we'll just take the lazy fix.
+		static bool editorMode = false;
+
+		rage::OnInitFunctionEnd.Connect([](rage::InitFunctionType type)
+		{
+			if (type == rage::INIT_SESSION)
+			{
+				// editorMode is set only during loading (the init script will unset it once it opened the editor menu)
+				// as such we save it on init-session end
+				editorMode = Instance<ICoreGameInit>::Get()->HasVariable("editorMode");
+			}
+		});
+
 		OnGameFrame.Connect([]()
 		{
-			if (useSynchronousAudio != lastUseSynchronousAudio)
+			bool targetUseSynchronousAudio = !editorMode && useSynchronousAudio;
+
+			if (targetUseSynchronousAudio != lastUseSynchronousAudio)
 			{
-				if (useSynchronousAudio)
+				if (targetUseSynchronousAudio)
 				{
 					*asynchronousAudio = false;
 					*audioTimeout = 0;
@@ -319,12 +348,14 @@ static HookFunction hookFunction([]()
 					*audioTimeout = 1000;
 				}
 
-				lastUseSynchronousAudio = useSynchronousAudio;
+				lastUseSynchronousAudio = targetUseSynchronousAudio;
 			}
+
+			*rage::g_audUseFrameLimiter = editorMode || g_audUseFrameLimiterConVar;
 		});
 
 		static ConVar<bool> audUseFrameLimiter("game_useSynchronousAudio", ConVar_Archive, false, &useSynchronousAudio);
 	}
 
-	static ConVar<bool> audUseFrameLimiter("game_useAudioFrameLimiter", ConVar_Archive, true, rage::g_audUseFrameLimiter);
+	static ConVar<bool> audUseFrameLimiter("game_useAudioFrameLimiter", ConVar_Archive, true, &g_audUseFrameLimiterConVar);
 });
