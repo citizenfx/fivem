@@ -437,6 +437,11 @@ void NetLibrary::ProcessOOB(const NetAddress& from, const char* oob, size_t leng
 		}
 		else if (!_strnicmp(oob, "error", 5))
 		{
+			if (m_disconnecting)
+			{
+				return;
+			}
+
 			if (from != m_currentServer)
 			{
 				trace("Received 'error' request was not from the host\n");
@@ -842,6 +847,8 @@ int g_serverVersion;
 
 concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 {
+	m_disconnecting = false;
+
 	std::string ruRef = rootUrl;
 
 	// increment the GUID so servers won't race to remove us
@@ -1909,6 +1916,8 @@ void NetLibrary::Disconnect(const char* reason)
 
 	if (m_connectionState == CS_CONNECTING || m_connectionState == CS_ACTIVE || m_connectionState == CS_FETCHING)
 	{
+		m_disconnecting = true;
+
 		SendReliableCommand("msgIQuit", g_disconnectReason.c_str(), g_disconnectReason.length() + 1);
 
 		if (m_impl)

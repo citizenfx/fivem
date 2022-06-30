@@ -166,6 +166,8 @@ private:
 
 	HANDLE m_receiveEvent;
 
+	bool m_disconnecting = false;
+
 	concurrency::concurrent_queue<std::function<void()>> m_mainFrameQueue;
 
 	std::function<void(const std::string&, const std::string&)> m_cardResponseHandler;
