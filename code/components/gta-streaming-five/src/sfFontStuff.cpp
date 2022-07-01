@@ -277,36 +277,6 @@ static hook::cdecl_stub<void*(GFxMovieRoot*, int)> _gfxMovieRoot_getLevelMovie([
 	return hook::get_pattern("48 8B 49 40 44 8B C0 4D 03 C0 42 39 14 C1 74 0D", -0xB);
 });
 
-static void* Alloc_Align(void* self, size_t size, size_t align)
-{
-	return _aligned_malloc(size, align);
-}
-
-static void* Alloc(void* self, size_t size)
-{
-	return _aligned_malloc(size, 16);
-}
-
-static void* Realloc(void* self, void* ptr, size_t size)
-{
-	return _aligned_realloc(ptr, size, 16);
-}
-
-static void Free(void* self, void* ptr)
-{
-	_aligned_free(ptr);
-}
-
-static void* AllocAuto_Align(void* self, void* h, size_t size, size_t align)
-{
-	return _aligned_malloc(size, align);
-}
-
-static void* AllocAuto(void* self, void* h, size_t size)
-{
-	return _aligned_malloc(size, 16);
-}
-
 class GFxMemoryHeap
 {
 public:
@@ -326,11 +296,6 @@ public:
 };
 
 extern GFxMemoryHeap** g_gfxMemoryHeap;
-
-static void* GetHeap(void* self)
-{
-	return self;
-}
 
 static LONG SafetyFilter(PEXCEPTION_POINTERS pointers)
 {
@@ -790,25 +755,9 @@ static HookFunction hookFunction([]()
 		hook::call(location + 0x62, parseHtmlStub.GetCode());
 	}
 
-	// formerly debuggability for GFx heap, but as it seems now this is required to not get memory corruption
-	// (memory locking, maybe? GFx allows disabling thread safety of its heap)
-	// TODO: figure this out
-	auto memoryHeapPt = hook::get_address<void**>(hook::get_call(hook::get_pattern<char>("41 F6 06 04 75 03 83 CD 20", 12)) + 0x19);
-	hook::put(&memoryHeapPt[9], Alloc_Align);
-	hook::put(&memoryHeapPt[10], Alloc);
-	hook::put(&memoryHeapPt[11], Realloc);
-	hook::put(&memoryHeapPt[12], Free);
-	hook::put(&memoryHeapPt[13], AllocAuto_Align);
-	hook::put(&memoryHeapPt[14], AllocAuto);
-	hook::put(&memoryHeapPt[15], GetHeap);
-
 	// undo fonts if reloading
 	OnKillNetworkDone.Connect([]()
 	{
 		g_loadedFonts.clear();
 	});
-
-	// always enable locking for GFx heap
-	// doesn't fix it, oddly - probably singlethreaded non-atomic reference counts?
-	//hook::put<uint8_t>(hook::get_pattern("24 01 41 88 87 C0 00 00 00 41 8B"), 0xB0);
 });
