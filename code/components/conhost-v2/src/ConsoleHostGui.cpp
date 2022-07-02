@@ -280,7 +280,6 @@ struct CfxBigConsole : FiveMConsoleBase
 
 	virtual void OnAddLog(std::string_view key, std::string_view msg) override
 	{
-		// TODO: figure out if scrolled up somehow?
 		ScrollToBottom = true;
 	}
 
@@ -362,7 +361,7 @@ struct CfxBigConsole : FiveMConsoleBase
 			}
 		}
 
-		if (ScrollToBottom)
+		if (ScrollToBottom && ImGui::GetScrollMaxY() - ImGui::GetScrollY() == 0.0)
 			ImGui::SetScrollHereY();
 
 		ScrollToBottom = false;
