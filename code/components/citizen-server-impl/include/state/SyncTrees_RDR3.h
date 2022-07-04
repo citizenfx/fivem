@@ -175,6 +175,19 @@ struct CVehicleAppearanceDataNode
 
 	bool Parse(SyncParseState& state)
 	{
+		int unk320 = state.buffer.Read<int>(8);
+		int unk321 = state.buffer.Read<int>(8);
+		int unk322 = state.buffer.Read<int>(8);
+		int unk323 = state.buffer.Read<int>(8);
+
+		int tintIndex = state.buffer.Read<int>(8);
+		data.tintIndex = tintIndex;
+
+		int liveryIndex = state.buffer.Read<int>(8);
+		data.liveryIndex = liveryIndex;
+
+		// TODO
+
 		return true;
 	}
 };
@@ -366,9 +379,7 @@ struct CVehicleAngVelocityDataNode
 
 struct CDoorCreationDataNode
 {
-	float m_posX;
-	float m_posY;
-	float m_posZ;
+	CDoorCreationNodeData data;
 
 	bool Parse(SyncParseState& state)
 	{
@@ -376,13 +387,34 @@ struct CDoorCreationDataNode
 		auto positionY = state.buffer.ReadSignedFloat(31, 27648.0f);
 		auto positionZ = state.buffer.ReadFloat(31, 4416.0f) - 1700.0f;
 
-		m_posX = positionX;
-		m_posY = positionY;
-		m_posZ = positionZ;
+		data.posX = positionX;
+		data.posY = positionY;
+		data.posZ = positionZ;
 
 		auto modelHash = state.buffer.Read<uint32_t>(32);
 
-		// ...
+		bool unk37 = state.buffer.ReadBit();
+		bool unk38 = state.buffer.ReadBit();
+
+		if (!unk38)
+		{
+			int unk40 = state.buffer.Read<int>(10);
+		}
+
+		bool playerForcingDoor = state.buffer.ReadBit();
+		bool opening = state.buffer.ReadBit(); // openRatio > 0.000001
+
+		if (opening)
+		{
+			float openRatio = state.buffer.ReadSignedFloat(8, 1.0f);
+			data.openRatio = openRatio;
+		}
+		else
+		{
+			data.openRatio = 0.0f;
+		}
+
+		bool unk36 = state.buffer.ReadBit();
 
 		return true;
 	}
@@ -408,7 +440,33 @@ struct CPhysicalScriptMigrationDataNode { bool Parse(SyncParseState& state) { re
 struct CVehicleProximityMigrationDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CBikeGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CBoatGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CDoorMovementDataNode { bool Parse(SyncParseState& state) { return true; } };
+
+struct CDoorMovementDataNode
+{
+	CDoorMovementDataNodeData data;
+
+	bool Parse(SyncParseState& state)
+	{
+		int doorState = state.buffer.Read<int>(3);
+		bool unk = state.buffer.ReadBit();
+
+		if (unk)
+		{
+			float openRatio = state.buffer.ReadSignedFloat(8, 1.0f);
+		}
+		else
+		{
+			bool unk8 = state.buffer.ReadBit();
+			bool unk9 = state.buffer.ReadBit();
+			bool unk10 = state.buffer.ReadBit();
+		}
+
+		bool playerForcingDoor = state.buffer.ReadBit();
+
+		return true;
+	}
+};
+
 struct CDoorScriptInfoDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CDoorScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CHeliHealthDataNode { bool Parse(SyncParseState& state) { return true; } };
@@ -538,7 +596,62 @@ struct CPlaneGameStateDataNode { bool Parse(SyncParseState& state) { return true
 struct CPlaneControlDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CSubmarineGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CSubmarineControlDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CTrainGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
+
+struct CTrainGameStateDataNode
+{
+	CTrainGameStateDataNodeData data;
+
+	bool Parse(SyncParseState& state)
+	{
+		bool unk35 = state.buffer.ReadBit();
+		int unk30 = state.buffer.Read<int>(6);
+		bool direction = state.buffer.ReadBit();
+		bool unk32 = state.buffer.ReadBit();
+
+		int unk28 = state.buffer.Read<int>(6);
+		int unk29 = state.buffer.Read<int>(6);
+
+		int unk12 = state.buffer.Read<int>(6);
+		int unk16 = state.buffer.Read<int>(6);
+		int unk20 = state.buffer.Read<int>(6);
+
+		// 0: moving, 6: starting, 7: halted, 9: manually driven
+		int trainState = state.buffer.Read<int>(4);
+
+		int cruiseSpeed = state.buffer.ReadSigned<int>(10) / 10;
+		data.cruiseSpeed = cruiseSpeed;
+
+		int maxSpeed = state.buffer.ReadSigned<int>(10) / 10;
+		data.maxSpeed = maxSpeed;
+
+		bool unk33 = state.buffer.ReadBit(); // True when 0xDC69F6913CCA0B99 is set to false
+
+		bool isHalted = state.buffer.ReadBit();
+		data.isHalted = isHalted;
+
+		bool isWhistling = state.buffer.ReadBit();
+		data.isWhistling = isWhistling;
+
+		if (isWhistling)
+		{
+			uint32_t whistleSequence = state.buffer.Read<uint32_t>(32);
+		}
+
+		bool isBellRinging = state.buffer.ReadBit();
+		data.isBellRinging = isBellRinging;
+
+		bool unk37 = state.buffer.ReadBit();
+
+		if (unk37)
+		{
+			bool unk38 = state.buffer.ReadBit();
+			bool unk39 = state.buffer.ReadBit();
+		}
+
+		return true;
+	}
+};
+
 struct CPlayerCreationDataNode { bool Parse(SyncParseState& state) { return true; } };
 struct CPlayerGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
 
@@ -1057,9 +1170,9 @@ struct SyncTree : public SyncTreeBase
 
 		if (hasDoor)
 		{
-			posOut[0] = doorCreationDataNode->m_posX;
-			posOut[1] = doorCreationDataNode->m_posY;
-			posOut[2] = doorCreationDataNode->m_posZ;
+			posOut[0] = doorCreationDataNode->data.posX;
+			posOut[1] = doorCreationDataNode->data.posY;
+			posOut[2] = doorCreationDataNode->data.posZ;
 		}
 
 		if (hasPropSet)
@@ -1091,7 +1204,9 @@ struct SyncTree : public SyncTreeBase
 
 	virtual CDoorMovementDataNodeData* GetDoorMovement() override
 	{
-		return nullptr;
+		auto [hasNode, doorMovementNode] = GetData<CDoorMovementDataNode>();
+
+		return hasNode ? &doorMovementNode->data : nullptr;
 	}
 
 	virtual CDoorScriptInfoDataNodeData* GetDoorScriptInfo() override
@@ -1159,7 +1274,9 @@ struct SyncTree : public SyncTreeBase
 
 	virtual CTrainGameStateDataNodeData* GetTrainState() override
 	{
-		return nullptr;
+		auto [hasNode, trainGameState] = GetData<CTrainGameStateDataNode>();
+
+		return hasNode ? &trainGameState->data : nullptr;
 	}
 
 	virtual CPlayerGameStateNodeData* GetPlayerGameState() override
@@ -1169,7 +1286,9 @@ struct SyncTree : public SyncTreeBase
 
 	virtual CVehicleAppearanceNodeData* GetVehicleAppearance() override
 	{
-		return nullptr;
+		auto [hasNode, vehAppearanceNode] = GetData<CVehicleAppearanceDataNode>();
+
+		return hasNode ? &vehAppearanceNode->data : nullptr;
 	}
 
 	virtual CPedHealthNodeData* GetPedHealth() override
@@ -1253,6 +1372,13 @@ struct SyncTree : public SyncTreeBase
 	virtual CVehicleSteeringNodeData* GetVehicleSteeringData() override
 	{
 		auto [hasNode, node] = GetData<CVehicleSteeringDataNode>();
+
+		return hasNode ? &node->data : nullptr;
+	}
+
+	virtual CDoorCreationNodeData* GetDoorCreationData() override
+	{
+		auto [hasNode, node] = GetData<CDoorCreationDataNode>();
 
 		return hasNode ? &node->data : nullptr;
 	}

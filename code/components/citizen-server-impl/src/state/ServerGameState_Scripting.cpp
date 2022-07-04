@@ -1678,6 +1678,50 @@ static void Init()
 
 		return steeringData ? steeringData->steeringAngle * (180.0f / pi) : 0.0f;
 	}));
+
+#ifdef STATE_RDR3
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_TINT", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto vehAppearance = entity->syncTree->GetVehicleAppearance();
+
+		return vehAppearance ? vehAppearance->tintIndex : 0;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_TRAIN_CRUISE_SPEED", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto trainGameState = entity->syncTree->GetTrainState();
+
+		return trainGameState ? float(trainGameState->cruiseSpeed) : 0.0f;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_TRAIN_MAX_SPEED", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto trainGameState = entity->syncTree->GetTrainState();
+
+		return trainGameState ? float(trainGameState->maxSpeed) : 0.0f;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_TRAIN_WHISTLING", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto trainGameState = entity->syncTree->GetTrainState();
+
+		return trainGameState ? trainGameState->isWhistling : false;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_TRAIN_BELL_RINGING", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto trainGameState = entity->syncTree->GetTrainState();
+
+		return trainGameState ? trainGameState->isBellRinging : false;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_TRAIN_HALTED", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto trainGameState = entity->syncTree->GetTrainState();
+
+		return trainGameState ? trainGameState->isHalted : false;
+	}));
+#endif
 }
 
 static InitFunction initFunction([]()

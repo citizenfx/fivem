@@ -3306,6 +3306,11 @@ struct SyncTree : public SyncTreeBase
 		return hasNode ? &node->data : nullptr;
 	}
 
+	virtual CDoorCreationNodeData* GetDoorCreationData() override
+	{
+		return nullptr;
+	}
+
 	virtual void CalculatePosition() override
 	{
 		// TODO: cache it?
