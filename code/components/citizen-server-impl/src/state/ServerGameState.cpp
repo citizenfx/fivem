@@ -3247,20 +3247,21 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 		entity->timestamp = timestamp;
 
 		GS_LOG("sync for entity %d and length %d\n", entity->handle, length);
-		auto state = sync::SyncParseState{ { bitBytes }, parsingType, 0, timestamp, entity, m_frameIndex };
+		auto state = sync::SyncParseStateDynamic{ { bitBytes }, parsingType, 0, timestamp, entity, m_frameIndex };
 
 		auto syncTree = entity->syncTree;
 		if (syncTree)
 		{
-			syncTree->Parse(state);
-
 			if (parsingType == 2)
 			{
+				syncTree->ParseSync(state);
+
 				entity->hasSynced = true;
 			}
-
-			if (parsingType == 1)
+			else if (parsingType == 1)
 			{
+				syncTree->ParseCreate(state);
+
 				syncTree->Visit([](sync::NodeBase& node)
 				{
 					node.ackedPlayers.reset();

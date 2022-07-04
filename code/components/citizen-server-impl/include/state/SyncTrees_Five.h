@@ -128,7 +128,7 @@ struct CAutomobileCreationDataNode
 	}
 };
 
-struct CGlobalFlagsDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CGlobalFlagsDataNode { };
 
 struct CDynamicEntityGameStateDataNode : GenericSerializeDataNode<CDynamicEntityGameStateDataNode>
 {
@@ -428,9 +428,9 @@ struct CVehicleGameStateDataNode
 	}
 };
 
-struct CEntityScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPhysicalScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CVehicleScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CEntityScriptGameStateDataNode { };
+struct CPhysicalScriptGameStateDataNode { };
+struct CVehicleScriptGameStateDataNode { };
 
 struct CEntityScriptInfoDataNode
 {
@@ -831,8 +831,8 @@ struct CVehicleAppearanceDataNode {
 	}
 };
 
-struct CVehicleDamageStatusDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CVehicleComponentReservationDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CVehicleDamageStatusDataNode { };
+struct CVehicleComponentReservationDataNode { };
 
 struct CVehicleHealthDataNode
 {
@@ -950,7 +950,7 @@ struct CVehicleHealthDataNode
 	}
 };
 
-struct CVehicleTaskDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CVehicleTaskDataNode { };
 
 struct CSectorDataNode
 {
@@ -1359,7 +1359,7 @@ struct CVehicleSteeringDataNode
 	}
 };
 
-struct CVehicleControlDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CVehicleControlDataNode { };
 
 struct CVehicleGadgetDataNode
 {
@@ -1524,12 +1524,12 @@ struct CVehicleGadgetDataNode
 #endif
 };
 
-struct CMigrationDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPhysicalMigrationDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPhysicalScriptMigrationDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CVehicleProximityMigrationDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CBikeGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CBoatGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CMigrationDataNode { };
+struct CPhysicalMigrationDataNode { };
+struct CPhysicalScriptMigrationDataNode { };
+struct CVehicleProximityMigrationDataNode { };
+struct CBikeGameStateDataNode { };
+struct CBoatGameStateDataNode { };
 
 struct CDoorCreationDataNode
 {
@@ -1869,8 +1869,8 @@ struct CObjectGameStateDataNode
 	}
 };
 
-struct CObjectScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPhysicalHealthDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CObjectScriptGameStateDataNode { };
+struct CPhysicalHealthDataNode { };
 
 struct CObjectSectorPosNode : GenericSerializeDataNode<CObjectSectorPosNode>
 {
@@ -1916,11 +1916,11 @@ struct CPhysicalAngVelocityDataNode
 		return true;
 	}
 };
-//struct CPedCreationDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPedScriptCreationDataNode { bool Parse(SyncParseState& state) { return true; } };
-//struct CPedGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPedComponentReservationDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPedScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
+//struct CPedCreationDataNode { };
+struct CPedScriptCreationDataNode { };
+//struct CPedGameStateDataNode { };
+struct CPedComponentReservationDataNode { };
+struct CPedScriptGameStateDataNode { };
 
 struct CPedAttachDataNode
 {
@@ -2065,9 +2065,9 @@ struct CPedHealthDataNode
 	}
 };
 
-struct CPedMovementGroupDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPedAIDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPedAppearanceDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CPedMovementGroupDataNode { };
+struct CPedAIDataNode { };
+struct CPedAppearanceDataNode { };
 
 struct CPedOrientationDataNode : GenericSerializeDataNode<CPedOrientationDataNode>
 {
@@ -2083,7 +2083,7 @@ struct CPedOrientationDataNode : GenericSerializeDataNode<CPedOrientationDataNod
 	}
 };
 
-struct CPedMovementDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CPedMovementDataNode { };
 
 struct CPedTaskTreeDataNode
 {
@@ -2126,7 +2126,7 @@ struct CPedTaskTreeDataNode
 	}
 };
 
-struct CPedTaskSpecificDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CPedTaskSpecificDataNode { };
 
 struct CPedSectorPosMapNode : GenericSerializeDataNode<CPedSectorPosMapNode>
 {
@@ -2173,12 +2173,12 @@ struct CPedSectorPosMapNode : GenericSerializeDataNode<CPedSectorPosMapNode>
 	}
 };
 
-struct CPedSectorPosNavMeshNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPedInventoryDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPedTaskSequenceDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPickupCreationDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPickupScriptGameStateNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPickupSectorPosNode { bool Parse(SyncParseState& state) { return true; } };
+struct CPedSectorPosNavMeshNode { };
+struct CPedInventoryDataNode { };
+struct CPedTaskSequenceDataNode { };
+struct CPickupCreationDataNode { };
+struct CPickupScriptGameStateNode { };
+struct CPickupSectorPosNode { };
 
 struct CPickupPlacementCreationDataNode
 {
@@ -2203,7 +2203,7 @@ struct CPickupPlacementCreationDataNode
 	}
 };
 
-struct CPickupPlacementStateDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CPickupPlacementStateDataNode { };
 
 struct CPlaneGameStateDataNode
 {
@@ -2348,7 +2348,7 @@ struct CPlaneControlDataNode
 	}
 };
 
-struct CSubmarineGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CSubmarineGameStateDataNode { };
 
 struct CSubmarineControlDataNode
 {
@@ -2418,7 +2418,7 @@ struct CTrainGameStateDataNode
 	}
 };
 
-struct CPlayerCreationDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CPlayerCreationDataNode { };
 
 struct CPlayerGameStateDataNode
 {
@@ -2773,10 +2773,10 @@ struct CPlayerAppearanceDataNode
 	}
 };
 
-struct CPlayerPedGroupDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPlayerAmbientModelStreamingNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPlayerGamerDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPlayerExtendedGameStateNode { bool Parse(SyncParseState& state) { return true; } };
+struct CPlayerPedGroupDataNode { };
+struct CPlayerAmbientModelStreamingNode { };
+struct CPlayerGamerDataNode { };
+struct CPlayerExtendedGameStateNode { };
 
 struct CPlayerSectorPosNode
 {
@@ -2954,53 +2954,8 @@ struct CPlayerWantedAndLOSDataNode
 };
 
 template<typename TNode>
-struct SyncTree : public SyncTreeBase
+struct SyncTree : public SyncTreeBaseImpl<TNode, false>
 {
-	TNode root;
-	std::mutex mutex;
-
-	template<typename TData>
-	inline static constexpr size_t GetOffsetOf()
-	{
-		auto doff = TNode::template GetOffsetOf<TData>();
-
-		return (doff) ? offsetof(SyncTree, root) + doff : 0;
-	}
-
-	template<typename TData>
-	inline std::tuple<bool, TData*> GetData()
-	{
-		constexpr auto offset = GetOffsetOf<TData>();
-
-		if constexpr (offset != 0)
-		{
-			return { true, (TData*)((uintptr_t)this + offset) };
-		}
-
-		return { false, nullptr };
-	}
-
-	template<typename TData>
-	inline static constexpr size_t GetOffsetOfNode()
-	{
-		auto doff = TNode::template GetOffsetOfNode<TData>();
-
-		return (doff) ? offsetof(SyncTree, root) + doff : 0;
-	}
-
-	template<typename TData>
-	inline NodeWrapper<NodeIds<0, 0, 0>, TData>* GetNode()
-	{
-		constexpr auto offset = GetOffsetOfNode<TData>();
-
-		if constexpr (offset != 0)
-		{
-			return (NodeWrapper<NodeIds<0, 0, 0>, TData>*)((uintptr_t)this + offset - 8);
-		}
-
-		return nullptr;
-	}
-
 	virtual void GetPosition(float* posOut) override
 	{
 		auto [hasSdn, secDataNode] = GetData<CSectorDataNode>();
@@ -3395,44 +3350,6 @@ struct SyncTree : public SyncTreeBase
 		}
 
 		return false;
-	}
-
-	virtual void Parse(SyncParseState& state) final override
-	{
-		std::unique_lock<std::mutex> lock(mutex);
-
-		state.objType = 0;
-
-		if (state.syncType == 2 || state.syncType == 4)
-		{
-			// mA0 flag
-			state.objType = state.buffer.ReadBit();
-		}
-
-		root.Parse(state);
-	}
-
-	virtual bool Unparse(SyncUnparseState& state) final override
-	{
-		std::unique_lock<std::mutex> lock(mutex);
-
-		state.objType = 0;
-
-		if (state.syncType == 2 || state.syncType == 4)
-		{
-			state.objType = 1;
-
-			state.buffer.WriteBit(1);
-		}
-
-		return root.Unparse(state);
-	}
-
-	virtual void Visit(const SyncTreeVisitor& visitor) final override
-	{
-		std::unique_lock<std::mutex> lock(mutex);
-
-		root.Visit(visitor);
 	}
 };
 
