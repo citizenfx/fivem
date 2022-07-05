@@ -489,6 +489,18 @@ struct CVehicleSteeringNodeData
 	float steeringAngle;
 };
 
+struct CVehicleScriptGameStateNodeData
+{
+	bool canBeVisiblyDamaged;
+	bool isDrowning;
+	bool isParachuteActive;
+
+	int bombCount;
+	int counterMeasureCount;
+
+	int weaponsCapacities[5];
+};
+
 enum ePopType
 {
 	POPTYPE_UNKNOWN = 0,
@@ -572,6 +584,8 @@ public:
 	virtual CHeliHealthNodeData* GetHeliHealth() = 0;
 
 	virtual CVehicleSteeringNodeData* GetVehicleSteeringData() = 0;
+
+	virtual CVehicleScriptGameStateNodeData* GetVehicleScriptGameState() = 0;
 
 	virtual void CalculatePosition() = 0;
 

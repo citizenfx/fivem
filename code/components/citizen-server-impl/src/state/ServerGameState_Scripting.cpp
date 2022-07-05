@@ -1678,6 +1678,54 @@ static void Init()
 
 		return steeringData ? steeringData->steeringAngle * (180.0f / pi) : 0.0f;
 	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_VEHICLE_DROWNING", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto vehScriptGameState = entity->syncTree->GetVehicleScriptGameState();
+
+		return vehScriptGameState ? vehScriptGameState->isDrowning : false;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("CAN_VEHICLE_BE_VISIBLY_DAMAGED", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto vehScriptGameState = entity->syncTree->GetVehicleScriptGameState();
+
+		return vehScriptGameState ? vehScriptGameState->canBeVisiblyDamaged : true;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_VEHICLE_PARACHUTE_ACTIVE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto vehScriptGameState = entity->syncTree->GetVehicleScriptGameState();
+
+		return vehScriptGameState ? vehScriptGameState->isParachuteActive : false;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_BOMB_COUNT", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto vehScriptGameState = entity->syncTree->GetVehicleScriptGameState();
+
+		return vehScriptGameState ? vehScriptGameState->bombCount : 0;
+	}));
+	
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_COUNTERMEASURE_COUNT", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto vehScriptGameState = entity->syncTree->GetVehicleScriptGameState();
+
+		return vehScriptGameState ? vehScriptGameState->counterMeasureCount : 0;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_WEAPON_CAPACITY", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto vehScriptGameState = entity->syncTree->GetVehicleScriptGameState();
+		int weaponIndex = context.GetArgument<int>(1);
+
+		if (weaponIndex < 0 || weaponIndex > 5)
+		{
+			return -1;
+		}
+
+		return vehScriptGameState ? vehScriptGameState->weaponsCapacities[weaponIndex] : -1;
+	}));
 }
 
 static InitFunction initFunction([]()
