@@ -1472,6 +1472,7 @@ static void SetLauncherWaitCB(HANDLE hEvent, HANDLE hProcessIn, BOOL doBreak, DW
 
 							WaitForSingleObject(GetCurrentProcess(), 30000);
 
+							ROSFailure(nullptr);
 							__debugbreak();
 						}
 
