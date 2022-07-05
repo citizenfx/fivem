@@ -92,6 +92,12 @@ static std::shared_ptr<ConVar<int>> g_requestControlSettleVar;
 static RequestControlFilterMode g_requestControlFilterState;
 static int g_requestControlSettleDelay;
 
+static std::shared_ptr<ConVar<float>> g_oneSyncLowDelayDistanceVar;
+static std::shared_ptr<ConVar<int>> g_oneSyncLowDelayDivisorVar;
+
+static float g_oneSyncLowDelayDistance;
+static int g_oneSyncLowDelayDivisor;
+
 static uint32_t MakeHandleUniqifierPair(uint16_t objectId, uint16_t uniqifier)
 {
 	return ((uint32_t)objectId << 16) | (uint32_t)uniqifier;
@@ -1224,9 +1230,9 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 						{
 							syncDelay = 250ms;
 						}
-						else if (dist < 35.0f * 35.0f)
+						else if (dist < g_oneSyncLowDelayDistance * g_oneSyncLowDelayDistance)
 						{
-							syncDelay /= 4;
+							syncDelay /= g_oneSyncLowDelayDivisor;
 						}
 					}
 				}
@@ -1243,9 +1249,9 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 						dist = std::min(thisDist, dist);
 					}
 
-					if (dist < 35.0f * 35.0f)
+					if (dist < g_oneSyncLowDelayDistance * g_oneSyncLowDelayDistance)
 					{
-						syncDelay /= 4;
+						syncDelay /= g_oneSyncLowDelayDivisor;
 					}
 				}
 			}
@@ -5869,6 +5875,9 @@ static InitFunction initFunction([]()
 		g_oneSyncVar = instance->AddVariable<fx::OneSyncState>("onesync", ConVar_ReadOnly, fx::OneSyncState::Off);
 		g_oneSyncPopulation = instance->AddVariable<bool>("onesync_population", ConVar_ReadOnly, true);
 		g_oneSyncARQ = instance->AddVariable<bool>("onesync_automaticResend", ConVar_None, false);
+
+		g_oneSyncLowDelayDistanceVar = instance->AddVariable<float>("onesync_lowDelayDistance", ConVar_None, 35.0f, &g_oneSyncLowDelayDistance);
+		g_oneSyncLowDelayDivisorVar = instance->AddVariable<int>("onesync_lowDelayDivisor", ConVar_None, 4, &g_oneSyncLowDelayDivisor);
 
 		// .. to infinity?
 		g_oneSyncBigMode = instance->AddVariable<bool>("onesync_enableInfinity", ConVar_ReadOnly, false);
