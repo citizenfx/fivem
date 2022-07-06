@@ -341,14 +341,14 @@ struct NodeWrapper : public NodeBase
 	// if the `int` overload fails (as Parse() is not available), it'll use `char`.
 	//
 	// other than that, this is plain SFINAE
-	template<typename TNode>
+	template<typename TNode2>
 	static constexpr auto ShouldParseNode(char)
 	{
 		return false;
 	}
 
-	template<typename TNode>
-	static constexpr auto ShouldParseNode(int) -> decltype(std::declval<TNode>().Parse(std::declval<SyncParseState&>()))
+	template<typename TNode2>
+	static constexpr auto ShouldParseNode(int) -> decltype(std::declval<TNode2>().Parse(std::declval<SyncParseState&>()))
 	{
 		return true;
 	}
