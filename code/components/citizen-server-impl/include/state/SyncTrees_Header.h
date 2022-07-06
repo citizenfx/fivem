@@ -243,7 +243,7 @@ private:
 	}
 
 	template<int syncType, int objType, typename TChild>
-	inline static auto ParseChild(TChild& child, SyncParseState& state) -> decltype(child.Parse<syncType, objType>(state))
+	inline static auto ParseChild(TChild& child, SyncParseState& state) -> decltype(child.template Parse<syncType, objType>(state))
 	{
 		return child.template Parse<syncType, objType>(state);
 	}
