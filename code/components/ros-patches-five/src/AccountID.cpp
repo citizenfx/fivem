@@ -137,15 +137,17 @@ std::string GetROSEmail()
 #if defined(IS_RDR3) || defined(GTA_FIVE) || defined(GTA_NY)
 static uint8_t* accountBlob;
 
-static DWORD GetMTLPid()
+static std::vector<DWORD> GetMTLPids()
 {
 	static DWORD pids[16384];
 
 	DWORD len;
 	if (!EnumProcesses(pids, sizeof(pids), &len))
 	{
-		return -1;
+		return {};
 	}
+
+	std::vector<DWORD> rv;
 
 	auto numProcs = len / sizeof(DWORD);
 
@@ -171,7 +173,7 @@ static DWORD GetMTLPid()
 						if (GetFileAttributesW(path) != INVALID_FILE_ATTRIBUTES)
 						{*/
 							CloseHandle(hProcess);
-							return pids[i];
+							rv.push_back(pids[i]);
 						//}
 					}
 				}
@@ -181,7 +183,7 @@ static DWORD GetMTLPid()
 		}
 	}
 
-	return -1;
+	return rv;
 }
 
 static bool InitAccountRemote();
@@ -795,9 +797,9 @@ void ValidateSteam(int parentPid)
 static bool InitAccountMTL()
 {
 #if defined(_M_AMD64)
-	auto pid = GetMTLPid();
+	auto pids = GetMTLPids();
 
-	if (pid == -1)
+	if (pids.empty())
 	{
 #if defined(IS_RDR3)
 		MessageBoxW(NULL, L"Currently, you have to run the Rockstar Games Launcher, Steam, or the Epic Games Launcher (depending on where you purchased the game) to be able to run RedM.", L"RedM", MB_OK | MB_ICONSTOP);
@@ -806,7 +808,53 @@ static bool InitAccountMTL()
 		return false;
 	}
 
-	auto hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
+	HANDLE hProcess = NULL;
+	HMODULE scModule = NULL;
+
+	for (DWORD pid : pids)
+	{
+		hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
+
+		if (!hProcess)
+		{
+			continue;
+		}
+
+		HMODULE hMods[1024];
+		DWORD cbNeeded;
+
+		if (EnumProcessModules(hProcess, hMods, sizeof(hMods), &cbNeeded))
+		{
+			for (int i = 0; i < (cbNeeded / sizeof(HMODULE)); i++)
+			{
+				wchar_t szModName[MAX_PATH];
+
+				// Get the full path to the module's file.
+
+				if (GetModuleFileNameExW(hProcess, hMods[i], szModName,
+					std::size(szModName)))
+				{
+					auto lastEnd = wcsrchr(szModName, L'\\');
+
+					if (lastEnd)
+					{
+						if (_wcsicmp(lastEnd, L"\\socialclub.dll") == 0)
+						{
+							scModule = hMods[i];
+							break;
+						}
+					}
+				}
+			}
+		}
+
+		if (scModule)
+		{
+			break;
+		}
+
+		CloseHandle(hProcess);
+	}
 
 	if (!hProcess)
 	{
@@ -816,42 +864,13 @@ static bool InitAccountMTL()
 
 		return false;
 	}
-
-	HMODULE hMods[1024];
-	DWORD cbNeeded;
-
-	HMODULE scModule = NULL;
-
-	if (EnumProcessModules(hProcess, hMods, sizeof(hMods), &cbNeeded))
-	{
-		for (int i = 0; i < (cbNeeded / sizeof(HMODULE)); i++)
-		{
-			wchar_t szModName[MAX_PATH];
-
-			// Get the full path to the module's file.
-
-			if (GetModuleFileNameExW(hProcess, hMods[i], szModName,
-				std::size(szModName)))
-			{
-				auto lastEnd = wcsrchr(szModName, L'\\');
-
-				if (lastEnd)
-				{
-					if (_wcsicmp(lastEnd, L"\\socialclub.dll") == 0)
-					{
-						scModule = hMods[i];
-						break;
-					}
-				}
-			}
-		}
-	}
-
+	
 	if (!scModule)
 	{
 #if defined(IS_RDR3)
 		FatalError("MTL didn't have SC SDK loaded.");
 #endif
+
 		return false;
 	}
 
