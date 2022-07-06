@@ -245,7 +245,7 @@ private:
 	template<int syncType, int objType, typename TChild>
 	inline static auto ParseChild(TChild& child, SyncParseState& state) -> decltype(child.Parse<syncType, objType>(state))
 	{
-		return child.Parse<syncType, objType>(state);
+		return child.template Parse<syncType, objType>(state);
 	}
 
 public:
@@ -616,11 +616,11 @@ struct SyncTreeBaseImpl : SyncTreeBase
 
 		if (state.objType == 1)
 		{
-			root.Parse<2, 1>(state);
+			root.template Parse<2, 1>(state);
 		}
 		else
 		{
-			root.Parse<2, 0>(state);
+			root.template Parse<2, 0>(state);
 		}
 	}
 
@@ -632,7 +632,7 @@ struct SyncTreeBaseImpl : SyncTreeBase
 		}
 
 		std::unique_lock<std::mutex> lock(mutex);
-		root.Parse<1, 0>(state);
+		root.template Parse<1, 0>(state);
 	}
 
 	virtual bool Unparse(SyncUnparseState& state) final override
