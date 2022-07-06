@@ -2958,14 +2958,14 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, false>
 {
 	virtual void GetPosition(float* posOut) override
 	{
-		auto [hasSdn, secDataNode] = GetData<CSectorDataNode>();
-		auto [hasSpdn, secPosDataNode] = GetData<CSectorPositionDataNode>();
-		auto [hasPspdn, playerSecPosDataNode] = GetData<CPlayerSectorPosNode>();
-		auto [hasOspdn, objectSecPosDataNode] = GetData<CObjectSectorPosNode>();
-		auto [hasPspmdn, pedSecPosMapDataNode] = GetData<CPedSectorPosMapNode>();
-		auto [hasDoor, doorCreationDataNode] = GetData<CDoorCreationDataNode>();
-		auto [hasPickupPlacement, pickupPlacementCreationDataNode] = GetData<CPickupPlacementCreationDataNode>();
-		auto [hasPgsdn, pedGameStateDataNode] = GetData<CPedGameStateDataNode>();
+		auto [hasSdn, secDataNode] = this->GetData<CSectorDataNode>();
+		auto [hasSpdn, secPosDataNode] = this->GetData<CSectorPositionDataNode>();
+		auto [hasPspdn, playerSecPosDataNode] = this->GetData<CPlayerSectorPosNode>();
+		auto [hasOspdn, objectSecPosDataNode] = this->GetData<CObjectSectorPosNode>();
+		auto [hasPspmdn, pedSecPosMapDataNode] = this->GetData<CPedSectorPosMapNode>();
+		auto [hasDoor, doorCreationDataNode] = this->GetData<CDoorCreationDataNode>();
+		auto [hasPickupPlacement, pickupPlacementCreationDataNode] = this->GetData<CPickupPlacementCreationDataNode>();
+		auto [hasPgsdn, pedGameStateDataNode] = this->GetData<CPedGameStateDataNode>();
 
 		auto sectorX = (hasSdn) ? secDataNode->m_sectorX : 512;
 		auto sectorY = (hasSdn) ? secDataNode->m_sectorY : 512;
@@ -3044,140 +3044,140 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, false>
 
 	virtual CDoorMovementDataNodeData* GetDoorMovement() override
 	{
-		auto [hasNode, node] = GetData<CDoorMovementDataNode>();
+		auto [hasNode, node] = this->GetData<CDoorMovementDataNode>();
 
 		return (hasNode) ? &node->data : nullptr;
 	}
 
 	virtual CDoorScriptInfoDataNodeData* GetDoorScriptInfo() override
 	{
-		auto [hasNode, node] = GetData<CDoorScriptInfoDataNode>();
+		auto [hasNode, node] = this->GetData<CDoorScriptInfoDataNode>();
 
 		return (hasNode) ? &node->data : nullptr;
 	}
 
 	virtual CDoorScriptGameStateDataNodeData* GetDoorScriptGameState() override
 	{
-		auto [hasNode, node] = GetData<CDoorScriptGameStateDataNode>();
+		auto [hasNode, node] = this->GetData<CDoorScriptGameStateDataNode>();
 
 		return (hasNode) ? &node->data : nullptr;
 	}
 
 	virtual CHeliControlDataNodeData* GetHeliControl() override
 	{
-		auto [hasNode, node] = GetData<CHeliControlDataNode>();
+		auto [hasNode, node] = this->GetData<CHeliControlDataNode>();
 
 		return (hasNode) ? &node->data : nullptr;
 	}
 
 	virtual CPlayerCameraNodeData* GetPlayerCamera() override
 	{
-		auto [hasCdn, cameraNode] = GetData<CPlayerCameraDataNode>();
+		auto [hasCdn, cameraNode] = this->GetData<CPlayerCameraDataNode>();
 
 		return (hasCdn) ? &cameraNode->data : nullptr;
 	}
 
 	virtual CPlayerWantedAndLOSNodeData* GetPlayerWantedAndLOS() override 
 	{
-		auto [hasNode, node] = GetData<CPlayerWantedAndLOSDataNode>();
+		auto [hasNode, node] = this->GetData<CPlayerWantedAndLOSDataNode>();
 
 		return (hasNode) ? &node->data : nullptr;
 	}
 
 	virtual CPedGameStateNodeData* GetPedGameState() override
 	{
-		auto[hasPdn, pedNode] = GetData<CPedGameStateDataNode>();
+		auto[hasPdn, pedNode] = this->GetData<CPedGameStateDataNode>();
 
 		return (hasPdn) ? &pedNode->data : nullptr;
 	}
 
 	virtual uint64_t GetPedGameStateFrameIndex() override
 	{
-		auto pedBase = GetNode<CPedGameStateDataNode>();
+		auto pedBase = this->GetNode<CPedGameStateDataNode>();
 
 		return (pedBase) ? pedBase->frameIndex : 0;
 	}
 
 	virtual CVehicleGameStateNodeData* GetVehicleGameState() override
 	{
-		auto[hasVdn, vehNode] = GetData<CVehicleGameStateDataNode>();
+		auto[hasVdn, vehNode] = this->GetData<CVehicleGameStateDataNode>();
 
 		return (hasVdn) ? &vehNode->data : nullptr;
 	}
 
 	virtual CPedTaskTreeDataNodeData* GetPedTaskTree() override
 	{
-		auto [hasNode, node] = GetData<CPedTaskTreeDataNode>();
+		auto [hasNode, node] = this->GetData<CPedTaskTreeDataNode>();
 
 		return (hasNode) ? &node->data : nullptr;
 	}
 
 	virtual CPlaneGameStateDataNodeData* GetPlaneGameState() override
 	{
-		auto [hasNode, node] = GetData<CPlaneGameStateDataNode>();
+		auto [hasNode, node] = this->GetData<CPlaneGameStateDataNode>();
 
 		return (hasNode) ? &node->data : nullptr;
 	}
 
 	virtual CPlaneControlDataNodeData* GetPlaneControl() override
 	{
-		auto [hasNode, node] = GetData<CPlaneControlDataNode>();
+		auto [hasNode, node] = this->GetData<CPlaneControlDataNode>();
 
 		return (hasNode) ? &node->data : nullptr;
 	}
 
 	virtual CTrainGameStateDataNodeData* GetTrainState() override
 	{
-		auto [hasNode, node] = GetData<CTrainGameStateDataNode>();
+		auto [hasNode, node] = this->GetData<CTrainGameStateDataNode>();
 
 		return (hasNode) ? &node->data : nullptr;
 	}
 
 	virtual CPlayerGameStateNodeData* GetPlayerGameState() override
 	{
-		auto [hasNode, node] = GetData<CPlayerGameStateDataNode>();
+		auto [hasNode, node] = this->GetData<CPlayerGameStateDataNode>();
 
 		return (hasNode) ? &node->data : nullptr;
 	}
 
 	virtual CVehicleAppearanceNodeData* GetVehicleAppearance() override
 	{
-		auto [hasNode, node] = GetData<CVehicleAppearanceDataNode>();
+		auto [hasNode, node] = this->GetData<CVehicleAppearanceDataNode>();
 
 		return (hasNode) ? &node->data : nullptr;
 	}
 
 	virtual CPedHealthNodeData* GetPedHealth() override
 	{
-		auto [hasNode, node] = GetData<CPedHealthDataNode>();
+		auto [hasNode, node] = this->GetData<CPedHealthDataNode>();
 
 		return (hasNode) ? &node->data : nullptr;
 	}
 
 	virtual CVehicleHealthNodeData* GetVehicleHealth() override
 	{
-		auto [hasNode, node] = GetData<CVehicleHealthDataNode>();
+		auto [hasNode, node] = this->GetData<CVehicleHealthDataNode>();
 
 		return (hasNode) ? &node->data : nullptr;
 	}
 
 	virtual CPedOrientationNodeData* GetPedOrientation() override
 	{
-		auto [hasNode, node] = GetData<CPedOrientationDataNode>();
+		auto [hasNode, node] = this->GetData<CPedOrientationDataNode>();
 
 		return (hasNode) ? &node->data : nullptr;
 	}
 
 	virtual CEntityOrientationNodeData* GetEntityOrientation() override
 	{
-		auto [hasNode, node] = GetData<CEntityOrientationDataNode>();
+		auto [hasNode, node] = this->GetData<CEntityOrientationDataNode>();
 
 		return (hasNode) ? &node->data : nullptr;
 	}
 
 	virtual CObjectOrientationNodeData* GetObjectOrientation() override
 	{
-		auto [hasNode, node] = GetData<CObjectOrientationDataNode>();
+		auto [hasNode, node] = this->GetData<CObjectOrientationDataNode>();
 
 		return (hasNode) ? &node->data : nullptr;
 	}
@@ -3185,7 +3185,7 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, false>
 	virtual CVehicleAngVelocityNodeData* GetAngVelocity() override
 	{
 		{
-			auto [hasNode, node] = GetData<CVehicleAngVelocityDataNode>();
+			auto [hasNode, node] = this->GetData<CVehicleAngVelocityDataNode>();
 
 			if (hasNode)
 			{
@@ -3193,21 +3193,21 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, false>
 			}
 		}
 
-		auto [hasNode, node] = GetData<CPhysicalAngVelocityDataNode>();
+		auto [hasNode, node] = this->GetData<CPhysicalAngVelocityDataNode>();
 
 		return (hasNode) ? &node->data : nullptr;
 	}
 
 	virtual CPhysicalVelocityNodeData* GetVelocity() override
 	{
-		auto [hasNode, node] = GetData<CPhysicalVelocityDataNode>();
+		auto [hasNode, node] = this->GetData<CPhysicalVelocityDataNode>();
 
 		return (hasNode) ? &node->data : nullptr;
 	}
 
 	virtual CDummyObjectCreationNodeData* GetDummyObjectState() override
 	{
-		auto [hasObject, objectCreationNode] = GetData<CObjectCreationDataNode>();
+		auto [hasObject, objectCreationNode] = this->GetData<CObjectCreationDataNode>();
 		if (hasObject)
 		{
 			if (objectCreationNode->m_createdBy == 0 || objectCreationNode->m_createdBy == 2)
@@ -3221,13 +3221,13 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, false>
 
 	virtual CBaseAttachNodeData* GetAttachment() override
 	{
-		auto [hasPed, pedAttachNode] = GetData<CPedAttachDataNode>();
+		auto [hasPed, pedAttachNode] = this->GetData<CPedAttachDataNode>();
 		if (hasPed)
 		{
 			return &pedAttachNode->data;
 		}
 
-		auto [hasPhys, physicalAttachNode] = GetData<CPhysicalAttachDataNode>();
+		auto [hasPhys, physicalAttachNode] = this->GetData<CPhysicalAttachDataNode>();
 		if (hasPhys)
 		{
 			return &physicalAttachNode->data;
@@ -3238,7 +3238,7 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, false>
 
 	virtual CObjectGameStateNodeData* GetObjectGameState() override
 	{
-		auto [hasObj, objStateNode] = GetData<CObjectGameStateDataNode>();
+		auto [hasObj, objStateNode] = this->GetData<CObjectGameStateDataNode>();
 		if (hasObj)
 		{
 			return &objStateNode->data;
@@ -3249,14 +3249,14 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, false>
 
 	virtual CHeliHealthNodeData* GetHeliHealth() override
 	{
-		auto [hasNode, node] = GetData<CHeliHealthDataNode>();
+		auto [hasNode, node] = this->GetData<CHeliHealthDataNode>();
 
 		return hasNode ? &node->data : nullptr;
 	}
 
 	virtual CVehicleSteeringNodeData* GetVehicleSteeringData() override
 	{
-		auto [hasNode, node] = GetData<CVehicleSteeringDataNode>();
+		auto [hasNode, node] = this->GetData<CVehicleSteeringDataNode>();
 
 		return hasNode ? &node->data : nullptr;
 	}
@@ -3268,7 +3268,7 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, false>
 
 	virtual bool GetPopulationType(ePopType* popType) override
 	{
-		auto[hasVcn, vehCreationNode] = GetData<CVehicleCreationDataNode>();
+		auto[hasVcn, vehCreationNode] = this->GetData<CVehicleCreationDataNode>();
 
 		if (hasVcn)
 		{
@@ -3276,7 +3276,7 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, false>
 			return true;
 		}
 
-		auto[hasPcn, pedCreationNode] = GetData<CPedCreationDataNode>();
+		auto[hasPcn, pedCreationNode] = this->GetData<CPedCreationDataNode>();
 
 		if (hasPcn)
 		{
@@ -3291,7 +3291,7 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, false>
 
 	virtual bool GetModelHash(uint32_t* modelHash) override
 	{
-		auto[hasVcn, vehCreationNode] = GetData<CVehicleCreationDataNode>();
+		auto[hasVcn, vehCreationNode] = this->GetData<CVehicleCreationDataNode>();
 
 		if (hasVcn)
 		{
@@ -3299,7 +3299,7 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, false>
 			return true;
 		}
 
-		auto[hasPan, playerAppearanceNode] = GetData<CPlayerAppearanceDataNode>();
+		auto[hasPan, playerAppearanceNode] = this->GetData<CPlayerAppearanceDataNode>();
 
 		if (hasPan)
 		{
@@ -3307,7 +3307,7 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, false>
 			return true;
 		}
 
-		auto[hasPcn, pedCreationNode] = GetData<CPedCreationDataNode>();
+		auto[hasPcn, pedCreationNode] = this->GetData<CPedCreationDataNode>();
 
 		if (hasPcn)
 		{
@@ -3315,7 +3315,7 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, false>
 			return true;
 		}
 
-		auto[hasOcn, objectCreationNode] = GetData<CObjectCreationDataNode>();
+		auto[hasOcn, objectCreationNode] = this->GetData<CObjectCreationDataNode>();
 
 		if (hasOcn)
 		{
@@ -3328,7 +3328,7 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, false>
 
 	virtual bool GetScriptHash(uint32_t* scriptHash) override
 	{
-		auto[hasSin, scriptInfoNode] = GetData<CEntityScriptInfoDataNode>();
+		auto[hasSin, scriptInfoNode] = this->GetData<CEntityScriptInfoDataNode>();
 
 		if (hasSin)
 		{
@@ -3341,7 +3341,7 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, false>
 
 	virtual bool IsEntityVisible(bool* visible) override
 	{
-		auto [hasNode, node] = GetData<CPhysicalGameStateDataNode>();
+		auto [hasNode, node] = this->GetData<CPhysicalGameStateDataNode>();
 
 		if (hasNode)
 		{
