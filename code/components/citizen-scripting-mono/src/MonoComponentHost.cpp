@@ -190,7 +190,7 @@ static void gc_event(MonoProfiler *profiler, MonoGCEvent event, int generation)
 static void gc_event(MonoProfiler* profiler, MonoProfilerGCEvent event, uint32_t generation, mono_bool is_serial)
 #endif
 {
-	if (event == MONO_GC_EVENT_START || event == MONO_GC_EVENT_END)
+	if (event == MONO_GC_EVENT_PRE_STOP_WORLD || event == MONO_GC_EVENT_POST_START_WORLD)
 	{
 		static auto profiler = fx::ResourceManager::GetCurrent(true)->GetComponent<fx::ProfilerComponent>();
 
@@ -200,7 +200,7 @@ static void gc_event(MonoProfiler* profiler, MonoProfilerGCEvent event, uint32_t
 			static std::string majorGcString = ".NET Major GC";
 			static std::string minorGcString = ".NET Minor GC";
 
-			if (event == MONO_GC_EVENT_START)
+			if (event == MONO_GC_EVENT_PRE_STOP_WORLD)
 			{
 				profiler->EnterScope(isMajor ? majorGcString : minorGcString);
 			}

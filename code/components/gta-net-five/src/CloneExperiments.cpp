@@ -1571,6 +1571,37 @@ static rlGamerInfo* NetGamePlayerGetGamerInfo(CNetGamePlayer* self)
 		"https://forum.cfx.re/t/cnetgameplayer-getgamerinfo-returns-nullptr-causing-crashes",
 		self->physicalPlayerIndex(), self->activePlayerIndex(), (uint64_t)self);
 }
+
+static bool (*g_origNetGamePlayerIsVisibleToPlayer)(CNetGamePlayer*, CNetGamePlayer*, char);
+
+static bool NetGamePlayerIsVisibleToPlayer(CNetGamePlayer* player, CNetGamePlayer* target, char flags)
+{
+	if (!icgi->OneSyncEnabled)
+	{
+		return g_origNetGamePlayerIsVisibleToPlayer(player, target, flags);
+	}
+
+	// The game only update "visible players bitset" once per second, if remote player scope-out between
+	// updates and local player would be "lucky" enough to make the game call this function during gameplay,
+	// they will most likely get crash because of bitset still containing invalid player marked as "visible".
+	// So we make sure that target player is still have physical entity, before returning true.
+
+	bool result = g_origNetGamePlayerIsVisibleToPlayer(player, target, flags);
+
+	// don't continue when original function returned false or target is player 31
+	if (!result || !target || target->physicalPlayerIndex() == 31)
+	{
+		return false;
+	}
+
+	// do not allow to return true if remote player has no physical entity
+	if (!getPlayerPedForNetPlayer(target))
+	{
+		return false;
+	}
+
+	return true;
+}
 #endif
 
 static HookFunction hookFunction([]()
@@ -1591,6 +1622,7 @@ static HookFunction hookFunction([]()
 	{
 		hook::nop(hook::get_pattern("FF 90 80 00 00 00 33 C9 48 85 C0 74 4C", 11), 2);
 	}
+#endif
 
 	// dummy/ambient object player list ordering logic
 
@@ -1603,7 +1635,12 @@ static HookFunction hookFunction([]()
 				push(rax); // we want to save al ('Player Wants Control' bool)
 				sub(rsp, 0x20);
 
+#ifdef GTA_FIVE
 				mov(rcx, r13); // netobj is in r13
+#elif IS_RDR3
+				mov(rcx, r15); // netobj is in r15
+#endif
+
 				mov(rax, (uint64_t)Fn);
 				call(rax);
 
@@ -1629,7 +1666,14 @@ static HookFunction hookFunction([]()
 			}
 		} playerListOrder;
 
+#ifdef GTA_FIVE
 		hook::call_rcx(hook::get_pattern("0F 42 D3 3A DA 0F 94 C2", 3), playerListOrder.GetCode());
+#elif IS_RDR3
+		auto location = hook::get_pattern<char>("48 0F 42 C3 48 3B D8 0F 94 C2", 4);
+		hook::nop(location - 21, 30);
+		hook::call_rcx(location, playerListOrder.GetCode());
+		hook::put<uint16_t>(location + 7, 0xC084); // test al, al
+#endif
 	}
 
 	// TODO: same as above for door
@@ -1671,12 +1715,30 @@ static HookFunction hookFunction([]()
 			}
 		} ownerLoop;
 
+#ifdef GTA_FIVE
 		auto location = hook::get_pattern<char>("48 8B CB E8 ? ? ? ? 48 85 C0 74 4F");
 		hook::nop(location, 0x3F);
 		hook::call_rcx(location, ownerLoop.GetCode());
 		hook::put<uint16_t>(location + 0x3F, 0xC084); // test al, al
+#elif IS_RDR3
+		if (xbr::IsGameBuildOrGreater<1436>())
+		{
+			auto location = hook::get_pattern<char>("48 8B CB E8 ? ? ? ? 48 85 C0 75 27 8D 50 01");
+			hook::nop(location, 0x6E);
+			hook::call_rcx(location, ownerLoop.GetCode());
+			hook::put<uint16_t>(location + 0x6E, 0xC084); // test al, al
+		}
+		else
+		{
+			auto location = hook::get_pattern<char>("48 8B CB E8 ? ? ? ? 48 85 C0 74 57 48 8B CB");
+			hook::nop(location, 0x47);
+			hook::call_rcx(location, ownerLoop.GetCode());
+			hook::put<uint16_t>(location + 0x47, 0xC084); // test al, al
+		}
+#endif
 	}
 
+#ifdef GTA_FIVE
 	// net damage array, size 32*4
 	uint32_t* damageArrayReplacement = (uint32_t*)hook::AllocateStubMemory(256 * sizeof(uint32_t));
 	memset(damageArrayReplacement, 0, 256 * sizeof(uint32_t));
@@ -2018,8 +2080,8 @@ static HookFunction hookFunction([]()
 	}
 #endif
 
-	// unsafe CNetGamePlayer player ped getter call patch
 #ifdef IS_RDR3
+	// unsafe CNetGamePlayer player ped getter call patch
 	static struct : public jitasm::Frontend
 	{
 		virtual void InternalMain() override
@@ -2062,6 +2124,12 @@ static HookFunction hookFunction([]()
 		auto netGamePlayerVtable = hook::get_address<uintptr_t*>(hook::get_pattern("E8 ? ? ? ? 33 F6 48 8D 05 ? ? ? ? 48 8D 8B", 10));
 		g_origNetGamePlayerGetGamerInfo = (decltype(g_origNetGamePlayerGetGamerInfo))netGamePlayerVtable[12];
 		hook::put(&netGamePlayerVtable[12], (uintptr_t)NetGamePlayerGetGamerInfo);
+	}
+
+	// patch CAIConditionIsLocalPlayerVisibleToAnyPlayer behavior to properly handle scoping players
+	{
+		auto location = hook::get_pattern<char>("40 0F B6 D5 8B C2 44 8B C2 48", -13);
+		MH_CreateHook(hook::get_call(location), NetGamePlayerIsVisibleToPlayer, (void**)&g_origNetGamePlayerIsVisibleToPlayer);
 	}
 #endif
 
