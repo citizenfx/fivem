@@ -1571,6 +1571,37 @@ static rlGamerInfo* NetGamePlayerGetGamerInfo(CNetGamePlayer* self)
 		"https://forum.cfx.re/t/cnetgameplayer-getgamerinfo-returns-nullptr-causing-crashes",
 		self->physicalPlayerIndex(), self->activePlayerIndex(), (uint64_t)self);
 }
+
+static bool (*g_origNetGamePlayerIsVisibleToPlayer)(CNetGamePlayer*, CNetGamePlayer*, char);
+
+static bool NetGamePlayerIsVisibleToPlayer(CNetGamePlayer* player, CNetGamePlayer* target, char flags)
+{
+	if (!icgi->OneSyncEnabled)
+	{
+		return g_origNetGamePlayerIsVisibleToPlayer(player, target, flags);
+	}
+
+	// The game only update "visible players bitset" once per second, if remote player scope-out between
+	// updates and local player would be "lucky" enough to make the game call this function during gameplay,
+	// they will most likely get crash because of bitset still containing invalid player marked as "visible".
+	// So we make sure that target player is still have physical entity, before returning true.
+
+	bool result = g_origNetGamePlayerIsVisibleToPlayer(player, target, flags);
+
+	// don't continue when original function returned false or target is player 31
+	if (!result || !target || target->physicalPlayerIndex() == 31)
+	{
+		return false;
+	}
+
+	// do not allow to return true if remote player has no physical entity
+	if (!getPlayerPedForNetPlayer(target))
+	{
+		return false;
+	}
+
+	return true;
+}
 #endif
 
 static HookFunction hookFunction([]()
@@ -2018,8 +2049,8 @@ static HookFunction hookFunction([]()
 	}
 #endif
 
-	// unsafe CNetGamePlayer player ped getter call patch
 #ifdef IS_RDR3
+	// unsafe CNetGamePlayer player ped getter call patch
 	static struct : public jitasm::Frontend
 	{
 		virtual void InternalMain() override
@@ -2062,6 +2093,12 @@ static HookFunction hookFunction([]()
 		auto netGamePlayerVtable = hook::get_address<uintptr_t*>(hook::get_pattern("E8 ? ? ? ? 33 F6 48 8D 05 ? ? ? ? 48 8D 8B", 10));
 		g_origNetGamePlayerGetGamerInfo = (decltype(g_origNetGamePlayerGetGamerInfo))netGamePlayerVtable[12];
 		hook::put(&netGamePlayerVtable[12], (uintptr_t)NetGamePlayerGetGamerInfo);
+	}
+
+	// patch CAIConditionIsLocalPlayerVisibleToAnyPlayer behavior to properly handle scoping players
+	{
+		auto location = hook::get_pattern<char>("40 0F B6 D5 8B C2 44 8B C2 48", -13);
+		MH_CreateHook(hook::get_call(location), NetGamePlayerIsVisibleToPlayer, (void**)&g_origNetGamePlayerIsVisibleToPlayer);
 	}
 #endif
 
