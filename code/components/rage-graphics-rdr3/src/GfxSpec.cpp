@@ -113,7 +113,7 @@ static intptr_t* gtaImTechnique;// = (intptr_t*)0x143F1303C; // CS_BLIT
 
 static HookFunction hf([]()
 {
-	gtaImShader = hook::get_address<intptr_t*>(hook::get_pattern("41 B9 10 00 00 00 48 8B 0D ? ? ? ? F3 0F 7F 44 24 20", 9));
+	gtaImShader = hook::get_address<intptr_t*>(hook::get_pattern("41 B9 10 00 00 00 48 8B 0D ? ? ? ? F3 0F 7F 44 24 20 E8", 9));
 	gtaImTechnique = hook::get_address<intptr_t*>(hook::get_pattern("C7 40 C0 00 00 80 3F 45 0F 57 C0 4D 8B F9 E8", 22));
 });
 
@@ -487,7 +487,7 @@ static void WrapEndDraw(void* cxt)
 	//rt[0] = (*(void* (__fastcall**)(__int64))(**(uint64_t**)sgaDriver + 1992i64))(*(uint64_t*)sgaDriver);
 	rt[0] = (*(void*(__fastcall**)(__int64))(**(uint64_t**)sgaDriver + g_swapchainBackbufferOffset))(*(uint64_t*)sgaDriver);
 
-	static auto ds = hook::get_address<int*>(hook::get_pattern("4C 8B ? ? ? ? ? 84 D2 74 ? 4C", 3));
+	static auto ds = hook::get_address<int*>(hook::get_pattern("F3 48 0F 2A C0 8B C3 F3 48 0F 2A C8 48 8B 05", 15));
 
 	setRTs(cxt, 1, rt, true);
 	setDSs(cxt, *(void**)ds, true);

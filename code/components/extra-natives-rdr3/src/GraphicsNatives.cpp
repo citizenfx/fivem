@@ -101,13 +101,13 @@ static uint32_t* g_scriptDrawOrigin;
 static HookFunction hookFunction([]()
 {
 	{
-		auto location = hook::get_pattern<char>("48 8B D9 F3 0F 10 79 0C 44 0F 29 40 A8");
+		auto location = hook::get_pattern<char>("48 69 D0 10 04 00 00 48 8D 05 ? ? ? ? 48 03");
 
-		g_frameDrawIndex1 = hook::get_address<int*>(location + 80);
-		g_frameDrawIndex2 = hook::get_address<int*>(location + 93);
-		g_drawOriginStore = hook::get_address<void*>(location + 110);
+		g_frameDrawIndex1 = hook::get_address<int*>(location - 20);
+		g_frameDrawIndex2 = hook::get_address<int*>(location - 7);
+		g_drawOriginStore = hook::get_address<void*>(location + 10);
 
-		hook::set_call(&isGamePaused, location + 73);
+		hook::set_call(&isGamePaused, location - 27);
 	}
 
 	{

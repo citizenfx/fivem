@@ -1790,7 +1790,7 @@ static HookFunction hookFunction([]()
 #elif IS_RDR3
 	MH_CreateHook(hook::get_pattern("48 8B D9 E8 ? ? ? ? 33 ? 66 C7 83", (xbr::IsGameBuildOrGreater<1355>()) ? -0xA : -0x6), NetworkObjectMgrCtorStub, (void**)&g_origNetworkObjectMgrCtor);
 	MH_CreateHook(hook::get_pattern("83 FE 01 41 0F 9F C4 48 85 DB 74", (xbr::IsGameBuildOrGreater<1436>()) ? -0x99 : -0x71), PassObjectControlStub, (void**)&g_origPassObjectControl);
-	MH_CreateHook(hook::get_pattern("80 79 ? ? 48 8B F2 48 8B F9 73", -0xF), SetOwnerStub, (void**)&g_origSetOwner);
+	MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? 80 7B 47 00 75 ? 48 8B 03")), SetOwnerStub, (void**)&g_origSetOwner);
 #endif
 
 	// scriptHandlerMgr::ManageHostMigration, has fixed 32 player array and isn't needed* for 1s
@@ -1855,8 +1855,8 @@ static HookFunction hookFunction([]()
 #elif IS_RDR3
 	MH_CreateHook((xbr::IsGameBuildOrGreater<1436>()) ? hook::get_pattern("33 DB 48 8B F9 48 39 99 ? ? ? ? 75 ? 8D 53 01", -10) : hook::get_pattern("48 39 99 ? ? ? ? 74 ? 48 81 C1 ? ? ? ? 48 8B 19 48 85", -15), AllocateNetPlayer, (void**)&g_origAllocateNetPlayer);
 
-	MH_CreateHook(hook::get_pattern((xbr::IsGameBuildOrGreater<1436>()) ? "8A 41 45 3C 20 72 ? 33 C0 C3" : "80 79 45 20 72 ? 33 C0 C3"), netObject__GetPlayerOwner, (void**)&g_origGetOwnerNetPlayer);
-	MH_CreateHook(hook::get_pattern((xbr::IsGameBuildOrGreater<1436>()) ? "48 89 5C 24 08 57 48 83 EC 30 8A 59 46" : "8A 41 46 3C FF 74"), netObject__GetPendingPlayerOwner, (void**)&g_origGetPendingPlayerOwner);
+	MH_CreateHook(hook::get_pattern((xbr::IsGameBuildOrGreater<1436>()) ? "8A 49 45 80 F9 20 72 03 33 C0 C3" : "80 79 45 20 72 ? 33 C0 C3"), netObject__GetPlayerOwner, (void**)&g_origGetOwnerNetPlayer);
+	MH_CreateHook(hook::get_pattern((xbr::IsGameBuildOrGreater<1436>()) ? "8A 49 46 80 F9 FF 75 03" : "8A 41 46 3C FF 74"), netObject__GetPendingPlayerOwner, (void**)&g_origGetPendingPlayerOwner);
 #endif
 
 	// function is only 4 bytes, can't be hooked like this
@@ -1873,15 +1873,15 @@ static HookFunction hookFunction([]()
 		hook::call(location, netObject__GetPlayerOwnerId);
 	}
 
-	// ped texture overriding natives
 #ifdef IS_RDR3
+	// ped texture overriding natives
 	{
 		auto location = hook::get_pattern("48 85 C9 74 09 E8 ? ? ? ? 8A D8 EB 02", 5);
 		hook::call(location, netObject__GetPlayerOwnerId);
 	}
 
 	{
-		auto location = hook::get_pattern("4C 8D 67 08 48 69 C8 ? ? ? ? 4C 03 E1 45", 52);
+		auto location = hook::get_pattern("4C 8D ? 08 48 69 C8 ? ? ? ? 4C 03", 52);
 		hook::call(location, netObject__GetPlayerOwnerId);
 	}
 #endif
@@ -2110,7 +2110,7 @@ static HookFunction hookFunction([]()
 
 	// patch SerializePlayerIndex methods of sync data reader/writer
 	MH_CreateHook(hook::get_pattern("80 3B 20 73 ? 65 4C 8B 0C", -0x2F), SyncDataReaderSerializePlayerIndex, (void**)&g_origSyncDataReaderSerializePlayerIndex);
-	MH_CreateHook(hook::get_pattern("80 3A 20 48 8B D9 C6 44", -6), SyncDataWriterSerializePlayerIndex, (void**)&g_origSyncDataWriterSerializePlayerIndex);
+	MH_CreateHook(xbr::IsGameBuildOrGreater<1436>() ? hook::get_pattern("41 B2 3F 48 8D 54 24 30 44 88", -30) : hook::get_pattern("80 3A 20 48 8B D9 C6 44", -6), SyncDataWriterSerializePlayerIndex, (void**)&g_origSyncDataWriterSerializePlayerIndex);
 
 	// also patch sync data size calculator allowing more bits
 	{
@@ -3594,7 +3594,7 @@ static HookFunction hookFunction2([]()
 #ifdef GTA_FIVE
 		MH_CreateHook(hook::get_pattern("48 8B 03 48 8B D6 48 8B CB EB 06", -0x48), ReadDataNodeStub, (void**)&g_origReadDataNode);
 #elif IS_RDR3
-		MH_CreateHook(hook::get_pattern("40 8A BC 43", -0x3D), ReadDataNodeStub, (void**)&g_origReadDataNode);
+		MH_CreateHook(xbr::IsGameBuildOrGreater<1436>() ? hook::get_pattern("42 8A BC 6B", -0x33) : hook::get_pattern("40 8A BC 43", -0x3D), ReadDataNodeStub, (void**)&g_origReadDataNode);
 #endif
 
 #ifdef GTA_FIVE
@@ -4925,7 +4925,7 @@ static HookFunction hookFunctionNative([]()
 	MH_CreateHook(hook::get_pattern("41 56 41 57 48 83 EC 40 0F B6 72 ? 4D 8B E1", -0x14), SendCloneSync, (void**)&g_origSendCloneSync);
 	MH_CreateHook(hook::get_pattern("89 41 70 41 8B 40 04 89 41 74 41 8B", -0x64), CPickupPlacement_ctor, (void**)&g_origCPickupPlacement_ctor);
 #elif IS_RDR3
-	MH_CreateHook(hook::get_pattern("48 8B 06 41 B0 01 41 0F B6 5E", -0x50), SendCloneSync, (void**)&g_origSendCloneSync);
+	MH_CreateHook(hook::get_pattern("C6 85 ? ? ? ? 00 ? 8B ? FF 90 ? ? ? ? 84 C0 75", -0x3C), SendCloneSync, (void**)&g_origSendCloneSync);
 #endif
 
 	MH_EnableHook(MH_ALL_HOOKS);
