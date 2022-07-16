@@ -1972,7 +1972,7 @@
 				<Item> <cTextId>PM_PANE_IMP</cTextId>	<MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_IMPORT_SAVEGAME</MenuUniqueId> <Contexts>*ALL*, ALLOW_IMPORT_SAVEGAME</Contexts> </Item>
 				<Item> <cTextId>PM_PANE_LEAVE</cTextId> <MenuAction>MENU_OPTION_ACTION_TRIGGER</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_SHOW_ACCOUNT_PICKER</MenuUniqueId> <Contexts>*ALL*, x64</Contexts></Item>
 				<Item> <cTextId>PM_PANE_QUIT</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_EXIT_TO_WINDOWS</MenuUniqueId> <Contexts>*ALL*, x64</Contexts></Item>
-				<Item> <MenuAction>MENU_OPTION_ACTION_FILL_CONTENT</MenuAction> </Item>
+				<Item> <MenuAction>MENU_OPTION_ACTION_FILL_CONTENT_FROM_SCRIPT</MenuAction> </Item>
 			</MenuItems>
 
 			<ButtonList>
