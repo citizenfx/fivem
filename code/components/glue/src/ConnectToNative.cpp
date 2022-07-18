@@ -515,6 +515,8 @@ static void DisconnectCmd()
 	}
 }
 
+extern void MarkNuiLoaded();
+
 static InitFunction initFunction([] ()
 {
 	static std::function<void()> g_onYesCallback;
@@ -1031,9 +1033,9 @@ static InitFunction initFunction([] ()
 		}
 		else if (!_wcsicmp(type, L"getMinModeInfo"))
 		{
-#ifdef GTA_FIVE
 			static bool done = ([]
 			{
+#ifdef GTA_FIVE
 				std::thread([]
 				{
 					UiDone();
@@ -1046,10 +1048,12 @@ static InitFunction initFunction([] ()
 					SetForegroundWindow(hWnd);
 				})
 				.detach();
+#endif
+
+				MarkNuiLoaded();
 
 				return true;
 			})();
-#endif
 
 			auto manifest = CoreGetMinModeManifest();
 
