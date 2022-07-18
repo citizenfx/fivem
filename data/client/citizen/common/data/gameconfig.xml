@@ -382,7 +382,7 @@
 						</Item>
 						<Item>
 							<PoolName>CWeaponComponentInfo</PoolName>
-							<PoolSize value="1024"/>
+							<PoolSize value="2048"/>
 						</Item>
 						<Item>
 							<PoolName>phInstGta</PoolName>
