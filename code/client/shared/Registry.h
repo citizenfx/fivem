@@ -147,6 +147,11 @@ public:
 		return instance;
 	}
 
+	static T* GetOptional(InstanceRegistry* registry)
+	{
+		return static_cast<T*>(registry->GetInstance(ms_id));
+	}
+
 	static const fwRefContainer<T>& Get(const fwRefContainer<RefInstanceRegistry>& registry)
 	{
 		// we're casting here to prevent invoking the fwRefContainer copy constructor
@@ -166,6 +171,16 @@ public:
 		if (!ms_cachedInstance)
 		{
 			ms_cachedInstance = Get(CoreGetGlobalInstanceRegistry());
+		}
+
+		return ms_cachedInstance;
+	}
+
+	static T* GetOptional()
+	{
+		if (!ms_cachedInstance)
+		{
+			ms_cachedInstance = GetOptional(CoreGetGlobalInstanceRegistry());
 		}
 
 		return ms_cachedInstance;
