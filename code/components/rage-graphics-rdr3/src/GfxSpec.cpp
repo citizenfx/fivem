@@ -8,7 +8,6 @@
 #include <Hooking.h>
 
 static rage::grcTextureFactory* g_textureFactory;
-static rage::grcTexture* g_noneTexture;
 
 namespace rage
 {
@@ -55,9 +54,37 @@ grcTexture* grcTextureFactory::createManualTexture(short width, short height, in
 
 grcTexture* grcTextureFactory::GetNoneTexture()
 {
-	assert(!"none");
+	static auto noneTexture = []
+	{
+		sga::ImageParams ip;
+		ip.width = 1;
+		ip.height = 1;
+		ip.depth = 1;
+		ip.levels = 1;
+		ip.dimension = 1;
+		ip.bufferFormat = sga::BufferFormat::B8G8R8A8_UNORM;
 
-	return g_noneTexture;
+		uint32_t white = 0xFFFFFFFF;
+
+		auto texture = new rage::sga::ext::DynamicTexture2();
+		texture->Init(3, nullptr, ip, 0, 2, nullptr, 8, 1, nullptr);
+
+		if (texture)
+		{
+			texture->MakeReady(rage::sga::GraphicsContext::GetCurrent());
+
+			rage::sga::MapData mapData;
+			if (texture->Map(nullptr, mapData))
+			{
+				memcpy(mapData.GetBuffer(), &white, 4);
+				texture->Unmap(rage::sga::GraphicsContext::GetCurrent(), mapData);
+			}
+		}
+
+		return texture;
+	}();
+
+	return reinterpret_cast<grcTexture*>(noneTexture->GetTexture());
 }
 }
 
