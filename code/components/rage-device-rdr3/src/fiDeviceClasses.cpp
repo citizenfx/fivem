@@ -19,7 +19,7 @@ fiDeviceRelative::fiDeviceRelative()
 
 hook::thiscall_stub<void(fiDeviceRelative*, const char*, bool, fiDevice*)> fiDeviceRelative__setPath([]()
 {
-	return hook::pattern("01 00 00 00 83 64 24 28 00 48 8D 05 ? ? ? ? 4C 8B CA 48 89 44 24 20").count(1).get(0).get<void>(-0x48);
+	return hook::get_call(hook::get_pattern("45 33 C9 48 8D 4D 20 41 B0 01 E8", 10));
 });
 
 void fiDeviceRelative::SetPath(const char* relativeTo, rage::fiDevice* baseDevice, bool allowRoot)

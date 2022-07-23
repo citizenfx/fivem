@@ -154,7 +154,7 @@ local function launcherpersonality_inner(name, aslr)
 				gameBuild = '1311'
 
 				if name == 'game_1355' then gameBuild = '1355_18' end
-				if name == 'game_1436' then gameBuild = '1436_28' end
+				if name == 'game_1436' then gameBuild = '1436_31' end
 
 				gameDump = ("C:\\f\\RDR2_%s.exe"):format(gameBuild)
 			end
