@@ -16,10 +16,10 @@ To build FiveM, RedM or FXServer on Windows you need the following dependencies:
   ![image](https://user-images.githubusercontent.com/60301671/180667795-d0f3e1da-782e-4d28-b8ef-231aba6e7f95.png)
 
 * [PowerShell 7](https://aka.ms/powershell-release?tag=stable) or higher.
-* [Boost 1.71.0](https://boostorg.jfrog.io/artifactory/main/release/1.71.0/source/boost_1_71_0.7z), extracted to a path defined by the environment variable [`BOOST_ROOT`](docs/building.md#then-execute-the-following-commands-in-a-cmdexe-shell-to-set-up-the-build-environment).
+* [Boost 1.71.0](https://boostorg.jfrog.io/artifactory/main/release/1.71.0/source/boost_1_71_0.7z), extracted to a path defined by the environment variable [`BOOST_ROOT`](#then-execute-the-following-commands-in-a-cmdexe-shell-to-set-up-the-build-environment).
 * [Python 3.8 or higher](https://python.org/) with the `py` launcher installed.
   **You also need the embeddable package of the version you installed**
-    - Extract the zip from the zip into the path defined by the environment variable [`PATH`](docs/building.md#then-execute-the-following-commands-in-a-cmdexe-shell-to-set-up-the-build-environment).
+    - Extract the zip from the zip into the path defined by the environment variable [`PATH`](#then-execute-the-following-commands-in-a-cmdexe-shell-to-set-up-the-build-environment).
     ###### little help [Example with python 3.10.5]:
       - zip file name: python-3.10.5-embed-amd64.zip
       - inside: there is a zip file called: python310.zip
