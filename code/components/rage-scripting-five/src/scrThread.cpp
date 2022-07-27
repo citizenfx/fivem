@@ -37,7 +37,7 @@ misrepresented as being the original software.
 
 static hook::thiscall_stub<rage::eThreadState(GtaThread*, uint32_t)> gtaThreadTick([] ()
 {
-	return hook::pattern("80 B9 46 01 00 00 00 8B  FA 48 8B D9 74 05").count(1).get(0).get<void>(-0xF);
+	return hook::pattern("80 B9 ? 01 00 00 00 8B FA 48 8B D9 74 05").count(1).get(0).get<void>(-0xF);
 });
 
 rage::eThreadState WRAPPER GtaThread::Tick(uint32_t opsToExecute)
@@ -47,7 +47,7 @@ rage::eThreadState WRAPPER GtaThread::Tick(uint32_t opsToExecute)
 
 static hook::thiscall_stub<void(GtaThread*)> gtaThreadKill([] ()
 {
-	return hook::pattern("48 83 EC 20 48 83 B9 10 01 00 00 00 48 8B D9 74 14").count(1).get(0).get<void>(-6);
+	return hook::pattern("48 83 EC 20 48 83 B9 ? 01 00 00 00 48 8B D9 74 14").count(1).get(0).get<void>(-6);
 });
 
 void GtaThread::Kill()
@@ -74,7 +74,7 @@ rage::eThreadState GtaThread::Run(uint32_t opsToExecute)
 
 static hook::cdecl_stub<void(GtaThread*)> gtaThreadInit([] ()
 {
-	return hook::pattern("83 89 38 01 00 00 FF 83 A1 50 01 00 00 F0").count(1).get(0).get<void>();
+	return hook::pattern("83 89 ? 01 00 00 FF 83 A1 ? 01 00 00 F0").count(1).get(0).get<void>();
 });
 
 extern rage::scriptHandlerMgr* g_scriptHandlerMgr;
@@ -94,8 +94,8 @@ rage::eThreadState GtaThread::Reset(uint32_t scriptHash, void* pArgs, uint32_t a
 	// zero out gtathread bits
 	gtaThreadInit(this);
 
-	m_networkFlag = true;
-	m_canRemoveBlipsFromOtherScripts = false;
+	SetNetworkFlag(true);
+	SetCanRemoveBlipsFromOtherScripts(false);
 
 	m_pszExitMessage = "Normal exit";
 

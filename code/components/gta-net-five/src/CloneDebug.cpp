@@ -1538,7 +1538,7 @@ static HookFunction hookFunction([]()
 	// CPlayerAppearanceDataNode decorations uninitialized value
 	{
 		g_vtbl_playerAppearanceDataNode = hook::get_address<uintptr_t>(hook::pattern("48 89 BB B8 00 00 00 48 89 83 B0 00 00 00").count(2).get(1).get<void*>(-0xE));
-		g_offset_playerAppearanceDataNode_hasDecorations = *hook::get_pattern<uint32_t>("88 83 ? ? ? ? 84 C0 75 0D 44 8B C5 33", 2);
+		g_offset_playerAppearanceDataNode_hasDecorations = *hook::get_pattern<uint32_t>("88 ? ? ? ? ? 84 C0 75 0D 44 8B C5 33", 2);
 	}
 
 	// allow CSyncDataLogger even without label string

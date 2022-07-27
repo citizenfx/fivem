@@ -97,6 +97,16 @@ inline bool Is2612()
 	return value;
 }
 
+inline bool Is2699()
+{
+	static bool value = ([]()
+	{
+		return fx::GetEnforcedGameBuildNumber() >= 2699;
+	})();
+
+	return value;
+}
+
 template<typename T>
 inline constexpr T roundToWord(T val)
 {

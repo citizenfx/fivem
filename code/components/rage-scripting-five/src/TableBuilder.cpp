@@ -223,7 +223,11 @@ static void DoMapping(std::map<int, std::shared_ptr<FunctionTable>>& functionTab
 
 	int versionIdx = -1;
 
-	if (strncmp(buildString, "Apr 18 2022", 11) == 0)
+	if (strncmp(buildString, "Jul 21 2022", 11) == 0)
+	{
+		versionIdx = 2699;
+	}
+	else if (strncmp(buildString, "Apr 18 2022", 11) == 0)
 	{
 		versionIdx = 2612;
 	}
@@ -335,7 +339,7 @@ static void DoMapping(std::map<int, std::shared_ptr<FunctionTable>>& functionTab
 	{
 		assert(maxVersion == 24);
 	}
-	else if (Is2545() || Is2612())
+	else if (Is2545() || Is2612() || Is2699())
 	{
 		assert(maxVersion == 25);
 	}

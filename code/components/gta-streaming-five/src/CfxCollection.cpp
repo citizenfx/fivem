@@ -515,9 +515,7 @@ static HookFunction hookFunction([] ()
 	g_streamingModule = (rage::strStreamingModule*)(location + *(int32_t*)location + 4);
 
 	// streaming entries
-	location = hook::pattern("84 C0 74 3C 8B 53 08 48 8D 0D").count(1).get(0).get<char>(10);
-
-	g_streamingEntries = (StreamingEntry**)(location + *(int32_t*)location + 4);
+	g_streamingEntries = hook::get_address<StreamingEntry**>(hook::get_pattern("48 8B 05 ? ? ? ? 03 0D ? ? ? ? 8B 54 C8 04"), 3, 7);
 
 	// streaming packfile entries
 	location = hook::pattern("48 8B 05 ? ? ? ? 48 8B CB 48 6B C9 68 80 64").count(1).get(0).get<char>(3);
