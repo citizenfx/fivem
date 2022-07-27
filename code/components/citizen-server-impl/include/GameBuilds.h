@@ -99,6 +99,11 @@ struct ConsoleArgumentType<fx::GameBuild>
 			*out = "2612";
 			return true;
 		}
+		else if (_stricmp(inputStr.c_str(), "mpsum2") == 0)
+		{
+			*out = "2699";
+			return true;
+		}
 
 		// not an int or a known alias
 		return false;

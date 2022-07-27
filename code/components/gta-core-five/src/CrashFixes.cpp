@@ -1180,7 +1180,7 @@ static HookFunction hookFunction{[] ()
 	hook::nop(hook::get_pattern("74 08 41 8B D6 E8 ? ? ? ? 44 8B 07 EB 15", 5), 5);
 
 	// validate dlDrawListMgr cloth entries on flush
-	MH_CreateHook(hook::get_pattern("66 44 3B A9 50 06 00 00 0F 83", -0x25), CDrawListMgr_ClothCleanup, (void**)&g_origDrawListMgr_ClothFlush);
+	MH_CreateHook(hook::get_pattern("66 44 3B ? 50 06 00 00 0F 83", (xbr::IsGameBuildOrGreater<2699>() ? -0x26 : -0x25)), CDrawListMgr_ClothCleanup, (void**)&g_origDrawListMgr_ClothFlush);
 
 	g_clothCritSec = hook::get_address<LPCRITICAL_SECTION>(hook::get_pattern("48 8B F8 48 89 58 10 33 C0 8D 50 10", -0x21));
 

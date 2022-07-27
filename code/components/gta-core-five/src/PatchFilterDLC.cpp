@@ -6,8 +6,9 @@
 #include <unordered_set>
 
 //
-// Ignore 'stub' assets from dlc_mpG9EC, as of b2612 at least these are weird
-// and may crash the game.
+// Ignore 'stub' assets (exclusive content) that may crash the game.
+// - dlc_mpG9EC, as of b2612
+// - dlc_mpSum2_g9ec, as of b2699
 //
 
 struct CDataFileMgr
@@ -48,6 +49,19 @@ static std::unordered_set<std::string> g_badFiles{
 	"dlc_mpG9EC:/x64/models/cdimages/mpg9ec_male.rpf",
 	"dlc_mpG9ECCRC:/common/data/mp_f_freemode_01_mpg9ec_shop.meta",
 	"dlc_mpG9EC:/x64/models/cdimages/mpg9ec_female.rpf",
+
+	"dlc_mpSum2_g9ec:/x64/levels/mpsum2_g9ec/vehiclemods/feltzer3hsw_mods.rpf",
+	"dlc_mpSum2_g9ec:/x64/levels/mpsum2_g9ec/vehiclemods/vigero2hsw_mods.rpf",
+	"dlc_mpSum2_g9ec:/x64/models/cdimages/mpSum2_g9ec_female.rpf",
+	"dlc_mpSum2_g9ec:/x64/models/cdimages/mpSum2_g9ec_female_p.rpf",
+	"dlc_mpSum2_g9ec:/x64/models/cdimages/mpSum2_g9ec_male.rpf",
+	"dlc_mpSum2_g9ec:/x64/models/cdimages/mpSum2_g9ec_male_p.rpf",
+	"dlc_mpSum2_g9ecCRC:/common/data/mp_f_freemode_01_mpSum2_g9ec_shop.meta",
+	"dlc_mpSum2_g9ecCRC:/common/data/mp_m_freemode_01_mpSum2_g9ec_shop.meta",
+	"dlc_mpSum2_g9ec:/x64/anim/creaturemetadata.rpf",
+	"dlc_mpSum2_g9ec:/common/data/effects/peds/first_person_alternates.meta",
+	"dlc_mpSum2_g9ec:/common/data/effects/peds/first_person.meta",
+	"dlc_mpSum2_g9ecCRC:/common/data/pedalternatevariations.meta",
 };
 
 static void (*_applyChangeSetEntry)(ChangeSetEntry* entry);

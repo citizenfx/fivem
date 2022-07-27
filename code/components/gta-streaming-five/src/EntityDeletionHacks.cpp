@@ -211,18 +211,18 @@ static HookFunction hookFunction([] ()
 	// in 1290 this is reduced to only two (DELETE_VEHICLE and a leftover of DOES_ENTITY_BELONG_TO_THIS_SCRIPT) - obfuscation at work?
 	// 1604 has one one (DELETE_VEHICLE) - we need to reimplement the one left, too?
 	{
-		auto pattern = hook::pattern("38 48 8B D8 E8 ? ? ? ? 48 3B D8").count(1);
+		auto pattern = hook::pattern("FF 52 38 48 8B D8 E8 ? ? ? ? 48 3B D8").count(1);
 
 		for (int i = 0; i < 1; i++)
 		{
 			// is this DOES_ENTITY_BELONG_TO_THIS_SCRIPT?
-			if (*pattern.get(i).get<uint16_t>(13) == 0xB004) // jnz $+4 (the 04 byte); mov al, 1 (the B0 byte)
+			if (*pattern.get(i).get<uint16_t>(15) == 0xB004) // jnz $+4 (the 04 byte); mov al, 1 (the B0 byte)
 			{
 				// if so, then skip
 				continue;
 			}
 
-			hook::nop(pattern.get(i).get<void>(0xC), 2);
+			hook::nop(pattern.get(i).get<void>(0xE), 2);
 		}
 	}
 
