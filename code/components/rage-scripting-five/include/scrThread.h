@@ -232,6 +232,7 @@ protected:
 	char gta_pad4[12];                          // 324 0x144
 	uint8_t m_canRemoveBlipsFromOtherScripts;   // 336 0x150
 	char gta_pad5[7];                           // 337 0x151
+	char pad_b2699[8];
 
 public:
 	virtual void					DoRun() = 0;
@@ -251,7 +252,7 @@ public:
 	{
 		if (xbr::IsGameBuildOrGreater<2699>())
 		{
-			bool* thisNetFlag = (bool*)((uintptr_t)this + 329);  // See GtaThreadInit function in GtaThread::GtaThread() (and extrapolate)
+			bool* thisNetFlag = (bool*)((uintptr_t)this + 0x149); // See GtaThreadInit function in GtaThread::GtaThread() (and extrapolate)
 			*thisNetFlag = state;
 		}
 		else
@@ -264,7 +265,7 @@ public:
 	{
 		if (xbr::IsGameBuildOrGreater<2699>())
 		{
-			bool* thisCanRemoveBlips = *(bool**)((uintptr_t)this + 344); // See GtaThreadInit function in GtaThread::GtaThread()
+			bool* thisCanRemoveBlips = *(bool**)((uintptr_t)this + 0x150); // See GtaThreadInit function in GtaThread::GtaThread()
 			*thisCanRemoveBlips = state;
 		}
 		else
@@ -277,8 +278,9 @@ public:
 	{
 		if (xbr::IsGameBuildOrGreater<2699>())
 		{
-			return *(rage::scriptHandler**)((uintptr_t)this + 0x120);
+			return *(rage::scriptHandler**)((uintptr_t)this + 0x118);
 		}
+
 		return m_pScriptHandler;
 	}
 
@@ -286,7 +288,7 @@ public:
 	{ 
 		if (xbr::IsGameBuildOrGreater<2699>())
 		{
-			rage::scriptHandler** thisHandler = *(rage::scriptHandler***)((uintptr_t)this + 0x120);
+			rage::scriptHandler** thisHandler = *(rage::scriptHandler***)((uintptr_t)this + 0x118); // See GtaThread constructor
 			*thisHandler = scriptHandler;
 		}
 		else
@@ -303,5 +305,5 @@ public:
 	inline void RemoveCleanupFlag() {  }
 };
 
-static_assert(sizeof(GtaThread) == 344, "GtaThread has wrong size!");
-//static_assert(sizeof(GtaThread) == 368, "GtaThread has wrong size!"); [2699]
+//static_assert(sizeof(GtaThread) == 344, "GtaThread has wrong size!");
+static_assert(sizeof(GtaThread) == 352, "GtaThread has wrong size!"); // [2699]
