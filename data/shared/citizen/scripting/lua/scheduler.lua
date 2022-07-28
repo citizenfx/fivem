@@ -68,14 +68,6 @@ local function FormatStackTrace()
 	return _in(`FORMAT_STACK_TRACE` & 0xFFFFFFFF, nil, 0, Citizen.ResultAsString())
 end
 
-local newThreads = {}
-local threads = setmetatable({}, {
-	-- This circumvents undefined behaviour in "next" (and therefore "pairs")
-	__newindex = newThreads,
-	-- This is needed for CreateThreadNow to work correctly
-	__index = newThreads
-})
-
 local boundaryIdx = 1
 
 local function dummyUseBoundary(idx)
