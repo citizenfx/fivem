@@ -493,7 +493,7 @@ static void __declspec(safebuffers) CallHandlerSdk(void* handler, uint64_t nativ
 	memcpy(context.arguments, rageContext.GetArgumentBuffer(), sizeof(void*) * rageContext.GetArgumentCount());
 
 	auto& luaRuntime = fx::LuaScriptRuntime::GetCurrent();
-	auto scriptHost = luaRuntime->GetScriptHost();
+	fx::OMPtr scriptHost = luaRuntime->GetScriptHost();
 
 	HRESULT hr = scriptHost->InvokeNative(context);
 
@@ -573,7 +573,7 @@ static int __Lua_InvokeNative(lua_State* L)
 
 	// get required entries
 	auto& luaRuntime = fx::LuaScriptRuntime::GetCurrent();
-	auto scriptHost = luaRuntime->GetScriptHost();
+	fx::OMPtr scriptHost = luaRuntime->GetScriptHost();
 
 	// variables to hold state
 	fxLuaNativeContext<IsPtr> context;
