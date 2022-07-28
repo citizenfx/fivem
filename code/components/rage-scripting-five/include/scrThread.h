@@ -244,8 +244,21 @@ public:
 
 	inline void SetScriptName(const char* name)
 	{
-		strncpy(scriptName, name, sizeof(scriptName) - 1);
-		scriptName[sizeof(scriptName) - 1] = '\0';
+		if (xbr::IsGameBuildOrGreater<2699>())
+		{
+			auto scriptHashPtr = reinterpret_cast<uint32_t*>((uint64_t)this + 0xD0);
+			auto scriptNamePtr = reinterpret_cast<char*>((uint64_t)this + 0xD4);
+
+			strncpy(scriptNamePtr, name, sizeof(scriptName) - 1);
+			scriptNamePtr[sizeof(scriptName) - 1] = '\0';
+
+			*scriptHashPtr = HashString(name);
+		}
+		else
+		{
+			strncpy(scriptName, name, sizeof(scriptName) - 1);
+			scriptName[sizeof(scriptName) - 1] = '\0';
+		}
 	}
 
 	inline void SetNetworkFlag(char state)
