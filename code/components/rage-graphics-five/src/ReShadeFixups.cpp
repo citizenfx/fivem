@@ -10,6 +10,8 @@
 #include "Hooking.h"
 #include "DrawCommands.h"
 
+#include "CoreConsole.h"
+
 #pragma comment(lib, "version.lib")
 
 bool IsValidGraphicsLibrary(const std::wstring& path)
@@ -62,6 +64,48 @@ bool IsValidGraphicsLibrary(const std::wstring& path)
 						if (fixedInfo->dwProductVersionMS < 0x30001)
 						{
 							return false;
+						}
+						// as is ReShade v5+ because of an unknown crash (unless setting an override)
+						else if (fixedInfo->dwProductVersionMS >= 0x50000)
+						{
+							std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+
+							bool disableReShade5 = true;
+							const char* computername = getenv("COMPUTERNAME");
+							if (!computername)
+							{
+								computername = "a";
+							}
+
+							uint32_t hash = HashString(computername);
+							auto comparand = fmt::sprintf(L"ID:%08x acknowledged that ReShade 5.x has a bug that will lead to game crashes", hash);
+
+							if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
+							{
+								wchar_t reshadeToggle[256] = { 0 };
+								GetPrivateProfileStringW(L"Addons", L"ReShade5", L"", reshadeToggle, std::size(reshadeToggle) - 1, fpath.c_str());
+
+								disableReShade5 = wcscmp(reshadeToggle, comparand.c_str()) != 0;
+							}
+
+							if (disableReShade5)
+							{
+								static bool shown = false;
+
+								if (!shown)
+								{
+									console::Printf("script:reshade", "Blocked load of ReShade version 5 or higher - it has a bug that will lead to game crashes in GPU drivers or d3d11.dll.\n"
+																	  "If you want to force it to load anyway, add the following section to ^2%s:^7\n"
+																	  "    [Addons]\n    ReShade5=%s\n\n"
+																	  "Note that no support is provided for this and that you should contact the author of ReShade for assistance.\n",
+									ToNarrow(fpath),
+									ToNarrow(comparand));
+
+									shown = true;
+								}
+
+								return false;
+							}
 						}
 
 						return true;
