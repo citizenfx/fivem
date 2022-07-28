@@ -71,6 +71,8 @@ enum class RequestControlFilterMode : int
 	FilterPlayerPlusNonPlayerSettled,
 	// FilterAll will filter all control requests, i.e. allow none
 	FilterAll,
+	// FilterVehicles will filter control requests for vehicles
+	FilterVehicles
 };
 
 std::shared_ptr<ConVar<bool>> g_oneSyncEnabledVar;
@@ -5585,6 +5587,15 @@ enum GTA_EVENT_IDS
 #ifdef STATE_FIVE
 namespace fx
 {
+inline bool IsEntityAVehicle(fx::sync::SyncEntityPtr entity)
+{
+	return entity->type == sync::NetObjEntityType::Automobile || entity->type == sync::NetObjEntityType::Bike || entity->type == sync::NetObjEntityType::Boat || entity->type == sync::NetObjEntityType::Heli || entity->type == sync::NetObjEntityType::Plane || entity->type == sync::NetObjEntityType::Submarine || entity->type == sync::NetObjEntityType::Trailer ||
+#ifdef STATE_RDR3
+		   entity->type == sync::NetObjEntityType::DraftVeh ||
+#endif
+		   entity->type == sync::NetObjEntityType::Train;
+}
+
 template<RequestControlFilterMode Mode>
 inline bool RequestControlHandler(fx::ServerGameState* sgs, const fx::ClientSharedPtr& client, uint32_t objectId, const char** reason = nullptr)
 {
@@ -5638,6 +5649,13 @@ inline bool RequestControlHandler(fx::ServerGameState* sgs, const fx::ClientShar
 		}
 	}
 
+	// if we need to, check if the entity is a vehicle
+	bool isVehicle = false;
+	if constexpr (Mode == RequestControlFilterMode::FilterPlayer || Mode == RequestControlFilterMode::FilterPlayerSettled || Mode == RequestControlFilterMode::FilterPlayerPlusNonPlayerSettled || Mode == RequestControlFilterMode::FilterVehicles)
+	{
+		isVehicle = IsEntityAVehicle(entity);
+	}
+
 	// if we need to, check if the entity is player-controlled
 	// for now, this means a vehicle that's occupied by a player.
 	// in the future, we could track e.g. attachment state or pending component control
@@ -5645,12 +5663,8 @@ inline bool RequestControlHandler(fx::ServerGameState* sgs, const fx::ClientShar
 
 	if constexpr (Mode == RequestControlFilterMode::FilterPlayer || Mode == RequestControlFilterMode::FilterPlayerSettled || Mode == RequestControlFilterMode::FilterPlayerPlusNonPlayerSettled)
 	{
-		// #TODO: turn this into a 'is this type a vehicle' helper
-		if (entity->type == sync::NetObjEntityType::Automobile || entity->type == sync::NetObjEntityType::Bike || entity->type == sync::NetObjEntityType::Boat || entity->type == sync::NetObjEntityType::Heli || entity->type == sync::NetObjEntityType::Plane || entity->type == sync::NetObjEntityType::Submarine || entity->type == sync::NetObjEntityType::Trailer ||
-#ifdef STATE_RDR3
-			entity->type == sync::NetObjEntityType::DraftVeh ||
-#endif
-			entity->type == sync::NetObjEntityType::Train)
+		// no need to call IsEntityAVehicle function again; when this block is reached it already was be evaluated
+		if (isVehicle)
 		{
 			if (auto syncTree = entity->syncTree)
 			{
@@ -5719,6 +5733,18 @@ inline bool RequestControlHandler(fx::ServerGameState* sgs, const fx::ClientShar
 			return false;
 		}
 	}
+	else if constexpr (Mode == RequestControlFilterMode::FilterVehicles)
+	{
+		if (isVehicle)
+		{
+			if (reason)
+			{	
+				*reason = "Entity is a vehicle";
+			}
+
+			return false;
+		}
+	}
 
 	// #whatever
 	return true;
@@ -5765,6 +5791,8 @@ std::function<bool()> fx::ServerGameState::GetRequestControlEventHandler(const f
 					return &fx::RequestControlHandler<RequestControlFilterMode::FilterPlayer>;
 				case RequestControlFilterMode::FilterPlayerSettled:
 					return &fx::RequestControlHandler<RequestControlFilterMode::FilterPlayerSettled>;
+				case RequestControlFilterMode::FilterVehicles:
+					return &fx::RequestControlHandler<RequestControlFilterMode::FilterVehicles>;
 			}
 		}();
 
@@ -5775,16 +5803,17 @@ std::function<bool()> fx::ServerGameState::GetRequestControlEventHandler(const f
 		{
 			static std::chrono::milliseconds lastWarn{ -120 * 1000 };
 
-			if (g_requestControlFilterState == RequestControlFilterMode::Default)
+			if (g_requestControlFilterState != RequestControlFilterMode::NoFilter)
 			{
 				auto now = msec();
 
 				if ((now - lastWarn) > std::chrono::seconds{ 120 })
 				{
-					console::PrintWarning("sync", "A client (slotID %d) tried to use NetworkRequestControlOfEntity (entity network ID %d), but it was rejected (%s).\n"
+					console::PrintWarning("sync", "A client (slotID %d, netID %d) tried to use NetworkRequestControlOfEntity (entity network ID %d), but it was rejected (%s).\n"
 												  "NetworkRequestControlOfEntity is deprecated, and should not be used because of potential abuse by cheaters. To disable this check, set \"sv_filterRequestControl\" \"0\".\n"
 												  "See https://aka.cfx.re/rcmitigation for more information.\n",
 					client->GetSlotId(),
+					client->GetNetId(),
 					objectId,
 					reason);
 
