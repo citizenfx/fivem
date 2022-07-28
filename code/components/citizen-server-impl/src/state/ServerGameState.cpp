@@ -5803,17 +5803,16 @@ std::function<bool()> fx::ServerGameState::GetRequestControlEventHandler(const f
 		{
 			static std::chrono::milliseconds lastWarn{ -120 * 1000 };
 
-			if (g_requestControlFilterState != RequestControlFilterMode::NoFilter)
+			if (g_requestControlFilterState == RequestControlFilterMode::Default)
 			{
 				auto now = msec();
 
 				if ((now - lastWarn) > std::chrono::seconds{ 120 })
 				{
-					console::PrintWarning("sync", "A client (slotID %d, netID %d) tried to use NetworkRequestControlOfEntity (entity network ID %d), but it was rejected (%s).\n"
+					console::PrintWarning("sync", "A client (slotID %d) tried to use NetworkRequestControlOfEntity (entity network ID %d), but it was rejected (%s).\n"
 												  "NetworkRequestControlOfEntity is deprecated, and should not be used because of potential abuse by cheaters. To disable this check, set \"sv_filterRequestControl\" \"0\".\n"
 												  "See https://aka.cfx.re/rcmitigation for more information.\n",
 					client->GetSlotId(),
-					client->GetNetId(),
 					objectId,
 					reason);
 
