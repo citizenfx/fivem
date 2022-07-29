@@ -278,7 +278,7 @@ public:
 	{
 		if (xbr::IsGameBuildOrGreater<2699>())
 		{
-			bool* thisCanRemoveBlips = *(bool**)((uintptr_t)this + 0x150); // See GtaThreadInit function in GtaThread::GtaThread()
+			bool* thisCanRemoveBlips = (bool*)((uintptr_t)this + 0x150); // See GtaThreadInit function in GtaThread::GtaThread()
 			*thisCanRemoveBlips = state;
 		}
 		else
