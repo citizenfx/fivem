@@ -6,7 +6,7 @@ $CacheDir = "$WorkDir\caches"
 
 $TempDir = "$env:TEMP\FxUpload"
 
-$OutName = "FxUpload-${env:CI_PIPELINE_ID}.zip"
+$OutName = "FxUpload-${env:CI_PIPELINE_ID}-${env:CI_JOB_NAME}.zip"
 $OutZip = "$TempDir\..\$OutName"
 
 if (Test-Path $TempDir) {

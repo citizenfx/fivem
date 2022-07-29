@@ -30,6 +30,10 @@ using IfElsePadding = std::conditional_t<Enable, Padding<Bytes>, Padding<BytesIf
 #define DECLARE_ACCESSOR(x)                                                   \
 	inline auto& x()                                                          \
 	{                                                                         \
+		if (xbr::IsGameBuildOrGreater<2699>())								  \
+		{																	  \
+			return impl2699.x;												  \
+		}																	  \
 		if (xbr::IsGameBuildOrGreater<2372>())                                \
 		{                                                                     \
 			return impl2372.x;                                                \
@@ -38,6 +42,10 @@ using IfElsePadding = std::conditional_t<Enable, Padding<Bytes>, Padding<BytesIf
 	}                                                                         \
 	inline const auto& x() const                                              \
 	{                                                                         \
+		if (xbr::IsGameBuildOrGreater<2699>())								  \
+		{                                                                     \
+			return impl2699.x;												  \
+		}																	  \
 		if (xbr::IsGameBuildOrGreater<2372>())                                \
 		{                                                                     \
 			return impl2372.x;                                                \
@@ -138,6 +146,29 @@ struct ioMouseStruct2372
 	float mouseDiffDirectionX; // -1.000[Left] -> 1.000[Right]
 	float mouseDiffDirectionY; // -1.000[Up] -> 1.000[Down]
 };
+struct ioMouseStruct2699
+{
+	int32_t m_dZ; // mousewheel
+	char pad_[20];
+	int32_t m_X; // Based on your monitor's resolution. Zero when alt-tabbed and Zero in launcher
+	int32_t m_Y; // ^^^^^^^^^^^
+	int32_t m_dX; // in pixels
+	int32_t m_lastDX;
+	int32_t m_dY;
+	int32_t m_lastDY;
+	char pad_0024[84];
+	int32_t cursorAbsX; // Based on your monitor's resolution. center of screen when alt-tabbed (ex: 1280/720 on a 1440p screen)
+	int32_t cursorAbsY; // ^^^^^^^^^^^^^^
+	float cursorDiffX; // cursor pixel diff in float, but is always rounded to a whole number
+	float cursorDiffY; // ^^^^^^
+	int32_t scrollDiffTicks; // unsure about this
+	int32_t m_InternalButtonsState;
+	int32_t m_LastButtons;
+	int32_t m_Buttons;
+	int32_t N00000048; // some sort of frame ticker, only goes up while alt-tabbed
+	float mouseDiffDirectionX; // -1.000[Left] -> 1.000[Right]
+	float mouseDiffDirectionY; // -1.000[Up] -> 1.000[Down]
+};
 
 struct ioMouse
 {
@@ -146,6 +177,7 @@ struct ioMouse
 		ioMouseStruct1604 impl1604;
 		ioMouseStruct2189 impl2189;
 		ioMouseStruct2372 impl2372;
+		ioMouseStruct2699 impl2699;
 	};
 	DECLARE_ACCESSOR(m_Buttons);
 	DECLARE_ACCESSOR(m_lastDX);

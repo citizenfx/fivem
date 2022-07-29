@@ -35,6 +35,13 @@ export class Profile {
 	public signedIn: boolean;
 }
 
+interface BuildSwitchRequest {
+	build: number;
+	pureLevel: number;
+	currentBuild: number;
+	currentPureLevel: number;
+}
+
 export class Profiles {
 	public profiles: Profile[];
 }
@@ -433,7 +440,7 @@ export class CfxGameService extends GameService {
 					case 'connectBuildSwitchRequest':
 						this.zone.run(() =>
 							this.invokeBuildSwitchRequest(
-								this.lastServer, event.data.data.build));
+								this.lastServer, event.data.data));
 						break;
 					case 'connectBuildSwitch':
 						this.zone.run(() =>
@@ -623,7 +630,7 @@ export class CfxGameService extends GameService {
         });
     }
 
-	protected invokeBuildSwitchRequest(server: Server, build: number) {
+	protected invokeBuildSwitchRequest(server: Server, buildSwitchRequest: BuildSwitchRequest) {
 		this.card = true;
 
 		const presentCard = (seconds: number) => {
@@ -642,11 +649,11 @@ export class CfxGameService extends GameService {
 				gameBrand = 'FiveM';
 			}
 
-			const heading = new TextBlock(this.translation.translate('#BuildSwitch_Heading', { build, gameBrand }));
+			const heading = new TextBlock(this.translation.translate('#BuildSwitch_Heading', { ...buildSwitchRequest, gameBrand }));
 			heading.size = TextSize.ExtraLarge;
 			card.addItem(heading);
 
-			const body = new TextBlock(this.translation.translate('#BuildSwitch_Body', { build, seconds }));
+			const body = new TextBlock(this.translation.translate(getBuildSwitchBody(buildSwitchRequest), { ...buildSwitchRequest, seconds }));
 			body.wrap = true;
 			card.addItem(body);
 
@@ -669,6 +676,29 @@ export class CfxGameService extends GameService {
 				card: JSON.stringify(card.toJSON())
 			});
 		};
+
+		function getBuildSwitchBody(switchRequest: BuildSwitchRequest) {
+			const buildChanged = switchRequest.currentBuild !== switchRequest.build;
+			const pureLevelChanged = switchRequest.currentPureLevel !== switchRequest.pureLevel;
+
+			if (pureLevelChanged) {
+				if (switchRequest.currentPureLevel === 0) {
+					if (!buildChanged) {
+						return '#BuildSwitch_PureBody';
+					} else {
+						return '#BuildSwitch_PureBuildBody';
+					}
+				} else {
+					if (!buildChanged) {
+						return '#BuildSwitch_PureSwitchBody';
+					} else {
+						return '#BuildSwitch_PureBuildSwitchBody';
+					}
+				}
+			}
+
+			return '#BuildSwitch_Body';
+		}
 
 		this.buildSwitchUItimeouts.forEach(clearTimeout);
         this.buildSwitchUItimeouts.length = 0;

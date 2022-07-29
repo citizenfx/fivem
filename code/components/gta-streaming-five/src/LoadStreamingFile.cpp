@@ -951,7 +951,7 @@ static hook::cdecl_stub<void(void*)> _loadManifestChunk([]()
 #ifdef GTA_FIVE
 	return hook::get_call(hook::get_pattern("45 38 AE C0 00 00 00 0F 95 C3 E8", -5));
 #elif IS_RDR3
-	return hook::get_call(hook::get_pattern("41 8B 06 48 8D 95 B8 02 00 00 48", 23));
+	return hook::get_call(hook::get_pattern("48 8D 95 B8 02 00 00 48 8D 0D", 20));
 #endif
 });
 
@@ -960,7 +960,7 @@ static hook::cdecl_stub<void(void*)> _clearManifestChunk([]()
 #ifdef GTA_FIVE
 	return hook::get_pattern("33 FF 48 8D 4B 10 B2 01", -0x15);
 #elif IS_RDR3
-	return hook::get_call(hook::get_pattern("F6 44 24 70 04 74 ? 80 3D ? ? ? ? 00 74", 35));
+	return hook::get_call(hook::get_pattern("33 C9 E8 ? ? ? ? 48 8D 55 10 89 45 10 48", 33));
 #endif
 });
 
@@ -1164,7 +1164,7 @@ static void ReloadMapStore()
 
 #ifdef GTA_FIVE
 	// needs verification for newer builds
-	if (!xbr::IsGameBuildOrGreater<2545 + 1>())
+	if (!xbr::IsGameBuildOrGreater<2699 + 1>())
 	{
 		ReloadMapStoreNative();
 	}
@@ -1464,6 +1464,11 @@ public:
 };
 
 static CfxProxyInteriorOrderMounter g_proxyInteriorOrderMounter;
+
+static hook::cdecl_stub<void()> _initVehiclePaintRamps([]()
+{
+	return xbr::IsGameBuildOrGreater<2545>() ? hook::get_pattern("83 F9 FF 74 52", -0x34) : nullptr;
+});
 #endif
 
 static CDataFileMountInterface* LookupDataFileMounter(const std::string& type)
@@ -2727,7 +2732,7 @@ static hook::cdecl_stub<void()> _waitUntilStreamerClear([]()
 #ifdef GTA_FIVE
 	return hook::get_call(hook::get_pattern("80 A1 7A 01 00 00 FE 8B EA", 12));
 #elif IS_RDR3
-	return hook::get_call(hook::get_pattern("B1 01 E8 ? ? ? ? B9 FF FF 00 00 E8", -19));
+	return hook::get_call(hook::get_pattern("80 A3 ? ? ? ? FE 48 8D 0D ? ? ? ? BA FF FF 00 00", 24));
 #endif
 });
 
@@ -2736,7 +2741,7 @@ static hook::cdecl_stub<void(void*)> _resyncStreamers([]()
 #ifdef GTA_FIVE
 	return hook::get_call(hook::get_pattern("80 A1 7A 01 00 00 FE 8B EA", 24));
 #elif IS_RDR3
-	return hook::get_call(hook::get_pattern("B1 01 E8 ? ? ? ? B9 FF FF 00 00 E8", -24));
+	return hook::get_call(hook::get_pattern("80 A3 ? ? ? ? FE 48 8D 0D ? ? ? ? BA FF FF 00 00", 19));
 #endif
 });
 
@@ -3312,8 +3317,8 @@ static HookFunction hookFunction([]()
 	g_streamingInternals = hook::get_address<void*>(hook::get_pattern("80 A1 7A 01 00 00 FE 8B EA", 20));
 	manifestChunkPtr = hook::get_address<void*>(hook::get_pattern("C7 80 74 01 00 00 02 00 00 00 E8 ? ? ? ? 8B 06", -4));
 #elif IS_RDR3
-	g_streamingInternals = hook::get_address<void*>(hook::get_pattern("B1 01 E8 ? ? ? ? B9 FF FF 00 00 E8", -28));
-	manifestChunkPtr = hook::get_address<void*>(hook::get_pattern<char>("F6 44 24 70 04 74 ? 80 3D ? ? ? ? 00 74", 31));
+	g_streamingInternals = hook::get_address<void*>(hook::get_pattern("80 A3 ? ? ? ? FE 48 8D 0D ? ? ? ? BA FF FF 00 00", 10));
+	manifestChunkPtr = hook::get_address<void*>(hook::get_pattern<char>("33 C9 E8 ? ? ? ? 48 8D 55 10 89 45 10 48", 17));
 #endif
 
 	// level load
@@ -3616,6 +3621,13 @@ static HookFunction hookFunction([]()
 			LoadStreamingFiles(LoadType::AfterSessionEarlyStage);
 			LoadStreamingFiles(LoadType::AfterSession);
 			LoadDataFiles();
+
+#ifdef GTA_FIVE
+			if (xbr::IsGameBuildOrGreater<2545>())
+			{
+				_initVehiclePaintRamps();
+			}
+#endif
 		}
 	});
 
@@ -3711,7 +3723,7 @@ static HookFunction hookFunction([]()
 
 	// do not ever register our streaming files as part of DLC packfile dependencies
 	{
-		auto location = hook::get_pattern("48 8B CE C6 85 ? 00 00 00 01 89 44 24 20 E8", 14);
+		auto location = hook::get_pattern("48 8B CE C6 85 ? ? 00 00 01 89 44 24 20 E8", 14);
 		hook::set_call(&g_origAddMapBoolEntry, location);
 		hook::call(location, WrapAddMapBoolEntry);
 	}

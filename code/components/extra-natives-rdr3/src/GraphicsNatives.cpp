@@ -46,7 +46,7 @@ static uint32_t ConvertRGBAToHex(uint8_t red, uint8_t green, uint8_t blue, uint8
 
 static hook::cdecl_stub<void*(uint64_t points, int pointsAmount, void* a3, bool filling, uint32_t drawColor)> g_drawPoints([]()
 {
-	return hook::pattern("0F 57 F6 44 0F 29 40 B8 44 0F 29 48 A8 45 0F 57 C9").count(1).get(0).get<void>(-0x37);
+	return hook::get_call(hook::get_pattern("41 8D 50 03 0F 29 45 F0 8B 41 30 48 8D 4D D0", 0x13));
 });
 
 static void(*g_origScriptImRenderPhase)();
@@ -101,13 +101,13 @@ static uint32_t* g_scriptDrawOrigin;
 static HookFunction hookFunction([]()
 {
 	{
-		auto location = hook::get_pattern<char>("48 8B D9 F3 0F 10 79 0C 44 0F 29 40 A8");
+		auto location = hook::get_pattern<char>("48 69 D0 10 04 00 00 48 8D 05 ? ? ? ? 48 03");
 
-		g_frameDrawIndex1 = hook::get_address<int*>(location + 80);
-		g_frameDrawIndex2 = hook::get_address<int*>(location + 93);
-		g_drawOriginStore = hook::get_address<void*>(location + 110);
+		g_frameDrawIndex1 = hook::get_address<int*>(location - 20);
+		g_frameDrawIndex2 = hook::get_address<int*>(location - 7);
+		g_drawOriginStore = hook::get_address<void*>(location + 10);
 
-		hook::set_call(&isGamePaused, location + 73);
+		hook::set_call(&isGamePaused, location - 27);
 	}
 
 	{

@@ -34,6 +34,11 @@ static hook::cdecl_stub<void(int unk, uint32_t* titleHash, uint32_t* messageHash
 		return hook::get_call<void*>(hook::get_call(hook::pattern("57 41 56 41 57 48 83 EC 50 4C 63 F2").count(1).get(0).get<char>(0xAC)) + 0x6D);
 	}
 
+	if (xbr::IsGameBuildOrGreater<2699>())
+	{
+		return hook::get_pattern("44 38 ? ? ? ? ? 0F 85 C5 02 00 00 E8", -0x38);
+	}
+
 	return hook::get_pattern("44 38 ? ? ? ? ? 0F 85 C2 02 00 00 E8", -0x3A);
 });
 
@@ -44,9 +49,15 @@ static hook::cdecl_stub<int(bool, int)> getWarningResult([] ()
 
 static bool g_showWarningMessage;
 static std::string g_warningMessage;
+extern volatile bool g_isNetworkKilled;
 
 void FiveGameInit::KillNetwork(const wchar_t* errorString)
 {
+	if (g_isNetworkKilled)
+	{
+		return;
+	}
+
 	if (errorString == (wchar_t*)1)
 	{
 		OnKillNetwork("Reloading game.");
@@ -156,7 +167,21 @@ static bool (*g_isScWaitingForInit)();
 
 void RunRlInitServicing()
 {
-	if (xbr::IsGameBuildOrGreater<2545>())
+	if (xbr::IsGameBuildOrGreater<2699>())
+	{
+		((void (*)())hook::get_adjusted(0x1400069F4))();
+		((void (*)())hook::get_adjusted(0x1407FE28C))();
+		((void (*)())hook::get_adjusted(0x140027C20))();
+		((void (*)(void*))hook::get_adjusted(0x14160A9AC))((void*)hook::get_adjusted(0x142FF1F70));
+	}
+	else if (xbr::IsGameBuildOrGreater<2612>())
+	{
+		((void (*)())hook::get_adjusted(0x140006C38))();
+		((void (*)())hook::get_adjusted(0x1407FB420))();
+		((void (*)())hook::get_adjusted(0x14002778C))();
+		((void (*)(void*))hook::get_adjusted(0x1416135F8))((void*)hook::get_adjusted(0x142E710F0));
+	}
+	else if (xbr::IsGameBuildOrGreater<2545>())
 	{
 		((void (*)())hook::get_adjusted(0x140006A28))();
 		((void (*)())hook::get_adjusted(0x1407FB28C))();

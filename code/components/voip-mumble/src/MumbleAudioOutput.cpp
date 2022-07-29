@@ -1584,6 +1584,8 @@ std::shared_ptr<lab::AudioContext> MumbleAudioOutput::GetAudioContext(const std:
 	return {};
 }
 
+extern std::mutex g_mmDeviceMutex;
+
 void MumbleAudioOutput::InitializeAudioDevice()
 {
 	{
@@ -1612,41 +1614,47 @@ void MumbleAudioOutput::InitializeAudioDevice()
 		MumbleAudioOutput* self;
 	} unlocker(this);
 
-	if (!m_mmDeviceEnumerator)
+	// this initialization *needs* to be locked as otherwise it'll expose a race condition in Steam's 'gameoverlayrenderer64.dll' leading to a
+	// stack overflow with the built-in OS mic monitoring shim in apphelp.dll and Steam's hook calling itself recursively
 	{
-		HRESULT hr = CoCreateInstance(CLSID_MMDeviceEnumerator, nullptr, CLSCTX_INPROC_SERVER, IID_IMMDeviceEnumerator, (void**)m_mmDeviceEnumerator.GetAddressOf());
+		std::unique_lock _(g_mmDeviceMutex);
 
-		if (FAILED(hr))
+		if (!m_mmDeviceEnumerator)
 		{
-			trace("%s: failed MMDeviceEnumerator (%08x)\n", __func__, hr);
-			return;
-		}
-	}
+			HRESULT hr = CoCreateInstance(CLSID_MMDeviceEnumerator, nullptr, CLSCTX_INPROC_SERVER, IID_IMMDeviceEnumerator, (void**)m_mmDeviceEnumerator.GetAddressOf());
 
-	while (!device.Get())
-	{
-		if (m_deviceGuid.empty())
-		{
-			if (FAILED(m_mmDeviceEnumerator->GetDefaultAudioEndpoint(eRender, eCommunications, device.ReleaseAndGetAddressOf())))
+			if (FAILED(hr))
 			{
-				trace("%s: failed GetDefaultAudioEndpoint\n", __func__);
+				trace("%s: failed MMDeviceEnumerator (%08x)\n", __func__, hr);
 				return;
 			}
 		}
-		else
-		{
-			device = GetMMDeviceFromGUID(false, m_deviceGuid);
 
-			if (!device.Get())
+		while (!device.Get())
+		{
+			if (m_deviceGuid.empty())
 			{
-				trace("%s: failed GetMMDeviceFromGUID\n", __func__);
-				m_deviceGuid = "";
+				if (FAILED(m_mmDeviceEnumerator->GetDefaultAudioEndpoint(eRender, eCommunications, device.ReleaseAndGetAddressOf())))
+				{
+					trace("%s: failed GetDefaultAudioEndpoint\n", __func__);
+					return;
+				}
+			}
+			else
+			{
+				device = GetMMDeviceFromGUID(false, m_deviceGuid);
+
+				if (!device.Get())
+				{
+					trace("%s: failed GetMMDeviceFromGUID\n", __func__);
+					m_deviceGuid = "";
+				}
 			}
 		}
-	}
 
-	// opt out of ducking
-	DuckingOptOut(device);
+		// opt out of ducking
+		DuckingOptOut(device);
+	}
 
 	auto xa2Dll = LoadLibraryExW(L"XAudio2_8.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
 	decltype(&CreateAudioReverb) _CreateAudioReverb;

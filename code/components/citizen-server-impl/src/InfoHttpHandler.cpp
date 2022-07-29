@@ -31,6 +31,8 @@ inline uint32_t SwapLong(uint32_t x)
 	return (x << 16) | (x >> 16);
 }
 
+extern std::shared_ptr<ConVar<std::string>> g_steamApiKey;
+
 namespace fx
 {
 struct InfoHttpHandlerComponentLocals : fwRefCountable
@@ -96,6 +98,18 @@ struct InfoHttpHandlerComponentLocals : fwRefCountable
 
 					infoJson["resources"].push_back(resource->GetName());
 				});
+
+				std::string requestSteamTicket = "on";
+				if (g_steamApiKey->GetValue().empty())
+				{
+					requestSteamTicket = "unset";
+				}
+				else if (g_steamApiKey->GetValue() == "none")
+				{
+					requestSteamTicket = "off";
+				}
+
+				infoJson["requestSteamTicket"] = requestSteamTicket;
 
 				infoJson["version"] = 0;
 

@@ -51,10 +51,10 @@
 	url = https://github.com/fmtlib/fmt.git
 [submodule "vendor/nghttp2"]
 	path = vendor/nghttp2
-	url = https://github.com/nghttp2/nghttp2
+	url = https://github.com/nghttp2/nghttp2.git
 [submodule "vendor/cpr"]
 	path = vendor/cpr
-	url = https://github.com/whoshuu/cpr.git
+	url = https://github.com/libcpr/cpr.git
 [submodule "vendor/enet"]
 	path = vendor/enet
 	url = https://github.com/freeminer/enet.git
@@ -64,7 +64,7 @@
 	url = https://github.com/citizenfx/imgui.git
 [submodule "vendor/tbb"]
 	path = vendor/tbb
-	url = https://github.com/01org/tbb.git
+	url = https://github.com/citizenfx/oneTBB.git
 [submodule "vendor/cpprestsdk"]
 	path = vendor/cpprestsdk
 	url = https://github.com/Microsoft/cpprestsdk.git
@@ -133,7 +133,7 @@
 	url = https://github.com/blattersturm/replxx.git
 [submodule "vendor/thread-pool-cpp"]
 	path = vendor/thread-pool-cpp
-	url = https://github.com/yvoinov/thread-pool-cpp.git
+	url = https://github.com/inkooboo/thread-pool-cpp.git
 [submodule "vendor/ben-demystifier"]
 	path = vendor/ben-demystifier
 	url = https://github.com/citizenfx/Ben.Demystifier.git
@@ -236,12 +236,6 @@
 [submodule "vendor/directxtex"]
 	path = vendor/directxtex
 	url = https://github.com/microsoft/DirectXTex.git
-[submodule "vendor/hoard"]
-	path = vendor/hoard
-	url = https://github.com/emeryberger/Hoard.git
-[submodule "vendor/heap-layers"]
-	path = vendor/heap-layers
-	url = https://github.com/emeryberger/Heap-Layers.git
 [submodule "vendor/dspfilters"]
 	path = vendor/dspfilters
 	url = https://github.com/thorwe/DSPFilters.git
@@ -277,3 +271,6 @@
 [submodule "vendor/zstd"]
 	path = vendor/zstd
 	url = https://github.com/facebook/zstd.git
+[submodule "vendor/freetype"]
+	path = vendor/freetype
+	url = https://github.com/freetype/freetype.git

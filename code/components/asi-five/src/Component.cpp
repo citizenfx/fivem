@@ -15,6 +15,7 @@
 
 #include <CoreConsole.h>
 #include <LaunchMode.h>
+#include <PureModeState.h>
 
 #include <Error.h>
 
@@ -84,6 +85,11 @@ static bool IsCLRAssembly(const std::vector<uint8_t>& libraryBuffer)
 bool ComponentInstance::DoGameLoad(void* module)
 {
 	HookFunction::RunAll();
+
+	if (fx::client::GetPureLevel() >= 2)
+	{
+		return true;
+	}
 
 	try
 	{

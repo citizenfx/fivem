@@ -23,6 +23,7 @@ vendor_component 'curl-crt'
 vendor_component 'curl-static'
 vendor_component 'lua'
 vendor_component 'lua54'
+vendor_component 'lua54-noglm'
 vendor_component 'rpmalloc'
 vendor_component 'leveldb'
 vendor_component 'rocksdb'
@@ -44,12 +45,15 @@ vendor_component 'boost_system'
 vendor_component 'boost_locale'
 vendor_component 'boost_locale-crt'
 
+vendor_component 'freetype'
+
 if os.target() == 'windows' then
 	vendor_component 'discord-rpc'
 	vendor_component 'minhook'
 	vendor_component 'minhook-crt'
 	vendor_component 'fx11'
 	vendor_component 'im3d'
+	vendor_component 'nvapi'
 end
 
 vendor_component 'hdiffpatch'

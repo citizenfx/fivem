@@ -166,6 +166,8 @@ private:
 
 	HANDLE m_receiveEvent;
 
+	bool m_disconnecting = false;
+
 	concurrency::concurrent_queue<std::function<void()>> m_mainFrameQueue;
 
 	std::function<void(const std::string&, const std::string&)> m_cardResponseHandler;
@@ -331,7 +333,7 @@ public:
 #endif
 		fwEvent<NetLibrary*> OnNetLibraryCreate;
 
-	fwEvent<int> OnRequestBuildSwitch;
+	fwEvent<int /* build */, int /* pure level */> OnRequestBuildSwitch;
 
 	fwEvent<const char*> OnAttemptDisconnect;
 

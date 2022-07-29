@@ -529,7 +529,7 @@ fwRefContainer<GITexture> GtaNuiInterface::CreateTextureFromShareHandle(HANDLE s
 		rage::grcManualTextureDef textureDef;
 		memset(&textureDef, 0, sizeof(textureDef));
 		textureDef.isStaging = 1;
-		textureDef.usage = 0;
+		textureDef.usage = 1;
 		textureDef.arraySize = 1;
 
 		auto texRef = rage::grcTextureFactory::getInstance()->createManualTexture(desc.Width, desc.Height, 2 /* maps to BGRA DXGI format */, nullptr, true, &textureDef);

@@ -144,6 +144,8 @@ static InitFunction initFunction([]()
 			return CefV8Value::CreateBool(false);
 		}
 
+		rgd->skipKeyboardStateCopyback = true;
+
 		g_rgdInputInited = true;
 		g_runner = std::thread(QueueRunner);
 		g_runner.detach();

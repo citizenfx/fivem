@@ -1,5 +1,6 @@
 version: 1.0.{build}
 clone_depth: 1
+skip_tags: true
 environment:
   matrix:
   - IS_FXSERVER: 0
@@ -8,13 +9,6 @@ environment:
   - IS_FXSERVER: 1
     APPVEYOR_BUILD_WORKER_CLOUD: OMNITRON
     APPVEYOR_BUILD_WORKER_IMAGE: Windows20200507
-#  - IS_FXSERVER: 1
-#    APPVEYOR_BUILD_WORKER_CLOUD: REMOTE2
-#    APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu20200507_Docker
-#    APPVEYOR_YML_DISABLE_PS_LINUX: true
-    
-services:
-- docker
     
 build_script:
 #################
@@ -24,18 +18,6 @@ build_script:
 - ps: git reset --hard
 - ps: Install-Product node 12 x64
 - ps: .\code\tools\ci\build.ps1 -DontUpload $true -SaveDir C:\save
-
-###############
-# linux steps #
-###############
-- sh: git submodule update --init
-- sh: curl -O -L https://github.com/Hellslicer/rocker/releases/download/1.3.4/rocker_linux_amd64.tar.gz
-- sh: tar xvf rocker_linux_amd64.tar.gz
-- sh: cd code/
-
-# TODO: tags/docker upload/secure creds
-- sh: '../rocker build --build-arg JOB_SLOTS=$(nproc)'
-
 
 artifacts:
 - path: caches/

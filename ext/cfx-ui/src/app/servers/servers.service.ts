@@ -124,7 +124,7 @@ export class ServersService {
 
 			this.requestEvent
 				.subscribe(url => {
-					this.worker.postMessage({ type: 'queryServers', url: url + `streamRedir/` });
+					this.worker.postMessage({ type: 'queryServers', url: url + `streamRedir/`, gameName: gameService.gameName });
 				});
 		}
 

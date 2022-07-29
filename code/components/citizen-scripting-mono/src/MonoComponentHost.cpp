@@ -9,6 +9,7 @@
 #include <om/OMComponent.h>
 
 #include <ResourceManager.h>
+#include <Profiler.h>
 
 #include <fxScripting.h>
 
@@ -189,6 +190,27 @@ static void gc_event(MonoProfiler *profiler, MonoGCEvent event, int generation)
 static void gc_event(MonoProfiler* profiler, MonoProfilerGCEvent event, uint32_t generation, mono_bool is_serial)
 #endif
 {
+	if (event == MONO_GC_EVENT_PRE_STOP_WORLD || event == MONO_GC_EVENT_POST_START_WORLD)
+	{
+		static auto profiler = fx::ResourceManager::GetCurrent(true)->GetComponent<fx::ProfilerComponent>();
+
+		if (profiler->IsRecording())
+		{
+			bool isMajor = (generation == 1); // sgen seems to only have 0/1 (mono_gc_max_generation == 1)
+			static std::string majorGcString = ".NET Major GC";
+			static std::string minorGcString = ".NET Minor GC";
+
+			if (event == MONO_GC_EVENT_PRE_STOP_WORLD)
+			{
+				profiler->EnterScope(isMajor ? majorGcString : minorGcString);
+			}
+			else
+			{
+				profiler->ExitScope();
+			}
+		}
+	}
+
 #if defined(_WIN32)
 	switch (event) {
 	// a comment above mono_gc_walk_heap says the following:
@@ -376,7 +398,7 @@ static bool GI_WalkStackBoundary(MonoString* resourceName, MonoArray* start, Mon
 	return true;
 }
 
-#if !defined(IS_FXSERVER) || defined(_WIN32)
+#ifndef IS_FXSERVER
 MonoMethod* g_tickMethod;
 
 extern "C" DLL_EXPORT void GI_TickInDomain(MonoAppDomain* domain)
@@ -540,7 +562,7 @@ static void InitMono()
 	method_search("CitizenFX.Core.RuntimeManager:CreateObjectInstance", g_createObjectMethod);
 	method_search("System.Diagnostics.EnhancedStackTrace:GetMethodDisplayString", g_getMethodDisplayStringMethod);
 
-#if !defined(IS_FXSERVER) || defined(_WIN32)
+#ifndef IS_FXSERVER
 	method_search("CitizenFX.Core.InternalManager:TickGlobal", g_tickMethod);
 #endif
 

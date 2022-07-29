@@ -44,6 +44,13 @@ static void StartLoadResources(const std::vector<ResourceMetaData>& rmds)
 
 	for (const auto& md : rmds)
 	{
+		// sometimes, this may contain _cfx_internal with '' uri
+		// that prints confusing line in console.
+		if (md.uri.empty())
+		{
+			continue;
+		}
+
 		fwRefContainer<fx::CachedResourceMounter> mounter = resman->GetMounterForUri(md.uri);
 
 		if (mounter.GetRef())

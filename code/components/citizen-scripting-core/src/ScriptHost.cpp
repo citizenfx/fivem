@@ -670,16 +670,16 @@ static InitFunction initFunction([]()
 {
 	fx::ScriptEngine::RegisterNativeHandler("FORMAT_STACK_TRACE", [](fx::ScriptContext& context)
 	{
-		if (fx::g_suppressErrors)
+		auto topLevelStackBlob = context.GetArgument<char*>(0);
+		auto topLevelStackSize = context.GetArgument<uint32_t>(1);
+
+		if (fx::g_suppressErrors && topLevelStackBlob != nullptr)
 		{
 			context.SetResult(nullptr);
 			return;
 		}
 
 		fx::g_suppressErrors = true;
-
-		auto topLevelStackBlob = context.GetArgument<char*>(0);
-		auto topLevelStackSize = context.GetArgument<uint32_t>(1);
 
 		auto vis = fx::MakeNew<StringifyingStackVisitor>();
 

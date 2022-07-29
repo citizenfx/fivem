@@ -355,7 +355,12 @@ void NUIWindow::Initialize(CefString url)
 	InitializeRenderBacking();
 
 	// create the client/browser instance
-	m_client = new NUIClient(this);
+	{
+		CefRefPtr<NUIClient> client = new NUIClient(this);
+		client->Initialize();
+
+		m_client = client;
+	}
 
 	CefWindowInfo info;
 	info.SetAsWindowless(NULL);

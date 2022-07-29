@@ -10,7 +10,7 @@ set SRRoot=%~dp0\data
 
 pushd ..\txAdmin
 call npm install -g npm@7.19.1
-call npm ci
+call npm ci --legacy-peer-deps
 call npm run build 2>&1 | findstr /V "not found"
 popd
 

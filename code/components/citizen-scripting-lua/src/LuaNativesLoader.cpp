@@ -9,7 +9,7 @@ namespace fx
 bool mountedAnyNatives = false;
 }
 
-static void MountNatives(const std::string& name)
+static bool MountNatives(const std::string& name)
 {
 	static std::map<std::string, std::vector<uint8_t>> storedFiles;
 
@@ -34,10 +34,13 @@ static void MountNatives(const std::string& name)
 
 		if (device->OpenArchive(fmt::sprintf("memory:$%016llx,%d,0:%s", (uintptr_t)thisData, thisDataSize, name)))
 		{
-			fx::mountedAnyNatives = true;
 			vfs::Mount(device, fmt::sprintf("nativesLua:/%s/", name));
+
+			return true;
 		}
 	}
+
+	return false;
 }
 
 class MarkerDevice : public vfs::Device
@@ -96,19 +99,26 @@ static InitFunction initFunction([]()
 
 		if (!mountedFiles)
 		{
+			mountedFiles =
 #if defined(IS_RDR3)
-			MountNatives("rdr3_universal");
+			MountNatives("rdr3_universal") &&
 #elif defined(GTA_NY)
-			MountNatives("ny_universal");
+			MountNatives("ny_universal") &&
 #elif defined(GTA_FIVE)
-			MountNatives("natives_universal");
-			MountNatives("natives_21e43a33");
-			MountNatives("natives_0193d0af");
+			MountNatives("natives_universal") &&
+			MountNatives("natives_21e43a33") &&
+			MountNatives("natives_0193d0af") &&
 #elif defined(IS_FXSERVER)
-			MountNatives("natives_server");
+			MountNatives("natives_server") &&
 #endif
+			true;
 
-			vfs::Mount(new MarkerDevice(), "nativesLua:/marker/");
+			if (mountedFiles)
+			{
+				vfs::Mount(new MarkerDevice(), "nativesLua:/marker/");
+			}
 		}
+
+		fx::mountedAnyNatives = mountedFiles;
 	});
 });

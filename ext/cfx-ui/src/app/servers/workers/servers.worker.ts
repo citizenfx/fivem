@@ -556,11 +556,12 @@ function queryServers(e: MessageEvent) {
 						server.Data.vars.sv_projectDesc = filterProjectDesc(server.Data.vars.sv_projectDesc);
 					}
 
-					serverTagsWorker.addServerTags(server);
-					serverTagsWorker.addLocaleIndex(server);
-					serverAutoCompleteWorker.addAutocompleteIndex(server);
-
-					cachedServers[server.EndPoint] = server.Data;
+					if (server?.Data?.vars?.gamename == e.data.gameName) {
+						serverTagsWorker.addServerTags(server);
+						serverTagsWorker.addLocaleIndex(server);
+						serverAutoCompleteWorker.addAutocompleteIndex(server);
+						cachedServers[server.EndPoint] = server.Data;
+					}
 				}
 
 				postMessage({ type: 'addServers', servers });

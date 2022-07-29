@@ -184,6 +184,7 @@ workspace "CitizenMP"
 
 		buildoptions {
 			"-fPIC", -- required to link on AMD64
+			"-fvisibility=hidden", -- default visibility
 		}
 
 	-- TARGET: launcher
@@ -202,10 +203,12 @@ workspace "CitizenMP"
 
 	-- TARGET: corert
 	include 'client/citicore'
+
+if _OPTIONS['game'] == 'rdr3' then
+	include 'client/ipfsdl'
+end
 	
 if _OPTIONS['game'] ~= 'server' then
-	include 'client/ipfsdl'
-
 	project "CitiGame"
 		targetname "CitizenGame"
 		language "C++"
@@ -217,10 +220,13 @@ if _OPTIONS['game'] ~= 'server' then
 		{
 			"client/common/Error.cpp",
 			"client/citigame/Launcher.cpp",
+			"client/citigame/NvCacheWorkaround.cpp",
 			"client/common/StdInc.cpp"
 		}
 
-		links { "Shared", "citicore" }
+		links { "Shared", "CitiCore" }
+
+		add_dependencies { 'vendor:nvapi' }
 
 		defines "COMPILING_GAME"
 
@@ -419,7 +425,6 @@ if _OPTIONS['game'] ~= 'launcher' then
 		end
 
 		if os.istarget('windows') then
-			defines { 'OS_WIN' }
 			nuget {
 				"Microsoft.DotNet.GenAPI:6.0.0-beta.21063.5",
 				"Microsoft.DotNet.GenFacades:6.0.0-beta.21063.5",

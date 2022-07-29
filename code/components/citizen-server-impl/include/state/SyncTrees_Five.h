@@ -128,7 +128,7 @@ struct CAutomobileCreationDataNode
 	}
 };
 
-struct CGlobalFlagsDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CGlobalFlagsDataNode { };
 
 struct CDynamicEntityGameStateDataNode : GenericSerializeDataNode<CDynamicEntityGameStateDataNode>
 {
@@ -371,6 +371,12 @@ struct CVehicleGameStateDataNode
 		bool unk57 = state.buffer.ReadBit();
 		bool unk58 = state.buffer.ReadBit();
 
+		if (Is2699())
+		{
+			bool unk59 = state.buffer.ReadBit();
+			bool unk60 = state.buffer.ReadBit();
+		}
+
 		int hasLock = state.buffer.ReadBit();
 		data.hasLock = hasLock;
 
@@ -428,9 +434,9 @@ struct CVehicleGameStateDataNode
 	}
 };
 
-struct CEntityScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPhysicalScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CVehicleScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CEntityScriptGameStateDataNode { };
+struct CPhysicalScriptGameStateDataNode { };
+struct CVehicleScriptGameStateDataNode { };
 
 struct CEntityScriptInfoDataNode
 {
@@ -831,8 +837,8 @@ struct CVehicleAppearanceDataNode {
 	}
 };
 
-struct CVehicleDamageStatusDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CVehicleComponentReservationDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CVehicleDamageStatusDataNode { };
+struct CVehicleComponentReservationDataNode { };
 
 struct CVehicleHealthDataNode
 {
@@ -950,7 +956,7 @@ struct CVehicleHealthDataNode
 	}
 };
 
-struct CVehicleTaskDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CVehicleTaskDataNode { };
 
 struct CSectorDataNode
 {
@@ -1359,7 +1365,7 @@ struct CVehicleSteeringDataNode
 	}
 };
 
-struct CVehicleControlDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CVehicleControlDataNode { };
 
 struct CVehicleGadgetDataNode
 {
@@ -1524,12 +1530,12 @@ struct CVehicleGadgetDataNode
 #endif
 };
 
-struct CMigrationDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPhysicalMigrationDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPhysicalScriptMigrationDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CVehicleProximityMigrationDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CBikeGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CBoatGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CMigrationDataNode { };
+struct CPhysicalMigrationDataNode { };
+struct CPhysicalScriptMigrationDataNode { };
+struct CVehicleProximityMigrationDataNode { };
+struct CBikeGameStateDataNode { };
+struct CBoatGameStateDataNode { };
 
 struct CDoorCreationDataNode
 {
@@ -1869,8 +1875,8 @@ struct CObjectGameStateDataNode
 	}
 };
 
-struct CObjectScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPhysicalHealthDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CObjectScriptGameStateDataNode { };
+struct CPhysicalHealthDataNode { };
 
 struct CObjectSectorPosNode : GenericSerializeDataNode<CObjectSectorPosNode>
 {
@@ -1916,11 +1922,11 @@ struct CPhysicalAngVelocityDataNode
 		return true;
 	}
 };
-//struct CPedCreationDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPedScriptCreationDataNode { bool Parse(SyncParseState& state) { return true; } };
-//struct CPedGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPedComponentReservationDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPedScriptGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
+//struct CPedCreationDataNode { };
+struct CPedScriptCreationDataNode { };
+//struct CPedGameStateDataNode { };
+struct CPedComponentReservationDataNode { };
+struct CPedScriptGameStateDataNode { };
 
 struct CPedAttachDataNode
 {
@@ -2065,9 +2071,9 @@ struct CPedHealthDataNode
 	}
 };
 
-struct CPedMovementGroupDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPedAIDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPedAppearanceDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CPedMovementGroupDataNode { };
+struct CPedAIDataNode { };
+struct CPedAppearanceDataNode { };
 
 struct CPedOrientationDataNode : GenericSerializeDataNode<CPedOrientationDataNode>
 {
@@ -2083,7 +2089,7 @@ struct CPedOrientationDataNode : GenericSerializeDataNode<CPedOrientationDataNod
 	}
 };
 
-struct CPedMovementDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CPedMovementDataNode { };
 
 struct CPedTaskTreeDataNode
 {
@@ -2126,7 +2132,7 @@ struct CPedTaskTreeDataNode
 	}
 };
 
-struct CPedTaskSpecificDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CPedTaskSpecificDataNode { };
 
 struct CPedSectorPosMapNode : GenericSerializeDataNode<CPedSectorPosMapNode>
 {
@@ -2173,12 +2179,12 @@ struct CPedSectorPosMapNode : GenericSerializeDataNode<CPedSectorPosMapNode>
 	}
 };
 
-struct CPedSectorPosNavMeshNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPedInventoryDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPedTaskSequenceDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPickupCreationDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPickupScriptGameStateNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPickupSectorPosNode { bool Parse(SyncParseState& state) { return true; } };
+struct CPedSectorPosNavMeshNode { };
+struct CPedInventoryDataNode { };
+struct CPedTaskSequenceDataNode { };
+struct CPickupCreationDataNode { };
+struct CPickupScriptGameStateNode { };
+struct CPickupSectorPosNode { };
 
 struct CPickupPlacementCreationDataNode
 {
@@ -2203,7 +2209,7 @@ struct CPickupPlacementCreationDataNode
 	}
 };
 
-struct CPickupPlacementStateDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CPickupPlacementStateDataNode { };
 
 struct CPlaneGameStateDataNode
 {
@@ -2348,7 +2354,7 @@ struct CPlaneControlDataNode
 	}
 };
 
-struct CSubmarineGameStateDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CSubmarineGameStateDataNode { };
 
 struct CSubmarineControlDataNode
 {
@@ -2418,7 +2424,7 @@ struct CTrainGameStateDataNode
 	}
 };
 
-struct CPlayerCreationDataNode { bool Parse(SyncParseState& state) { return true; } };
+struct CPlayerCreationDataNode { };
 
 struct CPlayerGameStateDataNode
 {
@@ -2430,7 +2436,20 @@ struct CPlayerGameStateDataNode
 		auto controlsDisabledByScript = state.buffer.ReadBit(); // SET_PLAYER_CONTROL
 		int playerTeam = state.buffer.Read<int>(6);
 		data.playerTeam = playerTeam;
-		int mobileRingState = state.buffer.Read<int>(8);
+
+		if (Is2699())
+		{
+			auto hasMobileRingState = state.buffer.ReadBit();
+
+			if (hasMobileRingState)
+			{
+				int mobileRingState = state.buffer.Read<int>(8);
+			}
+		}
+		else
+		{
+			int mobileRingState = state.buffer.Read<int>(8);
+		}
 
 		auto isAirDragMultiplierDefault = state.buffer.ReadBit();
 
@@ -2773,10 +2792,10 @@ struct CPlayerAppearanceDataNode
 	}
 };
 
-struct CPlayerPedGroupDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPlayerAmbientModelStreamingNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPlayerGamerDataNode { bool Parse(SyncParseState& state) { return true; } };
-struct CPlayerExtendedGameStateNode { bool Parse(SyncParseState& state) { return true; } };
+struct CPlayerPedGroupDataNode { };
+struct CPlayerAmbientModelStreamingNode { };
+struct CPlayerGamerDataNode { };
+struct CPlayerExtendedGameStateNode { };
 
 struct CPlayerSectorPosNode
 {
@@ -2954,63 +2973,18 @@ struct CPlayerWantedAndLOSDataNode
 };
 
 template<typename TNode>
-struct SyncTree : public SyncTreeBase
+struct SyncTree : public SyncTreeBaseImpl<TNode, false>
 {
-	TNode root;
-	std::mutex mutex;
-
-	template<typename TData>
-	inline static constexpr size_t GetOffsetOf()
-	{
-		auto doff = TNode::template GetOffsetOf<TData>();
-
-		return (doff) ? offsetof(SyncTree, root) + doff : 0;
-	}
-
-	template<typename TData>
-	inline std::tuple<bool, TData*> GetData()
-	{
-		constexpr auto offset = GetOffsetOf<TData>();
-
-		if constexpr (offset != 0)
-		{
-			return { true, (TData*)((uintptr_t)this + offset) };
-		}
-
-		return { false, nullptr };
-	}
-
-	template<typename TData>
-	inline static constexpr size_t GetOffsetOfNode()
-	{
-		auto doff = TNode::template GetOffsetOfNode<TData>();
-
-		return (doff) ? offsetof(SyncTree, root) + doff : 0;
-	}
-
-	template<typename TData>
-	inline NodeWrapper<NodeIds<0, 0, 0>, TData>* GetNode()
-	{
-		constexpr auto offset = GetOffsetOfNode<TData>();
-
-		if constexpr (offset != 0)
-		{
-			return (NodeWrapper<NodeIds<0, 0, 0>, TData>*)((uintptr_t)this + offset - 8);
-		}
-
-		return nullptr;
-	}
-
 	virtual void GetPosition(float* posOut) override
 	{
-		auto [hasSdn, secDataNode] = GetData<CSectorDataNode>();
-		auto [hasSpdn, secPosDataNode] = GetData<CSectorPositionDataNode>();
-		auto [hasPspdn, playerSecPosDataNode] = GetData<CPlayerSectorPosNode>();
-		auto [hasOspdn, objectSecPosDataNode] = GetData<CObjectSectorPosNode>();
-		auto [hasPspmdn, pedSecPosMapDataNode] = GetData<CPedSectorPosMapNode>();
-		auto [hasDoor, doorCreationDataNode] = GetData<CDoorCreationDataNode>();
-		auto [hasPickupPlacement, pickupPlacementCreationDataNode] = GetData<CPickupPlacementCreationDataNode>();
-		auto [hasPgsdn, pedGameStateDataNode] = GetData<CPedGameStateDataNode>();
+		auto [hasSdn, secDataNode] = this->template GetData<CSectorDataNode>();
+		auto [hasSpdn, secPosDataNode] = this->template GetData<CSectorPositionDataNode>();
+		auto [hasPspdn, playerSecPosDataNode] = this->template GetData<CPlayerSectorPosNode>();
+		auto [hasOspdn, objectSecPosDataNode] = this->template GetData<CObjectSectorPosNode>();
+		auto [hasPspmdn, pedSecPosMapDataNode] = this->template GetData<CPedSectorPosMapNode>();
+		auto [hasDoor, doorCreationDataNode] = this->template GetData<CDoorCreationDataNode>();
+		auto [hasPickupPlacement, pickupPlacementCreationDataNode] = this->template GetData<CPickupPlacementCreationDataNode>();
+		auto [hasPgsdn, pedGameStateDataNode] = this->template GetData<CPedGameStateDataNode>();
 
 		auto sectorX = (hasSdn) ? secDataNode->m_sectorX : 512;
 		auto sectorY = (hasSdn) ? secDataNode->m_sectorY : 512;
@@ -3089,140 +3063,140 @@ struct SyncTree : public SyncTreeBase
 
 	virtual CDoorMovementDataNodeData* GetDoorMovement() override
 	{
-		auto [hasNode, node] = GetData<CDoorMovementDataNode>();
+		auto [hasNode, node] = this->template GetData<CDoorMovementDataNode>();
 
 		return (hasNode) ? &node->data : nullptr;
 	}
 
 	virtual CDoorScriptInfoDataNodeData* GetDoorScriptInfo() override
 	{
-		auto [hasNode, node] = GetData<CDoorScriptInfoDataNode>();
+		auto [hasNode, node] = this->template GetData<CDoorScriptInfoDataNode>();
 
 		return (hasNode) ? &node->data : nullptr;
 	}
 
 	virtual CDoorScriptGameStateDataNodeData* GetDoorScriptGameState() override
 	{
-		auto [hasNode, node] = GetData<CDoorScriptGameStateDataNode>();
+		auto [hasNode, node] = this->template GetData<CDoorScriptGameStateDataNode>();
 
 		return (hasNode) ? &node->data : nullptr;
 	}
 
 	virtual CHeliControlDataNodeData* GetHeliControl() override
 	{
-		auto [hasNode, node] = GetData<CHeliControlDataNode>();
+		auto [hasNode, node] = this->template GetData<CHeliControlDataNode>();
 
 		return (hasNode) ? &node->data : nullptr;
 	}
 
 	virtual CPlayerCameraNodeData* GetPlayerCamera() override
 	{
-		auto [hasCdn, cameraNode] = GetData<CPlayerCameraDataNode>();
+		auto [hasCdn, cameraNode] = this->template GetData<CPlayerCameraDataNode>();
 
 		return (hasCdn) ? &cameraNode->data : nullptr;
 	}
 
 	virtual CPlayerWantedAndLOSNodeData* GetPlayerWantedAndLOS() override 
 	{
-		auto [hasNode, node] = GetData<CPlayerWantedAndLOSDataNode>();
+		auto [hasNode, node] = this->template GetData<CPlayerWantedAndLOSDataNode>();
 
 		return (hasNode) ? &node->data : nullptr;
 	}
 
 	virtual CPedGameStateNodeData* GetPedGameState() override
 	{
-		auto[hasPdn, pedNode] = GetData<CPedGameStateDataNode>();
+		auto[hasPdn, pedNode] = this->template GetData<CPedGameStateDataNode>();
 
 		return (hasPdn) ? &pedNode->data : nullptr;
 	}
 
 	virtual uint64_t GetPedGameStateFrameIndex() override
 	{
-		auto pedBase = GetNode<CPedGameStateDataNode>();
+		auto pedBase = this->template GetNode<CPedGameStateDataNode>();
 
 		return (pedBase) ? pedBase->frameIndex : 0;
 	}
 
 	virtual CVehicleGameStateNodeData* GetVehicleGameState() override
 	{
-		auto[hasVdn, vehNode] = GetData<CVehicleGameStateDataNode>();
+		auto[hasVdn, vehNode] = this->template GetData<CVehicleGameStateDataNode>();
 
 		return (hasVdn) ? &vehNode->data : nullptr;
 	}
 
 	virtual CPedTaskTreeDataNodeData* GetPedTaskTree() override
 	{
-		auto [hasNode, node] = GetData<CPedTaskTreeDataNode>();
+		auto [hasNode, node] = this->template GetData<CPedTaskTreeDataNode>();
 
 		return (hasNode) ? &node->data : nullptr;
 	}
 
 	virtual CPlaneGameStateDataNodeData* GetPlaneGameState() override
 	{
-		auto [hasNode, node] = GetData<CPlaneGameStateDataNode>();
+		auto [hasNode, node] = this->template GetData<CPlaneGameStateDataNode>();
 
 		return (hasNode) ? &node->data : nullptr;
 	}
 
 	virtual CPlaneControlDataNodeData* GetPlaneControl() override
 	{
-		auto [hasNode, node] = GetData<CPlaneControlDataNode>();
+		auto [hasNode, node] = this->template GetData<CPlaneControlDataNode>();
 
 		return (hasNode) ? &node->data : nullptr;
 	}
 
 	virtual CTrainGameStateDataNodeData* GetTrainState() override
 	{
-		auto [hasNode, node] = GetData<CTrainGameStateDataNode>();
+		auto [hasNode, node] = this->template GetData<CTrainGameStateDataNode>();
 
 		return (hasNode) ? &node->data : nullptr;
 	}
 
 	virtual CPlayerGameStateNodeData* GetPlayerGameState() override
 	{
-		auto [hasNode, node] = GetData<CPlayerGameStateDataNode>();
+		auto [hasNode, node] = this->template GetData<CPlayerGameStateDataNode>();
 
 		return (hasNode) ? &node->data : nullptr;
 	}
 
 	virtual CVehicleAppearanceNodeData* GetVehicleAppearance() override
 	{
-		auto [hasNode, node] = GetData<CVehicleAppearanceDataNode>();
+		auto [hasNode, node] = this->template GetData<CVehicleAppearanceDataNode>();
 
 		return (hasNode) ? &node->data : nullptr;
 	}
 
 	virtual CPedHealthNodeData* GetPedHealth() override
 	{
-		auto [hasNode, node] = GetData<CPedHealthDataNode>();
+		auto [hasNode, node] = this->template GetData<CPedHealthDataNode>();
 
 		return (hasNode) ? &node->data : nullptr;
 	}
 
 	virtual CVehicleHealthNodeData* GetVehicleHealth() override
 	{
-		auto [hasNode, node] = GetData<CVehicleHealthDataNode>();
+		auto [hasNode, node] = this->template GetData<CVehicleHealthDataNode>();
 
 		return (hasNode) ? &node->data : nullptr;
 	}
 
 	virtual CPedOrientationNodeData* GetPedOrientation() override
 	{
-		auto [hasNode, node] = GetData<CPedOrientationDataNode>();
+		auto [hasNode, node] = this->template GetData<CPedOrientationDataNode>();
 
 		return (hasNode) ? &node->data : nullptr;
 	}
 
 	virtual CEntityOrientationNodeData* GetEntityOrientation() override
 	{
-		auto [hasNode, node] = GetData<CEntityOrientationDataNode>();
+		auto [hasNode, node] = this->template GetData<CEntityOrientationDataNode>();
 
 		return (hasNode) ? &node->data : nullptr;
 	}
 
 	virtual CObjectOrientationNodeData* GetObjectOrientation() override
 	{
-		auto [hasNode, node] = GetData<CObjectOrientationDataNode>();
+		auto [hasNode, node] = this->template GetData<CObjectOrientationDataNode>();
 
 		return (hasNode) ? &node->data : nullptr;
 	}
@@ -3230,7 +3204,7 @@ struct SyncTree : public SyncTreeBase
 	virtual CVehicleAngVelocityNodeData* GetAngVelocity() override
 	{
 		{
-			auto [hasNode, node] = GetData<CVehicleAngVelocityDataNode>();
+			auto [hasNode, node] = this->template GetData<CVehicleAngVelocityDataNode>();
 
 			if (hasNode)
 			{
@@ -3238,21 +3212,21 @@ struct SyncTree : public SyncTreeBase
 			}
 		}
 
-		auto [hasNode, node] = GetData<CPhysicalAngVelocityDataNode>();
+		auto [hasNode, node] = this->template GetData<CPhysicalAngVelocityDataNode>();
 
 		return (hasNode) ? &node->data : nullptr;
 	}
 
 	virtual CPhysicalVelocityNodeData* GetVelocity() override
 	{
-		auto [hasNode, node] = GetData<CPhysicalVelocityDataNode>();
+		auto [hasNode, node] = this->template GetData<CPhysicalVelocityDataNode>();
 
 		return (hasNode) ? &node->data : nullptr;
 	}
 
 	virtual CDummyObjectCreationNodeData* GetDummyObjectState() override
 	{
-		auto [hasObject, objectCreationNode] = GetData<CObjectCreationDataNode>();
+		auto [hasObject, objectCreationNode] = this->template GetData<CObjectCreationDataNode>();
 		if (hasObject)
 		{
 			if (objectCreationNode->m_createdBy == 0 || objectCreationNode->m_createdBy == 2)
@@ -3266,13 +3240,13 @@ struct SyncTree : public SyncTreeBase
 
 	virtual CBaseAttachNodeData* GetAttachment() override
 	{
-		auto [hasPed, pedAttachNode] = GetData<CPedAttachDataNode>();
+		auto [hasPed, pedAttachNode] = this->template GetData<CPedAttachDataNode>();
 		if (hasPed)
 		{
 			return &pedAttachNode->data;
 		}
 
-		auto [hasPhys, physicalAttachNode] = GetData<CPhysicalAttachDataNode>();
+		auto [hasPhys, physicalAttachNode] = this->template GetData<CPhysicalAttachDataNode>();
 		if (hasPhys)
 		{
 			return &physicalAttachNode->data;
@@ -3283,7 +3257,7 @@ struct SyncTree : public SyncTreeBase
 
 	virtual CObjectGameStateNodeData* GetObjectGameState() override
 	{
-		auto [hasObj, objStateNode] = GetData<CObjectGameStateDataNode>();
+		auto [hasObj, objStateNode] = this->template GetData<CObjectGameStateDataNode>();
 		if (hasObj)
 		{
 			return &objStateNode->data;
@@ -3294,14 +3268,14 @@ struct SyncTree : public SyncTreeBase
 
 	virtual CHeliHealthNodeData* GetHeliHealth() override
 	{
-		auto [hasNode, node] = GetData<CHeliHealthDataNode>();
+		auto [hasNode, node] = this->template GetData<CHeliHealthDataNode>();
 
 		return hasNode ? &node->data : nullptr;
 	}
 
 	virtual CVehicleSteeringNodeData* GetVehicleSteeringData() override
 	{
-		auto [hasNode, node] = GetData<CVehicleSteeringDataNode>();
+		auto [hasNode, node] = this->template GetData<CVehicleSteeringDataNode>();
 
 		return hasNode ? &node->data : nullptr;
 	}
@@ -3313,7 +3287,7 @@ struct SyncTree : public SyncTreeBase
 
 	virtual bool GetPopulationType(ePopType* popType) override
 	{
-		auto[hasVcn, vehCreationNode] = GetData<CVehicleCreationDataNode>();
+		auto[hasVcn, vehCreationNode] = this->template GetData<CVehicleCreationDataNode>();
 
 		if (hasVcn)
 		{
@@ -3321,7 +3295,7 @@ struct SyncTree : public SyncTreeBase
 			return true;
 		}
 
-		auto[hasPcn, pedCreationNode] = GetData<CPedCreationDataNode>();
+		auto[hasPcn, pedCreationNode] = this->template GetData<CPedCreationDataNode>();
 
 		if (hasPcn)
 		{
@@ -3336,7 +3310,7 @@ struct SyncTree : public SyncTreeBase
 
 	virtual bool GetModelHash(uint32_t* modelHash) override
 	{
-		auto[hasVcn, vehCreationNode] = GetData<CVehicleCreationDataNode>();
+		auto[hasVcn, vehCreationNode] = this->template GetData<CVehicleCreationDataNode>();
 
 		if (hasVcn)
 		{
@@ -3344,7 +3318,7 @@ struct SyncTree : public SyncTreeBase
 			return true;
 		}
 
-		auto[hasPan, playerAppearanceNode] = GetData<CPlayerAppearanceDataNode>();
+		auto[hasPan, playerAppearanceNode] = this->template GetData<CPlayerAppearanceDataNode>();
 
 		if (hasPan)
 		{
@@ -3352,7 +3326,7 @@ struct SyncTree : public SyncTreeBase
 			return true;
 		}
 
-		auto[hasPcn, pedCreationNode] = GetData<CPedCreationDataNode>();
+		auto[hasPcn, pedCreationNode] = this->template GetData<CPedCreationDataNode>();
 
 		if (hasPcn)
 		{
@@ -3360,7 +3334,7 @@ struct SyncTree : public SyncTreeBase
 			return true;
 		}
 
-		auto[hasOcn, objectCreationNode] = GetData<CObjectCreationDataNode>();
+		auto[hasOcn, objectCreationNode] = this->template GetData<CObjectCreationDataNode>();
 
 		if (hasOcn)
 		{
@@ -3373,7 +3347,7 @@ struct SyncTree : public SyncTreeBase
 
 	virtual bool GetScriptHash(uint32_t* scriptHash) override
 	{
-		auto[hasSin, scriptInfoNode] = GetData<CEntityScriptInfoDataNode>();
+		auto[hasSin, scriptInfoNode] = this->template GetData<CEntityScriptInfoDataNode>();
 
 		if (hasSin)
 		{
@@ -3386,7 +3360,7 @@ struct SyncTree : public SyncTreeBase
 
 	virtual bool IsEntityVisible(bool* visible) override
 	{
-		auto [hasNode, node] = GetData<CPhysicalGameStateDataNode>();
+		auto [hasNode, node] = this->template GetData<CPhysicalGameStateDataNode>();
 
 		if (hasNode)
 		{
@@ -3395,44 +3369,6 @@ struct SyncTree : public SyncTreeBase
 		}
 
 		return false;
-	}
-
-	virtual void Parse(SyncParseState& state) final override
-	{
-		std::unique_lock<std::mutex> lock(mutex);
-
-		state.objType = 0;
-
-		if (state.syncType == 2 || state.syncType == 4)
-		{
-			// mA0 flag
-			state.objType = state.buffer.ReadBit();
-		}
-
-		root.Parse(state);
-	}
-
-	virtual bool Unparse(SyncUnparseState& state) final override
-	{
-		std::unique_lock<std::mutex> lock(mutex);
-
-		state.objType = 0;
-
-		if (state.syncType == 2 || state.syncType == 4)
-		{
-			state.objType = 1;
-
-			state.buffer.WriteBit(1);
-		}
-
-		return root.Unparse(state);
-	}
-
-	virtual void Visit(const SyncTreeVisitor& visitor) final override
-	{
-		std::unique_lock<std::mutex> lock(mutex);
-
-		root.Visit(visitor);
 	}
 };
 
@@ -3453,7 +3389,7 @@ using CAutomobileSyncTree = SyncTree<
 					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>,
 					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode, 102>,
 					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode, 4>,
-					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode, 56>
+					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode, 57>
 				>,
 				ParentNode<
 					NodeIds<127, 127, 1>,
@@ -3480,7 +3416,7 @@ using CAutomobileSyncTree = SyncTree<
 			ParentNode<
 				NodeIds<127, 86, 0>,
 				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode, 2>,
-				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 27>,
+				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 28>,
 				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 30>
 			>
 		>,
@@ -3509,7 +3445,7 @@ using CBikeSyncTree = SyncTree<
 					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>,
 					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode, 102>,
 					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode, 4>,
-					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode, 56>,
+					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode, 57>,
 					NodeWrapper<NodeIds<127, 127, 0>, CBikeGameStateDataNode, 1>
 				>,
 				ParentNode<
@@ -3537,7 +3473,7 @@ using CBikeSyncTree = SyncTree<
 			ParentNode<
 				NodeIds<127, 86, 0>,
 				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode, 2>,
-				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 27>,
+				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 28>,
 				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 30>
 			>
 		>,
@@ -3566,7 +3502,7 @@ using CBoatSyncTree = SyncTree<
 					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>,
 					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode, 102>,
 					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode, 4>,
-					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode, 56>,
+					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode, 57>,
 					NodeWrapper<NodeIds<87, 87, 0>, CBoatGameStateDataNode, 5>
 				>,
 				ParentNode<
@@ -3594,7 +3530,7 @@ using CBoatSyncTree = SyncTree<
 			ParentNode<
 				NodeIds<127, 86, 0>,
 				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode, 2>,
-				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 27>,
+				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 28>,
 				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 30>
 			>
 		>,
@@ -3645,7 +3581,7 @@ using CHeliSyncTree = SyncTree<
 					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>,
 					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode, 102>,
 					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode, 4>,
-					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode, 56>
+					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode, 57>
 				>,
 				ParentNode<
 					NodeIds<127, 127, 1>,
@@ -3673,7 +3609,7 @@ using CHeliSyncTree = SyncTree<
 			ParentNode<
 				NodeIds<127, 86, 0>,
 				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode, 2>,
-				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 27>,
+				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 28>,
 				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 30>,
 				NodeWrapper<NodeIds<86, 86, 0>, CHeliControlDataNode, 8>
 			>
@@ -3756,7 +3692,7 @@ using CPedSyncTree = SyncTree<
 					NodeIds<127, 127, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode, 13>,
-					NodeWrapper<NodeIds<127, 127, 1>, CPedScriptGameStateDataNode, 108>,
+					NodeWrapper<NodeIds<127, 127, 1>, CPedScriptGameStateDataNode, 109>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode, 24>
 				>
 			>,
@@ -3862,7 +3798,7 @@ using CPlaneSyncTree = SyncTree<
 					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>,
 					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode, 102>,
 					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode, 4>,
-					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode, 56>
+					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode, 57>
 				>,
 				ParentNode<
 					NodeIds<127, 127, 1>,
@@ -3890,7 +3826,7 @@ using CPlaneSyncTree = SyncTree<
 			ParentNode<
 				NodeIds<127, 86, 0>,
 				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode, 2>,
-				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 27>,
+				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 28>,
 				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 30>,
 				NodeWrapper<NodeIds<86, 86, 0>, CPlaneControlDataNode, 7>
 			>
@@ -3920,7 +3856,7 @@ using CSubmarineSyncTree = SyncTree<
 					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>,
 					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode, 102>,
 					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode, 4>,
-					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode, 56>,
+					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode, 57>,
 					NodeWrapper<NodeIds<87, 87, 0>, CSubmarineGameStateDataNode, 1>
 				>,
 				ParentNode<
@@ -3948,7 +3884,7 @@ using CSubmarineSyncTree = SyncTree<
 			ParentNode<
 				NodeIds<127, 86, 0>,
 				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode, 2>,
-				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 27>,
+				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 28>,
 				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 30>,
 				NodeWrapper<NodeIds<86, 86, 0>, CSubmarineControlDataNode, 4>
 			>
@@ -3991,7 +3927,7 @@ using CPlayerSyncTree = SyncTree<
 			NodeWrapper<NodeIds<127, 127, 0>, CPedHealthDataNode, 17>,
 			NodeWrapper<NodeIds<87, 87, 0>, CPedMovementGroupDataNode, 26>,
 			NodeWrapper<NodeIds<127, 127, 1>, CPedAIDataNode, 9>,
-			NodeWrapper<NodeIds<87, 87, 0>, CPlayerAppearanceDataNode, 528>,
+			NodeWrapper<NodeIds<87, 87, 0>, CPlayerAppearanceDataNode, 544>,
 			NodeWrapper<NodeIds<86, 86, 0>, CPlayerPedGroupDataNode, 19>,
 			NodeWrapper<NodeIds<86, 86, 0>, CPlayerAmbientModelStreamingNode, 5>,
 			NodeWrapper<NodeIds<86, 86, 0>, CPlayerGamerDataNode, 325>,
@@ -4043,7 +3979,7 @@ using CAutomobileSyncTree = SyncTree<
 					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>,
 					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode, 102>,
 					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode, 4>,
-					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode, 56>
+					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode, 57>
 				>,
 				ParentNode<
 					NodeIds<127, 127, 1>,
@@ -4070,7 +4006,7 @@ using CAutomobileSyncTree = SyncTree<
 			ParentNode<
 				NodeIds<127, 86, 0>,
 				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode, 2>,
-				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 27>,
+				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 28>,
 				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 30>
 			>
 		>,
@@ -4099,7 +4035,7 @@ using CTrainSyncTree = SyncTree<
 					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>,
 					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode, 102>,
 					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode, 4>,
-					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode, 56>,
+					NodeWrapper<NodeIds<127, 127, 0>, CVehicleGameStateDataNode, 57>,
 					NodeWrapper<NodeIds<127, 127, 0>, CTrainGameStateDataNode, 16>
 				>,
 				ParentNode<
@@ -4127,7 +4063,7 @@ using CTrainSyncTree = SyncTree<
 			ParentNode<
 				NodeIds<127, 86, 0>,
 				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode, 2>,
-				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 27>,
+				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 28>,
 				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 30>
 			>
 		>,

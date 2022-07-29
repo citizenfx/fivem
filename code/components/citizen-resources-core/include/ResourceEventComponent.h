@@ -10,6 +10,7 @@
 #include <ComponentHolder.h>
 
 #include <tbb/concurrent_queue.h>
+#include <tbb/concurrent_unordered_map.h>
 
 #include <mutex>
 #include <queue>
@@ -33,9 +34,9 @@ class ResourceEventManagerComponent;
 class RESOURCES_CORE_EXPORT ResourceEventComponent : public fwRefCountable, public IAttached<Resource>
 {
 private:
-	Resource* m_resource;
+	Resource* m_resource = nullptr;
 
-	ResourceEventManagerComponent* m_managerComponent;
+	ResourceEventManagerComponent* m_managerComponent = nullptr;
 
 public:
 	ResourceEventComponent();
@@ -94,6 +95,8 @@ private:
 
 	tbb::concurrent_queue<EventData> m_eventQueue;
 
+	tbb::concurrent_unordered_multimap<std::string, std::string> m_eventResources;
+
 private:
 	void Tick();
 
@@ -109,6 +112,11 @@ public:
 	// Cancel the current event.
 	//
 	void CancelEvent();
+
+	//
+	// Registers a resource as subscribing to a particular event.
+	//
+	void AddResourceHandledEvent(const std::string& resourceName, const std::string& eventName);
 
 	//
 	// An event to handle event execution externally.

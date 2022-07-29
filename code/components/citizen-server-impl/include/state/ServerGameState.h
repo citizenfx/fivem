@@ -87,6 +87,26 @@ inline bool Is2545()
 	return value;
 }
 
+inline bool Is2612()
+{
+	static bool value = ([]()
+	{
+		return fx::GetEnforcedGameBuildNumber() >= 2612;
+	})();
+
+	return value;
+}
+
+inline bool Is2699()
+{
+	static bool value = ([]()
+	{
+		return fx::GetEnforcedGameBuildNumber() >= 2699;
+	})();
+
+	return value;
+}
+
 template<typename T>
 inline constexpr T roundToWord(T val)
 {
@@ -106,7 +126,7 @@ extern int m_ackTimeoutThreshold;
 
 namespace fx::sync
 {
-struct SyncParseState;
+struct SyncParseStateDynamic;
 struct SyncUnparseState;
 
 struct NodeBase;
@@ -499,7 +519,9 @@ struct SyncTreeBase
 public:
 	virtual ~SyncTreeBase() = default;
 
-	virtual void Parse(SyncParseState& state) = 0;
+	virtual void ParseSync(SyncParseStateDynamic& state) = 0;
+
+	virtual void ParseCreate(SyncParseStateDynamic& state) = 0;
 
 	virtual bool Unparse(SyncUnparseState& state) = 0;
 
@@ -795,13 +817,35 @@ using SyncEntityWeakPtr = weak_reference<SyncEntityPtr>;
 struct SyncParseState
 {
 	rl::MessageBuffer buffer;
-	int syncType;
-	int objType;
 	uint32_t timestamp;
 
 	SyncEntityPtr entity;
 
 	uint64_t frameIndex;
+
+	inline SyncParseState(rl::MessageBuffer&& buffer, uint32_t timestamp, const SyncEntityPtr& entity, uint64_t frameIndex)
+		: buffer(std::move(buffer)), timestamp(timestamp), entity(entity), frameIndex(frameIndex)
+	{
+	}
+
+private:
+	// use SyncParseStateDynamic instead
+	inline SyncParseState(rl::MessageBuffer&& buffer, int syncType, int objType, uint32_t timestamp, const SyncEntityPtr& entity, uint64_t frameIndex)
+	{
+		
+	}
+};
+
+struct SyncParseStateDynamic : SyncParseState
+{
+	int syncType;
+	int objType;
+
+	inline SyncParseStateDynamic(rl::MessageBuffer&& buffer, int syncType, int objType, uint32_t timestamp, const SyncEntityPtr& entity, uint64_t frameIndex)
+		: SyncParseState(std::move(buffer), timestamp, entity, frameIndex), syncType(syncType), objType(objType)
+	{
+	
+	}
 };
 
 struct SyncUnparseState
@@ -848,7 +892,7 @@ struct SyncCommandState
 struct SyncCommand
 {
 	using SyncCommandKey = typename detached_scsc_queue<SyncCommand>::key;
-	using SyncCommandCallback = delegate::Delegate<void, SyncCommandState&>;
+	using SyncCommandCallback = tp::FixedFunction<void(SyncCommandState&), 128>;
 
 	SyncCommandCallback callback;
 	SyncCommandKey commandKey = {};

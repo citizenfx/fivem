@@ -58,6 +58,19 @@
 #include <ArchetypesCollector.h>
 #endif
 
+inline auto& GetEarlyGameFrame()
+{
+	auto& earlyGameFrame =
+#if defined(HAS_EARLY_GAME_FRAME)
+	OnEarlyGameFrame
+#else
+	OnGameFrame
+#endif
+	;
+
+	return earlyGameFrame;
+}
+
 std::string g_lastConn;
 static std::string g_connectNonce;
 
@@ -84,7 +97,7 @@ static void SaveBuildNumber(uint32_t build)
 	}
 }
 
-void RestartGameToOtherBuild(int build)
+void RestartGameToOtherBuild(int build, int pureLevel)
 {
 #if defined(GTA_FIVE) || defined(IS_RDR3)
 	SECURITY_ATTRIBUTES securityAttributes = { 0 };
@@ -93,10 +106,11 @@ void RestartGameToOtherBuild(int build)
 	HANDLE switchEvent = CreateEventW(&securityAttributes, TRUE, FALSE, NULL);
 
 	static HostSharedData<CfxState> hostData("CfxInitState");
-	auto cli = fmt::sprintf(L"\"%s\" %s %s -switchcl:%d \"fivem://connect/%s\"",
+	auto cli = fmt::sprintf(L"\"%s\" %s %s %s -switchcl:%d \"fivem://connect/%s\"",
 	hostData->gameExePath,
 	build == 1604 ? L"" : fmt::sprintf(L"-b%d", build),
 	IsCL2() ? L"-cl2" : L"",
+	pureLevel == 0 ? L"" : fmt::sprintf(L"-pure_%d", pureLevel),
 	(uintptr_t)switchEvent,
 	ToWide(g_lastConn));
 
@@ -150,7 +164,7 @@ void RestartGameToOtherBuild(int build)
 #endif
 }
 
-extern void InitializeBuildSwitch(int build);
+extern void InitializeBuildSwitch(int build, int pureLevel);
 
 void saveSettings(const wchar_t *json) {
 	PWSTR appDataPath;
@@ -501,6 +515,8 @@ static void DisconnectCmd()
 	}
 }
 
+extern void MarkNuiLoaded();
+
 static InitFunction initFunction([] ()
 {
 	static std::function<void()> g_onYesCallback;
@@ -600,9 +616,9 @@ static InitFunction initFunction([] ()
 			nui::PostRootMessage(fmt::sprintf(R"({ "type": "setServerAddress", "data": "%s" })", peerAddress));
 		});
 
-		netLibrary->OnRequestBuildSwitch.Connect([](int build)
+		netLibrary->OnRequestBuildSwitch.Connect([](int build, int pureLevel)
 		{
-			InitializeBuildSwitch(build);
+			InitializeBuildSwitch(build, pureLevel);
 			g_connected = false;
 		});
 
@@ -1017,9 +1033,9 @@ static InitFunction initFunction([] ()
 		}
 		else if (!_wcsicmp(type, L"getMinModeInfo"))
 		{
-#ifdef GTA_FIVE
 			static bool done = ([]
 			{
+#ifdef GTA_FIVE
 				std::thread([]
 				{
 					UiDone();
@@ -1032,10 +1048,12 @@ static InitFunction initFunction([] ()
 					SetForegroundWindow(hWnd);
 				})
 				.detach();
+#endif
+
+				MarkNuiLoaded();
 
 				return true;
 			})();
-#endif
 
 			auto manifest = CoreGetMinModeManifest();
 
@@ -1167,7 +1185,7 @@ static InitFunction initFunction([] ()
 		else if (!_wcsicmp(type, L"exit"))
 		{
 			// queue an ExitProcess on the next game frame
-			OnGameFrame.Connect([] ()
+			GetEarlyGameFrame().Connect([]()
 			{
 				AddVectoredExceptionHandler(FALSE, TerminateInstantly);
 
@@ -1301,7 +1319,7 @@ static InitFunction initFunction([] ()
 		}
 	});
 
-	OnGameFrame.Connect([]()
+	GetEarlyGameFrame().Connect([]()
 	{
 		static bool hi;
 
@@ -1557,7 +1575,7 @@ static InitFunction connectInitFunction([]()
 	nng_pull0_open(&netAuthSocket);
 	nng_listen(netAuthSocket, "ipc:///tmp/fivem_auth", &authListener, 0);
 
-	OnGameFrame.Connect([]()
+	GetEarlyGameFrame().Connect([]()
 	{
 		if (Instance<ICoreGameInit>::Get()->GetGameLoaded())
 		{

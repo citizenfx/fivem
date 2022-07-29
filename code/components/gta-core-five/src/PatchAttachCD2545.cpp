@@ -20,5 +20,8 @@ static HookFunction hookFunction([]()
 		auto location = hook::get_pattern<char>("BA F4 39 90 CA B9 BD C5 AF");
 		hook::call(location - 12, ReturnFalse);
 		hook::call(location + 26, ReturnFalse);
+
+		auto attachEntityToEntityTunable = hook::get_pattern<char>("BA 37 89 3D 8A B9 BD C5 AF E3");
+		hook::call(attachEntityToEntityTunable + 23, ReturnFalse);
 	}
 });

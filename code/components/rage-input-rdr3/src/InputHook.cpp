@@ -6,6 +6,7 @@
 #include <nutsnbolts.h>
 
 #include <CfxState.h>
+#include <CrossBuildRuntime.h>
 
 static WNDPROC origWndProc;
 
@@ -408,7 +409,7 @@ static HookFunction hookFunction([]()
 	// disable DInput device creation
 	// two matches, we want the first
 	char* dinputCreate = hook::get_pattern<char>("45 33 C9 48 8D 15 ? ? ? ? 48 8B 01 FF");
-	hook::nop(dinputCreate, 166);
+	hook::nop(dinputCreate, (xbr::IsGameBuildOrGreater<1436>() ? 169 : 166));
 
 	// jump over raw input keyboard handling
 	hook::put<uint8_t>(hook::get_pattern("0F 85 ? ? 00 00 45 39 26 75 ? 41 0F", 9), 0xEB);

@@ -289,79 +289,15 @@ static std::vector<GameCacheEntry> g_requiredEntries =
 #endif
 
 #if defined(_M_AMD64)
-	{ "ros_2090/cef_100_percent.pak", "ED87BD499CAE74A748E03FC33C36476A20487B78", "https://content.cfx.re/mirrors/ros/2.0.9.0/cef_100_percent.pak", 267314 },
-	{ "ros_2090/cef_200_percent.pak", "ACB1F69B2F0A69D301E6816C5D886F1C10A1BDD9", "https://content.cfx.re/mirrors/ros/2.0.9.0/cef_200_percent.pak", 421955 },
-	{ "ros_2090/cef.pak", "7C95336432AF2E47D4B05D3B55FFE733B34F32F6", "https://content.cfx.re/mirrors/ros/2.0.9.0/cef.pak", 1949064 },
-	{ "ros_2090/chrome_elf.dll", "2DB73805F775C8108E919AA521505EC4E3A11781", "https://content.cfx.re/mirrors/ros/2.0.9.0/chrome_elf.dll", 999320 },
-	{ "ros_2090/d3dcompiler_47.dll", "59A6C4B0D07496A348409268D7B8A6A1CE227BCE", "https://content.cfx.re/mirrors/ros/2.0.9.0/d3dcompiler_47.dll", 4337048 },
-	{ "ros_2090/icudtl.dat", "6BAB2E77925515888808C1EF729C5BB1323100DD", "https://content.cfx.re/mirrors/ros/2.0.9.0/icudtl.dat", 10518160 },
-	{ "ros_2090/libcef.dll", "0D84700E9A387F406164AF17A31BA3F9A498F690", "https://content.cfx.re/mirrors/ros/2.0.9.0/libcef.dll.xz", 132978072, 41881436 },
-	{ "ros_2090/libEGL.dll", "773E2B9A198328864C297D0FE2CCD432C8BE9F0D", "https://content.cfx.re/mirrors/ros/2.0.9.0/libEGL.dll", 399256 },
-	{ "ros_2090/libGLESv2.dll", "BE29C61C4EFFA651B7C93ADB22472228EAC188B6", "https://content.cfx.re/mirrors/ros/2.0.9.0/libGLESv2.dll", 8056728 },
-	{ "ros_2090/scui.pak", "97B9B65F2E0712E69ED68920CC4B78B4F35B998F", "https://content.cfx.re/mirrors/ros/2.0.9.0/scui.pak", 3420268 },
-	{ "ros_2090/snapshot_blob.bin", "2257920539464F2E361348A83F044E2943622165", "https://content.cfx.re/mirrors/ros/2.0.9.0/snapshot_blob.bin", 51261 },
 	{ "ros_2090/socialclub.dll", "AE14687363C0FB5A8B086B4EB24D5A6E2D5161B9", "https://content.cfx.re/mirrors/ros/2.0.9.0/socialclub.dll", 5287320 },
 	{ "ros_2090/socialclub.pak", "D70F269F7EBBA3A13AA2871BAFA58212B01E6280", "https://content.cfx.re/mirrors/ros/2.0.9.0/socialclub.pak", 4996 },
+
+	// RDR3 expects these to exist for SC SDK init to succeed
+#ifdef IS_RDR3
 	{ "ros_2090/SocialClubD3D12Renderer.dll", "73A1421E35B5ED105FA9AF8445F62F0A42EE3C41", "https://content.cfx.re/mirrors/ros/2.0.9.0/SocialClubD3D12Renderer.dll", 415128 },
-	{ "ros_2090/SocialClubHelper.exe", "0DCD077459CCE9B3831B4F0B5797502BB7C41D24", "https://content.cfx.re/mirrors/ros/2.0.9.0/SocialClubHelper.exe", 2768792 },
 	{ "ros_2090/SocialClubVulkanLayer.dll", "572E95099825B507079349A2B24BBAE4C1567B84", "https://content.cfx.re/mirrors/ros/2.0.9.0/SocialClubVulkanLayer.dll", 476056 },
 	{ "ros_2090/SocialClubVulkanLayer.json", "5DA071BDE81BF96C8939978343C6B5B93730CB39", "https://content.cfx.re/mirrors/ros/2.0.9.0/SocialClubVulkanLayer.json", 339 },
-	{ "ros_2090/v8_context_snapshot.bin", "AE3D50F4DB62DC62A37D4C222169BA7C57837E54", "https://content.cfx.re/mirrors/ros/2.0.9.0/v8_context_snapshot.bin", 171494 },
-	{ "ros_2090/locales/am.pak", "91B918C8D9C842535C006CAD51FEF1F7A4DF3DF4", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/am.pak", 397362 },
-	{ "ros_2090/locales/ar.pak", "B7CB43366C3AFC11EECA9E25B7577BB91FA84EE9", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/ar.pak", 410699 },
-	{ "ros_2090/locales/bg.pak", "A29DEE681AAC5A851BCEC0EDC8F859AADD37E8EB", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/bg.pak", 449555 },
-	{ "ros_2090/locales/bn.pak", "A61F5CE476F65C9D9A8C0BFCEE73A4555568140B", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/bn.pak", 587356 },
-	{ "ros_2090/locales/ca.pak", "0EE3D65026BE39BE442967545DF4C1C95490040B", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/ca.pak", 279277 },
-	{ "ros_2090/locales/cs.pak", "5F0781C07F41BF591B6AF843E0195510666CCB7A", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/cs.pak", 285641 },
-	{ "ros_2090/locales/da.pak", "35A30EF5AD3F9DD412D6A161E187A27B097E6DBD", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/da.pak", 256720 },
-	{ "ros_2090/locales/de.pak", "4B7C0AADBEA7408DC6B88722AC1C9E02CC94CB97", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/de.pak", 277815 },
-	{ "ros_2090/locales/el.pak", "82018633A3A2BFCFD4AFA8E74E4530BC57035748", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/el.pak", 495477 },
-	{ "ros_2090/locales/en-GB.pak", "D0EFD685C081A591AE86599B2688ECB7A5FF2C17", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/en-GB.pak", 228181 },
-	{ "ros_2090/locales/en-US.pak", "82212A642C90B51B8F67E517EE8782DA841B658F", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/en-US.pak", 230622 },
-	{ "ros_2090/locales/es-419.pak", "39D5477AAD201AB6D305FE1A466F9692646033A1", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/es-419.pak", 274527 },
-	{ "ros_2090/locales/es.pak", "2A0014E819249BC202B34A80D1C04496C83D924D", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/es.pak", 278599 },
-	{ "ros_2090/locales/et.pak", "225D5EEE935C42F2668686ED8C6CF9D81686ED65", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/et.pak", 248135 },
-	{ "ros_2090/locales/fa.pak", "D90C04E54C127A98B1F4E9E1061786162E5F6946", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/fa.pak", 398236 },
-	{ "ros_2090/locales/fi.pak", "81BB7DBD212FBC760162B96DA229B39516D1E25F", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/fi.pak", 256469 },
-	{ "ros_2090/locales/fil.pak", "70C132726600A4C640C627D36FB01D8FA2C499F4", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/fil.pak", 284303 },
-	{ "ros_2090/locales/fr.pak", "E22A9A3F57204407AD3EACAB0F320ABA92B79A5B", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/fr.pak", 301254 },
-	{ "ros_2090/locales/gu.pak", "EA5AF8CA67D502E1CB856B6ED02ECC0BF6AE525B", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/gu.pak", 561637 },
-	{ "ros_2090/locales/he.pak", "AE27C24DA778E08E773330111F76FCA5C583AD02", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/he.pak", 343790 },
-	{ "ros_2090/locales/hi.pak", "133DEA57961AB17F1FE4B7175236D02168C2DE8D", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/hi.pak", 579292 },
-	{ "ros_2090/locales/hr.pak", "86BBEAAEBF238F1A1A57FAC33FF6D8CBEB3E086E", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/hr.pak", 272869 },
-	{ "ros_2090/locales/hu.pak", "E7691035840804D7CC3C895855AF209860A6E246", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/hu.pak", 295085 },
-	{ "ros_2090/locales/id.pak", "8268CA0DEC094D655B38CC0A7595FC7404CA6F75", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/id.pak", 246389 },
-	{ "ros_2090/locales/it.pak", "6F0DB2FF20097E53C4CF83A97AEB30FD97CF38E8", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/it.pak", 269987 },
-	{ "ros_2090/locales/ja.pak", "AA3761667AE5FD0D0E69E81354F541E4C0CA9EA6", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/ja.pak", 334646 },
-	{ "ros_2090/locales/kn.pak", "E4F6A5221EF853E4480C317BB8A0CA18E7311D05", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/kn.pak", 653458 },
-	{ "ros_2090/locales/ko.pak", "72840023C8DCA628D53917187ABA524AE06B3805", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/ko.pak", 281693 },
-	{ "ros_2090/locales/lt.pak", "699BDD5995428B3B206342DC876EBE95739EE555", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/lt.pak", 293018 },
-	{ "ros_2090/locales/lv.pak", "D7A3568EB32B16EB43FDC27D875ACD2EE20B5D24", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/lv.pak", 291468 },
-	{ "ros_2090/locales/ml.pak", "AEC480C5F357D7AC74B4F2081B37E3BD97CDA481", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/ml.pak", 689533 },
-	{ "ros_2090/locales/mr.pak", "CF9D8F5AAE61156092239C4D85C3352F0E055C56", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/mr.pak", 552349 },
-	{ "ros_2090/locales/ms.pak", "0B57D80FF583AA4921271EAAD4C0D71C6094A119", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/ms.pak", 256222 },
-	{ "ros_2090/locales/nb.pak", "89CF4738188153DE01B6994B55E6F4754A1CA7B7", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/nb.pak", 251280 },
-	{ "ros_2090/locales/nl.pak", "3BED7D65FBB7141CED43B9A4E143190DA3C61CA4", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/nl.pak", 262046 },
-	{ "ros_2090/locales/pl.pak", "71BA95167ED6777EEA6863FD4555C550F56F57A4", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/pl.pak", 284801 },
-	{ "ros_2090/locales/pt-BR.pak", "F8144E74EF3F128E08730F5D4E926914D81E817E", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/pt-BR.pak", 271000 },
-	{ "ros_2090/locales/pt-PT.pak", "D2F9B4F5C5ADE7EB54838ACB4BDA5FA0E4BDF3C0", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/pt-PT.pak", 274231 },
-	{ "ros_2090/locales/ro.pak", "A9B321D3A1AC30E003BACA2E4FB5C984137B17BB", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/ro.pak", 280931 },
-	{ "ros_2090/locales/ru.pak", "70C39DF950C6A0C2DB5396BB9BC8070ABF98AC03", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/ru.pak", 448316 },
-	{ "ros_2090/locales/sk.pak", "CBD4990B3B6DC6F1F168A8D710980FBF19E49222", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/sk.pak", 289926 },
-	{ "ros_2090/locales/sl.pak", "F8BEF9D34DACFC34C5A8772570D31D27A19869D0", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/sl.pak", 276423 },
-	{ "ros_2090/locales/sr.pak", "F138A577C7D1D681D22E3C001FA4731C667F14B8", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/sr.pak", 426245 },
-	{ "ros_2090/locales/sv.pak", "9142C943F1A2DACD0726BB7487F4EC9EDC01F4CA", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/sv.pak", 253133 },
-	{ "ros_2090/locales/sw.pak", "8B3DB01EBFD19F8775F6ED114973350FF1814C0A", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/sw.pak", 259577 },
-	{ "ros_2090/locales/ta.pak", "18CD81ACF8D9CCAB5B281C9EB02E06D3091A164C", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/ta.pak", 661848 },
-	{ "ros_2090/locales/te.pak", "143A27F67341827F8B32458F3C18ECD604093657", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/te.pak", 620983 },
-	{ "ros_2090/locales/th.pak", "D78AA25633B015464855F60523FE85060959A939", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/th.pak", 526441 },
-	{ "ros_2090/locales/tr.pak", "AD7B39AC558124D7A5F73A83CA0E5E1CC4739425", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/tr.pak", 268763 },
-	{ "ros_2090/locales/uk.pak", "7264E679520E3981A2BF39D7C9EB0085C327A920", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/uk.pak", 448944 },
-	{ "ros_2090/locales/vi.pak", "51CADECB9BCD8FE22AFEAD0A5FC5CECB52C30CAD", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/vi.pak", 314139 },
-	{ "ros_2090/locales/zh-CN.pak", "72BECBAD361E228A8A164B01D1541CCBF7E28EAF", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/zh-CN.pak", 233298 },
-	{ "ros_2090/locales/zh-TW.pak", "DF8FFB51826D76F8E4E11FA8555E0FFB2282A3BE", "https://content.cfx.re/mirrors/ros/2.0.9.0/locales/zh-TW.pak", 233282 },
-	{ "ros_2090/swiftshader/libEGL.dll", "0D68E8B47FE02318526721E178F7EB8E83BBC719", "https://content.cfx.re/mirrors/ros/2.0.9.0/swiftshader/libEGL.dll", 419224 },
-	{ "ros_2090/swiftshader/libGLESv2.dll", "A60249BA16BD12C18B773D702D42B93A5CE598AE", "https://content.cfx.re/mirrors/ros/2.0.9.0/swiftshader/libGLESv2.dll", 2699672 },
+#endif
 
 	{ "launcher/LauncherPatcher.exe", "1C6BCE6CDB4B2E1766A67F931A72519CEFF6AEB1", "", "", 0, 0 },
 	{ "launcher/index.bin", "85e2cc75d6d07518883ce5d377d3425b74636667", "", "", 0, 0 },
@@ -1410,23 +1346,43 @@ std::map<std::string, std::string> UpdateGameCache()
 	g_requiredEntries.clear();
 #endif
 
-	// 1604/1868 toggle
+	// cross-build toggle
 #ifdef GTA_FIVE
-	if (Is372())
+	if (IsTargetGameBuild<2699>())
 	{
-		g_requiredEntries.push_back({ "GTA5.exe", "ae6e9cc116e8435e4dcfb5b870deee00a8b0904c", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_372_2.exe", "$/GTA5.exe", 55559560, 399999536 });
-		g_requiredEntries.push_back({ "update/update.rpf", "b72884c9af7170908f558ec5d629d805857b80f2", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_372_2.exe", "$/update/update.rpf", 352569344, 399999536 });
+		g_requiredEntries.push_back({ "GTA5.exe", "b9f3960ca0c7c05aab23d3b1d158309bc085fbbe", "https://content.cfx.re/mirrors/patches/2699.0/GTA5.exe", 61111680 });
+		g_requiredEntries.push_back({ "update/update.rpf", "86d88c5ea36e67683a138c0e690c42fe288205fa", "https://content.cfx.re/mirrors/patches/2699.0/update.rpf", 1073854464 });
+		g_requiredEntries.push_back({ "update/update2.rpf", "414a04256bf0b00b78324478508a6beaea1ef5a7", "https://content.cfx.re/mirrors/patches/2699.0/update2.rpf", 324530176 });
+	}
+	else if (IsTargetGameBuild<2612>())
+	{
+		g_requiredEntries.push_back({ "GTA5.exe", "d423086fd7a7721b8be77cfb9a4f8826784b284b", "https://content.cfx.re/mirrors/patches/2612.1/GTA5.exe", 60351952 });
+		g_requiredEntries.push_back({ "update/update.rpf", "80f9bd028e5bc781f641fe210a88579eff827989", "https://content.cfx.re/mirrors/patches/2612.1/update.rpf", 1056649216,
+		{
+			{ "86d88c5ea36e67683a138c0e690c42fe288205fa", "80f9bd028e5bc781f641fe210a88579eff827989", "https://content.cfx.re/mirrors/patches/2699_2612_update.hdiff", 127701528 },
+		} });
+		g_requiredEntries.push_back({ "update/update2.rpf", "c993e2d14cce9462fa8ba056f3406d60050a1c92", "https://content.cfx.re/mirrors/patches/2612.1/update2.rpf", 312209408,
+		{
+			{ "414a04256bf0b00b78324478508a6beaea1ef5a7", "c993e2d14cce9462fa8ba056f3406d60050a1c92", "https://content.cfx.re/mirrors/patches/2699_2612_update2.hdiff", 240637812 },
+			{ "e040bb68272c3518e411ada7fb43a2a45151b070", "c993e2d14cce9462fa8ba056f3406d60050a1c92", "https://content.cfx.re/mirrors/patches/2628_2612_update2.hdiff", 161966401 },
+		} });
 	}
 	else if (IsTargetGameBuild<2545>())
 	{
 		g_requiredEntries.push_back({ "GTA5.exe", "517556bb548880362c18d502361ce374070994c2", "https://content.cfx.re/mirrors/patches/2545.0/GTA5.exe", 59988376 });
-		g_requiredEntries.push_back({ "update/update.rpf", "2993b3c30f61cbbb8dbce859604d7fb717ff8dae", "https://content.cfx.re/mirrors/patches/2545.0/update.rpf", 1366638592 });
+		g_requiredEntries.push_back({ "update/update.rpf", "2993b3c30f61cbbb8dbce859604d7fb717ff8dae", "https://content.cfx.re/mirrors/patches/2545.0/update.rpf", 1366638592,
+		{
+			{ "86d88c5ea36e67683a138c0e690c42fe288205fa", "2993b3c30f61cbbb8dbce859604d7fb717ff8dae", "https://content.cfx.re/mirrors/patches/2699_2545_update.hdiff", 437636032 },
+			{ "80f9bd028e5bc781f641fe210a88579eff827989", "2993b3c30f61cbbb8dbce859604d7fb717ff8dae", "https://content.cfx.re/mirrors/patches/2612_2545_update.hdiff", 311774185 },
+		} });
 	}
 	else if (IsTargetGameBuild<2372>())
 	{
 		g_requiredEntries.push_back({ "GTA5.exe", "470235e04299b02aa3aef834ef1ff834cac2327f", "https://content.cfx.re/mirrors/patches/2372.0/GTA5.exe", 59716912 });
 		g_requiredEntries.push_back({ "update/update.rpf", "1824cdbc27c3e0eaa86920a38751322727872831", "https://content.cfx.re/mirrors/patches/2372.0/update.rpf", 1132066816,
 		{
+			{ "86d88c5ea36e67683a138c0e690c42fe288205fa", "1824cdbc27c3e0eaa86920a38751322727872831", "https://content.cfx.re/mirrors/patches/2699_2372_update.hdiff", 345348050 },
+			{ "80f9bd028e5bc781f641fe210a88579eff827989", "1824cdbc27c3e0eaa86920a38751322727872831", "https://content.cfx.re/mirrors/patches/2612_2372_update.hdiff", 343976392 },
 			{ "2993b3c30f61cbbb8dbce859604d7fb717ff8dae", "1824cdbc27c3e0eaa86920a38751322727872831", "https://content.cfx.re/mirrors/patches/2545_2372_update.hdiff", 276106385 },
 		} });
 	}
@@ -1435,6 +1391,8 @@ std::map<std::string, std::string> UpdateGameCache()
 		g_requiredEntries.push_back({ "GTA5.exe", "fcd5fd8a9f99f2e08b0cab5d500740f28a75b75a", "https://content.cfx.re/mirrors/patches/2189.0/GTA5.exe", 63124096 });
 		g_requiredEntries.push_back({ "update/update.rpf", "fe387dbc0f700d690b53d44ce1226c624c24b8fc", "https://content.cfx.re/mirrors/patches/2189.0/update.rpf", 1276805120,
 		{
+			{ "86d88c5ea36e67683a138c0e690c42fe288205fa", "fe387dbc0f700d690b53d44ce1226c624c24b8fc", "https://content.cfx.re/mirrors/patches/2699_2189_update.hdiff", 509396786 },
+			{ "80f9bd028e5bc781f641fe210a88579eff827989", "fe387dbc0f700d690b53d44ce1226c624c24b8fc", "https://content.cfx.re/mirrors/patches/2612_2189_update.hdiff", 508757790 },
 			{ "2993b3c30f61cbbb8dbce859604d7fb717ff8dae", "fe387dbc0f700d690b53d44ce1226c624c24b8fc", "https://content.cfx.re/mirrors/patches/2545_2189_update.hdiff", 441617306 },
 			{ "1824cdbc27c3e0eaa86920a38751322727872831", "fe387dbc0f700d690b53d44ce1226c624c24b8fc", "https://content.cfx.re/mirrors/patches/2372_2189_update.hdiff", 429153146 },
 			{ "748d16b81a34ad317b93cd85e2b088dabdce5cc7", "fe387dbc0f700d690b53d44ce1226c624c24b8fc", "https://content.cfx.re/mirrors/patches/2245_2189_update.hdiff", 193145914 },
@@ -1446,6 +1404,8 @@ std::map<std::string, std::string> UpdateGameCache()
 		g_requiredEntries.push_back({ "GTA5.exe", "741c8b91ef57140c023d8d29e38aab599759de76", "https://content.cfx.re/mirrors/patches/2060.2/GTA5.exe", 60589184 });
 		g_requiredEntries.push_back({ "update/update.rpf", "736f1cb26e59167f302c22385463d231cce302d3", "https://content.cfx.re/mirrors/patches/2060.2/update.rpf", 1229002752,
 		{
+			{ "86d88c5ea36e67683a138c0e690c42fe288205fa", "736f1cb26e59167f302c22385463d231cce302d3", "https://content.cfx.re/mirrors/patches/2699_2060_update.hdiff", 504126319 },
+			{ "80f9bd028e5bc781f641fe210a88579eff827989", "736f1cb26e59167f302c22385463d231cce302d3", "https://content.cfx.re/mirrors/patches/2612_2060_update.hdiff", 504469096 },
 			{ "2993b3c30f61cbbb8dbce859604d7fb717ff8dae", "736f1cb26e59167f302c22385463d231cce302d3", "https://content.cfx.re/mirrors/patches/2545_2060_update.hdiff", 438194552 },
 			{ "1824cdbc27c3e0eaa86920a38751322727872831", "736f1cb26e59167f302c22385463d231cce302d3", "https://content.cfx.re/mirrors/patches/2372_2060_update.hdiff", 427205591 },
 			{ "748d16b81a34ad317b93cd85e2b088dabdce5cc7", "736f1cb26e59167f302c22385463d231cce302d3", "https://content.cfx.re/mirrors/patches/2245_2060_update.hdiff", 249407832 },
@@ -1459,6 +1419,8 @@ std::map<std::string, std::string> UpdateGameCache()
 		g_requiredEntries.push_back({ "GTA5.exe", "8939c8c71aa98ad7ca6ac773fae1463763c420d8", "https://content.cfx.re/mirrors/patches/1604.0/GTA5.exe", 72484280 });
 		g_requiredEntries.push_back({ "update/update.rpf", "fc941d698834e30e40a06a40f6a35b1b18e1c50c", "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_1604_0.exe", "$/update/update.rpf", 966805504, 1031302600,
 		{
+			{ "86d88c5ea36e67683a138c0e690c42fe288205fa", "fc941d698834e30e40a06a40f6a35b1b18e1c50c", "https://content.cfx.re/mirrors/patches/2699_1604_update.hdiff", 475411202 },
+			{ "80f9bd028e5bc781f641fe210a88579eff827989", "fc941d698834e30e40a06a40f6a35b1b18e1c50c", "https://content.cfx.re/mirrors/patches/2612_1604_update.hdiff", 475094324 },
 			{ "2993b3c30f61cbbb8dbce859604d7fb717ff8dae", "fc941d698834e30e40a06a40f6a35b1b18e1c50c", "https://content.cfx.re/mirrors/patches/2545_1604_update.hdiff", 409505316 },
 			{ "1824cdbc27c3e0eaa86920a38751322727872831", "fc941d698834e30e40a06a40f6a35b1b18e1c50c", "https://content.cfx.re/mirrors/patches/2372_1604_update.hdiff", 400087270 },
 			{ "748d16b81a34ad317b93cd85e2b088dabdce5cc7", "fc941d698834e30e40a06a40f6a35b1b18e1c50c", "https://content.cfx.re/mirrors/patches/2245_1604_update.hdiff", 255586706 },
@@ -1491,17 +1453,27 @@ std::map<std::string, std::string> UpdateGameCache()
 		g_requiredEntries.push_back({ "update/x64/dlcpacks/mpsecurity/dlc.rpf", "27c8100da2537472ad012df036a95da08188d54a", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 1978963968 });
 		g_requiredEntries.push_back({ "update/x64/dlcpacks/mpsecurity/dlc1.rpf", "82f34009966d790a2987c70a2872a5658a71f198", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 1308874752 });
 	}
+
+	if (IsTargetGameBuildOrGreater<2612>())
+	{
+		g_requiredEntries.push_back({ "update/x64/dlcpacks/mpg9ec/dlc.rpf", "011114b746a4d5a830241a174b3e16eb2f63f224", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 1847296 });
+	}
+
+	if (IsTargetGameBuildOrGreater<2699>())
+	{
+		g_requiredEntries.push_back({ "update/x64/dlcpacks/mpsum2/dlc.rpf", "5cb63b0939a716e899fa1f514b73a14ca4b58129", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 1245167616 });
+	}
 #elif IS_RDR3
 	// 1311/1355/1436 toggle
 	if (IsTargetGameBuild<1436>())
 	{
-		g_requiredEntries.push_back({ "RDR2.exe", "5c474d04c0d8e8f0573be31ec015da2d54e27ff9", "ipfs://bafybeignxmbrmkhzkpvupziem6qpm33lm27xku6ag4pmzsafyo2fcksgg4", 89849752 });
-		g_requiredEntries.push_back({ "appdata0_update.rpf", "a3721e37521597daec336ee7872e45fb9b286bab", "ipfs://bafybeie2ge4mwttdhaneydf2ylsn3tp2bfwmon3rd34j5lo4zjepbfpub4", 3164575 });
-		g_requiredEntries.push_back({ "shaders_x64.rpf", "d5c4b9b845165a473da344d2b29ac5546b3f2b50", "ipfs://bafybeialsn5kxkokbfdz6odouazfntw6y3abvf2qylge3gwlhtortsuvlm", 233898030 });
-		g_requiredEntries.push_back({ "update_1.rpf", "77a30e21b549048a6186f337a6cd6ad6699d460d", "ipfs://bafybeid36os6iw26laqzau3lfe23zfkk42dzsy4o65jln2yneetvrxmcsu", 2836982634 });
-		g_requiredEntries.push_back({ "update_2.rpf", "3550ce534b2997306ae1bc13fc3abeec4573389f", "ipfs://bafybeiaum2y7k6gzsde2xwlstdidcp5vyb6vyqgl5djkwjpb4uesvz2fde", 152008462 });
-		g_requiredEntries.push_back({ "update_3.rpf", "a2d3a0e6908b2834b6fd204e6de89e63788d927a", "ipfs://bafybeibhenxfkjsie7knqxrlk6bflhh57qbf7lrs7wr5f47kiavcfnt7mq", 132374108 });
-		g_requiredEntries.push_back({ "update_4.rpf", "39ca2bbb7a0ab8d8e09288ca8783b91654c9b91b", "ipfs://bafybeiefr5ayhajox2zcfwrkjvhoqt7c4ebcfiaxr3grjtrtvefd4en3fy", 2014659811 });
+		g_requiredEntries.push_back({ "RDR2.exe", "f998b4863b11793547c09c226ab884e1e26931f2", "ipfs://bafybeignvzbrnkq35qa2jypvrcbx73qsiknqhhkv57lkwhkmnixsq5bn7e", 89104336 });
+		g_requiredEntries.push_back({ "appdata0_update.rpf", "ba1d727a70fa1c204441c8e3768a1a40b02ef67f", "ipfs://bafybeihevef6cp25uczabosbvna4uc5idifctitzwuhped4l5ntk7ruqoa", 3163551 });
+		g_requiredEntries.push_back({ "shaders_x64.rpf", "f4f06c18701d66958eb6f0ac243c8467033b864b", "ipfs://bafybeihfgavfbsihf65dtv6vyipphbcfrrytcj53hulzkoy7nonpwh4h74", 233898030 });
+		g_requiredEntries.push_back({ "update_1.rpf", "9e62163f0383aa4eb30a02fa0f5628bbf4538543", "ipfs://bafybeifqlaf6vvjbp76ofdvju57oirz74pkm7f62srf36pljgjoo2b3hni", 2836982634 });
+		g_requiredEntries.push_back({ "update_2.rpf", "87323b6d0e1c790972041a034a6f293eb774c84d", "ipfs://bafybeigewsce6w5mtwtywykb7eg2mhey4phhbvkw7cftdjrsowpnebzoxq", 152008542 });
+		g_requiredEntries.push_back({ "update_3.rpf", "a2708ff55294d70bda198a1ff98c1f4b55b0c0df", "ipfs://bafybeibzrkqunak23ppqkk54lkkmmtojqke5pc73f2mfodhwkg7vwrh6pm", 132374108 });
+		g_requiredEntries.push_back({ "update_4.rpf", "4ec55a211e7cb1d68c8fd471cfb049d7690fc9ee", "ipfs://bafybeic6e75dlx2ynxek5gb7qy3tl7ysmj4xqt4un3c6efrckxxtqtskke", 2014659811 });
 	}
 	else if (IsTargetGameBuild<1355>())
 	{

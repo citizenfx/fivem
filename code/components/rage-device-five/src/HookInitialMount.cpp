@@ -93,11 +93,20 @@ static bool OpenArchiveWrapSeh(rage::fiPackfile* packfile, const char* archive, 
 	}
 }
 
+static decltype(&OpenArchiveWrapSeh) g_packfileWrap = &OpenArchiveWrapSeh;
+
+void* WrapPackfile(void* newFunc)
+{
+	auto pfw = g_packfileWrap;
+	g_packfileWrap = (decltype(g_packfileWrap))newFunc;
+	return pfw;
+}
+
 static bool OpenArchiveWrapInner(rage::fiPackfile* packfile, const char* archive, bool a3, int a4, intptr_t a5)
 {
 	currentPack = archive;
 
-	bool retval = OpenArchiveWrapSeh(packfile, archive, a3, a4, a5);
+	bool retval = g_packfileWrap(packfile, archive, a3, a4, a5);
 
 	currentPack = "";
 

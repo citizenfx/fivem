@@ -21,6 +21,8 @@
 
 #include <UUIState.h>
 
+extern void DisableNvCache();
+
 IGameSpecToHooks* g_hooksDLL;
 
 __declspec(dllexport) void SetHooksDll(IGameSpecToHooks* dll);
@@ -119,6 +121,8 @@ static void WarnOSVersion()
 
 bool LauncherInterface::PreInitializeGame()
 {
+	DisableNvCache();
+
 	if (!IsWindows8OrGreater())
 	{
 		static HostSharedData<CfxState> initState("CfxInitState");

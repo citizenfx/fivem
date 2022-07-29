@@ -1,0 +1,28 @@
+*.sh text eol=lf
+
+# helpers for GH language stats
+*.h linguist-language=C++
+
+**/vendor/** linguist-vendored
+code/tools/build/json.lua linguist-vendored
+data/shared/citizen/scripting/lua/MessagePack.lua linguist-vendored
+data/shared/citizen/scripting/lua/deferred.lua linguist-vendored
+data/shared/citizen/scripting/lua/graph.lua linguist-vendored
+data/shared/citizen/scripting/lua/json.lua linguist-vendored
+
+code/client/clrref/System.Drawing.cs linguist-vendored
+code/components/ros-patches-five/include/EntitlementTables_*.h linguist-vendored
+code/client/clrcore/External/* linguist-vendored
+code/tools/dbg/pe*/** linguist-vendored
+
+**/deps/** linguist-vendored
+**/deplibs/** linguist-vendored
+**/include/steam/** linguist-vendored
+**/include/mojo/** linguist-vendored
+code/shared/json.hpp linguist-vendored
+code/components/voip-mumble/include/lib*/** linguist-vendored
+
+**/winrt/** linguist-generated
+
+ext/natives/natives_stash/* linguist-generated
+*.p linguist-generated

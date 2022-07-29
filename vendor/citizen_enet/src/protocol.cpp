@@ -1580,7 +1580,9 @@ enet_protocol_send_reliable_outgoing_commands (ENetHost * host, ENetPeer * peer)
  
        if (outgoingCommand -> roundTripTimeout == 0)
        {
-          outgoingCommand -> roundTripTimeout = peer -> roundTripTime + 4 * peer -> roundTripTimeVariance;
+          // #CFXCHANGE: clamp the round trip timeout to 35ms minimum (server network tick rate can be ~40 FPS worst case,
+          // also accounting for 30 FPS client-side anomalies)
+          outgoingCommand -> roundTripTimeout = ENET_MAX( peer -> roundTripTime + 4 * peer -> roundTripTimeVariance, 35 );
           outgoingCommand -> roundTripTimeoutLimit = peer -> timeoutLimit * outgoingCommand -> roundTripTimeout;
        }
 

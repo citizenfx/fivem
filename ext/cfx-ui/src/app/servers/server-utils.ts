@@ -1,7 +1,10 @@
 import emojiRegex from 'emoji-regex';
 
-const emojiPreRe = new RegExp('^(?:' + emojiRegex().source + ')', '');
-const SPLIT_RE = /((?<!\.(?:[a-zA-Z]{2,6}))\s?\/+\s?|\||\s[-~:]+\s|\s[Il]\s|[\s⠀ㅤ¦\p{Emoji}[]+(?![#0-9])\p{Emoji}|(?<=(?!^)(?![#0-9])\p{Emoji})[\s⠀ㅤ¦]+|[・·•]|(?<=(?:\]|\}))[-\s]|ㅤ)/u;
+const ere = '(?:' + emojiRegex().source + ')';
+const emojiPreRe = new RegExp('^' + ere, '');
+
+// 'kush' is a quick hack to prevent non-sentence descriptions
+const SPLIT_RE = new RegExp(`((?<!\\.(?:[a-zA-Z]{2,6}))\\s?\\/+\\s?|\\||\\s[-~:x×☆ᆞ]+\\s|\\s[Il]\\s|(?:[\\s⠀ㅤ¦[]|${ere})+(?![#0-9])\\p{Emoji}|(?<=(?!^)(?![#0-9])\\p{Emoji}).+|[・·•│]|(?<=(?:\\]|\\}))[-\\s]|ㅤ|kush|(?<=[】⏌」』]).)`, 'u');
 const COMMA_SPLIT_RE = /(?:(?<!(?:\d+|Q))\+|,\s*|\.\s+)/u;
 
 function filterSplit(a: string) {
@@ -74,5 +77,6 @@ export function filterProjectDesc(a: string) {
 		[/\^[0-9]/g, ''],
 		[/^[\sㅤ]+/, ''],
 		[COUNTRY_PREFIX_RE, ''],
+		[emojiPreRe, ''], // emoji prefixes
 	))).replace(/(\s|\u2800)+/gu, ' ').normalize('NFKD');
 }

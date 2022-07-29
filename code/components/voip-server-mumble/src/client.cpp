@@ -671,8 +671,8 @@ int Client_send_message(client_t *client, message_t *msg)
 	}
 	if (client->txsize != 0) {
 		/* Queue message */
-		if ((client->txQueueCount > 5 &&  msg->messageType == UDPTunnel) ||
-			client->txQueueCount > 30) {
+		if ((client->txQueueCount > 25 &&  msg->messageType == UDPTunnel) ||
+			client->txQueueCount > 150) {
 			Msg_free(msg);
 			return -1;
 		}
@@ -945,7 +945,7 @@ int Client_voiceMsg(client_t *client, uint8_t *data, int len)
 	channel_t *ch = (channel_t *)client->channel;
 	struct dlist *itr;
 
-	eastl::fixed_set<client_t*, 32> listeningUsers;
+	eastl::fixed_set<client_t*, 256> listeningUsers;
 
 	if (!client->authenticated || client->mute || client->self_mute || !ch || ch->silent)
 		goto out;

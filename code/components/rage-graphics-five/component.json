@@ -4,8 +4,7 @@
 	"dependencies": [
 		"fx[2]",
 		"rage:allocator:five",
-		"vendor:minhook",
-		"vendor:boost_filesystem"
+		"vendor:minhook"
 	],
 	"provides": []
 }

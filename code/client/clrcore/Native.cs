@@ -8,7 +8,14 @@ namespace CitizenFX.Core.Native
     {
         public static T Call<T>(Hash hash, params InputArgument[] arguments)
         {
-            return (T)InvokeInternal(hash, typeof(T), arguments);
+			object obj = InvokeInternal(hash, typeof(T), arguments);
+
+			if (PointerArgumentSafety.ShouldClean((ulong)hash, typeof(T)))
+			{
+				return default;
+			}
+
+			return (T)obj;
         }
 
         public static void Call(Hash hash, params InputArgument[] arguments)

@@ -8,10 +8,9 @@ apiset: server
 int GET_VEHICLE_DOOR_LOCK_STATUS(Vehicle vehicle);
 ```
 
-```
-enum VehicleLockStatus = {
+```lua
+enum_VehicleLockStatus = {
     None = 0,
-    Unlocked = 1,
     Locked = 2,
     LockedForPlayer = 3,
     StickPlayerInside = 4, -- Doesn't allow players to exit the vehicle with the exit vehicle key.
@@ -21,7 +20,12 @@ enum VehicleLockStatus = {
 }
 ```
 
+It should be [noted](https://forum.cfx.re/t/4863241) that while the [client-side command](#_0x25BC98A59C2EA962) and its
+setter distinguish between states 0 (unset) and 1 (unlocked), the game will synchronize both as state 0, so the server-side
+command will return only '0' if unlocked.
+
 ## Parameters
-* **vehicle**: 
+* **vehicle**: A vehicle handle.
 
 ## Return value
+The door lock status for the specified vehicle.

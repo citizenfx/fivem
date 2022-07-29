@@ -8,6 +8,8 @@
 #include "StdInc.h"
 
 #include <imgui.h>
+
+#define GImGui ImGui::GetCurrentContext()
 #include <imgui_internal.h>
 #include <ConsoleHost.h>
 
@@ -43,7 +45,6 @@ console::Context* GetConsoleContext()
 }
 
 extern ImFont* consoleFontSmall;
-extern ImFont* consoleFontTiny;
 
 // following 2 functions based on https://www.programmingalgorithms.com/algorithm/hsl-to-rgb/cpp/
 static float HueToRGB(float v1, float v2, float vH) {
@@ -151,8 +152,6 @@ struct FiveMConsoleBase
 
 		if (strlen(key.c_str()) > 0 && strlen(item.c_str()) > 0)
 		{
-			ImGui::PushFont(consoleFontSmall);
-
 			auto hue = int{ HashRageString(key.c_str()) % 360 };
 			auto color = HSLToRGB(HSL{ hue, 0.8f, 0.4f });
 			color.alpha = alpha * 255.0f;
@@ -179,14 +178,12 @@ struct FiveMConsoleBase
 				color.alpha *= 0.8f;
 			}
 
-			dl->AddRectFilled(ImVec2(startPos.x, startPos.y + 1.0f), ImVec2(startPos.x + textSize.x + itemSize.x + 8.0f, startPos.y + 22.f - 1.0f), color.AsARGB(), fullBg ? 10.0f : 6.0f);
+			dl->AddRectFilled(ImVec2(startPos.x, startPos.y + 1.0f), ImVec2(startPos.x + textSize.x + itemSize.x + 8.0f, startPos.y + textSize.y - 1.0f), color.AsARGB(), fullBg ? 10.0f : 6.0f);
 			ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 4.0f);
 
 			//ImGui::PushStyleColor(ImGuiCol_Text, col);
 			ImGui::TextUnformatted(key.c_str());
 			//ImGui::PopStyleColor();
-
-			ImGui::PopFont();
 
 			ImGui::SameLine(textSize.x + 16.0f);
 		}
@@ -361,7 +358,7 @@ struct CfxBigConsole : FiveMConsoleBase
 		}
 
 		if (ScrollToBottom)
-			ImGui::SetScrollHere();
+			ImGui::SetScrollHereY();
 
 		ScrollToBottom = false;
 		ImGui::PopStyleVar();
@@ -376,6 +373,8 @@ struct CfxBigConsole : FiveMConsoleBase
 #endif
 
 		ImGui::PushItemWidth(ImGui::GetWindowWidth() - w);
+
+		bool reclaim_focus = false;
 		if (ImGui::InputText("##_Input", InputBuf, _countof(InputBuf), ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CallbackCompletion | ImGuiInputTextFlags_CallbackHistory, &TextEditCallbackStub, (void*)this))
 		{
 			char* input_end = InputBuf + strlen(InputBuf);
@@ -383,12 +382,22 @@ struct CfxBigConsole : FiveMConsoleBase
 			if (InputBuf[0])
 				ExecCommand(InputBuf);
 			strcpy(InputBuf, "");
+			reclaim_focus = true;
 		}
 		ImGui::PopItemWidth();
 
-		// Demonstrate keeping auto focus on the input box
-		if (ImGui::IsItemHovered() || (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && !ImGui::IsAnyItemActive() && !ImGui::IsMouseClicked(0)))
+		// Auto-focus on window apparition
+		ImGui::SetItemDefaultFocus();
+		if (ImGui::IsWindowAppearing())
+		{
+			ImGui::ActivateItem(ImGui::GetItemID());
+			GImGui->NavNextActivateFlags = ImGuiActivateFlags_PreferInput;
+		}
+
+		if (reclaim_focus)
+		{
 			ImGui::SetKeyboardFocusHere(-1); // Auto focus previous widget
+		}
 
 #ifndef IS_FXSERVER
 		ImGui::SameLine();
@@ -444,13 +453,13 @@ struct CfxBigConsole : FiveMConsoleBase
 		}
 	}
 
-	static int TextEditCallbackStub(ImGuiTextEditCallbackData* data) // In C++11 you are better off using lambdas for this sort of forwarding callbacks
+	static int TextEditCallbackStub(ImGuiInputTextCallbackData* data) // In C++11 you are better off using lambdas for this sort of forwarding callbacks
 	{
 		CfxBigConsole* console = (CfxBigConsole*)data->UserData;
 		return console->TextEditCallback(data);
 	}
 
-	int TextEditCallback(ImGuiTextEditCallbackData* data)
+	int TextEditCallback(ImGuiInputTextCallbackData* data)
 	{
 		//AddLog("cursor: %d, selection: %d-%d", data->CursorPos, data->SelectionStart, data->SelectionEnd);
 		switch (data->EventFlag)
@@ -685,7 +694,7 @@ struct MiniConsole : CfxBigConsole
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 4)); // Tighten spacing
 
-		if (ImGui::Begin("MiniCon", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar))
+		if (ImGui::Begin("MiniCon", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoFocusOnAppearing))
 		{
 			auto t = msec();
 
@@ -730,7 +739,7 @@ struct MiniConsole : CfxBigConsole
 				}
 			}
 
-			ImGui::SetScrollHere();
+			ImGui::SetScrollHereY();
 		}
 
 		ImGui::PopStyleVar();
@@ -835,7 +844,7 @@ void DrawConsole()
 	EnsureConsoles();
 
 	static bool pOpen = true;
-	g_consoles[0]->Draw("", &pOpen);
+	g_consoles[0]->Draw("##_BigConsole", &pOpen);
 }
 
 void DrawMiniConsole()
@@ -843,7 +852,7 @@ void DrawMiniConsole()
 	EnsureConsoles();
 
 	static bool pOpen = true;
-	g_consoles[1]->Draw("", &pOpen);
+	g_consoles[1]->Draw("##_MiniConsole", &pOpen);
 }
 
 #include <sstream>

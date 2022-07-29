@@ -359,6 +359,17 @@ namespace CitizenFX.Core
 #endif
 		private static extern ulong GetNative(ulong hash);
 
+#if GTA_FIVE
+		[DllImport("rage-scripting-five.dll", EntryPoint = "MapNative")]
+		private static extern ulong MapNative(ulong hash);
+
+		[SecuritySafeCritical]
+		internal static ulong MapNativeWrap(ulong hash)
+		{
+			return MapNative(hash);
+		}
+#endif
+
 		[DllImport("kernel32.dll")]
 		private static extern IntPtr LoadLibrary(string dllToLoad);
 

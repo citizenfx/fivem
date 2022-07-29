@@ -44,7 +44,10 @@ NUIClient::NUIClient(NUIWindow* window)
 	}
 
 	m_renderHandler = new NUIRenderHandler(this);
+}
 
+void NUIClient::Initialize()
+{
 	CefRefPtr<NUIClient> thisRef(this);
 
 	nui::RequestNUIBlocklist([thisRef](bool success, const char* data, size_t length)

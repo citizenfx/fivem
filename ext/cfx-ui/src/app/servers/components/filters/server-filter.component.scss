@@ -154,8 +154,13 @@
 					position: relative;
 					padding: var(--qh) var(--q1);
 
+					> span {
+						font-family: Consolas, 'Lucida Console', monospace;
+					}
+
 					h4 {
 						font-size: 0.9em;
+						white-space: pre;
 
 						span {
 							font-weight: normal;

@@ -8,6 +8,10 @@
 #include "StdInc.h"
 
 #if defined(_DEBUG) || defined(BUILD_LUA_SCRIPT_NATIVES)
+#if __has_include(<PointerArgumentHints.h>)
+#include <PointerArgumentHints.h>
+#endif
+
 #include <fxScripting.h>
 #include <Error.h>
 
@@ -489,7 +493,7 @@ static void __declspec(safebuffers) CallHandlerSdk(void* handler, uint64_t nativ
 	memcpy(context.arguments, rageContext.GetArgumentBuffer(), sizeof(void*) * rageContext.GetArgumentCount());
 
 	auto& luaRuntime = fx::LuaScriptRuntime::GetCurrent();
-	auto scriptHost = luaRuntime->GetScriptHost();
+	fx::OMPtr scriptHost = luaRuntime->GetScriptHost();
 
 	HRESULT hr = scriptHost->InvokeNative(context);
 
@@ -569,7 +573,7 @@ static int __Lua_InvokeNative(lua_State* L)
 
 	// get required entries
 	auto& luaRuntime = fx::LuaScriptRuntime::GetCurrent();
-	auto scriptHost = luaRuntime->GetScriptHost();
+	fx::OMPtr scriptHost = luaRuntime->GetScriptHost();
 
 	// variables to hold state
 	fxLuaNativeContext<IsPtr> context;
@@ -589,6 +593,30 @@ static int __Lua_InvokeNative(lua_State* L)
 			return luaL_error(L, "Unexpected context result");
 		}
 	}
+
+#if __has_include(<PointerArgumentHints.h>)
+	fx::scripting::ResultType resultTypeIntent = fx::scripting::ResultType::None;
+
+	if (!result.returnResultAnyway)
+	{
+		resultTypeIntent = fx::scripting::ResultType::Void;
+	}
+	else if (result.returnValueCoercion == LuaMetaFields::ResultAsString)
+	{
+		resultTypeIntent = fx::scripting::ResultType::String;
+	}
+	else if (result.returnValueCoercion == LuaMetaFields::ResultAsInteger ||
+		result.returnValueCoercion == LuaMetaFields::ResultAsLong ||
+		result.returnValueCoercion == LuaMetaFields::ResultAsFloat ||
+		result.returnValueCoercion == LuaMetaFields::Max /* bool */)
+	{
+		resultTypeIntent = fx::scripting::ResultType::Scalar;
+	}
+	else if (result.returnValueCoercion == LuaMetaFields::ResultAsVector)
+	{
+		resultTypeIntent = fx::scripting::ResultType::Vector;
+	}
+#endif
 
 	// invoke the native on the script host
 #ifndef IS_FXSERVER
@@ -649,8 +677,15 @@ static int __Lua_InvokeNative(lua_State* L)
 	// clean up the result
 	if ((needsResultCheck || hadComplexType) && context.numArguments > 0)
 	{
+		// if this is scrstring but nothing changed (very weird!), fatally fail
+		if (static_cast<uint32_t>(context.arguments[2]) == SCRSTRING_MAGIC_BINARY && initialArg3 == context.arguments[2])
+		{
+			FatalError("Invalid native call in resource '%s'. Please see https://aka.cfx.re/scrstring-mitigation for more information.", luaRuntime->GetResourceName());
+		}
+
 		// if the first value (usually result) is the same as the initial argument, clear the result (usually, result was no-op)
-		if (context.arguments[0] == initialArg1)
+		// (if vector results, these aren't directly unsafe, and may get incorrectly seen as complex)
+		if (context.arguments[0] == initialArg1 && result.returnValueCoercion != LuaMetaFields::ResultAsVector)
 		{
 			// complex type in first result means we have to clear that result
 			if (hadComplexType)
@@ -658,18 +693,18 @@ static int __Lua_InvokeNative(lua_State* L)
 				context.arguments[0] = 0;
 			}
 
-			// if this is scrstring but nothing changed (very weird!), fatally fail
-			if (static_cast<uint32_t>(context.arguments[2]) == SCRSTRING_MAGIC_BINARY &&
-				initialArg3 == context.arguments[2])
-			{
-				FatalError("Invalid native call in resource '%s'. Please see https://aka.cfx.re/scrstring-mitigation for more information.", luaRuntime->GetResourceName());
-			}
-
 			// if any result is requested and there was *no* change, zero out
 			context.arguments[1] = 0;
 			context.arguments[2] = 0;
 			context.arguments[3] = 0;
 		}
+	}
+#endif
+
+#if __has_include(<PointerArgumentHints.h>)
+	if (resultTypeIntent != fx::scripting::ResultType::None)
+	{
+		fx::scripting::PointerArgumentHints::CleanNativeResult(origHash, resultTypeIntent, context.arguments);
 	}
 #endif
 
@@ -830,7 +865,7 @@ LUA_SCRIPT_LINKAGE int Lua_LoadNative(lua_State* L)
 
 		if (isCfxv2) // TODO/TEMPORARY: fxv2 oal is disabled by default for now
 		{
-			runtime->GetScriptHost2()->GetNumResourceMetaData("use_fxv2_oal", &isCfxv2);
+			runtime->GetScriptHost2()->GetNumResourceMetaData("use_experimental_fxv2_oal", &isCfxv2);
 		}
 
 		//#if !defined(GTA_FIVE) || (LUA_VERSION_NUM == 504)

@@ -3,12 +3,13 @@
 
 // Implemented features:
 //  [X] Platform: Clipboard support (for Win32 this is actually part of core dear imgui)
-//  [X] Platform: Mouse cursor shape and visibility. Disable with 'io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange'.
-//  [X] Platform: Keyboard arrays indexed using VK_* Virtual Key Codes, e.g. ImGui::IsKeyPressed(VK_SPACE).
+//  [X] Platform: Keyboard support. Since 1.87 we are using the io.AddKeyEvent() function. Pass ImGuiKey values to all key functions e.g. ImGui::IsKeyPressed(ImGuiKey_Space). [Legacy VK_* values will also be supported unless IMGUI_DISABLE_OBSOLETE_KEYIO is set]
 //  [X] Platform: Gamepad support. Enabled with 'io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad'.
+//  [X] Platform: Mouse cursor shape and visibility. Disable with 'io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange'.
 //  [X] Platform: Multi-viewport support (multiple windows). Enable with 'io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable'.
 
-// You can copy and use unmodified imgui_impl_* files in your project. See examples/ folder for examples of using this.
+// You can use unmodified imgui_impl_* files in your project. See examples/ folder for examples of using this.
+// Prefer including the entire imgui/ repository into your project (either as a copy or as a submodule), and only build the backends you need.
 // If you are new to Dear ImGui, read documentation from the docs/ folder + read the top of imgui.cpp.
 // Read online: https://github.com/ocornut/imgui/tree/master/docs
 
@@ -19,14 +20,10 @@ IMGUI_IMPL_API bool     ImGui_ImplWin32_Init(void* hwnd);
 IMGUI_IMPL_API void     ImGui_ImplWin32_Shutdown();
 IMGUI_IMPL_API void     ImGui_ImplWin32_NewFrame();
 
-// Configuration
-// - Disable gamepad support or linking with xinput.lib
-//#define IMGUI_IMPL_WIN32_DISABLE_GAMEPAD
-//#define IMGUI_IMPL_WIN32_DISABLE_LINKING_XINPUT
-
 // Win32 message handler your application need to call.
 // - Intentionally commented out in a '#if 0' block to avoid dragging dependencies on <windows.h> from this helper.
 // - You should COPY the line below into your .cpp code to forward declare the function and then you can call it.
+// - Call from your application's message handler. Keep calling your message handler unless this function returns TRUE.
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 // DPI-related helpers (optional)
@@ -38,3 +35,8 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 IMGUI_IMPL_API void     ImGui_ImplWin32_EnableDpiAwareness();
 IMGUI_IMPL_API float    ImGui_ImplWin32_GetDpiScaleForHwnd(void* hwnd);       // HWND hwnd
 IMGUI_IMPL_API float    ImGui_ImplWin32_GetDpiScaleForMonitor(void* monitor); // HMONITOR monitor
+
+// Transparency related helpers (optional) [experimental]
+// - Use to enable alpha compositing transparency with the desktop.
+// - Use together with e.g. clearing your framebuffer with zero-alpha.
+IMGUI_IMPL_API void     ImGui_ImplWin32_EnableAlphaCompositing(void* hwnd);   // HWND hwnd

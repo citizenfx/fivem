@@ -7,10 +7,10 @@
 
 #include <stdint.h>
 
-#include <rmcDrawable.h>
+#include "rmcDrawable.h"
 
 #define RAGE_FORMATS_FILE fragType
-#include <formats-header.h>
+#include "formats-header.h"
 
 #ifdef RAGE_FORMATS_OK
 #if defined(RAGE_FORMATS_GAME_NY)
@@ -286,4 +286,4 @@ public:
 
 #endif
 
-#include <formats-footer.h>
+#include "formats-footer.h"

@@ -156,7 +156,7 @@ static HookFunction initFunction([]()
 		data->tilesY = defaultZoomLevels[index].tilesY;
 	});
 
-	static auto minimapIsRect = hook::get_address<bool*>(hook::get_pattern("8A 15 ? ? ? ? F3 0F 10 15 ? ? ? ? 84 D2 74 08", 2));
+	static auto minimapIsRect = hook::get_address<bool*>(hook::get_pattern("8A 15 ? ? ? ? F3 0F 10 15", 2));
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_MINIMAP_CLIP_TYPE", [](fx::ScriptContext& context)
 	{

@@ -172,6 +172,9 @@ extern std::list<std::string> g_nuiFocusStack;
 static std::map<std::string, std::vector<CefRefPtr<CefProcessMessage>>> g_processMessageQueue;
 static std::mutex g_processMessageQueueMutex;
 
+static concurrency::concurrent_queue<std::function<void()>> g_offThreadNuiQueue;
+static HANDLE g_offthreadNuiQueueWakeEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+
 void TriggerLoadEnd(const std::string& name)
 {
 	auto rootWindow = Instance<NUIWindowManager>::Get()->GetRootWindow();
@@ -262,33 +265,63 @@ namespace nui
 		}
 	}
 
-	static void PostJSEvent(const std::string& type, const std::vector<std::reference_wrapper<const std::string>>& args)
+	static void PostJSEvent(const std::string& type, std::vector<std::string>&& args)
 	{
 		auto rootWindow = Instance<NUIWindowManager>::Get()->GetRootWindow();
 
-		auto processMessage = CefProcessMessage::Create("pushEvent");
-		auto argumentList = processMessage->GetArgumentList();
-
-		argumentList->SetString(0, type);
-
-		int argIdx = 1;
-
-		for (auto arg : args)
+		static auto initThread = []
 		{
-			argumentList->SetString(argIdx, arg.get());
+			std::thread([]
+			{
+				SetThreadName(-1, "NuiMessage");
 
-			argIdx++;
-		}
+				while (true)
+				{
+					WaitForSingleObject(g_offthreadNuiQueueWakeEvent, INFINITE);
 
-		if (rootWindow.GetRef() && rootWindow->GetBrowser() && rootWindow->GetBrowser()->GetMainFrame())
+					std::function<void()> fn;
+					while (g_offThreadNuiQueue.try_pop(fn))
+					{
+						if (fn)
+						{
+							fn();
+						}
+					}
+				}
+			})
+			.detach();
+
+			return true;
+		}();
+
+		g_offThreadNuiQueue.push([rootWindow, type, args = std::move(args)]()
 		{
-			rootWindow->GetBrowser()->GetMainFrame()->SendProcessMessage(PID_RENDERER, processMessage);
-		}
-		else
-		{
-			std::unique_lock _(g_processMessageQueueMutex);
-			g_processMessageQueue[(type != "rootCall") ? argumentList->GetString(0) : "__root"].push_back(processMessage);
-		}
+			auto processMessage = CefProcessMessage::Create("pushEvent");
+			auto argumentList = processMessage->GetArgumentList();
+
+			argumentList->SetString(0, type);
+
+			int argIdx = 1;
+
+			for (const auto& arg : args)
+			{
+				argumentList->SetString(argIdx, CefStringUTF8{ arg.data(), arg.size(), false }.ToString16());
+
+				argIdx++;
+			}
+
+			if (rootWindow.GetRef() && rootWindow->GetBrowser() && rootWindow->GetBrowser()->GetMainFrame())
+			{
+				rootWindow->GetBrowser()->GetMainFrame()->SendProcessMessage(PID_RENDERER, processMessage);
+			}
+			else
+			{
+				std::unique_lock _(g_processMessageQueueMutex);
+				g_processMessageQueue[(type != "rootCall") ? processMessage->GetArgumentList()->GetString(0) : "__root"].push_back(processMessage);
+			}
+		});
+
+		SetEvent(g_offthreadNuiQueueWakeEvent);
 	}
 
 	__declspec(dllexport) void PostRootMessage(const std::string& jsonData)

@@ -8,11 +8,11 @@
 #include <stdint.h>
 #include <vector>
 
-#include <pgBase.h>
-#include <pgContainers.h>
+#include "pgBase.h"
+#include "pgContainers.h"
 
 #define RAGE_FORMATS_FILE phBound
-#include <formats-header.h>
+#include "formats-header.h"
 
 #ifdef RAGE_FORMATS_OK
 #if defined(RAGE_FORMATS_GAME_NY)
@@ -1653,4 +1653,4 @@ inline void CalculateBVH(phBoundBVH* bound, int maxPerNode = 4)
 
 #endif
 
-#include <formats-footer.h>
+#include "formats-footer.h"

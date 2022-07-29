@@ -38,10 +38,13 @@
 #include <citizen_util/shared_reference.h>
 
 #ifdef STATE_FIVE
-static constexpr int g_netObjectTypeBitLength = 4;
+static constexpr int kNetObjectTypeBitLength = 4;
 #elif defined(STATE_RDR3)
-static constexpr int g_netObjectTypeBitLength = 5;
+static constexpr int kNetObjectTypeBitLength = 5;
 #endif
+
+static constexpr int kSyncPacketMaxLength = 2400;
+static constexpr int kPacketWarnLength = 1300;
 
 namespace rl
 {
@@ -720,10 +723,16 @@ static void FlushBuffer(rl::MessageBuffer& buffer, uint32_t msgType, uint64_t fr
 		*(uint32_t*)(outData.data()) = msgType;
 		*(uint64_t*)(outData.data() + 4) = newFrame.full;
 
-		net::Buffer netBuffer(reinterpret_cast<uint8_t*>(outData.data()), len + 4 + 8);
-		netBuffer.Seek(len + 4 + 8); // since the buffer constructor doesn't actually set the offset
+		int bufferLen = len + 4 + 8;
+		net::Buffer netBuffer(reinterpret_cast<uint8_t*>(outData.data()), bufferLen);
+		netBuffer.Seek(bufferLen); // since the buffer constructor doesn't actually set the offset
 
-		GS_LOG("flushBuffer: sending %d bytes to %d\n", len + 4 + 8, client->GetNetId());
+	    if (bufferLen >= kPacketWarnLength)
+		{
+			console::DPrintf("net", "Sending a large packet (%d compressed bytes) to client %d, report if there will be any sync issues\n", bufferLen, client->GetNetId());
+		}
+
+		GS_LOG("flushBuffer: sending %d bytes to %d\n", bufferLen, client->GetNetId());
 
 		client->SendPacket(1, netBuffer, NetPacketType_Unreliable);
 
@@ -1748,7 +1757,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 						preCb(frameIndex, isFirstFrameUpdate);
 
 						// create a buffer once (per thread) to save allocations
-						static thread_local rl::MessageBuffer mb(1200);
+						static thread_local rl::MessageBuffer mb(kSyncPacketMaxLength);
 
 						mb.SetCurrentBit(0);
 
@@ -1809,7 +1818,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 							if (syncType == 1)
 							{
-								cmdState.cloneBuffer.Write(g_netObjectTypeBitLength, (uint8_t)entity->type);
+								cmdState.cloneBuffer.Write(kNetObjectTypeBitLength, (uint8_t)entity->type);
 								cmdState.cloneBuffer.Write(32, entity->creationToken);
 							}
 
@@ -3085,7 +3094,7 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 	{
 		creationToken = inPacket.Read<uint32_t>(32);
 
-		objectType = (sync::NetObjEntityType)inPacket.Read<uint8_t>(g_netObjectTypeBitLength);
+		objectType = (sync::NetObjEntityType)inPacket.Read<uint8_t>(kNetObjectTypeBitLength);
 	}
 
 	auto length = inPacket.Read<uint16_t>(12);
@@ -3238,20 +3247,21 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 		entity->timestamp = timestamp;
 
 		GS_LOG("sync for entity %d and length %d\n", entity->handle, length);
-		auto state = sync::SyncParseState{ { bitBytes }, parsingType, 0, timestamp, entity, m_frameIndex };
+		auto state = sync::SyncParseStateDynamic{ { bitBytes }, parsingType, 0, timestamp, entity, m_frameIndex };
 
 		auto syncTree = entity->syncTree;
 		if (syncTree)
 		{
-			syncTree->Parse(state);
-
 			if (parsingType == 2)
 			{
+				syncTree->ParseSync(state);
+
 				entity->hasSynced = true;
 			}
-
-			if (parsingType == 1)
+			else if (parsingType == 1)
 			{
+				syncTree->ParseCreate(state);
+
 				syncTree->Visit([](sync::NodeBase& node)
 				{
 					node.ackedPlayers.reset();
@@ -4509,7 +4519,7 @@ struct CWeaponDamageEvent
 	uint16_t actionResultId;
 	uint32_t f104;
 
-	uint16_t weaponDamage;
+	uint32_t weaponDamage;
 	bool isNetTargetPos;
 
 	float localPosX;
@@ -4546,7 +4556,8 @@ struct CWeaponDamageEvent
 
 void CWeaponDamageEvent::Parse(rl::MessageBuffer& buffer)
 {
-	if (Is2060() && !Is2372()) {
+	if (Is2060() && !Is2372())
+	{
 		buffer.Read<uint16_t>(16);
 	}
 
@@ -4571,16 +4582,19 @@ void CWeaponDamageEvent::Parse(rl::MessageBuffer& buffer)
 
 	if (overrideDefaultDamage)
 	{
-		weaponDamage = buffer.Read<uint16_t>(14);
+		weaponDamage = buffer.Read<uint32_t>(Is2699() ? 17 : 14);
 	}
 	else
 	{
 		weaponDamage = 0;
 	}
 
-	if (Is2060()) {
+	if (Is2060())
+	{
 		bool _f92 = buffer.Read<uint8_t>(1);
-		if (_f92) {
+
+		if (_f92)
+		{
 			buffer.Read<uint8_t>(4);
 		}
 	}
@@ -4887,8 +4901,8 @@ struct CGiveWeaponEvent
     {
         pedId = buffer.Read<uint16_t>(13);
         weaponType = buffer.Read<uint32_t>(32);
-        unk1 = buffer.Read<uint8_t>(1);
-        ammo = buffer.Read<uint16_t>(15);
+        ammo = buffer.ReadSigned<int>(16);
+        unk1 = ammo < 0; // this used to represent the sign
         givenAsPickup = buffer.Read<uint8_t>(1);
     }
 

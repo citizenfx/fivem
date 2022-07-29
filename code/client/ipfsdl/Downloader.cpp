@@ -20,7 +20,7 @@ namespace ipfsdl
 	static std::unique_ptr<ipfs_lite::IpfsLite::Stub> g_ipfs;
 	static HMODULE hModule;
 
-	bool Start()
+	static bool StartInner()
 	{
 		hModule = LoadLibrary(L"grpc-ipfs.dll");
 
@@ -34,7 +34,7 @@ namespace ipfsdl
 fdb4684a58cda3f34aa289e603751631e6526f4ca332e876eca163b6b91a37d7)";
 
 		auto start = (decltype(&::Start))GetProcAddress(hModule, "Start");
-		auto rv = start(ToNarrow(MakeRelativeCitPath(L"data/ipfs/")).data(), swarmKeyRaw.data(), swarmKeyRaw.size(), 0);
+		auto rv = start(ToNarrow(MakeRelativeCitPath(L"data/ipfs-r2/")).data(), swarmKeyRaw.data(), swarmKeyRaw.size(), 0);
 
 		if (rv.r1)
 		{
@@ -46,6 +46,18 @@ fdb4684a58cda3f34aa289e603751631e6526f4ca332e876eca163b6b91a37d7)";
 		g_ipfs = ipfs_lite::IpfsLite::NewStub(channel);
 
 		return true;
+	}
+
+	void Start(void(*cb)(bool))
+	{
+		std::thread([cb]
+		{
+			bool rv = StartInner();
+			g_pollQueue.push([cb, rv]()
+			{
+				cb(rv);
+			});
+		}).detach();
 	}
 
 	bool DownloadFile(void* cxt, const char* url, DownloadCb cb, FinishCb done)
@@ -110,6 +122,8 @@ fdb4684a58cda3f34aa289e603751631e6526f4ca332e876eca163b6b91a37d7)";
 		{
 			return stop() == nullptr;
 		}
+
+		return false;
 	}
 
 	void Poll()
@@ -123,9 +137,9 @@ fdb4684a58cda3f34aa289e603751631e6526f4ca332e876eca163b6b91a37d7)";
 	}
 }
 
-extern "C" DLL_EXPORT bool ipfsdlInit()
+extern "C" DLL_EXPORT void ipfsdlInit(void(*cb)(bool))
 {
-	return ipfsdl::Start();
+	return ipfsdl::Start(cb);
 }
 
 extern "C" DLL_EXPORT bool ipfsdlDownloadFile(void* cxt, const char* url, DownloadCb cb, FinishCb done)

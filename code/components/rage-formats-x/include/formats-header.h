@@ -47,5 +47,5 @@
 #pragma pack(push, 4)
 #endif
 
-#include <formats-namespace-header.h>
+#include "formats-namespace-header.h"
 #endif

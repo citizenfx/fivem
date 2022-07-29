@@ -17,7 +17,6 @@
 #endif
 
 #include <DebugAlias.h>
-#include <ETWProviders/etwprof.h>
 
 #include <Error.h>
 
@@ -214,12 +213,6 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 
 void ResourceScriptingComponent::Tick()
 {
-	// #TODO: 32 bit
-#if defined(_M_AMD64) && defined(ETW_MARKS_ENABLED)
-	std::string message(fmt::format("{} tick", m_resource->GetName()));
-	CETWScope etwScope(message.c_str());
-#endif
-
 	m_resource->Run([this]()
 	{
 		for (const auto& [id, tickRuntime] : m_tickRuntimes)

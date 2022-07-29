@@ -8,10 +8,10 @@
 // actually GTA, not RAGE, but who cares
 #define RAGE_FORMATS_FILE CNavMesh
 
-#include <pgBase.h>
+#include "pgBase.h"
 
-#include <math.h>
-#include <formats-header.h>
+#include "math.h"
+#include "formats-header.h"
 
 #ifdef RAGE_FORMATS_OK
 
@@ -358,4 +358,4 @@ static void* m = ValidateSizeNv<TNavMeshPoly, 48>();
 
 #endif
 
-#include <formats-footer.h>
+#include "formats-footer.h"

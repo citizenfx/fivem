@@ -7,10 +7,10 @@
 
 #include <stdint.h>
 
-#include <datBase.h>
+#include "datBase.h"
 
 #define RAGE_FORMATS_FILE pgBase
-#include <formats-header.h>
+#include "formats-header.h"
 
 #ifdef RAGE_FORMATS_OK
 #if defined(RAGE_FORMATS_GAME_NY)
@@ -403,4 +403,4 @@ struct ResourceFlags
 };
 #endif
 
-#include <formats-footer.h>
+#include "formats-footer.h"

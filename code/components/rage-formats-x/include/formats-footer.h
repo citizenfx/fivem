@@ -6,7 +6,7 @@
  */
 
 #ifdef RAGE_FORMATS_OK
-#include <formats-namespace-footer.h>
+#include "formats-namespace-footer.h"
 
 #ifdef RAGE_FORMATS_GAME_NY
 #pragma pack(pop)

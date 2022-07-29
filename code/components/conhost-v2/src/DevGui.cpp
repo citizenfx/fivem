@@ -129,6 +129,12 @@ static void DevGui_Draw(const DevGuiNode* node)
 	}
 	else if (node->type == DevGuiNode::DevGuiNode_Command)
 	{
+		if (!node->name.empty() && node->name[0] == '-' && node->name[node->name.length() - 1] == '-')
+		{
+			ImGui::Separator();
+			return;
+		}
+
 		if (ImGui::MenuItem(node->name.c_str()))
 		{
 			se::ScopedPrincipal scope{
@@ -162,7 +168,7 @@ static void DevGui_Draw(const DevGuiNode* node)
 				auto value = boolEntry->GetRawValue();
 				auto initialValue = value;
 
-				ImGui::Checkbox(node->name.c_str(), &value);
+				ImGui::MenuItem(node->name.c_str(), nullptr, &value);
 
 				if (initialValue != value)
 				{
@@ -274,7 +280,8 @@ devgui_convar "Game/SFX Volume" profile_sfxVolume
 devgui_cmd "Game/Mute" "vstr game_mute"
 devgui_cmd "Game/Unmute" "vstr game_unmute"
 
-devgui_convar "Overlays/Draw Performance" cl_drawPerf
+devgui_convar "Overlays/Performance/Draw Performance" cl_drawPerf
+devgui_cmd    "Overlays/Performance/--------------------" "wait 1"
 )");
 
 	if (IsNonProduction())

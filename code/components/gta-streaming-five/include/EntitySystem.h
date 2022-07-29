@@ -349,7 +349,12 @@ public:
 	template<typename T>
 	bool IsOfType()
 	{
-		return reinterpret_cast<T*>(this->IsOfType(HashString(boost::typeindex::type_id<T>().pretty_name().substr(6).c_str())));
+		constexpr auto typeName = std::string_view{
+			boost::typeindex::ctti_type_index::type_id<T>().raw_name()
+		};
+
+		constexpr auto typeHash = HashString(typeName.substr(0, typeName.length() - boost::typeindex::detail::ctti_skip_size_at_end).substr(6));
+		return this->IsOfType(typeHash);
 	}
 
 private:

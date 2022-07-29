@@ -1,7 +1,7 @@
 return {
 	include = function()
 		if not os.istarget('windows') then
-			defines { "BOTAN_DLL=" }
+			defines { "BOTAN_DLL=__attribute__((visibility(\"default\")))" }
 		end
 
 		if _OPTIONS['game'] == 'server' then
@@ -26,7 +26,7 @@ return {
 				buildoptions '-mrdrnd -mrdseed'
 			end
 		else
-			defines { "BOTAN_DLL=" }
+			defines { "BOTAN_DLL=__attribute__((visibility(\"default\")))" }
 
 			buildoptions { '-msse', '-msse2' }
 		end

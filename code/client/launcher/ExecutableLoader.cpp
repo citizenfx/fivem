@@ -452,8 +452,6 @@ bool ExecutableLoader::ApplyRelocations()
 			uint32_t rva = (relocStart[i] & 0xFFF) + relocation->VirtualAddress;
 
 			void* addr = GetTargetRVA<void>(rva);
-			DWORD oldProtect;
-			VirtualProtect(addr, 4, PAGE_EXECUTE_READWRITE, &oldProtect);
 
 			if (type == IMAGE_REL_BASED_HIGHLOW)
 			{
@@ -467,8 +465,6 @@ bool ExecutableLoader::ApplyRelocations()
 			{
 				return false;
 			}
-
-			VirtualProtect(addr, 4, oldProtect, &oldProtect);
 		}
 
 		// on to the next one!

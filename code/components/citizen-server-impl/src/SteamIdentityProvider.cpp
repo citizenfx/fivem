@@ -23,8 +23,8 @@
 
 #include <HttpClient.h>
 
-static std::shared_ptr<ConVar<std::string>> g_steamApiKey;
-static std::shared_ptr<ConVar<std::string>> g_steamApiDomain;
+std::shared_ptr<ConVar<std::string>> g_steamApiKey;
+std::shared_ptr<ConVar<std::string>> g_steamApiDomain;
 
 using json = nlohmann::json;
 

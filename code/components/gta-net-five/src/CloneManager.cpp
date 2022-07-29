@@ -43,10 +43,12 @@ rage::netObject* g_curNetObject;
 static std::set<uint16_t> g_dontParrotDeletionAcks;
 
 #ifdef GTA_FIVE
-static constexpr int g_netObjectTypeBitLength = 4;
+static constexpr int kNetObjectTypeBitLength = 4;
 #elif IS_RDR3
-static constexpr int g_netObjectTypeBitLength = 5;
+static constexpr int kNetObjectTypeBitLength = 5;
 #endif
+
+static constexpr int kSyncPacketMaxLength = 2400;
 
 void ObjectIds_AddObjectId(int objectId);
 void ObjectIds_StealObjectId(int objectId);
@@ -252,7 +254,7 @@ private:
 	};
 
 private:
-	LZ4_streamHC_t m_compStream;
+	LZ4_streamHC_t m_compStreamDict;
 
 	std::unordered_map<int, ObjectData> m_trackedObjects;
 
@@ -460,7 +462,13 @@ void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
 
 	m_serverSendFrame = 0;
 
-	LZ4_initStreamHC(&m_compStream, sizeof(m_compStream));
+	LZ4_initStreamHC(&m_compStreamDict, sizeof(m_compStreamDict));
+
+	const static uint8_t dictBuffer[65536] = {
+#include <state/dict_five_20210329.h>
+	};
+
+	LZ4_loadDictHC(&m_compStreamDict, reinterpret_cast<const char*>(dictBuffer), std::size(dictBuffer));
 }
 
 void CloneManagerLocal::Reset()
@@ -908,7 +916,7 @@ void msgClone::Read(int syncType, rl::MessageBuffer& buffer)
 
 	if (syncType == 1)
 	{
-		m_entityType = (NetObjEntityType)buffer.Read<uint8_t>(g_netObjectTypeBitLength);
+		m_entityType = (NetObjEntityType)buffer.Read<uint8_t>(kNetObjectTypeBitLength);
 		m_creationToken = 0;
 
 		if (icgi->NetProtoVersion >= 0x202002271209)
@@ -2336,7 +2344,7 @@ void CloneManagerLocal::WriteUpdates()
 #endif
 
 		// allocate a RAGE buffer
-		uint8_t packetStub[1200] = { 0 };
+		uint8_t packetStub[kSyncPacketMaxLength] = { 0 };
 		rage::datBitBuffer rlBuffer(packetStub, sizeof(packetStub));
 
 		// if we want to delete this object
@@ -2566,7 +2574,7 @@ void CloneManagerLocal::WriteUpdates()
 							netBuffer.Write(32, g_objectIdToCreationToken[objectId]);
 						}
 
-						netBuffer.Write(g_netObjectTypeBitLength, objectType);
+						netBuffer.Write(kNetObjectTypeBitLength, objectType);
 					}
 
 					uint32_t len = rlBuffer.GetDataLength();
@@ -2709,18 +2717,17 @@ void CloneManagerLocal::SendUpdates(rl::MessageBuffer& buffer, uint32_t msgType)
 	{
 		buffer.Write(3, 7);
 
-		const static uint8_t dictBuffer[65536] = {
-#include <state/dict_five_20210329.h>
-		};
-
 		// compress and send data
 		std::vector<char> outData(LZ4_compressBound(buffer.GetDataLength()) + 4);
 		int len = 0;
 
 		if (icgi->NetProtoVersion >= 0x202103292050)
 		{
-			LZ4_loadDictHC(&m_compStream, reinterpret_cast<const char*>(dictBuffer), std::size(dictBuffer));
-			len = LZ4_compress_HC_continue(&m_compStream, reinterpret_cast<const char*>(buffer.GetBuffer().data()), outData.data() + 4, buffer.GetDataLength(), outData.size() - 4);
+			// see https://github.com/lz4/lz4/issues/399#issuecomment-329337170
+			LZ4_streamHC_t compStream;
+			memcpy(&compStream, &m_compStreamDict, sizeof(compStream));
+
+			len = LZ4_compress_HC_continue(&compStream, reinterpret_cast<const char*>(buffer.GetBuffer().data()), outData.data() + 4, buffer.GetDataLength(), outData.size() - 4);
 		}
 		else
 		{

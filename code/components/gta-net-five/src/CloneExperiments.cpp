@@ -588,6 +588,10 @@ CNetGamePlayer* netObject__GetPlayerOwner(rage::netObject* object)
 			return player;
 		}
 
+#ifdef IS_RDR3
+		return nullptr;
+#endif
+
 		EnsurePlayer31();
 		return g_player31;
 	}
@@ -604,7 +608,9 @@ static uint8_t netObject__GetPlayerOwnerId(rage::netObject* object)
 		return g_origGetOwnerPlayerId(object);
 	}
 
-	return netObject__GetPlayerOwner(object)->physicalPlayerIndex();
+	auto owner = netObject__GetPlayerOwner(object);
+
+	return owner ? owner->physicalPlayerIndex() : 0xFF;
 }
 
 static CNetGamePlayer*(*g_origGetPendingPlayerOwner)(rage::netObject*);
@@ -757,7 +763,9 @@ static void PassObjectControlStub(CNetGamePlayer* player, rage::netObject* netOb
 		return g_origPassObjectControl(player, netObject, a3);
 	}
 
-	if (player->physicalPlayerIndex() == netObject__GetPlayerOwner(netObject)->physicalPlayerIndex())
+	auto owner = netObject__GetPlayerOwner(netObject);
+
+	if (!owner || player->physicalPlayerIndex() == owner->physicalPlayerIndex())
 	{
 		return;
 	}
@@ -1542,6 +1550,58 @@ static void SyncDataSizeCalculatorSerializePlayerIndex(rage::CSyncDataSizeCalcul
 
 	syncData->m_size += kPlayerNetIdLength;
 }
+
+static rlGamerInfo* (*g_origNetGamePlayerGetGamerInfo)(CNetGamePlayer*);
+
+static rlGamerInfo* NetGamePlayerGetGamerInfo(CNetGamePlayer* self)
+{
+	if (!icgi->OneSyncEnabled)
+	{
+		return g_origNetGamePlayerGetGamerInfo(self);
+	}
+
+	if (auto playerInfo = self->GetPlayerInfo())
+	{
+		return (rlGamerInfo*)((char*)playerInfo + 0x20);
+	}
+
+	FatalError("CNetGamePlayer::GetGamerInfo returned nullptr, this is a fatal error.\n"
+		"Physical player index: %d\nActive player index: %d\nPlayer address: %x\n\n"
+		"Please report this issue, together with the information from 'Save information' down below on\n"
+		"https://forum.cfx.re/t/cnetgameplayer-getgamerinfo-returns-nullptr-causing-crashes",
+		self->physicalPlayerIndex(), self->activePlayerIndex(), (uint64_t)self);
+}
+
+static bool (*g_origNetGamePlayerIsVisibleToPlayer)(CNetGamePlayer*, CNetGamePlayer*, char);
+
+static bool NetGamePlayerIsVisibleToPlayer(CNetGamePlayer* player, CNetGamePlayer* target, char flags)
+{
+	if (!icgi->OneSyncEnabled)
+	{
+		return g_origNetGamePlayerIsVisibleToPlayer(player, target, flags);
+	}
+
+	// The game only update "visible players bitset" once per second, if remote player scope-out between
+	// updates and local player would be "lucky" enough to make the game call this function during gameplay,
+	// they will most likely get crash because of bitset still containing invalid player marked as "visible".
+	// So we make sure that target player is still have physical entity, before returning true.
+
+	bool result = g_origNetGamePlayerIsVisibleToPlayer(player, target, flags);
+
+	// don't continue when original function returned false or target is player 31
+	if (!result || !target || target->physicalPlayerIndex() == 31)
+	{
+		return false;
+	}
+
+	// do not allow to return true if remote player has no physical entity
+	if (!getPlayerPedForNetPlayer(target))
+	{
+		return false;
+	}
+
+	return true;
+}
 #endif
 
 static HookFunction hookFunction([]()
@@ -1562,6 +1622,7 @@ static HookFunction hookFunction([]()
 	{
 		hook::nop(hook::get_pattern("FF 90 80 00 00 00 33 C9 48 85 C0 74 4C", 11), 2);
 	}
+#endif
 
 	// dummy/ambient object player list ordering logic
 
@@ -1571,17 +1632,23 @@ static HookFunction hookFunction([]()
 		{
 			void InternalMain() override
 			{
+				push(rax); // we want to save al ('Player Wants Control' bool)
 				sub(rsp, 0x20);
-				push(rax); // we want to save al
 
+#ifdef GTA_FIVE
 				mov(rcx, r13); // netobj is in r13
+#elif IS_RDR3
+				mov(rcx, r15); // netobj is in r15
+#endif
+
 				mov(rax, (uint64_t)Fn);
 				call(rax);
 
-				pop(rax);
-				add(rsp, 0x20);
-
 				mov(dl, al);
+
+				add(rsp, 0x20);
+				pop(rax);
+
 				ret();
 			}
 
@@ -1599,7 +1666,14 @@ static HookFunction hookFunction([]()
 			}
 		} playerListOrder;
 
+#ifdef GTA_FIVE
 		hook::call_rcx(hook::get_pattern("0F 42 D3 3A DA 0F 94 C2", 3), playerListOrder.GetCode());
+#elif IS_RDR3
+		auto location = hook::get_pattern<char>("48 0F 42 C3 48 3B D8 0F 94 C2", 4);
+		hook::nop(location - 21, 30);
+		hook::call_rcx(location, playerListOrder.GetCode());
+		hook::put<uint16_t>(location + 7, 0xC084); // test al, al
+#endif
 	}
 
 	// TODO: same as above for door
@@ -1641,12 +1715,30 @@ static HookFunction hookFunction([]()
 			}
 		} ownerLoop;
 
+#ifdef GTA_FIVE
 		auto location = hook::get_pattern<char>("48 8B CB E8 ? ? ? ? 48 85 C0 74 4F");
 		hook::nop(location, 0x3F);
 		hook::call_rcx(location, ownerLoop.GetCode());
 		hook::put<uint16_t>(location + 0x3F, 0xC084); // test al, al
+#elif IS_RDR3
+		if (xbr::IsGameBuildOrGreater<1436>())
+		{
+			auto location = hook::get_pattern<char>("48 8B CB E8 ? ? ? ? 48 85 C0 75 27 8D 50 01");
+			hook::nop(location, 0x6E);
+			hook::call_rcx(location, ownerLoop.GetCode());
+			hook::put<uint16_t>(location + 0x6E, 0xC084); // test al, al
+		}
+		else
+		{
+			auto location = hook::get_pattern<char>("48 8B CB E8 ? ? ? ? 48 85 C0 74 57 48 8B CB");
+			hook::nop(location, 0x47);
+			hook::call_rcx(location, ownerLoop.GetCode());
+			hook::put<uint16_t>(location + 0x47, 0xC084); // test al, al
+		}
+#endif
 	}
 
+#ifdef GTA_FIVE
 	// net damage array, size 32*4
 	uint32_t* damageArrayReplacement = (uint32_t*)hook::AllocateStubMemory(256 * sizeof(uint32_t));
 	memset(damageArrayReplacement, 0, 256 * sizeof(uint32_t));
@@ -1698,7 +1790,7 @@ static HookFunction hookFunction([]()
 #elif IS_RDR3
 	MH_CreateHook(hook::get_pattern("48 8B D9 E8 ? ? ? ? 33 ? 66 C7 83", (xbr::IsGameBuildOrGreater<1355>()) ? -0xA : -0x6), NetworkObjectMgrCtorStub, (void**)&g_origNetworkObjectMgrCtor);
 	MH_CreateHook(hook::get_pattern("83 FE 01 41 0F 9F C4 48 85 DB 74", (xbr::IsGameBuildOrGreater<1436>()) ? -0x99 : -0x71), PassObjectControlStub, (void**)&g_origPassObjectControl);
-	MH_CreateHook(hook::get_pattern("80 79 ? ? 48 8B F2 48 8B F9 73", -0xF), SetOwnerStub, (void**)&g_origSetOwner);
+	MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? 80 7B 47 00 75 ? 48 8B 03")), SetOwnerStub, (void**)&g_origSetOwner);
 #endif
 
 	// scriptHandlerMgr::ManageHostMigration, has fixed 32 player array and isn't needed* for 1s
@@ -1763,8 +1855,8 @@ static HookFunction hookFunction([]()
 #elif IS_RDR3
 	MH_CreateHook((xbr::IsGameBuildOrGreater<1436>()) ? hook::get_pattern("33 DB 48 8B F9 48 39 99 ? ? ? ? 75 ? 8D 53 01", -10) : hook::get_pattern("48 39 99 ? ? ? ? 74 ? 48 81 C1 ? ? ? ? 48 8B 19 48 85", -15), AllocateNetPlayer, (void**)&g_origAllocateNetPlayer);
 
-	MH_CreateHook(hook::get_pattern((xbr::IsGameBuildOrGreater<1436>()) ? "8A 41 45 3C 20 72 ? 33 C0 C3" : "80 79 45 20 72 ? 33 C0 C3"), netObject__GetPlayerOwner, (void**)&g_origGetOwnerNetPlayer);
-	MH_CreateHook(hook::get_pattern((xbr::IsGameBuildOrGreater<1436>()) ? "48 89 5C 24 08 57 48 83 EC 30 8A 59 46" : "8A 41 46 3C FF 74"), netObject__GetPendingPlayerOwner, (void**)&g_origGetPendingPlayerOwner);
+	MH_CreateHook(hook::get_pattern((xbr::IsGameBuildOrGreater<1436>()) ? "8A 49 45 80 F9 20 72 03 33 C0 C3" : "80 79 45 20 72 ? 33 C0 C3"), netObject__GetPlayerOwner, (void**)&g_origGetOwnerNetPlayer);
+	MH_CreateHook(hook::get_pattern((xbr::IsGameBuildOrGreater<1436>()) ? "8A 49 46 80 F9 FF 75 03" : "8A 41 46 3C FF 74"), netObject__GetPendingPlayerOwner, (void**)&g_origGetPendingPlayerOwner);
 #endif
 
 	// function is only 4 bytes, can't be hooked like this
@@ -1781,15 +1873,15 @@ static HookFunction hookFunction([]()
 		hook::call(location, netObject__GetPlayerOwnerId);
 	}
 
-	// ped texture overriding natives
 #ifdef IS_RDR3
+	// ped texture overriding natives
 	{
 		auto location = hook::get_pattern("48 85 C9 74 09 E8 ? ? ? ? 8A D8 EB 02", 5);
 		hook::call(location, netObject__GetPlayerOwnerId);
 	}
 
 	{
-		auto location = hook::get_pattern("4C 8D 67 08 48 69 C8 ? ? ? ? 4C 03 E1 45", 52);
+		auto location = hook::get_pattern("4C 8D ? 08 48 69 C8 ? ? ? ? 4C 03", 52);
 		hook::call(location, netObject__GetPlayerOwnerId);
 	}
 #endif
@@ -1988,8 +2080,8 @@ static HookFunction hookFunction([]()
 	}
 #endif
 
-	// unsafe CNetGamePlayer player ped getter call patch
 #ifdef IS_RDR3
+	// unsafe CNetGamePlayer player ped getter call patch
 	static struct : public jitasm::Frontend
 	{
 		virtual void InternalMain() override
@@ -2018,13 +2110,26 @@ static HookFunction hookFunction([]()
 
 	// patch SerializePlayerIndex methods of sync data reader/writer
 	MH_CreateHook(hook::get_pattern("80 3B 20 73 ? 65 4C 8B 0C", -0x2F), SyncDataReaderSerializePlayerIndex, (void**)&g_origSyncDataReaderSerializePlayerIndex);
-	MH_CreateHook(hook::get_pattern("80 3A 20 48 8B D9 C6 44", -6), SyncDataWriterSerializePlayerIndex, (void**)&g_origSyncDataWriterSerializePlayerIndex);
+	MH_CreateHook(xbr::IsGameBuildOrGreater<1436>() ? hook::get_pattern("41 B2 3F 48 8D 54 24 30 44 88", -30) : hook::get_pattern("80 3A 20 48 8B D9 C6 44", -6), SyncDataWriterSerializePlayerIndex, (void**)&g_origSyncDataWriterSerializePlayerIndex);
 
 	// also patch sync data size calculator allowing more bits
 	{
 		auto sizeCalculatorVtable = hook::get_address<uintptr_t*>(hook::get_pattern("B8 BF FF 00 00 48 8B CF 66 21 87", 27));
 		g_origSyncDataSizeCalculatorSerializePlayerIndex = (decltype(g_origSyncDataSizeCalculatorSerializePlayerIndex))sizeCalculatorVtable[25];
 		hook::put(&sizeCalculatorVtable[25], (uintptr_t)SyncDataSizeCalculatorSerializePlayerIndex);
+	}
+
+	// attempt to get some information about CNetGamePlayer::GetGamerInfo related crashes
+	{
+		auto netGamePlayerVtable = hook::get_address<uintptr_t*>(hook::get_pattern("E8 ? ? ? ? 33 F6 48 8D 05 ? ? ? ? 48 8D 8B", 10));
+		g_origNetGamePlayerGetGamerInfo = (decltype(g_origNetGamePlayerGetGamerInfo))netGamePlayerVtable[12];
+		hook::put(&netGamePlayerVtable[12], (uintptr_t)NetGamePlayerGetGamerInfo);
+	}
+
+	// patch CAIConditionIsLocalPlayerVisibleToAnyPlayer behavior to properly handle scoping players
+	{
+		auto location = hook::get_pattern<char>("40 0F B6 D5 8B C2 44 8B C2 48", -13);
+		MH_CreateHook(hook::get_call(location), NetGamePlayerIsVisibleToPlayer, (void**)&g_origNetGamePlayerIsVisibleToPlayer);
 	}
 #endif
 
@@ -2533,12 +2638,38 @@ static void EventMgr_AddEvent(void* eventMgr, rage::netGameEvent* ev)
 	}
 #endif
 
+	// checks (for events where Equals() may modify the left-hand-side event) if the event
+	// has already been sent, and Equals() + deletion may therefore be destructive to the unique data
+	//
+	// see GH-1490
+	auto isSentModifying = [](const netGameEventState& eventTuple)
+	{
+		static const auto weaponDamageEventHash = HashString("WEAPON_DAMAGE_EVENT");
+		static const auto giveWeaponEventHash = HashString("GIVE_WEAPON_EVENT");
+		static const auto updateSyncedSceneEventHash = HashString("NETWORK_UPDATE_SYNCED_SCENE_EVENT");
+		static const auto givePickupRewardsEventHash = HashString("NETWORK_GIVE_PICKUP_REWARDS_EVENT");
+		static const auto scriptedGameEventHash = HashString("SCRIPTED_GAME_EVENT");
+
+		if (eventTuple.sent)
+		{
+			auto thisEventHash = HashString(eventTuple.ev->GetName());
+
+			return thisEventHash == weaponDamageEventHash ||
+				thisEventHash == giveWeaponEventHash ||
+				thisEventHash == updateSyncedSceneEventHash ||
+				thisEventHash == givePickupRewardsEventHash ||
+				thisEventHash == scriptedGameEventHash;
+		}
+
+		return false;
+	};
+
 	// is this a duplicate event?
 	for (auto& eventPair : g_events)
 	{
 		auto [key, tup] = eventPair;
 
-		if (tup.ev && tup.ev->Equals(ev))
+		if (tup.ev && !isSentModifying(tup) && tup.ev->Equals(ev))
 		{
 			delete ev;
 			return;
@@ -3463,7 +3594,7 @@ static HookFunction hookFunction2([]()
 #ifdef GTA_FIVE
 		MH_CreateHook(hook::get_pattern("48 8B 03 48 8B D6 48 8B CB EB 06", -0x48), ReadDataNodeStub, (void**)&g_origReadDataNode);
 #elif IS_RDR3
-		MH_CreateHook(hook::get_pattern("40 8A BC 43", -0x3D), ReadDataNodeStub, (void**)&g_origReadDataNode);
+		MH_CreateHook(xbr::IsGameBuildOrGreater<1436>() ? hook::get_pattern("42 8A BC 6B", -0x33) : hook::get_pattern("40 8A BC 43", -0x3D), ReadDataNodeStub, (void**)&g_origReadDataNode);
 #endif
 
 #ifdef GTA_FIVE
@@ -4369,7 +4500,7 @@ static InitFunction initFunction([]()
 		}
 
 		auto owner = netObject__GetPlayerOwner(netObj);
-		context.SetResult<int>(owner->physicalPlayerIndex());
+		context.SetResult<int>(owner ? owner->physicalPlayerIndex() : 0xFF);
 	});
 
 #ifdef ONESYNC_CLONING_NATIVES
@@ -4794,7 +4925,7 @@ static HookFunction hookFunctionNative([]()
 	MH_CreateHook(hook::get_pattern("41 56 41 57 48 83 EC 40 0F B6 72 ? 4D 8B E1", -0x14), SendCloneSync, (void**)&g_origSendCloneSync);
 	MH_CreateHook(hook::get_pattern("89 41 70 41 8B 40 04 89 41 74 41 8B", -0x64), CPickupPlacement_ctor, (void**)&g_origCPickupPlacement_ctor);
 #elif IS_RDR3
-	MH_CreateHook(hook::get_pattern("48 8B 06 41 B0 01 41 0F B6 5E", -0x50), SendCloneSync, (void**)&g_origSendCloneSync);
+	MH_CreateHook(hook::get_pattern("C6 85 ? ? ? ? 00 ? 8B ? FF 90 ? ? ? ? 84 C0 75", -0x3C), SendCloneSync, (void**)&g_origSendCloneSync);
 #endif
 
 	MH_EnableHook(MH_ALL_HOOKS);

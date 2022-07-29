@@ -6,6 +6,8 @@
 
 #include <CoreConsole.h>
 
+extern bool IsValidGraphicsLibrary(const std::wstring& path);
+
 namespace hook
 {
 template<typename T>
@@ -370,7 +372,7 @@ HRESULT RootD3D11CreateDevice(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE D
 {
 	auto hookDll = MakeRelativeGamePath(L"d3d11.dll");
 
-	if (GetFileAttributesW(hookDll.c_str()) == INVALID_FILE_ATTRIBUTES)
+	if (GetFileAttributesW(hookDll.c_str()) == INVALID_FILE_ATTRIBUTES || !IsValidGraphicsLibrary(hookDll))
 	{
 		return D3D11CreateDevice(pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion, ppDevice, pFeatureLevel, ppImmediateContext);
 	}

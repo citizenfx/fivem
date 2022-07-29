@@ -238,13 +238,13 @@ inline const wchar_t* va(std::wstring_view string, const TArgs& ... args)
 }
 
 // hash string, don't lowercase
-inline constexpr uint32_t HashRageString(const char* string)
+inline constexpr uint32_t HashRageString(std::string_view string)
 {
 	uint32_t hash = 0;
 
-	for (; *string; ++string)
+	for (char ch : string)
 	{
-		hash += *string;
+		hash += ch;
 		hash += (hash << 10);
 		hash ^= (hash >> 6);
 	}
@@ -262,13 +262,13 @@ inline constexpr char ToLower(const char c)
 }
 
 // hash string, lowercase
-inline constexpr uint32_t HashString(const char* string)
+inline constexpr uint32_t HashString(std::string_view string)
 {
 	uint32_t hash = 0;
 
-	for (; *string; ++string)
+	for (char ch : string)
 	{
-		hash += ToLower(*string);
+		hash += ToLower(ch);
 		hash += (hash << 10);
 		hash ^= (hash >> 6);
 	}

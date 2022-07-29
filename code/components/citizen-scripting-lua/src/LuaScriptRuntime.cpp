@@ -591,7 +591,7 @@ static int Lua_InvokeFunctionReference(lua_State* L)
 {
 	// get required entries
 	auto& luaRuntime = LuaScriptRuntime::GetCurrent();
-	auto scriptHost = luaRuntime->GetScriptHost();
+	fx::OMPtr scriptHost = luaRuntime->GetScriptHost();
 	LuaProfilerScope _profile(luaRuntime.GetRef(), false);
 
 	// variables to hold state
@@ -1440,6 +1440,21 @@ result_t LuaScriptRuntime::LoadFileInternal(OMPtr<fxIStream> stream, char* scrip
 	if (FX_FAILED(hr = stream->Read(&fileData[0], length, nullptr)))
 	{
 		return hr;
+	}
+
+	std::string_view fn = scriptFile;
+	if (fn.length() > 1 && fn[0] == '@' && fn.find_first_of('/') != std::string::npos)
+	{
+		std::string_view resName = fn.substr(1, fn.find_first_of('/') - 1);
+		fn = fn.substr(1 + resName.length() + 1);
+
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+		auto resource = resourceManager->GetResource(std::string(resName));
+
+		if (resource.GetRef())
+		{
+			resource->OnBeforeLoadScript(&fileData);
+		}
 	}
 
 	fx::Resource* resource = reinterpret_cast<fx::Resource*>(GetParentObject());

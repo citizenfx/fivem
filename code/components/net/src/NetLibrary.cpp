@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of the CitizenFX project - http://citizen.re/
  *
  * See LICENSE and MENTIONS in the root of the source tree for information
@@ -26,6 +26,7 @@
 #include <ppltasks.h>
 
 #include <CrossBuildRuntime.h>
+#include <PureModeState.h>
 #include <CoreConsole.h>
 
 #include <CfxLocale.h>
@@ -436,6 +437,11 @@ void NetLibrary::ProcessOOB(const NetAddress& from, const char* oob, size_t leng
 		}
 		else if (!_strnicmp(oob, "error", 5))
 		{
+			if (m_disconnecting)
+			{
+				return;
+			}
+
 			if (from != m_currentServer)
 			{
 				trace("Received 'error' request was not from the host\n");
@@ -841,6 +847,8 @@ int g_serverVersion;
 
 concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 {
+	m_disconnecting = false;
+
 	std::string ruRef = rootUrl;
 
 	// increment the GUID so servers won't race to remove us
@@ -1664,11 +1672,13 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 		}), handleCardResult);
 	};
 
+	static std::string requestSteamTicket = "on";
+
 	continueRequest = [=]()
 	{
 		auto steamComponent = GetSteam();
 
-		if (steamComponent)
+		if (steamComponent && requestSteamTicket == "on")
 		{
 			static uint32_t ticketLength;
 			static uint8_t ticketBuffer[4096];
@@ -1775,6 +1785,13 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 #if defined(GTA_FIVE) || defined(IS_RDR3)
 				if (info.is_object() && info["vars"].is_object())
 				{
+					int pureLevel = 0;
+
+					if (auto pureVal = info["vars"].value("sv_pureLevel", "0"); !pureVal.empty())
+					{
+						pureLevel = std::stoi(pureVal);
+					}
+
 					auto val = info["vars"].value("sv_enforceGameBuild", "");
 					int buildRef = 0;
 
@@ -1782,10 +1799,10 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 					{
 						buildRef = std::stoi(val);
 
-						if (buildRef != 0 && buildRef != xbr::GetGameBuild())
+						if ((buildRef != 0 && buildRef != xbr::GetGameBuild()) || (pureLevel != fx::client::GetPureLevel()))
 						{
 #if defined(GTA_FIVE)
-							if (buildRef != 1604 && buildRef != 2060 && buildRef != 2189 && buildRef != 2372 && buildRef != 2545)
+							if (buildRef != 1604 && buildRef != 2060 && buildRef != 2189 && buildRef != 2372 && buildRef != 2545 && buildRef != 2612 && buildRef != 2699)
 #else
 							if (buildRef != 1311 && buildRef != 1355 && buildRef != 1436)
 #endif
@@ -1799,7 +1816,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 								return;
 							}
 
-							OnRequestBuildSwitch(buildRef);
+							OnRequestBuildSwitch(buildRef, pureLevel);
 							m_connectionState = CS_IDLE;
 							return;
 						}
@@ -1808,7 +1825,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 #if defined(GTA_FIVE)
 					if (xbr::GetGameBuild() != 1604 && buildRef == 0)
 					{
-						OnRequestBuildSwitch(1604);
+						OnRequestBuildSwitch(1604, 0);
 						m_connectionState = CS_IDLE;
 						return;
 					}
@@ -1820,6 +1837,8 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 					{
 						licenseKeyToken = ival;
 					}
+
+					requestSteamTicket = info.value("requestSteamTicket", "on");
 				}
 #endif
 			}
@@ -1897,6 +1916,8 @@ void NetLibrary::Disconnect(const char* reason)
 
 	if (m_connectionState == CS_CONNECTING || m_connectionState == CS_ACTIVE || m_connectionState == CS_FETCHING)
 	{
+		m_disconnecting = true;
+
 		SendReliableCommand("msgIQuit", g_disconnectReason.c_str(), g_disconnectReason.length() + 1);
 
 		if (m_impl)
