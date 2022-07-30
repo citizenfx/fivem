@@ -1971,8 +1971,12 @@
 				<Item> <cTextId>PM_PANE_PROC</cTextId>	<MenuAction>MENU_OPTION_ACTION_TRIGGER</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_PROCESS_SAVEGAME</MenuUniqueId> <Contexts>*ALL*, ALLOW_PROCESS_SAVEGAME</Contexts> </Item>
 				<Item> <cTextId>PM_PANE_IMP</cTextId>	<MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_IMPORT_SAVEGAME</MenuUniqueId> <Contexts>*ALL*, ALLOW_IMPORT_SAVEGAME</Contexts> </Item>
 				<Item> <cTextId>PM_PANE_LEAVE</cTextId> <MenuAction>MENU_OPTION_ACTION_TRIGGER</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_SHOW_ACCOUNT_PICKER</MenuUniqueId> <Contexts>*ALL*, x64</Contexts></Item>
+				<Item> <cTextId>UI_FLOW_SP_L_M</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_LEGAL</MenuUniqueId> <Contexts>*ALL*, LEGAL_ENABLED, *NONE*,Creator,CREDITS_ENABLED</Contexts> </Item>
+				
+				<Item> <cTextId>UI_FLOW_SP_C_M</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_CREDITS</MenuUniqueId> <Contexts>*ALL*, CREDITS_ENABLED, *NONE*,Creator,LEGAL_ENABLED</Contexts> </Item>
+				<!--<Item> <cTextId>UI_FLOW_SP_CL_M</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_CREDITS_LEGAL</MenuUniqueId> <Contexts>*ALL*, CREDITS_ENABLED, LEGAL_ENABLED, *NONE*,Creator</Contexts> </Item>-->
 				<Item> <cTextId>PM_PANE_QUIT</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_EXIT_TO_WINDOWS</MenuUniqueId> <Contexts>*ALL*, x64</Contexts></Item>
-				<Item> <MenuAction>MENU_OPTION_ACTION_FILL_CONTENT</MenuAction> </Item>
+				<Item> <MenuAction>MENU_OPTION_ACTION_FILL_CONTENT_FROM_SCRIPT</MenuAction> </Item>
 			</MenuItems>
 
 			<ButtonList>
@@ -2144,6 +2148,7 @@
 				<Item> <cTextId>MO_DISPGPS</cTextId>	<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_DISPLAY_GPS</MenuPref> 		<MenuOption>MENU_OPTION_DISPLAY_ON_OFF</MenuOption>	  <MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
 				<Item> <cTextId>PM_SETTING_11</cTextId>	<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_BIG_RADAR</MenuPref> 		<MenuOption>MENU_OPTION_DISPLAY_ON_OFF</MenuOption>	  <MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId>  <Contexts>*ALL*,InMP</Contexts> </Item>
 				<Item> <cTextId>PM_SETTING_12</cTextId>	<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_BIG_RADAR_NAMES</MenuPref> 	<MenuOption>MENU_OPTION_DISPLAY_ON_OFF</MenuOption>	  <MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId>  <Contexts>*ALL*,InMP</Contexts> </Item>
+				<Item> <cTextId>MO_TEXT_CHAT</cTextId>	<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_SHOW_TEXT_CHAT</MenuPref> 	<MenuOption>MENU_OPTION_DISPLAY_ON_OFF</MenuOption>	  <MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId>  <Contexts>*ALL*,InMP,b2699</Contexts> </Item>
 				<Item> <cTextId>MO_BRI</cTextId>		<MenuAction>MENU_OPTION_ACTION_TRIGGER</MenuAction>			<MenuPref>PREF_GAMMA</MenuPref>				<MenuUniqueId>MENU_UNIQUE_ID_BRIGHTNESS_CALIBRATION</MenuUniqueId> </Item>
 				<Item platform="!ps4"> <cTextId>MO_SAFEZONE</cTextId>	<MenuAction>MENU_OPTION_ACTION_PREF_CHANGE</MenuAction>		<MenuPref>PREF_SAFEZONE_SIZE</MenuPref> 	<MenuOption>MENU_OPTION_SLIDER</MenuOption>	  <MenuUniqueId>MENU_UNIQUE_ID_SETTINGS_LIST</MenuUniqueId> </Item>
 				<Item platform="ps4"> <cTextId>MO_SAFEZONE</cTextId>	<MenuAction>MENU_OPTION_ACTION_TRIGGER</MenuAction>		<MenuUniqueIdHash>PREF_SAFEZONE_SIZE</MenuUniqueIdHash> </Item>
