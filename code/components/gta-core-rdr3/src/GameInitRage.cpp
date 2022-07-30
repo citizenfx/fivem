@@ -18,6 +18,7 @@
 #include <gameSkeleton.h>
 
 #include <Error.h>
+#include <CrossBuildRuntime.h>
 
 RageGameInit g_gameInit;
 fwEvent<const char*> OnKillNetwork;
@@ -255,6 +256,12 @@ static HookFunction hookFunctionNet([]()
 	// player can-clone SP model skip
 	hook::jump(hook::get_pattern("84 C0 74 04 32 C0 EB 0E 4C 8B C7 48 8B D6", -0x1D), ReturnTrueAndForcePedMPFlag);
 	hook::jump(hook::get_pattern("40 8A F2 48 8B F9 E8 ? ? ? ? 84 C0 74", -0x12), ReturnTrueAndForcePedMPFlag);
+
+	// nop checks used for not syncing some "unwanted" metaped components
+	if (xbr::IsGameBuildOrGreater<1436>())
+	{
+		hook::nop(hook::get_pattern("8B 40 18 3D CC E2 69 9D"), 0x2F);
+	}
 
 	//hook::jump(0x1406B50E8, LogStubLog1);
 

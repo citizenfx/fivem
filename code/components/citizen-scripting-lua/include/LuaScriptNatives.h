@@ -94,6 +94,7 @@ struct alignas(16) fxLuaNativeContext<true> : NativeContextRaw
 	fxLuaNativeContext()
 		: NativeContextRaw(arguments, 0), numArguments(0)
 	{
+		memset(arguments, 0, sizeof(arguments[0]) * 4);
 	}
 };
 #endif

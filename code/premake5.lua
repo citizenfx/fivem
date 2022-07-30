@@ -184,6 +184,7 @@ workspace "CitizenMP"
 
 		buildoptions {
 			"-fPIC", -- required to link on AMD64
+			"-fvisibility=hidden", -- default visibility
 		}
 
 	-- TARGET: launcher

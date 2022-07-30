@@ -39,7 +39,7 @@ static InitFunction initFunction([]()
 static HookFunction hookFunction([]()
 {
 	{
-		auto location = hook::get_pattern("44 8B 44 24 ? 8B 54 24 ? E8 ? ? ? ? C6 05", 16);
-		g_weatherNetFlag = hook::get_address<bool*>(location) + 1; // address offset
+		auto location = hook::get_call(hook::get_pattern<char>("0F 29 7C 24 40 44 0F 29 4C 24 30 0F 84", 17));
+		g_weatherNetFlag = hook::get_address<bool*>(location + 2);
 	}
 });

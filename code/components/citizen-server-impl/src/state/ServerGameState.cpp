@@ -4519,7 +4519,7 @@ struct CWeaponDamageEvent
 	uint16_t actionResultId;
 	uint32_t f104;
 
-	uint16_t weaponDamage;
+	uint32_t weaponDamage;
 	bool isNetTargetPos;
 
 	float localPosX;
@@ -4556,7 +4556,8 @@ struct CWeaponDamageEvent
 
 void CWeaponDamageEvent::Parse(rl::MessageBuffer& buffer)
 {
-	if (Is2060() && !Is2372()) {
+	if (Is2060() && !Is2372())
+	{
 		buffer.Read<uint16_t>(16);
 	}
 
@@ -4581,16 +4582,19 @@ void CWeaponDamageEvent::Parse(rl::MessageBuffer& buffer)
 
 	if (overrideDefaultDamage)
 	{
-		weaponDamage = buffer.Read<uint16_t>(14);
+		weaponDamage = buffer.Read<uint32_t>(Is2699() ? 17 : 14);
 	}
 	else
 	{
 		weaponDamage = 0;
 	}
 
-	if (Is2060()) {
+	if (Is2060())
+	{
 		bool _f92 = buffer.Read<uint8_t>(1);
-		if (_f92) {
+
+		if (_f92)
+		{
 			buffer.Read<uint8_t>(4);
 		}
 	}

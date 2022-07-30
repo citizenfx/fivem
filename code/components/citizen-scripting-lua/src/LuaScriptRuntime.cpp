@@ -591,7 +591,7 @@ static int Lua_InvokeFunctionReference(lua_State* L)
 {
 	// get required entries
 	auto& luaRuntime = LuaScriptRuntime::GetCurrent();
-	auto scriptHost = luaRuntime->GetScriptHost();
+	fx::OMPtr scriptHost = luaRuntime->GetScriptHost();
 	LuaProfilerScope _profile(luaRuntime.GetRef(), false);
 
 	// variables to hold state

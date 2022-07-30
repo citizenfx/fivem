@@ -1312,7 +1312,7 @@ static HookFunction hookFunction([]()
 	}
 
 	{
-		auto location = hook::get_pattern<char>("42 80 3C 08 00 74");
+		auto location = hook::get_pattern<char>("42 80 3C 08 00 74 ? 80");
 		hook::put<uint8_t>(location - 12, 0xEB);
 		hook::nop(location, 7);
 		//hook::put<uint8_t>(location + 5, 0xEB);

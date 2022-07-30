@@ -9,6 +9,10 @@ return {
 		kind "SharedLib"
 		
 		defines { "NNG_HAVE_PULL0", "NNG_HAVE_PUSH0", "NNG_HAVE_REQ0", "NNG_HAVE_REP0", "NNG_TRANSPORT_INPROC", "NNG_TRANSPORT_IPC", "NNG_SHARED_LIB", "NNG_LITTLE_ENDIAN", "NNG_ENABLE_STATS" }
+
+		if not os.istarget('windows') then
+			defines { 'NNG_HIDDEN_VISIBILITY' }
+		end
 		
 		if _OPTIONS['game'] ~= 'server' then
 			defines { "NNG_NUM_TASKQ_THREADS=2" }

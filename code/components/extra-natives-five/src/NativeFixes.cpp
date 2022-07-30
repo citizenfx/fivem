@@ -11,7 +11,7 @@
 #include <ScriptEngine.h>
 #include <Hooking.h>
 #include <scrEngine.h>
-
+#include <CrossBuildRuntime.h>
 
 static void FixVehicleWindowNatives()
 {
@@ -83,6 +83,57 @@ static void FixClockTimeOverrideNative()
 	});
 }
 
+static void FixGetVehiclePedIsIn()
+{
+	constexpr const uint64_t nativeHash = 0x9A9112A0FE9A4713; // GET_VEHICLE_PED_IS_IN
+
+	auto handlerWrap = fx::ScriptEngine::GetNativeHandler(nativeHash);
+
+	if (!handlerWrap)
+	{
+		return;
+	}
+
+	auto handler = *handlerWrap;
+
+	auto location = hook::get_pattern<char>("80 8F ? ? ? ? 01 8B 86 ? ? ? ? C1 E8 1E");
+	static uint32_t PedFlagsOffset = *reinterpret_cast<uint32_t*>(location + 9);
+	static uint32_t LastVehicleOffset = *reinterpret_cast<uint32_t*>(location + 25);
+
+	fx::ScriptEngine::RegisterNativeHandler(nativeHash, [handler](fx::ScriptContext& ctx)
+	{
+		auto lastVehicle = ctx.GetArgument<bool>(1);
+
+		// If argument is true, call original handler as this behavior wasn't changed.
+		if (lastVehicle)
+		{
+			handler(ctx);
+			return;
+		}
+
+		auto pedHandle = ctx.GetArgument<uint32_t>(0);
+
+		if (auto entity = rage::fwScriptGuid::GetBaseFromGuid(pedHandle))
+		{
+			if (entity->IsOfType<CPed>())
+			{
+				if (auto lastVehicle = *reinterpret_cast<fwEntity**>((char*)entity + LastVehicleOffset))
+				{
+					auto pedFlags = *reinterpret_cast<uint32_t*>((char*)entity + PedFlagsOffset);
+
+					if (pedFlags & (1 << 30))
+					{
+						ctx.SetResult(rage::fwScriptGuid::GetGuidFromBase(lastVehicle));
+						return;
+					}
+				}
+			}
+		}
+
+		ctx.SetResult(0);
+	});
+}
+
 static HookFunction hookFunction([]()
 {
 	rage::scrEngine::OnScriptInit.Connect([]()
@@ -93,5 +144,11 @@ static HookFunction hookFunction([]()
 
 		// Passing wrong clock time values to override native leads to sudden crash.
 		FixClockTimeOverrideNative();
+
+		// In b2699 R* changed this native, so now it ignores "lastVehicle" flag - fix it for compatibility.
+		if (xbr::IsGameBuildOrGreater<2699>())
+		{
+			FixGetVehiclePedIsIn();
+		}
 	});
 });

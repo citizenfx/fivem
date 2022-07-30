@@ -70,6 +70,12 @@ static bool ProcessHandler(HANDLE sema, char* a1)
 
 static void Hook_StreamingSema()
 {
+	// was fixed in 2699.0 by R*
+	if (xbr::IsGameBuildOrGreater<2699>())
+	{
+		return;	
+	}
+
 	{
 		static struct : jitasm::Frontend
 		{
@@ -542,7 +548,7 @@ static HookFunction hookFunction([] ()
 
 	// redirect pgStreamer::Read for custom streaming reads
 	{
-		auto location = hook::get_pattern("45 8B CC 48 89 7C 24 28 48 89 44 24 20 E8", 13);
+		auto location = hook::get_pattern("45 8B ? 48 89 7C 24 28 48 89 44 24 20 E8", 13);
 		hook::set_call(&g_origPgStreamerRead, location);
 		hook::call(location, pgStreamerRead);
 	}
@@ -551,7 +557,7 @@ static HookFunction hookFunction([] ()
 
 	// rage::strStreamingLoader::CancelRequest hook (deprioritize canceled requests)
 	{
-		auto location = hook::get_pattern("B9 00 40 00 00 33 ED 48", -0x29);
+		auto location = hook::get_pattern("B9 00 40 00 00 33 ED 48", (xbr::IsGameBuildOrGreater<2699>()) ? -0x21: -0x29);
 		MH_CreateHook(location, CancelRequestWrap, (void**)&g_origCancelRequest);
 		MH_EnableHook(location);
 	}
