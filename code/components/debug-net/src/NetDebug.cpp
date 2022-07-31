@@ -262,7 +262,7 @@ NetOverlayMetricSink::NetOverlayMetricSink()
 		ImGui::SetNextWindowSize(ImVec2(g_netOverlayWidth, g_netOverlayHeight));
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 
-		if (ImGui::Begin("NetGraph", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize))
+		if (ImGui::Begin("NetGraph", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoScrollbar))
 		{
 			// draw the graph
 			DrawGraph();
