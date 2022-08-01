@@ -4773,6 +4773,9 @@ static InitFunction initFunction([]
 		"ff19713f9726a1cff26869733fc1b3b9da40961dec8987613afe920facfa5286", // dlc.rpf/x64/patch/data/lang/spanish.rpf
 		"16655a8feb6353e38edcd805c7299cb8506ec497b70bdf9fb545aa983c813090", // dlc.rpf/x64/textures/script_txds.rpf
 
+		// manually added:
+		"3F320A188DF8FA3B0B500944B13D942BBE14DEAC04ADB90FD7D3CA289FCE209E", // dlc.rpf/x64/patch/data/lang/chinesesimp.rpf
+
 		// update/x64/dlcpacks/patchday20ng/dlc.rpf
 		"b6e49836facfcb02da19856ec3ffeb7ffb44ab8d4680f67da890f1851988290d", // dlc.rpf
 		"6892ea46b2d425b5296079ea923103d80fa802f0ef3aa1ecf1e35af1ee145d4c", // dlc.rpf/x64/anim/ingame/clip_anim@.rpf
