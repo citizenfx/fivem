@@ -22,7 +22,7 @@ void XBR_EarlySelect()
 
 #ifndef _DEBUG
 #ifdef GTA_FIVE
-	initialBuild = 2545;
+	initialBuild = 2699;
 #elif defined(IS_RDR3)
 	initialBuild = 1436;
 #endif
