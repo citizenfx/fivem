@@ -1130,13 +1130,11 @@ void AddDrilldown(uint64_t frameIdx, std::vector<std::tuple<std::string_view, st
 }
 }
 
-void RenderNetDrilldownWindow()
+void RenderNetDrilldownWindow(bool* open)
 {
-	static bool open = true;
-
 	ImGui::SetNextWindowSize(ImVec2(600, 400), ImGuiCond_Appearing);
 
-	if (ImGui::Begin("Network Drilldown", &open))
+	if (ImGui::Begin("Network Drilldown", open))
 	{
 		if (!g_recordingDrilldown && ImGui::Button("Record"))
 		{
@@ -1383,7 +1381,7 @@ static InitFunction initFunction([]()
 
 		if (drilldownWindowEnabled)
 		{
-			RenderNetDrilldownWindow();
+			RenderNetDrilldownWindow(&drilldownWindowEnabled);
 		}
 
 		if (timeWindowEnabled)
