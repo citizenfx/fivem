@@ -337,8 +337,10 @@ static void OverloadCrashData(TASKDIALOGCONFIG* config)
 
 		if (!pickup.is_null())
 		{
+			auto pickupMessage = pickup["message"].get<std::string>();
+
 			static std::wstring errTitle = fmt::sprintf(PRODUCT_NAME L" has encountered an error");
-			static std::wstring errDescription = ToWide(ParseLinks(pickup["message"].get<std::string>()));
+			static std::wstring errDescription = ToWide(ParseLinks(pickupMessage));
 
 			if (errDescription.find(L'\n') != std::string::npos)
 			{
@@ -350,6 +352,12 @@ static void OverloadCrashData(TASKDIALOGCONFIG* config)
 				{
 					errDescription = errDescription.substr(msgStart);
 				}
+			}
+			else if (ParseLinks(pickupMessage) == pickupMessage)
+			{
+				// no newlines -> show a distinct enough error anyway (if no links)
+				errTitle = errDescription;
+				errDescription = L" ";
 			}
 
 			config->pszMainInstruction = errTitle.c_str();
