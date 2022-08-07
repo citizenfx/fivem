@@ -60,7 +60,7 @@ namespace rage
 				(uintptr_t)exception->ExceptionRecord->ExceptionAddress < hook::get_adjusted(0x146000000))
 			{
 				FatalErrorNoExcept("An exception occurred (%08x at %p) during execution of the %s function for %s. The game will be terminated.",
-					exception->ExceptionRecord->ExceptionCode, exception->ExceptionRecord->ExceptionAddress,
+					exception->ExceptionRecord->ExceptionCode, (void*)hook::get_unadjusted(exception->ExceptionRecord->ExceptionAddress),
 					InitFunctionTypeToString(type), func->GetName());
 			}
 		}
