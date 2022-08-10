@@ -592,26 +592,18 @@ FocusResult GetPlayerFocusPos(const fx::sync::SyncEntityPtr& entity)
 
 	auto camData = syncTree->GetPlayerCamera();
 
-	if (!camData)
-	{
-		return { { playerPos[0], playerPos[1], playerPos[2] } };
-	}
+	float cameraPos[3];
 
-	switch (camData->camMode)
+	if (syncTree->GetPlayerCameraPosition(cameraPos))
 	{
-	case 0:
-	default:
+		return {
+			{ playerPos[0], playerPos[1], playerPos[2] },
+			{ cameraPos[0], cameraPos[1], cameraPos[2] }
+		};
+	}
+	else
+	{
 		return { { playerPos[0], playerPos[1], playerPos[2] } };
-	case 1:
-		return {
-			{ playerPos[0], playerPos[1], playerPos[2] },
-			{ camData->freeCamPosX, camData->freeCamPosY, camData->freeCamPosZ }
-		};
-	case 2:
-		return {
-			{ playerPos[0], playerPos[1], playerPos[2] },
-			{ playerPos[0] + camData->camOffX, playerPos[1] + camData->camOffY, playerPos[2] + camData->camOffZ }
-		};
 	}
 }
 

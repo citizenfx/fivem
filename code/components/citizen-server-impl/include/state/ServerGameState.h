@@ -585,6 +585,8 @@ public:
 
 	virtual CVehicleSteeringNodeData* GetVehicleSteeringData() = 0;
 
+	virtual bool GetPlayerCameraPosition(float* posOut) = 0;
+
 	virtual void CalculatePosition() = 0;
 
 	virtual bool GetPopulationType(ePopType* popType) = 0;
