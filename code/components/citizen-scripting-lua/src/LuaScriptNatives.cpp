@@ -493,7 +493,7 @@ static void __declspec(safebuffers) CallHandlerSdk(void* handler, uint64_t nativ
 	memcpy(context.arguments, rageContext.GetArgumentBuffer(), sizeof(void*) * rageContext.GetArgumentCount());
 
 	auto& luaRuntime = fx::LuaScriptRuntime::GetCurrent();
-	auto scriptHost = luaRuntime->GetScriptHost();
+	fx::OMPtr scriptHost = luaRuntime->GetScriptHost();
 
 	HRESULT hr = scriptHost->InvokeNative(context);
 
@@ -573,7 +573,7 @@ static int __Lua_InvokeNative(lua_State* L)
 
 	// get required entries
 	auto& luaRuntime = fx::LuaScriptRuntime::GetCurrent();
-	auto scriptHost = luaRuntime->GetScriptHost();
+	fx::OMPtr scriptHost = luaRuntime->GetScriptHost();
 
 	// variables to hold state
 	fxLuaNativeContext<IsPtr> context;
@@ -865,7 +865,7 @@ LUA_SCRIPT_LINKAGE int Lua_LoadNative(lua_State* L)
 
 		if (isCfxv2) // TODO/TEMPORARY: fxv2 oal is disabled by default for now
 		{
-			runtime->GetScriptHost2()->GetNumResourceMetaData("use_fxv2_oal", &isCfxv2);
+			runtime->GetScriptHost2()->GetNumResourceMetaData("use_experimental_fxv2_oal", &isCfxv2);
 		}
 
 		//#if !defined(GTA_FIVE) || (LUA_VERSION_NUM == 504)

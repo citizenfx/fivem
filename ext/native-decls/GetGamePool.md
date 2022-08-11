@@ -21,6 +21,16 @@ follows:
 * `CVehicle`: Vehicles.
 * `CPickup`: Pickups.
 
+## Examples
+```lua
+local vehiclePool = GetGamePool('CVehicle') -- Get the list of vehicles (entities) from the pool
+for i = 1, #vehiclePool do -- loop through each vehicle (entity)
+    if GetPedInVehicleSeat(vehiclePool[i], -1) == 0 then
+        DeleteEntity(vehiclePool[i]) -- Delete vehicles (entities) that don't have a driver
+    end
+end
+```
+
 ## Parameters
 * **poolName**: The pool name to get a list of entities from.
 

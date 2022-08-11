@@ -236,6 +236,8 @@ export class ServersDetailComponent implements OnInit, AfterViewInit, OnDestroy 
 					value = 'Los Santos Tuners';
 				} else if (pair.value === '2545' || pair.value === '2612') {
 					value = 'The Contract';
+				} else if (pair.value === '2699') {
+					value = 'The Criminal Enterprises';
 				}
 			}
 

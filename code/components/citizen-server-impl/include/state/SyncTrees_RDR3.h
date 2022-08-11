@@ -2518,4 +2518,11 @@ using CPersistentSyncTree = SyncTree<
 		NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode>
 	>
 >;
+
+template<typename TNode>
+inline constexpr bool AffectsBlender()
+{
+	// #TODOREDM1S
+	return false;
+}
 }

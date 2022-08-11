@@ -786,6 +786,12 @@ static HookFunction hookFunction([] ()
 		hook::nop(location + 18, 6);
 	}
 
+	// b2699 fix: force `-nodpiadjust` as it's broken
+	if (xbr::IsGameBuild<2699>())
+	{
+		hook::put<uint16_t>(hook::get_pattern("48 83 3D ? ? ? ? 00 0F 85 A3 00 00 00 48 8B 4B", 8), 0xE990);
+	}
+
 	// limit max worker threads to 4 (since on high-core-count systems this leads
 	// to a lot of overhead when there's a blocking wait)
 	{

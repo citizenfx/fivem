@@ -284,6 +284,11 @@ static hook::cdecl_stub<void()> doPresenceStuff([] ()
 
 static hook::cdecl_stub<void(void*, /*ScSessionAddr**/ void*, int64_t, int, void*, int)> joinGame([] ()
 {
+	if (xbr::IsGameBuildOrGreater<2699>())
+	{
+		return hook::pattern("BF 01 00 00 00 45 8B F1 45 8B F8 4C 8B E2").count(1).get(0).get<void>(-0x26);
+	}
+
 	return hook::pattern("F6 81 ? ? 00 00 01 45 8B F1 45 8B ? 4C 8B").count(1).get(0).get<void>(-0x24);
 });
 
@@ -327,6 +332,11 @@ static hook::cdecl_stub<void(int, int, int)> hostGame([] () -> void*
 	if (xbr::IsGameBuild<2612>())
 	{
 		return (void*)hook::get_adjusted(0x141071468);
+	}
+
+	if (xbr::IsGameBuild<2699>())
+	{
+		return (void*)hook::get_adjusted(0x14107AE54);
 	}
 
 	// 1737
@@ -775,7 +785,7 @@ void ObjectIds_BindNetLibrary(NetLibrary*);
 
 static hook::cdecl_stub<void(void* /* rlGamerInfo */)> _setGameGamerInfo([]()
 {
-	return hook::get_pattern("3A D8 0F 95 C3 40 0A DE 40", -0x53);
+	return hook::get_pattern("3A D8 0F 95 C3 40 0A DE 40", (xbr::IsGameBuildOrGreater<2699>()) ? -0x56 : -0x53);
 });
 
 template<int Build>
@@ -905,6 +915,12 @@ static HookFunction initFunction([]()
 
 	g_netLibrary->SetBase(GetTickCount());
 
+	if (xbr::IsGameBuildOrGreater<2699>())
+	{
+		static uintptr_t gamerInfoPtr = hook::get_address<uintptr_t>((char*)hook::get_call(hook::get_pattern("48 8B E8 48 85 C0 74 11 E8", 8)) + 3);
+		g_gamerInfo<2372> = (decltype(g_gamerInfo<2372>))(&gamerInfoPtr);
+	}
+	else
 	{
 		auto location = hook::get_pattern("FF C8 0F 85 AC 00 00 00 48 39 35", 11);
 
@@ -1566,7 +1582,11 @@ static HookFunction hookFunction([] ()
 	g_onlineAddress = (OnlineAddress*)(onlineAddressFunc + *(int32_t*)onlineAddressFunc + 4);
 
 	{
-		if (xbr::IsGameBuildOrGreater<2372>())
+		if (xbr::IsGameBuildOrGreater<2699>())
+		{
+			g_NetworkBail = hook::get_pattern("48 83 EC 70 80 3D ? ? ? ? 00 C6 05", -5);
+		}
+		else if (xbr::IsGameBuildOrGreater<2372>())
 		{
 			g_NetworkBail = hook::get_pattern("80 3D ? ? ? ? 00 8B 01 48 8B D9 89", -0xD);
 		}
@@ -1614,16 +1634,24 @@ static HookFunction hookFunction([] ()
 	// really weird patch to auto-start the session (?s in short jumps are because of +0x38 differences with steam/retail)
 	//hook::put<uint8_t>(hook::pattern("84 C0 74 ? 83 BB ? ? 00 00 07 74 ? E8").count(1).get(0).get<void>(2), 0xEB);
 
-	// some stat check in 'is allowed to run network game'; possibly SP prolog
-	hook::put<uint8_t>(hook::pattern("BA 87 03 00 00 E8 ? ? ? ? 84 C0 75 14").count(1).get(0).get<void>(12), 0xEB);
+	if (xbr::IsGameBuildOrGreater<2699>())
+	{
+		// now it's completely obfuscated, so just ignoring the entire list of checks
+		hook::jump(hook::get_call(hook::get_pattern("41 BD 20 00 00 00 48 8B CE 41 3B FD", -13)), ReturnTrue);
+	}
+	else
+	{
+		// some stat check in 'is allowed to run network game'; possibly SP prolog
+		hook::put<uint8_t>(hook::pattern("BA 87 03 00 00 E8 ? ? ? ? 84 C0 75 14").count(1).get(0).get<void>(12), 0xEB);
 
-	// same func, this time 'have tunables downloaded'
-	auto match = hook::pattern("80 B8 89 00 00 00 00 75 14 48").count(1).get(0);
+		// same func, this time 'have tunables downloaded'
+		auto match = hook::pattern("80 B8 89 00 00 00 00 75 14 48").count(1).get(0);
 
-	hook::put<uint8_t>(match.get<void>(7), 0xEB);
+		hook::put<uint8_t>(match.get<void>(7), 0xEB);
 
-	// and similarly, 'have bgscripts downloaded'
-	hook::put<uint8_t>(match.get<void>(43), 0xEB);
+		// and similarly, 'have bgscripts downloaded'
+		hook::put<uint8_t>(match.get<void>(43), 0xEB);
+	}
 
 	// unknownland
 	hook::put<uint16_t>(hook::pattern("8B B5 ? ? 00 00 85 F6 0F 84 ? 00 00").count(1).get(0).get<void>(8), 0xE990);

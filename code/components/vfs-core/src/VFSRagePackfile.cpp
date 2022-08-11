@@ -491,6 +491,59 @@ namespace vfs
 		data->name = &m_nameTable[entry->nameOffset];
 	}
 
+	#define VFS_GET_RAGE_PAGE_FLAGS 0x20001
+
+	struct ResourceFlags
+	{
+		uint32_t virt;
+		uint32_t phys;
+	};
+
+	struct GetRagePageFlagsExtension
+	{
+		const char* fileName; // in
+		int version;
+		ResourceFlags flags; // out
+	};
+
+	bool RagePackfile::ExtensionCtl(int controlIdx, void* controlData, size_t controlSize)
+	{
+		if (controlIdx == VFS_GET_RAGE_PAGE_FLAGS)
+		{
+			auto data = (GetRagePageFlagsExtension*)controlData;
+			auto handle = Open(data->fileName, true);
+
+			if (handle != InvalidHandle)
+			{
+				struct
+				{
+					uint32_t magic;
+					uint32_t version;
+					uint32_t virtPages;
+					uint32_t physPages;
+				} rsc7Header = { 0 };
+
+				Read(handle, &rsc7Header, sizeof(rsc7Header));
+				Close(handle);
+
+				data->version = 0;
+				data->flags.phys = 0;
+				data->flags.virt = 0;
+
+				if (rsc7Header.magic == 0x37435352) // RSC7
+				{
+					data->version = rsc7Header.version;
+					data->flags.phys = rsc7Header.physPages;
+					data->flags.virt = rsc7Header.virtPages;
+				}
+
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	void RagePackfile::SetPathPrefix(const std::string& pathPrefix)
 	{
 		m_pathPrefix = pathPrefix.substr(0, pathPrefix.find_last_not_of('/') + 1);

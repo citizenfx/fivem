@@ -436,6 +436,7 @@ namespace profilerCommand {
 		{"record", " start | <frames> | stop"},
 		{"resource", " <resource, frames> | stop"},
 		{"save",   " <filename>"},
+		{"saveJSON", " <filename>"},
 		{"load",   " <filename>"},
 		{"view",   " [filename]" }
 	};
@@ -604,6 +605,30 @@ namespace profilerCommand {
 
 			console::Printf("cmd", "Saving the recording to: %s.\n", path);
 			msgpack::pack(writeWrapper, ConvertToStorage(profiler));
+			console::Printf("cmd", "Save complete\n");
+		}));
+
+		static ConsoleCommand saveJSONCmd(profilerCtx.GetRef(), "saveJSON", ExecuteOffThread<std::string>([](std::string path)
+		{
+			auto profiler = fx::ResourceManager::GetCurrent(true)->GetComponent<fx::ProfilerComponent>();
+
+			std::string outFn = path;
+
+#ifndef IS_FXSERVER
+			outFn = "citizen:/" + outFn;
+#endif
+
+			auto vfsDevice = vfs::GetDevice(outFn);
+			auto handle = vfsDevice->Create(outFn);
+
+			vfs::Stream writeStream(vfsDevice, handle);
+
+			console::Printf("cmd", "Saving the recording as JSON to: %s.\n", path);
+
+			auto json = ConvertToJSON(ConvertToStorage(profiler));
+			auto jsonStr = json.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace);
+			writeStream.Write(reinterpret_cast<const uint8_t*>(jsonStr.data()), jsonStr.size());
+
 			console::Printf("cmd", "Save complete\n");
 		}));
 

@@ -115,6 +115,8 @@ namespace vfs
 
 		virtual void SetPathPrefix(const std::string& pathPrefix) override;
 
+		virtual bool ExtensionCtl(int controlIdx, void* controlData, size_t controlSize) override;
+
 	public:
 		bool OpenArchive(const std::string& archivePath);
 

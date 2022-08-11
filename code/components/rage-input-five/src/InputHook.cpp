@@ -422,10 +422,10 @@ static HookFunction setOffsetsHookFunction([]()
 	// test for breakage w/ new updates
 	unsigned char* mouseAbsY = hook::get_address<unsigned char*>(hook::get_pattern("66 44 0F 6E C0 8B 05 ? ? ? ? 2B", 5), 2, 6);
 	unsigned char* mouseDiffDirectionY = hook::get_address<unsigned char*>(hook::get_pattern("21 3D ? ? ? ? 21 3D ? ? ? ? 48 8B", 6), 2, 6);
-	if (xbr::IsGameBuildOrGreater<2372>())
+	if (xbr::IsGameBuildOrGreater<2699>())
 	{
-		assert(((uintptr_t)mouseAbsY - (uintptr_t)g_input == 0x10));
-		assert(((uintptr_t)mouseDiffDirectionY - (uintptr_t)g_input == 0xA0));
+		assert(((uintptr_t)mouseAbsY - (uintptr_t)g_input == 0x1C));
+		assert(((uintptr_t)mouseDiffDirectionY - (uintptr_t)g_input == 0xAC));
 	}
 #endif
 });

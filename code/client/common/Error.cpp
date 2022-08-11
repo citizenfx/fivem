@@ -315,19 +315,7 @@ int FatalErrorRealV(const char* file, int line, uint32_t stringHash, const char*
 int FatalErrorNoExceptRealV(const char* file, int line, uint32_t stringHash, const char* string, fmt::printf_args formatList)
 {
 #if !defined(IS_FXSERVER) && !defined(COMPILING_LAUNCH)
-	auto msg = fmt::vsprintf(string, formatList);
-	trace("NoExcept: %s\n", msg);
-
-	auto errorPickup = FormatErrorPickup(msg, std::make_tuple(std::string_view{file}, line, stringHash));
-
-	FILE* f = _wfopen(MakeRelativeCitPath(L"data\\cache\\error-pickup").c_str(), L"wb");
-
-	if (f)
-	{
-		fprintf(f, "%s", errorPickup.c_str());
-		fclose(f);
-	}
-
+	FatalErrorRealV(file, line, stringHash, string, formatList);
 	return -1;
 #endif
 
