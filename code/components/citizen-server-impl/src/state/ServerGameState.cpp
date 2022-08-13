@@ -37,11 +37,6 @@
 #include <citizen_util/object_pool.h>
 #include <citizen_util/shared_reference.h>
 
-namespace fx::sync
-{
-extern void IterateTimestamps(const SyncEntityPtr& entity, fu2::unique_function<void(uint32_t)>&&);
-}
-
 #ifdef STATE_FIVE
 static constexpr int kNetObjectTypeBitLength = 4;
 #elif defined(STATE_RDR3)
@@ -750,15 +745,12 @@ static void FlushBuffer(rl::MessageBuffer& buffer, uint32_t msgType, uint64_t fr
 	}
 }
 
-static bool MaybeFlushBuffer(rl::MessageBuffer& buffer, uint32_t msgType, uint64_t frameIndex, const fx::ClientSharedPtr& client, size_t size = 0, uint32_t* fragmentIndex = nullptr)
+static void MaybeFlushBuffer(rl::MessageBuffer& buffer, uint32_t msgType, uint64_t frameIndex, const fx::ClientSharedPtr& client, size_t size = 0, uint32_t* fragmentIndex = nullptr)
 {
 	if (LZ4_compressBound(buffer.GetDataLength() + (size / 8)) > (1100 - 12 - 12))
 	{
 		FlushBuffer(buffer, msgType, frameIndex, client, fragmentIndex);
-		return true;
 	}
-
-	return false;
 }
 
 void GameStateClientData::FlushAcks()
@@ -1322,6 +1314,8 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 			return;
 		}
 
+		uint64_t time = curTime.count();
+
 		NetPeerStackBuffer stackBuffer;
 		gscomms_get_peer(client->GetPeer(), stackBuffer);
 		auto enPeer = stackBuffer.GetBase();
@@ -1734,14 +1728,16 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 				auto _ent = entity;
 
-				auto runSync = [this, _ent, syncType, curTime, &scl, baseFrameIndex, localLastFrameIndex, wasForceUpdate]()
+				auto runSync = [this, _ent, &syncType, curTime, &scl, baseFrameIndex, localLastFrameIndex, wasForceUpdate](auto&& preCb) 
 				{
-					auto innerCommand = [this,
-										 entity = _ent,
-										 baseFrameIndex,
-										 localLastFrameIndex,
-										 curTime,
-										 wasForceUpdate](const fx::ClientSharedPtr& client, int syncType, bool isFirstFrameUpdate, rl::MessageBuffer& cloneBuffer)
+					scl->EnqueueCommand([this,
+										entity = _ent,
+										syncType,
+										preCb = std::move(preCb),
+										baseFrameIndex,
+										localLastFrameIndex,
+										curTime,
+										wasForceUpdate](sync::SyncCommandState& cmdState) 
 					{
 						auto entityClient = entity->GetClient();
 						if (!entityClient)
@@ -1749,7 +1745,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 							return;
 						}
 
-						auto slotId = client->GetSlotId();
+						auto slotId = cmdState.client->GetSlotId();
 
 						if (slotId == -1)
 						{
@@ -1757,148 +1753,29 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 						}
 
 						auto frameIndex = baseFrameIndex;
-
-						if (isFirstFrameUpdate)
-						{
-							frameIndex = 0;
-						}
+						bool isFirstFrameUpdate = false;
+						preCb(frameIndex, isFirstFrameUpdate);
 
 						// create a buffer once (per thread) to save allocations
 						static thread_local rl::MessageBuffer mb(kSyncPacketMaxLength);
 
-						eastl::fixed_set<uint32_t, 6> timestamps;
-
-						if (syncType == 2 && !isFirstFrameUpdate)
-						{
-							// #TODO: is there *any* better way to sort timestamps without an extra pass?
-							fx::sync::IterateTimestamps(entity, [&timestamps](uint32_t timestamp)
-							{
-								timestamps.insert(timestamp);
-							});
-						}
-						else
-						{
-							timestamps.insert(entity->timestamp);
-						}
+						mb.SetCurrentBit(0);
 
 						sync::SyncUnparseState state(mb);
 						state.syncType = syncType;
 						state.targetSlotId = slotId;
 						state.timestamp = 0;
-						state.entityTimestamp = entity->timestamp;
 						state.lastFrameIndex = frameIndex;
 						state.isFirstUpdate = isFirstFrameUpdate;
 
-						for (uint32_t timestamp : timestamps)
-						{
-							mb.SetCurrentBit(0);
+						bool wroteData = entity->syncTree->Unparse(state);
 
-							state.blendTimestamp = 0;
-							state.timestamp = (timestamp == entity->timestamp) ? 0 : timestamp;
-
-							bool wroteData = entity->syncTree->Unparse(state);
-
-							if (wroteData)
-							{
-								if (!isFirstFrameUpdate && syncType == 2)
-								{
-									// #IFNAK
-									if (m_syncStyle == SyncStyle::NAK)
-									{
-										std::lock_guard _(entity->frameMutex);
-										entity->lastFramesSent[slotId] = localLastFrameIndex;
-									}
-									// #IFARQ
-									else
-									{
-										std::lock_guard _(entity->frameMutex);
-										entity->lastFramesPreSent[slotId] = localLastFrameIndex;
-									}
-								}
-
-								auto len = (state.buffer.GetCurrentBit() / 8) + 1;
-
-								bool mayWrite = true;
-
-								if (syncType == 2 && !isFirstFrameUpdate && wasForceUpdate && entity->GetClient() == client)
-								{
-									mayWrite = false;
-									len = 0;
-								}
-
-								cloneBuffer.Write(3, syncType);
-								cloneBuffer.Write(13, entity->handle);
-								cloneBuffer.Write(16, entityClient->GetNetId());
-
-								if (syncType == 1)
-								{
-									cloneBuffer.Write(kNetObjectTypeBitLength, (uint8_t)entity->type);
-									cloneBuffer.Write(32, entity->creationToken);
-								}
-
-								if (isFirstFrameUpdate)
-								{
-									cloneBuffer.Write(16, (uint16_t)(~entity->uniqifier));
-								}
-								else
-								{
-									cloneBuffer.Write(16, (uint16_t)entity->uniqifier);
-								}
-
-								cloneBuffer.Write(32, (uint32_t)(frameIndex >> 32));
-								cloneBuffer.Write(32, (uint32_t)frameIndex);
-
-								uint32_t sendTimestamp = 0;
-
-								if (syncType == 1)
-								{
-									sendTimestamp = curTime.count();
-								}
-								else if (isFirstFrameUpdate)
-								{
-									sendTimestamp = curTime.count() + 1;
-								}
-								else
-								{
-									sendTimestamp = timestamp;
-								}
-
-								GS_LOG("Sent entity [obj:%d]/%d to %s w/ TS %d and %d b\n", entity->handle, syncType, client->GetName(), sendTimestamp, len);
-
-								cloneBuffer.Write<uint32_t>(32, sendTimestamp);
-
-								if (mayWrite)
-								{
-									cloneBuffer.Write(12, len);
-									cloneBuffer.WriteBits(state.buffer.GetBuffer().data(), len * 8);
-								}
-								else
-								{
-									cloneBuffer.Write(12, 0);
-								}
-							}
-						}
-					};
-
-					scl->EnqueueCommand([innerCommand = std::move(innerCommand),
-										curTime,
-										syncType](sync::SyncCommandState& cmdState)
-					{
-						static thread_local rl::MessageBuffer writeBuffer((kSyncPacketMaxLength * 2) + 128);
-						writeBuffer.SetCurrentBit(0);
-
-						innerCommand(cmdState.client, syncType, false, writeBuffer);
-
-						if (syncType == 1)
-						{
-							innerCommand(cmdState.client, 2, true, writeBuffer);
-						}
-
-						if (writeBuffer.GetCurrentBit() > 0)
+						if (wroteData)
 						{
 							if (!cmdState.hadTime)
 							{
 								uint64_t time = curTime.count();
+
 								cmdState.maybeFlushBuffer(3 + 32 + 32);
 								cmdState.cloneBuffer.Write(3, 5);
 								cmdState.cloneBuffer.Write(32, uint32_t(time & 0xFFFFFFFF));
@@ -1907,15 +1784,76 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 								cmdState.hadTime = true;
 							}
 
-							cmdState.maybeFlushBuffer(writeBuffer.GetCurrentBit());
-							cmdState.cloneBuffer.WriteBits(writeBuffer.GetBuffer().data(), writeBuffer.GetCurrentBit());
+							if (!isFirstFrameUpdate && syncType == 2)
+							{
+								// #IFNAK
+								if (m_syncStyle == SyncStyle::NAK)
+								{
+									std::lock_guard _(entity->frameMutex);
+									entity->lastFramesSent[slotId] = localLastFrameIndex;
+								}
+								// #IFARQ
+								else
+								{
+									std::lock_guard _(entity->frameMutex);
+									entity->lastFramesPreSent[slotId] = localLastFrameIndex;
+								}
+							}
+
+							auto len = (state.buffer.GetCurrentBit() / 8) + 1;
+
+							bool mayWrite = true;
+
+							if (syncType == 2 && !isFirstFrameUpdate && wasForceUpdate && entity->GetClient() == cmdState.client)
+							{
+								mayWrite = false;
+								len = 0;
+							}
+
+							auto startBit = cmdState.cloneBuffer.GetCurrentBit();
+							cmdState.maybeFlushBuffer(3 + /* 13 */ 16 + 16 + 4 + 32 + 16 + 64 + 32 + 12 + (len * 8));
+							cmdState.cloneBuffer.Write(3, syncType);
+							cmdState.cloneBuffer.Write(13, entity->handle);
+							cmdState.cloneBuffer.Write(16, entityClient->GetNetId());
+
+							if (syncType == 1)
+							{
+								cmdState.cloneBuffer.Write(kNetObjectTypeBitLength, (uint8_t)entity->type);
+								cmdState.cloneBuffer.Write(32, entity->creationToken);
+							}
+
+							if (isFirstFrameUpdate)
+							{
+								cmdState.cloneBuffer.Write(16, (uint16_t)(~entity->uniqifier));
+							}
+							else
+							{
+								cmdState.cloneBuffer.Write(16, (uint16_t)entity->uniqifier);
+							}
+
+							cmdState.cloneBuffer.Write(32, (uint32_t)(frameIndex >> 32));
+							cmdState.cloneBuffer.Write(32, (uint32_t)frameIndex);
+
+							cmdState.cloneBuffer.Write<uint32_t>(32, (syncType == 1) ?
+								curTime.count() :
+								(isFirstFrameUpdate) ? (curTime.count() + 1) : entity->timestamp);
+
+							if (mayWrite)
+							{
+								cmdState.cloneBuffer.Write(12, len);
+								cmdState.cloneBuffer.WriteBits(state.buffer.GetBuffer().data(), len * 8);
+							}
+							else
+							{
+								cmdState.cloneBuffer.Write(12, 0);
+							}
 						}
 					});
 				};
 
 				if (!fakeSend)
 				{
-					runSync();
+					runSync([](uint64_t&, bool&) {});
 
 					if (syncType == 1)
 					{
@@ -1924,6 +1862,14 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 						{
 							syncData.hasCreated = true;
 						}
+
+						// first-frame update
+						syncType = 2;
+						runSync([](uint64_t& lfi, bool& isLfi)
+						{
+							lfi = 0;
+							isLfi = true;
+						});
 					}
 				}
 			}

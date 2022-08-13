@@ -4091,22 +4091,4 @@ using CTrainSyncTree = SyncTree<
 		>
 	>
 >;
-
-template<typename TNode>
-inline constexpr bool AffectsBlender()
-{
-	return std::is_same_v<TNode, CVehicleAngVelocityDataNode> ||
-		std::is_same_v<TNode, CPhysicalAngVelocityDataNode> ||
-		std::is_same_v<TNode, CPhysicalVelocityDataNode> ||
-		std::is_same_v<TNode, CSectorPositionDataNode> ||
-		std::is_same_v<TNode, CSectorDataNode> ||
-		std::is_same_v<TNode, CObjectSectorPosNode> ||
-		std::is_same_v<TNode, CPedSectorPosMapNode> ||
-		std::is_same_v<TNode, CPedSectorPosNavMeshNode> ||
-		std::is_same_v<TNode, CPickupSectorPosNode> ||
-		std::is_same_v<TNode, CPlayerSectorPosNode> ||
-		std::is_same_v<TNode, CEntityOrientationDataNode> ||
-		std::is_same_v<TNode, CObjectOrientationDataNode> ||
-		std::is_same_v<TNode, CPedOrientationDataNode>;
-}
 }

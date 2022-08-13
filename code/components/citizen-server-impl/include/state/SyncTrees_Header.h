@@ -65,7 +65,7 @@ inline bool shouldRead(SyncParseState& state)
 	return true;
 }
 
-inline bool shouldWrite(SyncUnparseState& state, const std::tuple<int, int, int>& ids, bool defaultValue = true, bool* didBit = nullptr)
+inline bool shouldWrite(SyncUnparseState& state, const std::tuple<int, int, int>& ids, bool defaultValue = true)
 {
 	if ((std::get<0>(ids) & state.syncType) == 0)
 	{
@@ -81,11 +81,6 @@ inline bool shouldWrite(SyncUnparseState& state, const std::tuple<int, int, int>
 	if ((std::get<1>(ids) & state.syncType) != 0)
 	{
 		state.buffer.WriteBit(defaultValue);
-
-		if (didBit)
-		{
-			*didBit = true;
-		}
 
 		return defaultValue;
 	}
@@ -293,28 +288,16 @@ public:
 	bool Unparse(SyncUnparseState& state)
 	{
 		bool should = false;
-		bool didBit = false;
 
-		if (shouldWrite(state, TIds::GetIds(), true, &didBit))
+		// TODO: back out writes if we didn't write any child
+		if (shouldWrite(state, TIds::GetIds()))
 		{
-			uint32_t startBit = state.buffer.GetCurrentBit() - (didBit ? 1 : 0);
-
 			Foreacher<decltype(children)>::for_each_in_tuple(children, [&](auto& child)
 			{
 				bool thisShould = child.Unparse(state);
 
 				should = should || thisShould;
 			});
-
-			if (!should)
-			{
-				state.buffer.SetCurrentBit(startBit);
-
-				if (didBit)
-				{
-					state.buffer.WriteBit(false);
-				}
-			}
 		}
 
 		return should;
@@ -327,17 +310,6 @@ public:
 		Foreacher<decltype(children)>::for_each_in_tuple(children, [&](auto& child)
 		{
 			child.Visit(visitor);
-		});
-
-		return true;
-	}
-
-	template<typename TVisitor>
-	bool VisitT(TVisitor visitor)
-	{
-		Foreacher<decltype(children)>::for_each_in_tuple(children, [&](auto& child)
-		{
-			child.VisitT(visitor);
 		});
 
 		return true;
@@ -508,22 +480,6 @@ struct NodeWrapper : public NodeBase
 			couldWrite = false;
 		}
 
-		if constexpr (AffectsBlender<TNode>())
-		{
-			if (state.syncType == 2 && timestamp != state.entityTimestamp)
-			{
-				if (state.timestamp == 0)
-				{
-					couldWrite = false;
-				}
-
-				if (timestamp > state.timestamp && (!state.blendTimestamp || timestamp <= state.blendTimestamp))
-				{
-					state.blendTimestamp = timestamp;
-				}
-			}
-		}
-
 		if (state.isFirstUpdate)
 		{
 			if (!TIds::CanSendOnFirstUpdate())
@@ -549,14 +505,6 @@ struct NodeWrapper : public NodeBase
 	}
 
 	bool Visit(const SyncTreeVisitor& visitor)
-	{
-		visitor(*this);
-
-		return true;
-	}
-
-	template<typename TVisitor>
-	bool VisitT(TVisitor visitor)
 	{
 		visitor(*this);
 
@@ -764,13 +712,6 @@ struct SyncTreeBaseImpl : SyncTreeBase
 		std::unique_lock<std::mutex> lock(mutex);
 
 		root.Visit(visitor);
-	}
-
-	template<typename TVisitor>
-	bool VisitT(TVisitor visitor)
-	{
-		root.VisitT(visitor);
-		return true;
 	}
 };
 }

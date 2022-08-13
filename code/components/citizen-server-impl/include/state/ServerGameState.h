@@ -854,11 +854,9 @@ struct SyncUnparseState
 	int syncType;
 	int objType;
 	uint32_t timestamp;
-	uint32_t entityTimestamp = 0;
 	uint64_t lastFrameIndex;
 	uint32_t targetSlotId;
 	bool isFirstUpdate;
-	uint32_t blendTimestamp = 0;
 
 	SyncUnparseState(rl::MessageBuffer& buffer)
 		: buffer(buffer), lastFrameIndex(0)
