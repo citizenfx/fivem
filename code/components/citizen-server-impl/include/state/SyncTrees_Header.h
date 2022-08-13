@@ -2,28 +2,6 @@
 
 namespace fx::sync
 {
-template<typename TNode>
-inline constexpr bool AffectsBlender();
-
-template<typename TNode>
-struct NodeProcessor
-{
-	bool PreParse(TNode& node, SyncParseState& state)
-	{
-		return false;
-	}
-
-	bool PostParse(TNode& node, SyncParseState& state)
-	{
-		return false;
-	}
-
-	constexpr bool IsHandled()
-	{
-		return false;
-	}
-};
-
 template<int Id1, int Id2, int Id3, bool CanSendOnFirst = true>
 struct NodeIds
 {
@@ -406,39 +384,10 @@ struct NodeWrapper : public NodeBase
 			// parse manual data
 			if constexpr (ShouldParseNode<TNode>(0))
 			{
-				NodeProcessor<TNode> nodeProc;
+				state.buffer.SetCurrentBit(endBit);
+				node.Parse(state);
 
-				auto doParse = [this, &state, endBit, length]()
-				{
-					state.buffer.SetCurrentBit(endBit);
-					node.Parse(state);
-
-					state.buffer.SetCurrentBit(endBit + length);
-				};
-
-				if constexpr (nodeProc.IsHandled())
-				{
-					bool needReparse = nodeProc.PreParse(node, state);
-
-					doParse();
-
-					needReparse |= nodeProc.PostParse(node, state);
-
-					if (needReparse)
-					{
-						rl::MessageBuffer mb(data.size());
-						sync::SyncUnparseState state{ mb };
-						node.Unparse(state);
-
-						memcpy(data.data(), mb.GetBuffer().data(), mb.GetBuffer().size());
-
-						length = mb.GetCurrentBit();
-					}
-				}
-				else
-				{
-					doParse();
-				}
+				state.buffer.SetCurrentBit(endBit + length);
 			}
 
 			frameIndex = state.frameIndex;
