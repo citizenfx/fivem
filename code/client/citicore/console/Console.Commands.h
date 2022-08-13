@@ -200,7 +200,7 @@ struct ConsoleArgumentType<TArgument, typename std::enable_if<std::is_same<TArgu
 {
 	static std::string Unparse(const TArgument& input)
 	{
-		if (input == true)
+		if (input)
 		{
 			return "true";
 		}
