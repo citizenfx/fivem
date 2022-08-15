@@ -1408,6 +1408,60 @@ static void ProtocolRegister()
 		CHECK_STATUS(RegCloseKey(key));
 	}
 #endif
+	
+#ifdef IS_RDR3
+	LSTATUS result;
+
+#define CHECK_STATUS(x) \
+	result = (x); \
+	if (result != ERROR_SUCCESS) { \
+		trace("[Protocol Registration] " #x " failed: %x", result); \
+		return; \
+	}
+
+	static HostSharedData<CfxState> hostData("CfxInitState");
+
+	HKEY key;
+	wchar_t command[1024];
+	swprintf_s(command, L"\"%s\" \"%%1\"", hostData->gameExePath);
+
+	CHECK_STATUS(RegCreateKeyW(HKEY_CURRENT_USER, L"SOFTWARE\\Classes\\redm", &key));
+	CHECK_STATUS(RegSetValueExW(key, NULL, 0, REG_SZ, (BYTE*)L"RedM", 6 * 2));
+	CHECK_STATUS(RegSetValueExW(key, L"URL Protocol", 0, REG_SZ, (BYTE*)L"", 1 * 2));
+	CHECK_STATUS(RegCloseKey(key));
+
+	CHECK_STATUS(RegCreateKey(HKEY_CURRENT_USER, L"SOFTWARE\\Classes\\RedM.ProtocolHandler", &key));
+	CHECK_STATUS(RegSetValueExW(key, NULL, 0, REG_SZ, (BYTE*)L"RedM", 6 * 2));
+	CHECK_STATUS(RegCloseKey(key));
+
+	CHECK_STATUS(RegCreateKey(HKEY_CURRENT_USER, L"SOFTWARE\\RedM", &key));
+	CHECK_STATUS(RegCloseKey(key));
+
+	CHECK_STATUS(RegCreateKey(HKEY_CURRENT_USER, L"SOFTWARE\\RedM\\Capabilities", &key));
+	CHECK_STATUS(RegSetValueExW(key, L"ApplicationName", 0, REG_SZ, (BYTE*)L"RedM", 6 * 2));
+	CHECK_STATUS(RegSetValueExW(key, L"ApplicationDescription", 0, REG_SZ, (BYTE*)L"RedM", 6 * 2));
+	CHECK_STATUS(RegCloseKey(key));
+
+	CHECK_STATUS(RegCreateKey(HKEY_CURRENT_USER, L"SOFTWARE\\RedM\\Capabilities\\URLAssociations", &key));
+	CHECK_STATUS(RegSetValueExW(key, L"redm", 0, REG_SZ, (BYTE*)L"RedM.ProtocolHandler", 22 * 2));
+	CHECK_STATUS(RegCloseKey(key));
+
+	CHECK_STATUS(RegCreateKey(HKEY_CURRENT_USER, L"SOFTWARE\\RegisteredApplications", &key));
+	CHECK_STATUS(RegSetValueExW(key, L"RedM", 0, REG_SZ, (BYTE*)L"Software\\RedM\\Capabilities", 28 * 2));
+	CHECK_STATUS(RegCloseKey(key));
+
+	CHECK_STATUS(RegCreateKey(HKEY_CURRENT_USER, L"SOFTWARE\\Classes\\RedM.ProtocolHandler\\shell\\open\\command", &key));
+	CHECK_STATUS(RegSetValueExW(key, NULL, 0, REG_SZ, (BYTE*)command, (wcslen(command) * sizeof(wchar_t)) + 2));
+	CHECK_STATUS(RegCloseKey(key));
+
+	if (!IsWindows8Point1OrGreater())
+	{
+		// these are for compatibility on downlevel Windows systems
+		CHECK_STATUS(RegCreateKey(HKEY_CURRENT_USER, L"SOFTWARE\\Classes\\redm\\shell\\open\\command", &key));
+		CHECK_STATUS(RegSetValueExW(key, NULL, 0, REG_SZ, (BYTE*)command, (wcslen(command) * sizeof(wchar_t)) + 2));
+		CHECK_STATUS(RegCloseKey(key));
+	}
+#endif
 }
 
 void Component_RunPreInit()
@@ -1434,7 +1488,7 @@ void Component_RunPreInit()
 	{
 		std::string arg = ToNarrow(argv[i]);
 
-		if (arg.find("fivem:") == 0)
+		if ( (arg.find("fivem:") == 0) || (arg.find("redm:") == 0) )
 		{
 			auto parsed = skyr::make_url(arg);
 
