@@ -13,42 +13,68 @@
 #include <fxScripting.h>
 
 #include <CustomText.h>
+#include <deque>
 
 #if defined(GTA_FIVE)
 #include <sfFontStuff.h>
 #endif
 
-static bool AddTextEntryForResource(fx::Resource* resource, uint32_t hashKey, const char* textValue)
+static bool AddTextEntryForResource(fx::Resource* resource, uint32_t hashKey, const char* textValueRaw)
 {
-	static std::unordered_map<uint32_t, std::string> g_owners;
+	std::string textValue = textValueRaw;
+	static std::unordered_map<uint32_t, std::deque<std::tuple<std::string /* resource */, std::string /* str */>>> g_hashStack;
+	const auto& resourceName = resource->GetName();
+	auto& selfStack = g_hashStack[hashKey];
 
-	std::string resourceName = resource->GetName();
-
-	auto it = g_owners.find(hashKey);
-
-	if (it == g_owners.end())
+	static auto find = [](auto& selfStack, std::string_view resourceName)
 	{
-		g_owners.insert({ hashKey, resource->GetName() });
-
-		game::AddCustomText(hashKey, textValue);
-
-		// on-stop handler, as well, to remove from the list when the resource stops
-		resource->OnStop.Connect([=] ()
+		return std::find_if(selfStack.begin(), selfStack.end(), [resourceName](const auto& pair)
 		{
-			if (g_owners[hashKey] == resource->GetName())
+			return std::get<0>(pair) == resourceName;
+		});
+	};
+
+	// find the resource
+	auto resourceIt = find(selfStack, resourceName);
+
+	if (resourceIt == selfStack.end())
+	{
+		resource->OnStop.Connect([resource, hashKey]()
+		{
+			auto& selfStack = g_hashStack[hashKey];
+			bool matched = false;
+
+			do
+			{
+				matched = false;
+
+				if (auto it = find(selfStack, resource->GetName()); it != selfStack.end())
+				{
+					selfStack.erase(it);
+					matched = true;
+				}
+			} while (matched);
+
+			if (!selfStack.empty())
+			{
+				game::AddCustomText(hashKey, std::get<1>(selfStack.front()));
+			}
+			else
 			{
 				game::RemoveCustomText(hashKey);
-				g_owners.erase(hashKey);
 			}
 		});
 
-		return true;
+		selfStack.emplace_front(resourceName, textValue);
+	}
+	else
+	{
+		*resourceIt = { std::get<0>(*resourceIt), textValue };
+		std::iter_swap(selfStack.begin(), resourceIt);
 	}
 
-	if (it->second == resource->GetName())
-	{
-		game::AddCustomText(hashKey, textValue);
-	}
+	game::AddCustomText(hashKey, textValue);
+	return true;
 }
 
 static InitFunction initFunction([] ()
