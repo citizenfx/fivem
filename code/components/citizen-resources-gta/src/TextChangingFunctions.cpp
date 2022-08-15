@@ -87,8 +87,8 @@ static InitFunction initFunction([] ()
 		{
 			fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
 
-			const char* textKey = context.GetArgument<const char*>(0);
-			const char* textValue = context.GetArgument<const char*>(1);
+			const char* textKey = context.CheckArgument<const char*>(0);
+			const char* textValue = context.CheckArgument<const char*>(1);
 
 			uint32_t hashKey = HashString(textKey);
 
@@ -113,7 +113,7 @@ static InitFunction initFunction([] ()
 			fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
 
 			uint32_t textKey = context.GetArgument<uint32_t>(0);
-			const char* textValue = context.GetArgument<const char*>(1);
+			const char* textValue = context.CheckArgument<const char*>(1);
 
 			context.SetResult<bool>(AddTextEntryForResource(resource, textKey, textValue));
 			return;
@@ -125,12 +125,12 @@ static InitFunction initFunction([] ()
 #if defined(GTA_FIVE)
 	fx::ScriptEngine::RegisterNativeHandler("REGISTER_FONT_ID", [](fx::ScriptContext& context)
 	{
-		context.SetResult(sf::RegisterFontIndex(context.GetArgument<const char*>(0)));
+		context.SetResult(sf::RegisterFontIndex(context.CheckArgument<const char*>(0)));
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("REGISTER_FONT_FILE", [](fx::ScriptContext& context)
 	{
-		sf::RegisterFontLib(context.GetArgument<const char*>(0));
+		sf::RegisterFontLib(context.CheckArgument<const char*>(0));
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("ADD_MINIMAP_OVERLAY", [](fx::ScriptContext& context)
@@ -140,7 +140,7 @@ static InitFunction initFunction([] ()
 		if (FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
 		{
 			fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
-			int overlayIdx = sf::AddMinimapOverlay(resource->GetPath() + "/" + context.GetArgument<const char*>(0));
+			int overlayIdx = sf::AddMinimapOverlay(resource->GetPath() + "/" + context.CheckArgument<const char*>(0));
 
 			resource->OnStop.Connect([=]()
 			{
