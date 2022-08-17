@@ -129,6 +129,7 @@ int __stdcall CfxBind(SOCKET s, sockaddr * addr, int addrlen)
 			addrIn->sin_port = htons(6673);
 		}
 
+		addrIn->sin_addr.s_addr = inet_addr("127.0.0.1");
 		g_gameSocket = s;
 	}
 
