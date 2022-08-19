@@ -189,12 +189,12 @@ GameCacheEntry DeltaEntry::MakeEntry() const
 
 std::string DeltaEntry::GetFileName() const
 {
-	std::basic_string_view<uint8_t> from{
-		fromChecksum.data(), 20
+	std::string_view from{
+		reinterpret_cast<const char*>(fromChecksum.data()), 20
 	};
 
-	std::basic_string_view<uint8_t> to{
-		toChecksum.data(), 20
+	std::string_view to{
+		reinterpret_cast<const char*>(toChecksum.data()), 20
 	};
 
 	return fmt::sprintf("%x_%x", std::hash<decltype(from)>()(from), std::hash<decltype(to)>()(to));
