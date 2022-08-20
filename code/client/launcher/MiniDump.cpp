@@ -268,8 +268,6 @@ static void ConvertCrashometry(const TMap& map, json& data)
 static void add_crashometry(json& data)
 {
 	auto map = load_crashometry();
-	_wunlink(MakeRelativeCitPath(L"data\\cache\\crashometry").c_str());
-
 	ConvertCrashometry<true>(map, data);
 }
 
@@ -786,6 +784,7 @@ extern void ParseSymbolicCrash(nlohmann::json& crash, std::string* signature, st
 void InitializeDumpServer(int inheritedHandle, int parentPid)
 {
 	static bool g_running = true;
+	static bool g_hasTriggeredTermination = false;
 
 	// needed to initialize logging(!)
 	trace("DumpServer is active and waiting.\n");
@@ -846,6 +845,12 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 			void Process(const ClientInfo* info, const std::wstring* filePathRef, HANDLE crashReport)
 			{
+				if (g_hasTriggeredTermination)
+				{
+					SetEvent(hDone);
+					return;
+				}
+
 				auto filePathData = *filePathRef;
 				auto filePath = &filePathData;
 
@@ -1285,6 +1290,12 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 				if (!shouldTerminate)
 				{
 					SetEvent(hDone);
+				}
+
+				// if this is a fatal crash, we should *not* try to process any further crashes
+				if (shouldTerminate)
+				{
+					g_hasTriggeredTermination = true;
 				}
 
 				windowTitle = PRODUCT_NAME;
