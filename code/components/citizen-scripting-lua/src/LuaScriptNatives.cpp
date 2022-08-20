@@ -439,6 +439,7 @@ static int Lua_PushContextArgument(lua_State* L, int idx, fxLuaNativeContext<IsP
 }
 
 #ifndef IS_FXSERVER
+#include <ExceptionToModuleHelper.h>
 
 #include <CL2LaunchMode.h>
 struct FastNativeHandler
@@ -483,7 +484,7 @@ static LUA_INLINE void CallHandler(void* handler, uint64_t nativeIdentifier, rag
 	}
 	__except (FilterFunc(GetExceptionInformation()))
 	{
-		throw std::exception(va("Error executing native 0x%016llx at address %p.", nativeIdentifier, exceptionAddress));
+		throw std::exception(va("Error executing native 0x%016llx at address %s.", nativeIdentifier, FormatModuleAddress(exceptionAddress)));
 	}
 }
 
@@ -1360,7 +1361,7 @@ struct LuaNativeContext
 		}
 		__except (exceptionAddress = (GetExceptionInformation())->ExceptionRecord->ExceptionAddress, ShouldHandleUnwind(GetExceptionInformation(), (GetExceptionInformation())->ExceptionRecord->ExceptionCode, hash))
 		{
-			throw std::exception(va("Error executing native 0x%016llx at address %p.", hash, exceptionAddress));
+			throw std::exception(va("Error executing native 0x%016llx at address %s.", hash, FormatModuleAddress(exceptionAddress)));
 		}
 	}
 
