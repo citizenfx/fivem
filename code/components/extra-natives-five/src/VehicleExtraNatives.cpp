@@ -54,9 +54,32 @@ struct TrainDoor
 };
 static_assert(sizeof(TrainDoor) == 0x70);
 
+struct VehicleXenonLightsColor
+{
+	float colorR;
+	float colorG;
+	float colorB;
+	uint32_t colorARGB;
+
+	VehicleXenonLightsColor(uint8_t red, uint8_t green, uint8_t blue)
+	{
+		Update(red, green, blue);
+	}
+
+	void Update(uint8_t red, uint8_t green, uint8_t blue)
+	{
+		colorR = red / 255.0;
+		colorG = green / 255.0;
+		colorB = blue / 255.0;
+		colorARGB = (0xFF << 24) | (red << 16) | (green << 8) | blue;
+	}
+};
+
 static std::unordered_set<fwEntity*> g_skipRepairVehicles{};
 
 static std::vector<FlyThroughWindscreenParam> g_flyThroughWindscreenParams{};
+
+static std::map<fwEntity*, VehicleXenonLightsColor> g_vehicleXenonLightsColors{};
 
 static bool* g_flyThroughWindscreenDisabled;
 static bool isFlyThroughWindscreenEnabledConVar = false;
@@ -271,6 +294,7 @@ static void DeleteVehicleWrap(fwEntity* vehicle)
 
 	// run cleanup after destructor
 	g_skipRepairVehicles.erase(vehicle);
+	g_vehicleXenonLightsColors.erase(vehicle);
 
 	// remove flag
 	SetCanPedStandOnVehicle(vehicle, 0);
@@ -1256,6 +1280,115 @@ static HookFunction initFunction([]()
 	fx::ScriptEngine::RegisterNativeHandler("OVERRIDE_PEDS_CAN_STAND_ON_TOP_FLAG", [](fx::ScriptContext& context)
 	{
 		g_overrideCanPedStandOnVehicle = context.GetArgument<bool>(0);
+	});
+
+	// vehicle xenon lights patches to support RGB colors
+	{
+		static struct : jitasm::Frontend
+		{
+			virtual void InternalMain() override
+			{
+				// original code
+				movss(dword_ptr[rbp + 0x1C], xmm2);
+				movss(dword_ptr[rbp + 0x18], xmm1);
+				movss(dword_ptr[rbp + 0x14], xmm0);
+
+				// save registers
+				push(rax);
+				push(rcx);
+				push(rdx);
+				push(r8);
+
+				sub(rsp, 0x28);
+
+				// prepare arguments
+				mov(rcx, rbx); // vehicle
+				lea(rdx, dword_ptr[rbp + 0x10]); // float rgb for light cones
+				lea(r8, dword_ptr[rbp + 0x84]); // uint argb for light flares
+
+				mov(rax, (uintptr_t)OverrideColor);
+				call(rax);
+
+				add(rsp, 0x28);
+
+				// restore registers
+				pop(r8);
+				pop(rdx);
+				pop(rcx);
+				pop(rax);
+
+				ret();
+			}
+
+			static void OverrideColor(CVehicle* vehicle, float* color, uint32_t* colorARGB)
+			{
+				if (auto it = g_vehicleXenonLightsColors.find(vehicle); it != g_vehicleXenonLightsColors.end())
+				{
+					color[0] = it->second.colorR;
+					color[1] = it->second.colorG;
+					color[2] = it->second.colorB;
+					*colorARGB = it->second.colorARGB;
+				}
+			}
+		} vehicleHeadlightsColorStub;
+
+		auto location = hook::get_pattern("0F C6 D2 FF F3 0F 11 55 1C F3", 4);
+		hook::nop(location, 15);
+		hook::call(location, vehicleHeadlightsColorStub.GetCode());
+	}
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_XENON_LIGHTS_CUSTOM_COLOR", [](fx::ScriptContext& context)
+	{
+		if (fwEntity* vehicle = getAndCheckVehicle(context, "SET_VEHICLE_XENON_LIGHTS_CUSTOM_COLOR"))
+		{
+			auto colorR = context.GetArgument<uint8_t>(1);
+			auto colorG = context.GetArgument<uint8_t>(2);
+			auto colorB = context.GetArgument<uint8_t>(3);
+
+			if (auto it = g_vehicleXenonLightsColors.find(vehicle); it != g_vehicleXenonLightsColors.end())
+			{
+				it->second.Update(colorR, colorG, colorB);
+			}
+			else
+			{
+				VehicleXenonLightsColor color(colorR, colorG, colorB);
+				g_vehicleXenonLightsColors.insert({ vehicle, color });
+			}
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_XENON_LIGHTS_CUSTOM_COLOR", [](fx::ScriptContext& context)
+	{
+		uint8_t colorR = 0;
+		uint8_t colorG = 0;
+		uint8_t colorB = 0;
+		bool valid = false;
+
+		if (fwEntity* vehicle = getAndCheckVehicle(context, "GET_VEHICLE_XENON_LIGHTS_CUSTOM_COLOR"))
+		{
+			if (auto it = g_vehicleXenonLightsColors.find(vehicle); it != g_vehicleXenonLightsColors.end())
+			{
+				uint32_t colorARGB = it->second.colorARGB;
+				colorR = (colorARGB & 0xFF0000) >> 16;
+				colorG = (colorARGB & 0xFF00) >> 8;
+				colorB = (colorARGB & 0xFF);
+				valid = true;
+			}
+		}
+
+		*context.GetArgument<uint8_t*>(1) = colorR;
+		*context.GetArgument<uint8_t*>(2) = colorG;
+		*context.GetArgument<uint8_t*>(3) = colorB;
+
+		context.SetResult<bool>(valid);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("CLEAR_VEHICLE_XENON_LIGHTS_CUSTOM_COLOR", [](fx::ScriptContext& context)
+	{
+		if (fwEntity* vehicle = getAndCheckVehicle(context, "CLEAR_VEHICLE_XENON_LIGHTS_CUSTOM_COLOR"))
+		{
+			g_vehicleXenonLightsColors.erase(vehicle);
+		}
 	});
 
 	MH_Initialize();
