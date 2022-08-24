@@ -80,7 +80,7 @@ registerFrameFunction(function(msg, frameName, frameUrl)
 		const frame = document.createElement('iframe');
 		frame.name = frameName;
 		frame.style.visibility = 'hidden';
-		frame.allow = 'microphone *; camera *;';
+		frame.allow = 'microphone *; camera *; encrypted-media *;';
 		frame.src = frameUrl;
 		frame.tabIndex = -1;
 
