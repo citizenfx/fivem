@@ -383,6 +383,17 @@ static bool CanPedStandOnVehicleWrap(CVehicle* vehicle)
 	return g_origCanPedStandOnVehicle(vehicle);
 }
 
+static void OverrideVehicleXenonColor(CVehicle* vehicle, float* color, uint32_t* colorARGB)
+{
+	if (auto it = g_vehicleXenonLightsColors.find(vehicle); it != g_vehicleXenonLightsColors.end())
+	{
+		color[0] = it->second.colorR;
+		color[1] = it->second.colorG;
+		color[2] = it->second.colorB;
+		*colorARGB = it->second.colorARGB;
+	}
+}
+
 TrainDoor* GetTrainDoor(fwEntity* train, uint32_t index)
 {
 	return &(*((TrainDoor**)(((char*)train) + TrainDoorArrayPointerOffset)))[index];
@@ -1306,7 +1317,7 @@ static HookFunction initFunction([]()
 				lea(rdx, dword_ptr[rbp + 0x10]); // float rgb for light cones
 				lea(r8, dword_ptr[rbp + 0x84]); // uint argb for light flares
 
-				mov(rax, (uintptr_t)OverrideColor);
+				mov(rax, (uintptr_t)OverrideVehicleXenonColor);
 				call(rax);
 
 				add(rsp, 0x28);
@@ -1319,22 +1330,55 @@ static HookFunction initFunction([]()
 
 				ret();
 			}
-
-			static void OverrideColor(CVehicle* vehicle, float* color, uint32_t* colorARGB)
-			{
-				if (auto it = g_vehicleXenonLightsColors.find(vehicle); it != g_vehicleXenonLightsColors.end())
-				{
-					color[0] = it->second.colorR;
-					color[1] = it->second.colorG;
-					color[2] = it->second.colorB;
-					*colorARGB = it->second.colorARGB;
-				}
-			}
 		} vehicleHeadlightsColorStub;
 
-		auto location = hook::get_pattern("0F C6 D2 FF F3 0F 11 55 1C F3", 4);
-		hook::nop(location, 15);
-		hook::call(location, vehicleHeadlightsColorStub.GetCode());
+		{
+			auto location = hook::get_pattern("0F C6 D2 FF F3 0F 11 55 1C F3", 4);
+			hook::nop(location, 15);
+			hook::call(location, vehicleHeadlightsColorStub.GetCode());
+		}
+
+		static struct : jitasm::Frontend
+		{
+			virtual void InternalMain() override
+			{
+				// original code
+				movss(dword_ptr[rbp - 0x74], xmm2);
+				movss(dword_ptr[rbp - 0x78], xmm1);
+
+				// save registers
+				push(rax);
+				push(rcx);
+				push(rdx);
+				push(r8);
+
+				sub(rsp, 0x28);
+
+				// prepare arguments
+				mov(rcx, rsi); // vehicle
+				lea(rdx, dword_ptr[rbp - 0x80]); // float rgb for light cones
+				lea(r8, dword_ptr[rbp - 0x34]); // uint argb for light flares
+
+				mov(rax, (uintptr_t)OverrideVehicleXenonColor);
+				call(rax);
+
+				add(rsp, 0x28);
+
+				// restore registers
+				pop(r8);
+				pop(rdx);
+				pop(rcx);
+				pop(rax);
+
+				ret();
+			}
+		} vehicleHighbeamsColorStub;
+
+		{
+			auto location = hook::get_pattern("F3 0F 11 55 80 0F C6 CA AA", 13);
+			hook::nop(location, 10);
+			hook::call(location, vehicleHighbeamsColorStub.GetCode());
+		}
 	}
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_XENON_LIGHTS_CUSTOM_COLOR", [](fx::ScriptContext& context)
