@@ -58,4 +58,4 @@ else
     cp -a $ROOT/../natives/inp/natives_cfx_new.lua $ROOT/../natives/inp/natives_cfx.lua
 fi
 
-[ "$OS" != "Windows_NT" ] && rm -rf /tmp/node
+[ "$OS" != "Windows_NT" ] && rm -rf /tmp/node || true
