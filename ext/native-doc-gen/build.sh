@@ -9,14 +9,20 @@ YARN=yarn
 
 [ "$OS" == "Windows_NT" ] && LUA53=./lua53
 [ "$OS" == "Windows_NT" ] && NODE=$ROOT/node
-[ "$OS" == "Windows_NT" ] && YARN="$NODE $ROOT/yarn_cli.js"
+[ "$OS" != "Windows_NT" ] && NODE=/tmp/node/node/bin/node
+YARN="$NODE $ROOT/yarn_cli.js"
 
 [ "$OS" == "Windows_NT" ] && curl -z node.exe -Lo node.exe https://nodejs.org/dist/v12.22.12/win-x64/node.exe && curl -z yarn_cli.js -Lo yarn_cli.js https://github.com/yarnpkg/yarn/releases/download/v1.22.19/yarn-1.22.19.js
+[ "$OS" != "Windows_NT" ] && mkdir /tmp/node && \
+	curl -Lo /tmp/node/node.tar.gz https://unofficial-builds.nodejs.org/download/release/v12.22.12/node-v12.22.12-linux-x64-musl.tar.gz && \
+	tar -C /tmp/node -xf /tmp/node/node.tar.gz && \
+	mv /tmp/node/node-* /tmp/node/node && \
+	curl -z yarn_cli.js -Lo yarn_cli.js https://github.com/yarnpkg/yarn/releases/download/v1.22.19/yarn-1.22.19.js
 
 # install yarn deps
 cd $ROOT/../native-doc-tooling/
 
-[ "$OS" == "Windows_NT" ] && $YARN global add node-gyp
+$YARN global add node-gyp
 $YARN
 
 cd $ROOT/../natives/
@@ -51,3 +57,5 @@ if [ -e $ROOT/../natives/inp/natives_cfx.lua ]; then
 else
     cp -a $ROOT/../natives/inp/natives_cfx_new.lua $ROOT/../natives/inp/natives_cfx.lua
 fi
+
+[ "$OS" != "Windows_NT" ] && rm -rf /tmp/node
