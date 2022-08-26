@@ -351,7 +351,7 @@ if (!$DontBuild)
 	#echo $env:Path
 	#/logger:C:\f\customlogger.dll /noconsolelogger
 	Start-Section "msbuild" "Running msbuild..."
-	msbuild /p:preferredtoolarchitecture=x64 /p:configuration=release /v:q /fl /m $BuildPath\CitizenMP.sln
+	msbuild /p:preferredtoolarchitecture=x64 /p:configuration=release /v:q /m $BuildPath\CitizenMP.sln
 
 	if (!$?) {
 		Invoke-WebHook "Building Cfx/$GameName failed :("
