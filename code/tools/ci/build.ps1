@@ -393,7 +393,7 @@ if (!$DontBuild -and $IsServer) {
 
 	# same as for UISucceeded
 	if ($SRSucceeded -or $env:APPVEYOR) {
-		Remove-Item -Force $WorkDir\data\server\citizen\system_resources\ | Out-Null
+		Remove-Item -Recurse -Force $WorkDir\data\server\citizen\system_resources\ | Out-Null
 		New-Item -ItemType Directory -Force $WorkDir\data\server\citizen\system_resources\ | Out-Null
 		Copy-Item -Force -Recurse $WorkDir\ext\system-resources\data\* $WorkDir\data\server\citizen\system_resources\
 	} else {
@@ -403,7 +403,7 @@ if (!$DontBuild -and $IsServer) {
 	Pop-Location
 	End-Section "sr"
 
-	Remove-Item -Force $WorkDir\out | Out-Null
+	Remove-Item -Recurse -Force $WorkDir\out | Out-Null
 	New-Item -ItemType Directory -Force $WorkDir\out | Out-Null
 	New-Item -ItemType Directory -Force $WorkDir\out\server | Out-Null
 	New-Item -ItemType Directory -Force $WorkDir\out\server\citizen | Out-Null
