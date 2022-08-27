@@ -1091,9 +1091,7 @@ static int Lua_CreateThreadInternal(lua_State* L, bool now, int timeout, int fun
 
 	if (!now)
 	{
-		auto sh = luaRuntime->GetScriptHostWithBookmarks();
-		sh->ScheduleBookmark(luaRuntime.GetRef(), ref, -timeout);
-
+		luaRuntime->ScheduleBookmarkSoon(ref, -timeout);
 		return 0;
 	}
 	else
@@ -1199,6 +1197,7 @@ public:
 
 	LUA_INLINE ~LuaPushEnvironment()
 	{
+		g_currentLuaRuntime->SchedulePendingBookmarks();
 		g_currentLuaRuntime = m_lastLuaRuntime;
 	}
 };
@@ -1226,6 +1225,24 @@ const OMPtr<LuaScriptRuntime>& LuaScriptRuntime::GetCurrent()
 IScriptHost* LuaScriptRuntime::GetLastHost()
 {
 	return g_lastScriptHost;
+}
+
+void LuaScriptRuntime::ScheduleBookmarkSoon(uint64_t bookmark, int timeout)
+{
+	m_pendingBookmarks.emplace_back(bookmark, timeout);
+}
+
+void LuaScriptRuntime::SchedulePendingBookmarks()
+{
+	if (!m_pendingBookmarks.empty())
+	{
+		for (auto [ref, timeout] : m_pendingBookmarks)
+		{
+			GetScriptHostWithBookmarks()->ScheduleBookmark(this, ref, timeout);
+		}
+
+		m_pendingBookmarks.clear();
+	}
 }
 
 void LuaScriptRuntime::SetTickRoutine(const std::function<void(uint64_t, bool)>& tickRoutine)
