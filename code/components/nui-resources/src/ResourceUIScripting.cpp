@@ -29,7 +29,7 @@
 
 #include <boost/algorithm/string/case_conv.hpp>
 
-static bool ValidateURL(std::string url)
+static std::string CleanURL(const std::string& url)
 {
 	auto lowerURL = boost::algorithm::to_lower_copy(url);
 
@@ -39,7 +39,15 @@ static bool ValidateURL(std::string url)
 		FatalError("file:// URI requests in DUI are not supported.\nRequested URL: %s", url);
 	}
 
-	return (lowerURL.find("http://") == 0 || lowerURL.find("https://") == 0 || lowerURL.find("nui://") == 0 || lowerURL.find("about:") == 0);
+	if (lowerURL.find("http://") == 0 || lowerURL.find("https://") == 0 || lowerURL.find("nui://") == 0 || lowerURL.find("about:") == 0)
+	{
+		return url;
+	}
+	else
+	{
+		// unknown-ish url, prefix with https://
+		return fmt::sprintf("https://%s", url);
+	}
 }
 
 static InitFunction initFunction([] ()
@@ -157,7 +165,7 @@ static InitFunction initFunction([] ()
 	class NUIWindowWrapper
 	{
 	public:
-		NUIWindowWrapper(const char* url, int width, int height)
+		NUIWindowWrapper(const char* urlArg, int width, int height)
 			: m_mouseX(0), m_mouseY(0)
 		{
 			fx::OMPtr<IScriptRuntime> runtime;
@@ -167,11 +175,12 @@ static InitFunction initFunction([] ()
 				return;
 			}
 
-			if (!url || !ValidateURL(url))
+			if (!urlArg)
 			{
 				return;
 			}
 
+			auto url = CleanURL(urlArg);
 			fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
 
 			++nuiWindowIdx;
@@ -186,12 +195,12 @@ static InitFunction initFunction([] ()
 
 		void SetURL(const char* url)
 		{
-			if (!url || !ValidateURL(url))
+			if (!url)
 			{
 				return;
 			}
 
-			nui::SetNUIWindowURL(m_autogenHandle, url);
+			nui::SetNUIWindowURL(m_autogenHandle, CleanURL(url));
 		}
 
 		void Destroy()
