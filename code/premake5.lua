@@ -128,7 +128,6 @@ workspace "CitizenMP"
 	-- debug output
 	filter { "configurations:Debug" }
 		targetdir (binroot .. "/debug")
-		defines "NDEBUG"
 
 		-- allow one level of inlining
 		if os.istarget('windows') then

@@ -66,9 +66,9 @@
 #define _countof(x) ((sizeof(x)/sizeof(0[x])) / ((size_t)(!(sizeof(x) % sizeof(0[x])))))
 #endif
 
+#ifdef MEMDBGOK
 #undef NDEBUG
 
-#ifdef MEMDBGOK
 #define _CRTDBG_MAP_ALLOC
 #endif
 

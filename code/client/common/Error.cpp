@@ -335,6 +335,7 @@ void FatalErrorV(const char* string, fmt::printf_args formatList)
 
 #if (defined(COMPILING_LAUNCH) || defined(COMPILING_CONSOLE) || defined(COMPILING_SHARED_LIBC)) && !defined(NON_CRT_LAUNCHER)
 #undef _wassert
+#undef NDEBUG
 
 #include <assert.h>
 
