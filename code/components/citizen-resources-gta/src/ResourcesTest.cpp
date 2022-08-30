@@ -296,6 +296,7 @@ static InitFunction initFunction([] ()
 	{
 		fwRefContainer<fx::ResourceManager> manager = fx::CreateResourceManager();
 		manager->SetComponent(console::GetDefaultContext());
+		manager->MakeCurrent();
 
 		Instance<fx::ResourceManager>::Set(manager.GetRef());
 
