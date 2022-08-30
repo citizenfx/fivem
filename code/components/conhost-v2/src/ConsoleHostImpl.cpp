@@ -364,6 +364,11 @@ void OnConsoleFrameDraw(int width, int height, bool usedSharedD3D11)
 	{
 		io.DisplaySize = ImVec2(width, height);
 		io.DeltaTime = (timeGetTime() - lastDrawTime) / 1000.0f;
+
+		if (io.DeltaTime <= 0.0f)
+		{
+			io.DeltaTime = 1.0f / 60.0f;
+		}
 	}
 
 	io.KeyCtrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
@@ -471,64 +476,6 @@ static void OnConsoleWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, 
 	std::unique_lock<std::mutex> g_conHostMutex;
 	ImGuiIO& io = ImGui::GetIO();
 
-#if 0
-	switch (msg)
-	{
-		case WM_LBUTTONDOWN:
-			io.MouseDown[0] = true;
-			pass = false;
-			break;
-		case WM_LBUTTONUP:
-			io.MouseDown[0] = false;
-			pass = false;
-			break;
-		case WM_RBUTTONDOWN:
-			io.MouseDown[1] = true;
-			pass = false;
-			break;
-		case WM_RBUTTONUP:
-			io.MouseDown[1] = false;
-			pass = false;
-			break;
-		case WM_MBUTTONDOWN:
-			io.MouseDown[2] = true;
-			pass = false;
-			break;
-		case WM_MBUTTONUP:
-			io.MouseDown[2] = false;
-			pass = false;
-			break;
-		case WM_MOUSEWHEEL:
-			io.MouseWheel += GET_WHEEL_DELTA_WPARAM(wParam) > 0 ? +1.0f : -1.0f;
-			pass = false;
-			break;
-		case WM_MOUSEMOVE:
-			io.MousePos.x = (signed short)(lParam);
-			io.MousePos.y = (signed short)(lParam >> 16);
-			pass = false;
-			break;
-		case WM_KEYDOWN:
-			if (wParam < 256)
-				io.KeysDown[wParam] = 1;
-			pass = false;
-			break;
-		case WM_KEYUP:
-			if (wParam < 256)
-				io.KeysDown[wParam] = 0;
-			pass = false;
-			break;
-		case WM_CHAR:
-			// You can also use ToAscii()+GetKeyboardState() to retrieve characters.
-			if (wParam > 0 && wParam < 0x10000)
-				io.AddInputCharacter((unsigned short)wParam);
-			pass = false;
-			break;
-		case WM_INPUT:
-			pass = false;
-			break;
-	}
-#endif
-
 	if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam) == TRUE)
 	{
 		pass = false;
@@ -620,32 +567,14 @@ static void BuildFont(float scale)
 
 void ImGui_ImplWin32_InitPlatformInterface();
 
+extern ImGuiKey ImGui_ImplWin32_VirtualKeyToImGuiKey(WPARAM wParam);
+
 static HookFunction initFunction([]()
 {
 	auto cxt = ImGui::CreateContext();
 	ImGui::SetCurrentContext(cxt);
 
 	ImGuiIO& io = ImGui::GetIO();
-	io.KeyMap[ImGuiKey_Tab] = VK_TAB; // Keyboard mapping. ImGui will use those indices to peek into the io.KeyDown[] array that we will update during the application lifetime.
-	io.KeyMap[ImGuiKey_LeftArrow] = VK_LEFT;
-	io.KeyMap[ImGuiKey_RightArrow] = VK_RIGHT;
-	io.KeyMap[ImGuiKey_UpArrow] = VK_UP;
-	io.KeyMap[ImGuiKey_DownArrow] = VK_DOWN;
-	io.KeyMap[ImGuiKey_PageUp] = VK_PRIOR;
-	io.KeyMap[ImGuiKey_PageDown] = VK_NEXT;
-	io.KeyMap[ImGuiKey_Home] = VK_HOME;
-	io.KeyMap[ImGuiKey_End] = VK_END;
-	io.KeyMap[ImGuiKey_Delete] = VK_DELETE;
-	io.KeyMap[ImGuiKey_Backspace] = VK_BACK;
-	io.KeyMap[ImGuiKey_Enter] = VK_RETURN;
-	io.KeyMap[ImGuiKey_Escape] = VK_ESCAPE;
-	io.KeyMap[ImGuiKey_A] = 'A';
-	io.KeyMap[ImGuiKey_C] = 'C';
-	io.KeyMap[ImGuiKey_V] = 'V';
-	io.KeyMap[ImGuiKey_X] = 'X';
-	io.KeyMap[ImGuiKey_Y] = 'Y';
-	io.KeyMap[ImGuiKey_Z] = 'Z';
-
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 	io.ConfigDockingWithShift = true;
 	io.ConfigWindowsResizeFromEdges = true;
@@ -805,7 +734,7 @@ static HookFunction initFunction([]()
 
 				if (vKey < 256)
 				{
-					io.KeysDown[vKey] = true;
+					io.AddKeyEvent(ImGui_ImplWin32_VirtualKeyToImGuiKey(vKey), true);
 				}
 			}
 
@@ -817,7 +746,7 @@ static HookFunction initFunction([]()
 
 				if (vKey < 256)
 				{
-					io.KeysDown[vKey] = false;
+					io.AddKeyEvent(ImGui_ImplWin32_VirtualKeyToImGuiKey(vKey), false);
 				}
 			}
 

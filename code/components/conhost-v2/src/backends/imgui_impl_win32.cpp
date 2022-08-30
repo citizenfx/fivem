@@ -479,7 +479,7 @@ void    ImGui_ImplWin32_NewFrame()
 #define IM_VK_KEYPAD_ENTER      (VK_RETURN + 256)
 
 // Map VK_xxx to ImGuiKey_xxx.
-static ImGuiKey ImGui_ImplWin32_VirtualKeyToImGuiKey(WPARAM wParam)
+ImGuiKey ImGui_ImplWin32_VirtualKeyToImGuiKey(WPARAM wParam)
 {
     switch (wParam)
     {
@@ -647,10 +647,7 @@ IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARA
 	case WM_ACTIVATEAPP: // CFX addition
 		if (!wParam)
 		{
-			for (auto& key : io.KeysDown)
-			{
-				key = false;
-			}
+			io.ClearInputKeys();
 		}
 		return 0;
     case WM_LBUTTONDOWN: case WM_LBUTTONDBLCLK:
