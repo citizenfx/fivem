@@ -519,7 +519,7 @@ if _OPTIONS['game'] ~= 'server' then
 		language "C++"
 		kind "StaticLib"
 
-		defines { "USING_CEF_SHARED", "NOMINMAX", "WIN32", "WRAPPING_CEF_SHARED" }
+		defines { "USING_CEF_SHARED", "NOMINMAX", "WIN32", "WRAPPING_CEF_SHARED", "DCHECK_ALWAYS_ON" }
 
 		flags { "NoIncrementalLink", "NoMinimalRebuild" }
 
