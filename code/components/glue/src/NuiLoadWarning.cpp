@@ -27,6 +27,8 @@ static InitFunction initFunction([]
 	{
 		if (!isMainUI)
 		{
+			// reset the timestamp if we were out of main UI
+			g_nuiInitTimestamp = 0;
 			return;
 		}
 
