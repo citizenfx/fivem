@@ -543,10 +543,15 @@ static HookFunction initFunction([] ()
 
 		virtual void MouseWheel(int deltaY) override
 		{
+			MouseWheel(double(deltaY));
+		}
+
+		void MouseWheel(double deltaY)
+		{
 			auto browser = GetFocusBrowser();
 
 			if (browser) {
-				int delta = deltaY * 120;
+				int delta = int(deltaY * 120);
 
 				CefMouseEvent mouse_event;
 				mouse_event.x = lastX;
@@ -750,7 +755,7 @@ static HookFunction initFunction([] ()
 			} break;
 
 			case WM_MOUSEWHEEL: {
-				inputTarget.MouseWheel(GET_WHEEL_DELTA_WPARAM(wParam) / 120);
+				inputTarget.MouseWheel(GET_WHEEL_DELTA_WPARAM(wParam) / 120.0);
 
 				if (!g_keepInput)
 				{
