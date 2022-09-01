@@ -105,6 +105,10 @@ public:
 public:
 	fwEvent<const std::string&, const ProgramArguments&, const std::string&> FallbackEvent;
 
+	// invoked when a console command is denied
+	// return 'false' from the event to suppress the built-in access denied print
+	fwEvent<std::string_view> AccessDeniedEvent;
+
 private:
 	struct Entry
 	{

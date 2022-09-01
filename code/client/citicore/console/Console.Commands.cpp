@@ -113,7 +113,11 @@ void ConsoleCommandManager::InvokeDirect(const std::string& commandName, const P
 	// check privilege
 	if (!seCheckPrivilege(fmt::sprintf("command.%s", commandName)))
 	{
-		console::Printf("cmd", "Access denied for command %s.\n", commandName);
+		if (AccessDeniedEvent(commandName))
+		{
+			console::Printf("cmd", "Access denied for command %s.\n", commandName);
+		}
+
 		return;
 	}
 
