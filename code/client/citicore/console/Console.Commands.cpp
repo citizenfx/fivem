@@ -98,7 +98,7 @@ void ConsoleCommandManager::InvokeDirect(const std::string& commandName, const P
 			// Don't print to the console if a remote client tried to execute an unknown command.
 			if (executionContext.empty())
 			{
-				console::Printf("cmdsys", "No such command %s.\n", commandName.c_str());	
+				console::Printf("cmd", "No such command %s.\n", commandName.c_str());	
 			}
 			return;
 		}
