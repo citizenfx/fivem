@@ -640,7 +640,7 @@ struct CfxBigConsole : FiveMConsoleBase
 			return false;
 		}
 
-		if (channel == "cmd")
+		if (channel == "cmd" || channel == "IO")
 		{
 			return true;
 		}
