@@ -274,11 +274,14 @@ private:
 	// the device GUID to create
 	GUID m_deviceGuid;
 
-	// capture buffers to materialize when we get materialized
-	std::vector<WRL::ComPtr<DirectSoundCaptureBuffer>> m_captureBuffers;
-
 	// real device
 	WRL::ComPtr<IDirectSoundCapture> m_underlyingDevice;
+
+	// capture buffers to materialize when we get materialized
+	//
+	// NOTE: this *has* to be below m_underlyingDevice to ensure these get released before the
+	// underlying device in our destructor
+	std::vector<WRL::ComPtr<DirectSoundCaptureBuffer>> m_captureBuffers;
 };
 
 static HRESULT WINAPI DirectSoundCaptureCreateWrap(LPCGUID pcGuidDevice, LPDIRECTSOUNDCAPTURE *ppDSC, LPUNKNOWN pUnkOuter)
