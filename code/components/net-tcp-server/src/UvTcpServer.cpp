@@ -102,6 +102,11 @@ bool UvTcpServer::Listen(std::shared_ptr<uvw::TCPHandle>&& server)
 
 	auto threadCount = std::min(std::max(int(std::thread::hardware_concurrency() / 2), 1), 8);
 
+	// client builds don't need that many threads
+#ifndef IS_FXSERVER
+	threadCount = std::min(threadCount, 3);
+#endif
+
 	for (int i = 0; i < threadCount; i++)
 	{
 		auto cs = std::make_shared<UvTcpChildServer>(this, m_pipeName, m_helloMessage, i);
