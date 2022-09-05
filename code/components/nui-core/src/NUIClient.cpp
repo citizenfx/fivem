@@ -321,7 +321,7 @@ auto NUIClient::OnBeforePopup(CefRefPtr<CefBrowser> browser,
 	return false;
 }
 
-auto NUIClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefRequestCallback> callback) -> ReturnValue
+auto NUIClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) -> ReturnValue
 {
 	auto url = request->GetURL().ToString();
 

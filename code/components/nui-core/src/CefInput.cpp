@@ -582,7 +582,7 @@ static HookFunction initFunction([] ()
 		{
 			if (HasFocus() != g_lastFocus)
 			{
-				browser->GetHost()->SendFocusEvent(HasFocus());
+				browser->GetHost()->SetFocus(HasFocus());
 			}
 
 			g_lastFocus = HasFocus();
@@ -623,7 +623,7 @@ static HookFunction initFunction([] ()
 		{
 			if (HasFocus() != g_lastFocus)
 			{
-				browser->GetHost()->SendFocusEvent(HasFocus());
+				browser->GetHost()->SetFocus(HasFocus());
 			}
 
 			g_lastFocus = HasFocus();
@@ -755,7 +755,19 @@ static HookFunction initFunction([] ()
 			} break;
 
 			case WM_MOUSEWHEEL: {
-				inputTarget.MouseWheel(GET_WHEEL_DELTA_WPARAM(wParam) / 120.0);
+				MSG m = { hWnd,
+					msg,
+					wParam,
+					lParam,
+					static_cast<DWORD>(GetMessageTime()),
+					{ GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) } };
+
+				auto browser = GetFocusBrowser();
+
+				if (browser)
+				{
+					browser->GetHost()->SendMouseWheelEventNative(&m);
+				}
 
 				if (!g_keepInput)
 				{

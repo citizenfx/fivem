@@ -3,6 +3,7 @@
 #include <CoreConsole.h>
 
 #include <include/base/cef_bind.h>
+#include <include/base/cef_callback_helpers.h>
 #include <include/wrapper/cef_closure_task.h>
 #include <include/cef_trace.h>
 
@@ -47,16 +48,16 @@ static InitFunction initFunction([]()
 
 	static ConsoleCommand nuiBeginTracing("nui_beginChromeTracing", []()
 	{
-		CefPostTask(TID_UI, base::Bind(&BeginTracing, ""));
+		CefPostTask(TID_UI, base::BindOnce(&BeginTracing, ""));
 	});
 
 	static ConsoleCommand nuiBeginTracingCategories("nui_beginChromeTracing", [](const std::string& categories)
 	{
-		CefPostTask(TID_UI, base::Bind(&BeginTracing, categories));
+		CefPostTask(TID_UI, base::BindOnce(&BeginTracing, categories));
 	});
 
 	static ConsoleCommand nuiEndTracing("nui_endChromeTracing", [](const std::string& filename)
 	{
-		CefPostTask(TID_UI, base::Bind(&EndTracing, filename));
+		CefPostTask(TID_UI, base::BindOnce(&EndTracing, filename));
 	});
 });

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <EventCore.h>;
+#include <EventCore.h>
 
 struct SDKGameProcessManager {
 public:

@@ -13,6 +13,7 @@
 #include "include/cef_app.h"
 #include "include/cef_parser.h"
 #include "include/wrapper/cef_closure_task.h"
+#include "include/base/cef_callback_helpers.h"
 
 #include <msgpack.hpp>
 
@@ -160,7 +161,7 @@ public:
 		const CefString& errorText,
 		const CefString& failedUrl) override;
 
-	virtual ReturnValue OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefRequestCallback> callback) override;
+	virtual ReturnValue OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) override;
 
 	virtual CefRefPtr<CefResourceRequestHandler> GetResourceRequestHandler(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, bool is_navigation, bool is_download, const CefString& request_initiator, bool& disable_default_handling) override
 	{

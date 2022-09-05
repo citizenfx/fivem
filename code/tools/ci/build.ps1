@@ -23,7 +23,7 @@ param (
 	$Identity = "C:\guava_deploy.ppk"
 )
 
-$CefName = "cef_binary_91.0.0-cfx-m91.2364+g9a59a88+chromium-91.0.4472.48_windows64_minimal"
+$CefName = "cef_binary_103.0.0-cfx-m103.2602+g1d87e7f+chromium-103.0.5060.141_windows64_minimal"
 
 Import-Module $PSScriptRoot\cache_build.psm1
 

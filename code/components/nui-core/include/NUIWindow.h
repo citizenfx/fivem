@@ -156,8 +156,6 @@ public:
 
 	void UpdateFrame();
 
-	void SendBeginFrame();
-
 	void Invalidate();
 
 	void SetPaintType(NUIPaintType type);

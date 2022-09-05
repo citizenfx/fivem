@@ -1357,20 +1357,6 @@ void Initialize(nui::GameInterface* gi)
 
     HookFunctionBase::RunAll();
 
-#if defined(GTA_NY)
-
-	// #TODOLIBERTY:
-	/*OnGrcBeginScene.Connect([] ()
-	{
-		Instance<NUIWindowManager>::Get()->ForAllWindows([] (fwRefContainer<NUIWindow> window)
-		{
-			window->UpdateFrame();
-		});
-	});*/
-#else
-
-#endif
-
 #ifndef USE_NUI_ROOTLESS
 	static ConsoleCommand devtoolsCmd("nui_devtools", []()
 	{

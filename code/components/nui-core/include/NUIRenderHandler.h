@@ -47,6 +47,8 @@ protected:
 
 	virtual void OnAcceleratedPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, void* shared_handle) override;
 
+	virtual void OnAcceleratedPaint2(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, void* shared_handle, bool new_texture) override;
+
 private:
 	void PaintView(const RectList& dirtyRects, const void* buffer, int width, int height);
 

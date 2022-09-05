@@ -8,6 +8,7 @@
 #include "include/cef_app.h"
 #include "include/cef_parser.h"
 #include "include/wrapper/cef_closure_task.h"
+#include "include/base/cef_callback_helpers.h"
 
 #include <boost/property_tree/xml_parser.hpp>
 #include <sstream>
@@ -144,7 +145,7 @@ public:
 		const CefString& errorText,
 		const CefString& failedUrl) override;
 
-	virtual ReturnValue OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefRequestCallback> callback) override;
+	virtual ReturnValue OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) override;
 
 	// Request that all existing browser windows close.
 	void CloseAllBrowsers(bool force_close);
@@ -276,7 +277,7 @@ void SimpleHandler::OnLoadError(CefRefPtr<CefBrowser> browser,
 void SimpleHandler::CloseAllBrowsers(bool force_close) {
 	if (!CefCurrentlyOn(TID_UI)) {
 		// Execute on the UI thread.
-		CefPostTask(TID_UI, base::Bind(&SimpleHandler::CloseAllBrowsers, this,
+		CefPostTask(TID_UI, base::BindOnce(&SimpleHandler::CloseAllBrowsers, this,
 			force_close));
 		return;
 	}
@@ -291,7 +292,7 @@ void SimpleHandler::CloseAllBrowsers(bool force_close) {
 	CefQuitMessageLoop();
 }
 
-auto SimpleHandler::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefRequestCallback> callback) -> ReturnValue
+auto SimpleHandler::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) -> ReturnValue
 {
 	CefRequest::HeaderMap hm;
 	request->GetHeaderMap(hm);

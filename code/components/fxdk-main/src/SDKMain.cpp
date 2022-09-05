@@ -267,7 +267,7 @@ void SdkMain()
 			msgpack::object obj = msg.get();
 			std::string url = obj.as<std::vector<std::string>>()[0];
 
-			CefPostTask(TID_UI, base::Bind(&MakeBrowser, url));
+			CefPostTask(TID_UI, base::BindOnce(&MakeBrowser, url));
 		}
 		else if (eventName == "sdk:requestResourceMetaData")
 		{

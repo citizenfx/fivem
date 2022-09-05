@@ -17,6 +17,7 @@
 #include <CoreConsole.h>
 
 #include <include/base/cef_bind.h>
+#include <include/base/cef_callback_helpers.h>
 #include <include/wrapper/cef_closure_task.h>
 #include <include/cef_request_context_handler.h>
 
@@ -64,7 +65,7 @@ NUIWindow::~NUIWindow()
 		{
 			if (!CefCurrentlyOn(TID_UI))
 			{
-				CefPostTask(TID_UI, base::Bind(&::CloseBrowser, nuiClient->GetBrowser()));
+				CefPostTask(TID_UI, base::BindOnce(&::CloseBrowser, scoped_refptr(nuiClient->GetBrowser())));
 			}
 			else
 			{
@@ -365,13 +366,13 @@ void NUIWindow::Initialize(CefString url)
 	CefWindowInfo info;
 	info.SetAsWindowless(NULL);
 	info.shared_texture_enabled = (!CfxIsWine() && nuiSharedResourcesEnabled);
-	info.external_begin_frame_enabled = nuiSharedResourcesEnabled;
-	info.width = m_width;
-	info.height = m_height;
+	info.bounds.x = 0;
+	info.bounds.y = 0;
+	info.bounds.width = m_width;
+	info.bounds.height = m_height;
 
 	CefBrowserSettings settings;
 	settings.javascript_close_windows = STATE_DISABLED;
-	//settings.web_security = STATE_DISABLED;
 	settings.windowless_frame_rate = 240;
 	CefString(&settings.default_encoding).FromString("utf-8");
 
@@ -444,6 +445,11 @@ CefBrowser* NUIWindow::GetBrowser()
 
 void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const CefRenderHandler::RectList& rects, CefRenderHandler::PaintElementType type)
 {
+	if (!sharedHandle)
+	{
+		return;
+	}
+
 	if (!m_rawBlit && type != CefRenderHandler::PaintElementType::PET_VIEW)
 	{
 		return;
@@ -545,49 +551,6 @@ void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const
 #include <d3d11_1.h>
 #include <mmsystem.h>
 
-extern bool HasFocus();
-
-void NUIWindow::SendBeginFrame()
-{
-	bool isFocus = false;
-	auto curTime = timeGetTime();
-
-	if (m_client)
-	{
-		auto client = ((NUIClient*)m_client.get());
-
-		auto browser = client->GetBrowser();
-
-		if (browser)
-		{
-			if (nui::GetFocusBrowser() == browser)
-			{
-				isFocus = true;
-			}
-		}
-	}
-
-	if (m_client)
-	{
-		auto client = ((NUIClient*)m_client.get());
-
-		auto browser = client->GetBrowser();
-
-		if (browser)
-		{
-			auto host = browser->GetHost();
-
-			if (host)
-			{
-#ifndef GTA_NY
-				host->SendExternalBeginFrame();
-#endif
-				m_lastFrameTime = curTime;
-			}
-		}
-	}
-}
-
 void NUIWindow::TouchMessage()
 {
 	m_lastMessageTime = timeGetTime();
@@ -616,13 +579,6 @@ void NUIWindow::UpdateFrame()
 				m_isMuted = false;
 			}
 		}
-	}
-
-#if !defined(IS_RDR3) && !defined(GTA_NY)
-	if (GetPaintType() != NUIPaintTypePostRender)
-#endif
-	{
-		SendBeginFrame();
 	}
 
 	if (!GetTexture().GetRef())
