@@ -76,6 +76,9 @@ struct GameCacheEntry
 	// delta sets
 	std::vector<DeltaEntry> deltas;
 
+	// overridden local filename
+	std::wstring localFileOverride;
+
 	// constructor
 	GameCacheEntry(const char* filename, const char* checksum, const char* remotePath, size_t localSize, std::initializer_list<DeltaEntry> deltas = {})
 		: filename(filename), checksums({ checksum }), remotePath(remotePath), localSize(localSize), remoteSize(localSize), archivedFile(nullptr), deltas(deltas)
@@ -112,7 +115,7 @@ struct GameCacheEntry
 		return std::string_view{ filename }.find("ros_") == 0 || std::string_view{ filename }.find("launcher/") == 0;
 	}
 
-	std::wstring GetCacheFileName() const
+	std::wstring GetCacheFileName(std::string_view checksum = {}) const
 	{
 		std::string filenameBase = filename;
 
@@ -123,7 +126,12 @@ struct GameCacheEntry
 
 		std::replace(filenameBase.begin(), filenameBase.end(), '/', '+');
 
-		return MakeRelativeCitPath(ToWide(va("data\\game-storage\\%s_%s", filenameBase.c_str(), checksums[0])));
+		return MakeRelativeCitPath(ToWide(va("data\\game-storage\\%s_%s", filenameBase.c_str(), checksum.empty() ? checksums[0] : checksum)));
+	}
+
+	void SetLocalName(const std::wstring& str)
+	{
+		localFileOverride = str;
 	}
 
 	std::wstring GetRemoteBaseName() const
@@ -137,6 +145,11 @@ struct GameCacheEntry
 
 	std::wstring GetLocalFileName() const
 	{
+		if (!localFileOverride.empty())
+		{
+			return localFileOverride;
+		}
+
 		if (_strnicmp(filename, "launcher/", 9) == 0)
 		{
 			static auto mtlPath = ([]()
@@ -433,6 +446,21 @@ static constexpr std::array<uint8_t, Size> ParseHexString(const std::string_view
 	}
 
 	return retval;
+}
+
+template<int Size>
+static std::string FormatHexString(const std::array<uint8_t, Size>& arr)
+{
+	static const char charTable[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
+	char stringBuffer[(Size * 2) + 1] = { 0 };
+
+	for (size_t i = 0; i < Size; i++)
+	{
+		stringBuffer[i * 2] = charTable[(arr[i] >> 4) & 0xF];
+		stringBuffer[i * 2 + 1] = charTable[arr[i] & 0xF];
+	}
+
+	return stringBuffer;
 }
 
 DeltaEntry::DeltaEntry(std::string_view fromChecksum, std::string_view toChecksum, const std::string& remoteFile, uint64_t dlSize)
@@ -739,8 +767,41 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 	bool hadIpfsFile = false;
 	std::vector<std::tuple<DeltaEntry, GameCacheEntry>> theseDeltas;
 
-	for (auto& entry : entries)
+	for (const auto& baseEntry : entries)
 	{
+		auto entryPtr = &baseEntry;
+		const auto& deltaEntries = baseEntry.deltas;
+
+		// try to get the smallest local entry
+		GameCacheEntry newEntry("", {}, "", 0);
+
+		{
+			std::vector<std::tuple<int64_t, std::wstring>> presentDeltas;
+
+			for (const auto& deltaEntry : deltaEntries)
+			{
+				auto localName = baseEntry.GetCacheFileName(FormatHexString(deltaEntry.fromChecksum));
+
+				if (GetFileAttributesW(localName.c_str()) != INVALID_FILE_ATTRIBUTES)
+				{
+					presentDeltas.emplace_back(int64_t(deltaEntry.dlSize), localName);
+				}
+			}
+
+			if (!presentDeltas.empty())
+			{
+				std::sort(presentDeltas.begin(), presentDeltas.end());
+
+				newEntry = baseEntry;
+				newEntry.SetLocalName(std::get<1>(presentDeltas[0]));
+
+				entryPtr = &newEntry;
+			}
+		}
+
+		// continue on
+		const auto& entry = *entryPtr;
+
 		// check if the file is outdated
 		std::vector<std::array<uint8_t, 20>> hashes;
 
@@ -748,8 +809,6 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 		{
 			hashes.push_back(ParseHexString<20>(checksum));
 		}
-
-		const auto& deltaEntries = entry.deltas;
 
 		for (auto& deltaEntry : deltaEntries)
 		{
