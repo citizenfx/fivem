@@ -91,7 +91,7 @@ export class DiscourseService {
 	public noCurrentBoost = false;
 
     public authModalState: BehaviorSubject<DiscourseAuthModalState>;
-    public authModalOpenChange = new BehaviorSubject<boolean>(true);
+    public authModalOpenChange = new BehaviorSubject<boolean>(false);
     public authModalClosedEvent = new EventEmitter<{ where?: string, ignored?: boolean }>();
 
 	public siteData: Observable<Site>;

@@ -2,7 +2,7 @@
 	<div id="bg" class="acrylicBlur" [style.background-image]="stylish">
 	</div>
 
-	<header class="site-navbar" *ngIf="showSiteNavbar">
+	<!-- <header class="site-navbar" *ngIf="showSiteNavbar">
 		<a class="logo" [href]="gameName == 'gta5' ? 'https://fivem.net' : 'https://redm.gg'">
 			<svg class="logo-img">
 				<use [attr.xlink:href]="'#logo-' + gameName"></use>
@@ -20,10 +20,10 @@
 			<li><a href="https://fivem.net//terms"> <span class="text"> Terms </span> </a></li>
 			<li><a href="https://patreon.com/fivem" title="Patreon"> <span class="text"> Patreon</span> </a></li>
 		</ul>
-	</header>
+	</header> -->
 
 	<div class="app-root">
-		<app-nav></app-nav>
+		<!-- <app-nav></app-nav> -->
 		<router-outlet></router-outlet>
 		<connecting-popup></connecting-popup>
 		<div id="overlays" [class]="classes"></div>

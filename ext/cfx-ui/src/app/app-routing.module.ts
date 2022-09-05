@@ -16,12 +16,18 @@ import { ChangelogPopupComponent } from './changelog/app-changelog-popup.compone
 import { CreateHomeComponent } from './create/create-home/create-home.component';
 import { CreateEditorComponent } from './create/create-editor/create-editor.component';
 import { StoryHomeComponent } from './story/story-home/story-home.component';
+import { LoginComponent } from './shared/login/login.component';
 
 const routes: Routes = [
 	{
 		path: '',
 		component: (environment.web) ? ServersContainerComponent : HomeComponent,
 		data: { type: 'browse', meta: { title: 'FiveM' } },
+		canActivateChild: [],
+	},
+	{
+		path: 'login',
+		component: LoginComponent,
 		canActivateChild: [],
 	},
 	{

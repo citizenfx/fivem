@@ -91,6 +91,7 @@ import { ServerReviewsComponent } from './servers/components/reviews/server-revi
 import { ForumSignoutInterceptorState, httpInterceptorProviders } from './http-interceptors';
 import { ServerReviewComponent } from './servers/components/reviews/server-review.component';
 import { VisibilityService } from './servers/visibility.service';
+import { LoginComponent } from './shared/login/login.component';
 
 @Injectable() export class TranslationFallback implements L10nTranslationFallback {
 
@@ -177,7 +178,8 @@ export function localStorageFactory() {
 		CreateHomeComponent,
 		StoryHomeComponent,
 		CreateEditorComponent,
-		AuthModalComponent
+		AuthModalComponent,
+  LoginComponent
 	],
 	imports: [
 		NgDompurifyModule,
