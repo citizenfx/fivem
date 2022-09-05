@@ -60,14 +60,14 @@ private:
 	CefBrowserHost::DragOperationsMask OnDragEnter(
 		CefRefPtr<CefDragData> drag_data,
 		CefMouseEvent ev,
-		CefBrowserHost::DragOperationsMask effect) OVERRIDE;
+		CefBrowserHost::DragOperationsMask effect) override;
 	CefBrowserHost::DragOperationsMask OnDragOver(
 		CefMouseEvent ev,
-		CefBrowserHost::DragOperationsMask effect) OVERRIDE;
-	void OnDragLeave() OVERRIDE;
+		CefBrowserHost::DragOperationsMask effect) override;
+	void OnDragLeave() override;
 	CefBrowserHost::DragOperationsMask OnDrop(
 		CefMouseEvent ev,
-		CefBrowserHost::DragOperationsMask effect) OVERRIDE;
+		CefBrowserHost::DragOperationsMask effect) override;
 
 public:
 	inline CComPtr<DropTargetWin> GetDropTarget()

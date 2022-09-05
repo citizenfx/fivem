@@ -92,7 +92,7 @@ protected:
 		bool is_navigation,
 		bool is_download,
 		const CefString& request_initiator,
-		bool& disable_default_handling) OVERRIDE
+		bool& disable_default_handling) override
 	{
 		return this;
 	}

@@ -21,14 +21,14 @@ public:
 
 	// CefApp methods:
 	virtual CefRefPtr<CefBrowserProcessHandler> GetBrowserProcessHandler()
-		OVERRIDE {
+		override {
 		return this;
 	}
 
 	// CefBrowserProcessHandler methods:
-	virtual void OnContextInitialized() OVERRIDE;
+	virtual void OnContextInitialized() override;
 
-	virtual void OnBeforeCommandLineProcessing(const CefString& process_type, CefRefPtr<CefCommandLine> command_line) OVERRIDE;
+	virtual void OnBeforeCommandLineProcessing(const CefString& process_type, CefRefPtr<CefCommandLine> command_line) override;
 
 private:
 	// Include the default reference counting implementation.
@@ -59,7 +59,8 @@ namespace {
 		explicit SimpleWindowDelegate(CefRefPtr<CefBrowserView> browser_view)
 			: browser_view_(browser_view) {}
 
-		void OnWindowCreated(CefRefPtr<CefWindow> window) OVERRIDE {
+		void OnWindowCreated(CefRefPtr<CefWindow> window) override
+		{
 			// Add the browser view and show the window.
 			window->AddChildView(browser_view_);
 			//window->CenterWindow(CefSize(705, 535));
@@ -70,11 +71,11 @@ namespace {
 			browser_view_->RequestFocus();
 		}
 
-		void OnWindowDestroyed(CefRefPtr<CefWindow> window) OVERRIDE {
-			browser_view_ = NULL;
+		void OnWindowDestroyed(CefRefPtr<CefWindow> window) override {
+			browser_view_ = nullptr;
 		}
 
-		bool CanClose(CefRefPtr<CefWindow> window) OVERRIDE {
+		bool CanClose(CefRefPtr<CefWindow> window) override {
 			// Allow the window to close if the browser says it's OK.
 			CefRefPtr<CefBrowser> browser = browser_view_->GetBrowser();
 			if (browser)
@@ -105,45 +106,45 @@ public:
 	static SimpleHandler* GetInstance();
 
 	// CefClient methods:
-	virtual CefRefPtr<CefDisplayHandler> GetDisplayHandler() OVERRIDE {
+	virtual CefRefPtr<CefDisplayHandler> GetDisplayHandler() override {
 		return this;
 	}
-	virtual CefRefPtr<CefLifeSpanHandler> GetLifeSpanHandler() OVERRIDE {
+	virtual CefRefPtr<CefLifeSpanHandler> GetLifeSpanHandler() override {
 		return this;
 	}
-	virtual CefRefPtr<CefRequestHandler> GetRequestHandler() OVERRIDE {
+	virtual CefRefPtr<CefRequestHandler> GetRequestHandler() override {
 		return this;
 	}
-	virtual CefRefPtr<CefLoadHandler> GetLoadHandler() OVERRIDE { return this; }
+	virtual CefRefPtr<CefLoadHandler> GetLoadHandler() override { return this; }
 
-	virtual CefRefPtr<CefResourceRequestHandler> GetResourceRequestHandler(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, bool is_navigation, bool is_download, const CefString& request_initiator, bool& disable_default_handling) OVERRIDE
+	virtual CefRefPtr<CefResourceRequestHandler> GetResourceRequestHandler(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, bool is_navigation, bool is_download, const CefString& request_initiator, bool& disable_default_handling) override
 	{
 		return this;
 	}
 
-	virtual bool OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefProcessId source_process, CefRefPtr<CefProcessMessage> message) OVERRIDE;
+	virtual bool OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefProcessId source_process, CefRefPtr<CefProcessMessage> message) override;
 
 	// CefDisplayHandler methods:
 	virtual void OnTitleChange(CefRefPtr<CefBrowser> browser,
-		const CefString& title) OVERRIDE;
+		const CefString& title) override;
 
 	// CefLifeSpanHandler methods:
-	virtual void OnAfterCreated(CefRefPtr<CefBrowser> browser) OVERRIDE;
-	virtual bool DoClose(CefRefPtr<CefBrowser> browser) OVERRIDE;
-	virtual void OnBeforeClose(CefRefPtr<CefBrowser> browser) OVERRIDE;
+	virtual void OnAfterCreated(CefRefPtr<CefBrowser> browser) override;
+	virtual bool DoClose(CefRefPtr<CefBrowser> browser) override;
+	virtual void OnBeforeClose(CefRefPtr<CefBrowser> browser) override;
 
 	// CefLoadHandler methods:
-	virtual void OnLoadStart(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, TransitionType transition_type) OVERRIDE;
+	virtual void OnLoadStart(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, TransitionType transition_type) override;
 
-	virtual void OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int httpStatusCode) OVERRIDE;
+	virtual void OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int httpStatusCode) override;
 
 	virtual void OnLoadError(CefRefPtr<CefBrowser> browser,
 		CefRefPtr<CefFrame> frame,
 		ErrorCode errorCode,
 		const CefString& errorText,
-		const CefString& failedUrl) OVERRIDE;
+		const CefString& failedUrl) override;
 
-	virtual ReturnValue OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefRequestCallback> callback) OVERRIDE;
+	virtual ReturnValue OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefRequestCallback> callback) override;
 
 	// Request that all existing browser windows close.
 	void CloseAllBrowsers(bool force_close);
@@ -178,7 +179,7 @@ void SimpleApp::OnContextInitialized()
 
 	// Create the BrowserView.
 	CefRefPtr<CefBrowserView> browser_view = CefBrowserView::CreateBrowserView(
-	handler, url, browser_settings, {}, NULL, NULL);
+	handler, url, browser_settings, {}, nullptr, nullptr);
 
 	// Create the Window. It will show itself after creation.
 	CefWindow::CreateTopLevelWindow(new SimpleWindowDelegate(browser_view));

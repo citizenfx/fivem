@@ -100,7 +100,7 @@ void MakeBrowser(const std::string& url)
 
 	// Create the BrowserView.
 	CefRefPtr<CefBrowserView> browser_view = CefBrowserView::CreateBrowserView(
-	handler, url, browser_settings, {}, NULL, new SDKSubViewDelegate());
+	handler, url, browser_settings, {}, nullptr, new SDKSubViewDelegate());
 
 	// Create the Window. It will show itself after creation.
 	CefRefPtr<CefWindow> wnd = CefWindow::CreateTopLevelWindow(new SDKWindowDelegate(browser_view, L"Last Window Placement"));

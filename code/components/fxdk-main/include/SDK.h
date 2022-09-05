@@ -123,46 +123,46 @@ public:
 	static HWND GetMainWindowHandle();
 
 	// CefClient methods:
-	virtual CefRefPtr<CefDisplayHandler> GetDisplayHandler() OVERRIDE
+	virtual CefRefPtr<CefDisplayHandler> GetDisplayHandler() override
 	{
 		return this;
 	}
-	virtual CefRefPtr<CefLifeSpanHandler> GetLifeSpanHandler() OVERRIDE
+	virtual CefRefPtr<CefLifeSpanHandler> GetLifeSpanHandler() override
 	{
 		return this;
 	}
-	virtual CefRefPtr<CefRequestHandler> GetRequestHandler() OVERRIDE
+	virtual CefRefPtr<CefRequestHandler> GetRequestHandler() override
 	{
 		return this;
 	}
-	virtual CefRefPtr<CefLoadHandler> GetLoadHandler() OVERRIDE
+	virtual CefRefPtr<CefLoadHandler> GetLoadHandler() override
 	{
 		return this;
 	}
 
-	virtual bool OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefProcessId source_process, CefRefPtr<CefProcessMessage> message) OVERRIDE;
+	virtual bool OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefProcessId source_process, CefRefPtr<CefProcessMessage> message) override;
 
 	// CefDisplayHandler methods:
 	virtual void OnTitleChange(CefRefPtr<CefBrowser> browser,
-		const CefString& title) OVERRIDE;
+		const CefString& title) override;
 
 	// CefLifeSpanHandler methods:
-	virtual void OnAfterCreated(CefRefPtr<CefBrowser> browser) OVERRIDE;
-	virtual bool DoClose(CefRefPtr<CefBrowser> browser) OVERRIDE;
-	virtual void OnBeforeClose(CefRefPtr<CefBrowser> browser) OVERRIDE;
+	virtual void OnAfterCreated(CefRefPtr<CefBrowser> browser) override;
+	virtual bool DoClose(CefRefPtr<CefBrowser> browser) override;
+	virtual void OnBeforeClose(CefRefPtr<CefBrowser> browser) override;
 
 	// CefLoadHandler methods:
-	virtual void OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int httpStatusCode) OVERRIDE;
+	virtual void OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int httpStatusCode) override;
 
 	virtual void OnLoadError(CefRefPtr<CefBrowser> browser,
 		CefRefPtr<CefFrame> frame,
 		ErrorCode errorCode,
 		const CefString& errorText,
-		const CefString& failedUrl) OVERRIDE;
+		const CefString& failedUrl) override;
 
-	virtual ReturnValue OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefRequestCallback> callback) OVERRIDE;
+	virtual ReturnValue OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefRequestCallback> callback) override;
 
-	virtual CefRefPtr<CefResourceRequestHandler> GetResourceRequestHandler(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, bool is_navigation, bool is_download, const CefString& request_initiator, bool& disable_default_handling) OVERRIDE
+	virtual CefRefPtr<CefResourceRequestHandler> GetResourceRequestHandler(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, bool is_navigation, bool is_download, const CefString& request_initiator, bool& disable_default_handling) override
 	{
 		return this;
 	}
@@ -201,15 +201,15 @@ public:
 
 	// CefApp methods:
 	virtual CefRefPtr<CefBrowserProcessHandler> GetBrowserProcessHandler()
-		OVERRIDE
+		override
 	{
 		return this;
 	}
 
-	virtual void OnBeforeCommandLineProcessing(const CefString& process_type, CefRefPtr<CefCommandLine> command_line) OVERRIDE;
+	virtual void OnBeforeCommandLineProcessing(const CefString& process_type, CefRefPtr<CefCommandLine> command_line) override;
 
 	// CefBrowserProcessHandler methods:
-	virtual void OnContextInitialized() OVERRIDE;
+	virtual void OnContextInitialized() override;
 
 private:
 	int m_v8Callbacks;
@@ -224,12 +224,12 @@ public:
 	explicit SDKWindowDelegate(CefRefPtr<CefBrowserView> browser_view, const std::wstring& placementKey);
 	explicit SDKWindowDelegate(CefRefPtr<CefBrowserView> browser_view, const std::wstring& placementKey, const std::string& forceWindowTitle);
 
-	void OnWindowCreated(CefRefPtr<CefWindow> window) OVERRIDE;
-	void OnWindowDestroyed(CefRefPtr<CefWindow> window) OVERRIDE;
+	void OnWindowCreated(CefRefPtr<CefWindow> window) override;
+	void OnWindowDestroyed(CefRefPtr<CefWindow> window) override;
 
-	bool CanClose(CefRefPtr<CefWindow> window) OVERRIDE;
+	bool CanClose(CefRefPtr<CefWindow> window) override;
 
-	CefSize GetMinimumSize(CefRefPtr<CefView> view) OVERRIDE;
+	CefSize GetMinimumSize(CefRefPtr<CefView> view) override;
 
 private:
 	void LoadPlacement(CefRefPtr<CefWindow> window);

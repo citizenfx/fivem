@@ -500,7 +500,7 @@ void NUIClient::OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser, Termina
 
 void NUIClient::OnBeforeClose(CefRefPtr<CefBrowser> browser)
 {
-	m_browser = {};
+	m_browser = nullptr;
 }
 
 CefRefPtr<CefLifeSpanHandler> NUIClient::GetLifeSpanHandler()
