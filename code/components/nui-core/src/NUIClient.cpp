@@ -538,6 +538,7 @@ extern nui::GameInterface* g_nuiGi;
 #ifdef NUI_WITH_MEDIA_ACCESS
 #include "include/wrapper/cef_closure_task.h"
 #include "include/wrapper/cef_helpers.h"
+#include "include/base/cef_callback_helpers.h"
 
 static void AcceptCallback(CefRefPtr<CefMediaAccessCallback> callback, bool noCancel, int mask)
 {
@@ -551,15 +552,15 @@ static void AcceptCallback(CefRefPtr<CefMediaAccessCallback> callback, bool noCa
 	}
 }
 
-bool NUIClient::OnRequestMediaAccessPermission(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, const CefString& requesting_url, int32_t requested_permissions, CefRefPtr<CefMediaAccessCallback> callback)
+bool NUIClient::OnRequestMediaAccessPermission(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, const CefString& requesting_url, uint32_t requested_permissions, CefRefPtr<CefMediaAccessCallback> callback)
 {
 	return g_nuiGi->RequestMediaAccess(frame->GetName(), requesting_url, requested_permissions, [callback](bool noCancel, int mask)
 	{
-		CefPostTask(TID_UI, base::Bind(&AcceptCallback, callback, noCancel, mask));
+		CefPostTask(TID_UI, base::BindOnce(&AcceptCallback, callback, noCancel, mask));
 	});
 }
 
-CefRefPtr<CefMediaAccessHandler> NUIClient::GetMediaAccessHandler()
+CefRefPtr<CefPermissionHandler> NUIClient::GetPermissionHandler()
 {
 	return this;
 }
