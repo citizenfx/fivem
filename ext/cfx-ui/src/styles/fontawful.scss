@@ -1,0 +1,33 @@
+/* snippet via https://makandracards.com/makandra/55781-minify-font-awesome-fonts-with-webpack, but it matches actual code */
+$fa-font-path: '~@fortawesome/fontawesome-free/webfonts';
+
+@import '~@fortawesome/fontawesome-free/scss/variables';
+@import '~@fortawesome/fontawesome-free/scss/mixins';
+@import '~@fortawesome/fontawesome-free/scss/core';
+@import '~@fortawesome/fontawesome-free/scss/larger';
+@import '~@fortawesome/fontawesome-free/scss/fixed-width';
+@import '~@fortawesome/fontawesome-free/scss/list';
+@import '~@fortawesome/fontawesome-free/scss/bordered-pulled';
+@import '~@fortawesome/fontawesome-free/scss/animated';
+@import '~@fortawesome/fontawesome-free/scss/rotated-flipped';
+@import '~@fortawesome/fontawesome-free/scss/stacked';
+@import '~@fortawesome/fontawesome-free/scss/screen-reader';
+@import '~@fortawesome/fontawesome-free/scss/regular';
+@import '~@fortawesome/fontawesome-free/scss/solid';
+@import '~@fortawesome/fontawesome-free/scss/brands';
+
+$used-icons: (
+  user-secret: $fa-var-user-secret,
+  steam: $fa-var-steam,
+  discord: $fa-var-discord,
+  registered: $fa-var-registered,
+  xbox: $fa-var-xbox,
+  road: $fa-var-road,
+  /* some for the unused mods page */
+);
+
+@each $name, $content in $used-icons {
+  .#{$fa-css-prefix}-#{$name}:before {
+    content: fa-content($content);
+  }
+}

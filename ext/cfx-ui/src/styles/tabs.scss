@@ -1,0 +1,53 @@
+ul.tabs {
+	display: flex;
+	flex-shrink: 0;
+
+	list-style-type: none;
+
+	@include backdropPane;
+
+	margin-bottom: var(--qh);
+
+	li {
+		display: block;
+
+		padding: var(--qh) var(--q1);
+
+		@include fontMontserrat;
+		font-size: var(--fs-3);
+		letter-spacing: 1px;
+		text-transform: uppercase;
+
+		transition: all .2s ease;
+
+		@include theme() using ($theme) {
+			&.active {
+				color: rgba(gtv($theme, textColor), 1);
+
+				box-shadow: 0 2px 0 gtv($theme, accentColor1) inset;
+			}
+
+			&:hover, &:focus {
+				color: rgba(gtv($theme, textColor), 1);
+				background-color: gtv($theme, accentColor1);
+
+				transition: none;
+			}
+		}
+	}
+
+	&.vertical {
+		flex-direction: column;
+
+		margin-bottom: 0;
+		margin-right: var(--qh);
+
+		overflow-y: scroll;
+
+		@include theme() using ($theme) {
+			li.active {
+				box-shadow: 2px 0 0 gtv($theme, accentColor1) inset;
+			}
+		}
+	}
+}

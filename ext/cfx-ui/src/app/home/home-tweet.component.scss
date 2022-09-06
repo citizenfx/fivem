@@ -1,0 +1,158 @@
+@import "variables";
+
+:host {
+    transition: all .2s ease;
+
+    display: block;
+
+	white-space: pre-wrap;
+
+	margin-bottom: var(--q1);
+
+    .rt {
+        display: none;
+
+        position: absolute;
+        top: 0px;
+        right: 0px;
+    }
+
+    ::ng-deep a {
+        color: inherit;
+    }
+
+    .additional {
+        opacity: 0;
+        padding-left: 0;
+        transition: all .2s ease;
+
+        &:hover, &:focus {
+            color: #fff;
+        }
+    }
+
+    &:hover, &:focus {
+        .additional {
+            opacity: 1;
+            padding-left: 5px;
+        }
+    }
+
+    .message-header {
+		display: flex;
+
+        margin-bottom: var(--qh);
+
+        font-size: var(--fs-075);
+
+        @include theme() using ($theme) {
+            color: gtv($theme, textColor);
+        };
+
+        .avatar {
+			width: var(--q2);
+			height: var(--q2);
+
+			margin-right: var(--qh);
+		}
+
+		.info {
+			flex-grow: 1;
+		}
+
+		strong {
+			font-weight: 500;
+		}
+    }
+
+    .message-body {
+        img {
+            max-width: 100%;
+            height: auto;
+		}
+
+		figure {
+			position: relative;
+
+			> span {
+				position: absolute;
+				top: 0;
+				left: 0;
+				right: 0;
+				bottom: 0;
+
+				display: flex;
+				align-items: center;
+				justify-content: center;
+
+				span {
+					font-size: var(--q3);
+					text-shadow: rgba(0, 0, 0, .5) 0px 0px var(--qh);
+				}
+			}
+		}
+
+		font-size: var(--fs-075);
+
+		p {
+			word-wrap: break-word;
+		}
+	}
+}
+
+.image-zoom {
+	opacity: 0;
+	display: none;
+	pointer-events: none;
+
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+
+	align-items: center;
+	justify-content: center;
+
+	padding: var(--q4);
+
+	transition: all .2s ease;
+
+	&::after {
+		display: 'block';
+		content: 'Press Esc or click anywhere to close';
+
+		position: fixed;
+		top: var(--q2);
+		left: 0;
+		right: 0;
+
+		text-align: center;
+
+		opacity: .5;
+	}
+
+	img, ::ng-deep img, video, ::ng-deep video {
+		max-width: 100%;
+		max-height: 100%;
+
+		width: auto;
+		height: auto;
+
+		transform: scale(.9);
+
+		transition: all .2s ease;
+	}
+
+	&.active {
+		display: flex;
+		opacity: 1;
+		pointer-events: all;
+
+		z-index: 1000;
+
+		img, ::ng-deep img, video, ::ng-deep video {
+			transform: scale(1);
+		}
+	}
+}

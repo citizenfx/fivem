@@ -1,0 +1,501 @@
+/* You can add global styles to this file, and also import other style files */
+@import "variables";
+//@import "~bulma/css/bulma.css";
+@import "fontawful";
+@import "~nouislider/distribute/nouislider.min.css";
+
+@font-face
+{
+    font-family: 'FiraSans';
+    src: url(assets/fonts/FiraSans-Regular.otf);
+	font-weight: normal;
+}
+
+@font-face
+{
+    font-family: 'FiraSans';
+    src: url(assets/fonts/FiraSans-Light.otf);
+	font-weight: 300;
+}
+
+/* disable chromeme scrollbar */
+.gameapp ::-webkit-scrollbar { display: none; }
+
+
+
+html {
+	background: url(assets/images/pctree_full.jpg) no-repeat center center fixed;
+	background-size: cover;
+}
+
+body {
+	font-family: $fonts;
+}
+
+.highlight-blue {
+	color: #51B3EC;
+}
+
+.nav-bottom-2 {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	background: hsl(222, 23%, 11%);
+
+	.with-bottom {
+		height: calc(13%);
+	}
+
+	with-top .nav-item {
+		padding: 0.41rem 0.75rem;
+	}
+
+	with-top {
+		height: calc(5%);
+		bottom: calc(13%);
+	}
+
+	h1, h2 {
+		color: #fff;
+		font-family: $fonts;
+		font-weight: 300;
+	}
+
+	.top-portion {
+		background-color: #51B3EC;
+		width: 100%;
+		height: 100%;
+	}
+
+	.top-portion .nav-item {
+		border-bottom: 2px solid transparent;
+		transition: 0.2s;
+	}
+
+	.top-portion .nav-item:hover {
+		border-bottom: 2px solid #fff;
+		transition: 0.2s;
+	}
+
+	.bottom-portion {
+		width: 100%;
+		padding: 1em;
+	}
+
+	.bottom-portion .nav,
+	.top-portion .nav {
+		background-color: transparent;
+	}
+
+	.nav h1,
+	.nav .minimize-nav {
+		color: rgba(255, 255, 255, 0.6);
+		transition: 0.2s;
+	}
+
+	.nav h1:hover,
+	.nav .minimize-nav:hover {
+		color: #fff;
+		transition: 0.2s;
+	}
+
+	.nav .is-active h1 {
+		color: #fff;
+	}
+}
+
+.direct-connect .input.is-small {
+	border-radius: 0;
+	border: 1px solid transparent;
+}
+
+.direct-connect .input:active,
+.direct-connect .input:focus {
+	border: 1px solid #51B3EC;
+}
+
+.direct-connect .input.invalid {
+	border: 1px solid #ECB351;
+}
+
+.direct-connect .input {
+	background-color: rgba(21, 25, 34, 0.8);
+}
+
+.direct-connect input:not(placeholder) {
+	color: rgba(255, 255, 255, 0.8);
+}
+
+.direct-connect {
+	height: 40%;
+	width: 60%;
+	position: absolute;
+	top: 42%;
+	left: 20%;
+	background-color: rgba(21, 25, 34, 0.8);
+	overflow: hidden;
+}
+
+.direct-connect.settings {
+	height: auto;
+	bottom: 13%;
+	top: auto;
+}
+
+.direct-connect .loading,
+.direct-connect .error {
+	margin-top: 1em;
+	color: #fff;
+	text-align: center;
+}
+
+.direct-connect .error h1,
+.direct-connect .error h2 {
+	font-family: $fonts;
+	font-weight: 400;
+	color: #fff;
+}
+
+.direct-connect .server-info {
+	padding: 1em;
+}
+
+.direct-connect .server-info p {
+	color: #fff;
+	font-family: $fonts;
+	font-weight: 400;
+}
+
+/* material design shadows */
+.material-1 { box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); transition: all 0.3s cubic-bezier(.25,.8,.25,1); }
+.material-1:hover { box-shadow: 0 14px 28px rgba(0,0,0,0.25), 0 10px 10px rgba(0,0,0,0.22); }
+.material-2 { box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23); }
+.material-3 { box-shadow: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23); }
+.material-4 { box-shadow: 0 14px 28px rgba(0,0,0,0.25), 0 10px 10px rgba(0,0,0,0.22); }
+.material-5 { box-shadow: 0 19px 38px rgba(0,0,0,0.30), 0 15px 12px rgba(0,0,0,0.22); }
+
+/* noUiSlider style */
+.noUi-horizontal {
+	height: 8px;
+}
+
+.noUi-horizontal .noUi-handle {
+	width: 12px;
+	height: 12px;
+	left: -6px;
+	top: -2.5px;
+	border-radius: 50%;
+	background-color: hsl(222, 23%, 11%);
+	box-shadow: none;
+	border: 2px solid #51B3EC;
+	transition: 0.2s;
+}
+
+.noUi-horizontal .noUi-handle:hover,
+.noUi-horizontal .noUi-handle:focus {
+	border: 2px solid #fff;
+}
+
+.noUi-target {
+	background: rgba(21, 25, 34, 0.8);
+	border-radius: 0;
+	border: 1px solid #51B3EC;
+	box-shadow: none;
+}
+.noUi-connect {
+	background: #51B3EC;
+	box-shadow: none;
+	-webkit-transition: background 450ms;
+	transition: background 450ms;
+}
+
+.noUi-handle:before,
+.noUi-handle:after {
+	display: none;
+}
+
+.color-1{color: #ff4444;}
+.color-2{color: #99cc00;}
+.color-3{color: #ffbb33;}
+.color-4{color: #0099cc;}
+.color-5{color: #33b5e5;}
+.color-6{color: #aa66cc;}
+.color-8{color: #cc0000;}
+.color-9{color: #cc0000;}
+
+.panel-tabs,
+.panel-block {
+	border: 0px solid transparent;
+}
+
+.panel-block:hover {
+	background-color: transparent;
+}
+
+a.panel-block.is-active {
+	color: #fff;
+}
+
+.panel-tabs a {
+	border-bottom: 1px solid transparent;
+}
+
+.panel-tabs a.is-active,
+.panel-tabs a:hover {
+	color: #fff;
+}
+.panel-tabs a:hover {
+	border-bottom: 1px solid #fff;
+}
+
+.input.is-small {
+	border-radius: 0;
+	border: 1px solid transparent;
+}
+
+.input:active,
+.input:focus {
+	border: 1px solid #51B3EC;
+}
+
+a.panel-block:hover,
+.panel-tabs a:hover {
+	color: #fff;
+	transition: 0.2s;
+}
+
+a.panel-block,
+.panel-tabs a {
+	color: rgba(255, 255, 255, 0.6);
+	transition: 0.2s;
+}
+
+.panel-heading {
+	border: 0px solid transparent;
+	background-color: transparent;
+	color: #fff;
+	font-weight: 400;
+}
+
+.panel-heading:first-child, .panel-tabs:first-child {
+	border: 0px solid transparent;
+}
+
+.checkbox {
+	position: relative;
+
+	.label {
+		width: 18px;
+		height: 18px;
+		position: absolute;
+		top: 3px;
+		left: 1px;
+
+		border: 1px solid #51B3EC;
+
+		box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
+
+		&:after {
+			content: '✓';
+			position: absolute;
+			top: 0px;
+			left: 1px;
+			opacity: 0;
+			transition: 0.1s;
+
+			font-size: 18px;
+			line-height: 18px;
+
+			color: #51B3EC;
+		}
+	}
+
+	input[type=checkbox] {
+		visibility: hidden;
+
+		width: 16px;
+
+		&:checked + .label:after {
+			opacity: 1;
+		}
+	}
+}
+
+$zindex-dropdown:          1000 !default;
+
+$dropdown-bg:                    #fff !default;
+$dropdown-border:                rgba(0,0,0,.15) !default;
+$dropdown-fallback-border:       #ccc !default;
+$dropdown-divider-bg:            #e5e5e5 !default;
+$dropdown-link-color:            #333 !default;
+$dropdown-link-hover-color:      darken(#333, 5%) !default;
+$dropdown-link-hover-bg:         #f5f5f5 !default;
+$dropdown-link-active-color:     #f5f5f5 !default;
+$dropdown-link-active-bg:        #51B3EC !default;
+$dropdown-link-disabled-color:   #ddd !default;
+$dropdown-header-color:          #ddd !default;
+$dropdown-caret-color:           #000 !default;
+
+
+/* dropdowns from bootstrap */
+.dropup,
+.dropdown {
+  position: relative;
+}
+
+// Prevent the focus on the dropdown toggle when closing dropdowns
+.dropdown-toggle:focus {
+  outline: 0;
+}
+
+// The dropdown menu (ul)
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: $zindex-dropdown;
+  display: none; // none by default, but block on "open" of the menu
+  float: left;
+  min-width: 160px;
+  padding: 5px 0;
+  margin: 2px 0 0; // override default ul
+  list-style: none;
+  text-align: left; // Ensures proper alignment if parent has it changed (e.g., modal footer)
+  background-color: $dropdown-bg;
+  border: 1px solid $dropdown-fallback-border; // IE8 fallback
+  border: 1px solid $dropdown-border;
+  box-shadow: 0 6px 12px rgba(0,0,0,.175);
+  background-clip: padding-box;
+
+  // Aligns the dropdown menu to right
+  //
+  // Deprecated as of 3.1.0 in favor of `.dropdown-menu-[dir]`
+  &.pull-right {
+    right: 0;
+    left: auto;
+  }
+
+  // Links within the dropdown menu
+  > li > a {
+    display: block;
+    padding: 3px 20px;
+    clear: both;
+    font-weight: normal;
+    color: $dropdown-link-color;
+    white-space: nowrap; // prevent links from randomly breaking onto new lines
+  }
+}
+
+// Hover/Focus state
+.dropdown-menu > li > a {
+  &:hover,
+  &:focus {
+    text-decoration: none;
+    color: $dropdown-link-hover-color;
+    background-color: $dropdown-link-hover-bg;
+  }
+}
+
+// Active state
+.dropdown-menu > .active > a {
+  &,
+  &:hover,
+  &:focus {
+    color: $dropdown-link-active-color;
+    text-decoration: none;
+    outline: 0;
+    background-color: $dropdown-link-active-bg;
+  }
+}
+
+// Disabled state
+//
+// Gray out text and ensure the hover/focus state remains gray
+
+.dropdown-menu > .disabled > a {
+  &,
+  &:hover,
+  &:focus {
+    color: $dropdown-link-disabled-color;
+  }
+
+  // Nuke hover/focus effects
+  &:hover,
+  &:focus {
+    text-decoration: none;
+    background-color: transparent;
+    background-image: none; // Remove CSS gradient
+  }
+}
+
+// Open state for the dropdown
+.open {
+  // Show the menu
+  > .dropdown-menu {
+    display: block;
+  }
+
+  // Remove the outline when :focus is triggered
+  > a {
+    outline: 0;
+  }
+}
+
+// Menu positioning
+//
+// Add extra class to `.dropdown-menu` to flip the alignment of the dropdown
+// menu with the parent.
+.dropdown-menu-right {
+  left: auto; // Reset the default from `.dropdown-menu`
+  right: 0;
+}
+// With v3, we enabled auto-flipping if you have a dropdown within a right
+// aligned nav component. To enable the undoing of that, we provide an override
+// to restore the default dropdown menu alignment.
+//
+// This is only for left-aligning a dropdown menu within a `.navbar-right` or
+// `.pull-right` nav component.
+.dropdown-menu-left {
+  left: 0;
+  right: auto;
+}
+
+// Dropdown section headers
+.dropdown-header {
+  display: block;
+  padding: 3px 20px;
+  color: $dropdown-header-color;
+  white-space: nowrap; // as with > li > a
+}
+
+// Backdrop to catch body clicks on mobile, etc.
+.dropdown-backdrop {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: 0;
+  z-index: ($zindex-dropdown - 10);
+}
+
+// Right aligned dropdowns
+.pull-right > .dropdown-menu {
+  right: 0;
+  left: auto;
+}
+
+// Allow for dropdowns to go bottom up (aka, dropup-menu)
+//
+// Just add .dropup after the standard .dropdown class and you're set, bro.
+// TODO: abstract this so that the navbar fixed styles are not placed here?
+
+.dropup,
+.navbar-fixed-bottom .dropdown {
+  // Different positioning for bottom up menu
+  .dropdown-menu {
+    top: auto;
+    bottom: 100%;
+    margin-bottom: 2px;
+  }
+}

@@ -1,0 +1,6 @@
+<hr>
+<span class="material-icons-outlined status-indicator status-good" *ngIf="this.state === 'ok'">check_circle</span>
+<span class="material-icons-outlined status-indicator status-unknown" *ngIf="this.state === 'unknown'">help_outline</span>
+<span class="material-icons-outlined status-indicator status-bad" *ngIf="this.state === 'broken'">cancel</span>
+<span class="material-icons-outlined status-indicator status-wave" *ngIf="this.state === 'bye'">wrong_location</span>
+<hr>

@@ -1,0 +1,562 @@
+@import 'variables';
+
+@keyframes loadingDots {
+    0% {
+        content: '';
+    }
+    33% {
+        content: '.';
+    }
+    66% {
+        content: '..';
+    }
+    100% {
+        content: '...';
+    }
+}
+
+:host {
+	display: flex;
+	flex-direction: column;
+
+	height: 100%;
+
+	overflow-y: hidden;
+}
+
+.page-header {
+	@include pageHeader;
+
+	z-index: 1;
+
+	@include webapp() {
+		padding-left: 0;
+	}
+
+	@include theme() using ($theme) {
+		.cfx-header-item {
+			&.spin {
+				.material-icons-outlined {
+					color: gtv($theme, accentColor1);
+
+
+					@keyframes spin {
+						0% {
+							transform: rotate(0deg);
+							opacity: 1;
+
+						}
+						50% {
+							transform: rotate(180deg);
+							opacity: .75;
+						}
+						100% {
+							transform: rotate(360deg);
+							color: 1;
+						}
+					}
+
+					animation: spin 2s linear 0s infinite;
+				}
+			}
+		}
+	}
+}
+
+.loading {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+
+	width: 100%;
+	height: 100%;
+
+	cfx-spinner {
+		width: var(--q5);
+		height: var(--q5);
+	}
+}
+
+.page {
+	display: flex;
+	flex-direction: row;
+
+	height: 100%;
+
+	overflow: hidden;
+
+	--overlap: calc(var(--q1) * 2);
+	--icon-size: calc(var(--overlap) * 3);
+
+	.content-wrapper {
+		flex-grow: 1;
+		height: 100%;
+		width: 100%;
+
+		display: flex;
+		flex-direction: column;
+		transform: translateZ(0px);
+
+		.banner {
+			flex-shrink: 0;
+
+			position: relative;
+
+			width: 100%;
+
+			height: calc(var(--app-width) / 17.268);
+
+			@include theme() using ($theme) {
+				background-color: gtv($theme, bgColor);
+			}
+
+			background: center / cover var(--banner-image), center / 250px url(../../../../assets/images/bgpat.png);
+
+			z-index: 0;
+
+			@include backdropBlurred;
+		}
+
+		.banner.hidden {
+			visibility: hidden;
+
+			+ .header:not(.scrolled) {
+				margin-top: calc(0px - (var(--app-width) / 17.268));
+			}
+		}
+
+		.content {
+			flex-grow: 1;
+
+			width: 100%;
+
+			overflow-x: hidden;
+			overflow-y: scroll;
+
+			.banner {
+				position: sticky;
+				top: 0;
+
+				z-index: 1;
+			}
+
+			.scrolled + .header-push {
+				padding-bottom: var(--qh);
+			}
+
+			.header-push {
+				+ *, + * + * {
+					transition: transform ease 200ms;
+				}
+			}
+
+			.scrolled + .header-push {
+				+ * {
+					transform: translateY(calc((0px - var(--pad-top)) + var(--q1)));
+					margin-bottom: calc(0px - var(--pad-top) + var(--q1));
+				}
+			}
+
+			.header {
+				z-index: 1;
+
+				position: sticky;
+				top: 0;
+
+				display: flex;
+				transition: none;
+
+				.bg {
+					@include backdropPane;
+					position: absolute;
+					left: 0;
+					right: 0;
+					bottom: 0;
+					top: 0;
+
+					z-index: -1;
+				}
+
+				&.scrolled {
+					position: fixed;
+					left: 0;
+					right: var(--scrollbar-width);
+				}
+
+				padding: var(--q1);
+
+				.icon {
+					flex-shrink: 0;
+
+					width: var(--icon-size);
+					height: var(--icon-size);
+
+					margin-right: var(--q1);
+
+					::ng-deep img, img {
+						width: 100%;
+						height: 100%;
+					}
+
+					transition: all .2s ease;
+				}
+
+				&.scrolled {
+					.icon {
+						--icon-size: calc((var(--app-width) / 17.268) - (var(--q1) * 2));
+					}
+
+					.info {
+						.title {
+							overflow: hidden;
+							white-space: nowrap;
+							font-size: var(--fs-2);
+							transition: all .2s ease;
+
+							> span {
+								overflow: hidden;
+							}
+						}
+
+						.tags {
+							display: none;
+						}
+
+						.connect-bar {
+							--q1: calc(var(--quant) * 0.6);
+							--q2: calc(var(--q1) * 2);
+							--qh: calc(var(--q1) * 0.5);
+							--font-size: calc(var(--quant) * 0.6);
+							--fs-075: calc(var(--font-size) * 0.75);
+							--fs-1: var(--font-size);
+
+							margin-top: var(--qh);
+							font-size: var(--font-size);
+						}
+					}
+				}
+
+				.info {
+					flex-grow: 1;
+					overflow-x: hidden;
+
+					.title {
+						height: auto;
+						width: 100%;
+
+						@include fontMontserrat;
+						font-size: var(--fs-4);
+						font-weight: bold;
+						line-height: 1.1;
+					}
+
+					.tags {
+						list-style: none;
+
+						display: flex;
+						flex-wrap: wrap;
+						align-items: center;
+
+						margin-top: calc(var(--q1) + var(--qh));
+
+						li {
+							display: flex;
+
+							margin-top: var(--qh);
+							margin-right: var(--qh);
+
+							font-size: var(--fs-075);
+							line-height: 1;
+
+							opacity: 1;
+
+							overflow: hidden;
+
+							--inner-padding: calc(var(--qh) / 2);
+
+							transition: all .2s ease;
+
+							&:hover, &:focus {
+								opacity: 1;
+
+								transition: none;
+							}
+
+							&.owner {
+								img {
+									display: inline;
+									height: var(--fs-075);
+									width: var(--fs-075);
+									padding-right: var(--inner-padding);
+									box-sizing: content-box;
+								}
+
+								.value {
+									text-decoration: underline;
+									display: flex;
+									justify-content: space-around;
+								}
+
+								@include theme() using ($theme) {
+									&:hover, &:focus {
+										.value span {
+											background-color: gtv($theme, accentColor1);
+										}
+									}
+								}
+							}
+
+							.key,
+							.value {
+								display: block;
+							}
+
+							.key {
+								padding: var(--inner-padding);
+
+								@include theme() using ($theme) {
+									color: gtv($theme, fgColor);
+									background-color: rgba(gtv($theme, accentColor2), .5);
+								}
+							}
+
+							.value {
+								padding: var(--inner-padding);
+
+								@include theme() using ($theme) {
+									color: gtv($theme, fgColor);
+									background-color: rgba(gtv($theme, accentColor2), .25);
+								}
+							}
+						}
+					}
+
+					.connect-bar {
+						display: flex;
+						align-items: center;
+						justify-content: space-between;
+
+						margin-top: var(--q2);
+
+						.left,
+						.right {
+							display: flex;
+							align-items: center;
+							justify-content: center;
+						}
+
+						.badge {
+							display: inline-flex;
+
+							width: auto;
+							vertical-align: top;
+
+							margin-right: var(--q1);
+
+							span {
+								height: var(--q2);
+								width: var(--q2);
+							}
+						}
+
+						.buttons {
+							margin-right: var(--q1);
+							// .cfx-button {
+							// 	margin-right: var(--qh);
+							// }
+
+                            button {
+                                &:after {
+                                    text-transform: none;
+                                }
+                            }
+						}
+
+                        .warning {
+                            margin: var(--qh);
+                            margin-left: 0;
+
+                            p {
+                                display: inline-block;
+                                padding-left: calc(var(--qh) / 2);
+                            }
+                        }
+
+						.address {
+							padding: var(--qh);
+                            margin-right: var(--q1);
+
+							line-height: 1;
+
+							@include theme() using ($theme) {
+								background-color: rgba(gtv($theme, fgColor), .1);
+							}
+
+							.material-icons-outlined {
+								margin-right: var(--qh);
+							}
+
+							.select {
+								user-select: all;
+							}
+						}
+
+						.players-count .capacity {
+							opacity: .75;
+						}
+					}
+				}
+			}
+
+			.details {
+				flex-grow: 1;
+
+				margin-top: var(--qh);
+
+				overflow: hidden;
+
+				.details-panel {
+					padding: var(--q1);
+					margin-bottom: var(--qh);
+
+					&:last-child {
+						margin-right: 0;
+					}
+
+					overflow-x: hidden;
+					overflow-y: scroll;
+
+					@include backdropPane;
+
+					.title {
+						margin-bottom: var(--qh);
+
+						@include fontMontserrat;
+						font-size: var(--fs-2);
+						line-height: 1;
+						letter-spacing: 2px;
+						text-transform: uppercase;
+
+						opacity: .25;
+
+						text-align: justify;
+					}
+
+					&.feed {
+						.message {
+							width: 32%;
+						}
+					}
+
+					&.resources, &.players {
+						overflow-x: scroll;
+						display: flex;
+
+						.title {
+							white-space: nowrap;
+							margin-right: var(--qh);
+							justify-self: center;
+							line-height: normal;
+						}
+
+						.title, ul li {
+							margin-bottom: 0 !important;
+						}
+					}
+
+					&.resources {
+						margin-bottom: 0;
+						padding-bottom: 0;
+					}
+
+					&.players {
+						ul {
+							list-style: none;
+
+							display: flex;
+							flex-direction: row;
+
+							li {
+								display: flex;
+								align-items: center;
+
+								white-space: nowrap;
+
+								margin-bottom: var(--qh);
+
+								font-size: var(--fs-1);
+
+								@include theme() using ($theme) {
+									background-color: rgba(gtv($theme, fgColor), .1);
+								}
+
+								app-player-avatar {
+									width: calc(var(--q1) * 1.5);
+									height: calc(var(--q1) * 1.5);
+								}
+
+								position: relative;
+
+								span {
+									position: absolute;
+									display: none;
+									pointer-events: none;
+									top: calc(0px - var(--q1) * 0.25);
+									bottom: calc(0px - var(--q1) * 0.25);
+									line-height: calc(var(--q1) * 2);
+									vertical-align: middle;
+
+									@include theme() using ($theme) {
+										background-color: rgba(gtv($theme, accentColor1), 1);
+										color: gtv($theme, fgColor);
+									}
+
+									left: calc(0px - var(--q1) * 0.25);
+									padding-left: calc(var(--q1) * 2);
+									padding-right: calc(var(--q1) * 0.25);
+								}
+
+								&:hover app-player-avatar {
+									z-index: 9999;
+								}
+
+								&:hover span {
+									display: inline-block;
+									opacity: 1;
+									z-index: 9998;
+								}
+							}
+						}
+					}
+
+					&.resources {
+						flex-grow: 1;
+
+						ul {
+							list-style: none;
+
+							white-space: nowrap;
+
+							li {
+								display: inline-flex;
+								align-items: center;
+
+								height: calc(var(--q1) * 1.5);
+
+								margin-bottom: var(--qh);
+								margin-right: var(--qh);
+								padding: 0 var(--qh);
+
+								font-size: var(--fs-1);
+
+								@include theme() using ($theme) {
+									background-color: rgba(gtv($theme, fgColor), .1);
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}

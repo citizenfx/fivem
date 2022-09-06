@@ -1,0 +1,14 @@
+<h1 class="page-header" l10nTranslate>
+	#Changelogs
+</h1>
+<main>
+	<ul class="tabs vertical">
+		<li *ngFor="let version of versions" [class.active]="selectedVersion == version" (click)="loadVersion(version)">{{version}}</li>
+	</ul>
+	<div class="content">
+		<div class="loader" *ngIf="isLoading">
+			<cfx-spinner></cfx-spinner>
+		</div>
+		<app-changelog-entry *ngIf="selectedVersion && !isLoading" [version]="selectedVersion"></app-changelog-entry>
+	</div>
+</main>

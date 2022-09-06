@@ -1,0 +1,84 @@
+@import 'variables';
+
+:host {
+	display: flex;
+	flex-direction: column;
+
+	@include appContent;
+}
+
+.page-title {
+	@include pageHeader;
+}
+
+@import "tabs";
+
+.settings {
+	height: 100%;
+	overflow-y: auto;
+
+	.category {
+		@include backdropPane;
+
+		padding: var(--q1);
+
+		margin-bottom: var(--qh);
+		&:last-child {
+			margin-bottom: 0;
+		}
+
+		.title {
+			font-size: var(--fs-2);
+			line-height: 1;
+			text-transform: uppercase;
+
+			@include theme() using ($theme) {
+				color: rgba(gtv($theme, fgColor), .5);
+			}
+		}
+
+		.setting {
+			margin-top: var(--q1);
+
+			.key {
+				font-size: var(--fs-075);
+				@include theme() using ($theme) {
+					color: rgba(gtv($theme, fgColor), .75);
+				}
+			}
+
+			.value {
+				margin-top: var(--qh);
+
+				@include fontRubik;
+				font-size: var(--fs-1);
+				line-height: 1;
+
+				@include theme() using ($theme) {
+					color: gtv($theme, fgColor);
+				};
+
+				.text {
+					font-size: var(--fs-1);
+				}
+
+				.html {
+					::ng-deep {
+						.fa, .fab, svg {
+							margin-right: var(--qh);
+						}
+
+						svg {
+							fill: currentColor;
+							height: var(--fs-1);
+						}
+					}
+				}
+
+				&>span {
+					display: flex;
+				}
+			}
+		}
+	}
+}

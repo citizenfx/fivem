@@ -1,0 +1,84 @@
+@import 'variables';
+
+@keyframes loadingDots {
+    0% {
+        content: '';
+    }
+    33% {
+        content: '.';
+    }
+    66% {
+        content: '..';
+    }
+    100% {
+        content: '...';
+    }
+}
+
+.server-info {
+	@include backdropPane;
+
+	&:not(:empty) {
+		padding: var(--q1);
+		margin-top: var(--qh);
+	}
+
+	&>div {
+		&.loading::after {
+			display: inline;
+			content: '...';
+
+			animation-name: loadingDots;
+			animation-duration: 1s;
+			animation-iteration-count: infinite;
+		}
+	}
+
+	.error {
+		.title {
+			margin-bottom: var(--qh);
+		}
+	}
+
+	.info {
+		display: flex;
+		flex-direction: row;
+
+		.icon {
+			margin-right: var(--q1);
+
+			img {
+				border-radius: 1px;
+			}
+		}
+
+		.content {
+			flex-grow: 1;
+
+			.title {
+				display: block;
+
+				font-size: var(--fs-4);
+				line-height: 1.1;
+			}
+
+			.desc {
+				list-style: none;
+
+				margin-top: var(--q1);
+				font-size: var(--fs-1);
+
+				.key {
+					display: inline-block;
+					font-weight: 100;
+
+					width: 15%;
+				}
+			}
+
+			.connect {
+				margin-top: var(--q1);
+			}
+		}
+	}
+}

@@ -1,0 +1,52 @@
+p {
+	margin: calc(var(--qh) / 2) 0;
+}
+
+h1 {
+	font-size: var(--fs-3);
+	margin-bottom: calc(var(--qh) * 0.5);
+}
+
+button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+
+	gap: calc(var(--qh) * .5);
+
+	margin-right: var(--qh);
+
+	height: var(--q2);
+	padding: var(--qh) var(--qh);
+
+	transition: all .2s ease;
+
+	.material-icons-outlined {
+		opacity: .75;
+	}
+
+	@include theme() using ($theme) {
+		color: gtv($theme, textColor);
+		border: 2px solid rgba(gtv($theme, bgColor), 0.3);
+		background-color: rgba(gtv($theme, bgColor), 0.3);
+	}
+
+	&.checked {
+		@include theme() using ($theme) {
+			border-color: gtv($theme, accentColor1);
+		}
+	}
+
+	&[disabled] {
+		opacity: 0.6;
+	}
+
+	&:not([disabled]):hover {
+		transition: none;
+
+		@include theme() using ($theme) {
+			background-color: gtv($theme, accentColor1);
+			color: #fff;
+		}
+	}
+}

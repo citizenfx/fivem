@@ -1,0 +1,45 @@
+@import "variables";
+
+:host {
+	display: flex;
+	flex-direction: column;
+
+	@include appContent;
+}
+
+.page-header {
+	@include pageHeader;
+}
+
+.content {
+	flex-grow: 1;
+
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+
+	height: 100%;
+
+	@include theme() using ($theme) {
+		background-image: linear-gradient(45deg, rgba(gtv($theme, bgColor), .85), rgba(gtv($theme, bgColor), .75)), url(../../../assets/images/bgstory.jpg);
+	}
+
+	background-size: cover;
+
+	@include backdropPane;
+
+	padding: var(--q1);
+
+	h1 {
+		margin-bottom: var(--q1);
+	}
+
+	.cfx-button {
+		margin-top: var(--q1);
+	}
+
+	code {
+		font-family: monospace;
+	}
+}

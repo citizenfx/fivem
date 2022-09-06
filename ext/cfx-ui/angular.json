@@ -1,0 +1,222 @@
+{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "version": 1,
+  "newProjectRoot": "projects",
+  "projects": {
+    "cfx-ui": {
+      "root": "",
+      "sourceRoot": "src",
+      "projectType": "application",
+      "architect": {
+        "build": {
+          "builder": "@angular-builders/custom-webpack:browser",
+          "options": {
+            "customWebpackConfig": {
+              "path": "./webpack-overrides.config.js",
+              "replaceDuplicatePlugins": true,
+              "mergeStrategies": { "module.rules": "prepend" }
+            },
+            "outputPath": "dist",
+            "index": "src/index.html",
+            "main": "src/main.ts",
+            "tsConfig": "src/tsconfig.app.json",
+            "polyfills": "src/polyfills.ts",
+            "outputHashing": "all",
+            "stylePreprocessorOptions": {
+              "includePaths": [
+                "src/styles"
+              ]
+            },
+            "assets": [
+              "src/assets/languages/",
+              "src/favicon.ico"
+            ],
+            "styles": [
+			  "src/styles/global.scss"
+            ],
+            "scripts": [],
+            "baseHref": ".",
+            "webWorkerTsConfig": "tsconfig.worker.json"
+          },
+          "configurations": {
+            "production": {
+              "optimization": true,
+              "outputHashing": "all",
+              "sourceMap": {
+				"scripts": true,
+				"styles": true,
+				"vendor": true
+			  },
+              "namedChunks": false,
+              "aot": true,
+              "extractLicenses": true,
+              "vendorChunk": false,
+              "buildOptimizer": true,
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.prod.ts"
+                }
+              ],
+              "baseHref": "/ui/app/"
+            },
+            "web": {
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.web.ts"
+                }
+              ],
+              "baseHref": "/",
+			  "optimization": false,
+			  "sourceMap": true,
+			  "namedChunks": true,
+			  "extractLicenses": false,
+			  "vendorChunk": true,
+			  "buildOptimizer": false,
+			  "budgets": []
+            },
+            "game": {
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.game.ts"
+                }
+              ],
+              "baseHref": "."
+            },
+            "gameDev": {
+				"fileReplacements": [
+					{
+						"replace": "src/environments/environment.ts",
+						"with": "src/environments/environment.game.ts"
+					}
+				],
+				"baseHref": ".",
+				"optimization": false,
+				"sourceMap": true,
+				"namedChunks": true,
+				"extractLicenses": false,
+				"vendorChunk": true,
+				"buildOptimizer": false,
+				"budgets": []
+			},
+            "webprod": {
+              "optimization": true,
+              "outputHashing": "all",
+              "sourceMap": false,
+              "namedChunks": false,
+              "aot": true,
+              "extractLicenses": true,
+              "vendorChunk": false,
+              "buildOptimizer": true,
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.webprod.ts"
+                }
+              ],
+              "baseHref": "/"
+            }
+          }
+        },
+        "server": {
+          "builder": "@angular-devkit/build-angular:server",
+          "options": {
+            "outputPath": "dist/cfx-ui-server",
+            "main": "src/main.server.ts",
+            "tsConfig": "src/tsconfig.server.json",
+            "fileReplacements": [
+              {
+                "replace": "src/environments/environment.ts",
+                "with": "src/environments/environment.web.ts"
+              }
+            ],
+            "stylePreprocessorOptions": {
+              "includePaths": [
+                "src/styles"
+              ]
+            },
+            "sourceMap": true,
+            "optimization": false
+          },
+          "defaultConfiguration": ""
+        },
+        "serve": {
+          "builder": "@angular-builders/custom-webpack:dev-server",
+          "options": {
+            "browserTarget": "cfx-ui:build"
+          },
+          "configurations": {
+            "production": {
+              "browserTarget": "cfx-ui:build:production",
+              "sourceMap": {
+                "scripts": true,
+                "styles": true,
+                "vendor": true
+              }
+            },
+            "web": {
+              "browserTarget": "cfx-ui:build:web"
+            },
+            "webprod": {
+              "browserTarget": "cfx-ui:build:webprod"
+            },
+            "game": {
+              "browserTarget": "cfx-ui:build:gameDev"
+            }
+          }
+        },
+        "extract-i18n": {
+          "builder": "@angular-devkit/build-angular:extract-i18n",
+          "options": {
+            "browserTarget": "cfx-ui:build"
+          }
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "main": "src/test.ts",
+            "karmaConfig": "./karma.conf.js",
+            "polyfills": "src/polyfills.ts",
+            "tsConfig": "src/tsconfig.spec.json",
+            "scripts": [],
+            "styles": [
+              "src/styles/global.scss"
+            ],
+            "assets": [
+              "src/assets",
+              "src/favicon.ico"
+            ]
+          }
+        },
+        "lint": {
+          "builder": "@angular-devkit/build-angular:tslint",
+          "options": {
+            "tsConfig": [
+              "src/tsconfig.app.json",
+              "src/tsconfig.spec.json",
+              "tsconfig.worker.json"
+            ],
+            "exclude": []
+          }
+        }
+      }
+    },
+    "cfx-ui-e2e": {
+      "root": "e2e",
+      "sourceRoot": "e2e",
+      "projectType": "application"
+    }
+  },
+  "defaultProject": "cfx-ui",
+  "schematics": {
+    "@schematics/angular:component": {
+      "prefix": "app",
+      "style": "scss"
+    },
+    "@schematics/angular:directive": {
+      "prefix": "app"
+    }
+  }
+}

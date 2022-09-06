@@ -1,0 +1,26 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "outDir": "./dist/out-tsc",
+    "baseUrl": "src",
+    "sourceMap": true,
+    "declaration": false,
+    "moduleResolution": "node",
+    "emitDecoratorMetadata": true,
+	"experimentalDecorators": true,
+	"downlevelIteration": true,
+    "target": "es2019",
+    "typeRoots": [
+      "node_modules/@types",
+      "./src/typings"
+    ],
+    "types": [
+      "@types/offscreencanvas"
+    ],
+    "lib": [
+      "es2019",
+      "dom"
+    ],
+    "module": "es2020"
+  }
+}

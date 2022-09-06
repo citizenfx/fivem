@@ -1,0 +1,111 @@
+@import "variables";
+
+.container {
+	::ng-deep {
+		.root {
+			display: flex;
+			flex-direction: row;
+			align-items: stretch;
+			justify-content: space-evenly;
+
+			height: 100%;
+
+			&>h1 {
+				display: none;
+				font-weight: normal;
+				margin: 0;
+				line-height: 1;
+			}
+
+			// Items container
+			&>div {
+				width: 100%;
+				height: 100%;
+
+				display: flex;
+				align-items: stretch;
+				justify-content: stretch;
+			}
+
+			// Item
+			&>div>div {
+				width: 80%;
+				position: relative;
+				--pos: center center;
+
+				@include backdropPane;
+				@include borderedPane;
+
+				margin-right: var(--q1);
+				&:last-child {
+					margin-right: 0;
+				}
+
+				padding: var(--q1);
+
+				overflow: hidden;
+
+				&>.bg {
+					display: none;
+
+					position: absolute;
+					top: -10px;
+					bottom: -10px;
+					left: -10px;
+					right: -10px;
+
+					background-image: var(--bg);
+					background-repeat: no-repeat;
+					background-size: cover;
+					background-position: var(--pos);
+					color: #fff;
+					z-index: -1;
+
+					opacity: .5;
+
+					filter: saturate(50%) brightness(80%) blur(5px);
+
+					will-change: filter;
+					transition: all .2s ease;
+				}
+
+				h1 {
+					text-transform: uppercase;
+					font-size: var(--fs-1);
+					font-weight: bold;
+					line-height: 1;
+					letter-spacing: 1px;
+				}
+
+				h2 {
+					margin-top: var(--q1);
+
+					@include theme() using ($theme) {
+						color: rgba(gtv($theme, fgColor), .5);
+					}
+
+					@include fontRubikImportant;
+					font-size: var(--fs-1);
+					font-weight: 400;
+					letter-spacing: 0px;
+				}
+
+				&:hover, &:focus {
+					@include theme() using ($theme) {
+						box-shadow: 0 0 0 2px gtv($theme, accentColor1) inset;
+						background-color: rgba(gtv($theme, accentColor1), .05);
+					}
+
+					transition: none;
+
+					&>.bg {
+						filter: saturate(100%);
+						transition: none;
+					}
+				}
+
+				transition: all .2s ease;
+			}
+		}
+	}
+}

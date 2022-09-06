@@ -1,0 +1,37 @@
+<h1 class="page-title">
+	Direct connect & history
+</h1>
+
+<section class="control">
+	<input
+		#input
+		type="text"
+		placeholder="{{'#DirectConnect_IPPort'|translate:locale.language}}"
+		spellcheck="false"
+		[class.invalid]="inputInvalid"
+		[ngModel]="addr"
+		(ngModelChange)="addrChanged($event)"
+		(keyup.enter)="tryConnect()"
+	>
+</section>
+
+<app-direct-connect-backend
+	[addr]="addr"
+	(onChange)="addrChanged($event)"
+	(invalidate)="inputInvalid = true"
+	(validate)="inputInvalid = false"
+	#backend>
+</app-direct-connect-backend>
+
+<section class="history">
+	<div class="server" *ngFor="let server of history" [class.live]="server.server" (click)="attemptConnectTo(server)">
+		<figure class="icon">
+			<img [src]="server.sanitizedIcon || 'http://picsum.photos/96/96'">
+		</figure>
+		<div class="content">
+			<h3 class="title" [innerHTML]="(server && server.entry.hostname)||'test' | escape | colorize"></h3>
+			<span class="players" *ngIf="server.server">{{server.server.currentPlayers}}/{{server.server.maxPlayers}}</span>
+			<span class="time">{{ '#DirectConnect_LastPlayed' | translate:locale.language }}: {{ server.entry.time | dfnsFormatDistanceToNow:{ addSuffix: true } }}</span>
+		</div>
+	</div>
+</section>

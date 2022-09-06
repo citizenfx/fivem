@@ -1,0 +1,75 @@
+@import 'variables';
+
+.page-title {
+	@include pageHeader;
+}
+
+.control {
+	width: 100%;
+
+	input {
+		width: 100%;
+
+		@include themeHostWorkaround() using ($theme) {
+			background-color: rgba(gtv($theme, bgColor), .4);
+
+			&:hover,
+			&:focus {
+				background-color: rgba(gtv($theme, bgColor), .2);
+			}
+
+			&.invalid {
+				background-color: rgba(darken(red, 20%), .3);
+			}
+		};
+	}
+}
+
+@include themeHostWorkaround() using ($theme) {
+	.history>ul>li {
+		background-color: rgba(gtv($theme, bgColor), .2);
+
+		span.time {
+			color: darken(gtv($theme, textColor), 10%);
+		}
+
+		&:hover, &:focus {
+			background-color: rgba(lighten(gtv($theme, bgColor), 10%), .3);
+		}
+	}
+};
+
+.history {
+	margin-top: var(--q1);
+
+	.server {
+		display: flex;
+		flex-direction: row;
+
+		@include backdropPane;
+
+		padding: var(--q1);
+
+		&:hover, &:focus {
+			@include theme() using ($theme) {
+				box-shadow: 0 0 0 2px gtv($theme, accentColor1) inset;
+			}
+		}
+
+		.icon {
+			margin-right: var(--q1);
+		}
+
+		.content {
+			flex-grow: 1;
+
+			.title {
+				margin-bottom: var(--qh);
+			}
+
+			span {
+				font-size: var(--fs-1);
+			}
+		}
+	}
+}

@@ -1,0 +1,71 @@
+<form *ngIf="canReview" class="review-form">
+	<h1><span l10nTranslate>#Review_WriteAbout_Prefix</span>&nbsp;<span [innerHTML]="projectName | allowify | escape | colorize:{trust: true}"></span><span l10nTranslate>#Review_WriteAbout_Postfix</span></h1>
+
+	<div class="review-disclaimer">
+		<p>
+			Please describe what you liked or disliked about this server and whether you recommend it to others.
+		</p>
+		<p>
+			To report misconduct regarding this server, please <a href="https://support.cfx.re/" (click)="openSupport(); $event.preventDefault()">open an abuse ticket</a> instead.
+		</p>
+	</div>
+
+	<div class="actual-form">
+		<aside>
+			<img [src]="myAvatar">
+			<div>
+				<div class="username">
+					{{myUsername}}
+				</div>
+				<div class="playtime">
+					<span *ngIf="myPlaytime as playtime; else neverPlayed" class="hours">
+						{{duration(playtime) | dfnsFormatDuration:{
+							format: ['days', 'hours', 'minutes'],
+							locale: shortEnLocale
+						} }} played
+					</span>
+
+					<ng-template #neverPlayed>
+						<span class="hours" l10nTranslate>#Reviews_NeverPlayed</span>
+					</ng-template>
+				</div>
+			</div>
+		</aside>
+
+		<main>
+			<input type="text" [disabled]="submitting" placeholder="Title" [(ngModel)]="reviewTitle" name="title">
+
+			<textarea
+				[disabled]="submitting"
+				placeholder="Write your review here—remember to be polite and constructive."
+				name="body"
+				[(ngModel)]="reviewBody"></textarea>
+
+			<div>
+				<p>Do you recommend this server?</p>
+
+				<div>
+					<button [disabled]="submitting" [class.checked]="reviewRecommended === 'yes'" (click)="reviewRecommended = 'yes'">
+						<span class="material-icons-outlined">thumb_up</span> {{'#Yes'|translate:locale.language}}
+					</button>
+					<button [disabled]="submitting" [class.checked]="reviewRecommended === 'no'" (click)="reviewRecommended = 'no'">
+						<span class="material-icons-outlined">thumb_down</span> {{'#No'|translate:locale.language}}
+					</button>
+
+					<button [disabled]="submitting || (reviewTitle || '').length <= 5 || (reviewBody || '').length <= 10 || !reviewRecommended" class="checked" (click)="submit()">
+						Post review
+					</button>
+				</div>
+
+				<p class="errors" *ngIf="errors">{{errors}}</p>
+			</div>
+		</main>
+	</div>
+</form>
+
+<div class="review-wrap" *ngIf="reviews.length > 0">
+	<app-server-review *ngFor="let review of reviews; trackBy: reviewTrack" [review]="review" [playtimes]="playtimes" [isFirst]="!canReview && review == reviews[0]">
+
+	</app-server-review>
+</div>
+

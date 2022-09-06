@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./out-tsc/worker",
+    "lib": [
+      "es2018",
+      "webworker"
+    ],
+    "types": [],
+	"allowSyntheticDefaultImports": true,
+	"resolveJsonModule": true,
+	"esModuleInterop": true
+  },
+  "include": [
+    "src/**/*.worker.ts"
+  ]
+}
