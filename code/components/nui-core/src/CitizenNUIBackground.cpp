@@ -270,7 +270,7 @@ void CitizenNUIBackground::EnsureTextures()
 {
 	if (!m_backdropTexture.GetRef())
 	{
-		m_backdropTexture = InitializeTextureFromFile("citizen:/ui/app/static/media/6db048567db663f87d25bg2.jpg");
+		m_backdropTexture = InitializeTextureFromFile("citizen:/ui/app/bg-night.ef4a7a12cfeb114a9dae.jpg");
 
 		if (!m_backdropTexture.GetRef())
 		{
