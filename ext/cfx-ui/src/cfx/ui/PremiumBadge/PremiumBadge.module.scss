@@ -1,0 +1,63 @@
+.root {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 1.333333em;
+  height: 1em;
+
+  background-color: ui.color-token('premium-badge-background');
+  box-shadow: 0 0 2px 0px black inset;
+
+  @include ui.border-radius('xsmall');
+
+  overflow: hidden;
+
+  letter-spacing: 1px;
+
+  span {
+    line-height: 1.5;
+
+    color: ui.color-token('premium-badge-text');
+
+    @include ui.font-size('small');
+    @include ui.font-family('secondary');
+    @include ui.font-weight('boldest');
+
+    text-transform: uppercase;
+
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  &.level-pt {
+    span {
+      background-image: linear-gradient(225deg,
+          ui.color-token('premium-badge-pt-gradient-1'),
+          ui.color-token('premium-badge-pt-gradient-2'),
+          ui.color-token('premium-badge-pt-gradient-1'));
+    }
+  }
+
+  &.level-au {
+    letter-spacing: .2px;
+
+    span {
+      background-image: linear-gradient(225deg,
+          ui.color-token('premium-badge-au-gradient-1'),
+          ui.color-token('premium-badge-au-gradient-2'),
+          ui.color-token('premium-badge-au-gradient-1'));
+    }
+  }
+
+  &.level-ag {
+    letter-spacing: .2px;
+
+    span {
+      background-image: linear-gradient(225deg,
+          ui.color-token('premium-badge-ag-gradient-1'),
+          ui.color-token('premium-badge-ag-gradient-2'),
+          ui.color-token('premium-badge-ag-gradient-1'));
+    }
+  }
+}

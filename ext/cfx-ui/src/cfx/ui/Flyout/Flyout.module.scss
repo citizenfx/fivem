@@ -1,0 +1,150 @@
+.root {
+  position: fixed;
+
+  inset: 0;
+
+  pointer-events: none;
+
+  &.size-normal {
+    .holder {
+      left: 32vw;
+    }
+  }
+  &.size-small {
+    .holder {
+      left: 48vw;
+    }
+  }
+  &.size-xsmall {
+    .holder {
+      left: 64vw;
+    }
+  }
+
+  &.active {
+    .backdrop {
+      opacity: 1;
+      pointer-events: all;
+
+      @keyframes backdrop-appearance {
+        0% {
+          opacity: 0;
+        }
+
+        100% {
+          opacity: 1;
+        }
+      }
+
+      animation: backdrop-appearance .2s ease;
+    }
+
+    .mask {
+      opacity: 1;
+    }
+
+    .holder {
+      opacity: 1;
+      transform: translateX(0px);
+      pointer-events: all;
+
+      @keyframes holder-appearance {
+        0% {
+          opacity: 0;
+          transform: translateX(20px);
+        }
+
+        100% {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      animation: holder-appearance .2s ease;
+    }
+  }
+
+  .backdrop {
+    position: fixed;
+
+    inset: 0;
+
+    background-color: ui.color-token('overlay-backdrop-background');
+
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .mask {
+    position: fixed;
+
+    inset: 0;
+
+    --mask-right: calc(100vw - (100vw - var(--width)) * 0.5);
+    --mask-right-offset: calc(var(--mask-right) - #{ui.offset('large')});
+
+    -webkit-mask: linear-gradient(90deg, black 0%, black var(--mask-right-offset), transparent var(--mask-right), transparent 100%);
+    mask: linear-gradient(90deg, black 0%, black var(--mask-right-offset), transparent var(--mask-right), transparent 100%);
+
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .holder {
+    position: fixed;
+
+    ----offset: #{ui.offset('xlarge')};
+
+    top: var(----offset);
+    right: 0;
+    bottom: var(----offset);
+
+    padding-top: calc((100vh - ui.viewport-height()) * .5 - var(----offset));
+    padding-bottom: calc((100vh - ui.viewport-height()) * .5 - var(----offset));
+    padding-right: calc((100vw - ui.viewport-width()) * .5);
+    padding-left: ui.offset('xlarge');
+
+    @include ui.border-radius('normal');
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+
+    box-shadow:
+      0 0 0 2px ui.color-token('flyout-holder-border') inset,
+      ui.use('shadow-large');
+
+    @include ui.def('backdrop-color', ui.color-token('flyout-holder-blur-background'));
+    @include ui.fake-backdrop-blur();
+
+    opacity: 0;
+    transform: translateX(20px);
+    pointer-events: none;
+
+    .content {
+      width: 100%;
+      height: 100%;
+
+      overflow: hidden;
+    }
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: ui.offset('normal');
+
+    .title {
+      flex-grow: 1;
+
+      width: 1px;
+
+      display: flex;
+      align-items: center;
+
+      gap: ui.offset('normal');
+
+      @include ui.font-size('xxlarge');
+    }
+  }
+}

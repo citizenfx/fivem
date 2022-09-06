@@ -1,0 +1,13 @@
+.root {
+  &.horizontal {
+    width: 100%;
+
+    @include ui.offset-classes('size', 'height');
+  }
+
+  &.horizontal {
+    height: 100%;
+
+    @include ui.offset-classes('size', 'width');
+  }
+}

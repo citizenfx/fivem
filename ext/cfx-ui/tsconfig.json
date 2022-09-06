@@ -1,0 +1,40 @@
+{
+  "compilerOptions": {
+    "target": "es2021",
+    "lib": [
+      "es2021",
+      "DOM",
+      "DOM.Iterable",
+      "WebWorker",
+      "es2021.intl"
+    ],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "noImplicitAny": false,
+    "allowSyntheticDefaultImports": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "strictNullChecks": true,
+    "jsx": "react-jsx",
+    "plugins": [
+      {
+        "name": "typescript-plugin-css-modules"
+      }
+    ],
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "sourceMap": true,
+    "baseUrl": "src",
+    "types": [
+      "reflect-metadata",
+      "@types/offscreencanvas"
+    ]
+  },
+  "include": [
+    "src"
+  ]
+}

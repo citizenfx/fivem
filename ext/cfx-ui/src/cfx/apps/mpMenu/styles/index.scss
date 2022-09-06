@@ -1,0 +1,94 @@
+@import "themes.scss";
+
+// Calculating CfxUI viewport size
+// We want to keep it of 16:9 aspect ratio
+
+@media (max-aspect-ratio: 16/9) {
+	html {
+		--width: 100vw;
+		--height: calc(100vw / 1.777778);
+	}
+}
+
+@media (min-aspect-ratio: 16/9) {
+	html {
+		--width: calc(100vh * 1.777778);
+		--height: 100vh;
+	}
+}
+
+html {
+  // On 720p quant will be 4px
+	--quant: calc(var(--height) * 0.0055);
+}
+
+body {
+  // --backdrop-image: url(https://fivem.net/73663161434ea35812a20da2e517f102.jpg);
+  // --backdrop-image: url(https://www.windowscentral.com/sites/wpcentral.com/files/styles/large/public/field/image/2021/11/wallpaper-windows-11-se.png);
+  // --backdrop-image: url(https://images.alphacoders.com/115/thumb-1920-1152254.jpg);
+  --backdrop-image: url(../../../../assets/images/bg2.jpg);
+
+  background-image: var(--backdrop-image);
+  background-size: cover;
+  background-position: center center;
+  background-color: black;
+}
+
+#backdrop {
+  width: 100vw;
+  height: 100vh;
+
+  background: ui.color-token('backdrop');
+}
+
+#cfxui-root {
+  position: fixed;
+  top: calc((100vh - var(--height)) * .5);
+  left: calc((100vw - var(--width)) * .5);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: var(--width);
+  height: var(--height);
+
+  opacity: 1;
+
+  // chrome breaks everything
+  transition: transform .2s ease, filter .2s ease;
+  transform-origin: left center;
+
+  &.shrink {
+    transform: translateX(-10px);
+  }
+}
+
+.__inline_avatar {
+  width: 1.5rem;
+  height: 1.5rem;
+
+  vertical-align: middle;
+
+  &::after {
+    display: inline;
+    content: ' ';
+  }
+}
+
+::-webkit-scrollbar {
+	width: ui.offset('normal');
+}
+::-webkit-scrollbar-thumb {
+  border-top-left-radius: ui.border-radius('xsmall');
+  border-bottom-left-radius: ui.border-radius('xsmall');
+
+  background-color: ui.color-token('scrollbar');
+
+  &:hover {
+    background-color: ui.color-token('scrollbar-hover');
+  }
+  &:active {
+    background-color: ui.color-token('scrollbar-active');
+  }
+}

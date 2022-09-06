@@ -1,0 +1,31 @@
+.root {
+  position: fixed;
+  inset: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background-color: ui.color('main', $alpha: .95);
+
+  .wrapper {
+    display: flex;
+    justify-content: flex-end;
+
+    width: ui.viewport-width();
+    height: ui.viewport-height();
+
+    @keyframes appear {
+      from {
+        opacity: 0;
+        transform: translateX(ui.q(2));
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    animation: appear .2s ease;
+  }
+}

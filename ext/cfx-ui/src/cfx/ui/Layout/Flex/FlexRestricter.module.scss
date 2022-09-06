@@ -1,0 +1,10 @@
+.root {
+  flex-grow: 1;
+
+  &.vertical {
+    height: 1px;
+  }
+  &.horizontal {
+    width: 1px;
+  }
+}
