@@ -1,5 +1,5 @@
 import { mpMenu } from "cfx/apps/mpMenu/mpMenu";
-import { playSfx, Sfx } from "cfx/apps/mpMenu/utils/sfx";
+// import { playSfx, Sfx } from "cfx/apps/mpMenu/utils/sfx";
 import { $L } from "cfx/common/services/intl/l10n";
 import { Button } from "cfx/ui/Button/Button";
 import { Icons } from "cfx/ui/Icons";
@@ -8,18 +8,18 @@ import { AfterTitleOutlet } from "cfx/ui/outlets";
 import { Text } from "cfx/ui/Text/Text";
 import { Title } from "cfx/ui/Title/Title";
 import { useOpenFlag } from "cfx/utils/hooks";
-import { useEffect } from "react";
+// import { useEffect } from "react";
 import ReactFocusLock from "react-focus-lock";
 import s from './Exitter.module.scss';
 
 export function Exitter() {
   const [confirmerOpen, openConfirmer, closeConfirmer] = useOpenFlag(false);
 
-  useEffect(() => {
-    if (confirmerOpen) {
-      playSfx(Sfx.Maybe);
-    }
-  }, [confirmerOpen]);
+  // useEffect(() => {
+  //   if (confirmerOpen) {
+  //     playSfx(Sfx.Maybe);
+  //   }
+  // }, [confirmerOpen]);
 
   return (
     <>

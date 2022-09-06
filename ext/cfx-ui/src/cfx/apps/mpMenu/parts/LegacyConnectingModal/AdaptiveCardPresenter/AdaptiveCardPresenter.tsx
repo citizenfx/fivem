@@ -59,7 +59,7 @@ export const AdaptiveCardPresenter = observer(function AdaptiveCardPresenter(pro
     }
 
     cardRef.current.onExecuteAction = (action) => {
-      if (action instanceof AC.SubmitAction && action.id) {
+      if (action instanceof AC.SubmitAction) {
         if (!submittingRef.current) {
           submittingRef.current = true;
 
