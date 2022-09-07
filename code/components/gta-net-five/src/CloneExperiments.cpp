@@ -4461,7 +4461,7 @@ static InitFunction initFunction([]()
 		TheClones->Update();
 	});
 
-	OnKillNetwork.Connect([](const char*)
+	OnKillNetworkDone.Connect([]()
 	{
 #if defined(GTA_FIVE) && 0
 		auto em = reinterpret_cast<rage::netEventMgr*>(*(char**)g_netEventMgr);
@@ -4474,10 +4474,7 @@ static InitFunction initFunction([]()
 
 		g_events.clear();
 		g_reEventQueue.clear();
-	});
 
-	OnKillNetworkDone.Connect([]()
-	{
 		trackedObjects.clear();
 	});
 
