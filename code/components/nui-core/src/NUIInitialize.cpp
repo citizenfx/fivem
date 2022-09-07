@@ -45,6 +45,7 @@
 #include <VFSManager.h>
 #include <VFSZipFile.h>
 
+#include <include/cef_api_hash.h>
 #include <include/cef_version.h>
 
 #include <Error.h>
@@ -1153,6 +1154,21 @@ void Component_RunPreInit()
 	}
 
 	__HrLoadAllImportsForDll("libcef.dll");
+
+	// verify if the CEF API hash is screwed
+	{
+		const char* apiHash = cef_api_hash(0);
+		const char* apiHashUniversal = cef_api_hash(1);
+		if (strcmp(apiHash, CEF_API_HASH_PLATFORM) != 0 || strcmp(apiHashUniversal, CEF_API_HASH_UNIVERSAL) != 0)
+		{
+			_wunlink(MakeRelativeCitPath(L"content_index.xml").c_str());
+			FatalError("CEF API hash mismatch\nA mismatch was detected between `nui-core.dll` and `bin/libcef.dll`. Please restart the game and try again.\n\nPlatform hash:\n%s\n%s\n\nUniversal hash:\n%s\n%s",
+			apiHash,
+			CEF_API_HASH_PLATFORM,
+			apiHashUniversal,
+			CEF_API_HASH_UNIVERSAL);
+		}
+	}
 
 	Instance<NUIApp>::Set(new NUIApp());
 
