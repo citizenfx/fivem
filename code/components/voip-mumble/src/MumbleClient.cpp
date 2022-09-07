@@ -470,9 +470,13 @@ concurrency::task<MumbleConnectionInfo*> MumbleClient::ConnectAsync(const net::P
 
 concurrency::task<void> MumbleClient::DisconnectAsync()
 {
-	if (m_tlsClient)
 	{
-		m_tlsClient->close();
+		std::unique_lock lock(m_clientMutex);
+
+		if (m_tlsClient)
+		{
+			m_tlsClient->close();
+		}
 	}
 
 	auto tcs = concurrency::task_completion_event<void>{};
