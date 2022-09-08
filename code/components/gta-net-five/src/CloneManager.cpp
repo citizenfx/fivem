@@ -2024,13 +2024,7 @@ void CloneManagerLocal::Update()
 	{
 		if (clone.second)
 		{
-#ifdef GTA_FIVE
 			clone.second->Update();
-#elif IS_RDR3
-			clone.second->MainThreadUpdate();
-			clone.second->DependencyThreadUpdate();
-			clone.second->PostDependencyThreadUpdate();
-#endif
 
 #ifdef GTA_FIVE
 			if (clone.second->GetGameObject())

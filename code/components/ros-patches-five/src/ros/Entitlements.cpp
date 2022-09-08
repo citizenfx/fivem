@@ -741,7 +741,29 @@ mapper->AddGameService("ugc.asmx/Publish", [](const std::string& body)
 			auto rs = rss.str();
 			rs = "";
 
-			if (xbr::IsGameBuild<1436>())
+			if (xbr::IsGameBuild<1491>())
+			{
+				return fmt::sprintf(R"(
+<?xml version="1.0" encoding="utf-8"?>
+<Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ms="0" xmlns="GetBuildManifestFull">
+  <Status>1</Status>
+  <Result BuildId="85" VersionNumber="1.0.1491.16" BuildDateUtc="2019-11-05T11:39:37.0266667">
+    <FileManifest>
+		<FileDetails FileEntryId="9178" FileEntryVersionId="9648" FileSize="89045344" TimestampUtc="2019-11-05T11:39:34.8800000">
+			<RelativePath>RDR2.exe</RelativePath>
+			<SHA256Hash>a5f7613edf87f43b8af525f985e2546162645c96a770de90aaa870b0b9dd913f</SHA256Hash>
+			<FileChunks>
+				<Chunk FileChunkId="13046" SHA256Hash="a5f7613edf87f43b8af525f985e2546162645c96a770de90aaa870b0b9dd913f" StartByteOffset="0" Size="89045344" />
+			</FileChunks>
+		</FileDetails>
+%s
+    </FileManifest>
+    <IsPreload>false</IsPreload>
+  </Result>
+</Response>)",
+				rs);
+			}
+			else if (xbr::IsGameBuild<1436>())
 			{
 				return fmt::sprintf(R"(
 <?xml version="1.0" encoding="utf-8"?>
@@ -1046,6 +1068,7 @@ mapper->AddGameService("ugc.asmx/Publish", [](const std::string& body)
 			{ 1311, 79 },
 			{ 1355, 80 },
 			{ 1436, 84 },
+			{ 1491, 85 },
 		};
 
 		return fmt::sprintf(R"(<?xml version="1.0" encoding="utf-8"?>
