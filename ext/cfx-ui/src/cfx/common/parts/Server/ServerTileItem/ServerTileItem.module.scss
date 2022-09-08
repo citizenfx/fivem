@@ -36,6 +36,7 @@
       background-position: center center;
 
       -webkit-mask: linear-gradient(180deg, red 0%, red calc(100% - ui.use('spread')), transparent 100%);
+      mask: linear-gradient(180deg, red 0%, red calc(100% - ui.use('spread')), transparent 100%);
 
       filter: grayscale(75%);
 

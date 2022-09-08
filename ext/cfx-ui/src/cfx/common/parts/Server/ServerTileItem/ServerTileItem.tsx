@@ -52,8 +52,7 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
       <div className={s.banner} />
 
       <div className={s.content}>
-
-        <Pad left right bottom>
+        <Pad left right bottom top={!server.bannerDetail}>
           <Flex fullWidth>
             <Box height={10}>
               <ServerIcon type="list" server={server} />
