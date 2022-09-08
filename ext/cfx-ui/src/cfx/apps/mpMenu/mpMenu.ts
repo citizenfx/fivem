@@ -34,13 +34,19 @@ class NicknameStore {
 
     window.localStorage.setItem('nickOverride', newNickname);
 
-    if (this.nickname) {
-      mpMenu.invokeNative('checkNickname', this.nickname);
-    }
+    this.propagateNicknameChange();
   }
 
   constructor() {
     makeAutoObservable(this);
+
+    this.propagateNicknameChange();
+  }
+
+  private propagateNicknameChange() {
+    if (this.nickname) {
+      mpMenu.invokeNative('checkNickname', this.nickname);
+    }
   }
 }
 
