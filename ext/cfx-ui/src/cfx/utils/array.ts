@@ -5,3 +5,7 @@ export function arrayAt<T>(array: T[], index: number): T | undefined {
 
   return array[index];
 }
+
+export function uniqueArray<T>(array: Array<T>): Array<T> {
+  return [...new Set(array)];
+}

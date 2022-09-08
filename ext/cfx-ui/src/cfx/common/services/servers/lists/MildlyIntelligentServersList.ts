@@ -1,3 +1,4 @@
+import { uniqueArray } from "cfx/utils/array";
 import { makeAutoObservable, observable } from "mobx";
 import { IServersService } from "../servers.service";
 import { IServersStorageService } from "../serversStorage.service";
@@ -18,10 +19,10 @@ export class MildlyIntelligentServersList implements IServersList {
   private set favoriteServersSequence(seq: string[]) { this._favoriteServersSequence = seq }
 
   public get sequence() {
-    const latestAndFavoriteServerIds = [...new Set([
+    const latestAndFavoriteServerIds = uniqueArray([
       this.historyServersSequence[this.historyServersSequence.length - 1],
       ...this.favoriteServersSequence,
-    ])].filter((serverId) => {
+    ]).filter((serverId) => {
       if (!serverId) {
         return false;
       }
@@ -50,23 +51,17 @@ export class MildlyIntelligentServersList implements IServersList {
       _favoriteServerSequence: observable.ref,
     });
 
-    this.serversStorageService.onFavoriteServers((seq) => (this.favoriteServersSequence = seq, this.updateActualSequence()));
+    this.serversStorageService.onFavoriteServers((seq) => this.favoriteServersSequence = seq);
     this.historyServersSequence = this.serversStorageService.getLastServers().map((server) => server.address);
 
-    this.listSource.onList(ServersListType.MildlyIntelligent, (seq) => (this.allServersSequence = seq, this.updateActualSequence()));
+    this.listSource.onList(ServersListType.MildlyIntelligent, (seq) => this.allServersSequence = seq);
     this.listSource.makeList(reviveServerListConfig({
       type: ServersListType.MildlyIntelligent,
       // prioritizePinned: true,
     }));
-
-    this.updateActualSequence();
   }
 
   refresh(): void {
-
-  }
-
-  private updateActualSequence() {
 
   }
 }

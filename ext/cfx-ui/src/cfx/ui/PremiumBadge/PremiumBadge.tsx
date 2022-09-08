@@ -1,13 +1,23 @@
 import React from "react";
-import { clsx } from "cfx/utils/clsx";
-import s from './PremiumBadge.module.scss';
+import { Title } from "../Title/Title";
 
-export const VALID_PREMIUM_LEVELS = ['pt', 'au', 'ag'];
+const map = Object.freeze({
+  ag: {
+    emoji: '💿',
+    title: 'Element Club Argentum',
+  },
+  au: {
+    emoji: '📀',
+    title: 'Element Club Aurum',
+  },
+  pt: {
+    emoji: '🌟',
+    title: 'Element Club Platinum',
+  },
+});
 
 export type PremiumBadgeLevel =
-  | 'pt'
-  | 'au'
-  | 'ag'
+  | keyof typeof map
   | string;
 
 export interface PremiumBadgeProps {
@@ -21,17 +31,17 @@ export const PremiumBadge = React.forwardRef((props: PremiumBadgeProps, ref: Rea
     className,
   } = props;
 
-  if (!VALID_PREMIUM_LEVELS.includes(level)) {
+  if (!map[level]) {
     return null;
   }
 
-  const rootClassName = clsx(s.root, className, s[`level-${level}`]);
-
   return (
-    <div ref={ref} className={rootClassName}>
-      <span>
-        {level}
-      </span>
+    <div ref={ref} className={className}>
+      <Title title={map[level].title}>
+        <span>
+          {map[level].emoji}
+        </span>
+      </Title>
     </div>
   );
 });
