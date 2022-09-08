@@ -1,0 +1,43 @@
+import { DEFAULT_SERVER_LOCALE, DEFAULT_SERVER_LOCALE_COUNTRY, filterServerProjectName } from "cfx/base/serverUtils";
+import { processServerDataVariables } from "cfx/common/services/servers/transformers";
+import { IServerView, ServerViewDetailsLevel } from "cfx/common/services/servers/types";
+import { IDynamicServerData, IQueriedServerData } from "./types";
+
+export function dynamicServerData2ServerView(endpoint: string, data: IDynamicServerData): IServerView {
+  return {
+    detailsLevel: ServerViewDetailsLevel.DynamicDataJson,
+    address: endpoint,
+    locale: DEFAULT_SERVER_LOCALE,
+    localeCountry: DEFAULT_SERVER_LOCALE_COUNTRY,
+    connectEndPoints: [endpoint],
+    gametype: data.gametype,
+    mapname: data.mapname,
+    hostname: data.hostname,
+    projectName: filterServerProjectName(data.hostname),
+    playersCurrent: data.clients,
+    playersMax: parseInt(data.sv_maxclients, 10),
+    upvotePower: 0,
+    burstPower: 0,
+    rawVariables: {},
+  };
+}
+
+export function queriedServerData2ServerView(endpoint: string, data: IQueriedServerData): IServerView {
+  return {
+    detailsLevel: ServerViewDetailsLevel.InfoAndDynamicDataJson,
+    address: endpoint,
+    server: data.infoBlob.server,
+    mapname: data.mapname,
+    hostname: data.name,
+    projectName: data.name,
+    gametype: data.gametype,
+    locale: DEFAULT_SERVER_LOCALE,
+    localeCountry: DEFAULT_SERVER_LOCALE_COUNTRY,
+    connectEndPoints: [data.addr],
+    rawVariables: data.infoBlob.vars,
+    playersCurrent: data.clients,
+    playersMax: data.maxclients,
+    resources: data.infoBlob.resources,
+    ...processServerDataVariables(data.infoBlob.vars),
+  };
+}

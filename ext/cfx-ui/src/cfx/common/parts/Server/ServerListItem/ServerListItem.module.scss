@@ -1,0 +1,178 @@
+.root {
+  display: flex;
+  align-items: center;
+
+  gap: ui.offset('normal');
+
+  width: 100%;
+  height: 100%;
+
+  padding: ui.q();
+
+  border-bottom: solid 1px ui.color-token('server-item-border');
+
+  cursor: pointer;
+
+  overflow: hidden;
+
+  background-color: ui.color-token('server-item-background');
+  &:hover {
+    background-color: ui.color-token('server-item-hover-background');
+  }
+
+  &.platinum {
+    background-image:
+      linear-gradient(5deg, transparent, ui.color-token('server-item-platinum-background')),
+      ui.use('asset-image-bgpat'),
+    ;
+    background-size: contain, 150px;
+    background-position: center center, calc(var(--offset, 0) * 100%) 0px;
+  }
+
+  &.description-under-name {
+    .title {
+      .description {
+        margin-left: 0;
+      }
+    }
+  }
+
+  &.standalone {
+    border-bottom: none;
+    border-radius: ui.border-radius('small');
+
+    background-color: ui.color-token('server-item-standalone-background');
+
+    &:hover {
+      background-color: ui.color-token('server-item-standalone-hover-background');
+    }
+
+    .players {
+      width: initial;
+    }
+  }
+
+  .pin {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    @include ui.font-size('large');
+  }
+
+  .decorator {
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: ui.offset('normal');
+
+    @include ui.font-size('large');
+  }
+
+  .title {
+    flex-grow: 1;
+
+    width: 100%;
+    overflow: hidden;
+
+    line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    @include ui.font-size('large');
+    @include ui.font-weight('bold');
+    font-feature-settings: 'case', 'liga' 1;
+
+    // Not a mistake, this is needed to make ephasis dots of correct color
+    color: ui.color-token('server-item-description-text');
+
+    .description {
+      margin-left: ui.offset('normal');
+
+      @include ui.font-size('normal');
+      @include ui.font-weight('normal');
+
+      color: ui.color-token('server-item-description-text');
+    }
+  }
+
+  .tags {
+    flex-shrink: 0;
+
+    display: flex;
+
+    gap: ui.offset();
+  }
+
+  .actions {
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+
+    gap: ui.offset();
+  }
+
+  .players {
+    flex-shrink: 0;
+
+    width: ui.q(15);
+    text-align: right;
+
+    color: ui.color-token('server-item-players-text');
+  }
+
+  .density {
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+
+    width: ui.q(11);
+
+    padding-right: ui.offset();
+
+    @include ui.font-size('large');
+    @include ui.font-weight('bold');
+
+    -webkit-background-clip: text;
+    color: transparent;
+
+    background-image: linear-gradient(
+      180deg,
+      ui.color-token('server-item-density-background-from'),
+      ui.color-token('server-item-density-background-via'),
+      ui.color-token('server-item-density-background-to')
+    );
+    background-size: 100% 500%;
+    background-position: 0 var(--density);
+  }
+
+  .hide-on-hover {
+    display: flex;
+  }
+  .show-on-hover {
+    display: none;
+  }
+  &:hover {
+    .hide-on-hover {
+      display: none;
+    }
+    .show-on-hover {
+      display: flex;
+    }
+  }
+
+  .fade-in-on-hover {
+    opacity: 0;
+  }
+  &:hover {
+    .fade-in-on-hover {
+      opacity: 1;
+    }
+  }
+}

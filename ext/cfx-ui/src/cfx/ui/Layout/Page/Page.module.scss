@@ -1,0 +1,72 @@
+.root {
+  position: relative;
+
+  display: flex;
+  flex-direction: column;
+
+  height: 100%;
+  width: 100%;
+
+  .loader {
+    position: absolute;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    top: calc(#{ui.offset('xlarge')} * -0.5);
+    // left: ui.border-radius();
+    left: 0;
+    // right: ui.border-radius();
+    right: 0;
+
+    height: ui.q();
+    // border-radius: 50%;
+    border-radius: ui.border-radius();
+
+    // -webkit-mask-image: linear-gradient(90deg, transparent, black ui.q(2), black calc(100% - ui.q(2)), transparent);
+    // mask-image: linear-gradient(90deg, transparent, black ui.q(2), black calc(100% - ui.q(2)), transparent);
+
+    z-index: 1;
+
+    &::after {
+      display: block;
+      content: '';
+
+      // width: 50%;
+      width: 100%;
+      height: 100%;
+
+      border-radius: ui.border-radius();
+      border-bottom-left-radius: ui.border-radius();
+      border-bottom-right-radius: ui.border-radius();
+
+      background-image: linear-gradient(90deg, ui.color('success'), ui.color('teal'), ui.color('success'));
+      // background-image: linear-gradient(90deg, ui.color('success'), ui.color('teal'), ui.color('success'));
+      // background-image: linear-gradient(45deg, transparent 0px, transparent ui.q(), ui.color('primary') ui.q(), ui.color('primary') ui.q(2));
+      background-size: ui.q(10);
+      // background-color: ui.color('primary');
+
+      @keyframes wtf {
+        0% {
+          // transform: translateX(-100%);
+          background-position-x: 0px;
+        }
+
+        // 50% {
+        //   transform: translateX(125%);
+        // }
+        100% {
+          // transform: translateX(200%);
+          background-position-x: 100%;
+        }
+      }
+
+      animation-name: wtf;
+      animation-duration: 10s;
+      // animation-timing-function: ease-in-out;
+      animation-timing-function: linear;
+      animation-iteration-count: infinite;
+    }
+  }
+}

@@ -1,0 +1,19 @@
+.root {
+  position: fixed;
+  top: 0;
+  left: 0;
+  transform: translate(var(--x), calc(var(--y) + ui.q()));
+
+  width: var(--w);
+
+  padding: ui.offset('normal');
+
+  overflow: hidden;
+
+  background-color: ui.color('main', 100);
+
+  pointer-events: none;
+
+  @include ui.border-radius('small');
+  box-shadow: ui.use('shadow-large');
+}

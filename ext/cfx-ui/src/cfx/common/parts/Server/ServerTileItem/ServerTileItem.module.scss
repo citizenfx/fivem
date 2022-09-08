@@ -1,0 +1,59 @@
+.root {
+  @include ui.def('hh', ui.q(8));
+
+  @include ui.border-radius('small');
+
+  background-color: ui.color-token('server-item-standalone-background');
+
+  cursor: pointer;
+
+  overflow: hidden;
+
+  @include ui.animated('background-color');
+  &:hover {
+    background-color: ui.color-token('server-item-standalone-hover-background');
+  }
+
+  &.withBanner {
+    @include ui.def('spread', ui.q(6));
+    @include ui.def('offset', ui.q(1));
+
+    @include ui.animated('filter', '.banner');
+    &:hover {
+      .banner {
+        filter: grayscale(0%);
+      }
+    }
+
+    .banner {
+      display: block;
+
+      height: calc(ui.use('hh') + ui.use('offset'));
+
+      background-color: ui.color-token('text-a25');
+      background-image: ui.use('banner');
+      background-size: cover;
+      background-position: center center;
+
+      -webkit-mask: linear-gradient(180deg, red 0%, red calc(100% - ui.use('spread')), transparent 100%);
+
+      filter: grayscale(75%);
+
+      will-change: filter;
+    }
+
+    .content {
+      margin-top: calc(-1 * ui.use('offset'));
+    }
+  }
+
+  .banner {
+    display: none;
+  }
+
+  .content {
+    .players {
+      color: ui.color-token('text-a50');
+    }
+  }
+}

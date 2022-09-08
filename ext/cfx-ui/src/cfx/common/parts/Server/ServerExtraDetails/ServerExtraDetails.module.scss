@@ -1,0 +1,18 @@
+.onesync {
+  & > span {
+    font-weight: 300;
+
+    :nth-child(1) {
+      font-weight: 700;
+    }
+    :nth-child(2) {
+      font-weight: 600;
+    }
+    :nth-child(3) {
+      font-weight: 500;
+    }
+    :nth-child(4) {
+      font-weight: 400;
+    }
+  }
+}
