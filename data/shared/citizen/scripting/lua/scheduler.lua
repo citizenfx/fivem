@@ -348,6 +348,18 @@ if isDuplicityVersion then
 
 		return TriggerClientEventInternal(eventName, playerId, payload, payload:len())
 	end
+
+	function TriggerClientEvents(eventName, playerIds, ...)
+		local payload = msgpack_pack_args(...)
+
+		if type(playerIds) ~= "table" then
+			return error("argument at index 1 for TriggerClientEvents must be a table")
+		end
+		
+		for i=1,#playerIds,1 do
+			TriggerClientEventInternal(eventName, playerIds[i], payload, payload:len())
+		end
+	end
 	
 	function TriggerLatentClientEvent(eventName, playerId, bps, ...)
 		local payload = msgpack_pack_args(...)
