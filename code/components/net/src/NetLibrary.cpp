@@ -1804,7 +1804,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 #if defined(GTA_FIVE)
 							if (buildRef != 1604 && buildRef != 2060 && buildRef != 2189 && buildRef != 2372 && buildRef != 2545 && buildRef != 2612 && buildRef != 2699)
 #else
-							if (buildRef != 1311 && buildRef != 1355 && buildRef != 1436)
+							if (buildRef != 1311 && buildRef != 1355 && buildRef != 1436 && buildRef != 1491)
 #endif
 							{
 								OnConnectionError(va("Server specified an invalid game build enforcement (%d).", buildRef), json::object({
