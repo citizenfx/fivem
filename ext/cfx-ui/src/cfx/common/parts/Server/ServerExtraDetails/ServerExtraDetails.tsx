@@ -21,6 +21,7 @@ import { Button } from "cfx/ui/Button/Button";
 import { BiCopy } from 'react-icons/bi';
 import s from './ServerExtraDetails.module.scss';
 import copy from "copy-to-clipboard";
+import { useDynamicRef, useOpenFlag } from "cfx/utils/hooks";
 
 interface IExtraLoafDescriptor {
   key: keyof IServerView,
@@ -120,14 +121,7 @@ export const ServerExtraDetails = observer(function ServerExtraDetails({ server 
     const joinLink = `cfx.re/join/${server.address}`;
 
     nodes.push(
-      <Title key="join-link-copier" title="Copy to clipboard">
-        <Button
-          size="small"
-          icon={<BiCopy />}
-          text={joinLink}
-          onClick={() => copy(joinLink)}
-        />
-      </Title>
+      <Copier text={joinLink} />
     );
   }
 
@@ -210,4 +204,48 @@ function Linkify({ text }: { text: string }) {
   const linkified = React.useMemo(() => linkifyx(text, linkReplacer), [text]);
 
   return linkified as any;
+}
+
+function Copier({ text }) {
+  const [copied, setCopied, unsetCopied] = useOpenFlag(false);
+
+  const textRef = useDynamicRef(text);
+  const timerRef = React.useRef<SetTimeoutReturn | null>(null);
+  const unsetCopiedRef = useDynamicRef(unsetCopied);
+
+  const handleClick = React.useCallback(() => {
+    copy(textRef.current);
+
+    if (timerRef.current !== null) {
+      clearTimeout(timerRef.current);
+    }
+
+    timerRef.current = setTimeout(() => {
+      timerRef.current = null;
+      unsetCopiedRef.current();
+    }, 1000);
+
+    setCopied();
+  }, []);
+
+  React.useEffect(() => () => {
+    if (timerRef.current !== null) {
+      clearTimeout(timerRef.current);
+    }
+  }, []);
+
+  const title = copied
+    ? 'Copied!'
+    : 'Copy to clipboard';
+
+  return (
+    <Title key="join-link-copier" title={title}>
+      <Button
+        size="small"
+        icon={<BiCopy />}
+        text={text}
+        onClick={handleClick}
+      />
+    </Title>
+  );
 }
