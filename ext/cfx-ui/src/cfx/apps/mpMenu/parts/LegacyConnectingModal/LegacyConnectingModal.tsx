@@ -107,7 +107,7 @@ function ResolvingServer() {
       <Flex centered>
         <Indicator />
 
-        {$L('Connecting to server...')}
+        {$L('#Servers_ConnectingToServer')}
       </Flex>
     </Pad>
   );
