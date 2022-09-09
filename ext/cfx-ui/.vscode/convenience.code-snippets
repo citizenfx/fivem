@@ -1,0 +1,43 @@
+{
+  "simport": {
+    "scope": "typescript,typescriptreact",
+    "prefix": "simport",
+    "body": [
+      "import s from './$TM_FILENAME_BASE.module.scss';"
+    ]
+  },
+  "eprops": {
+    "scope": "typescript,typescriptreact",
+    "prefix": "eprops",
+    "body": [
+      "export interface ${TM_FILENAME_BASE}Props {",
+      "\t$0",
+      "}"
+    ]
+  },
+  "cprops": {
+    "scope": "typescript,typescriptreact",
+    "prefix": "cprops",
+    "body": [
+      "interface $1Props {",
+      "\t$2",
+      "}"
+    ]
+  },
+  "cnimport": {
+    "scope": "typescript,typescriptreact",
+    "prefix": "cnimport",
+    "body": [
+      "import { clsx } from 'cfxui/utils/clsx';",
+    ]
+  },
+  "pvalue": {
+    "scope": "typescript,typescriptreact",
+    "prefix": "pvalue",
+    "body": [
+      "private _$1: $2 = $3;",
+      "public get $1(): $2 { return this._$1 }",
+      "private set $1($1: $2) { this._$1 = $1 }",
+    ]
+  },
+}

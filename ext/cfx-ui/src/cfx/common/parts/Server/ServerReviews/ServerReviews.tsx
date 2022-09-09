@@ -3,11 +3,13 @@ import { $L } from "cfx/common/services/intl/l10n";
 import { IServersReviewsService } from "cfx/common/services/servers/reviews/serversReviews.service";
 import { IServerView } from "cfx/common/services/servers/types";
 import { Button } from "cfx/ui/Button/Button";
+import { Icons } from "cfx/ui/Icons";
 import { Indicator } from "cfx/ui/Indicator/Indicator";
+import { InfoPanel } from "cfx/ui/InfoPanel/InfoPanel";
 import { Flex } from "cfx/ui/Layout/Flex/Flex";
 import { Text } from "cfx/ui/Text/Text";
 import { observer } from "mobx-react-lite";
-import { MdOutlineReviews } from "react-icons/md";
+import { MdOutlineReviews, MdReviews } from "react-icons/md";
 import { ServerReview } from "./ServerReview/ServerReview";
 import { ServerReviewForm } from "./ServerReviewForm/ServerReviewForm";
 
@@ -56,6 +58,17 @@ export const ServerReviews = observer(function ServerReviews(props: ServerReview
           server={server}
           serverReviews={serverReviews}
         />
+      )}
+
+      {serverReviews.ownReviewApprovePending && (
+        <InfoPanel type="success">
+          <Flex>
+            <MdReviews />
+            <span>
+              Your review has been submitted and will soon be processed by our moderators 🤗
+            </span>
+          </Flex>
+        </InfoPanel>
       )}
 
       {!!serverReviews.ownReview && (

@@ -10,6 +10,8 @@ export interface ModalProps {
 
   backdropClassName?: string,
   contentClassName?: string,
+
+  disableBackdropClose?: boolean,
 }
 
 export function Modal(props: ModalProps) {
@@ -18,11 +20,16 @@ export function Modal(props: ModalProps) {
     children,
     backdropClassName,
     contentClassName,
+    disableBackdropClose = false,
   } = props;
+
+  const handleBackdropClick = disableBackdropClose
+    ? undefined
+    : onClose;
 
   return (
     <Overlay>
-      <Overlay.Backdrop onClick={onClose} className={backdropClassName} />
+      <Overlay.Backdrop onClick={handleBackdropClick} className={backdropClassName} />
       <Overlay.Content className={contentClassName}>
         <div className={s.root}>
           {!!onClose && (

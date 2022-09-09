@@ -95,7 +95,9 @@ class DiscourseService implements IAccountService, AppContribution {
 
     mpMenu.on('authPayload', this.handleExternalAuthPayload);
 
-    this.siteData = ObservableAsyncValue.from(() => this.makeApiCall('/site'));
+    this.siteData = ObservableAsyncValue.from(() => this.makeApiCall('/site'), {
+      lazy: true,
+    });
   }
 
   init() {

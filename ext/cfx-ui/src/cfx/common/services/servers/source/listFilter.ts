@@ -32,7 +32,7 @@ function compileLocaleFilters(filters: IFilter[], config: IServerListConfig) {
 
   if (localeEntries.length) {
     filters.push(
-      (server) => !localeEntries.some(([locale, enabled]) => enabled !== (server.locale === locale)),
+      (server) => localeEntries.some(([locale, enabled]) => enabled === (server.locale === locale)),
     );
   }
 }
@@ -42,7 +42,7 @@ function compileTagsFilters(filters: IFilter[], config: IServerListConfig) {
 
   if (tagEntries.length) {
     filters.push(
-      (server) => !tagEntries.some(([tag, enabled]) => enabled !== Boolean(server.tagsMap[tag])),
+      (server) => tagEntries.some(([tag, enabled]) => enabled === Boolean(server.tagsMap[tag])),
     );
   }
 }

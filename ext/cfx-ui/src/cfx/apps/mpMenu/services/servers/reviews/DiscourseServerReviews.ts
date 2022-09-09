@@ -2,6 +2,7 @@ import { formatCFXID, TCFXID } from "cfx/base/identifiers";
 import { loadPlaytimes } from "cfx/common/services/servers/activity/playtimes";
 import { IServerActivityUserPlaytime } from "cfx/common/services/servers/activity/types";
 import { IServerReviewReportOption, IServerReviewItem, IServerReviews, IServerReviewSubmitData } from "cfx/common/services/servers/reviews/types";
+import { timeout } from "cfx/utils/async";
 import { fetcher } from "cfx/utils/fetcher";
 import { ObservableAsyncValue } from "cfx/utils/observable";
 import { makeAutoObservable, observable } from "mobx";
@@ -17,6 +18,7 @@ enum OwnReviewState {
   LoadingError,
   None,
   Exists,
+  ApprovePending,
 }
 
 export class DiscourseServerReviews implements IServerReviews {
@@ -65,10 +67,15 @@ export class DiscourseServerReviews implements IServerReviews {
       case OwnReviewState.Exists:
       case OwnReviewState.Loading:
       case OwnReviewState.LoadingError:
+      case OwnReviewState.ApprovePending:
         return false;
     }
 
     return true;
+  }
+
+  public get ownReviewApprovePending(): boolean {
+    return this.ownReviewState === OwnReviewState.ApprovePending;
   }
 
   private _currentReviewsPage = 0;
@@ -122,7 +129,9 @@ export class DiscourseServerReviews implements IServerReviews {
 
       if (response.action === 'enqueued') {
         // TODO: flow to say the post is pending-review
-        // TODO: mark my-review properly?
+
+        this.ownReviewState = OwnReviewState.ApprovePending;
+
         return null;
       }
 
@@ -190,6 +199,11 @@ export class DiscourseServerReviews implements IServerReviews {
 
       for (const topic of response.topic_list.topics) {
         const userId = topic.posters?.find((poster) => poster.description === 'Original Poster' && poster.user_id > 0)?.user_id || -1;
+
+        if (userId === this.discourseService.account?.id) {
+          continue;
+        }
+
         const user = users[userId] || null;
 
         this.addReviewItem(this.loadDetailsAndTransformToServerReviewItem(topic, user));

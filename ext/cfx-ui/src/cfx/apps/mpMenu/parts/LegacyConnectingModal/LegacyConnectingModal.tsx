@@ -89,7 +89,7 @@ export const LegacyConnectingModal = observer(function LegacyConnectingModal() {
   }
 
   return (
-    <Modal onClose={service.canCancel ? service.cancel : undefined}>
+    <Modal disableBackdropClose onClose={service.canCancel ? service.cancel : undefined}>
       <Box width="calc(var(--width) / 2)">
         {!!service.server && (
           <ServerHeader server={service.server} />
@@ -107,7 +107,7 @@ function ResolvingServer() {
       <Flex centered>
         <Indicator />
 
-        {$L('Connecting to server...')}
+        {$L('#Servers_ConnectingToServer')}
       </Flex>
     </Pad>
   );
