@@ -2,6 +2,7 @@ import { formatCFXID, TCFXID } from "cfx/base/identifiers";
 import { loadPlaytimes } from "cfx/common/services/servers/activity/playtimes";
 import { IServerActivityUserPlaytime } from "cfx/common/services/servers/activity/types";
 import { IServerReviewReportOption, IServerReviewItem, IServerReviews, IServerReviewSubmitData } from "cfx/common/services/servers/reviews/types";
+import { timeout } from "cfx/utils/async";
 import { fetcher } from "cfx/utils/fetcher";
 import { ObservableAsyncValue } from "cfx/utils/observable";
 import { makeAutoObservable, observable } from "mobx";
@@ -71,6 +72,10 @@ export class DiscourseServerReviews implements IServerReviews {
     }
 
     return true;
+  }
+
+  public get ownReviewApprovePending(): boolean {
+    return this.ownReviewState === OwnReviewState.ApprovePending;
   }
 
   private _currentReviewsPage = 0;

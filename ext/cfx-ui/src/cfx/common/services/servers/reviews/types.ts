@@ -10,9 +10,10 @@ export interface IServerReviewSubmitData {
 
 export interface IServerReviews {
   readonly playtimes: Record<TCFXID, IServerActivityUserPlaytime>;
+  readonly ownPlaytime: IServerActivityUserPlaytime | null;
 
   readonly ownReview: IServerReviewItem | null;
-  readonly ownPlaytime: IServerActivityUserPlaytime | null;
+  readonly ownReviewApprovePending: boolean;
 
   readonly canSubmitReview: boolean;
   submitReview(data: IServerReviewSubmitData): Promise<string | null>;
