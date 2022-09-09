@@ -28,6 +28,9 @@ call yarn
 :: propagate error
 if %ERRORLEVEL% neq 0 exit /b 1
 
+:: remove old build output
+rmdir /s /q build
+
 :: build it
 call yarn build 2>&1
 
