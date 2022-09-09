@@ -169,7 +169,7 @@ export class MpMenuServersService implements IServersService, AppContribution {
 
     this.serverDetailsLoadRequested[address] = true;
 
-    this.setServerLoadingState(address, ServerViewDetailsLevel.Complete);
+    this.setServerLoadingState(address, ServerViewDetailsLevel.MasterListFull);
     const server = await getSingleServer(CurrentGameName, address);
     this.setServerLoadingState(address, false);
 
@@ -180,7 +180,7 @@ export class MpMenuServersService implements IServersService, AppContribution {
 
       // But if it was listed - mark as offline
       const listedServer = this._servers.get(address);
-      if (listedServer?.detailsLevel === ServerViewDetailsLevel.Shallow) {
+      if (listedServer?.detailsLevel === ServerViewDetailsLevel.MasterList) {
         this.replaceServer({
           ...listedServer,
           offline: true,
@@ -225,9 +225,9 @@ export class MpMenuServersService implements IServersService, AppContribution {
       return server;
     }
 
-    this.setServer(server.address, server);
+    this.setServer(server.id, server);
 
-    const resolvedServer = (await getServerByAnyMean(CurrentGameName, server.address)) || server;
+    const resolvedServer = (await getServerByAnyMean(CurrentGameName, server.id)) || server;
 
     // If no live server data - it is offline
     if (resolvedServer === server) {
@@ -235,12 +235,12 @@ export class MpMenuServersService implements IServersService, AppContribution {
     }
 
     // Overwrite with resolved
-    this.setServer(server.address, resolvedServer);
+    this.setServer(server.id, resolvedServer);
 
     // Resolved server can have different address, for example,
     // if server to resolve had only IP address and we were able to resolve it to an actual CFXID
     // so this way we will have same IServerView available by both addresses
-    this.setServer(resolvedServer.address, resolvedServer);
+    this.setServer(resolvedServer.id, resolvedServer);
 
     return resolvedServer;
   }
@@ -252,7 +252,7 @@ export class MpMenuServersService implements IServersService, AppContribution {
    */
   replaceServer(server: IServerView) {
     this.logService.log('Replacing server', ServerViewDetailsLevel[server.detailsLevel], server);
-    this._servers.set(server.address, server);
+    this._servers.set(server.id, server);
   }
 
   setServer(serverId: string, server: IServerView) {
@@ -352,7 +352,7 @@ export class MpMenuServersService implements IServersService, AppContribution {
 
       this.replaceServer(server);
 
-      this.topLocaleServerId = server.address;
+      this.topLocaleServerId = server.id;
 
       return;
     }
@@ -368,7 +368,7 @@ export class MpMenuServersService implements IServersService, AppContribution {
       // });
 
       this.totalServersCount++;
-      this.setServer(server.address, server);
+      this.setServer(server.id, server);
     }
   };
 }

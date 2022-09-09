@@ -118,7 +118,7 @@ export const ServerExtraDetails = observer(function ServerExtraDetails({ server 
       </Title>
     );
 
-    const joinLink = `cfx.re/join/${server.address}`;
+    const joinLink = `cfx.re/join/${server.id}`;
 
     nodes.push(
       <Copier text={joinLink} />

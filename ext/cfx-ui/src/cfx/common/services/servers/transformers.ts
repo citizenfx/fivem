@@ -1,6 +1,5 @@
 import { DEFAULT_SERVER_LOCALE, DEFAULT_SERVER_LOCALE_COUNTRY, filterServerProjectDesc, filterServerProjectName, hasPrivateConnectEndpoint } from "cfx/base/serverUtils";
 import { arrayAt } from "cfx/utils/array";
-// import { isFalseString } from "cfx/utils/string";
 import { master } from "./source/api/master";
 import { IArrayCategoryMatcher, IListableServerView, IStringCategoryMatcher } from "./source/types";
 import { IFullServerData, IHistoryServer, IServer, IServerView, ServerPureLevel, ServerViewDetailsLevel } from "./types";
@@ -9,8 +8,8 @@ export function serverAddress2ServerView(address: string): IServerView {
   const fakeHostname = `Unknown server name (${address})`;
 
   return {
+    id: address,
     detailsLevel: ServerViewDetailsLevel.Address,
-    address,
     hostname: fakeHostname,
     locale: DEFAULT_SERVER_LOCALE,
     localeCountry: DEFAULT_SERVER_LOCALE_COUNTRY,
@@ -19,22 +18,27 @@ export function serverAddress2ServerView(address: string): IServerView {
   };
 }
 
-export function listServerData2ServerView(address: string, data: master.IServerData): IServerView {
-  const serverView = Object.assign(serverAddress2ServerView(address), {
-    detailsLevel: ServerViewDetailsLevel.Shallow,
-    enforceGameBuild: data.vars?.['sv_enforceGameBuild'],
-    gametype: data.gametype,
-    mapname: data.mapname,
-    server: data.server,
-    hostname: data.hostname || '',
-    playersMax: data.svMaxclients || 0,
-    playersCurrent: data.clients || 0,
-    iconVersion: data.iconVersion,
-    burstPower: data.burstPower || 0,
-    upvotePower: data.upvotePower || 0,
-    connectEndPoints: data.connectEndPoints,
-    private: hasPrivateConnectEndpoint(data.connectEndPoints),
-  }, processServerDataVariables(data.vars));
+export function masterListServerData2ServerView(joinId: string, data: master.IServerData): IServerView {
+  const serverView = Object.assign(
+    serverAddress2ServerView(joinId),
+    {
+      joinId,
+      detailsLevel: ServerViewDetailsLevel.MasterList,
+      enforceGameBuild: data.vars?.['sv_enforceGameBuild'],
+      gametype: data.gametype,
+      mapname: data.mapname,
+      server: data.server,
+      hostname: data.hostname || '',
+      playersMax: data.svMaxclients || 0,
+      playersCurrent: data.clients || 0,
+      iconVersion: data.iconVersion,
+      burstPower: data.burstPower || 0,
+      upvotePower: data.upvotePower || 0,
+      connectEndPoints: data.connectEndPoints,
+      private: hasPrivateConnectEndpoint(data.connectEndPoints),
+    },
+    processServerDataVariables(data.vars),
+  );
 
   if (!serverView.projectName) {
     serverView.upvotePower = 0;
@@ -43,33 +47,38 @@ export function listServerData2ServerView(address: string, data: master.IServerD
   return serverView;
 }
 
-export function fullServerData2ServerView(address: string, data: IFullServerData['Data']): IServerView {
-  const serverView = Object.assign(serverAddress2ServerView(address), {
-    detailsLevel: ServerViewDetailsLevel.Complete,
-    enforceGameBuild: data.vars?.['sv_enforceGameBuild'],
-    gametype: data.gametype,
-    mapname: data.mapname,
-    server: data.server,
-    hostname: data.hostname || '',
-    playersMax: data.svMaxclients || 0,
-    playersCurrent: data.clients || 0,
-    iconVersion: data.iconVersion,
-    burstPower: data.burstPower || 0,
-    upvotePower: data.upvotePower || 0,
-    connectEndPoints: data.connectEndPoints,
+export function masterListFullServerData2ServerView(joinId: string, data: IFullServerData['Data']): IServerView {
+  const serverView = Object.assign(
+    serverAddress2ServerView(joinId),
+    {
+      joinId,
+      detailsLevel: ServerViewDetailsLevel.MasterListFull,
+      enforceGameBuild: data.vars?.['sv_enforceGameBuild'],
+      gametype: data.gametype,
+      mapname: data.mapname,
+      server: data.server,
+      hostname: data.hostname || '',
+      playersMax: data.svMaxclients || 0,
+      playersCurrent: data.clients || 0,
+      iconVersion: data.iconVersion,
+      burstPower: data.burstPower || 0,
+      upvotePower: data.upvotePower || 0,
+      connectEndPoints: data.connectEndPoints,
 
-    private: data.private || hasPrivateConnectEndpoint(data.connectEndPoints),
+      private: data.private || hasPrivateConnectEndpoint(data.connectEndPoints),
 
-    ownerID: data.ownerID,
-    ownerName: data.ownerName,
-    ownerAvatar: data.ownerAvatar,
-    ownerProfile: data.ownerProfile,
+      ownerID: data.ownerID,
+      ownerName: data.ownerName,
+      ownerAvatar: data.ownerAvatar,
+      ownerProfile: data.ownerProfile,
 
-    supportStatus: (data.support_status as any) || 'supported',
+      supportStatus: (data.support_status as any) || 'supported',
 
-    resources: data.resources as any,
-    players: data.players as any,
-  }, processServerDataVariables(data.vars));
+      resources: data.resources as any,
+      players: data.players as any,
+    },
+    processServerDataVariables(data.vars),
+  );
 
   if (!serverView.projectName) {
     serverView.upvotePower = 0;
@@ -80,8 +89,8 @@ export function fullServerData2ServerView(address: string, data: IFullServerData
 
 export function historyServer2ServerView(historyServer: IHistoryServer): IServerView {
   const server: IServerView = {
+    id: historyServer.address,
     detailsLevel: ServerViewDetailsLevel.Historical,
-    address: historyServer.address,
     locale: DEFAULT_SERVER_LOCALE,
     localeCountry: DEFAULT_SERVER_LOCALE_COUNTRY,
     hostname: historyServer.hostname,
@@ -101,7 +110,7 @@ export function serverView2ListableServerView(server: IServerView): IListableSer
   const sortableName = getSortableName(searchableName);
 
   return {
-    id: server.address,
+    id: server.id,
 
     ping: 0,
 
@@ -271,7 +280,7 @@ export function processServerDataVariables(vars?: IServer['data']['vars']): Vars
 
 function getCategories(server: IServerView) {
   const {
-    address,
+    id: address,
     tags,
     locale,
     gamename,
@@ -358,8 +367,8 @@ function createArrayMatcher(against: string[]): IArrayCategoryMatcher {
 
 function getCanonicalLocale(locale: string): string {
   try {
-      return Intl.getCanonicalLocales(locale.replace(/_/g, '-'))[0];
+    return Intl.getCanonicalLocales(locale.replace(/_/g, '-'))[0];
   } catch {
-      return DEFAULT_SERVER_LOCALE;
+    return DEFAULT_SERVER_LOCALE;
   }
 }

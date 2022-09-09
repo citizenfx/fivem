@@ -17,26 +17,35 @@ export enum ServerViewDetailsLevel {
    */
   Historical = 50,
 
+  /**
+   * Data from /dynamic.json endpoint of the server
+   */
   DynamicDataJson = 100,
+
+  /**
+   * Data from from /dynamic.json and /info.json endpoints of the server
+   */
   InfoAndDynamicDataJson = 150,
 
   /**
    * Data populated from servers list
    */
-  Shallow = 200,
+  MasterList = 200,
 
   /**
    * Data populated from complete server data
    */
-  Complete = 300,
+  MasterListFull = 300,
 }
 
 export interface IServerView {
   // MANDATORY FIELDS
-  // Represents the very minimum set of information app needs to know about particular server
+    // Unique id for internal use within cfx ui
+    id: string,
+
+    // Represents the very minimum set of information app needs to know about particular server
     detailsLevel: ServerViewDetailsLevel,
 
-    address: string,
     locale: string,
     localeCountry: string,
     hostname: string,
@@ -45,6 +54,9 @@ export interface IServerView {
 
     rawVariables: Record<string, string>,
   // /MANDATORY FIELDS
+
+  joinId?: string,
+  manuallyEnteredEndPoint?: string,
 
   connectEndPoints?: string[],
   projectDescription?: string,

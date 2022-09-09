@@ -44,14 +44,14 @@ class MpMenuServersConnectService implements IServersConnectService {
               action: 'Connecting',
               properties: {
                 category: 'Server',
-                label: `${server.hostname} (${server.address})`,
+                label: `${server.hostname} (${server.id})`,
               },
             });
             analyticsService.trackEvent({
               action: 'ConnectingRaw',
               properties: {
                 category: 'Server',
-                label: server.address,
+                label: server.id,
               },
             });
 
@@ -72,7 +72,7 @@ class MpMenuServersConnectService implements IServersConnectService {
       return null;
     }
 
-    return this.serversService.getServer(this._server.address) || this._server;
+    return this.serversService.getServer(this._server.id) || this._server;
   }
   private set server(server: IServerView | null) { this._server = server }
 
@@ -191,7 +191,7 @@ class MpMenuServersConnectService implements IServersConnectService {
   private pickAddress(server: IServerView, address?: string): string {
     // Prefer address
     if (!address) {
-      address = server.address;
+      address = server.id;
 
       if (server.connectEndPoints?.length) {
         const endpoints = server.connectEndPoints.filter((endpoint) => endpoint !== 'https://private-placholder.cfx.re');

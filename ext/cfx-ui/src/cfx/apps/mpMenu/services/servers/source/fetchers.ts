@@ -24,10 +24,10 @@ export async function getServerByAnyMean(gameName: GameName, address: string): P
     return await getSingleServer(gameName, parsedAddress.address);
   }
 
-  const serverId = await getServerIDFromEndpoint(parsedAddress.address);
-  if (serverId) {
-    console.log('[getServerByAnyMean] resolved server id', serverId);
-    const server = await getSingleServer(gameName, serverId);
+  const joinId = await getJoinIdFromEndpoint(parsedAddress.address);
+  if (joinId) {
+    console.log('[getServerByAnyMean] resolved server id', joinId);
+    const server = await getSingleServer(gameName, joinId);
     if (server) {
       console.log('[getServerByAnyMean] loaded server by id', server);
       return server;
@@ -50,7 +50,7 @@ export async function getServerByAnyMean(gameName: GameName, address: string): P
   return dynamicServerData2ServerView(parsedAddress.address, dynamicServerData);
 }
 
-async function getServerIDFromEndpoint(endpoint: string): Promise<string | null> {
+async function getJoinIdFromEndpoint(endpoint: string): Promise<string | null> {
   try {
     const serverID = await resolveOrTimeout(
       5000,
@@ -117,7 +117,7 @@ export async function getLocalhostServerInfo(port: string): Promise<IQueriedServ
 
 try {
   (window as any).__getServerByAnyMean = getServerByAnyMean;
-  (window as any).__getServerIDFromEndpoint = getServerIDFromEndpoint;
+  (window as any).__getServerIDFromEndpoint = getJoinIdFromEndpoint;
   (window as any).__getDynamicServerDataFromEndpoint = getDynamicServerDataFromEndpoint;
   (window as any).__getLocalhostServer = getLocalhostServerInfo;
 } catch (e) {}

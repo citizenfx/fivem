@@ -105,7 +105,7 @@ export class ServersWorker {
       await getAllServers(this.gameName, (server: IServerView) => {
         this.serversIndex.add(server);
 
-        this.listableServersMap[server.address] = serverView2ListableServerView(server);
+        this.listableServersMap[server.id] = serverView2ListableServerView(server);
 
         serversBuffer.push(server);
 

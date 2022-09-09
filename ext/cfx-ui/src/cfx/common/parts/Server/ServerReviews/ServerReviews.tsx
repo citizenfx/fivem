@@ -25,7 +25,7 @@ export const ServerReviews = observer(function ServerReviews(props: ServerReview
 
   const ServersReviewsService = useService(IServersReviewsService);
 
-  const serverReviews = ServersReviewsService.getForServer(server.address);
+  const serverReviews = ServersReviewsService.getForServer(server.id);
 
   const nodes = serverReviews.itemsSequence.map((id) => (
     <ServerReview

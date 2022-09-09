@@ -25,7 +25,7 @@ export function ServerIcon(props: ServerIconProps) {
 
   const serverId = typeof server === 'string'
     ? server
-    : server.address;
+    : server.id;
 
   const iconURL = useService(IServersService).getServerIconURL(serverId);
 

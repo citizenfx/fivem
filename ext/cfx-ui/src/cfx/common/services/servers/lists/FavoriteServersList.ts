@@ -21,7 +21,7 @@ export class FavoriteServersList implements IServersList {
     const existingFavoriteServers: IServerView[] = Object.keys(this._favoriteServers).map((id) => this.getServer(id)).filter(Boolean) as any;
 
     const listableFavoriteServers: Record<string, IListableServerView> = existingFavoriteServers.reduce((acc, server) => {
-      acc[server.address] = serverView2ListableServerView(server);
+      acc[server.id] = serverView2ListableServerView(server);
 
       return acc;
     }, {});

@@ -156,7 +156,7 @@ const DetailsWrapper = observer(function DetailsWrapper({ server }: { server: IS
           server={server}
           onScroll={handleScroll}
           scrollTrackingRef={connectButtonRef}
-          forceReviewsAvailable={ServersService.isServerPinned(server.address)}
+          forceReviewsAvailable={ServersService.isServerPinned(server.id)}
         />
       </ServerReviewFormContext.Provider>
     </>

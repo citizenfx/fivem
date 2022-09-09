@@ -30,7 +30,7 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
 
   const navigate = useNavigate();
   const handleClick = React.useCallback(() => {
-    navigate(`/servers/detail/${server.address}`);
+    navigate(`/servers/detail/${server.id}`);
   }, [navigate, server]);
 
   const showCountryFlag = showServerCountryFlag(server.localeCountry);

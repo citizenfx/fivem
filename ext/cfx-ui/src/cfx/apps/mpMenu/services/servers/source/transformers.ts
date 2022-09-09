@@ -5,8 +5,8 @@ import { IDynamicServerData, IQueriedServerData } from "./types";
 
 export function dynamicServerData2ServerView(endpoint: string, data: IDynamicServerData): IServerView {
   return {
+    id: endpoint,
     detailsLevel: ServerViewDetailsLevel.DynamicDataJson,
-    address: endpoint,
     locale: DEFAULT_SERVER_LOCALE,
     localeCountry: DEFAULT_SERVER_LOCALE_COUNTRY,
     connectEndPoints: [endpoint],
@@ -24,8 +24,8 @@ export function dynamicServerData2ServerView(endpoint: string, data: IDynamicSer
 
 export function queriedServerData2ServerView(endpoint: string, data: IQueriedServerData): IServerView {
   return {
+    id: endpoint,
     detailsLevel: ServerViewDetailsLevel.InfoAndDynamicDataJson,
-    address: endpoint,
     server: data.infoBlob.server,
     mapname: data.mapname,
     hostname: data.name,

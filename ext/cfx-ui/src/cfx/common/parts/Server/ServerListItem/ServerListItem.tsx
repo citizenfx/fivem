@@ -60,7 +60,7 @@ export const ServerListItem = observer(function ServerListItem(props: ServerList
       return;
     }
 
-    navigate(`/servers/detail/${server.address}`);
+    navigate(`/servers/detail/${server.id}`);
   }, [navigate, server]);
 
   if (!server) {
@@ -100,7 +100,7 @@ export const ServerListItem = observer(function ServerListItem(props: ServerList
     >
       <ServerIcon
         type="list"
-        server={server.address}
+        server={server.id}
         loading={isLoading}
         className={s.icon}
       />
@@ -164,7 +164,7 @@ export const ServerListItem = observer(function ServerListItem(props: ServerList
         </div>
       )}
 
-      <LastConnectedAt id={server.address} />
+      <LastConnectedAt id={server.id} />
 
       {showDecorator && (
         <div className={clsx(s.decorator, s['hide-on-hover'])}>
@@ -178,7 +178,7 @@ export const ServerListItem = observer(function ServerListItem(props: ServerList
         </div>
       )}
 
-      <Favorite id={server.address} />
+      <Favorite id={server.id} />
 
       <div className={s.players}>
         <ServerPlayersCount server={server} />
@@ -212,7 +212,7 @@ const BoostButton = observer(function BoostButton(props: { server: IServerView }
 
   const ServersBoostService = useService(IServersBoostService);
 
-  const isBoostedByUser = ServersBoostService.currentBoost?.address === server.address;
+  const isBoostedByUser = ServersBoostService.currentBoost?.address === server.id;
 
   const title = isBoostedByUser
     ? `You're BOOSTING™ this server`
@@ -228,7 +228,7 @@ const BoostButton = observer(function BoostButton(props: { server: IServerView }
 
   const handleClick = isBoostedByUser
     ? noop
-    : () => ServersBoostService.boostServer(server.address);
+    : () => ServersBoostService.boostServer(server.id);
 
   return (
     <Title fixedOn="bottom" title={title}>

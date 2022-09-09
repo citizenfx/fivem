@@ -1,6 +1,6 @@
 import { Deferred } from "cfx/utils/async";
 import { decodeServer } from "../api/api";
-import { fullServerData2ServerView, listServerData2ServerView } from "../../transformers";
+import { masterListFullServerData2ServerView, masterListServerData2ServerView } from "../../transformers";
 import { IFullServerData, IServerView } from "../../types";
 import { FrameReader } from "./frameReader";
 import { fetcher } from "cfx/utils/fetcher";
@@ -30,7 +30,7 @@ async function readBodyToServers(gameName: GameName, onServer: (server: IServerV
 
         if (gameName === serverGameName) {
           s = performance.now();
-          const aaa = listServerData2ServerView(srv.EndPoint, srv.Data);
+          const aaa = masterListServerData2ServerView(srv.EndPoint, srv.Data);
           transformTime += performance.now() - s;
 
           s = performance.now();
@@ -73,7 +73,7 @@ export async function getSingleServer(gameName: GameName, address: string): Prom
       const serverGameName = srv.Data?.vars?.gamename || GameName.FiveM;
 
       if (gameName === serverGameName) {
-        return fullServerData2ServerView(srv.EndPoint, srv.Data);
+        return masterListFullServerData2ServerView(srv.EndPoint, srv.Data);
       }
     }
 
@@ -105,7 +105,7 @@ export async function getTopServer(config: TopServerConfig): Promise<IServerView
         }
       }
 
-      return fullServerData2ServerView(srv.EndPoint, srv.Data);
+      return masterListFullServerData2ServerView(srv.EndPoint, srv.Data);
     }
 
     return null;

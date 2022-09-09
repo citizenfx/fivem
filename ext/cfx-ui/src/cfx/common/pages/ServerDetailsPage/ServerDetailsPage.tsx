@@ -59,11 +59,11 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
 
   useEnsureCompleteServerLoaded(server);
 
-  const { address } = server;
+  const { id: address } = server;
   const ServersService = useService(IServersService);
 
   const shouldShowCompleteServerLoading = useTimeoutFlag(300);
-  const isCompleteServerLoading = shouldShowCompleteServerLoading && ServersService.isServerLoading(server.address, ServerViewDetailsLevel.Complete);
+  const isCompleteServerLoading = shouldShowCompleteServerLoading && ServersService.isServerLoading(server.id, ServerViewDetailsLevel.MasterListFull);
 
   const isOffline = Boolean(server.offline);
   const hasBanner = Boolean(server.bannerDetail);
@@ -99,7 +99,7 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
                     <Flex vertical>
                       <ServerIcon
                         type="details"
-                        server={server.address}
+                        server={server.id}
                       />
 
                       <Flex centered className={s.decorator}>
@@ -230,8 +230,8 @@ function useEnsureCompleteServerLoaded(server: IServerView) {
 
   React.useEffect(() => {
     let to = setTimeout(() => {
-      if (server.detailsLevel < ServerViewDetailsLevel.Complete) {
-        ServersService.loadServerDetailedData(server.address);
+      if (server.detailsLevel < ServerViewDetailsLevel.MasterListFull) {
+        ServersService.loadServerDetailedData(server.id);
       }
     }, 16);
 

@@ -58,16 +58,16 @@ export class HistoryServersList implements IServersList {
 
     const server = await this.resolveServer(historyServer2ServerView(historyServer));
 
-    if (historyServer.address !== server.address) {
-      this._serversLastConnectedAt[server.address] = historyServer.time;
+    if (historyServer.address !== server.id) {
+      this._serversLastConnectedAt[server.id] = historyServer.time;
     }
   }
 
   async serverView2HistoryServer(server: IServerView, overrides: Partial<IHistoryServer> = {}): Promise<IHistoryServer> {
-    const thumbnail = overrides.icon || await getServerIconThumbnailURL(server.address);
+    const thumbnail = overrides.icon || await getServerIconThumbnailURL(server.id);
 
     return {
-      address: server.address,
+      address: server.id,
       hostname: server.projectName,
       title: '',
       time: new Date(),
