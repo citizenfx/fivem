@@ -17,4 +17,13 @@
   &.size-xxxlarge {
     @include ui.font-size('xxxlarge');
   }
+
+  &.truncated {
+    width: 100%;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    overflow: hidden;
+  }
 }

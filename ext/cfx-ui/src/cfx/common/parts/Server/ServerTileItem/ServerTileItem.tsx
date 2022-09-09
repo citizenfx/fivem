@@ -60,9 +60,13 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
 
             <FlexRestricter>
               <Flex vertical fullHeight fullWidth centered="cross-axis" gap="normal">
-                <ServerTitle size="xlarge" title={server.projectName || server.hostname} />
+                <ServerTitle
+                  truncated
+                  size="xlarge"
+                  title={server.projectName || server.hostname}
+                />
 
-                <Title fixedOn="bottom-left" title={server.projectDescription}>
+                <Title delay={500} fixedOn="bottom-left" title={server.projectDescription}>
                   <Text truncated opacity="50">
                     {server.projectDescription}
                   </Text>
