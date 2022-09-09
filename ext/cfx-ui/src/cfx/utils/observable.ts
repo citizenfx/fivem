@@ -5,21 +5,38 @@ export interface IObservableValue<T> {
   get(): T;
 }
 
+export interface IObservableAsyncValueOptions {
+  lazy?: boolean,
+}
+
+const enum ObservableRemoteValueState {
+  Idle = 1,
+  Fetching = 2,
+  Resolved = 3,
+  Rejected = 4,
+}
+
 export class ObservableAsyncValue<T> implements IObservableValue<T> {
-  static from<Value>(fetcherFn: () => Promise<Value>): ObservableAsyncValue<Value> {
-    return new ObservableAsyncValue(fetcherFn);
+  static from<Value>(fetcherFn: () => Promise<Value>, options?: IObservableAsyncValueOptions): ObservableAsyncValue<Value> {
+    return new ObservableAsyncValue(fetcherFn, options);
   }
 
-  private _state = ObservableRemoteValueState.Fetching;
+  private _state: ObservableRemoteValueState = ObservableRemoteValueState.Idle;
 
   private _value: T;
   private _error: any;
   private _deferred?: Deferred<void>;
 
-  private constructor(fetcherFn) {
+  private constructor(
+    private readonly fetcherFn: () => Promise<T>,
+    private readonly options: IObservableAsyncValueOptions = {},
+  ) {
     makeObservable(this, {
       // @ts-expect-error privates
       _state: true,
+
+      fetcherFn: false,
+      options: false,
 
       set: action,
       error: action,
@@ -31,12 +48,20 @@ export class ObservableAsyncValue<T> implements IObservableValue<T> {
       hasError: _autoAction,
     });
 
-    this.fetch(fetcherFn);
+    if (!options.lazy) {
+      this.ensureFetchRequested();
+    }
   }
 
-  private async fetch(fetcherFn) {
+  private async ensureFetchRequested() {
+    if (this._state >= ObservableRemoteValueState.Fetching) {
+      return;
+    }
+
+    this._state = ObservableRemoteValueState.Fetching;
+
     try {
-      this.set(await fetcherFn());
+      this.set(await this.fetcherFn());
     } catch (e) {
       this.error(e);
     }
@@ -49,6 +74,7 @@ export class ObservableAsyncValue<T> implements IObservableValue<T> {
 
     this._state = ObservableRemoteValueState.Resolved;
     this._value = value;
+
     this._deferred?.resolve();
   }
 
@@ -59,6 +85,7 @@ export class ObservableAsyncValue<T> implements IObservableValue<T> {
 
     this._state = ObservableRemoteValueState.Rejected;
     this._error = error;
+
     this._deferred?.reject(error);
   }
 
@@ -87,15 +114,13 @@ export class ObservableAsyncValue<T> implements IObservableValue<T> {
       this._deferred = new Deferred();
     }
 
+    this.ensureFetchRequested();
+
     await this._deferred.promise;
   }
 
   public async waitGet(): Promise<Readonly<T>> {
-    if (!this._deferred) {
-      this._deferred = new Deferred();
-    }
-
-    await this._deferred.promise;
+    await this.wait();
 
     return this.get();
   }
@@ -105,13 +130,8 @@ export class ObservableAsyncValue<T> implements IObservableValue<T> {
       await this.wait();
 
       return mapFn(this.get());
-    });
+    }, this.options);
   }
-}
-const enum ObservableRemoteValueState {
-  Fetching,
-  Resolved,
-  Rejected,
 }
 
 export class AwaitableValue<T> {
