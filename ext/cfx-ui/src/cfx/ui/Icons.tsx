@@ -49,7 +49,7 @@ export namespace Icons {
 
 export const BrandIcon = {
   [GameName.FiveM]: (
-    <svg className="brand-icon">
+    <svg className="brand-icon mirror">
       <use xlinkHref="#logo-gta5" />
     </svg>
   ),

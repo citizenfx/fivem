@@ -140,6 +140,10 @@ li::marker {
 
   fill: currentColor;
   stroke: currentColor;
+
+  &.mirror {
+    transform: rotateY(180deg);
+  }
 }
 
 // Utilities
