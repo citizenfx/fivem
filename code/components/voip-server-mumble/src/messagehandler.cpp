@@ -475,7 +475,6 @@ void Mh_handle_message(client_t *client, message_t *msg)
 			msg->payload.userState->recording() != client->recording) {
 			client->recording = msg->payload.userState->recording();
 			char *message;
-			uint32_t *tree_id;
 
 			message = (char*)Memory_safeMalloc(1, strlen(client->username) + 32);
 			sendmsg = Msg_create(TextMessage);

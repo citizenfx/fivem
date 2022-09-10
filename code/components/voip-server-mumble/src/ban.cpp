@@ -243,7 +243,6 @@ void Ban_putBanList(message_t *msg, int n_bans)
 	uint32_t duration, mask;
 	uint8_t *address;
 	uint8_t mappedBytes[12] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff};
-	char *tz;
 
 	for (i = 0; i < n_bans; i++) {
 		Msg_banList_getEntry(msg, i, &address, &mask, &name, &hexhash, &reason, &start, &duration);

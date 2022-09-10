@@ -712,7 +712,6 @@ client_t *Client_iterate(client_t **client_itr)
 void Client_textmessage(client_t *client, char *text)
 {
 	char *message;
-	uint32_t *tree_id;
 	message_t *sendmsg = NULL;
 
 	message = (char*)Memory_safeMalloc(1, strlen(text) + 1);
