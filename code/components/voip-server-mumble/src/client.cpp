@@ -123,6 +123,8 @@ bool Client_is_player_muted(int serverId)
 			return c->mute;
 		}
 	}
+
+	return false;
 }
 
 void Client_set_player_muted(int serverId, bool muted)
