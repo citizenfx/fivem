@@ -1,6 +1,5 @@
 #include <StdInc.h>
 
-#include <jitasm.h>
 #include <Hooking.h>
 
 #include <CoreConsole.h>
@@ -89,7 +88,10 @@ static uint64_t (*g_origSettingsVramTex)(void* self, int quality, void* settings
 static uint64_t SettingsVramTex(void* self, int quality, void* settings)
 {
 	float multiplier = (GetBudgetVar().GetValue() / 8.0f) + 1.0f;
-	return g_origSettingsVramTex(self, quality, settings) * multiplier;
+	g_origSettingsVramTex(self, quality, settings);
+
+	// 1 GB is the approximate difference between default 'fake settings' amount and our 3 GB assumption
+	return g_vramLocation[quality + 1] - (1 * GB);
 }
 
 static uint64_t (*g_origGetAvailableMemoryForStreamer)(void* self);
