@@ -26,7 +26,7 @@ static std::vector<std::string> g_fontIds = {
 	"$gtaCash",
 	// padding for bad scripts
 	"$Font2",
-	"$Font2",
+	"$Taxi_font", // added in a newer release after a $Font2 for padding
 	"$Font2",
 	"$Font2",
 	"$Font2",
