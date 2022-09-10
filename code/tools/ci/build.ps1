@@ -244,7 +244,7 @@ if (!$DontBuild)
 	Pop-Location
 
 	Start-Section "update_submodule_git" "Updating all submodules"
-	git submodule update --jobs=8
+	git submodule update --jobs=8 --force
 	End-Section "update_submodule_git"
 
 	Pop-Location
