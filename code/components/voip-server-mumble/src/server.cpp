@@ -399,14 +399,23 @@ static InitFunction initFunction([]()
 						hostIP.c_str(), maxClientCount);
 						return;
 					}
+
+					if (Client_add(stream, &client) != 0)
+					{
+						return;
+					}
+
 					mapEntry->second++;
 				}
 				else
 				{
+					if (Client_add(stream, &client) != 0)
+					{
+						return;
+					}
+
 					clientsPerIP.insert({ hostIP, 1 });
 				}
-
-				Client_add(stream, &client);
 			}
 
 			stream->SetReadCallback([=](const std::vector<uint8_t>& data)

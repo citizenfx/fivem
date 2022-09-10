@@ -201,8 +201,9 @@ message_t *Ban_getBanList(void)
 	msg = Msg_banList_create(bancount);
 	list_iterate(itr, &banlist) {
 		ban = list_get_entry(itr, ban_t, node);
-		//gmtime_r(&ban->time, &timespec);
+		gmtime_s(&timespec, &ban->time);
 		strftime(timestr, 32, "%Y-%m-%dT%H:%M:%SZ", &timespec);
+		hexhash[0] = '\0';
 		//SSLi_hash2hex(ban->hash, hexhash);
 		memset(address, 0, 16);
 
@@ -306,6 +307,7 @@ static void Ban_saveBanFile(void)
 	}
 	list_iterate(itr, &banlist) {
 		ban = list_get_entry(itr, ban_t, node);
+		hexhash[0] = '\0';
 		//SSLi_hash2hex(ban->hash, hexhash);
 
 		char *addressString = Util_addressToString(&ban->address);
