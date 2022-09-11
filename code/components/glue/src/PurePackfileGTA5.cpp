@@ -5799,7 +5799,8 @@ static InitFunction initFunction([]
 		if (fx::client::GetPureLevel() == 1)
 		{
 			std::string_view pathTest{ path };
-			if (pathTest == "x64/audio/sfx/RESIDENT.rpf" ||
+			if (pathTest == "citizen/common/data/effects" || // BloodFX, "KillFX" etc.
+			    pathTest == "x64/audio/sfx/RESIDENT.rpf" ||
 				pathTest == "x64/audio/sfx/WEAPONS_PLAYER.rpf" ||
 				pathTest.find("x64/audio/sfx/STREAMED_VEHICLES") == 0 ||
 				pathTest.find("x64/audio/sfx/RADIO") == 0)
