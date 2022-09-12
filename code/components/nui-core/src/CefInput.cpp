@@ -64,6 +64,79 @@ static CefRefPtr<CefBrowser> GetFocusBrowser()
 #endif
 }
 
+static fwRefContainer<NUIWindow> GetFocusWindow()
+{
+	return nui::GetWindow();
+}
+
+struct ScaleInfo
+{
+	double outX = 0.0;
+	double outY = 0.0;
+
+	double offsetX = 0.0;
+	double offsetY = 0.0;
+};
+
+static ScaleInfo
+GetWindowScaleInfo(const fwRefContainer<NUIWindow>& window)
+{
+	int targetX, targetY;
+	g_nuiGi->GetGameResolution(&targetX, &targetY);
+
+	int sourceX = window->GetWidth();
+	int sourceY = window->GetHeight();
+
+	double targetAspect = (double)targetX / targetY;
+	double sourceAspect = (double)sourceX / sourceY;
+
+	double offsetX = 0.0, offsetY = 0.0;
+	double outX = targetX, outY = targetY;
+
+	if (targetAspect > sourceAspect)
+	{
+		outX = targetY * sourceAspect;
+		outY = targetY;
+
+		offsetX = (targetX - outX) / 2.0;
+	}
+	else if (targetAspect < sourceAspect)
+	{
+		outX = targetX;
+		outY = targetX / sourceAspect;
+
+		offsetY = (targetY - outY) / 2.0;
+	}
+
+	return {
+		outX, outY, offsetX, offsetY
+	};
+}
+
+void TranslateWindowRect(const fwRefContainer<NUIWindow>& window, CRect* rect)
+{
+	auto scale = GetWindowScaleInfo(window);
+	*rect = CRect(scale.offsetX, scale.offsetY + scale.outY, scale.offsetX + scale.outX, scale.offsetY);
+}
+
+template<typename T>
+static bool TranslateMouseEvent(const fwRefContainer<NUIWindow>& window, T* x, T* y)
+{
+	if (window.GetRef() && window->IsFixedSizeWindow())
+	{
+		int sourceX = window->GetWidth();
+		int sourceY = window->GetHeight();
+
+		auto scale = GetWindowScaleInfo(window);
+		*x = (T)(((*x - scale.offsetX) / scale.outX) * sourceX);
+		*y = (T)(((*y - scale.offsetY) / scale.outY) * sourceY);
+
+		return true;
+	}
+
+	return false;
+}
+
 namespace nui
 {
 	CefBrowser* GetFocusBrowser()
@@ -441,6 +514,8 @@ static HookFunction initFunction([] ()
 			LONG currentTime = 0;
 			bool cancelPreviousClick = false;
 
+			TranslateMouseEvent(GetFocusWindow(), &x, &y);
+
 			lastX = x;
 			lastY = y;
 
@@ -553,9 +628,12 @@ static HookFunction initFunction([] ()
 			if (browser) {
 				int delta = int(deltaY * 120);
 
+				int x = lastX, y = lastY;
+				TranslateMouseEvent(GetFocusWindow(), &x, &y);
+
 				CefMouseEvent mouse_event;
-				mouse_event.x = lastX;
-				mouse_event.y = lastY;
+				mouse_event.x = x;
+				mouse_event.y = y;
 				mouse_event.modifiers = GetCefMouseModifiers();
 
 				browser->GetHost()->SendMouseWheelEvent(mouse_event,
@@ -740,6 +818,8 @@ static HookFunction initFunction([] ()
 					::GetCursorPos(&p);
 					::ScreenToClient(hWnd, &p);
 
+					TranslateMouseEvent(GetFocusWindow(), &p.x, &p.y);
+
 					CefMouseEvent mouse_event;
 					mouse_event.x = p.x;
 					mouse_event.y = p.y;
@@ -755,6 +835,15 @@ static HookFunction initFunction([] ()
 			} break;
 
 			case WM_MOUSEWHEEL: {
+				int x = GET_X_LPARAM(lParam);
+				int y = GET_Y_LPARAM(lParam);
+
+				if (TranslateMouseEvent(GetFocusWindow(), &x, &y))
+				{
+					lParam &= ~((DWORD_PTR)0xFFFFFFFF);
+					lParam |= (DWORD)((x) | ((DWORD)y << 16));
+				}
+
 				MSG m = { hWnd,
 					msg,
 					wParam,

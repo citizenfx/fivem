@@ -281,6 +281,14 @@ const GAME_GAME_SETTINGS = new Map<string, ISetting.AnySetting>([
 
     visible: onlyForFiveM,
   }],
+  ['fixedSizeNUI', {
+    type: 'checkbox',
+
+    label: $L('#Settings_FixedSizeNUI'),
+    description: $L('#Settings_FixedSizeNUIDesc'),
+
+    ...convarAccessorsBoolean('nui_useFixedSize'),
+  }],
 
   ['customEmoji', {
     type: 'switch',

@@ -211,4 +211,6 @@ public:
 	void SetPopupRect(const CefRect& rect);
 
 	void HandlePopupShow(bool show);
+
+	bool IsFixedSizeWindow() const;
 };

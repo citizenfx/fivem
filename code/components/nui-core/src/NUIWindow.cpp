@@ -29,6 +29,9 @@ extern nui::GameInterface* g_nuiGi;
 
 extern std::wstring GetNUIStoragePath();
 
+static bool nuiFixedSizeEnabled;
+static ConVar<bool> nuiFixedSize("nui_useFixedSize", ConVar_Archive, false, &nuiFixedSizeEnabled);
+
 namespace nui
 {
 extern bool g_rendererInit;
@@ -591,6 +594,12 @@ void NUIWindow::UpdateFrame()
 		int resX, resY;
 		g_nuiGi->GetGameResolution(&resX, &resY);
 
+		if (IsFixedSizeWindow())
+		{
+			resX = 1920;
+			resY = 1080;
+		}
+
 		if (m_width != resX || m_height != resY)
 		{
 			m_width = resX;
@@ -945,4 +954,9 @@ void NUIWindow::SetPaintType(NUIPaintType type)
 void NUIWindow::Invalidate()
 {
 	((NUIClient*)m_client.get())->GetBrowser()->GetHost()->Invalidate(PET_VIEW);
+}
+
+bool NUIWindow::IsFixedSizeWindow() const
+{
+	return nuiFixedSizeEnabled && m_name == "root";
 }

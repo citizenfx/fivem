@@ -385,6 +385,8 @@ namespace nui
 #ifdef WANT_CEF_INTERNALS
 #ifndef USE_NUI_ROOTLESS
 	OVERLAY_DECL CefBrowser* GetBrowser();
+
+	OVERLAY_DECL fwRefContainer<NUIWindow> GetWindow();
 #endif
 
 	OVERLAY_DECL CefBrowser* GetFocusBrowser();

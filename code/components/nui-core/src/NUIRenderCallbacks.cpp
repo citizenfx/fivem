@@ -25,6 +25,8 @@ extern std::list<std::string> g_nuiFocusStack;
 HCURSOR g_defaultCursor;
 extern HCURSOR InitDefaultCursor();
 
+extern void TranslateWindowRect(const fwRefContainer<NUIWindow>& window, CRect* rect);
+
 static HookFunction initFunction([] ()
 {
 	g_nuiGi->OnRender.Connect([]()
@@ -101,6 +103,11 @@ static HookFunction initFunction([] ()
 
 				// the texture is usually upside down (GL->DX coord system), so we draw it as such
 				rr.rectangle = CRect(0, resY, resX, 0);
+
+				if (window->IsFixedSizeWindow())
+				{
+					TranslateWindowRect(window, &rr.rectangle);
+				}
 
 				g_nuiGi->DrawRectangles(1, &rr);
 

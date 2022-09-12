@@ -198,23 +198,23 @@ void TriggerLoadEnd(const std::string& name)
 namespace nui
 {
 #ifndef USE_NUI_ROOTLESS
-	__declspec(dllexport) CefBrowser* GetBrowser()
+	__declspec(dllexport) fwRefContainer<NUIWindow> GetWindow()
 	{
 		auto nuiWm = Instance<NUIWindowManager>::Get();
 
 		if (Feature_TopLevelMPMenu::IsEnabled())
 		{
-			CefBrowser* mpMenu = nullptr;
+			fwRefContainer<NUIWindow> mpMenu = nullptr;
 
 			nuiWm->ForAllWindows([&mpMenu](fwRefContainer<NUIWindow> window)
 			{
 				if (window->GetName() == "nui_mpMenu")
 				{
-					mpMenu = window->GetBrowser();
+					mpMenu = window;
 				}
 			});
 
-			if (mpMenu)
+			if (mpMenu.GetRef())
 			{
 				return mpMenu;
 			}
@@ -227,7 +227,14 @@ namespace nui
 			return nullptr;
 		}
 
-		return rootWindow->GetBrowser();
+		return rootWindow;
+	}
+
+	__declspec(dllexport) CefBrowser* GetBrowser()
+	{
+		auto window = GetWindow();
+
+		return (window.GetRef()) ? window->GetBrowser() : nullptr;
 	}
 #endif
 
