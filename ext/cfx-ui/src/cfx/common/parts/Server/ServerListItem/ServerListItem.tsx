@@ -24,6 +24,7 @@ import { ServerPlayersCount } from "../ServerPlayersCount/ServerPlayersCount";
 import { showServerPremiumBadge } from "./utils";
 import { ServerPower } from "../ServerPower/ServerPower";
 import s from './ServerListItem.module.scss';
+import { ServerBoostButton } from "../ServerBoostButton/ServerBoostButton";
 
 export interface ServerListItemProps {
   server: IServerView | undefined,
@@ -142,7 +143,7 @@ export const ServerListItem = observer(function ServerListItem(props: ServerList
           <ServerPower server={server} />
 
           {Boolean(ServersBoostService) && (
-            <BoostButton server={server} />
+            <ServerBoostButton server={server} />
           )}
         </div>
       )}
@@ -187,44 +188,6 @@ const Tags = observer(function Tags({ server }: { server: IServerView }) {
         </Loaf>
       ))}
     </div>
-  );
-});
-
-const BoostButton = observer(function BoostButton(props: { server: IServerView }) {
-  const {
-    server,
-  } = props;
-
-  const ServersBoostService = useService(IServersBoostService);
-
-  const isBoostedByUser = ServersBoostService.currentBoost?.address === server.id;
-
-  const title = isBoostedByUser
-    ? `You're BOOSTING™ this server`
-    : "Give server a BOOST™!";
-
-  const theme = isBoostedByUser
-    ? 'primary'
-    : 'default';
-
-  const text = isBoostedByUser
-    ? 'BOOSTING™!'
-    : 'BOOST™!';
-
-  const handleClick = isBoostedByUser
-    ? noop
-    : () => ServersBoostService.boostServer(server.id);
-
-  return (
-    <Title fixedOn="bottom" title={title}>
-      <Button
-        size="small"
-        theme={theme}
-        text={text}
-        onClick={stopPropagation(handleClick)}
-        disabled={isBoostedByUser}
-      />
-    </Title>
   );
 });
 

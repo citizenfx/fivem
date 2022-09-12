@@ -18,6 +18,8 @@ import { Icons } from "cfx/ui/Icons";
 import { Title } from "cfx/ui/Title/Title";
 import { ServerPower } from "../ServerPower/ServerPower";
 import s from './ServerTileItem.module.scss';
+import { ServerBoostButton } from "../ServerBoostButton/ServerBoostButton";
+import { ControlBox } from "cfx/ui/ControlBox/ControlBox";
 
 export interface ServerTileItemProps {
   server: IServerView,
@@ -75,7 +77,7 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
             </FlexRestricter>
 
             <div style={{ alignSelf: 'center' }}>
-              <Flex vertical alignToEndAxis>
+              <Flex vertical alignToEndAxis gap="small">
                 <Flex centered>
                   <ServerPower server={server} />
 
@@ -87,14 +89,20 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
                   )}
                 </Flex>
 
-                <Flex centered>
-                  <Text opacity="75">
-                    {Icons.playersCount}
-                  </Text>
-                  <Text opacity="75">
-                    <ServerPlayersCount server={server} />
-                  </Text>
-                </Flex>
+                <ControlBox size="small" className={s.showOnHover}>
+                  <ServerBoostButton server={server} />
+                </ControlBox>
+
+                <ControlBox size="small" className={s.hideOnHover}>
+                  <Flex centered fullHeight fullWidth>
+                    <Text opacity="75">
+                      {Icons.playersCount}
+                    </Text>
+                    <Text opacity="75">
+                      <ServerPlayersCount server={server} />
+                    </Text>
+                  </Flex>
+                </ControlBox>
               </Flex>
             </div>
           </Flex>

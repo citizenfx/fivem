@@ -9,6 +9,21 @@
 
   overflow: hidden;
 
+  .showOnHover {
+    display: none;
+  }
+  .hideOnHover {
+    display: block;
+  }
+  &:hover {
+    .showOnHover {
+      display: block;
+    }
+    .hideOnHover {
+      display: none;
+    }
+  }
+
   @include ui.animated('background-color');
   &:hover {
     background-color: ui.color-token('server-item-standalone-hover-background');
@@ -29,7 +44,6 @@
     .banner {
       display: block;
 
-      // height: calc(ui.use('hh') + ui.use('offset'));
       width: 100%;
       aspect-ratio: 19.2;
 
@@ -37,9 +51,6 @@
       background-image: ui.use('banner');
       background-size: cover;
       background-position: center center;
-
-      // -webkit-mask: linear-gradient(180deg, red 0%, red calc(100% - ui.use('spread')), transparent 100%);
-      mask: linear-gradient(180deg, red 0%, red calc(100% - ui.use('spread')), transparent 100%);
 
       opacity: .75;
       filter: contrast(50%);
@@ -49,7 +60,6 @@
 
     .content {
       padding-top: ui.offset();
-      // margin-top: calc(-1 * ui.use('offset'));
     }
   }
 
