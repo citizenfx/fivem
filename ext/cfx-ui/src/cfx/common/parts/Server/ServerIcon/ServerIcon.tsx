@@ -11,6 +11,7 @@ type TypeProps =
 
 export type ServerIconProps = TypeProps & {
   server: string | IServerView,
+  glow?: boolean,
   className?: string,
 }
 export function ServerIcon(props: ServerIconProps) {
@@ -18,6 +19,7 @@ export function ServerIcon(props: ServerIconProps) {
     server,
     type,
     className,
+    glow = false,
   } = props;
 
   const isList = type === 'list';
@@ -29,10 +31,24 @@ export function ServerIcon(props: ServerIconProps) {
 
   const iconURL = useService(IServersService).getServerIconURL(serverId);
 
-  const rootClassName = clsx(s.root, className, s[`type-${type}`], isDetails && s[`size-${props.size || 'normal'}`]);
+  const rootClassName = clsx(
+    s.root,
+    className,
+    s[`type-${type}`],
+    isDetails && s[`size-${props.size || 'normal'}`],
+    {
+      [s.glow]: glow,
+    },
+  );
 
   return (
     <div className={rootClassName}>
+      {glow && (
+        <div className={s.blur}>
+          <img src={iconURL} />
+        </div>
+      )}
+
       <img
         alt={serverId}
         src={iconURL}
@@ -42,12 +58,6 @@ export function ServerIcon(props: ServerIconProps) {
       {(isList && !!props.loading) && (
         <div className={s.loader}>
           <Indicator />
-        </div>
-      )}
-
-      {isDetails && (
-        <div className={s.blur}>
-          <img src={iconURL} />
         </div>
       )}
     </div>

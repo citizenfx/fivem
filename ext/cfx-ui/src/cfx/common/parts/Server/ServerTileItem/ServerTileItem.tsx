@@ -55,11 +55,11 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
         <Pad left right bottom top={!server.bannerDetail}>
           <Flex fullWidth>
             <Box height={10}>
-              <ServerIcon type="list" server={server} />
+              <ServerIcon glow type="list" server={server} />
             </Box>
 
             <FlexRestricter>
-              <Flex vertical fullHeight fullWidth centered="cross-axis" gap="normal">
+              <Flex vertical fullHeight fullWidth centered="cross-axis" gap="small">
                 <ServerTitle
                   truncated
                   size="xlarge"
@@ -74,7 +74,7 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
               </Flex>
             </FlexRestricter>
 
-            <div style={{ alignSelf: 'flex-end' }}>
+            <div style={{ alignSelf: 'center' }}>
               <Flex vertical alignToEndAxis>
                 <Flex centered>
                   <ServerPower server={server} />

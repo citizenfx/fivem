@@ -1,7 +1,7 @@
 .root {
-  @include ui.def('hh', ui.q(8));
+  @include ui.def('hh', ui.q(4));
 
-  @include ui.border-radius('small');
+  @include ui.border-radius('normal');
 
   background-color: ui.color-token('server-item-standalone-background');
 
@@ -29,14 +29,16 @@
     .banner {
       display: block;
 
-      height: calc(ui.use('hh') + ui.use('offset'));
+      // height: calc(ui.use('hh') + ui.use('offset'));
+      width: 100%;
+      aspect-ratio: 19.2;
 
       background-color: ui.color-token('text-a25');
       background-image: ui.use('banner');
       background-size: cover;
       background-position: center center;
 
-      -webkit-mask: linear-gradient(180deg, red 0%, red calc(100% - ui.use('spread')), transparent 100%);
+      // -webkit-mask: linear-gradient(180deg, red 0%, red calc(100% - ui.use('spread')), transparent 100%);
       mask: linear-gradient(180deg, red 0%, red calc(100% - ui.use('spread')), transparent 100%);
 
       opacity: .75;
@@ -46,7 +48,8 @@
     }
 
     .content {
-      margin-top: calc(-1 * ui.use('offset'));
+      padding-top: ui.offset();
+      // margin-top: calc(-1 * ui.use('offset'));
     }
   }
 

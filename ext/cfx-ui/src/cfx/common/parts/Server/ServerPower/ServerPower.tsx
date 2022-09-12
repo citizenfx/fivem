@@ -7,11 +7,14 @@ import { observer } from "mobx-react-lite";
 
 export interface ServerPowerProps {
   server: IServerView,
+
+  className?: string,
 }
 
 export const ServerPower = observer(function ServerPower(props: ServerPowerProps) {
   const {
     server,
+    className,
   } = props;
 
   const hasUpvote = !!server.upvotePower;
@@ -22,7 +25,7 @@ export const ServerPower = observer(function ServerPower(props: ServerPowerProps
   }
 
   return (
-    <Flex centered>
+    <Flex centered className={className}>
       {hasUpvote && (
         <Title fixedOn="bottom" title={$L('#Server_BoostPower_Title')}>
           <Flex gap="thin">

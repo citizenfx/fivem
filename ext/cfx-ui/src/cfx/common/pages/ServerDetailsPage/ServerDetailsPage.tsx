@@ -100,6 +100,7 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
                   <Flex gap="xlarge">
                     <Flex vertical>
                       <ServerIcon
+                        glow
                         type="details"
                         server={server.id}
                       />
