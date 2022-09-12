@@ -45,6 +45,7 @@ export const ServerReviewForm = observer(function ServerReviewForm(props: Server
     state.serverReviews = serverReviews;
   }
 
+  const username = censorUser ? '<HIDDEN>' : account.username;
   const playtime = serverReviews.ownPlaytime?.formattedSeconds || $L('#Reviews_NeverPlayed');
 
   return (
@@ -74,9 +75,9 @@ export const ServerReviewForm = observer(function ServerReviewForm(props: Server
 
                   <Box grow>
                     <Flex vertical gap="small">
-                      <Title fixedOn="bottom-left" title={account.username}>
+                      <Title fixedOn="bottom-left" title={username}>
                         <Text truncated typographic>
-                          {censorUser ? '<HIDDEN>' : account.username}
+                          {username}
                         </Text>
                       </Title>
 

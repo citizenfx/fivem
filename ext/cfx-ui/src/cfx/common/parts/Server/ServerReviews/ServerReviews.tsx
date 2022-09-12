@@ -19,11 +19,12 @@ export interface ServerReviewsProps {
 
 export const ServerReviews = observer(function ServerReviews(props: ServerReviewsProps) {
   const { server } = props;
+
+  const ServersReviewsService = useService(IServersReviewsService);
+
   if (!server.canReview) {
     return null;
   }
-
-  const ServersReviewsService = useService(IServersReviewsService);
 
   const serverReviews = ServersReviewsService.getForServer(server.id);
 
