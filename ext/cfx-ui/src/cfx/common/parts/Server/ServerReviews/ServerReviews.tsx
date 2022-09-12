@@ -65,7 +65,7 @@ export const ServerReviews = observer(function ServerReviews(props: ServerReview
           <Flex>
             <MdReviews />
             <span>
-              Your review has been submitted and will soon be processed by our moderators 🤗
+              {$L('#Reviews_SubmittedReviewNeedsApproval')}
             </span>
           </Flex>
         </InfoPanel>

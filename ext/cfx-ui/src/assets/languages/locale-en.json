@@ -149,6 +149,7 @@
 	"#Review_FlagCTA": "Flag post",
 	"#Review_WriteAbout_Prefix": "Write a review about",
 	"#Review_WriteAbout_Postfix": " ",
+  "#Reviews_SubmittedReviewNeedsApproval": "Your review will become visible shortly after Cfx.re staff approves it",
     "#ErrorActions": "What can you do?",
     "#ErrorDetails": "Error details",
     "#ErrorAction_ContactOwner": "- Contact [OWNER].",
