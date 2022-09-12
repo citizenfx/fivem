@@ -76,11 +76,14 @@
     flex-grow: 1;
 
     width: 100%;
-    overflow: hidden;
 
     line-height: 1.2;
-    text-overflow: ellipsis;
+
+    overflow-x: hidden;
     white-space: nowrap;
+
+    -webkit-mask: linear-gradient(90deg, red, red calc(100% - 2ch), transparent);
+    mask: linear-gradient(90deg, red, red calc(100% - 2ch), transparent);
 
     @include ui.font-size('large');
     @include ui.font-weight('bold');

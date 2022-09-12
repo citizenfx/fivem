@@ -6,10 +6,13 @@
   &.truncated {
     width: 100%;
 
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    line-height: 1.1; // avoid clipping glyphs by bounding box
 
-    overflow: hidden;
+    white-space: nowrap;
+    overflow-x: hidden;
+
+    -webkit-mask: linear-gradient(90deg, red, red calc(100% - 2ch), transparent);
+    mask: linear-gradient(90deg, red, red calc(100% - 2ch), transparent);
   }
 
   &.typographic {
