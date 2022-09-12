@@ -228,7 +228,7 @@ const ServersContainer = observer(function ServersContainer() {
                   ? $L(
                     ServersService.totalServersCount
                       ? '#Home_AllList_Link'
-                      : '#Home_AllList_Link_Fallback',
+                      : '#Home_AllList_Fallback',
                     { count: ServersService.totalServersCount },
                   )
                   : undefined;
