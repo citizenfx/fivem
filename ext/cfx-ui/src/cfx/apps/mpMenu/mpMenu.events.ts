@@ -10,7 +10,11 @@ export namespace MpMenuEvents {
   export const backfillServerInfo = RichEvent.define<{
     data: {
       nonce: string,
-      server: Pick<IHistoryServer, 'icon' | 'token' | 'vars'>,
+      server: {
+        icon: string,
+        token: string,
+        vars: Record<string, string>,
+      },
     }
   }>('backfillServerInfo');
 

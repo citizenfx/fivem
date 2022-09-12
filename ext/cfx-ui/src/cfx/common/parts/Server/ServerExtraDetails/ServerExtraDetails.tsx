@@ -120,7 +120,7 @@ export const ServerExtraDetails = observer(function ServerExtraDetails({ server 
     );
   }
 
-  if (server.joinId) {
+  if (server.joinId && !server.private) {
     nodes.push(
       <Copier
         key="copy-join-id"

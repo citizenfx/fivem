@@ -21,7 +21,7 @@ export async function getServerByAnyMean(gameName: GameName, address: string): P
   // Best-case scenario, it's a listed server
   if (isJoinServerAddress(parsedAddress)) {
     console.log('[getServerByAnyMean] loading single server', address);
-    return await getSingleServer(gameName, parsedAddress.address);
+    return getSingleServer(gameName, parsedAddress.address);
   }
 
   const joinId = await getJoinIdFromEndpoint(parsedAddress.address);
@@ -30,6 +30,8 @@ export async function getServerByAnyMean(gameName: GameName, address: string): P
     const server = await getSingleServer(gameName, joinId);
     if (server) {
       console.log('[getServerByAnyMean] loaded server by id', server);
+
+      server.manuallyEnteredEndPoint = parsedAddress.address;
       return server;
     }
   }
@@ -47,7 +49,10 @@ export async function getServerByAnyMean(gameName: GameName, address: string): P
   }
 
   console.log('[getServerByAnyMean] loaded server by dynamic data', dynamicServerData);
-  return dynamicServerData2ServerView(parsedAddress.address, dynamicServerData);
+  const server = dynamicServerData2ServerView(parsedAddress.address, dynamicServerData);
+
+  server.manuallyEnteredEndPoint = parsedAddress.address;
+  return server;
 }
 
 async function getJoinIdFromEndpoint(endpoint: string): Promise<string | null> {

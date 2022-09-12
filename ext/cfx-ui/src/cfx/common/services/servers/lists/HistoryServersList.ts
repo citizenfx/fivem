@@ -67,7 +67,7 @@ export class HistoryServersList implements IServersList {
     const thumbnail = overrides.icon || await getServerIconThumbnailURL(server.id);
 
     return {
-      address: server.id,
+      address: server.manuallyEnteredEndPoint || server.joinId || server.id,
       hostname: server.projectName,
       title: '',
       time: new Date(),

@@ -98,7 +98,11 @@ export class MpMenuServersService implements IServersService, AppContribution {
     this.listSource = new WorkerSource();
 
     this.listSource.onIndex((index) => this.autocompleteIndex = index);
-    this.listSource.onServersFetchStart(() => this.serversListLoading = true);
+
+    this.listSource.onServersFetchStart(() => {
+      this.totalServersCount = 0;
+      this.serversListLoading = true;
+    });
     this.listSource.onServersFetchChunk((chunk) => this.populateServersFromChunk(chunk));
     this.listSource.onServersFetchEnd((chunk) => (this.populateServersFromChunk(chunk), this.serversListLoading = false));
 
@@ -360,13 +364,6 @@ export class MpMenuServersService implements IServersService, AppContribution {
 
   private readonly populateServersFromChunk = (chunk: IServerView[]) => {
     for (const server of chunk) {
-      // ((window as any).__endpoints ??= []).push({
-      //   addr: server.address,
-
-      //   ep: server.connectEndPoints || [],
-      //   epp: server.connectEndPoints?.map(parseServerAddress) || [],
-      // });
-
       this.totalServersCount++;
       this.setServer(server.id, server);
     }

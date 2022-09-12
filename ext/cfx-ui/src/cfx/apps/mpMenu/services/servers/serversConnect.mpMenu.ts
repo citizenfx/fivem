@@ -6,6 +6,7 @@ import { IServersConnectService } from "cfx/common/services/servers/serversConne
 import { serverAddress2ServerView } from "cfx/common/services/servers/transformers";
 import { IHistoryServer, IServerView } from "cfx/common/services/servers/types";
 import { fastRandomId } from "cfx/utils/random";
+import { RichEvent } from "cfx/utils/types";
 import { inject, injectable, named, optional } from "inversify";
 import { makeAutoObservable, observable } from "mobx";
 import { mpMenu } from "../../mpMenu";
@@ -155,7 +156,7 @@ class MpMenuServersConnectService implements IServersConnectService {
     this.currentConnectNonce = fastRandomId();
 
     mpMenu.invokeNative('connectTo', JSON.stringify([
-      this.pickAddress(
+      this.pickServerConnectEndPoint(
         this.server,
         typeof serverOrAddress === 'string'
           ? serverOrAddress
@@ -188,21 +189,22 @@ class MpMenuServersConnectService implements IServersConnectService {
     mpMenu.invokeNative('cancelDefer');
   };
 
-  private pickAddress(server: IServerView, address?: string): string {
+  private pickServerConnectEndPoint(server: IServerView, address?: string): string {
     // Prefer address
-    if (!address) {
-      address = server.id;
-
-      if (server.connectEndPoints?.length) {
-        const endpoints = server.connectEndPoints.filter((endpoint) => endpoint !== 'https://private-placholder.cfx.re');
-
-        address = endpoints.length === 1
-          ? endpoints[0]
-          : endpoints[Math.floor(Math.random() * endpoints.length)];
-      }
+    if (address) {
+      return address;
     }
 
-    return address;
+    if (server.manuallyEnteredEndPoint) {
+      return server.manuallyEnteredEndPoint;
+    }
+
+    const endpoints = server.connectEndPoints?.filter((endpoint) => endpoint !== 'https://private-placholder.cfx.re');
+    if (endpoints?.length) {
+      return endpoints[Math.floor(Math.random() * endpoints.length)]
+    }
+
+    return server.joinId || server.id;
   }
 
   private async resolveServer(serverOrAddress: string | IServerView): Promise<IServerView> {
@@ -215,7 +217,7 @@ class MpMenuServersConnectService implements IServersConnectService {
     return this.serversService.loadServerLiveData(serverOrAddress);
   }
 
-  private readonly backfillServerInfo = async (event: IBackfillServerInfo) => {
+  private readonly backfillServerInfo = async (event: RichEvent.Payload<typeof MpMenuEvents.backfillServerInfo>) => {
     if (this.currentConnectNonce === event.data.nonce) {
       const historyList = this.serversService.getHistoryList();
       if (historyList && this.server) {
@@ -239,11 +241,4 @@ interface IConnectBuildSwitch {
 
 interface IConnectCard {
   data: ConnectState.DataFor<ConnectState.Card>,
-}
-
-interface IBackfillServerInfo {
-  data: {
-    nonce: string,
-    server: Pick<IHistoryServer, 'icon' | 'token' | 'vars'>,
-  }
 }

@@ -23,26 +23,28 @@ export const ServerConnectButton = observer(function ServerConnectButton(props: 
 
   let title: ReactNode;
 
-  switch (true) {
-    case !ServersConnectService: {
-      title = 'No ServersConnectService, unable to connect';
-      break;
-    }
+  if (!server.manuallyEnteredEndPoint) {
+    switch (true) {
+      case !ServersConnectService: {
+        title = 'No ServersConnectService, unable to connect';
+        break;
+      }
 
-    case !!server.private: {
-      title = $L('#ServerDetail_PrivateDisable');
-      break;
-    }
-    case isServerEOL(server): {
-      title = $L('#ServerDetail_EOLDisable');
-      break;
-    }
+      case !!server.private: {
+        title = $L('#ServerDetail_PrivateDisable');
+        break;
+      }
+      case isServerEOL(server): {
+        title = $L('#ServerDetail_EOLDisable');
+        break;
+      }
 
-    case !server.connectEndPoints?.length:
-    case !!server.offline:
-    case !!server.fallback: {
-      title = $L('#ServerDetail_OfflineDisable');
-      break;
+      case !server.connectEndPoints?.length:
+      case !!server.offline:
+      case !!server.fallback: {
+        title = $L('#ServerDetail_OfflineDisable');
+        break;
+      }
     }
   }
 
