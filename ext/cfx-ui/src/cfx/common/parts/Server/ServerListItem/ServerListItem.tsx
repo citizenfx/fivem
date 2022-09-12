@@ -5,7 +5,7 @@ import { observer } from "mobx-react-lite";
 import { Indicator } from "cfx/ui/Indicator/Indicator";
 import { clsx } from "cfx/utils/clsx";
 import { Button } from "cfx/ui/Button/Button";
-import { BsArrowUp, BsClock } from "react-icons/bs";
+import { BsClock } from "react-icons/bs";
 import { Title } from "cfx/ui/Title/Title";
 import { CountryFlag } from "cfx/ui/CountryFlag/CountryFlag";
 import { PremiumBadge } from "cfx/ui/PremiumBadge/PremiumBadge";
@@ -19,12 +19,11 @@ import { IServersService } from "cfx/common/services/servers/servers.service";
 import { IServersBoostService } from "cfx/common/services/servers/serversBoost.service";
 import { ServerIcon } from "../ServerIcon/ServerIcon";
 import { noop } from "cfx/utils/functional";
-import { Symbols } from "cfx/ui/Symbols";
 import { playSfx, Sfx } from "cfx/apps/mpMenu/utils/sfx";
-import s from './ServerListItem.module.scss';
 import { ServerPlayersCount } from "../ServerPlayersCount/ServerPlayersCount";
 import { showServerCountryFlag, showServerPremiumBadge } from "./utils";
-import { $L } from "cfx/common/services/intl/l10n";
+import { ServerPower } from "../ServerPower/ServerPower";
+import s from './ServerListItem.module.scss';
 
 export interface ServerListItemProps {
   server: IServerView | undefined,
@@ -140,23 +139,7 @@ export const ServerListItem = observer(function ServerListItem(props: ServerList
 
       {!hideActions && (
         <div className={clsx(s.actions, s['show-on-hover'])}>
-          <Title fixedOn="bottom" title={$L('#Server_BoostPower_Title')}>
-            <Loaf bright size="small">
-              {Icons.serverBoost}
-              &nbsp;
-              {boostPower}
-            </Loaf>
-          </Title>
-
-          {!!burstPower && (
-            <Title fixedOn="bottom" title={$L('#Server_BurstPower_Title')}>
-              <Loaf bright size="small">
-                {Icons.serverBurst}
-                &nbsp;
-                {burstPower}
-              </Loaf>
-            </Title>
-          )}
+          <ServerPower server={server} />
 
           {Boolean(ServersBoostService) && (
             <BoostButton server={server} />
@@ -167,7 +150,7 @@ export const ServerListItem = observer(function ServerListItem(props: ServerList
       <LastConnectedAt id={server.id} />
 
       {showDecorator && (
-        <div className={clsx(s.decorator, s['hide-on-hover'])}>
+        <div className={clsx(s.decorator)}>
           {showPremiumBadge && (
             <PremiumBadge level={server.premium as any} />
           )}
@@ -184,7 +167,7 @@ export const ServerListItem = observer(function ServerListItem(props: ServerList
         <ServerPlayersCount server={server} />
       </div>
 
-      {/* <Density server={server} /> */}
+      <Density server={server} />
 
       {/* SPACER */}<div />
     </div>

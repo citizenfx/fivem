@@ -16,8 +16,8 @@ import { Box } from "cfx/ui/Layout/Box/Box";
 import { useNavigate } from "react-router-dom";
 import { Icons } from "cfx/ui/Icons";
 import { Title } from "cfx/ui/Title/Title";
+import { ServerPower } from "../ServerPower/ServerPower";
 import s from './ServerTileItem.module.scss';
-import { $L } from "cfx/common/services/intl/l10n";
 
 export interface ServerTileItemProps {
   server: IServerView,
@@ -77,27 +77,7 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
             <div style={{ alignSelf: 'flex-end' }}>
               <Flex vertical alignToEndAxis>
                 <Flex centered>
-                  {Boolean(server.upvotePower) && (
-                    <Title fixedOn="bottom" title={$L('#Server_BoostPower_Title')}>
-                      <Flex gap="thin">
-                        {Icons.serverBoost}
-                        <span>
-                          {server.upvotePower}
-                        </span>
-                      </Flex>
-                    </Title>
-                  )}
-
-                  {Boolean(server.burstPower) && (
-                    <Title fixedOn="bottom" title={$L('#Server_BurstPower_Title')}>
-                      <Flex gap="thin">
-                        {Icons.serverBurst}
-                        <span>
-                          {server.burstPower}
-                        </span>
-                      </Flex>
-                    </Title>
-                  )}
+                  <ServerPower server={server} />
 
                   {showCountryFlag && (
                     <CountryFlag
@@ -107,9 +87,13 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
                   )}
                 </Flex>
 
-                <Flex gap="small">
-                  {Icons.playersCount}
-                  <ServerPlayersCount server={server} />
+                <Flex centered>
+                  <Text opacity="75">
+                    {Icons.playersCount}
+                  </Text>
+                  <Text opacity="75">
+                    <ServerPlayersCount server={server} />
+                  </Text>
                 </Flex>
               </Flex>
             </div>

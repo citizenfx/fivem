@@ -29,8 +29,10 @@ import { ServerIcon } from "cfx/common/parts/Server/ServerIcon/ServerIcon";
 import { playSfx, Sfx } from "cfx/apps/mpMenu/utils/sfx";
 import { useIntlService } from "cfx/common/services/intl/intl.service";
 import { ALPHANUMERIC_COLLATOR } from "cfx/base/collators";
-import s from './ServerDetailsPage.module.scss';
 import { useTimeoutFlag } from "cfx/utils/hooks";
+import { ServerPlayersCount } from "cfx/common/parts/Server/ServerPlayersCount/ServerPlayersCount";
+import { ServerPower } from "cfx/common/parts/Server/ServerPower/ServerPower";
+import s from './ServerDetailsPage.module.scss';
 
 const LAYOUT_SPLITS = {
   LEFT: '75%',
@@ -102,6 +104,8 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
                         server={server.id}
                       />
 
+                      <ServerPower server={server} />
+
                       <Flex centered className={s.decorator}>
                         {!!server.premium && (
                           <PremiumBadge level={server.premium} />
@@ -112,16 +116,14 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
                         )}
                       </Flex>
 
-                      {!isOffline && (
-                        <Flex centered>
-                          <Text opacity="75">
-                            {Icons.playersCount}
-                          </Text>
-                          <Text opacity="75">
-                            {server.playersCurrent} / {server.playersMax}
-                          </Text>
-                        </Flex>
-                      )}
+                      <Flex centered>
+                        <Text opacity="75">
+                          {Icons.playersCount}
+                        </Text>
+                        <Text opacity="75">
+                          <ServerPlayersCount server={server} />
+                        </Text>
+                      </Flex>
                     </Flex>
 
                     <Box grow>
