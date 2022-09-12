@@ -21,7 +21,7 @@ import { ServerIcon } from "../ServerIcon/ServerIcon";
 import { noop } from "cfx/utils/functional";
 import { playSfx, Sfx } from "cfx/apps/mpMenu/utils/sfx";
 import { ServerPlayersCount } from "../ServerPlayersCount/ServerPlayersCount";
-import { showServerCountryFlag, showServerPremiumBadge } from "./utils";
+import { showServerPremiumBadge } from "./utils";
 import { ServerPower } from "../ServerPower/ServerPower";
 import s from './ServerListItem.module.scss';
 
@@ -79,7 +79,7 @@ export const ServerListItem = observer(function ServerListItem(props: ServerList
   const isLoading = server.detailsLevel < ServerViewDetailsLevel.DynamicDataJson && !isOffline;
 
   const showPremiumBadge = !hidePremiumBadge && showServerPremiumBadge(server.premium);
-  const showCountryFlag = !hideCountryFlag && showServerCountryFlag(server.localeCountry);
+  const showCountryFlag = !hideCountryFlag;
   const showDecorator = showPremiumBadge || showCountryFlag;
 
   const showTags = !hideTags && !!server.tags;
@@ -155,9 +155,11 @@ export const ServerListItem = observer(function ServerListItem(props: ServerList
             <PremiumBadge level={server.premium as any} />
           )}
 
-          {showCountryFlag && (
-            <CountryFlag country={server.localeCountry} />
-          )}
+          <CountryFlag
+            forceShow
+            locale={server.locale}
+            country={server.localeCountry}
+          />
         </div>
       )}
 
@@ -167,7 +169,7 @@ export const ServerListItem = observer(function ServerListItem(props: ServerList
         <ServerPlayersCount server={server} />
       </div>
 
-      <Density server={server} />
+      {/* <Density server={server} /> */}
 
       {/* SPACER */}<div />
     </div>
@@ -295,9 +297,9 @@ const LastConnectedAt = observer(function LastConnectedAt({ id }: { id: string }
   return (
     <Title fixedOn="bottom" title={`Last connected at ${fullDate}`}>
       <Loaf bright size="small" className={s['hide-on-hover']}>
-        <BsClock />
-        &nbsp;
-        {distanceDate}
+        {/* <BsClock />
+        &nbsp; */}
+        last played: {distanceDate}
       </Loaf>
     </Title>
   );

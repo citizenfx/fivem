@@ -27,6 +27,7 @@ import { $L } from 'cfx/common/services/intl/l10n';
 import { Select } from 'cfx/ui/Select/Select';
 import { DEFAULT_SERVER_PORT } from 'cfx/base/serverUtils';
 import { Text } from 'cfx/ui/Text/Text';
+import { ServerTileItem } from 'cfx/common/parts/Server/ServerTileItem/ServerTileItem';
 
 const ACCOUNT_SETTINGS = new Map<string, ISetting.AnySetting>([
   ['nickname', {
@@ -132,14 +133,9 @@ const ACCOUNT_SETTINGS = new Map<string, ISetting.AnySetting>([
       }
 
       return (
-        <Box height={10}>
-          <ServerListItem
-            server={server}
-            standalone
-            hideActions
-            descriptionUnderName
-          />
-        </Box>
+        <ServerTileItem
+          server={server}
+        />
       );
     },
 

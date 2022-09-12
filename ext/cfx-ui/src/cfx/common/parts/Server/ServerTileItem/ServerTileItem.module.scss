@@ -21,7 +21,8 @@
     @include ui.animated('filter', '.banner');
     &:hover {
       .banner {
-        filter: grayscale(0%);
+        opacity: 1;
+        filter: none;
       }
     }
 
@@ -38,9 +39,10 @@
       -webkit-mask: linear-gradient(180deg, red 0%, red calc(100% - ui.use('spread')), transparent 100%);
       mask: linear-gradient(180deg, red 0%, red calc(100% - ui.use('spread')), transparent 100%);
 
-      filter: grayscale(75%);
+      opacity: .75;
+      filter: contrast(50%);
 
-      will-change: filter;
+      will-change: filter, opacity;
     }
 
     .content {
