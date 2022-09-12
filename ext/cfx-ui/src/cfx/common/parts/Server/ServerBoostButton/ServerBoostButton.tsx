@@ -1,4 +1,4 @@
-import { useService } from "cfx/base/servicesContainer";
+import { useServiceOptional } from "cfx/base/servicesContainer";
 import { IServersBoostService } from "cfx/common/services/servers/serversBoost.service";
 import { IServerView } from "cfx/common/services/servers/types";
 import { Button } from "cfx/ui/Button/Button";
@@ -18,7 +18,10 @@ export const ServerBoostButton = observer(function ServerBoostButton(props: Serv
     className,
   } = props;
 
-  const ServersBoostService = useService(IServersBoostService);
+  const ServersBoostService = useServiceOptional(IServersBoostService);
+  if (!ServersBoostService) {
+    return null;
+  }
 
   const isBoostedByUser = ServersBoostService.currentBoost?.address === server.id;
 

@@ -5,7 +5,6 @@ import { observer } from "mobx-react-lite";
 import { Indicator } from "cfx/ui/Indicator/Indicator";
 import { clsx } from "cfx/utils/clsx";
 import { Button } from "cfx/ui/Button/Button";
-import { BsClock } from "react-icons/bs";
 import { Title } from "cfx/ui/Title/Title";
 import { CountryFlag } from "cfx/ui/CountryFlag/CountryFlag";
 import { PremiumBadge } from "cfx/ui/PremiumBadge/PremiumBadge";
@@ -14,17 +13,15 @@ import { stopPropagation } from "cfx/utils/domEvents";
 import { useNavigate } from "react-router-dom";
 import { ServerTitle } from "../ServerTitle/ServerTitle";
 import { Icons } from "cfx/ui/Icons";
-import { useService, useServiceOptional } from "cfx/base/servicesContainer";
+import { useService } from "cfx/base/servicesContainer";
 import { IServersService } from "cfx/common/services/servers/servers.service";
-import { IServersBoostService } from "cfx/common/services/servers/serversBoost.service";
 import { ServerIcon } from "../ServerIcon/ServerIcon";
-import { noop } from "cfx/utils/functional";
 import { playSfx, Sfx } from "cfx/apps/mpMenu/utils/sfx";
 import { ServerPlayersCount } from "../ServerPlayersCount/ServerPlayersCount";
 import { showServerPremiumBadge } from "./utils";
 import { ServerPower } from "../ServerPower/ServerPower";
-import s from './ServerListItem.module.scss';
 import { ServerBoostButton } from "../ServerBoostButton/ServerBoostButton";
+import s from './ServerListItem.module.scss';
 
 export interface ServerListItemProps {
   server: IServerView | undefined,
@@ -51,8 +48,6 @@ export const ServerListItem = observer(function ServerListItem(props: ServerList
     hidePremiumBadge = false,
     descriptionUnderName = false,
   } = props;
-
-  const ServersBoostService = useServiceOptional(IServersBoostService);
 
   const navigate = useNavigate();
   const handleClick = React.useCallback(() => {
@@ -142,9 +137,7 @@ export const ServerListItem = observer(function ServerListItem(props: ServerList
         <div className={clsx(s.actions, s['show-on-hover'])}>
           <ServerPower server={server} />
 
-          {Boolean(ServersBoostService) && (
-            <ServerBoostButton server={server} />
-          )}
+          <ServerBoostButton server={server} />
         </div>
       )}
 

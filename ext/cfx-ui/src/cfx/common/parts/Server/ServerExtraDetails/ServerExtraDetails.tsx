@@ -22,6 +22,7 @@ import { BiCopy } from 'react-icons/bi';
 import s from './ServerExtraDetails.module.scss';
 import copy from "copy-to-clipboard";
 import { useDynamicRef, useOpenFlag } from "cfx/utils/hooks";
+import { ServerBoostButton } from "../ServerBoostButton/ServerBoostButton";
 
 interface IExtraLoafDescriptor {
   key: keyof IServerView,
@@ -117,11 +118,21 @@ export const ServerExtraDetails = observer(function ServerExtraDetails({ server 
         />
       </Title>
     );
+  }
 
-    const joinLink = `cfx.re/join/${server.id}`;
+  if (server.joinId) {
+    nodes.push(
+      <Copier
+        key="copy-join-id"
+        text={`cfx.re/join/${server.joinId}`}
+      />
+    );
 
     nodes.push(
-      <Copier text={joinLink} />
+      <ServerBoostButton
+        key="boost-button"
+        server={server}
+      />
     );
   }
 
