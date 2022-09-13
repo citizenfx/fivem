@@ -93,14 +93,14 @@
   .holder {
     position: fixed;
 
-    ----offset: #{ui.offset('xlarge')};
+    @include ui.def('offset', calc((100vh - ui.viewport-height()) * 0.5 - ui.offset('large')));
 
-    top: var(----offset);
+    top: ui.use('offset');
     right: 0;
-    bottom: var(----offset);
+    bottom: ui.use('offset');
 
-    padding-top: calc((100vh - ui.viewport-height()) * .5 - var(----offset));
-    padding-bottom: calc((100vh - ui.viewport-height()) * .5 - var(----offset));
+    padding-top: calc((100vh - ui.viewport-height()) * .5 - ui.use('offset'));
+    padding-bottom: calc((100vh - ui.viewport-height()) * .5 - ui.use('offset'));
     padding-right: calc((100vw - ui.viewport-width()) * .5);
     padding-left: ui.offset('xlarge');
 
