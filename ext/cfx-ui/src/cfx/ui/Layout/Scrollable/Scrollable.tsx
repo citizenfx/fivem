@@ -1,11 +1,10 @@
 import React from 'react';
+import mergeRefs from 'cfx/utils/mergeRefs';
 import { clsx } from 'cfx/utils/clsx';
 import { clamp01 } from 'cfx/utils/math';
 import { useInstance } from 'cfx/utils/hooks';
-import s from './Scrollable.module.scss';
-import mergeRefs from 'cfx/utils/mergeRefs';
 import { useContextualStyle } from 'cfx/ui/Style/Style';
-import { noop } from 'cfx/utils/functional';
+import s from './Scrollable.module.scss';
 
 export interface ScrollableProps {
   minThumbSize?: number,

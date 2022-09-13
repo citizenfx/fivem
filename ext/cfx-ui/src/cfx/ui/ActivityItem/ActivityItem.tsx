@@ -8,8 +8,9 @@ import { Text } from '../Text/Text';
 import { Avatar } from '../Avatar/Avatar';
 import { Box } from '../Layout/Box/Box';
 import { useBlurhash } from 'cfx/utils/useBlurhash';
-import s from './ActivityItem.module.scss';
 import { $L } from 'cfx/common/services/intl/l10n';
+import { Pad } from '../Layout/Pad/Pad';
+import s from './ActivityItem.module.scss';
 
 export interface ActivityItemProps {
   item: IActivityItem,
@@ -28,29 +29,31 @@ export function ActivityItem(props: ActivityItemProps) {
       <Avatar size="small" url={item.userAvatarUrl} />
 
       <Box grow>
-        <Flex vertical gap="small">
-          <Title delay={200} fixedOn="bottom-left" title={item.userScreenName}>
-            <Text weight='bold' opacity="75">
-              {item.userDisplayName}
-            </Text>
-          </Title>
+        <Pad right size="large">
+          <Flex vertical gap="small">
+            <Title delay={200} fixedOn="bottom-left" title={item.userScreenName}>
+              <Text weight='bold' opacity="75">
+                {item.userDisplayName}
+              </Text>
+            </Title>
 
-          <Title delay={200} fixedOn='bottom-left' title={<>{formattedDate}<br />{$L('#Feed_OpenInBrowser')}</>}>
-            <Text opacity="50">
-              <a href={item.url}>
-                {formatDistanceToNow(item.date, { addSuffix: true })}
-              </a>
-            </Text>
-          </Title>
+            <Title delay={200} fixedOn='bottom-left' title={<>{formattedDate}<br />{$L('#Feed_OpenInBrowser')}</>}>
+              <Text opacity="50">
+                <a href={item.url}>
+                  {formatDistanceToNow(item.date, { addSuffix: true })}
+                </a>
+              </Text>
+            </Title>
 
-          <div className={s.content}>
-            {item.content}
-          </div>
+            <div className={s.content}>
+              {item.content}
+            </div>
 
-          {media && (
-            <Media media={media} />
-          )}
-        </Flex>
+            {media && (
+              <Media media={media} />
+            )}
+          </Flex>
+        </Pad>
       </Box>
     </Flex>
   );

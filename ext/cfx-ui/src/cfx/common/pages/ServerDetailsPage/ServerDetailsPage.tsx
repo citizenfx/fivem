@@ -3,7 +3,6 @@ import { isServerEOL, isServerEOS, shouldDisplayServerResource } from "cfx/base/
 import { useService } from "cfx/base/servicesContainer";
 import { IServersService } from "cfx/common/services/servers/servers.service";
 import { IServerView, IServerViewPlayer, ServerViewDetailsLevel } from "cfx/common/services/servers/types";
-import { Button } from "cfx/ui/Button/Button";
 import { CountryFlag } from "cfx/ui/CountryFlag/CountryFlag";
 import { Icons } from "cfx/ui/Icons";
 import { InfoPanel } from "cfx/ui/InfoPanel/InfoPanel";
@@ -26,12 +25,12 @@ import { ServerReviews } from "../../parts/Server/ServerReviews/ServerReviews";
 import { ServerTitle } from "../../parts/Server/ServerTitle/ServerTitle";
 import { LongListSideSection } from "./LongListSideSection/LongListSideSection";
 import { ServerIcon } from "cfx/common/parts/Server/ServerIcon/ServerIcon";
-import { playSfx, Sfx } from "cfx/apps/mpMenu/utils/sfx";
 import { useIntlService } from "cfx/common/services/intl/intl.service";
 import { ALPHANUMERIC_COLLATOR } from "cfx/base/collators";
 import { useTimeoutFlag } from "cfx/utils/hooks";
 import { ServerPlayersCount } from "cfx/common/parts/Server/ServerPlayersCount/ServerPlayersCount";
 import { ServerPower } from "cfx/common/parts/Server/ServerPower/ServerPower";
+import { ServerFavoriteButton } from "cfx/common/parts/Server/ServerFavoriteButton/ServerFavoriteButton";
 import s from './ServerDetailsPage.module.scss';
 
 const LAYOUT_SPLITS = {
@@ -55,19 +54,13 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
     forceReviewsAvailable = false,
   } = props;
 
-  // if (__CFXUI_USE_SOUNDS__) {
-  //   React.useEffect(() => playSfx(Sfx.Woosh3), []);
-  // }
-
   useEnsureCompleteServerLoaded(server);
 
-  const { id: address } = server;
   const ServersService = useService(IServersService);
 
   const shouldShowCompleteServerLoading = useTimeoutFlag(300);
   const isCompleteServerLoading = shouldShowCompleteServerLoading && ServersService.isServerLoading(server.id, ServerViewDetailsLevel.MasterListFull);
 
-  const isOffline = Boolean(server.offline);
   const hasBanner = Boolean(server.bannerDetail);
 
   const displayResources = React.useMemo(() => {
@@ -96,7 +89,7 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
           <Flex fullWidth gap="none">
             <Box grow>
               <Flex vertical gap="large">
-                <Pad size="large">
+                <Pad size="xlarge">
                   <Flex gap="xlarge">
                     <Flex vertical>
                       <ServerIcon
@@ -104,8 +97,6 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
                         type="details"
                         server={server}
                       />
-
-                      <ServerPower server={server} />
 
                       <Flex centered className={s.decorator}>
                         {!!server.premium && (
@@ -115,6 +106,10 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
                         {!!server.localeCountry && (
                           <CountryFlag country={server.localeCountry} locale={server.locale} />
                         )}
+                      </Flex>
+
+                      <Flex centered>
+                        <ServerPower server={server} />
                       </Flex>
 
                       <Flex centered>
@@ -147,7 +142,7 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
                               <ServerConnectButton server={server} />
                             </div>
 
-                            <Favorite address={address} />
+                            <ServerFavoriteButton size="large" server={server} />
                           </Flex>
 
                           <Warning server={server} />
@@ -157,7 +152,7 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
                   </Flex>
                 </Pad>
 
-                <Pad size="large">
+                <Pad size="xlarge">
                   <Flex vertical gap="large">
                     {server.activitypubFeed && (
                       <ServerActivityFeed pub={server.activitypubFeed} />
@@ -173,11 +168,9 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
 
             <Box grow={false} width={LAYOUT_SPLITS.RIGHT}>
               <Box style={{ position: 'sticky', top: 0 }}>
-                <Pad size="large">
+                <Pad top right size="xlarge">
                   <Flex vertical gap="large">
                     <ServerExtraDetails server={server} />
-
-                    {/* <Separator /> */}
 
                     {!!server.players && (
                       <LongListSideSection
@@ -241,42 +234,6 @@ function useEnsureCompleteServerLoaded(server: IServerView) {
     return () => clearTimeout(to);
   }, [server]);
 }
-
-
-const Favorite = observer(function Favorite({ address }: { address: string }) {
-  const ServersService = useService(IServersService);
-  const favoriteServersList = ServersService.getFavoriteList();
-
-  if (!favoriteServersList) {
-    return null;
-  }
-
-  const isInFavoriteServersList = favoriteServersList.isIn(address);
-
-  const handleClick = () => {
-    if (__CFXUI_USE_SOUNDS__) {
-      if (isInFavoriteServersList) {
-        playSfx(Sfx.Click4);
-      } else {
-        playSfx(Sfx.Click2);
-      }
-    }
-
-    favoriteServersList.toggleIn(address);
-  };
-
-  return (
-    <Button
-      size="large"
-      icon={
-        isInFavoriteServersList
-          ? Icons.favoriteActive
-          : Icons.favoriteInactive
-      }
-      onClick={handleClick}
-    />
-  );
-});
 
 const Warning = observer(function Warning({ server }: { server: IServerView }) {
   let message: string | null = null;

@@ -13,6 +13,7 @@ import { StatusLevel } from "../../services/platformStatus/types";
 import { BsCloudPlus } from "react-icons/bs";
 import { FiServer } from "react-icons/fi";
 import { IoSparklesOutline } from "react-icons/io5";
+import { ButtonProps } from "cfx/ui/Button/Button";
 
 interface IHomePageNavBarLink {
   href: string,
@@ -78,20 +79,20 @@ interface IHomePageBottomLink {
 }
 
 const homePageBottomLinks: IHomePageBottomLink[] = [
-  {
-    href: 'https://zap-hosting.com/fivemsl',
-    label: 'Start a server',
-    title: 'Rent a server at ZAP-Hosting',
-    icon: <BsCloudPlus />,
-    visible: () => currentGameNameIs(GameName.FiveM),
-  },
-  {
-    href: 'https://zap-hosting.com/redm2',
-    label: 'Start a server',
-    title: 'Rent a server at ZAP-Hosting',
-    icon: <BsCloudPlus />,
-    visible: () => currentGameNameIs(GameName.RedM),
-  },
+  // {
+  //   href: 'https://zap-hosting.com/fivemsl',
+  //   label: 'Start a server',
+  //   title: 'Rent a server at ZAP-Hosting',
+  //   icon: <BsCloudPlus />,
+  //   visible: () => currentGameNameIs(GameName.FiveM),
+  // },
+  // {
+  //   href: 'https://zap-hosting.com/redm2',
+  //   label: 'Start a server',
+  //   title: 'Rent a server at ZAP-Hosting',
+  //   icon: <BsCloudPlus />,
+  //   visible: () => currentGameNameIs(GameName.RedM),
+  // },
   {
     href: 'https://docs.fivem.net/docs/server-manual/setting-up-a-server/',
     label: 'Host a server',
@@ -111,7 +112,15 @@ const homePageBottomLinks: IHomePageBottomLink[] = [
   },
 ];
 
-export const HomePageBottomLinks = observer(function HomePageBottomLinks() {
+export interface HomePageBottomLinksProps {
+  size?: ButtonProps['size'],
+}
+
+export const HomePageBottomLinks = observer(function HomePageBottomLinks(props: HomePageBottomLinksProps) {
+  const {
+    size = 'large',
+  } = props;
+
   const linkNodes = homePageBottomLinks
     .filter(({ visible }) => visible ? visible() : true)
     .map(({ href, label, title, icon }) => (
@@ -120,15 +129,16 @@ export const HomePageBottomLinks = observer(function HomePageBottomLinks() {
           to={href}
           text={label}
           icon={icon}
-          size="large"
-          theme="default-blurred"
+          size={size}
+          // theme="default-blurred"
+          theme="transparent"
         />
       </Title>
     ));
 
   return (
-    <Flex>
+    <>
       {linkNodes}
-    </Flex>
+    </>
   );
 });

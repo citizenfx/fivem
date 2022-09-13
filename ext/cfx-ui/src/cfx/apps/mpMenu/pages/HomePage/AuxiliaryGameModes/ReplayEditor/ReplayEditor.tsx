@@ -1,54 +1,54 @@
 import { mpMenu } from "cfx/apps/mpMenu/mpMenu";
 import { $L } from "cfx/common/services/intl/l10n";
-import { Button } from "cfx/ui/Button/Button";
+import { Button, ButtonProps } from "cfx/ui/Button/Button";
 import { Icons } from "cfx/ui/Icons";
 import { Flex } from "cfx/ui/Layout/Flex/Flex";
 import { Pad } from "cfx/ui/Layout/Pad/Pad";
 import { Modal } from "cfx/ui/Modal/Modal";
 import { TextBlock } from "cfx/ui/Text/Text";
 import { useOpenFlag } from "cfx/utils/hooks";
-import s from './StoryMode.module.scss';
+import s from './ReplayEditor.module.scss';
 
-export function StoryMode() {
+export function ReplayEditor() {
   const [modalOpen, openModal, closeModal] = useOpenFlag(false);
 
   return (
     <>
       <Button
+        fullWidth
         size="large"
         theme="default-blurred"
-        icon={Icons.storymode}
-        text={$L('#BottomNav_Story')}
+        icon={Icons.replayEditor}
+        text={$L('#BottomNav_ReplayEditor')}
         onClick={openModal}
       />
 
       {modalOpen && (
         <Modal onClose={closeModal} backdropClassName={s.backdrop}>
           <Modal.Header>
-            Enter Story Mode
+            Enter the Rockstar Editor
           </Modal.Header>
 
           <Pad size="xlarge">
             <Flex centered vertical gap="xlarge">
               <TextBlock typographic centered size="large">
-                Play GTA V story mode in FiveM, with addons loaded,
+                Open the Rockstar Editor to edit,
                 <br />
-                FiveM's engine improvements and seamless integration.
-              </TextBlock>
-
-              <TextBlock typographic centered size="large">
-                You can place saved games in
+                arrange and export saved clips created
                 <br />
-                <br />
-                <kbd className="util-text-selectable">%USERPROFILE%\Saved Games\CitizenFX\GTA5</kbd>
+                in FiveM Story Mode, Multiplayer or elsewhere.
               </TextBlock>
 
               <Button
                 size="large"
-                text="Launch Story Mode"
+                text="Launch Replay Editor"
                 theme="primary"
-                onClick={() => mpMenu.invokeNative('executeCommand', 'storymode')}
+                onClick={() => mpMenu.invokeNative('executeCommand', 'replayEditor')}
               />
+
+              <TextBlock typographic centered size="small" opacity="50">
+                More editor features are planned for a later release.
+              </TextBlock>
             </Flex>
           </Pad>
         </Modal>

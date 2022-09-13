@@ -22,7 +22,6 @@ import { serverAddress2ServerView } from "cfx/common/services/servers/transforme
 import { getServerIconURL } from "cfx/common/services/servers/icon";
 import { mpMenu } from "../../mpMenu";
 import { fetcher } from "cfx/utils/fetcher";
-import { MildlyIntelligentServersList } from "cfx/common/services/servers/lists/MildlyIntelligentServersList";
 
 export type IPromotedServerDescriptor =
   | { origin: 'ad', id: string }
@@ -78,7 +77,8 @@ export class MpMenuServersService implements IServersService, AppContribution {
   public get autocompleteIndex(): IAutocompleteIndex | null { return this._serversIndex }
   private set autocompleteIndex(serversIndex: IAutocompleteIndex | null) { this._serversIndex = serversIndex }
 
-  private listSource: IServerListSource;
+  readonly listSource: IServerListSource;
+
   private lists: Partial<Record<ServersListType, IServersList>>;
 
   public listTypes: ServersListType[] = [];
@@ -231,11 +231,14 @@ export class MpMenuServersService implements IServersService, AppContribution {
 
     this.setServer(server.id, server);
 
-    const resolvedServer = (await getServerByAnyMean(CurrentGameName, server.id)) || server;
+    let resolvedServer = (await getServerByAnyMean(CurrentGameName, server.id)) || server;
 
     // If no live server data - it is offline
     if (resolvedServer === server) {
-      resolvedServer.offline = true;
+      resolvedServer = {
+        ...resolvedServer,
+        offline: true,
+      };
     }
 
     // Overwrite with resolved
@@ -299,13 +302,6 @@ export class MpMenuServersService implements IServersService, AppContribution {
       }
       case ServersListType.Supporters: {
         return new BaseConfigurableServersList({ type: ServersListType.Supporters, onlyPremium: true }, this.listSource);
-      }
-      case ServersListType.MildlyIntelligent: {
-        return new MildlyIntelligentServersList(
-          this,
-          this.serversStorageService,
-          this.listSource,
-        );
       }
 
       default: {

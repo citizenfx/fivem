@@ -1,7 +1,7 @@
 import { mpMenu } from "cfx/apps/mpMenu/mpMenu";
 // import { playSfx, Sfx } from "cfx/apps/mpMenu/utils/sfx";
 import { $L } from "cfx/common/services/intl/l10n";
-import { Button } from "cfx/ui/Button/Button";
+import { Button, ButtonTheme } from "cfx/ui/Button/Button";
 import { Icons } from "cfx/ui/Icons";
 import { Flex } from "cfx/ui/Layout/Flex/Flex";
 import { AfterTitleOutlet } from "cfx/ui/outlets";
@@ -10,6 +10,7 @@ import { Title } from "cfx/ui/Title/Title";
 import { useOpenFlag } from "cfx/utils/hooks";
 // import { useEffect } from "react";
 import ReactFocusLock from "react-focus-lock";
+import { NavBarState } from "../NavBarState";
 import s from './Exitter.module.scss';
 
 export function Exitter() {
@@ -21,12 +22,17 @@ export function Exitter() {
   //   }
   // }, [confirmerOpen]);
 
+  const buttonTheme: ButtonTheme = NavBarState.forceTransparentNav
+    ? 'default'
+    : 'default-blurred';
+
   return (
     <>
       <Title fixedOn="bottom-right" title={$L('#ExitToDesktop')}>
         <Button
           size="large"
           icon={Icons.exit}
+          theme={buttonTheme}
           onClick={openConfirmer}
         />
       </Title>

@@ -1,5 +1,9 @@
+export function randomByte(): string {
+  return Math.floor(Math.random() * 16).toString(16);
+}
+
 export function randomBytes(length: number): string {
-  return Array(length).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join();
+  return Array(length).fill(0).map(randomByte).join('');
 }
 
 export function fastRandomId(): string {

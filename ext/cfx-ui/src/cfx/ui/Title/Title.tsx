@@ -22,11 +22,13 @@ function getCssStyle(fixed: boolean, delay: number, [x, y]: number[]): React.CSS
     : x + 16;
 
   return {
-    // top: `${top}px`,
-    // left: `${left}px`,
+    // Prefer top and left for element to snap to the pixel grid
+    // as when using transform it will become blurry in most of the cases as top and left values are floats
+    top: `${top}px`,
+    left: `${left}px`,
+    // transform: `translate(${left}px, ${top}px)`,
     maxWidth: `calc(100vw - ${left}px - 10px)`,
     animationDelay: `${delay}ms`,
-    transform: `translate(${left}px, ${top}px)`,
   };
 }
 

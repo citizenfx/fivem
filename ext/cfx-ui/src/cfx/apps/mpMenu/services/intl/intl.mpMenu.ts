@@ -17,6 +17,9 @@ export function registerMpMenuIntlService(container: ServicesContainer) {
 
 @injectable()
 class MpMenuIntlService implements IIntlService {
+  readonly systemLocale = mpMenu.systemLanguages[0] || 'en-US';
+  readonly systemLocaleCountry = this.systemLocale.split('-')[1];
+
   readonly localesOptions = Object.keys(locales).map((locale) => ({
     label: defaultDisplayNames.of(locale) || 'en',
     value: locale,

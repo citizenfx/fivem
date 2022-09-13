@@ -7,16 +7,20 @@ import { noop } from "cfx/utils/functional";
 import { playSfx, Sfx } from "cfx/apps/mpMenu/utils/sfx";
 import { observer } from "mobx-react-lite";
 import { Title } from "cfx/ui/Title/Title";
-import { Button } from "cfx/ui/Button/Button";
+import { Button, ButtonProps } from "cfx/ui/Button/Button";
 import { ReactNode } from "react";
+import { stopPropagation } from "cfx/utils/domEvents";
 
 export interface ServerConnectButtonProps {
   server: IServerView,
+
+  size?: ButtonProps['size'],
 }
 
 export const ServerConnectButton = observer(function ServerConnectButton(props: ServerConnectButtonProps) {
   const {
     server,
+    size = 'large',
   } = props;
 
   const ServersConnectService = useServiceOptional(IServersConnectService);
@@ -63,11 +67,11 @@ export const ServerConnectButton = observer(function ServerConnectButton(props: 
   return (
     <Title title={title}>
       <Button
-        size="large"
+        size={size}
         theme="primary"
         disabled={disabled}
         text={$L('#DirectConnect_Connect')}
-        onClick={handleClick}
+        onClick={stopPropagation(handleClick)}
       />
     </Title>
   );

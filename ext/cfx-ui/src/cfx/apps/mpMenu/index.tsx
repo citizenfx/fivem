@@ -38,6 +38,7 @@ import { IServersBoostService } from 'cfx/common/services/servers/serversBoost.s
 import { IServersStorageService } from 'cfx/common/services/servers/serversStorage.service';
 import { IServersConnectService } from 'cfx/common/services/servers/serversConnect.service';
 import { Handle404 } from './pages/404';
+import { registerHomeScreenServerList } from './services/servers/list/HomeScreenServerList.service';
 
 startBrowserApp({
   defineServices(container) {
@@ -64,6 +65,8 @@ startBrowserApp({
     registerPlatformStatusService(container);
     registerLinkedIdentitiesService(container);
 
+    registerHomeScreenServerList(container);
+
     registerMpMenuUiService(container);
     registerMpMenuIntlService(container);
 
@@ -73,7 +76,6 @@ startBrowserApp({
         ServersListType.Supporters,
         ServersListType.History,
         ServersListType.Favorites,
-        ServersListType.MildlyIntelligent,
       ],
     });
     registerMpMenuServersBoostService(container);

@@ -3,7 +3,9 @@
 
   @include ui.border-radius('normal');
 
-  background-color: ui.color-token('server-item-standalone-background');
+  // background-color: ui.color-token('server-item-standalone-background');
+  @include ui.def('backdrop-color', ui.color-token('backdrop'));
+  @include ui.fake-backdrop-blur();
 
   cursor: pointer;
 
@@ -24,20 +26,18 @@
     }
   }
 
-  @include ui.animated('background-color');
+  @include ui.animated('box-shadow');
+
+  box-shadow: 0 0 0 2px transparent inset;
   &:hover {
-    background-color: ui.color-token('server-item-standalone-hover-background');
+    box-shadow: 0 0 0 2px ui.color-token('outlined-hover-border') inset;
   }
 
   &.withBanner {
-    @include ui.def('spread', ui.q(6));
-    @include ui.def('offset', ui.q(1));
-
-    @include ui.animated('filter', '.banner');
+    @include ui.animated('opacity', '.banner');
     &:hover {
       .banner {
         opacity: 1;
-        filter: none;
       }
     }
 
@@ -53,7 +53,6 @@
       background-position: center center;
 
       opacity: .75;
-      filter: contrast(50%);
 
       will-change: filter, opacity;
     }

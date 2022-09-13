@@ -60,7 +60,7 @@ module.exports = (env, argv) => {
     module: {
       rules: [
         {
-          test: /\.(bmp|gif|jpg|jpeg|png|woff|woff2|mp3|ogg|wav|svg)$/,
+          test: /\.(bmp|gif|jpg|jpeg|png|woff|woff2|mp3|ogg|wav|svg|webp)$/,
           resourceQuery: {
             not: [/_INLINE_/],
           },

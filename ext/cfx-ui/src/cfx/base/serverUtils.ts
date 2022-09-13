@@ -110,6 +110,18 @@ export function filterServerProjectDesc(a: string) {
   ))).replace(/(\s|\u2800)+/gu, ' ').normalize('NFKD');
 }
 
+export function filterServerTag(tag: string) {
+  if (!tag) {
+    return false;
+  }
+
+  switch (tag) {
+    case 'default': return false;
+
+    default: return true;
+  }
+}
+
 /**
  * Whether or not should gived servers list config prioritize pinned servers when sorting
  */

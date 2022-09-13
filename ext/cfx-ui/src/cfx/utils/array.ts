@@ -9,3 +9,7 @@ export function arrayAt<T>(array: T[], index: number): T | undefined {
 export function uniqueArray<T>(array: Array<T>): Array<T> {
   return [...new Set(array)];
 }
+
+export function reverseArray<T>(array: Array<T>): Array<T> {
+  return array.slice().reverse();
+}

@@ -2,7 +2,7 @@ import React from "react";
 import { ServerFilters } from "cfx/common/parts/Server/ServerFilters/ServerFilters";
 import { ServerListConfigController } from "cfx/common/services/servers/lists/ServerListConfigController";
 import { observer } from "mobx-react-lite";
-import { useDebouncedCallback, useWindowResize } from "cfx/utils/hooks";
+import { useWindowResize } from "cfx/utils/hooks";
 import { ui } from "cfx/ui/ui";
 import { ServerListItem } from "cfx/common/parts/Server/ServerListItem/ServerListItem";
 import { ServerFiltersWithDirectConnectController, userServerFiltersWithDirectConnectController } from "./ServerFiltersWithDirectConnectController";
@@ -13,9 +13,9 @@ import { Box } from "cfx/ui/Layout/Box/Box";
 import { Flex } from "cfx/ui/Layout/Flex/Flex";
 import { Text } from "cfx/ui/Text/Text";
 import { Button } from "cfx/ui/Button/Button";
-import s from './ServerFiltersWithDirectConnect.module.scss';
 import { Pad } from "cfx/ui/Layout/Pad/Pad";
 import { ServerTitle } from "cfx/common/parts/Server/ServerTitle/ServerTitle";
+import s from './ServerFiltersWithDirectConnect.module.scss';
 
 export interface ServerFiltersWithDirectConnectProps {
   config: ServerListConfigController,
@@ -35,7 +35,7 @@ export const ServerFiltersWithDirectConnect = observer(function ServerFiltersWit
     controller.setSearchTerms(config.searchTextParsed);
   }, [controller, config.searchText]);
 
-  const showDirectConnect = config.searchTextParsed[0]?.type === 'address' && controller.inputActive;
+  const showDirectConnect = controller.inputActive && !!config.searchTextParsed.length && config.searchTextParsed[0]?.type === 'address';
 
   return (
     <>

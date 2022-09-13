@@ -5,7 +5,7 @@ import s from './ServerTitle.module.scss';
 
 export interface ServerTitleProps {
   title: string,
-  size?: 'large' | 'xlarge' | 'xxlarge' | 'xxxlarge',
+  size?: 'small' | 'normal' | 'large' | 'xlarge' | 'xxlarge' | 'xxxlarge',
   truncated?: boolean,
 }
 

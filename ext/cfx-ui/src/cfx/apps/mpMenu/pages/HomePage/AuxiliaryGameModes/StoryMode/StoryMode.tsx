@@ -7,47 +7,49 @@ import { Pad } from "cfx/ui/Layout/Pad/Pad";
 import { Modal } from "cfx/ui/Modal/Modal";
 import { TextBlock } from "cfx/ui/Text/Text";
 import { useOpenFlag } from "cfx/utils/hooks";
-import s from './ReplayEditor.module.scss';
+import s from './StoryMode.module.scss';
 
-export function ReplayEditor() {
+export function StoryMode() {
   const [modalOpen, openModal, closeModal] = useOpenFlag(false);
 
   return (
     <>
       <Button
+        fullWidth
         size="large"
         theme="default-blurred"
-        icon={Icons.replayEditor}
-        text={$L('#BottomNav_ReplayEditor')}
+        icon={Icons.storymode}
+        text={$L('#BottomNav_Story')}
         onClick={openModal}
       />
 
       {modalOpen && (
         <Modal onClose={closeModal} backdropClassName={s.backdrop}>
           <Modal.Header>
-            Enter the Rockstar Editor
+            Enter Story Mode
           </Modal.Header>
 
           <Pad size="xlarge">
             <Flex centered vertical gap="xlarge">
               <TextBlock typographic centered size="large">
-                Open the Rockstar Editor to edit,
+                Play GTA V story mode in FiveM, with addons loaded,
                 <br />
-                arrange and export saved clips created
+                FiveM's engine improvements and seamless integration.
+              </TextBlock>
+
+              <TextBlock typographic centered size="large">
+                You can place saved games in
                 <br />
-                in FiveM Story Mode, Multiplayer or elsewhere.
+                <br />
+                <kbd className="util-text-selectable">%USERPROFILE%\Saved Games\CitizenFX\GTA5</kbd>
               </TextBlock>
 
               <Button
                 size="large"
-                text="Launch Replay Editor"
+                text="Launch Story Mode"
                 theme="primary"
-                onClick={() => mpMenu.invokeNative('executeCommand', 'replayEditor')}
+                onClick={() => mpMenu.invokeNative('executeCommand', 'storymode')}
               />
-
-              <TextBlock typographic centered size="small" opacity="50">
-                More editor features are planned for a later release.
-              </TextBlock>
             </Flex>
           </Pad>
         </Modal>

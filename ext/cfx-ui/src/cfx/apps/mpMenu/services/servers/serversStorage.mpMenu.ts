@@ -22,9 +22,18 @@ export function registerMpMenuServersStorageService(container: ServicesContainer
 @injectable()
 class MpMenuServersStorageService implements IServersStorageService, AppContribution {
   private _historyServers = getSavedHistoryServers();
+  private _favoriteServers: string[] = [];
 
   protected favoriteServersEvent = new SingleEventEmitter<string[]>();
-  readonly onFavoriteServers = this.favoriteServersEvent.addListener;
+  readonly onFavoriteServers = (cb: Parameters<typeof this.favoriteServersEvent.addListener>[0]) => {
+    const disposer = this.favoriteServersEvent.addListener(cb);
+
+    if (this._favoriteServers.length) {
+      cb(this._favoriteServers);
+    }
+
+    return disposer;
+  };
 
   init() {
     mpMenu.on('getFavorites', ({ list }: { list: string[] }) => {
@@ -33,6 +42,7 @@ class MpMenuServersStorageService implements IServersStorageService, AppContribu
         return;
       }
 
+      this._favoriteServers = list;
       this.favoriteServersEvent.emit(list);
     });
 

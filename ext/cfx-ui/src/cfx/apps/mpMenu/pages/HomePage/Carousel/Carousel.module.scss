@@ -1,0 +1,250 @@
+$selectorHeight: ui.q(8);
+$selectorOffset: ui.offset();
+
+.root {
+  position: relative;
+
+  width: 100%;
+  height: 100%;
+
+  .selector {
+    display: flex;
+    align-items: stretch;
+
+    gap: ui.offset();
+
+    width: 100%;
+    height: $selectorHeight;
+
+    margin-bottom: $selectorOffset;
+
+    .item {
+      flex-shrink: 0;
+
+      position: relative;
+
+      display: flex;
+      align-items: center;
+
+      padding: ui.offset() ui.offset('large');
+
+      cursor: pointer;
+
+      @include ui.animated();
+
+
+      box-shadow: 0 0 0 2px transparent inset;
+
+      @include ui.fake-backdrop-blur();
+      @include ui.border-radius();
+      overflow: hidden;
+
+
+      &:first-child {
+        flex-grow: 1;
+        flex-shrink: 1;
+
+        padding: ui.offset();
+
+        .title {
+          display: flex;
+          width: auto;
+
+          margin-left: ui.offset();
+
+          opacity: .5;
+        }
+
+        &.active {
+          .title {
+            opacity: 1;
+          }
+        }
+      }
+
+      &:hover,
+      &.active {
+        .icon {
+          opacity: 1;
+        }
+      }
+
+      &:hover {
+        box-shadow: 0 0 0 2px ui.color-token('outlined-hover-border') inset;
+      }
+      &.active {
+        cursor: initial;
+
+        box-shadow: 0 0 0 2px ui.color-token('outlined-hover-border') inset;
+
+        @keyframes appr3 {
+          from {
+            transform: scale(1.1);
+          }
+          to {
+            transform: scale(1);
+          }
+        }
+        animation: appr3 .5s ease;
+
+        .progress {
+          opacity: 1;
+        }
+      }
+
+      .progress {
+        position: absolute;
+        inset: 0;
+
+        opacity: 0;
+
+        z-index: 0;
+
+        &::after {
+          display: block;
+          content: '';
+
+          height: 100%;
+          width: 100%;
+
+          background-image: linear-gradient(90deg, transparent, ui.color-token('carousel-selector-item-progress-background'));
+
+          transform: translateX(calc(-100% + ui.use('progress', 0%)));
+        }
+      }
+
+      .icon {
+        height: ui.q(4);
+
+        opacity: 1;
+
+        z-index: 1;
+      }
+
+      @include ui.animated('all', '.title');
+
+      .title {
+        display: none;
+        width: 0px;
+        flex-grow: 1;
+        overflow: hidden;
+      }
+    }
+  }
+
+  .cardHolder {
+    position: absolute;
+
+    top: calc($selectorHeight + $selectorOffset);
+    left: 0;
+    right: 0;
+    bottom: 0;
+
+    width: 100%;
+
+    @include ui.border-radius();
+    overflow: hidden;
+  }
+
+  .card {
+    position: absolute;
+
+    width: 100%;
+    height: 100%;
+
+    @include ui.border-radius();
+    overflow: hidden;
+
+    cursor: pointer;
+
+    opacity: 0;
+    pointer-events: none;
+
+    @keyframes disappr {
+      from {
+        opacity: 1;
+      }
+      to {
+        opacity: 0;
+      }
+    }
+    animation: disappr .5s cubic-bezier(0.69, 0, 0.83, 0.83);
+
+    &.active {
+      opacity: 1;
+      pointer-events: all;
+
+      z-index: 1;
+
+      @keyframes appr {
+        from {
+          opacity: 0;
+          transform: scale(0.95);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      animation: appr .3s cubic-bezier(0.69, 0, 0.83, 0.83);
+
+      .icon {
+        @keyframes iconAppr {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+        animation: iconAppr 1s cubic-bezier(0.17, 0.17, 0.23, 1);
+      }
+    }
+
+    .background {
+      position: absolute;
+      inset: 0;
+
+      $shader: ui.color('main', $alpha: .75);
+      background-image: ui.use('checkered-pattern'), linear-gradient($shader, $shader), ui.use('banner');
+      background-size: 2px, cover, cover;
+      background-position: top left, center center, center center;
+
+      @include ui.border-radius();
+    }
+
+    .hoverDecoration {
+      position: absolute;
+      inset: 0;
+
+      opacity: 0;
+
+      transition: all .2s ease;
+
+      background-image: radial-gradient(circle at bottom left, rgba(255, 143, 178, 0.102) 0%, rgba(170, 49, 146, 0.1) 100%);
+    }
+
+    &:hover .hoverDecoration {
+      opacity: 1;
+    }
+
+    .content {
+      position: absolute;
+      inset: 0;
+
+      padding: ui.offset('xlarge') calc(ui.offset('xlarge') + ui.offset('normal'));
+
+      @include ui.border-radius();
+
+      .description {
+        width: 33%;
+        height: 100%;
+
+        -webkit-mask: linear-gradient(180deg, red, red calc(100% - ui.q(4)), transparent);
+        mask: linear-gradient(180deg, red, red calc(100% - ui.q(4)), transparent);
+
+        overflow: hidden;
+      }
+    }
+  }
+}

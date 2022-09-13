@@ -159,3 +159,9 @@ li::marker {
 .util-text-selectable {
   user-select: text !important;
 }
+.util-flex-grow {
+  flex-grow: 1;
+}
+.util-flex-no-shrink {
+  flex-shrink: 0;
+}

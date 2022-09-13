@@ -6,7 +6,6 @@ import { Input } from 'cfx/ui/Input/Input';
 import { Separator } from 'cfx/ui/Separator/Separator';
 import { Text } from 'cfx/ui/Text/Text';
 import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { Repell } from 'cfx/ui/Layout/Repell/Repell';
 import { IAuthFormState, totpFieldRef, useAuthFormState, usernameRegexp } from './AuthFormState';
 import { InfoPanel } from 'cfx/ui/InfoPanel/InfoPanel';
 import { nl2brx } from 'cfx/utils/nl2br';
@@ -193,7 +192,7 @@ interface SubmitControlsProps {
 const SubmitControls = observer(function SubmitControls({ state }: SubmitControlsProps) {
   if (state.isLogIn) {
     return (
-      <Repell centered>
+      <Flex centered repell>
         <Button
           text="Don't have account? Register"
           theme="transparent"
@@ -209,13 +208,13 @@ const SubmitControls = observer(function SubmitControls({ state }: SubmitControl
           disabled={state.disabled || !state.canSubmit}
           onClick={state.handleSubmit}
         />
-      </Repell>
+      </Flex>
     );
   }
 
   if (state.isTOTP) {
     return (
-      <Repell centered>
+      <Flex centered repell>
         <Button
           text="Back"
           theme="transparent"
@@ -231,7 +230,7 @@ const SubmitControls = observer(function SubmitControls({ state }: SubmitControl
           disabled={state.disabled || !state.canSubmit}
           onClick={state.handleSubmit}
         />
-      </Repell>
+      </Flex>
     );
   }
 
@@ -248,7 +247,7 @@ const SubmitControls = observer(function SubmitControls({ state }: SubmitControl
 
   if (state.isRegistrationActivation) {
     return (
-      <Flex repell centered>
+      <Flex centered repell>
         <Button
           text="Resend activation email"
           disabled={state.disabled}
@@ -268,7 +267,7 @@ const SubmitControls = observer(function SubmitControls({ state }: SubmitControl
   }
 
   return (
-    <Repell centered>
+    <Flex centered repell>
       <Button
         text="Already have account? Log in"
         theme="transparent"
@@ -284,6 +283,6 @@ const SubmitControls = observer(function SubmitControls({ state }: SubmitControl
         disabled={state.disabled || !state.canSubmit}
         onClick={state.handleSubmit}
       />
-    </Repell>
+    </Flex>
   );
 });

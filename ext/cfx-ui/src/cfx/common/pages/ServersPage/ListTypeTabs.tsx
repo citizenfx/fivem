@@ -4,12 +4,13 @@ import { Button } from "cfx/ui/Button/Button";
 import { ButtonBar } from "cfx/ui/Button/ButtonBar";
 import { Title } from "cfx/ui/Title/Title";
 import { observer } from "mobx-react-lite";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ServersListType } from "cfx/common/services/servers/lists/types";
 import { useService } from "cfx/base/servicesContainer";
 import { IServersService } from "cfx/common/services/servers/servers.service";
 import { Icons } from "cfx/ui/Icons";
 import { TextColor } from "cfx/ui/Text/Text";
+import { Tabular } from "cfx/ui/Tabular/Tabular";
 
 export const SERVER_LIST_DESCRIPTORS: Record<string, { title: React.ReactNode, icon: React.ReactNode, to: string, color: TextColor }> = {
   [ServersListType.All]: {
@@ -39,6 +40,34 @@ export const SERVER_LIST_DESCRIPTORS: Record<string, { title: React.ReactNode, i
 };
 
 export const ListTypeTabs = observer(function ListTypeTabs() {
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
+
+  const ServersService = useService(IServersService);
+
+  return (
+    <Tabular.Root size="large">
+      {ServersService.listTypes.map((serverListType) => {
+        const descriptor = SERVER_LIST_DESCRIPTORS[serverListType];
+        if (!descriptor) {
+          return null;
+        }
+
+        return (
+          <Title key={descriptor.to} title={descriptor.title}>
+            <Tabular.Item
+              active={pathname === descriptor.to}
+              icon={descriptor.icon}
+              onClick={() => navigate(descriptor.to)}
+            />
+          </Title>
+        );
+      })}
+    </Tabular.Root>
+  );
+});
+
+export const ListTypeTabs2 = observer(function ListTypeTabs() {
   const { pathname } = useLocation();
 
   const ServersService = useService(IServersService);

@@ -3,8 +3,6 @@ import { clsx } from "cfx/utils/clsx";
 import s from './Loaf.module.scss';
 
 export type LoafSize =
-  | 'xxsmall'
-  | 'xsmall'
   | 'small'
   | 'normal'
   | 'large';

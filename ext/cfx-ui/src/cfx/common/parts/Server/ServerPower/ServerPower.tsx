@@ -25,7 +25,7 @@ export const ServerPower = observer(function ServerPower(props: ServerPowerProps
   }
 
   return (
-    <Flex centered className={className}>
+    <Flex centered="axis" className={className}>
       {hasUpvote && (
         <Title fixedOn="bottom" title={$L('#Server_BoostPower_Title')}>
           <Flex gap="thin">

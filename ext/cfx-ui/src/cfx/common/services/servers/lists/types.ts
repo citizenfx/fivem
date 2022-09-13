@@ -13,7 +13,7 @@ export enum ServersListType {
   Favorites = 'favorites',
   History = 'history',
 
-  MildlyIntelligent = 'mi',
+  PersonalizedServerList = 'personalizedServerList'
 }
 
 export enum ServerListSortDir {

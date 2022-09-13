@@ -9,7 +9,7 @@ import { Flex } from "cfx/ui/Layout/Flex/Flex";
 import { Text } from "cfx/ui/Text/Text";
 import { FlexRestricter } from "cfx/ui/Layout/Flex/FlexRestricter";
 import { ServerPlayersCount } from "../ServerPlayersCount/ServerPlayersCount";
-import { showServerCountryFlag } from "../ServerListItem/utils";
+import { showServerCountryFlag, showServerPowers } from "../ServerListItem/utils";
 import { CountryFlag } from "cfx/ui/CountryFlag/CountryFlag";
 import { ServerIcon } from "../ServerIcon/ServerIcon";
 import { Box } from "cfx/ui/Layout/Box/Box";
@@ -17,17 +17,24 @@ import { useNavigate } from "react-router-dom";
 import { Icons } from "cfx/ui/Icons";
 import { Title } from "cfx/ui/Title/Title";
 import { ServerPower } from "../ServerPower/ServerPower";
-import s from './ServerTileItem.module.scss';
 import { ServerBoostButton } from "../ServerBoostButton/ServerBoostButton";
 import { ControlBox } from "cfx/ui/ControlBox/ControlBox";
+import s from './ServerTileItem.module.scss';
+import { ServerConnectButton } from "../ServerConnectButton/ServerConnectButton";
+import { ServerFavoriteButton } from "../ServerFavoriteButton/ServerFavoriteButton";
 
 export interface ServerTileItemProps {
   server: IServerView,
+
+  label?: React.ReactNode,
+  hideBanner?: boolean,
 }
 
 export const ServerTileItem = observer(function ServerTileItem(props: ServerTileItemProps) {
   const {
     server,
+    label,
+    hideBanner = false,
   } = props;
 
   const navigate = useNavigate();
@@ -35,10 +42,16 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
     navigate(`/servers/detail/${server.id}`);
   }, [navigate, server]);
 
+  const showBanner = !hideBanner && !!server.bannerDetail;
+
   const showCountryFlag = showServerCountryFlag(server.localeCountry);
+  const showPowers = showServerPowers(server);
+
+  const hidePlayersCountOnHover = showPowers || showCountryFlag;
 
   const rootClassName = clsx(s.root, {
-    [s.withBanner]: server.bannerDetail,
+    [s.withBanner]: showBanner,
+    [s.withLabel]: !!label,
   });
 
   const rootStyle: React.CSSProperties = React.useMemo(() => ({
@@ -54,46 +67,46 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
       <div className={s.banner} />
 
       <div className={s.content}>
-        <Pad left right bottom top={!server.bannerDetail}>
-          <Flex fullWidth>
-            <Box height={10}>
-              <ServerIcon glow type="list" server={server} />
-            </Box>
+        <Pad left right bottom top={!showBanner}>
+          <Flex vertical>
+            {label}
 
-            <FlexRestricter>
-              <Flex vertical fullHeight fullWidth centered="cross-axis" gap="small">
-                <ServerTitle
-                  truncated
-                  size="xlarge"
-                  title={server.projectName || server.hostname}
-                />
+            <Flex fullWidth>
+              <Box height={10}>
+                <ServerIcon glow type="list" server={server} />
+              </Box>
 
-                <Title delay={500} fixedOn="bottom-left" title={server.projectDescription}>
-                  <Text truncated opacity="50">
-                    {server.projectDescription}
-                  </Text>
-                </Title>
-              </Flex>
-            </FlexRestricter>
+              <FlexRestricter>
+                <Flex vertical fullHeight fullWidth centered="cross-axis" gap="small">
+                  <ServerTitle
+                    truncated
+                    size="xlarge"
+                    title={server.projectName || server.hostname}
+                  />
 
-            <div style={{ alignSelf: 'center' }}>
-              <Flex vertical alignToEndAxis gap="small">
-                <Flex centered>
-                  <ServerPower server={server} />
-
-                  {showCountryFlag && (
-                    <CountryFlag
-                      locale={server.locale}
-                      country={server.localeCountry}
-                    />
-                  )}
+                  <Title delay={500} fixedOn="bottom-left" title={server.projectDescription}>
+                    <Text truncated opacity="50">
+                      {server.projectDescription}
+                    </Text>
+                  </Title>
                 </Flex>
+              </FlexRestricter>
 
-                <ControlBox size="small" className={s.showOnHover}>
-                  <ServerBoostButton server={server} />
-                </ControlBox>
+              <Flex vertical alignToEndAxis>
+                {(showPowers || showCountryFlag) && (
+                  <Flex centered>
+                    <ServerPower server={server} />
 
-                <ControlBox size="small" className={s.hideOnHover}>
+                    {showCountryFlag && (
+                      <CountryFlag
+                        locale={server.locale}
+                        country={server.localeCountry}
+                      />
+                    )}
+                  </Flex>
+                )}
+
+                <ControlBox size="small" className={clsx({ [s.hideOnHover]: hidePlayersCountOnHover })}>
                   <Flex centered fullHeight fullWidth>
                     <Text opacity="75">
                       {Icons.playersCount}
@@ -103,11 +116,20 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
                     </Text>
                   </Flex>
                 </ControlBox>
+
+                <ControlBox size="small" className={s.showOnHover}>
+                  <Flex>
+                    <ServerBoostButton server={server} />
+
+                    <ServerConnectButton size="small" server={server} />
+
+                    <ServerFavoriteButton size="small" server={server} />
+                  </Flex>
+                </ControlBox>
               </Flex>
-            </div>
+            </Flex>
           </Flex>
         </Pad>
-
       </div>
     </div>
   );

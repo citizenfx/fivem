@@ -1,4 +1,4 @@
-import { DEFAULT_SERVER_LOCALE, DEFAULT_SERVER_LOCALE_COUNTRY, filterServerProjectDesc, filterServerProjectName, hasPrivateConnectEndpoint } from "cfx/base/serverUtils";
+import { DEFAULT_SERVER_LOCALE, DEFAULT_SERVER_LOCALE_COUNTRY, filterServerProjectDesc, filterServerProjectName, filterServerTag, hasPrivateConnectEndpoint } from "cfx/base/serverUtils";
 import { arrayAt } from "cfx/utils/array";
 import { master } from "./source/api/master";
 import { IArrayCategoryMatcher, IListableServerView, IStringCategoryMatcher } from "./source/types";
@@ -82,6 +82,10 @@ export function masterListFullServerData2ServerView(joinId: string, data: IFullS
 
   if (!serverView.projectName) {
     serverView.upvotePower = 0;
+  }
+
+  if (data.fallback) {
+    serverView.offline = true;
   }
 
   return serverView;
@@ -219,7 +223,7 @@ export function processServerDataVariables(vars?: IServer['data']['vars']): Vars
         continue;
       }
       case key === 'tags': {
-        view.tags = [...new Set(value.split(',').map((tag) => tag.trim()).filter(Boolean))];
+        view.tags = [...new Set(value.split(',').map((tag) => tag.trim()).filter(filterServerTag))];
         continue;
       }
       case key === 'banner_connecting': {

@@ -18,7 +18,7 @@ import { IServersService } from "cfx/common/services/servers/servers.service";
 import { ServerIcon } from "../ServerIcon/ServerIcon";
 import { playSfx, Sfx } from "cfx/apps/mpMenu/utils/sfx";
 import { ServerPlayersCount } from "../ServerPlayersCount/ServerPlayersCount";
-import { showServerPremiumBadge } from "./utils";
+import { getServerDetailsLink, showServerPremiumBadge } from "./utils";
 import { ServerPower } from "../ServerPower/ServerPower";
 import { ServerBoostButton } from "../ServerBoostButton/ServerBoostButton";
 import s from './ServerListItem.module.scss';
@@ -55,7 +55,7 @@ export const ServerListItem = observer(function ServerListItem(props: ServerList
       return;
     }
 
-    navigate(`/servers/detail/${server.id}`);
+    navigate(getServerDetailsLink(server));
   }, [navigate, server]);
 
   if (!server) {

@@ -2,6 +2,8 @@
   user-select: text;
 }
 .content {
+  @include ui.font-color('text-a75');
+
   line-height: 1.2;
 
   word-wrap: break-word;

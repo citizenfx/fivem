@@ -9,3 +9,11 @@ export function showServerCountryFlag(localeCountry: IServerView['localeCountry'
 
   return lclocaleCountry !== 'aq' && lclocaleCountry !== '001';
 }
+
+export function showServerPowers(server: IServerView): boolean {
+  return Boolean(server.upvotePower || server.burstPower);
+}
+
+export function getServerDetailsLink(server: IServerView): string {
+  return `/servers/detail/${server.id}`;
+}

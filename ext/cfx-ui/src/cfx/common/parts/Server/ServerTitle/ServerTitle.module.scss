@@ -5,6 +5,12 @@
 
   word-wrap: break-word;
 
+  &.size-small {
+    @include ui.font-size('small');
+  }
+  &.size-normal {
+    @include ui.font-size('normal');
+  }
   &.size-large {
     @include ui.font-size('large');
   }
@@ -19,9 +25,11 @@
   }
 
   &.truncated {
+    display: block;
+
     width: 100%;
 
-    line-height: 1.1; // avoid clipping glyphs by bounding box
+    line-height: 1.2; // avoid clipping glyphs by bounding box
 
     white-space: nowrap;
 
