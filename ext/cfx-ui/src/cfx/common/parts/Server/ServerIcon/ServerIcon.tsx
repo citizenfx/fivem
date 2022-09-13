@@ -1,5 +1,4 @@
-import { useService } from "cfx/base/servicesContainer";
-import { IServersService } from "cfx/common/services/servers/servers.service";
+import { useServersService } from "cfx/common/services/servers/servers.service";
 import { IServerView } from "cfx/common/services/servers/types";
 import { Indicator } from "cfx/ui/Indicator/Indicator";
 import { clsx } from "cfx/utils/clsx";
@@ -10,7 +9,7 @@ type TypeProps =
   | { type: 'details', size?: 'small' | 'normal' }
 
 export type ServerIconProps = TypeProps & {
-  server: string | IServerView,
+  server: IServerView,
   glow?: boolean,
   className?: string,
 }
@@ -25,11 +24,7 @@ export function ServerIcon(props: ServerIconProps) {
   const isList = type === 'list';
   const isDetails = type === 'details';
 
-  const serverId = typeof server === 'string'
-    ? server
-    : server.id;
-
-  const iconURL = useService(IServersService).getServerIconURL(serverId);
+  const iconURL = useServerIconURL(server);
 
   const rootClassName = clsx(
     s.root,
@@ -50,7 +45,7 @@ export function ServerIcon(props: ServerIconProps) {
       )}
 
       <img
-        alt={serverId}
+        alt={server.id}
         src={iconURL}
         className={s.icon}
       />
@@ -62,4 +57,28 @@ export function ServerIcon(props: ServerIconProps) {
       )}
     </div>
   );
+}
+
+const cache: Record<string, string> = {};
+
+function useServerIconURL(server: IServerView): string {
+  const ServersService = useServersService();
+
+  if (!cache[server.id]) {
+    let iconURL = '';
+
+    if ('iconVersion' in server) {
+      iconURL = ServersService.getServerIconURL(server.id);
+    }
+    else if (server.thumbnailIconUri) {
+      iconURL = server.thumbnailIconUri;
+    }
+    else {
+      iconURL = ServersService.getServerIconURL(server.id);
+    }
+
+    cache[server.id] = iconURL;
+  }
+
+  return cache[server.id];
 }

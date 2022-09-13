@@ -95,7 +95,7 @@ export const ServerListItem = observer(function ServerListItem(props: ServerList
     >
       <ServerIcon
         type="list"
-        server={server.id}
+        server={server}
         loading={isLoading}
         className={s.icon}
       />

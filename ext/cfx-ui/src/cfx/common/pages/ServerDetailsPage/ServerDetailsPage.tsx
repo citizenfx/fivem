@@ -102,7 +102,7 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
                       <ServerIcon
                         glow
                         type="details"
-                        server={server.id}
+                        server={server}
                       />
 
                       <ServerPower server={server} />

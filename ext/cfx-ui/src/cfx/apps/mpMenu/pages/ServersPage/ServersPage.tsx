@@ -38,11 +38,7 @@ export const MpMenuServersPage = observer(function ({ listType }: ServersPagePro
               <ServerFiltersWithDirectConnect config={config} />
 
               {showPinned && (
-                <div
-                  style={{
-                    width: 'calc(var(--width) * .293)'
-                  }}
-                />
+                <PinnedServersFilterSpacer />
               )}
             </>
           )}
@@ -56,3 +52,13 @@ export const MpMenuServersPage = observer(function ({ listType }: ServersPagePro
     </>
   );
 });
+
+function PinnedServersFilterSpacer() {
+  return (
+    <div
+      style={{
+        width: 'calc(var(--width) * .293)'
+      }}
+    />
+  );
+}
