@@ -734,6 +734,18 @@ static bool ShowDownloadNotification(const std::vector<std::pair<GameCacheEntry,
 
 extern void StartIPFS();
 
+static void BumpDownloadCount(const std::shared_ptr<baseDownload>& download, const std::string& key)
+{
+	DWORD count = 0;
+	DWORD countLen = sizeof(count);
+	RegGetValueW(HKEY_CURRENT_USER, L"Software\\CitizenFX\\DownloadCount", ToWide(key).c_str(), RRF_RT_REG_DWORD, NULL, &count, &countLen);
+
+	++count;
+	download->count = count;
+
+	RegSetKeyValueW(HKEY_CURRENT_USER, L"Software\\CitizenFX\\DownloadCount", ToWide(key).c_str(), REG_DWORD, &count, sizeof(count));
+}
+
 #include "ZlibDecompressPlugin.h"
 
 static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
@@ -908,7 +920,8 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 					{
 						if (outHash == deltaEntry.fromChecksum)
 						{
-							CL_QueueDownload(deltaEntry.remoteFile.c_str(), ToNarrow(deltaEntry.GetLocalFileName()).c_str(), deltaEntry.dlSize, compressionAlgo_e::None);
+							auto download = CL_QueueDownload(deltaEntry.remoteFile.c_str(), ToNarrow(deltaEntry.GetLocalFileName()).c_str(), deltaEntry.dlSize, compressionAlgo_e::None);
+							BumpDownloadCount(download, fmt::sprintf("%s_delta_%s", FormatHexString(deltaEntry.toChecksum), FormatHexString(deltaEntry.fromChecksum)));
 
 							notificationEntries.push_back({ deltaEntry.MakeEntry(), false });
 							theseDeltas.emplace_back(deltaEntry, entry);
@@ -934,7 +947,8 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 				}
 
 				// if the file isn't of the original size
-				CL_QueueDownload(remotePath, localFileName.c_str(), entry.remoteSize, ((entry.remoteSize != entry.localSize && !entry.archivedFile) ? compressionAlgo_e::XZ : compressionAlgo_e::None));
+				auto download = CL_QueueDownload(remotePath, localFileName.c_str(), entry.remoteSize, ((entry.remoteSize != entry.localSize && !entry.archivedFile) ? compressionAlgo_e::XZ : compressionAlgo_e::None));
+				BumpDownloadCount(download, entry.checksums[0]);
 
 				if (strncmp(remotePath, "ipfs://", 7) == 0)
 				{

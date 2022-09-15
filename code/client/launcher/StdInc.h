@@ -42,9 +42,14 @@ enum class compressionAlgo_e
 	Zstd,
 };
 
+struct baseDownload
+{
+	int count = 1;
+};
+
 void CL_InitDownloadQueue();
-void CL_QueueDownload(const char* url, const char* file, int64_t size, compressionAlgo_e algo);
-void CL_QueueDownload(const char* url, const char* file, int64_t size, compressionAlgo_e algo, int segments);
+std::shared_ptr<baseDownload> CL_QueueDownload(const char* url, const char* file, int64_t size, compressionAlgo_e algo);
+std::shared_ptr<baseDownload> CL_QueueDownload(const char* url, const char* file, int64_t size, compressionAlgo_e algo, int segments);
 
 bool DL_Process();
 
