@@ -479,7 +479,7 @@ static InitFunction initFunction([] ()
 		rage::scrEngine::CreateThread(&loadsThread);
 	});
 
-	g_loadProfileConvar = std::make_shared<ConVar<bool>>("game_profileLoading", ConVar_Archive, false);
+	g_loadProfileConvar = std::make_shared<ConVar<bool>>("game_profileLoading", ConVar_UserPref, false);
 
 	OnKillNetworkDone.Connect([] ()
 	{

@@ -281,7 +281,7 @@ NetOverlayMetricSink::NetOverlayMetricSink()
 		UpdateMetrics();
 	}, 50);
 
-	static ConVar<bool> commandVar("net_showCommands", ConVar_Archive, false, &m_enabledCommands);
+	static ConVar<bool> commandVar("net_showCommands", ConVar_Archive | ConVar_UserPref, false, &m_enabledCommands);
 
 	ConHost::OnShouldDrawGui.Connect([this](bool* should)
 	{

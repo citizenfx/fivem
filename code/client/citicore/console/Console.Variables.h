@@ -55,11 +55,21 @@ struct Constraints<T, std::enable_if_t<std::is_arithmetic<T>::value>>
 enum ConsoleVariableFlags
 {
 	ConVar_None       = 0,
+	// will be saved in user configuration
 	ConVar_Archive    = 0x1,
+
+	// has been modified and should be saved
 	ConVar_Modified   = 0x2,
+
+	// public server information
 	ConVar_ServerInfo = 0x4,
+
+	// client won't allow setting it
 	ConVar_Replicated = 0x8,
 	ConVar_ReadOnly   = 0x10,
+
+	// can't be 'setr'd from server->client
+	ConVar_UserPref   = 0x20,
 };
 
 inline std::string ConsoleFlagsToString(ConsoleVariableFlags flags)

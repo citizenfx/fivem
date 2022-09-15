@@ -264,7 +264,7 @@ void PrintErrorv(ConsoleChannel channel, std::string_view format, fmt::printf_ar
 	Printf(channel, "%s", errorText);
 }
 
-static ConVar<int> developerVariable(GetDefaultContext(), "developer", ConVar_Archive, 0, &gConsole->useDeveloper);
+static ConVar<int> developerVariable(GetDefaultContext(), "developer", ConVar_Archive | ConVar_UserPref, 0, &gConsole->useDeveloper);
 }
 
 extern "C" DLL_EXPORT void CoreAddPrintListener(void(*function)(ConsoleChannel, const char*))

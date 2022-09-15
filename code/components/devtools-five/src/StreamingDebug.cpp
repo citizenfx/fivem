@@ -330,9 +330,9 @@ static InitFunction initFunction([]()
 	static bool streamingListEnabled;
 	static bool streamingMemoryEnabled;
 
-	static ConVar<bool> streamingDebugVar("strdbg", ConVar_Archive, false, &streamingDebugEnabled);
-	static ConVar<bool> streamingListVar("strlist", ConVar_Archive, false, &streamingListEnabled);
-	static ConVar<bool> streamingMemoryVar("strmem", ConVar_Archive, false, &streamingMemoryEnabled);
+	static ConVar<bool> streamingDebugVar("strdbg", ConVar_Archive | ConVar_UserPref, false, &streamingDebugEnabled);
+	static ConVar<bool> streamingListVar("strlist", ConVar_Archive | ConVar_UserPref, false, &streamingListEnabled);
+	static ConVar<bool> streamingMemoryVar("strmem", ConVar_Archive | ConVar_UserPref, false, &streamingMemoryEnabled);
 
 	ConHost::OnShouldDrawGui.Connect([](bool* should)
 	{

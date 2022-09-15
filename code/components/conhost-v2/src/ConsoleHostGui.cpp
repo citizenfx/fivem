@@ -668,7 +668,7 @@ struct MiniConsole : CfxBigConsole
 
 	MiniConsole()
 	{
-		m_miniconChannels = new ConVar<std::string>("con_miniconChannels", ConVar_Archive, "minicon:*");
+		m_miniconChannels = new ConVar<std::string>("con_miniconChannels", ConVar_Archive | ConVar_UserPref, "minicon:*");
 		m_miniconLastValue = m_miniconChannels->GetValue();
 
 		try

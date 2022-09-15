@@ -238,7 +238,7 @@ static InitFunction initFunction([]()
 
 	OnMainGameFrame.Connect([]()
 	{
-		static ConVar<bool> useStreamingProgress("game_showStreamingProgress", ConVar_Archive, false);
+		static ConVar<bool> useStreamingProgress("game_showStreamingProgress", ConVar_Archive | ConVar_UserPref, false);
 
 		if (useStreamingProgress.GetValue())
 		{
