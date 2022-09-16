@@ -50,7 +50,9 @@ static InitFunction initFunction([]()
 	{
 		int serverId = context.GetArgument<int>(0);
 
-		context.SetResult<bool>(Client_is_player_muted(serverId));
+		auto client = Client_get_from_player(serverId);
+
+		context.SetResult<bool>(client->mute);
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("MUMBLE_SET_PLAYER_MUTED", [](fx::ScriptContext& context)
@@ -58,6 +60,8 @@ static InitFunction initFunction([]()
 		int serverId = context.GetArgument<int>(0);
 		bool toggle = context.GetArgument<bool>(1);
 
-		Client_set_player_muted(serverId, toggle);
+		auto client = Client_get_from_player(serverId);
+
+		client->mute = toggle;
 	});
 });

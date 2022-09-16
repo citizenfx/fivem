@@ -110,34 +110,20 @@ int Client_getfds(struct pollfd *pollfds)
 	return 0;
 }
 
-bool Client_is_player_muted(int serverId)
+client_t *Client_get_from_player(int serverId)
 {
 	auto convertedServerId = fmt::sprintf("[%d]", serverId);
 	struct dlist *itr, *save;
-	list_iterate_safe(itr, save, &clients)
-	{
+	list_iterate_safe(itr, save, &clients) {
 		client_t* c;
 		c = list_get_entry(itr, client_t, node);
 		if (c->username && strstr(c->username, convertedServerId.c_str()))
 		{
-			return c->mute;
+			return c;
 		}
 	}
-}
 
-void Client_set_player_muted(int serverId, bool muted)
-{
-	auto convertedServerId = fmt::sprintf("[%d]", serverId);
-	struct dlist *itr, *save;
-	list_iterate_safe(itr, save, &clients)
-	{
-		client_t* c;
-		c = list_get_entry(itr, client_t, node);
-		if (c->username && strstr(c->username, convertedServerId.c_str())) {
-			c->mute = muted;
-			break;
-		}
-	}
+	return NULL;
 }
 
 void Client_janitor()

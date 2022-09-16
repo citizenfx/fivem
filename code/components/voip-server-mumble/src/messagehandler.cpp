@@ -43,6 +43,7 @@
 #include "conf.h"
 #include "voicetarget.h"
 #include "ban.h"
+#include <regex>
 
 #include "ChannelListener.h"
 
@@ -122,9 +123,11 @@ void Mh_handle_message(client_t *client, message_t *msg)
 
 	switch (msg->messageType) {
 	case Authenticate:
+	{
 		Log_debug("Authenticate message received");
 
-		if (IS_AUTH(client) || !msg->payload.authenticate->username().c_str()) {
+		std::string username = msg->payload.authenticate->username();
+		if (IS_AUTH(client) || !username.c_str()) {
 			/* Authenticate message might be sent when a tokens are changed by the user.*/
 			Client_token_free(client); /* Clear the token list */
 			if (msg->payload.authenticate->tokens_size() > 0) {
@@ -167,8 +170,7 @@ void Mh_handle_message(client_t *client, message_t *msg)
 				goto disconnect;
 			}
 		}
-		if (strlen(msg->payload.authenticate->username().c_str()) == 0 ||
-			strlen(msg->payload.authenticate->username().c_str()) >= MAX_USERNAME) { /* XXX - other invalid names? */
+		if (username.size() == 0 || username.size() >= MAX_USERNAME) { /* XXX - other invalid names? */
 			char buf[64];
 			sprintf(buf, "Invalid username");
 			Log_debug("Invalid username");
@@ -186,17 +188,58 @@ void Mh_handle_message(client_t *client, message_t *msg)
 		client->authenticated = true;
 
 		/* Name */
-		client->username = strdup(msg->payload.authenticate->username().c_str());
+		client->username = strdup(username.c_str());
 
 		/* Tokens */
 		if (msg->payload.authenticate->tokens_size() > 0)
 			addTokens(client, msg);
 
 		/* Check if admin PW among tokens */
-		if (strlen(getStrConf(ADMIN_PASSPHRASE)) > 0 &&
-		    Client_token_match(client, getStrConf(ADMIN_PASSPHRASE))) {
+		if (strlen(getStrConf(ADMIN_PASSPHRASE)) > 0 && strcmp(msg->payload.authenticate->password().c_str(), getStrConf(ADMIN_PASSPHRASE)) == 0) {
 			client->isAdmin = true;
 			Log_info_client(client, "User provided admin password");
+		}
+		
+		bool isCfxUsername = std::regex_match(username, std::regex("^\\[[0-9]+\\].*"));
+		if (!client->isAdmin) {
+			if (client->os_version == NULL || strcmp(client->os_version, "Cfx/Embedded") != 0 ||
+				client->release == NULL || strcmp(client->release, "CitizenFX Client") != 0) {
+				char buf[64];
+				sprintf(buf, "Client is incompatible with CitizenFX mumble server");
+				Log_info("Client provided incorrect version. Disconnecting");
+				sendServerReject(client, buf, MumbleProto::Reject_RejectType_WrongVersion);
+				goto disconnect;
+			}
+
+			if (!isCfxUsername) {
+				char buf[64];
+				sprintf(buf, "Invalid username");
+				Log_debug("Invalid username");
+				sendServerReject(client, buf, MumbleProto::Reject_RejectType_InvalidUsername);
+				goto disconnect;
+			}
+
+			std::string serverId = username.substr(0, username.find("]") + 1);
+			client_itr = NULL;
+			while (Client_iterate(&client_itr) != NULL) {
+				if (!IS_AUTH(client_itr) || client->sessionId == client_itr->sessionId)
+					continue;
+				if (client_itr->username && strstr(client_itr->username, serverId.c_str())) {
+					char buf[64];
+					sprintf(buf, "Invalid username server id");
+					Log_debug("Username server id already in use");
+					sendServerReject(client, buf, MumbleProto::Reject_RejectType_InvalidUsername);
+					goto disconnect;
+				}
+			}
+		} else {
+			if (isCfxUsername) { // We don't want to mix admins with players
+				char buf[64];
+				sprintf(buf, "Invalid username");
+				Log_debug("Invalid username");
+				sendServerReject(client, buf, MumbleProto::Reject_RejectType_InvalidUsername);
+				goto disconnect;
+			}
 		}
 
 		/* Setup UDP encryption */
@@ -346,7 +389,7 @@ void Mh_handle_message(client_t *client, message_t *msg)
 
 		Log_info_client(client, "User %s authenticated", client->username);
 		break;
-
+	}
 	case Ping:
 		if (msg->payload.ping->has_good())
 			client->cryptState.uiRemoteGood = msg->payload.ping->good();
