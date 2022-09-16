@@ -11,6 +11,7 @@
 
 static int WeaponDamageModifierOffset;
 static int WeaponAnimationOverrideOffset;
+static int WeaponRecoilShakeAmplitudeOffset;
 
 static uint16_t* g_weaponCount;
 static uint64_t** g_weaponList;
@@ -284,6 +285,28 @@ orig:
 	return g_origShouldAim(cTaskMotionPed);
 }
 
+static uint64_t getWeaponFromHash(fx::ScriptContext& context)
+{
+	if (context.GetArgumentCount() < 1)
+	{
+		return 0;
+	}
+
+	int weaponHash = context.GetArgument<int>(0);
+
+	for (int i = 0; i < *g_weaponCount - 1; i++)
+	{
+		auto weapon = (*g_weaponList)[i];
+		auto hash = *(uint32_t*)(weapon + 16);
+
+		if (hash == weaponHash)
+		{
+			return weapon;
+		}
+	}
+
+	return 0;
+}
 
 static HookFunction hookFunction([]()
 {
@@ -297,27 +320,43 @@ static HookFunction hookFunction([]()
 	{
 		WeaponDamageModifierOffset = *hook::get_pattern<int>("48 85 C9 74 ? F3 0F 10 81 ? ? ? ? F3 0F 59 81", 9);
 		WeaponAnimationOverrideOffset = *hook::get_pattern<int>("8B 9F ? ? ? ? 85 DB 75 3E", 2);
+		WeaponRecoilShakeAmplitudeOffset = *hook::get_pattern<int>("48 8B 47 40 F3 0F 10 B0 ? ? ? ?", 8);
 	}
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_WEAPON_DAMAGE_MODIFIER", [](fx::ScriptContext& context)
 	{
-		auto weaponHash = context.GetArgument<int>(0);
-		float result = 0.0f;
+		float damageModifier = 0.0f;
 
-		for (int i = 0; i < *g_weaponCount - 1; i++)
+		if (auto weapon = getWeaponFromHash(context))
 		{
-			auto weapon = (*g_weaponList)[i];
-			auto hash = *(uint32_t*)(weapon + 16);
-
-			if (hash == weaponHash)
-			{
-				result = *(float*)(weapon + WeaponDamageModifierOffset);
-				break;
-			}
+			damageModifier = *(uint16_t*)(weapon + WeaponDamageModifierOffset);
 		}
 
-		context.SetResult<float>(result);
+		context.SetResult<float>(damageModifier);
 	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_WEAPON_RECOIL_SHAKE_AMPLITUDE", [](fx::ScriptContext& context)
+	{
+		int recoilShakeAmplitude = 0;
+
+		if (auto weapon = getWeaponFromHash(context))
+		{
+			recoilShakeAmplitude = *(int*)(weapon + WeaponRecoilShakeAmplitudeOffset);
+		}
+
+		context.SetResult<int>(recoilShakeAmplitude);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_WEAPON_RECOIL_SHAKE_AMPLITUDE", [](fx::ScriptContext& context)
+	{
+		if (auto weapon = getWeaponFromHash(context))
+		{
+			float recoilShakeAmplitude = context.GetArgument<float>(1);
+
+			*(float*)(weapon + WeaponRecoilShakeAmplitudeOffset) = recoilShakeAmplitude;
+		}
+	});
+
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_FLASH_LIGHT_KEEP_ON_WHILE_MOVING", [](fx::ScriptContext& context) 
 	{
