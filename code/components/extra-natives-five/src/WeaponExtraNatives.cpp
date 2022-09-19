@@ -329,7 +329,7 @@ static HookFunction hookFunction([]()
 
 		if (auto weapon = getWeaponFromHash(context))
 		{
-			damageModifier = *(uint16_t*)(weapon + WeaponDamageModifierOffset);
+			damageModifier = *(float*)(weapon + WeaponDamageModifierOffset);
 		}
 
 		context.SetResult<float>(damageModifier);
