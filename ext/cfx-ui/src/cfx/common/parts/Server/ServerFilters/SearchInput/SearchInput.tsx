@@ -13,6 +13,7 @@ import { Indicator } from "cfx/ui/Indicator/Indicator";
 import { noop } from "cfx/utils/functional";
 import { TitleOutlet } from "cfx/ui/outlets";
 import s from './SearchInput.module.scss';
+import { $L, useL10n } from "cfx/common/services/intl/l10n";
 
 export interface SearchInputProps {
   size?: InputSize,
@@ -48,6 +49,8 @@ export const SearchInput = observer(function SearchInput(props: SearchInputProps
   const richInputRef = React.useRef<HTMLDivElement>(null);
   const cursorAtElementRef = React.useRef<HTMLSpanElement>(null);
   const [cursorAt, setCursorAt] = React.useState(-1);
+
+  const placeholder = useL10n('#ServerList_SearchHint2');
 
   const handleSelect: RichInputProps['onSelect'] = React.useCallback((start, end) => {
     setCursorAt(
@@ -93,7 +96,7 @@ export const SearchInput = observer(function SearchInput(props: SearchInputProps
         onSelect={handleSelect}
         rendered={rendered}
         className={richInputClassName}
-        placeholder="Search or >ip"
+        placeholder={placeholder}
       /> {/* TODOLOC */}
 
       <Wizard

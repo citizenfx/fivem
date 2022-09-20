@@ -258,4 +258,8 @@
 
 
   @include ui.define-color-token('outlined-hover-border', ui.color('main', 500, .25));
+
+
+  @include ui.define-color-token('tabular-item-decorator-active-background', ui.color('main', 950, .5));
+  @include ui.define-color-token('tabular-item-decorator-hover-background', ui.color('main', 950, .1));
 }

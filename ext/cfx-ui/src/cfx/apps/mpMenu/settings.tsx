@@ -1,7 +1,4 @@
 import emojiList from 'emoji.json/emoji-compact.json';
-import { Flex } from "cfx/ui/Layout/Flex/Flex";
-import { Avatar } from "cfx/ui/Avatar/Avatar";
-import { ServerListItem } from "cfx/common/parts/Server/ServerListItem/ServerListItem";
 import { Indicator } from "cfx/ui/Indicator/Indicator";
 import { BrandIcon, Icons } from "cfx/ui/Icons";
 import { BsDisplay } from "react-icons/bs";
@@ -12,24 +9,26 @@ import { CurrentGameName } from "cfx/base/gameName";
 import { CustomBackdropControl } from "./components/CustomBackdropControl/CustomBackdropControl";
 import { LinkedIdentitiesList } from "./parts/LinkedIdentitiesList/LinkedIdentitiesList";
 import { mpMenu } from "./mpMenu";
-import { IConvarService, KnownConvars, useConvarService } from "./services/convars/convars.service";
+import { IConvarService, KnownConvars } from "./services/convars/convars.service";
 import { IConvar } from "./services/convars/types";
 import { Input } from "cfx/ui/Input/Input";
-import { Button } from "cfx/ui/Button/Button";
 import { useAccountService } from "cfx/common/services/account/account.service";
 import { ILinkedIdentitiesService } from "./services/linkedIdentities/linkedIdentities.service";
 import { IServersBoostService } from 'cfx/common/services/servers/serversBoost.service';
-import { Box } from 'cfx/ui/Layout/Box/Box';
 import { GameName } from 'cfx/base/game';
-import { useAuthService } from './services/auth/auth.service';
 import { useIntlService } from 'cfx/common/services/intl/intl.service';
 import { $L } from 'cfx/common/services/intl/l10n';
 import { Select } from 'cfx/ui/Select/Select';
 import { DEFAULT_SERVER_PORT } from 'cfx/base/serverUtils';
-import { Text } from 'cfx/ui/Text/Text';
 import { ServerTileItem } from 'cfx/common/parts/Server/ServerTileItem/ServerTileItem';
+import { AccountHeader } from './parts/SettingsFlyout/Account/AccountHeader/AccountHeader';
 
 const ACCOUNT_SETTINGS = new Map<string, ISetting.AnySetting>([
+  ['accountHeader', {
+    label: $L('#Settings_Account'),
+    render: () => <AccountHeader />,
+  }],
+
   ['nickname', {
     label: $L('#Settings_Nickname'),
     render: () => {
@@ -53,52 +52,6 @@ const ACCOUNT_SETTINGS = new Map<string, ISetting.AnySetting>([
       return LinkedIdentitiesService.linkedIdentities.isResolved() && LinkedIdentitiesService.linkedIdentities.value.length > 0;
     },
     render: () => <LinkedIdentitiesList />,
-  }],
-
-  ['accountButton', {
-    label: $L('#Settings_Account'),
-    visible: () => !accountLoadedAndPresent(),
-    render: () => {
-      const AuthService = useAuthService();
-
-      return (
-        <Button
-          text={$L('#Settings_AccountLink')}
-          onClick={AuthService.openUI}
-        />
-      );
-    },
-  }],
-
-  ['accountDisplayNode', {
-    label: $L('#Settings_Account'),
-    visible: accountLoadedAndPresent,
-    render: () => {
-      const ConvarService = useConvarService();
-      const AccountService = useAccountService();
-
-      if (ConvarService.getBoolean(KnownConvars.streamerMode)) {
-        return (
-          <span>
-            {'<HIDDEN>'}
-          </span>
-        );
-      }
-
-      return (
-        <Flex repell>
-          <Flex centered>
-            <Avatar
-              url={AccountService.account?.getAvatarUrl() || ''}
-            />
-
-            <Text size="large">
-              {AccountService.account?.username}
-            </Text>
-          </Flex>
-        </Flex>
-      );
-    },
   }],
 
   ['boostLoading', {

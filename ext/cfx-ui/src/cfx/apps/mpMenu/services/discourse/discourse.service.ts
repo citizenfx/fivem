@@ -157,10 +157,10 @@ class DiscourseService implements IAccountService, AppContribution {
     return prefix + template.replace('{size}', size.toString());
   }
 
-  signout(): void {
+  readonly signout = () => {
     this.account = null;
     this.authToken = '';
-  }
+  };
 
   async makeApiCall<TRequest, TResponse>(path: string, method = 'GET', data?: TRequest): Promise<TResponse> {
     const headers: Record<string, string> = {

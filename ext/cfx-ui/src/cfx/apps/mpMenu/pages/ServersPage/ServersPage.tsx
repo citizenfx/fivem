@@ -30,7 +30,7 @@ export const MpMenuServersPage = observer(function ({ listType }: ServersPagePro
   return (
     <>
       <InsideNavBar>
-        <Flex>
+        <Flex gap="large">
           <ListTypeTabs />
 
           {!!config && (

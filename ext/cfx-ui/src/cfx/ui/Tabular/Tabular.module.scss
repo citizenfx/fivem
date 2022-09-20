@@ -45,7 +45,7 @@
       top: 0;
       left: 0;
 
-      color: ui.color-token('text');
+      @include ui.font-color('text');
 
       z-index: 2;
 
@@ -78,6 +78,8 @@
 
       @include ui.border-radius('small');
 
+      box-shadow: 0 0 0 2px transparent inset;
+
       z-index: 1;
     }
 
@@ -85,19 +87,20 @@
       .decorator {
         height: ui.q(.5);
 
-        background-color: ui.color-token('text-a50');
+        background-color: ui.color-token('tabular-item-decorator-active-background');
       }
     }
 
     &:hover {
       .decorator {
         height: 100%;
-        background-color: ui.color-token('text-a25');
+        box-shadow: 0 0 0 2px ui.color-token('outlined-hover-border') inset;
+        background-color: ui.color-token('tabular-item-decorator-hover-background');
       }
 
       &.active {
         .decorator {
-          background-color: ui.color-token('text-a25');
+          background-color: ui.color-token('tabular-item-decorator-hover-background');
         }
       }
     }

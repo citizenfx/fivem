@@ -13,6 +13,7 @@
     "#ServerList_StreamerModeWarning": "Streamer Mode is enabled - input is hidden",
     "#ServerList_SearchHint": "Search or enter an IP address",
     "#ServerList_SearchHintWeb": "Search",
+    "#ServerList_SearchHint2": "Search or type > and enter an IP address",
     "#Home_AdDetail": "top upvoted server in your region",
     "#BottomNav_Home": "Home",
     "#BottomNav_Servers": "Servers",

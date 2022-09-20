@@ -4,7 +4,7 @@ import s from './Avatar.module.scss';
 
 export interface AvatarProps {
   url: string,
-  size?: 'none' | 'small' | 'normal' | 'large',
+  size?: 'none' | 'small' | 'normal' | 'large' | 'xxxlarge',
 
   className?: string,
 }

@@ -13,9 +13,9 @@ import { FlexRestricter } from "cfx/ui/Layout/Flex/FlexRestricter";
 import { useService } from "cfx/base/servicesContainer";
 import { ISettingsUIService } from "cfx/common/services/settings/settings.service";
 
-function useCloseOnLocationChange(svc: ISettingsUIService) {
+function useCloseOnLocationChange(settingsUIService: ISettingsUIService) {
   const location = useLocation();
-  React.useEffect(svc.close, [location]);
+  React.useEffect(settingsUIService.close, [location]);
 }
 
 export const SettingsFlyout = observer(function SettingsFlyout() {
