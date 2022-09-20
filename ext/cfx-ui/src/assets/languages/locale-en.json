@@ -15,6 +15,9 @@
     "#ServerList_SearchHintWeb": "Search",
     "#ServerList_SearchHint2": "Search or type > and enter an IP address",
     "#Home_AdDetail": "top upvoted server in your region",
+    "#Home_LastConnectedServer": "Last connected server",
+    "#Home_RegionTopServers": "Top servers",
+    "#Home_RegionTopServers_Explainer": "Top servers in your region based on BOOST™ power",
     "#BottomNav_Home": "Home",
     "#BottomNav_Servers": "Servers",
     "#BottomNav_Play": "Play",
@@ -24,9 +27,11 @@
     "#BottomNav_Create": "Create",
     "#BottomNav_ReplayEditor": "Replay Editor",
     "#BottomNav_LinkAccount": "Link account",
+    "#Server_FeaturedServer_Title": "Featured server",
     "#ServerList_HideFull": "Hide Full",
     "#ServerList_HideEmpty": "Hide Empty",
     "#ServerList_MaxPing": "Max Ping",
+    "#ServerList_FeaturedServers": "Featured servers",
     "#Servers_Connecting": "Connecting",
     "#Servers_ConnectingTo": "Connecting to {{ serverName }}...",
     "#Servers_ConnectingToServer": "Connecting to server...",
@@ -170,10 +175,6 @@
 
     "#Home_AllList_Link": "Browse {{count}} servers",
     "#Home_AllList_Fallback": "Browse all servers",
-
-    "#Home_PersonalizedList": "Personalized server list",
-    "#Home_PromotedServer_Ad": "Featured server",
-    "#Home_PromotedServer_Locale": "Top server in your region",
 
     "#Home_Feed_Community": "Community",
     "#Home_Feed_Community_Desc": "Tweets from the community",

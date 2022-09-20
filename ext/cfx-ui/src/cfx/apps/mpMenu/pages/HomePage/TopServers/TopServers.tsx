@@ -24,9 +24,9 @@ import { Loaf } from "cfx/ui/Loaf/Loaf";
 import { ControlBox } from "cfx/ui/ControlBox/ControlBox";
 import { useNavigate } from "react-router-dom";
 import { getServerDetailsLink } from "cfx/common/parts/Server/ServerListItem/utils";
-import s from './Carousel.module.scss';
+import s from './TopServers.module.scss';
 
-export const Carousel = observer(function Carousel() {
+export const TopServers = observer(function TopServers() {
   React.useEffect(() => {
     Ctrl.unpause();
 
@@ -51,7 +51,6 @@ export const Carousel = observer(function Carousel() {
 
   return (
     <div className={s.root}>
-
       <div className={s.selector}>
         {selectorNodes}
       </div>

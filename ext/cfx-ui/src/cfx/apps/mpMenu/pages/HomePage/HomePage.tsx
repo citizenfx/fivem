@@ -15,7 +15,7 @@ import { FiTwitter } from "react-icons/fi";
 import { Icon } from "cfx/ui/Icon/Icon";
 import { $L } from "cfx/common/services/intl/l10n";
 import { PlatformStats } from "./PlatformStats/PlatformStats";
-import { Carousel } from "./Carousel/Carousel";
+import { TopServers } from "./TopServers/TopServers";
 import { CountryFlag } from "cfx/ui/CountryFlag/CountryFlag";
 import { useIntlService } from "cfx/common/services/intl/intl.service";
 import { ExtraLinkyTiles } from "./ExtraLinkyTiles/ExtraLinkyTiles";
@@ -25,6 +25,7 @@ import { AuxiliaryGameModes } from "./AuxiliaryGameModes/AuxiliaryGameModes";
 import { ServersNavBar } from "./ServersNavBar/ServersNavBar";
 import s from './HomePage.module.scss';
 import { ui } from "cfx/ui/ui";
+import { Title } from "cfx/ui/Title/Title";
 
 export const HomePage = observer(function HomePage() {
   const ActivityService = useActivityService();
@@ -49,19 +50,27 @@ export const HomePage = observer(function HomePage() {
           <Flex fullWidth fullHeight vertical repell gap="none">
             <Box height="60%">
               <Flex vertical fullHeight>
-                <Flex centered="axis">
-                  <Icon size="large" opacity="50">
-                    {Icons.serverBoostUnstyled}
-                  </Icon>
+                <Flex repell centered="axis">
+                  <Flex centered="axis">
+                    <Icon size="large" opacity="50">
+                      {Icons.serverBoostUnstyled}
+                    </Icon>
 
-                  <CountryFlag country={IntlService.systemLocaleCountry} locale={IntlService.systemLocale} />
+                    <CountryFlag country={IntlService.systemLocaleCountry} locale={IntlService.systemLocale} />
 
-                  <Text size="large" opacity="50" weight="bold">
-                    Top servers
-                  </Text>
+                    <Text size="large" opacity="50" weight="bold">
+                      {$L('#Home_RegionTopServers')}
+                    </Text>
+                  </Flex>
+
+                  <Title fixedOn="left" title={$L('#Home_RegionTopServers_Explainer')}>
+                    <Icon size="large" opacity="25">
+                      {Icons.tipInfo}
+                    </Icon>
+                  </Title>
                 </Flex>
 
-                <Carousel />
+                <TopServers />
               </Flex>
             </Box>
 

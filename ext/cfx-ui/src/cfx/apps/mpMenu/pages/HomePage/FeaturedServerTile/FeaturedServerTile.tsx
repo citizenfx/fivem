@@ -4,9 +4,6 @@ import { currentGameNameIs } from "cfx/base/gameName";
 import { useService } from "cfx/base/servicesContainer";
 import { ServerTileItem } from "cfx/common/parts/Server/ServerTileItem/ServerTileItem";
 import { $L } from "cfx/common/services/intl/l10n";
-import { Icon } from "cfx/ui/Icon/Icon";
-import { Icons } from "cfx/ui/Icons";
-import { Flex } from "cfx/ui/Layout/Flex/Flex";
 import { Text } from "cfx/ui/Text/Text";
 import { observer } from "mobx-react-lite";
 
@@ -17,15 +14,9 @@ export const FeaturedServerTile = observer(function FeaturedServerTile() {
   }
 
   const label = (
-    <Flex centered="axis" gap="small">
-      {/* <Icon opacity="50">
-        {Icons.serversStaffPickUnstyled}
-      </Icon> */}
-
-      <Text opacity="50">
-        {$L('#Home_PromotedServer_Ad')}
-      </Text>
-    </Flex>
+    <Text opacity="50">
+      {$L('#Server_FeaturedServer_Title')}
+    </Text>
   );
 
   return (

@@ -16,6 +16,8 @@ import { GiPieSlice } from 'react-icons/gi';
 import { useUiService } from "cfx/common/services/ui/ui.service";
 import { useSavedScrollPositionForBackNav } from "cfx/utils/hooks";
 import s from './ServersPage.module.scss';
+import { $L } from "cfx/common/services/intl/l10n";
+import { Icons } from "cfx/ui/Icons";
 
 export interface ServersPageProps {
   list: IServersList,
@@ -88,11 +90,10 @@ const PinnedServers = observer(function PinnedServers() {
         <Pad>
           <Flex centered="axis">
             <Text size="large" opacity="50">
-              <GiPieSlice />
+              {Icons.serversFeatured}
             </Text>
             <Text size="large" weight="bold" opacity="50">
-              {/* #TODOLOC */}
-              Featured servers
+              {$L('#ServerList_FeaturedServers')}
             </Text>
           </Flex>
         </Pad>

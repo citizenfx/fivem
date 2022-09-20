@@ -22,6 +22,7 @@ import { getServerDetailsLink, showServerPremiumBadge } from "./utils";
 import { ServerPower } from "../ServerPower/ServerPower";
 import { ServerBoostButton } from "../ServerBoostButton/ServerBoostButton";
 import s from './ServerListItem.module.scss';
+import { $L } from "cfx/common/services/intl/l10n";
 
 export interface ServerListItemProps {
   server: IServerView | undefined,
@@ -107,9 +108,9 @@ export const ServerListItem = observer(function ServerListItem(props: ServerList
       )}
 
       {pinned && (
-        <Title title="Staff pick">
+        <Title title={$L('#Server_FeaturedServer_Title')}>
           <div className={s.pin}>
-            {Icons.serversStaffPick}
+            {Icons.serversFeatured}
           </div>
         </Title>
       )}
