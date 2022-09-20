@@ -3,7 +3,7 @@ import { HashRouter, Route, Routes } from 'react-router-dom';
 import { HomePage } from 'cfx/apps/mpMenu/pages/HomePage/HomePage';
 import { ChangelogPage } from 'cfx/apps/mpMenu/pages/ChangelogPage/ChangelogPage';
 import { ServersListType } from 'cfx/common/services/servers/lists/types';
-import { GameApp } from './components/GameApp/GameApp';
+import { MpMenuApp } from './components/MpMenuApp/MpMenuApp';
 import { startBrowserApp } from 'cfx/base/createApp';
 import { MpMenuServersPage } from './pages/ServersPage/ServersPage';
 import { MpMenuServerDetailsPage } from './pages/ServerDetailsPage/ServerDetailsPage';
@@ -108,7 +108,7 @@ startBrowserApp({
   render: () => (
     <HashRouter>
       <Routes>
-        <Route path="" element={<GameApp />}>
+        <Route path="" element={<MpMenuApp />}>
           <Route index element={<HomePage />} />
 
           <Route path="changelog" element={<ChangelogPage />} />

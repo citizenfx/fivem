@@ -3,7 +3,7 @@ import { Flex } from "cfx/ui/Layout/Flex/Flex";
 import { Flyout } from "cfx/ui/Flyout/Flyout";
 import { Scrollable } from "cfx/ui/Layout/Scrollable/Scrollable";
 import { observer } from "mobx-react-lite";
-import { SettingItem } from "../SettingItem/SettingItem";
+import { SettingItem } from "../../../../common/parts/Settings/SettingItem/SettingItem";
 import { useLocation } from "react-router-dom";
 import { NavList } from "cfx/ui/NavList/NavList";
 import { ICategory } from "cfx/common/services/settings/types";
