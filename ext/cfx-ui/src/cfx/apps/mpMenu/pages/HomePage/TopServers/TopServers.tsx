@@ -28,10 +28,10 @@ import s from './TopServers.module.scss';
 
 export const TopServers = observer(function TopServers() {
   React.useEffect(() => {
-    Ctrl.unpause();
+    Ctrl.reset();
 
     return () => {
-      Ctrl.unpause();
+      Ctrl.pause();
     };
   }, []);
 
@@ -270,6 +270,12 @@ const Ctrl = new class Ctrl {
     this.progress = 0;
     this.activeIndex = clamp(index, 0, MAX_TOP_SERVERS - 1);
   }
+
+  readonly reset = () => {
+    this.activeIndex = 0;
+
+    this.unpause();
+  };
 
   readonly pause = () => this.paused = true;
   readonly unpause = () => this.paused = false;
