@@ -138,8 +138,6 @@ export class MpMenuServersBoostService implements IServersBoostService {
 
     try {
       this.currentBoost = await this.discourseService.makeExternalCall('https://servers-frontend.fivem.net/api/upvote/');
-
-      console.log('aaaaaa', JSON.stringify(this.currentBoost));
     } catch (e) {
       if (fetcher.HttpError.is(e)) {
         if (e.status >= 500) {
