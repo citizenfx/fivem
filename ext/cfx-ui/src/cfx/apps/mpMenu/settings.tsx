@@ -1,10 +1,8 @@
 import emojiList from 'emoji.json/emoji-compact.json';
-import { Indicator } from "cfx/ui/Indicator/Indicator";
 import { BrandIcon, Icons } from "cfx/ui/Icons";
 import { BsDisplay } from "react-icons/bs";
 import { ISetting, ISettings } from "cfx/common/services/settings/types";
 import { useService } from "cfx/base/servicesContainer";
-import { IServersService } from "cfx/common/services/servers/servers.service";
 import { CurrentGameName } from "cfx/base/gameName";
 import { CustomBackdropControl } from "./components/CustomBackdropControl/CustomBackdropControl";
 import { LinkedIdentitiesList } from "./parts/LinkedIdentitiesList/LinkedIdentitiesList";
@@ -12,16 +10,15 @@ import { mpMenu } from "./mpMenu";
 import { IConvarService, KnownConvars } from "./services/convars/convars.service";
 import { IConvar } from "./services/convars/types";
 import { Input } from "cfx/ui/Input/Input";
-import { useAccountService } from "cfx/common/services/account/account.service";
 import { ILinkedIdentitiesService } from "./services/linkedIdentities/linkedIdentities.service";
-import { IServersBoostService } from 'cfx/common/services/servers/serversBoost.service';
 import { GameName } from 'cfx/base/game';
 import { useIntlService } from 'cfx/common/services/intl/intl.service';
 import { $L } from 'cfx/common/services/intl/l10n';
 import { Select } from 'cfx/ui/Select/Select';
 import { DEFAULT_SERVER_PORT } from 'cfx/base/serverUtils';
-import { ServerTileItem } from 'cfx/common/parts/Server/ServerTileItem/ServerTileItem';
 import { AccountHeader } from './parts/SettingsFlyout/Account/AccountHeader/AccountHeader';
+import { Obliviate } from './parts/SettingsFlyout/Obliviate/Obliviate';
+import { CurrentBoost, isCurrentBoostVisible } from './parts/SettingsFlyout/CurrentBoost/CurrentBoost';
 
 const ACCOUNT_SETTINGS = new Map<string, ISetting.AnySetting>([
   ['accountHeader', {
@@ -54,44 +51,11 @@ const ACCOUNT_SETTINGS = new Map<string, ISetting.AnySetting>([
     render: () => <LinkedIdentitiesList />,
   }],
 
-  ['boostLoading', {
-    type: 'displayNode',
-
+  ['boost', {
     label: $L('#Settings_Boost'),
+    visible: isCurrentBoostVisible,
 
-    node: $L('#Settings_BoostLoading'),
-
-    visible: () => !useService(IServersBoostService).currentBoostLoadComplete,
-  }],
-  ['boostNone', {
-    type: 'displayNode',
-
-    label: $L('#Settings_Boost'),
-
-    node: $L('#Settings_BoostNone'),
-
-    visible: () => !boostLoadedAndPresent(),
-  }],
-  ['boostServer', {
-    label: $L('#Settings_Boost'),
-    visible: () => boostLoadedAndPresent(),
-    render: () => {
-      const { address } = useService(IServersBoostService).currentBoost!;
-
-      const server = useService(IServersService).getServer(address);
-      if (!server) {
-        return (
-          <Indicator />
-        );
-      }
-
-      return (
-        <ServerTileItem
-          server={server}
-        />
-      );
-    },
-
+    render: () => <CurrentBoost />,
   }],
 ]);
 
@@ -161,6 +125,14 @@ const INTERFACE_SETTINGS = new Map<string, ISetting.AnySetting>([
     description: $L('#Settings_CustomBackdropSelect'),
 
     node: () => <CustomBackdropControl />,
+  }],
+
+  ['clearServersHistory', {
+    type: 'displayNode',
+
+    label: $L('#Settings_ClearHistory'),
+
+    node: () => <Obliviate />,
   }],
 ]);
 
@@ -333,16 +305,4 @@ function convarAccessorsString(convar: IConvar, defaultValue = ''): Pick<ISettin
       };
     },
   };
-}
-
-function accountLoadedAndPresent(): boolean {
-  const AccountService = useAccountService();
-
-  return AccountService.accountLoadComplete && !!AccountService.account;
-}
-
-function boostLoadedAndPresent(): boolean {
-  const ServersBoostService = useService(IServersBoostService);
-
-  return ServersBoostService.currentBoostLoadComplete && !!ServersBoostService.currentBoost;
 }

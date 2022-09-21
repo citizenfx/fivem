@@ -26,6 +26,8 @@ import { ServersNavBar } from "./ServersNavBar/ServersNavBar";
 import s from './HomePage.module.scss';
 import { ui } from "cfx/ui/ui";
 import { Title } from "cfx/ui/Title/Title";
+import { currentGameNameIs } from "cfx/base/gameName";
+import { GameName } from "cfx/base/game";
 
 export const HomePage = observer(function HomePage() {
   const ActivityService = useActivityService();
@@ -50,7 +52,7 @@ export const HomePage = observer(function HomePage() {
           <Flex fullWidth fullHeight vertical repell gap="none">
             <Box height="60%">
               <Flex vertical fullHeight>
-                <Flex repell centered="axis">
+                <Flex centered="axis" gap="large">
                   <Flex centered="axis">
                     <Icon size="large" opacity="50">
                       {Icons.serverBoostUnstyled}
@@ -63,7 +65,7 @@ export const HomePage = observer(function HomePage() {
                     </Text>
                   </Flex>
 
-                  <Title fixedOn="left" title={$L('#Home_RegionTopServers_Explainer')}>
+                  <Title fixedOn="right" title={$L('#Home_RegionTopServers_Explainer')}>
                     <Icon size="large" opacity="25">
                       {Icons.tipInfo}
                     </Icon>
@@ -75,7 +77,7 @@ export const HomePage = observer(function HomePage() {
             </Box>
 
             <Box>
-              <Flex fullWidth fullHeight alignToEndAxis gap="large">
+              <Flex fullWidth fullHeight alignToEndAxis={!currentGameNameIs(GameName.RedM)} gap="large">
                 <Box width="46%">
                   <Flex vertical gap="large">
                     <LastConnectedTile />

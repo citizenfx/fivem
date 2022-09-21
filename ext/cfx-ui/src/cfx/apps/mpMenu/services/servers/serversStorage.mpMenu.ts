@@ -61,6 +61,13 @@ class MpMenuServersStorageService implements IServersStorageService, AppContribu
     mpMenu.invokeNative('setLastServers', historyServersString);
   }
 
+  clearLastServers(): void {
+    this._historyServers = [];
+
+    window.localStorage.removeItem(LS_KEYS.HISTORY_SERVERS);
+    mpMenu.invokeNative('setLastServers', '[]');
+  }
+
   setFavoriteServers(serverIds: string[]): void {
     mpMenu.invokeNative('saveFavorites', JSON.stringify(serverIds));
   }

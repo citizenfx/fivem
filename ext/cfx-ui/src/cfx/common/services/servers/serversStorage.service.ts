@@ -9,4 +9,6 @@ export interface IServersStorageService {
 
   getLastServers(): IHistoryServer[];
   setLastServers(historyServers: IHistoryServer[]): void;
+
+  clearLastServers(): void;
 }

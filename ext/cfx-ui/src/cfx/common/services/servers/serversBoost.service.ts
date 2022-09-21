@@ -5,6 +5,7 @@ export const IServersBoostService = defineService<IServersBoostService>('Servers
 export interface IServersBoostService {
   readonly currentBoost: IServerBoost | null;
   readonly currentBoostLoadComplete: boolean;
+  readonly currentBoostLoadError: string;
 
   boostServer(serverId: string): void | Promise<void>;
 }

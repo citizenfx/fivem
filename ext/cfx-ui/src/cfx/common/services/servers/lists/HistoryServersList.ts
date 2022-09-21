@@ -1,6 +1,6 @@
 import { IServersList } from "./types";
 import { IHistoryServer, IServerView } from "../types";
-import { makeAutoObservable, observable } from "mobx";
+import { makeAutoObservable } from "mobx";
 import { historyServer2ServerView } from "../transformers";
 import { parseServerAddress } from "../utils";
 import { IServersStorageService } from "../serversStorage.service";
@@ -31,6 +31,10 @@ export class HistoryServersList implements IServersList {
       this.resolveHistoryServer(historyServer);
     }
   }
+
+  readonly clear = () => {
+    this.serversStorageService.clearLastServers();
+  };
 
   getLastConnectedAt(address: string): Date | undefined {
     return this._serversLastConnectedAt[address];
