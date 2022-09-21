@@ -1,6 +1,6 @@
 @import "themes.scss";
 
-// Calculating CfxUI viewport size
+// Calculating mpMenu viewport size
 // We want to keep it of 16:9 aspect ratio
 
 @media (max-aspect-ratio: 16/9) {
@@ -23,7 +23,7 @@ html {
 }
 
 body {
-  --backdrop-image: url(../../../../assets/images/bg2.jpg);
+  --backdrop-image: url(assets/images/bg2.jpg);
 
   background-image: var(--backdrop-image);
   background-size: cover;
