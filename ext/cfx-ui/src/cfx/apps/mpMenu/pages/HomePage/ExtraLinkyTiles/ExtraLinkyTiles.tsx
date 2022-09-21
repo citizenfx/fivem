@@ -2,21 +2,16 @@ import { Flex } from "cfx/ui/Layout/Flex/Flex";
 import { observer } from "mobx-react-lite";
 import { FiServer } from "react-icons/fi";
 import { IoSparklesOutline } from "react-icons/io5";
-// import { HomePageBottomLinks } from "../HomePage.links";
-import { StartYourServerPromo } from "./StartYourServerPromo/StartYourServerPromo";
-import s from './ExtraLinkyTiles.module.scss';
+import { StartYourServerPromo } from "./StartYourServerPromo";
 import { Text } from "cfx/ui/Text/Text";
-import { Icon } from "cfx/ui/Icon/Icon";
-import { clsx } from "cfx/utils/clsx";
-import { ui } from "cfx/ui/ui";
 import { LinkButton } from "cfx/ui/Button/LinkButton";
 import { Title } from "cfx/ui/Title/Title";
-import { Box } from "cfx/ui/Layout/Box/Box";
+import s from './ExtraLinkyTiles.module.scss';
 
 export const ExtraLinkyTiles = observer(function ExtraLinkyTiles() {
   return (
-    <Flex fullWidth fullHeight vertical repell gap="large">
-      <Flex vertical fullWidth gap="large">
+    <Flex fullWidth fullHeight vertical repell alignToEndAxis gap="large">
+      <Flex vertical fullWidth alignToEndAxis gap="large">
         <StartYourServerPromo />
 
         <a href="https://docs.fivem.net/docs/server-manual/setting-up-a-server/" className={s.tile}>
@@ -39,7 +34,7 @@ export const ExtraLinkyTiles = observer(function ExtraLinkyTiles() {
       </Flex>
 
       <Flex centered>
-        <Title title="Learn how to create your own customized content for your server or game!">
+        <Title fixedOn="top" title="Learn how to create your own customized content for your server or game!">
           <LinkButton
             to="https://docs.fivem.net/docs/scripting-manual/introduction/"
             text="Make mods"
@@ -49,7 +44,7 @@ export const ExtraLinkyTiles = observer(function ExtraLinkyTiles() {
           />
         </Title>
 
-        <Title title="Learn how to contribute to the FiveM source code">
+        <Title fixedOn="top" title="Learn how to contribute to the FiveM source code">
           <LinkButton
             to="https://docs.fivem.net/docs/contributing/how-you-can-help/"
             text="Contribute to the project"

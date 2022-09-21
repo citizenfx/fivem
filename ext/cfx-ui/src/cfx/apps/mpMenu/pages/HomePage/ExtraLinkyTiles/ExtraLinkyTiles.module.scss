@@ -3,7 +3,7 @@
   // flex-grow: 1;
   flex-grow: 0;
 
-  align-self: center;
+  // align-self: center;
 
   display: flex;
   align-items: center;
@@ -37,6 +37,11 @@
     @include ui.border-radius('small');
 
     background-color: ui.color('main', 500, .1);
+
+    img {
+      width: 100%;
+      height: 100%;
+    }
   }
 
   &.small {

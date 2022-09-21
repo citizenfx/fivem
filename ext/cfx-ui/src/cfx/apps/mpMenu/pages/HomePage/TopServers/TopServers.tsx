@@ -78,13 +78,25 @@ const Item = observer(function Item(props: ItemProps) {
     index,
   } = props;
 
+  const navigate = useNavigate();
+
+  const handleClick = React.useCallback(() => {
+    if (active) {
+      navigate(getServerDetailsLink(server));
+
+      return;
+    }
+
+    Ctrl.setActiveIndex(index);
+  }, [navigate, server, active, index]);
+
   const itemClassName = clsx(s.item, {
     [s.active]: active,
   });
 
   return (
     <div
-      onClick={() => Ctrl.setActiveIndex(index)}
+      onClick={handleClick}
       className={itemClassName}
     >
       <ServerIcon

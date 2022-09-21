@@ -73,8 +73,6 @@ $selectorOffset: ui.offset();
         box-shadow: 0 0 0 2px ui.color-token('outlined-hover-border') inset;
       }
       &.active {
-        cursor: initial;
-
         box-shadow: 0 0 0 2px ui.color-token('outlined-hover-border') inset;
 
         @keyframes appr3 {
