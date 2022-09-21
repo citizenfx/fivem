@@ -1,7 +1,6 @@
 import { $L } from "cfx/common/services/intl/l10n";
 import { useServersService } from "cfx/common/services/servers/servers.service";
 import { Button } from "cfx/ui/Button/Button";
-import { Flex } from "cfx/ui/Layout/Flex/Flex";
 import { observer } from "mobx-react-lite";
 
 export const Obliviate = observer(function Obliviate() {
@@ -16,7 +15,7 @@ export const Obliviate = observer(function Obliviate() {
   return (
     <Button
       text={$L('#Settings_ClearHistory')}
-
+      onClick={historyList.clear}
     />
   );
 });
