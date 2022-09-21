@@ -35,16 +35,16 @@ export const CurrentBoost = observer(function CurrentBoost() {
     );
   }
 
-  if (!hasBoost) {
-    return $L('#Settings_BoostNone');
-  }
-
   if (boostLoadingError) {
     return (
       <InfoPanel type="error">
         {boostLoadingError}
       </InfoPanel>
     );
+  }
+
+  if (!hasBoost) {
+    return $L('#Settings_BoostNone');
   }
 
   const server = ServersService.getServer(ServersBoostService.currentBoost.address);

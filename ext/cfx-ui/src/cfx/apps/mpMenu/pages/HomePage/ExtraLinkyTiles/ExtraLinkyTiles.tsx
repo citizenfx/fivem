@@ -10,8 +10,8 @@ import s from './ExtraLinkyTiles.module.scss';
 
 export const ExtraLinkyTiles = observer(function ExtraLinkyTiles() {
   return (
-    <Flex fullWidth fullHeight vertical repell alignToEndAxis gap="large">
-      <Flex vertical fullWidth alignToEndAxis gap="large">
+    <Flex fullHeight vertical repell alignToEndAxis gap="large">
+      <Flex vertical gap="large">
         <StartYourServerPromo />
 
         <a href="https://docs.fivem.net/docs/server-manual/setting-up-a-server/" className={s.tile}>
@@ -33,7 +33,7 @@ export const ExtraLinkyTiles = observer(function ExtraLinkyTiles() {
         </a >
       </Flex>
 
-      <Flex centered>
+      <Flex>
         <Title fixedOn="top" title="Learn how to create your own customized content for your server or game!">
           <LinkButton
             to="https://docs.fivem.net/docs/scripting-manual/introduction/"

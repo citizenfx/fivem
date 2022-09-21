@@ -50,7 +50,7 @@ export const HomePage = observer(function HomePage() {
       <Flex fullHeight gap="xlarge">
         <FlexRestricter>
           <Flex fullWidth fullHeight vertical repell gap="none">
-            <Box height="60%">
+            <Box height="50%">
               <Flex vertical fullHeight>
                 <Flex centered="axis" gap="large">
                   <Flex centered="axis">
