@@ -3962,7 +3962,7 @@ using CPlayerSyncTree = SyncTree<
 		>
 	>
 >;
-using CAutomobileSyncTree = SyncTree<
+using CTrailerSyncTree = SyncTree<
 	ParentNode<
 		NodeIds<127, 0, 0>,
 		ParentNode<
