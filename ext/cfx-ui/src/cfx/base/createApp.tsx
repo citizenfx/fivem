@@ -50,9 +50,10 @@ export async function startBrowserApp(definition: AppDefinition) {
 
   function AfterRender() {
     React.useEffect(() => {
+      appService.afterRender();
+
       setTimeout(() => {
         afterRender(container);
-        appService.afterRender();
       }, 1000);
     }, []);
 

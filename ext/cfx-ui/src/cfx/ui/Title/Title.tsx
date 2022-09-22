@@ -103,7 +103,7 @@ export const Title = observer(function Title(props: TitleProps) {
   const {
     title,
     children,
-    animated = false,
+    animated = true,
     fixedOn = 'bottom',
     delay = 0,
   } = props;

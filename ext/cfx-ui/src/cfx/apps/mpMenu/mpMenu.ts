@@ -1,4 +1,4 @@
-import { setCurrentGameName } from 'cfx/base/gameName';
+import { setCurrentGameName } from 'cfx/base/gameRuntime';
 import { GameName } from 'cfx/base/game';
 import { Deferred, timeout } from 'cfx/utils/async';
 import { IDisposable } from 'cfx/utils/disposable';

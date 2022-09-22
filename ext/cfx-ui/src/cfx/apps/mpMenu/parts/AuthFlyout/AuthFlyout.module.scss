@@ -1,4 +1,3 @@
 .holder {
-  background-image: url(../../../../../assets/images/bgpat.png);
-  // background-size: 250px;
+  background-image: ui.use('asset-image-bgpat');
 }

@@ -1,5 +1,5 @@
 import { GameName } from "cfx/base/game";
-import { currentGameNameIs } from "cfx/base/gameName";
+import { currentGameNameIs } from "cfx/base/gameRuntime";
 import { Flex } from "cfx/ui/Layout/Flex/Flex";
 import { FlexRestricter } from "cfx/ui/Layout/Flex/FlexRestricter";
 import { observer } from "mobx-react-lite";
@@ -12,14 +12,14 @@ export const AuxiliaryGameModes = observer(function AuxiliaryGameModes() {
   }
 
   return (
-    <Flex fullWidth>
-      <FlexRestricter>
+    <Flex>
+      {/* <FlexRestricter> */}
         <StoryMode />
-      </FlexRestricter>
+      {/* </FlexRestricter> */}
 
-      <FlexRestricter>
+      {/* <FlexRestricter> */}
         <ReplayEditor />
-      </FlexRestricter>
+      {/* </FlexRestricter> */}
     </Flex>
   );
 });

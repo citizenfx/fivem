@@ -18,7 +18,7 @@ import { IServersService } from "cfx/common/services/servers/servers.service";
 import { ServerIcon } from "../ServerIcon/ServerIcon";
 import { playSfx, Sfx } from "cfx/apps/mpMenu/utils/sfx";
 import { ServerPlayersCount } from "../ServerPlayersCount/ServerPlayersCount";
-import { getServerDetailsLink, showServerPremiumBadge } from "./utils";
+import { getServerDetailsLink, isServerLiveLoading, showServerPremiumBadge } from "./utils";
 import { ServerPower } from "../ServerPower/ServerPower";
 import { ServerBoostButton } from "../ServerBoostButton/ServerBoostButton";
 import s from './ServerListItem.module.scss';
@@ -73,7 +73,7 @@ export const ServerListItem = observer(function ServerListItem(props: ServerList
   const boostPower = (server.upvotePower || 0) - burstPower;
 
   const isOffline = Boolean(server.offline);
-  const isLoading = server.detailsLevel < ServerViewDetailsLevel.DynamicDataJson && !isOffline;
+  const isLoading = isServerLiveLoading(server);
 
   const showPremiumBadge = !hidePremiumBadge && showServerPremiumBadge(server.premium);
   const showCountryFlag = !hideCountryFlag;

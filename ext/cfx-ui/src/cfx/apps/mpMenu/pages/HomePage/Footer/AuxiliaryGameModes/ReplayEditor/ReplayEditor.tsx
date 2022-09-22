@@ -15,7 +15,7 @@ export function ReplayEditor() {
   return (
     <>
       <Button
-        fullWidth
+        // fullWidth
         size="large"
         theme="default-blurred"
         icon={Icons.replayEditor}

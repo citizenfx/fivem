@@ -9,7 +9,7 @@
 
   padding: ui.offset() ui.offset('large');
 
-  background-image: url(assets/images/bgpat.png);
+  background-image: ui.use('asset-image-bgpat');
   background-size: 125px;
 
   svg {

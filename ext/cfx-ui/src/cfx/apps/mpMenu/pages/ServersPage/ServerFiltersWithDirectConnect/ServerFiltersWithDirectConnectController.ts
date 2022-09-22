@@ -1,6 +1,6 @@
 import { getServerByAnyMean } from "cfx/apps/mpMenu/services/servers/source/fetchers";
 import { useServiceResolver } from "cfx/base/servicesContainer";
-import { CurrentGameName } from "cfx/base/gameName";
+import { CurrentGameName } from "cfx/base/gameRuntime";
 import { ISearchTerm } from "cfx/base/searchTermsParser";
 import { ServerListConfigController } from "cfx/common/services/servers/lists/ServerListConfigController";
 import { IServersService } from "cfx/common/services/servers/servers.service";

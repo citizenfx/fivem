@@ -3,7 +3,7 @@ import { BrandIcon, Icons } from "cfx/ui/Icons";
 import { BsDisplay } from "react-icons/bs";
 import { ISetting, ISettings } from "cfx/common/services/settings/types";
 import { useService } from "cfx/base/servicesContainer";
-import { CurrentGameName } from "cfx/base/gameName";
+import { CurrentGameName } from "cfx/base/gameRuntime";
 import { CustomBackdropControl } from "./components/CustomBackdropControl/CustomBackdropControl";
 import { LinkedIdentitiesList } from "./parts/LinkedIdentitiesList/LinkedIdentitiesList";
 import { mpMenu } from "./mpMenu";
@@ -11,7 +11,7 @@ import { IConvarService, KnownConvars } from "./services/convars/convars.service
 import { IConvar } from "./services/convars/types";
 import { Input } from "cfx/ui/Input/Input";
 import { ILinkedIdentitiesService } from "./services/linkedIdentities/linkedIdentities.service";
-import { GameName } from 'cfx/base/game';
+import { GameName, GameUpdateChannel } from 'cfx/base/game';
 import { useIntlService } from 'cfx/common/services/intl/intl.service';
 import { $L } from 'cfx/common/services/intl/l10n';
 import { Select } from 'cfx/ui/Select/Select';
@@ -68,7 +68,7 @@ const INTERFACE_SETTINGS = new Map<string, ISetting.AnySetting>([
 
     ...convarAccessorsBoolean('ui_preferLightColorScheme', true),
 
-    visible: onlyForFiveM,
+    // visible: onlyForFiveM,
   }],
 
   ['streamerMode', {
@@ -143,12 +143,12 @@ const GAME_GAME_SETTINGS = new Map<string, ISetting.AnySetting>([
     label: $L('#Settings_UpdateChannel'),
     description: $L('#Settings_UpdateChannelDesc'),
 
-    ...convarAccessorsString('ui_updateChannel'),
+    ...convarAccessorsString(KnownConvars.updateChannel),
 
     options: {
-      production: 'Release',
-      beta: 'Beta',
-      canary: 'Latest (Unstable)',
+      [GameUpdateChannel.Production]: 'Release',
+      [GameUpdateChannel.Beta]: 'Beta',
+      [GameUpdateChannel.Canary]: 'Latest (Unstable)',
     },
   }],
 

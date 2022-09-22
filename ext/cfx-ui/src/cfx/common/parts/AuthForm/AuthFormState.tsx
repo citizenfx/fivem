@@ -14,6 +14,8 @@ import { inject, injectable } from "inversify";
 import { IAccountService } from "cfx/common/services/account/account.service";
 import { useDisposableInstance } from "cfx/utils/hooks";
 import { useServiceResolver } from "cfx/base/servicesContainer";
+import { currentGameNameIs } from "cfx/base/gameRuntime";
+import { GameName } from "cfx/base/game";
 
 export type IAuthFormState = AuthFormState;
 export function useAuthFormState(): AuthFormState {
@@ -87,6 +89,10 @@ class AuthFormState {
   }
 
   get showExternalAuthButton(): boolean {
+    if (!currentGameNameIs(GameName.FiveM)) {
+      return false;
+    }
+
     return this.isLogIn;
   }
 

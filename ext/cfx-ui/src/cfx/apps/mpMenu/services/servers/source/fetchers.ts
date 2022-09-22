@@ -1,5 +1,5 @@
 import { mpMenu } from "cfx/apps/mpMenu/mpMenu";
-import { CurrentGameName } from "cfx/base/gameName";
+import { CurrentGameName } from "cfx/base/gameRuntime";
 import { GameName } from "cfx/base/game";
 import { getSingleServer } from "cfx/common/services/servers/source/utils/fetchers";
 import { IServerView } from "cfx/common/services/servers/types";

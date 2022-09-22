@@ -1,7 +1,7 @@
 import React from "react";
 import * as AC from "adaptivecards";
 import { mpMenu } from "cfx/apps/mpMenu/mpMenu";
-import { CurrentGameBrand } from "cfx/base/gameName";
+import { CurrentGameBrand } from "cfx/base/gameRuntime";
 import { Pad } from "cfx/ui/Layout/Pad/Pad";
 import { Text } from "cfx/ui/Text/Text";
 import { noop } from "cfx/utils/functional";

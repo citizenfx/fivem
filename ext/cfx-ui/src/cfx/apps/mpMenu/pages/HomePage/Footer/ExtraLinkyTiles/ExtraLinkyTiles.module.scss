@@ -1,12 +1,7 @@
 .tile {
-  // width: 1px;
-  // flex-grow: 1;
-  flex-grow: 0;
-
-  // align-self: center;
-
   display: flex;
   align-items: center;
+  justify-content: space-between;
 
   text-decoration: none;
 
@@ -14,9 +9,8 @@
 
   @include ui.border-radius();
 
-  // @include ui.fake-backdrop-blur();
-  backdrop-filter: blur(20px);
-  background-color: ui.color('main', $alpha: .5);
+  @include ui.def('backdrop-color', ui.color-token('backdrop-300'));
+  @include ui.fake-backdrop-blur();
 
   box-shadow: 0 0 0 2px transparent inset;
   &:hover {
@@ -24,6 +18,8 @@
   }
 
   .icon {
+    flex-shrink: 0;
+
     display: flex;
     align-items: center;
     justify-content: center;
@@ -36,6 +32,8 @@
     @include ui.border-radius('small');
 
     background-color: ui.color('main', 500, .1);
+
+    overflow: hidden;
 
     img {
       width: 100%;

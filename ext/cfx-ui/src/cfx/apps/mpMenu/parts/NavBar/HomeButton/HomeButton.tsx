@@ -5,7 +5,7 @@ import { Title } from "cfx/ui/Title/Title";
 import { observer } from "mobx-react-lite";
 import { useLocation } from "react-router-dom";
 import { clsx } from "cfx/utils/clsx";
-import { CurrentGameName } from "cfx/base/gameName";
+import { CurrentGameName } from "cfx/base/gameRuntime";
 import s from './HomeButton.module.scss';
 
 const titles = [

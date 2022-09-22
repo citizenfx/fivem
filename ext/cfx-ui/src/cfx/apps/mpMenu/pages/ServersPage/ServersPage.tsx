@@ -8,7 +8,7 @@ import { observer } from "mobx-react-lite";
 import { InsideNavBar } from "../../parts/NavBar/InsideNavBar";
 import { Navigate } from "react-router-dom";
 import { ServerFiltersWithDirectConnect } from "./ServerFiltersWithDirectConnect/ServerFiltersWithDirectConnect";
-import { currentGameNameIs } from "cfx/base/gameName";
+import { currentGameNameIs } from "cfx/base/gameRuntime";
 import { GameName } from "cfx/base/game";
 
 export interface ServersPageProps {

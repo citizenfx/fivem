@@ -2,7 +2,7 @@ import { getListServerTags, getPinnedServersList } from "cfx/base/serverUtils";
 import { inject, injectable } from "inversify";
 import { makeAutoObservable, observable } from "mobx";
 import { computedFn } from "mobx-utils";
-import { CurrentGameName } from "cfx/base/gameName";
+import { CurrentGameName } from "cfx/base/gameRuntime";
 import { IServersList, ServersListType } from "cfx/common/services/servers/lists/types";
 import { IServersService } from "cfx/common/services/servers/servers.service";
 import { ServicesContainer } from "cfx/base/servicesContainer";

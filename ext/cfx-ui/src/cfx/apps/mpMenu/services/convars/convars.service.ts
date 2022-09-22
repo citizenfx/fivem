@@ -111,6 +111,7 @@ export class ConvarService {
 export namespace KnownConvars {
   export const streamerMode = 'ui_streamerMode';
   export const localhostPort = 'ui_quickAccessLocalhostPort';
+  export const updateChannel = 'ui_updateChannel';
 }
 
 const ARCHIVED_CONVARS: Record<IConvar, boolean> = [

@@ -20,3 +20,9 @@ export function getGameBuildDLCName(gameBuild: string): string {
 
   return '';
 }
+
+export enum GameUpdateChannel {
+  Production = 'production',
+  Beta = 'beta',
+  Canary = 'canary',
+}

@@ -1,7 +1,7 @@
 import { usePlatformStatusService } from "cfx/apps/mpMenu/services/platformStatus/platformStatus.service";
 import { StatusLevel } from "cfx/apps/mpMenu/services/platformStatus/types";
 import { GameName } from "cfx/base/game";
-import { CurrentGameName } from "cfx/base/gameName";
+import { CurrentGameName } from "cfx/base/gameRuntime";
 import { $L } from "cfx/common/services/intl/l10n";
 import { LinkButton } from "cfx/ui/Button/LinkButton";
 import { Icons } from "cfx/ui/Icons";

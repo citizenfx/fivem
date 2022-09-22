@@ -2,7 +2,10 @@ $selectorHeight: ui.q(8);
 $selectorOffset: ui.offset();
 
 .root {
-  position: relative;
+  display: flex;
+  flex-direction: column;
+
+  gap: $selectorOffset;
 
   width: 100%;
   height: 100%;
@@ -15,8 +18,6 @@ $selectorOffset: ui.offset();
 
     width: 100%;
     height: $selectorHeight;
-
-    margin-bottom: $selectorOffset;
 
     .item {
       flex-shrink: 0;
@@ -35,7 +36,9 @@ $selectorOffset: ui.offset();
 
       box-shadow: 0 0 0 2px transparent inset;
 
+      @include ui.def('backdrop-color', ui.color-token('backdrop-100'));
       @include ui.fake-backdrop-blur();
+
       @include ui.border-radius();
       overflow: hidden;
 
@@ -131,13 +134,9 @@ $selectorOffset: ui.offset();
   }
 
   .cardHolder {
-    position: absolute;
+    position: relative;
 
-    top: calc($selectorHeight + $selectorOffset);
-    left: 0;
-    right: 0;
-    bottom: 0;
-
+    height: calc(100% - ($selectorHeight + $selectorOffset));
     width: 100%;
 
     @include ui.border-radius();
@@ -203,7 +202,7 @@ $selectorOffset: ui.offset();
       position: absolute;
       inset: 0;
 
-      $shader: ui.color('main', $alpha: .75);
+      $shader: ui.color-token('backdrop-300');
       background-image: ui.use('checkered-pattern'), linear-gradient($shader, $shader), ui.use('banner');
       background-size: 2px, cover, cover;
       background-position: top left, center center, center center;

@@ -1,7 +1,7 @@
 import React from "react";
 import { observer } from "mobx-react-lite";
 import { getCustomInGameBackdropPath } from "cfx/apps/mpMenu/parts/ThemeManager/backdrop";
-import { CurrentGameName } from "cfx/base/gameName";
+import { CurrentGameName } from "cfx/base/gameRuntime";
 import { useService } from "cfx/base/servicesContainer";
 import { IConvarService } from "../../services/convars/convars.service";
 import { BackdropBlurWorker } from "./BackdropBlur";

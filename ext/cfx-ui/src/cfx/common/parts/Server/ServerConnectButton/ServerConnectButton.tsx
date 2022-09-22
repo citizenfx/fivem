@@ -10,17 +10,20 @@ import { Title } from "cfx/ui/Title/Title";
 import { Button, ButtonProps } from "cfx/ui/Button/Button";
 import { ReactNode } from "react";
 import { stopPropagation } from "cfx/utils/domEvents";
+import { isServerOffline } from "../ServerListItem/utils";
 
 export interface ServerConnectButtonProps {
   server: IServerView,
 
   size?: ButtonProps['size'],
+  theme?: ButtonProps['theme'],
 }
 
 export const ServerConnectButton = observer(function ServerConnectButton(props: ServerConnectButtonProps) {
   const {
     server,
     size = 'large',
+    theme = "primary",
   } = props;
 
   const ServersConnectService = useServiceOptional(IServersConnectService);
@@ -43,9 +46,7 @@ export const ServerConnectButton = observer(function ServerConnectButton(props: 
         break;
       }
 
-      case !server.connectEndPoints?.length:
-      case !!server.offline:
-      case !!server.fallback: {
+      case isServerOffline(server): {
         title = $L('#ServerDetail_OfflineDisable');
         break;
       }
@@ -65,10 +66,10 @@ export const ServerConnectButton = observer(function ServerConnectButton(props: 
     : noop;
 
   return (
-    <Title title={title}>
+    <Title fixedOn="bottom-left" title={title}>
       <Button
         size={size}
-        theme="primary"
+        theme={theme}
         disabled={disabled}
         text={$L('#DirectConnect_Connect')}
         onClick={stopPropagation(handleClick)}

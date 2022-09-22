@@ -24,7 +24,49 @@ import { Loaf } from "cfx/ui/Loaf/Loaf";
 import { ControlBox } from "cfx/ui/ControlBox/ControlBox";
 import { useNavigate } from "react-router-dom";
 import { getServerDetailsLink } from "cfx/common/parts/Server/ServerListItem/utils";
+import { useIntlService } from "cfx/common/services/intl/intl.service";
+import { Box } from "cfx/ui/Layout/Box/Box";
+import { CountryFlag } from "cfx/ui/CountryFlag/CountryFlag";
+import { $L } from "cfx/common/services/intl/l10n";
+import { Title } from "cfx/ui/Title/Title";
+import { Icon } from "cfx/ui/Icon/Icon";
 import s from './TopServers.module.scss';
+
+export const TopServersBlock = observer(function TopServersBlock() {
+  const IntlService = useIntlService();
+
+  const HomeScreenServerList = useService(HomeScreenServerListService);
+  if (HomeScreenServerList.topRegionServers.length === 0) {
+    return null;
+  }
+
+  return (
+    <Box height="calc(var(--height) * .4)">
+      <Flex vertical fullHeight>
+        <Flex repell centered="axis" gap="large">
+          <Flex centered="axis">
+            <Text size="large" opacity="50" weight="bold">
+              {$L('#Home_RegionTopServers')}
+            </Text>
+
+            <CountryFlag
+              country={IntlService.systemLocaleCountry}
+              locale={IntlService.systemLocale}
+            />
+          </Flex>
+
+          <Title fixedOn="left" title={$L('#Home_RegionTopServers_Explainer')}>
+            <Icon size="large" opacity="25">
+              {Icons.tipInfo}
+            </Icon>
+          </Title>
+        </Flex>
+
+        <TopServers />
+      </Flex>
+    </Box>
+  );
+});
 
 export const TopServers = observer(function TopServers() {
   React.useEffect(() => {
@@ -35,9 +77,9 @@ export const TopServers = observer(function TopServers() {
     };
   }, []);
 
-  const PersonalizedServerList = useService(HomeScreenServerListService);
+  const HomeScreenServerList = useService(HomeScreenServerListService);
 
-  const sequence = PersonalizedServerList.topRegionServers;
+  const sequence = HomeScreenServerList.topRegionServers;
 
   const selectorNodes: React.ReactNode[] = [];
   const cardNodes: React.ReactNode[] = [];
@@ -51,16 +93,16 @@ export const TopServers = observer(function TopServers() {
 
   return (
     <div className={s.root}>
-      <div className={s.selector}>
-        {selectorNodes}
-      </div>
-
       <div
         className={s.cardHolder}
         onMouseOver={Ctrl.pause}
         onMouseLeave={Ctrl.unpause}
       >
         {cardNodes}
+      </div>
+
+      <div className={s.selector}>
+        {selectorNodes}
       </div>
     </div>
   );

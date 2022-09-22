@@ -25,34 +25,23 @@ export const ServersNavBar = observer(function ServersNavBar() {
           return null;
         }
 
-        const isAllList = descriptor.to === '/servers';
-
-        const label = isAllList
-          ? $L(
-            ServersService.totalServersCount
-              ? '#Home_AllList_Link'
-              : '#Home_AllList_Fallback',
-            { count: ServersService.totalServersCount },
-          )
-          : descriptor.title;
-
         return (
           <Tabular.Item
             key={descriptor.to}
             icon={descriptor.icon}
-            label={label}
+            label={descriptor.title}
             onClick={() => navigate(descriptor.to)}
           />
         );
       })}
 
-      {!!LocalhostServer.address && (
+      {/* {!!LocalhostServer.address && (
         <Tabular.Item
           icon={<FaServer />}
           label={$L('#Home_LocalServer_Title', { name: LocalhostServer.displayName })}
           onClick={() => ServersConnectService.connectTo(LocalhostServer.address)}
         />
-      )}
+      )} */}
     </Tabular.Root>
   );
 

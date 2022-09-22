@@ -64,7 +64,9 @@ const cache: Record<string, string> = {};
 function useServerIconURL(server: IServerView): string {
   const ServersService = useServersService();
 
-  if (!cache[server.id]) {
+  const cacheKey = `${server.id}::${server.detailsLevel}`;
+
+  if (!cache[cacheKey]) {
     let iconURL = '';
 
     if ('iconVersion' in server) {
@@ -77,8 +79,8 @@ function useServerIconURL(server: IServerView): string {
       iconURL = ServersService.getServerIconURL(server.id);
     }
 
-    cache[server.id] = iconURL;
+    cache[cacheKey] = iconURL;
   }
 
-  return cache[server.id];
+  return cache[cacheKey];
 }

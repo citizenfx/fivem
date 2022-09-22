@@ -3,8 +3,7 @@
 
   @include ui.border-radius('normal');
 
-  // background-color: ui.color-token('server-item-standalone-background');
-  @include ui.def('backdrop-color', ui.color-token('backdrop'));
+  @include ui.def('backdrop-color', ui.color-token('backdrop-300'));
   @include ui.fake-backdrop-blur();
 
   cursor: pointer;
@@ -31,6 +30,15 @@
   box-shadow: 0 0 0 2px transparent inset;
   &:hover {
     box-shadow: 0 0 0 2px ui.color-token('outlined-hover-border') inset;
+  }
+
+  &.growHeight {
+    padding: 0 ui.offset('small');
+    height: 100%;
+
+    .content {
+      height: 100%;
+    }
   }
 
   &.withBanner {
@@ -67,6 +75,8 @@
   }
 
   .content {
+    padding: ui.offset();
+
     .players {
       color: ui.color-token('text-a50');
     }

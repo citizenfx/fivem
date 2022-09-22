@@ -1,0 +1,29 @@
+.root {
+  position: relative;
+
+  .warning {
+    position: absolute;
+    inset: 0;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    gap: ui.offset();
+    padding: ui.offset();
+
+    text-align: center;
+
+    @include ui.font-color('text-a75');
+
+    @include ui.def('backdrop-color', ui.color('main', $alpha: .5));
+    @include ui.fake-backdrop-blur();
+
+    cursor: pointer;
+
+    @include ui.border-radius();
+
+    overflow: hidden;
+  }
+}

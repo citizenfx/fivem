@@ -136,16 +136,16 @@ startBrowserApp({
       mpMenu.invokeNative('executeCommand', 'nui_devtools mpMenu');
     }
 
-    requestAnimationFrame(() => {
+    mpMenu.invokeNative('getMinModeInfo');
+
+    setTimeout(() => {
       const loader = document.getElementById('loader');
       if (loader) {
         loader.classList.add('hide');
-        loader.addEventListener('transitionend', () => {
+        loader.querySelector('#loader-mask')?.addEventListener('animationend', () => {
           setTimeout(() => loader.parentNode?.removeChild(loader), 1000);
         });
       }
-
-      mpMenu.invokeNative('getMinModeInfo');
-    });
+    }, 1000);
   },
 });

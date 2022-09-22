@@ -51,4 +51,13 @@
     @include ui.font-size('normal');
     @include ui.border-radius('normal');
   }
+  &.size-large {
+    gap: ui.offset('normal');
+    height: ui.control-height('large');
+
+    padding: 0 ui.offset('large');
+
+    @include ui.font-size('normal');
+    @include ui.border-radius('normal');
+  }
 }

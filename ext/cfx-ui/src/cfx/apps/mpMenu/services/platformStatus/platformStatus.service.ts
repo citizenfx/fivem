@@ -1,5 +1,5 @@
 import { defineService, ServicesContainer, useService } from "cfx/base/servicesContainer";
-import { CurrentGameName, currentGameNameIs } from "cfx/base/gameName";
+import { CurrentGameName, currentGameNameIs } from "cfx/base/gameRuntime";
 import { Symbols } from "cfx/ui/Symbols";
 import { fetcher } from "cfx/utils/fetcher";
 import { html2react } from "cfx/utils/html2react";

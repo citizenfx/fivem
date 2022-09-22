@@ -1,4 +1,5 @@
 import { ServicesContainer, useService } from "cfx/base/servicesContainer";
+import { isServerOffline } from "cfx/common/parts/Server/ServerListItem/utils";
 import { IIntlService } from "cfx/common/services/intl/intl.service";
 import { reviveServerListConfig } from "cfx/common/services/servers/lists/ServerListConfigController";
 import { ServersListType } from "cfx/common/services/servers/lists/types";
@@ -90,7 +91,11 @@ export class HomeScreenServerListService {
         continue;
       }
 
-      if (server.offline) {
+      if (isServerOffline(server)) {
+        continue;
+      }
+
+      if (server.private) {
         continue;
       }
 

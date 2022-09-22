@@ -3,7 +3,7 @@
  */
 @mixin color-tokens() {
   // Asset images
-  @include ui.def('asset-image-bgpat', url(../../assets/images/bgpat.png));
+  @include ui.def('asset-image-bgpat', url(assets/images/bgpat.png));
 
   @include ui.def('checkered-pattern', url(assets/images/checkered_dark.svg));
   // /Asset images
@@ -39,6 +39,10 @@
   @include ui.define-color-token('scrollbar-active', ui.color('main', 950, .5));
 
   @include ui.define-color-token('backdrop', ui.color('main', $alpha: .75));
+  @include ui.define-color-token('backdrop-100', ui.color('main', $alpha: .25));
+  @include ui.define-color-token('backdrop-200', ui.color('main', $alpha: .5));
+  @include ui.define-color-token('backdrop-300', ui.color('main', $alpha: .75));
+
   @include ui.define-color-token('backdrop-shader', ui.color('main', $alpha: .75));
 
 
@@ -262,4 +266,8 @@
 
   @include ui.define-color-token('tabular-item-decorator-active-background', ui.color('main', 950, .5));
   @include ui.define-color-token('tabular-item-decorator-hover-background', ui.color('main', 950, .1));
+
+
+  @include ui.define-color-token('play-button-background-1', rgba(255, 143, 178, 1));
+  @include ui.define-color-token('play-button-background-2', rgba(170, 49, 146, 1));
 }

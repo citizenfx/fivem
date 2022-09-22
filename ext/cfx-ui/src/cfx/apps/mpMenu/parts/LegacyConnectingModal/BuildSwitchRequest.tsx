@@ -1,5 +1,5 @@
 import React from "react";
-import { CurrentGameBrand } from "cfx/base/gameName";
+import { CurrentGameBrand } from "cfx/base/gameRuntime";
 import { $L, useL10n } from "cfx/common/services/intl/l10n";
 import { Button } from "cfx/ui/Button/Button";
 import { Flex } from "cfx/ui/Layout/Flex/Flex";

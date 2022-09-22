@@ -6,12 +6,14 @@ $bg: #ffffff;
 .cfxui-theme-gta5-light {
   @include ui.define-main-colors($bg, $fg);
 
-  // ASset overrides
+  // Asset overrides
   @include ui.def('checkered-pattern', url(assets/images/checkered_light.svg));
 
   // Color overrides
   @include ui.define-color-token('shadow-small', rgba(0, 0, 0, .3));
   @include ui.define-color-token('shadow-large', rgba(0, 0, 0, .3));
+
+  @include ui.define-color-token('backdrop', ui.color('main', 50, .75));
   @include ui.define-color-token('backdrop-shader', ui.color('main', 100, .75));
 
   @include ui.define-color-token('button-primary-text', ui.color('main'));

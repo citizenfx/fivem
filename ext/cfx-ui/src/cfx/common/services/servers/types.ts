@@ -18,9 +18,14 @@ export enum ServerViewDetailsLevel {
   Historical = 50,
 
   /**
+   * Meta details level for any data that is relatively live
+   */
+  Live = 100,
+
+  /**
    * Data from /dynamic.json endpoint of the server
    */
-  DynamicDataJson = 100,
+  DynamicDataJson = 101,
 
   /**
    * Data from from /dynamic.json and /info.json endpoints of the server

@@ -1,7 +1,7 @@
 import React from "react";
 import { mpMenu } from "cfx/apps/mpMenu/mpMenu";
 import { ConnectState } from "cfx/apps/mpMenu/services/servers/connect/state";
-import { CurrentGameBrand, CurrentGameName } from "cfx/base/gameName";
+import { CurrentGameBrand, CurrentGameName } from "cfx/base/gameRuntime";
 import { createPlaceholderIconDataURI } from "cfx/base/placeholderIcon";
 import { ServerIcon } from "cfx/common/parts/Server/ServerIcon/ServerIcon";
 import { useAccountService } from "cfx/common/services/account/account.service";

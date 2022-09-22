@@ -5,7 +5,7 @@ import { Flex } from "cfx/ui/Layout/Flex/Flex";
 import { Title } from "cfx/ui/Title/Title";
 import { returnTrue } from "cfx/utils/functional";
 import { observer } from "mobx-react-lite";
-import { CurrentGameName, currentGameNameIs } from "cfx/base/gameName";
+import { CurrentGameName, currentGameNameIs } from "cfx/base/gameRuntime";
 import { GameName } from "cfx/base/game";
 import { Icons } from "cfx/ui/Icons";
 import { usePlatformStatusService } from "../../services/platformStatus/platformStatus.service";
