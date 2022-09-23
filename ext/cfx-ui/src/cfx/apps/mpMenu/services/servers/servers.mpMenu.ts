@@ -122,7 +122,7 @@ export class MpMenuServersService implements IServersService, AppContribution {
     }
 
     await this.loadPinnedServersConfig();
-    await this.maybeLoadTopLocaleServer();
+    // await this.maybeLoadTopLocaleServer();
   }
 
   getList(type: ServersListType): IServersList | undefined {

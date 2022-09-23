@@ -20,9 +20,9 @@ export type ISearchTerm =
   | INameSearchTerm
   | ICategorySearchTerm
 
-const reRe = /^\/(.+)\/$/;
-const searchRe = /((?:~?\/.*?\/)|(?:[^\s]+))\s?/g;
-const categoryRe = /^([^:]*?):(.*)$/;
+// const reRe = /^\/(.+)\/$/;
+// const searchRe = /((?:~?\/.*?\/)|(?:[^\s]+))\s?/g;
+// const categoryRe = /^([^:]*?):(.*)$/;
 
 function encodeTermBit(bit: string): string {
   const encoded = bit
@@ -57,99 +57,99 @@ export function searchTermToString(term: ISearchTerm): string {
   return str;
 }
 
-export function parseSearchTerms(searchTerms: string): ISearchTerm[] {
-  const terms: ISearchTerm[] = [];
+// export function parseSearchTerms(searchTerms: string): ISearchTerm[] {
+//   const terms: ISearchTerm[] = [];
 
-  for (let match of searchTerms.matchAll(searchRe)) {
-    const term = match[1];
-    let value = term;
-    let offset = match.index || 0;
-    let regexp = false;
+//   for (let match of searchTerms.matchAll(searchRe)) {
+//     const term = match[1];
+//     let value = term;
+//     let offset = match.index || 0;
+//     let regexp = false;
 
-    const lowerCaseValue = value.toLowerCase();
+//     const lowerCaseValue = value.toLowerCase();
 
-    const invert = value[0] === '~';
-    if (invert) {
-      value = value.substring(1);
-    }
+//     const invert = value[0] === '~';
+//     if (invert) {
+//       value = value.substring(1);
+//     }
 
-    // term too short for anything actionable
-    if (value.length < 2) {
-      continue;
-    }
+//     // term too short for anything actionable
+//     if (value.length < 2) {
+//       continue;
+//     }
 
-    // Single locale filter
-    if (value.length === 2 && validLocales.has(lowerCaseValue)) {
-      terms.push({
-        type: 'locale',
-        source: term,
-        value,
-        invert,
-        offset,
-        regexp,
-      });
-      continue;
-    }
+//     // Single locale filter
+//     if (value.length === 2 && validLocales.has(lowerCaseValue)) {
+//       terms.push({
+//         type: 'locale',
+//         source: term,
+//         value,
+//         invert,
+//         offset,
+//         regexp,
+//       });
+//       continue;
+//     }
 
-    // Categories, i.e. `tag:blah` `var:bleh` `mapname:fivem` `gametype:test`
-    const categoryMatch = value.match(categoryRe);
-    if (categoryMatch) {
-      const category = categoryMatch[1];
-      value = categoryMatch[2];
+//     // Categories, i.e. `tag:blah` `var:bleh` `mapname:fivem` `gametype:test`
+//     const categoryMatch = value.match(categoryRe);
+//     if (categoryMatch) {
+//       const category = categoryMatch[1];
+//       value = categoryMatch[2];
 
-      terms.push({
-        type: 'category',
-        source: term,
-        value,
-        offset,
-        invert,
-        category,
-        regexp,
-      });
-      continue;
-    }
+//       terms.push({
+//         type: 'category',
+//         source: term,
+//         value,
+//         offset,
+//         invert,
+//         category,
+//         regexp,
+//       });
+//       continue;
+//     }
 
-    const nameTerm: ISearchTerm = {
-      type: 'name',
-      source: term,
-      value,
-      invert,
-      offset,
-      regexp,
-    };
+//     const nameTerm: ISearchTerm = {
+//       type: 'name',
+//       source: term,
+//       value,
+//       invert,
+//       offset,
+//       regexp,
+//     };
 
-    if (countryMap[lowerCaseValue]) {
-      nameTerm.matchLocale = {
-        at: 'end',
-        with: `-${countryMap[lowerCaseValue]}`,
-      };
-    } else if (languageMap[lowerCaseValue]) {
-      nameTerm.matchLocale = {
-        at: 'start',
-        with: `${languageMap[lowerCaseValue]}-`,
-      };
-    }
+//     if (countryMap[lowerCaseValue]) {
+//       nameTerm.matchLocale = {
+//         at: 'end',
+//         with: `-${countryMap[lowerCaseValue]}`,
+//       };
+//     } else if (languageMap[lowerCaseValue]) {
+//       nameTerm.matchLocale = {
+//         at: 'start',
+//         with: `${languageMap[lowerCaseValue]}-`,
+//       };
+//     }
 
-    const reString = value.match(reRe)
-      ? value.replace(reRe, '$1')
-      : quoteRe(value);
+//     const reString = value.match(reRe)
+//       ? value.replace(reRe, '$1')
+//       : quoteRe(value);
 
-    try {
-      // Checking if regexp is actually correct
-      new RegExp(reString, 'i');
+//     try {
+//       // Checking if regexp is actually correct
+//       new RegExp(reString, 'i');
 
-      nameTerm.value = reString;
-      nameTerm.regexp = true;
+//       nameTerm.value = reString;
+//       nameTerm.regexp = true;
 
-      terms.push(nameTerm);
-      continue;
-    } catch (e) {
-      // noop
-    }
-  }
+//       terms.push(nameTerm);
+//       continue;
+//     } catch (e) {
+//       // noop
+//     }
+//   }
 
-  return terms;
-}
+//   return terms;
+// }
 
 export function isAddressSearchTerm(st: string | ISearchTerm[]): boolean {
   if (typeof st === 'string') {
