@@ -90,8 +90,8 @@
     "#Settings_LowPerf_Off": "Aus",
     "#Settings_LowPerf_ReduceBackdrop": "Nur Hintergrund",
     "#Settings_LowPerf_ReduceFull": "Keine Unschärfe",
-    "#Home_AdDetail": "Meistgevoteter Server in deiner Region",
-    "#Servers_ConnectingToServer": "Mit dem Server verbinden.....",
+    "#Home_AdDetail": "Meist hochgewählte Server in deiner Region",
+    "#Servers_ConnectingToServer": "Verbinde zu Server...",
     "#ServerList_SearchHint": "Suchbegriff oder IP-Adresse eingeben",
     "#ServerList_SearchHintWeb": "Suchen",
     "#Settings_StreamerModeDesc": "Verstecke sensitive Informationen (z.B. IP-Adressen)",
@@ -126,5 +126,13 @@
     "#Settings_CameraShake": "Kamerawackeln deaktivieren",
     "#ServerDetail_Owner": "Inhaber",
     "#BuildSwitch_Heading": "{{gameBrand}} erfordert einen Neustart",
-    "#EmptyServers_Favorites": "Deine Lieblingsserver werden hier aufgelistet. Drücke dafür bei deinen Lieblingsservern auf den Stern!"
+    "#EmptyServers_Favorites": "Deine Lieblingsserver werden hier aufgelistet. Drücke dafür bei deinen Lieblingsservern auf den Stern!",
+    "#ServerDetail_DLCLevel": "DLC-Version",
+    "#ServiceAlert": "<span class=\"material-icons-outlined status-indicator status-warn\">error_outline</span> Es gibt aktuell Servicemeldungen auf der <a href=\"https://status.cfx.re/\">Cfx.re-Statusseite</a>.",
+    "#ErrorNoOutage": "Platform-Status",
+    "#BuildSwitch_Body": "Du versuchst auf einen Server mit einer anderen Spielversion ({{build}}) zu verbinden. Das Spiel wird automatisch neugestartet, um auf die passende Version zu wechseln.",
+    "#ServerDetail_SupportWarning": "Die Cfx.re-Version dieses Servers wird nicht mehr unterstützt. Siehe https://aka.cfx.re/eos (auf Englisch) für weitere Informationen.",
+    "#NoOutage": "Aktuell gibt es keine Service Meldungen auf der <a href=\"https://status.cfx.re/\">Cfx.re</a>-Statusseite. Es könnte sich um ein Problem auf deiner Seite handeln.",
+    "#ServerDetail_EOLWarning": "Die Cfx.re-Version dieses Servers hat den \"End-of-Life\"-Status erreicht. Siehe https://aka.cfx.re/eol (auf Englisch) für weitere Informationen.",
+    "#ServerDetail_EOLDisable": "Dieser Server kann nicht betreten werden, da er eine Plattform-Version verwendet, welche den \"End-of-Life\"-Status hat."
 }
