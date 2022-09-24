@@ -134,5 +134,6 @@
     "#ServerDetail_SupportWarning": "Die Cfx.re-Version dieses Servers wird nicht mehr unterstützt. Siehe https://aka.cfx.re/eos (auf Englisch) für weitere Informationen.",
     "#NoOutage": "Aktuell gibt es keine Service Meldungen auf der <a href=\"https://status.cfx.re/\">Cfx.re</a>-Statusseite. Es könnte sich um ein Problem auf deiner Seite handeln.",
     "#ServerDetail_EOLWarning": "Die Cfx.re-Version dieses Servers hat den \"End-of-Life\"-Status erreicht. Siehe https://aka.cfx.re/eol (auf Englisch) für weitere Informationen.",
-    "#ServerDetail_EOLDisable": "Dieser Server kann nicht betreten werden, da er eine Plattform-Version verwendet, welche den \"End-of-Life\"-Status hat."
+    "#ServerDetail_EOLDisable": "Dieser Server kann nicht betreten werden, da er eine Plattform-Version verwendet, welche den \"End-of-Life\"-Status hat.",
+    "#RentServer": "Miete einen Server"
 }
