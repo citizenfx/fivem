@@ -123,5 +123,8 @@
     "#Settings_HandbrakeCamera": "Handbremsenkamera",
     "#Settings_HandbrakeCameraDesc": "Kamera automatisch neu zentrieren bei Verwendung der Handbremse",
     "#Settings_LowPerfMode": "Hintergrundverzerrung verringern (für schlechte Computer)",
-    "#Settings_CameraShake": "Kamerawackeln deaktivieren"
+    "#Settings_CameraShake": "Kamerawackeln deaktivieren",
+    "#ServerDetail_Owner": "Inhaber",
+    "#BuildSwitch_Heading": "{{gameBrand}} erfordert einen Neustart",
+    "#EmptyServers_Favorites": "Deine Lieblingsserver werden hier aufgelistet. Drücke dafür bei deinen Lieblingsservern auf den Stern!"
 }
