@@ -190,7 +190,7 @@ namespace fx
 
 					auto loop = m_mainThreadLoop->GetLoop();
 
-					// periodic timer for network ticks
+					// periodic timer for main ticks
 					auto frameTime = 1000 / 20;
 
 					auto mpd = mainData.get();
