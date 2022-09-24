@@ -50,7 +50,7 @@
     "#Settings_MenuAudio": "Főmenü audió",
     "#Settings_MenuAudioDesc": "Háttérzene bekapcsolása, amikor a főmenüben vagy",
     "#Settings_GameStreamProgress": "Adatok streamelése folyamatban",
-    "#Settings_GameStreamProgressDesc": "Adatok streamelési folyamatának megjelenítése a játékban (BETA™)",
+    "#Settings_GameStreamProgressDesc": "Adatok streamelési folyamatának megjelenítése a játékban (nem ajánlott merevlemezes rendszerekhez)",
     "#Settings_QueriesPerMinute": "Szerver kereső: Max pings / perc",
     "#Settings_CustomEmoji": "Egyedi FiveM vízjel hangulatjel",
     "#Settings_CustomEmojiDesc": "Egy hangulatjel a FiveM vízjelben megjelenítve.",
@@ -93,5 +93,9 @@
     "#Settings_LowPerfMode": "Elmosódás csökkentése (alsó kategóriás rendszerekhez)",
     "#Settings_LowPerf_Off": "Ki",
     "#Settings_LowPerf_ReduceBackdrop": "Csak a háttérben",
-    "#Settings_LowPerf_ReduceFull": "Nincs elmosódás"
+    "#Settings_LowPerf_ReduceFull": "Nincs elmosódás",
+    "#Settings_HandbrakeCamera": "Kézifék kamera",
+    "#ServerList_SearchHint": "Keress vagy írj be egy IP címet",
+    "#ServerList_SearchHintWeb": "Keresés",
+    "#Settings_StreamerMode": "Közvetítői mód"
 }
