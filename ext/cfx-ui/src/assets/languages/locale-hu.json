@@ -59,7 +59,7 @@
     "#Settings_UpdateChannel": "Csatorna frissítése",
     "#Settings_UpdateChannelDesc": "Próbáld ki az új funkciókat és változtatásokat még a megjelenésük előtt! Előfordulhatnak hibák.",
     "#SettingsCat_Connection": "Csatlakozás",
-    "#SettingsCat_Interface": "Interfész",
+    "#SettingsCat_Interface": "Kezelőfelület",
     "#SettingsCat_Game": "Játék",
     "#SettingsCat_Account": "Fiók",
     "#DirectConnect_TimedOut": "A kiszolgáló felé történő lekérdezés során időtúllépés történt.",
@@ -175,5 +175,7 @@
     "#Settings_CameraShake": "Kamera rázkódásának kikapcsolása",
     "@Review_UsersHelpful": "{{count}} személy hasznosnak találta ezt a véleményt",
     "#BuildSwitch_PureBuildSwitchBody": "A szerver, amelyhez csatlakozol, más játékverziót használ ({{build}}), és a \"tiszta mód\" {{pureLevel}} szintre van rajta beállítva. A játékod bezárul és újraindul, hogy átálljon erre a játékverzióra, illetve átállítja a kliensed tiszta mód szintjét a megfelelőre. Ezután automatikusan felcsatlakozik a kiválasztott szerverre.",
-    "#Settings_LowPerfModeDesc": " "
+    "#Settings_LowPerfModeDesc": " ",
+    "#ServerDetail_Owner": "Tulajdonos",
+    "#BuildSwitch_Cancel": "Mégsem"
 }
