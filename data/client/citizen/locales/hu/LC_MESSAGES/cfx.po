@@ -47,6 +47,9 @@ msgid ""
 "Stack trace:\n"
 "%s"
 msgstr ""
+"\n"
+"Memória lefoglalása:\n"
+"%s"
 
 #: components/net/src/NetLibrary.cpp:637
 msgid ""

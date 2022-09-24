@@ -167,5 +167,13 @@
     "#EmptyServers_Favorites": "A kedvenc szervereid itt fognak megjelenni, csak kattints a csillag ikonra a kedvenc szervered mellett!",
     "#BuildSwitch_Heading": "{{gameBrand}} újraindítást igényel",
     "#BuildSwitch_Body": "A szerver, amelyhez csatlakozol, más játékverziót igényel ({{build}}). A játék bezárul és rövidesen újraindul, hogy átálljon erre a verzióra, majd automatikusan csatlakozik a szerverre.",
-    "#RentServer": "Bérelj szervert"
+    "#RentServer": "Bérelj szervert",
+    "#BuildSwitch_PureSwitchBody": "A szerver, amelyhez csatlakozol \"tiszta üzemmód\" szintje {{pureLevel}} a játékod jelenleg {{currentPureLevel}} szinten fut. A játékod hamarosan bezárul és újraindul, hogy a tiszta üzemmód szintjét a szerver követelményeihez állítsa, majd csatlakozik a szerverhez.",
+    "@Review_UsersUnhelpful": "{{count}} személy nem találta hasznosnak ezt a véleményt",
+    "@Review_UsersFunny": "{{count}} személy találta viccesnek ezt a véleményt",
+    "#Settings_InProcessGpuDesc": "Nagy GPU használat esetén javítás a 'UI lag' kiküszöbölésére, de akár GPU crasht is okozhat (újraindítást igényel)",
+    "#Settings_CameraShake": "Kamera rázkódásának kikapcsolása",
+    "@Review_UsersHelpful": "{{count}} személy hasznosnak találta ezt a véleményt",
+    "#BuildSwitch_PureBuildSwitchBody": "A szerver, amelyhez csatlakozol, más játékverziót használ ({{build}}), és a \"tiszta mód\" {{pureLevel}} szintre van rajta beállítva. A játékod bezárul és újraindul, hogy átálljon erre a játékverzióra, illetve átállítja a kliensed tiszta mód szintjét a megfelelőre. Ezután automatikusan felcsatlakozik a kiválasztott szerverre.",
+    "#Settings_LowPerfModeDesc": " "
 }
