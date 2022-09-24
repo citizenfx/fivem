@@ -95,5 +95,7 @@
     "#Settings_LowPerf_Off": "Désactivé",
     "#Settings_LowPerfMode": "Réduire le flou (pour les ordinateurs peu puissant)",
     "#Settings_StreamerModeDesc": "Cacher les informations sensibles (ex. adresse IP) de l'écran",
-    "#Servers_ConnectingToServer": "Connexion au serveur..."
+    "#Servers_ConnectingToServer": "Connexion au serveur...",
+    "#ServerList_SearchHintWeb": "Rechercher",
+    "#Settings_HandbrakeCamera": "Caméra de frein à main"
 }
