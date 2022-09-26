@@ -54,7 +54,7 @@ function formatServersCount(count: number): string {
   const thousands = (count / 1000) | 0;
   const hundreds = count - (thousands * 1000);
 
-  return `${thousands} ${hundreds.toString().padStart(3, '0')}`;
+  return `${thousands},${hundreds.toString().padStart(3, '0')}`;
 }
 
 const PlayTile = observer(function PlayTile() {
