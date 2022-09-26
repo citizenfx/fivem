@@ -1,6 +1,4 @@
-﻿#include "StdInc.h"
-
-//#include <ETWProviders/etwprof.h>
+#include "StdInc.h"
 
 #include <mutex>
 
@@ -69,15 +67,6 @@ static void* g_lastBackbufTexture;
 static bool g_useFlipModel = false;
 
 static bool g_overrideVsync;
-
-static void(*g_origCreateCB)(const char*);
-
-static void InvokeCreateCB(const char* arg)
-{
-	g_origCreateCB(arg);
-
-	//OnGrcCreateDevice();
-}
 
 static void CaptureBufferOutput();
 static void CaptureInternalScreenshot();
@@ -803,77 +792,7 @@ bool WrapVideoModeChange(VideoModeInfo* info)
 
 	trace("Changing video mode success: %d.\n", success);
 
-	if (success)
-	{
-		//g_resetVideoMode(info);
-	}
-
-#if 0
-	IUnknown** g_backbuffer = (IUnknown**)0x14299D640;
-	rage::grcRenderTargetDX11** g_backBufferRT = (rage::grcRenderTargetDX11**)0x14299DC50;
-
-	//delete (*g_backBufferRT);
-
-	//ULONG refCnt = (*g_backbuffer)->Release();
-
-	ULONG refCnt = (*g_backBufferRT)->m_rtv->Release();
-	(*g_backBufferRT)->m_rtv = nullptr;
-
-	trace("refcnt %d\n", refCnt);
-
-	if ((*g_backBufferRT)->m_resource2)
-	{
-		(*g_backBufferRT)->m_resource2->Release();
-		(*g_backBufferRT)->m_resource2 = nullptr;
-	}
-
-	for (auto& srv : (*g_backBufferRT)->m_srvs)
-	{
-		srv->Release();
-	}
-
-	(*g_backBufferRT)->m_srvs.Clear();
-
-	hook::put<uint8_t>(0x141299035, 0xC3);
-	hook::put<uint8_t>(0x141298F60, 0x48);
-
-	((void(*)(void*))0x141298F60)(rage::grcTextureFactory::getInstance());
-
-	hook::put<uint8_t>(0x141298F60, 0xC3);
-
-	DXGI_SWAP_CHAIN_DESC desc = {};
-	(*g_dxgiSwapChain)->GetDesc(&desc);
-
-	trace("flags now: %d\n", desc.Flags);
-
-	HRESULT hr = (*g_dxgiSwapChain)->ResizeBuffers(0, info->width, info->height, DXGI_FORMAT_UNKNOWN, desc.Flags);// | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING);
-
-	if (FAILED(hr))
-	{
-		TerminateProcess(GetCurrentProcess(), 1);
-	}
-
-	if (FAILED(hr))
-	{
-		trace("Changing video mode: buffers failed. HR: %08x\n", hr);
-		// TODO: fail on D3D error
-	}
-
-	trace("Changing video mode: meheeeeeh.\n");
-
-	((void(*)(void*))0x14129D1C8)(rage::grcTextureFactory::getInstance());
-
-	trace("Woo! %016x\n", (uintptr_t)*g_backBufferRT);
-#endif
-
 	return success;
-}
-
-static bool(*g_origRunGame)();
-
-static int RunGameWrap()
-{
-	return g_origRunGame();
 }
 
 #pragma region shaders
@@ -1064,16 +983,10 @@ const BYTE quadVS[] =
 
 struct GameRenderData
 {
-	HANDLE handle;
-	int width;
-	int height;
-	bool requested;
-
-	GameRenderData()
-		: requested(false)
-	{
-
-	}
+	HANDLE handle = NULL;
+	int width = 0;
+	int height = 0;
+	bool requested = false;
 };
 
 static rage::grcRenderTargetDX11** g_backBuffer;
@@ -1540,7 +1453,7 @@ void D3DPresent(int syncInterval, int flags)
 	if (icgi->HasVariable("gameMinimized"))
 	{
 		static WaitableTimer fpsTimer{NULL, TRUE, NULL};
-		LimitFrameTime(fpsTimer, 20);
+		LimitFrameTime(fpsTimer, 30);
 	}
 
 	RootSetPresented();
@@ -1592,15 +1505,6 @@ static void DisplayD3DCrashMessage(HRESULT hr)
 	}
 
 	FatalError("DirectX encountered an unrecoverable error: %s - %s%s", ToNarrow(errorString), ToNarrow(errorBuffer), removedError);
-}
-
-static HRESULT D3DGetData(ID3D11DeviceContext* dc, ID3D11Asynchronous* async, void* data, UINT dataSize, UINT flags)
-{
-	dc->GetData(async, data, dataSize, flags);
-
-	*(int*)data = 1;
-
-	return S_OK;
 }
 
 static void(*g_origPresent)();
@@ -1903,26 +1807,12 @@ static HookFunction hookFunction([] ()
 
 	g_backBuffer = hook::get_address<decltype(g_backBuffer)>(hook::get_pattern("48 8B D0 48 89 05 ? ? ? ? EB 07 48 8B 15", 6));
 
-	// device creation
-	void* ptrFunc = hook::pattern("E8 ? ? ? ? 84 C0 75 ? B2 01 B9 2F A9 C2 F4").count(1).get(0).get<void>(33);
-
-	hook::set_call(&g_origCreateCB, ptrFunc);
-	hook::call(ptrFunc, InvokeCreateCB);
-
 	// end scene
 	{
 		auto location = hook::get_pattern("48 0F 45 C8 48 83 C4 40 5B E9 00 00 00 00", 9);
 		hook::set_call(&g_origPresent, location);
 		hook::jump(location, RagePresentWrap);
 	}
-
-	//ptrFunc = hook::pattern("83 64 24 28 00 41 B0 01 C6 44 24 20 01 41 8A C8").count(1).get(0).get<void>(-30);
-	//hook::set_call(&g_origEndScene, ptrFunc);
-	//hook::call(ptrFunc, EndSceneWrap);
-
-	ptrFunc = hook::get_pattern("41 83 F9 01 75 34 48 83 C4 28 E9", 10);
-	hook::set_call(&g_origRunGame, ptrFunc);
-	hook::jump(ptrFunc, RunGameWrap);
 
 	// present hook function
 	hook::put(hook::get_address<void*>(hook::get_pattern("48 8B 05 ? ? ? ? 48 85 C0 74 0C 8B 4D 50 8B", 3)), D3DPresent);
@@ -1934,16 +1824,8 @@ static HookFunction hookFunction([] ()
 
 	g_resetVideoMode = hook::get_pattern<std::remove_pointer_t<decltype(g_resetVideoMode)>>("8B 44 24 50 4C 8B 17 44 8B 4E 04 44 8B 06", -0x61);
 
-	// set the present hook
-	if (IsWindows10OrGreater())
-	{
-		// wrap video mode changing
-		MH_CreateHook(hook::get_pattern("57 48 83 EC 20 49 83 63 08 00", -0xB), WrapCreateBackbuffer, (void**)&g_origCreateBackbuffer);
-
-		// remove render thread semaphore checks from buffer resizing
-		/*hook::nop((char*)g_resetVideoMode + 0x48, 5);
-		hook::nop((char*)g_resetVideoMode + 0x163, 5);*/
-	}
+	// wrap video mode changing
+	MH_CreateHook(hook::get_pattern("57 48 83 EC 20 49 83 63 08 00", -0xB), WrapCreateBackbuffer, (void**)&g_origCreateBackbuffer);
 
 	MH_EnableHook(MH_ALL_HOOKS);
 
@@ -1962,23 +1844,6 @@ static HookFunction hookFunction([] ()
 		memcpy(location, mov, 5);
 		hook::call(location + 5, FakeOutput);
 	}
-
-	// ignore frozen render device (for PIX and such)
-	//hook::put<uint32_t>(hook::pattern("8B 8E C0 0F 00 00 68 88 13 00 00 51 E8").count(2).get(0).get<void>(7), INFINITE);
-
-	/*ptrFunc = hook::pattern("8B 8E F0 09 00 00 E8 ? ? ? ? 68").count(1).get(0).get<void>(12);
-
-	hook::put(ptrFunc, InvokePostFrontendRender);*/
-
-	// frontend render phase
-	//hook::put(0xE9F1AC, InvokeFrontendCBStub);
-
-	// in-menu check for renderphasefrontend
-	//*(BYTE*)0x43AF21 = 0xEB;
-
-	// temp: d3d debug layer
-	//static void* gFunc = D3D11CreateDeviceAndSwapChain2;
-	//hook::put(0xF107CE, &gFunc);
 
 	// add D3D11_CREATE_DEVICE_BGRA_SUPPORT flag
 	void* createDeviceLoc = hook::pattern("48 8D 45 90 C7 44 24 30 07 00 00 00").count(1).get(0).get<void>(21);
