@@ -849,23 +849,32 @@ static HookFunction initFunction([]()
 		doTickNextFrame = true;
 	});
 
+	// host state sending
 	g_netLibrary->OnBuildMessage.Connect([] (const std::function<void(uint32_t, const char*, int)>& writeReliable)
 	{
+		ICoreGameInit* cgi = Instance<ICoreGameInit>::Get();
+
+		if (cgi->OneSyncEnabled)
+		{
+			return;
+		}
+
 		static bool lastHostState;
 
-		// hostie
+		// send whether or not we consider ourselves to be host
 		bool isHost = isNetworkHost();
 		if (isHost != lastHostState)
 		{
 			if (isHost)
 			{
 				auto base = g_netLibrary->GetServerBase();
-				writeReliable(0xB3EA30DE, (char*)&base, sizeof(base));
+				writeReliable(HashRageString("msgIHost"), (char*)&base, sizeof(base));
 			}
 
 			lastHostState = isHost;
 		}
 
+		// ensure we send this frequently enough
 		static uint32_t lastHostSend = timeGetTime();
 
 		if ((timeGetTime() - lastHostSend) > 1500)
