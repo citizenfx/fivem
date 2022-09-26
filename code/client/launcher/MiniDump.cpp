@@ -1567,7 +1567,8 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 				OverloadCrashData(&taskDialogConfig);
 
 				// don't upload the 'launched directly' error
-				if (taskDialogConfig.pszContent && wcsstr(taskDialogConfig.pszContent, L"This application should be launched directly from the shell or a web browser."))
+				if ((taskDialogConfig.pszContent && wcsstr(taskDialogConfig.pszContent, L"This application should be launched directly from the shell or a web browser.")) ||
+					(taskDialogConfig.pszMainInstruction && wcsstr(taskDialogConfig.pszMainInstruction, L"This application should be launched directly from the shell or a web browser.")))
 				{
 					shouldUpload = false;
 				}
