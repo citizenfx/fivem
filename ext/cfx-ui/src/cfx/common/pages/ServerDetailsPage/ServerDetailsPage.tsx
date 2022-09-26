@@ -168,7 +168,7 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
 
             <Box grow={false} width={LAYOUT_SPLITS.RIGHT}>
               <Box style={{ position: 'sticky', top: 0 }}>
-                <Pad top right size="xlarge">
+                <Pad top right bottom size="xlarge">
                   <Flex vertical gap="large">
                     <ServerExtraDetails server={server} />
 

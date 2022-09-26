@@ -7,6 +7,7 @@ import { Title } from "cfx/ui/Title/Title";
 import { defaultLinkReplacerx, linkifyx } from "cfx/utils/links";
 import { FiExternalLink } from "react-icons/fi";
 import { ServerCoreLoafs } from "../ServerCoreLoafs/ServerCoreLoafs";
+import { ui } from "cfx/ui/ui";
 
 export const ServerExtraDetails = observer(function ServerExtraDetails({ server }: { server: IServerView }) {
   const varNodes: React.ReactNode[] = [];
@@ -15,7 +16,7 @@ export const ServerExtraDetails = observer(function ServerExtraDetails({ server 
     for (const [name, value] of Object.entries(server.variables)) {
       varNodes.push(
         <Flex key={name + value}>
-          <Text opacity="75">{name}:</Text>
+          <Text opacity="75" className={ui.cls.flexNoShrink}>{name}:</Text>
           <span>
             <Linkify text={value} />
           </span>
