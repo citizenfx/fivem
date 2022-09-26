@@ -136,45 +136,6 @@
       z-index: 1;
     }
 
-    .icon2,
-    .icon3 {
-      position: absolute;
-
-      top: ui.offset('large');
-      left: ui.offset('large');
-
-      display: flex;
-      align-items: center;
-
-      color: ui.color('main');
-
-      @include ui.font-size('xxxlarge');
-
-      z-index: 1;
-    }
-
-    @include ui.animated('all', '.icon2');
-
-    &:hover .icon2 {
-      transform: scale(2.5) translateX(ui.q(.18));
-    }
-
-    .icon2 {
-      transform: scale(2) translateX(ui.q(.18));
-      opacity: .1;
-    }
-
-    @include ui.animated('all', '.icon3');
-
-    &:hover .icon3 {
-      transform: scale(3.5) translateX(ui.q(.25));
-    }
-
-    .icon3 {
-      transform: scale(3) translateX(ui.q(.25));
-      opacity: .1;
-    }
-
     .title {
       @include ui.font-size('xxxlarge');
       @include ui.font-weight('bolder');

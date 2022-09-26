@@ -75,13 +75,6 @@ const PlayTile = observer(function PlayTile() {
         <BsPlayFill />
       </div>
 
-      <div className={s.icon2}>
-        <BsPlayFill />
-      </div>
-      <div className={s.icon3}>
-        <BsPlayFill />
-      </div>
-
       <Flex vertical>
         <div className={s.title}>
           <span>
