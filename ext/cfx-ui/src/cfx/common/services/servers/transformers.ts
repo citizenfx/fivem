@@ -1,5 +1,6 @@
 import { DEFAULT_SERVER_LOCALE, DEFAULT_SERVER_LOCALE_COUNTRY, filterServerProjectDesc, filterServerProjectName, filterServerTag, hasPrivateConnectEndpoint } from "cfx/base/serverUtils";
 import { arrayAt } from "cfx/utils/array";
+import { isFalseString } from "cfx/utils/string";
 import { master } from "./source/api/master";
 import { IArrayCategoryMatcher, IListableServerView, IStringCategoryMatcher } from "./source/types";
 import { IFullServerData, IHistoryServer, IServer, IServerView, ServerPureLevel, ServerViewDetailsLevel } from "./types";
@@ -36,6 +37,7 @@ export function masterListServerData2ServerView(joinId: string, data: master.ISe
       upvotePower: data.upvotePower || 0,
       connectEndPoints: data.connectEndPoints,
       private: hasPrivateConnectEndpoint(data.connectEndPoints),
+      rawVariables: data.vars || {},
     },
     processServerDataVariables(data.vars),
   );
@@ -76,6 +78,8 @@ export function masterListFullServerData2ServerView(joinId: string, data: IFullS
 
       resources: data.resources as any,
       players: data.players as any,
+
+      rawVariables: data.vars || {},
     },
     processServerDataVariables(data.vars),
   );
@@ -291,10 +295,9 @@ function getCategories(server: IServerView) {
     gametype,
     mapname,
     hostname,
-    // resources,
-    // variables,
     enforceGameBuild,
     pureLevel,
+    rawVariables,
   } = server;
 
   const categories: IListableServerView['categories'] = {
@@ -323,34 +326,29 @@ function getCategories(server: IServerView) {
     categories.purelevel = createStringMatcher(pureLevel);
   }
 
-  // Doesn't really make sense as no resources data in the master list, for now
-  // if (resources && resources.length) {
-  //   categories.resources = createArrayMatcher(resources);
-  // }
-
   if (tags && tags.length) {
     categories.tag = createArrayMatcher(tags);
   }
 
   // Doesn't really make sense as no custom variables data in the master list, for now
-  // if (variables) {
-  //   const truthyVars = Object.entries(variables)
-  //     .filter(([, value]) => !isFalseString(value))
-  //     .map(([key]) => key);
+  if (rawVariables) {
+    const truthyVars = Object.entries(rawVariables)
+      .filter(([, value]) => !isFalseString(value))
+      .map(([key]) => key);
 
-  //   if (truthyVars.length) {
-  //     categories.var = createArrayMatcher(truthyVars);
-  //   }
+    if (truthyVars.length) {
+      categories.var = createArrayMatcher(truthyVars);
+    }
 
-  //   for (const [varName, varValue] of Object.entries(variables)) {
-  //     // Don't overwrite existing
-  //     if (categories[varName]) {
-  //       continue;
-  //     }
+    for (const [varName, varValue] of Object.entries(rawVariables)) {
+      // Don't overwrite existing
+      if (categories[varName]) {
+        continue;
+      }
 
-  //     categories[varName] = createStringMatcher(varValue);
-  //   }
-  // }
+      categories[varName] = createStringMatcher(varValue);
+    }
+  }
 
   return categories;
 }

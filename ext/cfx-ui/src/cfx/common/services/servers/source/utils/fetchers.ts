@@ -21,25 +21,25 @@ async function readBodyToServers(gameName: GameName, onServer: (server: IServerV
   const frameReader = new FrameReader(
     body,
     (frame) => {
-      let s = performance.now();
+      let timestamp = performance.now();
       const srv = decodeServer(frame);
-      decodeTime += performance.now() - s;
+      decodeTime += performance.now() - timestamp;
 
       if (srv.EndPoint && srv.Data) {
         const serverGameName = srv.Data?.vars?.gamename || GameName.FiveM;
 
         if (gameName === serverGameName) {
-          s = performance.now();
-          const aaa = masterListServerData2ServerView(srv.EndPoint, srv.Data);
-          transformTime += performance.now() - s;
+          timestamp = performance.now();
+          const serverView = masterListServerData2ServerView(srv.EndPoint, srv.Data);
+          transformTime += performance.now() - timestamp;
 
-          s = performance.now();
-          onServer(aaa);
-          onServerTime += performance.now() - s;
+          timestamp = performance.now();
+          onServer(serverView);
+          onServerTime += performance.now() - timestamp;
         }
       }
 
-      decodeTime += performance.now() - s;
+      decodeTime += performance.now() - timestamp;
     },
     deferred.resolve,
   );
