@@ -12,8 +12,8 @@ import { useWindowResize } from "cfx/utils/hooks";
 import { Indicator } from "cfx/ui/Indicator/Indicator";
 import { noop } from "cfx/utils/functional";
 import { TitleOutlet } from "cfx/ui/outlets";
+import { useL10n } from "cfx/common/services/intl/l10n";
 import s from './SearchInput.module.scss';
-import { $L, useL10n } from "cfx/common/services/intl/l10n";
 
 export interface SearchInputProps {
   size?: InputSize,
@@ -97,7 +97,7 @@ export const SearchInput = observer(function SearchInput(props: SearchInputProps
         rendered={rendered}
         className={richInputClassName}
         placeholder={placeholder}
-      /> {/* TODOLOC */}
+      />
 
       <Wizard
         controller={controller}
@@ -190,10 +190,12 @@ function useWizardPosition(cursorAt: number, cursorAtElementRef: React.RefObject
   return at;
 }
 
+type Part = { term: ISearchTerm, index: number };
+
 function renderSearchInput(value: string, parsed: ISearchTerm[], cursorAt: number, cursorAtElementRef: React.RefObject<HTMLSpanElement>): [React.ReactNode[], number] {
   let idx = 0;
   const indices = Array<number>(parsed.length * 2);
-  const parts: Record<number, { term: ISearchTerm, index: number }> = Object.create(null);
+  const parts: Record<number, Part> = Object.create(null);
 
   for (let index = 0; index < parsed.length; index++) {
     const term = parsed[index];
@@ -212,21 +214,18 @@ function renderSearchInput(value: string, parsed: ISearchTerm[], cursorAt: numbe
 
   for (const [index, str] of split) {
     const key = `${index}${str}`;
-    const part = parts[index];
+    const part: undefined | Part = parts[index] as any; // as otherwise typescript will omit the `undefined` variant
 
     const cursorWithin = (activeTermIndex === -1) && (cursorAt >= index) && (cursorAt <= (index + str.length));
     if (cursorWithin && part) {
       activeTermIndex = part.index;
     }
 
-    const cls = clsx(s.part, part && {
-      [`type:${part.term.type}`]: true,
-      [s[part.term.type]]: true,
-      [s.invert]: part.term.invert,
+    const cls = clsx(s.part, part && [s[part.term.type]], {
+      [s.invert]: part?.term.invert,
       [s.active]: cursorWithin,
-      [s.addressPlaceholder]: part.term.type === 'address' && value === '>',
-    }, !part && {
-      [s.ignored]: true,
+      [s.ignored]: !part,
+      [s.addressPlaceholder]: part?.term.type === 'address' && value === '>',
     });
 
     nodes[idx++] = (

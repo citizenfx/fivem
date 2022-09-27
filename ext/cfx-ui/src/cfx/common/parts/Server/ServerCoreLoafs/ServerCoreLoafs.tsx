@@ -1,5 +1,4 @@
 import React from "react";
-import copy from "copy-to-clipboard";
 import { getGameBuildDLCName } from "cfx/base/game";
 import { $L } from "cfx/common/services/intl/l10n";
 import { IServerView, ServerPureLevel } from "cfx/common/services/servers/types";
@@ -195,7 +194,7 @@ function Copier({ text }) {
   const unsetCopiedRef = useDynamicRef(unsetCopied);
 
   const handleClick = React.useCallback(() => {
-    copy(textRef.current);
+    navigator.clipboard.writeText(textRef.current);
 
     if (timerRef.current !== null) {
       clearTimeout(timerRef.current);
@@ -214,6 +213,10 @@ function Copier({ text }) {
       clearTimeout(timerRef.current);
     }
   }, []);
+
+  if ('clipboard' in navigator === false) {
+    return null;
+  }
 
   const title = copied
     ? 'Copied!'
