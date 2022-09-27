@@ -47,6 +47,7 @@ export const MpMenuServersPage = observer(function ({ listType }: ServersPagePro
 
       <ServersPage
         list={serversList}
+        listType={listType}
         showPinned={showPinned}
       />
     </>

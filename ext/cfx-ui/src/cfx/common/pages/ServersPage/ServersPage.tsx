@@ -3,7 +3,7 @@ import { observer } from "mobx-react-lite";
 import { Page } from "cfx/ui/Layout/Page/Page";
 import { ServerListItem } from "cfx/common/parts/Server/ServerListItem/ServerListItem";
 import { Flex } from "cfx/ui/Layout/Flex/Flex";
-import { IServersList } from "cfx/common/services/servers/lists/types";
+import { IServersList, ServersListType } from "cfx/common/services/servers/lists/types";
 import { VirtualScrollable } from "cfx/ui/Layout/Scrollable/VirtualScrollable";
 import { useServersService } from "cfx/common/services/servers/servers.service";
 import { Box } from "cfx/ui/Layout/Box/Box";
@@ -12,21 +12,28 @@ import { Island } from "cfx/ui/Island/Island";
 import { Pad } from "cfx/ui/Layout/Pad/Pad";
 import { FlexRestricter } from "cfx/ui/Layout/Flex/FlexRestricter";
 import { Text } from "cfx/ui/Text/Text";
-import { GiPieSlice } from 'react-icons/gi';
 import { useUiService } from "cfx/common/services/ui/ui.service";
 import { useSavedScrollPositionForBackNav } from "cfx/utils/hooks";
-import s from './ServersPage.module.scss';
 import { $L } from "cfx/common/services/intl/l10n";
 import { Icons } from "cfx/ui/Icons";
+import { EmptyListPlaceholder } from "./EmptyListPlaceholder/EmptyListPlaceholder";
+import s from './ServersPage.module.scss';
+
+const emptyListPlaceholders = {
+  [ServersListType.History]: true,
+  [ServersListType.Favorites]: true,
+};
 
 export interface ServersPageProps {
   list: IServersList,
+  listType?: ServersListType,
   showPinned?: boolean,
 }
 
 export const ServersPage = observer(function ServersPage(props: ServersPageProps) {
   const {
     list,
+    listType,
     showPinned = false,
   } = props;
 
@@ -42,18 +49,31 @@ export const ServersPage = observer(function ServersPage(props: ServersPageProps
     />
   ), [list, ServersService]);
 
+  const isListEmpty = list.sequence.length === 0;
+  const isListLoading = ServersService.serversListLoading;
+
+  const hasEmptyListPlaceholder = listType && emptyListPlaceholders[listType];
+
+  const showPlaceholder = Boolean(hasEmptyListPlaceholder && isListEmpty && !isListLoading);
+
   return (
     <Page showLoader={ServersService.serversListLoading}>
       <Flex fullHeight fullWidth>
-        <VirtualScrollable
-          onScrollUpdate={setScrollOffset}
-          initialScrollOffset={initialScrollOffset}
+        {showPlaceholder && (
+          <EmptyListPlaceholder />
+        )}
 
-          className={s.list}
-          itemCount={list.sequence.length}
-          itemHeight={UiService.quant * 8}
-          renderItem={renderItem}
-        />
+        {!showPlaceholder && (
+          <VirtualScrollable
+            onScrollUpdate={setScrollOffset}
+            initialScrollOffset={initialScrollOffset}
+
+            className={s.list}
+            itemCount={list.sequence.length}
+            itemHeight={UiService.quant * 8}
+            renderItem={renderItem}
+          />
+        )}
 
         {showPinned && (
           <PinnedServers />

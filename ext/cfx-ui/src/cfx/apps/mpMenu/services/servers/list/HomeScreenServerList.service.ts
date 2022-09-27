@@ -69,9 +69,9 @@ export class HomeScreenServerListService {
     this.serversStorageService.onFavoriteServers((seq) => this.favoriteServersSequence = reverseArray(seq));
     this.historyServersSequence = this.serversStorageService.getLastServers().map((server) => server.address);
 
-    this.serversService.listSource.onList(ServersListType.PersonalizedServerList, (seq) => this.allServersSequence = seq);
+    this.serversService.listSource.onList(ServersListType.RegionalTop, (seq) => this.allServersSequence = seq);
     this.serversService.listSource.makeList(reviveServerListConfig({
-      type: ServersListType.PersonalizedServerList,
+      type: ServersListType.RegionalTop,
       locales: {
         [this.intlService.systemLocale]: true,
       },

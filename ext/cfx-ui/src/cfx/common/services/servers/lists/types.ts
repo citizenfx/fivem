@@ -1,4 +1,4 @@
-import { ISearchTerm } from "../../../../base/searchTermsParser";
+import { ISearchTerm } from "cfx/base/searchTermsParser";
 import { ServerListConfigController } from "./ServerListConfigController";
 
 export enum ServersListSortBy {
@@ -13,7 +13,7 @@ export enum ServersListType {
   Favorites = 'favorites',
   History = 'history',
 
-  PersonalizedServerList = 'personalizedServerList'
+  RegionalTop = 'regionalTop'
 }
 
 export enum ServerListSortDir {

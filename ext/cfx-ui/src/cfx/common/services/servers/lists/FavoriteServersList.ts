@@ -17,10 +17,12 @@ export class FavoriteServersList implements IServersList {
     return this._config;
   }
 
-  public get sequence(): string[] {
-    const existingFavoriteServers: IServerView[] = Object.keys(this._favoriteServers).map((id) => this.getServer(id)).filter(Boolean) as any;
+  private get existingServers(): IServerView[] {
+    return Object.keys(this._favoriteServers).map((id) => this.getServer(id)).filter(Boolean) as any;
+  }
 
-    const listableFavoriteServers: Record<string, IListableServerView> = existingFavoriteServers.reduce((acc, server) => {
+  public get sequence(): string[] {
+    const listableFavoriteServers: Record<string, IListableServerView> = this.existingServers.reduce((acc, server) => {
       acc[server.id] = serverView2ListableServerView(server);
 
       return acc;
