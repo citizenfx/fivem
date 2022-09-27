@@ -12,6 +12,8 @@ import { MpMenuServersService } from "../servers.mpMenu";
 
 export const MAX_TOP_SERVERS = 10;
 
+export const IDLE_TIMEOUT = 60 * 1000; // 60 seconds
+
 export function getTopRegionServerOnScreenTime(index: number): number {
   let time = 5;
 

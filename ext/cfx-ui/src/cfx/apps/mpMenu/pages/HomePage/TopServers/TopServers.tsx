@@ -1,5 +1,5 @@
 import React from "react";
-import { MAX_TOP_SERVERS, HomeScreenServerListService, getTopRegionServerOnScreenTime } from "cfx/apps/mpMenu/services/servers/list/HomeScreenServerList.service";
+import { MAX_TOP_SERVERS, HomeScreenServerListService, getTopRegionServerOnScreenTime, IDLE_TIMEOUT } from "cfx/apps/mpMenu/services/servers/list/HomeScreenServerList.service";
 import { useService } from "cfx/base/servicesContainer";
 import { ServerConnectButton } from "cfx/common/parts/Server/ServerConnectButton/ServerConnectButton";
 import { ServerCoreLoafs } from "cfx/common/parts/Server/ServerCoreLoafs/ServerCoreLoafs";
@@ -287,7 +287,7 @@ const Card = observer(function Card(props: CardProps) {
 const Progress = observer(function Progress() {
   return (
     <div
-      ref={Ctrl.reffer}
+      ref={Ctrl.setActiveProgressRef}
       className={s.progress}
     />
   );
@@ -303,6 +303,7 @@ const Ctrl = new class Ctrl {
   private paused = false;
 
   private rAF: RequestAnimationFrameReturn | null = null;
+  private idleTimeout: SetTimeoutReturn | null = null;
 
   private $activeProgressElement: HTMLDivElement | null = null;
 
@@ -314,10 +315,11 @@ const Ctrl = new class Ctrl {
       paused: false,
       draw: false,
       rAF: false,
+      idleTimeout: false,
       $activeProgressElement: false,
     });
 
-    this.draw();
+    this.rAF = requestAnimationFrame(this.updateProgress);
   }
 
   setActiveIndex(index: number) {
@@ -331,10 +333,29 @@ const Ctrl = new class Ctrl {
     this.unpause();
   };
 
-  readonly pause = () => this.paused = true;
-  readonly unpause = () => this.paused = false;
+  readonly pause = () => {
+    this.paused = true;
 
-  readonly reffer = (ref: HTMLDivElement | null) => {
+    if (this.idleTimeout !== null) {
+      clearTimeout(this.idleTimeout);
+    }
+
+    this.idleTimeout = setTimeout(this.unpause, IDLE_TIMEOUT);
+  };
+
+  readonly unpause = () => {
+    this.paused = false;
+
+    if (this.idleTimeout !== null) {
+      clearTimeout(this.idleTimeout);
+    }
+
+    this.lastDt = performance.now();
+
+    this.rAF = requestAnimationFrame(this.updateProgress);
+  };
+
+  readonly setActiveProgressRef = (ref: HTMLDivElement | null) => {
     // Reset progress
     if (this.$activeProgressElement) {
       this.$activeProgressElement.style.setProperty('--progress', ui.pc(0));
@@ -343,15 +364,15 @@ const Ctrl = new class Ctrl {
     this.$activeProgressElement = ref;
   };
 
-  private readonly draw = (timer: number = 0) => {
-    const dt = timer - this.lastDt;
-    this.lastDt = timer;
-
-    this.rAF = requestAnimationFrame(this.draw);
-
+  private readonly updateProgress = (timer: number = 0) => {
     if (this.paused) {
       return;
     }
+
+    this.rAF = requestAnimationFrame(this.updateProgress);
+
+    const dt = timer - this.lastDt;
+    this.lastDt = timer;
 
     const timeout = getTopRegionServerOnScreenTime(this.activeIndex);
 
