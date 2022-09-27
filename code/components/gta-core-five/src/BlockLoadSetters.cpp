@@ -9,6 +9,7 @@
 
 #include <jitasm.h>
 #include "Hooking.h"
+#include "Hooking.Stubs.h"
 
 #include <atArray.h>
 #include <Pool.h>
@@ -561,6 +562,19 @@ static bool ParamToInt_Threads(void* param, int* value)
 	return rv;
 }
 
+static void (*g_origPhotoSize)(int* w, int* h, int down);
+
+static void PhotoSizeStub(int* w, int* h, int down)
+{
+	// story mode may lead to more advanced photo requests, which will crash in JPEG serialization
+	if (!Instance<ICoreGameInit>::Get()->HasVariable("storyMode"))
+	{
+		down = 1;
+	}
+
+	return g_origPhotoSize(w, h, down);
+}
+
 static HookFunction hookFunction([] ()
 {
 	// continue on
@@ -761,7 +775,7 @@ static HookFunction hookFunction([] ()
 	hook::put<uint32_t>(hook::get_pattern("84 C0 74 36 48 8B 0D ? ? ? ? 48 85 C9", -13), 0x90C301B0);
 
 	// don't downscale photos a lot
-	hook::put<uint8_t>(hook::get_pattern("41 3B D9 72 09", 3), 0xEB);
+	g_origPhotoSize = hook::trampoline(hook::get_pattern("41 3B D9 72 09", -0x3A), PhotoSizeStub);
 
 	// don't do 500ms waits for renderer
 	{
