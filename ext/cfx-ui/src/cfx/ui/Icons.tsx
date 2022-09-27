@@ -7,6 +7,7 @@ import { IoMdTrendingUp } from 'react-icons/io';
 import { IoFlame } from "react-icons/io5";
 import { VscListFlat } from 'react-icons/vsc';
 import { BiTime } from "react-icons/bi";
+import { FiExternalLink } from "react-icons/fi";
 
 export namespace Icons {
   export const exit = <BsX style={{ fontSize: '1.75em' }} />;
@@ -16,6 +17,7 @@ export namespace Icons {
   export const replayEditor = <MdOutlineReplay />;
   export const tipInfo = <BsQuestion />;
   export const remove = <BsTrash />;
+  export const externalLink = <FiExternalLink />;
 
   export const tags = <BsTags />;
 

@@ -232,3 +232,24 @@ export function useSavedScrollPositionForBackNav<T>(id: T): [number, (offset: nu
 
   return [scrollOffset, setScrollOffset];
 }
+
+
+export function useBoundingClientRect<T extends HTMLElement>(ref: React.RefObject<T>): DOMRect | null {
+  const [rect, setRect] = React.useState<DOMRect | null>(null);
+
+  const recalculate = React.useCallback(() => {
+    if (!ref.current) {
+      setRect(null);
+    } else {
+      setRect(DOMRect.fromRect(ref.current.getBoundingClientRect()));
+    }
+  }, [ref]);
+
+  useWindowResize(recalculate);
+
+  React.useEffect(() => {
+    recalculate();
+  }, [recalculate]);
+
+  return rect;
+}

@@ -8,6 +8,7 @@ import { defaultLinkReplacerx, linkifyx } from "cfx/utils/links";
 import { FiExternalLink } from "react-icons/fi";
 import { ServerCoreLoafs } from "../ServerCoreLoafs/ServerCoreLoafs";
 import { ui } from "cfx/ui/ui";
+import { Icons } from "cfx/ui/Icons";
 
 export const ServerExtraDetails = observer(function ServerExtraDetails({ server }: { server: IServerView }) {
   const varNodes: React.ReactNode[] = [];
@@ -41,7 +42,7 @@ export const ServerExtraDetails = observer(function ServerExtraDetails({ server 
 });
 
 const linkReplacer: typeof defaultLinkReplacerx = (key, text, url) => (
-  <Title key={key} title={<><FiExternalLink /> {url}</>}>
+  <Title key={key} title={<>{Icons.externalLink} {url}</>}>
     <a href={url}>
       {text.replace('http://', '').replace('https://', '')}
     </a>

@@ -13,6 +13,7 @@ import { Indicator } from "cfx/ui/Indicator/Indicator";
 import { noop } from "cfx/utils/functional";
 import { TitleOutlet } from "cfx/ui/outlets";
 import { useL10n } from "cfx/common/services/intl/l10n";
+import { Cheatsheet } from "./Cheatsheet/Cheatsheet";
 import s from './SearchInput.module.scss';
 
 export interface SearchInputProps {
@@ -60,7 +61,7 @@ export const SearchInput = observer(function SearchInput(props: SearchInputProps
     );
   }, []);
 
-  const at = useWizardPosition(cursorAt, cursorAtElementRef, richInputRef);
+  const wizardPosition = useWizardPosition(cursorAt, cursorAtElementRef, richInputRef);
 
   const [rendered, activeTermIndex] = React.useMemo(
     () => renderSearchInput(value, parsed, cursorAt, cursorAtElementRef),
@@ -99,9 +100,14 @@ export const SearchInput = observer(function SearchInput(props: SearchInputProps
         placeholder={placeholder}
       />
 
+      <Cheatsheet
+        controller={controller}
+        inputRef={richInputRef}
+      />
+
       <Wizard
         controller={controller}
-        position={at}
+        position={wizardPosition}
       />
     </>
   );
@@ -122,31 +128,26 @@ const Wizard = observer(function Wizard(props: WizardProps) {
   }
 
   const nodes = controller.suggestions === SuggestionState.INDEX_NOT_LOADED
-    ? <div className={s.loader}><Indicator /></div>
-    : (
-      <>
-        {(controller.suggestions as string[]).map((suggestion, index) => (
-          <div
-            key={suggestion}
-            className={clsx(s.item, { [s.active]: index === controller.selectedSuggestionIndex })}
-          >
-            {suggestion}
-          </div>
-        ))}
-      </>
-    );
+    ? (
+      <div className={s.loader}>
+        <Indicator />
+      </div>
+    )
+    : (controller.suggestions as string[]).map((suggestion, index) => (
+      <div
+        key={suggestion}
+        className={clsx(s.item, { [s.active]: index === controller.selectedSuggestionIndex })}
+      >
+        {suggestion}
+      </div>
+    ));
 
   return (
     <TitleOutlet>
       <div className={s.wizard} style={{
-        '--min-width': `${position[2]}px`,
-        '--x': `${position[0]}px`,
-        '--y': `${position[1]}px`,
+        '--x': `${position.cursorX}px`,
+        '--y': `${position.cursorY}px`,
       } as any}>
-        <div className={s.prefix}>
-          {controller.activeTerm?.invert ? '~' : ''}
-          {controller.activeTerm?.category}:
-        </div>
         <div className={s.content}>
           {nodes}
         </div>
@@ -155,12 +156,22 @@ const Wizard = observer(function Wizard(props: WizardProps) {
   );
 });
 
-function useWizardPosition(cursorAt: number, cursorAtElementRef: React.RefObject<HTMLSpanElement>, inputRef: React.RefObject<HTMLDivElement>): null | [number, number, number, number] {
-  const [at, setAt] = React.useState<null | [number, number, number, number]>(null);
+interface WizardPos {
+  cursorX: number,
+  cursorY: number,
+
+  inputX: number,
+  inputY: number,
+  inputW: number,
+  inputH: number,
+}
+
+function useWizardPosition(cursorAt: number, cursorAtElementRef: React.RefObject<HTMLSpanElement>, inputRef: React.RefObject<HTMLDivElement>): null | WizardPos {
+  const [at, setAt] = React.useState<null | WizardPos>(null);
 
   const lastCursorAtElementRef = React.useRef<HTMLSpanElement | null>(null);
 
-  const recalculatePosition = React.useCallback((cursorAt: number) => {
+  const recalculatePosition = React.useCallback(() => {
     if (!cursorAtElementRef.current) {
       setAt(null);
       return;
@@ -169,11 +180,18 @@ function useWizardPosition(cursorAt: number, cursorAtElementRef: React.RefObject
     const cursorAtRect = cursorAtElementRef.current.getBoundingClientRect();
     const richInputRect = inputRef.current?.getBoundingClientRect();
 
-    const y = richInputRect
+    const cursorY = richInputRect
       ? richInputRect.bottom
       : cursorAtRect.bottom;
 
-    setAt([cursorAtRect.x, y, cursorAtRect.width, cursorAtRect.height]);
+    setAt({
+      cursorX: cursorAtRect.right,
+      cursorY,
+      inputX: richInputRect?.x || 0,
+      inputY: richInputRect?.y || 0,
+      inputW: richInputRect?.width || 0,
+      inputH: richInputRect?.height || 0,
+    });
   }, []);
 
   useWindowResize(recalculatePosition);
@@ -184,7 +202,7 @@ function useWizardPosition(cursorAt: number, cursorAtElementRef: React.RefObject
     }
     lastCursorAtElementRef.current = cursorAtElementRef.current;
 
-    recalculatePosition(cursorAt);
+    recalculatePosition();
   }, [cursorAt]);
 
   return at;

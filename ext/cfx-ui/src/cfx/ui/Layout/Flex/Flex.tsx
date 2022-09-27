@@ -7,7 +7,7 @@ export interface FlexProps {
   fullWidth?: boolean,
   fullHeight?: boolean,
 
-  centered?: boolean | 'axis' | 'cross-axis',
+  centered?: boolean | 'axis' | 'cross-axis' | 'baseline-axis' | 'baseline-cross-axis',
   vertical?: boolean,
   repell?: boolean,
   stretch?: boolean,
@@ -45,6 +45,8 @@ function FlexComponent(props: FlexProps, ref: React.Ref<HTMLDivElement>) {
     [s.centered]: centered === true,
     [s['centered-axis']]: centered === 'axis',
     [s['centered-cross-axis']]: centered === 'cross-axis',
+    [s['baseline-axis']]: centered === 'baseline-axis',
+    [s['baseline-cross-axis']]: centered === 'baseline-cross-axis',
     [s.vertical]: vertical,
     [s.horizontal]: !vertical,
     [s.repell]: repell,
