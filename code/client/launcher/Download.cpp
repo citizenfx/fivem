@@ -828,10 +828,12 @@ bool DL_ProcessDownload()
 
 				if (MoveFile(opathWide.c_str(), toDeleteName.c_str()) == 0)
 				{
+					auto gle = GetLastError();
+
 					// let's try asking the shell
 					if (!ReallyMoveFile(opathWide, toDeleteName))
 					{
-						UI_DisplayError(va(L"Moving of %s failed (err = %d). Check your system for any conflicting software.", ToWide(download->file), GetLastError()));
+						UI_DisplayError(va(L"Moving of %s failed (err = %d). Check your system for any conflicting software.", ToWide(download->file), gle));
 						return false;
 					}
 				}
@@ -840,10 +842,16 @@ bool DL_ProcessDownload()
 
 		if (MoveFile(tmpPathWide.c_str(), opathWide.c_str()) == 0)
 		{
-			UI_DisplayError(va(L"Moving of %s failed (err = %d) - make sure you don't have any existing FiveM processes running", ToWide(download->file), GetLastError()));
-			DeleteFile(tmpPathWide.c_str());
+			auto gle = GetLastError();
 
-			return false;
+			// let's try asking the shell
+			if (!ReallyMoveFile(tmpPathWide, opathWide))
+			{
+				UI_DisplayError(va(L"Moving of %s failed (err = %d) - make sure you don't have any existing " PRODUCT_NAME L" processes running", ToWide(download->file), gle));
+				DeleteFile(tmpPathWide.c_str());
+
+				return false;
+			}
 		}
 
 		dls.completedDownloads++;

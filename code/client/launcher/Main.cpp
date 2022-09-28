@@ -677,8 +677,8 @@ int RealMain()
 					{
 						if (elevationData == TokenElevationTypeFull)
 						{
-							const wchar_t* elevationComplaint = va(gettext(L"FiveM does not support running under elevated privileges. Please change your Windows settings to not run FiveM as administrator.\nThe game will exit now."));
-							MessageBox(nullptr, elevationComplaint, L"FiveM", MB_OK | MB_ICONERROR);
+							const wchar_t* elevationComplaint = va(gettext(L"%s does not support running under elevated privileges. Please change your Windows settings to not run %s as administrator.\nThe game will exit now."), PRODUCT_NAME);
+							MessageBox(nullptr, elevationComplaint, PRODUCT_NAME, MB_OK | MB_ICONERROR);
 
 							return 0;
 						}
