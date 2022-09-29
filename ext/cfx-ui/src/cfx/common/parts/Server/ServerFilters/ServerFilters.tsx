@@ -221,7 +221,7 @@ const SortPopover = observer(function SortPopover(props: ServerFiltersProps) {
         <ListItem
           active={config.sortBy === ServersListSortBy.Boosts}
           label="BOOST Power"
-          value={null}
+          value={Icons.serverBoost}
           onClick={config.setSortByBoosts}
         />
         <ListItem
