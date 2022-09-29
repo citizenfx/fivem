@@ -36,9 +36,20 @@ export function filterList(servers: Record<string, IListableServerView>, sortedL
 function compileLocaleFilters(filters: IFilter[], config: IServerListConfig) {
   const localeEntries = Object.entries(config.locales);
 
+  const someLocaleEntries = localeEntries.filter(([, enabled]) => enabled);
+  const allLocaleEntries = localeEntries.filter(([, enabled]) => !enabled);
+
+  const someFilter: IFilter = someLocaleEntries.length
+    ? (server) => arraySome(someLocaleEntries, ([locale]) => server.locale === locale)
+    : returnTrue;
+
+  const allFilter: IFilter = allLocaleEntries.length
+    ? (server) => arrayAll(allLocaleEntries, ([locale]) => server.locale !== locale)
+    : returnTrue;
+
   if (localeEntries.length) {
     filters.push(
-      (server) => arraySome(localeEntries, ([locale, enabled]) => enabled === (server.locale === locale)),
+      (server) => someFilter(server) && allFilter(server),
     );
   }
 }
