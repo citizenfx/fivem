@@ -58,7 +58,7 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
 
   const ServersService = useService(IServersService);
 
-  const shouldShowCompleteServerLoading = useTimeoutFlag(300);
+  const shouldShowCompleteServerLoading = useTimeoutFlag(100);
   const isCompleteServerLoading = shouldShowCompleteServerLoading && ServersService.isServerLoading(server.id, ServerViewDetailsLevel.MasterListFull);
 
   const hasBanner = Boolean(server.bannerDetail);
