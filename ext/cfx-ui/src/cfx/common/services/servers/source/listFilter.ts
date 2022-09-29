@@ -1,7 +1,7 @@
 import { returnTrue } from "cfx/utils/functional";
 import { IListableServerView } from "./types";
 import { IServerListConfig } from "../lists/types";
-import { ISearchTerm } from "../../../../base/searchTermsParser";
+import { ISearchTerm } from "cfx/base/searchTermsParser";
 
 type IFilter = (server: IListableServerView) => boolean;
 

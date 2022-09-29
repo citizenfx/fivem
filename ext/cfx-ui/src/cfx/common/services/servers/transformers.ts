@@ -227,7 +227,7 @@ export function processServerDataVariables(vars?: IServer['data']['vars']): Vars
         continue;
       }
       case key === 'tags': {
-        view.tags = [...new Set(value.split(',').map((tag) => tag.trim()).filter(filterServerTag))];
+        view.tags = [...new Set(value.split(',').map((tag) => tag.trim().toLowerCase()).filter(filterServerTag))];
         continue;
       }
       case key === 'banner_connecting': {
@@ -288,7 +288,7 @@ export function processServerDataVariables(vars?: IServer['data']['vars']): Vars
 
 function getCategories(server: IServerView) {
   const {
-    id: address,
+    id,
     tags,
     locale,
     gamename,
@@ -301,7 +301,7 @@ function getCategories(server: IServerView) {
   } = server;
 
   const categories: IListableServerView['categories'] = {
-    address: createStringMatcher(address),
+    address: createStringMatcher(id),
   };
 
   if (locale) {

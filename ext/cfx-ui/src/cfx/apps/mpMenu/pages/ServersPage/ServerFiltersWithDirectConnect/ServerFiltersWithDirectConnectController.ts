@@ -100,8 +100,6 @@ export class ServerFiltersWithDirectConnectController implements IDisposableObje
 
   private lastAddress = '';
   readonly setSearchTerms = async (terms: ISearchTerm[]) => {
-    console.log(terms);
-
     if (terms.length === 0) {
       this.server = null;
       this.lastAddress = '';

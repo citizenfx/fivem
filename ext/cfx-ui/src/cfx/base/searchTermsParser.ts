@@ -316,7 +316,7 @@ export function parseSearchTerms2(searchTerms: string): ISearchTerm[] {
 
     // Category - term.value -> term.category
     if (char === ':') {
-      if (termValueLength > 2) {
+      if (termValueLength >= 2) {
         term.type = 'category';
         (term as any).category = term.value;
         term.value = '';
@@ -358,3 +358,7 @@ function emptyTerm(offset: number): ISearchTerm {
 function quoteRe(text: string) {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
+
+try {
+  (window as any).__parseSearchTerms = parseSearchTerms2;
+} catch (e) {}
