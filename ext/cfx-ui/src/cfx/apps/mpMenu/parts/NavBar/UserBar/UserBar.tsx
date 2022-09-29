@@ -78,9 +78,13 @@ export const UserBar = observer(function UserBar() {
     );
   }
 
+  const linkAccountButtonTheme = NavBarState.forceTransparentNav
+    ? 'default'
+    : 'primary';
+
   return (
     <Button
-      theme="primary"
+      theme={linkAccountButtonTheme}
       size="large"
       text={$L('#BottomNav_LinkAccount')}
       onClick={AuthService.openUI}
