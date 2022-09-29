@@ -2,6 +2,7 @@ import { Icons } from "cfx/ui/Icons";
 import { InfoPanel } from "cfx/ui/InfoPanel/InfoPanel";
 import { Flex } from "cfx/ui/Layout/Flex/Flex";
 import { Pad } from "cfx/ui/Layout/Pad/Pad";
+import { Scrollable } from "cfx/ui/Layout/Scrollable/Scrollable";
 import { Modal } from "cfx/ui/Modal/Modal";
 import { Symbols } from "cfx/ui/Symbols";
 import { Text, TextBlock } from "cfx/ui/Text/Text";
@@ -128,179 +129,196 @@ function CheatsheetModal(props: CheatsheetModalProps) {
 
   return (
     <Modal onClose={onClose}>
-      <Pad size="xlarge">
-        <Flex vertical gap="xlarge">
-          <Flex vertical gap="small">
-            <Text size="large" opacity="75">
-              Search terms:
-            </Text>
-
-            <TextBlock size="small" opacity="50">
-              All search terms are divided by space: <kbd>en freeroam tag:race</kbd>
-            </TextBlock>
-          </Flex>
-
-          <Flex>
-            <div>
-              <kbd>en</kbd>
-            </div>
-
-            <div>
-              Quick locale filter, two letters of locale
-            </div>
-          </Flex>
-
-          <Flex>
-            <div>
-              <kbd>term</kbd>
-            </div>
-
+      <Scrollable>
+        <Pad size="xlarge">
+          <Flex vertical gap="xlarge">
             <Flex vertical gap="small">
-              <span>
-                Matches server's name and description
-              </span>
+              <Text size="large" opacity="75">
+                Search terms:
+              </Text>
 
               <TextBlock size="small" opacity="50">
-                To do exact match against multiple terms divided by space use quotes: <kbd>"role play"</kbd>
+                All search terms are divided by space: <kbd>en freeroam tag:race tag:trucks</kbd>
               </TextBlock>
             </Flex>
-          </Flex>
 
-          <Flex>
-            <div>
-              <kbd>tag:<em>value</em></kbd>
-            </div>
-
-            <Flex vertical gap="small">
-              <span>
-                Server tags filter
-              </span>
-
-              <TextBlock size="small" opacity="50">
-                Servers with zombie tag: <kbd>tag:zombie</kbd>
-              </TextBlock>
-            </Flex>
-          </Flex>
-
-          <Flex>
-            <div>
-              <kbd>var:<em>value</em></kbd>
-            </div>
-
-            <Flex vertical gap="small">
-              <span>
-                Server <em>truthy</em> variables filter
-              </span>
-
-              <TextBlock size="small" opacity="50">
-                Servers with enabled scripthook: <kbd>var:sv_scriptHookEnabled</kbd>
-              </TextBlock>
-            </Flex>
-          </Flex>
-
-          <Flex>
-            <div>
-              <kbd>locale:<em>value</em></kbd>
-            </div>
-
-            <Flex vertical gap="small">
-              <span>
-                Full locale qualifier filter
-              </span>
-
-              <TextBlock size="small" opacity="50">
-                Servers with US english locale: <kbd>locale:en-US</kbd>
-              </TextBlock>
-            </Flex>
-          </Flex>
-
-          <Flex>
-            <div>
-              <kbd>/regexp/</kbd>
-            </div>
-
-            <Flex vertical gap="small">
-              <span>
-                <Title title={<>{Icons.externalLink} Open MDN RegExp documentation in browser</>}>
-                  <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp">
-                    RegExp
-                  </a>
-                </Title>
-                {Symbols.nbsp}filter
-              </span>
-
-              <TextBlock size="small" opacity="50">
-                Can also be a value for <kbd>tag:</kbd> and <kbd>var:</kbd>
-              </TextBlock>
-            </Flex>
-          </Flex>
-
-          <InfoPanel type="success">
-            <Flex vertical>
+            <Flex>
               <div>
-                RegExp can also be used as a value for both <kbd>tag:</kbd> and <kbd>var:</kbd>
+                <kbd>en</kbd>
               </div>
 
-              <TextBlock size="small" opacity="75">
-                To match servers with either zombie or truck tag: <kbd>tag:/(zombie|truck)/</kbd>
-              </TextBlock>
+              <div>
+                Quick locale filter, two letters of locale
+              </div>
             </Flex>
-          </InfoPanel>
 
-          <div></div>
-          <Text size="large" opacity="75">
-            Term qualifiers:
-          </Text>
+            <Flex>
+              <div>
+                <kbd>term</kbd>
+              </div>
 
-          <Flex>
-            <div>
-              <kbd>~</kbd>
-            </div>
+              <Flex vertical gap="small">
+                <span>
+                  Matches server's name and description
+                </span>
 
-            <Flex vertical gap="small">
-              <span>
-                Exclude servers matching the following term
-              </span>
-
-              <TextBlock size="small" opacity="50">
-                To exclude servers with zombie tag: <kbd>~tag:zombie</kbd>
-              </TextBlock>
-            </Flex>
-          </Flex>
-
-          <Flex>
-            <div>
-              <kbd>{'>'}</kbd>
-            </div>
-
-            <Flex vertical gap="small">
-              <span>
-                Transforms input into Direct Connect server address input
-              </span>
-
-              <TextBlock size="small" opacity="50">
-                To connect to the local running server: <kbd>{'>'}127.0.0.1:30120</kbd>
-              </TextBlock>
-            </Flex>
-          </Flex>
-
-          <InfoPanel type="warning">
-            <Flex vertical>
-              <Flex>
-                <BsExclamationTriangleFill />
-
-                <div>
-                  Direct Connect qualifier can only be the very first character in the search input!
-                </div>
+                <TextBlock size="small" opacity="50">
+                  For terms including space use quotes: <kbd>"role play"</kbd>
+                </TextBlock>
               </Flex>
-
-              <TextBlock size="small" opacity="75">
-                Search input string like this will <strong>not</strong> work as expected: <kbd>freeroam {'>'}127.0.0.1:30120</kbd>
-              </TextBlock>
             </Flex>
-          </InfoPanel>
-        </Flex>
-      </Pad>
+
+            <Flex>
+              <div>
+                <kbd>tag:<em>value</em></kbd>
+              </div>
+
+              <Flex vertical gap="small">
+                <span>
+                  Server tags filter
+                </span>
+
+                <TextBlock size="small" opacity="50">
+                  Servers with zombie tag: <kbd>tag:zombie</kbd>
+                </TextBlock>
+              </Flex>
+            </Flex>
+
+            <Flex>
+              <div>
+                <kbd>var:<em>value</em></kbd>
+              </div>
+
+              <Flex vertical gap="small">
+                <span>
+                  Server <em>truthy</em> variables filter
+                </span>
+
+                <TextBlock size="small" opacity="50">
+                  Servers with enabled scripthook: <kbd>var:sv_scriptHookEnabled</kbd>
+                </TextBlock>
+              </Flex>
+            </Flex>
+
+            <Flex>
+              <div>
+                <kbd>locale:<em>value</em></kbd>
+              </div>
+
+              <Flex vertical gap="small">
+                <span>
+                  Full locale qualifier filter
+                </span>
+
+                <TextBlock size="small" opacity="50">
+                  Servers with US english locale: <kbd>locale:en-US</kbd>
+                </TextBlock>
+              </Flex>
+            </Flex>
+
+            <Flex>
+              <div>
+                <kbd>address:<em>value</em></kbd>
+              </div>
+
+              <Flex vertical gap="small">
+                <span>
+                  Server address filter
+                </span>
+
+                <TextBlock size="small" opacity="50">
+                  Server address is the last part in join URL: <kbd>cfx.re/join/<strong>moonsc</strong></kbd>
+                </TextBlock>
+              </Flex>
+            </Flex>
+
+            <Flex>
+              <div>
+                <kbd>/regexp/</kbd>
+              </div>
+
+              <Flex vertical gap="small">
+                <span>
+                  <Title title={<>{Icons.externalLink} Open MDN RegExp documentation in browser</>}>
+                    <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp">
+                      RegExp
+                    </a>
+                  </Title>
+                  {Symbols.nbsp}filter
+                </span>
+
+                <TextBlock size="small" opacity="50">
+                  Can also be a value for <kbd>tag:</kbd> and <kbd>var:</kbd>
+                </TextBlock>
+              </Flex>
+            </Flex>
+
+            <InfoPanel type="success">
+              <Flex vertical>
+                <div>
+                  RegExp can also be used as a value for both <kbd>tag:</kbd> and <kbd>var:</kbd>
+                </div>
+
+                <TextBlock size="small" opacity="75">
+                  To match servers with either zombie or truck tag: <kbd>tag:/(zombie|truck)/</kbd>
+                </TextBlock>
+              </Flex>
+            </InfoPanel>
+
+            <Text size="large" opacity="75">
+              Term qualifiers:
+            </Text>
+
+            <Flex>
+              <div>
+                <kbd>~</kbd>
+              </div>
+
+              <Flex vertical gap="small">
+                <span>
+                  Exclude servers matching the following term
+                </span>
+
+                <TextBlock size="small" opacity="50">
+                  To exclude servers with zombie tag: <kbd>~tag:zombie</kbd>
+                </TextBlock>
+              </Flex>
+            </Flex>
+
+            <Flex>
+              <div>
+                <kbd>{'>'}</kbd>
+              </div>
+
+              <Flex vertical gap="small">
+                <span>
+                  Transforms input into Direct Connect server address input
+                </span>
+
+                <TextBlock size="small" opacity="50">
+                  To connect to the local running server: <kbd>{'>'}127.0.0.1:30120</kbd>
+                </TextBlock>
+              </Flex>
+            </Flex>
+
+            <InfoPanel type="warning">
+              <Flex vertical>
+                <Flex>
+                  <BsExclamationTriangleFill />
+
+                  <div>
+                    Direct Connect qualifier can only be the very first character in the search input!
+                  </div>
+                </Flex>
+
+                <TextBlock size="small" opacity="75">
+                  Search input string like this will <strong>not</strong> work as expected: <kbd>freeroam {'>'}127.0.0.1:30120</kbd>
+                </TextBlock>
+              </Flex>
+            </InfoPanel>
+          </Flex>
+        </Pad>
+      </Scrollable>
     </Modal >
   );
 }
