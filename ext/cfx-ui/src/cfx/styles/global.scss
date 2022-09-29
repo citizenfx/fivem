@@ -66,7 +66,7 @@ body {
 a {
   color: inherit;
   text-decoration: underline;
-  text-decoration-color: ui.color-token('link-decoration');
+  text-decoration-color: currentColor;
 
   cursor: pointer;
 

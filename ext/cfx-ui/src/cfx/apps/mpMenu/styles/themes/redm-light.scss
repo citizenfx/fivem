@@ -14,6 +14,15 @@ $bg: hsl(0, 0%, 100%);
   @include ui.def('backdrop-image-blur', url(assets/images/bg2-redm-blur.png));
 
   // Color overrides
+  @include ui.def               ('text-opacity-10',                .20);
+  @include ui.define-color-token('text-a10', ui.color('main', 950, .20));
+  @include ui.def               ('text-opacity-25',                .35);
+  @include ui.define-color-token('text-a25', ui.color('main', 950, .35));
+  @include ui.def               ('text-opacity-50',                .60);
+  @include ui.define-color-token('text-a50', ui.color('main', 950, .60));
+  @include ui.def               ('text-opacity-75',                .85);
+  @include ui.define-color-token('text-a75', ui.color('main', 950, .85));
+
   @include ui.define-color-token('shadow-small', rgba(0, 0, 0, .3));
   @include ui.define-color-token('shadow-large', rgba(0, 0, 0, .3));
   @include ui.define-color-token('backdrop-shader', ui.color('main', 100, .75));
