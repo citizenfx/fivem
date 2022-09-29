@@ -29,6 +29,12 @@ body {
   background-size: cover;
   background-position: center center;
   background-color: black;
+
+  @include ui.def('viewport-top',   calc((100vh - ui.use('height')) * 0.5));
+  @include ui.def('viewport-bottom', calc(100vh - ui.use('viewport-top')));
+
+  @include ui.def('viewport-left',  calc((100vw - ui.use('width')) * 0.5));
+  @include ui.def('viewport-right',  calc(100vw - ui.use('viewport-left')));
 }
 
 #backdrop {
@@ -40,8 +46,9 @@ body {
 
 #cfxui-root {
   position: fixed;
-  top: calc((100vh - var(--height)) * .5);
-  left: calc((100vw - var(--width)) * .5);
+
+  top: ui.use('viewport-top');
+  left: ui.use('viewport-left');
 
   display: flex;
   align-items: center;
@@ -50,9 +57,6 @@ body {
   width: var(--width);
   height: var(--height);
 
-  opacity: 1;
-
-  // chrome breaks everything
   transition: transform .2s ease, filter .2s ease;
   transform-origin: left center;
 

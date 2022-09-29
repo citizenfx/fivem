@@ -80,11 +80,11 @@
 
     inset: 0;
 
-    --mask-right: calc(100vw - (100vw - var(--width)) * 0.5);
-    --mask-right-offset: calc(var(--mask-right) - #{ui.offset('large')});
+    @include ui.def('mask-right', ui.use('viewport-right'));
+    @include ui.def('mask-right-offset', calc(ui.use('mask-right') - ui.offset('large')));
 
-    -webkit-mask: linear-gradient(90deg, black 0%, black var(--mask-right-offset), transparent var(--mask-right), transparent 100%);
-    mask: linear-gradient(90deg, black 0%, black var(--mask-right-offset), transparent var(--mask-right), transparent 100%);
+    -webkit-mask: linear-gradient(90deg, black 0%, black ui.use('mask-right-offset'), transparent ui.use('mask-right'), transparent 100%);
+    mask: linear-gradient(90deg, black 0%, black ui.use('mask-right-offset'), transparent ui.use('mask-right'), transparent 100%);
 
     opacity: 0;
     pointer-events: none;

@@ -6,6 +6,8 @@ html {
 }
 
 body {
+  @include color-tokens;
+
   @include ui.def('control-height-xxsmall', ui.q(1.5));
   @include ui.def('control-height-xsmall', ui.q(3));
   @include ui.def('control-height-small', ui.q(4));
@@ -47,11 +49,9 @@ body {
   @include ui.def('border-radius-small', ui.q(.75));
   @include ui.def('border-radius-normal', ui.q(1.5));
 
-  color: ui.color-token('text');
-  font-family: var(--font-family-primary);
-  font-weight: var(--font-weight-normal);
-
-  @include color-tokens;
+  @include ui.font-color('text');
+  @include ui.font-family('primary');
+  @include ui.font-weight('normal');
 }
 
 * {
