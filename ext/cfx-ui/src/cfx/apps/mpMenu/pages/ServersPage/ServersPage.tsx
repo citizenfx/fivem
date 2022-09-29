@@ -58,7 +58,7 @@ function PinnedServersFilterSpacer() {
   return (
     <div
       style={{
-        width: 'calc(var(--width) * .293)'
+        width: 'calc(var(--width) * .283)'
       }}
     />
   );
