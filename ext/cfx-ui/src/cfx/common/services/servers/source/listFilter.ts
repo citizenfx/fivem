@@ -2,6 +2,7 @@ import { returnTrue } from "cfx/utils/functional";
 import { IListableServerView } from "./types";
 import { IServerListConfig } from "../lists/types";
 import { ISearchTerm } from "cfx/base/searchTermsParser";
+import { arrayAll, arraySome } from "cfx/utils/array";
 
 type IFilter = (server: IListableServerView) => boolean;
 
@@ -27,22 +28,30 @@ export function filterList(servers: Record<string, IListableServerView>, sortedL
   });
 }
 
+/**
+ * Only keeps server if at least one locale filter matches
+ *
+ * This is due to the fact that one server can only be assigned with one locale
+ */
 function compileLocaleFilters(filters: IFilter[], config: IServerListConfig) {
   const localeEntries = Object.entries(config.locales);
 
   if (localeEntries.length) {
     filters.push(
-      (server) => localeEntries.some(([locale, enabled]) => enabled === (server.locale === locale)),
+      (server) => arraySome(localeEntries, ([locale, enabled]) => enabled === (server.locale === locale)),
     );
   }
 }
 
+/**
+ * Only keeps server if all tag filters match
+ */
 function compileTagsFilters(filters: IFilter[], config: IServerListConfig) {
   const tagEntries = Object.entries(config.tags);
 
   if (tagEntries.length) {
     filters.push(
-      (server) => tagEntries.some(([tag, enabled]) => enabled === Boolean(server.tagsMap[tag])),
+      (server) => arrayAll(tagEntries, ([tag, enabled]) => enabled === Boolean(server.tagsMap[tag])),
     );
   }
 }
