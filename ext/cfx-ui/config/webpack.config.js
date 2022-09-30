@@ -22,6 +22,7 @@ module.exports = (env, argv) => {
 
   verifyApp(app);
   const appPath = path.join(srcPath, 'cfx/apps', app);
+  const appBuildPath = path.join(buildPath, app);
 
   return {
     devtool: isProd ? 'source-map' : 'eval',
@@ -48,7 +49,7 @@ module.exports = (env, argv) => {
     },
 
     output: {
-      path: path.join(buildPath, app),
+      path: appBuildPath,
       filename: 'static/js/[name].js',
       chunkFilename: 'static/js/[name].chunk.js',
     },
@@ -195,7 +196,8 @@ module.exports = (env, argv) => {
         org: 'citizenfx',
         project: 'mpmenu',
 
-        include: buildPath,
+        include: appBuildPath,
+        urlPrefix: 'https://nui-game-internal/ui/app/',
 
         errorHandler: (err, invokeErr, compilation) => {
           compilation.warnings.push('Sentry CLI Plugin: ' + err.message)
