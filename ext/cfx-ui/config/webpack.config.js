@@ -6,6 +6,7 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
 const ImageMinimizerPlugin = require("image-minimizer-webpack-plugin");
+const SentryWebpackPlugin = require('@sentry/webpack-plugin');
 
 const srcPath = path.join(__dirname, '../src');
 const buildPath = path.join(__dirname, '../build');
@@ -13,6 +14,9 @@ const buildPath = path.join(__dirname, '../build');
 module.exports = (env, argv) => {
   const isProd = argv.mode === 'production';
   const isDev = !isProd;
+
+  const sentryAuthToken = process.env.SENTRY_AUTH_TOKEN;
+  const sentryRelease = `cfx-${process.env.CI_PIPELINE_ID || 'dev'}`;
 
   const app = env.app;
 
@@ -181,6 +185,22 @@ module.exports = (env, argv) => {
       isDev && new ReactRefreshWebpackPlugin(),
 
       isProd && new MiniCssExtractPlugin(),
+
+      !!sentryAuthToken && new SentryWebpackPlugin({
+        url: 'https://sentry.fivem.net/',
+        authToken: sentryAuthToken,
+
+        release: sentryRelease,
+
+        org: 'citizenfx',
+        project: 'mpmenu',
+
+        include: buildPath,
+
+        errorHandler: (err, invokeErr, compilation) => {
+          compilation.warnings.push('Sentry CLI Plugin: ' + err.message)
+        },
+      }),
     ].filter(Boolean),
 
     performance: {
