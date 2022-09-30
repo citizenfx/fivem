@@ -28,6 +28,10 @@ export const LinkedIdentitiesList = observer(function LinkedIdentitiesList() {
   const identityNodes: React.ReactNode[] = [];
 
   for (const identity of LinkedIdentitiesService.linkedIdentities.value) {
+    if (!identity.username) {
+      continue;
+    }
+
     const username = escapeUsername(identity.username);
     const title = getLinkedIdentityTitle(identity);
     const icon = getProviderIcon(identity.provider);

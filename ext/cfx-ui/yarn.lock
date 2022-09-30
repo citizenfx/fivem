@@ -433,7 +433,7 @@
     "@sentry/utils" "7.14.0"
     tslib "^1.9.3"
 
-"@sentry/types@7.14.0":
+"@sentry/types@7.14.0", "@sentry/types@^7.14.0":
   version "7.14.0"
   resolved "https://registry.yarnpkg.com/@sentry/types/-/types-7.14.0.tgz#8069e58a0104190e328647963036c7597e2e5fa8"
   integrity sha512-9iFZS9Hr5hAoL+M9oUH2dY9burOaQh+CHGH66fortuTp++YDWKdbPEeKcz8hRJaUyBBn53rdxiBmAyHsrlE6KA==

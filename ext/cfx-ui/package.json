@@ -43,6 +43,7 @@
   },
   "devDependencies": {
     "@pmmmwh/react-refresh-webpack-plugin": "^0.5.5",
+    "@sentry/types": "^7.14.0",
     "@sentry/webpack-plugin": "^1.19.0",
     "@types/color": "^3.0.3",
     "@types/howler": "^2.2.7",
