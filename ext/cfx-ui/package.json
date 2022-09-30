@@ -11,6 +11,8 @@
     "@fontsource/montserrat": "^4.5.12",
     "@fontsource/rubik": "^4.5.11",
     "@radix-ui/react-select": "^1.0.0",
+    "@sentry/react": "^7.14.0",
+    "@sentry/tracing": "^7.14.0",
     "adaptivecards": "^2.10.0",
     "autolinker": "^3.14.3",
     "blurhash": "^1.1.5",

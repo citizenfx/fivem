@@ -66,7 +66,7 @@ const INTERFACE_SETTINGS = new Map<string, ISetting.AnySetting>([
     label: $L('#Settings_DarkTheme'),
     description: $L('#Settings_DarkThemeDesc'),
 
-    ...convarAccessorsBoolean('ui_preferLightColorScheme', true),
+    ...convarAccessorsBoolean(KnownConvars.preferLightColorScheme, true),
 
     // visible: onlyForFiveM,
   }],

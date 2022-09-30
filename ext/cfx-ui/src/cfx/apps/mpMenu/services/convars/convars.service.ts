@@ -40,6 +40,10 @@ export class ConvarService {
     return this._convarsPopulatedDeferred.promise;
   }
 
+  getAll(): Record<IConvar, string> {
+    return this._convars;
+  }
+
   get(convar: IConvar): string {
     return this._convars[convar] || '';
   }
@@ -112,6 +116,7 @@ export namespace KnownConvars {
   export const streamerMode = 'ui_streamerMode';
   export const localhostPort = 'ui_quickAccessLocalhostPort';
   export const updateChannel = 'ui_updateChannel';
+  export const preferLightColorScheme = 'ui_preferLightColorScheme';
 }
 
 const ARCHIVED_CONVARS: Record<IConvar, boolean> = [

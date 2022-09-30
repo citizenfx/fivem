@@ -1,5 +1,6 @@
 import { DEFAULT_SERVER_PORT } from "cfx/base/serverUtils";
 import { ServicesContainer } from "cfx/base/servicesContainer";
+import { logger, ScopedLogger } from "cfx/common/services/log/scopedLogger";
 import { inject, injectable } from "inversify";
 import { makeAutoObservable } from "mobx";
 import { IConvarService, KnownConvars } from "../convars/convars.service";
@@ -24,6 +25,8 @@ export class MpMenuLocalhostServerService {
   constructor(
     @inject(IConvarService)
     protected readonly convarService: IConvarService,
+    @logger('MpMenuLocalhostServerService')
+    protected readonly logger: ScopedLogger,
   ) {
     makeAutoObservable(this);
 
@@ -39,6 +42,10 @@ export class MpMenuLocalhostServerService {
   }
 
   private readonly checkIfAvailable = async () => {
+    this.logger.error(new Error('Yay!'), {
+      hey: 'yeah',
+    });
+
     try {
       const serverInfo = await getLocalhostServerInfo(this.convarService.get(KnownConvars.localhostPort) || DEFAULT_SERVER_PORT);
       this.address = serverInfo?.addr || '';

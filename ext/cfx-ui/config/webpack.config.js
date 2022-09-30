@@ -20,6 +20,8 @@ module.exports = (env, argv) => {
   const appPath = path.join(srcPath, 'cfx/apps', app);
 
   return {
+    devtool: isProd ? 'source-map' : 'eval',
+
     entry: path.join(appPath, 'index.tsx'),
 
     resolveLoader: {
@@ -166,6 +168,7 @@ module.exports = (env, argv) => {
       new webpack.DefinePlugin({
         '__CFXUI_DEV__': JSON.stringify(isDev),
         '__CFXUI_USE_SOUNDS__': app === 'mpMenu',
+        'process.env.CI_PIPELINE_ID': JSON.stringify(process.env.CI_PIPELINE_ID),
       }),
       new HtmlWebpackPlugin({
         template: path.join(appPath, 'index.html'),

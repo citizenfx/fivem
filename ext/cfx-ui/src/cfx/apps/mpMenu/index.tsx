@@ -39,11 +39,16 @@ import { IServersStorageService } from 'cfx/common/services/servers/serversStora
 import { IServersConnectService } from 'cfx/common/services/servers/serversConnect.service';
 import { Handle404 } from './pages/404';
 import { registerHomeScreenServerList } from './services/servers/list/HomeScreenServerList.service';
+import { registerSentryService } from './services/sentry/sentry.service';
+import { SentryLogProvider } from './services/sentry/sentryLogProvider';
 
 startBrowserApp({
   defineServices(container) {
+    registerSentryService(container);
+
     registerLogService(container, [
       ConsoleLogProvider,
+      SentryLogProvider,
     ]);
 
     registerAnalyticsService(container, [
