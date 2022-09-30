@@ -9,7 +9,7 @@ type TypeProps =
   | { type: 'details', size?: 'small' | 'normal' }
 
 export type ServerIconProps = TypeProps & {
-  server: IServerView,
+  server: IServerView | null | undefined,
   glow?: boolean,
   className?: string,
 }
@@ -45,7 +45,7 @@ export function ServerIcon(props: ServerIconProps) {
       )}
 
       <img
-        alt={server.id}
+        alt={server?.id}
         src={iconURL}
         className={s.icon}
       />
@@ -60,9 +60,18 @@ export function ServerIcon(props: ServerIconProps) {
 }
 
 const cache: Record<string, string> = {};
+let fallbackIconURL: string | null = null;
 
-function useServerIconURL(server: IServerView): string {
+function useServerIconURL(server: IServerView | null | undefined): string {
   const ServersService = useServersService();
+
+  if (!server) {
+    if (!fallbackIconURL) {
+      fallbackIconURL = ServersService.getServerIconURL('__FALLBACK__');
+    }
+
+    return fallbackIconURL;
+  }
 
   const cacheKey = `${server.id}::${server.detailsLevel}`;
 
