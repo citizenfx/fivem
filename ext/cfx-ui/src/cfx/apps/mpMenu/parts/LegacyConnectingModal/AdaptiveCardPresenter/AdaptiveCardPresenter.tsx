@@ -10,6 +10,7 @@ import { observer } from "mobx-react-lite";
 import { Scrollable } from "cfx/ui/Layout/Scrollable/Scrollable";
 import { IUiService, useUiService } from "cfx/common/services/ui/ui.service";
 import s from './AdaptiveCardPresenter.module.scss';
+import { InfoPanel } from "cfx/ui/InfoPanel/InfoPanel";
 
 AC.AdaptiveCard.onProcessMarkdown = (text, result) => {
   result.outputHtml = renderMarkdown(text);
@@ -34,6 +35,8 @@ export const AdaptiveCardPresenter = observer(function AdaptiveCardPresenter(pro
   const containerRef = React.useRef<HTMLDivElement>(null);
   const submittingRef = React.useRef(false);
 
+  const [cardError, setCardError] = React.useState('');
+
   const renderCard = React.useCallback(() => {
     if (!containerRef.current || !cardRef.current) {
       return;
@@ -53,7 +56,12 @@ export const AdaptiveCardPresenter = observer(function AdaptiveCardPresenter(pro
 
     if (typeof card === 'string') {
       cardRef.current = new AC.AdaptiveCard();
-      cardRef.current.parse(JSON.parse(card));
+
+      try {
+        cardRef.current.parse(JSON.parse(card));
+      } catch (e) {
+        setCardError(e.message || 'Failed to parse AdaptiveCard JSON');
+      }
     } else {
       cardRef.current = card;
     }
@@ -84,6 +92,26 @@ export const AdaptiveCardPresenter = observer(function AdaptiveCardPresenter(pro
 
     renderCard();
   }, [card, onCancel]);
+
+  if (cardError) {
+    return (
+      <Scrollable>
+        <Pad size="large">
+          <InfoPanel type="error">
+            <details>
+              <summary>
+                AdaptiveCard error: <kbd>{cardError}</kbd>
+              </summary>
+
+              <Pad>
+                <textarea style={{ resize: 'none' }} rows={10}>{card.toString()}</textarea>
+              </Pad>
+            </details>
+          </InfoPanel>
+        </Pad>
+      </Scrollable>
+    );
+  }
 
   return (
     <>
