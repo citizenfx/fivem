@@ -42,10 +42,6 @@ export class MpMenuLocalhostServerService {
   }
 
   private readonly checkIfAvailable = async () => {
-    this.logger.error(new Error('Yay!'), {
-      hey: 'yeah',
-    });
-
     try {
       const serverInfo = await getLocalhostServerInfo(this.convarService.get(KnownConvars.localhostPort) || DEFAULT_SERVER_PORT);
       this.address = serverInfo?.addr || '';
