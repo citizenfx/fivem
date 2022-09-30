@@ -1,5 +1,4 @@
 import { getCustomInGameBackdropPath } from "cfx/apps/mpMenu/parts/ThemeManager/backdrop";
-import { useService } from "cfx/base/servicesContainer";
 import { Button } from "cfx/ui/Button/Button";
 import { Icons } from "cfx/ui/Icons";
 import { Flex } from "cfx/ui/Layout/Flex/Flex";
@@ -7,7 +6,7 @@ import { Title } from "cfx/ui/Title/Title";
 import { observer } from "mobx-react-lite";
 import { mpMenu } from "../../mpMenu";
 import { useUiService } from "cfx/common/services/ui/ui.service";
-import { useConvarService } from "../../services/convars/convars.service";
+import { KnownConvars, useConvarService } from "../../services/convars/convars.service";
 import s from './CustomBackdropControl.module.scss';
 
 export const CustomBackdropControl = observer(() => {
@@ -16,13 +15,13 @@ export const CustomBackdropControl = observer(() => {
 
   const aspectRatio = (UiService.viewportWidth / UiService.viewportHeight).toString();
 
-  const backdropPath = ConvarService.get('ui_customBackdrop');
+  const backdropPath = ConvarService.get(KnownConvars.customBackdrop);
   const hasCustomBackdropSet = !!backdropPath;
 
   const onClick = async () => {
     const filePath = await mpMenu.selectFile('backdrop');
 
-    ConvarService.set('ui_customBackdrop', filePath);
+    ConvarService.set(KnownConvars.customBackdrop, filePath);
   };
 
   return (
@@ -38,7 +37,7 @@ export const CustomBackdropControl = observer(() => {
             <Button
               theme="transparent"
               icon={Icons.remove}
-              onClick={() => ConvarService.set('ui_customBackdrop', '')}
+              onClick={() => ConvarService.set(KnownConvars.customBackdrop, '')}
             />
           </Title>
         )}
@@ -51,9 +50,6 @@ export const CustomBackdropControl = observer(() => {
           backgroundImage: `url(${getCustomInGameBackdropPath(backdropPath)})`,
         }}
       />
-
-      {/* {hasCustomBackdropSet && (
-      )} */}
     </Flex>
   );
 });

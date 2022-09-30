@@ -19,6 +19,7 @@ export interface InfoPanelProps {
   icon?: React.ReactNode,
   children?: React.ReactNode,
   className?: string,
+  inline?: boolean,
 }
 
 export function InfoPanel(props: InfoPanelProps) {
@@ -28,9 +29,12 @@ export function InfoPanel(props: InfoPanelProps) {
     icon,
     children,
     className,
+    inline = false,
   } = props;
 
-  const rootClassName = clsx(s.root, className, s[`type-${type}`], s[`size-${size}`]);
+  const rootClassName = clsx(s.root, className, s[`type-${type}`], s[`size-${size}`], {
+    [s.inline]: inline,
+  });
 
   return (
     <div className={rootClassName}>

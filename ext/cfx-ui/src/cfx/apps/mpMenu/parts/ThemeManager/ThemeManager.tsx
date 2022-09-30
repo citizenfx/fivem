@@ -3,14 +3,14 @@ import { observer } from "mobx-react-lite";
 import { getCustomInGameBackdropPath } from "cfx/apps/mpMenu/parts/ThemeManager/backdrop";
 import { CurrentGameName } from "cfx/base/gameRuntime";
 import { useService } from "cfx/base/servicesContainer";
-import { IConvarService } from "../../services/convars/convars.service";
+import { IConvarService, KnownConvars } from "../../services/convars/convars.service";
 import { BackdropBlurWorker } from "./BackdropBlur";
 
 export const ThemeManager = observer(function ThemeManager() {
   const ConvarService = useService(IConvarService);
 
   // Apply custom backdrop image
-  const backdropPathRaw = ConvarService.get('ui_customBackdrop');
+  const backdropPathRaw = ConvarService.get(KnownConvars.customBackdrop);
   const backdropPath = React.useMemo(() => {
     if (!backdropPathRaw) {
       return '';
@@ -38,7 +38,7 @@ export const ThemeManager = observer(function ThemeManager() {
 
   // Theming
   const lastThemeClassNameRef = React.useRef('');
-  const preferLightColorScheme = ConvarService.getBoolean('ui_preferLightColorScheme');
+  const preferLightColorScheme = ConvarService.getBoolean(KnownConvars.preferLightColorScheme);
   React.useEffect(() => {
     const themeClassName = `cfxui-theme-${CurrentGameName}-${preferLightColorScheme ? 'light' : 'dark'}`;
 
@@ -51,28 +51,15 @@ export const ThemeManager = observer(function ThemeManager() {
     document.body.classList.add(themeClassName);
   }, [preferLightColorScheme]);
 
-  // Blur
-  // NOTHING TO ACTUALLY CONTROL BY THIS RIGHT NOW
-  // const backdropBlurReduction = ConvarService.get('ui_blurPerfMode');
-  // React.useEffect(() => {
-  //   switch (backdropBlurReduction) {
-  //     case 'off': {
-  //       document.body.classList.remove('reduce-backdrop-blur');
-  //       document.body.classList.remove('no-backdrop-blur');
-  //       break;
-  //     }
-  //     case 'backdrop': {
-  //       document.body.classList.remove('no-backdrop-blur');
-  //       document.body.classList.add('reduce-backdrop-blur');
-  //       break;
-  //     }
-  //     case 'none': {
-  //       document.body.classList.remove('reduce-backdrop-blur');
-  //       document.body.classList.add('no-backdrop-blur');
-  //       break;
-  //     }
-  //   }
-  // }, [backdropBlurReduction]);
+  // Backdrop blur
+  const preferBlurredBackdrop = ConvarService.getBoolean(KnownConvars.preferBlurredBackdrop);
+  React.useEffect(() => {
+    if (preferBlurredBackdrop) {
+      document.body.classList.add('cfxui-blurred-backdrop');
+    } else {
+      document.body.classList.remove('cfxui-blurred-backdrop');
+    }
+  }, [preferBlurredBackdrop]);
 
   return null;
 });

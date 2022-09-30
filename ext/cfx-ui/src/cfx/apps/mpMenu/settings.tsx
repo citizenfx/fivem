@@ -19,6 +19,7 @@ import { DEFAULT_SERVER_PORT } from 'cfx/base/serverUtils';
 import { AccountHeader } from './parts/SettingsFlyout/Account/AccountHeader/AccountHeader';
 import { Obliviate } from './parts/SettingsFlyout/Obliviate/Obliviate';
 import { CurrentBoost, isCurrentBoostVisible } from './parts/SettingsFlyout/CurrentBoost/CurrentBoost';
+import { BlurredBackdrop } from './parts/SettingsFlyout/BlurredBackdrop/BlurredBackdrop';
 
 const ACCOUNT_SETTINGS = new Map<string, ISetting.AnySetting>([
   ['accountHeader', {
@@ -67,8 +68,13 @@ const INTERFACE_SETTINGS = new Map<string, ISetting.AnySetting>([
     description: $L('#Settings_DarkThemeDesc'),
 
     ...convarAccessorsBoolean(KnownConvars.preferLightColorScheme, true),
+  }],
 
-    // visible: onlyForFiveM,
+  ['blurredBackdrop', {
+    label: $L('#Settings_BlurredBackdrop'),
+    description: $L('#Settings_BlurredBackdropDesc'),
+
+    render: () => <BlurredBackdrop />,
   }],
 
   ['streamerMode', {

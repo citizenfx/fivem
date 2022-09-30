@@ -43,6 +43,9 @@ body {
 
   background: ui.color-token('backdrop');
 }
+.cfxui-blurred-backdrop #backdrop {
+  backdrop-filter: blur(20px) contrast(50%);
+}
 
 #cfxui-root {
   position: fixed;

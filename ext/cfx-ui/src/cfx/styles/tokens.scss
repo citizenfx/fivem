@@ -26,6 +26,8 @@
   @include ui.def               ('text-opacity-75',                .75);
   @include ui.define-color-token('text-a75', ui.color('main', 950, .75));
 
+  @include ui.define-color-token('text-warning', ui.color('warning'));
+
   @include ui.define-color-token('link-hover-decoration', ui.color('main', 950));
 
   @include ui.define-color-token('li-marker', ui.color('main', 950, .75));

@@ -19,6 +19,8 @@ $bg: #ffffff;
   @include ui.def               ('text-opacity-75',                .85);
   @include ui.define-color-token('text-a75', ui.color('main', 950, .85));
 
+  @include ui.define-color-token('text-warning', ui.color('warning', 700));
+
   @include ui.define-color-token('shadow-small', rgba(0, 0, 0, .3));
   @include ui.define-color-token('shadow-large', rgba(0, 0, 0, .3));
 

@@ -37,7 +37,11 @@ $size: calc(#{ui.control-height('xsmall')} - 4px);
   }
 
   .indicator {
+    align-self: flex-start;
+
     flex-shrink: 0;
+
+    margin-top: calc(ui.offset('small') / 2);
 
     width: $size;
     height: $size;

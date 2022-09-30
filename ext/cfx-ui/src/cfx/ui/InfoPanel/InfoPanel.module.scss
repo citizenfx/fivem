@@ -40,6 +40,38 @@
     height: ui.control-height('large');
   }
 
+  &.inline {
+    position: relative;
+
+    display: inline-flex;
+
+    box-shadow: none;
+    border: none;
+
+    padding-top: ui.offset('small');
+    padding-left: calc(ui.offset('normal') + 2px);
+    padding-bottom: ui.offset('small');
+
+    @include ui.border-radius('xsmall');
+
+    overflow: hidden;
+
+    &::before {
+      display: block;
+      content: '';
+
+      position: absolute;
+
+      top: 0;
+      left: 0;
+      bottom: 0;
+
+      width: 2px;
+
+      background-color: ui.use('border-color');
+    }
+  }
+
   .icon {
     flex-shrink: 0;
   }
