@@ -29,7 +29,7 @@ export function filterList(servers: Record<string, IListableServerView>, sortedL
 }
 
 /**
- * Only keeps server if at least one locale filter matches
+ * Server should match some of enabled locale filters and all disabled ones
  *
  * This is due to the fact that one server can only be assigned with one locale
  */
