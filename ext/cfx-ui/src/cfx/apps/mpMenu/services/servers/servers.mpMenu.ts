@@ -330,12 +330,11 @@ export class MpMenuServersService implements IServersService, AppContribution {
         config.pinnedServers = json.pinnedServers.filter((address: unknown) => typeof address === 'string' && address.length === 6);
       }
 
-      this.logService.log('Pinned', JSON.parse(JSON.stringify(config)));
-
       this.listSource.setPinnedConfig(config);
       this.pinnedServersConfig = config;
     } catch (e) {
-      this.logService.error(new Error('Failed to fetch pinned servers config'), { originalError: e });
+      this.logService.log('Failed to fetch pinned servers config');
+      console.warn(e);
     }
   }
 
