@@ -50,9 +50,39 @@ class SentryService implements AppContribution {
   }
 
   private async setSentryContext() {
+    try {
+      Sentry.setContext('system limits', {
+        hasAtLeastThisAmountOfRam: (navigator as any).deviceMemory,
+        storageEstimate: await navigator.storage.estimate(),
+      });
+    } catch (e) { }
+
     await this.convarService.whenPopulated();
 
-    Sentry.setContext('convars', this.convarService.getAll());
+    Sentry.setContext('convars', Object.fromEntries(
+      Object.entries(this.convarService.getAll()).filter(([key, value]) => {
+        if (key.startsWith('cl_'))  {
+          return false;
+        }
+        if (key.startsWith('cam_')) {
+          return false;
+        }
+        if (key.startsWith('net_')) {
+          return false;
+        }
+        if (key.startsWith('game_')) {
+          return false;
+        }
+        if (key.startsWith('voice_')) {
+          return false;
+        }
+        if (key.startsWith('profile_')) {
+          return false;
+        }
+
+        return true;
+      }),
+    ));
   }
 
   private readonly setSentryUser = (account: IAccount | null) => {
