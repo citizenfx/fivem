@@ -248,7 +248,7 @@ function CheatsheetModal(props: CheatsheetModalProps) {
                 </span>
 
                 <TextBlock size="small" opacity="50">
-                  Can also be a value for <kbd>tag:</kbd> and <kbd>var:</kbd>
+                  <em>Custom</em> and <em>races</em> inside of name or description: <kbd>/(custom|races?)/</kbd>
                 </TextBlock>
               </Flex>
             </Flex>
