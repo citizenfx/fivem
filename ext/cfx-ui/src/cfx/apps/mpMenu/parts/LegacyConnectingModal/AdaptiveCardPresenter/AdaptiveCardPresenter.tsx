@@ -44,7 +44,12 @@ export const AdaptiveCardPresenter = observer(function AdaptiveCardPresenter(pro
 
     cardRef.current.hostConfig = getHostConfig(uiService);
     containerRef.current.innerHTML = '';
-    containerRef.current.appendChild(cardRef.current.render()!);
+
+    try {
+      containerRef.current.appendChild(cardRef.current.render()!);
+    } catch (e) {
+      setCardError(`Failed to render AdaptiveCard: ${e.message || 'Unknown Error'}`);
+    }
   }, []);
 
   React.useEffect(renderCard, [uiService.quant]);
