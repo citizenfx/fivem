@@ -10,6 +10,8 @@
 #include "CefOverlay.h"
 #include <CoreConsole.h>
 #include "memdbgon.h"
+#include <CrossBuildRuntime.h>
+#include <PureModeState.h>
 
 #include <include/cef_parser.h>
 
@@ -144,6 +146,8 @@ void NUIApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
 		"unknown"
 #endif
 	), V8_PROPERTY_ATTRIBUTE_READONLY);
+	window->SetValue("nuiTargetGameBuild", CefV8Value::CreateInt(xbr::GetGameBuild()), V8_PROPERTY_ATTRIBUTE_READONLY);
+	window->SetValue("nuiTargetGamePureLevel", CefV8Value::CreateInt(fx::client::GetPureLevel()), V8_PROPERTY_ATTRIBUTE_READONLY);
 
 
 	// FxDK API
