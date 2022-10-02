@@ -1,4 +1,4 @@
-import { setCurrentGameName } from 'cfx/base/gameRuntime';
+import { setCurrentGameBuild, setCurrentGameName, setCurrentGamePureLevel } from 'cfx/base/gameRuntime';
 import { GameName } from 'cfx/base/game';
 import { Deferred, timeout } from 'cfx/utils/async';
 import { IDisposable } from 'cfx/utils/disposable';
@@ -10,6 +10,8 @@ import { IQueriedServerData } from './services/servers/source/types';
 
 const nuiWindow: (typeof window) & {
   nuiTargetGame: string;
+  nuiTargetGameBuild: number;
+  nuiTargetGamePureLevel: number;
   nuiSetAudioCategory(category: string): void;
   nuiSystemLanguages: string[];
 
@@ -18,6 +20,12 @@ const nuiWindow: (typeof window) & {
 
 // Set this as early as possible
 setCurrentGameName((nuiWindow.nuiTargetGame as GameName) || GameName.RedM);
+if (typeof nuiWindow.nuiTargetGameBuild === 'number') {
+  setCurrentGameBuild(nuiWindow.nuiTargetGameBuild.toString());
+}
+if (typeof nuiWindow.nuiTargetGamePureLevel === 'number') {
+  setCurrentGamePureLevel(nuiWindow.nuiTargetGamePureLevel.toString());
+}
 
 const events = new MultiEventEmitter<TPayload>();
 const fileSelectRequests: Record<string, (filePath: string) => void> = {};

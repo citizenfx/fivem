@@ -250,11 +250,6 @@ export function processServerDataVariables(vars?: IServer['data']['vars']): Vars
         if (value) {
           view.enforceGameBuild = value;
         }
-
-        // if (value === '1604' || value === '1311') {
-        //   continue;
-        // }
-
         continue;
       }
       case key === 'sv_pureLevel': {

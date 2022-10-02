@@ -1,11 +1,13 @@
 import * as Sentry from '@sentry/react';
 import { BrowserTracing } from '@sentry/tracing';
+import { CurrentGameBuild, CurrentGameName, CurrentGamePureLevel } from 'cfx/base/gameRuntime';
 import { formatCFXID } from 'cfx/base/identifiers';
 import { ServicesContainer } from 'cfx/base/servicesContainer';
 import { IAccountService } from 'cfx/common/services/account/account.service';
 import { IAccount } from 'cfx/common/services/account/types';
 import { AppContribution, registerAppContribution } from 'cfx/common/services/app/app.extensions';
 import { inject, injectable } from 'inversify';
+import { mpMenu } from '../../mpMenu';
 import { IConvarService } from '../convars/convars.service';
 
 const ENABLE_SENTRY = !__CFXUI_DEV__ && process.env.CI_PIPELINE_ID;
@@ -51,11 +53,21 @@ class SentryService implements AppContribution {
 
   private async setSentryContext() {
     try {
-      Sentry.setContext('system limits', {
+      const storageEstimate = await navigator.storage.estimate();
+
+      Sentry.setContext('systemLimits', {
         hasAtLeastThisAmountOfRam: (navigator as any).deviceMemory,
-        storageEstimate: await navigator.storage.estimate(),
+        storageEstimateQuota: storageEstimate.quota || 'unknown',
+        storageEstimateUsage: storageEstimate.usage || 'unknown',
       });
     } catch (e) { }
+
+    Sentry.setContext('NUI', {
+      systemLanguages: mpMenu.systemLanguages,
+      gameName: CurrentGameName,
+      gameBuild: CurrentGameBuild,
+      gamePureLevel: CurrentGamePureLevel,
+    });
 
     await this.convarService.whenPopulated();
 

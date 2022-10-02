@@ -11,6 +11,7 @@ import { Button, ButtonProps } from "cfx/ui/Button/Button";
 import { ReactNode } from "react";
 import { stopPropagation } from "cfx/utils/domEvents";
 import { isServerOffline } from "../ServerListItem/utils";
+import { CurrentGameBuild, CurrentGamePureLevel } from "cfx/base/gameRuntime";
 
 export interface ServerConnectButtonProps {
   server: IServerView,
@@ -29,31 +30,54 @@ export const ServerConnectButton = observer(function ServerConnectButton(props: 
   const ServersConnectService = useServiceOptional(IServersConnectService);
 
   let title: ReactNode;
+  let canConnect = true;
 
   if (!server.manuallyEnteredEndPoint) {
     switch (true) {
       case !ServersConnectService: {
         title = 'No ServersConnectService, unable to connect';
+        canConnect = false;
         break;
       }
 
       case !!server.private: {
         title = $L('#ServerDetail_PrivateDisable');
+        canConnect = false;
         break;
       }
       case isServerEOL(server): {
         title = $L('#ServerDetail_EOLDisable');
+        canConnect = false;
         break;
       }
 
       case isServerOffline(server): {
         title = $L('#ServerDetail_OfflineDisable');
+        canConnect = false;
         break;
+      }
+    }
+
+    if (canConnect) {
+      if (server.enforceGameBuild || server.pureLevel) {
+        const hasKnownGameBuild = CurrentGameBuild !== '-1';
+        const hasKnownGamePureLevel = CurrentGamePureLevel !== '-1';
+
+        const shouldSwitchGameBuild = hasKnownGameBuild && server.enforceGameBuild && CurrentGameBuild !== server.enforceGameBuild;
+        const shouldSwitchPureLevel = hasKnownGamePureLevel && server.pureLevel && CurrentGamePureLevel !== server.pureLevel;
+
+        if (shouldSwitchGameBuild && shouldSwitchPureLevel) {
+          title = $L('#DirectConnect_SwitchBuildPureLevelAndConnect');
+        } else if (shouldSwitchGameBuild) {
+          title = $L('#DirectConnect_SwitchBuildAndConnect');
+        } else if (shouldSwitchPureLevel) {
+          title = $L('#DirectConnect_SwitchPureLevelAndConnect');
+        }
       }
     }
   }
 
-  const disabled = Boolean(title) || !ServersConnectService?.canConnect;
+  const disabled = !canConnect || !ServersConnectService?.canConnect;
 
   const handleClick = ServersConnectService
     ? () => {
