@@ -7,11 +7,11 @@ namespace CitizenFX.Core
 
 	public class StateBag
 	{
-		private string m_bagName;
+		public string BagName { get; }
 
 		internal StateBag(string bagName)
 		{
-			m_bagName = bagName;
+			BagName = bagName;
 		}
 
 		[SecurityCritical]
@@ -21,7 +21,7 @@ namespace CitizenFX.Core
 			{
 				fixed (byte* serialized = &dataSerialized[0])
 				{
-					Function.Call(Hash.SET_STATE_BAG_VALUE, m_bagName, key, serialized, dataSerialized.Length, replicated);
+					Function.Call(Hash.SET_STATE_BAG_VALUE, BagName, key, serialized, dataSerialized.Length, replicated);
 				}
 			}
 		}
@@ -37,7 +37,7 @@ namespace CitizenFX.Core
 
 		public dynamic Get(string key)
 		{
-			return API.GetStateBagValue(m_bagName, key);
+			return API.GetStateBagValue(BagName, key);
 		}
 
 		public dynamic this[string key]
