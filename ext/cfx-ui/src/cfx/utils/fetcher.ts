@@ -49,7 +49,7 @@ export namespace fetcher {
     public statusText: string;
 
     constructor(public response: Response) {
-      super(response.statusText);
+      super(`Request to ${response.url} failed with status code ${response.status}`);
 
       this.status = response.status;
       this.statusText = response.statusText;
