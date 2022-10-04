@@ -1,5 +1,5 @@
 import { useServiceResolver } from "cfx/base/servicesContainer";
-import { logger, ScopedLogger } from "cfx/common/services/log/scopedLogger";
+import { scopedLogger, ScopedLogger } from "cfx/common/services/log/scopedLogger";
 import { ICategorySearchTerm, ISearchTerm, searchTermToString } from "cfx/base/searchTermsParser";
 import { IServersService } from "cfx/common/services/servers/servers.service";
 import { noop } from "cfx/utils/functional";
@@ -23,7 +23,7 @@ function initSearchInputContoller(serviceResolver: ReturnType<typeof useServiceR
 
 @injectable()
 export class SearchInputController {
-  @logger('SearchInputController')
+  @scopedLogger('SearchInputController')
   protected readonly logService: ScopedLogger;
 
   @inject(IServersService)

@@ -31,6 +31,7 @@ import { useTimeoutFlag } from "cfx/utils/hooks";
 import { ServerPlayersCount } from "cfx/common/parts/Server/ServerPlayersCount/ServerPlayersCount";
 import { ServerPower } from "cfx/common/parts/Server/ServerPower/ServerPower";
 import { ServerFavoriteButton } from "cfx/common/parts/Server/ServerFavoriteButton/ServerFavoriteButton";
+import { isServerOffline } from "cfx/common/services/servers/helpers";
 import s from './ServerDetailsPage.module.scss';
 
 const LAYOUT_SPLITS = {
@@ -253,8 +254,7 @@ const Warning = observer(function Warning({ server }: { server: IServerView }) {
       message = IntlService.translate('#ServerDetail_SupportWarning');
       break;
     }
-    case server.offline:
-    case !!server.fallback: {
+    case isServerOffline(server): {
       message = IntlService.translate('#ServerDetail_OfflineWarning');
       break;
     }

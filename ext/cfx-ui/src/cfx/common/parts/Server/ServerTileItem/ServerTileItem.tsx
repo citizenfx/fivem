@@ -9,7 +9,7 @@ import { Flex } from "cfx/ui/Layout/Flex/Flex";
 import { Text } from "cfx/ui/Text/Text";
 import { FlexRestricter } from "cfx/ui/Layout/Flex/FlexRestricter";
 import { ServerPlayersCount } from "../ServerPlayersCount/ServerPlayersCount";
-import { isServerLiveLoading, showServerCountryFlag, showServerPowers } from "../ServerListItem/utils";
+import { isServerLiveLoading, showServerCountryFlag, showServerPowers } from "cfx/common/services/servers/helpers";
 import { CountryFlag } from "cfx/ui/CountryFlag/CountryFlag";
 import { ServerIcon } from "../ServerIcon/ServerIcon";
 import { Box } from "cfx/ui/Layout/Box/Box";

@@ -71,7 +71,7 @@ export interface IServerView {
 
   offline?: true,
 
-  thumbnailIconUri?: string | null,
+  thumbnailIconURL?: string | null,
   iconVersion?: number | null,
 
   licenseKeyToken?: string | null,
@@ -141,7 +141,6 @@ export interface IHistoryServer {
 
 	title: string,
 	time: Date,
-	icon: string,
 	token: string,
 }
 

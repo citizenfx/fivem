@@ -1,7 +1,7 @@
 import { useStreamerMode } from "cfx/apps/mpMenu/services/convars/convars.service";
+import { useHomeScreenServerList } from "cfx/apps/mpMenu/services/servers/list/HomeScreenServerList.service";
 import { ServerTileItem } from "cfx/common/parts/Server/ServerTileItem/ServerTileItem";
 import { $L } from "cfx/common/services/intl/l10n";
-import { useServersService } from "cfx/common/services/servers/servers.service";
 import { Text } from "cfx/ui/Text/Text";
 import { useOpenFlag } from "cfx/utils/hooks";
 import { observer } from "mobx-react-lite";
@@ -55,22 +55,7 @@ export const LastConnectedTile = observer(function LastConnectedTile() {
 });
 
 export function useLastHistoryServer() {
-  const ServersService = useServersService();
+  const HomeScreenServerList = useHomeScreenServerList();
 
-  const HistoryServerList = ServersService.getHistoryList();
-  if (!HistoryServerList) {
-    return null;
-  }
-
-  const serverId = HistoryServerList.sequence[0];
-  if (!serverId) {
-    return null;
-  }
-
-  const server = ServersService.getServer(serverId);
-  if (!server) {
-    return null;
-  }
-
-  return server;
+  return HomeScreenServerList.lastConnectedServer;
 }

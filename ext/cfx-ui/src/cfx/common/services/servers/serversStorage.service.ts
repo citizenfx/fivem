@@ -1,14 +1,17 @@
-import { IDisposable } from "cfx/utils/disposable";
-import { defineService } from "../../../base/servicesContainer";
+import { defineService } from "cfx/base/servicesContainer";
 import { IHistoryServer } from "./types";
 
 export const IServersStorageService = defineService<IServersStorageService>('erversStorageService');
 export interface IServersStorageService {
-  onFavoriteServers(cb: (list: string[]) => void): IDisposable;
+  readonly lastServersError: string | null;
+
+  readonly favoriteServersSequencePopulated: Promise<void>;
+  getFavoritesServersSequence(): string[];
   setFavoriteServers(serverIds: string[]): void;
 
+  readonly lastServersPopulated: Promise<void>;
   getLastServers(): IHistoryServer[];
-  setLastServers(historyServers: IHistoryServer[]): void;
+  addLastServer(historyServer: IHistoryServer): Promise<void>;
 
-  clearLastServers(): void;
+  clearLastServers(): Promise<void>;
 }

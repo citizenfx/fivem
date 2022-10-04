@@ -23,7 +23,7 @@ import { clamp } from "cfx/utils/math";
 import { Loaf } from "cfx/ui/Loaf/Loaf";
 import { ControlBox } from "cfx/ui/ControlBox/ControlBox";
 import { useNavigate } from "react-router-dom";
-import { getServerDetailsLink } from "cfx/common/parts/Server/ServerListItem/utils";
+import { getServerDetailsLink } from "cfx/common/services/servers/helpers";
 import { useIntlService } from "cfx/common/services/intl/intl.service";
 import { Box } from "cfx/ui/Layout/Box/Box";
 import { CountryFlag } from "cfx/ui/CountryFlag/CountryFlag";

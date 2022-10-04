@@ -143,7 +143,7 @@ module.exports = (env, argv) => {
         },
 
         {
-          test: /\.js$/,
+          test: /\.(mjs|js)$/,
           enforce: 'pre',
           use: [
             {

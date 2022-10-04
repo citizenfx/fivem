@@ -1,3 +1,4 @@
+import React from "react";
 import { getServerByAnyMean } from "cfx/apps/mpMenu/services/servers/source/fetchers";
 import { useServiceResolver } from "cfx/base/servicesContainer";
 import { CurrentGameName } from "cfx/base/gameRuntime";
@@ -6,14 +7,12 @@ import { ServerListConfigController } from "cfx/common/services/servers/lists/Se
 import { IServersService } from "cfx/common/services/servers/servers.service";
 import { IServersConnectService } from "cfx/common/services/servers/serversConnect.service";
 import { IServerView } from "cfx/common/services/servers/types";
-import { IParsedServerAddress, parseServerAddress } from "cfx/common/services/servers/utils";
+import { IParsedServerAddress, parseServerAddress } from "cfx/common/services/servers/serverAddressParser";
 import { IDisposableObject } from "cfx/utils/disposable";
 import { debounce } from "cfx/utils/execution";
 import { useDisposableInstance } from "cfx/utils/hooks";
 import { inject, injectable, optional } from "inversify";
-import { prototype } from "markdown-it/lib/token";
 import { makeAutoObservable, observable } from "mobx";
-import React from "react";
 
 @injectable()
 export class ServerFiltersWithDirectConnectController implements IDisposableObject {

@@ -38,6 +38,9 @@ export function queriedServerData2ServerView(endpoint: string, data: IQueriedSer
     playersCurrent: data.clients,
     playersMax: data.maxclients,
     resources: data.infoBlob.resources,
+    thumbnailIconURL: data.infoBlob.icon
+      ? `data:image/png;base64,${data.infoBlob.icon}`
+      : undefined,
     ...processServerDataVariables(data.infoBlob.vars),
   };
 }

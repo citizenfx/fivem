@@ -6,11 +6,11 @@ import { IListableServerView } from "../source/types";
 import { serverView2ListableServerView } from "../transformers";
 import { IPinnedServersConfig, IServerView } from "../types";
 import { ServerListConfigController } from "./ServerListConfigController";
-import { IServersList, ServersListType } from "./types";
+import { IServersList, ServerListSortDir, ServersListSortBy, ServersListType } from "./types";
 
 export class FavoriteServersList implements IServersList {
-  private _favoriteServers: Record<string, true> = {};
-  private set favoriteServers(servers: Record<string, true>) { this._favoriteServers = servers }
+  private _favoriteServersMap: Record<string, true> = {};
+  private set favoriteServersMap(favoriteServersMap: Record<string, true>) { this._favoriteServersMap = favoriteServersMap }
 
   private _config: ServerListConfigController;
   public getConfig(): ServerListConfigController {
@@ -18,7 +18,7 @@ export class FavoriteServersList implements IServersList {
   }
 
   private get existingServers(): IServerView[] {
-    return Object.keys(this._favoriteServers).map((id) => this.getServer(id)).filter(Boolean) as any;
+    return Object.keys(this._favoriteServersMap).map((id) => this.getServer(id)).filter(Boolean) as any;
   }
 
   public get sequence(): string[] {
@@ -53,16 +53,24 @@ export class FavoriteServersList implements IServersList {
     });
 
     this._config = new ServerListConfigController({
-      config: { type: ServersListType.Favorites },
+      config: {
+        type: ServersListType.Favorites,
+        sortBy: ServersListSortBy.Name,
+        sortDir: ServerListSortDir.Asc,
+      },
     });
 
-    this.serversStorageService.onFavoriteServers((list) => {
-      this.favoriteServers = list.reduce((acc, id) => {
-        acc[id] = true;
+    this.init();
+  }
 
-        return acc;
-      }, {});
-    });
+  private async init() {
+    await this.serversStorageService.favoriteServersSequencePopulated;
+
+    this.favoriteServersMap = this.serversStorageService.getFavoritesServersSequence().reduce((acc, id) => {
+      acc[id] = true;
+
+      return acc;
+    }, {});
   }
 
   refresh() {
@@ -70,16 +78,16 @@ export class FavoriteServersList implements IServersList {
   }
 
   isIn(id: string): boolean {
-    return this._favoriteServers[id] || false;
+    return this._favoriteServersMap[id] || false;
   }
 
   toggleIn(id: string) {
-    if (this._favoriteServers[id]) {
-      delete this._favoriteServers[id];
+    if (this._favoriteServersMap[id]) {
+      delete this._favoriteServersMap[id];
     } else {
-      this._favoriteServers[id] = true;
+      this._favoriteServersMap[id] = true;
     }
 
-    this.serversStorageService.setFavoriteServers(Object.keys(this._favoriteServers));
+    this.serversStorageService.setFavoriteServers(Object.keys(this._favoriteServersMap));
   }
 }

@@ -26,7 +26,6 @@ export interface IServersService {
   getFavoriteList(): FavoriteServersList | undefined;
 
   getServer(serverId: string): IServerView | undefined;
-  getServerIconURL(serverId: string): string;
 
   isServerLoading(serverId: string, detailsLevel?: ServerViewDetailsLevel): boolean;
   isServerPinned(serverId: string): boolean;

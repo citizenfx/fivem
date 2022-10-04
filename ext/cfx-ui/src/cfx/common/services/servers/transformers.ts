@@ -1,4 +1,11 @@
-import { DEFAULT_SERVER_LOCALE, DEFAULT_SERVER_LOCALE_COUNTRY, filterServerProjectDesc, filterServerProjectName, filterServerTag, hasPrivateConnectEndpoint } from "cfx/base/serverUtils";
+import {
+  DEFAULT_SERVER_LOCALE,
+  DEFAULT_SERVER_LOCALE_COUNTRY,
+  filterServerProjectDesc,
+  filterServerProjectName,
+  filterServerTag,
+  hasPrivateConnectEndpoint,
+} from "cfx/base/serverUtils";
 import { arrayAt } from "cfx/utils/array";
 import { isFalseString } from "cfx/utils/string";
 import { master } from "./source/api/master";
@@ -32,7 +39,6 @@ export function masterListServerData2ServerView(joinId: string, data: master.ISe
       hostname: data.hostname || '',
       playersMax: data.svMaxclients || 0,
       playersCurrent: data.clients || 0,
-      iconVersion: data.iconVersion,
       burstPower: data.burstPower || 0,
       upvotePower: data.upvotePower || 0,
       connectEndPoints: data.connectEndPoints,
@@ -41,6 +47,10 @@ export function masterListServerData2ServerView(joinId: string, data: master.ISe
     },
     processServerDataVariables(data.vars),
   );
+
+  if (data.hasOwnProperty('iconVersion')) {
+    serverView.iconVersion = data.iconVersion;
+  }
 
   if (!serverView.projectName) {
     serverView.upvotePower = 0;
@@ -62,7 +72,6 @@ export function masterListFullServerData2ServerView(joinId: string, data: IFullS
       hostname: data.hostname || '',
       playersMax: data.svMaxclients || 0,
       playersCurrent: data.clients || 0,
-      iconVersion: data.iconVersion,
       burstPower: data.burstPower || 0,
       upvotePower: data.upvotePower || 0,
       connectEndPoints: data.connectEndPoints,
@@ -84,6 +93,10 @@ export function masterListFullServerData2ServerView(joinId: string, data: IFullS
     processServerDataVariables(data.vars),
   );
 
+  if (data.hasOwnProperty('iconVersion')) {
+    serverView.iconVersion = data.iconVersion;
+  }
+
   if (!serverView.projectName) {
     serverView.upvotePower = 0;
   }
@@ -104,7 +117,7 @@ export function historyServer2ServerView(historyServer: IHistoryServer): IServer
     hostname: historyServer.hostname,
     projectName: historyServer.hostname,
     rawVariables: historyServer.vars,
-    thumbnailIconUri: historyServer.icon || historyServer.rawIcon,
+    thumbnailIconURL: historyServer.rawIcon,
   };
 
   return Object.assign(server, processServerDataVariables(historyServer.vars));

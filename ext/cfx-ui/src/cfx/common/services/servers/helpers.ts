@@ -1,4 +1,4 @@
-import { IServerView, ServerViewDetailsLevel } from "cfx/common/services/servers/types";
+import { IServerView, ServerViewDetailsLevel } from "./types";
 
 export function showServerPremiumBadge(premium: IServerView['premium']): premium is NonNullable<IServerView['premium']> {
   return !!premium;

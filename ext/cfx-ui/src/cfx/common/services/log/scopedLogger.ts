@@ -4,7 +4,7 @@ import { LogService } from "./logService";
 /**
  * !DECORATOR
  */
-export const logger = (name: string): ReturnType<typeof inject> => (...args) => {
+export const scopedLogger = (name: string): ReturnType<typeof inject> => (...args) => {
   inject(ScopedLogger)(...args);
   named(name)(...args);
 };

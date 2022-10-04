@@ -188,16 +188,6 @@ export function getPinnedServersList(pinnedServersConfig: IPinnedServersConfig |
     .sort((a, b) => (getServer(b)?.playersCurrent || 0) - (getServer(a)?.playersCurrent || 0));
 }
 
-export function canonicalizeServerAddress(address: string): string {
-  const preamble = 'cfx.re/join/';
-
-  if (address.startsWith(preamble)) {
-    return address.substring(preamble.length);
-  }
-
-  return address;
-}
-
 export function isServerEOL(server: IServerView): boolean {
   // Tue Jun 01 2021 00:00:00 GMT+0200
   // Servers can't be EOL until this date.

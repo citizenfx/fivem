@@ -1,6 +1,6 @@
 import React from "react";
 import formatDistance from 'date-fns/formatDistance';
-import { IServerView, ServerViewDetailsLevel } from "cfx/common/services/servers/types";
+import { IServerView } from "cfx/common/services/servers/types";
 import { observer } from "mobx-react-lite";
 import { Indicator } from "cfx/ui/Indicator/Indicator";
 import { clsx } from "cfx/utils/clsx";
@@ -18,11 +18,11 @@ import { IServersService } from "cfx/common/services/servers/servers.service";
 import { ServerIcon } from "../ServerIcon/ServerIcon";
 import { playSfx, Sfx } from "cfx/apps/mpMenu/utils/sfx";
 import { ServerPlayersCount } from "../ServerPlayersCount/ServerPlayersCount";
-import { getServerDetailsLink, isServerLiveLoading, showServerPremiumBadge } from "./utils";
+import { getServerDetailsLink, isServerLiveLoading, showServerPremiumBadge } from "cfx/common/services/servers/helpers";
 import { ServerPower } from "../ServerPower/ServerPower";
 import { ServerBoostButton } from "../ServerBoostButton/ServerBoostButton";
-import s from './ServerListItem.module.scss';
 import { $L } from "cfx/common/services/intl/l10n";
+import s from './ServerListItem.module.scss';
 
 export interface ServerListItemProps {
   server: IServerView | undefined,

@@ -3,7 +3,7 @@ import { CurrentGameName } from "cfx/base/gameRuntime";
 import { GameName } from "cfx/base/game";
 import { getSingleServer } from "cfx/common/services/servers/source/utils/fetchers";
 import { IServerView } from "cfx/common/services/servers/types";
-import { isJoinServerAddress, parseServerAddress } from "cfx/common/services/servers/utils";
+import { isJoinServerAddress, parseServerAddress } from "cfx/common/services/servers/serverAddressParser";
 import { resolveOrTimeout } from "cfx/utils/async";
 import { fetcher } from "cfx/utils/fetcher";
 import { dynamicServerData2ServerView, queriedServerData2ServerView } from "./transformers";

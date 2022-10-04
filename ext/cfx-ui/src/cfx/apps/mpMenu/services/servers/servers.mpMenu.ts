@@ -8,7 +8,7 @@ import { IServersService } from "cfx/common/services/servers/servers.service";
 import { ServicesContainer } from "cfx/base/servicesContainer";
 import { AppContribution, registerAppContribution } from "cfx/common/services/app/app.extensions";
 import { IServersStorageService } from "cfx/common/services/servers/serversStorage.service";
-import { logger, ScopedLogger } from "cfx/common/services/log/scopedLogger";
+import { scopedLogger, ScopedLogger } from "cfx/common/services/log/scopedLogger";
 import { IPinnedServersConfig, IServerView, ServerViewDetailsLevel } from "cfx/common/services/servers/types";
 import { IAutocompleteIndex, IServerListSource } from "cfx/common/services/servers/source/types";
 import { WorkerSource } from "cfx/common/services/servers/source/WorkerSource";
@@ -17,9 +17,8 @@ import { HistoryServersList } from "cfx/common/services/servers/lists/HistorySer
 import { getSingleServer, getTopServer } from "cfx/common/services/servers/source/utils/fetchers";
 import { BaseConfigurableServersList } from "cfx/common/services/servers/lists/BaseConfigurableServersList";
 import { getServerByAnyMean } from "./source/fetchers";
-import { parseServerAddress } from "cfx/common/services/servers/utils";
+import { parseServerAddress } from "cfx/common/services/servers/serverAddressParser";
 import { serverAddress2ServerView } from "cfx/common/services/servers/transformers";
-import { getServerIconURL } from "cfx/common/services/servers/icon";
 import { mpMenu } from "../../mpMenu";
 import { fetcher } from "cfx/utils/fetcher";
 
@@ -48,7 +47,7 @@ export class MpMenuServersService implements IServersService, AppContribution {
   @inject(IServersStorageService)
   protected readonly serversStorageService: IServersStorageService;
 
-  @logger('MpMenuServersService')
+  @scopedLogger('MpMenuServersService')
   protected readonly logService: ScopedLogger;
 
   private _topLocaleServerId: string = '';
@@ -142,12 +141,6 @@ export class MpMenuServersService implements IServersService, AppContribution {
     return this._servers.get(address);
   };
 
-  getServerIconURL(address: string): string {
-    const server = this.getServer(address);
-
-    return getServerIconURL(address, server?.iconVersion);
-  }
-
   isServerLoading(address: string, detailsLevel?: ServerViewDetailsLevel): boolean {
     if (typeof detailsLevel === 'undefined') {
       return this.serversListLoading;
@@ -238,6 +231,11 @@ export class MpMenuServersService implements IServersService, AppContribution {
       resolvedServer = {
         ...resolvedServer,
         offline: true,
+      };
+    } else {
+      resolvedServer = {
+        ...resolvedServer,
+        thumbnailIconURL: server.thumbnailIconURL,
       };
     }
 

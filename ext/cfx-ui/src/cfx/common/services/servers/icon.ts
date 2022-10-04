@@ -1,15 +1,28 @@
 import { createPlaceholderIconDataURI } from "cfx/base/placeholderIcon";
+import { IServerView } from "./types";
 
-export function getServerIconURL(address: string, version?: string | number | null): string {
-  if (!version) {
-    return createPlaceholderIconDataURI(address);
+export function getServerIconURL(server: IServerView): string {
+  if (server.joinId && typeof server.iconVersion === 'number') {
+    return `https://servers-frontend.fivem.net/api/servers/icon/${server.joinId}/${server.iconVersion}.png`;
   }
 
-  return `https://servers-frontend.fivem.net/api/servers/icon/${address}/${version}.png`;
+  if (server.thumbnailIconURL) {
+    return server.thumbnailIconURL;
+  }
+
+  return getServerIconPlaceholder(server.id);
 }
 
-export async function getServerIconThumbnailURL(address: string, version?: string | number | null): Promise<string> {
-  return createThumbnail(getServerIconURL(address, version));
+export function getServerIconPlaceholder(address: string): string {
+  return createPlaceholderIconDataURI(address);
+}
+
+export async function createServerThumbnailIconURL(server: IServerView): Promise<string> {
+  if (server.thumbnailIconURL) {
+    return server.thumbnailIconURL;
+  }
+
+  return createThumbnail(getServerIconURL(server));
 }
 
 async function createThumbnail(uri: string, width = 16, height = 16): Promise<string> {

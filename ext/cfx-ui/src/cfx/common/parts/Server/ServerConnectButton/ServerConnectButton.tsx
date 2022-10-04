@@ -10,7 +10,7 @@ import { Title } from "cfx/ui/Title/Title";
 import { Button, ButtonProps } from "cfx/ui/Button/Button";
 import { ReactNode } from "react";
 import { stopPropagation } from "cfx/utils/domEvents";
-import { isServerOffline } from "../ServerListItem/utils";
+import { isServerOffline } from "cfx/common/services/servers/helpers";
 import { CurrentGameBuild, CurrentGamePureLevel } from "cfx/base/gameRuntime";
 
 export interface ServerConnectButtonProps {

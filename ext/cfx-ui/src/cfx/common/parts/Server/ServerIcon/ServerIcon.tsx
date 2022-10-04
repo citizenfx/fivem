@@ -1,5 +1,5 @@
-import { useServersService } from "cfx/common/services/servers/servers.service";
-import { IServerView } from "cfx/common/services/servers/types";
+import { getServerIconPlaceholder, getServerIconURL } from "cfx/common/services/servers/icon";
+import { IServerView, ServerViewDetailsLevel } from "cfx/common/services/servers/types";
 import { Indicator } from "cfx/ui/Indicator/Indicator";
 import { clsx } from "cfx/utils/clsx";
 import s from './ServerIcon.module.scss';
@@ -59,37 +59,27 @@ export function ServerIcon(props: ServerIconProps) {
   );
 }
 
-const cache: Record<string, string> = {};
+const cache: Record<string, { level: ServerViewDetailsLevel, url: string }> = {};
 let fallbackIconURL: string | null = null;
 
 function useServerIconURL(server: IServerView | null | undefined): string {
-  const ServersService = useServersService();
-
   if (!server) {
     if (!fallbackIconURL) {
-      fallbackIconURL = ServersService.getServerIconURL('__FALLBACK__');
+      fallbackIconURL = getServerIconPlaceholder('__FALLBACK__');
     }
 
     return fallbackIconURL;
   }
 
-  const cacheKey = `${server.id}::${server.detailsLevel}`;
+  const cacheKey = server.id;
 
-  if (!cache[cacheKey]) {
-    let iconURL = '';
-
-    if ('iconVersion' in server) {
-      iconURL = ServersService.getServerIconURL(server.id);
-    }
-    else if (server.thumbnailIconUri) {
-      iconURL = server.thumbnailIconUri;
-    }
-    else {
-      iconURL = ServersService.getServerIconURL(server.id);
-    }
-
-    cache[cacheKey] = iconURL;
+  const cachedEntry = cache[cacheKey];
+  if (!cachedEntry || cachedEntry.level !== server.detailsLevel) {
+    cache[cacheKey] = {
+      level: server.detailsLevel,
+      url: getServerIconURL(server),
+    };
   }
 
-  return cache[cacheKey];
+  return cache[cacheKey].url;
 }

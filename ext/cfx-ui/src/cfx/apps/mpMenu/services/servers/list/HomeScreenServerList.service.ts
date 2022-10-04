@@ -1,11 +1,10 @@
 import { ServicesContainer, useService } from "cfx/base/servicesContainer";
-import { isServerOffline } from "cfx/common/parts/Server/ServerListItem/utils";
+import { isServerOffline } from "cfx/common/services/servers/helpers";
 import { IIntlService } from "cfx/common/services/intl/intl.service";
 import { reviveServerListConfig } from "cfx/common/services/servers/lists/ServerListConfigController";
 import { ServersListType } from "cfx/common/services/servers/lists/types";
 import { IServersStorageService } from "cfx/common/services/servers/serversStorage.service";
 import { IServerView } from "cfx/common/services/servers/types";
-import { reverseArray } from "cfx/utils/array";
 import { inject, injectable } from "inversify";
 import { makeAutoObservable, observable } from "mobx";
 import { MpMenuServersService } from "../servers.mpMenu";
@@ -45,14 +44,6 @@ export class HomeScreenServerListService {
   private get allServersSequence() { return this._allServersSequence }
   private set allServersSequence(seq: string[]) { this._allServersSequence = seq }
 
-  private _historyServersSequence: string[] = [];
-  private get historyServersSequence() { return this._historyServersSequence }
-  private set historyServersSequence(seq: string[]) { this._historyServersSequence = seq }
-
-  private _favoriteServersSequence: string[] = [];
-  private get favoriteServersSequence() { return this._favoriteServersSequence }
-  private set favoriteServersSequence(seq: string[]) { this._favoriteServersSequence = seq }
-
   constructor(
     @inject(MpMenuServersService)
     protected readonly serversService: MpMenuServersService,
@@ -64,12 +55,7 @@ export class HomeScreenServerListService {
     makeAutoObservable(this, {
       // @ts-expect-error private
       _allServersSequence: observable.ref,
-      _historyServersSequence: observable.ref,
-      _favoriteServerSequence: observable.ref,
     });
-
-    this.serversStorageService.onFavoriteServers((seq) => this.favoriteServersSequence = reverseArray(seq));
-    this.historyServersSequence = this.serversStorageService.getLastServers().map((server) => server.address);
 
     this.serversService.listSource.onList(ServersListType.RegionalTop, (seq) => this.allServersSequence = seq);
     this.serversService.listSource.makeList(reviveServerListConfig({
@@ -108,11 +94,16 @@ export class HomeScreenServerListService {
   }
 
   get lastConnectedServer() {
-    const serverId = this.historyServersSequence[0];
-    if (!serverId) {
+    const lastServers = this.serversStorageService.getLastServers();
+    if (!lastServers.length) {
       return;
     }
 
-    return this.serversService.getServer(serverId);
+    const { address } = lastServers[0];
+    if (!address) {
+      return;
+    }
+
+    return this.serversService.getServer(address);
   }
 }
