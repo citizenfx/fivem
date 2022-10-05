@@ -49,6 +49,7 @@ module.exports = (env, argv) => {
     },
 
     output: {
+      clean: true,
       path: appBuildPath,
       filename: 'static/js/[name].js',
       chunkFilename: 'static/js/[name].chunk.js',
@@ -212,6 +213,10 @@ module.exports = (env, argv) => {
 
     optimization: {
       usedExports: isProd,
+
+      chunkIds: 'named',
+
+      splitChunks: false,
 
       minimizer: [
         isProd && new ImageMinimizerPlugin({
