@@ -4,7 +4,7 @@ import { ScopedLogger } from "cfx/common/services/log/scopedLogger";
 import { IServersService } from "cfx/common/services/servers/servers.service";
 import { IServersConnectService } from "cfx/common/services/servers/serversConnect.service";
 import { serverAddress2ServerView } from "cfx/common/services/servers/transformers";
-import { IHistoryServer, IServerView } from "cfx/common/services/servers/types";
+import { IServerView } from "cfx/common/services/servers/types";
 import { fastRandomId } from "cfx/utils/random";
 import { RichEvent } from "cfx/utils/types";
 import { inject, injectable, named, optional } from "inversify";

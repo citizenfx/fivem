@@ -14,25 +14,21 @@ import { IAutocompleteIndex, IServerListSource } from "cfx/common/services/serve
 import { WorkerSource } from "cfx/common/services/servers/source/WorkerSource";
 import { FavoriteServersList } from "cfx/common/services/servers/lists/FavoriteServersList";
 import { HistoryServersList } from "cfx/common/services/servers/lists/HistoryServersList";
-import { getSingleServer, getTopServer } from "cfx/common/services/servers/source/utils/fetchers";
+import { getSingleServer } from "cfx/common/services/servers/source/utils/fetchers";
 import { BaseConfigurableServersList } from "cfx/common/services/servers/lists/BaseConfigurableServersList";
 import { getServerByAnyMean } from "./source/fetchers";
 import { parseServerAddress } from "cfx/common/services/servers/serverAddressParser";
 import { serverAddress2ServerView } from "cfx/common/services/servers/transformers";
-import { mpMenu } from "../../mpMenu";
 import { fetcher } from "cfx/utils/fetcher";
+import { uniqueArray } from "cfx/utils/array";
 
-export type IPromotedServerDescriptor =
-  | { origin: 'ad', id: string }
-  | { origin: 'locale', id: string };
-
-const IBrowserServersServiceInit = Symbol('BrowserServersServiceInit');
-export interface IBrowserServersServiceInit {
+const IMpMenuServersServiceInit = Symbol('MpMenuServersServiceInit');
+export interface IMpMenuServersServiceInit {
   listTypes: ServersListType[],
 }
 
-export function registerMpMenuServersService(container: ServicesContainer, init: IBrowserServersServiceInit) {
-  container.registerConstant(IBrowserServersServiceInit, init);
+export function registerMpMenuServersService(container: ServicesContainer, init: IMpMenuServersServiceInit) {
+  container.registerConstant(IMpMenuServersServiceInit, init);
 
   container.registerImpl(IServersService, MpMenuServersService);
 
@@ -41,14 +37,14 @@ export function registerMpMenuServersService(container: ServicesContainer, init:
 
 @injectable()
 export class MpMenuServersService implements IServersService, AppContribution {
-  @inject(IBrowserServersServiceInit)
-  protected readonly initObject: IBrowserServersServiceInit;
+  @inject(IMpMenuServersServiceInit)
+  protected readonly initObject: IMpMenuServersServiceInit;
 
   @inject(IServersStorageService)
   protected readonly serversStorageService: IServersStorageService;
 
   @scopedLogger('MpMenuServersService')
-  protected readonly logService: ScopedLogger;
+  protected readonly logger: ScopedLogger;
 
   private _topLocaleServerId: string = '';
   public get topLocaleServerId(): string { return this._topLocaleServerId }
@@ -68,6 +64,8 @@ export class MpMenuServersService implements IServersService, AppContribution {
     return getPinnedServersList(this._pinnedServersConfig, this.getServer);
   }
 
+  private _serverIdsAliases: Record<string, string> = {};
+  private _serverIdsAliasesReverse: Record<string, string> = {};
   private _servers: Map<string, IServerView> = new Map();
 
   private _serversLoading: Record<string, ServerViewDetailsLevel | false> = {};
@@ -121,7 +119,6 @@ export class MpMenuServersService implements IServersService, AppContribution {
     }
 
     await this.loadPinnedServersConfig();
-    // await this.maybeLoadTopLocaleServer();
   }
 
   getList(type: ServersListType): IServersList | undefined {
@@ -137,17 +134,37 @@ export class MpMenuServersService implements IServersService, AppContribution {
     return this.lists[ServersListType.History] as any;
   }
 
-  readonly getServer = (address: string): IServerView | undefined => {
-    return this._servers.get(address);
+  private setServerIdAlias(id: string, newId: string) {
+    if (id === newId) {
+      return;
+    }
+
+    this._serverIdsAliases[id] = newId;
+    this._serverIdsAliasesReverse[newId] = id;
+  }
+
+  getRealServerId(id: string): string {
+    return this._serverIdsAliases[id] || id;
+  }
+
+  getAllServerIds(id: string): string[] {
+    return uniqueArray([id, this._serverIdsAliasesReverse[id], this._serverIdsAliases[id]].filter(Boolean));
+  }
+
+  private serversSet(id: string, server: IServerView) {
+    this._servers.set(this.getRealServerId(id), server);
+  }
+
+  readonly getServer = (id: string): IServerView | undefined => {
+    return this._servers.get(this.getRealServerId(id));
   };
 
-  isServerLoading(address: string, detailsLevel?: ServerViewDetailsLevel): boolean {
+  isServerLoading(id: string, detailsLevel?: ServerViewDetailsLevel): boolean {
     if (typeof detailsLevel === 'undefined') {
       return this.serversListLoading;
     }
 
-    const loadingState = this._serversLoading[address];
-
+    const loadingState = this._serversLoading[id];
     if (!loadingState) {
       return false;
     }
@@ -155,28 +172,28 @@ export class MpMenuServersService implements IServersService, AppContribution {
     return loadingState >= detailsLevel;
   }
 
-  private setServerLoadingState(address: string, state: ServerViewDetailsLevel | false) {
-    this._serversLoading[address] = state;
+  private setServerLoadingState(id: string, state: ServerViewDetailsLevel | false) {
+    this._serversLoading[id] = state;
   }
 
-  async loadServerDetailedData(address: string) {
-    if (this.serverDetailsLoadRequested[address]) {
+  async loadServerDetailedData(id: string) {
+    if (this.serverDetailsLoadRequested[id]) {
       return;
     }
 
-    this.serverDetailsLoadRequested[address] = true;
+    this.serverDetailsLoadRequested[id] = true;
 
-    this.setServerLoadingState(address, ServerViewDetailsLevel.MasterListFull);
-    const server = await getSingleServer(CurrentGameName, address);
-    this.setServerLoadingState(address, false);
+    this.setServerLoadingState(id, ServerViewDetailsLevel.MasterListFull);
+    const server = await getSingleServer(CurrentGameName, id);
+    this.setServerLoadingState(id, false);
 
     if (server) {
       this.replaceServer(server);
     } else {
-      this.logService.log(`Failed to load server (${address}) complete view`);
+      this.logger.log(`Failed to load server (${id}) complete view`);
 
       // But if it was listed - mark as offline
-      const listedServer = this._servers.get(address);
+      const listedServer = this.getServer(id);
       if (listedServer?.detailsLevel === ServerViewDetailsLevel.MasterList) {
         this.replaceServer({
           ...listedServer,
@@ -204,48 +221,41 @@ export class MpMenuServersService implements IServersService, AppContribution {
   }
 
   loadServerLiveData(server: IServerView): Promise<IServerView>;
-  loadServerLiveData(address: string): Promise<IServerView | null>;
-  async loadServerLiveData(serverOrAddress: IServerView | string): Promise<IServerView | null> {
+  loadServerLiveData(id: string): Promise<IServerView | null>;
+  async loadServerLiveData(serverOrId: IServerView | string): Promise<IServerView | null> {
     let server: IServerView | null = null;
 
-    if (typeof serverOrAddress === 'string') {
-      server = this.getServerFromAddress(serverOrAddress);
+    if (typeof serverOrId === 'string') {
+      server = this.getServerFromAddress(serverOrId);
     } else {
-      server = serverOrAddress;
+      server = serverOrId;
     }
 
     if (!server) {
       return null;
     }
 
-    if (server.detailsLevel >= ServerViewDetailsLevel.DynamicDataJson) {
+    if (server.detailsLevel >= ServerViewDetailsLevel.Live) {
       return server;
     }
 
     this.setServer(server.id, server);
 
-    let resolvedServer = (await getServerByAnyMean(CurrentGameName, server.id)) || server;
-
-    // If no live server data - it is offline
-    if (resolvedServer === server) {
-      resolvedServer = {
-        ...resolvedServer,
+    const resolvedServer = await getServerByAnyMean(server.id);
+    if (!resolvedServer) {
+      this.replaceServer({
+        ...server,
         offline: true,
-      };
-    } else {
-      resolvedServer = {
-        ...resolvedServer,
-        thumbnailIconURL: server.thumbnailIconURL,
-      };
+      });
+
+      return server;
     }
 
-    // Overwrite with resolved
-    this.setServer(server.id, resolvedServer);
-
-    // Resolved server can have different address, for example,
-    // if server to resolve had only IP address and we were able to resolve it to an actual CFXID
-    // so this way we will have same IServerView available by both addresses
-    this.setServer(resolvedServer.id, resolvedServer);
+    this.setServer(resolvedServer.id, {
+      ...resolvedServer,
+      thumbnailIconURL: server.thumbnailIconURL,
+    });
+    this.setServerIdAlias(server.id, resolvedServer.id);
 
     return resolvedServer;
   }
@@ -256,17 +266,16 @@ export class MpMenuServersService implements IServersService, AppContribution {
    * For smarter handling use ServersService.setServer()
    */
   replaceServer(server: IServerView) {
-    this.logService.log('Replacing server', ServerViewDetailsLevel[server.detailsLevel], server);
-    this._servers.set(server.id, server);
+    this.serversSet(server.id, server);
   }
 
   setServer(serverId: string, server: IServerView) {
-    const existingServer = this._servers.get(serverId);
+    const existingServer = this.getServer(serverId);
     if (existingServer) {
       if (server.detailsLevel < existingServer.detailsLevel) {
         // If incoming server has actual details - update them
-        if (server.detailsLevel >= ServerViewDetailsLevel.DynamicDataJson) {
-          this._servers.set(serverId, {
+        if (server.detailsLevel >= ServerViewDetailsLevel.Live) {
+          this.serversSet(serverId, {
             ...existingServer,
             playersMax: server.playersMax,
             playersCurrent: server.playersCurrent,
@@ -277,7 +286,7 @@ export class MpMenuServersService implements IServersService, AppContribution {
       }
     }
 
-    this._servers.set(serverId, server);
+    this.serversSet(serverId, server);
   }
 
   private initList(type: ServersListType): IServersList {
@@ -293,6 +302,7 @@ export class MpMenuServersService implements IServersService, AppContribution {
       }
       case ServersListType.Favorites: {
         return new FavoriteServersList(
+          this,
           this.serversStorageService,
           this.getServer,
           () => this._pinnedServersConfig,
@@ -331,27 +341,8 @@ export class MpMenuServersService implements IServersService, AppContribution {
       this.listSource.setPinnedConfig(config);
       this.pinnedServersConfig = config;
     } catch (e) {
-      this.logService.log('Failed to fetch pinned servers config');
+      this.logger.log('Failed to fetch pinned servers config');
       console.warn(e);
-    }
-  }
-
-  private async maybeLoadTopLocaleServer() {
-    for (const language of mpMenu.systemLanguages) {
-      const server = await getTopServer({
-        language,
-        gameName: CurrentGameName,
-      });
-
-      if (!server) {
-        continue;
-      }
-
-      this.replaceServer(server);
-
-      this.topLocaleServerId = server.id;
-
-      return;
     }
   }
 

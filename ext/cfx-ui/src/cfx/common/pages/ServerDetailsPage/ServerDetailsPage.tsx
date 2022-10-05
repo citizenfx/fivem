@@ -225,15 +225,23 @@ function playerRenderer(player: IServerViewPlayer): React.ReactNode {
 function useEnsureCompleteServerLoaded(server: IServerView) {
   const ServersService = useService(IServersService);
 
+  const { joinId, detailsLevel } = server;
+
   React.useEffect(() => {
+    if (!joinId) {
+      return;
+    }
+
+    if (server.detailsLevel >= ServerViewDetailsLevel.MasterListFull) {
+      return;
+    }
+
     let to = setTimeout(() => {
-      if (server.detailsLevel < ServerViewDetailsLevel.MasterListFull) {
-        ServersService.loadServerDetailedData(server.id);
-      }
+      ServersService.loadServerDetailedData(joinId);
     }, 16);
 
     return () => clearTimeout(to);
-  }, [server]);
+  }, [detailsLevel, joinId]);
 }
 
 const Warning = observer(function Warning({ server }: { server: IServerView }) {

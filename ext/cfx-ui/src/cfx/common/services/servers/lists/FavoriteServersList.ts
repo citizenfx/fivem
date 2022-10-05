@@ -1,4 +1,5 @@
 import { makeAutoObservable } from "mobx";
+import { IServersService } from "../servers.service";
 import { IServersStorageService } from "../serversStorage.service";
 import { filterList } from "../source/listFilter";
 import { sortList } from "../source/listSorter";
@@ -42,6 +43,7 @@ export class FavoriteServersList implements IServersList {
   }
 
   constructor(
+    protected readonly serversService: IServersService,
     protected readonly serversStorageService: IServersStorageService,
     private readonly getServer: (id: string) => IServerView | undefined,
     private readonly getPinnedServersConfig: () => IPinnedServersConfig | null,
@@ -78,12 +80,14 @@ export class FavoriteServersList implements IServersList {
   }
 
   isIn(id: string): boolean {
-    return this._favoriteServersMap[id] || false;
+    return this.serversService.getAllServerIds(id).some((id) => this._favoriteServersMap[id]);
   }
 
   toggleIn(id: string) {
     if (this._favoriteServersMap[id]) {
-      delete this._favoriteServersMap[id];
+      this.serversService.getAllServerIds(id).forEach((id) => {
+        delete this._favoriteServersMap[id];
+      });
     } else {
       this._favoriteServersMap[id] = true;
     }

@@ -10,7 +10,7 @@ import { dynamicServerData2ServerView, queriedServerData2ServerView } from "./tr
 import { IDynamicServerData, IQueriedServerData } from "./types";
 
 
-export async function getServerByAnyMean(gameName: GameName, address: string): Promise<IServerView | null> {
+export async function getServerByAnyMean(address: string, gameName: GameName = CurrentGameName): Promise<IServerView | null> {
   // First parse address
   const parsedAddress = parseServerAddress(address);
   if (!parsedAddress) {
