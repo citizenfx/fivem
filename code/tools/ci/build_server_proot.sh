@@ -5,7 +5,7 @@ set -e
 apk update
 
 # install build dependencies
-apk add curl git xz sudo rsync openssh-client
+apk add curl git xz sudo rsync openssh-client binutils
 
 git config --global safe.directory '*'
 
@@ -92,7 +92,50 @@ umount $PWD/alpine/fivem-private
 rm -r $PWD/alpine/src
 rm -r $PWD/alpine/fivem-private
 
-# patch elf interpreter
+# add build IDs
+echo "Adding build IDs"
+
+add_build_id()
+{
+	local sha1="$1"
+	local exename="$2"
+
+	[ -L $exename ] && return || true
+
+	local tmp=`mktemp /tmp/build-id.XXXXXX`
+
+	if readelf --file-header $exename | grep "big endian" > /dev/null; then
+		echo -en "\x00\x00\x00\x04" >> $tmp # name_size
+		echo -en "\x00\x00\x00\x14" >> $tmp # hash_size
+		echo -en "\x00\x00\x00\x03" >> $tmp # NT_GNU_BUILD_ID
+	elif readelf --file-header $exename | grep "little endian" > /dev/null; then
+		echo -en "\x04\x00\x00\x00" >> $tmp # name_size
+		echo -en "\x14\x00\x00\x00" >> $tmp # hash_size
+		echo -en "\x03\x00\x00\x00" >> $tmp # NT_GNU_BUILD_ID
+	else
+		echo >&2 "Could not determine endianness for: $exename"
+		return 1
+	fi
+
+	echo -en "GNU\x00" >> $tmp # GNU\0
+	printf "$(echo $sha1 | sed -e 's/../\\x&/g')" >> $tmp
+
+	objcopy --remove-section .note.gnu.build-id $exename || true
+	objcopy --add-section .note.gnu.build-id=$tmp $exename || true
+	rm $tmp
+}
+
+for i in $PWD/alpine/lib/*.so.* $PWD/alpine/usr/lib/*.so.*; do
+	echo "Adding build ID for $i"
+	sha1=`sha1sum $i | sed -e 's/ .*//g'`
+	raw_i=$(printf '%s' "$i" | sed -e 's@.*/alpine@@g')
+	add_build_id $sha1 $i
+	if [ -f "$PWD/alpine/usr/lib/debug$raw_i.debug" ]; then
+		add_build_id $sha1 "$PWD/alpine/usr/lib/debug$raw_i.debug"
+	fi
+done
+
+# place elf interpreter
 cp -a $PWD/alpine/lib/ld-musl-x86_64.so.1 $PWD/alpine/opt/cfx-server/
 
 # package system resources
