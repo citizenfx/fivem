@@ -152,7 +152,8 @@ class MpMenuServersStorageService implements IServersStorageService, AppContribu
       });
 
       if (historyServersFromLocalStorage.length) {
-        await table.bulkAdd(historyServersFromLocalStorage);
+        await table.bulkAdd(historyServersFromLocalStorage)
+          .catch(Dexie.BulkError, () => { /* some adds may fail and we're obliged to catch them this way so transaction completes */ });
       }
     }
 
