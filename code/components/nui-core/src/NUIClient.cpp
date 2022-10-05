@@ -186,12 +186,19 @@ Object.prototype.__defineGetter__ = function(prop, func) {
 		switch (type) {
 			case 'frameCall': {
 				const [ dataString ] = args;
-				const data = JSON.parse(dataString);
 
-				window.postMessage(data, '*');
+				try {
+					const data = JSON.parse(dataString);
 
-				if (!window.nuiInternalHandledMessages) {
-					nuiMessageQueue.push(data);
+					window.postMessage(data, '*');
+
+					if (!window.nuiInternalHandledMessages) {
+						nuiMessageQueue.push(data);
+					}
+				} catch (e) {
+					console.log('frameCall data that caused the following error', dataString);
+					console.error(e);
+					return;
 				}
 
 				break;
