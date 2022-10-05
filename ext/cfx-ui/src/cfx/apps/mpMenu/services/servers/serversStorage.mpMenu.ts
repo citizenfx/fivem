@@ -139,7 +139,17 @@ class MpMenuServersStorageService implements IServersStorageService, AppContribu
 
     // Attempt to migrate if no DB existed
     if (!this.dbExisted) {
-      const historyServersFromLocalStorage = DEPRECATED_getSavedHistoryServersFromLocalStorage();
+      const seenAddresses: Record<string, true> = {};
+
+      const historyServersFromLocalStorage = DEPRECATED_getSavedHistoryServersFromLocalStorage().filter((historyServer) => {
+        if (seenAddresses[historyServer.address]) {
+          return false;
+        }
+
+        seenAddresses[historyServer.address] = true;
+
+        return true;
+      });
 
       if (historyServersFromLocalStorage.length) {
         await table.bulkAdd(historyServersFromLocalStorage);
