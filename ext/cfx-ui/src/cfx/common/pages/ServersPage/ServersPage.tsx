@@ -60,7 +60,7 @@ export const ServersPage = observer(function ServersPage(props: ServersPageProps
     <Page showLoader={ServersService.serversListLoading}>
       <Flex fullHeight fullWidth>
         {showPlaceholder && (
-          <EmptyListPlaceholder />
+          <EmptyListPlaceholder configController={list.getConfig?.()} />
         )}
 
         {!showPlaceholder && (

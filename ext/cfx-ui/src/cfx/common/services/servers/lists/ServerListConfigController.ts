@@ -210,6 +210,28 @@ export class ServerListConfigController {
     this.onChange(this.sendableConfig);
   }
 
+  reset() {
+    this.observableConfig.hideEmpty = false;
+    this.sendableConfig.hideEmpty = false;
+
+    this.observableConfig.hideFull = false;
+    this.sendableConfig.hideFull = false;
+
+    this.observableConfig.locales = {};
+    this.sendableConfig.locales = {};
+
+    this.observableConfig.tags = {};
+    this.sendableConfig.tags = {};
+
+    this.observableConfig.searchText = '';
+    this.sendableConfig.searchText = '';
+
+    this.observableConfig.searchTextParsed = [];
+    this.sendableConfig.searchTextParsed = [];
+
+    this.triggerChange();
+  }
+
   private triggerChange() {
     this.onChange(this.sendableConfig);
 
