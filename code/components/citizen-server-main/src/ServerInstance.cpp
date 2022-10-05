@@ -152,7 +152,7 @@ namespace fx
 					{
 						forwardArgs(cmd, args);
 					}
-					else if (setList.find(cmd) != setList.end())
+					else if (setList.find(cmd) != setList.end() && args.Count() >= 1)
 					{
 						forwardArgs("set", ProgramArguments{ cmd, args.Get(0) });
 					}
