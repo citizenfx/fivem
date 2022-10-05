@@ -50,7 +50,7 @@ export class HistoryServersList implements IServersList {
   addHistoryServer(historyServer: IHistoryServer) {
     this._serversLastConnectedAt[historyServer.address] = historyServer.time;
 
-    this.serversStorageService.addLastServer(historyServer);
+    return this.serversStorageService.addLastServer(historyServer);
   }
 
   private async resolveHistoryServer(historyServer: IHistoryServer) {

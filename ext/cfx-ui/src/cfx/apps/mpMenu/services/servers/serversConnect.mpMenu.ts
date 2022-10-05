@@ -221,7 +221,7 @@ class MpMenuServersConnectService implements IServersConnectService {
     if (this.currentConnectNonce === event.data.nonce) {
       const historyList = this.serversService.getHistoryList();
       if (historyList && this.server) {
-        historyList.addHistoryServer(await historyList.serverView2HistoryServer(this.server, event.data.server));
+        await historyList.addHistoryServer(await historyList.serverView2HistoryServer(this.server, event.data.server));
       }
     }
 

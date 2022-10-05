@@ -28,13 +28,6 @@ class MpMenuServersStorageService implements IServersStorageService, AppContribu
   private lastServersDeferred = new Deferred<void>();
   readonly lastServersPopulated = this.lastServersDeferred.promise;
 
-  /**
-   * A map of known last server ids so we can decide if newly added server needs to be updated or inserted
-   */
-  private _knownLastServerIds: Record<string, true> = {};
-  public get knownLastServerIds(): Record<string, true> { return this._knownLastServerIds }
-  private set knownLastServerIds(knownLastServerIds: Record<string, true>) { this._knownLastServerIds = knownLastServerIds }
-
   private _lastServers: IHistoryServer[] = [];
   private get lastServers(): IHistoryServer[] { return this._lastServers }
   private set lastServers(lastServers: IHistoryServer[]) { this._lastServers = lastServers }
@@ -102,16 +95,22 @@ class MpMenuServersStorageService implements IServersStorageService, AppContribu
       return;
     }
 
-    try {
-      if (this.knownLastServerIds[historyServer.address]) {
-        await table.update(historyServer.address, historyServer);
-      } else {
-        await table.add(historyServer);
-      }
-    } catch (e) {
-      this.logger.error(e, { historyServer });
+    let serverInserted = false;
 
-      return;
+    try {
+      await table.add(historyServer);
+      serverInserted = true;
+    } catch (e) {
+      // no-op
+    }
+
+    if (!serverInserted) {
+      try {
+        await table.update(historyServer.address, historyServer);
+      } catch (e) {
+        console.warn(e);
+        this.logger.error(new Error(`Failed to update history server: ${e.message}`), { historyServer });
+      }
     }
 
     await this.loadHistoryServers();
@@ -183,11 +182,6 @@ class MpMenuServersStorageService implements IServersStorageService, AppContribu
 
       const historyServers: IHistoryServer[] = entries.map(reviveHistoryServer).filter(Boolean) as any;
 
-      this.knownLastServerIds = historyServers.reduce((acc, { address }) => {
-        acc[address] = true;
-        return acc;
-      }, {});
-
       return historyServers;
     } catch (e) {
       console.warn(e);
@@ -216,7 +210,7 @@ class MpMenuServersStorageService implements IServersStorageService, AppContribu
 
       await this.db.open();
     } catch (e) {
-      this.logger.error(e, { action: 'Opening the database', DB_NAME });
+      this.logger.error(new Error(`Failed to open IndexedDB`), { action: 'Opening the database', DB_NAME, originalError: e });
 
       this.lastServersError = 'Failed to load history servers';
     } finally {
