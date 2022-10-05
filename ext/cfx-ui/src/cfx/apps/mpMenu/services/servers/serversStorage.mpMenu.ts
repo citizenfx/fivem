@@ -95,22 +95,11 @@ class MpMenuServersStorageService implements IServersStorageService, AppContribu
       return;
     }
 
-    let serverInserted = false;
-
     try {
-      await table.add(historyServer);
-      serverInserted = true;
+      await table.put(historyServer);
     } catch (e) {
-      // no-op
-    }
-
-    if (!serverInserted) {
-      try {
-        await table.update(historyServer.address, historyServer);
-      } catch (e) {
-        console.warn(e);
-        this.logger.error(new Error(`Failed to update history server: ${e.message}`), { historyServer });
-      }
+      console.warn(e);
+      this.logger.error(new Error(`Failed to update history server: ${e.message}`), { historyServer });
     }
 
     await this.loadHistoryServers();
