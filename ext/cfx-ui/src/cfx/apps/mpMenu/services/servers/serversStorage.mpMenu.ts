@@ -102,10 +102,16 @@ class MpMenuServersStorageService implements IServersStorageService, AppContribu
       return;
     }
 
-    if (this.knownLastServerIds[historyServer.address]) {
-      table.update(historyServer.address, historyServer);
-    } else {
-      table.add(historyServer);
+    try {
+      if (this.knownLastServerIds[historyServer.address]) {
+        await table.update(historyServer.address, historyServer);
+      } else {
+        await table.add(historyServer);
+      }
+    } catch (e) {
+      this.logger.error(e, { historyServer });
+
+      return;
     }
 
     await this.loadHistoryServers();
@@ -152,8 +158,14 @@ class MpMenuServersStorageService implements IServersStorageService, AppContribu
       });
 
       if (historyServersFromLocalStorage.length) {
-        await table.bulkAdd(historyServersFromLocalStorage)
-          .catch(Dexie.BulkError, () => { /* some adds may fail and we're obliged to catch them this way so transaction completes */ });
+        for (const historyServer of historyServersFromLocalStorage) {
+          try {
+            await table.add(historyServer);
+          } catch (e) {
+            this.logger.log('The following error occured when trying to migrate history server', historyServer);
+            console.warn(e);
+          }
+        }
       }
     }
 
@@ -166,16 +178,22 @@ class MpMenuServersStorageService implements IServersStorageService, AppContribu
       return [];
     }
 
-    const entries = await table.orderBy('time').reverse().toArray();
+    try {
+      const entries = await table.orderBy('time').reverse().toArray();
 
-    const historyServers: IHistoryServer[] = entries.map(reviveHistoryServer).filter(Boolean) as any;
+      const historyServers: IHistoryServer[] = entries.map(reviveHistoryServer).filter(Boolean) as any;
 
-    this.knownLastServerIds = historyServers.reduce((acc, { address }) => {
-      acc[address] = true;
-      return acc;
-    }, {});
+      this.knownLastServerIds = historyServers.reduce((acc, { address }) => {
+        acc[address] = true;
+        return acc;
+      }, {});
 
-    return historyServers;
+      return historyServers;
+    } catch (e) {
+      console.warn(e);
+
+      return [];
+    }
   }
 
   private async openDb() {
@@ -198,7 +216,7 @@ class MpMenuServersStorageService implements IServersStorageService, AppContribu
 
       await this.db.open();
     } catch (e) {
-      this.logger.error(e, { DB_NAME });
+      this.logger.error(e, { action: 'Opening the database', DB_NAME });
 
       this.lastServersError = 'Failed to load history servers';
     } finally {
