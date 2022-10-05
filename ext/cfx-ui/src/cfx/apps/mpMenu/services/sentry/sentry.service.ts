@@ -6,6 +6,7 @@ import { ServicesContainer } from 'cfx/base/servicesContainer';
 import { IAccountService } from 'cfx/common/services/account/account.service';
 import { IAccount } from 'cfx/common/services/account/types';
 import { AppContribution, registerAppContribution } from 'cfx/common/services/app/app.extensions';
+import { fastRandomId } from 'cfx/utils/random';
 import { inject, injectable } from 'inversify';
 import { mpMenu } from '../../mpMenu';
 import { IConvarService } from '../convars/convars.service';
@@ -24,6 +25,18 @@ if (ENABLE_SENTRY) {
 
     release: `cfx-${process.env.CI_PIPELINE_ID || 'dev'}`,
   });
+
+  try {
+    if (!window.localStorage['sentryUserId']) {
+      window.localStorage['sentryUserId'] = `${fastRandomId()}-${fastRandomId()}`;
+    }
+
+    Sentry.setUser({
+      id: window.localStorage['sentryUserId'],
+    });
+  } catch (e) {
+    // no-op
+  }
 }
 
 export function registerSentryService(container: ServicesContainer) {
@@ -99,12 +112,13 @@ class SentryService implements AppContribution {
 
   private readonly setSentryUser = (account: IAccount | null) => {
     if (account) {
-      Sentry.setUser({
-        id: formatCFXID(account.id),
+      Sentry.setContext('cfxUser', {
+        id: account.id,
+        link: `https://forum.cfx.re/u/${account.id}`,
         username: account.username,
-      });
+      })
     } else {
-      Sentry.setUser(null);
+      Sentry.setContext('cfxUser', null);
     }
   };
 }
