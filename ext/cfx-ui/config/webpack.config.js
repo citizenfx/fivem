@@ -214,9 +214,11 @@ module.exports = (env, argv) => {
     optimization: {
       usedExports: isProd,
 
-      chunkIds: 'named',
-
-      splitChunks: false,
+      ...(
+        isProd
+          ? { chunkIds: 'named', splitChunks: false }
+          : {}
+      ),
 
       minimizer: [
         isProd && new ImageMinimizerPlugin({

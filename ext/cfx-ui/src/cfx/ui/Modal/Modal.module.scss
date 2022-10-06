@@ -56,9 +56,10 @@
     height: ui.control-height('large');
 
     padding: 0 ui.offset('normal');
-    margin-bottom: ui.offset('normal');
 
-    @include ui.font-size('xlarge');
+    box-shadow: 0 -1px 0 ui.color-token('modal-border') inset;
+
+    @include ui.font-size('large');
     @include ui.font-color('text-a75');
     @include ui.font-weight('bold');
   }

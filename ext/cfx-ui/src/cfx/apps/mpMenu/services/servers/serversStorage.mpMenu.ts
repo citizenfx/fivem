@@ -3,12 +3,14 @@ import { AppContribution, registerAppContribution } from "cfx/common/services/ap
 import { ServicesContainer } from "cfx/base/servicesContainer";
 import { IServersStorageService } from "cfx/common/services/servers/serversStorage.service";
 import { IHistoryServer } from "cfx/common/services/servers/types";
-import { injectable } from "inversify";
+import { inject, injectable } from "inversify";
 import { mpMenu } from "../../mpMenu";
 import { parseServerAddress } from "cfx/common/services/servers/serverAddressParser";
 import { makeAutoObservable, observable } from "mobx";
 import { Deferred } from "cfx/utils/async";
 import { scopedLogger, ScopedLogger } from 'cfx/common/services/log/scopedLogger';
+import { IUiMessageService } from '../uiMessage/uiMessage.service';
+import { CurrentGameBrand } from 'cfx/base/gameRuntime';
 
 const DB_NAME = 'HistoryServers';
 
@@ -46,6 +48,8 @@ class MpMenuServersStorageService implements IServersStorageService, AppContribu
   constructor(
     @scopedLogger('MpMenuServersStorageService')
     protected readonly logger: ScopedLogger,
+    @inject(IUiMessageService)
+    protected readonly uiMessageService: IUiMessageService,
   ) {
     makeAutoObservable(this, {
       // @ts-expect-error private
@@ -98,8 +102,10 @@ class MpMenuServersStorageService implements IServersStorageService, AppContribu
     try {
       await table.put(historyServer);
     } catch (e) {
-      console.warn(e);
-      this.logger.error(new Error(`Failed to update history server: ${e.message}`), { historyServer });
+      console.warn('Failed to update history server', {
+        error: e,
+        historyServer,
+      });
     }
 
     await this.loadHistoryServers();
@@ -199,9 +205,18 @@ class MpMenuServersStorageService implements IServersStorageService, AppContribu
 
       await this.db.open();
     } catch (e) {
-      this.logger.error(new Error(`Failed to open IndexedDB`), { action: 'Opening the database', DB_NAME, originalError: e });
+      console.warn(`Failed to open IndexedDB`, { action: 'Opening the database', DB_NAME, error: e });
 
       this.lastServersError = 'Failed to load history servers';
+
+      this.uiMessageService.showInfoMessage(
+        [
+          '[md]History servers functionality is unavailable right now',
+          'Make sure you have some free space on your disk',
+          '',
+          `__You can continue playing ${CurrentGameBrand}!__`,
+        ].join('\n'),
+      );
     } finally {
       this.dbOpen.resolve();
     }
