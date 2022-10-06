@@ -1,3 +1,4 @@
+import React from "react";
 import { useServiceResolver } from "cfx/base/servicesContainer";
 import { scopedLogger, ScopedLogger } from "cfx/common/services/log/scopedLogger";
 import { ICategorySearchTerm, ISearchTerm, searchTermToString } from "cfx/base/searchTermsParser";
@@ -7,7 +8,7 @@ import { useInstance } from "cfx/utils/hooks";
 import { replaceRange } from "cfx/utils/string";
 import { inject, injectable } from "inversify";
 import { makeAutoObservable, observable } from "mobx";
-import React from "react";
+import { clone } from "cfx/utils/object";
 
 export enum SuggestionState {
   NOT_AVAILABLE,
@@ -175,9 +176,17 @@ export class SearchInputController {
     const suggestionIndex = this.selectedSuggestionIndex;
 
     if (isEnter) {
-      const term = this.parsed[this.activeTermIndex];
-      const suggestion = suggestions[suggestionIndex];
+      let term = this.activeTerm;
+      if (!term) {
+        return;
+      }
 
+      const suggestion = suggestions[suggestionIndex];
+      if (!suggestion) {
+        return;
+      }
+
+      term = clone(term);
       term.value = suggestion;
 
       const replacement = this.activeTermIndex === this.parsed.length - 1
