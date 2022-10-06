@@ -309,22 +309,22 @@ class DiscourseService implements IAccountService, AppContribution {
       };
     }
 
-    const session = await this.createSession(credentials);
+    try {
+      const session = await this.createSession(credentials);
 
-    if (session.error) {
-      if (session.reason === 'invalid_second_factor' && !totp) {
+      if (session.error) {
+        if (session.reason === 'invalid_second_factor' && !totp) {
+          return {
+            status: LoginStatus.TOTPRequest,
+          };
+        }
+
         return {
-          status: LoginStatus.TOTPRequest,
+          status: LoginStatus.Error,
+          error: session.error,
         };
       }
 
-      return {
-        status: LoginStatus.Error,
-        error: session.error,
-      };
-    }
-
-    try {
       await this.syntheticAuth();
       await this.loadCurrentAccount();
 
@@ -332,7 +332,7 @@ class DiscourseService implements IAccountService, AppContribution {
         status: LoginStatus.Success,
       };
     } catch (e) {
-      console.error(e);
+      console.warn(e);
 
       return {
         status: LoginStatus.Error,
