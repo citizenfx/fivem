@@ -1678,6 +1678,66 @@ static void Init()
 
 		return steeringData ? steeringData->steeringAngle * (180.0f / pi) : 0.0f;
 	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_GAME_POOL", [](fx::ScriptContext& context) {
+		// get the current resource manager
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		// get the owning server instance
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		// get the server's game state
+		auto gameState = instance->GetComponent<fx::ServerGameState>();
+		std::string pool = context.CheckArgument<const char*>(0);
+
+		std::vector<int> poolList;
+		std::shared_lock<std::shared_mutex> lock(gameState->m_entityListMutex);
+		for (auto& entity : gameState->m_entityList)
+		{
+			switch (entity->type)
+			{
+#if STATE_RDR3
+				case fx::sync::NetObjEntityType::Animal:
+				case fx::sync::NetObjEntityType::Horse:
+#endif
+				case fx::sync::NetObjEntityType::Ped:
+				case fx::sync::NetObjEntityType::Player:
+					if (pool.compare("CPed") == 0)
+						poolList.push_back(gameState->MakeScriptHandle(entity));					
+					break;
+#if STATE_RDR3
+				case fx::sync::NetObjEntityType::WorldProjectile:
+#endif
+				case fx::sync::NetObjEntityType::Door:
+				case fx::sync::NetObjEntityType::Object:
+					if (pool.compare("CObject") == 0)
+						poolList.push_back(gameState->MakeScriptHandle(entity));
+					break;
+#if STATE_RDR3
+				case fx::sync::NetObjEntityType::DraftVeh:
+#endif
+				case fx::sync::NetObjEntityType::Automobile:
+				case fx::sync::NetObjEntityType::Bike:
+				case fx::sync::NetObjEntityType::Boat:
+				case fx::sync::NetObjEntityType::Heli:
+				case fx::sync::NetObjEntityType::Submarine:
+				case fx::sync::NetObjEntityType::Plane:
+				case fx::sync::NetObjEntityType::Trailer:
+				case fx::sync::NetObjEntityType::Train:
+					if (pool.compare("CVehicle") == 0)
+						poolList.push_back(gameState->MakeScriptHandle(entity));
+					break;
+
+				case fx::sync::NetObjEntityType::Pickup:
+				case fx::sync::NetObjEntityType::PickupPlacement:
+					if (pool.compare("CPickup") == 0)
+						poolList.push_back(gameState->MakeScriptHandle(entity));
+					break;
+			}
+		}
+
+		context.SetResult(fx::SerializeObject(poolList));
+	});
 }
 
 static InitFunction initFunction([]()
