@@ -1,4 +1,4 @@
-import Dexie, { Table } from 'dexie';
+import Dexie, { Table, PromiseExtended } from 'dexie';
 import { AppContribution, registerAppContribution } from "cfx/common/services/app/app.extensions";
 import { ServicesContainer } from "cfx/base/servicesContainer";
 import { IServersStorageService } from "cfx/common/services/servers/serversStorage.service";
@@ -7,10 +7,12 @@ import { inject, injectable } from "inversify";
 import { mpMenu } from "../../mpMenu";
 import { parseServerAddress } from "cfx/common/services/servers/serverAddressParser";
 import { makeAutoObservable, observable } from "mobx";
-import { Deferred } from "cfx/utils/async";
+import { Deferred, retry } from "cfx/utils/async";
 import { scopedLogger, ScopedLogger } from 'cfx/common/services/log/scopedLogger';
 import { IUiMessageService } from '../uiMessage/uiMessage.service';
 import { CurrentGameBrand } from 'cfx/base/gameRuntime';
+
+(Dexie as any).debug = true;
 
 const DB_NAME = 'HistoryServers';
 
@@ -100,12 +102,14 @@ class MpMenuServersStorageService implements IServersStorageService, AppContribu
     }
 
     try {
-      await table.put(historyServer);
+      await wrapDexieErrors(table.put(historyServer));
     } catch (e) {
       console.warn('Failed to update history server', {
         error: e,
         historyServer,
       });
+
+      return;
     }
 
     await this.loadHistoryServers();
@@ -173,7 +177,7 @@ class MpMenuServersStorageService implements IServersStorageService, AppContribu
     }
 
     try {
-      const entries = await table.orderBy('time').reverse().toArray();
+      const entries = await retry(3, () => wrapDexieErrors(table.orderBy('time').reverse().toArray()));
 
       const historyServers: IHistoryServer[] = entries.map(reviveHistoryServer).filter(Boolean) as any;
 
@@ -203,7 +207,7 @@ class MpMenuServersStorageService implements IServersStorageService, AppContribu
         });
       }
 
-      await this.db.open();
+      await wrapDexieErrors(this.db.open());
     } catch (e) {
       console.warn(`Failed to open IndexedDB`, { action: 'Opening the database', DB_NAME, error: e });
 
@@ -337,4 +341,8 @@ function DEPRECATED_getSavedHistoryServersFromLocalStorage(): IHistoryServer[] {
   } catch (e) {
     return [];
   }
+}
+
+function wrapDexieErrors<T>(op: PromiseExtended<T>): PromiseExtended<T> {
+  return op.catch((e) => { throw e });
 }

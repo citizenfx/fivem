@@ -118,3 +118,20 @@ export class OnlyLatest<TWorkArgs extends any[], TWorkResult extends any> implem
     }
   };
 }
+
+// @ts-expect-error TS fails to understand that this code will either return or throw an error
+export async function retry<RetType>(attempts: number, fn: () => Promise<RetType>): Promise<RetType> {
+  let attempt = 0;
+
+  while (attempt++ <= attempts) {
+    const lastAttempt = attempt === attempts;
+
+    try {
+      return await fn();
+    } catch (e) {
+      if (lastAttempt) {
+        throw e;
+      }
+    }
+  }
+}
