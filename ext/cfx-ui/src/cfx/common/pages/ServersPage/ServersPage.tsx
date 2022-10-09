@@ -17,6 +17,7 @@ import { useSavedScrollPositionForBackNav } from "cfx/utils/hooks";
 import { $L } from "cfx/common/services/intl/l10n";
 import { Icons } from "cfx/ui/Icons";
 import { EmptyListPlaceholder } from "./EmptyListPlaceholder/EmptyListPlaceholder";
+import { IndexedServerListItem } from "cfx/common/parts/Server/ServerListItem/IndexedServerListItem";
 import s from './ServersPage.module.scss';
 
 const emptyListPlaceholders = {
@@ -43,11 +44,11 @@ export const ServersPage = observer(function ServersPage(props: ServersPageProps
   const [initialScrollOffset, setScrollOffset] = useSavedScrollPositionForBackNav(list);
 
   const renderItem = React.useCallback((index: number) => (
-    <ServerListItem
-      pinned={ServersService.isServerPinned(list.sequence[index])}
-      server={ServersService.getServer(list.sequence[index])}
+    <IndexedServerListItem
+      index={index}
+      list={list}
     />
-  ), [list, ServersService]);
+  ), [list]);
 
   const isListEmpty = list.sequence.length === 0;
   const isListLoading = ServersService.serversListLoading;
@@ -86,9 +87,9 @@ export const ServersPage = observer(function ServersPage(props: ServersPageProps
 const PinnedServers = observer(function PinnedServers() {
   const ServersService = useServersService();
 
-  const nodes = ServersService.pinnedServers.map((serverId) => (
+  const nodes = ServersService.pinnedServers.map((id) => ServersService.getServer(id)).filter(Boolean).map((server) => (
     <Box
-      key={serverId}
+      key={server!.id}
       height={10}
       width="100%"
     >
@@ -99,7 +100,7 @@ const PinnedServers = observer(function PinnedServers() {
         hideCountryFlag
         hidePremiumBadge
         descriptionUnderName
-        server={ServersService.getServer(serverId)}
+        server={server}
       />
     </Box>
   ));

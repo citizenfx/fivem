@@ -248,7 +248,7 @@ export class MpMenuServersService implements IServersService, AppContribution {
         offline: true,
       });
 
-      return server;
+      return this.getServer(server.id)!;
     }
 
     this.setServer(resolvedServer.id, {
