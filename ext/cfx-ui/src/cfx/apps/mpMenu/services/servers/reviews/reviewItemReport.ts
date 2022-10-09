@@ -50,11 +50,15 @@ export class DiscourseServerReviewReport implements IServerReviewReport {
   }
 
   async submit(option: IServerReviewReportOption, message?: string | undefined) {
-    await this.discourseService.makeApiCall('/post_actions', 'POST', {
-      id: this.post.id,
-      post_action_type_id: option.id,
-      flag_topic: false,
-      message,
-    });
+    try {
+      await this.discourseService.makeApiCall('/post_actions', 'POST', {
+        id: this.post.id,
+        post_action_type_id: option.id,
+        flag_topic: false,
+        message,
+      });
+    } catch (e) {
+      console.warn(e);
+    }
   }
 }
