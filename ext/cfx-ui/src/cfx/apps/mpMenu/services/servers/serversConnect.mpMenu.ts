@@ -1,3 +1,4 @@
+import { getConnectEndpoits } from "cfx/base/serverUtils";
 import { ServicesContainer, useService } from "cfx/base/servicesContainer";
 import { IAnalyticsService } from "cfx/common/services/analytics/analytics.service";
 import { ScopedLogger } from "cfx/common/services/log/scopedLogger";
@@ -5,6 +6,7 @@ import { IServersService } from "cfx/common/services/servers/servers.service";
 import { IServersConnectService } from "cfx/common/services/servers/serversConnect.service";
 import { serverAddress2ServerView } from "cfx/common/services/servers/transformers";
 import { IServerView } from "cfx/common/services/servers/types";
+import { randomArrayItem } from "cfx/utils/array";
 import { fastRandomId } from "cfx/utils/random";
 import { RichEvent } from "cfx/utils/types";
 import { inject, injectable, named, optional } from "inversify";
@@ -190,18 +192,18 @@ class MpMenuServersConnectService implements IServersConnectService {
   };
 
   private pickServerConnectEndPoint(server: IServerView, address?: string): string {
-    // Prefer address
     if (address) {
       return address;
     }
 
-    if (server.manuallyEnteredEndPoint) {
-      return server.manuallyEnteredEndPoint;
+    const endpoints = getConnectEndpoits(server);
+
+    if (endpoints.manual) {
+      return endpoints.manual;
     }
 
-    const endpoints = server.connectEndPoints?.filter((endpoint) => endpoint !== 'https://private-placholder.cfx.re');
-    if (endpoints?.length) {
-      return endpoints[Math.floor(Math.random() * endpoints.length)]
+    if (endpoints.provided) {
+      return randomArrayItem(endpoints.provided);
     }
 
     return server.joinId || server.id;

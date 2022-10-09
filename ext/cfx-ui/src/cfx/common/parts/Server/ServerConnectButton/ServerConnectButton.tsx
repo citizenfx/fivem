@@ -1,4 +1,4 @@
-import { isServerEOL } from "cfx/base/serverUtils";
+import { hasConnectEndpoints, isServerEOL } from "cfx/base/serverUtils";
 import { useServiceOptional } from "cfx/base/servicesContainer";
 import { $L } from "cfx/common/services/intl/l10n";
 import { IServersConnectService } from "cfx/common/services/servers/serversConnect.service";
@@ -30,30 +30,23 @@ export const ServerConnectButton = observer(function ServerConnectButton(props: 
   const ServersConnectService = useServiceOptional(IServersConnectService);
 
   let title: ReactNode;
-  let canConnect = true;
+  let canConnect = hasConnectEndpoints(server);
 
   if (!server.manuallyEnteredEndPoint) {
     switch (true) {
-      case !ServersConnectService: {
-        title = 'No ServersConnectService, unable to connect';
-        canConnect = false;
-        break;
-      }
-
-      case !!server.private: {
-        title = $L('#ServerDetail_PrivateDisable');
-        canConnect = false;
-        break;
-      }
       case isServerEOL(server): {
         title = $L('#ServerDetail_EOLDisable');
         canConnect = false;
         break;
       }
 
+      case !!server.private: {
+        title = $L('#ServerDetail_PrivateDisable');
+        break;
+      }
+
       case isServerOffline(server): {
         title = $L('#ServerDetail_OfflineDisable');
-        canConnect = false;
         break;
       }
     }
@@ -77,7 +70,7 @@ export const ServerConnectButton = observer(function ServerConnectButton(props: 
     }
   }
 
-  const disabled = !canConnect || !ServersConnectService?.canConnect;
+  const disabled = !ServersConnectService?.canConnect || !canConnect;
 
   const handleClick = ServersConnectService
     ? () => {

@@ -21,3 +21,7 @@ export function arrayAll<T>(array: Array<T>, predicate: (item: T) => boolean): b
 export function arraySome<T>(array: Array<T>, predicate: (item: T) => boolean): boolean {
   return array.some(predicate);
 }
+
+export function randomArrayItem<T>(array: Array<T>): T {
+  return array[Math.floor(Math.random() * array.length)];
+}

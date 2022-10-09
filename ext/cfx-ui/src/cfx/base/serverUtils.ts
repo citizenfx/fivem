@@ -227,6 +227,44 @@ export function shouldDisplayServerResource(resourceName: string): boolean {
   return !NON_DISPLAY_SERVER_RESOURCE_NAMES.has(resourceName);
 }
 
+export const SERVER_PRIVATE_CONNECT_ENDPOINT = 'https://private-placeholder.cfx.re/';
+
 export function hasPrivateConnectEndpoint(endpoints?: string[] | null): boolean {
-  return endpoints?.[0] === 'https://private-placeholder.cfx.re/';
+  if (!endpoints) {
+    return false;
+  }
+
+  return !notPrivateConnectEndpoint(endpoints[0]);
+}
+
+export function notPrivateConnectEndpoint(endpoit: string): boolean {
+  return endpoit !== SERVER_PRIVATE_CONNECT_ENDPOINT;
+}
+
+export interface IServerConnectEndpoints {
+  manual?: string,
+  provided?: string[],
+}
+
+export function getConnectEndpoits(server: IServerView): IServerConnectEndpoints {
+  const eps: IServerConnectEndpoints = {};
+
+  if (server.manuallyEnteredEndPoint) {
+    eps.manual = server.manuallyEnteredEndPoint;
+  }
+
+  if (server.connectEndPoints) {
+    const provided = server.connectEndPoints.filter(notPrivateConnectEndpoint);
+    if (provided.length) {
+      eps.provided = provided;
+    }
+  }
+
+  return eps;
+}
+
+export function hasConnectEndpoints(server: IServerView): boolean {
+  const endpoints = getConnectEndpoits(server);
+
+  return Boolean(endpoints.manual || endpoints.provided);
 }
