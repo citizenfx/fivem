@@ -74,6 +74,8 @@ body {
 
   vertical-align: middle;
 
+  margin-right: ui.offset('small');
+
   &::after {
     display: inline;
     content: ' ';
