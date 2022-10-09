@@ -44,5 +44,9 @@ const howl = new Howl({
 });
 
 export function playSfx(sfx: Sfx) {
-  howl.play(sfx);
+  try {
+    howl.play(sfx);
+  } catch (e) {
+    // no-op
+  }
 }
