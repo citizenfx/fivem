@@ -44,7 +44,7 @@ class MpMenuServersStorageService implements IServersStorageService, AppContribu
   private set favoriteServersSequence(favoriteServersSequence: string[]) { this._favoriteServersSequence = favoriteServersSequence }
 
   private db: Dexie;
-  private dbOpen: Deferred;
+  private dbOpen = new Deferred();
   private dbExisted: boolean;
 
   constructor(
@@ -57,8 +57,6 @@ class MpMenuServersStorageService implements IServersStorageService, AppContribu
       // @ts-expect-error private
       _historyServers: observable.shallow,
     });
-
-    this.dbOpen = new Deferred();
 
     this.openDb();
   }

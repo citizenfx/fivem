@@ -9,7 +9,15 @@ import { AutocompleteIndexer } from "./autocomplete";
 import { shouldPrioritizePinnedServers } from "cfx/base/serverUtils";
 import { GameName } from "cfx/base/game";
 
-export const ServerResponses = defineEvents((type, data) => postMessage({ type, data }))
+function postMessageToMainThread(type: string, data: any) {
+  try {
+    postMessage({ type, data });
+  } catch (e) {
+    console.warn(e, type, data);
+  }
+}
+
+export const ServerResponses = defineEvents(postMessageToMainThread)
   .add<'allServersBegin'>()
   .add<'allServersChunk', IServerView[]>()
   .add<'allServersEnd', IServerView[]>()
