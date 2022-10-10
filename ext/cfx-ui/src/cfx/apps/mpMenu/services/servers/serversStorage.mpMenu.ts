@@ -116,9 +116,24 @@ class MpMenuServersStorageService implements IServersStorageService, AppContribu
   }
 
   async clearLastServers(): Promise<void> {
-    this.lastServers = [];
+    if (this.lastServers.length === 0) {
+      return;
+    }
 
-    mpMenu.invokeNative('setLastServers', '[]');
+    try {
+      const table = await this.getDbTable();
+      if (!table) {
+        return;
+      }
+
+      await wrapDexieErrors(table.bulkDelete(this.lastServers.map(({ address }) => address)));
+
+      this.lastServers = [];
+
+      mpMenu.invokeNative('setLastServers', '[]');
+    } catch (e) {
+      console.warn(e);
+    }
   }
 
   private async loadHistoryServers() {
