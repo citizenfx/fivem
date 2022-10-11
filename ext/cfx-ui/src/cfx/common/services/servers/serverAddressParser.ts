@@ -1,4 +1,15 @@
+import { Autolinker, AutolinkerConfig } from 'autolinker';
 import { DEFAULT_SERVER_PORT_INT } from 'cfx/base/serverUtils';
+
+const autolinkerConfig: AutolinkerConfig = {
+  email: false,
+  phone: false,
+  hashtag: false,
+  mention: false,
+  urls: true,
+};
+
+const DUMMY_BASE_URL = 'fivem://connect/';
 
 export interface JoinServerAddress {
   type: 'join',
@@ -69,6 +80,10 @@ export function parseServerAddress(str: string): IParsedServerAddress | null {
   if (ipParts) {
     const { ip, port } = ipParts;
 
+    if (port > 65536) {
+      return null;
+    }
+
     return {
       type: 'ip',
       ip,
@@ -90,11 +105,26 @@ export function parseServerAddress(str: string): IParsedServerAddress | null {
 
   // Try infer address as a domain
   try {
-    new URL(str);
+    const [match] = Autolinker.parse(str, autolinkerConfig);
+    if (!match) {
+      return null;
+    }
+
+    const url = new URL(match.getAnchorHref(), DUMMY_BASE_URL);
+
+    let urlRemainder = url.pathname + url.search + url.hash;
+
+    let address = url.toString();
+    if (address.startsWith(DUMMY_BASE_URL)) {
+      address = address.substring(DUMMY_BASE_URL.length, address.length - urlRemainder.length);
+    } else {
+      //                          http:                 //
+      address = address.substring(url.protocol.length + 2, address.length - urlRemainder.length);
+    }
 
     return {
       type: 'host',
-      address: str,
+      address,
     };
   } catch (e) {
     // noop

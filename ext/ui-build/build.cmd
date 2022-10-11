@@ -24,16 +24,19 @@ if exist %CacheRoot%\cfx-ui-modules (
 
 :: install packages (using Yarn now)
 call yarn
-
 :: propagate error
 if %ERRORLEVEL% neq 0 exit /b 1
+
+:: run test
+call yarn test
+:: propagate error
+if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
 
 :: remove old build output
 rmdir /s /q build
 
 :: build it
 call yarn build 2>&1
-
 :: propagate error
 if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
 
