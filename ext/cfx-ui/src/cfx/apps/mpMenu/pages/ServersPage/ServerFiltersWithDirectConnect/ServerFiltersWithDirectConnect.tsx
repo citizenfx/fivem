@@ -11,11 +11,12 @@ import { TitleOutlet } from "cfx/ui/outlets";
 import { Shroud } from "cfx/ui/Shroud/Shroud";
 import { Box } from "cfx/ui/Layout/Box/Box";
 import { Flex } from "cfx/ui/Layout/Flex/Flex";
-import { Text } from "cfx/ui/Text/Text";
+import { Text, TextBlock } from "cfx/ui/Text/Text";
 import { Button } from "cfx/ui/Button/Button";
 import { Pad } from "cfx/ui/Layout/Pad/Pad";
 import { ServerTitle } from "cfx/common/parts/Server/ServerTitle/ServerTitle";
 import s from './ServerFiltersWithDirectConnect.module.scss';
+import { ServerTileItem } from "cfx/common/parts/Server/ServerTileItem/ServerTileItem";
 
 export interface ServerFiltersWithDirectConnectProps {
   config: ServerListConfigController,
@@ -77,13 +78,7 @@ const DirectConnect = observer(function DirectConnect(props: DirectConnectProps)
   const pos = useDirectConnectPos(inputRef);
   const server = controller.server;
 
-  const label = server
-    ? <>Connect to: <ServerTitle title={server.projectName || server.hostname} /></>
-    : (
-      controller.loadingServer
-        ? 'Loading server data...'
-        : 'Enter server address'
-    );
+  const label = getDirectConnectLabel(config, controller);
 
   const rootStyle: any = {
     '--x': ui.px(pos[0]),
@@ -96,9 +91,9 @@ const DirectConnect = observer(function DirectConnect(props: DirectConnectProps)
       <div className={s.root} style={rootStyle}>
         <Flex vertical>
           <Flex repell centered>
-            <Text opacity="75">
+            <TextBlock opacity="75">
               {label}
-            </Text>
+            </TextBlock>
 
             <Button
               size="small"
@@ -108,38 +103,12 @@ const DirectConnect = observer(function DirectConnect(props: DirectConnectProps)
             />
           </Flex>
 
-          <Box
-            height={10}
-            width="100%"
-            style={{ backgroundColor: 'var(--color-input-background)', borderRadius: 'var(--border-radius-small)' }}
-          >
-            {!!server && (
-              <ServerListItem
-                standalone
-                hideTags
-                hideActions
-                hideCountryFlag
-                hidePremiumBadge
-                server={server}
-              />
-            )}
-
-            {!server && (
-              <Flex centered="axis" fullHeight>
-                <Pad left size="large" >
-                  {
-                    controller.loadingServer
-                      ? <Indicator />
-                      : (
-                        !!controller.parsedAddress
-                          ? <>No such server</>
-                          : <>Invalid server address</>
-                      )
-                  }
-                </Pad>
-              </Flex>
-            )}
-          </Box>
+          {!!server && (
+            <ServerTileItem
+              hideBanner
+              server={server}
+            />
+          )}
         </Flex>
       </div>
     </TitleOutlet>
@@ -163,4 +132,32 @@ function useDirectConnectPos(inputRef: React.RefObject<HTMLElement>): [number, n
   useWindowResize(calcPos);
 
   return pos;
+}
+
+function getDirectConnectLabel(config: ServerListConfigController, controller: ServerFiltersWithDirectConnectController): React.ReactNode {
+  if (controller.server) {
+    return (
+      <>
+        Connect to: <ServerTitle title={controller.server.projectName || controller.server.hostname} />
+      </>
+    );
+  }
+
+  if (controller.loadingServer) {
+    return (
+      <Flex>
+        <Indicator />
+
+        <span>
+          Loading server data...
+        </span>
+      </Flex>
+    );
+  }
+
+  if (config.searchText.length > 1 && !controller.parsedAddress) {
+    return 'Invalid server address';
+  }
+
+  return 'Enter server address';
 }
