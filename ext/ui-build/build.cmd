@@ -23,7 +23,7 @@ if exist %CacheRoot%\cfx-ui-modules (
 )
 
 :: install packages (using Yarn now)
-call yarn
+call yarn --ignore-engines
 :: propagate error
 if %ERRORLEVEL% neq 0 exit /b 1
 
