@@ -27,11 +27,10 @@ call yarn
 :: propagate error
 if %ERRORLEVEL% neq 0 exit /b 1
 
-:: DISABLED for now due to old version of node used on build machines
 :: run test
-:: call yarn test
+call yarn test
 :: propagate error
-:: if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
+if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
 
 :: remove old build output
 rmdir /s /q build
