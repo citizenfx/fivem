@@ -8,6 +8,7 @@ export enum GameName {
 
 export function getGameBuildDLCName(gameBuild: string): string {
   switch (gameBuild) {
+    case '1604': return 'Arena War'
     case '2060': return 'Los Santos Summer Special';
     case '2189':
     case '2215':
