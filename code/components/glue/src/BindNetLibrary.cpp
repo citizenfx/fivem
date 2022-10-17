@@ -161,10 +161,10 @@ static InitFunction initFunction([] ()
 	Instance<ICoreGameInit>::Get()->OnGameRequestLoad.Connect([]()
 	{
 		nui::SetMainUI(false);
-
-		auto context = (netLibrary->GetConnectionState() != NetLibrary::CS_IDLE) ? ("server_" + netLibrary->GetTargetContext()) : "";
-		nui::SwitchContext(context);
 		nui::DestroyFrame("mpMenu");
+
+		auto context = (netLibrary->GetConnectionState() != NetLibrary::CS_IDLE) ? ("server_" + netLibrary->GetTargetContext()) : "game";
+		nui::SwitchContext(context);
 	});
 
 	// #TODOLIBERTY: ?

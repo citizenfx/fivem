@@ -154,14 +154,7 @@ Object.prototype.__defineGetter__ = function(prop, func) {
 
 	if (url == "nui://game/ui/root.html")
 	{
-		static ConVar<std::string> uiUrlVar("ui_url", ConVar_None, "https://nui-game-internal/ui/app/index.html");
-
 		nui::RecreateFrames();
-
-		if (nui::HasMainUI())
-		{
-			nui::CreateFrame("mpMenu", uiUrlVar.GetValue());
-		}
 	}
 
 	// enter push function
@@ -337,7 +330,7 @@ auto NUIClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<Ce
 		return RV_CANCEL;
 	}
 
-#if !defined(USE_NUI_ROOTLESS) && !defined(_DEBUG)
+#if !defined(_DEBUG)
 	if (frame->IsMain())
 	{
 		if (frame->GetURL().ToString().find("nui://game/ui/") == 0 && url.find("nui://game/ui/") != 0)
@@ -484,25 +477,14 @@ void NUIClient::OnAudioStreamStopped(CefRefPtr<CefBrowser> browser, CefRefPtr<Ce
 
 extern bool g_shouldCreateRootWindow;
 
-#ifdef USE_NUI_ROOTLESS
-extern std::set<std::string> g_recreateBrowsers;
-extern std::shared_mutex g_recreateBrowsersMutex;
-#endif
-
 void NUIClient::OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser, TerminationStatus status)
 {
-#ifndef USE_NUI_ROOTLESS
-	if (browser->GetMainFrame()->GetURL() == "nui://game/ui/root.html")
+	if (browser->GetMainFrame()->GetURL() == "nui://game/ui/root.html" || nui::HasMainUI())
 	{
 		browser->GetHost()->CloseBrowser(true);
 
 		g_shouldCreateRootWindow = true;
 	}
-#else
-	std::unique_lock<std::shared_mutex> _(g_recreateBrowsersMutex);
-
-	g_recreateBrowsers.insert(m_window->GetName());
-#endif
 }
 
 void NUIClient::OnBeforeClose(CefRefPtr<CefBrowser> browser)

@@ -17,11 +17,6 @@ extern bool g_isDragging;
 
 extern fwRefContainer<nui::GITexture> g_cursorTexture;
 
-#ifdef USE_NUI_ROOTLESS
-extern std::shared_mutex g_nuiFocusStackMutex;
-extern std::list<std::string> g_nuiFocusStack;
-#endif
-
 HCURSOR g_defaultCursor;
 extern HCURSOR InitDefaultCursor();
 
@@ -68,15 +63,10 @@ static HookFunction initFunction([] ()
 		});
 
 		std::list<std::string> windowOrder =
-#ifndef USE_NUI_ROOTLESS
 		{
 			"nui_mpMenu",
 			"root",
-		}
-#else
-		g_nuiFocusStack
-#endif
-		;
+		};
 
 		// show on top = render last
 		std::reverse(windowOrder.begin(), windowOrder.end());
