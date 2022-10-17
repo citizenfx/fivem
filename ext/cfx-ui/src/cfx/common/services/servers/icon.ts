@@ -6,8 +6,8 @@ export function getServerIconURL(server: IServerView): string {
     return `https://servers-frontend.fivem.net/api/servers/icon/${server.joinId}/${server.iconVersion}.png`;
   }
 
-  if (server.thumbnailIconURL) {
-    return server.thumbnailIconURL;
+  if (server.historicalIconURL) {
+    return server.historicalIconURL;
   }
 
   return getServerIconPlaceholder(server.id);
@@ -17,9 +17,9 @@ export function getServerIconPlaceholder(address: string): string {
   return createPlaceholderIconDataURI(address);
 }
 
-export async function createServerThumbnailIconURL(server: IServerView): Promise<string> {
-  if (server.thumbnailIconURL) {
-    return server.thumbnailIconURL;
+export async function createServerHistoricalIconURL(server: IServerView): Promise<string> {
+  if (server.historicalIconURL) {
+    return server.historicalIconURL;
   }
 
   return createThumbnail(getServerIconURL(server));

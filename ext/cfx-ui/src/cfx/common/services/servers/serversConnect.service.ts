@@ -5,6 +5,5 @@ export const IServersConnectService = defineService<IServersConnectService>('Ser
 export interface IServersConnectService {
   readonly canConnect: boolean;
 
-  connectTo(address: string): void;
-  connectTo(server: IServerView): void;
+  connectTo(server: string | IServerView): void;
 }

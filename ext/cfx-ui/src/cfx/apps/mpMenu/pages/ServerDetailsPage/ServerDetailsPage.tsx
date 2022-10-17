@@ -30,7 +30,7 @@ import { ServerReviewFormContext } from "cfx/common/parts/Server/ServerReviews/S
 import { useForceTransparentNav } from "../../parts/NavBar/NavBarState";
 
 export const MpMenuServerDetailsPage = observer(function MpMenuServerDetailsPage() {
-  const { address } = useParams();
+  const { '*': address } = useParams();
   const ServersService = useService(IServersService);
 
   if (!address) {

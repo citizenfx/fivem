@@ -1,5 +1,5 @@
 import React from "react";
-import { getServerByAnyMean } from "cfx/apps/mpMenu/services/servers/source/fetchers";
+import { getServerForAddress } from "cfx/apps/mpMenu/services/servers/source/fetchers";
 import { useServiceResolver } from "cfx/base/servicesContainer";
 import { ISearchTerm } from "cfx/base/searchTermsParser";
 import { ServerListConfigController } from "cfx/common/services/servers/lists/ServerListConfigController";
@@ -88,12 +88,14 @@ export class ServerFiltersWithDirectConnectController implements IDisposableObje
       return;
     }
 
+    const connectTo = this.server || this.lastAddress;
+
     this.config.setSearchText('');
     this.server = null;
     this.parsedAddress = null;
-
-    this.serversConnectService?.connectTo(this.lastAddress);
     this.lastAddress = '';
+
+    this.serversConnectService?.connectTo(connectTo);
   };
 
   private lastAddress = '';
@@ -135,12 +137,12 @@ export class ServerFiltersWithDirectConnectController implements IDisposableObje
     this.server = null;
     this.loadingServer = true;
 
-    this.doLoadServer(this.parsedAddress.address, this.nextQueryId());
+    this.doLoadServer(address, this.nextQueryId());
   }
 
   private readonly doLoadServer = debounce(async (address: string, queryId: number) => {
     try {
-      const server = await getServerByAnyMean(address);
+      const server = await getServerForAddress(address);
 
       if (this.queryId === queryId) {
         this.server = server;

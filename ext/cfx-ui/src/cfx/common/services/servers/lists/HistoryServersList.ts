@@ -4,7 +4,7 @@ import { makeAutoObservable } from "mobx";
 import { historyServer2ServerView } from "../transformers";
 import { parseServerAddress } from "../serverAddressParser";
 import { IServersStorageService } from "../serversStorage.service";
-import { createServerThumbnailIconURL } from "../icon";
+import { createServerHistoricalIconURL } from "../icon";
 import { IServersService } from "../servers.service";
 
 export class HistoryServersList implements IServersList {
@@ -68,10 +68,10 @@ export class HistoryServersList implements IServersList {
   async serverView2HistoryServer(server: IServerView, overrides: Partial<{ icon: string, token: string, vars: Record<string, string> }> = {}): Promise<IHistoryServer> {
     const { icon, ...restOverrides } = overrides;
 
-    const thumbnail = icon || await createServerThumbnailIconURL(server);
+    const thumbnail = icon || await createServerHistoricalIconURL(server);
 
     return {
-      address: server.manuallyEnteredEndPoint || server.joinId || server.id,
+      address: server.historicalAddress || server.joinId || server.id,
       hostname: server.projectName,
       title: '',
       time: new Date(),

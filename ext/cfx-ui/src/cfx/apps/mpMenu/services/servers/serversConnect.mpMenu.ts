@@ -138,8 +138,6 @@ class MpMenuServersConnectService implements IServersConnectService {
     this.connectTo(address);
   };
 
-  connectTo(address: string): void;
-  connectTo(server: IServerView): void;
   async connectTo(serverOrAddress: string | IServerView): Promise<void> {
     if (this.currentConnectNonce) {
       console.warn('Already connecting somewhere');
@@ -209,6 +207,7 @@ class MpMenuServersConnectService implements IServersConnectService {
     return server.joinId || server.id;
   }
 
+  // TODO: Make it fail when server address is invalid
   private async resolveServer(serverOrAddress: string | IServerView): Promise<IServerView> {
     if (typeof serverOrAddress === 'string') {
       const server = await this.serversService.loadServerLiveData(serverOrAddress);

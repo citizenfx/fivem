@@ -51,7 +51,7 @@ async function readBodyToServers(gameName: GameName, onServer: (server: IServerV
   console.log('Times: decode', decodeTime, 'ms, transform', transformTime, 'ms, onServer', onServerTime, 'ms');
 }
 
-export async function getAllServers(gameName: GameName, onServer: (server: IServerView) => void): Promise<void> {
+export async function getAllMasterListServers(gameName: GameName, onServer: (server: IServerView) => void): Promise<void> {
   console.time('Total getAllServers');
 
   const { body } = await fetcher.fetch(new Request(ALL_SERVERS_URL));
@@ -65,7 +65,7 @@ export async function getAllServers(gameName: GameName, onServer: (server: IServ
   console.timeEnd('Total getAllServers');
 }
 
-export async function getSingleServer(gameName: GameName, address: string): Promise<IServerView | null> {
+export async function getMasterListServer(gameName: GameName, address: string): Promise<IServerView | null> {
   try {
     const srv: IFullServerData = await fetcher.json(SINGLE_SERVER_URL + address);
 
@@ -118,5 +118,5 @@ export async function getTopServer(config: TopServerConfig): Promise<IServerView
 
 
 try {
-  (window as any).__getSingleServer = getSingleServer;
+  (window as any).__getSingleServer = getMasterListServer;
 } catch (e) {}

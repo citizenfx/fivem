@@ -1,15 +1,8 @@
-import { Autolinker, AutolinkerConfig } from 'autolinker';
-import { DEFAULT_SERVER_PORT_INT } from 'cfx/base/serverUtils';
+import { DEFAULT_SERVER_PORT, DEFAULT_SERVER_PORT_INT } from 'cfx/base/serverUtils';
 
-const autolinkerConfig: AutolinkerConfig = {
-  email: false,
-  phone: false,
-  hashtag: false,
-  mention: false,
-  urls: true,
-};
-
-const DUMMY_BASE_URL = 'fivem://connect/';
+const ALPHANUMERIC_EXCEPTIONS = [
+  'localhost',
+];
 
 export interface JoinServerAddress {
   type: 'join',
@@ -33,6 +26,7 @@ export function isIpServerAddress(addr: IParsedServerAddress): addr is IpServerA
 export interface HostServerAddress {
   type: 'host',
   address: string,
+  addressCandidates?: string[],
 }
 export function isHostServerAddress(addr: IParsedServerAddress): addr is HostServerAddress {
   return addr.type === 'host';
@@ -44,26 +38,26 @@ export type IParsedServerAddress =
   | IpServerAddress
   | HostServerAddress;
 
-export function parseServerAddress(str: string): IParsedServerAddress | null {
-  str = str.trim().toLowerCase();
-
-  if (!str) {
+export function parseServerAddress(arbitraryAddress: string): IParsedServerAddress | null {
+  arbitraryAddress = arbitraryAddress.trim();
+  if (!arbitraryAddress) {
     return null;
   }
 
-  // Join link first
-  const JOIN_LINK_DISCRIMINATOR = 'cfx.re/join/';
-  const strJoinLinkDiscriminatorIndex = str.indexOf(JOIN_LINK_DISCRIMINATOR);
-  if (strJoinLinkDiscriminatorIndex > -1) {
-    let address = str.substring(strJoinLinkDiscriminatorIndex + JOIN_LINK_DISCRIMINATOR.length).trim();
+  const arbitraryAddressLowerCase = arbitraryAddress.toLowerCase();
 
-    // Nothing left - nope
+  // Join link first
+  const joinLinkDiscriminatorIndex = arbitraryAddressLowerCase.indexOf(JOIN_LINK_DISCRIMINATOR);
+  if (joinLinkDiscriminatorIndex > -1) {
+    let address = arbitraryAddressLowerCase.substring(joinLinkDiscriminatorIndex + JOIN_LINK_DISCRIMINATOR.length).trim();
+
+    // Nothing left - not a valid join link
     if (!address) {
       return null;
     }
 
     // Could be that there's some junk still
-    const indexOfJunk = indexOfNonAlphaNumeric(address);
+    const indexOfJunk = indexOfFirstNotAlphaNumericChar(address);
     if (indexOfJunk > -1) {
       address = address.substring(0, indexOfJunk);
     }
@@ -76,7 +70,7 @@ export function parseServerAddress(str: string): IParsedServerAddress | null {
   }
 
   // IP address
-  const ipParts = tryParseIp(str);
+  const ipParts = tryParseIp(arbitraryAddress);
   if (ipParts) {
     const { ip, port } = ipParts;
 
@@ -95,31 +89,54 @@ export function parseServerAddress(str: string): IParsedServerAddress | null {
   }
 
   // If only alpha-numeric characters left - assume joinId
-  if (indexOfNonAlphaNumeric(str) === -1) {
+  if (indexOfFirstNotAlphaNumericChar(arbitraryAddress) === -1 && !ALPHANUMERIC_EXCEPTIONS.includes(arbitraryAddress)) {
     return {
       type: 'join',
-      address: str,
-      canonical: `https://${JOIN_LINK_DISCRIMINATOR}${str}`,
+      address: arbitraryAddress,
+      canonical: `https://${JOIN_LINK_DISCRIMINATOR}${arbitraryAddress}`,
     };
   }
 
-  // Try infer address as a domain
+  // Inferring address as a host of any form
   try {
-    const [match] = Autolinker.parse(str, autolinkerConfig);
-    if (!match) {
+    const {
+      isBareHost,
+      urlNormalized,
+    } = normalizeUrl(arbitraryAddress);
+
+    if (!urlNormalized) {
       return null;
     }
 
-    const url = new URL(match.getAnchorHref(), DUMMY_BASE_URL);
+    // Parse as URL - it will also perform port range check for us
+    const url = new URL(urlNormalized);
 
-    let urlRemainder = url.pathname + url.search + url.hash;
+    let address = url.href;
 
-    let address = url.toString();
-    if (address.startsWith(DUMMY_BASE_URL)) {
-      address = address.substring(DUMMY_BASE_URL.length, address.length - urlRemainder.length);
-    } else {
-      //                          http:                 //
-      address = address.substring(url.protocol.length + 2, address.length - urlRemainder.length);
+    const addressCandidates = [
+      address,
+    ];
+
+    if (isBareHost) {
+      // If no port was specified make address contain it
+      // So both `cfx.re` and `cfx.re:30120` would both have main address of `https://cfx.re:30120/`
+      if (!url.port) {
+        url.port = DEFAULT_SERVER_PORT;
+        address = url.href;
+        addressCandidates.push(address);
+      }
+
+      // Add HTTP variant too
+      url.protocol = 'http:';
+      addressCandidates.push(url.href);
+    }
+
+    if (addressCandidates.length > 1) {
+      return {
+        type: 'host',
+        address,
+        addressCandidates,
+      };
     }
 
     return {
@@ -133,7 +150,53 @@ export function parseServerAddress(str: string): IParsedServerAddress | null {
   return null;
 }
 
-function indexOfNonAlphaNumeric(str: string): number {
+/**
+ * - replace all \ with /
+ * - prepend with https:// if no http(s) protocol provided
+ * - remove ?search part
+ * - remove #hash part
+ * - add a mandatory trailing slash
+ * - determine if url is bare host - only domain(:port) is present
+ */
+function normalizeUrl(str: string) {
+  let url = str.replaceAll('\\', '/');
+
+  const hasSlash = url.includes('/');
+
+  const startsWithHTTPProtocol = urlStartsWithHTTPProtocol(url);
+  if (!startsWithHTTPProtocol) {
+    url = `https://${url}`;
+  }
+
+  const indexOfSearch = url.indexOf('?');
+  const hasSearch = indexOfSearch > -1;
+  if (hasSearch) {
+    url = url.substring(0, indexOfSearch);
+  }
+
+  const indexOfHash = url.indexOf('#');
+  const hasHash = indexOfHash > -1;
+  if (hasHash) {
+    url = url.substring(0, indexOfHash);
+  }
+
+  if (!url.endsWith('/')) {
+    url += '/';
+  }
+
+  return {
+    isBareHost: !hasSlash && !hasSearch && !hasHash,
+    urlNormalized: url,
+  };
+}
+
+function urlStartsWithHTTPProtocol(str: string): boolean {
+  const lcstr = str.toLowerCase();
+
+  return lcstr.startsWith('http://') || lcstr.startsWith('https://');
+}
+
+function indexOfFirstNotAlphaNumericChar(str: string): number {
   let ptr = -1;
   while (++ptr < str.length) {
     if (!isAlphaNumeric(str.charCodeAt(ptr))) {
@@ -214,11 +277,7 @@ function tryParseIp(str: string): { ip: string, port: number } | null {
   return null;
 }
 
-try {
-  (window as any).__isIP = isIP;
-  (window as any).__tryParseIp = tryParseIp;
-  (window as any).__parseServerAddress = parseServerAddress;
-} catch (e) {}
+const JOIN_LINK_DISCRIMINATOR = 'cfx.re/join/';
 
 // courtesy Node.js source code
 // IPv4 Segment
@@ -252,3 +311,10 @@ function isIP(s: string): 0 | 4 | 6 {
   if (isIPv6(s)) return 6;
   return 0;
 }
+
+
+try {
+  (window as any).__isIP = isIP;
+  (window as any).__tryParseIp = tryParseIp;
+  (window as any).__parseServerAddress = parseServerAddress;
+} catch (e) {}

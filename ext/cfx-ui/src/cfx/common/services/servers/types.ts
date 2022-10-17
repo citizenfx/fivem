@@ -30,17 +30,17 @@ export enum ServerViewDetailsLevel {
   /**
    * Data from from /dynamic.json and /info.json endpoints of the server
    */
-  InfoAndDynamicDataJson = 150,
+  InfoAndDynamicDataJson = 199,
 
   /**
    * Data populated from servers list
    */
-  MasterList = 200,
+  MasterList = 201,
 
   /**
    * Data populated from complete server data
    */
-  MasterListFull = 300,
+  MasterListFull = 299,
 }
 
 export interface IServerView {
@@ -61,7 +61,9 @@ export interface IServerView {
   // /MANDATORY FIELDS
 
   joinId?: string,
-  manuallyEnteredEndPoint?: string,
+
+  historicalAddress?: string,
+  historicalIconURL?: string | null,
 
   connectEndPoints?: string[],
   projectDescription?: string,
@@ -71,7 +73,6 @@ export interface IServerView {
 
   offline?: true,
 
-  thumbnailIconURL?: string | null,
   iconVersion?: number | null,
 
   licenseKeyToken?: string | null,

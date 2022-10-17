@@ -1,6 +1,6 @@
 import { IPinnedServersConfig, IServerView } from "../types";
 import { filterList } from "./listFilter";
-import { getAllServers } from "./utils/fetchers";
+import { getAllMasterListServers } from "./utils/fetchers";
 import { IAutocompleteIndex, IListableServerView } from "./types";
 import { IServerListConfig } from "../lists/types";
 import { sortList } from "./listSorter";
@@ -110,7 +110,7 @@ export class ServersWorker {
     let chunkTimer = setInterval(sendBuffer, 500);
 
     try {
-      await getAllServers(this.gameName, (server: IServerView) => {
+      await getAllMasterListServers(this.gameName, (server: IServerView) => {
         this.serversIndex.add(server);
 
         this.listableServersMap[server.id] = serverView2ListableServerView(server);

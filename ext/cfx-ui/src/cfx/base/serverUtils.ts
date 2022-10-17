@@ -249,8 +249,8 @@ export interface IServerConnectEndpoints {
 export function getConnectEndpoits(server: IServerView): IServerConnectEndpoints {
   const eps: IServerConnectEndpoints = {};
 
-  if (server.manuallyEnteredEndPoint) {
-    eps.manual = server.manuallyEnteredEndPoint;
+  if (server.historicalAddress) {
+    eps.manual = server.historicalAddress;
   }
 
   if (server.connectEndPoints) {

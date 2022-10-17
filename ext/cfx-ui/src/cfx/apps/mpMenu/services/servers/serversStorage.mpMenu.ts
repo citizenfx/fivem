@@ -5,7 +5,7 @@ import { IServersStorageService } from "cfx/common/services/servers/serversStora
 import { IHistoryServer } from "cfx/common/services/servers/types";
 import { inject, injectable } from "inversify";
 import { mpMenu } from "../../mpMenu";
-import { parseServerAddress } from "cfx/common/services/servers/serverAddressParser";
+import { IParsedServerAddress, parseServerAddress } from "cfx/common/services/servers/serverAddressParser";
 import { makeAutoObservable, observable } from "mobx";
 import { Deferred, retry } from "cfx/utils/async";
 import { scopedLogger, ScopedLogger } from 'cfx/common/services/log/scopedLogger';
@@ -190,11 +190,7 @@ class MpMenuServersStorageService implements IServersStorageService, AppContribu
     }
 
     try {
-      const entries = await retry(3, () => wrapDexieErrors(table.orderBy('time').reverse().toArray()));
-
-      const historyServers: IHistoryServer[] = entries.map(reviveHistoryServer).filter(Boolean) as any;
-
-      return historyServers;
+      return reviveHistoryServers(await retry(3, () => wrapDexieErrors(table.orderBy('time').reverse().toArray())));
     } catch (e) {
       console.warn(e);
 
@@ -250,7 +246,31 @@ class MpMenuServersStorageService implements IServersStorageService, AppContribu
   }
 }
 
-function reviveHistoryServer(rawHistoryServer: Partial<IHistoryServer> | null): IHistoryServer | null {
+function reviveHistoryServers(entries: Array<Partial<IHistoryServer> | null>): IHistoryServer[] {
+  const historyServers: IHistoryServer[] = [];
+  const seenHistoryServerAddresses: Record<string, true> = {};
+
+  for (const entry of entries) {
+    const result = reviveHistoryServer(entry);
+    if (!result) {
+      continue;
+    }
+
+    const [historyServer, parsedAddress] = result;
+
+    if (seenHistoryServerAddresses[parsedAddress.address]) {
+      continue;
+    }
+
+    seenHistoryServerAddresses[parsedAddress.address] = true;
+
+    historyServers.push(historyServer);
+  }
+
+  return historyServers;
+}
+
+function reviveHistoryServer(rawHistoryServer: Partial<IHistoryServer> | null): [IHistoryServer, IParsedServerAddress] | null {
   if (typeof rawHistoryServer !== 'object' || rawHistoryServer === null) {
     return null;
   }
@@ -275,7 +295,7 @@ function reviveHistoryServer(rawHistoryServer: Partial<IHistoryServer> | null): 
   }
 
   const historyServer: IHistoryServer = {
-    address: parsedAddress.address,
+    address,
     hostname: typeof hostname === 'string'
       ? hostname
       : address,
@@ -292,7 +312,7 @@ function reviveHistoryServer(rawHistoryServer: Partial<IHistoryServer> | null): 
       : {},
   };
 
-  return historyServer;
+  return [historyServer, parsedAddress];
 }
 
 function parseDate(date: unknown): Date {
@@ -350,7 +370,7 @@ function DEPRECATED_getSavedHistoryServersFromLocalStorage(): IHistoryServer[] {
       return [];
     }
 
-    return rawHistoryServers.map(reviveHistoryServer).filter(Boolean) as IHistoryServer[];
+    return reviveHistoryServers(rawHistoryServers);
   } catch (e) {
     return [];
   }

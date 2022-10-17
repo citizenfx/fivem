@@ -27,6 +27,7 @@
     "howler": "^2.2.3",
     "html-entities": "^2.3.2",
     "html-react-parser": "^3.0.1",
+    "idb": "^7.1.0",
     "inversify": "^6.0.1",
     "js-md5": "^0.7.3",
     "markdown-it": "^13.0.1",

@@ -35,10 +35,10 @@ export function queriedServerData2ServerView(endpoint: string, data: IQueriedSer
     localeCountry: DEFAULT_SERVER_LOCALE_COUNTRY,
     connectEndPoints: [data.addr],
     rawVariables: data.infoBlob.vars,
-    playersCurrent: data.clients,
-    playersMax: data.maxclients,
+    playersCurrent: parseInt(data.clients, 10) || 0,
+    playersMax: parseInt(data.maxclients, 10) || 0,
     resources: data.infoBlob.resources,
-    thumbnailIconURL: data.infoBlob.icon
+    historicalIconURL: data.infoBlob.icon
       ? `data:image/png;base64,${data.infoBlob.icon}`
       : undefined,
     ...processServerDataVariables(data.infoBlob.vars),

@@ -124,7 +124,7 @@ startBrowserApp({
             <Route path="history" element={<MpMenuServersPage listType={ServersListType.History} />} />
             <Route path="premium" element={<MpMenuServersPage listType={ServersListType.Supporters} />} />
 
-            <Route path="detail/:address" element={<MpMenuServerDetailsPage />} />
+            <Route path="detail/*" element={<MpMenuServerDetailsPage />} />
           </Route>
 
           <Route path="*" element={<Handle404 />} />

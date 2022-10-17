@@ -44,9 +44,7 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
   } = props;
 
   const navigate = useNavigate();
-  const handleClick = React.useCallback(() => {
-    navigate(`/servers/detail/${server.id}`);
-  }, [navigate, server]);
+  const handleClick = () => navigate(`/servers/detail/${server.id}`);
 
   const showBanner = !hideBanner && !!server.bannerDetail;
 

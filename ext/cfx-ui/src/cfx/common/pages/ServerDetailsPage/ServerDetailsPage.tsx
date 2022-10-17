@@ -232,7 +232,7 @@ function useEnsureCompleteServerLoaded(server: IServerView) {
       return;
     }
 
-    if (server.detailsLevel >= ServerViewDetailsLevel.MasterListFull) {
+    if (server.detailsLevel !== ServerViewDetailsLevel.MasterList) {
       return;
     }
 

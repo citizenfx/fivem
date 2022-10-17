@@ -32,7 +32,7 @@ export const ServerConnectButton = observer(function ServerConnectButton(props: 
   let title: ReactNode;
   let canConnect = hasConnectEndpoints(server);
 
-  if (!server.manuallyEnteredEndPoint) {
+  if (!server.historicalAddress) {
     switch (true) {
       case isServerEOL(server): {
         title = $L('#ServerDetail_EOLDisable');

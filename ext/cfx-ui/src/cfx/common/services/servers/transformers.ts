@@ -13,7 +13,7 @@ import { IArrayCategoryMatcher, IListableServerView, IStringCategoryMatcher } fr
 import { IFullServerData, IHistoryServer, IServer, IServerView, ServerPureLevel, ServerViewDetailsLevel } from "./types";
 
 export function serverAddress2ServerView(address: string): IServerView {
-  const fakeHostname = `Unknown server name (${address})`;
+  const fakeHostname = `⚠️ Server is loading or failed to load (${address}) ⚠️`;
 
   return {
     id: address,
@@ -117,7 +117,7 @@ export function historyServer2ServerView(historyServer: IHistoryServer): IServer
     hostname: historyServer.hostname,
     projectName: historyServer.hostname,
     rawVariables: historyServer.vars,
-    thumbnailIconURL: historyServer.rawIcon,
+    historicalIconURL: historyServer.rawIcon,
   };
 
   return Object.assign(server, processServerDataVariables(historyServer.vars));
@@ -154,7 +154,7 @@ export function serverView2ListableServerView(server: IServerView): IListableSer
     premium: server.premium || '',
     upvotePower: server.upvotePower || 0,
 
-    categories: getCategories(server),
+    categories: createCategoryMatchers(server),
   };
 }
 
@@ -171,26 +171,24 @@ function getSortableName(searchableName: string): string {
 }
 
 
-type VarsView = Partial<Pick<
-  IServerView,
-  | 'pureLevel'
-  | 'enforceGameBuild'
-  | 'onesyncEnabled'
-  | 'canReview'
-  | 'locale'
-  | 'localeCountry'
-  | 'projectDescription'
-  | 'projectName'
-  | 'activitypubFeed'
-  | 'premium'
-  | 'tags'
-  | 'variables'
-  | 'licenseKeyToken'
-  | 'gamename'
-  | 'bannerConnecting'
-  | 'bannerDetail'
-  | 'scriptHookAllowed'
-  | 'rawVariables'
+type VarsView = Partial<Pick<IServerView, | 'tags'
+                                          | 'locale'
+                                          | 'premium'
+                                          | 'gamename'
+                                          | 'canReview'
+                                          | 'variables'
+                                          | 'pureLevel'
+                                          | 'projectName'
+                                          | 'bannerDetail'
+                                          | 'rawVariables'
+                                          | 'localeCountry'
+                                          | 'onesyncEnabled'
+                                          | 'activitypubFeed'
+                                          | 'licenseKeyToken'
+                                          | 'bannerConnecting'
+                                          | 'enforceGameBuild'
+                                          | 'scriptHookAllowed'
+                                          | 'projectDescription'
 >>;
 
 export function processServerDataVariables(vars?: IServer['data']['vars']): VarsView {
@@ -294,7 +292,7 @@ export function processServerDataVariables(vars?: IServer['data']['vars']): Vars
   return view;
 }
 
-function getCategories(server: IServerView) {
+function createCategoryMatchers(server: IServerView) {
   const {
     id,
     tags,
