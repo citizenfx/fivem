@@ -446,6 +446,8 @@ CefBrowser* NUIWindow::GetBrowser()
 	return ((NUIClient*)m_client.get())->GetBrowser();
 }
 
+extern void NUI_AcceptTexture(uint64_t handle);
+
 void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const CefRenderHandler::RectList& rects, CefRenderHandler::PaintElementType type)
 {
 	if (!sharedHandle)
@@ -525,6 +527,8 @@ void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const
 				texRef = g_nuiGi->CreateTextureFromShareHandle(parentHandle, w, h);
 				SetParentTexture(type, texRef);
 			}
+
+			NUI_AcceptTexture((uint64_t)parentHandle);
 		}
 	}
 
@@ -619,22 +623,26 @@ void NUIWindow::UpdateFrame()
 
 			if (m_client)
 			{
-				auto browser = ((NUIClient*)m_client.get())->GetBrowser();
+				if (!m_nuiTexture.GetRef())
+				{
+					std::unique_lock _(m_textureMutex);
+					m_nuiTexture = g_nuiGi->CreateTextureBacking(m_width, m_height, nui::GITextureFormat::ARGB);
+				}
+
+				auto client = ((NUIClient*)m_client.get());
+				auto browser = client->GetBrowser();
 
 				if (browser)
 				{
-					((NUIClient*)m_client.get())->GetBrowser()->GetHost()->WasResized();
+					browser->GetHost()->WasResized();
 				}
 				else
 				{
-					m_onLoadQueue.push([this]()
+					client->OnClientCreated.Connect([this](NUIClient* client)
 					{
-						((NUIClient*)m_client.get())->GetBrowser()->GetHost()->WasResized();
+						client->GetBrowser()->GetHost()->WasResized();
 					});
 				}
-
-				std::lock_guard<std::shared_mutex> _(m_textureMutex);
-				m_nuiTexture = g_nuiGi->CreateTextureBacking(m_width, m_height, nui::GITextureFormat::ARGB);
 			}
 		}
 

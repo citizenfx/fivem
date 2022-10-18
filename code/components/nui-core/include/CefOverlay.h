@@ -351,13 +351,11 @@ namespace nui
 	//void EnterV8Context(const char* type);
 	//void LeaveV8Context(const char* type);
 	//void InvokeNUICallback(const char* type, const CefString& name, const CefV8ValueList& arguments);
-#ifndef USE_NUI_ROOTLESS
 	void OVERLAY_DECL ReloadNUI();
-#endif
 
-	void OVERLAY_DECL CreateFrame(fwString frameName, fwString frameURL);
-	void OVERLAY_DECL PrepareFrame(fwString frameName, fwString frameURL);
-	void OVERLAY_DECL DestroyFrame(fwString frameName);
+	void OVERLAY_DECL CreateFrame(const std::string& frameName, const std::string& frameURL);
+	void OVERLAY_DECL PrepareFrame(const std::string& frameName, const std::string& frameURL);
+	void OVERLAY_DECL DestroyFrame(const std::string& frameName);
 	bool OVERLAY_DECL HasFrame(const std::string& frameName);
 	void OVERLAY_DECL SignalPoll(fwString frameName);
 
@@ -372,22 +370,16 @@ namespace nui
 
 	void ProcessInput();
 
-#ifndef USE_NUI_ROOTLESS
 	void OVERLAY_DECL ExecuteRootScript(const std::string& scriptBit);
-#endif
 
 	void OVERLAY_DECL PostFrameMessage(const std::string& frameName, const std::string& jsonData);
 
-#ifndef USE_NUI_ROOTLESS
 	void OVERLAY_DECL PostRootMessage(const std::string& jsonData);
-#endif
 
 #ifdef WANT_CEF_INTERNALS
-#ifndef USE_NUI_ROOTLESS
 	OVERLAY_DECL CefBrowser* GetBrowser();
 
 	OVERLAY_DECL fwRefContainer<NUIWindow> GetWindow();
-#endif
 
 	OVERLAY_DECL CefBrowser* GetFocusBrowser();
 

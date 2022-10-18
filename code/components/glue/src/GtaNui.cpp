@@ -514,58 +514,60 @@ fwRefContainer<GITexture> GtaNuiInterface::CreateTextureFromShareHandle(HANDLE s
 #ifdef GTA_FIVE
 	ID3D11Device* device = ::GetD3D11Device();
 
-	WRL::ComPtr<ID3D11Texture2D> texture;
-	if (SUCCEEDED(device->OpenSharedResource(shareHandle, IID_PPV_ARGS(&texture))))
+	WRL::ComPtr<ID3D11Texture2D> resource;
+	if (SUCCEEDED(device->OpenSharedResource(shareHandle, IID_PPV_ARGS(&resource))))
 	{
-		D3D11_TEXTURE2D_DESC desc;
-		texture->GetDesc(&desc);
-
-		struct
+		return new GtaNuiTexture([device, resource](GtaNuiTexture* texture)
 		{
-			void* vtbl;
-			ID3D11Device* rawDevice;
-		}*deviceStuff = (decltype(deviceStuff))device;
+			D3D11_TEXTURE2D_DESC desc;
+			resource->GetDesc(&desc);
 
-		rage::grcManualTextureDef textureDef;
-		memset(&textureDef, 0, sizeof(textureDef));
-		textureDef.isStaging = 1;
-		textureDef.usage = 1;
-		textureDef.arraySize = 1;
-
-		auto texRef = rage::grcTextureFactory::getInstance()->createManualTexture(desc.Width, desc.Height, 2 /* maps to BGRA DXGI format */, nullptr, true, &textureDef);
-
-		if (texRef)
-		{
-			if (texRef->texture)
+			struct
 			{
-#ifdef GTA_FIVE
-				rage::grcResourceCache::GetInstance()->QueueDelete(texRef->texture);
-				
-				g_onRenderQueue.push([]()
+				void* vtbl;
+				ID3D11Device* rawDevice;
+			}* deviceStuff = (decltype(deviceStuff))device;
+
+			rage::grcManualTextureDef textureDef;
+			memset(&textureDef, 0, sizeof(textureDef));
+			textureDef.isStaging = 1;
+			textureDef.usage = 1;
+			textureDef.arraySize = 1;
+
+			auto texRef = rage::grcTextureFactory::getInstance()->createManualTexture(desc.Width, desc.Height, 2 /* maps to BGRA DXGI format */, nullptr, true, &textureDef);
+
+			if (texRef)
+			{
+				if (texRef->texture)
 				{
-					rage::grcResourceCache::GetInstance()->FlushQueue();
-				});
+#ifdef GTA_FIVE
+					rage::grcResourceCache::GetInstance()->QueueDelete(texRef->texture);
+
+					g_onRenderQueue.push([]()
+					{
+						rage::grcResourceCache::GetInstance()->FlushQueue();
+					});
 #else
-				texRef->texture->Release();
+					texRef->texture->Release();
 #endif
-				texRef->texture = NULL;
+					texRef->texture = NULL;
+				}
+
+				resource.CopyTo(&texRef->texture);
+
+				if (texRef->srv)
+				{
+					texRef->srv->Release();
+				}
+
+				deviceStuff->rawDevice->CreateShaderResourceView(resource.Get(), nullptr, &texRef->srv);
 			}
 
-			texture.CopyTo(&texRef->texture);
+			texture->MarkOverriddenSRV();
+			texture->MarkOverriddenTexture();
 
-			if (texRef->srv)
-			{
-				texRef->srv->Release();
-			}
-
-			deviceStuff->rawDevice->CreateShaderResourceView(texture.Get(), nullptr, &texRef->srv);
-		}
-
-		auto texture = new GtaNuiTexture(texRef);
-		texture->MarkOverriddenSRV();
-		texture->MarkOverriddenTexture();
-
-		return texture;
+			return texRef;
+		});
 	}
 #elif GTA_NY
 	// ?

@@ -1375,9 +1375,13 @@ void MakeDummyDevice(ID3D11Device** device, ID3D11DeviceContext** context, const
 {
 	auto d = WRL::Make<StubD3D11Device>();
 	auto c = WRL::Make<StubD3D11DeviceContext>();
-	auto s = WRL::Make<StubDXGISwapChain>(*desc);
 
 	d.CopyTo(device);
 	c.CopyTo(context);
-	s.CopyTo(swapChain);
+
+	if (desc && swapChain)
+	{
+		auto s = WRL::Make<StubDXGISwapChain>(*desc);
+		s.CopyTo(swapChain);
+	}
 }

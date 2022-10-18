@@ -38,30 +38,9 @@ bool isKeyDown(WPARAM wparam)
 
 #include <shared_mutex>
 
-#ifdef USE_NUI_ROOTLESS
-std::shared_mutex g_nuiFocusStackMutex;
-std::list<std::string> g_nuiFocusStack;
-#endif
-
 static CefRefPtr<CefBrowser> GetFocusBrowser()
 {
-#ifdef USE_NUI_ROOTLESS
-	std::shared_lock<std::shared_mutex> lock(g_nuiFocusStackMutex);
-
-	for (const auto& entry : g_nuiFocusStack)
-	{
-		auto browser = nui::GetNUIWindowBrowser(entry);
-
-		if (browser)
-		{
-			return browser;
-		}
-	}
-
-	return {};
-#else
 	return nui::GetBrowser();
-#endif
 }
 
 static fwRefContainer<NUIWindow> GetFocusWindow()
@@ -169,82 +148,6 @@ namespace nui
 
 		g_hasFocus = hasFocus;
 		g_hasCursor = hasCursor;
-
-#ifdef USE_NUI_ROOTLESS
-		auto winName = fmt::sprintf("nui_%s", frameName);
-
-		auto browser = nui::GetNUIWindowBrowser(winName);
-		auto window = FindNUIWindow(winName);
-
-		if (hasFocus)
-		{
-			// deferred-create the window if it's given focus, too
-			if (window.GetRef())
-			{
-				if (!window->GetBrowser())
-				{
-					window->DeferredCreate();
-				}
-			}
-
-			static std::string oldDD;
-			std::unique_lock<std::shared_mutex> lock(g_nuiFocusStackMutex);
-
-			// remove from focus stack so it can be moved on top
-			for (auto it = g_nuiFocusStack.begin(); it != g_nuiFocusStack.end();)
-			{
-				if (*it == winName)
-				{
-					it = g_nuiFocusStack.erase(it);
-				}
-				else
-				{
-					++it;
-				}
-			}
-
-			g_nuiFocusStack.push_front(winName);
-
-			if (oldDD != g_nuiFocusStack.front())
-			{
-				if (browser)
-				{
-					auto rh = browser->GetHost()->GetClient()->GetRenderHandler();
-					NUIRenderHandler* nrh = (NUIRenderHandler*)rh.get();
-
-					RevokeDragDrop(g_nuiGi->GetHWND());
-					
-					HRESULT hr = RegisterDragDrop(g_nuiGi->GetHWND(), nrh->GetDropTarget());
-					if (FAILED(hr))
-					{
-						trace("registering drag/drop failed. hr: %08x\n", hr);
-					}
-				}
-			}
-		}
-		else
-		{
-			RevokeDragDrop(g_nuiGi->GetHWND());
-		}
-
-		if (browser)
-		{
-			browser->GetHost()->SetFocus(hasFocus);
-		}
-		else
-		{
-			if (window.GetRef())
-			{
-				window->PushLoadQueue([window, hasFocus]()
-				{
-					if (window->GetBrowser())
-					{
-						window->GetBrowser()->GetHost()->SetFocus(hasFocus);
-					}
-				});
-			}
-		}
-#endif
 	}
 
 	void OverrideFocus(bool hasFocus)
