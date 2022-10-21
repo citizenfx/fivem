@@ -955,7 +955,14 @@ static InitFunction initFunction([] ()
 
 				if (c->functionName == "dynamic")
 				{
-					c->url += "/dynamic.json";
+					if (c->url[c->url.size() - 1] == '/')
+					{
+						c->url += "dynamic.json";
+					}
+					else
+					{
+						c->url += "/dynamic.json";
+					}
 				}
 
 				// request it
