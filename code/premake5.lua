@@ -429,6 +429,14 @@ if _OPTIONS['game'] ~= 'launcher' then
 				"Microsoft.DotNet.GenFacades:6.0.0-beta.21063.5",
 			}
 			nugetsource "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-eng/nuget/v3/index.json"
+		else
+			postbuildcommands {
+				("%s '%s' '%s' '%%{cfg.linktarget.abspath}'"):format(
+					path.getabsolute("client/clrref/genapi.sh"),
+					path.getabsolute("."),
+					path.getabsolute("client/clrref/" .. _OPTIONS['game'])
+				)
+			}
 		end
 
 		links {
@@ -491,17 +499,41 @@ if _OPTIONS['game'] ~= 'launcher' then
 			clr 'Unsafe'
 			csversion '7.3'
 
-			links { "System.dll", "System.Drawing.dll" }
+			links {
+				"System.dll",
+				"System.Drawing.dll",
+				"System.Core.dll",
+			}
 			
 			files { "client/clrref/" .. _OPTIONS['game'] .. "/CitizenFX.Core.cs" }
 			
 			buildoptions '/debug:portable /langversion:7.3'
+			targetdir (binroot .. '/%{cfg.name:lower()}/citizen/clr2/lib/mono/4.5/ref/')
+	else
+		project "CitiMonoRef"
+			kind "Utility"
 
-			filter { "configurations:Debug" }
-				targetdir (binroot .. '/debug/citizen/clr2/lib/mono/4.5/ref/')
+			dependson "CitiMono"
 
-			filter { "configurations:Release" }
-				targetdir (binroot .. '/release/citizen/clr2/lib/mono/4.5/ref/')
+			files {
+				"client/clrref/CitizenFX.Core.Server.csproj"
+			}
+
+			filter 'files:**.csproj'
+				buildmessage 'Generating facades'
+				buildinputs { "client/clrref/server/CitizenFX.Core.cs" }
+				buildcommands {
+					("dotnet msbuild '%%{file.abspath}' /p:Configuration=%%{cfg.name} /p:FacadeOutPath=%s /t:Restore"):format(
+						path.getabsolute(binroot) .. '/%{cfg.name:lower()}/citizen/clr2/lib/mono/4.5/'
+					),
+					("dotnet msbuild '%%{file.abspath}' /p:Configuration=%%{cfg.name} /p:FacadeOutPath=%s"):format(
+						path.getabsolute(binroot) .. '/%{cfg.name:lower()}/citizen/clr2/lib/mono/4.5/'
+					),
+					("rm -rf '%s'"):format(
+						path.getabsolute(binroot) .. '/%{cfg.name:lower()}/citizen/clr2/lib/mono/4.5/ref/'
+					)
+				}
+				buildoutputs { binroot .. '/%{cfg.name:lower()}/citizen/clr2/lib/mono/4.5/CitizenFX.Core.Server.dll' }
 	end
 end
 	group ""
