@@ -148,7 +148,6 @@ mkdir -p /opt/cfx-server
 
 cp -a ../data/shared/* /opt/cfx-server
 cp -a ../data/server/* /opt/cfx-server
-cp -a ../data/server_linux/* /opt/cfx-server
 cp -a bin/server/linux/release/FXServer /opt/cfx-server
 cp -a bin/server/linux/release/*.so /opt/cfx-server
 cp -a bin/server/linux/release/*.json /opt/cfx-server
