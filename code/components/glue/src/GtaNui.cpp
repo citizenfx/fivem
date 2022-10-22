@@ -462,13 +462,15 @@ fwRefContainer<GITexture> GtaNuiInterface::CreateTextureBacking(int width, int h
 	assert(format == GITextureFormat::ARGB);
 
 #if defined(GTA_FIVE)
-	rage::grcManualTextureDef textureDef;
-	memset(&textureDef, 0, sizeof(textureDef));
-	textureDef.isStaging = 1;
-	textureDef.usage = 1;
-	textureDef.arraySize = 1;
-
-	return new GtaNuiTexture(rage::grcTextureFactory::getInstance()->createManualTexture(width, height, 2 /* maps to BGRA DXGI format */, nullptr, true, &textureDef));
+	return new GtaNuiTexture([width, height](GtaNuiTexture*)
+	{
+		rage::grcManualTextureDef textureDef;
+		memset(&textureDef, 0, sizeof(textureDef));
+		textureDef.isStaging = 1;
+		textureDef.usage = 1;
+		textureDef.arraySize = 1;
+		return rage::grcTextureFactory::getInstance()->createManualTexture(width, height, 2 /* maps to BGRA DXGI format */, nullptr, true, &textureDef);
+	});
 #elif defined(IS_RDR3)
 	return new GtaNuiDynamicTexture([width, height](GtaNuiDynamicTexture*)
 	{
