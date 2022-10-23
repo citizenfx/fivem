@@ -1198,8 +1198,6 @@ namespace fx
 
 	FxPrintListener printListener;
 
-	thread_local std::function<void(const std::string_view& cb)> FxPrintListener::listener;
-
 	namespace ServerDecorators
 	{
 		fwRefContainer<fx::GameServer> NewGameServer()
@@ -1395,9 +1393,14 @@ namespace fx
 						// reset rate limit for this key
 						limiter->Reset(from);
 
-						PrintListenerContext context([&](const std::string_view& print)
+						PrintListenerContext context([&printString](std::string_view print)
 						{
 							printString += print;
+						});
+
+						fx::PrintFilterContext filterContext([](ConsoleChannel& channel, std::string_view print)
+						{
+							channel = fmt::sprintf("rcon/%s", channel);
 						});
 
 						auto ctx = server->GetInstance()->GetComponent<console::Context>();

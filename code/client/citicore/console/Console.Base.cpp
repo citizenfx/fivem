@@ -130,7 +130,7 @@ static struct consoleBase
 	tbb::concurrent_queue<std::tuple<std::string, std::string>> consolePrintQueue;
 	bool isPrinting = false;
 
-	fwEvent<ConsoleChannel, const char*> printFilter;
+	fwEvent<ConsoleChannel&, const char*> printFilter;
 	std::vector<void (*)(ConsoleChannel, const char*)> printListeners = { PrintfTraceListener };
 	int useDeveloper = 0;
 }* gConsole = new consoleBase();
@@ -272,7 +272,7 @@ extern "C" DLL_EXPORT void CoreAddPrintListener(void(*function)(ConsoleChannel, 
 	console::gConsole->printListeners.push_back(function);
 }
 
-extern "C" DLL_EXPORT fwEvent<ConsoleChannel, const char*>* CoreGetPrintFilterEvent()
+extern "C" DLL_EXPORT fwEvent<ConsoleChannel&, const char*>* CoreGetPrintFilterEvent()
 {
 	return &console::gConsole->printFilter;
 }
