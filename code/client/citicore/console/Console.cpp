@@ -633,6 +633,8 @@ extern "C" DLL_EXPORT void AsyncTrace(const char* string)
 extern "C" void CoreAddPrintListener(void(*function)(ConsoleChannel, const char*));
 #endif
 
+extern void ConsoleBase_Init();
+
 static InitFunction initFunction([]()
 {
 #ifdef _WIN32
@@ -651,4 +653,6 @@ static InitFunction initFunction([]()
 	Instance<ConsoleCommandManager>::Set(cxt->GetCommandManager());
 	Instance<ConsoleVariableManager>::Set(cxt->GetVariableManager());
 	Instance<console::Context>::Set(cxt);
+
+	ConsoleBase_Init();
 });

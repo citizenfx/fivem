@@ -234,6 +234,9 @@ namespace fx
 					consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "monitor" });
 				}
 
+				// default forwarded commands to no-print
+				consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "con_addChannelFilter", "forward:*/*", "noprint" });
+
 				// add system console access
 				seGetCurrentContext()->AddAccessControlEntry(se::Principal{ "system.console" }, se::Object{ "webadmin" }, se::AccessType::Allow);
 				seGetCurrentContext()->AddAccessControlEntry(se::Principal{ "resource.monitor" }, se::Object{ "command.quit" }, se::AccessType::Allow);
