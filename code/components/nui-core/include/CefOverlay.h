@@ -101,6 +101,11 @@ namespace nui
 		virtual bool Map(int numSubLevels, int subLevel, GILockedTexture* lockedTexture, GILockFlags flags) = 0;
 
 		virtual void Unmap(GILockedTexture* lockedTexture) = 0;
+
+		virtual void WithHostTexture(std::function<void(void*)>&& callback)
+		{
+			callback(GetHostTexture());
+		}
 	};
 
 	enum class GITextureFormat
