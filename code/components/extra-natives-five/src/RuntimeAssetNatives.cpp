@@ -77,6 +77,8 @@ public:
 		return m_texture;
 	}
 
+	void SetTexture(rage::grcTexture* texture);
+
 private:
 	rage::grcTexture* m_texture;
 
@@ -157,17 +159,25 @@ RuntimeTex::~RuntimeTex()
 
 int RuntimeTex::GetWidth()
 {
-	return m_texture->GetWidth();
+	return m_texture ? m_texture->GetWidth() : 0;
 }
 
 int RuntimeTex::GetHeight()
 {
-	return m_texture->GetHeight();
+	return m_texture ? m_texture->GetHeight() : 0;
 }
 
 int RuntimeTex::GetPitch()
 {
 	return m_pitch;
+}
+
+void RuntimeTex::SetTexture(rage::grcTexture* texture)
+{
+	if (!m_texture)
+	{
+		m_texture = texture;
+	}
 }
 
 void RuntimeTex::SetPixel(int x, int y, int r, int g, int b, int a)
@@ -194,6 +204,11 @@ bool RuntimeTex::SetPixelData(const void* data, size_t length)
 		return false;
 	}
 
+	if (!m_texture)
+	{
+		return false;
+	}
+
 	rage::grcLockedTexture lockedTexture;
 
 	if (m_texture->Map(0, 0, &lockedTexture, rage::grcLockFlags::WriteDiscard))
@@ -210,7 +225,7 @@ void RuntimeTex::Commit()
 {
 	rage::grcLockedTexture lockedTexture;
 
-	if (m_texture->Map(0, 0, &lockedTexture, rage::grcLockFlags::WriteDiscard))
+	if (m_texture && m_texture->Map(0, 0, &lockedTexture, rage::grcLockFlags::WriteDiscard))
 	{
 		memcpy(lockedTexture.pBits, m_backingPixels.data(), m_backingPixels.size());
 		m_texture->Unmap(&lockedTexture);
@@ -286,10 +301,15 @@ RuntimeTex* RuntimeTxd::CreateTextureFromDui(const char* name, const char* duiHa
 	}
 
 	auto texture = nui::GetWindowTexture(duiHandle);
-	auto tex = std::make_shared<RuntimeTex>((rage::grcTexture*)texture->GetHostTexture(), false);
+	auto tex = std::make_shared<RuntimeTex>(nullptr, false);
 	tex->SetReferenceData(texture);
 
-	m_txd->Add(name, tex->GetTexture());
+	texture->WithHostTexture([this, name = HashString(name), tex](void* hostTexture)
+	{
+		auto texture = (rage::grcTexture*)hostTexture;
+		tex->SetTexture(texture);
+		m_txd->Add(name, tex->GetTexture());
+	});
 
 	m_textures[name] = tex;
 

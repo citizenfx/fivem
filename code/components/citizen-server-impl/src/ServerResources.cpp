@@ -1038,9 +1038,14 @@ static InitFunction initFunction([]()
 
 			std::string printString;
 
-			fx::PrintListenerContext context([&](const std::string_view& print)
+			fx::PrintListenerContext context([&printString](std::string_view print)
 			{
 				printString += print;
+			});
+
+			fx::PrintFilterContext filterContext([&client](ConsoleChannel& channel, std::string_view print)
+			{
+				channel = fmt::sprintf("forward:%d/%s", client->GetNetId(), channel);
 			});
 
 			fx::ScopeDestructor destructor([&]()

@@ -165,11 +165,10 @@ public:
 
 			if (ref)
 			{
-				(*ref)->m_texture = fn(*ref);
-			}
-			else
-			{
-
+				auto deref = *ref;
+				deref->m_texture = fn(deref);
+				deref->OnMaterialize();
+				deref->OnMaterialize.Reset();
 			}
 		});
 	}
@@ -243,9 +242,27 @@ public:
 		return m_texture;
 #endif
 	}
+
 	virtual void* GetHostTexture() override
 	{
 		return m_texture;
+	}
+
+	virtual void WithHostTexture(std::function<void(void*)>&& callback) override
+	{
+		auto texture = GetHostTexture();
+
+		if (!texture)
+		{
+			OnMaterialize.Connect([this, callback = std::move(callback)]()
+			{
+				callback(GetHostTexture());
+			});
+
+			return;
+		}
+
+		callback(texture);
 	}
 
 	virtual bool Map(int numSubLevels, int subLevel, nui::GILockedTexture* lockedTexture, nui::GILockFlags flags) override
@@ -301,6 +318,9 @@ public:
 		m_texture->m_pITexture->UnlockRect(0);
 #endif
 	}
+
+private:
+	fwEvent<> OnMaterialize;
 };
 
 #ifdef IS_RDR3
@@ -462,13 +482,15 @@ fwRefContainer<GITexture> GtaNuiInterface::CreateTextureBacking(int width, int h
 	assert(format == GITextureFormat::ARGB);
 
 #if defined(GTA_FIVE)
-	rage::grcManualTextureDef textureDef;
-	memset(&textureDef, 0, sizeof(textureDef));
-	textureDef.isStaging = 1;
-	textureDef.usage = 1;
-	textureDef.arraySize = 1;
-
-	return new GtaNuiTexture(rage::grcTextureFactory::getInstance()->createManualTexture(width, height, 2 /* maps to BGRA DXGI format */, nullptr, true, &textureDef));
+	return new GtaNuiTexture([width, height](GtaNuiTexture*)
+	{
+		rage::grcManualTextureDef textureDef;
+		memset(&textureDef, 0, sizeof(textureDef));
+		textureDef.isStaging = 1;
+		textureDef.usage = 1;
+		textureDef.arraySize = 1;
+		return rage::grcTextureFactory::getInstance()->createManualTexture(width, height, 2 /* maps to BGRA DXGI format */, nullptr, true, &textureDef);
+	});
 #elif defined(IS_RDR3)
 	return new GtaNuiDynamicTexture([width, height](GtaNuiDynamicTexture*)
 	{
@@ -542,11 +564,7 @@ fwRefContainer<GITexture> GtaNuiInterface::CreateTextureFromShareHandle(HANDLE s
 				{
 #ifdef GTA_FIVE
 					rage::grcResourceCache::GetInstance()->QueueDelete(texRef->texture);
-
-					g_onRenderQueue.push([]()
-					{
-						rage::grcResourceCache::GetInstance()->FlushQueue();
-					});
+					rage::grcResourceCache::GetInstance()->FlushQueue();
 #else
 					texRef->texture->Release();
 #endif
