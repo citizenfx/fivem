@@ -31,6 +31,10 @@ export function mergeServers(from: IServerView, to: IServerView | null): IServer
     server = { ...to };
   }
 
+  if (server.offline) {
+    delete server.offline;
+  }
+
   server.joinId = to.joinId || from.joinId;
   server.historicalAddress = to.historicalAddress || from.historicalAddress;
   server.historicalIconURL = to.historicalIconURL || from.historicalIconURL;

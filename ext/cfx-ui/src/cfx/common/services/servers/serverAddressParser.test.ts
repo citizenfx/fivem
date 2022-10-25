@@ -1,6 +1,6 @@
 import { describe, expect, test } from '@jest/globals';
 import { DEFAULT_SERVER_PORT_INT } from 'cfx/base/serverUtils';
-import { IParsedServerAddress, parseServerAddress } from './serverAddressParser';
+import { HostServerAddress, IParsedServerAddress, JoinOrHostServerAddress, parseServerAddress } from './serverAddressParser';
 
 describe('IP address', () => {
   test('IPv4 address', () => {
@@ -82,15 +82,29 @@ describe('Join ID or join url', () => {
     expect(parse`https://cfx.re/join/test/extra?search`).toEqual(expected);
     expect(parse`https://cfx.re/join/test/extra?search#hash`).toEqual(expected);
   });
+});
 
-  test('join id', () => {
+describe('Join ID or host address', () => {
+  test('join id or host', () => {
     const expected = {
-      type: 'join',
+      type: 'joinOrHost',
       address: 'testie',
       canonical: 'https://cfx.re/join/testie',
+      addressCandidates: [
+        'https://testie/',
+        'https://testie:30120/',
+        'http://testie:30120/',
+      ],
     };
 
     expect(parse`testie`).toEqual(expected);
+  });
+
+  test('candidates equality with bare host', () => {
+    const joinIdOrHost = parse`test` as any as JoinOrHostServerAddress;
+    const bareHost = parse`test.com` as any as HostServerAddress;
+
+    expect(joinIdOrHost.addressCandidates).toEqual(bareHost.addressCandidates?.map((address) => address.replace('.com', '')));
   });
 });
 

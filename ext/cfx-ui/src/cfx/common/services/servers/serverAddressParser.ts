@@ -1,9 +1,5 @@
 import { DEFAULT_SERVER_PORT, DEFAULT_SERVER_PORT_INT } from 'cfx/base/serverUtils';
 
-const ALPHANUMERIC_EXCEPTIONS = [
-  'localhost',
-];
-
 export interface JoinServerAddress {
   type: 'join',
   address: string,
@@ -11,6 +7,16 @@ export interface JoinServerAddress {
 }
 export function isJoinServerAddress(addr: IParsedServerAddress): addr is JoinServerAddress {
   return addr.type === 'join';
+}
+
+export interface JoinOrHostServerAddress {
+  type: 'joinOrHost',
+  address: string,
+  canonical: string,
+  addressCandidates: string[],
+}
+export function isJoinOrHostServerAddress(addr: IParsedServerAddress): addr is JoinOrHostServerAddress {
+  return addr.type === 'joinOrHost';
 }
 
 export interface IpServerAddress {
@@ -35,6 +41,7 @@ export function isHostServerAddress(addr: IParsedServerAddress): addr is HostSer
 
 export type IParsedServerAddress =
   | JoinServerAddress
+  | JoinOrHostServerAddress
   | IpServerAddress
   | HostServerAddress;
 
@@ -89,11 +96,16 @@ export function parseServerAddress(arbitraryAddress: string): IParsedServerAddre
   }
 
   // If only alpha-numeric characters left - assume joinId
-  if (indexOfFirstNotAlphaNumericChar(arbitraryAddress) === -1 && !ALPHANUMERIC_EXCEPTIONS.includes(arbitraryAddress)) {
+  if (indexOfFirstNotAlphaNumericChar(arbitraryAddress) === -1) {
     return {
-      type: 'join',
+      type: 'joinOrHost',
       address: arbitraryAddress,
       canonical: `https://${JOIN_LINK_DISCRIMINATOR}${arbitraryAddress}`,
+      addressCandidates: [
+        `https://${arbitraryAddress}/`,
+        `https://${arbitraryAddress}:${DEFAULT_SERVER_PORT}/`,
+        `http://${arbitraryAddress}:${DEFAULT_SERVER_PORT}/`,
+      ],
     };
   }
 
