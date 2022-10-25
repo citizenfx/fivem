@@ -57,6 +57,10 @@ export class SearchInputController {
       return null;
     }
 
+    if (this.activeTermIndex >= this.parsed.length) {
+      return null;
+    }
+
     const term = this.parsed[this.activeTermIndex];
     if (!term) {
       return null;

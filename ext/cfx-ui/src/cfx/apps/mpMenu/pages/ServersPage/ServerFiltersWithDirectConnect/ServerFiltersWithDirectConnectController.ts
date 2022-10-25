@@ -76,6 +76,11 @@ export class ServerFiltersWithDirectConnectController implements IDisposableObje
   }
 
   readonly handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.code === 'Escape') {
+      this.config?.setSearchText('');
+      return;
+    }
+
     if (event.code !== 'Enter') {
       return;
     }

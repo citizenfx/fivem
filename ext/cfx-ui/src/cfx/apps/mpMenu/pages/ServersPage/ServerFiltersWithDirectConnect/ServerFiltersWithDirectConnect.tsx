@@ -155,8 +155,12 @@ function getDirectConnectLabel(config: ServerListConfigController, controller: S
     );
   }
 
-  if (config.searchText.length > 1 && !controller.parsedAddress) {
-    return 'Invalid server address';
+  if (config.searchText.length > 1) {
+    if (!controller.parsedAddress) {
+      return 'Invalid server address';
+    }
+
+    return 'Server is either offline or address is incorrect';
   }
 
   return 'Enter server address';
