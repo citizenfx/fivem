@@ -28,6 +28,7 @@ import { replaceCfxRePlaceholders, useRenderedFormattedMessage } from "../../uti
 import { usePlatformStatusService } from "../../services/platformStatus/platformStatus.service";
 import { StatusLevel } from "../../services/platformStatus/types";
 import { Modal } from "cfx/ui/Modal/Modal";
+import { useStreamerMode } from "../../services/convars/convars.service";
 
 type ConnectFailedProps = {
   state: ConnectState.Failed,
@@ -194,6 +195,8 @@ const FailureScheme = observer(function FailureScheme(props: { server: IServerVi
 
   const AccountService = useAccountService();
 
+  const streamerMode = useStreamerMode();
+
   const userAvatarURL = AccountService.account
     ? AccountService.account.getAvatarUrl()
     : createPlaceholderIconDataURI(mpMenu.getPlayerNickname());
@@ -223,7 +226,7 @@ const FailureScheme = observer(function FailureScheme(props: { server: IServerVi
       <Flex vertical centered>
         <Avatar
           size="large"
-          url={userAvatarURL}
+          url={streamerMode ? null : userAvatarURL}
         />
 
         <Text size="large">

@@ -192,7 +192,9 @@ type VarsView = Partial<Pick<IServerView, | 'tags'
 >>;
 
 export function processServerDataVariables(vars?: IServer['data']['vars']): VarsView {
-  const view: VarsView = {};
+  const view: VarsView = {
+    projectName: '',
+  };
 
   if (!vars) {
     return view;

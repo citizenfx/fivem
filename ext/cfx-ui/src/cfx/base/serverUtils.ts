@@ -73,7 +73,11 @@ const projectNamesReplacesExtra: [RegExp, string | Function][] = [
 /**
  * Returns normalized server name, typically from `sv_projectName` var
  */
-export function filterServerProjectName(name: string) {
+export function filterServerProjectName(name: string | undefined | null): string {
+  if (!name) {
+    return '';
+  }
+
   if (name.length >= 50) {
     name = name.substring(0, 50);
   }
@@ -96,7 +100,11 @@ export function filterServerProjectName(name: string) {
 /**
  * Returns normalized server description, typically from `sv_projectDesc` var
  */
-export function filterServerProjectDesc(a: string) {
+export function filterServerProjectDesc(a: string | undefined | null): string {
+  if (!a) {
+    return '';
+  }
+
   if (a.length >= 125) {
     a = a.substring(0, 125);
   }
