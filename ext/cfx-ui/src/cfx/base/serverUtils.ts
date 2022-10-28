@@ -8,6 +8,9 @@ import { IPinnedServersConfig, IServerView } from 'cfx/common/services/servers/t
 import { IAutocompleteIndex } from 'cfx/common/services/servers/source/types';
 import { isAddressSearchTerm } from './searchTermsParser';
 
+export const EOL_LINK = 'aka.cfx.re/eol';
+export const EOS_LINK = 'aka.cfx.re/eos';
+
 export const DEFAULT_SERVER_PORT_INT = 30120;
 export const DEFAULT_SERVER_PORT = DEFAULT_SERVER_PORT_INT.toString(10);
 

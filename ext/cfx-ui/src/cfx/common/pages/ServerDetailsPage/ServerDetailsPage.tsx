@@ -1,11 +1,11 @@
 import React from "react";
-import { isServerEOL, isServerEOS, shouldDisplayServerResource } from "cfx/base/serverUtils";
+import { EOL_LINK, EOS_LINK, isServerEOL, isServerEOS, shouldDisplayServerResource } from "cfx/base/serverUtils";
 import { useService } from "cfx/base/servicesContainer";
 import { IServersService } from "cfx/common/services/servers/servers.service";
 import { IServerView, IServerViewPlayer, ServerViewDetailsLevel } from "cfx/common/services/servers/types";
 import { CountryFlag } from "cfx/ui/CountryFlag/CountryFlag";
 import { Icons } from "cfx/ui/Icons";
-import { InfoPanel } from "cfx/ui/InfoPanel/InfoPanel";
+import { InfoPanel, InfoPanelType } from "cfx/ui/InfoPanel/InfoPanel";
 import { Island } from "cfx/ui/Island/Island";
 import { Box } from "cfx/ui/Layout/Box/Box";
 import { Flex } from "cfx/ui/Layout/Flex/Flex";
@@ -32,6 +32,10 @@ import { ServerPlayersCount } from "cfx/common/parts/Server/ServerPlayersCount/S
 import { ServerPower } from "cfx/common/parts/Server/ServerPower/ServerPower";
 import { ServerFavoriteButton } from "cfx/common/parts/Server/ServerFavoriteButton/ServerFavoriteButton";
 import { isServerOffline } from "cfx/common/services/servers/helpers";
+import { useAccountService } from "cfx/common/services/account/account.service";
+import { $L, useL10n } from "cfx/common/services/intl/l10n";
+import { Icon } from "cfx/ui/Icon/Icon";
+import { Separator } from "cfx/ui/Separator/Separator";
 import s from './ServerDetailsPage.module.scss';
 
 const LAYOUT_SPLITS = {
@@ -145,8 +149,6 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
 
                             <ServerFavoriteButton size="large" server={server} />
                           </Flex>
-
-                          <Warning server={server} />
                         </Flex>
                       </Flex>
                     </Box>
@@ -171,6 +173,8 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
               <Box style={{ position: 'sticky', top: 0 }}>
                 <Pad top right bottom size="xlarge">
                   <Flex vertical gap="large">
+                    <Warning server={server} />
+
                     <ServerExtraDetails server={server} />
 
                     {!!server.players && (
@@ -248,18 +252,121 @@ const Warning = observer(function Warning({ server }: { server: IServerView }) {
   let message: string | null = null;
 
   const IntlService = useIntlService();
+  const AccountService = useAccountService();
+
+  const currentUserIsOwner = server.ownerID === AccountService.account?.id;
+
+  if (isServerEOL(server)) {
+    const linkText = useL10n('#ServerDetail_EOLWarning2_Link', { link: EOL_LINK });
+
+    const descriptionNode = currentUserIsOwner
+      ? (
+        <Text typographic size="large">
+          {$L('#ServerDetail_EOLWarning2_ForOwner_1')}
+          <br />
+          <br />
+          <Text weight="bold" size="large">
+            {$L('#ServerDetail_EOLWarning2_ForOwner_2')}
+          </Text>
+        </Text>
+      )
+      : (
+        <Text typographic size="large">
+          {$L('#ServerDetail_EOLWarning2_ForPlayer_1')}
+          <br />
+          <br />
+          {$L('#ServerDetail_EOLWarning2_ForPlayer_2')}
+        </Text>
+      );
+
+    return (
+      <Flex vertical>
+        <InfoPanel size="large" type="error">
+          <Pad>
+            <Flex vertical gap="large">
+              <Icon size="xxlarge" opacity="50">
+                <BsExclamationTriangleFill />
+              </Icon>
+
+              <Text centered typographic size="xlarge" weight="bold">
+                {$L('#ServerDetail_EOLWarning2_Message')}
+              </Text>
+
+              <Separator thin />
+
+              {descriptionNode}
+
+              <Separator thin />
+
+              <Text typographic>
+                <Linkify text={linkText} />
+              </Text>
+            </Flex>
+          </Pad>
+        </InfoPanel>
+      </Flex>
+    );
+  }
+
+  if (isServerEOS(server)) {
+    const linkText = useL10n('#ServerDetail_SupportWarning2_Link', { link: EOS_LINK });
+
+    const descriptionNode = currentUserIsOwner
+      ? (
+        <Text typographic>
+          {$L('#ServerDetail_SupportWarning2_ForOwner_1')}
+          <br />
+          <br />
+          <Text weight="bold">
+            {$L('#ServerDetail_SupportWarning2_ForOwner_2')}
+          </Text>
+        </Text>
+      )
+      : (
+        <Text typographic>
+          {$L('#ServerDetail_SupportWarning2_ForPlayer_1')}
+          <br />
+          <br />
+          {$L('#ServerDetail_SupportWarning2_ForPlayer_2')}
+        </Text>
+      );
+
+    const type: InfoPanelType = currentUserIsOwner
+      ? 'warning'
+      : 'default';
+
+    return (
+      <Flex vertical>
+        <InfoPanel type={type}>
+          <Pad size="small">
+            <Flex vertical gap="normal">
+              <Icon size="xlarge" opacity="50">
+                <BsExclamationTriangleFill />
+              </Icon>
+
+              <Text centered typographic size="large" weight="bold">
+                {$L('#ServerDetail_SupportWarning2_Message')}
+              </Text>
+
+              <Separator thin />
+
+              {descriptionNode}
+
+              <Separator thin />
+
+              <Text typographic>
+                <Linkify text={linkText} />
+              </Text>
+            </Flex>
+          </Pad>
+        </InfoPanel>
+      </Flex>
+    );
+  }
 
   switch (true) {
     case !!server.private: {
       message = IntlService.translate('#ServerDetail_PrivateWarning');
-      break;
-    }
-    case isServerEOL(server): {
-      message = IntlService.translate('#ServerDetail_EOLWarning');
-      break;
-    }
-    case isServerEOS(server): {
-      message = IntlService.translate('#ServerDetail_SupportWarning');
       break;
     }
     case isServerOffline(server): {
