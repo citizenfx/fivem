@@ -55,7 +55,7 @@ return {
 				}
 
 				buildcommands {
-					('curl.exe "-z%s/%s" -L "-o%s/%s" "%s/%s"'):format(v8bindir, v8dll, v8bindir, v8dll, v8url, v8dll),
+					('curl.exe -z "%s/%s" -Lo "%s/%s" "%s/%s"'):format(v8bindir, v8dll, v8bindir, v8dll, v8url, v8dll),
 					'if %errorlevel% neq 0 (exit /b 1)',
 					('{COPY} %s/%s %%{cfg.targetdir}'):format(v8bindir, v8dll),
 					('{MKDIR} %%{cfg.targetdir}/citizen/scripting/v8/%s/'):format(baseVersion),
