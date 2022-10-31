@@ -27,6 +27,8 @@
 #include <HttpClient.h>
 #include <windns.h>
 
+#include <tbb/concurrent_unordered_set.h>
+
 #pragma comment(lib, "dnsapi.lib")
 
 #if defined(GTA_NY)
@@ -751,6 +753,9 @@ void GSClient_QueryOneServer(const std::wstring& arg)
 				static bool result = false;
 				result = false;
 
+				static tbb::concurrent_unordered_set<std::string> qaSeen;
+				qaSeen.clear();
+
 				DNS_SERVICE_BROWSE_REQUEST request = { 0 };
 				request.Version = DNS_QUERY_REQUEST_VERSION1;
 				request.InterfaceIndex = 0;
@@ -777,8 +782,13 @@ void GSClient_QueryOneServer(const std::wstring& arg)
 										qao = g_queryArgOrig;
 									}
 
-									ContinueLanQuery(qa, qao);
-									break;
+									if (!qaSeen.contains(qa))
+									{
+										qaSeen.insert(qa);
+
+										ContinueLanQuery(qa, qao);
+										break;
+									}
 								}
 							}
 
@@ -793,7 +803,12 @@ void GSClient_QueryOneServer(const std::wstring& arg)
 						qao = g_queryArgOrig;
 					}
 
-					ContinueLanQuery(qa, qao);
+					if (!qaSeen.contains(qa))
+					{
+						qaSeen.insert(qa);
+
+						ContinueLanQuery(qa, qao);
+					}
 				};
 
 				static DNS_SERVICE_CANCEL cancel;
