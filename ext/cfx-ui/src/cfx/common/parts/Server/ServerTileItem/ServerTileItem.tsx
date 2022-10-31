@@ -19,12 +19,13 @@ import { Title } from "cfx/ui/Title/Title";
 import { ServerPower } from "../ServerPower/ServerPower";
 import { ServerBoostButton } from "../ServerBoostButton/ServerBoostButton";
 import { ControlBox } from "cfx/ui/ControlBox/ControlBox";
-import s from './ServerTileItem.module.scss';
 import { ServerConnectButton } from "../ServerConnectButton/ServerConnectButton";
 import { ServerFavoriteButton } from "../ServerFavoriteButton/ServerFavoriteButton";
 import { preventDefault, stopPropagation } from "cfx/utils/domEvents";
 import { Loaf } from "cfx/ui/Loaf/Loaf";
 import { Indicator } from "cfx/ui/Indicator/Indicator";
+import s from './ServerTileItem.module.scss';
+import { $L } from "cfx/common/services/intl/l10n";
 
 export interface ServerTileItemProps {
   server: IServerView,
@@ -65,7 +66,7 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
   } else if (server.offline) {
     connectButtonNode = (
       <Loaf color="error">
-        OFFLINE
+        {$L('#Server_Offline')}
       </Loaf>
     );
   } else {
@@ -114,11 +115,13 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
                   title={server.projectName || server.hostname}
                 />
 
-                <Title delay={500} fixedOn="bottom-left" title={server.projectDescription}>
-                  <Text truncated opacity="50">
-                    {server.projectDescription}
-                  </Text>
-                </Title>
+                {!!server.projectDescription && (
+                  <Title delay={500} fixedOn="bottom-left" title={server.projectDescription}>
+                    <Text truncated opacity="50">
+                      {server.projectDescription}
+                    </Text>
+                  </Title>
+                )}
               </Flex>
             </FlexRestricter>
 

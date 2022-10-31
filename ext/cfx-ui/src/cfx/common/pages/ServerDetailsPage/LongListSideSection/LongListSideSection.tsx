@@ -25,7 +25,7 @@ export interface LongListSideSectionProps<T> {
   title: React.ReactNode,
   subtitle?: React.ReactNode,
 
-  seeAllTitle?: string,
+  seeAllTitle?: React.ReactNode,
 }
 
 export const LongListSideSection = observer(function LongListSideSection<T>(props: LongListSideSectionProps<T>) {

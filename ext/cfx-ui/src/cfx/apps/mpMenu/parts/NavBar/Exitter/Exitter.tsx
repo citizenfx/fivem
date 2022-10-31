@@ -49,7 +49,7 @@ export function Exitter() {
                     <Button
                       theme="primary"
                       size="large"
-                      text="Cancel"
+                      text={$L('#ExitToDesktopConfirmationCancel')}
                       onClick={closeConfirmer}
                     />
                   </Flex>

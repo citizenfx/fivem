@@ -4,9 +4,10 @@ import { Icons } from "cfx/ui/Icons";
 import { Flex } from "cfx/ui/Layout/Flex/Flex";
 import { Title } from "cfx/ui/Title/Title";
 import { observer } from "mobx-react-lite";
-import { mpMenu } from "../../mpMenu";
+import { mpMenu } from "../../../mpMenu";
 import { useUiService } from "cfx/common/services/ui/ui.service";
-import { KnownConvars, useConvarService } from "../../services/convars/convars.service";
+import { KnownConvars, useConvarService } from "../../../services/convars/convars.service";
+import { $L } from "cfx/common/services/intl/l10n";
 import s from './CustomBackdropControl.module.scss';
 
 export const CustomBackdropControl = observer(() => {
@@ -33,7 +34,7 @@ export const CustomBackdropControl = observer(() => {
         />
 
         {hasCustomBackdropSet && (
-          <Title fixedOn="right" title="Delete custom menu backdrop">
+          <Title fixedOn="right" title={$L('#Settings_CustomBackdropReset')}>
             <Button
               theme="transparent"
               icon={Icons.remove}

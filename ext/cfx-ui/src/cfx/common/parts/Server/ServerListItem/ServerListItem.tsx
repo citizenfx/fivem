@@ -103,7 +103,7 @@ export const ServerListItem = observer(function ServerListItem(props: ServerList
 
       {isOffline && (
         <Loaf size="small" color="error">
-          OFFLINE
+          {$L('#Server_Offline')}
         </Loaf>
       )}
 
@@ -254,9 +254,7 @@ const LastConnectedAt = observer(function LastConnectedAt({ id }: { id: string }
   return (
     <Title fixedOn="bottom" title={`Last connected at ${fullDate}`}>
       <Loaf bright size="small" className={s['hide-on-hover']}>
-        {/* <BsClock />
-        &nbsp; */}
-        last played: {distanceDate}
+        {$L('#Server_LastPlayed')}: {distanceDate}
       </Loaf>
     </Title>
   );

@@ -4,19 +4,17 @@ import { ServerListConfigController } from "cfx/common/services/servers/lists/Se
 import { observer } from "mobx-react-lite";
 import { useWindowResize } from "cfx/utils/hooks";
 import { ui } from "cfx/ui/ui";
-import { ServerListItem } from "cfx/common/parts/Server/ServerListItem/ServerListItem";
 import { ServerFiltersWithDirectConnectController, userServerFiltersWithDirectConnectController } from "./ServerFiltersWithDirectConnectController";
 import { Indicator } from "cfx/ui/Indicator/Indicator";
 import { TitleOutlet } from "cfx/ui/outlets";
 import { Shroud } from "cfx/ui/Shroud/Shroud";
-import { Box } from "cfx/ui/Layout/Box/Box";
 import { Flex } from "cfx/ui/Layout/Flex/Flex";
-import { Text, TextBlock } from "cfx/ui/Text/Text";
+import { TextBlock } from "cfx/ui/Text/Text";
 import { Button } from "cfx/ui/Button/Button";
-import { Pad } from "cfx/ui/Layout/Pad/Pad";
 import { ServerTitle } from "cfx/common/parts/Server/ServerTitle/ServerTitle";
-import s from './ServerFiltersWithDirectConnect.module.scss';
 import { ServerTileItem } from "cfx/common/parts/Server/ServerTileItem/ServerTileItem";
+import { $L } from "cfx/common/services/intl/l10n";
+import s from './ServerFiltersWithDirectConnect.module.scss';
 
 export interface ServerFiltersWithDirectConnectProps {
   config: ServerListConfigController,
@@ -98,7 +96,7 @@ const DirectConnect = observer(function DirectConnect(props: DirectConnectProps)
             <Button
               size="small"
               theme="primary"
-              text="Press Enter to connect"
+              text={$L('#DirectConnect2_PressEnterToConnect')}
               disabled={!server || controller.loadingServer}
             />
           </Flex>
@@ -157,11 +155,11 @@ function getDirectConnectLabel(config: ServerListConfigController, controller: S
 
   if (config.searchText.length > 1) {
     if (!controller.parsedAddress) {
-      return 'Invalid server address';
+      return $L('#DirectConnect2_InvalidAddress');
     }
 
-    return 'Server is either offline or address is incorrect';
+    return $L('#DirectConnect2_InvalidAddressOrOffline');
   }
 
-  return 'Enter server address';
+  return $L('#DirectConnect2_EnterAddress');
 }

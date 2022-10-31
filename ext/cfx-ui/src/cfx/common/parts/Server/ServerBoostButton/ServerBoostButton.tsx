@@ -1,7 +1,9 @@
 import { useServiceOptional } from "cfx/base/servicesContainer";
+import { $L } from "cfx/common/services/intl/l10n";
 import { IServersBoostService } from "cfx/common/services/servers/serversBoost.service";
 import { IServerView } from "cfx/common/services/servers/types";
-import { Button } from "cfx/ui/Button/Button";
+import { Button, ButtonSize, ButtonTheme } from "cfx/ui/Button/Button";
+import { Icons } from "cfx/ui/Icons";
 import { Title } from "cfx/ui/Title/Title";
 import { stopPropagation } from "cfx/utils/domEvents";
 import { noop } from "cfx/utils/functional";
@@ -9,12 +11,15 @@ import { observer } from "mobx-react-lite";
 
 export interface ServerBoostButtonProps {
   server: IServerView,
+  size?: ButtonSize,
+  theme?: ButtonTheme,
   className?: string,
 }
 
 export const ServerBoostButton = observer(function ServerBoostButton(props: ServerBoostButtonProps) {
   const {
     server,
+    size = 'small',
     className,
   } = props;
 
@@ -26,16 +31,16 @@ export const ServerBoostButton = observer(function ServerBoostButton(props: Serv
   const isBoostedByUser = ServersBoostService.currentBoost?.address === server.id;
 
   const title = isBoostedByUser
-    ? `You're BOOSTING™ this server`
-    : "Give server a BOOST™!";
+    ? $L('#Server_Boost_Title_Active')
+    : $L('#Server_Boost_Title');
 
   const theme = isBoostedByUser
     ? 'primary'
-    : 'default';
+    : props.theme || 'default';
 
   const text = isBoostedByUser
-    ? 'BOOSTING™!'
-    : 'BOOST™!';
+    ? $L('#Server_Boost_Button_Active')
+    : $L('#Server_Boost_Button');
 
   const handleClick = isBoostedByUser
     ? noop
@@ -44,8 +49,9 @@ export const ServerBoostButton = observer(function ServerBoostButton(props: Serv
   return (
     <Title fixedOn="bottom" title={title}>
       <Button
-        size="small"
+        size={size}
         theme={theme}
+        icon={Icons.serverBoost}
         text={text}
         onClick={stopPropagation(handleClick)}
         disabled={isBoostedByUser}

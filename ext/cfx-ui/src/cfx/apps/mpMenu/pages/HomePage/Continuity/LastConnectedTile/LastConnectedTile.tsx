@@ -36,17 +36,17 @@ export const LastConnectedTile = observer(function LastConnectedTile() {
       {showStreamerWarning && (
         <div onClick={hide} className={s.warning}>
           <Text color="inherit" size="large">
-            Last connected server is <strong>hidden</strong>
+            {$L('#Home_LastConnectedServer_PrivacyCover_Header')}
           </Text>
 
           <Text color="inherit">
-            due to enabled streamer mode
+            {$L('#Home_LastConnectedServer_PrivacyCover_Reason')}
           </Text>
 
           <div />
 
           <Text color="inherit" weight="bold">
-            Click to show anyway
+            {$L('#Home_LastConnectedServer_PrivacyCover_ClickToShow')}
           </Text>
         </div>
       )}

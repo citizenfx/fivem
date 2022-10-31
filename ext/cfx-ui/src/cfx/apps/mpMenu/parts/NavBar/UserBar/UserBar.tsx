@@ -68,7 +68,7 @@ export const UserBar = observer(function UserBar() {
 
   if (AccountService.accountLoadError) {
     return (
-      <Title title="Failed to load account data">
+      <Title title={$L('#UserNav_FailedToLoadAccountData')}>
         <Button
           size="large"
           theme={buttonTheme}
@@ -93,24 +93,28 @@ export const UserBar = observer(function UserBar() {
 });
 
 function getUserAvatarTitle(account: IAccount): React.ReactNode {
-  const titles: string[] = [account.username];
-
-  // #TODOLOC
-  if (account.isPremium) {
-    titles.push('Premium');
-  }
-  if (account.isStaff) {
-    titles.push('Staff member');
-  }
+  const hasExtraTitle = account.isPremium || account.isStaff;
 
   return (
     <Flex vertical centered gap="small">
       <span>
         {$L('#UserBar_AccountSettings')}
       </span>
-      <strong>
-        {titles.join(` ${Symbols.htmlDot} `)}
-      </strong>
+
+      {hasExtraTitle && (
+        <strong>
+          {account.isPremium && (
+            $L('#UserNav_Title_Premium')
+          )}
+
+          {account.isStaff && (
+            <>
+              {Symbols.htmlDot}
+              {$L('#UserNav_Title_Staff')}
+            </>
+          )}
+        </strong>
+      )}
     </Flex>
   );
 }

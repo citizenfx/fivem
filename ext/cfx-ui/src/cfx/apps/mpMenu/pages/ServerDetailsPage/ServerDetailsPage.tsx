@@ -28,6 +28,7 @@ import { useTimeoutFlag } from "cfx/utils/hooks";
 import { useStreamerMode } from "../../services/convars/convars.service";
 import { ServerReviewFormContext } from "cfx/common/parts/Server/ServerReviews/ServerReviewForm/ServerReviewForm";
 import { useForceTransparentNav } from "../../parts/NavBar/NavBarState";
+import { $L } from "cfx/common/services/intl/l10n";
 
 export const MpMenuServerDetailsPage = observer(function MpMenuServerDetailsPage() {
   const { '*': address } = useParams();
@@ -85,7 +86,7 @@ function NotFound() {
           </Icon>
 
           <Text size="xxlarge">
-            Unknown server
+            {$L('#ServerDetail_NotFound')}
           </Text>
 
           <div />
@@ -96,7 +97,7 @@ function NotFound() {
 
           <LinkButton
             to="/servers"
-            text="But there are plenty of servers!"
+            text={$L('#ServerDetail_NotFound_AllServersLink')}
           />
         </Flex>
       </Island>
@@ -121,7 +122,7 @@ const DetailsWrapper = observer(function DetailsWrapper({ server }: { server: IS
       <InsideNavBar>
         <Box noOverflow>
           <Flex gap="large">
-            <Title title="Go back">
+            <Title title={$L('#ServerDetail_Back')}>
               <Button
                 size="large"
                 icon={<BsArrowLeft />}

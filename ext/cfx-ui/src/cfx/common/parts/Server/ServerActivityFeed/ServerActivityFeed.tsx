@@ -12,6 +12,7 @@ import { observer } from "mobx-react-lite";
 import { BsEmojiFrownFill } from "react-icons/bs";
 import { IoNewspaperSharp } from "react-icons/io5";
 import { useActivityService } from "cfx/common/services/activity/activity.service";
+import { $L } from "cfx/common/services/intl/l10n";
 import s from './ServerActivityFeed.module.scss';
 
 export interface ServerActivityFeedProps {
@@ -49,12 +50,12 @@ export const ServerActivityFeed = observer(function ServerActivityFeed(props: Se
             </Text>
 
             <Text size="large">
-              Failed to load activity pub feed for {feed.id}
+              {$L('#ServerDetail_Feed_LoadError', { feed: feed.id })}
             </Text>
 
             {feed.initError && (
               <Text opacity="75">
-                Server reported: {feed.initError}
+                {$L('#ServerDetail_Feed_LoadError_ServerReported')} {feed.initError}
               </Text>
             )}
           </Flex>
@@ -75,7 +76,7 @@ export const ServerActivityFeed = observer(function ServerActivityFeed(props: Se
             </Text>
 
             <Text size="large">
-              The feed of {feed.id} is pretty empty
+              {$L('#ServerDetail_Feed_Empty', { feed: feed.id })}
             </Text>
           </Flex>
         </InfoPanel>
@@ -108,7 +109,7 @@ export const ServerActivityFeed = observer(function ServerActivityFeed(props: Se
           {hasMoreItems && (
             <div className={s.morer}>
               <Button
-                text="Show more"
+                text={$L('#ServerDetail_Feed_ShowMore')}
                 onClick={() => setShowAll(true)}
               />
             </div>

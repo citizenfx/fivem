@@ -4,7 +4,7 @@ import { BsDisplay } from "react-icons/bs";
 import { ISetting, ISettings } from "cfx/common/services/settings/types";
 import { useService } from "cfx/base/servicesContainer";
 import { CurrentGameName } from "cfx/base/gameRuntime";
-import { CustomBackdropControl } from "./components/CustomBackdropControl/CustomBackdropControl";
+import { CustomBackdropControl } from "./parts/SettingsFlyout/CustomBackdropControl/CustomBackdropControl";
 import { LinkedIdentitiesList } from "./parts/LinkedIdentitiesList/LinkedIdentitiesList";
 import { mpMenu } from "./mpMenu";
 import { IConvarService, KnownConvars } from "./services/convars/convars.service";

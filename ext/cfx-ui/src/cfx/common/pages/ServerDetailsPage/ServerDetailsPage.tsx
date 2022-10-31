@@ -36,7 +36,9 @@ import { useAccountService } from "cfx/common/services/account/account.service";
 import { $L, useL10n } from "cfx/common/services/intl/l10n";
 import { Icon } from "cfx/ui/Icon/Icon";
 import { Separator } from "cfx/ui/Separator/Separator";
+import { identity } from "cfx/utils/functional";
 import s from './ServerDetailsPage.module.scss';
+import { ServerBoostButton } from "cfx/common/parts/Server/ServerBoostButton/ServerBoostButton";
 
 const LAYOUT_SPLITS = {
   LEFT: '75%',
@@ -180,10 +182,10 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
                     {!!server.players && (
                       <LongListSideSection
                         icon={Icons.playersCount}
-                        title="Players"
+                        title={$L('#ServerDetail_Players')}
                         subtitle={`${server.playersCurrent} / ${server.playersMax}`}
                         items={server.players}
-                        seeAllTitle="Show all players"
+                        seeAllTitle={$L('#ServerDetail_Players_ShowAll')}
                         renderPreviewItem={playerRenderer}
                         itemMatchesFilter={(filter, item) => item.name.toLowerCase().includes(filter)}
                       />
@@ -192,10 +194,10 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
                     {!!displayResources && (
                       <LongListSideSection
                         icon={<BsLayersFill />}
-                        title="Resources"
+                        title={$L('#ServerDetail_Resources')}
                         items={displayResources}
-                        seeAllTitle="Show all resources"
-                        renderPreviewItem={(item) => item}
+                        seeAllTitle={$L('#ServerDetail_Resources_ShowAll')}
+                        renderPreviewItem={identity}
                         itemMatchesFilter={(filter, item) => item.toLowerCase().includes(filter)}
                       />
                     )}
@@ -203,10 +205,10 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
                     {!!server.tags && (
                       <LongListSideSection
                         icon={<BsTagsFill />}
-                        title="Tags"
+                        title={$L('#ServerDetail_Tags')}
                         items={server.tags}
-                        renderPreviewItem={(item) => item}
-                        seeAllTitle="Show all tags"
+                        renderPreviewItem={identity}
+                        seeAllTitle={$L('#ServerDetail_Tags_ShowAll')}
                         itemMatchesFilter={(filter, item) => item.toLowerCase().includes(filter)}
                       />
                     )}

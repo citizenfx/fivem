@@ -62,7 +62,7 @@ export const ServerReviewReport = observer(function ServerReviewReport(props: Se
             {$L('#Review_Flag')}
           </Modal.Header>
 
-          <Pad left right bottom>
+          <Pad>
             <Flex vertical>
               {report.options.map((option) => (
                 <Radio

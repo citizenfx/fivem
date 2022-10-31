@@ -27,7 +27,7 @@ export type InputProps = TypeSpecific & {
   backdropBlur?: boolean,
   inputClassName?: string,
   inputRef?: React.Ref<HTMLInputElement>,
-  label?: string,
+  label?: React.ReactNode,
   placeholder?: string,
   description?: React.ReactNode,
 

@@ -15,7 +15,6 @@ export function StoryMode() {
   return (
     <>
       <Button
-        // fullWidth
         size="large"
         theme="default-blurred"
         icon={Icons.storymode}

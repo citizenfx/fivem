@@ -1,4 +1,4 @@
-import { defineService, useService } from "../../../base/servicesContainer";
+import { defineService, useService } from "cfx/base/servicesContainer";
 import { PluralKeys } from "./types";
 
 export function useIntlService(): IIntlService {

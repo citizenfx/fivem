@@ -93,7 +93,7 @@ export const ServerReviewForm = observer(function ServerReviewForm(props: Server
             <Box grow>
               <Flex vertical gap="large">
                 <Flex vertical gap="small">
-                  <Box width="50%"> {/* That is so input would be of auto width instead of growing full width of the container */}
+                  <Box width="50%"> {/* Force input to be of auto width instead of growing full width of the container */}
                     <Input
                       fullWidth
                       size="large"

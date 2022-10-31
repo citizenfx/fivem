@@ -10,6 +10,7 @@ import { Text } from "cfx/ui/Text/Text";
 import { observer } from "mobx-react-lite";
 import { WiWindy } from "react-icons/wi";
 import { SERVER_LIST_DESCRIPTORS } from "../ListTypeTabs";
+import { $L } from "cfx/common/services/intl/l10n";
 import s from './EmptyListPlaceholder.module.scss';
 
 export interface EmptyListPlaceholderProps {
@@ -21,7 +22,7 @@ export const EmptyListPlaceholder = observer(function EmptyListPlaceholder(props
     configController,
   } = props;
 
-  const possiblyDueToFilters = usePossiblyEmptyDueToFilters(configController);
+  const possiblyEmptyDueToFilters = usePossiblyEmptyDueToFilters(configController);
 
   const resetFilters = React.useCallback(() => {
     configController?.reset();
@@ -34,8 +35,8 @@ export const EmptyListPlaceholder = observer(function EmptyListPlaceholder(props
           <WiWindy className={s.icon} />
 
           <Text size="xlarge" weight="bold" opacity="75">
-            Looks pretty empty here
-            {possiblyDueToFilters && ', try to relax or reset filters'}
+            {$L('#ServerList_EmptyPlaceholder')}
+            {possiblyEmptyDueToFilters && $L('#ServerList_EmptyPlaceholder_RelaxFilters')}
           </Text>
 
           <Flex>
@@ -43,12 +44,12 @@ export const EmptyListPlaceholder = observer(function EmptyListPlaceholder(props
               to={SERVER_LIST_DESCRIPTORS[ServersListType.All].to}
               text={SERVER_LIST_DESCRIPTORS[ServersListType.All].title}
               size="large"
-              theme={possiblyDueToFilters ? 'default' : 'primary'}
+              theme={possiblyEmptyDueToFilters ? 'default' : 'primary'}
             />
 
-            {possiblyDueToFilters && (
+            {possiblyEmptyDueToFilters && (
               <Button
-                text="Reset filters"
+                text={$L('#ServerList_EmptyPlaceholder_ResetFilters')}
                 size="large"
                 theme="primary"
                 onClick={resetFilters}

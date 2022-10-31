@@ -31,12 +31,12 @@ interface IExtraLoafDescriptor {
 const EXTRA_DETAIL_BITS: IExtraLoafDescriptor[] = [
   {
     key: 'mapname',
-    title: 'Map',
+    title: $L('#ServerDetail_Info_Mapname'),
     icon: <BsMap />,
   },
   {
     key: 'gametype',
-    title: 'Game type',
+    title: $L('#ServerDetail_Info_Gametype'),
     icon: <IoGameController />,
   },
   {
@@ -60,9 +60,9 @@ const EXTRA_DETAIL_BITS: IExtraLoafDescriptor[] = [
     key: 'pureLevel',
     icon: <BsLockFill />,
     title: (level: ServerPureLevel) => ({
-      [ServerPureLevel.None]: 'Client mods allowed',
-      [ServerPureLevel.AudioAndGraphicsAllowed]: 'Only audio and graphic client mods allowed',
-      [ServerPureLevel.NoModsAllowed]: 'Client mods disallowed',
+      [ServerPureLevel.None]: $L('#ServerDetail_Info_PureLevel_0'),
+      [ServerPureLevel.AudioAndGraphicsAllowed]: $L('#ServerDetail_Info_PureLevel_1'),
+      [ServerPureLevel.NoModsAllowed]: $L('#ServerDetail_Info_PureLevel_2'),
     }[level]),
     value: (level: ServerPureLevel) => {
       if (!level || level === ServerPureLevel.None) {
@@ -71,7 +71,7 @@ const EXTRA_DETAIL_BITS: IExtraLoafDescriptor[] = [
 
       return (
         <>
-          Pure Mode <Badge>L{level}</Badge>
+          {$L('#ServerDetail_Info_PureLevel')} <Badge>L{level}</Badge>
         </>
       );
     },
@@ -113,7 +113,7 @@ export const ServerCoreLoafs = observer(function ServerCoreLoafs(props: ServerCo
             {ownerName}
           </Text>
 
-          Open server owner's profile in browser
+          {$L('#ServerDetail_Info_OpenOwnerProfile_Title')}
         </Flex>
       </Flex>
     );
@@ -219,8 +219,8 @@ function Copier({ text }) {
   }
 
   const title = copied
-    ? 'Copied!'
-    : 'Copy to clipboard';
+    ? $L('#ServerDetail_Info_CopyJoinId_Done')
+    : $L('#ServerDetail_Info_CopyJoinId');
 
   return (
     <Title key="join-link-copier" title={title}>

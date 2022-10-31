@@ -6,10 +6,11 @@ import { observer } from "mobx-react-lite";
 import { useLocation } from "react-router-dom";
 import { clsx } from "cfx/utils/clsx";
 import { CurrentGameName } from "cfx/base/gameRuntime";
+import { $L } from "cfx/common/services/intl/l10n";
 import s from './HomeButton.module.scss';
 
 const titles = [
-  'Home',
+  'Home', // Unused, we're using localized version for this one
   'Home Home',
   'Home Home Home',
   'Can you stop?',
@@ -57,8 +58,12 @@ export const HomeButton = observer(function HomeButton() {
     setIndex(0);
   }, [location.pathname]);
 
+  const title = index === 0
+    ? $L('#BottomNav_Home')
+    : titles[index];
+
   return (
-    <Title fixedOn="bottom-left" title={titles[index]}>
+    <Title fixedOn="bottom-left" title={title}>
       <LinkButton
         to="/"
         size="large"

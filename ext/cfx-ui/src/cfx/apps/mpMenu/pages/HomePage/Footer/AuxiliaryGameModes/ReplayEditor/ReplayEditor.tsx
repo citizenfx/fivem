@@ -1,6 +1,6 @@
 import { mpMenu } from "cfx/apps/mpMenu/mpMenu";
 import { $L } from "cfx/common/services/intl/l10n";
-import { Button, ButtonProps } from "cfx/ui/Button/Button";
+import { Button } from "cfx/ui/Button/Button";
 import { Icons } from "cfx/ui/Icons";
 import { Flex } from "cfx/ui/Layout/Flex/Flex";
 import { Pad } from "cfx/ui/Layout/Pad/Pad";
@@ -15,7 +15,6 @@ export function ReplayEditor() {
   return (
     <>
       <Button
-        // fullWidth
         size="large"
         theme="default-blurred"
         icon={Icons.replayEditor}

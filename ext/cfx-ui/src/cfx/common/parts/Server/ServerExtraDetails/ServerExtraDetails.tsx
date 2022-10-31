@@ -5,7 +5,6 @@ import { Flex } from "cfx/ui/Layout/Flex/Flex";
 import { Text } from "cfx/ui/Text/Text";
 import { Title } from "cfx/ui/Title/Title";
 import { defaultLinkReplacerx, linkifyx } from "cfx/utils/links";
-import { FiExternalLink } from "react-icons/fi";
 import { ServerCoreLoafs } from "../ServerCoreLoafs/ServerCoreLoafs";
 import { ui } from "cfx/ui/ui";
 import { Icons } from "cfx/ui/Icons";

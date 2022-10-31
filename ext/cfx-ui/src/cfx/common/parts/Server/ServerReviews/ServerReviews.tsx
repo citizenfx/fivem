@@ -3,7 +3,6 @@ import { $L } from "cfx/common/services/intl/l10n";
 import { IServersReviewsService } from "cfx/common/services/servers/reviews/serversReviews.service";
 import { IServerView } from "cfx/common/services/servers/types";
 import { Button } from "cfx/ui/Button/Button";
-import { Icons } from "cfx/ui/Icons";
 import { Indicator } from "cfx/ui/Indicator/Indicator";
 import { InfoPanel } from "cfx/ui/InfoPanel/InfoPanel";
 import { Flex } from "cfx/ui/Layout/Flex/Flex";
@@ -84,7 +83,7 @@ export const ServerReviews = observer(function ServerReviews(props: ServerReview
 
       {serverReviews.hasMoreItemsToLoad && (
         <Button
-          text="Load more reviews"
+          text={$L('#Reviews_LoadMore')}
           onClick={() => serverReviews.loadMoreItems()}
           disabled={serverReviews.loadingMoreItems}
         />

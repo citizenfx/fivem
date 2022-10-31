@@ -1,4 +1,3 @@
-import { IHistoryServer } from "cfx/common/services/servers/types";
 import { RichEvent } from "cfx/utils/types";
 
 export namespace MpMenuEvents {
