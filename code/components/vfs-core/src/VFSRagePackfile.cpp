@@ -226,25 +226,28 @@ namespace vfs
 
 	RagePackfile::HandleData* RagePackfile::AllocateHandle(THandle* outHandle)
 	{
+		std::unique_lock _(m_handlesMutex);
+
+		for (int i = 0; i < m_handles.size(); i++)
 		{
-			std::shared_lock _(m_handlesMutex);
-
-			for (int i = 0; i < m_handles.size(); i++)
+			if (!m_handles[i].valid)
 			{
-				if (!m_handles[i].valid)
-				{
-					*outHandle = i;
+				*outHandle = i;
 
-					return &m_handles[i];
-				}
+				auto handle = &m_handles[i];
+				handle->valid = true;
+				return handle;
 			}
 		}
 
-		std::unique_lock _(m_handlesMutex);
 		m_handles.push_back({});
 
-		*outHandle = m_handles.size() - 1;
-		return &m_handles[m_handles.size() - 1];
+		auto handleIdx = m_handles.size() - 1;
+		*outHandle = handleIdx;
+
+		auto handle = &m_handles[handleIdx];
+		handle->valid = true;
+		return handle;
 	}
 
 	RagePackfile::HandleData* RagePackfile::GetHandle(THandle inHandle)
@@ -273,7 +276,6 @@ namespace vfs
 
 				if (handleData)
 				{
-					handleData->valid = true;
 					handleData->entry = *entry;
 					handleData->curOffset = 0;
 
@@ -438,7 +440,6 @@ namespace vfs
 				{
 					handleData->curOffset = 0;
 					handleData->entry = *entry;
-					handleData->valid = true;
 
 					FillFindData(findData, &m_entries[entry->dataOffset]);
 
