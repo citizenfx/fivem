@@ -10,6 +10,10 @@ type Color = string;
 type Chunk = string;
 
 export function colorize(str: string): React.ReactNode {
+  if (!str) {
+    return null;
+  }
+
   const parts: [Color, Chunk][] = [];
 
   let pos = 0;
