@@ -300,7 +300,7 @@ const Ctrl = new class Ctrl {
 
   private progress = 0;
   private lastDt = 0;
-  private paused = false;
+  private paused = true;
 
   private rAF: RequestAnimationFrameReturn | null = null;
   private idleTimeout: SetTimeoutReturn | null = null;

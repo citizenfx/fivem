@@ -11,6 +11,7 @@ import { useBlurhash } from 'cfx/utils/useBlurhash';
 import { $L } from 'cfx/common/services/intl/l10n';
 import { Pad } from '../Layout/Pad/Pad';
 import s from './ActivityItem.module.scss';
+import { useActivityItemContext } from './ActivityItem.context';
 
 export interface ActivityItemProps {
   item: IActivityItem,
@@ -21,8 +22,6 @@ export function ActivityItem(props: ActivityItemProps) {
 
   // #TODOLOC
   const formattedDate = format(item.date, 'MM/dd/yyyy @ h:mma');
-
-  const media = item.media[0];
 
   return (
     <Flex gap="small">
@@ -49,9 +48,9 @@ export function ActivityItem(props: ActivityItemProps) {
               {item.content}
             </div>
 
-            {media && (
-              <Media media={media} />
-            )}
+            {item.media.map((media) => (
+              <Media key={media.id} media={media} />
+            ))}
           </Flex>
         </Pad>
       </Box>
@@ -71,10 +70,7 @@ function Media({ media }: { media: IActivityItemMedia }) {
     case 'animated_gif':
     case 'photo': {
       view = (
-        <img
-          src={media.previewUrl}
-          loading="lazy"
-        />
+        <ImagePreview media={media} />
       );
       break;
     }
@@ -82,7 +78,7 @@ function Media({ media }: { media: IActivityItemMedia }) {
     case 'video': {
       view = (
         <VideoPreview
-          url={media.fullUrl}
+          media={media}
           hovered={hovered}
         />
       );
@@ -90,7 +86,7 @@ function Media({ media }: { media: IActivityItemMedia }) {
     }
   }
 
-  const previewURL = getPreviewURL(media);
+  const previewURL = usePreviewURL(media);
 
   const style: any = {
     '--aspect-ratio': media.previewAspectRatio,
@@ -111,23 +107,36 @@ function Media({ media }: { media: IActivityItemMedia }) {
   );
 }
 
-function getPreviewURL(media: IActivityItemMedia): string {
-  if (media.blurhash) {
-    return useBlurhash(media.blurhash, 128, 128) || '';
-  }
+function ImagePreview({ media }: { media: IActivityItemMedia }) {
+  const context = useActivityItemContext();
 
-  if (media.type === 'photo') {
-    return '';
-  }
+  const ref = React.useRef<HTMLImageElement | null>(null);
 
-  return media.previewUrl || '';
+  const handleClick = () => {
+    context.showFull(media, ref);
+  };
+
+  return (
+    <img
+      ref={ref}
+      src={media.previewUrl}
+      onClick={handleClick}
+      loading="lazy"
+    />
+  );
 }
 
-function VideoPreview({ url, hovered }: { url: string, hovered: boolean }) {
-  const viewRef = React.useRef<HTMLVideoElement>(null);
+function VideoPreview({ media, hovered }: { media: IActivityItemMedia, hovered: boolean }) {
+  const context = useActivityItemContext();
+
+  const ref = React.useRef<HTMLVideoElement | null>(null);
+
+  const handleClick = () => {
+    context.showFull(media, ref);
+  };
 
   React.useEffect(() => {
-    const video = viewRef.current;
+    const video = ref.current;
 
     if (video instanceof HTMLVideoElement) {
       if (video.readyState < video.HAVE_CURRENT_DATA) {
@@ -144,10 +153,23 @@ function VideoPreview({ url, hovered }: { url: string, hovered: boolean }) {
 
   return (
     <video
-      ref={viewRef}
-      muted
       loop
-      src={url}
+      muted
+      ref={ref}
+      src={media.fullUrl}
+      onClick={handleClick}
     />
   );
+}
+
+function usePreviewURL(media: IActivityItemMedia): string {
+  if (media.blurhash) {
+    return useBlurhash(media.blurhash, 128, 128) || '';
+  }
+
+  if (media.type === 'photo') {
+    return '';
+  }
+
+  return media.previewUrl || '';
 }

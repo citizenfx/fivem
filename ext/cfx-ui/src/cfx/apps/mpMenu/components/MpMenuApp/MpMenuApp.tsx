@@ -6,11 +6,12 @@ import { ThemeManager } from 'cfx/apps/mpMenu/parts/ThemeManager/ThemeManager';
 import { LegacyConnectingModal } from 'cfx/apps/mpMenu/parts/LegacyConnectingModal/LegacyConnectingModal';
 import { LegacyUiMessageModal } from 'cfx/apps/mpMenu/parts/LegacyUiMessageModal/LegacyUiMessageModal';
 import { ServerBoostModal } from 'cfx/apps/mpMenu/parts/ServerBoostModal/ServerBoostModal';
+import { AcitivityItemMediaViewerProvider } from '../AcitivityItemMediaViewer/AcitivityItemMediaViewer.context';
 import s from './MpMenuApp.module.scss';
 
 export function MpMenuApp() {
   return (
-    <>
+    <AcitivityItemMediaViewerProvider>
       <ThemeManager />
 
       <AuthFlyout />
@@ -28,6 +29,6 @@ export function MpMenuApp() {
           <Outlet />
         </div>
       </div>
-    </>
+    </AcitivityItemMediaViewerProvider>
   );
 }
