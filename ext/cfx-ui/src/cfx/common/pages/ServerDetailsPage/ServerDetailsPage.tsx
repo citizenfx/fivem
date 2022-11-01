@@ -258,9 +258,10 @@ const Warning = observer(function Warning({ server }: { server: IServerView }) {
 
   const currentUserIsOwner = server.ownerID === AccountService.account?.id;
 
-  if (isServerEOL(server)) {
-    const linkText = useL10n('#ServerDetail_EOLWarning2_Link', { link: EOL_LINK });
+  const EOLLinkText = useL10n('#ServerDetail_EOLWarning2_Link', { link: EOL_LINK });
+  const EOSLinkText = useL10n('#ServerDetail_SupportWarning2_Link', { link: EOS_LINK });
 
+  if (isServerEOL(server)) {
     const descriptionNode = currentUserIsOwner
       ? (
         <Text typographic size="large">
@@ -301,7 +302,7 @@ const Warning = observer(function Warning({ server }: { server: IServerView }) {
               <Separator thin />
 
               <Text typographic>
-                <Linkify text={linkText} />
+                <Linkify text={EOLLinkText} />
               </Text>
             </Flex>
           </Pad>
@@ -311,8 +312,6 @@ const Warning = observer(function Warning({ server }: { server: IServerView }) {
   }
 
   if (isServerEOS(server)) {
-    const linkText = useL10n('#ServerDetail_SupportWarning2_Link', { link: EOS_LINK });
-
     const descriptionNode = currentUserIsOwner
       ? (
         <Text typographic>
@@ -357,7 +356,7 @@ const Warning = observer(function Warning({ server }: { server: IServerView }) {
               <Separator thin />
 
               <Text typographic>
-                <Linkify text={linkText} />
+                <Linkify text={EOSLinkText} />
               </Text>
             </Flex>
           </Pad>
