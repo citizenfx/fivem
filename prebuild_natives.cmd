@@ -22,44 +22,13 @@ if errorlevel 1 (
 
 pushd ext\natives\
 mkdir inp
-%systemroot%\system32\curl -z inp\natives_global.lua -Lo inp\natives_global_new.lua https://runtime.fivem.net/doc/natives.lua
-%systemroot%\system32\curl -z inp\natives_rdr3.lua -Lo inp\natives_rdr3_new.lua https://runtime.fivem.net/doc/natives_rdr_tmp.lua
-%systemroot%\system32\curl -z inp\natives_ny.lua -Lo inp\natives_ny_new.lua https://runtime.fivem.net/doc/natives_ny_tmp.lua
 
+call:UpdateToLatest inp\natives_global.lua https://runtime.fivem.net/doc/natives.lua
+call:UpdateToLatest inp\natives_rdr3.lua https://runtime.fivem.net/doc/natives_rdr_tmp.lua
+call:UpdateToLatest inp\natives_ny.lua https://runtime.fivem.net/doc/natives_ny_tmp.lua
 
-if exist inp\natives_global.lua (
-	diff inp\natives_global.lua inp\natives_global_new.lua > nul
+call:UpdateToLatest inp\natives_global_client_compat.lua https://runtime.fivem.net/doc/natives_global_client_compat.lua
 
-	if errorlevel 0 (
-		copy /y inp\natives_global_new.lua inp\natives_global.lua
-	)
-) else (
-	copy /y inp\natives_global_new.lua inp\natives_global.lua
-)
-
-if exist inp\natives_rdr3.lua (
-	diff inp\natives_rdr3.lua inp\natives_rdr3_new.lua > nul
-
-	if errorlevel 0 (
-		copy /y inp\natives_rdr3_new.lua inp\natives_rdr3.lua
-	)
-) else (
-	copy /y inp\natives_rdr3_new.lua inp\natives_rdr3.lua
-)
-
-if exist inp\natives_ny.lua (
-	diff inp\natives_ny.lua inp\natives_ny_new.lua > nul
-
-	if errorlevel 0 (
-		copy /y inp\natives_ny_new.lua inp\natives_ny.lua
-	)
-) else (
-	copy /y inp\natives_ny_new.lua inp\natives_ny.lua
-)
-
-del inp\natives_global_new.lua
-del inp\natives_rdr3_new.lua
-del inp\natives_ny_new.lua
 popd
 
 pushd ext\native-doc-gen\
@@ -84,8 +53,37 @@ if errorlevel 1 (
 	xcopy /y out\*.zip ..\..\data\shared\citizen\scripting\lua
 
 	xcopy /y out\*.cs ..\..\code\client\clrcore
+	xcopy /y out\v2\*.cs ..\..\code\client\clrcore-v2\Native
 	xcopy /y out\Natives*.h ..\..\code\components\citizen-scripting-lua\src
 	xcopy /y out\PASGen.h ..\..\code\components\rage-scripting-five\src
 )
 
 popd
+goto :eof
+
+:: Functions
+
+:UpdateToLatest
+echo Updating %~1
+%systemroot%\system32\curl -z %~1 -Lo %~1.new %~2
+
+if not errorlevel 0 (
+	echo 	cURL exited with error code %errorlevel%.
+) else (
+	if exist %~1.new (
+		if exist %~1 (
+			diff %~1 %~1.new > nul
+
+			if not errorlevel 1 (
+				del %~1.new
+				exit /B 0
+			)
+		)
+		
+		move /y %~1.new %~1
+	) else (
+		echo 	File is up-to-date.
+	)
+)
+
+exit /B 0

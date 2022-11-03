@@ -304,7 +304,7 @@ namespace CitizenFX.Core.Native
 
 			internal override unsafe void PullNativeValue(ref CustomNativeInvoker.CustomInvocation ctx)
 			{
-				m_nativeValue = ctx.m_ctx.retDataPtr[ctx.m_offset++];
+				m_nativeValue = ctx.m_ctx.functionDataPtr[ctx.m_offset++];
 			}
 		}
 
