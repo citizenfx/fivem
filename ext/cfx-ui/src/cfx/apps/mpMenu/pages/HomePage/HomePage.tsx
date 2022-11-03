@@ -54,7 +54,16 @@ export const HomePage = observer(function HomePage() {
                   icon={<FaRetweet />}
                   items={ActivityService.communityItems}
                   label={$L('#Home_Feed_Community')}
-                  title={$L('#Home_Feed_Community_Desc')}
+                  title={(
+                    <>
+                      {$L('#Home_Feed_Community_Desc')}
+                      <br/>
+                      <br/>
+                      <strong>Be aware</strong> that the feed items from the servers you have previously played on will be back in the future.
+                      <br/>
+                      Due to the performance problems we were producing for Mastodon servers, it was disabled.
+                    </>
+                  )}
                 />
 
                 <Feed
