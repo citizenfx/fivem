@@ -1,7 +1,17 @@
 using System;
 using CitizenFX.Core.Native;
 
+#if MONO_V2
+using CitizenFX.Core;
+using API = CitizenFX.FiveM.Native.Natives;
+using InputArgument = CitizenFX.Core.Native.Input.Primitive;
+
+namespace CitizenFX.FiveM
+#else
+using Color = System.Drawing.Color;
+
 namespace CitizenFX.Core
+#endif
 {
 	public enum CheckpointIcon
 	{
@@ -159,7 +169,7 @@ namespace CitizenFX.Core
 
 		public static implicit operator InputArgument(CheckpointCustomIcon icon)
 		{
-			return new InputArgument((int)icon.getValue());
+			return (InputArgument)(int)icon.getValue();
 		}
 
 		public static implicit operator byte(CheckpointCustomIcon icon)
@@ -341,16 +351,16 @@ namespace CitizenFX.Core
 		/// <summary>
 		/// Gets or sets the color of this <see cref="Checkpoint"/>.
 		/// </summary>
-		public System.Drawing.Color Color
+		public Color Color
 		{
 			get
 			{
 				IntPtr memoryAddress = MemoryAddress;
 				if (memoryAddress == IntPtr.Zero)
 				{
-					return System.Drawing.Color.Transparent;
+					return Color.Transparent;
 				}
-				return System.Drawing.Color.FromArgb(MemoryAccess.ReadInt(memoryAddress + 80));
+				return Color.FromArgb(MemoryAccess.ReadInt(memoryAddress + 80));
 			}
 			set
 			{
@@ -365,16 +375,16 @@ namespace CitizenFX.Core
 		/// <summary>
 		/// Gets or sets the color of the icon in this <see cref="Checkpoint"/>.
 		/// </summary>
-		public System.Drawing.Color IconColor
+		public Color IconColor
 		{
 			get
 			{
 				IntPtr memoryAddress = MemoryAddress;
 				if (memoryAddress == IntPtr.Zero)
 				{
-					return System.Drawing.Color.FromArgb(0, 0, 0, 0);
+					return Color.FromArgb(0, 0, 0, 0);
 				}
-				return System.Drawing.Color.FromArgb(MemoryAccess.ReadInt(memoryAddress + 84));
+				return Color.FromArgb(MemoryAccess.ReadInt(memoryAddress + 84));
 			}
 			set
 			{

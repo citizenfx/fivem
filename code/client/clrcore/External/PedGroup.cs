@@ -1,10 +1,18 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+
+#if MONO_V2
+using API = CitizenFX.FiveM.Native.Natives;
+using compat_i32_i64 = System.Int64;
+
+namespace CitizenFX.FiveM
+#else
 using CitizenFX.Core.Native;
-using System.Security;
+using compat_i32_i64 = System.Int32;
 
 namespace CitizenFX.Core
+#endif
 {
 	public enum FormationType
 	{
@@ -92,7 +100,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				int unknBool = 0;
+				compat_i32_i64 unknBool = 0;
 				int count = 0;
 
 				API.GetGroupSize(Handle, ref unknBool, ref count);
