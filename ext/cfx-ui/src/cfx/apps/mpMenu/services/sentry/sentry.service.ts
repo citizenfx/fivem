@@ -1,7 +1,6 @@
 import * as Sentry from '@sentry/react';
 import { BrowserTracing } from '@sentry/tracing';
 import { CurrentGameBuild, CurrentGameName, CurrentGamePureLevel } from 'cfx/base/gameRuntime';
-import { formatCFXID } from 'cfx/base/identifiers';
 import { ServicesContainer } from 'cfx/base/servicesContainer';
 import { IAccountService } from 'cfx/common/services/account/account.service';
 import { IAccount } from 'cfx/common/services/account/types';
@@ -18,21 +17,35 @@ if (ENABLE_SENTRY) {
     dsn: "https://cb2ef6d1855b4c5f83c5530b72b8aacb@sentry.fivem.net/12",
 
     integrations: [new BrowserTracing({
-      tracingOrigins: ['localhost', /\.fivem.net/, /\.cfx.re/],
+      tracingOrigins: ['localhost', 'nui-game-internal', /\.fivem.net/, /\.cfx.re/],
     })],
 
     tracesSampleRate: 0.05,
 
     release: `cfx-${process.env.CI_PIPELINE_ID || 'dev'}`,
+
+    beforeSend(event, hint) {
+      // Ignore errors from console
+      if (event.exception?.values?.[0].stacktrace?.frames?.[0].filename === '<anonymous>') {
+        return null;
+      }
+
+      return event;
+    },
   });
 
+
+  // Set stable user id early
   try {
     if (!window.localStorage['sentryUserId']) {
       window.localStorage['sentryUserId'] = `${fastRandomId()}-${fastRandomId()}`;
     }
 
+    const id = window.localStorage['sentryUserId'];
+
     Sentry.setUser({
-      id: window.localStorage['sentryUserId'],
+      id,
+      username: id,
     });
   } catch (e) {
     // no-op
@@ -68,7 +81,7 @@ class SentryService implements AppContribution {
     try {
       const storageEstimate = await navigator.storage.estimate();
 
-      Sentry.setContext('systemLimits', {
+      Sentry.setContext('System Limits', {
         hasAtLeastThisAmountOfRam: (navigator as any).deviceMemory,
         storageEstimateQuota: storageEstimate.quota || 'unknown',
         storageEstimateUsage: storageEstimate.usage || 'unknown',
