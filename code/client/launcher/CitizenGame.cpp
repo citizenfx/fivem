@@ -386,6 +386,8 @@ inline void CoreSetMinModeManifest(const char* str)
 	(func) ? func(str) : (void)0;
 }
 
+extern void DLLError(DWORD errorCode, std::string_view dllName);
+
 void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 {
 	// initialize the CEF sandbox
@@ -396,7 +398,8 @@ void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 
 	if (!gameLibrary)
 	{
-		FatalError("Could not load CitizenGame.dll.");
+		DWORD errorCode = GetLastError();
+		DLLError(errorCode, "CitizenGame.dll");
 		return;
 	}
 

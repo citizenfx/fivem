@@ -108,6 +108,23 @@ const static const wchar_t* g_delayDLLs[] = {
 #include "DelayList.h"
 };
 
+void DLLError(DWORD errorCode, std::string_view dllName)
+{
+	// force verifying game files
+	_wunlink(MakeRelativeCitPath(L"content_index.xml").c_str());
+
+	wchar_t errorText[512];
+	errorText[0] = L'\0';
+
+	FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_MAX_WIDTH_MASK, nullptr, errorCode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), errorText, std::size(errorText), nullptr);
+
+	FatalError("Could not load %s\nThis is usually a sign of an incomplete game installation. Please restart %s and try again.\n\nError 0x%08x - %s",
+		dllName,
+		ToNarrow(PRODUCT_NAME),
+		HRESULT_FROM_WIN32(errorCode),
+		ToNarrow(errorText));
+}
+
 int RealMain()
 {
 	if (auto setSearchPathMode = (decltype(&SetSearchPathMode))GetProcAddress(GetModuleHandleW(L"kernel32.dll"), "SetSearchPathMode"))
@@ -394,6 +411,14 @@ int RealMain()
 	if (!tlsDll)
 	{
 		tlsDll = LoadLibraryW(MakeRelativeCitPath(L"CitiLaunch_TLSDummy.dll").c_str());
+
+		if (!tlsDll)
+		{
+			DWORD errorCode = GetLastError();
+
+			DLLError(errorCode, "TLS DLL");
+		}
+
 		assert(tlsDll);
 	}
 #endif
@@ -1026,8 +1051,8 @@ int RealMain()
 				}
 				else
 				{
-					// a bit of a lie, but it has some of the same causes so should be bucketed together
-					FatalError("Could not load CitizenGame.dll.");
+					DWORD errorCode = GetLastError();
+					DLLError(errorCode, "CoreRT.dll");
 				}
 
 				return 0;
