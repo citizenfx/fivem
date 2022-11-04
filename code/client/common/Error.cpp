@@ -18,7 +18,7 @@
 
 #include <fnv.h>
 
-#if !defined(IS_FXSERVER) && !defined(COMPILING_LAUNCH)
+#if !defined(IS_FXSERVER)
 #define RAPIDJSON_ASSERT(x) (void)0
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
@@ -95,6 +95,10 @@ static bool IsUserConnected()
 	return true;
 }
 
+#if defined(COMPILING_LAUNCH) && !defined(COMPILING_DIAG)
+extern bool MinidumpInitialized();
+#endif
+
 static int SysError(const char* buffer)
 {
 #ifdef WIN32
@@ -109,7 +113,7 @@ static int SysError(const char* buffer)
 		__debugbreak();
 	}
 
-#if !defined(COMPILING_LAUNCH) && !defined(COMPILING_CONSOLE) && !defined(IS_FXSERVER)
+#if !defined(COMPILING_CONSOLE) && !defined(IS_FXSERVER)
 	auto errorPickup = FormatErrorPickup(buffer, g_thisError);
 	FILE* f = _wfopen(MakeRelativeCitPath(L"data\\cache\\error-pickup").c_str(), L"wb");
 
@@ -118,7 +122,12 @@ static int SysError(const char* buffer)
 		fprintf(f, "%s", errorPickup.c_str());
 		fclose(f);
 
-		return -1;
+#if defined(COMPILING_LAUNCH) && !defined(COMPILING_DIAG)
+		if (MinidumpInitialized())
+#endif
+		{
+			return -1;
+		}
 	}
 #endif
 
@@ -292,14 +301,14 @@ struct ScopedError
 	}
 };
 
-#if defined(NON_CRT_LAUNCHER)
+#if defined(COMPILING_LAUNCHER)
 void FatalErrorV(const char* string, fmt::printf_args formatList)
 {
 	GlobalErrorHandler(ERR_FATAL, fmt::vsprintf(string, formatList).c_str());
 }
 #endif
 
-#if (!defined(COMPILING_LAUNCH) && !defined(COMPILING_CONSOLE) && !defined(COMPILING_SHARED_LIBC)) || defined(NON_CRT_LAUNCHER)
+#if (!defined(COMPILING_DIAG) && !defined(COMPILING_CONSOLE) && !defined(COMPILING_SHARED_LIBC)) || defined(NON_CRT_LAUNCHER)
 int GlobalErrorRealV(const char* file, int line, uint32_t stringHash, const char* string, fmt::printf_args formatList)
 {
 	ScopedError error(file, line, stringHash);

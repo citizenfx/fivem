@@ -1,6 +1,6 @@
 #pragma once
 
-#if !defined(COMPILING_LAUNCH) && !defined(COMPILING_CONSOLE) && !defined(COMPILING_SHARED_LIBC)
+#if !defined(COMPILING_DIAG) && !defined(COMPILING_CONSOLE) && !defined(COMPILING_SHARED_LIBC)
 #include <fnv.h>
 
 #ifdef _WIN32
