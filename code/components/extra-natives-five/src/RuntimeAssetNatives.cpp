@@ -27,6 +27,8 @@
 #include <wrl.h>
 #include <wincodec.h>
 
+#include <nutsnbolts.h>
+
 #define WANT_CEF_INTERNALS
 #include <CefOverlay.h>
 
@@ -288,6 +290,18 @@ RuntimeTex* RuntimeTxd::CreateTexture(const char* name, int width, int height)
 	return tex.get();
 }
 
+extern void TextureReplacement_OnTextureCreate(const std::string& txd, const std::string& txn);
+
+// TODO: we need a 'common' place for this
+static std::mutex nextFrameLock;
+static std::queue<std::function<void()>> nextFrameQueue;
+
+static void OnNextMainFrame(std::function<void()>&& fn)
+{
+	std::unique_lock _(nextFrameLock);
+	nextFrameQueue.push(std::move(fn));
+}
+
 RuntimeTex* RuntimeTxd::CreateTextureFromDui(const char* name, const char* duiHandle)
 {
 	if (!m_txd)
@@ -304,11 +318,16 @@ RuntimeTex* RuntimeTxd::CreateTextureFromDui(const char* name, const char* duiHa
 	auto tex = std::make_shared<RuntimeTex>(nullptr, false);
 	tex->SetReferenceData(texture);
 
-	texture->WithHostTexture([this, name = HashString(name), tex](void* hostTexture)
+	texture->WithHostTexture([this, name = std::string{ name }, tex](void* hostTexture)
 	{
 		auto texture = (rage::grcTexture*)hostTexture;
 		tex->SetTexture(texture);
-		m_txd->Add(name, tex->GetTexture());
+		m_txd->Add(HashString(name), tex->GetTexture());
+
+		OnNextMainFrame([this, name = std::move(name)]()
+		{
+			TextureReplacement_OnTextureCreate(m_name, name);
+		});
 	});
 
 	m_textures[name] = tex;
@@ -897,6 +916,27 @@ fwArchetype* GetArchetypeSafe(uint32_t archetypeHash, uint64_t* archetypeUnk)
 
 static InitFunction initFunction([]()
 {
+	OnMainGameFrame.Connect([]
+	{
+		if (nextFrameQueue.empty())
+		{
+			return;
+		}
+
+		decltype(nextFrameQueue) q;
+
+		{
+			std::unique_lock _(nextFrameLock);
+			q = std::move(nextFrameQueue);
+		}
+
+		while (!q.empty())
+		{
+			q.front()();
+			q.pop();
+		}
+	});
+
 	scrBindClass<RuntimeTxd>()
 		.AddConstructor<void(*)(const char*)>("CREATE_RUNTIME_TXD")
 		.AddMethod("CREATE_RUNTIME_TEXTURE", &RuntimeTxd::CreateTexture)
