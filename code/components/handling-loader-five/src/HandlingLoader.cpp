@@ -53,15 +53,15 @@ static int getIntField(char* handlingChar, uint32_t offset, const char* fieldNam
 
 	if (hash == HashRageString("strModelFlags"))
 	{
-		return *(int*)(handlingChar + 284);
+		return *(int*)(handlingChar + 292);
 	}
 	else if (hash == HashRageString("strHandlingFlags"))
 	{
-		return *(int*)(handlingChar + 288);
+		return *(int*)(handlingChar + 296);
 	}
 	else if (hash == HashRageString("strDamageFlags"))
 	{
-		return *(int*)(handlingChar + 292);
+		return *(int*)(handlingChar + 300);
 	}
 	else if (hash == HashRageString("nInitialDriveGears"))
 	{
@@ -126,17 +126,17 @@ static void setIntField(char* handlingChar, uint32_t offset, int value, const ch
 
 	if (hash == HashRageString("strModelFlags"))
 	{
-		*(int*)(handlingChar + 284) = value;
+		*(int*)(handlingChar + 292) = value;
 		return;
 	}
 	else if (hash == HashRageString("strHandlingFlags"))
 	{
-		*(int*)(handlingChar + 288) = value;
+		*(int*)(handlingChar + 296) = value;
 		return;
 	}
 	else if (hash == HashRageString("strDamageFlags"))
 	{
-		*(int*)(handlingChar + 292) = value;
+		*(int*)(handlingChar + 300) = value;
 		return;
 	}
 	else if (hash == HashRageString("nInitialDriveGears"))
