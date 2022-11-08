@@ -167,8 +167,12 @@ public:
 			{
 				auto deref = *ref;
 				deref->m_texture = fn(deref);
-				deref->OnMaterialize();
-				deref->OnMaterialize.Reset();
+
+				{
+					std::unique_lock _(deref->OnMaterializeLock);
+					deref->OnMaterialize();
+					deref->OnMaterialize.Reset();
+				}
 			}
 		});
 	}
@@ -254,6 +258,8 @@ public:
 
 		if (!texture)
 		{
+			std::unique_lock _(OnMaterializeLock);
+
 			OnMaterialize.Connect([this, callback = std::move(callback)]()
 			{
 				callback(GetHostTexture());
@@ -321,6 +327,7 @@ public:
 
 private:
 	fwEvent<> OnMaterialize;
+	std::mutex OnMaterializeLock;
 };
 
 #ifdef IS_RDR3
