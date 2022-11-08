@@ -273,15 +273,21 @@ static void SetHandlingDataInternal(fx::ScriptContext& context, CHandlingData* h
 	if (!isCHandling)
 	{
 		atArray<CBaseSubHandlingData*> subHandlingData = handlingData->GetSubHandlingData();
+		uint32_t classHash = HashRageString(handlingClass);
 
 		for (int i = 0; i < subHandlingData.GetCount(); i++)
 		{
 			CBaseSubHandlingData* sub = subHandlingData.Get(i);
-			if (sub && _stricmp(handlingClass, typeid(*sub).name() + 6) == 0) // Compare +6 since the name is technically "class xyz"
+			if (sub)
 			{
-				handlingChar = (char*)subHandlingData.Get(i); // Update the pointer if using SubHandlingData
-				isSubHandling = true;
-				break;
+				uint32_t* parser = reinterpret_cast<uint32_t*>(sub->GetParser());
+
+				if (classHash == parser[2])
+				{
+					handlingChar = (char*)subHandlingData.Get(i); // Update the pointer if using SubHandlingData
+					isSubHandling = true;
+					break;
+				}
 			}
 		}
 
@@ -397,15 +403,21 @@ void GetVehicleHandling(fx::ScriptContext& context, const char* fromFunction)
 		if (!isCHandling)
 		{
 			atArray<CBaseSubHandlingData*> subHandlingData = vehicle->GetHandlingData()->GetSubHandlingData();
+			uint32_t classHash = HashRageString(handlingClass);
 
 			for (int i = 0; i < subHandlingData.GetCount(); i++)
 			{
 				CBaseSubHandlingData* sub = subHandlingData.Get(i);
-				if (sub && _stricmp(handlingClass, typeid(*sub).name() + 6) == 0) // Compare +6 since the name is technically "class xyz"
+				if (sub)
 				{
-					handlingChar = (char*)subHandlingData.Get(i); // Update the pointer if using SubHandlingData
-					isSubHandling = true;
-					break;
+					uint32_t* parser = reinterpret_cast<uint32_t*>(sub->GetParser());
+
+					if (classHash == parser[2])
+					{
+						handlingChar = (char*)subHandlingData.Get(i); // Update the pointer if using SubHandlingData
+						isSubHandling = true;
+						break;
+					}
 				}
 			}
 
