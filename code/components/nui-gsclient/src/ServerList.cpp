@@ -662,9 +662,9 @@ void GSClient_QueryOneServer(const std::wstring& arg)
 
 						if (!doc.HasParseError() && !dynDoc.HasParseError() && dynDoc.IsObject() && nui::HasFrame("mpMenu"))
 						{
-							std::string hostname = dynDoc["hostname"].IsString() ? dynDoc["hostname"].GetString() : "";
-							std::string mapname = dynDoc["mapname"].IsString() ? dynDoc["mapname"].GetString() : "";
-							std::string gametype = dynDoc["gametype"].IsString() ? dynDoc["gametype"].GetString() : "";
+							std::string hostname = (dynDoc.HasMember("hostname") && dynDoc["hostname"].IsString()) ? dynDoc["hostname"].GetString() : "";
+							std::string mapname = (dynDoc.HasMember("mapname") && dynDoc["mapname"].IsString()) ? dynDoc["mapname"].GetString() : "";
+							std::string gametype = (dynDoc.HasMember("gametype") && dynDoc["gametype"].IsString()) ? dynDoc["gametype"].GetString() : "";
 
 							replaceAll(hostname, "\"", "\\\"");
 							replaceAll(mapname, "\"", "\\\"");
@@ -677,8 +677,8 @@ void GSClient_QueryOneServer(const std::wstring& arg)
 															hostname,
 															mapname,
 															gametype,
-															dynDoc["clients"].IsNumber() ? dynDoc["clients"].GetInt() : 0,
-															dynDoc["sv_maxclients"].IsString() ? atoi(dynDoc["sv_maxclients"].GetString()) : 0,
+															(dynDoc.HasMember("clients") && dynDoc["clients"].IsNumber()) ? dynDoc["clients"].GetInt() : 0,
+															(dynDoc.HasMember("sv_maxclients") && dynDoc["sv_maxclients"].IsString()) ? atoi(dynDoc["sv_maxclients"].GetString()) : 0,
 															42,
 															narrowArg,
 															infoBlobJson,
