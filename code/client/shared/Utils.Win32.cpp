@@ -275,7 +275,7 @@ void __cdecl _wwassert(
 	_In_   unsigned       _Line
 )
 {
-	FatalErrorNoExcept("Assertion failure: %s (%s:%d)", ToNarrow(_Message), ToNarrow(_File), _Line);
+	FatalErrorNoExcept("Assertion failure: %s\nFile: %s, Line: %d", ToNarrow(_Message), ToNarrow(_File), _Line);
 
 #if defined(_M_AMD64)
 	__writegsqword(0x38, (uintptr_t)_ReturnAddress());
