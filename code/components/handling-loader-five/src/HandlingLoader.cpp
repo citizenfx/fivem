@@ -324,11 +324,9 @@ static void SetHandlingDataInternal(fx::ScriptContext& context, CHandlingData* h
 						break;
 
 					case rage::parMemberType::UInt32:
-						setIntField(handlingChar, offset, context.GetArgument<int>(3), handlingField);
-						break;
-
+						// every string field (so far) is parsed to an int in memory
 					case rage::parMemberType::String:
-						*(const char**)(handlingChar + offset) = strdup(context.GetArgument<const char*>(3));
+						setIntField(handlingChar, offset, context.GetArgument<int>(3), handlingField);
 						break;
 
 					case rage::parMemberType::Vector3_Padded:
@@ -454,6 +452,8 @@ void GetVehicleHandling(fx::ScriptContext& context, const char* fromFunction)
 							break;
 
 						case rage::parMemberType::UInt32:
+							// every string field (so far) is parsed to an int in memory
+						case rage::parMemberType::String:
 							context.SetResult<T>((T)(getIntField(handlingChar, offset, handlingField)));
 							break;
 
