@@ -209,6 +209,6 @@
   </symbol>
 </svg>
 
-<%= isProd ? require('assets/scripts/matomo.raw.js') : '' %>
+<%= isProd ? '<script type"text/javascript">'+require('assets/scripts/matomo.raw.js')+'</script>' : '' %>
 
 </html>

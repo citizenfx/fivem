@@ -3,7 +3,7 @@ _paq.push(['enableLinkTracking']);
 (function () {
   var u = "https://metrics.fivem.net/";
   _paq.push(['setTrackerUrl', u + 'piwik.php']);
-  _paq.push(['setSiteId', (window.invokeNative) ? '3' : '4']);
+  _paq.push(['setSiteId', '3']);
   _paq.push(['setCustomDimension', customDimensionId = 1, customDimensionValue = getGPU()]);
   _paq.push(['setCustomDimension', customDimensionId = 2, customDimensionValue = navigator.hardwareConcurrency]);
   _paq.push(['setCookieSameSite', 'None']);

@@ -7,12 +7,14 @@ import { LegacyConnectingModal } from 'cfx/apps/mpMenu/parts/LegacyConnectingMod
 import { LegacyUiMessageModal } from 'cfx/apps/mpMenu/parts/LegacyUiMessageModal/LegacyUiMessageModal';
 import { ServerBoostModal } from 'cfx/apps/mpMenu/parts/ServerBoostModal/ServerBoostModal';
 import { AcitivityItemMediaViewerProvider } from '../AcitivityItemMediaViewer/AcitivityItemMediaViewer.context';
+import { NavigationTracker } from './PageViewTracker';
 import s from './MpMenuApp.module.scss';
 
 export function MpMenuApp() {
   return (
     <AcitivityItemMediaViewerProvider>
       <ThemeManager />
+      <NavigationTracker />
 
       <AuthFlyout />
       <SettingsFlyout />
