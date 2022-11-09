@@ -16,10 +16,8 @@
 
 namespace WRL = Microsoft::WRL;
 
-constexpr uint64_t MB = 1024 * 1024;
-
 // use 1000 for one so we catch 'hardware reserved' memory as well
-constexpr uint64_t GB = 1000 * MB;
+constexpr uint64_t GB = 1000 * 1024 * 1024;
 
 static int extRamMode = 0;
 static uint64_t* g_vramLocation;
@@ -96,47 +94,6 @@ static uint64_t SettingsVramTex(void* self, int quality, void* settings)
 	return g_vramLocation[quality + 1] - (1 * GB);
 }
 
-static bool g_localContention = false;
-static bool g_nonLocalContention = false;
-
-static void UpdateMemoryPressure()
-{
-	auto device = GetD3D11Device();
-	WRL::ComPtr<IDXGIDevice> dxgiDevice;
-	if (FAILED(device->QueryInterface(IID_PPV_ARGS(&dxgiDevice))))
-	{
-		return;
-	}
-
-	WRL::ComPtr<IDXGIAdapter> adapter;
-	if (FAILED(dxgiDevice->GetAdapter(&adapter)))
-	{
-		return;
-	}
-
-	WRL::ComPtr<IDXGIAdapter3> adapter3;
-
-	if (FAILED(adapter.As(&adapter3)))
-	{
-		return;
-	}
-
-	DXGI_QUERY_VIDEO_MEMORY_INFO vmiLocal;
-	if (FAILED(adapter3->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &vmiLocal)))
-	{
-		return;
-	}
-
-	DXGI_QUERY_VIDEO_MEMORY_INFO vmiNonLocal;
-	if (FAILED(adapter3->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, &vmiNonLocal)))
-	{
-		return;
-	}
-
-	g_localContention = (vmiLocal.Budget > (1 * GB)) && (int64_t(vmiLocal.Budget) - int64_t(vmiLocal.CurrentUsage)) < (200 * MB);
-	g_nonLocalContention = (vmiNonLocal.Budget > (1 * GB)) && ((int64_t(vmiNonLocal.Budget) - int64_t(vmiNonLocal.CurrentUsage)) < (200 * MB));
-}
-
 static uint64_t (*g_origGetAvailableMemoryForStreamer)(void* self);
 static uint64_t _getAvailableMemoryForStreamer(void* self)
 {
@@ -147,15 +104,6 @@ static uint64_t _getAvailableMemoryForStreamer(void* self)
 		{
 			return 0;
 		}
-	}
-
-	// if there's memory pressure, don't.
-	if (g_localContention || g_nonLocalContention)
-	{
-		// update so we can instantly tell if freeing helped
-		UpdateMemoryPressure();
-
-		return 0;
 	}
 
 	return g_origGetAvailableMemoryForStreamer(self);
@@ -208,17 +156,6 @@ static HookFunction hookFunction([]()
 	}
 
 	g_vramLocation = hook::get_address<uint64_t*>(hook::get_pattern("4C 63 C0 48 8D 05 ? ? ? ? 48 8D 14", 6));
-
-	OnPostFrontendRender.Connect([]
-	{
-		static uint64_t lastUpdate = GetTickCount64();
-
-		if ((GetTickCount64() - lastUpdate) >= 2000)
-		{
-			UpdateMemoryPressure();
-			lastUpdate = GetTickCount64();
-		}
-	});
 
 	// the full code will 100% break 4/4GB systems
 	if (extRamMode == 0)
