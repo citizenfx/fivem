@@ -23,6 +23,10 @@ export async function getServerForAddress(address: string, gameName: GameName = 
   if (joinId) {
     const server = await getMasterListServer(gameName, joinId);
     if (server) {
+      if (!isJoinServerAddress(parsedAddress)) {
+        return saveHistoricalAddressAndDoGameNameCheck(parsedAddress.address, joinId, gameName, server);
+      }
+
       return server;
     }
   }

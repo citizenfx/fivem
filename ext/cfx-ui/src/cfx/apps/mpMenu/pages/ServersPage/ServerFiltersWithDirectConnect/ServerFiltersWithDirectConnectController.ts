@@ -1,5 +1,4 @@
 import React from "react";
-import { getServerForAddress } from "cfx/apps/mpMenu/services/servers/source/fetchers";
 import { useServiceResolver } from "cfx/base/servicesContainer";
 import { ISearchTerm } from "cfx/base/searchTermsParser";
 import { ServerListConfigController } from "cfx/common/services/servers/lists/ServerListConfigController";
@@ -147,7 +146,7 @@ export class ServerFiltersWithDirectConnectController implements IDisposableObje
 
   private readonly doLoadServer = debounce(async (address: string, queryId: number) => {
     try {
-      const server = await getServerForAddress(address);
+      const server = await this.serversService.loadServerLiveData(address);
 
       if (this.queryId === queryId) {
         this.server = server;
