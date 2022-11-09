@@ -4125,7 +4125,7 @@ void ServerGameState::AttachToObject(fx::ServerInstanceBase* instance)
 					
 					if (result.ec == std::errc()) // success
 					{
-						if (auto& entity = GetEntity(0, entityID))
+						if (auto entity = GetEntity(0, entityID))
 						{
 							if (entity->GetStateBag())
 							{
