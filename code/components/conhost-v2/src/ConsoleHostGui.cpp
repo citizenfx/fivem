@@ -958,6 +958,8 @@ static InitFunction initFunction([]()
 });
 #endif
 
+#include "ProductionWhitelist.h"
+
 static InitFunction initFunctionCon([]()
 {
 	console::GetDefaultContext()->GetCommandManager()->AccessDeniedEvent.Connect([](std::string_view commandName)
@@ -971,7 +973,7 @@ static InitFunction initFunctionCon([]()
 		return true;
 	});
 
-	for (auto& command : { "connect", "quit", "cl_drawFPS", "bind", "rbind", "unbind", "disconnect", "storymode", "loadlevel", "cl_drawPerf", "profile_reticuleSize", "profile_musicVolumeInMp", "profile_musicVolume", "profile_sfxVolume" })
+	for (auto& command : g_prodCommandsWhitelist)
 	{
 		seGetCurrentContext()->AddAccessControlEntry(se::Principal{ "system.extConsole" }, se::Object{ fmt::sprintf("command.%s", command) }, se::AccessType::Allow);
 	}
