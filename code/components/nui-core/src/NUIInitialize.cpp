@@ -779,6 +779,62 @@ static HRESULT OpenSharedResourceHook(ID3D11Device* device, HANDLE hRes, REFIID 
 	return g_origOpenSharedResourceHook(device, hRes, iid, ppRes);
 }
 
+static HRESULT (*g_origCreateShaderResourceView)(ID3D11Device* device, ID3D11Resource* resource, const D3D11_SHADER_RESOURCE_VIEW_DESC* desc, ID3D11ShaderResourceView** out);
+
+static HRESULT CreateShaderResourceViewHook(ID3D11Device* device, ID3D11Resource* resource, const D3D11_SHADER_RESOURCE_VIEW_DESC* desc, ID3D11ShaderResourceView** out)
+{
+	WRL::ComPtr<ID3D11Resource> resourceRef(resource);
+	WRL::ComPtr<IMyTexture> mt;
+
+	if (SUCCEEDED(resourceRef.As(&mt)))
+	{
+		mt->GetOriginal(&resource);
+	}
+
+	return g_origCreateShaderResourceView(device, resource, desc, out);
+}
+
+static HRESULT (*g_origCreateRenderTargetView)(ID3D11Device* device, ID3D11Resource* resource, const D3D11_RENDER_TARGET_VIEW_DESC* desc, ID3D11RenderTargetView** out);
+
+static HRESULT CreateRenderTargetViewHook(ID3D11Device* device, ID3D11Resource* resource, const D3D11_RENDER_TARGET_VIEW_DESC* desc, ID3D11RenderTargetView** out)
+{
+	WRL::ComPtr<ID3D11Resource> resourceRef(resource);
+	WRL::ComPtr<IMyTexture> mt;
+
+	if (SUCCEEDED(resourceRef.As(&mt)))
+	{
+		mt->GetOriginal(&resource);
+	}
+
+	return g_origCreateRenderTargetView(device, resource, desc, out);
+}
+
+static HRESULT (*g_origCopySubresourceRegion)(ID3D11DeviceContext* cxt, ID3D11Resource* pDstResource,
+	UINT DstSubresource, UINT DstX, UINT DstY, UINT DstZ,
+	ID3D11Resource* pSrcResource, UINT SrcSubresource, const D3D11_BOX* pSrcBox);
+
+static HRESULT CopySubresourceRegionHook(ID3D11DeviceContext* cxt, ID3D11Resource* dst,
+	UINT DstSubresource, UINT DstX, UINT DstY, UINT DstZ,
+	ID3D11Resource* src, UINT SrcSubresource, const D3D11_BOX* pSrcBox)
+{
+	WRL::ComPtr<ID3D11Resource> dstRef(dst);
+	WRL::ComPtr<IMyTexture> mt;
+
+	if (SUCCEEDED(dstRef.As(&mt)))
+	{
+		mt->GetOriginal(&dst);
+	}
+
+	WRL::ComPtr<ID3D11Resource> srcRef(src);
+
+	if (SUCCEEDED(srcRef.As(&mt)))
+	{
+		mt->GetOriginal(&src);
+	}
+
+	return g_origCopySubresourceRegion(cxt, dst, DstSubresource, DstX, DstY, DstZ, src, SrcSubresource, pSrcBox);
+}
+
 static HRESULT(*g_origCopyResource)(ID3D11DeviceContext* cxt, ID3D11Resource* dst, ID3D11Resource* src);
 
 static HRESULT CopyResourceHook(ID3D11DeviceContext* cxt, ID3D11Resource* dst, ID3D11Resource* src)
@@ -892,12 +948,15 @@ static void PatchCreateResults(ID3D11Device** ppDevice, ID3D11DeviceContext** pp
 		auto ourVtbl = new intptr_t[640];
 		memcpy(ourVtbl, vtbl, 640 * sizeof(intptr_t));
 		VHook(ourVtbl[5], &CreateTexture2DHook, &g_origCreateTexture2D);
+		VHook(ourVtbl[7], &CreateShaderResourceViewHook, &g_origCreateShaderResourceView);
+		VHook(ourVtbl[9], &CreateRenderTargetViewHook, &g_origCreateRenderTargetView);
 		VHook(ourVtbl[28], &OpenSharedResourceHook, &g_origOpenSharedResourceHook);
 
 		auto ourVtblCxt = new intptr_t[640];
 		memcpy(ourVtblCxt, vtblCxt, 640 * sizeof(intptr_t));
 
 		VHook(ourVtblCxt[111], &FlushHook, &g_origFlush);
+		VHook(ourVtblCxt[46], &CopySubresourceRegionHook, &g_origCopySubresourceRegion);
 		VHook(ourVtblCxt[47], &CopyResourceHook, &g_origCopyResource);
 
 		**(intptr_t***)ppDevice = ourVtbl;
