@@ -67,6 +67,14 @@ static int getIntField(char* handlingChar, uint32_t offset, const char* fieldNam
 	{
 		return *(uint8_t*)(handlingChar + offset);
 	}
+	else if (hash == HashRageString("strAdvancedFlags"))
+	{
+		return *(int*)(handlingChar + 60);
+	}
+	else if (hash == HashRageString("strFlags"))
+	{
+		return *(int*)(handlingChar + 184);
+	}
 
 	return *(int*)(handlingChar + offset);
 }
@@ -142,6 +150,16 @@ static void setIntField(char* handlingChar, uint32_t offset, int value, const ch
 	else if (hash == HashRageString("nInitialDriveGears"))
 	{
 		*(uint8_t*)(handlingChar + offset) = std::min(value, 7);
+		return;
+	}
+	else if (hash == HashRageString("strAdvancedFlags"))
+	{
+		*(int*)(handlingChar + 60) = value;
+		return;
+	}
+	else if (hash == HashRageString("strFlags"))
+	{
+		*(int*)(handlingChar + 184) = value;
 		return;
 	}
 
