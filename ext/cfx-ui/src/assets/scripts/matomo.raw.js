@@ -13,19 +13,24 @@ _paq.push(['enableLinkTracking']);
 
   if (globalThis.fetch) {
     // By prefetching the script we're unblocking the main thread
-    fetch(matomoScriptUrl).then((response) => {
-      if (response.ok) {
-        return response.blob();
-      }
+    fetch(matomoScriptUrl)
+      .then((response) => {
+        if (response.ok) {
+          return response.blob();
+        }
 
-      return false;
-    }).then((blob) => {
-      if (!blob) {
-        return;
-      }
+        return false;
+      })
+      .then((blob) => {
+        if (!blob) {
+          return;
+        }
 
-      run(URL.createObjectURL(blob));
-    });
+        run(URL.createObjectURL(blob));
+      })
+      .catch((e) => {
+        console.warn('Failed to init metrics', e);
+      });
   } else {
     run(matomoScriptUrl);
   }
