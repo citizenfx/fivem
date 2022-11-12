@@ -31,7 +31,7 @@ public:
 
 	virtual std::shared_ptr<StateBag> GetStateBag(std::string_view id) override;
 
-	virtual std::shared_ptr<StateBag> RegisterStateBag(std::string_view id) override;
+	virtual std::shared_ptr<StateBag> RegisterStateBag(std::string_view id, bool useParentTargets = false) override;
 
 	virtual void SetGameInterface(StateBagGameInterface* gi) override;
 
@@ -91,7 +91,7 @@ private:
 class StateBagImpl : public StateBag
 {
 public:
-	StateBagImpl(StateBagComponentImpl* parent, std::string_view id);
+	StateBagImpl(StateBagComponentImpl* parent, std::string_view id, bool useParentTargets = false);
 
 	virtual ~StateBagImpl() override;
 
@@ -122,6 +122,7 @@ private:
 
 private:
 	StateBagComponentImpl* m_parent;
+	bool m_useParentTargets;
 
 	std::string m_id;
 
@@ -138,8 +139,8 @@ private:
 	std::unordered_map<std::string, std::string> m_replicateData;
 };
 
-StateBagImpl::StateBagImpl(StateBagComponentImpl* parent, std::string_view id)
-	: m_parent(parent), m_id(id), m_replicationEnabled(true)
+StateBagImpl::StateBagImpl(StateBagComponentImpl* parent, std::string_view id, bool useParentTargets)
+	: m_parent(parent), m_id(id), m_replicationEnabled(true), m_useParentTargets(useParentTargets)
 {
 	
 }
@@ -322,7 +323,7 @@ void StateBagImpl::SendAllInitial(int target)
 
 void StateBagImpl::SendKeyValueToAllTargets(std::string_view key, std::string_view value)
 {
-	if (m_routingTargets.empty())
+	if (m_useParentTargets)
 	{
 		auto [lock, refTargets] = m_parent->GetTargets();
 		auto targets = refTargets.get();
@@ -417,7 +418,7 @@ void StateBagComponentImpl::SetGameInterface(StateBagGameInterface* gi)
 	m_gameInterface = gi;
 }
 
-std::shared_ptr<StateBag> StateBagComponentImpl::RegisterStateBag(std::string_view id)
+std::shared_ptr<StateBag> StateBagComponentImpl::RegisterStateBag(std::string_view id, bool useParentTargets)
 {
 	std::shared_ptr<StateBagImpl> bag;
 	std::string strId{ id };
@@ -444,7 +445,7 @@ std::shared_ptr<StateBag> StateBagComponentImpl::RegisterStateBag(std::string_vi
 		}
 
 		// *only* start making a new one here as otherwise we'll delete the existing bag
-		bag = std::make_shared<StateBagImpl>(this, id);
+		bag = std::make_shared<StateBagImpl>(this, id, useParentTargets);
 		m_stateBags[strId] = bag;
 	}
 

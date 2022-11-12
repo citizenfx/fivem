@@ -869,7 +869,6 @@ struct SyncCommandState
 	rl::MessageBuffer cloneBuffer;
 	std::function<void(bool finalFlush)> flushBuffer;
 	std::function<void(size_t)> maybeFlushBuffer;
-	std::vector<std::shared_ptr<fx::StateBag>> syncStateBags;
 	uint64_t frameIndex;
 	fx::ClientSharedPtr client;
 	bool hadTime;
@@ -884,7 +883,6 @@ struct SyncCommandState
 		cloneBuffer.SetCurrentBit(0);
 		flushBuffer = {};
 		maybeFlushBuffer = {};
-		syncStateBags.clear();
 		frameIndex = 0;
 		client = {};
 		hadTime = false;

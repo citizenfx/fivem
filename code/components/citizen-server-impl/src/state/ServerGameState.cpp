@@ -806,11 +806,6 @@ void sync::SyncCommandList::Execute(const fx::ClientSharedPtr& client)
 
 	scs.flushBuffer(true);
 
-	for (auto& update : scs.syncStateBags)
-	{
-		update->AddRoutingTarget(client->GetNetId());
-	}
-
 	scs.Reset();
 }
 
@@ -1715,6 +1710,19 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 			ces.syncedEntities[entity->handle] = { entity, baseFrameIndex, syncData.hasCreated };
 
+			if (syncData.hasCreated)
+			{
+				// Add this player as a routing target to this entity's statebag, if present.
+				// notes:
+				// * this will try to add it every frame, but the statebag will only add it once (std::set).
+				// * will occur on the next update/tick when syncData.hasCreated is true, this'll ensure that it's sent after the client knows about this entity.
+				// TODO: PERF: remove this every-frame call by giving this system a nice and fresh design
+				if (auto stateBag = entity->GetStateBag())
+				{
+					stateBag->AddRoutingTarget(slotId);
+				}
+			}
+
 			// should we sync?
 			if (forceUpdate || syncData.nextSync - curTime <= 0ms)
 			{
@@ -1871,19 +1879,6 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 						{
 							lfi = 0;
 							isLfi = true;
-						});
-					}
-				}
-
-				// #TODO: add these when clients ACK entity creation and when/if that's a reliable option
-				if (auto stateBag = entity->GetStateBag())
-				{
-					if (!entity->deletedFor.test(slotId) && !entity->outOfScopeFor.test(slotId))
-					{
-						// make sure this is send after the entity clone packets
-						scl->EnqueueCommand([stateBag](sync::SyncCommandState& cmdState)
-						{
-							cmdState.syncStateBags.emplace_back(stateBag);
 						});
 					}
 				}
@@ -4144,7 +4139,7 @@ void ServerGameState::AttachToObject(fx::ServerInstanceBase* instance)
 	instance->GetComponent<fx::ResourceManager>()->SetComponent(sbac);
 
 	auto creg = instance->GetComponent<fx::ClientRegistry>();
-	m_globalBag = sbac->RegisterStateBag("global");
+	m_globalBag = sbac->RegisterStateBag("global", true);
 	m_globalBag->SetOwningPeer(-1);
 	m_sbac = sbac;
 
