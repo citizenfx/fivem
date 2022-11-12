@@ -123,7 +123,7 @@ public:
 	// Registers a state bag for the specified identifier. The pointer returned should be
 	// the *only* reference, every reference kept internally should be weak.
 	//
-	virtual std::shared_ptr<StateBag> RegisterStateBag(std::string_view id) = 0;
+	virtual std::shared_ptr<StateBag> RegisterStateBag(std::string_view id, bool useParentTargets = false) = 0;
 
 	//
 	// Sets the game interface for sending network packets.
