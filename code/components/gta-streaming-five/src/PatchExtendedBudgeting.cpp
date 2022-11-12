@@ -30,6 +30,11 @@ static auto& GetBudgetVar()
 	return var;
 }
 
+static auto GetBudgetMultiplier()
+{
+	return (GetBudgetVar().GetValue() / 12.0f) + 1.0f;
+}
+
 static void SetGamePhysicalBudget(uint64_t budget)
 {
 	static uint64_t baseBudget;
@@ -43,7 +48,7 @@ static void SetGamePhysicalBudget(uint64_t budget)
 		baseBudget = budget;
 	}
 
-	float multiplier = (GetBudgetVar().GetValue() / 8.0f) + 1.0f;
+	float multiplier = GetBudgetMultiplier();
 
 	// externally, there are 4 texture settings:
 	// 0: 'normal'
@@ -87,7 +92,7 @@ static void bigUpdate(int who, int what)
 static uint64_t (*g_origSettingsVramTex)(void* self, int quality, void* settings);
 static uint64_t SettingsVramTex(void* self, int quality, void* settings)
 {
-	float multiplier = (GetBudgetVar().GetValue() / 8.0f) + 1.0f;
+	float multiplier = GetBudgetMultiplier();
 	g_origSettingsVramTex(self, quality, settings);
 
 	// 1 GB is the approximate difference between default 'fake settings' amount and our 3 GB assumption
