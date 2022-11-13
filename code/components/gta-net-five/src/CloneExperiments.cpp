@@ -157,7 +157,7 @@ static void SetupLocalPlayer(CNetGamePlayer* player)
 
 	g_playerBags[clientId] = Instance<fx::ResourceManager>::Get()
 							 ->GetComponent<fx::StateBagComponent>()
-							 ->RegisterStateBag(fmt::sprintf("player:%d", clientId));
+							 ->RegisterStateBag(fmt::sprintf("player:%d", clientId), true);
 
 	// don't add to g_playerListRemote(!)
 }
@@ -312,7 +312,7 @@ namespace sync
 
 		g_playerBags[clientId] = Instance<fx::ResourceManager>::Get()
 								 ->GetComponent<fx::StateBagComponent>()
-								 ->RegisterStateBag(fmt::sprintf("player:%d", clientId));
+								 ->RegisterStateBag(fmt::sprintf("player:%d", clientId), true);
 	}
 
 #ifdef GTA_FIVE

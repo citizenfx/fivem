@@ -439,7 +439,7 @@ void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
 
 	// #TODO: shutdown session logic!!
 	auto sbac = fx::StateBagComponent::Create(fx::StateBagRole::Client);
-	m_globalBag = sbac->RegisterStateBag("global");
+	m_globalBag = sbac->RegisterStateBag("global", true);
 
 	sbac->RegisterTarget(0);
 	sbac->AddSafePreCreatePrefix("entity:");
@@ -491,7 +491,7 @@ void CloneManagerLocal::Reset()
 
 	// re-add the global bag, since Reset() removes it
 	m_globalBag = {}; // first unset, as the handle keeps by name and otherwise we'd remove it due to destruction order
-	m_globalBag = m_sbac->RegisterStateBag("global");
+	m_globalBag = m_sbac->RegisterStateBag("global", true);
 }
 
 void CloneManagerLocal::ProcessCreateAck(uint16_t objId, uint16_t uniqifier)
@@ -1147,7 +1147,7 @@ bool CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 
 	if (!objectData.stateBag)
 	{
-		objectData.stateBag = m_sbac->RegisterStateBag(fmt::sprintf("entity:%d", msg.GetObjectId()));
+		objectData.stateBag = m_sbac->RegisterStateBag(fmt::sprintf("entity:%d", msg.GetObjectId()), true);
 	}
 
 	objectData.uniqifier = msg.GetUniqifier();
@@ -2110,7 +2110,7 @@ bool CloneManagerLocal::RegisterNetworkObject(rage::netObject* object)
 
 	if (!m_trackedObjects[object->GetObjectId()].stateBag)
 	{
-		auto& stateBag = m_trackedObjects[object->GetObjectId()].stateBag = m_sbac->RegisterStateBag(fmt::sprintf("entity:%d", object->GetObjectId()));
+		auto& stateBag = m_trackedObjects[object->GetObjectId()].stateBag = m_sbac->RegisterStateBag(fmt::sprintf("entity:%d", object->GetObjectId()), true);
 		stateBag->EnableImmediateReplication(false); // #TODO: potentially remove once throttling is implemented
 	}
 
