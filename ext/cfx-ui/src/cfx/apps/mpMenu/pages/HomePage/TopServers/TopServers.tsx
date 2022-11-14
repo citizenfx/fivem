@@ -1,5 +1,5 @@
 import React from "react";
-import { MAX_TOP_SERVERS, HomeScreenServerListService, getTopRegionServerOnScreenTime, IDLE_TIMEOUT } from "cfx/apps/mpMenu/services/servers/list/HomeScreenServerList.service";
+import { HomeScreenServerListService, getTopRegionServerOnScreenTime, IDLE_TIMEOUT } from "cfx/apps/mpMenu/services/servers/list/HomeScreenServerList.service";
 import { useService } from "cfx/base/servicesContainer";
 import { ServerConnectButton } from "cfx/common/parts/Server/ServerConnectButton/ServerConnectButton";
 import { ServerCoreLoafs } from "cfx/common/parts/Server/ServerCoreLoafs/ServerCoreLoafs";
@@ -80,6 +80,8 @@ export const TopServers = observer(function TopServers() {
   const HomeScreenServerList = useService(HomeScreenServerListService);
 
   const sequence = HomeScreenServerList.topRegionServers;
+
+  Ctrl.maxIndex = sequence.length - 1;
 
   const selectorNodes: React.ReactNode[] = [];
   const cardNodes: React.ReactNode[] = [];
@@ -298,6 +300,10 @@ const Ctrl = new class Ctrl {
   public get activeIndex(): number { return this._activeIndex }
   private set activeIndex(activeIndex: number) { this._activeIndex = activeIndex }
 
+  private _maxIndex: number = 0;
+  public get maxIndex(): number { return this._maxIndex }
+  public set maxIndex(maxIndex: number) { this._maxIndex = maxIndex }
+
   private progress = 0;
   private lastDt = 0;
   private paused = true;
@@ -324,7 +330,7 @@ const Ctrl = new class Ctrl {
 
   setActiveIndex(index: number) {
     this.progress = 0;
-    this.activeIndex = clamp(index, 0, MAX_TOP_SERVERS - 1);
+    this.activeIndex = clamp(index, 0, this.maxIndex);
   }
 
   readonly reset = () => {
@@ -350,7 +356,7 @@ const Ctrl = new class Ctrl {
       clearTimeout(this.idleTimeout);
     }
 
-    this.lastDt = performance.now();
+    this.lastDt = 0;
 
     this.rAF = requestAnimationFrame(this.updateProgress);
   };
@@ -371,7 +377,9 @@ const Ctrl = new class Ctrl {
 
     this.rAF = requestAnimationFrame(this.updateProgress);
 
-    const dt = timer - this.lastDt;
+    const dt = this.lastDt === 0
+      ? 16
+      : timer - this.lastDt;
     this.lastDt = timer;
 
     const timeout = getTopRegionServerOnScreenTime(this.activeIndex);
@@ -383,7 +391,7 @@ const Ctrl = new class Ctrl {
       progress = 0;
 
       let activeIndex = this.activeIndex + 1;
-      if (activeIndex === MAX_TOP_SERVERS) {
+      if (activeIndex > this.maxIndex) {
         activeIndex = 0;
       }
 

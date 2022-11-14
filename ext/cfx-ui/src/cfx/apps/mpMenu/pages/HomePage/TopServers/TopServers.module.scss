@@ -78,6 +78,8 @@ $selectorOffset: ui.offset();
       &.active {
         box-shadow: 0 0 0 2px ui.color-token('outlined-hover-border') inset;
 
+        transform-origin: top center;
+
         @keyframes appr3 {
           from {
             transform: scale(1.1);
