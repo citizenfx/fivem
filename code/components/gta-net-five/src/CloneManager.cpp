@@ -442,8 +442,8 @@ void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
 	m_globalBag = sbac->RegisterStateBag("global", true);
 
 	sbac->RegisterTarget(0);
-	sbac->AddSafePreCreatePrefix("entity:");
-	sbac->AddSafePreCreatePrefix("player:");
+	sbac->AddSafePreCreatePrefix("entity:", true);
+	sbac->AddSafePreCreatePrefix("player:", true);
 	sbac->SetGameInterface(this);
 
 	m_netLibrary->AddReliableHandler(
