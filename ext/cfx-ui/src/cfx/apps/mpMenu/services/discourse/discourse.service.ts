@@ -116,7 +116,7 @@ class DiscourseService implements IAccountService, AppContribution {
     return this.initialAuthCompleteDeferred.promise;
   }
 
-  private async loadCurrentAccount() {
+  private async loadCurrentAccount(shouldThrowOnError = false) {
     try {
       if (this.authToken) {
         const apiResponse: ICurrentSessionResponse = await this.makeApiCall('/session/current.json');
@@ -129,17 +129,24 @@ class DiscourseService implements IAccountService, AppContribution {
         }
       }
     } catch (e) {
+      let culprit = 'Unknown auth error';
+
       if (fetcher.HttpError.is(e)) {
-        if (e.status >= 500) {
-          console.error('Account load error', e);
+        culprit = 'Discourse auth service unavailable';
 
-          this.accountLoadError = 'Yes, error';
-        }
-
-        return;
+        this.logService.error(e, {
+          culprit,
+          statusCode: e.status,
+        });
       }
 
-      console.error('Unknown account load error', e);
+      this.accountLoadError = culprit;
+
+      console.warn(culprit, e);
+
+      if (shouldThrowOnError) {
+        throw new Error(culprit);
+      }
     } finally {
       if (!this.accountLoadComplete) {
         this.accountLoadComplete = true;
@@ -546,13 +553,14 @@ class DiscourseService implements IAccountService, AppContribution {
     const payload = new URL(`http://dummy/?${data.data}`).searchParams.get('payload');
 
     if (!payload) {
-      return this.handleExternalAuthFail('Failed to authenticate - Invalid payload');
+      return this.handleExternalAuthFail('Failed to authenticate: invalid payload, please try again');
     }
 
     try {
       await this.applyAuthPayload(payload);
 
-      await this.loadCurrentAccount();
+      const loadCurrentAccountShouldThrowOnError = true;
+      await this.loadCurrentAccount(loadCurrentAccountShouldThrowOnError);
 
       this.SSOAuthComplete.emit(SSOAuthCompleteEvent.success());
 
@@ -563,15 +571,7 @@ class DiscourseService implements IAccountService, AppContribution {
   };
 
   private handleExternalAuthFail(error: string) {
-    const event = SSOAuthCompleteEvent.error(error);
-
-    this.SSOAuthComplete.emit(event);
-
-    if (!event.defaultPrevented) {
-      // At first it looked so good to have default fallback for this,
-      // but reality happened and now I don't have time to get rid of this overcomplication.
-      // Sorry.
-    }
+    this.SSOAuthComplete.emit(SSOAuthCompleteEvent.error(error));
   }
 
 }

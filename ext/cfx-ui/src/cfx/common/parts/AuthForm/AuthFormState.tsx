@@ -396,8 +396,6 @@ class AuthFormState {
   };
 
   private readonly handleExternalAuthComplete = (event: SSOAuthCompleteEvent) => {
-    event.preventDefault();
-
     if (event.success) {
       return this.switchToAuthenticated();
     }
