@@ -18,7 +18,15 @@ export function registerMpMenuIntlService(container: ServicesContainer) {
 @injectable()
 class MpMenuIntlService implements IIntlService {
   readonly systemLocale = mpMenu.systemLanguages[0] || 'en-US';
-  readonly systemLocaleCountry = this.systemLocale.split('-')[1] || 'US';
+  readonly systemLocaleCountry = (() => {
+    const [language, country] = this.systemLocale.split('-');
+
+    if (!country) {
+      return language.toUpperCase();
+    }
+
+    return country.toUpperCase();
+  })();
 
   readonly localesOptions = Object.keys(locales).map((locale) => ({
     label: defaultDisplayNames.of(locale) || 'en',
