@@ -143,7 +143,7 @@ public:
 	//
 	// Marks a given prefix as 'safe to pre-create'.
 	//
-	virtual void AddSafePreCreatePrefix(std::string_view idPrefix) = 0;
+	virtual void AddSafePreCreatePrefix(std::string_view idPrefix, bool useParentTargets) = 0;
 
 	//
 	// An event handling a state bag value change.

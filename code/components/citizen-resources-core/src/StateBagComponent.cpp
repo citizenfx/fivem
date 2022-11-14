@@ -39,7 +39,7 @@ public:
 
 	virtual void UnregisterTarget(int id) override;
 
-	virtual void AddSafePreCreatePrefix(std::string_view idPrefix) override;
+	virtual void AddSafePreCreatePrefix(std::string_view idPrefix, bool useParentTargets) override;
 
 	void UnregisterStateBag(std::string_view id);
 
@@ -54,9 +54,14 @@ public:
 		};
 	}
 
-	bool IsSafePreCreateName(std::string_view id);
+	/// <summary>
+	/// Checks if bag name is allowed to be automatically created
+	/// </summary>
+	/// <param name="id">full name of the state bag</param>
+	/// <returns>first is if it exists, second determines if the state bag needs to use parent's targets</returns>
+	std::pair<bool, bool> IsSafePreCreateName(std::string_view id);
 
-	std::shared_ptr<StateBag> PreCreateStateBag(std::string_view id);
+	std::shared_ptr<StateBag> PreCreateStateBag(std::string_view id, bool useParentTargets);
 
 	inline StateBagGameInterface* GetGameInterface() const
 	{
@@ -80,7 +85,7 @@ private:
 	// pre-created state bag stuff
 
 	// list of state bag prefixes
-	std::set<std::string> m_preCreatePrefixes;
+	std::vector<std::pair<std::string, bool>> m_preCreatePrefixes;
 	std::shared_mutex m_preCreatePrefixMutex;
 
 	// *owning* pointers for pre-created bags
@@ -518,30 +523,30 @@ void StateBagComponentImpl::UnregisterTarget(int id)
 	}
 }
 
-void StateBagComponentImpl::AddSafePreCreatePrefix(std::string_view idPrefix)
+void StateBagComponentImpl::AddSafePreCreatePrefix(std::string_view idPrefix, bool useParentTargets)
 {
 	std::unique_lock lock(m_preCreatePrefixMutex);
-	m_preCreatePrefixes.insert(std::string{ idPrefix });
+	m_preCreatePrefixes.emplace_back(idPrefix, useParentTargets);
 }
 
-bool StateBagComponentImpl::IsSafePreCreateName(std::string_view id)
+std::pair<bool, bool> StateBagComponentImpl::IsSafePreCreateName(std::string_view id)
 {
 	std::shared_lock lock(m_preCreatePrefixMutex);
 
 	for (const auto& prefix : m_preCreatePrefixes)
 	{
-		if (id.rfind(prefix, 0) == 0) // equivalent of a starts with
+		if (id.rfind(prefix.first, 0) == 0) // equivalent of a starts with
 		{
-			return true;
+			return { true, prefix.second };
 		}
 	}
 
-	return false;
+	return { false, false };
 }
 
-std::shared_ptr<StateBag> StateBagComponentImpl::PreCreateStateBag(std::string_view id)
+std::shared_ptr<StateBag> StateBagComponentImpl::PreCreateStateBag(std::string_view id, bool useParentTargets)
 {
-	auto bag = RegisterStateBag(id);
+	auto bag = RegisterStateBag(id, useParentTargets);
 
 	{
 		std::unique_lock lock(m_preCreatedStateBagsMutex);
@@ -647,9 +652,10 @@ void StateBagComponentImpl::HandlePacket(int source, std::string_view dataRaw, s
 
 	if (!bag)
 	{
-		if (IsSafePreCreateName(bagName))
+		auto safeToCreate = IsSafePreCreateName(bagName);
+		if (safeToCreate.first)
 		{
-			bag = PreCreateStateBag(bagName);
+			bag = PreCreateStateBag(bagName, safeToCreate.second);
 		}
 	}
 
