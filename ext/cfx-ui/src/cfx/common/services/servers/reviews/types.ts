@@ -73,6 +73,10 @@ export interface IServerReviewReport {
   readonly reportInProgress: boolean;
 
   readonly options: IServerReviewReportOption[];
+  readonly optionsLoading: boolean;
+  readonly optionsError: string | null;
+
+  ensureOptions(): void;
 
   canSubmit(option: IServerReviewReportOption, message?: string): boolean;
   submit(option: IServerReviewReportOption, message?: string): Promise<void>;

@@ -36,7 +36,7 @@ export const ServerReview = observer(function ServerReview(props: ServerReviewPr
   const playtime = playtimeRaw?.formattedSeconds || 'loading';
 
   const showReactions = !!review.reactions;
-  const showReport = !disableActions && Number(review.report?.options?.length) > 0;
+  const showReport = !disableActions && review.report?.canReport;
 
   return (
     <ServerReviewLayout
