@@ -66,13 +66,24 @@ export const UserBar = observer(function UserBar() {
     );
   }
 
-  if (AccountService.accountLoadError) {
+  if (!AccountService.accountLoadError) {
+    const title = (
+      <>
+        {$L('#UserNav_FailedToLoadAccountData')}
+        <br />
+        <br />
+        <strong>
+          {$L('#UserNav_FailedToLoadAccountData_2')}
+        </strong>
+      </>
+    );
+
     return (
-      <Title title={$L('#UserNav_FailedToLoadAccountData')}>
+      <Title title={title}>
         <Button
           size="large"
           theme={buttonTheme}
-          icon={<BsExclamationCircleFill style={{ color: 'rgba(var(--color-error))' }} />}
+          icon={<BsExclamationCircleFill />}
         />
       </Title>
     );
