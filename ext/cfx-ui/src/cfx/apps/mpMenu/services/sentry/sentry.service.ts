@@ -5,6 +5,7 @@ import { ServicesContainer } from 'cfx/base/servicesContainer';
 import { IAccountService } from 'cfx/common/services/account/account.service';
 import { IAccount } from 'cfx/common/services/account/types';
 import { AppContribution, registerAppContribution } from 'cfx/common/services/app/app.extensions';
+import { fetcher } from 'cfx/utils/fetcher';
 import { fastRandomId } from 'cfx/utils/random';
 import { inject, injectable } from 'inversify';
 import { mpMenu } from '../../mpMenu';
@@ -28,6 +29,29 @@ if (ENABLE_SENTRY) {
       // Ignore errors from console
       if (event.exception?.values?.[0].stacktrace?.frames?.[0].filename === '<anonymous>') {
         return null;
+      }
+
+      // Ignore handled exceptions
+      if (event.exception?.values?.[0]?.mechanism?.handled) {
+        return null;
+      }
+
+      const og = hint.originalException;
+
+      if (typeof og === 'object' && og) {
+        event.tags ??= {};
+        event.extra ??= {};
+
+        if (fetcher.HttpError.is(og)) {
+          event.tags.http_status_code = og.response.status;
+          event.tags.http_request_url = og.response.url;
+
+          event.extra.http_response_headers = og.response.headers;
+        }
+
+        if (fetcher.JsonParseError.is(og)) {
+          event.extra.json_original_string = og.originalString;
+        }
       }
 
       return event;
