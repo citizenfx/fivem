@@ -18,7 +18,7 @@ export class DiscourseServerReviewReport implements IServerReviewReport {
   public get options(): IServerReviewReportOption[] { return this._options }
   private set options(options: IServerReviewReportOption[]) { this._options = options }
 
-  private _optionsLoading: boolean = false;
+  private _optionsLoading: boolean = true;
   public get optionsLoading(): boolean { return this._optionsLoading }
   private set optionsLoading(optionsLoading: boolean) { this._optionsLoading = optionsLoading }
 

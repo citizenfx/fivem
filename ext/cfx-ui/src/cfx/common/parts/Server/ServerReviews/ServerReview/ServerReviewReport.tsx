@@ -71,13 +71,16 @@ const ServerReviewReportModal = observer(function ServerReviewReportModal(props:
     report.ensureOptions();
   }, [report]);
 
-  if (report.optionsError || !report.options.length) {
+  if (report.optionsLoading) {
     return (
       <>
         <Pad>
-          <InfoPanel type="error">
-            {$L('#Review_Flag_Unavailable')}
-          </InfoPanel>
+          <Flex>
+            <Indicator />
+            <Text>
+              {$L('#Review_Flag_OptionsLoading')}
+            </Text>
+          </Flex>
         </Pad>
 
         <Modal.Footer>
@@ -90,16 +93,13 @@ const ServerReviewReportModal = observer(function ServerReviewReportModal(props:
     );
   }
 
-  if (!report.optionsLoading) {
+  if (report.optionsError || !report.options.length) {
     return (
       <>
         <Pad>
-          <Flex>
-            <Indicator />
-            <Text>
-              {$L('#Review_Flag_OptionsLoading')}
-            </Text>
-          </Flex>
+          <InfoPanel type="error">
+            {$L('#Review_Flag_Unavailable')}
+          </InfoPanel>
         </Pad>
 
         <Modal.Footer>
