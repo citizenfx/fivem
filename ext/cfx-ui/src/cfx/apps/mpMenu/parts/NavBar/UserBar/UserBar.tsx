@@ -66,7 +66,7 @@ export const UserBar = observer(function UserBar() {
     );
   }
 
-  if (!AccountService.accountLoadError) {
+  if (AccountService.accountLoadError) {
     const title = (
       <>
         {$L('#UserNav_FailedToLoadAccountData')}
