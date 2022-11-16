@@ -95,7 +95,7 @@ std::shared_ptr<sync::SyncTreeBase> MakeAutomobile(uint32_t model, float posX, f
 		cdn.m_popType = sync::POPTYPE_MISSION;
 		cdn.m_randomSeed = rand();
 		cdn.m_tyresDontBurst = false;
-		cdn.m_vehicleStatus = 0;
+		cdn.m_vehicleStatus = 2;
 		cdn.m_unk5 = false;
 	});
 
@@ -130,7 +130,7 @@ std::shared_ptr<sync::SyncTreeBase> MakeVehicle(uint32_t model, float posX, floa
 		cdn.m_popType = sync::POPTYPE_MISSION;
 		cdn.m_randomSeed = rand();
 		cdn.m_tyresDontBurst = false;
-		cdn.m_vehicleStatus = 0;
+		cdn.m_vehicleStatus = 2;
 		cdn.m_unk5 = false;
 	});
 
