@@ -49,7 +49,7 @@ module.exports = (env, argv) => {
     },
 
     output: {
-      clean: true,
+      clean: isProd,
       path: appBuildPath,
       filename: 'static/js/[name].js',
       chunkFilename: 'static/js/[name].chunk.js',
@@ -69,9 +69,6 @@ module.exports = (env, argv) => {
       rules: [
         {
           test: /\.(bmp|gif|jpg|jpeg|png|woff|woff2|mp3|ogg|wav|svg|webp)$/,
-          resourceQuery: {
-            not: [/_INLINE_/],
-          },
           type: 'asset/resource',
           generator: {
             filename: 'static/media/[hash][name][ext]',
@@ -123,10 +120,6 @@ module.exports = (env, argv) => {
         {
           test: /\.raw\.js$/,
           type: 'asset/source',
-        },
-        {
-          resourceQuery: /_INLINE_/,
-          type: 'asset/inline',
         },
 
         {
