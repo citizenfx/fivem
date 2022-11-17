@@ -21,6 +21,7 @@ const lastSeenVersionsLSKey = 'changelogVersions';
 @injectable()
 class ChangelogService implements AppContribution {
   private _versionsContent: Record<string, null | React.ReactNode> = {};
+  private _versionsContentLoadRequested: Record<string, true> = {};
 
   private _versions: string[] = [];
   get versions(): string[] {
@@ -36,6 +37,15 @@ class ChangelogService implements AppContribution {
 
   public selectedVersion = '';
   public get selectedVersionContent(): React.ReactNode | null {
+    if (!this.selectedVersion) {
+      return null;
+    }
+
+    if (!this._versionsContentLoadRequested[this.selectedVersion]) {
+      this._versionsContentLoadRequested[this.selectedVersion] = true;
+      this.fetchVersionContent(this.selectedVersion);
+    }
+
     return this._versionsContent[this.selectedVersion];
   }
 
@@ -54,6 +64,7 @@ class ChangelogService implements AppContribution {
     makeAutoObservable(this, {
       // @ts-expect-error
       _versionsContent: observable.shallow,
+      _versionsContentLoadRequested: observable.shallow,
       _lastSeenVersions: observable.struct,
     });
   }
@@ -66,7 +77,6 @@ class ChangelogService implements AppContribution {
   public readonly selectVersion = (version: string) => {
     if (this._versions.includes(version)) {
       this.selectedVersion = version;
-      this.fetchVersionContent(version);
     }
   };
 
