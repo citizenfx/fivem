@@ -8,6 +8,18 @@ export function timeout(time: number): Promise<void> {
   });
 }
 
+export function idleCallback(timeout?: number): Promise<void> {
+  return new Promise((resolve) => {
+    requestIdleCallback(resolve as any, { timeout });
+  });
+}
+
+export function animationFrame(): Promise<void> {
+  return new Promise((resolve) => {
+    requestAnimationFrame(resolve as any);
+  });
+}
+
 export function resolveOrTimeout<T>(time: number, timeoutError: string, promise: Promise<T>): Promise<T> {
   return Promise.race([
     timeout(time).then(() => { throw new Error(timeoutError) }),

@@ -28,11 +28,11 @@ export const Feed = observer(function Feed(props: FeedProps) {
 
   const [showFeed, setShowFeed] = React.useState(false);
 
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     let timer: SetTimeoutReturn | null = setTimeout(() => {
       setShowFeed(true);
       timer = null;
-    }, 50);
+    }, 16);
 
     return () => {
       if (timer) {

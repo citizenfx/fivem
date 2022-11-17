@@ -41,6 +41,7 @@ import { Handle404 } from './pages/404';
 import { registerHomeScreenServerList } from './services/servers/list/HomeScreenServerList.service';
 import { registerSentryService } from './services/sentry/sentry.service';
 import { SentryLogProvider } from './services/sentry/sentryLogProvider';
+import { animationFrame, idleCallback, timeout } from 'cfx/utils/async';
 
 startBrowserApp({
   defineServices(container) {
@@ -143,14 +144,27 @@ startBrowserApp({
 
     mpMenu.invokeNative('getMinModeInfo');
 
-    setTimeout(() => {
-      const loader = document.getElementById('loader');
-      if (loader) {
-        loader.classList.add('hide');
-        loader.querySelector('#loader-mask')?.addEventListener('animationend', () => {
-          setTimeout(() => loader.parentNode?.removeChild(loader), 1000);
-        });
+    // Not using await here so app won't wait for this to end
+    timeout(1000).then(animationFrame).then(() => {
+      const $loader = document.getElementById('loader');
+      if (!$loader) {
+        console.error('No #loader found, did it get deleted from index.html?');
+        return;
       }
-    }, 1000);
+
+      $loader.classList.add('hide');
+
+      const $loaderMask = $loader.querySelector('#loader-mask');
+      if (!$loaderMask) {
+        console.error('No #loader-mask found, did it get deleted from index.html?');
+        return;
+      }
+
+      $loaderMask.addEventListener('animationend', async () => {
+        await idleCallback(1000);
+
+        $loader.parentNode?.removeChild($loader);
+      });
+    });
   },
 });
