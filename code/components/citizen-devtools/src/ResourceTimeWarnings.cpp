@@ -227,7 +227,7 @@ static HookFunction hookFunctionGameTime([]()
 
 			if (th)
 			{
-				th->push_front(fmt::sprintf("%s: activated", resourceName));
+				th->push_front(resourceName + ": activated");
 			}
 		},
 		INT32_MIN);
