@@ -69,7 +69,7 @@ void MonoComponentHostShared::Initialize()
 
 		// MONO_PATH
 		std::string citizenClrLibPath = basePath + "lib/mono/4.5/";
-		citizenClrLibPath = citizenClrLibPath + FX_SEARCHPATH_SEPARATOR + citizenClrLibPath + "v2/";
+		// citizenClrLibPath = citizenClrLibPath + FX_SEARCHPATH_SEPARATOR + citizenClrLibPath + "v2/"; // throws warnings when v2 folder isn't present, re-enable later
 		SetEnvironmentVariableNarrow("MONO_PATH", citizenClrLibPath.c_str());
 
 		// https://github.com/mono/mono/pull/9811
@@ -122,7 +122,9 @@ void MonoComponentHostShared::Initialize()
 			mono_debug_init(MONO_DEBUG_FORMAT_MONO);
 
 		mono_set_dirs((basePath + "lib/").c_str(), (basePath + "cfg/").c_str());
-		mono_jit_init_version("Citizen", "v4.0.30319");
+		MonoDomain* rootDomain = mono_jit_init_version("Citizen", "v4.0.30319");
+
+		mono_domain_set_config(rootDomain, (basePath + "cfg/mono/").c_str(), "cfx.config");
 
 		mono_install_unhandled_exception_hook(UnhandledException, nullptr);
 	}
@@ -218,6 +220,27 @@ void MonoComponentHostShared::gc_event(MonoProfiler* profiler, MonoProfilerGCEve
 void MonoComponentHostShared::gc_event(MonoProfiler* profiler, MonoGCEvent event, int generation)
 #endif
 {
+	if (event == MONO_GC_EVENT_PRE_STOP_WORLD || event == MONO_GC_EVENT_POST_START_WORLD)
+	{
+		static auto profiler = fx::ResourceManager::GetCurrent(true)->GetComponent<fx::ProfilerComponent>();
+
+		if (profiler->IsRecording())
+		{
+			bool isMajor = (generation == 1); // sgen seems to only have 0/1 (mono_gc_max_generation == 1)
+			static std::string majorGcString = ".NET Major GC";
+			static std::string minorGcString = ".NET Minor GC";
+
+			if (event == MONO_GC_EVENT_PRE_STOP_WORLD)
+			{
+				profiler->EnterScope(isMajor ? majorGcString : minorGcString);
+			}
+			else
+			{
+				profiler->ExitScope();
+			}
+		}
+	}
+
 #if defined(_WIN32)
 	switch (event)
 	{
