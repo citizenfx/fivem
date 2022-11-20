@@ -59,6 +59,12 @@ bool SetEnvironmentVariableNarrow(const char* key, const char* value)
 #endif
 }
 
+#ifndef _WIN32
+extern "C" void mono_handle_native_crash_nop(const char* signal, void* sigctx, void* siginfo)
+{
+}
+#endif
+
 void MonoComponentHostShared::Initialize()
 {
 	static ConVar<bool> memoryUsageVar("mono_enableMemoryUsageTracking", ConVar_None, true, &s_enableMemoryUsage);
