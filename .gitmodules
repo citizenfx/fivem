@@ -274,3 +274,6 @@
 [submodule "vendor/freetype"]
 	path = vendor/freetype
 	url = https://github.com/freetype/freetype.git
+[submodule "vendor/nljson"]
+	path = vendor/nljson
+	url = https://github.com/nlohmann/json.git

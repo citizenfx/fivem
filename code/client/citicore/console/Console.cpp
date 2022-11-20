@@ -170,6 +170,13 @@ private:
 	TFn fn;
 };
 
+template<typename TStream>
+static bool json_accept(TStream& stream)
+{
+	nlohmann::detail::json_sax_acceptor<json> sax_acceptor;
+	return json::sax_parse(stream, &sax_acceptor, nlohmann::detail::input_format_t::json, false, false);
+}
+
 void Context::ExecuteBuffer()
 {
 	ConsoleManagers* managers = static_cast<ConsoleManagers*>(m_managers.get());
@@ -206,12 +213,12 @@ void Context::ExecuteBuffer()
 
 					try
 					{
-						json j;
-						oss >> j;
-
-						i += oss.tellg();
-						i -= 1;
-						continue;
+						if (json_accept(oss))
+						{
+							i += oss.tellg();
+							i -= 1;
+							continue;
+						}
 					}
 					catch (json::exception&)
 					{
@@ -489,15 +496,15 @@ DLL_EXPORT ProgramArguments Tokenize(const std::string& lineUtf8)
 
 			try
 			{
-				json j;
-				oss >> j;
+				if (json_accept(oss))
+				{
+					int start = i;
+					i += oss.tellg();
 
-				int start = i;
-				i += oss.tellg();
+					args.push_back(line.substr(start, i - start));
 
-				args.push_back(line.substr(start, i - start));
-
-				continue;
+					continue;
+				}
 			}
 			catch (json::exception&)
 			{
