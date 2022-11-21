@@ -310,10 +310,7 @@ static void RunInitFunctionsWrap(void* skel, int type)
 	{
 		while (!g_callBeforeLoad())
 		{
-			g_lookAlive();
-
-			OnGameFrame();
-			OnMainGameFrame();
+			RunRlInitServicing();
 		}
 	}
 	
@@ -420,9 +417,6 @@ void ShutdownSessionWrap()
 	while (g_isNetworkKilled)
 	{
 		// warning screens apparently need to run on main thread
-		OnGameFrame();
-		OnMainGameFrame();
-
 		RunRlInitServicing();
 
 		g_runWarning();
