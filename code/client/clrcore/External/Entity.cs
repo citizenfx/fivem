@@ -43,7 +43,6 @@ namespace CitizenFX.Core
 		public IntPtr MemoryAddress
 #endif
 		{
-			[SecurityCritical]
 			get
 			{
 				// CFX-TODO
