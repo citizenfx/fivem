@@ -27,6 +27,9 @@
 #include <wrl.h>
 #include <wincodec.h>
 
+#include <shlwapi.h>
+#include <botan/base64.h>
+
 #include <nutsnbolts.h>
 
 #define WANT_CEF_INTERNALS
@@ -352,18 +355,55 @@ RuntimeTex* RuntimeTxd::CreateTextureFromImage(const char* name, const char* fil
 		HRESULT hr = CoCreateInstance(CLSID_WICImagingFactory1, nullptr, CLSCTX_INPROC_SERVER, __uuidof(IWICImagingFactory), (void**)g_imagingFactory.GetAddressOf());
 	}
 
-	fx::OMPtr<IScriptRuntime> runtime;
+	ComPtr<IStream> stream;
 
-	if (!FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+	std::string fileNameString(fileName);
+
+	if (fileNameString.find("data:") == 0)
 	{
-		return nullptr;
+		auto f = fileNameString.find("base64,");
+
+		if (f == std::string::npos)
+		{
+			return nullptr;
+		}
+
+		fileNameString = fileNameString.substr(f + 7);
+
+		std::string decodedURL;
+		UrlDecode(fileNameString, decodedURL, false);
+
+		decodedURL.erase(std::remove_if(decodedURL.begin(), decodedURL.end(), [](char c)
+		{
+			return std::isspace<char>(c, std::locale::classic());
+		}), decodedURL.end());
+
+		size_t length = decodedURL.length();
+		size_t paddingNeeded = 4 - (length % 4);
+
+		if ((paddingNeeded == 1 || paddingNeeded == 2) && decodedURL[length - 1] != '=') {
+			decodedURL.resize(length + paddingNeeded, '=');
+		}
+
+		auto imageData = Botan::base64_decode(decodedURL, false);
+
+		stream = SHCreateMemStream(imageData.data(), imageData.size());
+	}
+	else
+	{
+		fx::OMPtr<IScriptRuntime> runtime;
+
+		if (!FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+		{
+			return nullptr;
+		}
+
+		fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
+
+		stream = vfs::CreateComStream(vfs::OpenRead(resource->GetPath() + "/" + fileName));
 	}
 
-	fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
-
 	ComPtr<IWICBitmapDecoder> decoder;
-
-	ComPtr<IStream> stream = vfs::CreateComStream(vfs::OpenRead(resource->GetPath() + "/" + fileName));
 
 	HRESULT hr = g_imagingFactory->CreateDecoderFromStream(stream.Get(), nullptr, WICDecodeMetadataCacheOnDemand, decoder.GetAddressOf());
 

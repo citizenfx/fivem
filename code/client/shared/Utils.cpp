@@ -231,7 +231,7 @@ fwString url_encode(const fwString &value)
 	return fwString(escaped.str().c_str());
 }
 
-bool UrlDecode(const std::string& in, std::string& out)
+bool UrlDecode(const std::string& in, std::string& out, bool replacePlus)
 {
 	out.clear();
 	out.reserve(in.size());
@@ -258,7 +258,7 @@ bool UrlDecode(const std::string& in, std::string& out)
 				return false;
 			}
 		}
-		else if (in[i] == '+')
+		else if (in[i] == '+' && replacePlus)
 		{
 			out += ' ';
 		}
