@@ -1,9 +1,18 @@
 using System;
-using System.Drawing;
+
+#if MONO_V2
+using CitizenFX.Core;
+using API = CitizenFX.FiveM.Native.Natives;
+using INativeValue = CitizenFX.Core.Native.Input.Primitive;
+using PointF = CitizenFX.Core.Vector2;
+
+namespace CitizenFX.FiveM
+#else
 using CitizenFX.Core.Native;
-using System.Security;
+using System.Drawing;
 
 namespace CitizenFX.Core
+#endif
 {
 	public sealed class ScaleformArgumentTXD
 	{

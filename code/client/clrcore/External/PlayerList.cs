@@ -3,14 +3,22 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
+#if MONO_V2
+using API = CitizenFX.FiveM.Native.Natives;
+
+namespace CitizenFX.FiveM
+#else
 using CitizenFX.Core.Native;
 
 namespace CitizenFX.Core
+#endif
 {
 #if !IS_FXSERVER && !IS_RDR3 && !GTA_NY
 	public class PlayerList : IEnumerable<Player>
 	{
 		public const int MaxPlayers = 256;
+
+		public static PlayerList Players { get; } = new PlayerList();
 
 		public IEnumerator<Player> GetEnumerator()
 		{

@@ -2,7 +2,11 @@ using System;
 using System.Collections.Generic;
 using CitizenFX.Core;
 
+#if MONO_V2
+namespace CitizenFX.FiveM.NaturalMotion
+#else
 namespace CitizenFX.Core.NaturalMotion
+#endif
 {
 	public sealed class Euphoria
 	{

@@ -1,9 +1,18 @@
 using System;
 using CitizenFX.Core.Native;
-using CitizenFX.Core.NaturalMotion;
 using System.Security;
 
+#if MONO_V2
+using CitizenFX.Core;
+using CitizenFX.FiveM.Native;
+using CitizenFX.FiveM.NaturalMotion;
+using API = CitizenFX.FiveM.Native.Natives;
+using Function = CitizenFX.FiveM.Native.Natives;
+namespace CitizenFX.FiveM
+#else
+using CitizenFX.Core.NaturalMotion;
 namespace CitizenFX.Core
+#endif
 {
 	public enum Gender
 	{
@@ -1578,10 +1587,18 @@ namespace CitizenFX.Core
 			API.SetPedResetFlag(Handle, flagID, true);
 		}
 
-		public Ped Clone(float heading = 0.0f)
+		[Obsolete("Parameter `float heading` is not used, use the parameter-less Clone() method instead")]
+		public Ped Clone(float heading = 0.0f) => Clone();
+
+		public Ped Clone()
 		{
-			return new Ped(API.ClonePed(Handle, heading, false, false));
+#if MONO_V2
+			return new Ped(API.ClonePed(Handle, API.NetworkGetEntityIsNetworked(Handle), false, false));
+#else
+			return new Ped(API.ClonePed(Handle, Convert.ToSingle(API.NetworkGetEntityIsNetworked(Handle)), false, false));
+#endif
 		}
+
 		/// <summary>
 		/// Determines whether this <see cref="Ped"/> exists.
 		/// </summary>
