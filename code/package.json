@@ -7,12 +7,16 @@
     "test": "tests"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepublish": "npm run snyk-protect",
+    "snyk-protect": "snyk-protect"
   },
   "author": "",
   "license": "none",
   "dependencies": {
     "grunt": "^1.4.0",
-    "grunt-prompt": "^1.3.3"
-  }
+    "grunt-prompt": "^1.3.3",
+    "@snyk/protect": "latest"
+  },
+  "snyk": true
 }
