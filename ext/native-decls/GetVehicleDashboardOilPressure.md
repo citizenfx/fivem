@@ -1,0 +1,9 @@
+---
+ns: CFX
+apiset: client
+---
+## GET_VEHICLE_DASHBOARD_OIL_PRESSURE
+
+```c
+float GET_VEHICLE_DASHBOARD_OIL_PRESSURE();
+```
