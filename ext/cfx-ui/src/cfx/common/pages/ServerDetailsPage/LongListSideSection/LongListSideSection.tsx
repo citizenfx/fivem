@@ -34,7 +34,7 @@ export const LongListSideSection = observer(function LongListSideSection<T>(prop
     renderPreviewItem,
     renderFullItem = renderPreviewItem,
     itemMatchesFilter,
-    maxPreviewItems = 12,
+    maxPreviewItems = 18,
 
     icon,
     title,
