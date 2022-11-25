@@ -111,6 +111,8 @@
     "#Settings_Language": "Language",
     "#Settings_MenuAudio": "Main menu audio",
     "#Settings_MenuAudioDesc": "Enable background music while idle in the main menu",
+    "#Settings_MuteOnFocusLoss": "Mute on focus loss",
+    "#Settings_MuteOnFocusLossDesc": "Disables NUI and Mumble audio if the game window is not focused. Does not affect game audio",
     "#Settings_GameStreamProgress": "Streaming progress",
     "#Settings_GameStreamProgressDesc": "Display progress when downloading in-game streamed assets (not recommended for systems with HDD)",
     "#Settings_UseAudioFrameLimiter": "Audio frame limiter",
