@@ -16,6 +16,7 @@ stages:
   variables:
     IS_LAUNCHER: '0'
   except:
+    - 'temp/linux-ci-check'
     - tags
 
 .build_client:
@@ -84,6 +85,7 @@ build_sdk:
     key: sdk
   except:
     - tags
+    - 'temp/linux-ci-check'
   script:
     - ".\\code\\tools\\ci\\build_sdk.ps1"
 
@@ -149,6 +151,7 @@ build_proot_linux:
     - branches
   except:
     - master
+    - temp/linux-ci-check
     - tags
 
 .deploy_manual:

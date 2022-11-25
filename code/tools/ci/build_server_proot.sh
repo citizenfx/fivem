@@ -76,7 +76,8 @@ echo nameserver 1.1.1.1 > $PWD/alpine/etc/resolv.conf
 echo nameserver 8.8.8.8 >> $PWD/alpine/etc/resolv.conf
 
 cd ext/system-resources/
-/bin/sh build.sh
+#/bin/sh build.sh
+# not for now
 cd ../../
 
 chroot $PWD/alpine/ /bin/sh /src/code/tools/ci/build_server_2.sh
@@ -93,6 +94,9 @@ for PROC in /proc/*; do
                 fi
         fi
 done
+
+# TEMPORARY STEP for 'live' debugging
+sleep 3600
 
 # unmount the chroot
 umount $PWD/alpine/dev
