@@ -5,7 +5,7 @@ import {DiscourseService} from './discourse.service';
 import {Server} from './servers/server'
 
 import {Angulartics2} from 'angulartics2';
-import {Angulartics2Piwik} from 'angulartics2/piwik';
+import {Angulartics2Matomo} from 'angulartics2/matomo';
 
 @Injectable()
 export class TrackingService {
@@ -13,7 +13,7 @@ export class TrackingService {
         private gameService: GameService,
         private discourseService: DiscourseService,
         private angulartics: Angulartics2,
-        private piwik: Angulartics2Piwik,
+        private piwik: Angulartics2Matomo,
     ) {
 		this.piwik.startTracking();
 

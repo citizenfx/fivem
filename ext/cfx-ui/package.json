@@ -44,7 +44,7 @@
     "@types/node-forge": "^0.10.2",
     "adaptivecards": "^2.9.0",
     "angular-l10n": "^12.0.0",
-    "angulartics2": "^10.0.0",
+    "angulartics2": "^10.1.0",
     "autolinker": "^3.14.3",
     "balloon-css": "^1.2.0",
     "cldr-core": "^39.0.0",
