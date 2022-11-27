@@ -737,12 +737,12 @@ static CNetGamePlayer* AllocateNetPlayer(void* mgr)
 #ifdef GTA_FIVE
 	void* plr = malloc(xbr::IsGameBuildOrGreater<2372>() ? 704 : xbr::IsGameBuildOrGreater<2060>() ? 688 : 672);
 #elif IS_RDR3
-	void* plr = malloc(2784);
+	void* plr = malloc(xbr::IsGameBuildOrGreater<1436>() ? 2736 : 2784);
 #endif
 
 	auto player = _netPlayerCtor(plr);
 
-	// in RDR3 game wants CNetworkPlayerMgr pointer in CNetGamePlayer
+	// RDR3 wants CNetworkPlayerMgr pointer in CNetGamePlayer
 #ifdef IS_RDR3
 	*(rage::netPlayerMgrBase**)((uint64_t)player + 288) = g_playerMgr;
 #endif
@@ -3340,7 +3340,7 @@ std::string GetType(void* d)
 
 	}
 #elif IS_RDR3
-	std::string typeName = fmt::sprintf("%p", *(void**)self);
+	std::string typeName = fmt::sprintf("%p", (void*)hook::get_unadjusted(*(void**)self));
 #endif
 
 	return typeName;
