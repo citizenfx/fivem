@@ -1,6 +1,5 @@
 using System;
 using CitizenFX.Core.Native;
-using System.Security;
 
 namespace CitizenFX.Core
 {
@@ -20,7 +19,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return API.GetRopeLength(Handle);
+				return API.RopeGetDistanceBetweenEnds(Handle);
 			}
 			set
 			{

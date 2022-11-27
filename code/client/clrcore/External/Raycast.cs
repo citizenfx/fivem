@@ -1,5 +1,4 @@
 using CitizenFX.Core.Native;
-using System.Security;
 
 namespace CitizenFX.Core
 {
@@ -13,7 +12,7 @@ namespace CitizenFX.Core
 			Vector3 surfaceNormalArg = new Vector3();
 			uint materialArg = 0;
 
-			Result = API.GetShapeTestResultEx( handle, ref hitSomethingArg, ref hitPositionArg, ref surfaceNormalArg, ref materialArg, ref entityHandleArg );
+			Result = API.GetShapeTestResultIncludingMaterial( handle, ref hitSomethingArg, ref hitPositionArg, ref surfaceNormalArg, ref materialArg, ref entityHandleArg );
 
 			DitHit = hitSomethingArg;
 			HitPosition = hitPositionArg;

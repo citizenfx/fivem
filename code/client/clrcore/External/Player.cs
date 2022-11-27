@@ -1,7 +1,6 @@
 using CitizenFX.Core.Native;
 using System;
 using System.Drawing;
-using System.Security;
 using System.Threading.Tasks;
 
 namespace CitizenFX.Core

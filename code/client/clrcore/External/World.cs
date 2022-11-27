@@ -1,10 +1,8 @@
 using CitizenFX.Core.Native;
 using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.Drawing;
 using System.Linq;
-using System.Security;
 using System.Threading.Tasks;
 
 namespace CitizenFX.Core
@@ -26,8 +24,9 @@ namespace CitizenFX.Core
 		ALAMO,
 		ALTA,
 		ARMYB,
-		BANHAMC,
+		BANHAMCA,
 		BANNING,
+		BAYTRE,
 		BEACH,
 		BHAMCA,
 		BRADP,
@@ -53,6 +52,7 @@ namespace CitizenFX.Core
 		ELGORL,
 		ELYSIAN,
 		GALFISH,
+		GALLI,
 		golf,
 		GRAPES,
 		GREATC,
@@ -60,6 +60,7 @@ namespace CitizenFX.Core
 		HAWICK,
 		HORS,
 		HUMLAB,
+		ISHEISTZONE,
 		JAIL,
 		KOREAT,
 		LACT,
@@ -77,6 +78,7 @@ namespace CitizenFX.Core
 		MURRI,
 		NCHU,
 		NOOSE,
+		OBSERV,
 		OCEANA,
 		PALCOV,
 		PALETO,
@@ -86,12 +88,12 @@ namespace CitizenFX.Core
 		PBLUFF,
 		PBOX,
 		PROCOB,
+		PROL,
 		RANCHO,
 		RGLEN,
 		RICHM,
 		ROCKF,
 		RTRAK,
-		SanAnd,
 		SANCHIA,
 		SANDY,
 		SKID,
@@ -235,9 +237,12 @@ namespace CitizenFX.Core
 		BikeSymbol,
 		TruckSymbol,
 		ParachuteSymbol,
-		SawbladeSymbol
+		JetpackSymbol,
+		SawbladeSymbol,
+		VerticalCube,
+		WrenchSymbol
 	}
-	public enum ExplosionType
+	public enum ExplosionType : uint
 	{
 		Grenade,
 		GrenadeL,
@@ -274,10 +279,55 @@ namespace CitizenFX.Core
 		PlaneRocket,
 		VehicleBullet,
 		GasTank,
+		BirdCrap,
+		Railgun,
+		Blimp2,
 		FireWork,
 		SnowBall,
 		ProxMine,
-		Valkyrie
+		Valkyrie,
+		AirDefence,
+		PipeBomb,
+		VehicleMine,
+		ExplosiveAmmo,
+		APCShell,
+		BombCluster,
+		BombGas,
+		BombIncendiary,
+		BombStandard,
+		Torpedo,
+		TorpedoUnderwater,
+		Bombushka,
+		BombCluster2,
+		HunterBarrage,
+		HunterCannon,
+		RogueCannon,
+		MineUnderwater,
+		OrbitalCannon,
+		BombStandardWide,
+		ExplosiveAmmoShotgun,
+		Opressor2Cannon,
+		MortarKinetic,
+		VehicleMineKinetic,
+		VehicleMineEMP,
+		VehicleMineSpike,
+		VehicleMineSlick,
+		VehicleMineTar,
+		ScriptDrone,
+		Raygun,
+		BuriedMine,
+		ScriptMissile,
+		RCTankRocket,
+		BombWater,
+		BombWater2,
+		ShortSteam,
+		ShortSteam2,
+		FlashGrenade,
+		StunGrenade,
+		ShortSteam3,
+		ScriptMissileLarge,
+		SubmarineBig,
+		EMPL
 	}
 
 	public static class World
@@ -382,7 +432,7 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				API.SetBlackout(value);
+				API.SetArtificialLightsState(value);
 			}
 		}
 
@@ -402,7 +452,7 @@ namespace CitizenFX.Core
 					API.ClearCloudHat();
 					return;
 				}
-				API.SetCloudHatTransition(CloudHatDict.ContainsKey(_currentCloudHat) ? CloudHatDict[_currentCloudHat] : "", 3f);
+				API.LoadCloudHat(CloudHatDict.ContainsKey(_currentCloudHat) ? CloudHatDict[_currentCloudHat] : "", 3f);
 			}
 		}
 
@@ -519,7 +569,7 @@ namespace CitizenFX.Core
 			{
 				if (Enum.IsDefined(typeof(Weather), value) && value != Weather.Unknown)
 				{
-					API.SetWeatherTypeOverTime(value.ToString(), 0f); // rockstar uses 45 seconds transition time, use TransitionToWeather for that.
+					API.SetWeatherTypeOvertimePersist(value.ToString(), 0f); // rockstar uses 45 seconds transition time, use TransitionToWeather for that.
 				}
 			}
 		}
@@ -552,7 +602,7 @@ namespace CitizenFX.Core
 		{
 			if (Enum.IsDefined(typeof(Weather), weather) && weather != Weather.Unknown)
 			{
-				API.SetWeatherTypeOverTime(_weatherNames[(int)weather], duration);
+				API.SetWeatherTypeOvertimePersist(_weatherNames[(int)weather], duration);
 			}
 		}
 
@@ -560,7 +610,7 @@ namespace CitizenFX.Core
 		/// Sets the gravity level for all <see cref="World"/> objects.
 		/// </summary>
 		/// <value>
-		/// The gravity level: 
+		/// The gravity level:
 		/// 9.8f - Default gravity.
 		/// 2.4f - Moon gravity.
 		/// 0.1f - Very low gravity.
@@ -661,7 +711,7 @@ namespace CitizenFX.Core
 				return null;
 			}
 
-			for (int it = API.GetBlipInfoIdIterator(), blip = API.GetFirstBlipInfoId(it); API.DoesBlipExist(blip); blip = API.GetNextBlipInfoId(it))
+			for (int it = API.GetWaypointBlipEnumId(), blip = API.GetFirstBlipInfoId(it); API.DoesBlipExist(blip); blip = API.GetNextBlipInfoId(it))
 			{
 				if (API.GetBlipInfoIdType(blip) == 4)
 				{
@@ -754,25 +804,15 @@ namespace CitizenFX.Core
 		public static Prop[] GetAllProps()
 		{
 			List<Prop> props = new List<Prop>();
+			int[] gamePool = API.GetGamePool("CObject");
 
-			int entHandle = -1;
-			int handle = API.FindFirstObject(ref entHandle);
-
-			Prop prop = (Prop)Entity.FromHandle(entHandle);
-			if (prop != null && prop.Exists())
-				props.Add(prop);
-
-			entHandle = -1;
-			while (API.FindNextObject(handle, ref entHandle))
+			for (int i = 0; i < gamePool.Length; i++)
 			{
-				prop = (Prop)Entity.FromHandle(entHandle);
+				Prop prop = (Prop)Entity.FromHandle(gamePool[i]);
 				if (prop != null && prop.Exists())
 					props.Add(prop);
-
-				entHandle = -1;
 			}
 
-			API.EndFindObject(handle);
 			return props.ToArray();
 		}
 
@@ -782,22 +822,15 @@ namespace CitizenFX.Core
 		public static Ped[] GetAllPeds()
 		{
 			List<Ped> peds = new List<Ped>();
+			int[] gamePool = API.GetGamePool("CPed");
 
-			int entHandle = -1;
-			int handle = API.FindFirstPed(ref entHandle);
-			Ped ped = (Ped)Entity.FromHandle(entHandle);
-			if (ped != null && ped.Exists())
-				peds.Add(ped);
-
-			entHandle = -1;
-			while (API.FindNextPed(handle, ref entHandle))
+			for (int i = 0; i < gamePool.Length; i++)
 			{
-				ped = (Ped)Entity.FromHandle(entHandle);
+				Ped ped = (Ped)Entity.FromHandle(gamePool[i]);
 				if (ped != null && ped.Exists())
 					peds.Add(ped);
-				entHandle = -1;
 			}
-			API.EndFindPed(handle);
+
 			return peds.ToArray();
 		}
 
@@ -807,22 +840,15 @@ namespace CitizenFX.Core
 		public static Vehicle[] GetAllVehicles()
 		{
 			List<Vehicle> vehicles = new List<Vehicle>();
+			int[] gamePool = API.GetGamePool("CVehicle");
 
-			int entHandle = -1;
-			int handle = API.FindFirstVehicle(ref entHandle);
-			Vehicle veh = (Vehicle)Entity.FromHandle(entHandle);
-			if (veh != null && veh.Exists())
-				vehicles.Add(veh);
-
-			entHandle = -1;
-			while (API.FindNextVehicle(handle, ref entHandle))
+			for (int i = 0; i < gamePool.Length; i++)
 			{
-				veh = (Vehicle)Entity.FromHandle(entHandle);
-				if (veh != null && veh.Exists())
-					vehicles.Add(veh);
-				entHandle = -1;
+				Vehicle vehicle = (Vehicle)Entity.FromHandle(gamePool[i]);
+				if (vehicle != null && vehicle.Exists())
+					vehicles.Add(vehicle);
 			}
-			API.EndFindVehicle(handle);
+
 			return vehicles.ToArray();
 		}
 
@@ -832,22 +858,14 @@ namespace CitizenFX.Core
 		public static Pickup[] GetAllPickups()
 		{
 			List<Pickup> pickups = new List<Pickup>();
+			int[] gamePool = API.GetGamePool("CPickup");
 
-			int entHandle = -1;
-			int handle = API.FindFirstPickup(ref entHandle);
-			Pickup pickup = new Pickup(entHandle);
-			if (pickup != null && pickup.Exists())
-				pickups.Add(pickup);
-
-			entHandle = -1;
-			while (API.FindNextPickup(handle, ref entHandle))
+			for (int i = 0; i < gamePool.Length; i++)
 			{
-				pickup = new Pickup(entHandle);
+				Pickup pickup = (Pickup)Entity.FromHandle(gamePool[i]);
 				if (pickup != null && pickup.Exists())
 					pickups.Add(pickup);
-				entHandle = -1;
 			}
-			API.EndFindPickup(handle);
 			return pickups.ToArray();
 		}
 
@@ -857,7 +875,7 @@ namespace CitizenFX.Core
 		/// Gets an <c>array</c> of all the <see cref="Checkpoint"/>s.
 		/// </summary>
 		public static Checkpoint[] GetAllCheckpoints()
-		{					   
+		{
 			return Array.ConvertAll<int, Checkpoint>(MemoryAccess.GetCheckpointHandles(), element => new Checkpoint(element));
 		}
 
@@ -985,7 +1003,7 @@ namespace CitizenFX.Core
 		/// <remarks>Returns <c>null</c> if no <see cref="Vehicle"/> was in the given region.</remarks>
 		public static Vehicle GetClosestVehicle(Vector3 position, float radius, params Model[] models)
 		{
-			Vehicle[] vehicles = 
+			Vehicle[] vehicles =
 				Array.ConvertAll<int, Vehicle>(MemoryAccess.GetVehicleHandles(position, radius, ModelListToHashList(models)),
 					handle => new Vehicle(handle));
 			return GetClosest<Vehicle>(position, vehicles);
@@ -997,7 +1015,7 @@ namespace CitizenFX.Core
 		/// </summary>
 		/// <param name="models">The <see cref="Model"/> of <see cref="Prop"/>s to get, leave blank for all <see cref="Prop"/> <see cref="Model"/>s.</param>
 		public static Prop[] GetAllProps(params Model[] models)
-		{						
+		{
 			return Array.ConvertAll<int, Prop>(MemoryAccess.GetPropHandles(ModelListToHashList(models)), handle => new Prop(handle));
 		}
 		/// <summary>
@@ -1029,7 +1047,7 @@ namespace CitizenFX.Core
 		/// Gets an <c>array</c> of all <see cref="Entity"/>s in the World.
 		/// </summary>
 		public static Entity[] GetAllEntities()
-		{									   
+		{
 			return Array.ConvertAll<int, Entity>(MemoryAccess.GetEntityHandles(), Entity.FromHandle);
 		}
 		/// <summary>

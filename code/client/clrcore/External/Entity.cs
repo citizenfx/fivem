@@ -1276,7 +1276,7 @@ namespace CitizenFX.Core
 		/// Returns <c>null</c> if no <see cref="Entity"/> exists for the specified <paramref name="networkId"/></returns>
 		public static Entity FromNetworkId(int networkId)
 		{
-			return Entity.FromHandle(API.NetworkGetEntityFromNetworkId(networkId));
+			return FromHandle(API.NetworkGetEntityFromNetworkId(networkId));
 		}
 
 		/// <summary>

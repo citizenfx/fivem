@@ -5,12 +5,12 @@ namespace CitizenFX.Core
 {
 	public enum VehicleDoorIndex
 	{
-		FrontRightDoor = 1,
-		FrontLeftDoor = 0,
-		BackRightDoor = 3,
-		BackLeftDoor = 2,
-		Hood = 4,
-		Trunk = 5
+		FrontLeftDoor,
+		FrontRightDoor,
+		BackLeftDoor,
+		BackRightDoor,
+		Hood,
+		Trunk
 	}
 
 	public sealed class VehicleDoorCollection
@@ -31,9 +31,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				VehicleDoor vehicleDoor = null;
-
-				if (!_vehicleDoors.TryGetValue(index, out vehicleDoor))
+				if (!_vehicleDoors.TryGetValue(index, out VehicleDoor vehicleDoor))
 				{
 					vehicleDoor = new VehicleDoor(_owner, index);
 					_vehicleDoors.Add(index, vehicleDoor);

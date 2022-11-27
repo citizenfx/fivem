@@ -1,13 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
-using System.Runtime.Versioning;
 using System.Collections.ObjectModel;
 using CitizenFX.Core.Native;
 
 namespace CitizenFX.Core
 {
-
 	public sealed class VehicleMod
 	{
 		#region Fields

@@ -1,11 +1,7 @@
 using System;
-using System.IO;
 using System.Drawing;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
-using System.Text;
 using CitizenFX.Core.Native;
-using System.Security;
 
 namespace CitizenFX.Core.UI
 {
@@ -19,7 +15,7 @@ namespace CitizenFX.Core.UI
 		/// </value>
 		/// <remarks>
 		/// If ScaledDraw is called, the size will be scaled by the width returned in <see cref="Screen.ScaledWidth"/>.
-		/// </remarks>					 
+		/// </remarks>
 		SizeF Size { get; set; }
 		/// <summary>
 		/// Gets or sets the rotation to draw thie <see cref="ISprite"/>.
@@ -92,7 +88,7 @@ namespace CitizenFX.Core.UI
 		/// <param name="textureDict">The Texture dictionary where the <see cref="Sprite"/> is stored (the *.ytd file).</param>
 		/// <param name="textureName">Name of the <see cref="Sprite"/> inside the Texture dictionary.</param>
 		/// <param name="size">Set the <see cref="Size"/> of the <see cref="Sprite"/>.</param>
-		/// <param name="position">Set the <see cref="Position"/> on screen where to draw the <see cref="Sprite"/>.</param>											   
+		/// <param name="position">Set the <see cref="Position"/> on screen where to draw the <see cref="Sprite"/>.</param>
 		public Sprite(string textureDict, string textureName, SizeF size, PointF position) : this(textureDict, textureName, size, position, Color.FromArgb(255, 255, 255, 255), 0f, false)
 		{
 		}
@@ -103,7 +99,7 @@ namespace CitizenFX.Core.UI
 		/// <param name="textureName">Name of the <see cref="Sprite"/> inside the Texture dictionary.</param>
 		/// <param name="size">Set the <see cref="Size"/> of the <see cref="Sprite"/>.</param>
 		/// <param name="position">Set the <see cref="Position"/> on screen where to draw the <see cref="Sprite"/>.</param>
-		/// <param name="color">Set the <see cref="Color"/> used to draw the <see cref="Sprite"/>.</param>														 
+		/// <param name="color">Set the <see cref="Color"/> used to draw the <see cref="Sprite"/>.</param>
 		public Sprite(string textureDict, string textureName, SizeF size, PointF position, Color color) : this(textureDict, textureName, size, position, color, 0f, false)
 		{
 		}
@@ -115,7 +111,7 @@ namespace CitizenFX.Core.UI
 		/// <param name="size">Set the <see cref="Size"/> of the <see cref="Sprite"/>.</param>
 		/// <param name="position">Set the <see cref="Position"/> on screen where to draw the <see cref="Sprite"/>.</param>
 		/// <param name="color">Set the <see cref="Color"/> used to draw the <see cref="Sprite"/>.</param>
-		/// <param name="rotation">Set the rotation to draw the sprite, measured in degrees, see also <seealso cref="Rotation"/>.</param>						
+		/// <param name="rotation">Set the rotation to draw the sprite, measured in degrees, see also <seealso cref="Rotation"/>.</param>
 		public Sprite(string textureDict, string textureName, SizeF size, PointF position, Color color, float rotation) : this(textureDict, textureName, size, position, color, rotation, false)
 		{
 		}

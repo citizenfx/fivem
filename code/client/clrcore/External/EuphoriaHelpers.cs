@@ -1,6 +1,3 @@
-using System;
-using CitizenFX.Core;
-
 namespace CitizenFX.Core.NaturalMotion
 {
 	public enum ArmDirection

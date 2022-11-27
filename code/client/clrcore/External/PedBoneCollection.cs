@@ -1,7 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using CitizenFX.Core.Native;
-using System.Security;
 
 namespace CitizenFX.Core
 {

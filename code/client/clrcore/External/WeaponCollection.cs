@@ -1,7 +1,5 @@
 using CitizenFX.Core.Native;
-using System;
 using System.Collections.Generic;
-using System.Security;
 
 namespace CitizenFX.Core
 {
@@ -21,9 +19,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				Weapon weapon = null;
-
-				if (!_weapons.TryGetValue(hash, out weapon))
+				if (!_weapons.TryGetValue(hash, out Weapon weapon))
 				{
 					if (!API.HasPedGotWeapon(_owner.Handle, (uint)hash, false))
 					{
@@ -104,9 +100,7 @@ namespace CitizenFX.Core
 
 		public Weapon Give(WeaponHash hash, int ammoCount, bool equipNow, bool isAmmoLoaded)
 		{
-			Weapon weapon = null;
-
-			if (!_weapons.TryGetValue(hash, out weapon))
+			if (!_weapons.TryGetValue(hash, out Weapon weapon))
 			{
 				weapon = new Weapon(_owner, hash);
 				_weapons.Add(hash, weapon);

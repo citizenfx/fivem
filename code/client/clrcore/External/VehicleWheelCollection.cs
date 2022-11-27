@@ -20,9 +20,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				VehicleWheel vehicleWheel = null;
-
-				if (!_vehicleWheels.TryGetValue(index, out vehicleWheel))
+				if (!_vehicleWheels.TryGetValue(index, out VehicleWheel vehicleWheel))
 				{
 					vehicleWheel = new VehicleWheel(_owner, index);
 					_vehicleWheels.Add(index, vehicleWheel);

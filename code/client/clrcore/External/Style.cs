@@ -25,13 +25,16 @@ namespace CitizenFX.Core
 		Hats,
 		Glasses,
 		EarPieces,
-		Unknown3,
-		Unknown4,
-		Unknown5,
+		Mouth,
+		LeftHand,
+		RightHand,
 		Watches,
 		Wristbands,
-		Unknown8,
-		Unknown9,
+		LeftHip,
+		LeftFoot,
+		RightFoot,
+		LeftHand2,
+		RightHand2
 	}
 	public class Style
 	{
@@ -50,8 +53,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				PedComponent variation = null;
-				if (!_pedComponents.TryGetValue(componentId, out variation))
+				if (!_pedComponents.TryGetValue(componentId, out PedComponent variation))
 				{
 					variation = new PedComponent(_ped, componentId);
 					_pedComponents.Add(componentId, variation);
@@ -64,8 +66,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				PedProp prop = null;
-				if (!_pedProps.TryGetValue(propId, out prop))
+				if (!_pedProps.TryGetValue(propId, out PedProp prop))
 				{
 					prop = new PedProp(_ped, propId);
 					_pedProps.Add(propId, prop);
@@ -285,7 +286,7 @@ namespace CitizenFX.Core
 			{
 				return true; // no prop always valid
 			}
-			return API.IsPedPropValid(_ped.Handle, (int)_propId, index - 1, textureIndex);
+			return API.SetPedPreloadPropData(_ped.Handle, (int)_propId, index - 1, textureIndex);
 		}
 		public bool SetVariation(int index, int textureIndex = 0)
 		{
@@ -322,5 +323,4 @@ namespace CitizenFX.Core
 			return _propId.ToString();
 		}
 	}
-
 }

@@ -1,11 +1,9 @@
-using CitizenFX.Core;
 using CitizenFX.Core.Native;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Drawing;
 using System.Linq;
-using System.Security;
 using System.Threading.Tasks;
 
 namespace CitizenFX.Core
@@ -74,7 +72,10 @@ namespace CitizenFX.Core
 		BikeWheels,
 		HighEnd,
 		BennysOriginals,
-		BennysBespoke
+		BennysBespoke,
+		OpenWheel,
+		Street,
+		Track
 	}
 
 	public sealed class VehicleModCollection
@@ -112,9 +113,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				VehicleMod vehicleMod = null;
-
-				if (!_vehicleMods.TryGetValue(modType, out vehicleMod))
+				if (!_vehicleMods.TryGetValue(modType, out VehicleMod vehicleMod))
 				{
 					vehicleMod = new VehicleMod(_owner, modType);
 					_vehicleMods.Add(modType, vehicleMod);
@@ -128,9 +127,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				VehicleToggleMod vehicleToggleMod = null;
-
-				if (!_vehicleToggleMods.TryGetValue(modType, out vehicleToggleMod))
+				if (!_vehicleToggleMods.TryGetValue(modType, out VehicleToggleMod vehicleToggleMod))
 				{
 					vehicleToggleMod = new VehicleToggleMod(_owner, modType);
 					_vehicleToggleMods.Add(modType, vehicleToggleMod);
@@ -165,6 +162,12 @@ namespace CitizenFX.Core
 				{
 					return new VehicleWheelType[] { VehicleWheelType.BikeWheels };
 				}
+
+				if (_owner.ClassType == VehicleClass.OpenWheel)
+				{
+					return new VehicleWheelType[] { VehicleWheelType.OpenWheel };
+				}
+
 				if (_owner.Model.IsCar)
 				{
 					var res = new List<VehicleWheelType>()

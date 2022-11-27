@@ -5,34 +5,56 @@ namespace CitizenFX.Core
 {
 	public enum CameraShake
 	{
-		Hand,
-		SmallExplosion,
-		MediumExplosion,
-		LargeExplosion,
-		Jolt,
-		Vibrate,
-		RoadVibration,
+		ClubDance,
+		DampedHand,
+		DeathFailInEffect,
+		DroneBoost,
 		Drunk,
+		Family5DrugTrip,
+		GameplayExplosion,
+		GrenadeExplosion,
+		GunrunningBump,
+		GunrunningEngineStart,
+		GunrunningEngineStop,
+		GunrunningLoop,
+		Hand,
+		HighFall,
+		Jolt,
+		LargeExplosion,
+		MediumExplosion,
+		PlanePartSpeed,
+		RoadVibration,
 		SkyDiving,
-		FamilyDrugTrip,
-		DeathFail
+		SmallExplosion,
+		Vibrate
 	}
 
 	public sealed class Camera : PoolObject, IEquatable<Camera>, ISpatial
 	{
 		#region Fields
 		internal static readonly string[] _shakeNames = {
-			"HAND_SHAKE",
-			"SMALL_EXPLOSION_SHAKE",
-			"MEDIUM_EXPLOSION_SHAKE",
-			"LARGE_EXPLOSION_SHAKE",
-			"JOLT_SHAKE",
-			"VIBRATE_SHAKE",
-			"ROAD_VIBRATION_SHAKE",
+			"CLUB_DANCE_SHAKE",
+			"DAMPED_HAND_SHAKE",
+			"DEATH_FAIL_IN_EFFECT_SHAKE",
+			"DRONE_BOOST_SHAKE",
 			"DRUNK_SHAKE",
-			"SKY_DIVING_SHAKE",
 			"FAMILY5_DRUG_TRIP_SHAKE",
-			"DEATH_FAIL_IN_EFFECT_SHAKE"
+			"GAMEPLAYER_EXPLOSION_SHAKE",
+			"GRENADE_EXPLOSION_SHAKE",
+			"GUNRUNNING_BUMP_SHAKE",
+			"GUNRUNNING_ENGINE_START_SHAKE",
+			"GUNRUNNING_ENGINE_STOP_SHAKE",
+			"GUNRUNNING_LOOP_SHAKE",
+			"HAND_SHAKE",
+			"HIGH_FALL_SHAKE",
+			"JOLT_SHAKE",
+			"LARGE_EXPLOSION_SHAKE",
+			"MEDIUM_EXPLOSION_SHAKE",
+			"PLANE_PART_SPEED_SHAKE",
+			"ROAD_VIBRATION_SHAKE",
+			"SKY_DIVING_SHAKE",
+			"SMALL_EXPLOSION_SHAKE",
+			"VIBRATE_SHAKE"
 		};
 		#endregion
 
@@ -617,7 +639,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return API.GetGameplayCamZoom();
+				return API.GetFirstPersonAimCamZoomFactor();
 			}
 		}
 		/// <summary>

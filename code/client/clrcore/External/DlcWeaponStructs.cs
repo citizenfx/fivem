@@ -1,4 +1,3 @@
-using System;
 using System.Runtime.InteropServices;
 using CitizenFX.Core.Native;
 using System.Security;
@@ -31,7 +30,7 @@ namespace CitizenFX.Core
 
 		public bool IsValid
 		{
-			get { return !API.IsDlcDataEmpty(ref validCheck); }
+			get { return !API.IsContentItemLocked(ref validCheck); }
 		}
 
 		public WeaponHash Hash

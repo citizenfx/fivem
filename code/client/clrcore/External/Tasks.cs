@@ -1,6 +1,5 @@
 using System;
 using CitizenFX.Core.Native;
-using System.Security;
 using System.Threading.Tasks;
 
 namespace CitizenFX.Core

@@ -1,9 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using CitizenFX.Core.Native;
-using System.Security;
 using System.Threading.Tasks;
 
 namespace CitizenFX.Core
@@ -52,7 +50,8 @@ namespace CitizenFX.Core
 		Emergency,
 		Military,
 		Commercial,
-		Trains
+		Trains,
+		OpenWheel
 	}
 	public enum VehicleColor
 	{
@@ -219,8 +218,17 @@ namespace CitizenFX.Core
 	{
 		Deployed,
 		Closing,
-		Opening,
-		Retracted
+		Opening = 3,
+		Retracted,
+		Broken
+	}
+	public enum VehicleLandingGearControl
+	{
+		Deploy,
+		Retract,
+		InstantDeploy,
+		InstantRetract,
+		Break
 	}
 	public enum VehicleLockStatus
 	{
@@ -229,9 +237,12 @@ namespace CitizenFX.Core
 		Locked,
 		LockedForPlayer,
 		StickPlayerInside,
-		CanBeBrokenInto = 7,
+		LockedInitially,
+		ForceShutDoors,
+		CanBeBrokenInto,
 		CanBeBrokenIntoPersist,
-		CannotBeTriedToEnter = 10
+		DontAllowPassengers,
+		CannotBeTriedToEnter
 	}
 	public enum VehicleNeonLight
 	{
@@ -481,7 +492,7 @@ namespace CitizenFX.Core
 				// not the greatest way, but at least it's something...
 				if (Game.PlayerPed.IsInVehicle(this))
 				{
-					return API.IsPlayerVehicleRadioEnabled();
+					return API.IsPlayerVehRadioEnable();
 				}
 				return false;
 			}
@@ -545,7 +556,7 @@ namespace CitizenFX.Core
 		/// </summary>
 		public float Acceleration
 		{
-			get => API.GetVehicleCurrentAcceleration(Handle);
+			get => API.GetVehicleThrottleOffset(Handle);
 		}
 		/// <summary>
 		/// Gets or sets the current RPM of this <see cref="Vehicle"/>.
@@ -702,7 +713,7 @@ namespace CitizenFX.Core
 			set
 			{
 				// Sets if the siren is silent actually
-				API.DisableVehicleImpactExplosionActivation(Handle, value);
+				API.SetVehicleHasMutedSirens(Handle, value);
 			}
 		}
 		/// <summary>
@@ -778,7 +789,7 @@ namespace CitizenFX.Core
 			}
 			set
 			{
-				API.SetVehicleCreatesMoneyPickupsWhenExploded(Handle, value);
+				API.SetVehicleDropsMoneyWhenBlownUp(Handle, value);
 			}
 		}
 
@@ -1112,14 +1123,14 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				API.SetVehicleEnginePowerMultiplier(Handle, value);
+				API.ModifyVehicleTopSpeed(Handle, value);
 			}
 		}
 		public float EngineTorqueMultiplier
 		{
 			set
 			{
-				API.SetVehicleEngineTorqueMultiplier(Handle, value);
+				API.SetVehicleCheatPowerIncrease(Handle, value);
 			}
 		}
 
@@ -1131,9 +1142,19 @@ namespace CitizenFX.Core
 			}
 			set
 			{
-				API.SetVehicleLandingGear(Handle, (int)value);
+				// Backwards compatibility
+				LandingGearControl = (VehicleLandingGearControl)value;
 			}
 		}
+
+		public VehicleLandingGearControl LandingGearControl
+		{
+			set
+			{
+				API.ControlLandingGear(Handle, (int)value);
+			}
+		}
+
 		public VehicleRoofState RoofState
 		{
 			get
@@ -1511,21 +1532,21 @@ namespace CitizenFX.Core
 		{
 			if (Model.IsCargobob)
 			{
-				API.EnableCargobobHook(Handle, (int)hook);
+				API.CreatePickUpRopeForCargobob(Handle, (int)hook);
 			}
 		}
 		public void RetractCargobobHook()
 		{
 			if (Model.IsCargobob)
 			{
-				API.RetractCargobobHook(Handle);
+				API.RemovePickUpRopeForCargobob(Handle);
 			}
 		}
 		public bool IsCargobobHookActive()
 		{
 			if (Model.IsCargobob)
 			{
-				return API.IsCargobobHookActive(Handle) || API.IsCargobobMagnetActive(Handle);
+				return API.DoesCargobobHavePickUpRope(Handle) || API.DoesCargobobHavePickupMagnet(Handle);
 			}
 
 			return false;
@@ -1537,9 +1558,9 @@ namespace CitizenFX.Core
 				switch (hook)
 				{
 					case CargobobHook.Hook:
-						return API.IsCargobobHookActive(Handle);
+						return API.DoesCargobobHavePickUpRope(Handle);
 					case CargobobHook.Magnet:
-						return API.IsCargobobMagnetActive(Handle);
+						return API.DoesCargobobHavePickupMagnet(Handle);
 				}
 			}
 
@@ -1549,14 +1570,14 @@ namespace CitizenFX.Core
 		{
 			if (IsCargobobHookActive(CargobobHook.Magnet))
 			{
-				API.CargobobMagnetGrabVehicle(Handle, true);
+				API.SetCargobobPickupMagnetActive(Handle, true);
 			}
 		}
 		public void CargoBobMagnetReleaseVehicle()
 		{
 			if (IsCargobobHookActive(CargobobHook.Magnet))
 			{
-				API.CargobobMagnetGrabVehicle(Handle, false);
+				API.SetCargobobPickupMagnetActive(Handle, false);
 			}
 		}
 
@@ -1571,7 +1592,7 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				API.SetTowTruckCraneHeight(Handle, value);
+				API.SetVehicleTowTruckArmPosition(Handle, value);
 			}
 		}
 		public Vehicle TowedVehicle

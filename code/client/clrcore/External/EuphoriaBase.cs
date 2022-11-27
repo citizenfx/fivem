@@ -1,6 +1,4 @@
-using System;
 using System.Collections.Generic;
-using CitizenFX.Core;
 using CitizenFX.Core.Native;
 
 namespace CitizenFX.Core.NaturalMotion
@@ -13,7 +11,7 @@ namespace CitizenFX.Core.NaturalMotion
 		#region Fields
 		readonly string _message;
 		readonly Dictionary<string, object> _arguments;
-		private static readonly Dictionary<string, object> _stopArgument = new Dictionary<string, object>() {{"start", false}};
+		//private static readonly Dictionary<string, object> _stopArgument = new Dictionary<string, object>() {{"start", false}};
 		#endregion
 
 		/// <summary>

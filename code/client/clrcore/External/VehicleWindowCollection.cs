@@ -14,8 +14,8 @@ namespace CitizenFX.Core
 		//Exe lists 8 possible windows
 		ExtraWindow1 = 4,
 		ExtraWindow2 = 5,
-		ExtraWindow3 = 6,
-		ExtraWindow4 = 7
+		FrontWindscreen = 6,
+		BackWindscreen = 7
 	}
 
 	public sealed class VehicleWindowCollection
@@ -37,9 +37,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				VehicleWindow vehicleWindow = null;
-
-				if (!_vehicleWindows.TryGetValue(index, out vehicleWindow))
+				if (!_vehicleWindows.TryGetValue(index, out VehicleWindow vehicleWindow))
 				{
 					vehicleWindow = new VehicleWindow(_owner, index);
 					_vehicleWindows.Add(index, vehicleWindow);
@@ -62,7 +60,7 @@ namespace CitizenFX.Core
 
 		public void RollDownAllWindows()
 		{
-			foreach(VehicleWindow vehicleWindow in this.GetAllWindows())
+			foreach(VehicleWindow vehicleWindow in GetAllWindows())
 			{
 				vehicleWindow.RollDown();
 			}
@@ -70,7 +68,7 @@ namespace CitizenFX.Core
 
 		public void RollUpAllWindows()
 		{
-			foreach (VehicleWindow vehicleWindow in this.GetAllWindows())
+			foreach (VehicleWindow vehicleWindow in GetAllWindows())
 			{
 				vehicleWindow.RollUp();
 			}

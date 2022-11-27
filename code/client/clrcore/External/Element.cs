@@ -68,7 +68,6 @@ namespace CitizenFX.Core.UI
 		void ScaledDraw(SizeF offset);
 	}
 
-	
 	public class Rectangle : IElement
 	{
 		/// <summary>
@@ -118,7 +117,7 @@ namespace CitizenFX.Core.UI
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Rectangle"/> class used for grouping drawing Rectangles on screen.
-		/// </summary>	 
+		/// </summary>
 		public Rectangle() : this(PointF.Empty, new SizeF(Screen.Width, Screen.Height), Color.Transparent, false)
 		{
 		}
@@ -126,7 +125,7 @@ namespace CitizenFX.Core.UI
 		/// Initializes a new instance of the <see cref="Rectangle"/> class used for grouping drawing Rectangles on screen.
 		/// </summary>
 		/// <param name="position">Set the <see cref="Position"/> on screen where to draw the <see cref="Rectangle"/>.</param>
-		/// <param name="size">Set the <see cref="Size"/> of the <see cref="Container"/>.</param>						 							
+		/// <param name="size">Set the <see cref="Size"/> of the <see cref="Container"/>.</param>
 		public Rectangle(PointF position, SizeF size) : this(position, size, Color.Transparent, false)
 		{
 		}
@@ -135,7 +134,7 @@ namespace CitizenFX.Core.UI
 		/// </summary>
 		/// <param name="position">Set the <see cref="Position"/> on screen where to draw the <see cref="Rectangle"/>.</param>
 		/// <param name="size">Set the <see cref="Size"/> of the <see cref="Container"/>.</param>
-		/// <param name="color">Set the <see cref="Color"/> used to draw the <see cref="Container"/>.</param>							 							
+		/// <param name="color">Set the <see cref="Color"/> used to draw the <see cref="Container"/>.</param>
 		public Rectangle(PointF position, SizeF size, Color color) : this(position, size, color, false)
 		{
 		}
@@ -144,7 +143,7 @@ namespace CitizenFX.Core.UI
 		/// </summary>
 		/// <param name="position">Set the <see cref="Position"/> on screen where to draw the <see cref="Rectangle"/>.</param>
 		/// <param name="size">Set the <see cref="Size"/> of the <see cref="Container"/>.</param>
-		/// <param name="color">Set the <see cref="Color"/> used to draw the <see cref="Container"/>.</param>							 
+		/// <param name="color">Set the <see cref="Color"/> used to draw the <see cref="Container"/>.</param>
 		/// <param name="centered">Position the <see cref="Rectangle"/> based on its center instead of top left corner, see also <seealso cref="Centered"/>.</param>
 		public Rectangle(PointF position, SizeF size, Color color, bool centered)
 		{
@@ -221,7 +220,7 @@ namespace CitizenFX.Core.UI
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Container"/> class used for grouping <see cref="IElement"/>s together.
-		/// </summary>																																						
+		/// </summary>
 		public Container()
 		{
 			Items = new List<IElement>();
@@ -230,7 +229,7 @@ namespace CitizenFX.Core.UI
 		/// Initializes a new instance of the <see cref="Container"/> class used for grouping <see cref="IElement"/>s together.
 		/// </summary>
 		/// <param name="position">Set the <see cref="Rectangle.Position"/> on screen where to draw the <see cref="Container"/>.</param>
-		/// <param name="size">Set the <see cref="Rectangle.Size"/> of the <see cref="Container"/>.</param>																	   
+		/// <param name="size">Set the <see cref="Rectangle.Size"/> of the <see cref="Container"/>.</param>
 		public Container(PointF position, SizeF size) : base(position, size)
 		{
 			Items = new List<IElement>();
@@ -240,7 +239,7 @@ namespace CitizenFX.Core.UI
 		/// </summary>
 		/// <param name="position">Set the <see cref="Rectangle.Position"/> on screen where to draw the <see cref="Container"/>.</param>
 		/// <param name="size">Set the <see cref="Rectangle.Size"/> of the <see cref="Container"/>.</param>
-		/// <param name="color">Set the <see cref="Rectangle.Color"/> used to draw the <see cref="Container"/>.</param>							 							   
+		/// <param name="color">Set the <see cref="Rectangle.Color"/> used to draw the <see cref="Container"/>.</param>
 		public Container(PointF position, SizeF size, Color color) : base(position, size, color)
 		{
 			Items = new List<IElement>();
@@ -250,7 +249,7 @@ namespace CitizenFX.Core.UI
 		/// </summary>
 		/// <param name="position">Set the <see cref="Rectangle.Position"/> on screen where to draw the <see cref="Container"/>.</param>
 		/// <param name="size">Set the <see cref="Rectangle.Size"/> of the <see cref="Container"/>.</param>
-		/// <param name="color">Set the <see cref="Rectangle.Color"/> used to draw the <see cref="Container"/>.</param>							 
+		/// <param name="color">Set the <see cref="Rectangle.Color"/> used to draw the <see cref="Container"/>.</param>
 		/// <param name="centered">Position the <see cref="Container"/> based on its center instead of top left corner, see also <seealso cref="Rectangle.Centered"/>.</param>
 		public Container(PointF position, SizeF size, Color color, bool centered) : base(position, size, color, centered)
 		{

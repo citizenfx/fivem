@@ -1,7 +1,6 @@
 using System;
 using System.Drawing;
 using CitizenFX.Core.Native;
-using System.Security;
 
 namespace CitizenFX.Core
 {
@@ -79,33 +78,33 @@ namespace CitizenFX.Core
 			API.BeginScaleformMovieMethod(Handle, function);
 			foreach (var argument in arguments)
 			{
-				if (argument is int)
+				if (argument is int argI)
 				{
-					API.PushScaleformMovieMethodParameterInt((int)argument);
+					API.ScaleformMovieMethodAddParamInt(argI);
 				}
-				else if (argument is string)
+				else if (argument is string argS)
 				{
-					API.PushScaleformMovieMethodParameterString((string)argument);
+					API.ScaleformMovieMethodAddParamTextureNameString(argS);
 				}
-				else if (argument is char)
+				else if (argument is char argC)
 				{
-					API.PushScaleformMovieMethodParameterString(argument.ToString());
+					API.ScaleformMovieMethodAddParamTextureNameString(argC.ToString());
 				}
-				else if (argument is float)
+				else if (argument is float argF)
 				{
-					API.PushScaleformMovieMethodParameterFloat((float)argument);
+					API.ScaleformMovieMethodAddParamFloat((float)argF);
 				}
-				else if (argument is double)
+				else if (argument is double argD)
 				{
-					API.PushScaleformMovieMethodParameterFloat((float)(double)argument);
+					API.ScaleformMovieMethodAddParamFloat((float)argD);
 				}
-				else if (argument is bool)
+				else if (argument is bool argB)
 				{
-					API.PushScaleformMovieMethodParameterBool((bool)argument);
+					API.ScaleformMovieMethodAddParamBool(argB);
 				}
-				else if (argument is ScaleformArgumentTXD)
+				else if (argument is ScaleformArgumentTXD argTXD)
 				{
-					API.PushScaleformMovieMethodParameterString(((ScaleformArgumentTXD)argument)._txd);
+					API.ScaleformMovieMethodAddParamTextureNameString(argTXD._txd);
 				}
 				else
 				{
@@ -130,7 +129,7 @@ namespace CitizenFX.Core
 		}
 		public void Render3D(Vector3 position, Vector3 rotation, Vector3 scale)
 		{
-			API.DrawScaleformMovie_3dNonAdditive(Handle, position.X, position.Y, position.Z, rotation.X, rotation.Y, rotation.Z, 2.0f, 2.0f, 1.0f, scale.X, scale.Y, scale.Z, 2);
+			API.DrawScaleformMovie_3dSolid(Handle, position.X, position.Y, position.Z, rotation.X, rotation.Y, rotation.Z, 2.0f, 2.0f, 1.0f, scale.X, scale.Y, scale.Z, 2);
 		}
 		public void Render3DAdditive(Vector3 position, Vector3 rotation, Vector3 scale)
 		{
