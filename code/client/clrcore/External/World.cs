@@ -43,8 +43,9 @@ namespace CitizenFX.Core
 		ALAMO,
 		ALTA,
 		ARMYB,
-		BANHAMC,
+		BANHAMCA,
 		BANNING,
+		BAYTRE,
 		BEACH,
 		BHAMCA,
 		BRADP,
@@ -70,6 +71,7 @@ namespace CitizenFX.Core
 		ELGORL,
 		ELYSIAN,
 		GALFISH,
+		GALLI,
 		golf,
 		GRAPES,
 		GREATC,
@@ -77,6 +79,7 @@ namespace CitizenFX.Core
 		HAWICK,
 		HORS,
 		HUMLAB,
+		ISHEISTZONE,
 		JAIL,
 		KOREAT,
 		LACT,
@@ -94,6 +97,7 @@ namespace CitizenFX.Core
 		MURRI,
 		NCHU,
 		NOOSE,
+		OBSERV,
 		OCEANA,
 		PALCOV,
 		PALETO,
@@ -103,12 +107,12 @@ namespace CitizenFX.Core
 		PBLUFF,
 		PBOX,
 		PROCOB,
+		PROL,
 		RANCHO,
 		RGLEN,
 		RICHM,
 		ROCKF,
 		RTRAK,
-		SanAnd,
 		SANCHIA,
 		SANDY,
 		SKID,
@@ -252,7 +256,10 @@ namespace CitizenFX.Core
 		BikeSymbol,
 		TruckSymbol,
 		ParachuteSymbol,
-		SawbladeSymbol
+		JetpackSymbol,
+		SawbladeSymbol,
+		VerticalCube,
+		WrenchSymbol
 	}
 	public enum ExplosionType
 	{
@@ -291,10 +298,55 @@ namespace CitizenFX.Core
 		PlaneRocket,
 		VehicleBullet,
 		GasTank,
+		BirdCrap,
+		Railgun,
+		Blimp2,
 		FireWork,
 		SnowBall,
 		ProxMine,
-		Valkyrie
+		Valkyrie,
+		AirDefence,
+		PipeBomb,
+		VehicleMine,
+		ExplosiveAmmo,
+		APCShell,
+		BombCluster,
+		BombGas,
+		BombIncendiary,
+		BombStandard,
+		Torpedo,
+		TorpedoUnderwater,
+		Bombushka,
+		BombCluster2,
+		HunterBarrage,
+		HunterCannon,
+		RogueCannon,
+		MineUnderwater,
+		OrbitalCannon,
+		BombStandardWide,
+		ExplosiveAmmoShotgun,
+		Opressor2Cannon,
+		MortarKinetic,
+		VehicleMineKinetic,
+		VehicleMineEMP,
+		VehicleMineSpike,
+		VehicleMineSlick,
+		VehicleMineTar,
+		ScriptDrone,
+		Raygun,
+		BuriedMine,
+		ScriptMissile,
+		RCTankRocket,
+		BombWater,
+		BombWater2,
+		ShortSteam,
+		ShortSteam2,
+		FlashGrenade,
+		StunGrenade,
+		ShortSteam3,
+		ScriptMissileLarge,
+		SubmarineBig,
+		EMPL
 	}
 
 	public static class World
@@ -577,7 +629,7 @@ namespace CitizenFX.Core
 		/// Sets the gravity level for all <see cref="World"/> objects.
 		/// </summary>
 		/// <value>
-		/// The gravity level: 
+		/// The gravity level:
 		/// 9.8f - Default gravity.
 		/// 2.4f - Moon gravity.
 		/// 0.1f - Very low gravity.
@@ -874,7 +926,7 @@ namespace CitizenFX.Core
 		/// Gets an <c>array</c> of all the <see cref="Checkpoint"/>s.
 		/// </summary>
 		public static Checkpoint[] GetAllCheckpoints()
-		{					   
+		{
 			return Array.ConvertAll<int, Checkpoint>(MemoryAccess.GetCheckpointHandles(), element => new Checkpoint(element));
 		}
 
@@ -1002,7 +1054,7 @@ namespace CitizenFX.Core
 		/// <remarks>Returns <c>null</c> if no <see cref="Vehicle"/> was in the given region.</remarks>
 		public static Vehicle GetClosestVehicle(Vector3 position, float radius, params Model[] models)
 		{
-			Vehicle[] vehicles = 
+			Vehicle[] vehicles =
 				Array.ConvertAll<int, Vehicle>(MemoryAccess.GetVehicleHandles(position, radius, ModelListToHashList(models)),
 					handle => new Vehicle(handle));
 			return GetClosest<Vehicle>(position, vehicles);
@@ -1014,7 +1066,7 @@ namespace CitizenFX.Core
 		/// </summary>
 		/// <param name="models">The <see cref="Model"/> of <see cref="Prop"/>s to get, leave blank for all <see cref="Prop"/> <see cref="Model"/>s.</param>
 		public static Prop[] GetAllProps(params Model[] models)
-		{						
+		{
 			return Array.ConvertAll<int, Prop>(MemoryAccess.GetPropHandles(ModelListToHashList(models)), handle => new Prop(handle));
 		}
 		/// <summary>
@@ -1046,7 +1098,7 @@ namespace CitizenFX.Core
 		/// Gets an <c>array</c> of all <see cref="Entity"/>s in the World.
 		/// </summary>
 		public static Entity[] GetAllEntities()
-		{									   
+		{
 			return Array.ConvertAll<int, Entity>(MemoryAccess.GetEntityHandles(), Entity.FromHandle);
 		}
 		/// <summary>

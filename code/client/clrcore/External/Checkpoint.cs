@@ -20,11 +20,13 @@ namespace CitizenFX.Core
 		CylinderTripleArrow,
 		CylinderCycleArrow,
 		CylinderCheckerboard,
+		CylinderWrench,
 		CylinderSingleArrow2,
 		CylinderDoubleArrow2,
 		CylinderTripleArrow2,
 		CylinderCycleArrow2,
 		CylinderCheckerboard2,
+		CylinderWrench2,
 		RingSingleArrow,
 		RingDoubleArrow,
 		RingTripleArrow,
@@ -57,12 +59,29 @@ namespace CitizenFX.Core
 		Empty,
 		Ring,
 		Empty2,
-		//CylinderCustomShape,
-		//CylinderCustomShape2,
-		//CylinderCustomShape3,
 		Cyclinder = 45,
 		Cyclinder2,
 		Cyclinder3,
+		EmptyCylinder,
+		EmptyCylinder2,
+		EmptyCylinder3,
+		Empty3,
+		Empty4,
+		Empty5,
+		Empty6,
+		RingDollarSign,
+		RingBeast,
+		RingQuestionMark,
+		RingPlane,
+		RingHelicopter,
+		RingBoat,
+		RingCar,
+		RingMotorcycle,
+		RingBicycle,
+		RingTruck,
+		RingParachute,
+		RingJetpack,
+		RingHurricaneSymbol
 	}
 	public enum CheckpointCustomIconStyle
 	{
@@ -108,7 +127,7 @@ namespace CitizenFX.Core
 		/// Initializes a new instance of the <see cref="CheckpointCustomIcon" /> struct.
 		/// </summary>
 		/// <param name="iconStyle">The icon style.</param>
-		/// <param name="iconNumber">The icon number, 
+		/// <param name="iconNumber">The icon number,
 		/// if <paramref name="iconStyle"/> is <see cref="CheckpointCustomIconStyle.Number"/> allowed range is 0 - 99
 		/// otherwise allowed range is 0 - 9. </param>
 		public CheckpointCustomIcon(CheckpointCustomIconStyle iconStyle, byte iconNumber)
@@ -127,7 +146,7 @@ namespace CitizenFX.Core
 		/// <value>
 		/// The number.
 		/// if <see cref="Style"/> is <see cref="CheckpointCustomIconStyle.Number"/> allowed range is 0 - 99
-		/// otherwise allowed range is 0 - 9. 
+		/// otherwise allowed range is 0 - 9.
 		/// </value>
 		public byte Number
 		{

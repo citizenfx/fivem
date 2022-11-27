@@ -63,9 +63,11 @@ namespace CitizenFX.Core
 	public enum ParachuteLandingType
 	{
 		None = -1,
-		Stumbling = 1,
+		Normal,
+		Stumbling,
 		Rolling,
-		Ragdoll
+		Ragdoll,
+		Water
 	}
 	public enum ParachuteState
 	{
@@ -595,7 +597,7 @@ namespace CitizenFX.Core
 		}
 
 		/// <summary>
-		/// Gets or sets the injury health threshold for this <see cref="Ped"/>. 
+		/// Gets or sets the injury health threshold for this <see cref="Ped"/>.
 		/// The ped is considered injured when its health drops below this value.
 		/// </summary>
 		/// <value>

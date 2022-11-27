@@ -55,7 +55,52 @@ namespace CitizenFX.Core
 		v1_0_1032_1_Steam,
 		v1_0_1032_1_NoSteam,
 		v1_0_1103_2_Steam,
-		v1_0_1103_2_NoSteam
+		v1_0_1103_2_NoSteam,
+		v1_0_1180_2_Steam,
+		v1_0_1180_2_NoSteam,
+		v1_0_1290_1_Steam,
+		v1_0_1290_1_NoSteam,
+		v1_0_1365_1_Steam,
+		v1_0_1365_1_NoSteam,
+		v1_0_1493_0_Steam,
+		v1_0_1493_0_NoSteam,
+		v1_0_1493_1_Steam,
+		v1_0_1493_1_NoSteam,
+		v1_0_1604_0_Steam,
+		v1_0_1604_0_NoSteam,
+		v1_0_1604_1_Steam,
+		v1_0_1604_1_NoSteam,
+		v1_0_1737_0_Steam,
+		v1_0_1737_0_NoSteam,
+		v1_0_1737_6_Steam,
+		v1_0_1737_6_NoSteam,
+		v1_0_1868_0_Steam,
+		v1_0_1868_0_NoSteam,
+		v1_0_1868_1_Steam,
+		v1_0_1868_1_NoSteam,
+		v1_0_1868_4_Epic,
+		v1_0_2060_0_Steam,
+		v1_0_2060_0_NoSteam,
+		v1_0_2060_1_Steam,
+		v1_0_2060_1_NoSteam,
+		v1_0_2189_0_Steam,
+		v1_0_2189_0_NoSteam,
+		v1_0_2215_0_Steam,
+		v1_0_2215_0_NoSteam,
+		v1_0_2245_0_Steam,
+		v1_0_2245_0_NoSteam,
+		v1_0_2372_0_Steam,
+		v1_0_2372_0_NoSteam,
+		v1_0_2545_0_Steam,
+		v1_0_2545_0_NoSteam,
+		v1_0_2612_0_Steam,
+		v1_0_2612_0_NoSteam,
+		v1_0_2628_0_Steam,
+		v1_0_2628_0_NoSteam,
+		v1_0_2628_2_Steam,
+		v1_0_2628_2_NoSteam,
+		v1_0_2699_0_Steam,
+		v1_0_2699_0_NoSteam
 	}
 	public enum Language
 	{
@@ -138,17 +183,17 @@ namespace CitizenFX.Core
 
 		static Game()
 		{
-			Version = GameVersion.v1_0_1103_2_NoSteam;
+			Version = GameVersion.v1_0_2699_0_NoSteam;
 		}
 
 		/// <summary>
 		/// Gets the current GameVersion.
-		/// </summary>	
+		/// </summary>
 		public static GameVersion Version { get; private set; }
 
 		/// <summary>
 		/// Gets the game Language.
-		/// </summary>		
+		/// </summary>
 		public static Language Language
 		{
 			get
@@ -159,7 +204,7 @@ namespace CitizenFX.Core
 
 		/// <summary>
 		/// Gets how many milliseconds the game has been open in this session
-		/// </summary> 
+		/// </summary>
 		public static int GameTime
 		{
 			get
@@ -869,7 +914,7 @@ namespace CitizenFX.Core
 		/// <summary>
 		/// Returns a <see cref="TattooCollectionData"/> struct containing information about a specific tattoo.
 		/// Currently only the <see cref="TattooCollectionData.TattooCollectionHash"/>, <see cref="TattooCollectionData.TattooNameHash"/>
-		/// and <see cref="TattooCollectionData.TattooZone"/> are known. It's still unkown what the other values are used for or if 
+		/// and <see cref="TattooCollectionData.TattooZone"/> are known. It's still unkown what the other values are used for or if
 		/// they're even correctly offset in the byte array.
 		/// </summary>
 		/// <param name="characterType">Character types 0 = Michael, 1 = Franklin, 2 = Trevor, 3 = MPMale, 4 = MPFemale</param>

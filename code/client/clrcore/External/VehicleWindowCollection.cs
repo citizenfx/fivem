@@ -21,8 +21,8 @@ namespace CitizenFX.Core
 		//Exe lists 8 possible windows
 		ExtraWindow1 = 4,
 		ExtraWindow2 = 5,
-		ExtraWindow3 = 6,
-		ExtraWindow4 = 7
+		FrontWindscreen = 6,
+		BackWindscreen = 7
 	}
 
 	public sealed class VehicleWindowCollection

@@ -62,7 +62,8 @@ namespace CitizenFX.Core
 		Emergency,
 		Military,
 		Commercial,
-		Trains
+		Trains,
+		OpenWheel
 	}
 	public enum VehicleColor
 	{
@@ -229,8 +230,9 @@ namespace CitizenFX.Core
 	{
 		Deployed,
 		Closing,
-		Opening,
-		Retracted
+		Opening = 3,
+		Retracted,
+		Broken
 	}
 	public enum VehicleLockStatus
 	{
