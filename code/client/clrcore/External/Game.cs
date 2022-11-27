@@ -143,23 +143,23 @@ namespace CitizenFX.Core
 
 		/// <summary>
 		/// Gets the current GameVersion.
-		/// </summary>	
+		/// </summary>
 		public static GameVersion Version { get; private set; }
 
 		/// <summary>
 		/// Gets the game Language.
-		/// </summary>		
+		/// </summary>
 		public static Language Language
 		{
 			get
 			{
-				return (Language)API.GetUiLanguageId();
+				return (Language)API.GetCurrentLanguage();
 			}
 		}
 
 		/// <summary>
 		/// Gets how many milliseconds the game has been open in this session
-		/// </summary> 
+		/// </summary>
 		public static int GameTime
 		{
 			get
@@ -328,7 +328,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return API.IsNightvisionActive();
+				return API.GetUsingnightvision();
 			}
 			set
 			{
@@ -342,7 +342,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return API.IsSeethroughActive();
+				return API.GetUsingseethrough();
 			}
 			set
 			{
@@ -446,7 +446,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return API.IsInputDisabled(2) ? InputMode.MouseAndKeyboard : InputMode.GamePad;
+				return API.IsUsingKeyboard(2) ? InputMode.MouseAndKeyboard : InputMode.GamePad;
 			}
 		}
 		/*
@@ -869,11 +869,11 @@ namespace CitizenFX.Core
 		/// <summary>
 		/// Returns a <see cref="TattooCollectionData"/> struct containing information about a specific tattoo.
 		/// Currently only the <see cref="TattooCollectionData.TattooCollectionHash"/>, <see cref="TattooCollectionData.TattooNameHash"/>
-		/// and <see cref="TattooCollectionData.TattooZone"/> are known. It's still unkown what the other values are used for or if 
+		/// and <see cref="TattooCollectionData.TattooZone"/> are known. It's still unkown what the other values are used for or if
 		/// they're even correctly offset in the byte array.
 		/// </summary>
 		/// <param name="characterType">Character types 0 = Michael, 1 = Franklin, 2 = Trevor, 3 = MPMale, 4 = MPFemale</param>
-		/// <param name="decorationIndex">Tattoo index, value between 0 and <see cref="API.GetNumDecorations(int)"/></param>
+		/// <param name="decorationIndex">Tattoo index, value between 0 and <see cref="API.GetNumTattooShopDlcItems(int)"/></param>
 		/// <returns></returns>
 		public static TattooCollectionData GetTattooCollectionData(int characterType, int decorationIndex)
 		{
@@ -903,7 +903,7 @@ namespace CitizenFX.Core
 			int unk1 = 0;
 			int unk2 = 0;
 
-			int maxVariations = API.N_0xd40aac51e8e4c663(propHashName);
+			int maxVariations = API.GetShopPedApparelVariantPropCount(propHashName);
 
 			AltPropVariationData[] items = new AltPropVariationData[maxVariations];
 			if (maxVariations > 0)

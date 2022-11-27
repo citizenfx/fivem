@@ -595,7 +595,7 @@ namespace CitizenFX.Core
 		}
 
 		/// <summary>
-		/// Gets or sets the injury health threshold for this <see cref="Ped"/>. 
+		/// Gets or sets the injury health threshold for this <see cref="Ped"/>.
 		/// The ped is considered injured when its health drops below this value.
 		/// </summary>
 		/// <value>
@@ -1484,7 +1484,7 @@ namespace CitizenFX.Core
 		{
 			if ((int)modifier >= 0 && (int)modifier < _speechModifierNames.Length)
 			{
-				API.PlayAmbientSpeech1(Handle, speechName, _speechModifierNames[(int)modifier]);
+				API.PlayPedAmbientSpeechNative(Handle, speechName, _speechModifierNames[(int)modifier]);
 			}
 			else
 			{
@@ -1496,7 +1496,7 @@ namespace CitizenFX.Core
 		{
 			if ((int)modifier >= 0 && (int)modifier < _speechModifierNames.Length)
 			{
-				API.PlayAmbientSpeechWithVoice(Handle, speechName, voiceName, _speechModifierNames[(int)modifier], false);
+				API.PlayPedAmbientSpeechWithVoiceNative(Handle, speechName, voiceName, _speechModifierNames[(int)modifier], false);
 			}
 			else
 			{

@@ -399,7 +399,7 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				API.SetBlackout(value);
+				API.SetArtificialLightsState(value);
 			}
 		}
 
@@ -419,7 +419,7 @@ namespace CitizenFX.Core
 					API.ClearCloudHat();
 					return;
 				}
-				API.SetCloudHatTransition(CloudHatDict.ContainsKey(_currentCloudHat) ? CloudHatDict[_currentCloudHat] : "", 3f);
+				API.LoadCloudHat(CloudHatDict.ContainsKey(_currentCloudHat) ? CloudHatDict[_currentCloudHat] : "", 3f);
 			}
 		}
 
@@ -536,7 +536,7 @@ namespace CitizenFX.Core
 			{
 				if (Enum.IsDefined(typeof(Weather), value) && value != Weather.Unknown)
 				{
-					API.SetWeatherTypeOverTime(value.ToString(), 0f); // rockstar uses 45 seconds transition time, use TransitionToWeather for that.
+					API.SetWeatherTypeOvertimePersist(value.ToString(), 0f); // rockstar uses 45 seconds transition time, use TransitionToWeather for that.
 				}
 			}
 		}
@@ -569,7 +569,7 @@ namespace CitizenFX.Core
 		{
 			if (Enum.IsDefined(typeof(Weather), weather) && weather != Weather.Unknown)
 			{
-				API.SetWeatherTypeOverTime(_weatherNames[(int)weather], duration);
+				API.SetWeatherTypeOvertimePersist(_weatherNames[(int)weather], duration);
 			}
 		}
 
@@ -577,7 +577,7 @@ namespace CitizenFX.Core
 		/// Sets the gravity level for all <see cref="World"/> objects.
 		/// </summary>
 		/// <value>
-		/// The gravity level: 
+		/// The gravity level:
 		/// 9.8f - Default gravity.
 		/// 2.4f - Moon gravity.
 		/// 0.1f - Very low gravity.
@@ -678,7 +678,7 @@ namespace CitizenFX.Core
 				return null;
 			}
 
-			for (int it = API.GetBlipInfoIdIterator(), blip = API.GetFirstBlipInfoId(it); API.DoesBlipExist(blip); blip = API.GetNextBlipInfoId(it))
+			for (int it = API.GetWaypointBlipEnumId(), blip = API.GetFirstBlipInfoId(it); API.DoesBlipExist(blip); blip = API.GetNextBlipInfoId(it))
 			{
 				if (API.GetBlipInfoIdType(blip) == 4)
 				{
@@ -874,7 +874,7 @@ namespace CitizenFX.Core
 		/// Gets an <c>array</c> of all the <see cref="Checkpoint"/>s.
 		/// </summary>
 		public static Checkpoint[] GetAllCheckpoints()
-		{					   
+		{
 			return Array.ConvertAll<int, Checkpoint>(MemoryAccess.GetCheckpointHandles(), element => new Checkpoint(element));
 		}
 
@@ -1002,7 +1002,7 @@ namespace CitizenFX.Core
 		/// <remarks>Returns <c>null</c> if no <see cref="Vehicle"/> was in the given region.</remarks>
 		public static Vehicle GetClosestVehicle(Vector3 position, float radius, params Model[] models)
 		{
-			Vehicle[] vehicles = 
+			Vehicle[] vehicles =
 				Array.ConvertAll<int, Vehicle>(MemoryAccess.GetVehicleHandles(position, radius, ModelListToHashList(models)),
 					handle => new Vehicle(handle));
 			return GetClosest<Vehicle>(position, vehicles);
@@ -1014,7 +1014,7 @@ namespace CitizenFX.Core
 		/// </summary>
 		/// <param name="models">The <see cref="Model"/> of <see cref="Prop"/>s to get, leave blank for all <see cref="Prop"/> <see cref="Model"/>s.</param>
 		public static Prop[] GetAllProps(params Model[] models)
-		{						
+		{
 			return Array.ConvertAll<int, Prop>(MemoryAccess.GetPropHandles(ModelListToHashList(models)), handle => new Prop(handle));
 		}
 		/// <summary>
@@ -1046,7 +1046,7 @@ namespace CitizenFX.Core
 		/// Gets an <c>array</c> of all <see cref="Entity"/>s in the World.
 		/// </summary>
 		public static Entity[] GetAllEntities()
-		{									   
+		{
 			return Array.ConvertAll<int, Entity>(MemoryAccess.GetEntityHandles(), Entity.FromHandle);
 		}
 		/// <summary>

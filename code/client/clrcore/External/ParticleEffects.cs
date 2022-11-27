@@ -70,7 +70,7 @@ namespace CitizenFX.Core
 			{
 				return false;
 			}
-			API.SetPtfxAssetNextCall(_assetName);
+			API.UseParticleFxAsset(_assetName);
 			return API.StartParticleFxNonLoopedAtCoord(effectName, pos.X, pos.Y, pos.Z, rot.X, rot.Y, rot.Z,
 				scale, invertAxis.HasFlag(InvertAxis.X), invertAxis.HasFlag(InvertAxis.Y), invertAxis.HasFlag(InvertAxis.Z)) > 0;
 		}
@@ -93,7 +93,7 @@ namespace CitizenFX.Core
 			{
 				return false;
 			}
-			API.SetPtfxAssetNextCall(_assetName);
+			API.UseParticleFxAsset(_assetName);
 			return API.StartParticleFxNonLoopedOnEntity(effectName, entity.Handle, off.X, off.Y, off.Z, rot.X, rot.Y, rot.Z,
 				scale, invertAxis.HasFlag(InvertAxis.X), invertAxis.HasFlag(InvertAxis.Y), invertAxis.HasFlag(InvertAxis.Z));
 		}
@@ -116,7 +116,7 @@ namespace CitizenFX.Core
 			{
 				return false;
 			}
-			API.SetPtfxAssetNextCall(_assetName);
+			API.UseParticleFxAsset(_assetName);
 			return API.StartParticleFxNonLoopedOnPedBone(effectName, entityBone.Owner.Handle, off.X, off.Y, off.Z, rot.X, rot.Y, rot.Z,
 				entityBone, scale, invertAxis.HasFlag(InvertAxis.X), invertAxis.HasFlag(InvertAxis.Y), invertAxis.HasFlag(InvertAxis.Z));
 		}
@@ -262,7 +262,7 @@ namespace CitizenFX.Core
 			}
 			if (IsLoaded)
 			{
-				API.SetPtfxAssetNextCall(_assetName);
+				API.UseParticleFxAsset(_assetName);
 				return true;
 			}
 			return false;
@@ -356,7 +356,7 @@ namespace CitizenFX.Core
 
 		/// <summary>
 		/// Gets or sets the offset.
-		/// If this <see cref="ParticleEffect"/> is attached to an <see cref="Entity"/>, this refers to the offset from the <see cref="Entity"/>; 
+		/// If this <see cref="ParticleEffect"/> is attached to an <see cref="Entity"/>, this refers to the offset from the <see cref="Entity"/>;
 		/// otherwise, this refers to its position in World coords
 		/// </summary>
 		public Vector3 Offset
@@ -448,7 +448,7 @@ namespace CitizenFX.Core
 		/// Gets or sets the size scaling factor of this <see cref="ParticleEffect"/>
 		/// </summary>
 		/// <value>
-		/// The scale, default = 1.0f; 
+		/// The scale, default = 1.0f;
 		/// To Decrease the size use a value less than 1.0f;
 		/// To Increase the size use a value greater than 1.0f;
 		/// </value>
@@ -488,7 +488,7 @@ namespace CitizenFX.Core
 			set
 			{
 				_range = value;
-				API.SetParticleFxLoopedRange(Handle, value);
+				API.SetParticleFxLoopedFarClipDist(Handle, value);
 			}
 		}
 

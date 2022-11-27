@@ -193,7 +193,7 @@ namespace CitizenFX.Core.UI
 		/// </summary>
 		public void Hide()
 		{
-			API.RemoveNotification(_handle);
+			API.ThefeedRemoveItem(_handle);
 		}
 	}
 
@@ -227,12 +227,12 @@ namespace CitizenFX.Core.UI
 		public const float Height = 720f;
 		/// <summary>
 		/// Gets the current Screen Aspect Ratio
-		/// </summary>		   
+		/// </summary>
 		public static float AspectRatio
 		{
 			get
 			{
-				return API.GetScreenAspectRatio(false);
+				return API.GetAspectRatio(false);
 			}
 		}
 		/// <summary>
@@ -253,7 +253,7 @@ namespace CitizenFX.Core.UI
 			get
 			{
 				int height = 0, width = 0;
-				API.GetScreenActiveResolution(ref width, ref height);
+				API.GetActiveScreenResolution(ref width, ref height);
 				return new Size(width, height);
 			}
 		}
@@ -306,14 +306,14 @@ namespace CitizenFX.Core.UI
 			string[] strings = StringToArray(message);
 
 
-			API.SetNotificationTextEntry("CELL_EMAIL_BCON");
+			API.BeginTextCommandThefeedPost("CELL_EMAIL_BCON");
 
 			foreach (string s in strings)
 			{
 				API.AddTextComponentSubstringPlayerName(s);
 			}
 
-			return new Notification(API.DrawNotification(blinking, true));
+			return new Notification(API.EndTextCommandThefeedPostTicker(blinking, true));
 		}
 
 		/// <summary>
@@ -342,7 +342,7 @@ namespace CitizenFX.Core.UI
 			/// <param name="loadingText">The text to display next to the spinner</param>
 			/// <param name="spinnerType">The style of spinner to draw</param>
 			/// <remarks>
-			/// <see cref="LoadingSpinnerType.Clockwise1"/>, <see cref="LoadingSpinnerType.Clockwise2"/>, <see cref="LoadingSpinnerType.Clockwise3"/> and <see cref="LoadingSpinnerType.RegularClockwise"/> all see to be the same. 
+			/// <see cref="LoadingSpinnerType.Clockwise1"/>, <see cref="LoadingSpinnerType.Clockwise2"/>, <see cref="LoadingSpinnerType.Clockwise3"/> and <see cref="LoadingSpinnerType.RegularClockwise"/> all see to be the same.
 			/// But Rockstar always seem to use the <see cref="LoadingSpinnerType.RegularClockwise"/> in the scripts
 			/// </remarks>
 			public static void Show(string loadingText = null, LoadingSpinnerType spinnerType = LoadingSpinnerType.RegularClockwise)
@@ -352,14 +352,14 @@ namespace CitizenFX.Core.UI
 
 				if (loadingText == null)
 				{
-					API.BeginTextCommandBusyString(null);
+					API.BeginTextCommandBusyspinnerOn(null);
 				}
 				else
 				{
-					API.BeginTextCommandBusyString("STRING");
+					API.BeginTextCommandBusyspinnerOn("STRING");
 					API.AddTextComponentSubstringPlayerName(loadingText);
 				}
-				API.EndTextCommandBusyString((int)spinnerType);
+				API.EndTextCommandBusyspinnerOn((int)spinnerType);
 			}
 
 			/// <summary>
@@ -368,7 +368,7 @@ namespace CitizenFX.Core.UI
 			public static void Hide()
 			{
 				if (IsActive)
-					API.RemoveLoadingPrompt();
+					API.BusyspinnerOff();
 			}
 
 			/// <summary>
@@ -378,7 +378,7 @@ namespace CitizenFX.Core.UI
 			{
 				get
 				{
-					return API.IsLoadingPromptBeingDisplayed();
+					return API.BusyspinnerIsOn();
 				}
 			}
 
@@ -418,7 +418,7 @@ namespace CitizenFX.Core.UI
 			/// </summary>
 			public static void ShowCursorThisFrame()
 			{
-				API.ShowCursorThisFrame();
+				API.SetMouseCursorActiveThisFrame();
 			}
 			/// <summary>
 			/// Gets or sets the sprite the cursor should used when drawn
@@ -426,7 +426,7 @@ namespace CitizenFX.Core.UI
 			public static CursorSprite CursorSprite
 			{
 				get { /*return (CursorSprite)MemoryAccess.ReadCursorSprite();*/ return CursorSprite.DownArrow; }
-				set { API.SetCursorSprite((int)value); }
+				set { API.SetMouseCursorSprite((int)value); }
 			}
 
 			/// <summary>
@@ -622,22 +622,22 @@ namespace CitizenFX.Core.UI
 
 			public static void Start(ScreenEffect effectName, int duration = 0, bool looped = false)
 			{
-				API.StartScreenEffect(EffectToString(effectName), duration, looped);
+				API.AnimpostfxPlay(EffectToString(effectName), duration, looped);
 			}
 
 			public static void Stop()
 			{
-				API.StopAllScreenEffects();
+				API.AnimpostfxStopAll();
 			}
 
 			public static void Stop(ScreenEffect screenEffect)
 			{
-				API.StopScreenEffect(EffectToString(screenEffect));
+				API.AnimpostfxStop(EffectToString(screenEffect));
 			}
 
 			public static bool IsActive(ScreenEffect screenEffect)
 			{
-				return API.GetScreenEffectIsActive(EffectToString(screenEffect));
+				return API.AnimpostfxIsRunning(EffectToString(screenEffect));
 			}
 		}
 	}

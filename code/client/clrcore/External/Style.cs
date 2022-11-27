@@ -292,7 +292,7 @@ namespace CitizenFX.Core
 			{
 				return true; // no prop always valid
 			}
-			return API.IsPedPropValid(_ped.Handle, (int)_propId, index - 1, textureIndex);
+			return API.SetPedPreloadPropData(_ped.Handle, (int)_propId, index - 1, textureIndex);
 		}
 		public bool SetVariation(int index, int textureIndex = 0)
 		{

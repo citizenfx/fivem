@@ -38,7 +38,7 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				API.SetVehicleDoorBreakable(_owner.Handle, (int)Index, value);
+				API.SetVehicleDoorCanBreak(_owner.Handle, (int)Index, value);
 			}
 		}
 		public bool IsOpen
