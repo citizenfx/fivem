@@ -3947,13 +3947,13 @@ public:
 	{
 		if (!g_initedTimeSync)
 		{
+			// we don't want to use cloud time
+			m_useCloudTime = false;
+
 			g_origInitializeTime(this, _getConnectionManager(), 1, nullptr, 0, nullptr, 7, 2000, 60000);
 
 			// to make the game not try to get time from us
 			m_connectionMgr = nullptr;
-
-			// we don't want to use cloud time
-			m_useCloudTime = false;
 
 			g_initedTimeSync = true;
 
@@ -4470,6 +4470,11 @@ static InitFunction initFunction([]()
 		{
 			em->ClearEvents();
 		}
+#endif
+
+#ifdef IS_RDR3
+		// RDR3 doesn't restart netTimeSync after disconnecting from a server with enabled onesync
+		g_initedTimeSync = false;
 #endif
 
 		g_events.clear();
