@@ -12,7 +12,7 @@ Returns a list of decorations applied to a ped.
 
 The data returned adheres to the following layout:
 ```
-[ [ collectionHash1, overlayHash1 ], ..., [c ollectionHashN, overlayHashN ] ]
+[ [ collectionHash1, overlayHash1 ], ..., [collectionHashN, overlayHashN ] ]
 ```
 
 This command will return undefined data if invoked on a remote player ped.
