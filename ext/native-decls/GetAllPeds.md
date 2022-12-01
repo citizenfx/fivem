@@ -21,31 +21,17 @@ An object containing a list of peds handles.
 
 ```lua
 --[[ 
-Example =>
-  Using GetAllPeds, This example prints information of all peds, Ped id, Owner, Model and Armour.
+  Example =>
+     Using GetAllPeds, This example prints information of all peds, Ped id, Owner, Model and Armour.
 ]]
 
--- This useful function GetPedOwner returns the player that owned the given ped.
-function GetPedOwner(ped)
-    local activePlayers = GetActivePlayers()
-    for i, player in ipairs(activePlayers) do
-        local iterPed = GetPlayerPed(player)
-        if ped == iterPed then return player end
-    end
-    return nil
+local allPeds = GetAllPeds() -- Get all peds handles known to the server.
+for i, ped in ipairs(allPeds) do
+    local pedOwner = NetworkGetEntityOwner(ped)
+    if pedOwner ~= nil and pedOwner then
+    local playerName = GetPlayerName(pedOwner)
+    local pedModel = GetEntityModel(ped)
+    local pedArmour = GetPedArmour(ped)
+    print("Ped : "..ped.." | Owner name : "..playerName.." | Model : "..pedModel.." | Armour : "..pedArmour)
 end
-
-function PrintAllPedsInformation()
-    local allPeds = GetAllPeds() -- Get all peds handles known to the server.
-    for i, ped in ipairs(allPeds) do
-        local pedOwner = GetPedOwner(ped)
-        if pedOwner ~= nil and pedOwner then
-            local playerName = GetPlayerName(pedOwner)
-            local pedModel = GetEntityModel(ped)
-            local pedArmour = GetPedArmour(ped)
-            print("Ped : "..ped.." | Owner name : "..playerName.." | Model : "..pedModel.." | Armour : "..pedArmour)
-        end
-    end
-end
-PrintAllPedsInformation()
 ```
