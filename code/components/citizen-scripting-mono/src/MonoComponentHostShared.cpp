@@ -52,7 +52,7 @@ _MonoProfiler MonoComponentHostShared::s_monoProfiler;
 bool SetEnvironmentVariableNarrow(const char* key, const char* value)
 {
 #ifdef _WIN32
-	return SetEnvironmentVariableA(key, value);
+	return SetEnvironmentVariableW(ToWide(key).c_str(), ToWide(value).c_str());
 #else
 	// POSIX doesn't copy our strings with putenv, setenv does
 	return setenv(key, value, true) == 0;
