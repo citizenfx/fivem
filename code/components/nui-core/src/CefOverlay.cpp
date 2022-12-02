@@ -341,6 +341,11 @@ namespace nui
 					auto sendMessage = [frame, jsonData]()
 					{
 						auto rootWindow = FindNUIWindow(fmt::sprintf("nui_%s", frame));
+						if (!rootWindow.GetRef())
+						{
+							return;
+						}
+
 						rootWindow->TouchMessage();
 
 						auto processMessage = CefProcessMessage::Create("pushEvent");
