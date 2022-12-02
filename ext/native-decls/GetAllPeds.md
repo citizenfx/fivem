@@ -25,13 +25,13 @@ An object containing a list of peds handles.
      Using GetAllPeds, This example prints information of all peds, Ped id, Owner, Model and Armour.
 ]]
 
-local allPeds = GetAllPeds() -- Get all peds handles known to the server.
-for i, ped in ipairs(allPeds) do
+for i, ped in ipairs(GetAllPeds()) do
     local pedOwner = NetworkGetEntityOwner(ped)
-    if pedOwner ~= nil and pedOwner then
-    local playerName = GetPlayerName(pedOwner)
-    local pedModel = GetEntityModel(ped)
-    local pedArmour = GetPedArmour(ped)
-    print("Ped : "..ped.." | Owner name : "..playerName.." | Model : "..pedModel.." | Armour : "..pedArmour)
+    if pedOwner>0 then
+       local playerName = GetPlayerName(pedOwner)
+       local pedModel = GetEntityModel(ped)
+       local pedArmour = GetPedArmour(ped)
+       print("Ped : "..ped.." | Owner name : "..playerName.." | Model : "..pedModel.." | Armour : "..pedArmour)
+    end
 end
 ```
