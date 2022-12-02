@@ -231,6 +231,15 @@ static std::map<std::string, std::string> load_crashometry()
 				fread(&data[0], 1, keyLen, f);
 				fread(&data[keyLen + 1], 1, valLen, f);
 
+				// for 'did_render_mrt' we will want to only use the *first* entry
+				if (strcmp(&data[0], "did_render_mrt") == 0)
+				{
+					if (rv.find("did_render_mrt") != rv.end())
+					{
+						continue;
+					}
+				}
+
 				rv[&data[0]] = &data[keyLen + 1];
 			}
 		}
