@@ -26,15 +26,15 @@ namespace fx::mono
 {
 // assembly trust and resolving
 #ifndef IS_FXSERVER
-const char* const MonoComponentHostShared::s_platformAssemblies[] = {
-	"mscorlib.dll",
-	"Mono.CSharp.dll",
-	"System.dll",
-	"System.Core.dll",
-	"CitizenFX.Core.dll",
-	"CitizenFX.Core.Client.dll",
-	"CitizenFX." PRODUCT_NAME ".dll",
-	"CitizenFX." PRODUCT_NAME ".NativesImpl.dll",
+const wchar_t* const MonoComponentHostShared::s_platformAssemblies[] = {
+	L"mscorlib.dll",
+	L"Mono.CSharp.dll",
+	L"System.dll",
+	L"System.Core.dll",
+	L"CitizenFX.Core.dll",
+	L"CitizenFX.Core.Client.dll",
+	L"CitizenFX." PRODUCT_NAME ".dll",
+	L"CitizenFX." PRODUCT_NAME ".NativesImpl.dll",
 };
 #endif
 
@@ -179,23 +179,24 @@ int MonoComponentHostShared::CoreCLRIsTrustedCode(const char* imageName)
 {
 	if (imageName)
 	{
-		char* filePart = nullptr;
-		char fullPath[512];
+		wchar_t* filePart = nullptr;
+		wchar_t fullPath[512];
 
-		if (GetFullPathNameA(imageName, _countof(fullPath), fullPath, &filePart) != 0 && filePart != nullptr)
+		// *W variants (like `GetFullPathNameW`) are guaranteed to be Unicode, *A are dependent on locale and other settings.
+		if (GetFullPathNameW(ToWide(imageName).c_str(), _countof(fullPath), fullPath, &filePart) != 0 && filePart != nullptr)
 		{
 			std::size_t folderPathSize = filePart - fullPath;
-			std::string base = ToNarrow(GetAbsoluteCitPath()) + "citizen\\clr2\\lib\\mono\\4.5\\";
+			std::wstring base = GetAbsoluteCitPath() + L"citizen\\clr2\\lib\\mono\\4.5\\";
 
 			// check if the path is or is a child of the /mono/4.5/ directory
 			// if this needs to be faster then we can introduce a reverse strcmp() in which we omit the above ToNarrow() by comparing char* and wchar_t* directly and do inline to_lower()
 			if (folderPathSize >= base.size()
-				&& _strnicmp(fullPath, base.data(), base.size()) == 0)
+				&& _wcsnicmp(fullPath, base.data(), base.size()) == 0)
 			{
 				// compare file name
 				for (int i = 0; i < _countof(s_platformAssemblies); ++i)
 				{
-					if (_stricmp(filePart, s_platformAssemblies[i]) == 0)
+					if (_wcsicmp(filePart, s_platformAssemblies[i]) == 0)
 					{
 						return TRUE;
 					}

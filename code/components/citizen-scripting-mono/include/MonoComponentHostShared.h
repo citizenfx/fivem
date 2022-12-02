@@ -58,7 +58,7 @@ class MonoComponentHostShared
 private:
 #ifndef IS_FXSERVER
 	// assembly trust and resolve
-	static const char* const s_platformAssemblies[];
+	static const wchar_t* const s_platformAssemblies[];
 #endif
 
 	// gc events
