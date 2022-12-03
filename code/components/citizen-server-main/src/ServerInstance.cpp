@@ -10,9 +10,7 @@
 
 #include <OptionParser.h>
 
-#include <boost/property_tree/xml_parser.hpp>
-
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 #include <ComponentLoader.h>
 
@@ -208,15 +206,14 @@ namespace fx
 				});
 			}
 
-			boost::filesystem::path rootPath;
-
+			std::filesystem::path rootPath;
 			try
 			{
-				rootPath = boost::filesystem::canonical(".");
+				rootPath = std::filesystem::canonical(".");
 
-				m_rootPath = rootPath.string();
+				m_rootPath = rootPath.u8string();
 			}
-			catch (std::exception& error)
+			catch (std::exception&)
 			{
 			}
 
