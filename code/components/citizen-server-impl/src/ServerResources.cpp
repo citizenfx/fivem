@@ -164,6 +164,7 @@ static void HandleServerEvent(fx::ServerInstanceBase* instance, const fx::Client
 }
 
 static std::shared_ptr<ConVar<std::string>> g_citizenDir;
+static std::shared_mutex g_resourcesByComponentMutex;
 static std::map<std::string, std::set<std::string>> g_resourcesByComponent;
 
 static void ScanResources(fx::ServerInstanceBase* instance)
@@ -235,10 +236,14 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 						// did the path change? if so, unload the old resource
 						if (oldRes.GetRef() && oldScanData != scanData.end() && oldScanData->second != resPath)
 						{
-							// remove from by-component lists
-							for (auto& list : g_resourcesByComponent)
 							{
-								list.second.erase(resourceName);
+								std::unique_lock _(g_resourcesByComponentMutex);
+
+								// remove from by-component lists
+								for (auto& list : g_resourcesByComponent)
+								{
+									list.second.erase(resourceName);
+								}
 							}
 
 							// unmount relative device
@@ -364,6 +369,8 @@ static void ScanResources(fx::ServerInstanceBase* instance)
 										{
 											if (resource.GetRef())
 											{
+												std::unique_lock _(g_resourcesByComponentMutex);
+
 												for (const auto& component : components)
 												{
 													g_resourcesByComponent[component].insert(resource->GetName());
@@ -805,6 +812,26 @@ static InitFunction initFunction([]()
 
 		ScanResources(instance);
 
+		static auto isCategory = [](std::string_view resourceName)
+		{
+			return (!resourceName.empty() && resourceName[0] == '[' && resourceName[resourceName.size() - 1] == ']');
+		};
+
+		static auto findByComponent = [](const std::string& resourceName) -> std::set<std::string>
+		{
+			std::shared_lock _(g_resourcesByComponentMutex);
+
+			auto category = g_resourcesByComponent.find(resourceName);
+
+			if (category == g_resourcesByComponent.end())
+			{
+				trace("^3Couldn't find resource category %s.^7\n", resourceName);
+				return {};
+			}
+
+			return category->second;
+		};
+
 		static auto commandRef = instance->AddCommand("start", [=](const std::string& resourceName)
 		{
 			if (resourceName.empty())
@@ -812,17 +839,9 @@ static InitFunction initFunction([]()
 				return;
 			}
 
-			if (resourceName[0] == '[' && resourceName[resourceName.size() - 1] == ']')
+			if (isCategory(resourceName))
 			{
-				auto category = g_resourcesByComponent.find(resourceName);
-
-				if (category == g_resourcesByComponent.end())
-				{
-					trace("^3Couldn't find resource category %s.^7\n", resourceName);
-					return;
-				}
-
-				for (const auto& resource : category->second)
+				for (const auto& resource : findByComponent(resourceName))
 				{
 					auto conCtx = instance->GetComponent<console::Context>();
 					conCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", resource });
@@ -856,17 +875,9 @@ static InitFunction initFunction([]()
 				return;
 			}
 
-			if (resourceName[0] == '[' && resourceName[resourceName.size() - 1] == ']')
+			if (isCategory(resourceName))
 			{
-				auto category = g_resourcesByComponent.find(resourceName);
-
-				if (category == g_resourcesByComponent.end())
-				{
-					trace("^3Couldn't find resource category %s.^7\n", resourceName);
-					return;
-				}
-
-				for (const auto& resource : category->second)
+				for (const auto& resource : findByComponent(resourceName))
 				{
 					auto conCtx = instance->GetComponent<console::Context>();
 					conCtx->ExecuteSingleCommandDirect(ProgramArguments{ "stop", resource });
@@ -918,48 +929,51 @@ static InitFunction initFunction([]()
 
 		static auto ensureCommandRef = instance->AddCommand("ensure", [=](const std::string& resourceName)
 		{
-			if (resourceName[0] == '[' && resourceName[resourceName.size() - 1] == ']')
+			auto doEnsure = [&](const std::string& resourceName)
 			{
-				auto category = g_resourcesByComponent.find(resourceName);
+				auto resource = resman->GetResource(resourceName);
 
-				if (category == g_resourcesByComponent.end())
+				if (!resource.GetRef())
 				{
-					trace("^3Couldn't find resource category %s.^7\n", resourceName);
-					return;
+					trace("^3Couldn't find resource %s.^7\n", resourceName);
+					return false;
 				}
 
-				for (const auto& resource : category->second)
+				auto conCtx = instance->GetComponent<console::Context>();
+
+				// don't allow `ensure` to restart a resource if we're still configuring (e.g. executing a startup script)
+				// this'll lead to issues when, say, the following script runs:
+				//     ensure res2
+				//     ensure res1
+				//
+				// if res2 depends on res1, res1 restarting will lead to res2 stopping but not being started again
+				// #TODO: restarting behavior of stopped dependencies at runtime
+				if (configured && resource->GetState() == fx::ResourceState::Started)
 				{
-					auto conCtx = instance->GetComponent<console::Context>();
-					conCtx->ExecuteSingleCommandDirect(ProgramArguments{ "ensure", resource });
+					conCtx->ExecuteSingleCommandDirect(ProgramArguments{ "stop", resourceName });
+				}
+
+				conCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", resourceName });
+
+				return true;
+			};
+
+			if (isCategory(resourceName))
+			{
+				for (const auto& resource : findByComponent(resourceName))
+				{
+					if (!doEnsure(resource))
+					{
+						// break out of loop if failed
+						break;
+					}
 				}
 
 				return;
 			}
 
-			auto resource = resman->GetResource(resourceName);
-
-			if (!resource.GetRef())
-			{
-				trace("^3Couldn't find resource %s.^7\n", resourceName);
-				return;
-			}
-
-			auto conCtx = instance->GetComponent<console::Context>();
-
-			// don't allow `ensure` to restart a resource if we're still configuring (e.g. executing a startup script)
-			// this'll lead to issues when, say, the following script runs:
-			//     ensure res2
-			//     ensure res1
-			//
-			// if res2 depends on res1, res1 restarting will lead to res2 stopping but not being started again
-			// #TODO: restarting behavior of stopped dependencies at runtime
-			if (configured && resource->GetState() == fx::ResourceState::Started)
-			{
-				conCtx->ExecuteSingleCommandDirect(ProgramArguments{ "stop", resourceName });
-			}
-
-			conCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", resourceName });
+			// if not a category, just plain ensure
+			doEnsure(resourceName);
 		});
 
 		instance->OnInitialConfiguration.Connect([]()
