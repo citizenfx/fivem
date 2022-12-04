@@ -378,6 +378,9 @@ static void Init()
 		case fx::sync::NetObjEntityType::Object:
 		case fx::sync::NetObjEntityType::Door:
 		case fx::sync::NetObjEntityType::Pickup:
+#ifdef STATE_RDR3
+		case fx::sync::NetObjEntityType::WorldProjectile:
+#endif
 			return 3;
 		default:
 			return 0;
