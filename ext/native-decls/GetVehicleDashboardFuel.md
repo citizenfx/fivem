@@ -6,4 +6,4 @@ apiset: client
 
 ```c
 float GET_VEHICLE_DASHBOARD_FUEL();
-```
+```GET_VEHICLE_DASHBOARD_FUEL
