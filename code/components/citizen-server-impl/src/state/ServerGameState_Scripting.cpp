@@ -1606,6 +1606,7 @@ static void Init()
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_PED_SPECIFIC_TASK_TYPE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
+#ifdef STATE_FIVE
 		auto tree = entity->syncTree->GetPedTaskTree();
 		if (!tree)
 		{
@@ -1620,6 +1621,9 @@ static void Init()
 
 		auto& task = tree->tasks[index];
 		return static_cast<int>(task.type);
+#endif
+
+		return 0;
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_SPEED", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
