@@ -68,6 +68,9 @@ std::vector<uint8_t> Stream::ReadToEnd()
 	if (fileLength - curSize == 0)
 		return std::vector<uint8_t>();
 
+	if (int64_t(fileLength - curSize) < 0)
+		return std::vector<uint8_t>();
+
 	return Read(fileLength - curSize);
 }
 }

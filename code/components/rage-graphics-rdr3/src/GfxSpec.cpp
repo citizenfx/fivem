@@ -223,7 +223,7 @@ void SetTextureGtaIm(rage::sga::Texture* texture)
 	setTextureGtaIm(texture);
 }
 
-static int32_t g_renderThreadTlsIndex = 1052;
+static int32_t g_renderThreadTlsIndex;
 
 bool IsOnRenderThread()
 {
@@ -724,6 +724,8 @@ static HookFunction hookFunction([]()
 	sgaDriver = hook::get_address<decltype(sgaDriver)>(hook::get_pattern("C6 82 ? ? 00 00 01 C6 82 ? ? 00 00 01 48 8B 0D", 17));
 
 	g_textureFactory = hook::get_address<decltype(g_textureFactory)>(hook::get_pattern("48 8D 54 24 50 C7 44 24 50 80 80 00 00 48 8B C8", 0x25));
+
+	g_renderThreadTlsIndex = *hook::get_pattern<uint32_t>("42 09 0C 02 BA 01 00 00 00 3B CA 0F 44 C2 88 05", -15);
 
 	if (xbr::IsGameBuildOrGreater<1436>())
 	{

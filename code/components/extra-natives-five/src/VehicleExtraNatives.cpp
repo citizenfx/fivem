@@ -54,9 +54,56 @@ struct TrainDoor
 };
 static_assert(sizeof(TrainDoor) == 0x70);
 
+struct VehicleXenonLightsColor
+{
+	float colorR;
+	float colorG;
+	float colorB;
+	uint32_t colorARGB;
+
+	VehicleXenonLightsColor(uint8_t red, uint8_t green, uint8_t blue)
+	{
+		Update(red, green, blue);
+	}
+
+	void Update(uint8_t red, uint8_t green, uint8_t blue)
+	{
+		colorR = red / 255.0;
+		colorG = green / 255.0;
+		colorB = blue / 255.0;
+		colorARGB = (0xFF << 24) | (red << 16) | (green << 8) | blue;
+	}
+};
+
+struct VehicleDashboardData
+{
+	float RPM;
+	float speed;
+	float fuel;
+	float temp;
+	float vacuum;
+	float boost;
+	float waterTemp;
+	float oilTemp;
+	float oilPressure;
+	char _pad[0x3F]; // aircraft data
+	bool indicator_left;
+	bool indicator_right;
+	bool handbrakeLight;
+	bool engineLight;
+	bool ABSLight;
+	bool gasLight;
+	bool oilLight;
+	bool headlights;
+	bool highBeam;
+	bool batteryLight;
+};
+
 static std::unordered_set<fwEntity*> g_skipRepairVehicles{};
 
 static std::vector<FlyThroughWindscreenParam> g_flyThroughWindscreenParams{};
+
+static std::map<fwEntity*, VehicleXenonLightsColor> g_vehicleXenonLightsColors{};
 
 static bool* g_flyThroughWindscreenDisabled;
 static bool isFlyThroughWindscreenEnabledConVar = false;
@@ -271,6 +318,7 @@ static void DeleteVehicleWrap(fwEntity* vehicle)
 
 	// run cleanup after destructor
 	g_skipRepairVehicles.erase(vehicle);
+	g_vehicleXenonLightsColors.erase(vehicle);
 
 	// remove flag
 	SetCanPedStandOnVehicle(vehicle, 0);
@@ -357,6 +405,30 @@ static bool CanPedStandOnVehicleWrap(CVehicle* vehicle)
 	}
 
 	return g_origCanPedStandOnVehicle(vehicle);
+}
+
+static void OverrideVehicleXenonColor(CVehicle* vehicle, float* color, uint32_t* colorARGB)
+{
+	if (auto it = g_vehicleXenonLightsColors.find(vehicle); it != g_vehicleXenonLightsColors.end())
+	{
+		color[0] = it->second.colorR;
+		color[1] = it->second.colorG;
+		color[2] = it->second.colorB;
+		*colorARGB = it->second.colorARGB;
+	}
+}
+
+static VehicleDashboardData g_DashboardData{};
+void (*g_origDashboardHandler)(void* modelInfo, VehicleDashboardData* data);
+
+static void DashboardHandler(void* modelInfo, VehicleDashboardData* data)
+{
+	if (data)
+	{
+		g_DashboardData = *data;
+
+		g_origDashboardHandler(modelInfo, data);
+	}
 }
 
 TrainDoor* GetTrainDoor(fwEntity* train, uint32_t index)
@@ -632,6 +704,61 @@ static HookFunction initFunction([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_ENGINE_TEMPERATURE", std::bind(readVehicleMemory<float, &EngineTempOffset>, _1, "GET_VEHICLE_ENGINE_TEMPERATURE"));
 	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_ENGINE_TEMPERATURE", std::bind(writeVehicleMemory<float, &EngineTempOffset>, _1, "SET_VEHICLE_ENGINE_TEMPERATURE"));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_DASHBOARD_RPM", [](fx::ScriptContext& context)
+	{
+		context.SetResult<float>(g_DashboardData.RPM);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_DASHBOARD_FUEL", [](fx::ScriptContext& context)
+	{
+		context.SetResult<float>(g_DashboardData.fuel);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_DASHBOARD_TEMP", [](fx::ScriptContext& context)
+	{
+		context.SetResult<float>(g_DashboardData.temp);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_DASHBOARD_VACUUM", [](fx::ScriptContext& context)
+	{
+		context.SetResult<float>(g_DashboardData.vacuum);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_DASHBOARD_BOOST", [](fx::ScriptContext& context)
+	{
+		context.SetResult<float>(g_DashboardData.boost);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_DASHBOARD_WATER_TEMP", [](fx::ScriptContext& context)
+	{
+		context.SetResult<float>(g_DashboardData.waterTemp);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_DASHBOARD_OIL_PRESSURE", [](fx::ScriptContext& context)
+	{
+		context.SetResult<float>(g_DashboardData.oilPressure);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_DASHBOARD_OIL_TEMP", [](fx::ScriptContext& context)
+	{
+		context.SetResult<float>(g_DashboardData.oilTemp);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_DASHBOARD_LIGHTS", [](fx::ScriptContext& context)
+	{
+		int lightState = (g_DashboardData.indicator_left << 0)
+						 | (g_DashboardData.indicator_right << 1)
+						 | (g_DashboardData.handbrakeLight << 2)
+						 | (g_DashboardData.engineLight << 3)
+						 | (g_DashboardData.ABSLight << 4)
+						 | (g_DashboardData.gasLight << 5)
+						 | (g_DashboardData.oilLight << 6)
+						 | (g_DashboardData.headlights << 7)
+						 | (g_DashboardData.highBeam << 8)
+						 | (g_DashboardData.batteryLight << 9);
+		context.SetResult<int>(lightState);
+	});
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_SUSPENSION_HEIGHT", [](fx::ScriptContext& context)
 	{
@@ -1001,7 +1128,14 @@ static HookFunction initFunction([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("IS_VEHICLE_INTERIOR_LIGHT_ON", std::bind(readVehicleMemoryBit<&IsInteriorLightOnOffset, 6>, _1, "IS_VEHICLE_INTERIOR_LIGHT_ON"));
 
-	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_INDICATOR_LIGHTS", std::bind(readVehicleMemory<unsigned char, &BlinkerStateOffset>, _1, "GET_VEHICLE_INDICATOR_LIGHTS"));
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_INDICATOR_LIGHTS", [](fx::ScriptContext& context)
+	{
+		if (fwEntity* vehicle = getAndCheckVehicle(context, "GET_VEHICLE_INDICATOR_LIGHTS"))
+		{
+			// We're only interested in the 2 lowest bits, higher bits are utilized by different properties such as IsInteriorLightOnOffset
+			context.SetResult<unsigned char>(readValue<unsigned char>(vehicle, BlinkerStateOffset) & 3);
+		}
+	});
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_LIGHT_MULTIPLIER", std::bind(readVehicleMemory<float, &LightMultiplierGetOffset>, _1, "GET_VEHICLE_LIGHT_MULTIPLIER"));
 
@@ -1258,10 +1392,153 @@ static HookFunction initFunction([]()
 		g_overrideCanPedStandOnVehicle = context.GetArgument<bool>(0);
 	});
 
+	// vehicle xenon lights patches to support RGB colors
+	{
+		static struct : jitasm::Frontend
+		{
+			virtual void InternalMain() override
+			{
+				// original code
+				movss(dword_ptr[rbp + 0x1C], xmm2);
+				movss(dword_ptr[rbp + 0x18], xmm1);
+				movss(dword_ptr[rbp + 0x14], xmm0);
+
+				// save registers
+				push(rax);
+				push(rcx);
+				push(rdx);
+				push(r8);
+
+				sub(rsp, 0x28);
+
+				// prepare arguments
+				mov(rcx, rbx); // vehicle
+				lea(rdx, dword_ptr[rbp + 0x10]); // float rgb for light cones
+				lea(r8, dword_ptr[rbp + 0x84]); // uint argb for light flares
+
+				mov(rax, (uintptr_t)OverrideVehicleXenonColor);
+				call(rax);
+
+				add(rsp, 0x28);
+
+				// restore registers
+				pop(r8);
+				pop(rdx);
+				pop(rcx);
+				pop(rax);
+
+				ret();
+			}
+		} vehicleHeadlightsColorStub;
+
+		{
+			auto location = hook::get_pattern("0F C6 D2 FF F3 0F 11 55 1C F3", 4);
+			hook::nop(location, 15);
+			hook::call(location, vehicleHeadlightsColorStub.GetCode());
+		}
+
+		static struct : jitasm::Frontend
+		{
+			virtual void InternalMain() override
+			{
+				// original code
+				movss(dword_ptr[rbp - 0x74], xmm2);
+				movss(dword_ptr[rbp - 0x78], xmm1);
+
+				// save registers
+				push(rax);
+				push(rcx);
+				push(rdx);
+				push(r8);
+
+				sub(rsp, 0x28);
+
+				// prepare arguments
+				mov(rcx, rsi); // vehicle
+				lea(rdx, dword_ptr[rbp - 0x80]); // float rgb for light cones
+				lea(r8, dword_ptr[rbp - 0x34]); // uint argb for light flares
+
+				mov(rax, (uintptr_t)OverrideVehicleXenonColor);
+				call(rax);
+
+				add(rsp, 0x28);
+
+				// restore registers
+				pop(r8);
+				pop(rdx);
+				pop(rcx);
+				pop(rax);
+
+				ret();
+			}
+		} vehicleHighbeamsColorStub;
+
+		{
+			auto location = hook::get_pattern("F3 0F 11 55 80 0F C6 CA AA", 13);
+			hook::nop(location, 10);
+			hook::call(location, vehicleHighbeamsColorStub.GetCode());
+		}
+	}
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_XENON_LIGHTS_CUSTOM_COLOR", [](fx::ScriptContext& context)
+	{
+		if (fwEntity* vehicle = getAndCheckVehicle(context, "SET_VEHICLE_XENON_LIGHTS_CUSTOM_COLOR"))
+		{
+			auto colorR = context.GetArgument<uint8_t>(1);
+			auto colorG = context.GetArgument<uint8_t>(2);
+			auto colorB = context.GetArgument<uint8_t>(3);
+
+			if (auto it = g_vehicleXenonLightsColors.find(vehicle); it != g_vehicleXenonLightsColors.end())
+			{
+				it->second.Update(colorR, colorG, colorB);
+			}
+			else
+			{
+				VehicleXenonLightsColor color(colorR, colorG, colorB);
+				g_vehicleXenonLightsColors.insert({ vehicle, color });
+			}
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_XENON_LIGHTS_CUSTOM_COLOR", [](fx::ScriptContext& context)
+	{
+		uint8_t colorR = 0;
+		uint8_t colorG = 0;
+		uint8_t colorB = 0;
+		bool valid = false;
+
+		if (fwEntity* vehicle = getAndCheckVehicle(context, "GET_VEHICLE_XENON_LIGHTS_CUSTOM_COLOR"))
+		{
+			if (auto it = g_vehicleXenonLightsColors.find(vehicle); it != g_vehicleXenonLightsColors.end())
+			{
+				uint32_t colorARGB = it->second.colorARGB;
+				colorR = (colorARGB & 0xFF0000) >> 16;
+				colorG = (colorARGB & 0xFF00) >> 8;
+				colorB = (colorARGB & 0xFF);
+				valid = true;
+			}
+		}
+
+		*context.GetArgument<uint8_t*>(1) = colorR;
+		*context.GetArgument<uint8_t*>(2) = colorG;
+		*context.GetArgument<uint8_t*>(3) = colorB;
+
+		context.SetResult<bool>(valid);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("CLEAR_VEHICLE_XENON_LIGHTS_CUSTOM_COLOR", [](fx::ScriptContext& context)
+	{
+		if (fwEntity* vehicle = getAndCheckVehicle(context, "CLEAR_VEHICLE_XENON_LIGHTS_CUSTOM_COLOR"))
+		{
+			g_vehicleXenonLightsColors.erase(vehicle);
+		}
+	});
+
 	MH_Initialize();
 	MH_CreateHook(hook::get_pattern("E8 ? ? ? ? 8A 83 DA 00 00 00 24 0F 3C 02", -0x32), DeleteVehicleWrap, (void**)&g_origDeleteVehicle);
 	MH_CreateHook(hook::get_pattern("80 7A 4B 00 45 8A F9", -0x1D), DeleteNetworkCloneWrap, (void**)&g_origDeleteNetworkClone);
 	MH_CreateHook(hook::get_call(hook::get_pattern("74 22 48 8B CA E8 ? ? ? ? 84 C0 74 16", 5)), CanPedStandOnVehicleWrap, (void**)&g_origCanPedStandOnVehicle);
+	MH_CreateHook(hook::get_call(hook::get_pattern("48 8B 4F 20 48 8D 54 24 ? E8", 0x9)), DashboardHandler, (void**)&g_origDashboardHandler);
 	MH_EnableHook(MH_ALL_HOOKS);
 });
 

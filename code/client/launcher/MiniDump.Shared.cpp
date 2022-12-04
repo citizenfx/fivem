@@ -187,6 +187,13 @@ extern "C" DLL_EXPORT DWORD WINAPI TryCollectCrashLog(LPVOID arg)
 	return 0;
 }
 
+static bool connected = false;
+
+bool MinidumpInitialized()
+{
+	return connected;
+}
+
 extern "C" DLL_EXPORT bool InitializeExceptionHandler()
 {
 	if (initialized)
@@ -304,6 +311,7 @@ extern "C" DLL_EXPORT bool InitializeExceptionHandler()
 						);
 
 	g_exceptionHandler->set_handle_debug_exceptions(true);
+	connected = true;
 
 	// disable Windows' SetUnhandledExceptionFilter
 	DWORD oldProtect;

@@ -1,23 +1,40 @@
-/*
-  This is a "Solution Style" tsconfig.json file, and is used by editors and TypeScript’s language server to improve development experience.
-  It is not intended to be used to perform a compilation.
-
-  To learn more about this file see: https://angular.io/config/solution-tsconfig.
-*/
 {
-  "files": [],
-  "references": [
-    {
-      "path": "./src/tsconfig.app.json"
-    },
-    {
-      "path": "./tsconfig.worker.json"
-    },
-    {
-      "path": "./src/tsconfig.server.json"
-    },
-    {
-      "path": "./src/tsconfig.spec.json"
-    }
+  "compilerOptions": {
+    "target": "es2021",
+    "lib": [
+      "es2021",
+      "DOM",
+      "DOM.Iterable",
+      "WebWorker",
+      "es2021.intl"
+    ],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "noImplicitAny": false,
+    "allowSyntheticDefaultImports": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "strictNullChecks": true,
+    "jsx": "react-jsx",
+    "plugins": [
+      {
+        "name": "typescript-plugin-css-modules"
+      }
+    ],
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "sourceMap": true,
+    "baseUrl": "src",
+    "types": [
+      "reflect-metadata",
+      "@types/offscreencanvas"
+    ]
+  },
+  "include": [
+    "src"
   ]
 }

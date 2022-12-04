@@ -1,5 +1,9 @@
 using CitizenFX.Core.Native;
 
+#if MONO_V2
+using INativeValue = CitizenFX.Core.Native.Input.Primitive;
+#endif
+
 namespace CitizenFX.Core
 {
 	public interface ISpatial

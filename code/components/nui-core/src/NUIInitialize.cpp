@@ -45,6 +45,7 @@
 #include <VFSManager.h>
 #include <VFSZipFile.h>
 
+#include <include/cef_api_hash.h>
 #include <include/cef_version.h>
 
 #include <Error.h>
@@ -541,15 +542,87 @@ static std::mutex g_textureLock;
 static std::map<HANDLE, WRL::ComPtr<ID3D11Texture2D>> g_textureHacks;
 concurrency::concurrent_queue<std::tuple<uint64_t, HANDLE>> Texture2DWrap::deletionQueue;
 
+struct TextureRefQueue
+{
+	struct TextureRef
+	{
+		uint64_t handle = 0;
+		long refcount = 0;
+	};
+
+	TextureRef textures[32];
+};
+
+auto GetWakeEvent()
+{
+	static HANDLE wakeEvent = CreateEventW(NULL, FALSE, FALSE, ToWide(fmt::sprintf("CFX_%s_%s_NUITextureWake", launch::GetLaunchModeKey(), launch::GetProductKey())).c_str());
+	return wakeEvent;
+}
+
+void NUI_AcceptTexture(uint64_t handle)
+{
+	HostSharedData<TextureRefQueue> refQueue("NUITextureRefs");
+	for (auto& texture : refQueue->textures)
+	{
+		if (texture.handle == handle)
+		{
+			InterlockedDecrement(&texture.refcount);
+			break;
+		}
+	}
+
+	SetEvent(GetWakeEvent());
+}
+
+void NUI_AddTexture(HANDLE handleH)
+{
+	auto handle = (uint64_t)handleH;
+
+	HostSharedData<TextureRefQueue> refQueue("NUITextureRefs");
+	for (auto& texture : refQueue->textures)
+	{
+		if (texture.handle == handle)
+		{
+			InterlockedIncrement(&texture.refcount);
+			return;
+		}
+	}
+
+	// not found
+	for (auto& texture : refQueue->textures)
+	{
+		if (!texture.handle)
+		{
+			texture.handle = handle;
+			texture.refcount = 1;
+			break;
+		}
+	}
+}
+
 void Texture2DWrap::InitializeDeleter()
 {
 	static std::thread* deletionThread = new std::thread([]()
 	{
 		SetThreadName(-1, "GPU Deletion Workaround");
 
+		auto wakeEvent = GetWakeEvent();
+
+		HostSharedData<TextureRefQueue> refQueue("NUITextureRefs");
+
 		while (true)
 		{
-			Sleep(2500);
+			WaitForSingleObject(wakeEvent, 2500);
+
+			for (auto& entry : refQueue->textures)
+			{
+				if (entry.handle && entry.refcount <= 0)
+				{
+					g_textureHacks.erase(HANDLE(entry.handle));
+
+					entry.handle = 0;
+				}
+			}
 
 			decltype(deletionQueue)::value_type item;
 			std::vector<decltype(item)> toAdd;
@@ -558,6 +631,14 @@ void Texture2DWrap::InitializeDeleter()
 			{
 				if (GetTickCount64() > (std::get<0>(item) + 7500))
 				{
+					for (auto& entry : refQueue->textures)
+					{
+						if (entry.handle == uint64_t(std::get<1>(item)))
+						{
+							entry.handle = 0;
+						}
+					}
+
 					std::lock_guard<std::mutex> _(g_textureLock);
 					g_textureHacks.erase(std::get<1>(item));
 				}
@@ -599,6 +680,7 @@ HRESULT Texture2DWrap::GetSharedHandle(HANDLE* pSharedHandle)
 
 		m_handle = *pSharedHandle;
 		g_textureHacks.insert({ *pSharedHandle, m_texture });
+		NUI_AddTexture(m_handle);
 	}
 
 	return hr;
@@ -609,6 +691,7 @@ HRESULT Texture2DWrap::GetSharedHandle(HANDLE* pSharedHandle)
 	{
 		*pSharedHandle = m_handle;
 		g_textureHacks.insert({ m_handle, m_texture });
+		NUI_AddTexture(m_handle);
 	}
 
 	return hr;
@@ -694,6 +777,62 @@ static HRESULT OpenSharedResourceHook(ID3D11Device* device, HANDLE hRes, REFIID 
 	}
 
 	return g_origOpenSharedResourceHook(device, hRes, iid, ppRes);
+}
+
+static HRESULT (*g_origCreateShaderResourceView)(ID3D11Device* device, ID3D11Resource* resource, const D3D11_SHADER_RESOURCE_VIEW_DESC* desc, ID3D11ShaderResourceView** out);
+
+static HRESULT CreateShaderResourceViewHook(ID3D11Device* device, ID3D11Resource* resource, const D3D11_SHADER_RESOURCE_VIEW_DESC* desc, ID3D11ShaderResourceView** out)
+{
+	WRL::ComPtr<ID3D11Resource> resourceRef(resource);
+	WRL::ComPtr<IMyTexture> mt;
+
+	if (SUCCEEDED(resourceRef.As(&mt)))
+	{
+		mt->GetOriginal(&resource);
+	}
+
+	return g_origCreateShaderResourceView(device, resource, desc, out);
+}
+
+static HRESULT (*g_origCreateRenderTargetView)(ID3D11Device* device, ID3D11Resource* resource, const D3D11_RENDER_TARGET_VIEW_DESC* desc, ID3D11RenderTargetView** out);
+
+static HRESULT CreateRenderTargetViewHook(ID3D11Device* device, ID3D11Resource* resource, const D3D11_RENDER_TARGET_VIEW_DESC* desc, ID3D11RenderTargetView** out)
+{
+	WRL::ComPtr<ID3D11Resource> resourceRef(resource);
+	WRL::ComPtr<IMyTexture> mt;
+
+	if (SUCCEEDED(resourceRef.As(&mt)))
+	{
+		mt->GetOriginal(&resource);
+	}
+
+	return g_origCreateRenderTargetView(device, resource, desc, out);
+}
+
+static HRESULT (*g_origCopySubresourceRegion)(ID3D11DeviceContext* cxt, ID3D11Resource* pDstResource,
+	UINT DstSubresource, UINT DstX, UINT DstY, UINT DstZ,
+	ID3D11Resource* pSrcResource, UINT SrcSubresource, const D3D11_BOX* pSrcBox);
+
+static HRESULT CopySubresourceRegionHook(ID3D11DeviceContext* cxt, ID3D11Resource* dst,
+	UINT DstSubresource, UINT DstX, UINT DstY, UINT DstZ,
+	ID3D11Resource* src, UINT SrcSubresource, const D3D11_BOX* pSrcBox)
+{
+	WRL::ComPtr<ID3D11Resource> dstRef(dst);
+	WRL::ComPtr<IMyTexture> mt;
+
+	if (SUCCEEDED(dstRef.As(&mt)))
+	{
+		mt->GetOriginal(&dst);
+	}
+
+	WRL::ComPtr<ID3D11Resource> srcRef(src);
+
+	if (SUCCEEDED(srcRef.As(&mt)))
+	{
+		mt->GetOriginal(&src);
+	}
+
+	return g_origCopySubresourceRegion(cxt, dst, DstSubresource, DstX, DstY, DstZ, src, SrcSubresource, pSrcBox);
 }
 
 static HRESULT(*g_origCopyResource)(ID3D11DeviceContext* cxt, ID3D11Resource* dst, ID3D11Resource* src);
@@ -809,12 +948,15 @@ static void PatchCreateResults(ID3D11Device** ppDevice, ID3D11DeviceContext** pp
 		auto ourVtbl = new intptr_t[640];
 		memcpy(ourVtbl, vtbl, 640 * sizeof(intptr_t));
 		VHook(ourVtbl[5], &CreateTexture2DHook, &g_origCreateTexture2D);
+		VHook(ourVtbl[7], &CreateShaderResourceViewHook, &g_origCreateShaderResourceView);
+		VHook(ourVtbl[9], &CreateRenderTargetViewHook, &g_origCreateRenderTargetView);
 		VHook(ourVtbl[28], &OpenSharedResourceHook, &g_origOpenSharedResourceHook);
 
 		auto ourVtblCxt = new intptr_t[640];
 		memcpy(ourVtblCxt, vtblCxt, 640 * sizeof(intptr_t));
 
 		VHook(ourVtblCxt[111], &FlushHook, &g_origFlush);
+		VHook(ourVtblCxt[46], &CopySubresourceRegionHook, &g_origCopySubresourceRegion);
 		VHook(ourVtblCxt[47], &CopyResourceHook, &g_origCopyResource);
 
 		**(intptr_t***)ppDevice = ourVtbl;
@@ -1154,6 +1296,21 @@ void Component_RunPreInit()
 
 	__HrLoadAllImportsForDll("libcef.dll");
 
+	// verify if the CEF API hash is screwed
+	{
+		const char* apiHash = cef_api_hash(0);
+		const char* apiHashUniversal = cef_api_hash(1);
+		if (strcmp(apiHash, CEF_API_HASH_PLATFORM) != 0 || strcmp(apiHashUniversal, CEF_API_HASH_UNIVERSAL) != 0)
+		{
+			_wunlink(MakeRelativeCitPath(L"content_index.xml").c_str());
+			FatalError("CEF API hash mismatch\nA mismatch was detected between `nui-core.dll` and `bin/libcef.dll`. Please restart the game and try again.\n\nPlatform hash:\n%s\n%s\n\nUniversal hash:\n%s\n%s",
+			apiHash,
+			CEF_API_HASH_PLATFORM,
+			apiHashUniversal,
+			CEF_API_HASH_UNIVERSAL);
+		}
+	}
+
 	Instance<NUIApp>::Set(new NUIApp());
 
 	// instantiate a NUIApp
@@ -1179,7 +1336,6 @@ void Component_RunPreInit()
 	}
 }
 
-#ifndef USE_NUI_ROOTLESS
 namespace nui
 {
 std::string GetContext();
@@ -1200,10 +1356,6 @@ void CreateRootWindow()
 }
 
 bool g_shouldCreateRootWindow;
-#else
-std::shared_mutex g_recreateBrowsersMutex;
-std::set<std::string> g_recreateBrowsers;
-#endif
 
 namespace nui
 {
@@ -1274,7 +1426,10 @@ void SwitchContext(const std::string& contextId)
 			}
 		}
 
-		CreateRootWindow();
+		if (!contextId.empty())
+		{
+			CreateRootWindow();
+		}
 	}
 }
 
@@ -1357,21 +1512,6 @@ void Initialize(nui::GameInterface* gi)
 
     HookFunctionBase::RunAll();
 
-#if defined(GTA_NY)
-
-	// #TODOLIBERTY:
-	/*OnGrcBeginScene.Connect([] ()
-	{
-		Instance<NUIWindowManager>::Get()->ForAllWindows([] (fwRefContainer<NUIWindow> window)
-		{
-			window->UpdateFrame();
-		});
-	});*/
-#else
-
-#endif
-
-#ifndef USE_NUI_ROOTLESS
 	static ConsoleCommand devtoolsCmd("nui_devtools", []()
 	{
 		auto rootWindow = Instance<NUIWindowManager>::Get()->GetRootWindow();
@@ -1391,26 +1531,6 @@ void Initialize(nui::GameInterface* gi)
 			}
 		}
 	});
-#else
-	static ConsoleCommand devtoolsListCmd("nui_devtools", []()
-	{
-		trace("Active NUI windows:\n");
-
-		std::shared_lock<std::shared_mutex> _(windowListMutex);
-		
-		for (const auto& [ windowName, window ] : windowList)
-		{
-			std::string_view name = windowName;
-
-			if (name.find("nui_") == 0)
-			{
-				name = name.substr(4);
-			}
-
-			trace("  nui_devtools %s\n", name);
-		}
-	});
-#endif
 
 	static ConsoleCommand devtoolsWindowCmd("nui_devtools", [](const std::string& windowName)
 	{
@@ -1470,16 +1590,11 @@ void Initialize(nui::GameInterface* gi)
 		}
 	}
 
-#ifndef USE_NUI_ROOTLESS
-	CreateRootWindow();
-#else
-	static ConVar<std::string> uiUrlVar("ui_url", ConVar_None, "https://nui-game-internal/ui/app/index.html");
-
 	if (nui::HasMainUI())
 	{
+		static ConVar<std::string> uiUrlVar("ui_url", ConVar_None, "https://nui-game-internal/ui/app/index.html");
 		nui::CreateFrame("mpMenu", uiUrlVar.GetValue());
 	}
-#endif
 
 	g_nuiGi->OnInitRenderer.Connect([]()
 	{
@@ -1492,55 +1607,32 @@ void Initialize(nui::GameInterface* gi)
 
 	g_nuiGi->OnRender.Connect([]()
 	{
-#ifndef USE_NUI_ROOTLESS
 		if (g_shouldCreateRootWindow)
 		{
+			if (!nui::HasMainUI())
 			{
-				auto rw = Instance<NUIWindowManager>::Get()->GetRootWindow().GetRef();
-
-				if (rw)
 				{
-					Instance<NUIWindowManager>::Get()->RemoveWindow(rw);
-					Instance<NUIWindowManager>::Get()->SetRootWindow({});
-				}
-			}
+					auto rw = Instance<NUIWindowManager>::Get()->GetRootWindow().GetRef();
 
-			CreateRootWindow();
+					if (rw)
+					{
+						Instance<NUIWindowManager>::Get()->RemoveWindow(rw);
+						Instance<NUIWindowManager>::Get()->SetRootWindow({});
+					}
+				}
+
+				CreateRootWindow();
+			}
+			else
+			{
+				nui::DestroyFrame("mpMenu");
+
+				static ConVar<std::string> uiUrlVar("ui_url", ConVar_None, "https://nui-game-internal/ui/app/index.html");
+				nui::CreateFrame("mpMenu", uiUrlVar.GetValue());
+			}
 
 			g_shouldCreateRootWindow = false;
 		}
-#else
-		std::shared_lock<std::shared_mutex> _(g_recreateBrowsersMutex);
-
-		if (!g_recreateBrowsers.empty())
-		{
-			_.unlock();
-
-			std::unique_lock<std::shared_mutex> __(g_recreateBrowsersMutex);
-			for (auto& browser : g_recreateBrowsers)
-			{
-				auto window = nui::FindNUIWindow(browser);
-
-				if (window.GetRef() && window->GetBrowser() && window->GetBrowser()->GetMainFrame())
-				{
-					auto url = window->GetBrowser()->GetMainFrame()->GetURL();
-					auto width = window->GetWidth();
-					auto height = window->GetHeight();
-					auto renderType = window->GetPaintType();
-					auto name = window->GetName();
-					auto primary = window->IsPrimary();
-
-					nui::DestroyNUIWindow(browser);
-
-					auto win2 = nui::CreateNUIWindow(name, width, height, url, primary);
-					win2->SetPaintType(renderType);
-					win2->SetName(name);
-				}
-			}
-
-			g_recreateBrowsers.clear();
-		}
-#endif
 	});
 }
 }

@@ -1,0 +1,28 @@
+.root {
+  width: 100%;
+  height: 32vh;
+
+  filter: blur(25px);
+
+  background-size: cover;
+  background-position: center center;
+
+  background-image: linear-gradient(180deg, ui.color-token('server-banner-background-from'), ui.color-token('server-banner-background-from')), ui.use('banner');
+
+  -webkit-mask-image: linear-gradient(180deg, black, black calc(100% - ui.q(30)), transparent);
+  mask-image: linear-gradient(180deg, black, black calc(100% - ui.q(30)), transparent);
+
+  &.animated {
+    @keyframes appearance-backdrop {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    animation-name: appearance-backdrop;
+    animation-duration: 1s;
+  }
+}

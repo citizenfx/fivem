@@ -1,3 +1,5 @@
+#if !MONO_V2
+
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -356,8 +358,13 @@ namespace CitizenFX.Core.UI
 				return;
 			}
 
+#if MONO_V2
+			float x = (Position.X + offset.X) / screenWidth;
+			float y = (Position.Y + offset.Y) / screenHeight;
+#else
 			float x = (Position.X + offset.Width) / screenWidth;
 			float y = (Position.Y + offset.Height) / screenHeight;
+#endif
 			float w = WrapWidth / screenWidth;
 
 			if (Shadow)
@@ -407,3 +414,4 @@ namespace CitizenFX.Core.UI
 		}
 	}
 }
+#endif

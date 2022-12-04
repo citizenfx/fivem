@@ -1,9 +1,18 @@
 using System;
 using System.Linq;
-using CitizenFX.Core.Native;
 using System.Security;
+using CitizenFX.Core.Native;
 
+#if MONO_V2
+using CitizenFX.Core;
+using CitizenFX.FiveM.Native;
+using API = CitizenFX.FiveM.Native.Natives;
+using Function = CitizenFX.FiveM.Native.Natives;
+
+namespace CitizenFX.FiveM
+#else
 namespace CitizenFX.Core
+#endif
 {
 	public enum ForceType
 	{
@@ -28,7 +37,11 @@ namespace CitizenFX.Core
 		/// <summary>
 		/// Gets the memory address where the <see cref="Entity"/> is stored in memory.
 		/// </summary>
+#if MONO_V2
+		internal IntPtr MemoryAddress
+#else
 		public IntPtr MemoryAddress
+#endif
 		{
 			get
 			{
@@ -293,7 +306,7 @@ namespace CitizenFX.Core
 		}
 
 		/// <summary>
-		/// Gets this <see cref="Entity"/>s matrix which stores position and rotation information.
+		/// Gets this <see cref="Entity"/>'s matrix which stores position and rotation information.
 		/// </summary>
 		public Matrix Matrix
 		{
@@ -823,7 +836,7 @@ namespace CitizenFX.Core
 			}
 			set
 			{
-				API.SetEntityAlpha(Handle, value, 0); // p2 used to be false
+				API.SetEntityAlpha(Handle, value, default); // p2 used to be false
 			}
 		}
 		/// <summary>

@@ -154,14 +154,7 @@ Object.prototype.__defineGetter__ = function(prop, func) {
 
 	if (url == "nui://game/ui/root.html")
 	{
-		static ConVar<std::string> uiUrlVar("ui_url", ConVar_None, "https://nui-game-internal/ui/app/index.html");
-
 		nui::RecreateFrames();
-
-		if (nui::HasMainUI())
-		{
-			nui::CreateFrame("mpMenu", uiUrlVar.GetValue());
-		}
 	}
 
 	// enter push function
@@ -186,12 +179,19 @@ Object.prototype.__defineGetter__ = function(prop, func) {
 		switch (type) {
 			case 'frameCall': {
 				const [ dataString ] = args;
-				const data = JSON.parse(dataString);
 
-				window.postMessage(data, '*');
+				try {
+					const data = JSON.parse(dataString);
 
-				if (!window.nuiInternalHandledMessages) {
-					nuiMessageQueue.push(data);
+					window.postMessage(data, '*');
+
+					if (!window.nuiInternalHandledMessages) {
+						nuiMessageQueue.push(data);
+					}
+				} catch (e) {
+					console.log('frameCall data that caused the following error', dataString);
+					console.error(e);
+					return;
 				}
 
 				break;
@@ -321,7 +321,7 @@ auto NUIClient::OnBeforePopup(CefRefPtr<CefBrowser> browser,
 	return false;
 }
 
-auto NUIClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefRequestCallback> callback) -> ReturnValue
+auto NUIClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) -> ReturnValue
 {
 	auto url = request->GetURL().ToString();
 
@@ -330,7 +330,7 @@ auto NUIClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<Ce
 		return RV_CANCEL;
 	}
 
-#if !defined(USE_NUI_ROOTLESS) && !defined(_DEBUG)
+#if !defined(_DEBUG)
 	if (frame->IsMain())
 	{
 		if (frame->GetURL().ToString().find("nui://game/ui/") == 0 && url.find("nui://game/ui/") != 0)
@@ -477,30 +477,19 @@ void NUIClient::OnAudioStreamStopped(CefRefPtr<CefBrowser> browser, CefRefPtr<Ce
 
 extern bool g_shouldCreateRootWindow;
 
-#ifdef USE_NUI_ROOTLESS
-extern std::set<std::string> g_recreateBrowsers;
-extern std::shared_mutex g_recreateBrowsersMutex;
-#endif
-
 void NUIClient::OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser, TerminationStatus status)
 {
-#ifndef USE_NUI_ROOTLESS
-	if (browser->GetMainFrame()->GetURL() == "nui://game/ui/root.html")
+	if (browser->GetMainFrame()->GetURL() == "nui://game/ui/root.html" || nui::HasMainUI())
 	{
 		browser->GetHost()->CloseBrowser(true);
 
 		g_shouldCreateRootWindow = true;
 	}
-#else
-	std::unique_lock<std::shared_mutex> _(g_recreateBrowsersMutex);
-
-	g_recreateBrowsers.insert(m_window->GetName());
-#endif
 }
 
 void NUIClient::OnBeforeClose(CefRefPtr<CefBrowser> browser)
 {
-	m_browser = {};
+	m_browser = nullptr;
 }
 
 CefRefPtr<CefLifeSpanHandler> NUIClient::GetLifeSpanHandler()
@@ -538,6 +527,7 @@ extern nui::GameInterface* g_nuiGi;
 #ifdef NUI_WITH_MEDIA_ACCESS
 #include "include/wrapper/cef_closure_task.h"
 #include "include/wrapper/cef_helpers.h"
+#include "include/base/cef_callback_helpers.h"
 
 static void AcceptCallback(CefRefPtr<CefMediaAccessCallback> callback, bool noCancel, int mask)
 {
@@ -551,15 +541,15 @@ static void AcceptCallback(CefRefPtr<CefMediaAccessCallback> callback, bool noCa
 	}
 }
 
-bool NUIClient::OnRequestMediaAccessPermission(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, const CefString& requesting_url, int32_t requested_permissions, CefRefPtr<CefMediaAccessCallback> callback)
+bool NUIClient::OnRequestMediaAccessPermission(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, const CefString& requesting_url, uint32_t requested_permissions, CefRefPtr<CefMediaAccessCallback> callback)
 {
 	return g_nuiGi->RequestMediaAccess(frame->GetName(), requesting_url, requested_permissions, [callback](bool noCancel, int mask)
 	{
-		CefPostTask(TID_UI, base::Bind(&AcceptCallback, callback, noCancel, mask));
+		CefPostTask(TID_UI, base::BindOnce(&AcceptCallback, callback, noCancel, mask));
 	});
 }
 
-CefRefPtr<CefMediaAccessHandler> NUIClient::GetMediaAccessHandler()
+CefRefPtr<CefPermissionHandler> NUIClient::GetPermissionHandler()
 {
 	return this;
 }

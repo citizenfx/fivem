@@ -161,6 +161,20 @@ static int ReturnFalse()
 	return 0;
 }
 
+static int ReturnClassification()
+{
+	// ENBSeries requires this for its heuristic to get the depth buffer, so we will force it on if there's a d3d11.dll in the
+	// game directory, ignoring the Intel GPU check as well
+	static bool hasD3D11 = GetFileAttributesW(MakeRelativeGamePath(L"d3d11.dll").c_str()) != INVALID_FILE_ATTRIBUTES;
+
+	if (hasD3D11)
+	{
+		return 1;
+	}
+
+	return 0;
+}
+
 static bool(*g_origLoadFromStructureChar)(void* parManager, const char* fileName, const char* extension, void* structure, void** outStruct, void* unk);
 
 static bool LoadFromStructureCharHook(void* parManager, const char* fileName, const char* extension, void* structure, void** outStruct, void* unk)
@@ -1075,7 +1089,7 @@ static HookFunction hookFunction{[] ()
 	}
 	
 	// test: disable 'classification' compute shader users by claiming it is unsupported
-	hook::jump(hook::get_pattern("84 C3 74 0D 83 C9 FF E8", -0x14), ReturnFalse);
+	hook::jump(hook::get_pattern("84 C3 74 0D 83 C9 FF E8", -0x14), ReturnClassification);
 
 	// test: disable ERR_GEN_MAPSTORE_X error asserts (RDR3 seems to not have any assertion around these at all, so this ought to be safe)
 	{

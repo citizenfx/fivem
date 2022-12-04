@@ -1,9 +1,17 @@
 using System;
+
+#if MONO_V2
+using CitizenFX.Core;
+using API = CitizenFX.FiveM.Native.Natives;
+using Task = CitizenFX.Core.Coroutine;
+
+namespace CitizenFX.FiveM
+#else
 using CitizenFX.Core.Native;
-using System.Security;
 using System.Threading.Tasks;
 
 namespace CitizenFX.Core
+#endif
 {
 	public enum FiringPattern : uint
 	{

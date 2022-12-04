@@ -2444,7 +2444,14 @@ void DLL_EXPORT CfxCollection_SetStreamingLoadLocked(bool locked)
 
 void DLL_EXPORT CfxCollection_AddStreamingFileByTag(const std::string& tag, const std::string& fileName, rage::ResourceFlags flags)
 {
-	auto baseName = std::string(strrchr(fileName.c_str(), '/') + 1);
+	size_t start = 0;
+
+	if (auto it = fileName.find_last_of('/'); it != std::string::npos)
+	{
+		start = it + 1;
+	}
+
+	auto baseName = GetBaseName(fileName.substr(start));
 
 	if (baseName.find(".ymf") == baseName.length() - 4)
 	{
@@ -2485,10 +2492,17 @@ void DLL_EXPORT CfxCollection_RemoveStreamingTag(const std::string& tag)
 	// #FIXME: should we not always be on the main thread?!
 	rage::sysMemAllocator::UpdateAllocatorValue();
 
-	for (auto& file : g_customStreamingFilesByTag[tag])
+	for (const auto& file : g_customStreamingFilesByTag[tag])
 	{
 		// get basename ('thing.ytd') and asset name ('thing')
-		auto baseName = GetBaseName(std::string(strrchr(file.c_str(), '/') + 1));
+		size_t start = 0;
+
+		if (auto it = file.find_last_of('/'); it != std::string::npos)
+		{
+			start = it + 1;
+		}
+
+		auto baseName = GetBaseName(file.substr(start));
 		auto nameWithoutExt = baseName.substr(0, baseName.find_last_of('.'));
 
 		// get dot position and skip if no dot

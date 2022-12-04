@@ -280,7 +280,7 @@ void SDKCefClient::CloseAllBrowsers(bool force_close)
 	if (!CefCurrentlyOn(TID_UI))
 	{
 		// Execute on the UI thread.
-		CefPostTask(TID_UI, base::Bind(&SDKCefClient::CloseAllBrowsers, this,
+		CefPostTask(TID_UI, base::BindOnce(&SDKCefClient::CloseAllBrowsers, this,
 			force_close));
 		return;
 	}
@@ -295,7 +295,7 @@ void SDKCefClient::CloseAllBrowsers(bool force_close)
 	CefQuitMessageLoop();
 }
 
-auto SDKCefClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefRequestCallback> callback) -> ReturnValue
+auto SDKCefClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) -> ReturnValue
 {
 	return RV_CONTINUE;
 }

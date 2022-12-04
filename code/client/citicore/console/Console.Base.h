@@ -9,7 +9,7 @@ extern "C" DLL_EXPORT void Printfv(ConsoleChannel channel, std::string_view form
 extern "C" DLL_EXPORT void DPrintfv(ConsoleChannel, std::string_view format, fmt::printf_args argumentList);
 extern "C" DLL_EXPORT void PrintWarningv(ConsoleChannel, std::string_view format, fmt::printf_args argumentList);
 extern "C" DLL_EXPORT void PrintErrorv(ConsoleChannel, std::string_view format, fmt::printf_args argumentList);
-extern "C" DLL_EXPORT fwEvent<ConsoleChannel, const char*>* CoreGetPrintFilterEvent();
+extern "C" DLL_EXPORT fwEvent<ConsoleChannel&, const char*>* CoreGetPrintFilterEvent();
 extern "C" DLL_EXPORT void CoreSetPrintFunction(void (*function)(const char*));
 #elif defined(_WIN32)
 inline void Printfv(ConsoleChannel channel, std::string_view format, fmt::printf_args argumentList)
@@ -82,7 +82,7 @@ inline void CoreAddPrintListener(void(*function)(ConsoleChannel, const char*))
 	(func) ? func(function) : (void)0;
 }
 
-inline fwEvent<ConsoleChannel, const char*>* CoreGetPrintFilterEvent()
+inline fwEvent<ConsoleChannel&, const char*>* CoreGetPrintFilterEvent()
 {
 	using TCoreFunc = decltype(&CoreGetPrintFilterEvent);
 
@@ -115,7 +115,7 @@ extern "C" void DPrintfv(ConsoleChannel, std::string_view format, fmt::printf_ar
 extern "C" void PrintWarningv(ConsoleChannel, std::string_view format, fmt::printf_args argumentList);
 extern "C" void PrintErrorv(ConsoleChannel, std::string_view format, fmt::printf_args argumentList);
 extern "C" void CoreAddPrintListener(void(*function)(ConsoleChannel, const char*));
-extern "C" fwEvent<ConsoleChannel, const char*>* CoreGetPrintFilterEvent();
+extern "C" fwEvent<ConsoleChannel&, const char*>* CoreGetPrintFilterEvent();
 extern "C" void CoreSetPrintFunction(void (*function)(const char*));
 #endif
 

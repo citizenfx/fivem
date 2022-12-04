@@ -480,7 +480,7 @@ void SDKWindowDelegate::OnWindowCreated(CefRefPtr<CefWindow> window)
 
 void SDKWindowDelegate::OnWindowDestroyed(CefRefPtr<CefWindow> window)
 {
-	browser_view_ = NULL;
+	browser_view_ = nullptr;
 }
 
 bool SDKWindowDelegate::CanClose(CefRefPtr<CefWindow> window)

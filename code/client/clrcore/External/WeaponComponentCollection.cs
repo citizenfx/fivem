@@ -1,10 +1,19 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using CitizenFX.Core.Native;
 using System.Security;
 
+#if MONO_V2
+using CitizenFX.FiveM.Native;
+using API = CitizenFX.FiveM.Native.Natives;
+using Function = CitizenFX.FiveM.Native.Natives;
+
+namespace CitizenFX.FiveM
+#else
+using CitizenFX.Core.Native;
+
 namespace CitizenFX.Core
+#endif
 {
 	public enum WeaponComponentHash : uint
 	{

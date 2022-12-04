@@ -1,8 +1,15 @@
 using System;
+
+#if MONO_V2
+using API = CitizenFX.FiveM.Native.Natives;
+using INativeValue = CitizenFX.Core.Native.Input.Primitive;
+
+namespace CitizenFX.FiveM
+#else
 using CitizenFX.Core.Native;
-using System.Security;
 
 namespace CitizenFX.Core
+#endif
 {
 	public class RelationshipGroup : INativeValue, IEquatable<RelationshipGroup>
 	{

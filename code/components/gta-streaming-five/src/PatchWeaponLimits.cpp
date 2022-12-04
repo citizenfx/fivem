@@ -40,7 +40,7 @@ struct PatternPair
 };
 
 // should be synced with CWeaponComponentInfo in gameconfig.xml
-constexpr int kNumWeaponComponentInfos = 1024;
+constexpr int kNumWeaponComponentInfos = 2048;
 
 static CWeaponComponentInfo** weaponComponentInfoCollection;
 

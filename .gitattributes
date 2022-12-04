@@ -26,3 +26,6 @@ code/components/voip-mumble/include/lib*/** linguist-vendored
 
 ext/natives/natives_stash/* linguist-generated
 *.p linguist-generated
+
+# ensure cfx-ui is using autocrlf
+ext/cfx-ui/** text=auto

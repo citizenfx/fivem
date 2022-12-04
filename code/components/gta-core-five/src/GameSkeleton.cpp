@@ -60,7 +60,7 @@ namespace rage
 				(uintptr_t)exception->ExceptionRecord->ExceptionAddress < hook::get_adjusted(0x146000000))
 			{
 				FatalErrorNoExcept("An exception occurred (%08x at %p) during execution of the %s function for %s. The game will be terminated.",
-					exception->ExceptionRecord->ExceptionCode, exception->ExceptionRecord->ExceptionAddress,
+					exception->ExceptionRecord->ExceptionCode, (void*)hook::get_unadjusted(exception->ExceptionRecord->ExceptionAddress),
 					InitFunctionTypeToString(type), func->GetName());
 			}
 		}
@@ -172,18 +172,9 @@ namespace rage
 #endif
 
 			// skip a potential crashing subsystem
-			if (entry->m_hash == 0x73AA6F9E)
+			if (entry->m_hash == HashString("rageSecEngine")) // (0x73aa6f9e, rage::SecEngine::Update? companion has no xrefs for this)
 			{
 				return;
-			}
-
-			// #TODO1SBIG: remove for non-big
-			if (Instance<ICoreGameInit>::Get()->HasVariable("onesync_big"))
-			{
-				if (entry->m_hash == HashString("CVehiclePopulation") || entry->m_hash == HashString("CPedPopulation"))
-				{
-					//return;
-				}
 			}
 
 			entry->Run();

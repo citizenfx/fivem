@@ -1,10 +1,19 @@
-using CitizenFX.Core.Native;
 using System;
+
+#if MONO_V2
+using CitizenFX.Core;
+using INativeValue = CitizenFX.Core.Native.Input.Primitive;
+using API = CitizenFX.FiveM.Native.Natives;
+using TaskBool = CitizenFX.Core.Coroutine<bool>;
+
+namespace CitizenFX.FiveM
+#else
+using CitizenFX.Core.Native;
 using System.Drawing;
-using System.Security;
-using System.Threading.Tasks;
+using TaskBool = System.Threading.Tasks.Task<bool>;
 
 namespace CitizenFX.Core
+#endif
 {
 	public enum ParachuteTint
 	{
@@ -28,9 +37,35 @@ namespace CitizenFX.Core
 	public sealed class Player : INativeValue, IEquatable<Player>
 	{
 		#region Fields
+#if !MONO_V2
 		private int _handle;
+#endif
 		Ped _ped;
 		#endregion
+
+		private static Player m_player = new Player(0);
+		public static Player Local
+		{
+			get
+			{
+				int id = API.PlayerId();
+
+				if (m_player.Handle != id)
+				{
+					m_player = new Player(id);
+				}
+
+				return m_player;
+			}
+		}
+
+#if MONO_V2
+		public Player(int handle) : base((ulong)handle)
+		{
+		}
+
+		public int Handle { get => (int)m_nativeValue; }
+#else
 		public Player(int handle)
 		{
 			_handle = handle;
@@ -42,6 +77,7 @@ namespace CitizenFX.Core
 			get { return (ulong)_handle; }
 			set { _handle = unchecked((int)value); }
 		}
+#endif
 
 		/// <summary>
 		/// Gets the <see cref="Ped"/> this <see cref="Player"/> is controling.
@@ -164,7 +200,11 @@ namespace CitizenFX.Core
 			}
 			set
 			{
+#if MONO_V2
+				API.SetPlayerWantedCentrePosition(Handle, ref value, false, false);
+#else
 				API.SetPlayerWantedCentrePosition(Handle, value.X, value.Y, value.Z);
+#endif
 			}
 		}
 
@@ -468,7 +508,7 @@ namespace CitizenFX.Core
 		/// </summary>
 		/// <param name="model">The <see cref="Model"/> to change this <see cref="Player"/> to.</param>
 		/// <returns><c>true</c> if the change was sucessful; otherwise, <c>false</c>.</returns>
-		public async Task<bool> ChangeModel(Model model)
+		public async TaskBool ChangeModel(Model model)
 		{
 			if (!model.IsInCdImage || !model.IsPed || !await model.Request(1000))
 			{

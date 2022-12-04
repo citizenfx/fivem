@@ -295,7 +295,7 @@ static HookFunction hookFunc([]()
 static InitFunction initFunction([] ()
 #endif
 {
-	static ConVar<std::string> customBrandingEmoji("ui_customBrandingEmoji", ConVar_Archive, "");
+	static ConVar<std::string> customBrandingEmoji("ui_customBrandingEmoji", ConVar_Archive | ConVar_UserPref, "");
 
 	static std::random_device random_core;
 	static std::mt19937 random(random_core());

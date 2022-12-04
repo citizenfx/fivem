@@ -4,6 +4,7 @@
 #include <state/ServerGameState.h>
 
 #include <optional>
+#include <charconv>
 
 #include <NetBuffer.h>
 
@@ -804,6 +805,7 @@ void sync::SyncCommandList::Execute(const fx::ClientSharedPtr& client)
 	}
 
 	scs.flushBuffer(true);
+
 	scs.Reset();
 }
 
@@ -1708,17 +1710,25 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 
 			ces.syncedEntities[entity->handle] = { entity, baseFrameIndex, syncData.hasCreated };
 
+			if (syncData.hasCreated)
+			{
+				// Add this player as a routing target to this entity's statebag, if present.
+				// notes:
+				// * this will try to add it every frame, but the statebag will only add it once (std::set).
+				// * will occur on the next update/tick when syncData.hasCreated is true, this'll ensure that it's sent after the client knows about this entity.
+				// TODO: PERF: remove this every-frame call by giving this system a nice and fresh design
+				if (auto stateBag = entity->GetStateBag())
+				{
+					stateBag->AddRoutingTarget(slotId);
+				}
+			}
+
 			// should we sync?
 			if (forceUpdate || syncData.nextSync - curTime <= 0ms)
 			{
 				if (!forceUpdate)
 				{
 					syncData.nextSync = curTime + syncData.syncDelta;
-				}
-
-				if (auto stateBag = entity->GetStateBag())
-				{
-					stateBag->AddRoutingTarget(slotId);
 				}
 
 				bool wasForceUpdate = forceUpdate;
@@ -4088,17 +4098,48 @@ void ServerGameState::AttachToObject(fx::ServerInstanceBase* instance)
 	sbac->SetGameInterface(this);
 
 	instance->GetComponent<fx::GameServer>()->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("msgStateBag"), 
-		{ fx::ThreadIdx::Sync, [sbac](const fx::ClientSharedPtr& client, net::Buffer& buffer) {
-		if (client->GetSlotId() != -1)
+		{ fx::ThreadIdx::Sync, [this](const fx::ClientSharedPtr& client, net::Buffer& buffer)
+	{
+		
+		uint32_t slotId = client->GetSlotId();
+		if (slotId != -1)
 		{
-			sbac->HandlePacket(client->GetSlotId(), std::string_view{ reinterpret_cast<const char*>(buffer.GetBuffer() + buffer.GetCurOffset()), buffer.GetRemainingBytes() });
+			std::string bagNameOnFailure;
+
+			std::string_view packetData(reinterpret_cast<const char*>(buffer.GetBuffer() + buffer.GetCurOffset()), buffer.GetRemainingBytes());
+			m_sbac->HandlePacket(slotId, packetData, &bagNameOnFailure);
+
+			// state bag isn't present, apply conditions for automatic creation
+			if (!bagNameOnFailure.empty())
+			{
+				// only allow clients to create entity state bags
+				if (bagNameOnFailure.rfind("entity:", 0) == 0)
+				{
+					int entityID;
+					auto result = std::from_chars(bagNameOnFailure.data() + 7, bagNameOnFailure.data() + bagNameOnFailure.size(), entityID);
+					
+					if (result.ec == std::errc()) // success
+					{
+						if (auto entity = GetEntity(0, entityID))
+						{
+							if (entity->GetStateBag())
+							{
+								trace("Creating a new state bag while there's already a state bag on this entity, please report this.\n");
+							}
+
+							entity->SetStateBag(m_sbac->RegisterStateBag(bagNameOnFailure));
+							m_sbac->HandlePacket(slotId, packetData); // second attempt, should go through now
+						}
+					}
+				}
+			}
 		}
 	} });
 
 	instance->GetComponent<fx::ResourceManager>()->SetComponent(sbac);
 
 	auto creg = instance->GetComponent<fx::ClientRegistry>();
-	m_globalBag = sbac->RegisterStateBag("global");
+	m_globalBag = sbac->RegisterStateBag("global", true);
 	m_globalBag->SetOwningPeer(-1);
 	m_sbac = sbac;
 

@@ -1,13 +1,30 @@
 using CitizenFX.Core.Native;
 using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.Drawing;
 using System.Linq;
-using System.Security;
-using System.Threading.Tasks;
+
+#if MONO_V2
+using CitizenFX.Core;
+using API = CitizenFX.FiveM.Native.Natives;
+using TaskPed = CitizenFX.Core.Coroutine<CitizenFX.FiveM.Ped>;
+using TaskPickup = CitizenFX.Core.Coroutine<CitizenFX.FiveM.Pickup>;
+using TaskProp = CitizenFX.Core.Coroutine<CitizenFX.FiveM.Prop>;
+using TaskVehicle = CitizenFX.Core.Coroutine<CitizenFX.FiveM.Vehicle>;
+using compat_i32_u32 = System.UInt32;
+using compat_i32_i64 = System.Int64;
+
+namespace CitizenFX.FiveM
+#else
+using System.Drawing;
+using TaskPed = System.Threading.Tasks.Task<CitizenFX.Core.Ped>;
+using TaskPickup = System.Threading.Tasks.Task<CitizenFX.Core.Pickup>;
+using TaskProp = System.Threading.Tasks.Task<CitizenFX.Core.Prop>;
+using TaskVehicle = System.Threading.Tasks.Task<CitizenFX.Core.Vehicle>;
+using compat_i32_u32 = System.Int32;
+using compat_i32_i64 = System.Int32;
 
 namespace CitizenFX.Core
+#endif
 {
 	class GTACalender : System.Globalization.GregorianCalendar
 	{
@@ -425,7 +442,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				switch (API.GetPrevWeatherTypeHashName())
+				switch (unchecked((int)API.GetPrevWeatherTypeHashName()))
 				{
 					case -1750463879:
 						return Weather.ExtraSunny;
@@ -479,7 +496,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				switch (API.GetNextWeatherTypeHashName())
+				switch (unchecked((int)API.GetNextWeatherTypeHashName()))
 				{
 					case -1750463879:
 						return Weather.ExtraSunny;
@@ -1284,7 +1301,7 @@ namespace CitizenFX.Core
 		/// <param name="position">The position to spawn the <see cref="Ped"/> at.</param>
 		/// <param name="heading">The heading of the <see cref="Ped"/>.</param>
 		/// <remarks>returns <c>null</c> if the <see cref="Ped"/> could not be spawned</remarks>
-		public static async Task<Ped> CreatePed(Model model, Vector3 position, float heading = 0f)
+		public static async TaskPed CreatePed(Model model, Vector3 position, float heading = 0f)
 		{
 			if (!model.IsPed || !await model.Request(1000))
 			{
@@ -1309,7 +1326,7 @@ namespace CitizenFX.Core
 		/// <param name="position">The position to spawn the <see cref="Vehicle"/> at.</param>
 		/// <param name="heading">The heading of the <see cref="Vehicle"/>.</param>
 		/// <remarks>returns <c>null</c> if the <see cref="Vehicle"/> could not be spawned</remarks>
-		public static async Task<Vehicle> CreateVehicle(Model model, Vector3 position, float heading = 0f)
+		public static async TaskVehicle CreateVehicle(Model model, Vector3 position, float heading = 0f)
 		{
 			if (!model.IsVehicle || !await model.Request(1000))
 			{
@@ -1325,7 +1342,7 @@ namespace CitizenFX.Core
 		/// <param name="position">The position to spawn the <see cref="Vehicle"/> at.</param>
 		/// <param name="heading">The heading of the <see cref="Vehicle"/>.</param>
 		/// <remarks>returns <c>null</c> if the <see cref="Vehicle"/> could not be spawned</remarks>
-		public static Task<Vehicle> CreateRandomVehicle(Vector3 position, float heading = 0f)
+		public static TaskVehicle CreateRandomVehicle(Vector3 position, float heading = 0f)
 		{
 			Array vehicleHashes = Enum.GetValues(typeof(VehicleHash));
 			Random random = new Random();
@@ -1362,7 +1379,7 @@ namespace CitizenFX.Core
 		/// <param name="dynamic">if set to <c>true</c> the <see cref="Prop"/> will have physics; otherwise, it will be static.</param>
 		/// <param name="placeOnGround">if set to <c>true</c> place the prop on the ground nearest to the <paramref name="position"/>.</param>
 		/// <remarks>returns <c>null</c> if the <see cref="Prop"/> could not be spawned</remarks>
-		public static async Task<Prop> CreateProp(Model model, Vector3 position, bool dynamic, bool placeOnGround)
+		public static async TaskProp CreateProp(Model model, Vector3 position, bool dynamic, bool placeOnGround)
 		{
 			if (!await model.Request(1000))
 			{
@@ -1374,7 +1391,7 @@ namespace CitizenFX.Core
 				position.Z = GetGroundHeight(position);
 			}
 
-			return new Prop(API.CreateObject(model.Hash, position.X, position.Y, position.Z, true, true, dynamic));
+			return new Prop(API.CreateObject((compat_i32_u32)model.Hash, position.X, position.Y, position.Z, true, true, dynamic));
 		}
 		/// <summary>
 		/// Spawns a <see cref="Prop"/> of the given <see cref="Model"/> at the position specified.
@@ -1385,7 +1402,7 @@ namespace CitizenFX.Core
 		/// <param name="dynamic">if set to <c>true</c> the <see cref="Prop"/> will have physics; otherwise, it will be static.</param>
 		/// <param name="placeOnGround">if set to <c>true</c> place the prop on the ground nearest to the <paramref name="position"/>.</param>
 		/// <remarks>returns <c>null</c> if the <see cref="Prop"/> could not be spawned</remarks>
-		public static async Task<Prop> CreateProp(Model model, Vector3 position, Vector3 rotation, bool dynamic, bool placeOnGround)
+		public static async TaskProp CreateProp(Model model, Vector3 position, Vector3 rotation, bool dynamic, bool placeOnGround)
 		{
 			Prop prop = await CreateProp(model, position, dynamic, placeOnGround);
 
@@ -1403,7 +1420,7 @@ namespace CitizenFX.Core
 		/// <param name="position">The position to spawn the <see cref="Prop"/> at.</param>
 		/// <param name="dynamic">if set to <c>true</c> the <see cref="Prop"/> will have physics; otherwise, it will be static.</param>
 		/// <remarks>returns <c>null</c> if the <see cref="Prop"/> could not be spawned</remarks>
-		public static async Task<Prop> CreatePropNoOffset(Model model, Vector3 position, bool dynamic)
+		public static async TaskProp CreatePropNoOffset(Model model, Vector3 position, bool dynamic)
 		{
 			if (!await model.Request(1000))
 			{
@@ -1420,7 +1437,7 @@ namespace CitizenFX.Core
 		/// <param name="rotation">The rotation of the <see cref="Prop"/>.</param>
 		/// <param name="dynamic">if set to <c>true</c> the <see cref="Prop"/> will have physics; otherwise, it will be static.</param>
 		/// <remarks>returns <c>null</c> if the <see cref="Prop"/> could not be spawned</remarks>
-		public static async Task<Prop> CreatePropNoOffset(Model model, Vector3 position, Vector3 rotation, bool dynamic)
+		public static async TaskProp CreatePropNoOffset(Model model, Vector3 position, Vector3 rotation, bool dynamic)
 		{
 			Prop prop = await CreatePropNoOffset(model, position, dynamic);
 
@@ -1432,7 +1449,7 @@ namespace CitizenFX.Core
 			return prop;
 		}
 
-		public static async Task<Pickup> CreatePickup(PickupType type, Vector3 position, Model model, int value)
+		public static async TaskPickup CreatePickup(PickupType type, Vector3 position, Model model, int value)
 		{
 			if (!await model.Request(1000))
 			{
@@ -1448,7 +1465,7 @@ namespace CitizenFX.Core
 
 			return new Pickup(handle);
 		}
-		public static async Task<Pickup> CreatePickup(PickupType type, Vector3 position, Vector3 rotation, Model model, int value)
+		public static async TaskPickup CreatePickup(PickupType type, Vector3 position, Vector3 rotation, Model model, int value)
 		{
 			if (!await model.Request(1000))
 			{
@@ -1464,7 +1481,7 @@ namespace CitizenFX.Core
 
 			return new Pickup(handle);
 		}
-		public static async Task<Prop> CreateAmbientPickup(PickupType type, Vector3 position, Model model, int value)
+		public static async TaskProp CreateAmbientPickup(PickupType type, Vector3 position, Model model, int value)
 		{
 			if (!await model.Request(1000))
 			{
@@ -1534,7 +1551,7 @@ namespace CitizenFX.Core
 		public static Rope AddRope(RopeType type, Vector3 position, Vector3 rotation, float length, float minLength, bool breakable)
 		{
 			API.RopeLoadTextures();
-			int unkPntr = 0;
+			compat_i32_i64 unkPntr = 0;
 			return new Rope(API.AddRope(position.X, position.Y, position.Z, rotation.X, rotation.Y, rotation.Z, length, (int)type, length, minLength, 0.5f, false, false, true, 1.0f, breakable, ref unkPntr));
 		}
 

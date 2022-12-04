@@ -406,8 +406,8 @@ bool DLL_EXPORT UpdateScriptInitialization()
 
 			wasExecuting = true;
 
-			// break and yield after 2 seconds of script initialization so the game gets a chance to breathe
-			if ((std::chrono::high_resolution_clock::now().time_since_epoch() - startTime) > 5ms)
+			// break and yield after 15ms of script initialization (basically a frame) so the game won't be 'stuck'
+			if ((std::chrono::high_resolution_clock::now().time_since_epoch() - startTime) > 15ms)
 			{
 				trace("Still executing script initialization routines...\n");
 

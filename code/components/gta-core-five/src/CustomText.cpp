@@ -8,8 +8,8 @@
 #include "StdInc.h"
 #include "Hooking.h"
 
-#include <mutex>
 #include <stack>
+#include <shared_mutex>
 
 #include <boost/optional.hpp>
 
@@ -17,13 +17,13 @@
 
 static const char*(*g_origGetText)(void* theText, uint32_t hash);
 
-static std::mutex g_textMutex;
+static std::shared_mutex g_textMutex;
 static std::unordered_map<uint32_t, std::string> g_textMap;
 
 static const char* GetText(void* theText, uint32_t hash)
 {
 	{
-		std::unique_lock<std::mutex> lock(g_textMutex);
+		std::shared_lock lock(g_textMutex);
 
 		auto it = g_textMap.find(hash);
 
@@ -38,7 +38,7 @@ static const char* GetText(void* theText, uint32_t hash)
 
 void AddCustomText(const char* key, const char* value)
 {
-	std::unique_lock<std::mutex> lock(g_textMutex);
+	std::unique_lock lock(g_textMutex);
 	g_textMap[HashString(key)] = value;
 }
 
@@ -51,14 +51,13 @@ namespace game
 
 	void AddCustomText(uint32_t hash, const std::string& value)
 	{
-		std::unique_lock<std::mutex> lock(g_textMutex);
+		std::unique_lock lock(g_textMutex);
 		g_textMap[hash] = value;
 	}
 
 	void RemoveCustomText(uint32_t hash)
 	{
-		std::unique_lock<std::mutex> lock(g_textMutex);
-
+		std::unique_lock lock(g_textMutex);
 		g_textMap.erase(hash);
 	}
 }

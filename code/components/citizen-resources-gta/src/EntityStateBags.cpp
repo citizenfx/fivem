@@ -18,7 +18,7 @@ public:
 		{
 			auto sbac = fx::ResourceManager::GetCurrent()->GetComponent<fx::StateBagComponent>();
 			m_scriptGuid = scriptGuid;
-			m_stateBag = sbac->RegisterStateBag(fmt::sprintf("localEntity:%d", scriptGuid));
+			m_stateBag = sbac->RegisterStateBag(fmt::sprintf("localEntity:%d", scriptGuid), false);
 		}
 	}
 

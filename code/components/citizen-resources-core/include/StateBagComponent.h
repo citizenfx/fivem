@@ -78,6 +78,19 @@ public:
 	// Sets the owning peer ID.
 	//
 	virtual void SetOwningPeer(std::optional<int> peer) = 0;
+	
+	//
+	// Enable or disable immediate replication of this state bag's changes.
+	// If enabled it'll send the state bag update immediatly (old behavior).
+	// If disabled then new replicating state bag changes are queued, use SendQueuedUpdates() to send them.
+	// #TODO: potentially remove this once the throttling system is in place
+	//
+	virtual void EnableImmediateReplication(bool enabled) = 0;
+
+	//
+	// Will send all queued replicating state bag updates to all targets, see EnableImmediateReplication(bool).
+	//
+	virtual void SendQueuedUpdates() = 0;
 
 	//
 	// Gets data for a key.
@@ -97,8 +110,9 @@ public:
 
 	//
 	// Should be called when receiving a state bag control packet.
+	// arg: outBagNameName; if given (!= nullptr) and if the state bag wasn't found then this string will contain the bag name, otherwise outBagNameName is unchanged.
 	//
-	virtual void HandlePacket(int source, std::string_view data) = 0;
+	virtual void HandlePacket(int source, std::string_view data, std::string* outBagNameName = nullptr) = 0;
 
 	//
 	// Gets a state bag by an identifier. Returns an empty shared_ptr if not found.
@@ -109,7 +123,7 @@ public:
 	// Registers a state bag for the specified identifier. The pointer returned should be
 	// the *only* reference, every reference kept internally should be weak.
 	//
-	virtual std::shared_ptr<StateBag> RegisterStateBag(std::string_view id) = 0;
+	virtual std::shared_ptr<StateBag> RegisterStateBag(std::string_view id, bool useParentTargets = false) = 0;
 
 	//
 	// Sets the game interface for sending network packets.
@@ -129,7 +143,7 @@ public:
 	//
 	// Marks a given prefix as 'safe to pre-create'.
 	//
-	virtual void AddSafePreCreatePrefix(std::string_view idPrefix) = 0;
+	virtual void AddSafePreCreatePrefix(std::string_view idPrefix, bool useParentTargets) = 0;
 
 	//
 	// An event handling a state bag value change.

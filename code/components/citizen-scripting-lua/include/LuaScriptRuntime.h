@@ -232,6 +232,8 @@ private:
 
 	std::unordered_set<uint32_t> m_nonExistentNatives;
 
+	std::list<std::tuple<uint64_t, int>> m_pendingBookmarks;
+
 public:
 	LuaScriptRuntime()
 	{
@@ -382,6 +384,10 @@ private:
 
 public:
 	bool RunBookmark(uint64_t bookmark);
+
+	void ScheduleBookmarkSoon(uint64_t bookmark, int timeout);
+
+	void SchedulePendingBookmarks();
 
 public:
 	NS_DECL_ISCRIPTRUNTIME;

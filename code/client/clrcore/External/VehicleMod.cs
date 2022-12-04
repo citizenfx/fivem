@@ -1,11 +1,16 @@
 using System;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
-using System.Runtime.Versioning;
 using System.Collections.ObjectModel;
+
+#if MONO_V2
+using API = CitizenFX.FiveM.Native.Natives;
+
+namespace CitizenFX.FiveM
+#else
 using CitizenFX.Core.Native;
 
 namespace CitizenFX.Core
+#endif
 {
 
 	public sealed class VehicleMod

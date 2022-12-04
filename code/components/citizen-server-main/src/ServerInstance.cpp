@@ -10,9 +10,7 @@
 
 #include <OptionParser.h>
 
-#include <boost/property_tree/xml_parser.hpp>
-
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 #include <ComponentLoader.h>
 
@@ -152,7 +150,7 @@ namespace fx
 					{
 						forwardArgs(cmd, args);
 					}
-					else if (setList.find(cmd) != setList.end())
+					else if (setList.find(cmd) != setList.end() && args.Count() >= 1)
 					{
 						forwardArgs("set", ProgramArguments{ cmd, args.Get(0) });
 					}
@@ -208,15 +206,14 @@ namespace fx
 				});
 			}
 
-			boost::filesystem::path rootPath;
-
+			std::filesystem::path rootPath;
 			try
 			{
-				rootPath = boost::filesystem::canonical(".");
+				rootPath = std::filesystem::canonical(".");
 
-				m_rootPath = rootPath.string();
+				m_rootPath = rootPath.u8string();
 			}
-			catch (std::exception& error)
+			catch (std::exception&)
 			{
 			}
 
@@ -233,6 +230,9 @@ namespace fx
 				{
 					consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", "monitor" });
 				}
+
+				// default forwarded commands to no-print
+				consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "con_addChannelFilter", "forward:*/*", "noprint" });
 
 				// add system console access
 				seGetCurrentContext()->AddAccessControlEntry(se::Principal{ "system.console" }, se::Object{ "webadmin" }, se::AccessType::Allow);

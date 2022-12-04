@@ -1,0 +1,39 @@
+.root {
+  color: ui.color('main', 950);
+  @include ui.font-weight('bold');
+  font-feature-settings: 'case', 'liga' 1;
+
+  word-wrap: break-word;
+
+  &.size-small {
+    @include ui.font-size('small');
+  }
+  &.size-normal {
+    @include ui.font-size('normal');
+  }
+  &.size-large {
+    @include ui.font-size('large');
+  }
+  &.size-xlarge {
+    @include ui.font-size('xlarge');
+  }
+  &.size-xxlarge {
+    @include ui.font-size('xxlarge');
+  }
+  &.size-xxxlarge {
+    @include ui.font-size('xxxlarge');
+  }
+
+  &.truncated {
+    display: block;
+
+    width: 100%;
+
+    line-height: 1.2; // avoid clipping glyphs by bounding box
+
+    white-space: nowrap;
+
+    -webkit-mask: linear-gradient(90deg, red, red calc(100% - 2ch), transparent);
+    mask: linear-gradient(90deg, red, red calc(100% - 2ch), transparent);
+  }
+}

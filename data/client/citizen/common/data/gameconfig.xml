@@ -278,7 +278,7 @@
 						</Item>
 						<Item>
 							<PoolName>FragmentStore</PoolName>
-							<PoolSize value="48000"/>
+							<PoolSize value="58000"/>
 						</Item>
 						<Item>
 							<PoolName>GamePlayerBroadcastDataHandler_Remote</PoolName>
@@ -382,7 +382,7 @@
 						</Item>
 						<Item>
 							<PoolName>CWeaponComponentInfo</PoolName>
-							<PoolSize value="1024"/>
+							<PoolSize value="2048"/>
 						</Item>
 						<Item>
 							<PoolName>phInstGta</PoolName>
@@ -458,7 +458,7 @@
 						</Item>
 						<Item>
 							<PoolName>TxdStore</PoolName>
-							<PoolSize value="85500"/>
+							<PoolSize value="95500"/>
 						</Item>
 						<Item>
 							<PoolName>CNetObjVehicle</PoolName>

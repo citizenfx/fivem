@@ -24,6 +24,6 @@ return function()
 	else
 		includedirs { '/usr/include/mono-2.0/ '}
 	
-		linkoptions '/usr/lib/libmonosgen-2.0.a'
+		linkoptions '/usr/lib/libmonosgen-2.0.a -Wl,--defsym=mono_handle_native_crash=mono_handle_native_crash_nop'
 	end
 end

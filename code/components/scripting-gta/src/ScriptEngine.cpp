@@ -16,6 +16,7 @@
 #include <scrEngine.h>
 
 #include <NativeHandlerLogging.h>
+#include <ExceptionToModuleHelper.h>
 
 #include <CL2LaunchMode.h>
 
@@ -63,7 +64,7 @@ static inline void CallHandler(const THandler& rageHandler, uint64_t nativeIdent
 	}
 	__except (exceptionAddress = (GetExceptionInformation())->ExceptionRecord->ExceptionAddress, ShouldHandleUnwind(GetExceptionInformation(), (GetExceptionInformation())->ExceptionRecord->ExceptionCode, nativeIdentifier))
 	{
-		throw std::exception(va("Error executing native 0x%016llx at address %p.", nativeIdentifier, exceptionAddress));
+		throw std::exception(va("Error executing native 0x%016llx at address %s.", nativeIdentifier, FormatModuleAddress(exceptionAddress)));
 	}
 //#endif
 }
@@ -73,7 +74,7 @@ static void* g_exceptionAddress;
 
 static void SetLastErrorException(uint64_t nativeIdentifier)
 {
-	g_lastError = fmt::sprintf("Error executing native %016llx at address %p.", nativeIdentifier, g_exceptionAddress);
+	g_lastError = fmt::sprintf("Error executing native %016llx at address %s.", nativeIdentifier, FormatModuleAddress(g_exceptionAddress));
 }
 
 static bool CallNativeWrapperCppEh(rage::scrEngine::NativeHandler handler, uint64_t nativeIdentifier, rage::scrNativeCallContext* context, char** errorMessage)

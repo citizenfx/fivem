@@ -1,3 +1,5 @@
+#if !MONO_V2
+
 using System;
 using System.Drawing;
 using System.Collections.Generic;
@@ -327,3 +329,5 @@ namespace CitizenFX.Core.UI
 		}
 	}
 }
+
+#endif

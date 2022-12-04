@@ -62,7 +62,7 @@ static InitFunction initFunction([]()
 	{
 		// hide any console prints from this early execution
 		auto& printFilterEvent = *console::CoreGetPrintFilterEvent();
-		auto filter = printFilterEvent.Connect([](ConsoleChannel, const char*)
+		auto filter = printFilterEvent.Connect([](ConsoleChannel&, const char*)
 		{
 			return false;
 		});

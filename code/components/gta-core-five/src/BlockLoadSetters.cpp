@@ -9,6 +9,7 @@
 
 #include <jitasm.h>
 #include "Hooking.h"
+#include "Hooking.Stubs.h"
 
 #include <atArray.h>
 #include <Pool.h>
@@ -309,10 +310,7 @@ static void RunInitFunctionsWrap(void* skel, int type)
 	{
 		while (!g_callBeforeLoad())
 		{
-			g_lookAlive();
-
-			OnGameFrame();
-			OnMainGameFrame();
+			RunRlInitServicing();
 		}
 	}
 	
@@ -419,9 +417,6 @@ void ShutdownSessionWrap()
 	while (g_isNetworkKilled)
 	{
 		// warning screens apparently need to run on main thread
-		OnGameFrame();
-		OnMainGameFrame();
-
 		RunRlInitServicing();
 
 		g_runWarning();
@@ -559,6 +554,19 @@ static bool ParamToInt_Threads(void* param, int* value)
 	}
 
 	return rv;
+}
+
+static void (*g_origPhotoSize)(int* w, int* h, int down);
+
+static void PhotoSizeStub(int* w, int* h, int down)
+{
+	// story mode may lead to more advanced photo requests, which will crash in JPEG serialization
+	if (!Instance<ICoreGameInit>::Get()->HasVariable("storyMode"))
+	{
+		down = 1;
+	}
+
+	return g_origPhotoSize(w, h, down);
 }
 
 static HookFunction hookFunction([] ()
@@ -761,7 +769,7 @@ static HookFunction hookFunction([] ()
 	hook::put<uint32_t>(hook::get_pattern("84 C0 74 36 48 8B 0D ? ? ? ? 48 85 C9", -13), 0x90C301B0);
 
 	// don't downscale photos a lot
-	hook::put<uint8_t>(hook::get_pattern("41 3B D9 72 09", 3), 0xEB);
+	g_origPhotoSize = hook::trampoline(hook::get_pattern("41 3B D9 72 09", -0x3A), PhotoSizeStub);
 
 	// don't do 500ms waits for renderer
 	{
@@ -784,6 +792,12 @@ static HookFunction hookFunction([] ()
 		hook::nop(location, 6);
 		hook::nop(location + 9, 6);
 		hook::nop(location + 18, 6);
+	}
+
+	// b2699 fix: force `-nodpiadjust` as it's broken
+	if (xbr::IsGameBuild<2699>())
+	{
+		hook::put<uint16_t>(hook::get_pattern("48 83 3D ? ? ? ? 00 0F 85 A3 00 00 00 48 8B 4B", 8), 0xE990);
 	}
 
 	// limit max worker threads to 4 (since on high-core-count systems this leads

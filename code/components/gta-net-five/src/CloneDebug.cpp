@@ -1130,13 +1130,11 @@ void AddDrilldown(uint64_t frameIdx, std::vector<std::tuple<std::string_view, st
 }
 }
 
-void RenderNetDrilldownWindow()
+void RenderNetDrilldownWindow(bool* open)
 {
-	static bool open = true;
-
 	ImGui::SetNextWindowSize(ImVec2(600, 400), ImGuiCond_Appearing);
 
-	if (ImGui::Begin("Network Drilldown", &open))
+	if (ImGui::Begin("Network Drilldown", open))
 	{
 		if (!g_recordingDrilldown && ImGui::Button("Record"))
 		{
@@ -1350,7 +1348,7 @@ static InitFunction initFunction([]()
 	static ConVar<bool> netViewerVar("netobjviewer", ConVar_Archive, false, &netViewerEnabled);
 	static ConVar<bool> syncLogVar("netobjviewer_syncLog", ConVar_Archive, false, &g_captureSyncLog);
 	static ConVar<bool> timeVar("net_showTime", ConVar_Archive, false, &timeWindowEnabled);
-	static ConVar<bool> cloneDrilldownVar("net_showDrilldown", ConVar_Archive, false, &drilldownWindowEnabled);
+	static ConVar<bool> cloneDrilldownVar("net_showDrilldown", ConVar_Archive | ConVar_UserPref, false, &drilldownWindowEnabled);
 
 	ConHost::OnShouldDrawGui.Connect([](bool* should)
 	{
@@ -1383,7 +1381,7 @@ static InitFunction initFunction([]()
 
 		if (drilldownWindowEnabled)
 		{
-			RenderNetDrilldownWindow();
+			RenderNetDrilldownWindow(&drilldownWindowEnabled);
 		}
 
 		if (timeWindowEnabled)

@@ -7,6 +7,8 @@
 #include <CachedResourceMounter.h>
 #include <ResourceCache.h>
 
+#include <VFSManager.h>
+
 #include <ICoreGameInit.h>
 
 static uint32_t (*rage__fiFile__Read)(void* file, void* read, uint32_t size);
@@ -85,6 +87,36 @@ static void StartLoadResources(const std::vector<ResourceMetaData>& rmds)
 
 						entry.filePath = mounter->FormatPath(md.name, rentry.basename);
 						entry.resourceName = md.name;
+
+						auto fileExists = [](const std::string& path)
+						{
+							auto device = vfs::GetDevice(path);
+
+							if (!device.GetRef())
+							{
+								return false;
+							}
+
+							uint64_t ptr = 0;
+							auto handle = device->OpenBulk(path, &ptr);
+
+							if (handle == vfs::Device::InvalidHandle)
+							{
+								return false;
+							}
+
+							char buf[2048] = { 0 };
+							auto fetched = device->ReadBulk(handle, ptr, buf, 0xFFFFFFFC) == 2048;
+
+							device->CloseBulk(handle);
+
+							return fetched;
+						};
+
+						if (!fileExists(entry.filePath))
+						{
+							continue;
+						}
 
 						fx::OnAddStreamingResource(entry);
 					}

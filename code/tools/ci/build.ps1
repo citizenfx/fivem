@@ -23,7 +23,7 @@ param (
 	$Identity = "C:\guava_deploy.ppk"
 )
 
-$CefName = "cef_binary_91.0.0-cfx-m91.2364+g9a59a88+chromium-91.0.4472.48_windows64_minimal"
+$CefName = "cef_binary_103.0.0-cfx-m103.2604+g164c280+chromium-103.0.5060.141_windows64_minimal"
 
 Import-Module $PSScriptRoot\cache_build.psm1
 
@@ -244,7 +244,7 @@ if (!$DontBuild)
 	Pop-Location
 
 	Start-Section "update_submodule_git" "Updating all submodules"
-	git submodule update --jobs=8
+	git submodule update --jobs=8 --force
 	End-Section "update_submodule_git"
 
 	Pop-Location
@@ -351,7 +351,7 @@ if (!$DontBuild)
 	#echo $env:Path
 	#/logger:C:\f\customlogger.dll /noconsolelogger
 	Start-Section "msbuild" "Running msbuild..."
-	msbuild /p:preferredtoolarchitecture=x64 /p:configuration=release /v:q /fl /m $BuildPath\CitizenMP.sln
+	msbuild /p:preferredtoolarchitecture=x64 /p:configuration=release /v:q /m $BuildPath\CitizenMP.sln
 
 	if (!$?) {
 		Invoke-WebHook "Building Cfx/$GameName failed :("
@@ -393,6 +393,7 @@ if (!$DontBuild -and $IsServer) {
 
 	# same as for UISucceeded
 	if ($SRSucceeded -or $env:APPVEYOR) {
+		Remove-Item -Recurse -Force $WorkDir\data\server\citizen\system_resources\ | Out-Null
 		New-Item -ItemType Directory -Force $WorkDir\data\server\citizen\system_resources\ | Out-Null
 		Copy-Item -Force -Recurse $WorkDir\ext\system-resources\data\* $WorkDir\data\server\citizen\system_resources\
 	} else {
@@ -402,6 +403,7 @@ if (!$DontBuild -and $IsServer) {
 	Pop-Location
 	End-Section "sr"
 
+	Remove-Item -Recurse -Force $WorkDir\out | Out-Null
 	New-Item -ItemType Directory -Force $WorkDir\out | Out-Null
 	New-Item -ItemType Directory -Force $WorkDir\out\server | Out-Null
 	New-Item -ItemType Directory -Force $WorkDir\out\server\citizen | Out-Null
@@ -420,10 +422,6 @@ if (!$DontBuild -and $IsServer) {
 
 	# breaks downlevel OS compat
 	Remove-Item -Force $WorkDir\out\server\dbghelp.dll
-	
-	# old filenames
-	Remove-Item -Force $WorkDir\out\server\citizen\system_resources\monitor\starter.js
-	Remove-Item -Force $WorkDir\out\server\citizen\system_resources\monitor\scripts\menu\client\cl_menu.lua
 	
 	# useless client-related scripting stuff
 	Remove-Item -Force $WorkDir\out\server\citizen\scripting\lua\natives_0*.zip

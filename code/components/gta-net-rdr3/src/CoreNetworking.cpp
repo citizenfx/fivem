@@ -758,7 +758,12 @@ static HookFunction hookFunction([]()
 		hook::jump(getLocalPeerAddress, GetLocalPeerAddress);
 		hook::jump(hook::get_call(getLocalPeerAddress + 0x28), GetLocalPeerId);
 
-		if (xbr::IsGameBuildOrGreater<1436>())
+		if (xbr::IsGameBuildOrGreater<1491>())
+		{
+			hook::jump(hook::get_call(getLocalPeerAddress + 0x103), GetGamerHandle);
+			hook::jump(hook::get_call(hook::get_call(getLocalPeerAddress + 0x114) + 0x14), InitP2PCryptKey);
+		}
+		else if (xbr::IsGameBuildOrGreater<1436>())
 		{
 			hook::jump(hook::get_call(getLocalPeerAddress + 0xF1), GetGamerHandle);
 			hook::jump(hook::get_call(hook::get_call(getLocalPeerAddress + 0x102) + 0x14), InitP2PCryptKey);
@@ -774,7 +779,14 @@ static HookFunction hookFunction([]()
 	//hook::call(0x1426E100B, ParseAddGamer);
 
 	// all uwuids be 2
-	hook::call(hook::get_pattern("B9 03 00 00 00 B8 01 00 00 00 87 83", (xbr::IsGameBuildOrGreater<1436>()) ? -89 : -85), ZeroUUID);
+	if (xbr::IsGameBuildOrGreater<1436>())
+	{
+		hook::call(hook::get_pattern("48 83 A4 24 E0 00 00 00 00 48 8D 8C 24 E0", 17), ZeroUUID);
+	}
+	else
+	{
+		hook::call(hook::get_pattern("B9 03 00 00 00 B8 01 00 00 00 87 83", -85), ZeroUUID);
+	}
 
 	// get session for find result
 	// 1207.58
@@ -1054,7 +1066,7 @@ static HookFunction hookFunction([]()
 	// unusual script check before allowing session to continue
 	if (xbr::IsGameBuildOrGreater<1436>())
 	{
-		hook::nop(hook::get_pattern("84 C0 0F 85 90 00 00 00 44 39 6B 20 75", 2), 6);
+		hook::nop(hook::get_pattern("84 C0 0F 85 ? 00 00 00 ? ? ? ? 75 ? BA 02 00 00 00", 2), 6);
 	}
 	else
 	{

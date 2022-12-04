@@ -8,7 +8,6 @@
 		"citizen:server:instance",
 		"citizen:server:net",
 		"vendor:boost_program_options",
-		"vendor:boost_filesystem",
 		"vfs:core"
 	],
 	"provides": [],

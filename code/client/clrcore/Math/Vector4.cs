@@ -1144,7 +1144,7 @@ namespace CitizenFX.Core
 		}
 
 		/// <summary>
-		/// Multiplies a vector with another by performing component-wise multiplication equivalent to <see cref="Multiply(ref SharpDX.Vector4,ref SharpDX.Vector4,out SharpDX.Vector4)"/>.
+		/// Multiplies a vector with another by performing component-wise multiplication equivalent to <see cref="Multiply(ref Vector4, ref Vector4, out Vector4)"/>.
 		/// </summary>
 		/// <param name="left">The first vector to multiply.</param>
 		/// <param name="right">The second vector to multiply.</param>

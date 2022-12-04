@@ -1,10 +1,20 @@
 using System;
-using CitizenFX.Core.Native;
-using System.Security;
-using System.Threading.Tasks;
+
+#if MONO_V2
 using CitizenFX.Core;
+using API = CitizenFX.FiveM.Native.Natives;
+using INativeValue = CitizenFX.Core.Native.Input.Primitive;
+using TaskBool = CitizenFX.Core.Coroutine<bool>;
+using compat_i32_u32 = System.UInt32;
+
+namespace CitizenFX.FiveM
+#else
+using CitizenFX.Core.Native;
+using TaskBool = System.Threading.Tasks.Task<bool>;
+using compat_i32_u32 = System.Int32;
 
 namespace CitizenFX.Core
+#endif
 {
 	public class Model : INativeValue, IEquatable<Model>
 	{
@@ -14,8 +24,15 @@ namespace CitizenFX.Core
 		}
 		public Model(int hash) : this()
 		{
+			Hash = (compat_i32_u32)hash;
+		}
+
+#if MONO_V2
+		public Model(uint hash) : this()
+		{
 			Hash = hash;
 		}
+#endif
 		public Model(string name) : this(Game.GenerateHash(name))
 		{
 		}
@@ -32,6 +49,9 @@ namespace CitizenFX.Core
 		/// <summary>
 		/// Gets the hash for this <see cref="Model"/>.
 		/// </summary>
+#if MONO_V2
+		public uint Hash { get => (uint)m_nativeValue; private set => m_nativeValue = value; }
+#else
 		public int Hash { get; private set; }
 
 		public override ulong NativeValue
@@ -45,6 +65,7 @@ namespace CitizenFX.Core
 				Hash = unchecked((int)value);
 			}
 		}
+#endif
 
 		/// <summary>
 		/// Returns true if this <see cref="Model"/> is valid.
@@ -309,7 +330,7 @@ namespace CitizenFX.Core
 		/// </summary>
 		/// <param name="timeout">The time (in milliseconds) before giving up trying to load this <see cref="Model"/></param>
 		/// <returns><c>true</c> if this <see cref="Model"/> is loaded; otherwise, <c>false</c></returns>
-		public async Task<bool> Request(int timeout)
+		public async TaskBool Request(int timeout)
 		{
 			// Only request the model if it's not yet loaded.
 			if (!IsLoaded)
@@ -357,7 +378,7 @@ namespace CitizenFX.Core
 
 		public override int GetHashCode()
 		{
-			return Hash;
+			return (int)Hash;
 		}
 		public override string ToString()
 		{
@@ -387,7 +408,11 @@ namespace CitizenFX.Core
 
 		public static implicit operator int(Model source)
 		{
-			return source.Hash;
+			return (int)source.Hash;
+		}
+		public static implicit operator uint(Model source)
+		{
+			return (uint)source.Hash;
 		}
 		public static implicit operator PedHash(Model source)
 		{

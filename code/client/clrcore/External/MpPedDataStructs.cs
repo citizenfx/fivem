@@ -2,7 +2,11 @@ using System;
 using System.Runtime.InteropServices;
 using System.Security;
 
+#if MONO_V2
+namespace CitizenFX.FiveM
+#else
 namespace CitizenFX.Core
+#endif
 {
 	/// <summary>
 	/// This is used to GET the data. The GetData() function returns the data into a usable struct for scripts to use safely.

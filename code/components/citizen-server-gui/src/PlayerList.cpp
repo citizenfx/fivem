@@ -10,6 +10,9 @@
 
 #include <deque>
 
+static void SvPlayerList_Render(fx::ServerInstanceBase* instance);
+static SvGuiModule svplayerlist("Player List", "svplayerlist", ImGuiWindowFlags_NoCollapse, SvPlayerList_Render);
+
 static std::pair<uint32_t, const char*> g_knownPackets[]
 {
 	{ HashRageString("msgConVars"),"msgConVars" },
@@ -80,20 +83,16 @@ struct PlayerAdvancedData
 };
 struct PlayerListData
 {
-	PlayerListData()
-	{
-		showPopout = false;
-	}
 	std::string name;
-	glm::vec3 position;
+	glm::vec3 position{ 0, 0, 0 };
 	// pre-calculate these
-	unsigned int hoursOnline;
-	unsigned int minutesOnline;
-	unsigned int secondsOnline;
+	unsigned int hoursOnline = 0;
+	unsigned int minutesOnline = 0;
+	unsigned int secondsOnline = 0;
 	std::string connectionState;
-	int currentPing;
+	int currentPing = 0;
 
-	bool showPopout;
+	bool showPopout = false;
 	PlayerAdvancedData advancedData;
 };
 
@@ -146,6 +145,12 @@ static const auto& CollectPlayers(fx::ServerInstanceBase* instance)
 
 void RecvFromClient_Callback(fx::Client* client, uint32_t packetId, net::Buffer& buffer)
 {
+	// don't try to check when the list isn't active
+	if (!svplayerlist.toggleVar)
+	{
+		return;
+	}
+
 	// only a shared lock: we assume g_playerListData already contains our data
 	std::shared_lock lock(g_playerListDataMutex);
 	auto& entry = g_playerListData[client->GetGuid()];
@@ -173,6 +178,12 @@ void RecvFromClient_Callback(fx::Client* client, uint32_t packetId, net::Buffer&
 
 void SendToClient_Callback(fx::Client* client, int channel, const net::Buffer& buffer, NetPacketType flags)
 {
+	// don't try to check when the list isn't active
+	if (!svplayerlist.toggleVar)
+	{
+		return;
+	}
+
 	std::shared_lock lock(g_playerListDataMutex);
 	auto& entry = g_playerListData[client->GetGuid()];
 
@@ -346,7 +357,7 @@ static void ShowPopout(std::string guid, PlayerListData* data)
 	}
 }
 
-static SvGuiModule svplayerlist("Player List", "svplayerlist", ImGuiWindowFlags_NoCollapse, [](fx::ServerInstanceBase* instance)
+static void SvPlayerList_Render(fx::ServerInstanceBase* instance)
 {
 	const auto& playerData = CollectPlayers(instance);
 
@@ -401,4 +412,4 @@ static SvGuiModule svplayerlist("Player List", "svplayerlist", ImGuiWindowFlags_
 			}
 		}
 	ImGui::EndTable();
-});
+}

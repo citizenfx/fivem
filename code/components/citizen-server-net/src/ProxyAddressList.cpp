@@ -174,24 +174,35 @@ struct ConsoleArgumentName<NetworkList>
 	}
 };
 
-ConVar<NetworkList>* g_networkListVar;
+static std::shared_mutex g_networkListMutex;
+static NetworkList g_networkList;
 
 namespace fx
 {
 bool DLL_EXPORT IsProxyAddress(std::string_view ep)
 {
-	return g_networkListVar->GetValue().ContainsIP(ep);
+	std::shared_lock _(g_networkListMutex);
+	return g_networkList.ContainsIP(ep);
 }
 
 bool DLL_EXPORT IsProxyAddress(const net::PeerAddress& ep)
 {
-	return g_networkListVar->GetValue().ContainsIP(ep);
+	std::shared_lock _(g_networkListMutex);
+	return g_networkList.ContainsIP(ep);
 }
 }
 
 static InitFunction initFunction([]()
 {
 	static ConVar<NetworkList> allowedIpCidr("sv_proxyIPRanges", ConVar_None, NetworkList{ "10.0.0.0/8 127.0.0.0/8 192.168.0.0/16 172.16.0.0/12" });
+	static auto allowedIpCidrVar = &allowedIpCidr;
 
-	g_networkListVar = &allowedIpCidr;
+	auto update = [](auto)
+	{
+		std::unique_lock _(g_networkListMutex);
+		g_networkList = allowedIpCidrVar->GetValue();
+	};
+
+	allowedIpCidr.GetHelper()->SetChangeCallback(update);
+	update(nullptr);
 });

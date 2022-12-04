@@ -393,16 +393,19 @@ namespace net
 		auto loop = loopHolder->Get();
 		m_loop = loop;
 
-		m_reconnectTimer = loop->resource<uvw::TimerHandle>();
-
 		fwRefContainer<ReverseTcpServer> thisRef(this);
 
-		m_reconnectTimer->on<uvw::TimerEvent>([thisRef](const uvw::TimerEvent& e, uvw::TimerHandle& timer)
+		loopHolder->EnqueueCallback([thisRef, loop]()
 		{
+			thisRef->m_reconnectTimer = loop->resource<uvw::TimerHandle>();
+
+			thisRef->m_reconnectTimer->on<uvw::TimerEvent>([thisRef](const uvw::TimerEvent& e, uvw::TimerHandle& timer)
+			{
+				thisRef->Reconnect();
+			});
+
 			thisRef->Reconnect();
 		});
-
-		Reconnect();
 	}
 
 	void ReverseTcpServer::Reconnect()

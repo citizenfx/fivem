@@ -70,8 +70,6 @@ private:
 	void ReconnectWithPeer(const net::PeerAddress& peer);
 
 private:
-	TcpServerManager* m_manager;
-
 	std::shared_ptr<uvw::TimerHandle> m_reconnectTimer;
 
 	std::shared_ptr<uvw::TCPHandle> m_control;

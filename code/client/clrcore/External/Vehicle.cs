@@ -1,12 +1,22 @@
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using CitizenFX.Core.Native;
-using System.Security;
-using System.Threading.Tasks;
+
+#if MONO_V2
+using CitizenFX.Core;
+using API = CitizenFX.FiveM.Native.Natives;
+using TaskPed = CitizenFX.Core.Coroutine<CitizenFX.FiveM.Ped>;
+using compat_i32_i64 = System.Int64;
+
+namespace CitizenFX.FiveM
+#else
+using System.Drawing;
+using TaskPed = System.Threading.Tasks.Task<CitizenFX.Core.Ped>;
+using compat_i32_i64 = System.Int32;
 
 namespace CitizenFX.Core
+#endif
 {
 	public enum CargobobHook
 	{
@@ -1430,7 +1440,7 @@ namespace CitizenFX.Core
 			Vector3 currentPosition = Position;
 			Vector3 newPosition = new Vector3();
 			float heading = 0f;
-			int unkn = 0;
+			compat_i32_i64 unkn = 0;
 
 			for (int i = 1; i < 40; i++)
 			{
@@ -1604,7 +1614,7 @@ namespace CitizenFX.Core
 			API.SetVehicleDamage(Handle, position.X, position.Y, position.Z, damageAmount, radius, false);
 		}
 
-		public async Task<Ped> CreatePedOnSeat(VehicleSeat seat, Model model)
+		public async TaskPed CreatePedOnSeat(VehicleSeat seat, Model model)
 		{
 			if (!IsSeatFree(seat))
 			{

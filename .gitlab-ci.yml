@@ -92,7 +92,7 @@ build_sdk:
 # -----------------
 build_proot_linux:
   stage: build
-  image: mcr.microsoft.com/dotnet/core/sdk:3.1-alpine3.13
+  image: mcr.microsoft.com/dotnet/sdk:6.0-alpine3.15
   variables:
     GIT_SUBMODULE_STRATEGY: normal
     # workaround gitlab-ci-multi-runner#2148

@@ -1,0 +1,20 @@
+.item {
+  flex-grow: 1;
+
+  padding: ui.offset();
+
+  @include ui.border-radius('normal');
+
+  background-color: ui.color-token('server-review-background');
+}
+
+.morer {
+  display: flex;
+  align-items: center;
+
+  padding: ui.offset();
+
+  @include ui.border-radius('normal');
+
+  background-image: linear-gradient(90deg, ui.color-token('server-review-background'), transparent);
+}

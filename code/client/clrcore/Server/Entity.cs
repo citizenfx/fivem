@@ -3,6 +3,10 @@ using System.Linq;
 using CitizenFX.Core.Native;
 using System.Security;
 
+#if MONO_V2
+using API = CitizenFX.Server.Native.Natives;
+#endif
+
 namespace CitizenFX.Core
 {
 	public abstract class Entity : PoolObject, IEquatable<Entity>, ISpatial
@@ -109,7 +113,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return API.GetEntityModel(this.Handle);
+				return unchecked((int)API.GetEntityModel(this.Handle));
 			}
 		}
 

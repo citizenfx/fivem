@@ -2192,12 +2192,19 @@ static InitFunction initFunction([]()
 			}
 #endif
 
+			float volume = rage::GetDbForLinear(std::min(std::min({ g_preferenceArray[PREF_MUSIC_VOLUME], g_preferenceArray[PREF_MUSIC_VOLUME_IN_MP], g_preferenceArray[PREF_SFX_VOLUME] }) / 10.0f, 0.75f));
+			static float lastVolume = -9999.0f;
+
+			// update volume dynamically (in case it's changed, or wasn't initialized at first)
+			if (g_sound && volume != lastVolume)
+			{
+				g_sound->GetRequestedSettings()->SetVolume(volume);
+				lastVolume = volume;
+			}
+
 			if (active && !g_sound)
 			{
 				rage::audSoundInitParams initValues;
-
-				float volume = rage::GetDbForLinear(std::min(std::min({ g_preferenceArray[PREF_MUSIC_VOLUME], g_preferenceArray[PREF_MUSIC_VOLUME_IN_MP], g_preferenceArray[PREF_SFX_VOLUME] }) / 10.0f, 0.75f));
-				initValues.SetVolume(volume);
 
 				auto musicTheme = musicThemeVariable.GetValue();
 				std::string defaultMusicTheme;

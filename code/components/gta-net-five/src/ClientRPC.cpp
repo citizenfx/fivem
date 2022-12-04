@@ -22,6 +22,8 @@
 #include <EntitySystem.h>
 #include <scrEngine.h>
 
+#include <ExceptionToModuleHelper.h>
+
 extern NetLibrary* g_netLibrary;
 
 #include <nutsnbolts.h>
@@ -51,7 +53,7 @@ static inline void CallHandler(const THandler& handler, uint64_t nativeIdentifie
 	}
 	__except (exceptionAddress = (GetExceptionInformation())->ExceptionRecord->ExceptionAddress, ShouldHandleUnwind((GetExceptionInformation())->ExceptionRecord->ExceptionCode, nativeIdentifier))
 	{
-		throw std::exception(va("Error executing native 0x%016llx at address %p.", nativeIdentifier, exceptionAddress));
+		throw std::exception(va("Error executing native 0x%016llx at address %s.", nativeIdentifier, FormatModuleAddress(exceptionAddress)));
 	}
 }
 

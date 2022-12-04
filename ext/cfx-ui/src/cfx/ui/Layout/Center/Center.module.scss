@@ -1,0 +1,13 @@
+.root {
+  display: flex;
+
+  &.vertical {
+    height: 100%;
+    align-items: center;
+  }
+
+  &.horizontal {
+    width: 100%;
+    justify-content: center;
+  }
+}

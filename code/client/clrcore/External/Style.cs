@@ -1,8 +1,15 @@
 using System;
 using System.Collections.Generic;
+
+#if MONO_V2
+using API = CitizenFX.FiveM.Native.Natives;
+
+namespace CitizenFX.FiveM
+#else
 using CitizenFX.Core.Native;
 
 namespace CitizenFX.Core
+#endif
 {
 	public enum PedComponents
 	{
@@ -126,7 +133,7 @@ namespace CitizenFX.Core
 				case PedHash.FreemodeFemale01:
 					return; //these models freeze when randomized
 			}
-			API.SetPedRandomComponentVariation(_ped.Handle, false);
+			API.SetPedRandomComponentVariation(_ped.Handle, default);
 		}
 		public void SetDefaultClothes()
 		{

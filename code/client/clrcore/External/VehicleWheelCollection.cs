@@ -2,7 +2,11 @@ using CitizenFX.Core.Native;
 using System;
 using System.Collections.Generic;
 
+#if MONO_V2
+namespace CitizenFX.FiveM
+#else
 namespace CitizenFX.Core
+#endif
 {
 	public sealed class VehicleWheelCollection
 	{

@@ -4,7 +4,7 @@
 
 		links { "Shared", "CitiCore" }
 
-		add_dependencies { 'vendor:fmtlib', 'vendor:breakpad' }
+		add_dependencies { 'vendor:fmtlib', 'vendor:breakpad', 'vendor:cpu_features' }
 		
 		if os.istarget('windows') then
 			links { "psapi", "wininet", "winhttp" }

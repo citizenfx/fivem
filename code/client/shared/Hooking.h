@@ -150,12 +150,7 @@ inline void put(AddressType address, ValueType value)
 {
 	adjust_base(address);
 
-	DWORD oldProtect;
-	VirtualProtect((void*)address, sizeof(value), PAGE_EXECUTE_READWRITE, &oldProtect);
-
 	memcpy((void*)address, &value, sizeof(value));
-
-	VirtualProtect((void*)address, sizeof(value), oldProtect, &oldProtect);
 }
 
 template<typename ValueType, typename AddressType>

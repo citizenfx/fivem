@@ -1,9 +1,16 @@
-using System;
-using System.Drawing;
+#if MONO_V2
+using CitizenFX.Core;
+using API = CitizenFX.FiveM.Native.Natives;
+using PointF = CitizenFX.Core.Vector2;
+using Size = CitizenFX.Core.Size2;
+
+namespace CitizenFX.FiveM.UI
+#else
 using CitizenFX.Core.Native;
-using System.Security;
+using System.Drawing;
 
 namespace CitizenFX.Core.UI
+#endif
 {
 	public enum HudComponent
 	{

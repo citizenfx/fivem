@@ -66,7 +66,10 @@
 #define _countof(x) ((sizeof(x)/sizeof(0[x])) / ((size_t)(!(sizeof(x) % sizeof(0[x])))))
 #endif
 
+// NDEBUG being defined *kind of* breaks stuff in an uncertain way
+#ifdef NDEBUG
 #undef NDEBUG
+#endif
 
 #ifdef MEMDBGOK
 #define _CRTDBG_MAP_ALLOC
@@ -86,13 +89,7 @@
 #define _ACRTIMP extern
 #endif
 
-#ifdef NDEBUG
-#undef NDEBUG
 #include <assert.h>
-#define NDEBUG
-#else
-#include <assert.h>
-#endif
 
 #if defined(_MSC_VER)
 #ifndef _ACRTIMP

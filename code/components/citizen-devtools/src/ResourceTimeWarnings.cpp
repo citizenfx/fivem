@@ -227,7 +227,7 @@ static HookFunction hookFunctionGameTime([]()
 
 			if (th)
 			{
-				th->push_front(fmt::sprintf("%s: activated", resourceName));
+				th->push_front(resourceName + ": activated");
 			}
 		},
 		INT32_MIN);
@@ -372,7 +372,7 @@ static InitFunction initFunction([]()
 
 	static bool taskMgrEnabled;
 
-	static ConVar<bool> taskMgrVar("resmon", ConVar_Archive, false, &taskMgrEnabled);
+	static ConVar<bool> taskMgrVar("resmon", ConVar_Archive | ConVar_UserPref, false, &taskMgrEnabled);
 
 	fx::ResourceManager::OnInitializeInstance.Connect([](fx::ResourceManager* manager)
 	{

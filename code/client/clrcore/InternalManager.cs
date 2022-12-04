@@ -578,7 +578,35 @@ namespace CitizenFX.Core
 			ScriptHost.SubmitBoundaryEnd(null, 0);
 
 			var stackTrace = new StackTrace(what, true);
-			var frames = stackTrace.GetFrames()
+
+#if IS_FXSERVER
+			var stackFrames = stackTrace.GetFrames();
+#else
+			IEnumerable<StackFrame> stackFrames;
+
+			// HACK: workaround to iterate inner traces ourselves.
+			var fieldCapturedTraces = typeof(StackTrace).GetField("captured_traces", BindingFlags.NonPublic | BindingFlags.Instance);
+			if (fieldCapturedTraces != null)
+			{
+				var captured_traces = (StackTrace[])fieldCapturedTraces.GetValue(stackTrace);
+
+				// client's mscorlib is missing this piece of code, copied from https://github.com/mono/mono/blob/ef848cfa83ea16b8afbd5b933968b1838df19505/mcs/class/corlib/System.Diagnostics/StackTrace.cs#L181
+				var accum = new List<StackFrame>();
+				foreach (var t in captured_traces)
+				{
+					for (int i = 0; i < t.FrameCount; i++)
+						accum.Add(t.GetFrame(i));
+				}
+
+				accum.AddRange(stackTrace.GetFrames());
+
+				stackFrames = accum;
+			}
+			else
+				stackFrames = stackTrace.GetFrames();
+#endif
+
+			var frames = stackFrames
 				.Select(a => new
 				{
 					Frame = a,

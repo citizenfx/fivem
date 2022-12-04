@@ -168,7 +168,7 @@ public:
 
 	virtual grcTexture* unk_8() = 0;
 
-	virtual grcTexture* createManualTexture(short width, short height, int format, void* unknown, bool, const grcManualTextureDef* templ) = 0;
+	virtual grcTexture* createManualTexture(short width, short height, int format, const void* initialData, bool unused, const grcManualTextureDef* templ) = 0;
 
 	virtual grcTexture* createImage(grcTextureReference* texture, void* unkTemplate) = 0;
 

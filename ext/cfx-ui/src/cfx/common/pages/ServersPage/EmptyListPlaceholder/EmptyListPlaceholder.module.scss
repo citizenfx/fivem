@@ -1,0 +1,18 @@
+.icon {
+  font-size: ui.q(50);
+  @include ui.font-color('text-a50');
+
+  @keyframes shakey {
+    0% {
+      transform: translateX(20px);
+    }
+    50% {
+      transform: translateX(-20px);
+    }
+    100% {
+      transform: translateX(20px);
+    }
+  }
+
+  animation: shakey 5s ease-in-out infinite;
+}

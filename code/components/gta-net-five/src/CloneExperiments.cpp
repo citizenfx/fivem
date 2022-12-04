@@ -157,7 +157,7 @@ static void SetupLocalPlayer(CNetGamePlayer* player)
 
 	g_playerBags[clientId] = Instance<fx::ResourceManager>::Get()
 							 ->GetComponent<fx::StateBagComponent>()
-							 ->RegisterStateBag(fmt::sprintf("player:%d", clientId));
+							 ->RegisterStateBag(fmt::sprintf("player:%d", clientId), true);
 
 	// don't add to g_playerListRemote(!)
 }
@@ -312,7 +312,7 @@ namespace sync
 
 		g_playerBags[clientId] = Instance<fx::ResourceManager>::Get()
 								 ->GetComponent<fx::StateBagComponent>()
-								 ->RegisterStateBag(fmt::sprintf("player:%d", clientId));
+								 ->RegisterStateBag(fmt::sprintf("player:%d", clientId), true);
 	}
 
 #ifdef GTA_FIVE
@@ -737,12 +737,12 @@ static CNetGamePlayer* AllocateNetPlayer(void* mgr)
 #ifdef GTA_FIVE
 	void* plr = malloc(xbr::IsGameBuildOrGreater<2372>() ? 704 : xbr::IsGameBuildOrGreater<2060>() ? 688 : 672);
 #elif IS_RDR3
-	void* plr = malloc(2784);
+	void* plr = malloc(xbr::IsGameBuildOrGreater<1436>() ? 2736 : 2784);
 #endif
 
 	auto player = _netPlayerCtor(plr);
 
-	// in RDR3 game wants CNetworkPlayerMgr pointer in CNetGamePlayer
+	// RDR3 wants CNetworkPlayerMgr pointer in CNetGamePlayer
 #ifdef IS_RDR3
 	*(rage::netPlayerMgrBase**)((uint64_t)player + 288) = g_playerMgr;
 #endif
@@ -3340,7 +3340,7 @@ std::string GetType(void* d)
 
 	}
 #elif IS_RDR3
-	std::string typeName = fmt::sprintf("%p", *(void**)self);
+	std::string typeName = fmt::sprintf("%p", (void*)hook::get_unadjusted(*(void**)self));
 #endif
 
 	return typeName;
@@ -3947,13 +3947,13 @@ public:
 	{
 		if (!g_initedTimeSync)
 		{
+			// we don't want to use cloud time
+			m_useCloudTime = false;
+
 			g_origInitializeTime(this, _getConnectionManager(), 1, nullptr, 0, nullptr, 7, 2000, 60000);
 
 			// to make the game not try to get time from us
 			m_connectionMgr = nullptr;
-
-			// we don't want to use cloud time
-			m_useCloudTime = false;
 
 			g_initedTimeSync = true;
 
@@ -4461,7 +4461,7 @@ static InitFunction initFunction([]()
 		TheClones->Update();
 	});
 
-	OnKillNetwork.Connect([](const char*)
+	OnKillNetworkDone.Connect([]()
 	{
 #if defined(GTA_FIVE) && 0
 		auto em = reinterpret_cast<rage::netEventMgr*>(*(char**)g_netEventMgr);
@@ -4472,12 +4472,14 @@ static InitFunction initFunction([]()
 		}
 #endif
 
+#ifdef IS_RDR3
+		// RDR3 doesn't restart netTimeSync after disconnecting from a server with enabled onesync
+		g_initedTimeSync = false;
+#endif
+
 		g_events.clear();
 		g_reEventQueue.clear();
-	});
 
-	OnKillNetworkDone.Connect([]()
-	{
 		trackedObjects.clear();
 	});
 

@@ -298,7 +298,7 @@ static InitFunction initFunction([]()
 		CefV8ValueList args;
 		args.push_back(CefV8Value::CreateString(path));
 
-		callback->ExecuteFunction(NULL, args);
+		callback->ExecuteFunction(nullptr, args);
 
 		context->Exit();
 

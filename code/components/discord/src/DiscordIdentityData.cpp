@@ -67,9 +67,14 @@ static HookFunction initFunction([]()
 			switch (opCode)
 			{
 			case 1: // FRAME
-				if (data["evt"] == "READY")
+				if (data["evt"] == "READY" && data.find("data") != data.end() && data["data"].find("user") != data["data"].end())
 				{
 					userId = data["data"]["user"]["id"].get<std::string>();
+
+					if (userId == "0")
+					{
+						break;
+					}
 
 					// check with CnL if we have access
 					Instance<::HttpClient>::Get()->DoPostRequest(

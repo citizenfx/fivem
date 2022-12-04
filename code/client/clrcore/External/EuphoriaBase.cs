@@ -1,9 +1,16 @@
 using System;
 using System.Collections.Generic;
 using CitizenFX.Core;
+
+#if MONO_V2
+using API = CitizenFX.FiveM.Native.Natives;
+
+namespace CitizenFX.FiveM.NaturalMotion
+#else
 using CitizenFX.Core.Native;
 
 namespace CitizenFX.Core.NaturalMotion
+#endif
 {
 	/// <summary>
 	/// A Base class for manually building a <see cref="NaturalMotion.Message"/>

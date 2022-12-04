@@ -5,7 +5,11 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
+#if MONO_V2
+using static CitizenFX.Server.Native.Natives;
+#else
 using static CitizenFX.Core.Native.API;
+#endif
 
 namespace CitizenFX.Core
 {
@@ -49,6 +53,9 @@ namespace CitizenFX.Core
 
 		public void TriggerEvent(string eventName, params object[] args)
 		{
+#if MONO_V2
+			CoreNatives.TriggerClientEventInternal(eventName, m_handle, args);
+#else
 			var argsSerialized = MsgPackSerializer.Serialize(args);
 
 			unsafe
@@ -58,10 +65,14 @@ namespace CitizenFX.Core
 					Function.Call(Hash.TRIGGER_CLIENT_EVENT_INTERNAL, eventName, m_handle, serialized, argsSerialized.Length);
 				}
 			}
+#endif
 		}
 
 		public void TriggerLatentEvent(string eventName, int bytesPerSecond, params object[] args)
 		{
+#if MONO_V2
+			CoreNatives.TriggerLatentClientEventInternal(eventName, m_handle, args, bytesPerSecond);
+#else
 			var argsSerialized = MsgPackSerializer.Serialize(args);
 
 			unsafe
@@ -71,6 +82,7 @@ namespace CitizenFX.Core
 					Function.Call(Hash.TRIGGER_LATENT_CLIENT_EVENT_INTERNAL, eventName, m_handle, serialized, argsSerialized.Length, bytesPerSecond);
 				}
 			}
+#endif
 		}
 
 		protected bool Equals(Player other) => string.Equals(Handle, other.Handle);

@@ -147,6 +147,7 @@ namespace fx
 	class DEVTOOLS_EXPORT ResourceMonitor
 	{
 	public:
+		// TODO: use an std::string_view to remove the unnecesary copy, and make use of correct spelling
 		using ResourceDatas = std::vector<std::tuple<std::string, double, double, int64_t, int64_t, std::shared_ptr<const TickMetrics<64, 200>>, double, std::shared_ptr<const TickMetrics<64, 200>>>>;
 
 	public:

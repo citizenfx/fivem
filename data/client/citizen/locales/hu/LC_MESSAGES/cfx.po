@@ -47,6 +47,9 @@ msgid ""
 "Stack trace:\n"
 "%s"
 msgstr ""
+"\n"
+"Memória lefoglalása:\n"
+"%s"
 
 #: components/net/src/NetLibrary.cpp:637
 msgid ""
@@ -58,6 +61,13 @@ msgid ""
 "If you are the server owner, are you sure you are allowing UDP packets to "
 "and from the server?"
 msgstr ""
+"# Csatlakozás sikertelen\n"
+"Nem érkezett válasz a szervertől (3 próbálkozásból).\n"
+"\n"
+"---\n"
+"\n"
+"Ha te vagy a szerver tulajdonosa, engedélyezted a kimenő és bejövő UDP-"
+"csomagokat?"
 
 #: components/net/src/NetLibrary.cpp:674
 #, c-format
@@ -70,6 +80,14 @@ msgid ""
 "%s\n"
 "[Reconnect](cfx.re://reconnect)"
 msgstr ""
+"# Időtúllépés\n"
+"A Kliens és a szerver között időtúllépés történt. Kérjük próbálja meg "
+"később.\n"
+"\n"
+"---\n"
+"\n"
+"%s\n"
+"[Újracsatlakozás](cfx.re://reconnect)"
 
 #: client/launcher/MiniDump.cpp:1260
 #, c-format
@@ -90,67 +108,49 @@ msgstr ""
 "helyezd át a telepítést a „Program FIles”-ból vagy a védett mappából."
 
 #: client/launcher/ViabilityChecks.cpp:100
-#, fuzzy, c-format
-#| msgid ""
-#| "This product requires Security Update for Windows 7 for x64-based systems "
-#| "(KB2758857) to be installed to run. Please install it, and try again."
+#, c-format
 msgid ""
 "%s requires the Windows Media Feature Pack for Windows N editions to be "
 "installed to run. Please install it, and try again."
 msgstr ""
-"Ez a termék igényli hogy telepítve legyen a „Biztonsági frissítés Windows 7 "
-"for x64-based Systems rendszerhez (KB2758857)”. Kérlek telepítsd, és próbáld "
+"A %s futtatásához szükséges, hogy a „Windows Media Feature Pack for Windows "
+"N editions” telepítve legyen a rendszeren. Kérjük telepítse, majd próbálja "
 "újra."
 
 #: client/launcher/MiniDump.cpp:1417
-#, fuzzy, c-format
-#| msgid ""
-#| "Crash signature: %s\n"
-#| "Report ID: %s\n"
-#| "You can press Ctrl-C to copy this message and paste it elsewhere."
+#, c-format
 msgid ""
 "%sReport ID: %s\n"
 "You can press Ctrl-C to copy this message and paste it elsewhere."
 msgstr ""
-"Összeomlás alaírása: %s\n"
-"Jelentés sorszáma: %s\n"
+"%s Hibajelentési azonosító: %s\n"
 "Megnyomhatod a Ctrl-C-t hogy másold ezt az üzenetet és beilleszd valahová."
 
 #: client/launcher/MiniDump.cpp:1356
-#, fuzzy, c-format
-#| msgid ""
-#| "Crash signature: %s\n"
-#| "Report ID: ... [uploading]\n"
-#| "You can press Ctrl-C to copy this message and paste it elsewhere."
+#, c-format
 msgid ""
 "%sReport ID: ... [uploading]\n"
 "You can press Ctrl-C to copy this message and paste it elsewhere."
 msgstr ""
-"Összeomlás alaírása: %s\n"
-"Jelentés sorszáma: ... [feltöltés alatt]\n"
+"%s Hibajelentési azonosító: ... [feltöltés alatt]\n"
 "Megnyomhatod a Ctrl-C-t hogy másold ezt az üzenetet és beilleszd valahová."
 
 #: client/launcher/MiniDump.cpp:1421
-#, fuzzy, c-format
-#| msgid ""
-#| "Crash signature: %s\n"
-#| "%s\n"
-#| "You can press Ctrl-C to copy this message and paste it elsewhere."
+#, c-format
 msgid "%sYou can press Ctrl-C to copy this message and paste it elsewhere."
 msgstr ""
-"Összeomlás alaírása: %s\n"
-"%s\n"
-"Megnyomhatod a Ctrl-C-t hogy másold ezt az üzenetet és beilleszd valahová."
+"%sMegnyomhatod a Ctrl-C-t hogy másold ezt az üzenetet és beilleszd valahová."
 
 #: components/net/src/NetLibrary.cpp:99
 #, c-format
 msgid "**Timeout info**: game=%s, recv=%s, send=%s\n"
-msgstr ""
+msgstr "**Időtúllépési információ**: game=%s, recv=%s, send=%s\n"
 
 #: components/citizen-devtools/src/ResourceTimeWarnings.cpp:426
 msgid ""
 "A call into the Windows API took too long recently and led to a game stutter."
 msgstr ""
+"A Windows API meghívása túl sokáig tartott, ez a játék akadozásához vezetett."
 
 #: client/launcher/MiniDump.cpp:1235
 #, c-format
@@ -175,14 +175,10 @@ msgstr "%s ellenőrzése"
 #: client/launcher/MiniDump.cpp:1349
 #, c-format
 msgid "Crash signature: %s\n"
-msgstr ""
+msgstr "Összeomlási aláírás: %s\n"
 
 #: client/launcher/GameCache.cpp:794
-#, fuzzy, c-format
-#| msgid ""
-#| "DLC files are missing (or corrupted) in your game installation. Please "
-#| "update or verify the game using Steam or the Social Club launcher and try "
-#| "again. See http://rsg.ms/verify step 4 for more info."
+#, c-format
 msgid ""
 "DLC files are missing (or corrupted) in your game installation. Please "
 "update or verify the game using Steam, Epic Games Launcher or Rockstar Games "
@@ -192,8 +188,12 @@ msgid ""
 "%s"
 msgstr ""
 "A DLC fájlok hiányoznak (vagy sérültek) a játék telepítésében. Kérlek "
-"frissítsd vagy erősitsd meg a fájlokat a Steam vagy a Social Club launcher "
-"használatával. Nézd meg a http://rsg.ms/verify 4. lépését további infokért."
+"frissítsd vagy erősitsd meg a fájlokat a Steam, Epic Games launcher vagy a "
+"Rockstar Games Launcher használatával. Nézd meg a http://rsg.ms/verify 4. "
+"lépését további információért.\n"
+"Jelenleg használt játékkönyvtár: '%s'.\n"
+"Releváns fájlok: \n"
+"%s"
 
 #: client/launcher/ViabilityChecks.cpp:57
 #, c-format
@@ -244,6 +244,8 @@ msgid ""
 "Please close any software you have running in the background (including "
 "Windows apps such as File Explorer or Task Manager)."
 msgstr ""
+"Kérjük, zárjon be minden olyan szoftvert, amely a háttérben fut (beleértve a "
+"Windows-alkalmazásokat, például a Fájlkezelőt vagy a Feladatkezelőt)."
 
 #: client/launcher/ViabilityChecks.cpp:50
 msgid "Please install Windows 7 SP1 or greater, and try again."
@@ -255,7 +257,7 @@ msgstr "Kérlek telepítsd a Platform Frissítést Windows 7-re majd próbáld �
 
 #: client/launcher/MiniDump.cpp:328 client/launcher/MiniDump.cpp:1447
 msgid "Save information"
-msgstr ""
+msgstr "Információ mentése"
 
 #: client/launcher/MiniDump.cpp:1343
 msgid ""
@@ -273,15 +275,15 @@ msgstr "Válaszd ki a mappát amely tartalmazza a Grand Theft Auto V-t"
 
 #: components/ros-patches-five/src/AccountID.cpp:265
 msgid "Signing in with Epic"
-msgstr ""
+msgstr "Bejelentkezés Epic fiókkal"
 
 #: components/ros-patches-five/src/AccountID.cpp:229
 msgid "Signing in with Steam"
-msgstr ""
+msgstr "Bejelentkezés Steam fiókkal"
 
 #: components/citizen-devtools/src/ResourceTimeWarnings.cpp:424
 msgid "Slow system performance detected"
-msgstr ""
+msgstr "Lassú rendszerteljesítmény észlelve"
 
 #: client/launcher/Download.cpp:511
 msgid "Starting IPFS discovery..."
@@ -292,21 +294,17 @@ msgid "The game will exit now."
 msgstr "A játék most kilép."
 
 #: client/launcher/GameCache.cpp:783
-#, fuzzy, c-format
-#| msgid ""
-#| "The local %s game cache is outdated, and needs to be updated. This will "
-#| "copy %.2f MB of data from the local disk, and download %.2f MB of data "
-#| "from the internet.\n"
-#| "Do you wish to continue?"
+#, c-format
 msgid ""
 "The local %s game data is outdated, and needs to be updated. This will copy "
 "%.2f MB of data from the local disk, and download %.2f MB of data from the "
 "internet.\n"
 "Do you wish to continue?"
 msgstr ""
-"A helyi %s játék gyorsítótára elavult és frissíteni kell. Ez át fog másolni "
-"%.2f MB adatot a helyi lemezről, és letölt %.2f MB adatot az internetről.\n"
-"Kivánod folytatni?"
+"A játék helyi %s gyorsítótára elavult és frissíteni kell. Átmásolásra fog "
+"kerülni %.2f MB adat a helyi lemezről, és letöltésre kerül %.2f MB adat az "
+"internetről.\n"
+"Biztosan folytatod?"
 
 #: client/launcher/GameSelect.cpp:329
 #, c-format
@@ -346,8 +344,6 @@ msgid "Updating %s..."
 msgstr "%s frissítése..."
 
 #: client/launcher/GameCache.cpp:1050
-#, fuzzy
-#| msgid "Updating game cache..."
 msgid "Updating game storage..."
 msgstr "Játék gyorsítótár frissítése..."
 

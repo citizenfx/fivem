@@ -184,16 +184,7 @@ static HookFunction hookFunction([]()
 
 		// CInteriorProxy module
 		hook::call(hook::get_pattern("48 8D 8C 24 C0 00 00 00 8B D0 E8", 10), GetCacheIndex); // save
-
-		if (xbr::IsGameBuildOrGreater<2545>())
-		{
-			hook::call(hook::get_pattern("48 8D 8C 24 C0 00 00 00 8B D0 E8", 10), GetCacheIndex); // load
-		
-		}
-		else
-		{
-			hook::call(hook::get_pattern("48 8D 8D 88 00 00 00 8B D0 E8", 9), GetCacheIndex); // load
-		}
+		hook::call(hook::get_pattern("48 8D 8D ? 00 00 00 8B D0 E8 ? ? ? ? 44 8B", 9), GetCacheIndex); // load
 	}
 	
 	{

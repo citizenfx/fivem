@@ -37,7 +37,7 @@ static void EventLog_Add(const std::string& eventName, size_t payloadSize, bool 
 static InitFunction initFunction([]()
 {
 	static bool eventLogEnabled;
-	static ConVar<bool> eventLogVar("netEventLog", ConVar_Archive, false, &eventLogEnabled);
+	static ConVar<bool> eventLogVar("netEventLog", ConVar_Archive | ConVar_UserPref, false, &eventLogEnabled);
 
 	ConHost::OnShouldDrawGui.Connect([](bool* should)
 	{

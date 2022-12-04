@@ -1,6 +1,13 @@
+#if MONO_V2
+using CitizenFX.Core;
+using INativeValue = CitizenFX.Core.Native.Input.Primitive;
+
+namespace CitizenFX.FiveM
+#else
 using CitizenFX.Core.Native;
 
 namespace CitizenFX.Core
+#endif
 {
 	public interface ISpatial
 	{
@@ -20,6 +27,7 @@ namespace CitizenFX.Core
 
 	public abstract class PoolObject : INativeValue, IDeletable
 	{
+#if !MONO_V2
 		protected PoolObject(int handle)
 		{
 			Handle = handle;
@@ -31,6 +39,16 @@ namespace CitizenFX.Core
 			get { return (ulong)Handle; }
 			set { Handle = unchecked((int)value); }
 		}
+#else
+		protected PoolObject(int handle) : base(unchecked((ulong)handle))
+		{ }
+
+		public int Handle
+		{
+			get => unchecked((int)m_nativeValue);
+			protected set => m_nativeValue = unchecked((ulong)value);
+		}
+#endif
 
 		public abstract bool Exists();
 

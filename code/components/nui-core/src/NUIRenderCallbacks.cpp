@@ -16,33 +16,14 @@ extern POINT g_cursorPos;
 extern bool g_isDragging;
 
 extern fwRefContainer<nui::GITexture> g_cursorTexture;
-extern fwEvent<std::chrono::microseconds, std::chrono::microseconds> OnVSync;
-
-#ifdef USE_NUI_ROOTLESS
-extern std::shared_mutex g_nuiFocusStackMutex;
-extern std::list<std::string> g_nuiFocusStack;
-#endif
 
 HCURSOR g_defaultCursor;
 extern HCURSOR InitDefaultCursor();
 
+extern void TranslateWindowRect(const fwRefContainer<NUIWindow>& window, CRect* rect);
+
 static HookFunction initFunction([] ()
 {
-#ifndef IS_RDR3
-	OnVSync.Connect([](std::chrono::microseconds, std::chrono::microseconds)
-	{
-		Instance<NUIWindowManager>::Get()->ForAllWindows([=](fwRefContainer<NUIWindow> window)
-		{
-			if (window->GetPaintType() != NUIPaintTypePostRender)
-			{
-				return;
-			}
-
-			window->SendBeginFrame();
-		});
-	});
-#endif
-
 	g_nuiGi->OnRender.Connect([]()
 	{
 		static auto initCursor = ([]()
@@ -82,15 +63,10 @@ static HookFunction initFunction([] ()
 		});
 
 		std::list<std::string> windowOrder =
-#ifndef USE_NUI_ROOTLESS
 		{
 			"nui_mpMenu",
 			"root",
-		}
-#else
-		g_nuiFocusStack
-#endif
-		;
+		};
 
 		// show on top = render last
 		std::reverse(windowOrder.begin(), windowOrder.end());
@@ -117,6 +93,11 @@ static HookFunction initFunction([] ()
 
 				// the texture is usually upside down (GL->DX coord system), so we draw it as such
 				rr.rectangle = CRect(0, resY, resX, 0);
+
+				if (window->IsFixedSizeWindow())
+				{
+					TranslateWindowRect(window, &rr.rectangle);
+				}
 
 				g_nuiGi->DrawRectangles(1, &rr);
 

@@ -76,6 +76,9 @@ struct GameCacheEntry
 	// delta sets
 	std::vector<DeltaEntry> deltas;
 
+	// overridden local filename
+	std::wstring localFileOverride;
+
 	// constructor
 	GameCacheEntry(const char* filename, const char* checksum, const char* remotePath, size_t localSize, std::initializer_list<DeltaEntry> deltas = {})
 		: filename(filename), checksums({ checksum }), remotePath(remotePath), localSize(localSize), remoteSize(localSize), archivedFile(nullptr), deltas(deltas)
@@ -112,7 +115,7 @@ struct GameCacheEntry
 		return std::string_view{ filename }.find("ros_") == 0 || std::string_view{ filename }.find("launcher/") == 0;
 	}
 
-	std::wstring GetCacheFileName() const
+	std::wstring GetCacheFileName(std::string_view checksum = {}) const
 	{
 		std::string filenameBase = filename;
 
@@ -123,7 +126,12 @@ struct GameCacheEntry
 
 		std::replace(filenameBase.begin(), filenameBase.end(), '/', '+');
 
-		return MakeRelativeCitPath(ToWide(va("data\\game-storage\\%s_%s", filenameBase.c_str(), checksums[0])));
+		return MakeRelativeCitPath(ToWide(va("data\\game-storage\\%s_%s", filenameBase.c_str(), checksum.empty() ? checksums[0] : checksum)));
+	}
+
+	void SetLocalName(const std::wstring& str)
+	{
+		localFileOverride = str;
 	}
 
 	std::wstring GetRemoteBaseName() const
@@ -137,6 +145,11 @@ struct GameCacheEntry
 
 	std::wstring GetLocalFileName() const
 	{
+		if (!localFileOverride.empty())
+		{
+			return localFileOverride;
+		}
+
 		if (_strnicmp(filename, "launcher/", 9) == 0)
 		{
 			static auto mtlPath = ([]()
@@ -189,12 +202,12 @@ GameCacheEntry DeltaEntry::MakeEntry() const
 
 std::string DeltaEntry::GetFileName() const
 {
-	std::basic_string_view<uint8_t> from{
-		fromChecksum.data(), 20
+	std::string_view from{
+		reinterpret_cast<const char*>(fromChecksum.data()), 20
 	};
 
-	std::basic_string_view<uint8_t> to{
-		toChecksum.data(), 20
+	std::string_view to{
+		reinterpret_cast<const char*>(toChecksum.data()), 20
 	};
 
 	return fmt::sprintf("%x_%x", std::hash<decltype(from)>()(from), std::hash<decltype(to)>()(to));
@@ -433,6 +446,21 @@ static constexpr std::array<uint8_t, Size> ParseHexString(const std::string_view
 	}
 
 	return retval;
+}
+
+template<int Size>
+static std::string FormatHexString(const std::array<uint8_t, Size>& arr)
+{
+	static const char charTable[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
+	char stringBuffer[(Size * 2) + 1] = { 0 };
+
+	for (size_t i = 0; i < Size; i++)
+	{
+		stringBuffer[i * 2] = charTable[(arr[i] >> 4) & 0xF];
+		stringBuffer[i * 2 + 1] = charTable[arr[i] & 0xF];
+	}
+
+	return stringBuffer;
 }
 
 DeltaEntry::DeltaEntry(std::string_view fromChecksum, std::string_view toChecksum, const std::string& remoteFile, uint64_t dlSize)
@@ -706,6 +734,18 @@ static bool ShowDownloadNotification(const std::vector<std::pair<GameCacheEntry,
 
 extern void StartIPFS();
 
+static void BumpDownloadCount(const std::shared_ptr<baseDownload>& download, const std::string& key)
+{
+	DWORD count = 0;
+	DWORD countLen = sizeof(count);
+	RegGetValueW(HKEY_CURRENT_USER, L"Software\\CitizenFX\\DownloadCount", ToWide(key).c_str(), RRF_RT_REG_DWORD, NULL, &count, &countLen);
+
+	++count;
+	download->count = count;
+
+	RegSetKeyValueW(HKEY_CURRENT_USER, L"Software\\CitizenFX\\DownloadCount", ToWide(key).c_str(), REG_DWORD, &count, sizeof(count));
+}
+
 #include "ZlibDecompressPlugin.h"
 
 static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
@@ -739,8 +779,41 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 	bool hadIpfsFile = false;
 	std::vector<std::tuple<DeltaEntry, GameCacheEntry>> theseDeltas;
 
-	for (auto& entry : entries)
+	for (const auto& baseEntry : entries)
 	{
+		auto entryPtr = &baseEntry;
+		const auto& deltaEntries = baseEntry.deltas;
+
+		// try to get the smallest local entry
+		GameCacheEntry newEntry("", {}, "", 0);
+
+		{
+			std::vector<std::tuple<int64_t, std::wstring>> presentDeltas;
+
+			for (const auto& deltaEntry : deltaEntries)
+			{
+				auto localName = baseEntry.GetCacheFileName(FormatHexString(deltaEntry.fromChecksum));
+
+				if (GetFileAttributesW(localName.c_str()) != INVALID_FILE_ATTRIBUTES)
+				{
+					presentDeltas.emplace_back(int64_t(deltaEntry.dlSize), localName);
+				}
+			}
+
+			if (!presentDeltas.empty())
+			{
+				std::sort(presentDeltas.begin(), presentDeltas.end());
+
+				newEntry = baseEntry;
+				newEntry.SetLocalName(std::get<1>(presentDeltas[0]));
+
+				entryPtr = &newEntry;
+			}
+		}
+
+		// continue on
+		const auto& entry = *entryPtr;
+
 		// check if the file is outdated
 		std::vector<std::array<uint8_t, 20>> hashes;
 
@@ -748,8 +821,6 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 		{
 			hashes.push_back(ParseHexString<20>(checksum));
 		}
-
-		const auto& deltaEntries = entry.deltas;
 
 		for (auto& deltaEntry : deltaEntries)
 		{
@@ -849,7 +920,8 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 					{
 						if (outHash == deltaEntry.fromChecksum)
 						{
-							CL_QueueDownload(deltaEntry.remoteFile.c_str(), ToNarrow(deltaEntry.GetLocalFileName()).c_str(), deltaEntry.dlSize, compressionAlgo_e::None);
+							auto download = CL_QueueDownload(deltaEntry.remoteFile.c_str(), ToNarrow(deltaEntry.GetLocalFileName()).c_str(), deltaEntry.dlSize, compressionAlgo_e::None);
+							BumpDownloadCount(download, fmt::sprintf("%s_delta_%s", FormatHexString(deltaEntry.toChecksum), FormatHexString(deltaEntry.fromChecksum)));
 
 							notificationEntries.push_back({ deltaEntry.MakeEntry(), false });
 							theseDeltas.emplace_back(deltaEntry, entry);
@@ -875,7 +947,8 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 				}
 
 				// if the file isn't of the original size
-				CL_QueueDownload(remotePath, localFileName.c_str(), entry.remoteSize, ((entry.remoteSize != entry.localSize && !entry.archivedFile) ? compressionAlgo_e::XZ : compressionAlgo_e::None));
+				auto download = CL_QueueDownload(remotePath, localFileName.c_str(), entry.remoteSize, ((entry.remoteSize != entry.localSize && !entry.archivedFile) ? compressionAlgo_e::XZ : compressionAlgo_e::None));
+				BumpDownloadCount(download, entry.checksums[0]);
 
 				if (strncmp(remotePath, "ipfs://", 7) == 0)
 				{
@@ -1352,7 +1425,10 @@ std::map<std::string, std::string> UpdateGameCache()
 	{
 		g_requiredEntries.push_back({ "GTA5.exe", "b9f3960ca0c7c05aab23d3b1d158309bc085fbbe", "https://content.cfx.re/mirrors/patches/2699.0/GTA5.exe", 61111680 });
 		g_requiredEntries.push_back({ "update/update.rpf", "86d88c5ea36e67683a138c0e690c42fe288205fa", "https://content.cfx.re/mirrors/patches/2699.0/update.rpf", 1073854464 });
-		g_requiredEntries.push_back({ "update/update2.rpf", "414a04256bf0b00b78324478508a6beaea1ef5a7", "https://content.cfx.re/mirrors/patches/2699.0/update2.rpf", 324530176 });
+		g_requiredEntries.push_back({ "update/update2.rpf", "414a04256bf0b00b78324478508a6beaea1ef5a7", "https://content.cfx.re/mirrors/patches/2699.0/update2.rpf", 324530176,
+		{
+			{ "9f4805db10e5b3029215216befcbe2ce676a8269", "414a04256bf0b00b78324478508a6beaea1ef5a7", "https://content.cfx.re/mirrors/patches/2699_16_2699_update2.hdiff", 200996724 },
+		} });
 	}
 	else if (IsTargetGameBuild<2612>())
 	{
@@ -1363,6 +1439,7 @@ std::map<std::string, std::string> UpdateGameCache()
 		} });
 		g_requiredEntries.push_back({ "update/update2.rpf", "c993e2d14cce9462fa8ba056f3406d60050a1c92", "https://content.cfx.re/mirrors/patches/2612.1/update2.rpf", 312209408,
 		{
+			{ "9f4805db10e5b3029215216befcbe2ce676a8269", "c993e2d14cce9462fa8ba056f3406d60050a1c92", "https://content.cfx.re/mirrors/patches/2699_16_2612_update2.hdiff", 240637739 },
 			{ "414a04256bf0b00b78324478508a6beaea1ef5a7", "c993e2d14cce9462fa8ba056f3406d60050a1c92", "https://content.cfx.re/mirrors/patches/2699_2612_update2.hdiff", 240637812 },
 			{ "e040bb68272c3518e411ada7fb43a2a45151b070", "c993e2d14cce9462fa8ba056f3406d60050a1c92", "https://content.cfx.re/mirrors/patches/2628_2612_update2.hdiff", 161966401 },
 		} });
@@ -1464,8 +1541,17 @@ std::map<std::string, std::string> UpdateGameCache()
 		g_requiredEntries.push_back({ "update/x64/dlcpacks/mpsum2/dlc.rpf", "5cb63b0939a716e899fa1f514b73a14ca4b58129", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 1245167616 });
 	}
 #elif IS_RDR3
-	// 1311/1355/1436 toggle
-	if (IsTargetGameBuild<1436>())
+	if (IsTargetGameBuild<1491>())
+	{
+		g_requiredEntries.push_back({ "RDR2.exe", "0e5fcd9ca85ca1556820afbd7082225c70344a48", "ipfs://bafybeidi57jjjtenbp7tyiyqkwbsqs7kkl5oipvonvygijaohg7lmaedqu", 89045344 });
+		g_requiredEntries.push_back({ "appdata0_update.rpf", "0cf86c0249299c03b112da8c3be03890ecf37b2a", "ipfs://bafybeiegcuomoefqoknwgnopx4kucknabzbpceqkqpyiovnkygbk5qox6i", 3163615 });
+		g_requiredEntries.push_back({ "shaders_x64.rpf", "c645a9feda39d2110c6224d82eb5a06d28f2f690", "ipfs://bafybeibw6nbijjs3y5jbt6s2xr5neo6c6u7ryqbnbftp3vbtnogwdorvoy", 233917870 });
+		g_requiredEntries.push_back({ "update_1.rpf", "abbd8d5ba9f309e947df3d02f9d86901900f9279", "ipfs://bafybeicpau23p5xeiv24f3wknofzcbzcmzhggohazvnunh3wictpevrhni", 2833730538 });
+		g_requiredEntries.push_back({ "update_2.rpf", "50f7f284ffba0429399450030634b8c7b632a69e", "ipfs://bafybeiaqwolwlyvn6lrs7y57xiwqx4fdqfxgrbo54ofrysecrs5cnc4nou", 152038510 });
+		g_requiredEntries.push_back({ "update_3.rpf", "7495a5f780921e4e9c736531b1b7dc1a822e50e7", "ipfs://bafybeiewhm7gcx7zjfine3lx3mohnx764nwm2sfc6dqqgxtdhyewkesze4", 132370220 });
+		g_requiredEntries.push_back({ "update_4.rpf", "69a13c91d9c09c1f4ce9a33cf5d40a0be4db920c", "ipfs://bafybeieclgpinpfipgqdgrc6dlqovexfdclq6js44ph4ttfn6ng444le5q", 2015025315 });
+	}
+	else if (IsTargetGameBuild<1436>())
 	{
 		g_requiredEntries.push_back({ "RDR2.exe", "f998b4863b11793547c09c226ab884e1e26931f2", "ipfs://bafybeignvzbrnkq35qa2jypvrcbx73qsiknqhhkv57lkwhkmnixsq5bn7e", 89104336 });
 		g_requiredEntries.push_back({ "appdata0_update.rpf", "ba1d727a70fa1c204441c8e3768a1a40b02ef67f", "ipfs://bafybeihevef6cp25uczabosbvna4uc5idifctitzwuhped4l5ntk7ruqoa", 3163551 });
@@ -1495,7 +1581,7 @@ std::map<std::string, std::string> UpdateGameCache()
 		g_requiredEntries.push_back({ "x64/dlcpacks/mp008/dlc.rpf", "66a50ed07293b92466423e1db5eed159551d8c25", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 487150980 });
 	}
 
-	if (IsTargetGameBuild<1436>())
+	if (IsTargetGameBuild<1436>() || IsTargetGameBuild<1491>())
 	{
 		g_requiredEntries.push_back({ "x64/dlcpacks/mp009/dlc.rpf", "7ae2012968709d6d1079c88ee40369f4359778bf", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 494360763 });
 	}

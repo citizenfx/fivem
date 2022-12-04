@@ -34,6 +34,7 @@ misrepresented as being the original software.
 #include "scrThread.h"
 #include "scrEngine.h"
 #include "Hooking.h"
+#include "CrossBuildRuntime.h"
 
 static hook::thiscall_stub<rage::eThreadState(GtaThread*, uint32_t)> gtaThreadTick([] ()
 {
@@ -47,7 +48,7 @@ rage::eThreadState WRAPPER GtaThread::Tick(uint32_t opsToExecute)
 
 static hook::thiscall_stub<void(GtaThread*)> gtaThreadKill([] ()
 {
-	return hook::get_pattern("48 8B D7 FF 50 58 0F BE", -0x3A);
+	return hook::get_pattern("48 8B D7 FF 50 58 0F BE", xbr::IsGameBuildOrGreater<1436>() ? -0x48 : -0x3A);
 });
 
 void GtaThread::Kill()

@@ -69,19 +69,16 @@ class StreamDevice : public Device
 public:
 	virtual THandle Open(const std::string& fileName, bool readOnly) override
 	{
-		auto lock = AcquireMutex();
+		auto ptr = OpenStream(fileName, readOnly);
 
-		THandle handle;
-		auto handleData = AllocateHandle(&handle);
-
-		if (handleData)
+		if (ptr)
 		{
-			auto ptr = OpenStream(fileName, readOnly);
+			THandle handle;
+			auto handleData = AllocateHandle(&handle);
 
-			if (ptr)
+			if (handleData)
 			{
 				handleData->stream = ptr;
-				handleData->valid = true;
 
 				return handle;
 			}
@@ -92,19 +89,16 @@ public:
 
 	virtual THandle Create(const std::string& filename) override
 	{
-		auto lock = AcquireMutex();
+		auto ptr = CreateStream(filename);
 
-		THandle handle;
-		auto handleData = AllocateHandle(&handle);
-
-		if (handleData)
+		if (ptr)
 		{
-			auto ptr = CreateStream(filename);
+			THandle handle;
+			auto handleData = AllocateHandle(&handle);
 
-			if (ptr)
+			if (handleData)
 			{
 				handleData->stream = ptr;
-				handleData->valid = true;
 
 				return handle;
 			}
@@ -244,13 +238,14 @@ protected:
 			if (!m_handles[i].valid)
 			{
 				*handle = i;
+				m_handles[i].valid = true;
 
 				return &m_handles[i];
 			}
 		}
 
 		HandleDataType hd;
-		hd.valid = false;
+		hd.valid = true;
 
 		*handle = m_handles.size();
 
@@ -277,13 +272,13 @@ protected:
 protected:
 	auto AcquireMutex()
 	{
-		return std::move(std::unique_lock<std::recursive_mutex>(m_mutex));
+		return std::move(std::unique_lock(m_mutex));
 	}
 
 private:
 	std::deque<HandleDataType> m_handles;
 
-	std::recursive_mutex m_mutex;
+	std::mutex m_mutex;
 };
 
 template<class StreamType, class BulkType>
@@ -292,19 +287,16 @@ class BulkStreamDevice : public StreamDevice<StreamType, detail::HandleDataWithB
 public:
 	virtual Device::THandle OpenBulk(const std::string& fileName, uint64_t* bulkPtr) override
 	{
-		auto lock = AcquireMutex();
+		auto ptr = OpenBulkStream(fileName, bulkPtr);
 
-		THandle handle;
-		auto handleData = AllocateHandle(&handle);
-
-		if (handleData)
+		if (ptr)
 		{
-			auto ptr = OpenBulkStream(fileName, bulkPtr);
+			THandle handle;
+			auto handleData = AllocateHandle(&handle);
 
-			if (ptr)
+			if (handleData)
 			{
 				handleData->bulkStream = ptr;
-				handleData->valid = true;
 
 				return handle;
 			}

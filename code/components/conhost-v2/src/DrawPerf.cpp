@@ -29,12 +29,8 @@ DLL_EXPORT fwEvent<int, int> OnPushNetMetrics;
 
 #pragma comment(lib, "pdh.lib")
 
-static LUID GetAdapterLUID()
+static auto GetAdapter()
 {
-	LUID adapterLuid;
-	adapterLuid.HighPart = -1;
-	adapterLuid.LowPart = -1;
-
 #ifdef GTA_FIVE
 	static auto device = GetD3D11Device();
 
@@ -44,13 +40,11 @@ static LUID GetAdapterLUID()
 		Microsoft::WRL::ComPtr<IDXGIAdapter> adapter;
 		if (SUCCEEDED(deviceRef->GetAdapter(&adapter)))
 		{
-			DXGI_ADAPTER_DESC adapterDesc;
-			if (SUCCEEDED(adapter->GetDesc(&adapterDesc)))
-			{
-				adapterLuid = adapterDesc.AdapterLuid;
-			}
+			return adapter;
 		}
 	}
+
+	return Microsoft::WRL::ComPtr<IDXGIAdapter>{ nullptr };
 #else
 	Microsoft::WRL::ComPtr<IDXGIFactory1> dxgiFactory;
 	CreateDXGIFactory1(IID_IDXGIFactory1, &dxgiFactory);
@@ -64,16 +58,26 @@ static LUID GetAdapterLUID()
 			 DXGI_ERROR_NOT_FOUND != factory6->EnumAdapterByGpuPreference(adapterIndex, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(adapter.ReleaseAndGetAddressOf()));
 			 adapterIndex++)
 		{
-			DXGI_ADAPTER_DESC desc;
-			if (SUCCEEDED(adapter->GetDesc(&desc)))
-			{
-				adapterLuid = desc.AdapterLuid;
-
-				break;
-			}
+			return adapter;
 		}
 	}
+	return Microsoft::WRL::ComPtr<IDXGIAdapter1>{ nullptr };
 #endif
+}
+
+static LUID GetAdapterLUID()
+{
+	LUID adapterLuid;
+	adapterLuid.HighPart = -1;
+	adapterLuid.LowPart = -1;
+
+	auto adapter = GetAdapter();
+
+	DXGI_ADAPTER_DESC desc;
+	if (SUCCEEDED(adapter->GetDesc(&desc)))
+	{
+		adapterLuid = desc.AdapterLuid;
+	}
 
 	return adapterLuid;
 }
@@ -143,13 +147,17 @@ static InitFunction initFunction([]()
 		{
 			int i = 0;
 			float spacing = ImGui::GetStyle().ItemSpacing.x;
+			float pos = spacing;
 
 			for (auto& metric : metrics)
 			{
+				auto textSize = ImGui::CalcTextSize(metric.c_str());
 				ImGui::Text("%s", metric.c_str());
+				pos += (spacing * 2) + std::max(textSize.x, spacing * 18);
+
 				i++;
 
-				ImGui::SameLine(i * spacing * 20);
+				ImGui::SameLine(pos);
 
 				if (i != metrics.size())
 				{
@@ -368,6 +376,105 @@ static InitFunction initFunction([]()
 					return fmt::sprintf("GPU Temp: %.0f\xC2\xB0"
 										"C",
 					fracTemp);
+				}
+			}
+		}
+
+		return "";
+	});
+
+	addDrawPerfModule("cl_drawGpuMemoryUsage", "GPU Memory", []() -> std::string
+	{
+		if (IsWindows10OrGreater())
+		{
+			static auto adapter = GetAdapter();
+			Microsoft::WRL::ComPtr<IDXGIAdapter3> adapter3;
+
+			if (SUCCEEDED(adapter.As(&adapter3)))
+			{
+				DXGI_ADAPTER_DESC desc;
+				adapter->GetDesc(&desc);
+
+				DXGI_QUERY_VIDEO_MEMORY_INFO vmiLocal;
+				if (SUCCEEDED(adapter3->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &vmiLocal)))
+				{
+					auto humanizeBytes = [](LONGLONG bytes)
+					{
+						return fmt::sprintf("%.1f", bytes / 1024.0 / 1024.0 / 1024.0);
+					};
+
+					static auto adapterLuid = GetAdapterLUID();
+					static uint64_t gpuValue = 0;
+
+					if (adapterLuid.HighPart != -1 && adapterLuid.LowPart != -1)
+					{
+						// GPU usage
+						static PDH_HQUERY gpuQuery;
+						static PDH_HCOUNTER gpuTotal;
+
+						if (!gpuQuery)
+						{
+							PdhOpenQuery(NULL, NULL, &gpuQuery);
+							PdhAddEnglishCounter(gpuQuery, L"\\GPU Adapter Memory(*)\\Dedicated Usage", NULL, &gpuTotal);
+							PdhCollectQueryData(gpuQuery);
+						}
+
+						static DWORD lastGpuQuery;
+
+						if ((timeGetTime() - lastGpuQuery) > 500)
+						{
+							PdhCollectQueryData(gpuQuery);
+
+							DWORD bufferSize = 0;
+							DWORD numItems = 0;
+
+							PdhGetRawCounterArrayW(gpuTotal, &bufferSize, &numItems, NULL);
+
+							std::vector<uint8_t> gpuBuffer(bufferSize);
+							PdhGetRawCounterArrayW(gpuTotal, &bufferSize, &numItems, (PDH_RAW_COUNTER_ITEM_W*)gpuBuffer.data());
+
+							static DWORD counterType = -1;
+
+							if (counterType == -1)
+							{
+								DWORD bufferSize = 0;
+								PdhGetCounterInfoW(gpuTotal, FALSE, &bufferSize, NULL);
+
+								if (bufferSize > 0)
+								{
+									std::vector<uint8_t> gpuBuffer(bufferSize);
+									PdhGetCounterInfoW(gpuTotal, FALSE, &bufferSize, (PDH_COUNTER_INFO_W*)gpuBuffer.data());
+
+									auto e = (PDH_COUNTER_INFO_W*)&gpuBuffer[0];
+									counterType = e->dwType;
+								}
+							}
+
+							if (counterType != -1)
+							{
+								PDH_RAW_COUNTER_ITEM_W* items = (PDH_RAW_COUNTER_ITEM_W*)&gpuBuffer[0];
+
+								auto ref = fmt::sprintf(L"luid_0x%08X_0x%08X", adapterLuid.HighPart, adapterLuid.LowPart);
+
+								PDH_FMT_COUNTERVALUE counterValGpu;
+								gpuValue = 0;
+
+								for (DWORD i = 0; i < numItems; i++)
+								{
+									if (wcsstr(items[i].szName, ref.c_str()))
+									{
+										PdhFormatFromRawValue(counterType, PDH_FMT_LARGE, NULL, &items[i].RawValue, NULL, &counterValGpu);
+
+										gpuValue = counterValGpu.largeValue;
+									}
+								}
+							}
+
+							lastGpuQuery = timeGetTime();
+						}
+					}
+
+					return fmt::sprintf("VRAM: %s/%s/%s GB", humanizeBytes(vmiLocal.CurrentUsage), humanizeBytes(gpuValue), humanizeBytes(desc.DedicatedVideoMemory));
 				}
 			}
 		}

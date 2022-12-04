@@ -4,10 +4,20 @@ namespace fx
 {
 	struct FxPrintListener
 	{
-		static thread_local std::function<void(const std::string_view& cb)> listener;
+		static inline thread_local std::function<void(std::string_view cb)> listener;
+		static inline thread_local std::function<void(ConsoleChannel& channel, std::string_view data)> filter;
 
 		inline FxPrintListener()
 		{
+			auto& printFilterEvent = *console::CoreGetPrintFilterEvent();
+			printFilterEvent.Connect([](ConsoleChannel& channel, const char* data)
+			{
+				if (filter)
+				{
+					filter(channel, data);
+				}
+			});
+
 			console::CoreAddPrintListener([](ConsoleChannel channel, const char* data)
 			{
 				if (listener)
@@ -20,28 +30,44 @@ namespace fx
 
 	extern FxPrintListener printListener;
 
+	struct PrintFilterContext
+	{
+		inline PrintFilterContext(decltype(FxPrintListener::filter)&& fn)
+		{
+			oldFn = std::move(FxPrintListener::filter);
+			FxPrintListener::filter = std::move(fn);
+		}
+
+		inline ~PrintFilterContext()
+		{
+			FxPrintListener::filter = std::move(oldFn);
+		}
+
+	private:
+		decltype(FxPrintListener::filter) oldFn;
+	};
+
 	struct PrintListenerContext
 	{
-		inline PrintListenerContext(const std::function<void(const std::string_view& cb)>& fn)
+		inline PrintListenerContext(std::function<void(std::string_view cb)>&& fn)
 		{
-			oldFn = FxPrintListener::listener;
-
-			FxPrintListener::listener = fn;
+			oldFn = std::move(FxPrintListener::listener);
+			FxPrintListener::listener = std::move(fn);
 		}
 
 		inline ~PrintListenerContext()
 		{
-			FxPrintListener::listener = oldFn;
+			FxPrintListener::listener = std::move(oldFn);
 		}
 
 	private:
-		std::function<void(const std::string_view& cb)> oldFn;
+		std::function<void(std::string_view cb)> oldFn;
 	};
 
 	struct ScopeDestructor
 	{
-		inline ScopeDestructor(const std::function<void()>& fn)
-			: m_fn(fn)
+		inline ScopeDestructor(std::function<void()>&& fn)
+			: m_fn(std::move(fn))
 		{
 
 		}

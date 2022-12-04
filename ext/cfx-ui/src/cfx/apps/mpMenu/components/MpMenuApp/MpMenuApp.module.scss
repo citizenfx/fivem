@@ -1,0 +1,16 @@
+.root {
+  display: flex;
+  flex-direction: column;
+
+  gap: ui.offset('xlarge');
+
+  width: ui.viewport-width();
+  height: ui.viewport-height();
+
+  .outlet {
+    flex-grow: 1;
+
+    // otherwise we'd need to use overflow: hidden everywhere, which is very much not desired
+    height: 1px;
+  }
+}

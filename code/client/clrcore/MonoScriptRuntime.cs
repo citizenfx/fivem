@@ -140,7 +140,9 @@ namespace CitizenFX.Core
 		[SecuritySafeCritical]
 		public int HandlesFile(string filename, IScriptHostWithResourceData metadata)
 		{
-			return (filename.EndsWith(".net.dll") ? 1 : 0);
+			metadata.GetNumResourceMetaData("mono_rt2", out IntPtr enableV2);
+			// enableV2 should be null to be v1, i.e.: this runtime
+			return enableV2 == IntPtr.Zero && filename.EndsWith(".net.dll") ? 1 : 0;
 		}
 
 		[SecuritySafeCritical]

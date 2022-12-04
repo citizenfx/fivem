@@ -15,6 +15,8 @@
 
 #include <concurrent_queue.h>
 
+#include <wrl.h>
+
 enum NUIPaintType
 {
 	NUIPaintTypeDummy,
@@ -73,11 +75,11 @@ private:
 
 	std::map<CefRenderHandler::PaintElementType, fwRefContainer<nui::GITexture>> m_parentTextures;
 
-	ID3D11Texture2D* m_swapTexture;
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> m_swapTexture;
 
-	ID3D11RenderTargetView* m_swapRtv;
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_swapRtv;
 
-	ID3D11ShaderResourceView* m_swapSrv;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_swapSrv;
 
 	std::map<CefRenderHandler::PaintElementType, HANDLE> m_lastParentHandle;
 
@@ -156,8 +158,6 @@ public:
 
 	void UpdateFrame();
 
-	void SendBeginFrame();
-
 	void Invalidate();
 
 	void SetPaintType(NUIPaintType type);
@@ -213,4 +213,6 @@ public:
 	void SetPopupRect(const CefRect& rect);
 
 	void HandlePopupShow(bool show);
+
+	bool IsFixedSizeWindow() const;
 };

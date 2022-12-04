@@ -1,3 +1,5 @@
+#if !MONO_V2
+
 using System;
 using System.IO;
 using System.Drawing;
@@ -213,10 +215,17 @@ namespace CitizenFX.Core.UI
 				return;
 			}
 
+#if MONO_V2
+			float scaleX = Size.X / screenWidth;
+			float scaleY = Size.Y / screenHeight;
+			float positionX = (Position.X + offset.X) / screenWidth;
+			float positionY = (Position.Y + offset.Y) / screenHeight;
+#else
 			float scaleX = Size.Width / screenWidth;
 			float scaleY = Size.Height / screenHeight;
 			float positionX = (Position.X + offset.Width) / screenWidth;
 			float positionY = (Position.Y + offset.Height) / screenHeight;
+#endif
 
 			if (!Centered)
 			{
@@ -228,3 +237,4 @@ namespace CitizenFX.Core.UI
 		}
 	}
 }
+#endif

@@ -24,7 +24,8 @@
 #include <optional>
 #include <queue>
 
-static bool g_vfsInit;
+static bool g_vfsInitStarted;
+static bool g_vfsInitDone;
 
 class RageVFSDeviceAdapter : public rage::fiCustomDevice
 {
@@ -606,7 +607,7 @@ fwRefContainer<vfs::Device> RageVFSManager::GetDevice(const std::string& path)
 {
 	std::unique_lock<std::recursive_mutex> lock(m_managerLock);
 
-	if (!g_vfsInit)
+	if (!g_vfsInitDone)
 	{
 		// logic from server device
 		for (const auto& mount : g_mountCache)
@@ -634,7 +635,10 @@ fwRefContainer<vfs::Device> RageVFSManager::GetDevice(const std::string& path)
 
 			return g_citizenDevice;
 		}
+	}
 
+	if (!g_vfsInitStarted)
+	{
 		if (_strnicmp(path.c_str(), "memory:", 7) == 0)
 		{
 			static fwRefContainer<vfs::Device> memoryDevice = vfs::MakeMemoryDevice();
@@ -689,7 +693,7 @@ void RageVFSManager::Mount(fwRefContainer<vfs::Device> device, const std::string
 		rage::fiDevice::MountGlobal(path.c_str(), adapter, true);
 	};
 
-	if (g_vfsInit)
+	if (g_vfsInitStarted)
 	{
 		run();
 	}
@@ -726,7 +730,7 @@ static InitFunction initFunction([]()
 {
 	rage::fiDevice::OnInitialMount.Connect([]()
 	{
-		g_vfsInit = true;
+		g_vfsInitStarted = true;
 	}, INT32_MIN);
 
 	rage::fiDevice::OnInitialMount.Connect([]()
@@ -742,6 +746,7 @@ static InitFunction initFunction([]()
 		}
 
 		g_mountCache.clear();
+		g_vfsInitDone = true;
 	}, 1);
 
 	Instance<vfs::Manager>::Set(new RageVFSManager());

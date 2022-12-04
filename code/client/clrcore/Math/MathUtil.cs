@@ -64,6 +64,11 @@ namespace CitizenFX.Core
         public const float TwoPi = (float)(2 * Math.PI);
 
         /// <summary>
+        /// Mathematical term for 2π, which is equivalent to 360 degrees.
+        /// </summary>
+        public const float Tau = (float)(2 * Math.PI);
+
+        /// <summary>
         /// A value specifying the approximation of π/2 which is 90 degrees.
         /// </summary>
         public const float PiOverTwo = (float)(Math.PI / 2);

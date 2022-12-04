@@ -98,7 +98,7 @@ void ConsoleCommandManager::InvokeDirect(const std::string& commandName, const P
 			// Don't print to the console if a remote client tried to execute an unknown command.
 			if (executionContext.empty())
 			{
-				console::Printf("cmdsys", "No such command %s.\n", commandName.c_str());	
+				console::Printf("cmd", "No such command %s.\n", commandName.c_str());	
 			}
 			return;
 		}
@@ -113,7 +113,11 @@ void ConsoleCommandManager::InvokeDirect(const std::string& commandName, const P
 	// check privilege
 	if (!seCheckPrivilege(fmt::sprintf("command.%s", commandName)))
 	{
-		console::Printf("cmd", "Access denied for command %s.\n", commandName);
+		if (AccessDeniedEvent(commandName))
+		{
+			console::Printf("cmd", "Access denied for command %s.\n", commandName);
+		}
+
 		return;
 	}
 

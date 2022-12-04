@@ -57,7 +57,14 @@ static InitFunction initFunction([]()
 		}
 		else
 		{
-			context.SetResult(atoi(var->GetValue().c_str()));
+			auto value = var->GetValue();
+
+			if (value == "true")
+			{
+				value = "1";
+			}
+
+			context.SetResult(atoi(value.c_str()));
 		}
 	});
 });

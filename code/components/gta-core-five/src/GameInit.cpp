@@ -18,6 +18,10 @@
 #include <CoreConsole.h>
 #include <scrEngine.h>
 
+#include <KnownFolders.h>
+#include <ShlObj.h>
+#include <Error.h>
+
 #include <CrossBuildRuntime.h>
 
 FiveGameInit g_gameInit;
@@ -222,11 +226,26 @@ void WaitForRlInit()
 {
 	assert(g_isScWaitingForInit);
 
+	auto waitForRlInitStart = GetTickCount64();
+
 	while (g_isScWaitingForInit())
 	{
+		// if stuck waiting for over a minute, likely this errored out
+		if ((GetTickCount64() - waitForRlInitStart) > 60000)
+		{
+			{
+				PWSTR appdataPath = nullptr;
+				SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, nullptr, &appdataPath);
+
+				_wunlink(va(L"%s\\CitizenFX\\ros_id%s.dat", appdataPath, IsCL2() ? L"CL2" : L""));
+			}
+
+			FatalError("Took too long in WaitForRlInit\nWaiting for R* SC SDK initialization took too long. Please restart your game and try again.\n\nIf this issue reoccurs, there might be a problem with cached entitlement tickets.");
+		}
+
 		RunRlInitServicing();
 
-		Sleep(0);
+		Sleep(50);
 	}
 }
 

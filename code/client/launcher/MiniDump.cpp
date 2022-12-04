@@ -231,6 +231,15 @@ static std::map<std::string, std::string> load_crashometry()
 				fread(&data[0], 1, keyLen, f);
 				fread(&data[keyLen + 1], 1, valLen, f);
 
+				// for 'did_render_mrt' we will want to only use the *first* entry
+				if (strcmp(&data[0], "did_render_mrt") == 0)
+				{
+					if (rv.find("did_render_mrt") != rv.end())
+					{
+						continue;
+					}
+				}
+
 				rv[&data[0]] = &data[keyLen + 1];
 			}
 		}
@@ -268,8 +277,6 @@ static void ConvertCrashometry(const TMap& map, json& data)
 static void add_crashometry(json& data)
 {
 	auto map = load_crashometry();
-	_wunlink(MakeRelativeCitPath(L"data\\cache\\crashometry").c_str());
-
 	ConvertCrashometry<true>(map, data);
 }
 
@@ -337,8 +344,10 @@ static void OverloadCrashData(TASKDIALOGCONFIG* config)
 
 		if (!pickup.is_null())
 		{
+			auto pickupMessage = pickup["message"].get<std::string>();
+
 			static std::wstring errTitle = fmt::sprintf(PRODUCT_NAME L" has encountered an error");
-			static std::wstring errDescription = ToWide(ParseLinks(pickup["message"].get<std::string>()));
+			static std::wstring errDescription = ToWide(ParseLinks(pickupMessage));
 
 			if (errDescription.find(L'\n') != std::string::npos)
 			{
@@ -350,6 +359,12 @@ static void OverloadCrashData(TASKDIALOGCONFIG* config)
 				{
 					errDescription = errDescription.substr(msgStart);
 				}
+			}
+			else if (ParseLinks(pickupMessage) == pickupMessage)
+			{
+				// no newlines -> show a distinct enough error anyway (if no links)
+				errTitle = errDescription;
+				errDescription = L" ";
 			}
 
 			config->pszMainInstruction = errTitle.c_str();
@@ -778,6 +793,7 @@ extern void ParseSymbolicCrash(nlohmann::json& crash, std::string* signature, st
 void InitializeDumpServer(int inheritedHandle, int parentPid)
 {
 	static bool g_running = true;
+	static bool g_hasTriggeredTermination = false;
 
 	// needed to initialize logging(!)
 	trace("DumpServer is active and waiting.\n");
@@ -838,6 +854,12 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 			void Process(const ClientInfo* info, const std::wstring* filePathRef, HANDLE crashReport)
 			{
+				if (g_hasTriggeredTermination)
+				{
+					SetEvent(hDone);
+					return;
+				}
+
 				auto filePathData = *filePathRef;
 				auto filePath = &filePathData;
 
@@ -1279,6 +1301,12 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 					SetEvent(hDone);
 				}
 
+				// if this is a fatal crash, we should *not* try to process any further crashes
+				if (shouldTerminate)
+				{
+					g_hasTriggeredTermination = true;
+				}
+
 				windowTitle = PRODUCT_NAME;
 				mainInstruction = PRODUCT_NAME L" has stopped working";
 
@@ -1548,7 +1576,8 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 				OverloadCrashData(&taskDialogConfig);
 
 				// don't upload the 'launched directly' error
-				if (taskDialogConfig.pszContent && wcsstr(taskDialogConfig.pszContent, L"This application should be launched directly from the shell or a web browser."))
+				if ((taskDialogConfig.pszContent && wcsstr(taskDialogConfig.pszContent, L"This application should be launched directly from the shell or a web browser.")) ||
+					(taskDialogConfig.pszMainInstruction && wcsstr(taskDialogConfig.pszMainInstruction, L"This application should be launched directly from the shell or a web browser.")))
 				{
 					shouldUpload = false;
 				}

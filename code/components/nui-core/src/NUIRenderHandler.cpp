@@ -66,6 +66,14 @@ void NUIRenderHandler::OnAcceleratedPaint(CefRefPtr<CefBrowser> browser, PaintEl
 	}
 }
 
+void NUIRenderHandler::OnAcceleratedPaint2(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, void* shared_handle, bool new_texture)
+{
+	if (m_owner->GetWindowValid())
+	{
+		m_owner->GetWindow()->UpdateSharedResource(shared_handle, -1, dirtyRects, type);
+	}
+}
+
 void NUIRenderHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, const void* buffer, int width, int height)
 {
 	if (m_owner->GetWindowValid() && m_owner->GetWindow()->GetRenderBuffer())

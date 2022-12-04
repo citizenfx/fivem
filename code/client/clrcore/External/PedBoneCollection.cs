@@ -1,9 +1,14 @@
 using System.Collections;
 using System.Collections.Generic;
+#if MONO_V2
+using API = CitizenFX.FiveM.Native.Natives;
+
+namespace CitizenFX.FiveM
+#else
 using CitizenFX.Core.Native;
-using System.Security;
 
 namespace CitizenFX.Core
+#endif
 {
 	public class PedBoneCollection : EntityBoneCollection, IEnumerable<PedBone>
 	{

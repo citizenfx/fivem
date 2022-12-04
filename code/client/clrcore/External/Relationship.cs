@@ -1,4 +1,8 @@
+#if MONO_V2
+namespace CitizenFX.FiveM
+#else
 namespace CitizenFX.Core
+#endif
 {
 	public enum Relationship
 	{

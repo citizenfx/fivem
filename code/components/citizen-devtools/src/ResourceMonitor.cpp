@@ -98,7 +98,7 @@ struct ResourceMonitorImpl : public ResourceMonitorImplBase
 	std::shared_ptr<uint64_t> tickIndex;
 
 	std::mutex metricsMutex;
-	tbb::concurrent_unordered_map<std::string, std::shared_ptr<ResourceMetrics>> metrics;
+	tbb::concurrent_unordered_map<Resource*, std::shared_ptr<ResourceMetrics>> metrics;
 	TickMetrics<64> scriptFrameMetrics;
 	TickMetrics<64> gameFrameMetrics;
 
@@ -115,18 +115,15 @@ struct ResourceMonitorImpl : public ResourceMonitorImplBase
 	// a stack of nested resource activations
 	std::deque<fx::Resource*> resStack;
 
-	// a reference-counted list of nested stopwatches to stop
-	std::unordered_multiset<fx::Resource*> resSet;
-
 	// current resource stopwatches
-	tbb::concurrent_unordered_map<fx::Resource*, std::shared_ptr<Stopwatch>> resWatches;
+	tbb::concurrent_unordered_map<fx::Resource*, std::pair<std::atomic<size_t>, Stopwatch>> resWatches;
 
 	std::chrono::microseconds scriptBeginTime{ 0 };
 
 	auto GetMetricFor(const fwRefContainer<fx::Resource>& resource)
 	{
 		std::unique_lock _(metricsMutex);
-		return metrics[resource->GetName()];
+		return metrics[resource.GetRef()];
 	}
 
 	void RecalculateResourceDatas();
@@ -266,66 +263,50 @@ static size_t GetStreamingUsageForThread(GtaThread* thread)
 
 void fx::ResourceMonitorImpl::RecalculateResourceDatas()
 {
-	resourceDatas.clear();
+	resourceDatas.clear(); // datas, plural form of the plural form of datum, hmmm...
 
-	auto avgScriptTime = scriptFrameMetrics.GetAverage();
-	avgScriptMs = (avgScriptTime.count() / 1000.0);
+	// do division by multiplication
+	const double inverse1000 = 1.0 / 1000.0;
 
-	auto avgFrameTime = gameFrameMetrics.GetAverage();
-	avgFrameMs = (avgFrameTime.count() / 1000.0);
+	avgScriptMs = scriptFrameMetrics.GetAverage().count() * inverse1000;
+	avgFrameMs = gameFrameMetrics.GetAverage().count() * inverse1000;
 
-	std::map<std::string, fwRefContainer<fx::Resource>> resourceList;
+	double avgScriptMsInverse = avgScriptMs != 0.0 ? 1.0 / avgScriptMs : 0.0;
+	double avgFrameMsInverse = avgFrameMs != 0.0 ? 1.0 / avgFrameMs : 0.0;
 
+	// TODO: get a *direct* copy of the resources vector
+	std::vector<fwRefContainer<fx::Resource>> resourceList;
 	fx::ResourceManager::GetCurrent()->ForAllResources([&resourceList](fwRefContainer<fx::Resource> resource)
 	{
-		resourceList.insert({ resource->GetName(), resource });
+		resourceList.emplace_back(resource);
 	});
 
-	if (resourceList.size() < 2)
+	if (resourceList.size() >= 2)
 	{
-		return;
-	}
-
-	for (const auto& [resourceName, resource] : resourceList)
-	{
-		auto metric = metrics.find(resourceName);
-		double avgTickMs = -1.0;
-		double avgTotalMs = -1.0;
-		double avgFrameFraction = -1.0f;
-		int64_t memorySize = -1;
-		int64_t streamingSize = -1;
-
-		if (metric != metrics.end() && metric->second)
+		for (const auto& resource : resourceList)
 		{
-			const auto& [key, valueRef] = *metric;
-			const auto& value = *valueRef;
-
-			auto avgTickTime = value.ticks->GetAverage();
-			avgTickMs = (avgTickTime.count() / 1000.0);
-
-			auto avgTotalTime = value.totalTicks->GetAverage();
-			avgTotalMs = (avgTotalTime.count() / 1000.0);
-
-			if (avgScriptMs != 0.0f)
+			auto metric = metrics.find(resource.GetRef());
+			if (metric != metrics.end() && metric->second)
 			{
-				avgFrameFraction = (avgTickMs / avgScriptMs);
-			}
+				const auto& value = *metric->second;
 
-			if (value.memorySize != 0)
-			{
-				memorySize = value.memorySize;
-			}
+				double avgTickMs = value.ticks->GetAverage().count() * inverse1000;
+				double avgTotalMs = value.totalTicks->GetAverage().count() * inverse1000;
+				double avgFrameFraction = avgTickMs * avgScriptMsInverse;
 
+				int64_t memorySize = value.memorySize != 0 ? value.memorySize : -1;
+				int64_t streamingSize = -1;
 #ifdef GTA_FIVE
-			auto streamingUsage = GetStreamingUsageForThread(value.gtaThread);
+				auto streamingUsage = GetStreamingUsageForThread(value.gtaThread);
 
-			if (streamingUsage > 0)
-			{
-				streamingSize = streamingUsage;
-			}
+				if (streamingUsage > 0)
+				{
+					streamingSize = streamingUsage;
+				}
 #endif
 
-			resourceDatas.emplace_back(resource->GetName(), avgTickMs, avgFrameFraction, memorySize, streamingSize, value.ticks, avgTotalMs, value.totalTicks);
+				resourceDatas.emplace_back(resource->GetName(), avgTickMs, avgFrameFraction, memorySize, streamingSize, value.ticks, avgTotalMs, value.totalTicks);
+			}
 		}
 	}
 }
@@ -409,6 +390,9 @@ namespace fx
 
 		auto setupResource = [this](fx::Resource* resource)
 		{
+			// add resource
+			(void)GetImpl()->resWatches[resource];
+
 			auto& resEvents = GetImpl()->resEvents[resource];
 			
 			{
@@ -424,11 +408,11 @@ namespace fx
 
 					{
 						std::unique_lock _(impl->metricsMutex);
-						impl->metrics[resource->GetName()] = {};
+						impl->metrics[resource] = {};
 					}
 
 					impl->resEvents.erase(resource);
-					impl->resWatches[resource] = {};
+					(void)impl->resWatches[resource];
 
 					*defuser = true;
 				});
@@ -443,7 +427,7 @@ namespace fx
 				m->totalTicks->Reset();
 
 				std::unique_lock _(impl->metricsMutex);
-				impl->metrics[resource->GetName()] = std::move(m);
+				impl->metrics[resource] = std::move(m);
 			};
 
 			resEvents.emplace_back(resource->OnStart, [processStart]()
@@ -469,8 +453,6 @@ namespace fx
 			9999);
 #endif
 
-			GetImpl()->resWatches[resource] = std::make_shared<Stopwatch>();
-
 			resEvents.emplace_back(resource->OnActivate, [this, resource]()
 			{
 				auto impl = GetImpl();
@@ -480,9 +462,10 @@ namespace fx
 				{
 					auto topResource = impl->resStack.front();
 
-					if (auto watch = impl->resWatches[topResource])
+					auto watch = impl->resWatches.find(topResource);
+					if (watch != impl->resWatches.end())
 					{
-						watch->Pause();
+						watch->second.second.Pause();
 					}
 				}
 
@@ -490,15 +473,11 @@ namespace fx
 				impl->resStack.push_front(resource);
 
 				// check if it was already in, if not, start the stopwatch
-				if (impl->resSet.find(resource) == impl->resSet.end())
+				auto& watch = impl->resWatches[resource];
+				if (++watch.first == 1)
 				{
-					if (auto watch = impl->resWatches[resource])
-					{
-						watch->Start();
-					}
+					watch.second.Start();
 				}
-				
-				impl->resSet.insert(resource);
 			},
 			-99999999);
 
@@ -509,7 +488,7 @@ namespace fx
 				// broken? (double pop)
 				if (impl->resStack.empty())
 				{
-					impl->resSet.clear();
+					//impl->resSet.clear();
 					return;
 				}
 
@@ -520,30 +499,23 @@ namespace fx
 				if (!impl->resStack.empty())
 				{
 					auto topResource = impl->resStack.front();
-
-					if (auto watch = impl->resWatches[topResource])
-					{
-						watch->Resume();
-					}
+					
+					auto& watch = impl->resWatches[topResource];
+					watch.second.Resume();
 				}
 
 				// remove one of us from the set
-				if (auto it = impl->resSet.find(resource); it != impl->resSet.end())
-				{
-					impl->resSet.erase(it);
-				}
+				auto& watch = impl->resWatches[resource];
+				size_t count = --watch.first;
 
 				// if we're gone, stop and append
-				if (impl->resSet.find(resource) == impl->resSet.end())
+				if (count == 0)
 				{
-					if (auto watch = impl->resWatches[resource])
-					{
-						watch->Stop();
+					watch.second.Stop();
 
-						auto& pending = m_pendingMetrics[resource];
-						std::get<0>(pending) += watch->GetSelf();
-						std::get<1>(pending) += watch->GetTotal();
-					}
+					auto& pending = m_pendingMetrics[resource];
+					std::get<0>(pending) += watch.second.GetSelf();
+					std::get<1>(pending) += watch.second.GetTotal();
 				}
 			},
 			99999999);
@@ -553,7 +525,7 @@ namespace fx
 				auto impl = GetImpl();
 
 				std::unique_lock _(impl->metricsMutex);
-				impl->metrics[resource->GetName()] = {};
+				impl->metrics[resource] = {};
 			});
 
 #if __has_include(<scrThread.h>) && __has_include(<ResourceGameLifeTimeEvents.h>)
@@ -614,22 +586,24 @@ namespace fx
 			bool showWarning = false;
 			std::string warningText;
 
-			for (const auto& [key, metricRef] : GetImpl()->metrics)
+			for (const auto& [resource, metricRef] : GetImpl()->metrics)
 			{
-				if (!metricRef)
+				if (metricRef)
 				{
-					continue;
-				}
+					auto avgTickTime = metricRef->ticks->GetAverage();
 
-				auto& metric = *metricRef;
-				auto avgTickTime = metric.ticks->GetAverage();
+					if (avgTickTime > 6ms)
+					{
+						const double targetFPS = 60.0;
+						const double fixedDeltaTime = 1000.0 / targetFPS;
+						const double fixedDeltaTimeInverse = 1.0 / fixedDeltaTime;
 
-				if (avgTickTime > 6ms)
-				{
-					float fpsCount = (60 - (1000.f / (16.67f + (avgTickTime.count() / 1000.0))));
+						double elapsedTimeMs = avgTickTime.count() * (1.0 / 1000.0);
+						float elapsedFPS = elapsedTimeMs * fixedDeltaTimeInverse;
 
-					showWarning = true;
-					warningText += fmt::sprintf("%s is taking %.2f ms (or -%.1f FPS @ 60 Hz)\n", key, avgTickTime.count() / 1000.0, fpsCount);
+						showWarning = true;
+						warningText += fmt::sprintf("%s is taking %.2f ms (or -%.1f FPS @ 60 Hz)\n", resource->GetName(), elapsedTimeMs, elapsedFPS);
+					}
 				}
 			}
 
