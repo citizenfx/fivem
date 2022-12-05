@@ -9,7 +9,7 @@
 // Copyright 2018 The Chromium Authors
 // see Chromium license (https://chromium.googlesource.com/chromium/src/+/db6fbd6a5ce779935f75ce85008c02aeefac47c4/LICENSE)
 #define COMPONENT_EXPORT(component) \
-	COMPONENT_MACRO_CONDITIONAL_(COMPILING_##component##, \
+	COMPONENT_MACRO_CONDITIONAL_(COMPILING_##component, \
 	DLL_EXPORT, \
 	DLL_IMPORT)
 
