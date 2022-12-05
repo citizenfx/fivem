@@ -3,6 +3,7 @@
 
 #include <EntitySystem.h>
 
+#include "ScriptWarnings.h"
 #include "scrEngine.h"
 
 #include <boost/type_index.hpp>
@@ -15,21 +16,6 @@ struct netObject
 	bool isRemote;
 	char pad3[4];
 	fwEntity* gameObject;
-};
-
-class CPickup : public fwEntity
-{
-
-};
-
-class CObject : public fwEntity
-{
-
-};
-
-class CPed : public fwEntity
-{
-
 };
 
 template<typename T>
@@ -110,7 +96,7 @@ static fwEntity* GetNetworkObject(void* scriptHandler, int objectId)
 
 	if (!object)
 	{
-		trace(__FUNCTION__ ": no object by ID %d\n", objectId);
+		fx::scripting::Warningf("entity", __FUNCTION__ ": no object by ID %d\n", objectId);
 		return nullptr;
 	}
 
@@ -118,7 +104,7 @@ static fwEntity* GetNetworkObject(void* scriptHandler, int objectId)
 
 	if (!gameObject)
 	{
-		trace(__FUNCTION__ ": no game object for ID %d\n", objectId);
+		fx::scripting::Warningf("entity", __FUNCTION__ ": no game object for ID %d\n", objectId);
 		return nullptr;
 	}
 
@@ -137,11 +123,12 @@ static HookFunction hookFunction([] ()
 	// get network ID by entity
 	rage::scrEngine::NativeHandler getNetID = [](rage::scrNativeCallContext* context)
 	{
-		auto entity = getScriptEntity(context->GetArgument<int>(0));
+		auto entityID = context->GetArgument<int>(0);
+		auto entity = getScriptEntity(entityID);
 
 		if (!entity)
 		{
-			trace("NETWORK_GET_NETWORK_ID_FROM_ENTITY: no such entity\n");
+			fx::scripting::Warningf("entity", "NETWORK_GET_NETWORK_ID_FROM_ENTITY: no such entity (script ID %d)\n", entityID);
 			return;
 		}
 
@@ -149,7 +136,8 @@ static HookFunction hookFunction([] ()
 
 		if (!netObject)
 		{
-			trace("NETWORK_GET_NETWORK_ID_FROM_ENTITY: no net object for entity\n");
+			// #TODO: string representation of the entity?
+			fx::scripting::Warningf("entity", "NETWORK_GET_NETWORK_ID_FROM_ENTITY: no net object for entity (script id %d)\n", entityID);
 			return;
 		}
 

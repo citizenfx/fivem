@@ -216,6 +216,25 @@ static int Lua_Print(lua_State* L)
 	ScriptTrace("\n");
 	return 0;
 }
+
+#if LUA_VERSION_NUM >= 504
+static void Lua_Warn(void* ud, const char* msg, int tocont)
+{
+	static bool cont = false;
+
+	if (!cont)
+	{
+		bool newline = (msg[0] != '\0' && msg[strlen(msg) - 1] != '\n');
+		console::PrintWarning(fmt::sprintf("script:%s:warning", LuaScriptRuntime::GetCurrent()->GetResourceName()), "%s%s", msg, newline ? "\n" : "");
+	}
+	else
+	{
+		console::Printf(fmt::sprintf("script:%s:warning", LuaScriptRuntime::GetCurrent()->GetResourceName()), "%s", msg);
+	}
+
+	cont = (tocont) ? true : false;
+}
+#endif
 }
 
 /// <summary>
@@ -1384,6 +1403,10 @@ result_t LuaScriptRuntime::Create(IScriptHost* scriptHost)
 	lua_pushcfunction(m_state, Lua_Require);
 	lua_setglobal(m_state, "require");
 
+#if LUA_VERSION_NUM >= 504
+	lua_setwarnf(m_state, Lua_Warn, nullptr);
+#endif
+
 	return FX_S_OK;
 }
 
@@ -1751,6 +1774,17 @@ result_t LuaScriptRuntime::SetDebugEventListener(IDebugEventListener* listener)
 	m_debugListener = listener;
 
 	return FX_S_OK;
+}
+
+result_t LuaScriptRuntime::EmitWarning(char* channel, char* message)
+{
+#if LUA_VERSION_NUM >= 504
+	lua_warning(m_state, va("[%s] %s", channel, message), 0);
+	return FX_S_OK;
+#else
+	// Lua < 5.4 does not support warnings
+	return FX_E_NOTIMPL;
+#endif
 }
 
 void* LuaScriptRuntime::GetParentObject()
