@@ -4302,26 +4302,20 @@ static bool PopulationPedCheck(int num)
 	return true;
 }
 #elif IS_RDR3
-bool(*g_origDoesLocalPlayerOwnWaterGrid)(int unk);
+bool (*g_origShouldSkipWaterPopulationSpawn)(float* position, float a2, char* a3);
 
-bool DoesLocalPlayerOwnWaterGrid(int unk)
+bool ShouldSkipWaterPopulationSpawn(float* position, float a2, char* a3)
 {
-	if (!icgi->OneSyncEnabled)
+	auto result = g_origShouldSkipWaterPopulationSpawn(position, a2, a3);
+
+	// if the original function allowed to spawn water population, check for world grid ownership.
+	if (icgi->OneSyncEnabled && !result)
 	{
-		return g_origDoesLocalPlayerOwnWaterGrid(unk);
+		result = !DoesLocalPlayerOwnWorldGrid(position);
 	}
 
-	auto localPed = (fwEntity*)getPlayerPedForNetPlayer(g_playerMgr->localPlayer);
-
-	if (localPed)
-	{
-		auto position = (float*)&localPed->GetPosition();
-		return DoesLocalPlayerOwnWorldGrid(position);
-	}
-
-	return false;
+	return result;
 }
-
 #endif
 
 static HookFunction hookFunctionWorldGrid([]()
@@ -4362,7 +4356,7 @@ static HookFunction hookFunctionWorldGrid([]()
 	MH_CreateHook(hook::get_pattern("44 8A 40 ? 41 80 F8 FF 0F", -0x1B), DoesLocalPlayerOwnWorldGrid, (void**)&g_origDoesLocalPlayerOwnWorldGrid);
 #elif IS_RDR3
 	MH_CreateHook(hook::get_pattern("44 0F B6 C0 F3 0F 5F C3 41 0F B6 04 10", -0x35), DoesLocalPlayerOwnWorldGrid, (void**)&g_origDoesLocalPlayerOwnWorldGrid);
-	MH_CreateHook(hook::get_pattern("83 A4 24 ? ? ? ? 00 48 8B D8 85 FF 74", -0x25), DoesLocalPlayerOwnWaterGrid, (void**)&g_origDoesLocalPlayerOwnWaterGrid);
+	MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? 84 C0 74 11 B9")), ShouldSkipWaterPopulationSpawn, (void**)&g_origShouldSkipWaterPopulationSpawn);
 #endif
 
 	MH_EnableHook(MH_ALL_HOOKS);
