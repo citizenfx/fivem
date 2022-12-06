@@ -165,8 +165,6 @@ const GAME_GAME_SETTINGS = new Map<string, ISetting.AnySetting>([
     description: $L('#Settings_InProcessGpuDesc'),
 
     ...convarAccessorsBoolean('nui_useInProcessGpu'),
-
-    visible: onlyForFiveM,
   }],
   ['streamingProgress', {
     type: 'checkbox',
