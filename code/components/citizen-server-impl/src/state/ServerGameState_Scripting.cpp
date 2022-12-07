@@ -1717,6 +1717,37 @@ static void Init()
 
 		context.SetResult(entity);
 	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_FROM_STATE_BAG_NAME", [](fx::ScriptContext& context)
+	{
+		// get the current resource manager
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		// get the owning server instance
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		// get the server's client registry
+		auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
+
+		auto player = 0;
+
+		// get the state bag name
+		std::string bagName = context.CheckArgument<const char*>(0);
+
+		// we only want to handle conversion for players
+		if (bagName.find("player:") == 0)
+		{
+			int playerNetId = atoi(bagName.substr(7).c_str());
+
+			// We don't want to return the player if they don't exist
+			if (auto client = clientRegistry->GetClientByNetID(playerNetId))
+			{
+				player = client->GetNetId();
+			};
+		}
+
+		context.SetResult(player);
+	});
 }
 
 static InitFunction initFunction([]()
