@@ -378,6 +378,9 @@ static void Init()
 		case fx::sync::NetObjEntityType::Object:
 		case fx::sync::NetObjEntityType::Door:
 		case fx::sync::NetObjEntityType::Pickup:
+#ifdef STATE_RDR3
+		case fx::sync::NetObjEntityType::WorldProjectile:
+#endif
 			return 3;
 		default:
 			return 0;
@@ -1606,6 +1609,7 @@ static void Init()
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_PED_SPECIFIC_TASK_TYPE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
+#ifdef STATE_FIVE
 		auto tree = entity->syncTree->GetPedTaskTree();
 		if (!tree)
 		{
@@ -1620,6 +1624,9 @@ static void Init()
 
 		auto& task = tree->tasks[index];
 		return static_cast<int>(task.type);
+#endif
+
+		return 0;
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_SPEED", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)

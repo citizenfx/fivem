@@ -5331,6 +5331,732 @@ struct CNetworkPtFXEvent
 };
 #endif
 
+#ifdef STATE_RDR3
+struct CExplosionEvent
+{
+	void Parse(rl::MessageBuffer& buffer);
+
+	inline std::string GetName()
+	{
+		return "explosionEvent";
+	}
+
+	uint16_t f218;
+	uint16_t f240;
+	int ownerNetId;
+	uint16_t f246;
+	int explosionType;
+	float damageScale;
+
+	float posX;
+	float posY;
+	float posZ;
+
+	bool f274;
+	uint16_t f120;
+	float cameraShake;
+
+	bool isAudible;
+	bool f221;
+	bool isInvisible;
+	bool f142;
+	bool f273;
+
+	uint32_t unkHash1436;
+	uint16_t attachEntityId;
+	uint8_t f244;
+
+	float unkX;
+	float unkY;
+	float unkZ;
+
+	bool f222;
+	bool f223;
+	bool f225;
+	bool f226;
+	bool f276;
+
+	uint32_t f180;
+	uint32_t f184;
+
+	float posX256;
+	float posY256;
+	float posZ256;
+
+	bool f272;
+	uint16_t f250;
+	uint8_t f248;
+
+	MSGPACK_DEFINE_MAP(f218, f240, ownerNetId, f246, explosionType, damageScale, posX, posY, posZ, f274, f120, cameraShake, isAudible, f221, isInvisible, f142, f273, unkHash1436, attachEntityId, f244, unkX, unkY, unkZ, f223, f225, f226, f276, f180, f184, posX256, posY256, posZ256, f272, f250, f248);
+};
+
+void CExplosionEvent::Parse(rl::MessageBuffer& buffer)
+{
+	f218 = buffer.Read<uint16_t>(16);
+	f240 = buffer.Read<uint16_t>(13);
+	ownerNetId = buffer.Read<uint16_t>(13);
+	f246 = buffer.Read<uint16_t>(13);
+	explosionType = buffer.ReadSigned<int>(7);
+	damageScale = buffer.Read<int>(8) / 255.0f;
+
+	posX = buffer.ReadSignedFloat(22, 27648.0f);
+	posY = buffer.ReadSignedFloat(22, 27648.0f);
+	posZ = buffer.ReadFloat(22, 4416.0f) - 1700.0f;
+
+	f274 = buffer.ReadBit();
+	f120 = buffer.Read<uint16_t>(16);
+	cameraShake = buffer.Read<int>(8) / 127.0f;
+
+	isAudible = buffer.ReadBit();
+	f221 = buffer.ReadBit();
+	isInvisible = buffer.ReadBit();
+	f142 = buffer.ReadBit();
+	f273 = buffer.ReadBit();
+
+	unkHash1436 = Is1436() ? buffer.Read<uint32_t>(32) : 0;
+
+	attachEntityId = buffer.Read<uint16_t>(13);
+	f244 = buffer.Read<uint8_t>(5); // 1311+
+
+	unkX = buffer.ReadSignedFloat(16, 1.1f);
+	unkY = buffer.ReadSignedFloat(16, 1.1f);
+	unkZ = buffer.ReadSignedFloat(16, 1.1f);
+
+	f222 = buffer.ReadBit();
+	f223 = buffer.ReadBit();
+	f225 = buffer.ReadBit();
+	f226 = buffer.ReadBit();
+	f276 = buffer.ReadBit();
+
+	f180 = buffer.ReadBit() ? buffer.Read<uint32_t>(32) : 0;
+	f184 = buffer.ReadBit() ? buffer.Read<uint32_t>(32) : 0;
+
+	if (f274)
+	{
+		posX256 = buffer.ReadSignedFloat(31, 27648.0f);
+		posY256 = buffer.ReadSignedFloat(31, 27648.0f);
+		posZ256 = buffer.ReadFloat(31, 4416.0f) - 1700.0f;
+	}
+	else
+	{
+		posX256 = 0;
+		posY256 = 0;
+		posZ256 = 0;
+	}
+
+	f272 = buffer.ReadBit();
+	if (f272)
+	{
+		f250 = buffer.Read<uint16_t>(16); // network id
+
+		if (f250)
+		{
+			f248 = buffer.Read<uint8_t>(8); // player index
+		}
+	}
+}
+
+struct CWeaponDamageEvent
+{
+	void Parse(rl::MessageBuffer& buffer);
+
+	void SetTargetPlayers(fx::ServerGameState* sgs, const std::vector<uint16_t>& targetPlayers);
+
+	inline std::string GetName()
+	{
+		return "weaponDamageEvent";
+	}
+
+	uint8_t damageType;
+	uint32_t weaponType; // weaponHash
+	uint32_t f92;
+
+	bool overrideDefaultDamage;
+	bool hitEntityWeapon;
+	bool hitWeaponAmmoAttachment;
+	bool silenced;
+	uint8_t f201;
+
+	uint64_t damageFlags;
+	bool hasActionResult;
+
+	uint32_t actionResultName;
+	uint16_t actionResultId;
+	uint32_t f124;
+	uint32_t f120;
+	bool f136;
+	uint32_t f132;
+
+	float weaponDamage;
+	float f100;
+
+	bool isNetTargetPos;
+
+	float localPosX;
+	float localPosY;
+	float localPosZ;
+
+	uint32_t damageTime;
+	uint8_t f184;
+	uint16_t f156;
+
+	bool hasVehicleData;
+	uint16_t parentGlobalId; // Source entity?
+	uint16_t hitGlobalId; // Target entity?
+
+	uint32_t f140;
+	uint32_t f144;
+	uint8_t f148;
+
+	std::vector<uint16_t> hitGlobalIds;
+
+	uint8_t tyreIndex;
+	uint8_t suspensionIndex;
+
+	uint32_t f152;
+	bool f202;
+	bool f203;
+	bool f204;
+	bool f197;
+	bool f205;
+	bool f206;
+
+	uint8_t f176;
+	uint8_t f177;
+	uint32_t f170;
+
+	uint16_t f162;
+
+	MSGPACK_DEFINE_MAP(damageType, weaponType, f92, overrideDefaultDamage, hitEntityWeapon, hitWeaponAmmoAttachment, silenced, f201, damageFlags, hasActionResult, actionResultName, actionResultId, f124, f120, f136, f132, weaponDamage, f100, isNetTargetPos, localPosX, localPosY, localPosZ, damageTime, f184, f156, hasVehicleData, parentGlobalId, hitGlobalId, f140, f144, f148, hitGlobalIds, tyreIndex, suspensionIndex, f152, f202, f203, f204, f197, f205, f206, f176, f177, f170, f162);
+};
+
+void CWeaponDamageEvent::Parse(rl::MessageBuffer& buffer)
+{
+	damageType = buffer.Read<uint8_t>(2);
+	weaponType = buffer.ReadBit() ? buffer.Read<uint32_t>(32) : 0;
+	f92 = buffer.ReadBit() ? buffer.Read<uint32_t>(32) : 0;
+
+	overrideDefaultDamage = buffer.ReadBit();
+	hitEntityWeapon = buffer.ReadBit();
+	hitWeaponAmmoAttachment = buffer.ReadBit();
+	silenced = buffer.ReadBit();
+	f201 = buffer.Read<uint8_t>(1);
+
+	damageFlags = buffer.ReadLong(46);
+	hasActionResult = buffer.ReadBit();
+
+	if (hasActionResult)
+	{
+		actionResultName = buffer.Read<uint32_t>(32);
+		actionResultId = buffer.Read<uint16_t>(16);
+		f124 = buffer.Read<uint32_t>(32);
+		f120 = buffer.Read<uint32_t>(32);
+		f136 = buffer.ReadBit();
+		f132 = buffer.ReadBit() ? buffer.Read<uint32_t>(32) : 0;
+	}
+
+	if (overrideDefaultDamage)
+	{
+		weaponDamage = buffer.Read<uint32_t>(18) / 10.0f; // 10 is a default divisor it seems
+		f100 = buffer.ReadFloat(20, 350.0f);
+	}
+	else
+	{
+		weaponDamage = 0.0f;
+		f100 = 0.0f;
+	}
+
+	isNetTargetPos = buffer.ReadBit();
+
+	if (isNetTargetPos)
+	{
+		localPosX = buffer.ReadSignedFloat(13, 20.0f);
+		localPosY = buffer.ReadSignedFloat(13, 20.0f);
+		localPosZ = buffer.ReadSignedFloat(13, 20.0f);
+	}
+
+	if (damageType == 3)
+	{
+		damageTime = buffer.Read<uint32_t>(32);
+		f184 = buffer.Read<uint8_t>(2); // 1 = willKill
+
+		if (hasActionResult)
+		{
+			hitGlobalId = buffer.Read<uint16_t>(13);
+		}
+		else
+		{
+			hitGlobalId = 0;
+		}
+
+		f156 = buffer.Read<uint16_t>(11);
+	}
+	else
+	{
+		parentGlobalId = buffer.Read<uint16_t>(13);
+		hitGlobalId = buffer.Read<uint16_t>(13);
+	}
+
+	if (damageType == 2 || damageType == 3)
+	{
+		f140 = buffer.ReadBit() ? buffer.Read<uint32_t>(32) : 0;
+		f144 = buffer.ReadBit() ? buffer.Read<uint32_t>(32) : 0;
+		f148 = buffer.Read<uint8_t>(6); // 1311+
+	}
+
+	if (damageType < 2)
+	{
+		localPosX = buffer.ReadSignedFloat(13, 20.0f);
+		localPosY = buffer.ReadSignedFloat(13, 20.0f);
+		localPosZ = buffer.ReadSignedFloat(13, 20.0f);
+
+		if (damageType == 1)
+		{
+			hasVehicleData = buffer.ReadBit();
+
+			if (hasVehicleData)
+			{
+				tyreIndex = buffer.Read<uint8_t>(4);
+				suspensionIndex = buffer.Read<uint8_t>(4);
+			}
+		}
+	}
+
+	f152 = buffer.Read<uint32_t>(32);
+
+	f202 = buffer.ReadBit();
+	f203 = buffer.ReadBit();
+	f204 = buffer.ReadBit();
+	f197 = buffer.ReadBit();
+	f205 = buffer.ReadBit();
+	f206 = buffer.ReadBit();
+
+	bool has162 = buffer.ReadBit();
+	bool has176 = buffer.ReadBit();
+
+	if (has176)
+	{
+		f176 = buffer.Read<uint8_t>(8);
+		f177 = buffer.Read<uint8_t>(3);
+		f170 = buffer.Read<uint32_t>(32);
+	}
+	else
+	{
+		f176 = -1;
+		f177 = 0;
+		f170 = 0;
+	}
+
+	f162 = (has162) ? buffer.Read<uint16_t>(16) : 0;
+}
+
+void CWeaponDamageEvent::SetTargetPlayers(fx::ServerGameState* sgs, const std::vector<uint16_t>& targetPlayers)
+{
+	if (hitGlobalId == 0)
+	{
+		if (!targetPlayers.empty())
+		{
+			auto instance = sgs->GetServerInstance();
+			auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
+
+			for (uint16_t player : targetPlayers)
+			{
+				if (auto client = clientRegistry->GetClientByNetID(player))
+				{
+					auto clientDataUnlocked = GetClientDataUnlocked(sgs, client);
+
+					fx::sync::SyncEntityPtr playerEntity;
+					{
+						std::shared_lock _lock(clientDataUnlocked->playerEntityMutex);
+						playerEntity = clientDataUnlocked->playerEntity.lock();
+					}
+
+					if (playerEntity)
+					{
+						uint16_t objectId = playerEntity->handle & 0xFFFF;
+
+						if (hitGlobalId == 0)
+						{
+							hitGlobalId = objectId;
+						}
+
+						hitGlobalIds.push_back(objectId);
+					}
+				}
+			}
+		}
+	}
+	else
+	{
+		hitGlobalIds.push_back(hitGlobalId);
+	}
+}
+
+struct CWeaponDamageEventReply
+{
+	uint32_t health;
+	uint32_t time;
+	bool f185;
+	bool f203;
+	uint8_t f188;
+
+	void Parse(rl::MessageBuffer& buffer)
+	{
+		health = buffer.Read<uint32_t>(14);
+		time = buffer.Read<uint32_t>(32);
+		f185 = buffer.ReadBit();
+		f203 = buffer.ReadBit();
+		f188 = (f185) ? buffer.Read<uint8_t>(5) : 0;
+	}
+
+	inline std::string GetName()
+	{
+		return "weaponDamageReply";
+	}
+
+	MSGPACK_DEFINE_MAP(health, time, f185, f203, f188);
+};
+
+struct CRespawnPlayerPedEvent
+{
+	float posX;
+	float posY;
+	float posZ;
+
+	int f80;
+	int f88;
+	int f92;
+
+	bool f96;
+	bool f97;
+	bool f99;
+	bool f100;
+	bool f101;
+
+	void Parse(rl::MessageBuffer& buffer)
+	{
+		posX = buffer.ReadSignedFloat(19, 27648.0f);
+		posY = buffer.ReadSignedFloat(19, 27648.0f);
+		posZ = buffer.ReadFloat(19, 4416.0f) - 1700.0f;
+
+		f80 = buffer.Read<uint32_t>(32);
+		f88 = buffer.Read<uint16_t>(13);
+		f92 = buffer.Read<uint32_t>(32);
+
+		f96 = buffer.ReadBit();
+		f97 = buffer.ReadBit();
+		f99 = buffer.ReadBit();
+		f100 = buffer.ReadBit();
+		f101 = buffer.ReadBit();
+	}
+
+	inline std::string GetName()
+	{
+		return "respawnPlayerPedEvent";
+	}
+
+	MSGPACK_DEFINE_MAP(posX, posY, posZ, f80, f88, f92, f96, f97, f99, f100, f101);
+};
+
+struct CRespawnPlayerPedReply
+{
+	bool respawnFailedResult;
+
+	void Parse(rl::MessageBuffer& buffer)
+	{
+		respawnFailedResult = buffer.ReadBit();
+	}
+
+	inline std::string GetName()
+	{
+		return "respawnPlayerPedReply";
+	}
+
+	MSGPACK_DEFINE_MAP(respawnFailedResult);
+};
+
+struct CLightningEvent
+{
+	uint8_t f84;
+	float f88;
+
+	void Parse(rl::MessageBuffer& buffer)
+	{
+		f84 = buffer.Read<uint8_t>(3);
+		f88 = buffer.ReadFloat(10, 1.0f);
+	}
+
+	inline std::string GetName()
+	{
+		return "lightningEvent";
+	}
+
+	MSGPACK_DEFINE_MAP(f84, f88);
+};
+
+struct CClearPedTasksEvent
+{
+	uint16_t pedId;
+	bool immediately;
+
+	void Parse(rl::MessageBuffer& buffer)
+	{
+		pedId = buffer.Read<uint16_t>(13);
+		immediately = buffer.Read<uint8_t>(1);
+	}
+
+	inline std::string GetName()
+	{
+		return "clearPedTasksEvent";
+	}
+
+	MSGPACK_DEFINE_MAP(pedId, immediately);
+};
+
+struct CEndLootEvent
+{
+	uint16_t targetId;
+	bool f58;
+	bool f59;
+	uint8_t f60;
+
+	void Parse(rl::MessageBuffer& buffer)
+	{
+		targetId = buffer.Read<uint16_t>(13);
+		f58 = buffer.ReadBit();
+		f59 = buffer.ReadBit();
+		f60 = buffer.Read<uint8_t>(3);
+	}
+
+	inline std::string GetName()
+	{
+		return "endLootEvent";
+	}
+
+	MSGPACK_DEFINE_MAP(targetId, f58, f59, f60);
+};
+
+struct CSendCarriableUpdateCarryStateEvent
+{
+	uint16_t carriableId;
+	uint16_t parentId;
+	uint16_t carrierId;
+
+	void Parse(rl::MessageBuffer& buffer)
+	{
+		carriableId = buffer.Read<uint16_t>(13);
+		parentId = buffer.Read<uint16_t>(13);
+		carrierId = buffer.Read<uint16_t>(13);
+	}
+
+	inline std::string GetName()
+	{
+		return "sendCarriableUpdateCarryStateEvent";
+	}
+
+	MSGPACK_DEFINE_MAP(carriableId, parentId, carrierId);
+};
+
+struct CCarriableVehicleStowStartEvent
+{
+	uint16_t carrierId;
+	uint16_t carriableId;
+	uint16_t vehicleId;
+
+	void Parse(rl::MessageBuffer& buffer)
+	{
+		carrierId = buffer.Read<uint16_t>(13);
+		carriableId = buffer.Read<uint16_t>(13);
+		vehicleId = buffer.Read<uint16_t>(13);
+	}
+
+	inline std::string GetName()
+	{
+		return "carriableVehicleStowStartEvent";
+	}
+
+	MSGPACK_DEFINE_MAP(carrierId, carriableId, vehicleId);
+};
+
+struct CCarriableVehicleStowCompleteEvent
+{
+	uint16_t carrierId;
+	uint16_t vehicleId;
+	uint16_t carriableId;
+
+	bool f70;
+	uint32_t f72;
+	uint32_t f76;
+
+	float posX;
+	float posY;
+	float posZ;
+
+	float f96;
+	bool f100;
+
+	void Parse(rl::MessageBuffer& buffer)
+	{
+		carrierId = buffer.Read<uint16_t>(13);
+		vehicleId = buffer.Read<uint16_t>(13);
+		carriableId = buffer.Read<uint16_t>(13);
+
+		f70 = buffer.ReadBit();
+		f72 = buffer.ReadBit() ? buffer.Read<uint32_t>(32) : 0;
+		f76 = buffer.Read<uint32_t>(32);
+
+		posX = buffer.ReadSignedFloat(32, 16000.0f);
+		posY = buffer.ReadSignedFloat(32, 16000.0f);
+		posZ = buffer.ReadSignedFloat(32, 16000.0f);
+
+		f96 = buffer.ReadSignedFloat(16, 200.0f);
+		f100 = buffer.ReadBit();
+	}
+
+	inline std::string GetName()
+	{
+		return "carriableVehicleStowCompleteEvent";
+	}
+
+	MSGPACK_DEFINE_MAP(carrierId, vehicleId, carriableId, f70, f72, f76, posX, posY, posZ, f96, f100);
+};
+
+struct CPickupCarriableEvent
+{
+	uint16_t carrierId;
+	uint16_t carriableId;
+	bool f60;
+	uint16_t parentId;
+
+	void Parse(rl::MessageBuffer& buffer)
+	{
+		carrierId = buffer.Read<uint16_t>(13);
+		carriableId = buffer.Read<uint16_t>(13);
+		f60 = buffer.ReadBit();
+		parentId = buffer.Read<uint16_t>(13);
+	}
+
+	inline std::string GetName()
+	{
+		return "pickupCarriableEvent";
+	}
+
+
+	MSGPACK_DEFINE_MAP(carrierId, carriableId, f60, parentId);
+};
+
+struct CPlaceCarriableOntoParentEvent
+{
+	uint16_t carrierId;
+	uint16_t carriableId;
+	uint16_t parentId;
+
+	uint8_t f62;
+	bool f63;
+	uint32_t f64;
+
+	void Parse(rl::MessageBuffer& buffer)
+	{
+		carrierId = buffer.Read<uint16_t>(13);
+		carriableId = buffer.Read<uint16_t>(13);
+		parentId = buffer.Read<uint16_t>(13);
+
+		f62 = buffer.Read<uint8_t>(4);
+		f63 = buffer.ReadBit();
+		f64 = buffer.ReadBit() ? buffer.Read<uint32_t>(32) : 0;
+	}
+
+	inline std::string GetName()
+	{
+		return "placeCarriableOntoParentEvent";
+	}
+
+	MSGPACK_DEFINE_MAP(carrierId, carriableId, parentId, f62, f63, f64);
+};
+
+struct CStartProjectileEvent
+{
+	int ownerId;
+	int projectileHash;
+
+	int weaponHash;
+	float initialPositionX;
+	float initialPositionY;
+	float initialPositionZ;
+
+	int targetEntity;
+	float firePositionX;
+	float firePositionY;
+	float firePositionZ;
+
+	int effectGroup;
+
+	bool f148;
+	bool f150;
+	bool f149;
+
+	float unkX80;
+	float unkY80;
+	float unkZ80;
+
+	bool f136;
+	float f152;
+
+	uint16_t f146;
+	int throwTaskSequence;
+	bool f151;
+
+	void Parse(rl::MessageBuffer& buffer)
+	{
+		ownerId = buffer.Read<uint16_t>(13);
+		projectileHash = buffer.Read<uint32_t>(32);
+
+		weaponHash = buffer.Read<uint32_t>(32);
+		initialPositionX = buffer.ReadSignedFloat(32, 16000.0f);
+		initialPositionY = buffer.ReadSignedFloat(32, 16000.0f);
+		initialPositionZ = buffer.ReadSignedFloat(32, 16000.0f);
+
+		targetEntity = buffer.Read<uint16_t>(13);
+		firePositionX = buffer.ReadSignedFloat(16, 1.1f);
+		firePositionY = buffer.ReadSignedFloat(16, 1.1f);
+		firePositionZ = buffer.ReadSignedFloat(16, 1.1f);
+
+		effectGroup = buffer.Read<uint8_t>(5);
+
+		f148 = buffer.ReadBit();
+		f150 = buffer.ReadBit();
+		f149 = buffer.ReadBit();
+
+		if (f149)
+		{
+			unkX80 = buffer.ReadSignedFloat(16, 400.0f);
+			unkY80 = buffer.ReadSignedFloat(16, 400.0f);
+			unkZ80 = buffer.ReadSignedFloat(16, 400.0f);
+		}
+
+		f136 = buffer.ReadBit();
+
+		f152 = buffer.ReadBit() ? buffer.ReadSignedFloat(18, 8000.0f) : -1.0f;
+
+		if (f136)
+		{
+			throwTaskSequence = buffer.Read<uint32_t>(32);
+			f151 = buffer.ReadBit();
+		}
+
+		f146 = buffer.Read<uint16_t>(16);
+	}
+
+	inline std::string GetName()
+	{
+		return "startProjectileEvent";
+	}
+
+	MSGPACK_DEFINE_MAP(ownerId, projectileHash, weaponHash, initialPositionX, initialPositionY, initialPositionZ, targetEntity, firePositionX, firePositionY, firePositionZ, effectGroup, f148, f150, f149, unkX80, unkY80, unkZ80, f136, f152, f146, throwTaskSequence, f151);
+};
+
+#endif
+
 inline bool ParseEvent(net::Buffer&& buffer, rl::MessageBuffer* outBuffer)
 {
 	uint16_t length = buffer.Read<uint16_t>();
@@ -5485,11 +6211,10 @@ enum GTA_EVENT_IDS
 	REQUEST_CONTROL_EVENT,
 	GIVE_CONTROL_EVENT,
 	WEAPON_DAMAGE_EVENT,
-	INCAPACITATED_REVIVE_EVENT,
-	INCAPACITATED_EXECUTE_EVENT,
 	REQUEST_PICKUP_EVENT,
 	REQUEST_MAP_PICKUP_EVENT,
-	REQUEST_IS_VOLUME_EMPTY,
+	GAME_CLOCK_EVENT,
+	GAME_WEATHER_EVENT,
 	RESPAWN_PLAYER_PED_EVENT,
 	GENERIC_COMPONENT_CONTROL_EVENT,
 	FIRE_EVENT,
@@ -5497,6 +6222,7 @@ enum GTA_EVENT_IDS
 	EXPLOSION_EVENT,
 	START_PROJECTILE_EVENT,
 	ALTER_WANTED_LEVEL_EVENT,
+	NETWORK_WANTED_EVENT,
 	CHANGE_RADIO_STATION_EVENT,
 	RAGDOLL_REQUEST_EVENT,
 	PLAYER_CARD_STAT_EVENT,
@@ -5506,17 +6232,18 @@ enum GTA_EVENT_IDS
 	REMOTE_SCRIPT_LEAVE_EVENT,
 	MARK_AS_NO_LONGER_NEEDED_EVENT,
 	CONVERT_TO_SCRIPT_ENTITY_EVENT,
-	INCIDENT_EVENT,
-	INCIDENT_ENTITY_EVENT,
+	UNUSED_EVENT_28,
 	CLEAR_AREA_EVENT,
 	CLEAR_VOLUME_EVENT,
+	INCIDENT_EVENT,
+	INCIDENT_ENTITY_EVENT,
 	GIVE_PED_SCRIPTED_TASK_EVENT,
 	GIVE_PED_SEQUENCE_TASK_EVENT,
 	NETWORK_CLEAR_PED_TASKS_EVENT,
+	NETWORK_IGNITE_BOMB_EVENT,
 	NETWORK_SOUND_CAR_HORN_EVENT,
 	NETWORK_ENTITY_AREA_STATUS_EVENT,
 	NETWORK_GARAGE_OCCUPIED_STATUS_EVENT,
-	NETWORK_PED_WHISTLE_EVENT,
 	PED_SPEECH_CREATE_EVENT,
 	PED_SPEECH_PLAY_EVENT,
 	PED_SPEECH_STOP_EVENT,
@@ -5526,9 +6253,14 @@ enum GTA_EVENT_IDS
 	NETWORK_PLAY_AUDIO_ENTITY_SOUND_EVENT,
 	NETWORK_STOP_SCRIPT_SOUND_EVENT,
 	NETWORK_STOP_AUDIO_ENTITY_SOUND_EVENT,
+	UNUSED_EVENT_49,
 	NETWORK_TRAIN_REQUEST_EVENT,
 	NETWORK_INCREMENT_STAT_EVENT,
+	UNUSED_EVENT_52,
 	MODIFY_VEHICLE_LOCK_WORD_STATE_DATA,
+	UNUSED_EVENT_54,
+	INCAPACITATED_REVIVE_EVENT,
+	INCAPACITATED_EXECUTE_EVENT,
 	REQUEST_PHONE_EXPLOSION_EVENT,
 	REQUEST_DETACHMENT_EVENT,
 	KICK_VOTES_EVENT,
@@ -5537,15 +6269,22 @@ enum GTA_EVENT_IDS
 	NETWORK_SPECIAL_FIRE_EQUIPPED_WEAPON,
 	NETWORK_RESPONDED_TO_THREAT_EVENT,
 	NETWORK_SHOUT_TARGET_POSITION_EVENT,
+	UNUSED_EVENT_65,
 	PICKUP_DESTROYED_EVENT,
+	NETWORK_CHECK_EXE_SIZE_EVENT,
 	NETWORK_PTFX_EVENT,
 	NETWORK_PED_SEEN_DEAD_PED_EVENT,
+	UNUSED_EVENT_70,
+	NETWORK_CHECK_CODE_CRCS_EVENT,
 	PED_PLAY_PAIN_EVENT,
 	ADD_OR_REMOVE_PED_FROM_PEDGROUP_EVENT,
 	NETWORK_START_PED_HOGTIE_EVENT,
 	NETWORK_SEND_PED_LASSO_ATTACH_EVENT,
 	NETWORK_SEND_PED_LASSO_DETTACH_EVENT,
+	NETWORK_BOLAS_HIT_EVENT,
 	NETWORK_SEND_CARRIABLE_UPDATE_CARRY_STATE_EVENT,
+	UNUSED_EVENT_79,
+	UNUSED_EVENT_80,
 	REQUEST_CONTROL_REQUESTER_EVENT,
 	NETWORK_VOLUME_LOCK_REQUEST_EVENT,
 	NETWORK_VOLUME_LOCK_REQUEST_FAILURE_EVENT,
@@ -5562,10 +6301,17 @@ enum GTA_EVENT_IDS
 	NETWORK_GANG_INVITE_RESPONSE_EVENT,
 	NETWORK_GANG_INVITE_CANCEL_EVENT,
 	NETWORK_GANG_JOIN_REQUEST_EVENT,
+	UNUSED_EVENT_97,
+	UNUSED_EVENT_98,
+	UNUSED_EVENT_99,
 	NETWORK_REQUEST_CONVERT_TO_SCRIPT_ENTITY_EVENT,
 	NETWORK_REGISTER_CRIME_EVENT,
+	NETWORK_CRIME_REPORT_EVENT,
 	NETWORK_START_LOOT_EVENT,
 	NETWORK_NEW_BUG_EVENT,
+	UNUSED_EVENT_105,
+	UNUSED_EVENT_106,
+	REPORT_MYSELF_EVENT,
 	REPORT_CASH_SPAWN_EVENT,
 	NETWORK_CHEST_REQUEST_EVENT,
 	NETWORK_CHEST_DATA_CHANGE_EVENT,
@@ -5574,6 +6320,8 @@ enum GTA_EVENT_IDS
 	NETWORK_PLAYER_REQUEST_CONTENTION_EVENT,
 	NETWORK_START_FALLBACK_CARRY_ACTION_EVENT,
 	NETWORK_GIVE_ENERGY_EVENT,
+	REQUEST_IS_VOLUME_EMPTY,
+	UNUSED_EVENT_117,
 	NETWORK_DOOR_STATE_CHANGE,
 	NETWORK_STAMINA_COST_EVENT,
 	NETWORK_REMOVE_DOOR,
@@ -5584,25 +6332,26 @@ enum GTA_EVENT_IDS
 	NETWORK_PLAYER_HAT_EVENT,
 	NETWORK_CRIME_SCENE_EVENT,
 	NETWORK_POINT_OF_INTEREST_EVENT,
+	UNUSED_EVENT_128,
 	NETWORK_DESTROY_VEHICLE_LOCK_EVENT,
 	NETWORK_APPLY_REACTION_EVENT,
 	NETWORK_START_LOOT_ALIVE_EVENT,
 	NETWORK_SET_ENTITY_GHOST_WITH_PLAYER_EVENT,
 	NETWORK_COMBAT_DIRECTOR_EVENT,
 	NETWORK_MELEE_ARBITRATION_FAIL_EVENT,
+	NETWORK_PED_WHISTLE_EVENT,
 	NETWORK_PED_MOTIVATION_CHANGE_EVENT,
-	NETWORK_IGNITE_BOMB_EVENT,
 	NETWORK_PED_SHARED_TARGETING_EVENT,
 	NETWORK_REQUEST_COMBAT_GESTURE,
-	NETWORK_CRIME_REPORT_EVENT,
 	LIGHTNING_EVENT,
 	PED_TRIGGER_BULLET_FLINCH_EVENT,
 	PED_TRIGGER_EXPLOSION_FLINCH_EVENT,
 	NETWORK_PLAYER_WHISTLE_EVENT,
-	CONVERSATION_EVENT,
-	NETWORK_END_LOOT_EVENT,
 	NETWORK_PLAYER_SPURRING_EVENT,
 	NETWORK_PLAYER_HORSE_TAMING_CALLOUT_EVENT,
+	CONVERSATION_EVENT,
+	UNUSED_EVENT_146,
+	NETWORK_END_LOOT_EVENT,
 	NETWORK_PICKUP_CARRIABLE_EVENT,
 	NETWORK_PLACE_CARRIABLE_ONTO_PARENT_EVENT,
 	PLAY_DEAD_EVENT,
@@ -5611,15 +6360,12 @@ enum GTA_EVENT_IDS
 	NETWORK_REQUEST_ASSET_DETACHMENT,
 	NETWORK_CARRIABLE_VEHICLE_STOW_START_EVENT,
 	NETWORK_CARRIABLE_VEHICLE_STOW_COMPLETE_EVENT,
-	NETWORK_BOLAS_HIT_EVENT,
-	NETWORK_WANTED_EVENT,
 	NETWORK_UPDATE_ANIMATED_VEHICLE_PROP_EVENT,
 	NETWORK_SET_CARRYING_FLAG_FOR_ENTITY,
 	NETWORK_BOUNTY_HUNT_EVENT,
 	NETWORK_DEBUG_REQUEST_ENTITY_POSITION,
 	NETWORK_REMOVE_PROP_OWNERSHIP,
 	NETWORK_DUMP_CARRIABLE_OFF_MOUNT_EVENT,
-	NETWORK_LEGENDARY_ANIMAL_SAMPLED_STAT_EVENT,
 #endif
 };
 
@@ -5886,6 +6632,39 @@ std::function<bool()> fx::ServerGameState::GetGameEventHandler(const fx::ClientS
 		case START_PROJECTILE_EVENT: return GetHandler<CStartProjectileEvent>(instance, client, std::move(buffer));
 		case NETWORK_CLEAR_PED_TASKS_EVENT: return GetHandler<CClearPedTasksEvent>(instance, client, std::move(buffer));
 		case NETWORK_PTFX_EVENT: return GetHandler<CNetworkPtFXEvent>(instance, client, std::move(buffer));
+		default:
+			break;
+	};
+#endif
+
+#ifdef STATE_RDR3
+	if (isReply)
+	{
+		switch(eventType)
+		{
+			case WEAPON_DAMAGE_EVENT: return GetHandler<CWeaponDamageEventReply>(instance, client, std::move(buffer));
+			case RESPAWN_PLAYER_PED_EVENT: return GetHandler<CRespawnPlayerPedReply>(instance, client, std::move(buffer));
+			default:
+				break;
+		};
+
+		return {};
+	}
+
+	switch(eventType)
+	{
+		case WEAPON_DAMAGE_EVENT: return GetHandler<CWeaponDamageEvent>(instance, client, std::move(buffer), targetPlayers);
+		case RESPAWN_PLAYER_PED_EVENT: return GetHandler<CRespawnPlayerPedEvent>(instance, client, std::move(buffer));
+		case EXPLOSION_EVENT: return GetHandler<CExplosionEvent>(instance, client, std::move(buffer));
+		case LIGHTNING_EVENT: return GetHandler<CLightningEvent>(instance, client, std::move(buffer));
+		case START_PROJECTILE_EVENT: return GetHandler<CStartProjectileEvent>(instance, client, std::move(buffer));
+		case NETWORK_CLEAR_PED_TASKS_EVENT: return GetHandler<CClearPedTasksEvent>(instance, client, std::move(buffer));
+		case NETWORK_END_LOOT_EVENT: return GetHandler<CEndLootEvent>(instance, client, std::move(buffer));
+		case NETWORK_SEND_CARRIABLE_UPDATE_CARRY_STATE_EVENT: return GetHandler<CSendCarriableUpdateCarryStateEvent>(instance, client, std::move(buffer));
+		case NETWORK_CARRIABLE_VEHICLE_STOW_START_EVENT: return GetHandler<CCarriableVehicleStowStartEvent>(instance, client, std::move(buffer));
+		case NETWORK_CARRIABLE_VEHICLE_STOW_COMPLETE_EVENT: return GetHandler<CCarriableVehicleStowCompleteEvent>(instance, client, std::move(buffer));
+		case NETWORK_PICKUP_CARRIABLE_EVENT: return GetHandler<CPickupCarriableEvent>(instance, client, std::move(buffer));
+		case NETWORK_PLACE_CARRIABLE_ONTO_PARENT_EVENT: return GetHandler<CPlaceCarriableOntoParentEvent>(instance, client, std::move(buffer));
 		default:
 			break;
 	};
