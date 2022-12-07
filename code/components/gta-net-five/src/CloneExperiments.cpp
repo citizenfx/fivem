@@ -4499,6 +4499,60 @@ static InitFunction initFunction([]()
 		context.SetResult<int>(owner ? owner->physicalPlayerIndex() : 0xFF);
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_FROM_STATE_BAG_NAME", [](fx::ScriptContext& context)
+	{
+		int entityId = 0;
+		std::string bagName = context.CheckArgument<const char*>(0);
+
+		if (bagName.find("entity:") == 0)
+		{
+			int parsedEntityId = atoi(bagName.substr(7).c_str());
+			rage::netObjectMgr* netObjectMgr = rage::netObjectMgr::GetInstance();
+
+			if (netObjectMgr)
+			{
+				rage::netObject* obj = netObjectMgr->GetNetworkObject(parsedEntityId, true);
+				if (obj)
+				{
+					int guid = getScriptGuidForEntity((fwEntity*)obj->GetGameObject());
+					if (guid)
+					{
+						entityId = guid;
+					}
+				}
+			}
+		}
+		else if (bagName.find("localEntity:") == 0)
+		{
+			int parsedEntityId = atoi(bagName.substr(12).c_str());
+			fwEntity* entity = rage::fwScriptGuid::GetBaseFromGuid(parsedEntityId);
+			// Verify the entity exists before returning the entity id
+			if (entity)
+			{
+				entityId = parsedEntityId;
+			}
+		}
+
+		context.SetResult<int>(entityId);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_FROM_STATE_BAG_NAME", [](fx::ScriptContext& context)
+	{
+		int playerId = 0;
+		std::string bagName = context.CheckArgument<const char*>(0);
+
+		if (bagName.find("player:") == 0)
+		{
+			int playerNetId = atoi(bagName.substr(7).c_str());
+			if (auto player = GetPlayerByNetId(playerNetId))
+			{
+				playerId = player->physicalPlayerIndex();
+			}
+		}
+
+		context.SetResult<int>(playerId);
+	});
+
 #ifdef ONESYNC_CLONING_NATIVES
 	fx::ScriptEngine::RegisterNativeHandler("EXPERIMENTAL_SAVE_CLONE_CREATE", [](fx::ScriptContext& context)
 	{
@@ -5035,42 +5089,5 @@ static HookFunction hookFunctionDiag([]
 		PedPoolDiagError();
 	});
 #endif
-
-	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_FROM_STATE_BAG_NAME", [](fx::ScriptContext& context)
-	{
-		int entityId = 0;
-		std::string bagName = context.CheckArgument<const char*>(0);
-
-		if (bagName.find("entity:") == 0)
-		{
-			int parsedEntityId = atoi(bagName.substr(7).c_str());
-			rage::netObjectMgr* netObjectMgr = rage::netObjectMgr::GetInstance();
-
-			if (netObjectMgr)
-			{
-				rage::netObject* obj = netObjectMgr->GetNetworkObject(parsedEntityId, true);
-				if (obj)
-				{
-					int guid = getScriptGuidForEntity((fwEntity*)obj->GetGameObject());
-					if (guid)
-					{
-						entityId = guid;
-					}
-				}
-			}
-		}
-		else if (bagName.find("localEntity:") == 0)
-		{
-			int parsedEntityId = atoi(bagName.substr(12).c_str());
-			fwEntity* entity = rage::fwScriptGuid::GetBaseFromGuid(parsedEntityId);
-			// Verify the entity exists before returning the entity id
-			if (entity)
-			{
-				entityId = parsedEntityId;
-			}
-		}
-
-		context.SetResult<int>(entityId);
-	});
 });
 #endif
