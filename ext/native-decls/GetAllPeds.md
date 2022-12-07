@@ -20,14 +20,11 @@ An object containing a list of peds handles.
 ## Examples
 
 ```lua
---[[ 
-  Example =>
-     Using GetAllPeds, This example prints information of all peds, Ped id, Owner, Model and Armour.
-]]
+-- This example prints information of every ped that has an owner.
 
 for i, ped in ipairs(GetAllPeds()) do
     local pedOwner = NetworkGetEntityOwner(ped)
-    if pedOwner>0 then
+    if pedOwner > 0 then
        local playerName = GetPlayerName(pedOwner)
        local pedModel = GetEntityModel(ped)
        local pedArmour = GetPedArmour(ped)
