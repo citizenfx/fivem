@@ -1685,6 +1685,38 @@ static void Init()
 
 		return steeringData ? steeringData->steeringAngle * (180.0f / pi) : 0.0f;
 	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_FROM_STATE_BAG_NAME", [](fx::ScriptContext& context)
+	{
+		// get the current resource manager
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		// get the owning server instance
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		// get the server's game state
+		auto gameState = instance->GetComponent<fx::ServerGameState>();
+
+		auto entity = 0;
+
+		// get the state bag name
+		std::string bagName = context.CheckArgument<const char*>(0);
+
+		// we only want to handle conversion for entity
+		if (bagName.find("entity:") == 0)
+		{
+			int parsedEntityId = atoi(bagName.substr(7).c_str());
+
+			auto entityPtr = gameState->GetEntity(0, parsedEntityId);
+
+			if (entityPtr)
+			{
+				entity = gameState->MakeScriptHandle(entityPtr);
+			}
+		}
+
+		context.SetResult(entity);
+	});
 }
 
 static InitFunction initFunction([]()

@@ -1,39 +1,19 @@
 ---
 ns: CFX
-apiset: shared
+apiset: shared 
 ---
-## ADD_STATE_BAG_CHANGE_HANDLER
+## GET_ENTITY_FROM_STATE_BAG_NAME
 
 ```c
-int ADD_STATE_BAG_CHANGE_HANDLER(char* keyFilter, char* bagFilter, func handler);
+Entity GET_ENTITY_FROM_STATE_BAG_NAME(char* bagName);
 ```
-
-Adds a handler for changes to a state bag.
-
-The function called expects to match the following signature:
-
-```ts
-function StateBagChangeHandler(bagName: string, key: string, value: any, reserved: number, replicated: boolean);
-```
-
-* **bagName**: The internal bag ID for the state bag which changed. This is usually `player:Source`, `entity:NetID`
-  or `localEntity:Handle`.
-* **key**: The changed key.
-* **value**: The new value stored at key. The old value is still stored in the state bag at the time this callback executes.
-* **reserved**: Currently unused.
-* **replicated**: Whether the set is meant to be replicated.
-
-At this time, the change handler can't opt to reject changes.
-
-If bagName refers to an entity, use [GET_ENTITY_FROM_STATE_BAG_NAME](?_0x4BDF1867) to get the entity handle
+Returns the entity handle for the specified state bag name. For use with [ADD_STATE_BAG_CHANGE_HANDLER](?_0x5BA35AAF).
 
 ## Parameters
-* **keyFilter**: The key to check for, or null for no filter.
-* **bagFilter**: The bag ID to check for such as `entity:65535`, or null for no filter.
-* **handler**: The handler function.
+* **bagName**: An internal state bag ID from the argument to a state bag change handler.
 
 ## Return value
-A cookie to remove the change handler.
+The entity handle or 0 if the state bag name did not refer to an entity, or the entity does not exist.
 
 ## Examples
 ```js
