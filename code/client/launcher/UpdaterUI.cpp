@@ -1060,8 +1060,65 @@ const BYTE g_VertyShader[] = {
 
 #include <dwmapi.h>
 #include <mmsystem.h>
+#include <setupapi.h>
+
+static const GUID GUID_DEVINTERFACE_DISPLAY_ADAPTER = { 0x5b45201d, 0xf2f2, 0x4f3b, { 0x85, 0xbb, 0x30, 0xff, 0x1f, 0x95, 0x35, 0x99 } };
 
 #pragma comment(lib, "dwmapi")
+
+static bool IsSafeGPUDriver()
+{
+	static auto hSetupAPI = LoadLibraryW(L"setupapi.dll");
+	if (!hSetupAPI)
+	{
+		return false;
+	}
+
+	static auto _SetupDiGetClassDevsW = (decltype(&SetupDiGetClassDevsW))GetProcAddress(hSetupAPI, "SetupDiGetClassDevsW");
+	static auto _SetupDiBuildDriverInfoList = (decltype(&SetupDiBuildDriverInfoList))GetProcAddress(hSetupAPI, "SetupDiBuildDriverInfoList");
+	static auto _SetupDiEnumDeviceInfo = (decltype(&SetupDiEnumDeviceInfo))GetProcAddress(hSetupAPI, "SetupDiEnumDeviceInfo");
+	static auto _SetupDiEnumDriverInfoW = (decltype(&SetupDiEnumDriverInfoW))GetProcAddress(hSetupAPI, "SetupDiEnumDriverInfoW");
+	static auto _SetupDiDestroyDeviceInfoList = (decltype(&SetupDiDestroyDeviceInfoList))GetProcAddress(hSetupAPI, "SetupDiDestroyDeviceInfoList");
+
+	HDEVINFO devInfoSet = _SetupDiGetClassDevsW(&GUID_DEVINTERFACE_DISPLAY_ADAPTER, NULL, NULL,
+	DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
+
+	bool safe = true;
+
+	for (int i = 0;; i++)
+	{
+		SP_DEVINFO_DATA devInfo = { sizeof(SP_DEVINFO_DATA) };
+		if (!_SetupDiEnumDeviceInfo(devInfoSet, i, &devInfo))
+		{
+			break;
+		}
+
+		if (!_SetupDiBuildDriverInfoList(devInfoSet, &devInfo, SPDIT_COMPATDRIVER))
+		{
+			safe = false;
+			break;
+		}
+
+		SP_DRVINFO_DATA drvInfo = { sizeof(SP_DRVINFO_DATA) };
+		if (_SetupDiEnumDriverInfoW(devInfoSet, &devInfo, SPDIT_COMPATDRIVER, 0, &drvInfo))
+		{
+			ULARGE_INTEGER driverDate = {0};
+			driverDate.HighPart = drvInfo.DriverDate.dwHighDateTime;
+			driverDate.LowPart = drvInfo.DriverDate.dwLowDateTime;
+			
+			// drivers from after 2007-01-01 (to prevent in-box driver from being wrong) and 2020-01-01 are 'unsafe' and might crash
+			if (driverDate.QuadPart >= 128120832000000000ULL && driverDate.QuadPart < 132223104000000000ULL)
+			{
+				safe = false;
+				break;
+			}
+		}
+	}
+
+	_SetupDiDestroyDeviceInfoList(devInfoSet);
+
+	return safe;
+}
 
 static void InitializeRenderOverlay(winrt::Windows::UI::Xaml::Controls::SwapChainPanel swapChainPanel, int w, int h)
 {
@@ -1248,7 +1305,10 @@ static void InitializeRenderOverlay(winrt::Windows::UI::Xaml::Controls::SwapChai
 
 	std::thread([run]()
 	{
-		run();
+		if (IsSafeGPUDriver())
+		{
+			run();
+		}
 
 		// prevent the thread from exiting (the CRT is broken and will crash on thread exit in some cases)
 		WaitForSingleObject(GetCurrentProcess(), INFINITE);
@@ -1322,7 +1382,7 @@ void UI_CreateWindow()
 		{
 			auto sc = ui.FindName(L"Overlay").as<winrt::Windows::UI::Xaml::Controls::SwapChainPanel>();
 
-			if (_time64(NULL) < 1643670000)
+			if (_time64(NULL) < 1675206000)
 			{
 				InitializeRenderOverlay(sc, g_dpi.ScaleX(wwidth), g_dpi.ScaleY(wheight));
 			}
