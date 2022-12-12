@@ -617,7 +617,7 @@ static int Lua_InvokeFunctionReference(lua_State* L)
 	fxNativeContext context = { 0 };
 
 	context.numArguments = 4;
-	context.nativeIdentifier = 0xe3551879; // INVOKE_FUNCTION_REFERENCE
+	context.nativeIdentifier = HashString("INVOKE_FUNCTION_REFERENCE");
 
 	// identifier string
 	context.arguments[0] = reinterpret_cast<uintptr_t>(luaL_checkstring(L, 1));
