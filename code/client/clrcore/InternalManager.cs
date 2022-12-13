@@ -134,7 +134,7 @@ namespace CitizenFX.Core
 			ms_loadedAssemblies[assemblyFile] = assembly;
 
 			Func<Type, bool> typesPredicate = t =>
-				t != null && !t.IsAbstract && t.IsSubclassOf(typeof(BaseScript)) && t.GetConstructor(Type.EmptyTypes) != null;
+				t != null && !t.IsAbstract && t.IsSubclassOf(typeof(BaseScript)) && t.IsPublic && t.GetConstructor(Type.EmptyTypes) != null;
 
 			// We have ClientScript and ServerScript defined only in the respective environments.
 			// Handle type load exceptions and keep going.
