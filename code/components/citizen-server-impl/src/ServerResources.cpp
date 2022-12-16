@@ -1133,6 +1133,11 @@ void fx::ServerEventComponent::TriggerClientEvent(const std::string_view& eventN
 			client->SendPacket(0, outBuffer, NetPacketType_Reliable);
 		});
 	}
+
+	auto manager = fx::ResourceManager::GetCurrent();
+	auto eventManager = manager->GetComponent<fx::ResourceEventManagerComponent>();
+
+	eventManager->OnClientEventTriggered(eventName, dataLen, targetSrc);
 }
 
 static InitFunction initFunction2([]()
