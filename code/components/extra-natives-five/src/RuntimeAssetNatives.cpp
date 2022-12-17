@@ -31,6 +31,7 @@
 #include <botan/base64.h>
 
 #include <nutsnbolts.h>
+#include <openssl/sha.h>
 
 #define WANT_CEF_INTERNALS
 #include <CefOverlay.h>
@@ -1366,6 +1367,31 @@ static InitFunction initFunction([]()
 					}
 				}
 
+				std::array<char, 8192> buffer;
+				SHA_CTX sha1;
+				size_t numRead;
+
+				size_t readNow = 0;
+				size_t readTotal = size;
+
+				// initialize context
+				SHA1_Init(&sha1);
+
+				while (readNow < readTotal)
+				{
+					size_t numRead = std::min(readTotal - readNow, buffer.size());
+					SHA1_Update(&sha1, &data[readNow], numRead);
+					readNow += numRead;
+				}
+
+				// get the hash result and convert it to a string
+				uint8_t hash[20];
+				SHA1_Final(hash, &sha1);
+
+				auto hashString = fmt::sprintf("%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
+				hash[0], hash[1], hash[2], hash[3], hash[4], hash[5], hash[6], hash[7], hash[8], hash[9],
+				hash[10], hash[11], hash[12], hash[13], hash[14], hash[15], hash[16], hash[17], hash[18], hash[19]);
+
 				bool isResource = false;
 				uint32_t rscVersion = 0;
 				uint32_t rscPagesPhysical = 0;
@@ -1382,7 +1408,7 @@ static InitFunction initFunction([]()
 				// TODO: marshal this to the main thread
 				ResourceCacheEntryList::Entry rclEntry;
 				rclEntry.basename = fileName;
-				rclEntry.referenceHash = ""; // empty reference hash should trigger RCD to use the source URL as key
+				rclEntry.referenceHash = hashString;
 				rclEntry.remoteUrl = sourceUrl;
 				rclEntry.resourceName = resource->GetName();
 				rclEntry.size = length;

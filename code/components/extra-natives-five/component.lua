@@ -8,5 +8,5 @@ linkoptions '/DELAYLOAD:ole32.dll /DELAYLOAD:api-ms-win-core-winrt-error-l1-1-1.
 return function()
 	filter {}
 	
-	add_dependencies { 'vendor:dspfilters' }
+	add_dependencies { 'vendor:dspfilters', 'vendor:openssl_crypto' }
 end
