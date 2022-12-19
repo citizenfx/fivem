@@ -340,6 +340,11 @@ static hook::cdecl_stub<void(int, int, int)> hostGame([] () -> void*
 		return (void*)hook::get_adjusted(0x14107AE54);
 	}
 
+	if (xbr::IsGameBuild<2802>())
+	{
+		return (void*)hook::get_adjusted(0x14107A4DC);
+	}
+
 	// 1737
 	//return (void*)0x141029A20;
 
@@ -390,7 +395,7 @@ OnlineAddress* GetOurOnlineAddressRaw()
 
 static hook::cdecl_stub<bool()> isSessionStarted([] ()
 {
-	return hook::get_call(hook::get_pattern("8B 86 D8 08 00 00 C1 E8 05", 13));
+	return hook::get_call(hook::get_pattern("8B 86 ? ? 00 00 C1 E8 05 84 C2", 13));
 });
 
 // Network bail function definition changed in 2372
@@ -1676,7 +1681,7 @@ static HookFunction hookFunction([] ()
 
 	// change session count
 	// 1604 changed this address to be a bit more specific
-	hook::put<uint32_t>(hook::get_pattern("89 B7 ? ? 00 00 C7 87 ? ? ? 00 18 00 00 00", 12), 0x40 >> 1);
+	hook::put<uint32_t>(hook::get_pattern("C7 87 ? ? ? 00 18 00 00 00 C7 87", 6), 0x40 >> 1);
 
 	// add a OnMainGameFrame to do net stuff
 	OnMainGameFrame.Connect([]()

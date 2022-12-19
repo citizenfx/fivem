@@ -3685,14 +3685,14 @@ using CPedSyncTree = SyncTree<
 					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>,
 					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode, 102>,
 					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode, 4>,
-					NodeWrapper<NodeIds<127, 127, 0>, CPedGameStateDataNode, 98>,
+					NodeWrapper<NodeIds<127, 127, 0>, CPedGameStateDataNode, 103>,
 					NodeWrapper<NodeIds<127, 127, 0>, CPedComponentReservationDataNode, 65>
 				>,
 				ParentNode<
 					NodeIds<127, 127, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode, 13>,
-					NodeWrapper<NodeIds<127, 127, 1>, CPedScriptGameStateDataNode, 109>,
+					NodeWrapper<NodeIds<127, 127, 1>, CPedScriptGameStateDataNode, 110>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode, 24>
 				>
 			>,
@@ -3737,7 +3737,7 @@ using CPickupSyncTree = SyncTree<
 		NodeIds<127, 0, 0>,
 		ParentNode<
 			NodeIds<1, 0, 0>,
-			NodeWrapper<NodeIds<1, 0, 0>, CPickupCreationDataNode, 62>
+			NodeWrapper<NodeIds<1, 0, 0>, CPickupCreationDataNode, 66>
 		>,
 		ParentNode<
 			NodeIds<127, 127, 0>,
@@ -3914,7 +3914,7 @@ using CPlayerSyncTree = SyncTree<
 					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>,
 					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode, 102>,
 					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode, 4>,
-					NodeWrapper<NodeIds<127, 127, 0>, CPedGameStateDataNode, 98>,
+					NodeWrapper<NodeIds<127, 127, 0>, CPedGameStateDataNode, 103>,
 					NodeWrapper<NodeIds<127, 127, 0>, CPedComponentReservationDataNode, 65>
 				>,
 				ParentNode<
@@ -3930,7 +3930,7 @@ using CPlayerSyncTree = SyncTree<
 			NodeWrapper<NodeIds<87, 87, 0>, CPlayerAppearanceDataNode, 544>,
 			NodeWrapper<NodeIds<86, 86, 0>, CPlayerPedGroupDataNode, 19>,
 			NodeWrapper<NodeIds<86, 86, 0>, CPlayerAmbientModelStreamingNode, 5>,
-			NodeWrapper<NodeIds<86, 86, 0>, CPlayerGamerDataNode, 325>,
+			NodeWrapper<NodeIds<86, 86, 0>, CPlayerGamerDataNode, 326>,
 			NodeWrapper<NodeIds<86, 86, 0>, CPlayerExtendedGameStateNode, 20>
 		>,
 		ParentNode<

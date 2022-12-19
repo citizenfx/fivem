@@ -655,12 +655,26 @@ static HookFunction hookFunction([] ()
 
 		// make all CGameScriptId instances return 'true' in matching function (mainly used for 'is script allowed to use this object' checks)
 		//hook::jump(hook::pattern("74 3C 48 8B 01 FF 50 10 84 C0").count(1).get(0).get<void>(-0x1A), ReturnTrue);
-		MH_CreateHook(hook::pattern("74 3C 48 8B 01 FF 50 10 84 C0").count(1).get(0).get<void>(-0x1A), ReturnTrueFromScript, (void**)&g_origReturnTrue);
+		if (xbr::IsGameBuildOrGreater<2802>())
+		{
+			MH_CreateHook(hook::pattern("74 41 48 8B 01 FF 50 10 84 C0").count(1).get(0).get<void>(-0x1A), ReturnTrueFromScript, (void**)&g_origReturnTrue);
+		}
+		else
+		{
+			MH_CreateHook(hook::pattern("74 3C 48 8B 01 FF 50 10 84 C0").count(1).get(0).get<void>(-0x1A), ReturnTrueFromScript, (void**)&g_origReturnTrue);
+		}
 
 		// replace `startup` initialization with resetting all owned threads
 		//hook::jump(hook::get_pattern("48 63 18 83 FB FF 0F 84 D6", -0x34), ResetOwnedThreads);
 		//MH_CreateHook(hook::get_pattern("48 63 18 83 FB FF 0F 84 D6", -0x34), ResetOwnedThreads, (void**)&g_origResetOwnedThreads);
-		MH_CreateHook(hook::get_pattern("48 8B 0D ? ? ? ? 33 D2 48 8B 01 FF 10", -0x58), CTheScripts__Shutdown, (void**)&g_CTheScripts__Shutdown);
+		if (xbr::IsGameBuildOrGreater<2802>())
+		{
+			MH_CreateHook(hook::get_pattern("48 8B 01 FF 50 30 E8 ? ? ? ? E8", -0x61), CTheScripts__Shutdown, (void**)&g_CTheScripts__Shutdown);
+		}
+		else
+		{
+			MH_CreateHook(hook::get_pattern("48 8B 0D ? ? ? ? 33 D2 48 8B 01 FF 10", -0x58), CTheScripts__Shutdown, (void**)&g_CTheScripts__Shutdown);
+		}
 
 		MH_EnableHook(MH_ALL_HOOKS);
 	}

@@ -519,7 +519,7 @@ void CloneManagerLocal::ProcessCreateAck(uint16_t objId, uint16_t uniqifier)
 #ifdef GTA_FIVE
 static hook::cdecl_stub<void(rage::netSyncTree*, rage::netObject*, uint8_t, uint16_t, uint32_t, uint32_t)> _processAck([]()
 {
-	return hook::get_pattern("45 32 ED FF 50 20 8B CB 41", -0x34);
+	return hook::get_pattern("45 32 ED FF 50 ? 8B CB 41", -0x34);
 });
 #elif IS_RDR3
 static hook::cdecl_stub<void(rage::netSyncTree*, rage::netObject*, uint8_t, uint16_t, uint32_t, uint64_t)> _processAck([]()

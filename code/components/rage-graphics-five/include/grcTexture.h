@@ -1,6 +1,8 @@
 #pragma once
 
 #include <d3d11.h>
+#include <CrossBuildRuntime.h>
+#include <XBRVirtual.h>
 
 #define _HAS_GRCTEXTURE_MAP 1
 
@@ -38,63 +40,63 @@ enum class grcLockFlags : int
 
 DEFINE_ENUM_FLAG_OPERATORS(grcLockFlags);
 
-class grcTexture
+class grcTexture : XBR_VIRTUAL_BASE_2802(0)
 {
 public:
-	virtual ~grcTexture() = 0;
+	XBR_VIRTUAL_DTOR(grcTexture)
 
-	virtual bool m_4() = 0;
+	XBR_VIRTUAL_METHOD(bool, m_4, ())
 
-	virtual int m_8() = 0;
+	XBR_VIRTUAL_METHOD(int, m_8, ())
 
-	virtual void m_C() = 0;
+	XBR_VIRTUAL_METHOD(void, m_C, ())
 
-	virtual int m_10() = 0;
+	XBR_VIRTUAL_METHOD(int, m_10, ())
 
-	virtual uint16_t GetWidth() = 0;
+	XBR_VIRTUAL_METHOD(uint16_t, GetWidth, ())
 
-	virtual uint16_t GetHeight() = 0;
+	XBR_VIRTUAL_METHOD(uint16_t, GetHeight, ())
 
-	virtual uint16_t GetDepth() = 0;
+	XBR_VIRTUAL_METHOD(uint16_t, GetDepth, ())
 
 	// unknown?
-	virtual uint8_t GetLevels() = 0;
+	XBR_VIRTUAL_METHOD(uint8_t, GetLevels, ())
 
-	virtual void m_24() = 0;
+	XBR_VIRTUAL_METHOD(void, m_24, ())
 
-	virtual bool m_28() = 0;
+	XBR_VIRTUAL_METHOD(bool, m_28, ())
 
-	virtual void m_2C(intptr_t) = 0;
+	XBR_VIRTUAL_METHOD(void, m_2C, (intptr_t))
 
-	virtual void m_30(void*) = 0;
+	XBR_VIRTUAL_METHOD(void, m_30, (void*))
 
-	virtual void m_34(void*) = 0;
+	XBR_VIRTUAL_METHOD(void, m_34, (void*))
 
-	virtual void m_unk() = 0;
+	XBR_VIRTUAL_METHOD(void, m_unk, ())
 
-	virtual rage::grcTexture* m_38() = 0;
+	XBR_VIRTUAL_METHOD(rage::grcTexture*, m_38, ())
 
-	virtual rage::grcTexture* m_3C() = 0;
+	XBR_VIRTUAL_METHOD(rage::grcTexture*, m_3C, ())
 
-	virtual bool m_40() = 0;
+	XBR_VIRTUAL_METHOD(bool, m_40, ())
 
-	virtual int m_44() = 0;
+	XBR_VIRTUAL_METHOD(int, m_44, ())
 
-	virtual int m_48() = 0;
+	XBR_VIRTUAL_METHOD(int, m_48, ())
 
-	virtual int m_4C() = 0;
+	XBR_VIRTUAL_METHOD(int, m_4C, ())
 
-	virtual int m_50() = 0;
+	XBR_VIRTUAL_METHOD(int, m_50, ())
 
-	virtual int m_54() = 0;
+	XBR_VIRTUAL_METHOD(int, m_54, ())
 
-	virtual int m_unk2() = 0;
+	XBR_VIRTUAL_METHOD(int, m_unk2, ())
 
-	virtual int m_unk3() = 0;
+	XBR_VIRTUAL_METHOD(int, m_unk3, ())
 
-	virtual bool Map(int numSubLevels, int subLevel, grcLockedTexture* lockedTexture, grcLockFlags flags) = 0;
+	XBR_VIRTUAL_METHOD(bool, Map, (int numSubLevels, int subLevel, grcLockedTexture* lockedTexture, grcLockFlags flags))
 
-	virtual void Unmap(grcLockedTexture* lockedTexture) = 0;
+	XBR_VIRTUAL_METHOD(void, Unmap, (grcLockedTexture * lockedTexture))
 
 public:
 	static bool GFX_EXPORT IsRenderSystemColorSwapped();

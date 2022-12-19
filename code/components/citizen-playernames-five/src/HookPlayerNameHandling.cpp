@@ -81,7 +81,7 @@ static char* _getPackfileName(char* packfile)
 static HookFunction hookFunction([] ()
 {
 	// function that (hopefully) is only used for getting names from SC data blocks
-	void* playerNameGetter = hook::pattern("49 8B CE FF 50 30 48 8B C8 E8 ? ? ? ? 48 8D").count(1).get(0).get<void>(9);
+	void* playerNameGetter = hook::pattern("49 8B CE FF 50 ? 48 8B C8 E8 ? ? ? ? 48 8D").count(1).get(0).get<void>(9);
 
 	hook::jump(hook::get_call(playerNameGetter), GetPlayerNameFromScAddr);
 

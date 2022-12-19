@@ -16,6 +16,7 @@
 
 #ifndef IS_FXSERVER
 #include <CL2LaunchMode.h>
+#include <CfxState.h>
 #endif
 
 #ifdef _WIN32

@@ -3845,7 +3845,7 @@ public:
 		auto elem = buffer.Read<uint16_t>();
 		auto byteSize = buffer.Read<uint16_t>();
 
-		if (elem > Count)
+		if (elem >= Count)
 		{
 			return false;
 		}

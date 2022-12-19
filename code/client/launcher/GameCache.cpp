@@ -1421,7 +1421,13 @@ std::map<std::string, std::string> UpdateGameCache()
 
 	// cross-build toggle
 #ifdef GTA_FIVE
-	if (IsTargetGameBuild<2699>())
+	if (IsTargetGameBuild<2802>())
+	{
+		g_requiredEntries.push_back({ "GTA5.exe", "ebb6c144c5befe3529235deccbd8f59d6ce1a76c", "https://content.cfx.re/mirrors/patches/2802.0/GTA5.exe", 46709592 });
+		g_requiredEntries.push_back({ "update/update.rpf", "66388a381347511b7b28aaf91741615e45008e8b", "https://content.cfx.re/mirrors/patches/2802.0/update.rpf", 1079308288 });
+		g_requiredEntries.push_back({ "update/update2.rpf", "c7de68bdc56ec4577bd4fce5d85cca9a4d529839", "https://content.cfx.re/mirrors/patches/2802.0/update2.rpf", 344610816 });
+	}
+	else if (IsTargetGameBuild<2699>())
 	{
 		g_requiredEntries.push_back({ "GTA5.exe", "b9f3960ca0c7c05aab23d3b1d158309bc085fbbe", "https://content.cfx.re/mirrors/patches/2699.0/GTA5.exe", 61111680 });
 		g_requiredEntries.push_back({ "update/update.rpf", "86d88c5ea36e67683a138c0e690c42fe288205fa", "https://content.cfx.re/mirrors/patches/2699.0/update.rpf", 1073854464,
@@ -1550,6 +1556,11 @@ std::map<std::string, std::string> UpdateGameCache()
 	if (IsTargetGameBuildOrGreater<2699>())
 	{
 		g_requiredEntries.push_back({ "update/x64/dlcpacks/mpsum2/dlc.rpf", "5cb63b0939a716e899fa1f514b73a14ca4b58129", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 1245167616 });
+	}
+
+	if (IsTargetGameBuildOrGreater<2802>())
+	{
+		g_requiredEntries.push_back({ "update/x64/dlcpacks/mpchristmas3/dlc.rpf", "500440406ee1aa825ce2371699b127fce460d9a2", "nope:https://runtime.fivem.net/patches/dlcpacks/patchday4ng/dlc.rpfmpbiker/dlc.rpf", 1822871552 });
 	}
 #elif IS_RDR3
 	if (IsTargetGameBuild<1491>())

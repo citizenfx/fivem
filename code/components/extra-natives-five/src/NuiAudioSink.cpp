@@ -623,7 +623,74 @@ namespace rage
 		_audRequestedSettings_SetSourceEffectMix(this, wet, dry);
 	}
 
-	class audEntity
+	// NOTE: this class *should not have fields* as they'd be before the vtable
+	class audEntityBase
+	{
+	public:
+		void CreateSound_PersistentReference(const char* name, audSound** outSound, const audSoundInitParams& params);
+
+		void CreateSound_PersistentReference(uint32_t nameHash, audSound** outSound, const audSoundInitParams& params);
+	};
+
+	class audEntityBaseOld : public audEntityBase
+	{
+	public:
+		virtual ~audEntityBaseOld() = default;
+	};
+
+	class audEntityBase2802 : public audEntityBase
+	{
+	private:
+		inline virtual void* _2802_1()
+		{
+			return nullptr;
+		}
+
+		inline virtual void* _2802_2()
+		{
+			return nullptr;
+		}
+
+		inline virtual void* _2802_3()
+		{
+			return nullptr;
+		}
+
+		inline virtual void* _2802_4()
+		{
+			return nullptr;
+		}
+
+		inline virtual void* _2802_5()
+		{
+			return nullptr;
+		}
+
+		inline virtual void* _2802_6()
+		{
+			return nullptr;
+		}
+
+	public:
+		// the destructor slot shouldn't move or be duplicated, but the base needs to have a vtable
+		virtual ~audEntityBase2802() = default;
+	};
+
+	template<int Build>
+	class audEntityBaseBuild : public std::conditional_t<Build >= 2802, audEntityBase2802, audEntityBaseOld>
+	{
+	protected:
+		uint16_t m_entityId{
+			0xffff
+		};
+
+		uint16_t m_0A{
+			0xffff
+		};
+	};
+
+	template<int Build>
+	class audEntity : public audEntityBaseBuild<Build>
 	{
 	public:
 		audEntity();
@@ -686,82 +753,75 @@ namespace rage
 		{
 			return nullptr;
 		}
-
-		void CreateSound_PersistentReference(const char* name, audSound** outSound, const audSoundInitParams& params);
-
-		void CreateSound_PersistentReference(uint32_t nameHash, audSound** outSound, const audSoundInitParams& params);
-
-	private:
-		uint16_t m_entityId{
-			0xffff
-		};
-
-		uint16_t m_0A{
-			0xffff
-		};
 	};
 
-	audEntity::audEntity()
+	template<int Build>
+	audEntity<Build>::audEntity()
 	{
 		
 	}
 
-	audEntity::~audEntity()
+	template<int Build>
+	audEntity<Build>::~audEntity()
 	{
 		Shutdown();
 	}
 
-	static hook::cdecl_stub<void(audEntity*, const char*, audSound**, const audSoundInitParams&)> _audEntity_CreateSound_PersistentReference_char([]()
+	static hook::cdecl_stub<void(audEntityBaseOld*, const char*, audSound**, const audSoundInitParams&)> _audEntity_CreateSound_PersistentReference_char([]()
 	{
 		return hook::get_call(hook::get_pattern("4C 8D 4C 24 50 4C 8D 43 08 48 8D 0D", 0x14));
 	});
 
-	static hook::cdecl_stub<void(audEntity*, uint32_t, audSound**, const audSoundInitParams&)> _audEntity_CreateSound_PersistentReference_uint([]()
+	static hook::cdecl_stub<void(audEntityBaseOld*, uint32_t, audSound**, const audSoundInitParams&)> _audEntity_CreateSound_PersistentReference_uint([]()
 	{
 		return (void*)hook::get_call(hook::get_call(hook::get_pattern<char>("4C 8D 4C 24 50 4C 8D 43 08 48 8D 0D", 0x14)) + 0x3F);
 	});
 
-	void audEntity::CreateSound_PersistentReference(const char* name, audSound** outSound, const audSoundInitParams& params)
+	void audEntityBase::CreateSound_PersistentReference(const char* name, audSound** outSound, const audSoundInitParams& params)
 	{
-		return _audEntity_CreateSound_PersistentReference_char(this, name, outSound, params);
+		// the `static_cast` use here is to make sure we actually have the vtable and not some weird offset
+		return _audEntity_CreateSound_PersistentReference_char(static_cast<audEntityBaseOld*>(this), name, outSound, params);
 	}
 
-	void audEntity::CreateSound_PersistentReference(uint32_t nameHash, audSound** outSound, const audSoundInitParams& params)
+	void audEntityBase::CreateSound_PersistentReference(uint32_t nameHash, audSound** outSound, const audSoundInitParams& params)
 	{
-		return _audEntity_CreateSound_PersistentReference_uint(this, nameHash, outSound, params);
+		return _audEntity_CreateSound_PersistentReference_uint(static_cast<audEntityBaseOld*>(this), nameHash, outSound, params);
 	}
 
-	static hook::thiscall_stub<void(audEntity*)> rage__audEntity__Init([]()
+	static hook::thiscall_stub<void(void*)> rage__audEntity__Init([]()
 	{
 		return hook::get_call(hook::get_pattern("48 81 EC C0 00 00 00 48 8B D9 E8 ? ? ? ? 45 33 ED", 10));
 	});
 
-	static hook::thiscall_stub<void(audEntity*)> rage__audEntity__Shutdown([]()
+	static hook::thiscall_stub<void(void*)> rage__audEntity__Shutdown([]()
 	{
 		return hook::get_call(hook::get_pattern("48 83 EC 20 48 8B F9 E8 ? ? ? ? 33 ED", 7));
 	});
 
-	static hook::thiscall_stub<void(audEntity*, bool)> rage__audEntity__StopAllSounds([]()
+	static hook::thiscall_stub<void(void*, bool)> rage__audEntity__StopAllSounds([]()
 	{
 		return hook::get_call(hook::get_pattern("0F 82 67 FF FF FF E8 ? ? ? ? 84 C0", 24));
 	});
 
-	void audEntity::Init()
+	template<int Build>
+	void audEntity<Build>::Init()
 	{
 		rage__audEntity__Init(this);
 	}
 
-	void audEntity::Shutdown()
+	template<int Build>
+	void audEntity<Build>::Shutdown()
 	{
 		rage__audEntity__Shutdown(this);
 	}
 
-	void audEntity::StopAllSounds(bool a)
+	template<int Build>
+	void audEntity<Build>::StopAllSounds(bool a)
 	{
 		rage__audEntity__StopAllSounds(this, a);
 	}
 
-	audEntity* g_frontendAudioEntity;
+	audEntityBase* g_frontendAudioEntity;
 
 	audCategoryManager* g_categoryMgr;
 
@@ -792,7 +852,7 @@ namespace rage
 
 	static HookFunction hookFunction([]()
 	{
-		g_frontendAudioEntity = hook::get_address<audEntity*>(hook::get_pattern("4C 8D 4C 24 50 4C 8D 43 08 48 8D 0D", 0xC));
+		g_frontendAudioEntity = hook::get_address<audEntityBase*>(hook::get_pattern("4C 8D 4C 24 50 4C 8D 43 08 48 8D 0D", 0xC));
 
 		g_categoryMgr = hook::get_address<audCategoryManager*>(hook::get_pattern("48 8B CB BA EA 75 96 D5 E8", -4));
 
@@ -862,7 +922,7 @@ class naEnvironmentGroup : public rage::audEnvironmentGroupInterface
 public:
 	static naEnvironmentGroup* Create();
 
-	void Init(rage::audEntity* a2, float a3, int a4, int a5, float a6, int a7);
+	void Init(void* a2, float a3, int a4, int a5, float a6, int a7);
 
 	void SetPosition(const rage::Vec3V& position);
 
@@ -874,7 +934,7 @@ static hook::cdecl_stub<naEnvironmentGroup*()> _naEnvironmentGroup_create([]()
 	return hook::get_pattern("F6 04 02 01 74 0A 8A 05", -0x24);
 });
 
-static hook::thiscall_stub<void(naEnvironmentGroup*, rage::audEntity* a2, float a3, int a4, int a5, float a6, int a7)> _naEnvironmentGroup_init([]()
+static hook::thiscall_stub<void(naEnvironmentGroup*, void* a2, float a3, int a4, int a5, float a6, int a7)> _naEnvironmentGroup_init([]()
 {
 	return hook::get_pattern("80 A7 ? 01 00 00 FC F3 0F 10", -0x22);
 });
@@ -894,7 +954,7 @@ naEnvironmentGroup* naEnvironmentGroup::Create()
 	return _naEnvironmentGroup_create();
 }
 
-void naEnvironmentGroup::Init(rage::audEntity* entity, float a3, int a4, int a5, float a6, int a7)
+void naEnvironmentGroup::Init(void* entity, float a3, int a4, int a5, float a6, int a7)
 {
 	_naEnvironmentGroup_init(this, entity, a3, a4, a5, a6, a7);
 }
@@ -919,10 +979,10 @@ extern "C"
 #include <libswresample/swresample.h>
 };
 
-class MumbleAudioEntity : public rage::audEntity, public std::enable_shared_from_this<MumbleAudioEntity>
+class MumbleAudioEntityBase
 {
 public:
-	MumbleAudioEntity(const std::wstring& name)
+	MumbleAudioEntityBase(const std::wstring& name)
 		: m_position(rage::Vec3V{ 0.f, 0.f, 0.f }),
 		  m_positionForce(rage::Vec3V{ 0.f, 0.f, 0.f }),
 		  m_buffer(nullptr),
@@ -932,32 +992,10 @@ public:
 	{
 	}
 
-	virtual ~MumbleAudioEntity() override;
+	virtual ~MumbleAudioEntityBase() = default;
 
-	virtual void Init() override;
-
-	virtual void Shutdown() override;
-
-	void MInit();
-	
-	void MShutdown();
-
-	virtual rage::Vec3V GetPosition() override
-	{
-		if (m_positionForce.x != 0.0f || m_positionForce.y != 0.0f || m_positionForce.z != 0.0f)
-		{
-			return m_positionForce;
-		}
-
-		return m_position;
-	}
-
-	virtual void PreUpdateService(uint32_t) override;
-
-	virtual bool IsUnpausable() override
-	{
-		return true;
-	}
+	virtual void MInit() = 0;
+	virtual void MShutdown() = 0;
 
 	void SetPosition(float position[3], float distance, float overrideVolume)
 	{
@@ -983,9 +1021,7 @@ public:
 	{
 		m_ped = ped;
 	}
-
-	void PushAudio(int16_t* pcm, int len);
-
+	
 	void SetPoller(const std::function<void(int)>& poller)
 	{
 		m_poller = poller;
@@ -996,9 +1032,11 @@ public:
 		m_submixId = id;
 	}
 
+	void PushAudio(int16_t* pcm, int len);
+
 	void Poll(int samples);
 
-private:
+protected:
 	/// <summary>
 	/// @FIX(mockingbird-burger-timing): MShutdown is executed on MainThrd while
 	/// accessed on NorthAudioUpdate; handle race condition.
@@ -1031,11 +1069,48 @@ private:
 	std::function<void(int)> m_poller;
 };
 
+template<int Build>
+class MumbleAudioEntity : public rage::audEntity<Build>, public MumbleAudioEntityBase, public std::enable_shared_from_this<MumbleAudioEntity<Build>>
+{
+public:
+	MumbleAudioEntity(const std::wstring& name)
+		: MumbleAudioEntityBase(name)
+	{
+	}
+
+	virtual ~MumbleAudioEntity() override;
+
+	virtual void Init() override;
+
+	virtual void Shutdown() override;
+
+	virtual void MInit() override;
+	
+	virtual void MShutdown() override;
+
+	virtual rage::Vec3V GetPosition() override
+	{
+		if (m_positionForce.x != 0.0f || m_positionForce.y != 0.0f || m_positionForce.z != 0.0f)
+		{
+			return m_positionForce;
+		}
+
+		return m_position;
+	}
+
+	virtual void PreUpdateService(uint32_t) override;
+
+	virtual bool IsUnpausable() override
+	{
+		return true;
+	}
+};
+
 
 static void (*g_origGenerateFrame)(rage::audStreamPlayer* self);
 static std::shared_mutex g_customEntriesLock;
 
-static std::map<int, std::weak_ptr<MumbleAudioEntity>> g_customEntries;
+static std::map<int, std::weak_ptr<MumbleAudioEntityBase>> g_customEntries;
 
 void GenerateFrameHook(rage::audStreamPlayer* self)
 {
@@ -1044,7 +1119,7 @@ void GenerateFrameHook(rage::audStreamPlayer* self)
 		auto buffer = self->ringBuffer;
 		if (auto idx = buffer->GetCustomMode(); idx >= 0)
 		{
-			std::shared_ptr<MumbleAudioEntity> entity;
+			std::shared_ptr<MumbleAudioEntityBase> entity;
 
 			{
 				std::shared_lock _(g_customEntriesLock);
@@ -1065,7 +1140,8 @@ void GenerateFrameHook(rage::audStreamPlayer* self)
 	g_origGenerateFrame(self);
 }
 
-MumbleAudioEntity::~MumbleAudioEntity()
+template<int Build>
+MumbleAudioEntity<Build>::~MumbleAudioEntity()
 {
 	if (m_customEntryId >= 0)
 	{
@@ -1078,21 +1154,23 @@ MumbleAudioEntity::~MumbleAudioEntity()
 	MShutdown();
 }
 
-void MumbleAudioEntity::Init()
+template<int Build>
+void MumbleAudioEntity<Build>::Init()
 {
-	rage::audEntity::Init();
+	rage::audEntity<Build>::Init();
 
 	MInit();
 }
 
-void MumbleAudioEntity::Shutdown()
+template<int Build>
+void MumbleAudioEntity<Build>::Shutdown()
 {
 	MShutdown();
 
-	rage::audEntity::Shutdown();
+	rage::audEntity<Build>::Shutdown();
 }
 
-void MumbleAudioEntity::Poll(int samples)
+void MumbleAudioEntityBase::Poll(int samples)
 {
 	if (m_poller)
 	{
@@ -1103,7 +1181,8 @@ void MumbleAudioEntity::Poll(int samples)
 static constexpr int kExtraAudioBuckets = 6;
 static uint32_t bucketsUsed[kExtraAudioBuckets];
 
-void MumbleAudioEntity::MInit()
+template<int Build>
+void MumbleAudioEntity<Build>::MInit()
 {
 	std::lock_guard _(m_render);
 	m_environmentGroup = naEnvironmentGroup::Create();
@@ -1185,7 +1264,8 @@ void MumbleAudioEntity::MInit()
 	}
 }
 
-void MumbleAudioEntity::MShutdown()
+template<int Build>
+void MumbleAudioEntity<Build>::MShutdown()
 {
 	std::lock_guard _(m_render);
 	auto sound = m_sound;
@@ -1229,7 +1309,8 @@ static hook::thiscall_stub<void(fwEntity*, rage::fwInteriorLocation&)> _entity_g
 	return hook::get_pattern("66 89 02 8A 41 28 3C 04 75 09", -0xB);
 });
 
-void MumbleAudioEntity::PreUpdateService(uint32_t)
+template<int Build>
+void MumbleAudioEntity<Build>::PreUpdateService(uint32_t)
 {
 	std::lock_guard _(m_render);
 	if (m_sound)
@@ -1346,7 +1427,7 @@ void MumbleAudioEntity::PreUpdateService(uint32_t)
 	}
 }
 
-void MumbleAudioEntity::PushAudio(int16_t* pcm, int len)
+void MumbleAudioEntityBase::PushAudio(int16_t* pcm, int len)
 {
 	// Only required if polling happens somewhere other than RageAudioMixThread.
 	// std::lock_guard _(m_render);
@@ -1381,7 +1462,7 @@ private:
 	/// Process/MShutdown is executed on MainThrd while PushAudio on NorthAudioUpdate.
 	/// </summary>
 	std::mutex m_entity_mutex;
-	std::shared_ptr<MumbleAudioEntity> m_entity;
+	std::shared_ptr<MumbleAudioEntityBase> m_entity;
 
 	alignas(16) rage::Vec3V m_position;
 	float m_distance;
@@ -1474,6 +1555,30 @@ void MumbleAudioSink::PushAudio(int16_t* pcm, int len)
 	}
 }
 
+template<int Build, typename TFn, typename... TArgs>
+static auto MakeMumbleAudioEntityFor(TFn&& fn, TArgs&&... args)
+{
+	auto entity = std::make_shared<MumbleAudioEntity<Build>>(std::forward<TArgs>(args)...);
+
+	auto entityBase = std::static_pointer_cast<MumbleAudioEntityBase>(entity);
+	fn(entityBase.get());
+	
+	entity->Init();
+
+	return entityBase;
+}
+
+template<typename TFn, typename... TArgs>
+static auto MakeMumbleAudioEntity(TFn&& fn, TArgs&&... args)
+{
+	if (xbr::IsGameBuildOrGreater<2802>())
+	{
+		return MakeMumbleAudioEntityFor<2802>(std::move(fn), std::forward<TArgs>(args)...);
+	}
+
+	return MakeMumbleAudioEntityFor<1604>(std::move(fn), std::forward<TArgs>(args)...);
+}
+
 void MumbleAudioSink::Process()
 {
 	static auto getByServerId = fx::ScriptEngine::GetNativeHandler(HashString("GET_PLAYER_FROM_SERVER_ID"));
@@ -1527,10 +1632,11 @@ void MumbleAudioSink::Process()
 		{
 			Reset();
 
-			m_entity = std::make_shared<MumbleAudioEntity>(m_name);
-			m_entity->SetPoller(m_poller);
-			m_entity->SetSubmixId(submixId);
-			m_entity->Init();
+			m_entity = MakeMumbleAudioEntity([this, submixId](MumbleAudioEntityBase* entity)
+			{
+				entity->SetPoller(m_poller);
+				entity->SetSubmixId(submixId);
+			}, m_name);
 
 			m_lastSubmixId = submixId;
 		}
@@ -1568,6 +1674,7 @@ void MumbleAudioSink::Process()
 void ProcessAudioSinks()
 {
 	std::lock_guard<std::mutex> _(g_sinksMutex);
+
 	for (auto sink : g_sinks)
 	{
 		sink->Process();

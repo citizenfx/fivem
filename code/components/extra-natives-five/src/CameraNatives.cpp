@@ -226,12 +226,9 @@ static HookFunction hookFunction([]()
 	// to support DISABLE_IDLE_CAMERA
 	uintptr_t* camCinematicOnFootIdleContext_vtable = hook::get_address<uintptr_t*>(hook::get_pattern<unsigned char>("48 8D 05 ? ? ? ? 48 89 07 48 8B C7 F3 0F 10 ? ? ? ? 02 F3 0F 11 47 60", 3));
 
-	int index = 3;
 	// 2189 Added another vfunc between
-	if (xbr::IsGameBuildOrGreater<2189>())
-	{
-		index++;
-	}
+	// 2802 Repalced RTTI methods in the very beginning
+	int index = xbr::IsGameBuildOrGreater<2802>() ? 8 : xbr::IsGameBuildOrGreater<2189>() ? 4 : 3;
 
 	origCamCinematicOnFootIdleContext_CanUpdate = (camCanUpdateFn)camCinematicOnFootIdleContext_vtable[index];
 	hook::put(&camCinematicOnFootIdleContext_vtable[index], (uintptr_t)CamCinematicOnFootIdleContext_CanUpdate);

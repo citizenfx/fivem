@@ -34,7 +34,7 @@ static std::unordered_map<std::string, int> g_failures;
 
 hook::cdecl_stub<rage::fiCollection*()> getRawStreamer([]()
 {
-	return hook::get_call(hook::get_pattern("48 8B D3 4C 8B 00 48 8B C8 41 FF 90 ? 01 00 00", -5));
+	return hook::get_call(hook::get_pattern("48 8B D3 4C 8B 00 48 8B C8 41 FF 90 ? 01 00 00 8B D8 E8", -5));
 });
 
 struct SemaAwaiter
