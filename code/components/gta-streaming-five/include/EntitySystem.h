@@ -761,7 +761,11 @@ public:
 
 	inline CHandlingData* GetHandlingData()
 	{
-		if (xbr::IsGameBuildOrGreater<2060>())
+		if (xbr::IsGameBuildOrGreater<2802>())
+		{
+			return impl.m2802.m_handlingData;
+		}
+		else if (xbr::IsGameBuildOrGreater<2060>())
 		{
 			return impl.m2060.m_handlingData;
 		}
@@ -832,12 +836,12 @@ STREAMING_EXPORT extern fwEvent<const DamageEventMetaData&> OnEntityDamaged;
 
 class CMapData;
 
-struct CMapDataContents
+struct CMapDataContents : XBR_VIRTUAL_BASE_2802(0)
 {
-	virtual ~CMapDataContents() = 0;
-	virtual void Add() = 0;
-	virtual void Remove(int id) = 0;
-	virtual void PrepareInteriors(void* meta, void* data, uint32_t id) = 0;
+	XBR_VIRTUAL_DTOR(CMapDataContents)
+	XBR_VIRTUAL_METHOD(void, Add, ())
+	XBR_VIRTUAL_METHOD(void, Remove, (int id))
+	XBR_VIRTUAL_METHOD(void, PrepareInteriors, (void* meta, void* data, uint32_t id))
 
 	// 8
 	void* sceneNodes;

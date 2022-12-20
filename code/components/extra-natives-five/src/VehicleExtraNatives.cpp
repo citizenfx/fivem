@@ -279,6 +279,8 @@ static bool* g_trainsForceDoorsOpen;
 static int TrainDoorCountOffset;
 static int TrainDoorArrayPointerOffset;
 
+static int VehicleRepairMethodVtableOffset;
+
 static std::unordered_set<fwEntity*> g_deletionTraces;
 static std::unordered_set<void*> g_deletionTraces2;
 
@@ -460,6 +462,7 @@ static HookFunction initFunction([]()
 		WheelSurfaceMaterialOffset = *hook::get_pattern<uint32_t>("48 8B 4A 10 0F 28 CF F3 0F 59 05", -4);
 		WheelHealthOffset = *hook::get_pattern<uint32_t>("75 24 F3 0F 10 ? ? ? 00 00 F3 0F", 6);
 		LightMultiplierGetOffset = *hook::get_pattern<uint32_t>("00 00 48 8B CE F3 0F 59 ? ? ? 00 00 F3 41", 9);
+		VehicleRepairMethodVtableOffset = *hook::get_pattern<uint32_t>("C1 E8 19 A8 01 74 ? 48 8B 81", -14);
 	}
 
 	if (xbr::IsGameBuildOrGreater<2372>())
@@ -543,10 +546,12 @@ static HookFunction initFunction([]()
 
 	{
 		char* location;
-		if (xbr::IsGameBuildOrGreater<2060>()) {
+		if (xbr::IsGameBuildOrGreater<2060>())
+		{
 			location = hook::get_pattern<char>("0F 2F ? ? ? 00 00 0F 97 C0 EB ? D1");
 		}
-		else {
+		else
+		{
 			location = hook::get_pattern<char>("0F 2F ? ? ? 00 00 0F 97 C0 EB DA");
 		}
 		WheelSteeringAngleOffset = (*(uint32_t*)(location + 3));
@@ -1292,7 +1297,7 @@ static HookFunction initFunction([]()
 			jne("skiprepair");
 			pop(rax);
 			sub(rsp, 0x28);
-			AppendInstr(jitasm::InstrID::I_CALL, 0xFF, 0, jitasm::Imm8(2), qword_ptr[rax + (xbr::IsGameBuildOrGreater<2189>() ? 0x5D8 : 0x5D0)]);
+			AppendInstr(jitasm::InstrID::I_CALL, 0xFF, 0, jitasm::Imm8(2), qword_ptr[rax + VehicleRepairMethodVtableOffset]);
 			add(rsp, 0x28);
 			ret();
 			L("skiprepair");
