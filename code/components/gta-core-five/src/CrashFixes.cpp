@@ -107,15 +107,17 @@ std::string GetType(void* d)
 {
 	VirtualBase* self = (VirtualBase*)d;
 
-	std::string typeName = fmt::sprintf("unknown (vtable %p)", *(void**)self);
+	std::string typeName = fmt::sprintf("unknown (vtable %p)", (void*)hook::get_unadjusted(*(void**)self));
 
-	try
+	if (!xbr::IsGameBuildOrGreater<2802>())
 	{
-		typeName = typeid(*self).name();
-	}
-	catch (std::__non_rtti_object&)
-	{
-
+		try
+		{
+			typeName = typeid(*self).name();
+		}
+		catch (std::__non_rtti_object&)
+		{
+		}
 	}
 
 	return typeName;
@@ -1073,7 +1075,7 @@ static HookFunction hookFunction{[] ()
 
 	// vehicles.meta explosionInfo field invalidity
 	MH_Initialize();
-	MH_CreateHook(hook::get_pattern("4C 8B F2 4C 8B F9 FF 50 08 4C 8D 05", -0x28), CVehicleModelInfo__init, (void**)&g_origCVehicleModelInfo__init);
+	MH_CreateHook(hook::get_pattern("4C 8B F2 4C 8B F9 FF 50 ? 4C 8D 05", -0x28), CVehicleModelInfo__init, (void**)&g_origCVehicleModelInfo__init);
 	MH_EnableHook(MH_ALL_HOOKS);
 
 	// disable TXD script resource unloading to work around a crash
@@ -1110,7 +1112,7 @@ static HookFunction hookFunction{[] ()
 	// 1604 signature: magnesium-september-wisconsin (FIVEM-CLIENT-1604-34)
 	//                 massachusetts-skylark-black   (FIVEM-CLIENT-1604-3D) <- CPedFactory::ms_playerPed being NULL with same call stack in CPortalTracker
 	{
-		auto location = hook::get_pattern("48 8D 0D ? ? ? ? E8 ? ? ? ? 84 DB 74 0C 48 8D 0D", 23);
+		auto location = hook::get_pattern("E8 ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 84 DB 74 0C 48 8D 0D", 28);
 		hook::set_call(&g_origReinitRenderPhase, location);
 		hook::call(location, ReinitRenderPhaseWrap);
 

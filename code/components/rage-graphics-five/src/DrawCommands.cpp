@@ -595,11 +595,11 @@ void SetWorldMatrix(const float* matrix)
 
 static HookFunction hookFunction([] ()
 {
-	char* location = hook::pattern("44 8B CE 33 D2 48 89 0D").count(1).get(0).get<char>(8);
+	char* location = hook::pattern("48 8B 05 ? ? ? ? ? 8B ? 33 D2 48 89 0D").count(1).get(0).get<char>(15);
 
 	g_d3d11Device = (ID3D11Device**)(location + *(int32_t*)location + 4);
 
-	g_d3d11DeviceContextOffset = *(int*)(location - 59);
+	g_d3d11DeviceContextOffset = *(int*)(location - (xbr::IsGameBuildOrGreater<2802>() ? 60 : 59));
 
 	// things
 	location = hook::pattern("74 0D 80 0D ? ? ? ? 02 89 0D ? ? ? ? C3").count(1).get(0).get<char>(-4);

@@ -464,10 +464,10 @@ static HookFunction initFunction([]()
 
 	if (xbr::IsGameBuildOrGreater<2372>())
 	{
-		auto location = hook::get_pattern<char>("49 3B F6 75 ? F3 41 0F 10 0E 41 B1 01");
+		auto location = hook::get_pattern<char>("89 87 ? ? ? ? 48 3B F5 74 2C 48 8B 6D 00 48 8B 0E 48");
 
-		FuelLevelOffset = *(uint32_t*)(location + 64);
-		OilLevelOffset = *(uint32_t*)(location + 76);
+		FuelLevelOffset = *(uint32_t*)(location - 16);
+		OilLevelOffset = *(uint32_t*)(location - 4);
 	}
 	else
 	{

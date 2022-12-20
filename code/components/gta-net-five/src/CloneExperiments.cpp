@@ -1614,14 +1614,7 @@ static HookFunction hookFunction([]()
 
 #ifdef GTA_FIVE
 	// use cached sector if no gameobject (weird check in IProximityMigrateableNodeDataAccessor impl)
-	if (xbr::IsGameBuildOrGreater<2545>())
-	{
-		hook::nop(hook::get_pattern("FF 90 90 00 00 00 33 C9 48 85 C0 74 4C", 11), 2);
-	}
-	else
-	{
-		hook::nop(hook::get_pattern("FF 90 80 00 00 00 33 C9 48 85 C0 74 4C", 11), 2);
-	}
+	hook::nop(hook::get_pattern("FF 90 ? 00 00 00 33 C9 48 85 C0 74 4C", 11), 2);
 #endif
 
 	// dummy/ambient object player list ordering logic
@@ -1965,7 +1958,7 @@ static HookFunction hookFunction([]()
 	}
 
 #ifdef GTA_FIVE
-	MH_CreateHook(hook::get_pattern("48 85 DB 74 20 48 8B 03 48 8B CB FF 50 30 48 8B", -0x34),
+	MH_CreateHook(hook::get_pattern("48 85 DB 74 20 48 8B 03 48 8B CB FF 50 ? 48 8B", -0x34),
 		(xbr::IsGameBuildOrGreater<2372>()) ? GetPlayerFromGamerId<2372> : xbr::IsGameBuildOrGreater<2060>() ? GetPlayerFromGamerId<2060> : GetPlayerFromGamerId<1604>, (void**)&g_origGetPlayerFromGamerId);
 #elif IS_RDR3
 	MH_CreateHook(hook::get_pattern("48 85 DB 74 20 48 8B 03 48 8B CB FF 50 ? 48 8B", -0x27), GetPlayerFromGamerId, (void**)&g_origGetPlayerFromGamerId);
@@ -2015,14 +2008,7 @@ static HookFunction hookFunction([]()
 
 #ifdef GTA_FIVE
 	// crash logging for invalid mount indices
-	if (xbr::IsGameBuildOrGreater<2372>())
-	{
-		MH_CreateHook(hook::get_pattern("48 8B FA 48 8D 91 50 01 00 00 48 8B F1", -0x15), CPedGameStateDataNode__access, (void**)&g_origCPedGameStateDataNode__access);
-	}
-	else
-	{
-		MH_CreateHook(hook::get_pattern("48 8B FA 48 8D 91 44 01 00 00 48 8B F1", -0x16), CPedGameStateDataNode__access, (void**)&g_origCPedGameStateDataNode__access);
-	}
+	MH_CreateHook(hook::get_pattern("48 8B FA 48 8D 91 ? 01 00 00 48 8B F1", xbr::IsGameBuildOrGreater<2372>() ? -0x15 : -0x16), CPedGameStateDataNode__access, (void**)&g_origCPedGameStateDataNode__access);
 
 	// getnetplayerped 32 cap
 	hook::nop(hook::get_pattern("83 F9 1F 77 26 E8", 3), 2);
@@ -2035,7 +2021,7 @@ static HookFunction hookFunction([]()
 
 	// always allow to migrate, even if not cloned on bit test
 #ifdef GTA_FIVE
-	hook::put<uint8_t>(hook::get_pattern("75 29 48 8B 02 48 8B CA FF 50 30"), 0xEB);
+	hook::put<uint8_t>(hook::get_pattern("75 29 48 8B 02 48 8B CA FF 50"), 0xEB);
 #elif IS_RDR3
 	hook::put<uint8_t>(hook::get_pattern("75 29 48 8B 06 48 8B CE FF 50 60"), 0xEB);
 #endif
@@ -2166,9 +2152,17 @@ static HookFunction hookFunction([]()
 		auto intsBase = ptrsBase + (256 * 8);
 
 		hook::put<uint32_t>(location + 0x18, stackSize);
-		hook::put<uint32_t>(location + 0xF8, stackSize);
 
-		hook::put<uint32_t>(location + 0xC9, intsBase);
+		if (xbr::IsGameBuildOrGreater<2802>())
+		{
+			hook::put<uint32_t>(location + 0xFB, stackSize);
+			hook::put<uint32_t>(location + 0xCC, intsBase);
+		}
+		else
+		{
+			hook::put<uint32_t>(location + 0xF8, stackSize);
+			hook::put<uint32_t>(location + 0xC9, intsBase);
+		}
 	}
 
 	// same for CNetObjPed
@@ -2180,9 +2174,17 @@ static HookFunction hookFunction([]()
 		auto intsBase = ptrsBase + (256 * 8);
 
 		hook::put<uint32_t>(location + 0x18, stackSize);
-		hook::put<uint32_t>(location + 0x13C, stackSize);
 
-		hook::put<uint32_t>(location + 0xD5, intsBase);
+		if (xbr::IsGameBuildOrGreater<2802>())
+		{
+			hook::put<uint32_t>(location + 0x13F, stackSize);
+			hook::put<uint32_t>(location + 0xD8, intsBase);
+		}
+		else
+		{
+			hook::put<uint32_t>(location + 0x13C, stackSize);
+			hook::put<uint32_t>(location + 0xD5, intsBase);
+		}
 	}
 
 	// 32 array size somewhere called by CTaskNMShot
@@ -2245,6 +2247,7 @@ static HookFunction hookFunction([]()
 #endif
 
 	MH_EnableHook(MH_ALL_HOOKS);
+
 });
 
 // event stuff
@@ -2345,6 +2348,7 @@ namespace rage
 	};
 
 #ifdef GTA_FIVE
+	// #TODO2802: impossible now, use base game's!
 	class datBase
 	{
 	public:
@@ -3296,7 +3300,14 @@ static HookFunction hookFunctionEv([]()
 
 	// CheckForSpaceInPool error display
 #ifdef GTA_FIVE
-	hook::call(hook::get_pattern("33 C9 E8 ? ? ? ? E9 FD FE FF FF", 2), NetEventError);
+	if (xbr::IsGameBuildOrGreater<2802>())
+	{
+		hook::call(hook::get_pattern("33 C9 E8 ? ? ? ? E9 FC FE FF FF", 2), NetEventError);
+	}
+	else
+	{
+		hook::call(hook::get_pattern("33 C9 E8 ? ? ? ? E9 FD FE FF FF", 2), NetEventError);
+	}
 #elif IS_RDR3
 	hook::call((xbr::IsGameBuildOrGreater<1436>()) ? hook::get_pattern("74 ? 48 8B 01 40 8A D6 FF ? ? BA", 25) : hook::get_pattern("BA 01 00 00 00 FF ? ? BA 5B 52 1C A4", 22), NetEventError);
 #endif
@@ -3329,15 +3340,17 @@ std::string GetType(void* d)
 	VirtualBase* self = (VirtualBase*)d;
 
 #ifdef GTA_FIVE
-	std::string typeName = fmt::sprintf("unknown (vtable %p)", *(void**)self);
+	std::string typeName = fmt::sprintf("unknown (vtable %p)", (void*)hook::get_unadjusted(*(void**)self));
 
-	try
+	if (!xbr::IsGameBuildOrGreater<2802>())
 	{
-		typeName = typeid(*self).name();
-	}
-	catch (std::__non_rtti_object&)
-	{
-
+		try
+		{
+			typeName = typeid(*self).name();
+		}
+		catch (std::__non_rtti_object&)
+		{
+		}
 	}
 #elif IS_RDR3
 	std::string typeName = fmt::sprintf("%p", (void*)hook::get_unadjusted(*(void**)self));
@@ -3577,8 +3590,18 @@ static HookFunction hookFunction2([]()
 	{
 #ifndef ONESYNC_CLONING_NATIVES
 #ifdef GTA_FIVE
-		auto location = hook::get_pattern<char>("48 89 44 24 20 E8 ? ? ? ? 84 C0 0F 95 C0 48 83 C4 58", -0x3C);
-		hook::set_call(&g_origWriteDataNode, location + 0x41);
+		char* location;
+
+		if (xbr::IsGameBuildOrGreater<2802>())
+		{
+			location = hook::get_pattern<char>("48 89 44 24 20 E8 ? ? ? ? 84 C0 0F 95 C0 48 83 C4 58", -0x63);
+			hook::set_call(&g_origWriteDataNode, location + 0x68);
+		}
+		else
+		{
+			location = hook::get_pattern<char>("48 89 44 24 20 E8 ? ? ? ? 84 C0 0F 95 C0 48 83 C4 58", -0x3C);
+			hook::set_call(&g_origWriteDataNode, location + 0x41);
+		}
 #elif IS_RDR3
 		auto location = hook::get_pattern<char>("49 89 43 C8 E8 ? ? ? ? 84 C0 0F 95 C0 48 83 C4 58", -0x3E);
 		hook::set_call(&g_origWriteDataNode, location + 0x42);

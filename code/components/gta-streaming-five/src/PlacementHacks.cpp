@@ -46,29 +46,15 @@ namespace rage
 	}
 }
 
-fwArchetypeDef::~fwArchetypeDef()
-{
-
-}
-
 int64_t* g_baseArchetypeDefId;
-
+/* #TODO2802: check?
 int64_t fwArchetypeDef::GetTypeIdentifier()
 {
 	return *g_baseArchetypeDefId;
 }
+*/
 
 //static_assert(sizeof(fwArchetypeDef) == 144, "fwArchetypeDef isn't of CBaseArchetypeDef's size...");
-
-fwEntityDef::~fwEntityDef()
-{
-
-}
-
-rage::parStructure* fwEntityDef::GetTypeIdentifier()
-{
-	return nullptr;
-}
 
 static hook::cdecl_stub<void(CMapData*)> _mapData_ctor([]()
 {

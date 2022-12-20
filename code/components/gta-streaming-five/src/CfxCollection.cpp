@@ -297,11 +297,10 @@ namespace rage
 	class strStreamingModule
 	{
 	private:
+		void* vtbl;
 		uint32_t m_baseIndex;
 
 	public:
-		virtual ~strStreamingModule();
-
 		inline uint32_t GetBaseIndex()
 		{
 			return m_baseIndex;

@@ -1838,7 +1838,7 @@ static HookFunction hookFunction([] ()
 	if (g_disableRendering)
 	{
 		uint8_t mov[] = { 0x4C, 0x8D, 0x44, 0x24, 0x40 };
-		auto location = hook::get_pattern<char>("8B D6 48 8B 01 4C 8D 44 24 40 FF 50", 2);
+		auto location = hook::get_pattern<char>("8B D6 48 8B 01 4C 8D 44 24 ? FF", 2);
 
 		hook::nop(location, 11);
 		memcpy(location, mov, 5);
@@ -1846,9 +1846,18 @@ static HookFunction hookFunction([] ()
 	}
 
 	// add D3D11_CREATE_DEVICE_BGRA_SUPPORT flag
-	void* createDeviceLoc = hook::pattern("48 8D 45 90 C7 44 24 30 07 00 00 00").count(1).get(0).get<void>(21);
-	hook::nop(createDeviceLoc, 6);
-	hook::call(createDeviceLoc, CreateD3D11DeviceWrap);
+	if (xbr::IsGameBuildOrGreater<2802>())
+	{
+		void* createDeviceLoc = hook::pattern("48 8D 44 24 78 89 74 24 30 89 7C 24 28").count(1).get(0).get<void>(18);
+		hook::nop(createDeviceLoc, 6);
+		hook::call(createDeviceLoc, CreateD3D11DeviceWrap);
+	}
+	else
+	{
+		void* createDeviceLoc = hook::pattern("48 8D 45 90 C7 44 24 30 07 00 00 00").count(1).get(0).get<void>(21);
+		hook::nop(createDeviceLoc, 6);
+		hook::call(createDeviceLoc, CreateD3D11DeviceWrap);
+	}
 
 	// don't crash on ID3D11DeviceContext::GetData call failures
 	// these somehow are caused by NVIDIA driver settings?

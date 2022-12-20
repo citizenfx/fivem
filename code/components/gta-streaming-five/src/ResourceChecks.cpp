@@ -35,8 +35,7 @@ uint32_t GetCurrentStreamingIndex()
 
 class strStreamingModule
 {
-public:
-	virtual ~strStreamingModule() {}
+	void* vtbl;
 
 public:
 	uint32_t baseIdx;
@@ -116,8 +115,9 @@ static int InsertStreamingModuleWrap(void* moduleMgr, void* strModule)
 		}
 	};
 
-	auto stub = new StreamingOnLoadStub(vt[6]);
-	hook::put(&vt[6], stub->GetCode());
+	int index = (xbr::IsGameBuildOrGreater<2802>()) ? 12 : 6;
+	auto stub = new StreamingOnLoadStub(vt[index]);
+	hook::put(&vt[index], stub->GetCode());
 
 	return g_origInsertModule(moduleMgr, strModule);
 }

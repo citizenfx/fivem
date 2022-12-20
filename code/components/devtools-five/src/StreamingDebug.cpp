@@ -145,28 +145,29 @@ static void* MakeIcon(const std::string& filename)
 static std::map<uint32_t, void*> MakeIcons()
 {
 	return {
-		{ HashString("rage::strPackfileStreamingModule"), MakeIcon("citizen:/resources/icons/rpf.png") },
-		{ HashString("CCutsceneStore"), MakeIcon("citizen:/resources/icons/cube.png") },
-		{ HashString("CScaleformStore"), MakeIcon("citizen:/resources/icons/gfx.png") },
-		{ HashString("CPathFind"), MakeIcon("citizen:/resources/icons/node.png") },
-		{ HashString("CWaypointRecordingStreamingInterface"), MakeIcon("citizen:/resources/icons/recording.png") },
-		{ HashString("CVehicleRecordingStreamingModule"), MakeIcon("citizen:/resources/icons/recording.png") },
-		{ HashString("rage::fwClipDictionaryStore"), MakeIcon("citizen:/resources/icons/animation.png") },
-		{ HashString("rage::fwNetworkDefStore"), MakeIcon("citizen:/resources/icons/move.png") },
-		{ HashString("rage::fwStaticBoundsStore"), MakeIcon("citizen:/resources/icons/bounds.png") },
-		{ HashString("CStreamedScripts"), MakeIcon("citizen:/resources/icons/script.png") },
-		{ HashString("rage::fwPoseMatcherStore"), MakeIcon("citizen:/resources/icons/pose.png") },
-		{ HashString("rage::fwMetaDataStore"), MakeIcon("citizen:/resources/icons/xmlfile.png") },
-		{ HashString("rage::fwMapDataStore"), MakeIcon("citizen:/resources/icons/instance.png") },
-		{ HashString("rage::fwMapTypesStore"), MakeIcon("citizen:/resources/icons/class.png") },
-		{ HashString("rage::fwTxdStore"), MakeIcon("citizen:/resources/icons/image.png") },
-		{ HashString("rage::ptfxAssetStore"), MakeIcon("citizen:/resources/icons/effect.png") },
-		{ HashString("rage::fwClothStore"), MakeIcon("citizen:/resources/icons/cloth.png") },
-		{ HashString("rage::aiNavMeshStore"), MakeIcon("citizen:/resources/icons/navigationpath.png") },
-		{ HashString("rage::fwDrawableStore"), MakeIcon("citizen:/resources/icons/cube.png") },
-		{ HashString("rage::fwDwdStore"), MakeIcon("citizen:/resources/icons/dict.png") },
-		{ HashString("rage::fwFragmentStore"), MakeIcon("citizen:/resources/icons/part.png") },
-		{ HashString("CModelInfoStreamingModule"), MakeIcon("citizen:/resources/icons/modelthreed.png") },
+		{ HashString("Archive"), MakeIcon("citizen:/resources/icons/rpf.png") },
+		{ HashString("CutSceneStore"), MakeIcon("citizen:/resources/icons/cube.png") },
+		{ HashString("ScaleformStore"), MakeIcon("citizen:/resources/icons/gfx.png") },
+		{ HashString("Paths"), MakeIcon("citizen:/resources/icons/node.png") },
+		{ HashString("wptrec"), MakeIcon("citizen:/resources/icons/recording.png") },
+		{ HashString("carrec"), MakeIcon("citizen:/resources/icons/recording.png") },
+		{ HashString("AnimStore"), MakeIcon("citizen:/resources/icons/animation.png") },
+		{ HashString("NetworkDefStore"), MakeIcon("citizen:/resources/icons/move.png") },
+		{ HashString("StaticBounds"), MakeIcon("citizen:/resources/icons/bounds.png") },
+		{ HashString("ScriptStore"), MakeIcon("citizen:/resources/icons/script.png") },
+		{ HashString("PoseMatcherStore"), MakeIcon("citizen:/resources/icons/pose.png") },
+		{ HashString("MetaDataStore"), MakeIcon("citizen:/resources/icons/xmlfile.png") },
+		{ HashString("MapDataStore"), MakeIcon("citizen:/resources/icons/instance.png") },
+		{ HashString("MapTypesStore"), MakeIcon("citizen:/resources/icons/class.png") },
+		{ HashString("TxdStore"), MakeIcon("citizen:/resources/icons/image.png") },
+		{ HashString("PtFxAssetStore"), MakeIcon("citizen:/resources/icons/effect.png") },
+		{ HashString("ClothStore"), MakeIcon("citizen:/resources/icons/cloth.png") },
+		{ HashString("NavMeshes"), MakeIcon("citizen:/resources/icons/navigationpath.png") },
+		{ HashString("HeightMeshes"), MakeIcon("citizen:/resources/icons/navigationpath.png") }, // funny unused store
+		{ HashString("DrawableStore"), MakeIcon("citizen:/resources/icons/cube.png") },
+		{ HashString("DwdStore"), MakeIcon("citizen:/resources/icons/dict.png") },
+		{ HashString("FragmentStore"), MakeIcon("citizen:/resources/icons/part.png") },
+		{ HashString("ModelInfo"), MakeIcon("citizen:/resources/icons/modelthreed.png") },
 	};
 }
 
@@ -180,6 +181,12 @@ static std::map<uint32_t, ImGui::ListViewBase::CellData::IconData> MakeIconDatas
 	}
 
 	return ids;
+}
+
+static std::string GetStreamingModuleName(streaming::strStreamingModule* module)
+{
+	auto name = (atArray<char>*)(((char*)module) + 24);
+	return &name->Get(0);
 }
 
 void StreamingListView::getCellData(size_t row, size_t column, CellData& cellDataOut) const
@@ -198,15 +205,15 @@ void StreamingListView::getCellData(size_t row, size_t column, CellData& cellDat
 	{
 	case 0:
 	{
-		cellDataOut.fieldPtr = &iconDatas[HashString(&typeid(*strModule).name()[6])];
+		cellDataOut.fieldPtr = &iconDatas[HashString(GetStreamingModuleName(strModule))];
 
 		break;
 	}
 	case 1:
 	{
-		auto type = std::string(typeid(*strModule).name());
+		auto type = GetStreamingModuleName(strModule);
 
-		cellDataOut.customText = va("%s", type.substr(6));
+		cellDataOut.customText = va("%s", type);
 		break;
 	}
 	case 2:

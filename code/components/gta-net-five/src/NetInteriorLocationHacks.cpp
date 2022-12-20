@@ -301,7 +301,7 @@ static void SizeOrient(char* self)
 static HookFunction hookFunction([]()
 {
 	g_readerVtbl = hook::get_address<uintptr_t>(hook::get_pattern("48 83 EC 48 48 8B 49 08 49 89 53 F0 48 8D 05", 0xF));
-	g_writerVtbl = hook::get_address<uintptr_t>(hook::get_pattern("4C 8B 10 48 8B C8 41 FF 52 08 48 8B 4B 08", 0x11));
+	g_writerVtbl = hook::get_address<uintptr_t>(hook::get_pattern("4C 8B 10 48 8B C8 41 FF 52 ? 48 8B 4B 08", 0x11));
 	g_loggerVtbl = hook::get_address<uintptr_t>(hook::get_pattern("48 8B 90 10 27 00 00 48 8D 05 ? ? ? ? 49 89 53 E8", 10));
 
 	// CDynamicEntityGameStateDataNode Serialize

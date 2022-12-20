@@ -192,6 +192,9 @@ namespace rage
 		{
 			FORWARD_FUNC(LogObject, 0xF0, object, stub);
 		}
+
+#undef FORWARD_FUNC
+
 #elif IS_RDR3
 		virtual void m_18() = 0; // InitialiseNode
 		virtual void m_20() = 0; // ShutdownNode
@@ -280,10 +283,18 @@ static std::string GetClassTypeName(void* ptr)
 	std::string name;
 
 #ifdef GTA_FIVE
-	name = typeid(*(VirtualBase*)ptr).name();
-	name = name.substr(6);
+	// Rest in pease RTTI in V, we will miss you
+	if (xbr::IsGameBuildOrGreater<2802>())
+	{
+		name = fmt::sprintf("%016llx", hook::get_unadjusted(*(uint64_t*)ptr));
+	}
+	else
+	{
+		name = typeid(*(VirtualBase*)ptr).name();
+		name = name.substr(6);
+	}
 #elif IS_RDR3
-	name = fmt::sprintf("%016llx", *(uint64_t*)ptr);
+	name = fmt::sprintf("%016llx", hook::get_unadjusted(*(uint64_t*)ptr));
 #endif
 
 	return name;

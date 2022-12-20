@@ -8,15 +8,28 @@
 
 #include <Error.h>
 
-static hook::cdecl_stub<void()> originalMount([] ()
+#include <CrossBuildRuntime.h>
+
+static hook::cdecl_stub<void()> originalMount([]()
 {
 	return hook::pattern("48 81 EC E0 03 00 00 48 B8 63 6F 6D 6D").count(1).get(0).get<void>(-0x1A);
 });
 
+static void (*g_origInitialMount)();
+
 static void CallInitialMount()
 {
 	// do pre-initial mount
-	originalMount();
+	// the direct obfuscated call seems to be important, starting from 2699.16
+
+	if (xbr::IsGameBuildOrGreater<2802>())
+	{
+		g_origInitialMount();
+	}
+	else
+	{
+		originalMount();
+	}
 
 	rage::fiDevice::OnInitialMount();
 }
@@ -196,8 +209,11 @@ static HookFunction hookFunction([] ()
 	}
 
 	// patch 2 changed register alloc (2015-04-17)
-	//hook::call(hook::pattern("0F B7 05 ? ? ? ? 48 03 C3 44 88 3C 38 66").count(1).get(0).get<void>(0x15), CallInitialMount);
-	hook::call(hook::pattern("0F B7 05 ? ? ? ? 48 03 C3 44 88 34 38 66").count(1).get(0).get<void>(0x15), CallInitialMount);
+	{
+		auto location = hook::pattern("0F B7 05 ? ? ? ? 48 03 C3 44 88 34 38 66").count(1).get(0).get<void>(0x15);
+		hook::set_call(&g_origInitialMount, location);
+		hook::call(location, CallInitialMount);
+	}
 
 	// don't sort update:/ relative devices before ours
 	hook::nop(hook::pattern("C6 80 F0 00 00 00 01 E8 ? ? ? ? E8").count(1).get(0).get<void>(12), 5);

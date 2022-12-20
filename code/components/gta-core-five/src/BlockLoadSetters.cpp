@@ -590,13 +590,14 @@ static HookFunction hookFunction([] ()
 	}
 
 	// NOP out any code that sets the 'entering state 2' (2, 0) FSM internal state to '7' (which is 'load game'), UNLESS it's digital distribution with standalone auth...
-	char* p = (Is2060()) ? hook::pattern("BA 08 00 00 00 8D 41 FC 83 F8 01").count(1).get(0).get<char>(14) : hook::pattern("BA 07 00 00 00 8D 41 FC 83 F8 01").count(1).get(0).get<char>(14);
+	// Since game build 2699.16 executables now shared.
+	char* p = (Is2060() || Is2802()) ? hook::pattern("BA 08 00 00 00 8D 41 FC 83 F8 01").count(1).get(0).get<char>(14) : hook::pattern("BA 07 00 00 00 8D 41 FC 83 F8 01").count(1).get(0).get<char>(14);
 
 	char* varPtr = p + 2;
 	g_initState = (int*)(varPtr + *(int32_t*)varPtr + 4);
 
 	// check the pointer to see if it's digital distribution
-	g_isDigitalDistrib = (p[-26] == 3);
+	g_isDigitalDistrib = Is2802() || (p[-26] == 3);
 
 	// this is also a comparison point to find digital distribution type... this function will also set '3' if it's digital distrib with standalone auth
 	// and if this *is* digital distribution, we want to find a completely different place that sets the value to 8 (i.e. BA 08 ...)

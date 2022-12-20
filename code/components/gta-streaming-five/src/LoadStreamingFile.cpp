@@ -1164,7 +1164,7 @@ static void ReloadMapStore()
 
 #ifdef GTA_FIVE
 	// needs verification for newer builds
-	if (!xbr::IsGameBuildOrGreater<2699 + 1>())
+	if (!xbr::IsGameBuildOrGreater<2802 + 1>())
 	{
 		ReloadMapStoreNative();
 	}
@@ -1538,9 +1538,9 @@ static void HandleDataFile(const std::pair<std::string, std::string>& dataFile, 
 	if (mounter)
 	{
 #ifdef GTA_FIVE
-		std::string className = typeid(*mounter).name();
+		std::string className = (xbr::IsGameBuildOrGreater<2802>()) ? fmt::sprintf("%p", (void*)hook::get_unadjusted(*(void**)mounter)) : typeid(*mounter).name();
 #else
-		std::string className = std::to_string((uint64_t)mounter);
+		std::string className = fmt::sprintf("%p", (void*)hook::get_unadjusted(*(void**)mounter));
 #endif
 
 		CDataFileMgr::DataFile entry;
@@ -1687,7 +1687,7 @@ namespace streaming
 static hook::cdecl_stub<rage::fiCollection* ()> getRawStreamer([]()
 {
 #ifdef GTA_FIVE
-	return hook::get_call(hook::get_pattern("48 8B D3 4C 8B 00 48 8B C8 41 FF 90 ? 01 00 00", -5));
+	return hook::get_call(hook::get_pattern("48 8B D3 4C 8B 00 48 8B C8 41 FF 90 ? 01 00 00 8B D8 E8", -5));
 #elif IS_RDR3
 	return hook::get_call(hook::get_pattern("45 33 C0 48 8B D6 41 FF 91 ? ? ? ? 8B E8", -11));
 #endif
@@ -3300,7 +3300,7 @@ static HookFunction hookFunction([]()
 			mov(rcx, r14);
 
 			// call the original function that's meant to be called
-			mov(rax, qword_ptr[rax + 0xA8]);
+			mov(rax, qword_ptr[rax + (xbr::IsGameBuildOrGreater<2802>() ? 0xD8 : 0xA8)]);
 			call(rax);
 
 			// save the result in a register (r12 is used as output by this function)
@@ -3321,7 +3321,7 @@ static HookFunction hookFunction([]()
 	} streamingBypassStub;
 
 	{
-		auto location = hook::get_pattern("45 8A E7 FF 90 A8 00 00 00");
+		auto location = hook::get_pattern("45 8A E7 FF 90 ? 00 00 00");
 		hook::nop(location, 9);
 		hook::call_rcx(location, streamingBypassStub.GetCode());
 	}
@@ -3659,8 +3659,9 @@ static HookFunction hookFunction([]()
 		// typesstore
 		{
 #ifdef GTA_FIVE
+			int offset = xbr::IsGameBuildOrGreater<2802>() ? 35 : 29;
 			auto vtbl = hook::get_address<void**>(hook::get_pattern("45 8D 41 1C 48 8B D9 C7 40 D8 00 01 00 00", 22));
-			hook::put(&vtbl[29], ret0);
+			hook::put(&vtbl[offset], ret0);
 #elif IS_RDR3
 			auto vtbl = hook::get_address<void**>(hook::get_pattern("C7 40 D8 00 01 00 00 45 8D 41 49 E8", 19));
 			hook::put(&vtbl[34], ret0);
@@ -3670,8 +3671,9 @@ static HookFunction hookFunction([]()
 		// datastore
 		{
 #ifdef GTA_FIVE
+			int offset = xbr::IsGameBuildOrGreater<2802>() ? 35 : 29;
 			auto vtbl = hook::get_address<void**>(hook::get_pattern("44 8D 46 0E C7 40 D8 C7 01 00 00 E8", 19));
-			hook::put(&vtbl[29], ret0);
+			hook::put(&vtbl[offset], ret0);
 #elif IS_RDR3
 			auto vtbl = hook::get_address<void**>(hook::get_pattern("C7 40 D8 C7 01 00 00 44 8D 47 49 E8", 19));
 			hook::put(&vtbl[34], ret0);
@@ -3703,7 +3705,7 @@ static HookFunction hookFunction([]()
 	// don't create an unarmed weapon when *unloading* a WEAPONINFO_FILE in the mounter (this will get badly freed later
 	// which will lead to InitSession failing)
 	{
-		hook::return_function(hook::get_pattern("7C 94 48 85 F6 74 0D 48 8B 06 BA 01 00 00 00", 0x3C));
+		hook::return_function(hook::get_pattern("7C 94 48 85 F6 74 ? 48 8B 06 BA 01 00 00 00", xbr::IsGameBuildOrGreater<2802>() ? 0x3D : 0x3C));
 	}
 
 	// fully clean weaponinfoblob array when resetting weapon manager

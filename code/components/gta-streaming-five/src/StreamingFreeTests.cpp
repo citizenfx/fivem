@@ -9,6 +9,7 @@
 
 #include <shared_mutex>
 #include <unordered_set>
+#include <CrossBuildRuntime.h>
 
 #ifdef GTA_FIVE
 #include <jitasm.h>
@@ -19,6 +20,7 @@
 
 #include <Error.h>
 
+#include "XBRVirtual.h"
 #include <CoreConsole.h>
 #include <MinHook.h>
 
@@ -53,28 +55,34 @@ void GetBlockMapWrap(ResBmInfo* info, void* bm)
 
 namespace rage
 {
-	class datBase
+class datBase
+{
+public:
+	virtual ~datBase()
 	{
-	public:
-		virtual ~datBase() {}
-	};
+	}
+};
 
-	class strStreamingModule : public datBase
+class strStreamingModule : public datBase
+{
+public:
+	virtual ~strStreamingModule()
 	{
-	public:
-		virtual ~strStreamingModule() {}
+	}
 
-	public:
-		uint32_t baseIdx;
-	};
+public:
+	uint32_t baseIdx;
+};
 
-	class fwAssetStoreBase : public strStreamingModule
+class fwAssetStoreBase : public strStreamingModule
+{
+public:
+	virtual ~fwAssetStoreBase()
 	{
-	public:
-		virtual ~fwAssetStoreBase() {}
+	}
 
-		bool IsResourceValid(uint32_t idx);
-	};
+	bool IsResourceValid(uint32_t idx);
+};
 }
 
 static rage::strStreamingModule**(*g_getStreamingModule)(void*, uint32_t);
@@ -114,18 +122,22 @@ template<bool IsRequest>
 rage::strStreamingModule** GetStreamingModuleWithValidate(void* streamingModuleMgr, uint32_t index)
 {
 	rage::strStreamingModule** streamingModulePtr = g_getStreamingModule(streamingModuleMgr, index);
-	rage::strStreamingModule* streamingModule = *streamingModulePtr;
 
-	std::string typeName = typeid(*streamingModule).name();
-	rage::fwAssetStoreBase* assetStore = dynamic_cast<rage::fwAssetStoreBase*>(streamingModule);
-	
-	if (assetStore)
+	if (!xbr::IsGameBuildOrGreater<2802>())
 	{
-		if (!assetStore->IsResourceValid(index - assetStore->baseIdx))
-		{
-			trace("Tried to %s non-existent streaming asset %s (%d) in module %s\n", (IsRequest) ? "request" : "release", streaming::GetStreamingNameForIndex(index), index, typeName.c_str());
+		rage::strStreamingModule* streamingModule = *streamingModulePtr;
 
-			AddCrashometry("streaming_free_validation", "true");
+		std::string typeName = typeid(*streamingModule).name();
+		rage::fwAssetStoreBase* assetStore = dynamic_cast<rage::fwAssetStoreBase*>(streamingModule);
+
+		if (assetStore)
+		{
+			if (!assetStore->IsResourceValid(index - assetStore->baseIdx))
+			{
+				trace("Tried to %s non-existent streaming asset %s (%d) in module %s\n", (IsRequest) ? "request" : "release", streaming::GetStreamingNameForIndex(index), index, typeName.c_str());
+
+				AddCrashometry("streaming_free_validation", "true");
+			}
 		}
 	}
 
@@ -411,10 +423,18 @@ static HookFunction hookFunction([] ()
 
 	g_strStreamingInterface = hook::get_address<decltype(g_strStreamingInterface)>(hook::get_pattern("48 8B 0D ? ? ? ? 48 8B 01 FF 90 90 00 00 00 B9", 3));
 
-	void* getBlockMapCall = hook::pattern("CC FF 50 48 48 85 C0 74 0D").count(1).get(0).get<void>(17);
-
-	hook::set_call(&g_getBlockMap, getBlockMapCall);
-	hook::call(getBlockMapCall, GetBlockMapWrap);
+	if (xbr::IsGameBuildOrGreater<2802>())
+	{
+		void* getBlockMapCall = hook::pattern("4D 85 E4 74 0D 48 8D 54 24 20 49 8B CC E8").count(1).get(0).get<void>(13);
+		hook::set_call(&g_getBlockMap, getBlockMapCall);
+		hook::call(getBlockMapCall, GetBlockMapWrap);
+	}
+	else
+	{
+		void* getBlockMapCall = hook::pattern("CC FF 50 48 48 85 C0 74 0D").count(1).get(0).get<void>(17);
+		hook::set_call(&g_getBlockMap, getBlockMapCall);
+		hook::call(getBlockMapCall, GetBlockMapWrap);
+	}
 
 	// debugging for non-existent streaming requests
 	{
@@ -425,7 +445,7 @@ static HookFunction hookFunction([] ()
 
 	// debugging for non-existent streaming releases
 	{
-		void* location = hook::pattern("83 FD 01 0F 85 4D 01 00 00").count(1).get(0).get<void>(16);
+		void* location = hook::pattern("83 FD 01 0F 85 ? 01 00 00").count(1).get(0).get<void>(16);
 		hook::call(location, GetStreamingModuleWithValidate<false>);
 	}
 

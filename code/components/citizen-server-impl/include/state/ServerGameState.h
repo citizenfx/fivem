@@ -107,6 +107,16 @@ inline bool Is2699()
 
 	return value;
 }
+
+inline bool Is2802()
+{
+	static bool value = ([]()
+	{
+		return fx::GetEnforcedGameBuildNumber() >= 2802;
+	})();
+
+	return value;
+}
 #elif defined(STATE_RDR3)
 inline bool Is1311()
 {
