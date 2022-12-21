@@ -49,6 +49,11 @@
 
 using Microsoft::WRL::ComPtr;
 
+static hook::cdecl_stub<rage::five::pgDictionary<rage::grcTexture>*(void*, int)> textureDictionaryCtor([]()
+{
+	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 48 8B F8 EB 02 33 FF 4C 8D 3D"));
+});
+
 class RuntimeTex
 {
 public:
@@ -251,7 +256,9 @@ RuntimeTxd::RuntimeTxd(const char* name)
 		if (!entry.handle)
 		{
 			m_name = name;
-			m_txd = new rage::five::pgDictionary<rage::grcTexture>();
+
+			void* memoryStub = rage::GetAllocator()->Allocate(sizeof(rage::five::pgDictionary<rage::grcTexture>), 16, 0);
+			m_txd = textureDictionaryCtor(memoryStub, 1);
 
 			streaming::strAssetReference ref;
 			ref.asset = m_txd;
