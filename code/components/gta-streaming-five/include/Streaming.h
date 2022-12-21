@@ -79,14 +79,14 @@ public:
 		XBR_VIRTUAL_DTOR(strStreamingModule)
 
 #ifdef IS_RDR3
-		virtual void m_8() = 0;
+		XBR_VIRTUAL_METHOD(void, m_8, ())
 
-		virtual void m_10() = 0;
+		XBR_VIRTUAL_METHOD(void, m_10, ())
 
 		//
 		// Creates a new asset for `name`, or returns the existing index in this module for it.
 		//
-		virtual uint32_t* FindSlotFromHashKey(uint32_t* id, uint32_t name) = 0;
+		XBR_VIRTUAL_METHOD(uint32_t*, FindSlotFromHashKey, (uint32_t* id, uint32_t name))
 #elif GTA_FIVE
 		//
 		// Creates a new asset for `name`, or returns the existing index in this module for it.
