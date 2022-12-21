@@ -164,6 +164,8 @@ int RealMain()
 	}();
 
 #ifdef LAUNCHER_PERSONALITY_MAIN
+	bool devMode = toolMode;
+
 	// toggle wait for switch
 	if (wcsstr(GetCommandLineW(), L"-switchcl"))
 	{
@@ -190,6 +192,9 @@ int RealMain()
 				WaitForSingleObject(hProcess, INFINITE);
 				CloseHandle(hProcess);
 			}
+
+			// switchcl'd client shouldn't check for updates again
+			devMode = true;
 		}
 	}
 #endif
@@ -304,8 +309,6 @@ int RealMain()
 
 	// determine dev mode and do updating
 #ifdef LAUNCHER_PERSONALITY_MAIN
-	bool devMode = toolMode;
-
 	{
 		wchar_t exeName[512];
 		GetModuleFileName(GetModuleHandle(NULL), exeName, std::size(exeName));
