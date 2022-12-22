@@ -64,7 +64,7 @@ static std::unordered_set<std::string> g_badFiles{
 	"dlc_mpSum2_g9ec:/common/data/effects/peds/first_person.meta",
 	"dlc_mpSum2_g9ecCRC:/common/data/pedalternatevariations.meta",
 
-	"dlc_mpChristmas3_G9EC:/x64/levels/mpChristmas3_G9EC/vehiclemods/entity3hsw_mods.rpf"
+	"dlc_mpChristmas3_G9EC:/x64/levels/mpChristmas3_G9EC/vehiclemods/entity3hsw_mods.rpf",
 	"dlc_mpChristmas3_G9EC:/x64/levels/mpChristmas3_G9EC/vehiclemods/issi8hsw_mods.rpf"
 };
 
