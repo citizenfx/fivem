@@ -25,8 +25,9 @@ namespace CitizenFX.Core
 	}
 	public enum BlipSprite
 	{
-		Standard = 1,
-		PoliceOfficer = 3,
+		Standard,
+		BigBlip,
+		PoliceOfficer,
 		PoliceArea,
 		Square,
 		Player,
@@ -112,7 +113,7 @@ namespace CitizenFX.Core
 		AssaultRifle,
 		Bat,
 		Grenade,
-		PlusSymbol,
+		Health,
 		Knife,
 		Molotov,
 		Pistol,
