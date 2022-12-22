@@ -41,7 +41,12 @@ namespace CitizenFX.Core
 		LeftFoot,
 		RightFoot,
 		LeftHand2,
-		RightHand2
+		RightHand2,
+		Unkown3 = Mouth,
+		Unknown4,
+		Unknown5,
+		Unknown8 = LeftHip,
+		Unknown9
 	}
 	public class Style
 	{
