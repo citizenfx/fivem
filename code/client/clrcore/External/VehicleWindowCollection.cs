@@ -22,7 +22,9 @@ namespace CitizenFX.Core
 		ExtraWindow1 = 4,
 		ExtraWindow2 = 5,
 		FrontWindscreen = 6,
-		BackWindscreen = 7
+		BackWindscreen = 7,
+		ExtraWindow3 = FrontWindscreen,
+		ExtraWindow4
 	}
 
 	public sealed class VehicleWindowCollection
