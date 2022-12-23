@@ -32,6 +32,8 @@
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.Gaming.Input.h>
 
+#include "DeferredInitializer.h"
+
 using namespace winrt::Windows::Gaming::Input;
 
 struct PatternPair
@@ -1745,30 +1747,34 @@ static HookFunction inputFunction([]()
 		return;
 	}
 
-	HMODULE hLib = LoadLibraryW(L"Windows.Gaming.Input.dll");
+	auto getStateRef = hook::get_address<void**>(hook::get_call(hook::get_pattern<char>("75 13 48 8D 54 24 20 8B CF E8", 9)) + 2);
+	auto setStateRef = hook::get_address<void**>(hook::get_call(hook::get_pattern<char>("8B CF 89 73 42 89 74 24 40 E8", 9)) + 2);
 
-	if (!hLib)
+	static auto initializer = DeferredInitializer::Create([getStateRef, setStateRef]()
 	{
-		return;
-	}
+		HMODULE hLib = LoadLibraryW(L"Windows.Gaming.Input.dll");
 
-	addedRevoker = Gamepad::GamepadAdded(winrt::auto_revoke, OnGamepadAdded);
-	removedRevoker = Gamepad::GamepadRemoved(winrt::auto_revoke, OnGamepadRemoved);
+		if (!hLib)
+		{
+			return;
+		}
 
-	if (!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_PIN | GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, (LPCWSTR)hLib, &hLib))
-	{
-		trace("Failed to pin WGI DLL.\n");
-	}
+		addedRevoker = Gamepad::GamepadAdded(winrt::auto_revoke, OnGamepadAdded);
+		removedRevoker = Gamepad::GamepadRemoved(winrt::auto_revoke, OnGamepadRemoved);
 
-	{
-		auto getStateRef = hook::get_address<void**>(hook::get_call(hook::get_pattern<char>("75 13 48 8D 54 24 20 8B CF E8", 9)) + 2);
-		g_origXInputGetState = (decltype(g_origXInputGetState))*getStateRef;
-		hook::put(getStateRef, XInputGetStateHook);
-	}
+		if (!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_PIN | GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, (LPCWSTR)hLib, &hLib))
+		{
+			trace("Failed to pin WGI DLL.\n");
+		}
 
-	{
-		auto setStateRef = hook::get_address<void**>(hook::get_call(hook::get_pattern<char>("8B CF 89 73 42 89 74 24 40 E8", 9)) + 2);
-		g_origXInputSetState = (decltype(g_origXInputSetState))*setStateRef;
-		hook::put(setStateRef, XInputSetStateHook);
-	}
+		{
+			g_origXInputGetState = (decltype(g_origXInputGetState))*getStateRef;
+			hook::put(getStateRef, XInputGetStateHook);
+		}
+
+		{
+			g_origXInputSetState = (decltype(g_origXInputSetState))*setStateRef;
+			hook::put(setStateRef, XInputSetStateHook);
+		}
+	});
 });
