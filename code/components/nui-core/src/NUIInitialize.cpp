@@ -924,7 +924,8 @@ void VHook(intptr_t& ref, TFnLeft fn, TFnRight out)
 	ref = (intptr_t)fn;
 }
 
-static std::recursive_mutex g_d3d11Mutex;
+// primarily to prevent Flush() calls while another thread is creating a device
+static std::shared_mutex g_d3d11Mutex;
 static void (__stdcall *g_origFlush)(void*);
 
 static void __stdcall FlushHook(void* cxt)
@@ -1064,7 +1065,7 @@ static HMODULE g_sysD3D11;
 
 static HRESULT D3D11CreateDeviceAndSwapChainHook(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _In_opt_ CONST DXGI_SWAP_CHAIN_DESC* pSwapChainDesc, _COM_Outptr_opt_ IDXGISwapChain** ppSwapChain, _COM_Outptr_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _COM_Outptr_opt_ ID3D11DeviceContext** ppImmediateContext)
 {
-	std::unique_lock _(g_d3d11Mutex);
+	std::shared_lock _(g_d3d11Mutex);
 
 	PatchAdapter(&pAdapter);
 
@@ -1083,7 +1084,7 @@ static HRESULT D3D11CreateDeviceAndSwapChainHook(_In_opt_ IDXGIAdapter* pAdapter
 
 static HRESULT D3D11CreateDeviceHook(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _COM_Outptr_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _COM_Outptr_opt_ ID3D11DeviceContext** ppImmediateContext)
 {
-	std::unique_lock _(g_d3d11Mutex);
+	std::shared_lock _(g_d3d11Mutex);
 
 	// if this is the OS calling us, we need to be special and *somehow* convince any hook to give up their true colors
 	// since D3D11CoreCreateDevice is super obscure, we'll use *that*
