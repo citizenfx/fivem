@@ -18,7 +18,10 @@ static std::shared_ptr<DeferredInitializer> g_monoInitializer;
 
 static inline void WaitForMono()
 {
-	g_monoInitializer->Wait();
+	if (auto initializer = g_monoInitializer)
+	{
+		initializer->Wait();
+	}
 }
 #else
 static inline void WaitForMono()
