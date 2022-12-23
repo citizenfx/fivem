@@ -1957,8 +1957,16 @@ static HookFunction hookFunction([] ()
 });
 
 // load the UMD early by having a 'dummy' D3D11 device so this won't slow down due to scanning
-static HookFunction hookFunctionEarlyUMD([]
+static InitFunction initFunctionEarlyUMD([]
 {
+	{
+		auto state = CfxState::Get();
+		if (!state->IsGameProcess())
+		{
+			return;
+		}
+	}
+
 	std::thread([]()
 	{
 		IDXGIAdapter* adapter = nullptr;
