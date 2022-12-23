@@ -664,7 +664,14 @@ void NUIWindow::UpdateFrame()
 											   m_lastDirtyRect.bottom,
 											   1);
 
-					if (m_swapTexture && m_swapRtv && m_swapSrv)
+					ID3D11Resource* nativeTexture = nullptr;
+
+					if (auto texture = GetTexture(); texture.GetRef())
+					{
+						nativeTexture = (ID3D11Resource*)texture->GetNativeTexture();
+					}
+
+					if (m_swapTexture && m_swapRtv && m_swapSrv && nativeTexture)
 					{
 						//
 						// LOTS of D3D11 garbage to flip a texture...
@@ -748,7 +755,7 @@ void NUIWindow::UpdateFrame()
 
 						deviceContext->Draw(4, 0);
 
-						deviceContext->CopyResource((ID3D11Resource*)GetTexture()->GetNativeTexture(), m_swapTexture.Get());
+						deviceContext->CopyResource(nativeTexture, m_swapTexture.Get());
 
 						deviceContext->OMSetRenderTargets(1, &oldRtv, oldDsv);
 
