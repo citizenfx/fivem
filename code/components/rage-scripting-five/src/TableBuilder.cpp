@@ -9,15 +9,19 @@
 #include "Hooking.h"
 
 #include <Error.h>
+#include "DeferredInitializer.h"
 
 #include <CrossBuildRuntime.h>
 
 static std::unordered_map<uint64_t, uint64_t> g_mappingTable;
+static std::shared_ptr<DeferredInitializer> g_mappingInitializer;
 
 namespace rage
 {
 	uint64_t MapNative(uint64_t inNative)
 	{
+		g_mappingInitializer->Wait();
+
 		// find the native, and return the original if not mapped (for custom natives and 'new' natives)
 		auto it = g_mappingTable.find(inNative);
 
@@ -188,16 +192,19 @@ static void DoMapping()
 		assert(!"Didn't define maxVersion assertion!");
 	}
 
-	for (auto& nativeEntry : crossMapping_universal)
+	g_mappingInitializer = DeferredInitializer::Create([maxVersion]()
 	{
-		for (int i = 0; i < maxVersion; i++)
+		for (auto& nativeEntry : crossMapping_universal)
 		{
-			if (nativeEntry.entries[i] != 0 && nativeEntry.entries[maxVersion] != 0)
+			for (int i = 0; i < maxVersion; i++)
 			{
-				g_mappingTable.insert({ nativeEntry.entries[i], nativeEntry.entries[maxVersion] });
+				if (nativeEntry.entries[i] != 0 && nativeEntry.entries[maxVersion] != 0)
+				{
+					g_mappingTable.insert({ nativeEntry.entries[i], nativeEntry.entries[maxVersion] });
+				}
 			}
 		}
-	}
+	});
 }
 
 static HookFunction hookFunction([] ()
