@@ -12,6 +12,20 @@
 #include <fxScripting.h>
 #include <Error.h>
 
+#ifndef IS_FXSERVER
+#include "DeferredInitializer.h"
+static std::shared_ptr<DeferredInitializer> g_monoInitializer;
+
+static inline void WaitForMono()
+{
+	g_monoInitializer->Wait();
+}
+#else
+static inline void WaitForMono()
+{
+}
+#endif
+
 #include <EASTL/fixed_hash_map.h>
 
 #include <mono/jit/jit.h>
@@ -343,6 +357,8 @@ extern "C" DLL_EXPORT void MonoEnsureThreadAttached()
 
 result_t MonoCreateObjectInstance(const guid_t& guid, const guid_t& iid, void** objectRef)
 {
+	WaitForMono();
+
 	if (!g_rootDomain)
 	{
 		return FX_E_NOINTERFACE;
@@ -378,6 +394,8 @@ result_t MonoCreateObjectInstance(const guid_t& guid, const guid_t& iid, void** 
 
 std::vector<guid_t> MonoGetImplementedClasses(const guid_t& iid)
 {
+	WaitForMono();
+
 	if (!g_rootDomain)
 	{
 		return {};
@@ -412,5 +430,12 @@ static InitFunction initFunction([] ()
 		}, INT32_MIN);
 	});
 
+#ifndef IS_FXSERVER
+	g_monoInitializer = DeferredInitializer::Create([]()
+	{
+		InitMono();
+	});
+#else
 	InitMono();
+#endif
 });
