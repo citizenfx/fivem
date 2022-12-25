@@ -686,7 +686,7 @@ namespace CitizenFX.Core
 						case WeaponComponentHash.GunrunningMk2Upgrade:
 							return ComponentAttachmentPoint.GunGripR;
 
-                        default:
+						default:
 							return ComponentAttachmentPoint.Invalid;
 					}
 				case WeaponHash.CarbineRifle:
@@ -743,7 +743,6 @@ namespace CitizenFX.Core
 						default:
 							return ComponentAttachmentPoint.Invalid;
 					}
-
 				case WeaponHash.MG:
 					switch (componentHash)
 					{
@@ -1173,7 +1172,6 @@ namespace CitizenFX.Core
 						default:
 							return ComponentAttachmentPoint.Invalid;
 					}
-
 				case WeaponHash.CarbineRifleMk2:
 					switch (componentHash)
 					{
@@ -1222,7 +1220,6 @@ namespace CitizenFX.Core
 						default:
 							return ComponentAttachmentPoint.Invalid;
 					}
-
 				case WeaponHash.CombatMGMk2:
 					switch (componentHash)
 					{
@@ -1275,7 +1272,6 @@ namespace CitizenFX.Core
 						default:
 							return ComponentAttachmentPoint.Invalid;
 					}
-
 				case WeaponHash.HeavySniperMk2:
 					switch (componentHash)
 					{
@@ -1318,7 +1314,6 @@ namespace CitizenFX.Core
 						default:
 							return ComponentAttachmentPoint.Invalid;
 					}
-
 				case WeaponHash.SMGMk2:
 					switch (componentHash)
 					{
@@ -1756,7 +1751,6 @@ namespace CitizenFX.Core
 						default:
 							return ComponentAttachmentPoint.Invalid;
 					}
-
 				case WeaponHash.MarksmanRifle:
 					switch (componentHash)
 					{
@@ -1930,7 +1924,6 @@ namespace CitizenFX.Core
 						default:
 							return ComponentAttachmentPoint.Invalid;
 					}
-
 				case WeaponHash.CompactRifle:
 					switch (componentHash)
 					{
@@ -2157,7 +2150,4 @@ namespace CitizenFX.Core
 			get { return ComponentAttachmentPoint.Invalid; }
 		}
 	}
-
-
-
 }
