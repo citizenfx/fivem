@@ -90,15 +90,15 @@ public:
 	void SetTexture(rage::grcTexture* texture);
 
 private:
-	rage::grcTexture* m_texture;
+	rage::grcTexture* m_texture = nullptr;
 
 	fwRefContainer<fwRefCountable> m_reference;
 
-	int m_pitch;
+	int m_pitch = 0;
 
 	std::vector<uint8_t> m_backingPixels;
 
-	bool m_owned;
+	bool m_owned = false;
 };
 
 class RuntimeTxd
@@ -113,12 +113,15 @@ public:
 	RuntimeTex* CreateTextureFromDui(const char* name, const char* duiHandle);
 
 private:
-	uint32_t m_txdIndex;
+	void EnsureTxd();
+
+private:
+	uint32_t m_txdIndex = -1;
 	std::string m_name;
 
 	std::unordered_map<std::string, std::shared_ptr<RuntimeTex>> m_textures;
 
-	rage::five::pgDictionary<rage::grcTexture>* m_txd;
+	rage::five::pgDictionary<rage::grcTexture>* m_txd = nullptr;
 };
 
 RuntimeTex::RuntimeTex(const char* name, int width, int height)
@@ -243,11 +246,17 @@ void RuntimeTex::Commit()
 }
 
 RuntimeTxd::RuntimeTxd(const char* name)
+	: m_name(name)
+{
+	EnsureTxd();
+}
+
+void RuntimeTxd::EnsureTxd()
 {
 	streaming::Manager* streaming = streaming::Manager::GetInstance();
 	auto txdStore = streaming->moduleMgr.GetStreamingModule("ytd");
 
-	txdStore->FindSlotFromHashKey(&m_txdIndex, name);
+	txdStore->FindSlotFromHashKey(&m_txdIndex, m_name.c_str());
 
 	if (m_txdIndex != 0xFFFFFFFF)
 	{
@@ -255,8 +264,6 @@ RuntimeTxd::RuntimeTxd(const char* name)
 
 		if (!entry.handle)
 		{
-			m_name = name;
-
 			void* memoryStub = rage::GetAllocator()->Allocate(sizeof(rage::five::pgDictionary<rage::grcTexture>), 16, 0);
 			m_txd = textureDictionaryCtor(memoryStub, 1);
 
@@ -265,6 +272,9 @@ RuntimeTxd::RuntimeTxd(const char* name)
 
 			txdStore->SetResource(m_txdIndex, ref);
 			entry.flags = (512 << 8) | 1;
+			entry.flags |= (0x20000000); // SetDoNotDefrag
+
+			txdStore->AddRef(m_txdIndex);
 		}
 	}
 }
