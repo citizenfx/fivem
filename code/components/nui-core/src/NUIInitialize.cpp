@@ -1361,6 +1361,8 @@ bool g_shouldCreateRootWindow;
 
 namespace nui
 {
+fwEvent<> OnInitialize;
+
 static std::mutex g_rcHandlerMutex;
 static std::vector<std::tuple<CefString, CefString, CefRefPtr<CefSchemeHandlerFactory>>> g_schemeHandlers;
 static std::set<CefRefPtr<CefRequestContext>> g_requestContexts;
@@ -1556,6 +1558,8 @@ void Initialize(nui::GameInterface* gi)
 		{
 			nui::CreateFrame("mpMenu", uiUrlVar.GetValue());
 		}
+
+		nui::OnInitialize();
 	});
 	
 	static ConsoleCommand devtoolsCmd("nui_devtools", []()
