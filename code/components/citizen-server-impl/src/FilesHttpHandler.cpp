@@ -64,7 +64,7 @@ namespace fx
 	{
 		auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
 
-		auto sendFile = [=](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response, const std::string& resourceName, const std::string& fileName, const fx::ClientSharedPtr& client)
+		auto sendFile = [=](const fwRefContainer<net::HttpRequest>& request, fwRefContainer<net::HttpResponse> response, const std::string& resourceName, const std::string& fileName, const fx::ClientSharedPtr& client)
 		{
 			// get resource manager and resource
 			auto resourceManager = instance->GetComponent<fx::ResourceManager>();
@@ -188,7 +188,7 @@ namespace fx
 
 					// to keep a reference to readCallback inside of itself
 					auto readCallback = std::make_shared<std::function<void(uv_fs_t*)>>();
-					*readCallback = [=](uv_fs_t* fsReq) mutable
+					*readCallback = [=](uv_fs_t* fsReq)
 					{
 						// read failed? report back
 						if (fsReq->result < 0)
@@ -212,7 +212,7 @@ namespace fx
 						}
 
 						// write to response
-						response->Write(std::move(*buffer), fsReq->result, [=](bool result) mutable
+						response->Write(std::move(*buffer), fsReq->result, [=](bool result)
 						{
 							if (!*readCallback)
 							{
@@ -260,7 +260,7 @@ namespace fx
 					};
 
 					// on-close handler
-					request->SetCancelHandler([=]() mutable
+					request->SetCancelHandler([=]()
 					{
 						// if so, end response (closing should be done automatically)
 						response->End();
@@ -275,7 +275,7 @@ namespace fx
 			}));
 		};
 
-		return [=](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response)
+		return [=](const fwRefContainer<net::HttpRequest>& request, fwRefContainer<net::HttpResponse> response)
 		{
 			if (request->GetRequestMethod() != "GET")
 			{

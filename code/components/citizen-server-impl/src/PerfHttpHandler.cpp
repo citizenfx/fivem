@@ -20,7 +20,7 @@ static InitFunction initFunction([]()
 
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
-		instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/perf/", [instance](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response)
+		instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/perf/", [instance](const fwRefContainer<net::HttpRequest>& request, fwRefContainer<net::HttpResponse> response)
 		{
 			static auto limiter = instance->GetComponent<fx::PeerAddressRateLimiterStore>()->GetRateLimiter("http_perf", fx::RateLimiterDefaults{ 2.0, 5.0 });
 			auto address = request->GetRemotePeer();
