@@ -46,40 +46,40 @@ struct ZeroCopyByteBuffer
 		std::string string;
 		std::vector<uint8_t> vec;
 		std::unique_ptr<char[]> raw;
-		size_t rawLength;
-		size_t read;
+		size_t rawLength = 0;
+		size_t read = 0;
 
 		fu2::unique_function<void(bool)> cb;
 
 		int type;
 
 		Element(std::vector<uint8_t>&& vec, fu2::unique_function<void(bool)>&& cb)
-			: read(0), type(1), vec(std::move(vec)), cb(std::move(cb))
+			: type(1), vec(std::move(vec)), cb(std::move(cb))
 		{
 			
 		}
 
 		Element(std::string&& str, fu2::unique_function<void(bool)>&& cb)
-			: read(0), type(0), string(std::move(str)), cb(std::move(cb))
+			: type(0), string(std::move(str)), cb(std::move(cb))
 		{
 			
 		}
 
 		Element(std::unique_ptr<char[]> raw, size_t length, fu2::unique_function<void(bool)>&& cb)
-			: read(0), type(2), raw(std::move(raw)), rawLength(length), cb(std::move(cb))
+			: type(2), raw(std::move(raw)), rawLength(length), cb(std::move(cb))
 		{
 
 		}
 
 		// we lied! we copy anyway :(
 		Element(const std::vector<uint8_t>& vec, fu2::unique_function<void(bool)>&& cb)
-			: read(0), type(1), vec(vec), cb(std::move(cb))
+			: type(1), vec(vec), cb(std::move(cb))
 		{
 			this->vec = vec;
 		}
 
 		Element(const std::string& str, fu2::unique_function<void(bool)>&& cb)
-			: read(0), type(0), string(str), cb(std::move(cb))
+			: type(0), string(str), cb(std::move(cb))
 		{
 			
 		}
@@ -320,7 +320,7 @@ public:
 			return;
 		}
 
-		auto session = m_session;
+		auto session = Session();
 
 		if (!session)
 		{
@@ -350,9 +350,7 @@ public:
 			addHeader(header);
 		}
 
-		auto stream = m_tcpStream;
-
-		if (stream.GetRef())
+		if (auto stream = TcpStream(); stream.GetRef())
 		{
 			fwRefContainer thisRef = this;
 
@@ -404,17 +402,13 @@ public:
 	template<typename TContainer>
 	void WriteOutInternal(TContainer data, fu2::unique_function<void(bool)> && cb = {})
 	{
-		auto stream = m_tcpStream;
-
-		if (stream.GetRef())
+		if (auto stream = TcpStream(); stream.GetRef())
 		{
 			fwRefContainer thisRef = this;
 
 			stream->ScheduleCallback([thisRef, data = std::move(data), cb = std::move(cb)]() mutable
 			{
-				auto session = thisRef->m_session;
-
-				if (session)
+				if (auto session = thisRef->Session())
 				{
 					thisRef->m_buffer.Push(std::forward<TContainer>(data), std::move(cb));
 
@@ -447,17 +441,13 @@ public:
 
 	virtual void WriteOut(std::unique_ptr<char[]> data, size_t size, fu2::unique_function<void(bool)>&& cb = {}) override
 	{
-		auto stream = m_tcpStream;
-
-		if (stream.GetRef())
+		if (auto stream = TcpStream(); stream.GetRef())
 		{
 			fwRefContainer thisRef = this;
 
 			stream->ScheduleCallback([thisRef, data = std::move(data), size, cb = std::move(cb)]() mutable
 			{
-				auto session = thisRef->m_session;
-
-				if (session)
+				if (auto session = thisRef->Session())
 				{
 					thisRef->m_buffer.Push(std::move(data), size, std::move(cb));
 
@@ -470,9 +460,7 @@ public:
 
 	virtual void End() override
 	{
-		auto stream = m_tcpStream;
-
-		if (stream.GetRef())
+		if (auto stream = TcpStream(); stream.GetRef())
 		{
 			fwRefContainer thisRef = this;
 
@@ -480,7 +468,7 @@ public:
 			{
 				thisRef->m_tcpStream = nullptr;
 
-				auto session = thisRef->m_session;
+				auto session = thisRef->Session();
 				thisRef->m_ended = true;
 
 				if (session)
@@ -500,12 +488,9 @@ public:
 	{
 		m_ended = true;
 
-		auto s = m_tcpStream;
-
-		if (s.GetRef())
+		if (auto s = TcpStream(); s.GetRef())
 		{
 			s->Close();
-			s = {};
 		}
 	}
 
@@ -523,8 +508,8 @@ public:
 			}
 		}
 
-		m_tcpStream = nullptr;
-		m_session = nullptr;
+		TcpStream({});
+		Session({});
 	}
 
 	inline ZeroCopyByteBuffer& GetBuffer()
@@ -533,7 +518,34 @@ public:
 	}
 
 private:
+	std::shared_ptr<nghttp2_session_wrap> Session()
+	{
+		std::shared_lock _(m_refMutex);
+		return m_session;
+	}
+
+	void Session(const std::shared_ptr<nghttp2_session_wrap>& session)
+	{
+		std::unique_lock _(m_refMutex);
+		m_session = session;
+	}
+
+	fwRefContainer<net::TcpServerStream> TcpStream()
+	{
+		std::shared_lock _(m_refMutex);
+		return m_tcpStream;
+	}
+
+	void TcpStream(const fwRefContainer<net::TcpServerStream>& tcpStream)
+	{
+		std::unique_lock _(m_refMutex);
+		m_tcpStream = tcpStream;
+	}
+
+private:
 	std::shared_ptr<nghttp2_session_wrap> m_session;
+
+	std::shared_mutex m_refMutex;
 
 	int m_stream;
 
@@ -544,19 +556,9 @@ private:
 	fwRefContainer<net::TcpServerStream> m_tcpStream;
 };
 
-Http2ServerImpl::Http2ServerImpl()
-{
-
-}
-
-Http2ServerImpl::~Http2ServerImpl()
-{
-
-}
-
 namespace h2
 {
-	struct HttpRequestData;
+	class HttpRequestData;
 
 	struct HttpConnectionData
 	{
@@ -624,7 +626,7 @@ void Http2ServerImpl::OnConnection(fwRefContainer<TcpServerStream> stream)
 			size_t off;
 			fu2::unique_function<void(bool)> cb;
 
-			if (buf.Take(length, &s, &v, &raw, &rawLength, &off, &cb))
+			if (buf.Take(static_cast<uint32_t>(length), &s, &v, &raw, &rawLength, &off, &cb))
 			{
 				if (off == 0)
 				{

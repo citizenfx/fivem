@@ -17,6 +17,8 @@
 
 #include <optional>
 
+#include "ComponentExport.h"
+
 namespace net
 {
 struct HeaderComparator
@@ -168,11 +170,7 @@ struct HttpState
 	std::mutex pingLock;
 };
 
-class
-#ifdef COMPILING_NET_HTTP_SERVER
-	DLL_EXPORT
-#endif
-	HttpResponse : public fwRefCountable
+class COMPONENT_EXPORT(NET_HTTP_SERVER) HttpResponse : public fwRefCountable
 {
 protected:
 	fwRefContainer<HttpRequest> m_request;
@@ -300,7 +298,7 @@ public:
 	virtual void RegisterHandler(fwRefContainer<HttpHandler> handler) = 0;
 };
 
-class HttpServer : public HttpServerBase
+class COMPONENT_EXPORT(NET_HTTP_SERVER) HttpServer : public HttpServerBase
 {
 public:
 	virtual void AttachToServer(fwRefContainer<TcpServer> server) override;
