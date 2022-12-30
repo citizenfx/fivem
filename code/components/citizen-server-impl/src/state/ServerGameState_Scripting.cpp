@@ -1748,6 +1748,18 @@ static void Init()
 
 		context.SetResult(player);
 	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_SERVER_ID_FROM_PED", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		if (entity->type == fx::sync::NetObjEntityType::Player)
+		{
+			if (auto owner = entity->GetClient())
+			{
+				return owner->GetNetId();
+			}
+		}
+		return (uint32_t)0;
+	}));
 }
 
 static InitFunction initFunction([]()
