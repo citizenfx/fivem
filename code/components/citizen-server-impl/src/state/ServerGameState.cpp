@@ -4356,7 +4356,7 @@ struct CExplosionEvent
 	bool f190;
 	bool f191;
 
-	uint32_t f164;
+	uint32_t weaponHash;
 	
 	float posX224;
 	float posY224;
@@ -4366,7 +4366,7 @@ struct CExplosionEvent
 	uint16_t f218;
 	bool f216;
 
-	MSGPACK_DEFINE_MAP(f186,f208,ownerNetId,f214,explosionType,damageScale,posX,posY,posZ,f242,f104,cameraShake,isAudible,f189,isInvisible,f126,f241,f243,f210,unkX,unkY,unkZ,f190,f191,f164,posX224,posY224,posZ224,f240,f218,f216);
+	MSGPACK_DEFINE_MAP(f186,f208,ownerNetId,f214,explosionType,damageScale,posX,posY,posZ,f242,f104,cameraShake,isAudible,f189,isInvisible,f126,f241,f243,f210,unkX,unkY,unkZ,f190,f191,weaponHash,posX224,posY224,posZ224,f240,f218,f216);
 };
 
 void CExplosionEvent::Parse(rl::MessageBuffer& buffer)
@@ -4402,7 +4402,7 @@ void CExplosionEvent::Parse(rl::MessageBuffer& buffer)
 	f190 = buffer.Read<uint8_t>(1);
 	f191 = buffer.Read<uint8_t>(1);
 
-	f164 = buffer.Read<uint32_t>(32);
+	weaponHash = buffer.Read<uint32_t>(32);
 	
 	if (f242)
 	{
