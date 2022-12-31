@@ -12,6 +12,30 @@
 
 static google_breakpad::ExceptionHandler* g_exceptionHandler;
 
+using namespace google_breakpad;
+
+namespace google_breakpad
+{
+class AutoExceptionHandler
+{
+public:
+	static LONG HandleException(EXCEPTION_POINTERS* exinfo)
+	{
+		return ExceptionHandler::HandleException(exinfo);
+	}
+};
+}
+
+void InitializeMiniDumpOverride()
+{
+	auto CoreSetExceptionOverride = (void (*)(LONG(*)(EXCEPTION_POINTERS*)))GetProcAddress(GetModuleHandle(L"CoreRT.dll"), "CoreSetExceptionOverride");
+
+	if (CoreSetExceptionOverride)
+	{
+		CoreSetExceptionOverride(AutoExceptionHandler::HandleException);
+	}
+}
+
 static DWORD BeforeTerminateHandler(LPVOID arg)
 {
 	__try
