@@ -609,6 +609,8 @@ NTSTATUS NTAPI LdrLoadDllStub(const wchar_t* fileName, uint32_t* flags, UNICODE_
 		moduleNameStr.find(L"ow-graphics-hook64.dll") != std::string::npos ||
 		// 'Twitch Native Overlay' crashes Vulkan drivers again ('woo another Vulkan layer crash')
 		moduleNameStr.find(L"twitchnativeoverlay64.dll") != std::string::npos ||
+		// Mirillis Action! also has a broken Vulkan layer (seriously?)
+		moduleNameStr.find(L"mirillisactionvulkanlayer.dll") != std::string::npos ||
 #endif
 		// 'Lenovo Nerve Center'/'Lenovo Artery', leads to chrome_elf.dll crashing
 		moduleNameStr.find(L"gm_gametooldll_x64.dll") != std::string::npos ||
