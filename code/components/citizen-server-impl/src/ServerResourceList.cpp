@@ -171,37 +171,21 @@ void ServerResourceList::ScanResources(const std::string& resourceRoot, ScanResu
 
 							auto path = std::filesystem::u8path(resPath);
 
-							// determine which root we're relative to
+							// get parent path components
 							std::error_code ec;
-							auto refPath = path.lexically_normal();
-
-							std::filesystem::path* rootRef = nullptr;
-
-							auto [relEnd, _] = std::mismatch(resourceRootPath.begin(), resourceRootPath.end(), refPath.begin());
-							auto rpEnd = --resourceRootPath.end();
-
-							if (relEnd != rpEnd)
-							{
-								rootRef = &resourceRootPath;
-							}
-
-							// get the relative path to the root
 							std::vector<std::string> components;
 
-							if (rootRef)
+							auto relPath = std::filesystem::relative(path, resourceRootPath, ec);
+
+							if (!ec)
 							{
-								auto relPath = std::filesystem::relative(path, *rootRef, ec);
-
-								if (!ec)
+								for (const auto& component : relPath)
 								{
-									for (const auto& component : relPath)
-									{
-										auto name = component.filename().u8string();
+									auto name = component.filename().u8string();
 
-										if (name[0] == '[' && name[name.size() - 1] == ']')
-										{
-											components.push_back(name);
-										}
+									if (name[0] == '[' && name[name.size() - 1] == ']')
+									{
+										components.push_back(name);
 									}
 								}
 							}
