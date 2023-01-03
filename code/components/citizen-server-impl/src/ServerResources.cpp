@@ -11,6 +11,8 @@
 #include <ServerInstanceBase.h>
 #include <ServerInstanceBaseRef.h>
 
+#include "ServerResourceList.h"
+
 #include <GameServer.h>
 #include <ServerEventComponent.h>
 
@@ -19,9 +21,6 @@
 #include <RelativeDevice.h>
 
 #include <VFSManager.h>
-
-#include <skyr/url.hpp>
-#include <skyr/percent_encode.hpp>
 
 #include <PrintListener.h>
 
@@ -32,11 +31,8 @@
 
 #include <StructuredTrace.h>
 
-#include <filesystem>
-
 #include <ScriptEngine.h>
 
-#include <ManifestVersion.h>
 #include <cfx_version.h>
 
 #include <boost/algorithm/string.hpp>
@@ -50,55 +46,6 @@ static std::set<std::string> g_managedResources = {
 	"sessionmanager",
 	"webadmin",
 	"monitor"
-};
-
-class LocalResourceMounter : public fx::ResourceMounter
-{
-public:
-	LocalResourceMounter(fx::ResourceManager* manager)
-		: m_manager(manager)
-	{
-		
-	}
-
-	virtual bool HandlesScheme(const std::string& scheme) override
-	{
-		return (scheme == "file");
-	}
-
-	virtual pplx::task<fwRefContainer<fx::Resource>> LoadResource(const std::string& uri) override
-	{
-		auto uriParsed = skyr::make_url(uri);
-
-		fwRefContainer<fx::Resource> resource;
-
-		if (uriParsed)
-		{
-			auto pathRef = uriParsed->pathname();
-			auto fragRef = uriParsed->hash().substr(1);
-
-			if (!pathRef.empty() && !fragRef.empty())
-			{
-#ifdef _WIN32
-				std::string pr = pathRef.substr(1);
-#else
-				std::string pr = pathRef;
-#endif
-
-				resource = m_manager->CreateResource(fragRef, this);
-				if (!resource->LoadFrom(*skyr::percent_decode(pr)))
-				{
-					m_manager->RemoveResource(resource);
-					resource = nullptr;
-				}
-			}
-		}
-
-		return pplx::task_from_result<fwRefContainer<fx::Resource>>(resource);
-	}
-
-private:
-	fx::ResourceManager* m_manager;
 };
 
 static void HandleServerEvent(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& buffer)
@@ -164,285 +111,93 @@ static void HandleServerEvent(fx::ServerInstanceBase* instance, const fx::Client
 }
 
 static std::shared_ptr<ConVar<std::string>> g_citizenDir;
-static std::shared_mutex g_resourcesByComponentMutex;
-static std::map<std::string, std::set<std::string>> g_resourcesByComponent;
 
 static void ScanResources(fx::ServerInstanceBase* instance)
 {
-	// mapping of names to paths
-	static std::map<std::string, std::string> scanData;
-
 	auto resMan = instance->GetComponent<fx::ResourceManager>();
+	auto serverResourceList = resMan->GetComponent<fx::resources::ServerResourceList>();
 
 	std::string resourceRoot(instance->GetRootPath() + "/resources/");
 	std::string systemResourceRoot(g_citizenDir->GetValue() + "/system_resources/");
 
-	auto resourceRootPath = std::filesystem::u8path(resourceRoot).lexically_normal();
-	auto systemResourceRootPath = std::filesystem::u8path(systemResourceRoot).lexically_normal();
+	console::Printf("resources", "^2Scanning resources.^7\n");
 
-	std::queue<std::string> pathsToIterate;
-	pathsToIterate.push(systemResourceRoot);
-	pathsToIterate.push(resourceRoot);
+	fx::resources::ScanResult result;
+	serverResourceList->ScanResources(resourceRoot, &result);
+	serverResourceList->ScanResources(systemResourceRoot, &result);
 
-	std::vector<pplx::task<fwRefContainer<fx::Resource>>> tasks;
+	int errorCount = 0, warningCount = 0;
 
-	// save scanned resource names so we don't scan them twice
-	std::set<std::string> scannedNow;
-	std::set<std::string> updatedNow;
-	size_t newResources = 0;
-	size_t updatedResources = 0;
-	size_t reloadedResources = 0;
-
-	trace("^2Scanning resources.^7\n", newResources);
-
-	while (!pathsToIterate.empty())
+	for (const auto& message : result.messages)
 	{
-		std::string thisPath = pathsToIterate.front();
-		pathsToIterate.pop();
+		auto channel = fmt::sprintf("resources:%s", message.resource);
 
-		auto vfsDevice = vfs::GetDevice(thisPath);
-
-		vfs::FindData findData;
-		auto handle = vfsDevice->FindFirst(thisPath, &findData);
-
-		if (handle != INVALID_DEVICE_HANDLE)
+		if (message.type == fx::resources::ScanMessageType::Error)
 		{
-			do
-			{
-				if (findData.name == "." || findData.name == "..")
-				{
-					continue;
-				}
-
-				// TODO(fxserver): non-win32
-				if (findData.attributes & FILE_ATTRIBUTE_DIRECTORY)
-				{
-					std::string resPath(thisPath + "/" + findData.name);
-
-					// is this a category?
-					if (findData.name[0] == '[' && findData.name[findData.name.size() - 1] == ']')
-					{
-						pathsToIterate.push(resPath);
-					}
-					// it's a resource
-					else if (scannedNow.find(findData.name) == scannedNow.end())
-					{
-						const auto& resourceName = findData.name;
-						scannedNow.insert(resourceName);
-
-						auto oldRes = resMan->GetResource(resourceName, false);
-						auto oldScanData = scanData.find(resourceName);
-
-						// did the path change? if so, unload the old resource
-						if (oldRes.GetRef() && oldScanData != scanData.end() && oldScanData->second != resPath)
-						{
-							{
-								std::unique_lock _(g_resourcesByComponentMutex);
-
-								// remove from by-component lists
-								for (auto& list : g_resourcesByComponent)
-								{
-									list.second.erase(resourceName);
-								}
-							}
-
-							// unmount relative device
-							vfs::Unmount(fmt::sprintf("@%s/", resourceName));
-
-							// stop and remove resource
-							oldRes->Stop();
-							resMan->RemoveResource(oldRes);
-
-							// undo ptr
-							oldRes = {};
-						}
-
-						if (oldRes.GetRef())
-						{
-							auto metaDataComponent = oldRes->GetComponent<fx::ResourceMetaDataComponent>();
-
-							// filter function to remove _extra entries (Lua table ordering determinism)
-							auto filterMetadata = [](auto&& metadataIn)
-							{
-								for (auto it = metadataIn.begin(); it != metadataIn.end(); )
-								{
-									if (boost::algorithm::ends_with(it->first, "_extra"))
-									{
-										it = metadataIn.erase(it);
-									}
-									else
-									{
-										++it;
-									}
-								}
-
-								return std::move(metadataIn);
-							};
-
-							// save the old metadata for comparison
-							auto oldMetaData = filterMetadata(metaDataComponent->GetAllEntries());
-
-							// load new metadata
-							metaDataComponent->LoadMetaData(resPath);
-							
-							// compare differences
-							auto newMetaData = filterMetadata(metaDataComponent->GetAllEntries());
-							bool different = (newMetaData.size() != oldMetaData.size()) || (newMetaData != oldMetaData);
-
-							// if different, track as updated
-							if (different)
-							{
-								updatedNow.insert(resourceName);
-								updatedResources++;
-							}
-
-							// track resource as reloaded
-							reloadedResources++;
-						}
-						else
-						{
-							console::DPrintf("resources", "Found new resource %s in %s\n", resourceName, resPath);
-							newResources++;
-							updatedNow.insert(resourceName);
-
-							auto path = std::filesystem::u8path(resPath);
-
-							// determine which root we're relative to
-							std::error_code ec;
-							auto refPath = path.lexically_normal();
-
-							std::filesystem::path* rootRef = nullptr;
-
-							auto [relEnd, _] = std::mismatch(resourceRootPath.begin(), resourceRootPath.end(), refPath.begin());
-							auto rpEnd = --resourceRootPath.end();
-
-							if (relEnd != rpEnd)
-							{
-								auto [relEnd, _] = std::mismatch(systemResourceRootPath.begin(), systemResourceRootPath.end(), refPath.begin());	
-								auto rpEnd = --systemResourceRootPath.end();
-
-								if (relEnd == rpEnd)
-								{
-									rootRef = &systemResourceRootPath;
-								}
-							}
-							else
-							{
-								rootRef = &resourceRootPath;
-							}
-							
-							// get the relative path to the root
-							std::vector<std::string> components;
-
-							if (rootRef)
-							{
-								auto relPath = std::filesystem::relative(path, *rootRef, ec);
-
-								if (!ec)
-								{
-									for (const auto& component : relPath)
-									{
-										auto name = component.filename().u8string();
-
-										if (name[0] == '[' && name[name.size() - 1] == ']')
-										{
-											components.push_back(name);
-										}
-									}
-								}
-							}
-
-							// mount the resource for later use in VFS (e.g. from `exec`)
-							fwRefContainer<vfs::RelativeDevice> relativeDevice = new vfs::RelativeDevice(resPath + "/");
-							vfs::Mount(relativeDevice, fmt::sprintf("@%s/", resourceName));
-							scanData[resourceName] = resPath;
-
-							skyr::url_record record;
-							record.scheme = "file";
-
-							skyr::url url{ std::move(record) };
-							url.set_pathname(*skyr::percent_encode(resPath, skyr::encode_set::path));
-							url.set_hash(*skyr::percent_encode(resourceName, skyr::encode_set::fragment));
-
-							auto task = resMan->AddResource(url.href())
-										.then([components = std::move(components)](fwRefContainer<fx::Resource> resource)
-										{
-											if (resource.GetRef())
-											{
-												std::unique_lock _(g_resourcesByComponentMutex);
-
-												for (const auto& component : components)
-												{
-													g_resourcesByComponent[component].insert(resource->GetName());
-												}
-											}
-
-											return resource;
-										});
-
-							tasks.push_back(task);
-						}
-					}
-				}
-			} while (vfsDevice->FindNext(handle, &findData));
-
-			vfsDevice->FindClose(handle);
+			errorCount++;
+			console::PrintError(channel, "%s\n", message.Format());
+		}
+		else if (message.type == fx::resources::ScanMessageType::Warning)
+		{
+			warningCount++;
+			console::PrintWarning(channel, "%s\n", message.Format());
+		}
+		else
+		{
+			console::Printf(channel, "%s\n", message.Format());
 		}
 	}
 
-	pplx::when_all(tasks.begin(), tasks.end()).wait();
-
-	if (reloadedResources > 0)
+	if (result.reloadedResources > 0)
 	{
-		trace("^2Found %d new resources, and refreshed %d/%d resources.^7\n", newResources, updatedResources, reloadedResources);
+		console::Printf("resources", "^2Found %d new resources, and refreshed %d/%d resources.^7\n", result.newResources, result.updatedResources, result.reloadedResources);
 	}
 	else
 	{
-		trace("^2Found %d resources.^7\n", newResources);
+		console::Printf("resources", "^2Found %d resources.^7\n", result.newResources);
 	}
 
+	auto quickPlural = [](int number, std::string_view singular, std::string_view plural)
+	{
+		if (number == 1)
+		{
+			return fmt::sprintf("%d %s", number, singular);
+		}
+		else
+		{
+			return fmt::sprintf("%d %s", number, plural);
+		}
+	};
+
+	if (errorCount > 0 && warningCount > 0)
+	{
+		console::Printf("resources",
+			"^1%s and %s were encountered.^7\n",
+			quickPlural(warningCount, "warning", "warnings"),
+			quickPlural(errorCount, "error", "errors"));
+	}
+	else if (errorCount > 0)
+	{
+		console::Printf("resources", "^1%s encountered.^7\n", quickPlural(errorCount, "error was", "errors were"));
+	}
+	else if (warningCount > 0)
+	{
+		console::Printf("resources", "^3%s encountered.^7\n", quickPlural(warningCount, "warning was", "warnings were"));
+	}
+
+	// mount discovered resources for later use in VFS (e.g. from `exec`)
+	for (const auto& resource : result.resources)
+	{
+		auto mountPath = fmt::sprintf("@%s/", resource->GetName());
+
+		fwRefContainer<vfs::RelativeDevice> relativeDevice = new vfs::RelativeDevice(resource->GetPath() + "/");
+		vfs::Unmount(mountPath);
+		vfs::Mount(relativeDevice, mountPath);
+	}
+
+	// reset rate limiters for clients downloading stuff in bursts
 	auto trl = instance->GetComponent<fx::TokenRateLimiter>();
-	trl->Update(1.0, std::max(double(newResources + reloadedResources), 3.0));
-
-	// check for outdated
-	std::set<std::string> nonManifestResources;
-
-	resMan->ForAllResources([&updatedNow, &nonManifestResources](const fwRefContainer<fx::Resource>& resource)
-	{
-		auto md = resource->GetComponent<fx::ResourceMetaDataComponent>();
-
-		auto fxV2 = md->IsManifestVersionBetween("adamant", "");
-		auto fxV1 = md->IsManifestVersionBetween(ManifestVersion{ "44febabe-d386-4d18-afbe-5e627f4af937" }.guid, guid_t{ 0 });
-
-		if (!fxV2 || !*fxV2)
-		{
-			if (!fxV1 || !*fxV1)
-			{
-				if (!md->GlobEntriesVector("client_script").empty())
-				{
-					auto resourceName = resource->GetName();
-
-					// only alert if a resource updated this iteration
-					if (updatedNow.find(resourceName) != updatedNow.end())
-					{
-						nonManifestResources.insert(resourceName);
-					}
-				}
-			}
-		}
-	});
-
-	if (!nonManifestResources.empty())
-	{
-		trace("^1Some resources have an outdated resource manifest:^7\n");
-
-		for (auto& name : nonManifestResources)
-		{
-			trace("    - %s\n", name);
-		}
-
-		trace("\nPlease update these resources.\n");
-	}
+	trl->Update(1.0, std::max(double(result.newResources + result.reloadedResources), 3.0));
 
 	/*NETEV onResourceListRefresh SERVER
 	/#*
@@ -511,6 +266,8 @@ inline std::string ToNarrow(const std::string& str)
 
 std::shared_mutex g_resourceStartOrderLock;
 std::list<std::string> g_resourceStartOrder;
+
+extern fwRefContainer<fx::ResourceMounter> MakeServerResourceMounter(const fwRefContainer<fx::ResourceManager>& resman);
 
 static InitFunction initFunction([]()
 {
@@ -653,7 +410,8 @@ static InitFunction initFunction([]()
 			rac->NetworkTick();
 		});
 
-		resman->AddMounter(new LocalResourceMounter(resman.GetRef()));
+		resman->AddMounter(MakeServerResourceMounter(resman));
+		resman->SetComponent(new fx::resources::ServerResourceList);
 
 		fx::Resource::OnInitializeInstance.Connect([](fx::Resource* resource)
 		{
@@ -817,19 +575,17 @@ static InitFunction initFunction([]()
 			return (!resourceName.empty() && resourceName[0] == '[' && resourceName[resourceName.size() - 1] == ']');
 		};
 
-		static auto findByComponent = [](const std::string& resourceName) -> std::set<std::string>
+		static auto findByComponent = [resman](const std::string& resourceName) -> std::set<std::string>
 		{
-			std::shared_lock _(g_resourcesByComponentMutex);
+			auto resourceList = resman->GetComponent<fx::resources::ServerResourceList>();
+			auto resources = resourceList->FindByPathComponent(resourceName);
 
-			auto category = g_resourcesByComponent.find(resourceName);
-
-			if (category == g_resourcesByComponent.end())
+			if (resources.empty())
 			{
 				trace("^3Couldn't find resource category %s.^7\n", resourceName);
-				return {};
 			}
 
-			return category->second;
+			return resources;
 		};
 
 		static auto commandRef = instance->AddCommand("start", [=](const std::string& resourceName)

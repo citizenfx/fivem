@@ -91,7 +91,17 @@ auto LuaMetaDataLoader::LoadFile(const std::string& filename) -> LoadFileResult
 	std::string code(bytes.begin(), bytes.end());
 
 	// create the chunk name as well
-	std::string chunkName = "@" + filename;
+	std::string friendlyFileName = filename;
+
+	if (auto lastSlash = friendlyFileName.rfind('/'); lastSlash != std::string::npos && lastSlash > 0)
+	{
+		if (auto secondLastSlash = friendlyFileName.rfind('/', lastSlash - 1); secondLastSlash != std::string::npos)
+		{
+			friendlyFileName = friendlyFileName.substr(secondLastSlash + 1);
+		}
+	}
+
+	std::string chunkName = "@" + friendlyFileName;
 
 	// load the buffer
 	if (luaL_loadbuffer(m_luaState, code.c_str(), code.length(), chunkName.c_str()) != 0)
