@@ -289,64 +289,79 @@ void WrapLevelLoad(const char* r)
 	g_origLevelLoad(r);
 }
 
-auto generateAndCallStub(hook::pattern_match& match, uint32_t hash, int callOffset)
-{
-	struct : jitasm::Frontend
-	{
-		uint32_t hash;
-		uint64_t origFn;
-
-		void InternalMain() override
-		{
-			sub(rsp, 0x38);
-
-			mov(rax, qword_ptr[rsp + 0x38 + 0x28]);
-			mov(qword_ptr[rsp + 0x20], rax);
-
-			mov(rax, qword_ptr[rsp + 0x38 + 0x30]);
-			mov(qword_ptr[rsp + 0x28], rax);
-
-			mov(rax, origFn);
-			call(rax);
-
-			mov(rcx, rax);
-			mov(edx, hash);
-
-			mov(rax, (uint64_t)&SetPoolFn);
-			call(rax);
-
-			add(rsp, 0x38);
-
-			ret();
-		}
-	} * stub = new std::remove_pointer_t<decltype(stub)>();
-
-	stub->hash = hash;
-
-	auto call = match.get<void>(callOffset);
-	hook::set_call(&stub->origFn, call);
-	hook::call(call, stub->GetCode());
-}
-
 static HookFunction hookFunction([]()
 {
-	auto registerPools = [](hook::pattern& patternMatch, int callOffset, int hashOffset)
+	auto generateAndCallStub = [](hook::pattern_match match, int callOffset, uint32_t hash, bool isAssetStore)
+	{
+		struct : jitasm::Frontend
+		{
+			uint32_t hash;
+			uint64_t origFn;
+			bool isAssetStore;
+
+			void InternalMain() override
+			{
+				sub(rsp, 0x38);
+
+				mov(rax, qword_ptr[rsp + 0x38 + 0x28]);
+				mov(qword_ptr[rsp + 0x20], rax);
+
+				mov(rax, qword_ptr[rsp + 0x38 + 0x30]);
+				mov(qword_ptr[rsp + 0x28], rax);
+
+				mov(rax, origFn);
+				call(rax);
+
+				mov(rcx, rax);
+				
+				if(isAssetStore == true)
+				   add(rcx, 0x38);
+
+				mov(edx, hash);
+
+				mov(rax, (uint64_t)&SetPoolFn);
+				call(rax);
+
+				add(rsp, 0x38);
+
+				ret();
+			}
+		} *stub = new std::remove_pointer_t<decltype(stub)>();
+
+		stub->hash = hash;
+		stub->isAssetStore = isAssetStore;
+
+		auto call = match.get<void>(callOffset);
+		hook::set_call(&stub->origFn, call);
+		hook::call(call, stub->GetCode());
+	};
+
+	auto registerPools = [&](hook::pattern& patternMatch, int callOffset, int hashOffset)
 	{
 		for (size_t i = 0; i < patternMatch.size(); i++)
 		{
 			auto match = patternMatch.get(i);
-			auto hash = *match.get<uint32_t>(hashOffset);
-			generateAndCallStub(match, hash, callOffset);
+			generateAndCallStub(match, callOffset, *match.get<uint32_t>(hashOffset), false);
 		}
 	};
 
-	auto registerUnhashedPools = [](hook::pattern& patternMatch, int callOffset, int nameOffset)
+	auto registerUnhashedPools = [&](hook::pattern& patternMatch, int callOffset, int nameOffset)
 	{
 		for (size_t i = 0; i < patternMatch.size(); i++)
 		{
 			auto match = patternMatch.get(i);
 			char* name = hook::get_address<char*>(match.get<void*>(nameOffset));
-			generateAndCallStub(match, HashString(name), callOffset);
+			generateAndCallStub(match, callOffset, HashString(name), false);
+		}
+	};
+
+	auto registerAssetPools = [&](hook::pattern& patternMatch, int callOffset, int nameOffset)
+	{
+		for (size_t i = 0; i < patternMatch.size(); i++)
+		{
+			auto match = patternMatch.get(i);
+			char* name = hook::get_address<char*>(match.get<void*>(nameOffset));
+			generateAndCallStub(match, callOffset, HashString(name), true);
 		}
 	};
 
@@ -355,8 +370,8 @@ static HookFunction hookFunction([]()
 	registerPools(hook::pattern("BA ? ? ? ? E8 ? ? ? ? 8B D8 E8 ? ? ? ? 48 89 44 24 28 4C 8D 05 ? ? ? ? 44 8B CD"), 41, 1);
 	registerPools(hook::pattern("BA ? ? ? ? E8 ? ? ? ? 8B D8 E8 ? ? ? ? 48 89 44 24 28 4C 8D 05 ? ? ? ? 44 8B CE"), 45, 1);
 
-	// find initial unhashed pools
-	registerUnhashedPools(hook::pattern("48 8D 15 ? ? ? ? 33 C9 E8 ? ? ? ? 48 8B 0D ? ? ? ? 41 B8"), 69, 3);
+	registerUnhashedPools(hook::pattern("48 8D 15 ? ? ? ? 33 C9 E8 ? ? ? ? 48 8B 0D ? ? ? ? 41 B8"), 0x45, 0x3);
+	registerAssetPools(hook::pattern("48 8D 15 ? ? ? ? C6 40 E8 ? 41 B9 ? ? ? ? C6"), 0x23, 0x3);
 
 	// no-op assertation to ensure our pool crash reporting is used instead
 	hook::nop(hook::get_pattern("83 C9 FF BA EF 4F 91 02 E8", 8), 5);
