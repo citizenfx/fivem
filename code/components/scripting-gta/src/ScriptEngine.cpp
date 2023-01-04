@@ -222,6 +222,9 @@ namespace fx
 
 	void ScriptEngine::RegisterNativeHandler(uint64_t nativeIdentifier, TNativeHandler function)
 	{
+		if (g_registeredHandlers[nativeIdentifier]) {
+			return false;	
+		}
 		g_registeredHandlers[nativeIdentifier] = function;
 
 		if (!launch::IsSDK())
