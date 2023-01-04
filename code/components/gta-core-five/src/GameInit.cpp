@@ -52,8 +52,6 @@ static hook::cdecl_stub<int(bool, int)> getWarningResult([] ()
 	return hook::get_call(hook::pattern("33 D2 33 C9 E8 ? ? ? ? 48 83 F8 04 0F 84").count(1).get(0).get<void>(4));
 });
 
-static bool g_showWarningMessage;
-static std::string g_warningMessage;
 extern volatile bool g_isNetworkKilled;
 
 void FiveGameInit::KillNetwork(const wchar_t* errorString)
@@ -69,18 +67,11 @@ void FiveGameInit::KillNetwork(const wchar_t* errorString)
 	}
 	else
 	{
-		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
-		std::string smallReason = converter.to_bytes(errorString);
+		auto narrowReason = ToNarrow(errorString);
+		SetData("warningMessage", narrowReason);
 
-		if (!g_showWarningMessage)
-		{
-			g_warningMessage = smallReason;
-			g_showWarningMessage = true;
-
-			SetData("warningMessage", g_warningMessage);
-
-			OnKillNetwork(smallReason.c_str());
-		}
+		OnKillNetwork(narrowReason.c_str());
+		OnMsgConfirm();
 	}
 }
 
@@ -265,16 +256,6 @@ void SetScInitWaitCallback(bool (*cb)())
 
 static InitFunction initFunction([] ()
 {
-	OnGameFrame.Connect([] ()
-	{
-		if (g_showWarningMessage)
-		{
-			g_showWarningMessage = false;
-
-			OnMsgConfirm();
-		}
-	});
-
 	OnKillNetworkDone.Connect([]()
 	{
 		gamerInfoMenu__shutdown(rage::INIT_SESSION);
