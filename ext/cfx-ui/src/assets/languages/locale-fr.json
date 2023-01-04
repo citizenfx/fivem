@@ -30,7 +30,7 @@
     "#Settings_Nickname": "Nom du joueur",
     "#Settings_LocalhostPort": "Port personnalisé",
     "#Settings_DarkTheme": "\"Thème\" \"sombre\"",
-    "#Settings_DarkThemeDesc": "Activer le \"thème\" \"sombre\"",
+    "#Settings_DarkThemeDesc": "Activer le thème \"sombre\"",
     "#Settings_DevMode": "Mode développeur",
     "#Settings_DevModeDesc": "Activer l'onglet \"localhost\"",
     "#Settings_Account": "Compte Cfx.re connecté",
@@ -98,5 +98,8 @@
     "#Servers_ConnectingToServer": "Connexion au serveur...",
     "#ServerList_SearchHintWeb": "Rechercher",
     "#Settings_HandbrakeCamera": "Caméra de frein à main",
-    "#Settings_LocalhostPort2": "Port de l'hôte local"
+    "#Settings_LocalhostPort2": "Port de l'hôte local",
+    "#Settings_HandbrakeCameraDesc": "Recentrer automatiquement la caméra de suivi du véhicule lors de l'utilisation du frein à main",
+    "#Settings_UseAudioFrameLimiter": "Limiteur de trame audio",
+    "#Settings_CameraShakeDesc": "Désactiver le tremblement de la caméra à troisième personne en courant ou en conduisant un véhicule."
 }
