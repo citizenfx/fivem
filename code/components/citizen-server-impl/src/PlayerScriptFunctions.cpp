@@ -52,6 +52,22 @@ static void CreatePlayerCommands()
 		return client->GetIdentifiers()[idx].c_str();
 	}));
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_IDENTIFIER_BY_TYPE", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)
+	{
+		const std::vector<std::string>& identifiers = client->GetIdentifiers();
+		std::string identifierType = context.GetArgument<const char*>(1);
+
+		for (int i = 0; i < identifiers.size(); ++i)
+		{
+			if (identifiers[i].find(identifierType) != std::string::npos)
+			{
+				return identifiers[i].c_str();
+			}
+		}
+
+		return (const char*)nullptr;
+	}));
+
 	fx::ScriptEngine::RegisterNativeHandler("GET_NUM_PLAYER_TOKENS", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)
 	{
 		return client->GetTokens().size();
