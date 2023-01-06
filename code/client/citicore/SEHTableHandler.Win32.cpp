@@ -418,7 +418,7 @@ static NTSTATUS NTAPI RtlReportExceptionStub(PEXCEPTION_RECORD ExceptionRecord, 
 {
 	static bool inExceptionFallback;
 
-	if (!inExceptionFallback)
+	if (!inExceptionFallback && !(Flags & 8))
 	{
 		inExceptionFallback = true;
 
