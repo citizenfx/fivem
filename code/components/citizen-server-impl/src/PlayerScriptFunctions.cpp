@@ -59,7 +59,7 @@ static void CreatePlayerCommands()
 
 		for (int i = 0; i < identifiers.size(); ++i)
 		{
-			if (identifiers[i].find(identifierType) != std::string::npos)
+			if (identifiers[i].rfind(identifierType, 0) != std::string::npos)
 			{
 				return identifiers[i].c_str();
 			}
