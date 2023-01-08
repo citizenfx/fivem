@@ -44,6 +44,7 @@ namespace CitizenFX.Core
 		ALTA,
 		ARMYB,
 		BANHAMCA,
+		BANHAMC = BANHAMCA,
 		BANNING,
 		BAYTRE,
 		BEACH,
@@ -929,12 +930,10 @@ namespace CitizenFX.Core
 		{
 			return Array.ConvertAll<int, Checkpoint>(MemoryAccess.GetCheckpointHandles(), element => new Checkpoint(element));
 		}
-
 		static int[] ModelListToHashList(Model[] models)
 		{
 			return Array.ConvertAll<Model, int>(models, model => model.Hash);
 		}
-
 		/// <summary>
 		/// Gets an <c>array</c>of all <see cref="Ped"/>s in the World.
 		/// </summary>
@@ -943,7 +942,6 @@ namespace CitizenFX.Core
 		{
 			return Array.ConvertAll<int, Ped>(MemoryAccess.GetPedHandles(ModelListToHashList(models)), handle => new Ped(handle));
 		}
-
 		/// <summary>
 		/// Gets an <c>array</c> of all <see cref="Ped"/>s in a given region in the World.
 		/// </summary>
@@ -964,19 +962,15 @@ namespace CitizenFX.Core
 		public static Ped[] GetNearbyPeds(Ped ped, float radius, params Model[] models)
 		{
 			int[] handles = MemoryAccess.GetPedHandles(ped.Position, radius, ModelListToHashList(models));
-
 			var result = new List<Ped>();
-
 			foreach (int handle in handles)
 			{
 				if (handle == ped.Handle)
 				{
 					continue;
 				}
-
 				result.Add(new Ped(handle));
 			}
-
 			return result.ToArray();
 		}
 		/// <summary>
@@ -993,8 +987,6 @@ namespace CitizenFX.Core
 					handle => new Ped(handle));
 			return GetClosest<Ped>(position, peds);
 		}
-
-
 		/// <summary>
 		/// A fast way to get the total number of vehicles spawned in the world.
 		/// </summary>
@@ -1028,21 +1020,17 @@ namespace CitizenFX.Core
 		public static Vehicle[] GetNearbyVehicles(Ped ped, float radius, params Model[] models)
 		{
 			int[] handles = MemoryAccess.GetVehicleHandles(ped.Position, radius, ModelListToHashList(models));
-
 			var result = new List<Vehicle>();
 			Vehicle ignore = ped.CurrentVehicle;
 			int ignoreHandle = Vehicle.Exists(ignore) ? ignore.Handle : 0;
-
 			foreach (int handle in handles)
 			{
 				if (handle == ignoreHandle)
 				{
 					continue;
 				}
-
 				result.Add(new Vehicle(handle));
 			}
-
 			return result.ToArray();
 		}
 		/// <summary>
@@ -1058,9 +1046,7 @@ namespace CitizenFX.Core
 				Array.ConvertAll<int, Vehicle>(MemoryAccess.GetVehicleHandles(position, radius, ModelListToHashList(models)),
 					handle => new Vehicle(handle));
 			return GetClosest<Vehicle>(position, vehicles);
-
 		}
-
 		/// <summary>
 		/// Gets an <c>array</c> of all <see cref="Prop"/>s in the World.
 		/// </summary>
@@ -1092,7 +1078,6 @@ namespace CitizenFX.Core
 				Array.ConvertAll<int, Prop>(MemoryAccess.GetPropHandles(position, radius, ModelListToHashList(models)),
 					handle => new Prop(handle));
 			return GetClosest<Prop>(position, props);
-
 		}
 		/// <summary>
 		/// Gets an <c>array</c> of all <see cref="Entity"/>s in the World.
@@ -1110,7 +1095,6 @@ namespace CitizenFX.Core
 		{
 			return Array.ConvertAll<int, Entity>(MemoryAccess.GetEntityHandles(position, radius), Entity.FromHandle);
 		}
-
 		/// <summary>
 		/// Gets an <c>array</c> of all <see cref="Prop"/>s in the World associated with a <see cref="Pickup"/>.
 		/// </summary>
@@ -1127,7 +1111,6 @@ namespace CitizenFX.Core
 		{
 			return Array.ConvertAll<int, Prop>(MemoryAccess.GetPickupObjectHandles(position, radius), handle => new Prop(handle));
 		}
-
 		/// <summary>
 		/// Gets the closest <see cref="Prop"/> to a given position in the World associated with a <see cref="Pickup"/>.
 		/// </summary>
