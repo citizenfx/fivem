@@ -25,8 +25,8 @@ namespace CitizenFX.Core
 	}
 	public enum BlipSprite
 	{
-		Standard,
-		BigBlip,
+		Standard = 1,
+		BigBlip, // This actually shows nothing, but kept for backwards compatibility
 		PoliceOfficer,
 		PoliceArea,
 		Square,
@@ -642,7 +642,24 @@ namespace CitizenFX.Core
 		Rockstar,
 		CayoPericoSeries,
 		ClubhouseContract,
-		AgentULP
+		AgentULP,
+		Acid,
+		AcidLab,
+		Dax,
+		DeadDropCrate,
+		DowntownCabCo,
+		GunVan,
+		StashHouse,
+		Tractor,
+		Freakshop,
+		FreakshopMission,
+		Crowbar,
+		DuffelBag,
+		OilTanker,
+		AcidLabTent,
+		MCGangVan,
+		AcidProductionBoost,
+		GangLeader
 	}
 
 	public sealed class Blip : PoolObject, IEquatable<Blip>
