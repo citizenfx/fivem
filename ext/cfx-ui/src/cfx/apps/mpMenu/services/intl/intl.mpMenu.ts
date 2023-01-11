@@ -26,7 +26,7 @@ class MpMenuIntlService implements IIntlService {
       return `${language.toLowerCase()}-${language.toUpperCase()}`;
     }
 
-    return country.toUpperCase();
+    return systemLocale;
   })();
   readonly systemLocaleCountry = (() => {
     const [_, country] = this.systemLocale.split('-');
