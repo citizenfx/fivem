@@ -620,7 +620,7 @@ async function parseAuthFormDataFromURL(authUrl: string, ownershipTicket: string
   return authFormData;
 }
 
-async function getRegistrationSecrets(ownershipTicket: string): Promise<{ value: string, challenge: string[] }> {
+async function getRegistrationSecrets(ownershipTicket: string): Promise<{ value: string, challenge: string | string[] }> {
   try {
     const secrets = await fetcher.json(`${BASE_URL}/session/hp.json`, {
       method: 'GET',
@@ -640,8 +640,8 @@ async function getRegistrationSecrets(ownershipTicket: string): Promise<{ value:
       throw new TypeError(`Invalid secrets response, .value must be a string: "${JSON.stringify(secrets)}"`);
     }
 
-    if (!Array.isArray(secrets.challenge)) {
-      throw new TypeError(`Invalid secrets response, .challenge must be an array: "${JSON.stringify(secrets)}"`);
+    if (!Array.isArray(secrets.challenge) && typeof secrets.challenge !== 'string') {
+      throw new TypeError(`Invalid secrets response, .challenge must be a string or array: "${JSON.stringify(secrets)}"`);
     }
 
     return secrets;
