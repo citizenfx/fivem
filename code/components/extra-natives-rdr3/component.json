@@ -13,8 +13,7 @@
 		"citizen:scripting:core",
 		"nui:core",
 		"citizen:resources:client",
-		"net",
-		"voip:mumble"
+		"net"
 	],
 	"provides": []
 }

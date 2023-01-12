@@ -157,6 +157,7 @@ const GAME_GAME_SETTINGS = new Map<string, ISetting.AnySetting>([
       [GameUpdateChannel.Canary]: 'Latest (Unstable)',
     },
   }],
+
   ['inProcessGPU', {
     type: 'checkbox',
 
@@ -184,16 +185,8 @@ const GAME_GAME_SETTINGS = new Map<string, ISetting.AnySetting>([
     description: $L('#Settings_UseAudioFrameLimiterDesc'),
 
     ...convarAccessorsBoolean('game_useAudioFrameLimiter', true),
-  }],
-  ['muteOnFocusLoss', {
-    type: 'checkbox',
 
-    label: $L('#Settings_MuteOnFocusLoss'),
-    description: $L('#Settings_MuteOnFocusLossDesc'),
-
-    ...convarAccessorsBoolean('ui_muteOnFocusLoss'),
-
-    visible: onlyForRedM,
+    visible: onlyForFiveM,
   }],
   ['enableHandbrakeCamera', {
     type: 'checkbox',
@@ -223,6 +216,7 @@ const GAME_GAME_SETTINGS = new Map<string, ISetting.AnySetting>([
 
     ...convarAccessorsBoolean('nui_useFixedSize'),
   }],
+
   ['customEmoji', {
     type: 'switch',
 
@@ -278,10 +272,6 @@ export const DEFAULT_GAME_SETTINGS_CATEGORY_ID = [...GAME_SETTINGS.keys()][0];
 
 function onlyForFiveM() {
   return CurrentGameName === GameName.FiveM;
-}
-
-function onlyForRedM() {
-  return CurrentGameName === GameName.RedM;
 }
 
 function convarAccessorsBoolean(convar: IConvar, inversion = false): Pick<ISetting.Checkbox, 'accessors'> {
