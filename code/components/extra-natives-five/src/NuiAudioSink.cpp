@@ -2818,7 +2818,7 @@ static InitFunction initFunction([]()
 				swapSong = false;
 			}
 		}
-#elif IS_RDR3 && 0
+#elif IS_RDR3
 		static int last_connection_state = -1;
 		static bool wait_for_initial_game_init = false;
 
