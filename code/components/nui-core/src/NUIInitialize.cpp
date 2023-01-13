@@ -1063,9 +1063,38 @@ static std::unique_ptr<ModuleData> g_libgl;
 static std::unique_ptr<ModuleData> g_d3d11;
 static HMODULE g_sysD3D11;
 
+// helper to prevent recursive shared acquiring of the lock
+static thread_local bool inDeviceCreation;
+
+struct DeviceLock
+{
+	DeviceLock()
+	{
+		if (!inDeviceCreation)
+		{
+			inDeviceCreation = true;
+
+			hadLock = true;
+			lock = std::move(std::shared_lock(g_d3d11Mutex));
+		}
+	}
+
+	~DeviceLock()
+	{
+		if (hadLock)
+		{
+			inDeviceCreation = false;
+		}
+	}
+
+private:
+	bool hadLock = false;
+	std::shared_lock<std::shared_mutex> lock;
+};
+
 static HRESULT D3D11CreateDeviceAndSwapChainHook(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _In_opt_ CONST DXGI_SWAP_CHAIN_DESC* pSwapChainDesc, _COM_Outptr_opt_ IDXGISwapChain** ppSwapChain, _COM_Outptr_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _COM_Outptr_opt_ ID3D11DeviceContext** ppImmediateContext)
 {
-	std::shared_lock _(g_d3d11Mutex);
+	DeviceLock _;
 
 	PatchAdapter(&pAdapter);
 
@@ -1084,7 +1113,7 @@ static HRESULT D3D11CreateDeviceAndSwapChainHook(_In_opt_ IDXGIAdapter* pAdapter
 
 static HRESULT D3D11CreateDeviceHook(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _COM_Outptr_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _COM_Outptr_opt_ ID3D11DeviceContext** ppImmediateContext)
 {
-	std::shared_lock _(g_d3d11Mutex);
+	DeviceLock _;
 
 	// if this is the OS calling us, we need to be special and *somehow* convince any hook to give up their true colors
 	// since D3D11CoreCreateDevice is super obscure, we'll use *that*
