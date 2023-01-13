@@ -127,6 +127,8 @@
     "#Settings_InProcessGpuDesc": "Fix 'UI lag' at high GPU usage, but may cause reliability issues with GPU crashes (requires restart)",
     "#Settings_FixedSizeNUI": "Fixed-size NUI",
     "#Settings_FixedSizeNUIDesc": "Force in-server UI to 1920x1080 resolution, scaled/letterboxed to fit (for servers with UI assuming 1920x1080)",
+    "#Settings_NoiseSuppression": "Voice chat noise suppression",
+    "#Settings_NoiseSuppressionDesc": "Enable background noise suppression (using RNNoise) for the built-in voice chat",
     "#Settings_ConnectedProfiles": "Linked identities",
     "#Settings_UpdateChannel": "Update channel",
     "#Settings_UpdateChannelDesc": "Try out new features and changes before they launch. Has a chance of breaking.",

@@ -20,6 +20,10 @@
 
 extern "C"
 {
+#if __has_include(<rnnoise.h>)
+#include <rnnoise.h>
+#endif
+
 #include <libswresample/swresample.h>
 };
 
@@ -27,7 +31,9 @@ MumbleAudioInput::MumbleAudioInput()
 	: m_likelihood(MumbleVoiceLikelihood::ModerateLikelihood), m_ptt(false), m_mode(MumbleActivationMode::VoiceActivity), m_deviceId(""), m_audioLevel(0.0f),
 	  m_avr(nullptr), m_opus(nullptr), m_apm(nullptr), m_isTalking(false), m_lastBitrate(48000), m_curBitrate(48000)
 {
-
+#if __has_include(<rnnoise.h>)
+	m_denoiseState = rnnoise_create(NULL);
+#endif
 }
 
 enum class InputIntentMode {
@@ -42,6 +48,8 @@ void MumbleAudioInput::Initialize()
 {
 	m_bitrateVar = std::make_shared<ConVar<int>>("voice_inBitrate", ConVar_None, m_curBitrate, &m_curBitrate);
 	m_bitrateVar->GetHelper()->SetConstraints(16000, 128000);
+
+	m_denoiseVar = std::make_shared<ConVar<bool>>("voice_enableNoiseSuppression", ConVar_Archive, m_denoise, &m_denoise);
 
 	m_startEvent = CreateEvent(0, 0, 0, 0);
 
@@ -255,6 +263,35 @@ void MumbleAudioInput::HandleData(const uint8_t* buffer, size_t numBytes)
 		for (int off = 0; off < frameSize; off += 10)
 		{
 			int frameStart = (off * 48 * sizeof(int16_t)); // 1ms = 48 samples
+
+#if __has_include(<rnnoise.h>)
+			if (m_denoise)
+			{
+				// mirroring https://github.com/mumble-voip/mumble/blob/16a495430054e2c8e059715a57406b373b2d7ef2/src/mumble/AudioInput.cpp#L916
+
+				/// Clip the given float value to a range that can be safely converted into a short (without causing integer overflow)
+				auto clampFloatSample = [](float v) -> short
+				{
+					return static_cast<short>(std::min(std::max(v, static_cast<float>(std::numeric_limits<short>::min())),
+					static_cast<float>(std::numeric_limits<short>::max())));
+				};
+
+				int16_t* psSource = reinterpret_cast<int16_t*>(&m_resampledBytes[frameStart]);
+
+				float denoiseFrames[480];
+				for (int i = 0; i < 480; i++)
+				{
+					denoiseFrames[i] = psSource[i];
+				}
+
+				rnnoise_process_frame(m_denoiseState, denoiseFrames, denoiseFrames);
+
+				for (int i = 0; i < 480; i++)
+				{
+					psSource[i] = clampFloatSample(denoiseFrames[i]);
+				}
+			}
+#endif
 
 			// is this voice?
 			webrtc::AudioFrame frame;

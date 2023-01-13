@@ -47,6 +47,8 @@ vendor_component 'boost_locale-crt'
 
 vendor_component 'freetype'
 
+vendor_component 'rnnoise'
+
 if os.target() == 'windows' then
 	vendor_component 'discord-rpc'
 	vendor_component 'minhook'

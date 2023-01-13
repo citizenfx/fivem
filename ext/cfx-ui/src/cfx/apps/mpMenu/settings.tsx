@@ -216,6 +216,14 @@ const GAME_GAME_SETTINGS = new Map<string, ISetting.AnySetting>([
 
     ...convarAccessorsBoolean('nui_useFixedSize'),
   }],
+  ['noiseSuppression', {
+    type: 'checkbox',
+
+    label: $L('#Settings_NoiseSuppression'),
+    description: $L('#Settings_NoiseSuppressionDesc'),
+
+    ...convarAccessorsBoolean('voice_enableNoiseSuppression'),
+  }],
 
   ['customEmoji', {
     type: 'switch',
