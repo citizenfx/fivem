@@ -15,6 +15,7 @@
 #endif
 
 #include "cpuinfo_x86.h"
+#include "Error.h"
 
 bool InitializeExceptionHandler(int argc, char* argv[]);
 
@@ -33,10 +34,27 @@ int main(int argc, char* argv[])
 	auto x86info = cpu_features::GetX86Info();
 	if (!x86info.features.popcnt)
 	{
-		fmt::printf("The Cfx.re Platform Server requires support for x86-64-v2 instructions (such as POPCNT).\n");
-		fmt::printf("Your current CPU (\"%s\") does not appear to support this. Supported CPUs include most CPUs from around 2010 or newer.\n", x86info.brand_string);
-		fmt::printf("\n");
-		fmt::printf("Exiting.\n");
+		std::string errorMessage = fmt::sprintf(
+		"The Cfx.re Platform Server requires support for x86-64-v2 instructions (such as POPCNT).\n"
+		"Your current CPU (\"%s\") does not appear to support this. Supported CPUs include most CPUs from around 2010 or newer.\n"
+		"\n"
+		"The server will exit now.",
+		x86info.brand_string);
+
+		if (strcmp(x86info.brand_string, "Common KVM processor") == 0)
+		{
+			errorMessage =
+				"The Cfx.re Platform Server requires support for x86-64-v2 instructions (such as POPCNT).\n"
+				"You seem to be running on QEMU/KVM using the 'kvm64' CPU type, which does not properly indicate support for these instructions.\n"
+				"Please use a different CPU type (such as 'host'). See https://aka.cfx.re/fxs-kvm64 for more information.";
+		}
+
+#ifdef _WIN32
+		FatalError("%s", errorMessage);
+#else
+		fmt::printf("%s\n", errorMessage);
+#endif
+
 		return 1;
 	}
 #endif
