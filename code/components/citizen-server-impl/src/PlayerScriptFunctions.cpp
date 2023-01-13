@@ -55,7 +55,7 @@ static void CreatePlayerCommands()
 	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_IDENTIFIER_BY_TYPE", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)
 	{
 		const std::vector<std::string>& identifiers = client->GetIdentifiers();
-		std::string identifierType = context.GetArgument<const char*>(1);
+		std::string_view identifierType = context.CheckArgument<const char*>(1);
 
 		for (int i = 0; i < identifiers.size(); ++i)
 		{
