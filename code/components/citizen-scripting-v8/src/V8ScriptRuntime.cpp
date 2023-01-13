@@ -2839,6 +2839,13 @@ void V8ScriptGlobals::Initialize()
 #endif
 
 	const char* flags = "--turbo-inline-js-wasm-calls --expose_gc --harmony-top-level-await";
+#ifdef V8_NODE
+	auto maxOldSpaceSize = console::GetDefaultContext()->GetVariableManager()->FindEntryRaw("node_maxOldSpaceSize");
+	if (maxOldSpaceSize)
+	{
+		flags = fmt::sprintf("%s --max-old-space-size=%s", flags, maxOldSpaceSize->GetValue()).c_str();
+	}
+#endif
 	V8::SetFlagsFromString(flags, strlen(flags));
 
 	auto icuDataPath = MakeRelativeCitPath(fmt::sprintf(_P("citizen/scripting/v8/%d.%d/icudtl.dat"), V8_MAJOR_VERSION, V8_MINOR_VERSION));
