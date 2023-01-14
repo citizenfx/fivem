@@ -76,7 +76,7 @@ private:
 
 	std::shared_ptr<ConVar<int>> m_bitrateVar;
 
-	bool m_denoise = false;
+	bool m_denoise = true;
 
 	std::shared_ptr<ConVar<bool>> m_denoiseVar;
 

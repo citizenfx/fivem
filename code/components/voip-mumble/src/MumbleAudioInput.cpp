@@ -265,7 +265,7 @@ void MumbleAudioInput::HandleData(const uint8_t* buffer, size_t numBytes)
 			int frameStart = (off * 48 * sizeof(int16_t)); // 1ms = 48 samples
 
 #if __has_include(<rnnoise.h>)
-			if (m_denoise)
+			if (m_denoise && g_curInputIntentMode == InputIntentMode::SPEECH)
 			{
 				// mirroring https://github.com/mumble-voip/mumble/blob/16a495430054e2c8e059715a57406b373b2d7ef2/src/mumble/AudioInput.cpp#L916
 
@@ -725,7 +725,7 @@ void MumbleAudioInput::Enable()
 void MumbleAudioInput::ThreadStart(MumbleAudioInput* instance)
 {
 	HANDLE mmcssHandle;
-	DWORD mmcssTaskIndex;
+	DWORD mmcssTaskIndex = 0;
 
 	mmcssHandle = AvSetMmThreadCharacteristics(L"Pro Audio", &mmcssTaskIndex);
 	instance->ThreadFunc();
