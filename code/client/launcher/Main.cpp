@@ -770,12 +770,6 @@ int RealMain()
 	}
 #endif
 
-#if defined(IS_RDR3)
-	MessageBox(nullptr, L"RedM is no longer available. See https://aka.cfx.re/redm-eol for more information.", PRODUCT_NAME, MB_OK | MB_ICONERROR);
-
-	return 0;
-#endif
-
 #if defined(GTA_FIVE) || defined(IS_RDR3) || defined(GTA_NY)
 #if (defined(LAUNCHER_PERSONALITY_GAME) || defined(LAUNCHER_PERSONALITY_MAIN))
 	// ensure game cache is up-to-date, and obtain redirection metadata from the game cache
