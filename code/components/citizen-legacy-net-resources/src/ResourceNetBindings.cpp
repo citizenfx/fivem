@@ -832,12 +832,32 @@ static InitFunction initFunction([] ()
 			});
 		});
 
+		static bool inSessionReset = false;
+
 		Instance<ICoreGameInit>::Get()->OnShutdownSession.Connect([=] ()
 		{
 			AddCrashometry("reset_resources", "true");
 
+			inSessionReset = true;
 			Instance<fx::ResourceManager>::Get()->ResetResources();
+			inSessionReset = false;
 		});
+
+		fx::ResourceManager::OnInitializeInstance.Connect([](fx::ResourceManager* resman)
+		{
+			resman->GetComponent<fx::ResourceEventManagerComponent>()->OnTriggerEvent.Connect([](const std::string& eventName, const std::string&, const std::string&, bool*)
+			{
+				// onResourceStop doesn't make sense during shutdown since user scripts can't do anything of note
+				// and will probably crash/otherwise error out
+				if (inSessionReset && eventName == "onResourceStop")
+				{
+					return false;
+				}
+
+				return true;
+			});
+		},
+		INT32_MAX);
 
 		console::GetDefaultContext()->GetCommandManager()->FallbackEvent.Connect([=](const std::string& cmd, const ProgramArguments& args, const std::any& context)
 		{
