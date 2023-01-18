@@ -93,14 +93,14 @@ namespace CitizenFX.Core
 		v1_0_2372_0_NoSteam,
 		v1_0_2545_0_Steam,
 		v1_0_2545_0_NoSteam,
-		v1_0_2612_0_Steam,
-		v1_0_2612_0_NoSteam,
-		v1_0_2628_0_Steam,
-		v1_0_2628_0_NoSteam,
+		v1_0_2612_1_Steam,
+		v1_0_2612_1_NoSteam,
 		v1_0_2628_2_Steam,
 		v1_0_2628_2_NoSteam,
 		v1_0_2699_0_Steam,
-		v1_0_2699_0_NoSteam
+		v1_0_2699_0_NoSteam,
+		v1_0_2699_16,
+		v1_0_2802_0
 	}
 	public enum Language
 	{
