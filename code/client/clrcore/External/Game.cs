@@ -115,7 +115,8 @@ namespace CitizenFX.Core
 		Korean,
 		Chinese,
 		Japanese,
-		Mexican
+		Mexican,
+		ChineseSimplified
 	}
 	public enum InputMode
 	{
