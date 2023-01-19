@@ -446,14 +446,14 @@ void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
 	sbac->AddSafePreCreatePrefix("player:", true);
 	sbac->SetGameInterface(this);
 
+	m_sbac = sbac;
+
 	m_netLibrary->AddReliableHandler(
-	"msgStateBag", [sbac](const char* data, size_t len)
+	"msgStateBag", [this](const char* data, size_t len)
 	{
-		sbac->HandlePacket(0, std::string_view{ data, len });
+		m_sbac->HandlePacket(0, std::string_view{ data, len });
 	},
 	true);
-
-	m_sbac = sbac;
 
 	fx::ResourceManager::OnInitializeInstance.Connect([sbac](fx::ResourceManager* rm)
 	{
