@@ -1660,7 +1660,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				auto entityClient = entity->GetClient();
 
 				// we know the entity has been created, so we can try sending some entity RPC to 'em
-				if (client->GetNetId() == entityClient->GetNetId() && !entity->onCreationRPC.empty())
+				if (entityClient && client->GetNetId() == entityClient->GetNetId() && !entity->onCreationRPC.empty())
 				{
 					std::lock_guard<std::shared_mutex> _(entity->guidMutex);
 
