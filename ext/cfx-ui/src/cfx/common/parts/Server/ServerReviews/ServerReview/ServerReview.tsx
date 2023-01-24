@@ -32,6 +32,10 @@ export const ServerReview = observer(function ServerReview(props: ServerReviewPr
     disableActions = false,
   } = props;
 
+  if (review.hidden) {
+    return (<></>);
+  }
+
   const playtimeRaw = serverReviews.playtimes[review.authorCfxId];
   const playtime = playtimeRaw?.formattedSeconds || 'loading';
 
