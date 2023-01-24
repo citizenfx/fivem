@@ -11,6 +11,8 @@
 #include <CommCtrl.h>
 #include <shobjidl.h>
 
+#include "launcher.rc.h"
+
 #include <ShellScalingApi.h>
 
 #include <winrt/Windows.Storage.Streams.h>
@@ -426,7 +428,7 @@ void BackdropBrush::OnConnected()
 		compEffect.AddSource(effect);
 		compEffect.AddSource(layerColor);
 
-		auto hRsc = FindResource(GetModuleHandle(NULL), MAKEINTRESOURCE(1010), L"MEOW");
+		auto hRsc = FindResource(GetModuleHandle(NULL), MAKEINTRESOURCE(IDM_BACKDROP), L"MEOW");
 		auto resSize = SizeofResource(GetModuleHandle(NULL), hRsc);
 		auto resData = LoadResource(GetModuleHandle(NULL), hRsc);
 
