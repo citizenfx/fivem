@@ -12,7 +12,7 @@ if errorlevel 1 (
     exit /B 1
 )
 
-pacman --noconfirm --needed -Sy make curl diffutils libcurl
+pacman --noconfirm --needed -Sy make diffutils
 
 where /q curl
 
@@ -22,9 +22,9 @@ if errorlevel 1 (
 
 pushd ext\natives\
 mkdir inp
-curl -z inp\natives_global.lua -Lo inp\natives_global_new.lua https://runtime.fivem.net/doc/natives.lua
-curl -z inp\natives_rdr3.lua -Lo inp\natives_rdr3_new.lua https://runtime.fivem.net/doc/natives_rdr_tmp.lua
-curl -z inp\natives_ny.lua -Lo inp\natives_ny_new.lua https://runtime.fivem.net/doc/natives_ny_tmp.lua
+%systemroot%\system32\curl -z inp\natives_global.lua -Lo inp\natives_global_new.lua https://runtime.fivem.net/doc/natives.lua
+%systemroot%\system32\curl -z inp\natives_rdr3.lua -Lo inp\natives_rdr3_new.lua https://runtime.fivem.net/doc/natives_rdr_tmp.lua
+%systemroot%\system32\curl -z inp\natives_ny.lua -Lo inp\natives_ny_new.lua https://runtime.fivem.net/doc/natives_ny_tmp.lua
 
 
 if exist inp\natives_global.lua (
