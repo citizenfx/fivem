@@ -14,9 +14,21 @@
   @include ui.animated('opacity', '.show-on-hover');
 
   .content {
+    &, * {
+      user-select: text;
+    }
+
     :global(.emoji) {
       height: 1.5ch;
       width: auto;
+    }
+
+    img {
+      max-width: 100%;
+    }
+
+    li {
+      padding: calc(var(--offset-small) / 2) 0;
     }
   }
 }
