@@ -1,4 +1,6 @@
 #include <StdInc.h>
+
+#define REPLXX_STATIC
 #include <replxx.hxx>
 
 #ifdef _WIN32
@@ -91,7 +93,7 @@ static InitFunction initFunction([]()
 
 			static auto disableTTYVariable = instance->AddVariable<bool>("con_disableNonTTYReads", ConVar_None, false);
 
-			auto getCmdsForContext = [](const std::string& input, int& contextLen)
+			auto getCmdsForContext = [](const std::string& input, int& contextLen) -> replxx::Replxx::completions_t
 			{
 				static std::set<std::string> cmds;
 
@@ -218,7 +220,13 @@ static InitFunction initFunction([]()
 					break;
 				}
 
-				return std::vector<std::string>{cmds.begin(), cmds.end()};
+				replxx::Replxx::completions_t completions;
+				for (const auto& cmd : cmds)
+				{
+					completions.push_back(replxx::Replxx::Completion{ cmd });
+				}
+
+				return completions;
 			};
 
 			using cl = replxx::Replxx::Color;
@@ -245,12 +253,12 @@ static InitFunction initFunction([]()
 
 			};
 
-			rxx.set_completion_callback([=](const std::string& input, int& contextLen)
+			rxx.set_completion_callback([getCmdsForContext](const std::string& input, int& contextLen)
 			{
 				return getCmdsForContext(input, contextLen);
 			});
 
-			rxx.set_hint_callback([=](const std::string& input, int& contextLen, replxx::Replxx::Color& color) -> replxx::Replxx::hints_t
+			rxx.set_hint_callback([getCmdsForContext](const std::string& input, int& contextLen, replxx::Replxx::Color& color) -> replxx::Replxx::hints_t
 			{
 				if (input.length() > 0)
 				{
@@ -258,7 +266,7 @@ static InitFunction initFunction([]()
 
 					if (!cmds.empty())
 					{
-						return { cmds[0] };
+						return { cmds[0].text() };
 					}
 				}
 
