@@ -1174,7 +1174,7 @@ void RenderNetDrilldownWindow(bool* open)
 				{
 					sync::FrameIndex fi{ node.frameIdx };
 
-					if (ImGui::TreeNode(va("Packet %d @+%d (%d:%d)", id, node.ts, fi.frameIndex, fi.currentFragment)))
+					if (ImGui::TreeNodeEx(va("Packet %d @+%d (%d:%d)", id, node.ts, fi.frameIndex, fi.currentFragment), (node.messages.empty() ? ImGuiTreeNodeFlags_Leaf : 0)))
 					{
 						for (auto& message : node.messages)
 						{
@@ -1192,7 +1192,7 @@ void RenderNetDrilldownWindow(bool* open)
 			{
 				for (auto& [id, node] : g_drilldownDataOut)
 				{
-					if (ImGui::TreeNode(va("Tick %d @+%d (%d)", id, node.ts, node.frameIdx)))
+					if (ImGui::TreeNodeEx(va("Tick %d @+%d (%d)", id, node.ts, node.frameIdx), (node.messages.empty() ? ImGuiTreeNodeFlags_Leaf : 0)))
 					{
 						for (auto& message : node.messages)
 						{
