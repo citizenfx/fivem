@@ -8,7 +8,7 @@
 #ifndef BOTAN_XMSS_ADDRESS_H_
 #define BOTAN_XMSS_ADDRESS_H_
 
-#include <botan/xmss_tools.h>
+#include <botan/types.h>
 
 namespace Botan {
 

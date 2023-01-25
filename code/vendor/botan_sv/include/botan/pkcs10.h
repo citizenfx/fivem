@@ -10,17 +10,17 @@
 #define BOTAN_PKCS10_H_
 
 #include <botan/x509_obj.h>
-#include <botan/x509_dn.h>
-#include <botan/key_constraint.h>
-#include <botan/asn1_attribute.h>
-#include <botan/asn1_alt_name.h>
+#include <botan/pkix_enums.h>
 #include <vector>
 
 namespace Botan {
 
+struct PKCS10_Data;
+
 class Private_Key;
 class Extensions;
-struct PKCS10_Data;
+class X509_DN;
+class AlternativeName;
 
 /**
 * PKCS #10 Certificate Request.

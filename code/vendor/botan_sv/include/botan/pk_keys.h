@@ -9,8 +9,7 @@
 #define BOTAN_PK_KEYS_H_
 
 #include <botan/secmem.h>
-#include <botan/asn1_oid.h>
-#include <botan/alg_id.h>
+#include <botan/asn1_obj.h>
 #include <botan/pk_ops_fwd.h>
 #include <string>
 

@@ -429,7 +429,8 @@ inline void bigint_shr1(word x[], size_t x_size,
    {
    const size_t top = x_size >= word_shift ? (x_size - word_shift) : 0;
 
-   copy_mem(x, x + word_shift, top);
+   if(top > 0)
+      copy_mem(x, x + word_shift, top);
    clear_mem(x + top, std::min(word_shift, x_size));
 
    const auto carry_mask = CT::Mask<word>::expand(bit_shift);
@@ -467,7 +468,8 @@ inline void bigint_shr2(word y[], const word x[], size_t x_size,
    {
    const size_t new_size = x_size < word_shift ? 0 : (x_size - word_shift);
 
-   copy_mem(y, x + word_shift, new_size);
+   if(new_size > 0)
+      copy_mem(y, x + word_shift, new_size);
 
    const auto carry_mask = CT::Mask<word>::expand(bit_shift);
    const size_t carry_shift = carry_mask.if_set_return(BOTAN_MP_WORD_BITS - bit_shift);
@@ -656,8 +658,9 @@ bigint_sub_abs(word z[],
    const int32_t relative_size = bigint_cmp(x, x_size, y, y_size);
 
    // Swap if relative_size == -1
-   CT::conditional_swap_ptr(relative_size < 0, x, y);
-   CT::conditional_swap(relative_size < 0, x_size, y_size);
+   const bool need_swap = relative_size < 0;
+   CT::conditional_swap_ptr(need_swap, x, y);
+   CT::conditional_swap(need_swap, x_size, y_size);
 
    /*
    * We know at this point that x >= y so if y_size is larger than
@@ -721,7 +724,7 @@ inline word bigint_divop(word n1, word n0, word d)
       throw Invalid_Argument("bigint_divop divide by zero");
 
 #if defined(BOTAN_HAS_MP_DWORD)
-   return ((static_cast<dword>(n1) << BOTAN_MP_WORD_BITS) | n0) / d;
+   return static_cast<word>(((static_cast<dword>(n1) << BOTAN_MP_WORD_BITS) | n0) / d);
 #else
 
    word high = n1 % d;

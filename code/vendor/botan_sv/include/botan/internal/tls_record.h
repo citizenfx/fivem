@@ -129,6 +129,22 @@ class Record_Header final
    };
 
 /**
+* Create an initial (unencrypted) TLS handshake record
+* @param write_buffer the output record is placed here
+* @param record_type the record layer type
+* @param record_version the record layer version
+* @param record_sequence the record layer sequence number
+* @param message the record contents
+* @param message_len is size of message
+*/
+void write_unencrypted_record(secure_vector<uint8_t>& write_buffer,
+                              uint8_t record_type,
+                              Protocol_Version record_version,
+                              uint64_t record_sequence,
+                              const uint8_t* message,
+                              size_t message_len);
+
+/**
 * Create a TLS record
 * @param write_buffer the output record is placed here
 * @param record_type the record layer type
@@ -145,7 +161,7 @@ void write_record(secure_vector<uint8_t>& write_buffer,
                   uint64_t record_sequence,
                   const uint8_t* message,
                   size_t message_len,
-                  Connection_Cipher_State* cipherstate,
+                  Connection_Cipher_State& cipherstate,
                   RandomNumberGenerator& rng);
 
 // epoch -> cipher state

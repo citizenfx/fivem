@@ -72,11 +72,26 @@ class BOTAN_PUBLIC_API(2,0) GHASH final : public SymmetricAlgorithm
       void add_final_block(secure_vector<uint8_t>& x,
                            size_t ad_len, size_t pt_len);
    private:
+
+#if defined(BOTAN_HAS_GHASH_CLMUL_CPU)
+      static void ghash_precompute_cpu(const uint8_t H[16], uint64_t H_pow[4*2]);
+
+      static void ghash_multiply_cpu(uint8_t x[16],
+                                     const uint64_t H_pow[4*2],
+                                     const uint8_t input[], size_t blocks);
+#endif
+
+#if defined(BOTAN_HAS_GHASH_CLMUL_VPERM)
+      static void ghash_multiply_vperm(uint8_t x[16],
+                                       const uint64_t HM[256],
+                                       const uint8_t input[], size_t blocks);
+#endif
+
       void key_schedule(const uint8_t key[], size_t key_len) override;
 
-      void gcm_multiply(secure_vector<uint8_t>& x,
-                        const uint8_t input[],
-                        size_t blocks);
+      void ghash_multiply(secure_vector<uint8_t>& x,
+                          const uint8_t input[],
+                          size_t blocks);
 
       static const size_t GCM_BS = 16;
 

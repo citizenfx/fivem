@@ -11,10 +11,10 @@
 #include <vector>
 #include <botan/secmem.h>
 #include <botan/xmss_parameters.h>
-#include <botan/xmss_address.h>
+#include <botan/internal/xmss_address.h>
 #include <botan/xmss_hash.h>
 
-//BOTAN_FUTURE_INTERNAL_HEADER(xmss_common_ops.h)
+BOTAN_FUTURE_INTERNAL_HEADER(xmss_common_ops.h)
 
 namespace Botan {
 
@@ -26,10 +26,6 @@ typedef std::vector<secure_vector<uint8_t>> wots_keysig_t;
 class XMSS_Common_Ops
    {
    public:
-      XMSS_Common_Ops(XMSS_Parameters::xmss_algorithm_t oid)
-         : m_xmss_params(oid), m_hash(m_xmss_params.hash_function_name()) {}
-
-   protected:
       /**
         * Algorithm 7: "RAND_HASH"
         *
@@ -46,35 +42,16 @@ class XMSS_Common_Ops
         * @param[in] seed The seed for G.
         * @param[in] hash Instance of XMSS_Hash, that may only by the thead
         *            executing generate_public_key.
+        * @param[in] params algorithm parameters
         **/
-      void randomize_tree_hash(
+      static void randomize_tree_hash(
          secure_vector<uint8_t>& result,
          const secure_vector<uint8_t>& left,
          const secure_vector<uint8_t>& right,
          XMSS_Address& adrs,
          const secure_vector<uint8_t>& seed,
-         XMSS_Hash& hash);
-
-      /**
-        * Algorithm 7: "RAND_HASH"
-        *
-        * Generates a randomized hash.
-        *
-        * @param[out] result The resulting randomized hash.
-        * @param[in] left Left half of the hash function input.
-        * @param[in] right Right half of the hash function input.
-        * @param[in] adrs Adress of the hash function call.
-        * @param[in] seed The seed for G.
-        **/
-      inline void randomize_tree_hash(
-         secure_vector<uint8_t>& result,
-         const secure_vector<uint8_t>& left,
-         const secure_vector<uint8_t>& right,
-         XMSS_Address& adrs,
-         const secure_vector<uint8_t>& seed)
-         {
-         randomize_tree_hash(result, left, right, adrs, seed, m_hash);
-         }
+         XMSS_Hash& hash,
+         const XMSS_Parameters& params);
 
       /**
        * Algorithm 8: "ltree"
@@ -91,36 +68,14 @@ class XMSS_Common_Ops
        * @param[in] seed The seed generated during the public key generation.
        * @param[in] hash Instance of XMSS_Hash, that may only be used by the
        *            thead executing create_l_tree.
+       * @param[in] params algorithm parameters
       **/
-      void create_l_tree(secure_vector<uint8_t>& result,
-                         wots_keysig_t pk,
-                         XMSS_Address& adrs,
-                         const secure_vector<uint8_t>& seed,
-                         XMSS_Hash& hash);
-
-      /**
-       * Algorithm 8: "ltree"
-       * Create an L-tree used to compute the leaves of the binary hash tree.
-       * Takes a WOTS+ public key and compresses it to a single n-byte value.
-       *
-       * @param[out] result Public key compressed to a single n-byte value
-       *             pk[0].
-       * @param[in] pk Winternitz One Time Signatures+ public key.
-       * @param[in] adrs Address encoding the address of the L-Tree
-       * @param[in] seed The seed generated during the public key generation.
-       **/
-      inline void create_l_tree(secure_vector<uint8_t>& result,
+      static void create_l_tree(secure_vector<uint8_t>& result,
                                 wots_keysig_t pk,
                                 XMSS_Address& adrs,
-                                const secure_vector<uint8_t>& seed)
-         {
-         create_l_tree(result, pk, adrs, seed, m_hash);
-         }
-
-   protected:
-      XMSS_Parameters m_xmss_params;
-      XMSS_Hash m_hash;
-
+                                const secure_vector<uint8_t>& seed,
+                                XMSS_Hash& hash,
+                                const XMSS_Parameters& params);
    };
 
 }
