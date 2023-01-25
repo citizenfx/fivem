@@ -109,8 +109,8 @@ void LoopbackTcpServerStream::Close()
 	}
 }
 
-LoopbackTcpServer::LoopbackTcpServer(LoopbackTcpServerManager* manager)
-	: m_port(0), m_manager(manager)
+LoopbackTcpServer::LoopbackTcpServer(LoopbackTcpServerManager* manager, const std::string& hostName)
+	: m_port(0), m_manager(manager), m_hostName(hostName)
 {
 
 }
@@ -605,7 +605,7 @@ fwRefContainer<LoopbackTcpServer> LoopbackTcpServerManager::RegisterTcpServer(co
 {
 	scoped_write_lock lock(m_loopbackLock);
 
-	fwRefContainer<LoopbackTcpServer> server = new LoopbackTcpServer(this);
+	fwRefContainer<LoopbackTcpServer> server = new LoopbackTcpServer(this, hostName);
 	m_tcpServers.insert({ HashString(hostName.c_str()) & 0xFFFFFF, server });
 
 	return server;
