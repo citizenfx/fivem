@@ -1746,8 +1746,12 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 	auto initiateRequest = [=]()
 	{
 		OnConnectionProgress("Requesting server variables...", 0, 100, true);
+
+		HttpRequestOptions options;
+		options.addRawBody = true;
 		
-		m_httpClient->DoGetRequest(fmt::sprintf("%sinfo.json", url), [=](bool success, const char* data, size_t size)
+		auto request = m_httpClient->Get(fmt::sprintf("%sinfo.json", url));
+		request->OnCompletion([=](bool success, std::string_view data)
 		{
 			using json = nlohmann::json;
 
@@ -1771,10 +1775,11 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 				}
 				else
 				{
-					OnConnectionError(fmt::sprintf("Failed to fetch server variables. %s", std::string{ data, size }), json::object({
+					OnConnectionError(fmt::sprintf("Failed to fetch server variables. %s", std::string(data)), json::object({
 								{ "fault", "server" },
 								{ "action", "#ErrorAction_TryAgainContactOwner" },
-					}).dump());
+								{ "responseBody", request->GetRawBody() },
+					}).dump(-1, ' ', false, nlohmann::json::error_handler_t::replace));
 				}
 				m_connectionState = CS_IDLE;
 				return;
@@ -1782,7 +1787,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 			try
 			{
-				json info = json::parse(data, data + size);
+				json info = json::parse(data);
 #if defined(GTA_FIVE) || defined(IS_RDR3)
 				if (info.is_object() && info["vars"].is_object())
 				{
@@ -1867,6 +1872,8 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 				continueRequest();
 			}
 		});
+
+		request->Start();
 	};
 
 	if (OnInterceptConnection(url, initiateRequest))
