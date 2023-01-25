@@ -99,7 +99,7 @@ public:
 
 	virtual void GetResponseHeaders(CefRefPtr<CefResponse> response, int64& response_length, CefString& redirectUrl) override
 	{
-		response->SetMimeType("image/bmp");
+		response->SetMimeType("image/png");
 
 		if (!m_found)
 		{
@@ -174,6 +174,8 @@ static void ProcessNuiTxdQueue()
 		// for now, we use D3D11-specific behavior to correctly convert
 		auto d3d11Res = req.texture->texture;
 		WRL::ComPtr<ID3D11Texture2D> d3d11Tex;
+
+		bool hadResult = false;
 		
 		if (SUCCEEDED(d3d11Res->QueryInterface(d3d11Tex.GetAddressOf())))
 		{
@@ -224,13 +226,44 @@ static void ProcessNuiTxdQueue()
 					//DirectX::ScratchImage rawImage;
 					//hr = SUCCEEDED(hr) ? DirectX::Convert(tgtImage.GetImages(), tgtImage.GetImageCount(), tgtImage.GetMetadata(), DXGI_FORMAT_R8G8B8A8_UNORM, DirectX::TEX_FILTER_DEFAULT, DirectX::TEX_THRESHOLD_DEFAULT, rawImage) : hr;
 
-					// and finally, wrap it in a BMP header
-					DirectX::Blob blob;
-					hr = SUCCEEDED(hr) ? DirectX::SaveToWICMemory(*tgtImage.GetImage(0, 0, 0), DirectX::WIC_FLAGS_NONE, DirectX::GetWICCodec(DirectX::WIC_CODEC_BMP), blob) : hr;
+					struct WorkItemRequest
+					{
+						CefRefPtr<NuiTxdResourceHandler> txdHandler;
+						CefRefPtr<CefCallback> callback;
+						DirectX::ScratchImage tgtImage;
+
+						WorkItemRequest(const CefRefPtr<NuiTxdResourceHandler>& handler, const CefRefPtr<CefCallback>& callback, DirectX::ScratchImage&& image)
+							: txdHandler(handler), callback(callback), tgtImage(std::move(image))
+						{
+						
+						}
+					};
 
 					if (SUCCEEDED(hr))
 					{
-						req.self->SubmitCompletion(std::move(blob));
+						auto workItemRequest = new WorkItemRequest(req.self, req.callback, std::move(tgtImage));
+
+						// and finally, wrap it in a PNG
+						QueueUserWorkItem([](LPVOID arg) -> DWORD
+						{
+							auto workItemRequest = (WorkItemRequest*)arg;
+
+							DirectX::Blob blob;
+							HRESULT hr = DirectX::SaveToWICMemory(*workItemRequest->tgtImage.GetImage(0, 0, 0), DirectX::WIC_FLAGS_FORCE_SRGB, DirectX::GetWICCodec(DirectX::WIC_CODEC_PNG), blob);
+
+							if (SUCCEEDED(hr))
+							{
+								workItemRequest->txdHandler->SubmitCompletion(std::move(blob));
+							}
+
+							workItemRequest->callback->Continue();
+
+							delete workItemRequest;
+							return 0;
+						},
+						workItemRequest, 0);
+
+						hadResult = true;
 					}
 				}
 			}
@@ -240,7 +273,10 @@ static void ProcessNuiTxdQueue()
 		auto txdStore = str->moduleMgr.GetStreamingModule("ytd");
 		txdStore->RemoveRef(req.txdId);
 
-		req.callback->Continue();
+		if (!hadResult)
+		{
+			req.callback->Continue();
+		}
 	}
 }
 
