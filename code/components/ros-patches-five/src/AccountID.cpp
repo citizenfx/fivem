@@ -172,7 +172,6 @@ static std::vector<DWORD> GetMTLPids()
 
 						if (GetFileAttributesW(path) != INVALID_FILE_ATTRIBUTES)
 						{*/
-							CloseHandle(hProcess);
 							rv.push_back(pids[i]);
 						//}
 					}
