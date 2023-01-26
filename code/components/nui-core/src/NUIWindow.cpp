@@ -914,6 +914,29 @@ void NUIWindow::HandlePopupShow(bool show)
 	}
 }
 
+extern void TranslateWindowRect(const fwRefContainer<NUIWindow>& window, CRect* rect);
+
+CefRect NUIWindow::GetPopupRect()
+{
+	auto rect = m_popupRect;
+
+	if (IsFixedSizeWindow())
+	{
+		CRect baseRect;
+		TranslateWindowRect(this, &baseRect);
+
+		float scaleX = (baseRect.Width() / float(m_width));
+		float scaleY = (baseRect.Height() / float(m_height));
+
+		rect.x = (rect.x * scaleX) + baseRect.Left();
+		rect.y = (rect.y * scaleY) + baseRect.Top();
+		rect.width *= scaleX;
+		rect.height *= scaleY;
+	}
+
+	return rect;
+}
+
 void NUIWindow::SetPopupRect(const CefRect& rect)
 {
 	m_popupRect = rect;

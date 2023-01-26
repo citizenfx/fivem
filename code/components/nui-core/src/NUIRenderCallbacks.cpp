@@ -109,7 +109,7 @@ static HookFunction initFunction([] ()
 			{
 				g_nuiGi->SetTexture(window->GetPopupTexture(), true);
 
-				const CefRect& rect = window->GetPopupRect();
+				auto rect = window->GetPopupRect();
 
 				nui::ResultingRectangle rr;
 				rr.color = CRGBA(0xff, 0xff, 0xff, 0xff);
