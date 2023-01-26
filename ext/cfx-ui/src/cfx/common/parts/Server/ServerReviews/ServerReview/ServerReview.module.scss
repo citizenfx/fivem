@@ -28,7 +28,7 @@
     }
 
     li {
-      padding: calc(var(--offset-small) / 2) 0;
+      padding: ui.offset('xsmall') 0;
     }
   }
 }

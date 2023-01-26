@@ -125,7 +125,7 @@ kbd {
 }
 
 p {
-  padding: calc(var(--offset-normal) / 2) 0;
+  padding: ui.offset('small') 0;
 
   line-height: 1.4;
 }
