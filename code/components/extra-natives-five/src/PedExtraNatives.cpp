@@ -8,6 +8,8 @@
 #include <nutsnbolts.h>
 #include "NativeWrappers.h"
 
+#include "atArray.h"
+
 #include <GameInit.h>
 
 static hook::cdecl_stub<fwArchetype*(uint32_t nameHash, uint64_t* archetypeUnk)> getArchetype([]()
@@ -69,6 +71,14 @@ static hook::cdecl_stub<uint16_t(uint32_t)> _getPedPersonalityIndex([]()
 	return hook::get_call(hook::get_pattern("8B 86 B0 00 00 00 BB D5 46 DF E4 85 C0", 0x12));
 });
 
+struct PedPersonality
+{
+	uint32_t hash;
+	char pad[180];
+};
+
+static atArray<PedPersonality>* g_pedPersonalities;
+
 static CPedHeadBlendData* GetPedHeadBlendData(fwEntity* entity)
 {
 	auto address = (char*)entity;
@@ -85,6 +95,8 @@ static HookFunction initFunction([]()
 {
 	_id_CPedHeadBlendData = hook::get_address<uint64_t*>(hook::get_pattern("48 39 5E 38 74 1B 8B 15 ? ? ? ? 48 8D 4F 10 E8", 8));
 	_baseClipsetLocation = (uintptr_t)hook::get_pattern("48 8B 42 ? 48 85 C0 75 05 E8");
+
+	g_pedPersonalities = hook::get_address<decltype(g_pedPersonalities)>(hook::get_call(hook::get_pattern<char>("8B 86 B0 00 00 00 BB D5 46 DF E4 85 C0", 0x12)) + 15, 3, 7);
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_PED_EYE_COLOR", [=](fx::ScriptContext& context)
 	{
@@ -228,6 +240,7 @@ static HookFunction initFunction([]()
 		context.SetResult<int>(*(int32_t*)(ptrCTaskMotionPed + 0xE0));
 	});
 
+	static std::map<uint32_t, uint16_t> initialPersonalities;
 	static std::list<std::tuple<uint32_t, uint16_t>> undoPersonalities;
 
 	OnKillNetworkDone.Connect([]()
@@ -266,7 +279,51 @@ static HookFunction initFunction([]()
 				*(uint16_t*)((char*)archetype + 0x14A) = index;
 
 				undoPersonalities.push_front({ pedModel, oldIndex });
+
+				if (initialPersonalities.find(pedModel) == initialPersonalities.end())
+				{
+					initialPersonalities.emplace(pedModel, oldIndex);
+				}
 			}
 		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("RESET_PED_MODEL_PERSONALITY", [](fx::ScriptContext& context)
+	{
+		auto pedModel = context.GetArgument<uint32_t>(0);
+
+		uint64_t index;
+		auto archetype = getArchetype(pedModel, &index);
+
+		// if is ped
+		if (archetype && archetype->miType == 6)
+		{
+			if (auto it = initialPersonalities.find(pedModel); it != initialPersonalities.end())
+			{
+				*(uint16_t*)((char*)archetype + 0x14A) = it->second;
+			}
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PED_MODEL_PERSONALITY", [](fx::ScriptContext& context)
+	{
+		auto pedModel = context.GetArgument<uint32_t>(0);
+
+		uint64_t index;
+		auto archetype = getArchetype(pedModel, &index);
+
+		uint32_t result = 0;
+
+		// if is ped
+		if (archetype && archetype->miType == 6)
+		{
+			auto index = *(uint16_t*)((char*)archetype + 0x14A);
+			if (index < g_pedPersonalities->GetCount())
+			{
+				result = g_pedPersonalities->Get(index).hash;
+			}
+		}
+
+		context.SetResult<uint32_t>(result);
 	});
 });
