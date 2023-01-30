@@ -741,10 +741,15 @@ static HookFunction initFunction([] ()
 				int x = GET_X_LPARAM(lParam);
 				int y = GET_Y_LPARAM(lParam);
 
-				if (TranslateMouseEvent(GetFocusWindow(), &x, &y))
+				POINT p = { x, y };
+				ScreenToClient(hWnd, &p);
+
+				if (TranslateMouseEvent(GetFocusWindow(), &p.x, &p.y))
 				{
+					ClientToScreen(hWnd, &p);
+
 					lParam &= ~((DWORD_PTR)0xFFFFFFFF);
-					lParam |= (DWORD)((x) | ((DWORD)y << 16));
+					lParam |= (DWORD)((p.x) | ((DWORD)p.y << 16));
 				}
 
 				MSG m = { hWnd,
