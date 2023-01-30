@@ -81,6 +81,17 @@ class MpMenuServersConnectService implements IServersConnectService {
 
   private currentConnectNonce: string | null = null;
 
+  get showServer(): boolean {
+    if (this.state?.type === 'failed') {
+      // blank 'fault' is usually internal code (including CnL failures)
+      if (this.state.extra?.fault === 'cfx' || !this.state.extra?.fault) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   get showModal(): boolean {
     if (this.resolvingServer) {
       return true;
