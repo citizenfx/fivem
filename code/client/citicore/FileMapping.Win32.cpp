@@ -602,6 +602,8 @@ NTSTATUS NTAPI LdrLoadDllStub(const wchar_t* fileName, uint32_t* flags, UNICODE_
 		moduleNameStr.find(L"crashhandler64.dll") != std::string::npos ||
 		// Ad Muncher, causes LoopbackTcpServer to crash
 		moduleNameStr.find(L"am64-34121.dll") != std::string::npos ||
+		// some unknown force feedback driver ('USB Vibration')
+		moduleNameStr.find(L"ezfrd64.dll") != std::string::npos ||
 #if defined(IS_RDR3)
 		// 'Overwolf', corrupts memory on RDR (and is generally undesirable)
 		moduleNameStr.find(L"owclient.dll") != std::string::npos ||
