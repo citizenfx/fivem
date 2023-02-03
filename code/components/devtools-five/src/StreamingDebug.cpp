@@ -356,6 +356,11 @@ static InitFunction initFunction([]()
 		auto streaming = streaming::Manager::GetInstance();
 		auto streamingAllocator = rage::strStreamingAllocator::GetInstance();
 
+		if (!streaming || !streaming->Entries)
+		{
+			return;
+		}
+
 		ImGui::SetNextWindowSize(ImVec2(500.0f, 300.0f), ImGuiCond_FirstUseEver);
 
 		struct StreamingMemoryInfo
@@ -525,6 +530,11 @@ static InitFunction initFunction([]()
 
 		auto streaming = streaming::Manager::GetInstance();
 
+		if (!streaming || !streaming->Entries)
+		{
+			return;
+		}
+
 		ImGui::SetNextWindowSize(ImVec2(500.0f, 300.0f), ImGuiCond_FirstUseEver);
 
 		if (ImGui::Begin("Streaming List", &streamingListEnabled))
@@ -579,6 +589,11 @@ static InitFunction initFunction([]()
 		}
 
 		auto streaming = streaming::Manager::GetInstance();
+
+		if (!streaming || !streaming->Entries)
+		{
+			return;
+		}
 		
 		if (ImGui::Begin("Streaming Stats", &streamingDebugEnabled))
 		{
