@@ -49,8 +49,17 @@ namespace CitizenFX.Core
 	{
 		None = 0,
 		WarpOut = 16,
+		DontWaitForVehicleToStop = 64,
 		LeaveDoorOpen = 256,
-		BailOut = 4096
+		WarpIfDoorIsBlocked = 512,
+		BailOut = 4096,
+		DontDefaultWarpIfDoorBlocked = 65536,
+		FromLeftSide = 131072,
+		FromRightSide = 262144,
+		BlockSeatShuffling = 1048576,
+		WarpIfShuffleLinkIsBlocked = 4194304,
+		DontJackAnyone = 8388608,
+		WaitForEntryPointToBeClear = 16777216,
 	}
 
 	public class Tasks
