@@ -141,7 +141,8 @@ namespace CitizenFX.Core
 		MetallicPurpleBlue,
 		MetallicSpinnakerBlue,
 		MetallicUltraBlue,
-		UtilDarkBlue = 75,
+		MetallicBrightBlue2,
+		UtilDarkBlue,
 		UtilMidnightBlue,
 		UtilBlue,
 		UtilSeaFoamBlue,
@@ -196,7 +197,8 @@ namespace CitizenFX.Core
 		PoliceCarBlue,
 		MatteGreen,
 		MatteBrown,
-		MatteWhite = 131,
+		WornOrange2,
+		MatteWhite,
 		WornWhite,
 		WornOliveArmyGreen,
 		PureWhite,
@@ -224,7 +226,8 @@ namespace CitizenFX.Core
 		DefaultAlloyColor,
 		EpsilonBlue,
 		PureGold,
-		BrushedGold
+		BrushedGold,
+		MP100GoldSpecular,
 	}
 	public enum VehicleLandingGearState
 	{
