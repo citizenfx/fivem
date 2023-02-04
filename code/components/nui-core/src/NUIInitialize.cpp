@@ -1461,6 +1461,23 @@ void SwitchContext(const std::string& contextId)
 			}
 		}
 
+		// clear any leftover (DUI-type?) windows if moving to empty context
+		if (contextId.empty())
+		{
+			std::set<std::string> windows;
+			auto nuiWM = Instance<NUIWindowManager>::Get();
+
+			nuiWM->ForAllWindows([&windows](fwRefContainer<NUIWindow> window)
+			{
+				windows.insert(window->GetName());
+			});
+
+			for (const auto& window : windows)
+			{
+				nui::DestroyNUIWindow(window);
+			}
+		}
+
 		if (!contextId.empty())
 		{
 			CreateRootWindow();

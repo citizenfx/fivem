@@ -481,7 +481,7 @@ extern bool g_shouldCreateRootWindow;
 
 void NUIClient::OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser, TerminationStatus status)
 {
-	if (browser->GetMainFrame()->GetURL() == "nui://game/ui/root.html" || nui::HasMainUI())
+	if (browser->GetMainFrame()->GetURL() == "nui://game/ui/root.html" || (m_windowValid && m_window && m_window->GetName() == "nui_mpMenu"))
 	{
 		browser->GetHost()->CloseBrowser(true);
 
