@@ -59,6 +59,7 @@ fwRefContainer<NUIWindow> FindNUIWindow(fwString windowName);
 std::wstring GetNUIStoragePath();
 
 nui::GameInterface* g_nuiGi;
+extern bool shouldHaveRootWindow;
 
 struct GameRenderData
 {
@@ -1456,6 +1457,7 @@ void SwitchContext(const std::string& contextId)
 			{
 				Instance<NUIWindowManager>::Get()->RemoveWindow(rw);
 				Instance<NUIWindowManager>::Get()->SetRootWindow({});
+				shouldHaveRootWindow = false;
 			}
 		}
 

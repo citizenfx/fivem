@@ -170,6 +170,8 @@ static std::mutex g_processMessageQueueMutex;
 static concurrency::concurrent_queue<std::function<void()>> g_offThreadNuiQueue;
 static HANDLE g_offthreadNuiQueueWakeEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
 
+extern bool shouldHaveRootWindow;
+
 void TriggerLoadEnd(const std::string& name)
 {
 	auto rootWindow = Instance<NUIWindowManager>::Get()->GetRootWindow();
@@ -530,7 +532,7 @@ namespace nui
 			}))
 			{
 				auto rootWindow = Instance<NUIWindowManager>::Get()->GetRootWindow();
-				if (rootWindow.GetRef())
+				if (shouldHaveRootWindow && rootWindow.GetRef())
 				{
 					auto browser = rootWindow->GetBrowser();
 

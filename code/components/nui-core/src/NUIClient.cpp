@@ -22,6 +22,7 @@
 #include <sstream>
 
 extern nui::GameInterface* g_nuiGi;
+bool shouldHaveRootWindow;
 
 static nui::IAudioSink* g_audioSink;
 
@@ -154,6 +155,7 @@ Object.prototype.__defineGetter__ = function(prop, func) {
 
 	if (url == "nui://game/ui/root.html")
 	{
+		shouldHaveRootWindow = true;
 		nui::RecreateFrames();
 	}
 
