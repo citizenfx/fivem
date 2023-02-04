@@ -42,6 +42,7 @@ namespace CitizenFX.Core
 		WeaponGadgetPistol = 2010690963u,
 		WeaponMarksmanPistol = 2329799797u,
 		WeaponMachinePistol = 4123384540u,
+		WeaponPistolXM3 = 3063083075u,
 		WeaponNavyRevolver = 3392027813u,
 		WeaponRevolver = 1632369836u,
 		WeaponRevolverMK2 = 1835046764u,
@@ -109,6 +110,7 @@ namespace CitizenFX.Core
 		WeaponRayCarbine = 1959050722u,
 		WeaponRayMinigun = 1000920287u,
 		WeaponRailgun = 3832418740u,
+		WeaponRailgunXM3 = 4109932467u,
 		WeaponKnife = 663586612u,
 		WeaponSwitchblade = 3722713114u,
 		WeaponDagger = 3220073531u,
@@ -127,6 +129,7 @@ namespace CitizenFX.Core
 		WeaponKnuckle = 4254904030u,
 		WeaponFlashlight = 3182886821u,
 		WeaponMetalDetector = 2226947771u,
+		WeaponCandyCane = 1337246736u,
 		VehicleWeaponPistol = 2773149623u,
 		VehicleWeaponCombatPistol = 3500855031u,
 		VehicleWeaponAPPistol = 3431676165u,
@@ -175,7 +178,8 @@ namespace CitizenFX.Core
 		PortableCrateFixedInCarSmall = 2817147086u,
 		PortableCrateUnfixedInCarSmall = 3285027633u,
 		PortableCrateUnfixedLowGlow = 2499414878u,
-		PortableDLCVehiclePackage = 837436873u
+		PortableDLCVehiclePackage = 837436873u,
+		PortableFMContentMissionEntitySmall = 1610516839u
 	}
 
 	public sealed class Pickup : PoolObject, IEquatable<Pickup>
