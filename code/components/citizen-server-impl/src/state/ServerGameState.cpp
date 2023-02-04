@@ -2658,11 +2658,7 @@ void ServerGameState::HandleClientDrop(const fx::ClientSharedPtr& client, uint16
 
 	auto clientRegistry = m_instance->GetComponent<fx::ClientRegistry>();
 
-#ifndef _MSC_VER
 	GS_LOG("client drop - reassigning\n", 0);
-#else
-	GS_LOG("client drop - reassigning\n");
-#endif
 
 	if (fx::IsBigMode())
 	{
