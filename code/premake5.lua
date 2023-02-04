@@ -65,6 +65,7 @@ workspace "CitizenMP"
 		"../vendor/rapidjson/include/",
 		"../vendor/fmtlib/include/",
 		"deplibs/include/",
+		"../vendor/boost-preprocessor/include/",
 		os.getenv("BOOST_ROOT")
 	}
 
@@ -85,6 +86,8 @@ workspace "CitizenMP"
 		if _OPTIONS['game'] ~= 'server' then
 			buildoptions { '/await', '/d2FH4-' }
 		end
+
+		buildoptions { '/Zc:preprocessor' }
 
 		systemversion '10.0.22000.0'
 	else

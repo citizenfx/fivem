@@ -78,6 +78,9 @@ bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::arr
 // cppwinrt is slow, add it to pch
 #include <unknwn.h>
 
+// compiler warning (error with new preprocessor)
+#undef GetCurrentTime
+
 // needed in newer cppwinrt
 #define WINRT_NO_MAKE_DETECTION
 
