@@ -4418,7 +4418,7 @@ int ObjectToEntity(int objectId)
 	int entityIdx = -1;
 	auto object = TheClones->GetNetObject(objectId & 0xFFFF);
 
-	if (object)
+	if (object && object->GetGameObject())
 	{
 		entityIdx = getScriptGuidForEntity(object->GetGameObject());
 	}
