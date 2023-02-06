@@ -28,6 +28,8 @@ private:
 
 	bool m_hasFrame;
 
+	bool m_isDead = false;
+
 	bool m_hasCallbacks;
 
 	std::map<std::string, ResUICallback> m_callbacks;
@@ -50,6 +52,11 @@ public:
 	inline void SetHasCallbacks(bool value)
 	{
 		m_hasCallbacks = value;
+	}
+
+	inline bool IsDead() const
+	{
+		return m_isDead;
 	}
 
 	bool Create();

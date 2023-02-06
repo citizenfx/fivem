@@ -32,6 +32,8 @@ ResourceUI::~ResourceUI()
 
 bool ResourceUI::Create()
 {
+	m_isDead = false;
+
 	// initialize callback handlers
 	auto resourceName = m_resource->GetName();
 	std::transform(resourceName.begin(), resourceName.end(), resourceName.begin(), ::ToLower);
@@ -101,6 +103,8 @@ bool ResourceUI::Create()
 
 void ResourceUI::Destroy()
 {
+	m_isDead = true;
+
 	if (m_hasFrame)
 	{
 		// destroy the target frame
@@ -150,8 +154,15 @@ bool ResourceUI::InvokeCallback(const std::string& type, const std::string& quer
 		cbSet.push_back(cb.second);
 	}
 
-	std::function<void()> cb = [cbSet = std::move(cbSet), type, query, headers, data, resultCB = std::move(resultCB)]()
+	fwRefContainer selfRef = this;
+
+	std::function<void()> cb = [selfRef, cbSet = std::move(cbSet), type, query, headers, data, resultCB = std::move(resultCB)]()
 	{
+		if (selfRef->IsDead())
+		{
+			return;
+		}
+
 		for (const auto& cb : cbSet)
 		{
 			cb(type, query, headers, data, resultCB);
