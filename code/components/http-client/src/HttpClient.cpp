@@ -10,6 +10,7 @@
 
 #include <chrono>
 
+#include <boost/algorithm/string.hpp>
 #include <Error.h>
 
 #include <sstream>
@@ -507,6 +508,11 @@ static size_t CurlHeaderInfo(char* buffer, size_t size, size_t nitems, void* use
 
 static std::shared_ptr<CurlData> SetupCURLHandle(const std::unique_ptr<HttpClientImpl>& impl, const std::string& url, const HttpRequestOptions& options)
 {
+	if (boost::algorithm::to_lower_copy(url).find("file://") == 0)
+	{
+		FatalError("Invalid URL in HttpClient\nHit a file:// URL in HttpClient (%s). Please report this somewhere.", url);
+	}
+
 	auto curlHandle = curl_easy_init();
 
 	auto curlData = std::make_shared<CurlData>();
