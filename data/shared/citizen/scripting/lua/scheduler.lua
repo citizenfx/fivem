@@ -951,8 +951,18 @@ if not isDuplicityVersion then
 		end)
 	end
 
-	-- compatibility alias
-	RegisterNUICallback = RegisterNuiCallback
+	-- 'old' function (uses events for compatibility, as people may have relied on this implementation detail)
+	function RegisterNUICallback(type, callback)
+		RegisterNuiCallbackType(type)
+
+		AddEventHandler('__cfx_nui:' .. type, function(body, resultCallback)
+			local status, err = cbHandler(callback, body, resultCallback)
+
+			if err then
+				Citizen.Trace("error during NUI callback " .. type .. ": " .. tostring(err) .. "\n")
+			end
+		end)
+	end
 
 	local _sendNuiMessage = SendNuiMessage
 
