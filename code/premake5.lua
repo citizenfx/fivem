@@ -396,6 +396,10 @@ if _OPTIONS['game'] ~= 'launcher' then
 		-- Missing XML comment for publicly visible type or member
 		disablewarnings 'CS1591'
 
+		if os.istarget('windows') then
+			dependson 'CfxPrebuild'
+		end
+
 		dotnetframework '4.6'
 
 		clr 'Unsafe'
