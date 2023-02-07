@@ -49,6 +49,25 @@ inline int GetGameBuild()
 	return 0;
 #endif
 }
+
+inline std::string_view GetGameBuildIdentifier()
+{
+	static std::string buildIdentifier = []()
+	{
+		auto build = GetGameBuild();
+
+#ifdef IS_RDR3
+		if (build == 1491)
+		{
+			return "1491_17";
+		}
+#endif
+
+		return fmt::sprintf("%d", build);
+	}();
+
+	return buildIdentifier;
+}
 }
 
 #define EXPAND2(_, __, x) \
