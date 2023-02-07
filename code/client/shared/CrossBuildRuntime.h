@@ -52,7 +52,7 @@ inline int GetGameBuild()
 
 inline std::string_view GetGameBuildIdentifier()
 {
-	static std::string buildIdentifier = []()
+	static std::string buildIdentifier = []() -> std::string
 	{
 		auto build = GetGameBuild();
 
