@@ -905,6 +905,9 @@ setmetatable(exports, {
 if not isDuplicityVersion then
 	local origRegisterNuiCallback = RegisterNuiCallback
 
+	local cbHandler
+
+--[==[
 	local cbHandler = load([[
 		-- Lua 5.4: Create a to-be-closed variable to monitor the NUI callback handle.
 		local callback, body, resultCallback = ...
@@ -926,7 +929,7 @@ if not isDuplicityVersion then
 		end)
 
 		return status, err
-	]], '@citizen:/scripting/lua/scheduler.lua#nui')
+	]], '@citizen:/scripting/lua/scheduler.lua#nui')]==]
 
 	if not cbHandler then
 		cbHandler = load([[
