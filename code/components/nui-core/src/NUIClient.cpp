@@ -18,6 +18,7 @@
 
 #include <boost/algorithm/string/case_conv.hpp>
 #include <rapidjson/document.h>
+#include "include/cef_parser.h"
 
 #include <sstream>
 
@@ -330,6 +331,27 @@ auto NUIClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<Ce
 	if (boost::algorithm::to_lower_copy(url).find("file://") != std::string::npos)
 	{
 		return RV_CANCEL;
+	}
+
+	// DiscordApp breaks as of late and affects end users, redirect these to the equivalent GoogleAPIs URL
+	{
+		CefURLParts parts;
+		if (CefParseURL(request->GetURL(), parts))
+		{
+			if (CefString(&parts.host) == "cdn.discordapp.com")
+			{
+				CefString(&parts.spec).clear();
+				CefString(&parts.host).FromString("storage.googleapis.com");
+				CefString(&parts.path).FromString(fmt::sprintf("/discord%s", CefString(&parts.path).ToString()));
+
+				CefString newURL;
+				if (CefCreateURL(parts, newURL))
+				{
+					request->SetURL(newURL);
+					url = newURL.ToString();
+				}
+			}
+		}
 	}
 
 #if !defined(_DEBUG)
