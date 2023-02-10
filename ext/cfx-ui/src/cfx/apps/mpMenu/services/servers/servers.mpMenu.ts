@@ -310,11 +310,28 @@ export class MpMenuServersService implements IServersService, AppContribution {
       const json = await fetcher.json('https://runtime.fivem.net/pins.json');
 
       const config: IPinnedServersConfig = {
+        noAdServerOtherInstanceIds: [],
         pinnedServers: [],
       };
 
       if (json.noAdServerId) {
-        config.noAdServerId = String(json.noAdServerId);
+        // json.noAdServerId
+        // can contain a single server id
+        // can contain multiple server ids seperated by commas
+
+        // previously could only contain a single server id
+        // by using the same string and splitting it using commas we keep backwards compatibility
+        const instances = json.noAdServerId.split(',');
+
+        // populate config.noAdServerId with the first server id
+        if (instances.length > 0) {
+          config.noAdServerId = instances[0];
+        }
+
+        // populate config.noAdServerOtherInstanceIds with the remaining server ids
+        if (instances.length > 1) {
+          config.noAdServerOtherInstanceIds = instances.slice(1);
+        }
       }
 
       if (json.pinIfEmpty) {

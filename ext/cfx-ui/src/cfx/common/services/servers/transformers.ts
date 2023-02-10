@@ -175,6 +175,7 @@ type VarsView = Partial<Pick<IServerView, | 'tags'
                                           | 'locale'
                                           | 'premium'
                                           | 'gamename'
+                                          | 'instanceName'
                                           | 'canReview'
                                           | 'variables'
                                           | 'pureLevel'
@@ -268,6 +269,10 @@ export function processServerDataVariables(vars?: IServer['data']['vars']): Vars
       case key === 'sv_pureLevel': {
         view.pureLevel = value as ServerPureLevel;
 
+        continue;
+      }
+      case key === 'instance_name': {
+        view.instanceName = value;
         continue;
       }
 

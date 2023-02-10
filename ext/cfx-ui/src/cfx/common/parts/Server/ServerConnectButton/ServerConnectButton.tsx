@@ -8,6 +8,7 @@ import { playSfx, Sfx } from "cfx/apps/mpMenu/utils/sfx";
 import { observer } from "mobx-react-lite";
 import { Title } from "cfx/ui/Title/Title";
 import { Button, ButtonProps } from "cfx/ui/Button/Button";
+import { Select } from "cfx/ui/Select/Select";
 import { ReactNode } from "react";
 import { stopPropagation } from "cfx/utils/domEvents";
 import { isServerOffline } from "cfx/common/services/servers/helpers";
@@ -15,6 +16,7 @@ import { CurrentGameBuild, CurrentGamePureLevel } from "cfx/base/gameRuntime";
 
 export interface ServerConnectButtonProps {
   server: IServerView,
+  serverOtherInstances?: IServerView[] | null,
 
   size?: ButtonProps['size'],
   theme?: ButtonProps['theme'],
@@ -23,6 +25,7 @@ export interface ServerConnectButtonProps {
 export const ServerConnectButton = observer(function ServerConnectButton(props: ServerConnectButtonProps) {
   const {
     server,
+    serverOtherInstances,
     size = 'large',
     theme = "primary",
   } = props;
@@ -72,6 +75,7 @@ export const ServerConnectButton = observer(function ServerConnectButton(props: 
 
   const disabled = !ServersConnectService?.canConnect || !canConnect;
 
+
   const handleClick = ServersConnectService
     ? () => {
       if (__CFXUI_USE_SOUNDS__) {
@@ -82,15 +86,65 @@ export const ServerConnectButton = observer(function ServerConnectButton(props: 
     }
     : noop;
 
+  let action = (
+    <Button
+      size={size}
+      theme={theme}
+      disabled={disabled}
+      text={$L('#DirectConnect_Connect')}
+      onClick={stopPropagation(handleClick)}
+    />
+  );
+
+
+  if (serverOtherInstances && serverOtherInstances.length > 0) {
+    let options: { label: string, value: string }[] = [
+      { label: "Connect", value: "" },
+      { label: (server.instanceName || server.localeCountry), value: server.id },
+    ];
+
+    serverOtherInstances.forEach(x => {
+      options.push({ label: (x.instanceName || x.localeCountry), value: x.id });
+    });
+
+
+    const handleChange = ServersConnectService
+      ? (id: string) => {
+        if (__CFXUI_USE_SOUNDS__) {
+          playSfx(Sfx.Connect);
+        }
+
+        if (id == "") {
+          return;
+        }
+
+        if (server.id == id) {
+          ServersConnectService.connectTo(server);
+          return;
+        }
+
+        for (const serverOtherInstance of serverOtherInstances) {
+          if (serverOtherInstance.id == id) {
+            ServersConnectService.connectTo(serverOtherInstance);
+            return;
+          }
+        }
+      }
+      : noop;
+
+    action = (
+      <Select
+        value={""}
+        options={options}
+        onChange={handleChange}
+        size={size == "small" ? "small" : "normal"}
+      />
+    );
+  }
+
   return (
     <Title fixedOn="bottom-left" title={title}>
-      <Button
-        size={size}
-        theme={theme}
-        disabled={disabled}
-        text={$L('#DirectConnect_Connect')}
-        onClick={stopPropagation(handleClick)}
-      />
+      {action}
     </Title>
   );
 });

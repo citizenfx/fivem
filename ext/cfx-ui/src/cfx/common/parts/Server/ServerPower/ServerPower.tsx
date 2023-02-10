@@ -7,6 +7,7 @@ import { observer } from "mobx-react-lite";
 
 export interface ServerPowerProps {
   server: IServerView,
+  serverOtherInstances?: IServerView[] | null,
 
   className?: string,
 }
@@ -14,14 +15,28 @@ export interface ServerPowerProps {
 export const ServerPower = observer(function ServerPower(props: ServerPowerProps) {
   const {
     server,
+    serverOtherInstances,
     className,
   } = props;
 
-  const hasUpvote = !!server.upvotePower;
-  const hasBurst = !!server.burstPower;
+  let hasUpvote = !!server.upvotePower;
+  let hasBurst = !!server.burstPower;
+
+  if (serverOtherInstances && serverOtherInstances.length > 0) {
+    hasUpvote = hasUpvote || serverOtherInstances.some(x => !!x.upvotePower);
+    hasBurst = hasBurst || serverOtherInstances.some(x => !!x.burstPower);
+  }
 
   if (!hasUpvote && !hasBurst) {
     return null;
+  }
+
+  let upvotePower = server.upvotePower;
+  let burstPower = server.burstPower;
+
+  if (serverOtherInstances && serverOtherInstances.length > 0) {
+    upvotePower = (upvotePower || 0) + serverOtherInstances.reduce((total, x) => total + (x.upvotePower || 0), 0);
+    burstPower = (burstPower || 0) + serverOtherInstances.reduce((total, x) => total + (x.burstPower || 0), 0);
   }
 
   return (
@@ -31,7 +46,7 @@ export const ServerPower = observer(function ServerPower(props: ServerPowerProps
           <Flex gap="thin">
             {Icons.serverBoost}
             <span>
-              {server.upvotePower}
+              {upvotePower}
             </span>
           </Flex>
         </Title>
@@ -42,7 +57,7 @@ export const ServerPower = observer(function ServerPower(props: ServerPowerProps
           <Flex gap="thin">
             {Icons.serverBurst}
             <span>
-              {server.burstPower}
+              {burstPower}
             </span>
           </Flex>
         </Title>

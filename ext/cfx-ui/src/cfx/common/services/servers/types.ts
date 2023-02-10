@@ -105,6 +105,8 @@ export interface IServerView {
   playersMax?: number,
   playersCurrent?: number,
 
+  instanceName?: string | null,
+
   tags?: string[],
   players?: IServerViewPlayer[],
   resources?: string[],
@@ -120,6 +122,7 @@ export enum ServerPureLevel {
 
 export interface IPinnedServersConfig {
   noAdServerId?: string,
+  noAdServerOtherInstanceIds: string[],
   pinIfEmpty?: boolean,
   pinnedServers: string[],
 }

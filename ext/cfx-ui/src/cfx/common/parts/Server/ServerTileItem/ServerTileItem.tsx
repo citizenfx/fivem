@@ -29,6 +29,7 @@ import { $L } from "cfx/common/services/intl/l10n";
 
 export interface ServerTileItemProps {
   server: IServerView,
+  serverOtherInstances?: IServerView[] | null,
 
   label?: React.ReactNode,
   hideBanner?: boolean,
@@ -39,6 +40,7 @@ export interface ServerTileItemProps {
 export const ServerTileItem = observer(function ServerTileItem(props: ServerTileItemProps) {
   const {
     server,
+    serverOtherInstances,
     label,
     hideBanner = false,
     growHeight = false,
@@ -54,6 +56,7 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
   const hidePlayersCountOnHover = showPowers || showCountryFlag;
 
   const isLoading = isServerLiveLoading(server);
+  const areInstancesLoading = serverOtherInstances?.some(x => isServerLiveLoading(x));
 
   let connectButtonNode: React.ReactNode = null;
 
@@ -129,7 +132,10 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
               <Flex vertical alignToEndAxis>
                 {(showPowers || showCountryFlag) && (
                   <Flex centered>
-                    <ServerPower server={server} />
+                    <ServerPower
+                      server={server}
+                      serverOtherInstances={!areInstancesLoading ? serverOtherInstances : null}
+                    />
 
                     {showCountryFlag && (
                       <CountryFlag
@@ -146,7 +152,10 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
                       {Icons.playersCount}
                     </Text>
                     <Text opacity="75">
-                      <ServerPlayersCount server={server} />
+                      <ServerPlayersCount
+                        server={server}
+                        serverOtherInstances={!areInstancesLoading ? serverOtherInstances : null}
+                      />
                     </Text>
                   </Flex>
                 </ControlBox>
@@ -155,7 +164,10 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
                   <Flex>
                     <ServerBoostButton server={server} />
 
-                    <ServerConnectButton size="small" server={server} />
+                    <ServerConnectButton
+                      size="small" server={server}
+                      serverOtherInstances={!areInstancesLoading ? serverOtherInstances : null}
+                    />
 
                     <ServerFavoriteButton size="small" server={server} />
                   </Flex>
@@ -172,7 +184,10 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
                     {Icons.playersCount}
                   </Text>
                   <Text opacity="75">
-                    <ServerPlayersCount server={server} />
+                    <ServerPlayersCount
+                      server={server}
+                      serverOtherInstances={!areInstancesLoading ? serverOtherInstances : null}
+                    />
                   </Text>
                 </Flex>
               </ControlBox>

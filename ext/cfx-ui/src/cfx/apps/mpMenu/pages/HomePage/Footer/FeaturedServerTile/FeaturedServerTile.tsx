@@ -4,6 +4,7 @@ import { currentGameNameIs } from "cfx/base/gameRuntime";
 import { useService } from "cfx/base/servicesContainer";
 import { ServerTileItem } from "cfx/common/parts/Server/ServerTileItem/ServerTileItem";
 import { $L } from "cfx/common/services/intl/l10n";
+import { IServer, IServerView } from "cfx/common/services/servers/types";
 import { Text } from "cfx/ui/Text/Text";
 import { observer } from "mobx-react-lite";
 
@@ -12,6 +13,8 @@ export const FeaturedServerTile = observer(function FeaturedServerTile() {
   if (!server) {
     return null;
   }
+
+  const serverInstances = getFeaturedServerInstances();
 
   const label = (
     <Text opacity="50">
@@ -24,6 +27,7 @@ export const FeaturedServerTile = observer(function FeaturedServerTile() {
       hideBanner
       label={label}
       server={server}
+      serverOtherInstances={serverInstances}
     />
   );
 });
@@ -41,4 +45,28 @@ export function useFeaturedServer() {
   }
 
   return ServersService.getServer(serverId);
+}
+
+function getFeaturedServerInstances() {
+  const ServersService = useService(MpMenuServersService);
+
+  if (!currentGameNameIs(GameName.FiveM)) {
+    return null;
+  }
+
+  const serverInstanceIds = ServersService.pinnedServersConfig?.noAdServerOtherInstanceIds;
+  if (!serverInstanceIds || serverInstanceIds.length < 1) {
+    return null;
+  }
+
+  const serverInstances:IServerView[] = [];
+  for (const serverInstanceId in serverInstanceIds) {
+    const serverInstance = ServersService.getServer(serverInstanceId);
+
+    if (serverInstance) {
+      serverInstances.push(serverInstance);
+    }
+  }
+
+  return serverInstances;
 }
