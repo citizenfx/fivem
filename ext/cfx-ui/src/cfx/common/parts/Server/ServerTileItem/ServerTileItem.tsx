@@ -74,7 +74,12 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
     );
   } else {
     connectButtonNode = (
-      <ServerConnectButton size="normal" theme="transparent" server={server} />
+      <ServerConnectButton
+        size="normal"
+        theme="transparent"
+        server={server}
+        serverOtherInstances={!areInstancesLoading ? serverOtherInstances : null}
+      />
     );
   }
 
@@ -165,7 +170,8 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
                     <ServerBoostButton server={server} />
 
                     <ServerConnectButton
-                      size="small" server={server}
+                      size="small"
+                      server={server}
                       serverOtherInstances={!areInstancesLoading ? serverOtherInstances : null}
                     />
 
