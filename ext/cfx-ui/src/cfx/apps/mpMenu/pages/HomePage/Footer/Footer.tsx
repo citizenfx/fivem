@@ -6,7 +6,7 @@ import { ui } from "cfx/ui/ui";
 import { observer } from "mobx-react-lite";
 import { IoSparklesOutline } from "react-icons/io5";
 import { AuxiliaryGameModes } from "./AuxiliaryGameModes/AuxiliaryGameModes";
-import { ExtraLinkyTiles } from "./ExtraLinkyTiles/ExtraLinkyTiles";
+import { ExtraLinkyTileStartServer, ExtraLinkyTileHostServer } from "./ExtraLinkyTiles/ExtraLinkyTiles";
 import { FeaturedServerTile, useFeaturedServer } from "./FeaturedServerTile/FeaturedServerTile";
 
 export const Footer = observer(function Footer() {
@@ -16,12 +16,18 @@ export const Footer = observer(function Footer() {
     <Flex vertical alignToEnd gap="large" className={ui.cls.flexGrow}>
       <Flex gap="large">
         {!!hasFeaturedServer && (
-          <Box width="50%">
+          <Box width="65%">
             <FeaturedServerTile />
           </Box>
         )}
 
-        <ExtraLinkyTiles />
+        <Box width="50%">
+          <ExtraLinkyTileStartServer growHeight />
+        </Box>
+
+        <Box width="50%">
+          <ExtraLinkyTileHostServer growHeight />
+        </Box>
       </Flex>
 
       <Flex repell>

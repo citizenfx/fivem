@@ -29,6 +29,7 @@ import { $L } from "cfx/common/services/intl/l10n";
 
 export interface ServerTileItemProps {
   server: IServerView,
+  server2?: IServerView | null,
 
   label?: React.ReactNode,
   hideBanner?: boolean,
@@ -39,6 +40,7 @@ export interface ServerTileItemProps {
 export const ServerTileItem = observer(function ServerTileItem(props: ServerTileItemProps) {
   const {
     server,
+    server2,
     label,
     hideBanner = false,
     growHeight = false,
@@ -53,7 +55,11 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
   const showPowers = showServerPowers(server);
   const hidePlayersCountOnHover = showPowers || showCountryFlag;
 
-  const isLoading = isServerLiveLoading(server);
+  let isLoading = isServerLiveLoading(server);
+
+  if (server2) {
+    isLoading = isLoading || isServerLiveLoading(server2);
+  }
 
   let connectButtonNode: React.ReactNode = null;
 
@@ -95,7 +101,18 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
 
       <div className={s.content}>
         <Flex vertical fullHeight>
-          {label}
+          {label && (
+            <Flex>
+              <Box width="100%">{label}</Box>
+
+              {showCountryFlag && (
+                <CountryFlag
+                  locale={server.locale}
+                  country={server.localeCountry}
+                />
+              )}
+            </Flex>
+          )}
 
           <Flex fullWidth>
             <Box height={10}>
@@ -126,40 +143,64 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
             </FlexRestricter>
 
             {!growHeight && (
-              <Flex vertical alignToEndAxis>
-                {(showPowers || showCountryFlag) && (
-                  <Flex centered>
-                    <ServerPower server={server} />
-
-                    {showCountryFlag && (
-                      <CountryFlag
-                        locale={server.locale}
-                        country={server.localeCountry}
-                      />
-                    )}
-                  </Flex>
+              <Flex vertical alignToEndAxis gap="small">
+                {(showPowers && !server2) && (
+                  <ServerPower server={server} />
                 )}
+
 
                 <ControlBox size="small" className={clsx({ [s.hideOnHover]: hidePlayersCountOnHover })}>
                   <Flex centered fullHeight fullWidth>
+                    {!!server2 && <ServerPower server={server} />}
+
                     <Text opacity="75">
                       {Icons.playersCount}
                     </Text>
+
                     <Text opacity="75">
                       <ServerPlayersCount server={server} />
                     </Text>
                   </Flex>
                 </ControlBox>
 
+                {!!server2 && (
+                  <ControlBox size="small" className={clsx({ [s.hideOnHover]: hidePlayersCountOnHover })}>
+                    <Flex centered fullHeight fullWidth>
+                      {server2 && <ServerPower server={server2} />}
+
+                      <Text opacity="75">
+                        {Icons.playersCount}
+                      </Text>
+
+                      <Text opacity="75">
+                        <ServerPlayersCount server={server2} />
+                      </Text>
+                    </Flex>
+                  </ControlBox>
+                )}
+
+
                 <ControlBox size="small" className={s.showOnHover}>
                   <Flex>
                     <ServerBoostButton server={server} />
 
-                    <ServerConnectButton size="small" server={server} />
+                    <ServerConnectButton size="small" server={server} showInstanceName={!!server2} />
 
                     <ServerFavoriteButton size="small" server={server} />
                   </Flex>
                 </ControlBox>
+
+                {server2 && (
+                  <ControlBox size="small" className={s.showOnHover}>
+                    <Flex>
+                      <ServerBoostButton server={server2} />
+
+                      <ServerConnectButton size="small" server={server2} showInstanceName={true} />
+
+                      <ServerFavoriteButton size="small" server={server2} />
+                    </Flex>
+                  </ControlBox>
+                )}
               </Flex>
             )}
           </Flex>
@@ -171,6 +212,7 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
                   <Text opacity="75">
                     {Icons.playersCount}
                   </Text>
+
                   <Text opacity="75">
                     <ServerPlayersCount server={server} />
                   </Text>

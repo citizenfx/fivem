@@ -1,4 +1,5 @@
 import { Flex } from "cfx/ui/Layout/Flex/Flex";
+import { clsx } from "cfx/utils/clsx";
 import { observer } from "mobx-react-lite";
 import { FiServer } from "react-icons/fi";
 import { Text } from "cfx/ui/Text/Text";
@@ -6,35 +7,13 @@ import { currentGameNameIs } from "cfx/base/gameRuntime";
 import { GameName } from "cfx/base/game";
 import s from './ExtraLinkyTiles.module.scss';
 
-export const ExtraLinkyTiles = observer(function ExtraLinkyTiles() {
-  return (
-    <Flex fullWidth gap="large">
-      <StartYourServerPromo />
-
-      <a href="https://docs.fivem.net/docs/server-manual/setting-up-a-server/" className={s.tile}>
-        <Flex gap="large">
-          <div className={s.icon}>
-            <FiServer />
-          </div>
-
-          <Flex vertical gap="small">
-            <Text size="xlarge" weight="bold" family="secondary" opacity="75">
-              Host a server
-            </Text>
-
-            <Text opacity="50">
-              Find out how to host a server on hardware you control
-            </Text>
-          </Flex>
-        </Flex>
-      </a >
-    </Flex >
-  );
-});
+interface ExtraLinkyTileCustomProps {
+  growHeight?: boolean,
+}
 
 const zapLogoImageURL = new URL('assets/images/zap.jpg', import.meta.url).toString();
 
-export const StartYourServerPromo = observer(function StartYourServerPromo() {
+export const ExtraLinkyTileStartServer = observer(function ExtraLinkyTileStartServer(props: ExtraLinkyTileCustomProps) {
   const isFiveM = currentGameNameIs(GameName.FiveM);
   const isRedM = currentGameNameIs(GameName.RedM);
 
@@ -47,19 +26,56 @@ export const StartYourServerPromo = observer(function StartYourServerPromo() {
     : 'https://zap-hosting.com/redm2';
 
   return (
-    <a href={link} className={s.tile}>
+    <ExtraLinkyTile
+      title="Start a server"
+      description="Rent a server at ZAP-Hosting"
+      link={link}
+      icon={<img src={zapLogoImageURL} />}
+      growHeight={props.growHeight}
+    />
+  );
+});
+
+export const ExtraLinkyTileHostServer = observer(function ExtraLinkyTileHostServer(props: ExtraLinkyTileCustomProps) {
+  return (
+    <ExtraLinkyTile
+      title="Host a server"
+      description="Find out how to host a server on hardware you control"
+      link="https://docs.fivem.net/docs/server-manual/setting-up-a-server/"
+      icon={<FiServer />}
+      growHeight={props.growHeight}
+    />
+  );
+});
+
+
+interface ExtraLinkyTileProps {
+  title: string,
+  description: string,
+  link: string,
+  icon: React.ReactNode,
+  growHeight?: boolean,
+}
+
+const ExtraLinkyTile = observer(function StartYourServerPromo(props: ExtraLinkyTileProps) {
+  const className = clsx(s.tile, {
+    [s.growHeight]: props.growHeight,
+  });
+
+  return (
+    <a href={props.link} className={className}>
       <Flex gap="large">
         <div className={s.icon}>
-          <img src={zapLogoImageURL} />
+          {props.icon}
         </div>
 
         <Flex vertical gap="small">
           <Text size="xlarge" weight="bold" family="secondary" opacity="75">
-            Start a server
+            {props.title}
           </Text>
 
           <Text opacity="50">
-            Rent a server at ZAP-Hosting
+            {props.description}
           </Text>
         </Flex>
       </Flex>

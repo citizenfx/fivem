@@ -23,6 +23,7 @@ export interface ButtonProps {
   to?: string,
 
   text?: React.ReactNode,
+  textSuffix?: React.ReactNode,
   title?: string,
   icon?: React.ReactNode,
   theme?: ButtonTheme,
@@ -45,6 +46,7 @@ export const Button = React.forwardRef(function Button(props: ButtonProps, ref: 
   const {
     to,
     text = null,
+    textSuffix = null,
     icon = null,
     title = '',
     className = '',
@@ -104,7 +106,13 @@ export const Button = React.forwardRef(function Button(props: ButtonProps, ref: 
         <span className={s['icon-node']}>{icon}</span>
       )}
 
-      {text}
+      {!!text && (
+        <span>{text}</span>
+      )}
+
+      {!!textSuffix && (
+        <span className={s.suffix}>{textSuffix}</span>
+      )}
 
       {!!decorator && (
         <div className={s.decorator}>

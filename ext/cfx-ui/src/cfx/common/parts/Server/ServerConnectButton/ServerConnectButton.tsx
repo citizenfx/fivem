@@ -15,6 +15,7 @@ import { CurrentGameBuild, CurrentGamePureLevel } from "cfx/base/gameRuntime";
 
 export interface ServerConnectButtonProps {
   server: IServerView,
+  showInstanceName?: boolean,
 
   size?: ButtonProps['size'],
   theme?: ButtonProps['theme'],
@@ -25,6 +26,7 @@ export const ServerConnectButton = observer(function ServerConnectButton(props: 
     server,
     size = 'large',
     theme = "primary",
+    showInstanceName = false,
   } = props;
 
   const ServersConnectService = useServiceOptional(IServersConnectService);
@@ -89,6 +91,7 @@ export const ServerConnectButton = observer(function ServerConnectButton(props: 
         theme={theme}
         disabled={disabled}
         text={$L('#DirectConnect_Connect')}
+        textSuffix={showInstanceName && (server.instanceName)}
         onClick={stopPropagation(handleClick)}
       />
     </Title>

@@ -314,7 +314,11 @@ export class MpMenuServersService implements IServersService, AppContribution {
       };
 
       if (json.noAdServerId) {
-        config.noAdServerId = String(json.noAdServerId);
+        config.noAdServerId = json.noAdServerId;
+      }
+
+      if (json.noAdServer2Id) {
+        config.noAdServer2Id = json.noAdServer2Id;
       }
 
       if (json.pinIfEmpty) {

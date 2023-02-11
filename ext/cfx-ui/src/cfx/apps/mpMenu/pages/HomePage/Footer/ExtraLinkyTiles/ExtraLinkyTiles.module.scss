@@ -17,6 +17,10 @@
     box-shadow: 0 0 0 2px ui.color-token('outlined-hover-border') inset;
   }
 
+  &.growHeight {
+    height: 100%;
+  }
+
   .icon {
     flex-shrink: 0;
 
