@@ -32,10 +32,23 @@ namespace CitizenFX.Core.Native
 				ScriptContext.Push(arg.Value);
 			}
 
+			ulong a1 = ScriptContext.GetResult<ulong>();
+
 			ScriptContext.Invoke((ulong)nativeHash, InternalManager.ScriptHost);
 
 			if (returnType != typeof(void))
 			{
+				// similar to the checks in V8/Lua ScRTs
+				ulong a2 = ScriptContext.GetResult<ulong>();
+
+				if (returnType == typeof(string))
+				{
+					if (a2 != 0 && a2 == a1)
+					{
+						return "";
+					}
+				}
+
 				return ScriptContext.GetResult(returnType);
 			}
 
