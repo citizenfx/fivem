@@ -1,6 +1,6 @@
 local function hasPointerArg(v)
     for _, v in ipairs(v.arguments) do
-		if v.pointer or v.type.name == 'Any' then
+		if v.pointer or v.type.name == 'Any' or v.type.name == 'charPtr' then
 			return true
 		end
 	end
@@ -27,7 +27,7 @@ for _, v in pairs(_natives) do
                 avs = avs .. ('\tNullifyAny(cxt->GetArgument<void*>(%d)); // Any* %s\n'):format(i, a.name)
             end
 
-            if a.pointer or a.type.name == 'Any' then
+            if a.pointer or a.type.name == 'Any' or a.type.name == 'charPtr' then
                 avs = avs .. ('\tif (!ValidateArg(cxt->GetArgument<void*>(%d))) { return; }\n'):format(i)
             end
 
@@ -82,7 +82,7 @@ ARG_VALIDATORS\tnh_HASH(cxt);RESULT_VALIDATORS
 
         if returnType ~= '' then
             if not printed then
-                print(("\t// %s (result cleaner only)"):format(v.ns .. '/' .. v.name))
+                print(("\t// %s (result cleaner only)"):format((v.ns or '') .. '/' .. v.name))
             end
 
             print(("\tAddResultCleaner(%s, ResultCleaner<%s>);\n"):format(v.hash, returnType))
