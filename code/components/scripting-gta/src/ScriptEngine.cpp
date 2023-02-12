@@ -97,7 +97,14 @@ static void NullInvocation(uint64_t nativeIdentifier, char** errorMessage)
 {
 	if (nativeIdentifier == 0)
 	{
-		FatalError("Invalid native call\nA script has invoked an invalid native call (null pointer/null native). This is unsupported behavior.");
+		auto resourceName = NativeInvoke::Invoke<HashString("GET_CURRENT_RESOURCE_NAME"), const char*>();
+
+		if (!resourceName)
+		{
+			resourceName = "<unknown>";
+		}
+
+		FatalError("Invalid native call\nA script (%s) has invoked an invalid native call (null pointer/null native). This is unsupported behavior, and usually seen as part of a resource attempting to exploit a vulnerability in the Cfx.re platform.", resourceName);
 	}
 
 	g_lastError = fmt::sprintf("Invalid native call %016llx", nativeIdentifier);
