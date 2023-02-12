@@ -17,6 +17,8 @@
 #include <CoreConsole.h>
 
 #include <boost/algorithm/string/case_conv.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+
 #include <rapidjson/document.h>
 #include "include/cef_parser.h"
 
@@ -333,23 +335,33 @@ auto NUIClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<Ce
 		return RV_CANCEL;
 	}
 
-	// DiscordApp breaks as of late and affects end users, redirect these to the equivalent GoogleAPIs URL
+	// DiscordApp breaks as of late and affects end users, tuning the headers seems to fix it
 	{
 		CefURLParts parts;
 		if (CefParseURL(request->GetURL(), parts))
 		{
-			if (CefString(&parts.host) == "cdn.discordapp.com")
-			{
-				CefString(&parts.spec).clear();
-				CefString(&parts.host).FromString("storage.googleapis.com");
-				CefString(&parts.path).FromString(fmt::sprintf("/discord%s", CefString(&parts.path).ToString()));
+			auto hostString = CefString(&parts.host).ToString();
 
-				CefString newURL;
-				if (CefCreateURL(parts, newURL))
-				{
-					request->SetURL(newURL);
-					url = newURL.ToString();
-				}
+			if (boost::algorithm::ends_with(hostString, "discordapp.com") ||
+				boost::algorithm::ends_with(hostString, "discordapp.net"))
+			{
+				CefRequest::HeaderMap headers;
+				request->GetHeaderMap(headers);
+
+				headers.erase("User-Agent");
+				headers.emplace("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36");
+
+				headers.erase("sec-ch-ua");
+				headers.emplace("sec-ch-ua", R"("Chromium";v="112", "Google Chrome";v="112", "Not:A-Brand";v="99")");
+
+				headers.erase("sec-ch-ua-mobile");
+				headers.emplace("sec-ch-ua-mobile", R"(?0)");
+
+				headers.erase("sec-ch-ua-platform");
+				headers.emplace("sec-ch-ua-platform", R"("Windows")");
+
+				request->SetHeaderMap(headers);
+				request->SetReferrer("https://discord.com/channels/@me", CefRequest::ReferrerPolicy::REFERRER_POLICY_DEFAULT);
 			}
 		}
 	}
