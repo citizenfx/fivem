@@ -1,4 +1,8 @@
 #include "StdInc.h"
+
+#include "CoreConsole.h"
+#include "json.hpp"
+
 #include <ResourceFilesComponent.h>
 #include <ResourceMetaDataComponent.h>
 #include <ResourceFileDatabase.h>
@@ -6,8 +10,6 @@
 #include <VFSManager.h>
 
 #include <botan/sha160.h>
-
-#include <any>
 
 class MarkedWriter
 {
@@ -84,7 +86,7 @@ public:
 		return m_stream->Seek(0, SEEK_CUR);
 	}
 
-	std::any userState;
+	int userState = 0;
 
 private:
 	std::map<std::string, size_t> m_marks;
@@ -186,14 +188,14 @@ namespace fi
 					writer.Write<uint32_t>(m_subEntries.size());
 				}
 
-				writer.userState = std::any_cast<int>(writer.userState) + 1;
+				writer.userState = writer.userState + 1;
 			}
 
 			inline void WriteSubEntries(MarkedWriter& writer)
 			{
 				if (m_isDirectory)
 				{
-					writer.WriteMark("cIdx_" + m_fullName, std::any_cast<int>(writer.userState) | 0x80000000);
+					writer.WriteMark("cIdx_" + m_fullName, writer.userState | 0x80000000);
 				}
 
 				auto subEntries = m_subEntries;
@@ -384,7 +386,7 @@ namespace fi
 			m_rootEntry->WriteSubEntries(writer);
 			m_rootEntry->WriteNames(writer);
 
-			writer.WriteMark("numEntries", std::any_cast<int>(writer.userState));
+			writer.WriteMark("numEntries", writer.userState);
 
 			writer.Align(2048);
 
@@ -560,6 +562,10 @@ namespace fx
 
 			return fileEntries;
 		}
+		else if (auto setIt = m_fileSets.find(setName); setIt != m_fileSets.end())
+		{
+			return { setIt->second.begin(), setIt->second.end() };
+		}
 
 		return {};
 	}
@@ -584,40 +590,97 @@ namespace fx
 		m_filesFilter = filter;
 	}
 
+	void ResourceFilesComponent::ParseFileSets()
+	{
+		auto metaData = m_resource->GetComponent<fx::ResourceMetaDataComponent>();
+		auto fileSets = metaData->GetEntries("file_set");
+		auto fileSetsExtra = metaData->GetEntries("file_set_extra");
+
+		if (std::distance(fileSets.begin(), fileSets.end()) != std::distance(fileSetsExtra.begin(), fileSetsExtra.end()))
+		{
+			console::PrintWarning("resources", "`file_set` count mismatch in resource %s\n", m_resource->GetName());
+			return;
+		}
+
+		for (auto it1 = fileSets.begin(), end1 = fileSets.end(), it2 = fileSetsExtra.begin(), end2 = fileSetsExtra.end(); it1 != end1 && it2 != end2; ++it1, ++it2)
+		{
+			const std::string& name = it1->second;
+			const std::string& entries = it2->second;
+
+			nlohmann::json entriesJson;
+
+			try
+			{
+				entriesJson = nlohmann::json::parse(entries);
+			}
+			catch (std::exception& e)
+			{
+				continue;
+			}
+
+			if (entriesJson.is_array())
+			{
+				std::set<std::string> fileNames;
+
+				for (const auto& entry : entriesJson)
+				{
+					if (entry.is_string())
+					{
+						auto entryStr = entry.get<std::string>();
+						metaData->GlobValueIterator(entryStr, std::inserter(fileNames, fileNames.end()));
+					}
+				}
+
+				m_fileSets[fmt::sprintf("%s.rpf", name)] = std::move(fileNames);
+			}
+		}
+	}
+
 	void ResourceFilesComponent::AttachToObject(fx::Resource* object)
 	{
 		m_resource = object;
 
-		object->OnStart.Connect([=]()
+		object->OnStart.Connect([this]()
 		{
-			if (ShouldBuildSet(GetDefaultSetName()))
+			std::set<std::string> sets = { GetDefaultSetName() };
+			ParseFileSets();
+
+			for (const auto& [setName, _] : m_fileSets)
 			{
-				BuildResourceSet(GetDefaultSetName());
+				sets.insert(setName);
 			}
 
-			// TODO(fxserver): clean up
-			fwRefContainer<vfs::Stream> stream = vfs::OpenRead(GetSetFileName(GetDefaultSetName()));
-
-			if (stream.GetRef())
+			// #TODO: cache the hashes somewhere sensible rather than recalculating them every resource start
+			for (const auto& set : sets)
 			{
-				// calculate a hash of the file
-				std::vector<uint8_t> data(8192);
-
-				auto sha1 = std::make_unique<Botan::SHA_160>();
-				size_t numRead;
-
-				// read from the stream
-				while ((numRead = stream->Read(data)) > 0)
+				if (ShouldBuildSet(set))
 				{
-					sha1->update(&data[0], numRead);
+					BuildResourceSet(set);
 				}
 
-				// get the hash result and convert it to a string
-				auto hash = sha1->final();
+				fwRefContainer<vfs::Stream> stream = vfs::OpenRead(GetSetFileName(set));
 
-				m_fileHashPairs["resource.rpf"] = fmt::sprintf("%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
-					hash[0], hash[1], hash[2], hash[3], hash[4], hash[5], hash[6], hash[7], hash[8], hash[9],
-					hash[10], hash[11], hash[12], hash[13], hash[14], hash[15], hash[16], hash[17], hash[18], hash[19]);
+				if (stream.GetRef())
+				{
+					// calculate a hash of the file
+					std::vector<uint8_t> data(8192);
+
+					auto sha1 = std::make_unique<Botan::SHA_160>();
+					size_t numRead;
+
+					// read from the stream
+					while ((numRead = stream->Read(data)) > 0)
+					{
+						sha1->update(&data[0], numRead);
+					}
+
+					// get the hash result and convert it to a string
+					auto hash = sha1->final();
+
+					m_fileHashPairs[set] = fmt::sprintf("%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
+						hash[0], hash[1], hash[2], hash[3], hash[4], hash[5], hash[6], hash[7], hash[8], hash[9],
+						hash[10], hash[11], hash[12], hash[13], hash[14], hash[15], hash[16], hash[17], hash[18], hash[19]);
+				}
 			}
 		}, 500);
 	}

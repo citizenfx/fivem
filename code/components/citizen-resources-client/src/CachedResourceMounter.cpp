@@ -7,6 +7,8 @@
 
 #include "StdInc.h"
 #include <CachedResourceMounter.h>
+#include <CachedResourceMounterWrap.h>
+
 #include <ResourceCache.h>
 #include <ResourceCacheDevice.h>
 
@@ -90,6 +92,7 @@ fwRefContainer<fx::Resource> CachedResourceMounter::InitializeLoad(const std::st
 			{
 				// if there is one, start by creating a resource with a list component
 				fwRefContainer<fx::Resource> resource = m_manager->CreateResource(host, this);
+				resource->SetComponent(new CachedResourceMounterWrap(this));
 
 				fwRefContainer<ResourceCacheEntryList> entryList = resource->GetComponent<ResourceCacheEntryList>();
 
@@ -209,6 +212,93 @@ pplx::task<tl::expected<fwRefContainer<fx::Resource>, fx::ResourceManagerError>>
 	return pplx::task_from_result(tl::expected<fwRefContainer<fx::Resource>, fx::ResourceManagerError>(tl::make_unexpected(ResourceManagerError{ "Couldn't parse URI." })));
 }
 
+bool CachedResourceMounter::MountOverlay(const std::string& resourceName, const std::string& overlayName, std::string* outError)
+{
+	std::string overlayFile = fmt::sprintf("%s.rpf", overlayName);
+	std::string overlayPath = FormatPath(resourceName, overlayFile);
+
+	auto taskIt = m_overlayMountTasks.find(overlayPath);
+
+	if (taskIt == m_overlayMountTasks.end())
+	{
+		auto resource = m_manager->GetResource(resourceName);
+
+		resource->OnRemove.Connect([this, overlayPath]()
+		{
+			m_overlayMountTasks.erase(overlayPath);
+		});
+
+		taskIt = m_overlayMountTasks.emplace(overlayPath, pplx::create_task([this, resource, overlayFile, overlayPath]() -> tl::expected<fwRefContainer<vfs::Device>, fx::ResourceManagerError>
+		{
+			if (!resource.GetRef())
+			{
+				return tl::make_unexpected(fx::ResourceManagerError{ "No such resource." });
+			}
+
+			auto entryList = resource->GetComponent<ResourceCacheEntryList>();
+
+			// verify if we even have an entry for such
+			if (entryList->GetEntry(overlayFile))
+			{
+				// open the packfile
+				auto openOverlayPackfile = [resource, overlayPath]() -> tl::expected<fwRefContainer<vfs::Device>, fx::ResourceManagerError>
+				{
+					fwRefContainer<vfs::RagePackfile> packfile = new vfs::RagePackfile();
+					std::string errorState;
+
+					if (packfile->OpenArchive(overlayPath, &errorState))
+					{
+						return packfile;
+					}
+
+					return tl::make_unexpected(ResourceManagerError{ fmt::sprintf("Failed to open packfile: %s", errorState) });
+				};
+
+				auto packfileResult = openOverlayPackfile();
+
+				if (packfileResult)
+				{
+					std::string resourceRoot = "resources:/" + resource->GetName() + "/";
+					vfs::Mount(packfileResult.value(), resourceRoot);
+
+					return packfileResult.value();
+				}
+
+				return tl::make_unexpected(packfileResult.error());
+			}
+
+			return tl::make_unexpected(fx::ResourceManagerError{ fmt::sprintf("No resource file set %s in resource %s", overlayFile, resource->GetName()) });
+		},
+		pplx::task_options(g_schedulerWrap))).first;
+	}
+
+	if (taskIt == m_overlayMountTasks.end())
+	{
+		return false;
+	}
+
+	bool success = false;
+
+	if (taskIt->second.is_done())
+	{
+		auto result = taskIt->second.get();
+		if (result)
+		{
+			success = true;
+		}
+		else
+		{
+			if (outError)
+			{
+				auto errorStr = result.error().Get();
+				*outError = (errorStr.empty()) ? "Failed to mount overlay." : errorStr;
+			}
+		}
+	}
+
+	return success;
+}
+
 void CachedResourceMounter::AddResourceEntry(const std::string& resourceName, const std::string& basename, const std::string& referenceHash, const std::string& remoteUrl, size_t size, const std::map<std::string, std::string>& extData)
 {
 	{
@@ -268,6 +358,25 @@ namespace fx
 
 	fwEvent<> OnLockStreaming;
 	fwEvent<> OnUnlockStreaming;
+}
+
+namespace fx
+{
+CachedResourceMounterWrap::CachedResourceMounterWrap(CachedResourceMounter* mounter)
+	: m_mounter(mounter)
+{
+
+}
+
+void CachedResourceMounterWrap::AttachToObject(fx::Resource* resource)
+{
+	m_resource = resource;
+}
+
+bool CachedResourceMounterWrap::MountOverlay(const std::string& overlayName, std::string* outError)
+{
+	return m_mounter->MountOverlay(m_resource->GetName(), overlayName, outError);
+}
 }
 
 static InitFunction initFunction([]()

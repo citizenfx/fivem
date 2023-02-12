@@ -10,11 +10,15 @@
 #include <ResourceEventComponent.h>
 #include <EventReassemblyComponent.h>
 
+#include "fxScripting.h"
+#include "Resource.h"
+
 #include <mutex>
 
 #include <ScriptEngine.h>
 
 #include <CachedResourceMounter.h>
+#include <CachedResourceMounterWrap.h>
 #include <HttpClient.h>
 
 #include <NetLibrary.h>
@@ -102,6 +106,8 @@ private:
 	void UpdateResources(const std::string& updateList, const std::function<void()>& doneCb);
 
 	void UpdateOneResource();
+
+	bool RequestResourceFileSet(fx::Resource* resource, const std::string& setName);
 
 private:
 	std::queue<std::string> m_resourceUpdateQueue;
@@ -595,6 +601,21 @@ void NetLibraryResourcesComponent::UpdateResources(const std::string& updateList
 	});
 }
 
+bool NetLibraryResourcesComponent::RequestResourceFileSet(fx::Resource* resource, const std::string& setName)
+{
+	auto mounter = resource->GetComponent<fx::CachedResourceMounterWrap>();
+
+	std::string error;
+	bool result = mounter->MountOverlay(setName, &error);
+
+	if (!error.empty())
+	{
+		throw std::runtime_error(va("%s", error));
+	}
+
+	return result;
+}
+
 void NetLibraryResourcesComponent::AttachToObject(NetLibrary* netLibrary)
 {
 	m_netLibrary = netLibrary;
@@ -802,6 +823,22 @@ void NetLibraryResourcesComponent::AttachToObject(NetLibrary* netLibrary)
 
 		auto reassembler = Instance<fx::ResourceManager>::Get()->GetComponent<fx::EventReassemblyComponent>();
 		reassembler->TriggerEvent(0, std::string_view{ eventName.c_str(), eventName.size() + 1 }, eventPayload, bps);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("REQUEST_RESOURCE_FILE_SET", [this](fx::ScriptContext& context)
+	{
+		std::string setName = context.CheckArgument<const char*>(0);
+
+		bool result = false;
+		fx::OMPtr<IScriptRuntime> runtime;
+
+		if (FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+		{
+			fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
+			result = RequestResourceFileSet(resource, setName);
+		}
+
+		context.SetResult(result);
 	});
 
 	netLibrary->OnFinalizeDisconnect.Connect([](NetAddress)
