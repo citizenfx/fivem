@@ -28,7 +28,7 @@
 -- Create an openssl namespace to isolate the plugin
 --
 	local module = {}
-    module._VERSION = "1.1.1o"
+    module._VERSION = "1.1.1t"
 
 	module.printf = function(msg, ...)
 		printf("[openssl] " .. msg, ...)
