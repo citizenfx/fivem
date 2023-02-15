@@ -797,7 +797,13 @@ bool DL_ProcessDownload()
 		{
 			if (download->algorithm == compressionAlgo_e::XZ)
 			{
-				lzma_stream_decoder(&download->strm, UINT64_MAX, 0);
+				lzma_mt mtOptions = { 0 };
+				mtOptions.threads = 4;
+				mtOptions.memlimit_threading = lzma_physmem() / 8;
+				mtOptions.memlimit_stop = UINT64_MAX;
+				mtOptions.timeout = 300;
+				lzma_stream_decoder_mt(&download->strm, &mtOptions);
+
 				download->strm.avail_out = sizeof(download->strmOut);
 				download->strm.next_out = download->strmOut;
 			}
