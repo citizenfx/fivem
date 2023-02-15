@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Security;
 
@@ -413,7 +412,6 @@ namespace CitizenFX.Core.Native
 	public class OutputArgument : InputArgument
 	{
 		private readonly IntPtr m_dataPtr;
-		private readonly byte[] m_initialValue;
 
 		[SecuritySafeCritical]
 		public OutputArgument()
@@ -433,9 +431,6 @@ namespace CitizenFX.Core.Native
 
 			Marshal.WriteInt64(m_dataPtr, 0, 0);
 			Marshal.StructureToPtr(arg, m_dataPtr, false);
-			
-			m_initialValue = new byte[8];
-			Marshal.Copy(m_dataPtr, m_initialValue, 0, 8);
 		}
 
 		[SecuritySafeCritical]
@@ -456,12 +451,13 @@ namespace CitizenFX.Core.Native
 			var data = new byte[24];
 			Marshal.Copy(m_dataPtr, data, 0, 24);
 
+			// no native commands include `char**` or `scrObject**` arguments, so these are invalid here
+			// see https://github.com/citizenfx/fivem/issues/1855
+			//
+			// this *might* break struct workarounds but these aren't considered as supported anyway
 			if (typeof(T) == typeof(string) || typeof(T) == typeof(object))
 			{
-				if (m_initialValue != null && data.Take(8).SequenceEqual(m_initialValue))
-				{
-					return default(T);
-				}
+				return default(T);
 			}
 
 			fixed (byte* dataPtr = data)
