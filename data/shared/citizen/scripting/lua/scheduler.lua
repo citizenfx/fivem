@@ -491,7 +491,7 @@ Citizen.SetCallRefRoutine(function(refId, argsSerialized)
 	local ref = refPtr.func
 
 	local err
-	local retvals
+	local retvals = false
 	local cb = {}
 	
 	local di = debug_getinfo(ref)
@@ -506,16 +506,14 @@ Citizen.SetCallRefRoutine(function(refId, argsSerialized)
 		end
 
 		if cb.cb then
-			cb.cb(retvals or false, err)
+			cb.cb(retvals, err)
+		elseif err then
+			Citizen.Trace(err)
 		end
 	end, ('ref call [%s[%d..%d]]'):format(di.short_src, di.linedefined, di.lastlinedefined))
 
 	if not waited then
 		if err then
-			if err ~= '' then
-				Citizen.Trace(err)
-			end
-			
 			return msgpack_pack(nil)
 		end
 
