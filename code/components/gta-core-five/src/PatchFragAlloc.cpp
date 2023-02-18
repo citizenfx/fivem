@@ -1,6 +1,8 @@
 #include "StdInc.h"
 #include "Hooking.h"
 
+#include <CrossBuildRuntime.h>
+
 static void*(*g_origMemAlloc)(void*, intptr_t size, intptr_t align, int subAlloc);
 static intptr_t(*g_origMemFree)(void*, void*);
 static bool(*g_origIsMine)(void*, void*);
@@ -57,21 +59,43 @@ static void* CreateSimpleAllocatorHook(void* a1, void* a2, void* a3, int a4, int
 {
 	void* smpa = ((void*(*)(void*, void*, void*, int, int))smpaCtor)(a1, a2, a3, a4, a5);
 
-	void** vt = new void*[45];
-	memcpy(vt, *(void**)smpa, 45 * 8);
-	*(void**)smpa = vt;
+	// 2802 RTTI changes move desired functions down by 6 entries
+	if (xbr::IsGameBuildOrGreater<2802>())
+	{
+		void** vt = new void*[49];
+		memcpy(vt, *(void**)smpa, 49 * 8);
+		*(void**)smpa = vt;
 
-	g_origMemAlloc = (decltype(g_origMemAlloc))vt[2];
-	vt[2] = AllocEntry;
+		g_origMemAlloc = (decltype(g_origMemAlloc))vt[8];
+		vt[8] = AllocEntry;
 
-	g_origMemFree = (decltype(g_origMemFree))vt[4];
-	vt[4] = FreeEntry;
+		g_origMemFree = (decltype(g_origMemFree))vt[10];
+		vt[10] = FreeEntry;
 
-	g_origRealloc = (decltype(g_origRealloc))vt[6];
-	vt[6] = ReallocEntry;
+		g_origRealloc = (decltype(g_origRealloc))vt[12];
+		vt[12] = ReallocEntry;
 
-	g_origIsMine = (decltype(g_origIsMine))vt[26];
-	vt[26] = isMineHook;
+		g_origIsMine = (decltype(g_origIsMine))vt[32];
+		vt[32] = isMineHook;
+	}
+	else
+	{
+		void** vt = new void*[45];
+		memcpy(vt, *(void**)smpa, 45 * 8);
+		*(void**)smpa = vt;
+
+		g_origMemAlloc = (decltype(g_origMemAlloc))vt[2];
+		vt[2] = AllocEntry;
+
+		g_origMemFree = (decltype(g_origMemFree))vt[4];
+		vt[4] = FreeEntry;
+
+		g_origRealloc = (decltype(g_origRealloc))vt[6];
+		vt[6] = ReallocEntry;
+
+		g_origIsMine = (decltype(g_origIsMine))vt[26];
+		vt[26] = isMineHook;
+	}
 
 	return smpa;
 }
