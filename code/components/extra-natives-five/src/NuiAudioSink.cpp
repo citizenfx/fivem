@@ -859,6 +859,9 @@ namespace rage
 	class audEntityBaseBuild : public std::conditional_t<Build >= 2802, audEntityBase2802, audEntityBaseOld>
 	{
 	protected:
+#if IS_RDR3
+		char m_pad[8] = {};
+#endif
 		uint16_t m_entityId{
 			0xffff
 		};
@@ -866,6 +869,11 @@ namespace rage
 		uint16_t m_0A{
 			0xffff
 		};
+#if IS_RDR3
+		uint32_t state{
+			1
+		};
+#endif
 	};
 
 	template<int Build>
@@ -971,23 +979,6 @@ namespace rage
 		{
 			return nullptr;
 		}
-
-	private:
-#if IS_RDR3
-		char m_pad[8] = {};
-#endif
-		uint16_t m_entityId{
-			0xffff
-		};
-
-		uint16_t m_0A{
-			0xffff
-		};
-#if IS_RDR3
-		uint32_t state{
-			1
-		};
-#endif
 	};
 
 	template<int Build>
@@ -2389,35 +2380,39 @@ static HookFunction hookFunction([]()
 				mov(rdi, rbx);
 				mov(r13, rbx);
 #elif IS_RDR3
-				push(r14);
-				sub(rsp, 0x28);
-				mov(rcx, qword_ptr[r15]);
-				lea(rdx, qword_ptr[rsp + 0x28 + 0x8 + 0xB0]);
-				mov(rax, (uint64_t)DoVoiceRoute);
-				call(rax);
-				add(rsp, 0x28);
-				pop(r14);
+				mov(rax, qword_ptr[r15]);
+				movzx(eax, byte_ptr[rax + 0x148]);
+
+				lea(ecx, byte_ptr[eax - 14]);
+				cmp(cl, 0xF0);
+
+				ja("exit");
+
+				mov(dword_ptr[r9], eax);
+
+				mov(dword_ptr[r9 + 0x4], 0xFF);
+				mov(dword_ptr[r9 + 0x8], 0xFF);
+				mov(dword_ptr[r9 + 0xC], 0xFF);
+				mov(dword_ptr[r9 + 0x10], 0xFF);
+				mov(dword_ptr[r9 + 0x14], 0xFF);
+
+				L("exit");
+
 				mov(rdi, r14);
 				mov(bl, 0x7F);
 #endif
 				ret();
 			}
 
+#if GTA_FIVE
 			static void DoVoiceRoute(uint8_t* voiceData, int* outRoutes)
 			{
-#ifdef GTA_FIVE
 				if (voiceData[0x6A] != 0xFF && voiceData[0x6A] >= 0x1C) // first route we have 'ourselves'
 				{
 					outRoutes[0] = voiceData[0x6A];
 				}
-#elif IS_RDR3
-				if (voiceData[0x148] != 0xFF && voiceData[0x148] >= 14) // first route we have 'ourselves'
-				{
-					outRoutes[0] = voiceData[0x148];
-					outRoutes[1] = outRoutes[2] = outRoutes[3] = outRoutes[4] = outRoutes[5] = 0xFF;
-				}
-#endif
 			}
+#endif
 		} computeVoiceRoutesStub;
 
 #ifdef GTA_FIVE
