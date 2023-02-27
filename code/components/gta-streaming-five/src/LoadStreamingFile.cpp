@@ -1282,7 +1282,6 @@ public:
 	static inline CDataFileMountInterface** sm_Interfaces;
 };
 
-#ifdef GTA_FIVE
 // TODO: this might need to be a ref counter instead?
 static std::set<std::string, IgnoreCaseLess> g_permanentItyps;
 static std::map<uint32_t, std::string> g_itypHashList;
@@ -1317,14 +1316,23 @@ public:
 		uint32_t slotId;
 
 		auto module = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ytyp");
+
+#ifdef GTA_FIVE
 		if (*module->FindSlot(&slotId, baseName.c_str()) != -1)
+#elif IS_RDR3
+		if (*module->FindSlotFromHashKey(&slotId, HashString(baseName.c_str())) != -1)
+#endif
 		{
 			auto refPool = (atPoolBase*)((char*)module + 56);
 			auto refPtr = refPool->GetAt<char>(slotId);
 
 			if (refPtr)
 			{
+#ifdef GTA_FIVE
 				uint16_t* flags = (uint16_t*)(refPtr + 16);
+#elif IS_RDR3
+				uint16_t* flags = (uint16_t*)(refPtr + 24);
+#endif
 
 				if (*flags & 4)
 				{
@@ -1339,7 +1347,11 @@ public:
 			}
 		}
 
+#ifdef GTA_FIVE
 		CDataFileMount::sm_Interfaces[174]->LoadDataFile(entry);
+#elif IS_RDR3
+		CDataFileMount::sm_Interfaces[216]->LoadDataFile(entry);
+#endif
 
 		return true;
 	}
@@ -1351,7 +1363,12 @@ public:
 		uint32_t slotId;
 
 		auto module = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ytyp");
+
+#ifdef GTA_FIVE
 		if (*module->FindSlot(&slotId, baseName.c_str()) != -1)
+#elif IS_RDR3
+		if (*module->FindSlotFromHashKey(&slotId, HashString(baseName.c_str())) != -1)
+#endif
 		{
 			if (g_permanentItyps.find(baseName) != g_permanentItyps.end())
 			{
@@ -1366,12 +1383,20 @@ public:
 
 				if (refPtr)
 				{
+#ifdef GTA_FIVE
 					*(uint16_t*)(refPtr + 16) |= 4;
+#elif IS_RDR3
+					*(uint16_t*)(refPtr + 24) |= 4;
+#endif
 				}
 			}
 		}
 
+#ifdef GTA_FIVE
 		CDataFileMount::sm_Interfaces[174]->UnloadDataFile(entry);
+#elif IS_RDR3
+		CDataFileMount::sm_Interfaces[216]->UnloadDataFile(entry);
+#endif
 	}
 };
 
@@ -1384,6 +1409,7 @@ struct CInteriorProxy
 	uint32_t mapData;
 };
 
+#ifdef GTA_FIVE
 static hook::thiscall_stub<int(void* store, int* out, uint32_t* inHash)> _getIndexByKey([]()
 {
 	return hook::get_pattern("39 1C 91 74 4F 44 8B 4C 91 08 45 3B", -0x34);
@@ -1511,6 +1537,11 @@ static CDataFileMountInterface* LookupDataFileMounter(const std::string& type)
 	{
 		return &g_proxyDlcItypMounter;
 	}
+#elif IS_RDR3
+	if (fileType == 216) // DLC_ITYP_REQUEST
+	{
+		return &g_proxyDlcItypMounter;
+	}
 #endif
 
 	return CDataFileMount::sm_Interfaces[fileType];
@@ -1606,14 +1637,17 @@ void LoadStreamingFiles(LoadType loadType = LoadType::AfterSession);
 
 static LONG FilterUnmountOperation(CDataFileMgr::DataFile& entry)
 {
+	// DLC_ITYP_REQUEST
 #ifdef GTA_FIVE
-	if (entry.type == 174) // DLC_ITYP_REQUEST
+	if (entry.type == 174)
+#elif IS_RDR3
+	if (entry.type == 216)
+#endif
 	{
 		trace("failed to unload DLC_ITYP_REQUEST %s\n", entry.name);
 
 		return EXCEPTION_EXECUTE_HANDLER;
 	}
-#endif
 
 	return EXCEPTION_CONTINUE_SEARCH;
 }
@@ -2233,9 +2267,11 @@ void LoadManifest(const char* tagName)
 
 		rage::fiDevice::Unmount("localPack:/");
 
-#ifdef GTA_FIVE
 		struct CItypDependencies
 		{
+#ifdef IS_RDR3
+			void* vtable;
+#endif
 			uint32_t itypName;
 			uint32_t manifestFlags;
 
@@ -2244,12 +2280,17 @@ void LoadManifest(const char* tagName)
 
 		struct CImapDependencies
 		{
+#ifdef IS_RDR3
+			void* vtable;
+#endif
+
 			uint32_t imapName;
 			uint32_t manifestFlags;
 
 			atArray<uint32_t> imapDepArray;
 		};
 
+#ifdef GTA_FIVE
 		struct manifestData
 		{
 			char pad[16];
@@ -2279,6 +2320,54 @@ void LoadManifest(const char* tagName)
 			for (auto idx : dep.imapDepArray)
 			{
 				g_itypToMapDataDeps.emplace(idx, dep.imapName);
+			}
+		}
+#elif IS_RDR3
+		struct manifestArray
+		{
+			void** m_entries;
+			uint32_t m_count;
+			char pad_C[4];
+			uint32_t unk_10;
+			char pad_14[3];
+			char unk_17;
+		};
+
+		struct manifestData
+		{
+			char pad[16];
+			manifestArray imapDependencies_2;
+			char pad2[56];
+			manifestArray itypDependencies;
+		}* manifestChunk = (manifestData*)manifestChunkPtr;
+
+		for (int i = 0; i < manifestChunk->itypDependencies.m_count; i++)
+		{
+			if (auto dep = (CItypDependencies*)manifestChunk->itypDependencies.m_entries[i])
+			{
+				if (auto it = g_itypHashList.find(dep->itypName); it != g_itypHashList.end())
+				{
+					auto name = fmt::sprintf("dummy/%s.ityp", it->second);
+					trace("Fixing manifest-required #typ dependency for %s\n", name);
+
+					auto mounter = LookupDataFileMounter("DLC_ITYP_REQUEST");
+
+					CDataFileMgr::DataFile entry = { 0 };
+					strcpy_s(entry.name, name.c_str());
+
+					mounter->UnloadDataFile(&entry);
+				}
+			}
+		}
+
+		for (int i = 0; i < manifestChunk->imapDependencies_2.m_count; i++)
+		{
+			if (auto dep = (CImapDependencies*)manifestChunk->imapDependencies_2.m_entries[i])
+			{
+				for (auto idx : dep->imapDepArray)
+				{
+					g_itypToMapDataDeps.emplace(idx, dep->imapName);
+				}
 			}
 		}
 #endif
@@ -2741,6 +2830,8 @@ namespace streaming
 static void* g_streamingInternals;
 static bool g_lockReload;
 
+std::unordered_set<std::string> g_streamingSuffixSet;
+
 static hook::cdecl_stub<void()> _waitUntilStreamerClear([]()
 {
 #ifdef GTA_FIVE
@@ -2937,8 +3028,6 @@ void fwMapTypesStore__Unload(char* assetStore, uint32_t index)
 		AddCrashometry("maptypesstore_workaround", "true");
 	}
 }
-
-std::unordered_set<std::string> g_streamingSuffixSet;
 
 static void ModifyHierarchyStatusHook(streaming::strStreamingModule* module, int idx, int* status)
 {
@@ -3441,10 +3530,13 @@ static HookFunction hookFunction([]()
 		{
 			if (module == typesStore)
 			{
-#ifdef GTA_FIVE
 				struct fwMapDataDef
 				{
+#ifdef GTA_FIVE
 					uint8_t pad[24];
+#elif IS_RDR3
+					uint8_t pad[32];
+#endif
 					union
 					{
 						uint32_t idx;
@@ -3495,7 +3587,11 @@ static HookFunction hookFunction([]()
 				atPoolBase* entryPool = (atPoolBase*)((char*)module + 56);
 				auto entry = entryPool->GetAt<char>(idx);
 
+#ifdef GTA_FIVE
 				*(uint16_t*)(entry + 16) &= ~0x14;
+#elif IS_RDR3
+				*(uint16_t*)(entry + 24) &= ~0x14;
+#endif
 
 				// remove from any dependent mapdata
 				for (auto entry : fx::GetIteratorView(g_itypToMapDataDeps.equal_range(*(uint32_t*)(entry + 12))))
@@ -3514,12 +3610,6 @@ static HookFunction hookFunction([]()
 						}
 					}
 				}
-#elif IS_RDR3
-				atPoolBase* entryPool = (atPoolBase*)((char*)module + 64);
-				auto entry = entryPool->GetAt<char>(idx);
-
-				*(uint16_t*)(entry + 24) &= ~0x14;
-#endif
 			}
 
 			// if this is loaded by means of dependents, in Five we should remove the flags indicating this, or RemoveObject will fail and RemoveSlot will lead to inconsistent state
