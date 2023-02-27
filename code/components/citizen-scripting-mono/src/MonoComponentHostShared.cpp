@@ -97,7 +97,7 @@ void MonoComponentHostShared::Initialize()
 		mono_security_core_clr_set_options((MonoSecurityCoreCLROptions)(MONO_SECURITY_CORE_CLR_OPTIONS_RELAX_DELEGATE | MONO_SECURITY_CORE_CLR_OPTIONS_RELAX_REFLECTION));
 		mono_security_set_core_clr_platform_callback(CoreCLRIsTrustedCode);
 
-		//mono_profiler_install(&s_monoProfiler, ProfilerShutDown);
+		mono_profiler_install(&s_monoProfiler, ProfilerShutDown);
 		mono_profiler_install_gc(gc_event, gc_resize);
 		mono_profiler_set_events(MONO_PROFILE_GC);
 #elif defined(_WIN32)
