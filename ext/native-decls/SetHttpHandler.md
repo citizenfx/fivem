@@ -25,9 +25,9 @@ declare function HttpHandler(
     setCancelHandler: (handler: () => void) => void;
   },
   response: {
-    writeHead: (code: number, headers: Record<string, string>) => void;
+    writeHead: (code: number, headers?: Record<string, string>) => void;
     write: (data: string) => void;
-    send: (data: string) => void;
+    send: (data?: string) => void;
   }
 ): void;
 ```
