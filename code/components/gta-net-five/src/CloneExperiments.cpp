@@ -1487,6 +1487,32 @@ static hook::cdecl_stub<CScenarioInfo*(void*)> _getTaskScenarioInfo([]()
 });
 
 static CScenarioInfoManager** g_scenarioInfoManager;
+static int g_pointIdGetterVtableOffset;
+
+static CScenarioInfo* GetTaskScenarioInfoSafe(void* task)
+{
+	if (!task)
+	{
+		return nullptr;
+	}
+
+	auto scenario = _getTaskScenarioInfo(task);
+
+	if (!scenario)
+	{
+		auto scenarioInfoMgr = *g_scenarioInfoManager;
+		auto pointId = (*(uint32_t(__fastcall**)(void*))(*(uint64_t*)task + g_pointIdGetterVtableOffset))(task);
+
+		trace("Failed to get scenario info by id %d for task (address %p, vtable %p). Loaded %d and %d scenario infos.\n",
+			pointId, (void*)hook::get_unadjusted(task), (void*)hook::get_unadjusted(*(void**)task),
+			scenarioInfoMgr->m_scenarioInfos.GetCount(), scenarioInfoMgr->m_scenarioUnks.GetCount());
+
+		// Try to avoid crash by returning first scenario from the array.
+		return scenarioInfoMgr->m_scenarioInfos[0];
+	}
+
+	return scenario;
+}
 
 static constexpr int kPlayerNetIdLength = 16;
 
@@ -2147,8 +2173,6 @@ static HookFunction hookFunction([]()
 
 	// patch crash caused by _getTaskScenarioInfo returning nullptr for an unknown reason
 	{
-		static int pointIdGetterVtableOffset;
-
 		static struct : public jitasm::Frontend
 		{
 			virtual void InternalMain() override
@@ -2175,34 +2199,11 @@ static HookFunction hookFunction([]()
 				ret();
 			}
 
-			static CScenarioInfo* GetTaskScenarioInfoSafe(void* task)
-			{
-				if (!task)
-				{
-					return nullptr;
-				}
-
-				auto scenario = _getTaskScenarioInfo(task);
-
-				if (!scenario)
-				{
-					auto scenarioInfoMgr = *g_scenarioInfoManager;
-					auto pointId = (*(uint32_t(__fastcall**)(void*))(*(uint64_t*)task + pointIdGetterVtableOffset))(task);
-
-					trace("Failed to get scenario info by id %d for task (address %p). Loaded %d and %d scenario infos.\n",
-						pointId, (void*)hook::get_unadjusted(task), scenarioInfoMgr->m_scenarioInfos.GetCount(), scenarioInfoMgr->m_scenarioUnks.GetCount());
-
-					// Try to avoid crash by returning first scenario from the array.
-					return scenarioInfoMgr->m_scenarioInfos[0];
-				}
-
-				return scenario;
-			}
 		} scenarioCheckStub;
 
 		{
 			auto location = (char*)hook::get_call(hook::get_pattern("E8 ? ? ? ? 4D 8B 75 10"));
-			pointIdGetterVtableOffset = *(int*)(location + 18);
+			g_pointIdGetterVtableOffset = *(int*)(location + 18);
 
 			g_scenarioInfoManager = hook::get_address<decltype(g_scenarioInfoManager)>(location + 12);
 		}
@@ -2216,6 +2217,11 @@ static HookFunction hookFunction([]()
 				hook::nop(location, 15);
 				hook::call(location, scenarioCheckStub.GetCode());
 			}
+		}
+
+		{
+			auto location = hook::get_pattern("0F B7 C2 66 41 23 C0 C1 E9 0F 41 B8 00 10", -24);
+			hook::call(location, GetTaskScenarioInfoSafe);
 		}
 	}
 #endif
