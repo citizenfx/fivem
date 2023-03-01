@@ -230,19 +230,6 @@ void NetLibraryResourcesComponent::UpdateOneResource()
 
 void NetLibraryResourcesComponent::UpdateResources(const std::string& updateList, const std::function<void()>& doneCb)
 {
-	// initialize mounter if needed
-	{
-		static fwRefContainer<fx::CachedResourceMounter> mounter = ([]()
-		{
-			fx::ResourceManager* manager = Instance<fx::ResourceManager>::Get();
-			fwRefContainer mounter = fx::GetCachedResourceMounter(manager, "rescache:/");
-
-			manager->AddMounter(mounter);
-
-			return mounter;
-		})();
-	}
-
 	NetAddress address = g_netAddress;
 
 	// fetch configuration
@@ -916,6 +903,8 @@ static InitFunction initFunction([]()
 {
 	fx::ResourceManager::OnInitializeInstance.Connect([](fx::ResourceManager* manager)
 	{
+		manager->AddMounter(fx::GetCachedResourceMounter(manager, "rescache:/"));
+
 		manager->SetComponent(fx::EventReassemblyComponent::Create());
 
 		manager->GetComponent<fx::EventReassemblyComponent>()->SetSink(&g_eventSink);
