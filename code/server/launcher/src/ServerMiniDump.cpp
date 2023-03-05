@@ -21,6 +21,11 @@ class AutoExceptionHandler
 public:
 	static LONG HandleException(EXCEPTION_POINTERS* exinfo)
 	{
+		if (!g_exceptionHandler)
+		{
+			return EXCEPTION_CONTINUE_SEARCH;
+		}
+
 		return ExceptionHandler::HandleException(exinfo);
 	}
 };
