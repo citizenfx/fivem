@@ -52,7 +52,7 @@ private:
 private:
 	lua_State* m_luaState;
 
-	boost::optional<std::string> m_error;
+	std::optional<std::string> m_error;
 
 	fx::ResourceMetaDataComponent* m_component;
 
@@ -69,7 +69,7 @@ public:
 		return m_component;
 	}
 
-	virtual boost::optional<std::string> LoadMetaData(fx::ResourceMetaDataComponent* component, const std::string& resourcePath) override;
+	virtual std::optional<std::string> LoadMetaData(fx::ResourceMetaDataComponent* component, const std::string& resourcePath) override;
 };
 
 auto LuaMetaDataLoader::LoadFile(const std::string& filename) -> LoadFileResult
@@ -152,7 +152,7 @@ bool LuaMetaDataLoader::DoFile(const std::string& filename, int results)
 	return result;
 }
 
-boost::optional<std::string> LuaMetaDataLoader::LoadMetaData(fx::ResourceMetaDataComponent* component, const std::string& resourcePath)
+std::optional<std::string> LuaMetaDataLoader::LoadMetaData(fx::ResourceMetaDataComponent* component, const std::string& resourcePath)
 {
 	using namespace std::string_literals;
 
@@ -165,7 +165,7 @@ boost::optional<std::string> LuaMetaDataLoader::LoadMetaData(fx::ResourceMetaDat
 	// create the Lua state for the metadata loader
 	m_luaState = luaL_newstate();
 
-	// validate if the Lua state exists (with LuaJIT you apparently never know)
+	// validate if the Lua state exists
 	assert(m_luaState);
 
 	// openlibs as well
@@ -268,7 +268,12 @@ boost::optional<std::string> LuaMetaDataLoader::LoadMetaData(fx::ResourceMetaDat
 	lua_close(m_luaState);
 	m_luaState = nullptr;
 
-	return (result) ? boost::optional<std::string>{} : m_error;
+	if (!result)
+	{
+		return m_error;
+	}
+
+	return {};
 }
 
 static LuaMetaDataLoader g_metaDataLoader;

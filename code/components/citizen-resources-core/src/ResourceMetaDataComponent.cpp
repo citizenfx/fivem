@@ -26,7 +26,7 @@ ResourceMetaDataComponent::ResourceMetaDataComponent(Resource* resourceRef)
 
 }
 
-boost::optional<std::string> ResourceMetaDataComponent::LoadMetaData(const std::string& resourcePath)
+std::optional<std::string> ResourceMetaDataComponent::LoadMetaData(const std::string& resourcePath)
 {
 	assert(m_metaDataLoader.GetRef());
 

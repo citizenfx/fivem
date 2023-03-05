@@ -9,7 +9,6 @@
 
 #include <om/core.h>
 
-#include <boost/optional.hpp>
 #include <optional>
 #include "IteratorView.h"
 
@@ -33,7 +32,7 @@ class ResourceMetaDataComponent;
 class ResourceMetaDataLoader : public fwRefCountable
 {
 public:
-	virtual boost::optional<std::string> LoadMetaData(ResourceMetaDataComponent* component, const std::string& resourcePath) = 0;
+	virtual std::optional<std::string> LoadMetaData(ResourceMetaDataComponent* component, const std::string& resourcePath) = 0;
 };
 
 class RESOURCES_CORE_EXPORT ResourceMetaDataComponent : public fwRefCountable
@@ -48,7 +47,7 @@ private:
 public:
 	ResourceMetaDataComponent(Resource* resourceRef);
 
-	boost::optional<std::string> LoadMetaData(const std::string& resourcePath);
+	std::optional<std::string> LoadMetaData(const std::string& resourcePath);
 
 	std::optional<bool> IsManifestVersionBetween(const guid_t& lowerBound, const guid_t& upperBound);
 
