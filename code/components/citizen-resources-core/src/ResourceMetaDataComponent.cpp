@@ -175,7 +175,7 @@ static std::string getDirectory(const std::string& in)
 
 struct Match
 {
-	Match(const fwRefContainer<vfs::Device>& device, const std::string& pattern)
+	Match(const fwRefContainer<vfs::Device>& device, const std::string& pattern, bool* outFound = nullptr)
 	{
 		auto slashPos = pattern.find_last_of('/');
 		auto root = pattern.substr(0, slashPos) + "/";
@@ -218,6 +218,24 @@ struct Match
 		if (Matches())
 		{
 			this->has = true;
+		}
+
+		if (outFound && *outFound)
+		{
+			bool outHas = has;
+
+			// if the first part is a '*', we have to check the parent directory instead
+			// (same for a first part being '.', submask stuff for **/ matching)
+			if (!outHas)
+			{
+				if (!after.empty() && (after[0] == '*' || after[0] == '.'))
+				{
+					auto rootAttrs = device->GetAttributes(root);
+					outHas = rootAttrs != -1 && (rootAttrs & FILE_ATTRIBUTE_DIRECTORY);
+				}
+			}
+
+			*outFound = outHas;
 		}
 	}
 
@@ -285,7 +303,8 @@ private:
 	bool has;
 };
 
-static std::vector<std::string> MatchFiles(const fwRefContainer<vfs::Device>& device, const std::string& pattern)
+template<typename TFn>
+static void MatchFiles(const fwRefContainer<vfs::Device>& device, const std::string& pattern, const TFn& fn, bool* found)
 {
 	auto patternNorm = path_normalize(pattern);
 
@@ -298,8 +317,6 @@ static std::vector<std::string> MatchFiles(const fwRefContainer<vfs::Device>& de
 		patternNorm.substr(starPos + 1, 1) == "*" &&
 		(starPos == 0 || patternNorm.substr(starPos - 1, 1) == "/"));
 
-	std::set<std::string> results;
-
 	if (recurse)
 	{
 		// 1 is correct behavior, 2 is legacy behavior we have to retain(...)
@@ -307,27 +324,17 @@ static std::vector<std::string> MatchFiles(const fwRefContainer<vfs::Device>& de
 		{
 			auto submask = patternNorm.substr(0, starPos) + patternNorm.substr(starPos + submaskOff);
 
-			auto rawResults = MatchFiles(device, submask);
-			
-			for (auto& result : rawResults)
-			{
-				results.insert(std::move(result));
-			}
+			MatchFiles(device, submask, fn, found);
 		}
 
 		auto findPattern = patternNorm.substr(0, starPos + 1);
 
-		for (Match match{ device, findPattern }; match; match.Next())
+		for (Match match{ device, findPattern, found }; match; match.Next())
 		{
 			if (match.Get().attributes & FILE_ATTRIBUTE_DIRECTORY)
 			{
 				auto matchPath = before + "/" + match.Get().name + "/" + patternNorm.substr(starPos);
-				auto resultsSecond = MatchFiles(device, matchPath);
-
-				for (auto& result : resultsSecond)
-				{
-					results.insert(std::move(result));
-				}
+				MatchFiles(device, matchPath, fn, found);
 			}
 		}
 	}
@@ -335,34 +342,26 @@ static std::vector<std::string> MatchFiles(const fwRefContainer<vfs::Device>& de
 	{
 		auto findPattern = patternNorm.substr(0, slashPos != std::string::npos ? slashPos - 1 : std::string::npos);
 
-		for (Match match{ device, findPattern }; match; match.Next())
+		for (Match match{ device, findPattern, found }; match; match.Next())
 		{
-			bool isfile = !(match.Get().attributes & FILE_ATTRIBUTE_DIRECTORY);
+			bool isFile = !(match.Get().attributes & FILE_ATTRIBUTE_DIRECTORY);
 			bool hasSlashPos = slashPos != std::string::npos;
 
-			if (!(hasSlashPos && isfile))
+			if (!(hasSlashPos && isFile))
 			{
 				auto matchPath = before + "/" + match.Get().name;
 
 				if (!after.empty())
 				{
-					auto resultsSecond = MatchFiles(device, matchPath + "/" + after);
-
-					for (auto& result : resultsSecond)
-					{
-						results.insert(std::move(result));
-					}
+					MatchFiles(device, matchPath + "/" + after, fn, found);
 				}
-				else if (isfile)
+				else if (isFile)
 				{
-					results.insert(matchPath);
+					fn(std::move(matchPath));
 				}
 			}
 		}
 	}
-
-	std::vector<std::string> resultsVec{ results.begin(), results.end() };
-	return resultsVec;
 }
 
 void ResourceMetaDataComponent::GlobEntries(const std::string& key, const std::function<void(const std::string&)>& entryCallback)
@@ -373,13 +372,61 @@ void ResourceMetaDataComponent::GlobEntries(const std::string& key, const std::f
 	}
 }
 
+void ResourceMetaDataComponent::GlobMissingEntries(const std::string& key, const std::function<void(const MissingEntry&)>& entryCallback)
+{
+	auto entries = m_metaDataEntries.equal_range(key);
+	auto locations = m_metaDataLocations.equal_range(key);
+
+	auto it1 = entries.first, end1 = entries.second;
+	auto it2 = locations.first, end2 = locations.second;
+	for (; it1 != end1 && it2 != end2; ++it1, ++it2)
+	{
+		const auto& value = it1->second;
+		int valueCount = 0;
+
+		bool result = GlobValueInternal(
+		value, [&valueCount](auto)
+		{
+			++valueCount;
+		});
+
+		// something missing
+		if (valueCount == 0)
+		{
+			const auto& location = it2->second;
+			
+			MissingEntry entry;
+			entry.source = location;
+			entry.value = value;
+			entry.wasPrefix = !result;
+
+			entryCallback(entry);
+		}
+	}
+}
+
 void ResourceMetaDataComponent::GlobValue(const std::string& value, const std::function<void(const std::string&)>& entryCallback)
+{
+	std::set<std::string> results;
+	GlobValueInternal(value, [&results](std::string&& str)
+	{
+		results.insert(std::move(str));
+	});
+
+	for (const auto& result : results)
+	{
+		entryCallback(result);
+	}
+}
+
+template<typename TFn>
+bool ResourceMetaDataComponent::GlobValueInternal(const std::string& value, const TFn& entryCallback)
 {
 	// why... would anyone pass an empty value?!
 	// this makes the VFS all odd so let's ignore it
 	if (value.empty())
 	{
-		return;
+		return true;
 	}
 
 	const auto& rootPath = m_resource->GetPath() + "/";
@@ -387,30 +434,40 @@ void ResourceMetaDataComponent::GlobValue(const std::string& value, const std::f
 
 	if (!device.GetRef())
 	{
-		return;
+		return false;
 	}
 
 	auto relRoot = path_normalize(rootPath);
 
-	std::string pattern = value;
+	const auto& pattern = value;
 
 	// @ prefixes for files are special and handled later on
 	if (pattern.length() >= 1 && pattern[0] == '@')
 	{
-		entryCallback(pattern);
-		return;
+		std::string patternCopy = pattern;
+		entryCallback(std::move(patternCopy));
+
+		return true;
 	}
 
-	auto mf = MatchFiles(device, rootPath + pattern);
+	bool found = true;
 
-	for (auto& file : mf)
+	MatchFiles(device, rootPath + pattern, [&entryCallback, &relRoot](const auto& file)
 	{
 		if (file.length() < (relRoot.length() + 1))
 		{
-			continue;
+			return;
 		}
 
 		entryCallback(file.substr(relRoot.length() + 1));
-	}
+	}, &found);
+
+	return found;
+}
+
+void ResourceMetaDataComponent::AddMetaData(const std::string& key, const std::string& value, const Location& location /* = */)
+{
+	m_metaDataEntries.emplace(key, value);
+	m_metaDataLocations.emplace(key, location);
 }
 }

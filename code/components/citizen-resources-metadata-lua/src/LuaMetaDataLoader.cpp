@@ -184,7 +184,27 @@ std::optional<std::string> LuaMetaDataLoader::LoadMetaData(fx::ResourceMetaDataC
 		// don't load any key named "is_cfxv2" from user metadata
 		if (stricmp(key, "is_cfxv2") != 0)
 		{
-			loader->GetComponent()->AddMetaData(key, value);
+			fx::ResourceMetaDataComponent::Location location;
+
+			lua_Debug ar;
+			if (lua_getstack(L, 2, &ar))
+			{
+				if (lua_getinfo(L, "Sl", &ar))
+				{
+					if (ar.source && ar.source[0] == '@')
+					{
+						location.file = fmt::sprintf("%s/%s", loader->GetComponent()->GetResource()->GetPath(), &ar.source[1]);
+					}
+					else
+					{
+						location.file = ar.short_src;
+					}
+
+					location.line = ar.currentline;
+				}
+			}
+
+			loader->GetComponent()->AddMetaData(key, value, location);
 		}
 
 		return 0;
