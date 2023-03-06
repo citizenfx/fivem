@@ -809,6 +809,33 @@ void sync::SyncCommandList::Execute(const fx::ClientSharedPtr& client)
 	scs.Reset();
 }
 
+#ifdef STATE_FIVE
+static auto GetTrain(fx::ServerGameState* sgs, uint32_t objectId) -> fx::sync::SyncEntityPtr
+{
+	if (objectId != 0)
+	{
+		auto entity = sgs->GetEntity(0, objectId);
+
+		if (entity->type == sync::NetObjEntityType::Train && entity->syncTree)
+		{
+			return entity;
+		}
+	}
+
+	return {};
+};
+
+static auto GetNextTrain(fx::ServerGameState* sgs, const fx::sync::SyncEntityPtr& entity) -> fx::sync::SyncEntityPtr
+{
+	if (auto trainState = entity->syncTree->GetTrainState())
+	{
+		return GetTrain(sgs, trainState->linkedToBackwardId);
+	}
+
+	return {};
+};
+#endif
+
 void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 {
 	// #TOOD1SBIG: limit tick rate divisor somewhat more sanely (currently it's 'only' 12.5ms as tick rate was upped from 30fps to 50fps)
@@ -1011,7 +1038,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				isRelevant = true;
 			}
 
-			if (!isRelevant)
+			auto isRelevantViaPos = [&, this](const fx::sync::SyncEntityPtr& entity, const glm::vec3& entityPos)
 			{
 				if (playerEntity)
 				{
@@ -1023,36 +1050,34 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 						float distSquared = (diffX * diffX) + (diffY * diffY);
 						if (distSquared < entity->GetDistanceCullingRadius(clientDataUnlocked->GetPlayerCullingRadius()))
 						{
-							isRelevant = true;
-							break;
+							return true;
 						}
 					}
-					
-					if (!isRelevant)
+
+					// are we owning the world grid in which this entity exists?
+					int sectorX = std::max(entityPos.x + 8192.0f, 0.0f) / 150;
+					int sectorY = std::max(entityPos.y + 8192.0f, 0.0f) / 150;
+
+					auto selfBucket = clientDataUnlocked->routingBucket;
+
+					std::shared_lock _(m_worldGridsMutex);
+					const auto& grid = m_worldGrids[selfBucket];
+
+					if (grid && sectorX >= 0 && sectorY >= 0 && sectorX < 256 && sectorY < 256)
 					{
-						// are we owning the world grid in which this entity exists?
-						int sectorX = std::max(entityPos.x + 8192.0f, 0.0f) / 150;
-						int sectorY = std::max(entityPos.y + 8192.0f, 0.0f) / 150;
-
-						auto selfBucket = clientDataUnlocked->routingBucket;
-
-						std::shared_lock _(m_worldGridsMutex);
-						const auto& grid = m_worldGrids[selfBucket];
-
-						if (grid && sectorX >= 0 && sectorY >= 0 && sectorX < 256 && sectorY < 256)
+						if (grid->accel.netIDs[sectorX][sectorY] == netId)
 						{
-							if (grid->accel.netIDs[sectorX][sectorY] == netId)
-							{
-								isRelevant = true;
-							}
+							return true;
 						}
 					}
 				}
-				else
-				{
-					// can't really say otherwise if the player entity doesn't exist
-					isRelevant = false;
-				}
+
+				return false;
+			};
+
+			if (!isRelevant)
+			{
+				isRelevant = isRelevantViaPos(entity, entityPos);
 			}
 
 			// #TODO1S: improve logic for what should and shouldn't exist based on game code
@@ -1099,6 +1124,53 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 					}
 				}
 			}
+
+#ifdef STATE_FIVE
+			// train chain linking: become relevant if any part of the chain is relevant
+			if (!isRelevant && entity->type == sync::NetObjEntityType::Train)
+			{
+				auto trainState = entity->syncTree->GetTrainState();
+
+				if (auto engine = GetTrain(this, trainState->engineCarriage))
+				{
+					{
+						float position[3];
+						engine->syncTree->GetPosition(position);
+
+						glm::vec3 entityPosition(position[0], position[1], position[2]);
+						if (isRelevantViaPos(engine, entityPosition))
+						{
+							isRelevant = true;
+						}
+					}
+
+					// if not via the engine, try the next-train chain
+					if (!isRelevant)
+					{
+						for (auto link = GetNextTrain(this, engine); link; link = GetNextTrain(this, link))
+						{
+							float position[3];
+							link->syncTree->GetPosition(position);
+
+							glm::vec3 entityPosition(position[0], position[1], position[2]);
+
+							if (isRelevantViaPos(link, entityPosition))
+							{
+								isRelevant = true;
+								break;
+							}
+						}
+					}
+				}
+			}
+#endif
+
+			// -------------------------------------------
+			// -- DON'T CHANGE isRelevant TO TRUE BELOW --
+			// -------------------------------------------
+			//
+			// this is a final pass, NO game logic
+			// (only ownership overrides beyond this point)
 
 			// don't route entities that haven't passed filter to others
 			if (!entity->passedFilter && !ownsEntity)
@@ -2519,12 +2591,41 @@ void ServerGameState::ReassignEntity(uint32_t entityHandle, const fx::ClientShar
 			entIt->second.forceUpdate = true;
 		}
 	});
+
 	// when deleted, we want to make this object ID return to the global pool, not to the player who last owned it
 	// therefore, mark it as stolen
 	{
 		std::unique_lock lock(m_objectIdsMutex);
 		m_objectIdsStolen.set(entityHandle);
 	}
+
+	// if this is a train, we want to migrate the entire train chain
+	// this matches the logic in CNetObjTrain::_?TestProximityMigration
+#ifdef STATE_FIVE
+	if (entity->type == sync::NetObjEntityType::Train && entity->syncTree && oldClientRef != targetClient)
+	{
+		// game code works as follows:
+		// -> if train isEngine, enumerate the entire list backwards and migrate that one along
+		// -> if not isEngine, migrate the engine
+		//
+		// since we have the old->target check above and this serves as a recursion breaker we can
+		// do the exact same
+		if (auto trainState = entity->syncTree->GetTrainState())
+		{
+			if (trainState->isEngine)
+			{
+				for (auto link = GetNextTrain(this, entity); link; link = GetNextTrain(this, link))
+				{
+					ReassignEntity(link->handle, targetClient);
+				}
+			}
+			else if (trainState->engineCarriage)
+			{
+				ReassignEntity(trainState->engineCarriage, targetClient);
+			}
+		}
+	}
+#endif
 }
 
 bool ServerGameState::MoveEntityToCandidate(const fx::sync::SyncEntityPtr& entity, const fx::ClientSharedPtr& client)

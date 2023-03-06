@@ -506,8 +506,37 @@ struct CDynamicEntityGameStateNodeData
 struct CTrainGameStateDataNodeData
 {
 	int engineCarriage;
+	int linkedToBackwardId;
+	int linkedToForwardId;
 
+	float distanceFromEngine;
+
+	int trainConfigIndex;
 	int carriageIndex;
+
+	int trackId;
+	float cruiseSpeed;
+
+	int trainState;
+
+	bool isEngine;
+	bool isCaboose;
+
+	bool unk12;
+
+	bool direction;
+
+	bool unk14;
+
+	bool renderDerailed;
+
+	// 2372 {
+	bool unk198;
+	bool unk224;
+	bool unk199;
+	// }
+
+	bool forceDoorsOpen;
 };
 
 struct CPlayerGameStateNodeData
