@@ -19,7 +19,7 @@ return {
 			staticruntime 'On'
 		end
 
-		defines { 'HAVE_STDINT_H=1', 'HAVE_CONFIG_H=1' }
+		defines { 'HAVE_STDINT_H=1', 'HAVE_CONFIG_H=1', 'HAVE_USABLE_CLMUL=1' }
 
 		includedirs {
 			"../vendor/xz/windows/",

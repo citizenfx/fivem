@@ -110,6 +110,31 @@ static void HandleServerEvent(fx::ServerInstanceBase* instance, const fx::Client
 	);
 }
 
+static void CheckResourceGlobs(fx::Resource* resource, int* numWarnings)
+{
+	auto metaDataComponent = resource->GetComponent<fx::ResourceMetaDataComponent>();
+
+	for (auto type : { "client_script", "server_script", "shared_script", "file" })
+	{
+		metaDataComponent->GlobMissingEntries(type, [resource, type, numWarnings](const fx::ResourceMetaDataComponent::MissingEntry& entry)
+		{
+			if (entry.wasPrefix)
+			{
+				auto channel = fmt::sprintf("resources:%s", resource->GetName());
+				auto file = entry.source.file;
+
+				if (auto slash = file.rfind('/'); slash != std::string::npos)
+				{
+					file = file.substr(slash + 1);
+				}
+
+				console::PrintWarning(channel, "could not find %s `%s` (defined in %s:%d)\n", type, entry.value, file, entry.source.line);
+				++*numWarnings;
+			}
+		});
+	}
+}
+
 static std::shared_ptr<ConVar<std::string>> g_citizenDir;
 
 static void ScanResources(fx::ServerInstanceBase* instance)
@@ -504,7 +529,21 @@ static InitFunction initFunction([]()
 
 			resource->OnStart.Connect([=]()
 			{
-				trace("Started resource %s\n", resource->GetName());
+				int numWarnings = 0;
+				CheckResourceGlobs(resource, &numWarnings);
+
+				auto streamComponent = resource->GetComponent<fx::ResourceStreamComponent>();
+				streamComponent->CheckSizes(&numWarnings);
+				
+				if (numWarnings == 0)
+				{
+					console::Printf("resources", "Started resource %s\n", resource->GetName());
+				}
+				else
+				{
+					console::Printf("resources", "Started resource %s (%d warning%s)\n",
+						resource->GetName(), numWarnings, numWarnings == 1 ? "" : "s");
+				}
 
 				auto metaData = resource->GetComponent<fx::ResourceMetaDataComponent>();
 				auto iv = metaData->GetEntries("server_only");
@@ -536,7 +575,7 @@ static InitFunction initFunction([]()
 
 			resource->OnStop.Connect([=]()
 			{
-				trace("Stopping resource %s\n", resource->GetName());
+				console::Printf("resources", "Stopping resource %s\n", resource->GetName());
 
 				auto metaData = resource->GetComponent<fx::ResourceMetaDataComponent>();
 				auto iv = metaData->GetEntries("server_only");

@@ -4,6 +4,8 @@
 
 #include <GamePrimitives.h>
 
+#include <Hooking.h>
+
 struct scrVector
 {
 	float x;
@@ -13,6 +15,21 @@ struct scrVector
 	float z;
 	int _pad3;
 };
+
+struct WorldhorizonManager
+{
+	char m_unknown;
+	char m_disableRendering;
+
+	// etc...
+};
+
+static WorldhorizonManager* g_worldhorizonMgr;
+
+static HookFunction hookFunction([]()
+{
+	g_worldhorizonMgr = hook::get_address<WorldhorizonManager*>(hook::get_pattern("83 C8 FF 48 8D 0D ? ? ? ? 89 44 24 38", 6));
+});
 
 static InitFunction initFunction([]()
 {
@@ -39,5 +56,15 @@ static InitFunction initFunction([]()
 		normalOut->x = XMVectorGetX(normalVector);
 		normalOut->y = XMVectorGetY(normalVector);
 		normalOut->z = XMVectorGetZ(normalVector);
+	});
+	
+	fx::ScriptEngine::RegisterNativeHandler("DISABLE_WORLDHORIZON_RENDERING", [](fx::ScriptContext& context)
+	{
+		auto flag = context.GetArgument<bool>(0);
+
+		if (g_worldhorizonMgr)
+		{
+			g_worldhorizonMgr->m_disableRendering = flag;
+		}
 	});
 });

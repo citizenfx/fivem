@@ -32,7 +32,7 @@ private:
 
 	bool m_hasCallbacks;
 
-	std::multimap<std::string, ResUICallback> m_callbacks;
+	std::map<std::string, ResUICallback> m_callbacks;
 
 public:
 	ResourceUI(Resource* resource);
