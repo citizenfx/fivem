@@ -28,6 +28,7 @@
 
 #include <ResourceManager.h>
 #include <StateBagComponent.h>
+#include <atArray.h>
 
 #include <Error.h>
 
@@ -1461,6 +1462,32 @@ static void* NetworkObjectMgrCtorStub(void* mgr, void* bw, void* unk)
 #endif
 
 #ifdef IS_RDR3
+struct CScenarioInfo
+{
+	void* vtable;
+	BYTE unk_8;
+	char pad_9[3];
+	uint32_t m_name;
+
+	// etc...
+};
+
+struct CScenarioInfoManager
+{
+	void* vtable;
+	atArray<CScenarioInfo*> m_scenarioInfos;
+	atArray<CScenarioInfo*> m_scenarioUnks;
+
+	// etc...
+};
+
+static hook::cdecl_stub<CScenarioInfo*(void*)> _getTaskScenarioInfo([]()
+{
+	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 4D 8B 75 10"));
+});
+
+static CScenarioInfoManager** g_scenarioInfoManager;
+
 static constexpr int kPlayerNetIdLength = 16;
 
 namespace rage
@@ -2116,6 +2143,80 @@ static HookFunction hookFunction([]()
 	{
 		auto location = hook::get_pattern<char>("40 0F B6 D5 8B C2 44 8B C2 48", -13);
 		MH_CreateHook(hook::get_call(location), NetGamePlayerIsVisibleToPlayer, (void**)&g_origNetGamePlayerIsVisibleToPlayer);
+	}
+
+	// patch crash caused by _getTaskScenarioInfo returning nullptr for an unknown reason
+	{
+		static int pointIdGetterVtableOffset;
+
+		static struct : public jitasm::Frontend
+		{
+			virtual void InternalMain() override
+			{
+				push(rbx);
+				sub(rsp, 0x20);
+
+				mov(rax, (uint64_t)&GetTaskScenarioInfoSafe);
+				call(rax);
+
+				mov(rbx, rax);
+
+				test(rax, rax);
+				jz("justReturn");
+
+				// original code
+				test(dword_ptr[rbx + 0xC8], 0x3C000);
+
+				L("justReturn");
+
+				add(rsp, 0x20);
+				pop(rbx);
+
+				ret();
+			}
+
+			static CScenarioInfo* GetTaskScenarioInfoSafe(void* task)
+			{
+				if (!task)
+				{
+					return nullptr;
+				}
+
+				auto scenario = _getTaskScenarioInfo(task);
+
+				if (!scenario)
+				{
+					auto scenarioInfoMgr = *g_scenarioInfoManager;
+					auto pointId = (*(uint32_t(__fastcall**)(void*))(*(uint64_t*)task + pointIdGetterVtableOffset))(task);
+
+					trace("Failed to get scenario info by id %d for task (address %p). Loaded %d and %d scenario infos.\n",
+						pointId, (void*)hook::get_unadjusted(task), scenarioInfoMgr->m_scenarioInfos.GetCount(), scenarioInfoMgr->m_scenarioUnks.GetCount());
+
+					// Try to avoid crash by returning first scenario from the array.
+					return scenarioInfoMgr->m_scenarioInfos[0];
+				}
+
+				return scenario;
+			}
+		} scenarioCheckStub;
+
+		{
+			auto location = (char*)hook::get_call(hook::get_pattern("E8 ? ? ? ? 4D 8B 75 10"));
+			pointIdGetterVtableOffset = *(int*)(location + 18);
+
+			g_scenarioInfoManager = hook::get_address<decltype(g_scenarioInfoManager)>(location + 12);
+		}
+
+		{
+			auto pattern = hook::pattern("E8 ? ? ? ? F7 80 C8 00 00 00 00 C0 03 00").count(7);
+
+			for (int i = 0; i < pattern.size(); i++)
+			{
+				auto location = pattern.get(i).get<void>(0);
+				hook::nop(location, 15);
+				hook::call(location, scenarioCheckStub.GetCode());
+			}
+		}
 	}
 #endif
 

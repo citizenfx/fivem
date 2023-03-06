@@ -32,10 +32,23 @@ namespace CitizenFX.Core.Native
 				ScriptContext.Push(arg.Value);
 			}
 
+			ulong a1 = ScriptContext.GetResult<ulong>();
+
 			ScriptContext.Invoke((ulong)nativeHash, InternalManager.ScriptHost);
 
 			if (returnType != typeof(void))
 			{
+				// similar to the checks in V8/Lua ScRTs
+				ulong a2 = ScriptContext.GetResult<ulong>();
+
+				if (returnType == typeof(string))
+				{
+					if (a2 != 0 && a2 == a1)
+					{
+						return "";
+					}
+				}
+
 				return ScriptContext.GetResult(returnType);
 			}
 
@@ -437,6 +450,15 @@ namespace CitizenFX.Core.Native
 		{
 			var data = new byte[24];
 			Marshal.Copy(m_dataPtr, data, 0, 24);
+
+			// no native commands include `char**` or `scrObject**` arguments, so these are invalid here
+			// see https://github.com/citizenfx/fivem/issues/1855
+			//
+			// this *might* break struct workarounds but these aren't considered as supported anyway
+			if (typeof(T) == typeof(string) || typeof(T) == typeof(object))
+			{
+				return default(T);
+			}
 
 			fixed (byte* dataPtr = data)
 			{

@@ -52,7 +52,7 @@ private:
 private:
 	lua_State* m_luaState;
 
-	boost::optional<std::string> m_error;
+	std::optional<std::string> m_error;
 
 	fx::ResourceMetaDataComponent* m_component;
 
@@ -69,7 +69,7 @@ public:
 		return m_component;
 	}
 
-	virtual boost::optional<std::string> LoadMetaData(fx::ResourceMetaDataComponent* component, const std::string& resourcePath) override;
+	virtual std::optional<std::string> LoadMetaData(fx::ResourceMetaDataComponent* component, const std::string& resourcePath) override;
 };
 
 auto LuaMetaDataLoader::LoadFile(const std::string& filename) -> LoadFileResult
@@ -152,7 +152,7 @@ bool LuaMetaDataLoader::DoFile(const std::string& filename, int results)
 	return result;
 }
 
-boost::optional<std::string> LuaMetaDataLoader::LoadMetaData(fx::ResourceMetaDataComponent* component, const std::string& resourcePath)
+std::optional<std::string> LuaMetaDataLoader::LoadMetaData(fx::ResourceMetaDataComponent* component, const std::string& resourcePath)
 {
 	using namespace std::string_literals;
 
@@ -165,7 +165,7 @@ boost::optional<std::string> LuaMetaDataLoader::LoadMetaData(fx::ResourceMetaDat
 	// create the Lua state for the metadata loader
 	m_luaState = luaL_newstate();
 
-	// validate if the Lua state exists (with LuaJIT you apparently never know)
+	// validate if the Lua state exists
 	assert(m_luaState);
 
 	// openlibs as well
@@ -184,7 +184,27 @@ boost::optional<std::string> LuaMetaDataLoader::LoadMetaData(fx::ResourceMetaDat
 		// don't load any key named "is_cfxv2" from user metadata
 		if (stricmp(key, "is_cfxv2") != 0)
 		{
-			loader->GetComponent()->AddMetaData(key, value);
+			fx::ResourceMetaDataComponent::Location location;
+
+			lua_Debug ar;
+			if (lua_getstack(L, 2, &ar))
+			{
+				if (lua_getinfo(L, "Sl", &ar))
+				{
+					if (ar.source && ar.source[0] == '@')
+					{
+						location.file = fmt::sprintf("%s/%s", loader->GetComponent()->GetResource()->GetPath(), &ar.source[1]);
+					}
+					else
+					{
+						location.file = ar.short_src;
+					}
+
+					location.line = ar.currentline;
+				}
+			}
+
+			loader->GetComponent()->AddMetaData(key, value, location);
 		}
 
 		return 0;
@@ -268,7 +288,12 @@ boost::optional<std::string> LuaMetaDataLoader::LoadMetaData(fx::ResourceMetaDat
 	lua_close(m_luaState);
 	m_luaState = nullptr;
 
-	return (result) ? boost::optional<std::string>{} : m_error;
+	if (!result)
+	{
+		return m_error;
+	}
+
+	return {};
 }
 
 static LuaMetaDataLoader g_metaDataLoader;

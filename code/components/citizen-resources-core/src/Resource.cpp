@@ -55,7 +55,7 @@ bool ResourceImpl::LoadFrom(const std::string& rootPath, std::string* errorState
 		OnLoad();
 	}
 
-	return !retval.is_initialized();
+	return !retval;
 }
 
 const std::string& ResourceImpl::GetName()
