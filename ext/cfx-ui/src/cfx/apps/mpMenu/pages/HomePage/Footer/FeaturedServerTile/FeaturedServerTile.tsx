@@ -60,8 +60,8 @@ function getFeaturedServerInstances() {
   }
 
   const serverInstances:IServerView[] = [];
-  for (const serverInstanceId in serverInstanceIds) {
-    const serverInstance = ServersService.getServer(serverInstanceId);
+  for (let i = 0; i < serverInstanceIds.length; i++) {
+    const serverInstance = ServersService.getServer(serverInstanceIds[i]);
 
     if (serverInstance) {
       serverInstances.push(serverInstance);
