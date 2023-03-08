@@ -91,7 +91,7 @@ export const ServerConnectButton = observer(function ServerConnectButton(props: 
         theme={theme}
         disabled={disabled}
         text={$L('#DirectConnect_Connect')}
-        textSuffix={showInstanceName && (server.instanceName)}
+        textSuffix={showInstanceName && (server.instanceName || server.localeCountry)}
         onClick={stopPropagation(handleClick)}
       />
     </Title>
