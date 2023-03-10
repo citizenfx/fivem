@@ -174,28 +174,6 @@ static void CSyncDataBase__Serialise_CDynamicEntityGameStateDataNode(rage::CSync
 	}
 	else
 	{
-		static auto icgi = Instance<ICoreGameInit>::Get();
-		
-		bool useNew = false;
-
-#ifdef _DEBUG
-		useNew = true;
-#endif
-
-		std::string policyVal;
-		if (icgi->GetData("policy", &policyVal) && icgi->OneSyncEnabled)
-		{
-			if (policyVal.find("[new_interior_hash]") != std::string::npos)
-			{
-				useNew = true;
-			}
-		}
-
-		if (!useNew)
-		{
-			self->SerialiseUnsigned(*(uint32_t*)location, 32, "Interior Flags (Legacy)");
-		}
-		else
 		{
 			uint32_t value1 = 0;
 			uint32_t value2 = 0;
