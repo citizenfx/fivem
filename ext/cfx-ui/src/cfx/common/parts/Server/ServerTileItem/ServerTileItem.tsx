@@ -1,10 +1,9 @@
 import React from "react";
-import { IServerView, ServerViewDetailsLevel } from "cfx/common/services/servers/types";
+import { IServerView } from "cfx/common/services/servers/types";
 import { ui } from "cfx/ui/ui";
 import { clsx } from "cfx/utils/clsx";
 import { observer } from "mobx-react-lite";
 import { ServerTitle } from "../ServerTitle/ServerTitle";
-import { Pad } from "cfx/ui/Layout/Pad/Pad";
 import { Flex } from "cfx/ui/Layout/Flex/Flex";
 import { Text } from "cfx/ui/Text/Text";
 import { FlexRestricter } from "cfx/ui/Layout/Flex/FlexRestricter";
@@ -24,24 +23,36 @@ import { ServerFavoriteButton } from "../ServerFavoriteButton/ServerFavoriteButt
 import { preventDefault, stopPropagation } from "cfx/utils/domEvents";
 import { Loaf } from "cfx/ui/Loaf/Loaf";
 import { Indicator } from "cfx/ui/Indicator/Indicator";
-import s from './ServerTileItem.module.scss';
 import { $L } from "cfx/common/services/intl/l10n";
+import s from './ServerTileItem.module.scss';
+import { Icon } from "cfx/ui/Icon/Icon";
+import { PremiumBadge } from "cfx/ui/PremiumBadge/PremiumBadge";
 
 export interface ServerTileItemProps {
   server: IServerView,
 
   label?: React.ReactNode,
-  hideBanner?: boolean,
 
-  growHeight?: boolean,
+  hideIcon?: boolean,
+  hideBoost?: boolean,
+  hideBanner?: boolean,
+  hideDescription?: boolean,
+
+  noIconGlow?: boolean,
+
+  placeControlsBelow?: boolean,
 }
 
 export const ServerTileItem = observer(function ServerTileItem(props: ServerTileItemProps) {
   const {
     server,
     label,
+    hideIcon = false,
+    hideBoost = false,
     hideBanner = false,
-    growHeight = false,
+    hideDescription = false,
+    noIconGlow = false,
+    placeControlsBelow = false,
   } = props;
 
   const navigate = useNavigate();
@@ -50,7 +61,7 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
   const showBanner = !hideBanner && !!server.bannerDetail;
 
   const showCountryFlag = showServerCountryFlag(server.localeCountry);
-  const showPowers = showServerPowers(server);
+  const showPowers = !hideBoost && showServerPowers(server);
   const hidePlayersCountOnHover = showPowers || showCountryFlag;
 
   const isLoading = isServerLiveLoading(server);
@@ -78,7 +89,7 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
   const rootClassName = clsx(s.root, {
     [s.withBanner]: showBanner,
     [s.withLabel]: !!label,
-    [s.growHeight]: growHeight,
+    [s.placeControlsBelow]: placeControlsBelow,
   });
 
   const rootStyle: React.CSSProperties = React.useMemo(() => ({
@@ -98,14 +109,16 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
           {label}
 
           <Flex fullWidth>
-            <Box height={10}>
-              <ServerIcon
-                glow
-                type="list"
-                server={server}
-                loading={isLoading}
-              />
-            </Box>
+            {!hideIcon && (
+              <Box height={10}>
+                <ServerIcon
+                  glow={!noIconGlow}
+                  type="list"
+                  server={server}
+                  loading={isLoading}
+                />
+              </Box>
+            )}
 
             <FlexRestricter>
               <Flex vertical fullHeight fullWidth centered="cross-axis" gap="small">
@@ -115,7 +128,7 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
                   title={server.projectName || server.hostname}
                 />
 
-                {!!server.projectDescription && (
+                {!hideDescription && !!server.projectDescription && (
                   <Title delay={500} fixedOn="bottom-left" title={server.projectDescription}>
                     <Text truncated opacity="50">
                       {server.projectDescription}
@@ -125,11 +138,13 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
               </Flex>
             </FlexRestricter>
 
-            {!growHeight && (
+            {!placeControlsBelow && (
               <Flex vertical alignToEndAxis>
                 {(showPowers || showCountryFlag) && (
                   <Flex centered>
-                    <ServerPower server={server} />
+                    {showPowers && (
+                      <ServerPower server={server} />
+                    )}
 
                     {showCountryFlag && (
                       <CountryFlag
@@ -141,10 +156,10 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
                 )}
 
                 <ControlBox size="small" className={clsx({ [s.hideOnHover]: hidePlayersCountOnHover })}>
-                  <Flex centered fullHeight fullWidth>
-                    <Text opacity="75">
+                  <Flex centered fullHeight fullWidth gap="small">
+                    <Icon opacity="50">
                       {Icons.playersCount}
-                    </Text>
+                    </Icon>
                     <Text opacity="75">
                       <ServerPlayersCount server={server} />
                     </Text>
@@ -153,31 +168,55 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
 
                 <ControlBox size="small" className={s.showOnHover}>
                   <Flex>
-                    <ServerBoostButton server={server} />
-
-                    <ServerConnectButton size="small" server={server} />
+                    {!hideBoost && (
+                      <ServerBoostButton server={server} />
+                    )}
 
                     <ServerFavoriteButton size="small" server={server} />
+
+                    <ServerConnectButton size="small" server={server} />
                   </Flex>
                 </ControlBox>
               </Flex>
             )}
           </Flex>
 
-          {growHeight && (
+          {placeControlsBelow && (
             <Flex repell centered="axis">
-              <ControlBox size="small">
-                <Flex centered fullHeight fullWidth>
-                  <Text opacity="75">
-                    {Icons.playersCount}
-                  </Text>
-                  <Text opacity="75">
-                    <ServerPlayersCount server={server} />
-                  </Text>
-                </Flex>
-              </ControlBox>
+              <Flex centered="axis">
+                {showCountryFlag && (
+                  <CountryFlag
+                    locale={server.locale}
+                    country={server.localeCountry}
+                  />
+                )}
 
-              <Flex>
+                <ControlBox size="small">
+                  <Flex centered="axis" fullHeight fullWidth gap="small">
+                    <Icon opacity="50">
+                      {Icons.playersCount}
+                    </Icon>
+                    <Text opacity="75">
+                      <ServerPlayersCount server={server} />
+                    </Text>
+                  </Flex>
+                </ControlBox>
+
+                {showPowers && (
+                  <ServerPower server={server} />
+                )}
+
+                {!hideBoost && (
+                  <ServerBoostButton
+                    size="small"
+                    server={server}
+                    theme="transparent"
+                    className={s.visibleOnHover}
+                  />
+                )}
+              </Flex>
+
+              <Flex alignToEndAxis>
                 <ServerFavoriteButton size="normal" server={server} />
 
                 {connectButtonNode}

@@ -314,7 +314,30 @@ export class MpMenuServersService implements IServersService, AppContribution {
       };
 
       if (json.noAdServerId) {
-        config.noAdServerId = String(json.noAdServerId);
+        // Just one server join id
+        if (typeof json.noAdServerId === 'string') {
+          config.noAdServerId = json.noAdServerId;
+        }
+        // Servers collection
+        else if (typeof json.noAdServerId === 'object' && json.noAdServerId !== null && !Array.isArray(json.noAdServerId)) {
+          const serversCollection = json.noAdServerId as Record<string, string | string[]>;
+
+          // `.title` is required
+          if (typeof serversCollection.title === 'string') {
+            if (Array.isArray(serversCollection.ids)) {
+              const serverIds = serversCollection.ids.map((id) => String(id)).filter(Boolean);
+
+              if (serverIds.length > 1) {
+                config.noAdServerId = {
+                  title: serversCollection.title,
+                  ids: serverIds,
+                };
+              } else if (serverIds.length === 1) {
+                config.noAdServerId = serverIds[0];
+              }
+            }
+          }
+        }
       }
 
       if (json.pinIfEmpty) {
@@ -322,6 +345,7 @@ export class MpMenuServersService implements IServersService, AppContribution {
       }
 
       if (Array.isArray(json.pinnedServers)) {
+        // TODO: the length is capped to 6 chars to filter out IP:port addresses
         config.pinnedServers = json.pinnedServers.filter((address: unknown) => typeof address === 'string' && address.length === 6);
       }
 

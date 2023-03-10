@@ -1,5 +1,6 @@
 import { useServiceOptional } from "cfx/base/servicesContainer";
 import { $L } from "cfx/common/services/intl/l10n";
+import { isServerBoostable } from "cfx/common/services/servers/helpers";
 import { IServersBoostService } from "cfx/common/services/servers/serversBoost.service";
 import { IServerView } from "cfx/common/services/servers/types";
 import { Button, ButtonSize, ButtonTheme } from "cfx/ui/Button/Button";
@@ -25,6 +26,10 @@ export const ServerBoostButton = observer(function ServerBoostButton(props: Serv
 
   const ServersBoostService = useServiceOptional(IServersBoostService);
   if (!ServersBoostService) {
+    return null;
+  }
+
+  if (!isServerBoostable(server)) {
     return null;
   }
 

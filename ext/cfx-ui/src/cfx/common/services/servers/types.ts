@@ -118,8 +118,13 @@ export enum ServerPureLevel {
   NoModsAllowed = '2',
 }
 
+export interface IPinnedServersCollection {
+  title: string,
+  ids: string[],
+}
+
 export interface IPinnedServersConfig {
-  noAdServerId?: string,
+  noAdServerId?: string | IPinnedServersCollection,
   pinIfEmpty?: boolean,
   pinnedServers: string[],
 }
