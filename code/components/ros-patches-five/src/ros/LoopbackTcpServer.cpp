@@ -1184,10 +1184,61 @@ std::vector<int> g_subProcessHandles;
 
 extern void SubprocessPipe(const std::wstring& s);
 
+static std::set<HANDLE> g_foregroundProcesses;
+static std::mutex g_foregroundProcessesMutex;
+
+extern "C" BOOL WINAPI __SetAdditionalForegroundBoostProcesses(
+HWND topLevelWindow,
+DWORD processHandleCount,
+HANDLE* processHandleArray);
+
+static void SetForegroundProcesses()
+{
+	static auto _SetAdditionalForegroundBoostProcesses = (decltype(&__SetAdditionalForegroundBoostProcesses))GetProcAddress(GetModuleHandleW(L"user32.dll"), "SetAdditionalForegroundBoostProcesses");
+
+	if (!_SetAdditionalForegroundBoostProcesses)
+	{
+		return;
+	}
+
+	auto window = CoreGetGameWindow();
+
+	if (!window)
+	{
+		return;
+	}
+
+	HANDLE processes[32] = { 0 };
+	DWORD numProcesses = 0;
+
+	{
+		std::unique_lock _(g_foregroundProcessesMutex);
+		for (auto process : g_foregroundProcesses)
+		{
+			processes[numProcesses++] = process;
+		}
+	}
+
+	// TEMP: needed as long as this is a LAF: set AppModelFeatureState flag 1 so we pass win32kfull!EditionCanSetAdditionalForegroundBoostProcesses
+	uint8_t* peb = (uint8_t*)__readgsqword(0x60);
+	peb[0x340] |= 1;
+
+	_SetAdditionalForegroundBoostProcesses(window, numProcesses, processes);
+}
+
 static BOOL __stdcall EP_CreateProcessW(const wchar_t* applicationName, wchar_t* commandLine, SECURITY_ATTRIBUTES* processAttributes, SECURITY_ATTRIBUTES* threadAttributes,
 										BOOL inheritHandles, DWORD creationFlags, void* environment, const wchar_t* currentDirectory, STARTUPINFOW* startupInfo,
 										PROCESS_INFORMATION* information)
 {
+	// Technically unrelated to this file but it already has a CreateProcessW hook: CEF GPU bits
+	bool gpuProcess = false;
+
+	if (wcsstr(commandLine, L"type=gpu"))
+	{
+		gpuProcess = true;
+	}
+	// END GPU bits
+
 	// compare the first part of the command line with the Social Club subprocess name
 	HMODULE socialClubLib = GetModuleHandle(L"socialclub.dll");
 
@@ -1325,7 +1376,22 @@ static BOOL __stdcall EP_CreateProcessW(const wchar_t* applicationName, wchar_t*
 		}
 	}
 
-	return g_oldCreateProcessW(applicationName, commandLine, processAttributes, threadAttributes, inheritHandles, creationFlags, environment, currentDirectory, startupInfo, information);
+	auto rv = g_oldCreateProcessW(applicationName, commandLine, processAttributes, threadAttributes, inheritHandles, creationFlags, environment, currentDirectory, startupInfo, information);
+
+	if (gpuProcess)
+	{
+		{
+			HANDLE newHandle = 0;
+			DuplicateHandle(GetCurrentProcess(), information->hProcess, GetCurrentProcess(), &newHandle, 0, FALSE, DUPLICATE_SAME_ACCESS);
+
+			std::unique_lock _(g_foregroundProcessesMutex);
+			g_foregroundProcesses.insert(newHandle);
+		}
+
+		SetForegroundProcesses();
+	}
+
+	return rv;
 }
 
 // TODO: factor out
