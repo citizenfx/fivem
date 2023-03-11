@@ -85,10 +85,16 @@ int32_t CreateSingleTexTxd(const char* name, int32_t width, int32_t height)
 	return txdSlotID;
 }
 
-uint64_t(__fastcall* g_orig_MeshblendingMainStruct__FillMeshBlendingSubStruct3)(uint64_t a1, int a2, int dwdstoreid_head, int txdstoreid_head_diff_000_a_whi, int txdstoreid_feet_diff_000_a_whi, int txdstoreid_uppr_diff_000_a_whi, int txdstoreid_lowr_diff_000_a_whi);
-uint64_t __fastcall MeshblendingMainStruct__FillMeshBlendingSubStruct3(uint64_t a1, int a2, int dwdstoreid_head, int txdstoreid_head_diff_000_a_whi, int txdstoreid_feet_diff_000_a_whi, int txdstoreid_uppr_diff_000_a_whi, int txdstoreid_lowr_diff_000_a_whi)
+static int g_blendSubstructIndexOffset;
+
+uint64_t(__fastcall* g_orig_MeshblendingMainStruct__FillMeshBlendingSubStruct3)(void* a1, int a2, int dwdstoreid_head, int txdstoreid_head_diff_000_a_whi, int txdstoreid_feet_diff_000_a_whi, int txdstoreid_uppr_diff_000_a_whi, int txdstoreid_lowr_diff_000_a_whi);
+uint64_t __fastcall MeshblendingMainStruct__FillMeshBlendingSubStruct3(char* a1, int a2, int dwdstoreid_head, int txdstoreid_head_diff_000_a_whi, int txdstoreid_feet_diff_000_a_whi, int txdstoreid_uppr_diff_000_a_whi, int txdstoreid_lowr_diff_000_a_whi)
 {
-	static uint32_t slotID = 0;
+	// this only applies if `a2` is `0`, but it always appears to be
+	// the count also won't increment beyond the '65' counter even if resetting, so we might set the last one
+	// a bit too often
+	int slotID = *(int*)(a1 + g_blendSubstructIndexOffset) * 3;
+
 	g_meshBlendReplacements[slotID++] = { txdstoreid_feet_diff_000_a_whi, -1 };
 	g_meshBlendReplacements[slotID++] = { txdstoreid_uppr_diff_000_a_whi, -1 };
 	g_meshBlendReplacements[slotID++] = { txdstoreid_lowr_diff_000_a_whi, -1 };
@@ -513,7 +519,8 @@ static HookFunction hookFunction([]
 		// MeshBlendManager uses 65 "temporary" blending slots. These contain 4 scratch textures (head, upper, lower, feet) and two grc::renderTarget instances
 		// The default scratch images are loaded from here: update\x64\dlcpacks\mppatchesng\dlc.rpf\x64\models\cdimages\mppatches.rpf\mp_headtargets and support up to 80 blend slots
 		//
-		auto location = hook::get_pattern("48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 48 81 EC ? ? ? ? 80 B9 ? ? ? ? ? 41");
+		auto location = hook::get_pattern<char>("48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 48 81 EC ? ? ? ? 80 B9 ? ? ? ? ? 41");
+		g_blendSubstructIndexOffset = *(int32_t*)(location + 0x3A);
 		MH_CreateHook(location, MeshblendingMainStruct__FillMeshBlendingSubStruct3, (void**)&g_orig_MeshblendingMainStruct__FillMeshBlendingSubStruct3);
 		MH_EnableHook(location);
 	}
