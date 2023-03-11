@@ -32,7 +32,7 @@ namespace fx
 						{
 							if (boost::algorithm::ends_with(prefix, "/"))
 							{
-								eastl::string_view prefixView{ prefix.c_str(), prefix.size() };
+								net::HeaderStringView prefixView{ prefix.c_str(), prefix.size() };
 								matches = request->GetPath() == prefixView.substr(0, prefixView.length() - 1);
 							}
 						}

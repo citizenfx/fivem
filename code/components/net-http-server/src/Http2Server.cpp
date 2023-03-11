@@ -9,7 +9,10 @@
 #include "HttpServer.h"
 #include "HttpServerImpl.h"
 
+#if HTTPSERVER_USE_EASTL
 #include <EASTL/fixed_vector.h>
+#endif
+
 #include <nghttp2/nghttp2.h>
 
 #include <deque>
@@ -549,7 +552,11 @@ private:
 
 	int m_stream;
 
+#if HTTPSERVER_USE_EASTL
 	eastl::fixed_vector<eastl::pair<HeaderString, HeaderString>, 16> m_headers;
+#else
+	std::vector<std::pair<HeaderString, HeaderString>> m_headers;
+#endif
 
 	ZeroCopyByteBuffer m_buffer;
 
