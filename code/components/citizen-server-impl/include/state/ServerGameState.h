@@ -1173,10 +1173,16 @@ struct GameStateClientData : public sync::ClientSyncDataBase
 	uint32_t routingBucket = 0;
 
 	float playerCullingRadius = 0.0f;
+	std::vector<uint32_t> playerCullingPlayers;
 	
 	inline float GetPlayerCullingRadius()
 	{
 		return playerCullingRadius;
+	}
+
+	inline std::vector<uint32_t> GetPlayerCullingPlayers()
+	{
+		return playerCullingPlayers;
 	}
 
 	GameStateClientData()

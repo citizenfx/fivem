@@ -1187,6 +1187,12 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				}
 			}
 
+			if (entity->type == sync::NetObjEntityType::Player && clientDataUnlocked->GetPlayerCullingPlayers().size() > 0)
+			{
+				std::vector list = clientDataUnlocked->GetPlayerCullingPlayers();
+				isRelevant = std::find(list.begin(), list.end(), entityClient->GetNetId()) != list.end();
+			}
+
 			// if we own this entity, we need to assign as relevant.
 			// -> even if not client-script, as if it isn't, we'll end up stuck without migrating it
 			if (ownsEntity/* && entity->IsOwnedByClientScript()*/)

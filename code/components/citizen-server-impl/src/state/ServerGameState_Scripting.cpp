@@ -1538,6 +1538,37 @@ static void Init()
 		return true;
 	}));
 
+	fx::ScriptEngine::RegisterNativeHandler("SET_PLAYER_CULLING_PLAYERS", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)
+	{
+		if (context.GetArgumentCount() > 1)
+		{
+			std::vector<uint32_t> players;
+			for (int i = 1; i < context.GetArgumentCount(); i++)
+			{
+				uint32_t value = context.GetArgument<uint32_t>(i);
+				if (value == 0)
+				{
+					break;
+				}
+				players.push_back(value);
+			}
+
+			// get the current resource manager
+			auto resourceManager = fx::ResourceManager::GetCurrent();
+
+			// get the owning server instance
+			auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+			// get the server's game state
+			auto gameState = instance->GetComponent<fx::ServerGameState>();
+
+			auto [lock, clientData] = gameState->ExternalGetClientData(client);
+			clientData->playerCullingPlayers = players;
+		}
+
+		return true;
+	}));
+
 	fx::ScriptEngine::RegisterNativeHandler("GET_LANDING_GEAR_STATE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
 		int gearState = 0;
