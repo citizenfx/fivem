@@ -93,6 +93,10 @@ public:
 		// pass to the registered handler for the resource
 		if (!m_handlerRef)
 		{
+			response->SetStatusCode(404);
+			response->SetHeader("Content-Type", "text/plain; charset=utf-8");
+			response->End("Not found.");
+
 			return;
 		}
 
