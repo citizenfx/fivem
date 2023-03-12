@@ -318,7 +318,9 @@ public:
 
 	virtual void WriteHead(int statusCode, const std::string& statusMessage, const HeaderMap& headers) override
 	{
-		if (m_sentHeaders)
+		bool sentHeaders = false;
+
+		if (m_sentHeaders.compare_exchange_strong(sentHeaders, true); sentHeaders)
 		{
 			return;
 		}
@@ -330,35 +332,35 @@ public:
 			return;
 		}
 
-		auto statusCodeStr = std::to_string(statusCode);
-
-		m_headers.emplace_back(":status", HeaderString{ statusCodeStr.c_str(), statusCodeStr.size() });
-
-		auto addHeader = [this](const auto& header)
-		{
-			// don't have transfer_encoding at all!
-			if (_stricmp(header.first.c_str(), "transfer-encoding") != 0)
-			{
-				m_headers.push_back(header);
-			}
-		};
-
-		for (const auto& header : headers)
-		{
-			addHeader(header);
-		}
-
-		for (const auto& header : m_headerList)
-		{
-			addHeader(header);
-		}
-
 		if (auto stream = TcpStream(); stream.GetRef())
 		{
 			fwRefContainer thisRef = this;
 
-			stream->ScheduleCallback([thisRef, session]()
+			stream->ScheduleCallback([thisRef, session, statusCode, headers = std::move(headers)]()
 			{
+				auto statusCodeStr = std::to_string(statusCode);
+
+				thisRef->m_headers.emplace_back(":status", HeaderString{ statusCodeStr.c_str(), statusCodeStr.size() });
+
+				auto addHeader = [thisRef](const auto& header)
+				{
+					// don't have transfer_encoding at all!
+					if (_stricmp(header.first.c_str(), "transfer-encoding") != 0)
+					{
+						thisRef->m_headers.push_back(header);
+					}
+				};
+
+				for (const auto& header : headers)
+				{
+					addHeader(header);
+				}
+
+				for (const auto& header : thisRef->m_headerList)
+				{
+					addHeader(header);
+				}
+
 				nghttp2_data_provider provider;
 				provider.source.ptr = thisRef.GetRef();
 				provider.read_callback = [](nghttp2_session* session, int32_t stream_id, uint8_t* buf, size_t length, uint32_t* data_flags, nghttp2_data_source* source, void* user_data) -> ssize_t
@@ -396,8 +398,6 @@ public:
 				}
 				nghttp2_submit_response(*session, thisRef->m_stream, nv.data(), nv.size(), &provider);
 				nghttp2_session_send(*session);
-
-				thisRef->m_sentHeaders = true;
 			});
 		}
 	}
@@ -466,13 +466,13 @@ public:
 		if (auto stream = TcpStream(); stream.GetRef())
 		{
 			fwRefContainer thisRef = this;
+			m_ended = true;
 
 			stream->ScheduleCallback([thisRef]()
 			{
 				thisRef->m_tcpStream = nullptr;
 
 				auto session = thisRef->Session();
-				thisRef->m_ended = true;
 
 				if (session)
 				{

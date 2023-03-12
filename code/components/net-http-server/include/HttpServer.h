@@ -205,7 +205,7 @@ protected:
 
 	bool m_ended;
 
-	bool m_sentHeaders;
+	std::atomic<bool> m_sentHeaders;
 
 	bool m_closeConnection;
 
