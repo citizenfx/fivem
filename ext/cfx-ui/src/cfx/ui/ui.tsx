@@ -38,6 +38,8 @@ export namespace ui {
     export const flexGrow = 'util-flex-grow';
     export const flexNoShrink = 'util-flex-no-shrink';
 
+    export const userSelectableText = 'util-text-selectable';
+
     export const zIndex9000 = 'util-z-index-9000';
   }
 

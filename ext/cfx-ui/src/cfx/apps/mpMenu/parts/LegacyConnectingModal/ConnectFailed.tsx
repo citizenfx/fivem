@@ -71,11 +71,11 @@ export const ConnectFailed = observer(function ConnectFailed(props: ConnectFaile
 
           {!!serviceStatus && (
             <Flex vertical>
-              <Text size="large">
+              <Text userSelectable size="large">
                 {$L(serviceStatus.title)}
               </Text>
 
-              <TextBlock typographic>
+              <TextBlock typographic userSelectable>
                 {html2react(linkify(nl2br(bodyLocalized)))}
               </TextBlock>
             </Flex>
@@ -99,7 +99,7 @@ export const ConnectFailed = observer(function ConnectFailed(props: ConnectFaile
               {$L('#ErrorDetails')}
             </Text>
 
-            <TextBlock typographic>
+            <TextBlock typographic userSelectable>
               {stateMessage}
             </TextBlock>
           </Flex>

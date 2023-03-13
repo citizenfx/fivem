@@ -51,6 +51,11 @@ interface TextPropsBase {
    */
   typographic?: boolean,
 
+  /**
+   * Allow users to select text
+   */
+  userSelectable?: boolean,
+
   uppercase?: boolean,
 
   size?: TextSize,
@@ -107,6 +112,7 @@ export const Text = React.forwardRef(function Text(props: TextProps, ref: React.
     truncated = false,
     typographic = false,
     uppercase = false,
+    userSelectable = false,
 
     children,
     className,
@@ -117,6 +123,7 @@ export const Text = React.forwardRef(function Text(props: TextProps, ref: React.
     [s.centered]: centered,
     [s.truncated]: truncated,
     [s.typographic]: typographic,
+    [ui.cls.userSelectableText]: userSelectable,
   });
 
   const style: Partial<React.CSSProperties> = {
