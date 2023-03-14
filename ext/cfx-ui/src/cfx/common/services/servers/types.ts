@@ -123,8 +123,16 @@ export interface IPinnedServersCollection {
   ids: string[],
 }
 
+export type IFeaturedServer =
+  | { type: 'id', id: string }
+  | { type: 'collection', collection: IPinnedServersCollection }
+
+/**
+ * This is not a reflection of `/pins.json` file schema,
+ * but internal representation of such
+ */
 export interface IPinnedServersConfig {
-  noAdServerId?: string | IPinnedServersCollection,
+  featuredServer?: IFeaturedServer,
   pinIfEmpty?: boolean,
   pinnedServers: string[],
 }

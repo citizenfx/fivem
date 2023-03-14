@@ -29,6 +29,7 @@ export const LastConnectedTile = observer(function LastConnectedTile() {
       <ServerTileItem
         placeControlsBelow
         hideBanner
+        hideBoost
         label={label}
         server={server}
       />

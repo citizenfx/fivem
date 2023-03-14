@@ -12,8 +12,8 @@ import { observer } from "mobx-react-lite";
 export const FeaturedServerTile = observer(function FeaturedServerTile() {
   const ServersService = useServersService();
 
-  const serverIds = useFeaturedServer();
-  if (!serverIds) {
+  const featuredServer = useFeaturedServer();
+  if (!featuredServer) {
     return null;
   }
 
@@ -23,16 +23,16 @@ export const FeaturedServerTile = observer(function FeaturedServerTile() {
     </Text>
   );
 
-  if (typeof serverIds !== 'string') {
+  if (featuredServer.type === 'collection') {
     return (
       <ServerSelectorTileItem
         label={label}
-        serversCollection={serverIds}
+        serversCollection={featuredServer.collection}
       />
     );
   }
 
-  const server = ServersService.getServer(serverIds);
+  const server = ServersService.getServer(featuredServer.id);
   if (!server) {
     return null;
   }
@@ -53,5 +53,5 @@ export function useFeaturedServer() {
     return null;
   }
 
-  return ServersService.pinnedServersConfig?.noAdServerId;
+  return ServersService.pinnedServersConfig?.featuredServer;
 }
