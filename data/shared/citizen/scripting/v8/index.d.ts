@@ -128,7 +128,14 @@ declare var GlobalState : StateBagInterface
 declare function Player(entity: number|string): EntityInterface
 declare var LocalPlayer : EntityInterface
 
-declare var exports: any;
+interface CitizenExports {
+    (exportKey: string | number, exportFunction: Function): void;
+    [resourceName: string] : {
+        [exportKey: string | number]: Function
+    };
+}
+
+declare var exports: CitizenExports;
 
 declare var source: number;
 
