@@ -156,7 +156,8 @@ li::marker {
 .util-z-index-9000 {
   z-index: 9000;
 }
-.util-text-selectable {
+.util-text-selectable,
+.util-text-selectable * {
   user-select: text !important;
 }
 .util-flex-grow {
