@@ -816,7 +816,7 @@ static auto GetTrain(fx::ServerGameState* sgs, uint32_t objectId) -> fx::sync::S
 	{
 		auto entity = sgs->GetEntity(0, objectId);
 
-		if (entity->type == sync::NetObjEntityType::Train && entity->syncTree)
+		if (entity && entity->type == sync::NetObjEntityType::Train && entity->syncTree)
 		{
 			return entity;
 		}
