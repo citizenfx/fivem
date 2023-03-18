@@ -499,7 +499,7 @@ function parseDocString(native)
 	local returns = docString:match("<returns>(.+)</returns>")
 
 	if not summary then
-		return nil
+		summary = ''
 	end
 
 	summary = trim(summary:gsub('^```(.+)```$', '%1'))
@@ -510,6 +510,14 @@ function parseDocString(native)
 	for k, v in params do
 		table.insert(paramsData, { k, v })
 		hasParams = true
+	end
+
+	if summary == '' then
+		if not hasParams and trim(returns) == '' then
+			return nil
+		end
+
+		summary = native.name
 	end
 
 	return {
