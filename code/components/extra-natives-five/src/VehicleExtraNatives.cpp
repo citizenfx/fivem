@@ -36,6 +36,11 @@
 
 using namespace winrt::Windows::Gaming::Input;
 
+static hook::cdecl_stub<void(void*, int, float, float, float, bool, bool)> breakOffVehicleWheel([]
+{
+	return hook::get_call(hook::get_pattern("F3 44 0F 11 4C 24 ? E8 ? ? ? ? EB 7A", 7));
+});
+
 struct PatternPair
 {
 	std::string_view pattern;
@@ -276,6 +281,8 @@ static int WheelFlagsOffset;
 
 static char* VehicleTopSpeedModifierPtr;
 static int VehicleCheatPowerIncreaseOffset;
+
+static int VehicleDamageStructOffset;
 
 static bool* g_trainsForceDoorsOpen;
 static int TrainDoorCountOffset;
@@ -615,6 +622,11 @@ static HookFunction initFunction([]()
 
 		auto location = hook::get_pattern<uint32_t>("45 33 ED 44 38 2D ? ? ? ? 4D", 6);
 		hook::put<int32_t>(location, (intptr_t)g_flyThroughWindscreenDisabled - (intptr_t)location - 4);
+	}
+
+	{
+		auto location = hook::get_pattern<char>("F3 44 0F 11 4C 24 ? E8 ? ? ? ? EB 7A");
+		VehicleDamageStructOffset = *(uint32_t*)(location - 11);
 	}
 
 	{
@@ -1538,6 +1550,30 @@ static HookFunction initFunction([]()
 		if (fwEntity* vehicle = getAndCheckVehicle(context, "CLEAR_VEHICLE_XENON_LIGHTS_CUSTOM_COLOR"))
 		{
 			g_vehicleXenonLightsColors.erase(vehicle);
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("BREAK_OFF_VEHICLE_WHEEL", [](fx::ScriptContext& context)
+	{
+		if (fwEntity* vehicle = getAndCheckVehicle(context, "BREAK_OFF_VEHICLE_WHEEL"))
+		{
+			auto damageStruct = (void*)((char*)vehicle + VehicleDamageStructOffset);
+
+			auto wheelIndex = context.GetArgument<uint32_t>(1);
+			auto numWheels = readValue<unsigned char>(vehicle, NumWheelsOffset);
+
+			if (wheelIndex >= numWheels)
+			{
+				return;
+			}
+
+			auto leaveDebrisTrail = context.GetArgument<bool>(2);
+			auto deleteWheel = context.GetArgument<bool>(3);
+			auto unknownFlag = context.GetArgument<bool>(4); // setting some flag inside CVehicleDrawHandler
+			auto putOnFire = context.GetArgument<bool>(5);
+
+			// last argument is a network flag
+			breakOffVehicleWheel(damageStruct, wheelIndex, leaveDebrisTrail ? 1.0f : 0.0f, deleteWheel ? 1.0f : 0.0f, unknownFlag ? 1.0f : 0.0f, putOnFire, true);
 		}
 	});
 
