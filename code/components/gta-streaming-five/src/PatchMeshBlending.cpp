@@ -11,8 +11,9 @@
 #include <Streaming.h>
 
 uint32_t g_textureDimensionOverride = -1;
-constexpr uint32_t g_textureDimensionDefault = 512;
+uint32_t g_textureDimensionDefault = 512;
 constexpr uint32_t g_meshBlendingSlots = 80; // All known game version have 80 scratch textures
+char g_meshBlendManagerLargestMipLevelName[64] = { 0 };
 
 struct MeshBlendReplacements
 {
@@ -109,13 +110,18 @@ uint64_t __fastcall createRenderTargetDX11(uint64_t a1, const char* a2, unsigned
 	{
 		if (!strcmp(a2, "MeshBlendManager"))
 		{
+			// Dynamically resolve the name of the first mip level meshBlendTarget to handle all "Texture Quality" options
+			//
+			g_textureDimensionDefault = a4;
+			sprintf(g_meshBlendManagerLargestMipLevelName, "MeshBlendDxt1Target%dx%d", a4 >> 2, a4 >> 2);
+
 			g_customMeshRenderTarget = g_orig_createRenderTargetDX11(a1, "FivemMeshBlendManager", a3, g_textureDimensionOverride, g_textureDimensionOverride, a6, a7, a8);
 		}
 		else if (!strcmp(a2, "MeshBlendManagerTemp"))
 		{
 			g_customMeshRenderTargetTemp = g_orig_createRenderTargetDX11(a1, "FivemMeshBlendManagerTemp", a3, g_textureDimensionOverride, g_textureDimensionOverride, a6, a7, a8);
 		}
-		else if (!strcmp(a2, "MeshBlendDxt1Target128x128"))
+		else if (!strcmp(a2, g_meshBlendManagerLargestMipLevelName))
 		{
 			uint32_t width = g_textureDimensionOverride >> 2;
 			uint32_t height = g_textureDimensionOverride >> 2;
@@ -147,7 +153,7 @@ uint64_t __fastcall createRenderTargetDX11(uint64_t a1, const char* a2, unsigned
 uint64_t(__fastcall* g_orig_createRenderTargetDX10)(uint64_t* a1, const char* a2, ID3D11Resource* a3, __int64 a4);
 uint64_t __fastcall createRenderTargetDX10(uint64_t* a1, const char* a2, ID3D11Resource* a3, __int64 a4)
 {
-	if (a2 && !strcmp(a2, "MeshBlendDxt1Target128x128"))
+	if (a2 && !strcmp(a2, g_meshBlendManagerLargestMipLevelName))
 	{
 		uint32_t width = g_textureDimensionOverride >> 2;
 		uint32_t height = g_textureDimensionOverride >> 2;
