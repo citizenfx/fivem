@@ -1215,6 +1215,10 @@ public:
 
 	void ReassignEntity(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient);
 
+private:
+	void ReassignEntityInner(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient);
+
+public:
 	void DeleteEntity(const fx::sync::SyncEntityPtr& entity);
 
 	void ClearClientFromWorldGrid(const fx::ClientSharedPtr& targetClient);

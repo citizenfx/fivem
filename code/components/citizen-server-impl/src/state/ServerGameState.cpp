@@ -2515,7 +2515,7 @@ void ServerGameState::SetPopulationDisabled(int bucket, bool disabled)
 }
 
 // make sure you have a lock to the client mutex before calling this function!
-void ServerGameState::ReassignEntity(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient)
+void ServerGameState::ReassignEntityInner(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient)
 {
 	auto entity = GetEntity(0, entityHandle);
 
@@ -2542,7 +2542,7 @@ void ServerGameState::ReassignEntity(uint32_t entityHandle, const fx::ClientShar
 
 		entity->GetLastOwnerUnsafe() = oldClientRef;
 		entity->GetClientUnsafe() = targetClient;
-		
+
 		if (auto stateBag = entity->GetStateBag())
 		{
 			if (targetClient)
@@ -2559,11 +2559,11 @@ void ServerGameState::ReassignEntity(uint32_t entityHandle, const fx::ClientShar
 
 		if (oldClientRef)
 		{
-			auto[lock, sourceData] = GetClientData(this, oldClientRef);
+			auto [lock, sourceData] = GetClientData(this, oldClientRef);
 			sourceData->objectIds.erase(entityHandle);
 		}
 	}
-	
+
 	{
 		if (targetClient)
 		{
@@ -2572,12 +2572,12 @@ void ServerGameState::ReassignEntity(uint32_t entityHandle, const fx::ClientShar
 		}
 	}
 
-
 	// force a resend to people who need one
 
 	const auto uniqPair = MakeHandleUniqifierPair(entity->handle, entity->uniqifier);
 	const auto& clientRegistry = m_instance->GetComponent<fx::ClientRegistry>();
-	clientRegistry->ForAllClients([&, uniqPair](const fx::ClientSharedPtr& crClient) {
+	clientRegistry->ForAllClients([&, uniqPair](const fx::ClientSharedPtr& crClient)
+	{
 		const auto slotId = crClient->GetSlotId();
 		if (slotId == 0xFFFFFFFF)
 		{
@@ -2604,30 +2604,39 @@ void ServerGameState::ReassignEntity(uint32_t entityHandle, const fx::ClientShar
 		std::unique_lock lock(m_objectIdsMutex);
 		m_objectIdsStolen.set(entityHandle);
 	}
+}
+
+void ServerGameState::ReassignEntity(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient)
+{
+	ReassignEntityInner(entityHandle, targetClient);
 
 	// if this is a train, we want to migrate the entire train chain
 	// this matches the logic in CNetObjTrain::_?TestProximityMigration
 #ifdef STATE_FIVE
-	if (entity->type == sync::NetObjEntityType::Train && entity->syncTree && oldClientRef != targetClient)
+	auto entity = GetEntity(0, entityHandle);
+
+	if (entity)
 	{
-		// game code works as follows:
-		// -> if train isEngine, enumerate the entire list backwards and migrate that one along
-		// -> if not isEngine, migrate the engine
-		//
-		// since we have the old->target check above and this serves as a recursion breaker we can
-		// do the exact same
-		if (auto trainState = entity->syncTree->GetTrainState())
+		if (entity->type == sync::NetObjEntityType::Train && entity->syncTree)
 		{
-			if (trainState->isEngine)
+			// game code works as follows:
+			// -> if train isEngine, enumerate the entire list backwards and migrate that one along
+			// -> if not isEngine, migrate the engine
+			if (auto trainState = entity->syncTree->GetTrainState())
 			{
-				for (auto link = GetNextTrain(this, entity); link; link = GetNextTrain(this, link))
+				if (trainState->isEngine)
 				{
-					ReassignEntity(link->handle, targetClient);
+					for (auto link = GetNextTrain(this, entity); link; link = GetNextTrain(this, link))
+					{
+						// we directly use ReassignEntityInner here to ensure no infinite recursion
+						ReassignEntityInner(link->handle, targetClient);
+					}
 				}
-			}
-			else if (trainState->engineCarriage)
-			{
-				ReassignEntity(trainState->engineCarriage, targetClient);
+				else if (trainState->engineCarriage && trainState->engineCarriage != entityHandle)
+				{
+					// we call ourselves here so we'll recurse further down the chain
+					ReassignEntity(trainState->engineCarriage, targetClient);
+				}
 			}
 		}
 	}
