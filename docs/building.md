@@ -16,6 +16,7 @@ To build FiveM, RedM or FXServer on Windows you need the following dependencies:
 * [Python 3.8 or higher](https://python.org/) with the `py` launcher installed.
 * [MSYS2](https://www.msys2.org/) at `C:\msys64\` which is where the installer places it.
 * [Node.js](https://nodejs.org/en/download/) and [Yarn](https://classic.yarnpkg.com/en/docs/install/) in your PATH as `node` and `yarn`.
+* [.NET Framework 4.6 SDK](https://dotnet.microsoft.com/en-us/download/dotnet-framework/thank-you/net46-developer-pack-offline-installer)
 
 Then, execute the following commands in a `cmd.exe` shell to set up the build environment:
 
