@@ -93,17 +93,19 @@ rdr3::phBoundComposite* convert(five::phBoundComposite* bound)
 	out->SetChildMatrices(childCount, &childMatrices[0]);
 
 	// add bound flags
-	std::vector<rdr3::phBoundFlagEntry> boundFlags(childCount);
+	five::phBoundFlagEntry* inBoundFlags = bound->GetBoundFlags();
+
+	std::vector<rdr3::phBoundFlagEntry> outBoundFlags(childCount);
 
 	for (uint16_t i = 0; i < childCount; i++)
 	{
-		boundFlags[i].m_0 = 0x3E;
-		boundFlags[i].pad = 0;
-		boundFlags[i].m_4 = 0x7F3BEC0;
-		boundFlags[i].pad2 = 0;
+		outBoundFlags[i].m_0 = inBoundFlags[i].m_0;
+		outBoundFlags[i].pad = 0;
+		outBoundFlags[i].m_4 = inBoundFlags[i].m_4;
+		outBoundFlags[i].pad2 = 0;
 	}
 
-	out->SetBoundFlags(childCount, &boundFlags[0]);
+	out->SetBoundFlags(childCount, &outBoundFlags[0]);
 
 	return out;
 }
@@ -190,7 +192,9 @@ static inline void fillPolyhedronBound(rdr3::phBoundPolyhedron* out, five::phBou
 		}
 		else if (inPolys[i].type == 4)
 		{
-			memcpy(&outPolys[i].box.indices, &inPolys[i].box.indices, sizeof(inPolys[i].box.indices));
+			outPolys[i].cylinder.index =  inPolys[i].cylinder.index;
+			outPolys[i].cylinder.length = inPolys[i].cylinder.length;
+			outPolys[i].cylinder.indexB = inPolys[i].cylinder.indexB;
 			outPolys[i].type = 4;
 		}
 	}
@@ -213,9 +217,223 @@ static inline void fillPolyhedronBound(rdr3::phBoundPolyhedron* out, five::phBou
 	}
 }
 
-static inline uint8_t ConvertMaterialIndexrdr3(uint8_t index)
+static constexpr uint16_t GenerateMaterialIndex(const char* materialName)
 {
+	if (!materialName)
+	{
+		return 12667; // DEFAULT
+	}
+
+	uint32_t hash = 0;
+	const char* next = materialName;
+
+	for (char i = *materialName; i; i = *next)
+	{
+		++next;
+		hash = i + 16 * hash;
+		if ((hash & 0xF0000000) != 0)
+		{
+			hash ^= hash & 0xF0000000 ^ ((hash & 0xF0000000) >> 24);
+		}
+	}
+
+	uint16_t index = (hash % 0x7FED + 18);
+
 	return index;
+}
+
+static inline uint16_t ConvertMaterialIndexrdr3(uint8_t index)
+{
+
+#pragma region material conversion mappings
+	static uint16_t conversionMap[]{
+		GenerateMaterialIndex("DEFAULT"),
+		GenerateMaterialIndex("CONCRETE"),
+		GenerateMaterialIndex("CONCRETE"),
+		GenerateMaterialIndex("CONCRETE"),
+		GenerateMaterialIndex("TARMAC"),
+		GenerateMaterialIndex("TARMAC"),
+		GenerateMaterialIndex("TARMAC"),
+		GenerateMaterialIndex("CONCRETE"),
+		GenerateMaterialIndex("TARMAC"),
+		GenerateMaterialIndex("ROCK"),
+		GenerateMaterialIndex("ROCK_MOSSY"),
+		GenerateMaterialIndex("STONE"),
+		GenerateMaterialIndex("COBBLESTONE"),
+		GenerateMaterialIndex("BRICK"),
+		GenerateMaterialIndex("MARBLE"),
+		GenerateMaterialIndex("CONCRETE_PAVEMENT"),
+		GenerateMaterialIndex("SANDSTONE_SOLID"),
+		GenerateMaterialIndex("SANDSTONE_BRITTLE"),
+		GenerateMaterialIndex("SAND_COMPACT"),
+		GenerateMaterialIndex("SAND_COMPACT"),
+		GenerateMaterialIndex("SAND_WET"),
+		GenerateMaterialIndex("SAND_COMPACT"),
+		GenerateMaterialIndex("MUD_UNDERWATER"),
+		GenerateMaterialIndex("SAND_DRY_DEEP"),
+		GenerateMaterialIndex("SAND_WET_DEEP"),
+		GenerateMaterialIndex("ICE"),
+		GenerateMaterialIndex("ICE"),
+		GenerateMaterialIndex("SNOW_COMPACT"),
+		GenerateMaterialIndex("SNOW_COMPACT"),
+		GenerateMaterialIndex("SNOW_DEEP"),
+		GenerateMaterialIndex("SNOW_COMPACT"),
+		GenerateMaterialIndex("GRAVEL_SMALL"),
+		GenerateMaterialIndex("GRAVEL_LARGE"),
+		GenerateMaterialIndex("GRAVEL_DEEP"),
+		GenerateMaterialIndex("GRAVEL_LARGE"),
+		GenerateMaterialIndex("DIRT_TRACK"),
+		GenerateMaterialIndex("MUD_HARD"),
+		GenerateMaterialIndex("MUD_POTHOLE"),
+		GenerateMaterialIndex("MUD_SOFT"),
+		GenerateMaterialIndex("MUD_SOFT"),
+		GenerateMaterialIndex("MUD_DEEP"),
+		GenerateMaterialIndex("MARSH"),
+		GenerateMaterialIndex("MARSH_DEEP"),
+		GenerateMaterialIndex("SOIL"),
+		GenerateMaterialIndex("CLAY_HARD"),
+		GenerateMaterialIndex("CLAY_SOFT"),
+		GenerateMaterialIndex("GRASS_LONG"),
+		GenerateMaterialIndex("GRASS"),
+		GenerateMaterialIndex("GRASS_SHORT"),
+		GenerateMaterialIndex("HAY"),
+		GenerateMaterialIndex("BUSHES"),
+		GenerateMaterialIndex("TWIGS"),
+		GenerateMaterialIndex("LEAVES"),
+		GenerateMaterialIndex("WOODCHIPS"),
+		GenerateMaterialIndex("TREE_BARK"),
+		GenerateMaterialIndex("METAL_SOLID_SMALL"),
+		GenerateMaterialIndex("METAL_SOLID_MEDIUM"),
+		GenerateMaterialIndex("METAL_SOLID_LARGE"),
+		GenerateMaterialIndex("METAL_HOLLOW_SMALL"),
+		GenerateMaterialIndex("METAL_HOLLOW_MEDIUM"),
+		GenerateMaterialIndex("METAL_HOLLOW_LARGE"),
+		GenerateMaterialIndex("METAL_CHAINLINK_SMALL"),
+		GenerateMaterialIndex("METAL_CHAINLINK_SMALL"),
+		GenerateMaterialIndex("METAL_CORRUGATED_IRON"),
+		GenerateMaterialIndex("METAL_GRILLE"),
+		GenerateMaterialIndex("METAL_RAILING"),
+		GenerateMaterialIndex("METAL_DUCT"),
+		GenerateMaterialIndex("CAR_METAL"),
+		GenerateMaterialIndex("METAL_DUCT"),
+		GenerateMaterialIndex("WOOD_SOLID_SMALL"),
+		GenerateMaterialIndex("WOOD_SOLID_MEDIUM"),
+		GenerateMaterialIndex("WOOD_SOLID_LARGE"),
+		GenerateMaterialIndex("WOOD_SOLID_POLISHED"),
+		GenerateMaterialIndex("WOOD_FLOOR_DUSTY"),
+		GenerateMaterialIndex("WOOD_HOLLOW_SMALL"),
+		GenerateMaterialIndex("WOOD_HOLLOW_MEDIUM"),
+		GenerateMaterialIndex("WOOD_HOLLOW_LARGE"),
+		GenerateMaterialIndex("WOOD_CHIPS"),
+		GenerateMaterialIndex("WOOD_OLD_CREAKY"),
+		GenerateMaterialIndex("WOOD_SOLID_LARGE"),
+		GenerateMaterialIndex("WOOD_LATTICE"),
+		GenerateMaterialIndex("CERAMIC"),
+		GenerateMaterialIndex("ROOF_TILE"),
+		GenerateMaterialIndex("ROOF_TILE"),
+		GenerateMaterialIndex("GLASS_OPAQUE"),
+		GenerateMaterialIndex("TARPAULIN"),
+		GenerateMaterialIndex("PLASTIC_CLEAR"),
+		GenerateMaterialIndex("PLASTIC_HOLLOW_CLEAR"),
+		GenerateMaterialIndex("PLASTIC_HIGH_DENSITY_CLEAR"),
+		GenerateMaterialIndex("PLASTIC_CLEAR"),
+		GenerateMaterialIndex("PLASTIC_HOLLOW_CLEAR"),
+		GenerateMaterialIndex("PLASTIC_HIGH_DENSITY_CLEAR"),
+		GenerateMaterialIndex("GLASS_OPAQUE"),
+		GenerateMaterialIndex("RUBBER"),
+		GenerateMaterialIndex("RUBBER"),
+		GenerateMaterialIndex("CURTAINS"),
+		GenerateMaterialIndex("RUBBER"),
+		GenerateMaterialIndex("CARPET_SOLID"),
+		GenerateMaterialIndex("CARPET_SOLID_DUSTY"),
+		GenerateMaterialIndex("CARPET_SOLID_DUSTY"),
+		GenerateMaterialIndex("CLOTH"),
+		GenerateMaterialIndex("PLASTER_SOLID"),
+		GenerateMaterialIndex("PLASTER_BRITTLE"),
+		GenerateMaterialIndex("PAPER"),
+		GenerateMaterialIndex("PAPER"),
+		GenerateMaterialIndex("PAPER"),
+		GenerateMaterialIndex("WATER"),
+		GenerateMaterialIndex("FEATHER_PILLOW"),
+		GenerateMaterialIndex("CURTAINS"),
+		GenerateMaterialIndex("LEATHER"),
+		GenerateMaterialIndex("GLASS_OPAQUE"),
+		GenerateMaterialIndex("SLATTED_BLINDS"),
+		GenerateMaterialIndex("GLASS_SHOOT_THROUGH"),
+		GenerateMaterialIndex("GLASS_BULLETPROOF"),
+		GenerateMaterialIndex("GLASS_OPAQUE"),
+		GenerateMaterialIndex("CONCRTAR_PAPERETE"),
+		GenerateMaterialIndex("CAR_METAL"),
+		GenerateMaterialIndex("SLATTED_BLINDS"),
+		GenerateMaterialIndex("CAR_SOFTTOP"),
+		GenerateMaterialIndex("CAR_SOFTTOP_CLEAR"),
+		GenerateMaterialIndex("CAR_GLASS_WEAK"),
+		GenerateMaterialIndex("CAR_GLASS_MEDIUM"),
+		GenerateMaterialIndex("CAR_GLASS_STRONG"),
+		GenerateMaterialIndex("CAR_GLASS_BULLETPROOF"),
+		GenerateMaterialIndex("CAR_GLASS_OPAQUE"),
+		GenerateMaterialIndex("WATER"),
+		GenerateMaterialIndex("BLOOD"),
+		GenerateMaterialIndex("OIL"),
+		GenerateMaterialIndex("PETROL"),
+		GenerateMaterialIndex("FRESH_MEAT"),
+		GenerateMaterialIndex("DRIED_MEAT"),
+		GenerateMaterialIndex("EMISSIVE_GLASS"),
+		GenerateMaterialIndex("EMISSIVE_PLASTIC"),
+		GenerateMaterialIndex("VFX_METAL_ELECTRIFIED"),
+		GenerateMaterialIndex("VFX_METAL_WATER_TOWER"),
+		GenerateMaterialIndex("VFX_METAL_STEAM"),
+		GenerateMaterialIndex("VFX_METAL_FLAME"),
+		GenerateMaterialIndex("PHYS_NO_FRICTION"),
+		GenerateMaterialIndex("PHYS_NO_FRICTION"),
+		GenerateMaterialIndex("PHYS_NO_FRICTION"),
+		GenerateMaterialIndex("PHYS_CASTER"),
+		GenerateMaterialIndex("PHYS_CASTER"),
+		GenerateMaterialIndex("PHYS_CAR_VOID"),
+		GenerateMaterialIndex("PHYS_PED_CAPSULE"),
+		GenerateMaterialIndex("PHYS_MACHINERY"),
+		GenerateMaterialIndex("PHYS_MACHINERY"),
+		GenerateMaterialIndex("PHYS_BARBED_WIRE"),
+		GenerateMaterialIndex("PHYS_NO_FRICTION"),
+		GenerateMaterialIndex("PHYS_NO_FRICTION"),
+		GenerateMaterialIndex("PHYS_NO_FRICTION"),
+		GenerateMaterialIndex("PHYS_DYNAMIC_COVER_BOUND"),
+		GenerateMaterialIndex("THIGH_LEFT"),
+		GenerateMaterialIndex("SHIN_LEFT"),
+		GenerateMaterialIndex("FOOT_LEFT"),
+		GenerateMaterialIndex("THIGH_RIGHT"),
+		GenerateMaterialIndex("SHIN_RIGHT"),
+		GenerateMaterialIndex("FOOT_RIGHT"),
+		GenerateMaterialIndex("SPINE0"),
+		GenerateMaterialIndex("SPINE1"),
+		GenerateMaterialIndex("SPINE2"),
+		GenerateMaterialIndex("SPINE3"),
+		GenerateMaterialIndex("CLAVICLE_LEFT"),
+		GenerateMaterialIndex("UPPER_ARM_LEFT"),
+		GenerateMaterialIndex("LOWER_ARM_LEFT"),
+		GenerateMaterialIndex("HAND_LEFT"),
+		GenerateMaterialIndex("CLAVICLE_RIGHT"),
+		GenerateMaterialIndex("UPPER_ARM_RIGHT"),
+		GenerateMaterialIndex("LOWER_ARM_RIGHT"),
+		GenerateMaterialIndex("CONCRHAND_RIGHTETE"),
+		GenerateMaterialIndex("NECK"),
+		GenerateMaterialIndex("HEAD"),
+		GenerateMaterialIndex("ANIMAL_DEFAULT"),
+		GenerateMaterialIndex("CAR_ENGINE"),
+		GenerateMaterialIndex("PUDDLE"),
+		GenerateMaterialIndex("CONCRETE_PAVEMENT"),
+		GenerateMaterialIndex("BRICK_PAVEMENT"),
+		GenerateMaterialIndex("PHYS_DYNAMIC_COVER_BOUND"),
+		GenerateMaterialIndex("VFX_WOOD_BEER_BARREL"),
+		GenerateMaterialIndex("WOOD_LATTICE"),
+		GenerateMaterialIndex("PROP_ROCK"),
+		GenerateMaterialIndex("BUSHES"),
+		GenerateMaterialIndex("METAL_SOLID_MEDIUM"),
+		GenerateMaterialIndex("DEFAULT")
+	};
+#pragma endregion
+
+	return conversionMap[index];
 }
 
 static inline void fillGeometryBound(rdr3::phBoundGeometry* out, five::phBoundGeometry* in)
@@ -231,7 +449,26 @@ static inline void fillGeometryBound(rdr3::phBoundGeometry* out, five::phBoundGe
 	{
 		materials[i].mat1.materialIdx = ConvertMaterialIndexrdr3(inMaterials[i].mat1.materialIdx);
 		materials[i].mat1.roomId = inMaterials[i].mat1.roomId;
-		materials[i].mat2.materialColorIdx = 0x1;
+
+		materials[i].mat2.stairs = inMaterials[i].mat1.stairs;
+		materials[i].mat2.blockClimb = inMaterials[i].mat1.blockClimb;
+		materials[i].mat2.seeThrough = inMaterials[i].mat1.seeThrough;
+		materials[i].mat2.shootThrough = inMaterials[i].mat1.shootThrough;
+		materials[i].mat2.notCover = inMaterials[i].mat1.notCover;
+		materials[i].mat2.walkablePath = inMaterials[i].mat1.walkablePath;
+		materials[i].mat2.noCamCollision = inMaterials[i].mat1.noCamCollision;
+		materials[i].mat2.shootThroughFx = inMaterials[i].mat1.shootThroughFx;
+
+		materials[i].mat2.noDecal = inMaterials[i].mat2.noDecal;
+		materials[i].mat2.noNavmesh = inMaterials[i].mat2.noNavmesh;
+		materials[i].mat2.noRagdoll = inMaterials[i].mat2.noRagdoll;
+		materials[i].mat2.vehicleWheel = inMaterials[i].mat2.vehicleWheel;
+		materials[i].mat2.noPtfx = inMaterials[i].mat2.noPtfx;
+		materials[i].mat2.tooSteepForPlayer = inMaterials[i].mat2.tooSteepForPlayer;
+		materials[i].mat2.noNetworkSpawn = inMaterials[i].mat2.noNetworkSpawn;
+		materials[i].mat2.noCamCollisionAllowClipping = inMaterials[i].mat2.noCamCollisionAllowClipping;
+		materials[i].mat2.unknown = inMaterials[i].mat2.unknown;
+
 	}
 
 	out->SetMaterials(materials.size(), &materials[0]);
