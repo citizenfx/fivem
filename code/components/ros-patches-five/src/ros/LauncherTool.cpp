@@ -230,7 +230,11 @@ static DWORD WINAPI CertGetNameStringStubA(_In_ PCCERT_CONTEXT pCertContext, _In
 	const char* newName = nullptr;
 
 	auto certString = std::string{ data.data() };
-	if (certString == "DigiCert SHA2 Assured ID Code Signing CA")
+	if (certString == "DigiCert Trusted G4 Code Signing RSA4096 SHA384 2021 CA1")
+	{
+		newName = "Entrust Code Signing CA - OVCS1";
+	}
+	else if (certString == "DigiCert SHA2 Assured ID Code Signing CA")
 	{
 		newName = "Entrust Code Signing CA - OVCS1";
 	}

@@ -59,7 +59,7 @@ inline std::string_view GetGameBuildIdentifier()
 #ifdef IS_RDR3
 		if (build == 1491)
 		{
-			return "1491_17";
+			return "1491_18";
 		}
 #endif
 
