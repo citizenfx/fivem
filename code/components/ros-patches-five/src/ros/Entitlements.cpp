@@ -747,13 +747,13 @@ mapper->AddGameService("ugc.asmx/Publish", [](const std::string& body)
 <?xml version="1.0" encoding="utf-8"?>
 <Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ms="0" xmlns="GetBuildManifestFull">
   <Status>1</Status>
-  <Result BuildId="86" VersionNumber="1.0.1491.17" BuildDateUtc="2019-11-05T11:39:37.0266667">
+  <Result BuildId="87" VersionNumber="1.0.1491.18" BuildDateUtc="2019-11-05T11:39:37.0266667">
     <FileManifest>
-		<FileDetails FileEntryId="9178" FileEntryVersionId="9648" FileSize="89139544" TimestampUtc="2019-11-05T11:39:34.8800000">
+		<FileDetails FileEntryId="9178" FileEntryVersionId="9648" FileSize="89004016" TimestampUtc="2019-11-05T11:39:34.8800000">
 			<RelativePath>RDR2.exe</RelativePath>
-			<SHA256Hash>338c9ba3f3628a98e9295fb53e522e23f9f7ba77be1e27213475c7b7ec3bf306</SHA256Hash>
+			<SHA256Hash>b950fadd7408982437549d8b926b6fb8f962c5aff483e6a2fdffaf3f07a485f9</SHA256Hash>
 			<FileChunks>
-				<Chunk FileChunkId="13046" SHA256Hash="338c9ba3f3628a98e9295fb53e522e23f9f7ba77be1e27213475c7b7ec3bf306" StartByteOffset="0" Size="89139544" />
+				<Chunk FileChunkId="13046" SHA256Hash="b950fadd7408982437549d8b926b6fb8f962c5aff483e6a2fdffaf3f07a485f9" StartByteOffset="0" Size="89004016" />
 			</FileChunks>
 		</FileDetails>
 %s
@@ -1089,7 +1089,7 @@ mapper->AddGameService("ugc.asmx/Publish", [](const std::string& body)
 			{ 1311, 79 },
 			{ 1355, 80 },
 			{ 1436, 84 },
-			{ 1491, 86 },
+			{ 1491, 87 },
 		};
 
 		return fmt::sprintf(R"(<?xml version="1.0" encoding="utf-8"?>
