@@ -23,7 +23,7 @@ using nui::HasFocus;
 extern nui::GameInterface* g_nuiGi;
 
 static bool g_hasFocus = false;
-bool g_hasCursor = false;
+static bool g_hasCursor = false;
 bool g_keepInput = false;
 static bool g_hasOverriddenFocus = false;
 extern bool g_mainUIFlag;
@@ -128,6 +128,11 @@ namespace nui
 	bool HasFocus()
 	{
 		return (g_hasFocus || g_hasOverriddenFocus);
+	}
+
+	bool HasCursor()
+	{
+		return HasMainUI() || g_hasCursor;
 	}
 
 	bool HasFocusKeepInput()

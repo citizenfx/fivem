@@ -86,7 +86,7 @@ bool ConsoleHasMouse()
 	if (ConsoleHasAnything())
 	{
 #if WITH_NUI
-		if (nui::HasFocus())
+		if (nui::HasCursor())
 		{
 			return ImGui::GetIO().WantCaptureMouse;
 		}

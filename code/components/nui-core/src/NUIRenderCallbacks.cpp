@@ -9,7 +9,6 @@ extern nui::GameInterface* g_nuiGi;
 
 #include "memdbgon.h"
 
-extern bool g_hasCursor;
 extern bool g_shouldHideCursor;
 extern POINT g_cursorPos;
 
@@ -124,7 +123,7 @@ static HookFunction initFunction([] ()
 		}
 
 		// are we in any situation where we need a cursor?
-		bool needsNuiCursor = (nui::HasMainUI() || g_hasCursor) && !g_shouldHideCursor;
+		bool needsNuiCursor = (nui::HasCursor()) && !g_shouldHideCursor;
 		g_nuiGi->SetHostCursorEnabled(needsNuiCursor);
 
 		// we set the host cursor above unconditionally- this is for cases where the host cursor isn't sufficient
