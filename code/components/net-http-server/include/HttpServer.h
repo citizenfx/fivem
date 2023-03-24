@@ -12,7 +12,7 @@
 #include <forward_list>
 #include <shared_mutex>
 
-#define HTTPSERVER_USE_EASTL 0
+#define HTTPSERVER_USE_EASTL 1
 
 #if HTTPSERVER_USE_EASTL
 #include <EASTL/fixed_map.h>
@@ -28,27 +28,7 @@
 
 namespace net
 {
-struct HeaderComparator
-{
-	using is_transparent = void;
-
-	template<typename TString, typename TOtherString>
-	bool operator()(const TString& left, const TOtherString& right) const
-	{
-		auto leftView = std::string_view{
-			left
-		};
-
-		auto rightView = std::string_view{
-			right
-		};
-
-		return std::lexicographical_compare(leftView.begin(), leftView.end(), rightView.begin(), rightView.end(), [](char a, char b)
-		{
-			return ToLower(a) < ToLower(b);
-		});
-	}
-};
+struct HeaderComparator;
 
 #if HTTPSERVER_USE_EASTL
 using HeaderStringView = eastl::string_view;
@@ -59,6 +39,28 @@ using HeaderStringView = std::string_view;
 using HeaderString = std::string;
 using HeaderMap = std::multimap<HeaderString, HeaderString, HeaderComparator>;
 #endif
+
+struct HeaderComparator
+{
+	using is_transparent = void;
+
+	template<typename TString, typename TOtherString>
+	bool operator()(const TString& left, const TOtherString& right) const
+	{
+		auto leftView = HeaderStringView{
+			left
+		};
+
+		auto rightView = HeaderStringView{
+			right
+		};
+
+		return std::lexicographical_compare(leftView.begin(), leftView.end(), rightView.begin(), rightView.end(), [](char a, char b)
+		{
+			return ToLower(a) < ToLower(b);
+		});
+	}
+};
 
 class HttpRequest : public fwRefCountable
 {
