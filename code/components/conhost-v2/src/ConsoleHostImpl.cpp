@@ -21,6 +21,12 @@
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
 
+#if __has_include("CefOverlay.h")
+#include "CefOverlay.h"
+
+#define WITH_NUI 1
+#endif
+
 #ifndef IS_LAUNCHER
 #include <DrawCommands.h>
 #include <grcTexture.h>
@@ -69,6 +75,46 @@ extern bool g_consoleFlag;
 extern bool g_cursorFlag;
 int g_scrollTop;
 int g_bufferHeight;
+
+bool ConsoleHasAnything()
+{
+	return g_consoleFlag || g_cursorFlag;
+}
+
+bool ConsoleHasMouse()
+{
+	if (ConsoleHasAnything())
+	{
+#if WITH_NUI
+		if (nui::HasFocus())
+		{
+			return ImGui::GetIO().WantCaptureMouse;
+		}
+#endif
+
+		return true;
+	}
+
+	return false;
+}
+
+bool ConsoleHasKeyboard()
+{
+	// g_cursorFlag is cursor-only (for when we want to use the dear ImGui cursor for other purposes)
+	if (g_consoleFlag)
+	{
+#if WITH_NUI
+		if (nui::HasFocus())
+		{
+			return ImGui::GetIO().WantCaptureKeyboard;
+		}
+#endif
+
+		return true;
+	}
+
+	return false;
+}
 
 #ifndef IS_LAUNCHER
 static uint32_t g_pointSamplerState;
@@ -359,7 +405,11 @@ void OnConsoleFrameDraw(int width, int height, bool usedSharedD3D11)
 
 	HandleFxDKInput(io);
 
-	io.MouseDrawCursor = g_consoleFlag || g_cursorFlag;
+	io.MouseDrawCursor = ConsoleHasMouse();
+
+#ifdef WITH_NUI
+	nui::SetHideCursor(io.MouseDrawCursor);
+#endif
 
 	{
 		io.DisplaySize = ImVec2(width, height);
@@ -468,7 +518,12 @@ static void OnConsoleWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, 
 
 	ConHost::OnShouldDrawGui(&shouldDrawGui);
 
-	if ((!g_consoleFlag && !g_cursorFlag) || !pass)
+	if (!pass)
+	{
+		return;
+	}
+
+	if (!ConsoleHasAnything())
 	{
 		return;
 	}
@@ -485,12 +540,18 @@ static void OnConsoleWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, 
 	
 	if (msg == WM_INPUT || (msg >= WM_MOUSEFIRST && msg <= WM_MOUSELAST))
 	{
-		pass = false;
+		if (ConsoleHasMouse())
+		{
+			pass = false;
+		}
 	}
 
-	if (g_consoleFlag && ((msg >= WM_KEYFIRST && msg <= WM_KEYLAST) || msg == WM_CHAR))
+	if ((msg >= WM_KEYFIRST && msg <= WM_KEYLAST) || msg == WM_CHAR)
 	{
-		pass = false;
+		if (ConsoleHasKeyboard())
+		{
+			pass = false;
+		}
 	}
 
 	if (!pass)
@@ -719,7 +780,7 @@ static HookFunction initFunction([]()
 
 	InputHook::QueryInputTarget.Connect([](std::vector<InputTarget*>& targets)
 	{
-		if (!g_consoleFlag && !g_cursorFlag)
+		if (!ConsoleHasAnything())
 		{
 			return true;
 		}
@@ -808,7 +869,7 @@ static HookFunction initFunction([]()
 
 	InputHook::QueryMayLockCursor.Connect([](int& may)
 	{
-		if (g_consoleFlag || g_cursorFlag)
+		if (ConsoleHasAnything())
 		{
 			may = 0;
 		}
@@ -864,7 +925,7 @@ static decltype(&ReleaseCapture) g_origReleaseCapture;
 
 static void WINAPI ReleaseCaptureStub()
 {
-	if (g_consoleFlag || g_cursorFlag)
+	if (ConsoleHasAnything())
 	{
 		return;
 	}
