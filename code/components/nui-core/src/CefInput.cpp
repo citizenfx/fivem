@@ -29,8 +29,6 @@ static bool g_hasOverriddenFocus = false;
 extern bool g_mainUIFlag;
 POINT g_cursorPos;
 
-static ConVar<bool> uiLoadingCursor("ui_loadingCursor", ConVar_None, false);
-
 bool isKeyDown(WPARAM wparam)
 {
 	return (GetKeyState(wparam) & 0x8000) != 0;
@@ -167,6 +165,8 @@ namespace nui
 		}
 
 		g_hasOverriddenFocus = hasFocus;
+
+		static ConVar<bool> uiLoadingCursor("ui_loadingCursor", ConVar_None, false);
 
 		if (uiLoadingCursor.GetValue())
 		{
