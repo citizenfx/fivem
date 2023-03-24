@@ -12,7 +12,7 @@ BOOL GET_WAVE_QUAD_BOUNDS(int waveQuad, int* minX, int* minY, int* maxX, int* ma
 ## Examples
 
 ```lua
-local sucess, minX, minY, maxX, maxY = GetWaveQuadBounds(1)
+local success, minX, minY, maxX, maxY = GetWaveQuadBounds(1)
 ```
 
 ## Parameters

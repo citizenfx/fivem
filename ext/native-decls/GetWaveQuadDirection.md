@@ -12,7 +12,7 @@ BOOL GET_WAVE_QUAD_DIRECTION(int waveQuad, float* directionX, float* directionY)
 ## Examples
 
 ```lua
-local sucess, directionX, directionY = GetWaveQuadDirection(1)
+local success, directionX, directionY = GetWaveQuadDirection(1)
 ```
 
 ## Parameters
