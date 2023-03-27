@@ -125,7 +125,8 @@
       }
     }
 
-    :global(.ac-pushButton) {
+    :global(.ac-pushButton),
+    :global(.ac-inlineActionButton) {
       gap: ui.offset('small');
 
       @include ui.def('height', ui.control-height('normal'));
