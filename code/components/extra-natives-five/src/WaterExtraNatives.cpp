@@ -620,7 +620,7 @@ static HookFunction initFunction([]()
 			auto valueY = context.GetArgument<float>(2);
 
 			waveQuad->directionX = (uint8_t)floor(valueX * 127.0f);
-			waveQuad->directionY = (uint8_t)floor(valueX * 127.0f);
+			waveQuad->directionY = (uint8_t)floor(valueY * 127.0f);
 			return context.SetResult<bool>(true);
 		}
 		context.SetResult<bool>(false);
