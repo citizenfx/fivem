@@ -395,6 +395,11 @@ void OnConsoleFrameDraw(int width, int height, bool usedSharedD3D11)
 
 	if (!g_cursorFlag && !g_consoleFlag && !shouldDrawGui)
 	{
+		// if not drawing the gui, we're also not owning the cursor
+#ifdef WITH_NUI
+		nui::SetHideCursor(false);
+#endif
+
 		lastDrawTime = timeGetTime();
 
 		g_conHostMutex.unlock();
