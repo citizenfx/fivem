@@ -531,7 +531,7 @@ static void OnConsoleWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, 
 		return;
 	}
 
-	std::unique_lock<std::mutex> g_conHostMutex;
+	std::unique_lock _(g_conHostMutex);
 	ImGuiIO& io = ImGui::GetIO();
 
 	if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam) == TRUE)
@@ -792,7 +792,7 @@ static HookFunction initFunction([]()
 		{
 			virtual inline void KeyDown(UINT vKey, UINT scanCode) override
 			{
-				std::unique_lock<std::mutex> g_conHostMutex;
+				std::unique_lock _(g_conHostMutex);
 				
 				ImGuiIO& io = ImGui::GetIO();
 
@@ -804,7 +804,7 @@ static HookFunction initFunction([]()
 
 			virtual inline void KeyUp(UINT vKey, UINT scanCode) override
 			{
-				std::unique_lock<std::mutex> g_conHostMutex;
+				std::unique_lock _(g_conHostMutex);
 
 				ImGuiIO& io = ImGui::GetIO();
 
@@ -816,7 +816,7 @@ static HookFunction initFunction([]()
 
 			virtual inline void MouseDown(int buttonIdx, int x, int y) override
 			{
-				std::unique_lock<std::mutex> g_conHostMutex;
+				std::unique_lock _(g_conHostMutex);
 
 				ImGuiIO& io = ImGui::GetIO();
 
@@ -828,7 +828,7 @@ static HookFunction initFunction([]()
 
 			virtual inline void MouseUp(int buttonIdx, int x, int y) override
 			{
-				std::unique_lock<std::mutex> g_conHostMutex;
+				std::unique_lock _(g_conHostMutex);
 
 				ImGuiIO& io = ImGui::GetIO();
 
@@ -845,7 +845,7 @@ static HookFunction initFunction([]()
 					return;
 				}
 
-				std::unique_lock<std::mutex> g_conHostMutex;
+				std::unique_lock _(g_conHostMutex);
 
 				ImGuiIO& io = ImGui::GetIO();
 				io.AddMouseWheelEvent(0.0f, delta > 0 ? +1.0f : -1.0f);
@@ -853,7 +853,7 @@ static HookFunction initFunction([]()
 
 			virtual inline void MouseMove(int x, int y) override
 			{
-				std::unique_lock<std::mutex> g_conHostMutex;
+				std::unique_lock _(g_conHostMutex);
 
 				ImGuiIO& io = ImGui::GetIO();
 				io.AddMousePosEvent((signed short)(x), (signed short)(y));

@@ -302,7 +302,7 @@ bool CachedResourceMounter::MountOverlay(const std::string& resourceName, const 
 void CachedResourceMounter::AddResourceEntry(const std::string& resourceName, const std::string& basename, const std::string& referenceHash, const std::string& remoteUrl, size_t size, const std::map<std::string, std::string>& extData)
 {
 	{
-		std::unique_lock<std::mutex> g_referenceHashListMutex;
+		std::unique_lock _(g_referenceHashListMutex);
 		g_referenceHashList.insert({ referenceHash, {resourceName, basename} });
 	}
 
@@ -320,7 +320,7 @@ void CachedResourceMounter::AddResourceEntry(const std::string& resourceName, co
 void CachedResourceMounter::RemoveResourceEntries(const std::string& resourceName)
 {
 	{
-		std::unique_lock<std::mutex> g_referenceHashListMutex;
+		std::unique_lock _(g_referenceHashListMutex);
 
 		auto bits = m_resourceEntries.equal_range(resourceName);
 
