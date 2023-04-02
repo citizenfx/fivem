@@ -53,6 +53,7 @@
 #include <MinMode.h>
 
 #include "GameInit.h"
+#include "CnlEndpoint.h"
 
 #ifdef GTA_FIVE
 #include <ArchetypesCollector.h>
@@ -1207,7 +1208,7 @@ static InitFunction initFunction([] ()
 				Instance<ICoreGameInit>::Get()->SetData("discourseClientId", g_discourseClientId);
 
 				Instance<::HttpClient>::Get()->DoPostRequest(
-					"https://lambda.fivem.net/api/validate/discourse",
+					CNL_ENDPOINT "api/validate/discourse",
 					{
 						{ "entitlementId", ros::GetEntitlementSource() },
 						{ "authToken", g_discourseUserToken },

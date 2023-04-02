@@ -15,6 +15,8 @@
 
 #include <Error.h>
 
+#include "CnlEndpoint.h"
+
 __declspec(dllexport) void IDidntDoNothing()
 {
 
@@ -786,7 +788,7 @@ bool VerifyRetailOwnershipInternal(int pass)
 									{
 										trace(__FUNCTION__ ": Found matching entitlement for %s - creating token.\n", match);
 
-										auto r = cpr::Post(cpr::Url{ "https://lambda.fivem.net/api/validate/entitlement/rosfive" },
+										auto r = cpr::Post(cpr::Url{ CNL_ENDPOINT "api/validate/entitlement/rosfive" },
 											cpr::Payload{
 												{ "rosData", b.text },
 												{
@@ -851,7 +853,7 @@ bool VerifyRetailOwnershipInternal(int pass)
 		}).join();
 	}
 #else
-	auto r = cpr::Post(cpr::Url{ "https://lambda.fivem.net/api/validate/entitlement/ros2" },
+	auto r = cpr::Post(cpr::Url{ CNL_ENDPOINT "api/validate/entitlement/ros2" },
 		cpr::Payload{
 			{ "ticket", ticket },
 			{ "gameName",

@@ -24,6 +24,7 @@
 #include <ICoreGameInit.h>
 
 #include <CrossBuildRuntime.h>
+#include "CnlEndpoint.h"
 
 using json = nlohmann::json;
 
@@ -160,7 +161,7 @@ std::string GetEntitlementBlock(uint64_t accountId, const std::string& machineHa
 	if (!success)
 	{
 		auto r = cpr::Post(
-			cpr::Url{ "https://lambda.fivem.net/api/validate/entitlement" },
+			cpr::Url{ CNL_ENDPOINT "api/validate/entitlement" },
 			cpr::Payload{
 				{ "entitlementId", g_entitlementSource },
 				{ "machineHash", machineHash },
