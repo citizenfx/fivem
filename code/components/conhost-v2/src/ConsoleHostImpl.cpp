@@ -354,7 +354,8 @@ extern void ImGui_ImplDX11_RecreateFontsTexture();
 
 void OnConsoleFrameDraw(int width, int height, bool usedSharedD3D11)
 {
-	if (!g_conHostMutex.try_lock())
+	std::unique_lock lock(g_conHostMutex, std::defer_lock);
+	if (!lock.try_lock())
 	{
 		return;
 	}
@@ -402,7 +403,6 @@ void OnConsoleFrameDraw(int width, int height, bool usedSharedD3D11)
 
 		lastDrawTime = timeGetTime();
 
-		g_conHostMutex.unlock();
 		return;
 	}
 
@@ -513,8 +513,6 @@ void OnConsoleFrameDraw(int width, int height, bool usedSharedD3D11)
 	}
 
 	lastDrawTime = timeGetTime();
-
-	g_conHostMutex.unlock();
 }
 
 static void OnConsoleWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, bool& pass, LRESULT& result)
