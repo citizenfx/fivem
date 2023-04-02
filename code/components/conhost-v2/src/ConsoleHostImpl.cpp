@@ -310,7 +310,7 @@ static void RenderDrawLists(ImDrawData* drawData)
 void DrawConsole();
 void DrawDevGui();
 
-static std::mutex g_conHostMutex;
+static std::recursive_mutex g_conHostMutex;
 ImFont* consoleFontSmall;
 
 void DrawMiniConsole();
