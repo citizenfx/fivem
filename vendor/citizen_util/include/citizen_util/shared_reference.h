@@ -112,7 +112,7 @@ struct shared_reference
 		value = nullptr;
 	}
 
-	operator bool() const
+	explicit operator bool() const
 	{
 		return value != nullptr;
 	}
@@ -120,6 +120,11 @@ struct shared_reference
 	bool operator==(const shared_reference& other) const
 	{
 		return value == other.value;
+	}
+
+	bool operator!=(const shared_reference& other) const
+	{
+		return value != other.value;
 	}
 
 	bool operator<(const shared_reference& other) const
@@ -217,7 +222,7 @@ struct weak_reference
 	using Type = typename SharedT::Type;
 	constexpr static auto MPool = SharedT::MPool;
 
-	operator bool() const
+	explicit operator bool() const
 	{
 		return value != nullptr && block->get_ref() > 0;
 	}
@@ -314,6 +319,16 @@ struct weak_reference
 	bool operator==(const weak_reference& other) const
 	{
 		return value == other.value;
+	}
+
+	bool operator!=(const SharedT& other) const
+	{
+		return value != other.value;
+	}
+
+	bool operator!=(const weak_reference& other) const
+	{
+		return value != other.value;
 	}
 
 	bool operator<(const SharedT& other) const
