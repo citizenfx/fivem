@@ -2530,12 +2530,6 @@ void ServerGameState::ReassignEntityInner(uint32_t entityHandle, const fx::Clien
 		return;
 	}
 
-	// if this a no-op, have it be a no-op
-	if (entity->GetClientUnsafe() == targetClient)
-	{
-		return;
-	}
-
 	auto oldClientRef = entity->GetClientUnsafe().lock();
 	{
 		entity->lastMigratedAt = msec();
