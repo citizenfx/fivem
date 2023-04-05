@@ -4,8 +4,10 @@
 	"dependencies": [
 		"fx[2]",
 		"vendor:imgui",
+		"vendor:tinyxml2-dll",
 		"conhost",
 		"gta:core",
+		"gta:game",
 		"gta:streaming",
 		"gta:mission-cleanup",
 		"citizen:resources:core",
