@@ -1,13 +1,8 @@
 #pragma once
-#include <StdInc.h>
+#include "ComponentExport.h"
+
 #include <sysAllocator.h>
 #include <atArray.h>
-
-#ifdef COMPILING_GTA_GAME_FIVE
-#define GTA_GAME_EXPORT DLL_EXPORT
-#else
-#define GTA_GAME_EXPORT DLL_IMPORT
-#endif
 
 namespace rage
 {
@@ -88,7 +83,7 @@ struct TimecycleScriptData // probably not even a struct, but seems consistent b
 	uint32_t m_extraModifierIndex; // _SET_EXTRA_TIMECYCLE_MODIFIER
 };
 
-class TimecycleManager
+class COMPONENT_EXPORT(GTA_GAME_FIVE) TimecycleManager
 {
 private:
 	std::map<uint32_t, std::string> m_originalNames; // names that were gathered from data files
@@ -96,54 +91,52 @@ private:
 	std::map<uint32_t, rage::tcModifier*> m_modifiersBackup; // backups of original modifiers
 
 public:
-	GTA_GAME_EXPORT std::string& GetTimecycleName(const uint32_t hash);
-	GTA_GAME_EXPORT std::string& GetTimecycleName(const rage::tcModifier& modifier);
-	GTA_GAME_EXPORT rage::tcModifier* GetTimecycle(const uint32_t hash);
-	GTA_GAME_EXPORT rage::tcModifier* GetTimecycle(const std::string& name);
-	GTA_GAME_EXPORT rage::tcModifier* GetTimecycleByIndex(const uint32_t index);
-	GTA_GAME_EXPORT rage::tcModifier* CreateTimecycle(const std::string& newName);
-	GTA_GAME_EXPORT rage::tcModifier* CloneTimecycle(rage::tcModifier& modifier, const std::string& cloneName);
-	GTA_GAME_EXPORT rage::tcModData* GetTimecycleModData(rage::tcModifier& modifier, const std::string& paramName);
-	GTA_GAME_EXPORT rage::tcModData* GetTimecycleModData(rage::tcModifier& modifier, const int index);
-	GTA_GAME_EXPORT rage::tcModData* GetTimecycleModDataByIndex(rage::tcModifier& modifier, const int index);
-	GTA_GAME_EXPORT bool AddTimecycleModData(rage::tcModifier& modifier, const rage::tcModData& modData);
-	GTA_GAME_EXPORT bool AddTimecycleModData(rage::tcModifier& modifier, const std::string& paramName);
-	GTA_GAME_EXPORT bool SetTimecycleModData(rage::tcModifier& modifier, std::string& paramName, const float value1, const float value2);
-	GTA_GAME_EXPORT bool SetTimecycleModData(rage::tcModifier& modifier, const int index, const float value1, const float value2);
-	GTA_GAME_EXPORT bool RemoveTimecycleModData(rage::tcModifier& modifier, const rage::tcModData& modData);
-	GTA_GAME_EXPORT bool RemoveTimecycleModData(rage::tcModifier& modifier, const std::string& paramName);
-	GTA_GAME_EXPORT bool RenameTimecycle(rage::tcModifier& modifier, const std::string& newName);
-	GTA_GAME_EXPORT bool DoesTimecycleHasModData(rage::tcModifier& modifier, const std::string& paramName, bool search = false);
-	GTA_GAME_EXPORT bool DoesTimecycleHasModData(rage::tcModifier& modifier, const int index);
-	GTA_GAME_EXPORT int GetTimecycleIndex(const rage::tcModifier& modifier);
-	GTA_GAME_EXPORT int GetTimecycleIndex(const std::string& name);
-	GTA_GAME_EXPORT int GetTimecycleIndex(const uint32_t hash);
-	GTA_GAME_EXPORT void EnsureTimecycleBackup(const rage::tcModifier& modifier);
-	GTA_GAME_EXPORT void RemoveTimecycle(rage::tcModifier& modifier);
-
-public:
+	const std::string& GetTimecycleName(const rage::tcModifier& modifier);
+	rage::tcModifier* GetTimecycle(const uint32_t hash);
+	rage::tcModifier* GetTimecycle(const std::string& name);
+	rage::tcModifier* GetTimecycleByIndex(const uint32_t index);
+	rage::tcModifier* CreateTimecycle(const std::string& newName);
+	rage::tcModifier* CloneTimecycle(rage::tcModifier& modifier, const std::string& cloneName);
+	rage::tcModData* GetTimecycleModData(rage::tcModifier& modifier, const std::string& paramName);
+	rage::tcModData* GetTimecycleModData(rage::tcModifier& modifier, const int index);
+	rage::tcModData* GetTimecycleModDataByIndex(rage::tcModifier& modifier, const int index);
+	bool AddTimecycleModData(rage::tcModifier& modifier, const std::string& paramName);
+	bool SetTimecycleModData(rage::tcModifier& modifier, std::string& paramName, const float value1, const float value2);
+	bool RemoveTimecycleModData(rage::tcModifier& modifier, const rage::tcModData& modData);
+	bool RemoveTimecycleModData(rage::tcModifier& modifier, const std::string& paramName);
+	bool RenameTimecycle(rage::tcModifier& modifier, const std::string& newName);
+	bool DoesTimecycleHasModData(rage::tcModifier& modifier, const std::string& paramName, bool search = false);
+	int GetTimecycleIndex(const rage::tcModifier& modifier);
+	void EnsureTimecycleBackup(const rage::tcModifier& modifier);
+	void RemoveTimecycle(rage::tcModifier& modifier);
 	void RevertChanges();
 	void HandleTimecycleLoaded(const uint32_t hash, const std::string& name);
 	void HandleTimecycleUnloaded(const uint32_t hash);
-	void RemoveTimecycleBackup(const uint32_t hash);
+
+	static rage::tcManager* GetGameManager(); // get pointer to instance of RAGE timecycle manager
+	static TimecycleScriptData* GetScriptData(); // get "script" data, seems to be struct that is used in natives
+	static rage::tcVarInfo* GetConfigVarInfo(const std::string& paramName, bool search = false);
+	static rage::tcVarInfo* GetConfigVarInfo(const int index);
+	static rage::tcVarInfo* GetConfigVarInfos();
+	static int GetConfigVarInfoCount();
+	static bool HasTimecycleWithName(const std::string& paramName);
+
+private:
+	const std::string& GetTimecycleName(const uint32_t hash);
+	bool AddTimecycleModData(rage::tcModifier& modifier, const rage::tcModData& modData);
+	bool DoesTimecycleHasModData(rage::tcModifier& modifier, const int index);
+	bool IsTimecycleBackedUp(const rage::tcModifier& modifier);
+	bool IsCustomTimecycle(const rage::tcModifier& modifier);
+	bool SetTimecycleModData(rage::tcModifier& modifier, const int index, const float value1, const float value2);
+	int GetTimecycleIndex(const std::string& name);
+	int GetTimecycleIndex(const uint32_t hash);
 	void AddCustomTimecycleName(const uint32_t hash, const std::string& name);
 	void RemoveCustomTimecycleName(const uint32_t hash);
 	void RemoveTimecycle(const uint32_t hash);
-	bool IsTimecycleBackedUp(const rage::tcModifier& modifier);
-	bool IsCustomTimecycle(const rage::tcModifier& modifier);
+	void RemoveTimecycleBackup(const uint32_t hash);
 
-public:
-	static GTA_GAME_EXPORT rage::tcManager* GetGameManager(); // get pointer to instance of RAGE timecycle manager
-	static GTA_GAME_EXPORT TimecycleScriptData* GetScriptData(); // get "script" data, seems to be struct that is used in natives
-	static GTA_GAME_EXPORT rage::tcVarInfo* GetConfigVarInfo(const std::string& paramName, bool search = false);
-	static GTA_GAME_EXPORT rage::tcVarInfo* GetConfigVarInfo(const int index);
-	static GTA_GAME_EXPORT rage::tcVarInfo* GetConfigVarInfos();
-	static GTA_GAME_EXPORT int GetConfigVarInfoCount();
-	static GTA_GAME_EXPORT bool HasTimecycleWithName(const std::string& paramName);
-
-private:
 	static void AddTimecycleToList(rage::tcModifier& modifier, bool sort = true);
 	static void SortTimecycleMap();
 };
 
-extern GTA_GAME_EXPORT TimecycleManager* TheTimecycleManager;
+extern COMPONENT_EXPORT(GTA_GAME_FIVE) TimecycleManager* TheTimecycleManager;

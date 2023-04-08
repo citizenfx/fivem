@@ -17,7 +17,7 @@ TimecycleScriptData* TimecycleManager::GetScriptData()
 	return g_timeCycleScriptData;
 };
 
-std::string& TimecycleManager::GetTimecycleName(uint32_t hash)
+const std::string& TimecycleManager::GetTimecycleName(uint32_t hash)
 {
 	if (auto& it = m_originalNames.find(hash); it != m_originalNames.end())
 	{
@@ -29,10 +29,11 @@ std::string& TimecycleManager::GetTimecycleName(uint32_t hash)
 		return it->second;
 	}
 
-	assert(false && va("Failed to find timecycle name for %X", hash));
+	static std::string fallback = "INVALID";
+	return fallback;
 }
 
-std::string& TimecycleManager::GetTimecycleName(const rage::tcModifier& modifier)
+const std::string& TimecycleManager::GetTimecycleName(const rage::tcModifier& modifier)
 {
 	return GetTimecycleName(modifier.m_nameHash);
 }
@@ -151,7 +152,7 @@ rage::tcModifier* TimecycleManager::GetTimecycle(const std::string& name)
 		return nullptr;
 	}
 
-	return TimecycleManager::GetTimecycle(HashString(name));
+	return GetTimecycle(HashString(name));
 }
 
 rage::tcModifier* TimecycleManager::GetTimecycle(const uint32_t hash)
@@ -360,7 +361,7 @@ void TimecycleManager::RemoveTimecycle(const uint32_t hash)
 	}
 
 	// ensure we're not using this timecycle when removing it
-	if (auto scriptData = TimecycleManager::GetScriptData())
+	if (auto scriptData = GetScriptData())
 	{
 		if (index == scriptData->m_primaryModifierIndex)
 		{

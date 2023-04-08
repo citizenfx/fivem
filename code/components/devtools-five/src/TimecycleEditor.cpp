@@ -425,7 +425,7 @@ static InitFunction initFunction([]()
 				if (auto tc = CurrentTimecycle.GetModifier())
 				{
 					ImGui::SameLine();
-					ImGui::Text("(index: %d)", TheTimecycleManager->GetTimecycleIndex(tc->m_nameHash));
+					ImGui::Text("(index: %d)", TheTimecycleManager->GetTimecycleIndex(*tc));
 				}
 
 				ImGui::NextColumn();
