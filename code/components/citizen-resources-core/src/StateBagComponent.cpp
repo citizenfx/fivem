@@ -598,6 +598,8 @@ void StateBagComponentImpl::AttachToObject(fx::ResourceManager* object)
 					m_stateBags.erase(id);
 				}
 			}
+
+			m_mapMutex.unlock();
 		}
 	},
 	INT32_MIN);
