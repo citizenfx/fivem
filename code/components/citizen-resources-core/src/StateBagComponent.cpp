@@ -49,7 +49,7 @@ public:
 	inline std::tuple<std::shared_lock<std::shared_mutex>, std::reference_wrapper<const std::unordered_set<int>>> GetTargets()
 	{
 		return {
-			std::shared_lock{ m_mapMutex },
+			std::shared_lock{ m_targetsMutex },
 			std::reference_wrapper{ m_targets }
 		};
 	}
@@ -74,6 +74,7 @@ private:
 	StateBagRole m_role;
 
 	std::unordered_set<int> m_targets;
+	std::shared_mutex m_targetsMutex;
 
 	std::unordered_set<std::string> m_erasureList;
 	std::shared_mutex m_erasureMutex;
@@ -481,7 +482,7 @@ void StateBagComponentImpl::RegisterTarget(int id)
 	bool isNew = false;
 
 	{
-		std::unique_lock lock(m_mapMutex);
+		std::unique_lock lock(m_targetsMutex);
 
 		if (m_targets.find(id) == m_targets.end())
 		{
@@ -509,8 +510,13 @@ void StateBagComponentImpl::RegisterTarget(int id)
 
 void StateBagComponentImpl::UnregisterTarget(int id)
 {
-	std::unique_lock lock(m_mapMutex);
-	m_targets.erase(id);
+	{
+		std::unique_lock lock(m_targetsMutex);
+
+		m_targets.erase(id);
+	}
+
+	std::shared_lock lock(m_mapMutex);
 
 	for (auto& bag : m_stateBags)
 	{
