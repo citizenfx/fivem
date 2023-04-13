@@ -581,17 +581,22 @@ void StateBagComponentImpl::AttachToObject(fx::ResourceManager* object)
 		decltype(m_erasureList) erasureList;
 
 		{
-			std::unique_lock _(m_erasureMutex);
-			erasureList = std::move(m_erasureList);
-		}
-
-		if (!erasureList.empty())
-		{
-			std::unique_lock lock(m_mapMutex);
-
-			for (const auto& id : erasureList)
+			if (!m_mapMutex.try_lock())
 			{
-				m_stateBags.erase(id);
+				return;
+			}
+
+			{
+				std::unique_lock _(m_erasureMutex);
+				erasureList = std::move(m_erasureList);
+			}
+
+			if (!erasureList.empty())
+			{
+				for (const auto& id : erasureList)
+				{
+					m_stateBags.erase(id);
+				}
 			}
 		}
 	},
