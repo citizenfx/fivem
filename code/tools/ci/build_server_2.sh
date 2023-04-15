@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # fail on error
-set -e
+set -xe
 
 # set the number of job slots
 JOB_SLOTS=${JOB_SLOTS:-24}
