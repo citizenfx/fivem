@@ -15,7 +15,11 @@ echo http://dl-cdn.alpinelinux.org/alpine/edge/main >> /etc/apk/repositories
 echo http://dl-cdn.alpinelinux.org/alpine/edge/community >> /etc/apk/repositories
 echo http://dl-cdn.alpinelinux.org/alpine/edge/testing >> /etc/apk/repositories
 
-# update apk cache
+# some dance to upgrade alpine-keys
+apk --no-cache upgrade alpine-keys
+apk --no-cache add -X https://dl-cdn.alpinelinux.org/alpine/v3.16/main -u alpine-keys
+
+# update apk packages
 apk --no-cache update
 apk --no-cache upgrade
 
