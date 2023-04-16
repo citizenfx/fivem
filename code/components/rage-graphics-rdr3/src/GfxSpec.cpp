@@ -479,7 +479,8 @@ static void InvokeRender()
 	OnPostFrontendRender();
 }
 
-static hook::cdecl_stub<void(void*, void*, bool)> setDSs([]()
+// rage::sga::GraphicsContext::SetDepthStencil
+static hook::cdecl_stub<void(void*, void*, uint8_t, uint8_t)> setDSs([]()
 {
 	return hook::get_call(hook::get_pattern("41 B0 01 48 8B D3 48 8B CF E8 ? ? ? ? 48 83", 9));
 });
@@ -505,24 +506,17 @@ static void(*origEndDraw)(void*);
 static void WrapEndDraw(void* cxt)
 {
 	// pattern near vtbl call: 4C 8B 46 08 44 0F  B7 4E 1A 48 8B 0C F8 (non-inlined in new)
-	//(*(void(__fastcall**)(__int64, void*))(**(uint64_t**)sgaDriver + 896i64))(*(uint64_t*)sgaDriver, cxt);
 	(*(void(__fastcall**)(__int64, void*))(**(uint64_t**)sgaDriver + 0x328))(*(uint64_t*)sgaDriver, cxt);
 
 	// get swapchain backbuffer
 	void* rt[1];
-	//rt[0] = (*(void* (__fastcall**)(__int64))(**(uint64_t**)sgaDriver + 1984i64))(*(uint64_t*)sgaDriver);
-	//rt[0] = (*(void* (__fastcall**)(__int64))(**(uint64_t**)sgaDriver + 1992i64))(*(uint64_t*)sgaDriver);
 	rt[0] = (*(void*(__fastcall**)(__int64))(**(uint64_t**)sgaDriver + g_swapchainBackbufferOffset))(*(uint64_t*)sgaDriver);
 
-	static auto ds = hook::get_address<int*>(hook::get_pattern("F3 48 0F 2A C0 8B C3 F3 48 0F 2A C8 48 8B 05", 15));
-
 	setRTs(cxt, 1, rt, true);
-	setDSs(cxt, *(void**)ds, true);
-	//(*(void(__fastcall**)(__int64, void*, uint64_t, uint64_t, uint64_t, char, char))(**(uint64_t**)sgaDriver + 880i64))(*(uint64_t*)sgaDriver, cxt, NULL, NULL, NULL, 1, 0);
+	setDSs(cxt, nullptr, 0, 0);
 	(*(void(__fastcall**)(__int64, void*, uint64_t, uint64_t, uint64_t, char, char))(**(uint64_t**)sgaDriver + 0x318))(*(uint64_t*)sgaDriver, cxt, NULL, NULL, NULL, 1, 0);
 	InvokeRender();
 	// end draw
-	//(*(void(__fastcall**)(__int64, void*))(**(uint64_t**)sgaDriver + 896i64))(*(uint64_t*)sgaDriver, cxt);
 	(*(void(__fastcall**)(__int64, void*))(**(uint64_t**)sgaDriver + 0x328))(*(uint64_t*)sgaDriver, cxt);
 
 	origEndDraw(cxt);
