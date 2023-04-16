@@ -198,7 +198,7 @@ static InitFunction initFunction([]()
 
 		{
 			std::string targetPath = "platformFilter:/";
-			relativePaths.emplace_back("platformFilter:/", MakePathFilteringDevice(ToNarrow(MakeRelativeCitPath(L"citizen\\platform\\"))));
+			relativePaths.emplace_back("platformFilter:/", MakePathFilteringDevice(ToNarrow(MakeRelativeCitPath(L"citizen\\platform"))));
 
 			relativePaths.emplace_back("platform:/", targetPath);
 			relativePaths.emplace_back("platformcrc:/", targetPath);
