@@ -97,7 +97,7 @@ endef
 export NATIVES_NY_HEADER
 export NATIVES_NY_FOOTER
 
-all: out \
+all: out/v2 \
 	out/NativesFive.cs out/NativesServer.cs out/NativesRDR3.cs out/NativesNY.cs \
 	out/v2/NativesFive.cs out/v2/NativesServer.cs out/v2/NativesRDR3.cs out/v2/NativesNY.cs \
 	out/rpc_natives.json \
@@ -111,7 +111,7 @@ all: out \
 clean:
 	rm -r out
 
-out:
+out/v2:
 	mkdir -p out/v2
 
 out/NativesFive.cs: inp/natives_global.lua $(CODEGEN_SCRIPTS) codegen_out_cs.lua codegen_out_enum.lua
