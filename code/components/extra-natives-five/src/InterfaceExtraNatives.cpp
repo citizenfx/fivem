@@ -46,10 +46,10 @@ static char LoadZoomMapDataMeta()
 static HookFunction initFunction([]()
 {
 	{
-		auto location = hook::get_pattern("33 C0 0F 57 C0 ? 0D", 0);
+		auto location = hook::get_pattern<char>("33 C0 0F 57 C0 ? 0D", 0);
 
-		expandedRadar = hook::get_address<uint64_t*>((char*)location + 7);
-		revealFullMap = hook::get_address<uint64_t*>((char*)location + 37);
+		expandedRadar = hook::get_address<bool*>(location + 7);
+		revealFullMap = hook::get_address<bool*>(location + 37);
 	}
 
 	{
@@ -75,14 +75,12 @@ static HookFunction initFunction([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("IS_BIGMAP_ACTIVE", [=](fx::ScriptContext& context)
 	{
-		auto result = *(uint8_t*)expandedRadar == 1;
-		context.SetResult<bool>(result);
+		context.SetResult<bool>(*expandedRadar);
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("IS_BIGMAP_FULL", [=](fx::ScriptContext& context)
 	{
-		auto result = *(uint8_t*)revealFullMap == 1;
-		context.SetResult<bool>(result);
+		context.SetResult<bool>(*revealFullMap);
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_MAP_ZOOM_DATA_LEVEL", [=](fx::ScriptContext& context)
