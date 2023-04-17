@@ -6,6 +6,12 @@
 #include <ScriptEngine.h>
 #include <nutsnbolts.h>
 #include <ICoreGameInit.h>
+#include <scrEngine.h>
+
+static hook::cdecl_stub<bool(int)> _resetHudComponentValues([]() // basically RESET_HUD_COMPONENT_VALUES
+{
+	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 80 A4 ? ? ? ? ? DF"));
+});
 
 struct MapDataZoomLevel
 {
@@ -21,11 +27,124 @@ struct MapZoomData
 	atArray<MapDataZoomLevel> zoomLevels;
 };
 
-static uint64_t* expandedRadar;
-static uint64_t* revealFullMap;
+static bool* expandedRadar;
+static bool* revealFullMap;
 
 static MapZoomData* zoomData;
 static std::vector<MapDataZoomLevel> defaultZoomLevels;
+
+struct MinimapData
+{
+	char name[100];
+	float posX;
+	float posY;
+	float sizeX;
+	float sizeY;
+	char alignX;
+	char alignY;
+
+private:
+	char pad[2];
+};
+
+static MinimapData* minimapArray;
+static constexpr int minimapEntries = 11;
+
+static MinimapData minimapOldEntries[minimapEntries];
+
+struct HudComponentData // see "frontend.xml"
+{
+	char unk0[8];
+
+	int index;
+	int depth;
+	int listId;
+	int listPriority;
+
+	char name[40];
+	char alignX[2];
+	char alignY[2];
+
+	float posX;
+	float posY;
+	float sizeX;
+	float sizeY;
+
+	float unk1[2];
+	float unk2[2];
+	float scriptPosX;
+	float scriptPosY;
+	float unk4[2];
+
+	uint32_t color;
+};
+
+static std::map<uint32_t, HudComponentData> hudComponentOldEntries{};
+
+static HudComponentData* hudComponentsArray;
+static uint32_t hudComponentsCount;
+
+static void EnsureHudComponentBackup(uint32_t index)
+{
+	if (index < hudComponentsCount)
+	{
+		if (auto& it = hudComponentOldEntries.find(index); it == hudComponentOldEntries.end())
+		{
+			auto component = hudComponentsArray[index];
+			hudComponentOldEntries.emplace(std::make_pair(index, component));
+		}
+	}
+}
+
+static void RefreshHudComponent(uint32_t index)
+{
+	// We're calling RESET_HUD_COMPONENT_VALUES to push our updated data,
+	// however this native also reset position override values that were set using
+	// SET_HUD_COMPONENT_POSITION, so we have to hack around it to avoid
+	// calling too much raw scaleform functions.
+
+	if (index >= hudComponentsCount)
+	{
+		return;
+	}
+
+	auto& component = hudComponentsArray[index];
+
+	float scriptX = component.scriptPosX;
+	float scriptY = component.scriptPosY;
+	bool scriptOverriden = (scriptX != -999.0f && scriptY != -999.0f);
+
+	float origPosX = component.posX;
+	float origPosY = component.posY;
+
+	if (scriptOverriden)
+	{
+		component.posX = scriptX;
+		component.posY = scriptY;
+	}
+
+	_resetHudComponentValues(index);
+
+	if (scriptOverriden)
+	{
+		component.posX = origPosX;
+		component.posY = origPosY;
+		component.scriptPosX = scriptX;
+		component.scriptPosY = scriptY;
+	}
+}
+
+static void RestoreHudComponent(int index)
+{
+	if (auto& it = hudComponentOldEntries.find(index); it != hudComponentOldEntries.end())
+	{
+		auto component = &hudComponentsArray[index];
+		component->alignX[0] = it->second.alignX[0];
+		component->alignY[0] = it->second.alignY[0];
+		component->sizeX = it->second.sizeX;
+		component->sizeY = it->second.sizeY;
+	}
+}
 
 static char(*g_origLoadZoomMapDataMeta)();
 static char LoadZoomMapDataMeta()
@@ -41,6 +160,28 @@ static char LoadZoomMapDataMeta()
 	}
 
 	return success;
+}
+
+static void PatchResetHudComponentValues()
+{
+	static constexpr uint64_t nativeHash = 0x450930E616475D0D;
+
+	auto handler = fx::ScriptEngine::GetNativeHandler(nativeHash);
+
+	if (!handler)
+	{
+		trace("Couldn't find 0x%08x handler to hook!\n", nativeHash);
+		return;
+	}
+
+	fx::ScriptEngine::RegisterNativeHandler(nativeHash, [=](fx::ScriptContext& ctx)
+	{
+		auto index = ctx.GetArgument<uint32_t>(0);
+
+		RestoreHudComponent(index);
+
+		return (*handler)(ctx);
+	});
 }
 
 static HookFunction initFunction([]()
@@ -65,13 +206,15 @@ static HookFunction initFunction([]()
 		hook::call(location, LoadZoomMapDataMeta);
 	}
 
-	Instance<ICoreGameInit>::Get()->OnShutdownSession.Connect([]()
 	{
-		for (int i = 0; i < zoomData->zoomLevels.GetSize(); ++i)
-		{
-			zoomData->zoomLevels[i] = defaultZoomLevels[i];
-		}
-	});
+		minimapArray = hook::get_address<MinimapData*>(hook::get_pattern("48 8D 54 24 38 41 B8 64 00 00 00 48 8B 48 08 48 8D 05", 18));
+	}
+
+	{
+		auto location = hook::get_pattern<char>("48 83 C7 78 81 FB ? ? ? ? 7C");
+		hudComponentsArray = hook::get_address<HudComponentData*>(location - 49);
+		hudComponentsCount = *(uint32_t*)(location + 6);
+	}
 
 	fx::ScriptEngine::RegisterNativeHandler("IS_BIGMAP_ACTIVE", [=](fx::ScriptContext& context)
 	{
@@ -163,25 +306,6 @@ static HookFunction initFunction([]()
 		*minimapIsRect = type == 0;
 	});
 
-	struct MinimapData
-	{
-		char name[100];
-		float posX;
-		float posY;
-		float sizeX;
-		float sizeY;
-		char alignX;
-		char alignY;
-
-	private:
-		char pad[2];
-	};
-
-	static auto minimapArray = hook::get_address<MinimapData*>(hook::get_pattern("48 8D 54 24 38 41 B8 64 00 00 00 48 8B 48 08 48 8D 05", 18));
-	static constexpr int minimapEntries = 11;
-
-	static MinimapData oldEntries[minimapEntries];
-
 	fx::ScriptEngine::RegisterNativeHandler("SET_MINIMAP_COMPONENT_POSITION", [](fx::ScriptContext& context)
 	{
 		const char* name = context.CheckArgument<const char*>(0);
@@ -211,15 +335,111 @@ static HookFunction initFunction([]()
 		}
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_HUD_COMPONENT_NAME", [](fx::ScriptContext& context)
+	{
+		char* result = "";
+		auto index = context.GetArgument<uint32_t>(0);
+
+		if (index < hudComponentsCount)
+		{
+			auto& component = hudComponentsArray[index];
+			result = component.name;
+		}
+
+		context.SetResult<char*>(result);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_HUD_COMPONENT_SIZE", [](fx::ScriptContext& context)
+	{
+		scrVector result{};
+		auto index = context.GetArgument<uint32_t>(0);
+
+		if (index < hudComponentsCount)
+		{
+			auto& component = hudComponentsArray[index];
+			result.x = component.sizeX;
+			result.y = component.sizeY;
+		}
+
+		context.SetResult<scrVector>(result);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_HUD_COMPONENT_SIZE", [](fx::ScriptContext& context)
+	{
+		auto index = context.GetArgument<uint32_t>(0);
+		auto sizeX = context.GetArgument<float>(1);
+		auto sizeY = context.GetArgument<float>(2);
+
+		if (index < hudComponentsCount)
+		{
+			EnsureHudComponentBackup(index);
+
+			auto& component = hudComponentsArray[index];
+			component.sizeX = sizeX;
+			component.sizeY = sizeY;
+
+			RefreshHudComponent(index);
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_HUD_COMPONENT_ALIGN", [](fx::ScriptContext& context)
+	{
+		auto index = context.GetArgument<uint32_t>(0);
+
+		if (index < hudComponentsCount)
+		{
+			auto& component = hudComponentsArray[index];
+			*context.GetArgument<uint8_t*>(1) = component.alignX[0];
+			*context.GetArgument<uint8_t*>(2) = component.alignY[0];
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_HUD_COMPONENT_ALIGN", [](fx::ScriptContext& context)
+	{
+		auto index = context.GetArgument<uint32_t>(0);
+		auto alignX = context.CheckArgument<uint8_t>(1);
+		auto alignY = context.CheckArgument<uint8_t>(2);
+
+		if (index < hudComponentsCount)
+		{
+			EnsureHudComponentBackup(index);
+
+			auto& component = hudComponentsArray[index];
+			component.alignX[0] = alignX;
+			component.alignY[0] = alignY;
+
+			RefreshHudComponent(index);
+		}
+	});
+
 	Instance<ICoreGameInit>::Get()->OnGameFinalizeLoad.Connect([]()
 	{
-		memcpy(oldEntries, minimapArray, sizeof(oldEntries));
+		memcpy(minimapOldEntries, minimapArray, sizeof(minimapOldEntries));
 	});
 
 	Instance<ICoreGameInit>::Get()->OnShutdownSession.Connect([]()
 	{
-		memcpy(minimapArray, oldEntries, sizeof(oldEntries));
+		for (int i = 0; i < zoomData->zoomLevels.GetSize(); ++i)
+		{
+			zoomData->zoomLevels[i] = defaultZoomLevels[i];
+		}
+
+		memcpy(minimapArray, minimapOldEntries, sizeof(minimapOldEntries));
+
+		for (auto& entry : hudComponentOldEntries)
+		{
+			RestoreHudComponent(entry.first);
+			_resetHudComponentValues(entry.first);
+		}
+
+		hudComponentOldEntries.clear();
 
 		*minimapIsRect = true;
+	});
+
+	rage::scrEngine::OnScriptInit.Connect([]()
+	{
+		// Patch RESET_HUD_COMPONENT_VALUES to support SIZE and ALIGN overrides.
+		PatchResetHudComponentValues();
 	});
 });
