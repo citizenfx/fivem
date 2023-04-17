@@ -575,7 +575,7 @@ if _OPTIONS['game'] ~= 'launcher' then
 		cstargets 'v2'
 	end
 		
-	if _OPTIONS['game'] ~= 'server' then
+	if _OPTIONS['game'] ~= 'server' and  _OPTIONS['game'] ~= 'rdr3' then -- remove rdr3 check when its natives are fixed
 		do csproject ("CitizenFX."..program.publicName..".NativeImpl")
 			clr 'Unsafe'
 			files { 'client/clrcore-v2/Native/'..program.cSharp.nativesFile }
