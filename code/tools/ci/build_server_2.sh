@@ -90,6 +90,8 @@ EOF
 }
 #endif
 EOF
+	
+	lua5.3 codegen.lua inp/natives_global.lua cs_v2 server > /src/code/client/clrcore-v2/Natives/NativesServer.cs
 
 	lua5.3 codegen.lua inp/natives_global.lua rpc server > /opt/cfx-server/citizen/scripting/rpc_natives.json
 fi

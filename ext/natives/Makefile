@@ -99,6 +99,7 @@ export NATIVES_NY_FOOTER
 
 all: out \
 	out/NativesFive.cs out/NativesServer.cs out/NativesRDR3.cs out/NativesNY.cs \
+	out/v2/NativesFive.cs out/v2/NativesServer.cs out/v2/NativesRDR3.cs out/v2/NativesNY.cs \
 	out/rpc_natives.json \
 	out/natives_server.lua out/natives_server.d.ts out/natives_server.js out/natives_server.zip \
 	out/Natives.h out/NativesRDR.h out/NativesServer.h out/NativesNY.h out/PASGen.h \
@@ -111,7 +112,7 @@ clean:
 	rm -r out
 
 out:
-	mkdir -p out
+	mkdir -p out/v2
 
 out/NativesFive.cs: inp/natives_global.lua $(CODEGEN_SCRIPTS) codegen_out_cs.lua codegen_out_enum.lua
 	echo "$$NATIVES_FIVE_HEADER" > $@
@@ -136,6 +137,18 @@ out/NativesServer.cs: $(CODEGEN_SCRIPTS) inp/natives_global.lua codegen_out_cs.l
 	./lua53 codegen.lua inp/natives_global.lua enum server >> $@
 	./lua53 codegen.lua inp/natives_global.lua cs server >> $@
 	echo "$$NATIVES_SERVER_FOOTER" >> $@
+
+out/v2/NativesFive.cs: inp/natives_global.lua $(CODEGEN_SCRIPTS) codegen_out_cs_v2.lua codegen_out_enum.lua | inp/natives_global_client_compat.lua
+	./lua53 codegen.lua inp/natives_global.lua cs_v2 > $@
+
+out/v2/NativesRDR3.cs: inp/natives_rdr3.lua $(CODEGEN_SCRIPTS) codegen_out_cs_v2.lua codegen_out_enum.lua
+	./lua53 codegen.lua inp/natives_rdr3.lua cs_v2 > $@
+	
+out/v2/NativesNY.cs: inp/natives_ny.lua $(CODEGEN_SCRIPTS) codegen_out_cs_v2.lua codegen_out_enum.lua
+	./lua53 codegen.lua inp/natives_ny.lua cs_v2 > $@
+
+out/v2/NativesServer.cs: inp/natives_global.lua $(CODEGEN_SCRIPTS) codegen_out_cs_v2.lua rpc_spec_natives.lua
+	./lua53 codegen.lua inp/natives_global.lua cs_v2 server > $@
 
 out/Natives.h: inp/natives_global.lua $(CODEGEN_SCRIPTS) codegen_out_native_lua.lua rpc_spec_natives.lua
 	./lua53 codegen.lua inp/natives_global.lua native_lua > $@
