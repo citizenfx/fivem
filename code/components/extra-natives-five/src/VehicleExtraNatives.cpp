@@ -112,9 +112,6 @@ static std::vector<FlyThroughWindscreenParam> g_flyThroughWindscreenParams{};
 
 static std::map<fwEntity*, VehicleXenonLightsColor> g_vehicleXenonLightsColors{};
 
-static bool* g_flyThroughWindscreenDisabled;
-static bool isFlyThroughWindscreenEnabledConVar = false;
-
 template<typename T>
 inline static T readValue(fwEntity* ptr, int offset)
 {
@@ -447,12 +444,8 @@ TrainDoor* GetTrainDoor(fwEntity* train, uint32_t index)
 	return &(*((TrainDoor**)(((char*)train) + TrainDoorArrayPointerOffset)))[index];
 }
 
-static bool* isNetworkGame;
-
 static HookFunction initFunction([]()
 {
-	isNetworkGame = hook::get_address<bool*>(hook::get_pattern("24 07 3C 03 75 12 40 38 35 ? ? ? ? 75 09 83", 9));
-
 	{
 		ModelInfoPtrOffset = *hook::get_pattern<uint8_t>("48 8B 40 ? 0F B6 80 ? ? ? ? 83 E0 1F", 3);
 		GravityOffset = *hook::get_pattern<uint32_t>("0F C6 F6 00 F3 0F 59 05", -4);
@@ -613,15 +606,6 @@ static HookFunction initFunction([]()
 		// ja      short loc_140F634B9
 		auto location = hook::get_pattern<char>("8B 87 ? ? ? ? 83 E8 02 83 F8 02 77 04");
 		hook::nop(location, 14);
-	}
-
-	{
-		// replace netgame check for fly through windscreen with our variable
-		g_flyThroughWindscreenDisabled = (bool*)hook::AllocateStubMemory(1);
-		static ConVar<bool> enableFlyThroughWindscreen("game_enableFlyThroughWindscreen", ConVar_Replicated, false, &isFlyThroughWindscreenEnabledConVar);
-
-		auto location = hook::get_pattern<uint32_t>("45 33 ED 44 38 2D ? ? ? ? 4D", 6);
-		hook::put<int32_t>(location, (intptr_t)g_flyThroughWindscreenDisabled - (intptr_t)location - 4);
 	}
 
 	{
@@ -1341,11 +1325,6 @@ static HookFunction initFunction([]()
 		{
 			ResetFlyThroughWindscreenParams();
 		}
-	});
-
-	OnMainGameFrame.Connect([]()
-	{
-		*g_flyThroughWindscreenDisabled = *isNetworkGame && !isFlyThroughWindscreenEnabledConVar;
 	});
 
 	OnKillNetworkDone.Connect([]()
