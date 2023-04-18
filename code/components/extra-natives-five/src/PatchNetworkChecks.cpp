@@ -14,10 +14,12 @@
 static bool* g_flyThroughWindscreenDisabled;
 static bool* g_playerRagdollOnCollisionDisabled;
 static bool* g_playerJumpRagdollControlDisabled;
+static bool* g_dynamicDoorCreationDisabled;
 
 static bool isFlyThroughWindscreenEnabledConVar = false;
 static bool isPlayerRagdollOnCollisionEnabledConVar = false;
 static bool isPlayerJumpRagdollControlEnabledConVar = false;
+static bool isDynamicDoorCreationEnabledConVar = false;
 
 static bool* isNetworkGame;
 
@@ -28,6 +30,7 @@ static HookFunction hookFunction([]()
 	static ConVar<bool> enableFlyThroughWindscreen("game_enableFlyThroughWindscreen", ConVar_Replicated, false, &isFlyThroughWindscreenEnabledConVar);
 	static ConVar<bool> enablePlayerRagdollOnCollision("game_enablePlayerRagdollOnCollision", ConVar_Replicated, false, &isPlayerRagdollOnCollisionEnabledConVar);
 	static ConVar<bool> enablePlayerJumpRagdollControl("game_enablePlayerJumpRagdollControl", ConVar_Replicated, false, &isPlayerJumpRagdollControlEnabledConVar);
+	static ConVar<bool> enableDynamicDoorCreation("game_enableDynamicDoorCreation", ConVar_Replicated, false, &isDynamicDoorCreationEnabledConVar);
 	
 	// replace netgame check for fly through windscreen with our variable
 	{
@@ -50,11 +53,19 @@ static HookFunction hookFunction([]()
 		hook::put<int32_t>(location, (intptr_t)g_playerJumpRagdollControlDisabled - (intptr_t)location - 4 - 1);
 	}
 
+	// replace netgame check for dynamic door creation with our variable
+	{
+		g_dynamicDoorCreationDisabled = (bool*)hook::AllocateStubMemory(1);
+		auto location = hook::get_pattern<uint32_t>("44 8A 15 ? ? ? ? C1 E8 13 A8 01 74 0E", 3);
+		hook::put<int32_t>(location, (intptr_t)g_dynamicDoorCreationDisabled - (intptr_t)location - 4);
+	}
+
 	OnKillNetworkDone.Connect([]()
 	{
 		enableFlyThroughWindscreen.GetHelper()->SetValue("false");
 		enablePlayerRagdollOnCollision.GetHelper()->SetValue("false");
 		enablePlayerJumpRagdollControl.GetHelper()->SetValue("false");
+		enableDynamicDoorCreation.GetHelper()->SetValue("false");
 	});
 
 	OnMainGameFrame.Connect([]()
@@ -62,5 +73,6 @@ static HookFunction hookFunction([]()
 		*g_flyThroughWindscreenDisabled = *isNetworkGame && !isFlyThroughWindscreenEnabledConVar;
 		*g_playerRagdollOnCollisionDisabled = *isNetworkGame && !isPlayerRagdollOnCollisionEnabledConVar;
 		*g_playerJumpRagdollControlDisabled = *isNetworkGame && !isPlayerJumpRagdollControlEnabledConVar;
+		*g_dynamicDoorCreationDisabled = *isNetworkGame && !isDynamicDoorCreationEnabledConVar;
 	});
 });
