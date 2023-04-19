@@ -3,10 +3,10 @@ ns: CFX
 apiset: client
 game: gta5
 ---
-## GET_TIMECYCLE_MODIFIER_VAR_COUNT
+## GET_TIMECYCLE_MODIFIER_VAR_NAME_BY_INDEX
 
 ```c
-char* GET_TIMECYCLE_MODIFIER_VAR_COUNT(char* modifierName, int modifierVarIndex);
+char* GET_TIMECYCLE_MODIFIER_VAR_NAME_BY_INDEX(char* modifierName, int modifierVarIndex);
 ```
 
 ## Examples
