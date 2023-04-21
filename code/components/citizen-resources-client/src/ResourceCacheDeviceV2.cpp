@@ -23,6 +23,7 @@
 #include <VFSError.h>
 
 #include <pplawait.h>
+#include <agents.h>
 #include <experimental/resumable>
 
 #include <concurrent_queue.h>
@@ -380,6 +381,38 @@ void ResourceCacheDeviceV2::UnfetchEntry(const std::string& fileName)
 	}
 }
 
+static ConVar<int>* g_downloadBackoff;
+
+// from https://learn.microsoft.com/en-us/cpp/parallel/concrt/how-to-create-a-task-that-completes-after-a-delay?view=msvc-170
+concurrency::task<void> complete_after(unsigned int timeout)
+{
+	using namespace concurrency;
+
+	// A task completion event that is set when a timer fires.
+	task_completion_event<void> tce;
+
+	// Create a non-repeating timer.
+	auto fire_once = std::make_shared<timer<int>>(timeout, 0, nullptr, false);
+	// Create a call object that sets the completion event after the timer fires.
+	auto callback = std::make_shared<call<int>>([tce](int)
+	{
+		tce.set();
+	});
+
+	// Connect the timer to the callback and start the timer.
+	fire_once->link_target(callback.get());
+	fire_once->start();
+
+	// Create a task that completes after the completion event is set.
+	task<void> event_set(tce);
+
+	// Create a continuation task that cleans up resources and
+	// and return that continuation task.
+	return event_set.then([callback = std::move(callback), fire_once = std::move(fire_once)]()
+	{
+	});
+}
+
 concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::DoFetch(const ResourceCacheEntryList::Entry& entryRef)
 {
 	auto entry = entryRef;
@@ -554,6 +587,11 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::DoFetch(const ResourceC
 		}
 
 		tries++;
+
+		if (!result)
+		{
+			co_await complete_after(g_downloadBackoff->GetValue() * pow(2, tries));
+		}
 	} while (!result);
 
 	co_return *result;
@@ -963,3 +1001,8 @@ void MountResourceCacheDeviceV2(std::shared_ptr<ResourceCache> cache)
 	vfs::Mount(new resources::ResourceCacheDeviceV2(cache, true), "cache:/");
 	vfs::Mount(new resources::ResourceCacheDeviceV2(cache, false), "cache_nb:/");
 }
+
+static InitFunction initFunction([]
+{
+	resources::g_downloadBackoff = new ConVar<int>("cl_rcdFailureBackoff", ConVar_None, 500);
+});
