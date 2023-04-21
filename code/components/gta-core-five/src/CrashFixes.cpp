@@ -717,9 +717,8 @@ static HookFunction hookFunction{[] ()
 			test(rcx, rcx);
 			jz("justReturn");
 
-			// 505-specific offset
-			// valid for 1032 as well
-			movzx(ebx, word_ptr[rcx + 0x668]);
+			// validated for 1604-2802
+			movzx(ebx, word_ptr[rcx + 0x690]);
 			ret();
 
 			L("justReturn");
@@ -743,9 +742,8 @@ static HookFunction hookFunction{[] ()
 			test(rax, rax);
 			jz("justReturn");
 
-			// 505-specific offset
-			// valid for 1103 as well
-			cmp(qword_ptr[rax + 0x670], 0);
+			// validated for 1604-2802
+			cmp(qword_ptr[rax + 0x698], 0);
 
 			L("justReturn");
 			ret();
