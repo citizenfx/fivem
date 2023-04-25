@@ -629,6 +629,39 @@ bool ExtractInstallerFile(const std::wstring& installerFile, const std::string& 
 extern void TaskDialogEmulated(TASKDIALOGCONFIG* config, int* button, void*, void*);
 #endif
 
+static const char* const kByteStringsUnlocalized[] = {
+	" B",
+	" kB",
+	" MB",
+	" GB",
+	" TB",
+	" PB"
+};
+
+static std::wstring FormatBytes(int64_t bytes)
+{
+	double unit_amount = static_cast<double>(bytes);
+	size_t dimension = 0;
+	const int kKilo = 1024;
+	while (unit_amount >= kKilo && dimension < std::size(kByteStringsUnlocalized) - 1)
+	{
+		unit_amount /= kKilo;
+		dimension++;
+	}
+
+	if (bytes != 0 && dimension > 0 && unit_amount < 100)
+	{
+		return ToWide(fmt::sprintf("%.1lf%s", unit_amount,
+		kByteStringsUnlocalized[dimension]));
+	}
+	else
+	{
+		return ToWide(fmt::sprintf("%.0lf%s", unit_amount,
+		kByteStringsUnlocalized[dimension]));
+	}
+}
+
+
 static bool ShowDownloadNotification(const std::vector<std::pair<GameCacheEntry, bool>>& entries)
 {
 	// iterate over the entries
@@ -654,7 +687,7 @@ static bool ShowDownloadNotification(const std::vector<std::pair<GameCacheEntry,
 		{
 			localSize += entry.first.localSize;
 
-			detailStr << entry.first.filename << L" (local, " << va(L"%.2f", entry.first.localSize / 1024.0 / 1024.0) << L" MB)\n";
+			detailStr << entry.first.filename << L" (local, " << FormatBytes(entry.first.localSize) << L")\n";
 		}
 		else
 		{
@@ -667,7 +700,7 @@ static bool ShowDownloadNotification(const std::vector<std::pair<GameCacheEntry,
 
 			remoteSize += entry.first.remoteSize;
 
-			detailStr << entry.first.remotePath << L" (download, " << va(L"%.2f", entry.first.remoteSize / 1024.0 / 1024.0) << L" MB)\n";
+			detailStr << entry.first.remotePath << L" (download, " << FormatBytes(entry.first.remoteSize) << L")\n";
 		}
 	}
 
@@ -690,7 +723,7 @@ static bool ShowDownloadNotification(const std::vector<std::pair<GameCacheEntry,
 
 	if (shouldAllow)
 	{
-		taskDialogConfig.pszContent = va(gettext(L"The local %s game data is outdated, and needs to be updated. This will copy %.2f MB of data from the local disk, and download %.2f MB of data from the internet.\nDo you wish to continue?"), PRODUCT_NAME, (localSize / 1024.0 / 1024.0), (remoteSize / 1024.0 / 1024.0));
+		taskDialogConfig.pszContent = va(gettext(L"The local %s game data is outdated, and needs to be updated. This will copy %s of data from the local disk, and download %s of data from the internet.\nDo you wish to continue?"), PRODUCT_NAME, FormatBytes(localSize), FormatBytes(remoteSize));
 	}
 	else
 	{
