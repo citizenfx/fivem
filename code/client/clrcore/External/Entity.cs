@@ -8,6 +8,7 @@ using CitizenFX.Core;
 using CitizenFX.FiveM.Native;
 using API = CitizenFX.FiveM.Native.Natives;
 using Function = CitizenFX.FiveM.Native.Natives;
+using Prop = CitizenFX.FiveM.Object;
 
 namespace CitizenFX.FiveM
 #else
@@ -25,6 +26,9 @@ namespace CitizenFX.Core
 	}
 
 	public abstract class Entity : PoolObject, IEquatable<Entity>, ISpatial
+#if MONO_V2
+		, Shared.IEntity
+#endif
 	{
 		#region Fields
 		private EntityBoneCollection _bones;
@@ -168,13 +172,35 @@ namespace CitizenFX.Core
 			}
 		}
 
-		public Model Model
+		/// <summary>
+		/// Gets the current model of this entity
+		/// </summary>
+		public Model Model => new Model(API.GetEntityModel(Handle));
+
+#if MONO_V2
+		uint Shared.IEntity.Model => API.GetEntityModel(Handle);
+#endif
+
+		/// <summary>
+		/// Gets the current network owner of this entity
+		/// </summary>
+		public Player Owner
 		{
 			get
 			{
-				return new Model(API.GetEntityModel(Handle));
+				int playerHandle = API.NetworkGetEntityOwner(this.Handle);
+				return playerHandle == -1 ? null : new Player(playerHandle);
 			}
 		}
+
+#if MONO_V2
+		Shared.Player Shared.IEntity.Owner => Owner;
+
+		/// <summary>
+		/// Gets the game type of this entity
+		/// </summary>
+		public Shared.EntityType Type => (Shared.EntityType)API.GetEntityType(this.Handle);
+#endif
 
 		/// <summary>
 		/// Gets or sets the position of this <see cref="Entity"/>.

@@ -456,8 +456,6 @@ if _OPTIONS['game'] ~= 'launcher' then
 			
 	group "mono/v1"
 	
-	local csharpCoreAssemblyName = _OPTIONS['game'] == 'server' and 'CitizenFX.Core.Server' or 'CitizenFX.Core.Client'
-	
 	do csproject ("CitiMono", "CitizenFX.Core")
 		clr 'Unsafe'
 		files { 'client/clrcore/*.cs', 'client/clrcore/Math/*.cs' }
@@ -492,9 +490,11 @@ if _OPTIONS['game'] ~= 'launcher' then
 		cstargets ''
 	end
 	
+	local csharpCoreReferenceDllName = _OPTIONS['game'] == 'server' and "CitizenFX.Core.Server" or "CitizenFX.Core.Client"
+	
 	-- reference assembly project
 	if os.istarget('windows') then
-		do csproject ("CitiMonoRef", csharpCoreAssemblyName)
+		do csproject ("CitiMonoRef", csharpCoreReferenceDllName)
 			clr 'Unsafe'
 			files { 'client/clrref/' .. _OPTIONS['game'] .. '/CitizenFX.Core.cs' }
 			links { 'System.dll', 'System.Drawing.dll', 'System.Core.dll' }
@@ -536,7 +536,9 @@ if _OPTIONS['game'] ~= 'launcher' then
 	end
 	
 	group "mono/v2"
-		
+	
+	local csharpCoreAssemblyName = "CitizenFX.Core"
+	
 	-- Get game name and files
 	-- '.*' should not load any file, replace it with something else if it does
 	local program = PROGRAM_DETAILS[_OPTIONS['game']]
@@ -553,6 +555,7 @@ if _OPTIONS['game'] ~= 'launcher' then
 			'client/clrcore-v2/Interop/*.cs',
 			'client/clrcore-v2/Math/v2/*.cs',
 			'client/clrcore-v2/Native/*.cs',
+			'client/clrcore-v2/Shared/*.cs',
 			'client/clrcore-v2/System/*.cs',
 			
 			-- Math, cherry pick from v1 files for now
@@ -566,15 +569,10 @@ if _OPTIONS['game'] ~= 'launcher' then
 			'client/clrcore-v2/Math/Vector4.cs',
 		}
 		
-		defines { 'MONO_V2' }
-	
-		if _OPTIONS['game'] == 'server' then
-			files { 'client/clrcore-v2/' .. program.cSharp.gameFiles }
-			defines { 'NATIVE_IMPL_INCLUDE', 'NATIVE_HASHES_INCLUDE', 'NATIVE_WRAPPERS_INCLUDE' }
-		end
+		defines { 'MONO_V2', 'NATIVE_SHARED_INCLUDE' }
 		cstargets 'v2'
 	end
-		
+	
 	if _OPTIONS['game'] ~= 'server' and  _OPTIONS['game'] ~= 'rdr3' then -- remove rdr3 check when its natives are fixed
 		do csproject ("CitizenFX."..program.publicName..".NativeImpl")
 			clr 'Unsafe'
@@ -590,16 +588,23 @@ if _OPTIONS['game'] ~= 'launcher' then
 			defines { 'MONO_V2', 'NATIVE_WRAPPER_USE_VERSION', 'NATIVE_HASHES_INCLUDE', 'NATIVE_WRAPPERS_INCLUDE' }
 			cstargets 'v2/Native/'
 		end
-		
+	end
+	
+	if _OPTIONS['game'] ~= 'rdr3' then -- remove rdr3 check when its natives are fixed
 		do csproject ("CitizenFX."..program.publicName)
 			clr 'Unsafe'
 			files { 'client/clrcore-v2/'..program.cSharp.gameFiles, 'client/clrcore-v2/Game/Shared/*.cs' }
 			links { csharpCoreAssemblyName, 'CitizenFX.'..program.publicName..'.Native' }
 			defines { 'MONO_V2' }
+			
+			if _OPTIONS['game'] == 'server' then
+				files { 'client/clrcore-v2/Native/'..program.cSharp.nativesFile, 'client/clrcore-v2/Native/CustomNativeWrapper.cs' }
+				defines { 'NATIVE_IMPL_INCLUDE', 'NATIVE_HASHES_INCLUDE', 'NATIVE_WRAPPERS_INCLUDE' }
+			end
+			
 			cstargets 'v2'
 		end
 	end
-	
 end
 
 	group ""

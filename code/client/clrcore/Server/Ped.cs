@@ -9,6 +9,9 @@ using API = CitizenFX.Server.Native.Natives;
 namespace CitizenFX.Core
 {
 	public sealed class Ped : Entity
+#if MONO_V2
+		, Shared.IPed
+#endif
 	{
 		public Ped(int handle) : base(handle)
 		{

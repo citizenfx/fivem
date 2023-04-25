@@ -292,6 +292,9 @@ namespace CitizenFX.Core
 	}
 
 	public sealed class Vehicle : Entity
+#if MONO_V2
+		, Shared.IVehicle
+#endif
 	{
 		#region Fields
 		VehicleDoorCollection _doors;
