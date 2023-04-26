@@ -1,6 +1,9 @@
 using CitizenFX.Core.Native;
 
-#if IS_FXSERVER
+#if NATIVE_HASHES_INCLUDE || NATIVE_SHARED_INCLUDE
+#if NATIVE_SHARED_INCLUDE
+namespace CitizenFX.Shared.Native
+#elif IS_FXSERVER
 namespace CitizenFX.Server.Native
 #elif GTA_FIVE
 namespace CitizenFX.FiveM.Native
@@ -12,7 +15,6 @@ namespace CitizenFX.LibertyM.Native
 #error namespace is missing
 #endif
 {
-#if NATIVE_HASHES_INCLUDE
 	public static partial class Natives
 	{
 		public static T Call<T>(Hash hash, params Argument[] arguments) => CustomNativeInvoker.Call<T>((ulong)hash, arguments);

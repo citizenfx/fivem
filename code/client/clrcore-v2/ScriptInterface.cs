@@ -108,7 +108,7 @@ namespace CitizenFX.Core
 #else
 			var netSource = sourceString.StartsWith("net") ? sourceString : null;
 #endif
-			Binding origin = string.IsNullOrEmpty(sourceString) ? Binding.LOCAL : Binding.REMOTE;
+			Binding origin = string.IsNullOrEmpty(sourceString) ? Binding.Local : Binding.Remote;
 
 			object[] args = null; // will make sure we only deserialize it once
 #if REMOTE_FUNCTION_ENABLED
@@ -120,7 +120,7 @@ namespace CitizenFX.Core
 				return;
 
 			// if a remote function or export has consumed this event then it surely wasn't meant for event handlers
-			EventManager.IncomingEvent(eventName, netSource, origin, argsSerialized, serializedSize, args);
+			EventsManager.IncomingEvent(eventName, netSource, origin, argsSerialized, serializedSize, args);
 		}
 
 		[SecurityCritical, SuppressMessage("System.Diagnostics.CodeAnalysis", "IDE0051", Justification = "Called by host")]
