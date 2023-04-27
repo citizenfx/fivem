@@ -255,6 +255,64 @@ sync::SyncEntityState::SyncEntityState()
 
 }
 
+static void CreateSyncData(ServerGameState* state, const fx::ClientSharedPtr& client)
+{
+	fx::ClientWeakPtr weakClient(client);
+
+	auto data = std::make_shared<GameStateClientData>();
+	data->client = weakClient;
+
+	std::weak_ptr<GameStateClientData> weakData(data);
+
+	auto setupBag = [weakClient, weakData, state]()
+	{
+		auto client = weakClient.lock();
+		auto data = weakData.lock();
+
+		if (client && data)
+		{
+			data->playerBag = state->GetStateBags()->RegisterStateBag(fmt::sprintf("player:%d", client->GetNetId()));
+
+			if (fx::IsBigMode())
+			{
+				data->playerBag->AddRoutingTarget(client->GetSlotId());
+			}
+
+			data->playerBag->SetOwningPeer(client->GetSlotId());
+		}
+	};
+
+	if (client->GetNetId() < 0xFFFF)
+	{
+		setupBag();
+	}
+	else
+	{
+		client->OnAssignNetId.Connect([setupBag]()
+		{
+			setupBag();
+		},
+		INT32_MAX);
+	}
+
+	client->SetSyncData(data);
+	client->OnDrop.Connect([weakClient, state]()
+	{
+		auto client = weakClient.lock();
+
+		if (client)
+		{
+			auto slotId = client->GetSlotId();
+			auto netId = client->GetNetId();
+
+			gscomms_execute_callback_on_sync_thread([state, client, slotId, netId]()
+			{
+				state->HandleClientDrop(client, netId, slotId);
+			});
+		}
+	});
+}
+
 inline std::shared_ptr<GameStateClientData> GetClientDataUnlocked(ServerGameState* state, const fx::ClientSharedPtr& client)
 {
 	// NOTE: static_pointer_cast typically will lead to an unneeded refcount increment+decrement
@@ -264,63 +322,6 @@ inline std::shared_ptr<GameStateClientData> GetClientDataUnlocked(ServerGameStat
 #else
 	auto data = std::shared_ptr<GameStateClientData>{ reinterpret_cast<std::shared_ptr<GameStateClientData>&&>(client->GetSyncData()) };
 #endif
-
-	if (!data)
-	{
-		fx::ClientWeakPtr weakClient(client);
-
-		data = std::make_shared<GameStateClientData>();
-		data->client = weakClient;
-
-		std::weak_ptr<GameStateClientData> weakData(data);
-
-		auto setupBag = [weakClient, weakData, state]()
-		{
-			auto client = weakClient.lock();
-			auto data = weakData.lock();
-
-			if (client && data)
-			{
-				data->playerBag = state->GetStateBags()->RegisterStateBag(fmt::sprintf("player:%d", client->GetNetId()));
-
-				if (fx::IsBigMode())
-				{
-					data->playerBag->AddRoutingTarget(client->GetSlotId());
-				}
-
-				data->playerBag->SetOwningPeer(client->GetSlotId());
-			}
-		};
-
-		if (client->GetNetId() < 0xFFFF)
-		{
-			setupBag();
-		}
-		else
-		{
-			client->OnAssignNetId.Connect([setupBag]()
-			{
-				setupBag();
-			}, INT32_MAX);
-		}
-
-		client->SetSyncData(data);
-		client->OnDrop.Connect([weakClient, state]()
-		{
-			auto client = weakClient.lock();
-
-			if (client)
-			{
-				auto slotId = client->GetSlotId();
-				auto netId = client->GetNetId();
-
-				gscomms_execute_callback_on_sync_thread([state, client, slotId, netId]()
-				{
-					state->HandleClientDrop(client, netId, slotId);
-				});
-			}
-		});
-	}
 
 	return data;
 }
@@ -4248,6 +4249,14 @@ void ServerGameState::AttachToObject(fx::ServerInstanceBase* instance)
 	m_globalBag = sbac->RegisterStateBag("global", true);
 	m_globalBag->SetOwningPeer(-1);
 	m_sbac = sbac;
+
+	creg->OnClientCreated.Connect([this](const fx::ClientSharedPtr& client)
+	{
+		if (fx::IsOneSync())
+		{
+			CreateSyncData(this, client);
+		}
+	});
 
 	creg->OnConnectedClient.Connect([this](fx::Client* client)
 	{
