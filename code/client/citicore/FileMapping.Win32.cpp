@@ -54,6 +54,7 @@ static std::wstring g_programFilesRoot = GetRoot(CSIDL_PROGRAM_FILES);
 static std::wstring g_programFilesX86Root = GetRoot(CSIDL_PROGRAM_FILESX86);
 static std::wstring g_programDataRoot = GetRoot(CSIDL_COMMON_APPDATA);
 
+static std::wstring g_rsgDocumentsRoot = g_documentsRoot + L"\\Rockstar Games";
 static std::wstring g_scDocumentsRoot = g_documentsRoot + L"\\Rockstar Games\\Social Club";
 static std::wstring g_launcherDocumentsRoot = g_documentsRoot + L"\\Rockstar Games\\Launcher";
 static std::wstring g_launcherAppDataRoot = g_localAppDataRoot + L"\\Rockstar Games\\Launcher";
@@ -178,6 +179,11 @@ static std::wstring MapRedirectedFilename(const wchar_t* origFileName)
 		return MakeRelativeCitPath(L"data\\game-storage\\ros_launcher_documents" ROS_SUFFIX_W) + &wcsstr(origFileName, L"Games\\Launcher")[14];
 	}
 
+	if (wcsstr(origFileName, L"Documents\\Rockstar Games") != nullptr || wcsstr(origFileName, g_rsgDocumentsRoot.c_str()) != nullptr)
+	{
+		return g_localAppDataRoot + &wcsstr(origFileName, L"Rockstar Games")[0];
+	}
+
 	if (getenv("CitizenFX_ToolMode"))
 	{
 		if (wcsstr(origFileName, L".lnk"))
@@ -299,6 +305,12 @@ static bool IsMappedFilename(const std::wstring& fileName)
 
 	if (fileName.find(L"Documents\\Rockstar Games\\Launcher") != std::string::npos ||
 		fileName.find(g_launcherDocumentsRoot) != std::string::npos)
+	{
+		return true;
+	}
+
+	if (fileName.find(L"Documents\\Rockstar Games") != std::string::npos ||
+		fileName.find(g_rsgDocumentsRoot) != std::string::npos)
 	{
 		return true;
 	}
