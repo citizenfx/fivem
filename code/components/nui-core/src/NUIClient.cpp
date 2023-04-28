@@ -23,6 +23,7 @@
 #include "include/cef_parser.h"
 
 #include <sstream>
+#include <regex>
 
 extern nui::GameInterface* g_nuiGi;
 bool shouldHaveRootWindow;
@@ -334,6 +335,48 @@ auto NUIClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<Ce
 	{
 		return RV_CANCEL;
 	}
+
+	// 'code.jquery.com' has reliability concerns for some end users, redirect these to googleapis instead
+	{
+		CefURLParts parts;
+		if (CefParseURL(request->GetURL(), parts))
+		{
+			auto hostString = CefString(&parts.host).ToString();
+
+			if (hostString == "code.jquery.com")
+			{
+				std::smatch match;
+				static std::regex re{
+					R"(code.jquery.com/jquery-([0-9]+\.[0-9]+\.[0-9]+)(\..*?)?\.js)"
+				};
+				static std::regex reUI{
+					R"(code.jquery.com/ui/(.*?)/(.*?)$)"
+				};
+
+				auto url = request->GetURL().ToString();
+
+				if (std::regex_search(url, match, re))
+				{
+					auto version = match[1].str();
+
+					// "3.3.0, 2.1.2, 1.2.5 and 1.2.4 are not hosted due to their short and unstable lives in the wild."
+					if (version != "3.3.0" && version != "2.1.2" && version != "1.2.5" && version != "1.2.4")
+					{
+						request->SetURL(fmt::sprintf("https://ajax.googleapis.com/ajax/libs/jquery/%s/jquery%s.js",
+							version,
+							match.size() >= 3 ? match[2].str() : ""));
+					}
+				}
+				else if (std::regex_search(url, match, reUI))
+				{
+					request->SetURL(fmt::sprintf("https://ajax.googleapis.com/ajax/libs/jqueryui/%s/%s",
+						match[1].str(),
+						match[2].str()));
+				}
+			}
+		}
+	}
+
 
 	// DiscordApp breaks as of late and affects end users, tuning the headers seems to fix it
 	{
