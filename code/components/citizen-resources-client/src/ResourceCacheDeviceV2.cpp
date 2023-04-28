@@ -578,6 +578,8 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::DoFetch(const ResourceC
 
 				lastError = fmt::sprintf("Failure downloading %s: %s", entry.basename, error);
 				trace("^3ResourceCacheDevice reporting failure downloading %s: %s\n", entry.basename, error);
+
+				co_await complete_after(g_downloadBackoff->GetValue() * pow(2, tries + 1));
 			}
 		}
 
@@ -587,11 +589,6 @@ concurrency::task<RcdFetchResult> ResourceCacheDeviceV2::DoFetch(const ResourceC
 		}
 
 		tries++;
-
-		if (!result)
-		{
-			co_await complete_after(g_downloadBackoff->GetValue() * pow(2, tries));
-		}
 	} while (!result);
 
 	co_return *result;
