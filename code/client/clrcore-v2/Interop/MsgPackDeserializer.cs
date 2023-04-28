@@ -8,11 +8,12 @@ namespace CitizenFX.Core
 {
 	public delegate Coroutine<object> Callback(params object[] args);
 
-	internal class MsgPackDeserializer
+	// Can be a struct as it's merely used for for temporary storage
+	internal struct MsgPackDeserializer
 	{
 		private unsafe byte* m_ptr;
-		private unsafe byte* m_end;
-		private string m_netSource;
+		private readonly unsafe byte* m_end;
+		private readonly string m_netSource;
 
 		private unsafe MsgPackDeserializer(byte* data, ulong size, string netSource)
 		{
@@ -48,47 +49,20 @@ namespace CitizenFX.Core
 		/// </summary>
 		/// <param name="data">ptr to byte data</param>
 		/// <param name="size">size of byte data</param>
-		/// <param name="netSource">from who came this?</param>
-		/// <param name="enableSource">will add a [FromSource] Player value to the end of the argument array, does nothing on client side</param>
+		/// <param name="netSource">from whom came this?</param>
 		/// <returns>arguments that can be passed into dynamic delegates</returns>
-		internal static unsafe object[] DeserializeArguments(byte* data, long size, string netSource = null, bool enableSource = false)
+		public static unsafe object[] DeserializeArray(byte* data, long size, string netSource = null)
 		{
 			if (data != null && size > 0)
 			{
 				var deserializer = new MsgPackDeserializer(data, (ulong)size, netSource);
-				return deserializer.DeserializeArguments(enableSource);
-			}
-
-			return new object[0];
-		}
-		
-		private unsafe object[] DeserializeArguments(bool enableSource = false)
-		{
-#if IS_FXSERVER
-			if (enableSource)
-			{
-				var array = DeserializeArray(1);
-				if (m_netSource != null)
-					array[array.Length - 1] = new Player(m_netSource);
-
-				return array;
-			}
-#endif
-			return DeserializeArray(0);
-		}
-
-		public static unsafe object[] DeserializeArray(byte* data, long size, string netSource = null, int extraArgumentSlots = 0)
-		{
-			if (data != null && size > 0)
-			{
-				var deserializer = new MsgPackDeserializer(data, (ulong)size, netSource);
-				return deserializer.DeserializeArray(extraArgumentSlots);
+				return deserializer.DeserializeArray();
 			}
 
 			return new object[0];
 		}
 
-		private unsafe object[] DeserializeArray(int extraArgumentSlots = 0)
+		private unsafe object[] DeserializeArray()
 		{
 			int length;
 			var type = ReadByte();
@@ -103,7 +77,7 @@ namespace CitizenFX.Core
 			else
 				return new object[0];
 
-			object[] array = new object[length + extraArgumentSlots];
+			object[] array = new object[length];
 			for (var i = 0; i < length; ++i)
 			{
 				array[i] = Deserialize();

@@ -593,7 +593,7 @@ local function PrintWrappers(native)
 	
 	local wrapRetType = GetReturnType(native.returns);
 	local doc, retType = FormatDocXML(native), GetOrDefault(wrapRetType[4], 3, wrapRetType[1])
-	local nativeName, calleeRetType = native.displayName .. ToUniqueName(native.displayName), GetOrDefault(wrapRetType[4], 1, valType)
+	local nativeName, calleeRetType = native.displayName .. native.uniqueName, GetOrDefault(wrapRetType[4], 1, valType)
 		
 	io.stdout:write(doc, t2, 'public static ', retType, ' ', nativeName, '(', parm, ')\n', t2, '{\n', init, t3)
 	
@@ -614,21 +614,92 @@ local function PrintWrappers(native)
 	end
 end
 
+local function PrintHash(native, iteration)
+	if native.name:sub(1, 2) ~= '0x' then
+		local doc = parseDocString(native)
+		if doc ~= nil then
+			io.stdout:write(FormatDocSectionXML(doc.summary, '<summary>', '</summary>'))
+		end
+		
+		io.stdout:write(t2, native.name, ' = ', native.hash, ',\n')
+		
+		for _, alias in ipairs(native.aliases) do
+			if alias:sub(1, 2) ~= '0x' then
+				io.stdout:write(t2, '[System.Obsolete("Deprecated name, use ', native.name, ' instead")]\n')
+				io.stdout:write(t2, alias, ' = ', native.hash, ',\n')
+			end
+		end
+	end
+end
+
+local function PrintPointerArgumentSafety(natives)
+	io.stdout:write(t1, 'internal static partial class PointerArgumentSafety\n', t1, '{\n',
+		t2, 'static internal System.Collections.Generic.Dictionary<ulong, byte> s_nativeInfo = new System.Collections.Generic.Dictionary<ulong, byte>\n', t2, '{\n')
+
+	local primitive_t = valType;
+	local func_t = wrapperTypes[false]['func'][4][1];
+	local vector3_t = wrapperTypes[false]['Vector3'][4][1];
+	local string_t = wrapperTypes[false]['string'][4][1];
+	local object_t = wrapperTypes[false]['object'][4][1];
+
+	for _, native in pairs(natives) do
+		if native.returns then
+			local typ = GetOrDefault(GetReturnType(native.returns)[4], 1, primitive_t)
+			
+			io.stdout:write(t3, '[', native.hash, '] = ')
+			
+			if native.name == 'INVOKE_FUNCTION_REFERENCE' then
+				io.stdout:write('0x80')
+			elseif typ == primitive_t then
+				io.stdout:write('0x01')
+			elseif typ == vector3_t then
+				io.stdout:write('0x03')
+			elseif typ == string_t then
+				io.stdout:write('0x40')
+			elseif typ == object_t then
+				io.stdout:write('0x20')
+			else
+				io.stdout:write('0x00')
+			end
+			
+			io.stdout:write(', // ', (native.ns or 'UNKNOWN'), '/', native.name, '\n')
+		end
+	end
+	
+	io.stdout:write(t2, '};\n}\n')
+end
+
+
+-- =============================
+-- ==  Execution starts here  ==
+-- =============================
+
 -- sort the natives table
-local _natives, nativeCount = {}, #natives
+local _natives, _nativesShared, nativeCount = {}, {}, #natives
 
 for i = 1, nativeCount do
 	local native = natives[i]
 	if matchApiSet(native) then
 		native.displayName = ToFunctionName(native.name)
+		native.uniqueName = ToUniqueName(native.displayName)
+		
+		for _, v in ipairs(native.apiset) do
+			if (v == 'shared') then
+				table.insert(_nativesShared, native)
+				break
+			end
+		end
+		
 		table.insert(_natives, native)
 	end
 end
 
 nativeCount = #_natives
+nativeSharedCount = #_nativesShared
 
 -- sort alphabetically
 table.sort(_natives, function(a, b) return a.displayName < b.displayName end)
+table.sort(_nativesShared, function(a, b) return a.displayName < b.displayName end)
 
 LoadCompatibilityMethods()
 
@@ -652,7 +723,7 @@ else
 	io.stderr:write(err)
 end
 
-io.stdout:write('#if ', topConstant, '\nusing System;\nusing CitizenFX.Core;\nusing CitizenFX.Core.Native;\n\n')
+io.stdout:write('#if ', topConstant, '\nusing System;\nusing System.ComponentModel;\nusing CitizenFX.Core;\nusing CitizenFX.Core.Native;\n\n')
 
 -- ignore missing argument documentation warnings
 io.stdout:write('#pragma warning disable CS1573\n\n')
@@ -663,60 +734,65 @@ io.stdout:write('[assembly: System.Reflection.AssemblyVersion("', table.concat(v
 io.stdout:write('[assembly: System.Reflection.AssemblyFileVersion("', table.concat(version, '.'), '")]\n')
 io.stdout:write('#endif\n\n')
 
-io.stdout:write('namespace CitizenFX.', productName, '.Native\n{\n')
+-- product specfific natives
+do 
+	io.stdout:write('namespace CitizenFX.', productName, '.Native\n{\n')
 
--- write enums
-dofile("./codegen_out_enum.lua")
-
--- native base methods
-io.stdout:write('\n#if NATIVE_IMPL_INCLUDE\n', t1, 'public static class NativesImpl\n', t1 ,'{\n')
-for i = 1, nativeCount do
-	PrintNativeMethod(_natives[i])
-end
-io.stdout:write(t1, '}\n#endif\n')
-
--- native wrappers
-io.stdout:write('\n#if NATIVE_WRAPPERS_INCLUDE\n', t1, 'public static partial class Natives\n', t1 ,'{\n')
-for i = 1, nativeCount do
-	PrintWrappers(_natives[i])
-end
-io.stdout:write(t1, '}\n#endif\n')
-
--- PAS bits
-io.stdout:write('#if NATIVE_PTR_CHECKS_INCLUDE\n')
-io.stdout:write(t1, 'internal static partial class PointerArgumentSafety\n', t1, '{\n')
-io.stdout:write(t2, 'static System.Collections.Generic.Dictionary<ulong, byte> s_nativeInfo = new System.Collections.Generic.Dictionary<ulong, byte>\n', t2, '{\n')
-
-do
-	local primitive_t = valType;
-	local func_t = wrapperTypes[false]['func'][4][1];
-	local vector3_t = wrapperTypes[false]['Vector3'][4][1];
-	local string_t = wrapperTypes[false]['string'][4][1];
-	local object_t = wrapperTypes[false]['object'][4][1];
-
-	for _, native in pairs(_natives) do
-		if native.returns then
-			local typ = GetOrDefault(GetReturnType(native.returns)[4], 1, primitive_t)
-			
-			io.stdout:write(t3, '[', native.hash, '] = ')
-			
-			if native.name == 'INVOKE_FUNCTION_REFERENCE' then
-				io.stdout:write('0x80')
-			elseif typ == primitive_t then
-				io.stdout:write('0x01')
-			elseif typ == vector3_t then
-				io.stdout:write('0x03')
-			elseif typ == string_t then
-				io.stdout:write('0x40')
-			elseif typ == object_t then
-				io.stdout:write('0x20')
-			else
-				io.stdout:write('0x00')
-			end
-			
-			io.stdout:write(', // ', (native.ns or 'UNKNOWN'), '/', native.name, '\n')
-		end
+	-- write enums
+	io.stdout:write('\n#if NATIVE_HASHES_INCLUDE\n', t1, 'public enum Hash : ulong\n', t1 ,'{\n')
+	for i = 1, nativeCount do
+		PrintHash(_natives[i])
 	end
+	io.stdout:write(t1, '}\n#endif\n')
+
+	-- native base methods
+	io.stdout:write('\n#if NATIVE_IMPL_INCLUDE\n',
+		t1, '[EditorBrowsable(EditorBrowsableState.Never)]\n',
+		t1, 'public static class NativesImpl\n', t1 ,'{\n')
+	
+	for i = 1, nativeCount do
+		PrintNativeMethod(_natives[i])
+	end
+	io.stdout:write(t1, '}\n#endif\n')
+
+	-- native wrappers
+	io.stdout:write('\n#if NATIVE_WRAPPERS_INCLUDE\n', t1, 'public static partial class Natives\n', t1 ,'{\n')
+	for i = 1, nativeCount do
+		PrintWrappers(_natives[i])
+	end
+	io.stdout:write(t1, '}\n#endif\n}\n')
 end
 
-io.stdout:write(t2, '};\n', t1, '}\n#endif\n}\n#endif')
+-- shared natives
+do
+	io.stdout:write('\n#if NATIVE_SHARED_INCLUDE\nnamespace CitizenFX.Shared.Native\n{\n')
+	
+	-- hashes
+	io.stdout:write(t1, 'public enum Hash : ulong\n', t1 ,'{\n')
+	for i = 1, nativeSharedCount do
+		PrintHash(_nativesShared[i])
+	end
+	io.stdout:write(t1, '}\n\n')
+	
+	-- implementation
+	io.stdout:write(t1, '[EditorBrowsable(EditorBrowsableState.Never)]\n', t1, 'public static class NativesImpl\n', t1 ,'{\n')
+	
+	for i = 1, nativeSharedCount do
+		PrintNativeMethod(_nativesShared[i])
+	end
+	io.stdout:write(t1, '}\n\n')
+	
+	-- wrappers
+	io.stdout:write(t1, 'public static partial class Natives\n', t1 ,'{\n')
+	for i = 1, nativeSharedCount do
+		PrintWrappers(_nativesShared[i])
+	end
+	io.stdout:write(t1, '}\n\n')
+	
+	-- Pointer Argument Safety (PAS) bits
+	PrintPointerArgumentSafety(_natives)
+	
+	io.stdout:write('}\n#endif\n');
+end
+
+io.stdout:write('#endif\n')

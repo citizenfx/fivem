@@ -114,7 +114,8 @@ namespace CitizenFX.Core
 
 				try
 				{
-					result = funcRef.m_method(args);
+					// there's no remote invocation support through here
+					result = funcRef.m_method(default, args);
 				}
 				catch (Exception ex)
 				{

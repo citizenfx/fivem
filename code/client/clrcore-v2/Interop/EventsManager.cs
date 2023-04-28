@@ -6,7 +6,7 @@ using CitizenFX.Core.Native;
 
 namespace CitizenFX.Core
 {
-	internal static class EventManager
+	internal static class EventsManager
 	{
 		private static Dictionary<string, List<Tuple<DynFunc, Binding>>> s_eventHandlers = new Dictionary<string, List<Tuple<DynFunc, Binding>>>();
 
@@ -31,10 +31,12 @@ namespace CitizenFX.Core
 				{
 					// #TODO: should we silently ignore this or annoy peeps with it?
 					if (args is null)
-						args = MsgPackDeserializer.DeserializeArguments(argsSerialized, serializedSize, sourceString, true);
+						args = MsgPackDeserializer.DeserializeArray(argsSerialized, serializedSize, sourceString);
 
 					if (args != null)
 					{
+						Remote remote = new Remote(origin, sourceString);
+
 						// shedule it for next update
 						Scheduler.Schedule(() =>
 						{
@@ -45,7 +47,7 @@ namespace CitizenFX.Core
 									var ev = delegateList[i];
 									if ((ev.Item2 & origin) != 0)
 									{
-										var result = ev.Item1(args);
+										var result = ev.Item1(remote, args);
 										if (result != null)
 											return;
 									}
@@ -67,7 +69,7 @@ namespace CitizenFX.Core
 		}
 
 		#region Registration
-		internal static void AddEventHandler(string eventName, DynFunc del, Binding binding = Binding.LOCAL)
+		internal static void AddEventHandler(string eventName, DynFunc del, Binding binding = Binding.Local)
 		{
 			if (!s_eventHandlers.TryGetValue(eventName, out var delegateList))
 			{
@@ -130,14 +132,14 @@ namespace CitizenFX.Core
 		{
 			for(int i = 0; i < m_handlers.Count; ++i)
 			{
-				EventManager.RemoveEventHandler(m_eventName, m_handlers[i]);
+				EventsManager.RemoveEventHandler(m_eventName, m_handlers[i]);
 			}
 		}
 
-		public EventHandlerSet Add(DynFunc deleg, Binding binding = Binding.LOCAL)
+		public EventHandlerSet Add(DynFunc deleg, Binding binding = Binding.Local)
 		{
 			m_handlers.Add(deleg);
-			EventManager.AddEventHandler(m_eventName, deleg, binding);
+			EventsManager.AddEventHandler(m_eventName, deleg, binding);
 			return this;
 		}
 
@@ -147,7 +149,7 @@ namespace CitizenFX.Core
 			if (index != -1)
 			{
 				m_handlers.RemoveAt(index);
-				EventManager.RemoveEventHandler(m_eventName, deleg);
+				EventsManager.RemoveEventHandler(m_eventName, deleg);
 			}
 			return this;
 		}
@@ -163,7 +165,7 @@ namespace CitizenFX.Core
 		/// <param name="deleg"></param>
 		/// <returns></returns>
 		[Obsolete("This is slow, use += Func.Create<T..., Ret>(method) instead.", false)]
-		public static EventHandlerSet operator +(EventHandlerSet entry, Delegate deleg) => entry.Add(args => deleg.DynamicInvoke(args));
+		public static EventHandlerSet operator +(EventHandlerSet entry, Delegate deleg) => entry.Add((remote, args) => deleg.DynamicInvoke(args));
 
 		/// <summary>
 		/// Backwards compatibility

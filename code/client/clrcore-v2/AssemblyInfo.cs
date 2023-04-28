@@ -7,6 +7,7 @@ using System.Runtime.Versioning;
 
 #if IS_FXSERVER
 [assembly: AssemblyDescription("CitizenFX.Core for FXServer")]
+[assembly: InternalsVisibleTo("CitizenFX.Server")]
 #elif GTA_FIVE
 [assembly: AssemblyDescription("CitizenFX.Core for FiveM")]
 [assembly: InternalsVisibleTo("CitizenFX.FiveM")]

@@ -2,7 +2,7 @@ using System;
 
 #if MONO_V2
 using CitizenFX.Core;
-using INativeValue = CitizenFX.Core.Native.Input.Primitive;
+using INativeValue = CitizenFX.Shared.Player;
 using API = CitizenFX.FiveM.Native.Natives;
 using TaskBool = CitizenFX.Core.Coroutine<bool>;
 
@@ -63,8 +63,6 @@ namespace CitizenFX.Core
 		public Player(int handle) : base((ulong)handle)
 		{
 		}
-
-		public int Handle { get => (int)m_nativeValue; }
 #else
 		public Player(int handle)
 		{
@@ -97,27 +95,30 @@ namespace CitizenFX.Core
 			}
 		}
 
+#if MONO_V2
+		public override Shared.IPed GetCharacter() => Character;
+#endif
+
 		/// <summary>
 		/// Gets the <see cref="StateBag"/> of this <see cref="Player"/>
 		/// </summary>
-		public StateBag State
-		{
-			get
-			{
-				return new StateBag("player:" + ServerId);
-			}
-		}
+#if MONO_V2
+		public override StateBag State => new StateBag("player:" + ServerId);
+#else
+		public StateBag State => new StateBag("player:" + ServerId);
+
+#endif
 
 		/// <summary>
 		/// Gets the name of this <see cref="Player"/>.
 		/// </summary>
-		public string Name
-		{
-			get
-			{
-				return API.GetPlayerName(Handle);
-			}
-		}
+#if MONO_V2
+		public override string Name => API.GetPlayerName(Handle);
+#else
+		public string Name => API.GetPlayerName(Handle);
+
+#endif
+
 		/// <summary>
 		/// Gets or sets how much money this <see cref="Player"/> has.
 		/// <remarks>Only works if current player is <see cref="PedHash.Michael"/>, <see cref="PedHash.Franklin"/> or <see cref="PedHash.Trevor"/></remarks>

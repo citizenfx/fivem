@@ -3,7 +3,7 @@ using System;
 namespace CitizenFX.Core
 {
 	[Flags]
-	public enum Binding { NONE = 0, LOCAL = 1, REMOTE = 2, ALL = LOCAL | REMOTE }
+	public enum Binding { None = 0x0, Local = 0x1, Remote = 0x2, All = Local | Remote }
 
 	[AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
 	public class TickAttribute : Attribute
@@ -28,7 +28,7 @@ namespace CitizenFX.Core
 	{
 		public string Event { get; }
 		public Binding Binding { get; }
-		public EventHandlerAttribute(string name, Binding binding = Binding.ALL)
+		public EventHandlerAttribute(string name, Binding binding = Binding.All)
 		{
 			Event = name;
 			Binding = binding;
@@ -40,17 +40,10 @@ namespace CitizenFX.Core
 	{
 		public string Export { get; }
 		public Binding Binding { get; }
-		public ExportAttribute(string name, Binding binding = Binding.LOCAL)
+		public ExportAttribute(string name, Binding binding = Binding.Local)
 		{ 
 			Export = name;
 			Binding = binding;
 		}
 	}
-
-#if IS_FXSERVER
-	[AttributeUsage(AttributeTargets.Parameter, Inherited = false, AllowMultiple = false)]
-	public sealed class FromSourceAttribute : Attribute
-	{
-	}
-#endif
 }

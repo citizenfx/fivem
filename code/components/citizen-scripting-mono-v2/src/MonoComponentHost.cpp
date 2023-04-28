@@ -24,12 +24,8 @@
 #include <mono/metadata/exception.h>
 #include <mono/metadata/threads.h>
 
-#ifdef IS_FXSERVER
-#define CITIZENFX_CORE "CitizenFX.Core.Server"
-#else
-#define CITIZENFX_CORE "CitizenFX.Core.Client"
+#define CITIZENFX_CORE "CitizenFX.Core"
 #define CITIZENFX_GAME_NATIVE "CitizenFX." PRODUCT_NAME ".Native"
-#endif
 
 #define GET_PREV_DOMAIN MonoDomain* _prevDomain = mono_domain_get();
 #define BACK_TO_PREV_DOMAIN mono_domain_set_internal(_prevDomain);
@@ -47,6 +43,7 @@ void MonoComponentHost::Initialize()
 	MonoComponentHostShared::Initialize();
 	mono_install_assembly_search_hook(AssemblyResolve, nullptr);
 
+	mono_thread_attach(mono_get_root_domain());
 	s_rootDomain = mono_domain_create_appdomain(const_cast<char*>("Mono-V2"), const_cast<char*>("cfx.config")); // should've been const qualified
 
 	// TODO: PERF: see which of these can be replaced by mono_dangerous_add_raw_internal_call("full method name", func*) and/or made suitable for,
@@ -118,10 +115,10 @@ void MonoComponentHost::InitializeNativeWrapper(const std::string& platformFolde
 #ifndef IS_FXSERVER
 	// native implementation
 	{
-	std::string nativeAssemblyPath = platformFolder + CITIZENFX_GAME_NATIVE "Impl.dll";
+		std::string nativeAssemblyPath = platformFolder + CITIZENFX_GAME_NATIVE "Impl.dll";
 		auto nativeWrappersAssembly = mono_domain_assembly_open(s_rootDomain, nativeAssemblyPath.c_str());
 		if (!nativeWrappersAssembly)
-	FatalError("Could not load v2/" CITIZENFX_GAME_NATIVE "Impl.dll.\n");
+			FatalError("Could not load v2/" CITIZENFX_GAME_NATIVE "Impl.dll.\n");
 
 		AddAssemblyOverride(CITIZENFX_GAME_NATIVE "Impl", nativeWrappersAssembly, { 2, 0, 0, 0 }, MonoComponentHost::AssemblyOverrideRule::MAJOR_VERSION_EQUAL);
 	}

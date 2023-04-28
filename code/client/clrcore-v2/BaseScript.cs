@@ -17,9 +17,9 @@ namespace CitizenFX.Core
 #if REMOTE_FUNCTION_ENABLED
 		private readonly List<RemoteHandler> m_persistentFunctions = new List<RemoteHandler>();
 #endif
-		protected EventHandler EventHandlers => new EventHandler();
+		protected EventHandler EventHandlers { get; } = new EventHandler();
 
-		protected Exports Exports => new Exports();
+		protected Exports Exports { get; } = new Exports();
 
 		#endregion
 
@@ -99,7 +99,7 @@ namespace CitizenFX.Core
 				lock (m_tickList)
 				{
 					int index = m_tickList.FindIndex(th => th.Equals(value));
-					if (index == -1)
+					if (index >= 0)
 					{
 						m_tickList[index].Stop();
 						m_tickList.RemoveAt(index);
@@ -130,14 +130,14 @@ namespace CitizenFX.Core
 
 		public static Coroutine Wait(uint msecs = 0u) => Delay(msecs);
 
-		public static Coroutine WaitForSeconds(uint msecs) => Delay(msecs * 1000u);
+		public static Coroutine WaitForSeconds(uint seconds) => Delay(seconds * 1000u);
 
-		public static Coroutine WaitForMinutes(uint msecs) => Delay(msecs * 1000u * 60u);
+		public static Coroutine WaitForMinutes(uint minutes) => Delay(minutes * 1000u * 60u);
 
 		#endregion
 
 		#region Events Handlers
-		internal void RegisterEventHandler(string eventName, DynFunc deleg, Binding binding = Binding.LOCAL) => EventHandlers[eventName].Add(deleg, binding);
+		internal void RegisterEventHandler(string eventName, DynFunc deleg, Binding binding = Binding.Local) => EventHandlers[eventName].Add(deleg, binding);
 		#endregion
 
 		#region Script loading

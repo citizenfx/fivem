@@ -12,7 +12,7 @@ using System.Security;
 
 namespace CitizenFX.Core
 {
-	public delegate object DynFunc(params object[] arguments);
+	public delegate object DynFunc(Remote remote, params object[] arguments);
 
 	public static class Func
 	{
@@ -86,13 +86,13 @@ namespace CitizenFX.Core
 
 
 		/// <summary>
-		/// Creates a new dynamic invokable function
+		/// Creates a dynamic invokable function or simply returns it
 		/// </summary>
 		/// <param name="deleg">delegate to make dynamically invokable</param>
-		/// <returns>dynamically invokable delegate</returns>
+		/// <returns>dynamically invokable delegate or returns <paramref name="deleg"/> if it's aleady of type <see cref="DynFunc"/></returns>
 		/// <exception cref="ArgumentNullException">when the given method is non-static and target is null or if given method is null</exception>
 		[SecuritySafeCritical]
-		public static DynFunc Create(Delegate deleg) => Create(deleg.Target, deleg.Method);
+		public static DynFunc Create(Delegate deleg) => deleg is DynFunc dynFunc ? dynFunc : Create(deleg.Target, deleg.Method);
 
 		// no need to recreate it
 		public static DynFunc Create(DynFunc deleg) => deleg;
@@ -109,19 +109,22 @@ namespace CitizenFX.Core
 			bool hasThis = (method.CallingConvention & CallingConventions.HasThis) != 0;
 
 			var lambda = new DynamicMethod($"{method.DeclaringType.FullName}.{method.Name}", typeof(object),
-				hasThis ? new[] { typeof(object), typeof(object[]) } : new[] { typeof(object[]) });
+				hasThis ? new[] { typeof(object), typeof(Remote), typeof(object[]) } : new[] { typeof(Remote), typeof(object[]) });
 
 			ILGenerator g = lambda.GetILGenerator();
-			g.DeclareLocal(typeof(object));
 
-			OpCode argsPosition;
+			OpCode ldarg_remote, ldarg_args;
 			if (hasThis)
 			{
 				g.Emit(OpCodes.Ldarg_0);
-				argsPosition = OpCodes.Ldarg_1;
+				ldarg_remote = OpCodes.Ldarg_1;
+				ldarg_args = OpCodes.Ldarg_2;
 			}
 			else
-				argsPosition = OpCodes.Ldarg_0;
+			{
+				ldarg_remote = OpCodes.Ldarg_0;
+				ldarg_args = OpCodes.Ldarg_1;
+			}
 
 			for (int i = 0, p = 0; i < parameters.Length; ++i)
 			{
@@ -130,28 +133,13 @@ namespace CitizenFX.Core
 #if DYN_FUNC_CALLI
 				parameterTypes[i] = t;
 #endif
-#if IS_FXSERVER
-				// this will place the last value of the argument array into any [FromSource] parameter
-				// in short: (Player)args[args.Length - 1]
-				if (Attribute.IsDefined(parameter, typeof(FromSourceAttribute)))
+				if (t == typeof(Remote))
 				{
-					if (t == typeof(Player))
-					{
-						g.Emit(argsPosition);
-						g.Emit(argsPosition); // used for ldlen
-						g.Emit(OpCodes.Ldlen);
-						//g.Emit(OpCodes.Conv_I4); // although not needed, some edgy verifiers may not like it missing
-						g.Emit(OpCodes.Ldc_I4_1);
-						g.Emit(OpCodes.Sub);
-						g.Emit(OpCodes.Ldelem_Ref);
-						g.Emit(OpCodes.Isinst, t); // only pass it on if it's of type Player, otherwise null
-						continue;
-					}
-					else
-						throw new NotSupportedException($"FromSourceAttribute was used on a non Player typed parameter, on method {method.DeclaringType.FullName}.{method.Name}");
+					g.Emit(ldarg_remote);
+					continue;
 				}
-#endif
-				g.Emit(argsPosition);
+
+				g.Emit(ldarg_args);
 				g.Emit(OpCodes.Ldc_I4_S, (byte)p++);
 				g.Emit(OpCodes.Ldelem_Ref);
 
