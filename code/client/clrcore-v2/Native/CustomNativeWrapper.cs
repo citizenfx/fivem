@@ -22,5 +22,5 @@ namespace CitizenFX.LibertyM.Native
 		public static T Call<T>(ulong hash, params Argument[] arguments) => CustomNativeInvoker.Call<T>(hash, arguments);
 		public static void Call(ulong hash, params Argument[] arguments) => CustomNativeInvoker.Call(hash, arguments);
 	}
-#endif
 }
+#endif
