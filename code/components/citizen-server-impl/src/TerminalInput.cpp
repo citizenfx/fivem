@@ -315,6 +315,8 @@ static InitFunction initFunction([]()
 					fcntl(0, F_SETFL, flags);
 #endif
 
+					rxx.history_sync(instance->GetRootPath() + "/.replxx_history");
+
 					const char* result = rxx.input("cfx> ");
 
 					bool exit = false;
