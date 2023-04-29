@@ -163,7 +163,7 @@ namespace CitizenFX.Core
 			if (!s_exports.ContainsKey(eventName))
 			{
 				s_exports.Add(eventName, new Tuple<DynFunc, Binding>(method, ports));
-				Shared.Native.Natives.RegisterResourceAsEventHandler(eventName);
+				CoreNatives.RegisterResourceAsEventHandler(eventName);
 
 				return true;
 			}
