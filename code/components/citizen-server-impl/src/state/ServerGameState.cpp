@@ -271,14 +271,17 @@ static void CreateSyncData(ServerGameState* state, const fx::ClientSharedPtr& cl
 
 		if (client && data)
 		{
-			data->playerBag = state->GetStateBags()->RegisterStateBag(fmt::sprintf("player:%d", client->GetNetId()));
-
-			if (fx::IsBigMode())
+			if (client->GetNetId() < 0xFFFF)
 			{
-				data->playerBag->AddRoutingTarget(client->GetSlotId());
-			}
+				data->playerBag = state->GetStateBags()->RegisterStateBag(fmt::sprintf("player:%d", client->GetNetId()));
 
-			data->playerBag->SetOwningPeer(client->GetSlotId());
+				if (fx::IsBigMode())
+				{
+					data->playerBag->AddRoutingTarget(client->GetSlotId());
+				}
+
+				data->playerBag->SetOwningPeer(client->GetSlotId());
+			}
 		}
 	};
 
@@ -307,7 +310,11 @@ static void CreateSyncData(ServerGameState* state, const fx::ClientSharedPtr& cl
 
 			gscomms_execute_callback_on_sync_thread([state, client, slotId, netId]()
 			{
-				state->HandleClientDrop(client, netId, slotId);
+				// SyncData only gets unset from sync thread so this should be safe
+				if (client->GetSyncData())
+				{
+					state->HandleClientDrop(client, netId, slotId);
+				}
 			});
 		}
 	});
