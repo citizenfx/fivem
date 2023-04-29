@@ -569,7 +569,12 @@ if _OPTIONS['game'] ~= 'launcher' then
 			'client/clrcore-v2/Math/Vector4.cs',
 		}
 		
-		defines { 'MONO_V2', 'NATIVE_SHARED_INCLUDE' }
+		defines { 'MONO_V2' }
+		
+		if _OPTIONS['game'] ~= 'rdr3' then -- remove rdr3 check when its natives are fixed
+			defines { 'NATIVE_SHARED_INCLUDE' }
+		end
+		
 		cstargets 'v2'
 	end
 	
@@ -594,12 +599,14 @@ if _OPTIONS['game'] ~= 'launcher' then
 		do csproject ("CitizenFX."..program.publicName)
 			clr 'Unsafe'
 			files { 'client/clrcore-v2/'..program.cSharp.gameFiles, 'client/clrcore-v2/Game/Shared/*.cs' }
-			links { csharpCoreAssemblyName, 'CitizenFX.'..program.publicName..'.Native' }
+			links { csharpCoreAssemblyName }
 			defines { 'MONO_V2' }
 			
 			if _OPTIONS['game'] == 'server' then
 				files { 'client/clrcore-v2/Native/'..program.cSharp.nativesFile, 'client/clrcore-v2/Native/CustomNativeWrapper.cs' }
 				defines { 'NATIVE_IMPL_INCLUDE', 'NATIVE_HASHES_INCLUDE', 'NATIVE_WRAPPERS_INCLUDE' }
+			else
+				links { 'CitizenFX.'..program.publicName..'.Native' } -- isn't separated in server environments
 			end
 			
 			cstargets 'v2'
