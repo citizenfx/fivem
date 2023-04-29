@@ -310,11 +310,7 @@ static void CreateSyncData(ServerGameState* state, const fx::ClientSharedPtr& cl
 
 			gscomms_execute_callback_on_sync_thread([state, client, slotId, netId]()
 			{
-				// SyncData only gets unset from sync thread so this should be safe
-				if (client->GetSyncData())
-				{
-					state->HandleClientDrop(client, netId, slotId);
-				}
+				state->HandleClientDrop(client, netId, slotId);
 			});
 		}
 	});
@@ -336,6 +332,11 @@ inline std::shared_ptr<GameStateClientData> GetClientDataUnlocked(ServerGameStat
 inline std::tuple<std::unique_lock<std::mutex>, std::shared_ptr<GameStateClientData>> GetClientData(ServerGameState* state, const fx::ClientSharedPtr& client)
 {
 	auto val = GetClientDataUnlocked(state, client);
+
+	if (!val)
+	{
+		return {};
+	}
 
 	std::unique_lock<std::mutex> lock(val->selfMutex);
 	return { std::move(lock), val };
@@ -2883,8 +2884,6 @@ void ServerGameState::HandleClientDrop(const fx::ClientSharedPtr& client, uint16
 			}
 		}
 	}
-
-	client->SetSyncData({});
 }
 
 void ServerGameState::ClearClientFromWorldGrid(const fx::ClientSharedPtr& targetClient)
