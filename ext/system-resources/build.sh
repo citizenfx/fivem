@@ -19,7 +19,7 @@ cd resources/chat/
 
 npm install yarn@1.22
 node_modules/.bin/yarn
-NODE_OPTIONS=--openssl-legacy-provider node_modules/.bin/webpack
+node_modules/.bin/webpack
 cd ../../
 
 rm -rf resources/chat/node_modules/

@@ -29,6 +29,7 @@ rmdir /s /q dist
 call npm install yarn@1.22
 call node_modules\.bin\yarn
 
+:: TODO: only do this if node 18
 set NODE_OPTIONS=--openssl-legacy-provider
 call node_modules\.bin\webpack
 popd
