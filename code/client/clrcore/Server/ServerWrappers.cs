@@ -24,7 +24,7 @@ namespace CitizenFX.Core
 		public string Handle => m_handle;
 #endif
 
-		internal Player(string sourceString)
+		public Player(string sourceString)
 		{
 			if (sourceString.StartsWith("net:"))
 			{
@@ -36,7 +36,11 @@ namespace CitizenFX.Core
 				sourceString = sourceString.Substring(13);
 			}
 #endif
-
+			if (!int.TryParse(sourceString, out _))
+        	{
+            	throw new ArgumentException($"Source is invalid", nameof(sourceString));
+       		}
+			
 			m_handle = sourceString;
 		}
 
