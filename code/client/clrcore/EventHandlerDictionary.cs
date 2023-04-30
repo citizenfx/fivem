@@ -114,8 +114,6 @@ namespace CitizenFX.Core
                 catch (Exception e)
                 {
                     Debug.WriteLine("Error invoking callback for event {0}: {1}", m_eventName, e.ToString());
-
-                    m_callbacks.Remove(callback);
                 }
             }
         }
