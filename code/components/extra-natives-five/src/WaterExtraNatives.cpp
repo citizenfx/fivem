@@ -8,6 +8,9 @@
 #include <ResourceMetaDataComponent.h>
 #include <VFSManager.h>
 
+#include "atArray.h"
+#include "GameInit.h"
+
 struct sDepthBound
 {
 	__m128 min, max;
@@ -68,6 +71,16 @@ struct WaveQuad
 	int8_t directionY; // +11
 }; // 12
 
+struct CWaterArea
+{
+	// Those define maximum allowed coordinates for water quads
+
+	static inline int32_t* sm_ClipMinX;
+	static inline int32_t* sm_ClipMinY;
+	static inline int32_t* sm_ClipMaxX;
+	static inline int32_t* sm_ClipMaxY;
+};
+
 static atArray<WaterQuad>* g_waterQuads;
 static atArray<CalmingQuad>* g_calmingQuads;
 static atArray<WaveQuad>* g_waveQuads;
@@ -98,7 +111,7 @@ static hook::cdecl_stub<void*(void*, __m128*, uint64_t)> _TestForWaterPhysics([]
 
 static hook::cdecl_stub<void(const char* path)> _loadWater([]()
 {
-	return hook::get_pattern("48 85 C9 75 ? 8D 51 ? 48 8B 0D", xbr::IsGameBuildOrGreater<2189>() ? -20: - 22);
+	return hook::get_pattern("48 85 C9 75 ? 8D 51 ? 48 8B 0D", xbr::IsGameBuildOrGreater<2189>() ? -20 : -22);
 });
 
 static hook::cdecl_stub<void()> _unloadWater([]()
@@ -273,6 +286,35 @@ static HookFunction initFunction([]()
 	// Visual calls
 	hook::call(hook::get_pattern("E8 ? ? ? ? 33 F6 84 C0 0F 84 ? ? ? ? F3 0F 10 4F ? F3 0F 10 07 E8"), CustomTestForUnderwaterVisuals);
 
+	// Water level
+	if (xbr::IsGameBuildOrGreater<2189>())
+	{
+		// This function processes water file set request by LOAD_GLOBAL_WATER_FILE native
+		uintptr_t updateWaterData = (uintptr_t)hook::get_pattern("48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 48 83 EC 20 8A 05 ? ? ? ? 33");
+
+		// Loads water file & sets hardcoded clip rect for LosSantos / Heist Island
+		uintptr_t setWaterAreaType = hook::get_call<uintptr_t>(updateWaterData + 0x59);
+
+		CWaterArea::sm_ClipMinX = hook::get_address<int32_t*>(setWaterAreaType + 0x29, 2, 6);
+		CWaterArea::sm_ClipMinY = hook::get_address<int32_t*>(setWaterAreaType + 0x2F, 2, 6);
+		CWaterArea::sm_ClipMaxX = hook::get_address<int32_t*>(setWaterAreaType + 0x1F, 2, 10);
+		CWaterArea::sm_ClipMaxY = hook::get_address<int32_t*>(setWaterAreaType + 0x35, 2, 10);
+
+		int32_t defaultClipMinX = *CWaterArea::sm_ClipMinX;
+		int32_t defaultClipMinY = *CWaterArea::sm_ClipMinY;
+		int32_t defaultClipMaxX = *CWaterArea::sm_ClipMaxX;
+		int32_t defaultClipMaxY = *CWaterArea::sm_ClipMaxY;
+
+		// Reset water to default on disconnect
+		OnKillNetworkDone.Connect([=]
+		{
+			*CWaterArea::sm_ClipMinX = defaultClipMinX;
+			*CWaterArea::sm_ClipMinY = defaultClipMinY;
+			*CWaterArea::sm_ClipMaxX = defaultClipMaxX;
+			*CWaterArea::sm_ClipMaxY = defaultClipMaxY;
+		});
+	}
+
 	// Water quads
 	{
 		static_assert(sizeof(WaterQuad) == 28, "Wrong WaveQuad struct size");
@@ -290,6 +332,29 @@ static HookFunction initFunction([]()
 		MH_CreateHook(hook::get_address<void**>(hook::get_pattern("83 FB 04 74 ? 48 8D 0D", 5), 3, 7), unloadWaterRacecondition4, (void**)&g_orig_unloadWaterRacecondition4);
 		MH_EnableHook(MH_ALL_HOOKS);
 	}
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_WATER_AREA_CLIP_RECT", [](fx::ScriptContext& context)
+	{
+		if (!xbr::IsGameBuildOrGreater<2189>())
+			return;
+
+		int32_t minX = context.GetArgument<int>(0);
+		int32_t minY = context.GetArgument<int>(1);
+		int32_t maxX = context.GetArgument<int>(2);
+		int32_t maxY = context.GetArgument<int>(3);
+
+		// Inverted BB will crash game
+		if (maxX < minX || maxY < minY)
+		{
+			trace("Given clip rectangle is inverted, make sure that min coordinate is less or equal to max one.");
+			return;
+		}
+
+		*CWaterArea::sm_ClipMinX = minX;
+		*CWaterArea::sm_ClipMinY = minY;
+		*CWaterArea::sm_ClipMaxX = maxX;
+		*CWaterArea::sm_ClipMaxY = maxY;
+	});
 
 	fx::ScriptEngine::RegisterNativeHandler("CREATE_DRY_VOLUME", [=](fx::ScriptContext& context)
 	{
@@ -687,7 +752,6 @@ static HookFunction initFunction([]()
 		filePath += context.GetArgument<const char*>(1);
 
 		fwRefContainer<vfs::Stream> stream = vfs::OpenRead(filePath);
-
 		if (!stream.GetRef())
 		{
 			trace("unable to find water file at %s\n", filePath.c_str());
