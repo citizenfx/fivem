@@ -181,7 +181,7 @@ static std::wstring MapRedirectedFilename(const wchar_t* origFileName)
 
 	if (wcsstr(origFileName, L"Documents\\Rockstar Games") != nullptr || wcsstr(origFileName, g_rsgDocumentsRoot.c_str()) != nullptr)
 	{
-		return g_localAppDataRoot + &wcsstr(origFileName, L"Rockstar Games")[0];
+		return g_localAppDataRoot + L"\\" + &wcsstr(origFileName, L"Rockstar Games")[0];
 	}
 
 	if (getenv("CitizenFX_ToolMode"))
