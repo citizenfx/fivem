@@ -677,11 +677,20 @@ static HookFunction initFunction([]()
 			return;
 		}
 
-		auto filePath = resource->GetPath() + "/" + context.GetArgument<const char*>(1);
+		std::string filePath = resource->GetPath();
+
+		// Make sure path separator exists or add it before combining path with file name
+		char c = filePath[filePath.length() - 1];
+		if (c != '/' && c != '\\')
+			filePath += '/';
+
+		filePath += context.GetArgument<const char*>(1);
+
 		fwRefContainer<vfs::Stream> stream = vfs::OpenRead(filePath);
 
 		if (!stream.GetRef())
 		{
+			trace("unable to find water file at %s\n", filePath.c_str());
 			context.SetResult(false);
 			return;
 		}
