@@ -662,16 +662,26 @@ static int __Lua_InvokeNative(lua_State* L)
 	else
 #endif
 	{
-		result_t hr = scriptHost->InvokeNative(context);
-
-		if (!FX_SUCCEEDED(hr))
+		try 
 		{
-			char* error = "Unknown";
-			scriptHost->GetLastErrorText(&error);
-
-			lua_pushstring(L, va("Execution of native %016llx in script host failed: %s", origHash, error));
+		    result_t hr = scriptHost->InvokeNative(context);
+    
+		    if (!FX_SUCCEEDED(hr))
+		    {
+		    	char* error = "Unknown";
+		    	scriptHost->GetLastErrorText(&error);
+    
+		    	lua_pushstring(L, va("Execution of native %016llx in script host failed: %s", origHash, error));
+		    	lua_error(L);
+		    }
+		}
+		catch (std::exception& e)
+		{
+			fx::ScriptTrace("%s: execution failed: %s\n", __func__, e.what());
+			lua_pushstring(L, va("Execution of native %016llx in script host failed: %s", origHash, e.what()));
 			lua_error(L);
 		}
+
 	}
 
 #ifndef IS_FXSERVER
