@@ -141,7 +141,15 @@ public:
 	inline void SetCancelHandler(const std::function<void()>& handler)
 	{
 		std::unique_lock<std::shared_mutex> lock(m_cancelHandlerMutex);
-		m_cancelHandler = std::make_shared<std::remove_const_t<std::remove_reference_t<decltype(handler)>>>(handler);
+
+		if (handler)
+		{
+			m_cancelHandler = std::make_shared<std::remove_const_t<std::remove_reference_t<decltype(handler)>>>(handler);
+		}
+		else
+		{
+			m_cancelHandler = {};
+		}
 	}
 
 	inline std::pair<int, int> GetHttpVersion() const
@@ -277,7 +285,7 @@ public:
 
 	void Write(std::unique_ptr<char[]> data, size_t length, fu2::unique_function<void(bool)>&& onComplete = {});
 
-	virtual void End() = 0;
+	virtual void End();
 
 	virtual void BeforeWriteHead(size_t length);
 

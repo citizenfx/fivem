@@ -463,6 +463,8 @@ public:
 
 	virtual void End() override
 	{
+		HttpResponse::End();
+
 		if (auto stream = TcpStream(); stream.GetRef())
 		{
 			fwRefContainer thisRef = this;
