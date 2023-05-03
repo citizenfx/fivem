@@ -633,6 +633,39 @@ static InitFunction initFunction([]()
 			auto it = g_serverProviders.begin();
 
 			fx::ClientWeakPtr clientWeak{ client };
+
+			struct ClientHolder
+			{
+				explicit ClientHolder(fx::ClientRegistry* clientRegistry, fx::ClientWeakPtr client)
+					: clientRegistry(clientRegistry), client(client)
+				{
+
+				}
+
+				void Disown()
+				{
+					client = {};
+				}
+
+				~ClientHolder()
+				{
+					if (client)
+					{
+						if (auto clientPtr = client.lock())
+						{
+							clientRegistry->RemoveClient(clientPtr);
+						}
+					}
+				}
+
+			private:
+				fx::ClientRegistry* clientRegistry;
+
+				fx::ClientWeakPtr client;
+			};
+
+			auto clientHolder = std::make_shared<ClientHolder>(clientRegistry.GetRef(), clientWeak);
+
 			auto done = [=]()
 			{
 				auto lockedClient = clientWeak.lock();
@@ -646,6 +679,8 @@ static InitFunction initFunction([]()
 
 				auto allowClient = [=]()
 				{
+					clientHolder->Disown();
+
 					auto client = clientWeak.lock();
 
 					if (client)
@@ -693,8 +728,6 @@ static InitFunction initFunction([]()
 
 				if (maxTrust < minTrustVar->GetValue() || minVariance > maxVarianceVar->GetValue())
 				{
-					clientRegistry->RemoveClient(lockedClient);
-
 					sendError("You can not join this server due to your identifiers being insufficient. Please try starting Steam or another identity provider and try again.");
 					return;
 				}
@@ -704,8 +737,6 @@ static InitFunction initFunction([]()
 
 				if (canEnforceBuild && !enforceGameBuildVar->GetValue().empty() && enforceGameBuildVar->GetValue() != gameBuild)
 				{
-					clientRegistry->RemoveClient(lockedClient);
-
 					sendError(
 						fmt::sprintf(
 							"This server requires a different game build (%s) from the one you're using (%s).%s",
@@ -781,7 +812,7 @@ static InitFunction initFunction([]()
 				auto weakEarlyReject = std::weak_ptr(earlyReject);
 				auto weakNoReason = std::weak_ptr(noReason);
 
-				(*deferrals)->SetRejectCallback([deferrals, cbRef, clientWeak, clientRegistry, weakEarlyReject, weakNoReason](const std::string& message)
+				(*deferrals)->SetRejectCallback([deferrals, cbRef, clientWeak, weakEarlyReject, weakNoReason](const std::string& message)
 				{
 					auto earlyReject = weakEarlyReject.lock();
 					auto noReason = weakNoReason.lock();
@@ -795,8 +826,6 @@ static InitFunction initFunction([]()
 					auto newLockedClient = clientWeak.lock();
 					if (newLockedClient)
 					{
-						clientRegistry->RemoveClient(newLockedClient);
-
 						auto ref1 = *cbRef;
 
 						if (ref1)
@@ -810,14 +839,8 @@ static InitFunction initFunction([]()
 					*deferrals = nullptr;
 				});
 
-				request->SetCancelHandler([cbRef, deferrals, clientWeak, clientRegistry, didSucceed]()
+				request->SetCancelHandler([cbRef, deferrals]()
 				{
-					auto newLockedClient = clientWeak.lock();
-					if (!*didSucceed && newLockedClient)
-					{
-						clientRegistry->RemoveClient(newLockedClient);
-					}
-
 					*cbRef = nullptr;
 					*deferrals = nullptr;
 				});
@@ -901,16 +924,14 @@ static InitFunction initFunction([]()
 
 					if (!shouldAllow)
 					{
-						clientRegistry->RemoveClient(lockedClient);
-
+						*deferrals = {};
 						sendError(**noReason);
 						return;
 					}
 
 					if (*earlyReject)
 					{
-						clientRegistry->RemoveClient(lockedClient);
-
+						*deferrals = {};
 						sendError(**noReason);
 						return;
 					}
@@ -978,8 +999,6 @@ static InitFunction initFunction([]()
 						// if an auth method fails, bail
 						if (err)
 						{
-							clientRegistry->RemoveClient(newClientLocked);
-
 							sendError(*err);
 
 							// unset the callback
