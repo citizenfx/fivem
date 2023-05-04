@@ -8,23 +8,28 @@ namespace CitizenFX.Core
 
 		internal Remote(string playerId)
 		{
-			if (playerId.StartsWith("net:"))
+			if (!string.IsNullOrEmpty(playerId))
 			{
-				playerId = playerId.Substring(4);
-			}
-			else if (playerId.StartsWith("internal-net:"))
-			{
-				playerId = playerId.Substring(13);
-			}
+				if (playerId.StartsWith("net:"))
+				{
+					playerId = playerId.Substring(4);
+				}
+				else if (playerId.StartsWith("internal-net:"))
+				{
+					playerId = playerId.Substring(13);
+				}
 
-			m_playerId = playerId;
+				m_playerId = playerId;
+			}
+			else
+				m_playerId = null;
 		}
 
 		internal Remote(Binding binding, string playerId) : this(playerId)
 		{
 		}
 
-		public static implicit operator bool(Remote remote) => remote.m_playerId != null;
+		internal static bool IsRemoteInternal(Remote remote) => remote.m_playerId != null;
 
 		internal string GetPlayerHandle() => m_playerId;
 
@@ -36,9 +41,12 @@ namespace CitizenFX.Core
 
 		internal Remote(bool isServer) => m_isServer = isServer;
 
-		public static implicit operator bool(Remote remote) => remote.m_isServer;
+		internal static bool IsRemoteInternal(Remote remote) => remote.m_isServer;
 
 		public override string ToString() => $"Remote({m_isServer})";
 #endif
+		public bool IsRemote => IsRemoteInternal(this);
+
+		public static implicit operator bool(Remote remote) => IsRemoteInternal(remote);
 	}
 }

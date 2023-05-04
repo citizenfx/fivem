@@ -7,30 +7,53 @@ namespace CitizenFX.Core
 	public class Scheduler
 	{
 		internal static uint TimeNow { get; private set; }
+		internal static Thread MainThread { get; private set; }
+
 		private static LinkedList<Tuple<uint, Action>> s_queue = new LinkedList<Tuple<uint, Action>>();
 
 		// optimized non ordering
 		private static List<Action> s_nextFrame = new List<Action>();
 		private static List<Action> s_nextFrameProcessing = new List<Action>();
 
-		public static void Schedule(Action coroutine)
+		internal static void Initialize()
 		{
-			s_nextFrame.Add(coroutine);
+			MainThread = Thread.CurrentThread;
 		}
 
-		public static void Schedule(Action delay, uint time)
+		public static void Schedule(Action coroutine)
 		{
-			// linear ordered insert, performance improvement might be a binary tree (i.e.: priority queue)
-			for (var it = s_queue.First; it != null; it = it.Next)
+			if (coroutine != null)
 			{
-				if (time < it.Value.Item1)
+				lock (s_nextFrame)
 				{
-					s_queue.AddBefore(it, new Tuple<uint, Action>(time, delay));
-					return;
+					s_nextFrame.Add(coroutine);
 				}
 			}
+			else
+				throw new ArgumentNullException(nameof(coroutine));
+		}
 
-			s_queue.AddLast(new Tuple<uint, Action>(time, delay));
+		public static void Schedule(Action coroutine, uint time)
+		{
+			if (coroutine != null)
+			{
+				lock (s_queue)
+				{
+					// linear ordered insert, performance improvement might be a binary tree (i.e.: priority queue)
+					for (var it = s_queue.First; it != null; it = it.Next)
+					{
+						if (time < it.Value.Item1)
+						{
+							s_queue.AddBefore(it, new Tuple<uint, Action>(time, coroutine));
+							return;
+						}
+					}
+
+					s_queue.AddLast(new Tuple<uint, Action>(time, coroutine));
+				}
+			}
+			else
+				throw new ArgumentNullException(nameof(coroutine));
 		}
 
 		internal static void Update()
@@ -56,29 +79,32 @@ namespace CitizenFX.Core
 				s_nextFrameProcessing.Clear();
 			}
 
-			// scheduled coroutines (ordered)
-			for (var it = s_queue.First; it != null;)
+			lock (s_queue)
 			{
-				var curIt = it;
-				it = curIt.Next;
-
-				if (curIt.Value.Item1 <= timeNow)
+				// scheduled coroutines (ordered)
+				for (var it = s_queue.First; it != null;)
 				{
-					try
+					var curIt = it;
+					it = curIt.Next;
+
+					if (curIt.Value.Item1 <= timeNow)
 					{
-						curIt.Value.Item2();
+						try
+						{
+							curIt.Value.Item2();
+						}
+						catch (Exception ex)
+						{
+							Debug.WriteLine(ex.ToString());
+						}
+						finally
+						{
+							s_queue.Remove(curIt);
+						}
 					}
-					catch (Exception ex)
-					{
-						Debug.WriteLine(ex.ToString());
-					}
-					finally
-					{
-						s_queue.Remove(curIt);
-					}
+					else
+						return;
 				}
-				else
-					return;
 			}
 		}
 	}

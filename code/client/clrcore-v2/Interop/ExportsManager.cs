@@ -25,7 +25,7 @@ namespace CitizenFX.Core
 			if (s_exports.TryGetValue(eventName, out var export) && (export.Item2 & origin) != 0)
 			{
 				if (args == null)
-					args = MsgPackDeserializer.DeserializeArray(argsSerialized, serializedSize, sourceString);
+					args = MsgPackDeserializer.DeserializeArray(argsSerialized, serializedSize, origin == Binding.Remote ? sourceString : null);
 
 				if (origin == Binding.Local)
 				{

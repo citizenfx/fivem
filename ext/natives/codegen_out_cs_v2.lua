@@ -521,6 +521,8 @@ local function PrintNativeMethod(native)
 	io.stdout:write(t2, '[System.Security.SecuritySafeCritical]\n', t2, 'public static unsafe ', retType, ' ',
 		(hasResult and retType:gsub('ref ', '')..'_' or 'void_'), native.hash, '(')
 	
+	local monoStackBugFix = true;
+	
 	-- write parameters and append argument string for the ulong stack
 	local argn, fixed, stack = 0, '', ''
 	local comma, argSize = '', #native.arguments
@@ -529,7 +531,13 @@ local function PrintNativeMethod(native)
 		local name, wrapperType, asPointer = ToNonLanguageName(arg.name), GetWrapperType(arg.type, arg.pointer == true)
 		
 		io.stdout:write(comma, wrapperType[2][1]:gsub('{0}', name), '')
-		stack = stack .. comma .. wrapperType[2][2]:gsub('{0}', name)
+		
+		local stackValue = wrapperType[2][2]:gsub('{0}', name)
+		if stackValue ~= '0' then
+			monoStackBugFix = false
+		end
+		
+		stack = stack .. comma .. stackValue
 		
 		if wrapperType[2][3] then fixed = fixed..t3..wrapperType[2][3]:gsub('{0}', name)..'\n' end
 		
@@ -549,17 +557,23 @@ local function PrintNativeMethod(native)
 		comma = ', '
 	end
 	
-	io.stdout:write(')\n', t2, '{\n', fixed, t3, '{\n', t4, 'ulong* __data = stackalloc ulong[] { ', stack)
-	
-	-- make sure there's enough room to store the return types
 	local resultSize = hasResult and (wrapRetType.typeSize or 1) or -1
-	while argn < resultSize do
-		io.stdout:write(comma, '0')
-		comma, argn = ', ', argn + 1
+	if monoStackBugFix then
+		io.stdout:write(')\n', t2, '{\n', fixed, t3, '{\n', t4, 'ulong* __data = stackalloc ulong[', math.max(resultSize, argn), '];\n')
+	else
+		io.stdout:write(')\n', t2, '{\n', fixed, t3, '{\n', t4, 'ulong* __data = stackalloc ulong[] { ', stack)
+		
+		-- make sure there's enough room to store the return types
+		while argn < resultSize do
+			io.stdout:write(comma, '0')
+			comma, argn = ', ', argn + 1
+		end
+		
+		io.stdout:write(' };\n')
 	end
 	
 	-- invoke native
-	io.stdout:write(' };\n', t4, 'ScriptContext.InvokeNative')
+	io.stdout:write(t4, 'ScriptContext.InvokeNative')
 	if writeVector3Out then io.stdout:write('OutVec3') end -- will call the Vector3 copy function, required to pass on the values
 	io.stdout:write('(ref s_', native.hash, ', ', native.hash, ', __data, ', argn, ');\n')
 

@@ -45,6 +45,7 @@ namespace CitizenFX.Core
 		/// <param name="exc">the thrown exception in question</param>
 		/// <param name="func">the DynFunc that was being executed</param>
 		/// <returns>true if we should still print/log it</returns>
+		[SecuritySafeCritical]
 		internal static bool ShouldWeLogDynFuncError(Exception exc, DynFunc func)
 		{
 			return exc.TargetSite != func.Method

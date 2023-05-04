@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Dynamic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security;
@@ -160,9 +161,9 @@ namespace CitizenFX.Core
 			throw new InvalidOperationException($"Tried to decode invalid MsgPack type {type}");
 		}
 
-		private Dictionary<string, object> ReadMap(uint length)
+		private IDictionary<string, object> ReadMap(uint length)
 		{
-			var retobject = new Dictionary<string, object>();
+			var retobject = new ExpandoObject() as IDictionary<string, object>;
 
 			for (var i = 0; i < length; i++)
 			{
@@ -205,7 +206,7 @@ namespace CitizenFX.Core
 		private unsafe double ReadDouble()
 		{
 			var v = ReadUInt64();
-			return *(float*)&v;
+			return *(double*)&v;
 		}
 
 		private unsafe byte ReadByte()
@@ -281,10 +282,11 @@ namespace CitizenFX.Core
 			{
 				case 10: // remote funcref
 				case 11: // local funcref
+					var refFunc = ReadString(length);
 					return m_netSource is null
-						? _LocalFunction.Create(ReadString(length))
+						? _LocalFunction.Create(refFunc)
 #if REMOTE_FUNCTION_ENABLED
-						: _RemoteFunction.Create(ReadString(length), m_netSource);
+						: _RemoteFunction.Create(refFunc, m_netSource);
 #else
 						: null;
 #endif

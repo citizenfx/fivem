@@ -177,8 +177,8 @@ namespace CitizenFX.Core.Native
 		
 		[SecurityCritical] public static unsafe implicit operator Argument(void* v) => new Input.Primitive((ulong)v);
 
-		internal abstract unsafe void PushNativeValue(ref CustomNativeInvoker.CustomInvocation ctx);
-		internal virtual unsafe void PullNativeValue(ref CustomNativeInvoker.CustomInvocation ctx)
+		[SecurityCritical] internal abstract unsafe void PushNativeValue(ref CustomNativeInvoker.CustomInvocation ctx);
+		[SecurityCritical] internal virtual unsafe void PullNativeValue(ref CustomNativeInvoker.CustomInvocation ctx)
 			=> ctx.m_offset++;
 	}
 
@@ -194,6 +194,7 @@ namespace CitizenFX.Core.Native
 			public Primitive(ulong value) => this.m_nativeValue = value;
 			public Primitive() { }
 
+			[SecurityCritical]
 			internal override unsafe void PushNativeValue(ref CustomNativeInvoker.CustomInvocation ctx)
 			{
 				ctx.m_ctx.functionDataPtr[ctx.m_ctx.numArguments++] = m_nativeValue;
@@ -205,6 +206,8 @@ namespace CitizenFX.Core.Native
 			private CitizenFX.Core.CString m_cstr;
 
 			internal CString(CitizenFX.Core.CString value) => m_cstr = value;
+
+			[SecurityCritical]
 			internal override unsafe void PushNativeValue(ref CustomNativeInvoker.CustomInvocation ctx)
 			{
 				fixed (byte* ptr = m_cstr?.value)
@@ -228,6 +231,7 @@ namespace CitizenFX.Core.Native
 				z = N64.Val(v.Z);
 			}
 
+			[SecurityCritical]
 			internal override unsafe void PushNativeValue(ref CustomNativeInvoker.CustomInvocation ctx)
 			{
 				ulong* data = ctx.m_ctx.functionDataPtr + ctx.m_ctx.numArguments;
@@ -238,6 +242,7 @@ namespace CitizenFX.Core.Native
 				data[2] = z;
 			}
 
+			[SecurityCritical]
 			internal override unsafe void PullNativeValue(ref CustomNativeInvoker.CustomInvocation ctx)
 				=> ctx.m_offset += 3;
 		}
@@ -265,6 +270,7 @@ namespace CitizenFX.Core.Native
 				w = N64.Val(v.W);
 			}
 
+			[SecurityCritical]
 			internal override unsafe void PushNativeValue(ref CustomNativeInvoker.CustomInvocation ctx)
 			{
 				ulong* data = ctx.m_ctx.functionDataPtr + ctx.m_ctx.numArguments;
@@ -297,11 +303,13 @@ namespace CitizenFX.Core.Native
 			public static implicit operator float(Primitive v) => N64.To_float(v.m_nativeValue);
 			public static implicit operator double(Primitive v) => N64.To_double(v.m_nativeValue);
 
+			[SecurityCritical]
 			internal override unsafe void PushNativeValue(ref CustomNativeInvoker.CustomInvocation ctx)
 			{
 				ctx.m_ctx.functionDataPtr[ctx.m_ctx.numArguments++] = m_nativeValue;
 			}
-
+			
+			[SecurityCritical]
 			internal override unsafe void PullNativeValue(ref CustomNativeInvoker.CustomInvocation ctx)
 			{
 				m_nativeValue = ctx.m_ctx.functionDataPtr[ctx.m_offset++];
@@ -319,6 +327,7 @@ namespace CitizenFX.Core.Native
 			public static implicit operator Core.Vector4(Vector4 v) => v.m_vector;
 			public static implicit operator Core.Quaternion(Vector4 v) => new Core.Quaternion(v.m_vector.X, v.m_vector.Y, v.m_vector.Z, v.m_vector.W);
 
+			[SecurityCritical]
 			internal override unsafe void PushNativeValue(ref CustomNativeInvoker.CustomInvocation ctx)
 			{
 				fixed (Core.Vector4* ptr = &m_vector)

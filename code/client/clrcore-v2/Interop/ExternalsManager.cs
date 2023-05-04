@@ -36,7 +36,7 @@ namespace CitizenFX.Core
 			{
 				if (eventName == RpcRequestName)
 				{
-					args = MsgPackDeserializer.DeserializeArguments(argsSerialized, serializedSize, sourceString, true);
+					args = MsgPackDeserializer.DeserializeArguments(argsSerialized, serializedSize, origin == Binding.Remote ? sourceString : null);
 					if (args.Length > 3 && args[2] is string requestId)
 					{
 						ulong rid = Convert.ToUInt64(requestId);

@@ -15,7 +15,7 @@ namespace CitizenFX.Shared
 		/// <summary>
 		/// Gets the handle of this player
 		/// </summary>
-		public uint Handle => uint.Parse(m_handle);
+		public int Handle => int.Parse(m_handle);
 #else
 	public abstract class Player : Core.Native.Input.Primitive
 	{

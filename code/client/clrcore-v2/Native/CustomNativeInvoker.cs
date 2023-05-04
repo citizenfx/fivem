@@ -28,6 +28,7 @@ namespace CitizenFX.Core.Native
 			/// Keeps adding arguments onto the argument stack, will recurse when arguments need to be fixed.
 			/// This approach is 10x faster than the v1 approach in combination with CString
 			/// </summary>
+			[SecurityCritical]
 			internal unsafe void PushPinAndInvoke()
 			{
 				while (m_offset < m_length)
@@ -53,6 +54,7 @@ namespace CitizenFX.Core.Native
 			}
 		}
 
+		[SecuritySafeCritical]
 		public static unsafe T Call<T>(ulong hash, params Argument[] arguments)
 		{
 			ulong* __data = stackalloc ulong[32];
@@ -60,12 +62,14 @@ namespace CitizenFX.Core.Native
 			return (T)ScriptContext.GetResult(typeof(T), __data, hash);
 		}
 
+		[SecuritySafeCritical]
 		public static unsafe void Call(ulong hash, params Argument[] arguments)
 		{
 			ulong* __data = stackalloc ulong[32];
 			InvokeInternal(__data, hash, arguments);
 		}
 
+		[SecurityCritical]
 		private static unsafe void InvokeInternal(ulong* data, ulong nativeHash, Argument[] args)
 		{
 			CustomInvocation invoker = default;
