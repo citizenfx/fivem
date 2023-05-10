@@ -3191,41 +3191,8 @@ static void LoadVehicleMetaForDlc(CDataFileMgr::DataFile* entry, bool notMapType
 	std::map<int, int> txdRelationships;
 	GetTxdRelationships(txdRelationships);
 
-	// try to guess the amount of entries this meta file has
-	int entryCount = 16;
-
-	{
-		auto stream = vfs::OpenRead(entry->name);
-
-		if (stream.GetRef())
-		{
-			auto text = stream->ReadToEnd();
-			std::string textString{ text.begin(), text.end() };
-
-			std::string substring = "</modelName>";
-
-			// safe margin to start
-			entryCount = 4;
-
-			// more SO code: https://stackoverflow.com/a/5816029
-			textString = substring + textString;
-
-			std::vector<int> z;
-			calc_z(textString, z);
-
-			for (int i = substring.size(); i < textString.size(); ++i)
-			{
-				if (z[i] >= substring.size())
-				{
-					entryCount++;
-				}
-			}
-		}
-	}
-
 	// we use DLC name as hash
 	auto entryHash = HashString(entry->name);
-	g_archetypeFactories->Get(5)->GetOrCreate(entryHash, entryCount);
 
 	overrideTypesHash = true;
 	g_origLoadVehicleMeta(entry, notMapTypes, entryHash);
@@ -3261,6 +3228,20 @@ static void AddVehicleArchetype(fwArchetype* self, uint32_t typesHash)
 	}
 
 	g_origAddArchetype(self, typesHash);
+}
+
+static bool (*g_origParserCreateAndLoadAnyType)(void* self, const char* path, const char* extension, void* parStructure, void* parParsableStructure, void* a6);
+
+static bool ParserCreateAndLoadAnyType(void* self, const char* path, const char* extension, void* parStructure, void* parParsableStructure, void* a6)
+{
+	bool success = g_origParserCreateAndLoadAnyType(self, path, extension, parStructure, parParsableStructure, a6);
+	if (success && overrideTypesHash)
+	{
+		uint32_t entryHash = HashString(path);
+		uint16_t entryCount = *(uint16_t*)(*(char**)parParsableStructure + 8);
+		g_archetypeFactories->Get(5)->GetOrCreate(entryHash, entryCount);
+	}
+	return success;
 }
 
 static void (*g_origUnloadVehicleMeta)(CDataFileMgr::DataFile* entry);
@@ -3342,6 +3323,10 @@ static HookFunction hookFunction([]()
 		location = hook::get_pattern("8B D5 48 8B CE 89 46 18 40 84 FF 74 0A", 0x17);
 		hook::set_call(&g_origAddArchetype, location);
 		hook::call(location, AddVehicleArchetype);
+
+		location = hook::get_pattern("89 55 EC 49 8B D2 48 89 44 24", 11);
+		hook::set_call(&g_origParserCreateAndLoadAnyType, location);
+		hook::call(location, ParserCreateAndLoadAnyType);
 	}
 
 	// unloading wrapper
