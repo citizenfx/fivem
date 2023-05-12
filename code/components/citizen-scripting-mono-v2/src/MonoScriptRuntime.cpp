@@ -116,7 +116,7 @@ result_t MonoScriptRuntime::Create(IScriptHost* host)
 		auto* thisPtr = this;
 		MonoException* exc;
 		auto initialize = Method::Find(image, "CitizenFX.Core.ScriptInterface:Initialize");
-		initialize({ mono_string_new(MonoComponentHost::GetRootDomain(), resourceName), &thisPtr, &m_instanceId }, &exc);
+		initialize({ mono_string_new(m_appDomain, resourceName), &thisPtr, &m_instanceId }, &exc);
 
 		return ReturnOrError(exc);
 	}
@@ -144,21 +144,23 @@ void MonoScriptRuntime::InitializeMethods(MonoImage* image)
 result_t MonoScriptRuntime::Destroy()
 {
 	mono_domain_set_internal(MonoComponentHost::GetRootDomain()); // not doing this crashes the unloading of this app domain
-	mono_domain_unload(m_appDomain);
+
+	MonoException* exc = nullptr;
+	mono_domain_try_unload(m_appDomain, (MonoObject**)&exc);
 
 	m_appDomain = nullptr;
 	m_scriptHost = nullptr;
 
 	back_to_root_domain();
 
-	return FX_S_OK;
+	return ReturnOrError(exc);
 }
 
 result_t MonoScriptRuntime::Tick()
 {
 	static auto profiler = fx::ResourceManager::GetCurrent()->GetComponent<fx::ProfilerComponent>();
 
-	// m_handler->PushRuntime(static_cast<IScriptRuntime*>(this));
+	m_handler->PushRuntime(static_cast<IScriptRuntime*>(this));
 	if (m_parentObject)
 		m_parentObject->OnActivate();
 
@@ -171,7 +173,7 @@ result_t MonoScriptRuntime::Tick()
 
 	MONO_BOUNDARY_END
 
-	// m_handler->PopRuntime(static_cast<IScriptRuntime*>(this));
+	m_handler->PopRuntime(static_cast<IScriptRuntime*>(this));
 	if (m_parentObject)
 		m_parentObject->OnDeactivate();
 
@@ -188,7 +190,7 @@ result_t MonoScriptRuntime::TriggerEvent(char* eventName, char* argsSerialized, 
 	MONO_BOUNDARY_START
 
 	MonoException* exc = nullptr;
-	m_triggerEvent(mono_string_new(MonoComponentHost::GetRootDomain(), eventName), argsSerialized, serializedSize, mono_string_new(MonoComponentHost::GetRootDomain(), sourceId), &exc);
+	m_triggerEvent(mono_string_new(m_appDomain, eventName), argsSerialized, serializedSize, mono_string_new(m_appDomain, sourceId), &exc);
 
 	MONO_BOUNDARY_END
 
@@ -235,9 +237,9 @@ result_t MonoScriptRuntime::LoadFile(char* scriptFile)
 	mono_domain_set_internal(m_appDomain);
 
 	MonoException* exc = nullptr;
-	m_loadAssembly({ mono_string_new(MonoComponentHost::GetRootDomain(), scriptFile) }, &exc);
+	m_loadAssembly({ mono_string_new(m_appDomain, scriptFile) }, &exc);
 
-	mono_domain_set_internal(MonoComponentHost::GetRootDomain());
+	back_to_root_domain();
 
 	return ReturnOrError(exc);
 }
@@ -382,7 +384,7 @@ bool MonoScriptRuntime::ReadAssembly(MonoString* name, MonoArray** assembly, Mon
 			uint32_t read;
 
 			stream->GetLength(&length);
-			*assembly = mono_array_new(MonoComponentHost::GetRootDomain(), mono_get_byte_class(), length);
+			*assembly = mono_array_new(m_appDomain, mono_get_byte_class(), length);
 			hr = stream->Read(mono_array_addr_with_size(*assembly, sizeof(char), 0), length, &read);
 
 			stream.ReleaseAndGetAddressOf();
@@ -404,7 +406,7 @@ bool MonoScriptRuntime::ReadAssembly(MonoString* name, MonoArray** assembly, Mon
 			uint32_t read;
 
 			stream->GetLength(&length);
-			*symbols = mono_array_new(MonoComponentHost::GetRootDomain(), mono_get_byte_class(), length);
+			*symbols = mono_array_new(m_appDomain, mono_get_byte_class(), length);
 			stream->Read(mono_array_addr_with_size(*symbols, sizeof(char), 0), length, &read);
 		}
 

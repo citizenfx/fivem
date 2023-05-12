@@ -16,6 +16,11 @@ namespace CitizenFX.Core
 #if MONO_V2
 	public class Player	: Shared.Player
 	{
+		internal Player(Remote remote)
+		{
+			m_handle = remote.GetPlayerHandle();
+		}
+
 #else
 	public class Player
 	{

@@ -17,20 +17,32 @@ namespace CitizenFX.Core
 
 		public void Start<TStateMachine>(ref TStateMachine stateMachine) where TStateMachine : IAsyncStateMachine => stateMachine.MoveNext();
 
-		public void SetException(Exception exception) => Console.WriteLine(exception.ToString());
+		public void SetException(Exception exception) => Task.SetException(exception);
 
 		public void AwaitOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine)
 			where TAwaiter : INotifyCompletion where TStateMachine : IAsyncStateMachine
 		{
 			TStateMachine sMachine = stateMachine;
-			awaiter.OnCompleted(() => sMachine.MoveNext());
+			awaiter.OnCompleted(() =>
+			{
+				if (Thread.CurrentThread == Scheduler.MainThread)
+					sMachine.MoveNext();
+				else
+					Scheduler.Schedule(sMachine.MoveNext); // Schedule Coroutines back to the main thread
+			});
 		}
 
 		public void AwaitUnsafeOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine)
 			where TAwaiter : ICriticalNotifyCompletion where TStateMachine : IAsyncStateMachine
 		{
 			TStateMachine sMachine = stateMachine;
-			awaiter.UnsafeOnCompleted(() => sMachine.MoveNext());
+			awaiter.UnsafeOnCompleted(() =>
+			{
+				if (Thread.CurrentThread == Scheduler.MainThread)
+					sMachine.MoveNext();
+				else
+					Scheduler.Schedule(sMachine.MoveNext); // Schedule Coroutines back to the main thread
+			});
 		}
 
 		public void SetStateMachine(IAsyncStateMachine stateMachine)
@@ -47,7 +59,7 @@ namespace CitizenFX.Core
 
 		public void SetResult(T value) => Task.GetAwaiter().SetResult(value);
 
-		public void SetException(Exception exception) => Console.WriteLine(exception.ToString());
+		public void SetException(Exception exception) => Task.SetException(exception);
 
 		public void Start<TStateMachine>(ref TStateMachine stateMachine) where TStateMachine : IAsyncStateMachine => stateMachine.MoveNext();
 
@@ -55,14 +67,26 @@ namespace CitizenFX.Core
 			where TAwaiter : INotifyCompletion where TStateMachine : IAsyncStateMachine
 		{
 			TStateMachine sMachine = stateMachine;
-			awaiter.OnCompleted(() => sMachine.MoveNext());
+			awaiter.OnCompleted(() =>
+			{
+				if (Thread.CurrentThread == Scheduler.MainThread)
+					sMachine.MoveNext();
+				else
+					Scheduler.Schedule(sMachine.MoveNext); // Schedule Coroutines back to the main thread
+			});
 		}
 
 		public void AwaitUnsafeOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine)
 			where TAwaiter : ICriticalNotifyCompletion where TStateMachine : IAsyncStateMachine
 		{
 			TStateMachine sMachine = stateMachine;
-			awaiter.UnsafeOnCompleted(() => sMachine.MoveNext());
+			awaiter.UnsafeOnCompleted(() =>
+			{
+				if (Thread.CurrentThread == Scheduler.MainThread)
+					sMachine.MoveNext();
+				else
+					Scheduler.Schedule(sMachine.MoveNext); // Schedule Coroutines back to the main thread
+			});
 		}
 
 		public void SetStateMachine(IAsyncStateMachine stateMachine)
@@ -131,7 +155,7 @@ namespace CitizenFX.Core
 		}
 
 		public void SetException(Exception exception)
-		{			
+		{
 			Exception = exception;
 			CompleteInternal();
 		}
@@ -176,7 +200,9 @@ namespace CitizenFX.Core
 		internal static Coroutine Delay(uint delay) => WaitUntil(Scheduler.TimeNow + delay);
 	}
 
-	public struct CoroutineAwaiter<T> : ICriticalNotifyCompletion
+	public interface ICoroutineAwaiter {}
+
+	public struct CoroutineAwaiter<T> : ICriticalNotifyCompletion, ICoroutineAwaiter
 	{
 		Coroutine<T> coroutine;
 
@@ -195,16 +221,14 @@ namespace CitizenFX.Core
 		public void UnsafeOnCompleted(Action continuation) => coroutine.ContinueWith(continuation);
 	}
 
-	public struct CoroutineAwaiter : ICriticalNotifyCompletion
+	public struct CoroutineAwaiter : ICriticalNotifyCompletion, ICoroutineAwaiter
 	{
 		Coroutine coroutine;
 
 		public bool IsCompleted => coroutine.IsCompleted;
 
-		internal CoroutineAwaiter(Coroutine coroutine)
-		{
-			this.coroutine = coroutine;
-		}
+		internal CoroutineAwaiter(Coroutine coroutine) => this.coroutine = coroutine;
+
 		public void GetResult() { }
 
 		public void SetResult() => coroutine.Complete();

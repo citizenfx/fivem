@@ -78,6 +78,8 @@ namespace CitizenFX.Core
 
 			Resource.Current = new Resource(resourceName);
 			Debug.Initialize(resourceName);
+			Scheduler.Initialize();
+
 			ExportsManager.Initialize(resourceName);
 #if REMOTE_FUNCTION_ENABLED
 			ExternalsManager.Initialize(resourceName, instanceId);
@@ -103,24 +105,25 @@ namespace CitizenFX.Core
 		[SecurityCritical, SuppressMessage("System.Diagnostics.CodeAnalysis", "IDE0051", Justification = "Called by host")]
 		internal static unsafe void TriggerEvent(string eventName, byte* argsSerialized, int serializedSize, string sourceString)
 		{
+			Binding origin = !sourceString.StartsWith("net") ? Binding.Local : Binding.Remote;
+
 #if IS_FXSERVER
-			var netSource = (sourceString.StartsWith("net") || sourceString.StartsWith("internal-net")) ? sourceString : null;
+			sourceString = (origin == Binding.Remote || sourceString.StartsWith("internal-net")) ? sourceString : null;
 #else
-			var netSource = sourceString.StartsWith("net") ? sourceString : null;
+			sourceString = origin == Binding.Remote ? sourceString : null;
 #endif
-			Binding origin = string.IsNullOrEmpty(sourceString) ? Binding.Local : Binding.Remote;
 
 			object[] args = null; // will make sure we only deserialize it once
 #if REMOTE_FUNCTION_ENABLED
-			if (ExternalsManager.IncomingRequest(eventName, netSource, origin, argsSerialized, serializedSize, ref args))
+			if (ExternalsManager.IncomingRequest(eventName, sourceString, origin, argsSerialized, serializedSize, ref args))
 				return;
 #endif
 
-			if (ExportsManager.IncomingRequest(eventName, netSource, origin, argsSerialized, serializedSize, ref args))
+			if (ExportsManager.IncomingRequest(eventName, sourceString, origin, argsSerialized, serializedSize, ref args))
 				return;
 
 			// if a remote function or export has consumed this event then it surely wasn't meant for event handlers
-			EventsManager.IncomingEvent(eventName, netSource, origin, argsSerialized, serializedSize, args);
+			EventsManager.IncomingEvent(eventName, sourceString, origin, argsSerialized, serializedSize, args);
 		}
 
 		[SecurityCritical, SuppressMessage("System.Diagnostics.CodeAnalysis", "IDE0051", Justification = "Called by host")]

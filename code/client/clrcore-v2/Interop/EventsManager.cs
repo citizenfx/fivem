@@ -10,59 +10,39 @@ namespace CitizenFX.Core
 	{
 		private static Dictionary<string, List<Tuple<DynFunc, Binding>>> s_eventHandlers = new Dictionary<string, List<Tuple<DynFunc, Binding>>>();
 
-#if IS_FXSERVER
-		// We need this to ensure that server-internal events can't be triggered from the client as unlike 
-		// Lua and JS, C# has never had net event filtering so adding it now would break compatibility.
-		private static HashSet<string> s_serverInternalNetEvents = new HashSet<string>
-		{
-			"playerConnecting",
-			"playerDropped",
-			"playerJoining",
-		};
-#endif
-
 		internal static unsafe void IncomingEvent(string eventName, string sourceString, Binding origin, byte* argsSerialized, int serializedSize, object[] args)
 		{
-#if IS_FXSERVER
-			if (!s_serverInternalNetEvents.Contains(eventName) || sourceString.StartsWith("internal-net"))
-#endif
+			if (s_eventHandlers.TryGetValue(eventName, out var delegateList))
 			{
-				if (s_eventHandlers.TryGetValue(eventName, out var delegateList))
+				if (args is null)
+					args = MsgPackDeserializer.DeserializeArray(argsSerialized, serializedSize, origin == Binding.Remote ? sourceString : null);
+
+				if (args != null)
 				{
-					// #TODO: should we silently ignore this or annoy peeps with it?
-					if (args is null)
-						args = MsgPackDeserializer.DeserializeArray(argsSerialized, serializedSize, sourceString);
+					Remote remote = new Remote(origin, sourceString);
 
-					if (args != null)
+					for (int i = 0; i < delegateList.Count; ++i)
 					{
-						Remote remote = new Remote(origin, sourceString);
+						var ev = delegateList[i];
 
-						// shedule it for next update
-						Scheduler.Schedule(() =>
+						try
 						{
-							for (int i = 0; i < delegateList.Count; ++i)
+							if ((ev.Item2 & origin) != 0)
 							{
-								try
-								{
-									var ev = delegateList[i];
-									if ((ev.Item2 & origin) != 0)
-									{
-										var result = ev.Item1(remote, args);
-										if (result != null)
-											return;
-									}
-								}
-								catch (Exception ex)
-								{
-									if (!(ex is InvalidCastException) || Debug.LogInvalidCastExceptionsOnDynFunc)
-									{
-										string argsString = string.Join<string>(", ", args.Select(a => a != null ? a.GetType().ToString() : "null"));
-										Debug.WriteLine($"^1Error while handling event: {eventName}\n\twith arguments: ({argsString})^7");
-										Debug.PrintError(ex);
-									}
-								}
+								var result = ev.Item1(remote, args);
+								if (result != null)
+									return;
 							}
-						});
+						}
+						catch (Exception ex)
+						{
+							if (Debug.ShouldWeLogDynFuncError(ex, ev.Item1))
+							{
+								string argsString = string.Join<string>(", ", args.Select(a => a != null ? a.GetType().ToString() : "null"));
+								Debug.WriteLine($"^1Error while handling event: {eventName}\n\twith arguments: ({argsString})^7");
+								Debug.PrintError(ex);
+							}
+						}
 					}
 				}
 			}

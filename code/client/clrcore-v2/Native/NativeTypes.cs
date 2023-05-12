@@ -10,6 +10,8 @@ namespace CitizenFX.Core.Native
 
 		public static unsafe ulong Val(int v) => *(uint*)&v;
 		public static unsafe ulong Val(uint v) => v;
+		public static unsafe ulong Val(long v) => *(ulong*)&v;
+		public static unsafe ulong Val(ulong v) => v;
 		public static unsafe ulong Val(float v) => *(uint*)&v;
 		public static unsafe ulong Val(double v) => *(ulong*)&v;
 		public static unsafe ulong Val(bool v) => *(byte*)&v;
