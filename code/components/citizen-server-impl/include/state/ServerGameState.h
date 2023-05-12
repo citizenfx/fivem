@@ -742,6 +742,7 @@ struct SyncEntityState
 	uint32_t creationToken;
 	uint32_t routingBucket = 0;
 	float overrideCullingRadius = 0.0f;
+	bool ignoreRequestControlFilter = false;
 
 	std::shared_mutex guidMutex;
 	eastl::bitset<roundToWord(MAX_CLIENTS)> relevantTo;

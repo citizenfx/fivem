@@ -1295,6 +1295,17 @@ static void Init()
 		return true;
 	}));
 
+	fx::ScriptEngine::RegisterNativeHandler("SET_ENTITY_IGNORE_REQUEST_CONTROL_FILTER", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		if (context.GetArgumentCount() > 1)
+		{
+			bool ignore = context.GetArgument<bool>(1);
+			entity->ignoreRequestControlFilter = ignore;
+		}
+
+		return true;
+	}));
+
 	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_ROUTING_BUCKET", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)
 	{
 		// get the current resource manager
