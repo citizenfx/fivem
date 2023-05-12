@@ -9,6 +9,7 @@
 #endif
 
 #include <fiCollectionWrapper.h>
+#include "XBRVirtual.h"
 
 struct StreamingPackfileEntry
 {
@@ -70,101 +71,104 @@ namespace streaming
 	};
 
 	class strStreamingModule
+#ifdef GTA_FIVE
+		: XBR_VIRTUAL_BASE_2802(0)
+#endif
 	{
-	public:
-		virtual ~strStreamingModule() = 0;
+public:
+		XBR_VIRTUAL_DTOR(strStreamingModule)
 
 #ifdef IS_RDR3
-		virtual void m_8() = 0;
+		XBR_VIRTUAL_METHOD(void, m_8, ())
 
-		virtual void m_10() = 0;
+		XBR_VIRTUAL_METHOD(void, m_10, ())
 
 		//
 		// Creates a new asset for `name`, or returns the existing index in this module for it.
 		//
-		virtual uint32_t* FindSlotFromHashKey(uint32_t* id, uint32_t name) = 0;
+		XBR_VIRTUAL_METHOD(uint32_t*, FindSlotFromHashKey, (uint32_t* id, uint32_t name))
 #elif GTA_FIVE
 		//
 		// Creates a new asset for `name`, or returns the existing index in this module for it.
 		//
-		virtual uint32_t* FindSlotFromHashKey(uint32_t* id, const char* name) = 0;
+		XBR_VIRTUAL_METHOD(uint32_t*, FindSlotFromHashKey, (uint32_t* id, const char* name))
 #endif
 
 		//
 		// Returns the index in this streaming module for the asset specified by `name`.
 		//
-		virtual uint32_t* FindSlot(uint32_t* id, const char* name) = 0;
+		XBR_VIRTUAL_METHOD(uint32_t*, FindSlot, (uint32_t* id, const char* name))
 
 		//
 		// Unloads the specified asset from the streaming module.
 		// This won't update the asset state in CStreaming, use these functions instead.
 		//
-		virtual void Remove(uint32_t id) = 0;
+		XBR_VIRTUAL_METHOD(void, Remove, (uint32_t id))
 
 		//
 		// Removes the specified asset from the streaming module.
 		//
-		virtual void RemoveSlot(uint32_t object) = 0;
+		XBR_VIRTUAL_METHOD(void, RemoveSlot, (uint32_t object))
 
 		//
 		// Loads an asset from an in-memory RSC file.
 		//
-		virtual bool Load(uint32_t object, const void* buffer, uint32_t length) = 0;
+		XBR_VIRTUAL_METHOD(bool, Load, (uint32_t object, const void* buffer, uint32_t length))
 
 		//
 		// Loads an asset from a block map.
 		//
-		virtual void PlaceResource(uint32_t object, void* blockMap, const char* name) = 0;
+		XBR_VIRTUAL_METHOD(void, PlaceResource, (uint32_t object, void* blockMap, const char* name))
 
 		//
 		// Sets the asset pointer directly.
 		//
-		virtual void SetResource(uint32_t object, strAssetReference& reference) = 0;
+		XBR_VIRTUAL_METHOD(void, SetResource, (uint32_t object, strAssetReference& reference))
 
 		//
 		// Gets the asset pointer for a loaded asset.
 		// Returns NULL if not loaded.
 		//
-		virtual void* GetPtr(uint32_t object) = 0;
+		XBR_VIRTUAL_METHOD(void*, GetPtr, (uint32_t object))
 
-		virtual void* GetDataPtr(uint32_t object) = 0;
+		XBR_VIRTUAL_METHOD(void*, GetDataPtr, (uint32_t object))
 
-		virtual void* Defragment(uint32_t object, void* blockMap, const char* name) = 0;
-
-		// nullsub
-		virtual void m_58() = 0;
+		XBR_VIRTUAL_METHOD(void*, Defragment, (uint32_t object, void* blockMap, const char* name))
 
 		// nullsub
-		virtual void m_60() = 0;
+		XBR_VIRTUAL_METHOD(void, m_58, ())
+
+		// nullsub
+		XBR_VIRTUAL_METHOD(void, m_60, ())
 
 		// only overridden in specific modules
-		virtual void* GetResource(uint32_t object) = 0;
+		XBR_VIRTUAL_METHOD(void*, GetResource, (uint32_t object))
 
 		// nullsub
-		virtual void GetModelMapTypeIndex(uint32_t localIndex, uint32_t& outIndex) = 0;
+		XBR_VIRTUAL_METHOD(void, GetModelMapTypeIndex, (uint32_t localIndex, uint32_t& outIndex))
 
 		// unknown function, involving releasing
-		virtual void m_78(uint32_t object, int) = 0;
+		XBR_VIRTUAL_METHOD(void, m_78, (uint32_t object, int))
 
-		virtual void AddRef(uint32_t id) = 0;
+		XBR_VIRTUAL_METHOD(void, AddRef, (uint32_t id))
 
-		virtual void RemoveRef(uint32_t id) = 0;
+		XBR_VIRTUAL_METHOD(void, RemoveRef, (uint32_t id))
 
-		virtual void ResetAllRefs() = 0; // resetrefcount
+		XBR_VIRTUAL_METHOD(void, ResetAllRefs, ()) // resetrefcount
 
-		virtual int GetNumRefs(uint32_t id) = 0;
+		XBR_VIRTUAL_METHOD(int, GetNumRefs, (uint32_t id))
 
 		//
 		// Formats the reference count as a string.
 		//
-		virtual const char* GetRefCountString(uint32_t id, char* buffer, size_t length) = 0;
+		XBR_VIRTUAL_METHOD(const char*, GetRefCountString, (uint32_t id, char* buffer, size_t length))
 
-		virtual int GetDependencies(uint32_t object, uint32_t* outDependencies, size_t count) = 0;
+		XBR_VIRTUAL_METHOD(int, GetDependencies, (uint32_t object, uint32_t* outDependencies, size_t count))
 
 		// nullsub?
-		virtual void m_B0() = 0;
-		virtual void m_B8() = 0;
-		virtual void m_C0() = 0;
+		XBR_VIRTUAL_METHOD(void, m_B0, ())
+		XBR_VIRTUAL_METHOD(void, m_B8, ())
+		XBR_VIRTUAL_METHOD(void, m_C0, ())
 
 		// ...
 
@@ -174,13 +178,12 @@ namespace streaming
 	class STREAMING_EXPORT strStreamingModuleMgr
 	{
 	public:
-		virtual ~strStreamingModuleMgr() = default;
-
 		strStreamingModule* GetStreamingModule(int index);
 
 		strStreamingModule* GetStreamingModule(const char* extension);
 
 	private:
+		void* vtbl;
 		char pad[16];
 
 	public:
@@ -195,6 +198,8 @@ namespace streaming
 		{
 #ifdef GTA_FIVE
 			static_assert(offsetof(Manager, NumPendingRequests) == 0x1E0);
+#elif IS_RDR3
+			static_assert(offsetof(Manager, moduleMgr) == 144);
 #endif
 		}
 
@@ -235,8 +240,10 @@ namespace streaming
 		StreamingListEntry* RequestListHead;
 		StreamingListEntry* RequestListTail;
 
-#ifndef IS_RDR3
+#ifdef GTA_FIVE
 		char pad2[368 - 40];
+#elif IS_RDR3
+		char pad2[32];
 #endif
 
 		strStreamingModuleMgr moduleMgr;

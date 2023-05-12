@@ -2,9 +2,16 @@ using System;
 using CitizenFX.Core.Native;
 using System.Security;
 
+#if MONO_V2
+using API = CitizenFX.Server.Native.Natives;
+#endif
+
 namespace CitizenFX.Core
 {
 	public sealed class Ped : Entity
+#if MONO_V2
+		, Shared.IPed
+#endif
 	{
 		public Ped(int handle) : base(handle)
 		{

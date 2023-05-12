@@ -27,6 +27,8 @@
 #include <HttpClient.h>
 #include <windns.h>
 
+#include <tbb/concurrent_unordered_set.h>
+
 #pragma comment(lib, "dnsapi.lib")
 
 #if defined(GTA_NY)
@@ -172,6 +174,11 @@ static struct
 	SOCKET socket;
 	SOCKET socket6;
 
+	HANDLE event;
+	HANDLE event6;
+
+	HANDLE hTimer;
+
 	// the list relies on sorting, so using a concurrent_unordered_map won't work
 	std::recursive_mutex serversMutex;
 	std::map<std::tuple<int, net::PeerAddress, std::string, std::string>, std::shared_ptr<gameserveritemext_t>> queryServers;
@@ -182,7 +189,7 @@ static struct
 	net::PeerAddress oneQueryAddress;
 } g_cls;
 
-static bool InitSocket(SOCKET* sock, int af)
+static bool InitSocket(SOCKET* sock, HANDLE* event, int af)
 {
 	auto socket = ::socket(af, SOCK_DGRAM, IPPROTO_UDP);
 
@@ -228,6 +235,9 @@ static bool InitSocket(SOCKET* sock, int af)
 
 	*sock = socket;
 
+	*event = WSACreateEvent();
+	WSAEventSelect(socket, *event, FD_READ);
+
 	return true;
 }
 
@@ -241,12 +251,14 @@ bool GSClient_Init()
 		return false;
 	}
 
-	if (!InitSocket(&g_cls.socket, AF_INET))
+	g_cls.hTimer = CreateWaitableTimerW(NULL, FALSE, NULL);
+
+	if (!InitSocket(&g_cls.socket, &g_cls.event, AF_INET))
 	{
 		return false;
 	}
 
-	if (!InitSocket(&g_cls.socket6, AF_INET6))
+	if (!InitSocket(&g_cls.socket6, &g_cls.event6, AF_INET6))
 	{
 		return false;
 	}
@@ -275,18 +287,13 @@ static std::unique_ptr<ConVar<int>> ui_maxQueriesPerMinute;
 
 void GSClient_QueryStep()
 {
-	if ((timeGetTime() - g_cls.lastQueryStep) < 250)
-	{
-		return;
-	}
-
 	int queriesPerStep = round(ui_maxQueriesPerMinute->GetValue() / 60.0f / (1000.0f / 250.0f));
 
 	g_cls.lastQueryStep = timeGetTime();
 
 	int count = 0;
 
-	std::unique_lock<std::recursive_mutex> lock(g_cls.serversMutex);
+	std::unique_lock lock(g_cls.serversMutex);
 
 	for (auto& serverPair : g_cls.queryServers)
 	{
@@ -298,6 +305,11 @@ void GSClient_QueryStep()
 				count++;
 			}
 		}
+	}
+
+	if (count == 0)
+	{
+		CancelWaitableTimer(g_cls.hTimer);
 	}
 }
 
@@ -499,7 +511,7 @@ void GSClient_HandleOOB(const char* buffer, size_t len, const net::PeerAddress& 
 	}
 }
 
-void GSClient_PollSocket(SOCKET socket)
+void GSClient_PollSocket(SOCKET socket, HANDLE event)
 {
 	char buf[2048];
 	memset(buf, 0, sizeof(buf));
@@ -512,6 +524,7 @@ void GSClient_PollSocket(SOCKET socket)
 	while (true)
 	{
 		int len = recvfrom(socket, buf, 2048, 0, (sockaddr*)&from, &fromlen);
+		WSAResetEvent(event);
 
 		if (len == SOCKET_ERROR)
 		{
@@ -542,8 +555,8 @@ void GSClient_RunFrame()
 	if (g_cls.socket)
 	{
 		GSClient_QueryStep();
-		GSClient_PollSocket(g_cls.socket);
-		GSClient_PollSocket(g_cls.socket6);
+		GSClient_PollSocket(g_cls.socket, g_cls.event);
+		GSClient_PollSocket(g_cls.socket6, g_cls.event6);
 	}
 }
 
@@ -599,6 +612,10 @@ void GSClient_QueryAddresses(const TContainer& addrs)
 		g_cls.queryServers[na] = server;
 		g_cls.servers[server->m_Address] = server;
 	}
+
+	LARGE_INTEGER dueTime;
+	dueTime.QuadPart = int64_t(-100) * 10000;
+	SetWaitableTimer(g_cls.hTimer, &dueTime, 250, NULL, NULL, FALSE);
 }
 
 static void ContinueLanQuery(const std::string& qarg, const std::string& attribution)
@@ -643,11 +660,11 @@ void GSClient_QueryOneServer(const std::wstring& arg)
 						rapidjson::Document doc;
 						doc.Parse(infoBlobJson.c_str(), infoBlobJson.size());
 
-						if (!doc.HasParseError() && !dynDoc.HasParseError() && nui::HasFrame("mpMenu"))
+						if (!doc.HasParseError() && !dynDoc.HasParseError() && dynDoc.IsObject() && nui::HasFrame("mpMenu"))
 						{
-							std::string hostname = dynDoc["hostname"].GetString();
-							std::string mapname = dynDoc["mapname"].GetString();
-							std::string gametype = dynDoc["gametype"].GetString();
+							std::string hostname = (dynDoc.HasMember("hostname") && dynDoc["hostname"].IsString()) ? dynDoc["hostname"].GetString() : "";
+							std::string mapname = (dynDoc.HasMember("mapname") && dynDoc["mapname"].IsString()) ? dynDoc["mapname"].GetString() : "";
+							std::string gametype = (dynDoc.HasMember("gametype") && dynDoc["gametype"].IsString()) ? dynDoc["gametype"].GetString() : "";
 
 							replaceAll(hostname, "\"", "\\\"");
 							replaceAll(mapname, "\"", "\\\"");
@@ -660,8 +677,8 @@ void GSClient_QueryOneServer(const std::wstring& arg)
 															hostname,
 															mapname,
 															gametype,
-															dynDoc["clients"].GetInt(),
-															atoi(dynDoc["sv_maxclients"].GetString()),
+															(dynDoc.HasMember("clients") && dynDoc["clients"].IsNumber()) ? dynDoc["clients"].GetInt() : 0,
+															(dynDoc.HasMember("sv_maxclients") && dynDoc["sv_maxclients"].IsString()) ? atoi(dynDoc["sv_maxclients"].GetString()) : 0,
 															42,
 															narrowArg,
 															infoBlobJson,
@@ -736,6 +753,9 @@ void GSClient_QueryOneServer(const std::wstring& arg)
 				static bool result = false;
 				result = false;
 
+				static tbb::concurrent_unordered_set<std::string> qaSeen;
+				qaSeen.clear();
+
 				DNS_SERVICE_BROWSE_REQUEST request = { 0 };
 				request.Version = DNS_QUERY_REQUEST_VERSION1;
 				request.InterfaceIndex = 0;
@@ -762,8 +782,13 @@ void GSClient_QueryOneServer(const std::wstring& arg)
 										qao = g_queryArgOrig;
 									}
 
-									ContinueLanQuery(qa, qao);
-									break;
+									if (!qaSeen.contains(qa))
+									{
+										qaSeen.insert(qa);
+
+										ContinueLanQuery(qa, qao);
+										break;
+									}
 								}
 							}
 
@@ -778,7 +803,12 @@ void GSClient_QueryOneServer(const std::wstring& arg)
 						qao = g_queryArgOrig;
 					}
 
-					ContinueLanQuery(qa, qao);
+					if (!qaSeen.contains(qa))
+					{
+						qaSeen.insert(qa);
+
+						ContinueLanQuery(qa, qao);
+					}
 				};
 
 				static DNS_SERVICE_CANCEL cancel;
@@ -1038,7 +1068,20 @@ static InitFunction initFunction([] ()
 	{
 		while (true)
 		{
-			Sleep(1);
+			if (!g_cls.hTimer)
+			{
+				Sleep(500);
+				continue;
+			}
+
+			HANDLE handles[] =
+			{
+				g_cls.hTimer,
+				g_cls.event,
+				g_cls.event6,
+			};
+
+			WaitForMultipleObjects(std::size(handles), handles, FALSE, INFINITE);
 
 			GSClient_RunFrame();
 		}

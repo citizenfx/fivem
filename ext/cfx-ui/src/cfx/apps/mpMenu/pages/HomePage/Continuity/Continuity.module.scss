@@ -1,0 +1,209 @@
+.root {
+  display: grid;
+
+  grid-template-columns: repeat(12, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  grid-auto-flow: column;
+
+  gap: ui.offset('small');
+
+  .tilePlay {
+    grid-column: span 9;
+    grid-row: span 3;
+  }
+
+  .tileSupporters,
+  .tileFavorites,
+  .tileHistory {
+    grid-column: span 3;
+  }
+
+  &.withLocalhost {
+    .tilePlay {
+      grid-row: 1 / span 2;
+    }
+
+    .tileLocalhost {
+      grid-column: span 9;
+      grid-row: 3 span 1;
+    }
+  }
+
+  &.withLast {
+    .tilePlay {
+      grid-column: span 5;
+    }
+
+    .tileLocalhost {
+      grid-column: span 5;
+      grid-row: 3 span 1;
+    }
+
+    .tileSupporters,
+    .tileFavorites,
+    .tileHistory {
+      grid-column: span 3;
+    }
+
+    .slotLast {
+      grid-column: span 4;
+      grid-row: span 3;
+    }
+  }
+
+  .slotLast {
+    padding: 0 ui.offset();
+  }
+
+  .tile {
+    display: flex;
+
+    align-items: center;
+
+    gap: ui.offset('normal');
+    height: ui.q(8);
+
+    padding: ui.offset('normal') calc(ui.offset('normal') * 1.5);
+
+    @include ui.font-size('normal');
+    @include ui.font-weight('normal');
+    @include ui.font-color('text-a75');
+
+    letter-spacing: 1px;
+
+    @include ui.border-radius('normal');
+
+    @include ui.def('backdrop-color', ui.color-token('backdrop-300'));
+    @include ui.fake-backdrop-blur();
+
+    text-decoration: none;
+    cursor: pointer;
+
+    @include ui.animated('box-shadow');
+    @include ui.animated('transform', '.icon');
+    box-shadow: 0 0 0 2px transparent inset;
+
+    &:hover {
+      box-shadow: 0 0 0 2px ui.color-token('outlined-hover-border') inset;
+
+      .icon {
+        transform: scale(1.2);
+      }
+    }
+
+    .icon {
+      display: flex;
+      align-items: center;
+
+      @include ui.font-color('text-a50');
+    }
+  }
+
+
+  .tilePlay {
+    position: relative;
+
+    flex-grow: 1;
+
+    align-items: flex-start;
+
+    height: auto;
+
+    gap: ui.offset('large');
+    padding: ui.offset('large') ui.offset('large');
+
+    @include ui.fake-backdrop-blur(
+      (
+        // radial-gradient(circle at bottom right, ui.color('teal', $alpha: .2), ui.color('primary', 'pure', $alpha: .15) 50%, rgba(170, 49, 146, .2)),
+        radial-gradient(circle at bottom right, rgba(170, 49, 146, .05), transparent),
+        ui.use('asset-image-bgpat'),
+        linear-gradient(ui.color-token('backdrop-300'), ui.color-token('backdrop-300')),
+      ),
+      (normal, normal, normal),
+      (cover, 150px, cover),
+      (scroll, scroll, scroll),
+    );
+
+    @include ui.border-radius();
+
+    overflow: hidden;
+
+    .icon {
+      color: ui.color('text-a50');
+
+      @include ui.font-size('xxxlarge');
+
+      z-index: 1;
+    }
+
+    .title {
+      @include ui.font-size('xxxlarge');
+      @include ui.font-weight('bolder');
+
+      span {
+        font-weight: 750;
+        color: transparent;
+        -webkit-background-clip: text;
+        background-image: linear-gradient(135deg, ui.color-token('play-button-background-1'), ui.color-token('play-button-background-2'));
+      }
+
+      z-index: 1;
+    }
+
+    .subtitle {
+      @include ui.font-size('normal');
+      @include ui.font-weight('normal');
+      @include ui.font-color('text-a50');
+    }
+
+    @mixin mask-image() {
+      $c1: transparent;
+      $c2: rgba(0, 0, 0, .25);
+
+      -webkit-mask-image: linear-gradient(-45deg,
+          $c1,
+          $c1 calc(48%),
+          $c2 calc(50% - 2px),
+          $c2 calc(50% + 2px),
+          $c1 calc(52%),
+          $c1 );
+      -webkit-mask-size: 300%;
+    }
+    @keyframes shine {
+      0% {
+        opacity: 0;
+        @include mask-image();
+        -webkit-mask-position-x: 100%;
+      }
+
+      50% {
+        opacity: 1;
+        @include mask-image();
+        -webkit-mask-position-x: 50%;
+      }
+
+      100% {
+        opacity: 0;
+        @include mask-image();
+        -webkit-mask-position-x: 0%;
+      }
+    }
+
+    &::after {
+      display: block;
+      content: '';
+
+      position: absolute;
+      inset: 0;
+
+      background-color: white;
+      opacity: 0;
+
+      z-index: 1;
+    }
+
+    &:hover::after {
+      animation: shine .5s linear;
+    }
+  }
+}

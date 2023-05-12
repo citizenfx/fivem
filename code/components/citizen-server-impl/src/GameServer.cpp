@@ -190,7 +190,7 @@ namespace fx
 
 					auto loop = m_mainThreadLoop->GetLoop();
 
-					// periodic timer for network ticks
+					// periodic timer for main ticks
 					auto frameTime = 1000 / 20;
 
 					auto mpd = mainData.get();
@@ -1198,8 +1198,6 @@ namespace fx
 
 	FxPrintListener printListener;
 
-	thread_local std::function<void(const std::string_view& cb)> FxPrintListener::listener;
-
 	namespace ServerDecorators
 	{
 		fwRefContainer<fx::GameServer> NewGameServer()
@@ -1390,14 +1388,19 @@ namespace fx
 						}
 
 						// log rcon request
-						trace("Rcon from %s\n%s\n", from.ToString(), command);
+						console::Printf("rcon", "Rcon from %s\n%s\n", from.ToString(), command);
 
 						// reset rate limit for this key
 						limiter->Reset(from);
 
-						PrintListenerContext context([&](const std::string_view& print)
+						PrintListenerContext context([&printString](std::string_view print)
 						{
 							printString += print;
+						});
+
+						fx::PrintFilterContext filterContext([](ConsoleChannel& channel, std::string_view print)
+						{
+							channel = fmt::sprintf("rcon/%s", channel);
 						});
 
 						auto ctx = server->GetInstance()->GetComponent<console::Context>();

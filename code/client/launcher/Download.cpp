@@ -94,7 +94,7 @@ static CURL* curl_easy_init_cfx()
 
 #include <zstd.h>
 
-typedef struct download_s
+struct download_t : baseDownload
 {
 	std::string opath;
 	std::string tmpPath;
@@ -127,7 +127,7 @@ typedef struct download_s
 	int numRetries = 10;
 
 	char curlError[CURL_ERROR_SIZE * 4];
-} download_t;
+};
 
 struct dlState
 {
@@ -176,21 +176,23 @@ void CL_InitDownloadQueue()
 	dls.currentDownloads = {};
 }
 
-void CL_QueueDownload(const char* url, const char* file, int64_t size, compressionAlgo_e algo)
+std::shared_ptr<baseDownload> CL_QueueDownload(const char* url, const char* file, int64_t size, compressionAlgo_e algo)
 {
-	CL_QueueDownload(url, file, size, algo, 1);
+	return CL_QueueDownload(url, file, size, algo, 1);
 }
 
-void CL_QueueDownload(const char* url, const char* file, int64_t size, compressionAlgo_e algo, int segments)
+std::shared_ptr<baseDownload> CL_QueueDownload(const char* url, const char* file, int64_t size, compressionAlgo_e algo, int segments)
 {
 	if (strcmp(url, "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_1604_0.exe") == 0)
 	{
+		std::shared_ptr<baseDownload> download;
+
 		for (int i = 0; i <= 9; i++)
 		{
-			CL_QueueDownload(va("https://content.cfx.re/mirrors/emergency_mirror/GTAV1604.exe%02d", i), va("%s.%d", file, i), i == 9 ? 87584200 : 104857600, compressionAlgo_e::None, 1);
+			download = CL_QueueDownload(va("https://content.cfx.re/mirrors/emergency_mirror/GTAV1604.exe%02d", i), va("%s.%d", file, i), i == 9 ? 87584200 : 104857600, compressionAlgo_e::None, 1);
 		}
 
-		return;
+		return download;
 	}
 
 	auto downloadPtr = std::make_shared<download_t>();
@@ -216,6 +218,8 @@ void CL_QueueDownload(const char* url, const char* file, int64_t size, compressi
 	dls.totalBytes = dls.totalSize;
 
 	dls.isDownloading = true;
+
+	return downloadPtr;
 }
 
 void DL_Initialize()
@@ -776,6 +780,7 @@ bool DL_ProcessDownload()
 		curl_easy_setopt(curlHandle, CURLOPT_FAILONERROR, true);
 		curl_easy_setopt(curlHandle, CURLOPT_HTTPHEADER, headers);
 		curl_easy_setopt(curlHandle, CURLOPT_FOLLOWLOCATION, true);
+		curl_easy_setopt(curlHandle, CURLOPT_USERAGENT, va("CfxUpdater/1 (%s; Num. %d; https://cfx.re/)", GetUpdateChannel(), download->count));
 
 		if (getenv("CFX_CURL_DEBUG"))
 		{
@@ -792,7 +797,13 @@ bool DL_ProcessDownload()
 		{
 			if (download->algorithm == compressionAlgo_e::XZ)
 			{
-				lzma_stream_decoder(&download->strm, UINT64_MAX, 0);
+				lzma_mt mtOptions = { 0 };
+				mtOptions.threads = 4;
+				mtOptions.memlimit_threading = lzma_physmem() / 8;
+				mtOptions.memlimit_stop = UINT64_MAX;
+				mtOptions.timeout = 300;
+				lzma_stream_decoder_mt(&download->strm, &mtOptions);
+
 				download->strm.avail_out = sizeof(download->strmOut);
 				download->strm.next_out = download->strmOut;
 			}
@@ -823,10 +834,12 @@ bool DL_ProcessDownload()
 
 				if (MoveFile(opathWide.c_str(), toDeleteName.c_str()) == 0)
 				{
+					auto gle = GetLastError();
+
 					// let's try asking the shell
 					if (!ReallyMoveFile(opathWide, toDeleteName))
 					{
-						UI_DisplayError(va(L"Moving of %s failed (err = %d). Check your system for any conflicting software.", ToWide(download->file), GetLastError()));
+						UI_DisplayError(va(L"Moving of %s failed (err = %d). Check your system for any conflicting software.", ToWide(download->file), gle));
 						return false;
 					}
 				}
@@ -835,10 +848,16 @@ bool DL_ProcessDownload()
 
 		if (MoveFile(tmpPathWide.c_str(), opathWide.c_str()) == 0)
 		{
-			UI_DisplayError(va(L"Moving of %s failed (err = %d) - make sure you don't have any existing FiveM processes running", ToWide(download->file), GetLastError()));
-			DeleteFile(tmpPathWide.c_str());
+			auto gle = GetLastError();
 
-			return false;
+			// let's try asking the shell
+			if (!ReallyMoveFile(tmpPathWide, opathWide))
+			{
+				UI_DisplayError(va(L"Moving of %s failed (err = %d) - make sure you don't have any existing " PRODUCT_NAME L" processes running", ToWide(download->file), gle));
+				DeleteFile(tmpPathWide.c_str());
+
+				return false;
+			}
 		}
 
 		dls.completedDownloads++;

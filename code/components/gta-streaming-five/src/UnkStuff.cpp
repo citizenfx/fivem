@@ -113,7 +113,16 @@ static void CompTrace()
 		void InternalMain() override
 		{
 			mov(rcx, rdi);
-			mov(rdx, r14);
+
+			if (xbr::IsGameBuildOrGreater<2699>())
+			{
+				mov(rdx, rsi);
+			}
+			else
+			{
+				mov(rdx, r14);
+			}
+
 			mov(r8d, eax);
 			mov(r9, rbx);
 

@@ -47,6 +47,8 @@ protected:
 
 	virtual void OnAcceleratedPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, void* shared_handle) override;
 
+	virtual void OnAcceleratedPaint2(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, void* shared_handle, bool new_texture) override;
+
 private:
 	void PaintView(const RectList& dirtyRects, const void* buffer, int width, int height);
 
@@ -60,14 +62,14 @@ private:
 	CefBrowserHost::DragOperationsMask OnDragEnter(
 		CefRefPtr<CefDragData> drag_data,
 		CefMouseEvent ev,
-		CefBrowserHost::DragOperationsMask effect) OVERRIDE;
+		CefBrowserHost::DragOperationsMask effect) override;
 	CefBrowserHost::DragOperationsMask OnDragOver(
 		CefMouseEvent ev,
-		CefBrowserHost::DragOperationsMask effect) OVERRIDE;
-	void OnDragLeave() OVERRIDE;
+		CefBrowserHost::DragOperationsMask effect) override;
+	void OnDragLeave() override;
 	CefBrowserHost::DragOperationsMask OnDrop(
 		CefMouseEvent ev,
-		CefBrowserHost::DragOperationsMask effect) OVERRIDE;
+		CefBrowserHost::DragOperationsMask effect) override;
 
 public:
 	inline CComPtr<DropTargetWin> GetDropTarget()

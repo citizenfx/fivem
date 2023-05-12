@@ -21,6 +21,12 @@
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
 
+#if __has_include("CefOverlay.h")
+#include "CefOverlay.h"
+
+#define WITH_NUI 1
+#endif
+
 #ifndef IS_LAUNCHER
 #include <DrawCommands.h>
 #include <grcTexture.h>
@@ -69,6 +75,46 @@ extern bool g_consoleFlag;
 extern bool g_cursorFlag;
 int g_scrollTop;
 int g_bufferHeight;
+
+bool ConsoleHasAnything()
+{
+	return g_consoleFlag || g_cursorFlag;
+}
+
+bool ConsoleHasMouse()
+{
+	if (ConsoleHasAnything())
+	{
+#if WITH_NUI
+		if (nui::HasCursor())
+		{
+			return ImGui::GetIO().WantCaptureMouse;
+		}
+#endif
+
+		return true;
+	}
+
+	return false;
+}
+
+bool ConsoleHasKeyboard()
+{
+	// g_cursorFlag is cursor-only (for when we want to use the dear ImGui cursor for other purposes)
+	if (g_consoleFlag)
+	{
+#if WITH_NUI
+		if (nui::HasFocus())
+		{
+			return ImGui::GetIO().WantCaptureKeyboard;
+		}
+#endif
+
+		return true;
+	}
+
+	return false;
+}
 
 #ifndef IS_LAUNCHER
 static uint32_t g_pointSamplerState;
@@ -264,7 +310,7 @@ static void RenderDrawLists(ImDrawData* drawData)
 void DrawConsole();
 void DrawDevGui();
 
-static std::mutex g_conHostMutex;
+static std::recursive_mutex g_conHostMutex;
 ImFont* consoleFontSmall;
 
 void DrawMiniConsole();
@@ -308,7 +354,8 @@ extern void ImGui_ImplDX11_RecreateFontsTexture();
 
 void OnConsoleFrameDraw(int width, int height, bool usedSharedD3D11)
 {
-	if (!g_conHostMutex.try_lock())
+	std::unique_lock lock(g_conHostMutex, std::defer_lock);
+	if (!lock.try_lock())
 	{
 		return;
 	}
@@ -349,9 +396,13 @@ void OnConsoleFrameDraw(int width, int height, bool usedSharedD3D11)
 
 	if (!g_cursorFlag && !g_consoleFlag && !shouldDrawGui)
 	{
+		// if not drawing the gui, we're also not owning the cursor
+#ifdef WITH_NUI
+		nui::SetHideCursor(false);
+#endif
+
 		lastDrawTime = timeGetTime();
 
-		g_conHostMutex.unlock();
 		return;
 	}
 
@@ -359,11 +410,20 @@ void OnConsoleFrameDraw(int width, int height, bool usedSharedD3D11)
 
 	HandleFxDKInput(io);
 
-	io.MouseDrawCursor = g_consoleFlag || g_cursorFlag;
+	io.MouseDrawCursor = ConsoleHasMouse();
+
+#ifdef WITH_NUI
+	nui::SetHideCursor(io.MouseDrawCursor);
+#endif
 
 	{
 		io.DisplaySize = ImVec2(width, height);
 		io.DeltaTime = (timeGetTime() - lastDrawTime) / 1000.0f;
+
+		if (io.DeltaTime <= 0.0f)
+		{
+			io.DeltaTime = 1.0f / 60.0f;
+		}
 	}
 
 	io.KeyCtrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
@@ -453,8 +513,6 @@ void OnConsoleFrameDraw(int width, int height, bool usedSharedD3D11)
 	}
 
 	lastDrawTime = timeGetTime();
-
-	g_conHostMutex.unlock();
 }
 
 static void OnConsoleWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, bool& pass, LRESULT& result)
@@ -463,71 +521,18 @@ static void OnConsoleWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, 
 
 	ConHost::OnShouldDrawGui(&shouldDrawGui);
 
-	if ((!g_consoleFlag && !g_cursorFlag) || !pass)
+	if (!pass)
 	{
 		return;
 	}
 
-	std::unique_lock<std::mutex> g_conHostMutex;
-	ImGuiIO& io = ImGui::GetIO();
-
-#if 0
-	switch (msg)
+	if (!ConsoleHasAnything())
 	{
-		case WM_LBUTTONDOWN:
-			io.MouseDown[0] = true;
-			pass = false;
-			break;
-		case WM_LBUTTONUP:
-			io.MouseDown[0] = false;
-			pass = false;
-			break;
-		case WM_RBUTTONDOWN:
-			io.MouseDown[1] = true;
-			pass = false;
-			break;
-		case WM_RBUTTONUP:
-			io.MouseDown[1] = false;
-			pass = false;
-			break;
-		case WM_MBUTTONDOWN:
-			io.MouseDown[2] = true;
-			pass = false;
-			break;
-		case WM_MBUTTONUP:
-			io.MouseDown[2] = false;
-			pass = false;
-			break;
-		case WM_MOUSEWHEEL:
-			io.MouseWheel += GET_WHEEL_DELTA_WPARAM(wParam) > 0 ? +1.0f : -1.0f;
-			pass = false;
-			break;
-		case WM_MOUSEMOVE:
-			io.MousePos.x = (signed short)(lParam);
-			io.MousePos.y = (signed short)(lParam >> 16);
-			pass = false;
-			break;
-		case WM_KEYDOWN:
-			if (wParam < 256)
-				io.KeysDown[wParam] = 1;
-			pass = false;
-			break;
-		case WM_KEYUP:
-			if (wParam < 256)
-				io.KeysDown[wParam] = 0;
-			pass = false;
-			break;
-		case WM_CHAR:
-			// You can also use ToAscii()+GetKeyboardState() to retrieve characters.
-			if (wParam > 0 && wParam < 0x10000)
-				io.AddInputCharacter((unsigned short)wParam);
-			pass = false;
-			break;
-		case WM_INPUT:
-			pass = false;
-			break;
+		return;
 	}
-#endif
+
+	std::unique_lock _(g_conHostMutex);
+	ImGuiIO& io = ImGui::GetIO();
 
 	if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam) == TRUE)
 	{
@@ -538,12 +543,18 @@ static void OnConsoleWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, 
 	
 	if (msg == WM_INPUT || (msg >= WM_MOUSEFIRST && msg <= WM_MOUSELAST))
 	{
-		pass = false;
+		if (ConsoleHasMouse())
+		{
+			pass = false;
+		}
 	}
 
-	if (g_consoleFlag && ((msg >= WM_KEYFIRST && msg <= WM_KEYLAST) || msg == WM_CHAR))
+	if ((msg >= WM_KEYFIRST && msg <= WM_KEYLAST) || msg == WM_CHAR)
 	{
-		pass = false;
+		if (ConsoleHasKeyboard())
+		{
+			pass = false;
+		}
 	}
 
 	if (!pass)
@@ -620,32 +631,14 @@ static void BuildFont(float scale)
 
 void ImGui_ImplWin32_InitPlatformInterface();
 
+extern ImGuiKey ImGui_ImplWin32_VirtualKeyToImGuiKey(WPARAM wParam);
+
 static HookFunction initFunction([]()
 {
 	auto cxt = ImGui::CreateContext();
 	ImGui::SetCurrentContext(cxt);
 
 	ImGuiIO& io = ImGui::GetIO();
-	io.KeyMap[ImGuiKey_Tab] = VK_TAB; // Keyboard mapping. ImGui will use those indices to peek into the io.KeyDown[] array that we will update during the application lifetime.
-	io.KeyMap[ImGuiKey_LeftArrow] = VK_LEFT;
-	io.KeyMap[ImGuiKey_RightArrow] = VK_RIGHT;
-	io.KeyMap[ImGuiKey_UpArrow] = VK_UP;
-	io.KeyMap[ImGuiKey_DownArrow] = VK_DOWN;
-	io.KeyMap[ImGuiKey_PageUp] = VK_PRIOR;
-	io.KeyMap[ImGuiKey_PageDown] = VK_NEXT;
-	io.KeyMap[ImGuiKey_Home] = VK_HOME;
-	io.KeyMap[ImGuiKey_End] = VK_END;
-	io.KeyMap[ImGuiKey_Delete] = VK_DELETE;
-	io.KeyMap[ImGuiKey_Backspace] = VK_BACK;
-	io.KeyMap[ImGuiKey_Enter] = VK_RETURN;
-	io.KeyMap[ImGuiKey_Escape] = VK_ESCAPE;
-	io.KeyMap[ImGuiKey_A] = 'A';
-	io.KeyMap[ImGuiKey_C] = 'C';
-	io.KeyMap[ImGuiKey_V] = 'V';
-	io.KeyMap[ImGuiKey_X] = 'X';
-	io.KeyMap[ImGuiKey_Y] = 'Y';
-	io.KeyMap[ImGuiKey_Z] = 'Z';
-
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 	io.ConfigDockingWithShift = true;
 	io.ConfigWindowsResizeFromEdges = true;
@@ -790,7 +783,7 @@ static HookFunction initFunction([]()
 
 	InputHook::QueryInputTarget.Connect([](std::vector<InputTarget*>& targets)
 	{
-		if (!g_consoleFlag && !g_cursorFlag)
+		if (!ConsoleHasAnything())
 		{
 			return true;
 		}
@@ -799,31 +792,31 @@ static HookFunction initFunction([]()
 		{
 			virtual inline void KeyDown(UINT vKey, UINT scanCode) override
 			{
-				std::unique_lock<std::mutex> g_conHostMutex;
+				std::unique_lock _(g_conHostMutex);
 				
 				ImGuiIO& io = ImGui::GetIO();
 
 				if (vKey < 256)
 				{
-					io.KeysDown[vKey] = true;
+					io.AddKeyEvent(ImGui_ImplWin32_VirtualKeyToImGuiKey(vKey), true);
 				}
 			}
 
 			virtual inline void KeyUp(UINT vKey, UINT scanCode) override
 			{
-				std::unique_lock<std::mutex> g_conHostMutex;
+				std::unique_lock _(g_conHostMutex);
 
 				ImGuiIO& io = ImGui::GetIO();
 
 				if (vKey < 256)
 				{
-					io.KeysDown[vKey] = false;
+					io.AddKeyEvent(ImGui_ImplWin32_VirtualKeyToImGuiKey(vKey), false);
 				}
 			}
 
 			virtual inline void MouseDown(int buttonIdx, int x, int y) override
 			{
-				std::unique_lock<std::mutex> g_conHostMutex;
+				std::unique_lock _(g_conHostMutex);
 
 				ImGuiIO& io = ImGui::GetIO();
 
@@ -835,7 +828,7 @@ static HookFunction initFunction([]()
 
 			virtual inline void MouseUp(int buttonIdx, int x, int y) override
 			{
-				std::unique_lock<std::mutex> g_conHostMutex;
+				std::unique_lock _(g_conHostMutex);
 
 				ImGuiIO& io = ImGui::GetIO();
 
@@ -852,7 +845,7 @@ static HookFunction initFunction([]()
 					return;
 				}
 
-				std::unique_lock<std::mutex> g_conHostMutex;
+				std::unique_lock _(g_conHostMutex);
 
 				ImGuiIO& io = ImGui::GetIO();
 				io.AddMouseWheelEvent(0.0f, delta > 0 ? +1.0f : -1.0f);
@@ -860,7 +853,7 @@ static HookFunction initFunction([]()
 
 			virtual inline void MouseMove(int x, int y) override
 			{
-				std::unique_lock<std::mutex> g_conHostMutex;
+				std::unique_lock _(g_conHostMutex);
 
 				ImGuiIO& io = ImGui::GetIO();
 				io.AddMousePosEvent((signed short)(x), (signed short)(y));
@@ -879,7 +872,7 @@ static HookFunction initFunction([]()
 
 	InputHook::QueryMayLockCursor.Connect([](int& may)
 	{
-		if (g_consoleFlag || g_cursorFlag)
+		if (ConsoleHasAnything())
 		{
 			may = 0;
 		}
@@ -935,7 +928,7 @@ static decltype(&ReleaseCapture) g_origReleaseCapture;
 
 static void WINAPI ReleaseCaptureStub()
 {
-	if (g_consoleFlag || g_cursorFlag)
+	if (ConsoleHasAnything())
 	{
 		return;
 	}

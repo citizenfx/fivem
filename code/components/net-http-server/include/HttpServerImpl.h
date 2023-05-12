@@ -36,10 +36,5 @@ Http2ServerImpl: public HttpServer
 {
 private:
 	virtual void OnConnection(fwRefContainer<TcpServerStream> stream) override;
-
-public:
-	Http2ServerImpl();
-
-	virtual ~Http2ServerImpl() override;
 };
 }

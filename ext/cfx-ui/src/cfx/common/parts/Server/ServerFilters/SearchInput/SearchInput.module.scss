@@ -1,0 +1,93 @@
+.root {
+  &.focus.shadowy {
+    box-shadow: 0 0 0 100vw ui.color-token('shadow-large');
+    z-index: 1;
+    transition: box-shadow 1s cubic-bezier(0.19, 1, 0.22, 1);
+  }
+}
+
+.part {
+  --_color: var(--part-color, transparent);
+  --_box-shadow: var(--box-shadow, 0 0 0 transparent);
+
+  box-shadow: 0 -3px 3px -2px var(--_color) inset, var(--_box-shadow);
+
+  &.address {
+    &.addressPlaceholder {
+      &::after {
+        display: inline;
+        content: ' Server address or join ID';
+        color: ui.color-token('input-placeholder-text');
+      }
+    }
+  }
+}
+
+.focus {
+  .part {
+    &.invert {
+      background-color: ui.color-token('server-filters-faucet-exclusive-background');
+    }
+  }
+
+  .locale {
+    @include ui.def('part-color', ui.color('warning', $alpha: .5));
+
+    &.active {
+      @include ui.def('part-color', ui.color('warning', $alpha: 1));
+    }
+  }
+
+  .name {
+    @include ui.def('part-color', ui.color('main', 500, $alpha: .5));
+
+    &.active {
+      @include ui.def('part-color', ui.color('main', 500, $alpha: 1));
+    }
+  }
+
+  .category {
+    @include ui.def('part-color', ui.color('success', $alpha: .5));
+
+    &.active {
+      @include ui.def('part-color', ui.color('success', $alpha: 1));
+    }
+  }
+}
+
+.wizard {
+  position: fixed;
+
+  top: calc(var(--y));
+  left: calc(var(--x) - #{ui.offset('small')});
+
+  z-index: 9999;
+
+  .loader {
+    display: flex;
+    align-items: baseline;
+
+    height: 100%;
+
+    padding: ui.offset('small');
+    margin-top: ui.offset('small');
+  }
+
+  .content {
+    box-shadow: ui.use('shadow-large');
+
+    @include ui.def('backdrop-color', ui.color('main'));
+    @include ui.fake-backdrop-blur();
+
+    border-bottom-left-radius: ui.border-radius('small');
+    border-bottom-right-radius: ui.border-radius('small');
+  }
+
+  .item {
+    padding: ui.offset('small');
+
+    &.active {
+      background-color: ui.color-token('interactive-list-item-hover-background');
+    }
+  }
+}

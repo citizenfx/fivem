@@ -265,11 +265,13 @@ namespace fx
 
 		inline std::shared_ptr<sync::ClientSyncDataBase> GetSyncData()
 		{
+			std::shared_lock _(m_syncDataMutex);
 			return m_syncData;
 		}
 
 		inline void SetSyncData(const std::shared_ptr<sync::ClientSyncDataBase>& ptr)
 		{
+			std::unique_lock _(m_syncDataMutex);
 			m_syncData = ptr;
 		}
 
@@ -387,6 +389,7 @@ namespace fx
 
 		// sync data
 		std::shared_ptr<sync::ClientSyncDataBase> m_syncData;
+		std::shared_mutex m_syncDataMutex;
 
 		// whether the client has sent a routing msg once
 		bool m_hasRouted;

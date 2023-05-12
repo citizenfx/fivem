@@ -34,12 +34,29 @@ static std::unordered_map<std::string, int> g_failures;
 
 hook::cdecl_stub<rage::fiCollection*()> getRawStreamer([]()
 {
-	return hook::get_call(hook::get_pattern("48 8B D3 4C 8B 00 48 8B C8 41 FF 90 ? 01 00 00", -5));
+	return hook::get_call(hook::get_pattern("48 8B D3 4C 8B 00 48 8B C8 41 FF 90 ? 01 00 00 8B D8 E8", -5));
 });
 
-static bool ProcessHandler(HANDLE sema, char* a1)
+struct SemaAwaiter
 {
-	bool isSignaled = WaitForSingleObject(sema, 0) == WAIT_OBJECT_0;
+	bool operator()(void* sema) const
+	{
+		return WaitForSingleObject(sema, 0) == WAIT_OBJECT_0;
+	}
+};
+
+struct ByteAwaiter
+{
+	bool operator()(void* sema) const
+	{
+		return *((uint8_t*)sema + 0x1848);
+	}
+};
+
+template<typename Awaiter>
+static bool ProcessHandler(void* sema, char* a1)
+{
+	bool isSignaled = Awaiter()(sema);
 
 	if (!isSignaled)
 	{
@@ -68,11 +85,51 @@ static bool ProcessHandler(HANDLE sema, char* a1)
 	return isSignaled;
 }
 
+static void Hook_StreamingSema2699()
+{
+	{
+		static struct : jitasm::Frontend
+		{
+			virtual void InternalMain() override
+			{
+				mov(rdx, rbx);
+
+				mov(rax, (uint64_t)&ProcessHandler<ByteAwaiter>);
+				jmp(rax);
+			}
+		} weirdStub;
+
+		// rage::strStreamingLoader::ProcessStreamFiles
+		auto location = hook::get_pattern("8A 81 48 18 00 00 84 C0 0F 84 E5");
+		hook::nop(location, 6);
+		hook::call(location, weirdStub.GetCode());
+	}
+
+	{
+		static struct : jitasm::Frontend
+		{
+			virtual void InternalMain() override
+			{
+				mov(rdx, rsi);
+
+				mov(rax, (uint64_t)&ProcessHandler<ByteAwaiter>);
+				jmp(rax);
+			}
+		} weirdStub;
+
+		// rage::strStreamingLoader::Flush
+		auto location = hook::get_pattern("8A 81 48 18 00 00 84 C0 0F 84 10 01");
+		hook::nop(location, 6);
+		hook::call(location, weirdStub.GetCode());
+	}
+}
+
 static void Hook_StreamingSema()
 {
-	// was fixed in 2699.0 by R*
+	// 2699+ uses a byte instead of a sema, so needs its own patch
 	if (xbr::IsGameBuildOrGreater<2699>())
 	{
+		Hook_StreamingSema2699();
 		return;	
 	}
 
@@ -83,7 +140,7 @@ static void Hook_StreamingSema()
 			{
 				mov(rdx, rbx);
 
-				mov(rax, (uint64_t)&ProcessHandler);
+				mov(rax, (uint64_t)&ProcessHandler<SemaAwaiter>);
 				jmp(rax);
 			}
 		} weirdStub;
@@ -99,7 +156,7 @@ static void Hook_StreamingSema()
 			{
 				mov(rdx, rsi);
 
-				mov(rax, (uint64_t)&ProcessHandler);
+				mov(rax, (uint64_t)&ProcessHandler<SemaAwaiter>);
 				jmp(rax);
 			}
 		} weirdStub;

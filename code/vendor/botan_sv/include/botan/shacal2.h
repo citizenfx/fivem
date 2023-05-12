@@ -37,6 +37,11 @@ class BOTAN_PUBLIC_API(2,3) SHACAL2 final : public Block_Cipher_Fixed_Params<32,
       void simd_decrypt_4(const uint8_t in[], uint8_t out[]) const;
 #endif
 
+#if defined(BOTAN_HAS_SHACAL2_AVX2)
+      void avx2_encrypt_8(const uint8_t in[], uint8_t out[]) const;
+      void avx2_decrypt_8(const uint8_t in[], uint8_t out[]) const;
+#endif
+
 #if defined(BOTAN_HAS_SHACAL2_X86)
       void x86_encrypt_blocks(const uint8_t in[], uint8_t out[], size_t blocks) const;
 #endif

@@ -3,13 +3,9 @@
 #include <boost/preprocessor/seq/for_each.hpp>
 #include <boost/preprocessor/wstringize.hpp>
 
-#ifndef IS_FXSERVER
-#include <HostSharedData.h>
-#include <CfxState.h>
-#endif
-
 #ifdef GTA_FIVE
 #define GAME_BUILDS \
+	(2802) \
 	(2699) \
 	(2612) \
 	(2545) \
@@ -20,6 +16,7 @@
 	(1604)
 #elif defined(IS_RDR3)
 #define GAME_BUILDS \
+	(1491) \
 	(1436) \
 	(1355) \
 	(1311)
@@ -31,44 +28,45 @@
 	(0)
 #endif
 
+// for CrossBuildLaunch.cpp
+#ifndef XBR_BUILDS_ONLY
 namespace xbr
 {
+int GetGameBuildInit();
+
 inline int GetGameBuild()
 {
 #ifndef IS_FXSERVER
 	static int buildNumber = -1;
 
-	if (buildNumber != -1)
+	if (buildNumber == -1)
 	{
-		return buildNumber;
-	}
-
-	constexpr const std::pair<std::wstring_view, int> buildNumbers[] = {
-#define EXPAND(_, __, x) \
-	{ BOOST_PP_WSTRINGIZE(BOOST_PP_CAT(b, x)), x },
-
-		BOOST_PP_SEQ_FOR_EACH(EXPAND, , GAME_BUILDS)
-
-#undef EXPAND
-	};
-
-	auto sharedData = CfxState::Get();
-	std::wstring_view cli = (sharedData->initCommandLine[0]) ? sharedData->initCommandLine : GetCommandLineW();
-	buildNumber = std::get<1>(buildNumbers[std::size(buildNumbers) - 1]);
-
-	for (auto [build, number] : buildNumbers)
-	{
-		if (cli.find(build) != std::string_view::npos)
-		{
-			buildNumber = number;
-			break;
-		}
+		buildNumber = GetGameBuildInit();
 	}
 
 	return buildNumber;
 #else
 	return 0;
 #endif
+}
+
+inline std::string_view GetGameBuildIdentifier()
+{
+	static std::string buildIdentifier = []() -> std::string
+	{
+		auto build = GetGameBuild();
+
+#ifdef IS_RDR3
+		if (build == 1491)
+		{
+			return "1491_18";
+		}
+#endif
+
+		return fmt::sprintf("%d", build);
+	}();
+
+	return buildIdentifier;
 }
 }
 
@@ -155,5 +153,6 @@ inline void CoreSetGameWindow(HWND hWnd)
 
 	return (!func) ? void() : func(hWnd);
 }
+#endif
 #endif
 #endif

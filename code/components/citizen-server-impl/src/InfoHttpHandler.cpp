@@ -271,7 +271,7 @@ void InfoHttpHandlerComponentLocals::AttachToObject(fx::ServerInstanceBase* inst
 		}
 	});
 
-	instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/info.json", [=](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response)
+	instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/info.json", [=](const fwRefContainer<net::HttpRequest>& request, fwRefContainer<net::HttpResponse> response)
 	{
 		if (processRequestParanoia(request))
 		{
@@ -312,7 +312,7 @@ void InfoHttpHandlerComponentLocals::AttachToObject(fx::ServerInstanceBase* inst
 		}
 	});
 
-	instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/dynamic.json", [=](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response)
+	instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/dynamic.json", [=](const fwRefContainer<net::HttpRequest>& request, fwRefContainer<net::HttpResponse> response)
 	{
 		if (processRequestParanoia(request))
 		{
@@ -326,7 +326,7 @@ void InfoHttpHandlerComponentLocals::AttachToObject(fx::ServerInstanceBase* inst
 		response->End(json.dump(-1, ' ', false, json::error_handler_t::replace));
 	});
 
-	instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/players.json", [this, instance, processRequestParanoia](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response)
+	instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/players.json", [this, instance, processRequestParanoia](const fwRefContainer<net::HttpRequest>& request, fwRefContainer<net::HttpResponse> response)
 	{
 		if (processRequestParanoia(request))
 		{
@@ -431,7 +431,7 @@ void InfoHttpHandlerComponentLocals::AttachToObject(fx::ServerInstanceBase* inst
 		}
 	});
 
-	instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/profileData.json", [=](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response)
+	instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/profileData.json", [=](const fwRefContainer<net::HttpRequest>& request, fwRefContainer<net::HttpResponse> response)
 	{
 		if (!lastProfile)
 		{

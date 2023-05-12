@@ -33,6 +33,14 @@ struct DrawRequest
 	Vector3 third;
 };
 
+struct WorldhorizonManager
+{
+	char m_unknown;
+	char m_disableRendering;
+
+	// etc...
+};
+
 constexpr int NUM_MAX_DRAW_REQUESTS = 1024;
 
 static DrawRequest drawRequests[NUM_MAX_DRAW_REQUESTS];
@@ -98,8 +106,14 @@ static void* g_drawOriginStore;
 
 static uint32_t* g_scriptDrawOrigin;
 
+static WorldhorizonManager* g_worldhorizonMgr;
+
 static HookFunction hookFunction([]()
 {
+	{
+		g_worldhorizonMgr = hook::get_address<WorldhorizonManager*>(hook::get_pattern("89 44 24 40 48 8D 0D ? ? ? ? 8B 84 24 90 00", 7));
+	}
+
 	{
 		auto location = hook::get_pattern<char>("48 69 D0 10 04 00 00 48 8D 05 ? ? ? ? 48 03");
 
@@ -204,6 +218,16 @@ static HookFunction hookFunction([]()
 		req.color = ConvertRGBAToHex(red, green, blue, alpha);
 
 		drawRequests[drawRequestsCount++] = req;
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("DISABLE_WORLDHORIZON_RENDERING", [](fx::ScriptContext& context)
+	{
+		auto flag = context.GetArgument<bool>(0);
+
+		if (g_worldhorizonMgr)
+		{
+			g_worldhorizonMgr->m_disableRendering = flag;
+		}
 	});
 
 	MH_Initialize();

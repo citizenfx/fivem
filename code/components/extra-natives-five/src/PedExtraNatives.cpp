@@ -8,6 +8,8 @@
 #include <nutsnbolts.h>
 #include "NativeWrappers.h"
 
+#include "atArray.h"
+
 #include <GameInit.h>
 
 static hook::cdecl_stub<fwArchetype*(uint32_t nameHash, uint64_t* archetypeUnk)> getArchetype([]()
@@ -57,6 +59,7 @@ public:
 };
 
 static uint64_t* _id_CPedHeadBlendData;
+static uintptr_t _baseClipsetLocation;
 
 static hook::cdecl_stub<uint64_t(void* entity, uint64_t list)> g_extensionList_get([]()
 {
@@ -67,6 +70,14 @@ static hook::cdecl_stub<uint16_t(uint32_t)> _getPedPersonalityIndex([]()
 {
 	return hook::get_call(hook::get_pattern("8B 86 B0 00 00 00 BB D5 46 DF E4 85 C0", 0x12));
 });
+
+struct PedPersonality
+{
+	uint32_t hash;
+	char pad[180];
+};
+
+static atArray<PedPersonality>* g_pedPersonalities;
 
 static CPedHeadBlendData* GetPedHeadBlendData(fwEntity* entity)
 {
@@ -83,6 +94,9 @@ static CPedHeadBlendData* GetPedHeadBlendData(fwEntity* entity)
 static HookFunction initFunction([]()
 {
 	_id_CPedHeadBlendData = hook::get_address<uint64_t*>(hook::get_pattern("48 39 5E 38 74 1B 8B 15 ? ? ? ? 48 8D 4F 10 E8", 8));
+	_baseClipsetLocation = (uintptr_t)hook::get_pattern("48 8B 42 ? 48 85 C0 75 05 E8");
+
+	g_pedPersonalities = hook::get_address<decltype(g_pedPersonalities)>(hook::get_call(hook::get_pattern<char>("8B 86 B0 00 00 00 BB D5 46 DF E4 85 C0", 0x12)) + 15, 3, 7);
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_PED_EYE_COLOR", [=](fx::ScriptContext& context)
 	{
@@ -182,6 +196,51 @@ static HookFunction initFunction([]()
 		context.SetResult<int>(result);
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_PED_MOVEMENT_CLIPSET", [=](fx::ScriptContext& context)
+	{
+		fwEntity* entity = rage::fwScriptGuid::GetBaseFromGuid(context.GetArgument<int>(0));
+
+		context.SetResult<int>(-1);
+
+		if (!entity || !entity->IsOfType<CPed>())
+		{
+			return;
+		}
+
+		if (!_baseClipsetLocation)
+		{
+			return;
+		}
+
+		static uint32_t offset_unk = *(uint32_t*)(_baseClipsetLocation - 0xB);
+		static uint32_t offset_ptrCTaskTreeMotion = *(uint32_t*)(_baseClipsetLocation - 0x4);
+		static uint8_t offset_ptrCTaskMotionPed = *(uint8_t*)(_baseClipsetLocation + 0x3);
+
+		uint64_t unk = *(uint64_t*)((uint64_t)entity + offset_unk);
+		if (!unk)
+		{
+			return;
+		}
+
+		uint64_t ptrCTaskTreeMotion = *(uint64_t*)(unk + offset_ptrCTaskTreeMotion);
+		if (!ptrCTaskTreeMotion)
+		{
+			return;
+		}
+
+		uint64_t ptrCTaskMotionPed = *(uint64_t*)(ptrCTaskTreeMotion + offset_ptrCTaskMotionPed);
+		if (!ptrCTaskMotionPed)
+		{
+			return;
+		}
+
+		// 0xE0 hasn't changed in forever
+		// How to update:
+		// 41 C0 E0 ? F3 0F 11 91 ? ? ? ? 44 08 81 + Offset 21 (dec)
+		context.SetResult<int>(*(int32_t*)(ptrCTaskMotionPed + 0xE0));
+	});
+
+	static std::map<uint32_t, uint16_t> initialPersonalities;
 	static std::list<std::tuple<uint32_t, uint16_t>> undoPersonalities;
 
 	OnKillNetworkDone.Connect([]()
@@ -220,7 +279,51 @@ static HookFunction initFunction([]()
 				*(uint16_t*)((char*)archetype + 0x14A) = index;
 
 				undoPersonalities.push_front({ pedModel, oldIndex });
+
+				if (initialPersonalities.find(pedModel) == initialPersonalities.end())
+				{
+					initialPersonalities.emplace(pedModel, oldIndex);
+				}
 			}
 		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("RESET_PED_MODEL_PERSONALITY", [](fx::ScriptContext& context)
+	{
+		auto pedModel = context.GetArgument<uint32_t>(0);
+
+		uint64_t index;
+		auto archetype = getArchetype(pedModel, &index);
+
+		// if is ped
+		if (archetype && archetype->miType == 6)
+		{
+			if (auto it = initialPersonalities.find(pedModel); it != initialPersonalities.end())
+			{
+				*(uint16_t*)((char*)archetype + 0x14A) = it->second;
+			}
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PED_MODEL_PERSONALITY", [](fx::ScriptContext& context)
+	{
+		auto pedModel = context.GetArgument<uint32_t>(0);
+
+		uint64_t index;
+		auto archetype = getArchetype(pedModel, &index);
+
+		uint32_t result = 0;
+
+		// if is ped
+		if (archetype && archetype->miType == 6)
+		{
+			auto index = *(uint16_t*)((char*)archetype + 0x14A);
+			if (index < g_pedPersonalities->GetCount())
+			{
+				result = g_pedPersonalities->Get(index).hash;
+			}
+		}
+
+		context.SetResult<uint32_t>(result);
 	});
 });

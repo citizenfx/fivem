@@ -47,6 +47,7 @@ static constexpr const size_t kGamePlayerCap =
 
 #include <StateBagComponent.h>
 
+#ifdef STATE_FIVE
 inline bool Is2060()
 {
 	static bool value = ([]()
@@ -106,6 +107,57 @@ inline bool Is2699()
 
 	return value;
 }
+
+inline bool Is2802()
+{
+	static bool value = ([]()
+	{
+		return fx::GetEnforcedGameBuildNumber() >= 2802;
+	})();
+
+	return value;
+}
+#elif defined(STATE_RDR3)
+inline bool Is1311()
+{
+	static bool value = ([]()
+	{
+		return fx::GetEnforcedGameBuildNumber() >= 1311;
+	})();
+
+	return value;
+}
+
+inline bool Is1355()
+{
+	static bool value = ([]()
+	{
+		return fx::GetEnforcedGameBuildNumber() >= 1355;
+	})();
+
+	return value;
+}
+
+inline bool Is1436()
+{
+	static bool value = ([]()
+	{
+		return fx::GetEnforcedGameBuildNumber() >= 1436;
+	})();
+
+	return value;
+}
+
+inline bool Is1491()
+{
+	static bool value = ([]()
+	{
+		return fx::GetEnforcedGameBuildNumber() >= 1491;
+	})();
+
+	return value;
+}
+#endif
 
 template<typename T>
 inline constexpr T roundToWord(T val)
@@ -454,8 +506,37 @@ struct CDynamicEntityGameStateNodeData
 struct CTrainGameStateDataNodeData
 {
 	int engineCarriage;
+	int linkedToBackwardId;
+	int linkedToForwardId;
 
+	float distanceFromEngine;
+
+	int trainConfigIndex;
 	int carriageIndex;
+
+	int trackId;
+	float cruiseSpeed;
+
+	int trainState;
+
+	bool isEngine;
+	bool isCaboose;
+
+	bool unk12;
+
+	bool direction;
+
+	bool unk14;
+
+	bool renderDerailed;
+
+	// 2372 {
+	bool unk198;
+	bool unk224;
+	bool unk199;
+	// }
+
+	bool forceDoorsOpen;
 };
 
 struct CPlayerGameStateNodeData
@@ -1134,6 +1215,10 @@ public:
 
 	void ReassignEntity(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient);
 
+private:
+	void ReassignEntityInner(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient);
+
+public:
 	void DeleteEntity(const fx::sync::SyncEntityPtr& entity);
 
 	void ClearClientFromWorldGrid(const fx::ClientSharedPtr& targetClient);

@@ -10,6 +10,7 @@
 
 #include <chrono>
 
+#include <boost/algorithm/string.hpp>
 #include <Error.h>
 
 #include <sstream>
@@ -67,7 +68,7 @@ class CurlData final
 public:
 	std::string url;
 	std::string postData;
-	std::function<void(bool, const char*, size_t)> callback;
+	std::function<void(bool, std::string_view)> callback;
 	std::function<size_t(const void*, size_t)> writeFunction;
 	std::function<void()> preCallback;
 	std::function<void(const ProgressInfo&)> progressCallback;
@@ -82,8 +83,12 @@ public:
 	std::shared_ptr<int> responseCode;
 	std::chrono::milliseconds timeoutNoResponse;
 	std::chrono::high_resolution_clock::duration reqStart;
+
 	std::stringstream errorBody;
-	bool addErrorBody;
+	std::stringstream rawBody;
+
+	bool addErrorBody = false;
+	bool addRawBody = false;
 
 	CurlData();
 
@@ -121,8 +126,13 @@ size_t CurlData::HandleWrite(const void* data, size_t size, size_t nmemb)
 
 		if (code >= 400)
 		{
-			errorBody << std::string((const char*)data, size * nmemb);
+			errorBody << std::string_view{ (const char*)data, size * nmemb };
 		}
+	}
+
+	if (addRawBody)
+	{
+		rawBody << std::string_view{ (const char*)data, size * nmemb };
 	}
 
 	return writeFunction(data, size * nmemb);
@@ -133,13 +143,19 @@ void CurlData::HandleResult(CURL* handle, CURLcode result)
 	if (preCallback)
 	{
 		preCallback();
+		preCallback = {};
+	}
+
+	if (!callback)
+	{
+		return;
 	}
 
 	if (result != CURLE_OK)
 	{
 		auto failure = fmt::sprintf("%s - CURL error code %d (%s)", errBuffer, (int)result, curl_easy_strerror(result));
 
-		callback(false, failure.c_str(), failure.size());
+		callback(false, failure);
 	}
 	else
 	{
@@ -159,15 +175,17 @@ void CurlData::HandleResult(CURL* handle, CURLcode result)
 					? fmt::sprintf(": %s", this->errorBody.str())
 					: "");
 
-			callback(false, failure.c_str(), failure.size());
+			callback(false, failure);
 		}
 		else
 		{
 			auto str = ss.str();
 
-			callback(true, str.c_str(), str.size());
+			callback(true, str);
 		}
 	}
+
+	callback = {};
 }
 
 struct curl_context_t
@@ -189,7 +207,7 @@ static curl_context_t* CreateCurlContext(HttpClientImpl* i, curl_socket_t sockfd
 	return context;
 }
 
-static void FinalizeCurlHandle(CURLM* multi, CURL* curl, const CURLcode* result = nullptr)
+static void FinalizeCurlHandle(CURL* curl, CURLM* multi = nullptr, const CURLcode* result = nullptr)
 {
 	char* dataPtr;
 	curl_easy_getinfo(curl, CURLINFO_PRIVATE, &dataPtr);
@@ -201,7 +219,11 @@ static void FinalizeCurlHandle(CURLM* multi, CURL* curl, const CURLcode* result 
 		(*data)->HandleResult(curl, *result);
 	}
 
-	curl_multi_remove_handle(multi, curl);
+	if (multi)
+	{
+		curl_multi_remove_handle(multi, curl);
+	}
+
 	curl_easy_cleanup(curl);
 
 	// delete data
@@ -226,7 +248,7 @@ static void CheckMultiInfo(HttpClientImpl* impl)
 			CURL* curl = msg->easy_handle;
 			CURLcode result = msg->data.result;
 
-			FinalizeCurlHandle(impl->multi, curl, &result);
+			FinalizeCurlHandle(curl, impl->multi, &result);
 		}
 	} while (msg);
 }
@@ -334,16 +356,16 @@ HttpClient::HttpClient(const wchar_t* userAgent /* = L"CitizenFX/1" */, const st
 	curl_multi_setopt(m_impl->multi, CURLMOPT_PIPELINING, CURLPIPE_HTTP1 | CURLPIPE_MULTIPLEX);
 	curl_multi_setopt(m_impl->multi, CURLMOPT_MAX_HOST_CONNECTIONS, 8);
 	curl_multi_setopt(m_impl->multi, CURLMOPT_SOCKETFUNCTION, CurlHandleSocket);
-	curl_multi_setopt(m_impl->multi, CURLMOPT_SOCKETDATA, m_impl);
+	curl_multi_setopt(m_impl->multi, CURLMOPT_SOCKETDATA, m_impl.get());
 	curl_multi_setopt(m_impl->multi, CURLMOPT_TIMERFUNCTION, CurlStartTimeout);
-	curl_multi_setopt(m_impl->multi, CURLMOPT_TIMERDATA, m_impl);
+	curl_multi_setopt(m_impl->multi, CURLMOPT_TIMERDATA, m_impl.get());
 	
 	auto loop = Instance<net::UvLoopManager>::Get()->GetOrCreate(loopId.empty() ? "httpClient" : loopId);
 	m_impl->loop = loop->GetLoop();
 
 	loop->EnqueueCallback([this, loop]()
 	{
-		auto impl = m_impl;
+		auto impl = m_impl.get();
 		uv_timer_init(loop->GetLoop(), &impl->timeout);
 		impl->timeout.data = impl;
 
@@ -391,7 +413,7 @@ HttpClient::HttpClient(const wchar_t* userAgent /* = L"CitizenFX/1" */, const st
 
 HttpClient::~HttpClient()
 {
-	delete m_impl;
+
 }
 
 std::string HttpClient::BuildPostString(const std::map<std::string, std::string>& fields)
@@ -484,21 +506,26 @@ static size_t CurlHeaderInfo(char* buffer, size_t size, size_t nitems, void* use
 	return size * nitems;
 }
 
-static std::tuple<CURL*, std::shared_ptr<CurlData>> SetupCURLHandle(HttpClientImpl* impl, const std::string& url, const HttpRequestOptions& options, const std::function<void(bool, const char*, size_t)>& callback)
+static std::shared_ptr<CurlData> SetupCURLHandle(const std::unique_ptr<HttpClientImpl>& impl, const std::string& url, const HttpRequestOptions& options)
 {
+	if (boost::algorithm::to_lower_copy(url).find("file://") == 0)
+	{
+		FatalError("Invalid URL in HttpClient\nHit a file:// URL in HttpClient (%s). Please report this somewhere.", url);
+	}
+
 	auto curlHandle = curl_easy_init();
 
 	auto curlData = std::make_shared<CurlData>();
 	curlData->url = url;
-	curlData->callback = callback;
 	curlData->progressCallback = options.progressCallback;
 	curlData->curlHandle = curlHandle;
-	curlData->impl = impl;
+	curlData->impl = impl.get();
 	curlData->defaultWeight = curlData->weight = options.weight;
 	curlData->responseHeaders = options.responseHeaders;
 	curlData->responseCode = options.responseCode;
 	curlData->timeoutNoResponse = options.timeoutNoResponse;
 	curlData->addErrorBody = options.addErrorBody;
+	curlData->addRawBody = options.addRawBody;
 
 	auto scb = options.streamingCallback;
 
@@ -552,19 +579,24 @@ static std::tuple<CURL*, std::shared_ptr<CurlData>> SetupCURLHandle(HttpClientIm
 
 	impl->client->OnSetupCurlHandle(curlHandle, url);
 
-	return { curlHandle, curlData };
+	return curlData;
 }
 
-class HttpRequestHandleImpl final : public HttpRequestHandle
+class HttpRequestHandleImpl final : public ManualHttpRequestHandle
 {
-private:
-	std::shared_ptr<CurlData> m_request;
-
 public:
 	HttpRequestHandleImpl(const std::shared_ptr<CurlData>& reqData)
 		: m_request(reqData)
 	{
 
+	}
+
+	virtual ~HttpRequestHandleImpl()
+	{
+		if (!m_started)
+		{
+			FinalizeCurlHandle(m_request->curlHandle);
+		}
 	}
 
 	virtual bool HasCompleted() override
@@ -617,7 +649,7 @@ public:
 			if (curl == nullptr)
 				return;
 
-			FinalizeCurlHandle(impl->multi, curl);
+			FinalizeCurlHandle(curl, impl->multi);
 		});
 
 		std::shared_lock<std::shared_mutex> _(request->impl->mutex);
@@ -626,9 +658,30 @@ public:
 			request->impl->runCb->send();
 		}
 	}
+
+	virtual std::string GetRawBody() override
+	{
+		return m_request->rawBody.str();
+	}
+
+	virtual void Start() override
+	{
+		m_request->impl->AddCurlHandle(m_request->curlHandle);
+		m_started = true;
+	}
+
+	virtual void OnCompletion(std::function<void(bool, std::string_view)>&& callback) override
+	{
+		m_request->callback = std::move(callback);
+	}
+
+private:
+	std::shared_ptr<CurlData> m_request;
+
+	bool m_started = false;
 };
 
-static HttpRequestPtr SetupRequestHandle(const std::shared_ptr<CurlData>& data)
+static ManualHttpRequestPtr SetupRequestHandle(const std::shared_ptr<CurlData>& data)
 {
 	return std::make_shared<HttpRequestHandleImpl>(data);
 }
@@ -645,13 +698,24 @@ HttpRequestPtr HttpClient::DoGetRequest(const std::string& url, const std::funct
 	return DoGetRequest(url, {}, callback);
 }
 
+ManualHttpRequestPtr HttpClient::Get(const std::string& url, const HttpRequestOptions& options /* = */)
+{
+	auto curlData = SetupCURLHandle(m_impl, url, options);
+	return SetupRequestHandle(curlData);
+}
+
 HttpRequestPtr HttpClient::DoGetRequest(const std::string& url, const HttpRequestOptions& options, const std::function<void(bool, const char *, size_t)>& callback)
 {
-	auto[curlHandle, curlData] = SetupCURLHandle(m_impl, url, options, callback);
+	auto requestHandle = Get(url, options);
 
-	m_impl->AddCurlHandle(curlHandle);
+	requestHandle->OnCompletion([callback](bool success, std::string_view data)
+	{
+		callback(success, data.data(), data.size());
+	});
 
-	return SetupRequestHandle(curlData);
+	requestHandle->Start();
+
+	return requestHandle;
 }
 
 HttpRequestPtr HttpClient::DoPostRequest(const std::wstring& host, uint16_t port, const std::wstring& url, const std::map<std::string, std::string>& fields, const std::function<void(bool, const char*, size_t)>& callback)
@@ -692,38 +756,52 @@ HttpRequestPtr HttpClient::DoPostRequest(const std::string& url, const std::stri
 HttpRequestPtr HttpClient::DoPostRequest(const std::string& url, const std::string& postData, const HttpRequestOptions& options, const std::function<void(bool, const char*, size_t)>& callback, std::function<void(const std::map<std::string, std::string>&)> headerCallback /*= std::function<void(const std::map<std::string, std::string>&)>()*/)
 {
 	// make handle
-	auto [curlHandle, curlData] = SetupCURLHandle(m_impl, url, options, callback);
+	auto curlData = SetupCURLHandle(m_impl, url, options);
 
 	// assign post data
 	curlData->postData = postData;
 
-	curl_easy_setopt(curlHandle, CURLOPT_POSTFIELDS, curlData->postData.c_str());
+	curl_easy_setopt(curlData->curlHandle, CURLOPT_POSTFIELDS, curlData->postData.c_str());
 
 	// write out
-	m_impl->AddCurlHandle(curlHandle);
+	auto requestHandle = SetupRequestHandle(curlData);
 
-	return SetupRequestHandle(curlData);
+	requestHandle->OnCompletion([callback](bool success, std::string_view data)
+	{
+		callback(success, data.data(), data.size());
+	});
+
+	requestHandle->Start();
+
+	return requestHandle;
 }
 
 HttpRequestPtr HttpClient::DoMethodRequest(const std::string& method, const std::string& url, const std::string& postData, const HttpRequestOptions& options, const std::function<void(bool, const char*, size_t)>& callback, std::function<void(const std::map<std::string, std::string>&)> headerCallback /*= std::function<void(const std::map<std::string, std::string>&)>()*/)
 {
 	// make handle
-	auto[curlHandle, curlData] = SetupCURLHandle(m_impl, url, options, callback);
+	auto curlData = SetupCURLHandle(m_impl, url, options);
 
 	if (!postData.empty())
 	{
 		// assign post data
 		curlData->postData = postData;
 
-		curl_easy_setopt(curlHandle, CURLOPT_POSTFIELDS, curlData->postData.c_str());
+		curl_easy_setopt(curlData->curlHandle, CURLOPT_POSTFIELDS, curlData->postData.c_str());
 	}
 
-	curl_easy_setopt(curlHandle, CURLOPT_CUSTOMREQUEST, method.c_str());
+	curl_easy_setopt(curlData->curlHandle, CURLOPT_CUSTOMREQUEST, method.c_str());
 
 	// write out
-	m_impl->AddCurlHandle(curlHandle);
+	auto requestHandle = SetupRequestHandle(curlData);
 
-	return SetupRequestHandle(curlData);
+	requestHandle->OnCompletion([callback](bool success, std::string_view data)
+	{
+		callback(success, data.data(), data.size());
+	});
+
+	requestHandle->Start();
+
+	return requestHandle;
 }
 
 HttpRequestPtr HttpClient::DoFileGetRequest(const std::wstring& host, uint16_t port, const std::wstring& url, const char* outDeviceBase, const std::string& outFilename, const std::function<void(bool, const char*, size_t)>& callback)
@@ -748,7 +826,7 @@ HttpRequestPtr HttpClient::DoFileGetRequest(const std::string& urlStr, fwRefCont
 
 HttpRequestPtr HttpClient::DoFileGetRequest(const std::string& urlStr, fwRefContainer<vfs::Device> outDevice, const std::string& outFilename, const HttpRequestOptions& options, const std::function<void(bool, const char*, size_t)>& callback)
 {
-	auto [curlHandle, curlData] = SetupCURLHandle(m_impl, urlStr, options, callback);
+	auto curlData = SetupCURLHandle(m_impl, urlStr, options);
 
 	auto handle = outDevice->Create(outFilename);
 
@@ -762,9 +840,16 @@ HttpRequestPtr HttpClient::DoFileGetRequest(const std::string& urlStr, fwRefCont
 		outDevice->Close(handle);
 	};
 
-	m_impl->AddCurlHandle(curlHandle);
+	auto requestHandle = SetupRequestHandle(curlData);
 
-	return SetupRequestHandle(curlData);
+	requestHandle->OnCompletion([callback](bool success, std::string_view data)
+	{
+		callback(success, data.data(), data.size());
+	});
+
+	requestHandle->Start();
+
+	return requestHandle;
 }
 
 HttpRequestPtr HttpClient::DoFileGetRequest(const std::wstring& host, uint16_t port, const std::wstring& url, rage::fiDevice* outDevice, const std::string& outFilename, const std::function<void(bool, const char*, size_t)>& callback)

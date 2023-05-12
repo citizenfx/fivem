@@ -53,11 +53,11 @@ local function isGamePersonality(name)
 		return true
 	end
 
-	if name == 'game_1604' or name == 'game_2060' or name == 'game_372' or name == 'game_2189' or name == 'game_2372' or name == 'game_2545' or name == 'game_2612' or name == 'game_2699' then
+	if name == 'game_1604' or name == 'game_2060' or name == 'game_372' or name == 'game_2189' or name == 'game_2372' or name == 'game_2545' or name == 'game_2612' or name == 'game_2699' or name == 'game_2802' then
 		return true
 	end
 	
-	if name == 'game_1311' or name == 'game_1355' or name == 'game_1436' then
+	if name == 'game_1311' or name == 'game_1355' or name == 'game_1436' or name == 'game_1491' then
 		return true
 	end
 	
@@ -142,6 +142,7 @@ local function launcherpersonality_inner(name, aslr)
 			if _OPTIONS['game'] == 'five' then
 				gameBuild = '1604'
 
+				if name == 'game_2802' then gameBuild = '2802_0' end
 				if name == 'game_2699' then gameBuild = '2699_0' end
 				if name == 'game_2612' then gameBuild = '2612_1' end
 				if name == 'game_2545' then gameBuild = '2545_0' end
@@ -156,6 +157,7 @@ local function launcherpersonality_inner(name, aslr)
 
 				if name == 'game_1355' then gameBuild = '1355_18' end
 				if name == 'game_1436' then gameBuild = '1436_31' end
+				if name == 'game_1491' then gameBuild = '1491_18' end
 
 				gameDump = ("C:\\f\\RDR2_%s.exe"):format(gameBuild)
 			end
@@ -283,11 +285,13 @@ if _OPTIONS['game'] == 'five' then
 	launcherpersonality 'game_2545'
 	launcherpersonality 'game_2612'
 	launcherpersonality 'game_2699'
+	launcherpersonality 'game_2802'
 	launcherpersonality 'game_mtl'
 elseif _OPTIONS['game'] == 'rdr3' then
 	launcherpersonality 'game_1311'
 	launcherpersonality 'game_1355'
 	launcherpersonality 'game_1436'
+	launcherpersonality 'game_1491'
 	launcherpersonality 'game_mtl'
 elseif _OPTIONS['game'] == 'ny' then
 	launcherpersonality 'game_43'

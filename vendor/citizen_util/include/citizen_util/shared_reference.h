@@ -42,8 +42,8 @@ namespace impl
 {
 	struct control_block
 	{
-		std::atomic<long> ref_counter;
-		std::atomic<long> weak_counter;
+		std::atomic<int32_t> ref_counter;
+		std::atomic<int32_t> weak_counter;
 
 		// Wrap atomic operations on reference counters.
 		//
@@ -55,7 +55,7 @@ namespace impl
 		{
 			return --ref_counter == 0;
 		}
-		long get_ref()
+		auto get_ref()
 		{
 			return ref_counter.load();
 		}
@@ -68,7 +68,7 @@ namespace impl
 		{
 			return --weak_counter == 0;
 		}
-		long get_weak()
+		auto get_weak()
 		{
 			return weak_counter.load();
 		}
@@ -112,7 +112,7 @@ struct shared_reference
 		value = nullptr;
 	}
 
-	operator bool() const
+	explicit operator bool() const
 	{
 		return value != nullptr;
 	}
@@ -120,6 +120,11 @@ struct shared_reference
 	bool operator==(const shared_reference& other) const
 	{
 		return value == other.value;
+	}
+
+	bool operator!=(const shared_reference& other) const
+	{
+		return value != other.value;
 	}
 
 	bool operator<(const shared_reference& other) const
@@ -174,13 +179,8 @@ struct shared_reference
 
 	shared_reference& operator=(shared_reference&& other) noexcept
 	{
-		reset();
-
-		value = other.value;
-		block = other.block;
-
-		other.value = nullptr;
-
+		std::swap(value, other.value);
+		std::swap(block, other.block);
 		return *this;
 	}
 
@@ -217,7 +217,7 @@ struct weak_reference
 	using Type = typename SharedT::Type;
 	constexpr static auto MPool = SharedT::MPool;
 
-	operator bool() const
+	explicit operator bool() const
 	{
 		return value != nullptr && block->get_ref() > 0;
 	}
@@ -233,7 +233,7 @@ struct weak_reference
 
 			// unfortunately the best way i know of to do this is a CAS loop :(
 			// no wait-free locking for you!
-			long old_ref = block->get_ref();
+			auto old_ref = block->get_ref();
 			do
 			{
 				if (old_ref <= 0)
@@ -296,13 +296,8 @@ struct weak_reference
 
 	weak_reference& operator=(weak_reference&& other)
 	{
-		reset();
-
-		value = other.value;
-		block = other.block;
-
-		other.value = nullptr;
-
+		std::swap(value, other.value);
+		std::swap(block, other.block);
 		return *this;
 	}
 
@@ -314,6 +309,16 @@ struct weak_reference
 	bool operator==(const weak_reference& other) const
 	{
 		return value == other.value;
+	}
+
+	bool operator!=(const SharedT& other) const
+	{
+		return value != other.value;
+	}
+
+	bool operator!=(const weak_reference& other) const
+	{
+		return value != other.value;
 	}
 
 	bool operator<(const SharedT& other) const

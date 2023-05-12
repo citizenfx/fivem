@@ -93,6 +93,10 @@ public:
 		// pass to the registered handler for the resource
 		if (!m_handlerRef)
 		{
+			response->SetStatusCode(404);
+			response->SetHeader("Content-Type", "text/plain; charset=utf-8");
+			response->End("Not found.");
+
 			return;
 		}
 
@@ -329,7 +333,7 @@ static InitFunction initFunction([]()
 
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
-		instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/", [=](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response)
+		instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/", [=](const fwRefContainer<net::HttpRequest>& request, fwRefContainer<net::HttpResponse> response)
 		{
 			auto resource = instance->GetComponent<fx::ResourceManager>()->GetResource("webadmin");
 

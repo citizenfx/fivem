@@ -27,6 +27,11 @@
 #include <wrl.h>
 #include <wincodec.h>
 
+#include <shlwapi.h>
+#include <botan/base64.h>
+
+#include <nutsnbolts.h>
+
 #define WANT_CEF_INTERNALS
 #include <CefOverlay.h>
 
@@ -43,6 +48,11 @@
 #include <concurrent_unordered_set.h>
 
 using Microsoft::WRL::ComPtr;
+
+static hook::cdecl_stub<rage::five::pgDictionary<rage::grcTexture>*(void*, int)> textureDictionaryCtor([]()
+{
+	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 48 8B F8 EB 02 33 FF 4C 8D 3D"));
+});
 
 class RuntimeTex
 {
@@ -65,6 +75,8 @@ public:
 
 	bool SetPixelData(const void* data, size_t length);
 
+	bool LoadImage(const char* fileName);
+
 	void Commit();
 
 	inline void SetReferenceData(fwRefContainer<fwRefCountable> reference)
@@ -77,16 +89,18 @@ public:
 		return m_texture;
 	}
 
+	void SetTexture(rage::grcTexture* texture);
+
 private:
-	rage::grcTexture* m_texture;
+	rage::grcTexture* m_texture = nullptr;
 
 	fwRefContainer<fwRefCountable> m_reference;
 
-	int m_pitch;
+	int m_pitch = 0;
 
 	std::vector<uint8_t> m_backingPixels;
 
-	bool m_owned;
+	bool m_owned = false;
 };
 
 class RuntimeTxd
@@ -101,12 +115,15 @@ public:
 	RuntimeTex* CreateTextureFromDui(const char* name, const char* duiHandle);
 
 private:
-	uint32_t m_txdIndex;
+	void EnsureTxd();
+
+private:
+	uint32_t m_txdIndex = -1;
 	std::string m_name;
 
 	std::unordered_map<std::string, std::shared_ptr<RuntimeTex>> m_textures;
 
-	rage::five::pgDictionary<rage::grcTexture>* m_txd;
+	rage::five::pgDictionary<rage::grcTexture>* m_txd = nullptr;
 };
 
 RuntimeTex::RuntimeTex(const char* name, int width, int height)
@@ -157,17 +174,25 @@ RuntimeTex::~RuntimeTex()
 
 int RuntimeTex::GetWidth()
 {
-	return m_texture->GetWidth();
+	return m_texture ? m_texture->GetWidth() : 0;
 }
 
 int RuntimeTex::GetHeight()
 {
-	return m_texture->GetHeight();
+	return m_texture ? m_texture->GetHeight() : 0;
 }
 
 int RuntimeTex::GetPitch()
 {
 	return m_pitch;
+}
+
+void RuntimeTex::SetTexture(rage::grcTexture* texture)
+{
+	if (!m_texture)
+	{
+		m_texture = texture;
+	}
 }
 
 void RuntimeTex::SetPixel(int x, int y, int r, int g, int b, int a)
@@ -194,6 +219,11 @@ bool RuntimeTex::SetPixelData(const void* data, size_t length)
 		return false;
 	}
 
+	if (!m_texture)
+	{
+		return false;
+	}
+
 	rage::grcLockedTexture lockedTexture;
 
 	if (m_texture->Map(0, 0, &lockedTexture, rage::grcLockFlags::WriteDiscard))
@@ -210,7 +240,7 @@ void RuntimeTex::Commit()
 {
 	rage::grcLockedTexture lockedTexture;
 
-	if (m_texture->Map(0, 0, &lockedTexture, rage::grcLockFlags::WriteDiscard))
+	if (m_texture && m_texture->Map(0, 0, &lockedTexture, rage::grcLockFlags::WriteDiscard))
 	{
 		memcpy(lockedTexture.pBits, m_backingPixels.data(), m_backingPixels.size());
 		m_texture->Unmap(&lockedTexture);
@@ -218,11 +248,17 @@ void RuntimeTex::Commit()
 }
 
 RuntimeTxd::RuntimeTxd(const char* name)
+	: m_name(name)
+{
+	EnsureTxd();
+}
+
+void RuntimeTxd::EnsureTxd()
 {
 	streaming::Manager* streaming = streaming::Manager::GetInstance();
 	auto txdStore = streaming->moduleMgr.GetStreamingModule("ytd");
 
-	txdStore->FindSlotFromHashKey(&m_txdIndex, name);
+	txdStore->FindSlotFromHashKey(&m_txdIndex, m_name.c_str());
 
 	if (m_txdIndex != 0xFFFFFFFF)
 	{
@@ -230,14 +266,17 @@ RuntimeTxd::RuntimeTxd(const char* name)
 
 		if (!entry.handle)
 		{
-			m_name = name;
-			m_txd = new rage::five::pgDictionary<rage::grcTexture>();
+			void* memoryStub = rage::GetAllocator()->Allocate(sizeof(rage::five::pgDictionary<rage::grcTexture>), 16, 0);
+			m_txd = textureDictionaryCtor(memoryStub, 1);
 
 			streaming::strAssetReference ref;
 			ref.asset = m_txd;
 
 			txdStore->SetResource(m_txdIndex, ref);
 			entry.flags = (512 << 8) | 1;
+			entry.flags |= (0x20000000); // SetDoNotDefrag
+
+			txdStore->AddRef(m_txdIndex);
 		}
 	}
 }
@@ -273,6 +312,18 @@ RuntimeTex* RuntimeTxd::CreateTexture(const char* name, int width, int height)
 	return tex.get();
 }
 
+extern void TextureReplacement_OnTextureCreate(const std::string& txd, const std::string& txn);
+
+// TODO: we need a 'common' place for this
+static std::mutex nextFrameLock;
+static std::queue<std::function<void()>> nextFrameQueue;
+
+static void OnNextMainFrame(std::function<void()>&& fn)
+{
+	std::unique_lock _(nextFrameLock);
+	nextFrameQueue.push(std::move(fn));
+}
+
 RuntimeTex* RuntimeTxd::CreateTextureFromDui(const char* name, const char* duiHandle)
 {
 	if (!m_txd)
@@ -286,10 +337,20 @@ RuntimeTex* RuntimeTxd::CreateTextureFromDui(const char* name, const char* duiHa
 	}
 
 	auto texture = nui::GetWindowTexture(duiHandle);
-	auto tex = std::make_shared<RuntimeTex>((rage::grcTexture*)texture->GetHostTexture(), false);
+	auto tex = std::make_shared<RuntimeTex>(nullptr, false);
 	tex->SetReferenceData(texture);
 
-	m_txd->Add(name, tex->GetTexture());
+	texture->WithHostTexture([this, name = std::string{ name }, tex](void* hostTexture)
+	{
+		auto texture = (rage::grcTexture*)hostTexture;
+		tex->SetTexture(texture);
+		m_txd->Add(HashString(name), tex->GetTexture());
+
+		OnNextMainFrame([this, name = std::move(name)]()
+		{
+			TextureReplacement_OnTextureCreate(m_name, name);
+		});
+	});
 
 	m_textures[name] = tex;
 
@@ -299,32 +360,67 @@ RuntimeTex* RuntimeTxd::CreateTextureFromDui(const char* name, const char* duiHa
 
 #pragma comment(lib, "windowscodecs.lib")
 
-ComPtr<IWICImagingFactory> g_imagingFactory;
+static ComPtr<IWICImagingFactory> g_imagingFactory;
 
-RuntimeTex* RuntimeTxd::CreateTextureFromImage(const char* name, const char* fileName)
+static ComPtr<IWICBitmapSource> ImageToBitmapSource(std::string_view fileName)
 {
-	if (!m_txd)
-	{
-		return nullptr;
-	}
-
 	if (!g_imagingFactory)
 	{
 		HRESULT hr = CoCreateInstance(CLSID_WICImagingFactory1, nullptr, CLSCTX_INPROC_SERVER, __uuidof(IWICImagingFactory), (void**)g_imagingFactory.GetAddressOf());
 	}
 
-	fx::OMPtr<IScriptRuntime> runtime;
+	ComPtr<IWICBitmapSource> source;
+	ComPtr<IStream> stream;
 
-	if (!FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+	std::string fileNameString(fileName);
+
+	if (fileNameString.find("data:") == 0)
 	{
-		return nullptr;
+		auto f = fileNameString.find("base64,");
+
+		if (f == std::string::npos)
+		{
+			return {};
+		}
+
+		fileNameString = fileNameString.substr(f + 7);
+
+		std::string decodedURL;
+		UrlDecode(fileNameString, decodedURL, false);
+
+		decodedURL.erase(std::remove_if(decodedURL.begin(), decodedURL.end(), [](char c)
+						 {
+							 return std::isspace<char>(c, std::locale::classic());
+						 }),
+		decodedURL.end());
+
+		size_t length = decodedURL.length();
+		size_t paddingNeeded = 4 - (length % 4);
+
+		if ((paddingNeeded == 1 || paddingNeeded == 2) && decodedURL[length - 1] != '=')
+		{
+			decodedURL.resize(length + paddingNeeded, '=');
+		}
+
+		auto imageData = Botan::base64_decode(decodedURL, false);
+
+		stream = SHCreateMemStream(imageData.data(), imageData.size());
+	}
+	else
+	{
+		fx::OMPtr<IScriptRuntime> runtime;
+
+		if (!FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+		{
+			return {};
+		}
+
+		fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
+
+		stream = vfs::CreateComStream(vfs::OpenRead(fmt::sprintf("%s/%s", resource->GetPath(), fileName)));
 	}
 
-	fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
-
 	ComPtr<IWICBitmapDecoder> decoder;
-
-	ComPtr<IStream> stream = vfs::CreateComStream(vfs::OpenRead(resource->GetPath() + "/" + fileName));
 
 	HRESULT hr = g_imagingFactory->CreateDecoderFromStream(stream.Get(), nullptr, WICDecodeMetadataCacheOnDemand, decoder.GetAddressOf());
 
@@ -336,51 +432,169 @@ RuntimeTex* RuntimeTxd::CreateTextureFromImage(const char* name, const char* fil
 
 		if (SUCCEEDED(hr))
 		{
-			ComPtr<IWICBitmapSource> source;
-			ComPtr<IWICBitmapSource> convertedSource;
-
-			UINT width = 0, height = 0;
-
-			frame->GetSize(&width, &height);
-
 			// try to convert to a pixel format we like
 			frame.As(&source);
+		}
+	}
 
-			hr = WICConvertBitmapSource(GUID_WICPixelFormat32bppBGRA, source.Get(), convertedSource.GetAddressOf());
+	return source;
+}
 
-			if (SUCCEEDED(hr))
-			{
-				source = convertedSource;
-			}
+RuntimeTex* RuntimeTxd::CreateTextureFromImage(const char* name, const char* fileName)
+{
+	if (!m_txd)
+	{
+		return nullptr;
+	}
 
-			// create a pixel data buffer
-			std::unique_ptr<uint32_t[]> pixelData(new uint32_t[width * height]);
+	if (auto source = ImageToBitmapSource(fileName))
+	{
+		ComPtr<IWICBitmapSource> convertedSource;
 
-			hr = source->CopyPixels(nullptr, width * 4, width * height * 4, reinterpret_cast<BYTE*>(pixelData.get()));
+		UINT width = 0, height = 0;
+		source->GetSize(&width, &height);
 
-			if (SUCCEEDED(hr))
-			{
-				rage::grcTextureReference reference;
-				memset(&reference, 0, sizeof(reference));
-				reference.width = width;
-				reference.height = height;
-				reference.depth = 1;
-				reference.stride = width * 4;
-				reference.format = 11; // should correspond to DXGI_FORMAT_B8G8R8A8_UNORM
-				reference.pixelData = (uint8_t*)pixelData.get();
+		// try to convert to a pixel format we like
+		HRESULT hr = WICConvertBitmapSource(GUID_WICPixelFormat32bppBGRA, source.Get(), convertedSource.GetAddressOf());
 
-				auto tex = std::make_shared<RuntimeTex>(rage::grcTextureFactory::getInstance()->createImage(&reference, nullptr), pixelData.get(), width * height * 4);
-				m_txd->Add(name, tex->GetTexture());
+		if (SUCCEEDED(hr))
+		{
+			source = convertedSource;
+		}
 
-				m_textures[name] = tex;
+		// create a pixel data buffer
+		std::unique_ptr<uint32_t[]> pixelData(new uint32_t[width * height]);
 
-				scrBindAddSafePointer(tex.get());
-				return tex.get();
-			}
+		hr = source->CopyPixels(nullptr, width * 4, width * height * 4, reinterpret_cast<BYTE*>(pixelData.get()));
+
+		if (SUCCEEDED(hr))
+		{
+			rage::grcTextureReference reference;
+			memset(&reference, 0, sizeof(reference));
+			reference.width = width;
+			reference.height = height;
+			reference.depth = 1;
+			reference.stride = width * 4;
+			reference.format = 11; // should correspond to DXGI_FORMAT_B8G8R8A8_UNORM
+			reference.pixelData = (uint8_t*)pixelData.get();
+
+			auto tex = std::make_shared<RuntimeTex>(rage::grcTextureFactory::getInstance()->createImage(&reference, nullptr), pixelData.get(), width * height * 4);
+			m_txd->Add(name, tex->GetTexture());
+
+			m_textures[name] = tex;
+
+			scrBindAddSafePointer(tex.get());
+			return tex.get();
 		}
 	}
 
 	return nullptr;
+}
+
+bool RuntimeTex::LoadImage(const char* fileName)
+{
+	if (!m_texture)
+	{
+		return false;
+	}
+
+	auto completion = [this](const ComPtr<IWICBitmapSource>& bitmapSource)
+	{
+		auto source = bitmapSource;
+		ComPtr<IWICBitmapSource> convertedSource;
+
+		// try to convert to a pixel format we like
+		HRESULT hr = WICConvertBitmapSource(GUID_WICPixelFormat32bppBGRA, source.Get(), convertedSource.GetAddressOf());
+
+		if (SUCCEEDED(hr))
+		{
+			source = convertedSource;
+		}
+
+		// set up the pixel data buffer
+		UINT width = 0, height = 0;
+		source->GetSize(&width, &height);
+
+		size_t length = (size_t(width) * size_t(height) * 4);
+
+		if (length == m_backingPixels.size())
+		{
+			if (SUCCEEDED(source->CopyPixels(nullptr, width * 4, width * height * 4, reinterpret_cast<BYTE*>(&m_backingPixels[0]))))
+			{
+				Commit();
+
+				return true;
+			}
+		}
+
+		return false;
+	};
+
+	if (auto source = ImageToBitmapSource(fileName))
+	{
+		UINT width = 0, height = 0;
+		source->GetSize(&width, &height);
+
+		if (width == m_texture->GetWidth() && height == m_texture->GetHeight())
+		{
+			return completion(source);
+		}
+		else
+		{
+			struct Item
+			{
+				ComPtr<IWICBitmapSource> bitmap;
+				int targetWidth;
+				int targetHeight;
+				decltype(completion) cb;
+
+				Item(ComPtr<IWICBitmapSource>&& bitmap, int targetWidth, int targetHeight, decltype(completion)&& cb)
+					: bitmap(std::move(bitmap)), targetWidth(targetWidth), targetHeight(targetHeight), cb(std::move(cb))
+				{
+
+				}
+
+				void Work()
+				{
+					ComPtr<IWICBitmapScaler> scaler;
+
+					if (SUCCEEDED(g_imagingFactory->CreateBitmapScaler(&scaler)))
+					{
+						if (SUCCEEDED(scaler->Initialize(
+							bitmap.Get(),
+							targetWidth,
+							targetHeight,
+							WICBitmapInterpolationModeFant)))
+						{
+							ComPtr<IWICBitmapSource> outBitmap;
+							scaler.As(&outBitmap);
+
+							OnNextMainFrame([cb = std::move(cb), bitmap = std::move(outBitmap)]()
+							{
+								cb(bitmap);
+							});
+						}
+					}
+				}
+
+				static DWORD WINAPI StaticWork(LPVOID arg)
+				{
+					auto self = static_cast<Item*>(arg);
+					self->Work();
+					delete self;
+
+					return 0;
+				}
+			};
+
+			auto workItem = new Item(std::move(source), m_texture->GetWidth(), m_texture->GetHeight(), std::move(completion));
+			QueueUserWorkItem(&Item::StaticWork, workItem, 0);
+
+			return true;
+		}
+	}
+
+	return false;
 }
 
 #define VFS_GET_RAGE_PAGE_FLAGS 0x20001
@@ -877,6 +1091,27 @@ fwArchetype* GetArchetypeSafe(uint32_t archetypeHash, uint64_t* archetypeUnk)
 
 static InitFunction initFunction([]()
 {
+	OnMainGameFrame.Connect([]
+	{
+		if (nextFrameQueue.empty())
+		{
+			return;
+		}
+
+		decltype(nextFrameQueue) q;
+
+		{
+			std::unique_lock _(nextFrameLock);
+			q = std::move(nextFrameQueue);
+		}
+
+		while (!q.empty())
+		{
+			q.front()();
+			q.pop();
+		}
+	});
+
 	scrBindClass<RuntimeTxd>()
 		.AddConstructor<void(*)(const char*)>("CREATE_RUNTIME_TXD")
 		.AddMethod("CREATE_RUNTIME_TEXTURE", &RuntimeTxd::CreateTexture)
@@ -889,6 +1124,7 @@ static InitFunction initFunction([]()
 		.AddMethod("GET_RUNTIME_TEXTURE_PITCH", &RuntimeTex::GetPitch)
 		.AddMethod("SET_RUNTIME_TEXTURE_PIXEL", &RuntimeTex::SetPixel)
 		.AddMethod("SET_RUNTIME_TEXTURE_ARGB_DATA", &RuntimeTex::SetPixelData)
+		.AddMethod("SET_RUNTIME_TEXTURE_IMAGE", &RuntimeTex::LoadImage)
 		.AddMethod("COMMIT_RUNTIME_TEXTURE", &RuntimeTex::Commit);
 
 	fx::ScriptEngine::RegisterNativeHandler("REGISTER_ARCHETYPES", [](fx::ScriptContext& context)

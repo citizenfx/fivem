@@ -168,7 +168,7 @@ public:
 	}
 };
 
-class LuaScriptRuntime : public OMClass<LuaScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntimeWithBookmarks, IScriptEventRuntime, IScriptRefRuntime, IScriptMemInfoRuntime, IScriptStackWalkingRuntime, IScriptDebugRuntime, IScriptProfiler>
+class LuaScriptRuntime : public OMClass<LuaScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntimeWithBookmarks, IScriptEventRuntime, IScriptRefRuntime, IScriptMemInfoRuntime, IScriptStackWalkingRuntime, IScriptDebugRuntime, IScriptProfiler, IScriptWarningRuntime>
 {
 private:
 	typedef std::function<void(const char*, const char*, size_t, const char*)> TEventRoutine;
@@ -231,6 +231,8 @@ private:
 	std::deque<lua_State*> m_runningThreads;
 
 	std::unordered_set<uint32_t> m_nonExistentNatives;
+
+	std::list<std::tuple<uint64_t, int>> m_pendingBookmarks;
 
 public:
 	LuaScriptRuntime()
@@ -383,6 +385,10 @@ private:
 public:
 	bool RunBookmark(uint64_t bookmark);
 
+	void ScheduleBookmarkSoon(uint64_t bookmark, int timeout);
+
+	void SchedulePendingBookmarks();
+
 public:
 	NS_DECL_ISCRIPTRUNTIME;
 
@@ -401,6 +407,8 @@ public:
 	NS_DECL_ISCRIPTDEBUGRUNTIME;
 
 	NS_DECL_ISCRIPTPROFILER;
+
+	NS_DECL_ISCRIPTWARNINGRUNTIME;
 };
 
 void ScriptTraceV(const char* string, fmt::printf_args formatList);

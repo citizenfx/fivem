@@ -1,7 +1,6 @@
 ---
 ns: CFX
 apiset: client
-game: gta5
 ---
 ## SET_AUDIO_SUBMIX_EFFECT_PARAM_FLOAT
 

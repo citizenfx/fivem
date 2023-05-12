@@ -15,7 +15,19 @@ return {
 		end
 		
 		if _OPTIONS['game'] ~= 'server' then
-			defines { "NNG_NUM_TASKQ_THREADS=2" }
+			defines "NNG_NUM_TASKQ_THREADS=2"
+
+			filter { "files:**/win_resolv.c"}
+				defines "NNG_RESOLV_CONCURRENCY=1"
+
+			filter { "files:**/win_thread.c"}
+				defines "GetSystemInfo=GetSystemInfoFake"
+
+			filter {}
+
+			files {
+				"vendor/nng/dummy_systeminfo.cpp"
+			}
 		end
 		
 		includedirs { "../vendor/nng/src/" }

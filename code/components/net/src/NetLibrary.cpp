@@ -537,17 +537,17 @@ RoutingPacket::RoutingPacket()
 
 void NetLibrary::SendReliableCommand(const char* type, const char* buffer, size_t length)
 {
-	if (m_impl)
+	if (auto impl = GetImpl())
 	{
-		m_impl->SendReliableCommand(HashRageString(type), buffer, length);
+		impl->SendReliableCommand(HashRageString(type), buffer, length);
 	}
 }
 
 void NetLibrary::SendUnreliableCommand(const char* type, const char* buffer, size_t length)
 {
-	if (m_impl)
+	if (auto impl = GetImpl())
 	{
-		m_impl->SendUnreliableCommand(HashRageString(type), buffer, length);
+		impl->SendUnreliableCommand(HashRageString(type), buffer, length);
 	}
 }
 
@@ -591,9 +591,9 @@ void NetLibrary::RunFrame()
 		m_lastConnectionState = m_connectionState;
 	}
 
-	if (m_impl)
+	if (auto impl = GetImpl())
 	{
-		m_impl->RunFrame();
+		impl->RunFrame();
 	}
 
 	switch (m_connectionState)
@@ -643,9 +643,9 @@ void NetLibrary::RunFrame()
 			break;
 
 		case CS_CONNECTING:
-			if ((GetTickCount() - m_lastConnect) > 5000 && m_impl->IsDisconnected())
+			if ((GetTickCount() - m_lastConnect) > 5000 && GetImpl()->IsDisconnected())
 			{
-				m_impl->SendConnect(m_token, fmt::sprintf("token=%s&guid=%llu", m_token, (uint64_t)GetGUID()));
+				GetImpl()->SendConnect(m_token, fmt::sprintf("token=%s&guid=%llu", m_token, (uint64_t)GetGUID()));
 
 				m_lastConnect = GetTickCount();
 
@@ -669,7 +669,7 @@ void NetLibrary::RunFrame()
 			break;
 
 		case CS_ACTIVE:
-			if (m_impl->HasTimedOut())
+			if (GetImpl()->HasTimedOut())
 			{
 				g_disconnectReason = "Connection timed out.";
 
@@ -920,9 +920,9 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 	AddCrashometry("last_server_url", "%s", url);
 
-	if (m_impl)
+	if (auto impl = GetImpl())
 	{
-		m_impl->Reset();
+		impl->Reset();
 	}
 
 	m_outSequence = 0;
@@ -1578,6 +1578,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 						if (node.value("netlibVersion", 1) == 2)
 						{
+							std::unique_lock _(m_implMutex);
 							m_impl = CreateNetLibraryImplV2(this);
 						}
 						else if (node.value("netlibVersion", 1) == 3 || node.value("netlibVersion", 1) == 4)
@@ -1745,8 +1746,12 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 	auto initiateRequest = [=]()
 	{
 		OnConnectionProgress("Requesting server variables...", 0, 100, true);
+
+		HttpRequestOptions options;
+		options.addRawBody = true;
 		
-		m_httpClient->DoGetRequest(fmt::sprintf("%sinfo.json", url), [=](bool success, const char* data, size_t size)
+		auto request = m_httpClient->Get(fmt::sprintf("%sinfo.json", url));
+		request->OnCompletion([=](bool success, std::string_view data)
 		{
 			using json = nlohmann::json;
 
@@ -1770,10 +1775,11 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 				}
 				else
 				{
-					OnConnectionError(fmt::sprintf("Failed to fetch server variables. %s", std::string{ data, size }), json::object({
+					OnConnectionError(fmt::sprintf("Failed to fetch server variables. %s", std::string(data)), json::object({
 								{ "fault", "server" },
 								{ "action", "#ErrorAction_TryAgainContactOwner" },
-					}).dump());
+								{ "responseBody", request->GetRawBody() },
+					}).dump(-1, ' ', false, nlohmann::json::error_handler_t::replace));
 				}
 				m_connectionState = CS_IDLE;
 				return;
@@ -1781,7 +1787,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 			try
 			{
-				json info = json::parse(data, data + size);
+				json info = json::parse(data);
 #if defined(GTA_FIVE) || defined(IS_RDR3)
 				if (info.is_object() && info["vars"].is_object())
 				{
@@ -1802,9 +1808,9 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 						if ((buildRef != 0 && buildRef != xbr::GetGameBuild()) || (pureLevel != fx::client::GetPureLevel()))
 						{
 #if defined(GTA_FIVE)
-							if (buildRef != 1604 && buildRef != 2060 && buildRef != 2189 && buildRef != 2372 && buildRef != 2545 && buildRef != 2612 && buildRef != 2699)
+							if (buildRef != 1604 && buildRef != 2060 && buildRef != 2189 && buildRef != 2372 && buildRef != 2545 && buildRef != 2612 && buildRef != 2699 && buildRef != 2802)
 #else
-							if (buildRef != 1311 && buildRef != 1355 && buildRef != 1436)
+							if (buildRef != 1311 && buildRef != 1355 && buildRef != 1436 && buildRef != 1491)
 #endif
 							{
 								OnConnectionError(va("Server specified an invalid game build enforcement (%d).", buildRef), json::object({
@@ -1866,6 +1872,8 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 				continueRequest();
 			}
 		});
+
+		request->Start();
 	};
 
 	if (OnInterceptConnection(url, initiateRequest))
@@ -1920,14 +1928,14 @@ void NetLibrary::Disconnect(const char* reason)
 
 		SendReliableCommand("msgIQuit", g_disconnectReason.c_str(), g_disconnectReason.length() + 1);
 
-		if (m_impl)
+		if (auto impl = GetImpl())
 		{
-			m_impl->Flush();
+			impl->Flush();
 
 			// this is *somewhat* needed to ensure the server gets our msgIQuit first
-			Sleep(std::min(750, m_impl->GetPing() + abs(m_impl->GetVariance())));
+			Sleep(std::min(750, impl->GetPing() + abs(impl->GetVariance())));
 
-			m_impl->Reset();
+			impl->Reset();
 		}
 
 		OnFinalizeDisconnect(m_currentServer);
@@ -1976,7 +1984,7 @@ void NetLibrary::SendOutOfBand(const NetAddress& address, const char* format, ..
 
 bool NetLibrary::IsPendingInGameReconnect()
 {
-	return (m_connectionState == CS_ACTIVE && m_impl->IsDisconnected());
+	return (m_connectionState == CS_ACTIVE && GetImpl()->IsDisconnected());
 }
 
 static std::string g_steamPersonaName;
@@ -2030,7 +2038,7 @@ void NetLibrary::SetPlayerName(const char* name)
 
 void NetLibrary::SendData(const NetAddress& address, const char* data, size_t length)
 {
-	m_impl->SendData(address, data, length);
+	GetImpl()->SendData(address, data, length);
 }
 
 void NetLibrary::AddReliableHandler(const char* type, const ReliableHandlerType& function, bool runOnMainThreadOnly /* = false */)
@@ -2156,9 +2164,9 @@ NetLibrary* NetLibrary::Create()
 
 int32_t NetLibrary::GetPing()
 {
-	if (m_impl)
+	if (auto impl = GetImpl())
 	{
-		return m_impl->GetPing();
+		return impl->GetPing();
 	}
 
 	return -1;
@@ -2166,9 +2174,9 @@ int32_t NetLibrary::GetPing()
 
 int32_t NetLibrary::GetVariance()
 {
-	if (m_impl)
+	if (auto impl = GetImpl())
 	{
-		return m_impl->GetVariance();
+		return impl->GetVariance();
 	}
 
 	return -1;

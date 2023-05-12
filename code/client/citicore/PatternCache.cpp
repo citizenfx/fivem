@@ -50,6 +50,7 @@ extern "C"
 #endif
 
 #ifndef IS_FXSERVER
+#include "CrossBuildRuntime.h"
 #include <Hooking.Patterns.h>
 
 static std::multimap<uint64_t, uintptr_t> g_hints;
@@ -77,7 +78,7 @@ static InitFunction initFunction([]()
 		return;
 	}
 
-	std::wstring hintsFile = MakeRelativeCitPath(L"citizen\\hints.dat");
+	std::wstring hintsFile = MakeRelativeCitPath(ToWide(fmt::sprintf("data\\cache\\hints_%s.dat", xbr::GetGameBuildIdentifier())));
 	FILE* hints = _wfopen(hintsFile.c_str(), L"rb");
 	size_t numHints = 0;
 

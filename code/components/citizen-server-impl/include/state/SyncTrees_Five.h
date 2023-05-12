@@ -2368,57 +2368,51 @@ struct CSubmarineControlDataNode
 	}
 };
 
-struct CTrainGameStateDataNode
+struct CTrainGameStateDataNode : GenericSerializeDataNode<CTrainGameStateDataNode>
 {
 	CTrainGameStateDataNodeData data;
 
-	bool Parse(SyncParseState& state)
+	template<typename TSerializer>
+	bool Serialize(TSerializer& s)
 	{
-		int engineCarriage = state.buffer.Read<int>(13);
-		data.engineCarriage = engineCarriage;
+		// the object ID of the 'engine' carriage
+		s.Serialize(13, data.engineCarriage);
 
-		// What carriage is attached to this carriage
-		int connectedCarriage = state.buffer.Read<int>(13);
+		// the object ID of the carriage attached to this carriage
+		s.Serialize(13, data.linkedToBackwardId);
 
-		// What this carriage is attached to
-		int connectedToCarriage = state.buffer.Read<int>(13);
+		// the object ID of the carriage this carriage is attached to
+		s.Serialize(13, data.linkedToForwardId);
 
 		// Offset from the engine carriage?
-		float engineOffset = state.buffer.ReadSignedFloat(32, 1000.0f);
+		s.SerializeSigned(32, 1000.0f, data.distanceFromEngine);
 
-		int trainConfigIndex = state.buffer.Read<int>(8);
-
-		int carriageIndex = state.buffer.Read<int>(8);
-		data.carriageIndex = carriageIndex;
+		s.Serialize(8, data.trainConfigIndex);
+		s.Serialize(8, data.carriageIndex);
 
 		// 0 = Main Line, 3 = Metro line
-		int trackId = state.buffer.Read<int>(8);
+		s.Serialize(8, data.trackId);
 
-		float cruiseSpeed = state.buffer.ReadSignedFloat(8, 30.0f);
+		s.SerializeSigned(8, 30.0f, data.cruiseSpeed);
 
 		// 0 = Moving, 1 = Slowing down, 2 = Doors opening, 3 = Stopped, 4 = Doors closing, 5 = Before depart
-		int trainState = state.buffer.Read<int>(3);
+		s.Serialize(3, data.trainState);
 
-		bool isStartCarriage = state.buffer.ReadBit();
-
-		bool isEndCarriage = state.buffer.ReadBit();
-
-		bool unk12 = state.buffer.ReadBit();
-
-		bool direction = state.buffer.ReadBit();
-
-		bool unk14 = state.buffer.ReadBit();
-
-		bool renderDerailed = state.buffer.ReadBit();
+		s.Serialize(data.isEngine);
+		s.Serialize(data.isCaboose);
+		s.Serialize(data.unk12);
+		s.Serialize(data.direction);
+		s.Serialize(data.unk14);
+		s.Serialize(data.renderDerailed);
 
 		if (Is2372()) // Sequence of bits need to be verified for 2732
 		{
-			auto unk198 = state.buffer.ReadBit();
-			auto unk224 = state.buffer.ReadBit();
-			auto unk199 = state.buffer.ReadBit();
+			s.Serialize(data.unk198);
+			s.Serialize(data.unk224);
+			s.Serialize(data.unk199);
 		}
 
-		bool forceDoorsOpen = state.buffer.ReadBit();
+		s.Serialize(data.forceDoorsOpen);
 
 		return true;
 	}
@@ -3685,14 +3679,14 @@ using CPedSyncTree = SyncTree<
 					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>,
 					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode, 102>,
 					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode, 4>,
-					NodeWrapper<NodeIds<127, 127, 0>, CPedGameStateDataNode, 98>,
+					NodeWrapper<NodeIds<127, 127, 0>, CPedGameStateDataNode, 103>,
 					NodeWrapper<NodeIds<127, 127, 0>, CPedComponentReservationDataNode, 65>
 				>,
 				ParentNode<
 					NodeIds<127, 127, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode, 13>,
-					NodeWrapper<NodeIds<127, 127, 1>, CPedScriptGameStateDataNode, 109>,
+					NodeWrapper<NodeIds<127, 127, 1>, CPedScriptGameStateDataNode, 110>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode, 24>
 				>
 			>,
@@ -3737,7 +3731,7 @@ using CPickupSyncTree = SyncTree<
 		NodeIds<127, 0, 0>,
 		ParentNode<
 			NodeIds<1, 0, 0>,
-			NodeWrapper<NodeIds<1, 0, 0>, CPickupCreationDataNode, 62>
+			NodeWrapper<NodeIds<1, 0, 0>, CPickupCreationDataNode, 66>
 		>,
 		ParentNode<
 			NodeIds<127, 127, 0>,
@@ -3914,7 +3908,7 @@ using CPlayerSyncTree = SyncTree<
 					NodeWrapper<NodeIds<127, 127, 0>, CGlobalFlagsDataNode, 2>,
 					NodeWrapper<NodeIds<127, 127, 0>, CDynamicEntityGameStateDataNode, 102>,
 					NodeWrapper<NodeIds<127, 127, 0>, CPhysicalGameStateDataNode, 4>,
-					NodeWrapper<NodeIds<127, 127, 0>, CPedGameStateDataNode, 98>,
+					NodeWrapper<NodeIds<127, 127, 0>, CPedGameStateDataNode, 103>,
 					NodeWrapper<NodeIds<127, 127, 0>, CPedComponentReservationDataNode, 65>
 				>,
 				ParentNode<
@@ -3930,7 +3924,7 @@ using CPlayerSyncTree = SyncTree<
 			NodeWrapper<NodeIds<87, 87, 0>, CPlayerAppearanceDataNode, 544>,
 			NodeWrapper<NodeIds<86, 86, 0>, CPlayerPedGroupDataNode, 19>,
 			NodeWrapper<NodeIds<86, 86, 0>, CPlayerAmbientModelStreamingNode, 5>,
-			NodeWrapper<NodeIds<86, 86, 0>, CPlayerGamerDataNode, 325>,
+			NodeWrapper<NodeIds<86, 86, 0>, CPlayerGamerDataNode, 326>,
 			NodeWrapper<NodeIds<86, 86, 0>, CPlayerExtendedGameStateNode, 20>
 		>,
 		ParentNode<
@@ -3962,7 +3956,7 @@ using CPlayerSyncTree = SyncTree<
 		>
 	>
 >;
-using CAutomobileSyncTree = SyncTree<
+using CTrailerSyncTree = SyncTree<
 	ParentNode<
 		NodeIds<127, 0, 0>,
 		ParentNode<

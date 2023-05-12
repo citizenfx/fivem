@@ -95,7 +95,7 @@ std::shared_ptr<sync::SyncTreeBase> MakeAutomobile(uint32_t model, float posX, f
 		cdn.m_popType = sync::POPTYPE_MISSION;
 		cdn.m_randomSeed = rand();
 		cdn.m_tyresDontBurst = false;
-		cdn.m_vehicleStatus = 0;
+		cdn.m_vehicleStatus = 2;
 		cdn.m_unk5 = false;
 	});
 
@@ -103,6 +103,46 @@ std::shared_ptr<sync::SyncTreeBase> MakeAutomobile(uint32_t model, float posX, f
 	{
 		cdn.allDoorsClosed = true;
 	});
+
+	SetupPosition<sync::CSectorDataNode, sync::CSectorPositionDataNode>(tree, posX, posY, posZ);
+	SetupHeading(tree, heading);
+
+	SetupNode(tree, [resourceHash](sync::CEntityScriptInfoDataNode& cdn)
+	{
+		cdn.m_scriptHash = resourceHash;
+		cdn.m_timestamp = msec().count();
+	});
+
+	return tree;
+}
+
+template<typename TTree>
+std::shared_ptr<sync::SyncTreeBase> MakeVehicle(uint32_t model, float posX, float posY, float posZ, uint32_t resourceHash, float heading = 0.0f)
+{
+	auto tree = std::make_shared<TTree>();
+
+	SetupNode(tree, [model](sync::CVehicleCreationDataNode& cdn)
+	{
+		cdn.m_model = model;
+		cdn.m_creationToken = msec().count();
+		cdn.m_needsToBeHotwired = false;
+		cdn.m_maxHealth = 1000;
+		cdn.m_popType = sync::POPTYPE_MISSION;
+		cdn.m_randomSeed = rand();
+		cdn.m_tyresDontBurst = false;
+		cdn.m_vehicleStatus = 2;
+		cdn.m_unk5 = false;
+	});
+
+	if constexpr (std::is_same_v<TTree, sync::CAutomobileSyncTree> ||
+		std::is_same_v<TTree, sync::CTrailerSyncTree> ||
+		std::is_same_v<TTree, sync::CHeliSyncTree>)
+	{
+		SetupNode(tree, [](sync::CAutomobileCreationDataNode& cdn)
+		{
+			cdn.allDoorsClosed = true;
+		});
+	}
 
 	SetupPosition<sync::CSectorDataNode, sync::CSectorPositionDataNode>(tree, posX, posY, posZ);
 	SetupHeading(tree, heading);
@@ -283,6 +323,102 @@ static InitFunction initFunction([]()
 
 			auto sgs = ref->GetComponent<fx::ServerGameState>();
 			auto entity = sgs->CreateEntityFromTree(sync::NetObjEntityType::Automobile, tree);
+
+			ctx.SetResult(sgs->MakeScriptHandle(entity));
+		});
+
+		fx::ScriptEngine::RegisterNativeHandler("CREATE_VEHICLE_SERVER_SETTER", [ref](fx::ScriptContext& ctx)
+		{
+			uint32_t modelHash = ctx.GetArgument<uint32_t>(0);
+			std::string_view type = ctx.CheckArgument<const char*>(1);
+			float x = ctx.GetArgument<float>(2);
+			float y = ctx.GetArgument<float>(3);
+			float z = ctx.GetArgument<float>(4);
+			float heading = ctx.GetArgument<float>(5);
+
+			uint32_t resourceHash = 0;
+			fx::OMPtr<IScriptRuntime> runtime;
+
+			if (FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+			{
+				fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
+
+				if (resource)
+				{
+					resourceHash = HashString(resource->GetName().c_str());
+				}
+			}
+
+			std::shared_ptr<fx::sync::SyncTreeBase> tree;
+			auto typeId = (fx::sync::NetObjEntityType)-1;
+
+			if (type == "automobile")
+			{
+				typeId = sync::NetObjEntityType::Automobile;
+			}
+			else if (type == "bike")
+			{
+				typeId = sync::NetObjEntityType::Bike;
+			}
+			else if (type == "boat")
+			{
+				typeId = sync::NetObjEntityType::Boat;
+			}
+			else if (type == "heli")
+			{
+				typeId = sync::NetObjEntityType::Heli;
+			}
+			else if (type == "plane")
+			{
+				typeId = sync::NetObjEntityType::Plane;
+			}
+			else if (type == "submarine")
+			{
+				typeId = sync::NetObjEntityType::Submarine;
+			}
+			else if (type == "trailer")
+			{
+				typeId = sync::NetObjEntityType::Trailer;
+			}
+			else if (type == "train")
+			{
+				typeId = sync::NetObjEntityType::Train;
+			}
+			else
+			{
+				throw std::runtime_error(va("CREATE_VEHICLE_SERVER_SETTER: Invalid entity type %s", type));
+			}
+
+			switch (typeId)
+			{
+				case fx::sync::NetObjEntityType::Automobile:
+					tree = MakeVehicle<fx::sync::CAutomobileSyncTree>(modelHash, x, y, z, resourceHash, heading);
+					break;
+				case fx::sync::NetObjEntityType::Bike:
+					tree = MakeVehicle<fx::sync::CBikeSyncTree>(modelHash, x, y, z, resourceHash, heading);
+					break;
+				case fx::sync::NetObjEntityType::Boat:
+					tree = MakeVehicle<fx::sync::CBoatSyncTree>(modelHash, x, y, z, resourceHash, heading);
+					break;
+				case fx::sync::NetObjEntityType::Heli:
+					tree = MakeVehicle<fx::sync::CHeliSyncTree>(modelHash, x, y, z, resourceHash, heading);
+					break;
+				case fx::sync::NetObjEntityType::Plane:
+					tree = MakeVehicle<fx::sync::CPlaneSyncTree>(modelHash, x, y, z, resourceHash, heading);
+					break;
+				case fx::sync::NetObjEntityType::Submarine:
+					tree = MakeVehicle<fx::sync::CSubmarineSyncTree>(modelHash, x, y, z, resourceHash, heading);
+					break;
+				case fx::sync::NetObjEntityType::Trailer:
+					tree = MakeVehicle<fx::sync::CTrailerSyncTree>(modelHash, x, y, z, resourceHash, heading);
+					break;
+				case fx::sync::NetObjEntityType::Train:
+					tree = MakeVehicle<fx::sync::CTrainSyncTree>(modelHash, x, y, z, resourceHash, heading);
+					break;
+			}
+
+			auto sgs = ref->GetComponent<fx::ServerGameState>();
+			auto entity = sgs->CreateEntityFromTree(typeId, tree);
 
 			ctx.SetResult(sgs->MakeScriptHandle(entity));
 		});

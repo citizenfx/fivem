@@ -9,7 +9,7 @@
 #define BOTAN_PUBKEY_EMSA_H_
 
 #include <botan/secmem.h>
-#include <botan/alg_id.h>
+#include <botan/asn1_obj.h>
 #include <string>
 
 BOTAN_FUTURE_INTERNAL_HEADER(emsa.h)

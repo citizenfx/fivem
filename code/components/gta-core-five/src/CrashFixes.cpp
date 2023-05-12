@@ -107,15 +107,17 @@ std::string GetType(void* d)
 {
 	VirtualBase* self = (VirtualBase*)d;
 
-	std::string typeName = fmt::sprintf("unknown (vtable %p)", *(void**)self);
+	std::string typeName = fmt::sprintf("unknown (vtable %p)", (void*)hook::get_unadjusted(*(void**)self));
 
-	try
+	if (!xbr::IsGameBuildOrGreater<2802>())
 	{
-		typeName = typeid(*self).name();
-	}
-	catch (std::__non_rtti_object&)
-	{
-
+		try
+		{
+			typeName = typeid(*self).name();
+		}
+		catch (std::__non_rtti_object&)
+		{
+		}
 	}
 
 	return typeName;
@@ -158,6 +160,20 @@ static bool VehicleEntryPointValidate(VehicleLayoutInfo* info)
 
 static int ReturnFalse()
 {
+	return 0;
+}
+
+static int ReturnClassification()
+{
+	// ENBSeries requires this for its heuristic to get the depth buffer, so we will force it on if there's a d3d11.dll in the
+	// game directory, ignoring the Intel GPU check as well
+	static bool hasD3D11 = GetFileAttributesW(MakeRelativeGamePath(L"d3d11.dll").c_str()) != INVALID_FILE_ATTRIBUTES;
+
+	if (hasD3D11)
+	{
+		return 1;
+	}
+
 	return 0;
 }
 
@@ -557,6 +573,20 @@ static int _calculateLeapFix(clockInfo* clock)
 	return g_origCalculateLeap(clock);
 }
 
+static int (*g_origGetCacheLineSize)();
+
+static int GetCacheLineSizeHook()
+{
+	auto rv = g_origGetCacheLineSize();
+
+	if (rv == 0)
+	{
+		return 64;
+	}
+
+	return rv;
+}
+
 static HookFunction hookFunction{[] ()
 {
 	// CModelInfoStreamingModule LookupModelId null return
@@ -687,9 +717,8 @@ static HookFunction hookFunction{[] ()
 			test(rcx, rcx);
 			jz("justReturn");
 
-			// 505-specific offset
-			// valid for 1032 as well
-			movzx(ebx, word_ptr[rcx + 0x668]);
+			// validated for 1604-2802
+			movzx(ebx, word_ptr[rcx + 0x690]);
 			ret();
 
 			L("justReturn");
@@ -713,9 +742,8 @@ static HookFunction hookFunction{[] ()
 			test(rax, rax);
 			jz("justReturn");
 
-			// 505-specific offset
-			// valid for 1103 as well
-			cmp(qword_ptr[rax + 0x670], 0);
+			// validated for 1604-2802
+			cmp(qword_ptr[rax + 0x698], 0);
 
 			L("justReturn");
 			ret();
@@ -1059,7 +1087,7 @@ static HookFunction hookFunction{[] ()
 
 	// vehicles.meta explosionInfo field invalidity
 	MH_Initialize();
-	MH_CreateHook(hook::get_pattern("4C 8B F2 4C 8B F9 FF 50 08 4C 8D 05", -0x28), CVehicleModelInfo__init, (void**)&g_origCVehicleModelInfo__init);
+	MH_CreateHook(hook::get_pattern("4C 8B F2 4C 8B F9 FF 50 ? 4C 8D 05", -0x28), CVehicleModelInfo__init, (void**)&g_origCVehicleModelInfo__init);
 	MH_EnableHook(MH_ALL_HOOKS);
 
 	// disable TXD script resource unloading to work around a crash
@@ -1075,7 +1103,7 @@ static HookFunction hookFunction{[] ()
 	}
 	
 	// test: disable 'classification' compute shader users by claiming it is unsupported
-	hook::jump(hook::get_pattern("84 C3 74 0D 83 C9 FF E8", -0x14), ReturnFalse);
+	hook::jump(hook::get_pattern("84 C3 74 0D 83 C9 FF E8", -0x14), ReturnClassification);
 
 	// test: disable ERR_GEN_MAPSTORE_X error asserts (RDR3 seems to not have any assertion around these at all, so this ought to be safe)
 	{
@@ -1096,7 +1124,7 @@ static HookFunction hookFunction{[] ()
 	// 1604 signature: magnesium-september-wisconsin (FIVEM-CLIENT-1604-34)
 	//                 massachusetts-skylark-black   (FIVEM-CLIENT-1604-3D) <- CPedFactory::ms_playerPed being NULL with same call stack in CPortalTracker
 	{
-		auto location = hook::get_pattern("48 8D 0D ? ? ? ? E8 ? ? ? ? 84 DB 74 0C 48 8D 0D", 23);
+		auto location = hook::get_pattern("E8 ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 84 DB 74 0C 48 8D 0D", 28);
 		hook::set_call(&g_origReinitRenderPhase, location);
 		hook::call(location, ReinitRenderPhaseWrap);
 
@@ -1162,6 +1190,9 @@ static HookFunction hookFunction{[] ()
 
 	// hook to pretend any such slot is loaded
 	MH_CreateHook(hook::get_pattern("75 0D F6 84 08 ? ? 00 00", -0xB), CText__IsSlotLoadedHook, (void**)&g_origCText__IsSlotLoaded);
+
+	// cache line size can't be 0, breaks Nickel XTA
+	MH_CreateHook(hook::get_pattern("B8 01 00 00 00 0F A2 C1 EB 08", -0x11), GetCacheLineSizeHook, (void**)&g_origGetCacheLineSize);
 
 	// and to prevent unloading
 	if (!Is372())

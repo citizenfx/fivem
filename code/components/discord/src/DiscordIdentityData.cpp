@@ -1,7 +1,7 @@
 #include <StdInc.h>
 
 #if defined(GTA_FIVE) || defined(IS_RDR3)
-#define CNL_ENDPOINT "https://lambda.fivem.net"
+#include "CnlEndpoint.h"
 
 #include <LegitimacyAPI.h>
 #include <CL2LaunchMode.h>
@@ -67,13 +67,18 @@ static HookFunction initFunction([]()
 			switch (opCode)
 			{
 			case 1: // FRAME
-				if (data["evt"] == "READY")
+				if (data["evt"] == "READY" && data.find("data") != data.end() && data["data"].find("user") != data["data"].end())
 				{
 					userId = data["data"]["user"]["id"].get<std::string>();
 
+					if (userId == "0")
+					{
+						break;
+					}
+
 					// check with CnL if we have access
 					Instance<::HttpClient>::Get()->DoPostRequest(
-						CNL_ENDPOINT "/api/validate/discord",
+						CNL_ENDPOINT "api/validate/discord",
 						{
 							{ "entitlementId", ros::GetEntitlementSource() },
 							{ "userId", userId }
@@ -114,7 +119,7 @@ static HookFunction initFunction([]()
 						if (!code.empty())
 						{
 							Instance<::HttpClient>::Get()->DoPostRequest(
-								CNL_ENDPOINT "/api/validate/discord",
+								CNL_ENDPOINT "api/validate/discord",
 								{
 									{ "entitlementId", ros::GetEntitlementSource() },
 									{ "authCode", code },

@@ -1,0 +1,25 @@
+{
+  "name": "chat",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "@types/vue": "^2.0.0",
+    "copy-webpack-plugin": "^5.1.1",
+    "css-loader": "^3.4.2",
+    "html-webpack-inline-source-plugin": "^0.0.10",
+    "html-webpack-plugin": "^3.2.0",
+    "ts-loader": "^6.2.1",
+    "typescript": "^3.8.3",
+    "vue": "^2.6.11",
+    "vue-loader": "^15.9.0",
+    "vue-template-compiler": "^2.6.11",
+    "webpack": "4",
+    "yarn": "1.22"
+  },
+  "devDependencies": {
+    "command-line-args": "^5.1.1",
+    "webpack-cli": "^3.3.11",
+    "webpack-dev-server": "^3.10.3"
+  }
+}

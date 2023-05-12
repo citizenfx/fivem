@@ -3,6 +3,9 @@
 #if defined(LAUNCHER_PERSONALITY_MAIN)
 #include <CfxState.h>
 
+#define XBR_BUILDS_ONLY
+#include <CrossBuildRuntime.h>
+
 void XBR_EarlySelect()
 {
 	uint32_t defaultBuild =
@@ -22,14 +25,19 @@ void XBR_EarlySelect()
 
 #ifndef _DEBUG
 #ifdef GTA_FIVE
-	initialBuild = 2545;
+	initialBuild = 2699;
 #elif defined(IS_RDR3)
-	initialBuild = 1436;
+	initialBuild = 1491;
 #endif
 #endif
 
 	// we *can't* call xbr:: APIs here since they'll `static`-initialize and break GameCache later
-	uint32_t builds[] = { 372, 1604, 2060, 2189, 2372, 2545, 2612, 2699, 1311, 1355, 1436, 43 };
+	uint32_t builds[] = {
+#define EXPAND(_, __, x) x,
+		BOOST_PP_SEQ_FOR_EACH(EXPAND, , GAME_BUILDS)
+#undef EXPAND
+	};
+
 	uint32_t requestedBuild = defaultBuild;
 
 	auto state = CfxState::Get();

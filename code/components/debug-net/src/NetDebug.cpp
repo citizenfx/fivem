@@ -262,7 +262,7 @@ NetOverlayMetricSink::NetOverlayMetricSink()
 		ImGui::SetNextWindowSize(ImVec2(g_netOverlayWidth, g_netOverlayHeight));
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 
-		if (ImGui::Begin("NetGraph", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize))
+		if (ImGui::Begin("NetGraph", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoScrollbar))
 		{
 			// draw the graph
 			DrawGraph();
@@ -281,7 +281,7 @@ NetOverlayMetricSink::NetOverlayMetricSink()
 		UpdateMetrics();
 	}, 50);
 
-	static ConVar<bool> commandVar("net_showCommands", ConVar_Archive, false, &m_enabledCommands);
+	static ConVar<bool> commandVar("net_showCommands", ConVar_Archive | ConVar_UserPref, false, &m_enabledCommands);
 
 	ConHost::OnShouldDrawGui.Connect([this](bool* should)
 	{

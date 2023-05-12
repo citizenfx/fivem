@@ -23,13 +23,11 @@ using nui::HasFocus;
 extern nui::GameInterface* g_nuiGi;
 
 static bool g_hasFocus = false;
-bool g_hasCursor = false;
+static bool g_hasCursor = false;
 bool g_keepInput = false;
 static bool g_hasOverriddenFocus = false;
 extern bool g_mainUIFlag;
 POINT g_cursorPos;
-
-static ConVar<bool> uiLoadingCursor("ui_loadingCursor", ConVar_None, false);
 
 bool isKeyDown(WPARAM wparam)
 {
@@ -38,30 +36,82 @@ bool isKeyDown(WPARAM wparam)
 
 #include <shared_mutex>
 
-#ifdef USE_NUI_ROOTLESS
-std::shared_mutex g_nuiFocusStackMutex;
-std::list<std::string> g_nuiFocusStack;
-#endif
-
 static CefRefPtr<CefBrowser> GetFocusBrowser()
 {
-#ifdef USE_NUI_ROOTLESS
-	std::shared_lock<std::shared_mutex> lock(g_nuiFocusStackMutex);
+	return nui::GetBrowser();
+}
 
-	for (const auto& entry : g_nuiFocusStack)
+static fwRefContainer<NUIWindow> GetFocusWindow()
+{
+	return nui::GetWindow();
+}
+
+struct ScaleInfo
+{
+	double outX = 0.0;
+	double outY = 0.0;
+
+	double offsetX = 0.0;
+	double offsetY = 0.0;
+};
+
+static ScaleInfo
+GetWindowScaleInfo(const fwRefContainer<NUIWindow>& window)
+{
+	int targetX, targetY;
+	g_nuiGi->GetGameResolution(&targetX, &targetY);
+
+	int sourceX = window->GetWidth();
+	int sourceY = window->GetHeight();
+
+	double targetAspect = (double)targetX / targetY;
+	double sourceAspect = (double)sourceX / sourceY;
+
+	double offsetX = 0.0, offsetY = 0.0;
+	double outX = targetX, outY = targetY;
+
+	if (targetAspect > sourceAspect)
 	{
-		auto browser = nui::GetNUIWindowBrowser(entry);
+		outX = targetY * sourceAspect;
+		outY = targetY;
 
-		if (browser)
-		{
-			return browser;
-		}
+		offsetX = (targetX - outX) / 2.0;
+	}
+	else if (targetAspect < sourceAspect)
+	{
+		outX = targetX;
+		outY = targetX / sourceAspect;
+
+		offsetY = (targetY - outY) / 2.0;
 	}
 
-	return {};
-#else
-	return nui::GetBrowser();
-#endif
+	return {
+		outX, outY, offsetX, offsetY
+	};
+}
+
+void TranslateWindowRect(const fwRefContainer<NUIWindow>& window, CRect* rect)
+{
+	auto scale = GetWindowScaleInfo(window);
+	*rect = CRect(scale.offsetX, scale.offsetY + scale.outY, scale.offsetX + scale.outX, scale.offsetY);
+}
+
+template<typename T>
+static bool TranslateMouseEvent(const fwRefContainer<NUIWindow>& window, T* x, T* y)
+{
+	if (window.GetRef() && window->IsFixedSizeWindow())
+	{
+		int sourceX = window->GetWidth();
+		int sourceY = window->GetHeight();
+
+		auto scale = GetWindowScaleInfo(window);
+		*x = (T)(((*x - scale.offsetX) / scale.outX) * sourceX);
+		*y = (T)(((*y - scale.offsetY) / scale.outY) * sourceY);
+
+		return true;
+	}
+
+	return false;
 }
 
 namespace nui
@@ -76,6 +126,11 @@ namespace nui
 	bool HasFocus()
 	{
 		return (g_hasFocus || g_hasOverriddenFocus);
+	}
+
+	bool HasCursor()
+	{
+		return HasMainUI() || g_hasCursor;
 	}
 
 	bool HasFocusKeepInput()
@@ -96,82 +151,6 @@ namespace nui
 
 		g_hasFocus = hasFocus;
 		g_hasCursor = hasCursor;
-
-#ifdef USE_NUI_ROOTLESS
-		auto winName = fmt::sprintf("nui_%s", frameName);
-
-		auto browser = nui::GetNUIWindowBrowser(winName);
-		auto window = FindNUIWindow(winName);
-
-		if (hasFocus)
-		{
-			// deferred-create the window if it's given focus, too
-			if (window.GetRef())
-			{
-				if (!window->GetBrowser())
-				{
-					window->DeferredCreate();
-				}
-			}
-
-			static std::string oldDD;
-			std::unique_lock<std::shared_mutex> lock(g_nuiFocusStackMutex);
-
-			// remove from focus stack so it can be moved on top
-			for (auto it = g_nuiFocusStack.begin(); it != g_nuiFocusStack.end();)
-			{
-				if (*it == winName)
-				{
-					it = g_nuiFocusStack.erase(it);
-				}
-				else
-				{
-					++it;
-				}
-			}
-
-			g_nuiFocusStack.push_front(winName);
-
-			if (oldDD != g_nuiFocusStack.front())
-			{
-				if (browser)
-				{
-					auto rh = browser->GetHost()->GetClient()->GetRenderHandler();
-					NUIRenderHandler* nrh = (NUIRenderHandler*)rh.get();
-
-					RevokeDragDrop(g_nuiGi->GetHWND());
-					
-					HRESULT hr = RegisterDragDrop(g_nuiGi->GetHWND(), nrh->GetDropTarget());
-					if (FAILED(hr))
-					{
-						trace("registering drag/drop failed. hr: %08x\n", hr);
-					}
-				}
-			}
-		}
-		else
-		{
-			RevokeDragDrop(g_nuiGi->GetHWND());
-		}
-
-		if (browser)
-		{
-			browser->GetHost()->SetFocus(hasFocus);
-		}
-		else
-		{
-			if (window.GetRef())
-			{
-				window->PushLoadQueue([window, hasFocus]()
-				{
-					if (window->GetBrowser())
-					{
-						window->GetBrowser()->GetHost()->SetFocus(hasFocus);
-					}
-				});
-			}
-		}
-#endif
 	}
 
 	void OverrideFocus(bool hasFocus)
@@ -186,6 +165,8 @@ namespace nui
 		}
 
 		g_hasOverriddenFocus = hasFocus;
+
+		static ConVar<bool> uiLoadingCursor("ui_loadingCursor", ConVar_None, false);
 
 		if (uiLoadingCursor.GetValue())
 		{
@@ -441,6 +422,8 @@ static HookFunction initFunction([] ()
 			LONG currentTime = 0;
 			bool cancelPreviousClick = false;
 
+			TranslateMouseEvent(GetFocusWindow(), &x, &y);
+
 			lastX = x;
 			lastY = y;
 
@@ -543,14 +526,22 @@ static HookFunction initFunction([] ()
 
 		virtual void MouseWheel(int deltaY) override
 		{
+			MouseWheel(double(deltaY));
+		}
+
+		void MouseWheel(double deltaY)
+		{
 			auto browser = GetFocusBrowser();
 
 			if (browser) {
-				int delta = deltaY * 120;
+				int delta = int(deltaY * 120);
+
+				int x = lastX, y = lastY;
+				TranslateMouseEvent(GetFocusWindow(), &x, &y);
 
 				CefMouseEvent mouse_event;
-				mouse_event.x = lastX;
-				mouse_event.y = lastY;
+				mouse_event.x = x;
+				mouse_event.y = y;
 				mouse_event.modifiers = GetCefMouseModifiers();
 
 				browser->GetHost()->SendMouseWheelEvent(mouse_event,
@@ -577,7 +568,7 @@ static HookFunction initFunction([] ()
 		{
 			if (HasFocus() != g_lastFocus)
 			{
-				browser->GetHost()->SendFocusEvent(HasFocus());
+				browser->GetHost()->SetFocus(HasFocus());
 			}
 
 			g_lastFocus = HasFocus();
@@ -618,7 +609,7 @@ static HookFunction initFunction([] ()
 		{
 			if (HasFocus() != g_lastFocus)
 			{
-				browser->GetHost()->SendFocusEvent(HasFocus());
+				browser->GetHost()->SetFocus(HasFocus());
 			}
 
 			g_lastFocus = HasFocus();
@@ -735,6 +726,8 @@ static HookFunction initFunction([] ()
 					::GetCursorPos(&p);
 					::ScreenToClient(hWnd, &p);
 
+					TranslateMouseEvent(GetFocusWindow(), &p.x, &p.y);
+
 					CefMouseEvent mouse_event;
 					mouse_event.x = p.x;
 					mouse_event.y = p.y;
@@ -750,7 +743,33 @@ static HookFunction initFunction([] ()
 			} break;
 
 			case WM_MOUSEWHEEL: {
-				inputTarget.MouseWheel(GET_WHEEL_DELTA_WPARAM(wParam) / 120);
+				int x = GET_X_LPARAM(lParam);
+				int y = GET_Y_LPARAM(lParam);
+
+				POINT p = { x, y };
+				ScreenToClient(hWnd, &p);
+
+				if (TranslateMouseEvent(GetFocusWindow(), &p.x, &p.y))
+				{
+					ClientToScreen(hWnd, &p);
+
+					lParam &= ~((DWORD_PTR)0xFFFFFFFF);
+					lParam |= (DWORD)((p.x) | ((DWORD)p.y << 16));
+				}
+
+				MSG m = { hWnd,
+					msg,
+					wParam,
+					lParam,
+					static_cast<DWORD>(GetMessageTime()),
+					{ GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) } };
+
+				auto browser = GetFocusBrowser();
+
+				if (browser)
+				{
+					browser->GetHost()->SendMouseWheelEventNative(&m);
+				}
 
 				if (!g_keepInput)
 				{

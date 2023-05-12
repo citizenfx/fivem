@@ -1,11 +1,21 @@
 using System;
 using CitizenFX.Core.Native;
-using System.Threading.Tasks;
 using CitizenFX.Core;
 using System.Security;
 using System.Runtime.InteropServices;
 
+#if MONO_V2
+using CitizenFX.FiveM.Native;
+using API = CitizenFX.FiveM.Native.Natives;
+using Function = CitizenFX.FiveM.Native.Natives;
+using TaskString = CitizenFX.Core.Coroutine<string>;
+
+namespace CitizenFX.FiveM
+#else
+using TaskString = System.Threading.Tasks.Task<string>;
+
 namespace CitizenFX.Core
+#endif
 {
 	public enum GameVersion
 	{
@@ -365,6 +375,10 @@ namespace CitizenFX.Core
 		/// </value>
 		public static bool IsRandomEventActive
 		{
+#if MONO_V2
+			get => API.GetRandomEventFlag();
+			set => API.SetRandomEventFlag(value);
+#else
 			get
 			{
 				return API.GetRandomEventFlag() == 1;
@@ -373,6 +387,7 @@ namespace CitizenFX.Core
 			{
 				API.SetRandomEventFlag(value ? 1 : 0);
 			}
+#endif
 		}
 
 		/// <summary>
@@ -721,6 +736,36 @@ namespace CitizenFX.Core
 			return unchecked((int)MemoryAccess.GetHashKey(input));
 		}
 
+		/// <inheritdoc cref="GenerateHash"/>
+		/// <remarks>Using a non-ASCII string has undefined behavior.</remarks>
+		public static uint GenerateHashASCII(string input)
+		{
+			uint hash = 0;
+
+			if (input != null)
+			{
+				var len = input.Length;
+				for (var i = 0; i < len; i++)
+				{
+					uint c = input[i];
+					if ((c - 'A') <= 26)
+					{
+						c += ('a' - 'A');
+					}
+
+					hash += c;
+					hash += (hash << 10);
+					hash ^= (hash >> 6);
+				}
+
+				hash += (hash << 3);
+				hash ^= (hash >> 11);
+				hash += (hash << 15);
+			}
+
+			return hash;
+		}
+
 		/// <summary>
 		/// Plays a sound from the games sound files
 		/// </summary>
@@ -752,7 +797,7 @@ namespace CitizenFX.Core
 		/// </summary>
 		/// <param name="maxLength">The maximum length of input allowed.</param>
 		/// <returns>The <see cref="string"/> of what the user entered, If the user cancelled <see cref="string.Empty"/> is returned</returns>
-		public static async Task<string> GetUserInput(int maxLength)
+		public static async TaskString GetUserInput(int maxLength)
 		{
 			return await GetUserInput(WindowTitle.FMMC_KEY_TIP8, string.Empty, maxLength);
 		}
@@ -762,7 +807,7 @@ namespace CitizenFX.Core
 		/// <param name="defaultText">The default text.</param>
 		/// <param name="maxLength">The maximum length of input allowed.</param>
 		/// <returns>The <see cref="string"/> of what the user entered, If the user cancelled <see cref="string.Empty"/> is returned</returns>
-		public static async Task<string> GetUserInput(string defaultText, int maxLength)
+		public static async TaskString GetUserInput(string defaultText, int maxLength)
 		{
 			return await GetUserInput(WindowTitle.FMMC_KEY_TIP8, defaultText, maxLength);
 		}
@@ -772,7 +817,7 @@ namespace CitizenFX.Core
 		/// <param name="windowTitle">The Title of the Window.</param>
 		/// <param name="maxLength">The maximum length of input allowed.</param>
 		/// <returns>The <see cref="string"/> of what the user entered, If the user cancelled <see cref="string.Empty"/> is returned</returns>
-		public static async Task<string> GetUserInput(WindowTitle windowTitle, int maxLength)
+		public static async TaskString GetUserInput(WindowTitle windowTitle, int maxLength)
 		{
 			return await GetUserInput(windowTitle, string.Empty, maxLength);
 		}
@@ -783,7 +828,7 @@ namespace CitizenFX.Core
 		/// <param name="defaultText">The default text.</param>
 		/// <param name="maxLength">The maximum length of input allowed.</param>
 		/// <returns>The <see cref="string"/> of what the user entered, If the user cancelled <see cref="string.Empty"/> is returned</returns>
-		public static async Task<string> GetUserInput(WindowTitle windowTitle, string defaultText, int maxLength)
+		public static async TaskString GetUserInput(WindowTitle windowTitle, string defaultText, int maxLength)
 		{
 			//ScriptDomain.CurrentDomain.PauseKeyboardEvents(true);
 
@@ -803,8 +848,6 @@ namespace CitizenFX.Core
 		{
 			API.DisplayOnscreenKeyboard(1, windowTitle.ToString(), null, defaultText, null, null, null, maxLength + 1);
 		}
-
-
 
 		/// <summary>
 		/// Private unsafe version of <see cref="GetTattooCollectionData(int, int)"/>

@@ -132,7 +132,8 @@ class BOTAN_TEST_API TLS_CBC_HMAC_AEAD_Encryption final : public TLS_CBC_HMAC_AE
 
       void finish(secure_vector<uint8_t>& final_block, size_t offset = 0) override;
    private:
-      void cbc_encrypt_record(uint8_t record_contents[], size_t record_len);
+      void cbc_encrypt_record(secure_vector<uint8_t>& buffer, size_t offset,
+                              size_t padding_length);
    };
 
 /**

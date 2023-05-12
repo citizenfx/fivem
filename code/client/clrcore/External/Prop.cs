@@ -1,4 +1,4 @@
-using System;
+#if !MONO_V2
 using CitizenFX.Core.Native;
 
 namespace CitizenFX.Core
@@ -28,3 +28,4 @@ namespace CitizenFX.Core
 		}
 	}
 }
+#endif

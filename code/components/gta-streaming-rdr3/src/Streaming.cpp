@@ -6,7 +6,7 @@ static void* g_storeMgr;
 
 static hook::cdecl_stub<void(bool)> g_loadObjectsNow([]()
 {
-	return hook::get_call(hook::get_pattern("33 C9 E8 ? ? ? ? 8B 0D ? ? ? ? 48 8B 05 ? ? ? ? 03 CB", 2));
+	return hook::get_call(hook::get_pattern("40 38 7B 0C 0F 84 ? ? ? ? 33 C9 E8", 12));
 });
 
 static hook::cdecl_stub<void(void*, uint32_t, int)> g_requestObject([]()
@@ -26,7 +26,7 @@ static hook::cdecl_stub<bool(void*, uint32_t, int)> g_releaseSystemObject([]()
 
 static hook::cdecl_stub<streaming::strStreamingModule**(void*, uint32_t)> g_getStreamingModule([]()
 {
-	return hook::get_pattern("44 0F B7 51 10 45 33 C9 4C 8B 59 08", 0);
+	return hook::get_pattern("44 0F B7 51 10 45 33 C9 4C 8B 59 08", -4);
 });
 
 static hook::cdecl_stub<int(const char*)> g_getStreamingExtIndex([]()

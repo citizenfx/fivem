@@ -1,0 +1,21 @@
+.root {
+  position: fixed;
+  top: 0;
+  left: 0;
+  transform: translate(calc(ui.use('x') + 4px), ui.use('y'));
+
+  width: calc(ui.use('w') - 8px);
+
+  padding: ui.offset('normal');
+
+  overflow: hidden;
+
+  background-color: ui.color('main', 100);
+
+  pointer-events: none;
+
+  box-shadow: ui.use('shadow-large');
+
+  border-bottom-left-radius: ui.border-radius('small');
+  border-bottom-right-radius: ui.border-radius('small');
+}

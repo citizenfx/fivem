@@ -335,7 +335,7 @@
                 </Item>
                 <Item>
                   <PoolName>CAmmoItem</PoolName>
-                  <PoolSize value="300"/>
+                  <PoolSize value="350"/>
                 </Item>
                 <Item>
                   <PoolName>CSatchelItem</PoolName>
@@ -2275,7 +2275,7 @@
 				<RosTitleVersion value="11"/>
 				<RosScVersion value="11"/>
 				<RosGameServerVersionNumber value="17"/>
-				<RosGameServerCatalogReleaseId>mp009</RosGameServerCatalogReleaseId>
+				<RosGameServerCatalogReleaseId>mptmu01</RosGameServerCatalogReleaseId>
 				<RosScId value="13"/>
 				<TitleDirectoryName>Red Dead Redemption 2</TitleDirectoryName>
 				<MultiplayerSessionTemplateName>SessionTemplate</MultiplayerSessionTemplateName>
@@ -3963,7 +3963,7 @@
 					<RosTitleVersion value="11"/>
 					<RosScVersion value="11"/>
 					<RosGameServerVersionNumber value="1017"/>
-					<RosGameServerCatalogReleaseId>mp009</RosGameServerCatalogReleaseId>
+					<RosGameServerCatalogReleaseId>mptmu01</RosGameServerCatalogReleaseId>
 					<RosScId value="13"/>
 					<SteamAppId value="1174180"/>
 					<TitleDirectoryName>Red Dead Redemption 2</TitleDirectoryName>
@@ -4263,7 +4263,7 @@
 				<RosTitleVersion value="11"/>
 				<RosScVersion value="11"/>
 				<RosGameServerVersionNumber value="2017"/>
-				<RosGameServerCatalogReleaseId>mp009</RosGameServerCatalogReleaseId>
+				<RosGameServerCatalogReleaseId>mptmu01</RosGameServerCatalogReleaseId>
 				<RosScId value="13"/>
 				<TitleDirectoryName>Redemption 2</TitleDirectoryName>
 				<MultiplayerSessionTemplateName>SessionTemplate</MultiplayerSessionTemplateName>

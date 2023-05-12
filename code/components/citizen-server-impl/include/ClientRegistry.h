@@ -209,7 +209,7 @@ namespace fx
 		{
 			if (auto it = m_clientsByConnectionTokenHash.find(hash); it != m_clientsByConnectionTokenHash.end())
 			{
-				return it->second.lock();
+				return bool(it->second.lock());
 			}
 
 			return false;

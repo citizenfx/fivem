@@ -7,8 +7,7 @@
 
 #include "StdInc.h"
 
-#ifndef IS_FXSERVER
-#include <minhook.h>
+#include <MinHook.h>
 #include "Hooking.Aux.h"
 
 #include <Error.h>
@@ -393,7 +392,9 @@ static BOOLEAN WINAPI RtlDispatchExceptionStub(EXCEPTION_RECORD* record, CONTEXT
 		{
 			inExceptionFallback = true;
 
+#ifndef IS_FXSERVER
 			AddCrashometry("exception_override", "true");
+#endif
 
 			EXCEPTION_POINTERS ptrs;
 			ptrs.ContextRecord = context;
@@ -409,6 +410,35 @@ static BOOLEAN WINAPI RtlDispatchExceptionStub(EXCEPTION_RECORD* record, CONTEXT
 	}
 
 	return success;
+}
+
+static NTSTATUS (NTAPI* g_origRtlReportException)(PEXCEPTION_RECORD ExceptionRecord, PCONTEXT ContextRecord, ULONG Flags);
+
+static NTSTATUS NTAPI RtlReportExceptionStub(PEXCEPTION_RECORD ExceptionRecord, PCONTEXT ContextRecord, ULONG Flags)
+{
+	static bool inExceptionFallback;
+
+	if (!inExceptionFallback && !(Flags & 8))
+	{
+		inExceptionFallback = true;
+
+#ifndef IS_FXSERVER
+		AddCrashometry("exception_override_2", "true");
+#endif
+
+		EXCEPTION_POINTERS ptrs = { 0 };
+		ptrs.ContextRecord = ContextRecord;
+		ptrs.ExceptionRecord = ExceptionRecord;
+
+		if (g_exceptionHandler)
+		{
+			g_exceptionHandler(&ptrs);
+		}
+
+		inExceptionFallback = false;
+	}
+
+	return g_origRtlReportException(ExceptionRecord, ContextRecord, Flags);
 }
 
 static bool (*_TerminateForException)(PEXCEPTION_POINTERS exc);
@@ -445,6 +475,7 @@ extern "C" void DLL_EXPORT CoreSetExceptionOverride(LONG (*handler)(EXCEPTION_PO
 			DisableToolHelpScope scope;
 			MH_CreateHook(internalAddress, RtlDispatchExceptionStub, (void**)&g_origRtlDispatchException);
 			MH_CreateHook(GetProcAddress(GetModuleHandle(L"ucrtbase.dll"), "terminate"), terminateStub, NULL);
+			MH_CreateHookApi(L"ntdll.dll", "RtlReportException", RtlReportExceptionStub, (void**)&g_origRtlReportException);
 			MH_EnableHook(MH_ALL_HOOKS);
 		}
 	}
@@ -464,4 +495,3 @@ struct InitMHWrapper
 };
 
 InitMHWrapper mh;
-#endif

@@ -9,11 +9,9 @@
 
 //#define USE_NUI_ROOTLESS
 
-#ifdef COMPILING_NUI_CORE
-#define OVERLAY_DECL __declspec(dllexport)
-#else
-#define OVERLAY_DECL __declspec(dllimport)
-#endif
+#include "ComponentExport.h"
+
+#define OVERLAY_DECL COMPONENT_EXPORT(NUI_CORE)
 
 #if defined(COMPILING_NUI_CORE) || defined(COMPILING_NUI_RESOURCES) || defined(COMPILING_GLUE)
 #define WANT_CEF_INTERNALS
@@ -101,6 +99,11 @@ namespace nui
 		virtual bool Map(int numSubLevels, int subLevel, GILockedTexture* lockedTexture, GILockFlags flags) = 0;
 
 		virtual void Unmap(GILockedTexture* lockedTexture) = 0;
+
+		virtual void WithHostTexture(std::function<void(void*)>&& callback)
+		{
+			callback(GetHostTexture());
+		}
 	};
 
 	enum class GITextureFormat
@@ -351,16 +354,15 @@ namespace nui
 	//void EnterV8Context(const char* type);
 	//void LeaveV8Context(const char* type);
 	//void InvokeNUICallback(const char* type, const CefString& name, const CefV8ValueList& arguments);
-#ifndef USE_NUI_ROOTLESS
 	void OVERLAY_DECL ReloadNUI();
-#endif
 
-	void OVERLAY_DECL CreateFrame(fwString frameName, fwString frameURL);
-	void OVERLAY_DECL PrepareFrame(fwString frameName, fwString frameURL);
-	void OVERLAY_DECL DestroyFrame(fwString frameName);
+	void OVERLAY_DECL CreateFrame(const std::string& frameName, const std::string& frameURL);
+	void OVERLAY_DECL PrepareFrame(const std::string& frameName, const std::string& frameURL);
+	void OVERLAY_DECL DestroyFrame(const std::string& frameName);
 	bool OVERLAY_DECL HasFrame(const std::string& frameName);
 	void OVERLAY_DECL SignalPoll(fwString frameName);
 
+	bool OVERLAY_DECL HasCursor();
 	bool OVERLAY_DECL HasFocus();
 	bool OVERLAY_DECL HasFocusKeepInput();
 	void OVERLAY_DECL GiveFocus(const std::string& frameName, bool hasFocus, bool hasCursor = false);
@@ -372,20 +374,16 @@ namespace nui
 
 	void ProcessInput();
 
-#ifndef USE_NUI_ROOTLESS
 	void OVERLAY_DECL ExecuteRootScript(const std::string& scriptBit);
-#endif
 
 	void OVERLAY_DECL PostFrameMessage(const std::string& frameName, const std::string& jsonData);
 
-#ifndef USE_NUI_ROOTLESS
 	void OVERLAY_DECL PostRootMessage(const std::string& jsonData);
-#endif
 
 #ifdef WANT_CEF_INTERNALS
-#ifndef USE_NUI_ROOTLESS
 	OVERLAY_DECL CefBrowser* GetBrowser();
-#endif
+
+	OVERLAY_DECL fwRefContainer<NUIWindow> GetWindow();
 
 	OVERLAY_DECL CefBrowser* GetFocusBrowser();
 
@@ -419,6 +417,8 @@ namespace nui
 	extern OVERLAY_DECL
 		fwEvent<std::function<void(bool, const char*, size_t)>>
 		RequestNUIBlocklist;
+
+	extern OVERLAY_DECL fwEvent<> OnInitialize;
 
 	OVERLAY_DECL void SetAudioSink(IAudioSink* sinkRef);
 

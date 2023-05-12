@@ -640,7 +640,7 @@ struct CfxBigConsole : FiveMConsoleBase
 			return false;
 		}
 
-		if (channel == "cmd")
+		if (channel == "cmd" || channel == "IO")
 		{
 			return true;
 		}
@@ -668,7 +668,7 @@ struct MiniConsole : CfxBigConsole
 
 	MiniConsole()
 	{
-		m_miniconChannels = new ConVar<std::string>("con_miniconChannels", ConVar_Archive, "minicon:*");
+		m_miniconChannels = new ConVar<std::string>("con_miniconChannels", ConVar_Archive | ConVar_UserPref, "minicon:*");
 		m_miniconLastValue = m_miniconChannels->GetValue();
 
 		try
@@ -958,9 +958,22 @@ static InitFunction initFunction([]()
 });
 #endif
 
+#include "ProductionWhitelist.h"
+
 static InitFunction initFunctionCon([]()
 {
-	for (auto& command : { "connect", "quit", "cl_drawFPS", "bind", "rbind", "unbind", "disconnect", "storymode", "loadlevel", "cl_drawPerf", "profile_reticuleSize", "profile_musicVolumeInMp", "profile_musicVolume", "profile_sfxVolume" })
+	console::GetDefaultContext()->GetCommandManager()->AccessDeniedEvent.Connect([](std::string_view commandName)
+	{
+		if (!IsNonProduction())
+		{
+			console::Printf("cmd", "Command %s is disabled in production mode. See ^2https://aka.cfx.re/prod-console^7 for further information.\n", commandName);
+			return false;
+		}
+
+		return true;
+	});
+
+	for (auto& command : g_prodCommandsWhitelist)
 	{
 		seGetCurrentContext()->AddAccessControlEntry(se::Principal{ "system.extConsole" }, se::Object{ fmt::sprintf("command.%s", command) }, se::AccessType::Allow);
 	}

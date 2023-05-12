@@ -134,8 +134,16 @@ static InitFunction initFunction([] ()
 				auto convar = console::GetDefaultContext()->GetVariableManager()->FindEntryRaw(conVar.first);
 				if (convar)
 				{
+					auto flags = console::GetDefaultContext()->GetVariableManager()->GetEntryFlags(conVar.first);
+
+					if (flags & ConVar_UserPref)
+					{
+						console::DPrintf("net", "Blocked convar %s from being set by server.\n", conVar.first);
+						continue;
+					}
+
 					// If the value is not already from the server
-					if (!(console::GetDefaultContext()->GetVariableManager()->GetEntryFlags(conVar.first) & ConVar_Replicated))
+					if (!(flags & ConVar_Replicated))
 					{
 						convar->SaveOfflineValue();	
 					}
@@ -153,10 +161,10 @@ static InitFunction initFunction([] ()
 	Instance<ICoreGameInit>::Get()->OnGameRequestLoad.Connect([]()
 	{
 		nui::SetMainUI(false);
-
-		auto context = (netLibrary->GetConnectionState() != NetLibrary::CS_IDLE) ? ("server_" + netLibrary->GetTargetContext()) : "";
-		nui::SwitchContext(context);
 		nui::DestroyFrame("mpMenu");
+
+		auto context = (netLibrary->GetConnectionState() != NetLibrary::CS_IDLE) ? ("server_" + netLibrary->GetTargetContext()) : "game";
+		nui::SwitchContext(context);
 	});
 
 	// #TODOLIBERTY: ?

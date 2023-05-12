@@ -15,8 +15,7 @@
 #include <botan/types.h>
 #include <vector>
 
-// fixme - still used in mceliece.h
-//BOTAN_FUTURE_INTERNAL_HEADER(gf2m_small_m.h)
+BOTAN_FUTURE_INTERNAL_HEADER(gf2m_small_m.h)
 
 namespace Botan {
 
@@ -170,8 +169,6 @@ class BOTAN_PUBLIC_API(2,0) GF2m_Field
          }
 
       gf2m gf_div(gf2m x, gf2m y) const;
-
-      gf2m gf_pow(gf2m x, int i) const;
 
       gf2m gf_exp(gf2m i) const
          {

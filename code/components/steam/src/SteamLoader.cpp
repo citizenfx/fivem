@@ -8,6 +8,58 @@
 #include "StdInc.h"
 #include "SteamLoader.h"
 
+#include <CoreConsole.h>
+
+template<int Size>
+struct ScopedHookRestoration
+{
+	FARPROC procAddress;
+	uint8_t asmData[Size];
+
+	ScopedHookRestoration()
+		: procAddress(), asmData()
+	{
+	}
+
+	ScopedHookRestoration(const char* moduleName, const char* method)
+		: procAddress(), asmData()
+	{
+		HMODULE moduleHandle = GetModuleHandleA(moduleName);
+		if (moduleHandle)
+		{
+			procAddress = ::GetProcAddress(moduleHandle, method);
+			if (procAddress)
+			{
+				memcpy(asmData, procAddress, Size);
+			}
+			else
+			{
+				console::DPrintf("steam", "Could not find method %s in module %s to restore hooks for.\n", method, moduleName);
+			}
+		}
+		else
+		{
+			console::DPrintf("steam", "Could not find module %s to restore hooks for.\n", moduleName);
+		}
+	}
+
+	~ScopedHookRestoration()
+	{
+		if (procAddress)
+		{
+			DWORD oldProtect;
+			VirtualProtect(procAddress, Size, PAGE_EXECUTE_READWRITE, &oldProtect);
+			memcpy(procAddress, asmData, Size);
+			VirtualProtect(procAddress, Size, oldProtect, &oldProtect);
+		}
+	}
+
+	operator bool()
+	{
+		return procAddress != 0;
+	}
+};
+
 void SteamLoader::Initialize()
 {
 	if (IsSteamRunning(true))
@@ -140,30 +192,33 @@ std::wstring SteamLoader::GetSteamDllPath()
 
 void SteamLoader::LoadGameOverlayRenderer(const std::wstring& baseDllPath)
 {
-	std::wstring overlayDllPath = baseDllPath.substr(0, baseDllPath.rfind(L'\\')) + L"\\" OVERLAYRENDERER_DLL;
-
-	// store kernel32!CreateProcessW to unpatch it, as gameoverlayrenderer is very nested and malicious
-	auto kernel32 = GetModuleHandleW(L"kernel32.dll");
-
-	if (!kernel32)
+	// store kernel32!CreateProcessW and XInput to unpatch it, as gameoverlayrenderer is very nested and malicious
+	ScopedHookRestoration<5> createProcessW("kernel32.dll", "CreateProcessW");
+	if (createProcessW)
 	{
-		return;
+		// Steam's XInput hooks break Xbox controllers when not loading the game through Big Picture or as a steam shortcut, so we restore them
+		ScopedHookRestoration<5> xInputGetState;
+		ScopedHookRestoration<5> xInputSetState;
+
+		// Big Picture or run as a steam shortcut will set this pre-launch
+		char envSteamEnv[] = { 0, 0 };
+		GetEnvironmentVariableA("SteamEnv", envSteamEnv, sizeof(envSteamEnv));
+
+		if (envSteamEnv[0] == '\0')
+		{
+			xInputGetState = ScopedHookRestoration<5>("XINPUT1_4", "XInputGetState");
+			xInputSetState = ScopedHookRestoration<5>("XINPUT1_4", "XInputSetState");
+
+			if (!xInputGetState || !xInputSetState)
+			{
+				console::PrintWarning("steam", "Could not find 1 or more entry points for XInput, usage of Xbox controllers might not work outside of Steam.\n");
+			}
+		}
+
+		// load the actual overlay dll
+		std::wstring overlayDllPath = baseDllPath.substr(0, baseDllPath.rfind(L'\\')) + L"\\" OVERLAYRENDERER_DLL;
+		HMODULE steamOverlay = LoadLibrary(overlayDllPath.c_str());
+
+		// Any valid ScopedHookRestoration will be restored when going out of scope
 	}
-
-	auto createProcessW = ::GetProcAddress(kernel32, "CreateProcessW");
-	uint8_t copyStub[5];
-	memcpy(copyStub, createProcessW, 5);
-
-	// load the actual overlay dll
-	LoadLibrary(overlayDllPath.c_str());
-
-	// unprotect
-	DWORD oldProtect;
-	VirtualProtect(createProcessW, 5, PAGE_EXECUTE_READWRITE, &oldProtect);
-
-	// copy original code
-	memcpy(createProcessW, copyStub, 5);
-
-	// and reprotect
-	VirtualProtect(createProcessW, 5, oldProtect, &oldProtect);
 }

@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<OutputType>Library</OutputType>
+		<TargetFramework>net6.0</TargetFramework>
+		<EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+
+		<IntermediateOutputPath>/tmp/dotnet-facades</IntermediateOutputPath>
+		<OutputPath>$(FacadeOutPath)/ref/</OutputPath>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.DotNet.GenFacades" Version="6.0.0-beta.21063.5" GeneratePathProperty="true" />
+		<Compile Include="server/CitizenFX.Core.cs" />
+	</ItemGroup>
+
+	<UsingTask
+		TaskName="GenFacadesTask"
+		AssemblyFile="$(PkgMicrosoft_DotNet_GenFacades)\tools\netcoreapp2.1\Microsoft.DotNet.GenFacades.dll"
+	 />
+
+	<Target Name="GenFacades" AfterTargets="Build">
+		<GenFacadesTask
+			FacadePath="$(TargetDir)/.."
+			Seeds="$(TargetDir)/../CitizenFX.Core.dll"
+			Contracts="$(TargetPath)"
+		 />
+	</Target>
+</Project>

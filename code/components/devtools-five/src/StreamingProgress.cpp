@@ -61,7 +61,7 @@ static void StreamingProgress_OnDownload(const std::string& fileName, size_t don
 
 static hook::cdecl_stub<rage::fiCollection* ()> getRawStreamer([]()
 {
-	return hook::get_call(hook::get_pattern("48 8B D3 4C 8B 00 48 8B C8 41 FF 90 ? 01 00 00", -5));
+	return hook::get_call(hook::get_pattern("48 8B D3 4C 8B 00 48 8B C8 41 FF 90 ? 01 00 00 8B D8 E8", -5));
 });
 
 #include <atHashMap.h>
@@ -238,7 +238,7 @@ static InitFunction initFunction([]()
 
 	OnMainGameFrame.Connect([]()
 	{
-		static ConVar<bool> useStreamingProgress("game_showStreamingProgress", ConVar_Archive, false);
+		static ConVar<bool> useStreamingProgress("game_showStreamingProgress", ConVar_Archive | ConVar_UserPref, false);
 
 		if (useStreamingProgress.GetValue())
 		{

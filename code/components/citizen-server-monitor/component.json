@@ -7,7 +7,7 @@
 		"citizen:scripting:core",
 		"citizen:server:instance",
 		"citizen:server:net",
-		"vendor:boost_filesystem",
+		"citizen:server:impl",
 		"vendor:boost_random",
 		"vfs:impl:server"
 	],

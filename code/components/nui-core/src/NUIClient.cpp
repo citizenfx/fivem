@@ -17,11 +17,16 @@
 #include <CoreConsole.h>
 
 #include <boost/algorithm/string/case_conv.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+
 #include <rapidjson/document.h>
+#include "include/cef_parser.h"
 
 #include <sstream>
+#include <regex>
 
 extern nui::GameInterface* g_nuiGi;
+bool shouldHaveRootWindow;
 
 static nui::IAudioSink* g_audioSink;
 
@@ -154,14 +159,8 @@ Object.prototype.__defineGetter__ = function(prop, func) {
 
 	if (url == "nui://game/ui/root.html")
 	{
-		static ConVar<std::string> uiUrlVar("ui_url", ConVar_None, "https://nui-game-internal/ui/app/index.html");
-
+		shouldHaveRootWindow = true;
 		nui::RecreateFrames();
-
-		if (nui::HasMainUI())
-		{
-			nui::CreateFrame("mpMenu", uiUrlVar.GetValue());
-		}
 	}
 
 	// enter push function
@@ -186,12 +185,19 @@ Object.prototype.__defineGetter__ = function(prop, func) {
 		switch (type) {
 			case 'frameCall': {
 				const [ dataString ] = args;
-				const data = JSON.parse(dataString);
 
-				window.postMessage(data, '*');
+				try {
+					const data = JSON.parse(dataString);
 
-				if (!window.nuiInternalHandledMessages) {
-					nuiMessageQueue.push(data);
+					window.postMessage(data, '*');
+
+					if (!window.nuiInternalHandledMessages) {
+						nuiMessageQueue.push(data);
+					}
+				} catch (e) {
+					console.log('frameCall data that caused the following error', dataString);
+					console.error(e);
+					return;
 				}
 
 				break;
@@ -321,7 +327,7 @@ auto NUIClient::OnBeforePopup(CefRefPtr<CefBrowser> browser,
 	return false;
 }
 
-auto NUIClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefRequestCallback> callback) -> ReturnValue
+auto NUIClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) -> ReturnValue
 {
 	auto url = request->GetURL().ToString();
 
@@ -330,7 +336,80 @@ auto NUIClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<Ce
 		return RV_CANCEL;
 	}
 
-#if !defined(USE_NUI_ROOTLESS) && !defined(_DEBUG)
+	// 'code.jquery.com' has reliability concerns for some end users, redirect these to googleapis instead
+	{
+		CefURLParts parts;
+		if (CefParseURL(request->GetURL(), parts))
+		{
+			auto hostString = CefString(&parts.host).ToString();
+
+			if (hostString == "code.jquery.com")
+			{
+				std::smatch match;
+				static std::regex re{
+					R"(code.jquery.com/jquery-([0-9]+\.[0-9]+\.[0-9]+)(\..*?)?\.js)"
+				};
+				static std::regex reUI{
+					R"(code.jquery.com/ui/(.*?)/(.*?)$)"
+				};
+
+				auto url = request->GetURL().ToString();
+
+				if (std::regex_search(url, match, re))
+				{
+					auto version = match[1].str();
+
+					// "3.3.0, 2.1.2, 1.2.5 and 1.2.4 are not hosted due to their short and unstable lives in the wild."
+					if (version != "3.3.0" && version != "2.1.2" && version != "1.2.5" && version != "1.2.4")
+					{
+						request->SetURL(fmt::sprintf("https://ajax.googleapis.com/ajax/libs/jquery/%s/jquery%s.js",
+							version,
+							match.size() >= 3 ? match[2].str() : ""));
+					}
+				}
+				else if (std::regex_search(url, match, reUI))
+				{
+					request->SetURL(fmt::sprintf("https://ajax.googleapis.com/ajax/libs/jqueryui/%s/%s",
+						match[1].str(),
+						match[2].str()));
+				}
+			}
+		}
+	}
+
+
+	// DiscordApp breaks as of late and affects end users, tuning the headers seems to fix it
+	{
+		CefURLParts parts;
+		if (CefParseURL(request->GetURL(), parts))
+		{
+			auto hostString = CefString(&parts.host).ToString();
+
+			if (boost::algorithm::ends_with(hostString, "discordapp.com") ||
+				boost::algorithm::ends_with(hostString, "discordapp.net"))
+			{
+				CefRequest::HeaderMap headers;
+				request->GetHeaderMap(headers);
+
+				headers.erase("User-Agent");
+				headers.emplace("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36");
+
+				headers.erase("sec-ch-ua");
+				headers.emplace("sec-ch-ua", R"("Chromium";v="112", "Google Chrome";v="112", "Not:A-Brand";v="99")");
+
+				headers.erase("sec-ch-ua-mobile");
+				headers.emplace("sec-ch-ua-mobile", R"(?0)");
+
+				headers.erase("sec-ch-ua-platform");
+				headers.emplace("sec-ch-ua-platform", R"("Windows")");
+
+				request->SetHeaderMap(headers);
+				request->SetReferrer("https://discord.com/channels/@me", CefRequest::ReferrerPolicy::REFERRER_POLICY_DEFAULT);
+			}
+		}
+	}
+
+#if !defined(_DEBUG)
 	if (frame->IsMain())
 	{
 		if (frame->GetURL().ToString().find("nui://game/ui/") == 0 && url.find("nui://game/ui/") != 0)
@@ -477,30 +556,19 @@ void NUIClient::OnAudioStreamStopped(CefRefPtr<CefBrowser> browser, CefRefPtr<Ce
 
 extern bool g_shouldCreateRootWindow;
 
-#ifdef USE_NUI_ROOTLESS
-extern std::set<std::string> g_recreateBrowsers;
-extern std::shared_mutex g_recreateBrowsersMutex;
-#endif
-
 void NUIClient::OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser, TerminationStatus status)
 {
-#ifndef USE_NUI_ROOTLESS
-	if (browser->GetMainFrame()->GetURL() == "nui://game/ui/root.html")
+	if (browser->GetMainFrame()->GetURL() == "nui://game/ui/root.html" || (m_windowValid && m_window && m_window->GetName() == "nui_mpMenu"))
 	{
 		browser->GetHost()->CloseBrowser(true);
 
 		g_shouldCreateRootWindow = true;
 	}
-#else
-	std::unique_lock<std::shared_mutex> _(g_recreateBrowsersMutex);
-
-	g_recreateBrowsers.insert(m_window->GetName());
-#endif
 }
 
 void NUIClient::OnBeforeClose(CefRefPtr<CefBrowser> browser)
 {
-	m_browser = {};
+	m_browser = nullptr;
 }
 
 CefRefPtr<CefLifeSpanHandler> NUIClient::GetLifeSpanHandler()
@@ -538,6 +606,7 @@ extern nui::GameInterface* g_nuiGi;
 #ifdef NUI_WITH_MEDIA_ACCESS
 #include "include/wrapper/cef_closure_task.h"
 #include "include/wrapper/cef_helpers.h"
+#include "include/base/cef_callback_helpers.h"
 
 static void AcceptCallback(CefRefPtr<CefMediaAccessCallback> callback, bool noCancel, int mask)
 {
@@ -551,15 +620,15 @@ static void AcceptCallback(CefRefPtr<CefMediaAccessCallback> callback, bool noCa
 	}
 }
 
-bool NUIClient::OnRequestMediaAccessPermission(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, const CefString& requesting_url, int32_t requested_permissions, CefRefPtr<CefMediaAccessCallback> callback)
+bool NUIClient::OnRequestMediaAccessPermission(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, const CefString& requesting_url, uint32_t requested_permissions, CefRefPtr<CefMediaAccessCallback> callback)
 {
 	return g_nuiGi->RequestMediaAccess(frame->GetName(), requesting_url, requested_permissions, [callback](bool noCancel, int mask)
 	{
-		CefPostTask(TID_UI, base::Bind(&AcceptCallback, callback, noCancel, mask));
+		CefPostTask(TID_UI, base::BindOnce(&AcceptCallback, callback, noCancel, mask));
 	});
 }
 
-CefRefPtr<CefMediaAccessHandler> NUIClient::GetMediaAccessHandler()
+CefRefPtr<CefPermissionHandler> NUIClient::GetPermissionHandler()
 {
 	return this;
 }

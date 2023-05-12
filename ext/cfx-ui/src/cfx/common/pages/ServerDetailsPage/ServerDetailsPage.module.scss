@@ -1,0 +1,18 @@
+.root {
+  .banner {
+    height: ui.q(16);
+
+    background:
+      center / cover var(--banner),
+      center / 250px url(assets/images/bgpat.png);
+    background-color: ui.color-token('backdrop');
+  }
+
+  .title {
+    line-height: 2.4;
+  }
+
+  .decorator {
+    @include ui.font-size('large');
+  }
+}

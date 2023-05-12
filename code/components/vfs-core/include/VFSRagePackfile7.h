@@ -63,7 +63,9 @@ namespace vfs
 
 		Header7 m_header;
 
-		HandleData m_handles[32];
+		std::vector<HandleData> m_handles;
+
+		std::mutex m_handlesMutex;
 
 		std::vector<Entry> m_entries;
 

@@ -8,7 +8,7 @@
 #ifndef BOTAN_OIDS_H_
 #define BOTAN_OIDS_H_
 
-#include <botan/asn1_oid.h>
+#include <botan/asn1_obj.h>
 #include <unordered_map>
 
 namespace Botan {

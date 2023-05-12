@@ -479,7 +479,7 @@ static InitFunction initFunction([] ()
 		rage::scrEngine::CreateThread(&loadsThread);
 	});
 
-	g_loadProfileConvar = std::make_shared<ConVar<bool>>("game_profileLoading", ConVar_Archive, false);
+	g_loadProfileConvar = std::make_shared<ConVar<bool>>("game_profileLoading", ConVar_UserPref, false);
 
 	OnKillNetworkDone.Connect([] ()
 	{
@@ -556,7 +556,6 @@ static InitFunction initFunction([] ()
 
 		g_doDrawBelowLoadingScreens = true;
 
-#ifndef USE_NUI_ROOTLESS
 		auto icgi = Instance<ICoreGameInit>::Get();
 		std::string handoverBlob;
 
@@ -564,7 +563,6 @@ static InitFunction initFunction([] ()
 		{
 			nui::PostRootMessage(fmt::sprintf(R"({ "type": "setHandover", "data": %s })", handoverBlob));
 		}
-#endif
 
 		if (loadingScreens.size() == 1)
 		{
@@ -578,11 +576,7 @@ static InitFunction initFunction([] ()
 		nui::CreateFrame("loadingScreen", loadingScreens.back());
 		nui::OverrideFocus(true);
 
-#ifndef USE_NUI_ROOTLESS
 		nui::PostRootMessage(R"({ "type": "focusFrame", "frameName": "loadingScreen" })");
-#else
-		// #TODONUIROOTLESS: order?
-#endif
 	}, 100);
 
 	static bool isGameReload = false;

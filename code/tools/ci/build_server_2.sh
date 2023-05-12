@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # fail on error
-set -e
+set -xe
 
 # set the number of job slots
 JOB_SLOTS=${JOB_SLOTS:-24}
@@ -15,7 +15,11 @@ echo http://dl-cdn.alpinelinux.org/alpine/edge/main >> /etc/apk/repositories
 echo http://dl-cdn.alpinelinux.org/alpine/edge/community >> /etc/apk/repositories
 echo http://dl-cdn.alpinelinux.org/alpine/edge/testing >> /etc/apk/repositories
 
-# update apk cache
+# some dance to upgrade alpine-keys
+apk --no-cache upgrade alpine-keys
+apk --no-cache add -X https://dl-cdn.alpinelinux.org/alpine/v3.16/main -u alpine-keys
+
+# update apk packages
 apk --no-cache update
 apk --no-cache upgrade
 
@@ -41,10 +45,13 @@ apk del curl
 apk add --no-cache curl=7.72.0-r99 libssl1.1 libcrypto1.1 libunwind libstdc++ zlib c-ares v8~=9.3 musl-dbg libatomic
 
 # install compile-time dependencies
-apk add --no-cache --virtual .dev-deps lld~=13 curl-dev=7.72.0-r99 clang-dev~=13 clang~=13 build-base linux-headers openssl1.1-compat-dev python3 py3-pip lua5.3 lua5.3-dev mono-reference-assemblies=5.16.1.0-r9991 mono-dev=5.16.1.0-r9991 libmono=5.16.1.0-r9991 mono-corlib=5.16.1.0-r9991 mono=5.16.1.0-r9991 mono-reference-assemblies-4.x=5.16.1.0-r9991 mono-reference-assemblies-facades=5.16.1.0-r9991 mono-csc=5.16.1.0-r9991 mono-runtime=5.16.1.0-r9991 c-ares-dev v8-dev~=9.3 nodejs-current nodejs-current-dev npm yarn clang-libs~=13 git
+apk add --no-cache --virtual .dev-deps lld~=13 curl-dev=7.72.0-r99 clang-dev~=13 clang~=13 build-base linux-headers openssl1.1-compat-dev python3 py3-pip py3-virtualenv lua5.3 lua5.3-dev mono-reference-assemblies=5.16.1.0-r9991 mono-dev=5.16.1.0-r9991 libmono=5.16.1.0-r9991 mono-corlib=5.16.1.0-r9991 mono=5.16.1.0-r9991 mono-reference-assemblies-4.x=5.16.1.0-r9991 mono-reference-assemblies-facades=5.16.1.0-r9991 mono-csc=5.16.1.0-r9991 mono-runtime=5.16.1.0-r9991 c-ares-dev v8-dev~=9.3 clang-libs~=13 git dotnet6-sdk
 
 # install python deps
-python3 -m pip install ply six Jinja2 MarkupSafe
+python3 -m venv /tmp/py-venv
+. /tmp/py-venv/bin/activate
+
+pip install ply six Jinja2 MarkupSafe
 
 # build natives
 if [ "$SKIP_NATIVES" == "" ]; then
@@ -83,6 +90,8 @@ EOF
 }
 #endif
 EOF
+	
+	lua5.3 codegen.lua inp/natives_global.lua cs_v2 server > /src/code/client/clrcore-v2/Native/NativesServer.cs
 
 	lua5.3 codegen.lua inp/natives_global.lua rpc server > /opt/cfx-server/citizen/scripting/rpc_natives.json
 fi
@@ -148,7 +157,6 @@ mkdir -p /opt/cfx-server
 
 cp -a ../data/shared/* /opt/cfx-server
 cp -a ../data/server/* /opt/cfx-server
-cp -a ../data/server_linux/* /opt/cfx-server
 cp -a bin/server/linux/release/FXServer /opt/cfx-server
 cp -a bin/server/linux/release/*.so /opt/cfx-server
 cp -a bin/server/linux/release/*.json /opt/cfx-server
@@ -185,44 +193,6 @@ cd /opt/cfx-server
 
 # clean up
 rm -rf /tmp/boost
-
-add_build_id()
-{
-	local sha1="$1"
-	local exename="$2"
-
-	[ -L $exename ] && return || true
-
-	local tmp=`mktemp /tmp/build-id.XXXXXX`
-
-	if readelf --file-header $exename | grep "big endian" > /dev/null; then
-		echo -en "\x00\x00\x00\x04" >> $tmp # name_size
-		echo -en "\x00\x00\x00\x14" >> $tmp # hash_size
-		echo -en "\x00\x00\x00\x03" >> $tmp # NT_GNU_BUILD_ID
-	elif readelf --file-header $exename | grep "little endian" > /dev/null; then
-		echo -en "\x04\x00\x00\x00" >> $tmp # name_size
-		echo -en "\x14\x00\x00\x00" >> $tmp # hash_size
-		echo -en "\x03\x00\x00\x00" >> $tmp # NT_GNU_BUILD_ID
-	else
-		echo >&2 "Could not determine endianness for: $exename"
-		return 1
-	fi
-
-	echo -en "GNU\x00" >> $tmp # GNU\0
-	printf "$(echo $sha1 | sed -e 's/../\\x&/g')" >> $tmp
-
-	objcopy --remove-section .note.gnu.build-id $exename || true
-	objcopy --add-section .note.gnu.build-id=$tmp $exename || true
-	rm $tmp
-}
-
-for i in /lib/*.so.* /usr/lib/*.so.*; do
-	sha1=`sha1sum $i | sed -e 's/ .*//g'`
-	add_build_id $sha1 $i
-	if [ -f "/usr/lib/debug$i.debug" ]; then
-		add_build_id $sha1 "/usr/lib/debug$i.debug"
-	fi
-done
 
 apk del .dev-deps
 

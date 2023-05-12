@@ -1,7 +1,6 @@
 ---
 ns: CFX
 apiset: client
-game: gta5
 ---
 ## MUMBLE_SET_SUBMIX_FOR_SERVER_ID
 

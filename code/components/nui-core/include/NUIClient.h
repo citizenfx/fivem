@@ -12,10 +12,10 @@
 #include <NUIWindow.h>
 #include <include/cef_client.h>
 
-#if __has_include(<include/cef_media_access_handler.h>)
+#if __has_include(<include/cef_permission_handler.h>)
 #define NUI_WITH_MEDIA_ACCESS
 
-#include <include/cef_media_access_handler.h>
+#include <include/cef_permission_handler.h>
 #endif
 
 #include <CefOverlay.h>
@@ -28,7 +28,7 @@ class NUIClient : public CefClient,
 	public CefContextMenuHandler,
 	public CefLoadHandler,
 #ifdef NUI_WITH_MEDIA_ACCESS
-	public CefMediaAccessHandler,
+	public CefPermissionHandler,
 #endif
 	public CefRequestHandler,
 	public CefResourceRequestHandler
@@ -92,13 +92,13 @@ protected:
 		bool is_navigation,
 		bool is_download,
 		const CefString& request_initiator,
-		bool& disable_default_handling) OVERRIDE
+		bool& disable_default_handling) override
 	{
 		return this;
 	}
 
 #ifdef NUI_WITH_MEDIA_ACCESS
-	virtual CefRefPtr<CefMediaAccessHandler> GetMediaAccessHandler() override;
+	virtual CefRefPtr<CefPermissionHandler> GetPermissionHandler() override;
 #endif
 
 	virtual bool OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefProcessId source_process, CefRefPtr<CefProcessMessage> message) override;
@@ -149,13 +149,13 @@ protected:
 	virtual bool OnCursorChange(CefRefPtr<CefBrowser> browser, CefCursorHandle cursor, cef_cursor_type_t type, const CefCursorInfo& custom_cursor_info) override;
 
 #ifdef NUI_WITH_MEDIA_ACCESS
-// CefMediaAccessHandler
+// CefPermissionHandler
 protected:
 	virtual bool OnRequestMediaAccessPermission(
 	CefRefPtr<CefBrowser> browser,
 	CefRefPtr<CefFrame> frame,
 	const CefString& requesting_url,
-	int32_t requested_permissions,
+	uint32_t requested_permissions,
 	CefRefPtr<CefMediaAccessCallback> callback) override;
 #endif
 
@@ -192,9 +192,9 @@ private:
 
 	std::map<std::string, std::string> m_audioFrameCategories;
 
-// CefRequestHandler
 protected:
-	virtual ReturnValue OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefRequestCallback> callback) override;
+	// CefResourceRequestHandler
+	virtual ReturnValue OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) override;
 
 	virtual void OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser, TerminationStatus status) override;
 

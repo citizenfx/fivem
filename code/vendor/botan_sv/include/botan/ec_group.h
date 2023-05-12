@@ -11,7 +11,7 @@
 #define BOTAN_ECC_DOMAIN_PARAMETERS_H_
 
 #include <botan/point_gfp.h>
-#include <botan/asn1_oid.h>
+#include <botan/asn1_obj.h>
 #include <memory>
 #include <set>
 
@@ -24,6 +24,11 @@ enum EC_Group_Encoding {
    EC_DOMPAR_ENC_EXPLICIT = 0,
    EC_DOMPAR_ENC_IMPLICITCA = 1,
    EC_DOMPAR_ENC_OID = 2
+};
+
+enum class EC_Group_Source {
+   Builtin,
+   ExternalSource,
 };
 
 class CurveGFp;
@@ -83,9 +88,14 @@ class BOTAN_PUBLIC_API(2,0) EC_Group final
 
       /**
       * Decode a BER encoded ECC domain parameter set
-      * @param ber_encoding the bytes of the BER encoding
+      * @param ber the bytes of the BER encoding
+      * @param ber_len the length of ber
       */
-      explicit EC_Group(const std::vector<uint8_t>& ber_encoding);
+      explicit EC_Group(const uint8_t ber[], size_t ber_len);
+
+      template<typename Alloc>
+         EC_Group(const std::vector<uint8_t, Alloc>& ber) :
+         EC_Group(ber.data(), ber.size()) {}
 
       /**
       * Create an EC domain by OID (or throw if unknown)
@@ -97,8 +107,13 @@ class BOTAN_PUBLIC_API(2,0) EC_Group final
       * Create an EC domain from PEM encoding (as from PEM_encode), or
       * from an OID name (eg "secp256r1", or "1.2.840.10045.3.1.7")
       * @param pem_or_oid PEM-encoded data, or an OID
+
+      * @warning Support for PEM in this function is deprecated. Use
+      * EC_Group_from_PEM
       */
       explicit EC_Group(const std::string& pem_or_oid);
+
+      static EC_Group EC_Group_from_PEM(const std::string& pem);
 
       /**
       * Create an uninitialized EC_Group
@@ -329,6 +344,8 @@ class BOTAN_PUBLIC_API(2,0) EC_Group final
 
       bool operator==(const EC_Group& other) const;
 
+      EC_Group_Source source() const;
+
       /**
       * Return PEM representation of named EC group
       * Deprecated: Use EC_Group(name).PEM_encode() if this is needed
@@ -350,7 +367,8 @@ class BOTAN_PUBLIC_API(2,0) EC_Group final
    private:
       static EC_Group_Data_Map& ec_group_data();
 
-      static std::shared_ptr<EC_Group_Data> BER_decode_EC_group(const uint8_t bits[], size_t len);
+      static std::shared_ptr<EC_Group_Data> BER_decode_EC_group(const uint8_t bits[], size_t len,
+                                                                EC_Group_Source source);
 
       static std::shared_ptr<EC_Group_Data>
          load_EC_group_info(const char* p,

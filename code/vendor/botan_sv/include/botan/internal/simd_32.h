@@ -36,12 +36,17 @@
   #define BOTAN_VPERM_ISA "ssse3"
   #define BOTAN_CLMUL_ISA "pclmul"
 #elif defined(BOTAN_SIMD_USE_NEON)
-  #define BOTAN_SIMD_ISA "+simd"
-  #define BOTAN_VPERM_ISA "+simd"
-  #define BOTAN_CLMUL_ISA "+crypto"
+  #if defined(BOTAN_TARGET_ARCH_IS_ARM64)
+    #define BOTAN_SIMD_ISA "+simd"
+    #define BOTAN_CLMUL_ISA "+crypto"
+  #else
+    #define BOTAN_SIMD_ISA "fpu=neon"
+  #endif
+  #define BOTAN_VPERM_ISA BOTAN_SIMD_ISA
 #elif defined(BOTAN_SIMD_USE_ALTIVEC)
   #define BOTAN_SIMD_ISA "altivec"
   #define BOTAN_VPERM_ISA "altivec"
+  #define BOTAN_CLMUL_ISA "crypto"
 #endif
 
 namespace Botan {
@@ -604,7 +609,7 @@ class SIMD_4x32 final
 #endif
          }
 
-      native_simd_type raw() const { return m_simd; }
+      native_simd_type raw() const BOTAN_FUNC_ISA(BOTAN_SIMD_ISA) { return m_simd; }
 
       explicit SIMD_4x32(native_simd_type x) : m_simd(x) {}
    private:

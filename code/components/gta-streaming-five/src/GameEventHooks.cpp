@@ -8,50 +8,54 @@
 #include <sstream>
 #include <msgpack.hpp>
 
+#include <CrossBuildRuntime.h>
+#include "XBRVirtual.h"
+#include <GameEventNames.h>
+
 namespace rage
 {
 	class netObject;
 
-	class fwEvent
+	class fwEvent : XBR_VIRTUAL_BASE_2802(0)
 	{
 	public:
-		virtual ~fwEvent() = 0;
+		XBR_VIRTUAL_DTOR(fwEvent)
 
-		virtual void m_8() = 0;
+		XBR_VIRTUAL_METHOD(void, m_8, ())
 
-		virtual bool Equals(rage::fwEvent* other) = 0;
+		XBR_VIRTUAL_METHOD(bool, Equals, (rage::fwEvent* other))
 
-		virtual int32_t GetId() = 0;
+		XBR_VIRTUAL_METHOD(int32_t, GetId, ())
 
-		virtual int m_20() = 0;
+		XBR_VIRTUAL_METHOD(int, m_20, ())
 
-		virtual int m_28() = 0;
+		XBR_VIRTUAL_METHOD(int, m_28, ())
 
-		virtual bool GetArguments(void* buffer, size_t len) = 0;
+		XBR_VIRTUAL_METHOD(bool, GetArguments, (void* buffer, size_t len))
 
-		virtual bool m_38() = 0;
+		XBR_VIRTUAL_METHOD(bool, m_38, ())
 
-		virtual bool m_40(rage::fwEvent* other) = 0;
+		XBR_VIRTUAL_METHOD(bool, m_40, (rage::fwEvent* other))
 
-		virtual bool m_0x9() = 0;
-		virtual bool m_0xA() = 0;
-		virtual bool m_0xB() = 0;
-		virtual bool m_0xC() = 0;
-		virtual bool m_0xD() = 0;
-		virtual bool m_0xE() = 0;
-		virtual void m_0xF() = 0;
-		virtual bool m_0x10() = 0;
-		virtual bool m_0x11() = 0;
-		virtual bool m_0x12() = 0;
-		virtual bool m_0x13() = 0;
-		virtual bool m_0x14() = 0;
-		virtual uint32_t m_0x15() = 0;
-		virtual uint32_t m_0x16() = 0;
-		virtual uint32_t m_0x17() = 0;
-		virtual bool m_0x18(void*, void*) = 0;
+		XBR_VIRTUAL_METHOD(bool, m_0x9, ())
+		XBR_VIRTUAL_METHOD(bool, m_0xA, ())
+		XBR_VIRTUAL_METHOD(bool, m_0xB, ())
+		XBR_VIRTUAL_METHOD(bool, m_0xC, ())
+		XBR_VIRTUAL_METHOD(bool, m_0xD, ())
+		XBR_VIRTUAL_METHOD(bool, m_0xE, ())
+		XBR_VIRTUAL_METHOD(void, m_0xF, ())
+		XBR_VIRTUAL_METHOD(bool, m_0x10, ())
+		XBR_VIRTUAL_METHOD(bool, m_0x11, ())
+		XBR_VIRTUAL_METHOD(bool, m_0x12, ())
+		XBR_VIRTUAL_METHOD(bool, m_0x13, ())
+		XBR_VIRTUAL_METHOD(bool, m_0x14, ())
+		XBR_VIRTUAL_METHOD(uint32_t, m_0x15, ())
+		XBR_VIRTUAL_METHOD(uint32_t, m_0x16, ())
+		XBR_VIRTUAL_METHOD(uint32_t, m_0x17, ())
+		XBR_VIRTUAL_METHOD(bool, m_0x18, (void*, void*))
 
 		// vtable[25]: retrieve the entity associated with this event object
-		virtual fwEntity* GetEntity() = 0;
+		XBR_VIRTUAL_METHOD(fwEntity*, GetEntity, ())
 	};
 
 	class fwEventGroup
@@ -94,6 +98,30 @@ namespace rage
 	};
 }
 
+static const char* GetEventName(rage::fwEvent* ev)
+{
+	int eventId = ev->GetId();
+
+	if (xbr::IsGameBuildOrGreater<2612>())
+	{
+		return (eventId < _countof(g_eventNames2612)) ? g_eventNames2612[eventId] : nullptr;
+	}
+	else if (xbr::IsGameBuildOrGreater<2545>())
+	{
+		return (eventId < _countof(g_eventNames2545)) ? g_eventNames2545[eventId] : nullptr;
+	}
+	else if (xbr::IsGameBuildOrGreater<2189>())
+	{
+		return (eventId < _countof(g_eventNames2189)) ? g_eventNames2189[eventId] : nullptr;
+	}
+	else if (xbr::IsGameBuildOrGreater<2060>())
+	{
+		return (eventId < _countof(g_eventNames2060)) ? g_eventNames2060[eventId] : nullptr;
+	}
+	
+	return (eventId < _countof(g_eventNames1604)) ? g_eventNames1604[eventId] : nullptr;
+}
+
 namespace
 {
 	template<typename... TArg>
@@ -126,21 +154,24 @@ void* HandleEventWrap(rage::fwEventGroup* group, rage::fwEvent* event)
 	{
 		try
 		{
-			GameEventMetaData data{ typeid(*event).name() + 6, 0 };
-
-			// brute-force the argument count
-			// since these functions should early exit, most cost here will be VMT dispatch
-			// ^ as these functions have a hardcoded size check, though not all...
-			for (int i = 0; i < _countof(data.arguments); i++)
+			if (auto eventName = GetEventName(event))
 			{
-				if (event->GetArguments(data.arguments, i * sizeof(size_t)))
-				{
-					data.numArguments = i;
-					break;
-				}
-			}
+				GameEventMetaData data{ eventName, 0 };
 
-			OnTriggerGameEvent(data);
+				// brute-force the argument count
+				// since these functions should early exit, most cost here will be VMT dispatch
+				// ^ as these functions have a hardcoded size check, though not all...
+				for (int i = 0; i < _countof(data.arguments); i++)
+				{
+					if (event->GetArguments(data.arguments, i * sizeof(size_t)))
+					{
+						data.numArguments = i;
+						break;
+					}
+				}
+
+				OnTriggerGameEvent(data);
+			}
 		}
 		catch (std::exception& e)
 		{
@@ -163,48 +194,51 @@ void* HandleEventWrapExt(rage::fwEventGroup* group, rage::fwEvent* event)
 
 		try
 		{
-			GameEventData data{ typeid(*event).name() + 6 };
-
-			msgpack::sbuffer buf;
-			msgpack::packer packer(buf);
-
-			packer.pack_array(3); // we'll offer 3 parameters
-
-			if constexpr (stream == 1)
+			if (auto eventName = GetEventName(event))
 			{
-				// retrieve all entities this event is being sent to
-				size_t size = group->eventsCount;
-				packer.pack_array(size);
+				GameEventData data{ eventName };
 
-				for (size_t i = 0; i < size; ++i)
+				msgpack::sbuffer buf;
+				msgpack::packer packer(buf);
+
+				packer.pack_array(3); // we'll offer 3 parameters
+
+				if constexpr (stream == 1)
 				{
-					packer.pack(GetGuidFromBaseSafe(group->events[i]->GetEntity()));
+					// retrieve all entities this event is being sent to
+					size_t size = group->eventsCount;
+					packer.pack_array(size);
+
+					for (size_t i = 0; i < size; ++i)
+					{
+						packer.pack(GetGuidFromBaseSafe(group->events[i]->GetEntity()));
+					}
 				}
-			}
-			else
-			{
-				// retrieve entity who is triggering this
-				// this group has a different layout
-				msgpack_array(packer, GetGuidFromBaseSafe(reinterpret_cast<rage::fwEventGroup2*>(group)->entity));
-			}
+				else
+				{
+					// retrieve entity who is triggering this
+					// this group has a different layout
+					msgpack_array(packer, GetGuidFromBaseSafe(reinterpret_cast<rage::fwEventGroup2*>(group)->entity));
+				}
 
-			// retrieve entity related to the event
-			msgpack_pack(packer, GetGuidFromBaseSafe(event->GetEntity()));
+				// retrieve entity related to the event
+				msgpack_pack(packer, GetGuidFromBaseSafe(event->GetEntity()));
 
-			// retrieve extra event data
-			const char* eventSubName = data.name + 6; // get part after "CEvent"
+				// retrieve extra event data
+				const char* eventSubName = data.name + 6; // get part after "CEvent"
 
-			if (memcmp(eventSubName, "Shoc", 4) == 0) // Shocking
-			{
-				msgpack_array(packer, (float(&)[3])event[8]);
+				if (memcmp(eventSubName, "Shoc", 4) == 0) // Shocking
+				{
+					msgpack_array(packer, (float(&)[3])event[8]);
+				}
+				else
+				{
+					packer.pack_array(0); // empty array
+				}
+
+				data.argsData = std::string_view(buf.data(), buf.size());
+				OnTriggerGameEventExt(data);
 			}
-			else
-			{
-				packer.pack_array(0); // empty array
-			}
-
-			data.argsData = std::string_view(buf.data(), buf.size());
-			OnTriggerGameEventExt(data);
 		}
 		catch (std::exception&)
 		{
@@ -300,7 +334,11 @@ static HookFunction hookFunction([]()
 		void** cNetObjPhys_vtable = hook::get_address<void**>(hook::get_pattern<unsigned char>("88 44 24 20 E8 ? ? ? ? 33 C9 48 8D 05", 14));
 		int vtableIdx = 0;
 
-		if (xbr::IsGameBuildOrGreater<2545>())
+		if (xbr::IsGameBuildOrGreater<2802>())
+		{
+			vtableIdx = 136;
+		}
+		else if (xbr::IsGameBuildOrGreater<2545>())
 		{
 			vtableIdx = 130;
 		}
