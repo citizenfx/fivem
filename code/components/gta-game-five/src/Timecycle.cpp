@@ -19,12 +19,12 @@ TimecycleScriptData* TimecycleManager::GetScriptData()
 
 const std::string& TimecycleManager::GetTimecycleName(uint32_t hash)
 {
-	if (auto& it = m_originalNames.find(hash); it != m_originalNames.end())
+	if (const auto& it = m_originalNames.find(hash); it != m_originalNames.end())
 	{
 		return it->second;
 	}
 
-	if (auto& it = m_customNames.find(hash); it != m_customNames.end())
+	if (const auto& it = m_customNames.find(hash); it != m_customNames.end())
 	{
 		return it->second;
 	}
@@ -45,7 +45,7 @@ rage::tcVarInfo* TimecycleManager::GetConfigVarInfo(const std::string& paramName
 		return nullptr;
 	}
 
-	if (auto tcVarInfos = *rage::tcConfig::ms_pVarInfos)
+	if (const auto tcVarInfos = *rage::tcConfig::ms_pVarInfos)
 	{
 		for (int i = 0; i < GetConfigVarInfoCount(); i++)
 		{
@@ -55,7 +55,8 @@ rage::tcVarInfo* TimecycleManager::GetConfigVarInfo(const std::string& paramName
 			{
 				return &varInfo;
 			}
-			else if (!search && strcmp(varInfo.m_name, paramName.c_str()) == NULL)
+
+			if (!search && strcmp(varInfo.m_name, paramName.c_str()) == NULL)
 			{
 				return &varInfo;
 			}
@@ -65,9 +66,9 @@ rage::tcVarInfo* TimecycleManager::GetConfigVarInfo(const std::string& paramName
 	return nullptr;
 }
 
-rage::tcVarInfo* TimecycleManager::GetConfigVarInfo(const int paramIndex)
+rage::tcVarInfo* TimecycleManager::GetConfigVarInfo(int paramIndex)
 {
-	if (auto tcVarInfos = *rage::tcConfig::ms_pVarInfos)
+	if (const auto tcVarInfos = *rage::tcConfig::ms_pVarInfos)
 	{
 		for (int i = 0; i < GetConfigVarInfoCount(); i++)
 		{
@@ -87,7 +88,7 @@ rage::tcVarInfo* TimecycleManager::GetConfigVarInfos()
 	return *rage::tcConfig::ms_pVarInfos;
 }
 
-rage::tcModData* TimecycleManager::GetTimecycleModDataByIndex(rage::tcModifier& modifier, const int index)
+rage::tcModData* TimecycleManager::GetTimecycleModDataByIndex(rage::tcModifier& modifier, int index)
 {
 	if (index < modifier.m_modData.GetCount())
 	{
@@ -120,7 +121,7 @@ rage::tcModData* TimecycleManager::GetTimecycleModData(rage::tcModifier& modifie
 	return nullptr;
 }
 
-rage::tcModData* TimecycleManager::GetTimecycleModData(rage::tcModifier& modifier, const int paramIndex)
+rage::tcModData* TimecycleManager::GetTimecycleModData(rage::tcModifier& modifier, int paramIndex)
 {
 	for (auto& modData : modifier.m_modData)
 	{
@@ -133,7 +134,7 @@ rage::tcModData* TimecycleManager::GetTimecycleModData(rage::tcModifier& modifie
 	return nullptr;
 }
 
-rage::tcModifier* TimecycleManager::GetTimecycleByIndex(const uint32_t index)
+rage::tcModifier* TimecycleManager::GetTimecycleByIndex(uint32_t index)
 {
 	auto tcManager = GetGameManager();
 
@@ -155,7 +156,7 @@ rage::tcModifier* TimecycleManager::GetTimecycle(const std::string& name)
 	return GetTimecycle(HashString(name));
 }
 
-rage::tcModifier* TimecycleManager::GetTimecycle(const uint32_t hash)
+rage::tcModifier* TimecycleManager::GetTimecycle(uint32_t hash)
 {
 	auto tcManager = GetGameManager();
 
@@ -237,7 +238,7 @@ void TimecycleManager::RevertChanges()
 		7. Clear backup map and custom names.
 	*/
 
-	auto tcManager = GetGameManager();
+	const auto tcManager = GetGameManager();
 
 	std::vector<int> arrayIndexes{};
 	std::vector<int> mapIndexes{};
@@ -281,7 +282,7 @@ void TimecycleManager::RevertChanges()
 	{
 		bool isModified = false;
 
-		if (auto tc = GetTimecycle(backup.first))
+		if (const auto tc = GetTimecycle(backup.first))
 		{
 			if (tc->m_modData.GetCount() != backup.second->m_modData.GetCount())
 			{
@@ -293,8 +294,8 @@ void TimecycleManager::RevertChanges()
 				// search for any change in modData
 				for (int i = 0; i < tc->m_modData.GetCount(); i++)
 				{
-					auto& current = tc->m_modData[i];
-					auto& stored = backup.second->m_modData[i];
+					const auto& current = tc->m_modData[i];
+					const auto& stored = backup.second->m_modData[i];
 
 					if (current.m_index != stored.m_index || current.m_value1 != stored.m_value1 || current.m_value2 != stored.m_value2)
 					{
@@ -341,7 +342,7 @@ void TimecycleManager::RevertChanges()
 
 void TimecycleManager::SortTimecycleMap()
 {
-	auto tcManager = GetGameManager();
+	const auto tcManager = GetGameManager();
 
 	std::sort(tcManager->m_modifiersMap.m_array.begin(), tcManager->m_modifiersMap.m_array.end(), [](const auto& left, const auto& right)
 	{
@@ -351,7 +352,7 @@ void TimecycleManager::SortTimecycleMap()
 	tcManager->m_modifiersMap.m_isSorted = true;
 }
 
-void TimecycleManager::RemoveTimecycle(const uint32_t hash)
+void TimecycleManager::RemoveTimecycle(uint32_t hash)
 {
 	auto index = GetTimecycleIndex(hash);
 
@@ -379,7 +380,7 @@ void TimecycleManager::RemoveTimecycle(const uint32_t hash)
 		}
 	}
 
-	auto tcManager = GetGameManager();
+	const auto tcManager = GetGameManager();
 
 	delete tcManager->m_modifiers[index];
 	tcManager->m_modifiers.Remove(index);
@@ -403,7 +404,7 @@ void TimecycleManager::RemoveTimecycle(rage::tcModifier& modifier)
 
 void TimecycleManager::AddTimecycleToList(rage::tcModifier& modifier, bool sort)
 {
-	auto tcManager = GetGameManager();
+	const auto tcManager = GetGameManager();
 
 	// expand modifiers array by 16 if reached size
 	{
@@ -484,39 +485,39 @@ bool TimecycleManager::HasTimecycleWithName(const std::string& name)
 	return false;
 }
 
-void TimecycleManager::HandleTimecycleLoaded(const uint32_t hash, const std::string& name)
+void TimecycleManager::HandleTimecycleLoaded(uint32_t hash, const std::string& name)
 {
 	m_originalNames[hash] = name;
 }
 
-void TimecycleManager::HandleTimecycleUnloaded(const uint32_t hash)
+void TimecycleManager::HandleTimecycleUnloaded(uint32_t hash)
 {
 	m_originalNames.erase(hash);
 
 	RemoveTimecycleBackup(hash);
 }
 
-void TimecycleManager::RemoveTimecycleBackup(const uint32_t hash)
+void TimecycleManager::RemoveTimecycleBackup(uint32_t hash)
 {
-	if (auto it = m_modifiersBackup.find(hash); it != m_modifiersBackup.end())
+	if (const auto it = m_modifiersBackup.find(hash); it != m_modifiersBackup.end())
 	{
 		m_modifiersBackup.erase(it);
 	}
 }
 
-void TimecycleManager::AddCustomTimecycleName(const uint32_t hash, const std::string& name)
+void TimecycleManager::AddCustomTimecycleName(uint32_t hash, const std::string& name)
 {
 	m_customNames[hash] = name;
 }
 
-void TimecycleManager::RemoveCustomTimecycleName(const uint32_t hash)
+void TimecycleManager::RemoveCustomTimecycleName(uint32_t hash)
 {
 	m_customNames.erase(hash);
 }
 
 bool TimecycleManager::DoesTimecycleHasModData(rage::tcModifier& modifier, const std::string& paramName, bool search)
 {
-	if (auto varInfo = GetConfigVarInfo(paramName, search))
+	if (const auto varInfo = GetConfigVarInfo(paramName, search))
 	{
 		return DoesTimecycleHasModData(modifier, varInfo->m_index);
 	}
@@ -526,7 +527,7 @@ bool TimecycleManager::DoesTimecycleHasModData(rage::tcModifier& modifier, const
 
 bool TimecycleManager::DoesTimecycleHasModData(rage::tcModifier& modifier, const int index)
 {
-	for (auto& entry : modifier.m_modData)
+	for (const auto& entry : modifier.m_modData)
 	{
 		if (entry.m_index == index)
 		{
@@ -537,9 +538,9 @@ bool TimecycleManager::DoesTimecycleHasModData(rage::tcModifier& modifier, const
 	return false;
 }
 
-bool TimecycleManager::SetTimecycleModData(rage::tcModifier& modifier, std::string& paramName, const float value1, const float value2)
+bool TimecycleManager::SetTimecycleModData(rage::tcModifier& modifier, std::string& paramName, float value1, float value2)
 {
-	if (auto varInfo = GetConfigVarInfo(paramName))
+	if (const auto varInfo = GetConfigVarInfo(paramName))
 	{
 		return SetTimecycleModData(modifier, varInfo->m_index, value1, value2);
 	}
@@ -547,7 +548,7 @@ bool TimecycleManager::SetTimecycleModData(rage::tcModifier& modifier, std::stri
 	return false;
 }
 
-bool TimecycleManager::SetTimecycleModData(rage::tcModifier& modifier, const int index, const float value1, const float value2)
+bool TimecycleManager::SetTimecycleModData(rage::tcModifier& modifier, int index, float value1, float value2)
 {
 	EnsureTimecycleBackup(modifier);
 
@@ -567,7 +568,7 @@ bool TimecycleManager::SetTimecycleModData(rage::tcModifier& modifier, const int
 
 bool TimecycleManager::AddTimecycleModData(rage::tcModifier& modifier, const rage::tcModData& modData)
 {
-	for (auto& entry : modifier.m_modData)
+	for (const auto& entry : modifier.m_modData)
 	{
 		if (modData.m_index == entry.m_index)
 		{
@@ -594,7 +595,7 @@ bool TimecycleManager::AddTimecycleModData(rage::tcModifier& modifier, const rag
 
 bool TimecycleManager::AddTimecycleModData(rage::tcModifier& modifier, const std::string& paramName)
 {
-	if (auto varInfo = GetConfigVarInfo(paramName))
+	if (const auto varInfo = GetConfigVarInfo(paramName))
 	{
 		auto modData = new rage::tcModData();
 		modData->m_index = varInfo->m_index;
@@ -625,7 +626,7 @@ bool TimecycleManager::RemoveTimecycleModData(rage::tcModifier& modifier, const 
 
 bool TimecycleManager::RemoveTimecycleModData(rage::tcModifier& modifier, const std::string& paramName)
 {
-	if (auto modData = GetTimecycleModData(modifier, paramName))
+	if (const auto modData = GetTimecycleModData(modifier, paramName))
 	{
 		return RemoveTimecycleModData(modifier, *modData);
 	}
@@ -685,7 +686,7 @@ int TimecycleManager::GetTimecycleIndex(const std::string& name)
 	return GetTimecycleIndex(nameHash);
 }
 
-int TimecycleManager::GetTimecycleIndex(const uint32_t hash)
+int TimecycleManager::GetTimecycleIndex(uint32_t hash)
 {
 	auto tcManager = GetGameManager();
 
