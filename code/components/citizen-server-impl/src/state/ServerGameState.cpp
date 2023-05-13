@@ -6552,6 +6552,17 @@ inline bool RequestControlHandler(fx::ServerGameState* sgs, const fx::ClientShar
 		}
 	}
 
+	// if the entity is set to ignore the policy, allow
+	if (entity->ignoreRequestControlFilter)
+	{
+		return true;
+	}
+
+	if constexpr (Mode == RequestControlFilterMode::FilterAll)
+	{
+		return false;
+	}
+
 	// if we need to, check if the entity is player-controlled
 	// for now, this means a vehicle that's occupied by a player.
 	// in the future, we could track e.g. attachment state or pending component control
@@ -6649,13 +6660,6 @@ std::function<bool()> fx::ServerGameState::GetRequestControlEventHandler(const f
 	{
 		return {};
 	}
-	else if (g_requestControlFilterState == RequestControlFilterMode::FilterAll)
-	{
-		return []
-		{
-			return false;
-		};
-	}
 
 	uint32_t objectId = 0;
 	rl::MessageBuffer msg;
@@ -6679,6 +6683,8 @@ std::function<bool()> fx::ServerGameState::GetRequestControlEventHandler(const f
 					return &fx::RequestControlHandler<RequestControlFilterMode::FilterPlayer>;
 				case RequestControlFilterMode::FilterPlayerSettled:
 					return &fx::RequestControlHandler<RequestControlFilterMode::FilterPlayerSettled>;
+				case RequestControlFilterMode::FilterAll:
+					return &fx::RequestControlHandler<RequestControlFilterMode::FilterAll>;
 			}
 		}();
 
