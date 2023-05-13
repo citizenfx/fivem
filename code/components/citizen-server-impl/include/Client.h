@@ -275,6 +275,12 @@ namespace fx
 			m_syncData = ptr;
 		}
 
+		// to be called from CreateSyncData
+		inline auto AcquireSyncDataCreationLock()
+		{
+			return std::unique_lock(m_syncDataCreationMutex);
+		}
+
 		inline bool IsDropping() const
 		{
 			return m_dropping;
@@ -390,6 +396,7 @@ namespace fx
 		// sync data
 		std::shared_ptr<sync::ClientSyncDataBase> m_syncData;
 		std::shared_mutex m_syncDataMutex;
+		std::mutex m_syncDataCreationMutex;
 
 		// whether the client has sent a routing msg once
 		bool m_hasRouted;

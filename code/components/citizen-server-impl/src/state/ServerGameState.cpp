@@ -255,8 +255,15 @@ sync::SyncEntityState::SyncEntityState()
 
 }
 
-static void CreateSyncData(ServerGameState* state, const fx::ClientSharedPtr& client)
+static auto CreateSyncData(ServerGameState* state, const fx::ClientSharedPtr& client)
 {
+	auto lock = client->AcquireSyncDataCreationLock();
+
+	if (auto existingData = client->GetSyncData())
+	{
+		return std::static_pointer_cast<GameStateClientData>(existingData);
+	}
+
 	fx::ClientWeakPtr weakClient(client);
 
 	auto data = std::make_shared<GameStateClientData>();
@@ -314,6 +321,8 @@ static void CreateSyncData(ServerGameState* state, const fx::ClientSharedPtr& cl
 			});
 		}
 	});
+
+	return data;
 }
 
 inline std::shared_ptr<GameStateClientData> GetClientDataUnlocked(ServerGameState* state, const fx::ClientSharedPtr& client)
@@ -325,6 +334,11 @@ inline std::shared_ptr<GameStateClientData> GetClientDataUnlocked(ServerGameStat
 #else
 	auto data = std::shared_ptr<GameStateClientData>{ reinterpret_cast<std::shared_ptr<GameStateClientData>&&>(client->GetSyncData()) };
 #endif
+
+	if (!data)
+	{
+		data = CreateSyncData(state, client);
+	}
 
 	return data;
 }
@@ -4255,14 +4269,6 @@ void ServerGameState::AttachToObject(fx::ServerInstanceBase* instance)
 	m_globalBag = sbac->RegisterStateBag("global", true);
 	m_globalBag->SetOwningPeer(-1);
 	m_sbac = sbac;
-
-	creg->OnClientCreated.Connect([this](const fx::ClientSharedPtr& client)
-	{
-		if (fx::IsOneSync())
-		{
-			CreateSyncData(this, client);
-		}
-	});
 
 	creg->OnConnectedClient.Connect([this](fx::Client* client)
 	{
