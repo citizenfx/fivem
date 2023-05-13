@@ -194,7 +194,7 @@
 						</Item>
 						<Item>
 							<PoolName>CScenarioInfo</PoolName>
-							<PoolSize value="420"/>
+							<PoolSize value="840"/>
 						</Item>
 						<Item>
 							<PoolName>CScenarioPointExtraData</PoolName>
