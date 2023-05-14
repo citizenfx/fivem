@@ -12,21 +12,27 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 
+#include <boost/algorithm/string/find.hpp>
+
+const char* istrstr(const char* haystack, const char* needle)
+{
+	auto result = boost::ifind_first(haystack, needle);
+	return result ? result.begin() : NULL; 
+}
+
 void SelectedTimecycle::RestoreVar(int index)
 {
-	if (!m_selection)
+	if (const auto modifier = GetModifier())
 	{
-		return;
-	}
-
-	if (auto it = m_cachedMods.find(index); it != m_cachedMods.end())
-	{
-		for (auto& modData : GetModifier()->m_modData)
+		if (const auto it = m_cachedMods.find(index); it != m_cachedMods.end())
 		{
-			if (modData.m_index == index)
+			for (auto& modData : modifier->m_modData)
 			{
-				modData.m_value1 = it->second.m_value1;
-				modData.m_value2 = it->second.m_value2;
+				if (modData.m_index == index)
+				{
+					modData.m_value1 = it->second.m_value1;
+					modData.m_value2 = it->second.m_value2;
+				}
 			}
 		}
 	}
@@ -59,16 +65,14 @@ void SelectedTimecycle::EnableVar(int index)
 
 void SelectedTimecycle::UpdateVars()
 {
-	if (!m_selection)
+	if (const auto modifier = GetModifier())
 	{
-		return;
-	}
-
-	for (auto& modData : GetModifier()->m_modData)
-	{
-		if (auto& it = m_cachedMods.find(modData.m_index); it == m_cachedMods.end())
+		for (auto& modData : modifier->m_modData)
 		{
-			m_cachedMods.insert({ modData.m_index, modData });
+			if (auto& it = m_cachedMods.find(modData.m_index); it == m_cachedMods.end())
+			{
+				m_cachedMods.insert({ modData.m_index, modData });
+			}
 		}
 	}
 }
@@ -124,12 +128,9 @@ bool SelectedTimecycle::HasModifier()
 
 rage::tcModifier* SelectedTimecycle::GetModifier()
 {
-	if (m_selection != nullptr)
+	if (m_selection != nullptr && m_selection->m_modData.m_offset == nullptr)
 	{
-		if (m_selection->m_modData.m_offset == nullptr)
-		{
-			ResetModifier();
-		}
+		ResetModifier();
 	}
 
 	return m_selection;
@@ -183,13 +184,13 @@ static InitFunction initFunction([]()
 			return;
 		}
 
-		auto tcVarInfos = TheTimecycleManager->GetConfigVarInfos();
+		auto tcVarInfos = TimecycleManager::GetConfigVarInfos();
 		if (!tcVarInfos)
 		{
 			return;
 		}
 
-		auto tcManager = TheTimecycleManager->GetGameManager();
+		auto tcManager = TimecycleManager::GetGameManager();
 		if (!tcManager)
 		{
 			return;
@@ -234,7 +235,7 @@ static InitFunction initFunction([]()
 				ImGui::Separator();
 				ImGui::EndColumns();
 
-				if (auto scriptData = TheTimecycleManager->GetScriptData())
+				if (auto scriptData = TimecycleManager::GetScriptData())
 				{
 					if (scriptData->m_primaryModifierIndex != -1)
 					{
@@ -330,7 +331,7 @@ static InitFunction initFunction([]()
 
 						if (!isSelected)
 						{
-							if (strlen(g_editorSearchNameBuffer) > 0 && strstr(modifierName.c_str(), g_editorSearchNameBuffer) == NULL)
+							if (strlen(g_editorSearchNameBuffer) > 0 && istrstr(modifierName.c_str(), g_editorSearchNameBuffer) == NULL)
 							{
 								continue;
 							}
@@ -360,7 +361,7 @@ static InitFunction initFunction([]()
 								if (g_editorApplySelectedTimecycle)
 								{
 									auto modifier = CurrentTimecycle.GetModifier();
-									auto scriptData = TheTimecycleManager->GetScriptData();
+									auto scriptData = TimecycleManager::GetScriptData();
 
 									if (scriptData && modifier != nullptr)
 									{
@@ -514,7 +515,7 @@ static InitFunction initFunction([]()
 
 						for (auto& modData : timecycle->m_modData)
 						{
-							if (auto varInfo = TheTimecycleManager->GetConfigVarInfo(modData.m_index))
+							if (auto varInfo = TimecycleManager::GetConfigVarInfo(modData.m_index))
 							{
 								auto varElement = document.NewElement(varInfo->m_name);
 								varElement->SetText(va("%.3f %.3f", modData.m_value1, modData.m_value2));
@@ -547,7 +548,7 @@ static InitFunction initFunction([]()
 							memset(g_editorDetailFilterBuffer, 0, kMaxBufferSize);
 						}
 
-						if (auto scriptData = TheTimecycleManager->GetScriptData())
+						if (auto scriptData = TimecycleManager::GetScriptData())
 						{
 							ImGui::NextColumn();
 							ImGui::Text("Apply");
@@ -599,9 +600,9 @@ static InitFunction initFunction([]()
 								ImGui::BringWindowToDisplayFront(ImGui::GetCurrentWindow());
 								isFocused |= ImGui::IsWindowFocused();
 
-								for (int i = 0; i < TheTimecycleManager->GetConfigVarInfoCount(); i++)
+								for (int i = 0; i < TimecycleManager::GetConfigVarInfoCount(); i++)
 								{
-									if (strstr(tcVarInfos[i].m_name, g_editorDetailDropDownBuffer) == NULL)
+									if (istrstr(tcVarInfos[i].m_name, g_editorDetailDropDownBuffer) == nullptr)
 									{
 										continue;
 									}
@@ -688,19 +689,19 @@ static InitFunction initFunction([]()
 
 						for (auto& [index, modData] : CurrentTimecycle.GetVars())
 						{
-							if (modData.m_index == -1 || modData.m_index > TheTimecycleManager->GetConfigVarInfoCount())
+							if (modData.m_index == -1 || modData.m_index >= TimecycleManager::GetConfigVarInfoCount())
 							{
 								continue; // invalid?
 							}
 
 							auto& varInfo = tcVarInfos[index];
 
-							if (strlen(g_editorDetailFilterBuffer) > 0 && strstr(varInfo.m_name, g_editorDetailFilterBuffer) == NULL)
+							if (strlen(g_editorDetailFilterBuffer) > 0 && istrstr(varInfo.m_name, g_editorDetailFilterBuffer) == nullptr)
 							{
 								continue;
 							}
 
-							bool isSearched = (strlen(g_editorSearchParamBuffer) > 0 && strstr(varInfo.m_name, g_editorSearchParamBuffer) != NULL);
+							bool isSearched = (strlen(g_editorSearchParamBuffer) > 0 && istrstr(varInfo.m_name, g_editorSearchParamBuffer) != nullptr);
 
 							ImGui::Text("%d", varInfo.m_index);
 							ImGui::NextColumn();

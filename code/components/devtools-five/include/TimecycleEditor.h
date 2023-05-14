@@ -4,8 +4,7 @@
 
 class SelectedTimecycle
 {
-private:
-	rage::tcModifier* m_selection;
+	rage::tcModifier* m_selection = nullptr;
 	std::map<int, rage::tcModData> m_cachedMods;
 	std::set<int> m_disabled;
 

@@ -8,10 +8,10 @@ namespace rage
 {
 // TODO: atBinaryMap proper implementation
 template<typename TValue = void*>
-class atBinaryMap : public rage::sysUseAllocator
+class atBinaryMap : public sysUseAllocator
 {
 public:
-	struct DataPair : rage::sysUseAllocator
+	struct DataPair : sysUseAllocator
 	{
 		uint32_t m_hash;
 		TValue m_value;
@@ -22,14 +22,14 @@ public:
 	atArray<DataPair> m_array;
 };
 
-struct tcModData : rage::sysUseAllocator
+struct tcModData : sysUseAllocator
 {
 	int m_index;
 	float m_value1;
 	float m_value2;
 };
 
-struct tcModifier : rage::sysUseAllocator
+struct tcModifier : sysUseAllocator
 {
 	atArray<tcModData> m_modData;
 	uint32_t m_nameHash;
@@ -92,16 +92,16 @@ private:
 
 public:
 	const std::string& GetTimecycleName(const rage::tcModifier& modifier);
-	rage::tcModifier* GetTimecycle(const uint32_t hash);
+	rage::tcModifier* GetTimecycle(uint32_t hash);
 	rage::tcModifier* GetTimecycle(const std::string& name);
 	rage::tcModifier* GetTimecycleByIndex(const uint32_t index);
 	rage::tcModifier* CreateTimecycle(const std::string& newName);
 	rage::tcModifier* CloneTimecycle(rage::tcModifier& modifier, const std::string& cloneName);
 	rage::tcModData* GetTimecycleModData(rage::tcModifier& modifier, const std::string& paramName);
-	rage::tcModData* GetTimecycleModData(rage::tcModifier& modifier, const int index);
-	rage::tcModData* GetTimecycleModDataByIndex(rage::tcModifier& modifier, const int index);
+	rage::tcModData* GetTimecycleModData(rage::tcModifier& modifier, int index);
+	rage::tcModData* GetTimecycleModDataByIndex(rage::tcModifier& modifier, int index);
 	bool AddTimecycleModData(rage::tcModifier& modifier, const std::string& paramName);
-	bool SetTimecycleModData(rage::tcModifier& modifier, std::string& paramName, const float value1, const float value2);
+	bool SetTimecycleModData(rage::tcModifier& modifier, std::string& paramName, float value1, float value2);
 	bool RemoveTimecycleModData(rage::tcModifier& modifier, const rage::tcModData& modData);
 	bool RemoveTimecycleModData(rage::tcModifier& modifier, const std::string& paramName);
 	bool RenameTimecycle(rage::tcModifier& modifier, const std::string& newName);
@@ -110,13 +110,13 @@ public:
 	void EnsureTimecycleBackup(const rage::tcModifier& modifier);
 	void RemoveTimecycle(rage::tcModifier& modifier);
 	void RevertChanges();
-	void HandleTimecycleLoaded(const uint32_t hash, const std::string& name);
-	void HandleTimecycleUnloaded(const uint32_t hash);
+	void HandleTimecycleLoaded(uint32_t hash, const std::string& name);
+	void HandleTimecycleUnloaded(uint32_t hash);
 
 	static rage::tcManager* GetGameManager(); // get pointer to instance of RAGE timecycle manager
 	static TimecycleScriptData* GetScriptData(); // get "script" data, seems to be struct that is used in natives
 	static rage::tcVarInfo* GetConfigVarInfo(const std::string& paramName, bool search = false);
-	static rage::tcVarInfo* GetConfigVarInfo(const int index);
+	static rage::tcVarInfo* GetConfigVarInfo(int index);
 	static rage::tcVarInfo* GetConfigVarInfos();
 	static int GetConfigVarInfoCount();
 	static bool HasTimecycleWithName(const std::string& paramName);
