@@ -2538,7 +2538,7 @@ void ServerGameState::SetPopulationDisabled(int bucket, bool disabled)
 }
 
 // make sure you have a lock to the client mutex before calling this function!
-void ServerGameState::ReassignEntityInner(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient)
+void ServerGameState::ReassignEntityInner(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient, bool safe)
 {
 	auto entity = GetEntity(0, entityHandle);
 
@@ -2551,6 +2551,16 @@ void ServerGameState::ReassignEntityInner(uint32_t entityHandle, const fx::Clien
 	if (entity->type == sync::NetObjEntityType::Player)
 	{
 		return;
+	}
+
+	std::unique_lock<std::shared_mutex> lock;
+
+	// if 'safe', we'll lock the clientMutex here (for use when the mutex isn't already locked)
+	if (safe)
+	{
+		lock = std::unique_lock<std::shared_mutex>{
+			entity->clientMutex
+		};
 	}
 
 	auto oldClientRef = entity->GetClientUnsafe().lock();
@@ -2630,29 +2640,41 @@ void ServerGameState::ReassignEntity(uint32_t entityHandle, const fx::ClientShar
 	// if this is a train, we want to migrate the entire train chain
 	// this matches the logic in CNetObjTrain::_?TestProximityMigration
 #ifdef STATE_FIVE
-	auto entity = GetEntity(0, entityHandle);
-
-	if (entity)
+	if (auto train = GetTrain(this, entityHandle))
 	{
-		if (entity->type == sync::NetObjEntityType::Train && entity->syncTree)
+		// game code works as follows:
+		// -> if train isEngine, enumerate the entire list backwards and migrate that one along
+		// -> if not isEngine, migrate the engine
+		if (auto trainState = train->syncTree->GetTrainState())
 		{
-			// game code works as follows:
-			// -> if train isEngine, enumerate the entire list backwards and migrate that one along
-			// -> if not isEngine, migrate the engine
-			if (auto trainState = entity->syncTree->GetTrainState())
+			auto reassignEngine = [this, &targetClient, entityHandle](const fx::sync::SyncEntityPtr& train)
 			{
-				if (trainState->isEngine)
+				for (auto link = GetNextTrain(this, train); link; link = GetNextTrain(this, link))
 				{
-					for (auto link = GetNextTrain(this, entity); link; link = GetNextTrain(this, link))
+					// this check should prevent the following two states:
+					// 1. double-locking clientMutex
+					// 2. reassigning the same entity twice
+					if (link->handle != entityHandle)
 					{
 						// we directly use ReassignEntityInner here to ensure no infinite recursion
-						ReassignEntityInner(link->handle, targetClient);
+						ReassignEntityInner(link->handle, targetClient, true);
 					}
 				}
-				else if (trainState->engineCarriage && trainState->engineCarriage != entityHandle)
+			};
+
+			if (trainState->isEngine)
+			{
+				reassignEngine(train);
+			}
+			else if (trainState->engineCarriage && trainState->engineCarriage != entityHandle)
+			{
+				// reassign the engine carriage
+				ReassignEntityInner(trainState->engineCarriage, targetClient, true);
+
+				// get the engine and reassign based on that
+				if (auto engine = GetTrain(this, trainState->engineCarriage))
 				{
-					// we call ourselves here so we'll recurse further down the chain
-					ReassignEntity(trainState->engineCarriage, targetClient);
+					reassignEngine(engine);
 				}
 			}
 		}

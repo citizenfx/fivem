@@ -1217,7 +1217,7 @@ public:
 	void ReassignEntity(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient);
 
 private:
-	void ReassignEntityInner(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient);
+	void ReassignEntityInner(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient, bool safe = false);
 
 public:
 	void DeleteEntity(const fx::sync::SyncEntityPtr& entity);
