@@ -1214,10 +1214,10 @@ public:
 
 	void SendObjectIds(const fx::ClientSharedPtr& client, int numIds);
 
-	void ReassignEntity(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient);
+	void ReassignEntity(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient, std::unique_lock<std::shared_mutex>&& lock = {});
 
 private:
-	void ReassignEntityInner(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient, bool safe = false);
+	void ReassignEntityInner(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient, std::unique_lock<std::shared_mutex>&& lock = {});
 
 public:
 	void DeleteEntity(const fx::sync::SyncEntityPtr& entity);

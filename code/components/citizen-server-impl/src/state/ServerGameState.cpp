@@ -1506,7 +1506,6 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 						// if this entity is owned by a server script, reassign to nobody and wait until someone else owns it
 						if (entity->IsOwnedByServerScript())
 						{
-							std::unique_lock _(entity->clientMutex);
 							ReassignEntity(entity->handle, {});
 						}
 
@@ -1637,7 +1636,7 @@ void ServerGameState::Tick(fx::ServerInstanceBase* instance)
 				if (!cl || (entity->wantsReassign && cl->GetNetId() != client->GetNetId()))
 				{
 					entity->wantsReassign = false;
-					ReassignEntity(entity->handle, client);
+					ReassignEntity(entity->handle, client, std::move(_)); // transfer the lock inside
 				}
 			}
 
@@ -2538,7 +2537,7 @@ void ServerGameState::SetPopulationDisabled(int bucket, bool disabled)
 }
 
 // make sure you have a lock to the client mutex before calling this function!
-void ServerGameState::ReassignEntityInner(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient, bool safe)
+void ServerGameState::ReassignEntityInner(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient, std::unique_lock<std::shared_mutex>&& lock)
 {
 	auto entity = GetEntity(0, entityHandle);
 
@@ -2553,10 +2552,8 @@ void ServerGameState::ReassignEntityInner(uint32_t entityHandle, const fx::Clien
 		return;
 	}
 
-	std::unique_lock<std::shared_mutex> lock;
-
 	// if 'safe', we'll lock the clientMutex here (for use when the mutex isn't already locked)
-	if (safe)
+	if (!lock)
 	{
 		lock = std::unique_lock<std::shared_mutex>{
 			entity->clientMutex
@@ -2633,9 +2630,9 @@ void ServerGameState::ReassignEntityInner(uint32_t entityHandle, const fx::Clien
 	}
 }
 
-void ServerGameState::ReassignEntity(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient)
+void ServerGameState::ReassignEntity(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient, std::unique_lock<std::shared_mutex>&& lock)
 {
-	ReassignEntityInner(entityHandle, targetClient);
+	ReassignEntityInner(entityHandle, targetClient, std::move(lock));
 
 	// if this is a train, we want to migrate the entire train chain
 	// this matches the logic in CNetObjTrain::_?TestProximityMigration
@@ -2657,7 +2654,7 @@ void ServerGameState::ReassignEntity(uint32_t entityHandle, const fx::ClientShar
 					if (link->handle != entityHandle)
 					{
 						// we directly use ReassignEntityInner here to ensure no infinite recursion
-						ReassignEntityInner(link->handle, targetClient, true);
+						ReassignEntityInner(link->handle, targetClient);
 					}
 				}
 			};
@@ -2669,7 +2666,7 @@ void ServerGameState::ReassignEntity(uint32_t entityHandle, const fx::ClientShar
 			else if (trainState->engineCarriage && trainState->engineCarriage != entityHandle)
 			{
 				// reassign the engine carriage
-				ReassignEntityInner(trainState->engineCarriage, targetClient, true);
+				ReassignEntityInner(trainState->engineCarriage, targetClient);
 
 				// get the engine and reassign based on that
 				if (auto engine = GetTrain(this, trainState->engineCarriage))
@@ -2782,7 +2779,6 @@ bool ServerGameState::MoveEntityToCandidate(const fx::sync::SyncEntityPtr& entit
 
 			if (entity->IsOwnedByServerScript())
 			{
-				std::unique_lock _lock(entity->clientMutex);
 				ReassignEntity(entity->handle, {});
 			}
 			else
@@ -2796,7 +2792,6 @@ bool ServerGameState::MoveEntityToCandidate(const fx::sync::SyncEntityPtr& entit
 
 			GS_LOG("reassigning entity %d from %s to %s\n", entity->handle, client ? client->GetName() : "", std::get<1>(candidate)->GetName());
 
-			std::unique_lock _lock(entity->clientMutex);
 			ReassignEntity(entity->handle, std::get<1>(candidate));
 		}
 	}
@@ -3059,7 +3054,6 @@ void ServerGameState::ProcessCloneTakeover(const fx::ClientSharedPtr& client, rl
 			return;
 		}
 
-		std::unique_lock _lock(entity->clientMutex);
 		ReassignEntity(entity->handle, tgtCl);
 	}
 }
