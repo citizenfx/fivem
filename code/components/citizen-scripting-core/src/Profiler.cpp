@@ -672,11 +672,19 @@ namespace profilerCommand {
 			}
 
 			auto data = stream->ReadToEnd();
-			auto unpacked = msgpack::unpack(reinterpret_cast<char*>(data.data()), data.size());
-			auto recording = unpacked.get().as<ProfilerRecording>();
-			auto jsonData = ConvertToJSON(recording);
 
-			ViewProfile(jsonData);
+			try
+			{
+				auto unpacked = msgpack::unpack(reinterpret_cast<char*>(data.data()), data.size());
+				auto recording = unpacked.get().as<ProfilerRecording>();
+				auto jsonData = ConvertToJSON(recording);
+
+				ViewProfile(jsonData);
+			}
+			catch (std::exception& e)
+			{
+				console::Printf("cmd", "profiler view failed: %s\n", e.what());
+			}
 		}, false));
 	}
 	
