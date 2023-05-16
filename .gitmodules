@@ -139,7 +139,7 @@
 	url = https://github.com/citizenfx/Ben.Demystifier.git
 [submodule "vendor/cpp-url"]
 	path = vendor/cpp-url
-	url = https://github.com/cpp-netlib/url.git
+	url = https://github.com/citizenfx/cpp-url.git
 [submodule "vendor/uvw"]
 	path = vendor/uvw
 	url = https://github.com/citizenfx/uvw.git
