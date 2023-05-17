@@ -269,6 +269,7 @@ static void InitMono()
 	// initializes the mono runtime
 	fx::mono::MonoComponentHostShared::Initialize();
 
+	mono_thread_attach(mono_get_root_domain());
 	g_rootDomain = mono_get_root_domain();
 
 	mono_add_internal_call("CitizenFX.Core.GameInterface::PrintLog", reinterpret_cast<void*>(GI_PrintLogCall));
