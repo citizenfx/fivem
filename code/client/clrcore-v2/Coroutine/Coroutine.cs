@@ -182,12 +182,12 @@ namespace CitizenFX.Core
 			return coroutine;
 		}
 
-		internal static Coroutine WaitUntil(uint time)
+		internal static Coroutine WaitUntil(ulong time)
 		{
 			var coroutine = new Coroutine();
 			Action action = () => coroutine.GetAwaiter().SetResult();
 
-			if (time <= Scheduler.TimeNow) // e.g.: Coroutine.Wait(0u) or Coroutine.Delay(0u)
+			if (time <= Scheduler.CurrentTime) // e.g.: Coroutine.Wait(0u) or Coroutine.Delay(0u)
 				Scheduler.Schedule(action);
 			else
 				Scheduler.Schedule(action, time);
@@ -195,9 +195,9 @@ namespace CitizenFX.Core
 			return coroutine;
 		}
 
-		internal static Coroutine Wait(uint delay) => WaitUntil(Scheduler.TimeNow + delay);
+		internal static Coroutine Wait(ulong delay) => WaitUntil(Scheduler.CurrentTime + delay);
 
-		internal static Coroutine Delay(uint delay) => WaitUntil(Scheduler.TimeNow + delay);
+		internal static Coroutine Delay(ulong delay) => WaitUntil(Scheduler.CurrentTime + delay);
 	}
 
 	public interface ICoroutineAwaiter {}

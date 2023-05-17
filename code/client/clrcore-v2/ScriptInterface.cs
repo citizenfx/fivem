@@ -10,6 +10,12 @@ using ContextType = CitizenFX.Core.fxScriptContext;
 using ContextType = CitizenFX.Core.RageScriptContext;
 #endif
 
+/*
+* Notes while working on this environment:
+*  - Scheduling: any function that can potentially add tasks to the C#'s scheduler needs to return the time
+*    of when it needs to be activated again, which then needs to be scheduled in the core scheduler (bookmark).
+*/
+
 namespace CitizenFX.Core
 {
 	internal static class ScriptInterface
@@ -87,8 +93,9 @@ namespace CitizenFX.Core
 		}
 
 		[SecurityCritical, SuppressMessage("System.Diagnostics.CodeAnalysis", "IDE0051", Justification = "Called by host")]
-		internal static void Tick(bool profiling)
+		internal static ulong Tick(ulong hostTime, bool profiling)
 		{
+			Scheduler.CurrentTime = hostTime;
 			Profiler.IsProfiling = profiling;
 
 			try
@@ -100,11 +107,16 @@ namespace CitizenFX.Core
 			{
 				Debug.PrintError(e, "Tick()");
 			}
+
+			return Scheduler.NextTaskTime();
 		}
 
 		[SecurityCritical, SuppressMessage("System.Diagnostics.CodeAnalysis", "IDE0051", Justification = "Called by host")]
-		internal static unsafe void TriggerEvent(string eventName, byte* argsSerialized, int serializedSize, string sourceString)
+		internal static unsafe ulong TriggerEvent(string eventName, byte* argsSerialized, int serializedSize, string sourceString, ulong hostTime, bool profiling)
 		{
+			Scheduler.CurrentTime = hostTime;
+			Profiler.IsProfiling = profiling;
+			
 			Binding origin = !sourceString.StartsWith("net") ? Binding.Local : Binding.Remote;
 
 #if IS_FXSERVER
@@ -115,27 +127,39 @@ namespace CitizenFX.Core
 
 			object[] args = null; // will make sure we only deserialize it once
 #if REMOTE_FUNCTION_ENABLED
-			if (ExternalsManager.IncomingRequest(eventName, sourceString, origin, argsSerialized, serializedSize, ref args))
-				return;
+			if (!ExternalsManager.IncomingRequest(eventName, sourceString, origin, argsSerialized, serializedSize, ref args))
 #endif
-
-			if (ExportsManager.IncomingRequest(eventName, sourceString, origin, argsSerialized, serializedSize, ref args))
-				return;
-
-			// if a remote function or export has consumed this event then it surely wasn't meant for event handlers
-			EventsManager.IncomingEvent(eventName, sourceString, origin, argsSerialized, serializedSize, args);
+			{
+				if (!ExportsManager.IncomingRequest(eventName, sourceString, origin, argsSerialized, serializedSize, ref args))
+				{
+					// if a remote function or export has consumed this event then it surely wasn't meant for event handlers
+					EventsManager.IncomingEvent(eventName, sourceString, origin, argsSerialized, serializedSize, args);
+				}
+			}
+			
+			return Scheduler.NextTaskTime();
 		}
 
 		[SecurityCritical, SuppressMessage("System.Diagnostics.CodeAnalysis", "IDE0051", Justification = "Called by host")]
-		internal static unsafe void LoadAssembly(string name)
+		internal static unsafe ulong LoadAssembly(string name, ulong hostTime, bool profiling)
 		{
+			Scheduler.CurrentTime = hostTime;
+			Profiler.IsProfiling = profiling;
+
 			ScriptManager.LoadAssembly(name, true);
+
+			return Scheduler.NextTaskTime();
 		}
 
 		[SecurityCritical, SuppressMessage("System.Diagnostics.CodeAnalysis", "IDE0051", Justification = "Called by host")]
-		internal static unsafe void CallRef(int refIndex, byte* argsSerialized, uint argsSize, out IntPtr retvalSerialized, out uint retvalSize)
+		internal static unsafe ulong CallRef(int refIndex, byte* argsSerialized, uint argsSize, out IntPtr retvalSerialized, out uint retvalSize, ulong hostTime, bool profiling)
 		{
+			Scheduler.CurrentTime = hostTime;
+			Profiler.IsProfiling = profiling;
+
 			ReferenceFunctionManager.IncomingCall(refIndex, argsSerialized, argsSize, out retvalSerialized, out retvalSize);
+
+			return Scheduler.NextTaskTime();
 		}
 
 		[SecurityCritical, SuppressMessage("System.Diagnostics.CodeAnalysis", "IDE0051", Justification = "Called by host")]

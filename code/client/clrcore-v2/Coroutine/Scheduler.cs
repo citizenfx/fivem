@@ -6,12 +6,24 @@ namespace CitizenFX.Core
 {
 	public class Scheduler
 	{
-		internal static uint TimeNow { get; private set; }
+		/// <summary>
+		/// Current time of this scheduler
+		/// </summary>
+		public static ulong CurrentTime { get; internal set; }
+
+		/// <summary>
+		/// Thread onto which all coroutines will run and be put back to
+		/// </summary>
 		internal static Thread MainThread { get; private set; }
 
-		private static LinkedList<Tuple<uint, Action>> s_queue = new LinkedList<Tuple<uint, Action>>();
+		/// <summary>
+		/// Current time of the scheduler, set per frame.
+		/// </summary>
+		private static LinkedList<Tuple<ulong, Action>> s_queue = new LinkedList<Tuple<ulong, Action>>();
 
-		// optimized non ordering
+		/// <summary>
+		/// Double buffered array for non-ordered scheduling
+		/// </summary>
 		private static List<Action> s_nextFrame = new List<Action>();
 		private static List<Action> s_nextFrameProcessing = new List<Action>();
 
@@ -20,6 +32,10 @@ namespace CitizenFX.Core
 			MainThread = Thread.CurrentThread;
 		}
 
+		/// <summary>
+		/// Schedule an action to be run on the next frame
+		/// </summary>
+		/// <param name="coroutine">Action to execute</param>
 		public static void Schedule(Action coroutine)
 		{
 			if (coroutine != null)
@@ -33,7 +49,12 @@ namespace CitizenFX.Core
 				throw new ArgumentNullException(nameof(coroutine));
 		}
 
-		public static void Schedule(Action coroutine, uint time)
+		/// <summary>
+		/// Schedule an action to be run at the first frame at or after the specified time
+		/// </summary>
+		/// <param name="coroutine">Action to execute</param>
+		/// <param name="time">Time when it should be executed, see <see cref="CurrentTime"/></param>
+		public static void Schedule(Action coroutine, ulong time)
 		{
 			if (coroutine != null)
 			{
@@ -44,21 +65,24 @@ namespace CitizenFX.Core
 					{
 						if (time < it.Value.Item1)
 						{
-							s_queue.AddBefore(it, new Tuple<uint, Action>(time, coroutine));
+							s_queue.AddBefore(it, new Tuple<ulong, Action>(time, coroutine));
 							return;
 						}
 					}
 
-					s_queue.AddLast(new Tuple<uint, Action>(time, coroutine));
+					s_queue.AddLast(new Tuple<ulong, Action>(time, coroutine));
 				}
 			}
 			else
 				throw new ArgumentNullException(nameof(coroutine));
 		}
 
+		/// <summary>
+		/// Execute all scheduled coroutines
+		/// </summary>
 		internal static void Update()
 		{
-			uint timeNow = TimeNow = (uint)Environment.TickCount;
+			ulong timeNow = CurrentTime;
 
 			// all next frame coroutines
 			{
@@ -106,6 +130,24 @@ namespace CitizenFX.Core
 						return;
 				}
 			}
+		}
+
+		/// <summary>
+		/// Time in milliseconds when the next action needs to be activated
+		/// </summary>
+		/// <returns>Delay in milliseconds or ~0ul (<see cref="ulong.MaxValue"/>) if there's nothing to run</returns>
+		internal static ulong NextTaskTime()
+		{
+			if (s_nextFrame.Count != 0)
+			{
+				return CurrentTime;
+			}
+			else if (s_queue.Count != 0)
+			{
+				return s_queue.First.Value.Item1;
+			}
+			
+			return ulong.MaxValue;
 		}
 	}
 }
