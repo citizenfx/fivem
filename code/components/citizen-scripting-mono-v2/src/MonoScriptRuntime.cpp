@@ -28,6 +28,8 @@
 * We also don't need to do domain != current_domain checks as it's already included in mono_domain_set_internal().
 */
 
+using namespace std::literals; // enable ""sv literals
+
 // backwards compatibility, without this the v1 runtime will crash
 static void back_to_root_domain()
 {
@@ -218,14 +220,63 @@ int MonoScriptRuntime::GetInstanceId()
 
 int MonoScriptRuntime::HandlesFile(char* filename, IScriptHostWithResourceData* metadata)
 {
-	int enableV2 = 0;
-	metadata->GetNumResourceMetaData(const_cast<char*>("mono_rt2"), &enableV2); // should've been const qualified
+	int monoRT2FlagCount = 0;
+	metadata->GetNumResourceMetaData(const_cast<char*>("mono_rt2"), &monoRT2FlagCount); // should've been const qualified
 
-	if (enableV2 > 0)
+	// check if mono_rt2 has been set
+	if (monoRT2FlagCount == 0)
 	{
-		size_t size = strlen(filename);
-		return size > 8 && memcmp(filename + size - 8, ".net.dll", 8) == 0;
+		return false;
 	}
+
+	// check if file ends with .net.dll
+	size_t size = strlen(filename);
+	if (size <= 8 || strncmp(filename + size - 8, ".net.dll", 8) != 0)
+	{
+		return false;
+	}
+
+	// last supported date for this pilot of mono_rt2
+	constexpr int maxYear = 2023, maxMonth = 06, maxDay = 30;
+
+	// Allowed values for mono_rt2
+	constexpr std::string_view allowedValues[] = {
+		// put latest on top, right here ↓
+		"Prerelease expiring 2023-06-30. See https://aka.cfx.re/mono-rt2-preview for info."sv,
+	};
+
+	// disable loading mono_rt2 scripts after maxYear-maxMonth-maxDay
+	std::time_t currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+	tm* time = std::localtime(&currentTime);
+	if (time->tm_year > maxYear || time->tm_mon >= maxMonth || time->tm_mday > maxDay) // month = 0...11, day = 1...31
+	{
+		console::PrintError(_CFX_NAME_STRING(_CFX_COMPONENT_NAME), "mono_rt2 is no longer supported since (%04d-%02d-%02d), skipped loading %s.\n",
+			maxYear, maxMonth, maxDay, filename);
+
+		return false;
+	}
+
+	// date & sentence restrictions on mono_rt2 flag, only allow loading if the value is in our array
+	for (int i = 0; i < monoRT2FlagCount; ++i)
+	{
+		const char* flagValue = nullptr;
+
+		// TODO: fix ill formed and/or unclear usage of non-const char* parameters
+		if (SUCCEEDED(metadata->GetResourceMetaData(const_cast<char*>("mono_rt2"), i, const_cast<char**>(&flagValue))))
+		{
+			for (auto& value : allowedValues)
+			{
+				if (value == flagValue)
+				{
+					return true;
+				}
+			}
+		}
+	}
+
+	console::PrintError(_CFX_NAME_STRING(_CFX_COMPONENT_NAME), "mono_rt2 was requested for file %s but the value is missing or not accepted.\n"
+		"\tTo continue using mono_rt2 please update your fxmanifest to:\n"
+		"\tmono_rt2 '%s'\n", filename, allowedValues[0]);
 
 	return false;
 }
@@ -238,6 +289,10 @@ result_t MonoScriptRuntime::LoadFile(char* scriptFile)
 
 	MonoException* exc = nullptr;
 	m_loadAssembly({ mono_string_new(m_appDomain, scriptFile) }, &exc);
+	
+	console::PrintWarning(_CFX_NAME_STRING(_CFX_COMPONENT_NAME),
+		"Assembly %s has been loaded into the mono rt2 runtime. This runtime is still in beta and shouldn't be used in production, "
+		"crashes and breaking changes are to be expected.\n", scriptFile);
 
 	back_to_root_domain();
 

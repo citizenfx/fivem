@@ -22,6 +22,7 @@
   "scripting:server",
   "svadhesive",
   "citizen:scripting:mono",
+  "citizen:scripting:mono-v2",
   "citizen:scripting:v8node",
   "voip-server:mumble",
   "http-client",

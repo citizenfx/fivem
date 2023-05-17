@@ -51,6 +51,7 @@
 	"gta:game:five",
 	"handling-loader:five",
 	"citizen:scripting:mono",
+	"citizen:scripting:mono-v2",
 	"devtools:five",
 	"tool:vehrec",
 	"extra-natives:five",
