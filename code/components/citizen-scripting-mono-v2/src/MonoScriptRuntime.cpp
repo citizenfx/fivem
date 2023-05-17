@@ -262,7 +262,7 @@ int MonoScriptRuntime::HandlesFile(char* filename, IScriptHostWithResourceData* 
 		const char* flagValue = nullptr;
 
 		// TODO: fix ill formed and/or unclear usage of non-const char* parameters
-		if (SUCCEEDED(metadata->GetResourceMetaData(const_cast<char*>("mono_rt2"), i, const_cast<char**>(&flagValue))))
+		if (FX_SUCCEEDED(metadata->GetResourceMetaData(const_cast<char*>("mono_rt2"), i, const_cast<char**>(&flagValue))))
 		{
 			for (auto& value : allowedValues)
 			{
