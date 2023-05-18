@@ -19,6 +19,11 @@
 #include <mono/metadata/exception.h>
 
 /*
+* Notes while working on this environment:
+*  - Scheduling: any function that can potentially add tasks to the C#'s scheduler needs to return the time
+*    of when it needs to be activated again, which then needs to be scheduled in the core scheduler (bookmark).
+*
+*
 * Some notes on mono domain switching (psuedo code):
 * 
 * mono_domain_set(MonoDomain* domain, bool force)  => if (!is_unloading(domain)) mono_domain_set_internal(domain);
@@ -34,6 +39,18 @@ using namespace std::literals; // enable ""sv literals
 static void back_to_root_domain()
 {
 	mono_domain_set_internal(mono_get_root_domain());
+}
+
+uint64_t GetCurrentSchedulerTime()
+{
+	// TODO: replace this when the bookmark scheduler follows frame time instead of real time.
+	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+}
+
+bool IsProfiling()
+{
+	static auto profiler = fx::ResourceManager::GetCurrent()->GetComponent<fx::ProfilerComponent>();
+	return profiler->IsRecording();
 }
 
 namespace fx::mono
@@ -84,15 +101,19 @@ result_t MonoScriptRuntime::Create(IScriptHost* host)
 
 		{
 			fx::OMPtr<IScriptHost> ptr(host);
+
 			fx::OMPtr<IScriptHostWithResourceData> resourcePtr;
 			ptr.As(&resourcePtr);
-
 			m_resourceHost = resourcePtr.GetRef();
 
 			fx::OMPtr<IScriptHostWithManifest> manifestPtr;
 			ptr.As(&manifestPtr);
-
 			m_manifestHost = manifestPtr.GetRef();
+
+			fx::OMPtr<IScriptHostWithBookmarks> bookmarkPtr;
+			ptr.As(&bookmarkPtr);
+			m_bookmarkHost = bookmarkPtr.GetRef();
+			m_bookmarkHost->CreateBookmarks(this);
 		}
 
 		char* resourceName = nullptr;
@@ -152,16 +173,16 @@ result_t MonoScriptRuntime::Destroy()
 
 	m_appDomain = nullptr;
 	m_scriptHost = nullptr;
+	m_bookmarkHost->RemoveBookmarks(this);
+	m_bookmarkHost = nullptr;
 
 	back_to_root_domain();
 
 	return ReturnOrError(exc);
 }
 
-result_t MonoScriptRuntime::Tick()
+result_t MonoScriptRuntime::TickBookmarks(uint64_t* bookmarks, int32_t numBookmarks)
 {
-	static auto profiler = fx::ResourceManager::GetCurrent()->GetComponent<fx::ProfilerComponent>();
-
 	m_handler->PushRuntime(static_cast<IScriptRuntime*>(this));
 	if (m_parentObject)
 		m_parentObject->OnActivate();
@@ -170,8 +191,12 @@ result_t MonoScriptRuntime::Tick()
 
 	MONO_BOUNDARY_START
 
+	// reset scheduled time, nextTick will set the next time
+	m_scheduledTime = ~uint64_t(0);
+
 	MonoException* exc;
-	m_tick(profiler->IsRecording(), &exc);
+	uint64_t nextTick = m_tick(GetCurrentSchedulerTime(), IsProfiling(), &exc);
+	ScheduleTick(nextTick);
 
 	MONO_BOUNDARY_END
 
@@ -192,7 +217,11 @@ result_t MonoScriptRuntime::TriggerEvent(char* eventName, char* argsSerialized, 
 	MONO_BOUNDARY_START
 
 	MonoException* exc = nullptr;
-	m_triggerEvent(mono_string_new(m_appDomain, eventName), argsSerialized, serializedSize, mono_string_new(m_appDomain, sourceId), &exc);
+	uint64_t nextTick = m_triggerEvent(mono_string_new(m_appDomain, eventName),
+		argsSerialized, serializedSize, mono_string_new(m_appDomain, sourceId),
+		GetCurrentSchedulerTime(), IsProfiling(), &exc);
+
+	ScheduleTick(nextTick);
 
 	MONO_BOUNDARY_END
 
@@ -287,8 +316,13 @@ result_t MonoScriptRuntime::LoadFile(char* scriptFile)
 	MonoComponentHost::EnsureThreadAttached();
 	mono_domain_set_internal(m_appDomain);
 
+	auto currentTime = GetCurrentSchedulerTime();
+	bool isProfiling = IsProfiling();
+
 	MonoException* exc = nullptr;
-	m_loadAssembly({ mono_string_new(m_appDomain, scriptFile) }, &exc);
+	MonoObject* nextTickObject = m_loadAssembly({ mono_string_new(m_appDomain, scriptFile), &currentTime, &isProfiling }, &exc);
+	uint64_t nextTick = *reinterpret_cast<uint64_t*>(mono_object_unbox(nextTickObject));
+	ScheduleTick(nextTick);
 	
 	console::PrintWarning(_CFX_NAME_STRING(_CFX_COMPONENT_NAME),
 		"Assembly %s has been loaded into the mono rt2 runtime. This runtime is still in beta and shouldn't be used in production, "
@@ -309,7 +343,8 @@ result_t MonoScriptRuntime::CallRef(int32_t refIndex, char* argsSerialized, uint
 	mono_domain_set_internal(m_appDomain);
 
 	MonoException* exc = nullptr;
-	m_callRef(refIndex, argsSerialized, argsSize, retvalSerialized, retvalSize, &exc);
+	uint64_t nextTick = m_callRef(refIndex, argsSerialized, argsSize, retvalSerialized, retvalSize, GetCurrentSchedulerTime(), IsProfiling(), &exc);
+	ScheduleTick(nextTick);
 
 	back_to_root_domain();
 
@@ -350,7 +385,7 @@ MonoArray* MonoScriptRuntime::CanonicalizeRef(int referenceId) const
 	result_t hr = m_scriptHost->CanonicalizeRef(referenceId, m_instanceId, &str);
 	size_t size = strlen(str) + 1; // also get and copy '\0'
 
-	MonoArray* arr = mono_array_new(MonoComponentHost::GetRootDomain(), mono_get_byte_class(), size);
+	MonoArray* arr = mono_array_new(m_appDomain, mono_get_byte_class(), size);
 	memcpy(mono_array_addr_with_size(arr, 1, 0), str, size);
 
 	fwFree(str);
