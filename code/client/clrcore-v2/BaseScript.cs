@@ -138,6 +138,7 @@ namespace CitizenFX.Core
 
 		#region Events Handlers
 		internal void RegisterEventHandler(string eventName, DynFunc deleg, Binding binding = Binding.Local) => EventHandlers[eventName].Add(deleg, binding);
+		internal void UnregisterEventHandler(string eventName, DynFunc deleg) => EventHandlers[eventName].Remove(deleg);
 		#endregion
 
 		#region Script loading

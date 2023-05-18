@@ -64,7 +64,11 @@ namespace CitizenFX.Core
 				// See https://stackoverflow.com/a/11915414
 
 				Func<Type, bool> typesPredicate = t =>
-					t != null && !t.IsAbstract && t.IsSubclassOf(typeof(BaseScript)) && t.GetConstructor(Type.EmptyTypes) != null;
+					t != null
+					&& !t.IsAbstract
+					&& t.IsSubclassOf(typeof(BaseScript))
+					&& t.GetConstructor(Type.EmptyTypes) != null
+					&& !(t.GetCustomAttribute<EnableOnLoadAttribute>()?.Enable == false);
 
 				/*foreach (var type in assembly.GetTypes())
 				{
