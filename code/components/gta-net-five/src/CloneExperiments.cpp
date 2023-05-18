@@ -1481,24 +1481,22 @@ struct CScenarioInfoManager
 	// etc...
 };
 
-static hook::cdecl_stub<CScenarioInfo*(void*)> _getTaskScenarioInfo([]()
-{
-	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 4D 8B 75 10"));
-});
-
 static CScenarioInfoManager** g_scenarioInfoManager;
 static int g_pointIdGetterVtableOffset;
+static void* g_taskUseScenarioVtable;
 
-static CScenarioInfo* GetTaskScenarioInfoSafe(void* task)
+static CScenarioInfo* (*g_origGetTaskScenarioInfo)(void* task);
+
+static CScenarioInfo* GetTaskScenarioInfo(void* task)
 {
 	if (!task)
 	{
 		return nullptr;
 	}
 
-	auto scenario = _getTaskScenarioInfo(task);
+	auto scenario = g_origGetTaskScenarioInfo(task);
 
-	if (!scenario)
+	if (!scenario && *(uint64_t*)task == (uint64_t)g_taskUseScenarioVtable)
 	{
 		auto scenarioInfoMgr = *g_scenarioInfoManager;
 		auto pointId = (*(uint32_t(__fastcall**)(void*))(*(uint64_t*)task + g_pointIdGetterVtableOffset))(task);
@@ -2171,58 +2169,15 @@ static HookFunction hookFunction([]()
 		MH_CreateHook(hook::get_call(location), NetGamePlayerIsVisibleToPlayer, (void**)&g_origNetGamePlayerIsVisibleToPlayer);
 	}
 
-	// patch crash caused by _getTaskScenarioInfo returning nullptr for an unknown reason
+	// patch crash caused by _getTaskScenarioInfo returning nullptr for CTaskUseScenario sometimes for an unknown reason
 	{
-		static struct : public jitasm::Frontend
-		{
-			virtual void InternalMain() override
-			{
-				push(rbx);
-				sub(rsp, 0x20);
+		auto location = (char*)hook::get_call(hook::get_pattern("E8 ? ? ? ? 4D 8B 75 10"));
 
-				mov(rax, (uint64_t)&GetTaskScenarioInfoSafe);
-				call(rax);
+		g_pointIdGetterVtableOffset = *(int*)(location + 18);
+		g_scenarioInfoManager = hook::get_address<decltype(g_scenarioInfoManager)>(location + 12);
+		g_taskUseScenarioVtable = hook::get_address<void*>(hook::get_pattern<char>("0F 29 70 C8 44 8B FA 0F 29 78 B8 48 8B F9 0F", 31));
 
-				mov(rbx, rax);
-
-				test(rax, rax);
-				jz("justReturn");
-
-				// original code
-				test(dword_ptr[rbx + 0xC8], 0x3C000);
-
-				L("justReturn");
-
-				add(rsp, 0x20);
-				pop(rbx);
-
-				ret();
-			}
-
-		} scenarioCheckStub;
-
-		{
-			auto location = (char*)hook::get_call(hook::get_pattern("E8 ? ? ? ? 4D 8B 75 10"));
-			g_pointIdGetterVtableOffset = *(int*)(location + 18);
-
-			g_scenarioInfoManager = hook::get_address<decltype(g_scenarioInfoManager)>(location + 12);
-		}
-
-		{
-			auto pattern = hook::pattern("E8 ? ? ? ? F7 80 C8 00 00 00 00 C0 03 00").count(7);
-
-			for (int i = 0; i < pattern.size(); i++)
-			{
-				auto location = pattern.get(i).get<void>(0);
-				hook::nop(location, 15);
-				hook::call(location, scenarioCheckStub.GetCode());
-			}
-		}
-
-		{
-			auto location = hook::get_pattern("0F B7 C2 66 41 23 C0 C1 E9 0F 41 B8 00 10", -24);
-			hook::call(location, GetTaskScenarioInfoSafe);
-		}
+		MH_CreateHook(location, GetTaskScenarioInfo, (void**)&g_origGetTaskScenarioInfo);
 	}
 #endif
 
