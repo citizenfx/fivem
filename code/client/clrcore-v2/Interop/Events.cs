@@ -9,6 +9,45 @@ namespace CitizenFX.Core
 #if IS_FXSERVER
 		public static readonly CString AllPlayers = "-1";
 #endif
+
+		/// <summary>
+		/// Register an event handler
+		/// </summary>
+		/// <remarks>Be aware this will keep <paramref name="handler"/>.Target object alive once registered, unless it's of type <see cref="BaseScript"/></remarks>
+		/// <param name="eventName">name to listen for</param>
+		/// <param name="handler">delegate to call once triggered</param>
+		/// <param name="binding">limit calls to certain sources, e.g.: server only, client only</param>
+		public static void RegisterEventHandler(string eventName, DynFunc handler, Binding binding = Binding.Local)
+		{
+			if (handler.Target is BaseScript script)
+			{
+				// these should stay with their owner
+				script.RegisterEventHandler(eventName, handler, binding);
+			}
+			else
+			{
+				EventsManager.AddEventHandler(eventName, handler, binding);
+			}
+		}
+
+		/// <summary>
+		/// Unregister an event handler
+		/// </summary>
+		/// <param name="eventName">name to remove event for</param>
+		/// <param name="handler">delegate to remove</param>
+		public static void UnregisterEventHandler(string eventName, DynFunc handler)
+		{
+			if (handler.Target is BaseScript script)
+			{
+				// these should stay with their owner
+				script.UnregisterEventHandler(eventName, handler);
+			}
+			else
+			{
+				EventsManager.RemoveEventHandler(eventName, handler);
+			}
+		}
+
 		public static void TriggerEvent(string eventName, params object[] args)
 			=> CoreNatives.TriggerEventInternal(eventName, args);
 

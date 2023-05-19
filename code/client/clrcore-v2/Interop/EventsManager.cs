@@ -116,6 +116,11 @@ namespace CitizenFX.Core
 			}
 		}
 
+		/// <summary>
+		/// Register an event handler
+		/// </summary>
+		/// <param name="deleg">delegate to call once triggered</param>
+		/// <param name="binding">limit calls to certain sources, e.g.: server only, client only</param>
 		public EventHandlerSet Add(DynFunc deleg, Binding binding = Binding.Local)
 		{
 			m_handlers.Add(deleg);
@@ -123,6 +128,10 @@ namespace CitizenFX.Core
 			return this;
 		}
 
+		/// <summary>
+		/// Unregister an event handler
+		/// </summary>
+		/// <param name="deleg">delegate to remove</param>
 		public EventHandlerSet Remove(Delegate deleg)
 		{
 			int index = m_handlers.FindIndex(cur => deleg.Equals(cur));
@@ -134,25 +143,38 @@ namespace CitizenFX.Core
 			return this;
 		}
 
+		/// <summary>
+		/// Register an event handler
+		/// </summary>
+		/// <remarks>Will add it as <see cref="Binding.Local"/>, use <see cref="Add(DynFunc, Binding)"/> to explicitly set the binding.</remarks>
+		/// <param name="entry">this event handler set</param>
+		/// <param name="deleg">delegate to register</param>
+		/// <returns>itself</returns>
 		public static EventHandlerSet operator +(EventHandlerSet entry, DynFunc deleg) => entry.Add(deleg);
 
+		/// <summary>
+		/// Unregister an event handler
+		/// </summary>
+		/// <param name="entry">this event handler set</param>
+		/// <param name="deleg">delegate to register</param>
+		/// <returns>itself</returns>
 		public static EventHandlerSet operator -(EventHandlerSet entry, DynFunc deleg) => entry.Remove(deleg);
 
 		/// <summary>
-		/// Backwards compatibility
+		/// Register an event handler
 		/// </summary>
-		/// <param name="entry"></param>
-		/// <param name="deleg"></param>
-		/// <returns></returns>
-		[Obsolete("This is slow, use += Func.Create<T..., Ret>(method) instead.", false)]
-		public static EventHandlerSet operator +(EventHandlerSet entry, Delegate deleg) => entry.Add((remote, args) => deleg.DynamicInvoke(args));
+		/// <remarks>Will add it as <see cref="Binding.Local"/>, use <see cref="Add(DynFunc, Binding)"/> to explicitly set the binding.</remarks>
+		/// <param name="entry">this event handler set</param>
+		/// <param name="deleg">delegate to register</param>
+		/// <returns>itself</returns>
+		public static EventHandlerSet operator +(EventHandlerSet entry, Delegate deleg) => entry.Add(Func.Create(deleg.Target, deleg.Method));
 
 		/// <summary>
-		/// Backwards compatibility
+		/// Unregister an event handler
 		/// </summary>
-		/// <param name="entry"></param>
-		/// <param name="deleg"></param>
-		/// <returns></returns>
+		/// <param name="entry">this event handler set</param>
+		/// <param name="deleg">delegate to register</param>
+		/// <returns>itself</returns>
 		public static EventHandlerSet operator -(EventHandlerSet entry, Delegate deleg) => entry.Remove(deleg);
 	}
 }
