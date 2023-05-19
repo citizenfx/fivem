@@ -2537,7 +2537,7 @@ void ServerGameState::SetPopulationDisabled(int bucket, bool disabled)
 }
 
 // make sure you have a lock to the client mutex before calling this function!
-void ServerGameState::ReassignEntityInner(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient, std::unique_lock<std::shared_mutex>&& lock)
+void ServerGameState::ReassignEntityInner(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient, std::unique_lock<std::shared_mutex>&& lockIn)
 {
 	auto entity = GetEntity(0, entityHandle);
 
@@ -2551,6 +2551,9 @@ void ServerGameState::ReassignEntityInner(uint32_t entityHandle, const fx::Clien
 	{
 		return;
 	}
+
+	// perform a final std::move on the lock
+	std::unique_lock lock = std::move(lockIn);
 
 	// if 'safe', we'll lock the clientMutex here (for use when the mutex isn't already locked)
 	if (!lock)
