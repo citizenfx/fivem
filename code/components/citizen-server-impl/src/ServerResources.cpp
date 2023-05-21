@@ -37,6 +37,10 @@
 
 #include <boost/algorithm/string.hpp>
 
+#if defined(_DEBUG) && defined(_WIN32)
+#include <shellapi.h>
+#endif
+
 // a set of resources that are system-managed and should not be stopped from script
 static std::set<std::string> g_managedResources = {
 	"spawnmanager",
@@ -719,6 +723,21 @@ static InitFunction initFunction([]()
 			conCtx->ExecuteSingleCommandDirect(ProgramArguments{ "stop", resourceName });
 			conCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", resourceName });
 		});
+
+#if defined(_DEBUG) && defined(_WIN32)
+		static auto openCommandRef = instance->AddCommand("open", [=](const std::string& resourceName)
+		{
+			auto resource = resman->GetResource(resourceName);
+
+			if (!resource.GetRef())
+			{
+				trace("^3Couldn't find resource %s.^7\n", resourceName);
+				return;
+			}
+
+			ShellExecuteW(NULL, L"open", ToWide(resource->GetPath()).c_str(), NULL, NULL, SW_SHOWNORMAL);
+		});
+#endif
 
 		static bool configured = false;
 
