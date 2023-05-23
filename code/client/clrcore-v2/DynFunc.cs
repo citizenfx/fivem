@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -16,6 +17,9 @@ namespace CitizenFX.Core
 
 	public static class Func
 	{
+		private static readonly Dictionary<MethodInfo, MethodInfo> s_wrappedMethods = new Dictionary<MethodInfo, MethodInfo>();
+		private static readonly Dictionary<MethodInfo, MethodInfo> s_dynfuncMethods = new Dictionary<MethodInfo, MethodInfo>();
+
 		/// <summary>
 		/// Creates a new dynamic invokable function
 		/// </summary>
@@ -100,6 +104,11 @@ namespace CitizenFX.Core
 		[SecurityCritical]
 		private static DynFunc Construct(object target, MethodInfo method)
 		{
+			if (s_wrappedMethods.TryGetValue(method, out var existingMethod))
+			{
+				return (DynFunc)existingMethod.CreateDelegate(typeof(DynFunc), target);
+			}
+
 			// TODO: implement optional parameter(s) support with parameter.IsOptional and parameter.DefaultValue
 
 			ParameterInfo[] parameters = method.GetParameters();
@@ -122,6 +131,7 @@ namespace CitizenFX.Core
 			}
 			else
 			{
+				target = null;
 				ldarg_remote = OpCodes.Ldarg_0;
 				ldarg_args = OpCodes.Ldarg_1;
 			}
@@ -130,6 +140,7 @@ namespace CitizenFX.Core
 			{
 				var parameter = parameters[i];
 				var t = parameter.ParameterType;
+
 #if DYN_FUNC_CALLI
 				parameterTypes[i] = t;
 #endif
@@ -157,7 +168,7 @@ namespace CitizenFX.Core
 						}
 					}
 					
-					throw new ArgumentException($"{nameof(SourceAttribute)} used on type {t}, this type can't be converted from type Remote.");
+					throw new ArgumentException($"{nameof(SourceAttribute)} used on type {t}, this type can't be constructed with parameter Remote.");
 				}
 
 				g.Emit(ldarg_args);
@@ -214,7 +225,12 @@ namespace CitizenFX.Core
 
 			g.Emit(OpCodes.Ret);
 
-			return (DynFunc)lambda.CreateDelegate(typeof(DynFunc), target);
+			Delegate dynFunc = lambda.CreateDelegate(typeof(DynFunc), target);
+
+			s_wrappedMethods.Add(method, dynFunc.Method);
+			s_dynfuncMethods.Add(dynFunc.Method, method);
+
+			return (DynFunc)dynFunc;
 		}
 
 		#region Func<,> creators, C# why?!
@@ -279,5 +295,16 @@ namespace CitizenFX.Core
 		};
 
 		#endregion
+
+		/// <summary>
+		/// Returns the original method that's been wrapped or its own <see cref="Delegate.Method"/>
+		/// </summary>
+		/// <param name="dynFunc">this reference</param>
+		/// <returns>The wrapped method or <see cref="Delegate.Method"/> if it wasn't wrapped</returns>
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public static MethodInfo GetWrappedMethod(this DynFunc dynFunc)
+		{
+			return s_dynfuncMethods.TryGetValue(dynFunc.Method, out var existingMethod) ? existingMethod : dynFunc.Method;
+		}
 	}
 }
