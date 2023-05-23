@@ -165,13 +165,13 @@ namespace CitizenFX.Core
 		[SecurityCritical, SuppressMessage("System.Diagnostics.CodeAnalysis", "IDE0051", Justification = "Called by host")]
 		internal static int DuplicateRef(int refIndex)
 		{
-			return ReferenceFunctionManager.Duplicate(refIndex);
+			return ReferenceFunctionManager.IncrementReference(refIndex);
 		}
 
 		[SecurityCritical, SuppressMessage("System.Diagnostics.CodeAnalysis", "IDE0051", Justification = "Called by host")]
 		internal static void RemoveRef(int refIndex)
 		{
-			ReferenceFunctionManager.Remove(refIndex);
+			ReferenceFunctionManager.DecrementReference(refIndex);
 		}
 
 #endregion

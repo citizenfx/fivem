@@ -278,7 +278,7 @@ namespace CitizenFX.Core
 			if (!ts_remote)
 			{
 				var refType = ReferenceFunctionManager.Create(dynFunc);
-				packer.PackExtendedTypeValue(11, refType);
+				packer.PackExtendedTypeValue(11, refType.Value);
 			}
 			else
 			{

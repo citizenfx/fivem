@@ -96,6 +96,25 @@ namespace CitizenFX.Core
 		}
 
 		public void Add(string key, DynFunc value) => this[key].Add(value);
+
+		/// <summary>
+		/// Should only be called by <see cref="BaseScript.Enable"/> or any other code that guarantees that it is only called once
+		/// </summary>
+		internal void Enable()
+		{
+			foreach (var ev in this)
+			{
+				ev.Value.Enable();
+			}
+		}
+
+		internal void Disable()
+		{
+			foreach (var ev in this)
+			{
+				ev.Value.Disable();
+			}
+		}
 	}
 
 	public class EventHandlerSet
@@ -110,10 +129,7 @@ namespace CitizenFX.Core
 
 		~EventHandlerSet()
 		{
-			for(int i = 0; i < m_handlers.Count; ++i)
-			{
-				EventsManager.RemoveEventHandler(m_eventName, m_handlers[i]);
-			}
+			Disable();
 		}
 
 		/// <summary>
@@ -176,5 +192,25 @@ namespace CitizenFX.Core
 		/// <param name="deleg">delegate to register</param>
 		/// <returns>itself</returns>
 		public static EventHandlerSet operator -(EventHandlerSet entry, Delegate deleg) => entry.Remove(deleg);
+
+
+		/// <summary>
+		/// Should only be called by <see cref="EventHandler.Enable"/> or any other code that guarantees that it is only called once
+		/// </summary>
+		internal void Enable()
+		{
+			for (int i = 0; i < m_handlers.Count; ++i)
+			{
+				EventsManager.AddEventHandler(m_eventName, m_handlers[i]);
+			}
+		}
+
+		internal void Disable()
+		{
+			for (int i = 0; i < m_handlers.Count; ++i)
+			{
+				EventsManager.RemoveEventHandler(m_eventName, m_handlers[i]);
+			}
+		}
 	}
 }
