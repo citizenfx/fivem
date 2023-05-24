@@ -12,7 +12,7 @@ namespace CitizenFX.Core
 {
 	internal static class ScriptManager
 	{
-		private static readonly List<BaseScript> s_definedScripts = new List<BaseScript>();
+		private static readonly List<BaseScript> s_activeScripts = new List<BaseScript>();
 
 		private static Dictionary<string, Assembly> s_loadedAssemblies = new Dictionary<string, Assembly>();
 		private static HashSet<string> s_assemblySearchPaths = new HashSet<string>();
@@ -41,17 +41,19 @@ namespace CitizenFX.Core
 		#region Scripts
 		internal static void AddScript(BaseScript script)
 		{
-			if (!s_definedScripts.Contains(script))
+			if (!s_activeScripts.Contains(script))
 			{
-				script.Initialize();
+				s_activeScripts.Add(script);
 
-				s_definedScripts.Add(script);
+				script.Enable();
 			}
 		}
 
 		internal static void RemoveScript(BaseScript script)
 		{
-			s_definedScripts.Remove(script);
+			script.Disable();
+
+			s_activeScripts.Remove(script);
 		}
 
 		private static void LoadScripts(Assembly assembly)

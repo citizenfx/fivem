@@ -31,7 +31,21 @@ namespace CitizenFX.Core
 
 		~Exports()
 		{
-			foreach(var export in m_exports.Keys)
+			Disable();
+		}
+
+		/// <summary>
+		/// Should only be called by <see cref="BaseScript.Enable"/> or any other code that guarantees that it is only called once
+		/// </summary>
+		internal void Enable()
+		{
+			foreach (var entry in m_exports)
+				ExportsManager.AddExportHandler(entry.Key, entry.Value);
+		}
+
+		internal void Disable()
+		{
+			foreach (var export in m_exports.Keys)
 				ExportsManager.RemoveExportHandler(export);
 		}
 

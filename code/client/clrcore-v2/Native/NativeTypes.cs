@@ -65,7 +65,7 @@ namespace CitizenFX.Core.Native
 		internal readonly byte[] value;
 		
 		internal InFunc(byte[] funcRef) => value = funcRef;
-		public InFunc(DynFunc del) => value = ReferenceFunctionManager.Create(del);
+		public InFunc(DynFunc del) => value = ReferenceFunctionManager.Create(del).Value;
 		public InFunc(Delegate del) : this(Func.Create(del)) { }
 
 		public static implicit operator InFunc(Delegate func) => new InFunc(func);

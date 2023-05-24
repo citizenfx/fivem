@@ -3,9 +3,16 @@ using System;
 namespace CitizenFX.Core
 {	internal class CoroutineRepeat
 	{
+		enum Status
+		{
+			Stopped,
+			Active,
+			Stopping,
+		}
+
 		public Func<Coroutine> m_coroutine;
 
-		public bool IsRepeating { get; set; } = true;
+		private Status m_status = Status.Stopped;
 
 		public CoroutineRepeat(Func<Coroutine> coroutine)
 		{
@@ -14,32 +21,40 @@ namespace CitizenFX.Core
 
 		public void Schedule()
 		{
-			IsRepeating = true;
+			Status curStatus = m_status;
+			m_status = Status.Active;
 
-			// Create a repeating action
-			Action action = null;
-			action = () =>
+			if (curStatus == Status.Stopped)
 			{
-				var result = m_coroutine();
-				if (result != null && !result.GetAwaiter().IsCompleted)
-				{
-					result.GetAwaiter().OnCompleted(() =>
-					{
-						if (IsRepeating)
-						{
-							Scheduler.Schedule(action);
-						}
-					});
-				}
-				else if (IsRepeating)
-				{
-					Scheduler.Schedule(action);
-				}
-			};
-
-			Scheduler.Schedule(action);
+				Scheduler.Schedule(Invoke);
+			}
 		}
 
-		public void Stop() => IsRepeating = false;
+		private void Invoke()
+		{
+			var result = m_coroutine();
+			if (result?.GetAwaiter().IsCompleted == false)
+			{
+				result.GetAwaiter().OnCompleted(Repeat);
+			}
+			else
+			{
+				Repeat();
+			}
+		}
+
+		private void Repeat()
+		{			
+			if (m_status == Status.Active)
+			{
+				Scheduler.Schedule(Invoke);
+			}
+			else
+			{
+				m_status = Status.Stopped;
+			}
+		}
+
+		public void Stop() => m_status = Status.Stopping;
 	}
 }

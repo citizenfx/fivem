@@ -1,4 +1,3 @@
-using CitizenFX.Core.Native;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -8,11 +7,22 @@ namespace CitizenFX.Core
 {
 	public abstract class BaseScript
 	{
+		[Flags]
+		internal enum State : byte
+		{
+			Uninitialized = 0x0,
+			Initialized = 0x1,
+			Enabled = 0x2,
+		}
+
 		#region Fields
 
-		private bool m_initialized = false;
+		private State m_state = State.Uninitialized;
+
+		public bool IsEnabled => (m_state & State.Enabled) != 0;
 
 		private readonly List<CoroutineRepeat> m_tickList = new List<CoroutineRepeat>();
+		private readonly List<KeyValuePair<int, DynFunc>> m_commands = new List<KeyValuePair<int, DynFunc>>();
 
 #if REMOTE_FUNCTION_ENABLED
 		private readonly List<RemoteHandler> m_persistentFunctions = new List<RemoteHandler>();
@@ -23,20 +33,28 @@ namespace CitizenFX.Core
 
 		#endregion
 
-		#region Instance Initialization
+		#region Instance initialization, finalization, and enablement
 		~BaseScript()
 		{
-			for (int i = 0; i < m_tickList.Count; ++i)
-				m_tickList[i].Stop();
+			if (!AppDomain.CurrentDomain.IsFinalizingForUnload())
+			{
+				// remove all reserved command slots
+				for (int i = 0; i < m_commands.Count; ++i)
+				{
+					ReferenceFunctionManager.Remove(m_commands[i].Key);
+				}
+
+				m_commands.Clear(); // makes sure Disable() call below won't unnecessarily try to disable commands
+
+				Disable();
+			}
 		}
 
 		[SecuritySafeCritical]
 		internal void Initialize()
 		{
-			if (m_initialized)
+			if (m_state != State.Uninitialized)
 				return;
-
-			m_initialized = true;
 
 			var scriptMethods = this.GetType().GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance);
 			foreach (MethodInfo method in scriptMethods)
@@ -59,7 +77,8 @@ namespace CitizenFX.Core
 								break;
 
 							case CommandAttribute command:
-								Native.CoreNatives.RegisterCommand(command.Command, Func.Create(this, method), command.Restricted);
+								DynFunc dynFunc = Func.Create(this, method);
+								m_commands.Add(new KeyValuePair<int, DynFunc>(ReferenceFunctionManager.CreateCommand(command.Command, dynFunc, command.Restricted), dynFunc));
 								break;
 
 							case ExportAttribute export:
@@ -73,7 +92,102 @@ namespace CitizenFX.Core
 					}
 				}
 			}
+
+			m_state = State.Initialized | State.Enabled;
 		}
+
+		/// <summary>
+		/// Enables all ticks, commands, events, and exports
+		/// </summary>
+		public void Enable()
+		{
+			if (m_state == State.Uninitialized)
+			{
+				Initialize();
+				OnEnable();
+			}
+			else if ((m_state & State.Enabled) == 0)
+			{
+				// ticks
+				for (int i = 0; i < m_tickList.Count; ++i)
+				{
+					m_tickList[i].Schedule();
+				}
+
+				// commands
+				for (int i = 0; i < m_commands.Count; ++i)
+				{
+					ReferenceFunctionManager.SetDelegate(m_commands[i].Key, m_commands[i].Value);
+				}
+
+				EventHandlers.Enable();
+				Exports.Enable();
+
+				m_state |= State.Enabled;
+
+				OnEnable();
+			}
+		}
+
+		/// <summary>
+		/// Disables all tick repeats, commands, events, and exports
+		/// </summary>
+		/// <remarks>
+		/// 1. This <see cref="BaseScript"/> can't re-enable itself except for callbacks, you may want to hold a reference to it.<br />
+		/// 2. External code/scripts can still call in for commands, but they'll get <see langword="null"/> returned automatically.
+		/// </remarks>
+		public void Disable()
+		{
+			if ((m_state & State.Enabled) != 0)
+			{
+				// ticks
+				for (int i = 0; i < m_tickList.Count; ++i)
+				{
+					m_tickList[i].Stop();
+				}
+
+				// commands
+				for (int i = 0; i < m_commands.Count; ++i)
+				{
+					ReferenceFunctionManager.SetDelegate(m_commands[i].Key, (_0, _1) => null);
+				}
+
+				EventHandlers.Disable();
+				Exports.Disable();
+
+				m_state &= ~State.Enabled;
+
+				OnDisable();
+			}
+		}
+
+		/// <summary>
+		/// Disables all tick repeats, commands, events, and exports
+		/// </summary>
+		/// <remarks>
+		/// 1. This <see cref="BaseScript"/> can't re-enable itself, unless <paramref name="deleteAllCallbacks"/> is <see langword="false" /> then callbacks are still able to, you may want to hold a reference to it.<br />
+		/// 2. External code/scripts can still call in for commands, but they'll get <see langword="null"/> returned automatically.
+		/// </remarks>
+		/// <param name="deleteAllCallbacks">If enabled will delete all callbacks targeting this <see cref="BaseScript"/> instance</param>
+		public void Disable(bool deleteAllCallbacks)
+		{
+			Disable(); // Remove commands' Target as well, so below `RemoveAllWithTarget` call won't delete those
+
+			if (deleteAllCallbacks)
+			{
+				ReferenceFunctionManager.RemoveAllWithTarget(this);
+			}
+		}
+
+		/// <summary>
+		/// Called when this script got enabled
+		/// </summary>
+		protected virtual void OnEnable() { }
+
+		/// <summary>
+		/// Called when this script got disabled
+		/// </summary>
+		protected virtual void OnDisable() { }
 
 		#endregion
 
@@ -143,12 +257,20 @@ namespace CitizenFX.Core
 
 		#region Script loading
 
+		/// <summary>
+		/// Activates all ticks, events, and exports.
+		/// </summary>
+		/// <param name="script">script to activate</param>
 		public static void RegisterScript(BaseScript script)
 		{
 			ScriptManager.AddScript(script);
 		}
 
-		public static void UnregisterScript(in BaseScript script)
+		/// <summary>
+		/// Deactivates all ticks, events, and exports.
+		/// </summary>
+		/// <param name="script">script to deactivate</param>
+		public static void UnregisterScript(BaseScript script)
 		{
 			ScriptManager.RemoveScript(script);
 		}
