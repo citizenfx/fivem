@@ -27,9 +27,6 @@
 #define CITIZENFX_CORE "CitizenFX.Core"
 #define CITIZENFX_GAME_NATIVE "CitizenFX." PRODUCT_NAME ".Native"
 
-#define GET_PREV_DOMAIN MonoDomain* _prevDomain = mono_domain_get();
-#define BACK_TO_PREV_DOMAIN mono_domain_set_internal(_prevDomain);
-
 namespace fx::mono
 {
 MonoDomain* MonoComponentHost::s_rootDomain = nullptr;
