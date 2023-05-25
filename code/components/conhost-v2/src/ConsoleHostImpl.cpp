@@ -360,6 +360,15 @@ extern ID3D11DeviceContext* g_pd3dDeviceContext;
 extern float ImGui_ImplWin32_GetWindowDpiScale(ImGuiViewport* viewport);
 extern void ImGui_ImplDX11_RecreateFontsTexture();
 
+// rqge-graphics-five helper
+#ifdef GTA_FIVE
+void DLL_IMPORT ReshadeRenderUI();
+#else
+void ReshadeRenderUI()
+{
+}
+#endif
+
 void OnConsoleFrameDraw(int width, int height, bool usedSharedD3D11)
 {
 	std::unique_lock lock(g_conHostMutex, std::defer_lock);
@@ -481,6 +490,8 @@ void OnConsoleFrameDraw(int width, int height, bool usedSharedD3D11)
 	}
 
 	DrawMiniConsole();
+
+	ReshadeRenderUI();
 
 	ConHost::OnDrawGui();
 
