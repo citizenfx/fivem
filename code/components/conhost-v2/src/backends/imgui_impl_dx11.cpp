@@ -34,6 +34,7 @@
 #include <StdInc.h>
 #include "imgui.h"
 #include "imgui_impl_dx11.h"
+#include "ImGuiTextureId.h"
 
 // DirectX
 #include <stdio.h>
@@ -283,8 +284,9 @@ void ImGui_ImplDX11_RenderDrawData(ImDrawData* draw_data)
                 ctx->RSSetScissorRects(1, &r);
 
                 // Bind texture, Draw
-                ID3D11ShaderResourceView* texture_srv = (ID3D11ShaderResourceView*)((void**)pcmd->GetTexID())[1];
-                ctx->PSSetShaderResources(0, 1, &texture_srv);
+                ID3D11ShaderResourceView* texture_srv = conhost::ImGuiTexture::ToShaderResourceView(pcmd->GetTexID());
+				ctx->PSSetShaderResources(0, 1, &texture_srv);
+
                 ctx->DrawIndexed(pcmd->ElemCount, pcmd->IdxOffset + global_idx_offset, pcmd->VtxOffset + global_vtx_offset);
             }
         }
@@ -357,12 +359,10 @@ static void ImGui_ImplDX11_CreateFontsTexture()
     // Store our identifier
 	if (!io.Fonts->TexID)
 	{
-		void** texId = new void*[2];
-		io.Fonts->TexID = texId;
+		io.Fonts->TexID = (ImTextureID)conhost::MakeImGuiTexture(nullptr, bd->pFontTextureView);
 	}
 
-	void** texId = (void**)io.Fonts->TexID;
-	texId[1] = bd->pFontTextureView;
+	((conhost::ImGuiTexture*)io.Fonts->TexID)->extTexture = bd->pFontTextureView;
 
     // Create texture sampler
 	// (Bilinear sampling is required by default. Set 'io.Fonts->Flags |= ImFontAtlasFlags_NoBakedLines' or 'style.AntiAliasedLinesUseTex = false' to allow point/nearest sampling)
@@ -769,4 +769,22 @@ static void ImGui_ImplDX11_InitPlatformInterface()
 static void ImGui_ImplDX11_ShutdownPlatformInterface()
 {
     ImGui::DestroyPlatformWindows();
+}
+
+namespace conhost
+{
+ID3D11ShaderResourceView* ImGuiTexture::ToShaderResourceView(void* textureId)
+{
+	if (!textureId)
+	{
+		return nullptr;
+	}
+
+	if (IsTexture(textureId))
+	{
+		return reinterpret_cast<ID3D11ShaderResourceView*>(reinterpret_cast<ImGuiTexture*>(textureId)->extTexture);
+	}
+
+	return nullptr;
+}
 }
