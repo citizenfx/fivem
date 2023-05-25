@@ -203,6 +203,22 @@ namespace CitizenFX.Core
 			return *(float*)&v;
 		}
 
+		/// <summary>
+		/// Read a <see cref="Single"/> stored as little endian, used for custom vectors
+		/// </summary>
+		private unsafe float ReadSingleLE()
+		{
+			uint v = *(uint*)AdvancePointer(4);
+
+			if (!BitConverter.IsLittleEndian)
+			{
+				v = (v >> 16) | (v << 16); // swap adjacent 16-bit blocks
+				v = ((v & 0xFF00FF00u) >> 8) | ((v & 0x00FF00FFu) << 8); // swap adjacent 8-bit blocks
+			}
+
+			return *(float*)&v;
+		}
+
 		private unsafe double ReadDouble()
 		{
 			var v = ReadUInt64();
@@ -291,13 +307,13 @@ namespace CitizenFX.Core
 						: null;
 #endif
 				case 20: // vector2
-					return new Vector2(ReadSingle(), ReadSingle());
+					return new Vector2(ReadSingleLE(), ReadSingleLE());
 				case 21: // vector3
-					return new Vector3(ReadSingle(), ReadSingle(), ReadSingle());
+					return new Vector3(ReadSingleLE(), ReadSingleLE(), ReadSingleLE());
 				case 22: // vector4
-					return new Vector4(ReadSingle(), ReadSingle(), ReadSingle(), ReadSingle());
+					return new Vector4(ReadSingleLE(), ReadSingleLE(), ReadSingleLE(), ReadSingleLE());
 				case 23: // quaternion
-					return new Quaternion(ReadSingle(), ReadSingle(), ReadSingle(), ReadSingle());
+					return new Quaternion(ReadSingleLE(), ReadSingleLE(), ReadSingleLE(), ReadSingleLE());
 				default: // shouldn't ever happen due to the check above
 					throw new InvalidOperationException($"Extension type {extType} not supported.");
 			}

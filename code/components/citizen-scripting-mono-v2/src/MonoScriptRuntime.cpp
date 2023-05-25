@@ -2,6 +2,7 @@
 #include "MonoScriptRuntime.h"
 
 #include "MonoComponentHost.h"
+#include "MonoDomainScope.h"
 #include "MonoFreeable.h"
 
 #include <msgpack.hpp>
@@ -34,12 +35,6 @@
 */
 
 using namespace std::literals; // enable ""sv literals
-
-// backwards compatibility, without this the v1 runtime will crash
-static void back_to_root_domain()
-{
-	mono_domain_set_internal(mono_get_root_domain());
-}
 
 uint64_t GetCurrentSchedulerTime()
 {
@@ -166,7 +161,7 @@ void MonoScriptRuntime::InitializeMethods(MonoImage* image)
 
 result_t MonoScriptRuntime::Destroy()
 {
-	mono_domain_set_internal(MonoComponentHost::GetRootDomain()); // not doing this crashes the unloading of this app domain
+	MonoDomainScope scope(MonoComponentHost::GetRootDomain()); // not doing this crashes the unloading of this app domain
 
 	MonoException* exc = nullptr;
 	mono_domain_try_unload(m_appDomain, (MonoObject**)&exc);
@@ -175,8 +170,6 @@ result_t MonoScriptRuntime::Destroy()
 	m_scriptHost = nullptr;
 	m_bookmarkHost->RemoveBookmarks(this);
 	m_bookmarkHost = nullptr;
-
-	back_to_root_domain();
 
 	return ReturnOrError(exc);
 }
@@ -204,7 +197,7 @@ result_t MonoScriptRuntime::TickBookmarks(uint64_t* bookmarks, int32_t numBookma
 	if (m_parentObject)
 		m_parentObject->OnDeactivate();
 
-	back_to_root_domain();
+	mono_domain_set_internal(mono_get_root_domain()); // v1 requires us to be on the root domain
 
 	return ReturnOrError(exc);
 }
@@ -212,7 +205,7 @@ result_t MonoScriptRuntime::TickBookmarks(uint64_t* bookmarks, int32_t numBookma
 result_t MonoScriptRuntime::TriggerEvent(char* eventName, char* argsSerialized, uint32_t serializedSize, char* sourceId)
 {
 	fx::PushEnvironment env(this);
-	mono_domain_set_internal(m_appDomain);
+	MonoDomainScope scope(m_appDomain);
 
 	MONO_BOUNDARY_START
 
@@ -224,8 +217,6 @@ result_t MonoScriptRuntime::TriggerEvent(char* eventName, char* argsSerialized, 
 	ScheduleTick(nextTick);
 
 	MONO_BOUNDARY_END
-
-	back_to_root_domain();
 
 	return ReturnOrError(exc);
 }
@@ -314,7 +305,7 @@ result_t MonoScriptRuntime::LoadFile(char* scriptFile)
 {
 	fx::PushEnvironment env(this);
 	MonoComponentHost::EnsureThreadAttached();
-	mono_domain_set_internal(m_appDomain);
+	MonoDomainScope scope(m_appDomain);
 
 	auto currentTime = GetCurrentSchedulerTime();
 	bool isProfiling = IsProfiling();
@@ -328,8 +319,6 @@ result_t MonoScriptRuntime::LoadFile(char* scriptFile)
 		"Assembly %s has been loaded into the mono rt2 runtime. This runtime is still in beta and shouldn't be used in production, "
 		"crashes and breaking changes are to be expected.\n", scriptFile);
 
-	back_to_root_domain();
-
 	return ReturnOrError(exc);
 }
 
@@ -340,13 +329,11 @@ result_t MonoScriptRuntime::CallRef(int32_t refIndex, char* argsSerialized, uint
 
 	fx::PushEnvironment env(this);
 	MonoComponentHost::EnsureThreadAttached();
-	mono_domain_set_internal(m_appDomain);
+	MonoDomainScope scope(m_appDomain);
 
 	MonoException* exc = nullptr;
 	uint64_t nextTick = m_callRef(refIndex, argsSerialized, argsSize, retvalSerialized, retvalSize, GetCurrentSchedulerTime(), IsProfiling(), &exc);
 	ScheduleTick(nextTick);
-
-	back_to_root_domain();
 
 	return ReturnOrError(exc);
 }
@@ -355,12 +342,10 @@ result_t MonoScriptRuntime::DuplicateRef(int32_t refIndex, int32_t* newRefIdx)
 {
 	fx::PushEnvironment env(this);
 	MonoComponentHost::EnsureThreadAttached();
-	mono_domain_set_internal(m_appDomain);
+	MonoDomainScope scope(m_appDomain);
 
 	MonoException* exc = nullptr;
 	m_duplicateRef(refIndex, newRefIdx, &exc);
-
-	back_to_root_domain();
 
 	return ReturnOrError(exc);
 }
@@ -369,12 +354,10 @@ result_t MonoScriptRuntime::RemoveRef(int32_t refIndex)
 {
 	fx::PushEnvironment env(this);
 	MonoComponentHost::EnsureThreadAttached();
-	mono_domain_set_internal(m_appDomain);
+	MonoDomainScope scope(m_appDomain);
 
 	MonoException* exc = nullptr;
 	m_removeRef(refIndex, &exc);
-
-	back_to_root_domain();
 
 	return ReturnOrError(exc);
 }
@@ -401,11 +384,9 @@ result_t MonoScriptRuntime::RequestMemoryUsage()
 result_t MonoScriptRuntime::GetMemoryUsage(int64_t* memoryUsage)
 {
 	MonoComponentHost::EnsureThreadAttached();
-	mono_domain_set_internal(m_appDomain);
+	MonoDomainScope scope(m_appDomain);
 
 	*memoryUsage = MonoComponentHostShared::GetMemoryUsage();
-
-	back_to_root_domain();
 
 	return FX_S_OK;
 }
@@ -428,14 +409,12 @@ result_t MonoScriptRuntime::SetupFxProfiler(void* obj, int32_t resourceId)
 {
 	fx::PushEnvironment env(this);
 	MonoComponentHost::EnsureThreadAttached();
-	mono_domain_set_internal(m_appDomain);
+	MonoDomainScope scope(MonoComponentHost::GetRootDomain());
 
 	trace("begin m_startProfiling\n");
 	MonoException* exc = nullptr;
 	m_startProfiling(&exc);
 	trace("end m_startProfiling\n");
-
-	back_to_root_domain();
 
 	return ReturnOrError(exc);
 }
@@ -444,14 +423,12 @@ result_t MonoScriptRuntime::ShutdownFxProfiler()
 {
 	fx::PushEnvironment env(this);
 	MonoComponentHost::EnsureThreadAttached();
-	mono_domain_set_internal(m_appDomain);
+	MonoDomainScope scope(MonoComponentHost::GetRootDomain());
 
 	trace("begin m_stopProfiling\n");
 	MonoException* exc = nullptr;
 	m_stopProfiling(&exc);
 	trace("end m_stopProfiling\n");
-
-	back_to_root_domain();
 
 	return ReturnOrError(exc);
 }

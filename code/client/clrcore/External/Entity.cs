@@ -50,7 +50,7 @@ namespace CitizenFX.Core
 			get
 			{
 				// CFX-TODO
-				return Function.Call<IntPtr>((Hash)MemoryAccess.GetHashKey("get_entity_address"), Handle);
+				return Function.Call<IntPtr>((Hash)0x9A3144BC /*Game.GenerateHashASCII("get_entity_address")*/, Handle);
 				//return MemoryAccess.GetEntityAddress(Handle);
 			}
 		}

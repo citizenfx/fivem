@@ -6,25 +6,6 @@ namespace CitizenFX.Core.Native
 {
 	internal static class MemoryAccess
 	{
-		public static uint GetHashKey(string input)
-		{
-			uint hash = 0;
-			var len = input.Length;
-
-			for (var i = 0; i < len; i++)
-			{
-				hash += char.ToLowerInvariant(input[i]);
-				hash += hash << 10;
-				hash ^= hash >> 6;
-			}
-
-			hash += hash << 3;
-			hash ^= hash >> 11;
-			hash += hash << 15;
-
-			return hash;
-		}
-
 		public static int[] GetPickupObjectHandles() => new int[0];
 		public static int[] GetPedHandles() => new int[0];
 		public static int[] GetEntityHandles() => new int[0];
