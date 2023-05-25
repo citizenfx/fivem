@@ -7,7 +7,11 @@ return {
 		language "C++"
 		kind "SharedLib"
 
-		defines { 'IMGUI_API=__declspec(dllexport)', 'IMGUI_ENABLE_FREETYPE' }
+		defines {
+			'IMGUI_API=__declspec(dllexport)',
+			'IMGUI_ENABLE_FREETYPE',
+			'NDEBUG', -- some user code for reshade bits might trip on IM_ASSERT
+		}
 
 		add_dependencies {
 			'vendor:freetype'
