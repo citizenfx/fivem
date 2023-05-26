@@ -136,6 +136,8 @@ result_t MonoScriptRuntime::Create(IScriptHost* host)
 		auto initialize = Method::Find(image, "CitizenFX.Core.ScriptInterface:Initialize");
 		initialize({ mono_string_new(m_appDomain, resourceName), &thisPtr, &m_instanceId }, &exc);
 
+		mono_domain_set_internal(mono_get_root_domain()); // back to root for v1
+
 		return ReturnOrError(exc);
 	}
 	catch (std::exception& e)
@@ -161,7 +163,9 @@ void MonoScriptRuntime::InitializeMethods(MonoImage* image)
 
 result_t MonoScriptRuntime::Destroy()
 {
-	MonoDomainScope scope(MonoComponentHost::GetRootDomain()); // not doing this crashes the unloading of this app domain
+	// Technically we do not need to change domain as long as we're not on the one we unload.
+	// It's purely used to set it back to by mono, but for now we do it to be 100% sure.
+	mono_domain_set_internal(MonoComponentHost::GetRootDomain());
 
 	MonoException* exc = nullptr;
 	mono_domain_try_unload(m_appDomain, (MonoObject**)&exc);
@@ -170,6 +174,8 @@ result_t MonoScriptRuntime::Destroy()
 	m_scriptHost = nullptr;
 	m_bookmarkHost->RemoveBookmarks(this);
 	m_bookmarkHost = nullptr;
+
+	mono_domain_set_internal(mono_get_root_domain()); // back to root for v1
 
 	return ReturnOrError(exc);
 }
