@@ -707,7 +707,14 @@ static InitFunction initFunction([]()
 						std::vector<char> handoverValue;
 						utf8::replace_invalid(value.begin(), value.end(), std::back_inserter(handoverValue));
 
-						handoverData[key] = json::parse(handoverValue);
+						try
+						{
+							handoverData[key] = json::parse(handoverValue);
+						}
+						catch (std::exception&)
+						{
+
+						}
 					}
 
 					data["handover"] = std::move(handoverData);
