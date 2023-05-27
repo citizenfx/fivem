@@ -1386,6 +1386,22 @@ static void Init()
 		return pn ? pn->isInvincible : false;
 	}));
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_CAMERA_COORDS", MakePlayerEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		scrVector resultVector = { 0 };
+		float camPosition[3];
+		if (!entity->syncTree->GetPlayerCameraPosition(camPosition))
+		{
+			entity->syncTree->GetPosition(camPosition);
+		}
+
+		resultVector.x = camPosition[0];
+		resultVector.y = camPosition[1];
+		resultVector.z = camPosition[2];
+
+		return resultVector;
+	}));
+
 	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_CAMERA_ROTATION", MakePlayerEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
 		auto camData = entity->syncTree->GetPlayerCamera();

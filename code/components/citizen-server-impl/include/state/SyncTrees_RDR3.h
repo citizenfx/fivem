@@ -1071,6 +1071,33 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, true>
 		return (hasCdn) ? &cameraNode->data : nullptr;
 	}
 
+	virtual bool GetPlayerCameraPosition(float* posOut) override
+	{
+		auto camData = this->GetPlayerCamera();
+		if (!camData)
+		{
+			return false;
+		}
+
+		switch (camData->camMode)
+		{
+			case 0:
+			default:
+				return false;
+			case 1:
+				posOut[0] = camData->freeCamPosX;
+				posOut[1] = camData->freeCamPosY;
+				posOut[2] = camData->freeCamPosZ;
+				return true;
+			case 2:
+				this->GetPosition(posOut);
+				posOut[0] += camData->camOffX;
+				posOut[1] += camData->camOffY;
+				posOut[2] += camData->camOffZ;
+				return true;
+		}
+	}
+
 	virtual CPlayerWantedAndLOSNodeData* GetPlayerWantedAndLOS() override
 	{
 		return nullptr;
