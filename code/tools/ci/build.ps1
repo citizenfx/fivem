@@ -93,7 +93,7 @@ if ($env:CI) {
 
 		$Tag = "vUndefined"
 	} else {
-		$Branch = $env:CI_BUILD_REF_NAME
+		$Branch = $env:CI_COMMIT_REF_NAME
 		$WorkDir = $env:CI_PROJECT_DIR -replace '/','\'
 
 		$UploadBranch = $env:CI_COMMIT_REF_NAME
