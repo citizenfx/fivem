@@ -275,6 +275,10 @@ struct CPedGameStateNodeData
 
 	int curWeapon;
 
+	bool isHandcuffed;
+	bool actionModeEnabled;
+	bool isFlashlightOn;
+
 	inline CPedGameStateNodeData()
 		: lastVehicle(-1), lastVehicleSeat(-1), lastVehiclePedWasIn(-1)
 	{
