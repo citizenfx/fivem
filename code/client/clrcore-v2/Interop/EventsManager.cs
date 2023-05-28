@@ -39,12 +39,7 @@ namespace CitizenFX.Core
 						}
 						catch (Exception ex)
 						{
-							if (Debug.ShouldWeLogDynFuncError(ex, ev.Item1))
-							{
-								string argsString = string.Join<string>(", ", args.Select(a => a != null ? a.GetType().ToString() : "null"));
-								Debug.WriteLine($"^1Error while handling event: {eventName}\n\twith arguments: ({argsString})^7");
-								Debug.PrintError(ex);
-							}
+							Debug.WriteException(ex, ev.Item1, args, "event handler");
 						}
 					}
 				}
