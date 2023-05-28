@@ -2,7 +2,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using MsgPack;
 using MsgPack.Serialization;
 using System.Security;
@@ -10,6 +9,7 @@ using System.Runtime.InteropServices;
 
 namespace CitizenFX.Core
 {
+	[SecuritySafeCritical]
 	internal static class MsgPackSerializer
 	{
 		internal readonly static ByteArray nullResult;
@@ -305,6 +305,7 @@ namespace CitizenFX.Core
 	/// <summary>
 	/// Experimental memory stream
 	/// </summary>
+	[SecuritySafeCritical]
 	internal class CoTaskMemoryStream : Stream
 	{
 		private unsafe IntPtr buffer;
@@ -409,6 +410,7 @@ namespace CitizenFX.Core
 			throw new NotImplementedException();
 		}
 
+		[SecuritySafeCritical]
 		public override int Read(byte[] buffer, int offset, int count)
 		{
 			int length = Math.Min(count, this.length - position);

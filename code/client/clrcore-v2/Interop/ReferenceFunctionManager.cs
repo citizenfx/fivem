@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Security;
 using System.Threading;
@@ -176,8 +175,7 @@ namespace CitizenFX.Core
 				}
 				catch (Exception ex)
 				{
-					string argsString = string.Join<string>(", ", args.Select(a => a is null ? "null" : a.GetType().ToString()));
-					Debug.PrintError(ex, $"handling function reference: {funcRef.m_method.Method.Name}\n\twith arguments: ({argsString})");
+					Debug.WriteException(ex, funcRef.m_method, args, "reference function");
 				}
 
 				if (result is Coroutine coroutine)

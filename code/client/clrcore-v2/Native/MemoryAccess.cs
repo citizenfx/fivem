@@ -4,6 +4,7 @@ using System.Security;
 
 namespace CitizenFX.Core.Native
 {
+	[SecuritySafeCritical]
 	internal static class MemoryAccess
 	{
 		public static int[] GetPickupObjectHandles() => new int[0];

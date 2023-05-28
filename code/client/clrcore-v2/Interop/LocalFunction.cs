@@ -14,7 +14,6 @@ namespace CitizenFX.Core
 			CoreNatives.DuplicateFunctionReference(reference); // increment the refcount
 		}
 
-		[SecuritySafeCritical]
 		public static Callback Create(string reference)
 		{
 			var localFunctionReference = new _LocalFunction(reference);

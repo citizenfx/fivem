@@ -90,7 +90,8 @@ namespace CitizenFX.Core
 			return null;
 		}
 
-		public object Clone() => new CString(value.ToArray());
+		[SecuritySafeCritical]
+		public object Clone() => new CString((byte[])value.Clone());
 
 		#endregion
 
@@ -162,6 +163,8 @@ namespace CitizenFX.Core
 		/// <param name="startIndex">start character index</param>
 		/// <returns>CString with the requested part of characters of this string</returns>
 		/// <exception cref="ArgumentOutOfRangeException"><paramref name="startIndex"/> &lt; 0 or &gt;= Length</exception>
+
+		[SecuritySafeCritical]
 		public CString SubString(uint startIndex)
 		{
 			uint maxLength = (uint)Length;
@@ -195,6 +198,8 @@ namespace CitizenFX.Core
 		/// <param name="length">amount of characters we want in total, can be less.</param>
 		/// <returns>CString with the requested part of characters of this string</returns>
 		/// <exception cref="ArgumentOutOfRangeException"><paramref name="startIndex"/> &lt; 0 or &gt;= Length</exception>
+
+		[SecuritySafeCritical]
 		public CString Substring(uint startIndex, uint length)
 		{
 			uint maxLength = (uint)Length;
@@ -211,6 +216,7 @@ namespace CitizenFX.Core
 			throw new ArgumentOutOfRangeException();
 		}
 
+		[SecuritySafeCritical]
 		public static CString operator +(CString left, CString right)
 		{
 			if (left.value != null)
@@ -236,6 +242,7 @@ namespace CitizenFX.Core
 
 		#region Comparison
 
+		[SecuritySafeCritical]
 		public static unsafe bool operator ==(CString left, CString right)
 		{
 			if (left == right)
@@ -244,6 +251,7 @@ namespace CitizenFX.Core
 				return left.value.SequenceEqual(right.value);
 		}
 
+		[SecuritySafeCritical]
 		public static unsafe bool operator !=(CString left, CString right)
 		{
 			if (left != right)
@@ -254,6 +262,8 @@ namespace CitizenFX.Core
 
 		public static bool IsNullOrEmpty(CString str) => !(str?.value.Length != 1);
 		public override bool Equals(object obj) => obj is CString str && value.Equals(str.value);
+
+		[SecuritySafeCritical]
 		public bool Equals(CString other) => this == other || value.Equals(other.value);
 
 		public int CompareTo(object obj) => obj is CString str ? CompareTo(str) : 0;
@@ -310,7 +320,7 @@ namespace CitizenFX.Core
 		/// </summary>
 		/// <param name="str">string to compare</param>
 		/// <returns>true if both sides have equivalent characters in the ASCII character space</returns>
-		public unsafe bool CompareASCII(string str)
+		public bool CompareASCII(string str)
 		{
 			return CompareASCII(this, str);
 		}
@@ -322,6 +332,7 @@ namespace CitizenFX.Core
 		/// <param name="left">CString to compare</param>
 		/// <param name="right">string to compare</param>
 		/// <returns>true if both sides have equivalent characters in the ASCII character space</returns>
+		[SecuritySafeCritical]
 		public static unsafe bool CompareASCII(CString left, string right)
 		{
 			if (left == null && right == null)
@@ -352,6 +363,7 @@ namespace CitizenFX.Core
 		/// <param name="str">string to convert</param>
 		/// <param name="invalid">character to insert in case of a non-7 bit character</param>
 		/// <returns>CString with only ASCII (7 bit) characters, or null if <paramref name="str"/> == null</returns>
+		[SecuritySafeCritical]
 		public static unsafe CString ToASCII(string str, byte invalid = (byte)'?')
 		{
 			fixed (char* src = str)
@@ -375,6 +387,7 @@ namespace CitizenFX.Core
 
 		#region Encoding algorithms
 
+		[SecuritySafeCritical]
 		public override unsafe int GetHashCode()
 		{
 			fixed (byte* pin = value)

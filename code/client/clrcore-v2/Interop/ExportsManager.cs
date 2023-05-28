@@ -20,6 +20,7 @@ namespace CitizenFX.Core
 			ExportPrefix = CreateExportPrefix(resourceName);
 		}
 
+		[SecuritySafeCritical]
 		internal static unsafe bool IncomingRequest(string eventName, string sourceString, Binding origin, byte* argsSerialized, int serializedSize, ref object[] args)
 		{
 			if (s_exports.TryGetValue(eventName, out var export) && (export.Item2 & origin) != 0)
@@ -50,12 +51,7 @@ namespace CitizenFX.Core
 						}
 						catch (Exception ex)
 						{
-							if (Debug.ShouldWeLogDynFuncError(ex, export.Item1))
-							{
-								string argsString = string.Join<string>(", ", args.Select(a => a.GetType().ToString()));
-								Debug.WriteLine($"^1Error while handling export: {eventName.Remove(0, eventName.LastIndexOf('_') + 1)}\n\twith arguments: ({argsString})^7");
-								Debug.PrintError(ex);
-							}
+							Debug.WriteException(ex, export.Item1, arguments, "export function");
 						}
 #if IS_FXSERVER
 						// last spot holds the player

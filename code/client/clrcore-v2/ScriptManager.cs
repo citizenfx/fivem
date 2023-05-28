@@ -10,12 +10,14 @@ using System.Threading;
 
 namespace CitizenFX.Core
 {
+	[SecuritySafeCritical]
 	internal static class ScriptManager
 	{
 		private static readonly List<BaseScript> s_activeScripts = new List<BaseScript>();
 
-		private static Dictionary<string, Assembly> s_loadedAssemblies = new Dictionary<string, Assembly>();
-		private static HashSet<string> s_assemblySearchPaths = new HashSet<string>();
+		private static readonly Dictionary<string, Assembly> s_loadedAssemblies = new Dictionary<string, Assembly>();
+
+		private static readonly HashSet<string> s_assemblySearchPaths = new HashSet<string>();
 
 		#region Initialization
 

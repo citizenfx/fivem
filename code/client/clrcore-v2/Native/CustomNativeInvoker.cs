@@ -11,6 +11,7 @@ using ContextType = CitizenFX.Core.RageScriptContext;
 
 namespace CitizenFX.Core.Native
 {
+	[SecuritySafeCritical]
 	public static class CustomNativeInvoker
 	{
 
@@ -54,7 +55,6 @@ namespace CitizenFX.Core.Native
 			}
 		}
 
-		[SecuritySafeCritical]
 		public static unsafe T Call<T>(ulong hash, params Argument[] arguments)
 		{
 			ulong* __data = stackalloc ulong[32];
@@ -62,14 +62,12 @@ namespace CitizenFX.Core.Native
 			return (T)ScriptContext.GetResult(typeof(T), __data, hash);
 		}
 
-		[SecuritySafeCritical]
 		public static unsafe void Call(ulong hash, params Argument[] arguments)
 		{
 			ulong* __data = stackalloc ulong[32];
 			InvokeInternal(__data, hash, arguments);
 		}
 
-		[SecurityCritical]
 		private static unsafe void InvokeInternal(ulong* data, ulong nativeHash, Argument[] args)
 		{
 			CustomInvocation invoker = default;

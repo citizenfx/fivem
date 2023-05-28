@@ -60,7 +60,7 @@ namespace CitizenFX.Core.Native
 		public static implicit operator Vector3(NativeVector3 self) => new Vector3(self.x, self.y, self.z);
 	}
 
-	public ref struct InFunc
+	public readonly ref struct InFunc
 	{
 		internal readonly byte[] value;
 		
@@ -72,7 +72,7 @@ namespace CitizenFX.Core.Native
 		public static implicit operator InFunc(DynFunc func) => new InFunc(func);
 	}
 
-	public ref struct InPacket
+	public readonly ref struct InPacket
 	{
 		internal readonly byte[] value;
 		public InPacket(object obj) => value = MsgPackSerializer.Serialize(obj);
@@ -80,7 +80,8 @@ namespace CitizenFX.Core.Native
 		public static implicit operator InPacket(object[] obj) => Serialize(obj);
 	}
 
-	public ref struct OutPacket
+	[SecuritySafeCritical]
+	public readonly ref struct OutPacket
 	{
 #pragma warning disable 0649 // this type is reinterpreted i.e.: (OutPacket*)ptr
 		private unsafe readonly byte* data;
@@ -91,7 +92,8 @@ namespace CitizenFX.Core.Native
 		internal unsafe object[] DeserializeArray() => MsgPackDeserializer.DeserializeArray(data, (long)size);
 	}
 
-	public ref struct OutString
+	[SecuritySafeCritical]
+	public readonly ref struct OutString
 	{
 #pragma warning disable 0649 // this type is reinterpreted i.e.: (OutString*)ptr
 		private unsafe readonly byte* data;
