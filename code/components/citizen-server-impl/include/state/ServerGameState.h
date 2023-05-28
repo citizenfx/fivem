@@ -584,6 +584,12 @@ struct CVehicleSteeringNodeData
 	float steeringAngle;
 };
 
+struct CEntityScriptGameStateNodeData
+{
+	bool usesCollision;
+	bool isFixed;
+};
+
 struct CVehicleDamageStatusNodeData
 {
 	bool damagedByBullets;
@@ -691,6 +697,8 @@ public:
 	virtual CHeliHealthNodeData* GetHeliHealth() = 0;
 
 	virtual CVehicleSteeringNodeData* GetVehicleSteeringData() = 0;
+
+	virtual CEntityScriptGameStateNodeData* GetEntityScriptGameState() = 0;
 
 	virtual CVehicleDamageStatusNodeData* GetVehicleDamageStatus() = 0;
 
