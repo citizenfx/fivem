@@ -580,6 +580,13 @@ struct CVehicleSteeringNodeData
 	float steeringAngle;
 };
 
+struct CVehicleDamageStatusNodeData
+{
+	bool damagedByBullets;
+	bool anyWindowBroken;
+	bool windowsState[8];
+};
+
 struct CBoatGameStateNodeData
 {
 	bool lockedToXY;
@@ -680,6 +687,8 @@ public:
 	virtual CHeliHealthNodeData* GetHeliHealth() = 0;
 
 	virtual CVehicleSteeringNodeData* GetVehicleSteeringData() = 0;
+
+	virtual CVehicleDamageStatusNodeData* GetVehicleDamageStatus() = 0;
 
 	virtual CBoatGameStateNodeData* GetBoatGameState() = 0;
 

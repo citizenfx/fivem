@@ -1289,6 +1289,11 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, true>
 		return hasNode ? &node->data : nullptr;
 	}
 
+	virtual CVehicleDamageStatusNodeData* GetVehicleDamageStatus() override
+	{
+		return nullptr;
+	}
+
 	virtual CBoatGameStateNodeData* GetBoatGameState() override
 	{
 		auto [hasNode, node] = GetData<CBoatGameStateDataNode>();

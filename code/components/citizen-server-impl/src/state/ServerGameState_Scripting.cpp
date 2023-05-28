@@ -1696,6 +1696,31 @@ static void Init()
 
 		return steeringData ? steeringData->steeringAngle * (180.0f / pi) : 0.0f;
 	}));
+	fx::ScriptEngine::RegisterNativeHandler("HAS_VEHICLE_BEEN_DAMAGED_BY_BULLETS", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto status = entity->syncTree->GetVehicleDamageStatus();
+
+		return status ? status->damagedByBullets : false;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_VEHICLE_WINDOW_INTACT", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto status = entity->syncTree->GetVehicleDamageStatus();
+		int index = context.GetArgument<int>(1);
+
+		if (!status)
+		{
+			return false;
+		}
+
+		if (index < 0 || index > 7)
+		{
+			return false;
+		}
+
+		return status->anyWindowBroken ? !status->windowsState[index] : true;
+	}));
+
 	fx::ScriptEngine::RegisterNativeHandler("IS_BOAT_ANCHORED_AND_FROZEN", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
 		auto boatGameState = entity->syncTree->GetBoatGameState();
