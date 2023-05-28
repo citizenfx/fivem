@@ -580,6 +580,14 @@ struct CVehicleSteeringNodeData
 	float steeringAngle;
 };
 
+struct CBoatGameStateNodeData
+{
+	bool lockedToXY;
+	float sinkEndTime;
+	int wreckedAction;
+	bool isWrecked;
+};
+
 struct CPedMovementGroupNodeData
 {
 	bool isStealthy;
@@ -672,6 +680,8 @@ public:
 	virtual CHeliHealthNodeData* GetHeliHealth() = 0;
 
 	virtual CVehicleSteeringNodeData* GetVehicleSteeringData() = 0;
+
+	virtual CBoatGameStateNodeData* GetBoatGameState() = 0;
 
 	virtual CPedMovementGroupNodeData* GetPedMovementGroup() = 0;
 
