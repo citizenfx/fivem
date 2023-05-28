@@ -1212,6 +1212,11 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, true>
 		return hasNode ? &node->data : nullptr;
 	}
 
+	virtual CPedMovementGroupNodeData* GetPedMovementGroup() override
+	{
+		return nullptr;
+	}
+
 	virtual void CalculatePosition() override
 	{
 		// TODO: cache it?

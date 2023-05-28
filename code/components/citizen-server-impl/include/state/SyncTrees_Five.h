@@ -2071,7 +2071,41 @@ struct CPedHealthDataNode
 	}
 };
 
-struct CPedMovementGroupDataNode { };
+struct CPedMovementGroupDataNode
+{
+	CPedMovementGroupNodeData data;
+
+	bool Parse(SyncParseState& state)
+	{
+		uint32_t motionGroup = state.buffer.Read<uint32_t>(32);
+		auto defaultActionMode = state.buffer.ReadBit();
+
+		if (!defaultActionMode)
+		{
+			uint8_t moveBlendType = state.buffer.Read<uint8_t>(3);
+			int moveBlendState = state.buffer.Read<int>(5);
+
+			auto overiddenWeaponGroup = state.buffer.Read<uint32_t>(32);
+			auto isCrouching = state.buffer.ReadBit();
+
+			data.isStealthy = state.buffer.ReadBit();
+			data.isStrafing = state.buffer.ReadBit();
+			data.isRagdolling = state.buffer.ReadBit();
+
+			auto isRagdollConstraintAnkleActive = state.buffer.ReadBit();
+			auto isRagdollConstraintWristActive = state.buffer.ReadBit();
+		}
+		else
+		{
+			data.isStealthy = false;
+			data.isStrafing = false;
+			data.isRagdolling = false;
+		}
+
+		return true;
+	}
+};
+
 struct CPedAIDataNode { };
 struct CPedAppearanceDataNode { };
 
@@ -3270,6 +3304,13 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, false>
 	virtual CVehicleSteeringNodeData* GetVehicleSteeringData() override
 	{
 		auto [hasNode, node] = this->template GetData<CVehicleSteeringDataNode>();
+
+		return hasNode ? &node->data : nullptr;
+	}
+
+	virtual CPedMovementGroupNodeData* GetPedMovementGroup() override
+	{
+		auto [hasNode, node] = GetData<CPedMovementGroupDataNode>();
 
 		return hasNode ? &node->data : nullptr;
 	}

@@ -580,6 +580,13 @@ struct CVehicleSteeringNodeData
 	float steeringAngle;
 };
 
+struct CPedMovementGroupNodeData
+{
+	bool isStealthy;
+	bool isStrafing;
+	bool isRagdolling;
+};
+
 enum ePopType
 {
 	POPTYPE_UNKNOWN = 0,
@@ -665,6 +672,8 @@ public:
 	virtual CHeliHealthNodeData* GetHeliHealth() = 0;
 
 	virtual CVehicleSteeringNodeData* GetVehicleSteeringData() = 0;
+
+	virtual CPedMovementGroupNodeData* GetPedMovementGroup() = 0;
 
 	virtual void CalculatePosition() = 0;
 
