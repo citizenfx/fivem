@@ -1301,7 +1301,7 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, true>
 
 	virtual CBoatGameStateNodeData* GetBoatGameState() override
 	{
-		auto [hasNode, node] = GetData<CBoatGameStateDataNode>();
+		auto [hasNode, node] = this->template GetData<CBoatGameStateDataNode>();
 
 		return hasNode ? &node->data : nullptr;
 	}

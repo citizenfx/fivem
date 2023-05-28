@@ -3478,28 +3478,28 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, false>
 
 	virtual CEntityScriptGameStateNodeData* GetEntityScriptGameState() override
 	{
-		auto [hasNode, node] = GetData<CEntityScriptGameStateDataNode>();
+		auto [hasNode, node] = this->template GetData<CEntityScriptGameStateDataNode>();
 
 		return hasNode ? &node->data : nullptr;
 	}
 
 	virtual CVehicleDamageStatusNodeData* GetVehicleDamageStatus() override
 	{
-		auto [hasNode, node] = GetData<CVehicleDamageStatusDataNode>();
+		auto [hasNode, node] = this->template GetData<CVehicleDamageStatusDataNode>();
 
 		return hasNode ? &node->data : nullptr;
 	}
 
 	virtual CBoatGameStateNodeData* GetBoatGameState() override
 	{
-		auto [hasNode, node] = GetData<CBoatGameStateDataNode>();
+		auto [hasNode, node] = this->template GetData<CBoatGameStateDataNode>();
 
 		return hasNode ? &node->data : nullptr;
 	}
 
 	virtual CPedMovementGroupNodeData* GetPedMovementGroup() override
 	{
-		auto [hasNode, node] = GetData<CPedMovementGroupDataNode>();
+		auto [hasNode, node] = this->template GetData<CPedMovementGroupDataNode>();
 
 		return hasNode ? &node->data : nullptr;
 	}
