@@ -9,12 +9,14 @@ using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Runtime.InteropServices;
 using System.Security;
 
 namespace CitizenFX.Core
 {
 	public delegate object DynFunc(Remote remote, params object[] arguments);
 
+	[SecuritySafeCritical]
 	public static class Func
 	{
 		private static readonly Dictionary<MethodInfo, MethodInfo> s_wrappedMethods = new Dictionary<MethodInfo, MethodInfo>();

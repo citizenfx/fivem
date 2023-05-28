@@ -19,16 +19,16 @@ using ContextType = CitizenFX.Core.RageScriptContext;
 
 namespace CitizenFX.Core
 {
-	public static class ScriptContext
+	internal static class ScriptContext
 	{
 		internal static readonly ConcurrentQueue<GCHandle> s_gcHandles = new ConcurrentQueue<GCHandle>();
 
-		private static byte[] s_stringHeap = new byte[1024 * 256];
+		private static readonly byte[] s_stringHeap = new byte[1024 * 256];
 		private static int s_stringHeapPosition = 0;
 		private static GCHandle s_stringHeapHandle;
-		private static IntPtr s_stringHeapHandlePtr;
+		private static readonly IntPtr s_stringHeapHandlePtr;
 
-		private static List<IntPtr> s_cleanUp = new List<IntPtr>();
+		private static readonly List<IntPtr> s_cleanUp = new List<IntPtr>();
 
 		[SecuritySafeCritical]
 		static ScriptContext()
@@ -37,6 +37,8 @@ namespace CitizenFX.Core
 			s_stringHeapHandlePtr = s_stringHeapHandle.AddrOfPinnedObject();
 		}
 
+
+		[SecuritySafeCritical]
 		internal static void CleanUp()
 		{
 			s_stringHeapPosition = 0;
@@ -47,6 +49,8 @@ namespace CitizenFX.Core
 			}
 		}
 
+
+		[SecurityCritical]
 		internal static unsafe ByteArray SerializeObject(object v)
 		{
 			var argsSerialized = MsgPackSerializer.Serialize(v);
@@ -150,6 +154,7 @@ namespace CitizenFX.Core
 			}
 		}
 
+		[SecurityCritical]
 		internal unsafe static T GetResultPrimitive<T>(Type type, ulong* ptr, ulong hash) where T : unmanaged
 		{
 #if NATIVE_PTR_CHECKS_INCLUDE
@@ -192,6 +197,8 @@ namespace CitizenFX.Core
 
 		#endregion
 	}
+
+	[SecurityCritical]
 	internal struct ByteArray
 	{
 		public unsafe byte* ptr;

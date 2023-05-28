@@ -10,6 +10,7 @@ namespace CitizenFX.Core
 	public delegate Coroutine<object> Callback(params object[] args);
 
 	// Can be a struct as it's merely used for for temporary storage
+	[SecuritySafeCritical]
 	internal struct MsgPackDeserializer
 	{
 		private unsafe byte* m_ptr;
@@ -175,6 +176,7 @@ namespace CitizenFX.Core
 
 			return retobject;
 		}
+
 		private unsafe byte[] ReadBytes(uint length)
 		{
 			var ptr = (IntPtr)AdvancePointer(length);
@@ -325,7 +327,10 @@ namespace CitizenFX.Core
 			byte* curPtr = m_ptr;
 			m_ptr += amount;
 			if (m_ptr > m_end)
-				throw new ArgumentException($"msgpack deserializer tried to retrieve 8 bytes, {m_end - m_ptr} bytes remained");
+			{
+				m_ptr -= amount; // reverse damage
+				throw new ArgumentException($"MsgPackDeserializer tried to retrieve {amount} bytes while only {m_end - m_ptr} bytes remain");
+			}
 
 			return curPtr;
 		}

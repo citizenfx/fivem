@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security;
 
 using CitizenFX.Core.Native;
 
@@ -10,6 +11,8 @@ namespace CitizenFX.Core
 	{
 		private static Dictionary<string, List<Tuple<DynFunc, Binding>>> s_eventHandlers = new Dictionary<string, List<Tuple<DynFunc, Binding>>>();
 
+
+		[SecuritySafeCritical]
 		internal static unsafe void IncomingEvent(string eventName, string sourceString, Binding origin, byte* argsSerialized, int serializedSize, object[] args)
 		{
 			if (s_eventHandlers.TryGetValue(eventName, out var delegateList))

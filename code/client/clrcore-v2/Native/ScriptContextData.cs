@@ -6,7 +6,7 @@ using System.Security;
 namespace CitizenFX.Core
 {
 	[StructLayout(LayoutKind.Sequential)]
-	[Serializable]
+	[Serializable, SecurityCritical]
 	internal struct fxScriptContext
 	{
 		public unsafe ulong* functionDataPtr;
@@ -14,7 +14,7 @@ namespace CitizenFX.Core
 		public int numArguments;
 		public int numResults;
 
-		[SecuritySafeCritical, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal unsafe void Initialize(ulong* data, int argCount)
 		{
 			functionDataPtr =  data;
@@ -24,7 +24,7 @@ namespace CitizenFX.Core
 	}
 
 	[StructLayout(LayoutKind.Sequential)]
-	[Serializable]
+	[Serializable, SecurityCritical]
 	internal unsafe struct RageScriptContext
 	{
 		public ulong* functionDataPtr;
@@ -40,7 +40,7 @@ namespace CitizenFX.Core
 
 		public fixed byte padding[96];
 
-		[SecuritySafeCritical, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal unsafe void Initialize(ulong* data, int argCount)
 		{
 			functionDataPtr = retDataPtr = data;
@@ -48,7 +48,7 @@ namespace CitizenFX.Core
 			numResults = 0;
 		}
 
-		[SecuritySafeCritical, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal unsafe static void CopyVectorData(RageScriptContext* ctx)
 		{
 			Vector3** dst = (Vector3**)ctx->copyToVectors;

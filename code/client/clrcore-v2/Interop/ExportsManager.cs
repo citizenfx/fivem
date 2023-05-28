@@ -20,6 +20,7 @@ namespace CitizenFX.Core
 			ExportPrefix = CreateExportPrefix(resourceName);
 		}
 
+		[SecuritySafeCritical]
 		internal static unsafe bool IncomingRequest(string eventName, string sourceString, Binding origin, byte* argsSerialized, int serializedSize, ref object[] args)
 		{
 			if (s_exports.TryGetValue(eventName, out var export) && (export.Item2 & origin) != 0)
