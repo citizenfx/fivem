@@ -182,6 +182,41 @@ static void FixClearPedBloodDamage()
 	});
 }
 
+static void FixSetPedFaceFeature()
+{
+	constexpr const uint64_t nativeHash = 0x71A5C1DBA060049E; // _SET_PED_FACE_FEATURE
+
+	auto originalHandler = fx::ScriptEngine::GetNativeHandler(nativeHash);
+
+	if (!originalHandler)
+	{
+		return;
+	}
+
+	auto handler = *originalHandler;
+
+	fx::ScriptEngine::RegisterNativeHandler(nativeHash, [handler](fx::ScriptContext& ctx)
+	{
+		// Check if the feature index is 18 (Chin Hole) or 19 (Neck Thickness)
+		// These use 0.0 - 1.0 scales instead of the default -1.0 - 1.0
+		auto index = ctx.GetArgument<uint32_t>(1);
+
+		if (index == 18 || index == 19)
+		{
+			// Vanilla code ends up turning -1.0 into 1.0 in this case which feels counter-intuitive,
+			// thus we manually bump negative values to 0.0
+			auto scale = ctx.GetArgument<float>(2);
+			if (scale < 0.0f)
+			{
+				ctx.SetArgument<float>(2, 0.0f);
+			}
+		}
+
+		// Run the handler now that the scale factor is sanitized
+		handler(ctx);
+	});
+}
+
 static HookFunction hookFunction([]()
 {
 	rage::scrEngine::OnScriptInit.Connect([]()
@@ -200,5 +235,7 @@ static HookFunction hookFunction([]()
 		}
 
 		FixClearPedBloodDamage();
+
+		FixSetPedFaceFeature();
 	});
 });
