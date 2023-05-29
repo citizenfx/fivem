@@ -14,6 +14,7 @@
 #include <CustomText.h>
 
 #include <RageParser.h>
+#include <MinHook.h>
 
 static hook::cdecl_stub<void* (const uint32_t& hash, void* typeAssert)> _getCameraMetadata([]()
 {
@@ -142,7 +143,7 @@ struct scrVector
 	int _pad3;
 };
 
-struct camBaseObject
+struct camBaseCinematicContext
 {
 	virtual void DESTROY() = 0;
 	virtual bool IsHashTypeOf(int hash) = 0;
@@ -157,16 +158,37 @@ struct camBaseObject
 	virtual bool ReturnMetadataBool() = 0;
 };
 
-typedef bool (*camCanUpdateFn)(camBaseObject* thisptr);
+typedef bool (*camCanUpdateFn)(camBaseCinematicContext* thisptr);
 static camCanUpdateFn origCamCinematicOnFootIdleContext_CanUpdate;
+static camCanUpdateFn origCamCinematicInVehicleContext_CanUpdate;
+static camCanUpdateFn origCamCinematicInTrainContext_CanUpdate;
 
 static std::atomic_bool g_DISABLE_IDLE_CAM = false;
+static std::atomic_bool g_DISABLE_IDLE_VEHICLE_PASSENGER_CAM = false;
 
-static bool CamCinematicOnFootIdleContext_CanUpdate(camBaseObject* thisptr)
+static bool CamCinematicOnFootIdleContext_CanUpdate(camBaseCinematicContext* thisptr)
 {
 	if (!g_DISABLE_IDLE_CAM)
 	{
 		return origCamCinematicOnFootIdleContext_CanUpdate(thisptr);
+	}
+	return false;
+}
+
+static bool CamCinematicInVehicleContext_CanUpdate(camBaseCinematicContext* thisptr)
+{
+	if (!g_DISABLE_IDLE_VEHICLE_PASSENGER_CAM)
+	{
+		return origCamCinematicInVehicleContext_CanUpdate(thisptr);
+	}
+	return false;
+}
+
+static bool CamCinematicInTrainContext_CanUpdate(camBaseCinematicContext* thisptr)
+{
+	if (!g_DISABLE_IDLE_VEHICLE_PASSENGER_CAM)
+	{
+		return origCamCinematicInTrainContext_CanUpdate(thisptr);
 	}
 	return false;
 }
@@ -226,12 +248,21 @@ static HookFunction hookFunction([]()
 	// to support DISABLE_IDLE_CAMERA
 	uintptr_t* camCinematicOnFootIdleContext_vtable = hook::get_address<uintptr_t*>(hook::get_pattern<unsigned char>("48 8D 05 ? ? ? ? 48 89 07 48 8B C7 F3 0F 10 ? ? ? ? 02 F3 0F 11 47 60", 3));
 
+	void* camCinematicInVehicleContext_CanUpdateFunc = hook::get_pattern<void>("41 8B 9F ? ? ? ? 44 8A E2 E8", -0x31);
+	void* camCinematicInTrainContext_CanUpdateFunc = hook::get_pattern<void>("E8 ? ? ? ? 48 85 C0 0F 84 ? ? 00 00 4C 8B 80 ? ? 00 00 49 8B 80 ? ? 00 00 48 85 C0 74", -0xD);
+
 	// 2189 Added another vfunc between
 	// 2802 Repalced RTTI methods in the very beginning
 	int index = xbr::IsGameBuildOrGreater<2802>() ? 8 : xbr::IsGameBuildOrGreater<2189>() ? 4 : 3;
 
 	origCamCinematicOnFootIdleContext_CanUpdate = (camCanUpdateFn)camCinematicOnFootIdleContext_vtable[index];
 	hook::put(&camCinematicOnFootIdleContext_vtable[index], (uintptr_t)CamCinematicOnFootIdleContext_CanUpdate);
+
+	MH_Initialize();
+	MH_CreateHook(camCinematicInVehicleContext_CanUpdateFunc, CamCinematicInVehicleContext_CanUpdate, (void**)&origCamCinematicInVehicleContext_CanUpdate);
+	MH_CreateHook(camCinematicInTrainContext_CanUpdateFunc, CamCinematicInTrainContext_CanUpdate, (void**)&origCamCinematicInTrainContext_CanUpdate);
+	MH_EnableHook(camCinematicInVehicleContext_CanUpdateFunc);
+	MH_EnableHook(camCinematicInTrainContext_CanUpdateFunc);
 });
 
 static InitFunction initFunction([]()
@@ -293,6 +324,23 @@ static InitFunction initFunction([]()
 			resource->OnStop.Connect([]()
 			{
 				g_DISABLE_IDLE_CAM = false;
+			});
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("DISABLE_VEHICLE_PASSENGER_IDLE_CAMERA", [](fx::ScriptContext& context)
+	{
+		bool value = context.GetArgument<bool>(0);
+		g_DISABLE_IDLE_VEHICLE_PASSENGER_CAM = value;
+
+		fx::OMPtr<IScriptRuntime> runtime;
+		if (FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+		{
+			fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
+
+			resource->OnStop.Connect([]()
+			{
+				g_DISABLE_IDLE_VEHICLE_PASSENGER_CAM = false;
 			});
 		}
 	});
