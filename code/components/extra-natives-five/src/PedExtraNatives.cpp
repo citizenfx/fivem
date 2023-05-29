@@ -60,6 +60,7 @@ public:
 
 static uint64_t* _id_CPedHeadBlendData;
 static uintptr_t _baseClipsetLocation;
+static uint32_t _pedSweatOffset;
 
 static hook::cdecl_stub<uint64_t(void* entity, uint64_t list)> g_extensionList_get([]()
 {
@@ -95,6 +96,7 @@ static HookFunction initFunction([]()
 {
 	_id_CPedHeadBlendData = hook::get_address<uint64_t*>(hook::get_pattern("48 39 5E 38 74 1B 8B 15 ? ? ? ? 48 8D 4F 10 E8", 8));
 	_baseClipsetLocation = (uintptr_t)hook::get_pattern("48 8B 42 ? 48 85 C0 75 05 E8");
+	_pedSweatOffset = *hook::get_pattern<uint32_t>("72 04 41 0F 28 D0 F3 0F 10 8B", 10);
 
 	g_pedPersonalities = hook::get_address<decltype(g_pedPersonalities)>(hook::get_call(hook::get_pattern<char>("8B 86 B0 00 00 00 BB D5 46 DF E4 85 C0", 0x12)) + 15, 3, 7);
 
@@ -325,5 +327,19 @@ static HookFunction initFunction([]()
 		}
 
 		context.SetResult<uint32_t>(result);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PED_SWEAT", [](fx::ScriptContext& context)
+	{
+		float sweat = 0.0f;
+
+		fwEntity* entity = rage::fwScriptGuid::GetBaseFromGuid(context.GetArgument<int>(0));
+
+		if (entity && entity->IsOfType<CPed>())
+		{
+			sweat = *(float*)((char*)entity + _pedSweatOffset);
+		}
+
+		context.SetResult<float>(sweat);
 	});
 });
