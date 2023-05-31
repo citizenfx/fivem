@@ -734,6 +734,18 @@ static void Init()
 			auto pn = entity->syncTree->GetPedHealth();
 			return pn ? pn->health : 0;
 		}
+		case fx::sync::NetObjEntityType::Automobile:
+		case fx::sync::NetObjEntityType::Bike:
+		case fx::sync::NetObjEntityType::Boat:
+		case fx::sync::NetObjEntityType::Heli:
+		case fx::sync::NetObjEntityType::Plane:
+		case fx::sync::NetObjEntityType::Submarine:
+		case fx::sync::NetObjEntityType::Trailer:
+		case fx::sync::NetObjEntityType::Train:
+		{
+			auto pn = entity->syncTree->GetVehicleHealth();
+			return pn ? pn->health : 0;
+		}
 		default:
 			return 0;
 		}
