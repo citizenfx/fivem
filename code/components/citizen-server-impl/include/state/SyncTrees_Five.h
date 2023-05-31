@@ -1011,6 +1011,18 @@ struct CVehicleHealthDataNode
 			}
 		}
 
+		bool isFine = state.buffer.ReadBit();
+
+		if (!isFine)
+		{
+			auto health = state.buffer.ReadSigned<int>(19);
+			data.health = health;
+		}
+		else
+		{
+			data.health = 1000;
+		}
+
 		bool bodyHealthFine = state.buffer.ReadBit();
 
 		if (!bodyHealthFine)
@@ -1021,13 +1033,6 @@ struct CVehicleHealthDataNode
 		else
 		{
 			data.bodyHealth = 1000;
-		}
-
-		bool unk16 = state.buffer.ReadBit();
-
-		if (!unk16)
-		{
-			auto unk17 = state.buffer.ReadSigned<int>(19);
 		}
 
 		bool unk18 = state.buffer.ReadBit();
