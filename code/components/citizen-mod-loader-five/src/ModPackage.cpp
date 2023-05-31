@@ -179,9 +179,13 @@ static HookFunction hookFunction([]()
 				vfs::Mount(addonPack, addonRoot);
 
 				auto modPackage = std::make_shared<fx::ModPackage>(addonRoot);
-				fx::MountModDevice(modPackage);
 
-				packages.push_front(modPackage);
+				if (modPackage.get()->GetContent().entries.size() > 0)
+				{
+					fx::MountModDevice(modPackage);
+
+					packages.push_front(modPackage);
+				}
 			}
 		}
 
