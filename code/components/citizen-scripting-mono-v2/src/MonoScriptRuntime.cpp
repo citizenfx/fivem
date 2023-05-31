@@ -262,7 +262,7 @@ int MonoScriptRuntime::HandlesFile(char* filename, IScriptHostWithResourceData* 
 		return false;
 	}
 
-	// last supported date for this pilot of mono_rt2
+	// last supported date for this pilot of mono_rt2, in UTC
 	constexpr int maxYear = 2023, maxMonth = 06, maxDay = 30;
 
 	// Allowed values for mono_rt2
@@ -272,9 +272,16 @@ int MonoScriptRuntime::HandlesFile(char* filename, IScriptHostWithResourceData* 
 	};
 
 	// disable loading mono_rt2 scripts after maxYear-maxMonth-maxDay
+	tm maxDate;
+	memset(&maxDate, 0, sizeof(maxDate));
+	maxDate.tm_year = maxYear - 1900; // YYYY - 1900 (starts from 1900)
+	maxDate.tm_mon = maxMonth - 1;    // 0 .. 11
+	maxDate.tm_mday = maxDay;         // 1 .. 31
+
 	std::time_t currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-	tm* time = std::localtime(&currentTime);
-	if (time->tm_year > maxYear || time->tm_mon >= maxMonth || time->tm_mday > maxDay) // month = 0...11, day = 1...31
+	std::time_t endTime = mktime(&maxDate) + std::time_t(24 * 60 * 60); // until the end of the day
+
+	if (currentTime > endTime)
 	{
 		console::PrintError(_CFX_NAME_STRING(_CFX_COMPONENT_NAME), "mono_rt2 is no longer supported since (%04d-%02d-%02d), skipped loading %s.\n",
 			maxYear, maxMonth, maxDay, filename);
