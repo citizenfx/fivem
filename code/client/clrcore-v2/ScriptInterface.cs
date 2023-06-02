@@ -95,7 +95,7 @@ namespace CitizenFX.Core
 		[SecurityCritical, SuppressMessage("System.Diagnostics.CodeAnalysis", "IDE0051", Justification = "Called by host")]
 		internal static ulong Tick(ulong hostTime, bool profiling)
 		{
-			Scheduler.CurrentTime = hostTime;
+			Scheduler.CurrentTime = (TimePoint)hostTime;
 			Profiler.IsProfiling = profiling;
 
 			try
@@ -114,7 +114,7 @@ namespace CitizenFX.Core
 		[SecurityCritical, SuppressMessage("System.Diagnostics.CodeAnalysis", "IDE0051", Justification = "Called by host")]
 		internal static unsafe ulong TriggerEvent(string eventName, byte* argsSerialized, int serializedSize, string sourceString, ulong hostTime, bool profiling)
 		{
-			Scheduler.CurrentTime = hostTime;
+			Scheduler.CurrentTime = (TimePoint)hostTime;
 			Profiler.IsProfiling = profiling;
 			
 			Binding origin = !sourceString.StartsWith("net") ? Binding.Local : Binding.Remote;
@@ -143,7 +143,7 @@ namespace CitizenFX.Core
 		[SecurityCritical, SuppressMessage("System.Diagnostics.CodeAnalysis", "IDE0051", Justification = "Called by host")]
 		internal static unsafe ulong LoadAssembly(string name, ulong hostTime, bool profiling)
 		{
-			Scheduler.CurrentTime = hostTime;
+			Scheduler.CurrentTime = (TimePoint)hostTime;
 			Profiler.IsProfiling = profiling;
 
 			ScriptManager.LoadAssembly(name, true);
@@ -154,7 +154,7 @@ namespace CitizenFX.Core
 		[SecurityCritical, SuppressMessage("System.Diagnostics.CodeAnalysis", "IDE0051", Justification = "Called by host")]
 		internal static unsafe ulong CallRef(int refIndex, byte* argsSerialized, uint argsSize, out IntPtr retvalSerialized, out uint retvalSize, ulong hostTime, bool profiling)
 		{
-			Scheduler.CurrentTime = hostTime;
+			Scheduler.CurrentTime = (TimePoint)hostTime;
 			Profiler.IsProfiling = profiling;
 
 			ReferenceFunctionManager.IncomingCall(refIndex, argsSerialized, argsSize, out retvalSerialized, out retvalSize);
