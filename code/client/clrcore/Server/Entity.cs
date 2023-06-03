@@ -1,21 +1,25 @@
 using System;
-using CitizenFX.Core.Native;
 
 #if MONO_V2
+using CitizenFX.Core;
 using API = CitizenFX.Server.Native.Natives;
-using Prop = CitizenFX.Core.Object;
+using Prop = CitizenFX.Server.Object;
 using compat_int_uint = System.UInt32;
 using compat_int_entity_type = CitizenFX.Shared.EntityType;
 #else
+using CitizenFX.Core.Native;
 using compat_int_uint = System.Int32;
 using compat_int_entity_type = System.Int32;
 #endif
 
+#if MONO_V2
+namespace CitizenFX.Server
+{
+	public abstract class Entity : PoolObject, IEquatable<Entity>, ISpatial, Shared.IEntity
+#else
 namespace CitizenFX.Core
 {
 	public abstract class Entity : PoolObject, IEquatable<Entity>, ISpatial
-#if MONO_V2
-		, Shared.IEntity
 #endif
 	{
 		public Entity(int handle) : base(handle)

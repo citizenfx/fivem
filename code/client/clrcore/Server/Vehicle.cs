@@ -1,12 +1,11 @@
-using System;
-using CitizenFX.Core.Native;
-using System.Security;
-
+#if MONO_V2
+namespace CitizenFX.Server
+{
+	public sealed class Vehicle : Entity, Shared.IVehicle
+#else
 namespace CitizenFX.Core
 {
 	public sealed class Vehicle : Entity
-#if MONO_V2
-		, Shared.IVehicle
 #endif
 	{
 		public Vehicle(int handle) : base(handle)

@@ -11,12 +11,14 @@ namespace CitizenFX.Core
 		}
 
 		public Func<Coroutine> m_coroutine;
+		public bool m_stopOnException;
 
 		private Status m_status = Status.Stopped;
 
-		public CoroutineRepeat(Func<Coroutine> coroutine)
+		public CoroutineRepeat(Func<Coroutine> coroutine, bool stopOnException)
 		{
 			m_coroutine = coroutine;
+			m_stopOnException = stopOnException;
 		}
 
 		public void Schedule()
@@ -26,33 +28,32 @@ namespace CitizenFX.Core
 
 			if (curStatus == Status.Stopped)
 			{
-				Scheduler.Schedule(Invoke);
+				Scheduler.Schedule(Execute);
 			}
 		}
 
-		private void Invoke()
+		private async void Execute()
 		{
-			var result = m_coroutine();
-			if (result?.GetAwaiter().IsCompleted == false)
+			while (m_status == Status.Active)
 			{
-				result.GetAwaiter().OnCompleted(Repeat);
-			}
-			else
-			{
-				Repeat();
-			}
-		}
+				try
+				{
+					await m_coroutine();
+				}
+				catch (Exception ex)
+				{
+					Debug.WriteLine(ex);
 
-		private void Repeat()
-		{			
-			if (m_status == Status.Active)
-			{
-				Scheduler.Schedule(Invoke);
+					if (m_stopOnException)
+					{
+						break;
+					}
+				}
+
+				await Coroutine.Yield();
 			}
-			else
-			{
-				m_status = Status.Stopped;
-			}
+
+			m_status = Status.Stopped;
 		}
 
 		public void Stop() => m_status = Status.Stopping;

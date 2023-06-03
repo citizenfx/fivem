@@ -15,13 +15,24 @@ namespace CitizenFX.Core
 			Enabled = 0x2,
 		}
 
-		#region Fields
+		#region Fields & Properties
 
 		private State m_state = State.Uninitialized;
 
 		public bool IsEnabled => (m_state & State.Enabled) != 0;
 
 		private readonly List<CoroutineRepeat> m_tickList = new List<CoroutineRepeat>();
+
+		/// <summary>
+		/// An event containing callbacks to attempt to schedule on every game tick.
+		/// A callback will only be rescheduled once the associated task completes.
+		/// </summary>
+		protected event Func<Coroutine> Tick
+		{
+			add => RegisterTick(value);
+			remove => UnregisterTick(value);
+		}
+
 		private readonly List<KeyValuePair<int, DynFunc>> m_commands = new List<KeyValuePair<int, DynFunc>>();
 
 #if REMOTE_FUNCTION_ENABLED
@@ -69,7 +80,7 @@ namespace CitizenFX.Core
 						switch (attribute)
 						{
 							case TickAttribute tick:
-								Tick += (Func<Coroutine>)method.CreateDelegate(typeof(Func<Coroutine>), this);
+								RegisterTick((Func<Coroutine>)method.CreateDelegate(typeof(Func<Coroutine>), this), tick.StopOnException);
 								break;
 
 							case EventHandlerAttribute eventHandler:
@@ -193,40 +204,30 @@ namespace CitizenFX.Core
 
 		#region Update/Tick Scheduling
 
-		/// <summary>
-		/// An event containing callbacks to attempt to schedule on every game tick.
-		/// A callback will only be rescheduled once the associated task completes.
-		/// </summary>
-		protected event Func<Coroutine> Tick
+		public void RegisterTick(Func<Coroutine> tick, bool stopOnException = false)
 		{
-			add
+			lock (m_tickList)
 			{
-				lock (m_tickList)
-				{
-					CoroutineRepeat newTick = new CoroutineRepeat(value);
-					m_tickList.Add(newTick);
-					newTick.Schedule();
-				}
+				CoroutineRepeat newTick = new CoroutineRepeat(tick, stopOnException);
+				m_tickList.Add(newTick);
+				newTick.Schedule();
 			}
-			remove
+		}
+
+		public void UnregisterTick(Func<Coroutine> tick)
+		{
+			lock (m_tickList)
 			{
-				lock (m_tickList)
+				int index = m_tickList.FindIndex(th => th.Equals(tick));
+				if (index >= 0)
 				{
-					int index = m_tickList.FindIndex(th => th.Equals(value));
-					if (index >= 0)
-					{
-						m_tickList[index].Stop();
-						m_tickList.RemoveAt(index);
-					}
+					m_tickList[index].Stop();
+					m_tickList.RemoveAt(index);
 				}
 			}
 		}
 
-		internal void RegisterTick(Func<Coroutine> tick) => Tick += tick;
-
-		private void StartCoroutine(Action action) => Scheduler.Schedule(action);
-
-		public static Coroutine WaitUntil(uint msecs) => Coroutine.WaitUntil(msecs);
+		public static Coroutine WaitUntil(TimePoint msecs) => Coroutine.WaitUntil(msecs);
 
 		public static Coroutine WaitUntilNextFrame() => Coroutine.Yield();
 

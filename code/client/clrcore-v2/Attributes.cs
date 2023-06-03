@@ -33,6 +33,7 @@ namespace CitizenFX.Core
 	[AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
 	public class TickAttribute : Attribute
 	{
+		public bool StopOnException { get; set; } = false;
 		public TickAttribute() { }
 	}
 

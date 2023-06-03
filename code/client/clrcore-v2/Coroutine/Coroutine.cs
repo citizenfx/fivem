@@ -1,6 +1,7 @@
 using System;
-using System.Threading;
 using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
+using System.Threading;
 
 namespace CitizenFX.Core
 {
@@ -13,7 +14,7 @@ namespace CitizenFX.Core
 
 		public static CoroutineBuilder Create() => new CoroutineBuilder();
 
-		public void SetResult() => Task.GetAwaiter().SetResult();
+		public void SetResult() => Task.Complete();
 
 		public void Start<TStateMachine>(ref TStateMachine stateMachine) where TStateMachine : IAsyncStateMachine => stateMachine.MoveNext();
 
@@ -57,7 +58,7 @@ namespace CitizenFX.Core
 
 		public static CoroutineBuilder<T> Create() => new CoroutineBuilder<T>();
 
-		public void SetResult(T value) => Task.GetAwaiter().SetResult(value);
+		public void SetResult(T value) => Task.Complete(value);
 
 		public void SetException(Exception exception) => Task.SetException(exception);
 
@@ -98,7 +99,16 @@ namespace CitizenFX.Core
 	[AsyncMethodBuilder(typeof(CoroutineBuilder<>))]
 	public class Coroutine<T> : Coroutine
 	{
-		public T Result { get; private set; }
+		private T m_result;
+
+		public T Result
+		{
+			get
+			{
+				m_exception?.Throw();
+				return m_result;
+			}
+		}
 
 		internal Coroutine() { }
 
@@ -106,18 +116,32 @@ namespace CitizenFX.Core
 
 		public new T GetResult() => Result;
 
-		protected override object GetResultInternal() => Result;
+		protected override object GetResultInternal() => m_result;
 
-		public void Complete(T value)
+		public void Complete(T value) => CompleteInternal(State.Completed, value);
+		public override void Complete(object value) => CompleteInternal(State.Completed, (T)value);
+		public override void Complete(object value, Exception ex) => CompleteInternal(State.Completed, (T)value, ex);
+
+		public void Cancel(T value) => CompleteInternal(State.Canceled, value);
+		public override void Cancel(object value) => CompleteInternal(State.Canceled, (T)value);
+		public override void Cancel(object value, Exception ex) => CompleteInternal(State.Canceled, (T)value, ex);
+
+		public void Fail(T value) => CompleteInternal(State.Failed, value);
+		public override void Fail(object value) => CompleteInternal(State.Failed, (T)value);
+		public override void Fail(object value, Exception ex) => CompleteInternal(State.Failed, (T)value, ex);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private void CompleteInternal(State completionState, T value)
 		{
-			Result = value;
-			CompleteInternal();
+			m_result = value;
+			base.CompleteInternal(completionState);
 		}
 
-		public override void Complete(object value)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private void CompleteInternal(State completionState, T value, Exception exception)
 		{
-			Result = (T)value;
-			CompleteInternal();
+			m_result = value;
+			base.CompleteInternal(completionState, exception);
 		}
 
 		public static Coroutine<T> Completed(T completeWithValue)
@@ -129,114 +153,152 @@ namespace CitizenFX.Core
 	}
 
 	[AsyncMethodBuilder(typeof(CoroutineBuilder))]
-	public class Coroutine
+	public partial class Coroutine
 	{
-		private Action continuation;
+		public enum State : uint
+		{
+			// 0x000F
+			Idle = 0,
+			Active = 1u << 1,
 
-		public Exception Exception { get; set; }
+			// 0x00F0
+			// reserved
 
-		public bool IsCompleted { get; private set; }
+			// 0x0F00
+			// reserved
+
+			// 0xF000
+			Completed = 1u << 24,
+			Succesful = Completed, // no other bits set
+			Failed = Completed | (1 << 25),
+			Canceled = Completed | (1u << 26),
+
+			MaskActive = 0x000F,
+			MaskCompletion = 0xF000,
+		}
+
+		private Action<Coroutine> m_continuation;
+
+		protected ExceptionDispatchInfo m_exception;
+
+		protected State m_state;
+
+		public Exception Exception
+		{
+			get => m_exception?.SourceException;
+			set => m_exception = value != null ? ExceptionDispatchInfo.Capture(value) : null;
+		}
+
+		public bool IsCompleted => (m_state & State.Completed) != 0;
+		public bool IsSuccessful => (m_state & State.MaskCompletion) == State.Succesful;
+		public bool IsFailed => (m_state & State.MaskCompletion) == State.Failed;
+		public bool IsCanceled => (m_state & State.MaskCompletion) == State.Canceled;
 
 		internal Coroutine() { }
 
-		public object GetResult() => GetResultInternal();
+		public object GetResult()
+		{
+			m_exception?.Throw();
+			return GetResultInternal();
+		}
 
 		protected virtual object GetResultInternal() => null;
 
-		public virtual void Complete(object value = null) => CompleteInternal();
+		internal void Complete() => CompleteInternal(State.Completed);
 
-		protected void CompleteInternal()
+		public virtual void Complete(object value = null) => CompleteInternal(State.Completed);
+		public virtual void Complete(object value, Exception exception) => CompleteInternal(State.Completed, exception);
+
+		public virtual void Cancel(object value = null) => CompleteInternal(State.Canceled);
+		public virtual void Cancel(object value, Exception exception) => CompleteInternal(State.Canceled, exception);
+
+		public virtual void Fail(object value = null) => CompleteInternal(State.Failed);
+		public virtual void Fail(object value, Exception exception) => CompleteInternal(State.Failed, exception);
+
+		internal void SetException(Exception exception) => CompleteInternal(State.Failed, exception);
+
+		protected void CompleteInternal(State completionState)
 		{
 			if (!IsCompleted)
 			{
-				IsCompleted = true;
-				continuation?.Invoke();
+				m_state |= completionState;
+				m_continuation?.Invoke(this);
 			}
 		}
 
-		public void SetException(Exception exception)
+		protected void CompleteInternal(State completionState, Exception exception)
 		{
 			Exception = exception;
-			CompleteInternal();
+			CompleteInternal(completionState);
 		}
 
-		public void ContinueWith(Action action)
+		/// <summary>
+		/// Adds an action that will be called when this coroutine is done
+		/// </summary>
+		/// <param name="action">Action to call when coroutine completes</param>
+		public void ContinueWith(Action<Coroutine> action) => m_continuation += action;
+
+		/// <summary>
+		/// Adds an action that will be called when this coroutine is done
+		/// </summary>
+		/// <param name="action">Action to call when coroutine completes</param>
+		public void ContinueWith(Action action) => ContinueWith(_ => action());
+
+		/// <summary>
+		/// Removes all continued actions, e.g.: <see cref="ContinueWith(Action{Coroutine})"/> and sets one that writes any exception thrown instead
+		/// </summary>
+		/// <remarks>Unsafe. Should only be used when you know the exact state of this coroutine</remarks>
+		internal void ClearContinueWith()
 		{
-			continuation = continuation is null ? action
-				: new Action(() => { continuation(); action(); });
+			m_continuation = coroutine =>
+			{
+				if (coroutine.Exception != null)
+				{
+					Debug.WriteLine(coroutine.Exception);
+				}
+			};
 		}
 
 		public CoroutineAwaiter GetAwaiter() => new CoroutineAwaiter(this);
-
-		public static Coroutine Completed()
-		{
-			var coroutine = new Coroutine();
-			coroutine.Complete();
-			return coroutine;
-		}
-
-		public static Coroutine Yield()
-		{
-			var coroutine = new Coroutine();
-			Scheduler.Schedule(() => coroutine.GetAwaiter().SetResult());
-			return coroutine;
-		}
-
-		internal static Coroutine WaitUntil(ulong time)
-		{
-			var coroutine = new Coroutine();
-			Action action = () => coroutine.GetAwaiter().SetResult();
-
-			if (time <= Scheduler.CurrentTime) // e.g.: Coroutine.Wait(0u) or Coroutine.Delay(0u)
-				Scheduler.Schedule(action);
-			else
-				Scheduler.Schedule(action, time);
-
-			return coroutine;
-		}
-
-		internal static Coroutine Wait(ulong delay) => WaitUntil(Scheduler.CurrentTime + delay);
-
-		internal static Coroutine Delay(ulong delay) => WaitUntil(Scheduler.CurrentTime + delay);
 	}
 
 	public interface ICoroutineAwaiter {}
 
-	public struct CoroutineAwaiter<T> : ICriticalNotifyCompletion, ICoroutineAwaiter
+	public readonly struct CoroutineAwaiter<T> : ICriticalNotifyCompletion, ICoroutineAwaiter
 	{
-		Coroutine<T> coroutine;
+		readonly Coroutine<T> m_coroutine;
 
-		public bool IsCompleted => coroutine.IsCompleted;
+		public bool IsCompleted => m_coroutine.IsCompleted;
 
-		internal CoroutineAwaiter(Coroutine<T> coroutine) => this.coroutine = coroutine;
+		internal CoroutineAwaiter(Coroutine<T> coroutine) => m_coroutine = coroutine;
 
-		public T GetResult() => coroutine.GetResult();
+		public T GetResult() => m_coroutine.GetResult();
 
-		public void SetResult(T result) => coroutine.Complete(result);
+		public void SetResult(T result) => m_coroutine.Complete(result);
 
-		public void SetException(Exception exception) => coroutine.SetException(exception);
+		public void SetException(Exception exception) => m_coroutine.SetException(exception);
 
-		public void OnCompleted(Action continuation) => coroutine.ContinueWith(continuation);
+		public void OnCompleted(Action continuation) => m_coroutine.ContinueWith(continuation);
 
-		public void UnsafeOnCompleted(Action continuation) => coroutine.ContinueWith(continuation);
+		public void UnsafeOnCompleted(Action continuation) => m_coroutine.ContinueWith(continuation);
 	}
 
-	public struct CoroutineAwaiter : ICriticalNotifyCompletion, ICoroutineAwaiter
+	public readonly struct CoroutineAwaiter : ICriticalNotifyCompletion, ICoroutineAwaiter
 	{
-		Coroutine coroutine;
+		readonly Coroutine m_coroutine;
 
-		public bool IsCompleted => coroutine.IsCompleted;
+		public bool IsCompleted => m_coroutine.IsCompleted;
 
-		internal CoroutineAwaiter(Coroutine coroutine) => this.coroutine = coroutine;
+		internal CoroutineAwaiter(Coroutine coroutine) => m_coroutine = coroutine;
 
-		public void GetResult() { }
+		public void GetResult() => m_coroutine.GetResult();
 
-		public void SetResult() => coroutine.Complete();
+		public void SetResult() => m_coroutine.Complete();
 
-		public void SetException(Exception exception) => coroutine.SetException(exception);
+		public void SetException(Exception exception) => m_coroutine.SetException(exception);
 
-		public void OnCompleted(Action continuation) => coroutine.ContinueWith(continuation);
+		public void OnCompleted(Action continuation) => m_coroutine.ContinueWith(continuation);
 
-		public void UnsafeOnCompleted(Action continuation) => coroutine.ContinueWith(continuation);
+		public void UnsafeOnCompleted(Action continuation) => m_coroutine.ContinueWith(continuation);
 	}
 }

@@ -9,7 +9,7 @@ namespace CitizenFX.Core
 		/// <summary>
 		/// Current time of this scheduler
 		/// </summary>
-		public static ulong CurrentTime { get; internal set; }
+		public static TimePoint CurrentTime { get; internal set; }
 
 		/// <summary>
 		/// Thread onto which all coroutines will run and be put back to
@@ -19,7 +19,7 @@ namespace CitizenFX.Core
 		/// <summary>
 		/// Current time of the scheduler, set per frame.
 		/// </summary>
-		private static LinkedList<Tuple<ulong, Action>> s_queue = new LinkedList<Tuple<ulong, Action>>();
+		private static readonly LinkedList<Tuple<ulong, Action>> s_queue = new LinkedList<Tuple<ulong, Action>>();
 
 		/// <summary>
 		/// Double buffered array for non-ordered scheduling
@@ -53,10 +53,21 @@ namespace CitizenFX.Core
 		/// Schedule an action to be run at the first frame at or after the specified time
 		/// </summary>
 		/// <param name="coroutine">Action to execute</param>
+		/// <param name="delay">Time when it should be executed, see <see cref="CurrentTime"/></param>
+		public static void Schedule(Action coroutine, ulong delay) => Schedule(coroutine, CurrentTime + delay);
+
+		/// <summary>
+		/// Schedule an action to be run at the first frame at or after the specified time
+		/// </summary>
+		/// <param name="coroutine">Action to execute</param>
 		/// <param name="time">Time when it should be executed, see <see cref="CurrentTime"/></param>
-		public static void Schedule(Action coroutine, ulong time)
-		{
-			if (coroutine != null)
+		public static void Schedule(Action coroutine, TimePoint time)
+		{			
+			if (time <= CurrentTime) // e.g.: Coroutine.Wait(0u) or Coroutine.Delay(0u)
+			{
+				Schedule(coroutine);
+			}
+			else if (coroutine != null)
 			{
 				lock (s_queue)
 				{
@@ -71,6 +82,36 @@ namespace CitizenFX.Core
 					}
 
 					s_queue.AddLast(new Tuple<ulong, Action>(time, coroutine));
+				}
+			}
+			else
+				throw new ArgumentNullException(nameof(coroutine));
+		}
+
+		/// <summary>
+		/// Removes scheduled coroutine from the scheduler (except for the next frame list)
+		/// </summary>
+		/// <param name="coroutine">Coroutine to remove</param>
+		/// <param name="time">Max scheduled time we consider searching to</param>
+		/// <exception cref="ArgumentNullException"></exception>
+		internal static void Unschedule(Action coroutine, TimePoint time)
+		{
+			if (time > CurrentTime) // e.g.: Coroutine.Wait(0u) or Coroutine.Delay(0u)
+			{
+				lock (s_queue)
+				{
+					for (var it = s_queue.First; it != null; it = it.Next)
+					{
+						if (it.Value.Item1 > time)
+						{
+							return; // list is ordered so we'll not find it after this scheduled item
+						}
+						else if (it.Value.Item2 == coroutine)
+						{
+							s_queue.Remove(it);
+							return;
+						}
+					}
 				}
 			}
 			else
