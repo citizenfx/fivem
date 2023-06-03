@@ -6545,17 +6545,6 @@ inline bool RequestControlHandler(fx::ServerGameState* sgs, const fx::ClientShar
 		return false;
 	}
 
-	// if the sender is strict, nope
-	if (sgs->GetEntityLockdownMode(client) == fx::EntityLockdownMode::Strict)
-	{
-		if (reason)
-		{
-			*reason = "Strict entity lockdown is active";
-		}
-
-		return false;
-	}
-
 	// if the sender isn't in the same bucket as the entity, nope either
 	{
 		auto clientData = GetClientDataUnlocked(sgs, client);
@@ -6575,6 +6564,17 @@ inline bool RequestControlHandler(fx::ServerGameState* sgs, const fx::ClientShar
 	if (entity->ignoreRequestControlFilter)
 	{
 		return true;
+	}
+
+	// if the sender is strict, nope
+	if (sgs->GetEntityLockdownMode(client) == fx::EntityLockdownMode::Strict)
+	{
+		if (reason)
+		{
+			*reason = "Strict entity lockdown is active";
+		}
+
+		return false;
 	}
 
 	if constexpr (Mode == RequestControlFilterMode::FilterAll)
