@@ -289,3 +289,6 @@
 [submodule "vendor/msgpack-cpp"]
 	path = vendor/msgpack-cpp
 	url = https://github.com/msgpack/msgpack-c.git
+[submodule "vendor/reshade"]
+	path = vendor/reshade
+	url = https://github.com/citizenfx/reshade.git

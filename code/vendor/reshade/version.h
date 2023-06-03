@@ -1,0 +1,10 @@
+#pragma once
+
+#define VERSION_FULL 5.8.0.0
+#define VERSION_MAJOR 5
+#define VERSION_MINOR 8
+#define VERSION_REVISION 0
+#define VERSION_BUILD 0
+
+#define VERSION_STRING_FILE "5.8.0.0"
+#define VERSION_STRING_PRODUCT "5.8.0.0 UNOFFICIAL (Cfx.re)"

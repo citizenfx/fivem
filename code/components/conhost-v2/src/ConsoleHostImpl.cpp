@@ -11,6 +11,8 @@
 #include "ConsoleHost.h"
 #include "ConsoleHostImpl.h"
 
+#include "ImGuiTextureId.h"
+
 #include <d3d11.h>
 
 #include <mutex>
@@ -150,9 +152,16 @@ static void RenderDrawListInternal(ImDrawList* drawList, ImDrawData* refData)
 		}
 		else
 		{
+			rage::grcTexture* texture = nullptr;
+
 			if (cmd.TextureId)
 			{
-				SetTextureGtaIm(*(rage::grcTexture**)cmd.TextureId);
+				texture = conhost::ImGuiTexture::ToGrcoreTexture(cmd.TextureId);
+			}
+
+			if (texture)
+			{
+				SetTextureGtaIm(texture);
 			}
 			else
 			{
@@ -287,11 +296,10 @@ static void CreateFontTexture()
 
 	if (!io.Fonts->TexID)
 	{
-		void** texId = new void*[2];
-		io.Fonts->TexID = (ImTextureID)texId;
+		io.Fonts->TexID = (ImTextureID)conhost::MakeImGuiTexture(g_fontTexture);
 	}
 
-	((void**)io.Fonts->TexID)[0] = (void*)g_fontTexture;
+	((conhost::ImGuiTexture*)io.Fonts->TexID)->gameTexture = (void*)g_fontTexture;
 }
 #else
 DLL_EXPORT fwEvent<ImDrawData*> OnRenderImDrawData;
@@ -351,6 +359,15 @@ extern ID3D11DeviceContext* g_pd3dDeviceContext;
 
 extern float ImGui_ImplWin32_GetWindowDpiScale(ImGuiViewport* viewport);
 extern void ImGui_ImplDX11_RecreateFontsTexture();
+
+// rqge-graphics-five helper
+#ifdef GTA_FIVE
+void DLL_IMPORT ReshadeRenderUI();
+#else
+void ReshadeRenderUI()
+{
+}
+#endif
 
 void OnConsoleFrameDraw(int width, int height, bool usedSharedD3D11)
 {
@@ -473,6 +490,8 @@ void OnConsoleFrameDraw(int width, int height, bool usedSharedD3D11)
 	}
 
 	DrawMiniConsole();
+
+	ReshadeRenderUI();
 
 	ConHost::OnDrawGui();
 
@@ -940,3 +959,61 @@ static HookFunction hookFunction([]()
 {
 	g_origReleaseCapture = (decltype(g_origReleaseCapture))hook::iat("user32.dll", ReleaseCaptureStub, "ReleaseCapture");
 });
+
+namespace conhost
+{
+#if __has_include(<grcTexture.h>)
+rage::grcTexture* ImGuiTexture::ToGrcoreTexture(void* textureId)
+{
+	if (!textureId)
+	{
+		return nullptr;
+	}
+
+	if (IsTexture(textureId))
+	{
+		return reinterpret_cast<rage::grcTexture*>(reinterpret_cast<ImGuiTexture*>(textureId)->gameTexture);
+	}
+
+	// might be a raw SRV: for Five we can handle these directly
+#if defined(GTA_FIVE)
+	static std::unordered_map<void*, rage::grcTexture*> wrapperTextureMap;
+	assert(IsOnRenderThread());
+
+	auto it = wrapperTextureMap.find(textureId);
+
+	if (it == wrapperTextureMap.end())
+	{
+		static uint8_t data[16];
+
+		rage::grcTextureReference reference;
+		memset(&reference, 0, sizeof(reference));
+		reference.width = 1;
+		reference.height = 1;
+		reference.depth = 1;
+		reference.stride = 4;
+		reference.format = 11;
+		reference.pixelData = data;
+
+		auto texture = rage::grcTextureFactory::getInstance()->createImage(&reference, nullptr);
+
+		if (texture->srv)
+		{
+			texture->srv->Release();
+		}
+
+		texture->srv = (ID3D11ShaderResourceView*)textureId;
+
+		it = wrapperTextureMap.emplace(textureId, texture).first;
+	}
+
+	if (it != wrapperTextureMap.end())
+	{
+		return it->second;
+	}
+#endif
+
+	return nullptr;
+}
+#endif
+}

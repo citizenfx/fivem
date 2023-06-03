@@ -714,6 +714,28 @@ static HRESULT CreateD3D11DeviceWrapOrig(_In_opt_ IDXGIAdapter* pAdapter, D3D_DR
 	return hr;
 }
 
+namespace libreshade
+{
+void init(const std::wstring& citPath);
+void setup_d3d11(ID3D11Device*& device, ID3D11DeviceContext*& context, IDXGISwapChain*& swapChain);
+void draw_gui();
+void toggle_gui(bool gui);
+}
+
+static bool g_reshade;
+
+void DLL_EXPORT ReshadeRenderUI()
+{
+	static ConVar<bool> reshade_gui("reshade_gui", ConVar_Archive, false);
+
+	if (g_reshade)
+	{
+		libreshade::toggle_gui(reshade_gui.GetValue());
+
+		libreshade::draw_gui();
+	}
+}
+
 static HRESULT CreateD3D11DeviceWrap(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _In_opt_ CONST DXGI_SWAP_CHAIN_DESC* pSwapChainDesc, _Out_opt_ IDXGISwapChain** ppSwapChain, _Out_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _Out_opt_ ID3D11DeviceContext** ppImmediateContext)
 {
 	HANDLE hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
@@ -728,6 +750,19 @@ static HRESULT CreateD3D11DeviceWrap(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER
 
 	WaitForSingleObject(hEvent, INFINITE);
 	CloseHandle(hEvent);
+
+	static ConVar<bool> reshade("reshade", ConVar_Archive, false);
+
+	if (reshade.GetValue())
+	{
+		g_reshade = true;
+
+		SetCurrentDirectoryW(MakeRelativeCitPath(L"plugins").c_str());
+		libreshade::init(MakeRelativeCitPath(L""));
+		libreshade::setup_d3d11(*ppDevice, *ppImmediateContext, *ppSwapChain);
+
+		SetCurrentDirectoryW(MakeRelativeGamePath(L"").c_str());
+	}
 
 	return hresult;
 }
