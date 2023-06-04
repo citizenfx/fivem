@@ -1035,7 +1035,7 @@ static int Lua_CreateThreadInternal(lua_State* L, bool now, int timeout, int fun
 	const auto& luaRuntime = LuaScriptRuntime::GetCurrent();
 	
 	// --- get debug info
-	lua_pushvalue(L, 1);
+	lua_pushvalue(L, funcArg);
 	// Lua stack: [a1, a1]
 
 	lua_Debug dbgInfo;
@@ -1561,6 +1561,18 @@ result_t LuaScriptRuntime::LoadFileInternal(OMPtr<fxIStream> stream, char* scrip
 	return true;
 }
 
+static int Lua_CreateThreadNow(lua_State* L);
+
+static int Lua_CreateHostFileThread(lua_State* L)
+{
+	lua_pushcfunction(L, Lua_CreateThreadNow);
+	lua_pushvalue(L, lua_upvalueindex(1));
+
+	lua_call(L, 1, 0);
+
+	return 0;
+}
+
 result_t LuaScriptRuntime::LoadHostFileInternal(char* scriptFile)
 {
 	// open the file
@@ -1577,7 +1589,15 @@ result_t LuaScriptRuntime::LoadHostFileInternal(char* scriptFile)
 	char* resourceName;
 	m_resourceHost->GetResourceName(&resourceName);
 
-	return LoadFileInternal(stream, (scriptFile[0] != '@') ? const_cast<char*>(fmt::sprintf("@%s/%s", resourceName, scriptFile).c_str()) : scriptFile);
+	hr = LoadFileInternal(stream, (scriptFile[0] != '@') ? const_cast<char*>(fmt::sprintf("@%s/%s", resourceName, scriptFile).c_str()) : scriptFile);
+
+	if (FX_SUCCEEDED(hr))
+	{
+		// replace the function with a cclosure around CreateThreadNow
+		lua_pushcclosure(m_state, Lua_CreateHostFileThread, 1);
+	}
+
+	return hr;
 }
 
 result_t LuaScriptRuntime::LoadSystemFileInternal(char* scriptFile)
