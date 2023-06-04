@@ -82,12 +82,10 @@ exports('addSuggestion', addSuggestion)
 AddEventHandler('chat:addSuggestion', addSuggestion)
 
 AddEventHandler('chat:addSuggestions', function(suggestions)
-  for _, suggestion in ipairs(suggestions) do
-    SendNUIMessage({
-      type = 'ON_SUGGESTION_ADD',
-      suggestion = suggestion
-    })
-  end
+  SendNUIMessage({
+    type = 'ON_SUGGESTION_ADD',
+    suggestion = suggestions
+  })
 end)
 
 AddEventHandler('chat:removeSuggestion', function(name)

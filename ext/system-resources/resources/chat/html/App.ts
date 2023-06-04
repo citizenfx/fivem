@@ -233,22 +233,26 @@ export default defineComponent({
       this.oldMessages = [];
       this.oldMessagesIndex = -1;
     },
-    ON_SUGGESTION_ADD({ suggestion }: { suggestion: Suggestion }) {
-      this.removedSuggestions = this.removedSuggestions.filter(a => a !== suggestion.name);
-      const duplicateSuggestion = this.backingSuggestions.find(
-        a => a.name == suggestion.name
-      );
-      if (duplicateSuggestion) {
-        if (suggestion.help || suggestion.params) {
-          duplicateSuggestion.help = suggestion.help || "";
-          duplicateSuggestion.params = suggestion.params || [];
+    ON_SUGGESTION_ADD({ suggestion }: { suggestion: Suggestion | Suggestion[] }) {
+      const suggestions = (Array.isArray(suggestion)) ? suggestion : [ suggestion ];
+
+      for (const suggestion of suggestions) {
+        this.removedSuggestions = this.removedSuggestions.filter(a => a !== suggestion.name);
+        const duplicateSuggestion = this.backingSuggestions.find(
+          a => a.name === suggestion.name
+        );
+        if (duplicateSuggestion) {
+          if (suggestion.help || suggestion.params) {
+            duplicateSuggestion.help = suggestion.help || "";
+            duplicateSuggestion.params = suggestion.params || [];
+          }
+          return;
         }
-        return;
+        if (!suggestion.params) {
+          suggestion.params = []; //TODO Move somewhere else
+        }
+        this.backingSuggestions.push(suggestion);
       }
-      if (!suggestion.params) {
-        suggestion.params = []; //TODO Move somewhere else
-      }
-      this.backingSuggestions.push(suggestion);
     },
     ON_SUGGESTION_REMOVE({ name }: { name: string }) {
       if (this.removedSuggestions.indexOf(name) <= -1) {
