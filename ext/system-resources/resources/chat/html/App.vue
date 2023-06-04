@@ -1,6 +1,6 @@
 <template>
     <div id="app">
-      <div class="chat-window" :style="this.style" :class="{
+      <div class="chat-window" :style="style" :class="{
           'animated': !showWindow && hideAnimated,
           'hidden': !showWindow
         }">

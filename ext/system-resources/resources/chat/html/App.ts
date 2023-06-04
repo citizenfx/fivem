@@ -1,9 +1,9 @@
 import { post } from './utils';
 import CONFIG from './config';
-import Vue from 'vue';
+import { defineComponent } from 'vue';
 
 import Suggestions from './Suggestions.vue';
-import MessageV from './Message.vue';
+import Message from './Message.vue';
 import { Suggestion } from './Suggestions';
 
 export interface Message {
@@ -58,12 +58,12 @@ const globalMode: Mode = {
   hidden: true
 };
 
-export default Vue.extend({
+export default defineComponent({
   template: "#app_template",
   name: "app",
   components: {
     Suggestions,
-    MessageV
+    Message
   },
   data() {
     return {
@@ -447,7 +447,7 @@ export default Vue.extend({
     hideInput(canceled = false) {
       setTimeout(() => {
         const input = this.$refs.input as HTMLInputElement;
-        delete input.style.height;
+        input.style.height = 'auto';
       }, 50);
 
       if (canceled) {

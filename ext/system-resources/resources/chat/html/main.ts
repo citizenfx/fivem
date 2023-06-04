@@ -1,7 +1,4 @@
-import Vue from 'vue';
+import { createApp } from 'vue';
 import App from './App.vue';
 
-const instance = new Vue({
-    el: '#app',
-    render: h => h(App),
-});
+const instance = createApp(App).mount('#app');

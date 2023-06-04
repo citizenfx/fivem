@@ -14,6 +14,7 @@ server_script 'sv_chat.lua'
 files {
   'dist/ui.html',
   'dist/index.css',
+  'dist/chat.js',
   'html/vendor/*.css',
   'html/vendor/fonts/*.woff2',
 }

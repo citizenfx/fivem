@@ -6,7 +6,10 @@ if errorlevel 1 (
     exit /B 1
 )
 
+if "%1" == "chat" goto chat 
+
 set SRRoot=%~dp0\data
+pushd %~dp0
 
 :: txadmin
 pushd ..\txAdmin
@@ -23,11 +26,12 @@ mkdir %SRRoot%\monitor\
 xcopy /y /e ..\txAdmin\dist %SRRoot%\monitor
 
 :: chat
+:chat
+
 pushd resources\chat
 rmdir /s /q dist
 
-call npm install yarn@1.22
-call node_modules\.bin\yarn
+node %~dp0\..\native-doc-gen\yarn_cli.js
 
 :: TODO: only do this if node 18
 set NODE_OPTIONS=--openssl-legacy-provider
@@ -46,6 +50,7 @@ rmdir /s /q %SRRoot%\chat\html\
 mkdir %SRRoot%\chat\html\vendor\
 
 xcopy /y /e resources\chat\html\vendor %SRRoot%\chat\html\vendor
+popd
 
 :: done!
 exit /B 0

@@ -1,22 +1,30 @@
 import CONFIG from './config';
-import Vue, { PropType } from 'vue';
+import { defineComponent, PropType } from 'vue';
+
+export interface SuggestionParam {
+  name: string;
+  disabled: boolean;
+  help: string;
+}
 
 export interface Suggestion {
   name: string;
   help: string;
-  params: string[];
+  params: SuggestionParam[];
 
   disabled: boolean;
 }
 
-export default Vue.component('suggestions', {
+export default defineComponent({
   props: {
     message: {
-      type: String
+      type: String,
+      required: true,
     },
     
     suggestions: {
-      type: Array as PropType<Suggestion[]>
+      type: Array as PropType<Suggestion[]>,
+      required: true,
     }
   },
   data() {

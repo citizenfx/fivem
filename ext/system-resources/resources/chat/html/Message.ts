@@ -1,7 +1,7 @@
 import CONFIG from './config';
-import Vue, { PropType } from 'vue';
+import { defineComponent, PropType } from 'vue';
 
-export default Vue.component('message', {
+export default defineComponent({
   data() {
     return {};
   },
@@ -27,10 +27,14 @@ export default Vue.component('message', {
       });
 
       // format variant args
-      s = s.replace(/\{\{([a-zA-Z0-9_\-]+?)\}\}/g, (match, id) => {
-        const argEscaped = this.params[id] != undefined ? this.escape(this.params[id]) : match;
-        return argEscaped;
-      });
+      const params = this.params;
+
+      if (params) {
+        s = s.replace(/\{\{([a-zA-Z0-9_\-]+?)\}\}/g, (match, id) => {
+          const argEscaped = params[id] != undefined ? this.escape(params[id]) : match;
+          return argEscaped;
+        });
+      }
 
       return this.colorize(s);
     },
@@ -75,9 +79,11 @@ export default Vue.component('message', {
   props: {
     templates: {
       type: Object as PropType<{ [key: string]: string }>,
+      required: true,
     },
     args: {
       type: Array as PropType<string[]>,
+      required: true,
     },
     params: {
       type: Object as PropType<{ [ key: string]: string }>,

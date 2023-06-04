@@ -1,7 +1,7 @@
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const HtmlWebpackInlineSourcePlugin = require('html-webpack-inline-source-plugin');
-const VueLoaderPlugin = require('vue-loader/lib/plugin');
+const { VueLoaderPlugin } = require('vue-loader');
 const CopyPlugin = require('copy-webpack-plugin');
+const { DefinePlugin } = require('webpack');
 
 module.exports = {
     mode: 'production',
@@ -29,10 +29,15 @@ module.exports = {
             template: './html/index.html',
             filename: 'ui.html'
         }),
-        new HtmlWebpackInlineSourcePlugin(),
-        new CopyPlugin([
-            { from: 'html/index.css', to: 'index.css' }
-        ]),
+        new CopyPlugin({
+            patterns: [
+                { from: 'html/index.css', to: 'index.css' }
+            ]
+        }),
+        new DefinePlugin({
+            __VUE_OPTIONS_API__: true,
+            __VUE_PROD_DEVTOOLS__: false
+        }),
     ],
     resolve: {
         extensions: [ '.ts', '.js' ]

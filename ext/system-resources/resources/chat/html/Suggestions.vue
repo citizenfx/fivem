@@ -17,8 +17,10 @@
             <template v-if="!s.disabled">
                 {{s.help}}
             </template>
-            <template v-for="p in s.params" v-if="!p.disabled">
-                {{p.help}}
+            <template v-for="p in s.params">
+                <template v-if="!p.disabled">
+                    {{p.help}}
+                </template>
             </template>
             </small>
         </li>
