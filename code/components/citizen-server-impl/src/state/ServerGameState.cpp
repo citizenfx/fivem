@@ -87,6 +87,9 @@ std::shared_ptr<ConVar<fx::OneSyncState>> g_oneSyncVar;
 std::shared_ptr<ConVar<bool>> g_oneSyncPopulation;
 std::shared_ptr<ConVar<bool>> g_oneSyncARQ;
 
+static std::shared_ptr<ConVar<bool>> g_networkedSoundsEnabledVar;
+static bool g_networkedSoundsEnabled;
+
 static std::shared_ptr<ConVar<int>> g_requestControlVar;
 static std::shared_ptr<ConVar<int>> g_requestControlSettleVar;
 
@@ -6756,6 +6759,14 @@ std::function<bool()> fx::ServerGameState::GetGameEventHandler(const fx::ClientS
 		return GetRequestControlEventHandler(client, std::move(buffer));
 	}
 
+	if(eventType == NETWORK_PLAY_SOUND_EVENT)
+	{
+		return []()
+		{
+			return g_networkedSoundsEnabled;
+		};
+	}
+
 	if (isReply)
 	{
 		switch(eventType)
@@ -6834,6 +6845,8 @@ static InitFunction initFunction([]()
 		{
 			return;
 		}
+
+		g_networkedSoundsEnabledVar = instance->AddVariable<bool>("sv_enableNetworkedSounds", ConVar_None, true, &g_networkedSoundsEnabled);
 
 		g_requestControlVar = instance->AddVariable<int>("sv_filterRequestControl", ConVar_None, (int)RequestControlFilterMode::NoFilter, (int*)&g_requestControlFilterState);
 		g_requestControlSettleVar = instance->AddVariable<int>("sv_filterRequestControlSettleTimer", ConVar_None, 30000, &g_requestControlSettleDelay);
