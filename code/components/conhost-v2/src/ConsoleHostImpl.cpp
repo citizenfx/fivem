@@ -10,6 +10,7 @@
 
 #include "ConsoleHost.h"
 #include "ConsoleHostImpl.h"
+#include "CoreConsole.h"
 
 #include <d3d11.h>
 
@@ -314,6 +315,7 @@ static std::recursive_mutex g_conHostMutex;
 ImFont* consoleFontSmall;
 
 void DrawMiniConsole();
+void DrawWinConsole(bool* pOpen);
 
 static void HandleFxDKInput(ImGuiIO& io)
 {
@@ -352,6 +354,8 @@ extern ID3D11DeviceContext* g_pd3dDeviceContext;
 extern float ImGui_ImplWin32_GetWindowDpiScale(ImGuiViewport* viewport);
 extern void ImGui_ImplDX11_RecreateFontsTexture();
 
+static bool g_winConsole;
+
 void OnConsoleFrameDraw(int width, int height, bool usedSharedD3D11)
 {
 	std::unique_lock lock(g_conHostMutex, std::defer_lock);
@@ -359,6 +363,10 @@ void OnConsoleFrameDraw(int width, int height, bool usedSharedD3D11)
 	{
 		return;
 	}
+
+#ifndef IS_FXSERVER
+	static ConVar<bool> winConsoleVar("con_winconsole", ConVar_Archive | ConVar_UserPref, false, &g_winConsole);
+#endif
 
 #ifndef IS_LAUNCHER
 	static float lastScale = 1.0f;
@@ -394,7 +402,7 @@ void OnConsoleFrameDraw(int width, int height, bool usedSharedD3D11)
 
 	ConHost::OnShouldDrawGui(&shouldDrawGui);
 
-	if (!g_cursorFlag && !g_consoleFlag && !shouldDrawGui)
+	if (!g_cursorFlag && !g_consoleFlag && !shouldDrawGui && !g_winConsole)
 	{
 		// if not drawing the gui, we're also not owning the cursor
 #ifdef WITH_NUI
@@ -473,6 +481,11 @@ void OnConsoleFrameDraw(int width, int height, bool usedSharedD3D11)
 	}
 
 	DrawMiniConsole();
+
+	if (g_winConsole)
+	{
+		DrawWinConsole(&g_winConsole);
+	}
 
 	ConHost::OnDrawGui();
 

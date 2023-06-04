@@ -105,6 +105,10 @@ struct FiveMConsoleBase
 
 	std::recursive_mutex ItemsMutex;
 
+	virtual void RunCommandQueue()
+	{
+	}
+
 	// Portable helpers
 	static int Stricmp(const char* str1, const char* str2) { int d; while ((d = toupper(*str2) - toupper(*str1)) == 0 && *str1) { str1++; str2++; } return d; }
 	static int Strnicmp(const char* str1, const char* str2, int n) { int d = 0; while (n > 0 && (d = toupper(*str2) - toupper(*str1)) == 0 && *str1) { str1++; str2++; n--; } return d; }
@@ -279,37 +283,53 @@ struct CfxBigConsole : FiveMConsoleBase
 		ScrollToBottom = true;
 	}
 
-	void Draw(const char* title, bool* p_open) override
+	virtual bool PreStartWindow()
 	{
 #ifndef IS_FXSERVER
 		if (GetKeyState(VK_CONTROL) & 0x8000 && GetKeyState(VK_MENU) & 0x8000)
 		{
-			return;
+			return false;
 		}
 #endif
 
+		return true;
+	}
+
+	virtual bool StartWindow(const char* title, bool* p_open)
+	{
 		ImGui::SetNextWindowPos(ImVec2(ImGui::GetMainViewport()->Pos.x + 0, ImGui::GetMainViewport()->Pos.y + g_menuHeight));
-		ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, 
+		ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x,
 #ifndef IS_FXSERVER
-							     ImGui::GetFrameHeightWithSpacing() * 12.0f
+								 ImGui::GetFrameHeightWithSpacing() * 12.0f
 #else
 								 ImGui::GetIO().DisplaySize.y - g_menuHeight
 #endif
-		), ImGuiCond_Always);
+								 ),
+		ImGuiCond_Always);
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 
-		ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar |
-			ImGuiWindowFlags_NoScrollbar |
-			ImGuiWindowFlags_NoMove |
-			ImGuiWindowFlags_NoResize |
-			ImGuiWindowFlags_NoSavedSettings | 
-			ImGuiWindowFlags_NoBringToFrontOnFocus;
+		ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus;
 
-		if (!ImGui::Begin(title, nullptr, flags))
+		return ImGui::Begin(title, nullptr, flags);
+	}
+
+	virtual void EndWindow()
+	{
+		ImGui::End();
+		ImGui::PopStyleVar();
+	}
+
+	void Draw(const char* title, bool* p_open) override
+	{
+		if (!PreStartWindow())
 		{
-			ImGui::End();
-			ImGui::PopStyleVar();
+			return;
+		}
+
+		if (!StartWindow(title, p_open))
+		{
+			EndWindow();
 			return;
 		}
 
@@ -416,9 +436,7 @@ struct CfxBigConsole : FiveMConsoleBase
 		}
 #endif
 
-		ImGui::End();
-
-		ImGui::PopStyleVar();
+		EndWindow();
 	}
 
 	void ExecCommand(const char* command_line)
@@ -597,7 +615,7 @@ struct CfxBigConsole : FiveMConsoleBase
 		return 0;
 	}
 
-	void RunCommandQueue()
+	virtual void RunCommandQueue() override
 	{
 		std::string command_line;
 
@@ -646,6 +664,29 @@ struct CfxBigConsole : FiveMConsoleBase
 		}
 
 		return channel.find("script:") == 0;
+	}
+};
+
+// WinConsole is a midway point between minicon and the f8 console
+struct CfxWinConsole : CfxBigConsole
+{
+	virtual bool PreStartWindow() override
+	{
+		return true;
+	}
+
+	virtual bool StartWindow(const char* title, bool* p_open) override
+	{
+		ImGuiWindowFlags flags = ImGuiWindowFlags_NoScrollbar;
+
+		ImGui::SetNextWindowSize(ImVec2(800, 480), ImGuiCond_FirstUseEver);
+
+		return ImGui::Begin(title, p_open, flags);
+	}
+
+	virtual void EndWindow() override
+	{
+		ImGui::End();
 	}
 };
 
@@ -805,7 +846,7 @@ struct MiniConsole : CfxBigConsole
 	}
 };
 
-static std::unique_ptr<FiveMConsoleBase> g_consoles[2];
+static std::unique_ptr<FiveMConsoleBase> g_consoles[3];
 static std::recursive_mutex g_consolesMutex;
 
 static void EnsureConsoles()
@@ -816,6 +857,7 @@ static void EnsureConsoles()
 	{
 		g_consoles[0] = std::make_unique<CfxBigConsole>();
 		g_consoles[1] = std::make_unique<MiniConsole>();
+		g_consoles[2] = std::make_unique<CfxWinConsole>();
 	}
 }
 
@@ -853,6 +895,13 @@ void DrawMiniConsole()
 
 	static bool pOpen = true;
 	g_consoles[1]->Draw("##_MiniConsole", &pOpen);
+}
+
+void DrawWinConsole(bool* pOpen)
+{
+	EnsureConsoles();
+
+	g_consoles[2]->Draw("WinConsole", pOpen);
 }
 
 #include <sstream>
@@ -935,9 +984,9 @@ void SendPrintMessage(const std::string& channel, const std::string& message)
 
 DLL_EXPORT void RunConsoleGameFrame()
 {
-	if (g_consoles[0])
+	for (auto& console : g_consoles)
 	{
-		((CfxBigConsole*)g_consoles[0].get())->RunCommandQueue();
+		console->RunCommandQueue();
 	}
 }
 
