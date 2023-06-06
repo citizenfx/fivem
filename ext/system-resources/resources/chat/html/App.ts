@@ -246,7 +246,7 @@ export default defineComponent({
             duplicateSuggestion.help = suggestion.help || "";
             duplicateSuggestion.params = suggestion.params || [];
           }
-          return;
+          continue;
         }
         if (!suggestion.params) {
           suggestion.params = []; //TODO Move somewhere else
