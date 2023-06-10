@@ -182,21 +182,31 @@ namespace CitizenFX.Core
 				{
 					if (coroutine.IsCompleted)
 					{
-						if (coroutine.GetResult() is Callback callback)
-							coroutine.ContinueWith(() => callback(coroutine.GetResult(), coroutine.Exception));
-						else
-							return MsgPackSerializer.Serialize(new[] { coroutine.GetResult() });
+						if (coroutine.Exception != null)
+						{
+							Debug.Write(coroutine.Exception);
+						}
+
+						return MsgPackSerializer.Serialize(new[] { coroutine.GetResultNonThrowing(), coroutine.Exception?.ToString() });
 					}
 					else
 					{
-						var returnDictionary = new Dictionary<string, object>(1);
-						returnDictionary.Add("__cfx_async_retval", new Action<Callback>(asyncResult =>
-							{
-								coroutine.ContinueWith(new Action(() => asyncResult(coroutine.GetResult(), coroutine.Exception)));
-							})
-						);
+						var returnDictionary = new Dictionary<string, object>()
+						{
+							{ "__cfx_async_retval", new Action<Callback>(asyncResult =>
+								coroutine.ContinueWith(() =>
+								{
+									if (coroutine.Exception != null)
+									{
+										Debug.Write(coroutine.Exception);
+									}
 
-						return MsgPackSerializer.Serialize(new[] { returnDictionary });
+									asyncResult(coroutine.GetResultNonThrowing(), coroutine.Exception?.ToString());
+								}))
+							}
+						};
+
+						return MsgPackSerializer.Serialize(new object[] { returnDictionary });
 					}
 				}
 

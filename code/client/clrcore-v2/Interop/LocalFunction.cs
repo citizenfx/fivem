@@ -53,12 +53,15 @@ namespace CitizenFX.Core
 					&& requestAsyncCallback is Callback callbackRequested)
 				{
 					var c = new Coroutine<object>();
-					callbackRequested(new Action<object, object>((a, e) =>
+					callbackRequested(new Action<object, object>((results, exception) =>
 					{
-						if (e != null)
-							c.SetException(new Exception(e.ToString()));
+						if (exception != null)
+							c.Fail(null, new Exception(exception.ToString()));
+						else if(results is object[] array && array.Length > 0)
+							c.Complete(array[0]);
 						else
-							c.Complete(a);
+							c.Complete(null);
+
 					}));
 
 					return c;

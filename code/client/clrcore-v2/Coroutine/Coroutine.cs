@@ -202,6 +202,8 @@ namespace CitizenFX.Core
 			return GetResultInternal();
 		}
 
+		internal object GetResultNonThrowing() => GetResultInternal();
+
 		protected virtual object GetResultInternal() => null;
 
 		internal void Complete() => CompleteInternal(State.Completed);
