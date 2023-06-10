@@ -1,6 +1,7 @@
 using CitizenFX.Core.Native;
 using System;
 using System.Collections.Generic;
+using System.Security;
 
 #if MONO_V2
 namespace CitizenFX.FiveM
@@ -38,6 +39,9 @@ namespace CitizenFX.Core
 
 		public int Count
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.ReadIfNotNull(_owner.MemoryAddress, Game.Version >= GameVersion.v1_0_372_2_Steam ? 0xAA8 : 0xA88, 0);
+#else
 			get
 			{
 				if (_owner.MemoryAddress == IntPtr.Zero)
@@ -49,6 +53,7 @@ namespace CitizenFX.Core
 
 				return MemoryAccess.ReadInt(_owner.MemoryAddress + offset);
 			}
+#endif
 		}
 	}
 }

@@ -1,59 +1,140 @@
 using System;
-using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 using System.Security;
 
 namespace CitizenFX.Core.Native
 {
-	[SecuritySafeCritical]
+	[SecurityCritical]
 	internal static class MemoryAccess
 	{
-		public static int[] GetPickupObjectHandles() => new int[0];
-		public static int[] GetPedHandles() => new int[0];
-		public static int[] GetEntityHandles() => new int[0];
-		public static int[] GetPropHandles() => new int[0];
-		public static int[] GetVehicleHandles() => new int[0];
-
-		public static int[][] VehicleModels => null;
-
-		public static float ReadWorldGravity()
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe IntPtr Deref(IntPtr ptr, int offset)
 		{
-			return 0.0f;
+			return *(IntPtr*)(ptr + offset);
 		}
 
-		public static void WriteWorldGravity(float f)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe IntPtr DerefIfNotNull(IntPtr ptr, int offset)
 		{
-
+			return ptr != IntPtr.Zero
+				? *(IntPtr*)(ptr + offset)
+				: IntPtr.Zero;
 		}
 
-		[SecurityCritical]
-		public static unsafe T GetValueOrDefault<T>(IntPtr ptr, int offset, T def) where T : unmanaged => ptr != IntPtr.Zero ? *(T*)(ptr + offset) : def;
-		[SecurityCritical]
-		public static unsafe void SetValueIfNotNull<T>(IntPtr ptr, int offset, T val) where T : unmanaged
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe IntPtr Deref(IntPtr ptr, int offset, int postDerefOffset)
+		{
+			return *(IntPtr*)(ptr + offset) + postDerefOffset;
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe IntPtr DerefIfNotNull(IntPtr ptr, int offset, int postDerefOffset)
+		{
+			return ptr != IntPtr.Zero
+				? *(IntPtr*)(ptr + offset) + postDerefOffset
+				: IntPtr.Zero;
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe T Read<T>(IntPtr ptr, int offset) where T : unmanaged
+		{
+			return *(T*)(ptr + offset);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe T ReadIfNotNull<T>(IntPtr ptr, int offset, T orDefault) where T : unmanaged
+		{
+			return ptr != IntPtr.Zero
+				? *(T*)(ptr + offset)
+				: orDefault;
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe T ReadIfNotNull<T>(IntPtr ptr, int offset, ref T setOrDefault) where T : unmanaged
+		{
+			return ptr != IntPtr.Zero
+				? setOrDefault = *(T*)(ptr + offset)
+				: setOrDefault;
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe void Write<T>(IntPtr ptr, int offset, T value) where T : unmanaged
+		{
+			*(T*)(ptr + offset) = value;
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe void WriteIfNotNull<T>(IntPtr ptr, int offset, T value) where T : unmanaged
 		{
 			if (ptr != IntPtr.Zero)
-				*(T*)(ptr + offset) = val;
+			{
+				*(T*)(ptr + offset) = value;
+			}
 		}
 
-		[SecuritySafeCritical] public static byte ReadByte(IntPtr pointer) => Marshal.ReadByte(pointer);
-		[SecuritySafeCritical] public static short ReadShort(IntPtr pointer) => Marshal.ReadInt16(pointer);
-		[SecuritySafeCritical] public static int ReadInt(IntPtr pointer) => Marshal.ReadInt32(pointer);
-		[SecuritySafeCritical] public static IntPtr ReadPtr(IntPtr pointer) => Marshal.ReadIntPtr(pointer);
-		[SecuritySafeCritical] public static float ReadFloat(IntPtr pointer) => BitConverter.ToSingle(BitConverter.GetBytes(Marshal.ReadInt32(pointer)), 0);
-		[SecuritySafeCritical] public static Matrix ReadMatrix(IntPtr pointer) => Marshal.PtrToStructure<Matrix>(pointer);
-		[SecuritySafeCritical] public static Vector3 ReadVector3(IntPtr pointer) => Marshal.PtrToStructure<Vector3>(pointer);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe bool IsBitSetIfNotNull(IntPtr ptr, int offset, int bit, bool orDefault)
+		{
+			return ptr != IntPtr.Zero
+				? (*(int*)(ptr + offset) & (1 << bit)) != 0
+				: orDefault;
+		}
 
-		[SecuritySafeCritical] public static void WriteByte(IntPtr pointer, byte value) => Marshal.WriteByte(pointer, value);
-		[SecuritySafeCritical] public static void WriteShort(IntPtr pointer, short value) => Marshal.WriteInt16(pointer, value);
-		[SecuritySafeCritical] public static void WriteInt(IntPtr pointer, int value) => Marshal.WriteInt32(pointer, value);
-		[SecuritySafeCritical] public static void WriteFloat(IntPtr pointer, float value) => Marshal.WriteInt32(pointer, BitConverter.ToInt32(BitConverter.GetBytes(value), 0));
-		[SecuritySafeCritical] public static void WriteVector3(IntPtr pointer, Vector3 value) => Marshal.StructureToPtr(value, pointer, false);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe void WriteBitIfNotNull(IntPtr ptr, int offset, int bit, bool value)
+		{
+			if (ptr != IntPtr.Zero)
+			{
+				if (value)
+				{
+					*(int*)(ptr + offset) |= 1 << bit;
+				}
+				else
+				{
+					*(int*)(ptr + offset) &= ~(1 << bit);
+				}
+			}
+		}
 
-		[SecuritySafeCritical] public static unsafe bool IsBitSet(IntPtr pointer, int bit) => (*(int*)pointer & (1 << bit)) != 0;
-		[SecuritySafeCritical] public static unsafe void ClearBit(IntPtr pointer, int bit) => *(int*)pointer &= ~(1 << bit);
-		[SecuritySafeCritical] public static unsafe void SetBit(IntPtr pointer, int bit) => *(int*)pointer |= 1 << bit;
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe void SetBitIfNotNull(IntPtr ptr, int offset, int bit)
+		{
+			if (ptr != IntPtr.Zero)
+			{
+				*(int*)(ptr + offset) |= 1 << bit;
+			}
+		}
 
-		public static IntPtr StringPtr { get; } = Marshal.StringToHGlobalAnsi("STRING");
-		public static IntPtr NullString { get; } = Marshal.StringToHGlobalAnsi("");
-		public static IntPtr CellEmailBcon { get; } = Marshal.StringToHGlobalAnsi("CELL_EMAIL_BCON");
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe void ClearBitIfNotNull(IntPtr ptr, int offset, int bit)
+		{
+			if (ptr != IntPtr.Zero)
+			{
+				*(int*)(ptr + offset) &= ~(1 << bit);
+			}
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe bool IsBitSet(IntPtr pointer, int offset, int bit) => (*(int*)(pointer + offset) & (1 << bit)) != 0;
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe void ClearBit(IntPtr pointer, int offset, int bit) => *(int*)(pointer + offset) &= ~(1 << bit);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe void SetBit(IntPtr pointer, int offset, int bit) => *(int*)(pointer + offset) |= 1 << bit;
+
+		/// <remarks>
+		/// Purely used to circumvent <see cref="IntPtr"/> operator+'s <see langword="internal"/> accessibility in game libraries
+		/// TODO: make mscorlib IntPtr operator+ public and [SecurityCritical]
+		/// </remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe IntPtr Offset(IntPtr ptr, int offset)
+		{
+			return ptr + offset;
+		}
+
+		// Backward compatibility
+		public static float ReadWorldGravity() => throw new NotImplementedException();
+		public static void WriteWorldGravity(float value) => throw new NotImplementedException();
 	}
 }

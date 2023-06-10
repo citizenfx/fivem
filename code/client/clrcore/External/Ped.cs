@@ -251,6 +251,10 @@ namespace CitizenFX.Core
 		/// </summary>
 		public float ArmorFloat
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.ReadIfNotNull(MemoryAddress, Game.Version >= GameVersion.v1_0_372_2_Steam ? 0x1474 : 0x1464, 0.0f);
+			[SecuritySafeCritical] set => MemoryAccess.WriteIfNotNull(MemoryAddress, Game.Version >= GameVersion.v1_0_372_2_Steam ? 0x1474 : 0x1464, value);
+#else
 			get
 			{
 				if (MemoryAddress == IntPtr.Zero)
@@ -273,6 +277,7 @@ namespace CitizenFX.Core
 
 				MemoryAccess.WriteFloat(MemoryAddress + offset, value);
 			}
+#endif
 		}
 		/// <summary>
 		/// Gets or sets how accurate this <see cref="Ped"/>s shooting ability is.
@@ -439,6 +444,9 @@ namespace CitizenFX.Core
 		/// </value>
 		public float Sweat
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.ReadIfNotNull(MemoryAddress, 4464, 0.0f);
+#else
 			[SecuritySafeCritical]
 			get
 			{
@@ -448,6 +456,7 @@ namespace CitizenFX.Core
 				}
 				return MemoryAccess.ReadInt(MemoryAddress + 4464);
 			}
+#endif
 			set
 			{
 				if (value < 0)
@@ -606,6 +615,10 @@ namespace CitizenFX.Core
 		/// </value>
 		public float InjuryHealthThreshold
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.ReadIfNotNull(MemoryAddress, Game.Version >= GameVersion.v1_0_372_2_Steam ? 0x1480 : 0x1470, 0.0f);
+			[SecuritySafeCritical] set => MemoryAccess.WriteIfNotNull(MemoryAddress, Game.Version >= GameVersion.v1_0_372_2_Steam ? 0x1480 : 0x1470, value);
+#else
 			get
 			{
 				if (MemoryAddress == IntPtr.Zero)
@@ -628,6 +641,7 @@ namespace CitizenFX.Core
 
 				MemoryAccess.WriteFloat(MemoryAddress + offset, value);
 			}
+#endif
 		}
 
 		/// <summary>
@@ -642,6 +656,10 @@ namespace CitizenFX.Core
 		/// </remarks>
 		public float FatalInjuryHealthThreshold
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.ReadIfNotNull(MemoryAddress, Game.Version >= GameVersion.v1_0_372_2_Steam ? 0x1484 : 0x1474, 0.0f);
+			[SecuritySafeCritical] set => MemoryAccess.WriteIfNotNull(MemoryAddress, Game.Version >= GameVersion.v1_0_372_2_Steam ? 0x1484 : 0x1474, value);
+#else
 			get
 			{
 				if (MemoryAddress == IntPtr.Zero)
@@ -664,6 +682,7 @@ namespace CitizenFX.Core
 
 				MemoryAccess.WriteFloat(MemoryAddress + offset, value);
 			}
+#endif
 		}
 
 		/// <summary>
@@ -1183,6 +1202,9 @@ namespace CitizenFX.Core
 
 		public bool DropsWeaponsOnDeath
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.IsBitSetIfNotNull(MemoryAddress, Game.Version >= GameVersion.v1_0_877_1_Steam ? 0x13E5 : 0x13BD, 6, false);
+#else
 			get
 			{
 				if (MemoryAddress == IntPtr.Zero)
@@ -1194,6 +1216,7 @@ namespace CitizenFX.Core
 
 				return (MemoryAccess.ReadByte(MemoryAddress + offset) & (1 << 6)) == 0;
 			}
+#endif
 			set
 			{
 				API.SetPedDropsWeaponsWhenDead(Handle, value);
@@ -1295,6 +1318,14 @@ namespace CitizenFX.Core
 		}
 		public bool CanSufferCriticalHits
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get
+			{
+				int offset = Game.Version >= GameVersion.v1_0_372_2_Steam ? 0x13BC : 0x13AC;
+				offset = Game.Version >= GameVersion.v1_0_877_1_Steam ? 0x13E4 : offset;
+				return MemoryAccess.ReadIfNotNull(MemoryAddress, offset, false);
+			}
+#else
 			get
 			{
 				if (MemoryAddress == IntPtr.Zero)
@@ -1307,6 +1338,7 @@ namespace CitizenFX.Core
 
 				return (MemoryAccess.ReadByte(MemoryAddress + offset) & (1 << 2)) == 0;
 			}
+#endif
 			set
 			{
 				API.SetPedSuffersCriticalHits(Handle, value);
