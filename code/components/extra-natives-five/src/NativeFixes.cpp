@@ -134,6 +134,89 @@ static void FixGetVehiclePedIsIn()
 	});
 }
 
+static int ReturnOne()
+{
+	return 1;
+}
+
+static void FixClearPedBloodDamage()
+{
+	// Find instruction block in Ped Resurrect function related to removing damage packs
+	auto pedResurrectBlock = hook::get_pattern<char>("74 ? 48 8B ? D0 00 00 00 48 85 ? 74 ? 48 8B ? E8 ? ? ? ? 84 C0 74");
+	static bool movOpcodeHasPrefix = *reinterpret_cast<uint8_t*>(pedResurrectBlock + 27) == 0x89;
+	static uint32_t damagePackOffset = *reinterpret_cast<uint32_t*>(pedResurrectBlock + 28 + movOpcodeHasPrefix);
+
+	// Navigate to subcall that checks if Ped is remote or if MP0_WALLET_BALANCE or BANK_BALANCE are >= 0
+	auto isDmgPackRemovableFunc = *reinterpret_cast<uint32_t*>(pedResurrectBlock + 18) + pedResurrectBlock + 22;
+	// Always satisfy positive balance check, this ensures visual & network state of player appearance won't get desynced
+	hook::call(isDmgPackRemovableFunc + 13, ReturnOne);
+
+	constexpr const uint64_t nativeHash = 0x8FE22675A5A45817; // CLEAR_PED_BLOOD_DAMAGE
+
+	auto handlerWrap = fx::ScriptEngine::GetNativeHandler(nativeHash);
+
+	if (!handlerWrap)
+	{
+		return;
+	}
+	auto handler = *handlerWrap;
+
+	fx::ScriptEngine::RegisterNativeHandler(nativeHash, [handler](fx::ScriptContext& ctx)
+	{
+		// Run original handler first
+		handler(ctx);
+
+		// Zero out damage pack on network object level, the original handler doesn't touch this at all and causes desyncs
+		auto pedHandle = ctx.GetArgument<uint32_t>(0);
+		if (auto entity = rage::fwScriptGuid::GetBaseFromGuid(pedHandle))
+		{
+			if (entity->IsOfType<CPed>())
+			{
+				if (auto netObj = *reinterpret_cast<fwEntity**>((char*)entity + 0xD0))
+				{
+					auto damagePack = reinterpret_cast<uint32_t*>((char*)netObj + damagePackOffset);
+					*damagePack = 0;
+				}
+			}
+		}
+	});
+}
+
+static void FixSetPedFaceFeature()
+{
+	constexpr const uint64_t nativeHash = 0x71A5C1DBA060049E; // _SET_PED_FACE_FEATURE
+
+	auto originalHandler = fx::ScriptEngine::GetNativeHandler(nativeHash);
+
+	if (!originalHandler)
+	{
+		return;
+	}
+
+	auto handler = *originalHandler;
+
+	fx::ScriptEngine::RegisterNativeHandler(nativeHash, [handler](fx::ScriptContext& ctx)
+	{
+		// Check if the feature index is 18 (Chin Hole) or 19 (Neck Thickness)
+		// These use 0.0 - 1.0 scales instead of the default -1.0 - 1.0
+		auto index = ctx.GetArgument<uint32_t>(1);
+
+		if (index == 18 || index == 19)
+		{
+			// Vanilla code ends up turning -1.0 into 1.0 in this case which feels counter-intuitive,
+			// thus we manually bump negative values to 0.0
+			auto scale = ctx.GetArgument<float>(2);
+			if (scale < 0.0f)
+			{
+				ctx.SetArgument<float>(2, 0.0f);
+			}
+		}
+
+		// Run the handler now that the scale factor is sanitized
+		handler(ctx);
+	});
+}
+
 static HookFunction hookFunction([]()
 {
 	rage::scrEngine::OnScriptInit.Connect([]()
@@ -150,5 +233,9 @@ static HookFunction hookFunction([]()
 		{
 			FixGetVehiclePedIsIn();
 		}
+
+		FixClearPedBloodDamage();
+
+		FixSetPedFaceFeature();
 	});
 });

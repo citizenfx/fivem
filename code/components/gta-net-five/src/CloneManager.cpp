@@ -439,21 +439,21 @@ void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
 
 	// #TODO: shutdown session logic!!
 	auto sbac = fx::StateBagComponent::Create(fx::StateBagRole::Client);
-	m_globalBag = sbac->RegisterStateBag("global");
+	m_globalBag = sbac->RegisterStateBag("global", true);
 
 	sbac->RegisterTarget(0);
-	sbac->AddSafePreCreatePrefix("entity:");
-	sbac->AddSafePreCreatePrefix("player:");
+	sbac->AddSafePreCreatePrefix("entity:", true);
+	sbac->AddSafePreCreatePrefix("player:", true);
 	sbac->SetGameInterface(this);
 
+	m_sbac = sbac;
+
 	m_netLibrary->AddReliableHandler(
-	"msgStateBag", [sbac](const char* data, size_t len)
+	"msgStateBag", [this](const char* data, size_t len)
 	{
-		sbac->HandlePacket(0, std::string_view{ data, len });
+		m_sbac->HandlePacket(0, std::string_view{ data, len });
 	},
 	true);
-
-	m_sbac = sbac;
 
 	fx::ResourceManager::OnInitializeInstance.Connect([sbac](fx::ResourceManager* rm)
 	{
@@ -491,7 +491,7 @@ void CloneManagerLocal::Reset()
 
 	// re-add the global bag, since Reset() removes it
 	m_globalBag = {}; // first unset, as the handle keeps by name and otherwise we'd remove it due to destruction order
-	m_globalBag = m_sbac->RegisterStateBag("global");
+	m_globalBag = m_sbac->RegisterStateBag("global", true);
 }
 
 void CloneManagerLocal::ProcessCreateAck(uint16_t objId, uint16_t uniqifier)
@@ -502,7 +502,16 @@ void CloneManagerLocal::ProcessCreateAck(uint16_t objId, uint16_t uniqifier)
 		return;
 	}
 
-	m_trackedObjects[objId].lastSyncAck = msec();
+	auto& lastSynAck = m_trackedObjects[objId];
+	
+	// first creation ACK, server acknowledged the entity is present on the server, so start sending extra data relevant to this entity (if any)
+	if (lastSynAck.lastSyncAck.count() == 0 && lastSynAck.stateBag)
+	{
+		lastSynAck.stateBag->EnableImmediateReplication(true);
+		lastSynAck.stateBag->SendQueuedUpdates();
+	}
+
+	lastSynAck.lastSyncAck = msec();
 
 	Log("%s: create ack %d\n", __func__, objId);
 }
@@ -510,7 +519,7 @@ void CloneManagerLocal::ProcessCreateAck(uint16_t objId, uint16_t uniqifier)
 #ifdef GTA_FIVE
 static hook::cdecl_stub<void(rage::netSyncTree*, rage::netObject*, uint8_t, uint16_t, uint32_t, uint32_t)> _processAck([]()
 {
-	return hook::get_pattern("45 32 ED FF 50 20 8B CB 41", -0x34);
+	return hook::get_pattern("45 32 ED FF 50 ? 8B CB 41", -0x34);
 });
 #elif IS_RDR3
 static hook::cdecl_stub<void(rage::netSyncTree*, rage::netObject*, uint8_t, uint16_t, uint32_t, uint64_t)> _processAck([]()
@@ -1138,7 +1147,7 @@ bool CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 
 	if (!objectData.stateBag)
 	{
-		objectData.stateBag = m_sbac->RegisterStateBag(fmt::sprintf("entity:%d", msg.GetObjectId()));
+		objectData.stateBag = m_sbac->RegisterStateBag(fmt::sprintf("entity:%d", msg.GetObjectId()), true);
 	}
 
 	objectData.uniqifier = msg.GetUniqifier();
@@ -2101,7 +2110,8 @@ bool CloneManagerLocal::RegisterNetworkObject(rage::netObject* object)
 
 	if (!m_trackedObjects[object->GetObjectId()].stateBag)
 	{
-		m_trackedObjects[object->GetObjectId()].stateBag = m_sbac->RegisterStateBag(fmt::sprintf("entity:%d", object->GetObjectId()));
+		auto& stateBag = m_trackedObjects[object->GetObjectId()].stateBag = m_sbac->RegisterStateBag(fmt::sprintf("entity:%d", object->GetObjectId()), true);
+		stateBag->EnableImmediateReplication(false); // #TODO: potentially remove once throttling is implemented
 	}
 
 	Log("%s: registering %s (uniqifier: %d)\n", __func__, object->ToString(), m_trackedObjects[object->GetObjectId()].uniqifier);

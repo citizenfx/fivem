@@ -231,6 +231,15 @@ static std::map<std::string, std::string> load_crashometry()
 				fread(&data[0], 1, keyLen, f);
 				fread(&data[keyLen + 1], 1, valLen, f);
 
+				// for 'did_render_mrt' we will want to only use the *first* entry
+				if (strcmp(&data[0], "did_render_mrt") == 0)
+				{
+					if (rv.find("did_render_mrt") != rv.end())
+					{
+						continue;
+					}
+				}
+
 				rv[&data[0]] = &data[keyLen + 1];
 			}
 		}
@@ -1567,7 +1576,8 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 				OverloadCrashData(&taskDialogConfig);
 
 				// don't upload the 'launched directly' error
-				if (taskDialogConfig.pszContent && wcsstr(taskDialogConfig.pszContent, L"This application should be launched directly from the shell or a web browser."))
+				if ((taskDialogConfig.pszContent && wcsstr(taskDialogConfig.pszContent, L"This application should be launched directly from the shell or a web browser.")) ||
+					(taskDialogConfig.pszMainInstruction && wcsstr(taskDialogConfig.pszMainInstruction, L"This application should be launched directly from the shell or a web browser.")))
 				{
 					shouldUpload = false;
 				}

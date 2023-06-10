@@ -1,11 +1,14 @@
+import { getConnectEndpoits } from "cfx/base/serverUtils";
 import { ServicesContainer, useService } from "cfx/base/servicesContainer";
 import { IAnalyticsService } from "cfx/common/services/analytics/analytics.service";
 import { ScopedLogger } from "cfx/common/services/log/scopedLogger";
 import { IServersService } from "cfx/common/services/servers/servers.service";
 import { IServersConnectService } from "cfx/common/services/servers/serversConnect.service";
 import { serverAddress2ServerView } from "cfx/common/services/servers/transformers";
-import { IHistoryServer, IServerView } from "cfx/common/services/servers/types";
+import { IServerView } from "cfx/common/services/servers/types";
+import { randomArrayItem } from "cfx/utils/array";
 import { fastRandomId } from "cfx/utils/random";
+import { RichEvent } from "cfx/utils/types";
 import { inject, injectable, named, optional } from "inversify";
 import { makeAutoObservable, observable } from "mobx";
 import { mpMenu } from "../../mpMenu";
@@ -44,14 +47,14 @@ class MpMenuServersConnectService implements IServersConnectService {
               action: 'Connecting',
               properties: {
                 category: 'Server',
-                label: `${server.hostname} (${server.address})`,
+                label: `${server.hostname} (${server.id})`,
               },
             });
             analyticsService.trackEvent({
               action: 'ConnectingRaw',
               properties: {
                 category: 'Server',
-                label: server.address,
+                label: server.id,
               },
             });
 
@@ -72,11 +75,22 @@ class MpMenuServersConnectService implements IServersConnectService {
       return null;
     }
 
-    return this.serversService.getServer(this._server.address) || this._server;
+    return this.serversService.getServer(this._server.id) || this._server;
   }
   private set server(server: IServerView | null) { this._server = server }
 
   private currentConnectNonce: string | null = null;
+
+  get showServer(): boolean {
+    if (this.state?.type === 'failed') {
+      // blank 'fault' is usually internal code (including CnL failures)
+      if (this.state.extra?.fault === 'cfx' || !this.state.extra?.fault) {
+        return false;
+      }
+    }
+
+    return true;
+  }
 
   get showModal(): boolean {
     if (this.resolvingServer) {
@@ -135,8 +149,6 @@ class MpMenuServersConnectService implements IServersConnectService {
     this.connectTo(address);
   };
 
-  connectTo(address: string): void;
-  connectTo(server: IServerView): void;
   async connectTo(serverOrAddress: string | IServerView): Promise<void> {
     if (this.currentConnectNonce) {
       console.warn('Already connecting somewhere');
@@ -155,7 +167,7 @@ class MpMenuServersConnectService implements IServersConnectService {
     this.currentConnectNonce = fastRandomId();
 
     mpMenu.invokeNative('connectTo', JSON.stringify([
-      this.pickAddress(
+      this.pickServerConnectEndPoint(
         this.server,
         typeof serverOrAddress === 'string'
           ? serverOrAddress
@@ -188,23 +200,25 @@ class MpMenuServersConnectService implements IServersConnectService {
     mpMenu.invokeNative('cancelDefer');
   };
 
-  private pickAddress(server: IServerView, address?: string): string {
-    // Prefer address
-    if (!address) {
-      address = server.address;
-
-      if (server.connectEndPoints?.length) {
-        const endpoints = server.connectEndPoints.filter((endpoint) => endpoint !== 'https://private-placholder.cfx.re');
-
-        address = endpoints.length === 1
-          ? endpoints[0]
-          : endpoints[Math.floor(Math.random() * endpoints.length)];
-      }
+  private pickServerConnectEndPoint(server: IServerView, address?: string): string {
+    if (address) {
+      return address;
     }
 
-    return address;
+    const endpoints = getConnectEndpoits(server);
+
+    if (endpoints.manual) {
+      return endpoints.manual;
+    }
+
+    if (endpoints.provided) {
+      return randomArrayItem(endpoints.provided);
+    }
+
+    return server.joinId || server.id;
   }
 
+  // TODO: Make it fail when server address is invalid
   private async resolveServer(serverOrAddress: string | IServerView): Promise<IServerView> {
     if (typeof serverOrAddress === 'string') {
       const server = await this.serversService.loadServerLiveData(serverOrAddress);
@@ -215,11 +229,11 @@ class MpMenuServersConnectService implements IServersConnectService {
     return this.serversService.loadServerLiveData(serverOrAddress);
   }
 
-  private readonly backfillServerInfo = async (event: IBackfillServerInfo) => {
+  private readonly backfillServerInfo = async (event: RichEvent.Payload<typeof MpMenuEvents.backfillServerInfo>) => {
     if (this.currentConnectNonce === event.data.nonce) {
       const historyList = this.serversService.getHistoryList();
       if (historyList && this.server) {
-        historyList.addHistoryServer(await historyList.serverView2HistoryServer(this.server, event.data.server));
+        await historyList.addHistoryServer(await historyList.serverView2HistoryServer(this.server, event.data.server));
       }
     }
 
@@ -239,11 +253,4 @@ interface IConnectBuildSwitch {
 
 interface IConnectCard {
   data: ConnectState.DataFor<ConnectState.Card>,
-}
-
-interface IBackfillServerInfo {
-  data: {
-    nonce: string,
-    server: Pick<IHistoryServer, 'icon' | 'token' | 'vars'>,
-  }
 }

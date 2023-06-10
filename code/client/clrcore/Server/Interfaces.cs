@@ -1,6 +1,13 @@
+#if MONO_V2
+using CitizenFX.Core;
+using INativeValue = CitizenFX.Core.Native.Input.Primitive;
+
+namespace CitizenFX.Server
+#else
 using CitizenFX.Core.Native;
 
 namespace CitizenFX.Core
+#endif
 {
 	public interface ISpatial
 	{

@@ -1,19 +1,16 @@
-import { getServerByAnyMean } from "cfx/apps/mpMenu/services/servers/source/fetchers";
+import React from "react";
 import { useServiceResolver } from "cfx/base/servicesContainer";
-import { CurrentGameName } from "cfx/base/gameName";
 import { ISearchTerm } from "cfx/base/searchTermsParser";
 import { ServerListConfigController } from "cfx/common/services/servers/lists/ServerListConfigController";
 import { IServersService } from "cfx/common/services/servers/servers.service";
 import { IServersConnectService } from "cfx/common/services/servers/serversConnect.service";
 import { IServerView } from "cfx/common/services/servers/types";
-import { IParsedServerAddress, parseServerAddress } from "cfx/common/services/servers/utils";
+import { IParsedServerAddress, parseServerAddress } from "cfx/common/services/servers/serverAddressParser";
 import { IDisposableObject } from "cfx/utils/disposable";
 import { debounce } from "cfx/utils/execution";
 import { useDisposableInstance } from "cfx/utils/hooks";
 import { inject, injectable, optional } from "inversify";
-import { prototype } from "markdown-it/lib/token";
 import { makeAutoObservable, observable } from "mobx";
-import React from "react";
 
 @injectable()
 export class ServerFiltersWithDirectConnectController implements IDisposableObject {
@@ -78,6 +75,11 @@ export class ServerFiltersWithDirectConnectController implements IDisposableObje
   }
 
   readonly handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.code === 'Escape') {
+      this.config?.setSearchText('');
+      return;
+    }
+
     if (event.code !== 'Enter') {
       return;
     }
@@ -90,18 +92,20 @@ export class ServerFiltersWithDirectConnectController implements IDisposableObje
       return;
     }
 
+    const connectTo = this.server || this.lastAddress;
+
     this.config.setSearchText('');
     this.server = null;
     this.parsedAddress = null;
-
-    this.serversConnectService?.connectTo(this.lastAddress);
     this.lastAddress = '';
+
+    this.serversConnectService?.connectTo(connectTo);
+
+    event.preventDefault();
   };
 
   private lastAddress = '';
   readonly setSearchTerms = async (terms: ISearchTerm[]) => {
-    console.log(terms);
-
     if (terms.length === 0) {
       this.server = null;
       this.lastAddress = '';
@@ -139,12 +143,12 @@ export class ServerFiltersWithDirectConnectController implements IDisposableObje
     this.server = null;
     this.loadingServer = true;
 
-    this.doLoadServer(this.parsedAddress.address, this.nextQueryId());
+    this.doLoadServer(address, this.nextQueryId());
   }
 
   private readonly doLoadServer = debounce(async (address: string, queryId: number) => {
     try {
-      const server = await getServerByAnyMean(CurrentGameName, address);
+      const server = await this.serversService.loadServerLiveData(address);
 
       if (this.queryId === queryId) {
         this.server = server;

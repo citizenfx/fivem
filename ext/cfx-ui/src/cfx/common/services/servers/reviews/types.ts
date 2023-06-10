@@ -62,6 +62,8 @@ export interface IServerReviewItem {
   readonly title: string,
   readonly content: React.ReactNode,
 
+  readonly hidden: boolean,
+
   report?: IServerReviewReport,
   reactions?: IServerReviewItemReactions,
 
@@ -73,6 +75,10 @@ export interface IServerReviewReport {
   readonly reportInProgress: boolean;
 
   readonly options: IServerReviewReportOption[];
+  readonly optionsLoading: boolean;
+  readonly optionsError: string | null;
+
+  ensureOptions(): void;
 
   canSubmit(option: IServerReviewReportOption, message?: string): boolean;
   submit(option: IServerReviewReportOption, message?: string): Promise<void>;

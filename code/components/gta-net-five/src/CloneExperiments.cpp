@@ -28,6 +28,7 @@
 
 #include <ResourceManager.h>
 #include <StateBagComponent.h>
+#include <atArray.h>
 
 #include <Error.h>
 
@@ -157,7 +158,7 @@ static void SetupLocalPlayer(CNetGamePlayer* player)
 
 	g_playerBags[clientId] = Instance<fx::ResourceManager>::Get()
 							 ->GetComponent<fx::StateBagComponent>()
-							 ->RegisterStateBag(fmt::sprintf("player:%d", clientId));
+							 ->RegisterStateBag(fmt::sprintf("player:%d", clientId), true);
 
 	// don't add to g_playerListRemote(!)
 }
@@ -312,7 +313,7 @@ namespace sync
 
 		g_playerBags[clientId] = Instance<fx::ResourceManager>::Get()
 								 ->GetComponent<fx::StateBagComponent>()
-								 ->RegisterStateBag(fmt::sprintf("player:%d", clientId));
+								 ->RegisterStateBag(fmt::sprintf("player:%d", clientId), true);
 	}
 
 #ifdef GTA_FIVE
@@ -737,12 +738,12 @@ static CNetGamePlayer* AllocateNetPlayer(void* mgr)
 #ifdef GTA_FIVE
 	void* plr = malloc(xbr::IsGameBuildOrGreater<2372>() ? 704 : xbr::IsGameBuildOrGreater<2060>() ? 688 : 672);
 #elif IS_RDR3
-	void* plr = malloc(2784);
+	void* plr = malloc(xbr::IsGameBuildOrGreater<1436>() ? 2736 : 2784);
 #endif
 
 	auto player = _netPlayerCtor(plr);
 
-	// in RDR3 game wants CNetworkPlayerMgr pointer in CNetGamePlayer
+	// RDR3 wants CNetworkPlayerMgr pointer in CNetGamePlayer
 #ifdef IS_RDR3
 	*(rage::netPlayerMgrBase**)((uint64_t)player + 288) = g_playerMgr;
 #endif
@@ -1461,6 +1462,56 @@ static void* NetworkObjectMgrCtorStub(void* mgr, void* bw, void* unk)
 #endif
 
 #ifdef IS_RDR3
+struct CScenarioInfo
+{
+	void* vtable;
+	BYTE unk_8;
+	char pad_9[3];
+	uint32_t m_name;
+
+	// etc...
+};
+
+struct CScenarioInfoManager
+{
+	void* vtable;
+	atArray<CScenarioInfo*> m_scenarioInfos;
+	atArray<CScenarioInfo*> m_scenarioUnks;
+
+	// etc...
+};
+
+static CScenarioInfoManager** g_scenarioInfoManager;
+static int g_pointIdGetterVtableOffset;
+static void* g_taskUseScenarioVtable;
+
+static CScenarioInfo* (*g_origGetTaskScenarioInfo)(void* task);
+
+static CScenarioInfo* GetTaskScenarioInfo(void* task)
+{
+	if (!task)
+	{
+		return nullptr;
+	}
+
+	auto scenario = g_origGetTaskScenarioInfo(task);
+
+	if (!scenario && *(uint64_t*)task == (uint64_t)g_taskUseScenarioVtable)
+	{
+		auto scenarioInfoMgr = *g_scenarioInfoManager;
+		auto pointId = (*(uint32_t(__fastcall**)(void*))(*(uint64_t*)task + g_pointIdGetterVtableOffset))(task);
+
+		trace("Failed to get scenario info by id %d for task (address %p, vtable %p). Loaded %d and %d scenario infos.\n",
+			pointId, (void*)hook::get_unadjusted(task), (void*)hook::get_unadjusted(*(void**)task),
+			scenarioInfoMgr->m_scenarioInfos.GetCount(), scenarioInfoMgr->m_scenarioUnks.GetCount());
+
+		// Try to avoid crash by returning first scenario from the array.
+		return scenarioInfoMgr->m_scenarioInfos[0];
+	}
+
+	return scenario;
+}
+
 static constexpr int kPlayerNetIdLength = 16;
 
 namespace rage
@@ -1614,14 +1665,7 @@ static HookFunction hookFunction([]()
 
 #ifdef GTA_FIVE
 	// use cached sector if no gameobject (weird check in IProximityMigrateableNodeDataAccessor impl)
-	if (xbr::IsGameBuildOrGreater<2545>())
-	{
-		hook::nop(hook::get_pattern("FF 90 90 00 00 00 33 C9 48 85 C0 74 4C", 11), 2);
-	}
-	else
-	{
-		hook::nop(hook::get_pattern("FF 90 80 00 00 00 33 C9 48 85 C0 74 4C", 11), 2);
-	}
+	hook::nop(hook::get_pattern("FF 90 ? 00 00 00 33 C9 48 85 C0 74 4C", 11), 2);
 #endif
 
 	// dummy/ambient object player list ordering logic
@@ -1965,7 +2009,7 @@ static HookFunction hookFunction([]()
 	}
 
 #ifdef GTA_FIVE
-	MH_CreateHook(hook::get_pattern("48 85 DB 74 20 48 8B 03 48 8B CB FF 50 30 48 8B", -0x34),
+	MH_CreateHook(hook::get_pattern("48 85 DB 74 20 48 8B 03 48 8B CB FF 50 ? 48 8B", -0x34),
 		(xbr::IsGameBuildOrGreater<2372>()) ? GetPlayerFromGamerId<2372> : xbr::IsGameBuildOrGreater<2060>() ? GetPlayerFromGamerId<2060> : GetPlayerFromGamerId<1604>, (void**)&g_origGetPlayerFromGamerId);
 #elif IS_RDR3
 	MH_CreateHook(hook::get_pattern("48 85 DB 74 20 48 8B 03 48 8B CB FF 50 ? 48 8B", -0x27), GetPlayerFromGamerId, (void**)&g_origGetPlayerFromGamerId);
@@ -2015,14 +2059,7 @@ static HookFunction hookFunction([]()
 
 #ifdef GTA_FIVE
 	// crash logging for invalid mount indices
-	if (xbr::IsGameBuildOrGreater<2372>())
-	{
-		MH_CreateHook(hook::get_pattern("48 8B FA 48 8D 91 50 01 00 00 48 8B F1", -0x15), CPedGameStateDataNode__access, (void**)&g_origCPedGameStateDataNode__access);
-	}
-	else
-	{
-		MH_CreateHook(hook::get_pattern("48 8B FA 48 8D 91 44 01 00 00 48 8B F1", -0x16), CPedGameStateDataNode__access, (void**)&g_origCPedGameStateDataNode__access);
-	}
+	MH_CreateHook(hook::get_pattern("48 8B FA 48 8D 91 ? 01 00 00 48 8B F1", xbr::IsGameBuildOrGreater<2372>() ? -0x15 : -0x16), CPedGameStateDataNode__access, (void**)&g_origCPedGameStateDataNode__access);
 
 	// getnetplayerped 32 cap
 	hook::nop(hook::get_pattern("83 F9 1F 77 26 E8", 3), 2);
@@ -2035,7 +2072,7 @@ static HookFunction hookFunction([]()
 
 	// always allow to migrate, even if not cloned on bit test
 #ifdef GTA_FIVE
-	hook::put<uint8_t>(hook::get_pattern("75 29 48 8B 02 48 8B CA FF 50 30"), 0xEB);
+	hook::put<uint8_t>(hook::get_pattern("75 29 48 8B 02 48 8B CA FF 50"), 0xEB);
 #elif IS_RDR3
 	hook::put<uint8_t>(hook::get_pattern("75 29 48 8B 06 48 8B CE FF 50 60"), 0xEB);
 #endif
@@ -2131,6 +2168,17 @@ static HookFunction hookFunction([]()
 		auto location = hook::get_pattern<char>("40 0F B6 D5 8B C2 44 8B C2 48", -13);
 		MH_CreateHook(hook::get_call(location), NetGamePlayerIsVisibleToPlayer, (void**)&g_origNetGamePlayerIsVisibleToPlayer);
 	}
+
+	// patch crash caused by _getTaskScenarioInfo returning nullptr for CTaskUseScenario sometimes for an unknown reason
+	{
+		auto location = (char*)hook::get_call(hook::get_pattern("E8 ? ? ? ? 4D 8B 75 10"));
+
+		g_pointIdGetterVtableOffset = *(int*)(location + 18);
+		g_scenarioInfoManager = hook::get_address<decltype(g_scenarioInfoManager)>(location + 12);
+		g_taskUseScenarioVtable = hook::get_address<void*>(hook::get_pattern<char>("0F 29 70 C8 44 8B FA 0F 29 78 B8 48 8B F9 0F", 31));
+
+		MH_CreateHook(location, GetTaskScenarioInfo, (void**)&g_origGetTaskScenarioInfo);
+	}
 #endif
 
 	// clobber nodes for all players, not just when connected to netplayermgr
@@ -2166,9 +2214,17 @@ static HookFunction hookFunction([]()
 		auto intsBase = ptrsBase + (256 * 8);
 
 		hook::put<uint32_t>(location + 0x18, stackSize);
-		hook::put<uint32_t>(location + 0xF8, stackSize);
 
-		hook::put<uint32_t>(location + 0xC9, intsBase);
+		if (xbr::IsGameBuildOrGreater<2802>())
+		{
+			hook::put<uint32_t>(location + 0xFB, stackSize);
+			hook::put<uint32_t>(location + 0xCC, intsBase);
+		}
+		else
+		{
+			hook::put<uint32_t>(location + 0xF8, stackSize);
+			hook::put<uint32_t>(location + 0xC9, intsBase);
+		}
 	}
 
 	// same for CNetObjPed
@@ -2180,9 +2236,17 @@ static HookFunction hookFunction([]()
 		auto intsBase = ptrsBase + (256 * 8);
 
 		hook::put<uint32_t>(location + 0x18, stackSize);
-		hook::put<uint32_t>(location + 0x13C, stackSize);
 
-		hook::put<uint32_t>(location + 0xD5, intsBase);
+		if (xbr::IsGameBuildOrGreater<2802>())
+		{
+			hook::put<uint32_t>(location + 0x13F, stackSize);
+			hook::put<uint32_t>(location + 0xD8, intsBase);
+		}
+		else
+		{
+			hook::put<uint32_t>(location + 0x13C, stackSize);
+			hook::put<uint32_t>(location + 0xD5, intsBase);
+		}
 	}
 
 	// 32 array size somewhere called by CTaskNMShot
@@ -2245,6 +2309,7 @@ static HookFunction hookFunction([]()
 #endif
 
 	MH_EnableHook(MH_ALL_HOOKS);
+
 });
 
 // event stuff
@@ -2345,6 +2410,7 @@ namespace rage
 	};
 
 #ifdef GTA_FIVE
+	// #TODO2802: impossible now, use base game's!
 	class datBase
 	{
 	public:
@@ -3296,7 +3362,14 @@ static HookFunction hookFunctionEv([]()
 
 	// CheckForSpaceInPool error display
 #ifdef GTA_FIVE
-	hook::call(hook::get_pattern("33 C9 E8 ? ? ? ? E9 FD FE FF FF", 2), NetEventError);
+	if (xbr::IsGameBuildOrGreater<2802>())
+	{
+		hook::call(hook::get_pattern("33 C9 E8 ? ? ? ? E9 FC FE FF FF", 2), NetEventError);
+	}
+	else
+	{
+		hook::call(hook::get_pattern("33 C9 E8 ? ? ? ? E9 FD FE FF FF", 2), NetEventError);
+	}
 #elif IS_RDR3
 	hook::call((xbr::IsGameBuildOrGreater<1436>()) ? hook::get_pattern("74 ? 48 8B 01 40 8A D6 FF ? ? BA", 25) : hook::get_pattern("BA 01 00 00 00 FF ? ? BA 5B 52 1C A4", 22), NetEventError);
 #endif
@@ -3329,18 +3402,20 @@ std::string GetType(void* d)
 	VirtualBase* self = (VirtualBase*)d;
 
 #ifdef GTA_FIVE
-	std::string typeName = fmt::sprintf("unknown (vtable %p)", *(void**)self);
+	std::string typeName = fmt::sprintf("unknown (vtable %p)", (void*)hook::get_unadjusted(*(void**)self));
 
-	try
+	if (!xbr::IsGameBuildOrGreater<2802>())
 	{
-		typeName = typeid(*self).name();
-	}
-	catch (std::__non_rtti_object&)
-	{
-
+		try
+		{
+			typeName = typeid(*self).name();
+		}
+		catch (std::__non_rtti_object&)
+		{
+		}
 	}
 #elif IS_RDR3
-	std::string typeName = fmt::sprintf("%p", *(void**)self);
+	std::string typeName = fmt::sprintf("%p", (void*)hook::get_unadjusted(*(void**)self));
 #endif
 
 	return typeName;
@@ -3577,8 +3652,18 @@ static HookFunction hookFunction2([]()
 	{
 #ifndef ONESYNC_CLONING_NATIVES
 #ifdef GTA_FIVE
-		auto location = hook::get_pattern<char>("48 89 44 24 20 E8 ? ? ? ? 84 C0 0F 95 C0 48 83 C4 58", -0x3C);
-		hook::set_call(&g_origWriteDataNode, location + 0x41);
+		char* location;
+
+		if (xbr::IsGameBuildOrGreater<2802>())
+		{
+			location = hook::get_pattern<char>("48 89 44 24 20 E8 ? ? ? ? 84 C0 0F 95 C0 48 83 C4 58", -0x63);
+			hook::set_call(&g_origWriteDataNode, location + 0x68);
+		}
+		else
+		{
+			location = hook::get_pattern<char>("48 89 44 24 20 E8 ? ? ? ? 84 C0 0F 95 C0 48 83 C4 58", -0x3C);
+			hook::set_call(&g_origWriteDataNode, location + 0x41);
+		}
 #elif IS_RDR3
 		auto location = hook::get_pattern<char>("49 89 43 C8 E8 ? ? ? ? 84 C0 0F 95 C0 48 83 C4 58", -0x3E);
 		hook::set_call(&g_origWriteDataNode, location + 0x42);
@@ -3947,13 +4032,13 @@ public:
 	{
 		if (!g_initedTimeSync)
 		{
+			// we don't want to use cloud time
+			m_useCloudTime = false;
+
 			g_origInitializeTime(this, _getConnectionManager(), 1, nullptr, 0, nullptr, 7, 2000, 60000);
 
 			// to make the game not try to get time from us
 			m_connectionMgr = nullptr;
-
-			// we don't want to use cloud time
-			m_useCloudTime = false;
 
 			g_initedTimeSync = true;
 
@@ -4302,26 +4387,20 @@ static bool PopulationPedCheck(int num)
 	return true;
 }
 #elif IS_RDR3
-bool(*g_origDoesLocalPlayerOwnWaterGrid)(int unk);
+bool (*g_origShouldSkipWaterPopulationSpawn)(float* position, float a2, char* a3);
 
-bool DoesLocalPlayerOwnWaterGrid(int unk)
+bool ShouldSkipWaterPopulationSpawn(float* position, float a2, char* a3)
 {
-	if (!icgi->OneSyncEnabled)
+	auto result = g_origShouldSkipWaterPopulationSpawn(position, a2, a3);
+
+	// if the original function allowed to spawn water population, check for world grid ownership.
+	if (icgi->OneSyncEnabled && !result)
 	{
-		return g_origDoesLocalPlayerOwnWaterGrid(unk);
+		result = !DoesLocalPlayerOwnWorldGrid(position);
 	}
 
-	auto localPed = (fwEntity*)getPlayerPedForNetPlayer(g_playerMgr->localPlayer);
-
-	if (localPed)
-	{
-		auto position = (float*)&localPed->GetPosition();
-		return DoesLocalPlayerOwnWorldGrid(position);
-	}
-
-	return false;
+	return result;
 }
-
 #endif
 
 static HookFunction hookFunctionWorldGrid([]()
@@ -4362,7 +4441,7 @@ static HookFunction hookFunctionWorldGrid([]()
 	MH_CreateHook(hook::get_pattern("44 8A 40 ? 41 80 F8 FF 0F", -0x1B), DoesLocalPlayerOwnWorldGrid, (void**)&g_origDoesLocalPlayerOwnWorldGrid);
 #elif IS_RDR3
 	MH_CreateHook(hook::get_pattern("44 0F B6 C0 F3 0F 5F C3 41 0F B6 04 10", -0x35), DoesLocalPlayerOwnWorldGrid, (void**)&g_origDoesLocalPlayerOwnWorldGrid);
-	MH_CreateHook(hook::get_pattern("83 A4 24 ? ? ? ? 00 48 8B D8 85 FF 74", -0x25), DoesLocalPlayerOwnWaterGrid, (void**)&g_origDoesLocalPlayerOwnWaterGrid);
+	MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? 84 C0 74 11 B9")), ShouldSkipWaterPopulationSpawn, (void**)&g_origShouldSkipWaterPopulationSpawn);
 #endif
 
 	MH_EnableHook(MH_ALL_HOOKS);
@@ -4401,7 +4480,7 @@ int ObjectToEntity(int objectId)
 	int entityIdx = -1;
 	auto object = TheClones->GetNetObject(objectId & 0xFFFF);
 
-	if (object)
+	if (object && object->GetGameObject())
 	{
 		entityIdx = getScriptGuidForEntity(object->GetGameObject());
 	}
@@ -4472,6 +4551,11 @@ static InitFunction initFunction([]()
 		}
 #endif
 
+#ifdef IS_RDR3
+		// RDR3 doesn't restart netTimeSync after disconnecting from a server with enabled onesync
+		g_initedTimeSync = false;
+#endif
+
 		g_events.clear();
 		g_reEventQueue.clear();
 
@@ -4498,6 +4582,60 @@ static InitFunction initFunction([]()
 
 		auto owner = netObject__GetPlayerOwner(netObj);
 		context.SetResult<int>(owner ? owner->physicalPlayerIndex() : 0xFF);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_FROM_STATE_BAG_NAME", [](fx::ScriptContext& context)
+	{
+		int entityId = 0;
+		std::string bagName = context.CheckArgument<const char*>(0);
+
+		if (bagName.find("entity:") == 0)
+		{
+			int parsedEntityId = atoi(bagName.substr(7).c_str());
+			rage::netObjectMgr* netObjectMgr = rage::netObjectMgr::GetInstance();
+
+			if (netObjectMgr)
+			{
+				rage::netObject* obj = netObjectMgr->GetNetworkObject(parsedEntityId, true);
+				if (obj)
+				{
+					int guid = getScriptGuidForEntity((fwEntity*)obj->GetGameObject());
+					if (guid)
+					{
+						entityId = guid;
+					}
+				}
+			}
+		}
+		else if (bagName.find("localEntity:") == 0)
+		{
+			int parsedEntityId = atoi(bagName.substr(12).c_str());
+			fwEntity* entity = rage::fwScriptGuid::GetBaseFromGuid(parsedEntityId);
+			// Verify the entity exists before returning the entity id
+			if (entity)
+			{
+				entityId = parsedEntityId;
+			}
+		}
+
+		context.SetResult<int>(entityId);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_FROM_STATE_BAG_NAME", [](fx::ScriptContext& context)
+	{
+		int playerId = 0;
+		std::string bagName = context.CheckArgument<const char*>(0);
+
+		if (bagName.find("player:") == 0)
+		{
+			int playerNetId = atoi(bagName.substr(7).c_str());
+			if (auto player = GetPlayerByNetId(playerNetId))
+			{
+				playerId = player->physicalPlayerIndex();
+			}
+		}
+
+		context.SetResult<int>(playerId);
 	});
 
 #ifdef ONESYNC_CLONING_NATIVES

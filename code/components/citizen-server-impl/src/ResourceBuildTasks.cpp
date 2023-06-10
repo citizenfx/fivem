@@ -248,8 +248,6 @@ static InitFunction initFunction([]()
 			return;
 		}
 
-		fx::ServerInstanceBase* instance = resource->GetManager()->GetComponent<fx::ServerInstanceBaseRef>()->Get();
-
 		resource->OnBeforeStart.Connect([resource]()
 		{
 			return fx::TriggerBuild(resource);

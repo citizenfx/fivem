@@ -53,19 +53,27 @@ static int getIntField(char* handlingChar, uint32_t offset, const char* fieldNam
 
 	if (hash == HashRageString("strModelFlags"))
 	{
-		return *(int*)(handlingChar + 284);
+		return *(int*)(handlingChar + 292);
 	}
 	else if (hash == HashRageString("strHandlingFlags"))
 	{
-		return *(int*)(handlingChar + 288);
+		return *(int*)(handlingChar + 296);
 	}
 	else if (hash == HashRageString("strDamageFlags"))
 	{
-		return *(int*)(handlingChar + 292);
+		return *(int*)(handlingChar + 300);
 	}
 	else if (hash == HashRageString("nInitialDriveGears"))
 	{
 		return *(uint8_t*)(handlingChar + offset);
+	}
+	else if (hash == HashRageString("strAdvancedFlags"))
+	{
+		return *(int*)(handlingChar + 60);
+	}
+	else if (hash == HashRageString("strFlags"))
+	{
+		return *(int*)(handlingChar + 184);
 	}
 
 	return *(int*)(handlingChar + offset);
@@ -98,7 +106,9 @@ static float getFloatField(char* handlingChar, uint32_t offset, const char* fiel
 	{
 		// empty
 	}
-	else if (hash == HashRageString("fSteeringLock") || hash == HashRageString("fTractionCurveLateral"))
+	else if (hash == HashRageString("fSteeringLock") || hash == HashRageString("fTractionCurveLateral") || 
+		hash == HashRageString("fMaxBankAngle") || hash == HashRageString("fFullAnimAngle") ||
+		hash == HashRageString("fBikeOnStandLeanAngle"))
 	{
 		return *(float*)(handlingChar + offset) / 0.017453292f; // rad to deg
 	}
@@ -124,22 +134,32 @@ static void setIntField(char* handlingChar, uint32_t offset, int value, const ch
 
 	if (hash == HashRageString("strModelFlags"))
 	{
-		*(int*)(handlingChar + 284) = value;
+		*(int*)(handlingChar + 292) = value;
 		return;
 	}
 	else if (hash == HashRageString("strHandlingFlags"))
 	{
-		*(int*)(handlingChar + 288) = value;
+		*(int*)(handlingChar + 296) = value;
 		return;
 	}
 	else if (hash == HashRageString("strDamageFlags"))
 	{
-		*(int*)(handlingChar + 292) = value;
+		*(int*)(handlingChar + 300) = value;
 		return;
 	}
 	else if (hash == HashRageString("nInitialDriveGears"))
 	{
 		*(uint8_t*)(handlingChar + offset) = std::min(value, 7);
+		return;
+	}
+	else if (hash == HashRageString("strAdvancedFlags"))
+	{
+		*(int*)(handlingChar + 60) = value;
+		return;
+	}
+	else if (hash == HashRageString("strFlags"))
+	{
+		*(int*)(handlingChar + 184) = value;
 		return;
 	}
 
@@ -244,6 +264,13 @@ static void setFloatField(char* handlingChar, uint32_t offset, float value, cons
 
 		return;
 	}
+	else if (hash == HashRageString("fMaxBankAngle") || hash == HashRageString("fFullAnimAngle")|| 
+		hash == HashRageString("fBikeOnStandLeanAngle"))
+	{
+		*(float*)(handlingChar + offset) = value * 0.017453292f; // deg to rad
+
+		return;
+	}
 
 	*(float*)(handlingChar + offset) = value;
 }
@@ -257,7 +284,41 @@ static void SetHandlingDataInternal(fx::ScriptContext& context, CHandlingData* h
 
 	auto parserStructure = rage::GetStructureDefinition(handlingClass);
 
-	if (_stricmp(handlingClass, "CHandlingData") == 0)
+	char* handlingChar = (char*)handlingData;
+	bool isCHandling = _stricmp(handlingClass, "CHandlingData") == 0;
+	bool isSubHandling = false; // Not every car will have the handling entry defined for the sub type
+
+	if (!isCHandling)
+	{
+		atArray<CBaseSubHandlingData*> subHandlingData = handlingData->GetSubHandlingData();
+		uint32_t classHash = HashRageString(handlingClass);
+
+		for (int i = 0; i < subHandlingData.GetCount(); i++)
+		{
+			CBaseSubHandlingData* sub = subHandlingData.Get(i);
+			if (sub)
+			{
+				uint32_t* parser = reinterpret_cast<uint32_t*>(sub->GetParser());
+
+				if (classHash == parser[2])
+				{
+					handlingChar = (char*)subHandlingData.Get(i); // Update the pointer if using SubHandlingData
+					isSubHandling = true;
+					break;
+				}
+			}
+		}
+
+		if (!isSubHandling)
+		{
+			trace("No such field %s during %s.\n", handlingField, fromFunction);
+
+			context.SetResult(false);
+			return;
+		}
+	}
+
+	if (isCHandling || isSubHandling)
 	{
 		uint32_t fieldHash = HashRageString(handlingField);
 
@@ -268,7 +329,6 @@ static void SetHandlingDataInternal(fx::ScriptContext& context, CHandlingData* h
 		{
 			if (member->m_definition->hash == fieldHash)
 			{
-				char* handlingChar = (char*)handlingData;
 				uint32_t offset = member->m_definition->offset;
 
 				switch (member->m_definition->type)
@@ -282,11 +342,9 @@ static void SetHandlingDataInternal(fx::ScriptContext& context, CHandlingData* h
 						break;
 
 					case rage::parMemberType::UInt32:
-						setIntField(handlingChar, offset, context.GetArgument<int>(3), handlingField);
-						break;
-
+						// every string field (so far) is parsed to an int in memory
 					case rage::parMemberType::String:
-						*(const char**)(handlingChar + offset) = strdup(context.GetArgument<const char*>(3));
+						setIntField(handlingChar, offset, context.GetArgument<int>(3), handlingField);
 						break;
 
 					case rage::parMemberType::Vector3_Padded:
@@ -322,7 +380,7 @@ static void SetHandlingDataInternal(fx::ScriptContext& context, CHandlingData* h
 	}
 	else
 	{
-		trace("%s only supports CHandlingData currently\n", fromFunction);
+		trace("%s does not support %s\n", fromFunction, handlingClass);
 
 		context.SetResult(false);
 	}
@@ -354,7 +412,41 @@ void GetVehicleHandling(fx::ScriptContext& context, const char* fromFunction)
 
 		auto parserStructure = rage::GetStructureDefinition(handlingClass);
 
-		if (_stricmp(handlingClass, "CHandlingData") == 0)
+		char* handlingChar = (char*)handlingData;
+		bool isCHandling = _stricmp(handlingClass, "CHandlingData") == 0;
+		bool isSubHandling = false; // Not every car will have the handling entry defined for the sub type
+
+		if (!isCHandling)
+		{
+			atArray<CBaseSubHandlingData*> subHandlingData = vehicle->GetHandlingData()->GetSubHandlingData();
+			uint32_t classHash = HashRageString(handlingClass);
+
+			for (int i = 0; i < subHandlingData.GetCount(); i++)
+			{
+				CBaseSubHandlingData* sub = subHandlingData.Get(i);
+				if (sub)
+				{
+					uint32_t* parser = reinterpret_cast<uint32_t*>(sub->GetParser());
+
+					if (classHash == parser[2])
+					{
+						handlingChar = (char*)subHandlingData.Get(i); // Update the pointer if using SubHandlingData
+						isSubHandling = true;
+						break;
+					}
+				}
+			}
+
+			if (!isSubHandling)
+			{
+				trace("No such field %s during %s.\n", handlingField, fromFunction);
+
+				context.SetResult(false);
+				return;
+			}
+		}
+
+		if (isCHandling || isSubHandling)
 		{
 			uint32_t fieldHash = HashRageString(handlingField);
 
@@ -365,7 +457,6 @@ void GetVehicleHandling(fx::ScriptContext& context, const char* fromFunction)
 			{
 				if (member->m_definition->hash == fieldHash)
 				{
-					char* handlingChar = (char*)handlingData;
 					uint32_t offset = member->m_definition->offset;
 
 					switch (member->m_definition->type)
@@ -379,6 +470,8 @@ void GetVehicleHandling(fx::ScriptContext& context, const char* fromFunction)
 							break;
 
 						case rage::parMemberType::UInt32:
+							// every string field (so far) is parsed to an int in memory
+						case rage::parMemberType::String:
 							context.SetResult<T>((T)(getIntField(handlingChar, offset, handlingField)));
 							break;
 
@@ -411,7 +504,7 @@ void GetVehicleHandling(fx::ScriptContext& context, const char* fromFunction)
 		}
 		else
 		{
-			trace("%s only supports CHandlingData currently\n", fromFunction);
+			trace("%s does not support %s\n", fromFunction, handlingClass);
 
 			context.SetResult(false);
 		}

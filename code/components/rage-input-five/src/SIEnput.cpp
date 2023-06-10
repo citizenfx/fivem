@@ -142,12 +142,12 @@ public:
 
 	uint32_t GetButtons() override
 	{
-		throw std::logic_error("The method or operation is not implemented.");
+		return m_buttons;
 	}
 
-	virtual void SetLightBar(uint8_t r, uint8_t g, uint8_t b) override;
-
-	virtual void SetVibration(uint8_t l, uint8_t r) override;
+	void SetLightBar(uint8_t r, uint8_t g, uint8_t b) override;
+	
+	void SetVibration(uint8_t l, uint8_t r) override;
 
 	void SetIndex(int playerIdx);
 
@@ -193,6 +193,8 @@ private:
 	uint8_t m_lightbarColor[3] = { 0, 0, 0 };
 	uint8_t m_userColor[3] = { 0xFF, 0x92, 0x43 };
 	uint8_t m_seq = 0;
+
+	uint32_t m_buttons = 0;
 
 	std::map<std::string, std::string> m_firmwareInfo;
 };
@@ -320,8 +322,8 @@ void SIEPadManagerInternal::DeviceDetectionMain()
 
 										if (!gotAddress)
 										{
-											wchar_t serialNumber[257];
-											if (HidD_GetSerialNumberString(deviceHandle.get(), serialNumber, std::size(serialNumber)))
+											wchar_t serialNumber[257] = { 0 };
+											if (HidD_GetSerialNumberString(deviceHandle.get(), serialNumber, std::size(serialNumber) - 1))
 											{
 												swscanf(serialNumber, L"%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx", &btAddr[0], &btAddr[1], &btAddr[2], &btAddr[3], &btAddr[4], &btAddr[5]);
 											}
@@ -474,7 +476,9 @@ void SIEPadInternal::Initialize()
 }
 
 static const constexpr uint8_t kReportIdInputReportBond = 1;
-static const constexpr uint8_t kReportIdInputReportBtBond = 17;
+static const constexpr uint8_t kReportIdInputReportBtBond = 0x31;
+static const constexpr uint8_t kReportIdInputReportJedi = 1;
+static const constexpr uint8_t kReportIdInputReportBtJedi = 0x11;
 static const constexpr uint8_t kReportIdGetFirmInfo = 32;
 static const constexpr uint8_t kReportIdGetFirmInfoJedi = 0xA3;
 
@@ -642,7 +646,82 @@ void SIEPadInternal::InputMain()
 		return (f && *(uint8_t*)outBuffer == reportId && !HasCrcErrorOnBtHid(0xA3, outBuffer, length));
 	};
 
-	auto parseInputReport = [this](const std::vector<uint8_t>& inputReport)
+	auto mapDigitalButtons = [](const uint8_t* keys, uint8_t keys2)
+	{
+		uint32_t buttons = 0;
+
+		// the hat
+		auto hatPos = (keys[0] & 0xF);
+		if (hatPos > 8)
+		{
+			hatPos = 8;
+		}
+
+		static const uint32_t hatButtonMap[] =
+		{
+			Buttons::DigitalUp,
+			Buttons::DigitalUp | Buttons::DigitalRight,
+			Buttons::DigitalRight,
+			Buttons::DigitalRight | Buttons::DigitalDown,
+			Buttons::DigitalDown,
+			Buttons::DigitalDown | Buttons::DigitalLeft,
+			Buttons::DigitalLeft,
+			Buttons::DigitalLeft | Buttons::DigitalUp,
+			0
+		};
+
+		buttons |= hatButtonMap[hatPos];
+
+		// bit field helper
+		auto mapButtons = [](uint8_t keys, const auto& buttonMap, size_t off = 0)
+		{
+			uint32_t buttons = 0;
+
+			for (size_t i = 0; i < std::size(buttonMap); i++)
+			{
+				if (keys & (1 << (off + i)))
+				{
+					buttons |= buttonMap[i];
+				}
+			}
+
+			return buttons;
+		};
+
+		// actual buttons
+		static const uint32_t buttonMap1[] =
+		{
+			Buttons::Square,
+			Buttons::Cross,
+			Buttons::Circle,
+			Buttons::Triangle,
+		};
+
+		static const uint32_t buttonMap2[] = {
+			Buttons::L1,
+			Buttons::R1,
+			Buttons::L2,
+			Buttons::R2,
+			Buttons::Share,
+			Buttons::Options,
+			Buttons::L3,
+			Buttons::R3
+		};
+
+		static const uint32_t buttonMap3[] = {
+			Buttons::PS,
+			Buttons::Touchpad,
+			Buttons::Mute,
+		};
+
+		buttons |= mapButtons(keys[0], buttonMap1, 4);
+		buttons |= mapButtons(keys[1], buttonMap2);
+		buttons |= mapButtons(keys2, buttonMap3);
+
+		return buttons;
+	};
+
+	auto parseInputReport = [this, mapDigitalButtons](const std::vector<uint8_t>& inputReport)
 	{
 		uint8_t reportId = inputReport[0];
 
@@ -650,21 +729,25 @@ void SIEPadInternal::InputMain()
 		{
 			if (reportId == kReportIdInputReportBond || reportId == kReportIdInputReportBtBond)
 			{
+				size_t off = 0;
+
 				if (m_isBluetooth)
 				{
 					if (HasCrcErrorOnBtHid(0xA1, &inputReport[0], inputReport.size()))
 					{
 						return;
 					}
+
+					off = 1;
 				}
 
-				auto report = (InputReportBond*)&inputReport[0];
-				// #TODO: parse and handle report
+				auto report = (const InputReportBond*)&inputReport[off];				
+				m_buttons = mapDigitalButtons(report->digitalKeys, report->digitalKeys[2]);
 			}
 		}
 		else
 		{
-			if (reportId == kReportIdInputReportBond || reportId == kReportIdInputReportBtBond)
+			if (reportId == kReportIdInputReportJedi || reportId == kReportIdInputReportBtJedi)
 			{
 				size_t off = 0;
 
@@ -679,7 +762,7 @@ void SIEPadInternal::InputMain()
 				}
 
 				auto report = (InputReportJedi*)&inputReport[off];
-				// #TODO: parse and handle report
+				m_buttons = mapDigitalButtons(report->digitalKeys, report->digitalKeys2);
 			}
 		}
 	};
@@ -934,7 +1017,6 @@ bool SIEPadInternal::HasCrcErrorOnBtHid(uint8_t crcType, const void* buffer, siz
 	return (_byteswap_ulong(*(uint32_t*)crc.final().data())) != reportCRC;
 }
 
-#ifdef TEST_SIENPUT
 #define S(o, n) r[t[int(h[0]) / 60 * 3 + o] + o - 2] = (n + h[2] - c / 2) * 255;
 void C(float* h, int* r)
 {
@@ -945,6 +1027,7 @@ void C(float* h, int* r)
 	S(2, 0)
 }
 
+#if 0
 static InitFunction initFunction([]()
 {
 	auto manager = std::make_unique<SIEPadManagerInternal>();

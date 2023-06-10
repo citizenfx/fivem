@@ -11,8 +11,8 @@ export interface IQueriedServerData {
   name: string,
   mapname: string,
   gametype: string,
-  clients: number,
-  maxclients: number,
+  clients: string,
+  maxclients: string,
   ping: 42, // yes, it is always 42 in the cpp code, lol
   addr: string, // queried address, exactly how it was queried
   queryCorrelation: string // also queried address, exactly how it was queried

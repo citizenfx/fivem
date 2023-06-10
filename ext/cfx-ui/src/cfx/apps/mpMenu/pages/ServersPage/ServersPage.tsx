@@ -8,8 +8,10 @@ import { observer } from "mobx-react-lite";
 import { InsideNavBar } from "../../parts/NavBar/InsideNavBar";
 import { Navigate } from "react-router-dom";
 import { ServerFiltersWithDirectConnect } from "./ServerFiltersWithDirectConnect/ServerFiltersWithDirectConnect";
-import { currentGameNameIs } from "cfx/base/gameName";
+import { currentGameNameIs } from "cfx/base/gameRuntime";
 import { GameName } from "cfx/base/game";
+import { clsx } from "cfx/utils/clsx";
+import s from './ServersPage.module.scss';
 
 export interface ServersPageProps {
   listType: ServersListType,
@@ -27,30 +29,25 @@ export const MpMenuServersPage = observer(function ({ listType }: ServersPagePro
   const config = serversList.getConfig?.();
   const showPinned = currentGameNameIs(GameName.FiveM) && listType === ServersListType.All;
 
+  const navbarClassName = clsx(s.navbar, {
+    [s.shrink]: showPinned,
+  });
+
   return (
     <>
       <InsideNavBar>
-        <Flex>
+        <Flex gap="large" className={navbarClassName}>
           <ListTypeTabs />
 
           {!!config && (
-            <>
-              <ServerFiltersWithDirectConnect config={config} />
-
-              {showPinned && (
-                <div
-                  style={{
-                    width: 'calc(var(--width) * .293)'
-                  }}
-                />
-              )}
-            </>
+            <ServerFiltersWithDirectConnect config={config} />
           )}
         </Flex>
       </InsideNavBar>
 
       <ServersPage
         list={serversList}
+        listType={listType}
         showPinned={showPinned}
       />
     </>

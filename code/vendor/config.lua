@@ -47,6 +47,8 @@ vendor_component 'boost_locale-crt'
 
 vendor_component 'freetype'
 
+vendor_component 'rnnoise'
+
 if os.target() == 'windows' then
 	vendor_component 'discord-rpc'
 	vendor_component 'minhook'
@@ -104,5 +106,6 @@ vendor_component 'dspfilters'
 vendor_component 'speexdsp'
 vendor_component 'wil'
 vendor_component 'v8-93'
+vendor_component 'cpu_features'
 vendor_component 'citizen_enet'
 vendor_component 'citizen_util'

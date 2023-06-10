@@ -192,6 +192,9 @@ namespace rage
 		{
 			FORWARD_FUNC(LogObject, 0xF0, object, stub);
 		}
+
+#undef FORWARD_FUNC
+
 #elif IS_RDR3
 		virtual void m_18() = 0; // InitialiseNode
 		virtual void m_20() = 0; // ShutdownNode
@@ -280,10 +283,18 @@ static std::string GetClassTypeName(void* ptr)
 	std::string name;
 
 #ifdef GTA_FIVE
-	name = typeid(*(VirtualBase*)ptr).name();
-	name = name.substr(6);
+	// Rest in pease RTTI in V, we will miss you
+	if (xbr::IsGameBuildOrGreater<2802>())
+	{
+		name = fmt::sprintf("%016llx", hook::get_unadjusted(*(uint64_t*)ptr));
+	}
+	else
+	{
+		name = typeid(*(VirtualBase*)ptr).name();
+		name = name.substr(6);
+	}
 #elif IS_RDR3
-	name = fmt::sprintf("%016llx", *(uint64_t*)ptr);
+	name = fmt::sprintf("%016llx", hook::get_unadjusted(*(uint64_t*)ptr));
 #endif
 
 	return name;
@@ -1163,7 +1174,7 @@ void RenderNetDrilldownWindow(bool* open)
 				{
 					sync::FrameIndex fi{ node.frameIdx };
 
-					if (ImGui::TreeNode(va("Packet %d @+%d (%d:%d)", id, node.ts, fi.frameIndex, fi.currentFragment)))
+					if (ImGui::TreeNodeEx(va("Packet %d @+%d (%d:%d)", id, node.ts, fi.frameIndex, fi.currentFragment), (node.messages.empty() ? ImGuiTreeNodeFlags_Leaf : 0)))
 					{
 						for (auto& message : node.messages)
 						{
@@ -1181,7 +1192,7 @@ void RenderNetDrilldownWindow(bool* open)
 			{
 				for (auto& [id, node] : g_drilldownDataOut)
 				{
-					if (ImGui::TreeNode(va("Tick %d @+%d (%d)", id, node.ts, node.frameIdx)))
+					if (ImGui::TreeNodeEx(va("Tick %d @+%d (%d)", id, node.ts, node.frameIdx), (node.messages.empty() ? ImGuiTreeNodeFlags_Leaf : 0)))
 					{
 						for (auto& message : node.messages)
 						{
@@ -1348,7 +1359,7 @@ static InitFunction initFunction([]()
 	static ConVar<bool> netViewerVar("netobjviewer", ConVar_Archive, false, &netViewerEnabled);
 	static ConVar<bool> syncLogVar("netobjviewer_syncLog", ConVar_Archive, false, &g_captureSyncLog);
 	static ConVar<bool> timeVar("net_showTime", ConVar_Archive, false, &timeWindowEnabled);
-	static ConVar<bool> cloneDrilldownVar("net_showDrilldown", ConVar_Archive, false, &drilldownWindowEnabled);
+	static ConVar<bool> cloneDrilldownVar("net_showDrilldown", ConVar_Archive | ConVar_UserPref, false, &drilldownWindowEnabled);
 
 	ConHost::OnShouldDrawGui.Connect([](bool* should)
 	{

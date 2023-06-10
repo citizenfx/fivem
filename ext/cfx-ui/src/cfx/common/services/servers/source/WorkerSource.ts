@@ -1,4 +1,4 @@
-import { CurrentGameName } from "cfx/base/gameName";
+import { CurrentGameName } from "cfx/base/gameRuntime";
 import { MultiEventEmitter } from "cfx/utils/eventEmitter";
 import { isObject } from "cfx/utils/object";
 import { SingleEventEmitter } from "cfx/utils/singleEventEmitter";

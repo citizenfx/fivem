@@ -1,7 +1,7 @@
 import React from "react";
 import * as AC from "adaptivecards";
 import { mpMenu } from "cfx/apps/mpMenu/mpMenu";
-import { CurrentGameBrand } from "cfx/base/gameName";
+import { CurrentGameBrand } from "cfx/base/gameRuntime";
 import { Pad } from "cfx/ui/Layout/Pad/Pad";
 import { Text } from "cfx/ui/Text/Text";
 import { noop } from "cfx/utils/functional";
@@ -10,6 +10,7 @@ import { observer } from "mobx-react-lite";
 import { Scrollable } from "cfx/ui/Layout/Scrollable/Scrollable";
 import { IUiService, useUiService } from "cfx/common/services/ui/ui.service";
 import s from './AdaptiveCardPresenter.module.scss';
+import { InfoPanel } from "cfx/ui/InfoPanel/InfoPanel";
 
 AC.AdaptiveCard.onProcessMarkdown = (text, result) => {
   result.outputHtml = renderMarkdown(text);
@@ -34,6 +35,8 @@ export const AdaptiveCardPresenter = observer(function AdaptiveCardPresenter(pro
   const containerRef = React.useRef<HTMLDivElement>(null);
   const submittingRef = React.useRef(false);
 
+  const [cardError, setCardError] = React.useState('');
+
   const renderCard = React.useCallback(() => {
     if (!containerRef.current || !cardRef.current) {
       return;
@@ -41,7 +44,12 @@ export const AdaptiveCardPresenter = observer(function AdaptiveCardPresenter(pro
 
     cardRef.current.hostConfig = getHostConfig(uiService);
     containerRef.current.innerHTML = '';
-    containerRef.current.appendChild(cardRef.current.render()!);
+
+    try {
+      containerRef.current.appendChild(cardRef.current.render()!);
+    } catch (e) {
+      setCardError(`Failed to render AdaptiveCard: ${e.message || 'Unknown Error'}`);
+    }
   }, []);
 
   React.useEffect(renderCard, [uiService.quant]);
@@ -53,7 +61,12 @@ export const AdaptiveCardPresenter = observer(function AdaptiveCardPresenter(pro
 
     if (typeof card === 'string') {
       cardRef.current = new AC.AdaptiveCard();
-      cardRef.current.parse(JSON.parse(card));
+
+      try {
+        cardRef.current.parse(JSON.parse(card));
+      } catch (e) {
+        setCardError(e.message || 'Failed to parse AdaptiveCard JSON');
+      }
     } else {
       cardRef.current = card;
     }
@@ -84,6 +97,26 @@ export const AdaptiveCardPresenter = observer(function AdaptiveCardPresenter(pro
 
     renderCard();
   }, [card, onCancel]);
+
+  if (cardError) {
+    return (
+      <Scrollable>
+        <Pad size="large">
+          <InfoPanel type="error">
+            <details>
+              <summary>
+                AdaptiveCard error: <kbd>{cardError}</kbd>
+              </summary>
+
+              <Pad>
+                <textarea style={{ resize: 'none' }} rows={10}>{card.toString()}</textarea>
+              </Pad>
+            </details>
+          </InfoPanel>
+        </Pad>
+      </Scrollable>
+    );
+  }
 
   return (
     <>

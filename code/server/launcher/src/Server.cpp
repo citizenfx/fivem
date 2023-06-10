@@ -12,6 +12,10 @@
 
 #include <cfx_version.h>
 
+#ifdef _WIN32
+void InitializeMiniDumpOverride();
+#endif
+
 class ServerMain
 {
 public:
@@ -29,6 +33,11 @@ namespace fx
 	void Server::Start(int argc, char* argv[])
 	{
 		ComponentLoader* loader = ComponentLoader::GetInstance();
+
+#ifdef _WIN32
+		InitializeMiniDumpOverride();
+#endif
+
 		loader->Initialize();
 
 		// combine argv to a separate command list

@@ -1,4 +1,4 @@
-import { defineService, useService } from "../../../base/servicesContainer";
+import { defineService, useService } from "cfx/base/servicesContainer";
 import { PluralKeys } from "./types";
 
 export function useIntlService(): IIntlService {
@@ -8,6 +8,9 @@ export function useIntlService(): IIntlService {
 export const IIntlService = defineService<IIntlService>('IntlService');
 
 export interface IIntlService {
+  readonly systemLocale: string;
+  readonly systemLocaleCountry: string;
+
   readonly localeCode: string;
   readonly localeTranslations: Record<string, Function>;
 

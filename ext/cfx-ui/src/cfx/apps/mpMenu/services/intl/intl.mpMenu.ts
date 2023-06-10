@@ -17,6 +17,23 @@ export function registerMpMenuIntlService(container: ServicesContainer) {
 
 @injectable()
 class MpMenuIntlService implements IIntlService {
+  readonly systemLocale = (() => {
+    const systemLocale = mpMenu.systemLanguages[0] || 'en-US';
+    const [language, country] = systemLocale.split('-');
+
+    if (!country) {
+      // Windows has some locales such as `pl` which should expand to `pl-PL`
+      return `${language.toLowerCase()}-${language.toUpperCase()}`;
+    }
+
+    return systemLocale;
+  })();
+  readonly systemLocaleCountry = (() => {
+    const [_, country] = this.systemLocale.split('-');
+
+    return country.toUpperCase();
+  })();
+
   readonly localesOptions = Object.keys(locales).map((locale) => ({
     label: defaultDisplayNames.of(locale) || 'en',
     value: locale,

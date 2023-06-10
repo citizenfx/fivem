@@ -23,6 +23,8 @@
 #include <openssl/sha.h>
 #include <boost/algorithm/string.hpp>
 
+#include "launcher_version.h"
+
 struct cache_t
 {
 	std::string name;
@@ -318,6 +320,27 @@ bool Updater_RunUpdate(std::initializer_list<std::string> wantedCachesList)
 	{
 		shouldVerify = true;
 	}
+
+	// if citizen/ got overwritten with a 'weird' incompatible/way too old version, also verify
+#if defined(EXE_VERSION) && EXE_VERSION > 1
+	{
+		FILE* f = _wfopen(MakeRelativeCitPath(L"citizen/release.txt").c_str(), L"r");
+
+		if (f)
+		{
+			char ver[128];
+
+			fgets(ver, sizeof(ver), f);
+			fclose(f);
+
+			int version = atoi(ver);
+			if (version < EXE_VERSION)
+			{
+				shouldVerify = true;
+			}
+		}
+	}
+#endif
 
 	// additional check for Five/RDR
 #if defined(GTA_FIVE) || defined(IS_RDR3)

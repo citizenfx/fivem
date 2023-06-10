@@ -8,7 +8,6 @@ const REVIEW_SENTIMENT_ICON: Record<ServerReviewSentiment, React.ReactNode> = {
   [ServerReviewSentiment.Recommend]: (
     <BsHandThumbsUp
       style={{
-        // fontSize: ui.fontSize('xxlarge'),
         color: ui.color('success'),
         filter: `drop-shadow(0 0 2px ${ui.color('success', 300)})`,
       }}
@@ -17,7 +16,6 @@ const REVIEW_SENTIMENT_ICON: Record<ServerReviewSentiment, React.ReactNode> = {
   [ServerReviewSentiment.NotRecommend]: (
     <BsHandThumbsDown
       style={{
-        // fontSize: ui.fontSize('xxlarge'),
         color: ui.color('error'),
         filter: `drop-shadow(0 0 2px ${ui.color('error', 300)})`,
       }}

@@ -1,12 +1,13 @@
 import React from "react";
 import { clsx } from 'cfx/utils/clsx';
 import s from './Flex.module.scss';
+import { FlexRestricter } from "./FlexRestricter";
 
 export interface FlexProps {
   fullWidth?: boolean,
   fullHeight?: boolean,
 
-  centered?: boolean | 'axis' | 'cross-axis',
+  centered?: boolean | 'axis' | 'cross-axis' | 'baseline-axis' | 'baseline-cross-axis',
   vertical?: boolean,
   repell?: boolean,
   stretch?: boolean,
@@ -21,7 +22,7 @@ export interface FlexProps {
   className?: string,
 }
 
-export const Flex = React.forwardRef(function Flex(props: FlexProps, ref: React.Ref<HTMLDivElement>) {
+function FlexComponent(props: FlexProps, ref: React.Ref<HTMLDivElement>) {
   const {
     fullWidth = false,
     fullHeight = false,
@@ -44,6 +45,8 @@ export const Flex = React.forwardRef(function Flex(props: FlexProps, ref: React.
     [s.centered]: centered === true,
     [s['centered-axis']]: centered === 'axis',
     [s['centered-cross-axis']]: centered === 'cross-axis',
+    [s['baseline-axis']]: centered === 'baseline-axis',
+    [s['baseline-cross-axis']]: centered === 'baseline-cross-axis',
     [s.vertical]: vertical,
     [s.horizontal]: !vertical,
     [s.repell]: repell,
@@ -59,4 +62,21 @@ export const Flex = React.forwardRef(function Flex(props: FlexProps, ref: React.
       {children}
     </div>
   );
-});
+}
+FlexComponent.displayName = 'Flex';
+
+const FlexComponentReffed = React.forwardRef(FlexComponent);
+
+type FlexType =
+  & typeof FlexComponentReffed
+  & { Restricted: React.FC<{ children?: React.ReactNode }> };
+
+export const Flex: FlexType = FlexComponentReffed as any;
+
+Flex.Restricted = (props: Pick<FlexProps, 'children' | 'fullWidth' | 'fullHeight'>) => (
+  <Flex>
+    <FlexRestricter>
+      {props.children}
+    </FlexRestricter>
+  </Flex>
+);

@@ -18,4 +18,8 @@
     width: ui.control-height('large');
     height: ui.control-height('large');
   }
+  &.size-xxxlarge {
+    width: ui.q(30);
+    height: ui.q(30);
+  }
 }

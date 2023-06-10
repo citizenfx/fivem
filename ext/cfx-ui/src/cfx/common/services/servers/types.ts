@@ -17,26 +17,40 @@ export enum ServerViewDetailsLevel {
    */
   Historical = 50,
 
-  DynamicDataJson = 100,
-  InfoAndDynamicDataJson = 150,
+  /**
+   * Meta details level for any data that is relatively live
+   */
+  Live = 100,
+
+  /**
+   * Data from /dynamic.json endpoint of the server
+   */
+  DynamicDataJson = 101,
+
+  /**
+   * Data from from /dynamic.json and /info.json endpoints of the server
+   */
+  InfoAndDynamicDataJson = 199,
 
   /**
    * Data populated from servers list
    */
-  Shallow = 200,
+  MasterList = 201,
 
   /**
    * Data populated from complete server data
    */
-  Complete = 300,
+  MasterListFull = 299,
 }
 
 export interface IServerView {
   // MANDATORY FIELDS
-  // Represents the very minimum set of information app needs to know about particular server
+    // Unique id for internal use within cfx ui
+    id: string,
+
+    // Represents the very minimum set of information app needs to know about particular server
     detailsLevel: ServerViewDetailsLevel,
 
-    address: string,
     locale: string,
     localeCountry: string,
     hostname: string,
@@ -46,6 +60,11 @@ export interface IServerView {
     rawVariables: Record<string, string>,
   // /MANDATORY FIELDS
 
+  joinId?: string,
+
+  historicalAddress?: string,
+  historicalIconURL?: string | null,
+
   connectEndPoints?: string[],
   projectDescription?: string,
 
@@ -54,7 +73,6 @@ export interface IServerView {
 
   offline?: true,
 
-  thumbnailIconUri?: string | null,
   iconVersion?: number | null,
 
   licenseKeyToken?: string | null,
@@ -100,8 +118,21 @@ export enum ServerPureLevel {
   NoModsAllowed = '2',
 }
 
+export interface IPinnedServersCollection {
+  title: string,
+  ids: string[],
+}
+
+export type IFeaturedServer =
+  | { type: 'id', id: string }
+  | { type: 'collection', collection: IPinnedServersCollection }
+
+/**
+ * This is not a reflection of `/pins.json` file schema,
+ * but internal representation of such
+ */
 export interface IPinnedServersConfig {
-  noAdServerId?: string,
+  featuredServer?: IFeaturedServer,
   pinIfEmpty?: boolean,
   pinnedServers: string[],
 }
@@ -124,7 +155,6 @@ export interface IHistoryServer {
 
 	title: string,
 	time: Date,
-	icon: string,
 	token: string,
 }
 

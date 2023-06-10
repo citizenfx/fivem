@@ -2,39 +2,35 @@ import { getListServerTags, getPinnedServersList } from "cfx/base/serverUtils";
 import { inject, injectable } from "inversify";
 import { makeAutoObservable, observable } from "mobx";
 import { computedFn } from "mobx-utils";
-import { CurrentGameName } from "cfx/base/gameName";
+import { CurrentGameName } from "cfx/base/gameRuntime";
 import { IServersList, ServersListType } from "cfx/common/services/servers/lists/types";
 import { IServersService } from "cfx/common/services/servers/servers.service";
 import { ServicesContainer } from "cfx/base/servicesContainer";
 import { AppContribution, registerAppContribution } from "cfx/common/services/app/app.extensions";
 import { IServersStorageService } from "cfx/common/services/servers/serversStorage.service";
-import { logger, ScopedLogger } from "cfx/common/services/log/scopedLogger";
-import { IPinnedServersConfig, IServerView, ServerViewDetailsLevel } from "cfx/common/services/servers/types";
+import { scopedLogger, ScopedLogger } from "cfx/common/services/log/scopedLogger";
+import { IPinnedServersCollection, IPinnedServersConfig, IServerView, ServerViewDetailsLevel } from "cfx/common/services/servers/types";
 import { IAutocompleteIndex, IServerListSource } from "cfx/common/services/servers/source/types";
 import { WorkerSource } from "cfx/common/services/servers/source/WorkerSource";
 import { FavoriteServersList } from "cfx/common/services/servers/lists/FavoriteServersList";
 import { HistoryServersList } from "cfx/common/services/servers/lists/HistoryServersList";
-import { getSingleServer, getTopServer } from "cfx/common/services/servers/source/utils/fetchers";
+import { getMasterListServer } from "cfx/common/services/servers/source/utils/fetchers";
 import { BaseConfigurableServersList } from "cfx/common/services/servers/lists/BaseConfigurableServersList";
-import { getServerByAnyMean } from "./source/fetchers";
-import { parseServerAddress } from "cfx/common/services/servers/utils";
+import { getServerForAddress } from "./source/fetchers";
+import { parseServerAddress } from "cfx/common/services/servers/serverAddressParser";
 import { serverAddress2ServerView } from "cfx/common/services/servers/transformers";
-import { getServerIconURL } from "cfx/common/services/servers/icon";
-import { mpMenu } from "../../mpMenu";
 import { fetcher } from "cfx/utils/fetcher";
-import { MildlyIntelligentServersList } from "cfx/common/services/servers/lists/MildlyIntelligentServersList";
+import { uniqueArray } from "cfx/utils/array";
+import { mergeServers } from "cfx/common/services/servers/serverMerger";
+import { isObject } from "cfx/utils/object";
 
-export type IPromotedServerDescriptor =
-  | { origin: 'ad', id: string }
-  | { origin: 'locale', id: string };
-
-const IBrowserServersServiceInit = Symbol('BrowserServersServiceInit');
-export interface IBrowserServersServiceInit {
+const IMpMenuServersServiceInit = Symbol('MpMenuServersServiceInit');
+export interface IMpMenuServersServiceInit {
   listTypes: ServersListType[],
 }
 
-export function registerMpMenuServersService(container: ServicesContainer, init: IBrowserServersServiceInit) {
-  container.registerConstant(IBrowserServersServiceInit, init);
+export function registerMpMenuServersService(container: ServicesContainer, init: IMpMenuServersServiceInit) {
+  container.registerConstant(IMpMenuServersServiceInit, init);
 
   container.registerImpl(IServersService, MpMenuServersService);
 
@@ -43,14 +39,14 @@ export function registerMpMenuServersService(container: ServicesContainer, init:
 
 @injectable()
 export class MpMenuServersService implements IServersService, AppContribution {
-  @inject(IBrowserServersServiceInit)
-  protected readonly initObject: IBrowserServersServiceInit;
+  @inject(IMpMenuServersServiceInit)
+  protected readonly initObject: IMpMenuServersServiceInit;
 
   @inject(IServersStorageService)
   protected readonly serversStorageService: IServersStorageService;
 
-  @logger('MpMenuServersService')
-  protected readonly logService: ScopedLogger;
+  @scopedLogger('MpMenuServersService')
+  protected readonly logger: ScopedLogger;
 
   private _topLocaleServerId: string = '';
   public get topLocaleServerId(): string { return this._topLocaleServerId }
@@ -70,6 +66,8 @@ export class MpMenuServersService implements IServersService, AppContribution {
     return getPinnedServersList(this._pinnedServersConfig, this.getServer);
   }
 
+  private _serverIdsAliases: Record<string, string> = {};
+  private _serverIdsAliasesReverse: Record<string, string> = {};
   private _servers: Map<string, IServerView> = new Map();
 
   private _serversLoading: Record<string, ServerViewDetailsLevel | false> = {};
@@ -78,7 +76,8 @@ export class MpMenuServersService implements IServersService, AppContribution {
   public get autocompleteIndex(): IAutocompleteIndex | null { return this._serversIndex }
   private set autocompleteIndex(serversIndex: IAutocompleteIndex | null) { this._serversIndex = serversIndex }
 
-  private listSource: IServerListSource;
+  readonly listSource: IServerListSource;
+
   private lists: Partial<Record<ServersListType, IServersList>>;
 
   public listTypes: ServersListType[] = [];
@@ -98,7 +97,11 @@ export class MpMenuServersService implements IServersService, AppContribution {
     this.listSource = new WorkerSource();
 
     this.listSource.onIndex((index) => this.autocompleteIndex = index);
-    this.listSource.onServersFetchStart(() => this.serversListLoading = true);
+
+    this.listSource.onServersFetchStart(() => {
+      this.totalServersCount = 0;
+      this.serversListLoading = true;
+    });
     this.listSource.onServersFetchChunk((chunk) => this.populateServersFromChunk(chunk));
     this.listSource.onServersFetchEnd((chunk) => (this.populateServersFromChunk(chunk), this.serversListLoading = false));
 
@@ -118,7 +121,6 @@ export class MpMenuServersService implements IServersService, AppContribution {
     }
 
     await this.loadPinnedServersConfig();
-    await this.maybeLoadTopLocaleServer();
   }
 
   getList(type: ServersListType): IServersList | undefined {
@@ -134,23 +136,37 @@ export class MpMenuServersService implements IServersService, AppContribution {
     return this.lists[ServersListType.History] as any;
   }
 
-  readonly getServer = (address: string): IServerView | undefined => {
-    return this._servers.get(address);
-  };
+  private setServerIdAlias(id: string, newId: string) {
+    if (id === newId) {
+      return;
+    }
 
-  getServerIconURL(address: string): string {
-    const server = this.getServer(address);
-
-    return getServerIconURL(address, server?.iconVersion);
+    this._serverIdsAliases[id] = newId;
+    this._serverIdsAliasesReverse[newId] = id;
   }
 
-  isServerLoading(address: string, detailsLevel?: ServerViewDetailsLevel): boolean {
+  getRealServerId(id: string): string {
+    return this._serverIdsAliases[id] || id;
+  }
+
+  getAllServerIds(id: string): string[] {
+    return uniqueArray([id, this._serverIdsAliasesReverse[id], this._serverIdsAliases[id]].filter(Boolean));
+  }
+
+  private serversSet(id: string, server: IServerView) {
+    this._servers.set(this.getRealServerId(id), server);
+  }
+
+  readonly getServer = (id: string): IServerView | undefined => {
+    return this._servers.get(this.getRealServerId(id));
+  };
+
+  isServerLoading(id: string, detailsLevel?: ServerViewDetailsLevel): boolean {
     if (typeof detailsLevel === 'undefined') {
       return this.serversListLoading;
     }
 
-    const loadingState = this._serversLoading[address];
-
+    const loadingState = this._serversLoading[id];
     if (!loadingState) {
       return false;
     }
@@ -158,29 +174,29 @@ export class MpMenuServersService implements IServersService, AppContribution {
     return loadingState >= detailsLevel;
   }
 
-  private setServerLoadingState(address: string, state: ServerViewDetailsLevel | false) {
-    this._serversLoading[address] = state;
+  private setServerLoadingState(id: string, state: ServerViewDetailsLevel | false) {
+    this._serversLoading[id] = state;
   }
 
-  async loadServerDetailedData(address: string) {
-    if (this.serverDetailsLoadRequested[address]) {
+  async loadServerDetailedData(id: string) {
+    if (this.serverDetailsLoadRequested[id]) {
       return;
     }
 
-    this.serverDetailsLoadRequested[address] = true;
+    this.serverDetailsLoadRequested[id] = true;
 
-    this.setServerLoadingState(address, ServerViewDetailsLevel.Complete);
-    const server = await getSingleServer(CurrentGameName, address);
-    this.setServerLoadingState(address, false);
+    this.setServerLoadingState(id, ServerViewDetailsLevel.MasterListFull);
+    const server = await getMasterListServer(CurrentGameName, id);
+    this.setServerLoadingState(id, false);
 
     if (server) {
       this.replaceServer(server);
     } else {
-      this.logService.log(`Failed to load server (${address}) complete view`);
+      this.logger.log(`Failed to load server (${id}) detailed data from master list`);
 
       // But if it was listed - mark as offline
-      const listedServer = this._servers.get(address);
-      if (listedServer?.detailsLevel === ServerViewDetailsLevel.Shallow) {
+      const listedServer = this.getServer(id);
+      if (listedServer?.detailsLevel === ServerViewDetailsLevel.MasterList) {
         this.replaceServer({
           ...listedServer,
           offline: true,
@@ -197,7 +213,7 @@ export class MpMenuServersService implements IServersService, AppContribution {
     return getListServerTags(server, this.autocompleteIndex);
   });
 
-  getServerFromAddress(address: string): IServerView | null {
+  serverAddressToServerView(address: string): IServerView | null {
     const parsedAddresss = parseServerAddress(address);
     if (!parsedAddresss) {
       return null;
@@ -212,37 +228,34 @@ export class MpMenuServersService implements IServersService, AppContribution {
     let server: IServerView | null = null;
 
     if (typeof serverOrAddress === 'string') {
-      server = this.getServerFromAddress(serverOrAddress);
+      server = this.serverAddressToServerView(serverOrAddress);
     } else {
       server = serverOrAddress;
     }
 
+    // Can only be null if we've got the address and it is invalid
     if (!server) {
       return null;
     }
 
-    if (server.detailsLevel >= ServerViewDetailsLevel.DynamicDataJson) {
+    if (server.detailsLevel >= ServerViewDetailsLevel.Live) {
       return server;
     }
 
-    this.setServer(server.address, server);
+    this.setServer(server.id, server);
 
-    const resolvedServer = (await getServerByAnyMean(CurrentGameName, server.address)) || server;
+    const resolvedServer = mergeServers(server, await getServerForAddress(server.id));
 
-    // If no live server data - it is offline
-    if (resolvedServer === server) {
-      resolvedServer.offline = true;
+    this.setServer(resolvedServer.id, resolvedServer);
+    this.setServerIdAlias(server.id, resolvedServer.id);
+
+    if (resolvedServer.joinId) {
+      this.setServer(resolvedServer.joinId, resolvedServer);
+      this.setServerIdAlias(server.id, resolvedServer.joinId);
+      this.setServerIdAlias(resolvedServer.id, resolvedServer.joinId);
     }
 
-    // Overwrite with resolved
-    this.setServer(server.address, resolvedServer);
-
-    // Resolved server can have different address, for example,
-    // if server to resolve had only IP address and we were able to resolve it to an actual CFXID
-    // so this way we will have same IServerView available by both addresses
-    this.setServer(resolvedServer.address, resolvedServer);
-
-    return resolvedServer;
+    return this.getServer(server.id)!;
   }
 
   /**
@@ -251,28 +264,17 @@ export class MpMenuServersService implements IServersService, AppContribution {
    * For smarter handling use ServersService.setServer()
    */
   replaceServer(server: IServerView) {
-    this.logService.log('Replacing server', ServerViewDetailsLevel[server.detailsLevel], server);
-    this._servers.set(server.address, server);
+    this.serversSet(server.id, server);
   }
 
   setServer(serverId: string, server: IServerView) {
-    const existingServer = this._servers.get(serverId);
-    if (existingServer) {
-      if (server.detailsLevel < existingServer.detailsLevel) {
-        // If incoming server has actual details - update them
-        if (server.detailsLevel >= ServerViewDetailsLevel.DynamicDataJson) {
-          this._servers.set(serverId, {
-            ...existingServer,
-            playersMax: server.playersMax,
-            playersCurrent: server.playersCurrent,
-          });
-        }
+    const existingServer = this.getServer(serverId);
 
-        return;
-      }
-    }
+    const serverToSet = !!existingServer
+      ? mergeServers(existingServer, server)
+      : server;
 
-    this._servers.set(serverId, server);
+    this.serversSet(serverId, serverToSet);
   }
 
   private initList(type: ServersListType): IServersList {
@@ -288,6 +290,7 @@ export class MpMenuServersService implements IServersService, AppContribution {
       }
       case ServersListType.Favorites: {
         return new FavoriteServersList(
+          this,
           this.serversStorageService,
           this.getServer,
           () => this._pinnedServersConfig,
@@ -295,13 +298,6 @@ export class MpMenuServersService implements IServersService, AppContribution {
       }
       case ServersListType.Supporters: {
         return new BaseConfigurableServersList({ type: ServersListType.Supporters, onlyPremium: true }, this.listSource);
-      }
-      case ServersListType.MildlyIntelligent: {
-        return new MildlyIntelligentServersList(
-          this,
-          this.serversStorageService,
-          this.listSource,
-        );
       }
 
       default: {
@@ -312,14 +308,69 @@ export class MpMenuServersService implements IServersService, AppContribution {
 
   private async loadPinnedServersConfig() {
     try {
+      /**
+       * Expected schema of `/pins.json` file:
+       *
+       * {
+       *   noAdServer?: string | { title: string, ids: Array<string> },
+       *   noAdServerId?: string, // will be ignored if there's a valid noAdServer
+       *   pinnedServers?: Array<string>,
+       *   pinIfEmpty?: boolean,
+       * }
+       *
+       */
       const json = await fetcher.json('https://runtime.fivem.net/pins.json');
 
       const config: IPinnedServersConfig = {
         pinnedServers: [],
       };
 
-      if (json.noAdServerId) {
-        config.noAdServerId = String(json.noAdServerId);
+      // Parsing `.noAdServer`,
+      // starting with property supporting both single server join id and servers collection
+      if (json.noAdServer) {
+        const jsonNoAdServer: unknown = json.noAdServer;
+
+        // Just one server join id
+        if (typeof jsonNoAdServer === 'string') {
+          config.featuredServer = {
+            type: 'id',
+            id: jsonNoAdServer,
+          };
+        }
+        // Servers collection
+        else if (isObject<Partial<IPinnedServersCollection>>(jsonNoAdServer)) {
+          // `.title` and `.ids` are required
+          if (typeof jsonNoAdServer.title === 'string' && Array.isArray(jsonNoAdServer.ids)) {
+            const serverIds = jsonNoAdServer.ids.map((id) => String(id)).filter(Boolean);
+
+            if (serverIds.length > 1) {
+              config.featuredServer = {
+                type: 'collection',
+                collection: {
+                  title: jsonNoAdServer.title,
+                  ids: serverIds,
+                },
+              };
+            }
+            // Fall back to single server join id if only one id is present
+            else if (serverIds.length === 1) {
+              config.featuredServer = {
+                type: 'id',
+                id: String(serverIds[0]),
+              };
+            }
+          }
+        }
+      }
+
+      // Parsing old `.noAdServerId` if no featuredServer has been parsed yet
+      if (json.noAdServerId && !config.featuredServer) {
+        if (typeof json.noAdServerId === 'string') {
+          config.featuredServer = {
+            type: 'id',
+            id: json.noAdServerId,
+          };
+        }
       }
 
       if (json.pinIfEmpty) {
@@ -327,48 +378,22 @@ export class MpMenuServersService implements IServersService, AppContribution {
       }
 
       if (Array.isArray(json.pinnedServers)) {
+        // TODO: the length is capped to 6 chars to filter out IP:port addresses
         config.pinnedServers = json.pinnedServers.filter((address: unknown) => typeof address === 'string' && address.length === 6);
       }
-
-      this.logService.log('Pinned', JSON.parse(JSON.stringify(config)));
 
       this.listSource.setPinnedConfig(config);
       this.pinnedServersConfig = config;
     } catch (e) {
-      this.logService.error(new Error('Failed to fetch pinned servers config'), { originalError: e });
-    }
-  }
-
-  private async maybeLoadTopLocaleServer() {
-    for (const language of mpMenu.systemLanguages) {
-      const server = await getTopServer({
-        language,
-        gameName: CurrentGameName,
-      });
-
-      if (!server) {
-        continue;
-      }
-
-      this.replaceServer(server);
-
-      this.topLocaleServerId = server.address;
-
-      return;
+      this.logger.log('Failed to fetch pinned servers config');
+      console.warn(e);
     }
   }
 
   private readonly populateServersFromChunk = (chunk: IServerView[]) => {
     for (const server of chunk) {
-      // ((window as any).__endpoints ??= []).push({
-      //   addr: server.address,
-
-      //   ep: server.connectEndPoints || [],
-      //   epp: server.connectEndPoints?.map(parseServerAddress) || [],
-      // });
-
       this.totalServersCount++;
-      this.setServer(server.address, server);
+      this.setServer(server.id, server);
     }
   };
 }

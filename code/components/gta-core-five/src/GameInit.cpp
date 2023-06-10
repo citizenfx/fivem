@@ -23,6 +23,7 @@
 #include <Error.h>
 
 #include <CrossBuildRuntime.h>
+#include <CL2LaunchMode.h>
 
 FiveGameInit g_gameInit;
 
@@ -51,8 +52,6 @@ static hook::cdecl_stub<int(bool, int)> getWarningResult([] ()
 	return hook::get_call(hook::pattern("33 D2 33 C9 E8 ? ? ? ? 48 83 F8 04 0F 84").count(1).get(0).get<void>(4));
 });
 
-static bool g_showWarningMessage;
-static std::string g_warningMessage;
 extern volatile bool g_isNetworkKilled;
 
 void FiveGameInit::KillNetwork(const wchar_t* errorString)
@@ -68,18 +67,11 @@ void FiveGameInit::KillNetwork(const wchar_t* errorString)
 	}
 	else
 	{
-		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
-		std::string smallReason = converter.to_bytes(errorString);
+		auto narrowReason = ToNarrow(errorString);
+		SetData("warningMessage", narrowReason);
 
-		if (!g_showWarningMessage)
-		{
-			g_warningMessage = smallReason;
-			g_showWarningMessage = true;
-
-			SetData("warningMessage", g_warningMessage);
-
-			OnKillNetwork(smallReason.c_str());
-		}
+		OnKillNetwork(narrowReason.c_str());
+		OnMsgConfirm();
 	}
 }
 
@@ -110,7 +102,7 @@ bool FiveGameInit::TriggerError(const char* message)
 
 static hook::cdecl_stub<void(rage::InitFunctionType)> gamerInfoMenu_init([]()
 {
-	return hook::get_pattern("83 F9 08 75 3F 53 48 83 EC 20 48 83 3D", 0);
+	return (xbr::IsGameBuildOrGreater<2802>()) ? hook::get_pattern("E9 ? ? ? ? 53 48 83  EC 20 48 83 3D") : hook::get_pattern("83 F9 08 75 3F 53 48 83 EC 20 48 83 3D");
 });
 
 static hook::cdecl_stub<void(rage::InitFunctionType)> gamerInfoMenu__shutdown([]()
@@ -144,7 +136,7 @@ static HookFunction hookFunction([]()
 
 	if (!Is372())
 	{
-		g_textInputBox = hook::get_address<void**>(hook::get_pattern("C7 45 D4 07 00 00 00 48 8B 0D", 10));
+		g_textInputBox = hook::get_address<void**>(hook::get_pattern("C7 45 D4 07 00 00 00 48", xbr::IsGameBuildOrGreater<2802>() ? 36 : 10));
 
 		// disable text input box gfx unload
 		hook::nop(hook::get_pattern("E8 ? ? ? ? 83 8B A0 04 00 00 FF"), 5);
@@ -171,7 +163,15 @@ static bool (*g_isScWaitingForInit)();
 
 void RunRlInitServicing()
 {
-	if (xbr::IsGameBuildOrGreater<2699>())
+	// 48 83 EC 28 E8 ? ? ? ? C6 05 ? ? ? ? ? EB 41
+	if (xbr::IsGameBuildOrGreater<2802>())
+	{
+		((void (*)())hook::get_adjusted(0x1400069DC))();
+		((void (*)())hook::get_adjusted(0x140802754))();
+		((void (*)())hook::get_adjusted(0x14002802C))();
+		((void (*)(void*))hook::get_adjusted(0x14161D450))((void*)hook::get_adjusted(0x142ED8B20));
+	}
+	else if (xbr::IsGameBuildOrGreater<2699>())
 	{
 		((void (*)())hook::get_adjusted(0x1400069F4))();
 		((void (*)())hook::get_adjusted(0x1407FE28C))();
@@ -256,16 +256,6 @@ void SetScInitWaitCallback(bool (*cb)())
 
 static InitFunction initFunction([] ()
 {
-	OnGameFrame.Connect([] ()
-	{
-		if (g_showWarningMessage)
-		{
-			g_showWarningMessage = false;
-
-			OnMsgConfirm();
-		}
-	});
-
 	OnKillNetworkDone.Connect([]()
 	{
 		gamerInfoMenu__shutdown(rage::INIT_SESSION);
@@ -332,7 +322,7 @@ static InitFunction initFunction([] ()
 
 		if (game)
 		{
-			auto gameCrashPattern = hook::pattern("45 33 C9 49 8B D2 48 8B 01 48 FF 60 10").count_hint(2).get(1).get<void>();
+			auto gameCrashPattern = hook::pattern("45 33 C9 49 8B D2 48 8B 01 48 FF 60").count_hint(2).get(1).get<void>();
 			hook::put<uint8_t>(gameCrashPattern, 0xCC);
 		}
 		else

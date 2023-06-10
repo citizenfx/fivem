@@ -108,6 +108,16 @@ bool IsValidGraphicsLibrary(const std::wstring& path)
 							}
 						}
 
+						// in-process GPU is incompatible with ReShade (it'll swap out the D3D device underneath, failing a check in ANGLE)
+						static ConVar<bool> nuiUseInProcessGpu("nui_useInProcessGpu", ConVar_Archive, false);
+
+						if (nuiUseInProcessGpu.GetValue())
+						{
+							console::Printf("script:reshade", "Blocked load of ReShade, as it is incompatible with NUI in-process GPU. Disable NUI in-process GPU to be able to use ReShade.\n");
+
+							return false;
+						}
+
 						return true;
 					}
 					else if (wcscmp((wchar_t*)productNameBuffer, L"ENBSeries") == 0)
@@ -184,10 +194,10 @@ void ScanForReshades()
 		L"d3d11.dll",
 		L"dxgi.dll" };
 
-	// Try loading all dll files in the directory, that are in the list
+	// try loading all dll files *from plugins/*
 	for (auto graphicsDll : reshadeFiles)
 	{
-		auto dllPath = MakeRelativeGamePath(std::wstring{ graphicsDll });
+		auto dllPath = MakeRelativeCitPath(L"plugins/") + std::wstring{ graphicsDll };
 		if (GetFileAttributesW(dllPath.c_str()) != INVALID_FILE_ATTRIBUTES)
 		{
 			if (IsValidGraphicsLibrary(dllPath))
@@ -202,6 +212,16 @@ void ScanForReshades()
 			}
 
 			found = true;
+		}
+	}
+
+	// warn about ignored DLLs
+	for (auto graphicsDll : reshadeFiles)
+	{
+		auto dllPath = MakeRelativeGamePath(std::wstring{ graphicsDll });
+		if (GetFileAttributesW(dllPath.c_str()) != INVALID_FILE_ATTRIBUTES)
+		{
+			console::Printf("script:dll", "Ignored graphics mod: %s - these should go in plugins/ now!\n", ToNarrow(dllPath));
 		}
 	}
 

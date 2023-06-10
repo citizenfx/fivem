@@ -4,7 +4,6 @@
 	"dependencies": [
 		"fx[2]",
 		"rage:allocator",
-		"vendor:udis86",
 		"vendor:minhook"
 	],
 	"provides": []

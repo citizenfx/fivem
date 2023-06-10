@@ -18,30 +18,56 @@ export class DiscourseServerReviewReport implements IServerReviewReport {
   public get options(): IServerReviewReportOption[] { return this._options }
   private set options(options: IServerReviewReportOption[]) { this._options = options }
 
+  private _optionsLoading: boolean = true;
+  public get optionsLoading(): boolean { return this._optionsLoading }
+  private set optionsLoading(optionsLoading: boolean) { this._optionsLoading = optionsLoading }
+
+  private _optionsError: string | null = null;
+  public get optionsError(): string | null { return this._optionsError }
+  private set optionsError(optionsError: string | null) { this._optionsError = optionsError }
+
+  private optionsInitialized = false;
+
   constructor(
     protected readonly discourseService: IDiscourseService,
-    flagOptions: ObservableAsyncValue<IServerReviewReportOption[]>,
+    protected readonly flagOptions: ObservableAsyncValue<IServerReviewReportOption[]>,
     protected post: IDiscourse.Post,
   ) {
     makeAutoObservable(this, {
       // @ts-expect-error protected
       post: false,
     });
-
-    this.setOptions(flagOptions);
   }
 
-  private async setOptions(flagOptions: ObservableAsyncValue<IServerReviewReportOption[]>) {
+  async ensureOptions() {
+    if (this.optionsInitialized) {
+      return;
+    }
+
+    this.optionsInitialized = true;
+
     try {
-      this.options = (await flagOptions.waitGet()).filter((option) => {
+      this.options = (await this.flagOptions.waitGet()).filter((option) => {
         return this.post.actions_summary.find(({ id }) => id === option.id)?.can_act;
       });
     } catch (e) {
-      // noop
+      console.warn(e);
+
+      this.optionsError = e.message || 'Failed to load flag options';
+    } finally {
+      this.optionsLoading = false;
     }
   }
 
   canSubmit(option: IServerReviewReportOption, message?: string | undefined): boolean {
+    if (this.optionsLoading) {
+      return false;
+    }
+
+    if (this.optionsError) {
+      return false;
+    }
+
     if (option.withMessage) {
       return (message?.length || 0) >= 10;
     }
@@ -50,11 +76,15 @@ export class DiscourseServerReviewReport implements IServerReviewReport {
   }
 
   async submit(option: IServerReviewReportOption, message?: string | undefined) {
-    await this.discourseService.makeApiCall('/post_actions', 'POST', {
-      id: this.post.id,
-      post_action_type_id: option.id,
-      flag_topic: false,
-      message,
-    });
+    try {
+      await this.discourseService.makeApiCall('/post_actions', 'POST', {
+        id: this.post.id,
+        post_action_type_id: option.id,
+        flag_topic: false,
+        message,
+      });
+    } catch (e) {
+      console.warn(e);
+    }
   }
 }

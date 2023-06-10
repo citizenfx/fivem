@@ -1,7 +1,8 @@
 import { returnTrue } from "cfx/utils/functional";
 import { IListableServerView } from "./types";
 import { IServerListConfig } from "../lists/types";
-import { ISearchTerm } from "../../../../base/searchTermsParser";
+import { ISearchTerm } from "cfx/base/searchTermsParser";
+import { arrayAll, arraySome } from "cfx/utils/array";
 
 type IFilter = (server: IListableServerView) => boolean;
 
@@ -27,22 +28,41 @@ export function filterList(servers: Record<string, IListableServerView>, sortedL
   });
 }
 
+/**
+ * Server should match some of enabled locale filters and all disabled ones
+ *
+ * This is due to the fact that one server can only be assigned with one locale
+ */
 function compileLocaleFilters(filters: IFilter[], config: IServerListConfig) {
   const localeEntries = Object.entries(config.locales);
 
+  const someLocaleEntries = localeEntries.filter(([, enabled]) => enabled);
+  const allLocaleEntries = localeEntries.filter(([, enabled]) => !enabled);
+
+  const someFilter: IFilter = someLocaleEntries.length
+    ? (server) => arraySome(someLocaleEntries, ([locale]) => server.locale === locale)
+    : returnTrue;
+
+  const allFilter: IFilter = allLocaleEntries.length
+    ? (server) => arrayAll(allLocaleEntries, ([locale]) => server.locale !== locale)
+    : returnTrue;
+
   if (localeEntries.length) {
     filters.push(
-      (server) => localeEntries.some(([locale, enabled]) => enabled === (server.locale === locale)),
+      (server) => someFilter(server) && allFilter(server),
     );
   }
 }
 
+/**
+ * Only keeps server if all tag filters match
+ */
 function compileTagsFilters(filters: IFilter[], config: IServerListConfig) {
   const tagEntries = Object.entries(config.tags);
 
   if (tagEntries.length) {
     filters.push(
-      (server) => tagEntries.some(([tag, enabled]) => enabled === Boolean(server.tagsMap[tag])),
+      (server) => arrayAll(tagEntries, ([tag, enabled]) => enabled === Boolean(server.tagsMap[tag])),
     );
   }
 }

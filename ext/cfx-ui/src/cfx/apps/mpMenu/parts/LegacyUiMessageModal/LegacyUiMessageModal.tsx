@@ -41,7 +41,7 @@ const UiMessageModal = observer(function UiMessageModal(props: { message: IUiMes
       </Modal.Header>
 
       <Pad size="large">
-        <TextBlock typographic size="large">
+        <TextBlock typographic userSelectable size="large">
           {renderedMessage}
         </TextBlock>
       </Pad>

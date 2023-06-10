@@ -1,16 +1,23 @@
-import { DEFAULT_SERVER_LOCALE, DEFAULT_SERVER_LOCALE_COUNTRY, filterServerProjectDesc, filterServerProjectName, hasPrivateConnectEndpoint } from "cfx/base/serverUtils";
+import {
+  DEFAULT_SERVER_LOCALE,
+  DEFAULT_SERVER_LOCALE_COUNTRY,
+  filterServerProjectDesc,
+  filterServerProjectName,
+  filterServerTag,
+  hasPrivateConnectEndpoint,
+} from "cfx/base/serverUtils";
 import { arrayAt } from "cfx/utils/array";
-// import { isFalseString } from "cfx/utils/string";
+import { isFalseString } from "cfx/utils/string";
 import { master } from "./source/api/master";
 import { IArrayCategoryMatcher, IListableServerView, IStringCategoryMatcher } from "./source/types";
 import { IFullServerData, IHistoryServer, IServer, IServerView, ServerPureLevel, ServerViewDetailsLevel } from "./types";
 
 export function serverAddress2ServerView(address: string): IServerView {
-  const fakeHostname = `Unknown server name (${address})`;
+  const fakeHostname = `⚠️ Server is loading or failed to load (${address}) ⚠️`;
 
   return {
+    id: address,
     detailsLevel: ServerViewDetailsLevel.Address,
-    address,
     hostname: fakeHostname,
     locale: DEFAULT_SERVER_LOCALE,
     localeCountry: DEFAULT_SERVER_LOCALE_COUNTRY,
@@ -19,22 +26,31 @@ export function serverAddress2ServerView(address: string): IServerView {
   };
 }
 
-export function listServerData2ServerView(address: string, data: master.IServerData): IServerView {
-  const serverView = Object.assign(serverAddress2ServerView(address), {
-    detailsLevel: ServerViewDetailsLevel.Shallow,
-    enforceGameBuild: data.vars?.['sv_enforceGameBuild'],
-    gametype: data.gametype,
-    mapname: data.mapname,
-    server: data.server,
-    hostname: data.hostname || '',
-    playersMax: data.svMaxclients || 0,
-    playersCurrent: data.clients || 0,
-    iconVersion: data.iconVersion,
-    burstPower: data.burstPower || 0,
-    upvotePower: data.upvotePower || 0,
-    connectEndPoints: data.connectEndPoints,
-    private: hasPrivateConnectEndpoint(data.connectEndPoints),
-  }, processServerDataVariables(data.vars));
+export function masterListServerData2ServerView(joinId: string, data: master.IServerData): IServerView {
+  const serverView = Object.assign(
+    serverAddress2ServerView(joinId),
+    {
+      joinId,
+      detailsLevel: ServerViewDetailsLevel.MasterList,
+      enforceGameBuild: data.vars?.['sv_enforceGameBuild'],
+      gametype: data.gametype,
+      mapname: data.mapname,
+      server: data.server,
+      hostname: data.hostname || '',
+      playersMax: data.svMaxclients || 0,
+      playersCurrent: data.clients || 0,
+      burstPower: data.burstPower || 0,
+      upvotePower: data.upvotePower || 0,
+      connectEndPoints: data.connectEndPoints,
+      private: hasPrivateConnectEndpoint(data.connectEndPoints),
+      rawVariables: data.vars || {},
+    },
+    processServerDataVariables(data.vars),
+  );
+
+  if (data.hasOwnProperty('iconVersion')) {
+    serverView.iconVersion = data.iconVersion;
+  }
 
   if (!serverView.projectName) {
     serverView.upvotePower = 0;
@@ -43,36 +59,50 @@ export function listServerData2ServerView(address: string, data: master.IServerD
   return serverView;
 }
 
-export function fullServerData2ServerView(address: string, data: IFullServerData['Data']): IServerView {
-  const serverView = Object.assign(serverAddress2ServerView(address), {
-    detailsLevel: ServerViewDetailsLevel.Complete,
-    enforceGameBuild: data.vars?.['sv_enforceGameBuild'],
-    gametype: data.gametype,
-    mapname: data.mapname,
-    server: data.server,
-    hostname: data.hostname || '',
-    playersMax: data.svMaxclients || 0,
-    playersCurrent: data.clients || 0,
-    iconVersion: data.iconVersion,
-    burstPower: data.burstPower || 0,
-    upvotePower: data.upvotePower || 0,
-    connectEndPoints: data.connectEndPoints,
+export function masterListFullServerData2ServerView(joinId: string, data: IFullServerData['Data']): IServerView {
+  const serverView = Object.assign(
+    serverAddress2ServerView(joinId),
+    {
+      joinId,
+      detailsLevel: ServerViewDetailsLevel.MasterListFull,
+      enforceGameBuild: data.vars?.['sv_enforceGameBuild'],
+      gametype: data.gametype,
+      mapname: data.mapname,
+      server: data.server,
+      hostname: data.hostname || '',
+      playersMax: data.svMaxclients || 0,
+      playersCurrent: data.clients || 0,
+      burstPower: data.burstPower || 0,
+      upvotePower: data.upvotePower || 0,
+      connectEndPoints: data.connectEndPoints,
 
-    private: data.private || hasPrivateConnectEndpoint(data.connectEndPoints),
+      private: data.private || hasPrivateConnectEndpoint(data.connectEndPoints),
 
-    ownerID: data.ownerID,
-    ownerName: data.ownerName,
-    ownerAvatar: data.ownerAvatar,
-    ownerProfile: data.ownerProfile,
+      ownerID: data.ownerID,
+      ownerName: data.ownerName,
+      ownerAvatar: data.ownerAvatar,
+      ownerProfile: data.ownerProfile,
 
-    supportStatus: (data.support_status as any) || 'supported',
+      supportStatus: (data.support_status as any) || 'supported',
 
-    resources: data.resources as any,
-    players: data.players as any,
-  }, processServerDataVariables(data.vars));
+      resources: data.resources as any,
+      players: data.players as any,
+
+      rawVariables: data.vars || {},
+    },
+    processServerDataVariables(data.vars),
+  );
+
+  if (data.hasOwnProperty('iconVersion')) {
+    serverView.iconVersion = data.iconVersion;
+  }
 
   if (!serverView.projectName) {
     serverView.upvotePower = 0;
+  }
+
+  if (data.fallback) {
+    serverView.offline = true;
   }
 
   return serverView;
@@ -80,14 +110,14 @@ export function fullServerData2ServerView(address: string, data: IFullServerData
 
 export function historyServer2ServerView(historyServer: IHistoryServer): IServerView {
   const server: IServerView = {
+    id: historyServer.address,
     detailsLevel: ServerViewDetailsLevel.Historical,
-    address: historyServer.address,
     locale: DEFAULT_SERVER_LOCALE,
     localeCountry: DEFAULT_SERVER_LOCALE_COUNTRY,
     hostname: historyServer.hostname,
     projectName: historyServer.hostname,
     rawVariables: historyServer.vars,
-    thumbnailIconUri: historyServer.icon || historyServer.rawIcon,
+    historicalIconURL: historyServer.rawIcon,
   };
 
   return Object.assign(server, processServerDataVariables(historyServer.vars));
@@ -101,7 +131,7 @@ export function serverView2ListableServerView(server: IServerView): IListableSer
   const sortableName = getSortableName(searchableName);
 
   return {
-    id: server.address,
+    id: server.id,
 
     ping: 0,
 
@@ -124,7 +154,7 @@ export function serverView2ListableServerView(server: IServerView): IListableSer
     premium: server.premium || '',
     upvotePower: server.upvotePower || 0,
 
-    categories: getCategories(server),
+    categories: createCategoryMatchers(server),
   };
 }
 
@@ -141,30 +171,30 @@ function getSortableName(searchableName: string): string {
 }
 
 
-type VarsView = Partial<Pick<
-  IServerView,
-  | 'pureLevel'
-  | 'enforceGameBuild'
-  | 'onesyncEnabled'
-  | 'canReview'
-  | 'locale'
-  | 'localeCountry'
-  | 'projectDescription'
-  | 'projectName'
-  | 'activitypubFeed'
-  | 'premium'
-  | 'tags'
-  | 'variables'
-  | 'licenseKeyToken'
-  | 'gamename'
-  | 'bannerConnecting'
-  | 'bannerDetail'
-  | 'scriptHookAllowed'
-  | 'rawVariables'
+type VarsView = Partial<Pick<IServerView, | 'tags'
+                                          | 'locale'
+                                          | 'premium'
+                                          | 'gamename'
+                                          | 'canReview'
+                                          | 'variables'
+                                          | 'pureLevel'
+                                          | 'projectName'
+                                          | 'bannerDetail'
+                                          | 'rawVariables'
+                                          | 'localeCountry'
+                                          | 'onesyncEnabled'
+                                          | 'activitypubFeed'
+                                          | 'licenseKeyToken'
+                                          | 'bannerConnecting'
+                                          | 'enforceGameBuild'
+                                          | 'scriptHookAllowed'
+                                          | 'projectDescription'
 >>;
 
 export function processServerDataVariables(vars?: IServer['data']['vars']): VarsView {
-  const view: VarsView = {};
+  const view: VarsView = {
+    projectName: '',
+  };
 
   if (!vars) {
     return view;
@@ -210,7 +240,7 @@ export function processServerDataVariables(vars?: IServer['data']['vars']): Vars
         continue;
       }
       case key === 'tags': {
-        view.tags = [...new Set(value.split(',').map((tag) => tag.trim()).filter(Boolean))];
+        view.tags = [...new Set(value.split(',').map((tag) => tag.trim().toLowerCase()).filter(filterServerTag))];
         continue;
       }
       case key === 'banner_connecting': {
@@ -233,11 +263,6 @@ export function processServerDataVariables(vars?: IServer['data']['vars']): Vars
         if (value) {
           view.enforceGameBuild = value;
         }
-
-        // if (value === '1604' || value === '1311') {
-        //   continue;
-        // }
-
         continue;
       }
       case key === 'sv_pureLevel': {
@@ -269,23 +294,22 @@ export function processServerDataVariables(vars?: IServer['data']['vars']): Vars
   return view;
 }
 
-function getCategories(server: IServerView) {
+function createCategoryMatchers(server: IServerView) {
   const {
-    address,
+    id,
     tags,
     locale,
     gamename,
     gametype,
     mapname,
     hostname,
-    // resources,
-    // variables,
     enforceGameBuild,
     pureLevel,
+    rawVariables,
   } = server;
 
   const categories: IListableServerView['categories'] = {
-    address: createStringMatcher(address),
+    address: createStringMatcher(id),
   };
 
   if (locale) {
@@ -310,34 +334,29 @@ function getCategories(server: IServerView) {
     categories.purelevel = createStringMatcher(pureLevel);
   }
 
-  // Doesn't really make sense as no resources data in the master list, for now
-  // if (resources && resources.length) {
-  //   categories.resources = createArrayMatcher(resources);
-  // }
-
   if (tags && tags.length) {
     categories.tag = createArrayMatcher(tags);
   }
 
   // Doesn't really make sense as no custom variables data in the master list, for now
-  // if (variables) {
-  //   const truthyVars = Object.entries(variables)
-  //     .filter(([, value]) => !isFalseString(value))
-  //     .map(([key]) => key);
+  if (rawVariables) {
+    const truthyVars = Object.entries(rawVariables)
+      .filter(([, value]) => !isFalseString(value))
+      .map(([key]) => key);
 
-  //   if (truthyVars.length) {
-  //     categories.var = createArrayMatcher(truthyVars);
-  //   }
+    if (truthyVars.length) {
+      categories.var = createArrayMatcher(truthyVars);
+    }
 
-  //   for (const [varName, varValue] of Object.entries(variables)) {
-  //     // Don't overwrite existing
-  //     if (categories[varName]) {
-  //       continue;
-  //     }
+    for (const [varName, varValue] of Object.entries(rawVariables)) {
+      // Don't overwrite existing
+      if (categories[varName]) {
+        continue;
+      }
 
-  //     categories[varName] = createStringMatcher(varValue);
-  //   }
-  // }
+      categories[varName] = createStringMatcher(varValue);
+    }
+  }
 
   return categories;
 }
@@ -358,8 +377,8 @@ function createArrayMatcher(against: string[]): IArrayCategoryMatcher {
 
 function getCanonicalLocale(locale: string): string {
   try {
-      return Intl.getCanonicalLocales(locale.replace(/_/g, '-'))[0];
+    return Intl.getCanonicalLocales(locale.replace(/_/g, '-'))[0];
   } catch {
-      return DEFAULT_SERVER_LOCALE;
+    return DEFAULT_SERVER_LOCALE;
   }
 }

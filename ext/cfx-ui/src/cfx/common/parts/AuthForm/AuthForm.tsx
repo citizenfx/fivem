@@ -6,12 +6,11 @@ import { Input } from 'cfx/ui/Input/Input';
 import { Separator } from 'cfx/ui/Separator/Separator';
 import { Text } from 'cfx/ui/Text/Text';
 import { Flex } from 'cfx/ui/Layout/Flex/Flex';
-import { Repell } from 'cfx/ui/Layout/Repell/Repell';
 import { IAuthFormState, totpFieldRef, useAuthFormState, usernameRegexp } from './AuthFormState';
 import { InfoPanel } from 'cfx/ui/InfoPanel/InfoPanel';
-import { nl2brx } from 'cfx/utils/nl2br';
 import { Avatar } from 'cfx/ui/Avatar/Avatar';
 import { useAccountService } from 'cfx/common/services/account/account.service';
+import { $L, $L_nl2br } from 'cfx/common/services/intl/l10n';
 import s from './AuthForm.module.scss';
 
 export type AuthFormProps = Partial<Pick<
@@ -45,7 +44,7 @@ export const AuthForm = observer(function AuthForm(props: AuthFormProps) {
 
             <Flex gap="small">
               <Text size="xlarge" opacity="50">
-                Welcome,
+                {$L('#AuthForm_Success_Welcome')}
               </Text>
 
               <Text size="xlarge">
@@ -59,7 +58,7 @@ export const AuthForm = observer(function AuthForm(props: AuthFormProps) {
           <Button
             theme="primary"
             size="large"
-            text="Continue"
+            text={$L('#AuthForm_Success_Continue')}
             onClick={state.continueAuthenticated}
           />
         </Flex>
@@ -74,7 +73,7 @@ export const AuthForm = observer(function AuthForm(props: AuthFormProps) {
           <Indicator />
 
           <Text>
-            Click Authorize in Browser
+            {$L('#AuthForm_External_Instruction')}
           </Text>
         </>
       )}
@@ -82,17 +81,13 @@ export const AuthForm = observer(function AuthForm(props: AuthFormProps) {
       {state.isRegistrationActivation && (
         <>
           <Text centered typographic>
-            We've sent you an activation email,
-            <br />
-            which should arrive shortly.
+            {$L_nl2br('&AuthForm_Registration_Activation_1')}
           </Text>
           <Text centered typographic>
-            Once you're done activating your account,
-            <br />
-            click the log in button.
+            {$L_nl2br('&AuthForm_Registration_Activation_2')}
           </Text>
           <Text size="small" opacity="50">
-            Make sure to check your spam folder if you don't see it.
+            {$L('#AuthForm_Registration_Activation_3')}
           </Text>
         </>
       )}
@@ -101,12 +96,12 @@ export const AuthForm = observer(function AuthForm(props: AuthFormProps) {
         <>
           <Button
             icon={BrandIcon.cfxre}
-            text="Log in via browser"
+            text={$L('#AuthForm_External_Initialize')}
             className={s.authbtn}
             onClick={state.beginExternalAuth}
           />
 
-          <Separator content="or enter credentials" />
+          <Separator content={$L('#AuthForm_External_Or_Internal')} />
         </>
       )}
 
@@ -115,8 +110,8 @@ export const AuthForm = observer(function AuthForm(props: AuthFormProps) {
           <Input
             autofocus
             fullWidth
-            label="Email"
-            placeholder="davy.jones@email.com"
+            label={$L('#AuthForm_FieldLabel_Email')}
+            placeholder="carl.johnson@email.com"
             value={state.email.value}
             onChange={state.email.set}
             disabled={state.disabled}
@@ -130,7 +125,7 @@ export const AuthForm = observer(function AuthForm(props: AuthFormProps) {
           <Input
             fullWidth
             type="password"
-            label="Password"
+            label={$L('#AuthForm_FieldLabel_Password')}
             placeholder="********"
             value={state.password}
             onChange={state.setPassword}
@@ -144,8 +139,8 @@ export const AuthForm = observer(function AuthForm(props: AuthFormProps) {
         {state.showUsernameField && (
           <Input
             fullWidth
-            label="Username"
-            placeholder="Playerium"
+            label={$L('#AuthForm_FieldLabel_Username')}
+            placeholder="CarlJohnson07"
             value={state.username.value}
             onChange={state.username.set}
             disabled={state.disabled}
@@ -161,13 +156,13 @@ export const AuthForm = observer(function AuthForm(props: AuthFormProps) {
             inputRef={totpFieldRef}
             autofocus
             fullWidth
-            label="Two-Factor Authentication"
+            label={$L('#AuthForm_FieldLabel_TOTP')}
             placeholder="112233"
             value={state.totp}
             onChange={state.setTOTP}
             disabled={state.disabled}
             onSubmit={state.handleSubmit}
-            description="Enter code from your authentication app"
+            description={$L('#AuthForm_FieldDescription_TOTP')}
           />
         )}
 
@@ -178,7 +173,7 @@ export const AuthForm = observer(function AuthForm(props: AuthFormProps) {
             type={state.submitMessage.isError ? 'error' : 'success'}
             className={s.message}
           >
-            {nl2brx(state.submitMessage.message)}
+            {$L_nl2br(state.submitMessage.message)}
           </InfoPanel>
         )}
       </Flex>
@@ -193,9 +188,9 @@ interface SubmitControlsProps {
 const SubmitControls = observer(function SubmitControls({ state }: SubmitControlsProps) {
   if (state.isLogIn) {
     return (
-      <Repell centered>
+      <Flex centered repell>
         <Button
-          text="Don't have account? Register"
+          text={$L('#AuthForm_SwitchTo_Registration')}
           theme="transparent"
           disabled={state.disabled}
           onClick={state.switchToRegistration}
@@ -204,20 +199,20 @@ const SubmitControls = observer(function SubmitControls({ state }: SubmitControl
         {state.disabled ? <Indicator /> : null}
 
         <Button
-          text="Log in"
+          text={$L('#AuthForm_LogIn_Submit')}
           theme={state.disabled ? 'default' : 'primary'}
           disabled={state.disabled || !state.canSubmit}
           onClick={state.handleSubmit}
         />
-      </Repell>
+      </Flex>
     );
   }
 
   if (state.isTOTP) {
     return (
-      <Repell centered>
+      <Flex centered repell>
         <Button
-          text="Back"
+          text={$L('#AuthForm_Back')}
           theme="transparent"
           disabled={state.disabled}
           onClick={state.switchToLogIn}
@@ -226,12 +221,12 @@ const SubmitControls = observer(function SubmitControls({ state }: SubmitControl
         {state.disabled ? <Indicator /> : null}
 
         <Button
-          text="Log in"
+          text={$L('#AuthForm_LogIn_Submit')}
           theme={state.disabled ? 'default' : 'primary'}
           disabled={state.disabled || !state.canSubmit}
           onClick={state.handleSubmit}
         />
-      </Repell>
+      </Flex>
     );
   }
 
@@ -239,7 +234,7 @@ const SubmitControls = observer(function SubmitControls({ state }: SubmitControl
     return (
       <Flex centered>
         <Button
-          text="Back"
+          text={$L('#AuthForm_Back')}
           onClick={state.switchToLogIn}
         />
       </Flex>
@@ -248,9 +243,9 @@ const SubmitControls = observer(function SubmitControls({ state }: SubmitControl
 
   if (state.isRegistrationActivation) {
     return (
-      <Flex repell centered>
+      <Flex centered repell>
         <Button
-          text="Resend activation email"
+          text={$L('#AuthForm_Registration_ResendActivation')}
           disabled={state.disabled}
           onClick={state.resendActivationEmail}
         />
@@ -259,7 +254,7 @@ const SubmitControls = observer(function SubmitControls({ state }: SubmitControl
 
         <Button
           theme="primary"
-          text="Log in"
+          text={$L('#AuthForm_LogIn_Submit')}
           disabled={state.disabled}
           onClick={state.handleSubmit}
         />
@@ -268,9 +263,9 @@ const SubmitControls = observer(function SubmitControls({ state }: SubmitControl
   }
 
   return (
-    <Repell centered>
+    <Flex centered repell>
       <Button
-        text="Already have account? Log in"
+        text={$L('#AuthForm_SwitchTo_LogIn')}
         theme="transparent"
         disabled={state.disabled}
         onClick={state.switchToLogIn}
@@ -279,11 +274,11 @@ const SubmitControls = observer(function SubmitControls({ state }: SubmitControl
       {state.disabled ? <Indicator /> : null}
 
       <Button
-        text="Register"
+        text={$L('#AuthForm_Registration_Submit')}
         theme={state.disabled ? 'default' : 'primary'}
         disabled={state.disabled || !state.canSubmit}
         onClick={state.handleSubmit}
       />
-    </Repell>
+    </Flex>
   );
 });

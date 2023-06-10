@@ -23,7 +23,7 @@ param (
 	$Identity = "C:\guava_deploy.ppk"
 )
 
-$CefName = "cef_binary_103.0.0-cfx-m103.2603+g8d7de9c+chromium-103.0.5060.141_windows64_minimal"
+$CefName = "cef_binary_103.0.0-cfx-m103.2604+g164c280+chromium-103.0.5060.141_windows64_minimal"
 
 Import-Module $PSScriptRoot\cache_build.psm1
 
@@ -68,42 +68,20 @@ function End-Section
 	Write-Host "section_end:$($ts):$Id`r$esc[0K"
 }
 
-function Invoke-WebHook
-{
-	param([string]$Text)
-
-	$payload = @{
-		"text" = $Text;
-	}
-
-	if (!$env:TG_WEBHOOK)
-	{
-		return
-	}
-
-	Invoke-WebRequest -UseBasicParsing -Uri $env:TG_WEBHOOK -Method POST -Headers @{'Content-Type' = 'application/json'} -Body (ConvertTo-Json -Compress -InputObject $payload) | out-null
-
-	$payload.text += " <:mascot:780071492469653515>"
-	Invoke-WebRequest -UseBasicParsing -Uri $env:DISCORD_WEBHOOK -Method POST -Headers @{'Content-Type' = 'application/json'} -Body (ConvertTo-Json -Compress -InputObject $payload) | out-null
-}
-
-$UseNewCI = $true
-$Triggerer = "$env:USERDOMAIN\$env:USERNAME"
 $UploadBranch = "canary"
-$IsServer = $false
-$IsLauncher = $false
-$IsRDR = $false
+$TargetGame = "fivem"
 $UploadType = "client"
+$SentryProjectList = @("fivem-client-1604")
+$SentryVersion = "cfx-${env:CI_PIPELINE_ID}"
 
 if ($env:IS_FXSERVER -eq 1) {
-	$IsServer = $true
+	$TargetGame = "fxserver"
 	$UploadType = "server"
-} elseif ($env:IS_LAUNCHER -eq 1) {
-	$IsLauncher = $true
-	$UploadType = "launcher"
+	$SentryProjectList = @("fxserver")
 } elseif ($env:IS_RDR3 -eq 1) {
-	$IsRDR = $true
+	$TargetGame = "redm"
 	$UploadType = "rdr3"
+	$SentryProjectList = @("redm")
 }
 
 if ($env:CI) {
@@ -111,20 +89,16 @@ if ($env:CI) {
 		$Branch = $env:APPVEYOR_REPO_BRANCH
 		$WorkDir = $env:APPVEYOR_BUILD_FOLDER -replace '/','\'
 
-		$Triggerer = $env:APPVEYOR_REPO_COMMIT_AUTHOR_EMAIL
-
 		$UploadBranch = $env:APPVEYOR_REPO_BRANCH
 
 		$Tag = "vUndefined"
 	} else {
-		$Branch = $env:CI_BUILD_REF_NAME
+		$Branch = $env:CI_COMMIT_REF_NAME
 		$WorkDir = $env:CI_PROJECT_DIR -replace '/','\'
-
-		$Triggerer = $env:GITLAB_USER_EMAIL
 
 		$UploadBranch = $env:CI_COMMIT_REF_NAME
 
-		if ($IsServer) {
+		if ($TargetGame -eq "fxserver") {
 			$Tag = "v1.0.0.${env:CI_PIPELINE_ID}"
 
 			git config user.name citizenfx-ci
@@ -135,14 +109,13 @@ if ($env:CI) {
 			git remote remove github_tag
 
 			$GlobalTag = $Tag
+			$SentryVersion = $GlobalTag
 		}
 	}
 
-	if ($IsServer) {
+	if ($TargetGame -eq "fxserver") {
 		$UploadBranch += " SERVER"
-	} elseif ($IsLauncher) {
-		$UploadBranch += " COMPOSITOR"
-	} elseif ($IsRDR) {
+	} elseif ($TargetGame -eq "redm") {
 		$UploadBranch += " RDR3"
 	}
 }
@@ -187,8 +160,6 @@ Pop-Location
 
 if (!$DontBuild)
 {
-	Invoke-WebHook "Bloop, building a new $env:CI_PROJECT_NAME $UploadBranch build, triggered by $Triggerer"
-
 	Start-Section "vs_setup" "Setting up VS"
 
 	$VCDir = (& "$WorkDir\code\tools\ci\vswhere.exe" -latest -prerelease -property installationPath -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64)
@@ -244,7 +215,7 @@ if (!$DontBuild)
 	Pop-Location
 
 	Start-Section "update_submodule_git" "Updating all submodules"
-	git submodule update --jobs=8
+	git submodule update --jobs=8 --force
 	End-Section "update_submodule_git"
 
 	Pop-Location
@@ -257,7 +228,7 @@ if (!$DontBuild)
 	Pop-Location
 	End-Section "run_prebuild"
 
-	if (!$IsServer) {
+	if ($TargetGame -ne "fxserver") {
 		Start-Section "dl_chrome" "Downloading Chrome"
 		try {
 			if (!(Test-Path "$SaveDir\$CefName.zip")) {
@@ -279,11 +250,7 @@ if (!$DontBuild)
 		Start-Section "private" "Fetching privates"
 		Push-Location $WorkDir\..\
 		
-		$CIBranch = "master-old"
-		
-		if ($UseNewCI) {
-			$CIBranch = "master"
-		}
+		$CIBranch = "master"
 
 		# cloned, building
 		if (!(Test-Path fivem-private)) {
@@ -306,13 +273,10 @@ if (!$DontBuild)
 	$GameName = "five"
 	$BuildPath = "$BuildRoot\five"
 
-	if ($IsServer) {
+	if ($TargetGame -eq "fxserver") {
 		$GameName = "server"
 		$BuildPath = "$BuildRoot\server\windows"
-	} elseif ($IsLauncher) {
-		$GameName = "launcher"
-		$BuildPath = "$BuildRoot\launcher"
-	} elseif ($IsRDR) {
+	} elseif ($TargetGame -eq "redm") {
 		$GameName = "rdr3"
 		$BuildPath = "$BuildRoot\rdr3"
 	}
@@ -354,15 +318,14 @@ if (!$DontBuild)
 	msbuild /p:preferredtoolarchitecture=x64 /p:configuration=release /v:q /m $BuildPath\CitizenMP.sln
 
 	if (!$?) {
-		Invoke-WebHook "Building Cfx/$GameName failed :("
 		throw "Failed to build the code."
 	}
 
 	End-Section "msbuild"
 
-	if ((($env:COMPUTERNAME -eq "AVALON2") -or ($env:COMPUTERNAME -eq "AVALON") -or ($env:COMPUTERNAME -eq "OMNITRON")) -and (!$IsServer)) {
+	if ((($env:COMPUTERNAME -eq "AVALON2") -or ($env:COMPUTERNAME -eq "AVALON") -or ($env:COMPUTERNAME -eq "OMNITRON")) -and ($TargetGame -ne "fxserver")) {
 		Start-Process -NoNewWindow powershell -ArgumentList "-ExecutionPolicy unrestricted .\tools\ci\dump_symbols.ps1 -BinRoot $BinRoot -GameName $GameName"
-	} elseif ($IsServer -and (Test-Path C:\h\debuggers)) {
+	} elseif (($TargetGame -eq "fxserver") -and (Test-Path C:\h\debuggers)) {
 		Start-Process -NoNewWindow powershell -ArgumentList "-ExecutionPolicy unrestricted .\tools\ci\dump_symbols_server.ps1 -BinRoot $BinRoot"
 	}
 
@@ -371,7 +334,7 @@ if (!$DontBuild)
 
 Set-Location $WorkRootDir
 
-if (!$DontBuild -and $IsServer) {
+if (!$DontBuild -and ($TargetGame -eq "fxserver")) {
 	Remove-Item -Recurse -Force $WorkDir\out
 	
 	Start-Section "sr" "Building system resources"
@@ -440,38 +403,15 @@ if (!$DontBuild -and $IsServer) {
 
 	.\7z.exe a -mx=9 $WorkDir\out\server.zip $WorkDir\out\server\*
 	.\7z.exe a -mx=7 $WorkDir\out\server.7z $WorkDir\out\server\*
-
-	$uri = 'https://sentry.fivem.net/api/0/organizations/citizenfx/releases/'
-	$json = @{
-		version = "$GlobalTag"
-		refs = @(
-			@{
-				repository = 'citizenfx/fivem'
-				commit = $env:CI_COMMIT_SHA
-			}
-		)
-		projects = @("fxs")
-	} | ConvertTo-Json
-
-	$headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
-	$headers.Add('Authorization', "Bearer $env:SENTRY_TOKEN")
-
-	Invoke-RestMethod -Uri $uri -Method Post -Headers $headers -Body $json -ContentType 'application/json'
-
-	Invoke-WebHook "Bloop, building a SERVER/WINDOWS build completed!"
 }
 
 $CacheDir = "$SaveDir\caches\$Branch"
 
-if ($IsLauncher) {
-	$CacheDir = "$SaveDir\lcaches\$Branch"
-}
-
-if ($IsRDR) {
+if ($TargetGame -eq "redm") {
 	$CacheDir = "$SaveDir\rcaches\$Branch"
 }
 
-if (!$DontBuild -and !$IsServer) {
+if (!$DontBuild -and ($TargetGame -ne "fxserver")) {
 	# prepare caches
 	New-Item -ItemType Directory -Force $CacheDir | Out-Null
 	New-Item -ItemType Directory -Force $CacheDir\fivereborn | Out-Null
@@ -526,19 +466,14 @@ if (!$DontBuild -and !$IsServer) {
 	# remove CEF as redownloading is broken and this slows down gitlab ci cache
 	Remove-Item -Recurse $WorkDir\vendor\cef\*
 
-	if (!$IsLauncher -and !$IsRDR) {
+	if ($TargetGame -eq "fivem") {
 		Copy-Item -Force -Recurse $WorkDir\data\shared\* $CacheDir\fivereborn\
 		Copy-Item -Force -Recurse $WorkDir\data\client\* $CacheDir\fivereborn\
 		Copy-Item -Force -Recurse $WorkDir\data\redist\crt\* $CacheDir\fivereborn\bin\
 		
 		Remove-Item -Force -Recurse $CacheDir\fivereborn\grpc-ipfs.dll
 		Remove-Item -Force -Recurse $CacheDir\fivereborn\ipfsdl.dll
-	} elseif ($IsLauncher) {
-		Copy-Item -Force -Recurse $WorkDir\data\launcher\* $CacheDir\fivereborn\
-		Copy-Item -Force -Recurse $WorkDir\data\client\bin\* $CacheDir\fivereborn\bin\
-		Copy-Item -Force -Recurse $WorkDir\data\redist\crt\* $CacheDir\fivereborn\bin\
-		Copy-Item -Force -Recurse $WorkDir\data\client\citizen\resources\* $CacheDir\fivereborn\citizen\resources\
-	} elseif ($IsRDR) {
+	} elseif ($TargetGame -eq "redm") {
 		Copy-Item -Force -Recurse $WorkDir\data\shared\* $CacheDir\fivereborn\
 		Copy-Item -Force -Recurse $WorkDir\data\client\*.dll $CacheDir\fivereborn\
 		Copy-Item -Force -Recurse $WorkDir\data\client\bin\* $CacheDir\fivereborn\bin\
@@ -552,18 +487,14 @@ if (!$DontBuild -and !$IsServer) {
 		Copy-Item -Force -Recurse C:\f\grpc-ipfs.dll $CacheDir\fivereborn\
 	}
 	
-	if (!$IsLauncher -and !$IsRDR) {
+	if ($TargetGame -eq "fivem") {
 		Copy-Item -Force $BinRoot\five\release\*.dll $CacheDir\fivereborn\
 		Copy-Item -Force $BinRoot\five\release\*.com $CacheDir\fivereborn\
 		Copy-Item -Force $BinRoot\five\release\CitizenFX_SubProcess_*.bin $CacheDir\fivereborn\
 
 		Copy-Item -Force $BinRoot\five\release\FiveM_Diag.exe $CacheDir\fivereborn\
 		Copy-Item -Force -Recurse $BinRoot\five\release\citizen\* $CacheDir\fivereborn\citizen\
-	} elseif ($IsLauncher) {
-		Copy-Item -Force $BinRoot\launcher\release\*.dll $CacheDir\fivereborn\
-		Copy-Item -Force $BinRoot\launcher\release\*.com $CacheDir\fivereborn\
-		Copy-Item -Force $BinRoot\launcher\release\CitizenFX_SubProcess_*.bin $CacheDir\fivereborn\
-	} elseif ($IsRDR) {
+	} elseif ($TargetGame -eq "redm") {
 		Copy-Item -Force $BinRoot\rdr3\release\*.dll $CacheDir\fivereborn\
 		Copy-Item -Force $BinRoot\rdr3\release\*.com $CacheDir\fivereborn\
 		Copy-Item -Force $BinRoot\rdr3\release\CitizenFX_SubProcess_*.bin $CacheDir\fivereborn\
@@ -573,28 +504,11 @@ if (!$DontBuild -and !$IsServer) {
 	
 	"$GameVersion" | Out-File -Encoding ascii $CacheDir\fivereborn\citizen\version.txt
 	"${env:CI_PIPELINE_ID}" | Out-File -Encoding ascii $CacheDir\fivereborn\citizen\release.txt
-
-	if (!$UseNewCI) {
-		if (Test-Path $CacheDir\fivereborn\adhesive.dll) {
-			Remove-Item -Force $CacheDir\fivereborn\adhesive.dll
-		}
-
-		# build compliance stuff
-		if (($env:COMPUTERNAME -eq "AVALON") -or ($env:COMPUTERNAME -eq "OMNITRON") -or ($env:COMPUTERNAME -eq "AVALON2")) {
-			Copy-Item -Force $WorkDir\..\fivem-private\components\adhesive\adhesive.vmp.dll $CacheDir\fivereborn\adhesive.dll
-
-			Push-Location C:\f\bci\
-			.\BuildComplianceInfo.exe $CacheDir\fivereborn\ C:\f\bci-list.txt
-			Pop-Location
-		}
-	} 
 	
-	if (!$IsLauncher) {
-		if (($env:COMPUTERNAME -eq "AVALON") -or ($env:COMPUTERNAME -eq "OMNITRON") -or ($env:COMPUTERNAME -eq "AVALON2")) {
-			Push-Location C:\f\bci\
-			.\BuildComplianceInfo.exe $CacheDir\fivereborn\ C:\f\bci-list.txt
-			Pop-Location
-		}
+	if (($env:COMPUTERNAME -eq "AVALON") -or ($env:COMPUTERNAME -eq "OMNITRON") -or ($env:COMPUTERNAME -eq "AVALON2")) {
+		Push-Location C:\f\bci\
+		.\BuildComplianceInfo.exe $CacheDir\fivereborn\ C:\f\bci-list.txt
+		Pop-Location
 	}
 
 	# build meta/xz variants
@@ -607,11 +521,9 @@ if (!$DontBuild -and !$IsServer) {
 	Copy-Item -Force "$WorkRootDir\tools\ci\xz.exe" xz.exe
 
 	# build bootstrap executable
-	if (!$IsLauncher -and !$IsRDR) {
+	if ($TargetGame -eq "fivem") {
 		Copy-Item -Force $BinRoot\five\release\FiveM.exe CitizenFX.exe
-	} elseif ($IsLauncher) {
-		Copy-Item -Force $BinRoot\launcher\release\CfxLauncher.exe CitizenFX.exe
-	} elseif ($IsRDR) {
+	} elseif ($TargetGame -eq "redm") {
 		Copy-Item -Force $BinRoot\rdr3\release\CitiLaunch.exe CitizenFX.exe
 	}
 
@@ -622,38 +534,38 @@ if (!$DontBuild -and !$IsServer) {
 	Start-Section "caches_fin" "Gathering more caches"
 	Invoke-Expression "& $WorkRootDir\tools\ci\xz.exe -9 CitizenFX.exe"
 
-	$uri = 'https://sentry.fivem.net/api/0/organizations/citizenfx/releases/'
-	$json = @{
-		version = "cfx-${env:CI_PIPELINE_ID}"
-		refs = @(
-			@{
-				repository = 'citizenfx/fivem'
-				commit = $env:CI_COMMIT_SHA
-			}
-		)
-		projects = @("fivem-client-1604", "redm")
-	} | ConvertTo-Json
-
-	$headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
-	$headers.Add('Authorization', "Bearer $env:SENTRY_TOKEN")
-
-	Invoke-RestMethod -Uri $uri -Method Post -Headers $headers -Body $json -ContentType 'application/json'
-
 	$LauncherLength = (Get-ItemProperty CitizenFX.exe.xz).Length
 	"$LauncherVersion $LauncherLength" | Out-File -Encoding ascii version.txt
 
 	# build bootstrap executable
-	if (!$IsLauncher -and !$IsRDR) {
+	if ($TargetGame -eq "fivem") {
 		Copy-Item -Force $BinRoot\five\release\FiveM.exe $CacheDir\fivereborn\CitizenFX.exe
-	} elseif ($IsLauncher) {
-		Copy-Item -Force $BinRoot\launcher\release\CfxLauncher.exe $CacheDir\fivereborn\CitizenFX.exe
-	} elseif ($IsRDR) {
+	} elseif ($TargetGame -eq "redm") {
 		Copy-Item -Force $BinRoot\rdr3\release\CitiLaunch.exe $CacheDir\fivereborn\CitizenFX.exe
 	}
 
 	Remove-Item -Recurse -Force $WorkDir\caches
 	Copy-Item -Recurse -Force $CacheDir $WorkDir\caches
 	End-Section "caches_fin"
+}
+
+if (!$DontBuild) {
+	$uri = 'https://sentry.fivem.net/api/0/organizations/citizenfx/releases/'
+	$json = @{
+		version = "$SentryVersion"
+		refs = @(
+			@{
+				repository = 'citizenfx/fivem'
+				commit = $env:CI_COMMIT_SHA
+			}
+		)
+		projects = @("fxserver")
+	} | ConvertTo-Json
+
+	$headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+	$headers.Add('Authorization', "Bearer $env:SENTRY_TOKEN")
+
+	Invoke-RestMethod -Uri $uri -Method Post -Headers $headers -Body $json -ContentType 'application/json'
 }
 
 if (!$DontUpload) {
@@ -664,11 +576,9 @@ if (!$DontUpload) {
 
 	$CacheName = "eh"
 
-	if (!$IsLauncher -and !$IsRDR) {
+	if ($TargetGame -eq "fivem") {
 		$CacheName = "fivereborn"
-	} elseif ($IsLauncher) {
-		$CacheName = "launcher"
-	} elseif ($IsRDR) {
+	} elseif ($TargetGame -eq "redm") {
 		$CacheName = "redm"
 	}
 
@@ -684,22 +594,24 @@ if (!$DontUpload) {
 
 	$env:Path = "C:\msys64\usr\bin;$env:Path"
 
-	if (!$IsLauncher -and !$IsRDR) {
+	if ($TargetGame -eq "fivem") {
 		Remove-Item -Force $WorkDir\caches\fxdk-five\info.xml
 		Invoke-CacheGen -Source $WorkDir\caches\fxdk-five -CacheName "fxdk-five" -BranchName $UploadBranch -BranchVersion $SDKVersion -BootstrapName CitizenFX.exe -BootstrapVersion $LauncherVersion
 	}
 
+	$uri = "https://sentry.fivem.net/api/0/organizations/citizenfx/releases/${SentryVersion}/deploys/"
+	$json = @{
+		environment = $UploadBranch
+		projects = $SentryProjectList
+	} | ConvertTo-Json
+
+	$headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+	$headers.Add('Authorization', "Bearer $env:SENTRY_TOKEN")
+
+	Invoke-RestMethod -Uri $uri -Method Post -Headers $headers -Body $json -ContentType 'application/json'
+
 	Set-Location (Split-Path -Parent $WorkDir)
 
-	if ($IsLauncher) {
-		Invoke-WebHook "Built and uploaded a new CfxGL version ($GameVersion) to $UploadBranch! Go and test it!"
-	} elseif ($IsRDR) {
-		Invoke-WebHook "Built and uploaded a new RedM version ($GameVersion) to $UploadBranch! Go and test it!"
-	} else {
-		Invoke-WebHook "Built and uploaded a new $env:CI_PROJECT_NAME version ($GameVersion) to $UploadBranch! Go and test it!"
-	}
-
 	[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-
 	Invoke-WebRequest -UseBasicParsing -Uri $env:REFRESH_URL -Method GET | out-null
 }

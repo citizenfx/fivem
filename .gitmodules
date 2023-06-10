@@ -139,7 +139,7 @@
 	url = https://github.com/citizenfx/Ben.Demystifier.git
 [submodule "vendor/cpp-url"]
 	path = vendor/cpp-url
-	url = https://github.com/cpp-netlib/url.git
+	url = https://github.com/citizenfx/cpp-url.git
 [submodule "vendor/uvw"]
 	path = vendor/uvw
 	url = https://github.com/citizenfx/uvw.git
@@ -274,3 +274,18 @@
 [submodule "vendor/freetype"]
 	path = vendor/freetype
 	url = https://github.com/freetype/freetype.git
+[submodule "vendor/nljson"]
+	path = vendor/nljson
+	url = https://github.com/nlohmann/json.git
+[submodule "vendor/cpu_features"]
+	path = vendor/cpu_features
+	url = https://github.com/google/cpu_features.git
+[submodule "vendor/rnnoise"]
+	path = vendor/rnnoise
+	url = https://github.com/mumble-voip/rnnoise.git
+[submodule "vendor/boost-preprocessor"]
+	path = vendor/boost-preprocessor
+	url = https://github.com/boostorg/preprocessor.git
+[submodule "vendor/msgpack-cpp"]
+	path = vendor/msgpack-cpp
+	url = https://github.com/msgpack/msgpack-c.git

@@ -91,7 +91,7 @@ export const LegacyConnectingModal = observer(function LegacyConnectingModal() {
   return (
     <Modal disableBackdropClose onClose={service.canCancel ? service.cancel : undefined}>
       <Box width="calc(var(--width) / 2)">
-        {!!service.server && (
+        {!!service.server && service.showServer && (
           <ServerHeader server={service.server} />
         )}
 

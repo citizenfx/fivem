@@ -1,7 +1,7 @@
 import React from "react";
 import { mpMenu } from "cfx/apps/mpMenu/mpMenu";
 import { ConnectState } from "cfx/apps/mpMenu/services/servers/connect/state";
-import { CurrentGameBrand, CurrentGameName } from "cfx/base/gameName";
+import { CurrentGameBrand, CurrentGameName } from "cfx/base/gameRuntime";
 import { createPlaceholderIconDataURI } from "cfx/base/placeholderIcon";
 import { ServerIcon } from "cfx/common/parts/Server/ServerIcon/ServerIcon";
 import { useAccountService } from "cfx/common/services/account/account.service";
@@ -28,6 +28,7 @@ import { replaceCfxRePlaceholders, useRenderedFormattedMessage } from "../../uti
 import { usePlatformStatusService } from "../../services/platformStatus/platformStatus.service";
 import { StatusLevel } from "../../services/platformStatus/types";
 import { Modal } from "cfx/ui/Modal/Modal";
+import { useStreamerMode } from "../../services/convars/convars.service";
 
 type ConnectFailedProps = {
   state: ConnectState.Failed,
@@ -70,11 +71,11 @@ export const ConnectFailed = observer(function ConnectFailed(props: ConnectFaile
 
           {!!serviceStatus && (
             <Flex vertical>
-              <Text size="large">
+              <Text userSelectable size="large">
                 {$L(serviceStatus.title)}
               </Text>
 
-              <TextBlock typographic>
+              <TextBlock typographic userSelectable>
                 {html2react(linkify(nl2br(bodyLocalized)))}
               </TextBlock>
             </Flex>
@@ -98,7 +99,7 @@ export const ConnectFailed = observer(function ConnectFailed(props: ConnectFaile
               {$L('#ErrorDetails')}
             </Text>
 
-            <TextBlock typographic>
+            <TextBlock typographic userSelectable>
               {stateMessage}
             </TextBlock>
           </Flex>
@@ -194,6 +195,8 @@ const FailureScheme = observer(function FailureScheme(props: { server: IServerVi
 
   const AccountService = useAccountService();
 
+  const streamerMode = useStreamerMode();
+
   const userAvatarURL = AccountService.account
     ? AccountService.account.getAvatarUrl()
     : createPlaceholderIconDataURI(mpMenu.getPlayerNickname());
@@ -223,7 +226,7 @@ const FailureScheme = observer(function FailureScheme(props: { server: IServerVi
       <Flex vertical centered>
         <Avatar
           size="large"
-          url={userAvatarURL}
+          url={streamerMode ? null : userAvatarURL}
         />
 
         <Text size="large">

@@ -25,7 +25,7 @@ export interface LongListSideSectionProps<T> {
   title: React.ReactNode,
   subtitle?: React.ReactNode,
 
-  seeAllTitle?: string,
+  seeAllTitle?: React.ReactNode,
 }
 
 export const LongListSideSection = observer(function LongListSideSection<T>(props: LongListSideSectionProps<T>) {
@@ -34,7 +34,7 @@ export const LongListSideSection = observer(function LongListSideSection<T>(prop
     renderPreviewItem,
     renderFullItem = renderPreviewItem,
     itemMatchesFilter,
-    maxPreviewItems = 12,
+    maxPreviewItems = 18,
 
     icon,
     title,

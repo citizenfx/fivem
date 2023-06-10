@@ -139,55 +139,36 @@
   }
 }
 
-@mixin fake-backdrop-blur() {
+@mixin fake-backdrop-blur($topLayer: false, $topLayerBlend: false, $topLayerSize: false, $topLayerAttachement: false) {
   --_backdrop-color: var(--backdrop-color, transparent);
   --_backdrop-image-blur: var(--backdrop-image-blur, url(assets/images/bg2-blur.png));
 
+  @if not $topLayer {
+    $topLayer: linear-gradient(use('_backdrop-color'), use('_backdrop-color'));
+  }
+
+  @if not $topLayerBlend {
+    $topLayerBlend: normal;
+  }
+
+  @if not $topLayerSize {
+    $topLayerSize: cover;
+  }
+
+  @if not $topLayerAttachement {
+    $topLayerAttachement: scroll;
+  }
+
   background-color: use('_backdrop-color');
   background-image:
-    linear-gradient(use('_backdrop-color'), use('_backdrop-color')),
+    $topLayer,
     linear-gradient(color-token('backdrop-shader'), color-token('backdrop-shader')),
     use('_backdrop-image-blur'),
     use('_backdrop-image-blur');
-  background-blend-mode: normal, normal, overlay;
-  background-size: cover;
-  background-attachment: fixed;
+  background-blend-mode: $topLayerBlend, normal, overlay;
+  background-size: $topLayerSize, cover, cover, cover;
+  background-attachment: $topLayerAttachement, scroll, fixed, fixed;
 }
-
-@mixin real-backdrop-blur($force: false) {
-  backdrop-filter: saturate(200%) blur(10px);
-
-  @if not $force {
-    :global(.reduce-backdrop-blur) & {
-      backdrop-filter: none;
-    }
-
-    :global(.no-backdrop-blur) & {
-      backdrop-filter: none;
-    }
-  }
-}
-        @mixin backdrop-blur-colors($colors) {
-          @if map-has-key($colors, blur) == false {
-            @error "backdrop-blur-colors must be used with map with at least 'blur' key";
-          }
-
-          background-color: map-get($colors, blur);
-          --background-color: #{map-get($colors, blur)};
-
-          @if map-has-key($colors, reduced) {
-            :global(.reduce-backdrop-blur) &,
-            :global(.no-backdrop-blur) & {
-              background-color: map-get($colors, reduced);
-            }
-          } @else {
-            @if map-has-key($colors, off) {
-              :global(.no-backdrop-blur) & {
-                background-color: map-get($colors, off);
-              }
-            }
-          }
-        }
 
 @mixin offset-classes($prefix: 'offset', $property: 'gap') {
   &.#{$prefix}-none {

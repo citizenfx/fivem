@@ -49,11 +49,24 @@ export async function startBrowserApp(definition: AppDefinition) {
   await appService.beforeRender();
 
   function AfterRender() {
-    React.useEffect(() => {
-      setTimeout(() => {
-        afterRender(container);
+    // Using layout effect instead of normal effect as layout effect triggers after vdom committed to the dom
+    // Otherwise we trigger afterRender way too soon and animations have almost 100% chance to stutter
+    React.useLayoutEffect(() => {
+      let shouldClearTimer = true;
+
+      // Reschedule for next tick to unblock paint and composite browser routines
+      const timer = setTimeout(() => {
+        shouldClearTimer = false;
+
         appService.afterRender();
-      }, 1000);
+        afterRender(container);
+      }, 0);
+
+      return () => {
+        if (shouldClearTimer) {
+          clearTimeout(timer);
+        }
+      };
     }, []);
 
     return null;

@@ -8,6 +8,9 @@ import { IPinnedServersConfig, IServerView } from 'cfx/common/services/servers/t
 import { IAutocompleteIndex } from 'cfx/common/services/servers/source/types';
 import { isAddressSearchTerm } from './searchTermsParser';
 
+export const EOL_LINK = 'aka.cfx.re/eol';
+export const EOS_LINK = 'aka.cfx.re/eos';
+
 export const DEFAULT_SERVER_PORT_INT = 30120;
 export const DEFAULT_SERVER_PORT = DEFAULT_SERVER_PORT_INT.toString(10);
 
@@ -73,7 +76,11 @@ const projectNamesReplacesExtra: [RegExp, string | Function][] = [
 /**
  * Returns normalized server name, typically from `sv_projectName` var
  */
-export function filterServerProjectName(name: string) {
+export function filterServerProjectName(name: string | undefined | null): string {
+  if (!name) {
+    return '';
+  }
+
   if (name.length >= 50) {
     name = name.substring(0, 50);
   }
@@ -96,7 +103,11 @@ export function filterServerProjectName(name: string) {
 /**
  * Returns normalized server description, typically from `sv_projectDesc` var
  */
-export function filterServerProjectDesc(a: string) {
+export function filterServerProjectDesc(a: string | undefined | null): string {
+  if (!a) {
+    return '';
+  }
+
   if (a.length >= 125) {
     a = a.substring(0, 125);
   }
@@ -108,6 +119,18 @@ export function filterServerProjectDesc(a: string) {
     [COUNTRY_PREFIX_RE, ''],
     [emojiPreRe, ''], // emoji prefixes
   ))).replace(/(\s|\u2800)+/gu, ' ').normalize('NFKD');
+}
+
+export function filterServerTag(tag: string) {
+  if (!tag) {
+    return false;
+  }
+
+  switch (tag) {
+    case 'default': return false;
+
+    default: return true;
+  }
 }
 
 /**
@@ -176,16 +199,6 @@ export function getPinnedServersList(pinnedServersConfig: IPinnedServersConfig |
     .sort((a, b) => (getServer(b)?.playersCurrent || 0) - (getServer(a)?.playersCurrent || 0));
 }
 
-export function canonicalizeServerAddress(address: string): string {
-  const preamble = 'cfx.re/join/';
-
-  if (address.startsWith(preamble)) {
-    return address.substring(preamble.length);
-  }
-
-  return address;
-}
-
 export function isServerEOL(server: IServerView): boolean {
   // Tue Jun 01 2021 00:00:00 GMT+0200
   // Servers can't be EOL until this date.
@@ -225,6 +238,44 @@ export function shouldDisplayServerResource(resourceName: string): boolean {
   return !NON_DISPLAY_SERVER_RESOURCE_NAMES.has(resourceName);
 }
 
+export const SERVER_PRIVATE_CONNECT_ENDPOINT = 'https://private-placeholder.cfx.re/';
+
 export function hasPrivateConnectEndpoint(endpoints?: string[] | null): boolean {
-  return endpoints?.[0] === 'https://private-placeholder.cfx.re/';
+  if (!endpoints) {
+    return false;
+  }
+
+  return !notPrivateConnectEndpoint(endpoints[0]);
+}
+
+export function notPrivateConnectEndpoint(endpoit: string): boolean {
+  return endpoit !== SERVER_PRIVATE_CONNECT_ENDPOINT;
+}
+
+export interface IServerConnectEndpoints {
+  manual?: string,
+  provided?: string[],
+}
+
+export function getConnectEndpoits(server: IServerView): IServerConnectEndpoints {
+  const eps: IServerConnectEndpoints = {};
+
+  if (server.historicalAddress) {
+    eps.manual = server.historicalAddress;
+  }
+
+  if (server.connectEndPoints) {
+    const provided = server.connectEndPoints.filter(notPrivateConnectEndpoint);
+    if (provided.length) {
+      eps.provided = provided;
+    }
+  }
+
+  return eps;
+}
+
+export function hasConnectEndpoints(server: IServerView): boolean {
+  const endpoints = getConnectEndpoits(server);
+
+  return Boolean(endpoints.manual || endpoints.provided);
 }

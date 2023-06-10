@@ -5,7 +5,7 @@ import s from './Tabular.module.scss';
 export interface TabularItem {
   id: string,
 
-  label: React.ReactNode,
+  label?: React.ReactNode,
   icon?: React.ReactNode,
 
   disabled?: boolean,
@@ -25,40 +25,97 @@ export function Tabular(props: TabularProps) {
   } = props;
 
   const nodes = items.map((item) => (
-    <div
+    <Tabular.Item
       key={item.id}
+
+      icon={item.icon}
+      label={item.label}
+
+      active={item.id === activeItem}
       onClick={() => onActivate(item.id)}
-      className={clsx(s.item, { [s.active]: item.id === activeItem, [s.disabled]: !!item.disabled })}
-    >
-      {item.icon && (
+    />
+  ));
+
+  return (
+    <Tabular.Root>
+      {nodes}
+    </Tabular.Root>
+  );
+}
+
+export type TabularRootProps = {
+  size?: 'normal' | 'large',
+  children?: React.ReactNode,
+  className?: string,
+};
+
+Tabular.Root = function TabularRoot(props: TabularRootProps) {
+  const {
+    children,
+    size = 'normal',
+    className,
+  } = props;
+
+  const rootClassName = clsx(s.root, s[`size-${size}`], className);
+
+  return (
+    <div className={rootClassName}>
+      {children}
+    </div>
+  );
+}
+
+export type TabularItemProps =
+  & Pick<TabularItem, 'icon' | 'label' | 'disabled'>
+  & {
+    active?: boolean,
+    onClick?(): void,
+  };
+
+Tabular.Item = React.forwardRef(function TabularItem(props: TabularItemProps, ref: React.Ref<HTMLDivElement>) {
+  const {
+    icon,
+    label,
+    onClick,
+    active = false,
+    disabled = false,
+  } = props;
+
+  const itemClassName = clsx(s.item, {
+    [s.active]: active,
+    [s.disabled]: disabled,
+    [s.iconOnly]: !label,
+  });
+
+  const content = (
+    <>
+      {!!icon && (
         <div className={s.icon}>
-          {item.icon}
+          {icon}
         </div>
       )}
 
-      <div className={s.label}>
-        {item.label}
-      </div>
+      {!!label && (
+        <div className={s.label}>
+          {label}
+        </div>
+      )}
+    </>
+  );
+
+  return (
+    <div
+      ref={ref}
+      onClick={onClick}
+      className={itemClassName}
+    >
+      {content}
 
       <div className={s.content}>
-        {item.icon && (
-          <div className={s.icon}>
-            {item.icon}
-          </div>
-        )}
-
-        <div className={s.label}>
-          {item.label}
-        </div>
+        {content}
       </div>
 
       <div className={s.decorator} />
     </div>
-  ));
-
-  return (
-    <div className={s.root}>
-      {nodes}
-    </div>
   );
-}
+})

@@ -18,6 +18,12 @@
   &.centered-cross-axis {
     justify-content: center;
   }
+  &.baseline-axis {
+    align-items: baseline;
+  }
+  &.baseline-cross-axis {
+    justify-content: baseline;
+  }
 
   &.vertical {
     flex-direction: column;

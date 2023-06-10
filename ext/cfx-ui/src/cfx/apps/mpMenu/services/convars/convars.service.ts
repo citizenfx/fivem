@@ -40,6 +40,10 @@ export class ConvarService {
     return this._convarsPopulatedDeferred.promise;
   }
 
+  getAll(): Record<IConvar, string> {
+    return this._convars;
+  }
+
   get(convar: IConvar): string {
     return this._convars[convar] || '';
   }
@@ -111,11 +115,15 @@ export class ConvarService {
 export namespace KnownConvars {
   export const streamerMode = 'ui_streamerMode';
   export const localhostPort = 'ui_quickAccessLocalhostPort';
+  export const updateChannel = 'ui_updateChannel';
+  export const customBackdrop = 'ui_customBackdrop';
+  export const preferLightColorScheme = 'ui_preferLightColorScheme';
+  export const preferBlurredBackdrop = 'ui_preferBlurredBackdrop';
 }
 
 const ARCHIVED_CONVARS: Record<IConvar, boolean> = [
   KnownConvars.streamerMode,
-  'ui_blurPerfMode',
-  'ui_customBackdrop',
-  'ui_preferLightColorScheme',
+  KnownConvars.customBackdrop,
+  KnownConvars.preferLightColorScheme,
+  KnownConvars.preferBlurredBackdrop,
 ].reduce((acc, convar) => ({ ...acc, [convar]: true }), {});

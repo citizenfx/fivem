@@ -11,8 +11,6 @@
 
   box-shadow: 0 0 ui.q() var(--border-color);
 
-  line-height: 1.2;
-
   &.type-default {
     --bg-color: #{ui.color-token('info-panel-background')};
     --border-color: #{ui.color-token('info-panel-border')};
@@ -31,13 +29,46 @@
   }
 
   &.size-small {
-    height: ui.control-height('small');
+    min-height: ui.control-height('small');
   }
   &.size-normal {
-    height: ui.control-height('normal');
+    min-height: ui.control-height('normal');
   }
   &.size-large {
-    height: ui.control-height('large');
+    gap: ui.offset('normal');
+    min-height: ui.control-height('large');
+  }
+
+  &.inline {
+    position: relative;
+
+    display: inline-flex;
+
+    box-shadow: none;
+    border: none;
+
+    padding-top: ui.offset('small');
+    padding-left: calc(ui.offset('normal') + 2px);
+    padding-bottom: ui.offset('small');
+
+    @include ui.border-radius('xsmall');
+
+    overflow: hidden;
+
+    &::before {
+      display: block;
+      content: '';
+
+      position: absolute;
+
+      top: 0;
+      left: 0;
+      bottom: 0;
+
+      width: 2px;
+
+      background-color: ui.use('border-color');
+    }
   }
 
   .icon {
@@ -46,5 +77,7 @@
 
   .content {
     flex-grow: 1;
+
+    line-height: 1.2;
   }
 }

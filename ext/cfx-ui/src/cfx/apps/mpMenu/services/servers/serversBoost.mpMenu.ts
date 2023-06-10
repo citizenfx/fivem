@@ -7,6 +7,7 @@ import { ScopedLogger } from "cfx/common/services/log/scopedLogger";
 import { makeAutoObservable } from "mobx";
 import { MpMenuServersService } from "./servers.mpMenu";
 import { fetcher } from "cfx/utils/fetcher";
+import { IIntlService } from "cfx/common/services/intl/intl.service";
 
 export enum BoostUIState {
   Idle,
@@ -30,6 +31,10 @@ export class MpMenuServersBoostService implements IServersBoostService {
   public get currentBoostLoadComplete(): boolean { return this._currentBoostLoadComplete }
   private set currentBoostLoadComplete(currentBoostLoadComplete: boolean) { this._currentBoostLoadComplete = currentBoostLoadComplete }
 
+  private _currentBoostLoadError: string = '';
+  public get currentBoostLoadError(): string { return this._currentBoostLoadError }
+  private set currentBoostLoadError(currentBoostLoadError: string) { this._currentBoostLoadError = currentBoostLoadError }
+
   private _uiState: BoostUIState = BoostUIState.Idle;
   public get uiState(): BoostUIState { return this._uiState }
   private set uiState(uiState: BoostUIState) { this._uiState = uiState }
@@ -45,6 +50,8 @@ export class MpMenuServersBoostService implements IServersBoostService {
     protected readonly discourseService: IDiscourseService,
     @inject(MpMenuServersService)
     protected readonly serversService: MpMenuServersService,
+    @inject(IIntlService)
+    protected readonly intlService: IIntlService,
   ) {
     makeAutoObservable(this);
 
@@ -120,6 +127,8 @@ export class MpMenuServersBoostService implements IServersBoostService {
   };
 
   private async loadCurrentBoost() {
+    this.currentBoostLoadError = '';
+
     if (!this.discourseService.account) {
       this.currentBoostLoadComplete = true;
       return;
@@ -130,8 +139,16 @@ export class MpMenuServersBoostService implements IServersBoostService {
     try {
       this.currentBoost = await this.discourseService.makeExternalCall('https://servers-frontend.fivem.net/api/upvote/');
     } catch (e) {
+      if (fetcher.HttpError.is(e)) {
+        if (e.status >= 500) {
+          this.currentBoostLoadError = this.intlService.translate('#Settings_BoostLoadError');
+        }
+
+        console.warn('Failed to load current boost', e);
+      }
+
       // That's not an error, in general
-      console.warn('Failed to load current boost', e);
+      // noop
     }
 
     this.currentBoostLoadComplete = true;

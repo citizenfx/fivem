@@ -9,15 +9,22 @@ export interface CountryFlagProps {
   country: string,
   locale?: string,
   className?: string,
+
+  forceShow?: boolean,
 }
 
 export const CountryFlag = React.forwardRef((props: CountryFlagProps, ref: React.Ref<HTMLDivElement>) => {
-  const { country, locale, className } = props;
+  const {
+    country,
+    locale,
+    className,
+    forceShow = false,
+  } = props;
 
   const IntlService = useIntlService();
 
   // #TODO: 001 snail?
-  if (country === '001' || country === 'AQ' || country === 'aq') {
+  if (!forceShow && (country === '001' || country === 'AQ' || country === 'aq')) {
     return null;
   }
 

@@ -1,23 +1,19 @@
 import { IServersList } from "./types";
 import { IHistoryServer, IServerView } from "../types";
-import { makeAutoObservable, observable } from "mobx";
+import { makeAutoObservable } from "mobx";
 import { historyServer2ServerView } from "../transformers";
-import { parseServerAddress } from "../utils";
+import { parseServerAddress } from "../serverAddressParser";
 import { IServersStorageService } from "../serversStorage.service";
-import { getServerIconThumbnailURL } from "../icon";
+import { createServerHistoricalIconURL } from "../icon";
 import { IServersService } from "../servers.service";
 
 export class HistoryServersList implements IServersList {
   private get historyServers(): IHistoryServer[] { return this.serversStorageService.getLastServers() }
 
-  private _serversLastConnectedAt: Record<string, Date> = this.historyServers.reduce((acc, { address, time }) => {
-    acc[address] = time;
-
-    return acc;
-  }, {});
+  private _serversLastConnectedAt: Record<string, Date> = {};
 
   get sequence(): string[] {
-    return this.historyServers.map(({ address }) => address).reverse();
+    return this.historyServers.map(({ address }) => address);
   }
 
   constructor(
@@ -26,11 +22,22 @@ export class HistoryServersList implements IServersList {
   ) {
     makeAutoObservable(this);
 
+    this.init();
+  }
+
+  private async init() {
+    await this.serversStorageService.lastServersPopulated;
+
     // Resolve all history entries
     for (const historyServer of this.historyServers) {
+      this._serversLastConnectedAt[historyServer.address] = historyServer.time;
       this.resolveHistoryServer(historyServer);
     }
   }
+
+  readonly clear = () => {
+    this.serversStorageService.clearLastServers();
+  };
 
   getLastConnectedAt(address: string): Date | undefined {
     return this._serversLastConnectedAt[address];
@@ -41,14 +48,9 @@ export class HistoryServersList implements IServersList {
   }
 
   addHistoryServer(historyServer: IHistoryServer) {
-    const newHistoryServers = [
-      ...this.historyServers.filter(({ address }) => address !== historyServer.address),
-      historyServer,
-    ];
-
     this._serversLastConnectedAt[historyServer.address] = historyServer.time;
 
-    this.serversStorageService.setLastServers(newHistoryServers);
+    return this.serversStorageService.addLastServer(historyServer);
   }
 
   private async resolveHistoryServer(historyServer: IHistoryServer) {
@@ -58,25 +60,26 @@ export class HistoryServersList implements IServersList {
 
     const server = await this.resolveServer(historyServer2ServerView(historyServer));
 
-    if (historyServer.address !== server.address) {
-      this._serversLastConnectedAt[server.address] = historyServer.time;
+    if (historyServer.address !== server.id) {
+      this._serversLastConnectedAt[server.id] = historyServer.time;
     }
   }
 
-  async serverView2HistoryServer(server: IServerView, overrides: Partial<IHistoryServer> = {}): Promise<IHistoryServer> {
-    const thumbnail = overrides.icon || await getServerIconThumbnailURL(server.address);
+  async serverView2HistoryServer(server: IServerView, overrides: Partial<{ icon: string, token: string, vars: Record<string, string> }> = {}): Promise<IHistoryServer> {
+    const { icon, ...restOverrides } = overrides;
+
+    const thumbnail = icon || await createServerHistoricalIconURL(server);
 
     return {
-      address: server.address,
+      address: server.historicalAddress || server.joinId || server.id,
       hostname: server.projectName,
       title: '',
       time: new Date(),
-      icon: thumbnail,
       rawIcon: thumbnail,
       vars: server.rawVariables,
       token: server.licenseKeyToken || '',
 
-      ...overrides,
+      ...restOverrides,
     };
   }
 

@@ -25,13 +25,7 @@
 
 .focus {
   .part {
-    &.ignored {
-      // @include ui.def('part-color', ui.color('main', 950, $alpha: .5));
-    }
-
     &.invert {
-      // @include ui.def('part-color', ui.color('error', $alpha: 1));
-      // @include ui.def('box-shadow', 0 ui.q() ui.color('error', $alpha: 1));
       background-color: ui.color-token('server-filters-faucet-exclusive-background');
     }
   }
@@ -41,7 +35,6 @@
 
     &.active {
       @include ui.def('part-color', ui.color('warning', $alpha: 1));
-      // background-color: ui.color('warning', $alpha: .25);
     }
   }
 
@@ -50,7 +43,6 @@
 
     &.active {
       @include ui.def('part-color', ui.color('main', 500, $alpha: 1));
-      // background-color: ui.color('main', $alpha: .25);
     }
   }
 
@@ -59,7 +51,6 @@
 
     &.active {
       @include ui.def('part-color', ui.color('success', $alpha: 1));
-      // background-color: ui.color('success', $alpha: .25);
     }
   }
 }
@@ -67,23 +58,8 @@
 .wizard {
   position: fixed;
 
-  top: calc(var(--y) - 2px);
+  top: calc(var(--y));
   left: calc(var(--x) - #{ui.offset('small')});
-
-  padding-left: ui.offset('small');
-  padding-bottom: ui.border-radius('small');
-
-  border-bottom-left-radius: ui.border-radius('small');
-  border-bottom-right-radius: ui.border-radius('small');
-
-  display: flex;
-  align-items: flex-start;
-  justify-content: flex-start;
-
-  @include ui.font-size('large');
-  box-shadow: ui.use('shadow-normal');
-
-  background-color: ui.color-token('interactive-list-background');
 
   z-index: 9999;
 
@@ -97,18 +73,21 @@
     margin-top: ui.offset('small');
   }
 
-  .prefix {
-    opacity: .25;
-    padding-top: ui.offset('small');
+  .content {
+    box-shadow: ui.use('shadow-large');
+
+    @include ui.def('backdrop-color', ui.color('main'));
+    @include ui.fake-backdrop-blur();
+
+    border-bottom-left-radius: ui.border-radius('small');
+    border-bottom-right-radius: ui.border-radius('small');
   }
 
   .item {
-    padding: ui.offset('small') 0;
-    padding-right: ui.offset('small');
+    padding: ui.offset('small');
 
     &.active {
       background-color: ui.color-token('interactive-list-item-hover-background');
-      box-shadow: calc(-1 * #{ui.offset('small')}) 0 0 0 ui.color-token('interactive-list-item-hover-background');
     }
   }
 }

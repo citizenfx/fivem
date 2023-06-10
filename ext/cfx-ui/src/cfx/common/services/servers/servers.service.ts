@@ -3,7 +3,7 @@ import { BaseConfigurableServersList } from "./lists/BaseConfigurableServersList
 import { FavoriteServersList } from "./lists/FavoriteServersList";
 import { HistoryServersList } from "./lists/HistoryServersList";
 import { IServersList, ServersListType } from "./lists/types";
-import { IAutocompleteIndex } from "./source/types";
+import { IAutocompleteIndex, IServerListSource } from "./source/types";
 import { IPinnedServersConfig, IServerView, ServerViewDetailsLevel } from "./types";
 
 export const IServersService = defineService<IServersService>('ServersService');
@@ -16,6 +16,7 @@ export interface IServersService {
   readonly autocompleteIndex: IAutocompleteIndex | null;
 
   readonly listTypes: ServersListType[];
+  readonly listSource: IServerListSource;
 
   readonly totalServersCount: number;
 
@@ -25,7 +26,8 @@ export interface IServersService {
   getFavoriteList(): FavoriteServersList | undefined;
 
   getServer(serverId: string): IServerView | undefined;
-  getServerIconURL(serverId: string): string;
+  getRealServerId(serverId: string): string;
+  getAllServerIds(serverId: string): string[];
 
   isServerLoading(serverId: string, detailsLevel?: ServerViewDetailsLevel): boolean;
   isServerPinned(serverId: string): boolean;

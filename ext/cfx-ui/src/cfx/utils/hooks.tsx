@@ -135,6 +135,24 @@ export function useWindowResize<T extends Function>(callback: T) {
   }, []);
 }
 
+export function useElementResize<T extends HTMLElement, C extends Function>(ref: React.RefObject<T>, callback: C) {
+  const callbackRef = useDynamicRef(callback);
+
+  React.useEffect(() => {
+    if (!ref.current) {
+      return;
+    }
+
+    const observer = new ResizeObserver(() => callbackRef.current());
+
+    observer.observe(ref.current);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [ref]);
+}
+
 export const useDebouncedCallback = <T extends any[], U extends any, R = (...args: T) => any>(
   cb: (...args: T) => U,
   timeout: number,
@@ -231,4 +249,26 @@ export function useSavedScrollPositionForBackNav<T>(id: T): [number, (offset: nu
     : 0;
 
   return [scrollOffset, setScrollOffset];
+}
+
+
+export function useBoundingClientRect<T extends HTMLElement>(ref: React.RefObject<T>): DOMRect | null {
+  const [rect, setRect] = React.useState<DOMRect | null>(null);
+
+  const recalculate = React.useCallback(() => {
+    if (!ref.current) {
+      setRect(null);
+    } else {
+      setRect(DOMRect.fromRect(ref.current.getBoundingClientRect()));
+    }
+  }, [ref]);
+
+  useWindowResize(recalculate);
+  useElementResize(ref, recalculate);
+
+  React.useEffect(() => {
+    recalculate();
+  }, [recalculate]);
+
+  return rect;
 }

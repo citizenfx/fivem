@@ -29,6 +29,8 @@ extern nui::GameInterface* g_nuiGi;
 
 extern std::wstring GetNUIStoragePath();
 
+static bool nuiFixedSizeEnabled;
+
 namespace nui
 {
 extern bool g_rendererInit;
@@ -72,21 +74,6 @@ NUIWindow::~NUIWindow()
 				nuiClient->GetBrowser()->GetHost()->CloseBrowser(true);
 			}
 		}
-	}
-
-	if (m_swapTexture)
-	{
-		m_swapTexture->Release();
-	}
-
-	if (m_swapRtv)
-	{
-		m_swapRtv->Release();
-	}
-
-	if (m_swapSrv)
-	{
-		m_swapSrv->Release();
 	}
 
 	if (m_renderBuffer)
@@ -420,11 +407,11 @@ void NUIWindow::InitializeRenderBacking()
 		D3D11_TEXTURE2D_DESC tgtDesc = CD3D11_TEXTURE2D_DESC(DXGI_FORMAT_B8G8R8A8_UNORM, m_width, m_height, 1, 1, D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE);
 
 		auto d3d = g_nuiGi->GetD3D11Device();
-		d3d->CreateTexture2D(&tgtDesc, nullptr, &m_swapTexture);
-
-		D3D11_RENDER_TARGET_VIEW_DESC rtDesc = CD3D11_RENDER_TARGET_VIEW_DESC(m_swapTexture, D3D11_RTV_DIMENSION_TEXTURE2D);
-
-		d3d->CreateRenderTargetView(m_swapTexture, &rtDesc, &m_swapRtv);
+		if (SUCCEEDED(d3d->CreateTexture2D(&tgtDesc, nullptr, &m_swapTexture)))
+		{
+			D3D11_RENDER_TARGET_VIEW_DESC rtDesc = CD3D11_RENDER_TARGET_VIEW_DESC(m_swapTexture.Get(), D3D11_RTV_DIMENSION_TEXTURE2D);
+			d3d->CreateRenderTargetView(m_swapTexture.Get(), &rtDesc, &m_swapRtv);
+		}
 	}
 }
 
@@ -442,6 +429,8 @@ CefBrowser* NUIWindow::GetBrowser()
 
 	return ((NUIClient*)m_client.get())->GetBrowser();
 }
+
+extern void NUI_AcceptTexture(uint64_t handle);
 
 void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const CefRenderHandler::RectList& rects, CefRenderHandler::PaintElementType type)
 {
@@ -491,29 +480,7 @@ void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const
 				auto fakeTexRef = g_nuiGi->CreateTextureFromShareHandle(parentHandle, w, h);
 				SetParentTexture(type, fakeTexRef);
 
-				auto oldSrv = m_swapSrv;
-
-				struct
-				{
-					void* vtbl;
-					ID3D11Device* rawDevice;
-				}*deviceStuff = (decltype(deviceStuff))g_nuiGi->GetD3D11Device();
-
-				auto nativeTexture = GetParentTexture(CefRenderHandler::PaintElementType::PET_VIEW)->GetNativeTexture();
-
-				if (nativeTexture)
-				{
-					deviceStuff->rawDevice->CreateShaderResourceView((ID3D11Resource*)nativeTexture, nullptr, &m_swapSrv);
-				}
-				else
-				{
-					m_swapSrv = {};
-				}
-
-				if (oldSrv)
-				{
-					oldSrv->Release();
-				}
+				m_swapSrv = nullptr;
 			}
 			else
 			{
@@ -522,6 +489,8 @@ void NUIWindow::UpdateSharedResource(void* sharedHandle, uint64_t syncKey, const
 				texRef = g_nuiGi->CreateTextureFromShareHandle(parentHandle, w, h);
 				SetParentTexture(type, texRef);
 			}
+
+			NUI_AcceptTexture((uint64_t)parentHandle);
 		}
 	}
 
@@ -591,6 +560,12 @@ void NUIWindow::UpdateFrame()
 		int resX, resY;
 		g_nuiGi->GetGameResolution(&resX, &resY);
 
+		if (IsFixedSizeWindow())
+		{
+			resX = 1920;
+			resY = 1080;
+		}
+
 		if (m_width != resX || m_height != resY)
 		{
 			m_width = resX;
@@ -610,22 +585,26 @@ void NUIWindow::UpdateFrame()
 
 			if (m_client)
 			{
-				auto browser = ((NUIClient*)m_client.get())->GetBrowser();
+				if (!m_nuiTexture.GetRef())
+				{
+					std::unique_lock _(m_textureMutex);
+					m_nuiTexture = g_nuiGi->CreateTextureBacking(m_width, m_height, nui::GITextureFormat::ARGB);
+				}
+
+				auto client = ((NUIClient*)m_client.get());
+				auto browser = client->GetBrowser();
 
 				if (browser)
 				{
-					((NUIClient*)m_client.get())->GetBrowser()->GetHost()->WasResized();
+					browser->GetHost()->WasResized();
 				}
 				else
 				{
-					m_onLoadQueue.push([this]()
+					client->OnClientCreated.Connect([this](NUIClient* client)
 					{
-						((NUIClient*)m_client.get())->GetBrowser()->GetHost()->WasResized();
+						client->GetBrowser()->GetHost()->WasResized();
 					});
 				}
-
-				std::lock_guard<std::shared_mutex> _(m_textureMutex);
-				m_nuiTexture = g_nuiGi->CreateTextureBacking(m_width, m_height, nui::GITextureFormat::ARGB);
 			}
 		}
 
@@ -651,19 +630,24 @@ void NUIWindow::UpdateFrame()
 
 	if (texture.GetRef())
 	{
-		//
-		// dirty flag checking and CopySubresourceRegion are disabled here due to some issue
-		// with scheduling frame copies from the OnAcceleratedPaint handler.
-		//
-		// this'll use a bunch of additional GPU memory bandwidth, but this should not be an
-		// issue on any modern GPU.
-		//
-		//if (InterlockedExchange(&m_dirtyFlag, 0) > 0)
 		if (!m_rawBlit)
 		{
-			HRESULT hr = S_OK;
+			if (!m_swapSrv)
+			{
+				struct
+				{
+					void* vtbl;
+					ID3D11Device* rawDevice;
+				}* deviceStuff = (decltype(deviceStuff))g_nuiGi->GetD3D11Device();
 
-			if (hr == S_OK)
+				auto nativeTexture = GetParentTexture(CefRenderHandler::PaintElementType::PET_VIEW)->GetNativeTexture();
+
+				if (nativeTexture)
+				{
+					deviceStuff->rawDevice->CreateShaderResourceView((ID3D11Resource*)nativeTexture, nullptr, &m_swapSrv);
+				}
+			}
+
 			{
 				ID3D11Device* device = g_nuiGi->GetD3D11Device();
 
@@ -679,11 +663,14 @@ void NUIWindow::UpdateFrame()
 											   m_lastDirtyRect.bottom,
 											   1);
 
-					if (m_rawBlit)
+					ID3D11Resource* nativeTexture = nullptr;
+
+					if (auto texture = GetTexture(); texture.GetRef())
 					{
-						g_nuiGi->BlitTexture(GetTexture(), texture);
+						nativeTexture = (ID3D11Resource*)texture->GetNativeTexture();
 					}
-					else
+
+					if (m_swapTexture && m_swapRtv && m_swapSrv && nativeTexture)
 					{
 						//
 						// LOTS of D3D11 garbage to flip a texture...
@@ -706,8 +693,8 @@ void NUIWindow::UpdateFrame()
 							g_nuiGi->GetD3D11Device()->CreatePixelShader(quadPS, sizeof(quadPS), nullptr, &ps);
 						});
 
-						ID3DUserDefinedAnnotation* pPerf;
-						deviceContext->QueryInterface(__uuidof(pPerf), reinterpret_cast<void**>(&pPerf));
+						Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> pPerf;
+						deviceContext->QueryInterface(IID_PPV_ARGS(&pPerf));
 
 						pPerf->BeginEvent(L"DRAWSHIT");
 
@@ -738,7 +725,8 @@ void NUIWindow::UpdateFrame()
 
 						deviceContext->VSGetShader(&oldVs, nullptr, nullptr);
 
-						deviceContext->OMSetRenderTargets(1, &m_swapRtv, nullptr);
+						ID3D11RenderTargetView* rtv[] = { m_swapRtv.Get() };
+						deviceContext->OMSetRenderTargets(std::size(rtv), rtv, nullptr);
 						deviceContext->OMSetBlendState(bs, nullptr, 0xffffffff);
 
 						CD3D11_VIEWPORT vp = CD3D11_VIEWPORT(0.0f, 0.0f, m_width, m_height);
@@ -749,7 +737,9 @@ void NUIWindow::UpdateFrame()
 
 						deviceContext->PSSetShader(ps, nullptr, 0);
 						deviceContext->PSSetSamplers(0, 1, &ss);
-						deviceContext->PSSetShaderResources(0, 1, &m_swapSrv);
+
+						ID3D11ShaderResourceView* srv[] = { m_swapSrv.Get() };
+						deviceContext->PSSetShaderResources(0, std::size(srv), srv);
 
 						deviceContext->VSSetShader(vs, nullptr, 0);
 
@@ -764,7 +754,7 @@ void NUIWindow::UpdateFrame()
 
 						deviceContext->Draw(4, 0);
 
-						deviceContext->CopyResource((ID3D11Resource*)GetTexture()->GetNativeTexture(), m_swapTexture);
+						deviceContext->CopyResource(nativeTexture, m_swapTexture.Get());
 
 						deviceContext->OMSetRenderTargets(1, &oldRtv, oldDsv);
 
@@ -820,16 +810,10 @@ void NUIWindow::UpdateFrame()
 						}
 
 						pPerf->EndEvent();
-
-						pPerf->Release();
 					}
 
 					memset(&m_lastDirtyRect, 0, sizeof(m_lastDirtyRect));
 				}
-			}
-			else
-			{
-				MarkRenderBufferDirty();
 			}
 		}
 	}
@@ -929,6 +913,29 @@ void NUIWindow::HandlePopupShow(bool show)
 	}
 }
 
+extern void TranslateWindowRect(const fwRefContainer<NUIWindow>& window, CRect* rect);
+
+CefRect NUIWindow::GetPopupRect()
+{
+	auto rect = m_popupRect;
+
+	if (IsFixedSizeWindow())
+	{
+		CRect baseRect;
+		TranslateWindowRect(this, &baseRect);
+
+		float scaleX = (baseRect.Width() / float(m_width));
+		float scaleY = (baseRect.Height() / float(m_height));
+
+		rect.x = (rect.x * scaleX) + baseRect.Left();
+		rect.y = (rect.y * scaleY) + baseRect.Top();
+		rect.width *= scaleX;
+		rect.height *= scaleY;
+	}
+
+	return rect;
+}
+
 void NUIWindow::SetPopupRect(const CefRect& rect)
 {
 	m_popupRect = rect;
@@ -946,3 +953,13 @@ void NUIWindow::Invalidate()
 {
 	((NUIClient*)m_client.get())->GetBrowser()->GetHost()->Invalidate(PET_VIEW);
 }
+
+bool NUIWindow::IsFixedSizeWindow() const
+{
+	return nuiFixedSizeEnabled && m_name == "root";
+}
+
+static InitFunction initFunction([]
+{
+	static ConVar<bool> nuiFixedSize("nui_useFixedSize", ConVar_Archive | ConVar_UserPref, false, &nuiFixedSizeEnabled);
+});

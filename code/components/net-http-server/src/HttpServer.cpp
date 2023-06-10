@@ -154,7 +154,12 @@ void HttpResponse::End(std::string&& data)
 	End();
 }
 
-static std::map<int, std::string_view> httpStatuses =
+void HttpResponse::End()
+{
+	m_request->SetCancelHandler();
+}
+
+static const std::map<const int, const std::string_view> httpStatuses =
 {
 	{ 100, "Continue" },
 	{ 101, "Switching Protocols" },
@@ -202,7 +207,12 @@ static std::map<int, std::string_view> httpStatuses =
 
 std::string_view HttpResponse::GetStatusMessage(int statusCode)
 {
-	return httpStatuses[statusCode];
+	if (auto it = httpStatuses.find(statusCode); it != httpStatuses.end())
+	{
+		return it->second;
+	}
+
+	return {};
 }
 }
 

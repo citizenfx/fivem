@@ -1,6 +1,7 @@
 import React from 'react';
 import { clsx } from 'cfx/utils/clsx';
 import s from './Text.module.scss';
+import { ui } from '../ui';
 
 export type TextColor =
   | 'inherit'
@@ -10,20 +11,6 @@ export type TextColor =
   | 'success'
   | 'warning'
   | 'error'
-
-export type TextVariant =
-  | 'pure'
-  | '50'
-  | '100'
-  | '200'
-  | '300'
-  | '400'
-  | '500'
-  | '600'
-  | '700'
-  | '800'
-  | '900'
-  | '950'
 
 export type TextSize =
   | 'xsmall'
@@ -54,7 +41,7 @@ export const TEXT_OPACITY_MAP: Record<TextOpacity, number | string> = {
   100: 1,
 };
 
-export interface TextProps {
+interface TextPropsBase {
   asDiv?: boolean,
   centered?: boolean,
   truncated?: boolean,
@@ -64,37 +51,68 @@ export interface TextProps {
    */
   typographic?: boolean,
 
+  /**
+   * Allow users to select text
+   */
+  userSelectable?: boolean,
+
   uppercase?: boolean,
 
   size?: TextSize,
-  color?: TextColor,
-  variant?: TextVariant,
   weight?: TextWeight,
 
   family?: 'primary' | 'secondary' | 'monospace',
-
-  opacity?: TextOpacity,
 
   children?: React.ReactNode,
   className?: string,
 }
 
+interface TextPropsFullControl extends TextPropsBase {
+  color?: TextColor,
+  opacity?: TextOpacity,
+}
+
+interface TextPropsColorToken extends TextPropsBase {
+  colorToken: string,
+}
+
+export type TextProps =
+  | TextPropsFullControl
+  | TextPropsColorToken;
+
+function getTextColor(props: TextProps): string {
+  if ('colorToken' in props) {
+    return `var(--color-${props.colorToken})`;
+  }
+
+  const {
+    color = 'main',
+    opacity = 1,
+  } = props;
+
+  const variant = color === 'main'
+    ? '950'
+    : 'pure';
+
+  const colorVarName = variant === 'pure'
+    ? `--color-${color}`
+    : `--color-${color}-${variant}`;
+
+  return `rgba(var(${colorVarName}), ${TEXT_OPACITY_MAP[opacity] || TEXT_OPACITY_MAP[100]})`;
+}
+
 export const Text = React.forwardRef(function Text(props: TextProps, ref: React.Ref<HTMLSpanElement | HTMLDivElement>) {
   const {
     family = 'primary',
-    color = 'main',
-    variant = color === 'main'
-      ? '950'
-      : 'pure',
     size = 'normal',
     weight = 'normal',
-    opacity = 1,
 
     asDiv = false,
     centered = false,
     truncated = false,
     typographic = false,
     uppercase = false,
+    userSelectable = false,
 
     children,
     className,
@@ -105,14 +123,11 @@ export const Text = React.forwardRef(function Text(props: TextProps, ref: React.
     [s.centered]: centered,
     [s.truncated]: truncated,
     [s.typographic]: typographic,
+    [ui.cls.userSelectableText]: userSelectable,
   });
 
-  const colorVarName = variant === 'pure'
-    ? `--color-${color}`
-    : `--color-${color}-${variant}`;
-
   const style: Partial<React.CSSProperties> = {
-    color: `rgba(var(${colorVarName}), ${TEXT_OPACITY_MAP[opacity] || TEXT_OPACITY_MAP[100]})`,
+    color: getTextColor(props),
     fontFamily: `var(--font-family-${family})`,
     fontSize: `var(--font-size-${size})`,
     fontWeight: `var(--font-weight-${weight})`,
@@ -135,6 +150,6 @@ export const Text = React.forwardRef(function Text(props: TextProps, ref: React.
 
 export const TextBlock = React.forwardRef((props: TextProps & { asDiv?: undefined }, ref: React.Ref<HTMLDivElement>) => {
   return (
-    <Text ref={ref} {...props} asDiv/>
+    <Text ref={ref} {...props} asDiv />
   );
 });

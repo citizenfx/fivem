@@ -11,6 +11,7 @@
 #include <botan/secmem.h>
 #include <botan/exceptn.h>
 #include <botan/mutex.h>
+#include <type_traits>
 #include <chrono>
 #include <string>
 
@@ -67,6 +68,7 @@ class BOTAN_PUBLIC_API(2,0) RandomNumberGenerator
       */
       template<typename T> void add_entropy_T(const T& t)
          {
+         static_assert(std::is_standard_layout<T>::value && std::is_trivial<T>::value, "add_entropy_T data must be POD");
          this->add_entropy(reinterpret_cast<const uint8_t*>(&t), sizeof(T));
          }
 
@@ -189,7 +191,7 @@ class BOTAN_PUBLIC_API(2,0) RandomNumberGenerator
 typedef RandomNumberGenerator RNG;
 
 /**
-* Hardware_RNG exists to tag hardware RNG types (PKCS11_RNG, TPM_RNG, RDRAND_RNG)
+* Hardware_RNG exists to tag hardware RNG types (PKCS11_RNG, TPM_RNG, Processor_RNG)
 */
 class BOTAN_PUBLIC_API(2,0) Hardware_RNG : public RandomNumberGenerator
    {
@@ -225,6 +227,10 @@ class BOTAN_PUBLIC_API(2,0) Null_RNG final : public RandomNumberGenerator
 * Wraps access to a RNG in a mutex
 * Note that most of the time it's much better to use a RNG per thread
 * otherwise the RNG will act as an unnecessary contention point
+*
+* Since 2.16.0 all Stateful_RNG instances have an internal lock, so
+* this class is no longer needed. It will be removed in a future major
+* release.
 */
 class BOTAN_PUBLIC_API(2,0) Serialized_RNG final : public RandomNumberGenerator
    {
@@ -273,8 +279,12 @@ class BOTAN_PUBLIC_API(2,0) Serialized_RNG final : public RandomNumberGenerator
          m_rng->add_entropy(in, len);
          }
 
-      BOTAN_DEPRECATED("Use Serialized_RNG(new AutoSeeded_RNG)") Serialized_RNG();
+      BOTAN_DEPRECATED("Use Serialized_RNG(new AutoSeeded_RNG) instead") Serialized_RNG();
 
+      /*
+      * Since 2.16.0 this is no longer needed for any RNG type. This
+      * class will be removed in a future major release.
+      */
       explicit Serialized_RNG(RandomNumberGenerator* rng) : m_rng(rng) {}
    private:
       mutable mutex_type m_mutex;

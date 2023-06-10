@@ -194,7 +194,11 @@ local function printTypeSetter(type, native, retval)
 	elseif type.nativeType == 'string' then
 		argType = template:format("const char*", retval)
 	elseif type.nativeType == 'int' then
-		argType = template:format("int32_t", retval)
+		if type.subType == 'long' then
+			argType = template:format("int64_t", retval)
+		else
+			argType = template:format("int32_t", retval)
+		end
 	elseif type.nativeType == 'float' then
 		argType = template:format("float", retval)
 	elseif type.nativeType == 'bool' then

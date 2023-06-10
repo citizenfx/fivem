@@ -3,6 +3,7 @@
 #include <Hooking.h>
 #include <netObject.h>
 #include <netSyncTree.h>
+#include <GameInit.h>
 #include <CrossBuildRuntime.h>
 
 #include <atPool.h>
@@ -48,6 +49,13 @@ netObject* CreateCloneObject(NetObjEntityType type, uint16_t objectId, uint8_t a
 
 static HookFunction hookFunction([]()
 {
+	OnKillNetworkDone.Connect([=]()
+	{
+		// clear cached validate pools
+		std::fill(std::begin(validatePools), std::end(validatePools), nullptr);
+	},
+	1000);
+
 	if (xbr::IsGameBuildOrGreater<1491>())
 	{
 		auto location = hook::get_pattern<char>("7F 2B 41 B9 B8 0A 00 00 C7", 61);

@@ -317,10 +317,18 @@ static HookFunction hookFunction([]()
 	}
 	
 	// Patches enabling ShadowQuality=OFF in pausemenu
-	// 
-    // 8D 4B 42      lea     ecx, [rbx+42h]
-    // FF CA         dec     edx    <---------------
-	hook::nop(hook::get_pattern<unsigned char>("8D 4B 42 FF CA", 3), 2);
+	if (xbr::IsGameBuildOrGreater<2802>())
+	{
+		// 44 8B C6      mov     r8d, esi
+		// FF CA         dec     edx    <---------------
+		hook::nop(hook::get_pattern<unsigned char>("44 8B C6 FF CA", 3), 2);
+	}
+	else
+	{
+		// 8D 4B 42      lea     ecx, [rbx+42h]
+		// FF CA         dec     edx    <---------------
+		hook::nop(hook::get_pattern<unsigned char>("8D 4B 42 FF CA", 3), 2);
+	}
 
 	// 8B 45 88      mov     eax, [rbp+0D0h+var_148]
     // FF C8         dec     eax   <--------------

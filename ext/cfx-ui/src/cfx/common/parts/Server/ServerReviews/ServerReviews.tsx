@@ -3,7 +3,6 @@ import { $L } from "cfx/common/services/intl/l10n";
 import { IServersReviewsService } from "cfx/common/services/servers/reviews/serversReviews.service";
 import { IServerView } from "cfx/common/services/servers/types";
 import { Button } from "cfx/ui/Button/Button";
-import { Icons } from "cfx/ui/Icons";
 import { Indicator } from "cfx/ui/Indicator/Indicator";
 import { InfoPanel } from "cfx/ui/InfoPanel/InfoPanel";
 import { Flex } from "cfx/ui/Layout/Flex/Flex";
@@ -19,13 +18,14 @@ export interface ServerReviewsProps {
 
 export const ServerReviews = observer(function ServerReviews(props: ServerReviewsProps) {
   const { server } = props;
+
+  const ServersReviewsService = useService(IServersReviewsService);
+
   if (!server.canReview) {
     return null;
   }
 
-  const ServersReviewsService = useService(IServersReviewsService);
-
-  const serverReviews = ServersReviewsService.getForServer(server.address);
+  const serverReviews = ServersReviewsService.getForServer(server.id);
 
   const nodes = serverReviews.itemsSequence.map((id) => (
     <ServerReview
@@ -65,7 +65,7 @@ export const ServerReviews = observer(function ServerReviews(props: ServerReview
           <Flex>
             <MdReviews />
             <span>
-              Your review has been submitted and will soon be processed by our moderators 🤗
+              {$L('#Reviews_SubmittedReviewNeedsApproval')}
             </span>
           </Flex>
         </InfoPanel>
@@ -83,7 +83,7 @@ export const ServerReviews = observer(function ServerReviews(props: ServerReview
 
       {serverReviews.hasMoreItemsToLoad && (
         <Button
-          text="Load more reviews"
+          text={$L('#Reviews_LoadMore')}
           onClick={() => serverReviews.loadMoreItems()}
           disabled={serverReviews.loadingMoreItems}
         />

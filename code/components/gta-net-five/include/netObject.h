@@ -4,16 +4,33 @@
 
 enum class NetObjEntityType;
 
-inline int MapNetObjectMethod(int offset)
+template<int Offset>
+inline int MapNetObjectMethod()
 {
-	if (offset >= 0x78 && xbr::IsGameBuildOrGreater<2545>())
+	int offset = Offset;
+
+	if constexpr (Offset >= 0x8)
 	{
-		offset += 0x10;
+		if (xbr::IsGameBuildOrGreater<2802>())
+		{
+			offset += 0x30;
+		}
 	}
 
-	if (offset >= 0x330 && xbr::IsGameBuildOrGreater<2189>())
+	if constexpr (Offset >= 0x78)
 	{
-		offset += 0x8;
+		if (xbr::IsGameBuildOrGreater<2545>())
+		{
+			offset += 0x10;
+		}
+	}
+
+	if constexpr (Offset >= 0x330)
+	{
+		if (xbr::IsGameBuildOrGreater<2189>())
+		{
+			offset += 0x8;
+		}
 	}
 
 	return offset;
@@ -79,6 +96,7 @@ class netObject
 public:
 	virtual ~netObject() = 0;
 
+public:
 	uint16_t objectType;
 	uint16_t objectId;
 	uint32_t pad;
@@ -116,7 +134,7 @@ public:
 #define FORWARD_FUNC(name, offset, ...)     \
 	using TFn = decltype(&netObject::name); \
 	void** vtbl = *(void***)(this);         \
-	return (this->*(get_member<TFn>(vtbl[MapNetObjectMethod(offset) / 8])))(__VA_ARGS__);
+	return (this->*(get_member<TFn>(vtbl[MapNetObjectMethod<offset>() / 8])))(__VA_ARGS__);
 
 	inline void* GetSyncData()
 	{

@@ -11,5 +11,6 @@ export type KnownConvars =
   | 'ui_premium'
   | 'ui_updateChannel'
   | 'ui_customBackdrop'
+  | 'nui_useFixedSize'
 
 export type IConvar = string | KnownConvars;

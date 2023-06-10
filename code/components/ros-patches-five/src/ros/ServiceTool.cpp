@@ -152,6 +152,40 @@ BOOL AccessCheckHook( _In_ PSECURITY_DESCRIPTOR pSecurityDescriptor, _In_ HANDLE
 	return TRUE;
 }
 
+static const auto kInvalidHKey = (HKEY)0x409;
+
+static LSTATUS WINAPI RegCreateKeyExWStub(HKEY hKey, LPCWSTR lpSubKey, DWORD Reserved, LPWSTR lpClass, DWORD dwOptions, REGSAM samDesired, const LPSECURITY_ATTRIBUTES lpSecurityAttributes, PHKEY phkResult, LPDWORD lpdwDisposition)
+{
+	auto result = RegCreateKeyExW(hKey, lpSubKey, Reserved, lpClass, dwOptions, samDesired, lpSecurityAttributes, phkResult, lpdwDisposition);
+
+	if (result != ERROR_SUCCESS)
+	{
+		*phkResult = kInvalidHKey;
+	}
+
+	return 0;
+}
+
+static LSTATUS WINAPI RegSetValueExWStub(HKEY hKey, LPCWSTR lpValueName, DWORD Reserved, DWORD dwType, const BYTE* lpData, DWORD cbData)
+{
+	if (hKey == kInvalidHKey)
+	{
+		return 0;
+	}
+
+	return RegSetValueExW(hKey, lpValueName, Reserved, dwType, lpData, cbData);
+}
+
+static LSTATUS WINAPI RegCloseKeyStub(HKEY hKey)
+{
+	if (hKey == kInvalidHKey)
+	{
+		return 0;
+	}
+
+	return RegCloseKey(hKey);
+}
+
 extern HINSTANCE __stdcall ShellExecuteWStub(_In_opt_ HWND hwnd, _In_opt_ LPCWSTR lpOperation, _In_ LPCWSTR lpFile, _In_opt_ LPCWSTR lpParameters, _In_opt_ LPCWSTR lpDirectory, _In_ INT nShowCmd);
 extern LONG __stdcall WinVerifyTrustStub(HWND hwnd, GUID* pgActionID, LPVOID pWVTData);
 
@@ -170,6 +204,9 @@ static std::vector<std::tuple<const char*, void*, const char*>> g_serviceHooks =
 	{ "advapi32.dll", QueryServiceConfigWHook, "QueryServiceConfigW" },
 	{ "shell32.dll", ShellExecuteWStub, "ShellExecuteW" },
 	{ "wintrust.dll", WinVerifyTrustStub, "WinVerifyTrust" },
+	{ "advapi32.dll", RegCreateKeyExWStub, "RegCreateKeyExW" },
+	{ "advapi32.dll", RegSetValueExWStub, "RegSetValueExW" },
+	{ "advapi32.dll", RegCloseKeyStub, "RegCloseKey" },
 };
 
 static FARPROC GetProcAddressHook(HMODULE hModule, LPCSTR funcName)

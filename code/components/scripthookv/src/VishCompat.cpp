@@ -271,19 +271,21 @@ enum eGameVersion : int
 	VER_1_0_2545_0_NOSTEAM = 72,
 	VER_1_0_2612_1_NOSTEAM = 74,
 	VER_1_0_2699_0_NOSTEAM = 78,
+	VER_1_0_2802_0_NOSTEAM = 80,
 };
 
 // ScriptHookV uses incremental numbers instead of build
 DLL_EXPORT eGameVersion getGameVersion()
 {
-	if (xbr::IsGameBuild<372>()) return VER_1_0_372_2_NOSTEAM;
-	if (xbr::IsGameBuild<1604>()) return VER_1_0_1604_0_NOSTEAM;
-	if (xbr::IsGameBuild<2060>()) return VER_1_0_2060_0_NOSTEAM;
-	if (xbr::IsGameBuild<2189>()) return VER_1_0_2189_0_NOSTEAM;
-	if (xbr::IsGameBuild<2372>()) return VER_1_0_2372_0_NOSTEAM;
-	if (xbr::IsGameBuild<2545>()) return VER_1_0_2545_0_NOSTEAM;
-	if (xbr::IsGameBuild<2612>()) return VER_1_0_2612_1_NOSTEAM;
-	if (xbr::IsGameBuild<2699>()) return VER_1_0_2699_0_NOSTEAM;
+	if (xbr::IsGameBuildOrGreater<2802>()) return VER_1_0_2802_0_NOSTEAM;
+	if (xbr::IsGameBuildOrGreater<2699>()) return VER_1_0_2699_0_NOSTEAM;
+	if (xbr::IsGameBuildOrGreater<2612>()) return VER_1_0_2612_1_NOSTEAM;
+	if (xbr::IsGameBuildOrGreater<2545>()) return VER_1_0_2545_0_NOSTEAM;
+	if (xbr::IsGameBuildOrGreater<2372>()) return VER_1_0_2372_0_NOSTEAM;
+	if (xbr::IsGameBuildOrGreater<2189>()) return VER_1_0_2189_0_NOSTEAM;
+	if (xbr::IsGameBuildOrGreater<2060>()) return VER_1_0_2060_0_NOSTEAM;
+	if (xbr::IsGameBuildOrGreater<1604>()) return VER_1_0_1604_0_NOSTEAM;
+	if (xbr::IsGameBuildOrGreater<372>()) return VER_1_0_372_2_NOSTEAM;
 
 	return VER_1_0_1604_0_NOSTEAM; // Default build
 }

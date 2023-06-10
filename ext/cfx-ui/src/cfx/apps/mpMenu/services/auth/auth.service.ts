@@ -76,8 +76,6 @@ export class AuthService {
       }
 
       this.UIOpen = true;
-
-      console.log('Opening auth modal as no auth');
     });
   }
 
@@ -107,7 +105,6 @@ export class AuthService {
 
   readonly handleAuthFormModeChange = (mode: AuthFormMode) => {
     this._authFormMode = mode;
-    console.log('AUTH FORM MODE CHANGE', mode, AuthFormMode[mode]);
   }
 
   readonly handleAuthFormDone = () => {

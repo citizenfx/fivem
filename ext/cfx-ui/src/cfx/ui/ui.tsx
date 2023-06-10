@@ -35,9 +35,15 @@ export namespace ui {
     export const fullWidth = 'util-full-width';
     export const fullHeight = 'util-full-height';
 
+    export const flexGrow = 'util-flex-grow';
+    export const flexNoShrink = 'util-flex-no-shrink';
+
+    export const userSelectableText = 'util-text-selectable';
+
     export const zIndex9000 = 'util-z-index-9000';
   }
 
+  export const pc = (x: number | string) => `${x}%`;
   export const px = (x: number | string) => `${x}px`;
   export const ch = (x: number | string) => `${x}ch`;
   export const em = (x: number | string) => `${x}em`;

@@ -68,6 +68,7 @@ static bool Bootstrap_UpdateEXE(int exeSize, const std::string& objectHash)
 }
 
 bool Install_RunInstallMode();
+void Install_RunPostInstall();
 
 bool VerifyViability();
 
@@ -166,14 +167,25 @@ bool Bootstrap_DoBootstrap()
 
 	if (updateDataValid)
 	{
+		bool rv = false;
+
 #ifdef GTA_FIVE
 		if (launch::IsSDK())
 		{
-			return Updater_RunUpdate({ CONTENT_NAME, "fxdk-five" });
+			rv = Updater_RunUpdate({ CONTENT_NAME, "fxdk-five" });
 		}
+		else
 #endif
+		{
+			rv = Updater_RunUpdate({ CONTENT_NAME });
+		}
 
-		return Updater_RunUpdate({ CONTENT_NAME });
+		if (rv)
+		{
+			Install_RunPostInstall();
+		}
+
+		return rv;
 	}
 
 	return true;

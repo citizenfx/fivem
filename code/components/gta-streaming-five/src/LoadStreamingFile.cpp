@@ -1164,7 +1164,7 @@ static void ReloadMapStore()
 
 #ifdef GTA_FIVE
 	// needs verification for newer builds
-	if (!xbr::IsGameBuildOrGreater<2699 + 1>())
+	if (!xbr::IsGameBuildOrGreater<2802 + 1>())
 	{
 		ReloadMapStoreNative();
 	}
@@ -1282,7 +1282,6 @@ public:
 	static inline CDataFileMountInterface** sm_Interfaces;
 };
 
-#ifdef GTA_FIVE
 // TODO: this might need to be a ref counter instead?
 static std::set<std::string, IgnoreCaseLess> g_permanentItyps;
 static std::map<uint32_t, std::string> g_itypHashList;
@@ -1317,14 +1316,23 @@ public:
 		uint32_t slotId;
 
 		auto module = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ytyp");
+
+#ifdef GTA_FIVE
 		if (*module->FindSlot(&slotId, baseName.c_str()) != -1)
+#elif IS_RDR3
+		if (*module->FindSlotFromHashKey(&slotId, HashString(baseName.c_str())) != -1)
+#endif
 		{
 			auto refPool = (atPoolBase*)((char*)module + 56);
 			auto refPtr = refPool->GetAt<char>(slotId);
 
 			if (refPtr)
 			{
+#ifdef GTA_FIVE
 				uint16_t* flags = (uint16_t*)(refPtr + 16);
+#elif IS_RDR3
+				uint16_t* flags = (uint16_t*)(refPtr + 24);
+#endif
 
 				if (*flags & 4)
 				{
@@ -1339,7 +1347,11 @@ public:
 			}
 		}
 
+#ifdef GTA_FIVE
 		CDataFileMount::sm_Interfaces[174]->LoadDataFile(entry);
+#elif IS_RDR3
+		CDataFileMount::sm_Interfaces[216]->LoadDataFile(entry);
+#endif
 
 		return true;
 	}
@@ -1351,7 +1363,12 @@ public:
 		uint32_t slotId;
 
 		auto module = streaming::Manager::GetInstance()->moduleMgr.GetStreamingModule("ytyp");
+
+#ifdef GTA_FIVE
 		if (*module->FindSlot(&slotId, baseName.c_str()) != -1)
+#elif IS_RDR3
+		if (*module->FindSlotFromHashKey(&slotId, HashString(baseName.c_str())) != -1)
+#endif
 		{
 			if (g_permanentItyps.find(baseName) != g_permanentItyps.end())
 			{
@@ -1366,12 +1383,20 @@ public:
 
 				if (refPtr)
 				{
+#ifdef GTA_FIVE
 					*(uint16_t*)(refPtr + 16) |= 4;
+#elif IS_RDR3
+					*(uint16_t*)(refPtr + 24) |= 4;
+#endif
 				}
 			}
 		}
 
+#ifdef GTA_FIVE
 		CDataFileMount::sm_Interfaces[174]->UnloadDataFile(entry);
+#elif IS_RDR3
+		CDataFileMount::sm_Interfaces[216]->UnloadDataFile(entry);
+#endif
 	}
 };
 
@@ -1384,6 +1409,7 @@ struct CInteriorProxy
 	uint32_t mapData;
 };
 
+#ifdef GTA_FIVE
 static hook::thiscall_stub<int(void* store, int* out, uint32_t* inHash)> _getIndexByKey([]()
 {
 	return hook::get_pattern("39 1C 91 74 4F 44 8B 4C 91 08 45 3B", -0x34);
@@ -1511,6 +1537,11 @@ static CDataFileMountInterface* LookupDataFileMounter(const std::string& type)
 	{
 		return &g_proxyDlcItypMounter;
 	}
+#elif IS_RDR3
+	if (fileType == 216) // DLC_ITYP_REQUEST
+	{
+		return &g_proxyDlcItypMounter;
+	}
 #endif
 
 	return CDataFileMount::sm_Interfaces[fileType];
@@ -1538,9 +1569,9 @@ static void HandleDataFile(const std::pair<std::string, std::string>& dataFile, 
 	if (mounter)
 	{
 #ifdef GTA_FIVE
-		std::string className = typeid(*mounter).name();
+		std::string className = (xbr::IsGameBuildOrGreater<2802>()) ? fmt::sprintf("%p", (void*)hook::get_unadjusted(*(void**)mounter)) : typeid(*mounter).name();
 #else
-		std::string className = std::to_string((uint64_t)mounter);
+		std::string className = fmt::sprintf("%p", (void*)hook::get_unadjusted(*(void**)mounter));
 #endif
 
 		CDataFileMgr::DataFile entry;
@@ -1606,14 +1637,17 @@ void LoadStreamingFiles(LoadType loadType = LoadType::AfterSession);
 
 static LONG FilterUnmountOperation(CDataFileMgr::DataFile& entry)
 {
+	// DLC_ITYP_REQUEST
 #ifdef GTA_FIVE
-	if (entry.type == 174) // DLC_ITYP_REQUEST
+	if (entry.type == 174)
+#elif IS_RDR3
+	if (entry.type == 216)
+#endif
 	{
 		trace("failed to unload DLC_ITYP_REQUEST %s\n", entry.name);
 
 		return EXCEPTION_EXECUTE_HANDLER;
 	}
-#endif
 
 	return EXCEPTION_CONTINUE_SEARCH;
 }
@@ -1687,7 +1721,7 @@ namespace streaming
 static hook::cdecl_stub<rage::fiCollection* ()> getRawStreamer([]()
 {
 #ifdef GTA_FIVE
-	return hook::get_call(hook::get_pattern("48 8B D3 4C 8B 00 48 8B C8 41 FF 90 ? 01 00 00", -5));
+	return hook::get_call(hook::get_pattern("48 8B D3 4C 8B 00 48 8B C8 41 FF 90 ? 01 00 00 8B D8 E8", -5));
 #elif IS_RDR3
 	return hook::get_call(hook::get_pattern("45 33 C0 48 8B D6 41 FF 91 ? ? ? ? 8B E8", -11));
 #endif
@@ -2233,9 +2267,11 @@ void LoadManifest(const char* tagName)
 
 		rage::fiDevice::Unmount("localPack:/");
 
-#ifdef GTA_FIVE
 		struct CItypDependencies
 		{
+#ifdef IS_RDR3
+			void* vtable;
+#endif
 			uint32_t itypName;
 			uint32_t manifestFlags;
 
@@ -2244,12 +2280,17 @@ void LoadManifest(const char* tagName)
 
 		struct CImapDependencies
 		{
+#ifdef IS_RDR3
+			void* vtable;
+#endif
+
 			uint32_t imapName;
 			uint32_t manifestFlags;
 
 			atArray<uint32_t> imapDepArray;
 		};
 
+#ifdef GTA_FIVE
 		struct manifestData
 		{
 			char pad[16];
@@ -2279,6 +2320,54 @@ void LoadManifest(const char* tagName)
 			for (auto idx : dep.imapDepArray)
 			{
 				g_itypToMapDataDeps.emplace(idx, dep.imapName);
+			}
+		}
+#elif IS_RDR3
+		struct manifestArray
+		{
+			void** m_entries;
+			uint32_t m_count;
+			char pad_C[4];
+			uint32_t unk_10;
+			char pad_14[3];
+			char unk_17;
+		};
+
+		struct manifestData
+		{
+			char pad[16];
+			manifestArray imapDependencies_2;
+			char pad2[56];
+			manifestArray itypDependencies;
+		}* manifestChunk = (manifestData*)manifestChunkPtr;
+
+		for (int i = 0; i < manifestChunk->itypDependencies.m_count; i++)
+		{
+			if (auto dep = (CItypDependencies*)manifestChunk->itypDependencies.m_entries[i])
+			{
+				if (auto it = g_itypHashList.find(dep->itypName); it != g_itypHashList.end())
+				{
+					auto name = fmt::sprintf("dummy/%s.ityp", it->second);
+					trace("Fixing manifest-required #typ dependency for %s\n", name);
+
+					auto mounter = LookupDataFileMounter("DLC_ITYP_REQUEST");
+
+					CDataFileMgr::DataFile entry = { 0 };
+					strcpy_s(entry.name, name.c_str());
+
+					mounter->UnloadDataFile(&entry);
+				}
+			}
+		}
+
+		for (int i = 0; i < manifestChunk->imapDependencies_2.m_count; i++)
+		{
+			if (auto dep = (CImapDependencies*)manifestChunk->imapDependencies_2.m_entries[i])
+			{
+				for (auto idx : dep->imapDepArray)
+				{
+					g_itypToMapDataDeps.emplace(idx, dep->imapName);
+				}
 			}
 		}
 #endif
@@ -2741,6 +2830,8 @@ namespace streaming
 static void* g_streamingInternals;
 static bool g_lockReload;
 
+std::unordered_set<std::string> g_streamingSuffixSet;
+
 static hook::cdecl_stub<void()> _waitUntilStreamerClear([]()
 {
 #ifdef GTA_FIVE
@@ -2938,8 +3029,6 @@ void fwMapTypesStore__Unload(char* assetStore, uint32_t index)
 	}
 }
 
-std::unordered_set<std::string> g_streamingSuffixSet;
-
 static void ModifyHierarchyStatusHook(streaming::strStreamingModule* module, int idx, int* status)
 {
 	if (*status == 1 && g_ourIndexes.find(module->baseIdx + idx) != g_ourIndexes.end())
@@ -3102,41 +3191,8 @@ static void LoadVehicleMetaForDlc(CDataFileMgr::DataFile* entry, bool notMapType
 	std::map<int, int> txdRelationships;
 	GetTxdRelationships(txdRelationships);
 
-	// try to guess the amount of entries this meta file has
-	int entryCount = 16;
-
-	{
-		auto stream = vfs::OpenRead(entry->name);
-
-		if (stream.GetRef())
-		{
-			auto text = stream->ReadToEnd();
-			std::string textString{ text.begin(), text.end() };
-
-			std::string substring = "</modelName>";
-
-			// safe margin to start
-			entryCount = 4;
-
-			// more SO code: https://stackoverflow.com/a/5816029
-			textString = substring + textString;
-
-			std::vector<int> z;
-			calc_z(textString, z);
-
-			for (int i = substring.size(); i < textString.size(); ++i)
-			{
-				if (z[i] >= substring.size())
-				{
-					entryCount++;
-				}
-			}
-		}
-	}
-
 	// we use DLC name as hash
 	auto entryHash = HashString(entry->name);
-	g_archetypeFactories->Get(5)->GetOrCreate(entryHash, entryCount);
 
 	overrideTypesHash = true;
 	g_origLoadVehicleMeta(entry, notMapTypes, entryHash);
@@ -3172,6 +3228,20 @@ static void AddVehicleArchetype(fwArchetype* self, uint32_t typesHash)
 	}
 
 	g_origAddArchetype(self, typesHash);
+}
+
+static bool (*g_origParserCreateAndLoadAnyType)(void* self, const char* path, const char* extension, void* parStructure, void* parParsableStructure, void* a6);
+
+static bool ParserCreateAndLoadAnyType(void* self, const char* path, const char* extension, void* parStructure, void* parParsableStructure, void* a6)
+{
+	bool success = g_origParserCreateAndLoadAnyType(self, path, extension, parStructure, parParsableStructure, a6);
+	if (success && overrideTypesHash)
+	{
+		uint32_t entryHash = HashString(path);
+		uint16_t entryCount = *(uint16_t*)(*(char**)parParsableStructure + 8);
+		g_archetypeFactories->Get(5)->GetOrCreate(entryHash, entryCount);
+	}
+	return success;
 }
 
 static void (*g_origUnloadVehicleMeta)(CDataFileMgr::DataFile* entry);
@@ -3253,6 +3323,10 @@ static HookFunction hookFunction([]()
 		location = hook::get_pattern("8B D5 48 8B CE 89 46 18 40 84 FF 74 0A", 0x17);
 		hook::set_call(&g_origAddArchetype, location);
 		hook::call(location, AddVehicleArchetype);
+
+		location = hook::get_pattern("89 55 EC 49 8B D2 48 89 44 24", 11);
+		hook::set_call(&g_origParserCreateAndLoadAnyType, location);
+		hook::call(location, ParserCreateAndLoadAnyType);
 	}
 
 	// unloading wrapper
@@ -3300,7 +3374,7 @@ static HookFunction hookFunction([]()
 			mov(rcx, r14);
 
 			// call the original function that's meant to be called
-			mov(rax, qword_ptr[rax + 0xA8]);
+			mov(rax, qword_ptr[rax + (xbr::IsGameBuildOrGreater<2802>() ? 0xD8 : 0xA8)]);
 			call(rax);
 
 			// save the result in a register (r12 is used as output by this function)
@@ -3321,7 +3395,7 @@ static HookFunction hookFunction([]()
 	} streamingBypassStub;
 
 	{
-		auto location = hook::get_pattern("45 8A E7 FF 90 A8 00 00 00");
+		auto location = hook::get_pattern("45 8A E7 FF 90 ? 00 00 00");
 		hook::nop(location, 9);
 		hook::call_rcx(location, streamingBypassStub.GetCode());
 	}
@@ -3441,10 +3515,13 @@ static HookFunction hookFunction([]()
 		{
 			if (module == typesStore)
 			{
-#ifdef GTA_FIVE
 				struct fwMapDataDef
 				{
+#ifdef GTA_FIVE
 					uint8_t pad[24];
+#elif IS_RDR3
+					uint8_t pad[32];
+#endif
 					union
 					{
 						uint32_t idx;
@@ -3495,7 +3572,11 @@ static HookFunction hookFunction([]()
 				atPoolBase* entryPool = (atPoolBase*)((char*)module + 56);
 				auto entry = entryPool->GetAt<char>(idx);
 
+#ifdef GTA_FIVE
 				*(uint16_t*)(entry + 16) &= ~0x14;
+#elif IS_RDR3
+				*(uint16_t*)(entry + 24) &= ~0x14;
+#endif
 
 				// remove from any dependent mapdata
 				for (auto entry : fx::GetIteratorView(g_itypToMapDataDeps.equal_range(*(uint32_t*)(entry + 12))))
@@ -3514,12 +3595,6 @@ static HookFunction hookFunction([]()
 						}
 					}
 				}
-#elif IS_RDR3
-				atPoolBase* entryPool = (atPoolBase*)((char*)module + 64);
-				auto entry = entryPool->GetAt<char>(idx);
-
-				*(uint16_t*)(entry + 24) &= ~0x14;
-#endif
 			}
 
 			// if this is loaded by means of dependents, in Five we should remove the flags indicating this, or RemoveObject will fail and RemoveSlot will lead to inconsistent state
@@ -3659,8 +3734,9 @@ static HookFunction hookFunction([]()
 		// typesstore
 		{
 #ifdef GTA_FIVE
+			int offset = xbr::IsGameBuildOrGreater<2802>() ? 35 : 29;
 			auto vtbl = hook::get_address<void**>(hook::get_pattern("45 8D 41 1C 48 8B D9 C7 40 D8 00 01 00 00", 22));
-			hook::put(&vtbl[29], ret0);
+			hook::put(&vtbl[offset], ret0);
 #elif IS_RDR3
 			auto vtbl = hook::get_address<void**>(hook::get_pattern("C7 40 D8 00 01 00 00 45 8D 41 49 E8", 19));
 			hook::put(&vtbl[34], ret0);
@@ -3670,8 +3746,9 @@ static HookFunction hookFunction([]()
 		// datastore
 		{
 #ifdef GTA_FIVE
+			int offset = xbr::IsGameBuildOrGreater<2802>() ? 35 : 29;
 			auto vtbl = hook::get_address<void**>(hook::get_pattern("44 8D 46 0E C7 40 D8 C7 01 00 00 E8", 19));
-			hook::put(&vtbl[29], ret0);
+			hook::put(&vtbl[offset], ret0);
 #elif IS_RDR3
 			auto vtbl = hook::get_address<void**>(hook::get_pattern("C7 40 D8 C7 01 00 00 44 8D 47 49 E8", 19));
 			hook::put(&vtbl[34], ret0);
@@ -3703,7 +3780,7 @@ static HookFunction hookFunction([]()
 	// don't create an unarmed weapon when *unloading* a WEAPONINFO_FILE in the mounter (this will get badly freed later
 	// which will lead to InitSession failing)
 	{
-		hook::return_function(hook::get_pattern("7C 94 48 85 F6 74 0D 48 8B 06 BA 01 00 00 00", 0x3C));
+		hook::return_function(hook::get_pattern("7C 94 48 85 F6 74 ? 48 8B 06 BA 01 00 00 00", xbr::IsGameBuildOrGreater<2802>() ? 0x3D : 0x3C));
 	}
 
 	// fully clean weaponinfoblob array when resetting weapon manager

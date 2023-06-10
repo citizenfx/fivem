@@ -1,4 +1,4 @@
-import { CurrentGameBrand } from "cfx/base/gameName";
+import { CurrentGameBrand } from "cfx/base/gameRuntime";
 import { IServerView } from "cfx/common/services/servers/types";
 import { noop } from "cfx/utils/functional";
 import { html2react } from "cfx/utils/html2react";

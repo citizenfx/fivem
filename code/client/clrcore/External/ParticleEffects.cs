@@ -1,10 +1,19 @@
 using System;
 using System.Drawing;
 using CitizenFX.Core.Native;
-using Hash = CitizenFX.Core.Native.Hash;
-using System.Threading.Tasks;
+
+#if MONO_V2
+using CitizenFX.Core;
+using InputArgument = CitizenFX.Core.Native.Input.Primitive;
+using API = CitizenFX.FiveM.Native.Natives;
+using TaskBool = CitizenFX.Core.Coroutine<bool>;
+
+namespace CitizenFX.FiveM
+#else
+using TaskBool = System.Threading.Tasks.Task<bool>;
 
 namespace CitizenFX.Core
+#endif
 {
 	[Flags]
 	public enum InvertAxis
@@ -223,7 +232,7 @@ namespace CitizenFX.Core
 		/// </summary>
 		/// <param name="timeout">How long in milli-seconds should the game wait while the model hasnt been loaded before giving up</param>
 		/// <returns><c>true</c> if the <see cref="ParticleEffectsAsset"/> is Loaded; otherwise, <c>false</c></returns>
-		public async Task<bool> Request(int timeout)
+		public async TaskBool Request(int timeout)
 		{
 			if (!IsLoaded)
 			{
@@ -279,7 +288,7 @@ namespace CitizenFX.Core
 
 		public static implicit operator InputArgument(ParticleEffectsAsset asset)
 		{
-			return new InputArgument(asset._assetName);
+			return (InputArgument)asset._assetName;
 		}
 	}
 
@@ -538,7 +547,7 @@ namespace CitizenFX.Core
 		public static implicit operator InputArgument(ParticleEffect effect)
 		{
 			//we only need to worry about supplying a particle effect to a native, never returning one
-			return new InputArgument(effect.Handle);
+			return (InputArgument)effect.Handle;
 		}
 	}
 

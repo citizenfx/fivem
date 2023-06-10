@@ -1,34 +1,32 @@
 import emojiList from 'emoji.json/emoji-compact.json';
-import { Flex } from "cfx/ui/Layout/Flex/Flex";
-import { Avatar } from "cfx/ui/Avatar/Avatar";
-import { ServerListItem } from "cfx/common/parts/Server/ServerListItem/ServerListItem";
-import { Indicator } from "cfx/ui/Indicator/Indicator";
 import { BrandIcon, Icons } from "cfx/ui/Icons";
 import { BsDisplay } from "react-icons/bs";
 import { ISetting, ISettings } from "cfx/common/services/settings/types";
 import { useService } from "cfx/base/servicesContainer";
-import { IServersService } from "cfx/common/services/servers/servers.service";
-import { CurrentGameName } from "cfx/base/gameName";
-import { CustomBackdropControl } from "./components/CustomBackdropControl/CustomBackdropControl";
+import { CurrentGameName } from "cfx/base/gameRuntime";
+import { CustomBackdropControl } from "./parts/SettingsFlyout/CustomBackdropControl/CustomBackdropControl";
 import { LinkedIdentitiesList } from "./parts/LinkedIdentitiesList/LinkedIdentitiesList";
 import { mpMenu } from "./mpMenu";
-import { IConvarService, KnownConvars, useConvarService } from "./services/convars/convars.service";
+import { IConvarService, KnownConvars } from "./services/convars/convars.service";
 import { IConvar } from "./services/convars/types";
 import { Input } from "cfx/ui/Input/Input";
-import { Button } from "cfx/ui/Button/Button";
-import { useAccountService } from "cfx/common/services/account/account.service";
 import { ILinkedIdentitiesService } from "./services/linkedIdentities/linkedIdentities.service";
-import { IServersBoostService } from 'cfx/common/services/servers/serversBoost.service';
-import { Box } from 'cfx/ui/Layout/Box/Box';
-import { GameName } from 'cfx/base/game';
-import { useAuthService } from './services/auth/auth.service';
+import { GameName, GameUpdateChannel } from 'cfx/base/game';
 import { useIntlService } from 'cfx/common/services/intl/intl.service';
 import { $L } from 'cfx/common/services/intl/l10n';
 import { Select } from 'cfx/ui/Select/Select';
 import { DEFAULT_SERVER_PORT } from 'cfx/base/serverUtils';
-import { Text } from 'cfx/ui/Text/Text';
+import { AccountHeader } from './parts/SettingsFlyout/Account/AccountHeader/AccountHeader';
+import { Obliviate } from './parts/SettingsFlyout/Obliviate/Obliviate';
+import { CurrentBoost, isCurrentBoostVisible } from './parts/SettingsFlyout/CurrentBoost/CurrentBoost';
+import { BlurredBackdrop } from './parts/SettingsFlyout/BlurredBackdrop/BlurredBackdrop';
 
 const ACCOUNT_SETTINGS = new Map<string, ISetting.AnySetting>([
+  ['accountHeader', {
+    label: $L('#Settings_Account'),
+    render: () => <AccountHeader />,
+  }],
+
   ['nickname', {
     label: $L('#Settings_Nickname'),
     render: () => {
@@ -54,95 +52,11 @@ const ACCOUNT_SETTINGS = new Map<string, ISetting.AnySetting>([
     render: () => <LinkedIdentitiesList />,
   }],
 
-  ['accountButton', {
-    label: $L('#Settings_Account'),
-    visible: () => !accountLoadedAndPresent(),
-    render: () => {
-      const AuthService = useAuthService();
-
-      return (
-        <Button
-          text={$L('#Settings_AccountLink')}
-          onClick={AuthService.openUI}
-        />
-      );
-    },
-  }],
-
-  ['accountDisplayNode', {
-    label: $L('#Settings_Account'),
-    visible: accountLoadedAndPresent,
-    render: () => {
-      const ConvarService = useConvarService();
-      const AccountService = useAccountService();
-
-      if (ConvarService.getBoolean(KnownConvars.streamerMode)) {
-        return (
-          <span>
-            {'<HIDDEN>'}
-          </span>
-        );
-      }
-
-      return (
-        <Flex repell>
-          <Flex centered>
-            <Avatar
-              url={AccountService.account?.getAvatarUrl() || ''}
-            />
-
-            <Text size="large">
-              {AccountService.account?.username}
-            </Text>
-          </Flex>
-        </Flex>
-      );
-    },
-  }],
-
-  ['boostLoading', {
-    type: 'displayNode',
-
+  ['boost', {
     label: $L('#Settings_Boost'),
+    visible: isCurrentBoostVisible,
 
-    node: $L('#Settings_BoostLoading'),
-
-    visible: () => !useService(IServersBoostService).currentBoostLoadComplete,
-  }],
-  ['boostNone', {
-    type: 'displayNode',
-
-    label: $L('#Settings_Boost'),
-
-    node: $L('#Settings_BoostNone'),
-
-    visible: () => !boostLoadedAndPresent(),
-  }],
-  ['boostServer', {
-    label: $L('#Settings_Boost'),
-    visible: () => boostLoadedAndPresent(),
-    render: () => {
-      const { address } = useService(IServersBoostService).currentBoost!;
-
-      const server = useService(IServersService).getServer(address);
-      if (!server) {
-        return (
-          <Indicator />
-        );
-      }
-
-      return (
-        <Box height={10}>
-          <ServerListItem
-            server={server}
-            standalone
-            hideActions
-            descriptionUnderName
-          />
-        </Box>
-      );
-    },
-
+    render: () => <CurrentBoost />,
   }],
 ]);
 
@@ -153,9 +67,14 @@ const INTERFACE_SETTINGS = new Map<string, ISetting.AnySetting>([
     label: $L('#Settings_DarkTheme'),
     description: $L('#Settings_DarkThemeDesc'),
 
-    ...convarAccessorsBoolean('ui_preferLightColorScheme', true),
+    ...convarAccessorsBoolean(KnownConvars.preferLightColorScheme, true),
+  }],
 
-    visible: onlyForFiveM,
+  ['blurredBackdrop', {
+    label: $L('#Settings_BlurredBackdrop'),
+    description: $L('#Settings_BlurredBackdropDesc'),
+
+    render: () => <BlurredBackdrop />,
   }],
 
   ['streamerMode', {
@@ -213,6 +132,14 @@ const INTERFACE_SETTINGS = new Map<string, ISetting.AnySetting>([
 
     node: () => <CustomBackdropControl />,
   }],
+
+  ['clearServersHistory', {
+    type: 'displayNode',
+
+    label: $L('#Settings_ClearHistory'),
+
+    node: () => <Obliviate />,
+  }],
 ]);
 
 const GAME_GAME_SETTINGS = new Map<string, ISetting.AnySetting>([
@@ -222,15 +149,14 @@ const GAME_GAME_SETTINGS = new Map<string, ISetting.AnySetting>([
     label: $L('#Settings_UpdateChannel'),
     description: $L('#Settings_UpdateChannelDesc'),
 
-    ...convarAccessorsString('ui_updateChannel'),
+    ...convarAccessorsString(KnownConvars.updateChannel),
 
     options: {
-      production: 'Release',
-      beta: 'Beta',
-      canary: 'Latest (Unstable)',
+      [GameUpdateChannel.Production]: 'Release',
+      [GameUpdateChannel.Beta]: 'Beta',
+      [GameUpdateChannel.Canary]: 'Latest (Unstable)',
     },
   }],
-
   ['inProcessGPU', {
     type: 'checkbox',
 
@@ -238,8 +164,6 @@ const GAME_GAME_SETTINGS = new Map<string, ISetting.AnySetting>([
     description: $L('#Settings_InProcessGpuDesc'),
 
     ...convarAccessorsBoolean('nui_useInProcessGpu'),
-
-    visible: onlyForFiveM,
   }],
   ['streamingProgress', {
     type: 'checkbox',
@@ -258,8 +182,16 @@ const GAME_GAME_SETTINGS = new Map<string, ISetting.AnySetting>([
     description: $L('#Settings_UseAudioFrameLimiterDesc'),
 
     ...convarAccessorsBoolean('game_useAudioFrameLimiter', true),
+  }],
+  ['muteOnFocusLoss', {
+    type: 'checkbox',
 
-    visible: onlyForFiveM,
+    label: $L('#Settings_MuteOnFocusLoss'),
+    description: $L('#Settings_MuteOnFocusLossDesc'),
+
+    ...convarAccessorsBoolean('ui_muteOnFocusLoss'),
+
+    visible: onlyForRedM,
   }],
   ['enableHandbrakeCamera', {
     type: 'checkbox',
@@ -280,6 +212,22 @@ const GAME_GAME_SETTINGS = new Map<string, ISetting.AnySetting>([
     ...convarAccessorsBoolean('cam_disableCameraShake'),
 
     visible: onlyForFiveM,
+  }],
+  ['fixedSizeNUI', {
+    type: 'checkbox',
+
+    label: $L('#Settings_FixedSizeNUI'),
+    description: $L('#Settings_FixedSizeNUIDesc'),
+
+    ...convarAccessorsBoolean('nui_useFixedSize'),
+  }],
+  ['noiseSuppression', {
+    type: 'checkbox',
+
+    label: $L('#Settings_NoiseSuppression'),
+    description: $L('#Settings_NoiseSuppressionDesc'),
+
+    ...convarAccessorsBoolean('voice_enableNoiseSuppression'),
   }],
 
   ['customEmoji', {
@@ -339,6 +287,10 @@ function onlyForFiveM() {
   return CurrentGameName === GameName.FiveM;
 }
 
+function onlyForRedM() {
+  return CurrentGameName === GameName.RedM;
+}
+
 function convarAccessorsBoolean(convar: IConvar, inversion = false): Pick<ISetting.Checkbox, 'accessors'> {
   if (inversion) {
     return {
@@ -376,16 +328,4 @@ function convarAccessorsString(convar: IConvar, defaultValue = ''): Pick<ISettin
       };
     },
   };
-}
-
-function accountLoadedAndPresent(): boolean {
-  const AccountService = useAccountService();
-
-  return AccountService.accountLoadComplete && !!AccountService.account;
-}
-
-function boostLoadedAndPresent(): boolean {
-  const ServersBoostService = useService(IServersBoostService);
-
-  return ServersBoostService.currentBoostLoadComplete && !!ServersBoostService.currentBoost;
 }

@@ -13,7 +13,7 @@
 #include <KeyedRateLimiter.h>
 
 #include <console/OptionTokenizer.h>
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 #include <ComponentLoader.h>
 
@@ -210,19 +210,14 @@ namespace fx
 				consoleCtx->ExecuteSingleCommandDirect(ProgramArguments{ "set", set.first, set.second });
 			}
 
-			boost::filesystem::path rootPath;
-
+			std::filesystem::path rootPath;
 			try
 			{
-				rootPath = boost::filesystem::canonical(".");
+				rootPath = std::filesystem::canonical(".");
 
-#ifdef _WIN32
-				m_rootPath = ToNarrow(rootPath.wstring());
-#else
-				m_rootPath = rootPath.string();
-#endif
+				m_rootPath = rootPath.u8string();
 			}
-			catch (std::exception& error)
+			catch (std::exception&)
 			{
 			}
 
@@ -242,7 +237,7 @@ namespace fx
 		// tasks should be running in background threads; we'll just wait until someone wants to get rid of us
 		while (!m_shouldTerminate)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			std::this_thread::sleep_for(std::chrono::seconds(1));
 		}
 	}
 
@@ -288,8 +283,6 @@ namespace fx
 			return resourceManager->AddResource(url.href()).get();
 		};
 
-		// monitor does not use webadmin currently
-		//addResource("webadmin")->Start();
 		addResource("monitor")->Start();
 
 		// setup ticks

@@ -1,86 +1,169 @@
-import { mpMenu } from "cfx/apps/mpMenu/mpMenu";
-import { CurrentGameName } from "cfx/base/gameName";
 import { GameName } from "cfx/base/game";
-import { getSingleServer } from "cfx/common/services/servers/source/utils/fetchers";
-import { IServerView } from "cfx/common/services/servers/types";
-import { isJoinServerAddress, parseServerAddress } from "cfx/common/services/servers/utils";
-import { resolveOrTimeout } from "cfx/utils/async";
 import { fetcher } from "cfx/utils/fetcher";
-import { dynamicServerData2ServerView, queriedServerData2ServerView } from "./transformers";
+import { mpMenu } from "cfx/apps/mpMenu/mpMenu";
+import { resolveOrTimeout } from "cfx/utils/async";
+import { CurrentGameName } from "cfx/base/gameRuntime";
+import { IServerView } from "cfx/common/services/servers/types";
+import { getMasterListServer } from "cfx/common/services/servers/source/utils/fetchers";
+import { HostServerAddress, IParsedServerAddress, isHostServerAddress, isIpServerAddress, isJoinOrHostServerAddress, isJoinServerAddress, JoinOrHostServerAddress, parseServerAddress } from "cfx/common/services/servers/serverAddressParser";
 import { IDynamicServerData, IQueriedServerData } from "./types";
+import { dynamicServerData2ServerView, queriedServerData2ServerView } from "./transformers";
 
-
-export async function getServerByAnyMean(gameName: GameName, address: string): Promise<IServerView | null> {
-  // First parse address
+/**
+ * No-brainer to get IServerView from virtually any string that can point to the server: joinId, joinId link, IP or host server address
+ */
+export async function getServerForAddress(address: string, gameName: GameName = CurrentGameName): Promise<IServerView | null> {
   const parsedAddress = parseServerAddress(address);
   if (!parsedAddress) {
-    console.log('[getServerByAnyMean] failed to parse address', address);
     return null;
   }
 
-  // Best-case scenario, it's a listed server
-  if (isJoinServerAddress(parsedAddress)) {
-    console.log('[getServerByAnyMean] loading single server', address);
-    return await getSingleServer(gameName, parsedAddress.address);
-  }
-
-  const serverId = await getServerIDFromEndpoint(parsedAddress.address);
-  if (serverId) {
-    console.log('[getServerByAnyMean] resolved server id', serverId);
-    const server = await getSingleServer(gameName, serverId);
+  // Infer joinId and try fetching server by it
+  let joinId = await getOrInferServerJoinId(parsedAddress);
+  if (joinId) {
+    const server = await getMasterListServer(gameName, joinId);
     if (server) {
-      console.log('[getServerByAnyMean] loaded server by id', server);
+      if (!isJoinServerAddress(parsedAddress)) {
+        return saveHistoricalAddressAndDoGameNameCheck(parsedAddress.address, joinId, gameName, server);
+      }
+
       return server;
     }
   }
 
-  const queriedServerData = await getQueriedDataFromEndpoint(parsedAddress.address);
-  if (queriedServerData) {
-    console.log('[getServerByAnyMean] loaded queried server data', queriedServerData);
-    return queriedServerData2ServerView(parsedAddress.address, queriedServerData);
+  if (isIpServerAddress(parsedAddress)) {
+    return getServerViewFromQueriedOrDynamicServerData(
+      gameName,
+      joinId,
+      parsedAddress.address,
+    );
   }
 
-  const dynamicServerData = await getDynamicServerDataFromEndpoint(parsedAddress.address);
-  if (!dynamicServerData) {
-    console.log('[getServerByAnyMean] failed to load dynamic server data', address);
+  // Can't do much with joinId at this point :c
+  if (isJoinServerAddress(parsedAddress)) {
     return null;
   }
 
-  console.log('[getServerByAnyMean] loaded server by dynamic data', dynamicServerData);
-  return dynamicServerData2ServerView(parsedAddress.address, dynamicServerData);
+  // If parsed address is either joinId or host - set joinId to null,
+  // because fetching server from the master list failed for this joinId
+  if (isJoinOrHostServerAddress(parsedAddress)) {
+    joinId = null;
+  }
+
+  // Resolve host server address as there could have been multiple address candidates
+  const resolvedAddressAndDynamicServerData = await resolveServerHostAndGetDynamicServerData(parsedAddress);
+  if (!resolvedAddressAndDynamicServerData) {
+    return null;
+  }
+
+  const { resolvedAddress, dynamicServerData } = resolvedAddressAndDynamicServerData;
+
+  return getServerViewFromQueriedOrDynamicServerData(
+    gameName,
+    joinId,
+    resolvedAddress,
+    dynamicServerData,
+  );
 }
 
-async function getServerIDFromEndpoint(endpoint: string): Promise<string | null> {
+async function getServerViewFromQueriedOrDynamicServerData(
+  gameName: GameName,
+  joinId: string | null,
+  address: string,
+  dynamicServerData: IDynamicServerData | null = null,
+): Promise<IServerView | null> {
+  const queriedServerData = await getQueriedDataForAddress(address);
+  if (queriedServerData) {
+    return saveHistoricalAddressAndDoGameNameCheck(
+      address,
+      joinId,
+      gameName,
+      queriedServerData2ServerView(address, queriedServerData),
+    );
+  }
+
+  // If no dynamic server data provided - try to load it as a last resort
+  dynamicServerData ??= await getDynamicServerDataForAddress(address);
+  if (!dynamicServerData) {
+    return null;
+  }
+
+  return saveHistoricalAddressAndDoGameNameCheck(
+    address,
+    joinId,
+    gameName,
+    dynamicServerData2ServerView(address, dynamicServerData),
+  );
+}
+
+function doGameNameCheck(gameName: GameName, server: IServerView): IServerView | null {
+  if (server.gamename) {
+    if (server.gamename !== gameName) {
+      return null;
+    }
+  }
+
+  return server;
+}
+
+function saveHistoricalAddressAndDoGameNameCheck(address: string, joinId: string | null, gameName: GameName, server: IServerView): IServerView | null {
+  if (!doGameNameCheck(gameName, server)) {
+    return null;
+  }
+
+  if (joinId) {
+    server.joinId = joinId;
+  }
+
+  server.historicalAddress = address;
+
+  return server;
+}
+
+async function getOrInferServerJoinId(parsedAddress: IParsedServerAddress): Promise<string | null> {
+  if (isJoinServerAddress(parsedAddress) || isJoinOrHostServerAddress(parsedAddress)) {
+    return parsedAddress.address;
+  }
+
+  return getJoinIdForAddress(parsedAddress.address);
+}
+
+async function getJoinIdForAddress(address: string): Promise<string | null> {
   try {
-    const serverID = await resolveOrTimeout(
+    const joinId = await resolveOrTimeout(
       5000,
       'https://nui-internal/gsclient/url timed out',
       fetcher.text('https://nui-internal/gsclient/url', {
         method: 'POST',
-        body: `url=${endpoint}`,
+        body: `url=${address}`,
       }),
     );
 
-    if (serverID) {
-      return serverID;
+    if (joinId) {
+      return joinId;
     }
 
     return null;
   } catch (e) {
-    console.error(e);
+    console.warn(e);
 
     return null;
   }
 }
 
-export async function getDynamicServerDataFromEndpoint(endpoint: string): Promise<IDynamicServerData | null> {
+export async function getDynamicServerDataForAddress(address: string): Promise<IDynamicServerData | null> {
+  // cpp side appends `/dynamic.json` so remove any trailing slash
+  if (address.endsWith('/')) {
+    address = address.substring(0, address.length - 1);
+  }
+
   try {
     const res = await resolveOrTimeout(
       5000,
       'https://nui-internal/gsclient/dynamic timed out',
       fetcher.json('https://nui-internal/gsclient/dynamic', {
         method: 'POST',
-        body: `url=${endpoint}`,
+        body: `url=${address}`,
       }),
     );
 
@@ -90,15 +173,15 @@ export async function getDynamicServerDataFromEndpoint(endpoint: string): Promis
 
     return null;
   } catch (e) {
-    console.error(e);
+    console.warn(e);
 
     return null;
   }
 }
 
-export async function getQueriedDataFromEndpoint(endpoint: string): Promise<IQueriedServerData | null> {
+export async function getQueriedDataForAddress(address: string): Promise<IQueriedServerData | null> {
   try {
-    return await mpMenu.queryServer(endpoint);
+    return await mpMenu.queryServer(address);
   } catch (e) {
     return null;
   }
@@ -115,9 +198,72 @@ export async function getLocalhostServerInfo(port: string): Promise<IQueriedServ
   return response;
 }
 
+async function resolveServerHostAndGetDynamicServerData(parsedAddress: HostServerAddress | JoinOrHostServerAddress) {
+  const candidates = isHostServerAddress(parsedAddress)
+    ? parsedAddress.addressCandidates || [parsedAddress.address]
+    : parsedAddress.addressCandidates;
+
+  if (candidates.length === 1) {
+    return fetchDynamicServerDataPair(candidates[0]);
+  }
+
+  const shouldThrow = true;
+
+  const httpCandidates: string[] = [];
+  const httpsCandidates: string[] = [];
+
+  for (const address of candidates) {
+    if (address.startsWith('https:')) {
+      httpsCandidates.push(address);
+    } else {
+      httpCandidates.push(address);
+    }
+  }
+
+  // Prioritize HTTPS addresses to make resolver stable as server may support both HTTP and HTTPS
+  if (httpsCandidates.length) {
+    try {
+      const pair = await Promise.any(httpsCandidates.map((address) => fetchDynamicServerDataPair(address, shouldThrow)));
+
+      // Continue to HTTP addresses if no pair
+      if (pair) {
+        return pair;
+      }
+    } catch (e) {
+      // no-op
+    }
+  }
+
+  if (httpCandidates.length) {
+    try {
+      return await Promise.any(httpCandidates.map((address) => fetchDynamicServerDataPair(address, shouldThrow)));
+    } catch (e) {
+      // no-op
+    }
+  }
+
+  return null;
+}
+
+async function fetchDynamicServerDataPair(address: string, shouldThrow = false) {
+  const dynamicServerData = await getDynamicServerDataForAddress(address);
+  if (!dynamicServerData) {
+    if (shouldThrow) {
+      throw new Error();
+    }
+
+    return null;
+  }
+
+  return {
+    resolvedAddress: address,
+    dynamicServerData,
+  };
+}
+
 try {
-  (window as any).__getServerByAnyMean = getServerByAnyMean;
-  (window as any).__getServerIDFromEndpoint = getServerIDFromEndpoint;
-  (window as any).__getDynamicServerDataFromEndpoint = getDynamicServerDataFromEndpoint;
-  (window as any).__getLocalhostServer = getLocalhostServerInfo;
-} catch (e) {}
+  (window as any).__getServerForAddress = getServerForAddress;
+  (window as any).__getJoinIdForAddress = getJoinIdForAddress;
+  (window as any).__getDynamicServerDataForAddress = getDynamicServerDataForAddress;
+  (window as any).__getLocalhostServerInfo = getLocalhostServerInfo;
+} catch (e) { }

@@ -30,16 +30,14 @@ namespace Botan {
   #error BOTAN_MP_WORD_BITS must be 32 or 64
 #endif
 
-#if defined(BOTAN_TARGET_ARCH_IS_X86_32) && (BOTAN_MP_WORD_BITS == 32)
+#if defined(BOTAN_USE_GCC_INLINE_ASM)
 
-  #if defined(BOTAN_USE_GCC_INLINE_ASM)
+  #if defined(BOTAN_TARGET_ARCH_IS_X86_32) && (BOTAN_MP_WORD_BITS == 32)
     #define BOTAN_MP_USE_X86_32_ASM
-  #elif defined(BOTAN_BUILD_COMPILER_IS_MSVC)
-    #define BOTAN_MP_USE_X86_32_MSVC_ASM
+  #elif defined(BOTAN_TARGET_ARCH_IS_X86_64) && (BOTAN_MP_WORD_BITS == 64)
+    #define BOTAN_MP_USE_X86_64_ASM
   #endif
 
-#elif defined(BOTAN_TARGET_ARCH_IS_X86_64) && (BOTAN_MP_WORD_BITS == 64) && defined(BOTAN_USE_GCC_INLINE_ASM)
-  #define BOTAN_MP_USE_X86_64_ASM
 #endif
 
 /*

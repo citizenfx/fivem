@@ -420,12 +420,12 @@ class BOTAN_PUBLIC_API(2,0) BSI_TR_02102_2 : public Policy
    public:
       std::vector<std::string> allowed_ciphers() const override
          {
-         return std::vector<std::string>({"AES-256/GCM", "AES-128/GCM", "AES-256", "AES-128" });
+         return std::vector<std::string>({"AES-256/GCM", "AES-128/GCM", "AES-256/CCM", "AES-128/CCM", "AES-256", "AES-128"});
          }
 
       std::vector<std::string> allowed_signature_hashes() const override
          {
-         return std::vector<std::string>({"SHA-384", "SHA-256"});
+         return std::vector<std::string>({"SHA-512", "SHA-384", "SHA-256"});
          }
 
       std::vector<std::string> allowed_macs() const override
@@ -435,7 +435,7 @@ class BOTAN_PUBLIC_API(2,0) BSI_TR_02102_2 : public Policy
 
       std::vector<std::string> allowed_key_exchange_methods() const override
          {
-         return std::vector<std::string>({"ECDH", "DH", "PSK", "ECDHE_PSK", "DHE_PSK"});
+         return std::vector<std::string>({"ECDH", "DH", "ECDHE_PSK", "DHE_PSK"});
          }
 
       std::vector<std::string> allowed_signature_methods() const override
@@ -451,8 +451,6 @@ class BOTAN_PUBLIC_API(2,0) BSI_TR_02102_2 : public Policy
             Group_Params::BRAINPOOL256R1,
             Group_Params::SECP384R1,
             Group_Params::SECP256R1,
-            Group_Params::FFDHE_8192,
-            Group_Params::FFDHE_6144,
             Group_Params::FFDHE_4096,
             Group_Params::FFDHE_3072,
             Group_Params::FFDHE_2048

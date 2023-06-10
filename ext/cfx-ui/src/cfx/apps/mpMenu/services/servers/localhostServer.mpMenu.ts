@@ -1,5 +1,6 @@
 import { DEFAULT_SERVER_PORT } from "cfx/base/serverUtils";
 import { ServicesContainer } from "cfx/base/servicesContainer";
+import { scopedLogger, ScopedLogger } from "cfx/common/services/log/scopedLogger";
 import { inject, injectable } from "inversify";
 import { makeAutoObservable } from "mobx";
 import { IConvarService, KnownConvars } from "../convars/convars.service";
@@ -24,6 +25,8 @@ export class MpMenuLocalhostServerService {
   constructor(
     @inject(IConvarService)
     protected readonly convarService: IConvarService,
+    @scopedLogger('MpMenuLocalhostServerService')
+    protected readonly logger: ScopedLogger,
   ) {
     makeAutoObservable(this);
 

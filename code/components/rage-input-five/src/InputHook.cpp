@@ -262,11 +262,11 @@ LRESULT APIENTRY grcWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
 					{
 						if (uMsg == WM_LBUTTONUP || uMsg == WM_MBUTTONUP || uMsg == WM_RBUTTONUP || uMsg == WM_XBUTTONUP)
 						{
-							g_input->m_Buttons() &= ~buttonIdx;
+							rage::g_input.m_Buttons() &= ~buttonIdx;
 						}
 						else
 						{
-							g_input->m_Buttons() |= buttonIdx;
+							rage::g_input.m_Buttons() |= buttonIdx;
 						}
 
 						break;
@@ -415,19 +415,18 @@ static HookFunction setOffsetsHookFunction([]()
 	g_inputOffset = hook::get_address<int*>(hook::get_pattern("89 3D ? ? ? ? EB 0F 48 8B CB", 2));
 	g_mouseButtons = hook::get_address<int*>(hook::get_pattern("FF 15 ? ? ? ? 85 C0 8B 05 ? ? ? ? 74 05", 10));
 
-	// This is a sig to the first known member, which is mouseWheel
-	g_input = hook::get_address<rage::ioMouse*>(hook::get_pattern("C1 E8 1F 03 D0 01 15", 7));
-
-#ifdef _DEBUG
-	// test for breakage w/ new updates
-	unsigned char* mouseAbsY = hook::get_address<unsigned char*>(hook::get_pattern("66 44 0F 6E C0 8B 05 ? ? ? ? 2B", 5), 2, 6);
-	unsigned char* mouseDiffDirectionY = hook::get_address<unsigned char*>(hook::get_pattern("21 3D ? ? ? ? 21 3D ? ? ? ? 48 8B", 6), 2, 6);
-	if (xbr::IsGameBuildOrGreater<2699>())
-	{
-		assert(((uintptr_t)mouseAbsY - (uintptr_t)g_input == 0x1C));
-		assert(((uintptr_t)mouseDiffDirectionY - (uintptr_t)g_input == 0xAC));
-	}
-#endif
+	rage::g_input.mouseButtons = hook::get_address<int32_t*>(hook::get_pattern("8B 05 ? ? ? ? 89 05 ? ? ? ? E8 ? ? ? ? 48 63"), 2, 6);
+	rage::g_input.mouseLastDX = hook::get_address<int32_t*>(hook::get_pattern("83 25 ? ? ? ? 00 83 25 ? ? ? ? 00 48 8D 0D ? ? ? ? E8 ? ? ? ? 83"), 2, 7);
+	rage::g_input.mouseLastDY = hook::get_address<int32_t*>(hook::get_pattern("83 25 ? ? ? ? 00 83 25 ? ? ? ? 00 48 8D 0D ? ? ? ? E8 ? ? ? ? 83", 7), 2, 7);
+	rage::g_input.mouseDX = hook::get_address<int32_t*>(hook::get_pattern("D1 F8 89 05 ? ? ? ? E8 ? ? ? ? 83 25", 13), 2, 7);
+	rage::g_input.mouseDY = hook::get_address<int32_t*>(hook::get_pattern("D1 F8 89 05 ? ? ? ? E8 ? ? ? ? 83 25", 20), 2, 7);
+	rage::g_input.mouseDZ = hook::get_address<int32_t*>(hook::get_pattern("C1 E8 1F 03 D0 01 15", 7));
+	rage::g_input.mouseAbsX = hook::get_address<int32_t*>(hook::get_pattern("8B 15 ? ? ? ? 8B 0D ? ? ? ? EB"), 2, 6);
+	rage::g_input.mouseAbsY = hook::get_address<int32_t*>(hook::get_pattern("8B 15 ? ? ? ? 8B 0D ? ? ? ? EB", 6), 2, 6);
+	rage::g_input.cursorAbsX = hook::get_address<int32_t*>(hook::get_pattern("8B 15 ? ? ? ? 8B 0D ? ? ? ? 2B C7"), 2, 6);
+	rage::g_input.cursorAbsY = hook::get_address<int32_t*>(hook::get_pattern("8B 15 ? ? ? ? 8B 0D ? ? ? ? 2B C7", 6), 2, 6);
+	rage::g_input.mouseDiffDirectionX = hook::get_address<float*>(hook::get_pattern("21 3D ? ? ? ? 21 3D ? ? ? ? 48 8B"), 2, 6);
+	rage::g_input.mouseDiffDirectionY = hook::get_address<float*>(hook::get_pattern("21 3D ? ? ? ? 21 3D ? ? ? ? 48 8B", 6), 2, 6);
 });
 
 static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
@@ -594,20 +593,20 @@ static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
 		memcpy(g_gameKeyArray, curInput.keyboardState, 256);
 		if (off)
 		{
-			g_input->m_lastDX() = curInput.mouseDeltaX;
-			g_input->m_lastDY() = curInput.mouseDeltaY;
+			rage::g_input.m_lastDX() = curInput.mouseDeltaX;
+			rage::g_input.m_lastDY() = curInput.mouseDeltaY;
 		}
 		else
 		{
-			g_input->m_dX() = curInput.mouseDeltaX;
-			g_input->m_dY() = curInput.mouseDeltaY;
+			rage::g_input.m_dX() = curInput.mouseDeltaX;
+			rage::g_input.m_dY() = curInput.mouseDeltaY;
 		}
 
-		g_input->cursorAbsX() = std::clamp(g_input->cursorAbsX() + curInput.mouseDeltaX, 0, rgd->twidth);
-		g_input->cursorAbsY() = std::clamp(g_input->cursorAbsY() + curInput.mouseDeltaY, 0, rgd->theight);
+		rage::g_input.m_cursorAbsX() = std::clamp(rage::g_input.m_cursorAbsX() + curInput.mouseDeltaX, 0, rgd->twidth);
+		rage::g_input.m_cursorAbsY() = std::clamp(rage::g_input.m_cursorAbsY() + curInput.mouseDeltaY, 0, rgd->theight);
 
-		g_input->m_Buttons() = curInput.mouseButtons;
-		g_input->m_dZ() = curInput.mouseWheel;
+		rage::g_input.m_Buttons() = curInput.mouseButtons;
+		rage::g_input.m_dZ() = curInput.mouseWheel;
 
 		origSetInput(a1, a2, a3, a4);
 
@@ -620,16 +619,16 @@ static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
 
 		if (off)
 		{
-			rgd->mouseDeltaX = g_input->m_lastDX();
-			rgd->mouseDeltaY = g_input->m_lastDY();
+			rgd->mouseDeltaX = rage::g_input.m_lastDX();
+			rgd->mouseDeltaY = rage::g_input.m_lastDY();
 		}
 		else
 		{
-			rgd->mouseDeltaX = g_input->m_dX();
-			rgd->mouseDeltaY = g_input->m_dY();
+			rgd->mouseDeltaX = rage::g_input.m_dX();
+			rgd->mouseDeltaY = rage::g_input.m_dY();
 		}
-		rgd->mouseButtons = g_input->m_Buttons();
-		rgd->mouseWheel = g_input->m_dZ();
+		rgd->mouseButtons = rage::g_input.m_Buttons();
+		rgd->mouseWheel = rage::g_input.m_dZ();
 	}
 
 	ReleaseMutex(rgd->inputMutex);

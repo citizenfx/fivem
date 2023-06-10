@@ -3,7 +3,7 @@ import { HashRouter, Route, Routes } from 'react-router-dom';
 import { HomePage } from 'cfx/apps/mpMenu/pages/HomePage/HomePage';
 import { ChangelogPage } from 'cfx/apps/mpMenu/pages/ChangelogPage/ChangelogPage';
 import { ServersListType } from 'cfx/common/services/servers/lists/types';
-import { GameApp } from './components/GameApp/GameApp';
+import { MpMenuApp } from './components/MpMenuApp/MpMenuApp';
 import { startBrowserApp } from 'cfx/base/createApp';
 import { MpMenuServersPage } from './pages/ServersPage/ServersPage';
 import { MpMenuServerDetailsPage } from './pages/ServerDetailsPage/ServerDetailsPage';
@@ -38,11 +38,18 @@ import { IServersBoostService } from 'cfx/common/services/servers/serversBoost.s
 import { IServersStorageService } from 'cfx/common/services/servers/serversStorage.service';
 import { IServersConnectService } from 'cfx/common/services/servers/serversConnect.service';
 import { Handle404 } from './pages/404';
+import { registerHomeScreenServerList } from './services/servers/list/HomeScreenServerList.service';
+import { registerSentryService } from './services/sentry/sentry.service';
+import { SentryLogProvider } from './services/sentry/sentryLogProvider';
+import { animationFrame, idleCallback, timeout } from 'cfx/utils/async';
 
 startBrowserApp({
   defineServices(container) {
+    registerSentryService(container);
+
     registerLogService(container, [
       ConsoleLogProvider,
+      SentryLogProvider,
     ]);
 
     registerAnalyticsService(container, [
@@ -64,6 +71,8 @@ startBrowserApp({
     registerPlatformStatusService(container);
     registerLinkedIdentitiesService(container);
 
+    registerHomeScreenServerList(container);
+
     registerMpMenuUiService(container);
     registerMpMenuIntlService(container);
 
@@ -73,7 +82,6 @@ startBrowserApp({
         ServersListType.Supporters,
         ServersListType.History,
         ServersListType.Favorites,
-        ServersListType.MildlyIntelligent,
       ],
     });
     registerMpMenuServersBoostService(container);
@@ -106,7 +114,7 @@ startBrowserApp({
   render: () => (
     <HashRouter>
       <Routes>
-        <Route path="" element={<GameApp />}>
+        <Route path="" element={<MpMenuApp />}>
           <Route index element={<HomePage />} />
 
           <Route path="changelog" element={<ChangelogPage />} />
@@ -117,7 +125,7 @@ startBrowserApp({
             <Route path="history" element={<MpMenuServersPage listType={ServersListType.History} />} />
             <Route path="premium" element={<MpMenuServersPage listType={ServersListType.Supporters} />} />
 
-            <Route path="detail/:address" element={<MpMenuServerDetailsPage />} />
+            <Route path="detail/*" element={<MpMenuServerDetailsPage />} />
           </Route>
 
           <Route path="*" element={<Handle404 />} />
@@ -134,16 +142,29 @@ startBrowserApp({
       mpMenu.invokeNative('executeCommand', 'nui_devtools mpMenu');
     }
 
-    requestAnimationFrame(() => {
-      const loader = document.getElementById('loader');
-      if (loader) {
-        loader.classList.add('hide');
-        loader.addEventListener('transitionend', () => {
-          setTimeout(() => loader.parentNode?.removeChild(loader), 1000);
-        });
+    mpMenu.invokeNative('getMinModeInfo');
+
+    // Not using await here so app won't wait for this to end
+    timeout(1000).then(animationFrame).then(() => {
+      const $loader = document.getElementById('loader');
+      if (!$loader) {
+        console.error('No #loader found, did it get deleted from index.html?');
+        return;
       }
 
-      mpMenu.invokeNative('getMinModeInfo');
+      $loader.classList.add('hide');
+
+      const $loaderMask = $loader.querySelector('#loader-mask');
+      if (!$loaderMask) {
+        console.error('No #loader-mask found, did it get deleted from index.html?');
+        return;
+      }
+
+      $loaderMask.addEventListener('animationend', async () => {
+        await idleCallback(1000);
+
+        $loader.parentNode?.removeChild($loader);
+      });
     });
   },
 });

@@ -58,7 +58,6 @@ class MpMenuUiService implements IUiService {
     };
 
     requestAnimationFrame(resizeHandler);
-    // resizeHandler();
 
     window.addEventListener('resize', resizeHandler);
   }

@@ -1,9 +1,9 @@
+export function randomByte(): string {
+  return Math.floor(Math.random() * 16).toString(16);
+}
+
 export function randomBytes(length: number): string {
-	return Array(length + 1)
-		.join('x')
-		.replace(/x/g, c => {
-			return Math.floor(Math.random() * 16).toString(16);
-		});
+  return Array(length).fill(0).map(randomByte).join('');
 }
 
 export function fastRandomId(): string {

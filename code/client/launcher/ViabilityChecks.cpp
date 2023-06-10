@@ -151,23 +151,6 @@ void DoPreLaunchTasks()
 
 		SetProcessMitigationPolicy(ProcessExtensionPointDisablePolicy, &dp, sizeof(dp));
 	}
-
-	if (MakeRelativeCitPath(L"").find(L".app") != std::string::npos)
-	{
-		wchar_t thisFileName[512];
-		GetModuleFileName(GetModuleHandle(NULL), thisFileName, sizeof(thisFileName) / 2);
-
-		SHFOLDERCUSTOMSETTINGS fcs = { 0 };
-		fcs.dwSize = sizeof(SHFOLDERCUSTOMSETTINGS);
-		fcs.dwMask = FCSM_ICONFILE;
-		fcs.pszIconFile = thisFileName;
-		fcs.cchIconFile = 0;
-		fcs.iIconIndex = -201;
-
-		SHGetSetFolderCustomSettings(&fcs, MakeRelativeCitPath(L"").c_str(), FCS_FORCEWRITE);
-
-		SHSetLocalizedName(MakeRelativeCitPath(L"").c_str(), thisFileName, 101);
-	}
 }
 
 void MigrateCacheFormat202105()

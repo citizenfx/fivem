@@ -55,8 +55,10 @@ public:
 	uint8_t nextOwnerId; // +70
 	uint8_t isRemote; // +71
 	uint8_t wantsToDelete : 1; // +72
+	uint8_t unk1 : 1;
+	uint8_t unk2 : 1;
+	uint8_t shouldNotBeDeleted : 1;
 	char pad_3[3]; // +73;
-	uint8_t shouldNotBeDeleted : 1; // +76
 	char pad_4[3];
 	char pad_5[32];
 	uint32_t creationAckedPlayers; // +112

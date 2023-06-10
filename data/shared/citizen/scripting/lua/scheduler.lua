@@ -491,7 +491,7 @@ Citizen.SetCallRefRoutine(function(refId, argsSerialized)
 	local ref = refPtr.func
 
 	local err
-	local retvals
+	local retvals = false
 	local cb = {}
 	
 	local di = debug_getinfo(ref)
@@ -506,16 +506,14 @@ Citizen.SetCallRefRoutine(function(refId, argsSerialized)
 		end
 
 		if cb.cb then
-			cb.cb(retvals or false, err)
+			cb.cb(retvals, err)
+		elseif err then
+			Citizen.Trace(err)
 		end
 	end, ('ref call [%s[%d..%d]]'):format(di.short_src, di.linedefined, di.lastlinedefined))
 
 	if not waited then
 		if err then
-			if err ~= '' then
-				Citizen.Trace(err)
-			end
-			
 			return msgpack_pack(nil)
 		end
 
@@ -903,31 +901,63 @@ setmetatable(exports, {
 
 -- NUI callbacks
 if not isDuplicityVersion then
+	local origRegisterNuiCallback = RegisterNuiCallback
+
+	local cbHandler
+
+--[==[
+	local cbHandler = load([[
+		-- Lua 5.4: Create a to-be-closed variable to monitor the NUI callback handle.
+		local callback, body, resultCallback = ...
+
+		local hasCallback = false
+		local _ <close> = defer(function()
+			if not hasCallback then
+				local di = debug.getinfo(callback, 'S')
+				local name = ('function %s[%d..%d]'):format(di.short_src, di.linedefined, di.lastlinedefined)
+				warn(("No NUI callback captured: %s"):format(name))
+			end
+		end)
+
+		local status, err = pcall(function()
+			callback(body, function(...)
+				hasCallback = true
+				resultCallback(...)
+			end)
+		end)
+
+		return status, err
+	]], '@citizen:/scripting/lua/scheduler.lua#nui')]==]
+
+	if not cbHandler then
+		cbHandler = load([[
+			local callback, body, resultCallback = ...
+
+			local status, err = pcall(function()
+				callback(body, resultCallback)
+			end)
+
+			return status, err
+		]], '@citizen:/scripting/lua/scheduler.lua#nui')
+	end
+
+	-- wrap RegisterNuiCallback to handle errors (and 'missed' callbacks)
+	function RegisterNuiCallback(type, callback)
+		origRegisterNuiCallback(type, function(body, resultCallback)
+			local status, err = cbHandler(callback, body, resultCallback)
+
+			if err then
+				Citizen.Trace("error during NUI callback " .. type .. ": " .. tostring(err) .. "\n")
+			end
+		end)
+	end
+
+	-- 'old' function (uses events for compatibility, as people may have relied on this implementation detail)
 	function RegisterNUICallback(type, callback)
 		RegisterNuiCallbackType(type)
 
 		AddEventHandler('__cfx_nui:' .. type, function(body, resultCallback)
---[[
-			-- Lua 5.4: Create a to-be-closed variable to monitor the NUI callback handle.
-			local hasCallback = false
-			local _ <close> = defer(function()
-				if not hasCallback then
-					local di = debug_getinfo(callback, 'S')
-					local name = ('function %s[%d..%d]'):format(di.short_src, di.linedefined, di.lastlinedefined)
-					Citizen.Trace(("No NUI callback captured: %s\n"):format(name))
-				end
-			end)
-
-			local status, err = pcall(function()
-				callback(body, function(...)
-					hasCallback = true
-					resultCallback(...)
-				end)
-			end)
---]]			
-			local status, err = pcall(function()
-				callback(body, resultCallback)
-			end)
+			local status, err = cbHandler(callback, body, resultCallback)
 
 			if err then
 				Citizen.Trace("error during NUI callback " .. type .. ": " .. tostring(err) .. "\n")

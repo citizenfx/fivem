@@ -11,6 +11,7 @@ import { Center } from "cfx/ui/Layout/Center/Center";
 import { useAuthService } from "cfx/apps/mpMenu/services/auth/auth.service";
 import { AuthForm } from "cfx/common/parts/AuthForm/AuthForm";
 import { renderedIf } from "cfx/utils/convenience";
+import { $L } from "cfx/common/services/intl/l10n";
 import s from './AuthFlyout.module.scss';
 
 export const AuthFlyout = observer(renderedIf(
@@ -30,7 +31,7 @@ export const AuthFlyout = observer(renderedIf(
       >
         <Pad left size="large">
           <Flyout.Header onClose={handleModalClose}>
-            Account
+            {$L('#AuthUI_Header')}
           </Flyout.Header>
         </Pad>
 
@@ -50,11 +51,11 @@ export const AuthFlyout = observer(renderedIf(
 
                     <Title title={(
                       <>
-                        You will still be able to link it in settings {Icons.settings}
+                        {$L('#AuthUI_CancelAndForget_Title')} {Icons.settings}
                       </>
                     )}>
                       <Button
-                        text="Cancel and don't ask again"
+                        text={$L('#AuthUI_CancelAndForget')}
                         theme="transparent"
                         disabled={AuthService.authFormDisabled}
                         onClick={AuthService.dismissIgnoreNextTime}

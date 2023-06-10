@@ -1,6 +1,6 @@
 import { Deferred } from "cfx/utils/async";
 import { decodeServer } from "../api/api";
-import { fullServerData2ServerView, listServerData2ServerView } from "../../transformers";
+import { masterListFullServerData2ServerView, masterListServerData2ServerView } from "../../transformers";
 import { IFullServerData, IServerView } from "../../types";
 import { FrameReader } from "./frameReader";
 import { fetcher } from "cfx/utils/fetcher";
@@ -21,25 +21,25 @@ async function readBodyToServers(gameName: GameName, onServer: (server: IServerV
   const frameReader = new FrameReader(
     body,
     (frame) => {
-      let s = performance.now();
+      let timestamp = performance.now();
       const srv = decodeServer(frame);
-      decodeTime += performance.now() - s;
+      decodeTime += performance.now() - timestamp;
 
       if (srv.EndPoint && srv.Data) {
         const serverGameName = srv.Data?.vars?.gamename || GameName.FiveM;
 
         if (gameName === serverGameName) {
-          s = performance.now();
-          const aaa = listServerData2ServerView(srv.EndPoint, srv.Data);
-          transformTime += performance.now() - s;
+          timestamp = performance.now();
+          const serverView = masterListServerData2ServerView(srv.EndPoint, srv.Data);
+          transformTime += performance.now() - timestamp;
 
-          s = performance.now();
-          onServer(aaa);
-          onServerTime += performance.now() - s;
+          timestamp = performance.now();
+          onServer(serverView);
+          onServerTime += performance.now() - timestamp;
         }
       }
 
-      decodeTime += performance.now() - s;
+      decodeTime += performance.now() - timestamp;
     },
     deferred.resolve,
   );
@@ -51,7 +51,7 @@ async function readBodyToServers(gameName: GameName, onServer: (server: IServerV
   console.log('Times: decode', decodeTime, 'ms, transform', transformTime, 'ms, onServer', onServerTime, 'ms');
 }
 
-export async function getAllServers(gameName: GameName, onServer: (server: IServerView) => void): Promise<void> {
+export async function getAllMasterListServers(gameName: GameName, onServer: (server: IServerView) => void): Promise<void> {
   console.time('Total getAllServers');
 
   const { body } = await fetcher.fetch(new Request(ALL_SERVERS_URL));
@@ -65,7 +65,7 @@ export async function getAllServers(gameName: GameName, onServer: (server: IServ
   console.timeEnd('Total getAllServers');
 }
 
-export async function getSingleServer(gameName: GameName, address: string): Promise<IServerView | null> {
+export async function getMasterListServer(gameName: GameName, address: string): Promise<IServerView | null> {
   try {
     const srv: IFullServerData = await fetcher.json(SINGLE_SERVER_URL + address);
 
@@ -73,7 +73,7 @@ export async function getSingleServer(gameName: GameName, address: string): Prom
       const serverGameName = srv.Data?.vars?.gamename || GameName.FiveM;
 
       if (gameName === serverGameName) {
-        return fullServerData2ServerView(srv.EndPoint, srv.Data);
+        return masterListFullServerData2ServerView(srv.EndPoint, srv.Data);
       }
     }
 
@@ -105,7 +105,7 @@ export async function getTopServer(config: TopServerConfig): Promise<IServerView
         }
       }
 
-      return fullServerData2ServerView(srv.EndPoint, srv.Data);
+      return masterListFullServerData2ServerView(srv.EndPoint, srv.Data);
     }
 
     return null;
@@ -118,5 +118,5 @@ export async function getTopServer(config: TopServerConfig): Promise<IServerView
 
 
 try {
-  (window as any).__getSingleServer = getSingleServer;
+  (window as any).__getSingleServer = getMasterListServer;
 } catch (e) {}

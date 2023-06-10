@@ -12,9 +12,10 @@ import { ServerReviewSentimentIcon } from "./ServerReviewSentimentIcon";
 import { Separator } from "cfx/ui/Separator/Separator";
 import { ServerReviewReactions } from "./ServerReviewReactions";
 import { ServerReviewReport } from "./ServerReviewReport";
-import s from './ServerReview.module.scss';
 import { OnScreenSensor } from "cfx/ui/OnScreenSensor";
 import { Indicator } from "cfx/ui/Indicator/Indicator";
+import { $L } from "cfx/common/services/intl/l10n";
+import s from './ServerReview.module.scss';
 
 export interface ServerReviewProps {
   review: IServerReviewItem,
@@ -31,11 +32,15 @@ export const ServerReview = observer(function ServerReview(props: ServerReviewPr
     disableActions = false,
   } = props;
 
+  if (review.hidden) {
+    return (<></>);
+  }
+
   const playtimeRaw = serverReviews.playtimes[review.authorCfxId];
   const playtime = playtimeRaw?.formattedSeconds || 'loading';
 
   const showReactions = !!review.reactions;
-  const showReport = !disableActions && Number(review.report?.options?.length) > 0;
+  const showReport = !disableActions && review.report?.canReport;
 
   return (
     <ServerReviewLayout
@@ -48,7 +53,7 @@ export const ServerReview = observer(function ServerReview(props: ServerReviewPr
         </Title>
       }
       playtime={
-        <Title title="Time user spent on server">
+        <Title title={$L('#Review_Playtime')}>
           <TextBlock size="small" opacity="75">
             {playtime}
           </TextBlock>

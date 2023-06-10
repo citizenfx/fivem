@@ -68,6 +68,9 @@ module.exports = {
         org: "citizenfx",
         project,
         include,
+        errorHandler: (err, invokeErr, compilation) => {
+          compilation.warnings.push('Sentry CLI Plugin: ' + err.message)
+        },
       }),
     ].filter(Boolean);
   },

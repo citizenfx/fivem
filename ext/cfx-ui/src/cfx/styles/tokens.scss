@@ -3,7 +3,9 @@
  */
 @mixin color-tokens() {
   // Asset images
-  @include ui.def('asset-image-bgpat', url(../../assets/images/bgpat.png));
+  @include ui.def('asset-image-bgpat', url(assets/images/bgpat.png));
+
+  @include ui.def('checkered-pattern', url(assets/images/checkered_dark.svg));
   // /Asset images
 
 
@@ -15,6 +17,8 @@
 
 
   @include ui.define-color-token('text', ui.color('main',     950     ));
+  @include ui.def               ('text-opacity-10',                .10);
+  @include ui.define-color-token('text-a10', ui.color('main', 950, .10));
   @include ui.def               ('text-opacity-25',                .25);
   @include ui.define-color-token('text-a25', ui.color('main', 950, .25));
   @include ui.def               ('text-opacity-50',                .50);
@@ -22,7 +26,8 @@
   @include ui.def               ('text-opacity-75',                .75);
   @include ui.define-color-token('text-a75', ui.color('main', 950, .75));
 
-  @include ui.define-color-token('link-decoration', ui.color('main', 500));
+  @include ui.define-color-token('text-warning', ui.color('warning'));
+
   @include ui.define-color-token('link-hover-decoration', ui.color('main', 950));
 
   @include ui.define-color-token('li-marker', ui.color('main', 950, .75));
@@ -35,6 +40,10 @@
   @include ui.define-color-token('scrollbar-active', ui.color('main', 950, .5));
 
   @include ui.define-color-token('backdrop', ui.color('main', $alpha: .75));
+  @include ui.define-color-token('backdrop-100', ui.color('main', $alpha: .25));
+  @include ui.define-color-token('backdrop-200', ui.color('main', $alpha: .5));
+  @include ui.define-color-token('backdrop-300', ui.color('main', $alpha: .75));
+
   @include ui.define-color-token('backdrop-shader', ui.color('main', $alpha: .75));
 
 
@@ -248,4 +257,18 @@
   @include ui.define-color-token('interactive-list-item-background', transparent);
   @include ui.define-color-token('interactive-list-item-hover-background', ui.color('main', 200, 1));
   @include ui.define-color-token('interactive-list-item-active-background', ui.color('main', 200, .5));
+
+
+  @include ui.define-color-token('carousel-selector-item-progress-background', ui.color('main', 500, .25));
+
+
+  @include ui.define-color-token('outlined-hover-border', ui.color('main', 500, .25));
+
+
+  @include ui.define-color-token('tabular-item-decorator-active-background', ui.color('main', 950, .5));
+  @include ui.define-color-token('tabular-item-decorator-hover-background', ui.color('main', 950, .1));
+
+
+  @include ui.define-color-token('play-button-background-1', rgba(255, 143, 178, 1));
+  @include ui.define-color-token('play-button-background-2', rgba(170, 49, 146, 1));
 }

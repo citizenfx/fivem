@@ -6,6 +6,7 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
 const ImageMinimizerPlugin = require("image-minimizer-webpack-plugin");
+const SentryWebpackPlugin = require('@sentry/webpack-plugin');
 
 const srcPath = path.join(__dirname, '../src');
 const buildPath = path.join(__dirname, '../build');
@@ -14,12 +15,18 @@ module.exports = (env, argv) => {
   const isProd = argv.mode === 'production';
   const isDev = !isProd;
 
+  const sentryAuthToken = process.env.SENTRY_AUTH_TOKEN;
+  const sentryRelease = `cfx-${process.env.CI_PIPELINE_ID || 'dev'}`;
+
   const app = env.app;
 
   verifyApp(app);
   const appPath = path.join(srcPath, 'cfx/apps', app);
+  const appBuildPath = path.join(buildPath, app);
 
   return {
+    devtool: isProd ? 'source-map' : 'eval',
+
     entry: path.join(appPath, 'index.tsx'),
 
     resolveLoader: {
@@ -42,7 +49,8 @@ module.exports = (env, argv) => {
     },
 
     output: {
-      path: path.join(buildPath, app),
+      clean: isProd,
+      path: appBuildPath,
       filename: 'static/js/[name].js',
       chunkFilename: 'static/js/[name].chunk.js',
     },
@@ -60,10 +68,7 @@ module.exports = (env, argv) => {
     module: {
       rules: [
         {
-          test: /\.(bmp|gif|jpg|jpeg|png|woff|woff2|mp3|ogg|wav|svg)$/,
-          resourceQuery: {
-            not: [/_INLINE_/],
-          },
+          test: /\.(bmp|gif|jpg|jpeg|png|woff|woff2|mp3|ogg|wav|svg|webp)$/,
           type: 'asset/resource',
           generator: {
             filename: 'static/media/[hash][name][ext]',
@@ -116,10 +121,6 @@ module.exports = (env, argv) => {
           test: /\.raw\.js$/,
           type: 'asset/source',
         },
-        {
-          resourceQuery: /_INLINE_/,
-          type: 'asset/inline',
-        },
 
         {
           test: /\.tsx?$/,
@@ -136,7 +137,7 @@ module.exports = (env, argv) => {
         },
 
         {
-          test: /\.js$/,
+          test: /\.(mjs|js)$/,
           enforce: 'pre',
           use: [
             {
@@ -166,6 +167,7 @@ module.exports = (env, argv) => {
       new webpack.DefinePlugin({
         '__CFXUI_DEV__': JSON.stringify(isDev),
         '__CFXUI_USE_SOUNDS__': app === 'mpMenu',
+        'process.env.CI_PIPELINE_ID': JSON.stringify(process.env.CI_PIPELINE_ID),
       }),
       new HtmlWebpackPlugin({
         template: path.join(appPath, 'index.html'),
@@ -178,6 +180,23 @@ module.exports = (env, argv) => {
       isDev && new ReactRefreshWebpackPlugin(),
 
       isProd && new MiniCssExtractPlugin(),
+
+      !!sentryAuthToken && new SentryWebpackPlugin({
+        url: 'https://sentry.fivem.net/',
+        authToken: sentryAuthToken,
+
+        release: sentryRelease,
+
+        org: 'citizenfx',
+        project: 'mpmenu',
+
+        include: appBuildPath,
+        urlPrefix: 'https://nui-game-internal/ui/app/',
+
+        errorHandler: (err, invokeErr, compilation) => {
+          compilation.warnings.push('Sentry CLI Plugin: ' + err.message)
+        },
+      }),
     ].filter(Boolean),
 
     performance: {
@@ -187,6 +206,12 @@ module.exports = (env, argv) => {
 
     optimization: {
       usedExports: isProd,
+
+      ...(
+        isProd
+          ? { chunkIds: 'named', splitChunks: false }
+          : {}
+      ),
 
       minimizer: [
         isProd && new ImageMinimizerPlugin({

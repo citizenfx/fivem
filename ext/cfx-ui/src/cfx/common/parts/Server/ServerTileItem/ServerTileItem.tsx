@@ -4,39 +4,92 @@ import { ui } from "cfx/ui/ui";
 import { clsx } from "cfx/utils/clsx";
 import { observer } from "mobx-react-lite";
 import { ServerTitle } from "../ServerTitle/ServerTitle";
-import { Pad } from "cfx/ui/Layout/Pad/Pad";
 import { Flex } from "cfx/ui/Layout/Flex/Flex";
 import { Text } from "cfx/ui/Text/Text";
 import { FlexRestricter } from "cfx/ui/Layout/Flex/FlexRestricter";
 import { ServerPlayersCount } from "../ServerPlayersCount/ServerPlayersCount";
-import { showServerCountryFlag } from "../ServerListItem/utils";
+import { isServerLiveLoading, showServerCountryFlag, showServerPowers } from "cfx/common/services/servers/helpers";
 import { CountryFlag } from "cfx/ui/CountryFlag/CountryFlag";
 import { ServerIcon } from "../ServerIcon/ServerIcon";
 import { Box } from "cfx/ui/Layout/Box/Box";
 import { useNavigate } from "react-router-dom";
 import { Icons } from "cfx/ui/Icons";
 import { Title } from "cfx/ui/Title/Title";
-import s from './ServerTileItem.module.scss';
+import { ServerPower } from "../ServerPower/ServerPower";
+import { ServerBoostButton } from "../ServerBoostButton/ServerBoostButton";
+import { ControlBox } from "cfx/ui/ControlBox/ControlBox";
+import { ServerConnectButton } from "../ServerConnectButton/ServerConnectButton";
+import { ServerFavoriteButton } from "../ServerFavoriteButton/ServerFavoriteButton";
+import { preventDefault, stopPropagation } from "cfx/utils/domEvents";
+import { Loaf } from "cfx/ui/Loaf/Loaf";
+import { Indicator } from "cfx/ui/Indicator/Indicator";
 import { $L } from "cfx/common/services/intl/l10n";
+import s from './ServerTileItem.module.scss';
+import { Icon } from "cfx/ui/Icon/Icon";
+import { PremiumBadge } from "cfx/ui/PremiumBadge/PremiumBadge";
 
 export interface ServerTileItemProps {
   server: IServerView,
+
+  label?: React.ReactNode,
+
+  hideIcon?: boolean,
+  hideBoost?: boolean,
+  hideBanner?: boolean,
+  hideDescription?: boolean,
+
+  noIconGlow?: boolean,
+
+  placeControlsBelow?: boolean,
 }
 
 export const ServerTileItem = observer(function ServerTileItem(props: ServerTileItemProps) {
   const {
     server,
+    label,
+    hideIcon = false,
+    hideBoost = false,
+    hideBanner = false,
+    hideDescription = false,
+    noIconGlow = false,
+    placeControlsBelow = false,
   } = props;
 
   const navigate = useNavigate();
-  const handleClick = React.useCallback(() => {
-    navigate(`/servers/detail/${server.address}`);
-  }, [navigate, server]);
+  const handleClick = () => navigate(`/servers/detail/${server.id}`);
+
+  const showBanner = !hideBanner && !!server.bannerDetail;
 
   const showCountryFlag = showServerCountryFlag(server.localeCountry);
+  const showPowers = !hideBoost && showServerPowers(server);
+  const hidePlayersCountOnHover = showPowers || showCountryFlag;
+
+  const isLoading = isServerLiveLoading(server);
+
+  let connectButtonNode: React.ReactNode = null;
+
+  if (isLoading) {
+    connectButtonNode = (
+      <ControlBox>
+        <Indicator />
+      </ControlBox>
+    );
+  } else if (server.offline) {
+    connectButtonNode = (
+      <Loaf color="error">
+        {$L('#Server_Offline')}
+      </Loaf>
+    );
+  } else {
+    connectButtonNode = (
+      <ServerConnectButton size="normal" theme="transparent" server={server} />
+    );
+  }
 
   const rootClassName = clsx(s.root, {
-    [s.withBanner]: server.bannerDetail,
+    [s.withBanner]: showBanner,
+    [s.withLabel]: !!label,
+    [s.placeControlsBelow]: placeControlsBelow,
   });
 
   const rootStyle: React.CSSProperties = React.useMemo(() => ({
@@ -47,75 +100,130 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
     <div
       style={rootStyle}
       className={rootClassName}
-      onClick={handleClick}
+      onClick={preventDefault(stopPropagation(handleClick))}
     >
       <div className={s.banner} />
 
       <div className={s.content}>
-        <Pad left right bottom top={!server.bannerDetail}>
+        <Flex vertical fullHeight>
+          {label}
+
           <Flex fullWidth>
-            <Box height={10}>
-              <ServerIcon type="list" server={server} />
-            </Box>
+            {!hideIcon && (
+              <Box height={10}>
+                <ServerIcon
+                  glow={!noIconGlow}
+                  type="list"
+                  server={server}
+                  loading={isLoading}
+                />
+              </Box>
+            )}
 
             <FlexRestricter>
-              <Flex vertical fullHeight fullWidth centered="cross-axis" gap="normal">
+              <Flex vertical fullHeight fullWidth centered="cross-axis" gap="small">
                 <ServerTitle
                   truncated
                   size="xlarge"
                   title={server.projectName || server.hostname}
                 />
 
-                <Title delay={500} fixedOn="bottom-left" title={server.projectDescription}>
-                  <Text truncated opacity="50">
-                    {server.projectDescription}
-                  </Text>
-                </Title>
+                {!hideDescription && !!server.projectDescription && (
+                  <Title delay={500} fixedOn="bottom-left" title={server.projectDescription}>
+                    <Text truncated opacity="50">
+                      {server.projectDescription}
+                    </Text>
+                  </Title>
+                )}
               </Flex>
             </FlexRestricter>
 
-            <div style={{ alignSelf: 'flex-end' }}>
+            {!placeControlsBelow && (
               <Flex vertical alignToEndAxis>
-                <Flex centered>
-                  {Boolean(server.upvotePower) && (
-                    <Title fixedOn="bottom" title={$L('#Server_BoostPower_Title')}>
-                      <Flex gap="thin">
-                        {Icons.serverBoost}
-                        <span>
-                          {server.upvotePower}
-                        </span>
-                      </Flex>
-                    </Title>
-                  )}
+                {(showPowers || showCountryFlag) && (
+                  <Flex centered>
+                    {showPowers && (
+                      <ServerPower server={server} />
+                    )}
 
-                  {Boolean(server.burstPower) && (
-                    <Title fixedOn="bottom" title={$L('#Server_BurstPower_Title')}>
-                      <Flex gap="thin">
-                        {Icons.serverBurst}
-                        <span>
-                          {server.burstPower}
-                        </span>
-                      </Flex>
-                    </Title>
-                  )}
+                    {showCountryFlag && (
+                      <CountryFlag
+                        locale={server.locale}
+                        country={server.localeCountry}
+                      />
+                    )}
+                  </Flex>
+                )}
 
-                  {showCountryFlag && (
-                    <CountryFlag
-                      locale={server.locale}
-                      country={server.localeCountry}
-                    />
-                  )}
-                </Flex>
+                <ControlBox size="small" className={clsx({ [s.hideOnHover]: hidePlayersCountOnHover })}>
+                  <Flex centered fullHeight fullWidth gap="small">
+                    <Icon opacity="50">
+                      {Icons.playersCount}
+                    </Icon>
+                    <Text opacity="75">
+                      <ServerPlayersCount server={server} />
+                    </Text>
+                  </Flex>
+                </ControlBox>
 
-                <Flex gap="small">
-                  {Icons.playersCount}
-                  <ServerPlayersCount server={server} />
-                </Flex>
+                <ControlBox size="small" className={s.showOnHover}>
+                  <Flex>
+                    {!hideBoost && (
+                      <ServerBoostButton server={server} />
+                    )}
+
+                    <ServerFavoriteButton size="small" server={server} />
+
+                    <ServerConnectButton size="small" server={server} />
+                  </Flex>
+                </ControlBox>
               </Flex>
-            </div>
+            )}
           </Flex>
-        </Pad>
 
+          {placeControlsBelow && (
+            <Flex repell centered="axis">
+              <Flex centered="axis">
+                {showCountryFlag && (
+                  <CountryFlag
+                    locale={server.locale}
+                    country={server.localeCountry}
+                  />
+                )}
+
+                <ControlBox size="small">
+                  <Flex centered="axis" fullHeight fullWidth gap="small">
+                    <Icon opacity="50">
+                      {Icons.playersCount}
+                    </Icon>
+                    <Text opacity="75">
+                      <ServerPlayersCount server={server} />
+                    </Text>
+                  </Flex>
+                </ControlBox>
+
+                {showPowers && (
+                  <ServerPower server={server} />
+                )}
+
+                {!hideBoost && (
+                  <ServerBoostButton
+                    size="small"
+                    server={server}
+                    theme="transparent"
+                    className={s.visibleOnHover}
+                  />
+                )}
+              </Flex>
+
+              <Flex alignToEndAxis>
+                <ServerFavoriteButton size="normal" server={server} />
+
+                {connectButtonNode}
+              </Flex>
+            </Flex>
+          )}
+        </Flex>
       </div>
     </div>
   );

@@ -1,7 +1,14 @@
 using System;
 using CitizenFX.Core.Native;
 
+#if MONO_V2
+using CitizenFX.Core;
+using API = CitizenFX.FiveM.Native.Natives;
+
+namespace CitizenFX.FiveM
+#else
 namespace CitizenFX.Core
+#endif
 {
 	public enum CameraShake
 	{

@@ -49,7 +49,7 @@
   @include ui.font-size('normal');
   font-weight: ui.font-weight('normal');
 
-  line-height: 2;
+  line-height: 1.1;
   letter-spacing: 1px;
   text-decoration: none;
 
@@ -85,6 +85,10 @@
     &:focus-visible:not(:active):not(:hover) {
       box-shadow: 0 0 0 2px ui.color-token('button-focus-outline');
     }
+  }
+
+  &.fullWidth {
+    width: 100%;
   }
 
   // theme primary

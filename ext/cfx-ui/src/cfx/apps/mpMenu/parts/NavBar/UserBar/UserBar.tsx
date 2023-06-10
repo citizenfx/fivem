@@ -67,20 +67,35 @@ export const UserBar = observer(function UserBar() {
   }
 
   if (AccountService.accountLoadError) {
+    const title = (
+      <>
+        {$L('#UserNav_FailedToLoadAccountData')}
+        <br />
+        <br />
+        <strong>
+          {$L('#UserNav_FailedToLoadAccountData_2')}
+        </strong>
+      </>
+    );
+
     return (
-      <Title title="Failed to load account data">
+      <Title title={title}>
         <Button
           size="large"
           theme={buttonTheme}
-          icon={<BsExclamationCircleFill style={{ color: 'rgba(var(--color-error))' }} />}
+          icon={<BsExclamationCircleFill />}
         />
       </Title>
     );
   }
 
+  const linkAccountButtonTheme = NavBarState.forceTransparentNav
+    ? 'default'
+    : 'primary';
+
   return (
     <Button
-      theme="primary"
+      theme={linkAccountButtonTheme}
       size="large"
       text={$L('#BottomNav_LinkAccount')}
       onClick={AuthService.openUI}
@@ -89,24 +104,28 @@ export const UserBar = observer(function UserBar() {
 });
 
 function getUserAvatarTitle(account: IAccount): React.ReactNode {
-  const titles: string[] = [account.username];
-
-  // #TODOLOC
-  if (account.isPremium) {
-    titles.push('Premium');
-  }
-  if (account.isStaff) {
-    titles.push('Staff member');
-  }
+  const hasExtraTitle = account.isPremium || account.isStaff;
 
   return (
     <Flex vertical centered gap="small">
       <span>
         {$L('#UserBar_AccountSettings')}
       </span>
-      <strong>
-        {titles.join(` ${Symbols.htmlDot} `)}
-      </strong>
+
+      {hasExtraTitle && (
+        <strong>
+          {account.isPremium && (
+            $L('#UserNav_Title_Premium')
+          )}
+
+          {account.isStaff && (
+            <>
+              {Symbols.htmlDot}
+              {$L('#UserNav_Title_Staff')}
+            </>
+          )}
+        </strong>
+      )}
     </Flex>
   );
 }

@@ -10,6 +10,24 @@
 #include <directxmath.h>
 
 #include <CrossBuildRuntime.h>
+#include "XBRVirtual.h"
+
+template<int Offset>
+inline int MapEntityMethod()
+{
+	int offset = Offset;
+
+	if (offset >= 0x18 && xbr::IsGameBuildOrGreater<2802>())
+	{
+		offset += 0x20;
+	}
+	else if (offset >= 0x10 && xbr::IsGameBuildOrGreater<2189>())
+	{
+		offset += 0x8;
+	}
+
+	return offset;
+}
 
 #ifdef COMPILING_GTA_STREAMING_FIVE
 #define STREAMING_EXPORT DLL_EXPORT
@@ -64,12 +82,12 @@ public:
 	virtual void ForAllOfHash(uint32_t hash, void(*cb)(TSubClass*)) = 0;
 };
 
-class STREAMING_EXPORT fwArchetypeDef
+class STREAMING_EXPORT fwArchetypeDef : XBR_VIRTUAL_BASE_2802(0)
 {
 public:
-	virtual ~fwArchetypeDef();
+	XBR_VIRTUAL_DTOR(fwArchetypeDef)
 
-	virtual int64_t GetTypeIdentifier();
+	XBR_VIRTUAL_METHOD(int64_t, GetTypeIdentifier, ())
 
 	float lodDist;
 	uint32_t flags; // 0x10000 = alphaclip
@@ -143,16 +161,16 @@ private:
 	uint16_t flags;
 };
 
-class STREAMING_EXPORT fwArchetype
+class STREAMING_EXPORT fwArchetype : XBR_VIRTUAL_BASE_2802(0)
 {
 public:
-	virtual ~fwArchetype() = default;
+	XBR_VIRTUAL_DTOR(fwArchetype)
 
-	virtual void m_8() = 0;
+	XBR_VIRTUAL_METHOD(void, m_8, ())
 
-	virtual void InitializeFromArchetypeDef(uint32_t mapTypesStoreIdx, fwArchetypeDef* archetypeDef, bool) = 0;
+	XBR_VIRTUAL_METHOD(void, InitializeFromArchetypeDef, (uint32_t mapTypesStoreIdx, fwArchetypeDef* archetypeDef, bool))
 
-	virtual fwEntity* CreateEntity() = 0;
+	XBR_VIRTUAL_METHOD(fwEntity*, CreateEntity, ())
 
 	inline bool HasEmbeddedCollision()
 	{
@@ -209,22 +227,78 @@ namespace rage
 class parStructure;
 }
 
-class STREAMING_EXPORT fwExtensionDef
+class STREAMING_EXPORT fwExtensionDef : XBR_VIRTUAL_BASE_2802(0)
 {
 public:
-	virtual ~fwExtensionDef() = default;
+	XBR_VIRTUAL_DTOR(fwExtensionDef)
+
+	XBR_VIRTUAL_METHOD(void*, parser_GetStructure, ())
+
+	uint32_t name;
+};
+
+class STREAMING_EXPORT fwExtensionDefImplOld
+{
+public:
+	virtual ~fwExtensionDefImplOld() = default;
 
 	virtual void* parser_GetStructure() = 0;
 
 	uint32_t name;
 };
 
-class STREAMING_EXPORT fwEntityDef
+class STREAMING_EXPORT fwExtensionDefImpl2802
+{
+private:
+	inline virtual void* _2802_1()
+	{
+		return nullptr;
+	}
+
+	inline virtual void* _2802_2()
+	{
+		return nullptr;
+	}
+
+	inline virtual void* _2802_3()
+	{
+		return nullptr;
+	}
+
+	inline virtual void* _2802_4()
+	{
+		return nullptr;
+	}
+
+	inline virtual void* _2802_5()
+	{
+		return nullptr;
+	}
+
+	inline virtual void* _2802_6()
+	{
+		return nullptr;
+	}
+
+public:
+	virtual ~fwExtensionDefImpl2802() = default;
+
+	virtual void* parser_GetStructure() = 0;
+
+	uint32_t name;
+};
+
+template<int Build>
+class fwExtensionDefImpl : public std::conditional_t<Build >= 2802, fwExtensionDefImpl2802, fwExtensionDefImplOld>
+{
+};
+
+class STREAMING_EXPORT fwEntityDef : XBR_VIRTUAL_BASE_2802(0)
 {
 public:
-	virtual ~fwEntityDef();
+	XBR_VIRTUAL_DTOR(fwEntityDef)
 
-	virtual rage::parStructure* GetTypeIdentifier();
+	XBR_VIRTUAL_METHOD(rage::parStructure*, GetTypeIdentifier, ())
 
 public:
 	uint32_t archetypeName;
@@ -380,14 +454,20 @@ private:
 
 public:
 
+#undef FORWARD_FUNC
 #define FORWARD_FUNC(name, offset, ...) \
 	using TFn = decltype(&fwEntity::name); \
 	void** vtbl = *(void***)(this); \
-	return (this->*(get_member<TFn>(vtbl[(offset / 8) + ((offset > 0x10) ? (xbr::IsGameBuildOrGreater<2189>() ? 1 : 0) : 0)])))(__VA_ARGS__);
+	return (this->*(get_member<TFn>(vtbl[MapEntityMethod<offset>() / 8])))(__VA_ARGS__);
 
 private:
 	inline bool IsOfTypeH(uint32_t hash)
 	{
+		if (xbr::IsGameBuildOrGreater<2802>())
+		{
+			return (GetTypeHash() == hash);
+		}
+
 		if (xbr::IsGameBuildOrGreater<2189>())
 		{
 			return IsOfTypeRef(hash);
@@ -398,7 +478,24 @@ private:
 
 	inline bool IsOfTypeRef(const uint32_t& hash)
 	{
+		if (xbr::IsGameBuildOrGreater<2802>())
+		{
+			return (GetTypeHash() == hash);
+		}
+
 		FORWARD_FUNC(IsOfTypeRef, 0x8, hash);
+	}
+
+private:
+	inline uint32_t GetTypeHash()
+	{
+		if (!xbr::IsGameBuildOrGreater<2802>())
+		{
+			assert(false);
+		}
+
+		// #TODO2802: new RTTI method, a bit weird but works, definitely need to make it less dirty at some point...
+		return (*(uint32_t(__fastcall**)(char*))(*(char**)this + 0x10))((char*)this);
 	}
 
 public:
@@ -441,6 +538,8 @@ public:
 	{
 		FORWARD_FUNC(GetRadius, 0x190);
 	}
+
+#undef FORWARD_FUNC
 
 public:
 	inline const Matrix4x4& GetTransform() const
@@ -654,6 +753,7 @@ private:
 	{
 		Impl<0x918> m1604;
 		Impl<0x938> m2060;
+		Impl<0x918> m2802;
 	} impl;
 
 public:
@@ -661,7 +761,11 @@ public:
 
 	inline CHandlingData* GetHandlingData()
 	{
-		if (xbr::IsGameBuildOrGreater<2060>())
+		if (xbr::IsGameBuildOrGreater<2802>())
+		{
+			return impl.m2802.m_handlingData;
+		}
+		else if (xbr::IsGameBuildOrGreater<2060>())
 		{
 			return impl.m2060.m_handlingData;
 		}
@@ -676,7 +780,11 @@ public:
 		// Use an alignment byte within CHandlingDataMgr to represent the handling as hooked.
 		*((char*)ptr + 28) = 1;
 		
-		if (xbr::IsGameBuildOrGreater<2060>())
+		if (xbr::IsGameBuildOrGreater<2802>())
+		{
+			impl.m2802.m_handlingData = ptr;
+		}
+		else if (xbr::IsGameBuildOrGreater<2060>())
 		{
 			impl.m2060.m_handlingData = ptr;
 		}
@@ -728,12 +836,12 @@ STREAMING_EXPORT extern fwEvent<const DamageEventMetaData&> OnEntityDamaged;
 
 class CMapData;
 
-struct CMapDataContents
+struct CMapDataContents : XBR_VIRTUAL_BASE_2802(0)
 {
-	virtual ~CMapDataContents() = 0;
-	virtual void Add() = 0;
-	virtual void Remove(int id) = 0;
-	virtual void PrepareInteriors(void* meta, void* data, uint32_t id) = 0;
+	XBR_VIRTUAL_DTOR(CMapDataContents)
+	XBR_VIRTUAL_METHOD(void, Add, ())
+	XBR_VIRTUAL_METHOD(void, Remove, (int id))
+	XBR_VIRTUAL_METHOD(void, PrepareInteriors, (void* meta, void* data, uint32_t id))
 
 	// 8
 	void* sceneNodes;

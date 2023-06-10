@@ -370,7 +370,7 @@ static HMODULE LoadLibraryAStub(LPCSTR modName)
 
 HRESULT RootD3D11CreateDevice(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _COM_Outptr_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _COM_Outptr_opt_ ID3D11DeviceContext** ppImmediateContext)
 {
-	auto hookDll = MakeRelativeGamePath(L"d3d11.dll");
+	auto hookDll = MakeRelativeCitPath(L"plugins/d3d11.dll");
 
 	if (GetFileAttributesW(hookDll.c_str()) == INVALID_FILE_ATTRIBUTES || !IsValidGraphicsLibrary(hookDll))
 	{

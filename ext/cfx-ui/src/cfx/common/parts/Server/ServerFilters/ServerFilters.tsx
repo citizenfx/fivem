@@ -70,7 +70,7 @@ export const ServerFilters = observer(function ServerFilters(props: ServerFilter
                 size="large"
                 theme={active && 'primary' || 'default-blurred'}
                 icon={<FiFilter />}
-                text="Filters"
+                text={$L('#ServerList_Filter')}
               />
             </Decorate>
           )}
@@ -109,8 +109,8 @@ const FiltersPopover = observer(function FiltersPopover(props: ServerFiltersProp
         <Pad top left right>
           <Flex centered>
             <ControlBox size="large">
-              <Text size="large" weight="bold" opacity="50">
-                FILTERS
+              <Text uppercase size="large" weight="bold" opacity="50">
+                {$L('#ServerList_Filter')}
               </Text>
             </ControlBox>
           </Flex>
@@ -141,12 +141,12 @@ const FiltersPopover = observer(function FiltersPopover(props: ServerFiltersProp
               <Flex repell centered>
                 <ControlBox size="small">
                   <Text opacity="50">
-                    Locales
+                    {$L('#ServerList_Locales')}
                   </Text>
                 </ControlBox>
 
                 {config.filteringByAnyLocale && (
-                  <Title title="Reset">
+                  <Title title={$L('#ServerList_Filter_Reset')}>
                     <Button
                       size="small"
                       theme="transparent"
@@ -177,7 +177,7 @@ const FiltersPopover = observer(function FiltersPopover(props: ServerFiltersProp
               <Flex repell centered>
                 <ControlBox size="small">
                   <Text opacity="50">
-                    Tags
+                    {$L('#ServerList_Tags')}
                   </Text>
                 </ControlBox>
 
@@ -220,19 +220,19 @@ const SortPopover = observer(function SortPopover(props: ServerFiltersProps) {
       <Pad size="small" top bottom>
         <ListItem
           active={config.sortBy === ServersListSortBy.Boosts}
-          label="BOOST Power"
-          value={null}
+          label={$L('#Server_BoostPower_Title')}
+          value={Icons.serverBoost}
           onClick={config.setSortByBoosts}
         />
         <ListItem
           active={config.sortBy === ServersListSortBy.Name}
-          label="Server name"
+          label={$L('#ServerList_Name')}
           value={iconsMap[ServersListSortBy.Name][config.sortDir]}
           onClick={config.setSortByName}
         />
         <ListItem
           active={config.sortBy === ServersListSortBy.Players}
-          label="Players"
+          label={$L('#ServerList_Players')}
           value={iconsMap[ServersListSortBy.Players][config.sortDir]}
           onClick={config.setSortByPlayers}
         />

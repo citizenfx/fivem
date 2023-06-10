@@ -1,3 +1,4 @@
+import React from "react";
 import { ActivityItem } from "cfx/ui/ActivityItem/ActivityItem";
 import { Icons } from "cfx/ui/Icons";
 import { Island } from "cfx/ui/Island/Island";
@@ -8,7 +9,6 @@ import { Scrollable } from "cfx/ui/Layout/Scrollable/Scrollable";
 import { Flex } from "cfx/ui/Layout/Flex/Flex";
 import { IActivityItem } from "cfx/common/services/activity/types";
 import { observer } from "mobx-react-lite";
-import React from "react";
 
 export interface FeedProps {
   items: IActivityItem[],
@@ -28,15 +28,15 @@ export const Feed = observer(function Feed(props: FeedProps) {
 
   const [showFeed, setShowFeed] = React.useState(false);
 
-  React.useEffect(() => {
-    let rAF: any = requestIdleCallback(() => {
+  React.useLayoutEffect(() => {
+    let timer: SetTimeoutReturn | null = setTimeout(() => {
       setShowFeed(true);
-      rAF = null;
-    });
+      timer = null;
+    }, 16);
 
     return () => {
-      if (rAF) {
-        cancelIdleCallback(rAF);
+      if (timer) {
+        clearTimeout(timer);
       }
     };
   }, []);

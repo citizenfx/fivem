@@ -32,6 +32,7 @@ export interface ButtonProps {
   autofocus?: boolean,
   tabIndex?: number,
   className?: string,
+  fullWidth?: boolean,
 
   onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void,
   onMouseDown?: (event: React.MouseEvent<HTMLButtonElement>) => void,
@@ -55,6 +56,7 @@ export const Button = React.forwardRef(function Button(props: ButtonProps, ref: 
     onMouseDown = noop,
     onMouseUp = noop,
     autofocus = false,
+    fullWidth = false,
     tabIndex,
     decorator = null,
   } = props;
@@ -65,6 +67,7 @@ export const Button = React.forwardRef(function Button(props: ButtonProps, ref: 
     [s.text]: !!text,
     [s.autofocus]: autofocus || (typeof tabIndex !== 'undefined'),
     [s['straight-borders']]: straightCorners,
+    [s.fullWidth]: fullWidth,
   });
 
   const linkClickHandler = to

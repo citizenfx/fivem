@@ -9,18 +9,15 @@
 #define BOTAN_X509_CERTS_H_
 
 #include <botan/x509_obj.h>
-#include <botan/x509_key.h>
-#include <botan/asn1_time.h>
-#include <botan/key_constraint.h>
-#include <botan/name_constraint.h>
 #include <memory>
 
 namespace Botan {
 
 class Public_Key;
 class X509_DN;
-class AlternativeName;
 class Extensions;
+class AlternativeName;
+class NameConstraints;
 
 enum class Usage_Type
    {
@@ -45,12 +42,11 @@ class BOTAN_PUBLIC_API(2,0) X509_Certificate : public X509_Object
       * with the subject of this certificate. This object is owned
       * by the caller.
       *
+      * Prefer load_subject_public_key in new code
+      *
       * @return public key
       */
-      Public_Key* subject_public_key() const
-         {
-         return load_subject_public_key().release();
-         }
+      Public_Key* subject_public_key() const;
 
       /**
       * Create a public key object associated with the public key bits in this

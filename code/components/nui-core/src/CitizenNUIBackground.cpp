@@ -284,7 +284,7 @@ void CitizenNUIBackground::EnsureTextures()
 	}
 }
 
-static std::vector<uint32_t> LoadFileBitmap(const std::string& filename, int* outWidth, int* outHeight)
+static std::vector<uint32_t> LoadFileBitmap(const std::string& filename, int* outWidth, int* outHeight, float dpiScale = 1.0f)
 {
 	ComPtr<IWICBitmapDecoder> decoder;
 	std::vector<uint8_t> v;
@@ -311,12 +311,35 @@ static std::vector<uint32_t> LoadFileBitmap(const std::string& filename, int* ou
 
 		if (SUCCEEDED(hr))
 		{
-			ComPtr<IWICBitmapSource> source;
-			ComPtr<IWICBitmapSource> convertedSource;
-
 			UINT width = 0, height = 0;
+			ComPtr<IWICBitmapSource> source;
 
 			frame->GetSize(&width, &height);
+			frame.As(&source);
+
+			if (dpiScale > 1.0f)
+			{
+				ComPtr<IWICBitmapScaler> scaler;
+				if (SUCCEEDED(g_imagingFactory->CreateBitmapScaler(&scaler)))
+				{
+					auto targetWidth = static_cast<UINT>(width * dpiScale);
+					auto targetHeight = static_cast<UINT>(height * dpiScale);
+
+					if (SUCCEEDED(scaler->Initialize(
+						frame.Get(),
+						targetWidth,
+						targetHeight,
+						WICBitmapInterpolationModeFant)))
+					{
+						width = targetWidth;
+						height = targetHeight;
+
+						scaler.As(&source);
+					}
+				}
+			}
+
+			ComPtr<IWICBitmapSource> convertedSource;
 
 			if (outWidth)
 			{
@@ -329,8 +352,6 @@ static std::vector<uint32_t> LoadFileBitmap(const std::string& filename, int* ou
 			}
 
 			// try to convert to a pixel format we like
-			frame.As(&source);
-
 			hr = WICConvertBitmapSource(GUID_WICPixelFormat32bppBGRA, source.Get(), convertedSource.GetAddressOf());
 
 			if (SUCCEEDED(hr))
@@ -367,11 +388,40 @@ fwRefContainer<nui::GITexture> CitizenNUIBackground::InitializeTextureFromFile(c
 	return nullptr;
 }
 
+// adapted from 'dear imgui' impl_win32
+#include <shellscalingapi.h>
+
+static float GetDpiScaleForMonitor(void* monitor)
+{
+	UINT xdpi = 96, ydpi = 96;
+	static HINSTANCE shcore = LoadLibraryW(L"shcore.dll");
+	if (shcore)
+	{
+		static auto _GetDpiForMonitor = (decltype(&GetDpiForMonitor))GetProcAddress(shcore, "GetDpiForMonitor");
+		if (_GetDpiForMonitor)
+		{
+			_GetDpiForMonitor((HMONITOR)monitor, MDT_EFFECTIVE_DPI, &xdpi, &ydpi);
+			return xdpi / 96.0f;
+		}
+	}
+
+	return 1.0f;
+}
+
+static float GetDpiScaleForHwnd(void* hwnd)
+{
+	HMONITOR monitor = ::MonitorFromWindow((HWND)hwnd, MONITOR_DEFAULTTONEAREST);
+	return GetDpiScaleForMonitor(monitor);
+}
+
 HCURSOR InitDefaultCursor()
 {
+	auto hWnd = g_nuiGi->GetHWND();
+	auto dpiScale = GetDpiScaleForHwnd(hWnd);
+
 	int width = 0;
 	int height = 0;
-	auto pixelData = LoadFileBitmap("citizen:/resources/citizen_cursor.png", &width, &height);
+	auto pixelData = LoadFileBitmap("citizen:/resources/citizen_cursor.png", &width, &height, dpiScale);
 
 	if (!pixelData.empty())
 	{
@@ -388,7 +438,6 @@ HCURSOR InitDefaultCursor()
 		bitmapInfo.bmiHeader.biClrUsed = 0;
 		bitmapInfo.bmiHeader.biClrImportant = 0;
 
-		auto hWnd = g_nuiGi->GetHWND();
 		HDC workingDC;
 		HBITMAP bitmap;
 

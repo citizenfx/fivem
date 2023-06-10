@@ -8,6 +8,7 @@ import { useService } from "cfx/base/servicesContainer";
 import { IConvarService, KnownConvars } from "../../services/convars/convars.service";
 import { ILinkedIdentitiesService } from "../../services/linkedIdentities/linkedIdentities.service";
 import { ILinkedIdentity, LinkedIdentityProvider } from "../../services/linkedIdentities/types";
+import { $L } from "cfx/common/services/intl/l10n";
 
 export const LinkedIdentitiesList = observer(function LinkedIdentitiesList() {
   const ConvarService = useService(IConvarService);
@@ -28,6 +29,10 @@ export const LinkedIdentitiesList = observer(function LinkedIdentitiesList() {
   const identityNodes: React.ReactNode[] = [];
 
   for (const identity of LinkedIdentitiesService.linkedIdentities.value) {
+    if (!identity.username) {
+      continue;
+    }
+
     const username = escapeUsername(identity.username);
     const title = getLinkedIdentityTitle(identity);
     const icon = getProviderIcon(identity.provider);
@@ -77,20 +82,20 @@ function getProviderIcon(provider: LinkedIdentityProvider): React.ReactNode {
 
 function getLinkedIdentityTitle(identity: ILinkedIdentity): React.ReactNode {
   switch (identity.provider) {
-    case LinkedIdentityProvider.Steam: {
-      return 'Steam - Detected automatically 🎉';
+    case LinkedIdentityProvider.Discord: {
+      return <>Discord - {$L('#Settings_LinkedIdentity_AddedManually')}</>;
     }
 
-    case LinkedIdentityProvider.Discord: {
-      return 'Discord - Linked by you';
+    case LinkedIdentityProvider.Steam: {
+      return <>Steam - {$L('#Settings_LinkedIdentity_DetectedAutomatically')} 🎉</>;
     }
 
     case LinkedIdentityProvider.XboxLive: {
-      return 'Xbox Live - Detected automatically 🎉';
+      return <>Xbox Live - {$L('#Settings_LinkedIdentity_DetectedAutomatically')} 🎉</>;
     }
 
     case LinkedIdentityProvider.ROS: {
-      return 'Rockstar Online Services - Detected automatically 🎉';
+      return <>Rockstar Online Services - {$L('#Settings_LinkedIdentity_DetectedAutomatically')} 🎉</>;
     }
 
     case LinkedIdentityProvider.Cfxre: {

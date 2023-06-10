@@ -1,6 +1,10 @@
 using System;
 
+#if MONO_V2
+namespace CitizenFX.FiveM
+#else
 namespace CitizenFX.Core
+#endif
 {
 	/// <summary>
 	/// The Buttons enum used for creating <see cref="ButtonCombination"/>s

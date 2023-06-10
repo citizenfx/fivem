@@ -9,6 +9,7 @@
 
 #include <jitasm.h>
 #include "Hooking.h"
+#include "Hooking.Stubs.h"
 
 #include <atArray.h>
 #include <Pool.h>
@@ -309,10 +310,7 @@ static void RunInitFunctionsWrap(void* skel, int type)
 	{
 		while (!g_callBeforeLoad())
 		{
-			g_lookAlive();
-
-			OnGameFrame();
-			OnMainGameFrame();
+			RunRlInitServicing();
 		}
 	}
 	
@@ -419,9 +417,6 @@ void ShutdownSessionWrap()
 	while (g_isNetworkKilled)
 	{
 		// warning screens apparently need to run on main thread
-		OnGameFrame();
-		OnMainGameFrame();
-
 		RunRlInitServicing();
 
 		g_runWarning();
@@ -561,6 +556,19 @@ static bool ParamToInt_Threads(void* param, int* value)
 	return rv;
 }
 
+static void (*g_origPhotoSize)(int* w, int* h, int down);
+
+static void PhotoSizeStub(int* w, int* h, int down)
+{
+	// story mode may lead to more advanced photo requests, which will crash in JPEG serialization
+	if (!Instance<ICoreGameInit>::Get()->HasVariable("storyMode"))
+	{
+		down = 1;
+	}
+
+	return g_origPhotoSize(w, h, down);
+}
+
 static HookFunction hookFunction([] ()
 {
 	// continue on
@@ -582,13 +590,14 @@ static HookFunction hookFunction([] ()
 	}
 
 	// NOP out any code that sets the 'entering state 2' (2, 0) FSM internal state to '7' (which is 'load game'), UNLESS it's digital distribution with standalone auth...
-	char* p = (Is2060()) ? hook::pattern("BA 08 00 00 00 8D 41 FC 83 F8 01").count(1).get(0).get<char>(14) : hook::pattern("BA 07 00 00 00 8D 41 FC 83 F8 01").count(1).get(0).get<char>(14);
+	// Since game build 2699.16 executables now shared.
+	char* p = (Is2060() || Is2802()) ? hook::pattern("BA 08 00 00 00 8D 41 FC 83 F8 01").count(1).get(0).get<char>(14) : hook::pattern("BA 07 00 00 00 8D 41 FC 83 F8 01").count(1).get(0).get<char>(14);
 
 	char* varPtr = p + 2;
 	g_initState = (int*)(varPtr + *(int32_t*)varPtr + 4);
 
 	// check the pointer to see if it's digital distribution
-	g_isDigitalDistrib = (p[-26] == 3);
+	g_isDigitalDistrib = Is2802() || (p[-26] == 3);
 
 	// this is also a comparison point to find digital distribution type... this function will also set '3' if it's digital distrib with standalone auth
 	// and if this *is* digital distribution, we want to find a completely different place that sets the value to 8 (i.e. BA 08 ...)
@@ -761,7 +770,7 @@ static HookFunction hookFunction([] ()
 	hook::put<uint32_t>(hook::get_pattern("84 C0 74 36 48 8B 0D ? ? ? ? 48 85 C9", -13), 0x90C301B0);
 
 	// don't downscale photos a lot
-	hook::put<uint8_t>(hook::get_pattern("41 3B D9 72 09", 3), 0xEB);
+	g_origPhotoSize = hook::trampoline(hook::get_pattern("41 3B D9 72 09", -0x3A), PhotoSizeStub);
 
 	// don't do 500ms waits for renderer
 	{

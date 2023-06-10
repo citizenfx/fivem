@@ -1,11 +1,10 @@
 import React from "react";
 import formatDistance from 'date-fns/formatDistance';
-import { IServerView, ServerViewDetailsLevel } from "cfx/common/services/servers/types";
+import { IServerView } from "cfx/common/services/servers/types";
 import { observer } from "mobx-react-lite";
 import { Indicator } from "cfx/ui/Indicator/Indicator";
 import { clsx } from "cfx/utils/clsx";
 import { Button } from "cfx/ui/Button/Button";
-import { BsArrowUp, BsClock } from "react-icons/bs";
 import { Title } from "cfx/ui/Title/Title";
 import { CountryFlag } from "cfx/ui/CountryFlag/CountryFlag";
 import { PremiumBadge } from "cfx/ui/PremiumBadge/PremiumBadge";
@@ -14,17 +13,16 @@ import { stopPropagation } from "cfx/utils/domEvents";
 import { useNavigate } from "react-router-dom";
 import { ServerTitle } from "../ServerTitle/ServerTitle";
 import { Icons } from "cfx/ui/Icons";
-import { useService, useServiceOptional } from "cfx/base/servicesContainer";
+import { useService } from "cfx/base/servicesContainer";
 import { IServersService } from "cfx/common/services/servers/servers.service";
-import { IServersBoostService } from "cfx/common/services/servers/serversBoost.service";
 import { ServerIcon } from "../ServerIcon/ServerIcon";
-import { noop } from "cfx/utils/functional";
-import { Symbols } from "cfx/ui/Symbols";
 import { playSfx, Sfx } from "cfx/apps/mpMenu/utils/sfx";
-import s from './ServerListItem.module.scss';
 import { ServerPlayersCount } from "../ServerPlayersCount/ServerPlayersCount";
-import { showServerCountryFlag, showServerPremiumBadge } from "./utils";
+import { getServerDetailsLink, isServerLiveLoading, showServerPremiumBadge } from "cfx/common/services/servers/helpers";
+import { ServerPower } from "../ServerPower/ServerPower";
+import { ServerBoostButton } from "../ServerBoostButton/ServerBoostButton";
 import { $L } from "cfx/common/services/intl/l10n";
+import s from './ServerListItem.module.scss';
 
 export interface ServerListItemProps {
   server: IServerView | undefined,
@@ -52,15 +50,13 @@ export const ServerListItem = observer(function ServerListItem(props: ServerList
     descriptionUnderName = false,
   } = props;
 
-  const ServersBoostService = useServiceOptional(IServersBoostService);
-
   const navigate = useNavigate();
   const handleClick = React.useCallback(() => {
     if (!server) {
       return;
     }
 
-    navigate(`/servers/detail/${server.address}`);
+    navigate(getServerDetailsLink(server));
   }, [navigate, server]);
 
   if (!server) {
@@ -77,10 +73,10 @@ export const ServerListItem = observer(function ServerListItem(props: ServerList
   const boostPower = (server.upvotePower || 0) - burstPower;
 
   const isOffline = Boolean(server.offline);
-  const isLoading = server.detailsLevel < ServerViewDetailsLevel.DynamicDataJson && !isOffline;
+  const isLoading = isServerLiveLoading(server);
 
   const showPremiumBadge = !hidePremiumBadge && showServerPremiumBadge(server.premium);
-  const showCountryFlag = !hideCountryFlag && showServerCountryFlag(server.localeCountry);
+  const showCountryFlag = !hideCountryFlag;
   const showDecorator = showPremiumBadge || showCountryFlag;
 
   const showTags = !hideTags && !!server.tags;
@@ -100,21 +96,21 @@ export const ServerListItem = observer(function ServerListItem(props: ServerList
     >
       <ServerIcon
         type="list"
-        server={server.address}
+        server={server}
         loading={isLoading}
         className={s.icon}
       />
 
       {isOffline && (
         <Loaf size="small" color="error">
-          OFFLINE
+          {$L('#Server_Offline')}
         </Loaf>
       )}
 
       {pinned && (
-        <Title title="Staff pick">
+        <Title title={$L('#Server_FeaturedServer_Title')}>
           <div className={s.pin}>
-            {Icons.serversStaffPick}
+            {Icons.serversFeatured}
           </div>
         </Title>
       )}
@@ -140,45 +136,29 @@ export const ServerListItem = observer(function ServerListItem(props: ServerList
 
       {!hideActions && (
         <div className={clsx(s.actions, s['show-on-hover'])}>
-          <Title fixedOn="bottom" title={$L('#Server_BoostPower_Title')}>
-            <Loaf bright size="small">
-              {Icons.serverBoost}
-              &nbsp;
-              {boostPower}
-            </Loaf>
-          </Title>
+          <ServerPower server={server} />
 
-          {!!burstPower && (
-            <Title fixedOn="bottom" title={$L('#Server_BurstPower_Title')}>
-              <Loaf bright size="small">
-                {Icons.serverBurst}
-                &nbsp;
-                {burstPower}
-              </Loaf>
-            </Title>
-          )}
-
-          {Boolean(ServersBoostService) && (
-            <BoostButton server={server} />
-          )}
+          <ServerBoostButton server={server} />
         </div>
       )}
 
-      <LastConnectedAt id={server.address} />
+      <LastConnectedAt id={server.id} />
 
       {showDecorator && (
-        <div className={clsx(s.decorator, s['hide-on-hover'])}>
+        <div className={clsx(s.decorator)}>
           {showPremiumBadge && (
             <PremiumBadge level={server.premium as any} />
           )}
 
-          {showCountryFlag && (
-            <CountryFlag country={server.localeCountry} />
-          )}
+          <CountryFlag
+            forceShow
+            locale={server.locale}
+            country={server.localeCountry}
+          />
         </div>
       )}
 
-      <Favorite id={server.address} />
+      <Favorite id={server.id} />
 
       <div className={s.players}>
         <ServerPlayersCount server={server} />
@@ -202,44 +182,6 @@ const Tags = observer(function Tags({ server }: { server: IServerView }) {
         </Loaf>
       ))}
     </div>
-  );
-});
-
-const BoostButton = observer(function BoostButton(props: { server: IServerView }) {
-  const {
-    server,
-  } = props;
-
-  const ServersBoostService = useService(IServersBoostService);
-
-  const isBoostedByUser = ServersBoostService.currentBoost?.address === server.address;
-
-  const title = isBoostedByUser
-    ? `You're BOOSTING™ this server`
-    : "Give server a BOOST™!";
-
-  const theme = isBoostedByUser
-    ? 'primary'
-    : 'default';
-
-  const text = isBoostedByUser
-    ? 'BOOSTING™!'
-    : 'BOOST™!';
-
-  const handleClick = isBoostedByUser
-    ? noop
-    : () => ServersBoostService.boostServer(server.address);
-
-  return (
-    <Title fixedOn="bottom" title={title}>
-      <Button
-        size="small"
-        theme={theme}
-        text={text}
-        onClick={stopPropagation(handleClick)}
-        disabled={isBoostedByUser}
-      />
-    </Title>
   );
 });
 
@@ -312,9 +254,7 @@ const LastConnectedAt = observer(function LastConnectedAt({ id }: { id: string }
   return (
     <Title fixedOn="bottom" title={`Last connected at ${fullDate}`}>
       <Loaf bright size="small" className={s['hide-on-hover']}>
-        <BsClock />
-        &nbsp;
-        {distanceDate}
+        {$L('#Server_LastPlayed')}: {distanceDate}
       </Loaf>
     </Title>
   );

@@ -8,7 +8,7 @@
 #ifndef BOTAN_X509_CERT_PATH_VALIDATION_H_
 #define BOTAN_X509_CERT_PATH_VALIDATION_H_
 
-#include <botan/cert_status.h>
+#include <botan/pkix_enums.h>
 #include <botan/x509cert.h>
 #include <botan/certstor.h>
 #include <botan/ocsp.h>

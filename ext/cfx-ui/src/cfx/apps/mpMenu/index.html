@@ -7,6 +7,15 @@
   <title>CFX UI</title>
 
   <style>
+    @keyframes shineLoader {
+      from {
+        background-color: white;
+      }
+
+      to {
+        background-color: rgb(109, 109, 109);
+      }
+    }
     .loader {
       position: fixed;
 
@@ -15,37 +24,80 @@
       right: 0;
       bottom: 0;
 
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-
-      gap: 10vh;
-
-      box-sizing: border-box;
-
-      color: #fffff0;
-      background-color: #161923;
-
-      transition: all 1s ease;
+      background-color: rgba(150, 150, 150, 1);
+      animation: shineLoader 1s linear infinite;
 
       z-index: 1;
     }
-    .loader img {
-      transition: all .5s ease;
+    .loader .mask {
+      position: absolute;
+      inset: 0;
+
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+
+      padding-top: 70vh;
+
+      box-sizing: border-box;
+
+      font-family: Arial, Helvetica, sans-serif;
+      font-weight: bold;
+      font-size: 16px;
+
+      color: rgba(150, 150, 150, 1);
+      background-color: black;
+
+      --mask-gta5: url(<%= require('assets/images/gta5.svg') %>);
+      --mask-rdr3: url(<%= require('assets/images/rdr3.svg') %>);
+
+      -webkit-mask-image: linear-gradient(red, red), var(--mask);
+      -webkit-mask-composite: xor;
+      -webkit-mask-position: center center;
+      -webkit-mask-repeat: no-repeat;
+      -webkit-mask-size: 100%, 150px;
+
+      transform: var(--transform);
+
+      z-index: 1;
     }
-    .loader svg {
-      transition: all .75s ease-out;
+    .loader .mask span {
+      transform: var(--transform);
+    }
+
+    @keyframes shineLoaderFadeOut {
+      from {
+        background-color: rgba(150, 150, 150, 1);
+      }
+
+      to {
+        background-color: transparent;
+      }
     }
     .loader.hide {
-      opacity: 0;
+      animation: shineLoaderFadeOut .3s linear;
+      background-color: transparent;
       pointer-events: none;
     }
-    .loader.hide svg {
-      transform: scale(0.75);
+
+    @keyframes maskFadeOut {
+      from {
+        background-color: black;
+      }
+
+      50% {
+        color: transparent;
+        background-color: black;
+      }
+
+      to {
+        color: transparent;
+        background-color: transparent;
+      }
     }
-    .loader.hide img {
-      opacity: 0;
+    .loader.hide .mask {
+      animation: maskFadeOut 1.5s ease-in forwards;
+      animation-delay: .3s;
     }
   </style>
 </head>
@@ -57,15 +109,21 @@
   <div id="overlay-outlet"></div>
 
   <div id=loader class="loader">
-    <script type="text/javascript">
-      document.write(`
-        <svg fill="currentColor">
-          <use xlink:href="#logo-${nuiTargetGame}" />
-        </svg>
-      `);
-    </script>
+    <div id="loader-mask" class="mask">
+      <span>
+        loading...
+      </span>
+    </div>
 
-    <img width="100" src="<%=require('assets/images/pulse.svg?_INLINE_')%>">
+    <script type="text/javascript">
+      const $loaderMask = document.getElementById('loader-mask');
+
+      $loaderMask.style.setProperty('--mask', `var(--mask-${nuiTargetGame})`);
+
+      if (nuiTargetGame === 'gta5') {
+        $loaderMask.style.setProperty('--transform', `rotateY(180deg)`);
+      }
+    </script>
   </div>
 </body>
 
@@ -151,6 +209,8 @@
   </symbol>
 </svg>
 
+<script type="text/javascript">
 <%= isProd ? require('assets/scripts/matomo.raw.js') : '' %>
+</script>
 
 </html>

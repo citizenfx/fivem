@@ -5,14 +5,14 @@ import { IDynamicServerData, IQueriedServerData } from "./types";
 
 export function dynamicServerData2ServerView(endpoint: string, data: IDynamicServerData): IServerView {
   return {
+    id: endpoint,
     detailsLevel: ServerViewDetailsLevel.DynamicDataJson,
-    address: endpoint,
     locale: DEFAULT_SERVER_LOCALE,
     localeCountry: DEFAULT_SERVER_LOCALE_COUNTRY,
     connectEndPoints: [endpoint],
     gametype: data.gametype,
     mapname: data.mapname,
-    hostname: data.hostname,
+    hostname: data.hostname || '',
     projectName: filterServerProjectName(data.hostname),
     playersCurrent: data.clients,
     playersMax: parseInt(data.sv_maxclients, 10),
@@ -24,20 +24,23 @@ export function dynamicServerData2ServerView(endpoint: string, data: IDynamicSer
 
 export function queriedServerData2ServerView(endpoint: string, data: IQueriedServerData): IServerView {
   return {
+    id: endpoint,
     detailsLevel: ServerViewDetailsLevel.InfoAndDynamicDataJson,
-    address: endpoint,
     server: data.infoBlob.server,
     mapname: data.mapname,
-    hostname: data.name,
-    projectName: data.name,
+    hostname: data.name || '',
+    projectName: filterServerProjectName(data.name),
     gametype: data.gametype,
     locale: DEFAULT_SERVER_LOCALE,
     localeCountry: DEFAULT_SERVER_LOCALE_COUNTRY,
     connectEndPoints: [data.addr],
     rawVariables: data.infoBlob.vars,
-    playersCurrent: data.clients,
-    playersMax: data.maxclients,
+    playersCurrent: parseInt(data.clients, 10) || 0,
+    playersMax: parseInt(data.maxclients, 10) || 0,
     resources: data.infoBlob.resources,
+    historicalIconURL: data.infoBlob.icon
+      ? `data:image/png;base64,${data.infoBlob.icon}`
+      : undefined,
     ...processServerDataVariables(data.infoBlob.vars),
   };
 }

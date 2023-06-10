@@ -21,6 +21,7 @@ if _OPTIONS['game'] == 'server' then
 	end]]
 	component 'citizen-scripting-v8node'
 	component 'citizen-scripting-mono'
+	component 'citizen-scripting-mono-v2'
 	component 'citizen-server-instance'
 	component 'citizen-server-impl'
 	component 'citizen-server-state-fivesv'
@@ -63,6 +64,7 @@ else
 	component 'net'
 
 	component 'citizen-scripting-mono'
+	component 'citizen-scripting-mono-v2'
 
 	if _OPTIONS['game'] ~= 'ny' then
 		component 'citizen-scripting-v8client'

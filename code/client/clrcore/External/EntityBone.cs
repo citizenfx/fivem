@@ -1,7 +1,14 @@
-using System;
+#if MONO_V2
+using CitizenFX.Core;
+using API = CitizenFX.FiveM.Native.Natives;
+using InputArgument = CitizenFX.Core.Native.Input.Primitive;
+
+namespace CitizenFX.FiveM
+#else
 using CitizenFX.Core.Native;
 
 namespace CitizenFX.Core
+#endif
 {
 	public class EntityBone
 	{
@@ -290,7 +297,7 @@ namespace CitizenFX.Core
 
 		public static implicit operator InputArgument(EntityBone entityBone)
 		{
-			return new InputArgument(entityBone.Index);
+			return (InputArgument)entityBone.Index;
 		}
 	}
 }

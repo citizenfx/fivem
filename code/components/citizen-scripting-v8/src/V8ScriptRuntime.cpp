@@ -151,7 +151,7 @@ struct PointerField
 // this is *technically* per-isolate, but we only register the callback for our host isolate
 static std::atomic<int> g_isV8InGc;
 
-class V8ScriptRuntime : public OMClass<V8ScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntime, IScriptEventRuntime, IScriptRefRuntime, IScriptStackWalkingRuntime>
+class V8ScriptRuntime : public OMClass<V8ScriptRuntime, IScriptRuntime, IScriptFileHandlingRuntime, IScriptTickRuntime, IScriptEventRuntime, IScriptRefRuntime, IScriptStackWalkingRuntime, IScriptWarningRuntime>
 {
 private:
 	typedef std::function<void(const char*, const char*, size_t, const char*)> TEventRoutine;
@@ -331,6 +331,8 @@ public:
 	NS_DECL_ISCRIPTREFRUNTIME;
 
 	NS_DECL_ISCRIPTSTACKWALKINGRUNTIME;
+
+	NS_DECL_ISCRIPTWARNINGRUNTIME;
 };
 
 static Local<Value> GetStackTrace(TryCatch& eh, V8ScriptRuntime* runtime)
@@ -2518,6 +2520,45 @@ result_t V8ScriptRuntime::WalkStack(char* boundaryStart, uint32_t boundaryStartL
 				msgpack::pack(sb, e);
 
 				visitor->SubmitStackFrame(sb.data(), sb.size());
+			}
+		}
+	}
+
+	return FX_S_OK;
+}
+
+result_t V8ScriptRuntime::EmitWarning(char* channel, char* message)
+{
+	if (!m_context.IsEmpty())
+	{
+		auto context = m_context.Get(GetV8Isolate());
+		auto consoleMaybe = context->Global()->Get(context, String::NewFromUtf8(GetV8Isolate(), "console").ToLocalChecked());
+		v8::Local<v8::Value> console;
+
+		if (consoleMaybe.ToLocal(&console))
+		{
+			auto consoleObject = console.As<v8::Object>();
+			auto warnMaybe = consoleObject->Get(context, String::NewFromUtf8(GetV8Isolate(), "warn").ToLocalChecked());
+
+			v8::Local<v8::Value> warn;
+
+			if (warnMaybe.ToLocal(&warn))
+			{
+				auto messageStr = fmt::sprintf("[%s] %s", channel, message);
+
+				// console.warn() will append a newline itself, so we remove any redundant newline
+				auto length = messageStr.length();
+				if (messageStr[length - 1] == '\n')
+				{
+					--length;
+				}
+
+				v8::Local<v8::Value> args[] = {
+					String::NewFromUtf8(GetV8Isolate(), messageStr.c_str(), v8::NewStringType::kNormal, length).ToLocalChecked()
+				};
+
+				auto warnFunction = warn.As<v8::Function>();
+				warnFunction->Call(context, Null(GetV8Isolate()), std::size(args), args);
 			}
 		}
 	}

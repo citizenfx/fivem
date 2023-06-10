@@ -44,6 +44,11 @@ public:
 
 static InitFunction initFunction([]()
 {
+	if (!launch::IsSDK() && !launch::IsSDKGuest())
+	{
+		return;
+	}
+
 	auto nuiApp = Instance<NUIApp>::Get();
 
 	static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");

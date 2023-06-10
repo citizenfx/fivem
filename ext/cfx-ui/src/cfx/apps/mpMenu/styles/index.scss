@@ -1,6 +1,6 @@
 @import "themes.scss";
 
-// Calculating CfxUI viewport size
+// Calculating mpMenu viewport size
 // We want to keep it of 16:9 aspect ratio
 
 @media (max-aspect-ratio: 16/9) {
@@ -23,15 +23,18 @@ html {
 }
 
 body {
-  // --backdrop-image: url(https://fivem.net/73663161434ea35812a20da2e517f102.jpg);
-  // --backdrop-image: url(https://www.windowscentral.com/sites/wpcentral.com/files/styles/large/public/field/image/2021/11/wallpaper-windows-11-se.png);
-  // --backdrop-image: url(https://images.alphacoders.com/115/thumb-1920-1152254.jpg);
-  --backdrop-image: url(../../../../assets/images/bg2.jpg);
+  --backdrop-image: url(assets/images/bg2.jpg);
 
   background-image: var(--backdrop-image);
   background-size: cover;
   background-position: center center;
   background-color: black;
+
+  @include ui.def('viewport-top',   calc((100vh - ui.use('height')) * 0.5));
+  @include ui.def('viewport-bottom', calc(100vh - ui.use('viewport-top')));
+
+  @include ui.def('viewport-left',  calc((100vw - ui.use('width')) * 0.5));
+  @include ui.def('viewport-right',  calc(100vw - ui.use('viewport-left')));
 }
 
 #backdrop {
@@ -40,11 +43,15 @@ body {
 
   background: ui.color-token('backdrop');
 }
+.cfxui-blurred-backdrop #backdrop {
+  backdrop-filter: blur(20px) contrast(50%);
+}
 
 #cfxui-root {
   position: fixed;
-  top: calc((100vh - var(--height)) * .5);
-  left: calc((100vw - var(--width)) * .5);
+
+  top: ui.use('viewport-top');
+  left: ui.use('viewport-left');
 
   display: flex;
   align-items: center;
@@ -53,9 +60,6 @@ body {
   width: var(--width);
   height: var(--height);
 
-  opacity: 1;
-
-  // chrome breaks everything
   transition: transform .2s ease, filter .2s ease;
   transform-origin: left center;
 
@@ -69,6 +73,8 @@ body {
   height: 1.5rem;
 
   vertical-align: middle;
+
+  margin-right: ui.offset('small');
 
   &::after {
     display: inline;

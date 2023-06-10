@@ -2,6 +2,8 @@ import React from "react";
 import { Overlay } from "../Overlay/Overlay";
 import { Button } from "../Button/Button";
 import { Icons } from "../Icons";
+import { useKeyboardClose } from "cfx/utils/hooks";
+import { noop } from "cfx/utils/functional";
 import s from './Modal.module.scss';
 
 export interface ModalProps {
@@ -16,7 +18,7 @@ export interface ModalProps {
 
 export function Modal(props: ModalProps) {
   const {
-    onClose,
+    onClose = noop,
     children,
     backdropClassName,
     contentClassName,
@@ -24,8 +26,10 @@ export function Modal(props: ModalProps) {
   } = props;
 
   const handleBackdropClick = disableBackdropClose
-    ? undefined
+    ? noop
     : onClose;
+
+  useKeyboardClose(handleBackdropClick);
 
   return (
     <Overlay>

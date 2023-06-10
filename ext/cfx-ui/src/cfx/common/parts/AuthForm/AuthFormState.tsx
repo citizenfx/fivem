@@ -14,6 +14,10 @@ import { inject, injectable } from "inversify";
 import { IAccountService } from "cfx/common/services/account/account.service";
 import { useDisposableInstance } from "cfx/utils/hooks";
 import { useServiceResolver } from "cfx/base/servicesContainer";
+import { currentGameNameIs } from "cfx/base/gameRuntime";
+import { GameName } from "cfx/base/game";
+import { LocaleKeyOrString, LocaleKeyOrString_nl2br } from "cfx/common/services/intl/types";
+import { $L } from "cfx/common/services/intl/l10n";
 
 export type IAuthFormState = AuthFormState;
 export function useAuthFormState(): AuthFormState {
@@ -87,6 +91,10 @@ class AuthFormState {
   }
 
   get showExternalAuthButton(): boolean {
+    if (!currentGameNameIs(GameName.FiveM)) {
+      return false;
+    }
+
     return this.isLogIn;
   }
 
@@ -278,9 +286,9 @@ class AuthFormState {
     try {
       await this.accountService.resendActivationEmail(this.username.value);
 
-      this.submitMessage.setSuccess('Activation email sent');
+      this.submitMessage.setSuccess('#AuthForm_Registration_ActivationSent');
     } catch (e) {
-      this.submitMessage.setError('Failed to resend activation email, please try again later');
+      this.submitMessage.setError('#AuthForm_Registration_ActivationError');
     }
 
     this.submitPending = false;
@@ -346,7 +354,7 @@ class AuthFormState {
       );
     }
 
-    if (this.username) {
+    if (this.username.value) {
       return (
         <Text weight="bold" color="success">
           {Icons.checkmark}
@@ -361,7 +369,7 @@ class AuthFormState {
     if (this.canRequestPasswordReset) {
       return (
         <Button
-          text="Forgot password?"
+          text={$L('#AuthForm_PasswordReset_Submit')}
           size="small"
           theme="transparent"
           disabled={this.disabled || this.passwordResetPending}
@@ -379,23 +387,21 @@ class AuthFormState {
     try {
       await this.accountService.resetPassword(this.email.value);
 
-      this.submitMessage.setSuccess(`We've sent you an email with password reset instructions`);
+      this.submitMessage.setSuccess('#AuthForm_PasswordReset_Sent');
     } catch (e) {
-      this.submitMessage.setError('Failed to request password reset, please try again later');
+      this.submitMessage.setError('#AuthForm_PasswordReset_Error');
     }
 
     this.passwordResetPending = false;
   };
 
   private readonly handleExternalAuthComplete = (event: SSOAuthCompleteEvent) => {
-    event.preventDefault();
-
     if (event.success) {
       return this.switchToAuthenticated();
     }
 
     this.switchToLogIn();
-    this.submitMessage.setError(event.error || 'Failed to log in, please try again');
+    this.submitMessage.setError(event.error || '#AuthForm_External_Failed');
   };
 }
 
@@ -492,12 +498,12 @@ class SubmitMessage {
     this._message = '';
   }
 
-  setError(message: string) {
+  setError<T>(message: LocaleKeyOrString_nl2br<T> | LocaleKeyOrString<T>) {
     this._error = true;
     this._message = message;
   }
 
-  setSuccess(message: string) {
+  setSuccess<T>(message: LocaleKeyOrString_nl2br<T> | LocaleKeyOrString<T>) {
     this._error = false;
     this._message = message;
   }

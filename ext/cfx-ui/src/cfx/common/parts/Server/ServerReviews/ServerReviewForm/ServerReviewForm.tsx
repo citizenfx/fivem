@@ -20,8 +20,6 @@ import { Indicator } from "cfx/ui/Indicator/Indicator";
 import { useServerReviewFormState } from "./ServerReviewFormState";
 import s from './ServerReviewForm.module.scss';
 
-const bgpat = new URL('assets/images/bgpat.png', import.meta.url).toString();
-
 
 export const ServerReviewFormContext = React.createContext({
   censorUser: false,
@@ -45,6 +43,7 @@ export const ServerReviewForm = observer(function ServerReviewForm(props: Server
     state.serverReviews = serverReviews;
   }
 
+  const username = censorUser ? '<HIDDEN>' : account.username;
   const playtime = serverReviews.ownPlaytime?.formattedSeconds || $L('#Reviews_NeverPlayed');
 
   return (
@@ -70,13 +69,13 @@ export const ServerReviewForm = observer(function ServerReviewForm(props: Server
             <Box width={30} noShrink noOverflow>
               <Flex vertical repell fullHeight>
                 <Flex>
-                  <Avatar url={censorUser ? bgpat : account.getAvatarUrl()} />
+                  <Avatar url={censorUser ? null : account.getAvatarUrl()} />
 
                   <Box grow>
                     <Flex vertical gap="small">
-                      <Title fixedOn="bottom-left" title={account.username}>
+                      <Title fixedOn="bottom-left" title={username}>
                         <Text truncated typographic>
-                          {censorUser ? '<HIDDEN>' : account.username}
+                          {username}
                         </Text>
                       </Title>
 
@@ -94,7 +93,7 @@ export const ServerReviewForm = observer(function ServerReviewForm(props: Server
             <Box grow>
               <Flex vertical gap="large">
                 <Flex vertical gap="small">
-                  <Box width="50%"> {/* That is so input would be of auto width instead of growing full width of the container */}
+                  <Box width="50%"> {/* Force input to be of auto width instead of growing full width of the container */}
                     <Input
                       fullWidth
                       size="large"

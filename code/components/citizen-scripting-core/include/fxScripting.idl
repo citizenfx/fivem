@@ -145,6 +145,12 @@ interface IScriptMemInfoRuntime : fxIBase
 	int64_t GetMemoryUsage();
 };
 
+[uuid(d72be411-5152-4474-917c-5361ac051181)]
+interface IScriptWarningRuntime : fxIBase
+{
+	void EmitWarning(in charPtr channel, in charPtr message);
+};
+
 [uuid(782A4496-2AE3-4C70-B54A-FAD8FD8AEEFD)]
 interface IScriptProfiler : fxIBase
 {

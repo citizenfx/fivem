@@ -1,20 +1,25 @@
 import { GameName } from "cfx/base/game";
-import { BsCheck, BsCheckCircle, BsClock, BsCurrencyDollar, BsExclamationCircle, BsFillPersonCheckFill, BsFillPersonFill, BsGearFill, BsHeart, BsHeartFill, BsList, BsPeopleFill, BsPlay, BsQuestion, BsTrash, BsX, BsXCircle } from "react-icons/bs";
+import { BsCheck, BsCheckCircle, BsClock, BsCurrencyDollar, BsExclamationCircle, BsFillPersonCheckFill, BsFillPersonFill, BsGearFill, BsHeart, BsHeartFill, BsPeopleFill, BsPlay, BsQuestion, BsTags, BsTrash, BsX, BsXCircle } from "react-icons/bs";
 import { FaScroll } from "react-icons/fa";
 import { GiStarsStack } from "react-icons/gi";
 import { MdOutlineReplay, MdTrendingUp } from "react-icons/md";
 import { IoMdTrendingUp } from 'react-icons/io';
 import { IoFlame } from "react-icons/io5";
+import { VscListFlat } from 'react-icons/vsc';
+import { BiTime } from "react-icons/bi";
+import { FiExternalLink } from "react-icons/fi";
 
 export namespace Icons {
-  // export const exit = <BsXLg />;
   export const exit = <BsX style={{ fontSize: '1.75em' }} />;
   export const settings = <BsGearFill />;
   export const changelog = <FaScroll />;
   export const storymode = <BsPlay />;
   export const replayEditor = <MdOutlineReplay />;
   export const tipInfo = <BsQuestion />;
-  export const remove = <BsTrash />
+  export const remove = <BsTrash />;
+  export const externalLink = <FiExternalLink />;
+
+  export const tags = <BsTags />;
 
   export const checkmark = <BsCheck />;
 
@@ -31,19 +36,18 @@ export namespace Icons {
   export const account = <BsFillPersonFill />;
   export const accountLoaded = <BsFillPersonCheckFill />;
 
-  export const serversListAll = <BsList />;
+  export const serversListAll = <VscListFlat />;
   export const serversListSupporters = <BsCurrencyDollar />;
   export const serversListHistory = <BsClock />;
   export const serversListFavorites = favoriteInactive;
 
-  export const serversStaffPick = <GiStarsStack style={{ fill: 'url(#pin-gradient)' }} />;
-  export const serversStaffPickUnstyled = <GiStarsStack />;
+  export const serverLastConnected = <BiTime />;
 
-  // export const serverBoost = <TbChevronsUp style={{ stroke: 'url(#boost-gradient)' }} />;
-  // export const serverBoost = <HiTrendingUp style={{ fill: 'url(#boost-gradient)' }} />;
+  export const serversFeatured = <GiStarsStack style={{ fill: 'url(#pin-gradient)' }} />;
+  export const serversFeaturedUnstyled = <GiStarsStack />;
+
   export const serverBoost = <IoMdTrendingUp style={{ fill: 'url(#boost-gradient)' }} />;
-  // export const serverBurst = <span>🔥</span>;
-  // export const serverBurst = <VscFlame style={{ fill: 'url(#burst-gradient)' }} />;
+  export const serverBoostUnstyled = <IoMdTrendingUp />;
   export const serverBurst = <IoFlame style={{ fill: 'url(#burst-gradient)' }} />;
 }
 

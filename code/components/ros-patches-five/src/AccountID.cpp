@@ -172,7 +172,6 @@ static std::vector<DWORD> GetMTLPids()
 
 						if (GetFileAttributesW(path) != INVALID_FILE_ATTRIBUTES)
 						{*/
-							CloseHandle(hProcess);
 							rv.push_back(pids[i]);
 						//}
 					}
@@ -399,7 +398,11 @@ void ValidateEpic(int parentPid)
 
 	if (!mtl)
 	{
+#ifdef IS_RDR3
 		FatalError("Epic Games Launcher launched the Rockstar Games Launcher in a way we couldn't access. Aborting! If you are running it as administrator, please launch it as regular user.");
+#endif
+
+		return;
 	}
 
 	// halt!

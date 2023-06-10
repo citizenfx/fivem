@@ -1,4 +1,4 @@
-import { useL10nPlural } from "cfx/common/services/intl/l10n";
+import { $L, useL10nPlural } from "cfx/common/services/intl/l10n";
 import { PluralKeys, PluralRule } from "cfx/common/services/intl/types";
 import { IServerReviewItemReactions, ServerReviewReaction } from "cfx/common/services/servers/reviews/types";
 import { Button } from "cfx/ui/Button/Button";
@@ -72,15 +72,15 @@ export const ServerReviewReactions = observer(function ServerReviewReactions(pro
 const reactionButtons: Record<ServerReviewReaction, { icon: React.ReactNode, title: ValueOrGetter<React.ReactNode> }> = {
   [ServerReviewReaction.Funny]: {
     icon: <BsEmojiLaughing />,
-    title: 'Funny review',
+    title: $L('#Review_Reaction_Funny'),
   },
   [ServerReviewReaction.Helpful]: {
     icon: <BsHandThumbsUp />,
-    title: 'This review helped me!',
+    title: $L('#Review_Reaction_Helpful'),
   },
   [ServerReviewReaction.Unhelpful]: {
     icon: <BsHandThumbsDown />,
-    title: 'Unhelpful review :\\',
+    title: $L('#Review_Reaction_Unhelpful'),
   },
 };
 
