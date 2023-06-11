@@ -869,7 +869,7 @@ void NetLibraryResourcesComponent::AttachToObject(NetLibrary* netLibrary)
 	},
 	INT32_MAX);
 
-	console::GetDefaultContext()->GetCommandManager()->FallbackEvent.Connect([netLibrary](const std::string& cmd, const ProgramArguments& args, const std::any& context)
+	console::GetDefaultContext()->GetCommandManager()->FallbackEvent.Connect([netLibrary](const std::string& cmd, const ProgramArguments& args, const std::string& context)
 	{
 		if (netLibrary->GetConnectionState() != NetLibrary::CS_ACTIVE)
 		{
@@ -881,6 +881,7 @@ void NetLibraryResourcesComponent::AttachToObject(NetLibrary* netLibrary)
 		net::Buffer buffer;
 		buffer.Write<uint16_t>(s.size());
 		buffer.Write(s.c_str(), std::min(s.size(), static_cast<size_t>(INT16_MAX)));
+		buffer.Write<uint32_t>(HashString(context.c_str()));
 
 		netLibrary->SendReliableCommand("msgServerCommand", reinterpret_cast<const char*>(buffer.GetBuffer()), buffer.GetCurOffset());
 
