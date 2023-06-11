@@ -217,8 +217,104 @@ static void FixSetPedFaceFeature()
 	});
 }
 
+struct FireInfoEntry
+{
+	fwEntity*& entity()
+	{
+		return *reinterpret_cast<fwEntity**>(reinterpret_cast<uintptr_t>(this) + 0x30);
+	}
+
+	uint8_t& flags()
+	{
+		return *reinterpret_cast<uint8_t*>(reinterpret_cast<uintptr_t>(this) + 0x74);
+	}
+
+private:
+	std::array<uint8_t, 0xF0> m_pad{};
+};
+
+std::array<FireInfoEntry, 128>* g_fireInstances;
+
+void FreeOrphanFireEntries()
+{
+	for (auto& i : *g_fireInstances)
+	{
+		if (!i.entity() && i.flags() & 0x4)
+		{
+			i.flags() &= ~0x4;
+		}
+	}
+}
+
+static void FixStartEntityFire()
+{
+	constexpr const uint64_t nativeHash = 0xF6A9D9708F6F23DF; // START_ENTITY_FIRE
+
+	auto originalHandler = fx::ScriptEngine::GetNativeHandler(nativeHash);
+
+	if (!originalHandler)
+	{
+		return;
+	}
+
+	auto handler = *originalHandler;
+
+	fx::ScriptEngine::RegisterNativeHandler(nativeHash, [handler](fx::ScriptContext& ctx)
+	{
+		FreeOrphanFireEntries();
+		handler(ctx);
+	});
+}
+
+static void FixStopEntityFire()
+{
+	constexpr const uint64_t nativeHash = 0x7F0DD2EBBB651AFF; // STOP_ENTITY_FIRE
+
+	const auto originalHandler = fx::ScriptEngine::GetNativeHandler(nativeHash);
+
+	if (!originalHandler)
+	{
+		return;
+	}
+
+	const auto handler = *originalHandler;
+
+	fx::ScriptEngine::RegisterNativeHandler(nativeHash, [handler](fx::ScriptContext& ctx)
+	{
+		FreeOrphanFireEntries();
+
+		const auto handle = ctx.GetArgument<uint32_t>(0);
+		const auto entity = rage::fwScriptGuid::GetBaseFromGuid(handle);
+
+		if (!entity)
+		{
+			return handler(ctx);
+		}
+
+		auto entries = std::vector<FireInfoEntry*>{};
+
+		for (auto& i : *g_fireInstances)
+		{
+			if (i.entity() == entity)
+			{
+				entries.push_back(&i);
+			}
+		}
+
+		handler(ctx);
+
+		for (const auto i : entries)
+		{
+			i->entity() = 0x0;
+			i->flags() &= ~0x4;
+		}
+	});
+}
+
 static HookFunction hookFunction([]()
 {
+	g_fireInstances = (std::array<FireInfoEntry, 128>*)(hook::get_address<uintptr_t>(hook::get_pattern("74 47 48 8D 0D ? ? ? ? 48 8B D3", 2), 3, 7) + 0x10);
+
 	rage::scrEngine::OnScriptInit.Connect([]()
 	{
 		// Most of vehicle window related natives have no checks for passed window index is valid
@@ -237,5 +333,9 @@ static HookFunction hookFunction([]()
 		FixClearPedBloodDamage();
 
 		FixSetPedFaceFeature();
+
+		FixStartEntityFire();
+
+		FixStopEntityFire();
 	});
 });
