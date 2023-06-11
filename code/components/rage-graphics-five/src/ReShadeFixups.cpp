@@ -164,7 +164,7 @@ static HMODULE LoadLibraryAHook(const char* libName)
 {
 	if (strcmp(libName, "dxgi.dll") == 0)
 	{
-		auto refPath = MakeRelativeGamePath(L"dxgi.dll");
+		auto refPath = MakeRelativeCitPath(L"plugins/dxgi.dll");
 
 		if (GetFileAttributes(refPath.c_str()) != INVALID_FILE_ATTRIBUTES)
 		{
@@ -202,7 +202,14 @@ void ScanForReshades()
 		{
 			if (IsValidGraphicsLibrary(dllPath))
 			{
-				LoadLibraryW(dllPath.c_str());
+				auto hMod = LoadLibraryW(dllPath.c_str());
+
+				if (hMod)
+				{
+					// pin the module since it appears sometimes ReShade or similar unloads despite being hooked
+					HMODULE _;
+					GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_PIN, (LPCWSTR)hMod, &_);
+				}
 
 				trace("Loaded graphics mod: %s\n", ToNarrow(dllPath));
 			}
