@@ -11,7 +11,7 @@ const Outlet = createOutlet();
 export const AcitivityItemMediaViewer = observer(function AcitivityItemMediaViewer() {
   const state = AcitivityItemMediaViewerState;
 
-  const ref = React.useRef<HTMLImageElement | HTMLVideoElement | null>(null);
+  const ref = React.useRef<HTMLImageElement | HTMLVideoElement | HTMLIFrameElement | null>(null);
   const [toRect, setToRect] = React.useState<IRect | null>(null);
 
   React.useEffect(() => {
@@ -68,7 +68,7 @@ export const AcitivityItemMediaViewer = observer(function AcitivityItemMediaView
 
   const TargetElement = state.media.type === 'video'
     ? 'video'
-    : 'img';
+    : (state.media.type === 'youtube' ? 'iframe' : 'img');
 
   return (
     <Outlet>
