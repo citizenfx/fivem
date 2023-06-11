@@ -6,9 +6,9 @@ namespace CitizenFX.Core
 	[SecuritySafeCritical]
 	public class StateBag
 	{
-		private CString m_bagName;
+		private readonly CString m_bagName;
 
-		static StateBag Global => new StateBag("global");
+		public static StateBag Global { get; } = new StateBag("global");
 
 		internal StateBag(string bagName)
 		{

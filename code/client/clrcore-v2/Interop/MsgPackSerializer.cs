@@ -35,8 +35,8 @@ namespace CitizenFX.Core
 				using (var packer = Packer.Create(stream, PackerCompatibilityOptions.None))
 				{
 					Serialize(obj, packer);
-					//return stream.ToArray();
-					return stream.GetBuffer();
+					return stream.ToArray(); // other runtimes read the full length we give them, so shrink the buffer (copy)
+					//return stream.GetBuffer();
 				}
 			}
 

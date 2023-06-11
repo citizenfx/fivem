@@ -115,7 +115,7 @@ namespace CitizenFX.Core
 		internal unsafe int ToArgb() { fixed(uint* p = argb) return (int)p[0]; }
 #endif
 
-		public override string ToString() => $"Color({R}, {G}, {B}, {A})";
+		public override string ToString() => $"Color({A}, {R}, {G}, {B})";
 
 		public unsafe bool Equals(Color other) => (uint)this == (uint)other;
 	}
