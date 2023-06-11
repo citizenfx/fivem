@@ -6,9 +6,9 @@
  */
 
 #include "StdInc.h"
+#include <CommCtrl.h>
 
 #ifdef LAUNCHER_PERSONALITY_MAIN
-#include <CommCtrl.h>
 #include <shobjidl.h>
 
 #include "launcher.rc.h"
@@ -1785,7 +1785,17 @@ bool UI_IsCanceled()
 
 void UI_DisplayError(const wchar_t* error)
 {
-	MessageBoxW(UI_GetWindowHandle(), error, L"Error", MB_OK | MB_ICONSTOP);
+	static TASKDIALOGCONFIG taskDialogConfig = { 0 };
+	taskDialogConfig.cbSize = sizeof(taskDialogConfig);
+	taskDialogConfig.hInstance = GetModuleHandle(nullptr);
+	taskDialogConfig.dwFlags = TDF_ENABLE_HYPERLINKS | TDF_SIZE_TO_CONTENT;
+	taskDialogConfig.dwCommonButtons = TDCBF_CLOSE_BUTTON;
+	taskDialogConfig.pszWindowTitle = L"Error updating " PRODUCT_NAME;
+	taskDialogConfig.pszMainIcon = TD_ERROR_ICON;
+	taskDialogConfig.pszMainInstruction = NULL;
+	taskDialogConfig.pszContent = error;
+
+	TaskDialogIndirect(&taskDialogConfig, nullptr, nullptr, nullptr);
 }
 
 #include <wrl/module.h>

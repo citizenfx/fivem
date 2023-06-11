@@ -275,7 +275,7 @@ bool Updater_RunUpdate(std::initializer_list<std::string> wantedCachesList)
 
 		if (result != 0 && !success)
 		{
-			MessageBox(NULL, va(L"An error (%i, %s) occurred while checking the game version. Check if " CONTENT_URL_WIDE L" is available in your web browser.", result, ToWide(DL_RequestURLError())), L"O\x448\x438\x431\x43A\x430", MB_OK | MB_ICONSTOP);
+			UI_DisplayError(va(L"An error (%i, %s) occurred while checking the game version. Check if " CONTENT_URL_WIDE L" is available in your web browser.", result, ToWide(DL_RequestURLError())));
 			return false;
 		}
 
