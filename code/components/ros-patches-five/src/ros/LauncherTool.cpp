@@ -8,6 +8,8 @@
 #include "StdInc.h"
 #include "ToolComponentHelpers.h"
 
+#include "ErrorFormat.Win32.h"
+
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 
@@ -748,12 +750,7 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 		{
 			auto errorCode = GetLastError();
 
-			wchar_t errorText[512];
-			errorText[0] = L'\0';
-
-			FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_MAX_WIDTH_MASK, nullptr, errorCode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), errorText, std::size(errorText), nullptr);
-
-			FatalError("Couldn't load Social Club SDK (socialclub.dll): Windows error code %d. %s", errorCode, ToNarrow(errorText));
+			FatalError("Couldn't load Social Club SDK (socialclub.dll): Error code 0x%08x - %s", HRESULT_FROM_WIN32(errorCode), win32::FormatMessage(errorCode));
 		}
 
 #if !GTA_NY

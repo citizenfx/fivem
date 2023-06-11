@@ -31,6 +31,8 @@
 
 #include <Error.h>
 
+#include "ErrorFormat.Win32.h"
+
 #include <CfxLocale.h>
 #include <filesystem>
 
@@ -113,16 +115,11 @@ void DLLError(DWORD errorCode, std::string_view dllName)
 	// force verifying game files
 	_wunlink(MakeRelativeCitPath(L"content_index.xml").c_str());
 
-	wchar_t errorText[512];
-	errorText[0] = L'\0';
-
-	FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_MAX_WIDTH_MASK, nullptr, errorCode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), errorText, std::size(errorText), nullptr);
-
 	FatalError("Could not load %s\nThis is usually a sign of an incomplete game installation. Please restart %s and try again.\n\nError 0x%08x - %s",
 		dllName,
 		ToNarrow(PRODUCT_NAME),
 		HRESULT_FROM_WIN32(errorCode),
-		ToNarrow(errorText));
+		win32::FormatMessage(errorCode));
 }
 
 int RealMain()
