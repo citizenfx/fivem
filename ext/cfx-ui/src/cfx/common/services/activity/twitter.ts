@@ -35,7 +35,7 @@ export function rawTweetToActivityDataItem(rawTweet: IRawTweet): IActivityItemDa
 
         if (mediaEntity.type === 'animated_gif' || mediaEntity.type === 'video') {
           mediaItem.fullAspectRatio = mediaEntity.video_info.aspect_ratio[0] / mediaEntity.video_info.aspect_ratio[1];
-          mediaItem.fullUrl = mediaEntity.video_info.variants.sort((a, b) => b.bitrate - a.bitrate)[0].url;
+          mediaItem.fullUrl = mediaEntity.video_info.variants.filter(a => a.content_type?.startsWith('video/')).sort((a, b) => b.bitrate - a.bitrate)[0].url;
         }
 
         media.push(mediaItem);
