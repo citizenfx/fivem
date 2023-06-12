@@ -2180,6 +2180,11 @@ global.require = m.exports.require;
 )"
 		);
 
+		node::SetProcessExitHandler(env, [](node::Environment*, int exitCode)
+		{
+			FatalError("Node.js exiting (exit code %d)\nSee console for details", exitCode);
+		});
+
 		g_envRuntimes[env] = this;
 
 		m_nodeEnvironment = env;
