@@ -202,11 +202,6 @@ static InitFunction initFunction([]()
 					{
 						auto cmd = resource->GetName();
 
-						if (cmd == "_cfx_internal")
-						{
-							return;
-						}
-
 						if (strncmp(cmd.c_str(), inputCopy.c_str(), inputCopy.length()) == 0)
 						{
 							cmds.insert(cmd);

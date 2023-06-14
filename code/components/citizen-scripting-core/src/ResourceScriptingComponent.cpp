@@ -62,92 +62,87 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 {
 	resource->OnStart.Connect([=] ()
 	{
-		bool isCallbackResource = m_resource->GetName() == "_cfx_internal";
+		// preemptively instantiate all scripting environments
+		std::vector<OMPtr<IScriptFileHandlingRuntime>> environments;
 
-		if (!isCallbackResource)
 		{
-			// preemptively instantiate all scripting environments
-			std::vector<OMPtr<IScriptFileHandlingRuntime>> environments;
+			guid_t clsid;
+			intptr_t findHandle = fxFindFirstImpl(IScriptFileHandlingRuntime::GetIID(), &clsid);
 
+			if (findHandle != 0)
 			{
-				guid_t clsid;
-				intptr_t findHandle = fxFindFirstImpl(IScriptFileHandlingRuntime::GetIID(), &clsid);
-
-				if (findHandle != 0)
+				do
 				{
-					do
+					OMPtr<IScriptFileHandlingRuntime> ptr;
+
+					if (FX_SUCCEEDED(MakeInterface(&ptr, clsid)))
 					{
-						OMPtr<IScriptFileHandlingRuntime> ptr;
+						environments.push_back(ptr);
+					}
+				} while (fxFindNextImpl(findHandle, &clsid));
 
-						if (FX_SUCCEEDED(MakeInterface(&ptr, clsid)))
-						{
-							environments.push_back(ptr);
-						}
-					} while (fxFindNextImpl(findHandle, &clsid));
-
-					fxFindImplClose(findHandle);
-				}
+				fxFindImplClose(findHandle);
 			}
+		}
 
-			// get metadata and list scripting environments we *do* want to use
-			{
-				fwRefContainer<ResourceMetaDataComponent> metaData = resource->GetComponent<ResourceMetaDataComponent>();
+		// get metadata and list scripting environments we *do* want to use
+		{
+			fwRefContainer<ResourceMetaDataComponent> metaData = resource->GetComponent<ResourceMetaDataComponent>();
 
-				auto sharedScripts = metaData->GlobEntriesVector("shared_script");
-				auto clientScripts = metaData->GlobEntriesVector(
+			auto sharedScripts = metaData->GlobEntriesVector("shared_script");
+			auto clientScripts = metaData->GlobEntriesVector(
 #ifdef IS_FXSERVER
-				"server_script"
+			"server_script"
 #else
-				"client_script"
+			"client_script"
 #endif
-				);
+			);
 
-				for (auto it = environments.begin(); it != environments.end();)
+			for (auto it = environments.begin(); it != environments.end();)
+			{
+				auto metaComponent = MakeNew<ScriptMetaDataComponent>(resource);
+
+				OMPtr<IScriptFileHandlingRuntime> ptr = *it;
+				bool environmentUsed = false;
+
+				for (auto& list : { sharedScripts, clientScripts })
 				{
-					auto metaComponent = MakeNew<ScriptMetaDataComponent>(resource);
-
-					OMPtr<IScriptFileHandlingRuntime> ptr = *it;
-					bool environmentUsed = false;
-
-					for (auto& list : { sharedScripts, clientScripts })
+					for (auto& script : list)
 					{
-						for (auto& script : list)
+						if (ptr->HandlesFile(const_cast<char*>(script.c_str()), metaComponent.GetRef()))
 						{
-							if (ptr->HandlesFile(const_cast<char*>(script.c_str()), metaComponent.GetRef()))
-							{
-								environmentUsed = true;
-								break;
-							}
+							environmentUsed = true;
+							break;
 						}
 					}
+				}
 
-					if (!environmentUsed)
-					{
-						it = environments.erase(it);
-					}
-					else
-					{
-						it++;
-					}
+				if (!environmentUsed)
+				{
+					it = environments.erase(it);
+				}
+				else
+				{
+					it++;
 				}
 			}
+		}
 
-			// assign them to ourselves and create them
-			for (auto& environment : environments)
+		// assign them to ourselves and create them
+		for (auto& environment : environments)
+		{
+			OMPtr<IScriptRuntime> ptr;
+			if (FX_SUCCEEDED(environment.As(&ptr)))
 			{
-				OMPtr<IScriptRuntime> ptr;
-				if (FX_SUCCEEDED(environment.As(&ptr)))
-				{
-					ptr->SetParentObject(resource);
+				ptr->SetParentObject(resource);
 
-					m_scriptRuntimes[ptr->GetInstanceId()] = ptr;
-				}
+				m_scriptRuntimes[ptr->GetInstanceId()] = ptr;
 			}
 		}
 
 		OnCreatedRuntimes();
 
-		if (!m_scriptRuntimes.empty() || isCallbackResource)
+		if (!m_scriptRuntimes.empty())
 		{
 			m_scriptHost = GetScriptHostForResource(m_resource);
 
@@ -201,11 +196,6 @@ ResourceScriptingComponent::ResourceScriptingComponent(Resource* resource)
 
 	resource->OnStop.Connect([=] ()
 	{
-		if (m_resource->GetName() == "_cfx_internal")
-		{
-			return;
-		}
-
 		for (auto& environmentPair : m_scriptRuntimes)
 		{
 			environmentPair.second->Destroy();

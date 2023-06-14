@@ -256,12 +256,6 @@ void ResourceHttpComponent::AttachToObject(fx::Resource* object)
 
 	object->OnStart.Connect([this]()
 	{
-		// workaround
-		if (m_resource->GetName() == "_cfx_internal")
-		{
-			return;
-		}
-
 		// get the server from the resource
 		fx::ServerInstanceBase* server = m_resource->GetManager()->GetComponent<fx::ServerInstanceBaseRef>()->Get();
 
@@ -285,12 +279,6 @@ void ResourceHttpComponent::AttachToObject(fx::Resource* object)
 
 	object->OnStop.Connect([this]()
 	{
-		// workaround
-		if (m_resource->GetName() == "_cfx_internal")
-		{
-			return;
-		}
-
 		// get the server from the resource
 		fx::ServerInstanceBase* server = m_resource->GetManager()->GetComponent<fx::ServerInstanceBaseRef>()->Get();
 

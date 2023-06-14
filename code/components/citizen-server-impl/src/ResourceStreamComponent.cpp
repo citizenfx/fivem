@@ -482,11 +482,6 @@ namespace fx
 
 	void ResourceStreamComponent::AttachToObject(fx::Resource* object)
 	{
-		if (object->GetName() == "_cfx_internal")
-		{
-			return;
-		}
-
 		m_resource = object;
 
 		object->OnStart.Connect([=]()
