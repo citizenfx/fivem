@@ -1164,7 +1164,7 @@ static void ReloadMapStore()
 
 #ifdef GTA_FIVE
 	// needs verification for newer builds
-	if (!xbr::IsGameBuildOrGreater<2802 + 1>())
+	if (!xbr::IsGameBuildOrGreater<2944 + 1>())
 	{
 		ReloadMapStoreNative();
 	}
@@ -2835,7 +2835,7 @@ std::unordered_set<std::string> g_streamingSuffixSet;
 static hook::cdecl_stub<void()> _waitUntilStreamerClear([]()
 {
 #ifdef GTA_FIVE
-	return hook::get_call(hook::get_pattern("80 A1 7A 01 00 00 FE 8B EA", 12));
+	return hook::get_call(hook::get_pattern("80 A1 ? 01 00 00 FE 8B EA ", 12));
 #elif IS_RDR3
 	return hook::get_call(hook::get_pattern("80 A3 ? ? ? ? FE 48 8D 0D ? ? ? ? BA FF FF 00 00", 24));
 #endif
@@ -2844,7 +2844,7 @@ static hook::cdecl_stub<void()> _waitUntilStreamerClear([]()
 static hook::cdecl_stub<void(void*)> _resyncStreamers([]()
 {
 #ifdef GTA_FIVE
-	return hook::get_call(hook::get_pattern("80 A1 7A 01 00 00 FE 8B EA", 24));
+	return hook::get_call(hook::get_pattern("80 A1 ? 01 00 00 FE 8B EA ", 24));
 #elif IS_RDR3
 	return hook::get_call(hook::get_pattern("80 A3 ? ? ? ? FE 48 8D 0D ? ? ? ? BA FF FF 00 00", 19));
 #endif
@@ -3402,8 +3402,8 @@ static HookFunction hookFunction([]()
 #endif
 
 #ifdef GTA_FIVE
-	g_streamingInternals = hook::get_address<void*>(hook::get_pattern("80 A1 7A 01 00 00 FE 8B EA", 20));
-	manifestChunkPtr = hook::get_address<void*>(hook::get_pattern("C7 80 74 01 00 00 02 00 00 00 E8 ? ? ? ? 8B 06", -4));
+	g_streamingInternals = hook::get_address<void*>(hook::get_pattern("80 A1 ? 01 00 00 FE 8B EA ", 20));
+	manifestChunkPtr = hook::get_address<void*>(hook::get_pattern("C7 80 ? 01 00 00 02 00 00 00 E8 ? ? ? ? 8B 06", -4));
 #elif IS_RDR3
 	g_streamingInternals = hook::get_address<void*>(hook::get_pattern("80 A3 ? ? ? ? FE 48 8D 0D ? ? ? ? BA FF FF 00 00", 10));
 	manifestChunkPtr = hook::get_address<void*>(hook::get_pattern<char>("33 C9 E8 ? ? ? ? 48 8D 55 10 89 45 10 48", 17));

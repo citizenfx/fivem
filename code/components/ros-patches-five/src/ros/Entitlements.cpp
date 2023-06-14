@@ -851,6 +851,26 @@ mapper->AddGameService("ugc.asmx/Publish", [](const std::string& body)
   </Result>
 </Response>)");
 			}
+			else if (xbr::IsGameBuild<2944>())
+			{
+				return fmt::sprintf(R"(
+<?xml version="1.0" encoding="utf-8"?>
+<Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ms="0" xmlns="GetBuildManifestFull">
+  <Status>1</Status>
+  <Result BuildId="101" VersionNumber="1.0.2944.0" BuildDateUtc="2021-11-05T11:39:37.0266667">
+    <FileManifest>
+		<FileDetails FileEntryId="9178" FileEntryVersionId="9648" FileSize="49828848" TimestampUtc="2021-11-05T11:39:34.8800000">
+			<RelativePath>GTA5.exe</RelativePath>
+			<SHA256Hash>eb0125ab36004ccdba7bfa918dee37035fb9e23448b850256fd6141ffe194466</SHA256Hash>
+			<FileChunks>
+				<Chunk FileChunkId="13046" SHA256Hash="eb0125ab36004ccdba7bfa918dee37035fb9e23448b850256fd6141ffe194466" StartByteOffset="0" Size="49828848" />
+			</FileChunks>
+		</FileDetails>
+    </FileManifest>
+    <IsPreload>false</IsPreload>
+  </Result>
+</Response>)");
+			}
 			else if (xbr::IsGameBuild<2802>())
 			{
 				return fmt::sprintf(R"(
@@ -1084,6 +1104,7 @@ mapper->AddGameService("ugc.asmx/Publish", [](const std::string& body)
 			{ 2612, 95 },
 			{ 2699, 96 },
 			{ 2802, 98 },
+			{ 2944, 101 },
 		};
 
 		static std::map<int, int> rdrBuildsToVersions{

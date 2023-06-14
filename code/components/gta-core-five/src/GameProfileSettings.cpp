@@ -200,6 +200,11 @@ static hook::cdecl_stub<void(int idx, int, int)> _updatePref([]()
 		return (void*)nullptr;
 	}
 
+	if (xbr::IsGameBuildOrGreater<2944>())
+	{
+		return hook::get_pattern("48 2B E0 44 8B F2 BB 8B 00 00 00 83 F9 63 0F 8F", -0x29);
+	}
+
 	return hook::get_pattern("83 F9 62 0F 8F ? ? 00 00 83 F9 61 0F", (xbr::IsGameBuildOrGreater<2060>()) ? -0x29 : -0x23);
 });
 

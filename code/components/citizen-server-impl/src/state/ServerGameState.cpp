@@ -6330,7 +6330,7 @@ enum GTA_EVENT_IDS
 	REQUEST_DETACHMENT_EVENT,
 	KICK_VOTES_EVENT,
 	GIVE_PICKUP_REWARDS_EVENT,
-	NETWORK_CRC_HASH_CHECK_EVENT,
+	NETWORK_CRC_HASH_CHECK_EVENT, // 2944: Removed completely
 	BLOW_UP_VEHICLE_EVENT,
 	NETWORK_SPECIAL_FIRE_EQUIPPED_WEAPON,
 	NETWORK_RESPONDED_TO_THREAT_EVENT,
@@ -6752,6 +6752,11 @@ std::function<bool()> fx::ServerGameState::GetGameEventHandler(const fx::ClientS
 	if (Is2060() && eventType > 55) // patch for 1868+ game build as `NETWORK_AUDIO_BARK_EVENT` was added
 	{
 		eventType--;
+	}
+
+	if (Is2944() && eventType >= 66) // patch for 2944+ game build as `NETWORK_CRC_HASH_CHECK_EVENT` was removed
+	{
+		eventType++;
 	}
 
 	if (eventType == REQUEST_CONTROL_EVENT)

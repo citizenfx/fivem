@@ -66,6 +66,14 @@ static std::unordered_set<std::string> g_badFiles{
 
 	"dlc_mpChristmas3_G9EC:/x64/levels/mpChristmas3_G9EC/vehiclemods/entity3hsw_mods.rpf",
 	"dlc_mpChristmas3_G9EC:/x64/levels/mpChristmas3_G9EC/vehiclemods/issi8hsw_mods.rpf",
+
+	"dlc_mp2023_01_G9EC:/common/data/overlayinfo.xml",
+	"dlc_mp2023_01_G9EC:/x64/levels/gta5/mp2023_01_g9ec_additions/mp2023_01_g9ec_additions.rpf",
+	"dlc_mp2023_01_G9EC:/x64/levels/gta5/mp2023_01_g9ec_additions/mp2023_01_g9ec_additions_metadata.rpf",
+	"dlc_mp2023_01_G9EC:/x64/levels/mp2023_01_G9EC/vehiclemods/buffalo5hsw_mods.rpf",
+	"dlc_mp2023_01_G9EC:/x64/levels/mp2023_01_G9EC/vehiclemods/coureurhsw_mods.rpf",
+	"dlc_mp2023_01_G9EC:/x64/levels/mp2023_01_G9EC/vehiclemods/monstrocitihsw_mods.rpf",
+	"dlc_mp2023_01_G9EC:/x64/levels/mp2023_01_G9EC/vehiclemods/stingertthsw_mods.rpf",
 };
 
 static void (*_applyChangeSetEntry)(ChangeSetEntry* entry);

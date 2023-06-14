@@ -1454,7 +1454,13 @@ std::map<std::string, std::string> UpdateGameCache()
 
 	// cross-build toggle
 #ifdef GTA_FIVE
-	if (IsTargetGameBuild<2802>())
+	if (IsTargetGameBuild<2944>())
+	{
+		g_requiredEntries.push_back({ "GTA5.exe", "4d968a0754d59d30b29cd7b01a06e4685a5fa49c", "https://content.cfx.re/mirrors/patches/2944.0/GTA5.exe", 49828848 });
+		g_requiredEntries.push_back({ "update/update.rpf", "abc628b0ae04e68f88e0581f3572d26dbaed84d2", "https://content.cfx.re/mirrors/patches/2944.0/update.rpf", 1087019008 });
+		g_requiredEntries.push_back({ "update/update2.rpf", "a3181d68a532950da5c584100b35f79eaca7c884", "https://content.cfx.re/mirrors/patches/2944.0/update2.rpf", 352088064 });
+	}
+	else if (IsTargetGameBuild<2802>())
 	{
 		g_requiredEntries.push_back({ "GTA5.exe", "ebb6c144c5befe3529235deccbd8f59d6ce1a76c", "https://content.cfx.re/mirrors/patches/2802.0/GTA5.exe", 46709592 });
 		g_requiredEntries.push_back({ "update/update.rpf", "66388a381347511b7b28aaf91741615e45008e8b", "https://content.cfx.re/mirrors/patches/2802.0/update.rpf", 1079308288,

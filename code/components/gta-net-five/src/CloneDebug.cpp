@@ -1575,7 +1575,7 @@ static HookFunction hookFunction([]()
 	hook::nop(hook::get_pattern("4D 85 C9 74 14 44 0F BE 0A", 3), 2);
 	hook::nop(hook::get_pattern("4D 85 C9 74 14 44 0F B7 0A", 3), 2);
 	hook::nop(hook::get_pattern("4D 85 C9 74 14 44 0F B6 0A", 3), 2);
-	hook::nop(hook::get_pattern("50 48 85 D2 74 1A", 4), 2);
+	hook::nop(hook::get_pattern("50 48 85 D2 74 1A F3", 4), 2);
 	hook::nop(hook::get_pattern("48 85 DB 74 2D 44 0F B7 0A", 3), 2);
 	hook::nop(hook::get_pattern("4D 85 C0 74 38 F3 0F 10", 3), 2);
 	hook::nop(hook::get_pattern("48 85 DB 74 5C 83 64 24", 3), 2);
