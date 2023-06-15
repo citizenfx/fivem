@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Reflection;
 using System.Security;
 
@@ -64,7 +65,13 @@ namespace CitizenFX.Core
 		[SecuritySafeCritical]
 		internal void Initialize()
 		{
-			if (m_state != State.Uninitialized)
+			if (m_state != State.Uninitialized
+#if IS_FXSERVER
+				|| this is ClientScript // shared-lib support: disallow client scripts to be loaded in server environments
+#else
+				|| this is ServerScript // shared-lib support: disallow server scripts to be loaded in client environments
+#endif
+				)
 				return;
 
 			var scriptMethods = this.GetType().GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance);
@@ -323,9 +330,17 @@ namespace CitizenFX.Core
 #endif
 	}
 
-#if !IS_FXSERVER
-	public abstract class ClientScript : BaseScript { }
-#else
-	public abstract class ServerScript : BaseScript { }
+	/// <inheritdoc cref="BaseScript"/>
+	/// <remarks>Will and can only be activated in client environments</remarks>
+#if IS_FXSERVER
+	[EditorBrowsable(EditorBrowsableState.Never)]
 #endif
+	public abstract class ClientScript : BaseScript { }
+
+	/// <inheritdoc cref="BaseScript"/>
+	/// <remarks>Will and can only be activated in server environments</remarks>
+#if !IS_FXSERVER
+	[EditorBrowsable(EditorBrowsableState.Never)]
+#endif
+	public abstract class ServerScript : BaseScript { }
 }
