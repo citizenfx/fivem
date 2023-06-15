@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Linq;
 using System.Security;
 using System.Runtime.InteropServices;
@@ -12,6 +11,7 @@ namespace CitizenFX.Core
 	/// </summary>
 	/// <remarks>In general don't use this type where you would normally use <see cref="string"/> in your .NET code, it needs to do conversion between UTF16 and UTF8 and is therefore slower.
 	/// This type and its conversions are more performant in regards to interop with native code (C++), and other runtimes, for these cases you may want to use this.</remarks>
+	[SecuritySafeCritical]
 	public sealed class CString : IComparable, IComparable<CString>, ICloneable, IEquatable<CString>/*, IConvertible, IEnumerable, IEnumerable<byte>*/
 	{
 		// Notes while working on this type:
@@ -21,6 +21,11 @@ namespace CitizenFX.Core
 		// Performance notes:
 		// 1. This type showed a speed increase of ~43% to ~47% when using strings while interfacing with C++ code,
 		// 2. Moving most methods to C++ and using InternalCall proved to be 1/3 slower, unless we build it into the runtime directly like `string`, which we highly unlikely do.
+
+		/// <summary>
+		/// An empty <see cref="CString"/> equivalent to <see cref="string.Empty"/>, null terminated for interop.
+		/// </summary>				
+		public static CString Empty { get; } = new CString(new byte[] { 0x0 });
 
 		[NonSerialized] internal readonly byte[] value;
 

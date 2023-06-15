@@ -551,12 +551,12 @@ if _OPTIONS['game'] ~= 'launcher' then
 		clr 'Unsafe'
 		files {
 			'client/clrcore-v2/*.cs',
-			'client/clrcore-v2/Coroutine/*.cs',
-			'client/clrcore-v2/Interop/*.cs',
-			'client/clrcore-v2/Math/v2/*.cs',
-			'client/clrcore-v2/Native/*.cs',
-			'client/clrcore-v2/Shared/*.cs',
-			'client/clrcore-v2/System/*.cs',
+			'client/clrcore-v2/Coroutine/**.cs',
+			'client/clrcore-v2/Interop/**.cs',
+			'client/clrcore-v2/Math/v2/**.cs',
+			'client/clrcore-v2/Native/**.cs',
+			'client/clrcore-v2/Shared/**.cs',
+			'client/clrcore-v2/System/**.cs',
 			
 			-- Math, cherry pick from v1 files for now
 			'client/clrcore-v2/Math/GameMath.cs',

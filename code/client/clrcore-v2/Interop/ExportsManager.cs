@@ -1,13 +1,12 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Security;
 using System.Runtime.CompilerServices;
 using CitizenFX.Core.Native;
 
 namespace CitizenFX.Core
 {
-	public delegate Coroutine<object> ExportFunc(params object[] args);
+	public delegate Coroutine<dynamic> ExportFunc(params object[] args);
 
 	internal static class ExportsManager
 	{

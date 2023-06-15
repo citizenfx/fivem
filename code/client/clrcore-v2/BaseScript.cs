@@ -228,11 +228,15 @@ namespace CitizenFX.Core
 		{
 			lock (m_tickList)
 			{
-				int index = m_tickList.FindIndex(th => th.Equals(tick));
-				if (index >= 0)
+				for (int i = 0; i < m_tickList.Count; ++i)
 				{
-					m_tickList[index].Stop();
-					m_tickList.RemoveAt(index);
+					var stored = m_tickList[i];
+					if (stored.m_coroutine.Method == tick.Method && stored.m_coroutine.Target == tick.Target)
+					{
+						stored.Stop();
+						m_tickList.RemoveAt(i);
+						break;
+					}
 				}
 			}
 		}

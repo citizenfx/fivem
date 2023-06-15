@@ -94,7 +94,7 @@ namespace CitizenFX.Core.Native
 			{
 				ulong* __data = stackalloc ulong[] { (ulong)p_referenceIdentity };
 				ScriptContext.InvokeNative(ref s_0xf4e2079d, 0xf4e2079d, __data, 1); // DUPLICATE_FUNCTION_REFERENCE
-				return *(OutString*)__data;
+				return (byte[])*(OutString*)__data;
 			}
 		}
 
