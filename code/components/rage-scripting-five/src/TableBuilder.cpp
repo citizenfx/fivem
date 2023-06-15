@@ -41,7 +41,7 @@ extern "C" DLL_EXPORT uint64_t MapNative(uint64_t inNative)
 
 struct CrossMappingEntry
 {
-	uint64_t entries[27];
+	uint64_t entries[28];
 };
 
 static void DoMapping()
@@ -52,7 +52,11 @@ static void DoMapping()
 
 	int versionIdx = -1;
 
-	if (strncmp(buildString, "Dec  8 2022", 11) == 0)
+	if (strncmp(buildString, "Jun  8 2023", 11) == 0)
+	{
+		versionIdx = 2944;
+	}
+	else if (strncmp(buildString, "Dec  8 2022", 11) == 0)
 	{
 		versionIdx = 2802;
 	}
@@ -148,7 +152,7 @@ static void DoMapping()
 	*/
 
 	int maxVersion = 0;
-	auto newVersions = { 350, 372, 393, 463, 505, 573, 617, 678, 757, 791, 877, 944, 1011, 1103, 1180, 1290, 1365, 1493, 1604, 1737, 1868, 2060, 2189, 2372, 2545, 2802 };
+	auto newVersions = { 350, 372, 393, 463, 505, 573, 617, 678, 757, 791, 877, 944, 1011, 1103, 1180, 1290, 1365, 1493, 1604, 1737, 1868, 2060, 2189, 2372, 2545, 2802, 2944 };
 
 	for (auto version : newVersions)
 	{
@@ -182,6 +186,10 @@ static void DoMapping()
 	else if (Is2802())
 	{
 		assert(maxVersion == 26);
+	}
+	else if (Is2944())
+	{
+		assert(maxVersion == 27);
 	}
 	else if (Is1604())
 	{

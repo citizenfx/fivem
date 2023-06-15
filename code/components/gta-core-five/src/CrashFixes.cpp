@@ -1225,6 +1225,7 @@ static HookFunction hookFunction{[] ()
 
 	// don't fastfail from game CRT code
 	{
+		// 5 hits on 2944, but skipping 2 last
 		auto pattern = hook::pattern("B9 ? ? ? ? CD 29").count_hint(3);
 
 		for (size_t i = 0; i < pattern.size(); i++)

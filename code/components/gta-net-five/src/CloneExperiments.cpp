@@ -45,10 +45,6 @@ class netObject;
 class netPlayerMgrBase
 {
 public:
-	char pad[232 - 8];
-	CNetGamePlayer* localPlayer;
-
-public:
 	virtual ~netPlayerMgrBase() = 0;
 
 	virtual void Initialize() = 0;
@@ -83,6 +79,16 @@ public:
 		return AddPlayer_raw(scInAddr, unkNetValue, addedIn1290, playerData, nonPhysicalPlayerData);
 	}
 #endif
+
+	CNetGamePlayer* GetLocalPlayer()
+	{
+#ifdef GTA_FIVE
+		const int offset = (xbr::IsGameBuildOrGreater<2944>() ? 240 : 232);
+		return *(CNetGamePlayer**)((uint64_t)this + offset);
+#elif IS_RDR3
+		return *(CNetGamePlayer**)((uint64_t)this + 232);
+#endif
+	}
 };
 
 static hook::thiscall_stub<void(netPlayerMgrBase*, CNetGamePlayer*)> _netPlayerMgrBase_UpdatePlayerListsForPlayer([]
@@ -135,7 +141,7 @@ static CNetGamePlayer* __fastcall GetPlayerByIndex(uint8_t index)
 
 static void SetupLocalPlayer(CNetGamePlayer* player)
 {
-	if (player != g_playerMgr->localPlayer)
+	if (player != g_playerMgr->GetLocalPlayer())
 	{
 		return;
 	}
@@ -163,6 +169,11 @@ static void SetupLocalPlayer(CNetGamePlayer* player)
 	// don't add to g_playerListRemote(!)
 }
 
+CNetGamePlayer* GetLocalPlayer()
+{
+	return g_playerMgr->GetLocalPlayer();
+}
+
 #ifdef GTA_FIVE
 static void(*g_origJoinBubble)(void* bubbleMgr, CNetGamePlayer* player);
 
@@ -186,7 +197,7 @@ static void* JoinPhysicalPlayerOnHost(void* bubbleMgr, void* scSessionImpl, void
 	}
 
 	auto result = g_origJoinBubble(bubbleMgr, scSessionImpl, playerDataMsg, a4, g_netLibrary->GetServerSlotID());
-	SetupLocalPlayer(g_playerMgr->localPlayer);
+	SetupLocalPlayer(GetLocalPlayer());
 	return result;
 }
 #endif
@@ -194,11 +205,6 @@ static void* JoinPhysicalPlayerOnHost(void* bubbleMgr, void* scSessionImpl, void
 CNetGamePlayer* GetPlayerByNetId(uint16_t netId)
 {
 	return g_playersByNetId[netId];
-}
-
-CNetGamePlayer* GetLocalPlayer()
-{
-	return g_playerMgr->localPlayer;
 }
 
 static CNetGamePlayer*(*g_origGetPlayerByIndexNet)(int);
@@ -364,7 +370,11 @@ namespace sync
 
 	void TempHackMakePhysicalPlayer(uint16_t clientId, int idx = -1)
 	{
-		if (xbr::IsGameBuildOrGreater<2372>())
+		if (xbr::IsGameBuildOrGreater<2824>())
+		{
+			TempHackMakePhysicalPlayerImpl<2824>(clientId, idx);
+		}
+		else if (xbr::IsGameBuildOrGreater<2372>())
 		{
 			TempHackMakePhysicalPlayerImpl<2372>(clientId, idx);
 		}
@@ -434,7 +444,7 @@ static const uint32_t g_entityNetObjOffset = 224;
 
 rage::netObject* GetLocalPlayerPedNetObject()
 {
-	auto ped = getPlayerPedForNetPlayer(g_playerMgr->localPlayer);
+	auto ped = getPlayerPedForNetPlayer(GetLocalPlayer());
 
 	if (ped)
 	{
@@ -597,7 +607,7 @@ CNetGamePlayer* netObject__GetPlayerOwner(rage::netObject* object)
 		return g_player31;
 	}
 
-	return g_playerMgr->localPlayer;
+	return GetLocalPlayer();
 }
 
 static uint8_t(*g_origGetOwnerPlayerId)(rage::netObject*);
@@ -720,7 +730,7 @@ static void NetLogStub_DoLog(void*, const char* type, const char* fmt, ...)
 static hook::cdecl_stub<CNetGamePlayer*(void*)> _netPlayerCtor([]()
 {
 #ifdef GTA_FIVE
-	return hook::get_pattern("83 8B ? 00 00 00 FF 33 F6", -0x17);
+	return (xbr::IsGameBuildOrGreater<2944>()) ? hook::get_pattern("83 8B ? 00 00 00 FF 48 8D 05 ? ? ? ? 33 F6", -0x17) : hook::get_pattern("83 8B ? 00 00 00 FF 33 F6", -0x17);
 #elif IS_RDR3
 	return hook::get_pattern("E8 ? ? ? ? 33 F6 48 8D 05 ? ? ? ? 48 8D 8B", -0x17);
 #endif
@@ -736,7 +746,7 @@ static CNetGamePlayer* AllocateNetPlayer(void* mgr)
 	}
 
 #ifdef GTA_FIVE
-	void* plr = malloc(xbr::IsGameBuildOrGreater<2372>() ? 704 : xbr::IsGameBuildOrGreater<2060>() ? 688 : 672);
+	void* plr = malloc(xbr::IsGameBuildOrGreater<2824>() ? 800 : xbr::IsGameBuildOrGreater<2372>() ? 704: xbr::IsGameBuildOrGreater<2060>() ? 688 : 672);
 #elif IS_RDR3
 	void* plr = malloc(xbr::IsGameBuildOrGreater<1436>() ? 2736 : 2784);
 #endif
@@ -826,7 +836,7 @@ static void SetOwnerStub(rage::netObject* netObject, CNetGamePlayer* newOwner)
 		return g_origSetOwner(netObject, newOwner);
 	}
 
-	if (newOwner->physicalPlayerIndex() == g_playerMgr->localPlayer->physicalPlayerIndex())
+	if (newOwner->physicalPlayerIndex() == GetLocalPlayer()->physicalPlayerIndex())
 	{
 		TheClones->Log("%s: taking ownership of object id %d - stack trace:\n", __func__, netObject->GetObjectId());
 
@@ -893,7 +903,7 @@ static bool netObject__CanBlend(rage::netObject* object, int* outReason)
 
 int getPlayerId()
 {
-	return g_playerMgr->localPlayer->physicalPlayerIndex();
+	return GetLocalPlayer()->physicalPlayerIndex();
 }
 
 static bool mD0Stub(rage::netSyncTree* tree, int a2)
@@ -1105,7 +1115,7 @@ void PlayerManager_End(void* mgr)
 		{
 			if (p)
 			{
-				if (p != g_playerMgr->localPlayer)
+				if (p != GetLocalPlayer())
 				{
 					console::DPrintf("onesync", "player manager shutdown: resetting player %s\n", p->GetName());
 					p->Reset();
@@ -1117,13 +1127,18 @@ void PlayerManager_End(void* mgr)
 
 		// reset the player list so we won't try removing _any_ players
 		// #TODO1S: don't corrupt the physical linked list in the first place
-		*(void**)((char*)g_playerMgr + 288) = nullptr;
-		*(void**)((char*)g_playerMgr + 296) = nullptr;
-		*(uint32_t*)((char*)g_playerMgr + 304) = 0;
+#ifdef GTA_FIVE
+		const int offset = xbr::IsGameBuildOrGreater<2944>() ? 8 : 0;
+#else
+		const int offset = 0;
+#endif
+		*(void**)((char*)g_playerMgr + 288 + offset) = nullptr;
+		*(void**)((char*)g_playerMgr + 296 + offset) = nullptr;
+		*(uint32_t*)((char*)g_playerMgr + 304 + offset) = 0;
 
-		*(void**)((char*)g_playerMgr + 312) = nullptr;
-		*(void**)((char*)g_playerMgr + 320) = nullptr;
-		*(uint32_t*)((char*)g_playerMgr + 328) = 0;
+		*(void**)((char*)g_playerMgr + 312 + offset) = nullptr;
+		*(void**)((char*)g_playerMgr + 320 + offset) = nullptr;
+		*(uint32_t*)((char*)g_playerMgr + 328 + offset) = 0;
 
 		g_playerListCount = 0;
 		g_playerListCountRemote = 0;
@@ -1892,8 +1907,7 @@ static HookFunction hookFunction([]()
 #endif
 
 #ifdef GTA_FIVE
-	MH_CreateHook(hook::get_pattern("33 DB 48 8B F9 48 39 99 ? ? 00 00 74 ? 48 81 C1 E0", -10), AllocateNetPlayer, (void**)&g_origAllocateNetPlayer);
-
+	MH_CreateHook(hook::get_pattern("48 8B F9 48 39 99 ? ? 00 00 74 ? 48 81 C1 ? ? 00 00 48", -12), AllocateNetPlayer, (void**)&g_origAllocateNetPlayer);
 	MH_CreateHook(hook::get_pattern("8A 41 49 3C FF 74 17 3C 20 73 13 0F B6 C8"), netObject__GetPlayerOwner, (void**)&g_origGetOwnerNetPlayer);
 	MH_CreateHook(hook::get_pattern("8A 41 4A 3C FF 74 17 3C 20 73 13 0F B6 C8"), netObject__GetPendingPlayerOwner, (void**)&g_origGetPendingPlayerOwner);
 #elif IS_RDR3
@@ -2010,7 +2024,10 @@ static HookFunction hookFunction([]()
 
 #ifdef GTA_FIVE
 	MH_CreateHook(hook::get_pattern("48 85 DB 74 20 48 8B 03 48 8B CB FF 50 ? 48 8B", -0x34),
-		(xbr::IsGameBuildOrGreater<2372>()) ? GetPlayerFromGamerId<2372> : xbr::IsGameBuildOrGreater<2060>() ? GetPlayerFromGamerId<2060> : GetPlayerFromGamerId<1604>, (void**)&g_origGetPlayerFromGamerId);
+		(xbr::IsGameBuildOrGreater<2824>()) ? GetPlayerFromGamerId<2824> :
+		(xbr::IsGameBuildOrGreater<2372>()) ? GetPlayerFromGamerId<2372> :
+		(xbr::IsGameBuildOrGreater<2060>()) ? GetPlayerFromGamerId<2060> : GetPlayerFromGamerId<1604>,
+	(void**)&g_origGetPlayerFromGamerId);
 #elif IS_RDR3
 	MH_CreateHook(hook::get_pattern("48 85 DB 74 20 48 8B 03 48 8B CB FF 50 ? 48 8B", -0x27), GetPlayerFromGamerId, (void**)&g_origGetPlayerFromGamerId);
 #endif
@@ -2818,7 +2835,7 @@ static void SendGameEventRaw(uint16_t eventId, rage::netGameEvent* ev)
 
 				if (!EventNeedsOriginalPlayer(ev))
 				{
-					player->physicalPlayerIndex() = (player != g_playerMgr->localPlayer) ? 31 : 0;
+					player->physicalPlayerIndex() = (player != GetLocalPlayer()) ? 31 : 0;
 				}
 
 				if (ev->IsInScope(player))
@@ -2988,9 +3005,9 @@ static void HandleNetGameEvent(const char* idata, size_t len)
 				ev->HandleReply(&rlBuffer, player);
 
 #ifdef GTA_FIVE
-				ev->HandleExtraData(&rlBuffer, true, player, g_playerMgr->localPlayer);
+				ev->HandleExtraData(&rlBuffer, true, player, GetLocalPlayer());
 #elif IS_RDR3
-				ev->HandleExtraData(&rlBuffer, player, g_playerMgr->localPlayer);
+				ev->HandleExtraData(&rlBuffer, player, GetLocalPlayer());
 #endif
 
 #if defined(GTA_FIVE) && 0
@@ -3027,7 +3044,7 @@ static void HandleNetGameEvent(const char* idata, size_t len)
 
 			if (eh && (uintptr_t)eh >= hook::get_adjusted(0x140000000) && (uintptr_t)eh < hook::get_adjusted(hook::exe_end()))
 			{
-				eh(&rlBuffer, player, g_playerMgr->localPlayer, eventHeader, 0, 0);
+				eh(&rlBuffer, player, GetLocalPlayer(), eventHeader, 0, 0);
 				rejected = g_lastEventGotRejected;
 			}
 		}
@@ -3654,7 +3671,12 @@ static HookFunction hookFunction2([]()
 #ifdef GTA_FIVE
 		char* location;
 
-		if (xbr::IsGameBuildOrGreater<2802>())
+		if (xbr::IsGameBuildOrGreater<2824>())
+		{
+			location = hook::get_pattern<char>("4C 8D 4C 24 30 4C 8D 86 B0 02 00 00 48 8B D0 48", -0x70);
+			hook::set_call(&g_origWriteDataNode, location + 0x89);
+		}
+		else if (xbr::IsGameBuildOrGreater<2802>())
 		{
 			location = hook::get_pattern<char>("48 89 44 24 20 E8 ? ? ? ? 84 C0 0F 95 C0 48 83 C4 58", -0x63);
 			hook::set_call(&g_origWriteDataNode, location + 0x68);
@@ -4305,7 +4327,7 @@ bool DoesLocalPlayerOwnWorldGrid(float* pos)
 		int sectorX = std::max(pos[0] + 8192.0f, 0.0f) / 75;
 		int sectorY = std::max(pos[1] + 8192.0f, 0.0f) / 75;
 
-		auto playerIdx = g_playerMgr->localPlayer->physicalPlayerIndex();
+		auto playerIdx = GetLocalPlayer()->physicalPlayerIndex();
 
 		bool does = false;
 
@@ -4325,7 +4347,7 @@ bool DoesLocalPlayerOwnWorldGrid(float* pos)
 		int sectorX = std::max(pos[0] + 8192.0f, 0.0f) / 150;
 		int sectorY = std::max(pos[1] + 8192.0f, 0.0f) / 150;
 
-		auto playerIdx = g_netIdsByPlayer[g_playerMgr->localPlayer];
+		auto playerIdx = g_netIdsByPlayer[GetLocalPlayer()];
 
 		bool does = false;
 
@@ -4408,29 +4430,41 @@ static HookFunction hookFunctionWorldGrid([]()
 #ifdef GTA_FIVE
 	// inline turntaking for ped creation
 	{
-		auto location = hook::get_pattern<char>("45 33 C9 44 88 74 24 20 E8 ? ? ? ? 44 8B E0", 8);
+		auto location = (xbr::IsGameBuildOrGreater<2944>()) ? hook::get_pattern<char>("45 33 C9 44 88 7C 24 20 E8 ? ? ? ? 33 FF 44 8B F8", 8) : hook::get_pattern<char>("45 33 C9 44 88 74 24 20 E8 ? ? ? ? 44 8B E0", 8);
 		hook::call(location, DoesLocalPlayerOwnWorldGridWrapForInline);
 
 		// if '1', instantly fail, don't try to iterate that one player
-		hook::jump(location + 12 + 4, location - 0x16D);
+		const int offsetStart = (xbr::IsGameBuildOrGreater<2944>()) ? 14 : 12;
+		const int offsetEnd = (xbr::IsGameBuildOrGreater<2944>()) ? 0x156 : 0x16D;
+
+		hook::jump(location + offsetStart + 4, location - offsetEnd);
 
 		// precede it with moving the iterator back in `edx`, or this will loop for a *long* time sometimes
-		hook::put<uint32_t>(location + 12, 0x6424548B);
+		hook::put<uint32_t>(location + offsetStart, 0x6424548B);
 	}
 
 	// second variant of the same
 	{
-		auto location = hook::get_pattern<char>("48 8B CE 44 88 6C 24 20 E8 ? ? ? ? 45 8B FD", 8);
+		auto location = (xbr::IsGameBuildOrGreater<2944>()) ? hook::get_pattern<char>("48 8B CB 44 88 64 24 20 E8 ? ? ? ? 41 8B F4", 8) : hook::get_pattern<char>("48 8B CE 44 88 6C 24 20 E8 ? ? ? ? 45 8B FD", 8);
 		hook::call(location, DoesLocalPlayerOwnWorldGridWrapForInline);
 
+		const int offsetEnd = (xbr::IsGameBuildOrGreater<2944>()) ? 0xD6 : 0xD5;
+
 		// if '1', instantly fail, don't try to iterate that one player
-		hook::jump(location + 15, location - 0xD5);
+		hook::jump(location + 15, location - offsetEnd);
 	}
 
 	// turntaking
-	hook::jump(hook::get_pattern("48 8D 4C 24 30 45 33 C9 C6", -0x30), DoesLocalPlayerOwnWorldGrid);
+	hook::jump(hook::get_pattern("48 8D 4C 24 30 45 33 C9 C6", xbr::IsGameBuildOrGreater<2944>() ? -0x28 : -0x30), DoesLocalPlayerOwnWorldGrid);
 
-	hook::jump(hook::get_pattern(((xbr::IsGameBuildOrGreater<2060>()) ? "BE 01 00 00 00 8B E8 85 C0 0F 84 B8" : "BE 01 00 00 00 45 33 C9 40 88 74 24 20"), ((xbr::IsGameBuildOrGreater<2060>()) ? -0x3A : -0x2D)), DoesLocalPlayerOwnWorldGrid);
+	if (xbr::IsGameBuildOrGreater<2944>())
+	{
+		hook::jump(hook::get_pattern("BB 01 00 00 00 8B F8 85 C0 0F 84", -0x35), DoesLocalPlayerOwnWorldGrid);
+	}
+	else
+	{
+		hook::jump(hook::get_pattern(((xbr::IsGameBuildOrGreater<2060>()) ? "BE 01 00 00 00 8B E8 85 C0 0F 84 B8" : "BE 01 00 00 00 45 33 C9 40 88 74 24 20"), ((xbr::IsGameBuildOrGreater<2060>()) ? -0x3A : -0x2D)), DoesLocalPlayerOwnWorldGrid);
+	}
 #elif IS_RDR3
 	hook::jump(hook::get_pattern("0F 28 01 4C 8D 44 24 30 0F", -0xA), DoesLocalPlayerOwnWorldGrid);
 #endif
@@ -5066,7 +5100,14 @@ static HookFunction hookFunctionNative([]()
 	MH_EnableHook(MH_ALL_HOOKS);
 
 #ifdef GTA_FIVE
-	rage__s_NetworkTimeThisFrameStart = hook::get_address<uint32_t*>(hook::get_pattern("49 8B 0F 40 8A D6 41 2B C4 44 3B 25", 12));
+	if (xbr::IsGameBuildOrGreater<2944>())
+	{
+		rage__s_NetworkTimeThisFrameStart = hook::get_address<uint32_t*>(hook::get_pattern("49 8B 0C 24 2B C3 3B 1D ? ? ? ? 40 8A D6 45 1B C0", 8));
+	}
+	else
+	{
+		rage__s_NetworkTimeThisFrameStart = hook::get_address<uint32_t*>(hook::get_pattern("49 8B 0F 40 8A D6 41 2B C4 44 3B 25", 12));
+	}
 	rage__s_NetworkTimeLastFrameStart = hook::get_address<uint32_t*>(hook::get_pattern("89 05 ? ? ? ? 48 8B 01 FF 50 10 80 3D", 2));
 #elif IS_RDR3
 	rage__s_NetworkTimeThisFrameStart = hook::get_address<uint32_t*>(hook::get_pattern("74 ? 8B 05 ? ? ? ? 48 8B 0D ? ? ? ? 89", 4));

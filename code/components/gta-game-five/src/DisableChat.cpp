@@ -58,6 +58,13 @@ namespace game
 	}
 }
 
+static inline void PatchTextChatCheck(const hook::pattern_match& match)
+{
+	auto location = match.get<char>();
+	hook::nop(location, 10);
+	hook::put<uint8_t>(location + 10, 0xEB);
+}
+
 static HookFunction hookFunction([] ()
 {
 	OnKillNetwork.Connect([](const char*)
@@ -103,14 +110,19 @@ static HookFunction hookFunction([] ()
 	hook::call(func, WrapInputCheck);
 
 	// some task checks for text chat that shouldn't *really* be needed... we hope.
-	auto p = hook::pattern("44 38 60 14 75 06 44 39 60 04 74").count(2);
-
-	for (int i = 0; i < p.size(); i++)
+	if (xbr::IsGameBuildOrGreater<2944>())
 	{
-		auto loc = p.get(i).get<char>(0);
+		PatchTextChatCheck(hook::pattern("44 38 60 14 75 06 44 39 60 04 74").count(1).get(0));
+		PatchTextChatCheck(hook::pattern("80 78 14 00 75 06 83 78 04 00 74 18").count(1).get(0));
+	}
+	else
+	{
+		auto pattern = hook::pattern("44 38 60 14 75 06 44 39 60 04 74").count(2);
 
-		hook::nop(loc, 10);
-		hook::put<uint8_t>(loc + 10, 0xEB);
+		for (int i = 0; i < pattern.size(); i++)
+		{
+			PatchTextChatCheck(pattern.get(i));
+		}	
 	}
 
 	auto loc = hook::pattern("38 59 14 75 05 39 59 04 74").count(1).get(0).get<char>(0);

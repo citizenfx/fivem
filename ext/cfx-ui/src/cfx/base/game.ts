@@ -16,6 +16,8 @@ export function getGameBuildDLCName(gameBuild: string): string {
     case '2545':
     case '2612': return 'The Contract';
     case '2699': return 'The Criminal Enterprises';
+    case '2802': return 'Los Santos Drug Wars';
+    case '2944': return 'San Andreas Mercenaries';
   }
 
   return '';

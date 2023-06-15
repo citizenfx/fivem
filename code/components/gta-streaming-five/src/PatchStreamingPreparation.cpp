@@ -605,7 +605,7 @@ static HookFunction hookFunction([] ()
 
 	// redirect pgStreamer::Read for custom streaming reads
 	{
-		auto location = hook::get_pattern("45 8B ? 48 89 7C 24 28 48 89 44 24 20 E8", 13);
+		auto location = hook::get_pattern("48 8D 05 ? ? ? ? 45 8B ? 48 89 7C 24 28 48 89 44 24 20 E8", 20);
 		hook::set_call(&g_origPgStreamerRead, location);
 		hook::call(location, pgStreamerRead);
 	}

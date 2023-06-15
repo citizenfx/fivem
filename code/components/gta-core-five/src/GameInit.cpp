@@ -163,8 +163,15 @@ static bool (*g_isScWaitingForInit)();
 
 void RunRlInitServicing()
 {
-	// 48 83 EC 28 E8 ? ? ? ? C6 05 ? ? ? ? ? EB 41
-	if (xbr::IsGameBuildOrGreater<2802>())
+	// E8 ? ? ? ? C6 05 ? ? ? ? ? EB 41
+	if (xbr::IsGameBuildOrGreater<2944>())
+	{
+		((void (*)())hook::get_adjusted(0x140006B28))();
+		((void (*)())hook::get_adjusted(0x140804254))();
+		((void (*)())hook::get_adjusted(0x140028200))();
+		((void (*)(void*))hook::get_adjusted(0x141643218))((void*)hook::get_adjusted(0x142F60330));
+	}
+	else if (xbr::IsGameBuildOrGreater<2802>())
 	{
 		((void (*)())hook::get_adjusted(0x1400069DC))();
 		((void (*)())hook::get_adjusted(0x140802754))();

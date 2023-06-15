@@ -1995,6 +1995,8 @@ struct CObjectCreationDataNode
 
 		bool unk24 = state.buffer.ReadBit();
 
+		// ...more data in b2944
+
 		return true;
 	}
 };
@@ -3624,7 +3626,7 @@ using CAutomobileSyncTree = SyncTree<
 					NodeIds<127, 127, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode, 13>,
-					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 48>,
+					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 49>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode, 24>
 				>
 			>,
@@ -3646,7 +3648,7 @@ using CAutomobileSyncTree = SyncTree<
 				NodeIds<127, 86, 0>,
 				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode, 2>,
 				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 28>,
-				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 30>
+				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 31>
 			>
 		>,
 		ParentNode<
@@ -3681,7 +3683,7 @@ using CBikeSyncTree = SyncTree<
 					NodeIds<127, 127, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode, 13>,
-					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 48>,
+					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 49>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode, 24>
 				>
 			>,
@@ -3703,7 +3705,7 @@ using CBikeSyncTree = SyncTree<
 				NodeIds<127, 86, 0>,
 				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode, 2>,
 				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 28>,
-				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 30>
+				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 31>
 			>
 		>,
 		ParentNode<
@@ -3738,7 +3740,7 @@ using CBoatSyncTree = SyncTree<
 					NodeIds<127, 127, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode, 13>,
-					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 48>,
+					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 49>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode, 24>
 				>
 			>,
@@ -3760,7 +3762,7 @@ using CBoatSyncTree = SyncTree<
 				NodeIds<127, 86, 0>,
 				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode, 2>,
 				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 28>,
-				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 30>
+				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 31>
 			>
 		>,
 		ParentNode<
@@ -3816,7 +3818,7 @@ using CHeliSyncTree = SyncTree<
 					NodeIds<127, 127, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode, 13>,
-					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 48>,
+					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 49>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode, 24>
 				>
 			>,
@@ -3839,7 +3841,7 @@ using CHeliSyncTree = SyncTree<
 				NodeIds<127, 86, 0>,
 				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode, 2>,
 				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 28>,
-				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 30>,
+				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 31>,
 				NodeWrapper<NodeIds<86, 86, 0>, CHeliControlDataNode, 8>
 			>
 		>,
@@ -3857,7 +3859,7 @@ using CObjectSyncTree = SyncTree<
 		NodeIds<127, 0, 0>,
 		ParentNode<
 			NodeIds<1, 0, 0>,
-			NodeWrapper<NodeIds<1, 0, 0>, CObjectCreationDataNode, 18>
+			NodeWrapper<NodeIds<1, 0, 0>, CObjectCreationDataNode, 30>
 		>,
 		ParentNode<
 			NodeIds<127, 127, 0>,
@@ -3921,7 +3923,7 @@ using CPedSyncTree = SyncTree<
 					NodeIds<127, 127, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode, 13>,
-					NodeWrapper<NodeIds<127, 127, 1>, CPedScriptGameStateDataNode, 110>,
+					NodeWrapper<NodeIds<127, 127, 1>, CPedScriptGameStateDataNode, 111>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode, 24>
 				>
 			>,
@@ -4033,7 +4035,7 @@ using CPlaneSyncTree = SyncTree<
 					NodeIds<127, 127, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode, 13>,
-					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 48>,
+					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 49>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode, 24>
 				>
 			>,
@@ -4056,7 +4058,7 @@ using CPlaneSyncTree = SyncTree<
 				NodeIds<127, 86, 0>,
 				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode, 2>,
 				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 28>,
-				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 30>,
+				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 31>,
 				NodeWrapper<NodeIds<86, 86, 0>, CPlaneControlDataNode, 7>
 			>
 		>,
@@ -4092,7 +4094,7 @@ using CSubmarineSyncTree = SyncTree<
 					NodeIds<127, 127, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode, 13>,
-					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 48>,
+					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 49>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode, 24>
 				>
 			>,
@@ -4114,7 +4116,7 @@ using CSubmarineSyncTree = SyncTree<
 				NodeIds<127, 86, 0>,
 				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode, 2>,
 				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 28>,
-				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 30>,
+				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 31>,
 				NodeWrapper<NodeIds<86, 86, 0>, CSubmarineControlDataNode, 4>
 			>
 		>,
@@ -4159,7 +4161,7 @@ using CPlayerSyncTree = SyncTree<
 			NodeWrapper<NodeIds<87, 87, 0>, CPlayerAppearanceDataNode, 544>,
 			NodeWrapper<NodeIds<86, 86, 0>, CPlayerPedGroupDataNode, 19>,
 			NodeWrapper<NodeIds<86, 86, 0>, CPlayerAmbientModelStreamingNode, 5>,
-			NodeWrapper<NodeIds<86, 86, 0>, CPlayerGamerDataNode, 326>,
+			NodeWrapper<NodeIds<86, 86, 0>, CPlayerGamerDataNode, 370>,
 			NodeWrapper<NodeIds<86, 86, 0>, CPlayerExtendedGameStateNode, 20>
 		>,
 		ParentNode<
@@ -4214,7 +4216,7 @@ using CTrailerSyncTree = SyncTree<
 					NodeIds<127, 127, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode, 13>,
-					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 48>,
+					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 49>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode, 24>
 				>
 			>,
@@ -4236,7 +4238,7 @@ using CTrailerSyncTree = SyncTree<
 				NodeIds<127, 86, 0>,
 				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode, 2>,
 				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 28>,
-				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 30>
+				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 31>
 			>
 		>,
 		ParentNode<
@@ -4271,7 +4273,7 @@ using CTrainSyncTree = SyncTree<
 					NodeIds<127, 127, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode, 13>,
-					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 48>,
+					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 49>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode, 24>
 				>
 			>,
@@ -4293,7 +4295,7 @@ using CTrainSyncTree = SyncTree<
 				NodeIds<127, 86, 0>,
 				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode, 2>,
 				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 28>,
-				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 30>
+				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 31>
 			>
 		>,
 		ParentNode<
