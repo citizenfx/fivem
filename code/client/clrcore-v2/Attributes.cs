@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 
 namespace CitizenFX.Core
 {
@@ -50,6 +51,45 @@ namespace CitizenFX.Core
 		{
 			Command = command;
 			Restricted = restricted;
+		}
+	}
+
+#if !IS_FXSERVER
+	/// <summary>
+	/// Register this method to listen for the given key <see cref="Command"/> when this <see cref="BaseScript"/> is loaded
+	/// </summary>
+	/// <remarks>This will bind the given input details to the command, triggering all commands registered as such.<br />Only works on <see cref="BaseScript"/> inherited class methods</remarks>
+#else
+	/// <summary>Does nothing on server side</summary>
+	[EditorBrowsable(EditorBrowsableState.Never)]
+#endif
+	[AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
+	public class KeyMapAttribute : Attribute
+	{
+		public string Command { get; }
+		public string Description { get; }
+		public string InputMapper { get; }
+		public string InputParameter { get; }
+
+		/// <inheritdoc cref="KeyMapAttribute"/>
+		/// <param name="command">The command to execute, and the identifier of the binding</param>
+		/// <param name="description">A description for in the settings menu</param>
+		/// <param name="inputMapper">The mapper ID to use for the default binding, e.g. keyboard</param>
+		/// <param name="inputParameter">The IO parameter ID to use for the default binding, e.g. f3</param>
+		public KeyMapAttribute(string command, string description, string inputMapper, string inputParameter)
+		{
+			Command = command;
+			Description = description;
+			InputMapper = inputMapper;
+			InputParameter = inputParameter;
+		}
+
+		/// <inheritdoc cref="KeyMapAttribute"/>
+		/// <remarks>Does not register the key mapping, so it works the same as <see cref="Command"/></remarks>
+		/// <param name="commandOnly">The command to execute, and the identifier of the binding</param>
+		public KeyMapAttribute(string commandOnly)
+		{
+			Command = commandOnly;
 		}
 	}
 

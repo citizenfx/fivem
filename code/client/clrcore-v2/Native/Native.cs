@@ -8,6 +8,7 @@ namespace CitizenFX.Core.Native
 	{
 		private static UIntPtr s_0xd233a168;
 		private static UIntPtr s_0x5fa79b0f;
+		private static UIntPtr s_0xd7664fd1;
 		private static UIntPtr s_0xe3551879;
 		private static UIntPtr s_0x1e86f206;
 		private static UIntPtr s_0xf4e2079d;
@@ -39,6 +40,19 @@ namespace CitizenFX.Core.Native
 			{
 				ulong* __data = stackalloc ulong[] { (ulong)p_commandName, (ulong)p_handler, N64.Val(restricted) };
 				ScriptContext.InvokeNative(ref s_0x5fa79b0f, 0x5fa79b0f, __data, 3); // REGISTER_COMMAND
+			}
+		}
+
+		[SecuritySafeCritical]
+		public static unsafe void RegisterKeyMapping(CString commandString, CString description, CString defaultMapper, CString defaultParameter)
+		{
+			fixed (void* p_commandString = commandString?.value
+				, p_description = description?.value
+				, p_defaultMapper = defaultMapper?.value
+				, p_defaultParameter = defaultParameter?.value)
+			{
+				ulong* __data = stackalloc ulong[] { (ulong)p_commandString, (ulong)p_description, (ulong)p_defaultMapper, (ulong)p_defaultParameter };
+				ScriptContext.InvokeNative(ref s_0xd7664fd1, 0xd7664fd1, __data, 4);
 			}
 		}
 

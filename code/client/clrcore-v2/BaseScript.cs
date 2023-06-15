@@ -88,10 +88,13 @@ namespace CitizenFX.Core
 								break;
 
 							case CommandAttribute command:
-								DynFunc dynFunc = Func.Create(this, method);
-								m_commands.Add(new KeyValuePair<int, DynFunc>(ReferenceFunctionManager.CreateCommand(command.Command, dynFunc, command.Restricted), dynFunc));
+								RegisterCommand(command.Command, Func.Create(this, method), command.Restricted);
 								break;
-
+#if !IS_FXSERVER
+							case KeyMapAttribute keyMap:
+								RegisterKeyMap(keyMap.Command, keyMap.Description, keyMap.InputMapper, keyMap.InputParameter, Func.Create(this, method));
+								break;
+#endif
 							case ExportAttribute export:
 								Exports.Add(export.Export, Func.Create(this, method), export.Binding);
 								break;
@@ -254,6 +257,24 @@ namespace CitizenFX.Core
 		#region Events Handlers
 		internal void RegisterEventHandler(string eventName, DynFunc deleg, Binding binding = Binding.Local) => EventHandlers[eventName].Add(deleg, binding);
 		internal void UnregisterEventHandler(string eventName, DynFunc deleg) => EventHandlers[eventName].Remove(deleg);
+
+		internal void RegisterCommand(string command, DynFunc dynFunc, bool isRestricted = true)
+			=> m_commands.Add(new KeyValuePair<int, DynFunc>(ReferenceFunctionManager.CreateCommand(command, dynFunc, isRestricted), dynFunc));
+
+		internal void RegisterKeyMap(string command, string description, string inputMapper, string inputParameter, DynFunc dynFunc)
+		{
+#if IS_FXSERVER
+			throw new NotImplementedException();
+#else
+			if (inputMapper != null && inputParameter != null)
+			{
+				Debug.WriteLine(command);
+				Native.CoreNatives.RegisterKeyMapping(command, description, inputMapper, inputParameter);
+			}
+			m_commands.Add(new KeyValuePair<int, DynFunc>(ReferenceFunctionManager.CreateCommand(command, dynFunc, false), dynFunc));
+#endif
+		}
+
 		#endregion
 
 		#region Script loading
