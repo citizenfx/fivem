@@ -1388,6 +1388,14 @@ static void PoliceScanner_StopWrap(void* self, int a2)
 	}
 }
 
+static void** g_profileSettings;
+
+// args: [profile settings, save, unk]
+static hook::cdecl_stub<void(void*, bool, int)> _processProfileSettings([]
+{
+	return hook::get_call(hook::get_pattern("48 8B 0D ? ? ? ? 45 33 C0 B2 01 48 8B", 0x16));
+});
+
 static HookFunction hookFunction([] ()
 {
 	MH_Initialize();
@@ -1710,12 +1718,19 @@ static HookFunction hookFunction([] ()
 		void(*_processEntitlements)();
 		hook::set_call(&_processEntitlements, location - 50);
 
+		g_profileSettings = hook::get_address<void**>(hook::get_pattern("48 8B 0D ? ? ? ? 45 33 C0 B2 01 48 8B"), 3, 7);
+
 		OnLookAliveFrame.Connect([_processEntitlements]()
 		{
 			_processEntitlements();
 
 			if (!Instance<ICoreGameInit>::Get()->GetGameLoaded())
 			{
+				if (*g_profileSettings && !*((char*)*g_profileSettings + 32))
+				{
+					_processProfileSettings(*g_profileSettings, false, 0);
+				}
+
 				g_netLibrary->RunMainFrame();
 			}
 		});

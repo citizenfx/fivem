@@ -68,11 +68,66 @@ static int ReturnTrue()
 	return 1;
 }
 
+struct ProfileSettingsStruct
+{
+	// +0
+	char pad[32];
+
+	// +32
+	bool loaded;
+	bool pendingLoad;
+
+	// +34
+	bool pad2[2];
+
+	// +36
+	char pad3[4];
+
+	// +40
+	uint64_t gamerId;
+
+	// ...
+};
+
 static uint8_t dummyScProfile[512];
+static ProfileSettingsStruct** g_profileSettings;
+
+static bool (*g_origIsScSignedIn)();
 
 static void* GetDummyScProfile()
 {
-	memset(dummyScProfile, 0xCC, sizeof(dummyScProfile));
+	if (!dummyScProfile[0])
+	{
+		memset(dummyScProfile, 0xCC, sizeof(dummyScProfile));
+	}
+
+	if (auto profileSettings = *g_profileSettings)
+	{
+		static bool wasLoaded = false;
+
+		// if we ever were loaded, don't try to bump the gamer ID
+		if (profileSettings->loaded)
+		{
+			wasLoaded = true;
+		}
+
+		// bump the gamer ID if we were signed in
+		if (!wasLoaded && !profileSettings->pendingLoad)
+		{
+			if (g_origIsScSignedIn())
+			{
+				memset(dummyScProfile, 0xCD, sizeof(dummyScProfile));
+			}
+		}
+	}
+
+	// 'update' gamerId flags to be valid for newer game versions
+	for (auto offset : { 16, 200 })
+	{
+		dummyScProfile[offset + 8] = 3; // online?
+		dummyScProfile[offset + 9] = 0; // index
+	}
+
 	return dummyScProfile;
 }
 
@@ -80,13 +135,15 @@ static HookFunction hookFunction([]()
 {
 	MH_Initialize();
 	MH_CreateHook(hook::get_pattern("FF 51 10 85 C0 78 32", -0x74), GetProfileFileName, (void**)&g_origGetProfileFileName);
-	MH_EnableHook(MH_ALL_HOOKS);
 
 	// force parts of game to think SC is always signed on
-	hook::jump(hook::get_pattern("FF 52 08 84 C0 74 04 B0 01 EB", -0x26), ReturnTrue);
+	MH_CreateHook(hook::get_pattern("FF 52 08 84 C0 74 04 B0 01 EB", -0x26), ReturnTrue, (void**)&g_origIsScSignedIn);
+	MH_EnableHook(MH_ALL_HOOKS);
 
 	// load user profile settings with a 'fake' profile all the time
 	hook::call(hook::get_pattern("40 8A F2 48 8B D9 E8 ? ? ? ? 45 33 F6 48", 6), GetDummyScProfile);
+
+	g_profileSettings = hook::get_address<ProfileSettingsStruct**>(hook::get_pattern("48 8B 0D ? ? ? ? 45 33 C0 B2 01 48 8B"), 3, 7);
 
 	// add save path to user:/ device stack
 	rage::fiDevice::OnInitialMount.Connect([]()
