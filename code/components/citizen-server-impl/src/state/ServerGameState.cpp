@@ -4539,6 +4539,12 @@ void CExplosionEvent::Parse(rl::MessageBuffer& buffer)
 	f189 = buffer.Read<uint8_t>(1);
 	isInvisible = buffer.Read<uint8_t>(1);
 	f126 = buffer.Read<uint8_t>(1);
+
+	if (Is2944())
+	{
+		auto unk2944 = buffer.Read<uint8_t>(1);
+	}
+
 	f241 = buffer.Read<uint8_t>(1);
 	f243 = buffer.Read<uint8_t>(1); // 1604+
 
@@ -4785,7 +4791,7 @@ void CWeaponDamageEvent::Parse(rl::MessageBuffer& buffer)
 
 		if (_f92)
 		{
-			buffer.Read<uint8_t>(4);
+			buffer.Read<uint8_t>(Is2802() ? 5 : 4);
 		}
 	}
 

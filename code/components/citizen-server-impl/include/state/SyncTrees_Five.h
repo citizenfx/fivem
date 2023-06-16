@@ -1898,6 +1898,11 @@ struct CObjectCreationDataNode
 		state.buffer.WriteBit(false);
 		state.buffer.WriteBit(false);
 
+		if (Is2944())
+		{
+			state.buffer.WriteBit(false);
+		}
+
 		return true;
 	}
 
@@ -1995,7 +2000,18 @@ struct CObjectCreationDataNode
 
 		bool unk24 = state.buffer.ReadBit();
 
-		// ...more data in b2944
+		if (Is2944())
+		{
+			bool unk25 = state.buffer.ReadBit();
+
+			if (unk25)
+			{
+				auto unk26 = state.buffer.Read<int>(32);
+				auto unk27 = state.buffer.Read<int>(32);
+				auto unk28 = state.buffer.Read<int>(32);
+				auto unk29 = state.buffer.ReadBit();
+			}
+		}
 
 		return true;
 	}
