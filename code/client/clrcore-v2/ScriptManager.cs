@@ -60,48 +60,33 @@ namespace CitizenFX.Core
 
 		private static void LoadScripts(Assembly assembly)
 		{
-			IEnumerable<Type> definedTypes;
-
+			foreach (var module in assembly.GetModules(false))
 			{
-				// We have ClientScript and ServerScript defined only in the respective environments.
-				// Handle type load exceptions and keep going.
-				// See https://stackoverflow.com/a/11915414
-
-				Func<Type, bool> typesPredicate = t =>
-					t != null
-					&& !t.IsAbstract
-					&& t.IsSubclassOf(typeof(BaseScript))
-					&& t.GetConstructor(Type.EmptyTypes) != null
-					&& !(t.GetCustomAttribute<EnableOnLoadAttribute>()?.Enable == false);
-
-				/*foreach (var type in assembly.GetTypes())
+				foreach (var type in module.GetTypes())
 				{
-					DevDebug.WriteLine(type.BaseType.BaseType.Assembly.Location.ToString());
-				}*/
+					if (!type.IsAbstract
+						&& type.IsSubclassOf(typeof(BaseScript))
+#if IS_FXSERVER
+						&& !type.IsSubclassOf(typeof(ClientScript)) // shared-lib support: disallow client scripts to be loaded in server environments
+#else
+						&& !type.IsSubclassOf(typeof(ServerScript)) // shared-lib support: disallow server scripts to be loaded in client environments
+#endif
+						&& type.GetConstructor(Type.EmptyTypes) != null
+						&& !(type.GetCustomAttribute<EnableOnLoadAttribute>()?.Enable == false))
+					{
+						try
+						{
+							var derivedScript = Activator.CreateInstance(type) as BaseScript;
 
-				try
-				{
-					definedTypes = assembly.GetTypes().Where(typesPredicate);
-				}
-				catch (ReflectionTypeLoadException e)
-				{
-					definedTypes = e.Types.Where(typesPredicate);
-				}
-			}
+							Debug.WriteLine("Instantiated instance of script {0}.", type.FullName);
 
-			foreach (var type in definedTypes)
-			{
-				try
-				{
-					var derivedScript = Activator.CreateInstance(type) as BaseScript;
-
-					Debug.WriteLine("Instantiated instance of script {0}.", type.FullName);
-
-					AddScript(derivedScript);
-				}
-				catch (Exception e)
-				{
-					Debug.WriteLine("Failed to instantiate instance of script {0}: {1}", type.FullName, e.ToString());
+							AddScript(derivedScript);
+						}
+						catch (Exception e)
+						{
+							Debug.WriteLine("Failed to instantiate instance of script {0}: {1}", type.FullName, e.ToString());
+						}
+					}
 				}
 			}
 		}

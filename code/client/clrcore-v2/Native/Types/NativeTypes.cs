@@ -1,6 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 using System.Security;
+using System.Text;
 
 namespace CitizenFX.Core.Native
 {
@@ -90,49 +91,5 @@ namespace CitizenFX.Core.Native
 
 		public unsafe object Deserialize() => MsgPackDeserializer.Deserialize(data, (long)size);
 		internal unsafe object[] DeserializeArray() => MsgPackDeserializer.DeserializeArray(data, (long)size);
-	}
-
-	[SecuritySafeCritical]
-	public readonly ref struct OutString
-	{
-#pragma warning disable 0649 // this type is reinterpreted i.e.: (OutString*)ptr
-		private unsafe readonly byte* data;
-#pragma warning restore 0649
-
-		/// <summary>
-		/// A managed string that holds a conerted copy of the unmanaged ANSI string. If ptr is null, the method returns a null string.
-		/// </summary>
-		/// <param name="str"></param>
-		[SecuritySafeCritical]
-		public static unsafe implicit operator string(in OutString str) => Marshal.PtrToStringAnsi((IntPtr)str.data);
-
-		/// <summary>
-		/// A managed string that holds a copy of the unmanaged ANSI string. If ptr is null, the method returns a null string.
-		/// </summary>
-		/// <param name="str"></param>
-		[SecuritySafeCritical]
-		public static unsafe implicit operator CString(in OutString str) => CString.Create(str.data);
-
-		/// <summary>
-		/// A managed byte[] that holds a copy of the unmanaged ANSI string. If ptr is null, the method returns a null string.
-		/// </summary>
-		/// <param name="str"></param>
-		[SecuritySafeCritical]
-		public static unsafe implicit operator byte[](in OutString str)
-		{
-			// TODO: PERF: check if moving this to an internal C++ backed function will be faster
-			byte* end = str.data;
-			if (end != null)
-			{
-				for (; *end != 0x0; ++end); // find the end, excluding the '\0'
-				long length = end - str.data;
-
-				byte[] array = new byte[length];
-				Marshal.Copy((IntPtr)str.data, array, 0, (int)length);
-				return array;
-			}
-
-			return null;
-		}
 	}
 }

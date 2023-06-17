@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Reflection;
 using System.Security;
 
@@ -64,7 +65,13 @@ namespace CitizenFX.Core
 		[SecuritySafeCritical]
 		internal void Initialize()
 		{
-			if (m_state != State.Uninitialized)
+			if (m_state != State.Uninitialized
+#if IS_FXSERVER
+				|| this is ClientScript // shared-lib support: disallow client scripts to be loaded in server environments
+#else
+				|| this is ServerScript // shared-lib support: disallow server scripts to be loaded in client environments
+#endif
+				)
 				return;
 
 			var scriptMethods = this.GetType().GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance);
@@ -88,10 +95,13 @@ namespace CitizenFX.Core
 								break;
 
 							case CommandAttribute command:
-								DynFunc dynFunc = Func.Create(this, method);
-								m_commands.Add(new KeyValuePair<int, DynFunc>(ReferenceFunctionManager.CreateCommand(command.Command, dynFunc, command.Restricted), dynFunc));
+								RegisterCommand(command.Command, Func.Create(this, method), command.Restricted);
 								break;
-
+#if !IS_FXSERVER
+							case KeyMapAttribute keyMap:
+								RegisterKeyMap(keyMap.Command, keyMap.Description, keyMap.InputMapper, keyMap.InputParameter, Func.Create(this, method));
+								break;
+#endif
 							case ExportAttribute export:
 								Exports.Add(export.Export, Func.Create(this, method), export.Binding);
 								break;
@@ -218,11 +228,15 @@ namespace CitizenFX.Core
 		{
 			lock (m_tickList)
 			{
-				int index = m_tickList.FindIndex(th => th.Equals(tick));
-				if (index >= 0)
+				for (int i = 0; i < m_tickList.Count; ++i)
 				{
-					m_tickList[index].Stop();
-					m_tickList.RemoveAt(index);
+					var stored = m_tickList[i];
+					if (stored.m_coroutine.Method == tick.Method && stored.m_coroutine.Target == tick.Target)
+					{
+						stored.Stop();
+						m_tickList.RemoveAt(i);
+						break;
+					}
 				}
 			}
 		}
@@ -254,6 +268,24 @@ namespace CitizenFX.Core
 		#region Events Handlers
 		internal void RegisterEventHandler(string eventName, DynFunc deleg, Binding binding = Binding.Local) => EventHandlers[eventName].Add(deleg, binding);
 		internal void UnregisterEventHandler(string eventName, DynFunc deleg) => EventHandlers[eventName].Remove(deleg);
+
+		internal void RegisterCommand(string command, DynFunc dynFunc, bool isRestricted = true)
+			=> m_commands.Add(new KeyValuePair<int, DynFunc>(ReferenceFunctionManager.CreateCommand(command, dynFunc, isRestricted), dynFunc));
+
+		internal void RegisterKeyMap(string command, string description, string inputMapper, string inputParameter, DynFunc dynFunc)
+		{
+#if IS_FXSERVER
+			throw new NotImplementedException();
+#else
+			if (inputMapper != null && inputParameter != null)
+			{
+				Debug.WriteLine(command);
+				Native.CoreNatives.RegisterKeyMapping(command, description, inputMapper, inputParameter);
+			}
+			m_commands.Add(new KeyValuePair<int, DynFunc>(ReferenceFunctionManager.CreateCommand(command, dynFunc, false), dynFunc));
+#endif
+		}
+
 		#endregion
 
 		#region Script loading
@@ -302,9 +334,17 @@ namespace CitizenFX.Core
 #endif
 	}
 
-#if !IS_FXSERVER
-	public abstract class ClientScript : BaseScript { }
-#else
-	public abstract class ServerScript : BaseScript { }
+	/// <inheritdoc cref="BaseScript"/>
+	/// <remarks>Will and can only be activated in client environments</remarks>
+#if IS_FXSERVER
+	[EditorBrowsable(EditorBrowsableState.Never)]
 #endif
+	public abstract class ClientScript : BaseScript { }
+
+	/// <inheritdoc cref="BaseScript"/>
+	/// <remarks>Will and can only be activated in server environments</remarks>
+#if !IS_FXSERVER
+	[EditorBrowsable(EditorBrowsableState.Never)]
+#endif
+	public abstract class ServerScript : BaseScript { }
 }
