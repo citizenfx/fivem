@@ -72,6 +72,11 @@ static hook::cdecl_stub<uint16_t(uint32_t)> _getPedPersonalityIndex([]()
 	return hook::get_call(hook::get_pattern("8B 86 B0 00 00 00 BB D5 46 DF E4 85 C0", 0x12));
 });
 
+static hook::cdecl_stub<bool(void*, int, int)> _doesPedComponentDrawableExist([]()
+{
+	return xbr::IsGameBuildOrGreater<2699>() ? hook::get_call(hook::get_pattern("E8 ? ? ? ? 84 C0 0F 84 ? ? ? ? 48 8B 57 48")) : nullptr;
+});
+
 struct PedPersonality
 {
 	uint32_t hash;
@@ -341,5 +346,29 @@ static HookFunction initFunction([]()
 		}
 
 		context.SetResult<float>(sweat);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_PED_COMPONENT_VARIATION_GEN9_EXCLUSIVE", [](fx::ScriptContext& context)
+	{
+		bool result = false;
+
+		if (xbr::IsGameBuildOrGreater<2699>())
+		{
+			fwEntity* entity = rage::fwScriptGuid::GetBaseFromGuid(context.GetArgument<int>(0));
+
+			if (entity && entity->IsOfType<CPed>())
+			{
+				auto componentIndex = context.GetArgument<int>(1);
+
+				if (componentIndex >= 0 && componentIndex < 12)
+				{
+					auto drawableIndex = context.GetArgument<int>(2);
+
+					result = !_doesPedComponentDrawableExist(entity, componentIndex, drawableIndex);	
+				}
+			}
+		}
+
+		context.SetResult<bool>(result);
 	});
 });
