@@ -24,10 +24,10 @@ local function ShowTimeOnline()
     local player = source
     local secondsTotalOnline = GetPlayerTimeOnline(player)
 
-    print("Time online : %s H %s min %s s":format(
+    print(("Time online : %f H %f min %f"):format(
         (secondsTotalOnline / 3600),
         ((secondsTotalOnline / 60) % 60),
-        (secondsTotalOnline % 60),
+        (secondsTotalOnline % 60)
     ))
 end
 
