@@ -255,4 +255,9 @@ static void CreatePlayerCommands()
 			return 0;
 		}
 	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_TIME_ONLINE", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)
+	{
+		return client->GetSecondsOnline();
+	}));
 }
