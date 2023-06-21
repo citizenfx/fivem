@@ -20,13 +20,6 @@ namespace CitizenFX.Core
 		public static unsafe implicit operator string(in OutString str) => Marshal.PtrToStringAnsi((IntPtr)str.data);
 
 		/// <summary>
-		/// A managed string that holds a copy of the unmanaged ANSI string. If ptr is null, the method returns a null string.
-		/// </summary>
-		/// <param name="str"></param>
-		[SecuritySafeCritical]
-		public static unsafe explicit operator CString(in OutString str) => CString.Create(str.data);
-
-		/// <summary>
 		/// A managed byte[] that holds a copy of the unmanaged ANSI string. If ptr is null, the method returns a null string.
 		/// </summary>
 		/// <param name="str"></param>
@@ -50,7 +43,12 @@ namespace CitizenFX.Core
 
 		public override string ToString() => (string)this;
 
-		public CString ToCString() => (CString)this;
+		/// <summary>
+		/// Creates a null terminated C-string out of the returned string
+		/// </summary>
+		/// <returns>null terminated C-string</returns>
+		[SecuritySafeCritical]
+		public unsafe CString ToCString() => CString.Create(data);
 
 		/// <summary>
 		/// Retrieves a substring from this string. Starting at the specified <paramref name="startIndex"/> in strides of <see cref="byte"/>

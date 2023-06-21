@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace CitizenFX.Core
 {
@@ -208,25 +209,37 @@ namespace CitizenFX.Core
 		#region Run
 
 		/// <summary>
-		/// Runs given function directly and allows the caller to await it.
+		/// Runs given function on the main thread; will be scheduled if we're not on the main thread, otherwise it'll be run directly.
 		/// </summary>
 		/// <param name="function">Function to run</param>
 		/// <returns>Awaitable <see cref="Coroutine"/></returns>
-		public static Coroutine Run(Func<Coroutine> function) => function();
-
-		/// <inheritdoc cref="Run(Func{Coroutine})"/>
 		public static Coroutine Run(Action function)
 		{
-			function();
-			return Completed();
+			if (Thread.CurrentThread == Scheduler.MainThread)
+			{
+				function();
+				return Completed();
+			}
+			
+			return RunNextFrame(function);
 		}
 
-		/// <summary>
-		/// Runs given function directly and allows the caller to await it.
-		/// </summary>
-		/// <param name="function">Function to run</param>
-		/// <returns>Awaitable <see cref="Coroutine"/></returns>
-		public static Coroutine Run<TResult>(Func<Coroutine<TResult>> function) => function();
+		/// <inheritdoc cref="Run(Action)"/>
+		public static Coroutine Run(Func<Coroutine> function)
+		{
+			return Thread.CurrentThread == Scheduler.MainThread
+				? function()
+				: RunNextFrame(function);
+		}
+
+		/// <returns>Awaitable <see cref="Coroutine{T}"/></returns>
+		/// <inheritdoc cref="Run(Action)"/>
+		public static Coroutine<T> Run<T>(Func<Coroutine<T>> function)
+		{
+			return Thread.CurrentThread == Scheduler.MainThread
+				? function()
+				: RunNextFrame(function);
+		}
 
 		/// <summary>
 		/// Runs given function next frame and allows the caller to await it.
@@ -260,7 +273,7 @@ namespace CitizenFX.Core
 		/// Runs given function directly and allows the caller to await it.
 		/// </summary>
 		/// <param name="function">Function to run</param>
-		/// <returns>Awaitable <see cref="Coroutine"/></returns>
+		/// <returns>Awaitable <see cref="Coroutine{T}"/></returns>
 		public static Coroutine<T> RunNextFrame<T>(Func<Coroutine<T>> function)
 		{
 			var coroutine = new Coroutine<T>();
