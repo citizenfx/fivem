@@ -121,6 +121,8 @@ public:
 
 	virtual int GetEntryFlags(const std::string& name);
 
+	virtual int GetEntryDefaultFlags(const std::string& name);
+
 	virtual void ForAllVariables(const TVariableCB& callback, int flagMask = 0xFFFFFFFF);
 
 	virtual void RemoveVariablesWithFlag(int flags);
@@ -147,6 +149,8 @@ private:
 	{
 		std::string name;
 
+		int defaultFlags;
+
 		int flags;
 
 		THandlerPtr variable;
@@ -154,7 +158,7 @@ private:
 		int token;
 
 		inline Entry(const std::string& name, int flags, const THandlerPtr& variable, int token)
-		    : name(name), flags(flags), variable(variable), token(token)
+			: name(name), flags(flags), variable(variable), token(token), defaultFlags(flags)
 		{
 		}
 	};

@@ -106,13 +106,15 @@ static InitFunction initFunction([] ()
 				console::GetDefaultContext()->GetVariableManager()->Unregister(convarName);
 			}
 
+			auto varManager = console::GetDefaultContext()->GetVariableManager();
 			// Revert values modified by server back to their old values
 			for (const std::string& convarName : convarsModifiedByServer)
 			{
-				auto convar = console::GetDefaultContext()->GetVariableManager()->FindEntryRaw(convarName);
-				if (convar)
+				auto convar = varManager->FindEntryRaw(convarName);
+				// We don't want to reset convars that are defaulted to ConVar_Replicated (i.e. game_enableFlyThroughWindscreen)
+				if (convar && !(varManager->GetEntryDefaultFlags(convarName) & ConVar_Replicated))
 				{
-					console::GetDefaultContext()->GetVariableManager()->RemoveEntryFlags(convarName, ConVar_Replicated);
+					varManager->RemoveEntryFlags(convarName, ConVar_Replicated);
 					convar->SetValue(convar->GetOfflineValue());
 				}
 			}
