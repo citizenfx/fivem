@@ -62,6 +62,7 @@ static HookFunction hookFunction([]()
 
 	OnKillNetworkDone.Connect([]()
 	{
+		se::ScopedPrincipal principalScopeInternal(se::Principal{ "system.internal" });
 		enableFlyThroughWindscreen.GetHelper()->SetValue("false");
 		enablePlayerRagdollOnCollision.GetHelper()->SetValue("false");
 		enablePlayerJumpRagdollControl.GetHelper()->SetValue("false");
