@@ -1247,8 +1247,8 @@ static HookFunction hookFunction{[] ()
 		}
 	}
 
-	// fix crash caused by lack of nullptr check for CWeaponInfo, introduced as a R* bug in 2545
-	if (xbr::IsGameBuildOrGreater<2545>())
+	// fix crash caused by lack of nullptr check for CWeaponInfo, introduced as a R* bug in 2545.0, fixed in 2628.2
+	if (xbr::IsGameBuildOrGreater<2545>() && !xbr::IsGameBuildOrGreater<2628>())
 	{
 		auto location = hook::get_pattern("41 81 7F 10 F3 9C CD 45");
 
