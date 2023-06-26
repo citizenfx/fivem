@@ -1572,6 +1572,120 @@ namespace CitizenFX.Core
 			}
 		}
 
+		/// <summary>
+		/// Sets the status of the vision cone of the AI Blip
+		/// </summary>
+		public bool AIBlipConeEnabled
+		{
+			set
+			{
+				API.SetPedAiBlipHasCone(Handle, value);
+			}
+		}
+
+		/// <summary>
+		/// Sets the status if the AI Blip is forced on the map
+		/// </summary>
+		public bool AIBlipForcedOn
+		{
+			set
+			{
+				API.SetPedAiBlipForcedOn(Handle, value);
+			}
+		}
+
+		/// <summary>
+		/// Sets the gang id of the AI Blip
+		/// </summary>
+		public int AIBlipGangId
+		{
+			set
+			{
+				API.SetPedAiBlipGangId(Handle, value);
+			}
+		}
+
+		/// <summary>
+		/// Sets the sprite of the AI Blip
+		/// </summary>
+		public int AIBlipSprite
+		{
+			set
+			{
+				API.SetPedAiBlipSprite(Handle, value);
+			}
+		}
+
+		/// <summary>
+		/// Sets the range of the AI Blip
+		/// </summary>
+		public float AIBlipRange
+		{
+			set
+			{
+				API.SetPedAiBlipNoticeRange(Handle, value);
+			}
+		}
+
+		/// <summary>
+		/// Enables an AI Blip for this <see cref="Ped"/>
+		/// </summary>
+		/// <param name="sprite">Blip sprite for the AI Blip</param>
+		public void AIBlipEnable(int sprite)
+		{
+			API.SetPedHasAiBlip(Handle, true);
+			API.SetPedAiBlipSprite(Handle, sprite);
+		}
+
+		/// <summary>
+		///  Enables an AI Blip for this <see cref="Ped"/> with color
+		/// </summary>
+		/// <param name="sprite">Blip sprite for the AI Blip</param>
+		/// <param name="color">Color for the AI Blip (see <see href="https://docs.fivem.net/docs/game-references/blips/#blip-colors">the docs</see> (blip colors))</param>
+		public void AIBlipEnable(int sprite, int color)
+		{
+			API.SetPedHasAiBlipWithColor(Handle, true, color);
+			API.SetPedAiBlipSprite(Handle, sprite);
+		}
+
+		/// <summary>
+		/// Disables the AI Blip of this <see cref="Ped"/>
+		/// </summary>
+		public void AIBlipDisable()
+		{
+			if (AIBlipIsEnabled())
+			{
+				API.SetPedHasAiBlip(Handle, false);
+			}
+		}
+
+		/// <summary>
+		/// Checks if this <see cref="Ped"/> has an AI Blip
+		/// </summary>
+		/// <returns>True if the ped has an AI Blip</returns>
+		public bool AIBlipIsEnabled()
+		{
+			return API.DoesPedHaveAiBlip(Handle);
+		}
+
+		/// <summary>
+		/// Returns the blip handle of this AI Blip
+		/// </summary>
+		/// <returns>Blip Handle</returns>
+		public int AIBlipGetBlipHandle()
+		{
+			return API.GetAiBlip(Handle);
+		}
+
+		/// <summary>
+		/// Returns the AI Blip as a <see cref="Blip"/>
+		/// </summary>
+		/// <returns>A <see cref="Blip"/> object</returns>
+		public Blip AIBlipGetBlipObject()
+		{
+			return new Blip(API.GetAiBlip(Handle));
+		}
+
 		public Vector3 GetLastWeaponImpactPosition()
 		{
 			Vector3 position = new Vector3();
