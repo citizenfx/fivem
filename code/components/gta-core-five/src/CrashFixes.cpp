@@ -587,6 +587,18 @@ static int GetCacheLineSizeHook()
 	return rv;
 }
 
+static bool (*g_origRTTI_IsTypeOf_pgBase)(void*);
+
+static bool RTTI_IsTypeOf_pgBase(void* self)
+{
+	if (!self)
+	{
+		return true;
+	}
+
+	return g_origRTTI_IsTypeOf_pgBase(self);
+}
+
 static HookFunction hookFunction{[] ()
 {
 	// CModelInfoStreamingModule LookupModelId null return
@@ -1235,8 +1247,8 @@ static HookFunction hookFunction{[] ()
 		}
 	}
 
-	// fix crash caused by lack of nullptr check for CWeaponInfo, introduced as a R* bug in 2545
-	if (xbr::IsGameBuildOrGreater<2545>())
+	// fix crash caused by lack of nullptr check for CWeaponInfo, introduced as a R* bug in 2545.0, fixed in 2628.2
+	if (xbr::IsGameBuildOrGreater<2545>() && !xbr::IsGameBuildOrGreater<2628>())
 	{
 		auto location = hook::get_pattern("41 81 7F 10 F3 9C CD 45");
 
@@ -1273,5 +1285,20 @@ static HookFunction hookFunction{[] ()
 		patchStub.Init(reinterpret_cast<intptr_t>(location));
 		hook::nop(location, 8);
 		hook::jump(location, patchStub.GetCode());
+	}
+
+	//
+	// Null pointer dereferencing crash fix in rage::strRequestMgr::RemoveObject. The function
+	// that is getting patched used to ensure that first argument is a type of rage::pgBase.
+	// However it also return false if a nullptr has been passed, this is why the crash is happening.
+	// The code inside if-check does expect variable to be a valid pointer. We're patching this
+	// specific RTTI type checking function call to return "true" when first argument is nullptr.
+	// This is also clear that first argument may be a nullptr given the other related code in this function.
+	//
+	if (xbr::IsGameBuildOrGreater<2802>())
+	{
+		auto location = hook::get_pattern("B9 D4 A7 C6 36 E8", -19);
+		hook::set_call(&g_origRTTI_IsTypeOf_pgBase, location);
+		hook::call(location, RTTI_IsTypeOf_pgBase);
 	}
 }};
