@@ -1479,6 +1479,7 @@ void BackOffMtl()
 }
 
 void RunLauncher(const wchar_t* toolName, bool instantWait);
+extern bool InLegitimacyUI();
 
 static void SetLauncherWaitCB(HANDLE hEvent, HANDLE hProcessIn, BOOL doBreak, DWORD timeout = INFINITE)
 {
@@ -1505,6 +1506,12 @@ static void SetLauncherWaitCB(HANDLE hEvent, HANDLE hProcessIn, BOOL doBreak, DW
 		{
 			HANDLE waitHandles[] = { hEvent, hProcess };
 			DWORD waitResult = WaitForMultipleObjects(2, waitHandles, FALSE, 5000);
+
+			// if we've currently got the LegitimacyNui bits opened, bump the timeout
+			if (InLegitimacyUI())
+			{
+				endTime = GetTickCount64() + timeout;
+			}
 
 			if (waitResult == WAIT_OBJECT_0 + 1)
 			{

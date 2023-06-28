@@ -230,6 +230,17 @@ void tohex(unsigned char* in, size_t insz, char* out, size_t outsz)
 
 std::string GetAuthSessionTicket(uint32_t appID)
 {
+	static uint32_t lastAppID;
+
+	if (appID != 0)
+	{
+		lastAppID = appID;
+	}
+	else
+	{
+		appID = lastAppID;
+	}
+
 	// init Steam
 	SetEnvironmentVariable(L"SteamAppId", fmt::sprintf(L"%d", appID).c_str());
 
