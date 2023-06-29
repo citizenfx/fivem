@@ -25,8 +25,7 @@ namespace CitizenFX.Core
 		private readonly List<CoroutineRepeat> m_tickList = new List<CoroutineRepeat>();
 
 		/// <summary>
-		/// An event containing callbacks to attempt to schedule on every game tick.
-		/// A callback will only be rescheduled once the associated task completes.
+		/// A method to be scheduled on every game tick, do note that they'll only be rescheduled for the next frame once the method returns.
 		/// </summary>
 		protected event Func<Coroutine> Tick
 		{
@@ -95,11 +94,11 @@ namespace CitizenFX.Core
 								break;
 
 							case CommandAttribute command:
-								RegisterCommand(command.Command, Func.Create(this, method), command.Restricted);
+								RegisterCommand(command.Command, Func.CreateCommand(this, method, command.RemapParameters), command.Restricted);
 								break;
 #if !IS_FXSERVER
 							case KeyMapAttribute keyMap:
-								RegisterKeyMap(keyMap.Command, keyMap.Description, keyMap.InputMapper, keyMap.InputParameter, Func.Create(this, method));
+								RegisterKeyMap(keyMap.Command, keyMap.Description, keyMap.InputMapper, keyMap.InputParameter, Func.CreateCommand(this, method, keyMap.RemapParameters));
 								break;
 #endif
 							case ExportAttribute export:
@@ -265,7 +264,7 @@ namespace CitizenFX.Core
 
 		#endregion
 
-		#region Events Handlers
+		#region Events & Command registration
 		internal void RegisterEventHandler(string eventName, DynFunc deleg, Binding binding = Binding.Local) => EventHandlers[eventName].Add(deleg, binding);
 		internal void UnregisterEventHandler(string eventName, DynFunc deleg) => EventHandlers[eventName].Remove(deleg);
 

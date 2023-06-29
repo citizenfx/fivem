@@ -47,6 +47,10 @@ namespace CitizenFX.Core
 	{
 		public string Command { get; }
 		public bool Restricted { get; set; }
+
+		/// <returns></returns>
+		/// <inheritdoc cref="Func.ConstructCommandRemapped(object, System.Reflection.MethodInfo)"/>
+		public bool RemapParameters { get; set; } = false;
 		public CommandAttribute(string command, bool restricted = false)
 		{
 			Command = command;
@@ -70,6 +74,10 @@ namespace CitizenFX.Core
 		public string Description { get; }
 		public string InputMapper { get; }
 		public string InputParameter { get; }
+
+		/// <returns></returns>
+		/// <inheritdoc cref="Func.ConstructCommandRemapped(object, System.Reflection.MethodInfo)"/>
+		public bool RemapParameters { get; set; } = false;
 
 		/// <inheritdoc cref="KeyMapAttribute"/>
 		/// <param name="command">The command to execute, and the identifier of the binding</param>
