@@ -292,7 +292,7 @@ static HRESULT D3D11CreateDeviceWoo(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_
 
 static FARPROC GetProcAddressStub(HMODULE hModule, LPCSTR name)
 {
-	if (strcmp(name, "D3D11CreateDevice") == 0)
+	if (!IS_INTRESOURCE(name) && strcmp(name, "D3D11CreateDevice") == 0)
 	{
 		return (FARPROC)&D3D11CreateDeviceWoo;
 	}
