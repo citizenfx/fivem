@@ -1,5 +1,5 @@
 #if MONO_V2
-namespace CitizenFX.FiveM.UI
+namespace CitizenFX.FiveM.GUI
 #else
 namespace CitizenFX.Core.UI
 #endif

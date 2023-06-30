@@ -1,11 +1,18 @@
-#if !MONO_V2
-
 using System;
 using System.Drawing;
 using System.Collections.Generic;
 using CitizenFX.Core.Native;
 
+#if MONO_V2
+using CitizenFX.Core;
+using PointF = CitizenFX.Core.Vector2;
+using SizeF = CitizenFX.Core.Vector2;
+using API = CitizenFX.FiveM.Native.Natives;
+
+namespace CitizenFX.FiveM.GUI
+#else
 namespace CitizenFX.Core.UI
+#endif
 {
 	public interface IElement
 	{
@@ -173,7 +180,7 @@ namespace CitizenFX.Core.UI
 		/// <param name="offset">The offset to shift the draw position of this <see cref="Rectangle" /> using a 1280*720 pixel base.</param>
 		public virtual void Draw(SizeF offset)
 		{
-			InternalDraw(offset, Screen.Width, Screen.Height);
+			InternalDraw(offset, 1.0f / Screen.Width, 1.0f / Screen.Height);
 		}
 
 		/// <summary>
@@ -190,20 +197,27 @@ namespace CitizenFX.Core.UI
 		/// <param name="offset">The offset to shift the draw position of this <see cref="Rectangle" /> using a <see cref="Screen.ScaledWidth" />*720 pixel base.</param>
 		public virtual void ScaledDraw(SizeF offset)
 		{
-			InternalDraw(offset, Screen.ScaledWidth, Screen.Height);
+			InternalDraw(offset, 1.0f / Screen.ScaledWidth, 1.0f / Screen.Height);
 		}
 
-		void InternalDraw(SizeF offset, float screenWidth, float screenHeight)
+		void InternalDraw(SizeF offset, float inverseScreenWidth, float inverseScreenHeight)
 		{
 			if (!Enabled)
 			{
 				return;
 			}
 
-			float w = Size.Width / screenWidth;
-			float h = Size.Height / screenHeight;
-			float x = (Position.X + offset.Width) / screenWidth;
-			float y = (Position.Y + offset.Height) / screenHeight;
+#if MONO_V2
+			float w = Size.X * inverseScreenWidth;
+			float h = Size.Y * inverseScreenHeight;
+			float x = (Position.X + offset.X) * inverseScreenWidth;
+			float y = (Position.Y + offset.Y) * inverseScreenHeight;
+#else
+			float w = Size.Width * inverseScreenWidth;
+			float h = Size.Height * inverseScreenHeight;
+			float x = (Position.X + offset.Width) * inverseScreenWidth;
+			float y = (Position.Y + offset.Height) * inverseScreenHeight;
+#endif
 
 			if (!Centered)
 			{
@@ -285,7 +299,11 @@ namespace CitizenFX.Core.UI
 
 			if (Centered)
 			{
+#if MONO_V2
+				offset -= Size * 0.5f;
+#else
 				offset -= new SizeF(Size.Width * 0.5f, Size.Height * 0.5f);
+#endif
 			}
 
 			foreach (var item in Items)
@@ -319,7 +337,11 @@ namespace CitizenFX.Core.UI
 
 			if (Centered)
 			{
+#if MONO_V2
+				offset -= Size * 0.5f;
+#else
 				offset -= new SizeF(Size.Width * 0.5f, Size.Height * 0.5f);
+#endif
 			}
 
 			foreach (var item in Items)
@@ -329,5 +351,3 @@ namespace CitizenFX.Core.UI
 		}
 	}
 }
-
-#endif
