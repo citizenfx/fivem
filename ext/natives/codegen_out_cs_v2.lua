@@ -218,6 +218,8 @@ local overrideParamTypes = {
 		['Hash'] = { 'uint', false },
 		['Any'] = { 'long', false },
 		['Vector3'] = { 'Vector3', false },
+		['long'] = { 'long', false },
+		['ulong'] = { 'ulong', false },
 	},
 	[true] = -- by ref
 	{
@@ -236,6 +238,8 @@ local overrideReturnTypes = {
 	['Vector3'] = 'Vector3',
 	
 	['ulong*'] = 'ulong', -- compat file uses ulong* instead of Any*
+	['long'] = 'long',
+	['ulong'] = 'ulong',
 }
 
 -- Explanation:
