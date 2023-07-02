@@ -8,6 +8,7 @@
 #include <ICoreGameInit.h>
 #include <rageVectors.h>
 #include <MinHook.h>
+#include "Hooking.Stubs.h"
 
 static int WeaponDamageModifierOffset;
 static int WeaponAnimationOverrideOffset;
@@ -301,6 +302,19 @@ static uint64_t getWeaponFromHash(fx::ScriptContext& context)
 	return 0;
 }
 
+static std::atomic_bool g_SET_WEAPONS_NO_AIM_BLOCKING = false;
+
+static bool (*g_origIsPedWeaponAimingBlocked)(void*, void*, void*, float, float, bool, bool, bool, float);
+static bool IsPedWeaponAimingBlocked(void* ped, void* coords, void* unk1, float unk2, float unk3, bool unk4, bool unk5, bool unk6, float unk7)
+{
+	if (g_SET_WEAPONS_NO_AIM_BLOCKING && ped && ped == getLocalPlayerPed())
+	{
+		return false;
+	}
+
+	return g_origIsPedWeaponAimingBlocked(ped, coords, unk1, unk2, unk3, unk4, unk5, unk6, unk7);
+}
+
 static HookFunction hookFunction([]()
 {
 	{
@@ -405,6 +419,12 @@ static HookFunction hookFunction([]()
 		}
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("SET_WEAPONS_NO_AIM_BLOCKING", [](fx::ScriptContext& context)
+	{
+		bool value = context.GetArgument<bool>(0);
+		g_SET_WEAPONS_NO_AIM_BLOCKING = value;
+	});
+
 	fx::ScriptEngine::RegisterNativeHandler("SET_AIM_COOLDOWN", [](fx::ScriptContext& context)
 	{
 		int value = context.GetArgument<int>(0);
@@ -442,6 +462,7 @@ static HookFunction hookFunction([]()
 		g_SET_FLASH_LIGHT_KEEP_ON_WHILE_MOVING = false;
 		g_SET_WEAPONS_NO_AUTORELOAD = false;
 		g_SET_WEAPONS_NO_AUTOSWAP = false;
+		g_SET_WEAPONS_NO_AIM_BLOCKING = false;
 		g_LocalWeaponClipAmounts.clear();
 	});
 
@@ -513,4 +534,10 @@ static HookFunction hookFunction([]()
 	void* shouldAimCall = hook::pattern("E8 ? ? ? ? 84 C0 0F 84 ? ? ? ? 48 8B CB E8 ? ? ? ? 84 C0 0F 84 ? ? ? ? F3 0F 10 B7").count(4).get(0).get<void>();
 	hook::set_call(&g_origShouldAim, shouldAimCall);
 	hook::call(shouldAimCall, ShouldAim);
+
+	// Hook function used for deciding if ped's weapon is currently blocked from aiming because of environment.
+	{
+		auto location = hook::get_call(hook::get_pattern("E8 ? ? ? ? 84 C0 74 29 8B 47 34"));
+		g_origIsPedWeaponAimingBlocked = hook::trampoline(location, &IsPedWeaponAimingBlocked);
+	}
 });
