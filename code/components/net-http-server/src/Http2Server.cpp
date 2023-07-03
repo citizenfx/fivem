@@ -468,13 +468,13 @@ public:
 		if (auto stream = TcpStream(); stream.GetRef())
 		{
 			fwRefContainer thisRef = this;
-			m_ended = true;
 
 			stream->ScheduleCallback([thisRef]()
 			{
 				thisRef->m_tcpStream = nullptr;
 
 				auto session = thisRef->Session();
+				thisRef->m_ended = true;
 
 				if (session)
 				{
