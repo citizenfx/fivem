@@ -410,6 +410,8 @@ static bool g_mainThreadId;
 
 #include <queue>
 
+extern void DoPatchMouseScrollDelta();
+
 static HookFunction setOffsetsHookFunction([]()
 {
 	g_inputOffset = hook::get_address<int*>(hook::get_pattern("89 3D ? ? ? ? EB 0F 48 8B CB", 2));
@@ -427,6 +429,9 @@ static HookFunction setOffsetsHookFunction([]()
 	rage::g_input.cursorAbsY = hook::get_address<int32_t*>(hook::get_pattern("8B 15 ? ? ? ? 8B 0D ? ? ? ? 2B C7", 6), 2, 6);
 	rage::g_input.mouseDiffDirectionX = hook::get_address<float*>(hook::get_pattern("21 3D ? ? ? ? 21 3D ? ? ? ? 48 8B"), 2, 6);
 	rage::g_input.mouseDiffDirectionY = hook::get_address<float*>(hook::get_pattern("21 3D ? ? ? ? 21 3D ? ? ? ? 48 8B", 6), 2, 6);
+
+	// this has to be here as the mouseDZ pattern gets invalidated otherwise
+	DoPatchMouseScrollDelta();
 });
 
 static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
