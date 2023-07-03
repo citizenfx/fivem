@@ -70,13 +70,14 @@ void NUIClient::Initialize()
 					{
 						if (it->IsString())
 						{
-							thisRef->m_requestBlacklist.emplace_back(it->GetString(), std::regex_constants::ECMAScript | std::regex_constants::icase);
+							std::unique_lock _(thisRef->m_requestBlocklistLock);
+							thisRef->m_requestBlocklist.emplace_back(it->GetString(), std::regex_constants::ECMAScript | std::regex_constants::icase);
 						}
 					}
 				}
 			}
 
-			Instance<NUISchemeHandlerFactory>::Get()->SetRequestBlacklist(thisRef->m_requestBlacklist);
+			Instance<NUISchemeHandlerFactory>::Get()->SetRequestBlocklist(thisRef->m_requestBlocklist);
 		}
 	});
 }
@@ -420,18 +421,22 @@ auto NUIClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<Ce
 	}
 #endif
 
-	for (auto& reg : m_requestBlacklist)
 	{
-		try
+		std::shared_lock _(m_requestBlocklistLock);
+
+		for (auto& reg : m_requestBlocklist)
 		{
-			if (std::regex_search(url, reg))
+			try
 			{
-				trace("Blocked a request for blacklisted URI %s\n", url);
-				return RV_CANCEL;
+				if (std::regex_search(url, reg))
+				{
+					trace("Blocked a request for blocklisted URI %s\n", url);
+					return RV_CANCEL;
+				}
 			}
-		}
-		catch (std::exception& e)
-		{
+			catch (std::exception& e)
+			{
+			}
 		}
 	}
 
