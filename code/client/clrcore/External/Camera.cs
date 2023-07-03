@@ -646,7 +646,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return API.GetGameplayCamZoom();
+				return API.GetFirstPersonAimCamZoomFactor();
 			}
 		}
 		/// <summary>

@@ -39,9 +39,9 @@ namespace CitizenFX.Core
 		public bool IsValid
 		{
 #if MONO_V2
-			get { return !API.IsDlcDataEmpty(unchecked((uint)validCheck)); }			
+			get { return !API.IsContentItemLocked(unchecked((uint)validCheck)); }
 #else
-			get { return !API.IsDlcDataEmpty(ref validCheck); }
+			get { return !API.IsContentItemLocked(ref validCheck); }
 #endif
 		}
 

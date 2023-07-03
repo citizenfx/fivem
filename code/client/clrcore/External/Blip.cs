@@ -412,7 +412,7 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				API.SetBlipFriend(Handle, value);
+				API.ShowFriendIndicatorOnBlip(Handle, value);
 			}
 		}
 		/// <summary>
@@ -425,7 +425,7 @@ namespace CitizenFX.Core
 		{
 			set
 			{
-				API.SetBlipCrew(Handle, value);
+				API.ShowCrewIndicatorOnBlip(Handle, value);
 			}
 		}
 		/// <summary>

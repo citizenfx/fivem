@@ -27,7 +27,7 @@ namespace CitizenFX.Core
 		{
 			get
 			{
-				return API.GetRopeLength(Handle);
+				return API.RopeGetDistanceBetweenEnds(Handle);
 			}
 			set
 			{

@@ -365,7 +365,7 @@ namespace CitizenFX.Core
 			{
 				WeaponComponent comp = Components.GetMk2CamoComponent((int)liveryID);
 				comp.Active = true;
-				API.N_0x9fe5633880ecd8ed(Game.PlayerPed.Handle, (compat_i32_u32)Hash, (compat_i32_u32)comp.ComponentHash, (int)colorID);
+				API.SetPedWeaponLiveryColor(Game.PlayerPed.Handle, (compat_i32_u32)Hash, (compat_i32_u32)comp.ComponentHash, (int)colorID);
 			}
 			else
 			{

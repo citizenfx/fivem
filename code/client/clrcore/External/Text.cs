@@ -141,7 +141,7 @@ namespace CitizenFX.Core.UI
 			{
 				string[] strings = Screen.StringToArray(Caption);
 
-				API.BeginTextCommandWidth("CELL_EMAIL_BCON");
+				API.BeginTextCommandGetWidth("CELL_EMAIL_BCON");
 
 				foreach (string s in strings)
 				{
@@ -164,7 +164,7 @@ namespace CitizenFX.Core.UI
 			{
 				string[] strings = Screen.StringToArray(Caption);
 
-				API.BeginTextCommandWidth("CELL_EMAIL_BCON");
+				API.BeginTextCommandGetWidth("CELL_EMAIL_BCON");
 
 				foreach (string s in strings)
 				{
@@ -183,7 +183,7 @@ namespace CitizenFX.Core.UI
 		/// </summary>
 		/// <param name="caption">The <see cref="Text"/> to draw.</param>
 		/// <param name="position">Set the <see cref="Position"/> on screen where to draw the <see cref="Text"/>.</param>
-		/// <param name="scale">Sets a <see cref="Scale"/> used to increase of decrease the size of the <see cref="Text"/>, for no scaling use 1.0f.</param>	
+		/// <param name="scale">Sets a <see cref="Scale"/> used to increase of decrease the size of the <see cref="Text"/>, for no scaling use 1.0f.</param>
 		public Text(string caption, PointF position, float scale) : this(caption, position, scale, Color.FromArgb(255, 255, 255, 255), Font.ChaletLondon, Alignment.Left, false, false, 0.0f)
 		{
 		}
@@ -193,7 +193,7 @@ namespace CitizenFX.Core.UI
 		/// <param name="caption">The <see cref="Text"/> to draw.</param>
 		/// <param name="position">Set the <see cref="Position"/> on screen where to draw the <see cref="Text"/>.</param>
 		/// <param name="scale">Sets a <see cref="Scale"/> used to increase of decrease the size of the <see cref="Text"/>, for no scaling use 1.0f.</param>
-		/// <param name="color">Set the <see cref="Color"/> used to draw the <see cref="Text"/>.</param>							 	
+		/// <param name="color">Set the <see cref="Color"/> used to draw the <see cref="Text"/>.</param>
 		public Text(string caption, PointF position, float scale, Color color) : this(caption, position, scale, color, Font.ChaletLondon, Alignment.Left, false, false, 0.0f)
 		{
 		}
@@ -203,8 +203,8 @@ namespace CitizenFX.Core.UI
 		/// <param name="caption">The <see cref="Text"/> to draw.</param>
 		/// <param name="position">Set the <see cref="Position"/> on screen where to draw the <see cref="Text"/>.</param>
 		/// <param name="scale">Sets a <see cref="Scale"/> used to increase of decrease the size of the <see cref="Text"/>, for no scaling use 1.0f.</param>
-		/// <param name="color">Set the <see cref="Color"/> used to draw the <see cref="Text"/>.</param>							 
-		/// <param name="font">Sets the <see cref="Font"/> used when drawing the text.</param>	
+		/// <param name="color">Set the <see cref="Color"/> used to draw the <see cref="Text"/>.</param>
+		/// <param name="font">Sets the <see cref="Font"/> used when drawing the text.</param>
 		public Text(string caption, PointF position, float scale, Color color, Font font) : this(caption, position, scale, color, font, Alignment.Left, false, false, 0.0f)
 		{
 		}
@@ -214,7 +214,7 @@ namespace CitizenFX.Core.UI
 		/// <param name="caption">The <see cref="Text"/> to draw.</param>
 		/// <param name="position">Set the <see cref="Position"/> on screen where to draw the <see cref="Text"/>.</param>
 		/// <param name="scale">Sets a <see cref="Scale"/> used to increase of decrease the size of the <see cref="Text"/>, for no scaling use 1.0f.</param>
-		/// <param name="color">Set the <see cref="Color"/> used to draw the <see cref="Text"/>.</param>							 
+		/// <param name="color">Set the <see cref="Color"/> used to draw the <see cref="Text"/>.</param>
 		/// <param name="font">Sets the <see cref="Font"/> used when drawing the text.</param>
 		/// <param name="alignment">Sets the <see cref="Alignment"/> used when drawing the text, <see cref="UI.Alignment.Left"/>,<see cref="UI.Alignment.Center"/> or <see cref="UI.Alignment.Right"/>.</param>
 		public Text(string caption, PointF position, float scale, Color color, Font font, Alignment alignment) : this(caption, position, scale, color, font, alignment, false, false, 0.0f)
@@ -226,11 +226,11 @@ namespace CitizenFX.Core.UI
 		/// <param name="caption">The <see cref="Text"/> to draw.</param>
 		/// <param name="position">Set the <see cref="Position"/> on screen where to draw the <see cref="Text"/>.</param>
 		/// <param name="scale">Sets a <see cref="Scale"/> used to increase of decrease the size of the <see cref="Text"/>, for no scaling use 1.0f.</param>
-		/// <param name="color">Set the <see cref="Color"/> used to draw the <see cref="Text"/>.</param>							 
+		/// <param name="color">Set the <see cref="Color"/> used to draw the <see cref="Text"/>.</param>
 		/// <param name="font">Sets the <see cref="Font"/> used when drawing the text.</param>
 		/// <param name="alignment">Sets the <see cref="Alignment"/> used when drawing the text, <see cref="UI.Alignment.Left"/>,<see cref="UI.Alignment.Center"/> or <see cref="UI.Alignment.Right"/>.</param>
 		/// <param name="shadow">Sets whether or not to draw the <see cref="Text"/> with a <see cref="Shadow"/> effect.</param>
-		/// <param name="outline">Sets whether or not to draw the <see cref="Text"/> with an <see cref="Outline"/> around the letters.</param>	
+		/// <param name="outline">Sets whether or not to draw the <see cref="Text"/> with an <see cref="Outline"/> around the letters.</param>
 		public Text(string caption, PointF position, float scale, Color color, Font font, Alignment alignment, bool shadow, bool outline) : this(caption, position, scale, color, font, alignment, shadow, outline, 0.0f)
 		{
 		}
@@ -241,12 +241,12 @@ namespace CitizenFX.Core.UI
 		/// <param name="caption">The <see cref="Text"/> to draw.</param>
 		/// <param name="position">Set the <see cref="Position"/> on screen where to draw the <see cref="Text"/>.</param>
 		/// <param name="scale">Sets a <see cref="Scale"/> used to increase of decrease the size of the <see cref="Text"/>, for no scaling use 1.0f.</param>
-		/// <param name="color">Set the <see cref="Color"/> used to draw the <see cref="Text"/>.</param>							 
+		/// <param name="color">Set the <see cref="Color"/> used to draw the <see cref="Text"/>.</param>
 		/// <param name="font">Sets the <see cref="Font"/> used when drawing the text.</param>
 		/// <param name="alignment">Sets the <see cref="Alignment"/> used when drawing the text, <see cref="UI.Alignment.Left"/>,<see cref="UI.Alignment.Center"/> or <see cref="UI.Alignment.Right"/>.</param>
 		/// <param name="shadow">Sets whether or not to draw the <see cref="Text"/> with a <see cref="Shadow"/> effect.</param>
 		/// <param name="outline">Sets whether or not to draw the <see cref="Text"/> with an <see cref="Outline"/> around the letters.</param>
-		/// <param name="wrapWidth">Sets how many horizontal pixel to draw before wrapping the <see cref="Text"/> on the next line down.</param>											 																	  
+		/// <param name="wrapWidth">Sets how many horizontal pixel to draw before wrapping the <see cref="Text"/> on the next line down.</param>
 		public Text(string caption, PointF position, float scale, Color color, Font font, Alignment alignment, bool shadow, bool outline, float wrapWidth)
 		{
 			Enabled = true;
@@ -278,7 +278,7 @@ namespace CitizenFX.Core.UI
 		{
 			string[] strings = Screen.StringToArray(text);
 
-			API.BeginTextCommandWidth("CELL_EMAIL_BCON");
+			API.BeginTextCommandGetWidth("CELL_EMAIL_BCON");
 
 			foreach (string s in strings)
 			{
@@ -303,7 +303,7 @@ namespace CitizenFX.Core.UI
 		{
 			string[] strings = Screen.StringToArray(text);
 
-			API.BeginTextCommandWidth("CELL_EMAIL_BCON");
+			API.BeginTextCommandGetWidth("CELL_EMAIL_BCON");
 
 			foreach (string s in strings)
 			{

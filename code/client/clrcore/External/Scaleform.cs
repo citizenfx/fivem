@@ -90,23 +90,23 @@ namespace CitizenFX.Core
 			{
 				if (argument is int)
 				{
-					API.PushScaleformMovieMethodParameterInt((int)argument);
+					API.ScaleformMovieMethodAddParamInt((int)argument);
 				}
 				else if (argument is string)
 				{
-					API.PushScaleformMovieMethodParameterString((string)argument);
+					API.ScaleformMovieMethodAddParamTextureNameString((string)argument);
 				}
 				else if (argument is char)
 				{
-					API.PushScaleformMovieMethodParameterString(argument.ToString());
+					API.ScaleformMovieMethodAddParamTextureNameString(argument.ToString());
 				}
 				else if (argument is float)
 				{
-					API.PushScaleformMovieMethodParameterFloat((float)argument);
+					API.ScaleformMovieMethodAddParamFloat((float)argument);
 				}
 				else if (argument is double)
 				{
-					API.PushScaleformMovieMethodParameterFloat((float)(double)argument);
+					API.ScaleformMovieMethodAddParamFloat((float)(double)argument);
 				}
 				else if (argument is bool)
 				{
@@ -114,7 +114,7 @@ namespace CitizenFX.Core
 				}
 				else if (argument is ScaleformArgumentTXD)
 				{
-					API.PushScaleformMovieMethodParameterString(((ScaleformArgumentTXD)argument)._txd);
+					API.ScaleformMovieMethodAddParamTextureNameString(((ScaleformArgumentTXD)argument)._txd);
 				}
 				else
 				{
@@ -139,7 +139,7 @@ namespace CitizenFX.Core
 		}
 		public void Render3D(Vector3 position, Vector3 rotation, Vector3 scale)
 		{
-			API.DrawScaleformMovie_3dNonAdditive(Handle, position.X, position.Y, position.Z, rotation.X, rotation.Y, rotation.Z, 2.0f, 2.0f, 1.0f, scale.X, scale.Y, scale.Z, 2);
+			API.DrawScaleformMovie_3dSolid(Handle, position.X, position.Y, position.Z, rotation.X, rotation.Y, rotation.Z, 2.0f, 2.0f, 1.0f, scale.X, scale.Y, scale.Z, 2);
 		}
 		public void Render3DAdditive(Vector3 position, Vector3 rotation, Vector3 scale)
 		{
