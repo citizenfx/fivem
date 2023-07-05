@@ -96,6 +96,9 @@ namespace CitizenFX.Core
 #endif
 		}
 
+		public static unsafe explicit operator Color(uint color) => new Color(color);
+		public static unsafe explicit operator Color(int color) => new Color(color);
+
 		public static unsafe explicit operator uint(in Color color) => color.argb[0];
 		public static unsafe explicit operator int(in Color color) => (int)color.argb[0];
 

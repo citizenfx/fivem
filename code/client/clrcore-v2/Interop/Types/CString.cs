@@ -159,7 +159,7 @@ namespace CitizenFX.Core
 		/// <param name="startIndex">start character index</param>
 		/// <returns>CString with the requested part of characters of this string</returns>
 		/// <exception cref="ArgumentOutOfRangeException"><paramref name="startIndex"/> &lt; 0 or &gt;= Length</exception>
-		public CString SubString(int startIndex) => SubString(unchecked((uint)startIndex));
+		public CString Substring(int startIndex) => Substring(unchecked((uint)startIndex));
 
 		/// <summary>
 		/// Retrieves a substring from this instance. The substring starts at a specified character position.
@@ -170,7 +170,7 @@ namespace CitizenFX.Core
 		/// <exception cref="ArgumentOutOfRangeException"><paramref name="startIndex"/> &lt; 0 or &gt;= Length</exception>
 
 		[SecuritySafeCritical]
-		public CString SubString(uint startIndex)
+		public CString Substring(uint startIndex)
 		{
 			uint maxLength = (uint)Length;
 			if (startIndex < maxLength)
@@ -210,7 +210,7 @@ namespace CitizenFX.Core
 			uint maxLength = (uint)Length;
 			if (startIndex < maxLength)
 			{
-				uint copyLength = Math.Min(startIndex + length, maxLength);
+				uint copyLength = Math.Min(length, maxLength - startIndex);
 
 				byte[] bytes = new byte[copyLength + 1];
 				Buffer.BlockCopy(value, (int)startIndex, bytes, 0, (int)copyLength);
@@ -219,6 +219,40 @@ namespace CitizenFX.Core
 			}
 
 			throw new ArgumentOutOfRangeException();
+		}
+
+		/// <summary>
+		/// Joins/merges all given strings
+		/// </summary>
+		/// <param name="strings">Strings to join</param>
+		/// <returns><see cref="CString"/> containing all given strings concatenated</returns>
+		[SecuritySafeCritical]
+		public static CString Concat(CString[] strings)
+		{
+			if (strings != null)
+			{
+				int size = 1; // null terminator
+				for (int i = 0; i < strings.Length; ++i)
+				{
+					size += strings[i].Length;
+				}
+
+				byte[] array = new byte[size];
+				int offset = 0;
+
+				for (int i = 0; i < strings.Length; ++i)
+				{
+					var src = strings[i];
+
+					size = src.Length;
+					Buffer.BlockCopy(src.value, 0, array, offset, size);
+					offset += size;
+				}
+
+				return new CString(array);
+			}
+
+			return null;
 		}
 
 		[SecuritySafeCritical]

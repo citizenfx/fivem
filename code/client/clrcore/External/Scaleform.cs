@@ -2,6 +2,7 @@ using System;
 
 #if MONO_V2
 using CitizenFX.Core;
+using CitizenFX.FiveM.GUI;
 using API = CitizenFX.FiveM.Native.Natives;
 using INativeValue = CitizenFX.Core.Native.Input.Primitive;
 using PointF = CitizenFX.Core.Vector2;
@@ -10,6 +11,7 @@ namespace CitizenFX.FiveM
 #else
 using CitizenFX.Core.Native;
 using System.Drawing;
+using CitizenFX.Core.UI;
 
 namespace CitizenFX.Core
 #endif
@@ -130,12 +132,15 @@ namespace CitizenFX.Core
 		}
 		public void Render2DScreenSpace(PointF location, PointF size)
 		{
-			float x = location.X / UI.Screen.Width;
-			float y = location.Y / UI.Screen.Height;
-			float width = size.X / UI.Screen.Width;
-			float height = size.Y / UI.Screen.Height;
+			const float screenWidthInverse = 1.0f / Screen.Width;
+			const float screenHeightInverse = 1.0f / Screen.Height;
 
-			API.DrawScaleformMovie(Handle, x + (width / 2.0f), y + (height / 2.0f), width, height, 255, 255, 255, 255, 0);
+			float x = location.X * screenWidthInverse;
+			float y = location.Y * screenHeightInverse;
+			float width = size.X * screenWidthInverse;
+			float height = size.Y * screenHeightInverse;
+
+			API.DrawScaleformMovie(Handle, x + (width * .5f), y + (height * .5f), width, height, 255, 255, 255, 255, 0);
 		}
 		public void Render3D(Vector3 position, Vector3 rotation, Vector3 scale)
 		{
