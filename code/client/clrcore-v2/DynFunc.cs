@@ -9,7 +9,6 @@ using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Runtime.InteropServices;
 using System.Security;
 
 namespace CitizenFX.Core
@@ -102,6 +101,10 @@ namespace CitizenFX.Core
 
 		// no need to recreate it
 		public static DynFunc Create(DynFunc deleg) => deleg;
+
+		[SecurityCritical]
+		internal static DynFunc CreateCommand(object target, MethodInfo method, bool remap)
+			=> remap ? ConstructCommandRemapped(target, method) : Construct(target, method);
 
 		[SecurityCritical]
 		private static DynFunc Construct(object target, MethodInfo method)
@@ -235,6 +238,140 @@ namespace CitizenFX.Core
 			return (DynFunc)dynFunc;
 		}
 
+		/// <summary>
+		/// If enabled creates a <see cref="DynFunc"/> that remaps input (<see cref="ushort"/> source, <see cref="object"/>[] arguments, <see cref="string"/> raw) to known types:<br />
+		/// <b>source</b>: <see cref="ushort"/>, <see cref="uint"/>, <see cref="int"/>, <see cref="bool"/>, <see cref="Remote"/>, or any type constructable from <see cref="Remote"/> including Player types.<br />
+		/// <b>arguments</b>: <see cref="object"/>[] or <see cref="string"/>[].<br />
+		/// <b>raw</b>: <see cref="string"/>
+		/// </summary>
+		/// <param name="target">Method's associated instance</param>
+		/// <param name="method">Method to wrap</param>
+		/// <returns>Dynamic invocable <see cref="DynFunc"/> with remapping and conversion support.</returns>
+		/// <exception cref="ArgumentException">When <see cref="SourceAttribute"/> is used on a non supported type.</exception>
+		/// <exception cref="TargetParameterCountException">When any requested parameter isn't supported.</exception>
+		[SecurityCritical]
+		private static DynFunc ConstructCommandRemapped(object target, MethodInfo method)
+		{
+			if (s_wrappedMethods.TryGetValue(method, out var existingMethod))
+			{
+				return (DynFunc)existingMethod.CreateDelegate(typeof(DynFunc), target);
+			}
+
+			ParameterInfo[] parameters = method.GetParameters();
+#if DYN_FUNC_CALLI
+			Type[] parameterTypes = new Type[parameters.Length];
+#endif
+			bool hasThis = (method.CallingConvention & CallingConventions.HasThis) != 0;
+
+			var lambda = new DynamicMethod($"{method.DeclaringType.FullName}.{method.Name}", typeof(object),
+				hasThis ? new[] { typeof(object), typeof(Remote), typeof(object[]) } : new[] { typeof(Remote), typeof(object[]) });
+
+			ILGenerator g = lambda.GetILGenerator();
+
+			OpCode ldarg_args;
+			if (hasThis)
+			{
+				g.Emit(OpCodes.Ldarg_0);
+				ldarg_args = OpCodes.Ldarg_2;
+			}
+			else
+			{
+				target = null;
+				ldarg_args = OpCodes.Ldarg_1;
+			}
+
+			for (int i = 0; i < parameters.Length; ++i)
+			{
+				var parameter = parameters[i];
+				var t = parameter.ParameterType;
+
+#if DYN_FUNC_CALLI
+				parameterTypes[i] = t;
+#endif
+				if (Attribute.IsDefined(parameter, typeof(SourceAttribute), true)) // source
+				{
+					g.Emit(ldarg_args);
+					g.Emit(OpCodes.Ldc_I4_0);
+					g.Emit(OpCodes.Ldelem_Ref);
+					g.Emit(OpCodes.Call, GetMethodInfo<object, ushort>(Convert.ToUInt16));
+
+					if (t.IsPrimitive)
+					{
+						if (t == typeof(int) || t == typeof(uint) || t == typeof(ushort))
+						{
+							// 16 bit integers are pushed onto the evaluation stack as 32 bit integers
+							continue;
+						}
+						else if (t == typeof(bool))
+						{
+							g.Emit(OpCodes.Ldc_I4_0);
+							g.Emit(OpCodes.Cgt_Un);
+							continue;
+						}
+					}
+					else if (t == typeof(Remote))
+					{
+						g.Emit(OpCodes.Call, ((Func<ushort, Remote>)Remote.Create).Method);
+						continue;
+					}
+					else
+					{
+						var constructor = t.GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null, new[] { typeof(Remote) }, null);
+						if (constructor != null)
+						{
+							g.Emit(OpCodes.Call, ((Func<ushort, Remote>)Remote.Create).Method);
+							g.Emit(OpCodes.Newobj, constructor);
+							continue;
+						}
+					}
+
+					throw new ArgumentException($"{nameof(SourceAttribute)} used on type {t}, this type can't be constructed with parameter Remote.");
+				}
+				else if (t == typeof(object[])) // arguments; simply pass it on 
+				{
+					g.Emit(ldarg_args);
+					g.Emit(OpCodes.Ldc_I4_S, 1);
+					g.Emit(OpCodes.Ldelem_Ref);
+				}
+				else if (t == typeof(string[])) // arguments; convert to string[]
+				{
+					g.Emit(ldarg_args);
+					g.Emit(OpCodes.Ldc_I4_S, 1);
+					g.Emit(OpCodes.Ldelem_Ref);
+					g.EmitCall(OpCodes.Call, ((Func<object[], string[]>)ConvertToStringArray).Method, null);
+				}
+				else if (t == typeof(string)) // raw data; simply pass it on
+				{
+					g.Emit(ldarg_args);
+					g.Emit(OpCodes.Ldc_I4_S, 2);
+					g.Emit(OpCodes.Ldelem_Ref);
+				}
+				else
+					throw new TargetParameterCountException($"Command can't be registered with requested remapping, type {t} is not supported.");
+			}
+
+#if DYN_FUNC_CALLI
+			g.Emit(OpCodes.Ldc_I8, (long)method.MethodHandle.GetFunctionPointer());
+			g.EmitCalli(OpCodes.Calli, method.CallingConvention, method.ReturnType, parameterTypes, null);
+#else
+			g.EmitCall(OpCodes.Call, method, null);
+#endif
+
+			if (method.ReturnType == typeof(void))
+				g.Emit(OpCodes.Ldnull);
+			else
+				g.Emit(OpCodes.Box, method.ReturnType);
+
+			g.Emit(OpCodes.Ret);
+
+			Delegate dynFunc = lambda.CreateDelegate(typeof(DynFunc), target);
+
+			s_wrappedMethods.Add(method, dynFunc.Method);
+			s_dynfuncMethods.Add(dynFunc.Method, method);
+
+			return (DynFunc)dynFunc;
+		}
+
 		#region Func<,> creators, C# why?!
 		[SecuritySafeCritical] public static DynFunc Create<Ret>(Func<Ret> method) => Create(method.Target, method.Method);
 		[SecuritySafeCritical] public static DynFunc Create<A, Ret>(Func<A, Ret> method) => Create(method.Target, method.Method);
@@ -308,5 +445,20 @@ namespace CitizenFX.Core
 		{
 			return s_dynfuncMethods.TryGetValue(dynFunc.Method, out var existingMethod) ? existingMethod : dynFunc.Method;
 		}
+
+		#region Helper functions
+
+		internal static string[] ConvertToStringArray(object[] objects)
+		{
+			string[] result = new string[objects.Length];
+			for (int i = 0; i < objects.Length; ++i)
+			{
+				result[i] = objects[i]?.ToString();
+			}
+
+			return result;
+		}
+
+		#endregion
 	}
 }

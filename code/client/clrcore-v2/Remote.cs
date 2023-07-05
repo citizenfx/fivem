@@ -25,9 +25,8 @@ namespace CitizenFX.Core
 				m_playerId = null;
 		}
 
-		internal Remote(Binding binding, string playerId) : this(playerId)
-		{
-		}
+		internal Remote(Binding binding, string playerId) : this(playerId) { }
+		internal static Remote Create(ushort remote) => new Remote(remote.ToString());
 
 		internal static bool IsRemoteInternal(Remote remote) => remote.m_playerId != null;
 
@@ -38,8 +37,10 @@ namespace CitizenFX.Core
 		internal bool m_isServer;
 
 		internal Remote(Binding binding, string playerId) => m_isServer = binding == Binding.Remote;
-
 		internal Remote(bool isServer) => m_isServer = isServer;
+		internal Remote(ushort remote) => m_isServer = remote != ushort.MaxValue; // TODO: what's server id?
+
+		internal static Remote Create(ushort remote) => new Remote(remote);
 
 		internal static bool IsRemoteInternal(Remote remote) => remote.m_isServer;
 
