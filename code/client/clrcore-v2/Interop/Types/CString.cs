@@ -315,6 +315,13 @@ namespace CitizenFX.Core
 		/// <param name="str">null-terminated c-string</param>
 		public static explicit operator string(CString str) => str?.ToString();
 
+		/// <summary>
+		/// Copy <see cref="OutString"/> into a null-terminated c-string
+		/// </summary>
+		/// <param name="str">OutString to copy</param>
+		/// <!-- Does put a dependency on OutString -->
+		public static implicit operator CString(OutString str) => str.ToCString();
+
 		#endregion
 
 		#region ASCII operations

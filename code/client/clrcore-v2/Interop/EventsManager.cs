@@ -181,7 +181,7 @@ namespace CitizenFX.Core
 		/// <param name="entry">this event handler set</param>
 		/// <param name="deleg">delegate to register</param>
 		/// <returns>itself</returns>
-		public static EventHandlerSet operator +(EventHandlerSet entry, Delegate deleg) => entry.Add(Func.Create(deleg.Target, deleg.Method));
+		public static EventHandlerSet operator +(EventHandlerSet entry, Delegate deleg) => entry.Add(Func.Create(deleg));
 
 		/// <summary>
 		/// Unregister an event handler
