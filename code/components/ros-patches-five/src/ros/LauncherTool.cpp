@@ -714,6 +714,100 @@ static FARPROC GetProcAddressHook(HMODULE hModule, LPCSTR funcName)
 	return GetProcAddressStub(hModule, funcName);
 }
 
+static void* (*g_origMemAlloc)(void*, intptr_t size, intptr_t align, int subAlloc);
+static intptr_t (*g_origMemFree)(void*, void*);
+static bool (*g_origIsMine)(void*, void*);
+static bool (*g_origRealloc)(void*, void*, size_t);
+
+static bool isMine(void* allocator, void* mem)
+{
+	return (*(uint32_t*)((DWORD_PTR)mem - 4) & 0xFFFFFFF0) == 0xDEADC0C0;
+}
+
+static bool isMineHook(void* allocator, void* mem)
+{
+	return isMine(allocator, mem) || g_origIsMine(allocator, mem);
+}
+
+template<bool Try>
+static void* AllocEntry(void* allocator, size_t size, int align, int subAlloc)
+{
+	DWORD_PTR ptr = (DWORD_PTR)malloc(size + 32);
+
+	if constexpr (!Try)
+	{
+		if (!ptr)
+		{
+			FatalError("Failed allocating %d bytes in RGL code", size);
+		}
+	}
+
+	ptr += 4;
+
+	void* mem = (void*)(((uintptr_t)ptr + 15) & ~(uintptr_t)0xF);
+
+	*(uint32_t*)((uintptr_t)mem - 4) = 0xDEADC0C0 | (((uintptr_t)ptr + 15) & 0xF);
+
+	return mem;
+}
+
+static void FreeEntry(void* allocator, void* ptr)
+{
+	if (!ptr)
+	{
+		return;
+	}
+
+	if (!isMine(allocator, ptr))
+	{
+		g_origMemFree(allocator, ptr);
+		return;
+	}
+
+	void* memReal = ((char*)ptr - (16 - (*(uint32_t*)((uintptr_t)ptr - 4) & 0xF)) - 3);
+	free(memReal);
+}
+
+static void ReallocEntry(void* allocator, void* ptr, size_t size)
+{
+	if (g_origIsMine(allocator, ptr))
+	{
+		g_origRealloc(allocator, ptr, size);
+		return;
+	}
+
+	// Resize can only go to a smaller size, so we treat this as a no-op
+	return;
+}
+
+static void* smpaCtor1;
+static void* smpaCtor2;
+
+template<void** orig>
+static void* CreateSimpleAllocatorHook(void* a1, void* a2, void* a3, int a4, int a5)
+{
+	void* smpa = ((void* (*)(void*, void*, void*, int, int))*orig)(a1, a2, a3, a4, a5);
+
+	void** vt = new void*[48];
+	memcpy(vt, *(void**)smpa, 48 * 8);
+	*(void**)smpa = vt;
+
+	g_origMemAlloc = (decltype(g_origMemAlloc))vt[3];
+	vt[3] = AllocEntry<false>;
+	vt[4] = AllocEntry<true>;
+
+	g_origMemFree = (decltype(g_origMemFree))vt[5];
+	vt[5] = FreeEntry;
+
+	g_origRealloc = (decltype(g_origRealloc))vt[6];
+	vt[6] = ReallocEntry;
+
+	g_origIsMine = (decltype(g_origIsMine))vt[29];
+	vt[29] = isMineHook;
+
+	return smpa;
+}
+
 static void Launcher_Run(const boost::program_options::variables_map& map)
 {
 	// make firstrun.dat so the launcher won't error out/crash
@@ -792,6 +886,9 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 #ifdef _DEBUG
 			MH_CreateHook(hook::get_pattern("4C 89 44 24 18 4C 89 4C 24 20 48 83 EC 28 48 8D"), LogStuff, NULL);
 #endif
+
+			MH_CreateHook(hook::get_pattern("48 8D B9 78 0A 00 00 45 8A F1 45 8B F8", -0x25), CreateSimpleAllocatorHook<&smpaCtor1>, (void**)&smpaCtor1);
+			MH_CreateHook(hook::get_pattern("48 8D B9 78 0A 00 00 45 8B F1 4C", -0x25), CreateSimpleAllocatorHook<&smpaCtor2>, (void**)&smpaCtor2);
 
 			MH_EnableHook(MH_ALL_HOOKS);
 		}
