@@ -50,6 +50,44 @@ void DoPatchMouseScrollDelta()
 		hook::jump(location, patch.GetCode());
 	}
 
+	// int 'stacking' for non-float parts (breaks sniper zoom otherwise)
+	{
+		static struct : jitasm::Frontend
+		{
+			uintptr_t dZAddr = 0;
+			uintptr_t returnAddr = 0;
+
+			virtual void InternalMain() override
+			{
+				// eax = *dZAddr
+				mov(rax, dZAddr);
+				mov(eax, dword_ptr[rax]);
+
+				// ecx = 120
+				mov(ecx, 120);
+
+				// rax = (int64_t)eax
+				cdq();
+
+				// rax /= ecx
+				idiv(ecx);
+
+				// r8d = eax
+				mov(r8d, eax);
+
+				// return
+				mov(rax, returnAddr);
+				jmp(rax);
+			}
+		} patch;
+
+		auto location = hook::get_pattern<char>("41 89 7E 20 44 8B 05", 4);
+		patch.returnAddr = (uintptr_t)(location + 7);
+		patch.dZAddr = hook::get_address<uintptr_t>(location, 3, 7);
+		hook::nop(location, 7);
+		hook::jump(location, patch.GetCode());
+	}
+
 	// adding / 120.0 to CGalleryMenu
 
 	// 1st
