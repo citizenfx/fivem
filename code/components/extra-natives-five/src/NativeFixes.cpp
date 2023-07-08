@@ -239,7 +239,7 @@ void FreeOrphanFireEntries()
 {
 	for (auto& i : *g_fireInstances)
 	{
-		if (!i.entity() && i.flags() & 0x4)
+		if (!i.entity() && i.flags() == 0x4)
 		{
 			i.flags() &= ~0x4;
 		}
