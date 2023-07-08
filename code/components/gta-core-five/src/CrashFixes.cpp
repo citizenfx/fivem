@@ -1301,4 +1301,20 @@ static HookFunction hookFunction{[] ()
 		hook::set_call(&g_origRTTI_IsTypeOf_pgBase, location);
 		hook::call(location, RTTI_IsTypeOf_pgBase);
 	}
+
+	// netBlender::addOrientationFrame()
+	// Sometime before 1604, Extra logic related to vehicles was added.
+	// This seems to cause a crash in some cases where the object is already destructed
+	if (xbr::IsGameBuildOrGreater<1604>())
+	{
+		auto location = hook::get_pattern("48 8D 54 24 30 89 81 ? 01 00 00");
+		// NOP loading Vector3 Ref into RDX for the below function
+		hook::nop(location, 5);
+		// NOP the function call that was added
+		hook::nop((char*)location + 21, 6);
+		// NOP the extra comparisons added to the if()
+		hook::nop((char*)location + 0x69, 45);
+		// Change the opcode to an unconditional JMP
+		hook::put((char*)location + 0x96, (uint8_t)0xEB);
+	}
 }};
