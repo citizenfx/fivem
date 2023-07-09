@@ -126,6 +126,7 @@ namespace rage
 			parEnumDefinition* enumData;
 			uint32_t arrayElemCount;
 		};
+		uint16_t enumElemCount; // +48 for enum defs
 	};
 
 	class parMember
