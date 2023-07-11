@@ -249,12 +249,12 @@ static uint64_t MapNative(uint64_t hash)
 
 bool RegisterNativeOverride(uint64_t hash, scrEngine::NativeHandler handler)
 {
-	NativeRegistration*& registration = registrationTable[(hash & 0xFF)];
-
 	uint64_t origHash = hash;
 
 	// remove cached fastpath native
 	g_fastPathMap.erase(NativeHash{ origHash });
+
+	hash = MapNative(hash);
 
 	NativeRegistration* table = registrationTable[hash & 0xFF];
 
@@ -281,16 +281,16 @@ bool RegisterNativeOverride(uint64_t hash, scrEngine::NativeHandler handler)
 
 void RegisterNative(uint64_t hash, scrEngine::NativeHandler handler)
 {
-	hash = MapNative(hash);
-
-	// re-implemented here as the game's own function is obfuscated
-	NativeRegistration*& registration = registrationTable[(hash & 0xFF)];
-
 	// see if there's somehow an entry by this name already
 	if (RegisterNativeOverride(hash, handler))
 	{
 		return;
 	}
+
+	hash = MapNative(hash);
+
+	// re-implemented here as the game's own function is obfuscated
+	NativeRegistration*& registration = registrationTable[(hash & 0xFF)];
 
 	if (registration->getNumEntries() == 7)
 	{
