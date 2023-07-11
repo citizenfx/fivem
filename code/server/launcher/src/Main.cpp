@@ -32,7 +32,7 @@ int main(int argc, char* argv[])
 
 #ifdef CPU_FEATURES_ARCH_X86
 	auto x86info = cpu_features::GetX86Info();
-	if (!x86info.features.popcnt)
+	if (!x86info.features.popcnt || !x86info.features.ssse3)
 	{
 		std::string errorMessage = fmt::sprintf(
 		"The Cfx.re Platform Server requires support for x86-64-v2 instructions (such as POPCNT).\n"
