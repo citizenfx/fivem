@@ -30,6 +30,11 @@ static void CreatePlayerCommands()
 		return client->GetName().c_str();
 	}));
 
+	fx::ScriptEngine::RegisterNativeHandler("DOES_PLAYER_EXIST", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)
+	{
+		return true;
+	}));
+
 	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_GUID", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)
 	{
 		return client->GetGuid().c_str();
