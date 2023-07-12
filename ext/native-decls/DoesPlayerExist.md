@@ -11,7 +11,7 @@ BOOL DOES_PLAYER_EXIST(char* playerSrc);
 Returns whether or not the player exists
 
 ## Return value
-True of the player exists, false otherwise
+True if the player exists, false otherwise
 
 ## Examples
 
