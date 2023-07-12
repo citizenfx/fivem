@@ -1,0 +1,27 @@
+name: Build FXServer
+on:
+  workflow_call:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - run: git config core.symlinks true
+
+      - shell: powershell
+        run: Install-Product node 12 x64
+
+      - shell: powershell
+        run: .\code\tools\ci\build.ps1 -DontUpload $true -SaveDir C:\save
+        env:
+          IS_LAUNCHER: 0
+          IS_FXSERVER: 1
+
+      - uses: actions/upload-artifact@v3
+        with:
+          path: C:\save
