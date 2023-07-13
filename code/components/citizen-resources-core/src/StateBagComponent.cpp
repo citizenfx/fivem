@@ -27,7 +27,7 @@ public:
 
 	virtual void Reset() override;
 
-	virtual void HandlePacket(int source, std::string_view data, std::string* outBagNameName = nullptr) override;
+	virtual void HandlePacket(int slotId, std::string_view data, std::string* outBagNameName = nullptr) override;
 
 	virtual std::shared_ptr<StateBag> GetStateBag(std::string_view id) override;
 
@@ -101,7 +101,7 @@ public:
 	virtual ~StateBagImpl() override;
 
 	virtual std::optional<std::string> GetKey(std::string_view key) override;
-	virtual void SetKey(int source, std::string_view key, std::string_view data, bool replicated = true) override;
+	virtual void SetKey(int slotId, std::string_view key, std::string_view data, bool replicated = true) override;
 	virtual void SetRoutingTargets(const std::set<int>& peers) override;
 
 	virtual void AddRoutingTarget(int peer) override;
@@ -123,7 +123,7 @@ public:
 	void SendAllInitial(int target);
 
 private:
-	void SetKeyInternal(int source, std::string_view key, std::string_view data, bool replicated);
+	void SetKeyInternal(int slotId, std::string_view key, std::string_view data, bool replicated);
 
 private:
 	StateBagComponentImpl* m_parent;
@@ -167,19 +167,30 @@ std::optional<std::string> StateBagImpl::GetKey(std::string_view key)
 	return {};
 }
 
-void StateBagImpl::SetKey(int source, std::string_view key, std::string_view data, bool replicated /* = true */)
+// https://github.com/msgpack/msgpack/blob/master/spec.md#formats
+static char MsgPackNil = (char)0xc0;
+
+void StateBagImpl::SetKey(int slotId, std::string_view key, std::string_view data, bool replicated /* = true */)
 {
 	// prepare a potentially async continuation
-	auto thisRef = shared_from_this();
+	auto stateBagRef = shared_from_this();
 
-	auto continuation = [thisRef, source, replicated](std::string_view key, std::string_view data)
+	auto continuation = [stateBagRef, slotId, replicated](const std::string_view key, const std::string_view data)
 	{
-		static_cast<StateBagImpl*>(thisRef.get())->SetKeyInternal(source, key, data, replicated);
+		static_cast<StateBagImpl*>(stateBagRef.get())->SetKeyInternal(slotId, key, data, replicated);
 	};
 
-	const auto& sbce = m_parent->OnStateBagChange;
+	auto handleStateChangeRejection = [stateBagRef, slotId](const std::string_view key)
+	{
+		const auto ref = stateBagRef.get();
+		const auto originalValue = ref->GetKey(key);
+		static_cast<StateBagImpl*>(ref)->SendKeyValue(slotId, key, originalValue ? originalValue.value() : std::string({ MsgPackNil }));
+	};
+	
+	const auto& rejectHandler = m_parent->ShouldAllowStateBagChange;
+	const auto& changeHandler = m_parent->OnStateBagChange;
 
-	if (sbce)
+	if (rejectHandler || changeHandler)
 	{
 		// #TODOPERF: this will unconditionally unpack and call into svMain if *any* change handler is reg'd
 		// -> ideally we'd have a separate event so we can poll if there's a match for script filters before doing this
@@ -195,7 +206,6 @@ void StateBagImpl::SetKey(int source, std::string_view key, std::string_view dat
 		}
 
 		auto gameInterface = m_parent->GetGameInterface();
-
 		if (gameInterface->IsAsynchronous())
 		{
 			const auto& id = m_id;
@@ -203,40 +213,56 @@ void StateBagImpl::SetKey(int source, std::string_view key, std::string_view dat
 			std::string keyStr{ key };
 			std::string dataStr{ data };
 
-			gameInterface->QueueTask(make_shared_function([parent,
-				source,
+			gameInterface->QueueTask(make_shared_function([
+				parent,
+				slotId,
 				replicated,
 				id,
 				continuation = std::move(continuation),
+				handleStateChangeRejection = std::move(handleStateChangeRejection),
 				key = std::move(keyStr),
 				data = std::move(dataStr),
 				up = std::move(up)
 			]()
 			{
-				if (parent->OnStateBagChange(source, id, key, up.get(), replicated))
+				const auto& rejectHandler = parent->ShouldAllowStateBagChange;
+				const auto& changeHandler = parent->OnStateBagChange;
+				
+				const auto msgPackObj = up.get();
+				
+				if (replicated && rejectHandler && !rejectHandler(id, key, msgPackObj))
 				{
-					continuation(key, data);
+					return handleStateChangeRejection(key);
 				}
+				
+				if (changeHandler && changeHandler(slotId, id, key, msgPackObj, replicated)) {}
+				continuation(key, data);
 			}));
 
 			return;
 		}
 
-		if (!sbce(source, m_id, key, up.get(), replicated))
+		if (replicated && rejectHandler && rejectHandler(m_id, key, up.get()))
 		{
-			return;
+			return handleStateChangeRejection(key);
 		}
+
+		if (changeHandler && changeHandler(slotId, m_id, key, up.get(), replicated)) {}
 	}
 
 	continuation(key, data);
 }
 
-void StateBagImpl::SetKeyInternal(int source, std::string_view key, std::string_view data, bool replicated)
+void StateBagImpl::SetKeyInternal(int _slotId, std::string_view key, std::string_view data, bool replicated)
 {
 	{
 		std::unique_lock _(m_dataMutex);
 
-		if (auto it = m_data.find(key); it != m_data.end())
+		if (data[0] == MsgPackNil)
+		{
+			m_data.erase(std::string{ key });
+		}
+		else if (auto it = m_data.find(key); it != m_data.end())
 		{
 			if (data != it->second)
 			{
@@ -349,7 +375,7 @@ void StateBagImpl::SendKeyValueToAllTargets(std::string_view key, std::string_vi
 	}
 }
 
-void StateBagImpl::SendKeyValue(int target, std::string_view key, std::string_view value)
+void StateBagImpl::SendKeyValue(int targetSlotId, std::string_view key, std::string_view value)
 {
 	static thread_local rl::MessageBuffer dataBuffer(131072);
 
@@ -370,7 +396,7 @@ void StateBagImpl::SendKeyValue(int target, std::string_view key, std::string_vi
 			dataBuffer.WriteBits(value.data(), value.size() * 8);
 		}
 
-		m_parent->QueueSend(target, std::string_view{ reinterpret_cast<const char*>(dataBuffer.GetBuffer().data()), dataBuffer.GetCurrentBit() / 8 });
+		m_parent->QueueSend(targetSlotId, std::string_view{ reinterpret_cast<const char*>(dataBuffer.GetBuffer().data()), dataBuffer.GetCurrentBit() / 8 });
 	}
 }
 
@@ -592,7 +618,7 @@ void StateBagComponentImpl::AttachToObject(fx::ResourceManager* object)
 	INT32_MIN);
 }
 
-void StateBagComponentImpl::HandlePacket(int source, std::string_view dataRaw, std::string* outBagNameName)
+void StateBagComponentImpl::HandlePacket(int slotId, std::string_view dataRaw, std::string* outBagNameName)
 {
 	// read state
 	rl::MessageBuffer buffer{ reinterpret_cast<const uint8_t*>(dataRaw.data()), dataRaw.size() };
@@ -665,10 +691,10 @@ void StateBagComponentImpl::HandlePacket(int source, std::string_view dataRaw, s
 
 		// TODO: rate checks, policy checks
 		auto peer = bagRef->GetOwningPeer();
-		if (!peer.has_value() || source == *peer)
+		if (!peer.has_value() || slotId == *peer)
 		{
 			bagRef->SetKey(
-				source,
+				slotId,
 				std::string_view{ keyBuffer.data(), keyBuffer.size() },
 				std::string_view{ reinterpret_cast<char*>(data.data()), data.size() },
 				m_role == StateBagRole::Server);

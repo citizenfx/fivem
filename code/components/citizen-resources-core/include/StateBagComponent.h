@@ -72,7 +72,7 @@ public:
 	//
 	// Sets data for a key.
 	//
-	virtual void SetKey(int source, std::string_view key, std::string_view data, bool replicated = true) = 0;
+	virtual void SetKey(int slotId, std::string_view key, std::string_view data, bool replicated = true) = 0;
 
 	//
 	// Sets the owning peer ID.
@@ -112,7 +112,7 @@ public:
 	// Should be called when receiving a state bag control packet.
 	// arg: outBagNameName; if given (!= nullptr) and if the state bag wasn't found then this string will contain the bag name, otherwise outBagNameName is unchanged.
 	//
-	virtual void HandlePacket(int source, std::string_view data, std::string* outBagNameName = nullptr) = 0;
+	virtual void HandlePacket(int slotId, std::string_view data, std::string* outBagNameName = nullptr) = 0;
 
 	//
 	// Gets a state bag by an identifier. Returns an empty shared_ptr if not found.
@@ -145,6 +145,10 @@ public:
 	//
 	virtual void AddSafePreCreatePrefix(std::string_view idPrefix, bool useParentTargets) = 0;
 
+	//
+	// A rejection handler for state bags, this is ran before OnStateBagChange
+	//
+	fwEvent<std::string_view, std::string_view, const msgpack::object&> ShouldAllowStateBagChange;
 	//
 	// An event handling a state bag value change.
 	//
