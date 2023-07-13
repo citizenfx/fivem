@@ -599,6 +599,16 @@ static bool RTTI_IsTypeOf_pgBase(void* self)
 	return g_origRTTI_IsTypeOf_pgBase(self);
 }
 
+static bool (*g_origFwClipset_GetClipItem_Caller)(void*, unsigned int);
+static bool fwClipset_GetClipItem_Caller(void* moveTask, unsigned int a2 /*'2'*/)
+{
+	if (!moveTask)
+	{
+		return false;
+	}
+	return g_origFwClipset_GetClipItem_Caller(moveTask, a2);
+}
+
 static HookFunction hookFunction{[] ()
 {
 	// CModelInfoStreamingModule LookupModelId null return
@@ -1316,5 +1326,15 @@ static HookFunction hookFunction{[] ()
 		hook::nop((char*)location + 0x69, 45);
 		// Change the opcode to an unconditional JMP
 		hook::put((char*)location + 0x96, (uint8_t)0xEB);
+	}
+
+	// Caller to rage::fwClipset::GetClipItem()
+	// GetClipItem() will immediately deref a1+50
+	// This can be NULL in some cases, and in other places the game is seen checking if it's NULL
+	{
+		// Sig to start of function [1604-2944]
+		MH_Initialize();
+		MH_CreateHook(hook::get_pattern("48 8B C4 48 89 58 10 48 89 68 18 48 89 70 20 57 48 83 EC 20 8B EA"), fwClipset_GetClipItem_Caller, (void**)&g_origFwClipset_GetClipItem_Caller);
+		MH_EnableHook(MH_ALL_HOOKS);
 	}
 }};
