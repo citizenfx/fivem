@@ -213,7 +213,7 @@ namespace fx
 			return m_lastSeen;
 		}
 
-		inline int GetSecondsOnline()
+		inline unsigned int GetSecondsOnline()
 		{
 			return std::chrono::duration_cast<std::chrono::seconds>(m_lastSeen - m_firstSeen).count();
 		}
