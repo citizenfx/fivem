@@ -1412,6 +1412,16 @@ static void CPedGameStateDataNode__access(char* dataNode, void* accessor)
 		FatalError("CPedGameStateDataNode: tried to read a mount ID, this is wrong, please click 'save information' below and post the file in https://forum.fivem.net/t/318260 to help us resolve this issue.");
 	}
 }
+
+static void (*g_origManageTextVoiceChatStub)(void*);
+
+static void ManageTextVoiceChatStub(void* a1)
+{
+	if (!icgi->OneSyncEnabled)
+	{
+		g_origManageTextVoiceChatStub(a1);
+	}
+}
 #endif
 
 static void(*g_origManageHostMigration)(void*);
@@ -2219,6 +2229,13 @@ static HookFunction hookFunction([]()
 	}
 
 #ifdef GTA_FIVE
+	// some built-in text/voice chat logic using physical player index as a fixed 32-sized array index
+	if (xbr::IsGameBuildOrGreater<2699>())
+	{
+		auto location = hook::get_call(hook::get_pattern<char>("E8 ? ? ? ? 8A 0D ? ? ? ? 48 FF C7"));
+		MH_CreateHook(location, ManageTextVoiceChatStub, (void**)&g_origManageTextVoiceChatStub);	
+	}
+
 	// hardcoded 32/128 array sizes in CNetObjEntity__TestProximityMigration
 	{
 		auto location = hook::get_pattern<char>("48 81 EC A0 01 00 00 33 DB 48 8B F9 38 1D", -0x15);
