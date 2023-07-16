@@ -585,6 +585,15 @@ NTSTATUS NTAPI LdrLoadDllStub(const wchar_t* fileName, uint32_t* flags, UNICODE_
 		}
 	}
 
+	// MTL bits do not like nvapi64.dll, maybe
+	if (moduleNameStr.find(L"nvapi64.dll") != std::string::npos)
+	{
+		if (wcsstr(GetCommandLineW(), L"ros:launcher"))
+		{
+			return 0xC0000428;
+		}
+	}
+
 	// anything in this if statement **has to be lowercase**, see line above
 	if (moduleNameStr.find(L"fraps64.dll") != std::string::npos || moduleNameStr.find(L"avghooka.dll") != std::string::npos ||
 		// apparently crashes NUI
