@@ -32,7 +32,22 @@ int main(int argc, char* argv[])
 
 #ifdef CPU_FEATURES_ARCH_X86
 	auto x86info = cpu_features::GetX86Info();
-	if (!x86info.features.popcnt || !x86info.features.ssse3)
+
+	bool ssse3 = x86info.features.ssse3;
+
+	// manually check for SSSE3 on Windows (PF_SSSE3_INSTRUCTIONS_AVAILABLE used by cpu_features does not exist below Vibranium
+	// and the code path in cpu_features for CPUs w/o AVX support - such as Westmere - depends on such)
+#ifdef _WIN32
+	if (!ssse3)
+	{
+		int cpuid[4] = { 0 };
+		__cpuid(cpuid, 1); // leaf 1, field 2 contains 'Feature Information'
+
+		ssse3 = (cpuid[2] >> 9) & 1; // bit 9 is SSSE3
+	}
+#endif
+
+	if (!x86info.features.popcnt || !ssse3)
 	{
 		std::string errorMessage = fmt::sprintf(
 		"The Cfx.re Platform Server requires support for x86-64-v2 instructions (such as POPCNT).\n"
