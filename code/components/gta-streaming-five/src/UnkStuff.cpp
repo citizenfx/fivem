@@ -31,6 +31,12 @@ struct GetRcdDebugInfoExtension
 	std::string outData; // out
 };
 
+static void __declspec(noinline) InflateFailureBaseGame(const std::string& filename)
+{
+	FatalError("Corrupted game files: %s\n"
+		"To resolve this, verify your GTA V game files. See http://rsg.ms/verify for information on how to do so.", filename);
+}
+
 static void ErrorInflateFailure(char* ioData, char* requestData, int zlibError, char* zlibStream)
 {
 	if (streaming::IsStreamerShuttingDown())
@@ -69,6 +75,8 @@ static void ErrorInflateFailure(char* ioData, char* requestData, int zlibError, 
 	// get the input bytes
 	auto compBytes = fmt::sprintf("%02x %02x %02x %02x %02x %02x %02x %02x", nextIn[0], nextIn[1], nextIn[2], nextIn[3], nextIn[4], nextIn[5], nextIn[6], nextIn[7]);
 
+	bool isBaseGame = true;
+
 	// get collection metadata
 	if (collection)
 	{
@@ -91,12 +99,24 @@ static void ErrorInflateFailure(char* ioData, char* requestData, int zlibError, 
 			virtualDevice->ExtensionCtl(VFS_GET_RCD_DEBUG_INFO, &ext, sizeof(ext));
 
 			metaData = ext.outData;
+
+			isBaseGame = false;
 		}
 	}
 	else
 	{
 		metaData = "Null fiCollection.";
 	}
+
+	// if 00s or FFs, this is likely a corrupted base game file (NTFS journal restore?)
+	if (compBytes == "00 00 00 00 00 00 00 00" || compBytes == "FF FF FF FF FF FF FF FF")
+	{
+		if (isBaseGame)
+		{
+			InflateFailureBaseGame(name);
+		}
+	}
+
 
 	FatalError("Failed to call inflate() for streaming file %s.\n\n"
 		"Error: %d: %s\nRead bytes: %s\nTotal in: %d\nAvailable in: %d\n"
