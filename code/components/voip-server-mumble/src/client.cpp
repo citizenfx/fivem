@@ -112,6 +112,7 @@ int Client_getfds(struct pollfd *pollfds)
 
 bool Client_is_player_muted(int serverId)
 {
+	std::unique_lock lock(g_mumbleClientMutex);
 	auto convertedServerId = fmt::sprintf("[%d]", serverId);
 	struct dlist *itr, *save;
 	list_iterate_safe(itr, save, &clients)
@@ -127,6 +128,7 @@ bool Client_is_player_muted(int serverId)
 
 void Client_set_player_muted(int serverId, bool muted)
 {
+	std::unique_lock lock(g_mumbleClientMutex);
 	auto convertedServerId = fmt::sprintf("[%d]", serverId);
 	struct dlist *itr, *save;
 	list_iterate_safe(itr, save, &clients)
