@@ -36,6 +36,21 @@
 #include "ROSErrors.h"
 #include <boost/algorithm/string/replace.hpp>
 
+#include "CfxReleaseInfo.h"
+
+template<typename... Ts>
+static auto PostAutoLogin(Ts&&... args)
+{
+	return cpr::Post(
+		cpr::Header{
+			{ "Content-Type", "application/json; charset=utf-8" },
+			{ "Accept", "application/json" },
+			{ "X-Requested-With", "XMLHttpRequest" } },
+		cpr::UserAgent{ fmt::sprintf("CitizenFX/1 (rel. %d)") },
+		std::forward<Ts>(args)...
+	);
+}
+
 static bool TryFindError(const std::string& errorString, std::string* outMessage)
 {
 	if (auto it = g_rosErrors.find("Errors_" + errorString); it != g_rosErrors.end())
@@ -705,15 +720,10 @@ void ValidateEpic(int parentPid)
 
 		j["tpaTokens"] = GetTpaTokens();
 
-		r = cpr::Post(
+		r = PostAutoLogin(
 			cpr::Url{ "https://rgl.rockstargames.com/api/launcher/autologinepic" },
-			cpr::Header{
-				{ { "Content-Type", "application/json; charset=utf-8" },
-				{ "Accept", "application/json" },
-				{ "X-Requested-With", "XMLHttpRequest" } } },
 			cpr::Body{
-			j.dump() },
-			cpr::VerifySsl{ false });
+			j.dump() });
 
 		if (r.error)
 		{
@@ -792,18 +802,14 @@ void ValidateEpic(int parentPid)
 		{ "version", 11 },
 	});
 
-	r = cpr::Post(
+	r = PostAutoLogin(
 	cpr::Url{ "https://rgl.rockstargames.com/api/launcher/bindepicaccount" },
 	cpr::Header{
 	{
-	{ "Content-Type", "application/json; charset=utf-8" },
-	{ "Accept", "application/json" },
-	{ "X-Requested-With", "XMLHttpRequest" },
-	{ "Authorization", fmt::sprintf("SCAUTH val=\"%s\"", tick) },
+		{ "Authorization", fmt::sprintf("SCAUTH val=\"%s\"", tick) },
 	} },
 	cpr::Body{
-	j.dump() },
-	cpr::VerifySsl{ false });
+	j.dump() });
 
 	if (r.error)
 	{
@@ -894,17 +900,11 @@ void ValidateSteam(int parentPid)
 
 		j["tpaTokens"] = GetTpaTokens();
 
-		r = cpr::Post(
+		r = PostAutoLogin(
 			cpr::Url{ "https://rgl.rockstargames.com/api/launcher/autologinsteam" },
-			cpr::Header{
-				{"Content-Type", "application/json; charset=utf-8"},
-				{"Accept", "application/json"},
-				{"X-Requested-With", "XMLHttpRequest"}
-			},
 			cpr::Body{
 				j.dump()
-			},
-			cpr::VerifySsl{ false });
+			});
 
 		if (r.error)
 		{
@@ -973,18 +973,14 @@ void ValidateSteam(int parentPid)
 		{ "version", 11 },
 	});
 
-	r = cpr::Post(
+	r = PostAutoLogin(
 		cpr::Url{ "https://rgl.rockstargames.com/api/launcher/bindsteamaccount" },
 		cpr::Header{
-			{"Content-Type", "application/json; charset=utf-8"},
-			{"Accept", "application/json"},
-			{"X-Requested-With", "XMLHttpRequest"},
 			{"Authorization", fmt::sprintf("SCAUTH val=\"%s\"", tick) },
 		},
 		cpr::Body{
 			j.dump()
-		},
-		cpr::VerifySsl{ false });
+		});
 
 	if (r.error)
 	{
