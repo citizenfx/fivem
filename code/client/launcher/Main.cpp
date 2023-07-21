@@ -135,6 +135,7 @@ int RealMain()
 		wchar_t systemPath[512];
 		GetSystemDirectoryW(systemPath, _countof(systemPath));
 
+		StringCchCat(systemPath, std::size(systemPath), L"\\");
 		StringCchCat(systemPath, std::size(systemPath), dll);
 
 		LoadLibraryW(systemPath);
