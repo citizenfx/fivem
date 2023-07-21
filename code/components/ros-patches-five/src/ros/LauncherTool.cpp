@@ -866,7 +866,8 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 			hook::iat(std::get<0>(h), std::get<1>(h), std::get<2>(h));
 		}
 
-		HMODULE hSteam = LoadLibrary(L"C:\\Program Files\\Rockstar Games\\Launcher\\ThirdParty\\Steam\\steam_api64.dll");
+		// we want to patch the steam_api64.dll that'll be used by MTL
+		HMODULE hSteam = LoadLibrary(MakeRelativeCitPath(L"\\data\\game-storage\\launcher\\ThirdParty\\Steam\\steam_api64.dll").c_str());
 
 		if (hSteam)
 		{
@@ -874,6 +875,10 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 			MH_Initialize();
 			MH_CreateHook(GetProcAddress(hSteam, "SteamAPI_Init"), ReturnFalse, NULL);
 			MH_EnableHook(MH_ALL_HOOKS);
+		}
+		else
+		{
+			trace("MTL steam_api64.dll faled to load: %d\n", GetLastError());
 		}
 
 		{
