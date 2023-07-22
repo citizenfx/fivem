@@ -1,4 +1,4 @@
-import { shouldPrioritizePinnedServers } from "cfx/base/serverUtils";
+import { shouldPrioritizePinnedServers, getPrioritizedServerName } from "cfx/base/serverUtils";
 import { IServerListConfig, ServerListSortDir, ServersListSortBy } from "../lists/types";
 import { IPinnedServersConfig } from "../types";
 import { IListableServerView } from "./types";
@@ -101,4 +101,49 @@ function sortByProperty(servers: Record<string, IListableServerView>, property: 
   }
 
   return -dir;
+}
+
+export const sortFilteredList = (servers: Record<string, IListableServerView>, sortedList: string[], config: IServerListConfig): string[] => {
+  const sorters: Array<(a: string, b: string) => number> = [];
+
+  const searchName = getPrioritizedServerName(config);
+
+  if (searchName) {
+    sorters.push(sortByServerName.bind(null, servers, searchName.value.toLowerCase()));
+  }
+
+  if (sorters.length === 0) {
+    return sortedList;
+  }
+
+  return sortedList.sort((a, b) => {
+    for (const sorter of sorters) {
+      const retval = sorter(a, b);
+
+      if (retval !== 0) {
+        return retval;
+      }
+    }
+
+    return 0;
+  });
+}
+
+function sortByServerName(servers: Record<string, IListableServerView>, searchName: string, a: string, b: string): number {
+  const aIndex = servers[a].sortableName.indexOf(searchName);
+  const bIndex = servers[b].sortableName.indexOf(searchName);
+
+  if (aIndex !== -1 && bIndex !== -1) {
+    return aIndex - bIndex;
+  }
+
+  if (aIndex !== -1) {
+    return -1;
+  }
+
+  if (bIndex !== -1) {
+    return 1;
+  }
+
+  return 0;
 }
