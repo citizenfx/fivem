@@ -1337,4 +1337,61 @@ static HookFunction hookFunction{[] ()
 		MH_CreateHook(hook::get_pattern("48 8B C4 48 89 58 10 48 89 68 18 48 89 70 20 57 48 83 EC 20 8B EA"), fwClipset_GetClipItem_Caller, (void**)&g_origFwClipset_GetClipItem_Caller);
 		MH_EnableHook(MH_ALL_HOOKS);
 	}
+
+	// CNetObjAutomobile::sub_1410FC878() [2699]
+	// in the 2nd half of the function, there is some code that deals with the vehicle intelligence tasktree
+	// however, the VehicleIntelligence (CVehicle+0xBD0) seems to be NULL in some cases -- it is deref'd CVehicle->Intelligence->tasktree without checking
+	{
+		// 48 8B 4E 50      mov     rcx, [rsi+50h]
+		// 48 85 C9         test    rcx, rcx
+		// 74 76            jz      short loc_1410FC94C
+		void* location = hook::get_pattern("48 8B 4E 50 48 85 C9 74 ? 48 8B 81 ? ? 00 00");
+
+		uint8_t jzToFailBytes = *(uint8_t*)((uintptr_t)location + 8);
+		void* jzFailLocation = (void*)((uintptr_t)location + 9 + jzToFailBytes);
+
+		int offsetToIntel = *(int*)((uintptr_t)location + 12);
+
+		static struct : jitasm::Frontend
+		{
+			intptr_t location;
+			intptr_t retSuccess;
+			intptr_t retFail;
+			int offsetToIntelligence;
+
+			void Init(intptr_t location, intptr_t failLocation, int offsetToIntel)
+			{
+				this->location = location;
+				this->retSuccess = location + 9;
+				this->retFail = failLocation;
+				this->offsetToIntelligence = offsetToIntel;
+			}
+
+			void InternalMain() override
+			{
+				// original code
+				// Get gameObj from CNetObj
+				mov(rcx, qword_ptr[rsi + 0x50]);
+				test(rcx, rcx);
+				jz("fail");
+				
+				// also test for gameObj->Intelligence
+				mov(rax, qword_ptr[rcx + offsetToIntelligence]);
+				test(rax, rax);
+				jz("fail");
+
+				mov(rax, retSuccess);
+				jmp(rax);
+
+				L("fail");
+				mov(rax, retFail);
+				jmp(rax);
+			}
+		} intelCheckStub;
+
+		intelCheckStub.Init(reinterpret_cast<intptr_t>(location), reinterpret_cast<intptr_t>(jzFailLocation), offsetToIntel);
+		hook::nop(location, 9);
+		intelCheckStub.Assemble();
+		hook::jump(location, intelCheckStub.GetCode());
+	}
 }};
