@@ -46,7 +46,7 @@ static auto PostAutoLogin(Ts&&... args)
 			{ "Content-Type", "application/json; charset=utf-8" },
 			{ "Accept", "application/json" },
 			{ "X-Requested-With", "XMLHttpRequest" } },
-		cpr::UserAgent{ fmt::sprintf("CitizenFX/1 (rel. %d)") },
+		cpr::UserAgent{ fmt::sprintf("CitizenFX/1 (rel. %d)", cfx::GetPlatformRelease()) },
 		std::forward<Ts>(args)...
 	);
 }
