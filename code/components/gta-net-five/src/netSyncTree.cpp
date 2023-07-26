@@ -3,6 +3,13 @@
 
 #include <netSyncTree.h>
 #include <CrossBuildRuntime.h>
+#include <netObject.h>
+#include <MinHook.h>
+
+static hook::cdecl_stub<bool(uint32_t hash)> IS_THIS_MODEL_A_HELI_internal([]()
+{
+	return hook::get_pattern("83 B9 ? ? ? ? 06 0F B6", -0x2E);
+});
 
 static hook::cdecl_stub<rage::netSyncTree*(void*, int)> getSyncTreeForType([]()
 {
@@ -41,3 +48,29 @@ namespace rage
 		return getSyncTreeForType(nullptr, (int)type);
 	}
 }
+
+// CVehicleCreationDataNode::CanApply()
+// Basically the above rage::netSyncTree::CanApplyToObject()
+// will call each of its this->SyncTrees and call this virtual function that we are hooking
+static bool (*g_origVehicleCreationDataNode__CanApply)(void*, rage::netObject*);
+static bool CVehicleCreationDataNode__CanApply(void* thisptr, rage::netObject* netObj /*Hidden argument*/)
+{
+	// Crashfix for de-sync between helicopter netobj type and vehicle hash
+	if (netObj->GetObjectType() == (uint16_t)NetObjEntityType::Heli)
+	{
+		uint32_t hash = *(uint32_t*)(uintptr_t(thisptr) + 200);
+		if (!IS_THIS_MODEL_A_HELI_internal(hash))
+		{
+			// Force hash to a Buzzard2, or it will cause crashes down the line(ropemanager, damagestatus, etc.)
+			// better than returning false (makes them invisible)
+			*(uint32_t*)(uintptr_t(thisptr) + 200) = 0x2C75F0DD;
+		}
+	}
+	return g_origVehicleCreationDataNode__CanApply(thisptr, netObj);
+}
+
+static HookFunction hookinit([]()
+{
+	MH_CreateHook(hook::get_pattern("48 89 5C 24 10 55 48 8B EC 48 83 EC 20 8B 45 10 8B 89 C8 00 00 00"), CVehicleCreationDataNode__CanApply, (void**)&g_origVehicleCreationDataNode__CanApply);
+	MH_EnableHook(MH_ALL_HOOKS);
+});
