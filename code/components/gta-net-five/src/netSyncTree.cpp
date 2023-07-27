@@ -8,7 +8,8 @@
 
 static hook::cdecl_stub<bool(uint32_t hash)> IS_THIS_MODEL_A_HELI_internal([]()
 {
-	return hook::get_pattern("83 B9 ? ? ? ? 06 0F B6", -0x2E);
+	// [1604] - 140D13BB8
+	return hook::get_pattern("83 B9 ? ? ? ? 08 0F B6", -0x2E);
 });
 
 static hook::cdecl_stub<rage::netSyncTree*(void*, int)> getSyncTreeForType([]()
