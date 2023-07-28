@@ -48,6 +48,10 @@ static constexpr int kNetObjectTypeBitLength = 4;
 static constexpr int kNetObjectTypeBitLength = 5;
 #endif
 
+#ifdef GTA_FIVE
+static uint32_t g_objectCreatedByOffset = 0;
+#endif
+
 static constexpr int kSyncPacketMaxLength = 2400;
 
 void ObjectIds_AddObjectId(int objectId);
@@ -1181,9 +1185,7 @@ bool CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 
 			if (objectCreationDataNode)
 			{
-				static int createdByOffset = xbr::IsGameBuildOrGreater<1604>() ? 332 : 0;
-
-				int createdBy = *(int*)((char*)objectCreationDataNode + createdByOffset);
+				int createdBy = *(int*)((char*)objectCreationDataNode + g_objectCreatedByOffset);
 
 				// random or fragment cache
 				if (createdBy == 0 || createdBy == 2)
@@ -1969,6 +1971,10 @@ static HookFunction hookFunctionOrigin([]()
 
 	origin = hook::get_address<void*>(loc + 0xC);
 	hook::set_call(&getCoordsFromOrigin, loc + 0x10);
+
+#ifdef GTA_FIVE
+	g_objectCreatedByOffset = *hook::get_pattern<uint32_t>("F7 03 FD FF FF FF 0F 85 ? ? ? ? 48 8B", -0x1A);
+#endif
 });
 
 #ifdef GTA_FIVE
