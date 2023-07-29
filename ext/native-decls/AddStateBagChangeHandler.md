@@ -36,6 +36,9 @@ If bagName refers to a player, use [GET_PLAYER_FROM_STATE_BAG_NAME](?_0xA56135E0
 ## Return value
 A cookie to remove the change handler.
 
+## Notes
+In its current form, `StateBagChangeHandler`'s are also invoked as the state bag is being reconstructed/restreamed. Due to the built-in implementation, the `keyFilter` parameter is always sorted in dictionary of all state bags. In reconstructed/restreamed state bag scenarios, keep in mind that in the `handler` function other state bags with specified `keyFilter` may not be processed yet at this moment, depending on their order.
+
 ## Examples
 ```js
 AddStateBagChangeHandler("blockTasks", null, async (bagName, key, value /* boolean */) => {
