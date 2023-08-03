@@ -6,12 +6,6 @@
 #include <netObject.h>
 #include <MinHook.h>
 
-static hook::cdecl_stub<bool(uint32_t hash)> IS_THIS_MODEL_A_HELI_internal([]()
-{
-	// [1604] - 140D13BB8
-	return hook::get_pattern("83 B9 ? ? ? ? 08 0F B6", -0x2E);
-});
-
 static hook::cdecl_stub<rage::netSyncTree*(void*, int)> getSyncTreeForType([]()
 {
 	return hook::get_pattern("0F B7 CA 83 F9 07 7F 5E");
@@ -54,13 +48,33 @@ namespace rage
 // Basically the above rage::netSyncTree::CanApplyToObject()
 // will call each of its this->SyncTrees and call this virtual function that we are hooking
 static bool (*g_origVehicleCreationDataNode__CanApply)(void*, rage::netObject*);
+typedef void* (*GetArchetypeForHashFn)(uint32_t, int*);
+static GetArchetypeForHashFn g_getArcheTypeForHash;
+
 static bool CVehicleCreationDataNode__CanApply(void* thisptr, rage::netObject* netObj /*Hidden argument*/)
 {
 	// Crashfix for de-sync between helicopter netobj type and vehicle hash
 	if (netObj->GetObjectType() == (uint16_t)NetObjEntityType::Heli)
 	{
 		uint32_t hash = *(uint32_t*)(uintptr_t(thisptr) + 200);
-		if (!IS_THIS_MODEL_A_HELI_internal(hash))
+
+		// basically a reconstruction of IS_THIS_MODEL_A_XXXX
+		int flags = 0xFFFF;
+		bool modelTypeOK = false;
+		void* archetype = g_getArcheTypeForHash(hash, &flags);
+		if (archetype)
+		{
+			uint8_t* pType = (((uint8_t*)archetype) + 157);
+			if ((*pType & 0x1F) == 5)
+			{
+				uint32_t vehicleType = *(uint32_t*)(((uint8_t*)archetype) + 0x340);
+				if (vehicleType == 8 /*Heli*/ || vehicleType == 9 /*Blimp*/)
+				{
+					modelTypeOK = true;
+				}
+			}
+		}
+		if (!modelTypeOK)
 		{
 			// Force hash to a Buzzard2, or it will cause crashes down the line(ropemanager, damagestatus, etc.)
 			// better than returning false (makes them invisible)
@@ -72,6 +86,10 @@ static bool CVehicleCreationDataNode__CanApply(void* thisptr, rage::netObject* n
 
 static HookFunction hookinit([]()
 {
+	// sig intended to break if offsets change (haven't so far)
+	char* location = hook::get_pattern<char>("83 B9 40 03 00 00 08 0F B6");
+	location -= 25;
+	g_getArcheTypeForHash = hook::get_address<GetArchetypeForHashFn>(location, 1, 5);
 	MH_CreateHook(hook::get_pattern("48 89 5C 24 10 55 48 8B EC 48 83 EC 20 8B 45 10 8B 89 C8 00 00 00"), CVehicleCreationDataNode__CanApply, (void**)&g_origVehicleCreationDataNode__CanApply);
 	MH_EnableHook(MH_ALL_HOOKS);
 });
