@@ -559,7 +559,7 @@ if (!$DontBuild) {
 				commit = $env:CI_COMMIT_SHA
 			}
 		)
-		projects = @("fxserver")
+		projects = $SentryProjectList
 	} | ConvertTo-Json
 
 	$headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
