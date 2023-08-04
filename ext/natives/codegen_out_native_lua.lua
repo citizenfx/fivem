@@ -330,6 +330,12 @@ local function printNative(native)
 			aIdx = aIdx + ((arg.type.nativeType == 'vector3') and 3 or 1)
 		end
 	end
+
+	-- hacky zeroing of arguments, see https://github.com/citizenfx/fivem/issues/2135
+	for argn=1,math.min(2, 32 - #native.arguments) do
+		n = n .. t .. ("nCtx.SetArgument(%d, uintptr_t(0));\n"):format(aIdx)
+		aIdx = aIdx + 1
+	end
 	
 	n = n .. t .. ("LUA_EXC_WRAP_START(0x%016x)\n"):format(native.hash)
 	n = n .. t .. ("nCtx.Invoke(L, 0x%016x);\n"):format(native.hash)
