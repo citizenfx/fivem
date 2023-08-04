@@ -95,6 +95,7 @@ build_proot_linux:
   image: mcr.microsoft.com/dotnet/sdk:6.0-alpine3.15
   variables:
     GIT_SUBMODULE_STRATEGY: normal
+    GIT_SUBMODULE_DEPTH: 3
     # workaround gitlab-ci-multi-runner#2148
     GIT_SSL_CAPATH: /etc/ssl/certs/
     DOCKER_TLS_CERTDIR: ""
@@ -212,6 +213,7 @@ typings_server:
     - master
   variables:
     GIT_SUBMODULE_STRATEGY: normal
+    GIT_SUBMODULE_DEPTH: 3
     # workaround gitlab-ci-multi-runner#2148
     GIT_SSL_CAPATH: /etc/ssl/certs/
   script:
