@@ -9,7 +9,7 @@
     line-height: 1.1; // avoid clipping glyphs by bounding box
 
     white-space: nowrap;
-    overflow-x: hidden;
+    overflow: hidden;
 
     -webkit-mask: linear-gradient(90deg, red, red calc(100% - 2ch), transparent);
     mask: linear-gradient(90deg, red, red calc(100% - 2ch), transparent);
