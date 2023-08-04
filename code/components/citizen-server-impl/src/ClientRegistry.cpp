@@ -223,7 +223,6 @@ namespace fx
 			events->TriggerClientEvent("onPlayerJoining", target, client->GetNetId(), client->GetName(), bigModeSlot);
 		}
 
-		m_clientsByNetId[oldNetID].reset();
 		// trigger connection handlers
 		OnConnectedClient(client.get());
 	}
