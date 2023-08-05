@@ -85,6 +85,7 @@ static uint32_t GetModelType(uint32_t hash)
 			uint32_t vehicleType = *(uint32_t*)(((uint8_t*)archetype) + 0x340);
 			return vehicleType;
 		}
+		return -2;
 	}
 	return -1;
 }
@@ -110,18 +111,19 @@ static bool CVehicleCreationDataNode__CanApply(void* thisptr, rage::netObject* n
 			*(uint32_t*)(uintptr_t(thisptr) + 200) = 0x107F392C;
 		}
 	}
-	if (netObj->GetObjectType() == (uint16_t)NetObjEntityType::Automobile)
-	{
-		if (modelType != VEHICLE_TYPE_CAR 
-			&& modelType != VEHICLE_TYPE_SUBMARINECAR 
-			&& modelType != VEHICLE_TYPE_QUADBIKE
-			&& modelType != VEHICLE_TYPE_AMPHIBIOUS_AUTOMOBILE 
-			&& modelType != VEHICLE_TYPE_AMPHIBIOUS_QUADBIKE)
-		{
-			// force to stromberg
-			*(uint32_t*)(uintptr_t(thisptr) + 200) = 0x34DBA661;
-		}
-	}
+	// There is some usage of the older CREATE_AUTOMOBILE native which triggers this
+	//if (netObj->GetObjectType() == (uint16_t)NetObjEntityType::Automobile)
+	//{
+	//	if (modelType != VEHICLE_TYPE_CAR 
+	//		&& modelType != VEHICLE_TYPE_SUBMARINECAR 
+	//		&& modelType != VEHICLE_TYPE_QUADBIKE
+	//		&& modelType != VEHICLE_TYPE_AMPHIBIOUS_AUTOMOBILE 
+	//		&& modelType != VEHICLE_TYPE_AMPHIBIOUS_QUADBIKE)
+	//	{
+	//		// force to stromberg
+	//		*(uint32_t*)(uintptr_t(thisptr) + 200) = 0x34DBA661;
+	//	}
+	//}
 	if (netObj->GetObjectType() == (uint16_t)NetObjEntityType::Train)
 	{
 		if (modelType != VEHICLE_TYPE_TRAIN)
