@@ -67,9 +67,9 @@ bool IsValidGraphicsLibrary(const std::wstring& path)
 						}
 						// ReShade = 5.9 causes heap corruption basically *all the time* so we hard-block it
 						// ReShade 5.9.1 fixed this issue and blocking above 5.9 is no longer needed
-						else if (fixedInfo->dwProductVersionMS = 0x50009)
+						else if (fixedInfo->dwProductVersionMS == 0x50009)
 						{
-							console::Printf("script:reshade", "Blocked load of ReShade version 5.9 or higher, it causes crashes in RtlReportFatalFailure.\nDowngrade to 5.8 or below to be able to use ReShade, or report the issue to the ReShade authors.\n");
+							console::Printf("script:reshade", "Blocked load of ReShade version 5.9, it causes crashes in RtlReportFatalFailure.\nUpgrade to the latest version of ReShade. https://reshade.me\n");
 							return false;
 						}
 						// as is ReShade v5+ because of an unknown crash (unless setting an override)
