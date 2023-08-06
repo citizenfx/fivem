@@ -65,10 +65,10 @@ bool IsValidGraphicsLibrary(const std::wstring& path)
 						{
 							return false;
 						}
-						// ReShade >= 5.9 causes heap corruption basically *all the time* so we hard-block it
-						else if (fixedInfo->dwProductVersionMS >= 0x50009)
+						// ReShade == 5.9 causes heap corruption basically *all the time* so we hard-block it
+						else if (fixedInfo->dwProductVersionMS == 0x50009 && fixedInfo->dwProductVersionLS < 0x10000)
 						{
-							console::Printf("script:reshade", "Blocked load of ReShade version 5.9 or higher, it causes crashes in RtlReportFatalFailure.\nDowngrade to 5.8 or below to be able to use ReShade, or report the issue to the ReShade authors.\n");
+							console::Printf("script:reshade", "Blocked load of ReShade version 5.9, it causes crashes in RtlReportFatalFailure.\nUpgrade to 5.9.1 or below to be able to use ReShade.\n");
 							return false;
 						}
 						// as is ReShade v5+ because of an unknown crash (unless setting an override)
@@ -115,13 +115,17 @@ bool IsValidGraphicsLibrary(const std::wstring& path)
 						}
 
 						// in-process GPU is incompatible with ReShade (it'll swap out the D3D device underneath, failing a check in ANGLE)
-						static ConVar<bool> nuiUseInProcessGpu("nui_useInProcessGpu", ConVar_Archive, false);
-
-						if (nuiUseInProcessGpu.GetValue())
+						// this was fixed in 5.9 so allow it if the version is above such
+						if (fixedInfo->dwProductVersionMS < 0x50009)
 						{
-							console::Printf("script:reshade", "Blocked load of ReShade, as it is incompatible with NUI in-process GPU. Disable NUI in-process GPU to be able to use ReShade.\n");
+							static ConVar<bool> nuiUseInProcessGpu("nui_useInProcessGpu", ConVar_Archive, false);
 
-							return false;
+							if (nuiUseInProcessGpu.GetValue())
+							{
+								console::Printf("script:reshade", "Blocked load of ReShade, as it is incompatible with NUI in-process GPU. Update ReShade to version 5.9.1 or above to be able to use it.\n");
+
+								return false;
+							}
 						}
 
 						return true;
