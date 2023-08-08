@@ -231,12 +231,15 @@ if not isRDR then
     RegisterKeyMapping('toggleChat', 'Toggle chat', 'keyboard', 'l')
   end
 end
- 
-addSuggestion('/toggleChat', 'set Chat state from whenactive hidden or always visible', {
-  { name = "state", help = "whenactive" },
-  { name = "state", help = "hidden" },
-  { name = "state", help = "visible" }
-})
+
+CreateThread(function()
+  Wait(1000)
+  addSuggestion('/toggleChat', 'set Chat state from whenactive hidden or always visible', {
+    { name = "state", help = "whenactive" },
+    { name = "state", help = "hidden" },
+    { name = "state", help = "visible" }
+  })
+end)
 
 RegisterCommand('toggleChat', function(source, args, rawCommand)
   if not args[1] then
