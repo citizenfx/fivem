@@ -235,9 +235,7 @@ end
 CreateThread(function()
   Wait(1000)
   addSuggestion('/toggleChat', 'set Chat state from whenactive hidden or always visible', {
-    { name = "state", help = "whenactive" },
-    { name = "state", help = "hidden" },
-    { name = "state", help = "visible" }
+    { name = "state", help = "whenactive hidden visible" },
   })
 end)
 
