@@ -232,7 +232,11 @@ if not isRDR then
   end
 end
 
-  TriggerEvent("chat:addSuggestion", "/toggleChat" , "set Chat state from whenactive hidden or always visible",{})
+
+CreateThread(function()
+  Wait(1000)
+  addSuggestion('/toggleChat', 'set Chat state from whenactive hidden or always visible', {})
+end)
   RegisterCommand('toggleChat', function(source,args,rawCommand)
    
         if chatHideState == CHAT_HIDE_STATES.SHOW_WHEN_ACTIVE then
