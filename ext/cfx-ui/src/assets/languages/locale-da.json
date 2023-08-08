@@ -50,7 +50,7 @@
     "#DirectConnect_ServerInvalid": "Serveren kunne ikke findes",
     "#DirectConnect_ServerInvalid_SubTitle": "Har du indtastet den rigtige adresse?",
     "#DirectConnect_IPPort": "IP:Port",
-    "#DirectConnect_Connect": "Forbindelse",
+    "#DirectConnect_Connect": "Forbind",
     "#DirectConnect_LastPlayed": "Sidst spillet",
     "#ServerDetail_Players": "Spillere",
     "#ServerDetail_PlayersEmpty": "Ingen spillere på denne server.",
