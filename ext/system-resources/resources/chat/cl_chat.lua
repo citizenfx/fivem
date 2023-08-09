@@ -212,7 +212,7 @@ RegisterNUICallback('loaded', function(data, cb)
   refreshThemes()
 
   chatLoaded = true
-
+  addSuggestion('/toggleChat', 'set Chat state from whenactive hidden or always visible', {})
   cb('ok')
 end)
 
@@ -232,11 +232,6 @@ if not isRDR then
   end
 end
 
-
-CreateThread(function()
-  Wait(1000)
-  addSuggestion('/toggleChat', 'set Chat state from whenactive hidden or always visible', {})
-end)
   RegisterCommand('toggleChat', function(source,args,rawCommand)
    
         if chatHideState == CHAT_HIDE_STATES.SHOW_WHEN_ACTIVE then
