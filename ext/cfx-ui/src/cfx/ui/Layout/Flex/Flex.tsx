@@ -9,6 +9,7 @@ export interface FlexProps {
 
   centered?: boolean | 'axis' | 'cross-axis' | 'baseline-axis' | 'baseline-cross-axis',
   vertical?: boolean,
+  reverseOrder?: boolean,
   repell?: boolean,
   stretch?: boolean,
   wrap?: boolean,
@@ -34,6 +35,7 @@ function FlexComponent(props: FlexProps, ref: React.Ref<HTMLDivElement>) {
     alignToEnd = false,
     alignToEndAxis = false,
     spaceBetween = false,
+    reverseOrder = false,
     gap = 'normal',
     children,
     className,
@@ -55,6 +57,7 @@ function FlexComponent(props: FlexProps, ref: React.Ref<HTMLDivElement>) {
     [s['align-to-end']]: alignToEnd,
     [s['align-to-end-axis']]: alignToEndAxis,
     [s['space-between']]: spaceBetween,
+    [s['reverse-order']]: reverseOrder,
   });
 
   return (

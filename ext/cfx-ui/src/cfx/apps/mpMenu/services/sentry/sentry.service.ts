@@ -6,10 +6,10 @@ import { IAccountService } from 'cfx/common/services/account/account.service';
 import { IAccount } from 'cfx/common/services/account/types';
 import { AppContribution, registerAppContribution } from 'cfx/common/services/app/app.extensions';
 import { fetcher } from 'cfx/utils/fetcher';
-import { fastRandomId } from 'cfx/utils/random';
 import { inject, injectable } from 'inversify';
 import { mpMenu } from '../../mpMenu';
 import { IConvarService } from '../convars/convars.service';
+import { ASID } from "cfx/utils/asid";
 
 const ENABLE_SENTRY = !__CFXUI_DEV__ && process.env.CI_PIPELINE_ID;
 
@@ -58,22 +58,12 @@ if (ENABLE_SENTRY) {
     },
   });
 
+  const id = ASID;
 
-  // Set stable user id early
-  try {
-    if (!window.localStorage['sentryUserId']) {
-      window.localStorage['sentryUserId'] = `${fastRandomId()}-${fastRandomId()}`;
-    }
-
-    const id = window.localStorage['sentryUserId'];
-
-    Sentry.setUser({
-      id,
-      username: id,
-    });
-  } catch (e) {
-    // no-op
-  }
+  Sentry.setUser({
+    id,
+    username: id,
+  });
 }
 
 export function registerSentryService(container: ServicesContainer) {
@@ -123,7 +113,7 @@ class SentryService implements AppContribution {
 
     Sentry.setContext('convars', Object.fromEntries(
       Object.entries(this.convarService.getAll()).filter(([key, value]) => {
-        if (key.startsWith('cl_'))  {
+        if (key.startsWith('cl_')) {
           return false;
         }
         if (key.startsWith('cam_')) {

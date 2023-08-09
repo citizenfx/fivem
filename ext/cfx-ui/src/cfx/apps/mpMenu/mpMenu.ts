@@ -60,7 +60,9 @@ class NicknameStore {
 
 export namespace mpMenu {
   export function invokeNative(native: string, arg = '') {
-    console.log('Invoking native', native, JSON.stringify(arg));
+    if (__CFXUI_DEV__) {
+      console.log('Invoking native', native, JSON.stringify(arg));
+    }
 
     nuiWindow.invokeNative(native, arg);
   }
@@ -77,6 +79,21 @@ export namespace mpMenu {
 
   export function openUrl(url: string) {
     invokeNative('openUrl', url);
+  }
+
+  let showGameWindowRequested = false;
+  export function showGameWindow() {
+    if (showGameWindowRequested) {
+      return;
+    }
+
+    showGameWindowRequested = true;
+
+    invokeNative('getMinModeInfo');
+  }
+
+  export function exit() {
+    invokeNative('exit');
   }
 
   export const systemLanguages = [...new Set(nuiWindow.nuiSystemLanguages || ['en-us'])];
@@ -152,7 +169,9 @@ export namespace mpMenu {
 
 
 window.addEventListener('message', (event: MessageEvent) => {
-  console.log('[WNDMSG]', event.data);
+  if (__CFXUI_DEV__) {
+    console.log('[WNDMSG]', event.data);
+  }
 
   const { data } = event;
 

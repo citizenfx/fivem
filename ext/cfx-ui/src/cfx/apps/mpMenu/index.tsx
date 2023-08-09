@@ -40,8 +40,10 @@ import { IServersConnectService } from 'cfx/common/services/servers/serversConne
 import { Handle404 } from './pages/404';
 import { registerHomeScreenServerList } from './services/servers/list/HomeScreenServerList.service';
 import { registerSentryService } from './services/sentry/sentry.service';
+import { registerLegalService } from "./services/legal/legal.service";
 import { SentryLogProvider } from './services/sentry/sentryLogProvider';
-import { animationFrame, idleCallback, timeout } from 'cfx/utils/async';
+import { timeout } from 'cfx/utils/async';
+import { shutdownLoadingSplash } from "./utils/loadingSplash";
 
 startBrowserApp({
   defineServices(container) {
@@ -55,6 +57,8 @@ startBrowserApp({
     registerAnalyticsService(container, [
       MatomoAnalyticsProvider,
     ]);
+
+    registerLegalService(container);
 
     registerSettingsService(container, {
       settings: GAME_SETTINGS,
@@ -142,29 +146,9 @@ startBrowserApp({
       mpMenu.invokeNative('executeCommand', 'nui_devtools mpMenu');
     }
 
-    mpMenu.invokeNative('getMinModeInfo');
+    mpMenu.showGameWindow();
 
     // Not using await here so app won't wait for this to end
-    timeout(1000).then(animationFrame).then(() => {
-      const $loader = document.getElementById('loader');
-      if (!$loader) {
-        console.error('No #loader found, did it get deleted from index.html?');
-        return;
-      }
-
-      $loader.classList.add('hide');
-
-      const $loaderMask = $loader.querySelector('#loader-mask');
-      if (!$loaderMask) {
-        console.error('No #loader-mask found, did it get deleted from index.html?');
-        return;
-      }
-
-      $loaderMask.addEventListener('animationend', async () => {
-        await idleCallback(1000);
-
-        $loader.parentNode?.removeChild($loader);
-      });
-    });
+    timeout(1000).then(shutdownLoadingSplash);
   },
 });

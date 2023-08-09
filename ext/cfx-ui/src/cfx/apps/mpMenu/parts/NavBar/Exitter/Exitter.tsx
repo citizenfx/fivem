@@ -44,7 +44,7 @@ export function Exitter() {
                       theme="default-blurred"
                       size="large"
                       text={$L('#ExitToDesktop')}
-                      onClick={() => mpMenu.invokeNative('exit')}
+                      onClick={mpMenu.exit}
                     />
                     <Button
                       theme="primary"

@@ -32,7 +32,7 @@ export async function startBrowserApp(definition: AppDefinition) {
     document.body.style.backgroundColor = 'black';
     document.body.style.color = 'red';
 
-    document.body.innerHTML = '<h1>Invalid HTML template, no #cfxui-root node available, CFXUI app will not be rendered</h1>';
+    document.body.innerHTML = `<h1>Invalid HTML template, no ${appNodeSelector} node available, CFXUI app will not be rendered</h1>`;
 
     return;
   }

@@ -1,5 +1,6 @@
 .root {
   display: flex;
+  flex-direction: row;
 
   &.full-width {
     width: 100%;
@@ -25,8 +26,16 @@
     justify-content: baseline;
   }
 
+  &.reverse-order {
+    flex-direction: row-reverse;
+  }
+
   &.vertical {
     flex-direction: column;
+
+    &.reverse-order {
+      flex-direction: column-reverse;
+    }
   }
 
   &.repell {
