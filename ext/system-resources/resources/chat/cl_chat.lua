@@ -212,7 +212,9 @@ RegisterNUICallback('loaded', function(data, cb)
   refreshThemes()
 
   chatLoaded = true
-
+  addSuggestion('/toggleChat', 'set Chat state from whenactive hidden or always visible', {
+    { name = "state", help = "whenactive hidden visible" },
+  })
   cb('ok')
 end)
 
@@ -231,13 +233,6 @@ if not isRDR then
     RegisterKeyMapping('toggleChat', 'Toggle chat', 'keyboard', 'l')
   end
 end
-
-CreateThread(function()
-  Wait(1000)
-  addSuggestion('/toggleChat', 'set Chat state from whenactive hidden or always visible', {
-    { name = "state", help = "whenactive hidden visible" },
-  })
-end)
 
 RegisterCommand('toggleChat', function(source, args, rawCommand)
   if not args[1] then
