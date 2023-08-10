@@ -15,7 +15,6 @@ import { PlatformStats } from "./PlatformStats/PlatformStats";
 import { TopServersBlock } from "./TopServers/TopServers";
 import { Continuity } from "./Continuity/Continuity";
 import { Footer } from "./Footer/Footer";
-// import { BetaSign } from "./BetaSign/BetaSign";
 import s from './HomePage.module.scss';
 
 export const HomePage = observer(function HomePage() {
@@ -25,8 +24,6 @@ export const HomePage = observer(function HomePage() {
     <Page>
       <InsideNavBar>
         <Flex fullWidth spaceBetween gap="large">
-          {/* <BetaSign /> */}
-
           <HomePageNavBarLinks />
 
           <PlatformStatus />

@@ -2,14 +2,15 @@ import { ServicesContainer, useService } from "cfx/base/servicesContainer";
 import { isServerOffline } from "cfx/common/services/servers/helpers";
 import { IIntlService } from "cfx/common/services/intl/intl.service";
 import { reviveServerListConfig } from "cfx/common/services/servers/lists/ServerListConfigController";
-import { ServersListType } from "cfx/common/services/servers/lists/types";
+import { ServerListSortDir, ServersListSortBy, ServersListType } from "cfx/common/services/servers/lists/types";
 import { IServersStorageService } from "cfx/common/services/servers/serversStorage.service";
 import { IServerView } from "cfx/common/services/servers/types";
 import { inject, injectable } from "inversify";
 import { makeAutoObservable, observable } from "mobx";
 import { MpMenuServersService } from "../servers.mpMenu";
+import { AppContribution, registerAppContribution } from "cfx/common/services/app/app.extensions";
 
-export const MAX_TOP_SERVERS = 10;
+export const MAX_TOP_SERVERS_COUNT = 10;
 
 export const IDLE_TIMEOUT = 60 * 1000; // 60 seconds
 
@@ -36,13 +37,15 @@ export function useHomeScreenServerList() {
 
 export function registerHomeScreenServerList(container: ServicesContainer) {
   container.register(HomeScreenServerListService);
+
+  registerAppContribution(container, HomeScreenServerListService);
 }
 
 @injectable()
-export class HomeScreenServerListService {
-  private _allServersSequence: string[] = [];
-  private get allServersSequence() { return this._allServersSequence }
-  private set allServersSequence(seq: string[]) { this._allServersSequence = seq }
+export class HomeScreenServerListService implements AppContribution {
+  private _topRegionServers: IServerView[] = [];
+  public get topRegionServers(): IServerView[] { return this._topRegionServers }
+  private set topRegionServers(topServers: IServerView[]) { this._topRegionServers = topServers }
 
   constructor(
     @inject(MpMenuServersService)
@@ -54,24 +57,32 @@ export class HomeScreenServerListService {
   ) {
     makeAutoObservable(this, {
       // @ts-expect-error private
-      _allServersSequence: observable.ref,
+      _topServers: observable.ref,
     });
+  }
 
-    this.serversService.listSource.onList(ServersListType.RegionalTop, (seq) => this.allServersSequence = seq);
+  init() {
+    this.serversService.listSource.onList(ServersListType.RegionalTop, this.acceptServerList);
     this.serversService.listSource.makeList(reviveServerListConfig({
       type: ServersListType.RegionalTop,
       locales: {
         [this.intlService.systemLocale]: true,
       },
+      sortBy: ServersListSortBy.Boosts,
+      sortDir: ServerListSortDir.Desc,
     }));
   }
 
-  get topRegionServers() {
+  private readonly acceptServerList = (serverIds: string[]) => {
+    if (this._topRegionServers.length === MAX_TOP_SERVERS_COUNT) {
+      return;
+    }
+
     const servers: IServerView[] = [];
 
-    for (const serverId of this.allServersSequence) {
-      if (servers.length === MAX_TOP_SERVERS) {
-        return servers;
+    for (const serverId of serverIds) {
+      if (servers.length === MAX_TOP_SERVERS_COUNT) {
+        break;
       }
 
       const server = this.serversService.getServer(serverId);
@@ -90,8 +101,8 @@ export class HomeScreenServerListService {
       servers.push(server);
     }
 
-    return servers;
-  }
+    this.topRegionServers = servers;
+  };
 
   get lastConnectedServer() {
     const lastServers = this.serversStorageService.getLastServers();
