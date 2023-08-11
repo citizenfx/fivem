@@ -7,6 +7,9 @@
 #include <MinHook.h>
 
 #include <Error.h>
+#include <sysAllocator.h>
+
+#include <unordered_set>
 
 class RageHashList
 {
@@ -34,6 +37,78 @@ public:
 
 private:
 	std::map<uint32_t, std::string_view> m_lookupList;
+};
+
+struct PoolHackData
+{
+	size_t m_maxSize = 0;
+	size_t m_growthStep = 0;
+
+	PoolHackData(size_t max, size_t step)
+		: m_maxSize(max), m_growthStep(step)
+	{
+
+	}
+
+	PoolHackData() = default;
+};
+
+constexpr size_t kPoolHackGrowth = 0x200;
+
+static bool g_poolHacks;
+static std::unordered_map<atPoolBase*, PoolHackData> g_hackedPools;
+
+struct AssetStoreHashMap
+{
+	struct Bucket
+	{
+		uint32_t key;
+		uint32_t value;
+
+		// pointer to next entry in hash chain, -1 if fail
+		// if we need to mess with this we can cheat a bit here
+		// and just pretend our hashmap is the exact same size as the pool
+		int32_t link;
+	};
+
+	Bucket* data;
+	uint32_t* primary;
+	uint32_t modulus;
+	int32_t nextFreeEntry; // -1 if no more free entries in the mashmap
+	uint32_t allocCount;
+};
+
+static std::unordered_map<atPoolBase*, AssetStoreHashMap*> g_hackedHashmaps;
+static std::unordered_map<uint32_t, PoolHackData> g_wantedHacks = {
+	{ HashString("Building"),
+	{
+	0x10000 * 10, // max size
+	0x4000 // growth step
+	} },
+
+	{ HashString("TxdStore"),
+	{
+	0x10000 * 10, // max size
+	0x4000 // growth step
+	} },
+
+	{ HashString("FragmentStore"),
+	{
+	0x10000 * 10, // max size
+	0x4000 // growth step
+	} },
+
+	{ HashString("DrawableStore"),
+	{
+	0x10000 * 10, // max size
+	0x4000 // growth step
+	} },
+
+	{ HashString("fragInstGta"),
+	{
+	0x10000, // max size
+	0x4000 // growth step
+	} }
 };
 
 static std::map<uint32_t, atPoolBase*> g_pools;
@@ -206,10 +281,80 @@ GTA_CORE_EXPORT atPoolBase* rage::GetPoolBase(uint32_t hash)
 	return it->second;
 }
 
-static atPoolBase* SetPoolFn(atPoolBase* pool, uint32_t hash)
+static atPoolBase* (*g_origInitPool)(atPoolBase*);
+static atPoolBase* InitPoolStub(atPoolBase* pool)
+{
+	if (!pool->m_data && g_hackedPools.count(pool))
+	{
+		const auto poolStr = poolEntries.LookupHash(g_inversePools[pool]);
+		assert(pool->m_count > 0);
+
+		size_t poolEntrySize = pool->GetEntrySize();
+		size_t& maxCount = g_hackedPools[pool].m_maxSize;
+
+		const auto ceillog2 = [](uint32_t x)
+		{
+			x--;
+			x |= x >> 1;
+			x |= x >> 2;
+			x |= x >> 4;
+			x |= x >> 8;
+			x |= x >> 16;
+			x++;
+			return x;
+		};
+		trace("found hackpool %s (current cap: %u, max. for bitwidth: %u)\n", poolStr, pool->m_count, ceillog2(pool->m_count));
+
+		if (maxCount > 0x10000 && pool->m_count <= 0x10000)
+		{
+			// TODO: there may be cases where we know this is safe, check if so
+			trace("\t>>> WARNING: hackpool %s is assumed to be indexed by int16 for this game version due to size of pool! Clamping to 65536 entries.\n", poolStr);
+			maxCount = 0x10000;
+		}
+
+		// stress-test
+		// pool->m_count = 0x2000;
+
+		// virtual memory is not allocated directly until it's touched
+		// so we can just allocate reasonably large amounts and it won't be used or considered for the working set at all until we poke it
+		char* newData = (char*)VirtualAlloc(NULL, maxCount * poolEntrySize, MEM_RESERVE, PAGE_READWRITE);
+		assert(newData);
+
+		atPoolFlags* newFlags = (atPoolFlags*)VirtualAlloc(NULL, maxCount, MEM_RESERVE, PAGE_READWRITE);
+		assert(newFlags);
+
+		pool->m_data = newData;
+		pool->m_flags = newFlags;
+
+		const int32_t wanted = pool->m_count;
+		trace("populating hackpool (%s): 0x%x -> %p\n", poolStr, wanted, pool->m_data);
+
+		// commit what we initially need
+		VirtualAlloc(pool->m_data, wanted * poolEntrySize, MEM_COMMIT, PAGE_READWRITE);
+		VirtualAlloc(pool->m_flags, wanted, MEM_COMMIT, PAGE_READWRITE);
+
+		// fallthrough to original function
+	}
+
+	return g_origInitPool(pool);
+}
+
+static atPoolBase* SetPoolFn(atPoolBase* pool, uint32_t hash, bool isAssetStore)
 {
 	g_pools[hash] = pool;
 	g_inversePools.insert({ pool, hash });
+
+	if (g_poolHacks && g_wantedHacks.count(hash))
+	{
+		trace("enabling hackpool: 0x%x (%s) -> %p\n", hash, poolEntries.LookupHash(hash), (void*)pool);
+		g_hackedPools[pool] = g_wantedHacks[hash];
+
+		if (isAssetStore)
+		{
+			trace("  -> asset store! tacking on hashmap as well\n");
+			g_hackedHashmaps[pool] = (AssetStoreHashMap*)((char*)pool - 0x38 + 0x70);
+		}
+	}
 
 	return pool;
 }
@@ -228,6 +373,25 @@ static void PoolDtorWrap(atPoolBase* pool)
 		g_inversePools.erase(pool);
 	}
 
+	if (auto it = g_hackedPools.find(pool); it != g_hackedPools.end())
+	{
+		assert(pool->m_data);
+		assert(pool->m_flags);
+
+		// be free dobby
+		trace("freeing pool data: %p, %p", (void*)pool->m_data, (void*)pool->m_flags);
+		VirtualFree(pool->m_data, 0, MEM_RELEASE);
+		VirtualFree(pool->m_flags, 0, MEM_RELEASE);
+	
+		pool->m_data = nullptr;
+		pool->m_flags = nullptr;
+
+		pool->m_count = 0;
+		pool->m_poolStats.numEntries = 0;
+
+		g_hackedPools.erase(it);
+	}
+
 	return g_origPoolDtor(pool);
 }
 
@@ -237,15 +401,131 @@ static void* PoolAllocateWrap(atPoolBase* pool)
 {
 	void* value = g_origPoolAllocate(pool);
 
+	/*
+	if (auto it = g_hackedHashmaps.find(pool); it != g_hackedHashmaps.end())
+	{
+		auto* wackmap = it->second;
+		trace("wackmap with alloc count %zu, modulus %zu, and free idx %d!\n", wackmap->allocCount, wackmap->modulus, wackmap->nextFreeEntry);
+	}
+	*/
+
 	if (!value)
 	{
+		if (auto it = g_hackedPools.find(pool); it != g_hackedPools.end())
+		{
+			auto& data = it->second;
+			size_t targetMax = data.m_maxSize;
+
+			// can we allocate more?
+			if (pool->m_count < targetMax)
+			{
+				size_t poolEntrySize = pool->GetEntrySize();
+
+				int32_t currentSize = pool->m_count;
+				int32_t newSize = currentSize + data.m_growthStep;
+
+				// make sure we don't overflow
+				if (newSize > targetMax)
+				{
+					newSize = targetMax;
+				}
+					
+				trace("resizing pool %p [%p]: (%s) 0x%x -> 0x%x\n", (void*)pool, (void*)pool->m_data, poolEntries.LookupHash(g_inversePools[pool]), currentSize, newSize);
+
+				if (newSize == targetMax)
+				{
+					trace("\t>>> WARNING: pool is at max capacity!\n", (void*)pool);
+				}
+
+				int32_t newDelta = newSize - currentSize;
+				assert(newDelta > 0);
+
+				// add new memory 
+				void* res = VirtualAlloc(pool->m_data + (currentSize * poolEntrySize), newDelta * poolEntrySize, MEM_COMMIT, PAGE_READWRITE);
+				assert(res);
+
+				res = VirtualAlloc(pool->m_flags + currentSize, newDelta, MEM_COMMIT, PAGE_READWRITE);
+				assert(res);
+
+				// every new entry is free and is the first generation
+				for (int32_t i = currentSize; i < newSize; ++i)
+				{
+					pool->m_flags[i].isFree = 1;
+					pool->m_flags[i].generation = 1;
+				}
+
+				// populate free list
+				int32_t* freeList = &pool->m_freeList;
+				assert(*freeList == -1);
+
+				for (int32_t i = currentSize; i < newSize; ++i)
+				{
+					*freeList = i;
+					freeList = (int32_t*)&pool->m_data[i * poolEntrySize];
+				}
+				*freeList = -1;
+
+				assert(freeList != &pool->m_freeList);
+
+				pool->m_count = newSize;
+				pool->m_lastAlloc = newSize - 1;
+
+				// try again
+				value = g_origPoolAllocate(pool);
+				assert(value);
+
+				// asset stores have a dead-simple open address hashmap tacked on,
+				// which we need to resize accordingly as well
+				if (auto it = g_hackedHashmaps.find(pool); it != g_hackedHashmaps.end())
+				{
+					auto* assetMap = it->second;
+					trace("[in resize] hashmap with alloc count %zu, modulus %zu, and free idx %d!\n", assetMap->allocCount, assetMap->modulus, assetMap->nextFreeEntry);
+					
+					int32_t nextFree = assetMap->nextFreeEntry;
+
+					auto* alloc = rage::GetAllocator();
+
+					AssetStoreHashMap::Bucket* newBuckets = (AssetStoreHashMap::Bucket*)alloc->Allocate(sizeof(AssetStoreHashMap::Bucket) * newSize, alignof(AssetStoreHashMap::Bucket), 0);
+					memcpy(newBuckets, assetMap->data, currentSize * sizeof(AssetStoreHashMap::Bucket));
+					rage::GetAllocator()->Free(assetMap->data);
+					assetMap->data = newBuckets;
+
+					/* TODO: resize if we want to make modulus larger
+					uint32_t* newPrimary = (uint32_t*)alloc->Allocate(sizeof(uint32_t) * newSize, alignof(uint32_t), 0);
+					memcpy(newPrimary, assetMap->primary, currentSize * sizeof(uint32_t));
+					rage::GetAllocator()->Free(assetMap->primary);
+					assetMap->primary = newPrimary;
+					*/
+
+					// populate new free entries in hashmap
+					if (nextFree == -1)
+					{
+						assetMap->nextFreeEntry = currentSize;
+						nextFree = currentSize;
+					}
+					else
+					{
+						assetMap->data[nextFree].link = currentSize;
+					}
+
+					for (int32_t x = currentSize + 1; x < newSize; ++x)
+					{
+						assetMap->data[nextFree].link = x;
+						nextFree = x;
+					}
+					assetMap->data[nextFree].link = -1;
+				}
+
+				return value;
+			}
+		}
+
 		auto it = g_inversePools.find(pool);
 		std::string poolName = "<<unknown pool>>";
 
 		if (it != g_inversePools.end())
 		{
 			uint32_t poolHash = it->second;
-			
 			poolName = poolEntries.LookupHash(poolHash);
 		}
 
@@ -404,6 +684,7 @@ static HookFunction hookFunction([] ()
 				 add(rcx, 0x38);
 
 				mov(edx, hash);
+				mov(r8, isAssetStore);
 
 				mov(rax, (uint64_t)&SetPoolFn);
 				call(rax);
@@ -430,6 +711,13 @@ static HookFunction hookFunction([] ()
 			generateAndCallStub(match, callOffset, *match.get<uint32_t>(hashOffset), false);
 		}
 	};
+	
+	g_poolHacks = wcsstr(GetCommandLineW(), L"-poolhacks") != nullptr;
+	if (g_poolHacks)
+	{
+		trace("Enabling pool hacks!!\n");
+		MH_CreateHook(hook::get_call(hook::get_pattern("C7 ? ? 10 00 00 00 C7 ? ? 00 00 00 40 E8", 14)), InitPoolStub, (void**)&g_origInitPool);
+	}
 
 	auto registerAssetPools = [&](hook::pattern& patternMatch, int callOffset, int nameOffset)
 	{
