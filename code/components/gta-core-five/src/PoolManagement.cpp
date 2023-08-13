@@ -717,6 +717,8 @@ static HookFunction hookFunction([] ()
 	{
 		trace("Enabling pool hacks!!\n");
 		MH_CreateHook(hook::get_call(hook::get_pattern("C7 ? ? 10 00 00 00 C7 ? ? 00 00 00 40 E8", 14)), InitPoolStub, (void**)&g_origInitPool);
+
+		AddCrashometry("poolhacks_enabled", "true");
 	}
 
 	auto registerAssetPools = [&](hook::pattern& patternMatch, int callOffset, int nameOffset)
