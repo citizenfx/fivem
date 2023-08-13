@@ -498,8 +498,8 @@ static HookFunction initFunction([]()
 	{
 		auto location = hook::get_pattern<char>("A8 02 0F 84 ? ? ? ? 0F B7 86");
 
-		CurrentGearOffset = *(uint32_t*)(location + 11);
-		NextGearOffset = *(uint32_t*)(location + 18);
+		CurrentGearOffset = *(uint32_t*)(location + 18);
+		NextGearOffset = *(uint32_t*)(location + 11);
 	}
 
 	{
