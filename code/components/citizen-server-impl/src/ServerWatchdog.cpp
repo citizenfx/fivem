@@ -114,7 +114,7 @@ void PlatformBark(const std::string& loopName)
 		return;
 	}
 
-	BOOL success = MiniDumpWriteDump((HANDLE)SnapshotHandle,
+	[[maybe_unused]] BOOL success = MiniDumpWriteDump((HANDLE)SnapshotHandle,
 		GetCurrentProcessId(),
 		hFile,
 		(MINIDUMP_TYPE)(MiniDumpWithProcessThreadData | MiniDumpWithUnloadedModules | MiniDumpWithThreadInfo),
@@ -128,6 +128,7 @@ void PlatformBark(const std::string& loopName)
 
 	if (success)
 	{
+#ifndef _DEBUG
 		std::map<std::wstring, std::wstring> parameters;
 
 		std::wstring responseBody;
@@ -143,6 +144,7 @@ void PlatformBark(const std::string& loopName)
 				console::Printf("server", "Uploaded a live hang dump to the CitizenFX crash reporting service. The report ID is %s.\n", ToNarrow(responseBody));
 			}
 		}		
+#endif
 	}
 }
 

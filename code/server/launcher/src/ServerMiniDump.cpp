@@ -138,13 +138,13 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 			}
 		}
 
-		std::map<std::wstring, std::wstring> parameters;
+		[[maybe_unused]] std::map<std::wstring, std::wstring> parameters;
 		parameters[L"sentry[release]"] = ToWide(GIT_TAG);
 
-		std::wstring responseBody;
-		int responseCode;
+		[[maybe_unused]] std::wstring responseBody;
+		[[maybe_unused]] int responseCode;
 
-		std::map<std::wstring, std::wstring> files;
+		[[maybe_unused]] std::map<std::wstring, std::wstring> files;
 		files[L"upload_file_minidump"] = dumpPath;
 
 		{
@@ -180,6 +180,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 			printf("In addition to this, a full dump file has been generated at %s.\n\n", ToNarrow(full_dump_path).c_str());
 		}
 
+#ifndef _DEBUG
 		bool uploadCrashes = true;
 
 		if (uploadCrashes && HTTPUpload::SendMultipartPostRequest(L"https://sentry.fivem.net/api/3/minidump/?sentry_key=15f0687e23d74681b5c1f80a0f3a00ed", parameters, files, nullptr, &responseBody, &responseCode))
@@ -190,6 +191,7 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 		{
 			printf("Failed to automatically report the crash. Please submit the crash dump to the project developers.\n");
 		}
+#endif
 
 		printf("=================================================================\n");
 
@@ -346,6 +348,9 @@ void InitializeDumpServer(int serverFd, int pipeFd)
 
 	CrashGenerationServer::OnClientDumpRequestCallback dumpCallback = [](void*, const ClientInfo* client, const std::string* dumpPath)
 	{
+		printf("\n\n=================================================================\n\x1b[31mFXServer crashed.\x1b[0m\nA dump can be found at %s.\n", dumpPath->c_str());
+
+#ifndef _DEBUG
 		std::map<std::string, std::string> parameters;
 		parameters["sentry[release]"] = GIT_TAG;
 
@@ -354,8 +359,6 @@ void InitializeDumpServer(int serverFd, int pipeFd)
 
 		std::map<std::string, std::string> files;
 		files["upload_file_minidump"] = *dumpPath;
-
-		printf("\n\n=================================================================\n\x1b[31mFXServer crashed.\x1b[0m\nA dump can be found at %s.\n", dumpPath->c_str());
 
 		bool uploadCrashes = true;
 		std::string ed;
@@ -368,6 +371,7 @@ void InitializeDumpServer(int serverFd, int pipeFd)
 		{
 			printf("Failed to automatically report the crash. Please submit the crash dump to the project developers.\n");
 		}
+#endif
 
 		printf("=================================================================\n");
 	};
