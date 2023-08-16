@@ -1,0 +1,73 @@
+// Copyright 2016 The Chromium Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable:4065)
+#endif
+
+#include "{{module.path}}-shared.h"
+
+#include <utility>
+
+#include "base/logging.h"
+#include "base/stl_util.h"  // for base::size()
+#include "mojo/public/cpp/bindings/lib/validate_params.h"
+#include "mojo/public/cpp/bindings/lib/validation_context.h"
+#include "mojo/public/cpp/bindings/lib/validation_errors.h"
+#include "mojo/public/cpp/bindings/lib/validation_util.h"
+
+#include "{{module.path}}-params-data.h"
+
+{%- for header in extra_traits_headers %}
+#include "{{header}}"
+{%- endfor %}
+
+{%- for namespace in namespaces_as_array %}
+namespace {{namespace}} {
+{%- endfor %}
+
+{#--- Enums #}
+{%- from "enum_macros.tmpl" import enum_stream %}
+{%- for enum in all_enums %}
+{%-   if not enum|is_native_only_kind %}
+{{enum_stream(enum)}}
+{%-   endif %}
+{%- endfor %}
+
+namespace internal {
+
+{#--- Union definitions #}
+{%- for union in unions %}
+{%    include "union_definition.tmpl" %}
+{%- endfor %}
+
+{#--- Struct definitions #}
+{%- for struct in structs %}
+{%-   if not struct|is_native_only_kind %}
+{%      include "struct_definition.tmpl" %}
+{%-   endif %}
+{%- endfor %}
+
+{#--- Interface parameter definitions #}
+{%- for interface in interfaces %}
+{%-   for method in interface.methods %}
+{%-     set struct = method.param_struct %}
+{%      include "struct_definition.tmpl" %}
+{%-     if method.response_parameters != None %}
+{%-       set struct = method.response_param_struct %}
+{%        include "struct_definition.tmpl" %}
+{%-     endif %}
+{%-   endfor %}
+{%- endfor %}
+
+}  // namespace internal
+
+{%- for namespace in namespaces_as_array|reverse %}
+}  // namespace {{namespace}}
+{%- endfor %}
+
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif

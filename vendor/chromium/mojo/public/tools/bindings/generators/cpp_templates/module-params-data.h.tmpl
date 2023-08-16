@@ -1,0 +1,80 @@
+// Copyright 2019 The Chromium Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+{%- set header_guard = "%s_PARAMS_DATA_H_"|format(
+        module.path|upper|replace("/","_")|replace(".","_")|
+            replace("-", "_")) %}
+
+#ifndef {{header_guard}}
+#define {{header_guard}}
+
+#include "base/logging.h"
+#include "base/macros.h"
+#include "mojo/public/cpp/bindings/lib/bindings_internal.h"
+#include "mojo/public/cpp/bindings/lib/buffer.h"
+#include "mojo/public/cpp/bindings/lib/validation_context.h"
+
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-private-field"
+#elif defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable:4056)
+#pragma warning(disable:4065)
+#pragma warning(disable:4756)
+#endif
+
+{%- for namespace in namespaces_as_array %}
+namespace {{namespace}} {
+{%- endfor %}
+namespace internal {
+
+{#--- Interface parameter definitions #}
+{%- for interface in interfaces %}
+{%-   for method in interface.methods %}
+{%-     set struct = method.param_struct %}
+{%      include "struct_declaration.tmpl" %}
+{%-     if method.response_parameters != None %}
+{%-       set struct = method.response_param_struct %}
+{%        include "struct_declaration.tmpl" %}
+{%-     endif %}
+{%-   endfor %}
+{%- endfor %}
+
+}  // namespace internal
+
+{#--- Interface parameter definitions #}
+{%- for interface in interfaces %}
+{%-   for method in interface.methods %}
+{%-     set struct = method.param_struct %}
+{%      include "struct_data_view_declaration.tmpl" %}
+{%-     if method.response_parameters != None %}
+{%-       set struct = method.response_param_struct %}
+{%        include "struct_data_view_declaration.tmpl" %}
+{%-     endif %}
+{%-   endfor %}
+{%- endfor %}
+
+{%- for interface in interfaces %}
+{%-   for method in interface.methods %}
+{%-     set struct = method.param_struct %}
+{%      include "struct_data_view_definition.tmpl" %}
+{%-     if method.response_parameters != None %}
+{%-       set struct = method.response_param_struct %}
+{%        include "struct_data_view_definition.tmpl" %}
+{%-     endif %}
+{%-   endfor %}
+{%- endfor %}
+
+{%- for namespace in namespaces_as_array|reverse %}
+}  // namespace {{namespace}}
+{%- endfor %}
+
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#elif defined(_MSC_VER)
+#pragma warning(pop)
+#endif
+
+#endif  // {{header_guard}}

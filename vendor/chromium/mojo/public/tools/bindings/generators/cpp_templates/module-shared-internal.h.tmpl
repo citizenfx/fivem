@@ -1,0 +1,94 @@
+// Copyright 2016 The Chromium Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+{%- set header_guard = "%s_SHARED_INTERNAL_H_"|format(
+        module.path|upper|replace("/","_")|replace(".","_")|
+            replace("-", "_")) %}
+
+#ifndef {{header_guard}}
+#define {{header_guard}}
+
+#include "mojo/public/cpp/bindings/lib/array_internal.h"
+#include "mojo/public/cpp/bindings/lib/bindings_internal.h"
+#include "mojo/public/cpp/bindings/lib/map_data_internal.h"
+#include "mojo/public/cpp/bindings/lib/buffer.h"
+
+{%- for import in imports %}
+#include "{{import.path}}-shared-internal.h"
+{%- endfor %}
+
+{%- if not disallow_native_types %}
+#include "mojo/public/cpp/bindings/lib/native_enum_data.h"
+#include "mojo/public/interfaces/bindings/native_struct.mojom-shared-internal.h"
+{%- endif %}
+
+{%- if export_header %}
+#include "{{export_header}}"
+{%- endif %}
+
+{% if enable_kythe_annotations -%}
+#ifdef KYTHE_IS_RUNNING
+#pragma kythe_inline_metadata "Metadata comment"
+#endif
+{%- endif %}
+
+namespace mojo {
+namespace internal {
+class ValidationContext;
+}
+}
+
+{%- for namespace in namespaces_as_array %}
+namespace {{namespace}} {
+{%- endfor %}
+namespace internal {
+
+{#--- Internal forward declarations #}
+{%- for struct in structs %}
+{%-   if struct|is_native_only_kind %}
+using {{struct.name}}_Data = mojo::native::internal::NativeStruct_Data;
+{%-   else %}
+class {{struct.name}}_Data;
+{%-   endif %}
+{%- endfor %}
+
+{%- for union in unions %}
+class {{union.name}}_Data;
+{%- endfor %}
+
+{#--- Enums #}
+{%- from "enum_macros.tmpl" import enum_data_decl -%}
+{%- for enum in all_enums %}
+{%-   if enum|is_native_only_kind %}
+using {{enum|get_name_for_kind(flatten_nested_kind=True)}}_Data =
+    mojo::internal::NativeEnum_Data;
+{%-   else %}
+{{enum_data_decl(enum)}}
+{%-   endif %}
+{%- endfor %}
+
+#pragma pack(push, 1)
+
+{#--- Unions must be declared first because they can be members of structs #}
+{#--- Union class declarations #}
+{%- for union in unions %}
+{%    include "union_declaration.tmpl" %}
+{%- endfor %}
+
+{#--- Struct class declarations #}
+{%- for struct in structs %}
+{%-   if not struct|is_native_only_kind %}
+{%      include "struct_declaration.tmpl" %}
+{%      include "struct_unserialized_message_context.tmpl" %}
+{%-   endif %}
+{%- endfor %}
+
+#pragma pack(pop)
+
+}  // namespace internal
+{%- for namespace in namespaces_as_array|reverse %}
+}  // namespace {{namespace}}
+{%- endfor %}
+
+#endif  // {{header_guard}}

@@ -1,0 +1,41 @@
+template <typename UnionPtrType>
+{{union.name}}Ptr {{union.name}}::Clone() const {
+  // Use UnionPtrType to prevent the compiler from trying to compile this
+  // without being asked.
+  UnionPtrType rv(New());
+  switch (tag_) {
+{%- for field in union.fields %}
+    case Tag::{{field.name|upper}}:
+{%-   if field.kind|is_object_kind or
+         field.kind|is_any_handle_or_interface_kind %}
+      rv->set_{{field.name}}(mojo::Clone(*data_.{{field.name}}));
+{%-   else %}
+      rv->set_{{field.name}}(mojo::Clone(data_.{{field.name}}));
+{%-   endif %}
+      break;
+{%- endfor %}
+  }
+  return rv;
+}
+
+template <typename T,
+          typename std::enable_if<std::is_same<
+              T, {{union.name}}>::value>::type*>
+bool {{union.name}}::Equals(const T& other) const {
+  if (tag_ != other.which())
+    return false;
+
+  switch (tag_) {
+{%- for field in union.fields %}
+    case Tag::{{field.name|upper}}:
+{%-   if field.kind|is_object_kind or
+         field.kind|is_any_handle_or_interface_kind %}
+      return mojo::Equals(*(data_.{{field.name}}), *(other.data_.{{field.name}}));
+{%-   else %}
+      return mojo::Equals(data_.{{field.name}}, other.data_.{{field.name}});
+{%-   endif %}
+{%- endfor %}
+  }
+
+  return false;
+}

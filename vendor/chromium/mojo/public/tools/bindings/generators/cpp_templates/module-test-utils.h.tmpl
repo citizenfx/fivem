@@ -1,0 +1,79 @@
+// Copyright 2019 The Chromium Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+{%- if variant -%}
+{%-   set variant_path = "%s-%s"|format(module.path, variant) -%}
+{%- else -%}
+{%-   set variant_path = module.path -%}
+{%- endif -%}
+
+{%- set header_guard = "%s_TEST_UTILS_H_"|format(
+        variant_path|upper|replace("/","_")|replace(".","_")|
+            replace("-", "_")) %}
+
+
+{%- macro namespace_begin() %}
+{%-   for namespace in namespaces_as_array %}
+namespace {{namespace}} {
+{%-   endfor %}
+{%-   if variant %}
+namespace {{variant}} {
+{%-   endif %}
+{%- endmacro %}
+
+{%- macro namespace_end() %}
+{%-   if variant %}
+}  // namespace {{variant}}
+{%-   endif %}
+{%-   for namespace in namespaces_as_array|reverse %}
+}  // namespace {{namespace}}
+{%-   endfor %}
+{%- endmacro %}
+
+#ifndef {{header_guard}}
+#define {{header_guard}}
+
+#include "{{variant_path}}.h"
+
+{%- if export_header %}
+#include "{{export_header}}"
+{%- endif %}
+
+{{namespace_begin()}}
+
+{%- import "interface_macros.tmpl" as interface_macros %}
+
+{%  for interface in interfaces %}
+
+{#--- Testing interceptor #}
+class {{export_attribute}} {{interface.name}}InterceptorForTesting : public {{interface.name}} {
+  virtual {{interface.name}}* GetForwardingInterface() = 0;
+
+{%- for method in interface.methods %}
+  void {{method.name}}({{interface_macros.declare_request_params("", method)}}) override;
+{%- endfor %}
+};
+
+{#--- Async wait helper for testing #}
+class {{export_attribute}} {{interface.name}}AsyncWaiter {
+ public:
+  explicit {{interface.name}}AsyncWaiter({{interface.name}}* proxy);
+  ~{{interface.name}}AsyncWaiter();
+
+{%- for method in interface.methods if method.response_parameters != None %}
+  void {{method.name}}(
+      {{interface_macros.declare_sync_method_params("", method)}});
+{%- endfor %}
+
+ private:
+  {{interface.name}}* const proxy_;
+
+  DISALLOW_COPY_AND_ASSIGN({{interface.name}}AsyncWaiter);
+};
+
+{%  endfor %}
+
+{{namespace_end()}}
+
+#endif  // {{header_guard}}
