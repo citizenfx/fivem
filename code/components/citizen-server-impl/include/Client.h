@@ -190,6 +190,12 @@ namespace fx
 		}
 
 		void SetTcpEndPoint(const std::string& value);
+		inline const std::string& GetTcpEndPoint1()
+		{
+			return "123";
+		}
+
+		void SetTcpEndPoint1(const std::string& value);
 
 		inline const std::string& GetConnectionToken()
 		{

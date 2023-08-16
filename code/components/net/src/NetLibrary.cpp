@@ -1678,6 +1678,9 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 	continueRequest = [=]()
 	{
+		// check if authenticated users
+		postMap["myToken"] = "1234";
+
 		auto steamComponent = GetSteam();
 
 		if (steamComponent && requestSteamTicket == "on")

@@ -272,7 +272,7 @@
     "#Error_Cfx": "Cfx.re",
 
     "#Home_LocalServer": "Local server",
-    "#Home_LocalServer_Title": "Connect to {{name}} on LAN",
+    "#Home_LocalServer_Title": "Connect to {{name}} on LAN 11111",
 
     "#Home_AllList_Link": "Browse {{count}} servers",
     "#Home_AllList_Fallback": "Browse all servers",

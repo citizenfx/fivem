@@ -42,6 +42,7 @@ import { registerHomeScreenServerList } from './services/servers/list/HomeScreen
 import { registerSentryService } from './services/sentry/sentry.service';
 import { SentryLogProvider } from './services/sentry/sentryLogProvider';
 import { animationFrame, idleCallback, timeout } from 'cfx/utils/async';
+import { LoginPage } from './pages/LoginPage/LoginPage';
 
 startBrowserApp({
   defineServices(container) {
@@ -114,6 +115,7 @@ startBrowserApp({
   render: () => (
     <HashRouter>
       <Routes>
+        <Route index element={<LoginPage />} />
         <Route path="" element={<MpMenuApp />}>
           <Route index element={<HomePage />} />
 

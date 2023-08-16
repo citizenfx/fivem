@@ -1,0 +1,24 @@
+@use "ui";
+
+$fg: #fffff0;
+$bg: #205a53;
+
+.cfxui-theme-gta5-devoted {
+  @include ui.define-main-colors($bg, $fg, (
+    'primary': darken(#ffd98d, 10%)
+  ));
+
+  .color-1 { color: lighten(#F44336, 30%);	}
+	.color-2 { color: lighten(#4CAF50, 30%);	}
+	.color-3 { color: lighten(#FFEB3B, 30%);	}
+	.color-4 { color: lighten(#42A5F5, 30%);	}
+	.color-5 { color: lighten(#03A9F4, 30%);	}
+	.color-6 { color: lighten(#9C27B0, 30%);	}
+	.color-8 { color: lighten(#FF5722, 30%);	}
+	.color-9 { color: lighten(#9E9E9E, 30%);	}
+
+  // Invert black indicators for date/time inputs
+  ::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+  }
+}

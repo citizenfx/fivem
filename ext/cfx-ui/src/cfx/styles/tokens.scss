@@ -8,6 +8,8 @@
   @include ui.def('checkered-pattern', url(assets/images/checkered_dark.svg));
   // /Asset images
 
+  @include ui.def('asset-image-login-form', url(assets/images/bg-login-form.jpg));
+
 
   @include ui.define-color-token('shadow-small', rgba(0, 0, 0, .5));
   @include ui.def('shadow-small', 0 2.5px 5px ui.color-token('shadow-small'));

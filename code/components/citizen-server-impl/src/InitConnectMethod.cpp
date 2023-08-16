@@ -161,7 +161,7 @@ static bool VerifyTicket(const std::string& guid, const std::string& ticket, std
 
 		return false;
 	}
-
+	
 	Botan::SHA_160 hashFunction;
 	auto result = hashFunction.process(&ticketData[4], length);
 
@@ -506,7 +506,7 @@ static InitFunction initFunction([]()
 
 			TicketData ticketData;
 
-			if (!lanVar->GetValue())
+			/*  if (!lanVar->GetValue())
 			{
 				auto ticketIt = postMap.find("cfxTicket");
 
@@ -541,7 +541,7 @@ static InitFunction initFunction([]()
 					sendError(fmt::sprintf("Parsing error while verifying ticket. %s", e.what()));
 					return;
 				}
-			}
+			} */
 
 			std::string token = boost::uuids::to_string(boost::uuids::basic_random_generator<boost::random_device>()());
 
@@ -622,6 +622,7 @@ static InitFunction initFunction([]()
 				gameNameMatch = true;
 			}
 
+			gameNameMatch = true;
 			if (!gameNameMatch)
 			{
 				sendError("CitizenFX ticket authorization failed. (3)");

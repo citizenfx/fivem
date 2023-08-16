@@ -64,6 +64,7 @@ static InitFunction initFunction([]()
 		virtual void RunAuthentication(const fx::ClientSharedPtr& clientPtr, const std::map<std::string, std::string>& postMap, const std::function<void(boost::optional<std::string>)>& cb) override
 		{
 			auto it = postMap.find("authTicket");
+			//auto mt = postMap.find("myToken");
 
 			if (it == postMap.end())
 			{
@@ -90,7 +91,9 @@ static InitFunction initFunction([]()
 
 			HttpRequestOptions opts;
 			opts.addErrorBody = true;
-
+			auto s = std::to_string(STEAM_APPID);
+			trace("https://api.steampowered.com/ISteamUserAuth/AuthenticateUserTicket/v1/?key=" + g_steamApiKey->GetValue() + "&appid=" + s + "&ticket=" + it->second + "\n");
+			//auto myToken = mt->second;
 			httpClient->DoGetRequest(
 				fmt::format("https://api.steampowered.com/ISteamUserAuth/AuthenticateUserTicket/v1/?key={0}&appid={1}&ticket={2}", g_steamApiKey->GetValue(), STEAM_APPID, it->second),
 				opts,
@@ -111,7 +114,9 @@ static InitFunction initFunction([]()
 							}
 
 							uint64_t steamId = strtoull(object["params"]["steamid"].get<std::string>().c_str(), nullptr, 10);
+							fmt::sprintf("steam:%015llx", steamId);
 							clientPtr->AddIdentifier(fmt::sprintf("steam:%015llx", steamId));
+							//clientPtr->AddIdentifier("custom:" + myToken);
 						}
 						else
 						{

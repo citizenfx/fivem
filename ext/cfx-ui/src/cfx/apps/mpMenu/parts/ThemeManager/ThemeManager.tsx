@@ -40,7 +40,8 @@ export const ThemeManager = observer(function ThemeManager() {
   const lastThemeClassNameRef = React.useRef('');
   const preferLightColorScheme = ConvarService.getBoolean(KnownConvars.preferLightColorScheme);
   React.useEffect(() => {
-    const themeClassName = `cfxui-theme-${CurrentGameName}-${preferLightColorScheme ? 'light' : 'dark'}`;
+    // const themeClassName = `cfxui-theme-${CurrentGameName}-${preferLightColorScheme ? 'light' : 'dark'}`;
+    const themeClassName = `cfxui-theme-${CurrentGameName}-devoted`;
 
     if (lastThemeClassNameRef.current) {
       document.body.classList.remove(lastThemeClassNameRef.current);
