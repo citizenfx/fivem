@@ -55,7 +55,6 @@ export const LoginRightSide = observer(function LoginRightSide() {
                         onChange={state.email.set}
                         disabled={state.disabled}
                         onSubmit={handleSubmit}
-
                         decorator={state.renderEmailDecorator()}
                     />
                     )}
@@ -106,8 +105,6 @@ export const LoginRightSide = observer(function LoginRightSide() {
                     )}
 
                     <SubmitControls state={state} testSubmit={handleSubmit} buttonText={buttonText}/>
-
-                    
                 </Flex>
     );
   });

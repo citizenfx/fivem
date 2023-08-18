@@ -194,3 +194,5 @@ privates_config.lua
 
 # python files
 *.pyc
+
+vendor/

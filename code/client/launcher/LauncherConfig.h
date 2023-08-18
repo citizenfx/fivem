@@ -22,7 +22,7 @@
 #define CONTENT_NAME "paynefx"
 #define GAME_EXECUTABLE L"MaxPayne3.exe"
 #elif defined(GTA_FIVE)
-#define PRODUCT_NAME L"FiveM"
+#define PRODUCT_NAME L"Devoted Studios"
 #define GAME_EXECUTABLE L"GTA5.exe"
 #define CONTENT_NAME "fivereborn"
 #elif defined(IS_RDR3)

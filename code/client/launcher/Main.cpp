@@ -798,7 +798,7 @@ int RealMain()
 			static HostSharedData<CfxState> initState("CfxInitState");
 			static HostSharedData<UpdaterUIState> uuiState("CfxUUIState");
 
-#if !defined(_DEBUG) && defined(LAUNCHER_PERSONALITY_MAIN)
+#if defined(_DEBUG) && defined(LAUNCHER_PERSONALITY_MAIN)
 			auto runUUILoop = [minModeManifest](bool firstLoop)
 			{
 				static constexpr const uint32_t loadWait = 5000;
@@ -811,7 +811,7 @@ int RealMain()
 					minModeManifest->Get("productName", ToNarrow(PRODUCT_NAME)));
 				std::string firstSubtitle = (wcsstr(GetCommandLineW(), L"-switchcl"))
 					? gettext("Transitioning to another build...") 
-					: minModeManifest->Get("productSubtitle", gettext("We're getting there."));
+					: minModeManifest->Get("productSubtitle", gettext("Enjoy your roleplay moments with Devoted Studio1."));
 
 				std::string lastTitle = firstTitle;
 				std::string lastSubtitle = firstSubtitle;

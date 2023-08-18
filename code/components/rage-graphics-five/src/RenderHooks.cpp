@@ -1730,7 +1730,7 @@ static HWND WINAPI HookCreateWindowExW(_In_ DWORD dwExStyle, _In_opt_ LPCWSTR lp
 	static HostSharedData<CfxState> initState("CfxInitState");
 	HWND w;
 
-	auto wndName = (CfxIsSinglePlayer()) ? L"Grand Theft Auto V (FiveM SP)" : L"FiveM® by Cfx.re";
+	auto wndName = (CfxIsSinglePlayer()) ? L"Grand Theft Auto V (FiveM SP)" : L"Devoted Studios";
 
 	if (initState->isReverseGame)
 	{

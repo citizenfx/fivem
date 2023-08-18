@@ -371,7 +371,7 @@ void NetLibrary::ProcessOOB(const NetAddress& from, const char* oob, size_t leng
 #if defined(GTA_FIVE) || defined(GTA_NY)
 				SetWindowText(CoreGetGameWindow(), va(
 #ifdef GTA_FIVE
-					L"FiveM® by Cfx.re"
+					L"Devoted Studios"
 #elif defined(GTA_NY)
 					L"LibertyM™ by Cfx.re"
 #endif
