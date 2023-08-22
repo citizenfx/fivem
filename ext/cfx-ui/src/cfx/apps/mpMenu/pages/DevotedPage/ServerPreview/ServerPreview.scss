@@ -1,0 +1,23 @@
+.server-preview {
+    width: 50%;
+
+    .swiper-container {
+        height: 52rem;
+        padding: 2rem 0;
+        position: relative;
+    }
+
+    .swiper-slide {
+        width: 27rem;
+        height: 42rem;
+        position: relative;
+
+        img {
+            width: 100%;
+            height: 100%;
+            // border-radius: 10px;
+            clip-path: polygon(25% 0%, 100% 0%, 75% 100%, 0% 100%);
+            object-fit: cover;
+        }
+    }
+}

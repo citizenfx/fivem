@@ -42,7 +42,8 @@
     "react-icons": "^4.4.0",
     "react-router-dom": "^6.4.3",
     "react-window": "^1.8.8",
-    "reflect-metadata": "^0.1.13"
+    "reflect-metadata": "^0.1.13",
+    "swiper": "^9.4.1"
   },
   "devDependencies": {
     "@pmmmwh/react-refresh-webpack-plugin": "^0.5.5",
