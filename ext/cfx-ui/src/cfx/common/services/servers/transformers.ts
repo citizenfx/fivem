@@ -5,6 +5,7 @@ import {
   filterServerProjectName,
   filterServerTag,
   hasPrivateConnectEndpoint,
+  normalizeSearchString,
 } from "cfx/base/serverUtils";
 import { arrayAt } from "cfx/utils/array";
 import { isFalseString } from "cfx/utils/string";
@@ -163,7 +164,7 @@ function getSearchableName(server: IServerView): string {
     ? `${server.projectName} ${server.projectDescription}`
     : server.projectName;
 
-  return name.replace(/\^[0-9]/g, '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return normalizeSearchString(name.replace(/\^[0-9]/g, ''));
 }
 
 function getSortableName(searchableName: string): string {

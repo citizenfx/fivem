@@ -121,6 +121,10 @@ export function filterServerProjectDesc(a: string | undefined | null): string {
   ))).replace(/(\s|\u2800)+/gu, ' ').normalize('NFKD');
 }
 
+export function normalizeSearchString(input: string): string {
+  return input.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
 export function filterServerTag(tag: string) {
   if (!tag) {
     return false;

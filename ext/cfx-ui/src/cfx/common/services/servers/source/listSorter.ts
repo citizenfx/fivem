@@ -1,4 +1,4 @@
-import { shouldPrioritizePinnedServers, getPrioritizedServerName } from "cfx/base/serverUtils";
+import { shouldPrioritizePinnedServers, getPrioritizedServerName, normalizeSearchString } from "cfx/base/serverUtils";
 import { IServerListConfig, ServerListSortDir, ServersListSortBy } from "../lists/types";
 import { IPinnedServersConfig } from "../types";
 import { IListableServerView } from "./types";
@@ -109,7 +109,7 @@ export const sortFilteredList = (servers: Record<string, IListableServerView>, s
   const searchName = getPrioritizedServerName(config);
 
   if (searchName) {
-    sorters.push(sortByServerName.bind(null, servers, searchName.value.toLowerCase()));
+    sorters.push(sortByServerName.bind(null, servers, normalizeSearchString(searchName.value.toLowerCase())));
   }
 
   if (sorters.length === 0) {

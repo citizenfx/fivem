@@ -3,6 +3,7 @@ import { IListableServerView } from "./types";
 import { IServerListConfig } from "../lists/types";
 import { ISearchTerm } from "cfx/base/searchTermsParser";
 import { arrayAll, arraySome } from "cfx/utils/array";
+import { normalizeSearchString } from "cfx/base/serverUtils";
 
 type IFilter = (server: IListableServerView) => boolean;
 
@@ -93,9 +94,9 @@ function compileEmptyFullFilters(filters: IFilter[], config: IServerListConfig) 
 
 function compileTermValueMatcher(term: ISearchTerm): (against: string) => boolean {
   if (!term.regexp) {
-    const lowerCaseValue = term.value.toLowerCase();
+    const normalizedTermValue = normalizeSearchString(term.value.toLowerCase());
 
-    return (against) => against.toLowerCase().includes(lowerCaseValue);
+    return (against) => against.toLowerCase().includes(normalizedTermValue);
   }
 
   const valueRegExp = new RegExp(term.value, 'i');
@@ -117,7 +118,7 @@ function compileSearchTermsFilters(filters: IFilter[], config: IServerListConfig
 
     const valueMatcher = compileTermValueMatcher(term);
 
-    let filter: IFilter | void;
+    let filter: IFilter | undefined = undefined;
 
     switch (type) {
       case 'name': {
