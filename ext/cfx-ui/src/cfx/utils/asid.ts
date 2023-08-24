@@ -1,8 +1,7 @@
-import { fastRandomId } from "./random";
+import { typeid } from 'typeid-js';
 
 module LS_KEY {
   export const ASID = 'anonymousStableIdentifier';
-  export const SentryUserId = 'sentryUserId';
 }
 
 /**
@@ -14,19 +13,7 @@ export const ASID = (() => {
   try {
     const existingASID = window.localStorage.getItem(LS_KEY.ASID);
     if (existingASID) {
-      // Clean up the sentry user id if it still exists
-      window.localStorage.removeItem(LS_KEY.SentryUserId);
-
       return existingASID;
-    }
-
-    // May be migrate from sentry user id as it is literally the same as ASID
-    const sentryUserId = window.localStorage.getItem(LS_KEY.SentryUserId);
-    if (sentryUserId) {
-      window.localStorage.setItem(LS_KEY.ASID, sentryUserId);
-      window.localStorage.removeItem(LS_KEY.SentryUserId);
-
-      return sentryUserId;
     }
 
     const newASID = generateNewASID();
@@ -43,6 +30,10 @@ export const ASID = (() => {
   }
 })();
 
+if (__CFXUI_DEV__) {
+  console.log('Current ASID:', ASID);
+}
+
 function generateNewASID() {
-  return `${fastRandomId()}-${fastRandomId()}`;
+  return typeid('asid').toString();
 }

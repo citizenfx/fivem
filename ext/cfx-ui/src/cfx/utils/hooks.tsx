@@ -64,7 +64,7 @@ export function useAnimationFrameFired(): boolean {
   return fired;
 }
 
-export function useTimeoutFlag(time: number): boolean {
+export function useTimeoutFlag(timeoutMS: number): boolean {
   const [timedout, setTimedout] = React.useState(false);
 
   const startedAtRef = React.useRef(0);
@@ -82,17 +82,17 @@ export function useTimeoutFlag(time: number): boolean {
       timer = setTimeout(() => {
         timer = undefined;
         setTimedout(true);
-      }, time);
+      }, timeoutMS);
     } else {
       const timeSpent = Date.now() - startedAtRef.current;
 
-      if (timeSpent >= time) {
+      if (timeSpent >= timeoutMS) {
         setTimedout(true);
       } else {
         timer = setTimeout(() => {
           timer = undefined;
           setTimedout(true);
-        }, time - timeSpent);
+        }, timeoutMS - timeSpent);
       }
     }
 
@@ -101,7 +101,7 @@ export function useTimeoutFlag(time: number): boolean {
         clearTimeout(timer);
       }
     };
-  }, [time]);
+  }, [timeoutMS]);
 
   return timedout;
 }

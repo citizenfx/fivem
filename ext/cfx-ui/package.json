@@ -35,6 +35,7 @@
     "mobx-react-lite": "^3.4.0",
     "mobx-utils": "^6.0.5",
     "node-forge": "^1.2.1",
+    "pdfjs-dist": "3.2.146",
     "protobufjs": "^6.11.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -42,7 +43,8 @@
     "react-icons": "^4.4.0",
     "react-router-dom": "^6.4.3",
     "react-window": "^1.8.8",
-    "reflect-metadata": "^0.1.13"
+    "reflect-metadata": "^0.1.13",
+    "typeid-js": "^0.3.0"
   },
   "devDependencies": {
     "@pmmmwh/react-refresh-webpack-plugin": "^0.5.5",

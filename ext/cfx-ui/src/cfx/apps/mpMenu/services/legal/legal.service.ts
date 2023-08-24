@@ -16,15 +16,17 @@ export function useLegalService() {
 
 const LS_KEY = 'legalAcceptanceData';
 
-type TOSVersionHash = number;
-type AcceptanceTimestamp = number;
-
-type LegalAcceptanceData = [AcceptanceTimestamp, TOSVersionHash];
+type LegalAcceptanceData = {
+  tos: {
+    acceptedAtTimestamp: number,
+    versionHash: number,
+  },
+};
 
 @injectable()
 export class LegalService {
-  readonly CURRENT_TOS_VERSION = '2020-09-06';
-  readonly TOS_URL = 'https://runtime.fivem.net/fivem-service-agreement-4.pdf';
+  readonly CURRENT_TOS_VERSION = 'September 12, 2023';
+  readonly TOS_URL = 'https://fivem.net/terms';
 
   private readonly currentTOSVersionHash = joaat(`${ASID}.${this.CURRENT_TOS_VERSION}`);
 
@@ -40,24 +42,32 @@ export class LegalService {
 
   public readonly accept = () => {
     try {
-      const data: LegalAcceptanceData = [
-        Date.now(),
-        this.currentTOSVersionHash,
-      ];
+      const data: LegalAcceptanceData = {
+        tos: {
+          acceptedAtTimestamp: Date.now(),
+          versionHash: this.currentTOSVersionHash,
+        }
+      };
 
-      window.localStorage.setItem(LS_KEY, JSON.stringify(data));
-
-      this.hasUserAccepted = true;
+      window.localStorage.setItem(LS_KEY, btoa(JSON.stringify(data)));
     } catch (e) {
       // no-op
+    } finally {
+      // Set as accept for now anyway so we don't get stuck
+      // this effectively means that we'll present user with ToS accepting UI on the next launch
+      this.hasUserAccepted = true;
     }
   };
 
   private reviveHasUserAccepted(): boolean {
     try {
-      const [_timestamp, acceptedTOSVersionHash] = JSON.parse(window.localStorage.getItem(LS_KEY) || '[]') as LegalAcceptanceData;
+      const legalAcceptanceData: LegalAcceptanceData = JSON.parse(atob(window.localStorage.getItem(LS_KEY)!));
 
-      return acceptedTOSVersionHash === this.currentTOSVersionHash;
+      if (legalAcceptanceData.tos.acceptedAtTimestamp <= 0) {
+        return false;
+      }
+
+      return legalAcceptanceData.tos.versionHash === this.currentTOSVersionHash;
     } catch (e) {
       return false;
     }

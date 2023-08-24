@@ -1,16 +1,34 @@
+import React from "react";
 import { observer } from "mobx-react-lite";
 import { mpMenu } from "../../mpMenu";
 import { Pad } from "cfx/ui/Layout/Pad/Pad";
 import { Flex } from "cfx/ui/Layout/Flex/Flex";
-import { TextBlock } from "cfx/ui/Text/Text";
+import { Text, TextBlock } from "cfx/ui/Text/Text";
 import { FlexRestricter } from "cfx/ui/Layout/Flex/FlexRestricter";
 import { Button } from "cfx/ui/Button/Button";
 import { Icons } from "cfx/ui/Icons";
 import { Title } from "cfx/ui/Title/Title";
 import { Icon } from "cfx/ui/Icon/Icon";
+import { Indicator } from "cfx/ui/Indicator/Indicator";
 import { CurrentGameBrand } from "cfx/base/gameRuntime";
 import { useLegalService } from "cfx/apps/mpMenu/services/legal/legal.service";
 import s from './LegalAccepter.module.scss';
+
+const PDFRenderer = React.lazy(async () => ({
+  default: (await import('./PDFRenderer')).PDFRenderer,
+}));
+
+function PDFRendererFallback() {
+  return (
+    <Flex fullWidth fullHeight centered vertical>
+      <Text>
+        Loading the document
+      </Text>
+
+      <Indicator />
+    </Flex>
+  );
+}
 
 export const LegalAccepter = observer(function TOSAccepter() {
   const legalService = useLegalService();
@@ -40,10 +58,9 @@ export const LegalAccepter = observer(function TOSAccepter() {
         </Pad>
 
         <FlexRestricter vertical>
-          <iframe
-            src={`${legalService.TOS_URL}#toolbar=0&view=FitH`}
-            className={s.iframe}
-          ></iframe>
+          <React.Suspense fallback={<PDFRendererFallback />}>
+            <PDFRenderer src={legalService.TOS_URL} />
+          </React.Suspense>
         </FlexRestricter>
 
         <Pad size="large">
@@ -54,7 +71,7 @@ export const LegalAccepter = observer(function TOSAccepter() {
 
             <Flex vertical gap="small">
               <TextBlock opacity="75">
-                Last modified: {legalService.CURRENT_TOS_VERSION}
+                Last updated: <Text weight="bold" opacity="75">{legalService.CURRENT_TOS_VERSION}</Text>
               </TextBlock>
 
               <TextBlock typographic opacity="75">
