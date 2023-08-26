@@ -20,6 +20,8 @@
 #include <VFSManager.h>
 #include <boost/algorithm/string.hpp>
 
+#include "atArray.h"
+
 void DLL_IMPORT CfxCollection_AddStreamingFileByTag(const std::string& tag, const std::string& fileName, rage::ResourceFlags flags);
 
 namespace streaming
@@ -30,6 +32,7 @@ void AddDataFileToLoadList(const std::string& type, const std::string& path);
 #include <skyr/url.hpp>
 
 #include "Hooking.h"
+#include "Hooking.Stubs.h"
 
 static std::string g_overrideNextLoadedLevel;
 static std::string g_nextLevelPath;
@@ -186,6 +189,31 @@ static bool DoesLevelHashMatch(void* evaluator, uint32_t* hash)
 	return (!g_wasLastLevelCustom);
 }
 
+struct CDataFileMgr__ContentChangeSet
+{
+	// technically, some atString?
+	atArray<char> changeSetName;
+	// ...
+};
+
+static void (*g_orig_CFileLoader__BuildContentChangeSetActionList)(const CDataFileMgr__ContentChangeSet& changeset, void* outArray, int a3, int a4, int a5);
+
+static void CFileLoader__BuildContentChangeSetActionList_Hook(const CDataFileMgr__ContentChangeSet& changeset, void* outArray, int a3, int a4, int a5)
+{
+	if (g_wasLastLevelCustom)
+	{
+		// CCS_PATCHDAY27_NG_STREAMING_MAP lacks a level condition and breaks custom levels
+		const char* str = (changeset.changeSetName.m_size > 0) ? changeset.changeSetName.m_offset : "";
+
+		if (HashString(str) == HashString("CCS_PATCHDAY27_NG_STREAMING_MAP"))
+		{
+			return;
+		}
+	}
+
+	return g_orig_CFileLoader__BuildContentChangeSetActionList(changeset, outArray, a3, a4, a5);
+}
+
 static HookFunction hookFunction([] ()
 {
 	char* levelCaller = xbr::IsGameBuildOrGreater<2060>() ? hook::pattern("33 D0 81 E2 FF 00 FF 00 33 D1 48").count(1).get(0).get<char>(0x33) : hook::pattern("0F 94 C2 C1 C1 10 33 CB 03 D3 89 0D").count(1).get(0).get<char>(46);
@@ -195,6 +223,8 @@ static HookFunction hookFunction([] ()
 	hook::call(levelCaller, DoLoadLevel);
 
 	hook::set_call(&g_loadLevel, levelByIndex + 0x1F);
+
+	g_orig_CFileLoader__BuildContentChangeSetActionList = hook::trampoline(hook::get_pattern("E8 ? ? ? ? 44 8A A4 24 80 00 00 00 33 ED 8B F5 66", -0x30), CFileLoader__BuildContentChangeSetActionList_Hook);
 
 	// change set applicability
 	hook::jump(hook::pattern("40 8A EA 48 8B F9 B0 01 76 43 E8").count(1).get(0).get<void>(-0x19), IsLevelApplicable);
