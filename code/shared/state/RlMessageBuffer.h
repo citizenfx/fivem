@@ -41,12 +41,15 @@ public:
 	/// <summary>
 	/// rage::datBitBuffer::ReadUnsigned = 0x14128DCF8 (1604)
 	/// </summary>
-	inline bool ReadBitsSingle(void* out, int length)
+	template<typename T>
+	inline bool ReadBitsSingle(T* out, int length)
 	{
 		if (length == 13 && GetLengthHackState())
 		{
 			length = 16;
 		}
+
+		static_assert(std::is_integral_v<T>, "ReadBitsSingle wants an int value");
 
 		if ((m_curBit + length) > m_maxBit)
 		{
@@ -85,7 +88,8 @@ public:
 
 		m_curBit += length;
 
-		*(uint32_t*)out = retval;
+		// hack to prevent an out-of-bounds write of `out`
+		*out = *(T*)&retval;
 
 		return true;
 	}
@@ -344,15 +348,22 @@ public:
 	}
 
 	// copied IDA code, eh
-	inline bool WriteBitsSingle(const void* data, int length)
+	template<typename T>
+	inline bool WriteBitsSingle(const T* data, int length)
 	{
 		if (length == 13 && GetLengthHackState())
 		{
 			length = 16;
 		}
 
+		static_assert(std::is_integral_v<T>, "WriteBitsSingle wants an int value");
+
 		auto a1 = m_data.data();
-		auto a2 = *(uint32_t*)data;
+
+		// hack to prevent an out-of-bounds read of `data` tripping analyzers
+		uint32_t a2 = 0;
+		*(T*)&a2 = *data;
+
 		auto a3 = length;
 		int a4 = m_curBit;
 

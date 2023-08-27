@@ -31,6 +31,8 @@
 
 #include <Error.h>
 
+#include "ErrorFormat.Win32.h"
+
 #include <CfxLocale.h>
 #include <filesystem>
 
@@ -113,16 +115,11 @@ void DLLError(DWORD errorCode, std::string_view dllName)
 	// force verifying game files
 	_wunlink(MakeRelativeCitPath(L"content_index.xml").c_str());
 
-	wchar_t errorText[512];
-	errorText[0] = L'\0';
-
-	FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_MAX_WIDTH_MASK, nullptr, errorCode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), errorText, std::size(errorText), nullptr);
-
 	FatalError("Could not load %s\nThis is usually a sign of an incomplete game installation. Please restart %s and try again.\n\nError 0x%08x - %s",
 		dllName,
 		ToNarrow(PRODUCT_NAME),
 		HRESULT_FROM_WIN32(errorCode),
-		ToNarrow(errorText));
+		win32::FormatMessage(errorCode));
 }
 
 int RealMain()
@@ -138,6 +135,7 @@ int RealMain()
 		wchar_t systemPath[512];
 		GetSystemDirectoryW(systemPath, _countof(systemPath));
 
+		StringCchCat(systemPath, std::size(systemPath), L"\\");
 		StringCchCat(systemPath, std::size(systemPath), dll);
 
 		LoadLibraryW(systemPath);
@@ -164,6 +162,8 @@ int RealMain()
 	}();
 
 #ifdef LAUNCHER_PERSONALITY_MAIN
+	bool devMode = toolMode;
+
 	// toggle wait for switch
 	if (wcsstr(GetCommandLineW(), L"-switchcl"))
 	{
@@ -190,6 +190,9 @@ int RealMain()
 				WaitForSingleObject(hProcess, INFINITE);
 				CloseHandle(hProcess);
 			}
+
+			// switchcl'd client shouldn't check for updates again
+			devMode = true;
 		}
 	}
 #endif
@@ -304,8 +307,6 @@ int RealMain()
 
 	// determine dev mode and do updating
 #ifdef LAUNCHER_PERSONALITY_MAIN
-	bool devMode = toolMode;
-
 	{
 		wchar_t exeName[512];
 		GetModuleFileName(GetModuleHandle(NULL), exeName, std::size(exeName));
@@ -316,8 +317,7 @@ int RealMain()
 		exeBaseName[0] = L'\0';
 		exeBaseName++;
 
-		if (GetFileAttributes(MakeRelativeCitPath(fmt::sprintf(L"%s.formaldev", exeBaseName)).c_str()) != INVALID_FILE_ATTRIBUTES ||
-			GetFileAttributes(fmt::sprintf(L"%s.formaldev", exeNameSaved).c_str()) != INVALID_FILE_ATTRIBUTES)
+		if (GetFileAttributes(MakeRelativeCitPath(fmt::sprintf(L"%s.formaldev", exeBaseName)).c_str()) != INVALID_FILE_ATTRIBUTES || GetFileAttributes(fmt::sprintf(L"%s.formaldev", exeNameSaved).c_str()) != INVALID_FILE_ATTRIBUTES)
 		{
 			devMode = true;
 		}
@@ -375,6 +375,8 @@ int RealMain()
 		wcsncpy(initState->initCommandLine, GetCommandLineW(), std::size(initState->initCommandLine) - 1);
 	}
 
+	std::unique_ptr<TenUIBase> tui;
+
 #ifdef LAUNCHER_PERSONALITY_MAIN
 	// if not the master process, force devmode
 	if (!devMode)
@@ -383,8 +385,6 @@ int RealMain()
 	}
 
 	// init tenUI
-	std::unique_ptr<TenUIBase> tui;
-
 	if (initState->IsMasterProcess())
 	{
 		tui = UI_InitTen();
@@ -443,7 +443,7 @@ int RealMain()
 			auto finalPathLength = wcslen(finalPath);
 			std::vector<std::wstring> toDelete;
 
-			for (DWORD i = 0; ; i++)
+			for (DWORD i = 0;; i++)
 			{
 				DWORD cchValueName = valueName.size();
 				auto error = RegEnumValueW(hKey, i, valueName.data(), &cchValueName, NULL, NULL, NULL, NULL);
@@ -571,10 +571,7 @@ int RealMain()
 		}
 	}
 
-	if (initState->IsMasterProcess())
-	{
-		DoPreLaunchTasks();
-	}
+	DoPreLaunchTasks();
 
 	// make sure the game path exists
 	if (auto gamePathExit = EnsureGamePath(); gamePathExit)
@@ -641,7 +638,7 @@ int RealMain()
 			// rotate any CitizenFX.log files cleanly
 			const int MaxLogs = 10;
 
-			auto makeLogName = [] (int idx)
+			auto makeLogName = [](int idx)
 			{
 				return MakeRelativeCitPath(va(L"CitizenFX.log%s", (idx == 0) ? L"" : va(L".%d", idx)));
 			};
@@ -678,7 +675,8 @@ int RealMain()
 				{
 					MessageBox(nullptr, fmt::sprintf(gettext(L"You are currently using an outdated version of Windows. This may lead to issues using the %s client. Please update to Windows 10 version 1703 (\"Creators Update\") or higher in case you are experiencing "
 															 L"any issues. The game will continue to start now."),
-										PRODUCT_NAME).c_str(),
+										PRODUCT_NAME)
+										.c_str(),
 					PRODUCT_NAME, MB_OK | MB_ICONWARNING);
 				}
 			}
@@ -767,70 +765,26 @@ int RealMain()
 	}
 #endif
 
-#if defined(GTA_FIVE) || defined(IS_RDR3) || defined(GTA_NY)
-#if (defined(LAUNCHER_PERSONALITY_GAME) || defined(LAUNCHER_PERSONALITY_MAIN))
-	// ensure game cache is up-to-date, and obtain redirection metadata from the game cache
-	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
-	auto redirectionData = UpdateGameCache();
-
-	if (redirectionData.empty())
+#if (defined(GTA_FIVE) || defined(IS_RDR3) || defined(GTA_NY)) && (defined(LAUNCHER_PERSONALITY_GAME) || defined(LAUNCHER_PERSONALITY_MAIN))
 	{
-		return 0;
-	}
+		// ensure game cache is up-to-date, and obtain redirection metadata from the game cache
+		auto redirectionData = UpdateGameCache();
 
-	g_redirectionData = redirectionData;
-
-#if !defined(IS_RDR3)
-#ifdef GTA_FIVE
-	gameExecutable = converter.from_bytes(redirectionData["GTA5.exe"]);
-#endif
-
-	{
-		DWORD versionInfoSize = GetFileVersionInfoSize(gameExecutable.c_str(), nullptr);
-
-		if (versionInfoSize)
+		if (redirectionData.empty())
 		{
-			std::vector<uint8_t> versionInfo(versionInfoSize);
-
-			if (GetFileVersionInfo(gameExecutable.c_str(), 0, versionInfo.size(), &versionInfo[0]))
-			{
-				void* fixedInfoBuffer;
-				UINT fixedInfoSize;
-
-				VerQueryValue(&versionInfo[0], L"\\", &fixedInfoBuffer, &fixedInfoSize);
-
-				VS_FIXEDFILEINFO* fixedInfo = reinterpret_cast<VS_FIXEDFILEINFO*>(fixedInfoBuffer);
-
-#if defined(GTA_FIVE)
-				auto expectedVersion = xbr::GetGameBuild();
-
-				if ((fixedInfo->dwFileVersionLS >> 16) != expectedVersion)
-#else
-				auto expectedVersion = 43;
-
-				if ((fixedInfo->dwFileVersionLS & 0xFFFF) != expectedVersion)
-#endif
-				{
-					MessageBox(nullptr, va(L"The found game executable (%s) has version %d.%d.%d.%d, but we're trying to run build %d. Please obtain this version, and try again.",
-										   gameExecutable.c_str(),
-										   (fixedInfo->dwFileVersionMS >> 16),
-										   (fixedInfo->dwFileVersionMS & 0xFFFF),
-										   (fixedInfo->dwFileVersionLS >> 16),
-										   (fixedInfo->dwFileVersionLS & 0xFFFF),
-										   xbr::GetGameBuild()), PRODUCT_NAME, MB_OK | MB_ICONERROR);
-
-					return 0;
-				}
-			}
+			return 0;
 		}
+
+		g_redirectionData = redirectionData;
+
+#ifdef GTA_FIVE
+		gameExecutable = ToWide(redirectionData["GTA5.exe"]);
+#endif
 	}
 #endif
-#endif
-#endif
 
-#ifdef LAUNCHER_PERSONALITY_MAIN
+	// release TenUI
 	tui = {};
-#endif
 
 	auto minModeManifest = InitMinMode();
 

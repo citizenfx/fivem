@@ -200,7 +200,7 @@ export interface IActivityItemData {
 
 export interface IActivityItemMedia {
   id: string,
-  type: 'photo' | 'animated_gif' | 'video',
+  type: 'photo' | 'animated_gif' | 'video' | 'youtube',
 
   blurhash?: string,
   previewUrl?: string,

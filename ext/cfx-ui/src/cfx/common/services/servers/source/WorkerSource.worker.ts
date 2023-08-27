@@ -3,7 +3,7 @@ import { filterList } from "./listFilter";
 import { getAllMasterListServers } from "./utils/fetchers";
 import { IAutocompleteIndex, IListableServerView } from "./types";
 import { IServerListConfig } from "../lists/types";
-import { sortList } from "./listSorter";
+import { sortFilteredList, sortList } from "./listSorter";
 import { serverView2ListableServerView } from "../transformers";
 import { AutocompleteIndexer } from "./autocomplete";
 import { shouldPrioritizePinnedServers } from "cfx/base/serverUtils";
@@ -152,9 +152,15 @@ export class ServersWorker {
       return;
     }
 
-    this.sendList(list.config, list.id, filterList(
+    const filteredList = filterList(
       this.listableServersMap,
       this.getSortedList(list.config),
+      list.config,
+    );
+
+    this.sendList(list.config, list.id, sortFilteredList(
+      this.listableServersMap,
+      filteredList,
       list.config,
     ));
   }

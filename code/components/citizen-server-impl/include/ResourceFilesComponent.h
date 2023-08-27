@@ -47,12 +47,16 @@ namespace fx
 
 		std::string GetSetDatabaseName(const std::string& setName);
 
+		void ParseFileSets();
+
 	private:
 		fx::Resource* m_resource;
 
 		std::set<std::string> m_additionalFiles;
 
 		std::map<std::string, std::string> m_fileHashPairs;
+
+		std::map<std::string, std::set<std::string>> m_fileSets;
 
 		TFilesFilterFactory m_filesFilter;
 	};

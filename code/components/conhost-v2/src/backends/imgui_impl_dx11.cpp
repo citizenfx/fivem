@@ -607,6 +607,10 @@ bool    ImGui_ImplDX11_Init(ID3D11Device* device, ID3D11DeviceContext* device_co
             }
     if (pDXGIDevice) pDXGIDevice->Release();
     if (pDXGIAdapter) pDXGIAdapter->Release();
+
+    if (!bd->pd3dDevice)
+        return false;
+
     bd->pd3dDevice->AddRef();
     bd->pd3dDeviceContext->AddRef();
 

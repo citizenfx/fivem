@@ -8,7 +8,7 @@
 #ifndef BOTAN_XMSS_PARAMETERS_H_
 #define BOTAN_XMSS_PARAMETERS_H_
 
-#include <botan/xmss_wots_parameters.h>
+#include <botan/xmss_wots.h>
 #include <string>
 
 namespace Botan {

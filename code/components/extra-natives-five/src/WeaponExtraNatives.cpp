@@ -8,10 +8,12 @@
 #include <ICoreGameInit.h>
 #include <rageVectors.h>
 #include <MinHook.h>
+#include "Hooking.Stubs.h"
 
 static int WeaponDamageModifierOffset;
 static int WeaponAnimationOverrideOffset;
 static int WeaponRecoilShakeAmplitudeOffset;
+static int ObjectWeaponOffset;
 
 static uint16_t* g_weaponCount;
 static uint64_t** g_weaponList;
@@ -28,15 +30,7 @@ enum flashlightFlags_t : uint8_t
 class CWeaponComponentFlashlight
 {
 public:
-	virtual void m_0() = 0;
-	virtual void m_1() = 0;
-	virtual void New(void *memory, bool option) = 0;
-	virtual bool Process(CPed* ped) = 0;
-	virtual bool PostPreRender(CPed* ped) = 0;
-	virtual void m_5() = 0;
-	virtual void m_6() = 0;
-	virtual void m_7() = 0;
-
+	void* vtable;
 	void* pFlashlightInfo; //0x0008
 	class CWeapon* pParentWeapon; //0x0010
 	void* pObject; //0x0018 CObject
@@ -186,7 +180,7 @@ static void* CPed_DESTROY( CPed* thisptr, bool option )
 
 struct CWeapon_Vtable_Hook
 {
-	void* vfuncs[2];
+	void* vfuncs[8]; // Only 2 pre-2802
 } g_CWeapon_Vtable;
 
 static bool ( *origSetupAsWeapon )( unsigned char*, WeaponInfo*, int, bool, CPed*, int64_t, bool, bool );
@@ -206,7 +200,7 @@ static bool __fastcall CPedEquippedWeapon_SetupAsWeapon( unsigned char* thisptr,
 	// Original Function will call CreateWeapon()->CWeapon::CWeapon() if weaponAddr is NULL(which it is most of the time).
 	// Afterwards it will store it in this+0x340[ver: 1604-2189]
 	// Hook the CWeapon's that we own, when they are destroyed(by one of 100+ different ways), we will remember the ammo count in the clip and restore it.
-	CWeapon* pWeap = *( CWeapon** )( thisptr + 0x340 );
+	CWeapon* pWeap = *( CWeapon** )( thisptr + ObjectWeaponOffset );
 	uintptr_t* vtable = ( uintptr_t* )pWeap;
 	*vtable = ( uintptr_t )&g_CWeapon_Vtable;
 
@@ -308,6 +302,19 @@ static uint64_t getWeaponFromHash(fx::ScriptContext& context)
 	return 0;
 }
 
+static std::atomic_bool g_SET_WEAPONS_NO_AIM_BLOCKING = false;
+
+static bool (*g_origIsPedWeaponAimingBlocked)(void*, void*, void*, float, float, bool, bool, bool, float);
+static bool IsPedWeaponAimingBlocked(void* ped, void* coords, void* unk1, float unk2, float unk3, bool unk4, bool unk5, bool unk6, float unk7)
+{
+	if (g_SET_WEAPONS_NO_AIM_BLOCKING && ped && ped == getLocalPlayerPed())
+	{
+		return false;
+	}
+
+	return g_origIsPedWeaponAimingBlocked(ped, coords, unk1, unk2, unk3, unk4, unk5, unk6, unk7);
+}
+
 static HookFunction hookFunction([]()
 {
 	{
@@ -321,6 +328,8 @@ static HookFunction hookFunction([]()
 		WeaponDamageModifierOffset = *hook::get_pattern<int>("48 85 C9 74 ? F3 0F 10 81 ? ? ? ? F3 0F 59 81", 9);
 		WeaponAnimationOverrideOffset = *hook::get_pattern<int>("8B 9F ? ? ? ? 85 DB 75 3E", 2);
 		WeaponRecoilShakeAmplitudeOffset = *hook::get_pattern<int>("48 8B 47 40 F3 0F 10 B0 ? ? ? ?", 8);
+
+		ObjectWeaponOffset = *hook::get_pattern<int>("74 5C 48 83 BB ? ? ? ? 00 75 52", 5);
 	}
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_WEAPON_DAMAGE_MODIFIER", [](fx::ScriptContext& context)
@@ -410,6 +419,12 @@ static HookFunction hookFunction([]()
 		}
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("SET_WEAPONS_NO_AIM_BLOCKING", [](fx::ScriptContext& context)
+	{
+		bool value = context.GetArgument<bool>(0);
+		g_SET_WEAPONS_NO_AIM_BLOCKING = value;
+	});
+
 	fx::ScriptEngine::RegisterNativeHandler("SET_AIM_COOLDOWN", [](fx::ScriptContext& context)
 	{
 		int value = context.GetArgument<int>(0);
@@ -447,13 +462,16 @@ static HookFunction hookFunction([]()
 		g_SET_FLASH_LIGHT_KEEP_ON_WHILE_MOVING = false;
 		g_SET_WEAPONS_NO_AUTORELOAD = false;
 		g_SET_WEAPONS_NO_AUTOSWAP = false;
+		g_SET_WEAPONS_NO_AIM_BLOCKING = false;
 		g_LocalWeaponClipAmounts.clear();
 	});
 
-	uintptr_t* flashlightVtable = hook::get_address<uintptr_t*>(hook::get_pattern<unsigned char>("83 CD FF 48 8D 05 ? ? ? ? 33 DB", 6));
-	origFlashlightProcess = (flashlightProcessFn)flashlightVtable[3];
-	hook::put(&flashlightVtable[3], (uintptr_t)Flashlight_Process);
-
+	{
+		int index = (xbr::IsGameBuildOrGreater<2802>()) ? 8 : 3;
+		uintptr_t* flashlightVtable = hook::get_address<uintptr_t*>(hook::get_pattern<unsigned char>("83 CD FF 48 8D 05 ? ? ? ? 33 DB", 6));
+		origFlashlightProcess = (flashlightProcessFn)flashlightVtable[index];
+		hook::put(&flashlightVtable[index], (uintptr_t)Flashlight_Process);
+	}
 
 	// Disable auto-swaps
 	{
@@ -481,25 +499,45 @@ static HookFunction hookFunction([]()
 		MH_CreateHook(hook::get_address<LPVOID>(hook::get_pattern("45 33 C9 45 33 C0 48 8B D0 48 8B CB E8 ? ? ? ? 48 83 C4 40", 12), 1, 5), CPedEquippedWeapon_SetupAsWeapon, (void**)&origSetupAsWeapon);
 		MH_EnableHook(MH_ALL_HOOKS);
 
+		int index = (xbr::IsGameBuildOrGreater<2802>()) ? 6 : 0;
+
 		// Get the original CWeapon vtable - We will plant a vmt-hook on weapons that we own so we can track their destruction.
 		uintptr_t* cWeapon_vtable = hook::get_address<uintptr_t*>(hook::get_pattern<unsigned char>("45 33 FF 0F 57 C9 48 8D 05 ? ? ? ? 48 89 01", 9));
-		origWeaponDtor = (Weapon_DtorFn)cWeapon_vtable[0];
-		g_CWeapon_Vtable.vfuncs[0] = Weapon_DESTROY;
-		g_CWeapon_Vtable.vfuncs[1] = (void*)cWeapon_vtable[1];
+		origWeaponDtor = (Weapon_DtorFn)cWeapon_vtable[index];
+		
+		if (xbr::IsGameBuildOrGreater<2802>())
+		{
+			for (int i = 0; i < 6; i++)
+			{
+				g_CWeapon_Vtable.vfuncs[i] = (void*)cWeapon_vtable[i];
+			}
+		}
+
+		g_CWeapon_Vtable.vfuncs[index] = Weapon_DESTROY;
+		g_CWeapon_Vtable.vfuncs[index + 1] = (void*)cWeapon_vtable[index + 1];
 
 		// Get the original CPed vtable - we'll plant a hook here just on the destructor - this is for clearing the weapon clip history on death
 		uintptr_t* cPed_vtable = hook::get_address<uintptr_t*>(hook::get_pattern<unsigned char>("4D 8B F8 48 8B F9 E8 ? ? ? ? 48 8D 05", 14));
-		origCPedDtor = (CPed_DtorFn)cPed_vtable[0];
-		hook::put(&cPed_vtable[0], (uintptr_t)CPed_DESTROY);
+		origCPedDtor = (CPed_DtorFn)cPed_vtable[index];
+		hook::put(&cPed_vtable[index], (uintptr_t)CPed_DESTROY);
 	}
 
-	// Hook used by auto-reload/auto-swaps to fix a spasm when running out of ammo with the current weapon still held.
-	uintptr_t* cTaskAimGun_vtable = hook::get_address<uintptr_t*>(hook::get_pattern<unsigned char>("48 89 44 24 20 E8 ? ? ? ? 48 8D 05 ? ? ? ? 48 8D 8B 20 01", 13));
-	origCTaskAimGunOnFoot_ProcessStages = (CTaskAimGunOnFootProcessStagesFn)cTaskAimGun_vtable[14];
-	hook::put(&cTaskAimGun_vtable[14], (uintptr_t)CTaskAimGunOnFoot_ProcessStages);
+	{
+		// Hook used by auto-reload/auto-swaps to fix a spasm when running out of ammo with the current weapon still held.
+		int offset = (xbr::IsGameBuildOrGreater<2802>()) ? 6 : 0;
+		uintptr_t* cTaskAimGun_vtable = hook::get_address<uintptr_t*>(hook::get_pattern<unsigned char>("48 89 44 24 20 E8 ? ? ? ? 48 8D 05 ? ? ? ? 48 8D 8B 20 01", 13));
+		origCTaskAimGunOnFoot_ProcessStages = (CTaskAimGunOnFootProcessStagesFn)cTaskAimGun_vtable[offset + 14];
+		hook::put(&cTaskAimGun_vtable[offset + 14], (uintptr_t)CTaskAimGunOnFoot_ProcessStages);	
+	}
 
 	// Hook inside of CTaskMotionPed - Stage 16_1 -- Used for a cooldown on spamming movements+aiming to optionally hinder 'speedboosting'
-	void* shouldAimCall = hook::pattern("E8 ? ? ? ? 84 C0 0F 84 ? ? ? ? 48 8B CB E8 ? ? ? ? 84 C0 0F 84 ? ? ? ? F3 0F 10 B7 80 05 00 00").count(4).get(0).get<void>();
+	void* shouldAimCall = hook::pattern("E8 ? ? ? ? 84 C0 0F 84 ? ? ? ? 48 8B CB E8 ? ? ? ? 84 C0 0F 84 ? ? ? ? F3 0F 10 B7").count(4).get(0).get<void>();
 	hook::set_call(&g_origShouldAim, shouldAimCall);
 	hook::call(shouldAimCall, ShouldAim);
+
+	// Hook function used for deciding if ped's weapon is currently blocked from aiming because of environment.
+	{
+		auto location = hook::get_call(hook::get_pattern("E8 ? ? ? ? 84 C0 74 29 8B 47 34"));
+		g_origIsPedWeaponAimingBlocked = hook::trampoline(location, &IsPedWeaponAimingBlocked);
+	}
 });

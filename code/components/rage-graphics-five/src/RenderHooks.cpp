@@ -552,7 +552,7 @@ static bool IsSafeToUseDXGI()
 
 extern HRESULT RootD3D11CreateDevice(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _COM_Outptr_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _COM_Outptr_opt_ ID3D11DeviceContext** ppImmediateContext);
 
-static HRESULT CreateD3D11DeviceWrapOrig(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _In_opt_ CONST DXGI_SWAP_CHAIN_DESC* pSwapChainDesc, _Out_opt_ IDXGISwapChain** ppSwapChain, _Out_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _Out_opt_ ID3D11DeviceContext** ppImmediateContext)
+static void GoGetAdapter(IDXGIAdapter** ppAdapter)
 {
 	{
 		WRL::ComPtr<IDXGIFactory1> dxgiFactory;
@@ -564,11 +564,8 @@ static HRESULT CreateD3D11DeviceWrapOrig(_In_opt_ IDXGIAdapter* pAdapter, D3D_DR
 		if (SUCCEEDED(hr))
 		{
 			for (UINT adapterIndex = 0;
-				DXGI_ERROR_NOT_FOUND != factory6->EnumAdapterByGpuPreference(
-					adapterIndex,
-					DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
-					IID_PPV_ARGS(adapter.ReleaseAndGetAddressOf()));
-				adapterIndex++)
+				 DXGI_ERROR_NOT_FOUND != factory6->EnumAdapterByGpuPreference(adapterIndex, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(adapter.ReleaseAndGetAddressOf()));
+				 adapterIndex++)
 			{
 				DXGI_ADAPTER_DESC1 desc;
 				adapter->GetDesc1(&desc);
@@ -579,14 +576,23 @@ static HRESULT CreateD3D11DeviceWrapOrig(_In_opt_ IDXGIAdapter* pAdapter, D3D_DR
 					continue;
 				}
 
-				AddCrashometry("gpu_name", "%s", ToNarrow(desc.Description));
-				AddCrashometry("gpu_id", "%04x:%04x", desc.VendorId, desc.DeviceId);
+				static auto _ = ([&desc]
+				{
+					AddCrashometry("gpu_name", "%s", ToNarrow(desc.Description));
+					AddCrashometry("gpu_id", "%04x:%04x", desc.VendorId, desc.DeviceId);
+					return true;
+				})();
 
-				adapter.CopyTo(&pAdapter);
+				adapter.CopyTo(ppAdapter);
 				break;
 			}
 		}
 	}
+}
+
+static HRESULT CreateD3D11DeviceWrapOrig(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _In_opt_ CONST DXGI_SWAP_CHAIN_DESC* pSwapChainDesc, _Out_opt_ IDXGISwapChain** ppSwapChain, _Out_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _Out_opt_ ID3D11DeviceContext** ppImmediateContext)
+{
+	GoGetAdapter(&pAdapter);
 
 	SetEvent(g_gameWindowEvent);
 
@@ -1473,10 +1479,96 @@ static int Return1()
 
 #include "dxerr.h"
 
-static void DisplayD3DCrashMessage(HRESULT hr)
+static void __declspec(noinline) DisplayD3DCrashMessageGeneric(const std::string& errorBody)
 {
-	wchar_t errorBuffer[8192] = { 0 };
-	DXGetErrorDescriptionW(hr, errorBuffer, _countof(errorBuffer));
+	FatalError("DirectX encountered an unrecoverable error: %s", errorBody);
+}
+
+static void __declspec(noinline) DisplayD3DCrashMessageReShadeENBSeries(const std::string& errorBody)
+{
+	FatalError("DirectX encountered an unrecoverable error (R+E): %s", errorBody);
+}
+
+static void __declspec(noinline) DisplayD3DCrashMessageReShade(const std::string& errorBody)
+{
+	FatalError("DirectX encountered an unrecoverable error (R): %s", errorBody);
+}
+
+static void __declspec(noinline) DisplayD3DCrashMessageENBSeries(const std::string& errorBody)
+{
+	FatalError("DirectX encountered an unrecoverable error (E): %s", errorBody);
+}
+
+static void __declspec(noinline) DisplayD3DCrashMessageGraphicsMods(const std::string& errorBody)
+{
+	FatalError("DirectX encountered an unrecoverable error (M): %s", errorBody);
+}
+
+static std::string GetGraphicsModDetails(const std::string& fileName)
+{
+	std::wstring path = MakeRelativeGamePath(ToWide(fileName));
+	DWORD versionInfoSize = GetFileVersionInfoSize(path.c_str(), nullptr);
+
+	if (versionInfoSize)
+	{
+		std::vector<uint8_t> versionInfo(versionInfoSize);
+
+		if (GetFileVersionInfo(path.c_str(), 0, versionInfo.size(), &versionInfo[0]))
+		{
+			struct LANGANDCODEPAGE
+			{
+				WORD wLanguage;
+				WORD wCodePage;
+			} * lpTranslate;
+
+			UINT cbTranslate = 0;
+
+			// Read the list of languages and code pages.
+
+			VerQueryValue(&versionInfo[0],
+			TEXT("\\VarFileInfo\\Translation"),
+			(LPVOID*)&lpTranslate,
+			&cbTranslate);
+
+			if (cbTranslate > 0)
+			{
+				void* productNameBuffer;
+				UINT productNameSize = 0;
+
+				VerQueryValue(&versionInfo[0],
+				va(L"\\StringFileInfo\\%04x%04x\\ProductName", lpTranslate[0].wLanguage, lpTranslate[0].wCodePage),
+				&productNameBuffer,
+				&productNameSize);
+
+				void* fixedInfoBuffer;
+				UINT fixedInfoSize = 0;
+
+				VerQueryValue(&versionInfo[0], L"\\", &fixedInfoBuffer, &fixedInfoSize);
+
+				VS_FIXEDFILEINFO* fixedInfo = reinterpret_cast<VS_FIXEDFILEINFO*>(fixedInfoBuffer);
+
+				if (productNameSize > 0 && fixedInfoSize > 0)
+				{
+					return fmt::sprintf("%s %d.%d.%d.%d",
+						ToNarrow((wchar_t*)productNameBuffer),
+						fixedInfo->dwProductVersionMS >> 16,
+						fixedInfo->dwProductVersionMS & 0xFFFF,
+						fixedInfo->dwProductVersionLS >> 16,
+						fixedInfo->dwProductVersionLS & 0xFFFF);
+				}
+			}
+		}
+	}
+
+	return "";
+}
+
+static void DisplayD3DCrashMessageWrap(HRESULT hr)
+{
+	constexpr auto errorBufferCount = 8192;
+	auto errorBuffer = std::unique_ptr<wchar_t[]>(new wchar_t[errorBufferCount]);
+	memset(errorBuffer.get(), 0, errorBufferCount * sizeof(wchar_t));
+	DXGetErrorDescriptionW(hr, errorBuffer.get(), errorBufferCount);
 
 	auto errorString = DXGetErrorStringW(hr);
 
@@ -1491,8 +1583,9 @@ static void DisplayD3DCrashMessage(HRESULT hr)
 	{
 		HRESULT removedReason = GetD3D11Device()->GetDeviceRemovedReason();
 
-		wchar_t errorBuffer[8192] = { 0 };
-		DXGetErrorDescriptionW(removedReason, errorBuffer, _countof(errorBuffer));
+		auto errorBuffer = std::unique_ptr<wchar_t[]>(new wchar_t[errorBufferCount]);
+		memset(errorBuffer.get(), 0, errorBufferCount * sizeof(wchar_t));
+		DXGetErrorDescriptionW(removedReason, errorBuffer.get(), errorBufferCount);
 
 		auto removedString = DXGetErrorStringW(removedReason);
 
@@ -1501,10 +1594,68 @@ static void DisplayD3DCrashMessage(HRESULT hr)
 			removedString = va(L"0x%08x", hr);
 		}
 
-		removedError = ToNarrow(fmt::sprintf(L"\nGetDeviceRemovedReason returned %s - %s", removedString, errorBuffer));
+		removedError = ToNarrow(fmt::sprintf(L"\nGetDeviceRemovedReason returned %s - %s", removedString, errorBuffer.get()));
 	}
 
-	FatalError("DirectX encountered an unrecoverable error: %s - %s%s", ToNarrow(errorString), ToNarrow(errorBuffer), removedError);
+	auto errorBody = fmt::sprintf("%s - %s%s", ToNarrow(errorString), ToNarrow(errorBuffer.get()), removedError);
+
+	std::set<std::string> mods;
+	auto getMod = [&mods](const std::string& filename)
+	{
+		if (auto details = GetGraphicsModDetails(filename); !details.empty())
+		{
+			mods.insert(details);
+		}
+	};
+
+	getMod("d3d11.dll");
+	getMod("dxgi.dll");
+	getMod("d3d10.dll");
+
+	if (!mods.empty())
+	{
+		errorBody += "\n\nThe following graphics mods were found in your GTA V installation:\n";
+
+		for (const auto& mod : mods)
+		{
+			errorBody += fmt::sprintf("- %s\n", mod);
+		}
+
+		errorBody += "\nPlease contact the author of these mods to see if the issue may be related to them.";
+
+		bool reshade = std::find_if(mods.begin(), mods.end(), [](const auto& str)
+					   {
+						   return str.find("ReShade") == 0;
+					   })
+					   != mods.end();
+
+		bool enbseries = std::find_if(mods.begin(), mods.end(), [](const auto& str)
+						 {
+							 return str.find("ENBSeries") == 0;
+						 })
+						 != mods.end();
+
+		if (reshade && enbseries)
+		{
+			DisplayD3DCrashMessageReShadeENBSeries(errorBody);
+		}
+		else if (reshade)
+		{
+			DisplayD3DCrashMessageReShade(errorBody);
+		}
+		else if (enbseries)
+		{
+			DisplayD3DCrashMessageENBSeries(errorBody);
+		}
+		else
+		{
+			DisplayD3DCrashMessageGraphicsMods(errorBody);
+		}
+	}
+	else
+	{
+		DisplayD3DCrashMessageGeneric(errorBody);
+	}
 }
 
 static void(*g_origPresent)();
@@ -1838,7 +1989,7 @@ static HookFunction hookFunction([] ()
 	if (g_disableRendering)
 	{
 		uint8_t mov[] = { 0x4C, 0x8D, 0x44, 0x24, 0x40 };
-		auto location = hook::get_pattern<char>("8B D6 48 8B 01 4C 8D 44 24 40 FF 50", 2);
+		auto location = hook::get_pattern<char>("8B D6 48 8B 01 4C 8D 44 24 ? FF", 2);
 
 		hook::nop(location, 11);
 		memcpy(location, mov, 5);
@@ -1846,9 +1997,18 @@ static HookFunction hookFunction([] ()
 	}
 
 	// add D3D11_CREATE_DEVICE_BGRA_SUPPORT flag
-	void* createDeviceLoc = hook::pattern("48 8D 45 90 C7 44 24 30 07 00 00 00").count(1).get(0).get<void>(21);
-	hook::nop(createDeviceLoc, 6);
-	hook::call(createDeviceLoc, CreateD3D11DeviceWrap);
+	if (xbr::IsGameBuildOrGreater<2802>())
+	{
+		void* createDeviceLoc = hook::pattern("48 8D 44 24 78 89 74 24 30 89 7C 24 28").count(1).get(0).get<void>(18);
+		hook::nop(createDeviceLoc, 6);
+		hook::call(createDeviceLoc, CreateD3D11DeviceWrap);
+	}
+	else
+	{
+		void* createDeviceLoc = hook::pattern("48 8D 45 90 C7 44 24 30 07 00 00 00").count(1).get(0).get<void>(21);
+		hook::nop(createDeviceLoc, 6);
+		hook::call(createDeviceLoc, CreateD3D11DeviceWrap);
+	}
 
 	// don't crash on ID3D11DeviceContext::GetData call failures
 	// these somehow are caused by NVIDIA driver settings?
@@ -1857,7 +2017,7 @@ static HookFunction hookFunction([] ()
 	// ERR_GFX_D3D_INIT: display valid reasons
 	auto loc = hook::get_pattern<char>("75 0A B9 06 BD F7 9C E8");
 	hook::nop(loc + 2, 5);
-	hook::call(loc + 7, DisplayD3DCrashMessage);
+	hook::call(loc + 7, DisplayD3DCrashMessageWrap);
 
 	// remove infinite loop before grcResourceCache D3D failure
 	{
@@ -1939,4 +2099,33 @@ static HookFunction hookFunction([] ()
 
 	// and when minimized
 	hook::nop(hook::get_pattern("74 0C 84 C9 75 08 84 C0 0F", 8), 6);
+});
+
+// load the UMD early by having a 'dummy' D3D11 device so this won't slow down due to scanning
+static InitFunction initFunctionEarlyUMD([]
+{
+	{
+		auto state = CfxState::Get();
+		if (!state->IsGameProcess())
+		{
+			return;
+		}
+	}
+
+	std::thread([]()
+	{
+		IDXGIAdapter* adapter = nullptr;
+		GoGetAdapter(&adapter);
+
+		WRL::ComPtr<ID3D11Device> device;
+		HRESULT hr = D3D11CreateDevice(adapter, D3D_DRIVER_TYPE_UNKNOWN, NULL, 0, NULL, 0, D3D11_SDK_VERSION, &device, NULL, NULL);
+
+		// release
+		if (adapter)
+		{
+			adapter->Release();
+		}
+
+		Sleep(20000);
+	}).detach();
 });

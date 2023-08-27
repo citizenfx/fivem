@@ -21,7 +21,7 @@ YARN="$NODE $ROOT/yarn_cli.js"
 # install yarn deps
 cd $ROOT/../native-doc-tooling/
 
-$YARN global add node-gyp
+$YARN global add node-gyp@9.3.1
 $YARN
 
 cd $ROOT/../natives/

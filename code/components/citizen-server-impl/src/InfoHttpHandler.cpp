@@ -158,8 +158,8 @@ void InfoHttpHandlerComponentLocals::AttachToObject(fx::ServerInstanceBase* inst
 	m_instance = instance;
 	ivVar = instance->AddVariable<int>("sv_infoVersion", ConVar_ServerInfo, 0);
 	maxClientsVar = instance->AddVariable<int>("sv_maxClients", ConVar_ServerInfo, 30);
-	iconVar = instance->AddVariable<std::string>("sv_icon", ConVar_None, "");
-	versionVar = instance->AddVariable<std::string>("version", ConVar_None, "FXServer-" GIT_DESCRIPTION);
+	iconVar = instance->AddVariable<std::string>("sv_icon", ConVar_Internal, "");
+	versionVar = instance->AddVariable<std::string>("version", ConVar_Internal, "FXServer-" GIT_DESCRIPTION);
 	crashCmd = instance->AddCommand("_crash", []()
 	{
 		*(volatile int*)0 = 0;
@@ -271,7 +271,7 @@ void InfoHttpHandlerComponentLocals::AttachToObject(fx::ServerInstanceBase* inst
 		}
 	});
 
-	instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/info.json", [=](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response)
+	instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/info.json", [=](const fwRefContainer<net::HttpRequest>& request, fwRefContainer<net::HttpResponse> response)
 	{
 		if (processRequestParanoia(request))
 		{
@@ -312,7 +312,7 @@ void InfoHttpHandlerComponentLocals::AttachToObject(fx::ServerInstanceBase* inst
 		}
 	});
 
-	instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/dynamic.json", [=](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response)
+	instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/dynamic.json", [=](const fwRefContainer<net::HttpRequest>& request, fwRefContainer<net::HttpResponse> response)
 	{
 		if (processRequestParanoia(request))
 		{
@@ -326,7 +326,7 @@ void InfoHttpHandlerComponentLocals::AttachToObject(fx::ServerInstanceBase* inst
 		response->End(json.dump(-1, ' ', false, json::error_handler_t::replace));
 	});
 
-	instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/players.json", [this, instance, processRequestParanoia](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response)
+	instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/players.json", [this, instance, processRequestParanoia](const fwRefContainer<net::HttpRequest>& request, fwRefContainer<net::HttpResponse> response)
 	{
 		if (processRequestParanoia(request))
 		{
@@ -431,7 +431,7 @@ void InfoHttpHandlerComponentLocals::AttachToObject(fx::ServerInstanceBase* inst
 		}
 	});
 
-	instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/profileData.json", [=](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response)
+	instance->GetComponent<fx::HttpServerManager>()->AddEndpoint("/profileData.json", [=](const fwRefContainer<net::HttpRequest>& request, fwRefContainer<net::HttpResponse> response)
 	{
 		if (!lastProfile)
 		{

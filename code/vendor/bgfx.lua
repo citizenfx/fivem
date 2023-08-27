@@ -54,8 +54,10 @@ return {
         {
 			'../vendor/bgfx/src/amalgamated.cpp',
 			'../vendor/bx/src/amalgamated.cpp',
-            '../vendor/bgfx/src/**.bin.h',
+			'../vendor/bgfx/src/**.bin.h',
         }
+
+        removebuildoptions { '/Zc:preprocessor' }
 
         filter 'configurations:Debug*'
             defines { 'BGFX_CONFIG_DEBUG=1' }

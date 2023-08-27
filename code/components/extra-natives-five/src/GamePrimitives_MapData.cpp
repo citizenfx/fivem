@@ -127,7 +127,8 @@ private:
 	bool isCustom = false;
 };
 
-class CustomMatrixDef : public fwExtensionDef
+template<int Build>
+class CustomMatrixDef : public fwExtensionDefImpl<Build>
 {
 public:
 	CustomMatrixDef()
@@ -151,6 +152,16 @@ public:
 	Matrix4x4 mat44;
 };
 
+static fwExtensionDef* _new_CustomMatrixDef(const float* matrix)
+{
+	if (xbr::IsGameBuildOrGreater<2802>())
+	{
+		return reinterpret_cast<fwExtensionDef*>(new CustomMatrixDef<2802>(matrix));
+	}
+
+	return reinterpret_cast<fwExtensionDef*>(new CustomMatrixDef<0>(matrix));
+}
+
 static bool g_isEditorRuntime = false;
 
 static rage::fwEntity* ConstructEntity(fwEntityDef* entityDef, int mapDataIdx, rage::fwArchetype* archetype, void* unkId)
@@ -170,7 +181,8 @@ static rage::fwEntity* ConstructEntity(fwEntityDef* entityDef, int mapDataIdx, r
 		{
 			if (extensionDef->name == HashRageString("CustomMatrixDef"))
 			{
-				CustomMatrixDef* ext = static_cast<CustomMatrixDef*>(extensionDef);
+				// we don't actually care about the build here
+				auto ext = reinterpret_cast<CustomMatrixDef<0>*>(extensionDef);
 				entity->UpdateTransform(ext->mat44, true);
 			}
 		}
@@ -367,7 +379,7 @@ static int UpdateMapdataEntity(int mapDataIdx, int entityIdx, const char* msgDat
 
 				if (matrixArray.size() == 16)
 				{
-					entityDef->extensions.Set(entityDef->extensions.GetCount(), new CustomMatrixDef(matrixArray.data()));
+					entityDef->extensions.Set(entityDef->extensions.GetCount(), _new_CustomMatrixDef(matrixArray.data()));
 
 					if (entity)
 					{

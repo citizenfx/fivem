@@ -8,6 +8,8 @@
 #include "StdInc.h"
 #include "ToolComponentHelpers.h"
 
+#include "ErrorFormat.Win32.h"
+
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 
@@ -230,7 +232,11 @@ static DWORD WINAPI CertGetNameStringStubA(_In_ PCCERT_CONTEXT pCertContext, _In
 	const char* newName = nullptr;
 
 	auto certString = std::string{ data.data() };
-	if (certString == "DigiCert SHA2 Assured ID Code Signing CA")
+	if (certString == "DigiCert Trusted G4 Code Signing RSA4096 SHA384 2021 CA1")
+	{
+		newName = "Entrust Code Signing CA - OVCS1";
+	}
+	else if (certString == "DigiCert SHA2 Assured ID Code Signing CA")
 	{
 		newName = "Entrust Code Signing CA - OVCS1";
 	}
@@ -708,6 +714,100 @@ static FARPROC GetProcAddressHook(HMODULE hModule, LPCSTR funcName)
 	return GetProcAddressStub(hModule, funcName);
 }
 
+static void* (*g_origMemAlloc)(void*, intptr_t size, intptr_t align, int subAlloc);
+static intptr_t (*g_origMemFree)(void*, void*);
+static bool (*g_origIsMine)(void*, void*);
+static bool (*g_origRealloc)(void*, void*, size_t);
+
+static bool isMine(void* allocator, void* mem)
+{
+	return (*(uint32_t*)((DWORD_PTR)mem - 4) & 0xFFFFFFF0) == 0xDEADC0C0;
+}
+
+static bool isMineHook(void* allocator, void* mem)
+{
+	return isMine(allocator, mem) || g_origIsMine(allocator, mem);
+}
+
+template<bool Try>
+static void* AllocEntry(void* allocator, size_t size, int align, int subAlloc)
+{
+	DWORD_PTR ptr = (DWORD_PTR)malloc(size + 32);
+
+	if constexpr (!Try)
+	{
+		if (!ptr)
+		{
+			FatalError("Failed allocating %d bytes in RGL code", size);
+		}
+	}
+
+	ptr += 4;
+
+	void* mem = (void*)(((uintptr_t)ptr + 15) & ~(uintptr_t)0xF);
+
+	*(uint32_t*)((uintptr_t)mem - 4) = 0xDEADC0C0 | (((uintptr_t)ptr + 15) & 0xF);
+
+	return mem;
+}
+
+static void FreeEntry(void* allocator, void* ptr)
+{
+	if (!ptr)
+	{
+		return;
+	}
+
+	if (!isMine(allocator, ptr))
+	{
+		g_origMemFree(allocator, ptr);
+		return;
+	}
+
+	void* memReal = ((char*)ptr - (16 - (*(uint32_t*)((uintptr_t)ptr - 4) & 0xF)) - 3);
+	free(memReal);
+}
+
+static void ReallocEntry(void* allocator, void* ptr, size_t size)
+{
+	if (g_origIsMine(allocator, ptr))
+	{
+		g_origRealloc(allocator, ptr, size);
+		return;
+	}
+
+	// Resize can only go to a smaller size, so we treat this as a no-op
+	return;
+}
+
+static void* smpaCtor1;
+static void* smpaCtor2;
+
+template<void** orig>
+static void* CreateSimpleAllocatorHook(void* a1, void* a2, void* a3, int a4, int a5)
+{
+	void* smpa = ((void* (*)(void*, void*, void*, int, int))*orig)(a1, a2, a3, a4, a5);
+
+	void** vt = new void*[48];
+	memcpy(vt, *(void**)smpa, 48 * 8);
+	*(void**)smpa = vt;
+
+	g_origMemAlloc = (decltype(g_origMemAlloc))vt[3];
+	vt[3] = AllocEntry<false>;
+	vt[4] = AllocEntry<true>;
+
+	g_origMemFree = (decltype(g_origMemFree))vt[5];
+	vt[5] = FreeEntry;
+
+	g_origRealloc = (decltype(g_origRealloc))vt[6];
+	vt[6] = ReallocEntry;
+
+	g_origIsMine = (decltype(g_origIsMine))vt[29];
+	vt[29] = isMineHook;
+
+	return smpa;
+}
+
 static void Launcher_Run(const boost::program_options::variables_map& map)
 {
 	// make firstrun.dat so the launcher won't error out/crash
@@ -744,12 +844,7 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 		{
 			auto errorCode = GetLastError();
 
-			wchar_t errorText[512];
-			errorText[0] = L'\0';
-
-			FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_MAX_WIDTH_MASK, nullptr, errorCode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), errorText, std::size(errorText), nullptr);
-
-			FatalError("Couldn't load Social Club SDK (socialclub.dll): Windows error code %d. %s", errorCode, ToNarrow(errorText));
+			FatalError("Couldn't load Social Club SDK (socialclub.dll): Error code 0x%08x - %s", HRESULT_FROM_WIN32(errorCode), win32::FormatMessage(errorCode));
 		}
 
 #if !GTA_NY
@@ -771,7 +866,8 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 			hook::iat(std::get<0>(h), std::get<1>(h), std::get<2>(h));
 		}
 
-		HMODULE hSteam = LoadLibrary(L"C:\\Program Files\\Rockstar Games\\Launcher\\ThirdParty\\Steam\\steam_api64.dll");
+		// we want to patch the steam_api64.dll that'll be used by MTL
+		HMODULE hSteam = LoadLibrary(MakeRelativeCitPath(L"\\data\\game-storage\\launcher\\ThirdParty\\Steam\\steam_api64.dll").c_str());
 
 		if (hSteam)
 		{
@@ -779,6 +875,10 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 			MH_Initialize();
 			MH_CreateHook(GetProcAddress(hSteam, "SteamAPI_Init"), ReturnFalse, NULL);
 			MH_EnableHook(MH_ALL_HOOKS);
+		}
+		else
+		{
+			trace("MTL steam_api64.dll faled to load: %d\n", GetLastError());
 		}
 
 		{
@@ -791,6 +891,9 @@ static void Launcher_Run(const boost::program_options::variables_map& map)
 #ifdef _DEBUG
 			MH_CreateHook(hook::get_pattern("4C 89 44 24 18 4C 89 4C 24 20 48 83 EC 28 48 8D"), LogStuff, NULL);
 #endif
+
+			MH_CreateHook(hook::get_pattern("48 8D B9 78 0A 00 00 45 8A F1 45 8B F8", -0x25), CreateSimpleAllocatorHook<&smpaCtor1>, (void**)&smpaCtor1);
+			MH_CreateHook(hook::get_pattern("48 8D B9 78 0A 00 00 45 8B F1 4C", -0x25), CreateSimpleAllocatorHook<&smpaCtor2>, (void**)&smpaCtor2);
 
 			MH_EnableHook(MH_ALL_HOOKS);
 		}

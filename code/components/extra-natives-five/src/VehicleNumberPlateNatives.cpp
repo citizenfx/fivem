@@ -148,7 +148,7 @@ static HookFunction hookFunction([]()
 
 	// no-op plate back selector so we can do this *before* setting default plate
 	{
-		auto location = hook::get_pattern("FF 50 30 48 8B D6 48 8B CB E8", 9);
+		auto location = hook::get_pattern("FF 50 ? 48 8B D6 48 8B CB E8 ? ? ? ? 48 8B D6", 9);
 		hook::set_call(&CCustomShaderEffectVehicle__setDefaultPlateBack, location);
 		hook::nop(location, 5);
 	}

@@ -30,7 +30,7 @@ struct TickMetrics
 	{
 		for (auto& tt : tickTimes)
 		{
-			tt = { 0 };
+			tt = std::chrono::microseconds{ 0 };
 		}
 	}
 
@@ -52,7 +52,7 @@ struct TickMetrics
 		{
 			for (auto idx = lti; idx < cti; idx++)
 			{
-				tickTimes[idx] = { 0 };
+				tickTimes[idx] = std::chrono::microseconds{ 0 };
 			}
 		}
 		else if (lti > cti)
@@ -60,13 +60,13 @@ struct TickMetrics
 			// wraparound: clear end
 			for (auto idx = lti; idx < std::size(tickTimes); idx++)
 			{
-				tickTimes[idx] = { 0 };
+				tickTimes[idx] = std::chrono::microseconds{ 0 };
 			}
 
 			// clear start
 			for (auto idx = 0; idx < cti; idx++)
 			{
-				tickTimes[idx] = { 0 };
+				tickTimes[idx] = std::chrono::microseconds{ 0 };
 			}
 		}
 

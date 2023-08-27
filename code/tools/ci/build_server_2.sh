@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # fail on error
-set -e
+set -xe
 
 # set the number of job slots
 JOB_SLOTS=${JOB_SLOTS:-24}
@@ -15,7 +15,11 @@ echo http://dl-cdn.alpinelinux.org/alpine/edge/main >> /etc/apk/repositories
 echo http://dl-cdn.alpinelinux.org/alpine/edge/community >> /etc/apk/repositories
 echo http://dl-cdn.alpinelinux.org/alpine/edge/testing >> /etc/apk/repositories
 
-# update apk cache
+# some dance to upgrade alpine-keys
+apk --no-cache upgrade alpine-keys
+apk --no-cache add -X https://dl-cdn.alpinelinux.org/alpine/v3.16/main -u alpine-keys
+
+# update apk packages
 apk --no-cache update
 apk --no-cache upgrade
 
@@ -41,10 +45,13 @@ apk del curl
 apk add --no-cache curl=7.72.0-r99 libssl1.1 libcrypto1.1 libunwind libstdc++ zlib c-ares v8~=9.3 musl-dbg libatomic
 
 # install compile-time dependencies
-apk add --no-cache --virtual .dev-deps lld~=13 curl-dev=7.72.0-r99 clang-dev~=13 clang~=13 build-base linux-headers openssl1.1-compat-dev python3 py3-pip lua5.3 lua5.3-dev mono-reference-assemblies=5.16.1.0-r9991 mono-dev=5.16.1.0-r9991 libmono=5.16.1.0-r9991 mono-corlib=5.16.1.0-r9991 mono=5.16.1.0-r9991 mono-reference-assemblies-4.x=5.16.1.0-r9991 mono-reference-assemblies-facades=5.16.1.0-r9991 mono-csc=5.16.1.0-r9991 mono-runtime=5.16.1.0-r9991 c-ares-dev v8-dev~=9.3 clang-libs~=13 git dotnet6-sdk
+apk add --no-cache --virtual .dev-deps lld~=13 curl-dev=7.72.0-r99 clang-dev~=13 clang~=13 build-base linux-headers openssl1.1-compat-dev openssl-dev~=1.1 python3 py3-pip py3-virtualenv lua5.3 lua5.3-dev mono-reference-assemblies=5.16.1.0-r9991 mono-dev=5.16.1.0-r9991 libmono=5.16.1.0-r9991 mono-corlib=5.16.1.0-r9991 mono=5.16.1.0-r9991 mono-reference-assemblies-4.x=5.16.1.0-r9991 mono-reference-assemblies-facades=5.16.1.0-r9991 mono-csc=5.16.1.0-r9991 mono-runtime=5.16.1.0-r9991 c-ares-dev v8-dev~=9.3 clang-libs~=13 git dotnet6-sdk
 
 # install python deps
-python3 -m pip install ply six Jinja2 MarkupSafe
+python3 -m venv /tmp/py-venv
+. /tmp/py-venv/bin/activate
+
+pip install ply six Jinja2 MarkupSafe
 
 # build natives
 if [ "$SKIP_NATIVES" == "" ]; then
@@ -83,6 +90,8 @@ EOF
 }
 #endif
 EOF
+	
+	lua5.3 codegen.lua inp/natives_global.lua cs_v2 server > /src/code/client/clrcore-v2/Native/NativesServer.cs
 
 	lua5.3 codegen.lua inp/natives_global.lua rpc server > /opt/cfx-server/citizen/scripting/rpc_natives.json
 fi

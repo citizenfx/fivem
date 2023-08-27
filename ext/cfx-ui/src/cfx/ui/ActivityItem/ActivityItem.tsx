@@ -68,7 +68,8 @@ function Media({ media }: { media: IActivityItemMedia }) {
 
   switch (media.type) {
     case 'animated_gif':
-    case 'photo': {
+    case 'photo':
+    case 'youtube': {
       view = (
         <ImagePreview media={media} />
       );

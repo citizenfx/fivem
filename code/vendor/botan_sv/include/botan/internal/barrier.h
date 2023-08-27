@@ -31,7 +31,7 @@ class Barrier final
       void sync();
 
    private:
-      int m_value;
+      size_t m_value;
       size_t m_syncs;
       std::mutex m_mutex;
       std::condition_variable m_cond;

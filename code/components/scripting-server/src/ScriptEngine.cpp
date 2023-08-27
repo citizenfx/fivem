@@ -22,6 +22,12 @@ namespace fx
 
 		return (it == g_nativeHandlers.end()) ? boost::optional<TNativeHandler>() : it->second;
 	}
+
+	TNativeHandler* ScriptEngine::GetNativeHandlerPtr(uint64_t nativeIdentifier)
+	{
+		auto it = g_nativeHandlers.find(nativeIdentifier);
+		return it != g_nativeHandlers.end() ? &it->second : nullptr;
+	}
 }
 
 static InitFunction initFunction([]()

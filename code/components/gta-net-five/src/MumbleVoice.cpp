@@ -82,6 +82,7 @@ static uint32_t* g_preferenceArray;
 // #TODO1365
 // #TODO1493
 // #TODO1604
+// Outdated as of b2944, we're mapping indexes now.
 enum PrefEnum
 {
 	PREF_VOICE_ENABLE = 0x60,
@@ -97,6 +98,16 @@ enum PrefEnum
 	PREF_VOICE_MIC_SENSITIVITY = 0x6A
 };
 
+static int MapPrefsEnum(int index)
+{
+	if (index >= 2 && xbr::IsGameBuildOrGreater<2944>())
+	{
+		index++;
+	}
+
+	return index;
+}
+
 void VoiceChatPrefs::InitConfig()
 {
 	_initVoiceChatConfig();
@@ -104,37 +115,37 @@ void VoiceChatPrefs::InitConfig()
 
 bool VoiceChatPrefs::IsEnabled()
 {
-	return g_preferenceArray[PREF_VOICE_ENABLE];
+	return g_preferenceArray[MapPrefsEnum(PREF_VOICE_ENABLE)];
 }
 
 bool VoiceChatPrefs::IsMicEnabled()
 {
-	return g_preferenceArray[PREF_VOICE_TALK_ENABLED];
+	return g_preferenceArray[MapPrefsEnum(PREF_VOICE_TALK_ENABLED)];
 }
 
 int VoiceChatPrefs::GetOutputDevice()
 {
-	return g_preferenceArray[PREF_VOICE_OUTPUT_DEVICE];
+	return g_preferenceArray[MapPrefsEnum(PREF_VOICE_OUTPUT_DEVICE)];
 }
 
 int VoiceChatPrefs::GetInputDevice()
 {
-	return g_preferenceArray[PREF_VOICE_INPUT_DEVICE];
+	return g_preferenceArray[MapPrefsEnum(PREF_VOICE_INPUT_DEVICE)];
 }
 
 int VoiceChatPrefs::GetOutputVolume()
 {
-	return g_preferenceArray[PREF_VOICE_OUTPUT_VOLUME];
+	return g_preferenceArray[MapPrefsEnum(PREF_VOICE_OUTPUT_VOLUME)];
 }
 
 int VoiceChatPrefs::GetMicSensitivity()
 {
-	return g_preferenceArray[PREF_VOICE_MIC_SENSITIVITY];
+	return g_preferenceArray[MapPrefsEnum(PREF_VOICE_MIC_SENSITIVITY)];
 }
 
 int VoiceChatPrefs::GetChatMode()
 {
-	return g_preferenceArray[PREF_VOICE_CHAT_MODE];
+	return g_preferenceArray[MapPrefsEnum(PREF_VOICE_CHAT_MODE)];
 }
 #elif IS_RDR3
 struct VoiceChatMgrPrefs

@@ -192,6 +192,9 @@ namespace rage
 		{
 			FORWARD_FUNC(LogObject, 0xF0, object, stub);
 		}
+
+#undef FORWARD_FUNC
+
 #elif IS_RDR3
 		virtual void m_18() = 0; // InitialiseNode
 		virtual void m_20() = 0; // ShutdownNode
@@ -280,10 +283,18 @@ static std::string GetClassTypeName(void* ptr)
 	std::string name;
 
 #ifdef GTA_FIVE
-	name = typeid(*(VirtualBase*)ptr).name();
-	name = name.substr(6);
+	// Rest in pease RTTI in V, we will miss you
+	if (xbr::IsGameBuildOrGreater<2802>())
+	{
+		name = fmt::sprintf("%016llx", hook::get_unadjusted(*(uint64_t*)ptr));
+	}
+	else
+	{
+		name = typeid(*(VirtualBase*)ptr).name();
+		name = name.substr(6);
+	}
 #elif IS_RDR3
-	name = fmt::sprintf("%016llx", *(uint64_t*)ptr);
+	name = fmt::sprintf("%016llx", hook::get_unadjusted(*(uint64_t*)ptr));
 #endif
 
 	return name;
@@ -1163,7 +1174,7 @@ void RenderNetDrilldownWindow(bool* open)
 				{
 					sync::FrameIndex fi{ node.frameIdx };
 
-					if (ImGui::TreeNode(va("Packet %d @+%d (%d:%d)", id, node.ts, fi.frameIndex, fi.currentFragment)))
+					if (ImGui::TreeNodeEx(va("Packet %d @+%d (%d:%d)", id, node.ts, fi.frameIndex, fi.currentFragment), (node.messages.empty() ? ImGuiTreeNodeFlags_Leaf : 0)))
 					{
 						for (auto& message : node.messages)
 						{
@@ -1181,7 +1192,7 @@ void RenderNetDrilldownWindow(bool* open)
 			{
 				for (auto& [id, node] : g_drilldownDataOut)
 				{
-					if (ImGui::TreeNode(va("Tick %d @+%d (%d)", id, node.ts, node.frameIdx)))
+					if (ImGui::TreeNodeEx(va("Tick %d @+%d (%d)", id, node.ts, node.frameIdx), (node.messages.empty() ? ImGuiTreeNodeFlags_Leaf : 0)))
 					{
 						for (auto& message : node.messages)
 						{
@@ -1564,7 +1575,7 @@ static HookFunction hookFunction([]()
 	hook::nop(hook::get_pattern("4D 85 C9 74 14 44 0F BE 0A", 3), 2);
 	hook::nop(hook::get_pattern("4D 85 C9 74 14 44 0F B7 0A", 3), 2);
 	hook::nop(hook::get_pattern("4D 85 C9 74 14 44 0F B6 0A", 3), 2);
-	hook::nop(hook::get_pattern("50 48 85 D2 74 1A", 4), 2);
+	hook::nop(hook::get_pattern("50 48 85 D2 74 1A F3", 4), 2);
 	hook::nop(hook::get_pattern("48 85 DB 74 2D 44 0F B7 0A", 3), 2);
 	hook::nop(hook::get_pattern("4D 85 C0 74 38 F3 0F 10", 3), 2);
 	hook::nop(hook::get_pattern("48 85 DB 74 5C 83 64 24", 3), 2);

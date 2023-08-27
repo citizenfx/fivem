@@ -48,6 +48,10 @@ static constexpr int kNetObjectTypeBitLength = 4;
 static constexpr int kNetObjectTypeBitLength = 5;
 #endif
 
+#ifdef GTA_FIVE
+static uint32_t g_objectCreatedByOffset = 0;
+#endif
+
 static constexpr int kSyncPacketMaxLength = 2400;
 
 void ObjectIds_AddObjectId(int objectId);
@@ -446,14 +450,14 @@ void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
 	sbac->AddSafePreCreatePrefix("player:", true);
 	sbac->SetGameInterface(this);
 
+	m_sbac = sbac;
+
 	m_netLibrary->AddReliableHandler(
-	"msgStateBag", [sbac](const char* data, size_t len)
+	"msgStateBag", [this](const char* data, size_t len)
 	{
-		sbac->HandlePacket(0, std::string_view{ data, len });
+		m_sbac->HandlePacket(0, std::string_view{ data, len });
 	},
 	true);
-
-	m_sbac = sbac;
 
 	fx::ResourceManager::OnInitializeInstance.Connect([sbac](fx::ResourceManager* rm)
 	{
@@ -519,7 +523,7 @@ void CloneManagerLocal::ProcessCreateAck(uint16_t objId, uint16_t uniqifier)
 #ifdef GTA_FIVE
 static hook::cdecl_stub<void(rage::netSyncTree*, rage::netObject*, uint8_t, uint16_t, uint32_t, uint32_t)> _processAck([]()
 {
-	return hook::get_pattern("45 32 ED FF 50 20 8B CB 41", -0x34);
+	return hook::get_pattern("45 32 ED FF 50 ? 8B CB 41", -0x34);
 });
 #elif IS_RDR3
 static hook::cdecl_stub<void(rage::netSyncTree*, rage::netObject*, uint8_t, uint16_t, uint32_t, uint64_t)> _processAck([]()
@@ -1181,9 +1185,7 @@ bool CloneManagerLocal::HandleCloneCreate(const msgClone& msg)
 
 			if (objectCreationDataNode)
 			{
-				static int createdByOffset = xbr::IsGameBuildOrGreater<1604>() ? 332 : 0;
-
-				int createdBy = *(int*)((char*)objectCreationDataNode + createdByOffset);
+				int createdBy = *(int*)((char*)objectCreationDataNode + g_objectCreatedByOffset);
 
 				// random or fragment cache
 				if (createdBy == 0 || createdBy == 2)
@@ -1969,6 +1971,10 @@ static HookFunction hookFunctionOrigin([]()
 
 	origin = hook::get_address<void*>(loc + 0xC);
 	hook::set_call(&getCoordsFromOrigin, loc + 0x10);
+
+#ifdef GTA_FIVE
+	g_objectCreatedByOffset = *hook::get_pattern<uint32_t>("F7 03 FD FF FF FF 0F 85 ? ? ? ? 48 8B", -0x1A);
+#endif
 });
 
 #ifdef GTA_FIVE

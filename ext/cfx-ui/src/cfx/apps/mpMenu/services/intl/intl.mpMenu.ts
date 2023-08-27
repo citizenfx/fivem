@@ -17,13 +17,19 @@ export function registerMpMenuIntlService(container: ServicesContainer) {
 
 @injectable()
 class MpMenuIntlService implements IIntlService {
-  readonly systemLocale = mpMenu.systemLanguages[0] || 'en-US';
-  readonly systemLocaleCountry = (() => {
-    const [language, country] = this.systemLocale.split('-');
+  readonly systemLocale = (() => {
+    const systemLocale = mpMenu.systemLanguages[0] || 'en-US';
+    const [language, country] = systemLocale.split('-');
 
     if (!country) {
-      return language.toUpperCase();
+      // Windows has some locales such as `pl` which should expand to `pl-PL`
+      return `${language.toLowerCase()}-${language.toUpperCase()}`;
     }
+
+    return systemLocale;
+  })();
+  readonly systemLocaleCountry = (() => {
+    const [_, country] = this.systemLocale.split('-');
 
     return country.toUpperCase();
   })();

@@ -1,12 +1,7 @@
-#if MONO_V2
-using API = CitizenFX.FiveM.Native.Natives;
-
-namespace CitizenFX.FiveM
-#else
+#if !MONO_V2
 using CitizenFX.Core.Native;
 
 namespace CitizenFX.Core
-#endif
 {
 	public sealed class Prop : Entity
 	{
@@ -33,3 +28,4 @@ namespace CitizenFX.Core
 		}
 	}
 }
+#endif

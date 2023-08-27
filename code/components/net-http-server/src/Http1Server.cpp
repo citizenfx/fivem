@@ -193,6 +193,8 @@ public:
 
 	virtual void End() override
 	{
+		HttpResponse::End();
+
 		bool skipClose = false;
 		fwRefContainer thisRef = this;
 

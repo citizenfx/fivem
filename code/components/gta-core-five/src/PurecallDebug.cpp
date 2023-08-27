@@ -26,15 +26,17 @@ struct VirtualDerivative : public VirtualBase
 static void PurecallHandler(VirtualBase* self)
 {
 	// get the type name of the object
-	const char* typeName = va("unknown (vtable %p)", *(void**)self);
+	const char* typeName = va("unknown (vtable %p)", (void*)hook::get_unadjusted(*(void**)self));
 
-	try
+	if (!xbr::IsGameBuildOrGreater<2802>())
 	{
-		typeName = typeid(*self).name();
-	}
-	catch (std::__non_rtti_object&)
-	{
-		
+		try
+		{
+			typeName = typeid(*self).name();
+		}
+		catch (std::__non_rtti_object&)
+		{
+		}
 	}
 
 	// get the module base

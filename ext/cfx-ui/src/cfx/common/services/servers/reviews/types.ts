@@ -62,6 +62,8 @@ export interface IServerReviewItem {
   readonly title: string,
   readonly content: React.ReactNode,
 
+  readonly hidden: boolean,
+
   report?: IServerReviewReport,
   reactions?: IServerReviewItemReactions,
 

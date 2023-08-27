@@ -21,6 +21,10 @@
 
 #include <DirectXTex/DirectXTex.h>
 
+#include <CrossBuildRuntime.h>
+#include <Hooking.h>
+#include <Hooking.Stubs.h>
+
 namespace WRL = Microsoft::WRL;
 
 class NuiTxdResourceHandler;
@@ -99,7 +103,7 @@ public:
 
 	virtual void GetResponseHeaders(CefRefPtr<CefResponse> response, int64& response_length, CefString& redirectUrl) override
 	{
-		response->SetMimeType("image/bmp");
+		response->SetMimeType("image/png");
 
 		if (!m_found)
 		{
@@ -174,6 +178,8 @@ static void ProcessNuiTxdQueue()
 		// for now, we use D3D11-specific behavior to correctly convert
 		auto d3d11Res = req.texture->texture;
 		WRL::ComPtr<ID3D11Texture2D> d3d11Tex;
+
+		bool hadResult = false;
 		
 		if (SUCCEEDED(d3d11Res->QueryInterface(d3d11Tex.GetAddressOf())))
 		{
@@ -224,13 +230,44 @@ static void ProcessNuiTxdQueue()
 					//DirectX::ScratchImage rawImage;
 					//hr = SUCCEEDED(hr) ? DirectX::Convert(tgtImage.GetImages(), tgtImage.GetImageCount(), tgtImage.GetMetadata(), DXGI_FORMAT_R8G8B8A8_UNORM, DirectX::TEX_FILTER_DEFAULT, DirectX::TEX_THRESHOLD_DEFAULT, rawImage) : hr;
 
-					// and finally, wrap it in a BMP header
-					DirectX::Blob blob;
-					hr = SUCCEEDED(hr) ? DirectX::SaveToWICMemory(*tgtImage.GetImage(0, 0, 0), DirectX::WIC_FLAGS_NONE, DirectX::GetWICCodec(DirectX::WIC_CODEC_BMP), blob) : hr;
+					struct WorkItemRequest
+					{
+						CefRefPtr<NuiTxdResourceHandler> txdHandler;
+						CefRefPtr<CefCallback> callback;
+						DirectX::ScratchImage tgtImage;
+
+						WorkItemRequest(const CefRefPtr<NuiTxdResourceHandler>& handler, const CefRefPtr<CefCallback>& callback, DirectX::ScratchImage&& image)
+							: txdHandler(handler), callback(callback), tgtImage(std::move(image))
+						{
+						
+						}
+					};
 
 					if (SUCCEEDED(hr))
 					{
-						req.self->SubmitCompletion(std::move(blob));
+						auto workItemRequest = new WorkItemRequest(req.self, req.callback, std::move(tgtImage));
+
+						// and finally, wrap it in a PNG
+						QueueUserWorkItem([](LPVOID arg) -> DWORD
+						{
+							auto workItemRequest = (WorkItemRequest*)arg;
+
+							DirectX::Blob blob;
+							HRESULT hr = DirectX::SaveToWICMemory(*workItemRequest->tgtImage.GetImage(0, 0, 0), DirectX::WIC_FLAGS_FORCE_SRGB, DirectX::GetWICCodec(DirectX::WIC_CODEC_PNG), blob);
+
+							if (SUCCEEDED(hr))
+							{
+								workItemRequest->txdHandler->SubmitCompletion(std::move(blob));
+							}
+
+							workItemRequest->callback->Continue();
+
+							delete workItemRequest;
+							return 0;
+						},
+						workItemRequest, 0);
+
+						hadResult = true;
 					}
 				}
 			}
@@ -240,7 +277,10 @@ static void ProcessNuiTxdQueue()
 		auto txdStore = str->moduleMgr.GetStreamingModule("ytd");
 		txdStore->RemoveRef(req.txdId);
 
-		req.callback->Continue();
+		if (!hadResult)
+		{
+			req.callback->Continue();
+		}
 	}
 }
 
@@ -276,6 +316,16 @@ static InitFunction initFunction([]()
 	}, -500);
 });
 
+__int64(__fastcall* g_origAlterPedHeadshotTransparentPSConstants_Hook)(__m128*, __m128*);
+
+// Since b2189's shader changes `RegisterPedheadshotTransparent`'s texture colors are in the [0 .. 0.6] range, let's inverse it
+// Sets	PS constant buffer 3rd and 4th? (unchecked) float4/vec4/__m128 values, where the 3rd is referred to as `GeneralParams0`
+__int64 __fastcall AlterPedHeadshotTransparentPSConstants_Hook(__m128* a3, __m128* a4)
+{
+	*a3 = _mm_set1_ps(1.f / 0.6f); // *a3 is stack allocated
+	return g_origAlterPedHeadshotTransparentPSConstants_Hook(a3, a4);
+}
+
 static HookFunction hookFunction([]()
 {
 	OnGrcCreateDevice.Connect([]()
@@ -283,4 +333,11 @@ static HookFunction hookFunction([]()
 		nui::RegisterSchemeHandlerFactory("http", "nui-img", Instance<NUISchemeHandlerFactory>::Get());
 		nui::RegisterSchemeHandlerFactory("https", "nui-img", Instance<NUISchemeHandlerFactory>::Get());
 	});
+
+	if (xbr::IsGameBuildOrGreater<2189>())
+	{
+		g_origAlterPedHeadshotTransparentPSConstants_Hook = hook::trampoline(
+			hook::get_pattern("48 8D 4D F7 0F 29 4D F7 0F 29 45 E7", 0xC),
+			AlterPedHeadshotTransparentPSConstants_Hook);
+	}
 });

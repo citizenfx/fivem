@@ -135,6 +135,9 @@ static InitFunction initfunction([]()
 		return true;
 	});
 
-	nui::RegisterSchemeHandlerFactory("https", "nui-backdrop", Instance<NUISchemeHandlerFactory>::Get());
+	nui::OnInitialize.Connect([]
+	{
+		nui::RegisterSchemeHandlerFactory("https", "nui-backdrop", Instance<NUISchemeHandlerFactory>::Get());
+	});
 });
 #endif

@@ -66,8 +66,10 @@ private:
 
 	LoopbackTcpServerManager* m_manager;
 
+	std::string m_hostName;
+
 public:
-	LoopbackTcpServer(LoopbackTcpServerManager* manager);
+	LoopbackTcpServer(LoopbackTcpServerManager* manager, const std::string& hostName);
 
 	inline uint16_t GetPort()
 	{

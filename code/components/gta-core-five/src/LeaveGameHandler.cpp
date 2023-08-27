@@ -39,18 +39,30 @@ static void ReplayEditorExit()
 	DoKill();
 }
 
-static HookFunction hookFunction([] ()
+static HookFunction hookFunction([]()
 {
 	// pausemenu triggers
-	void* call = hook::pattern("48 8D 8D 18 01 00 00 BE 74 26 B5 9F").count(1).get(0).get<void>(-5);
+	{
+		char* location;
 
-	hook::set_call(&g_origTrigger, call);
-	hook::call(call, CustomTrigger);
+		if (xbr::IsGameBuildOrGreater<2802>())
+		{
+			location = hook::pattern("48 8D 8D 18 01 00 00 41 BE 74 26 B5 9F").count(1).get(0).get<char>(-5);
+		}
+		else
+		{
+			location = hook::pattern("48 8D 8D 18 01 00 00 BE 74 26 B5 9F").count(1).get(0).get<char>(-5);
+		}
+
+		hook::set_call(&g_origTrigger, location);
+		hook::call(location, CustomTrigger);
+	
+	}
 
 	// same for R* editor exit
 	if (!Is372())
 	{
-		auto location = hook::get_pattern<char>("E8 ? ? ? ? 83 3D ? ? ? ? 08 75 05 E8", 0x1A);
+		auto location = hook::get_pattern<char>("E8 ? ? ? ? 83 3D ? ? ? ? 08 75 05 E8 ? ? ? ? 83", 0x1A);
 		hook::call(location, ReplayEditorExit);
 	}
 });

@@ -187,43 +187,44 @@ bool ResourceEventManagerComponent::TriggerEvent(const std::string& eventName, c
 	g_eventCancelationStack.push(&eventCanceled);
 
 	// trigger global handlers for the event
-	OnTriggerEvent(eventName, eventPayload, eventSource, &eventCanceled);
-
-	// trigger local handlers
-	auto forResource = [&](const fwRefContainer<Resource>& resource)
+	if (OnTriggerEvent(eventName, eventPayload, eventSource, &eventCanceled))
 	{
-		// get the event component
-		const fwRefContainer<ResourceEventComponent>& eventComponent = resource->GetComponent<ResourceEventComponent>();
-
-		// if there's none, return
-		if (!eventComponent.GetRef())
+		// trigger local handlers
+		auto forResource = [&](const fwRefContainer<Resource>& resource)
 		{
-			trace("no event component for resource %s\n", resource->GetName().c_str());
-			return;
-		}
+			// get the event component
+			const fwRefContainer<ResourceEventComponent>& eventComponent = resource->GetComponent<ResourceEventComponent>();
 
-		// continue on
-		eventComponent->HandleTriggerEvent(eventName, eventPayload, eventSource, &eventCanceled);
-	};
-
-	if (!filter)
-	{
-		for (const auto& eventKey : { std::string{ "*" }, eventName })
-		{
-			for (const auto& resourcePair : fx::GetIteratorView(m_eventResources.equal_range(eventKey)))
+			// if there's none, return
+			if (!eventComponent.GetRef())
 			{
-				auto resource = m_manager->GetResource(resourcePair.second, false);
+				trace("no event component for resource %s\n", resource->GetName().c_str());
+				return;
+			}
 
-				if (resource.GetRef())
+			// continue on
+			eventComponent->HandleTriggerEvent(eventName, eventPayload, eventSource, &eventCanceled);
+		};
+
+		if (!filter)
+		{
+			for (const auto& eventKey : { std::string{ "*" }, eventName })
+			{
+				for (const auto& resourcePair : fx::GetIteratorView(m_eventResources.equal_range(eventKey)))
 				{
-					forResource(resource);
+					auto resource = m_manager->GetResource(resourcePair.second, false);
+
+					if (resource.GetRef())
+					{
+						forResource(resource);
+					}
 				}
 			}
 		}
-	}
-	else
-	{
-		filter->HandleTriggerEvent(eventName, eventPayload, eventSource, &eventCanceled);
+		else
+		{
+			filter->HandleTriggerEvent(eventName, eventPayload, eventSource, &eventCanceled);
+		}
 	}
 
 	// pop the stack entry

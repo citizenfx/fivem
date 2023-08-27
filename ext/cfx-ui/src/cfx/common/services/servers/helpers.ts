@@ -11,7 +11,15 @@ export function showServerCountryFlag(localeCountry: IServerView['localeCountry'
 }
 
 export function showServerPowers(server: IServerView): boolean {
+  if (!isServerBoostable(server)) {
+    return false;
+  }
+
   return Boolean(server.upvotePower || server.burstPower);
+}
+
+export function isServerBoostable(server: IServerView): boolean {
+  return !!server.joinId;
 }
 
 export function getServerDetailsLink(server: IServerView): string {

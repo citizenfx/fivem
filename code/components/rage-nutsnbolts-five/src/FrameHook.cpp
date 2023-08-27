@@ -11,6 +11,7 @@
 #include <Hooking.h>
 
 #include <ICoreGameInit.h>
+#include <CrossBuildRuntime.h>
 
 fwEvent<> OnLookAliveFrame;
 fwEvent<> OnEarlyGameFrame;
@@ -198,7 +199,7 @@ static HookFunction hookFunction([] ()
 
 	location = (char*)(location + *(int32_t*)location + 4);
 
-	location += 32;
+	location += xbr::IsGameBuildOrGreater<2802>() ? 24 : 32;
 
 	void** vt = (void**)location;
 

@@ -154,6 +154,11 @@ void HttpResponse::End(std::string&& data)
 	End();
 }
 
+void HttpResponse::End()
+{
+	m_request->SetCancelHandler();
+}
+
 static const std::map<const int, const std::string_view> httpStatuses =
 {
 	{ 100, "Continue" },

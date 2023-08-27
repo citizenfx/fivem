@@ -37,6 +37,7 @@ static std::set<std::string, console::IgnoreCaseLess> setList =
 	"gamename",
 	"sv_enforceGameBuild",
 	"sv_licenseKey",
+	"resources_useSystemChat",
 };
 
 namespace fx

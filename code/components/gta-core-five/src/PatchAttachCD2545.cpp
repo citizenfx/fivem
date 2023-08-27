@@ -17,9 +17,14 @@ static HookFunction hookFunction([]()
 {
 	if (xbr::IsGameBuildOrGreater<2545>())
 	{
-		auto location = hook::get_pattern<char>("BA F4 39 90 CA B9 BD C5 AF");
-		hook::call(location - 12, ReturnFalse);
-		hook::call(location + 26, ReturnFalse);
+		auto location = hook::get_pattern<char>("BA E7 8F A5 1E B9 BD C5 AF E3 E8");
+		hook::call(location + 23, ReturnFalse);
+
+		// This call was removed in 2802.0
+		if (!xbr::IsGameBuildOrGreater<2802>())
+		{
+			hook::call(location + 61, ReturnFalse);
+		}
 
 		auto attachEntityToEntityTunable = hook::get_pattern<char>("BA 37 89 3D 8A B9 BD C5 AF E3");
 		hook::call(attachEntityToEntityTunable + 23, ReturnFalse);

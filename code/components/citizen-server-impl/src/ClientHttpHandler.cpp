@@ -64,7 +64,7 @@ namespace fx
 
 	static auto GetClientEndpointHandler(fx::ServerInstanceBase* instance)
 	{
-		return [=](const fwRefContainer<net::HttpRequest>& request, const fwRefContainer<net::HttpResponse>& response)
+		return [=](const fwRefContainer<net::HttpRequest>& request, fwRefContainer<net::HttpResponse> response)
 		{
 			if (request->GetRequestMethod() != "POST")
 			{

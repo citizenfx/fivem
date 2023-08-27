@@ -1388,7 +1388,7 @@ namespace fx
 						}
 
 						// log rcon request
-						trace("Rcon from %s\n%s\n", from.ToString(), command);
+						console::Printf("rcon", "Rcon from %s\n%s\n", from.ToString(), command);
 
 						// reset rate limit for this key
 						limiter->Reset(from);

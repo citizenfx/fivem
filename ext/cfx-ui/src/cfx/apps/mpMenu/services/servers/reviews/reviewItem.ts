@@ -34,6 +34,8 @@ export class DiscourseServerReviewItem implements IServerReviewItem {
   readonly title: string;
   content: React.ReactNode = null;
 
+  hidden = false;
+
   report?: IServerReviewReport;
   reactions?: IServerReviewItemReactions;
 
@@ -79,6 +81,7 @@ export class DiscourseServerReviewItem implements IServerReviewItem {
       const post = await this.loadPost();
 
       runInAction(() => {
+        this.hidden = post.hidden;
         this.content = html2react(post.cooked);
 
         this.report = new DiscourseServerReviewReport(this.discourseService, this.flagOptions, post);

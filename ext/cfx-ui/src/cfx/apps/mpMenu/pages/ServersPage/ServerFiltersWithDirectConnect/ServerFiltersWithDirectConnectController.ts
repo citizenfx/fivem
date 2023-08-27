@@ -100,6 +100,8 @@ export class ServerFiltersWithDirectConnectController implements IDisposableObje
     this.lastAddress = '';
 
     this.serversConnectService?.connectTo(connectTo);
+
+    event.preventDefault();
   };
 
   private lastAddress = '';

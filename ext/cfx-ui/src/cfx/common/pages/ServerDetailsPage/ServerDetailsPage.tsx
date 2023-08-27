@@ -187,7 +187,7 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
                         items={server.players}
                         seeAllTitle={$L('#ServerDetail_Players_ShowAll')}
                         renderPreviewItem={playerRenderer}
-                        itemMatchesFilter={(filter, item) => item.name.toLowerCase().includes(filter)}
+                        itemMatchesFilter={(filter, item) => item.name.toLowerCase().includes(filter.toLowerCase())}
                       />
                     )}
 
@@ -198,7 +198,7 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
                         items={displayResources}
                         seeAllTitle={$L('#ServerDetail_Resources_ShowAll')}
                         renderPreviewItem={identity}
-                        itemMatchesFilter={(filter, item) => item.toLowerCase().includes(filter)}
+                        itemMatchesFilter={(filter, item) => item.toLowerCase().includes(filter.toLowerCase())}
                       />
                     )}
 
@@ -209,7 +209,7 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
                         items={server.tags}
                         renderPreviewItem={identity}
                         seeAllTitle={$L('#ServerDetail_Tags_ShowAll')}
-                        itemMatchesFilter={(filter, item) => item.toLowerCase().includes(filter)}
+                        itemMatchesFilter={(filter, item) => item.toLowerCase().includes(filter.toLowerCase())}
                       />
                     )}
                   </Flex>

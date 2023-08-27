@@ -121,7 +121,11 @@ static void WarnOSVersion()
 
 bool LauncherInterface::PreInitializeGame()
 {
-	DisableNvCache();
+	std::thread([]()
+	{
+		DisableNvCache();
+	})
+	.detach();
 
 	if (!IsWindows8OrGreater())
 	{

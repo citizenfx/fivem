@@ -288,11 +288,13 @@ TCallbackMap ClientDeferral::GetCallbacks()
 					{
 						fx::FunctionRef functionRef{ std::string{callback.via.ext.data(), callback.via.ext.size} };
 
-						self->SetCardResponseHandler(make_shared_function([self, functionRef = std::move(functionRef)](const std::string& cardJson)
+						auto instance = self->m_instance;
+
+						self->SetCardResponseHandler(make_shared_function([instance, functionRef = std::move(functionRef)](const std::string& cardJson)
 						{
 							auto fnRef = functionRef.GetRef();
 
-							gscomms_execute_callback_on_main_thread([self, fnRef, cardJson]
+							gscomms_execute_callback_on_main_thread([instance, fnRef, cardJson]
 							{
 								rapidjson::Document cardJSON;
 								cardJSON.Parse(cardJson.c_str(), cardJson.size());
@@ -303,7 +305,7 @@ TCallbackMap ClientDeferral::GetCallbacks()
 									msgpack::zone zone;
 									ConvertToMsgPack(cardJSON, cardObject, zone);
 
-									self->m_instance->GetComponent<fx::ResourceManager>()->CallReference<void>(fnRef, cardObject, cardJson);
+									instance->GetComponent<fx::ResourceManager>()->CallReference<void>(fnRef, cardObject, cardJson);
 								}
 							});
 						}));

@@ -194,7 +194,11 @@ local function printTypeSetter(type, native, retval)
 	elseif type.nativeType == 'string' then
 		argType = template:format("const char*", retval)
 	elseif type.nativeType == 'int' then
-		argType = template:format("int32_t", retval)
+		if type.subType == 'long' then
+			argType = template:format("int64_t", retval)
+		else
+			argType = template:format("int32_t", retval)
+		end
 	elseif type.nativeType == 'float' then
 		argType = template:format("float", retval)
 	elseif type.nativeType == 'bool' then
@@ -325,6 +329,12 @@ local function printNative(native)
 			
 			aIdx = aIdx + ((arg.type.nativeType == 'vector3') and 3 or 1)
 		end
+	end
+
+	-- hacky zeroing of arguments, see https://github.com/citizenfx/fivem/issues/2135
+	for argn=1,math.min(2, 32 - #native.arguments) do
+		n = n .. t .. ("nCtx.SetArgument(%d, uintptr_t(0));\n"):format(aIdx)
+		aIdx = aIdx + 1
 	end
 	
 	n = n .. t .. ("LUA_EXC_WRAP_START(0x%016x)\n"):format(native.hash)

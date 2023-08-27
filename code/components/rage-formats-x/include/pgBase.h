@@ -9,6 +9,10 @@
 
 #include "datBase.h"
 
+#ifdef RAGE_FORMATS_IN_GAME
+#include "sysAllocator.h"
+#endif
+
 #define RAGE_FORMATS_FILE pgBase
 #include "formats-header.h"
 
@@ -84,12 +88,17 @@ public:
 };
 
 class FORMATS_EXPORT pgStreamableBase
+#ifdef RAGE_FORMATS_IN_GAME
+	: public rage::sysUseAllocator
+#endif
 {
 public:
+#ifndef RAGE_FORMATS_IN_GAME
 	inline void* operator new(size_t size)
 	{
 		return malloc(size);
 	}
+#endif
 
 	inline void* operator new(size_t size, bool isPhysical)
 	{

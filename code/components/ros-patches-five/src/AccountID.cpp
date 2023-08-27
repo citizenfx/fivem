@@ -36,6 +36,21 @@
 #include "ROSErrors.h"
 #include <boost/algorithm/string/replace.hpp>
 
+#include "CfxReleaseInfo.h"
+
+template<typename... Ts>
+static auto PostAutoLogin(Ts&&... args)
+{
+	return cpr::Post(
+		cpr::Header{
+			{ "Content-Type", "application/json; charset=utf-8" },
+			{ "Accept", "application/json" },
+			{ "X-Requested-With", "XMLHttpRequest" } },
+		cpr::UserAgent{ fmt::sprintf("CitizenFX/1 (rel. %d)", cfx::GetPlatformRelease()) },
+		std::forward<Ts>(args)...
+	);
+}
+
 static bool TryFindError(const std::string& errorString, std::string* outMessage)
 {
 	if (auto it = g_rosErrors.find("Errors_" + errorString); it != g_rosErrors.end())
@@ -88,6 +103,7 @@ struct ExternalROSBlob
 	bool valid;
 	bool tried;
 	bool triedEpic;
+	bool inUI = false;
 
 	ExternalROSBlob()
 	{
@@ -172,7 +188,6 @@ static std::vector<DWORD> GetMTLPids()
 
 						if (GetFileAttributesW(path) != INVALID_FILE_ATTRIBUTES)
 						{*/
-							CloseHandle(hProcess);
 							rv.push_back(pids[i]);
 						//}
 					}
@@ -319,6 +334,140 @@ HANDLE OpenProcessByName(const std::wstring& name, DWORD desiredAccess)
 #include <winternl.h>
 
 #pragma comment(lib, "ntdll.lib")
+
+extern bool RunSteamAuthUi(const nlohmann::json& json);
+extern bool RunEpicAuthUi(const nlohmann::json& json);
+std::string g_tpaId;
+std::string g_tpaToken;
+
+static nlohmann::json LoadStoredTpaData()
+{
+	nlohmann::json j;
+
+	PWSTR appDataPath;
+	if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, nullptr, &appDataPath)))
+	{
+		// create the directory if not existent
+		std::wstring cfxPath = std::wstring(appDataPath) + L"\\CitizenFX";
+		CreateDirectory(cfxPath.c_str(), nullptr);
+
+		// open and read the profile file
+		std::wstring profilePath = cfxPath + L"\\ros_auth.json";
+
+		if (FILE* profileFile = _wfopen(profilePath.c_str(), L"rb"))
+		{
+			std::vector<uint8_t> profileFileData;
+			int pos;
+
+			// get the file length
+			fseek(profileFile, 0, SEEK_END);
+			pos = ftell(profileFile);
+			fseek(profileFile, 0, SEEK_SET);
+
+			// resize the buffer
+			profileFileData.resize(pos);
+
+			// read the file and close it
+			fread(&profileFileData[0], 1, pos, profileFile);
+
+			fclose(profileFile);
+
+			// decrypt the stored data - setup blob
+			DATA_BLOB cryptBlob;
+			cryptBlob.pbData = &profileFileData[0];
+			cryptBlob.cbData = profileFileData.size();
+
+			DATA_BLOB outBlob;
+
+			// call DPAPI
+			if (CryptUnprotectData(&cryptBlob, nullptr, nullptr, nullptr, nullptr, 0, &outBlob))
+			{
+				// parse the profile list
+				try
+				{
+					j = nlohmann::json::parse(std::string(reinterpret_cast<char*>(outBlob.pbData), outBlob.cbData));
+				}
+				catch (std::exception& e)
+				{
+				}
+
+				// free the out data
+				LocalFree(outBlob.pbData);
+			}
+		}
+
+		CoTaskMemFree(appDataPath);
+	}
+
+	return j;
+}
+
+static void SaveTpaData(const nlohmann::json& list)
+{
+	auto savedList = list.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace);
+
+	// encrypt the actual string
+	DATA_BLOB cryptBlob;
+	cryptBlob.pbData = reinterpret_cast<uint8_t*>(const_cast<char*>(savedList.c_str()));
+	cryptBlob.cbData = savedList.size();
+
+	DATA_BLOB outBlob;
+
+	if (CryptProtectData(&cryptBlob, nullptr, nullptr, nullptr, nullptr, 0, &outBlob))
+	{
+		PWSTR appDataPath;
+		if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, nullptr, &appDataPath)))
+		{
+			// create the directory if not existent
+			std::wstring cfxPath = std::wstring(appDataPath) + L"\\CitizenFX";
+			CreateDirectory(cfxPath.c_str(), nullptr);
+
+			// open and read the profile file
+			std::wstring profilePath = cfxPath + L"\\ros_auth.json";
+
+			if (FILE* profileFile = _wfopen(profilePath.c_str(), L"wb"))
+			{
+				fwrite(outBlob.pbData, 1, outBlob.cbData, profileFile);
+				fclose(profileFile);
+			}
+
+			CoTaskMemFree(appDataPath);
+		}
+
+		LocalFree(outBlob.pbData);
+	}
+}
+
+static nlohmann::json GetTpaTokens()
+{
+	auto doc = LoadStoredTpaData();
+
+	if (doc.is_object() && doc["tpaTokens"].is_object())
+	{
+		return doc["tpaTokens"];
+	}
+
+	return nlohmann::json::object();
+}
+
+static void AddTpaToken(const std::string& rockstarId, const std::string& token)
+{
+	auto doc = LoadStoredTpaData();
+
+	if (!doc.is_object())
+	{
+		doc = nlohmann::json::object();
+	}
+
+	if (!doc["tpaTokens"].is_object())
+	{
+		doc["tpaTokens"] = nlohmann::json::object();
+	}
+
+	doc["tpaTokens"][rockstarId] = token;
+
+	SaveTpaData(doc);
+}
 
 #include <eos-sdk/eos_sdk.h>
 #include <eos-sdk/eos_auth.h>
@@ -525,7 +674,14 @@ void ValidateEpic(int parentPid)
 	static EOS_Auth_Token* eosToken;
 
 	static auto _EOS_Auth_CopyUserAuthToken = (decltype(&EOS_Auth_CopyUserAuthToken))GetProcAddress(eosDll, "EOS_Auth_CopyUserAuthToken");
+	static auto _EOS_EpicAccountId_ToString = (decltype(&EOS_EpicAccountId_ToString))GetProcAddress(eosDll, "EOS_EpicAccountId_ToString");
+
+	std::string s;
+	nlohmann::json j;
+	cpr::Response r;
+
 	auto _EOS_Auth_Login = (decltype(&EOS_Auth_Login))GetProcAddress(eosDll, "EOS_Auth_Login");
+	static std::string accountId;
 	_EOS_Auth_Login(epicAuth, &eao, &hWait, [](const EOS_Auth_LoginCallbackInfo* info)
 	{
 		if (info->ResultCode != EOS_EResult::EOS_Success)
@@ -539,52 +695,83 @@ void ValidateEpic(int parentPid)
 		_EOS_Auth_CopyUserAuthToken(epicAuth, &cao, info->LocalUserId, &eosToken);
 
 		SetEvent(hWait);
+
+		char accountIdBuf[128];
+		int32_t accountIdLength = std::size(accountIdBuf);
+
+		_EOS_EpicAccountId_ToString(info->LocalUserId, accountIdBuf, &accountIdLength);
+
+		accountId = accountIdBuf;
 	});
 
 	auto _EOS_Platform_Tick = (decltype(&EOS_Platform_Tick))GetProcAddress(eosDll, "EOS_Platform_Tick");
 
-	while (WaitForSingleObject(hWait, 500) == WAIT_TIMEOUT)
+	while (WaitForSingleObject(hWait, 50) == WAIT_TIMEOUT)
 	{
 		_EOS_Platform_Tick(epicPlatform);
- 	}
-
-	std::string s = eosToken->AccessToken;
-
-	auto j = nlohmann::json::object({{ "platform", "pcros" },
-	{ "authTicket", s } });
-
-	auto r = cpr::Post(
-		cpr::Url{ "https://rgl.rockstargames.com/api/launcher/autologinepic" },
-		cpr::Header{
-			{ { "Content-Type", "application/json; charset=utf-8" },
-			{ "Accept", "application/json" },
-			{ "X-Requested-With", "XMLHttpRequest" } } },
-		cpr::Body{
-		j.dump() },
-		cpr::VerifySsl{ false });
-
-	if (r.error)
-	{
-		bye();
-
-#ifdef IS_RDR3
-		FatalError("Error during auto-signin with ROS using Epic: %s", r.error.message);
-#endif
-
-		return;
 	}
 
-	j = nlohmann::json::parse(r.text);
+	s = eosToken->AccessToken;
 
-	if (!j["Status"].get<bool>())
+	for (;;)
 	{
-		bye();
+		j = nlohmann::json::object({{ "platform", "pcros" },
+		{ "authTicket", s } });
+
+		j["tpaTokens"] = GetTpaTokens();
+
+		r = PostAutoLogin(
+			cpr::Url{ "https://rgl.rockstargames.com/api/launcher/autologinepic" },
+			cpr::Body{
+			j.dump() });
+
+		if (r.error)
+		{
+			bye();
 
 #ifdef IS_RDR3
-		FatalError("Error during Epic ROS signin (%s)\n%s", j["Error"].value("Code", ""), MapMessage(j));
+			FatalError("Error during auto-signin with ROS using Epic: %s", r.error.message);
 #endif
 
-		return;
+			return;
+		}
+
+		j = nlohmann::json::parse(r.text);
+
+		if (!j["Status"].get<bool>())
+		{
+			auto code = j["Error"].value("Code", "");
+
+			if (code != "4000.210")
+			{
+				bye();
+
+#ifdef IS_RDR3
+				FatalError("Error during Epic ROS signin (%s)\n%s", code, MapMessage(j));
+#endif
+
+				return;
+			}
+
+			blob->inUI = true;
+
+			if (!RunEpicAuthUi(nlohmann::json::object({ { "EpicAccountId", accountId },
+				{ "EpicPlayerName", "uhh" },
+				{ "epicAccessToken", s } })))
+			{
+				blob->inUI = false;
+				bye();
+
+				return;
+			}
+
+			blob->inUI = false;
+
+			AddTpaToken(g_tpaId, g_tpaToken);
+			continue;
+		}
+
+		break;
 	}
 
 	auto sessionKey = Botan::base64_decode(j.value("SessionKey", ""));
@@ -615,18 +802,14 @@ void ValidateEpic(int parentPid)
 		{ "version", 11 },
 	});
 
-	r = cpr::Post(
+	r = PostAutoLogin(
 	cpr::Url{ "https://rgl.rockstargames.com/api/launcher/bindepicaccount" },
 	cpr::Header{
 	{
-	{ "Content-Type", "application/json; charset=utf-8" },
-	{ "Accept", "application/json" },
-	{ "X-Requested-With", "XMLHttpRequest" },
-	{ "Authorization", fmt::sprintf("SCAUTH val=\"%s\"", tick) },
+		{ "Authorization", fmt::sprintf("SCAUTH val=\"%s\"", tick) },
 	} },
 	cpr::Body{
-	j.dump() },
-	cpr::VerifySsl{ false });
+	j.dump() });
 
 	if (r.error)
 	{
@@ -687,59 +870,82 @@ void ValidateSteam(int parentPid)
 #endif
 	;
 
+	nlohmann::json j;
+	cpr::Response r;
+	std::string s;
 
-	std::string s = GetAuthSessionTicket(appId);
-
-	if (s.empty())
+	for (;;)
 	{
-#if defined(IS_RDR3)
-		appId = 1404210; // RDO
-		appName = "rdr2_rdo";
 		s = GetAuthSessionTicket(appId);
 
 		if (s.empty())
-#endif
 		{
+#if defined(IS_RDR3)
+			appId = 1404210; // RDO
+			appName = "rdr2_rdo";
+			s = GetAuthSessionTicket(appId);
+
+			if (s.empty())
+#endif
+			{
+				return;
+			}
+		}
+
+		j = nlohmann::json::object({
+			{ "appId", appId },
+			{ "platform", "pcros" },
+			{ "authTicket", s },
+		});
+
+		j["tpaTokens"] = GetTpaTokens();
+
+		r = PostAutoLogin(
+			cpr::Url{ "https://rgl.rockstargames.com/api/launcher/autologinsteam" },
+			cpr::Body{
+				j.dump()
+			});
+
+		if (r.error)
+		{
+#ifdef IS_RDR3
+			FatalError("Error during auto-signin with ROS using Steam: %s", r.error.message);
+#endif
+
 			return;
 		}
-	}
 
-	auto j = nlohmann::json::object({
-		{ "appId", appId },
-		{ "platform", "pcros" },
-		{ "authTicket", s }
-	});
+		j = nlohmann::json::parse(r.text);
 
-	auto r = cpr::Post(
-		cpr::Url{ "https://rgl.rockstargames.com/api/launcher/autologinsteam" },
-		cpr::Header{
-			{"Content-Type", "application/json; charset=utf-8"},
-			{"Accept", "application/json"},
-			{"X-Requested-With", "XMLHttpRequest"}
-		},
-		cpr::Body{
-			j.dump()
-		},
-		cpr::VerifySsl{ false });
+		if (!j["Status"].get<bool>())
+		{
+			auto code = j["Error"].value("Code", "");
 
-	if (r.error)
-	{
+			if (code != "4000.210")
+			{
 #ifdef IS_RDR3
-		FatalError("Error during auto-signin with ROS using Steam: %s", r.error.message);
+				FatalError("Error during Steam ROS signin (%s)\n%s", code, MapMessage(j));
 #endif
 
-		return;
-	}
+				return;
+			}
 
-	j = nlohmann::json::parse(r.text);
+			blob->inUI = true;
 
-	if (!j["Status"].get<bool>())
-	{
-#ifdef IS_RDR3
-		FatalError("Error during Steam ROS signin (%s)\n%s", j["Error"].value("Code", ""), MapMessage(j));
-#endif
+			if (!RunSteamAuthUi(nlohmann::json::object({ { "SteamAppId", int32_t(appId) },
+				{ "SteamAuthTicket", s } })))
+			{
+				blob->inUI = false;
+				return;
+			}
 
-		return;
+			blob->inUI = false;
+
+			AddTpaToken(g_tpaId, g_tpaToken);
+			continue;
+		}
+
+		break;
 	}
 
 	auto sessionKey = Botan::base64_decode(j.value("SessionKey", ""));
@@ -767,18 +973,14 @@ void ValidateSteam(int parentPid)
 		{ "version", 11 },
 	});
 
-	r = cpr::Post(
+	r = PostAutoLogin(
 		cpr::Url{ "https://rgl.rockstargames.com/api/launcher/bindsteamaccount" },
 		cpr::Header{
-			{"Content-Type", "application/json; charset=utf-8"},
-			{"Accept", "application/json"},
-			{"X-Requested-With", "XMLHttpRequest"},
 			{"Authorization", fmt::sprintf("SCAUTH val=\"%s\"", tick) },
 		},
 		cpr::Body{
 			j.dump()
-		},
-		cpr::VerifySsl{ false });
+		});
 
 	if (r.error)
 	{
@@ -806,7 +1008,7 @@ static bool InitAccountMTL()
 	if (pids.empty())
 	{
 #if defined(IS_RDR3)
-		MessageBoxW(NULL, L"Currently, you have to run the Rockstar Games Launcher, Steam, or the Epic Games Launcher (depending on where you purchased the game) to be able to run RedM.", L"RedM", MB_OK | MB_ICONSTOP);
+		MessageBoxW(NULL, L"You have to run the Rockstar Games Launcher, Steam, or the Epic Games Launcher (depending on where you purchased the game) to be able to run RedM.", L"RedM", MB_OK | MB_ICONSTOP);
 #endif
 
 		return false;
@@ -938,7 +1140,7 @@ void PreInitGameSpec()
 
 	accountSetUp = true;
 
-	if (wcsstr(GetCommandLineW(), L"ros:steam") != nullptr || wcsstr(GetCommandLineW(), L"ros:epic") != nullptr)
+	if (wcsstr(GetCommandLineW(), L"ros:steam") != nullptr || wcsstr(GetCommandLineW(), L"ros:epic") != nullptr || wcsstr(GetCommandLineW(), L"--type=") != nullptr)
 	{
 		return;
 	}
@@ -1235,3 +1437,9 @@ static HookFunction hookFunctionSteamBlob([]()
 	}
 #endif
 });
+
+bool InLegitimacyUI()
+{
+	HostSharedData<ExternalROSBlob> blob("Cfx_ExtRosBlob");
+	return blob->inUI;
+}

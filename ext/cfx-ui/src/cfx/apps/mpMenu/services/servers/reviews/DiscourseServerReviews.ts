@@ -13,6 +13,10 @@ import { DiscourseServerReviewItem, IUserStub, RecognizedTopicTags } from "./rev
 // discourse' server reviews category id
 const REVIEWS_CATEGORY_ID = 76;
 
+// the required play time (in seconds) to be allowed to post a review
+const HOURS = 3600;
+const REVIEW_REQUIRED_PLAYTIME = (2 * HOURS);
+
 enum OwnReviewState {
   Loading,
   LoadingError,
@@ -60,6 +64,10 @@ export class DiscourseServerReviews implements IServerReviews {
 
   public get canSubmitReview(): boolean {
     if (!this.discourseService.account) {
+      return false;
+    }
+
+    if (!this.ownPlaytime || this.ownPlaytime.seconds < REVIEW_REQUIRED_PLAYTIME) {
       return false;
     }
 

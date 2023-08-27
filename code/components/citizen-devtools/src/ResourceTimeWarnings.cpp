@@ -510,6 +510,11 @@ static InitFunction initFunction([]()
 					std::vector<std::tuple<std::string, double, double, int64_t, int64_t>> resourceDatasClean;
 					for (const auto& data : resourceDatas)
 					{
+						if (std::get<0>(data) == "_cfx_internal")
+						{
+							continue;
+						}
+
 						resourceDatasClean.push_back(tuple_slice<0, std::tuple_size_v<decltype(resourceDatasClean)::value_type>>(data));
 					}
 

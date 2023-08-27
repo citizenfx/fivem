@@ -6,14 +6,14 @@
 #include <Error.h>
 
 static std::unordered_map<void*, std::string> g_gamerInfoBuffer;
-static std::mutex g_gamerInfoBufferMutex;
+static std::recursive_mutex g_gamerInfoBufferMutex;
 
 int SprintfToBuffer(char* buffer, size_t length, const char* format, const char* name)
 {
 	int rv = _snprintf(buffer, length, format, name);
 	buffer[length - 1] = '\0';
 
-	std::unique_lock<std::mutex> lock(g_gamerInfoBufferMutex);
+	std::unique_lock lock(g_gamerInfoBufferMutex);
 	g_gamerInfoBuffer[buffer] = name;
 
 	return rv;
@@ -23,7 +23,7 @@ static void(*g_origCallGfx)(void* a1, void* a2, void* a3, void* a4, void* a5, vo
 
 static void WrapGfxCall(void* a1, char* a2, void* a3, void* a4, char* a5, void* a6, void* a7)
 {
-	std::unique_lock<std::mutex> lock(g_gamerInfoBufferMutex);
+	std::unique_lock lock(g_gamerInfoBufferMutex);
 
 	// overwrite this argument
 	// it's actually a GFx string, however it won't try to free
@@ -212,7 +212,7 @@ static HookFunction hookFunction([]()
 	//size passed into malloc() 1604(0x8710) - 2060/2189(0x8A50)
 	std::initializer_list<PatternPair> gamerInfoSizeMallocs = {
 		{ "8B 15 ? ? ? ? 33 C9 E8 ? ? ? ? 40", 32 },
-		{ "83 F9 08 75 ? 53 48 83 EC 20 48 83 3D ? ? ? ? 00 75", 21 },
+		{ (xbr::IsGameBuildOrGreater<2802>() ? "E9 ? ? ? ? 53 48 83 EC 20 48 83 3D" : "83 F9 08 75 ? 53 48 83 EC 20 48 83 3D ? ? ? ? 00 75"), 21 },
 	};
 	for (auto& entry : gamerInfoSizeMallocs)
 	{

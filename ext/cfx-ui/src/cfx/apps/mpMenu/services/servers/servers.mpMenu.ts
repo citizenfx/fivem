@@ -9,7 +9,7 @@ import { ServicesContainer } from "cfx/base/servicesContainer";
 import { AppContribution, registerAppContribution } from "cfx/common/services/app/app.extensions";
 import { IServersStorageService } from "cfx/common/services/servers/serversStorage.service";
 import { scopedLogger, ScopedLogger } from "cfx/common/services/log/scopedLogger";
-import { IPinnedServersConfig, IServerView, ServerViewDetailsLevel } from "cfx/common/services/servers/types";
+import { IPinnedServersCollection, IPinnedServersConfig, IServerView, ServerViewDetailsLevel } from "cfx/common/services/servers/types";
 import { IAutocompleteIndex, IServerListSource } from "cfx/common/services/servers/source/types";
 import { WorkerSource } from "cfx/common/services/servers/source/WorkerSource";
 import { FavoriteServersList } from "cfx/common/services/servers/lists/FavoriteServersList";
@@ -22,6 +22,7 @@ import { serverAddress2ServerView } from "cfx/common/services/servers/transforme
 import { fetcher } from "cfx/utils/fetcher";
 import { uniqueArray } from "cfx/utils/array";
 import { mergeServers } from "cfx/common/services/servers/serverMerger";
+import { isObject } from "cfx/utils/object";
 
 const IMpMenuServersServiceInit = Symbol('MpMenuServersServiceInit');
 export interface IMpMenuServersServiceInit {
@@ -307,14 +308,69 @@ export class MpMenuServersService implements IServersService, AppContribution {
 
   private async loadPinnedServersConfig() {
     try {
+      /**
+       * Expected schema of `/pins.json` file:
+       *
+       * {
+       *   noAdServer?: string | { title: string, ids: Array<string> },
+       *   noAdServerId?: string, // will be ignored if there's a valid noAdServer
+       *   pinnedServers?: Array<string>,
+       *   pinIfEmpty?: boolean,
+       * }
+       *
+       */
       const json = await fetcher.json('https://runtime.fivem.net/pins.json');
 
       const config: IPinnedServersConfig = {
         pinnedServers: [],
       };
 
-      if (json.noAdServerId) {
-        config.noAdServerId = String(json.noAdServerId);
+      // Parsing `.noAdServer`,
+      // starting with property supporting both single server join id and servers collection
+      if (json.noAdServer) {
+        const jsonNoAdServer: unknown = json.noAdServer;
+
+        // Just one server join id
+        if (typeof jsonNoAdServer === 'string') {
+          config.featuredServer = {
+            type: 'id',
+            id: jsonNoAdServer,
+          };
+        }
+        // Servers collection
+        else if (isObject<Partial<IPinnedServersCollection>>(jsonNoAdServer)) {
+          // `.title` and `.ids` are required
+          if (typeof jsonNoAdServer.title === 'string' && Array.isArray(jsonNoAdServer.ids)) {
+            const serverIds = jsonNoAdServer.ids.map((id) => String(id)).filter(Boolean);
+
+            if (serverIds.length > 1) {
+              config.featuredServer = {
+                type: 'collection',
+                collection: {
+                  title: jsonNoAdServer.title,
+                  ids: serverIds,
+                },
+              };
+            }
+            // Fall back to single server join id if only one id is present
+            else if (serverIds.length === 1) {
+              config.featuredServer = {
+                type: 'id',
+                id: String(serverIds[0]),
+              };
+            }
+          }
+        }
+      }
+
+      // Parsing old `.noAdServerId` if no featuredServer has been parsed yet
+      if (json.noAdServerId && !config.featuredServer) {
+        if (typeof json.noAdServerId === 'string') {
+          config.featuredServer = {
+            type: 'id',
+            id: json.noAdServerId,
+          };
+        }
       }
 
       if (json.pinIfEmpty) {
@@ -322,6 +378,7 @@ export class MpMenuServersService implements IServersService, AppContribution {
       }
 
       if (Array.isArray(json.pinnedServers)) {
+        // TODO: the length is capped to 6 chars to filter out IP:port addresses
         config.pinnedServers = json.pinnedServers.filter((address: unknown) => typeof address === 'string' && address.length === 6);
       }
 

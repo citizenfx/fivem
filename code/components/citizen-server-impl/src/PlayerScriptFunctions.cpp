@@ -30,6 +30,13 @@ static void CreatePlayerCommands()
 		return client->GetName().c_str();
 	}));
 
+	fx::ScriptEngine::RegisterNativeHandler("DOES_PLAYER_EXIST", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)
+	{
+		auto matchID = atoi(context.CheckArgument<const char*>(0));
+
+		return client->GetNetId() == matchID;
+	}));
+
 	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_GUID", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)
 	{
 		return client->GetGuid().c_str();
@@ -50,6 +57,22 @@ static void CreatePlayerCommands()
 		}
 
 		return client->GetIdentifiers()[idx].c_str();
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_IDENTIFIER_BY_TYPE", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)
+	{
+		const std::vector<std::string>& identifiers = client->GetIdentifiers();
+		std::string_view identifierType = context.CheckArgument<const char*>(1);
+
+		for (int i = 0; i < identifiers.size(); ++i)
+		{
+			if (identifiers[i].rfind(identifierType, 0) != std::string::npos)
+			{
+				return identifiers[i].c_str();
+			}
+		}
+
+		return (const char*)nullptr;
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_NUM_PLAYER_TOKENS", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)

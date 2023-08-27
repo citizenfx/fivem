@@ -23,13 +23,11 @@ using nui::HasFocus;
 extern nui::GameInterface* g_nuiGi;
 
 static bool g_hasFocus = false;
-bool g_hasCursor = false;
+static bool g_hasCursor = false;
 bool g_keepInput = false;
 static bool g_hasOverriddenFocus = false;
 extern bool g_mainUIFlag;
 POINT g_cursorPos;
-
-static ConVar<bool> uiLoadingCursor("ui_loadingCursor", ConVar_None, false);
 
 bool isKeyDown(WPARAM wparam)
 {
@@ -130,6 +128,11 @@ namespace nui
 		return (g_hasFocus || g_hasOverriddenFocus);
 	}
 
+	bool HasCursor()
+	{
+		return HasMainUI() || g_hasCursor;
+	}
+
 	bool HasFocusKeepInput()
 	{
 		return g_keepInput;
@@ -162,6 +165,8 @@ namespace nui
 		}
 
 		g_hasOverriddenFocus = hasFocus;
+
+		static ConVar<bool> uiLoadingCursor("ui_loadingCursor", ConVar_None, false);
 
 		if (uiLoadingCursor.GetValue())
 		{
@@ -741,10 +746,15 @@ static HookFunction initFunction([] ()
 				int x = GET_X_LPARAM(lParam);
 				int y = GET_Y_LPARAM(lParam);
 
-				if (TranslateMouseEvent(GetFocusWindow(), &x, &y))
+				POINT p = { x, y };
+				ScreenToClient(hWnd, &p);
+
+				if (TranslateMouseEvent(GetFocusWindow(), &p.x, &p.y))
 				{
+					ClientToScreen(hWnd, &p);
+
 					lParam &= ~((DWORD_PTR)0xFFFFFFFF);
-					lParam |= (DWORD)((x) | ((DWORD)y << 16));
+					lParam |= (DWORD)((p.x) | ((DWORD)p.y << 16));
 				}
 
 				MSG m = { hWnd,

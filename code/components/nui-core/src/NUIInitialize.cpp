@@ -48,6 +48,7 @@
 #include <include/cef_api_hash.h>
 #include <include/cef_version.h>
 
+#include "DeferredInitializer.h"
 #include <Error.h>
 
 namespace nui
@@ -58,6 +59,7 @@ fwRefContainer<NUIWindow> FindNUIWindow(fwString windowName);
 std::wstring GetNUIStoragePath();
 
 nui::GameInterface* g_nuiGi;
+extern bool shouldHaveRootWindow;
 
 struct GameRenderData
 {
@@ -923,7 +925,8 @@ void VHook(intptr_t& ref, TFnLeft fn, TFnRight out)
 	ref = (intptr_t)fn;
 }
 
-static std::recursive_mutex g_d3d11Mutex;
+// primarily to prevent Flush() calls while another thread is creating a device
+static std::shared_mutex g_d3d11Mutex;
 static void (__stdcall *g_origFlush)(void*);
 
 static void __stdcall FlushHook(void* cxt)
@@ -1061,9 +1064,38 @@ static std::unique_ptr<ModuleData> g_libgl;
 static std::unique_ptr<ModuleData> g_d3d11;
 static HMODULE g_sysD3D11;
 
+// helper to prevent recursive shared acquiring of the lock
+static thread_local bool inDeviceCreation;
+
+struct DeviceLock
+{
+	DeviceLock()
+	{
+		if (!inDeviceCreation)
+		{
+			inDeviceCreation = true;
+
+			hadLock = true;
+			lock = std::move(std::shared_lock(g_d3d11Mutex));
+		}
+	}
+
+	~DeviceLock()
+	{
+		if (hadLock)
+		{
+			inDeviceCreation = false;
+		}
+	}
+
+private:
+	bool hadLock = false;
+	std::shared_lock<std::shared_mutex> lock;
+};
+
 static HRESULT D3D11CreateDeviceAndSwapChainHook(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _In_opt_ CONST DXGI_SWAP_CHAIN_DESC* pSwapChainDesc, _COM_Outptr_opt_ IDXGISwapChain** ppSwapChain, _COM_Outptr_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _COM_Outptr_opt_ ID3D11DeviceContext** ppImmediateContext)
 {
-	std::unique_lock _(g_d3d11Mutex);
+	DeviceLock _;
 
 	PatchAdapter(&pAdapter);
 
@@ -1082,7 +1114,7 @@ static HRESULT D3D11CreateDeviceAndSwapChainHook(_In_opt_ IDXGIAdapter* pAdapter
 
 static HRESULT D3D11CreateDeviceHook(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags, _In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _COM_Outptr_opt_ ID3D11Device** ppDevice, _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _COM_Outptr_opt_ ID3D11DeviceContext** ppImmediateContext)
 {
-	std::unique_lock _(g_d3d11Mutex);
+	DeviceLock _;
 
 	// if this is the OS calling us, we need to be special and *somehow* convince any hook to give up their true colors
 	// since D3D11CoreCreateDevice is super obscure, we'll use *that*
@@ -1359,6 +1391,8 @@ bool g_shouldCreateRootWindow;
 
 namespace nui
 {
+fwEvent<> OnInitialize;
+
 static std::mutex g_rcHandlerMutex;
 static std::vector<std::tuple<CefString, CefString, CefRefPtr<CefSchemeHandlerFactory>>> g_schemeHandlers;
 static std::set<CefRefPtr<CefRequestContext>> g_requestContexts;
@@ -1423,6 +1457,24 @@ void SwitchContext(const std::string& contextId)
 			{
 				Instance<NUIWindowManager>::Get()->RemoveWindow(rw);
 				Instance<NUIWindowManager>::Get()->SetRootWindow({});
+				shouldHaveRootWindow = false;
+			}
+		}
+
+		// clear any leftover (DUI-type?) windows if moving to empty context
+		if (contextId.empty())
+		{
+			std::set<std::string> windows;
+			auto nuiWM = Instance<NUIWindowManager>::Get();
+
+			nuiWM->ForAllWindows([&windows](fwRefContainer<NUIWindow> window)
+			{
+				windows.insert(window->GetName());
+			});
+
+			for (const auto& window : windows)
+			{
+				nui::DestroyNUIWindow(window);
 			}
 		}
 
@@ -1442,76 +1494,122 @@ void Initialize(nui::GameInterface* gi)
         return;
     }
 
-	std::wstring cachePath = GetNUIStoragePath();
-	CreateDirectory(cachePath.c_str(), nullptr);
+	static ConVar<std::string> uiUrlVar("ui_url", ConVar_None, "https://nui-game-internal/ui/app/index.html");
 
-	// delete any old CEF logs
-	DeleteFile(MakeRelativeCitPath(L"cef.log").c_str());
-	DeleteFile(MakeRelativeCitPath(L"cef_console.txt").c_str());
-
-	auto selfApp = Instance<NUIApp>::Get();
-
-	CefMainArgs args(GetModuleHandle(NULL));
-	CefRefPtr<CefApp> app(selfApp);
-
-	CefSettings cSettings;
-		
-	cSettings.multi_threaded_message_loop = true;
-	cSettings.remote_debugging_port = 13172;
-	cSettings.windowless_rendering_enabled = true;
-	cSettings.log_severity = LOGSEVERITY_DEFAULT;
-	cSettings.background_color = 0;
-
-	// read the platform version
-	FILE* f = _wfopen(MakeRelativeCitPath(L"citizen/release.txt").c_str(), L"r");
-	int version = 0;
-
-	if (f)
+	auto deferredInitializer = DeferredInitializer::Create([]()
 	{
-		char ver[128];
+		std::wstring cachePath = GetNUIStoragePath();
+		CreateDirectory(cachePath.c_str(), nullptr);
 
-		fgets(ver, sizeof(ver), f);
-		fclose(f);
+		// delete any old CEF logs
+		DeleteFile(MakeRelativeCitPath(L"cef.log").c_str());
+		DeleteFile(MakeRelativeCitPath(L"cef_console.txt").c_str());
 
-		version = atoi(ver);
-	}
+		auto selfApp = Instance<NUIApp>::Get();
 
-	// #TODONY: why is this missing from official CEF?
+		CefMainArgs args(GetModuleHandle(NULL));
+		CefRefPtr<CefApp> app(selfApp);
+
+		CefSettings cSettings;
+
+		cSettings.multi_threaded_message_loop = true;
+		cSettings.remote_debugging_port = 13172;
+		cSettings.windowless_rendering_enabled = true;
+		cSettings.log_severity = LOGSEVERITY_DEFAULT;
+		cSettings.background_color = 0;
+
+		// read the platform version
+		FILE* f = _wfopen(MakeRelativeCitPath(L"citizen/release.txt").c_str(), L"r");
+		int version = 0;
+
+		if (f)
+		{
+			char ver[128];
+
+			fgets(ver, sizeof(ver), f);
+			fclose(f);
+
+			version = atoi(ver);
+		}
+
+		// #TODONY: why is this missing from official CEF?
 #ifndef GTA_NY
-	CefString(&cSettings.user_agent_product).FromWString(fmt::sprintf(L"Chrome/%d.%d.%d.%d CitizenFX/1.0.0.%d", cef_version_info(4), cef_version_info(5), cef_version_info(6), cef_version_info(7), version));
+		CefString(&cSettings.user_agent_product).FromWString(fmt::sprintf(L"Chrome/%d.%d.%d.%d CitizenFX/1.0.0.%d", cef_version_info(4), cef_version_info(5), cef_version_info(6), cef_version_info(7), version));
 #endif
+
+		CefString(&cSettings.log_file).FromWString(MakeRelativeCitPath(L"cef_console.txt"));
+
+		CefString(&cSettings.browser_subprocess_path).FromWString(MakeCfxSubProcess(L"ChromeBrowser", L"chrome"));
+
+		CefString(&cSettings.locale).FromASCII("en-US");
+
+		CefString(&cSettings.cookieable_schemes_list).FromString("nui");
+
+		std::wstring resPath = MakeRelativeCitPath(L"bin/cef/");
+
+		CefString(&cSettings.resources_dir_path).FromWString(resPath);
+		CefString(&cSettings.locales_dir_path).FromWString(resPath);
+		CefString(&cSettings.cache_path).FromWString(cachePath);
+
+		// 2014-06-30: sandbox disabled as it breaks scheme handler factories (results in blank page being loaded)
+		CefInitialize(args, cSettings, app.get(), /*cefSandbox*/ nullptr);
+		nui::RegisterSchemeHandlerFactory("nui", "", Instance<NUISchemeHandlerFactory>::Get());
+		CefAddCrossOriginWhitelistEntry("nui://game", "https", "", true);
+		CefAddCrossOriginWhitelistEntry("nui://game", "http", "", true);
+		CefAddCrossOriginWhitelistEntry("nui://game", "nui", "", true);
+
+		nui::RegisterSchemeHandlerFactory("https", "nui-game-internal", Instance<NUISchemeHandlerFactory>::Get());
+		CefAddCrossOriginWhitelistEntry("https://nui-game-internal", "https", "", true);
+		CefAddCrossOriginWhitelistEntry("https://nui-game-internal", "http", "", true);
+		CefAddCrossOriginWhitelistEntry("https://nui-game-internal", "nui", "", true);
+
+		nui::RegisterSchemeHandlerFactory("ws", "", Instance<NUISchemeHandlerFactory>::Get());
+		nui::RegisterSchemeHandlerFactory("wss", "", Instance<NUISchemeHandlerFactory>::Get());
+
+		HookFunctionBase::RunAll();
+
+		{
+			auto zips = { "citizen:/ui.zip", "citizen:/ui-big.zip" };
+
+			for (auto zip : zips)
+			{
+				static std::map<std::string, std::vector<uint8_t>> storedFiles;
+
+				const void* thisData = nullptr;
+				size_t thisDataSize = 0;
+
+				{
+					auto stream = vfs::OpenRead(zip);
+
+					if (stream.GetRef())
+					{
+						storedFiles[zip] = stream->ReadToEnd();
+
+						thisData = storedFiles[zip].data();
+						thisDataSize = storedFiles[zip].size();
+					}
+				}
+
+				if (thisData)
+				{
+					fwRefContainer<vfs::ZipFile> file = new vfs::ZipFile();
+
+					if (file->OpenArchive(fmt::sprintf("memory:$%016llx,%d,0:%s", (uintptr_t)thisData, thisDataSize, "ui")))
+					{
+						vfs::Mount(file, "citizen:/ui/");
+					}
+				}
+			}
+		}
+
+		if (nui::HasMainUI())
+		{
+			nui::CreateFrame("mpMenu", uiUrlVar.GetValue());
+		}
+
+		nui::OnInitialize();
+	});
 	
-	CefString(&cSettings.log_file).FromWString(MakeRelativeCitPath(L"cef_console.txt"));
-	
-	CefString(&cSettings.browser_subprocess_path).FromWString(MakeCfxSubProcess(L"ChromeBrowser", L"chrome"));
-
-	CefString(&cSettings.locale).FromASCII("en-US");
-
-	CefString(&cSettings.cookieable_schemes_list).FromString("nui");
-
-	std::wstring resPath = MakeRelativeCitPath(L"bin/cef/");
-
-	CefString(&cSettings.resources_dir_path).FromWString(resPath);
-	CefString(&cSettings.locales_dir_path).FromWString(resPath);
-	CefString(&cSettings.cache_path).FromWString(cachePath);
-
-	// 2014-06-30: sandbox disabled as it breaks scheme handler factories (results in blank page being loaded)
-	CefInitialize(args, cSettings, app.get(), /*cefSandbox*/ nullptr);
-	nui::RegisterSchemeHandlerFactory("nui", "", Instance<NUISchemeHandlerFactory>::Get());
-	CefAddCrossOriginWhitelistEntry("nui://game", "https", "", true);
-	CefAddCrossOriginWhitelistEntry("nui://game", "http", "", true);
-	CefAddCrossOriginWhitelistEntry("nui://game", "nui", "", true);
-
-	nui::RegisterSchemeHandlerFactory("https", "nui-game-internal", Instance<NUISchemeHandlerFactory>::Get());
-	CefAddCrossOriginWhitelistEntry("https://nui-game-internal", "https", "", true);
-	CefAddCrossOriginWhitelistEntry("https://nui-game-internal", "http", "", true);
-	CefAddCrossOriginWhitelistEntry("https://nui-game-internal", "nui", "", true);
-
-	nui::RegisterSchemeHandlerFactory("ws", "", Instance<NUISchemeHandlerFactory>::Get());
-	nui::RegisterSchemeHandlerFactory("wss", "", Instance<NUISchemeHandlerFactory>::Get());
-
-    HookFunctionBase::RunAll();
-
 	static ConsoleCommand devtoolsCmd("nui_devtools", []()
 	{
 		auto rootWindow = Instance<NUIWindowManager>::Get()->GetRootWindow();
@@ -1556,48 +1654,10 @@ void Initialize(nui::GameInterface* gi)
 		}
 	});
 
+	g_nuiGi->OnInitRenderer.Connect([deferredInitializer]()
 	{
-		auto zips = { "citizen:/ui.zip", "citizen:/ui-big.zip" };
+		deferredInitializer->Wait();
 
-		for (auto zip : zips)
-		{
-			static std::map<std::string, std::vector<uint8_t>> storedFiles;
-
-			const void* thisData = nullptr;
-			size_t thisDataSize = 0;
-
-			{
-				auto stream = vfs::OpenRead(zip);
-
-				if (stream.GetRef())
-				{
-					storedFiles[zip] = stream->ReadToEnd();
-
-					thisData = storedFiles[zip].data();
-					thisDataSize = storedFiles[zip].size();
-				}
-			}
-
-			if (thisData)
-			{
-				fwRefContainer<vfs::ZipFile> file = new vfs::ZipFile();
-
-				if (file->OpenArchive(fmt::sprintf("memory:$%016llx,%d,0:%s", (uintptr_t)thisData, thisDataSize, "ui")))
-				{
-					vfs::Mount(file, "citizen:/ui/");
-				}
-			}
-		}
-	}
-
-	if (nui::HasMainUI())
-	{
-		static ConVar<std::string> uiUrlVar("ui_url", ConVar_None, "https://nui-game-internal/ui/app/index.html");
-		nui::CreateFrame("mpMenu", uiUrlVar.GetValue());
-	}
-
-	g_nuiGi->OnInitRenderer.Connect([]()
-	{
 		g_rendererInit = true;
 		Instance<NUIWindowManager>::Get()->ForAllWindows([](auto window)
 		{
@@ -1605,8 +1665,10 @@ void Initialize(nui::GameInterface* gi)
 		});
 	});
 
-	g_nuiGi->OnRender.Connect([]()
+	g_nuiGi->OnRender.Connect([deferredInitializer]()
 	{
+		deferredInitializer->Wait();
+
 		if (g_shouldCreateRootWindow)
 		{
 			if (!nui::HasMainUI())

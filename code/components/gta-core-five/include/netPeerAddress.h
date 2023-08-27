@@ -16,13 +16,13 @@
 #endif
 
 #define DECLARE_PEER_ACCESSOR(x) \
-	decltype(Impl2372{}.x)& x()        \
-	{                       \
-		return (xbr::IsGameBuildOrGreater<2372>() ? ((Impls*)this)->m2372.x : xbr::IsGameBuildOrGreater<2060>() ? ((Impls*)this)->m2060.x : ((Impls*)this)->m1604.x);   \
+	decltype(Impl2824{}.x)& x() \
+	{ \
+		return (xbr::IsGameBuildOrGreater<2824>() ? ((Impls*)this)->m2824.x : xbr::IsGameBuildOrGreater<2372>() ? ((Impls*)this)->m2372.x : xbr::IsGameBuildOrGreater<2060>() ? ((Impls*)this)->m2060.x : ((Impls*)this)->m1604.x); \
 	} \
-	const decltype(Impl2372{}.x)& x() const                         \
-	{                                                    \
-		return (xbr::IsGameBuildOrGreater<2372>() ? ((Impls*)this)->m2372.x : xbr::IsGameBuildOrGreater<2060>() ? ((Impls*)this)->m2060.x : ((Impls*)this)->m1604.x);  \
+	const decltype(Impl2824{}.x)& x() const \
+	{ \
+		return (xbr::IsGameBuildOrGreater<2824>() ? ((Impls*)this)->m2824.x : xbr::IsGameBuildOrGreater<2372>() ? ((Impls*)this)->m2372.x : xbr::IsGameBuildOrGreater<2060>() ? ((Impls*)this)->m2060.x : ((Impls*)this)->m1604.x); \
 	}
 
 struct netIpAddress
@@ -48,6 +48,16 @@ struct netPeerId
 struct rlGamerHandle
 {
 	uint8_t handle[16];
+};
+
+struct netAddress
+{
+	netSocketAddress proxyAddr;
+	netSocketAddress publicAddr;
+	netPeerId peerId;
+	netIpAddress unkAddr;
+	uint16_t unkPort;
+	char unk1Eh[2];
 };
 
 struct netPeerAddress
@@ -126,11 +136,94 @@ public:
 	};
 #pragma pack(pop)
 
+#pragma pack(push, 4)
+	struct Impl2824
+	{
+		char unk0h[8];
+		netPeerId peerId;
+
+		// gamer handle + pad
+		union
+		{
+			rlGamerHandle gamerHandle;
+
+			// compat
+			struct
+			{
+				uint64_t rockstarAccountId;
+				char pad22[8];
+			};
+		};
+
+		// peer key
+		union
+		{
+			// compat
+			struct
+			{
+				uint64_t unkKey1;
+				uint64_t unkKey2;
+				char pad3[16];
+				uint32_t secKeyTime;
+			};
+
+			// real
+			struct
+			{
+				uint8_t peerKey[32];
+				uint8_t hasPeerKey;
+			};
+		};
+
+		union
+		{
+			// real
+			struct
+			{
+				char pad4[4];
+				netAddress relayAddrStruct;
+			};
+
+			// compat
+			struct
+			{
+				char pad4[4];
+				netSocketAddress relayAddr;
+				char pad5[24];
+			};
+		};
+
+		union
+		{
+			// real
+			struct
+			{
+				char unk68h[64];				
+			};
+
+			// compat
+			struct
+			{
+				netSocketAddress unkAddr;
+				char pad6[48];
+			};
+		};
+
+		netSocketAddress publicAddr;
+		netSocketAddress localAddr;
+
+		uint32_t newVal;
+
+		char unkBCh[4];
+	};
+#pragma pack(pop)
+
 	union Impls
 	{
 		Impl505 m1604;
 		Impl2060 m2060;
 		Impl2372 m2372;
+		Impl2824 m2824;
 	};
 
 public:
@@ -167,9 +260,16 @@ struct netPeerAddressStorage<2372> : netPeerAddress
 	uint8_t data[sizeof(Impl2372)];
 };
 
+template<>
+struct netPeerAddressStorage<2824> : netPeerAddress
+{
+	uint8_t data[sizeof(Impl2824)];
+};
+
 template<int Build>
-using PeerAddress = std::conditional_t<(Build >= 2372), netPeerAddressStorage<2372>, std::conditional_t<(Build >= 2060), netPeerAddressStorage<2060>, netPeerAddressStorage<1604>>>;
+using PeerAddress = std::conditional_t<(Build >= 2824), netPeerAddressStorage<2824>, std::conditional_t<(Build >= 2372), netPeerAddressStorage<2372>, std::conditional_t<(Build >= 2060), netPeerAddressStorage<2060>, netPeerAddressStorage<1604>>>>;
 
 static_assert(sizeof(PeerAddress<1604>) == 56);
 static_assert(sizeof(PeerAddress<2060>) == 64);
 static_assert(sizeof(PeerAddress<2372>) == 96);
+static_assert(sizeof(PeerAddress<2824>) == 192);

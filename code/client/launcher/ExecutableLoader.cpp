@@ -320,11 +320,9 @@ void ExecutableLoader::LoadIntoModule(HMODULE module)
 
 	IMAGE_NT_HEADERS* ntHeader = (IMAGE_NT_HEADERS*)(m_origBinary + header->e_lfanew);
 
-	LoadSections(ntHeader);
-
-	//if (getenv("CitizenFX_ToolMode") == nullptr)
+	if (!LoadSnapshot(ntHeader))
 	{
-		LoadSnapshot(ntHeader);
+		LoadSections(ntHeader);
 	}
 
 	DWORD oldProtect;

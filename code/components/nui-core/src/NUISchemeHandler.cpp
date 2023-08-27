@@ -277,9 +277,10 @@ public:
 	}
 };
 
-void NUISchemeHandlerFactory::SetRequestBlacklist(const std::vector<std::regex>& requestBlacklist)
+void NUISchemeHandlerFactory::SetRequestBlocklist(const std::vector<std::regex>& requestBlocklist)
 {
-	m_requestBlacklist = requestBlacklist;
+	std::unique_lock _(m_requestBlocklistLock);
+	m_requestBlocklist = requestBlocklist;
 }
 
 CefRefPtr<CefResourceHandler> NUISchemeHandlerFactory::Create(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, const CefString& scheme_name, CefRefPtr<CefRequest> request)
@@ -310,13 +311,15 @@ CefRefPtr<CefResourceHandler> NUISchemeHandlerFactory::Create(CefRefPtr<CefBrows
 	}
 	else if (scheme_name == "ws" || scheme_name == "wss")
 	{
-		for (auto& reg : m_requestBlacklist)
+		std::shared_lock _(m_requestBlocklistLock);
+
+		for (auto& reg : m_requestBlocklist)
 		{
 			std::string url = request->GetURL().ToString();
 
 			if (std::regex_search(url, reg))
 			{
-				trace("Blocked a request for blacklisted URI %s\n", url);
+				trace("Blocked a request for blocklisted URI %s\n", url);
 				return new ForbiddenResourceHandler();
 			}
 		}

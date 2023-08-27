@@ -41,7 +41,11 @@ public:
 
 	pgArray(int capacity)
 	{
+#ifndef RAGE_FORMATS_IN_GAME
 		m_offset = new TValue[capacity];
+#else
+		m_offset = (TValue*)rage::GetAllocator()->Allocate(sizeof(TValue) * capacity, 16, 0);
+#endif
 		m_count = 0;
 		m_size = capacity;
 	}
@@ -77,10 +81,17 @@ public:
 			return;
 		}
 
+#ifndef RAGE_FORMATS_IN_GAME
 		TValue* newOffset = new TValue[newSize];
 		std::copy((*m_offset), (*m_offset) + m_count, newOffset);
 
 		delete[] *m_offset;
+#else
+		auto newOffset = (TValue*)rage::GetAllocator()->Allocate(sizeof(TValue) * newSize, 16, 0);
+		std::copy((*m_offset), (*m_offset) + m_count, newOffset);
+
+		rage::GetAllocator()->Free(*m_offset);
+#endif
 		m_offset = newOffset;
 		m_size = newSize;
 	}
@@ -148,7 +159,11 @@ public:
 
 	pgObjectArray(int capacity)
 	{
+#ifndef RAGE_FORMATS_IN_GAME
 		m_objects = new pgPtr<TValue>[capacity];
+#else
+		m_objects = (pgPtr<TValue>*)rage::GetAllocator()->Allocate(sizeof(pgPtr<TValue>) * capacity, 16, 0);
+#endif
 		m_count = 0;
 		m_size = capacity;
 	}
@@ -193,10 +208,18 @@ public:
 			return;
 		}
 
+#ifndef RAGE_FORMATS_IN_GAME
 		pgPtr<TValue>* newObjects = new pgPtr<TValue>[newSize];
 		std::copy((*m_objects), (*m_objects) + m_count, newObjects);
 
 		delete[] *m_objects;
+#else
+		auto newObjects = (pgPtr<TValue>*)rage::GetAllocator()->Allocate(sizeof(pgPtr<TValue>) * newSize, 16, 0);
+		std::copy((*m_objects), (*m_objects) + m_count, newObjects);
+
+		rage::GetAllocator()->Free(*m_objects);
+#endif
+
 		m_objects = newObjects;
 		m_size = newSize;
 	}

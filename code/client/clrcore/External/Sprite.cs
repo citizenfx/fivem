@@ -1,5 +1,3 @@
-#if !MONO_V2
-
 using System;
 using System.IO;
 using System.Drawing;
@@ -9,7 +7,16 @@ using System.Text;
 using CitizenFX.Core.Native;
 using System.Security;
 
+#if MONO_V2
+using CitizenFX.Core;
+using PointF = CitizenFX.Core.Vector2;
+using SizeF = CitizenFX.Core.Vector2;
+using API = CitizenFX.FiveM.Native.Natives;
+
+namespace CitizenFX.FiveM.GUI
+#else
 namespace CitizenFX.Core.UI
+#endif
 {
 	public interface ISprite : IElement
 	{
@@ -35,8 +42,13 @@ namespace CitizenFX.Core.UI
 	public class Sprite : ISprite, IDisposable
 	{
 		#region Fields
+#if MONO_V2
+		private readonly CString _textureDict, _textureName;
+		private static readonly Dictionary<CString, uint> _activeTextures = new Dictionary<CString, uint>();
+#else
 		private readonly string _textureDict, _textureName;
 		private static readonly Dictionary<string, int> _activeTextures = new Dictionary<string, int>();
+#endif
 		#endregion
 
 		/// <summary>
@@ -140,34 +152,30 @@ namespace CitizenFX.Core.UI
 			Rotation = rotation;
 			Centered = centered;
 
-			if (!API.HasStreamedTextureDictLoaded(textureDict))
+			_textureDict = textureDict.ToLower();
+			_textureName = textureName.ToLower();
+
+			if (!API.HasStreamedTextureDictLoaded(_textureDict))
 			{
-				API.RequestStreamedTextureDict(textureDict, false);
+				API.RequestStreamedTextureDict(_textureDict, false);
 			}
 
-			if (_activeTextures.ContainsKey(textureDict.ToLower()))
-			{
-				_activeTextures[textureDict.ToLower()] += 1;
-			}
-			else
-			{
-				_activeTextures.Add(textureDict.ToLower(), 1);
-			}
+			_activeTextures[_textureDict]++;
 		}
 
 		public void Dispose()
 		{
-			if (_activeTextures.ContainsKey(_textureDict.ToLower()))
+			// TODO: give this some attention; not using it in this runtime, doesn't mean we're not using it in others
+			if (_activeTextures.TryGetValue(_textureDict, out var current))
 			{
-				int current = _activeTextures[_textureDict.ToLower()];
 				if (current == 1)
 				{
 					API.SetStreamedTextureDictAsNoLongerNeeded(_textureDict);
-					_activeTextures.Remove(_textureDict.ToLower());
+					_activeTextures.Remove(_textureDict);
 				}
 				else
 				{
-					_activeTextures[_textureDict.ToLower()] = current - 1;
+					_activeTextures[_textureDict] = current - 1;
 				}
 			}
 			else
@@ -190,7 +198,7 @@ namespace CitizenFX.Core.UI
 		/// <param name="offset">The offset.</param>
 		public virtual void Draw(SizeF offset)
 		{
-			InternalDraw(offset, Screen.Width, Screen.Height);
+			InternalDraw(offset, 1.0f / Screen.Width, 1.0f / Screen.Height);
 		}
 		/// <summary>
 		/// Draws this <see cref="Sprite" /> using the width returned in <see cref="Screen.ScaledWidth" />.
@@ -205,10 +213,10 @@ namespace CitizenFX.Core.UI
 		/// <param name="offset">The offset.</param>
 		public virtual void ScaledDraw(SizeF offset)
 		{
-			InternalDraw(offset, Screen.ScaledWidth, Screen.Height);
+			InternalDraw(offset, 1.0f / Screen.ScaledWidth, 1.0f / Screen.Height);
 		}
 
-		void InternalDraw(SizeF offset, float screenWidth, float screenHeight)
+		void InternalDraw(SizeF offset, float inverseScreenWidth, float inverseScreenHeight)
 		{
 			if (!Enabled || !API.HasStreamedTextureDictLoaded(_textureDict))
 			{
@@ -216,15 +224,15 @@ namespace CitizenFX.Core.UI
 			}
 
 #if MONO_V2
-			float scaleX = Size.X / screenWidth;
-			float scaleY = Size.Y / screenHeight;
-			float positionX = (Position.X + offset.X) / screenWidth;
-			float positionY = (Position.Y + offset.Y) / screenHeight;
+			float scaleX = Size.X * inverseScreenWidth;
+			float scaleY = Size.Y * inverseScreenHeight;
+			float positionX = (Position.X + offset.X) * inverseScreenWidth;
+			float positionY = (Position.Y + offset.Y) * inverseScreenHeight;
 #else
-			float scaleX = Size.Width / screenWidth;
-			float scaleY = Size.Height / screenHeight;
-			float positionX = (Position.X + offset.Width) / screenWidth;
-			float positionY = (Position.Y + offset.Height) / screenHeight;
+			float scaleX = Size.Width * inverseScreenWidth;
+			float scaleY = Size.Height * inverseScreenHeight;
+			float positionX = (Position.X + offset.Width) * inverseScreenWidth;
+			float positionY = (Position.Y + offset.Height) * inverseScreenHeight;
 #endif
 
 			if (!Centered)
@@ -237,4 +245,3 @@ namespace CitizenFX.Core.UI
 		}
 	}
 }
-#endif

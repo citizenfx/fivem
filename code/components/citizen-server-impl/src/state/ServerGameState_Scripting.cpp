@@ -734,6 +734,18 @@ static void Init()
 			auto pn = entity->syncTree->GetPedHealth();
 			return pn ? pn->health : 0;
 		}
+		case fx::sync::NetObjEntityType::Automobile:
+		case fx::sync::NetObjEntityType::Bike:
+		case fx::sync::NetObjEntityType::Boat:
+		case fx::sync::NetObjEntityType::Heli:
+		case fx::sync::NetObjEntityType::Plane:
+		case fx::sync::NetObjEntityType::Submarine:
+		case fx::sync::NetObjEntityType::Trailer:
+		case fx::sync::NetObjEntityType::Train:
+		{
+			auto pn = entity->syncTree->GetVehicleHealth();
+			return pn ? pn->health : 0;
+		}
 		default:
 			return 0;
 		}
@@ -1295,6 +1307,17 @@ static void Init()
 		return true;
 	}));
 
+	fx::ScriptEngine::RegisterNativeHandler("SET_ENTITY_IGNORE_REQUEST_CONTROL_FILTER", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		if (context.GetArgumentCount() > 1)
+		{
+			bool ignore = context.GetArgument<bool>(1);
+			entity->ignoreRequestControlFilter = ignore;
+		}
+
+		return true;
+	}));
+
 	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_ROUTING_BUCKET", MakeClientFunction([](fx::ScriptContext& context, const fx::ClientSharedPtr& client)
 	{
 		// get the current resource manager
@@ -1684,6 +1707,112 @@ static void Init()
 		auto steeringData = entity->syncTree->GetVehicleSteeringData();
 
 		return steeringData ? steeringData->steeringAngle * (180.0f / pi) : 0.0f;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_COLLISION_DISABLED", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto scriptGameState = entity->syncTree->GetEntityScriptGameState();
+
+		return scriptGameState ? !scriptGameState->usesCollision : false;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_ENTITY_POSITION_FROZEN", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto scriptGameState = entity->syncTree->GetEntityScriptGameState();
+
+		return scriptGameState ? scriptGameState->isFixed : false;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_FLASH_LIGHT_ON", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto gameState = entity->syncTree->GetPedGameState();
+
+		return gameState ? gameState->isFlashlightOn : false;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_PED_USING_ACTION_MODE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto gameState = entity->syncTree->GetPedGameState();
+
+		return gameState ? gameState->actionModeEnabled : false;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_PED_HANDCUFFED", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto gameState = entity->syncTree->GetPedGameState();
+
+		return gameState ? gameState->isHandcuffed : false;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("HAS_VEHICLE_BEEN_DAMAGED_BY_BULLETS", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto status = entity->syncTree->GetVehicleDamageStatus();
+
+		return status ? status->damagedByBullets : false;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_VEHICLE_WINDOW_INTACT", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto status = entity->syncTree->GetVehicleDamageStatus();
+		int index = context.GetArgument<int>(1);
+
+		if (!status)
+		{
+			return false;
+		}
+
+		if (index < 0 || index > 7)
+		{
+			return false;
+		}
+
+		return status->anyWindowBroken ? !status->windowsState[index] : true;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_BOAT_ANCHORED_AND_FROZEN", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto boatGameState = entity->syncTree->GetBoatGameState();
+
+		return boatGameState ? boatGameState->lockedToXY : false;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_BOAT_WRECKED", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto boatGameState = entity->syncTree->GetBoatGameState();
+
+#ifndef STATE_RDR3
+		return boatGameState ? (boatGameState->sinkEndTime == 0.0f) : false;
+#else
+		return boatGameState ? boatGameState->isWrecked : false;
+#endif
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("DOES_BOAT_SINK_WHEN_WRECKED", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto boatGameState = entity->syncTree->GetBoatGameState();
+
+		return boatGameState ? (boatGameState->wreckedAction == 2) : true;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PED_STEALTH_MOVEMENT", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto movementGroup = entity->syncTree->GetPedMovementGroup();
+
+		return movementGroup ? movementGroup->isStealthy : false;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_PED_STRAFING", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto movementGroup = entity->syncTree->GetPedMovementGroup();
+
+		return movementGroup ? movementGroup->isStrafing : false;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_PED_RAGDOLL", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto movementGroup = entity->syncTree->GetPedMovementGroup();
+
+		return movementGroup ? movementGroup->isRagdolling : false;
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_FROM_STATE_BAG_NAME", [](fx::ScriptContext& context)

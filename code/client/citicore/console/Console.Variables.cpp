@@ -230,6 +230,20 @@ int ConsoleVariableManager::GetEntryFlags(const std::string& name)
 	return 0;
 }
 
+int ConsoleVariableManager::GetEntryDefaultFlags(const std::string& name)
+{
+	std::unique_lock<std::shared_mutex> lock(m_mutex);
+
+	auto it = m_entries.find(name);
+
+	if (it != m_entries.end())
+	{
+		return it->second.defaultFlags;
+	}
+
+	return 0;
+}
+
 void ConsoleVariableManager::ForAllVariables(const TVariableCB& callback, int flagMask)
 {
 	// store first so we don't have to deal with recursive locks
