@@ -311,7 +311,6 @@ public:
 		return true;
 	}
 
-
 	// copied IDA code, please improve!
 	inline bool ReadBits(void* data, int length)
 	{
@@ -332,6 +331,31 @@ public:
 		return rv;
 	}
 
+	template<typename T>
+	inline std::optional<std::vector<T>> ReadBitsSafe(int length)
+	{
+		static_assert(std::is_integral_v<T>, "ReadBitsSafe wants an int value");
+
+		if (length <= 0)
+		{
+			return std::nullopt;
+		}
+
+		if ((m_curBit + length) > m_maxBit)
+		{
+			return std::nullopt;
+		}
+
+		std::vector<T> data(length);
+
+		// CopyBits only seems to ever return true, so no need for a check here
+		auto rv = CopyBits(data.data(), m_data.data(), length, 0, m_curBit);
+		
+		m_curBit += length;
+
+		return data;
+	}
+	
 	// copied IDA code, please improve!
 	inline bool WriteBits(const void* data, int length)
 	{

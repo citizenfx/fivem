@@ -601,19 +601,30 @@ void StateBagComponentImpl::HandlePacket(int source, std::string_view dataRaw, s
 	{
 		uint16_t length = 0;
 
-		buffer.Read<uint16_t>(16, &length);
-
-		// validate input
-		if (length <= 0 || length > std::numeric_limits<uint16_t>::max())
+		auto emptyVec = []
 		{
 			return std::vector<char>{};
+		};
+
+		if (!buffer.Read<uint16_t>(16, &length))
+		{
+			return emptyVec();
 		}
 
-		std::vector<char> rbuffer(length - 1);
-		buffer.ReadBits(rbuffer.data(), rbuffer.size() * 8);
+		// validate input
+		if (length <= 0)
+		{
+			return emptyVec();
+		}
+
+		auto char_buffer = buffer.ReadBitsSafe<char>((length - 1) * 8);
+		if (!char_buffer)
+		{
+			return emptyVec();
+		}
 		buffer.Read<uint8_t>(8);
 
-		return std::move(rbuffer);
+		return std::move(*char_buffer);
 	};
 
 	// read id
@@ -632,23 +643,13 @@ void StateBagComponentImpl::HandlePacket(int source, std::string_view dataRaw, s
 		return;
 	}
 
-	// if m_curBit is greater then m_maxBit we will overflow the dataLength, which would lead to an allocation of an
-	// extremely large buffer, which would fail and crash the server.
-	if (buffer.IsAtEnd())
+	auto optional_data = buffer.ReadBitsSafe<uint8_t>(buffer.GetLength() * 8 - buffer.GetCurrentBit());
+	if (!optional_data)
 	{
 		return;
 	}
 
-	// read data
-	size_t dataLength = (buffer.GetLength() * 8) - buffer.GetCurrentBit();
-
-	if (dataLength == 0)
-	{
-		return;
-	}
-
-	std::vector<uint8_t> data(dataLength / 8);
-	buffer.ReadBits(data.data(), dataLength);
+	auto data = *optional_data;
 
 	// handle data
 	auto bagName = std::string_view{
