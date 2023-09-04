@@ -1,0 +1,612 @@
+[dist4]message_header  // num_bytes
+[u4]0                  // version
+[u4]0                  // interface ID
+[u4]19                 // name
+[u4]0                  // flags
+[u4]0                  // padding
+[anchr]message_header
+
+[dist4]method0_params  // num_bytes
+[u4]0                  // version
+[dist8]param0_ptr      // param0
+[anchr]method0_params
+
+[anchr]param0_ptr
+[dist4]struct_a1      // num_bytes
+[u4]0                 // version
+[dist8]struct_a2_ptr  // struct_a2
+[anchr]struct_a1
+
+[anchr]struct_a2_ptr
+[dist4]struct_a2      // num_bytes
+[u4]0                 // version
+[dist8]struct_a3_ptr  // struct_a2
+[anchr]struct_a2
+
+[anchr]struct_a3_ptr
+[dist4]struct_a3      // num_bytes
+[u4]0                 // version
+[dist8]struct_a4_ptr  // struct_a3
+[anchr]struct_a3
+
+[anchr]struct_a4_ptr
+[dist4]struct_a4      // num_bytes
+[u4]0                 // version
+[dist8]struct_a5_ptr  // struct_a4
+[anchr]struct_a4
+
+[anchr]struct_a5_ptr
+[dist4]struct_a5      // num_bytes
+[u4]0                 // version
+[dist8]struct_a6_ptr  // struct_a5
+[anchr]struct_a5
+
+[anchr]struct_a6_ptr
+[dist4]struct_a6      // num_bytes
+[u4]0                 // version
+[dist8]struct_a7_ptr  // struct_a6
+[anchr]struct_a6
+
+[anchr]struct_a7_ptr
+[dist4]struct_a7      // num_bytes
+[u4]0                 // version
+[dist8]struct_a8_ptr  // struct_a7
+[anchr]struct_a7
+
+[anchr]struct_a8_ptr
+[dist4]struct_a8      // num_bytes
+[u4]0                 // version
+[dist8]struct_a9_ptr  // struct_a8
+[anchr]struct_a8
+
+[anchr]struct_a9_ptr
+[dist4]struct_a9       // num_bytes
+[u4]0                  // version
+[dist8]struct_a10_ptr  // struct_a9
+[anchr]struct_a9
+
+[anchr]struct_a10_ptr
+[dist4]struct_a10      // num_bytes
+[u4]0                  // version
+[dist8]struct_a11_ptr  // struct_a10
+[anchr]struct_a10
+
+[anchr]struct_a11_ptr
+[dist4]struct_a11      // num_bytes
+[u4]0                  // version
+[dist8]struct_a12_ptr  // struct_a11
+[anchr]struct_a11
+
+[anchr]struct_a12_ptr
+[dist4]struct_a12      // num_bytes
+[u4]0                  // version
+[dist8]struct_a13_ptr  // struct_a12
+[anchr]struct_a12
+
+[anchr]struct_a13_ptr
+[dist4]struct_a13      // num_bytes
+[u4]0                  // version
+[dist8]struct_a14_ptr  // struct_a13
+[anchr]struct_a13
+
+[anchr]struct_a14_ptr
+[dist4]struct_a14      // num_bytes
+[u4]0                  // version
+[dist8]struct_a15_ptr  // struct_a14
+[anchr]struct_a14
+
+[anchr]struct_a15_ptr
+[dist4]struct_a15      // num_bytes
+[u4]0                  // version
+[dist8]struct_a16_ptr  // struct_a15
+[anchr]struct_a15
+
+[anchr]struct_a16_ptr
+[dist4]struct_a16      // num_bytes
+[u4]0                  // version
+[dist8]struct_a17_ptr  // struct_a16
+[anchr]struct_a16
+
+[anchr]struct_a17_ptr
+[dist4]struct_a17      // num_bytes
+[u4]0                  // version
+[dist8]struct_a18_ptr  // struct_a17
+[anchr]struct_a17
+
+[anchr]struct_a18_ptr
+[dist4]struct_a18      // num_bytes
+[u4]0                  // version
+[dist8]struct_a19_ptr  // struct_a18
+[anchr]struct_a18
+
+[anchr]struct_a19_ptr
+[dist4]struct_a19      // num_bytes
+[u4]0                  // version
+[dist8]struct_a20_ptr  // struct_a19
+[anchr]struct_a19
+
+[anchr]struct_a20_ptr
+[dist4]struct_a20      // num_bytes
+[u4]0                  // version
+[dist8]struct_a21_ptr  // struct_a20
+[anchr]struct_a20
+
+[anchr]struct_a21_ptr
+[dist4]struct_a21      // num_bytes
+[u4]0                  // version
+[dist8]struct_a22_ptr  // struct_a21
+[anchr]struct_a21
+
+[anchr]struct_a22_ptr
+[dist4]struct_a22      // num_bytes
+[u4]0                  // version
+[dist8]struct_a23_ptr  // struct_a22
+[anchr]struct_a22
+
+[anchr]struct_a23_ptr
+[dist4]struct_a23      // num_bytes
+[u4]0                  // version
+[dist8]struct_a24_ptr  // struct_a23
+[anchr]struct_a23
+
+[anchr]struct_a24_ptr
+[dist4]struct_a24      // num_bytes
+[u4]0                  // version
+[dist8]struct_a25_ptr  // struct_a24
+[anchr]struct_a24
+
+[anchr]struct_a25_ptr
+[dist4]struct_a25      // num_bytes
+[u4]0                  // version
+[dist8]struct_a26_ptr  // struct_a25
+[anchr]struct_a25
+
+[anchr]struct_a26_ptr
+[dist4]struct_a26      // num_bytes
+[u4]0                  // version
+[dist8]struct_a27_ptr  // struct_a26
+[anchr]struct_a26
+
+[anchr]struct_a27_ptr
+[dist4]struct_a27      // num_bytes
+[u4]0                  // version
+[dist8]struct_a28_ptr  // struct_a27
+[anchr]struct_a27
+
+[anchr]struct_a28_ptr
+[dist4]struct_a28      // num_bytes
+[u4]0                  // version
+[dist8]struct_a29_ptr  // struct_a28
+[anchr]struct_a28
+
+[anchr]struct_a29_ptr
+[dist4]struct_a29      // num_bytes
+[u4]0                  // version
+[dist8]struct_a30_ptr  // struct_a29
+[anchr]struct_a29
+
+[anchr]struct_a30_ptr
+[dist4]struct_a30      // num_bytes
+[u4]0                  // version
+[dist8]struct_a31_ptr  // struct_a30
+[anchr]struct_a30
+
+[anchr]struct_a31_ptr
+[dist4]struct_a31      // num_bytes
+[u4]0                  // version
+[dist8]struct_a32_ptr  // struct_a31
+[anchr]struct_a31
+
+[anchr]struct_a32_ptr
+[dist4]struct_a32      // num_bytes
+[u4]0                  // version
+[dist8]struct_a33_ptr  // struct_a32
+[anchr]struct_a32
+
+[anchr]struct_a33_ptr
+[dist4]struct_a33      // num_bytes
+[u4]0                  // version
+[dist8]struct_a34_ptr  // struct_a33
+[anchr]struct_a33
+
+[anchr]struct_a34_ptr
+[dist4]struct_a34      // num_bytes
+[u4]0                  // version
+[dist8]struct_a35_ptr  // struct_a34
+[anchr]struct_a34
+
+[anchr]struct_a35_ptr
+[dist4]struct_a35      // num_bytes
+[u4]0                  // version
+[dist8]struct_a36_ptr  // struct_a35
+[anchr]struct_a35
+
+[anchr]struct_a36_ptr
+[dist4]struct_a36      // num_bytes
+[u4]0                  // version
+[dist8]struct_a37_ptr  // struct_a36
+[anchr]struct_a36
+
+[anchr]struct_a37_ptr
+[dist4]struct_a37      // num_bytes
+[u4]0                  // version
+[dist8]struct_a38_ptr  // struct_a37
+[anchr]struct_a37
+
+[anchr]struct_a38_ptr
+[dist4]struct_a38      // num_bytes
+[u4]0                  // version
+[dist8]struct_a39_ptr  // struct_a38
+[anchr]struct_a38
+
+[anchr]struct_a39_ptr
+[dist4]struct_a39      // num_bytes
+[u4]0                  // version
+[dist8]struct_a40_ptr  // struct_a39
+[anchr]struct_a39
+
+[anchr]struct_a40_ptr
+[dist4]struct_a40      // num_bytes
+[u4]0                  // version
+[dist8]struct_a41_ptr  // struct_a40
+[anchr]struct_a40
+
+[anchr]struct_a41_ptr
+[dist4]struct_a41      // num_bytes
+[u4]0                  // version
+[dist8]struct_a42_ptr  // struct_a41
+[anchr]struct_a41
+
+[anchr]struct_a42_ptr
+[dist4]struct_a42      // num_bytes
+[u4]0                  // version
+[dist8]struct_a43_ptr  // struct_a42
+[anchr]struct_a42
+
+[anchr]struct_a43_ptr
+[dist4]struct_a43      // num_bytes
+[u4]0                  // version
+[dist8]struct_a44_ptr  // struct_a43
+[anchr]struct_a43
+
+[anchr]struct_a44_ptr
+[dist4]struct_a44      // num_bytes
+[u4]0                  // version
+[dist8]struct_a45_ptr  // struct_a44
+[anchr]struct_a44
+
+[anchr]struct_a45_ptr
+[dist4]struct_a45      // num_bytes
+[u4]0                  // version
+[dist8]struct_a46_ptr  // struct_a45
+[anchr]struct_a45
+
+[anchr]struct_a46_ptr
+[dist4]struct_a46      // num_bytes
+[u4]0                  // version
+[dist8]struct_a47_ptr  // struct_a46
+[anchr]struct_a46
+
+[anchr]struct_a47_ptr
+[dist4]struct_a47      // num_bytes
+[u4]0                  // version
+[dist8]struct_a48_ptr  // struct_a47
+[anchr]struct_a47
+
+[anchr]struct_a48_ptr
+[dist4]struct_a48      // num_bytes
+[u4]0                  // version
+[dist8]struct_a49_ptr  // struct_a48
+[anchr]struct_a48
+
+[anchr]struct_a49_ptr
+[dist4]struct_a49      // num_bytes
+[u4]0                  // version
+[dist8]struct_a50_ptr  // struct_a49
+[anchr]struct_a49
+
+[anchr]struct_a50_ptr
+[dist4]struct_a50      // num_bytes
+[u4]0                  // version
+[dist8]struct_a51_ptr  // struct_a50
+[anchr]struct_a50
+
+[anchr]struct_a51_ptr
+[dist4]struct_a51      // num_bytes
+[u4]0                  // version
+[dist8]struct_a52_ptr  // struct_a51
+[anchr]struct_a51
+
+[anchr]struct_a52_ptr
+[dist4]struct_a52      // num_bytes
+[u4]0                  // version
+[dist8]struct_a53_ptr  // struct_a52
+[anchr]struct_a52
+
+[anchr]struct_a53_ptr
+[dist4]struct_a53      // num_bytes
+[u4]0                  // version
+[dist8]struct_a54_ptr  // struct_a53
+[anchr]struct_a53
+
+[anchr]struct_a54_ptr
+[dist4]struct_a54      // num_bytes
+[u4]0                  // version
+[dist8]struct_a55_ptr  // struct_a54
+[anchr]struct_a54
+
+[anchr]struct_a55_ptr
+[dist4]struct_a55      // num_bytes
+[u4]0                  // version
+[dist8]struct_a56_ptr  // struct_a55
+[anchr]struct_a55
+
+[anchr]struct_a56_ptr
+[dist4]struct_a56      // num_bytes
+[u4]0                  // version
+[dist8]struct_a57_ptr  // struct_a56
+[anchr]struct_a56
+
+[anchr]struct_a57_ptr
+[dist4]struct_a57      // num_bytes
+[u4]0                  // version
+[dist8]struct_a58_ptr  // struct_a57
+[anchr]struct_a57
+
+[anchr]struct_a58_ptr
+[dist4]struct_a58      // num_bytes
+[u4]0                  // version
+[dist8]struct_a59_ptr  // struct_a58
+[anchr]struct_a58
+
+[anchr]struct_a59_ptr
+[dist4]struct_a59      // num_bytes
+[u4]0                  // version
+[dist8]struct_a60_ptr  // struct_a59
+[anchr]struct_a59
+
+[anchr]struct_a60_ptr
+[dist4]struct_a60      // num_bytes
+[u4]0                  // version
+[dist8]struct_a61_ptr  // struct_a60
+[anchr]struct_a60
+
+[anchr]struct_a61_ptr
+[dist4]struct_a61      // num_bytes
+[u4]0                  // version
+[dist8]struct_a62_ptr  // struct_a61
+[anchr]struct_a61
+
+[anchr]struct_a62_ptr
+[dist4]struct_a62      // num_bytes
+[u4]0                  // version
+[dist8]struct_a63_ptr  // struct_a62
+[anchr]struct_a62
+
+[anchr]struct_a63_ptr
+[dist4]struct_a63      // num_bytes
+[u4]0                  // version
+[dist8]struct_a64_ptr  // struct_a63
+[anchr]struct_a63
+
+[anchr]struct_a64_ptr
+[dist4]struct_a64      // num_bytes
+[u4]0                  // version
+[dist8]struct_a65_ptr  // struct_a64
+[anchr]struct_a64
+
+[anchr]struct_a65_ptr
+[dist4]struct_a65      // num_bytes
+[u4]0                  // version
+[dist8]struct_a66_ptr  // struct_a65
+[anchr]struct_a65
+
+[anchr]struct_a66_ptr
+[dist4]struct_a66      // num_bytes
+[u4]0                  // version
+[dist8]struct_a67_ptr  // struct_a66
+[anchr]struct_a66
+
+[anchr]struct_a67_ptr
+[dist4]struct_a67      // num_bytes
+[u4]0                  // version
+[dist8]struct_a68_ptr  // struct_a67
+[anchr]struct_a67
+
+[anchr]struct_a68_ptr
+[dist4]struct_a68      // num_bytes
+[u4]0                  // version
+[dist8]struct_a69_ptr  // struct_a68
+[anchr]struct_a68
+
+[anchr]struct_a69_ptr
+[dist4]struct_a69      // num_bytes
+[u4]0                  // version
+[dist8]struct_a70_ptr  // struct_a69
+[anchr]struct_a69
+
+[anchr]struct_a70_ptr
+[dist4]struct_a70      // num_bytes
+[u4]0                  // version
+[dist8]struct_a71_ptr  // struct_a70
+[anchr]struct_a70
+
+[anchr]struct_a71_ptr
+[dist4]struct_a71      // num_bytes
+[u4]0                  // version
+[dist8]struct_a72_ptr  // struct_a71
+[anchr]struct_a71
+
+[anchr]struct_a72_ptr
+[dist4]struct_a72      // num_bytes
+[u4]0                  // version
+[dist8]struct_a73_ptr  // struct_a72
+[anchr]struct_a72
+
+[anchr]struct_a73_ptr
+[dist4]struct_a73      // num_bytes
+[u4]0                  // version
+[dist8]struct_a74_ptr  // struct_a73
+[anchr]struct_a73
+
+[anchr]struct_a74_ptr
+[dist4]struct_a74      // num_bytes
+[u4]0                  // version
+[dist8]struct_a75_ptr  // struct_a74
+[anchr]struct_a74
+
+[anchr]struct_a75_ptr
+[dist4]struct_a75      // num_bytes
+[u4]0                  // version
+[dist8]struct_a76_ptr  // struct_a75
+[anchr]struct_a75
+
+[anchr]struct_a76_ptr
+[dist4]struct_a76      // num_bytes
+[u4]0                  // version
+[dist8]struct_a77_ptr  // struct_a76
+[anchr]struct_a76
+
+[anchr]struct_a77_ptr
+[dist4]struct_a77      // num_bytes
+[u4]0                  // version
+[dist8]struct_a78_ptr  // struct_a77
+[anchr]struct_a77
+
+[anchr]struct_a78_ptr
+[dist4]struct_a78      // num_bytes
+[u4]0                  // version
+[dist8]struct_a79_ptr  // struct_a78
+[anchr]struct_a78
+
+[anchr]struct_a79_ptr
+[dist4]struct_a79      // num_bytes
+[u4]0                  // version
+[dist8]struct_a80_ptr  // struct_a79
+[anchr]struct_a79
+
+[anchr]struct_a80_ptr
+[dist4]struct_a80      // num_bytes
+[u4]0                  // version
+[dist8]struct_a81_ptr  // struct_a80
+[anchr]struct_a80
+
+[anchr]struct_a81_ptr
+[dist4]struct_a81      // num_bytes
+[u4]0                  // version
+[dist8]struct_a82_ptr  // struct_a81
+[anchr]struct_a81
+
+[anchr]struct_a82_ptr
+[dist4]struct_a82      // num_bytes
+[u4]0                  // version
+[dist8]struct_a83_ptr  // struct_a82
+[anchr]struct_a82
+
+[anchr]struct_a83_ptr
+[dist4]struct_a83      // num_bytes
+[u4]0                  // version
+[dist8]struct_a84_ptr  // struct_a83
+[anchr]struct_a83
+
+[anchr]struct_a84_ptr
+[dist4]struct_a84      // num_bytes
+[u4]0                  // version
+[dist8]struct_a85_ptr  // struct_a84
+[anchr]struct_a84
+
+[anchr]struct_a85_ptr
+[dist4]struct_a85      // num_bytes
+[u4]0                  // version
+[dist8]struct_a86_ptr  // struct_a85
+[anchr]struct_a85
+
+[anchr]struct_a86_ptr
+[dist4]struct_a86      // num_bytes
+[u4]0                  // version
+[dist8]struct_a87_ptr  // struct_a86
+[anchr]struct_a86
+
+[anchr]struct_a87_ptr
+[dist4]struct_a87      // num_bytes
+[u4]0                  // version
+[dist8]struct_a88_ptr  // struct_a87
+[anchr]struct_a87
+
+[anchr]struct_a88_ptr
+[dist4]struct_a88      // num_bytes
+[u4]0                  // version
+[dist8]struct_a89_ptr  // struct_a88
+[anchr]struct_a88
+
+[anchr]struct_a89_ptr
+[dist4]struct_a89      // num_bytes
+[u4]0                  // version
+[dist8]struct_a90_ptr  // struct_a89
+[anchr]struct_a89
+
+[anchr]struct_a90_ptr
+[dist4]struct_a90      // num_bytes
+[u4]0                  // version
+[dist8]struct_a91_ptr  // struct_a90
+[anchr]struct_a90
+
+[anchr]struct_a91_ptr
+[dist4]struct_a91      // num_bytes
+[u4]0                  // version
+[dist8]struct_a92_ptr  // struct_a91
+[anchr]struct_a91
+
+[anchr]struct_a92_ptr
+[dist4]struct_a92      // num_bytes
+[u4]0                  // version
+[dist8]struct_a93_ptr  // struct_a92
+[anchr]struct_a92
+
+[anchr]struct_a93_ptr
+[dist4]struct_a93      // num_bytes
+[u4]0                  // version
+[dist8]struct_a94_ptr  // struct_a93
+[anchr]struct_a93
+
+[anchr]struct_a94_ptr
+[dist4]struct_a94      // num_bytes
+[u4]0                  // version
+[dist8]struct_a95_ptr  // struct_a94
+[anchr]struct_a94
+
+[anchr]struct_a95_ptr
+[dist4]struct_a95      // num_bytes
+[u4]0                  // version
+[dist8]struct_a96_ptr  // struct_a95
+[anchr]struct_a95
+
+[anchr]struct_a96_ptr
+[dist4]struct_a96      // num_bytes
+[u4]0                  // version
+[dist8]struct_a97_ptr  // struct_a96
+[anchr]struct_a96
+
+[anchr]struct_a97_ptr
+[dist4]struct_a97      // num_bytes
+[u4]0                  // version
+[dist8]struct_a98_ptr  // struct_a97
+[anchr]struct_a97
+
+[anchr]struct_a98_ptr
+[dist4]struct_a98      // num_bytes
+[u4]0                  // version
+[dist8]struct_a99_ptr  // struct_a98
+[anchr]struct_a98
+
+[anchr]struct_a99_ptr
+[dist4]struct_a99       // num_bytes
+[u4]0                   // version
+[dist8]struct_a100_ptr  // struct_a99
+[anchr]struct_a99
+
+[anchr]struct_a100_ptr
+[dist4]struct_a100      // num_bytes
+[u4]0                   // version
+[u8]0                   // struct_a100
+[anchr]struct_a100

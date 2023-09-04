@@ -1,0 +1,10 @@
+include_rules = [
+  # Mojo platform support must not depend on any other part of the Mojo public
+  # library.
+  "-mojo",
+  "+mojo/public/c/system",
+  "+mojo/public/cpp/platform",
+
+  # For some syscalls when building in NaCl toolchains.
+  "+native_client/src/public",
+]

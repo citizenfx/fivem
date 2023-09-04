@@ -1,7 +1,8 @@
 .server-preview {
-    width: 50%;
+    width: 100%;
 
     .swiper-container {
+        width: inherit;
         height: 52rem;
         padding: 2rem 0;
         position: relative;
@@ -12,6 +13,10 @@
         height: 42rem;
         position: relative;
 
+        .hide {
+            display: none;
+        }
+        
         img {
             width: 100%;
             height: 100%;

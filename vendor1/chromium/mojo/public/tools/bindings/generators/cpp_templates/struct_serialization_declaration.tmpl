@@ -1,0 +1,39 @@
+{%- import "struct_macros.tmpl" as struct_macros %}
+{%- set data_view = struct|get_qualified_name_for_kind ~ "DataView" %}
+{%- set data_type = struct|get_qualified_name_for_kind(internal=True) %}
+
+{%- if not struct|use_custom_serializer %}
+
+namespace internal {
+
+template <typename MaybeConstUserType>
+struct Serializer<{{data_view}}, MaybeConstUserType> {
+  using UserType = typename std::remove_const<MaybeConstUserType>::type;
+  using Traits = StructTraits<{{data_view}}, UserType>;
+
+  static void Serialize(MaybeConstUserType& input,
+                        Buffer* buffer,
+                        {{data_type}}::BufferWriter* output,
+                        SerializationContext* context) {
+    if (CallIsNullIfExists<Traits>(input))
+      return;
+    {{struct_macros.serialize(
+          struct, struct.name ~ " struct",
+          "Traits::%s(input)", "(*output)",
+          "buffer", "context", True)|indent(2)}}
+  }
+
+  static bool Deserialize({{data_type}}* input,
+                          UserType* output,
+                          SerializationContext* context) {
+    if (!input)
+      return CallSetToNullIfExists<Traits>(output);
+
+    {{data_view}} data_view(input, context);
+    return Traits::Read(data_view, output);
+  }
+};
+
+}  // namespace internal
+
+{%- endif %}

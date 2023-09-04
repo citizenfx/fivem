@@ -1,0 +1,33 @@
+// Copyright 2019 The Chromium Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+module mojo.test.new_endpoint_types.mojom;
+
+interface WidgetObserver {
+  OnClick();
+};
+
+interface Widget {
+  Click();
+
+  AddObserver(pending_remote<WidgetObserver> observer);
+};
+
+interface WidgetClient {
+  OnInitialized();
+};
+
+interface WidgetFactory {
+  CreateWidget(pending_receiver<Widget> receiver,
+               pending_remote<WidgetClient> client);
+};
+
+interface Pinger {
+  Ping() => ();
+};
+
+interface AssociatedPingerHost {
+  AddEndpoints(pending_associated_receiver<Pinger> receiver,
+               pending_associated_remote<Pinger> remote);
+};

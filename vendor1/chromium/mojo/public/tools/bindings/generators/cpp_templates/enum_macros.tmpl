@@ -1,0 +1,167 @@
+{#---
+  Macro for enum definition, and the declaration of associated functions.
+---#}
+
+{%- macro kythe_annotation(name) %}
+{%- if enable_kythe_annotations %}
+// @generated_from: {{name}}
+{%- endif %}
+{%- endmacro %}
+
+{%- macro enum_forward(enum) %}
+{%-   set enum_name = enum|get_name_for_kind(flatten_nested_kind=True) %}
+enum class {{enum_name}} : int32_t;
+{%- endmacro %}
+
+{%- macro enum_decl(enum, export_attribute) %}
+{%-   set enum_name = enum|get_name_for_kind(flatten_nested_kind=True) %}
+
+{%- set full_enum_name = enum|get_full_mojom_name_for_kind() %}
+{{ kythe_annotation(full_enum_name) }}
+enum class {{enum_name}} : int32_t {
+{%-   for field in enum.fields %}
+{%-     if field.value %}
+  {{ kythe_annotation("%s.%s"|format(full_enum_name, field.name)) }}
+  {{field.name}} = {{field.value|expression_to_text}},
+{%-     else %}
+  {{ kythe_annotation("%s.%s"|format(full_enum_name, field.name)) }}
+  {{field.name}},
+{%-     endif %}
+{%-   endfor %}
+{%-   if enum.min_value is not none %}
+  kMinValue = {{enum.min_value}},
+{%-   endif %}
+{%-   if enum.max_value is not none %}
+  kMaxValue = {{enum.max_value}},
+{%-   endif %}
+};
+
+{{export_attribute}} std::ostream& operator<<(std::ostream& os, {{enum_name}} value);
+
+{#-   Returns true if the given enum value exists in this version of enum. #}
+inline bool IsKnownEnumValue({{enum_name}} value) {
+  return {{enum|get_name_for_kind(internal=True,
+                                  flatten_nested_kind=True)}}::IsKnownValue(
+      static_cast<int32_t>(value));
+}
+{%- endmacro %}
+
+{%- macro enum_stream(enum) %}
+{%-   set enum_name = enum|get_name_for_kind(flatten_nested_kind=True) %}
+std::ostream& operator<<(std::ostream& os, {{enum_name}} value) {
+{%- if enum.fields %}
+  switch(value) {
+{%-   for _, values in enum.fields|groupby('numeric_value') %}
+    case {{enum_name}}::{{values[0].name}}:
+      return os << "{{enum_name}}::
+{%-     if values|length > 1 -%}
+      {{'{'}}
+{%-     endif -%}
+      {{values|map(attribute='name')|join(', ')}}
+{%-     if values|length > 1 -%}
+      {{'}'}}
+{%-     endif -%}
+      ";
+{%-   endfor %}
+    default:
+      return os << "Unknown {{enum_name}} value: " << static_cast<int32_t>(value);
+  }
+{%- else %}
+  return os << "Unknown {{enum_name}} value: " << static_cast<int32_t>(value);
+{%- endif %}
+}
+{%- endmacro %}
+
+{%- macro enum_data_decl(enum) %}
+{%-   set enum_name = enum|get_name_for_kind(flatten_nested_kind=True) %}
+struct {{enum_name}}_Data {
+ public:
+  static bool constexpr kIsExtensible = {% if enum.extensible %}true{% else %}false{% endif %};
+
+  static bool IsKnownValue(int32_t value) {
+{%- if enum.fields %}
+    switch (value) {
+{%-   for enum_field in enum.fields|groupby('numeric_value') %}
+      case {{enum_field[0]}}:
+{%-   endfor %}
+        return true;
+    }
+{%- endif %}
+    return false;
+  }
+
+  static bool Validate(int32_t value,
+                       mojo::internal::ValidationContext* validation_context) {
+    if (kIsExtensible || IsKnownValue(value))
+      return true;
+
+    ReportValidationError(validation_context,
+                          mojo::internal::VALIDATION_ERROR_UNKNOWN_ENUM_VALUE);
+    return false;
+  }
+};
+{%- endmacro %}
+
+{%- macro enum_hash(enum) %}
+{%-   set enum_name = enum|get_qualified_name_for_kind(
+          flatten_nested_kind=True) %}
+template <>
+struct hash<{{enum_name}}>
+    : public mojo::internal::EnumHashImpl<{{enum_name}}> {};
+{%- endmacro %}
+
+{%- macro enum_hash_blink(enum) %}
+{%-   set enum_name = enum|get_qualified_name_for_kind(
+          flatten_nested_kind=True, include_variant=False) %}
+{%-   set hash_fn_name = enum|wtf_hash_fn_name_for_enum %}
+{#    We need two unused enum values: #}
+{%-   set empty_value = -1000000 %}
+{%-   set deleted_value = -1000001 %}
+{%-   set empty_value_unused = "false" if empty_value in enum|all_enum_values else "true" %}
+{%-   set deleted_value_unused = "false" if empty_value in enum|all_enum_values else "true" %}
+namespace WTF {
+struct {{hash_fn_name}} {
+  static unsigned GetHash(const {{enum_name}}& value) {
+    using utype = std::underlying_type<{{enum_name}}>::type;
+    return DefaultHash<utype>::Hash().GetHash(static_cast<utype>(value));
+  }
+  static bool Equal(const {{enum_name}}& left, const {{enum_name}}& right) {
+    return left == right;
+  }
+  static const bool safe_to_compare_to_empty_or_deleted = true;
+};
+
+template <>
+struct HashTraits<{{enum_name}}>
+    : public GenericHashTraits<{{enum_name}}> {
+  static_assert({{empty_value_unused}},
+                "{{empty_value}} is a reserved enum value");
+  static_assert({{deleted_value_unused}},
+                "{{deleted_value}} is a reserved enum value");
+  static const bool hasIsEmptyValueFunction = true;
+  static bool IsEmptyValue(const {{enum_name}}& value) {
+    return value == static_cast<{{enum_name}}>({{empty_value}});
+  }
+  static void ConstructDeletedValue({{enum_name}}& slot, bool) {
+    slot = static_cast<{{enum_name}}>({{deleted_value}});
+  }
+  static bool IsDeletedValue(const {{enum_name}}& value) {
+    return value == static_cast<{{enum_name}}>({{deleted_value}});
+  }
+};
+}  // namespace WTF
+{%- endmacro %}
+
+{%- macro enum_hash_blink_forward(enum) %}
+{%-   set enum_name = enum|get_qualified_name_for_kind(
+          flatten_nested_kind=True, include_variant=False) %}
+{%-   set hash_fn_name = enum|wtf_hash_fn_name_for_enum %}
+namespace WTF {
+struct {{hash_fn_name}};
+
+template <>
+struct DefaultHash<{{enum_name}}> {
+  using Hash = {{hash_fn_name}};
+};
+}  // namespace WTF
+{%- endmacro %}

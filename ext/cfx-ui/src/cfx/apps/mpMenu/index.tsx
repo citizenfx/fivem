@@ -45,6 +45,7 @@ import { animationFrame, idleCallback, timeout } from 'cfx/utils/async';
 import { LoginPage } from './pages/LoginPage/LoginPage';
 import { DevotedPage } from './pages/DevotedPage/DevotedPage';
 import { registerServerPreviewService } from './services/serverPreview/serverPreview.service';
+import { IServerPreview } from 'cfx/common/services/servers/serverPreview.service';
 
 startBrowserApp({
   defineServices(container) {

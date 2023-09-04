@@ -1,0 +1,127 @@
+{#  TODO(yzshen): Make these templates more readable. #}
+
+{#  Serializes the specified struct.
+    |struct| is the struct definition.
+    |struct_display_name| is the display name for the struct that can be showed
+    in error/log messages, for example, "FooStruct", "FooMethod request".
+    |input_field_pattern| should be a pattern that contains one string
+    placeholder, for example, "input->%s", "p_%s". The placeholder will be
+    substituted with struct field names to refer to the input fields.
+    |writer| is the name of the BufferWriter to use for allocation and writing.
+    |buffer| is the name of the Buffer instance used.
+    |context| is the name of the serialization context.
+    |input_may_be_temp|: please see the comments of get_serialized_size.
+    This macro is expanded to do serialization for both:
+    - user-defined structs: the input is an instance of the corresponding struct
+      wrapper class.
+    - method parameters/response parameters: the input is a list of
+      arguments. #}
+{%- macro serialize(struct, struct_display_name, input_field_pattern, writer,
+                    buffer, context, input_may_be_temp=False) -%}
+  {{writer}}.Allocate({{buffer}});
+{%- for pf in struct.packed.packed_fields_in_ordinal_order %}
+{%-   set input_field = input_field_pattern|format(pf.field.name) %}
+{%-   set name = pf.field.name %}
+{%-   set kind = pf.field.kind %}
+{%-   set serializer_type = kind|unmapped_type_for_serializer %}
+
+{%-   if kind|is_object_kind or kind|is_any_handle_or_interface_kind %}
+{%-     set original_input_field = input_field_pattern|format(name) %}
+{%-     set input_field = "in_%s"|format(name) if input_may_be_temp
+                                               else original_input_field %}
+{%-     if input_may_be_temp %}
+  decltype({{original_input_field}}) in_{{name}} = {{original_input_field}};
+{%-     endif %}
+{%-   endif %}
+
+{%-   if kind|is_object_kind %}
+{%-     if kind|is_array_kind or kind|is_map_kind %}
+  typename decltype({{writer}}->{{name}})::BaseType::BufferWriter
+      {{name}}_writer;
+  const mojo::internal::ContainerValidateParams {{name}}_validate_params(
+      {{kind|get_container_validate_params_ctor_args|indent(10)}});
+  mojo::internal::Serialize<{{serializer_type}}>(
+      {{input_field}}, {{buffer}}, &{{name}}_writer, &{{name}}_validate_params,
+      {{context}});
+  {{writer}}->{{name}}.Set(
+      {{name}}_writer.is_null() ? nullptr : {{name}}_writer.data());
+{%-     elif kind|is_union_kind %}
+  typename decltype({{writer}}->{{name}})::BufferWriter {{name}}_writer;
+  {{name}}_writer.AllocateInline({{buffer}}, &{{writer}}->{{name}});
+  mojo::internal::Serialize<{{serializer_type}}>(
+      {{input_field}}, {{buffer}}, &{{name}}_writer, true, {{context}});
+{%-     else %}
+  typename decltype({{writer}}->{{name}})::BaseType::BufferWriter
+      {{name}}_writer;
+  mojo::internal::Serialize<{{serializer_type}}>(
+      {{input_field}}, {{buffer}}, &{{name}}_writer, {{context}});
+  {{writer}}->{{name}}.Set(
+      {{name}}_writer.is_null() ? nullptr : {{name}}_writer.data());
+{%-     endif %}
+{%-     if not kind|is_nullable_kind %}
+  MOJO_INTERNAL_DLOG_SERIALIZATION_WARNING(
+      {{writer}}->{{name}}.is_null(),
+      mojo::internal::VALIDATION_ERROR_UNEXPECTED_NULL_POINTER,
+      "null {{name}} in {{struct_display_name}}");
+{%-     endif %}
+
+{%-   elif kind|is_any_handle_or_interface_kind %}
+  mojo::internal::Serialize<{{serializer_type}}>(
+      {{input_field}}, &{{writer}}->{{name}}, {{context}});
+{%-     if not kind|is_nullable_kind %}
+  MOJO_INTERNAL_DLOG_SERIALIZATION_WARNING(
+      !mojo::internal::IsHandleOrInterfaceValid({{writer}}->{{name}}),
+{%-       if kind|is_associated_kind %}
+      mojo::internal::VALIDATION_ERROR_UNEXPECTED_INVALID_INTERFACE_ID,
+{%-       else %}
+      mojo::internal::VALIDATION_ERROR_UNEXPECTED_INVALID_HANDLE,
+{%-       endif %}
+      "invalid {{name}} in {{struct_display_name}}");
+{%-     endif %}
+
+{%-   elif kind|is_enum_kind %}
+  mojo::internal::Serialize<{{serializer_type}}>(
+      {{input_field}}, &{{writer}}->{{name}});
+
+{%-   else %}
+  {{writer}}->{{name}} = {{input_field}};
+{%-   endif %}
+{%- endfor %}
+{%- endmacro -%}
+
+{#  Deserializes the specified struct.
+    |struct| is the struct definition.
+    |input| is the name of the input struct data view. It is expected to be
+    non-null.
+    |output_field_pattern| should be a pattern that contains one string
+    placeholder, for example, "result->%s", "p_%s". The placeholder will be
+    substituted with struct field names to refer to the output fields.
+    |context| is the name of the serialization context.
+    |success| is the name of a bool variable to track success of the operation.
+    This macro is expanded to do deserialization for both:
+    - user-defined structs: the output is an instance of the corresponding
+      struct wrapper class.
+    - method parameters/response parameters: the output is a list of
+      arguments. #}
+{%- macro deserialize(struct, input, output_field_pattern, success) -%}
+{%-   for pf in struct.packed.packed_fields_in_ordinal_order %}
+{%-     set output_field = output_field_pattern|format(pf.field.name) %}
+{%-     set name = pf.field.name %}
+{%-     set kind = pf.field.kind %}
+{%-     if kind|is_object_kind or kind|is_enum_kind %}
+  if ({{success}} && !{{input}}.Read{{name|under_to_camel}}(&{{output_field}}))
+    {{success}} = false;
+{%-     elif kind|is_any_handle_kind %}
+  if ({{success}})
+    {{output_field}} = {{input}}.Take{{name|under_to_camel}}();
+{%-     elif kind|is_any_interface_kind %}
+  if ({{success}}) {
+    {{output_field}} =
+        {{input}}.Take{{name|under_to_camel}}<decltype({{output_field}})>();
+  }
+{%-     else %}
+  if ({{success}})
+    {{output_field}} = {{input}}.{{name}}();
+{%-     endif %}
+{%-   endfor %}
+{%- endmacro %}

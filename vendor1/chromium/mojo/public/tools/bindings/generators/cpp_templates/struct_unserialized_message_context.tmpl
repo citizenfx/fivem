@@ -1,0 +1,33 @@
+// Used by {{struct.name}}::WrapAsMessage to lazily serialize the struct.
+template <typename UserType, typename DataView>
+struct {{struct.name}}_UnserializedMessageContext
+    : public mojo::internal::UnserializedMessageContext {
+ public:
+  static const mojo::internal::UnserializedMessageContext::Tag kMessageTag;
+
+  {{struct.name}}_UnserializedMessageContext(
+    uint32_t message_name,
+    uint32_t message_flags,
+    UserType input)
+      : mojo::internal::UnserializedMessageContext(&kMessageTag, message_name, message_flags)
+      , user_data_(std::move(input)) {}
+  ~{{struct.name}}_UnserializedMessageContext() override = default;
+
+  UserType TakeData() {
+    return std::move(user_data_);
+  }
+
+ private:
+  // mojo::internal::UnserializedMessageContext:
+  void Serialize(mojo::internal::SerializationContext* context,
+                 mojo::internal::Buffer* buffer) override {
+    {{struct.name}}_Data::BufferWriter writer;
+    mojo::internal::Serialize<DataView>(user_data_, buffer, &writer, context);
+  }
+
+  UserType user_data_;
+};
+
+template <typename UserType, typename DataView>
+const mojo::internal::UnserializedMessageContext::Tag
+    {{struct.name}}_UnserializedMessageContext<UserType, DataView>::kMessageTag = {};
