@@ -49,15 +49,11 @@ class BOTAN_PUBLIC_API(2,0) Channel
       *
       * @param callbacks contains a set of callback function references
       *        required by the TLS endpoint.
-      *
       * @param session_manager manages session state
-      *
       * @param rng a random number generator
-      *
       * @param policy specifies other connection policy information
-      *
+      * @param is_server whether this is a server session or not
       * @param is_datagram whether this is a DTLS session
-      *
       * @param io_buf_sz This many bytes of memory will
       *        be preallocated for the read and write buffers. Smaller
       *        values just mean reallocations and copies are more likely.

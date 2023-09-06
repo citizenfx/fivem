@@ -10,6 +10,9 @@
 #include "ManifestVersion.h"
 #include "VFSManager.h"
 
+#include "ServerInstanceBase.h"
+#include "ServerInstanceBaseRef.h"
+
 #include <boost/algorithm/string.hpp>
 
 #include <skyr/percent_encode.hpp>
@@ -32,6 +35,10 @@ void ServerResourceList::AttachToObject(fx::ResourceManager* object)
 
 void ServerResourceList::ScanResources(const std::string& resourceRoot, ScanResult* outResult /* = nullptr */)
 {
+	// TEMPORARY convar for chat build swaparound
+	static auto useChatVar = m_manager->GetComponent<fx::ServerInstanceBaseRef>()->Get()->AddVariable<bool>("resources_useSystemChat", ConVar_None, false);
+	bool isSystemResourceRoot = resourceRoot.find("/system_resources/") != std::string::npos;
+
 	m_currentResult = outResult;
 
 	auto resourceRootPath = std::filesystem::u8path(resourceRoot).lexically_normal();
@@ -71,6 +78,17 @@ void ServerResourceList::ScanResources(const std::string& resourceRoot, ScanResu
 				if (findData.name == ".git")
 				{
 					continue;
+				}
+
+				// part of TEMPORARY chat hack
+				if (findData.name == "chat")
+				{
+					// if resources_useSystemChat is true, we want to only use chat if system resource
+					// same goes for opposite
+					if (useChatVar->GetValue() != isSystemResourceRoot)
+					{
+						continue;
+					}
 				}
 
 				if (findData.attributes & FILE_ATTRIBUTE_DIRECTORY)

@@ -29,7 +29,12 @@ static const char* GetPlayerNameFromScAddr(void* addr)
 
 	int netId = 0;
 
-	if (xbr::IsGameBuildOrGreater<2372>())
+	if (xbr::IsGameBuildOrGreater<2824>())
+	{
+		auto address = (PeerAddress<2824>*)addr;
+		netId = (address->localAddr().ip.addr & 0xFFFF) ^ 0xFEED;
+	}
+	else if (xbr::IsGameBuildOrGreater<2372>())
 	{
 		auto address = (PeerAddress<2372>*)addr;
 
@@ -81,9 +86,16 @@ static char* _getPackfileName(char* packfile)
 static HookFunction hookFunction([] ()
 {
 	// function that (hopefully) is only used for getting names from SC data blocks
-	void* playerNameGetter = hook::pattern("49 8B CE FF 50 ? 48 8B C8 E8 ? ? ? ? 48 8D").count(1).get(0).get<void>(9);
-
-	hook::jump(hook::get_call(playerNameGetter), GetPlayerNameFromScAddr);
+	if (xbr::IsGameBuildOrGreater<2944>())
+	{
+		void* playerNameGetter = hook::pattern("E8 ? ? ? ? 48 8D 94 24 ? ? ? ? 49 8D 4E 68").count(1).get(0).get<void>(0);
+		hook::jump(hook::get_call(playerNameGetter), GetPlayerNameFromScAddr);
+	}
+	else
+	{
+		void* playerNameGetter = hook::pattern("49 8B CE FF 50 ? 48 8B C8 E8 ? ? ? ? 48 8D").count(1).get(0).get<void>(9);
+		hook::jump(hook::get_call(playerNameGetter), GetPlayerNameFromScAddr);
+	}
 
 	// 505 changes cause this to conflict with (at least) packfile naming - change that one therefore
 	{

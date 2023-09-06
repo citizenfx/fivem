@@ -243,11 +243,6 @@ static InitFunction initFunction([]()
 
 	fx::Resource::OnInitializeInstance.Connect([](fx::Resource* resource)
 	{
-		if (resource->GetName() == "_cfx_internal")
-		{
-			return;
-		}
-
 		resource->OnBeforeStart.Connect([resource]()
 		{
 			return fx::TriggerBuild(resource);

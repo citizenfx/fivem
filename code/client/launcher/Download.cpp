@@ -8,6 +8,8 @@
 #include "StdInc.h"
 
 #if defined(LAUNCHER_PERSONALITY_MAIN) || defined(COMPILING_GLUE)
+#include "ErrorFormat.Win32.h"
+
 #include <CfxLocale.h>
 
 // the maximum number of concurrent downloads
@@ -797,7 +799,13 @@ bool DL_ProcessDownload()
 		{
 			if (download->algorithm == compressionAlgo_e::XZ)
 			{
-				lzma_stream_decoder(&download->strm, UINT64_MAX, 0);
+				lzma_mt mtOptions = { 0 };
+				mtOptions.threads = 4;
+				mtOptions.memlimit_threading = lzma_physmem() / 8;
+				mtOptions.memlimit_stop = UINT64_MAX;
+				mtOptions.timeout = 300;
+				lzma_stream_decoder_mt(&download->strm, &mtOptions);
+
 				download->strm.avail_out = sizeof(download->strmOut);
 				download->strm.next_out = download->strmOut;
 			}
@@ -833,7 +841,7 @@ bool DL_ProcessDownload()
 					// let's try asking the shell
 					if (!ReallyMoveFile(opathWide, toDeleteName))
 					{
-						UI_DisplayError(va(L"Moving of %s failed (err = %d). Check your system for any conflicting software.", ToWide(download->file), gle));
+						UI_DisplayError(va(L"Moving %s failed with error 0x%08x - %s", ToWide(download->file), HRESULT_FROM_WIN32(gle), ToWide(win32::FormatMessage(gle))));
 						return false;
 					}
 				}
@@ -847,7 +855,7 @@ bool DL_ProcessDownload()
 			// let's try asking the shell
 			if (!ReallyMoveFile(tmpPathWide, opathWide))
 			{
-				UI_DisplayError(va(L"Moving of %s failed (err = %d) - make sure you don't have any existing " PRODUCT_NAME L" processes running", ToWide(download->file), gle));
+				UI_DisplayError(va(L"Moving %s failed with error 0x%08x - %s\nMake sure you don't have any existing " PRODUCT_NAME L" processes running", ToWide(download->file), HRESULT_FROM_WIN32(gle), ToWide(win32::FormatMessage(gle))));
 				DeleteFile(tmpPathWide.c_str());
 
 				return false;
@@ -981,7 +989,7 @@ bool DL_ProcessDownload()
 						DWORD errNo = GetLastError();
 
 						dls.isDownloading = false;
-						UI_DisplayError(va(L"Unable to open %s for writing. Windows error code %d was returned.", tmpPathWide, errNo));
+						UI_DisplayError(va(L"Unable to open %s for writing. Error 0x%08x - %s", tmpPathWide, HRESULT_FROM_WIN32(errNo), ToWide(win32::FormatMessage(errNo))));
 
 						return false;
 					}
@@ -997,10 +1005,10 @@ bool DL_ProcessDownload()
 
 						UI_DisplayError(
 							va(
-								L"Unable to write to %s. Windows error code %d was returned.%s",
+								L"Unable to write to %s. Error 0x%08x.%s",
 								tmpPathWide,
-								errNo,
-								(errNo == ERROR_VIRUS_INFECTED) ? L"\nThis is usually caused by anti-malware software. Please report this issue to your anti-malware software vendor." : L""
+								HRESULT_FROM_WIN32(errNo),
+								(errNo == ERROR_VIRUS_INFECTED) ? L"\nThis is usually caused by anti-malware software. Please report this issue to your anti-malware software vendor." : ToWide(win32::FormatMessage(errNo))
 							));
 
 						return false;

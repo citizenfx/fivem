@@ -32,9 +32,9 @@ const wchar_t* const MonoComponentHostShared::s_platformAssemblies[] = {
 	L"System.dll",
 	L"System.Core.dll",
 	L"CitizenFX.Core.dll",
-	L"CitizenFX.Core.Client.dll",
+	//L"CitizenFX.Core.Client.dll",
 	L"CitizenFX." PRODUCT_NAME ".dll",
-	L"CitizenFX." PRODUCT_NAME ".NativesImpl.dll",
+	L"CitizenFX." PRODUCT_NAME ".NativeImpl.dll",
 };
 #endif
 
@@ -67,6 +67,10 @@ extern "C" void mono_handle_native_crash_nop(const char* signal, void* sigctx, v
 
 void MonoComponentHostShared::Initialize()
 {
+	// TODO: remove this particular mutex lock
+	// for some reason mono-v2 starts its initialization before mono-v1 is done, let's use a mutex that's unused at this stage
+	std::unique_lock lk(s_memoryUsagesMutex);
+
 	static ConVar<bool> memoryUsageVar("mono_enableMemoryUsageTracking", ConVar_None, true, &s_enableMemoryUsage);
 
 	if (mono_get_root_domain() == nullptr)
@@ -75,7 +79,7 @@ void MonoComponentHostShared::Initialize()
 
 		// MONO_PATH
 		std::string citizenClrLibPath = basePath + "lib/mono/4.5/";
-		// citizenClrLibPath = citizenClrLibPath + FX_SEARCHPATH_SEPARATOR + citizenClrLibPath + "v2/"; // throws warnings when v2 folder isn't present, re-enable later
+		citizenClrLibPath += FX_SEARCHPATH_SEPARATOR + citizenClrLibPath + "v2/";
 		SetEnvironmentVariableNarrow("MONO_PATH", citizenClrLibPath.c_str());
 
 		// https://github.com/mono/mono/pull/9811
@@ -97,7 +101,7 @@ void MonoComponentHostShared::Initialize()
 		mono_security_core_clr_set_options((MonoSecurityCoreCLROptions)(MONO_SECURITY_CORE_CLR_OPTIONS_RELAX_DELEGATE | MONO_SECURITY_CORE_CLR_OPTIONS_RELAX_REFLECTION));
 		mono_security_set_core_clr_platform_callback(CoreCLRIsTrustedCode);
 
-		//mono_profiler_install(&s_monoProfiler, ProfilerShutDown);
+		mono_profiler_install(&s_monoProfiler, ProfilerShutDown);
 		mono_profiler_install_gc(gc_event, gc_resize);
 		mono_profiler_set_events(MONO_PROFILE_GC);
 #elif defined(_WIN32)

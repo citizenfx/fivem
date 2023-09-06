@@ -573,10 +573,8 @@ namespace profilerCommand {
 			console::Printf("cmd", "Started recording\n");
 		}));
 
-		static ConsoleCommand saveCmd(profilerCtx.GetRef(), "save", ExecuteOffThread<std::string>([](std::string path)
+		static auto makeVfsStream = [](const std::string& path) -> fwRefContainer<vfs::Stream>
 		{
-			auto profiler = fx::ResourceManager::GetCurrent(true)->GetComponent<fx::ProfilerComponent>();
-
 			std::string outFn = path;
 
 #ifndef IS_FXSERVER
@@ -584,9 +582,34 @@ namespace profilerCommand {
 #endif
 
 			auto vfsDevice = vfs::GetDevice(outFn);
+
+			if (!vfsDevice.GetRef())
+			{
+				console::PrintError("cmd", "Invalid path %s.\n", path);
+				return nullptr;
+			}
+
 			auto handle = vfsDevice->Create(outFn);
 
-			vfs::Stream writeStream(vfsDevice, handle);
+			if (handle == vfs::Device::InvalidHandle)
+			{
+				console::PrintError("cmd", "Invalid path %s.\n", path);
+				return nullptr;
+			}
+
+			return new vfs::Stream(vfsDevice, handle);
+		};
+
+		static ConsoleCommand saveCmd(profilerCtx.GetRef(), "save", ExecuteOffThread<std::string>([](std::string path)
+		{
+			auto profiler = fx::ResourceManager::GetCurrent(true)->GetComponent<fx::ProfilerComponent>();
+
+			auto writeStream = makeVfsStream(path);
+
+			if (!writeStream.GetRef())
+			{
+				return;
+			}
 
 			struct WriteWrapper
 			{
@@ -601,7 +624,7 @@ namespace profilerCommand {
 				}
 
 				vfs::Stream& stream;
-			} writeWrapper(writeStream);
+			} writeWrapper(*writeStream.GetRef());
 
 			console::Printf("cmd", "Saving the recording to: %s.\n", path);
 			msgpack::pack(writeWrapper, ConvertToStorage(profiler));
@@ -610,24 +633,20 @@ namespace profilerCommand {
 
 		static ConsoleCommand saveJSONCmd(profilerCtx.GetRef(), "saveJSON", ExecuteOffThread<std::string>([](std::string path)
 		{
+			auto writeStream = makeVfsStream(path);
+
+			if (!writeStream.GetRef())
+			{
+				return;
+			}
+
 			auto profiler = fx::ResourceManager::GetCurrent(true)->GetComponent<fx::ProfilerComponent>();
-
-			std::string outFn = path;
-
-#ifndef IS_FXSERVER
-			outFn = "citizen:/" + outFn;
-#endif
-
-			auto vfsDevice = vfs::GetDevice(outFn);
-			auto handle = vfsDevice->Create(outFn);
-
-			vfs::Stream writeStream(vfsDevice, handle);
 
 			console::Printf("cmd", "Saving the recording as JSON to: %s.\n", path);
 
 			auto json = ConvertToJSON(ConvertToStorage(profiler));
 			auto jsonStr = json.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace);
-			writeStream.Write(reinterpret_cast<const uint8_t*>(jsonStr.data()), jsonStr.size());
+			writeStream->Write(reinterpret_cast<const uint8_t*>(jsonStr.data()), jsonStr.size());
 
 			console::Printf("cmd", "Save complete\n");
 		}));
@@ -672,11 +691,19 @@ namespace profilerCommand {
 			}
 
 			auto data = stream->ReadToEnd();
-			auto unpacked = msgpack::unpack(reinterpret_cast<char*>(data.data()), data.size());
-			auto recording = unpacked.get().as<ProfilerRecording>();
-			auto jsonData = ConvertToJSON(recording);
 
-			ViewProfile(jsonData);
+			try
+			{
+				auto unpacked = msgpack::unpack(reinterpret_cast<char*>(data.data()), data.size());
+				auto recording = unpacked.get().as<ProfilerRecording>();
+				auto jsonData = ConvertToJSON(recording);
+
+				ViewProfile(jsonData);
+			}
+			catch (std::exception& e)
+			{
+				console::Printf("cmd", "profiler view failed: %s\n", e.what());
+			}
 		}, false));
 	}
 	

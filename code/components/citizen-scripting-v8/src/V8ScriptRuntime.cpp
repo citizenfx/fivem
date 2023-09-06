@@ -2180,6 +2180,11 @@ global.require = m.exports.require;
 )"
 		);
 
+		node::SetProcessExitHandler(env, [](node::Environment*, int exitCode)
+		{
+			FatalError("Node.js exiting (exit code %d)\nSee console for details", exitCode);
+		});
+
 		g_envRuntimes[env] = this;
 
 		m_nodeEnvironment = env;
@@ -2896,6 +2901,7 @@ void V8ScriptGlobals::Initialize()
 	}
 #endif
 
+#ifndef V8_NODE
 	m_isolate->SetPromiseRejectCallback([](PromiseRejectMessage message)
 	{
 		Local<Promise> promise = message.GetPromise();
@@ -2913,6 +2919,9 @@ void V8ScriptGlobals::Initialize()
 
 		scRT->HandlePromiseRejection(message);
 	});
+#else
+	m_isolate->SetPromiseRejectCallback(node::PromiseRejectCallback);
+#endif
 
 	Isolate::Initialize(m_isolate, params);
 
@@ -2993,7 +3002,8 @@ void V8ScriptGlobals::Initialize()
 #else
 			"",
 #endif
-			"--expose-internals"
+			"--expose-internals",
+			"--unhandled-rejections=warn",
 		};
 
 		for (int i = 1; i < g_argc; i++)

@@ -237,7 +237,7 @@ namespace fx
 		// tasks should be running in background threads; we'll just wait until someone wants to get rid of us
 		while (!m_shouldTerminate)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			std::this_thread::sleep_for(std::chrono::seconds(1));
 		}
 	}
 
@@ -283,8 +283,6 @@ namespace fx
 			return resourceManager->AddResource(url.href()).get();
 		};
 
-		// monitor does not use webadmin currently
-		//addResource("webadmin")->Start();
 		addResource("monitor")->Start();
 
 		// setup ticks

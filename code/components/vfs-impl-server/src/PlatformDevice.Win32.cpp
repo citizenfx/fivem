@@ -253,6 +253,11 @@ void LocalDevice::FindClose(THandle handle)
 	::FindClose(reinterpret_cast<HANDLE>(handle));
 }
 
+uint32_t LocalDevice::GetAttributes(const std::string& filename)
+{
+	return ::GetFileAttributesW(ToWide(filename).c_str());
+}
+
 bool LocalDevice::ExtensionCtl(int controlIdx, void* controlData, size_t controlSize)
 {
 	if (controlIdx == VFS_GET_FILE_ID && controlSize == sizeof(GetFileIdExtension))

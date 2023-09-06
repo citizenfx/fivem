@@ -41,27 +41,13 @@ namespace CitizenFX.Core
 		public readonly static Color Transparent = new Color(0x00000000);
 
 		/// <summary>
-		/// Create a fully opaque color by individual given channels
-		/// </summary>
-		/// <param name="r">red</param>
-		/// <param name="g">green</param>
-		/// <param name="b">blue</param>
-		public unsafe Color(byte r, byte g, byte b)
-		{
-			A = 0xFF;
-			R = r;
-			G = g;
-			B = b;
-		}
-
-		/// <summary>
 		/// Create a color by individual given channels
 		/// </summary>
-		/// <param name="a">alpha/translucency</param>
 		/// <param name="r">red</param>
 		/// <param name="g">green</param>
 		/// <param name="b">blue</param>
-		public unsafe Color(byte a, byte r, byte g, byte b)
+		/// <param name="a">alpha/translucency</param>
+		public unsafe Color(byte r, byte g, byte b, byte a = 0xFF)
 		{
 			A = a;
 			R = r;
@@ -110,6 +96,9 @@ namespace CitizenFX.Core
 #endif
 		}
 
+		public static unsafe explicit operator Color(uint color) => new Color(color);
+		public static unsafe explicit operator Color(int color) => new Color(color);
+
 		public static unsafe explicit operator uint(in Color color) => color.argb[0];
 		public static unsafe explicit operator int(in Color color) => (int)color.argb[0];
 
@@ -125,13 +114,11 @@ namespace CitizenFX.Core
 		[Obsolete("use `(int)color` instead")]
 #if !OS_LINUX
 		internal unsafe int ToArgb() => (int)argb[0];
-
-		public override unsafe string ToString() => $"Color({values[0]}, {values[1]}, {values[2]}, {values[3]})";
 #else // compiler wants it pinned for some reason, compiles into a few extra ops
 		internal unsafe int ToArgb() { fixed(uint* p = argb) return (int)p[0]; }
-
-		public override unsafe string ToString() { fixed(uint* p = argb) return $"Color({p[0]}, {p[1]}, {p[2]}, {p[3]})"; }
 #endif
+
+		public override string ToString() => $"Color({A}, {R}, {G}, {B})";
 
 		public unsafe bool Equals(Color other) => (uint)this == (uint)other;
 	}

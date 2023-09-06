@@ -198,6 +198,8 @@ public:
 		{
 #ifdef GTA_FIVE
 			static_assert(offsetof(Manager, NumPendingRequests) == 0x1E0);
+#elif IS_RDR3
+			static_assert(offsetof(Manager, moduleMgr) == 144);
 #endif
 		}
 
@@ -238,8 +240,10 @@ public:
 		StreamingListEntry* RequestListHead;
 		StreamingListEntry* RequestListTail;
 
-#ifndef IS_RDR3
+#ifdef GTA_FIVE
 		char pad2[368 - 40];
+#elif IS_RDR3
+		char pad2[32];
 #endif
 
 		strStreamingModuleMgr moduleMgr;

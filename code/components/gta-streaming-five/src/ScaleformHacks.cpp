@@ -4,6 +4,7 @@
 #include <nutsnbolts.h>
 #include <sfFontStuff.h>
 
+#include <CoreConsole.h>
 #include <Streaming.h>
 #include <CrossBuildRuntime.h>
 
@@ -123,9 +124,20 @@ struct GFxValue
 		}
 	}
 
+	inline ValueType GetType() const
+	{
+		return ValueType(Type & VTC_TypeMask);
+	}
+
 	inline bool IsDisplayObject() const
 	{
 		return (Type & VTC_TypeMask) == VT_DisplayObject;
+	}
+
+	inline double GetNumber() const
+	{
+		assert(GetType() == VT_Number);
+		return mValue.NValue;
 	}
 
 	inline const char* GetString() const
@@ -389,6 +401,46 @@ namespace sf
 	}
 }
 
+namespace sf::logging
+{
+	const char* const g_scriptTypes[] = {
+		"GENERIC_TYPE",
+		"SCRIPT_TYPE",
+		"HUD_TYPE",
+		"MINIMAP_TYPE",
+		"WEB_TYPE",
+		"CUTSCENE_TYPE",
+		"PAUSE_TYPE",
+		"STORE",
+		"GAMESTREAM",
+		"SF_BASE_CLASS_VIDEO_EDITOR",
+		"SF_BASE_CLASS_MOUSE",
+		"SF_BASE_CLASS_TEXT_INPUT",
+	};
+
+	static bool g_scaleformDebugLog = 0;
+	static ConVar<bool> g_scaleformDebugLogVar("game_enableScaleformDebugLog", ConVar_Archive | ConVar_UserPref, false, &g_scaleformDebugLog);
+
+	static void (*g_origSfCallGameFromFlash)(void* _this, void* movieView, const char* methodName, const GFxValue* args, uint32_t argCount);
+	static void SfCallGameFromFlash(void* _this, void* movieView, const char* methodName, const GFxValue* args, uint32_t argCount)
+	{
+		// only print debug log calls
+		if ((g_scaleformDebugLog && argCount >= 2 && strcmp(methodName, "DEBUG_LOG") == 0))
+		{
+			if (args[0].GetType() == GFxValue::ValueType::VT_Number)
+			{
+				if (args[1].GetType() == GFxValue::ValueType::VT_String)
+				{
+					uint32_t scriptType = (int32_t)args[0].GetNumber(); // uint32 requires only 1 check
+					trace("[%s] %s\n", scriptType < std::size(g_scriptTypes) ? g_scriptTypes[scriptType] : "UNKNOWN", args[1].GetString());
+				}
+			}
+		}
+
+		g_origSfCallGameFromFlash(_this, movieView, methodName, args, argCount);
+	}
+}
+
 static HookFunction hookFunction([]()
 {
 	OnMainGameFrame.Connect([]()
@@ -449,4 +501,12 @@ static HookFunction hookFunction([]()
 	}
 
 	g_gfxMemoryHeap = hook::get_address<GFxMemoryHeap**>(hook::get_pattern("F0 FF 4A 08 75 0E 48 8B 0D", 9));
+
+
+	// scaleform -> game call hook, for debug logging
+	{
+		void** sfCallGameFromFlashVTable = hook::get_address<void**>(hook::get_pattern<char>("48 8D 0D ? ? ? ? C7 40 ? ? ? ? ? 48 89 08 89 68 08", 3));
+		hook::put(&sf::logging::g_origSfCallGameFromFlash, sfCallGameFromFlashVTable[1]);
+		hook::put(&sfCallGameFromFlashVTable[1], &sf::logging::SfCallGameFromFlash);
+	}
 });

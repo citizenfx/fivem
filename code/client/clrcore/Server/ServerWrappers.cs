@@ -6,10 +6,20 @@ using System.Collections.Generic;
 using System.Linq;
 
 #if MONO_V2
+using CitizenFX.Core;
 using static CitizenFX.Server.Native.Natives;
+
+namespace CitizenFX.Server
+{
+	public class Player	: Shared.Player
+	{
+		internal Player(Remote remote)
+		{
+			m_handle = remote.GetPlayerHandle();
+		}
+
 #else
 using static CitizenFX.Core.Native.API;
-#endif
 
 namespace CitizenFX.Core
 {
@@ -18,6 +28,7 @@ namespace CitizenFX.Core
 		private string m_handle;
 
 		public string Handle => m_handle;
+#endif
 
 		internal Player(string sourceString)
 		{
@@ -35,21 +46,33 @@ namespace CitizenFX.Core
 			m_handle = sourceString;
 		}
 
-		public string Name => GetPlayerName(m_handle);
-
 		public int Ping => GetPlayerPing(m_handle);
 
 		public int LastMsg => GetPlayerLastMsg(m_handle);
 
 		public IdentifierCollection Identifiers => new IdentifierCollection(this);
 
-		public StateBag State => new StateBag("player:" + m_handle);
-
 		public string EndPoint => GetPlayerEndpoint(m_handle);
+
+		public void Drop(string reason) => DropPlayer(m_handle, reason);
+
+#if MONO_V2
+		public override string Name => GetPlayerName(m_handle);
+
+		public override StateBag State => new StateBag("player:" + m_handle);
 
 		public Ped Character => Ped.FromPlayerHandle(m_handle);
 
-		public void Drop(string reason) => DropPlayer(m_handle, reason);
+		public override Shared.IPed GetCharacter() => Character;
+
+		public static implicit operator Player(Remote remote) => new Player(remote.GetPlayerHandle());
+#else
+		public string Name => GetPlayerName(m_handle);
+
+		public StateBag State => new StateBag("player:" + m_handle);
+
+		public Ped Character => Ped.FromPlayerHandle(m_handle);
+#endif
 
 		public void TriggerEvent(string eventName, params object[] args)
 		{
@@ -127,12 +150,19 @@ namespace CitizenFX.Core
 
 		public IEnumerator<string> GetEnumerator()
 		{
+#if MONO_V2
+			int numIndices = GetNumPlayerIdentifiers(m_player.m_handle);
+			for (var i = 0; i < numIndices; i++)
+			{
+				yield return GetPlayerIdentifier(m_player.m_handle, i);
+			}
+#else
 			int numIndices = GetNumPlayerIdentifiers(m_player.Handle);
-
 			for (var i = 0; i < numIndices; i++)
 			{
 				yield return GetPlayerIdentifier(m_player.Handle, i);
 			}
+#endif
 		}
 
 		IEnumerator IEnumerable.GetEnumerator()

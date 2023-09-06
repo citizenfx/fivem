@@ -458,6 +458,7 @@ scrEngine::NativeHandler GetNativeHandlerDo(uint64_t origHash, uint64_t hash)
 		static auto ogHandler = handler; \
 		handler = [](rage::scrNativeCallContext* cxt) { \
 			if (storyMode) return ogHandler(cxt); \
+			cxt->SetResult<uintptr_t>(0, 0); \
 		}; \
 	}
 

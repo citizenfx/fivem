@@ -17,11 +17,16 @@
 #include <CoreConsole.h>
 
 #include <boost/algorithm/string/case_conv.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+
 #include <rapidjson/document.h>
+#include "include/cef_parser.h"
 
 #include <sstream>
+#include <regex>
 
 extern nui::GameInterface* g_nuiGi;
+bool shouldHaveRootWindow;
 
 static nui::IAudioSink* g_audioSink;
 
@@ -65,13 +70,14 @@ void NUIClient::Initialize()
 					{
 						if (it->IsString())
 						{
-							thisRef->m_requestBlacklist.emplace_back(it->GetString(), std::regex_constants::ECMAScript | std::regex_constants::icase);
+							std::unique_lock _(thisRef->m_requestBlocklistLock);
+							thisRef->m_requestBlocklist.emplace_back(it->GetString(), std::regex_constants::ECMAScript | std::regex_constants::icase);
 						}
 					}
 				}
 			}
 
-			Instance<NUISchemeHandlerFactory>::Get()->SetRequestBlacklist(thisRef->m_requestBlacklist);
+			Instance<NUISchemeHandlerFactory>::Get()->SetRequestBlocklist(thisRef->m_requestBlocklist);
 		}
 	});
 }
@@ -154,6 +160,7 @@ Object.prototype.__defineGetter__ = function(prop, func) {
 
 	if (url == "nui://game/ui/root.html")
 	{
+		shouldHaveRootWindow = true;
 		nui::RecreateFrames();
 	}
 
@@ -330,6 +337,79 @@ auto NUIClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<Ce
 		return RV_CANCEL;
 	}
 
+	// 'code.jquery.com' has reliability concerns for some end users, redirect these to googleapis instead
+	{
+		CefURLParts parts;
+		if (CefParseURL(request->GetURL(), parts))
+		{
+			auto hostString = CefString(&parts.host).ToString();
+
+			if (hostString == "code.jquery.com")
+			{
+				std::smatch match;
+				static std::regex re{
+					R"(code.jquery.com/jquery-([0-9]+\.[0-9]+\.[0-9]+)(\..*?)?\.js)"
+				};
+				static std::regex reUI{
+					R"(code.jquery.com/ui/(.*?)/(.*?)$)"
+				};
+
+				auto url = request->GetURL().ToString();
+
+				if (std::regex_search(url, match, re))
+				{
+					auto version = match[1].str();
+
+					// "3.3.0, 2.1.2, 1.2.5 and 1.2.4 are not hosted due to their short and unstable lives in the wild."
+					if (version != "3.3.0" && version != "2.1.2" && version != "1.2.5" && version != "1.2.4")
+					{
+						request->SetURL(fmt::sprintf("https://ajax.googleapis.com/ajax/libs/jquery/%s/jquery%s.js",
+							version,
+							match.size() >= 3 ? match[2].str() : ""));
+					}
+				}
+				else if (std::regex_search(url, match, reUI))
+				{
+					request->SetURL(fmt::sprintf("https://ajax.googleapis.com/ajax/libs/jqueryui/%s/%s",
+						match[1].str(),
+						match[2].str()));
+				}
+			}
+		}
+	}
+
+
+	// DiscordApp breaks as of late and affects end users, tuning the headers seems to fix it
+	{
+		CefURLParts parts;
+		if (CefParseURL(request->GetURL(), parts))
+		{
+			auto hostString = CefString(&parts.host).ToString();
+
+			if (boost::algorithm::ends_with(hostString, "discordapp.com") ||
+				boost::algorithm::ends_with(hostString, "discordapp.net"))
+			{
+				CefRequest::HeaderMap headers;
+				request->GetHeaderMap(headers);
+
+				headers.erase("User-Agent");
+				headers.emplace("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36");
+
+				headers.erase("sec-ch-ua");
+				headers.emplace("sec-ch-ua", R"("Chromium";v="112", "Google Chrome";v="112", "Not:A-Brand";v="99")");
+
+				headers.erase("sec-ch-ua-mobile");
+				headers.emplace("sec-ch-ua-mobile", R"(?0)");
+
+				headers.erase("sec-ch-ua-platform");
+				headers.emplace("sec-ch-ua-platform", R"("Windows")");
+
+				request->SetHeaderMap(headers);
+				request->SetReferrer("https://discord.com/channels/@me", CefRequest::ReferrerPolicy::REFERRER_POLICY_DEFAULT);
+			}
+		}
+	}
+
 #if !defined(_DEBUG)
 	if (frame->IsMain())
 	{
@@ -341,18 +421,22 @@ auto NUIClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<Ce
 	}
 #endif
 
-	for (auto& reg : m_requestBlacklist)
 	{
-		try
+		std::shared_lock _(m_requestBlocklistLock);
+
+		for (auto& reg : m_requestBlocklist)
 		{
-			if (std::regex_search(url, reg))
+			try
 			{
-				trace("Blocked a request for blacklisted URI %s\n", url);
-				return RV_CANCEL;
+				if (std::regex_search(url, reg))
+				{
+					trace("Blocked a request for blocklisted URI %s\n", url);
+					return RV_CANCEL;
+				}
 			}
-		}
-		catch (std::exception& e)
-		{
+			catch (std::exception& e)
+			{
+			}
 		}
 	}
 
@@ -479,7 +563,7 @@ extern bool g_shouldCreateRootWindow;
 
 void NUIClient::OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser, TerminationStatus status)
 {
-	if (browser->GetMainFrame()->GetURL() == "nui://game/ui/root.html" || nui::HasMainUI())
+	if (browser->GetMainFrame()->GetURL() == "nui://game/ui/root.html" || (m_windowValid && m_window && m_window->GetName() == "nui_mpMenu"))
 	{
 		browser->GetHost()->CloseBrowser(true);
 

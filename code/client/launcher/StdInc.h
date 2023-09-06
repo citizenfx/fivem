@@ -78,6 +78,9 @@ bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::arr
 // cppwinrt is slow, add it to pch
 #include <unknwn.h>
 
+// compiler warning (error with new preprocessor)
+#undef GetCurrentTime
+
 // needed in newer cppwinrt
 #define WINRT_NO_MAKE_DETECTION
 
@@ -119,6 +122,8 @@ bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::arr
 #elif defined(LAUNCHER_PERSONALITY_GAME_2699)
 #define LAUNCHER_PERSONALITY_GAME
 #elif defined(LAUNCHER_PERSONALITY_GAME_2802)
+#define LAUNCHER_PERSONALITY_GAME
+#elif defined(LAUNCHER_PERSONALITY_GAME_2944)
 #define LAUNCHER_PERSONALITY_GAME
 #elif defined(LAUNCHER_PERSONALITY_GAME_372)
 #define LAUNCHER_PERSONALITY_GAME

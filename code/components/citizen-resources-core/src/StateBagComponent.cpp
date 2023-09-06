@@ -632,6 +632,13 @@ void StateBagComponentImpl::HandlePacket(int source, std::string_view dataRaw, s
 		return;
 	}
 
+	// if m_curBit is greater then m_maxBit we will overflow the dataLength, which would lead to an allocation of an
+	// extremely large buffer, which would fail and crash the server.
+	if (buffer.IsAtEnd())
+	{
+		return;
+	}
+
 	// read data
 	size_t dataLength = (buffer.GetLength() * 8) - buffer.GetCurrentBit();
 

@@ -1,6 +1,7 @@
 /*
 * FFI (C89 API)
 * (C) 2015,2017 Jack Lloyd
+* (C) 2021 René Fischer
 *
 * Botan is released under the Simplified BSD License (see license.txt)
 */
@@ -84,6 +85,7 @@ enum BOTAN_FFI_ERROR {
 
    BOTAN_FFI_ERROR_TLS_ERROR = -75,
    BOTAN_FFI_ERROR_HTTP_ERROR = -76,
+   BOTAN_FFI_ERROR_ROUGHTIME_ERROR = -77,
 
    BOTAN_FFI_ERROR_UNKNOWN_ERROR = -100,
 };
@@ -198,6 +200,20 @@ typedef struct botan_rng_struct* botan_rng_t;
 * Set rng_type to null to let the library choose some default.
 */
 BOTAN_PUBLIC_API(2,0) int botan_rng_init(botan_rng_t* rng, const char* rng_type);
+
+/**
+* Initialize a custom random number generator from a set of callback functions
+* @param rng_out rng object that will be created
+* @param rng_name name of the rng
+* @param context An application-specific context passed to the callback functions
+* @param get_cb Callback for getting random bytes from the rng, return 0 for success
+* @param add_entropy_cb Callback for adding entropy to the rng, return 0 for success, may be NULL
+* @param destroy_cb Callback called when rng is destroyed, may be NULL
+*/
+BOTAN_PUBLIC_API(2,18) int botan_rng_init_custom(botan_rng_t* rng_out, const char* rng_name, void* context,
+                                                 int(* get_cb)(void* context, uint8_t* out, size_t out_len),
+                                                 int(* add_entropy_cb)(void* context, const uint8_t input[], size_t length),
+                                                 void(* destroy_cb)(void* context));
 
 /**
 * Get random bytes from a random number generator
@@ -1405,6 +1421,9 @@ BOTAN_PUBLIC_API(2,0) int botan_pk_op_decrypt(botan_pk_op_decrypt_t op,
 /*
 * Signature Generation
 */
+
+#define BOTAN_PUBKEY_DER_FORMAT_SIGNATURE 1
+
 typedef struct botan_pk_op_sign_struct* botan_pk_op_sign_t;
 
 BOTAN_PUBLIC_API(2,0)
@@ -1588,6 +1607,41 @@ BOTAN_PUBLIC_API(2,8) int botan_x509_cert_verify(
 * or else NULL if unknown.
 */
 BOTAN_PUBLIC_API(2,8) const char* botan_x509_cert_validation_status(int code);
+
+/*
+* X.509 CRL
+**************************/
+
+typedef struct botan_x509_crl_struct* botan_x509_crl_t;
+
+BOTAN_PUBLIC_API(2,13) int botan_x509_crl_load_file(botan_x509_crl_t* crl_obj, const char* crl_path);
+BOTAN_PUBLIC_API(2,13) int botan_x509_crl_load(botan_x509_crl_t* crl_obj, const uint8_t crl_bits[], size_t crl_bits_len);
+
+BOTAN_PUBLIC_API(2,13) int botan_x509_crl_destroy(botan_x509_crl_t crl);
+
+/**
+ * Given a CRL and a certificate, 
+ * check if the certificate is revoked on that particular CRL
+ */
+BOTAN_PUBLIC_API(2,13) int botan_x509_is_revoked(botan_x509_crl_t crl, botan_x509_cert_t cert);
+
+/**
+ * Different flavor of `botan_x509_cert_verify`, supports revocation lists.
+ * CRLs are passed as an array, same as intermediates and trusted CAs 
+ */
+BOTAN_PUBLIC_API(2,13) int botan_x509_cert_verify_with_crl(
+   int* validation_result,
+   botan_x509_cert_t cert,
+   const botan_x509_cert_t* intermediates,
+   size_t intermediates_len,
+   const botan_x509_cert_t* trusted,
+   size_t trusted_len,
+   const botan_x509_crl_t* crls,
+   size_t crls_len,
+   const char* trusted_path,
+   size_t required_strength,
+   const char* hostname,
+   uint64_t reference_time);
 
 /**
  * Key wrapping as per RFC 3394

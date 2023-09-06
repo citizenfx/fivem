@@ -27,8 +27,9 @@ export const LastConnectedTile = observer(function LastConnectedTile() {
   return (
     <div className={s.root}>
       <ServerTileItem
-        growHeight
+        placeControlsBelow
         hideBanner
+        hideBoost
         label={label}
         server={server}
       />

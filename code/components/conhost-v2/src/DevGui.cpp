@@ -272,6 +272,7 @@ devgui_cmd "Quit/Quit" "quit"
 
 devgui_cmd "Tools/Performance/Profiler/Start Recording - 5 frames" "profiler record 5"
 devgui_cmd "Tools/Performance/Profiler/View Last Recording" "profiler view"
+devgui_convar "Tools/Windowed Console" con_winConsole
 
 set "game_mute" "profile_sfxVolume 0; profile_musicVolumeInMp 0; profile_musicVolume 0"
 set "game_unmute" "profile_sfxVolume 25; profile_musicVolumeInMp 10; profile_musicVolume 10"

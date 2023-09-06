@@ -131,6 +131,10 @@ static int SysError(const char* buffer)
 	}
 #endif
 
+#if defined(IS_FXSERVER)
+	fprintf(stderr, "Fatal Error: %s", buffer);
+#endif
+
 	if (IsUserConnected())
 	{
 		MessageBoxW(wnd, ToWide(buffer).c_str(), L"Fatal Error", MB_OK | MB_ICONSTOP);

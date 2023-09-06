@@ -20,7 +20,7 @@ if (!$distro) {
 		New-Item -ItemType Directory $PSScriptRoot\..\..\build
 	}
 
-	curl.exe -Lo $env:TEMP\alpine.tar.gz http://dl-cdn.alpinelinux.org/alpine/v3.13/releases/x86_64/alpine-minirootfs-3.13.5-x86_64.tar.gz
+	curl.exe -Lo $env:TEMP\alpine.tar.gz http://dl-cdn.alpinelinux.org/alpine/v3.16/releases/x86_64/alpine-minirootfs-3.16.5-x86_64.tar.gz
 	wsl --import FXServer-Alpine $PSScriptRoot\..\..\build\alpine-root $env:TEMP\alpine.tar.gz --version 2
 
 	$execCommands = @(

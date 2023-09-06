@@ -30,7 +30,6 @@ extern nui::GameInterface* g_nuiGi;
 extern std::wstring GetNUIStoragePath();
 
 static bool nuiFixedSizeEnabled;
-static ConVar<bool> nuiFixedSize("nui_useFixedSize", ConVar_Archive | ConVar_UserPref, false, &nuiFixedSizeEnabled);
 
 namespace nui
 {
@@ -914,6 +913,29 @@ void NUIWindow::HandlePopupShow(bool show)
 	}
 }
 
+extern void TranslateWindowRect(const fwRefContainer<NUIWindow>& window, CRect* rect);
+
+CefRect NUIWindow::GetPopupRect()
+{
+	auto rect = m_popupRect;
+
+	if (IsFixedSizeWindow())
+	{
+		CRect baseRect;
+		TranslateWindowRect(this, &baseRect);
+
+		float scaleX = (baseRect.Width() / float(m_width));
+		float scaleY = (baseRect.Height() / float(m_height));
+
+		rect.x = (rect.x * scaleX) + baseRect.Left();
+		rect.y = (rect.y * scaleY) + baseRect.Top();
+		rect.width *= scaleX;
+		rect.height *= scaleY;
+	}
+
+	return rect;
+}
+
 void NUIWindow::SetPopupRect(const CefRect& rect)
 {
 	m_popupRect = rect;
@@ -936,3 +958,8 @@ bool NUIWindow::IsFixedSizeWindow() const
 {
 	return nuiFixedSizeEnabled && m_name == "root";
 }
+
+static InitFunction initFunction([]
+{
+	static ConVar<bool> nuiFixedSize("nui_useFixedSize", ConVar_Archive | ConVar_UserPref, false, &nuiFixedSizeEnabled);
+});

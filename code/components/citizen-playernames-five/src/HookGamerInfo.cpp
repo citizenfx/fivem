@@ -6,14 +6,14 @@
 #include <Error.h>
 
 static std::unordered_map<void*, std::string> g_gamerInfoBuffer;
-static std::mutex g_gamerInfoBufferMutex;
+static std::recursive_mutex g_gamerInfoBufferMutex;
 
 int SprintfToBuffer(char* buffer, size_t length, const char* format, const char* name)
 {
 	int rv = _snprintf(buffer, length, format, name);
 	buffer[length - 1] = '\0';
 
-	std::unique_lock<std::mutex> lock(g_gamerInfoBufferMutex);
+	std::unique_lock lock(g_gamerInfoBufferMutex);
 	g_gamerInfoBuffer[buffer] = name;
 
 	return rv;
@@ -23,7 +23,7 @@ static void(*g_origCallGfx)(void* a1, void* a2, void* a3, void* a4, void* a5, vo
 
 static void WrapGfxCall(void* a1, char* a2, void* a3, void* a4, char* a5, void* a6, void* a7)
 {
-	std::unique_lock<std::mutex> lock(g_gamerInfoBufferMutex);
+	std::unique_lock lock(g_gamerInfoBufferMutex);
 
 	// overwrite this argument
 	// it's actually a GFx string, however it won't try to free

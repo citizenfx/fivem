@@ -170,6 +170,8 @@ static std::mutex g_processMessageQueueMutex;
 static concurrency::concurrent_queue<std::function<void()>> g_offThreadNuiQueue;
 static HANDLE g_offthreadNuiQueueWakeEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
 
+extern bool shouldHaveRootWindow;
+
 void TriggerLoadEnd(const std::string& name)
 {
 	auto rootWindow = Instance<NUIWindowManager>::Get()->GetRootWindow();
@@ -417,6 +419,7 @@ namespace nui
 	fwRefContainer<NUIWindow> CreateNUIWindow(fwString windowName, int width, int height, fwString windowURL, bool rawBlit/* = false*/, bool instant)
 	{
 		auto window = NUIWindow::Create(rawBlit, width, height, windowURL, instant, (windowName != "nui_mpMenu") ? nui::GetContext() : "");
+		window->SetName(windowName);
 
 		std::unique_lock<std::shared_mutex> lock(windowListMutex);
 		windowList[windowName] = window;
@@ -526,11 +529,10 @@ namespace nui
 
 				auto window = CreateNUIWindow(winName, 1919, 1079, frameURL, true, instant);
 				window->SetPaintType(NUIPaintTypePostRender);
-				window->SetName(winName);
 			}))
 			{
 				auto rootWindow = Instance<NUIWindowManager>::Get()->GetRootWindow();
-				if (rootWindow.GetRef())
+				if (shouldHaveRootWindow && rootWindow.GetRef())
 				{
 					auto browser = rootWindow->GetBrowser();
 

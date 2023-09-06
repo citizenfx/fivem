@@ -80,14 +80,14 @@ namespace CitizenFX.Core
 		public static readonly Vector3 One = new Vector3(1.0f, 1.0f, 1.0f);
 
 		/// <summary>
-		/// A unit <see cref="CitizenFX.Core.Vector3"/> designating up (0, 1, 0).
+		/// A unit <see cref="CitizenFX.Core.Vector3"/> designating up (0, 0, 1).
 		/// </summary>
-		public static readonly Vector3 Up = new Vector3(0.0f, 1.0f, 0.0f);
+		public static readonly Vector3 Up = new Vector3(0.0f, 0.0f, 1.0f);
 
 		/// <summary>
-		/// A unit <see cref="CitizenFX.Core.Vector3"/> designating down (0, -1, 0).
+		/// A unit <see cref="CitizenFX.Core.Vector3"/> designating down (0, 0, -1).
 		/// </summary>
-		public static readonly Vector3 Down = new Vector3(0.0f, -1.0f, 0.0f);
+		public static readonly Vector3 Down = new Vector3(0.0f, 0.0f, -1.0f);
 
 		/// <summary>
 		/// A unit <see cref="CitizenFX.Core.Vector3"/> designating left (-1, 0, 0).
@@ -100,24 +100,30 @@ namespace CitizenFX.Core
 		public static readonly Vector3 Right = new Vector3(1.0f, 0.0f, 0.0f);
 
 		/// <summary>
-		/// A unit <see cref="CitizenFX.Core.Vector3"/> designating forward in a right-handed coordinate system (0, 0, -1).
+		/// A unit <see cref="CitizenFX.Core.Vector3"/> designating forward in a right-handed coordinate system (0, 1, 0).
 		/// </summary>
-		public static readonly Vector3 ForwardRH = new Vector3(0.0f, 0.0f, -1.0f);
+		public static readonly Vector3 ForwardRH = new Vector3(0.0f, 1.0f, 0.0f);
 
 		/// <summary>
-		/// A unit <see cref="CitizenFX.Core.Vector3"/> designating forward in a left-handed coordinate system (0, 0, 1).
+		/// A unit <see cref="CitizenFX.Core.Vector3"/> designating forward in a left-handed coordinate system (0, -1, 0).
 		/// </summary>
-		public static readonly Vector3 ForwardLH = new Vector3(0.0f, 0.0f, 1.0f);
+		public static readonly Vector3 ForwardLH = new Vector3(0.0f, -1.0f, 0.0f);
 
 		/// <summary>
-		/// A unit <see cref="CitizenFX.Core.Vector3"/> designating backward in a right-handed coordinate system (0, 0, 1).
+		/// A unit <see cref="CitizenFX.Core.Vector3"/> designating backward in a right-handed coordinate system (0, -1, 0).
 		/// </summary>
-		public static readonly Vector3 BackwardRH = new Vector3(0.0f, 0.0f, 1.0f);
+		public static readonly Vector3 BackwardRH = new Vector3(0.0f, -1.0f, 0.0f);
 
 		/// <summary>
-		/// A unit <see cref="CitizenFX.Core.Vector3"/> designating backward in a left-handed coordinate system (0, 0, -1).
+		/// A unit <see cref="CitizenFX.Core.Vector3"/> designating backward in a left-handed coordinate system (0, 1, 0).
 		/// </summary>
-		public static readonly Vector3 BackwardLH = new Vector3(0.0f, 0.0f, -1.0f);
+		public static readonly Vector3 BackwardLH = new Vector3(0.0f, 1.0f, 0.0f);
+
+		/// <inheritdoc cref="ForwardRH"/>
+		public static readonly Vector3 Forward = ForwardRH;
+
+		/// <inheritdoc cref="BackwardRH"/>
+		public static readonly Vector3 Backward = BackwardRH;
 
 		/// <summary>
 		/// The X component of the vector.

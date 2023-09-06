@@ -37,6 +37,10 @@
 
 #include <boost/algorithm/string.hpp>
 
+#if defined(_DEBUG) && defined(_WIN32)
+#include <shellapi.h>
+#endif
+
 // a set of resources that are system-managed and should not be stopped from script
 static std::set<std::string> g_managedResources = {
 	"spawnmanager",
@@ -108,6 +112,31 @@ static void HandleServerEvent(fx::ServerInstanceBase* instance, const fx::Client
 		std::string(data.begin(), data.end()),
 		fmt::sprintf("net:%d", netId)
 	);
+}
+
+static void CheckResourceGlobs(fx::Resource* resource, int* numWarnings)
+{
+	auto metaDataComponent = resource->GetComponent<fx::ResourceMetaDataComponent>();
+
+	for (auto type : { "client_script", "server_script", "shared_script", "file" })
+	{
+		metaDataComponent->GlobMissingEntries(type, [resource, type, numWarnings](const fx::ResourceMetaDataComponent::MissingEntry& entry)
+		{
+			if (entry.wasPrefix)
+			{
+				auto channel = fmt::sprintf("resources:%s", resource->GetName());
+				auto file = entry.source.file;
+
+				if (auto slash = file.rfind('/'); slash != std::string::npos)
+				{
+					file = file.substr(slash + 1);
+				}
+
+				console::PrintWarning(channel, "could not find %s `%s` (defined in %s:%d)\n", type, entry.value, file, entry.source.line);
+				++*numWarnings;
+			}
+		});
+	}
 }
 
 static std::shared_ptr<ConVar<std::string>> g_citizenDir;
@@ -504,7 +533,21 @@ static InitFunction initFunction([]()
 
 			resource->OnStart.Connect([=]()
 			{
-				trace("Started resource %s\n", resource->GetName());
+				int numWarnings = 0;
+				CheckResourceGlobs(resource, &numWarnings);
+
+				auto streamComponent = resource->GetComponent<fx::ResourceStreamComponent>();
+				streamComponent->CheckSizes(&numWarnings);
+				
+				if (numWarnings == 0)
+				{
+					console::Printf("resources", "Started resource %s\n", resource->GetName());
+				}
+				else
+				{
+					console::Printf("resources", "Started resource %s (%d warning%s)\n",
+						resource->GetName(), numWarnings, numWarnings == 1 ? "" : "s");
+				}
 
 				auto metaData = resource->GetComponent<fx::ResourceMetaDataComponent>();
 				auto iv = metaData->GetEntries("server_only");
@@ -536,7 +579,7 @@ static InitFunction initFunction([]()
 
 			resource->OnStop.Connect([=]()
 			{
-				trace("Stopping resource %s\n", resource->GetName());
+				console::Printf("resources", "Stopping resource %s\n", resource->GetName());
 
 				auto metaData = resource->GetComponent<fx::ResourceMetaDataComponent>();
 				auto iv = metaData->GetEntries("server_only");
@@ -680,6 +723,21 @@ static InitFunction initFunction([]()
 			conCtx->ExecuteSingleCommandDirect(ProgramArguments{ "stop", resourceName });
 			conCtx->ExecuteSingleCommandDirect(ProgramArguments{ "start", resourceName });
 		});
+
+#if defined(_DEBUG) && defined(_WIN32)
+		static auto openCommandRef = instance->AddCommand("open", [=](const std::string& resourceName)
+		{
+			auto resource = resman->GetResource(resourceName);
+
+			if (!resource.GetRef())
+			{
+				trace("^3Couldn't find resource %s.^7\n", resourceName);
+				return;
+			}
+
+			ShellExecuteW(NULL, L"open", ToWide(resource->GetPath()).c_str(), NULL, NULL, SW_SHOWNORMAL);
+		});
+#endif
 
 		static bool configured = false;
 

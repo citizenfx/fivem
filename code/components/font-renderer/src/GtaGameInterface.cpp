@@ -16,6 +16,7 @@
 #include <utf8.h>
 #include <Hooking.h>
 #include <CL2LaunchMode.h>
+#include <CfxReleaseInfo.h>
 
 #include "memdbgon.h"
 
@@ -453,27 +454,7 @@ static InitFunction initFunction([] ()
 		}
 		else // (!inGame), i.e. menu
 		{
-			static auto version = ([]()
-			{
-				FILE* f = _wfopen(MakeRelativeCitPath(L"citizen/release.txt").c_str(), L"r");
-				int version = -1;
-
-				if (f)
-				{
-					char ver[128];
-
-					fgets(ver, sizeof(ver), f);
-					fclose(f);
-
-					version = atoi(ver);
-				}
-				else
-				{
-					version = 0;
-				}
-
-				return version;
-			})();
+			static auto version = cfx::GetPlatformRelease();
 
 			static auto updateChannelTag = ([]() -> std::wstring
 			{

@@ -8,8 +8,6 @@ apiset: client
 BOOL IS_BIGMAP_ACTIVE();
 ```
 
-<!-- Native implemented by Disquse. 0xFFF65C63 -->
-
 Returns true if the minimap is currently expanded. False if it's the normal minimap state.
 Use [`IsBigmapFull`](#_0x66EE14B2) to check if the full map is currently revealed on the minimap.
 

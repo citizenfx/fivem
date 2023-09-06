@@ -6,11 +6,13 @@ import { Button } from "cfx/ui/Button/Button";
 import { Indicator } from "cfx/ui/Indicator/Indicator";
 import { InfoPanel } from "cfx/ui/InfoPanel/InfoPanel";
 import { Flex } from "cfx/ui/Layout/Flex/Flex";
-import { Text } from "cfx/ui/Text/Text";
+import { Text, TextBlock } from "cfx/ui/Text/Text";
 import { observer } from "mobx-react-lite";
 import { MdOutlineReviews, MdReviews } from "react-icons/md";
 import { ServerReview } from "./ServerReview/ServerReview";
 import { ServerReviewForm } from "./ServerReviewForm/ServerReviewForm";
+import { Icons } from "cfx/ui/Icons";
+import { Pad } from "cfx/ui/Layout/Pad/Pad";
 
 export interface ServerReviewsProps {
   server: IServerView,
@@ -54,11 +56,28 @@ export const ServerReviews = observer(function ServerReviews(props: ServerReview
       </Flex>
 
       {serverReviews.canSubmitReview && (
+        <Pad top bottom>
+          <InfoPanel type="warning" icon={Icons.statusLevelMinor}>
+            <Flex vertical>
+              <Text size="large" weight="bold">
+                Posting reviews is temporarily disabled
+              </Text>
+              <TextBlock typographic opacity="75">
+                Due to moderation capacity issues, we've had to temporarily disable server review submissions.
+                <br />
+                We'll try to resolve this as soon as possible, hang in there!
+              </TextBlock>
+            </Flex>
+          </InfoPanel>
+        </Pad>
+      )}
+
+      {/* {serverReviews.canSubmitReview && (
         <ServerReviewForm
           server={server}
           serverReviews={serverReviews}
         />
-      )}
+      )} */}
 
       {serverReviews.ownReviewApprovePending && (
         <InfoPanel type="success">

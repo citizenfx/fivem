@@ -934,7 +934,12 @@ namespace game
 
 	void RegisterBindingForTag(const std::string& tag, const std::string& command, const std::string& languageDesc, const std::string& ioms, const std::string& ioParam)
 	{
-		g_registeredBindings.insert({ command, { tag, languageDesc } });
+		// don't add a '~!' binding as a separate binding
+		// (see https://github.com/citizenfx/fivem/issues/2084#issuecomment-1618048798)
+		if (command.find("~!") != 0)
+		{
+			g_registeredBindings.insert({ command, { tag, languageDesc } });
+		}
 
 		if (!ioms.empty() && !ioParam.empty())
 		{

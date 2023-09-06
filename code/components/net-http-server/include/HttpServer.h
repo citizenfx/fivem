@@ -12,8 +12,15 @@
 #include <forward_list>
 #include <shared_mutex>
 
+#define HTTPSERVER_USE_EASTL 1
+
+#if HTTPSERVER_USE_EASTL
 #include <EASTL/fixed_map.h>
 #include <EASTL/fixed_string.h>
+#else
+#include <map>
+#include <string>
+#endif
 
 #include <optional>
 
@@ -21,6 +28,18 @@
 
 namespace net
 {
+struct HeaderComparator;
+
+#if HTTPSERVER_USE_EASTL
+using HeaderStringView = eastl::string_view;
+using HeaderString = eastl::fixed_string<char, 64, true>;
+using HeaderMap = eastl::fixed_multimap<HeaderString, HeaderString, 16, true, HeaderComparator>;
+#else
+using HeaderStringView = std::string_view;
+using HeaderString = std::string;
+using HeaderMap = std::multimap<HeaderString, HeaderString, HeaderComparator>;
+#endif
+
 struct HeaderComparator
 {
 	using is_transparent = void;
@@ -28,15 +47,20 @@ struct HeaderComparator
 	template<typename TString, typename TOtherString>
 	bool operator()(const TString& left, const TOtherString& right) const
 	{
-		return std::lexicographical_compare(left.begin(), left.end(), right.begin(), right.end(), [](char a, char b)
+		auto leftView = HeaderStringView{
+			left
+		};
+
+		auto rightView = HeaderStringView{
+			right
+		};
+
+		return std::lexicographical_compare(leftView.begin(), leftView.end(), rightView.begin(), rightView.end(), [](char a, char b)
 		{
 			return ToLower(a) < ToLower(b);
 		});
 	}
 };
-
-using HeaderString = eastl::fixed_string<char, 64, true>;
-using HeaderMap = eastl::fixed_multimap<HeaderString, HeaderString, 16, true, HeaderComparator>;
 
 class HttpRequest : public fwRefCountable
 {
@@ -117,7 +141,15 @@ public:
 	inline void SetCancelHandler(const std::function<void()>& handler)
 	{
 		std::unique_lock<std::shared_mutex> lock(m_cancelHandlerMutex);
-		m_cancelHandler = std::make_shared<std::remove_const_t<std::remove_reference_t<decltype(handler)>>>(handler);
+
+		if (handler)
+		{
+			m_cancelHandler = std::make_shared<std::remove_const_t<std::remove_reference_t<decltype(handler)>>>(handler);
+		}
+		else
+		{
+			m_cancelHandler = {};
+		}
 	}
 
 	inline std::pair<int, int> GetHttpVersion() const
@@ -140,9 +172,13 @@ public:
 		return m_headerList;
 	}
 
-	inline std::string GetHeader(eastl::string_view key, const std::string& default_ = {}) const
+	inline std::string GetHeader(HeaderStringView key, const std::string& default_ = {}) const
 	{
+#if HTTPSERVER_USE_EASTL
 		auto it = m_headerList.find_as(key, HeaderComparator{});
+#else
+		auto it = m_headerList.find(key);
+#endif
 
 		return (it != m_headerList.end()) ? std::string{ it->second.c_str(), it->second.size() } : default_;
 	}
@@ -179,7 +215,7 @@ protected:
 
 	bool m_ended;
 
-	bool m_sentHeaders;
+	std::atomic<bool> m_sentHeaders;
 
 	bool m_closeConnection;
 
@@ -191,9 +227,13 @@ protected:
 public:
 	HttpResponse(fwRefContainer<HttpRequest> request);
 
-	inline auto GetHeader(eastl::string_view key, eastl::string_view default_ = {}) const
+	inline auto GetHeader(HeaderStringView key, HeaderStringView default_ = {}) const
 	{
+#if HTTPSERVER_USE_EASTL
 		auto it = m_headerList.find_as(key, HeaderComparator{});
+#else
+		auto it = m_headerList.find(key);
+#endif
 
 		return (it != m_headerList.end()) ? it->second : default_;
 	}
@@ -209,6 +249,7 @@ public:
 		SetHeader(name, HeaderString{ value });
 	}
 
+#if HTTPSERVER_USE_EASTL
 	inline void SetHeader(const HeaderString& name, const std::string& value)
 	{
 		SetHeader(name, HeaderString{
@@ -228,6 +269,7 @@ public:
 
 		SetHeader(name, headers);
 	}
+#endif
 
 	void WriteHead(int statusCode);
 
@@ -243,7 +285,7 @@ public:
 
 	void Write(std::unique_ptr<char[]> data, size_t length, fu2::unique_function<void(bool)>&& onComplete = {});
 
-	virtual void End() = 0;
+	virtual void End();
 
 	virtual void BeforeWriteHead(size_t length);
 

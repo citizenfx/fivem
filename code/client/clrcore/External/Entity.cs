@@ -8,6 +8,7 @@ using CitizenFX.Core;
 using CitizenFX.FiveM.Native;
 using API = CitizenFX.FiveM.Native.Natives;
 using Function = CitizenFX.FiveM.Native.Natives;
+using Prop = CitizenFX.FiveM.Object;
 
 namespace CitizenFX.FiveM
 #else
@@ -25,6 +26,9 @@ namespace CitizenFX.Core
 	}
 
 	public abstract class Entity : PoolObject, IEquatable<Entity>, ISpatial
+#if MONO_V2
+		, Shared.IEntity
+#endif
 	{
 		#region Fields
 		private EntityBoneCollection _bones;
@@ -46,7 +50,7 @@ namespace CitizenFX.Core
 			get
 			{
 				// CFX-TODO
-				return Function.Call<IntPtr>((Hash)MemoryAccess.GetHashKey("get_entity_address"), Handle);
+				return Function.Call<IntPtr>((Hash)0x9A3144BC /*Game.GenerateHashASCII("get_entity_address")*/, Handle);
 				//return MemoryAccess.GetEntityAddress(Handle);
 			}
 		}
@@ -75,8 +79,13 @@ namespace CitizenFX.Core
 		/// <value>
 		/// The health in float.
 		/// </value>
+		
 		public float HealthFloat
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.ReadIfNotNull(MemoryAddress, 640, 0.0f);
+			[SecuritySafeCritical] set => MemoryAccess.WriteIfNotNull(MemoryAddress, 640, value);
+#else
 			get
 			{
 				if (MemoryAddress == IntPtr.Zero)
@@ -95,7 +104,9 @@ namespace CitizenFX.Core
 
 				MemoryAccess.WriteFloat(MemoryAddress + 640, value);
 			}
+#endif
 		}
+
 		/// <summary>
 		/// Gets or sets the maximum health of this <see cref="Entity"/> as an <see cref="int"/>.
 		/// </summary>
@@ -122,6 +133,10 @@ namespace CitizenFX.Core
 		/// </value>
 		public float MaxHealthFloat
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.ReadIfNotNull(MemoryAddress, 644, 0.0f);
+			[SecuritySafeCritical] set => MemoryAccess.WriteIfNotNull(MemoryAddress, 644, value);
+#else
 			get
 			{
 				if (MemoryAddress == IntPtr.Zero)
@@ -140,7 +155,9 @@ namespace CitizenFX.Core
 
 				MemoryAccess.WriteFloat(MemoryAddress + 644, value);
 			}
+#endif
 		}
+
 		/// <summary>
 		/// Gets a value indicating whether this <see cref="Entity"/> is dead.
 		/// </summary>
@@ -168,13 +185,35 @@ namespace CitizenFX.Core
 			}
 		}
 
-		public Model Model
+		/// <summary>
+		/// Gets the current model of this entity
+		/// </summary>
+		public Model Model => new Model(API.GetEntityModel(Handle));
+
+#if MONO_V2
+		uint Shared.IEntity.Model => API.GetEntityModel(Handle);
+#endif
+
+		/// <summary>
+		/// Gets the current network owner of this entity
+		/// </summary>
+		public Player Owner
 		{
 			get
 			{
-				return new Model(API.GetEntityModel(Handle));
+				int playerHandle = API.NetworkGetEntityOwner(this.Handle);
+				return playerHandle == -1 ? null : new Player(playerHandle);
 			}
 		}
+
+#if MONO_V2
+		Shared.Player Shared.IEntity.Owner => Owner;
+
+		/// <summary>
+		/// Gets the game type of this entity
+		/// </summary>
+		public Shared.EntityType Type => (Shared.EntityType)API.GetEntityType(this.Handle);
+#endif
 
 		/// <summary>
 		/// Gets or sets the position of this <see cref="Entity"/>.
@@ -267,6 +306,9 @@ namespace CitizenFX.Core
 
 		public Vector3 UpVector
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.ReadIfNotNull(MemoryAddress, 0x80, Vector3.Zero);
+#else
 			get
 			{
 				if (MemoryAddress == IntPtr.Zero)
@@ -275,12 +317,17 @@ namespace CitizenFX.Core
 				}
 				return MemoryAccess.ReadVector3(MemoryAddress + 0x80);
 			}
+#endif
 		}
+
 		/// <summary>
 		/// Gets the vector that points to the right of this <see cref="Entity"/>
 		/// </summary>
 		public Vector3 RightVector
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.ReadIfNotNull(MemoryAddress, 0x60, Vector3.Zero);
+#else
 			get
 			{
 				if (MemoryAddress == IntPtr.Zero)
@@ -289,12 +336,16 @@ namespace CitizenFX.Core
 				}
 				return MemoryAccess.ReadVector3(MemoryAddress + 0x60);
 			}
+#endif
 		}
 		/// <summary>
 		/// Gets the vector that points in front of this <see cref="Entity"/>
 		/// </summary>
 		public Vector3 ForwardVector
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.ReadIfNotNull(MemoryAddress, 0x70, Vector3.ForwardLH);
+#else
 			get
 			{
 				if (MemoryAddress == IntPtr.Zero)
@@ -303,6 +354,7 @@ namespace CitizenFX.Core
 				}
 				return MemoryAccess.ReadVector3(MemoryAddress + 0x70);
 			}
+#endif
 		}
 
 		/// <summary>
@@ -310,6 +362,9 @@ namespace CitizenFX.Core
 		/// </summary>
 		public Matrix Matrix
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.ReadIfNotNull(MemoryAddress, 0x60, default(Matrix));
+#else
 			get
 			{
 				IntPtr memoryAddress = MemoryAddress;
@@ -319,6 +374,7 @@ namespace CitizenFX.Core
 				}
 				return MemoryAccess.ReadMatrix(memoryAddress + 96);
 			}
+#endif
 		}
 
 		/// <summary>
@@ -329,6 +385,9 @@ namespace CitizenFX.Core
 		/// </value>
 		public bool IsPositionFrozen
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.IsBitSetIfNotNull(MemoryAddress, 0x2E, 1, false);
+#else
 			get
 			{
 				if (MemoryAddress == IntPtr.Zero)
@@ -338,6 +397,7 @@ namespace CitizenFX.Core
 
 				return MemoryAccess.IsBitSet(MemoryAddress + 0x2E, 1);
 			}
+#endif
 			set
 			{
 				API.FreezeEntityPosition(Handle, value);
@@ -387,6 +447,20 @@ namespace CitizenFX.Core
 		/// </value>
 		public bool HasGravity
 		{
+#if MONO_V2
+			[SecuritySafeCritical]
+			get
+			{
+				IntPtr address = MemoryAddress;
+				if (address != IntPtr.Zero)
+				{
+					address = MemoryAccess.Read<IntPtr>(address, 48);
+					return address == IntPtr.Zero || MemoryAccess.IsBitSet(address, 26, 4);
+				}
+
+				return true;
+			}
+#else
 			get
 			{
 				IntPtr memoryAddress = MemoryAddress;
@@ -402,6 +476,7 @@ namespace CitizenFX.Core
 				return !MemoryAccess.IsBitSet(memoryAddress + 26, 4);
 
 			}
+#endif
 			set
 			{
 				API.SetEntityHasGravity(Handle, value);
@@ -494,6 +569,9 @@ namespace CitizenFX.Core
 		/// </value>
 		public bool IsRendered
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.IsBitSetIfNotNull(MemoryAddress, 176, 4, false);
+#else
 			get
 			{
 				if (MemoryAddress == IntPtr.Zero)
@@ -503,6 +581,7 @@ namespace CitizenFX.Core
 
 				return MemoryAccess.IsBitSet(MemoryAddress + 176, 4);
 			}
+#endif
 		}
 		/// <summary>
 		/// Gets a value indicating whether this <see cref="Entity"/> is upright.
@@ -605,6 +684,10 @@ namespace CitizenFX.Core
 		/// </value>
 		public bool IsFireProof
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.IsBitSetIfNotNull(MemoryAddress, 392, 5, false);
+			[SecuritySafeCritical] set => MemoryAccess.WriteBitIfNotNull(MemoryAddress, 392, 5, value);
+#else
 			get
 			{
 				if (MemoryAddress == IntPtr.Zero)
@@ -632,6 +715,7 @@ namespace CitizenFX.Core
 					MemoryAccess.ClearBit(address, 5);
 				}
 			}
+#endif
 		}
 		/// <summary>
 		/// Gets or sets a value indicating whether this <see cref="Entity"/> is melee proof.
@@ -641,6 +725,10 @@ namespace CitizenFX.Core
 		/// </value>
 		public bool IsMeleeProof
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.IsBitSetIfNotNull(MemoryAddress, 392, 7, false);
+			[SecuritySafeCritical] set => MemoryAccess.WriteBitIfNotNull(MemoryAddress, 392, 7, value);
+#else
 			get
 			{
 				if (MemoryAddress == IntPtr.Zero)
@@ -668,6 +756,7 @@ namespace CitizenFX.Core
 					MemoryAccess.ClearBit(address, 7);
 				}
 			}
+#endif
 		}
 		/// <summary>
 		/// Gets or sets a value indicating whether this <see cref="Entity"/> is bullet proof.
@@ -677,6 +766,10 @@ namespace CitizenFX.Core
 		/// </value>
 		public bool IsBulletProof
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.IsBitSetIfNotNull(MemoryAddress, 392, 4, false);
+			[SecuritySafeCritical] set => MemoryAccess.WriteBitIfNotNull(MemoryAddress, 392, 4, value);
+#else
 			get
 			{
 				if (MemoryAddress == IntPtr.Zero)
@@ -704,6 +797,7 @@ namespace CitizenFX.Core
 					MemoryAccess.ClearBit(address, 4);
 				}
 			}
+#endif
 		}
 		/// <summary>
 		/// Gets or sets a value indicating whether this <see cref="Entity"/> is explosion proof.
@@ -713,6 +807,10 @@ namespace CitizenFX.Core
 		/// </value>
 		public bool IsExplosionProof
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.IsBitSetIfNotNull(MemoryAddress, 392, 11, false);
+			[SecuritySafeCritical] set => MemoryAccess.WriteBitIfNotNull(MemoryAddress, 392, 11, value);
+#else
 			get
 			{
 				if (MemoryAddress == IntPtr.Zero)
@@ -740,6 +838,7 @@ namespace CitizenFX.Core
 					MemoryAccess.ClearBit(address, 11);
 				}
 			}
+#endif
 		}
 		/// <summary>
 		/// Gets or sets a value indicating whether this <see cref="Entity"/> is collision proof.
@@ -749,6 +848,10 @@ namespace CitizenFX.Core
 		/// </value>
 		public bool IsCollisionProof
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.IsBitSetIfNotNull(MemoryAddress, 392, 6, false);
+			[SecuritySafeCritical] set => MemoryAccess.WriteBitIfNotNull(MemoryAddress, 392, 6, value);
+#else
 			get
 			{
 				if (MemoryAddress == IntPtr.Zero)
@@ -776,6 +879,7 @@ namespace CitizenFX.Core
 					MemoryAccess.ClearBit(address, 6);
 				}
 			}
+#endif
 		}
 		/// <summary>
 		/// Gets or sets a value indicating whether this <see cref="Entity"/> is invincible.
@@ -785,6 +889,9 @@ namespace CitizenFX.Core
 		/// </value>
 		public bool IsInvincible
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.IsBitSetIfNotNull(MemoryAddress, 392, 8, false);
+#else
 			get
 			{
 				if (MemoryAddress == IntPtr.Zero)
@@ -794,6 +901,7 @@ namespace CitizenFX.Core
 
 				return MemoryAccess.IsBitSet(MemoryAddress + 392, 8);
 			}
+#endif
 			set
 			{
 				API.SetEntityInvincible(Handle, value);
@@ -807,6 +915,9 @@ namespace CitizenFX.Core
 		/// </value>
 		public bool IsOnlyDamagedByPlayer
 		{
+#if MONO_V2
+			[SecuritySafeCritical] get => MemoryAccess.IsBitSetIfNotNull(MemoryAddress, 392, 9, false);
+#else
 			get
 			{
 				if (MemoryAddress == IntPtr.Zero)
@@ -816,6 +927,7 @@ namespace CitizenFX.Core
 
 				return MemoryAccess.IsBitSet(MemoryAddress + 392, 9);
 			}
+#endif
 			set
 			{
 				API.SetEntityOnlyDamagedByPlayer(Handle, value);

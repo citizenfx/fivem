@@ -118,8 +118,21 @@ export enum ServerPureLevel {
   NoModsAllowed = '2',
 }
 
+export interface IPinnedServersCollection {
+  title: string,
+  ids: string[],
+}
+
+export type IFeaturedServer =
+  | { type: 'id', id: string }
+  | { type: 'collection', collection: IPinnedServersCollection }
+
+/**
+ * This is not a reflection of `/pins.json` file schema,
+ * but internal representation of such
+ */
 export interface IPinnedServersConfig {
-  noAdServerId?: string,
+  featuredServer?: IFeaturedServer,
   pinIfEmpty?: boolean,
   pinnedServers: string[],
 }

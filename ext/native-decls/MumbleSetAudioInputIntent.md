@@ -1,7 +1,6 @@
 ---
 ns: CFX
 apiset: client
-game: gta5
 ---
 ## MUMBLE_SET_AUDIO_INPUT_INTENT
 

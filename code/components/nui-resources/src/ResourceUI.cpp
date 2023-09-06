@@ -32,11 +32,14 @@ ResourceUI::~ResourceUI()
 
 bool ResourceUI::Create()
 {
+	m_isDead = false;
+
 	// initialize callback handlers
 	auto resourceName = m_resource->GetName();
 	std::transform(resourceName.begin(), resourceName.end(), resourceName.begin(), ::ToLower);
 	nui::RegisterSchemeHandlerFactory("http", resourceName, Instance<NUISchemeHandlerFactory>::Get());
 	nui::RegisterSchemeHandlerFactory("https", resourceName, Instance<NUISchemeHandlerFactory>::Get());
+	nui::RegisterSchemeHandlerFactory("https", "cfx-nui-" + resourceName, Instance<NUISchemeHandlerFactory>::Get());
 
 	// get the metadata component
 	fwRefContainer<fx::ResourceMetaDataComponent> metaData = m_resource->GetComponent<fx::ResourceMetaDataComponent>();
@@ -63,7 +66,6 @@ bool ResourceUI::Create()
 
 	// get the page name from the iterator
 	std::string pageName = uiPageData.begin()->second;
-	nui::RegisterSchemeHandlerFactory("https", "cfx-nui-" + resourceName, Instance<NUISchemeHandlerFactory>::Get());
 
 	// create the NUI frame
 	auto rmvRes = metaData->IsManifestVersionBetween("cerulean", "");
@@ -101,8 +103,16 @@ bool ResourceUI::Create()
 
 void ResourceUI::Destroy()
 {
-	// destroy the target frame
-	nui::DestroyFrame(m_resource->GetName());
+	m_isDead = true;
+
+	if (m_hasFrame)
+	{
+		// destroy the target frame
+		nui::DestroyFrame(m_resource->GetName());
+
+		// mark as no frame
+		m_hasFrame = false;
+	}
 }
 
 void ResourceUI::AddCallback(const std::string& type, ResUICallback callback)
@@ -116,6 +126,9 @@ void ResourceUI::RemoveCallback(const std::string& type)
 	// can still technically target event based NUI Callbacks
 	m_callbacks.erase(type);
 }
+
+static std::mutex g_nuiCallbackMutex;
+static std::queue<std::function<void()>> g_nuiCallbackQueue;
 
 bool ResourceUI::InvokeCallback(const std::string& type, const std::string& query, const std::multimap<std::string, std::string>& headers, const std::string& data, ResUIResultCallback resultCB)
 {
@@ -134,10 +147,30 @@ bool ResourceUI::InvokeCallback(const std::string& type, const std::string& quer
 		}
 	}
 
+	std::vector<ResUICallback> cbSet;
+
 	for (auto& cb : set)
 	{
-		cb.second(type, query, headers, data, resultCB);
+		cbSet.push_back(cb.second);
 	}
+
+	fwRefContainer selfRef = this;
+
+	std::function<void()> cb = [selfRef, cbSet = std::move(cbSet), type, query, headers, data, resultCB = std::move(resultCB)]()
+	{
+		if (selfRef->IsDead())
+		{
+			return;
+		}
+
+		for (const auto& cb : cbSet)
+		{
+			cb(type, query, headers, data, resultCB);
+		}
+	};
+
+	std::unique_lock _(g_nuiCallbackMutex);
+	g_nuiCallbackQueue.push(std::move(cb));
 
 	return true;
 }
@@ -146,9 +179,6 @@ void ResourceUI::SignalPoll()
 {
 	nui::SignalPoll(m_resource->GetName());
 }
-
-static std::map<std::string, fwRefContainer<ResourceUI>> g_resourceUIs;
-static std::mutex g_resourceUIMutex;
 
 #include <boost/algorithm/string.hpp>
 
@@ -174,6 +204,28 @@ static InitFunction initFunction([] ()
 {
 	fx::ResourceManager::OnInitializeInstance.Connect([](fx::ResourceManager* manager)
 	{
+		manager->OnTick.Connect([]()
+		{
+			auto pop = []() -> std::function<void()>
+			{
+				std::unique_lock _(g_nuiCallbackMutex);
+				if (!g_nuiCallbackQueue.empty())
+				{
+					auto fn = std::move(g_nuiCallbackQueue.front());
+					g_nuiCallbackQueue.pop();
+
+					return std::move(fn);
+				}
+
+				return {};
+			};
+
+			while (auto fn = pop())
+			{
+				fn();
+			}
+		}, INT32_MAX);
+
 		nui::SetResourceLookupFunction([manager](const std::string& resourceName, const std::string& fileName) -> std::string
 		{
 			fwRefContainer<fx::Resource> resource;
@@ -252,48 +304,29 @@ static InitFunction initFunction([] ()
 		});
 	});
 
-	Resource::OnInitializeInstance.Connect([] (Resource* resource)
+	fx::Resource::OnInitializeInstance.Connect([] (Resource* resource)
 	{
 		// create the UI instance
 		fwRefContainer<ResourceUI> resourceUI(new ResourceUI(resource));
+		resource->SetComponent(resourceUI);
 
 		// start event
-		resource->OnCreate.Connect([=] ()
+		resource->OnCreate.Connect([resource]()
 		{
-			std::unique_lock<std::mutex> lock(g_resourceUIMutex);
-
-			resourceUI->Create();
-			g_resourceUIs[resource->GetName()] = resourceUI;
+			resource->GetComponent<ResourceUI>()->Create();
 		});
 
 		// stop event
-		resource->OnStop.Connect([=] ()
+		resource->OnStop.Connect([resource] ()
 		{
-			std::unique_lock<std::mutex> lock(g_resourceUIMutex);
-
-			if (g_resourceUIs.find(resource->GetName()) != g_resourceUIs.end())
-			{
-				resourceUI->Destroy();
-				g_resourceUIs.erase(resource->GetName());
-			}
+			resource->GetComponent<ResourceUI>()->Destroy();
 		});
 
-#ifdef GTA_FIVE
 		// pre-disconnect handling
-		resource->GetComponent<fx::ResourceGameLifetimeEvents>()->OnBeforeGameShutdown.Connect([=]()
+		resource->GetComponent<fx::ResourceGameLifetimeEvents>()->OnBeforeGameShutdown.Connect([resource]()
 		{
-			std::unique_lock<std::mutex> lock(g_resourceUIMutex);
-
-			if (g_resourceUIs.find(resource->GetName()) != g_resourceUIs.end())
-			{
-				resourceUI->Destroy();
-				g_resourceUIs.erase(resource->GetName());
-			}
+			resource->GetComponent<ResourceUI>()->Destroy();
 		});
-#endif
-
-		// add component
-		resource->SetComponent(resourceUI);
 	});
 });
 

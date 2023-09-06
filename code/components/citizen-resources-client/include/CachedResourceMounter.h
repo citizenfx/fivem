@@ -37,11 +37,16 @@ namespace fx
 	public:
 		CachedResourceMounter(ResourceManager* manager, const std::string& cachePath);
 
+		bool MountOverlay(const std::string& resourceName, const std::string& overlayName, std::string* outError);
+
 		virtual bool HandlesScheme(const std::string& scheme) override;
 
 		virtual pplx::task<fwRefContainer<fx::Resource>> LoadResource(const std::string& uri) override;
 
 		virtual pplx::task<tl::expected<fwRefContainer<fx::Resource>, fx::ResourceManagerError>> LoadResourceWithError(const std::string& uri) override;
+
+	private:
+		std::map<std::string, pplx::task<tl::expected<fwRefContainer<vfs::Device>, fx::ResourceManagerError>>> m_overlayMountTasks;
 
 	protected:
 		struct ResourceFileEntry

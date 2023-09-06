@@ -36,6 +36,11 @@
 
 using namespace winrt::Windows::Gaming::Input;
 
+static hook::cdecl_stub<void(void*, int, float, float, float, bool, bool)> breakOffVehicleWheel([]
+{
+	return hook::get_call(hook::get_pattern("F3 44 0F 11 4C 24 ? E8 ? ? ? ? EB 7A", 7));
+});
+
 struct PatternPair
 {
 	std::string_view pattern;
@@ -106,9 +111,6 @@ static std::unordered_set<fwEntity*> g_skipRepairVehicles{};
 static std::vector<FlyThroughWindscreenParam> g_flyThroughWindscreenParams{};
 
 static std::map<fwEntity*, VehicleXenonLightsColor> g_vehicleXenonLightsColors{};
-
-static bool* g_flyThroughWindscreenDisabled;
-static bool isFlyThroughWindscreenEnabledConVar = false;
 
 template<typename T>
 inline static T readValue(fwEntity* ptr, int offset)
@@ -277,6 +279,8 @@ static int WheelFlagsOffset;
 static char* VehicleTopSpeedModifierPtr;
 static int VehicleCheatPowerIncreaseOffset;
 
+static int VehicleDamageStructOffset;
+
 static bool* g_trainsForceDoorsOpen;
 static int TrainDoorCountOffset;
 static int TrainDoorArrayPointerOffset;
@@ -440,12 +444,8 @@ TrainDoor* GetTrainDoor(fwEntity* train, uint32_t index)
 	return &(*((TrainDoor**)(((char*)train) + TrainDoorArrayPointerOffset)))[index];
 }
 
-static bool* isNetworkGame;
-
 static HookFunction initFunction([]()
 {
-	isNetworkGame = hook::get_address<bool*>(hook::get_pattern("24 07 3C 03 75 12 40 38 35 ? ? ? ? 75 09 83", 9));
-
 	{
 		ModelInfoPtrOffset = *hook::get_pattern<uint8_t>("48 8B 40 ? 0F B6 80 ? ? ? ? 83 E0 1F", 3);
 		GravityOffset = *hook::get_pattern<uint32_t>("0F C6 F6 00 F3 0F 59 05", -4);
@@ -498,8 +498,8 @@ static HookFunction initFunction([]()
 	{
 		auto location = hook::get_pattern<char>("A8 02 0F 84 ? ? ? ? 0F B7 86");
 
-		CurrentGearOffset = *(uint32_t*)(location + 11);
-		NextGearOffset = *(uint32_t*)(location + 18);
+		CurrentGearOffset = *(uint32_t*)(location + 18);
+		NextGearOffset = *(uint32_t*)(location + 11);
 	}
 
 	{
@@ -609,12 +609,8 @@ static HookFunction initFunction([]()
 	}
 
 	{
-		// replace netgame check for fly through windscreen with our variable
-		g_flyThroughWindscreenDisabled = (bool*)hook::AllocateStubMemory(1);
-		static ConVar<bool> enableFlyThroughWindscreen("game_enableFlyThroughWindscreen", ConVar_Replicated, false, &isFlyThroughWindscreenEnabledConVar);
-
-		auto location = hook::get_pattern<uint32_t>("45 33 ED 44 38 2D ? ? ? ? 4D", 6);
-		hook::put<int32_t>(location, (intptr_t)g_flyThroughWindscreenDisabled - (intptr_t)location - 4);
+		auto location = hook::get_pattern<char>("F3 44 0F 11 4C 24 ? E8 ? ? ? ? EB 7A");
+		VehicleDamageStructOffset = *(uint32_t*)(location - 11);
 	}
 
 	{
@@ -1331,11 +1327,6 @@ static HookFunction initFunction([]()
 		}
 	});
 
-	OnMainGameFrame.Connect([]()
-	{
-		*g_flyThroughWindscreenDisabled = *isNetworkGame && !isFlyThroughWindscreenEnabledConVar;
-	});
-
 	OnKillNetworkDone.Connect([]()
 	{
 		g_skipRepairVehicles.clear();
@@ -1538,6 +1529,30 @@ static HookFunction initFunction([]()
 		if (fwEntity* vehicle = getAndCheckVehicle(context, "CLEAR_VEHICLE_XENON_LIGHTS_CUSTOM_COLOR"))
 		{
 			g_vehicleXenonLightsColors.erase(vehicle);
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("BREAK_OFF_VEHICLE_WHEEL", [](fx::ScriptContext& context)
+	{
+		if (fwEntity* vehicle = getAndCheckVehicle(context, "BREAK_OFF_VEHICLE_WHEEL"))
+		{
+			auto damageStruct = (void*)((char*)vehicle + VehicleDamageStructOffset);
+
+			auto wheelIndex = context.GetArgument<uint32_t>(1);
+			auto numWheels = readValue<unsigned char>(vehicle, NumWheelsOffset);
+
+			if (wheelIndex >= numWheels)
+			{
+				return;
+			}
+
+			auto leaveDebrisTrail = context.GetArgument<bool>(2);
+			auto deleteWheel = context.GetArgument<bool>(3);
+			auto unknownFlag = context.GetArgument<bool>(4); // setting some flag inside CVehicleDrawHandler
+			auto putOnFire = context.GetArgument<bool>(5);
+
+			// last argument is a network flag
+			breakOffVehicleWheel(damageStruct, wheelIndex, leaveDebrisTrail ? 1.0f : 0.0f, deleteWheel ? 1.0f : 0.0f, unknownFlag ? 1.0f : 0.0f, putOnFire, true);
 		}
 	});
 

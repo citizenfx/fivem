@@ -161,11 +161,6 @@ static InitFunction initFunction([]()
 					return;
 				}
 
-				if (resource->GetName() == "_cfx_internal")
-				{
-					return;
-				}
-
 				if (!filters.empty() && filters.find(resource->GetName()) == filters.end())
 				{
 					return;

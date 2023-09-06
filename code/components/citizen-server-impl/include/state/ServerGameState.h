@@ -117,6 +117,16 @@ inline bool Is2802()
 
 	return value;
 }
+
+inline bool Is2944()
+{
+	static bool value = ([]()
+	{
+		return fx::GetEnforcedGameBuildNumber() >= 2944;
+	})();
+
+	return value;
+}
 #elif defined(STATE_RDR3)
 inline bool Is1311()
 {
@@ -275,6 +285,10 @@ struct CPedGameStateNodeData
 
 	int curWeapon;
 
+	bool isHandcuffed;
+	bool actionModeEnabled;
+	bool isFlashlightOn;
+
 	inline CPedGameStateNodeData()
 		: lastVehicle(-1), lastVehicleSeat(-1), lastVehiclePedWasIn(-1)
 	{
@@ -370,6 +384,7 @@ struct CVehicleHealthNodeData
 	bool tyresFine;
 	int tyreStatus[1 << 4];
 	int bodyHealth;
+	int health;
 };
 
 struct CVehicleGameStateNodeData
@@ -506,8 +521,37 @@ struct CDynamicEntityGameStateNodeData
 struct CTrainGameStateDataNodeData
 {
 	int engineCarriage;
+	int linkedToBackwardId;
+	int linkedToForwardId;
 
+	float distanceFromEngine;
+
+	int trainConfigIndex;
 	int carriageIndex;
+
+	int trackId;
+	float cruiseSpeed;
+
+	int trainState;
+
+	bool isEngine;
+	bool isCaboose;
+
+	bool unk12;
+
+	bool direction;
+
+	bool unk14;
+
+	bool renderDerailed;
+
+	// 2372 {
+	bool unk198;
+	bool unk224;
+	bool unk199;
+	// }
+
+	bool forceDoorsOpen;
 };
 
 struct CPlayerGameStateNodeData
@@ -549,6 +593,34 @@ struct CHeliHealthNodeData
 struct CVehicleSteeringNodeData
 {
 	float steeringAngle;
+};
+
+struct CEntityScriptGameStateNodeData
+{
+	bool usesCollision;
+	bool isFixed;
+};
+
+struct CVehicleDamageStatusNodeData
+{
+	bool damagedByBullets;
+	bool anyWindowBroken;
+	bool windowsState[8];
+};
+
+struct CBoatGameStateNodeData
+{
+	bool lockedToXY;
+	float sinkEndTime;
+	int wreckedAction;
+	bool isWrecked;
+};
+
+struct CPedMovementGroupNodeData
+{
+	bool isStealthy;
+	bool isStrafing;
+	bool isRagdolling;
 };
 
 enum ePopType
@@ -637,6 +709,14 @@ public:
 
 	virtual CVehicleSteeringNodeData* GetVehicleSteeringData() = 0;
 
+	virtual CEntityScriptGameStateNodeData* GetEntityScriptGameState() = 0;
+
+	virtual CVehicleDamageStatusNodeData* GetVehicleDamageStatus() = 0;
+
+	virtual CBoatGameStateNodeData* GetBoatGameState() = 0;
+
+	virtual CPedMovementGroupNodeData* GetPedMovementGroup() = 0;
+
 	virtual void CalculatePosition() = 0;
 
 	virtual bool GetPopulationType(ePopType* popType) = 0;
@@ -713,6 +793,7 @@ struct SyncEntityState
 	uint32_t creationToken;
 	uint32_t routingBucket = 0;
 	float overrideCullingRadius = 0.0f;
+	bool ignoreRequestControlFilter = false;
 
 	std::shared_mutex guidMutex;
 	eastl::bitset<roundToWord(MAX_CLIENTS)> relevantTo;
@@ -1184,8 +1265,12 @@ public:
 
 	void SendObjectIds(const fx::ClientSharedPtr& client, int numIds);
 
-	void ReassignEntity(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient);
+	void ReassignEntity(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient, std::unique_lock<std::shared_mutex>&& lock = {});
 
+private:
+	void ReassignEntityInner(uint32_t entityHandle, const fx::ClientSharedPtr& targetClient, std::unique_lock<std::shared_mutex>&& lock = {});
+
+public:
 	void DeleteEntity(const fx::sync::SyncEntityPtr& entity);
 
 	void ClearClientFromWorldGrid(const fx::ClientSharedPtr& targetClient);

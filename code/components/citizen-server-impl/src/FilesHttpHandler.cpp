@@ -108,6 +108,17 @@ namespace fx
 				}
 			}
 
+			auto filter = filesComponent->CreateFilesFilter(fileName, request);
+
+			std::string reason;
+
+			if (filter && filter->ShouldTerminate(&reason))
+			{
+				response->SetStatusCode(403);
+				response->End(fmt::sprintf("Filter failed: %s.", reason));
+				return;
+			}
+
 			// get the TCP manager for a libuv loop
 			fwRefContainer<net::TcpServerManager> tcpManager = instance->GetComponent<net::TcpServerManager>();
 			auto uvLoop = tcpManager->GetCurrentLoop();
@@ -158,17 +169,6 @@ namespace fx
 					uv_fs_req_cleanup(fsReq);
 
 					auto file = std::make_shared<UvFileHandle>(uvLoop, req->result);
-
-					auto filter = filesComponent->CreateFilesFilter(fileName, request);
-
-					std::string reason;
-
-					if (filter && filter->ShouldTerminate(&reason))
-					{
-						response->SetStatusCode(403);
-						response->End(fmt::sprintf("Filter failed: %s.", reason));
-						return;
-					}
 
 					// write header information and a 200 OK
 					response->SetHeader("content-length", std::to_string(size));

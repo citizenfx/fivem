@@ -1,0 +1,20 @@
+.root {
+  @include ui.def('hh', ui.q(4));
+
+  @include ui.border-radius('normal');
+
+  @include ui.def('backdrop-color', ui.color-token('backdrop-300'));
+  @include ui.fake-backdrop-blur();
+
+  cursor: pointer;
+
+  overflow: hidden;
+
+  padding: ui.offset();
+
+  @include ui.animated('box-shadow');
+  box-shadow: 0 0 0 2px transparent inset;
+  &:hover {
+    box-shadow: 0 0 0 2px ui.color-token('outlined-hover-border') inset;
+  }
+}

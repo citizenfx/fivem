@@ -6,7 +6,7 @@ import emojiRegex from 'emoji-regex';
 import { IServerListConfig, ServersListType } from "cfx/common/services/servers/lists/types";
 import { IPinnedServersConfig, IServerView } from 'cfx/common/services/servers/types';
 import { IAutocompleteIndex } from 'cfx/common/services/servers/source/types';
-import { isAddressSearchTerm } from './searchTermsParser';
+import { ISearchTerm, isAddressSearchTerm } from './searchTermsParser';
 
 export const EOL_LINK = 'aka.cfx.re/eol';
 export const EOS_LINK = 'aka.cfx.re/eos';
@@ -150,6 +150,19 @@ export function shouldPrioritizePinnedServers(config: IServerListConfig): boolea
   }
 
   return config.type === ServersListType.Supporters;
+}
+
+export function getPrioritizedServerName(config: IServerListConfig): ISearchTerm | undefined {
+  const name = config.searchTextParsed.find((item) => item.type === 'name');
+  if (!name) {
+    return;
+  }
+
+  if (name.value.length < 3) {
+    return;
+  }
+
+  return name;
 }
 
 /**

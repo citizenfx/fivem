@@ -447,7 +447,7 @@ static HookFunction hookFunctionSpinner([]()
 
 	// spinner setup deps
 	{
-		auto location = hook::get_pattern("B1 01 E8 ? ? ? ? 48 8D 0D ? ? ? ? 48 8B", 2);
+		auto location = hook::get_pattern("B1 01 E8 ? ? ? ? 48 8D 0D ? ? ? ? 48 8B ? E8", 2);
 		hook::set_call(&setupBusySpinner, location);
 	}
 

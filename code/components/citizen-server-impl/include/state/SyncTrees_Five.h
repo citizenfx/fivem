@@ -434,7 +434,21 @@ struct CVehicleGameStateDataNode
 	}
 };
 
-struct CEntityScriptGameStateDataNode { };
+struct CEntityScriptGameStateDataNode
+{
+	CEntityScriptGameStateNodeData data;
+
+	bool Parse(SyncParseState& state)
+	{
+		data.usesCollision = state.buffer.ReadBit();
+		data.isFixed = state.buffer.ReadBit();
+
+		bool completelyDisabledCollision = state.buffer.ReadBit();
+
+		return true;
+	}
+};
+
 struct CPhysicalScriptGameStateDataNode { };
 struct CVehicleScriptGameStateDataNode { };
 
@@ -837,7 +851,88 @@ struct CVehicleAppearanceDataNode {
 	}
 };
 
-struct CVehicleDamageStatusDataNode { };
+struct CVehicleDamageStatusDataNode
+{
+	CVehicleDamageStatusNodeData data;
+
+	bool Parse(SyncParseState& state)
+	{
+		bool anyBodyDeformation = state.buffer.ReadBit();
+
+		if (anyBodyDeformation)
+		{
+			uint8_t frontDamageLevel = state.buffer.Read<uint8_t>(2);
+			uint8_t rearDamageLevel = state.buffer.Read<uint8_t>(2);
+			uint8_t leftDamageLevel = state.buffer.Read<uint8_t>(2);
+			uint8_t rightDamageLevel = state.buffer.Read<uint8_t>(2);
+			uint8_t rearLeftLevel = state.buffer.Read<uint8_t>(2);
+			uint8_t rearRightLevel = state.buffer.Read<uint8_t>(2);
+		}
+
+		data.damagedByBullets = state.buffer.ReadBit();
+
+		if (data.damagedByBullets)
+		{
+			for (int i = 0; i < 6; i++)
+			{
+				uint8_t bulletsCount = state.buffer.Read<uint8_t>(8);
+			}
+		}
+
+		bool anyBumperBroken = state.buffer.ReadBit();
+
+		if (anyBumperBroken)
+		{
+			uint8_t frontBumperState = state.buffer.Read<uint8_t>(2);
+			uint8_t rearBumperState = state.buffer.Read<uint8_t>(2);
+		}
+
+		bool anyLightBroken = state.buffer.ReadBit();
+
+		if (anyLightBroken)
+		{
+			for (int i = 0; i < 22; i++)
+			{
+				bool lightBroken = state.buffer.ReadBit();
+			}
+		}
+
+		data.anyWindowBroken = state.buffer.ReadBit();
+
+		for (int i = 0; i < 8; i++)
+		{
+			data.windowsState[i] = (data.anyWindowBroken) ? state.buffer.ReadBit() : false;
+		}
+
+		bool unk = state.buffer.ReadBit();
+
+		if (unk)
+		{
+			for (int i = 0; i < 8; i++)
+			{
+				float unk2 = state.buffer.ReadSignedFloat(10, 100.0f);
+
+				if (unk2 != 100.0f)
+				{
+					int unk3 = state.buffer.Read<int>(8);
+				}
+			}
+		}
+
+		bool anySirenBroken = state.buffer.ReadBit();
+
+		if (anySirenBroken)
+		{
+			for (int i = 0; i < 20; i++)
+			{
+				bool sirenBroken = state.buffer.ReadBit();
+			}
+		}
+
+		return true;
+	}
+};
+
 struct CVehicleComponentReservationDataNode { };
 
 struct CVehicleHealthDataNode
@@ -916,6 +1011,18 @@ struct CVehicleHealthDataNode
 			}
 		}
 
+		bool isFine = state.buffer.ReadBit();
+
+		if (!isFine)
+		{
+			auto health = state.buffer.ReadSigned<int>(19);
+			data.health = health;
+		}
+		else
+		{
+			data.health = 1000;
+		}
+
 		bool bodyHealthFine = state.buffer.ReadBit();
 
 		if (!bodyHealthFine)
@@ -926,13 +1033,6 @@ struct CVehicleHealthDataNode
 		else
 		{
 			data.bodyHealth = 1000;
-		}
-
-		bool unk16 = state.buffer.ReadBit();
-
-		if (!unk16)
-		{
-			auto unk17 = state.buffer.ReadSigned<int>(19);
 		}
 
 		bool unk18 = state.buffer.ReadBit();
@@ -1129,12 +1229,12 @@ struct CPedGameStateDataNode
 
 	bool Parse(SyncParseState& state)
 	{
+		auto keepTasksAfterCleanup = state.buffer.ReadBit();
 		auto bool1 = state.buffer.ReadBit();
 		auto bool2 = state.buffer.ReadBit();
 		auto bool3 = state.buffer.ReadBit();
 		auto bool4 = state.buffer.ReadBit();
 		auto bool5 = state.buffer.ReadBit();
-		auto bool6 = state.buffer.ReadBit();
 
 		if (Is2060())
 		{
@@ -1242,6 +1342,46 @@ struct CPedGameStateDataNode
 			data.curVehicle = -1;
 			data.curVehicleSeat = -1;
 		}
+
+		bool bool6 = state.buffer.ReadBit();
+
+		if (bool6)
+		{
+			bool bool7 = state.buffer.ReadBit();
+		}
+
+		bool hasCustodianOrArrestFlags = state.buffer.ReadBit();
+
+		if (hasCustodianOrArrestFlags)
+		{
+			uint16_t custodianId = state.buffer.Read<uint16_t>(13);
+			bool isHandcuffed = state.buffer.ReadBit();
+			bool canPerformArrest = state.buffer.ReadBit();
+			bool canPerformUncuff = state.buffer.ReadBit();
+			bool canBeArrested = state.buffer.ReadBit();
+			bool isInCustody = state.buffer.ReadBit();
+
+			data.isHandcuffed = isHandcuffed;
+		}
+		else
+		{
+			data.isHandcuffed = false;
+		}
+
+		bool isFlashLightOn = state.buffer.ReadBit();
+		bool actionModeEnabled = state.buffer.ReadBit();
+		bool stealthModeEnabled = state.buffer.ReadBit();
+
+		if (actionModeEnabled || stealthModeEnabled)
+		{
+			uint32_t actionModeOverride = state.buffer.Read<uint32_t>(32);
+		}
+
+		bool killedByStealth = state.buffer.ReadBit();
+		bool killedByTakedown = state.buffer.ReadBit();
+
+		data.actionModeEnabled = actionModeEnabled;
+		data.isFlashlightOn = isFlashLightOn;
 
 		// TODO
 
@@ -1535,7 +1675,40 @@ struct CPhysicalMigrationDataNode { };
 struct CPhysicalScriptMigrationDataNode { };
 struct CVehicleProximityMigrationDataNode { };
 struct CBikeGameStateDataNode { };
-struct CBoatGameStateDataNode { };
+
+struct CBoatGameStateDataNode
+{
+	CBoatGameStateNodeData data;
+
+	bool Parse(SyncParseState& state)
+	{
+		bool lockedToXY = state.buffer.ReadBit();
+		int boatWreckedAction = state.buffer.Read<int>(2);
+		bool forcedBoatLocationWhenAnchored = state.buffer.ReadBit();
+
+		bool unk = state.buffer.ReadBit();
+		bool interiorLightEnabled = state.buffer.ReadBit();
+
+		float sinkEndTime = state.buffer.ReadSignedFloat(14, 1.0f);
+		bool movementResistant = state.buffer.ReadBit(); // movementResistance >= 0.0
+
+		if (movementResistant)
+		{
+			bool unk3 = state.buffer.ReadBit(); // movementResistance > 1000.0
+
+			if (!unk3)
+			{
+				float movementResistance = state.buffer.ReadSignedFloat(16, 1000.0f);
+			}
+		}
+
+		data.lockedToXY = lockedToXY;
+		data.sinkEndTime = sinkEndTime;
+		data.wreckedAction = boatWreckedAction;
+
+		return true;
+	}
+};
 
 struct CDoorCreationDataNode
 {
@@ -1725,6 +1898,11 @@ struct CObjectCreationDataNode
 		state.buffer.WriteBit(false);
 		state.buffer.WriteBit(false);
 
+		if (Is2944())
+		{
+			state.buffer.WriteBit(false);
+		}
+
 		return true;
 	}
 
@@ -1821,6 +1999,19 @@ struct CObjectCreationDataNode
 		}
 
 		bool unk24 = state.buffer.ReadBit();
+
+		if (Is2944())
+		{
+			bool unk25 = state.buffer.ReadBit();
+
+			if (unk25)
+			{
+				auto unk26 = state.buffer.Read<int>(32);
+				auto unk27 = state.buffer.Read<int>(32);
+				auto unk28 = state.buffer.Read<int>(32);
+				auto unk29 = state.buffer.ReadBit();
+			}
+		}
 
 		return true;
 	}
@@ -2071,7 +2262,41 @@ struct CPedHealthDataNode
 	}
 };
 
-struct CPedMovementGroupDataNode { };
+struct CPedMovementGroupDataNode
+{
+	CPedMovementGroupNodeData data;
+
+	bool Parse(SyncParseState& state)
+	{
+		uint32_t motionGroup = state.buffer.Read<uint32_t>(32);
+		auto defaultActionMode = state.buffer.ReadBit();
+
+		if (!defaultActionMode)
+		{
+			uint8_t moveBlendType = state.buffer.Read<uint8_t>(3);
+			int moveBlendState = state.buffer.Read<int>(5);
+
+			auto overiddenWeaponGroup = state.buffer.Read<uint32_t>(32);
+			auto isCrouching = state.buffer.ReadBit();
+
+			data.isStealthy = state.buffer.ReadBit();
+			data.isStrafing = state.buffer.ReadBit();
+			data.isRagdolling = state.buffer.ReadBit();
+
+			auto isRagdollConstraintAnkleActive = state.buffer.ReadBit();
+			auto isRagdollConstraintWristActive = state.buffer.ReadBit();
+		}
+		else
+		{
+			data.isStealthy = false;
+			data.isStrafing = false;
+			data.isRagdolling = false;
+		}
+
+		return true;
+	}
+};
+
 struct CPedAIDataNode { };
 struct CPedAppearanceDataNode { };
 
@@ -2368,57 +2593,51 @@ struct CSubmarineControlDataNode
 	}
 };
 
-struct CTrainGameStateDataNode
+struct CTrainGameStateDataNode : GenericSerializeDataNode<CTrainGameStateDataNode>
 {
 	CTrainGameStateDataNodeData data;
 
-	bool Parse(SyncParseState& state)
+	template<typename TSerializer>
+	bool Serialize(TSerializer& s)
 	{
-		int engineCarriage = state.buffer.Read<int>(13);
-		data.engineCarriage = engineCarriage;
+		// the object ID of the 'engine' carriage
+		s.Serialize(13, data.engineCarriage);
 
-		// What carriage is attached to this carriage
-		int connectedCarriage = state.buffer.Read<int>(13);
+		// the object ID of the carriage attached to this carriage
+		s.Serialize(13, data.linkedToBackwardId);
 
-		// What this carriage is attached to
-		int connectedToCarriage = state.buffer.Read<int>(13);
+		// the object ID of the carriage this carriage is attached to
+		s.Serialize(13, data.linkedToForwardId);
 
 		// Offset from the engine carriage?
-		float engineOffset = state.buffer.ReadSignedFloat(32, 1000.0f);
+		s.SerializeSigned(32, 1000.0f, data.distanceFromEngine);
 
-		int trainConfigIndex = state.buffer.Read<int>(8);
-
-		int carriageIndex = state.buffer.Read<int>(8);
-		data.carriageIndex = carriageIndex;
+		s.Serialize(8, data.trainConfigIndex);
+		s.Serialize(8, data.carriageIndex);
 
 		// 0 = Main Line, 3 = Metro line
-		int trackId = state.buffer.Read<int>(8);
+		s.Serialize(8, data.trackId);
 
-		float cruiseSpeed = state.buffer.ReadSignedFloat(8, 30.0f);
+		s.SerializeSigned(8, 30.0f, data.cruiseSpeed);
 
 		// 0 = Moving, 1 = Slowing down, 2 = Doors opening, 3 = Stopped, 4 = Doors closing, 5 = Before depart
-		int trainState = state.buffer.Read<int>(3);
+		s.Serialize(3, data.trainState);
 
-		bool isStartCarriage = state.buffer.ReadBit();
-
-		bool isEndCarriage = state.buffer.ReadBit();
-
-		bool unk12 = state.buffer.ReadBit();
-
-		bool direction = state.buffer.ReadBit();
-
-		bool unk14 = state.buffer.ReadBit();
-
-		bool renderDerailed = state.buffer.ReadBit();
+		s.Serialize(data.isEngine);
+		s.Serialize(data.isCaboose);
+		s.Serialize(data.unk12);
+		s.Serialize(data.direction);
+		s.Serialize(data.unk14);
+		s.Serialize(data.renderDerailed);
 
 		if (Is2372()) // Sequence of bits need to be verified for 2732
 		{
-			auto unk198 = state.buffer.ReadBit();
-			auto unk224 = state.buffer.ReadBit();
-			auto unk199 = state.buffer.ReadBit();
+			s.Serialize(data.unk198);
+			s.Serialize(data.unk224);
+			s.Serialize(data.unk199);
 		}
 
-		bool forceDoorsOpen = state.buffer.ReadBit();
+		s.Serialize(data.forceDoorsOpen);
 
 		return true;
 	}
@@ -3280,6 +3499,34 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, false>
 		return hasNode ? &node->data : nullptr;
 	}
 
+	virtual CEntityScriptGameStateNodeData* GetEntityScriptGameState() override
+	{
+		auto [hasNode, node] = this->template GetData<CEntityScriptGameStateDataNode>();
+
+		return hasNode ? &node->data : nullptr;
+	}
+
+	virtual CVehicleDamageStatusNodeData* GetVehicleDamageStatus() override
+	{
+		auto [hasNode, node] = this->template GetData<CVehicleDamageStatusDataNode>();
+
+		return hasNode ? &node->data : nullptr;
+	}
+
+	virtual CBoatGameStateNodeData* GetBoatGameState() override
+	{
+		auto [hasNode, node] = this->template GetData<CBoatGameStateDataNode>();
+
+		return hasNode ? &node->data : nullptr;
+	}
+
+	virtual CPedMovementGroupNodeData* GetPedMovementGroup() override
+	{
+		auto [hasNode, node] = this->template GetData<CPedMovementGroupDataNode>();
+
+		return hasNode ? &node->data : nullptr;
+	}
+
 	virtual void CalculatePosition() override
 	{
 		// TODO: cache it?
@@ -3395,7 +3642,7 @@ using CAutomobileSyncTree = SyncTree<
 					NodeIds<127, 127, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode, 13>,
-					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 48>,
+					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 49>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode, 24>
 				>
 			>,
@@ -3417,7 +3664,7 @@ using CAutomobileSyncTree = SyncTree<
 				NodeIds<127, 86, 0>,
 				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode, 2>,
 				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 28>,
-				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 30>
+				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 31>
 			>
 		>,
 		ParentNode<
@@ -3452,7 +3699,7 @@ using CBikeSyncTree = SyncTree<
 					NodeIds<127, 127, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode, 13>,
-					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 48>,
+					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 49>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode, 24>
 				>
 			>,
@@ -3474,7 +3721,7 @@ using CBikeSyncTree = SyncTree<
 				NodeIds<127, 86, 0>,
 				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode, 2>,
 				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 28>,
-				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 30>
+				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 31>
 			>
 		>,
 		ParentNode<
@@ -3509,7 +3756,7 @@ using CBoatSyncTree = SyncTree<
 					NodeIds<127, 127, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode, 13>,
-					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 48>,
+					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 49>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode, 24>
 				>
 			>,
@@ -3531,7 +3778,7 @@ using CBoatSyncTree = SyncTree<
 				NodeIds<127, 86, 0>,
 				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode, 2>,
 				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 28>,
-				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 30>
+				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 31>
 			>
 		>,
 		ParentNode<
@@ -3587,7 +3834,7 @@ using CHeliSyncTree = SyncTree<
 					NodeIds<127, 127, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode, 13>,
-					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 48>,
+					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 49>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode, 24>
 				>
 			>,
@@ -3610,7 +3857,7 @@ using CHeliSyncTree = SyncTree<
 				NodeIds<127, 86, 0>,
 				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode, 2>,
 				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 28>,
-				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 30>,
+				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 31>,
 				NodeWrapper<NodeIds<86, 86, 0>, CHeliControlDataNode, 8>
 			>
 		>,
@@ -3628,7 +3875,7 @@ using CObjectSyncTree = SyncTree<
 		NodeIds<127, 0, 0>,
 		ParentNode<
 			NodeIds<1, 0, 0>,
-			NodeWrapper<NodeIds<1, 0, 0>, CObjectCreationDataNode, 18>
+			NodeWrapper<NodeIds<1, 0, 0>, CObjectCreationDataNode, 30>
 		>,
 		ParentNode<
 			NodeIds<127, 127, 0>,
@@ -3692,7 +3939,7 @@ using CPedSyncTree = SyncTree<
 					NodeIds<127, 127, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode, 13>,
-					NodeWrapper<NodeIds<127, 127, 1>, CPedScriptGameStateDataNode, 110>,
+					NodeWrapper<NodeIds<127, 127, 1>, CPedScriptGameStateDataNode, 111>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode, 24>
 				>
 			>,
@@ -3804,7 +4051,7 @@ using CPlaneSyncTree = SyncTree<
 					NodeIds<127, 127, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode, 13>,
-					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 48>,
+					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 49>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode, 24>
 				>
 			>,
@@ -3827,7 +4074,7 @@ using CPlaneSyncTree = SyncTree<
 				NodeIds<127, 86, 0>,
 				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode, 2>,
 				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 28>,
-				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 30>,
+				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 31>,
 				NodeWrapper<NodeIds<86, 86, 0>, CPlaneControlDataNode, 7>
 			>
 		>,
@@ -3863,7 +4110,7 @@ using CSubmarineSyncTree = SyncTree<
 					NodeIds<127, 127, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode, 13>,
-					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 48>,
+					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 49>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode, 24>
 				>
 			>,
@@ -3885,7 +4132,7 @@ using CSubmarineSyncTree = SyncTree<
 				NodeIds<127, 86, 0>,
 				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode, 2>,
 				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 28>,
-				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 30>,
+				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 31>,
 				NodeWrapper<NodeIds<86, 86, 0>, CSubmarineControlDataNode, 4>
 			>
 		>,
@@ -3930,7 +4177,7 @@ using CPlayerSyncTree = SyncTree<
 			NodeWrapper<NodeIds<87, 87, 0>, CPlayerAppearanceDataNode, 544>,
 			NodeWrapper<NodeIds<86, 86, 0>, CPlayerPedGroupDataNode, 19>,
 			NodeWrapper<NodeIds<86, 86, 0>, CPlayerAmbientModelStreamingNode, 5>,
-			NodeWrapper<NodeIds<86, 86, 0>, CPlayerGamerDataNode, 326>,
+			NodeWrapper<NodeIds<86, 86, 0>, CPlayerGamerDataNode, 370>,
 			NodeWrapper<NodeIds<86, 86, 0>, CPlayerExtendedGameStateNode, 20>
 		>,
 		ParentNode<
@@ -3985,7 +4232,7 @@ using CTrailerSyncTree = SyncTree<
 					NodeIds<127, 127, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode, 13>,
-					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 48>,
+					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 49>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode, 24>
 				>
 			>,
@@ -4007,7 +4254,7 @@ using CTrailerSyncTree = SyncTree<
 				NodeIds<127, 86, 0>,
 				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode, 2>,
 				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 28>,
-				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 30>
+				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 31>
 			>
 		>,
 		ParentNode<
@@ -4042,7 +4289,7 @@ using CTrainSyncTree = SyncTree<
 					NodeIds<127, 127, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptGameStateDataNode, 1>,
 					NodeWrapper<NodeIds<127, 127, 1>, CPhysicalScriptGameStateDataNode, 13>,
-					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 48>,
+					NodeWrapper<NodeIds<127, 127, 1>, CVehicleScriptGameStateDataNode, 49>,
 					NodeWrapper<NodeIds<127, 127, 1>, CEntityScriptInfoDataNode, 24>
 				>
 			>,
@@ -4064,7 +4311,7 @@ using CTrainSyncTree = SyncTree<
 				NodeIds<127, 86, 0>,
 				NodeWrapper<NodeIds<86, 86, 0>, CVehicleSteeringDataNode, 2>,
 				NodeWrapper<NodeIds<87, 87, 0>, CVehicleControlDataNode, 28>,
-				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 30>
+				NodeWrapper<NodeIds<127, 127, 0>, CVehicleGadgetDataNode, 31>
 			>
 		>,
 		ParentNode<

@@ -21,14 +21,14 @@ stages:
 .build_client:
   extends: .build_windows
   variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR\$CI_BUILD_REF_NAME\fivem
+    GIT_CLONE_PATH: $CI_BUILDS_DIR\$CI_COMMIT_REF_NAME\fivem
   artifacts:
     paths:
       - caches/
       - ext/native-doc-gen/natives_cfx.json
     expire_in: 1 month
   cache:
-    key: $CI_JOB_NAME-$CI_BUILD_REF_NAME
+    key: $CI_JOB_NAME-$CI_COMMIT_REF_NAME
     untracked: true
     paths:
       - code/shared/citversion.h
@@ -95,6 +95,7 @@ build_proot_linux:
   image: mcr.microsoft.com/dotnet/sdk:6.0-alpine3.15
   variables:
     GIT_SUBMODULE_STRATEGY: normal
+    GIT_SUBMODULE_DEPTH: 3
     # workaround gitlab-ci-multi-runner#2148
     GIT_SSL_CAPATH: /etc/ssl/certs/
     DOCKER_TLS_CERTDIR: ""
@@ -116,7 +117,7 @@ build_proot_linux:
 .deploy:
   stage: deploy
   variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR\$CI_BUILD_REF_NAME\fivem
+    GIT_CLONE_PATH: $CI_BUILDS_DIR\$CI_COMMIT_REF_NAME\fivem
   script:
     - ".\\code\\tools\\ci\\build.ps1 -DontBuild $true"
 
@@ -144,7 +145,7 @@ build_proot_linux:
 
 .deploy_specific:
   environment:
-    name: specific/$CI_BUILD_REF_NAME
+    name: specific/$CI_COMMIT_REF_NAME
   only:
     - branches
   except:
@@ -212,6 +213,7 @@ typings_server:
     - master
   variables:
     GIT_SUBMODULE_STRATEGY: normal
+    GIT_SUBMODULE_DEPTH: 3
     # workaround gitlab-ci-multi-runner#2148
     GIT_SSL_CAPATH: /etc/ssl/certs/
   script:
@@ -260,7 +262,7 @@ nuget_server:
 .upload_review:
   stage: postdeploy
   variables:
-    GIT_CLONE_PATH: $CI_BUILDS_DIR\$CI_BUILD_REF_NAME\fivem
+    GIT_CLONE_PATH: $CI_BUILDS_DIR\$CI_COMMIT_REF_NAME\fivem
   script:
     - ".\\code\\tools\\ci\\upload_review.ps1"
   tags:
