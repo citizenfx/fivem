@@ -2,10 +2,10 @@
 
 $fg: #fffff0;
 $bg: #205a53;
-
+$textColor: #ffd98d;
 .cfxui-theme-gta5-devoted {
   @include ui.define-main-colors($bg, $fg, (
-    'primary': darken(#ffd98d, 10%)
+    'primary': darken($textColor, 10%)
   ));
 
   .color-1 { color: lighten(#F44336, 30%);	}

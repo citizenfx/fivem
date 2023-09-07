@@ -254,6 +254,24 @@ static void SetNickname(const std::string& name)
 	UpdatePendingAuthPayload();
 }
 
+static void SetDSIdentifier(const std::string& id)
+{
+	if (!netLibrary)
+	{
+		NetLibrary::OnNetLibraryCreate.Connect([id](NetLibrary*)
+		{
+			SetDSIdentifier(id);
+		},
+		INT32_MAX);
+
+		return;
+	}
+
+	netLibrary->SetDSIdentifier(id.c_str());
+
+	UpdatePendingAuthPayload();
+}
+
 static void ConnectTo(const std::string& hostnameStr, bool fromUI = false, const std::string& connectParams = "")
 {
 	auto connectParamsReal = connectParams;
@@ -1182,6 +1200,17 @@ static InitFunction initFunction([] ()
 
 			std::string newusername = ToNarrow(arg);
 			SetNickname(newusername);
+		}
+		else if (!_wcsicmp(type, L"setDS_Identifier"))
+		{
+			if (!arg || !arg[0])
+			{
+				trace("Failed to set Devoted Studios ID\n");
+				return;
+			}
+
+			std::string dsi = ToNarrow(arg);
+			SetDSIdentifier(dsi);
 		}
 		else if (!_wcsicmp(type, L"exit"))
 		{

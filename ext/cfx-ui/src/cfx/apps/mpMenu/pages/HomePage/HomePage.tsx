@@ -17,10 +17,10 @@ import { Continuity } from "./Continuity/Continuity";
 import { Footer } from "./Footer/Footer";
 // import { BetaSign } from "./BetaSign/BetaSign";
 import s from './HomePage.module.scss';
+import { mpMenu } from "../../mpMenu";
 
 export const HomePage = observer(function HomePage() {
   const ActivityService = useActivityService();
-
   return (
     <Page>
       <InsideNavBar>

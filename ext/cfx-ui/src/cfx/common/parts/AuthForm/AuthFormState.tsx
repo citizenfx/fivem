@@ -69,8 +69,8 @@ class AuthFormState {
   private set totp(totp: string) { this._totp = totp }
 
   private _submitPending = false;
-  private get submitPending(): boolean { return this._submitPending }
-  private set submitPending(pending: boolean) { this._submitPending = pending }
+  public get submitPending(): boolean { return this._submitPending }
+  public set submitPending(pending: boolean) { this._submitPending = pending }
 
   public readonly submitMessage: SubmitMessage;
 

@@ -1679,7 +1679,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 	continueRequest = [=]()
 	{
 		// check if authenticated users
-		postMap["myToken"] = "1234";
+		postMap["ds"] = m_dsIdentifier;
 
 		auto steamComponent = GetSteam();
 
@@ -2038,6 +2038,11 @@ const char* NetLibrary::GetPlayerName()
 void NetLibrary::SetPlayerName(const char* name)
 {
 	m_playerName = name;
+}
+
+void NetLibrary::SetDSIdentifier(const char* id)
+{
+	m_dsIdentifier = id;
 }
 
 void NetLibrary::SendData(const NetAddress& address, const char* data, size_t length)

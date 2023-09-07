@@ -166,6 +166,8 @@ private:
 
 	std::string m_playerName;
 
+	std::string m_dsIdentifier;
+
 	fwRefContainer<INetMetricSink> m_metricSink;
 
 	std::string m_infoString;
@@ -216,6 +218,8 @@ public:
 	virtual const char* GetPlayerName() override;
 
 	virtual void SetPlayerName(const char* name) override;
+
+	virtual void SetDSIdentifier(const char* id) override;
 
 	virtual void SetBase(uint32_t base) override;
 

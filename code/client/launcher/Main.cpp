@@ -798,7 +798,7 @@ int RealMain()
 			static HostSharedData<CfxState> initState("CfxInitState");
 			static HostSharedData<UpdaterUIState> uuiState("CfxUUIState");
 
-#if defined(_DEBUG) && defined(LAUNCHER_PERSONALITY_MAIN)
+#if !defined(_DEBUG) && defined(LAUNCHER_PERSONALITY_MAIN)
 			auto runUUILoop = [minModeManifest](bool firstLoop)
 			{
 				static constexpr const uint32_t loadWait = 5000;

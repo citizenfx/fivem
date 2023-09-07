@@ -135,10 +135,10 @@ bool Bootstrap_DoBootstrap()
 
 		if (updateDataValid)
 		{
-			if (version != BASE_EXE_VERSION && GetFileAttributes(MakeRelativeCitPath(L"nobootstrap.txt").c_str()) == INVALID_FILE_ATTRIBUTES)
+			/*if (version != BASE_EXE_VERSION && GetFileAttributes(MakeRelativeCitPath(L"nobootstrap.txt").c_str()) == INVALID_FILE_ATTRIBUTES)
 			{
 				return Bootstrap_UpdateEXE(exeSize, (*contentHeaders)["x-amz-meta-bootstrap-object"]);
-			}
+			}*/
 		}
 	}
 
@@ -165,6 +165,7 @@ bool Bootstrap_DoBootstrap()
         return false;
     }
 
+	updateDataValid = false;
 	if (updateDataValid)
 	{
 		bool rv = false;

@@ -11,6 +11,8 @@ import { Pad } from "cfx/ui/Layout/Pad/Pad";
 import { Indicator } from "cfx/ui/Indicator/Indicator";
 import { useServerPreviewService } from "cfx/common/services/servers/serverPreview.service";
 import { useServersService } from "cfx/common/services/servers/servers.service";
+import { LegacyConnectingModal } from "../../parts/LegacyConnectingModal/LegacyConnectingModal";
+import { LegacyUiMessageModal } from "../../parts/LegacyUiMessageModal/LegacyUiMessageModal";
 
 export const DevotedPage = observer(function DevotedPage() {
     const ServerPreviewService = useServerPreviewService();
@@ -20,6 +22,8 @@ export const DevotedPage = observer(function DevotedPage() {
     return (
         <AcitivityItemMediaViewerProvider>
             <ThemeManager />
+            <LegacyConnectingModal />
+            <LegacyUiMessageModal />
             <Page>
                 <Flex fullWidth fullHeight centered gap="xlarge">
                     {isLoading ? loader() : <ServerPreview previewBg={ServerPreviewService.previewBackgrounds}></ServerPreview>}

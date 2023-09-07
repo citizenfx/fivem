@@ -14,10 +14,11 @@ export interface IndicatorProps {
 export const Indicator = React.memo(function Indicator({ className }: IndicatorProps) {
   return (
     <div className={clsx(s.root, className)}>
-      <div style={delay1} />
+      <div className={s["lds-dual-ring"]}></div>
+      {/* <div style={delay1} />
       <div style={delay2} />
       <div style={delay3} />
-      <div style={delay4} />
+      <div style={delay4} /> */}
     </div>
   );
 });

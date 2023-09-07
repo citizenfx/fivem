@@ -8,6 +8,7 @@ import { IoFlame } from "react-icons/io5";
 import { VscListFlat } from 'react-icons/vsc';
 import { BiTime } from "react-icons/bi";
 import { FiExternalLink } from "react-icons/fi";
+import { PiPlayCircleThin } from "react-icons/pi";
 
 export namespace Icons {
   export const exit = <BsX style={{ fontSize: '1.75em' }} />;
@@ -49,6 +50,8 @@ export namespace Icons {
   export const serverBoost = <IoMdTrendingUp style={{ fill: 'url(#boost-gradient)' }} />;
   export const serverBoostUnstyled = <IoMdTrendingUp />;
   export const serverBurst = <IoFlame style={{ fill: 'url(#burst-gradient)' }} />;
+
+  export const playPreview = <PiPlayCircleThin />;
 }
 
 export const BrandIcon = {

@@ -65,7 +65,7 @@ static std::wstring GetRootPath()
 	if (!appDataPath.empty())
 	{
 #ifdef GTA_FIVE
-		appDataPath += L"\\FiveM";
+		appDataPath += L"\\DevotedStudios";
 #elif defined(IS_RDR3)
 		appDataPath += L"\\RedM";
 #else

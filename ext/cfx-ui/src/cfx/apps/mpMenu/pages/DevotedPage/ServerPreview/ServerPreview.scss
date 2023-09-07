@@ -1,6 +1,18 @@
+$textColor: #ffd98d;
+
 .server-preview {
     width: 100%;
 
+    .logo {
+        width: 50px;
+        border-radius: 5px;
+    }
+
+    .title {
+        color: $textColor !important;
+        margin-bottom: 10px;
+    }
+    
     .swiper-container {
         width: inherit;
         height: 52rem;
@@ -12,10 +24,6 @@
         width: 27rem;
         height: 42rem;
         position: relative;
-
-        .hide {
-            display: none;
-        }
         
         img {
             width: 100%;
@@ -23,6 +31,27 @@
             // border-radius: 10px;
             clip-path: polygon(25% 0%, 100% 0%, 75% 100%, 0% 100%);
             object-fit: cover;
+        }
+
+        .play-container {
+            position: absolute;
+            bottom: 40px;
+            z-index: 999;
+            left: 25px;
+
+            .title {
+                color: $textColor !important;
+            }
+
+            .play-button {
+                &:hover {
+                    border-color: transparent;
+                    background-color: transparent;
+                }
+
+                color: $textColor;
+                font-size: 5rem;
+            }
         }
     }
 }

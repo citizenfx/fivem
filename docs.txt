@@ -1,0 +1,2 @@
+fxd vs -game five
+https://github.com/citizenfx/fivem/blob/fea4dda64f894d4d9e108cc23dcc695a18f49de2/code/components/font-renderer/src/GtaGameInterface.cpp#L469

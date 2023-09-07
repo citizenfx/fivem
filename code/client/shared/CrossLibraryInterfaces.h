@@ -23,6 +23,8 @@ public:
 
 	virtual void SetPlayerName(const char* name) = 0;
 
+	virtual void SetDSIdentifier(const char* name) = 0;
+
 	virtual void SetBase(uint32_t base) = 0;
 
 	virtual void RunFrame() = 0;

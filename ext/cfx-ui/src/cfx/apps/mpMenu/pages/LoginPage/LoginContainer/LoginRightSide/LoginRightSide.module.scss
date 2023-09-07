@@ -1,4 +1,22 @@
+$textColor: #ffd98d;
+
 .right-side {
   width: 50%;
   padding: 10px 20px;
+
+  .server-information {
+    border: 1px solid #ffd98d;
+    border-radius: 4px;
+    padding: 10px;
+  }
+
+  .logo {
+    width: 50px;
+    border-radius: 5px;
+  }
+
+  .title {
+      color: $textColor !important;
+      margin-bottom: 10px;
+  }
 }
