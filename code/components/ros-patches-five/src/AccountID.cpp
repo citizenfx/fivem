@@ -92,13 +92,18 @@ static std::string MapMessage(const nlohmann::json& j)
 	return message;
 }
 
+// this structure is passed via HostSharedData so should have a linear layout
 struct ExternalROSBlob
 {
 	uint8_t data[16384];
 	uint8_t steamData[64 * 1024];
 	size_t steamSize;
-	uint8_t epicData[64 * 1024];
+
+	// epicData is a copy of GetCommandLine result, so can't exceed the maximum length of a command line
+	// (https://devblogs.microsoft.com/oldnewthing/20031210-00/?p=41553, https://archive.today/nab64)
+	wchar_t epicData[UNICODE_STRING_MAX_CHARS];
 	size_t epicSize;
+
 	uint32_t steamAppId;
 	bool valid;
 	bool tried;
@@ -821,7 +826,7 @@ void ValidateEpic(int parentPid)
 		return;
 	}
 
-	memcpy(blob->epicData, commandLineString.c_str(), commandLineString.size());
+	StringCbCopyW(blob->epicData, sizeof(blob->epicData), commandLineString.c_str());
 	blob->epicSize = commandLineString.size();
 	blob->valid = true;
 
@@ -1392,17 +1397,13 @@ DWORD dwFlags)
 
 static LPSTR GetCommandLineAStub()
 {
-	static char cli[65536];
-	
-	if (!cli[0])
+	static std::string cli = ([]
 	{
-		static HostSharedData<ExternalROSBlob> blob("Cfx_ExtRosBlob");
-		strcpy(cli, GetCommandLineA());
-		strcat(cli, " -useEpic ");
-		strcat(cli, ToNarrow((wchar_t*)blob->epicData).c_str());
-	}
+		HostSharedData<ExternalROSBlob> blob("Cfx_ExtRosBlob");
+		return fmt::sprintf("%s -useEpic %s", GetCommandLineA(), ToNarrow(blob->epicData));
+	})();
 
-	return cli;
+	return cli.data();
 }
 
 static HookFunction hookFunctionSteamBlob([]()
