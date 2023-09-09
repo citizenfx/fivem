@@ -258,6 +258,149 @@ static InitFunction initFunction([] ()
 			}
 		}
 
+		int GetvKey(char* input)
+		{
+			if (_stricmp(input, "shift") == 0)
+			{
+				return VK_SHIFT;
+			}
+			else if (_stricmp(input, "control") == 0)
+			{
+				return VK_CONTROL;
+			}
+			else if (_stricmp(input, "alt") == 0)
+			{
+				return VK_MENU;
+			}
+			else if (_stricmp(input, "backspace") == 0)
+			{
+				return VK_BACK;
+			}
+			else if (_stricmp(input, "capslock") == 0)
+			{
+				return VK_CAPITAL;
+			}
+			else if (_stricmp(input, "enter") == 0)
+			{
+				return VK_RETURN;
+			}
+			else if (_stricmp(input, "escape") == 0)
+			{
+				return VK_ESCAPE;
+			}
+			// For Some reason, VK_OEM_PERIOD, has the completely wrong hex.
+			// 46 (0x2E) is a "." but VK_OEM_PERIOD returns 190 (0xBE) which is "¾".
+			else if (_stricmp(input, ".") == 0)
+			{
+				return 46;
+			}
+			else if (_stricmp(input, "#") == 0)
+			{
+				return 35;
+			}
+			else if (_stricmp(input, "$") == 0)
+			{
+				return 36;
+			}
+			else if (_stricmp(input, "%") == 0)
+			{
+				return 37;
+			}
+			else if (_stricmp(input, "&") == 0)
+			{
+				return 38;
+			}
+			else if (_stricmp(input, "'") == 0)
+			{
+				return 39;
+			}
+			else if (_stricmp(input, "(") == 0)
+			{
+				return 40;
+			}
+			else if (_stricmp(input, "£") == 0)
+			{
+				return 163;
+			}
+			else if (_stricmp(input, "¬") == 0)
+			{
+				return 172;
+			}
+			else if (_stricmp(input, " ") == 0 || _stricmp(input, "space") == 0)
+			{
+				return VK_SPACE;
+			}
+			else
+			{
+				if (strlen(input) > 1)
+				{
+					return -1;
+				}
+				else
+				{
+					return int(input[0]);
+				}
+			}
+		};
+
+		// Same methods as the Mouse and the KeyEvent in CefInput, with alterations to accept a character input.
+		void KeyInput(char* keyPressed, bool down)
+		{
+			auto browser = nui::GetNUIWindowBrowser(m_autogenHandle);
+			if (browser && browser->GetHost())
+			{
+				int vKey = GetvKey(keyPressed);
+				if (vKey == -1) // Do not send key, if we do not know what key it is.
+				{
+					return;
+				}
+				CefKeyEvent keyEvent;
+				HKL current_layout = ::GetKeyboardLayout(0);
+				int scanCode = MapVirtualKeyExA(vKey, 0, current_layout); // Converts the vKey to a scanCode
+				keyEvent.windows_key_code = vKey;
+				keyEvent.native_key_code = scanCode;
+				// use same modifiers from CefInput.
+				keyEvent.modifiers = nui::GetCefKeyboardModifiers(vKey, scanCode);
+				if (down)
+				{
+					// Only send the Char event for special characters, otherwise the Modifiers get freaked out.
+					// This also results in the ARROW keys being disabled, since it cannot tell the difference between "%" and "ArrowUp",
+					// Since they share the same Ascii code.
+					// 112 is here since "p" doesnt always seem to get detected my some applications
+					int specialKeys[] = { 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 58, 59, 112, 123, 124, 125, 163, 172 };
+					int n = sizeof(specialKeys) / sizeof(*specialKeys);
+					bool exists = std::find(specialKeys, specialKeys + n, vKey) != specialKeys + n;
+					if (exists)
+					{
+						keyEvent.type = KEYEVENT_CHAR;
+						browser->GetHost()->SendKeyEvent(keyEvent);
+						return;
+					}
+					else
+					{
+						keyEvent.type = KEYEVENT_RAWKEYDOWN;
+						browser->GetHost()->SendKeyEvent(keyEvent);
+						keyEvent.type = KEYEVENT_CHAR;
+						browser->GetHost()->SendKeyEvent(keyEvent);
+					}
+				}
+				else
+				{
+					keyEvent.type = KEYEVENT_KEYUP;
+					browser->GetHost()->SendKeyEvent(keyEvent);
+				}
+			}
+		}
+		void InjectKeyDown(char* keyPressed)
+		{
+			KeyInput(keyPressed, true);
+		}
+
+		void InjectKeyUp(char* keyPressed)
+		{
+			KeyInput(keyPressed, false);
+		}
+
 		void InjectMouseDown(const char* button)
 		{
 			auto browser = nui::GetNUIWindowBrowser(m_autogenHandle);
@@ -338,7 +481,9 @@ static InitFunction initFunction([] ()
 		.AddMethod("SEND_DUI_MOUSE_DOWN", &NUIWindowWrapper::InjectMouseDown)
 		.AddMethod("SEND_DUI_MOUSE_UP", &NUIWindowWrapper::InjectMouseUp)
 		.AddMethod("SEND_DUI_MOUSE_WHEEL", &NUIWindowWrapper::InjectMouseWheel)
-		.AddMethod("DESTROY_DUI", &NUIWindowWrapper::Destroy);		
+		.AddMethod("SEND_DUI_KEY_DOWN", &NUIWindowWrapper::InjectKeyDown)
+		.AddMethod("SEND_DUI_KEY_UP", &NUIWindowWrapper::InjectKeyUp)
+		.AddMethod("DESTROY_DUI", &NUIWindowWrapper::Destroy);
 
 	// this *was* a multiset before but some resources would not correctly pair set/unset and then be stuck in 'set' state
 	static std::unordered_set<std::string> focusVotes;
