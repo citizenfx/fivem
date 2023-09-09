@@ -371,7 +371,7 @@ namespace nui
 	bool OVERLAY_DECL HasMainUI();
 	void OVERLAY_DECL SetMainUI(bool enable);
 	void OVERLAY_DECL SetHideCursor(bool hide);
-
+	int  OVERLAY_DECL GetCefKeyboardModifiers(WPARAM wparam, LPARAM lparam);
 	void ProcessInput();
 
 	void OVERLAY_DECL ExecuteRootScript(const std::string& scriptBit);
