@@ -8,7 +8,7 @@ apiset: client
 void SEND_DUI_KEY_DOWN(long duiObject, char* keyPressed);
 ```
 
-Injects a "Key Up" event into the DUI browser
+Injects a "Key Down" event into the DUI browser
 
 ## Parameters
 * **duiObject**: The DUI browser handle.
