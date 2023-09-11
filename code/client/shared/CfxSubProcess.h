@@ -51,7 +51,7 @@ inline const wchar_t* MakeCfxSubProcess(const std::wstring& processType, const s
 #ifdef IS_LAUNCHER
 	productName = L"CGL_";
 #elif defined(GTA_FIVE)
-	productName = L"FiveM_";
+	productName = L"DevotedStuios_";
 #elif defined(IS_FXSERVER)
 	productName = L"FXS_";
 #elif defined(IS_RDR3)

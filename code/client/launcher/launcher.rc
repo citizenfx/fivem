@@ -50,7 +50,7 @@ IDM_BACKDROP			MEOW "backdrop_rdr.png"
 STRINGTABLE
 BEGIN
 #if defined(GTA_FIVE)
-	IDS_FOLDER_NAME, L"FiveM Application Data"
+	IDS_FOLDER_NAME, L"Devoted Studios Application Data"
 #elif defined(IS_RDR3)
 	IDS_FOLDER_NAME, L"RedM Application Data"
 #else
@@ -74,7 +74,7 @@ END
 #endif
 
 #if defined(GTA_FIVE)
-#define PRODUCT "FiveM"
+#define PRODUCT "Devoted Studios"
 #elif defined(IS_RDR3)
 #define PRODUCT "RedM"
 #elif defined(GTA_NY)

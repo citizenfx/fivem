@@ -165,7 +165,7 @@ bool Bootstrap_DoBootstrap()
         return false;
     }
 
-	updateDataValid = false;
+	//updateDataValid = false;
 	if (updateDataValid)
 	{
 		bool rv = false;
