@@ -331,6 +331,17 @@ struct CObjectGameStateNodeData
 	bool unk_0x166;
 } ;
 
+struct CPhysicalHealthNodeData
+{
+	bool hasMaxHealth;
+	int maxHealth;
+	int health;
+	bool hasWeaponDamageEntity;
+	int weaponDamageEntityObjectId;
+	uint32_t weaponDamageHash;
+	uint64_t damageFlags;
+};
+
 struct CVehicleAppearanceNodeData
 {
 	int primaryColour;
@@ -601,6 +612,26 @@ struct CEntityScriptGameStateNodeData
 	bool isFixed;
 };
 
+struct CPhysicalScriptGameStateNodeData
+{
+	bool isInvincible;
+	bool isDamagedOnlyByPlayer;
+	bool isBulletProof;
+	bool isFireProof;
+	bool isExplosionProof;
+	bool isCollisionProof;
+	bool isMeleeProof;
+	bool isSmokeProof;
+	bool isSteamProof;
+	bool isFriendlyWithRelationshipGroup;
+	bool isOnlyDamagedByRelationshipGroup;
+	bool dontResetDamageFlagsOnCleanup;
+	uint32_t relationshipGroupHash;
+	uint32_t alwaysClonedForPlayers;
+	bool hasMaxSpeed;
+	float maxSpeed;
+};
+
 struct CVehicleDamageStatusNodeData
 {
 	bool damagedByBullets;
@@ -621,6 +652,12 @@ struct CPedMovementGroupNodeData
 	bool isStealthy;
 	bool isStrafing;
 	bool isRagdolling;
+};
+
+struct CPedAINodeData
+{
+	uint32_t relationshipGroupHash;
+	uint32_t decisionMakerType;
 };
 
 enum ePopType
@@ -716,6 +753,12 @@ public:
 	virtual CBoatGameStateNodeData* GetBoatGameState() = 0;
 
 	virtual CPedMovementGroupNodeData* GetPedMovementGroup() = 0;
+
+	virtual CPhysicalHealthNodeData* GetPhysicalHealth() = 0;
+
+	virtual CPhysicalScriptGameStateNodeData* GetPhysicalScriptGameState() = 0;
+
+	virtual CPedAINodeData* GetPedAI() = 0;
 
 	virtual void CalculatePosition() = 0;
 

@@ -719,6 +719,12 @@ static void Init()
 			auto pn = entity->syncTree->GetPedHealth();
 			return pn ? pn->maxHealth : 0;
 		}
+		case fx::sync::NetObjEntityType::Object:
+		case fx::sync::NetObjEntityType::Pickup:
+		{
+			auto pn = entity->syncTree->GetPhysicalHealth();
+			return pn ? pn->maxHealth : 0;
+		}
 		default:
 			return 0;
 		}
@@ -745,6 +751,12 @@ static void Init()
 		{
 			auto pn = entity->syncTree->GetVehicleHealth();
 			return pn ? pn->health : 0;
+		}
+		case fx::sync::NetObjEntityType::Object:
+		case fx::sync::NetObjEntityType::Pickup:
+		{
+			auto pn = entity->syncTree->GetPhysicalHealth();
+			return pn ? pn->health: 0;
 		}
 		default:
 			return 0;
@@ -1877,6 +1889,132 @@ static void Init()
 
 		context.SetResult(player);
 	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_OBJECT_DAMAGED_BY_ENTITY", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+		auto gameState = instance->GetComponent<fx::ServerGameState>();
+
+		auto node = entity->syncTree->GetPhysicalHealth();
+		if (!node || !node->hasWeaponDamageEntity)
+		{
+			return 0u;
+		}
+
+		auto attackerEntity = gameState->GetEntity(0, node->weaponDamageEntityObjectId);
+		if (!attackerEntity)
+		{
+			return 0u;
+		}
+
+		return gameState->MakeScriptHandle(attackerEntity);
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_OBJECT_DAMAGED_BY_WEAPON", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto node = entity->syncTree->GetPhysicalHealth();
+		if (!node || !node->hasWeaponDamageEntity)
+		{
+			return 0u;
+		}
+		return node->weaponDamageHash;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PED_RELATIONSHIP_GROUP_HASH", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto node = entity->syncTree->GetPedAI();
+		return node ? node->relationshipGroupHash : 0;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PED_DECISION_MAKER", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto node = entity->syncTree->GetPedAI();
+		return node ? node->decisionMakerType : 0;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_CAN_BE_DAMAGED_BY_RELATIONSHIP_GROUP", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto node = entity->syncTree->GetPhysicalScriptGameState();
+		if (node && node->relationshipGroupHash == context.GetArgument<int>(1))
+		{
+			return !node->isFriendlyWithRelationshipGroup;
+		}
+		return false;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_ONLY_DAMAGED_BY_RELATIONSHIP_GROUP", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto node = entity->syncTree->GetPhysicalScriptGameState();
+		if (node && node->relationshipGroupHash == context.GetArgument<int>(1))
+		{
+			return node->isOnlyDamagedByRelationshipGroup;
+		}
+		return false;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_MAX_SPEED", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto node = entity->syncTree->GetPhysicalScriptGameState();
+		if (!node || !node->hasMaxSpeed)
+		{
+			return 0.0f;
+		}
+		return node->maxSpeed;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_INVINCIBLE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto node = entity->syncTree->GetPhysicalScriptGameState();
+		return node ? node->isInvincible : false;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_PROOFS", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto node = entity->syncTree->GetPhysicalScriptGameState();
+		if (node && context.GetArgumentCount() > 8)
+		{
+			*context.GetArgument<bool*>(1) = node->isBulletProof;
+			*context.GetArgument<bool*>(2) = node->isFireProof;
+			*context.GetArgument<bool*>(3) = node->isExplosionProof;
+			*context.GetArgument<bool*>(4) = node->isCollisionProof;
+			*context.GetArgument<bool*>(5) = node->isMeleeProof;
+			*context.GetArgument<bool*>(6) = node->isSteamProof;
+			*context.GetArgument<bool*>(7) = node->dontResetDamageFlagsOnCleanup;
+			*context.GetArgument<bool*>(8) = node->isSmokeProof;
+			return true;
+		}
+		return false;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("IS_ENTITY_ONLY_DAMAGED_BY_PLAYER", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto node = entity->syncTree->GetPhysicalScriptGameState();
+		return node ? node->isDamagedOnlyByPlayer : false;
+	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_IS_TASK_ACTIVE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+#ifdef STATE_FIVE
+		auto node = entity->syncTree->GetPedTaskTree();
+		if (node)
+		{
+			int taskTypeToCheck = context.GetArgument<int>(1);
+			for (int i = 0; i < 7; i++)
+			{
+				if ((node->specifics >> i) & 1)
+				{
+					auto& task = node->tasks[i];
+					if (task.type == taskTypeToCheck)
+					{
+						return true;
+					}
+				}
+			}
+		}
+#endif
+		return false;
+	}));
 }
 
 static InitFunction initFunction([]()

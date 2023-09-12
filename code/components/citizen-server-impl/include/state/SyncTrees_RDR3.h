@@ -1311,6 +1311,21 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, true>
 		return nullptr;
 	}
 
+	virtual CPhysicalHealthNodeData* GetPhysicalHealth() override
+	{
+		return nullptr;
+	}
+
+	virtual CPhysicalScriptGameStateNodeData* GetPhysicalScriptGameState() override
+	{
+		return nullptr;
+	}
+
+	virtual CPedAINodeData* GetPedAI() override
+	{
+		return nullptr;
+	}
+
 	virtual void CalculatePosition() override
 	{
 		// TODO: cache it?
