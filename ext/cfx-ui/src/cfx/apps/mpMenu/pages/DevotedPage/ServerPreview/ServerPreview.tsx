@@ -28,7 +28,7 @@ export const ServerPreview = observer(function ServerPreview({ previewBg }: { pr
     const handleSubmit = async () => {
       // navigate(-1);
       // const server = ServersService.getServer("DESKTOP-2AP0ESB");
-      ServersConnectService?.connectTo("192.168.1.20:30120")
+      ServersConnectService?.connectTo("192.168.1.13:30120")
       
     }
     return (

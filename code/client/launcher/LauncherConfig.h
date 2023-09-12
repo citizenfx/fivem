@@ -7,8 +7,8 @@
 
 #pragma once
 
-#define CONTENT_URL "https://content.cfx.re/updates"
-#define CONTENT_URL_WIDE L"https://content.cfx.re/updates"
+#define CONTENT_URL "http://103.74.102.227:3000/updates"
+#define CONTENT_URL_WIDE L"http://103.74.102.227:3000/updates"
 
 #if defined(GTA_NY)
 #define PRODUCT_NAME L"LibertyM"
@@ -22,7 +22,7 @@
 #define CONTENT_NAME "paynefx"
 #define GAME_EXECUTABLE L"MaxPayne3.exe"
 #elif defined(GTA_FIVE)
-#define PRODUCT_NAME L"Devoted Studios"
+#define PRODUCT_NAME L"DevotedStudios"
 #define GAME_EXECUTABLE L"GTA5.exe"
 #define CONTENT_NAME "fivereborn"
 #elif defined(IS_RDR3)

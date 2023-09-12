@@ -811,7 +811,7 @@ int RealMain()
 					minModeManifest->Get("productName", ToNarrow(PRODUCT_NAME)));
 				std::string firstSubtitle = (wcsstr(GetCommandLineW(), L"-switchcl"))
 					? gettext("Transitioning to another build...") 
-					: minModeManifest->Get("productSubtitle", gettext("Enjoy your roleplay moments with Devoted Studio1."));
+					: minModeManifest->Get("productSubtitle", gettext("Enjoy your roleplay moments with Devoted Studios"));
 
 				std::string lastTitle = firstTitle;
 				std::string lastSubtitle = firstSubtitle;
