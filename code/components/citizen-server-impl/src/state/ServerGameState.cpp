@@ -90,6 +90,9 @@ std::shared_ptr<ConVar<bool>> g_oneSyncARQ;
 static std::shared_ptr<ConVar<bool>> g_networkedSoundsEnabledVar;
 static bool g_networkedSoundsEnabled;
 
+static std::shared_ptr<ConVar<bool>> g_requestPhoneExplosionVar;
+static bool g_requestPhoneExplosionEnabled;
+
 static std::shared_ptr<ConVar<int>> g_requestControlVar;
 static std::shared_ptr<ConVar<int>> g_requestControlSettleVar;
 
@@ -6778,6 +6781,14 @@ std::function<bool()> fx::ServerGameState::GetGameEventHandler(const fx::ClientS
 		};
 	}
 
+	if(eventType == REQUEST_PHONE_EXPLOSION_EVENT)
+	{
+		return []()
+		{
+			return g_requestPhoneExplosionEnabled;
+		};
+	}
+
 	if (isReply)
 	{
 		switch(eventType)
@@ -6858,6 +6869,8 @@ static InitFunction initFunction([]()
 		}
 
 		g_networkedSoundsEnabledVar = instance->AddVariable<bool>("sv_enableNetworkedSounds", ConVar_None, true, &g_networkedSoundsEnabled);
+
+		g_requestPhoneExplosionVar = instance->AddVariable<bool>("sv_enablePhoneExplosion", ConVar_None, true, &g_requestPhoneExplosionEnabled);
 
 		g_requestControlVar = instance->AddVariable<int>("sv_filterRequestControl", ConVar_None, (int)RequestControlFilterMode::NoFilter, (int*)&g_requestControlFilterState);
 		g_requestControlSettleVar = instance->AddVariable<int>("sv_filterRequestControlSettleTimer", ConVar_None, 30000, &g_requestControlSettleDelay);
