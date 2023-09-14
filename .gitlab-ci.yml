@@ -1,6 +1,7 @@
 # ------------
 # -- STAGES --
 # ------------
+
 stages:
   - build
   - deploy
