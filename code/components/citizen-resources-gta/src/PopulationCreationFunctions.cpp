@@ -1,6 +1,6 @@
 #include <StdInc.h>
 
-#if defined(GTA_FIVE)
+#if defined(GTA_FIVE) || defined(IS_RDR3)
 #include <EntitySystem.h>
 
 #include <ResourceManager.h>

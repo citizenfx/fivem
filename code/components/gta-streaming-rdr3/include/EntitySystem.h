@@ -17,6 +17,17 @@ class STREAMING_EXPORT fwArchetype
 {
 public:
 	virtual ~fwArchetype() = default;
+
+public:
+	void* dynamicArchetypeComponent;
+	char pad[16];
+	float bsCenter[3];
+	float radius;
+	float aabbMin[4];
+	float aabbMax[4];
+	char pad2[16];
+	uint32_t hash;
+	char pad3[12];
 };
 
 namespace rage
@@ -30,6 +41,8 @@ class STREAMING_EXPORT fwArchetypeManager
 {
 public:
 	static fwArchetype* GetArchetypeFromHashKey(uint32_t hash, fwModelId& id);
+
+	static fwArchetype* GetArchetypeFromHashKeySafe(uint32_t hash, fwModelId& id);
 };
 
 class STREAMING_EXPORT fwRefAwareBase
@@ -205,3 +218,12 @@ class CVehicle : public fwEntity
 class CPed : public fwEntity
 {
 };
+
+struct PopulationCreationState
+{
+	float position[3];
+	uint32_t model;
+	bool allowed;
+};
+
+STREAMING_EXPORT extern fwEvent<PopulationCreationState*> OnCreatePopulationPed;
