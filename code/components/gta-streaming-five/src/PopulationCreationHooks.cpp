@@ -3,7 +3,6 @@
 
 #include <EntitySystem.h>
 
-fwArchetype* GetArchetypeSafe(uint32_t archetypeHash, uint64_t* archetypeUnk);
 
 static hook::cdecl_stub<fwArchetype*(uint32_t* archetypeUnk)> getArchetypeFromUnk([]()
 {
@@ -43,16 +42,16 @@ static void* CreatePopulationPedWrap(uint32_t mi, float* position, float a3, voi
 	// apply changed data
 	if (creationState.model != modelHash)
 	{
-		uint64_t archetypeUnk = mi;
-		GetArchetypeSafe(creationState.model, &archetypeUnk);
+		rage::fwModelId archetypeUnk{ mi };
+		rage::fwArchetypeManager::GetArchetypeFromHashKeySafe(creationState.model, archetypeUnk);
 
-		uint32_t at = archetypeUnk;
+		uint32_t at = archetypeUnk.id;
 		if (!hasModelLoaded(&at))
 		{
 			return nullptr;
 		}
 
-		mi = archetypeUnk & 0xFFFF;
+		mi = archetypeUnk.id & 0xFFFF;
 	}
 
 	position[0] = creationState.position[0];

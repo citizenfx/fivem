@@ -1072,23 +1072,6 @@ static hook::cdecl_stub<void*(fwEntityDef*, int fileIdx, fwArchetype* archetype,
 	return hook::get_call(hook::pattern("4C 8D 4C 24 40 4D 8B C6 41 8B D7 48 8B CF").count(1).get(0).get<void>(14));
 });
 
-static hook::cdecl_stub<fwArchetype*(uint32_t nameHash, uint64_t* archetypeUnk)> getArchetype([]()
-{
-	return hook::get_call(hook::pattern("89 44 24 40 8B 4F 08 80 E3 01 E8").count(1).get(0).get<void>(10));
-});
-
-fwArchetype* GetArchetypeSafe(uint32_t archetypeHash, uint64_t* archetypeUnk)
-{
-	__try
-	{
-		return getArchetype(archetypeHash, archetypeUnk);
-	}
-	__except (EXCEPTION_EXECUTE_HANDLER)
-	{
-		return nullptr;
-	}
-}
-
 static InitFunction initFunction([]()
 {
 	OnMainGameFrame.Connect([]
@@ -1231,8 +1214,8 @@ static InitFunction initFunction([]()
 					fwEntityDef* entityDef = (fwEntityDef*)MakeStructFromMsgPack("CEntityDef", entityData);
 					mapData->entities.Set(i, entityDef);
 
-					uint64_t archetypeUnk = 0xFFFFFFF;
-					fwArchetype* archetype = GetArchetypeSafe(entityDef->archetypeName, &archetypeUnk);
+					rage::fwModelId modelId{ 0xFFFFFFF };
+					fwArchetype* archetype = rage::fwArchetypeManager::GetArchetypeFromHashKeySafe(entityDef->archetypeName, modelId);
 
 					if (archetype)
 					{

@@ -219,6 +219,8 @@ class STREAMING_EXPORT fwArchetypeManager
 {
 public:
 	static fwArchetype* GetArchetypeFromHashKey(uint32_t hash, fwModelId& id);
+
+	static fwArchetype* GetArchetypeFromHashKeySafe(uint32_t hash, fwModelId& id);
 };
 }
 
