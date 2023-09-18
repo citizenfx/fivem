@@ -9982,11 +9982,22 @@ native "0xA660FAF550EB37E5"
 
 --[[!
 <summary>
-	Used everywhere in the scripts. Flags used include 169, 206, 32, 78, 250, and many more. 
-	-unknown
+		Flags List : pastebin.com/DenXRR8c
+		Research Help : pastebin.com/fPL1cSwB
 
-	Tip: How to make peds not fly off window (aka seat belt, like in online):
-	PED::SET_PED_CONFIG_FLAG, PedHandle, 32, boolvalue
+		(*) When flagId is set to 33 and the bool value to true, peds will die by starting ragdoll, so you should set this flag to false when you resurrect a ped.
+		When flagId is set to 62 and the boolvalue to false this happens: Ped is taken out of vehicle and can't get back in when jacking their empty vehicle. If in a plane it falls from the sky and crashes. Sometimes peds vehicle continue to drive the route without its driver who's running after. 
+
+		(*)
+		JUMPING CHANGES  60,61,104 TO FALSE
+		BEING ON WATER CHANGES 60,61 TO FALSE AND 65,66,168 TO TRUE
+		FALLING CHANGES 60,61,104,276 TO FALSE AND TO 76 TRUE
+		DYING CHANGES 60,61,104,276* TO FALSE AND (NONE) TO TRUE
+		DYING MAKES 60,61,104 TO FALSE
+		BEING IN A CAR CHANGES 60,79,104 TO FALSE AND 62 TO TRUE
+
+		(*)Maximum value for flagId is 0x1CA (458) in b944.
+		ID 0xF0 (240) appears to be a special flag which is handled different compared to the others IDs.
 </summary>
 ]]--
 native "SET_PED_CONFIG_FLAG"
