@@ -246,6 +246,12 @@ if (!$DontBuild)
 
 	Start-Section "build" "Building"
 
+	$ShouldUsePrivateTooling = ($TargetGame -ne "fxserver") -and (Test-Path C:\f\shadesofgray_before.ps1) -and (Test-Path C:\f\shadesofgray_after.ps1)
+
+	if ($ShouldUsePrivateTooling) {
+		Start-Process powershell -ArgumentList "-ExecutionPolicy unrestricted C:\f\shadesofgray_before.ps1" -NoNewWindow -Wait
+	}
+
 	if ($env:FIVEM_PRIVATE_URI) {
 		Start-Section "private" "Fetching privates"
 		Push-Location $WorkDir\..\
@@ -317,7 +323,13 @@ if (!$DontBuild)
 	Start-Section "msbuild" "Running msbuild..."
 	msbuild /p:preferredtoolarchitecture=x64 /p:configuration=release /v:q /m $BuildPath\CitizenMP.sln
 
-	if (!$?) {
+	$MSBuildSucceeded = $?
+
+	if ($ShouldUsePrivateTooling) {
+		Start-Process powershell -ArgumentList "-ExecutionPolicy unrestricted C:\f\shadesofgray_after.ps1" -NoNewWindow -Wait
+	}
+
+	if (!$MSBuildSucceeded) {
 		throw "Failed to build the code."
 	}
 
