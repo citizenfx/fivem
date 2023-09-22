@@ -292,7 +292,7 @@ local compatWrapperTypes = {
 	},
 	['Vector3*'] = {
 		['string'] =   { 'Vector3 _{0};\n', 'ref _{0}', nil },
-		['ulong'] =   { 'Vector3 _{0} = new Vector3(N64.To_float({0}))', 'ref _{0}', nil },
+		['ulong*'] =   { 'Vector3 _{0} = new Vector3(N64.To_float({0}))', 'ref _{0}', nil },
 		['ulong*'] =   { 'Vector3 _{0} = new Vector3({0})', 'ref _{0}', '{0} = N64.Val(_{0}.X)' },
 		['Vector3'] =  { nil, 'ref {0}', nil },
 		['Vector3*'] = { nil, 'ref {0}', nil },
