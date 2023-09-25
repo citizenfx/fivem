@@ -5,8 +5,6 @@ import { returnTrue } from "cfx/utils/functional";
 import { observer } from "mobx-react-lite";
 import { currentGameNameIs } from "cfx/base/gameRuntime";
 import { GameName } from "cfx/base/game";
-import { usePlatformStatusService } from "../../services/platformStatus/platformStatus.service";
-import { StatusLevel } from "../../services/platformStatus/types";
 import { $L } from "cfx/common/services/intl/l10n";
 
 interface IHomePageNavBarLink {
@@ -38,8 +36,8 @@ const homePageNavBarLinks: IHomePageNavBarLink[] = [
   },
   {
     href: 'https://discord.gg/fivem',
-    label: 'Chat',
-    visible: () => usePlatformStatusService().is(StatusLevel.AllSystemsOperational),
+    label: 'Discord',
+    visible: returnTrue,
   },
 ];
 
