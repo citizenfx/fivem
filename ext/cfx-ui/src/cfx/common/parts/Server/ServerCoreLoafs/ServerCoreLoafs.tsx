@@ -59,11 +59,7 @@ const EXTRA_DETAIL_BITS: IExtraLoafDescriptor[] = [
   {
     key: 'pureLevel',
     icon: <BsLockFill />,
-    title: (level: ServerPureLevel) => ({
-      [ServerPureLevel.None]: $L('#ServerDetail_Info_PureLevel_0'),
-      [ServerPureLevel.AudioAndGraphicsAllowed]: $L('#ServerDetail_Info_PureLevel_1'),
-      [ServerPureLevel.NoModsAllowed]: $L('#ServerDetail_Info_PureLevel_2'),
-    }[level]),
+    title: (level: ServerPureLevel) => $L(`#ServerDetail_Info_PureLevel_${level}`, undefined, `Pure Mode Level ${level}`),
     value: (level: ServerPureLevel) => {
       if (!level || level === ServerPureLevel.None) {
         return;
