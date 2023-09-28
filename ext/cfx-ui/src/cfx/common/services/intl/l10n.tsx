@@ -8,9 +8,10 @@ export interface LocalizeProps<T extends string> {
 
   id: LocaleKeyOrString<T>,
   args?: Record<string, any>,
+  fallbackString?: string,
 }
 export const Localize = observer(function Localize<T extends string>(props: LocalizeProps<T>) {
-  return useL10n(props.id, props.args) as any;
+  return useL10n(props.id, props.args, props.fallbackString) as any;
 });
 
 export interface Localize_nl2brProps<T> {
@@ -37,8 +38,8 @@ export const LocalizePlural = observer(function LocalizePlural(props: LocalizePl
 /**
  * If you see that `key` is of type `never` - then key does not exist in `assets/locales/locale-en.json` file
  */
-export function $L<T>(key: LocaleKeyOrString<T>, args?: Record<string, any>) {
-  return <Localize id={key} args={args} />;
+export function $L<T>(key: LocaleKeyOrString<T>, args?: Record<string, any>, fallbackString?: string) {
+  return <Localize id={key} args={args} fallbackString={fallbackString} />;
 }
 
 /**
@@ -55,8 +56,8 @@ export function $L_nl2br<T>(key: LocaleKeyOrString_nl2br<T>, args?: Record<strin
 /**
  * If you see that `key` is of type `never` - then key does not exist in `assets/locales/locale-en.json` file
  */
-export function useL10n<T>(key: LocaleKeyOrString<T> | LocaleKeyOrString_nl2br<T>, args?: Record<string, any>): string {
-  return useIntlService().translate(key, args);
+export function useL10n<T>(key: LocaleKeyOrString<T> | LocaleKeyOrString_nl2br<T>, args?: Record<string, any>, fallbackString?: string): string {
+  return useIntlService().translate(key, args, fallbackString);
 }
 
 export function $LP(count: number, keys: PluralKeys, args?: Record<string, unknown>) {

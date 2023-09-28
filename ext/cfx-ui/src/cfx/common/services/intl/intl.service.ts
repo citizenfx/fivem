@@ -24,6 +24,6 @@ export interface IIntlService {
 
   setLocale(locale: string): void;
 
-  translate(key: string, args?: Record<string, unknown>): string;
+  translate(key: string, args?: Record<string, unknown>, fallbackString?: string): string;
   translatePlural(count: number, keys: PluralKeys, args?: Record<string, unknown>): string;
 }

@@ -75,8 +75,8 @@ class MpMenuIntlService implements IIntlService {
     window.localStorage.setItem('language', locale);
   };
 
-  translate(key: string, args?: Record<string, unknown> | undefined): string {
-    return this.getKeyInLocale(key)(args);
+  translate(key: string, args?: Record<string, unknown> | undefined, fallbackString?: string): string {
+    return this.getKeyInLocale(key, fallbackString)(args);
   }
 
   translatePlural(count: number, keys: Partial<Record<PluralRule, string>>, args?: Record<string, unknown> | undefined): string {
@@ -88,13 +88,17 @@ class MpMenuIntlService implements IIntlService {
     });
   }
 
-  private getKeyInLocale(key: string): Function {
+  private getKeyInLocale(key: string, fallbackString?: string): Function {
     if (this.localeTranslations[key]) {
       return this.localeTranslations[key];
     }
 
     if (defaultLocale[key]) {
       return defaultLocale[key];
+    }
+
+    if (fallbackString) {
+      return () => fallbackString;
     }
 
     return () => key;
