@@ -517,10 +517,23 @@ if (!$DontBuild -and ($TargetGame -ne "fxserver")) {
 	"$GameVersion" | Out-File -Encoding ascii $CacheDir\fivereborn\citizen\version.txt
 	"${env:CI_PIPELINE_ID}" | Out-File -Encoding ascii $CacheDir\fivereborn\citizen\release.txt
 	
-	if (($env:COMPUTERNAME -eq "AVALON") -or ($env:COMPUTERNAME -eq "OMNITRON") -or ($env:COMPUTERNAME -eq "AVALON2")) {
-		Push-Location C:\f\bci\
-		.\BuildComplianceInfo.exe $CacheDir\fivereborn\ C:\f\bci-list.txt
-		Pop-Location
+	if ($env:FIVEM_PRIVATE_URI -and ($TargetGame -ne "fxserver")) {
+		$GCITool = "C:\f\gci\gci.exe"
+		$GCIListPath = "$WorkDir\..\fivem-private\gci-list-$TargetGame.txt"
+
+		if (!(Test-Path $GCIListPath)) {
+			throw "GCI list not found"
+		}
+
+		if (!(Test-Path $GCITool)) {
+			throw "GCI tooling not found"
+		}
+
+		& $GCITool make -r $CacheDir\fivereborn -l $GCIListPath
+
+		if (!$?) {
+			throw "GCI tooling failed"
+		}
 	}
 
 	# build meta/xz variants
