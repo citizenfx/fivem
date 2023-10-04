@@ -351,20 +351,6 @@ void AAD_Initialize()
 	AddVectoredExceptionHandler(0, HandleVariant);
 }
 
-#include <psapi.h>
-
-BOOL EnumProcessModulesHook(
-	HANDLE  hProcess,
-	HMODULE* lphModule,
-	DWORD   cb,
-	LPDWORD lpcbNeeded
-)
-{
-	trace("enum modules\n");
-
-	return EnumProcessModules(hProcess, lphModule, cb, lpcbNeeded);
-}
-
 EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 
 static std::string g_minModeManifest;
@@ -583,10 +569,6 @@ void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 		else if (!_stricmp(functionName, "GetFileAttributesW"))
 		{
 			return GetFileAttributesWHook;
-		}
-		else if (!_stricmp(functionName, "K32EnumProcessModules"))
-		{
-			return EnumProcessModulesHook;
 		}
 #endif
 
