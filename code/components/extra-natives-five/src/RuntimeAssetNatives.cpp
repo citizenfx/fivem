@@ -1214,7 +1214,7 @@ static InitFunction initFunction([]()
 					fwEntityDef* entityDef = (fwEntityDef*)MakeStructFromMsgPack("CEntityDef", entityData);
 					mapData->entities.Set(i, entityDef);
 
-					rage::fwModelId modelId{ 0xFFFFFFF };
+					rage::fwModelId modelId;
 					fwArchetype* archetype = rage::fwArchetypeManager::GetArchetypeFromHashKeySafe(entityDef->archetypeName, modelId);
 
 					if (archetype)

@@ -53,16 +53,16 @@ static void* CreatePopulationPedWrap(uint16_t a1, int a2, const char* sourceName
 	// apply changed data
 	if (creationState.model != modelHash)
 	{
-		rage::fwModelId archetypeUnk{ mi };
-		rage::fwArchetypeManager::GetArchetypeFromHashKeySafe(creationState.model, archetypeUnk);
+		rage::fwModelId idx{ mi };
+		rage::fwArchetypeManager::GetArchetypeFromHashKeySafe(creationState.model, idx);
 
-		uint32_t at = archetypeUnk.id;
+		uint32_t at = idx.value;
 		if (!hasModelLoaded(&at))
 		{
 			return nullptr;
 		}
 
-		mi = archetypeUnk.id & 0xFFFF;
+		mi = idx.modelIndex;
 	}
 
 	position[0] = creationState.position[0];

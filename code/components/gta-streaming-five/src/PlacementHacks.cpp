@@ -400,7 +400,7 @@ void ParseArchetypeFile(char* text, size_t length)
 						archetypeHash = _atoi64(&(archetypeName.c_str())[5]);
 					}
 
-					rage::fwModelId modelId{ 0xFFFFFFF };
+					rage::fwModelId modelId;
 					fwArchetype* archetype = rage::fwArchetypeManager::GetArchetypeFromHashKeySafe(archetypeHash, modelId);
 
 					if (archetype)

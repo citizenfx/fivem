@@ -24,8 +24,8 @@ static int CalculateMipLevelHook(uint8_t type, uint16_t width, uint16_t height, 
 		auto baseName = strName.substr(0, strName.find('.'));
 
 		// try getting the relevant archetype, and see if it's a vehicle
-		rage::fwModelId archetypeUnk{ 0xFFFFFFF };
-		auto archetype = rage::fwArchetypeManager::GetArchetypeFromHashKeySafe(HashString(baseName.c_str()), archetypeUnk);
+		rage::fwModelId idx;
+		auto archetype = rage::fwArchetypeManager::GetArchetypeFromHashKeySafe(HashString(baseName.c_str()), idx);
 
 		if (archetype)
 		{

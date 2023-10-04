@@ -34,8 +34,30 @@ namespace rage
 {
 struct fwModelId
 {
-	uint64_t id;
+	union
+	{
+		uint32_t value;
+
+		struct
+		{
+			uint16_t modelIndex;
+			uint16_t mapTypesIndex : 12;
+			uint16_t flags : 4;
+		};
+	};
+
+	fwModelId()
+		: modelIndex(0xFFFF), mapTypesIndex(0xFFF), flags(0)
+	{
+	}
+
+	fwModelId(uint32_t idx)
+		: value(idx)
+	{
+	}
 };
+
+static_assert(sizeof(fwModelId) == 4);
 
 class STREAMING_EXPORT fwArchetypeManager
 {
