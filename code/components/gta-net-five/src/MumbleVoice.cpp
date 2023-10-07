@@ -701,6 +701,8 @@ static bool(*g_origIsPlayerTalking)(void*, void*);
 
 extern CNetGamePlayer* netObject__GetPlayerOwner(rage::netObject* object);
 
+extern rage::netObject* GetNetObjectFromEntity(void* entity);
+
 static bool _isPlayerTalking(void* mgr, char* playerData)
 {
 	if (g_origIsPlayerTalking(mgr, playerData))
@@ -730,11 +732,7 @@ static bool _isPlayerTalking(void* mgr, char* playerData)
 
 	if (ped)
 	{
-#ifdef GTA_FIVE
-		auto netObj = *(rage::netObject**)(ped + 208);
-#elif IS_RDR3
-		auto netObj = *(rage::netObject**)(ped + 224);
-#endif
+		auto netObj = GetNetObjectFromEntity(ped);
 
 		if (netObj)
 		{

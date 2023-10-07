@@ -437,10 +437,16 @@ static hook::cdecl_stub<void* (CNetGamePlayer*)> getPlayerPedForNetPlayer([]()
 });
 
 #ifdef GTA_FIVE
-static const uint32_t g_entityNetObjOffset = 208;
+static constexpr uint32_t g_entityNetObjOffset = 208;
 #elif IS_RDR3
-static const uint32_t g_entityNetObjOffset = 224;
+static constexpr uint32_t g_entityNetObjOffset = 224;
 #endif
+
+rage::netObject* GetNetObjectFromEntity(void* entity)
+{
+	// technically must be at least CDynamicEntity
+	return *(rage::netObject**)((char*)entity + g_entityNetObjOffset);
+}
 
 rage::netObject* GetLocalPlayerPedNetObject()
 {
@@ -448,9 +454,7 @@ rage::netObject* GetLocalPlayerPedNetObject()
 
 	if (ped)
 	{
-		auto netObj = *(rage::netObject**)((char*)ped + g_entityNetObjOffset);
-
-		return netObj;
+		return GetNetObjectFromEntity(ped);
 	}
 
 	return nullptr;
@@ -489,7 +493,7 @@ void HandleClientDrop(const NetLibraryClientInfo& info)
 
 		if (ped)
 		{
-			auto netObj = *(rage::netObject**)((char*)ped + g_entityNetObjOffset);
+			auto netObj = GetNetObjectFromEntity(ped);
 
 			if (netObj)
 			{
@@ -4702,7 +4706,7 @@ static InitFunction initFunction([]()
 			return;
 		}
 
-		auto netObj = *(rage::netObject**)(entity + g_entityNetObjOffset);
+		auto netObj = GetNetObjectFromEntity(entity);
 
 		static char blah[90000];
 
@@ -4743,7 +4747,7 @@ static InitFunction initFunction([]()
 			return;
 		}
 
-		auto netObj = *(rage::netObject**)(entity + g_entityNetObjOffset);
+		auto netObj = GetNetObjectFromEntity(entity);
 
 		static char blah[90000];
 
@@ -4931,7 +4935,7 @@ static InitFunction initFunction([]()
 			return;
 		}
 
-		auto obj = *(rage::netObject**)(entity + g_entityNetObjOffset);
+		auto obj = GetNetObjectFromEntity(entity);
 
 		auto data = context.GetArgument<const char*>(1);
 
@@ -5003,7 +5007,7 @@ static InitFunction initFunction([]()
 			return;
 		}
 
-		auto obj = *(rage::netObject**)(entity + g_entityNetObjOffset);
+		auto obj = GetNetObjectFromEntity(entity);
 		//obj->GetBlender()->m_30();
 		obj->GetBlender()->m_58();
 	});
@@ -5011,7 +5015,7 @@ static InitFunction initFunction([]()
 	static ConsoleCommand saveCloneCmd("save_clone", [](const std::string& address)
 	{
 		uintptr_t addressPtr = _strtoui64(address.c_str(), nullptr, 16);
-		auto netObj = *(rage::netObject**)(addressPtr + g_entityNetObjOffset);
+		auto netObj = GetNetObjectFromEntity((void*)addressPtr);
 
 		static char blah[90000];
 
