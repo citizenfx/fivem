@@ -1072,4 +1072,11 @@ static HookFunction hookFunction([]()
 	{
 		hook::nop(hook::get_pattern("84 C0 75 6C 44 39 7B 20 75", 2), 2);
 	}
+
+	// ignore tunable (0xE3AFC5BD/0x7CEC5CDA) which intentionally breaking some certain
+	// ped models appearance from syncing between clients, initially added in 1436.31
+	if (xbr::IsGameBuildOrGreater<1436>())
+	{
+		hook::jump(hook::get_pattern("B9 BD C5 AF E3 BA DA 5C EC 7C E8", -19), Return<bool, false>);
+	}
 });
