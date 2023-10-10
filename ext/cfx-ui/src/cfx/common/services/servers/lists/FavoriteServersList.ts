@@ -2,7 +2,7 @@ import { makeAutoObservable } from "mobx";
 import { IServersService } from "../servers.service";
 import { IServersStorageService } from "../serversStorage.service";
 import { filterList } from "../source/listFilter";
-import { sortList, sortFilteredList } from "../source/listSorter";
+import { sortList } from "../source/listSorter";
 import { IListableServerView } from "../source/types";
 import { serverView2ListableServerView } from "../transformers";
 import { IPinnedServersConfig, IServerView } from "../types";
@@ -35,13 +35,11 @@ export class FavoriteServersList implements IServersList {
       this._config.get(),
     );
 
-    const filteredList = filterList(
+    return filterList(
       listableFavoriteServers,
       sortedList,
       this._config.get(),
     );
-
-    return sortFilteredList(listableFavoriteServers, filteredList, this._config.get());
   }
 
   constructor(
