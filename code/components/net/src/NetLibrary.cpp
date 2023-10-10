@@ -33,6 +33,10 @@
 
 #include <json.hpp>
 
+#ifdef FIVEM_INTERNAL_POSTMAP
+#include "InternalServerPostmap_includes.h"
+#endif
+
 using json = nlohmann::json;
 
 #include <Error.h>
@@ -1049,6 +1053,10 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 	stream.Reset();
 
 	g_serverVersion = 0;
+
+#ifdef FIVEM_INTERNAL_POSTMAP
+#include "InternalServerPostmap.h"
+#endif
 
 	static std::function<bool(const std::string&)> handleAuthResultData;
 	handleAuthResultData = [=](const std::string& chunk)
