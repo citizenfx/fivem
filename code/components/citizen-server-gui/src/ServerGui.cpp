@@ -193,9 +193,12 @@ private:
 						}
 					}
 
+					// suffix 'txAdmin' if we're the txAdmin child process
+					auto txSuffix = console::GetDefaultContext()->GetVariableManager()->FindEntryRaw("txAdminServerMode") ? "/txAdmin" : "";
+
 					consoleWindowState.lastHostname = hostNameVar->GetValue();
 
-					SetConsoleTitle(fmt::sprintf(L"Cfx.re Server (FXServer/%s) - %s", ToWide((gameNameVar) ? gameNameVar->GetValue() : "unknown"), ToWide(consoleWindowState.lastHostname)).c_str());
+					SetConsoleTitle(fmt::sprintf(L"Cfx.re Server (FXServer/%s%s) - %s", ToWide((gameNameVar) ? gameNameVar->GetValue() : "unknown"), ToWide(txSuffix), ToWide(consoleWindowState.lastHostname)).c_str());
 				}
 
 				if (iconVar && consoleWindowState.lastIcon != iconVar->GetValue())
