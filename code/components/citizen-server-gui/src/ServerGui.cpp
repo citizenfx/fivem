@@ -180,10 +180,19 @@ private:
 				auto conCtx = m_instance->GetComponent<console::Context>();
 				auto hostNameVar = conCtx->GetVariableManager()->FindEntryRaw("sv_hostname");
 				auto iconVar = conCtx->GetVariableManager()->FindEntryRaw("sv_icon");
-				auto gameNameVar = conCtx->GetVariableManager()->FindEntryRaw("gamename");
 
 				if (hostNameVar && consoleWindowState.lastHostname != hostNameVar->GetValue())
 				{
+					auto gameNameVar = conCtx->GetVariableManager()->FindEntryRaw("gamename");
+
+					if (!gameNameVar)
+					{
+						if (auto fallbackContext = conCtx->GetFallbackContext())
+						{
+							gameNameVar = fallbackContext->GetVariableManager()->FindEntryRaw("gamename");
+						}
+					}
+
 					consoleWindowState.lastHostname = hostNameVar->GetValue();
 
 					SetConsoleTitle(fmt::sprintf(L"Cfx.re Server (FXServer/%s) - %s", ToWide((gameNameVar) ? gameNameVar->GetValue() : "unknown"), ToWide(consoleWindowState.lastHostname)).c_str());
