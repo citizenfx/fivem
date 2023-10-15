@@ -5167,16 +5167,18 @@ struct CRagdollRequestEvent
 {
 	void Parse(rl::MessageBuffer& buffer)
 	{
+		entityNetId = buffer.Read<uint16_t>(13);
 	}
+
 
 	inline std::string GetName()
 	{
 		return "ragdollRequestEvent";
 	}
 
-	int placeHolder;
+	int entityNetId;
 
-	MSGPACK_DEFINE_MAP(placeHolder);
+	MSGPACK_DEFINE_MAP(entityNetId);
 };
 
 /*NETEV startProjectileEvent SERVER
