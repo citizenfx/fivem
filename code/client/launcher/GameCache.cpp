@@ -765,8 +765,6 @@ static bool ShowDownloadNotification(const std::vector<std::pair<GameCacheEntry,
 	return (outButton != IDNO && outButton != 42);
 }
 
-extern void StartIPFS();
-
 static void BumpDownloadCount(const std::shared_ptr<baseDownload>& download, const std::string& key)
 {
 	DWORD count = 0;
@@ -809,7 +807,6 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 		}
 	}
 
-	bool hadIpfsFile = false;
 	std::vector<std::tuple<DeltaEntry, GameCacheEntry>> theseDeltas;
 
 	for (const auto& baseEntry : entries)
@@ -974,7 +971,7 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 				std::string localFileName = (entry.archivedFile) ? ToNarrow(entry.GetRemoteBaseName()) : ToNarrow(entry.GetCacheFileName());
 				const char* remotePath = entry.remotePath;
 
-				if (_strnicmp(remotePath, "http", 4) != 0 && _strnicmp(remotePath, "ipfs", 4) != 0)
+				if (_strnicmp(remotePath, "http", 4) != 0)
 				{
 					remotePath = va("rockstar:%s", entry.remotePath);
 				}
@@ -982,11 +979,6 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 				// if the file isn't of the original size
 				auto download = CL_QueueDownload(remotePath, localFileName.c_str(), entry.remoteSize, ((entry.remoteSize != entry.localSize && !entry.archivedFile) ? compressionAlgo_e::XZ : compressionAlgo_e::None));
 				BumpDownloadCount(download, entry.checksums[0]);
-
-				if (strncmp(remotePath, "ipfs://", 7) == 0)
-				{
-					hadIpfsFile = true;
-				}
 
 				referencedFiles.insert(entry.remotePath);
 
@@ -1014,23 +1006,6 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 	else
 	{
 		return true;
-	}
-
-	// start IPFS
-	std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
-
-	bool ipfsPeer = true;
-
-	if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
-	{
-		ipfsPeer = (GetPrivateProfileInt(L"Game", L"DisableIPFSPeer", 0, fpath.c_str()) != 1);
-	}
-
-	static HostSharedData<CfxState> initState("CfxInitState");
-
-	if (ipfsPeer && initState->IsMasterProcess() && hadIpfsFile)
-	{
-		StartIPFS();
 	}
 
 	UI_UpdateText(0, gettext(L"Updating game storage...").c_str());
