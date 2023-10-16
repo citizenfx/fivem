@@ -613,11 +613,13 @@ static int Lua_InvokeFunctionReference(lua_State* L)
 	fx::OMPtr scriptHost = luaRuntime->GetScriptHost();
 	LuaProfilerScope _profile(luaRuntime.GetRef(), false);
 
+	constexpr uint32_t kInvokeFunctionReferenceHash = HashString("INVOKE_FUNCTION_REFERENCE");
+
 	// variables to hold state
 	fxNativeContext context = { 0 };
 
 	context.numArguments = 4;
-	context.nativeIdentifier = HashString("INVOKE_FUNCTION_REFERENCE");
+	context.nativeIdentifier = kInvokeFunctionReferenceHash;
 
 	// identifier string
 	context.arguments[0] = reinterpret_cast<uintptr_t>(luaL_checkstring(L, 1));
@@ -640,7 +642,7 @@ static int Lua_InvokeFunctionReference(lua_State* L)
 		scriptHost->GetLastErrorText(&error);
 
 		_profile.Close();
-		lua_pushstring(L, va("Execution of native %016x in script host failed: %s", 0xe3551879, error));
+		lua_pushstring(L, va("Execution of native %016x in script host failed: %s", kInvokeFunctionReferenceHash, error));
 		return lua_error(L);
 	}
 
