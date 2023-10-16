@@ -908,7 +908,7 @@ static void V8_InvokeFunctionReference(const v8::FunctionCallbackInfo<v8::Value>
 	fxNativeContext context = { 0 };
 
 	context.numArguments = 4;
-	context.nativeIdentifier = 0xe3551879; // INVOKE_FUNCTION_REFERENCE
+	context.nativeIdentifier = HashString("INVOKE_FUNCTION_REFERENCE");
 
 	// identifier string
 	context.arguments[0] = reinterpret_cast<uintptr_t>(refData->ref.GetRef().c_str());
