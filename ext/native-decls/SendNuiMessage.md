@@ -13,3 +13,20 @@ BOOL SEND_NUI_MESSAGE(char* jsonString);
 * **jsonString**: 
 
 ## Return value
+
+## Examples
+
+local data = {
+    action = "displaySomething",
+    text = "Hello, World!"
+}
+
+local jsonStr = json.encode(data)
+
+local result = SEND_NUI_MESSAGE(jsonStr)
+
+if result then
+    print("Message sent to NUI.")
+else
+    print("Failed to send message to NUI.")
+end
