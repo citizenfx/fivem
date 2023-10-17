@@ -116,6 +116,11 @@ static void ExecOrQueueOp(const QueueOp& op)
 
 static InitFunction initFunction([]()
 {
+	if (!launch::IsSDK() && !launch::IsSDKGuest())
+	{
+		return;
+	}
+
 	auto nuiApp = Instance<NUIApp>::Get();
 
 	nuiApp->AddV8Handler("initRGDInput", [](const CefV8ValueList& arguments, CefString& exception)
