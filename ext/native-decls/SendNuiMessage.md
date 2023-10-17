@@ -15,7 +15,7 @@ BOOL SEND_NUI_MESSAGE(char* jsonString);
 ## Return value
 
 ## Examples
-
+```lua
 local data = {
     action = "displaySomething",
     text = "Hello, World!"
@@ -30,3 +30,4 @@ if result then
 else
     print("Failed to send message to NUI.")
 end
+```
