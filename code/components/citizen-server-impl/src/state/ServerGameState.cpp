@@ -99,6 +99,9 @@ static std::shared_ptr<ConVar<int>> g_requestControlSettleVar;
 static RequestControlFilterMode g_requestControlFilterState;
 static int g_requestControlSettleDelay;
 
+static std::shared_ptr<ConVar<bool>> g_enableRagdollRequestsVar;
+static bool g_enableRagdollRequests;
+
 static uint32_t MakeHandleUniqifierPair(uint16_t objectId, uint16_t uniqifier)
 {
 	return ((uint32_t)objectId << 16) | (uint32_t)uniqifier;
@@ -6773,7 +6776,15 @@ std::function<bool()> fx::ServerGameState::GetGameEventHandler(const fx::ClientS
 		return GetRequestControlEventHandler(client, std::move(buffer));
 	}
 
-	if(eventType == NETWORK_PLAY_SOUND_EVENT)
+	if (eventType == RAGDOLL_REQUEST_EVENT)
+	{
+		return []
+		{
+			return g_enableRagdollRequests;
+		};
+	}
+
+	if (eventType == NETWORK_PLAY_SOUND_EVENT)
 	{
 		return []()
 		{
@@ -6869,6 +6880,7 @@ static InitFunction initFunction([]()
 		}
 
 		g_networkedSoundsEnabledVar = instance->AddVariable<bool>("sv_enableNetworkedSounds", ConVar_None, true, &g_networkedSoundsEnabled);
+		g_enableRagdollRequestsVar = instance->AddVariable<bool>("sv_enableRagdollRequests", ConVar_None, true, &g_enableRagdollRequests);
 
 		g_networkedPhoneExplosionsEnabledVar = instance->AddVariable<bool>("sv_enableNetworkedPhoneExplosions", ConVar_None, false, &g_networkedPhoneExplosionsEnabled);
 
