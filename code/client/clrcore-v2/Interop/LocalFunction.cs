@@ -43,7 +43,7 @@ namespace CitizenFX.Core
 
 		internal unsafe Coroutine<object> Invoke(object[] args)
 		{
-			object[] returnData = CoreNatives.InvokeFunctionReference(m_reference, args);
+			object[] returnData = MsgPackDeserializer.DeserializeArray(ScriptInterface.InvokeFunctionReference(m_reference, new InPacket(args).value));
 			if (returnData != null && returnData.Length > 0)
 			{
 				var result = returnData[0];
