@@ -13,3 +13,5 @@ bool IS_PED_STRAFING(Ped ped);
 
 ## Return value
 Whether or not the ped is strafing.
+
+Returns 1 if you're in first person for some reason.
