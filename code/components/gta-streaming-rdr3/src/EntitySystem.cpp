@@ -13,7 +13,7 @@ fwEntity* rage::fwScriptGuid::GetBaseFromGuid(int handle)
 	return getScriptEntity(handle);
 }
 
-static hook::cdecl_stub<fwArchetype*(uint32_t nameHash, rage::fwModelId& archetypeUnk)> getArchetype([]()
+static hook::cdecl_stub<fwArchetype*(uint32_t nameHash, rage::fwModelId& id)> getArchetype([]()
 {
 	return hook::get_call(hook::pattern("8B 4E 08 C1 EB 05 80 E3 01 E8").count(1).get(0).get<void>(9));
 });
@@ -21,4 +21,16 @@ static hook::cdecl_stub<fwArchetype*(uint32_t nameHash, rage::fwModelId& archety
 fwArchetype* rage::fwArchetypeManager::GetArchetypeFromHashKey(uint32_t hash, fwModelId& id)
 {
 	return getArchetype(hash, id);
+}
+
+fwArchetype* rage::fwArchetypeManager::GetArchetypeFromHashKeySafe(uint32_t hash, fwModelId& id)
+{
+	__try
+	{
+		return getArchetype(hash, id);
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+		return nullptr;
+	}
 }

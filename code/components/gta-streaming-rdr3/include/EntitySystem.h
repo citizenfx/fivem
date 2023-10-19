@@ -17,19 +17,54 @@ class STREAMING_EXPORT fwArchetype
 {
 public:
 	virtual ~fwArchetype() = default;
+
+public:
+	void* dynamicArchetypeComponent;
+	char pad[16];
+	float bsCenter[3];
+	float radius;
+	float aabbMin[4];
+	float aabbMax[4];
+	char pad2[16];
+	uint32_t hash;
+	char pad3[12];
 };
 
 namespace rage
 {
 struct fwModelId
 {
-	uint64_t id;
+	union
+	{
+		uint32_t value;
+
+		struct
+		{
+			uint16_t modelIndex;
+			uint16_t mapTypesIndex : 12;
+			uint16_t flags : 4;
+		};
+	};
+
+	fwModelId()
+		: modelIndex(0xFFFF), mapTypesIndex(0xFFF), flags(0)
+	{
+	}
+
+	fwModelId(uint32_t idx)
+		: value(idx)
+	{
+	}
 };
+
+static_assert(sizeof(fwModelId) == 4);
 
 class STREAMING_EXPORT fwArchetypeManager
 {
 public:
 	static fwArchetype* GetArchetypeFromHashKey(uint32_t hash, fwModelId& id);
+
+	static fwArchetype* GetArchetypeFromHashKeySafe(uint32_t hash, fwModelId& id);
 };
 
 class STREAMING_EXPORT fwRefAwareBase
@@ -205,3 +240,12 @@ class CVehicle : public fwEntity
 class CPed : public fwEntity
 {
 };
+
+struct PopulationCreationState
+{
+	float position[3];
+	uint32_t model;
+	bool allowed;
+};
+
+STREAMING_EXPORT extern fwEvent<PopulationCreationState*> OnCreatePopulationPed;

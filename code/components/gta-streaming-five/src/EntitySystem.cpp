@@ -55,7 +55,7 @@ static HookFunction hookFunction([]
 	fwSceneUpdateExtension_classId = hook::get_address<uint32_t*>(hook::get_pattern("48 8B D3 48 89 73 08 E8", -64));
 });
 
-static hook::cdecl_stub<fwArchetype*(uint32_t nameHash, rage::fwModelId& archetypeUnk)> getArchetype([]()
+static hook::cdecl_stub<fwArchetype*(uint32_t nameHash, rage::fwModelId& id)> getArchetype([]()
 {
 	return hook::get_call(hook::pattern("89 44 24 40 8B 4F 08 80 E3 01 E8").count(1).get(0).get<void>(10));
 });
@@ -63,4 +63,16 @@ static hook::cdecl_stub<fwArchetype*(uint32_t nameHash, rage::fwModelId& archety
 fwArchetype* rage::fwArchetypeManager::GetArchetypeFromHashKey(uint32_t hash, fwModelId& id)
 {
 	return getArchetype(hash, id);
+}
+
+fwArchetype* rage::fwArchetypeManager::GetArchetypeFromHashKeySafe(uint32_t hash, fwModelId& id)
+{
+	__try
+	{
+		return getArchetype(hash, id);
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+		return nullptr;
+	}
 }

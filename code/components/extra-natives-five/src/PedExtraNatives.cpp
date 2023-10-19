@@ -12,11 +12,6 @@
 
 #include <GameInit.h>
 
-static hook::cdecl_stub<fwArchetype*(uint32_t nameHash, uint64_t* archetypeUnk)> getArchetype([]()
-{
-	return hook::get_call(hook::pattern("89 44 24 40 8B 4F 08 80 E3 01 E8").count(1).get(0).get<void>(10));
-});
-
 class CPedHeadBlendData
 {
 public:
@@ -254,8 +249,8 @@ static HookFunction initFunction([]()
 	{
 		for (auto& [pedModel, personality] : undoPersonalities)
 		{
-			uint64_t index;
-			auto archetype = getArchetype(pedModel, &index);
+			rage::fwModelId index;
+			auto archetype = rage::fwArchetypeManager::GetArchetypeFromHashKey(pedModel, index);
 
 			// if is ped
 			if (archetype && archetype->miType == 6)
@@ -272,8 +267,8 @@ static HookFunction initFunction([]()
 		auto pedModel = context.GetArgument<uint32_t>(0);
 		auto personality = context.GetArgument<uint32_t>(1);
 
-		uint64_t index;
-		auto archetype = getArchetype(pedModel, &index);
+		rage::fwModelId index;
+		auto archetype = rage::fwArchetypeManager::GetArchetypeFromHashKey(pedModel, index);
 
 		// if is ped
 		if (archetype && archetype->miType == 6)
@@ -299,8 +294,8 @@ static HookFunction initFunction([]()
 	{
 		auto pedModel = context.GetArgument<uint32_t>(0);
 
-		uint64_t index;
-		auto archetype = getArchetype(pedModel, &index);
+		rage::fwModelId index;
+		auto archetype = rage::fwArchetypeManager::GetArchetypeFromHashKey(pedModel, index);
 
 		// if is ped
 		if (archetype && archetype->miType == 6)
@@ -316,8 +311,8 @@ static HookFunction initFunction([]()
 	{
 		auto pedModel = context.GetArgument<uint32_t>(0);
 
-		uint64_t index;
-		auto archetype = getArchetype(pedModel, &index);
+		rage::fwModelId index;
+		auto archetype = rage::fwArchetypeManager::GetArchetypeFromHashKey(pedModel, index);
 
 		uint32_t result = 0;
 

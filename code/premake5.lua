@@ -216,10 +216,6 @@ workspace "CitizenMP"
 	-- TARGET: corert
 	include 'client/citicore'
 
-if _OPTIONS['game'] == 'rdr3' then
-	include 'client/ipfsdl'
-end
-	
 if _OPTIONS['game'] ~= 'server' then
 	project "CitiGame"
 		targetname "CitizenGame"

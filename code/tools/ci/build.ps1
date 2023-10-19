@@ -482,9 +482,6 @@ if (!$DontBuild -and ($TargetGame -ne "fxserver")) {
 		Copy-Item -Force -Recurse $WorkDir\data\shared\* $CacheDir\fivereborn\
 		Copy-Item -Force -Recurse $WorkDir\data\client\* $CacheDir\fivereborn\
 		Copy-Item -Force -Recurse $WorkDir\data\redist\crt\* $CacheDir\fivereborn\bin\
-		
-		Remove-Item -Force -Recurse $CacheDir\fivereborn\grpc-ipfs.dll
-		Remove-Item -Force -Recurse $CacheDir\fivereborn\ipfsdl.dll
 	} elseif ($TargetGame -eq "redm") {
 		Copy-Item -Force -Recurse $WorkDir\data\shared\* $CacheDir\fivereborn\
 		Copy-Item -Force -Recurse $WorkDir\data\client\*.dll $CacheDir\fivereborn\
@@ -495,8 +492,6 @@ if (!$DontBuild -and ($TargetGame -ne "fxserver")) {
 		Copy-Item -Force -Recurse $WorkDir\data\client\citizen\ros $CacheDir\fivereborn\citizen\
 		Copy-Item -Force -Recurse $WorkDir\data\client\citizen\resources $CacheDir\fivereborn\citizen\
 		Copy-Item -Force -Recurse $WorkDir\data\client_rdr\* $CacheDir\fivereborn\
-		
-		Copy-Item -Force -Recurse C:\f\grpc-ipfs.dll $CacheDir\fivereborn\
 	}
 	
 	if ($TargetGame -eq "fivem") {
