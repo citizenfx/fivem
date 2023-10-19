@@ -1586,10 +1586,7 @@ result_t LuaScriptRuntime::LoadHostFileInternal(char* scriptFile)
 		return hr;
 	}
 
-	char* resourceName;
-	m_resourceHost->GetResourceName(&resourceName);
-
-	hr = LoadFileInternal(stream, (scriptFile[0] != '@') ? const_cast<char*>(fmt::sprintf("@%s/%s", resourceName, scriptFile).c_str()) : scriptFile);
+	hr = LoadFileInternal(stream, (scriptFile[0] != '@') ? const_cast<char*>(fmt::sprintf("@%s/%s", GetResourceName(), scriptFile).c_str()) : scriptFile);
 
 	if (FX_SUCCEEDED(hr))
 	{
