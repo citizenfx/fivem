@@ -352,6 +352,21 @@ static void Init()
 		return nullptr;
 	}));
 
+    fx::ScriptEngine::RegisterNativeHandler("GET_OBJECT_TYPE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity) -> const char*
+    {
+        switch (entity->type)
+        {
+            case fx::sync::NetObjEntityType::Object:
+                return "Object";
+            case fx::sync::NetObjEntityType::Door:
+                return "Door";
+            case fx::sync::NetObjEntityType::Pickup:
+                return "Pickup";
+        }
+
+        return nullptr;
+    }));
+	
 	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_TYPE", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
 		switch (entity->type)
