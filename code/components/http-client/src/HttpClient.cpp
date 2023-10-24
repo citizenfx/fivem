@@ -83,6 +83,7 @@ public:
 	std::shared_ptr<int> responseCode;
 	std::chrono::milliseconds timeoutNoResponse;
 	std::chrono::high_resolution_clock::duration reqStart;
+	uint64_t maxFilesize;
 
 	std::stringstream errorBody;
 	std::stringstream rawBody;
@@ -526,6 +527,7 @@ static std::shared_ptr<CurlData> SetupCURLHandle(const std::unique_ptr<HttpClien
 	curlData->timeoutNoResponse = options.timeoutNoResponse;
 	curlData->addErrorBody = options.addErrorBody;
 	curlData->addRawBody = options.addRawBody;
+	curlData->maxFilesize = options.maxFilesize;
 
 	auto scb = options.streamingCallback;
 
@@ -575,6 +577,11 @@ static std::shared_ptr<CurlData> SetupCURLHandle(const std::unique_ptr<HttpClien
 	if (options.ipv4)
 	{
 		curl_easy_setopt(curlHandle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+	}
+
+	if (options.maxFilesize > 0)
+	{
+		curl_easy_setopt(curlHandle, CURLOPT_MAXFILESIZE_LARGE, options.maxFilesize);
 	}
 
 	impl->client->OnSetupCurlHandle(curlHandle, url);

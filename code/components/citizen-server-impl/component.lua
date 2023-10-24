@@ -11,7 +11,7 @@ end
 
 return function()
 	filter {}
-	add_dependencies { 'vendor:folly', 'vendor:lua' }
+	add_dependencies { 'vendor:folly' }
 
 	removefiles {
 		'components/citizen-server-impl/src/state/**'
