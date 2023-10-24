@@ -4,11 +4,16 @@
 
 static InitFunction initFunction([]()
 {
+	fx::ScriptEngine::RegisterNativeHandler("ACTIVATE_TIMECYCLE_EDITOR", [=](fx::ScriptContext& context)
+	{
+		TheTimecycleManager->SetActivateEditor(true);
+	});
+
 	fx::ScriptEngine::RegisterNativeHandler("GET_TIMECYCLE_MODIFIER_STRENGTH", [=](fx::ScriptContext& context)
 	{
 		float result = 0.0f;
 
-		if (auto scriptData = TheTimecycleManager->GetScriptData())
+		if (const auto scriptData = TimecycleManager::GetScriptData())
 		{
 			result = scriptData->m_primaryModifierStrength;
 		}
@@ -22,7 +27,7 @@ static InitFunction initFunction([]()
 
 		auto index = context.GetArgument<int>(0);
 
-		if (auto tc = TheTimecycleManager->GetTimecycleByIndex(index))
+		if (const auto tc = TheTimecycleManager->GetTimecycleByIndex(index))
 		{
 			result = TheTimecycleManager->GetTimecycleName(*tc).c_str();
 		}
@@ -36,7 +41,7 @@ static InitFunction initFunction([]()
 
 		auto name = context.CheckArgument<const char*>(0);
 
-		if (auto tc = TheTimecycleManager->GetTimecycle(HashString(name)))
+		if (const auto tc = TheTimecycleManager->GetTimecycle(HashString(name)))
 		{
 			result = TheTimecycleManager->GetTimecycleIndex(*tc);
 		}
@@ -48,7 +53,7 @@ static InitFunction initFunction([]()
 	{
 		int result = 0;
 
-		if (auto tcManager = TheTimecycleManager->GetGameManager())
+		if (const auto tcManager = TimecycleManager::GetGameManager())
 		{
 			result = tcManager->m_modifiers.GetCount();
 		}
@@ -58,7 +63,7 @@ static InitFunction initFunction([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_TIMECYCLE_VAR_COUNT", [=](fx::ScriptContext& context)
 	{
-		context.SetResult<int>(TheTimecycleManager->GetConfigVarInfoCount());
+		context.SetResult<int>(TimecycleManager::GetConfigVarInfoCount());
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_TIMECYCLE_VAR_NAME_BY_INDEX", [=](fx::ScriptContext& context)
@@ -67,9 +72,9 @@ static InitFunction initFunction([]()
 
 		auto index = context.GetArgument<int>(0);
 		
-		if (auto varInfo = TheTimecycleManager->GetConfigVarInfo(index))
+		if (const auto varInfo = TimecycleManager::GetConfigVarInfo(index))
 		{
-			result = varInfo->m_name;
+			result = TimecycleManager::GetVarInfoName(*varInfo);
 		}
 
 		context.SetResult<const char*>(result);
@@ -81,7 +86,7 @@ static InitFunction initFunction([]()
 
 		auto index = context.GetArgument<int>(0);
 
-		if (auto varInfo = TheTimecycleManager->GetConfigVarInfo(index))
+		if (const auto varInfo = TimecycleManager::GetConfigVarInfo(index))
 		{
 			result = varInfo->m_value;
 		}
@@ -95,7 +100,7 @@ static InitFunction initFunction([]()
 
 		auto tcName = context.CheckArgument<const char*>(0);
 
-		if (auto tc = TheTimecycleManager->GetTimecycle(tcName))
+		if (const auto tc = TheTimecycleManager->GetTimecycle(tcName))
 		{
 			result = tc->m_modData.GetCount();
 		}
@@ -110,13 +115,13 @@ static InitFunction initFunction([]()
 		auto tcName = context.CheckArgument<const char*>(0);
 		auto varIndex = context.GetArgument<int>(1);
 
-		if (auto tc = TheTimecycleManager->GetTimecycle(tcName))
+		if (const auto tc = TheTimecycleManager->GetTimecycle(tcName))
 		{
-			if (auto modData = TheTimecycleManager->GetTimecycleModDataByIndex(*tc, varIndex))
+			if (const auto modData = TheTimecycleManager->GetTimecycleModDataByIndex(*tc, varIndex))
 			{
-				if (auto varInfo = TheTimecycleManager->GetConfigVarInfo(modData->m_index))
+				if (const auto varInfo = TimecycleManager::GetConfigVarInfo(modData->m_index))
 				{
-					result = varInfo->m_name;
+					result = TimecycleManager::GetVarInfoName(*varInfo);
 				}
 			}
 		}
@@ -131,9 +136,9 @@ static InitFunction initFunction([]()
 		auto tcName = context.CheckArgument<const char*>(0);
 		auto varName = context.GetArgument<const char*>(1);
 
-		if (auto tc = TheTimecycleManager->GetTimecycle(tcName))
+		if (const auto tc = TheTimecycleManager->GetTimecycle(tcName))
 		{
-			if (auto modData = TheTimecycleManager->GetTimecycleModData(*tc, varName))
+			if (const auto modData = TheTimecycleManager->GetTimecycleModData(*tc, varName))
 			{
 				*context.GetArgument<float*>(2) = modData->m_value1;
 				*context.GetArgument<float*>(3) = modData->m_value2;
@@ -151,7 +156,7 @@ static InitFunction initFunction([]()
 		auto value1 = context.GetArgument<float>(2);
 		auto value2 = context.GetArgument<float>(3);
 
-		if (auto tc = TheTimecycleManager->GetTimecycle(tcName))
+		if (const auto tc = TheTimecycleManager->GetTimecycle(tcName))
 		{
 			if (!TheTimecycleManager->DoesTimecycleHasModData(*tc, varName))
 			{
@@ -169,7 +174,7 @@ static InitFunction initFunction([]()
 		auto tcName = context.CheckArgument<const char*>(0);
 		auto varName = context.CheckArgument<const char*>(1);
 
-		if (auto tc = TheTimecycleManager->GetTimecycle(tcName))
+		if (const auto tc = TheTimecycleManager->GetTimecycle(tcName))
 		{
 			result = TheTimecycleManager->DoesTimecycleHasModData(*tc, varName);
 		}
@@ -182,7 +187,7 @@ static InitFunction initFunction([]()
 		auto tcName = context.CheckArgument<const char*>(0);
 		auto varName = context.CheckArgument<const char*>(1);
 
-		if (auto tc = TheTimecycleManager->GetTimecycle(tcName))
+		if (const auto tc = TheTimecycleManager->GetTimecycle(tcName))
 		{
 			if (TheTimecycleManager->DoesTimecycleHasModData(*tc, varName))
 			{
@@ -200,9 +205,9 @@ static InitFunction initFunction([]()
 		
 		if (nameLength >= 2 && nameLength <= 128)
 		{
-			if (!TheTimecycleManager->HasTimecycleWithName(tcName))
+			if (!TimecycleManager::HasTimecycleWithName(tcName))
 			{
-				if (auto tc = TheTimecycleManager->CreateTimecycle(tcName))
+				if (const auto tc = TheTimecycleManager->CreateTimecycle(tcName))
 				{
 					result = TheTimecycleManager->GetTimecycleIndex(*tc);
 				}
@@ -216,7 +221,7 @@ static InitFunction initFunction([]()
 	{
 		auto tcName = context.CheckArgument<const char*>(0);
 
-		if (auto tc = TheTimecycleManager->GetTimecycle(tcName))
+		if (const auto tc = TheTimecycleManager->GetTimecycle(tcName))
 		{
 			TheTimecycleManager->RemoveTimecycle(*tc);
 		}
@@ -232,9 +237,9 @@ static InitFunction initFunction([]()
 
 		if (nameLength >= 2 && nameLength <= 128)
 		{
-			if (auto source = TheTimecycleManager->GetTimecycle(origName))
+			if (const auto source = TheTimecycleManager->GetTimecycle(origName))
 			{
-				if (auto clone = TheTimecycleManager->CloneTimecycle(*source, cloneName))
+				if (const auto clone = TheTimecycleManager->CloneTimecycle(*source, cloneName))
 				{
 					result = TheTimecycleManager->GetTimecycleIndex(*clone);
 				}
