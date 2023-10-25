@@ -55,6 +55,7 @@ struct HttpRequestOptions
 	std::function<bool(const std::string&)> streamingCallback;
 	std::chrono::milliseconds timeoutNoResponse{ 0 };
 	int weight = 16;
+	uint64_t maxFilesize = 0;
 
 	bool ipv4 = false;
 	bool addErrorBody = false;

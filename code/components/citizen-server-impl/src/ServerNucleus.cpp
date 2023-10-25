@@ -18,182 +18,24 @@
 
 #include <StructuredTrace.h>
 
-#include <json.hpp>
-#include <lua.hpp>
-#include <lua_rapidjsonlib.h>
+#include <NoticeLogicProcessor.h>
 
-using json = nlohmann::json;
+// 100KiB cap, conditional notices should fit more than comfortably under this limit
+#define MAX_NOTICE_FILESIZE 102400
 
-struct Lua
+static void DownloadAndProcessNotices(fx::ServerInstanceBase* server, HttpClient* httpClient)
 {
-	Lua()
-		: L(nullptr)
+	HttpRequestOptions options;
+	options.maxFilesize = MAX_NOTICE_FILESIZE;
+	httpClient->DoGetRequest("https://runtime.fivem.net/promotions_targeting.json", options, [server, httpClient](bool success, const char* data, size_t length)
 	{
-		static const luaL_Reg lualibs[] = {
-			{ "_G", luaopen_base },
-			{ LUA_TABLIBNAME, luaopen_table },
-			{ LUA_STRLIBNAME, luaopen_string },
-			{ LUA_MATHLIBNAME, luaopen_math },
-			{ LUA_UTF8LIBNAME, luaopen_utf8 },
-			{ "json", luaopen_rapidjson },
-			{ NULL, NULL }
-		};
-
-		L = luaL_newstate();
-
-		const luaL_Reg* lib = lualibs;
-		for (; lib->func; lib++)
+		// Double checking received size because CURL will let bigger files through if the server doesn't specify Content-Length outright
+		if (success && length <= MAX_NOTICE_FILESIZE)
 		{
-			luaL_requiref(L, lib->name, lib->func, 1);
-			lua_pop(L, 1);
-		}
-	}
-
-	~Lua()
-	{
-		if (L)
-		{
-			lua_close(L);
-			L = nullptr;
-		}
-	}
-
-	std::optional<bool> EvaluateExpression(const std::string& expr, const json& context)
-	{
-		if (luaL_loadbufferx(L, expr.c_str(), expr.size(), "@expr", "t") != LUA_OK)
-		{
-			return {};
-		}
-
-		// stack: [expr chunk]
-
-		lua_getglobal(L, "json");
-		lua_getfield(L, -1, "decode");
-		lua_remove(L, -2);
-
-		// stack: [expr chunk], [json.decode]
-
-		auto j = context.dump(-1, ' ', false, nlohmann::detail::error_handler_t::ignore);
-		lua_pushlstring(L, j.c_str(), j.size());
-		if (lua_pcall(L, 1, 1, 0) != LUA_OK)
-		{
-			return {};
-		}
-
-		// stack: [expr chunk], [json table]
-
-		// store _G in new env
-		lua_pushglobaltable(L);
-		lua_setfield(L, -2, "_G");
-
-		// set _ENV to the JSON chunk
-		lua_setupvalue(L, -2, 1);
-
-		// stack: [expr chunk, with json table as env]
-		if (lua_pcall(L, 0, 1, 0) != LUA_OK)
-		{
-			const char* e = lua_tostring(L, -1);
-			return {};
-		}
-
-		// stack: retval
-		auto rv = lua_toboolean(L, -1);
-		lua_pop(L, 1);
-
-		return rv;
-	}
-
-private:
-	lua_State* L;
-};
-
-static std::optional<bool> EvaluateLua(const std::string& in, const json& context)
-{
-	Lua l;
-	return l.EvaluateExpression(in, context);
-}
-
-static void DisplayNotices(fx::ServerInstanceBase* server, HttpClient* httpClient)
-{
-	httpClient->DoGetRequest("https://runtime.fivem.net/promotions_targeting.json", [server](bool success, const char* data, size_t length)
-	{
-		if (success)
-		{
-			json convarList = json::object();
-			json resourceList = json::array();
-
-			auto conCtx = server->GetComponent<console::Context>();
-			conCtx->GetVariableManager()->ForAllVariables([&convarList](const std::string& name, int flags, const std::shared_ptr<internal::ConsoleVariableEntryBase>& variable)
-			{
-				convarList[name] = variable->GetValue();
-			});
-
-			auto resman = server->GetComponent<fx::ResourceManager>();
-			resman->ForAllResources([&resourceList](const fwRefContainer<fx::Resource>& resource)
-			{
-				if (resource->GetState() == fx::ResourceState::Started)
-				{
-					resourceList.push_back(json::object({ { "name", resource->GetName() } }));
-				}
-			});
-
-			json contextBlob = json::object();
-			contextBlob["convar"] = convarList;
-			contextBlob["resource"] = resourceList;
-
 			try
 			{
-				json noticeBlob = json::parse(data, data + length);
-
-				for (auto& [ noticeType, data ] : noticeBlob.get<json::object_t>())
-				{
-					auto& conditions = data["conditions_lua"];
-					auto& actions = data["actions"];
-
-					if (conditions.is_array())
-					{
-						for (auto& condition : conditions)
-						{
-							auto cond = condition.get<std::string>();
-							if (cond.find("--[[]]") != 0)
-							{
-								cond = "return " + cond;
-							}
-
-							auto rv = EvaluateLua(cond, contextBlob);
-
-							if (rv && *rv)
-							{
-								// evaluate actions
-								if (actions.is_array())
-								{
-									auto noticeTypeStr = noticeType;
-
-									gscomms_execute_callback_on_main_thread([actions, conCtx, noticeTypeStr]()
-									{
-										trace("^1-- [server notice: %s]^7\n", noticeTypeStr);
-
-										se::ScopedPrincipal principalScope(se::Principal{ "system.console" });
-										
-										try
-										{
-											for (auto& action : actions)
-											{
-												conCtx->ExecuteSingleCommand(action.get<std::string>());
-											}
-										}
-										catch (std::exception& e)
-										{
-										
-										}
-
-										trace("\n");
-									});
-								}
-							}
-						}
-					}
-				}
+				auto noticesBlob = nlohmann::json::parse(data, data + length);
+				fx::NoticeLogicProcessor::BeginProcessingNotices(server, noticesBlob);
 			}
 			catch (std::exception& e)
 			{
@@ -286,7 +128,7 @@ static InitFunction initFunction([]()
 								setNucleusSuccess = true;
 							}
 
-							DisplayNotices(instance, httpClient);
+							DownloadAndProcessNotices(instance, httpClient);
 						});
 					}
 
