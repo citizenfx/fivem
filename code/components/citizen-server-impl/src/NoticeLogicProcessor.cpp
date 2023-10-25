@@ -112,6 +112,8 @@ bool fx::NoticeLogicProcessor::ProcessNoticeRule(const nlohmann::json& ruleRef, 
 						return cvEntry->GetValue().find(dataObject.get<std::string>()) != std::string::npos;
 					case RuleOp::Equals:
 						return cvEntry->GetValue() == dataObject.get<std::string>();
+					default:
+						break;
 				}
 			}
 			else if (typeNum == RuleType::StartedResourceList && opNum == RuleOp::Contains)
@@ -133,13 +135,15 @@ bool fx::NoticeLogicProcessor::ProcessNoticeRule(const nlohmann::json& ruleRef, 
 
 void fx::NoticeLogicProcessor::BeginProcessingNotices(fx::ServerInstanceBase* server, const nlohmann::json& noticesBlob)
 {
-	auto nlp = fx::NoticeLogicProcessor::NoticeLogicProcessor(server);
+	NoticeLogicProcessor nlp(server);
 
 	for (auto& [noticeType, data] : noticesBlob.get<nlohmann::json::object_t>())
 	{
 		auto& enabled = data["enabled"];
 		if (!enabled.get<bool>())
+		{
 			continue;
+		}
 
 		auto& rootRule = data["rule"];
 		auto ruleIsTrue = nlp.ProcessNoticeRule(rootRule, 0);
@@ -151,7 +155,9 @@ void fx::NoticeLogicProcessor::BeginProcessingNotices(fx::ServerInstanceBase* se
 			{
 				trace("^1-- [server notice: %s]^7\n", noticeType);
 				for (auto& noticeLine : lines)
+				{
 					trace("%s\n", noticeLine.get<std::string>());
+				}
 			}
 		}
 	}
