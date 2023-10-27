@@ -1,0 +1,98 @@
+name: Bug Report
+description: File a bug report to FiveM, RedM, FXServer, or FxDK, excluding crashes
+labels: ["bug", "triage"]
+assignees:
+  - 
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to fill out this bug report.
+        Only bug related issues are accepted, so please refrain from submitting any other requests (including support requests).
+        
+        \* Issue reports that fail to deliver the proper information may be closed without any feedback.
+  
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: |
+        Please be clear and concise
+      placeholder: 
+    validations:
+      required: true
+  
+  - type: input
+    id: expectation
+    attributes:
+      label: Expected result
+      description: |
+        What should've happened instead?
+    validations:
+      required: true
+  
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction steps
+      description: |
+        This is important to us. Fill in the exact steps you took, test and remove any steps that aren't relevant.
+      placeholder: |
+        1. 
+        2. 
+        3. 
+        4. 
+    validations:
+      required: true
+  
+  - type: dropdown
+    id: importancy
+    attributes:
+      label: Importancy
+      description: |
+        To your knowledge how would you describe the importancy of this bug?
+      options:
+        - Unknown
+        - Slight inconvenience
+        - There's a workaround
+        - Security issue
+        - Crash
+    validations:
+      required: true
+  
+  - type: dropdown
+    id: areas
+    attributes:
+      label: Area(s)
+      multiple: true
+      description: |
+        Which of the following areas does this issue apply to? Please mark all that apply.
+      options:
+        - FiveM
+        - RedM
+        - FXServer
+        - FxDK
+        - 'OneSync'
+        - 'Natives'
+        - 'ScRT: Lua'
+        - 'ScRT: C#'
+        - 'ScRT: JS'
+    validations:
+      required: true
+  
+  - type: input
+    id: build-number
+    attributes:
+      label: Specific version(s)
+      description: Please fill in the build numbers of the product(s) this issue occured on
+      placeholder: FiveM/RedM 6464, Server 6402 windows/linux
+    validations:
+      required: true
+  
+  - type: textarea
+    id: misc
+    attributes:
+      label: Additional information
+      description: |
+        Anything else you'd like to add?
