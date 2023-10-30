@@ -5,10 +5,10 @@
  */
 
 import { IAccountService } from "cfx/common/services/account/account.service";
-import { fetcher } from "cfx/utils/fetcher";
 import { inject, injectable, optional } from "inversify";
 import { AnalyticsProvider } from "../analytics.extensions";
 import { IAnalyticsEvent } from "../types";
+import { ASID } from "cfx/utils/asid";
 
 declare var _paq: any;
 
@@ -18,32 +18,18 @@ export class MatomoAnalyticsProvider implements AnalyticsProvider {
     @inject(IAccountService) @optional()
     protected readonly accountService: IAccountService | undefined,
   ) {
-    this.setUserIDSomehow();
+    this.initializeUserID();
   }
 
-  private async setUserIDSomehow() {
-    if (this.accountService) {
-      this.accountService.accountChange.addListener((event) => {
-        if (event.account) {
-          this.setUserId(event.account.id);
-        }
-      });
-    }
-
-    // Load at least something
-    try {
-      const response: Profiles = await fetcher.json('https://nui-internal/profiles/list');
-
-      if (response.profiles?.length > 0) {
-        const userID = response.profiles[0].externalIdentifier;
-
-        if (!userID.startsWith('dummy')) {
-          this.setUserId(userID);
-        }
+  private async initializeUserID() {
+    this.accountService?.accountChange.addListener((event) => {
+      if (event.account) {
+        this.setUserId(event.account.id);
       }
-    } catch (e) {
-      // give up
-    }
+    });
+
+    // Fall back to ASID otherwise
+    this.setUserId(ASID);
   }
 
   private setUserId(userID: unknown) {
