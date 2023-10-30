@@ -15,7 +15,7 @@
 
 #include <Error.h>
 
-#if __has_include(<InternalResourceImpl.h>)
+#if __has_include(<InternalResourceImpl.h>) && !defined(IS_FXSERVER)
 #include <InternalResourceImpl.h>
 #else
 #define INTERNAL_RESOURCE_GET_NAME GetName
