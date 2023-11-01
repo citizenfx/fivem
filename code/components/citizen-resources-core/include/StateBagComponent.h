@@ -120,6 +120,16 @@ public:
 	virtual std::shared_ptr<StateBag> GetStateBag(std::string_view id) = 0;
 
 	//
+	// Sets the write policy for a state bag key.
+	//
+	virtual void SetKeyPolicy(std::string_view key, bool allow = true) = 0;
+
+	//
+	// Gets the write policy for a state bag key.
+	//
+	virtual bool GetKeyPolicy(std::string_view key) = 0;
+
+	//
 	// Registers a state bag for the specified identifier. The pointer returned should be
 	// the *only* reference, every reference kept internally should be weak.
 	//
