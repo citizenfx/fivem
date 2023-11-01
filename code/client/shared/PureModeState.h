@@ -20,10 +20,10 @@ inline int GetPureLevel()
 	std::wstring_view cli = (sharedData->initCommandLine[0]) ? sharedData->initCommandLine : GetCommandLineW();
 	pureLevel = 0;
 
-	size_t found = cli.find(L"-pure_");
+	size_t found = cli.find(L"pure_");
 	if (found != std::wstring_view::npos)
 	{
-		pureLevel = _wtoi(&cli[found + 6]);
+		pureLevel = _wtoi(&cli[found + 5]);
 	}
 
 	return pureLevel;
