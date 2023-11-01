@@ -304,7 +304,7 @@ function AddEventHandler(eventName, eventRoutine)
 end
 
 function RemoveEventHandler(eventData)
-	if not eventData.key or not eventData.name then
+	if not eventData or not eventData.key or not eventData.name then
 		error('Invalid event data passed to RemoveEventHandler()', 2)
 	end
 
