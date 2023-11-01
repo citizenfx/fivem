@@ -229,6 +229,20 @@ const GAME_GAME_SETTINGS = new Map<string, ISetting.AnySetting>([
 
     ...convarAccessorsBoolean('voice_enableNoiseSuppression'),
   }],
+  ['discordRichPresence', {
+    type: 'switch',
+
+    label: $L('#Settings_DiscordRichPresence'),
+    description: $L('#Settings_DiscordRichPresenceDesc'),
+
+    ...convarAccessorsString('cl_discordRichPresence'),
+
+    options: {
+      ['enabled']: 'Enabled',
+      ['partial']: 'Hide status',
+      ['disabled']: 'Disabled',
+    },
+  }],
 
   ['customEmoji', {
     type: 'switch',
