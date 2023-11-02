@@ -95,6 +95,11 @@ namespace CitizenFX.Core
 
 				return;
 			}
+			else if (arg is byte[] array)
+			{
+				PushByteArray(context, array);
+				return;
+			}
 			else if (arg is InputArgument ia)
 			{
 				Push(context, ia.Value);
@@ -107,6 +112,21 @@ namespace CitizenFX.Core
 			}
 
 			context->numArguments++;
+		}
+
+		[SecurityCritical]
+		internal static unsafe void PushByteArray(ContextType* cxt, byte[] array)
+		{
+			var ptr = Marshal.AllocHGlobal(array.Length);
+			Marshal.Copy(array, 0, ptr, array.Length);
+			ms_finalizers.Enqueue(() => Free(ptr));
+
+			unsafe
+			{
+				*(IntPtr*)(&cxt->functionData[8 * cxt->numArguments]) = ptr;
+			}
+
+			cxt->numArguments += 1;
 		}
 
 		[SecurityCritical]

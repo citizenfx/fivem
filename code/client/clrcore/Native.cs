@@ -385,6 +385,11 @@ namespace CitizenFX.Core.Native
 			return new InputArgument(value);
 		}
 
+		public static implicit operator InputArgument(byte[] value)
+		{
+			return new InputArgument(value);
+		}
+
 		public static implicit operator InputArgument(Delegate value)
 		{
 			return new InputArgument(InternalManager.CanonicalizeRef(FunctionReference.Create(value).Identifier));
