@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import imp
+import importlib
 import os
 import sys
 import unittest
@@ -20,7 +20,7 @@ def _GetDirAbove(dirname):
 
 
 try:
-  imp.find_module('mojom')
+  importlib.util.find_spec('mojom')
 except ImportError:
   sys.path.append(os.path.join(_GetDirAbove('pylib'), 'pylib'))
 import mojom.parse.ast as ast
