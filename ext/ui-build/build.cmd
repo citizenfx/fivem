@@ -8,19 +8,13 @@ if errorlevel 1 (
     exit /B 1
 )
 
-set CacheRoot=C:\f\save
+@REM set CacheRoot=C:\f\save
 
 :: build UI
 set UIRoot=%~dp0\data
 
 :: push directory
 pushd ..\cfx-ui\
-
-:: copy cfx-ui node_modules from cache
-if exist %CacheRoot%\cfx-ui-modules (
-	rmdir /s /q node_modules
-	move %CacheRoot%\cfx-ui-modules node_modules
-)
 
 :: install packages (using Yarn now)
 call yarn
@@ -46,11 +40,6 @@ rmdir /s /q %UIRoot%\app\
 :: copy new app
 mkdir %UIRoot%\app\
 xcopy /y /e build\mpMenu\*.* %UIRoot%\app\
-
-if exist %CacheRoot% (
-	rmdir /s /q %CacheRoot%\cfx-ui-modules
-	move node_modules %CacheRoot%\cfx-ui-modules
-)
 
 :: pop directory
 popd
