@@ -736,6 +736,21 @@ static hook::cdecl_stub<CNetGamePlayer*(void*)> _netPlayerCtor([]()
 #endif
 });
 
+#ifdef GTA_FIVE
+// Offset is usually 0xA0, but can differ on ancient builds
+static int g_CNetPlayerOffset_PlayerInfo = 0;
+struct CPlayerInfo_Five;
+static hook::cdecl_stub<CPlayerInfo_Five*(void*, uint64_t, void*)> _playerInfoCtor([]() 
+{
+	return hook::get_pattern("48 83 EC 30 65 4C 8B 0C 25 ? 00 00 00 0F 29 70 C8 45 33 ED", -0x18);
+});
+// this appears to be a substruct that makes up a good chunk of the beginning of the CPlayerInfo
+static hook::cdecl_stub<void*()> _getLocalGamerInfo([]() 
+{
+	return hook::get_address<void*>(hook::get_pattern("E8 ? ? ? ? 33 D2 48 8B CB 4C 8B C0 E8 ? ? ? ? 4D 8B CE"), 1, 5);
+});
+#endif	
+
 static CNetGamePlayer*(*g_origAllocateNetPlayer)(void*);
 
 static CNetGamePlayer* AllocateNetPlayer(void* mgr)
@@ -759,6 +774,27 @@ static CNetGamePlayer* AllocateNetPlayer(void* mgr)
 #endif
 
 	return player;
+}
+
+// fix: some Events expect the CPlayerInfo to be non-null in the CNetGamePlayer (It is not set in the constructor)
+static void Player31_ApplyPlayerInfo(CNetGamePlayer* player)
+{
+	static void* infoMem = nullptr;
+	if (!infoMem)
+	{
+		infoMem = malloc(0x2000);
+		CPlayerInfo_Five* info = _playerInfoCtor(infoMem, 0, _getLocalGamerInfo());
+		*(CPlayerInfo_Five**)((uint64_t)player + g_CNetPlayerOffset_PlayerInfo) = info;
+	}
+	else
+	{
+		*(CPlayerInfo_Five**)((uint64_t)player + g_CNetPlayerOffset_PlayerInfo) = (CPlayerInfo_Five*)infoMem;
+	}
+}
+// Clear the playerInfo after events
+static void Player31_ClearPlayerInfo(CNetGamePlayer* player)
+{
+	*(CPlayerInfo_Five**)((uint64_t)player + g_CNetPlayerOffset_PlayerInfo) = nullptr;
 }
 
 #include <minhook.h>
@@ -3019,6 +3055,8 @@ static void HandleNetGameEvent(const char* idata, size_t len)
 
 			if (ev)
 			{
+				Player31_ApplyPlayerInfo(g_player31);
+
 				ev->HandleReply(&rlBuffer, player);
 
 #ifdef GTA_FIVE
@@ -3034,6 +3072,8 @@ static void HandleNetGameEvent(const char* idata, size_t len)
 
 				delete ev;
 				g_events.erase({ eventType, eventHeader });
+
+				Player31_ClearPlayerInfo(g_player31);
 			}
 		}
 	}
@@ -4209,6 +4249,12 @@ static HookFunction hookFunctionTime([]()
 #endif
 
 	MH_EnableHook(MH_ALL_HOOKS);
+
+#ifdef GTA_FIVE
+	char* loc = hook::get_pattern<char>("48 8B 81 ? 00 00 00 48 83 C0 20 C3");
+	loc += 3;
+	g_CNetPlayerOffset_PlayerInfo = *(int*)loc;
+#endif
 
 #ifdef GTA_FIVE
 	if (xbr::IsGameBuildOrGreater<2372>())
