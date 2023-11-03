@@ -21,10 +21,12 @@ Then, execute the following commands in a `cmd.exe` shell to set up the build en
 
 ```bat
 set BOOST_ROOT=C:\libraries\boost_1_71_0
-set PATH=C:\tools\python27amd64;%path%
 git clone https://github.com/citizenfx/fivem.git -c core.symlinks=true
 cd fivem
 git submodule update --jobs=16 --init
+
+:: If you're using Python 3.12 or higher you may need to install setuptools
+:: pip install setuptools
 
 :: downloads the right Chrome version for 64-bit projects
 fxd get-chrome
