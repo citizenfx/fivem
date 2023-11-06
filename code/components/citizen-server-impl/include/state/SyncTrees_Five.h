@@ -1039,7 +1039,7 @@ struct CVehicleHealthDataNode
 
 		if (unk18)
 		{
-			auto unk19 = state.buffer.ReadBit();
+			auto unk19 = state.buffer.Read<uint16_t>(13); // damage entity
 			int lastDamageSource = state.buffer.Read<int>(32);
 		}
 
