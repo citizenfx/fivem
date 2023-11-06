@@ -783,6 +783,7 @@ static CNetGamePlayer* AllocateNetPlayer(void* mgr)
 // fix: some Events expect the CPlayerInfo to be non-null in the CNetGamePlayer (It is not set in the constructor)
 static void Player31_ApplyPlayerInfo(CNetGamePlayer* player)
 {
+#ifdef GTA_FIVE
 	static void* infoMem = nullptr;
 	if (!infoMem)
 	{
@@ -794,11 +795,14 @@ static void Player31_ApplyPlayerInfo(CNetGamePlayer* player)
 	{
 		*(CPlayerInfo_Five**)((uint64_t)player + g_CNetPlayerOffset_PlayerInfo) = (CPlayerInfo_Five*)infoMem;
 	}
+#endif
 }
 // Clear the playerInfo after events
 static void Player31_ClearPlayerInfo(CNetGamePlayer* player)
 {
+#ifdef GTA_FIVE
 	*(CPlayerInfo_Five**)((uint64_t)player + g_CNetPlayerOffset_PlayerInfo) = nullptr;
+#endif
 }
 
 #include <minhook.h>
