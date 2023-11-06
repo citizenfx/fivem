@@ -17,6 +17,13 @@
 
 #if __has_include(<InternalResourceImpl.h>) && !defined(IS_FXSERVER)
 #include <InternalResourceImpl.h>
+
+inline bool IsAdhesiveLoaded()
+{
+	static HMODULE s_adhesiveHandle = GetModuleHandle(L"adhesive.dll");
+	return s_adhesiveHandle != NULL;
+}
+
 #else
 #define INTERNAL_RESOURCE_GET_NAME GetName
 #endif
@@ -54,6 +61,11 @@ bool ResourceImpl::LoadFrom(const std::string& rootPath, std::string* errorState
 
 #if !defined(INTERNAL_RESOURCE_IMPL)
 	m_rootPath = rootPath;
+#else
+	if (!IsAdhesiveLoaded())
+	{
+		m_rootPath = rootPath;
+	}
 #endif
 
 	m_state = ResourceState::Stopped;
