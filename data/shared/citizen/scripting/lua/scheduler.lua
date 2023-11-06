@@ -115,7 +115,7 @@ function Citizen.Await(promise)
 		coroutine_yield()
 	end
 
-	if promise.state == 2 then
+	if promise.state == 2 or promise.state == 4 then
 		error(promise.value, 2)
 	end
 
