@@ -585,6 +585,7 @@ namespace CitizenFX.Core
 			IEnumerable<StackFrame> stackFrames;
 
 			// HACK: workaround to iterate inner traces ourselves.
+			// TODO: remove this once we've updated libraries
 			var fieldCapturedTraces = typeof(StackTrace).GetField("captured_traces", BindingFlags.NonPublic | BindingFlags.Instance);
 			if (fieldCapturedTraces != null)
 			{
@@ -592,7 +593,7 @@ namespace CitizenFX.Core
 
 				// client's mscorlib is missing this piece of code, copied from https://github.com/mono/mono/blob/ef848cfa83ea16b8afbd5b933968b1838df19505/mcs/class/corlib/System.Diagnostics/StackTrace.cs#L181
 				var accum = new List<StackFrame>();
-				foreach (var t in captured_traces)
+				foreach (var t in captured_traces ?? Array.Empty<StackTrace>())
 				{
 					for (int i = 0; i < t.FrameCount; i++)
 						accum.Add(t.GetFrame(i));
