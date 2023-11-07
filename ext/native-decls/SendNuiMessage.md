@@ -23,7 +23,7 @@ local data = {
 
 local jsonStr = json.encode(data)
 
-local result = SEND_NUI_MESSAGE(jsonStr)
+local result = SendNUIMessage(jsonStr)
 
 if result then
     print("Message sent to NUI.")
