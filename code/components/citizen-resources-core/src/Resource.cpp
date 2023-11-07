@@ -15,12 +15,6 @@
 
 #include <Error.h>
 
-#if __has_include(<InternalResourceImpl.h>)
-#include <InternalResourceImpl.h>
-#else
-#define INTERNAL_RESOURCE_GET_NAME GetName
-#endif
-
 namespace fx
 {
 ResourceImpl::ResourceImpl(const std::string& name, ResourceManagerImpl* manager)
@@ -48,13 +42,11 @@ bool ResourceImpl::LoadFrom(const std::string& rootPath, std::string* errorState
 		}
 		else
 		{
-			trace("Resource loading for %s failed:\n%s\n", INTERNAL_RESOURCE_GET_NAME().c_str(), retval->c_str());
+			trace("Resource loading for %s failed:\n%s\n", m_name.c_str(), retval->c_str());
 		}
 	}
 
-#if !defined(INTERNAL_RESOURCE_IMPL)
 	m_rootPath = rootPath;
-#endif
 
 	m_state = ResourceState::Stopped;
 
@@ -150,7 +142,7 @@ void ResourceImpl::Run(std::function<void()>&& fn)
 
 	// save data in case we need to trace this back from dumps
 	char resourceNameBit[128];
-	memcpy(resourceNameBit, INTERNAL_RESOURCE_GET_NAME().c_str(), std::min(std::size(resourceNameBit), INTERNAL_RESOURCE_GET_NAME().length() + 1));
+	memcpy(resourceNameBit, GetName().c_str(), std::min(std::size(resourceNameBit), GetName().length() + 1));
 	debug::Alias(resourceNameBit);
 
 	OnEnter();
