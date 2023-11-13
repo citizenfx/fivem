@@ -114,4 +114,18 @@ static InitFunction initFunction([]()
 
 		context.SetResult<bool>(result);
 	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_ENTITY_HEALTH_FLOAT", [](fx::ScriptContext& context)
+	{
+		float health = 0.0f;
+		if (fwEntity* entity = rage::fwScriptGuid::GetBaseFromGuid(context.GetArgument<int>(0)))
+		{
+			// TODO: Change to use IsOfType<CPhysical>() once fixed for b2802+ (currently fails to check inherited types)
+			if (entity->IsOfType<CPed>() || entity->IsOfType<CVehicle>() || entity->IsOfType<CObject>())
+			{
+				health = static_cast<CPhysical*>(entity)->GetHealth();
+			}
+		}
+		context.SetResult(health);
+	});
 });
