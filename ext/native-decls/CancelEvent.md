@@ -15,4 +15,6 @@ Cancels the currently executing event.
 AddEventHandler('ptFxEvent', function(sender, eventName, eventData)
 	CancelEvent()
 end)
-``` 
+```
+
+[Full Screen NUI guide for reference](https://docs.fivem.net/docs/scripting-manual/nui-development/full-screen-nui/)
