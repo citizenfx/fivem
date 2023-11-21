@@ -15,7 +15,6 @@ BOOL SEND_NUI_MESSAGE(char* jsonString);
 ## Return value
 
 ## Examples
-> LUA Example:
 ```lua
 local data = {
     action = "displaySomething",
@@ -32,8 +31,7 @@ else
     print("Failed to send message to NUI.")
 end
 ```
-> C# Example:
-```c#
+```cs
 using CitizenFX.Core;
 using Newtonsoft.Json;
 
@@ -64,12 +62,10 @@ public class YourScript : BaseScript
         };
 
         string jsonStr = JsonConvert.SerializeObject(data);
-
-        Function.Call((Hash)0x7AE0589093A2E088, jsonStr); 
+        Debug.WriteLine(jsonStr)
     }
 }
 ```
-> JS Example:
 ```js
 function SendNuiMessage() {
     const data = {
