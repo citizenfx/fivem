@@ -34,6 +34,10 @@ foreach ($item in $items) {
 
 & "$WorkRootDir\tools\ci\7z.exe" a -mx=5 $OutZip $TempDir
 & "curl.exe" -T $OutZip "${env:REVIEW_UPLOAD_URL}/$OutName"
+if ($LASTEXITCODE -ne 0) {
+	Write-Host "Failed to upload review"
+	Exit 1
+}
 
 Remove-Item -Force -Recurse $TempDir
 Remove-Item -Force $OutZip

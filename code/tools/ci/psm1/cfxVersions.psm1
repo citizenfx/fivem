@@ -32,7 +32,9 @@ function Get-CfxVersions {
     }
 
     Push-Location $Context.ProjectRoot
+        # for builds with private this will also be adjusted accordingly, see cfxSetupPrivate.psm1
         $versions.Game = ((git rev-list HEAD | measure-object).Count * 10) + 1100000
+
         $versions.CEFName = (Get-Content -Encoding ascii vendor\cef\cef_build_name.txt).Trim()
 
         $LauncherPaths = @(

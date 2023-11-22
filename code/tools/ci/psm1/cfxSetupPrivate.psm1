@@ -1,9 +1,11 @@
 using module .\cfxBuildContext.psm1
 using module .\cfxBuildTools.psm1
+using module .\cfxVersions.psm1
 
 function Invoke-CfxSetupPrivate {
     param(
-        [CfxBuildContext] $Context
+        [CfxBuildContext] $Context,
+        [CfxVersions] $Versions
     )
 
     if (!$Context.PrivateUri) {
@@ -39,6 +41,11 @@ function Invoke-CfxSetupPrivate {
                 Test-LastExitCode "Failed to clone private"
             Pop-Location
         }
+
+        # account for a private version
+        Push-Location $Context.PrivateRoot
+            $Versions.Game += (git rev-list HEAD | measure-object).Count * 10
+        Pop-Location
 
         Push-Location $Context.CodeRoot
             $relativePathToPrivateFromCode = (Resolve-Path -Relative $Context.PrivateRoot) -replace '\\','/'

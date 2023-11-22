@@ -31,6 +31,13 @@ workflow:
       when: always
     - when: never
 
+# helper for jobs that are only meant to be run on master branch
+.only_for_master:
+  rules:
+    - if: $CFX_RELEASE_BUILD == 'true' && $CI_COMMIT_BRANCH == 'master'
+      when: always
+    - when: never
+
 # helper for windows builds of clients and server
 .base_build_windows:
   stage: build
@@ -106,7 +113,7 @@ build_sdk:
 # -- SERVER BUILDS --
 # -------------------
 build_server_windows:
-  extends: [.base_build_windows]
+  extends: [.base_build_windows, .only_for_master]
   tags:
     - release_fxserver
     - windows
@@ -125,6 +132,7 @@ build_server_windows:
     untracked: true
 
 build_proot_linux:
+  extends: [.only_for_master]
   stage: build
   tags:
     - linux
@@ -257,7 +265,7 @@ redm_deploy_specific:
 # -------------------
 typings_server:
   stage: deploy
-  extends: [.only_for_release]
+  extends: [.only_for_master]
   needs:
     - job: build_server_windows
       artifacts: true
@@ -274,7 +282,7 @@ typings_server:
     
 typings_client:
   stage: deploy
-  extends: [.only_for_release]
+  extends: [.only_for_master]
   needs:
     - job: build_client
       artifacts: true
@@ -285,7 +293,7 @@ typings_client:
     
 nuget_client:
   stage: deploy
-  extends: [.only_for_release]
+  extends: [.only_for_master]
   needs:
     - job: build_client
       artifacts: true
@@ -296,7 +304,7 @@ nuget_client:
     
 nuget_server:
   stage: deploy
-  extends: [.only_for_release]
+  extends: [.only_for_master]
   needs:
     - job: build_server_windows
       artifacts: true
