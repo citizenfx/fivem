@@ -43,9 +43,9 @@ function Invoke-CfxSetupPrivate {
         }
 
         # account for a private version
-        Push-Location $Context.PrivateRoot
-            $Versions.Game += (git rev-list HEAD | measure-object).Count * 10
-        Pop-Location
+        # Push-Location $Context.PrivateRoot
+        #     $Versions.Game += (git rev-list HEAD | measure-object).Count * 10
+        # Pop-Location
 
         Push-Location $Context.CodeRoot
             $relativePathToPrivateFromCode = (Resolve-Path -Relative $Context.PrivateRoot) -replace '\\','/'
