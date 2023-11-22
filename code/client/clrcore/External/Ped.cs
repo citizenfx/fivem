@@ -202,7 +202,7 @@ namespace CitizenFX.Core
 			UnsafePedHeadBlendData data;
 			unsafe
 			{
-				Function.Call(Hash._GET_PED_HEAD_BLEND_DATA, API.PlayerPedId(), &data);
+				Function.Call(Hash._GET_PED_HEAD_BLEND_DATA, Handle, &data);
 			}
 			return data.GetData();
 		}
