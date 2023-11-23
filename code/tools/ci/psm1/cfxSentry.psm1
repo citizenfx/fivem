@@ -1,6 +1,5 @@
 using module .\cfxBuildContext.psm1
 using module .\cfxBuildTools.psm1
-using module .\cfxVersions.psm1
 
 function Invoke-SentryCreateRelease {
     param(
@@ -48,8 +47,8 @@ function Invoke-SentryCreateRelease {
 function Invoke-SentryCreateDeploy {
     param(
         [CfxBuildContext] $Context,
-        [CfxVersions] $Versions,
-        [string] $Environment
+        [string] $Environment,
+        [string] $Version
     )
 
     if (!$env:SENTRY_TOKEN) {
@@ -57,11 +56,10 @@ function Invoke-SentryCreateDeploy {
         return
     }
 
-    $sentryVersion = $Versions.BuildID
     $sentryOrgName = $Context.SentryOrgName
 
     $request = @{
-        Uri         = "https://sentry.fivem.net/api/0/organizations/$sentryOrgName/releases/$sentryVersion/deploys/"
+        Uri         = "https://sentry.fivem.net/api/0/organizations/$sentryOrgName/releases/$Version/deploys/"
         Method      = "Post"
         Headers     = @{
             Authorization = "Bearer $env:SENTRY_TOKEN"

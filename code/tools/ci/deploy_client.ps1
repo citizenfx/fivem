@@ -1,14 +1,13 @@
-using module .\psm1\cfxVersions.psm1
 using module .\psm1\cfxBuildTools.psm1
 using module .\psm1\cfxBuildContext.psm1
 using module .\psm1\cfxBuildCacheMeta.psm1
+using module .\psm1\cfxCacheVersions.psm1
 using module .\psm1\cfxGitlabSections.psm1
 using module .\psm1\cfxSentry.psm1
 
 try {
     $ctx = Get-CfxBuildContext -RequireProductName
     $tools = Get-CfxBuildTools -Context $ctx
-    $versions = Get-CfxVersions -ProjectRoot $ctx.ProjectRoot
 
     if ($ctx.IS_FXSERVER) {
         throw "This script cannot deploy FXServer"
@@ -23,30 +22,36 @@ try {
     }
 
     $updateChannelName = $env:CI_ENVIRONMENT_NAME
+    
+    $clientCacheName = "fivereborn"
+    $clientVersions = Read-ClientCacheVersions -CacheName $clientCacheName -CachesRoot $ctx.CachesRoot
 
     Write-Output "Context:", $ctx, "`n"
     Write-Output "Tools:", $tools, "`n"
-    Write-Output "Versions:", $versions, "`n"
+    Write-Output "Client versions:", $clientVersions, "`n"
 
     $ctx.startBuild()
 
     Invoke-LogSection ("Deploying {0}" -f $ctx.ProductName) {
-        $CacheName = "fivereborn"
+        $cacheDir = [IO.Path]::Combine($ctx.CachesRoot, $clientCacheName)
+        $cacheName = $clientCacheName
 
+        # Fix up cache name for RedM, it uses the same cache dir as FiveM, but has it's own name
         if ($ctx.IS_REDM) {
-            $CacheName = "redm"
+            $cacheName = "redm"
         }
 
         $params = @{
             Context = $ctx
             Tools = $tools
-            Versions = $versions
+            
+            BootstrapVersion = $clientVersions.BootstrapVersion
 
             UpdateChannelName = $updateChannelName
-            UpdateChannelVersion = $versions.Game.ToString()
+            UpdateChannelVersion = $clientVersions.UpdateChannelVersion
 
-            CacheDir = [IO.Path]::Combine($ctx.CachesRoot, "fivereborn")
-            CacheName = $CacheName
+            CacheDir = $cacheDir
+            CacheName = $cacheName
         }
 
         Invoke-BuildCacheMeta @params
@@ -87,17 +92,25 @@ try {
 
     # deploy FxDK for FiveM as well
     if ($ctx.IS_FIVEM) {
+        $cacheName = "fxdk-five"
+        $cacheDir = [IO.Path]::Combine($ctx.CachesRoot, $cacheName)
+
+        $fxdkVersions = Read-FxDKCacheVersions -CacheName $cacheName -CachesRoot $ctx.CachesRoot
+
+        Write-Output "FxDK versions:", $fxdkVersions, "`n"
+
         Invoke-LogSection "Deploying FxDK for FiveM" {
             $params = @{
                 Context = $ctx
                 Tools = $tools
-                Versions = $versions
+            
+                BootstrapVersion = $clientVersions.BootstrapVersion
 
                 UpdateChannelName = $updateChannelName
-                UpdateChannelVersion = $versions.SDK.ToString()
+                UpdateChannelVersion = $fxdkVersions.UpdateChannelVersion
 
-                CacheDir = [IO.Path]::Combine($ctx.CachesRoot, "fxdk-five")
-                CacheName = "fxdk-five"
+                CacheDir = $cacheDir
+                CacheName = $cacheName
             }
     
             Invoke-BuildCacheMeta @params
@@ -106,7 +119,13 @@ try {
 
     if ($Context.IsReleaseBuild) {
         Invoke-LogSection "Creating sentry deploy" {
-            Invoke-SentryCreateDeploy -Context $ctx -Versions $versions -Environment $updateChannelName
+            $params = @{
+                Context = $ctx
+                Version = $clientVersions.BuildID
+                Environment = $updateChannelName
+            }
+
+            Invoke-SentryCreateDeploy @params
         }.GetNewClosure()
     }
 

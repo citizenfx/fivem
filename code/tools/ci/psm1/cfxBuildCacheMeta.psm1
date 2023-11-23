@@ -1,12 +1,12 @@
 using module .\cfxBuildContext.psm1
 using module .\cfxBuildTools.psm1
-using module .\cfxVersions.psm1
 
 function Invoke-BuildCacheMeta {
     param(
         [CfxBuildContext] $Context,
         [CfxBuildTools] $Tools,
-        [CfxVersions] $Versions,
+
+        [string] $BootstrapVersion,
 
         [string] $UpdateChannelName,
         [string] $UpdateChannelVersion,
@@ -42,7 +42,7 @@ function Invoke-BuildCacheMeta {
         "-branch-version", $UpdateChannelVersion
 
         "-bootstrap-executable", "CitizenFX.exe"
-        "-bootstrap-version",    $Versions.Launcher
+        "-bootstrap-version",    $BootstrapVersion
     )
 
     & $bcm @bcmParams

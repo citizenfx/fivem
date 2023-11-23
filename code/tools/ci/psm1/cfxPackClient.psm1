@@ -1,5 +1,6 @@
 using module .\cfxBuildContext.psm1
 using module .\cfxBuildTools.psm1
+using module .\cfxCacheVersions.psm1
 using module .\cfxVersions.psm1
 
 function Invoke-PackClient {
@@ -9,8 +10,10 @@ function Invoke-PackClient {
         [CfxVersions] $Versions
     )
 
+    $cacheName = "fivereborn"
+
     $binRoot = $Context.MSBuildOutput
-    $packRoot = [IO.Path]::Combine($Context.CachesRoot, "fivereborn")
+    $packRoot = [IO.Path]::Combine($Context.CachesRoot, $cacheName)
     $cachesRoot = $Context.CachesRoot
     $projectRoot = $Context.ProjectRoot
 
@@ -64,12 +67,7 @@ function Invoke-PackClient {
     $Versions.Game    | Out-File -Encoding ascii $packRoot\citizen\version.txt
     $Versions.BuildID | Out-File -Encoding ascii $packRoot\citizen\release.txt
 
-    $cachesXML = @(
-        '<Caches>'
-        '  <Cache ID="fivereborn" Version="{0}" />' -f $Versions.Game
-        '</Caches>'
-    ) -join "`n"
-    $cachesXML | Out-File -Encoding ascii $cachesRoot\caches.xml
+    Write-ClientCacheVersions -CachesRoot $cachesRoot -CacheName $cacheName -Versions $Versions
 
     # GCI
     if ($Context.PrivateRoot) {
@@ -96,6 +94,7 @@ function Invoke-PackClient {
 
     # upload review jobs will use this compressed bootstrap file
     Remove-Item -Force -ErrorAction ignore $bootstrapperCompressedPath
+
     & $Tools.xz -9 $cachesRoot\CitizenFX.exe
     Test-LastExitCode "Failed to compress CitizenFX.exe with xz"
 
@@ -103,6 +102,5 @@ function Invoke-PackClient {
         $Versions.Launcher
         (Get-ItemProperty $bootstrapperCompressedPath).Length
     ) -join ' '
-
     $cachesVersion | Out-File -Encoding ascii $cachesRoot\version.txt
 }
