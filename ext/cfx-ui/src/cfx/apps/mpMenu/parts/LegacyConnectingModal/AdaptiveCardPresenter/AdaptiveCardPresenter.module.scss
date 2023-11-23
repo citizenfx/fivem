@@ -126,6 +126,7 @@
     }
 
     :global(.ac-pushButton),
+    :global(.ac-pushButton-disabled),
     :global(.ac-inlineActionButton) {
       gap: ui.offset('small');
 
@@ -157,32 +158,40 @@
 
       @include ui.animated('background-color');
 
-      &:hover {
-        border-color: ui.color-token('button-hover-border');
-        background-color: ui.color-token('button-hover-background');
+      
+      &:global(.ac-pushButton-disabled) {
+        cursor: not-allowed;
+        opacity: .5;
       }
 
-      &:active {
-        border-color: ui.color-token('button-active-border');
-        background-color: ui.color-token('button-active-background');
-      }
-
-      &:focus-visible:not(:active):not(:hover) {
-        box-shadow: 0 0 0 2px ui.color-token('button-focus-outline');
-      }
-
-      &:global(.style-positive) {
-        &,
-        &:hover,
-        &:active {
-          border-color: ui.color('success');
+      &:not(:global(.ac-pushButton-disabled)) {
+        &:hover {
+          border-color: ui.color-token('button-hover-border');
+          background-color: ui.color-token('button-hover-background');
         }
-      }
-      &:global(.style-destructive) {
-        &,
-        &:hover,
+
         &:active {
-          border-color: ui.color('error');
+          border-color: ui.color-token('button-active-border');
+          background-color: ui.color-token('button-active-background');
+        }
+
+        &:focus-visible:not(:active):not(:hover) {
+          box-shadow: 0 0 0 2px ui.color-token('button-focus-outline');
+        }
+
+        &:global(.style-positive) {
+          &,
+          &:hover,
+          &:active {
+            border-color: ui.color('success');
+          }
+        }
+        &:global(.style-destructive) {
+          &,
+          &:hover,
+          &:active {
+            border-color: ui.color('error');
+          }
         }
       }
     }
