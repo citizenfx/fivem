@@ -1048,6 +1048,47 @@ struct IntHashGetter
 	}
 };
 
+//
+// Sanitization for string result types
+// Loops through all values given by the ScRT and deny any that equals the result value which isn't of the string type
+template<typename HashGetter>
+void NativeStringResultSanitization(const v8::FunctionCallbackInfo<v8::Value>& inputArguments, fxNativeContext& context, decltype(context.arguments)& initialArguments)
+{
+	const auto resultValue = context.arguments[0];
+
+	// Step 1: quick compare all values until we found a hit
+	// By not switching between all the buffers (incl. input arguments) we'll not introduce unnecessary cache misses.
+	for (int a = 0; a < context.numArguments; ++a)
+	{
+		if (initialArguments[a] == resultValue)
+		{
+			// Step 2: loop our input list for as many times as `a` was increased
+			const int inputSize = inputArguments.Length();
+			for (int i = HashGetter::BaseArgs; i < inputSize; ++i)
+			{
+				const auto& v8Input = inputArguments[i];
+
+				// `a` can be reused by simply decrementing it, we'll go negative when we hit our goal as we decrement before checking (e.g.: `0 - 1 = -1` or `0 - 4 = -4`)
+				a -= v8Input->IsArray() ? std::min(Local<Array>::Cast(v8Input)->Length(), 4u) : 1u;
+
+				// string type is allowed
+				if (a < 0)
+				{
+					if (!v8Input->IsString())
+					{
+						ScriptTrace("Warning: Sanitized coerced string result for native %016x.\n", context.nativeIdentifier);
+						context.arguments[0] = 0;
+					}
+
+					return; // we found our arg, no more to check
+				}
+			}
+
+			return; // found our value, no more to check
+		}
+	}
+}
+
 template<typename HashGetter>
 static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
@@ -1369,8 +1410,8 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 	bool needsResultCheck = (numReturnValues == 0 || returnResultAnyway);
 	bool hadComplexType = !a1.IsEmpty() && (!a1->IsNumber() && !a1->IsBoolean() && !a1->IsNull());
 
-	auto initialArg1 = context.arguments[0];
-	auto initialArg3 = context.arguments[2];
+	decltype(context.arguments) initialArguments;
+	memcpy(initialArguments, context.arguments, sizeof(context.arguments));
 #endif
 
 	// invoke the native on the script host
@@ -1387,14 +1428,20 @@ static void V8_InvokeNative(const v8::FunctionCallbackInfo<v8::Value>& args)
 	if ((needsResultCheck || hadComplexType) && context.numArguments > 0)
 	{
 		// if this is scrstring but nothing changed (very weird!), fatally fail
-		if (static_cast<uint32_t>(context.arguments[2]) == 0xFEED1212 && initialArg3 == context.arguments[2])
+		if (static_cast<uint32_t>(context.arguments[2]) == 0xFEED1212 && initialArguments[2] == context.arguments[2])
 		{
 			FatalError("Invalid native call in V8 resource '%s'. Please see https://aka.cfx.re/scrstring-mitigation for more information.", runtime->GetResourceName());
 		}
 
+		// If return coercion is String type
+		// Don't allow deref'ing arbitrary pointers passed in any of the arguments.
+		if (returnValueCoercion == V8MetaFields::ResultAsString && context.arguments[0])
+		{
+			NativeStringResultSanitization<HashGetter>(args, context, initialArguments);
+		}
 		// if the first value (usually result) is the same as the initial argument, clear the result (usually, result was no-op)
 		// (if vector results, these aren't directly unsafe, and may get incorrectly seen as complex)
-		if (context.arguments[0] == initialArg1 && returnValueCoercion != V8MetaFields::ResultAsVector)
+		else if (context.arguments[0] == initialArguments[0] && returnValueCoercion != V8MetaFields::ResultAsVector)
 		{
 			// complex type in first result means we have to clear that result
 			if (hadComplexType)
