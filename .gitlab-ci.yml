@@ -28,14 +28,14 @@ workflow:
 .only_for_release:
   rules:
     - if: $CFX_RELEASE_BUILD == 'true'
-      when: always
+      when: on_success
     - when: never
 
 # helper for jobs that are only meant to be run on master branch
 .only_for_master:
   rules:
     - if: $CFX_RELEASE_BUILD == 'true' && $CI_COMMIT_BRANCH == 'master'
-      when: always
+      when: on_success
     - when: never
 
 # helper for windows builds of clients and server
@@ -191,7 +191,7 @@ fivem_deploy_canary:
     name: canary
   rules:
     - if: $CFX_RELEASE_BUILD == 'true' && $CI_COMMIT_BRANCH == 'master'
-      when: always
+      when: on_success
     - when: never
 
 fivem_deploy_beta:
@@ -200,7 +200,7 @@ fivem_deploy_beta:
     name: beta
   rules:
     - if: $CFX_RELEASE_BUILD == 'true' && $CI_COMMIT_BRANCH == 'beta'
-      when: always
+      when: on_success
     - when: never
 
 fivem_deploy_production:
@@ -209,7 +209,7 @@ fivem_deploy_production:
     name: production
   rules:
     - if: $CFX_RELEASE_BUILD == 'true' && $CI_COMMIT_BRANCH == 'production'
-      when: always
+      when: on_success
     - when: never
 
 fivem_deploy_specific:
@@ -229,7 +229,7 @@ redm_deploy_canary:
     name: canary
   rules:
     - if: $CFX_RELEASE_BUILD == 'true' && $CI_COMMIT_BRANCH == 'master'
-      when: always
+      when: on_success
     - when: never
 
 redm_deploy_beta:
@@ -238,7 +238,7 @@ redm_deploy_beta:
     name: beta
   rules:
     - if: $CFX_RELEASE_BUILD == 'true' && $CI_COMMIT_BRANCH == 'beta'
-      when: always
+      when: on_success
     - when: never
 
 redm_deploy_production:
@@ -247,7 +247,7 @@ redm_deploy_production:
     name: production
   rules:
     - if: $CFX_RELEASE_BUILD == 'true' && $CI_COMMIT_BRANCH == 'production'
-      when: always
+      when: on_success
     - when: never
 
 redm_deploy_specific:
