@@ -125,6 +125,22 @@ struct ObjectPoolTraits
 	}
 };
 
+struct EntityBatchPoolTraits
+{
+	using ObjectType = CEntityBatch;
+	using PoolType = atPool<CEntityBatch>;
+
+	static PoolType* GetPool()
+	{
+		return rage::GetPool<ObjectType>("EntityBatch");
+	}
+
+	static uint32_t getScriptGuid(ObjectType* e)
+	{
+		return getScriptGuidForEntity((ObjectType*)e);
+	}
+};
+
 struct PickupPoolTraits
 {
 	using ObjectType = CPickup;
@@ -286,6 +302,10 @@ static InitFunction initFunction([]()
 			SerializePool<PickupPoolTraits>(context);
 		else if (pool.compare("CVehicle") == 0)
 			SerializePool<VehiclePoolTraits>(context);
+#ifdef IS_RDR3
+		else if (pool.compare("CEntityBatch") == 0)
+			SerializePool<EntityBatchPoolTraits>(context);
+#endif
 		else
 		{
 			throw std::runtime_error(va("Invalid pool: %s", pool));

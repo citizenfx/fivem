@@ -35,3 +35,8 @@ class CPed : public fwEntity
 {
 
 };
+
+class CEntityBatch : public fwEntity
+{
+
+};
