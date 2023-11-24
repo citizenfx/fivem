@@ -21,6 +21,9 @@ follows:
 * `CVehicle`: Vehicles.
 * `CPickup`: Pickups.
 
+### Additional RedM pools
+* `CEntityBatch`: Batch props (trees, rocks, etc.).
+
 ## Examples
 ```lua
 local vehiclePool = GetGamePool('CVehicle') -- Get the list of vehicles (entities) from the pool
