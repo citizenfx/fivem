@@ -294,16 +294,18 @@ static InitFunction initFunction([]()
 	fx::ScriptEngine::RegisterNativeHandler("GET_GAME_POOL", [](fx::ScriptContext& context)
 	{
 		std::string_view pool = context.CheckArgument<const char*>(0);
-		if (pool.compare("CPed") == 0)
+		uint32_t poolHash = HashString(pool);
+
+		if (poolHash == HashString("CPed"))
 			SerializePool<PedPoolTraits>(context);
-		else if (pool.compare("CVehicle") == 0)
+		else if (poolHash == HashString("CVehicle"))
 			SerializePool<VehiclePoolTraits>(context);
-		else if (pool.compare("CObject") == 0)
+		else if (poolHash == HashString("CObject"))
 			SerializePool<ObjectPoolTraits>(context);
-		else if (pool.compare("CPickup") == 0)
+		else if (poolHash == HashString("CPickup"))
 			SerializePool<PickupPoolTraits>(context);	
 #ifdef IS_RDR3
-		else if (pool.compare("CEntityBatch") == 0)
+		else if (poolHash == HashString("CEntityBatch"))
 			SerializePool<EntityBatchPoolTraits>(context);
 #endif
 		else
