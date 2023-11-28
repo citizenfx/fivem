@@ -322,10 +322,10 @@ static InitFunction initFunction([] ()
 		}
 
 	private:
-		std::string m_autogenHandle;
-
 		int m_mouseX;
 		int m_mouseY;
+
+		std::string m_autogenHandle;
 	};
 
 	scrBindClass<NUIWindowWrapper>()
