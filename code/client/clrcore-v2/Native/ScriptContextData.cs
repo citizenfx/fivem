@@ -14,6 +14,8 @@ namespace CitizenFX.Core
 		public int numArguments;
 		public int numResults;
 
+		public unsafe ulong* initialArguments; // dummy
+
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal unsafe void Initialize(ulong* data, int argCount)
 		{
@@ -39,6 +41,8 @@ namespace CitizenFX.Core
 		public fixed float vectorData[4 * 4];
 
 		public fixed byte padding[96];
+
+		public unsafe ulong* initialArguments;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal unsafe void Initialize(ulong* data, int argCount)

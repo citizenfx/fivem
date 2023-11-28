@@ -527,6 +527,73 @@ static void __declspec(safebuffers) CallHandlerUniversal(void* handler, uint64_t
 }
 #endif
 
+//
+// Sanitization for string result types
+// Loops through all values given by the ScRT and denies any that equals the result value which isn't of the string type
+// Uhm what happened to all these context types? o.O
+void NativeStringResultSanitization(lua_State* state, int inputSize, uint64_t hash, uintptr_t* arguments, int numArguments, uintptr_t* initialArguments)
+{
+	const auto resultValue = arguments[0];
+
+	// Step 1: quick compare all values until we found a hit
+	// By not switching between all the buffers (incl. input arguments) we'll not introduce unnecessary cache misses.
+	for (int a = 0; a < numArguments; ++a)
+	{
+		if (initialArguments[a] == resultValue)
+		{
+			// Step 2: loop our input list for as many times as `a` was increased
+			for (int i = 2; i < inputSize; ++i)
+			{
+				// `a` can be reused by simply decrementing it, we'll go negative when we hit our goal as we decrement before checking (e.g.: `0 - 1 = -1` or `0 - 4 = -4`)
+				const auto luaType = lua_type(state, i);
+				switch (luaType)
+				{
+#if LUA_VERSION_NUM == 504
+					case LUA_VVECTOR2:
+#else
+					case LUA_TVECTOR2:
+#endif
+						a -= 2;
+						break;
+#if LUA_VERSION_NUM == 504
+					case LUA_VVECTOR3:
+#else
+					case LUA_TVECTOR3:
+#endif
+						a -= 3;
+						break;
+#if LUA_VERSION_NUM == 504
+					case LUA_VQUAT:
+					case LUA_VVECTOR4:
+#else
+					case LUA_TQUAT:
+					case LUA_TVECTOR4:
+#endif
+						a -= 4;
+						break;
+					default:
+						a--;
+						break;
+				}
+
+				// string type is allowed
+				if (a < 0)
+				{
+					if (luaType != LUA_TSTRING)
+					{
+						fx::ScriptTrace("Warning: Sanitized coerced string result for native %016x.\n", hash);
+						arguments[0] = 0;
+					}
+
+					return; // we found our arg, no more to check
+				}
+			}
+
+			return; // found our value, no more to check
+		}
+	}
+}
+
 template<bool IsPtr>
 static int __Lua_InvokeNative(lua_State* L)
 {
@@ -626,8 +693,8 @@ static int __Lua_InvokeNative(lua_State* L)
 	auto a1type = lua_type(L, 2);
 	bool hadComplexType = (a1type != LUA_TNUMBER && a1type != LUA_TNIL && a1type != LUA_TBOOLEAN);
 
-	auto initialArg1 = context.arguments[0];
-	auto initialArg3 = context.arguments[2];
+	decltype(context.arguments) initialArguments;
+	memcpy(initialArguments, context.arguments, sizeof(context.arguments));
 
 	LUA_IF_CONSTEXPR(IsPtr)
 	{
@@ -679,14 +746,20 @@ static int __Lua_InvokeNative(lua_State* L)
 	if ((needsResultCheck || hadComplexType) && context.numArguments > 0)
 	{
 		// if this is scrstring but nothing changed (very weird!), fatally fail
-		if (static_cast<uint32_t>(context.arguments[2]) == SCRSTRING_MAGIC_BINARY && initialArg3 == context.arguments[2])
+		if (static_cast<uint32_t>(context.arguments[2]) == SCRSTRING_MAGIC_BINARY && initialArguments[2] == context.arguments[2])
 		{
 			FatalError("Invalid native call in resource '%s'. Please see https://aka.cfx.re/scrstring-mitigation for more information.", luaRuntime->GetResourceName());
 		}
 
+		// If return coercion is String type
+		// Don't allow deref'ing arbitrary pointers passed in any of the arguments.
+		if (result.returnValueCoercion == LuaMetaFields::ResultAsString && context.arguments[0])
+		{
+			NativeStringResultSanitization(L, numArgs, origHash, context.arguments, context.numArguments, initialArguments);
+		}
 		// if the first value (usually result) is the same as the initial argument, clear the result (usually, result was no-op)
 		// (if vector results, these aren't directly unsafe, and may get incorrectly seen as complex)
-		if (context.arguments[0] == initialArg1 && result.returnValueCoercion != LuaMetaFields::ResultAsVector)
+		else if (context.arguments[0] == initialArguments[0] && result.returnValueCoercion != LuaMetaFields::ResultAsVector)
 		{
 			// complex type in first result means we have to clear that result
 			if (hadComplexType)
