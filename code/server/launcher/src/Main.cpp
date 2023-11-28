@@ -19,7 +19,7 @@
 
 bool InitializeExceptionHandler(int argc, char* argv[]);
 
-int main(int argc, char* argv[])
+int utf8main(int argc, char* argv[])
 {
 #ifndef _WIN32
 	pthread_attr_t attrs;
@@ -84,3 +84,33 @@ int main(int argc, char* argv[])
 
 	return 1;
 }
+
+#ifdef _WIN32
+// Supplementary wmain procedure for Windows builds, this is needed to receive non-ANSI characters in argv[]
+// Standard main(int argc, char* argv[]) treats input as ANSI instead of UTF8, turning non-ANSI characters into '?'
+int wmain(int argc, wchar_t* argv[])
+{
+	static std::vector<std::string> argvStrs;
+	static std::vector<char*> argvRefs;
+
+	argvStrs.resize(argc);
+	argvRefs.resize(argc);
+
+	for (int i = 0; i < argc; i++)
+	{
+		argvStrs[i] = ToNarrow(argv[i]);
+		argvRefs[i] = &argvStrs[i][0];
+	}
+
+	// Set current locale to UTF8, this is needed for CRT IO functions (such as fopen) to work
+	// correctly with Unicode paths that use non-ANSI characters, otherwise they turn into '?'
+	setlocale(LC_CTYPE, ".utf8");
+
+	return utf8main(argc, argvRefs.data());
+}
+#else
+int main(int argc, char* argv[])
+{
+	return utf8main(argc, argv);
+}
+#endif

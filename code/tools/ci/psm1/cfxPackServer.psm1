@@ -28,6 +28,7 @@ function Invoke-PackServer {
     Copy-Item -Force -Recurse $projectRoot\data\redist\crt\*     $packRoot\server\
     Copy-Item -Force -Recurse $projectRoot\data\server\*         $packRoot\server\
     Copy-Item -Force -Recurse $projectRoot\data\server_windows\* $packRoot\server\
+    Copy-Item -Force -Recurse $projectRoot\data\server_windows_release\* $packRoot\server\
 
     Remove-Item -Force $packRoot\server\citizen\.gitignore
 
