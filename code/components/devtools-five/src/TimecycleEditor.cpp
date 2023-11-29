@@ -191,7 +191,7 @@ void TimecycleEditor::Draw()
 			ImGui::Text("Search timecycle:");
 
 			ImGui::Columns(2);
-			ImGui::SetColumnWidth(0, 90.0f);
+			ImGui::SetColumnWidth(0, ImGui::CalcTextSize("By param ").x);
 
 			ImGui::Text("By name");
 			ImGui::SameLine();
@@ -646,150 +646,147 @@ void TimecycleEditor::Draw()
 
 					ImGui::Separator();
 
-					ImGui::Columns(6);
-					ImGui::Text("Var");
-					ImGui::NextColumn();
-					ImGui::Text("Name");
-					ImGui::NextColumn();
-					ImGui::Text("Default");
-					ImGui::NextColumn();
-					ImGui::Text("Value 1");
-					ImGui::NextColumn();
-					ImGui::Text("Value 2");
-					ImGui::NextColumn();
-					ImGui::Text("");
-					ImGui::NextColumn();
-
-#define COLUMN_CLAMP_WIDTH(index, min, max)               \
-	if (min > 0.0f && ImGui::GetColumnWidth(index) < min) \
-		ImGui::SetColumnWidth(index, min);                \
-	if (max > 0.0f && ImGui::GetColumnWidth(index) > max) \
-		ImGui::SetColumnWidth(index, max);
-
-					COLUMN_CLAMP_WIDTH(0, 50.0f, 80.0f);
-					COLUMN_CLAMP_WIDTH(1, 300.0f, -1.0f);
-					COLUMN_CLAMP_WIDTH(2, 100.0f, -1.0f);
-					COLUMN_CLAMP_WIDTH(3, 125.0f, -1.0f);
-					COLUMN_CLAMP_WIDTH(4, 125.0f, -1.0f);
-					COLUMN_CLAMP_WIDTH(5, 100.0f, 120.0f);
-
-#undef COLUMN_CLAMP_WIDTH
-
 					bool drawnAny = false;
-
 					// delayed mod data removing queue to not mutate map when drawing stuff
 					std::set<int> removeQueue;
 
-					for (auto& [index, modData] : m_selectedModifier.GetVars())
+					ImGui::Columns(1);
+					if (ImGui::BeginTable("##proptable", 6, ImGuiTableFlags_Resizable | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Sortable))
 					{
-						if (modData.m_index == -1 || modData.m_index >= TimecycleManager::GetConfigVarInfoCount())
+						ImGui::TableNextRow();
+
+						ImGui::TableSetColumnIndex(0);
+						ImGui::Text("Var");
+						ImGui::TableSetColumnIndex(1);
+						ImGui::Text("Name");
+						ImGui::TableSetColumnIndex(2);
+						ImGui::Text("Default");
+						ImGui::TableSetColumnIndex(3);
+						ImGui::Text("Value 1");
+						ImGui::TableSetColumnIndex(4);
+						ImGui::Text("Value 2");
+						ImGui::TableSetColumnIndex(5);
+						ImGui::Text("");
+
+						ImGui::TableNextRow();
+
+						for (auto& [index, modData] : m_selectedModifier.GetVars())
 						{
-							continue; // invalid?
-						}
-
-						auto& varInfo = tcVarInfos[index];
-						auto varName = TimecycleManager::GetVarInfoName(varInfo);
-
-						if (!varName || (strlen(m_detailFilterBuffer) > 0 && istrstr(varName, m_detailFilterBuffer) == nullptr))
-						{
-							continue;
-						}
-
-						bool isSearched = (strlen(m_searchParamBuffer) > 0 && istrstr(varName, m_searchParamBuffer) != nullptr);
-
-						ImGui::Text("%d", varInfo.m_index);
-						ImGui::NextColumn();
-
-						if (isSearched)
-						{
-							ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(81, 179, 236, 255));
-						}
-
-						ImGui::Text("%s", varName);
-
-						if (isSearched)
-						{
-							ImGui::PopStyleColor();
-						}
-
-						ImGui::NextColumn();
-						ImGui::Text("%f", varInfo.m_value);
-						ImGui::NextColumn();
-
-						bool nulled = (varInfo.m_value == 0.0f);
-						float min = nulled ? -1.0f : ((varInfo.m_value > 0.0f) ? -varInfo.m_value : varInfo.m_value) * 10.0f;
-						float max = nulled ? 1.0f : ((varInfo.m_value > 0.0f) ? varInfo.m_value : -varInfo.m_value) * 10.0f;
-						float step = nulled ? 0.02f : (varInfo.m_value / 20.0f);
-
-						bool isVarEnabled = !m_selectedModifier.IsVarDisabled(index);
-						auto actualData = TheTimecycleManager->GetTimecycleModData(*modifier, index);
-						auto dataSource = (isVarEnabled) ? actualData : &modData;
-
-						if (!isVarEnabled)
-						{
-							ImGui::BeginDisabled();
-						}
-
-						if (ImGui::DragFloat(va("##%x-%d-1", modifier->m_nameHash, index), &modData.m_value1, step, min, max, "%.3f", 1.0f))
-						{
-							if (dataSource == actualData)
+							if (modData.m_index == -1 || modData.m_index >= TimecycleManager::GetConfigVarInfoCount())
 							{
-								actualData->m_value1 = modData.m_value1;
+								continue; // invalid?
 							}
-						}
 
-						ImGui::NextColumn();
+							auto& varInfo = tcVarInfos[index];
+							auto varName = TimecycleManager::GetVarInfoName(varInfo);
 
-						if (ImGui::DragFloat(va("##%x-%d-2", modifier->m_nameHash, index), &modData.m_value2, step, min, max, "%.3f", 1.0f))
-						{
-							if (dataSource == actualData)
+							if (!varName || (strlen(m_detailFilterBuffer) > 0 && istrstr(varName, m_detailFilterBuffer) == nullptr))
 							{
-								actualData->m_value2 = modData.m_value2;
+								continue;
 							}
-						}
 
-						ImGui::NextColumn();
+							bool isSearched = (strlen(m_searchParamBuffer) > 0 && istrstr(varName, m_searchParamBuffer) != nullptr);
 
-						if (!isVarEnabled)
-						{
-							ImGui::EndDisabled();
-						}
+							ImGui::TableNextRow();
 
-						if (ImGui::Checkbox(va("##%x-%d-check", modifier->m_nameHash, index), &isVarEnabled))
-						{
-							if (isVarEnabled)
+							ImGui::TableSetColumnIndex(0);
+							ImGui::Text("%d", varInfo.m_index);
+
+							ImGui::TableSetColumnIndex(1);
+
+							if (isSearched)
 							{
-								if (TheTimecycleManager->AddTimecycleModData(*modifier, std::string(varName)))
+								ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(81, 179, 236, 255));
+							}
+
+							ImGui::Text("%s", varName);
+
+							if (isSearched)
+							{
+								ImGui::PopStyleColor();
+							}
+
+							ImGui::TableSetColumnIndex(2);
+							ImGui::Text("%f", varInfo.m_value);
+							ImGui::TableSetColumnIndex(3);
+
+							bool nulled = (varInfo.m_value == 0.0f);
+							float min = nulled ? -1.0f : ((varInfo.m_value > 0.0f) ? -varInfo.m_value : varInfo.m_value) * 10.0f;
+							float max = nulled ? 1.0f : ((varInfo.m_value > 0.0f) ? varInfo.m_value : -varInfo.m_value) * 10.0f;
+							float step = nulled ? 0.02f : (varInfo.m_value / 20.0f);
+
+							bool isVarEnabled = !m_selectedModifier.IsVarDisabled(index);
+							auto actualData = TheTimecycleManager->GetTimecycleModData(*modifier, index);
+							auto dataSource = (isVarEnabled) ? actualData : &modData;
+
+							if (!isVarEnabled)
+							{
+								ImGui::BeginDisabled();
+							}
+
+							if (ImGui::DragFloat(va("##%x-%d-1", modifier->m_nameHash, index), &modData.m_value1, step, min, max, "%.3f", 1.0f))
+							{
+								if (dataSource == actualData)
 								{
-									m_selectedModifier.EnableVar(index);
-
-									auto addedData = TheTimecycleManager->GetTimecycleModData(*modifier, index);
-									addedData->m_value1 = modData.m_value1;
-									addedData->m_value2 = modData.m_value2;
+									actualData->m_value1 = modData.m_value1;
 								}
 							}
-							else
+
+							ImGui::TableSetColumnIndex(4);
+
+							if (ImGui::DragFloat(va("##%x-%d-2", modifier->m_nameHash, index), &modData.m_value2, step, min, max, "%.3f", 1.0f))
 							{
-								if (TheTimecycleManager->RemoveTimecycleModData(*modifier, modData))
+								if (dataSource == actualData)
 								{
-									m_selectedModifier.DisableVar(index);
+									actualData->m_value2 = modData.m_value2;
 								}
 							}
-						}
 
-						ImGui::SameLine();
+							ImGui::TableSetColumnIndex(5);
 
-						if (ImGui::Button(va("Delete##%x-%d-del", modifier->m_nameHash, index)))
-						{
-							if (TheTimecycleManager->RemoveTimecycleModData(*modifier, std::string(varName)))
+							if (!isVarEnabled)
 							{
-								removeQueue.insert(varInfo.m_index);
+								ImGui::EndDisabled();
 							}
+
+							if (ImGui::Checkbox(va("##%x-%d-check", modifier->m_nameHash, index), &isVarEnabled))
+							{
+								if (isVarEnabled)
+								{
+									if (TheTimecycleManager->AddTimecycleModData(*modifier, std::string(varName)))
+									{
+										m_selectedModifier.EnableVar(index);
+
+										auto addedData = TheTimecycleManager->GetTimecycleModData(*modifier, index);
+										addedData->m_value1 = modData.m_value1;
+										addedData->m_value2 = modData.m_value2;
+									}
+								}
+								else
+								{
+									if (TheTimecycleManager->RemoveTimecycleModData(*modifier, modData))
+									{
+										m_selectedModifier.DisableVar(index);
+									}
+								}
+							}
+
+							ImGui::SameLine();
+
+							if (ImGui::Button(va("Delete##%x-%d-del", modifier->m_nameHash, index)))
+							{
+								if (TheTimecycleManager->RemoveTimecycleModData(*modifier, std::string(varName)))
+								{
+									removeQueue.insert(varInfo.m_index);
+								}
+							}
+
+							ImGui::NextColumn();
+
+							drawnAny = true;
 						}
 
-						ImGui::NextColumn();
-
-						drawnAny = true;
+						ImGui::EndTable();
 					}
 
 					ImGui::Columns();
