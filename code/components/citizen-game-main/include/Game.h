@@ -1,32 +1,63 @@
 #pragma once
 
-#include <memory>
+#include <iostream>  // For demonstration purposes
 
 #include <LauncherIPC.h>
 
 namespace citizen
 {
-class GameImplBase
-{
-public:
-	virtual ~GameImplBase() = default;
+    // Example IPC endpoint implementation
+    class IPCImpl : public ipc::Endpoint
+    {
+    public:
+        void SendMessage(const std::string& message) override
+        {
+            // Simulate sending a message
+            std::cout << "IPC Message Sent: " << message << std::endl;
+        }
+    };
 
-	virtual ipc::Endpoint& GetIPC() = 0;
-};
+    class GameImplBase
+    {
+    public:
+        virtual ~GameImplBase() = default;
 
-class Game
-{
-public:
-	Game();
+        virtual ipc::Endpoint& GetIPC() = 0;
+    };
 
-	void Run();
+    class GameImpl : public GameImplBase
+    {
+    public:
+        ipc::Endpoint& GetIPC() override
+        {
+            // Return the IPC implementation
+            return m_ipcImpl;
+        }
 
-	inline GameImplBase* GetImpl()
-	{
-		return m_impl.get();
-	}
+    private:
+        IPCImpl m_ipcImpl;
+    };
 
-private:
-	std::unique_ptr<GameImplBase> m_impl;
-};
+    class Game
+    {
+    public:
+        Game() : m_impl(std::make_unique<GameImpl>()) {}
+
+        void Run()
+        {
+            // For demonstration purposes, send a message using IPC
+            m_impl->GetIPC().SendMessage("Hello, IPC!");
+
+            // Additional game logic can be added here
+            std::cout << "Game is running!" << std::endl;
+        }
+
+        inline GameImplBase* GetImpl()
+        {
+            return m_impl.get();
+        }
+
+    private:
+        std::unique_ptr<GameImplBase> m_impl;
+    };
 }
