@@ -1,5 +1,6 @@
 using module .\cfxBuildContext.psm1
 using module .\cfxBuildTools.psm1
+using module .\cfxCacheVersions.psm1
 using module .\cfxVersions.psm1
 
 function Invoke-BuildSDK {
@@ -28,7 +29,9 @@ function Invoke-BuildSDK {
     Pop-Location
 
     # Packing
-    $packRoot = [IO.Path]::Combine($Context.CachesRoot, "fxdk-five")
+    $cacheName = "fxdk-five"
+
+    $packRoot = [IO.Path]::Combine($Context.CachesRoot, $cacheName)
     $cachesRoot = $Context.CachesRoot
     $sdkGameRoot = $Context.getPathInProject("ext\sdk\resources\sdk-game")
 
@@ -41,11 +44,6 @@ function Invoke-BuildSDK {
     Copy-Item -Force $sdkGameRoot\fxmanifest.lua $packRoot\citizen\sdk\sdk-game\
     Copy-Item -Force $sdkGameRoot\sdk-client.js  $packRoot\citizen\sdk\sdk-game\
     Copy-Item -Force $sdkGameRoot\sdk-server.js  $packRoot\citizen\sdk\sdk-game\
-
-    $cachesXML = @(
-        '<Caches>'
-        '  <Cache ID="fxdk-five" Version="{0}" />' -f $Versions.SDK
-        '</Caches>'
-    ) -join "`n"
-    $cachesXML | Out-File -Encoding ascii $cachesRoot\caches_sdk.xml
+    
+    Write-FxDKCacheVersions -CachesRoot $cachesRoot -CacheName $cacheName -Versions $Versions
 }
