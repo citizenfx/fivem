@@ -1299,7 +1299,7 @@ struct LuaNativeContext : public fxNativeContext
 {
 	LUA_INLINE LuaNativeContext(void*, int numArguments)
 	{
-		numArguments = numArguments;
+		this->numArguments = numArguments;
 		numResults = 0;
 	}
 
