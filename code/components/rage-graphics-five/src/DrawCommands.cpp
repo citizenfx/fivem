@@ -7,17 +7,15 @@
 
 #define PURECALL() __asm { jmp _purecall }
 
-namespace rage
-{
-	struct dlDrawCommandBuffer
-	{
-		void AddDrawCommand(int type);
-	};
-}
-
 static hook::thiscall_stub<void(rage::dlDrawCommandBuffer*, int)> addDrawCommand([] ()
 {
 	return hook::pattern("48 8B D9 44 23 91 38 18 00 00 41 81").count(1).get(0).get<void>(-0xC);
+});
+
+
+static hook::thiscall_stub<void(rage::dlDrawCommandBuffer*, uint32_t)> alignDrawCommandBuffer([]()
+{
+	return hook::get_call(hook::pattern("E8 ? ? ? ? 8D 4E 21").count(1).get(0).get<void>(0));
 });
 
 static hook::cdecl_stub<void*(uintptr_t)> allocDrawCommand([] ()
@@ -82,12 +80,27 @@ T* AllocateDrawCommand()
 	return dc;
 }
 
+static rage::dlDrawCommandBuffer** g_drawCommandBuffer;
+
 void rage::dlDrawCommandBuffer::AddDrawCommand(int type)
 {
 	return addDrawCommand(this, type);
 }
 
-static rage::dlDrawCommandBuffer** g_drawCommandBuffer;
+void rage::dlDrawCommandBuffer::AlignBuffer(uint32_t alignment)
+{
+	return alignDrawCommandBuffer(this, alignment);
+}
+
+void* rage::dlDrawCommandBuffer::AllocateDrawCommand(size_t size)
+{
+	return allocDrawCommand(size);
+}
+
+rage::dlDrawCommandBuffer* rage::dlDrawCommandBuffer::GetInstance()
+{
+	return *g_drawCommandBuffer;
+}
 
 void EnqueueGenericDrawCommand(void(*cb)(uintptr_t, uintptr_t), uintptr_t* arg1, uintptr_t* arg2)
 {
