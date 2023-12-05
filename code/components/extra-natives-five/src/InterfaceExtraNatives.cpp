@@ -30,6 +30,9 @@ struct MapZoomData
 static bool* expandedRadar;
 static bool* revealFullMap;
 
+static float* pausemapPointerWorldX;
+static float* pausemapPointerWorldY;
+
 static MapZoomData* zoomData;
 static std::vector<MapDataZoomLevel> defaultZoomLevels;
 
@@ -215,6 +218,30 @@ static HookFunction initFunction([]()
 		hudComponentsArray = hook::get_address<HudComponentData*>(location - 49);
 		hudComponentsCount = *(uint32_t*)(location + 6);
 	}
+
+	{
+		auto location = hook::get_pattern<char>("F3 0F 5C 05 ? ? ? ? 0F 28 CF");
+		pausemapPointerWorldX = hook::get_address<float*>(location + 4);
+		pausemapPointerWorldY = hook::get_address<float*>(location + 15);
+	}
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_PAUSE_MAP_POINTER_WORLD_POSITION", [=](fx::ScriptContext& context)
+	{
+		scrVector pointerVector = {};
+
+		if (pausemapPointerWorldX && pausemapPointerWorldY)
+		{
+			pointerVector.x = *pausemapPointerWorldX;
+			pointerVector.y = *pausemapPointerWorldY;
+		}
+		else
+		{
+			pointerVector.x = 0.0f;
+			pointerVector.y = 0.0f;
+		}
+
+		context.SetResult<scrVector>(pointerVector);
+	});
 
 	fx::ScriptEngine::RegisterNativeHandler("IS_BIGMAP_ACTIVE", [=](fx::ScriptContext& context)
 	{
