@@ -1,21 +1,24 @@
 #include <StdInc.h>
 #include <Hooking.h>
-#include <Hooking.Stubs.h>
 #include <Timecycle.h>
 #include <GameInit.h>
 
-static TimecycleScriptData* g_timeCycleScriptData;
+TimecycleScriptData* TimecycleManager::ms_scriptData = nullptr;
+
+#ifdef IS_RDR3
+std::map<uint32_t, std::string> TimecycleManager::ms_varInfoNames{};
+#endif
 
 rage::tcManager* TimecycleManager::GetGameManager()
 {
 	assert(rage::tcManager::ms_Instance);
 	return rage::tcManager::ms_Instance;
-};
+}
 
 TimecycleScriptData* TimecycleManager::GetScriptData()
 {
-	return g_timeCycleScriptData;
-};
+	return ms_scriptData;
+}
 
 const std::string& TimecycleManager::GetTimecycleName(uint32_t hash)
 {
@@ -50,15 +53,19 @@ rage::tcVarInfo* TimecycleManager::GetConfigVarInfo(const std::string& paramName
 		for (int i = 0; i < GetConfigVarInfoCount(); i++)
 		{
 			auto& varInfo = tcVarInfos[i];
+			auto varName = GetVarInfoName(varInfo);
 
-			if (search && strstr(varInfo.m_name, paramName.c_str()) != NULL)
+			if (varName)
 			{
-				return &varInfo;
-			}
+				if (search && strstr(varName, paramName.c_str()) != nullptr)
+				{
+					return &varInfo;
+				}
 
-			if (!search && strcmp(varInfo.m_name, paramName.c_str()) == NULL)
-			{
-				return &varInfo;
+				if (!search && strcmp(varName, paramName.c_str()) == NULL)
+				{
+					return &varInfo;
+				}	
 			}
 		}
 	}
@@ -83,6 +90,7 @@ rage::tcVarInfo* TimecycleManager::GetConfigVarInfo(int paramIndex)
 
 	return nullptr;
 }
+
 rage::tcVarInfo* TimecycleManager::GetConfigVarInfos()
 {
 	return *rage::tcConfig::ms_pVarInfos;
@@ -110,8 +118,9 @@ rage::tcModData* TimecycleManager::GetTimecycleModData(rage::tcModifier& modifie
 			}
 
 			auto& varInfo = tcVarInfos[modData.m_index];
+			auto varName = GetVarInfoName(varInfo);
 
-			if (strcmp(varInfo.m_name, paramName.c_str()) == NULL)
+			if (varName && strcmp(varName, paramName.c_str()) == NULL)
 			{
 				return &modData;
 			}
@@ -369,10 +378,12 @@ void TimecycleManager::RemoveTimecycle(uint32_t hash)
 			scriptData->m_primaryModifierIndex = -1;
 		}
 
+#ifdef GTA_FIVE
 		if (index == scriptData->m_extraModifierIndex)
 		{
 			scriptData->m_extraModifierIndex = -1;
 		}
+#endif
 
 		if (index == scriptData->m_transitionModifierIndex)
 		{
@@ -495,6 +506,42 @@ void TimecycleManager::HandleTimecycleUnloaded(uint32_t hash)
 	m_originalNames.erase(hash);
 
 	RemoveTimecycleBackup(hash);
+}
+
+void TimecycleManager::SetActivateEditor(bool flag)
+{
+	m_activateEditor = flag;
+}
+
+bool TimecycleManager::ShouldActivateEditor()
+{
+	return m_activateEditor;
+}
+
+#if IS_RDR3
+void TimecycleManager::StoreVarInfoName(const std::string& name)
+{
+	auto hash = HashString(name);
+
+	if (const auto it = ms_varInfoNames.find(hash); it == ms_varInfoNames.end())
+	{
+		ms_varInfoNames[hash] = name;
+	}
+}
+#endif
+
+const char* TimecycleManager::GetVarInfoName(const rage::tcVarInfo& varInfo)
+{
+#if GTA_FIVE
+	return varInfo.m_name;
+#elif IS_RDR3
+	if (const auto it = ms_varInfoNames.find(varInfo.m_nameHash); it != ms_varInfoNames.end())
+	{
+		return it->second.c_str();
+	}
+
+	return nullptr;
+#endif
 }
 
 void TimecycleManager::RemoveTimecycleBackup(uint32_t hash)
@@ -725,36 +772,79 @@ static uint32_t TimecycleComputeHashUnload(int ns, char* name)
 	return hash;
 }
 
+#if IS_RDR3
+static char* (*g_origLoadTimecycleParTreeHook)(void*, char*, char, char);
+static char* LoadTimecycleParTreeHook(void* buffer, char* filePath, char keepElementNames, char unknown)
+{
+	keepElementNames = true; // force the game to keep element names
+	return g_origLoadTimecycleParTreeHook(buffer, filePath, keepElementNames, unknown);
+}
+
+static int* (*g_origTimecycleCalculateIndex)(void*, void*, void*);
+static int* TimecycleCalculateIndex(void* ref1, void* ref2, char* parElement)
+{
+	const auto elementName = std::string(parElement + 8); // warning: hardcoded offset to char array
+	TimecycleManager::StoreVarInfoName(elementName);
+
+	return g_origTimecycleCalculateIndex(ref1, ref2, parElement);
+}
+#endif
+
 static HookFunction hookFunction([]()
 {
 	OnKillNetworkDone.Connect([=]()
 	{
+		TCManager.SetActivateEditor(false);
 		TCManager.RevertChanges();
 	});
 
-	static_assert(sizeof(rage::tcModData) == 0xC);
+#if GTA_FIVE
 	static_assert(sizeof(rage::tcVarInfo) == 0x20);
+#elif IS_RDR3
+	static_assert(sizeof(rage::tcVarInfo) == 0x18);
+#endif
+
+	static_assert(sizeof(rage::tcModData) == 0xC);
 	static_assert(sizeof(rage::tcModifier) == 0x28);
 	static_assert(sizeof(rage::atBinaryMap<void*>) == 0x18);
 
 	{
+#if GTA_FIVE
 		auto location = hook::get_pattern<char>("7E 6E 45 33 F6");
+#elif IS_RDR3
+		auto location = hook::get_pattern<char>("7E 58 48 8B EB 48 8B 05");
+#endif
+
 		rage::tcConfig::ms_numVars = hook::get_address<int*>(location - 6, 2, 6);
 		rage::tcConfig::ms_pVarInfos = hook::get_address<rage::tcVarInfo**>(location + 5, 3, 7);
 	}
 
 	{
+#if GTA_FIVE
 		auto location = hook::get_pattern<char>("48 C1 E0 03 41 80 E1 01 C6 44 24 20 00", 19);
 		rage::tcManager::ms_Instance = hook::get_address<rage::tcManager*>(location, 3, 7);
+#elif IS_RDR3
+		auto location = hook::get_pattern<char>("F3 0F 10 BB 80 00 00  00 48 8D 0D ? ? ? ? 0F", 8);
+		rage::tcManager::ms_Instance = hook::get_address<rage::tcManager*>(location, 3, 7);
+#endif
 	}
 
 	{
+#if GTA_FIVE
 		auto location = hook::get_pattern<char>("48 89 7B 10 8B 05 ? ? ? ? 83 F8 FF 74 13");
-		g_timeCycleScriptData = hook::get_address<TimecycleScriptData*>(location + 6);
+		TimecycleManager::ms_scriptData = hook::get_address<TimecycleScriptData*>(location + 6);
+#elif IS_RDR3
+		auto location = hook::get_pattern<char>("83 0D ? ? ? ? FF 8B 1D ? ? ? ? 89 ? ? ? ? 03");
+		TimecycleManager::ms_scriptData = hook::get_address<TimecycleScriptData*>(location + 15);
+#endif
 	}
 
 	{
+#if GTA_FIVE
 		auto location = hook::get_pattern("48 8B 50 08 E8 ? ? ? ? B9", 4);
+#elif IS_RDR3
+		auto location = hook::get_pattern("E8 ? ? ? ? B9 28 00 00 00 89 45 58 8B D8 E8");
+#endif
 
 		hook::set_call(&g_origTimecycleComputeHashLoad, location);
 		hook::call(location, TimecycleComputeHashLoad);
@@ -766,4 +856,44 @@ static HookFunction hookFunction([]()
 		hook::set_call(&g_origTimecycleComputeHashUnload, location);
 		hook::call(location, TimecycleComputeHashUnload);
 	}
+
+#if IS_RDR3
+	// RDR3 doesn't store variable names inside rage::tcVarInfo anymore, so hacking around to get bring names back.
+	static struct : jitasm::Frontend
+	{
+		virtual void InternalMain() override
+		{
+			mov(r8, rbx); // add third argument with rage::parElement pointer.
+
+			sub(rsp, 0x28);
+
+			mov(rax, (uintptr_t)TimecycleCalculateIndex);
+			call(rax);
+
+			add(rsp, 0x28);
+
+			ret();
+		}
+	} calculateIndexStub;
+
+	// Wrapping around a function call with nearby access to raw rage::parElement pointer to dump names.
+	{
+		auto location = hook::get_pattern("74 51 F7 43 04 00 08 00 00 74 1C", -11);
+
+		// save original function
+		hook::set_call(&g_origTimecycleCalculateIndex, location);
+
+		// replace it with our wrapper
+		hook::nop(location, 5);
+		hook::call(location, calculateIndexStub.GetCode());
+	}
+
+	// And here we're forcing the game to keep XML element names in rage::parElement instances (only for timecycle files loading).
+	{
+		auto location = hook::get_pattern("48 89 45 C8 4C 8B E0 48 85 C0 0F 84 DA 03 00 00", -8);
+
+		hook::set_call(&g_origLoadTimecycleParTreeHook, location);
+		hook::call(location, LoadTimecycleParTreeHook);
+	}
+#endif
 });

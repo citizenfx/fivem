@@ -8,9 +8,11 @@ return function()
 	includedirs {
 		'components/extra-natives-five/include/',
 		'components/gta-core-five/include/',
+		'components/gta-game-five/include/',
 	}
 
 	files {
+		'components/extra-natives-five/src/TimecycleNatives.cpp',
 		'components/extra-natives-five/src/VisualSettingsNatives.cpp',
 		'components/extra-natives-five/src/PoolTraversalNatives.cpp',
 		'components/extra-natives-five/src/RadioDSP.cpp',
