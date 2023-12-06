@@ -15,7 +15,7 @@ struct GFxObjectInterface
 
 struct GFxValue;
 
-static hook::cdecl_stub<bool(GFxObjectInterface*, void*, GFxValue*, const char*)> __GFxObjectInterface_CreateEmptyMovieClip([]()
+static hook::cdecl_stub<bool(GFxObjectInterface*, void*, GFxValue*, const char*, int)> __GFxObjectInterface_CreateEmptyMovieClip([]()
 {
 	return hook::get_pattern("4D 8B E0 4C 8B F9 48 85 DB 75 18 48", -0x25);
 });
@@ -156,9 +156,15 @@ struct GFxValue
 		pObjectInterface = nullptr;
 	}
 
-	inline bool CreateEmptyMovieClip(GFxValue* movieClip, const char* instanceName)
+	inline bool CreateEmptyMovieClip(GFxValue* movieClip, const char* instanceName, int depth)
 	{
-		return __GFxObjectInterface_CreateEmptyMovieClip(pObjectInterface, mValue.pData, movieClip, instanceName);
+		// CreateEmptyMovieClip will fail if depth >0x7EFFFFFD
+		if (depth > 0x7EFFFFFD)
+		{
+			depth = 0x7EFFFFFD;
+		}
+
+		return __GFxObjectInterface_CreateEmptyMovieClip(pObjectInterface, mValue.pData, movieClip, instanceName, depth);
 	}
 
 	inline bool GetDisplayInfo(GFxDisplayInfo* info)
@@ -319,7 +325,7 @@ static void SetupTerritories()
 	
 	overlayRootClip = {};
 
-	g_foregroundOverlay3D->CreateEmptyMovieClip(&overlayRootClip, "asTestClip3D");
+	g_foregroundOverlay3D->CreateEmptyMovieClip(&overlayRootClip, "asTestClip3D", -1);
 
 	auto movie = _getScaleformMovie(*g_gfxId);
 
@@ -331,9 +337,15 @@ static void SetupTerritories()
 	movie->SetVariable("TIMELINE.OVERLAY_METHOD", overlayMethodValue, 1);
 }
 
-static std::map<std::string, int> g_swfLoadQueue;
-static std::set<int> g_swfRemoveQueue;
-static int g_swfId;
+struct MinimapOverlayLoadRequest
+{
+	int sfwId;
+	int depth;
+};
+
+static std::map<std::string, MinimapOverlayLoadRequest> g_minimapOverlayLoadQueue;
+static std::set<int> g_minimapOverlayRemoveQueue;
+static int g_minimapOverlaySwfId;
 
 static hook::cdecl_stub<void(const char*, bool)> _gfxPushString([]()
 {
@@ -352,17 +364,18 @@ static hook::cdecl_stub<bool(uint32_t, int, const char*, int, int)> _setupGfxCal
 
 namespace sf
 {
-	int AddMinimapOverlay(const std::string& swfName)
+	int AddMinimapOverlay(const std::string& swfName, int depth)
 	{
-		auto id = ++g_swfId;
-		g_swfLoadQueue.insert({ swfName, id });
+		auto id = ++g_minimapOverlaySwfId;
+
+		g_minimapOverlayLoadQueue.insert({ swfName, { id, depth } });
 
 		return id;
 	}
 
 	void RemoveMinimapOverlay(int swfId)
 	{
-		g_swfRemoveQueue.insert(swfId);
+		g_minimapOverlayRemoveQueue.insert(swfId);
 	}
 
 	bool HasMinimapLoaded(int swfId)
@@ -445,41 +458,42 @@ static HookFunction hookFunction([]()
 {
 	OnMainGameFrame.Connect([]()
 	{
-		std::set<std::string> toRemove;
+		std::set<std::string> toRemoveFromMinimapOverlayLoadQueue;
 
 		auto cstreaming = streaming::Manager::GetInstance();
 
-		for (const auto& swf : g_swfLoadQueue)
+		for (const auto& [gfxFileName, request] : g_minimapOverlayLoadQueue)
 		{
-			auto val = std::make_shared<GFxValue>();
-			overlayRootClip.CreateEmptyMovieClip(val.get(), va("id%d", swf.second));
+			auto swf = std::make_shared<GFxValue>();
 
-			GFxValue rv;
+			auto instanceName = va("id%d", request.sfwId);
 
-			GFxValue args(swf.first.c_str());
-			val->Invoke("loadMovie", &rv, &args, 1);
+			overlayRootClip.CreateEmptyMovieClip(swf.get(), instanceName, request.depth);
 
-			g_overlayClips[swf.second] = val;
+			GFxValue result;
+			GFxValue args(gfxFileName.c_str());
 
-			toRemove.insert(swf.first);
+			swf->Invoke("loadMovie", &result, &args, 1);
+
+			g_overlayClips[request.sfwId] = swf;
+
+			toRemoveFromMinimapOverlayLoadQueue.insert(gfxFileName);
 		}
 
-		for (const auto& swf : toRemove)
+		for (const auto& gfxFileName : toRemoveFromMinimapOverlayLoadQueue)
 		{
-			g_swfLoadQueue.erase(swf);
+			g_minimapOverlayLoadQueue.erase(gfxFileName);
 		}
 
-		for (int swfKey : g_swfRemoveQueue)
+		for (int swfId : g_minimapOverlayRemoveQueue)
 		{
-			auto swf = g_overlayClips[swfKey];
-
-			if (swf)
+			if (auto swf = g_overlayClips[swfId]; swf)
 			{
 				swf->Invoke("removeMovieClip", nullptr, nullptr, 0);
 			}
 		}
 
-		g_swfRemoveQueue.clear();
+		g_minimapOverlayRemoveQueue.clear();
 	});
 
 	{

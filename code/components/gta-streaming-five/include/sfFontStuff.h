@@ -14,7 +14,7 @@ namespace sf
 
 	void GTA_STREAMING_EXPORT RegisterFontLib(const std::string& swfName);
 
-	int GTA_STREAMING_EXPORT AddMinimapOverlay(const std::string& swfName);
+	int GTA_STREAMING_EXPORT AddMinimapOverlay(const std::string& swfName, int depth);
 
 	void GTA_STREAMING_EXPORT RemoveMinimapOverlay(int swfId);
 
