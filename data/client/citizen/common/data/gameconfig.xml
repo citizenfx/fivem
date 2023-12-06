@@ -362,15 +362,15 @@
 						</Item>
 						<Item>
 							<PoolName>OcclusionPathNode</PoolName>
-							<PoolSize value="5250"/>
+							<PoolSize value="20000"/>
 						</Item>
 						<Item>
 							<PoolName>OcclusionPortalEntity</PoolName>
-							<PoolSize value="280"/>
+							<PoolSize value="3000"/>
 						</Item>
 						<Item>
 							<PoolName>OcclusionPortalInfo</PoolName>
-							<PoolSize value="550"/>
+							<PoolSize value="3000"/>
 						</Item>
 						<Item>
 							<PoolName>Peds</PoolName>
