@@ -3315,8 +3315,6 @@ static void SendAlterWantedLevelEvent2Hook(void* a1, void* a2, void* a3, void* a
 }
 #endif
 
-std::string GetType(void* d);
-
 static void NetEventError()
 {
 	auto pool = rage::GetPoolBase("netGameEvent");
@@ -3325,11 +3323,9 @@ static void NetEventError()
 
 	for (int i = 0; i < pool->GetSize(); i++)
 	{
-		auto e = pool->GetAt<void>(i);
-
-		if (e)
+		if (const auto netGameEvent = pool->GetAt<rage::netGameEvent>(i))
 		{
-			poolCount[GetType(e)]++;
+			poolCount[netGameEvent->GetName()]++;
 		}
 	}
 
