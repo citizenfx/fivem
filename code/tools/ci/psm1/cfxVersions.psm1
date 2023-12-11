@@ -35,6 +35,38 @@ function Get-CfxVersions {
         # for builds with private this will also be adjusted accordingly, see cfxSetupPrivate.psm1
         $versions.Game = ((git rev-list HEAD | measure-object).Count * 10) + 1100000
 
+        # Temporary Game version fixup to avoid potential version collisions between branches
+        # TODO(CFX-699): transition to a string-based version for Game
+        #
+        # For beta and production branches:
+        #  Take advantage of that we multiply commits count by 10, which leaves us with the 0-9 range that we can use to make sure versions do not collide
+        #
+        # For other branches:
+        #   We cannot account for all of them here to fit within the 0-9 range, so instead,
+        #   grow up by 1 billion and try to minimize collisions by adding first 7 chars of commit hash as a number
+        #
+        #   We multiply commits count by 10 and start from 1100000,
+        #   so the max amount of commits is 87.794.819 = (INT32_MAX - 1.000.000.000 - 0xFFffFFf - 1.100.000) / 10,
+        #   before we hit the INT32_MAX limit, should be plenty for now
+        switch ($Context.GitBranchName) {
+            "master" {
+                # No need to touch version for master/canary
+                break
+            }
+            "beta" {
+                $versions.Game += 1
+                break
+            }
+            "production" {
+                $versions.Game += 9
+                break
+            }
+            Default {
+                $versions.Game += 1000000000;
+                $versions.Game += [uint32]("0x" + (git rev-list -1 HEAD).Substring(0, 7)) # max 268435455 0xFFFFFFf
+            }
+        }
+
         $versions.CEFName = (Get-Content -Encoding ascii vendor\cef\cef_build_name.txt).Trim()
 
         $LauncherPaths = @(
