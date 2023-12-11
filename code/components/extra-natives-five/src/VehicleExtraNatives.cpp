@@ -33,6 +33,7 @@
 #include <winrt/Windows.Gaming.Input.h>
 
 #include "DeferredInitializer.h"
+#include "EntitySystem.h"
 
 using namespace winrt::Windows::Gaming::Input;
 
@@ -258,6 +259,8 @@ static int ClutchOffset; // = 0x8C0;
 //static int VisualHeightGetOffset = 0x080; // There is a vanilla native for this.
 static int VisualHeightSetOffset = 0x07C;
 static int LightMultiplierGetOffset;
+static int VehiclePitchBiasOffset;
+static int VehicleRollBiasOffset;
 
 // TODO: Wheel class.
 static int WheelYRotOffset = 0x008;
@@ -611,6 +614,11 @@ static HookFunction initFunction([]()
 	{
 		auto location = hook::get_pattern<char>("F3 44 0F 11 4C 24 ? E8 ? ? ? ? EB 7A");
 		VehicleDamageStructOffset = *(uint32_t*)(location - 11);
+	}
+
+	{
+		VehiclePitchBiasOffset = *hook::get_pattern<uint32_t>("0F 2F F7 44 0F 28 C0 F3 44 0F 58 83", 12);
+		VehicleRollBiasOffset = VehiclePitchBiasOffset - 4;
 	}
 
 	{
@@ -1119,6 +1127,30 @@ static HookFunction initFunction([]()
 			if (alarmTime != std::numeric_limits<unsigned short>::max())
 			{
 				writeValue<unsigned short>(vehicle, AlarmTimeLeftOffset, alarmTime);
+			}
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_PITCH_BIAS", [](fx::ScriptContext& context)
+	{
+		if (fwEntity* vehicle = getAndCheckVehicle(context, "SET_VEHICLE_PITCH_BIAS"))
+		{
+			if (readValue<int>(vehicle, VehicleTypeOffset) == 1) // is vehicle a plane
+			{
+				auto value = context.GetArgument<float>(1);
+				writeValue<float>(vehicle, VehiclePitchBiasOffset, value);
+			}
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_ROLL_BIAS", [](fx::ScriptContext& context)
+	{
+		if (fwEntity* vehicle = getAndCheckVehicle(context, "SET_VEHICLE_ROLL_BIAS"))
+		{
+			if (readValue<int>(vehicle, VehicleTypeOffset) == 1) // is vehicle a plane
+			{
+				auto value = context.GetArgument<float>(1);
+				writeValue<float>(vehicle, VehicleRollBiasOffset, value);
 			}
 		}
 	});
