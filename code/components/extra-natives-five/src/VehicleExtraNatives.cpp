@@ -1774,8 +1774,16 @@ static HookFunction inputFunction([]()
 			return;
 		}
 
-		addedRevoker = Gamepad::GamepadAdded(winrt::auto_revoke, OnGamepadAdded);
-		removedRevoker = Gamepad::GamepadRemoved(winrt::auto_revoke, OnGamepadRemoved);
+		try
+		{
+			addedRevoker = Gamepad::GamepadAdded(winrt::auto_revoke, OnGamepadAdded);
+			removedRevoker = Gamepad::GamepadRemoved(winrt::auto_revoke, OnGamepadRemoved);
+		}
+		catch (...)
+		{
+			trace("Failed to add GamepadAdded handlers in Windows.Gaming.Input.dll");
+			return;
+		}
 
 		if (!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_PIN | GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, (LPCWSTR)hLib, &hLib))
 		{
