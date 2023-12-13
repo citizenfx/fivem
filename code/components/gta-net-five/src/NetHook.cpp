@@ -319,9 +319,10 @@ static hook::cdecl_stub<void(int, int, int)> hostGame([] () -> void*
 		return loc;
 	}
 
+	// b2190+: hook::get_call(hook::get_pattern("8B D7 8B CE 41 0F 95 C0 41 0F BA E8 08 E8", 13))
+
 	if (xbr::IsGameBuild<2189>())
 	{
-		// 2189
 		return (void*)hook::get_adjusted(0x14105DFE8);
 	}
 
@@ -334,7 +335,7 @@ static hook::cdecl_stub<void(int, int, int)> hostGame([] () -> void*
 	{
 		return (void*)hook::get_adjusted(0x14106FF30);
 	}
-	
+
 	if (xbr::IsGameBuild<2612>())
 	{
 		return (void*)hook::get_adjusted(0x141071468);
@@ -353,6 +354,11 @@ static hook::cdecl_stub<void(int, int, int)> hostGame([] () -> void*
 	if (xbr::IsGameBuild<2944>())
 	{
 		return (void*)hook::get_adjusted(0x141088EB0);
+	}
+
+	if (xbr::IsGameBuild<3095>())
+	{
+		return (void*)hook::get_adjusted(0x141094DF8);
 	}
 
 	// 1737

@@ -397,9 +397,18 @@ static HookFunction hookFunction([]()
 	LimitPatch(hook::get_pattern("E8 ? ? ? ? 84 C0 74 23 83 FE 33", 9)); // IS_MP_GAMER_TAG_ACTIVE
 	LimitPatch(hook::get_pattern("83 FE 33 77 30 48 8B C6 48 69 C0 ? ? ? ? 38")); // GAMER_INFO::gamerTagAddTrevorRandomModifier
 
-	matches = hook::pattern("83 FB ? 77 ? 48 69 DB").count(2); // GAMER_INFO::gamerTagIsCrewConfigSet // GAMER_INFO::gamerTagSetCrew
-	LimitPatch(matches.get(0).get<void>(0));
-	LimitPatch(matches.get(1).get<void>(0));
+	// GAMER_INFO::gamerTagIsCrewConfigSet // GAMER_INFO::gamerTagSetCrew
+	if (xbr::IsGameBuildOrGreater<3095>())
+	{
+		LimitPatch(hook::pattern("83 FB ? 77 ? 48 69 DB").count(1).get(0).get<void>(0));
+		LimitPatch(hook::pattern("83 FB 33 77 74 48 8B FB").count(1).get(0).get<void>(0));
+	}
+	else
+	{
+		matches = hook::pattern("83 FB ? 77 ? 48 69 DB").count(2);
+		LimitPatch(matches.get(0).get<void>(0));
+		LimitPatch(matches.get(1).get<void>(0));	
+	}
 
 	LimitPatch(hook::get_pattern("7E 83 FB ? 77 ? 48 8B FB", 1)); // GAMER_INFO::gamerTagRemove
 	LimitPatch(hook::get_pattern("83 FF ? 77 ? 48 8B CF")); // GAMER_INFO::gamerTagSetHealthBarColour

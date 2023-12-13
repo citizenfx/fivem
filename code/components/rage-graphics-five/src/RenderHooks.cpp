@@ -1968,10 +1968,20 @@ static HookFunction hookFunction([] ()
 	// present hook function
 	hook::put(hook::get_address<void*>(hook::get_pattern("48 8B 05 ? ? ? ? 48 85 C0 74 0C 8B 4D 50 8B", 3)), D3DPresent);
 
-	char* fnStart = hook::get_pattern<char>("8B 03 41 BE 01 00 00 00 89 05", -0x47);	
-	g_dxgiSwapChain = hook::get_address<IDXGISwapChain**>(fnStart + 0x127);
+	if (xbr::IsGameBuildOrGreater<3095>())
+	{
+		char* fnStart = hook::get_pattern<char>("8B 03 41 BE 01 00 00 00 89 05", -0x43);
+		g_dxgiSwapChain = hook::get_address<IDXGISwapChain**>(fnStart + 0x120);
 
-	MH_CreateHook(fnStart, WrapVideoModeChange, (void**)&g_origVideoModeChange);
+		MH_CreateHook(fnStart, WrapVideoModeChange, (void**)&g_origVideoModeChange);	
+	}
+	else
+	{
+		char* fnStart = hook::get_pattern<char>("8B 03 41 BE 01 00 00 00 89 05", -0x47);
+		g_dxgiSwapChain = hook::get_address<IDXGISwapChain**>(fnStart + 0x127);
+
+		MH_CreateHook(fnStart, WrapVideoModeChange, (void**)&g_origVideoModeChange);	
+	}
 
 	g_resetVideoMode = hook::get_pattern<std::remove_pointer_t<decltype(g_resetVideoMode)>>("8B 44 24 50 4C 8B 17 44 8B 4E 04 44 8B 06", -0x61);
 
@@ -1997,7 +2007,13 @@ static HookFunction hookFunction([] ()
 	}
 
 	// add D3D11_CREATE_DEVICE_BGRA_SUPPORT flag
-	if (xbr::IsGameBuildOrGreater<2802>())
+	if (xbr::IsGameBuildOrGreater<3095>())
+	{
+		void* createDeviceLoc = hook::get_pattern("FF 15 ? ? ? ? 48 8B 15 ? ? ? ? 48 8D 0D ? ? ? ? 8B D8");
+		hook::nop(createDeviceLoc, 6);
+		hook::call(createDeviceLoc, CreateD3D11DeviceWrap);
+	}
+	else if (xbr::IsGameBuildOrGreater<2802>())
 	{
 		void* createDeviceLoc = hook::pattern("48 8D 44 24 78 89 74 24 30 89 7C 24 28").count(1).get(0).get<void>(18);
 		hook::nop(createDeviceLoc, 6);

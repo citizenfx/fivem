@@ -90,12 +90,13 @@ private:
 		Impl<12, 0, 28> m1604;
 		Impl<20, 0, 0> m2060;
 		Impl<0, 4, 16> m2372;
+		Impl<0, 12, 24> m3095;
 	} impl;
 
 public:
 	void* GetPlayerInfo()
 	{
-		return (xbr::IsGameBuildOrGreater<2372>()) ? impl.m2372.playerInfo : (xbr::IsGameBuildOrGreater<2060>()) ? impl.m2060.playerInfo : impl.m1604.playerInfo;
+		return (xbr::IsGameBuildOrGreater<3095>()) ? impl.m3095.playerInfo :  (xbr::IsGameBuildOrGreater<2372>()) ? impl.m2372.playerInfo : (xbr::IsGameBuildOrGreater<2060>()) ? impl.m2060.playerInfo : impl.m1604.playerInfo;
 	}
 
 public:

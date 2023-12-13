@@ -1063,6 +1063,7 @@ static HookFunction hookFunction{[] ()
 		}
 	} clothFixStub1;
 
+	if (!xbr::IsGameBuildOrGreater<3095>()) // seems to be fixed as of 3095.0
 	{
 		auto location = hook::get_pattern("74 66 48 39 88 E0 01 00 00 74 5D", 2);
 		hook::nop(location, 7);

@@ -273,11 +273,13 @@ enum eGameVersion : int
 	VER_1_0_2699_0_NOSTEAM = 78,
 	VER_1_0_2802_0_NOSTEAM = 80,
 	VER_1_0_2944_0_NOSTEAM = 83,
+	VER_1_0_3095_0_NOSTEAM = 85,
 };
 
 // ScriptHookV uses incremental numbers instead of build
 DLL_EXPORT eGameVersion getGameVersion()
 {
+	if (xbr::IsGameBuildOrGreater<3095>()) return VER_1_0_3095_0_NOSTEAM;
 	if (xbr::IsGameBuildOrGreater<2944>()) return VER_1_0_2944_0_NOSTEAM;
 	if (xbr::IsGameBuildOrGreater<2802>()) return VER_1_0_2802_0_NOSTEAM;
 	if (xbr::IsGameBuildOrGreater<2699>()) return VER_1_0_2699_0_NOSTEAM;

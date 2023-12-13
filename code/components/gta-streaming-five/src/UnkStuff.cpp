@@ -288,10 +288,22 @@ static HookFunction hookFunction([]()
 
 		// scenario netgame checks (NotAvailableInMultiplayer)
 		hook::put<uint8_t>(hook::get_pattern("74 ? 8B 83 84 00 00 00 C1 E8 0F A8 01", 0), 0xEB);
-		hook::put<uint8_t>(hook::get_pattern("74 1A 8B 49 38 E8", 0), 0xEB);
+
+		if (xbr::IsGameBuildOrGreater<3095>())
+		{
+			hook::put<uint8_t>(hook::get_pattern("74 1B 41 8B 4E 38", 0), 0xEB);
+		}
+		else
+		{
+			hook::put<uint8_t>(hook::get_pattern("74 1A 8B 49 38 E8", 0), 0xEB);
+		}
 
 		// population netgame check
-		if (xbr::IsGameBuildOrGreater<2944>())
+		if (xbr::IsGameBuildOrGreater<3095>())
+		{
+			hook::put<uint16_t>(hook::get_pattern("0F 84 ? ? 00 00 8B 45 40 BB FF"), 0xE990);
+		}
+		else if (xbr::IsGameBuildOrGreater<2944>())
 		{
 			hook::put<uint16_t>(hook::get_pattern("0F 84 9B 00 00 00 38 1D"), 0xE990);
 		}
@@ -321,17 +333,37 @@ static HookFunction hookFunction([]()
 		//hook::put<uint8_t>(hook::get_pattern("40 B6 01 74 52 F3 0F 10 01", 3), 0xEB); // this skips a world grid check, might be bad!
 
 		// another scenario cluster network game check
-		hook::put<uint8_t>(hook::get_pattern("80 78 1A 00 74 0F", 4), 0xEB);
+		if (xbr::IsGameBuildOrGreater<3095>())
+		{
+			hook::put<uint8_t>(hook::get_pattern("8A 42 1A 84 C0 74", 5), 0xEB);
+		}
+		else
+		{
+			hook::put<uint8_t>(hook::get_pattern("80 78 1A 00 74 0F", 4), 0xEB);
+		}
 
 		// more netgame (scenariovehicleinfo)
 		hook::put<uint8_t>(hook::get_pattern("74 42 84 C0 75 42 83 C8"), 0xEB);
 
 		// disabling animal types
 		//hook::jump(hook::pattern("48 8B 48 08 48 85 C9 74  0C 8B 81").count(1).get(0).get<char>(-0x10), ReturnTrue);
-		hook::jump(hook::get_pattern("75 1A 38 99 54 01 00 00 75 0E", -0xE), ReturnTrue);
+
+		if (xbr::IsGameBuildOrGreater<3095>())
+		{
+			hook::jump(hook::get_pattern("38 ? 54 01 00 00 75 ? 48 8B ", -0x20), ReturnTrue);
+		}
+		else
+		{
+			hook::jump(hook::get_pattern("75 1A 38 99 54 01 00 00 75 0E", -0xE), ReturnTrue);
+		}
 
 		// scenario point network game check
-		if (xbr::IsGameBuildOrGreater<2944>())
+		if (xbr::IsGameBuildOrGreater<3095>())
+		{
+			// Note: Check moved to separate function(could impact 2-3 other places with this)
+			hook::put<uint8_t>(hook::get_pattern("4C 8B C1 84 C0 74", 5), 0xEB);
+		}
+		else if (xbr::IsGameBuildOrGreater<2944>())
 		{
 			hook::put<uint8_t>(hook::get_pattern("41 8A 40 1A 84 C0 74 36", 6), 0xEB);
 		}

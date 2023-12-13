@@ -608,11 +608,20 @@ void SetWorldMatrix(const float* matrix)
 
 static HookFunction hookFunction([] ()
 {
-	char* location = hook::pattern("48 8B 05 ? ? ? ? ? 8B ? 33 D2 48 89 0D").count(1).get(0).get<char>(15);
+	char* location;
 
-	g_d3d11Device = (ID3D11Device**)(location + *(int32_t*)location + 4);
-
-	g_d3d11DeviceContextOffset = *(int*)(location - (xbr::IsGameBuildOrGreater<2802>() ? 60 : 59));
+	if (xbr::IsGameBuildOrGreater<3095>())
+	{
+		location = hook::get_pattern<char>("48 89 0D ? ? ? ? 44 88 2D ? ? ? ? FF 90");
+		g_d3d11Device = hook::get_address<ID3D11Device**>(location, 3, 7);
+		g_d3d11DeviceContextOffset = *(int*)(location - (0x47 - 1)); // generally 0x1B0
+	}
+	else
+	{
+		location = hook::pattern("48 8B 05 ? ? ? ? ? 8B ? 33 D2 48 89 0D").count(1).get(0).get<char>(15);
+		g_d3d11Device = (ID3D11Device**)(location + *(int32_t*)location + 4);
+		g_d3d11DeviceContextOffset = *(int*)(location - (xbr::IsGameBuildOrGreater<2802>() ? 60 : 59));
+	}
 
 	// things
 	location = hook::pattern("74 0D 80 0D ? ? ? ? 02 89 0D ? ? ? ? C3").count(1).get(0).get<char>(-4);
@@ -686,7 +695,7 @@ static HookFunction hookFunction([] ()
 
 	// set immediate mode vertex limit to 8x what it was (so, 32 MB)
 	{
-		auto location = hook::get_pattern<char>("44 89 74 24 74 89 05 ? ? ? ? 89 44", 5);
+		auto location = hook::get_pattern<char>("89 05 ? ? ? ? 89 44 24 60 48 8B 01 4C");
 
 		auto refloc = hook::get_address<char*>(location + 2);
 		hook::put<uint32_t>(refloc, 0x4000000);

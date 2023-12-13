@@ -8,6 +8,8 @@
 
 #include <Error.h>
 
+#include "CrossBuildRuntime.h"
+
 class RageHashList
 {
 public:
@@ -463,7 +465,14 @@ static HookFunction hookFunction([] ()
 	// cloning stuff
 	MH_CreateHook(hook::get_pattern("41 8B D9 41 8A E8 4C 8B F2 48 8B F9", -0x19), ShouldWriteToPlayerWrap, (void**)&g_origShouldWriteToPlayer);
 
-	MH_CreateHook(hook::get_pattern("41 8A E8 48 8B DA 48 85 D2 0F", -0x1E), GetRelevantSectorPosPlayersWrap, (void**)&g_origGetRelevantSectorPosPlayers);
+	if (xbr::IsGameBuildOrGreater<3095>())
+	{
+		MH_CreateHook(hook::get_pattern("45 8A F8 48 8B DA 48 85 D2 0F", -0x1E), GetRelevantSectorPosPlayersWrap, (void**)&g_origGetRelevantSectorPosPlayers);
+	}
+	else
+	{
+		MH_CreateHook(hook::get_pattern("41 8A E8 48 8B DA 48 85 D2 0F", -0x1E), GetRelevantSectorPosPlayersWrap, (void**)&g_origGetRelevantSectorPosPlayers);
+	}
 
 	//MH_CreateHook((void*)0x14159A8F0, AssignObjectIdWrap, (void**)&g_origAssignObjectId);
 

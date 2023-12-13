@@ -765,7 +765,7 @@ static CNetGamePlayer* AllocateNetPlayer(void* mgr)
 	}
 
 #ifdef GTA_FIVE
-	void* plr = malloc(xbr::IsGameBuildOrGreater<2824>() ? 800 : xbr::IsGameBuildOrGreater<2372>() ? 704: xbr::IsGameBuildOrGreater<2060>() ? 688 : 672);
+	void* plr = malloc(xbr::IsGameBuildOrGreater<3095>() ? 816 : xbr::IsGameBuildOrGreater<2824>() ? 800 : xbr::IsGameBuildOrGreater<2372>() ? 704: xbr::IsGameBuildOrGreater<2060>() ? 688 : 672);
 #elif IS_RDR3
 	void* plr = malloc(xbr::IsGameBuildOrGreater<1436>() ? 2736 : 2784);
 #endif
@@ -1897,7 +1897,15 @@ static HookFunction hookFunction([]()
 	MH_Initialize();
 
 #ifdef GTA_FIVE
-	MH_CreateHook((xbr::IsGameBuildOrGreater<2545>()) ? hook::get_pattern("B1 0A 48 89 03 33 C0 48 89", -0x1F) : hook::get_pattern("48 89 03 33 C0 B1 0A 48 89", -0x15), NetworkObjectMgrCtorStub, (void**)&g_origNetworkObjectMgrCtor);
+	if (xbr::IsGameBuildOrGreater<2545>() && !xbr::IsGameBuildOrGreater<3095>())
+	{
+		MH_CreateHook(hook::get_pattern("B1 0A 48 89 03 33 C0 48 89", -0x1F), NetworkObjectMgrCtorStub, (void**)&g_origNetworkObjectMgrCtor);
+	}
+	else
+	{
+		MH_CreateHook(hook::get_pattern("48 89 03 33 C0 B1 0A 48 89", -0x15), NetworkObjectMgrCtorStub, (void**)&g_origNetworkObjectMgrCtor);
+	}
+
 	MH_CreateHook(hook::get_pattern("4C 8B F1 41 BD 05", -0x22), PassObjectControlStub, (void**)&g_origPassObjectControl);
 	MH_CreateHook(hook::get_pattern("8A 41 49 4C 8B F2 48 8B", -0x10), SetOwnerStub, (void**)&g_origSetOwner);
 #elif IS_RDR3
@@ -2043,7 +2051,7 @@ static HookFunction hookFunction([]()
 	MH_CreateHook(hook::get_pattern("48 83 EC 28 33 C0 38 05 ? ? ? ? 74 0A"), GetPlayerByIndexNet, (void**)&g_origGetPlayerByIndexNet);
 
 #ifdef GTA_FIVE
-	MH_CreateHook(hook::get_pattern("75 07 85 C9 0F 94 C3 EB", -0x19), IsNetworkPlayerActive, (void**)&g_origIsNetworkPlayerActive);
+	MH_CreateHook(hook::get_pattern("75 07 ? C9 0F 94 C3 EB", xbr::IsGameBuildOrGreater<3095>() ? -0x27 : -0x19), IsNetworkPlayerActive, (void**)&g_origIsNetworkPlayerActive);
 	MH_CreateHook(hook::get_pattern("75 07 85 C9 0F 94 C0 EB", -0x13), IsNetworkPlayerConnected, (void**)&g_origIsNetworkPlayerConnected); // connected
 #elif IS_RDR3
 	MH_CreateHook(hook::get_pattern("75 0A 85 C9 0F 94 C3 E9", -0x22), IsNetworkPlayerActive, (void**)&g_origIsNetworkPlayerActive);
@@ -2077,7 +2085,7 @@ static HookFunction hookFunction([]()
 	}
 
 #ifdef GTA_FIVE
-	MH_CreateHook(hook::get_pattern("48 85 DB 74 20 48 8B 03 48 8B CB FF 50 ? 48 8B", -0x34),
+	MH_CreateHook(hook::get_pattern("48 85 DB 74 20 48 8B 03 48 8B CB FF 50 ? 48 8B", xbr::IsGameBuildOrGreater<3095>() ? -0x3D : -0x34),
 		(xbr::IsGameBuildOrGreater<2824>()) ? GetPlayerFromGamerId<2824> :
 		(xbr::IsGameBuildOrGreater<2372>()) ? GetPlayerFromGamerId<2372> :
 		(xbr::IsGameBuildOrGreater<2060>()) ? GetPlayerFromGamerId<2060> : GetPlayerFromGamerId<1604>,
@@ -2276,7 +2284,7 @@ static HookFunction hookFunction([]()
 	// some built-in text/voice chat logic using physical player index as a fixed 32-sized array index
 	if (xbr::IsGameBuildOrGreater<2699>())
 	{
-		auto location = hook::get_call(hook::get_pattern<char>("E8 ? ? ? ? 8A 0D ? ? ? ? 48 FF C7"));
+		auto location = hook::get_call(hook::get_pattern<char>("48 69 C9 ? ? ? ? 48 81 C1 ? ? ? ? 48 03 CE E8", 17));
 		MH_CreateHook(location, ManageTextVoiceChatStub, (void**)&g_origManageTextVoiceChatStub);	
 	}
 

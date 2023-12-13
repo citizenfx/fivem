@@ -164,7 +164,14 @@ static bool (*g_isScWaitingForInit)();
 void RunRlInitServicing()
 {
 	// E8 ? ? ? ? C6 05 ? ? ? ? ? EB 41
-	if (xbr::IsGameBuildOrGreater<2944>())
+	if (xbr::IsGameBuildOrGreater<3095>())
+	{
+		((void (*)())hook::get_adjusted(0x140006D04))();
+		((void (*)())hook::get_adjusted(0x140809E54))();
+		((void (*)())hook::get_adjusted(0x140028578))();
+		((void (*)(void*))hook::get_adjusted(0x141657DF0))((void*)hook::get_adjusted(0x142FB57D0));
+	}
+	else if (xbr::IsGameBuildOrGreater<2944>())
 	{
 		((void (*)())hook::get_adjusted(0x140006B28))();
 		((void (*)())hook::get_adjusted(0x140804254))();
@@ -206,13 +213,6 @@ void RunRlInitServicing()
 		((void (*)())hook::get_adjusted(0x1400263CC))();
 		((void (*)(void*))hook::get_adjusted(0x14160104C))((void*)hook::get_adjusted(0x142E34900));
 	}
-	else if (!xbr::IsGameBuildOrGreater<2060>())
-	{
-		((void (*)())hook::get_adjusted(0x1400067E8))();
-		((void (*)())hook::get_adjusted(0x1407D1960))();
-		((void (*)())hook::get_adjusted(0x140025F7C))();
-		((void (*)(void*))hook::get_adjusted(0x141595FD4))((void*)hook::get_adjusted(0x142DC9BA0));
-	}
 	else if (xbr::IsGameBuildOrGreater<2189>())
 	{
 		((void (*)())hook::get_adjusted(0x140006748))();
@@ -220,12 +220,19 @@ void RunRlInitServicing()
 		((void (*)())hook::get_adjusted(0x140026120))();
 		((void (*)(void*))hook::get_adjusted(0x1415E4AC8))((void*)hook::get_adjusted(0x142E5C2D0));
 	}
-	else
+	else if (xbr::IsGameBuildOrGreater<2060>())
 	{
 		((void (*)())hook::get_adjusted(0x140006A80))();
 		((void (*)())hook::get_adjusted(0x1407EB39C))();
 		((void (*)())hook::get_adjusted(0x1400263A4))();
 		((void (*)(void*))hook::get_adjusted(0x1415CF268))((void*)hook::get_adjusted(0x142D3DCC0));
+	}
+	else
+	{
+		((void (*)())hook::get_adjusted(0x1400067E8))();
+		((void (*)())hook::get_adjusted(0x1407D1960))();
+		((void (*)())hook::get_adjusted(0x140025F7C))();
+		((void (*)(void*))hook::get_adjusted(0x141595FD4))((void*)hook::get_adjusted(0x142DC9BA0));
 	}
 }
 

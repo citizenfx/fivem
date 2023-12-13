@@ -779,6 +779,7 @@ private:
 		Impl<0x918> m1604;
 		Impl<0x938> m2060;
 		Impl<0x918> m2802;
+		Impl<0x960> m3095;
 	} impl;
 
 public:
@@ -787,6 +788,10 @@ public:
 	inline CHandlingData* GetHandlingData()
 	{
 		if (xbr::IsGameBuildOrGreater<2802>())
+		{
+			return impl.m3095.m_handlingData;
+		}
+		else if (xbr::IsGameBuildOrGreater<2802>())
 		{
 			return impl.m2802.m_handlingData;
 		}
@@ -804,8 +809,12 @@ public:
 	{
 		// Use an alignment byte within CHandlingDataMgr to represent the handling as hooked.
 		*((char*)ptr + 28) = 1;
-		
-		if (xbr::IsGameBuildOrGreater<2802>())
+
+		if (xbr::IsGameBuildOrGreater<3095>())
+		{
+			impl.m3095.m_handlingData = ptr;
+		}
+		else if (xbr::IsGameBuildOrGreater<2802>())
 		{
 			impl.m2802.m_handlingData = ptr;
 		}
