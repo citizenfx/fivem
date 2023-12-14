@@ -122,8 +122,19 @@ void DLLError(DWORD errorCode, std::string_view dllName)
 		win32::FormatMessage(errorCode));
 }
 
+#ifdef LAUNCHER_PERSONALITY_MAIN
+#include "OSChecks.h"
+#endif
+
 int RealMain()
 {
+#ifdef LAUNCHER_PERSONALITY_MAIN
+	if (!EnsureCompatibleOSVersion())
+	{
+		return 100;
+	}
+#endif
+
 	if (auto setSearchPathMode = (decltype(&SetSearchPathMode))GetProcAddress(GetModuleHandleW(L"kernel32.dll"), "SetSearchPathMode"))
 	{
 		setSearchPathMode(BASE_SEARCH_PATH_ENABLE_SAFE_SEARCHMODE | BASE_SEARCH_PATH_PERMANENT);
