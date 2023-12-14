@@ -33,9 +33,12 @@ rmdir /s /q dist
 
 node %~dp0\..\native-doc-gen\yarn_cli.js
 
-:: TODO: only do this if node 18
-set NODE_OPTIONS=--openssl-legacy-provider
-call node_modules\.bin\webpack
+set NODE_OPTIONS=""
+FOR /F %%g IN ('node -v') do (set NODE_VERSION_STRING=%%g)
+set /a NODE_VERSION="%NODE_VERSION_STRING:~1,2%"
+IF %NODE_VERSION% GEQ 18 (set NODE_OPTIONS=--openssl-legacy-provider)
+
+call node_modules\.bin\webpack.cmd
 popd
 
 rmdir /s /q %SRRoot%\chat\
