@@ -185,18 +185,6 @@ std::shared_ptr<baseDownload> CL_QueueDownload(const char* url, const char* file
 
 std::shared_ptr<baseDownload> CL_QueueDownload(const char* url, const char* file, int64_t size, compressionAlgo_e algo, int segments)
 {
-	if (strcmp(url, "https://runtime.fivem.net/patches/GTA_V_Patch_1_0_1604_0.exe") == 0)
-	{
-		std::shared_ptr<baseDownload> download;
-
-		for (int i = 0; i <= 9; i++)
-		{
-			download = CL_QueueDownload(va("https://content.cfx.re/mirrors/emergency_mirror/GTAV1604.exe%02d", i), va("%s.%d", file, i), i == 9 ? 87584200 : 104857600, compressionAlgo_e::None, 1);
-		}
-
-		return download;
-	}
-
 	auto downloadPtr = std::make_shared<download_t>();
 	auto& download = *downloadPtr.get();
 
