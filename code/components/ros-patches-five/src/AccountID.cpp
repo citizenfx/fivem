@@ -38,6 +38,13 @@
 
 #include "CfxReleaseInfo.h"
 
+constexpr const auto kROSBlobEmailOffset = 8;
+constexpr const auto kROSBlobTicketOffset = 2800;
+constexpr const auto kROSBlobSessionTicketOffset = 3312;
+constexpr const auto kROSBlobAccountIdOffset = 3816;
+constexpr const auto kROSBlobUsernameOffset = 3743;
+constexpr const auto kROSBlobSessionKeyOffset = 4360;
+
 template<typename... Ts>
 static auto PostAutoLogin(Ts&&... args)
 {
@@ -152,7 +159,7 @@ std::string GetROSEmail()
 	}
 
 	auto accountBlob = blob->data;
-	return (const char*)&accountBlob[8];
+	return (const char*)&accountBlob[kROSBlobEmailOffset];
 }
 
 #if defined(IS_RDR3) || defined(GTA_FIVE) || defined(GTA_NY)
@@ -226,10 +233,10 @@ bool GetMTLSessionInfo(std::string& ticket, std::string& sessionTicket, std::arr
 		}
 	}
 
-	ticket = std::string((const char*)&accountBlob[2800]);
-	sessionTicket = std::string((const char*)&accountBlob[3312]);
-	memcpy(sessionKey.data(), &accountBlob[0x10D8], sessionKey.size());
-	accountId = *(uint64_t*)&accountBlob[3816];
+	ticket = std::string((const char*)&accountBlob[kROSBlobTicketOffset]);
+	sessionTicket = std::string((const char*)&accountBlob[kROSBlobSessionTicketOffset]);
+	memcpy(sessionKey.data(), &accountBlob[kROSBlobSessionKeyOffset], sessionKey.size());
+	accountId = *(uint64_t*)&accountBlob[kROSBlobAccountIdOffset];
 
 	return true;
 }
@@ -261,7 +268,7 @@ static bool InitAccountSteam()
 	if (blob->valid)
 	{
 		accountBlob = blob->data;
-		trace("External ROS says it's signed in: %s\n", (const char*)&accountBlob[8]);
+		trace("External ROS says it's signed in: %s\n", (const char*)&accountBlob[kROSBlobEmailOffset]);
 	}
 
 	return blob->valid;
@@ -297,7 +304,7 @@ static bool InitAccountEOS()
 	if (blob->valid)
 	{
 		accountBlob = blob->data;
-		trace("Epic ROS says it's signed in: %s\n", (const char*)&accountBlob[8]);
+		trace("Epic ROS says it's signed in: %s\n", (const char*)&accountBlob[kROSBlobEmailOffset]);
 	}
 
 	return blob->valid;
@@ -791,7 +798,7 @@ void ValidateEpic(int parentPid)
 	*(uint64_t*)&blob->data[3816] = j.value("RockstarId", uint64_t(0));
 	strcpy((char*)&blob->data[2800], j.value("Ticket", "").c_str());
 	strcpy((char*)&blob->data[3312], tree.get<std::string>("Response.SessionTicket").c_str());
-	memcpy(&blob->data[0x10D8], sessionKey.data(), sessionKey.size());
+	memcpy(&blob->data[kROSBlobSessionKeyOffset], sessionKey.data(), sessionKey.size());
 	strcpy((char*)&blob->data[8], j.value("Email", "").c_str());
 	strcpy((char*)&blob->data[0xE9F], j.value("Nickname", "").c_str());
 
@@ -965,7 +972,7 @@ void ValidateSteam(int parentPid)
 	*(uint64_t*)&blob->data[3816] = j.value("RockstarId", uint64_t(0));
 	strcpy((char*)&blob->data[2800], j.value("Ticket", "").c_str());
 	strcpy((char*)&blob->data[3312], tree.get<std::string>("Response.SessionTicket").c_str());
-	memcpy(&blob->data[0x10D8], sessionKey.data(), sessionKey.size());
+	memcpy(&blob->data[kROSBlobSessionKeyOffset], sessionKey.data(), sessionKey.size());
 	strcpy((char*)&blob->data[8], j.value("Email", "").c_str());
 	strcpy((char*)&blob->data[0xE9F], j.value("Nickname", "").c_str());
 
@@ -1124,7 +1131,7 @@ static bool InitAccountMTL()
 		return false;
 	}
 
-	trace("MTL says it's signed in: %s\n", (const char*)&accountBlob[8]);
+	trace("MTL says it's signed in: %s\n", (const char*)&accountBlob[kROSBlobEmailOffset]);
 
 	return true;
 #else
@@ -1167,8 +1174,8 @@ static bool InitAccountRemote()
 
 static HookFunction hookFunction([]()
 {
-	Instance<ICoreGameInit>::Get()->SetData("rosUserName", (const char*)&accountBlob[0xE9F]);
-	Instance<ICoreGameInit>::Get()->SetData("rosUserEmail", (const char*)&accountBlob[8]);
+	Instance<ICoreGameInit>::Get()->SetData("rosUserName", (const char*)&accountBlob[kROSBlobUsernameOffset]);
+	Instance<ICoreGameInit>::Get()->SetData("rosUserEmail", (const char*)&accountBlob[kROSBlobEmailOffset]);
 });
 #endif
 #else
@@ -1188,7 +1195,7 @@ void PreInitGameSpec()
 uint64_t ROSGetDummyAccountID()
 {
 #if defined(IS_RDR3)
-	return *(uint64_t*)&accountBlob[3816];
+	return *(uint64_t*)&accountBlob[kROSBlobAccountIdOffset];
 #else
 	static std::once_flag gotAccountId;
 	static uint32_t accountId;
