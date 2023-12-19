@@ -501,7 +501,7 @@ void CitizenGame::Launch(const std::wstring& gamePath, bool isMainGame)
 			}
 		}
 
-		if (!_stricmp(libName, "xinput1_3.dll"))
+		if (!_stricmp(libName, "xinput1_3.dll") || !_stricmp(libName, "xinput1_2.dll") || !stricmp(libName, "xinput1_1.dll"))
 		{
 			HMODULE hm = LoadLibrary(L"xinput1_4.dll");
 			
