@@ -787,7 +787,7 @@ public:
 
 	inline CHandlingData* GetHandlingData()
 	{
-		if (xbr::IsGameBuildOrGreater<2802>())
+		if (xbr::IsGameBuildOrGreater<3095>())
 		{
 			return impl.m3095.m_handlingData;
 		}
