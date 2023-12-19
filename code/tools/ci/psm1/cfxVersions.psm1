@@ -101,7 +101,8 @@ function Get-CfxVersions {
         $versions.UI = ((git rev-list $versions.UICommit | measure-object).Count * 10) + 1100000
 
         $SystemResourcesPaths = @(
-            "ext/system-resources/"
+            "ext/txAdmin"
+            "ext/system-resources"
         )
         $versions.SystemResourcesCommit = (git rev-list -1 HEAD $SystemResourcesPaths)
         $versions.SystemResources = ((git rev-list $versions.SystemResourcesCommit | measure-object).Count * 10) + 1100000
