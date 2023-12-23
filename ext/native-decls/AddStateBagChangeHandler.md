@@ -71,7 +71,7 @@ AddStateBagChangeHandler("blockTasks", nil, function(bagName, key, value)
 end)
 ```
 
-```C#
+```cs
 AddStateBagChangeHandler("blockTasks", null,
     new Action<string, string, object, int, bool>
     (async (bagName, key, value, res, rep) =>
