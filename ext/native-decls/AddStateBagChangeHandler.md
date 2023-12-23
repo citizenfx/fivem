@@ -70,3 +70,27 @@ AddStateBagChangeHandler("blockTasks", nil, function(bagName, key, value)
     TaskSetBlockingOfNonTemporaryEvents(entity, value)
 end)
 ```
+
+```C#
+AddStateBagChangeHandler("blockTasks", null,
+    new Action<string, string, object, int, bool>
+    (async (bagName, key, value, res, rep) =>
+    {
+        bool val = (bool)value;
+
+        var entity = GetEntityFromStateBagName(bagName);
+        //-- Whoops, we don't have a valid entity!
+        if (entity == 0) return;
+        //-- We don't want to freeze the entity position if the entity collision hasn't loaded yet
+        while (!HasCollisionLoadedAroundEntity(entity))
+        {
+            //--The entity went out of our scope before the collision loaded
+            if (!DoesEntityExist(entity)) return;
+
+            await Delay(250);
+        }
+        SetEntityInvincible(entity, val);
+        FreezeEntityPosition(entity, val);
+        TaskSetBlockingOfNonTemporaryEvents(entity, val);
+    }));
+```
