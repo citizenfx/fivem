@@ -389,12 +389,12 @@ void SteamComponent::InitializePresence()
 
 		if (GetFileAttributes(namePath.c_str()) != INVALID_FILE_ATTRIBUTES)
 		{
-			std::wifstream nameFile(namePath);
-			std::wstringstream nameStream;
+			std::ifstream nameFile(namePath);
+			std::stringstream nameStream;
 			nameStream << nameFile.rdbuf();
 			nameFile.close();
 
-			productName = ToNarrow(nameStream.str());
+			productName = nameStream.str();
 		}
 
 		static HostSharedData<CfxPresenceState> gameData("PresenceState");
