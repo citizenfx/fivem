@@ -40,7 +40,7 @@ A cookie to remove the change handler.
 ```js
 AddStateBagChangeHandler("blockTasks", null, async (bagName, key, value /* boolean */) => {
     let entity = GetEntityFromStateBagName(bagName);
-    // Whoops, we were don't have a valid entity!
+    // Whoops, we don't have a valid entity!
     if (entity === 0) return;
     // We don't want to freeze the entity position if the entity collision hasn't loaded yet
     while (!HasCollisionLoadedAroundEntity(entity)) {
