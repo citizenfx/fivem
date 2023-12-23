@@ -1,0 +1,16 @@
+---
+ns: CFX
+apiset: shared
+---
+## STATE_BAG_HAS_VALUE
+
+```c
+bool STATE_BAG_HAS_VALUE(char* bagName, char* key);
+```
+
+## Parameters
+* **bagName**: The name of the bag.
+* **key**: The key used to check data existence.
+
+## Return value
+Returns true if the data associated with the specified key exists; otherwise, returns false.
