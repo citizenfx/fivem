@@ -22,10 +22,9 @@
 struct CfxPresenceState
 {
 	char gameName[512];
-	volatile bool needRefresh;
+	int childPid = 0;
 
 	CfxPresenceState()
-		: needRefresh(0)
 	{
 		memset(gameName, 0, sizeof(gameName));
 	}
@@ -398,7 +397,6 @@ void SteamComponent::InitializePresence()
 		}
 
 		static HostSharedData<CfxPresenceState> gameData("PresenceState");
-		gameData->needRefresh = false;
 
 		if (gameData->gameName[0])
 		{
@@ -492,6 +490,11 @@ bool SteamComponent::RunPresenceDummy()
 
 		trace("game parent PID: %d\n", parentPid);
 
+		HostSharedData<CfxPresenceState> gameData("PresenceState");
+
+		auto currentPid = GetCurrentProcessId();
+		gameData->childPid = currentPid;
+
 		// open a handle to the parent process with SYNCHRONIZE rights
 		HANDLE processHandle = OpenProcess(SYNCHRONIZE | PROCESS_QUERY_LIMITED_INFORMATION, FALSE, parentPid);
 
@@ -512,9 +515,7 @@ bool SteamComponent::RunPresenceDummy()
 					break;
 				}
 
-				static HostSharedData<CfxPresenceState> gameData("PresenceState");
-
-				if (gameData->needRefresh)
+				if (gameData->childPid != currentPid)
 				{
 					return true;
 				}
@@ -651,8 +652,10 @@ void SteamComponent::SetRichPresenceValue(int idx, const std::string& value)
 	if (updateGameName)
 	{
 		static HostSharedData<CfxPresenceState> gameData("PresenceState");
-		gameData->needRefresh = true;
 		strcpy_s(gameData->gameName, value.c_str());
+
+		// reset the child PID to make the current process exit early if it can
+		gameData->childPid = 0;
 
 		RunChildLauncher();
 	}
