@@ -19,6 +19,8 @@
 #include <sstream>
 #include <thread>
 
+#include <utf8.h>
+
 struct CfxPresenceState
 {
 	char gameName[512];
@@ -401,6 +403,17 @@ void SteamComponent::InitializePresence()
 		if (gameData->gameName[0])
 		{
 			productName += fmt::sprintf(": %s", gameData->gameName);
+		}
+
+		// Steam requires the name to fit in a 64-byte buffer, so we try to make sure there's no unfinished UTF-8 sequences in that case
+		if (productName.length() >= 64)
+		{
+			productName = productName.substr(0, 63);
+
+			if (auto invalidPos = utf8::find_invalid(productName); invalidPos != std::string::npos)
+			{
+				productName = productName.substr(0, invalidPos);
+			}
 		}
 
 		// set our pipe appid
