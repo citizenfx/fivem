@@ -556,9 +556,9 @@ struct CTrainGameStateDataNodeData
 	bool renderDerailed;
 
 	// 2372 {
-	bool unk198;
-	bool unk224;
-	bool unk199;
+	bool unk198; //unk198
+	bool highPrecisionBlending; //unk224
+	bool hasNoThreadId; //unk199
 	// }
 
 	bool forceDoorsOpen;
@@ -646,6 +646,17 @@ enum ePopType
 	POPTYPE_REPLAY,
 	POPTYPE_CACHE,
 	POPTYPE_TOOL
+};
+
+//TODO: Probably should be moved out of fx::sync namespace
+struct scrVector
+{
+	float x;
+	int pad;
+	float y;
+	int pad2;
+	float z;
+	int pad3;
 };
 
 struct SyncTreeBase
