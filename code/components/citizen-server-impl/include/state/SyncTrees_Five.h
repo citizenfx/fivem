@@ -25,7 +25,7 @@ struct CVehicleCreationDataNode
 	uint32_t m_creationToken;
 	bool m_needsToBeHotwired;
 	bool m_tyresDontBurst;
-	bool m_unk5;
+	bool m_usesVerticalFlightMode;
 
 	bool Parse(SyncParseState& state)
 	{
@@ -55,7 +55,7 @@ struct CVehicleCreationDataNode
 		// false, false, false
 		m_needsToBeHotwired = state.buffer.ReadBit();
 		m_tyresDontBurst = state.buffer.ReadBit();
-		m_unk5 = state.buffer.ReadBit();
+		m_usesVerticalFlightMode = state.buffer.ReadBit();
 
 		return true;
 	}
@@ -85,7 +85,7 @@ struct CVehicleCreationDataNode
 		// false, false, false
 		buffer.WriteBit(m_needsToBeHotwired);
 		buffer.WriteBit(m_tyresDontBurst);
-		buffer.WriteBit(m_unk5);
+		buffer.WriteBit(m_usesVerticalFlightMode);
 
 		return true;
 	}
@@ -857,44 +857,26 @@ struct CVehicleDamageStatusDataNode
 
 	bool Parse(SyncParseState& state)
 	{
-		bool anyBodyDeformation = state.buffer.ReadBit();
-
-		if (anyBodyDeformation)
-		{
-			uint8_t frontDamageLevel = state.buffer.Read<uint8_t>(2);
-			uint8_t rearDamageLevel = state.buffer.Read<uint8_t>(2);
-			uint8_t leftDamageLevel = state.buffer.Read<uint8_t>(2);
-			uint8_t rightDamageLevel = state.buffer.Read<uint8_t>(2);
-			uint8_t rearLeftLevel = state.buffer.Read<uint8_t>(2);
-			uint8_t rearRightLevel = state.buffer.Read<uint8_t>(2);
-		}
-
 		data.damagedByBullets = state.buffer.ReadBit();
 
 		if (data.damagedByBullets)
 		{
 			for (int i = 0; i < 6; i++)
 			{
-				uint8_t bulletsCount = state.buffer.Read<uint8_t>(8);
+				data.bulletsCount = state.buffer.Read<uint8_t>(8);
 			}
 		}
 
-		bool anyBumperBroken = state.buffer.ReadBit();
+		data.anyBodyDeformation = state.buffer.ReadBit();
 
-		if (anyBumperBroken)
+		if (data.anyBodyDeformation)
 		{
-			uint8_t frontBumperState = state.buffer.Read<uint8_t>(2);
-			uint8_t rearBumperState = state.buffer.Read<uint8_t>(2);
-		}
-
-		bool anyLightBroken = state.buffer.ReadBit();
-
-		if (anyLightBroken)
-		{
-			for (int i = 0; i < 22; i++)
-			{
-				bool lightBroken = state.buffer.ReadBit();
-			}
+			data.frontLeftDamageLevel = state.buffer.Read<uint8_t>(2);
+			data.frontRightDamageLevel = state.buffer.Read<uint8_t>(2);
+			data.middleLeftDamageLevel = state.buffer.Read<uint8_t>(2);
+			data.middleRightDamageLevel = state.buffer.Read<uint8_t>(2);
+			data.rearLeftDamageLevel = state.buffer.Read<uint8_t>(2);
+			data.rearRightDamageLevel = state.buffer.Read<uint8_t>(2);
 		}
 
 		data.anyWindowBroken = state.buffer.ReadBit();
@@ -904,28 +886,55 @@ struct CVehicleDamageStatusDataNode
 			data.windowsState[i] = (data.anyWindowBroken) ? state.buffer.ReadBit() : false;
 		}
 
-		bool unk = state.buffer.ReadBit();
+		data.anySirenBroken = state.buffer.ReadBit();
 
-		if (unk)
-		{
-			for (int i = 0; i < 8; i++)
-			{
-				float unk2 = state.buffer.ReadSignedFloat(10, 100.0f);
-
-				if (unk2 != 100.0f)
-				{
-					int unk3 = state.buffer.Read<int>(8);
-				}
-			}
-		}
-
-		bool anySirenBroken = state.buffer.ReadBit();
-
-		if (anySirenBroken)
+		if (data.anySirenBroken)
 		{
 			for (int i = 0; i < 20; i++)
 			{
-				bool sirenBroken = state.buffer.ReadBit();
+				data.sirensState[i] = (data.anySirenBroken) ? state.buffer.ReadBit() : false;
+			}
+		}
+
+		data.anyLightBroken = state.buffer.ReadBit();
+
+		if (data.anyLightBroken)
+		{
+			for (int i = 0; i < 22; i++)
+			{
+				data.lightsState[i] = (data.anyLightBroken) ? state.buffer.ReadBit() : false;
+			}
+		}
+
+		data.anyBumperBroken = state.buffer.ReadBit();
+
+		if (data.anyBumperBroken)
+		{
+			data.frontBumperState = state.buffer.Read<uint8_t>(2);
+			data.rearBumperState = state.buffer.Read<uint8_t>(2);
+		}
+		else
+		{
+			data.frontBumperState = 0;
+			data.rearBumperState = 0;
+		}
+
+		data.hasArmouredGlass = state.buffer.ReadBit();
+
+		if (data.hasArmouredGlass)
+		{
+			for (int window = 0; i < 8; i++)
+			{
+				data.armouredWindowsHealth[window] = state.buffer.ReadSignedFloat(10, 100.0f);
+
+				if (data.armouredWindowsHealth[window] != 100.0f)
+				{
+					data.armouredPenetrationDecalsCount[window] = state.buffer.Read<uint8_t>(8);
+				}
+				else
+				{
+					data.armouredPenetrationDecalsCount[window] = 0;
+				}
 			}
 		}
 

@@ -604,8 +604,32 @@ struct CEntityScriptGameStateNodeData
 struct CVehicleDamageStatusNodeData
 {
 	bool damagedByBullets;
+	uint8_t bulletsCount[8];
+
+	bool anyBodyDeformation;
+	uint8_t frontLeftDamageLevel;
+	uint8_t frontRightDamageLevel;
+	uint8_t middleLeftDamageLevel;
+	uint8_t middleRightDamageLevel;
+	uint8_t rearLeftDamageLevel;
+	uint8_t rearRightDamageLevel;
+	
 	bool anyWindowBroken;
 	bool windowsState[8];
+
+	bool anySirenBroken;
+	bool sirensState[20];
+
+	bool anyLightBroken;
+	bool lightsState[22];
+
+	bool anyBumperBroken;
+	uint8_t frontBumperState;
+	uint8_t rearBumperState;
+
+	bool hasArmouredGlass;
+	float armouredWindowsHealth[8];
+	uint8_t armouredPenetrationDecalsCount[8];	
 };
 
 struct CBoatGameStateNodeData
