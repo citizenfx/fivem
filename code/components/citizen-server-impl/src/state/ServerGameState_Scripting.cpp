@@ -1161,6 +1161,24 @@ static void Init()
 		return pn ? pn->playerTeam : 0;
 	}));
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_PROOFS", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		if (context.GetArgumentCount() > 7)
+		{
+			auto pn = entity->syncTree->GetPlayerGameState();
+
+			*context.GetArgument<int*>(1) = pn ? pn->bulletProof : 0;
+			*context.GetArgument<int*>(2) = pn ? pn->fireProof : 0;
+			*context.GetArgument<int*>(3) = pn ? pn->explosionProof : 0;
+			*context.GetArgument<int*>(4) = pn ? pn->collisionProof : 0;
+			*context.GetArgument<int*>(5) = pn ? pn->meleeProof : 0;
+			*context.GetArgument<int*>(6) = pn ? pn->drownProof : 0;
+			*context.GetArgument<int*>(7) = pn ? pn->steamProof : 0;
+		}
+
+		return 1;
+	}));
+
 	fx::ScriptEngine::RegisterNativeHandler("GET_AIR_DRAG_MULTIPLIER_FOR_PLAYERS_VEHICLE", MakePlayerEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
 		auto pn = entity->syncTree->GetPlayerGameState();

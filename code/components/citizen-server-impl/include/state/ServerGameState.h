@@ -572,6 +572,14 @@ struct CPlayerGameStateNodeData
 	int maxHealth;
 	int maxArmour;
 
+	int bulletProof;
+	int fireProof;
+	int explosionProof;
+	int collisionProof;
+	int meleeProof;
+	int drownProof;
+	int steamProof;
+	
 	bool neverTarget;
 	int spectatorId;
 
