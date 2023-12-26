@@ -863,7 +863,7 @@ struct CVehicleDamageStatusDataNode
 		{
 			for (int i = 0; i < 6; i++)
 			{
-				data.bulletsCount = state.buffer.Read<uint8_t>(8);
+				data.bulletsCount[i] = state.buffer.Read<uint8_t>(8);
 			}
 		}
 
