@@ -268,6 +268,7 @@ int MonoScriptRuntime::HandlesFile(char* filename, IScriptHostWithResourceData* 
 	// Allowed values for mono_rt2
 	constexpr std::string_view allowedValues[] = {
 		// put latest on top, right here ↓
+		"Prerelease expiring 2024-04-30. See https://aka.cfx.re/mono-rt2-preview for info."sv,
 		"Prerelease expiring 2023-12-31. See https://aka.cfx.re/mono-rt2-preview for info."sv,
 		"Prerelease expiring 2023-08-31. See https://aka.cfx.re/mono-rt2-preview for info."sv,
 		"Prerelease expiring 2023-06-30. See https://aka.cfx.re/mono-rt2-preview for info."sv,
