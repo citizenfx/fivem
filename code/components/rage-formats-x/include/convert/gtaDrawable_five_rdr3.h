@@ -754,8 +754,9 @@ rdr3::grmShaderGroup* convert(five::grmShaderGroup* shaderGroup)
 
 			for (int i = 0; i < textureRefs.size(); i++, idx++)
 			{
-				*(uint32_t*)(&firstArg[(idx * 8) + 0]) = std::get<0>(textureRefs[i]);
-				*(uint32_t*)(&firstArg[(idx * 8) + 4]) = 0; // the game should guess this from hash as we don't match
+				args[idx].hash = std::get<0>(textureRefs[i]);
+				args[idx].texture.resourceClass = 0;
+				args[idx].texture.index = idx;		
 			}
 
 			for (int i = 0; i < paramRefs.size(); i++, idx++)
@@ -770,19 +771,24 @@ rdr3::grmShaderGroup* convert(five::grmShaderGroup* shaderGroup)
 
 		size_t paramPtrSize = sizeof(uintptr_t) * 4 * shader->m_parameterData->numCBuffers;
 		size_t paramDataSize = 4 * (16 * paramRefs.size());
-		size_t texRefDataSize = (8 * textureRefs.size());
+		size_t texRefDataSize = 4 * (8 * textureRefs.size());
 		size_t finalParamSize = (paramPtrSize + paramDataSize + texRefDataSize + shader->m_parameterData->numSamplers);
 
-		// we are allocating (final size * 2) so we can account for the game wanting to stuff its corrections in here
-		shader->m_parameterDataSize = finalParamSize * 2;
+		shader->m_parameterDataSize = finalParamSize;
 
-		auto paramBuffer = (char*)rdr3::pgStreamManager::Allocate(finalParamSize * 2, false, nullptr);
+		auto paramBuffer = (char*)rdr3::pgStreamManager::Allocate(finalParamSize, false, nullptr);
 		auto prs = (rdr3::grmShaderParameter*)(paramBuffer);
 		auto trs = (rdr3::grmShaderParameter*)(paramBuffer + paramPtrSize + paramDataSize); //rdr3::pgStreamManager::Allocate(sizeof(rdr3::grmShaderParameter) * textureRefs.size(), false, nullptr);
 
 		for (int i = 0; i < textureRefs.size(); i++)
 		{
 			trs[i].SetValue(std::get<1>(textureRefs[i]));
+		}
+
+		// we like to have 3 copies
+		for (int i = textureRefs.size(); i < textureRefs.size() * 4; i++)
+		{
+			trs[i].SetValue(0);
 		}
 
 		shader->m_textureRefs = trs;
