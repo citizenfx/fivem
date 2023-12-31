@@ -3,6 +3,7 @@
 #include <ServerInstanceBase.h>
 #include <ServerInstanceBaseRef.h>
 #include <state/ServerGameState.h>
+#include <parser/TrainParser.h>
 
 #include <ResourceManager.h>
 #include <ScriptEngine.h>
@@ -10,7 +11,7 @@
 #include <ScriptSerialization.h>
 #include <MakeClientFunction.h>
 #include <MakePlayerEntityFunction.h>
-
+		
 namespace fx
 {
 void DisownEntityScript(const fx::sync::SyncEntityPtr& entity);
@@ -1094,9 +1095,47 @@ static void Init()
 
 	fx::ScriptEngine::RegisterNativeHandler("DELETE_ENTITY", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
-		auto resourceManager = fx::ResourceManager::GetCurrent();
-		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
-		auto gameState = instance->GetComponent<fx::ServerGameState>();
+			auto resourceManager = fx::ResourceManager::GetCurrent();
+			auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+			auto gameState = instance->GetComponent<fx::ServerGameState>();
+
+#ifdef STATE_FIVE
+			// If the entity is a server-owned train, loop through all the train carriages and delete
+			if (entity->IsOwnedByServerScript() && entity->type == fx::sync::NetObjEntityType::Train)
+			{
+				if (auto trainState = entity->syncTree->GetTrainState())
+				{
+					auto deleteCarriages = [gameState](const fx::sync::SyncEntityPtr& engine)
+					{
+						for (auto link = GetNextTrain(gameState.GetRef(), engine); link; link = GetNextTrain(gameState.GetRef(), link))
+						{
+							if (link->handle != engine->handle)
+							{
+								gameState->DeleteEntity(link);
+							}
+						}
+
+						//Clean up the engine afterwards
+						gameState->DeleteEntity(engine);
+					};
+
+					if (trainState->isEngine)
+					{
+						deleteCarriages(entity);
+						return 0;
+					}
+					 
+					if (trainState->engineCarriage && trainState->engineCarriage != entity->handle)
+					{
+						if (auto engine = GetTrain(gameState.GetRef(), trainState->engineCarriage))
+						{
+							deleteCarriages(engine);
+							return 0;
+						}	
+					}
+				}
+			}
+#endif
 
 		gameState->DeleteEntity(entity);
 
@@ -1446,6 +1485,46 @@ static void Init()
 
 		return train ? train->carriageIndex : -1;
 	}));
+
+	fx::ScriptEngine::RegisterNativeHandler("LOAD_TRAIN_CONFIG_FROM_PATH", [](fx::ScriptContext& context)
+	{
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		fwRefContainer<fx::Resource> resource = resourceManager->GetResource(context.CheckArgument<const char*>(0));
+
+		if (!resource.GetRef())
+		{
+			context.SetResult(false);
+			return;
+		}
+
+		std::string path = context.CheckArgument<const char*>(1);
+
+		// get the owning server instance
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		context.SetResult(instance->GetComponent<fx::CTrainConfigParser>()->LoadFile(resource, path));
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("LOAD_TRACK_CONFIG_FROM_PATH", [](fx::ScriptContext& context)
+	{
+		auto resourceManager = fx::ResourceManager::GetCurrent();
+
+		fwRefContainer<fx::Resource> resource = resourceManager->GetResource(context.CheckArgument<const char*>(0));
+
+		if (!resource.GetRef())
+		{
+			context.SetResult(false);
+			return;
+		}
+
+		std::string path = context.CheckArgument<const char*>(1);
+
+		// get the owning server instance
+		auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+
+		context.SetResult(instance->GetComponent<fx::CTrainTrackParser>()->LoadFile(resource, path));
+	});
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_PLAYER_FAKE_WANTED_LEVEL", MakePlayerEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{

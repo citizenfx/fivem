@@ -27,7 +27,8 @@
 		"vendor:folly",
 		"vendor:concurrentqueue",
 		"vendor:xenium",
-		"vendor:rocksdb"
+		"vendor:rocksdb",
+		"vendor:tinyxml2-dll"
 	],
 	"provides": []
 }

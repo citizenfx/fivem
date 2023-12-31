@@ -19,6 +19,7 @@
 #include <EASTL/fixed_vector.h>
 
 #include <state/Pool.h>
+#include <parser/TrainParser.h>
 
 #include <IteratorView.h>
 
@@ -839,7 +840,8 @@ void sync::SyncCommandList::Execute(const fx::ClientSharedPtr& client)
 }
 
 #ifdef STATE_FIVE
-static auto GetTrain(fx::ServerGameState* sgs, uint32_t objectId) -> fx::sync::SyncEntityPtr
+
+auto GetTrain(fx::ServerGameState* sgs, uint32_t objectId) -> fx::sync::SyncEntityPtr
 {
 	if (objectId != 0)
 	{
@@ -854,7 +856,7 @@ static auto GetTrain(fx::ServerGameState* sgs, uint32_t objectId) -> fx::sync::S
 	return {};
 };
 
-static auto GetNextTrain(fx::ServerGameState* sgs, const fx::sync::SyncEntityPtr& entity) -> fx::sync::SyncEntityPtr
+auto GetNextTrain(fx::ServerGameState* sgs, const fx::sync::SyncEntityPtr& entity) -> fx::sync::SyncEntityPtr
 {
 	if (auto trainState = entity->syncTree->GetTrainState())
 	{
@@ -6940,8 +6942,15 @@ static InitFunction initFunction([]()
 		g_oneSyncWorkaround763185 = instance->AddVariable<bool>("onesync_workaround763185", ConVar_None, false);
 
 		fwRefContainer<fx::ServerGameState> sgs = new fx::ServerGameState();
+		
+		fwRefContainer<fx::CTrainConfigParser> trainConfigParser = new fx::CTrainConfigParser();
+		fwRefContainer<fx::CTrainTrackParser> trainTrackParser = new fx::CTrainTrackParser();
+
 		instance->SetComponent(sgs);
 		instance->SetComponent<fx::ServerGameStatePublic>(sgs);
+
+		instance->SetComponent<fx::CTrainConfigParser>(trainConfigParser);
+		instance->SetComponent<fx::CTrainTrackParser>(trainTrackParser);
 
 		instance->GetComponent<fx::GameServer>()->OnSyncTick.Connect([=]()
 		{

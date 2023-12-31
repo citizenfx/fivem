@@ -2628,21 +2628,22 @@ struct CTrainGameStateDataNode : GenericSerializeDataNode<CTrainGameStateDataNod
 		//2372 inserted a bool between isEngine and isCaboose
 		if (Is2372())
 		{
-			s.Serialize(data.unk198);
+			//Modified by 0x2310A8F9421EBF43
+			s.Serialize(data.allowRemovalByPopulation);
 		}
 
 		s.Serialize(data.isCaboose);
-		s.Serialize(data.unk12);
+		s.Serialize(data.isMissionTrain);
 		s.Serialize(data.direction);
-		s.Serialize(data.unk14);
+		s.Serialize(data.hasPassengerCarriages);
 		s.Serialize(data.renderDerailed);
 
 		s.Serialize(data.forceDoorsOpen);
 
 		if (Is2372())
 		{
-			//Always true on randomly spawned trains
-			s.Serialize(data.hasNoThreadId);
+			// true on randomly spawned metro trains
+			s.Serialize(data.shouldStopAtStations);
 
 			//Modified by 0xEC0C1D4922AF9754
 			s.Serialize(data.highPrecisionBlending);
