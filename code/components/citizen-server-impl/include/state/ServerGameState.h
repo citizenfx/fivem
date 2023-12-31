@@ -547,18 +547,18 @@ struct CTrainGameStateDataNodeData
 	bool isEngine;
 	bool isCaboose;
 
-	bool unk12;
+	bool isMissionTrain;
 
 	bool direction;
 
-	bool unk14;
+	bool hasPassengerCarriages;
 
 	bool renderDerailed;
 
 	// 2372 {
-	bool unk198; //unk198
-	bool highPrecisionBlending; //unk224
-	bool hasNoThreadId; //unk199
+	bool allowRemovalByPopulation;
+	bool highPrecisionBlending;
+	bool shouldStopAtStations;
 	// }
 
 	bool forceDoorsOpen;
@@ -646,17 +646,6 @@ enum ePopType
 	POPTYPE_REPLAY,
 	POPTYPE_CACHE,
 	POPTYPE_TOOL
-};
-
-//TODO: Probably should be moved out of fx::sync namespace
-struct scrVector
-{
-	float x;
-	int pad;
-	float y;
-	int pad2;
-	float z;
-	int pad3;
 };
 
 struct SyncTreeBase
@@ -1123,6 +1112,9 @@ struct ScriptGuid
 		g_scriptHandlePool->Delete((fx::ScriptGuid*)ptr);
 	}
 };
+
+auto GetTrain(fx::ServerGameState* sgs, uint32_t objectId) -> fx::sync::SyncEntityPtr;
+auto GetNextTrain(fx::ServerGameState* sgs, const fx::sync::SyncEntityPtr& entity) -> fx::sync::SyncEntityPtr;
 
 struct EntityCreationState
 {
