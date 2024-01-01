@@ -263,7 +263,7 @@ int MonoScriptRuntime::HandlesFile(char* filename, IScriptHostWithResourceData* 
 	}
 
 	// last supported date for this pilot of mono_rt2, in UTC
-	constexpr int maxYear = 2023, maxMonth = 12, maxDay = 31;
+	constexpr int maxYear = 2024, maxMonth = 4, maxDay = 30;
 
 	// Allowed values for mono_rt2
 	constexpr std::string_view allowedValues[] = {
