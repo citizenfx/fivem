@@ -644,6 +644,8 @@ NTSTATUS NTAPI LdrLoadDllStub(const wchar_t* fileName, uint32_t* flags, UNICODE_
 		// VulkanRT loader, we don't use Vulkan, CEF does (to 'collect info'), and this crashes a lot of Vulkan drivers
 		(moduleNameStr.find(L"vulkan-1.dll") != std::string::npos && getenv("CitizenFX_ToolMode")) ||
 #endif
+		// omen gaming hub (HP's software) - it crashes everyone that has this software installed for unknown reasons
+		moduleNameStr.find(L"omen_camera_x64.dll") != std::string::npos ||
 		false
 	)
 	{
