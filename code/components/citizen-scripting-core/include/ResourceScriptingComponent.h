@@ -86,15 +86,18 @@ public:
 
 	inline void AddHandledEvent(const std::string& eventName)
 	{
-		if (m_eventsHandled.find("*") == m_eventsHandled.end()) //Only adds if theres no wildcard found
+		if(eventName == "*")
 		{
-			m_eventsHandled.insert(eventName);
+			//when adding wildcard remove all others, so events doesn't get called multiple times...
+			m_eventsHandled.clear(); //Not sure if clear is even valid function :D
+			m_eventsHandled.insert("*");
 			return;
 		}
 
-		//if wildcard is found remove all others, so events doesn't get called multiple times...
-		m_eventsHandled.clear(); //Not sure if clear is even valid function :D
-		m_eventsHandled.insert("*");
+		if (m_eventsHandled.find("*") == m_eventsHandled.end()) //Only adds if theres no wildcard found
+		{
+			m_eventsHandled.insert(eventName);
+		}
 	}
 
 	SCRIPTING_CORE_EXPORT void Tick();
