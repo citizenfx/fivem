@@ -86,16 +86,13 @@ public:
 
 	inline void AddHandledEvent(const std::string& eventName)
 	{
-		if(eventName == "*")
-		{
-			//when adding wildcard remove all others, so events doesn't get called multiple times...
-			m_eventsHandled.clear(); //Not sure if clear is even valid function :D
-			m_eventsHandled.insert("*");
-			return;
-		}
-
 		if (m_eventsHandled.find("*") == m_eventsHandled.end()) //Only adds if theres no wildcard found
 		{
+			if(eventName == "*")
+			{
+				m_eventsHandled.clear(); //when adding wildcard remove all others, so events doesn't get called multiple times...
+			}
+			
 			m_eventsHandled.insert(eventName);
 		}
 	}
