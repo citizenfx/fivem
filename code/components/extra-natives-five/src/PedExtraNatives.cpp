@@ -415,7 +415,7 @@ static HookFunction initFunction([]()
 
 			resource->OnStop.Connect([]()
 			{
-				*_motionAimingTurnTransitionThresholdMin = DEG2RAD(45.0f);
+				*_motionAimingTurnTransitionThresholdMin = DEG2RAD(-45.0f);
 				*_motionAimingTurnTransitionThresholdMax = DEG2RAD(135.0f);
 			});
 		}
