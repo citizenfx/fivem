@@ -215,7 +215,7 @@ static std::optional<TicketData> VerifyTicketEx(const std::string& ticket)
 		return {};
 	}
 
-	uint32_t length = *(uint32_t*)&ticketData[20 + 4 + 128];
+	size_t length = static_cast<size_t>(*(uint32_t*)&ticketData[20 + 4 + 128]);
 
 	// validate full length
 	if (ticketData.size() < 20 + 4 + 128 + 4 + length)
