@@ -12,13 +12,13 @@
 #include <netPeerAddress.h>
 
 #define DECLARE_ACCESSOR(x) \
-	decltype(impl.m2372.x)& x()        \
-	{                       \
-		return (xbr::IsGameBuildOrGreater<2372>()) ? impl.m2372.x : (xbr::IsGameBuildOrGreater<2060>()) ? impl.m2060.x : impl.m1604.x;   \
+	decltype(impl.m3095.x)& x() \
+	{ \
+		return (xbr::IsGameBuildOrGreater<3095>()) ? impl.m3095.x : (xbr::IsGameBuildOrGreater<2372>()) ? impl.m2372.x : (xbr::IsGameBuildOrGreater<2060>()) ? impl.m2060.x : impl.m1604.x; \
 	} \
-	const decltype(impl.m2372.x)& x() const                         \
-	{                                                    \
-		return (xbr::IsGameBuildOrGreater<2372>()) ? impl.m2372.x : (xbr::IsGameBuildOrGreater<2060>()) ? impl.m2060.x : impl.m1604.x;  \
+	const decltype(impl.m3095.x)& x() const \
+	{ \
+		return (xbr::IsGameBuildOrGreater<3095>()) ? impl.m3095.x : (xbr::IsGameBuildOrGreater<2372>()) ? impl.m2372.x : (xbr::IsGameBuildOrGreater<2060>()) ? impl.m2060.x : impl.m1604.x; \
 	}
 
 #ifdef COMPILING_GTA_GAME_FIVE
@@ -85,6 +85,7 @@ private:
 		char end[EndPad];
 	};
 
+	// Do not forget to update `DECLARE_ACCESSOR` define when adding new impl!
 	union
 	{
 		Impl<12, 0, 28> m1604;
@@ -96,14 +97,14 @@ private:
 public:
 	void* GetPlayerInfo()
 	{
-		return (xbr::IsGameBuildOrGreater<3095>()) ? impl.m3095.playerInfo :  (xbr::IsGameBuildOrGreater<2372>()) ? impl.m2372.playerInfo : (xbr::IsGameBuildOrGreater<2060>()) ? impl.m2060.playerInfo : impl.m1604.playerInfo;
+		return playerInfo();
 	}
 
 public:
-	DECLARE_ACCESSOR(nonPhysicalPlayerData);
-	DECLARE_ACCESSOR(activePlayerIndex);
-	DECLARE_ACCESSOR(physicalPlayerIndex);
-	DECLARE_ACCESSOR(playerInfo);
+	DECLARE_ACCESSOR(nonPhysicalPlayerData)
+	DECLARE_ACCESSOR(activePlayerIndex)
+	DECLARE_ACCESSOR(physicalPlayerIndex)
+	DECLARE_ACCESSOR(playerInfo)
 };
 
 class CNetworkPlayerMgr
@@ -111,3 +112,5 @@ class CNetworkPlayerMgr
 public:
 	static GTA_GAME_EXPORT CNetGamePlayer* GetPlayer(int playerIndex);
 };
+
+#undef DECLARE_ACCESSOR
