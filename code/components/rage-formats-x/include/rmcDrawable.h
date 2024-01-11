@@ -371,7 +371,7 @@ public:
 
 	inline size_t GetDataSize()
 	{
-		size_t levelSize = GetStride() * m_height;
+		size_t levelSize = static_cast<size_t>(GetStride()) * m_height;
 		size_t size = 0;
 
 		for (int i = 0; i < m_levels; i++)
@@ -1979,14 +1979,14 @@ public:
 		}
 		else
 		{
-			void* vertexDataBit = pgStreamManager::Allocate(vertexCount * vertexStride, PHYSICAL_VERTICES, nullptr);
+			void* vertexDataBit = pgStreamManager::Allocate(static_cast<size_t>(vertexCount) * vertexStride, PHYSICAL_VERTICES, nullptr);
 
 			m_vertexData = vertexDataBit;
 
 #ifdef RAGE_FORMATS_GAME_FIVE
 			m_lockedData = vertexDataBit;
 #endif
-			memcpy(*m_vertexData, vertexData, vertexCount * vertexStride);
+			memcpy(*m_vertexData, vertexData, static_cast<size_t>(vertexCount) * vertexStride);
 		}
 	}
 #else
@@ -2010,7 +2010,7 @@ public:
 
 			m_vertexData = vertexDataBit;
 
-			memcpy(*m_vertexData, vertexData, vertexCount * vertexStride);
+			memcpy(*m_vertexData, vertexData, static_cast<size_t>(vertexCount) * vertexStride);
 		}
 	}
 

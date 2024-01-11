@@ -882,7 +882,7 @@ void NUIWindow::UpdateFrame()
 					auto _ = GetRenderBufferLock();
 					m_dirtyRects = std::queue<CefRect>();
 
-					memcpy(pBits, m_renderBuffer, m_height * pitch);
+					memcpy(pBits, m_renderBuffer, static_cast<size_t>(m_height) * pitch);
 				}
 
 				GetTexture()->Unmap(&lockedTexture);

@@ -93,7 +93,7 @@ static rage::grcTexture* InitializeTextureFromFile(const std::wstring& filename)
 				
 				// swap the pixels before writing
 				std::vector<uint8_t> inDataConverted;
-				inDataConverted.resize(width * height * 4);
+				inDataConverted.resize(static_cast<std::vector<uint8_t>::size_type>(width) * height * 4);
 
 				ConvertImageDataRGBA_BGRA(0, 0, width, height, width * 4, pixelData, width * 4, &inDataConverted[0]);
 

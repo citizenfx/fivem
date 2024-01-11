@@ -114,7 +114,7 @@ void MumbleAudioInput::ThreadFunc()
 		m_audioClient->Start();
 	}
 
-	m_audioBuffer.resize((m_waveFormat.nSamplesPerSec / 100) * m_waveFormat.nBlockAlign);
+	m_audioBuffer.resize((static_cast<std::vector<uint8_t>::size_type>(m_waveFormat.nSamplesPerSec / 100)) * m_waveFormat.nBlockAlign);
 
 	bool recreateDevice = false;
 

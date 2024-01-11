@@ -141,8 +141,9 @@ RuntimeTex::RuntimeTex(const char* name, int width, int height)
 
 	if (m_texture->Map(0, 0, &lockedTexture, rage::grcLockFlags::WriteDiscard))
 	{
-		memset(lockedTexture.pBits, 0, lockedTexture.pitch * lockedTexture.height);
-		m_backingPixels.resize(lockedTexture.pitch * lockedTexture.height);
+		auto newSize = static_cast<std::vector<uint8_t>::size_type>(lockedTexture.pitch) * lockedTexture.height;
+		memset(lockedTexture.pBits, 0, newSize);
+		m_backingPixels.resize(newSize);
 
 		m_pitch = lockedTexture.pitch;
 
@@ -806,10 +807,9 @@ struct atArrayBase
 	TIndex size;
 
 	atArrayBase(int count, int size)
+		: count(count), size(size)
 	{
-		offset = rage::GetAllocator()->allocate(count * size, 16, 0);
-		count = count;
-		size = count;
+		offset = rage::GetAllocator()->allocate(static_cast<size_t>(count) * size, 16, 0);
 	}
 
 	~atArrayBase()
