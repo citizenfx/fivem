@@ -453,21 +453,7 @@ scrEngine::NativeHandler GetNativeHandlerDo(uint64_t origHash, uint64_t hash)
 
 				if (handler)
 				{
-#define BLOCK_NATIVE(x) \
-	if (origHash == x) { \
-		static auto ogHandler = handler; \
-		handler = [](rage::scrNativeCallContext* cxt) { \
-			if (storyMode) return ogHandler(cxt); \
-			cxt->SetResult<uintptr_t>(0, 0); \
-		}; \
-	}
-
-					BLOCK_NATIVE(0x9BAE5AD2508DF078); // prop density lowering
-					BLOCK_NATIVE(0x5A5F40FE637EB584);
-					BLOCK_NATIVE(0xE80492A9AC099A93);
-					BLOCK_NATIVE(0x8EF07E15701D61ED);
-					BLOCK_NATIVE(0x933D6A9EEC1BACD0);
-					BLOCK_NATIVE(0x213AEB2B90CBA7AC);
+					#include "BlockedNatives.h"
 				}
 
 				g_fastPathMap[NativeHash{ origHash }] = handler;

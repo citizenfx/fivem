@@ -410,6 +410,11 @@ scrEngine::NativeHandler scrEngine::GetNativeHandler(uint64_t hash)
 					handler = (scrEngine::NativeHandler)/*DecodePointer(*/table->handlers[i]/*)*/;
 					HandlerFilter(&handler);
 
+					if (handler)
+					{
+						#include "BlockedNatives.h"
+					}
+
 					g_fastPathMap.insert({ NativeHash{ origHash }, handler });
 
 					break;
@@ -417,22 +422,7 @@ scrEngine::NativeHandler scrEngine::GetNativeHandler(uint64_t hash)
 			}
 		}
 	}
-
-	if (handler)
-	{
-		//StringToInt, ClearBit, SetBitsInRange, SetBit, CopyMemory
-		if (origHash == 0xF2DD2298B3AF23E2 || origHash == 0x7D1D4A3602B6AD4E || origHash == 0x324DC1CEF57F31E6 || origHash == 0xF73FBE4845C43B5B || origHash == 0xF7AC7DC0DEE7C9BE)
-		{
-			return [](rage::scrNativeCallContext*)
-			{
-				// no-op
-			};
-		}
-
-		return handler;
-	}
-
-	return nullptr;
+	return handler;
 }
 }
 
