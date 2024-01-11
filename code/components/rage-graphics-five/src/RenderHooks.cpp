@@ -1263,7 +1263,7 @@ void CaptureInternalScreenshot()
 	
 	if (SUCCEEDED(GetInvariantD3D11DeviceContext()->Map(myStagingTexture, 0, D3D11_MAP_READ, 0, &msr)))
 	{
-		size_t blen = (resDesc.Height / 4) * msr.RowPitch;
+		size_t blen = (static_cast<size_t>(resDesc.Height / 4)) * msr.RowPitch;
 		std::unique_ptr<uint8_t[]> data(new uint8_t[blen]);
 		memcpy(data.get(), msr.pData, blen);
 

@@ -2113,7 +2113,7 @@ void RageAudioStream::ProcessPacket(const float** data, int frames, int64_t pts)
 	if (TryEnsureInitialized())
 	{
 		// interleave and normalize the data
-		std::vector<int16_t> buffer(frames * m_initParams.channels);
+		std::vector<int16_t> buffer(static_cast<std::vector<int16_t>::size_type>(frames) * m_initParams.channels);
 		auto cursor = buffer.data();
 
 		for (int f = 0; f < frames; f++)

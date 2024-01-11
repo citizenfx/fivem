@@ -126,7 +126,7 @@ LRESULT GlobalInputHandlerLocal::WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam
 				case RIM_TYPEHID:
 				{
 					const RAWHID& hid = input->data.hid;
-					std::vector<char> reports(hid.dwSizeHid * hid.dwCount);
+					std::vector<char> reports(static_cast<std::vector<char>::size_type>(hid.dwSizeHid) * hid.dwCount);
 					memcpy(reports.data(), hid.bRawData, reports.size());
 
 					// no-op

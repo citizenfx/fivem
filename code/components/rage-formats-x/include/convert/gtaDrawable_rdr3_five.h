@@ -277,7 +277,7 @@ five::pgDictionary<five::grcTexturePC>* convert(rdr3::pgDictionary<rdr3::grcText
 				num8 /= 8;
 			}
 
-			std::vector<uint8_t> newPixelData(nyTexture->GetWidth() * nyTexture->GetHeight() * ps * 2);//nyTexture->GetDataSize() * 2);
+			std::vector<uint8_t> newPixelData(static_cast<std::vector<uint8_t>::size_type>(nyTexture->GetWidth()) * nyTexture->GetHeight() * ps * 2); // nyTexture->GetDataSize() * 2);
 
 			for (int i = 0; i < (ht + 7) / 8; i++)
 			{
@@ -539,7 +539,7 @@ five::grcVertexBufferD3D* convert(rdr3::grcVertexBufferD3D* buffer)
 	auto newVF = convert<five::grcVertexFormat*>(buffer->GetVertexFormat());
 	out->SetVertexFormat(newVF);
 
-	std::vector<char> vertexBuffer(2 * buffer->GetStride() * buffer->GetCount());
+	std::vector<char> vertexBuffer(static_cast<std::vector<char>::size_type>(2) * buffer->GetStride() * buffer->GetCount());
 
 	auto oldVF = buffer->GetVertexFormat();
 	char* oldData = (char*)oldBuffer;
@@ -566,7 +566,7 @@ five::grcVertexBufferD3D* convert(rdr3::grcVertexBufferD3D* buffer)
 
 	for (int i = 0; i < buffer->GetCount(); i++)
 	{
-		char* thisBit = &vertexBuffer[i * newStride];
+		char* thisBit = &vertexBuffer[static_cast<std::vector<char>::size_type>(i) * newStride];
 		//char* oldBit = &oldData[i * buffer->GetStride()];
 		//memcpy(thisBit, &oldData[i * buffer->GetStride()], buffer->GetStride());
 
