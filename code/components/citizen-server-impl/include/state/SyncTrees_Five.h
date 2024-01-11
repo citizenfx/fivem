@@ -449,7 +449,67 @@ struct CEntityScriptGameStateDataNode
 	}
 };
 
-struct CPhysicalScriptGameStateDataNode { };
+struct CPhysicalScriptGameStateDataNode
+{
+	CPhysicalScriptGameStateNodeData data;
+
+	bool Parse(SyncParseState& state)
+	{
+		data.isInvincible = state.buffer.ReadBit();
+		bool dontLoadCollision = state.buffer.ReadBit();
+		bool freezeIfNoCollision = state.buffer.ReadBit();
+		data.isDamagedOnlyByPlayer = state.buffer.ReadBit();
+		data.isBulletProof = state.buffer.ReadBit();
+		data.isFireProof = state.buffer.ReadBit();
+		data.isExplosionProof = state.buffer.ReadBit();
+		data.isCollisionProof = state.buffer.ReadBit();
+		data.isMeleeProof = state.buffer.ReadBit();
+		data.isSmokeProof = state.buffer.ReadBit();
+		data.isSteamProof = state.buffer.ReadBit();
+		data.isFriendlyWithRelationshipGroup = state.buffer.ReadBit();
+		data.isOnlyDamagedByRelationshipGroup = state.buffer.ReadBit();
+		bool isOnlyDamagedByScriptParticipants = state.buffer.ReadBit();
+		data.dontResetDamageFlagsOnCleanup = state.buffer.ReadBit();
+		bool unk_0xCF = state.buffer.ReadBit();
+		bool unk_0xD0 = state.buffer.ReadBit();
+		bool isInAnimatedCutscene = state.buffer.ReadBit();
+		if (!Is2802())
+		{
+			bool isGhostedForGhostPlayers = state.buffer.ReadBit();
+		}
+		bool isPickupByCargobobDisabled = state.buffer.ReadBit();
+
+		if (data.isFriendlyWithRelationshipGroup || data.isOnlyDamagedByRelationshipGroup)
+		{
+			data.relationshipGroupHash = state.buffer.Read<uint32_t>(32);
+		}
+		else
+		{
+			data.relationshipGroupHash = 0;
+		}
+
+		bool hasAlwaysClonedForPlayers = state.buffer.ReadBit();
+		if (hasAlwaysClonedForPlayers)
+		{
+			data.alwaysClonedForPlayers = state.buffer.Read<uint32_t>(32);
+		}
+		else
+		{
+			data.alwaysClonedForPlayers = 0;
+		}
+
+		data.hasMaxSpeed = state.buffer.ReadBit();
+		if (data.hasMaxSpeed)
+		{
+			data.maxSpeed = state.buffer.ReadFloat(16, 600.0f);
+		}
+
+		bool allowMigrateToSpectator = state.buffer.ReadBit();
+
+		return true;
+	}
+};
+
 struct CVehicleScriptGameStateDataNode { };
 
 struct CEntityScriptInfoDataNode
@@ -2067,7 +2127,61 @@ struct CObjectGameStateDataNode
 };
 
 struct CObjectScriptGameStateDataNode { };
-struct CPhysicalHealthDataNode { };
+
+struct CPhysicalHealthDataNode
+{
+	CPhysicalHealthNodeData data;
+
+	bool Parse(SyncParseState& state)
+	{
+		bool hasNoDamage = state.buffer.ReadBit();
+
+		data.hasMaxHealth = state.buffer.ReadBit();
+		if (data.hasMaxHealth)
+		{
+			data.maxHealth = state.buffer.Read<int>(16);
+		}
+		else
+		{
+			data.maxHealth = 0;
+		}
+
+		if (hasNoDamage)
+		{
+			data.hasWeaponDamageEntity = false;
+			data.weaponDamageHash = 0;
+			data.damageFlags = 0;
+			data.health = data.hasMaxHealth ? data.maxHealth : 1000;
+			return true;
+		}
+
+		data.health = state.buffer.Read<int>(16);
+
+		data.hasWeaponDamageEntity = state.buffer.ReadBit();
+		if (data.hasWeaponDamageEntity)
+		{
+			data.weaponDamageEntityObjectId = state.buffer.Read<int>(13);
+			data.weaponDamageHash = state.buffer.Read<uint32_t>(32);
+		}
+		else
+		{
+			data.weaponDamageEntityObjectId = 0;
+			data.weaponDamageHash = 0;
+		}
+
+		bool hasDamageFlags = state.buffer.ReadBit();
+		if (hasDamageFlags)
+		{
+			data.damageFlags = state.buffer.Read<int>(64);
+		}
+		else
+		{
+			data.damageFlags = 0;
+		}
+
+		return true;
+	}
+};
 
 struct CObjectSectorPosNode : GenericSerializeDataNode<CObjectSectorPosNode>
 {
@@ -2297,7 +2411,18 @@ struct CPedMovementGroupDataNode
 	}
 };
 
-struct CPedAIDataNode { };
+struct CPedAIDataNode
+{
+	CPedAINodeData data;
+
+	bool Parse(SyncParseState& state)
+	{
+		data.relationshipGroupHash = state.buffer.Read<uint32_t>(32);
+		data.decisionMakerType = state.buffer.Read<uint32_t>(32);
+		return true;
+	}
+};
+
 struct CPedAppearanceDataNode { };
 
 struct CPedOrientationDataNode : GenericSerializeDataNode<CPedOrientationDataNode>
@@ -3523,6 +3648,27 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, false>
 	virtual CPedMovementGroupNodeData* GetPedMovementGroup() override
 	{
 		auto [hasNode, node] = this->template GetData<CPedMovementGroupDataNode>();
+
+		return hasNode ? &node->data : nullptr;
+	}
+
+	virtual CPhysicalHealthNodeData* GetPhysicalHealth() override
+	{
+		auto [hasNode, node] = this->template GetData<CPhysicalHealthDataNode>();
+
+		return hasNode ? &node->data : nullptr;
+	}
+
+	virtual CPhysicalScriptGameStateNodeData* GetPhysicalScriptGameState() override
+	{
+		auto [hasNode, node] = this->template GetData<CPhysicalScriptGameStateDataNode>();
+
+		return hasNode ? &node->data : nullptr;
+	}
+
+	virtual CPedAINodeData* GetPedAI() override
+	{
+		auto [hasNode, node] = this->template GetData<CPedAIDataNode>();
 
 		return hasNode ? &node->data : nullptr;
 	}
