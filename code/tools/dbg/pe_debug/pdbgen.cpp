@@ -188,7 +188,7 @@ void tryGenerateSamplePDB( PEFile& peFile, const char* exeFile, const char* symF
         // Embed parsed symbols as publics.
         if ( symbols.empty() == false )
         {
-            printf( "embedding %d symbols into PDB\n", symbols.size() );
+            printf( "embedding %zu symbols into PDB\n", symbols.size() );
 
             CV_PUBSYMFLAGS pubflags_func;
             pubflags_func.grfFlags = 0;
