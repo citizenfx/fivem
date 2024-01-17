@@ -419,7 +419,7 @@ static HookFunction hookFunction([]()
 		static auto asynchronousAudio = hook::get_address<bool*>(hook::get_pattern("E8 ? ? ? ? 40 38 35 ? ? ? ? 75 05", 8));
 		static auto audioTimeout = hook::get_address<int*>(hook::get_pattern("8B 15 ? ? ? ? 41 03 D6 3B", 2));
 #elif IS_RDR3
-		static auto asynchronousAudio = hook::get_address<bool*>(hook::get_pattern("80 3D ? ? ? ? ? 74 38 33 DB 40 84 FF 74 19"));
+		static auto asynchronousAudio = hook::get_address<bool*>(hook::get_pattern("80 3D ? ? ? ? ? 74 38 33 DB 40 84 FF 74 19", 2));
 		static auto audioTimeout = hook::get_address<int*>(hook::get_pattern("8B 15 ? ? ? ? 41 03 D6 3B", 2));
 #endif
 		// See https://github.com/citizenfx/fivem/issues/1446 comments for a more viable solution:
