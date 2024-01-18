@@ -1,5 +1,5 @@
 ### Goal of this PR
-<!-- Consice explanation of what this PR meant to achieve -->
+<!-- Concise explanation of what this PR meant to achieve -->
 
 ...
 
