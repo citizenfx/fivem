@@ -50,6 +50,18 @@ struct ExceptionBuffer
 	char data[4096];
 };
 
+struct ExtraExceptionInfo
+{
+	size_t dataSize;
+	char data[0];
+};
+
+extern "C" 
+{
+DLL_EXPORT ExtraExceptionInfo* g_extraExceptionInfo = nullptr;
+DLL_EXPORT bool g_accessDeathFriendlyMessage = false;
+}
+
 using json = nlohmann::json;
 
 static json load_json_file(const std::wstring& path)
@@ -1379,9 +1391,27 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 
 				if (isAccessDeath)
 				{
-					windowTitle = L"Fatal Error";
-					mainInstruction = L"Early-exit trap";
-					content = fmt::sprintf(L"A problem while running %s has tripped an early-exit trap.\n\nIf asking for support, please provide a readable 'report ID' from the expanded information below.", PRODUCT_NAME);
+					if (!g_accessDeathFriendlyMessage)
+					{
+						windowTitle = L"Fatal Error";
+						mainInstruction = L"Early-exit trap";
+						content = fmt::sprintf(L"A problem while running %s has tripped an early-exit trap.\n\nIf asking for support, please provide a readable 'report ID' from the expanded information below.", PRODUCT_NAME);
+					}
+					else
+					{
+						windowTitle = PRODUCT_NAME L" encountered an error";
+						mainInstruction = L"Game integrity check failed";
+						content = L"A " PRODUCT_NAME L" integrity check failed and the game had to be terminated.\nThis may be caused by recent changes made to your computer, please read this <A HREF=\"https://aka.cfx.re/integrity-check-failed\">support article</A> for more information.";
+					}
+
+					if (g_extraExceptionInfo)
+					{
+						std::string extraData = "Additional diagnostic information:\n";
+						extraData.append(&g_extraExceptionInfo->data[0], g_extraExceptionInfo->dataSize);
+
+						content = fmt::sprintf(L"%s\n\n%s", content, ToWide(extraData));
+					}
+
 				}
 
 				if (shouldTerminate)
