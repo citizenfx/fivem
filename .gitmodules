@@ -179,9 +179,6 @@
 [submodule "vendor/libnyquist"]
 	path = vendor/libnyquist
 	url = https://github.com/ddiakopoulos/libnyquist.git
-[submodule "ext/txAdmin"]
-	path = ext/txAdmin
-	url = https://github.com/citizenfx/txAdmin.git
 [submodule "vendor/prometheus-cpp"]
 	path = vendor/prometheus-cpp
 	url = https://github.com/jupp0r/prometheus-cpp.git

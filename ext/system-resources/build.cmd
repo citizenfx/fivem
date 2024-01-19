@@ -11,19 +11,18 @@ if "%1" == "chat" goto chat
 set SRRoot=%~dp0\data
 pushd %~dp0
 
-:: txadmin
-pushd ..\txAdmin
-rmdir /s /q dist
+:: txAdmin
+set MonitorArtifactURL="https://github.com/tabarra/txAdmin/releases/download/v7.0.0/monitor.zip"
 
-call npm install npm@8.13.2
-call node_modules\.bin\npm ci
-call node_modules\.bin\npm run build 2>&1 | findstr /V "not found"
-popd
+set MonitorPath=%SRRoot%\monitor
+set MonitorArtifactPath=%SRRoot%\monitor.zip
 
-rmdir /s /q %SRRoot%\monitor\
-mkdir %SRRoot%\monitor\
+rmdir /s /q %MonitorPath%
+mkdir %MonitorPath%
 
-xcopy /y /e ..\txAdmin\dist %SRRoot%\monitor
+curl -Lo %MonitorArtifactPath% %MonitorArtifactURL%
+tar -C %MonitorPath%\ -xf %MonitorArtifactPath%
+del %MonitorArtifactPath%
 
 :: chat
 :chat

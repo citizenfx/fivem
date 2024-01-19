@@ -14,7 +14,6 @@ part of the main project.
 * [**nuget/**](./nuget): Build files for the `CitizenFX.Core.Client` and `CitizenFX.Core.Server` NuGet packages.
 * [**symbol-upload/**](./symbol-upload): A tool to collect Linux build symbols to upload to a .NET Core-style symbol server.
 * [**system-resources/**](./system-resources): System resources bundled with FXServer by default.
-* [**txAdmin/**](./txAdmin): A local snapshot of [txAdmin](https://github.com/tabarra/txAdmin), the official server monitor/management dashboard.
 * [**typings/**](./typings): Build files for the `@citizenfx/client` and `@citizenfx/server` NPM packages.
 * [**ui-build/**](./ui-build): Scripts and data files for building `citizen/ui.zip` including root helpers, legacy UI scripts and a packed version of `cfx-ui`.
 * [**webadmin/**](./webadmin): In-process web dashboard system resource.

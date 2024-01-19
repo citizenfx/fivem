@@ -7,12 +7,17 @@ npm install -g npm@7.19.1
 mkdir -p data
 
 # txAdmin
-cd ../txAdmin/
-npm ci
-npm run build
-cd ../system-resources/
+MONITOR_ARTIFACT_URL="https://github.com/tabarra/txAdmin/releases/download/v7.0.0/monitor.zip"
 
-cp -a ../txAdmin/dist data/monitor
+MONITOR_PATH=data/monitor
+MONITOR_ARTIFACT_PATH=data/monitor.zip
+
+rm -rf $MONITOR_PATH
+mkdir -p $MONITOR_PATH
+
+curl -Lo $MONITOR_ARTIFACT_PATH $MONITOR_ARTIFACT_URL
+unzip $MONITOR_ARTIFACT_PATH -d $MONITOR_PATH
+rm $MONITOR_ARTIFACT_PATH
 
 # chat
 cd resources/chat/
