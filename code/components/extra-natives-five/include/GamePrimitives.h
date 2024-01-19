@@ -54,7 +54,7 @@ struct alignas(16) Vec3V
 	float pad;
 
 	Vec3V()
-		: x(0), y(0), z(0), pad(0)
+		: x(0), y(0), z(0), pad(NAN)
 	{
 	}
 
@@ -74,8 +74,8 @@ struct alignas(16) Vec4V
 
 struct spdAABB
 {
-	rage::Vec3V mins;
-	rage::Vec3V maxs;
+	Vec3V mins;
+	Vec3V maxs;
 };
 
 struct spdSphere
@@ -88,8 +88,8 @@ struct spdSphere
 // fake name
 struct spdRay
 {
-	rage::Vec3V start;
-	rage::Vec3V end;
+	Vec3V start;
+	Vec3V end;
 };
 
 enum class eSearchVolumeType : int
