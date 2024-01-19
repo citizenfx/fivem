@@ -793,6 +793,17 @@ static HookFunction hookFunction([]()
 
 	// cancel out ioLogitechLedDevice
 	hook::jump(hook::get_pattern("85 C0 0F 85 ? ? 00 00 48 8B CB FF 15", -0x77), Return0);
+
+	// hook up cursor lock to CMousePointer::_bIsVisible
+	static auto isPointerVisible = hook::get_address<bool*>(hook::get_pattern("80 3D ? ? ? ? 00 0F 45 C6 88 05 ? ? ? ? 48 8B 5C", 10), 2, 6) + 2;
+
+	InputHook::QueryMayLockCursor.Connect([](int& may)
+	{
+		if (*isPointerVisible)
+		{
+			may = FALSE;
+		}
+	});
 });
 
 fwEvent<HWND, UINT, WPARAM, LPARAM, bool&, LRESULT&> InputHook::DeprecatedOnWndProc;
