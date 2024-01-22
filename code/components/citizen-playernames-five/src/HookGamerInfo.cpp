@@ -186,6 +186,12 @@ struct PatternPair
 	int offset;
 };
 
+template<typename T, T Value>
+static T Return()
+{
+	return Value;
+}
+
 static HookFunction hookFunction([]()
 {
 	const size_t gamerInfoSize = (xbr::IsGameBuildOrGreater<2060>()) ? sizeof(CGamerInfo<2060>) : sizeof(CGamerInfo<1604>);
@@ -402,6 +408,9 @@ static HookFunction hookFunction([]()
 	{
 		LimitPatch(hook::pattern("83 FB ? 77 ? 48 69 DB").count(1).get(0).get<void>(0));
 		LimitPatch(hook::pattern("83 FB 33 77 74 48 8B FB").count(1).get(0).get<void>(0));
+
+		// There's a new unknown "privilege" check that needs to be patched.
+		hook::jump(hook::get_pattern("84 C0 74 04 32 C0 EB 11 48 8B D6", -0x21), Return<bool, true>);
 	}
 	else
 	{
