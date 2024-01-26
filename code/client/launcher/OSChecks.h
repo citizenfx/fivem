@@ -8,21 +8,18 @@
 
 inline bool EnsureCompatibleOSVersion()
 {
-	if (IsWindows8OrGreater())
+	if (IsWindows10OrGreater())
 	{
 		return true;
 	}
 
-	const wchar_t* title = L"Your Windows 7 PC is out of support";
+	const wchar_t* title = L"Your operating system is out of support.";
 
-	const wchar_t* content = L"As of January 14, 2020, support for Windows 7 has come to an end."
-							 L"\n\nYour PC is more vulnerable to viruses and malware due to:"
-							 L"\n- No security updates"
-							 L"\n- No software updates"
-							 L"\n- No tech support"
-							 L"\n\nPlease upgrade to Windows 8.1 or higher as soon as possible."
-							 // L"\n\nSee the <A HREF=\"https://fivem.net\">help article</A> for more info."
-							 L"\n\nThe game will close now.";
+	const wchar_t* content = L"In light of Microsoft’s end of support for Windows 7 and Windows 8 operating systems,"
+							 L"\nRockstar Games is no longer officially supporting these operating systems since January 30, 2024."
+							 L"\n\nPlease upgrade to a supported operating system."
+							 L"\n\nFor more information, please read our "
+							 L"<A HREF=\"https://support.rockstargames.com/articles/21494223343379\">support article</A>.";
 
 	TASKDIALOGCONFIG taskDialogConfig = { 0 };
 	taskDialogConfig.cbSize = sizeof(taskDialogConfig);
