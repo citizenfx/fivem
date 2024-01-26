@@ -6,40 +6,45 @@
  */
 
 #include <StdInc.h>
-#include <GameInit.h>
 #include <Hooking.h>
 #include <CoreConsole.h>
-#include <nutsnbolts.h>
 
-static std::shared_ptr<ConVar<bool>> g_cameraShakeConvar;
+#include "Hooking.Stubs.h"
 
-static void CameraShakeOverride()
+static bool g_disableCameraShake;
+
+static void (*g_origUpdateCameraVehicleHighSpeedShake)(void*);
+static void UpdateCameraVehicleHighSpeedShake(void* a1)
 {
-	if (g_cameraShakeConvar->GetValue())
+	if (!g_disableCameraShake)
 	{
-		//Vehicle high speed camera shake
-		//48 8B D9                  mov     rbx, rcx
-		//48 81 C7 88 04 00 00      add     rdi, 488h     <--------------
-		//8B 6F 08                  mov     ebp, [rdi+8]
+		g_origUpdateCameraVehicleHighSpeedShake(a1);
+	}
+}
 
-		hook::nop(hook::get_pattern("48 8B D9 48 81 C7 ? ? ? ? 8B ? ? 85 ?", 3), 7);
-
-		//Ped running camera shake
-		//0F 29 70 E8				movaps xmmword ptr[rax - 18h], xmm6
-		//0F 29 78 D8				movaps  xmmword ptr [rax-28h], xmm7
-		//48 81 C7 08 08 00 00		add rdi, 808h		 <--------------
-		//48 8B F1					mov rsi, rcx
-
-		hook::nop(hook::get_pattern("57 48 81 EC ? ? ? ? 48 8B B9 ? ? ? ? 0F 29 70 E8 0F 29 78 D8 48 81 C7 ? ? ? ?", 23), 7);
+static void (*g_origUpdateCameraPedRunningShake)(void*, void*, void*);
+static void UpdateCameraPedRunningShake(void* a1, void* a2, void* a3)
+{
+	if (!g_disableCameraShake)
+	{
+		g_origUpdateCameraPedRunningShake(a1, a2, a3);
 	}
 }
 
 static InitFunction initFunction([]()
 {
-	g_cameraShakeConvar = std::make_shared<ConVar<bool>>("cam_disableCameraShake", ConVar_Archive, false);
+	static ConVar<bool> disableCameraShakeVar("cam_disableCameraShake", ConVar_Archive, false, &g_disableCameraShake);
+});
 
-	OnFirstLoadCompleted.Connect([]()
+static HookFunction hookFunction([]
+{
 	{
-		CameraShakeOverride();
-	});
+		auto location = hook::get_pattern("48 8B D9 48 81 C7 ? ? ? ? 8B ? ? 85", -31);
+		g_origUpdateCameraVehicleHighSpeedShake = hook::trampoline(location, UpdateCameraVehicleHighSpeedShake);
+	}
+
+	{
+		auto location = hook::get_pattern("57 48 81 EC ? ? ? ? 48 8B B9 ? ? ? ? 0F 29 70 E8 0F 29 78 D8 48 81 C7", -11);
+		g_origUpdateCameraPedRunningShake = hook::trampoline(location, UpdateCameraPedRunningShake);
+	}
 });
