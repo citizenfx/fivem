@@ -12,6 +12,7 @@
 using json = nlohmann::json;
 
 static std::shared_ptr<ConVar<bool>> g_threadedHttpVar;
+static std::shared_ptr<ConVar<int>> g_maxClientEndpointRequestSize;
 
 namespace fx
 {
@@ -31,32 +32,46 @@ namespace fx
 	{
 		std::map<std::string, std::string> postMap;
 
-		// split the string by the usual post map characters
-		int curPos = 0;
-
-		while (true)
+		for (int i = 0; i < postDataString.size(); i++)
 		{
-			int endPos = postDataString.find_first_of('&', curPos);
-
-			int equalsPos = postDataString.find_first_of('=', curPos);
-
-			std::string key;
-			std::string value;
-
-			UrlDecode(std::string(postDataString.substr(curPos, equalsPos - curPos)), key);
-			UrlDecode(std::string(postDataString.substr(equalsPos + 1, endPos - equalsPos - 1)), value);
-
-			postMap[key] = value;
-
-			// save and continue
-			curPos = endPos;
-
-			if (curPos == std::string::npos)
+			int keyLen = 0;
+			for (int keyItr = i; keyItr < postDataString.size(); keyItr++)
 			{
-				break;
+				if (postDataString[keyItr] == '=')
+				{
+					break;
+				}
+				keyLen++;
 			}
 
-			curPos++;
+			std::string key(&postDataString[i], keyLen);
+
+			i = (i + keyLen + 1);
+
+			int valueLen = 0;
+			for (int valueItr = i; valueItr < postDataString.size(); valueItr++)
+			{
+				if (postDataString[valueItr] == '&')
+				{
+					break;
+				}
+				valueLen++;
+			}
+
+			if (valueLen)
+			{
+				std::string value(&postDataString[i], valueLen);
+
+				std::string keyDecoded;
+				std::string valueDecoded;
+
+				UrlDecode(key, keyDecoded);
+				UrlDecode(value, valueDecoded);
+
+				postMap[keyDecoded] = valueDecoded;
+			}
+
+			i += valueLen;
 		}
 
 		return postMap;
@@ -79,6 +94,12 @@ namespace fx
 				{
 					response->End(json::object({ {"error", error} }).dump(-1, ' ', false, json::error_handler_t::replace));
 				};
+
+				if (postData.size() > g_maxClientEndpointRequestSize->GetValue())
+				{
+					endError("POST data too big");
+					return;
+				}
 
 				auto postMap = ParsePOSTString(std::string(postData.begin(), postData.end()));
 
@@ -165,6 +186,7 @@ static InitFunction initFunction([]()
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
 	{
 		g_threadedHttpVar = instance->AddVariable<bool>("sv_threadedClientHttp", ConVar_None, true);
+		g_maxClientEndpointRequestSize = instance->AddVariable<int>("sv_maxClientEndpointRequestSize", ConVar_None, 1024 * 100);
 
 		instance->SetComponent(new fx::ClientMethodRegistry());
 
