@@ -28,55 +28,6 @@ namespace fx
 		return {};
 	}
 
-	std::map<std::string, std::string> ParsePOSTString(const std::string_view& postDataString)
-	{
-		std::map<std::string, std::string> postMap;
-
-		for (int i = 0; i < postDataString.size(); i++)
-		{
-			int keyLen = 0;
-			for (int keyItr = i; keyItr < postDataString.size(); keyItr++)
-			{
-				if (postDataString[keyItr] == '=')
-				{
-					break;
-				}
-				keyLen++;
-			}
-
-			std::string key(&postDataString[i], keyLen);
-
-			i = (i + keyLen + 1);
-
-			int valueLen = 0;
-			for (int valueItr = i; valueItr < postDataString.size(); valueItr++)
-			{
-				if (postDataString[valueItr] == '&')
-				{
-					break;
-				}
-				valueLen++;
-			}
-
-			if (valueLen)
-			{
-				std::string value(&postDataString[i], valueLen);
-
-				std::string keyDecoded;
-				std::string valueDecoded;
-
-				UrlDecode(key, keyDecoded);
-				UrlDecode(value, valueDecoded);
-
-				postMap[keyDecoded] = valueDecoded;
-			}
-
-			i += valueLen;
-		}
-
-		return postMap;
-	}
-
 	static auto GetClientEndpointHandler(fx::ServerInstanceBase* instance)
 	{
 		return [=](const fwRefContainer<net::HttpRequest>& request, fwRefContainer<net::HttpResponse> response)

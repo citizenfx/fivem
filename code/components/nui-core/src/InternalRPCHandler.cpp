@@ -117,33 +117,7 @@ bool InternalRPCHandler::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr
 
 			delete[] bytes;
 
-			// split the string by the usual post map characters
-			int curPos = 0;
-
-			while (true)
-			{
-				int endPos = postDataString.find_first_of('&', curPos);
-
-				int equalsPos = postDataString.find_first_of('=', curPos);
-
-				std::string key;
-				std::string value;
-
-				UrlDecode(postDataString.substr(curPos, equalsPos - curPos), key);
-				UrlDecode(postDataString.substr(equalsPos + 1, endPos - equalsPos - 1), value);
-
-				postMap[key] = value;
-
-				// save and continue
-				curPos = endPos;
-
-				if (curPos == std::string::npos)
-				{
-					break;
-				}
-
-				curPos++;
-			}
+			postMap = ParsePOSTString(postDataString);
 		}
 	}
 

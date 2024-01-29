@@ -294,6 +294,8 @@ void SetThreadName(int threadId, const char* threadName);
 std::wstring ToWide(std::string_view narrow);
 std::string ToNarrow(std::wstring_view wide);
 
+std::map<std::string, std::string> ParsePOSTString(const std::string_view& postDataString);
+
 #ifdef COMPILING_CORE
 extern "C" bool DLL_EXPORT CoreIsDebuggerPresent();
 extern "C" void DLL_EXPORT CoreSetDebuggerPresent();

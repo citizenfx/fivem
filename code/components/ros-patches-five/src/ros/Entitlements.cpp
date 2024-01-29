@@ -30,42 +30,6 @@ using json = nlohmann::json;
 
 int StoreDecryptedBlob(void* a1, void* a2, uint32_t a3, void* inOutBlob, uint32_t a5, void* a6);
 
-// TODO: turn into a generic utility
-static std::map<std::string, std::string> ParsePOSTString(const std::string& postDataString)
-{
-	std::map<std::string, std::string> postMap;
-
-	// split the string by the usual post map characters
-	int curPos = 0;
-
-	while (true)
-	{
-		int endPos = postDataString.find_first_of('&', curPos);
-
-		int equalsPos = postDataString.find_first_of('=', curPos);
-
-		std::string key;
-		std::string value;
-
-		UrlDecode(postDataString.substr(curPos, equalsPos - curPos), key);
-		UrlDecode(postDataString.substr(equalsPos + 1, endPos - equalsPos - 1), value);
-
-		postMap[key] = value;
-
-		// save and continue
-		curPos = endPos;
-
-		if (curPos == std::string::npos)
-		{
-			break;
-		}
-
-		curPos++;
-	}
-
-	return postMap;
-}
-
 extern std::string g_entitlementSource;
 
 bool LoadOwnershipTicket();
