@@ -42,7 +42,7 @@ static void RenderScriptIm()
 	// The game never uses this buffer itself, but it *may* be changed in the future updates.
 	// This code isn't ready for such a scenario, so might potentially require tweaks.
 	// Like if something allocate script im buffer before us, we would need to resize it
-	// and not just rewrite everything with out custom stuff.
+	// and not just rewrite everything without custom stuff.
 
 	if (g_scriptImRequests.empty())
 	{
@@ -162,7 +162,7 @@ static HookFunction hookFunction([]()
 		store.m_items[index] = data;
 		store.m_count += 1;
 
-		*g_scriptDrawOriginIndex = store.m_count;
+		*g_scriptDrawOriginIndex = index;
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("CLEAR_DRAW_ORIGIN", [](fx::ScriptContext& context)
