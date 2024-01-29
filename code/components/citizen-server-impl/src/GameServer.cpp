@@ -630,8 +630,6 @@ namespace fx
 		return variable->GetValue();
 	}
 
-	std::map<std::string, std::string> ParsePOSTString(const std::string_view& postDataString);
-
 	void GameServer::ProcessPacket(NetPeerBase* peer, const uint8_t* data, size_t size)
 	{
 		// create a netbuffer and read the message type
