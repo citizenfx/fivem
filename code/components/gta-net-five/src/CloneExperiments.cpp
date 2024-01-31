@@ -2931,13 +2931,14 @@ static void SendGameEventRaw(uint16_t eventId, rage::netGameEvent* ev)
 	}
 
 	outBuffer.Write<uint16_t>(eventId);
-	outBuffer.Write<uint8_t>(0);
+	outBuffer.Write<uint8_t>(0); // is reply
 	outBuffer.Write<uint16_t>(ev->eventType);
 
 	uint32_t len = rlBuffer.GetDataLength();
 	outBuffer.Write<uint16_t>(len); // length (short)
 	outBuffer.Write(rlBuffer.m_data, len); // data
 
+	// max packet size and the buffer layout should match up with the serverside handler in ServerGameState.cpp
 	g_netLibrary->SendReliableCommand("msgNetGameEvent", (const char*)outBuffer.GetData().data(), outBuffer.GetCurOffset());
 }
 
@@ -3161,13 +3162,14 @@ static void DecideNetGameEvent(rage::netGameEvent* ev, CNetGamePlayer* player, C
 			outBuffer.Write<uint16_t>(g_netIdsByPlayer[player]);
 
 			outBuffer.Write<uint16_t>(evH);
-			outBuffer.Write<uint8_t>(1);
+			outBuffer.Write<uint8_t>(1); // is reply
 			outBuffer.Write<uint16_t>(ev->eventType);
 
 			uint32_t len = rlBuffer.GetDataLength();
 			outBuffer.Write<uint16_t>(len); // length (short)
 			outBuffer.Write(rlBuffer.m_data, len); // data
 
+			// max packet size and the buffer layout should match up with the serverside handler in ServerGameState.cpp
 			g_netLibrary->SendReliableCommand("msgNetGameEvent", (const char*)outBuffer.GetData().data(), outBuffer.GetCurOffset());
 		}
 	}
