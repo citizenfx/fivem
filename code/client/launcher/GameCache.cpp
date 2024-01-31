@@ -1676,7 +1676,7 @@ std::map<std::string, std::string> UpdateGameCache()
 #elif IS_RDR3
 	if (IsTargetGameBuild<1491>())
 	{
-		g_requiredEntries.push_back({ "RDR2.exe", "25b4ccff61f7f1463bbac7dd44c0d2f28e1b458f", "https://content.cfx.re/mirrors/patches_redm/1491/RDR2.exe", 89004016 });
+		g_requiredEntries.push_back({ "RDR2.exe", "c60106f9f6996f8afa76459d49d9d4594e2813af", "https://content.cfx.re/mirrors/patches_redm/1491/RDR2.18.exe", 89159664 });
 		g_requiredEntries.push_back({ "appdata0_update.rpf", "142c6af7a64f2cae06a8f7ac7ad6ee74967afc49", "https://content.cfx.re/mirrors/patches_redm/1491/appdata0_update.rpf", 3164639,
 		{
 			{ "ba1d727a70fa1c204441c8e3768a1a40b02ef67f", "142c6af7a64f2cae06a8f7ac7ad6ee74967afc49", "https://content.cfx.re/mirrors/patches_redm/1491/diffs/from_1436_to_1491.appdata0_update.rpf.hdiff", 1099165 } /* diff sha1: ed4d2b8e1f3a1b1752a9167557bbcb160e5a680a */,

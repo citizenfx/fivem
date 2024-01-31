@@ -61,7 +61,7 @@ inline std::string_view GetGameBuildIdentifier()
 #ifdef IS_RDR3
 		if (build == 1491)
 		{
-			return "1491_18";
+			return "1491_18_2"; // 31-01-2024
 		}
 #endif
 
