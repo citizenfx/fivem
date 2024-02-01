@@ -5,6 +5,7 @@
 #include "CfxRGBA.h"
 #include "Hooking.Stubs.h"
 #include "GamePrimitives.h"
+#include "scrEngine.h"
 
 enum ScriptImDrawType : uint32_t
 {
@@ -104,6 +105,8 @@ struct WorldhorizonManager
 
 static WorldhorizonManager* g_worldhorizonMgr;
 
+CViewportGame** g_viewportGame;
+
 static HookFunction hookFunction([]()
 {
 	static_assert(sizeof(ScriptImRequest) == 64);
@@ -111,6 +114,7 @@ static HookFunction hookFunction([]()
 	static_assert(sizeof(DrawOriginStore) == 1040);
 
 	{
+		g_viewportGame = hook::get_address<CViewportGame**>(hook::get_pattern("0F 2F F0 76 ? 4C 8B 35", 8));
 		g_worldhorizonMgr = hook::get_address<WorldhorizonManager*>(hook::get_pattern("89 44 24 40 48 8D 0D ? ? ? ? 8B 84 24 90 00", 7));
 	}
 
@@ -285,5 +289,30 @@ static HookFunction hookFunction([]()
 		{
 			g_worldhorizonMgr->m_disableRendering = flag;
 		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_WORLD_COORD_FROM_SCREEN_COORD", [](fx::ScriptContext& context)
+	{
+		float screenX = context.GetArgument<float>(0);
+		float screenY = context.GetArgument<float>(1);
+
+		using namespace DirectX;
+		rage::Vec3V start = Unproject((*g_viewportGame)->viewport, rage::Vec3V{ screenX, screenY, 0.0f });
+		rage::Vec3V end = Unproject((*g_viewportGame)->viewport, rage::Vec3V{ screenX, screenY, 1.0f });
+
+		auto startVector = XMLoadFloat3((XMFLOAT3*)&start);
+		auto endVector = XMLoadFloat3((XMFLOAT3*)&end);
+		auto normalVector = XMVector3Normalize(XMVectorSubtract(endVector, startVector));
+
+		scrVector* worldOut = context.GetArgument<scrVector*>(2);
+		scrVector* normalOut = context.GetArgument<scrVector*>(3);
+
+		worldOut->x = start.x;
+		worldOut->y = start.y;
+		worldOut->z = start.z;
+
+		normalOut->x = XMVectorGetX(normalVector);
+		normalOut->y = XMVectorGetY(normalVector);
+		normalOut->z = XMVectorGetZ(normalVector);
 	});
 });
