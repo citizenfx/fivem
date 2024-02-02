@@ -425,6 +425,16 @@ if isDuplicityVersion then
 			cb(0, nil, {}, 'Failure handling HTTP request')
 		end
 	end
+
+	function PerformHttpRequestAwait(url, method, data, headers, options)
+		local p = promise.new()
+		PerformHttpRequest(url, function(...)
+			p:resolve({...})
+		end, method, data, headers, options)
+
+		Citizen.Await(p)
+		return table.unpack(p.value)
+	end
 else
 	function TriggerServerEvent(eventName, ...)
 		local payload = msgpack_pack_args(...)
