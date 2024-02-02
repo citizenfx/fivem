@@ -212,7 +212,6 @@ RegisterNUICallback('loaded', function(data, cb)
   refreshThemes()
 
   chatLoaded = true
-  addSuggestion('/toggleChat', 'set Chat state from whenactive hidden or always visible', {})
   cb('ok')
 end)
 
@@ -227,6 +226,7 @@ local chatHideState = kvpEntry and tonumber(kvpEntry) or CHAT_HIDE_STATES.SHOW_W
 local isFirstHide = true
 
 if not isRDR then
+  -- Allow only for Fivem until RedM supports it
   if RegisterKeyMapping then
     RegisterKeyMapping('toggleChat', 'Toggle chat', 'keyboard', 'l')
   end
