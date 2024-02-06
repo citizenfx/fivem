@@ -198,18 +198,22 @@ public:
 		CefResponse::HeaderMap map;
 		response->GetHeaderMap(map);
 
-		if (m_headers.size() <= 1)
-		{
-			map.insert({ "cache-control", "no-cache, must-revalidate" });
-			map.insert({ "access-control-allow-origin", "*" });
-			map.insert({ "access-control-allow-methods", "POST, GET, OPTIONS" });
-		}
-		else
+		if (!m_headers.empty())
 		{
 			for (auto& header : m_headers)
 			{
 				map.emplace(header.first, header.second);
 			}
+		}
+		
+		map.insert({ "cache-control", "no-cache, must-revalidate" });
+		if (map.find("access-control-allow-origin") == map.end())
+		{
+			map.insert({ "access-control-allow-origin", "*" });
+		}
+		if (map.find("access-control-allow-methods") == map.end())
+		{
+			map.insert({ "access-control-allow-methods", "POST, GET, OPTIONS" });
 		}
 
 		response->SetHeaderMap(map);
