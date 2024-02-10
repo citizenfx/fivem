@@ -19,8 +19,9 @@ class RefPool
 {
 private:
 	TEntry** m_baseAddress;
-	uint32_t m_count;
-	char m_pad[36];
+	size_t m_count;
+	size_t m_freeSpace;
+	char m_pad2[24];
 	uint32_t* m_validBits;
 	// ...
 
@@ -44,6 +45,12 @@ public:
 	size_t GetSize()
 	{
 		return m_count;
+	}
+
+	// copying the behaviour of atPoolBase by returning the used space
+	size_t GetCountDirect()
+	{
+		return (m_count - m_freeSpace);
 	}
 };
 #endif
@@ -161,6 +168,15 @@ static void SerializePool(fx::ScriptContext& context)
 	}
 
 	context.SetResult(fx::SerializeObject(guids));
+}
+
+template<typename TTraits>
+static void GetPoolSize(fx::ScriptContext& context)
+{
+	TTraits::PoolType* pool = TTraits::GetPool();
+
+	context.SetResult<int>(pool->GetCountDirect());
+	*context.GetArgument<int*>(1) = pool->GetSize();
 }
 
 struct FindHandle
@@ -286,6 +302,23 @@ static InitFunction initFunction([]()
 			SerializePool<PickupPoolTraits>(context);
 		else if (pool.compare("CVehicle") == 0)
 			SerializePool<VehiclePoolTraits>(context);
+		else
+		{
+			throw std::runtime_error(va("Invalid pool: %s", pool));
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("GET_GAME_POOL_SIZE", [](fx::ScriptContext& context)
+	{
+		std::string pool = context.CheckArgument<const char*>(0);
+		if (pool.compare("CPed") == 0)
+			GetPoolSize<PedPoolTraits>(context);
+		else if (pool.compare("CObject") == 0)
+			GetPoolSize<ObjectPoolTraits>(context);
+		else if (pool.compare("CPickup") == 0)
+			GetPoolSize<PickupPoolTraits>(context);
+		else if (pool.compare("CVehicle") == 0)
+			GetPoolSize<VehiclePoolTraits>(context);
 		else
 		{
 			throw std::runtime_error(va("Invalid pool: %s", pool));
