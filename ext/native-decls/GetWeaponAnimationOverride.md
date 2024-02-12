@@ -7,7 +7,7 @@ apiset: client
 ```c
 Hash GET_WEAPON_ANIMATION_OVERRIDE(Ped ped);
 ```
-A getter for [SET_WEAPON_ANIMATION_OVERRIDE](_0x1055AC3A667F09D9).
+A getter for [SET_WEAPON_ANIMATION_OVERRIDE](#_0x1055AC3A667F09D9).
 
 ## Examples
 
