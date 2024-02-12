@@ -293,15 +293,24 @@ static InitFunction initFunction([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_GAME_POOL", [](fx::ScriptContext& context)
 	{
-		std::string pool = context.CheckArgument<const char*>(0);
-		if (pool.compare("CPed") == 0)
+		std::string_view pool = context.CheckArgument<const char*>(0);
+
+		if (pool == "CPed")
+		{
 			SerializePool<PedPoolTraits>(context);
-		else if (pool.compare("CObject") == 0)
+		}
+		else if (pool == "CObject")
+		{
 			SerializePool<ObjectPoolTraits>(context);
-		else if (pool.compare("CPickup") == 0)
+		}
+		else if (pool == "CPickup")
+		{
 			SerializePool<PickupPoolTraits>(context);
-		else if (pool.compare("CVehicle") == 0)
+		}
+		else if (pool == "CVehicle")
+		{
 			SerializePool<VehiclePoolTraits>(context);
+		}
 		else
 		{
 			throw std::runtime_error(va("Invalid pool: %s", pool));
@@ -310,15 +319,24 @@ static InitFunction initFunction([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_GAME_POOL_SIZE", [](fx::ScriptContext& context)
 	{
-		std::string pool = context.CheckArgument<const char*>(0);
-		if (pool.compare("CPed") == 0)
+		std::string_view pool = context.CheckArgument<const char*>(0);
+
+		if (pool == "CPed")
+		{
 			GetPoolSize<PedPoolTraits>(context);
-		else if (pool.compare("CObject") == 0)
+		}
+		else if (pool == "CObject")
+		{
 			GetPoolSize<ObjectPoolTraits>(context);
-		else if (pool.compare("CPickup") == 0)
+		}
+		else if (pool == "CPickup")
+		{
 			GetPoolSize<PickupPoolTraits>(context);
-		else if (pool.compare("CVehicle") == 0)
+		}
+		else if (pool == "CVehicle")
+		{
 			GetPoolSize<VehiclePoolTraits>(context);
+		}
 		else
 		{
 			throw std::runtime_error(va("Invalid pool: %s", pool));
