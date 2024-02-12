@@ -371,6 +371,20 @@ static void DeleteNetworkCloneWrap(void* objectMgr, void* netObject, int reason,
 	return g_origDeleteNetworkClone(objectMgr, netObject, reason, forceRemote1, forceRemote2);
 }
 
+static bool g_overrideUseDefaultDriveByClipset = false;
+
+static bool (*g_origShouldUseDefaultDriveByClipset)(CPed*, char);
+
+static bool ShouldUseDefaultDriveByClipset(CPed* ped, char flag)
+{
+	if (g_overrideUseDefaultDriveByClipset)
+	{
+		return false;
+	}
+
+	return g_origShouldUseDefaultDriveByClipset(ped, flag);
+}
+
 static void ResetFlyThroughWindscreenParams()
 {
 	for (auto& entry : g_flyThroughWindscreenParams)
@@ -1364,9 +1378,11 @@ static HookFunction initFunction([]()
 		g_skipRepairVehicles.clear();
 		ResetFlyThroughWindscreenParams();
 		*g_trainsForceDoorsOpen = true;
+		g_overrideUseDefaultDriveByClipset = false;
 	});
 
-	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_AUTO_REPAIR_DISABLED", [](fx::ScriptContext& context) {
+	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_AUTO_REPAIR_DISABLED", [](fx::ScriptContext& context)
+	{
 		auto vehHandle = context.GetArgument<int>(0);
 		auto shouldDisable = context.GetArgument<bool>(1);
 
@@ -1420,6 +1436,11 @@ static HookFunction initFunction([]()
 	fx::ScriptEngine::RegisterNativeHandler("OVERRIDE_PEDS_CAN_STAND_ON_TOP_FLAG", [](fx::ScriptContext& context)
 	{
 		g_overrideCanPedStandOnVehicle = context.GetArgument<bool>(0);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("OVERRIDE_PEDS_USE_DEFAULT_DRIVE_BY_CLIPSET", [](fx::ScriptContext& context)
+	{
+		g_overrideUseDefaultDriveByClipset = context.GetArgument<bool>(0);
 	});
 
 	// vehicle xenon lights patches to support RGB colors
@@ -1591,6 +1612,7 @@ static HookFunction initFunction([]()
 	MH_Initialize();
 	MH_CreateHook(hook::get_pattern("E8 ? ? ? ? 8A 83 DA 00 00 00 24 0F 3C 02", -0x32), DeleteVehicleWrap, (void**)&g_origDeleteVehicle);
 	MH_CreateHook(hook::get_pattern("80 7A 4B 00 45 8A F9", -0x1D), DeleteNetworkCloneWrap, (void**)&g_origDeleteNetworkClone);
+	MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? 84 C0 74 0F 8B 47 20")), ShouldUseDefaultDriveByClipset, (void**)&g_origShouldUseDefaultDriveByClipset);
 	MH_CreateHook(hook::get_call(hook::get_pattern("74 22 48 8B CA E8 ? ? ? ? 84 C0 74 16", 5)), CanPedStandOnVehicleWrap, (void**)&g_origCanPedStandOnVehicle);
 	MH_CreateHook(hook::get_call(hook::get_pattern("48 8B 4F 20 48 8D 54 24 ? E8", 0x9)), DashboardHandler, (void**)&g_origDashboardHandler);
 	MH_EnableHook(MH_ALL_HOOKS);
