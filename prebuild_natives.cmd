@@ -24,10 +24,12 @@ pushd ext\natives\
 mkdir inp
 
 call:UpdateToLatest inp\natives_global.lua https://runtime.fivem.net/doc/natives.lua
-call:UpdateToLatest inp\natives_rdr3.lua https://runtime.fivem.net/doc/natives_rdr_tmp.lua
+call:UpdateToLatest inp\natives_rdr3.lua https://runtime.fivem.net/doc/natives_rdr3.lua
+call:UpdateToLatest inp\natives_rdr3_old.lua https://runtime.fivem.net/doc/natives_rdr_tmp.lua
 call:UpdateToLatest inp\natives_ny.lua https://runtime.fivem.net/doc/natives_ny_tmp.lua
 
 call:UpdateToLatest inp\natives_global_client_compat.lua https://runtime.fivem.net/doc/natives_global_client_compat.lua
+call:UpdateToLatest inp\natives_rdr3_client_compat.lua https://runtime.fivem.net/doc/natives_rdr3_client_compat.lua
 
 popd
 
@@ -65,7 +67,7 @@ goto :eof
 
 :UpdateToLatest
 echo Updating %~1
-%systemroot%\system32\curl -z %~1 -Lo %~1.new %~2
+%systemroot%\system32\curl -fz %~1 -Lo %~1.new %~2
 
 if not errorlevel 0 (
 	echo 	cURL exited with error code %errorlevel%.

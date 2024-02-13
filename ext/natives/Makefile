@@ -120,10 +120,10 @@ out/NativesFive.cs: inp/natives_global.lua $(CODEGEN_SCRIPTS) codegen_out_cs.lua
 	./lua53 codegen.lua inp/natives_global.lua cs >> $@
 	echo "$$NATIVES_FIVE_FOOTER" >> $@
 
-out/NativesRDR3.cs: inp/natives_rdr3.lua $(CODEGEN_SCRIPTS) codegen_out_cs.lua codegen_out_enum.lua
+out/NativesRDR3.cs: inp/natives_rdr3_old.lua $(CODEGEN_SCRIPTS) codegen_out_cs.lua codegen_out_enum.lua
 	echo "$$NATIVES_RDR3_HEADER" > $@
-	./lua53 codegen.lua inp/natives_rdr3.lua enum >> $@
-	./lua53 codegen.lua inp/natives_rdr3.lua cs >> $@
+	./lua53 codegen.lua inp/natives_rdr3_old.lua enum >> $@
+	./lua53 codegen.lua inp/natives_rdr3_old.lua cs >> $@
 	echo "$$NATIVES_RDR3_FOOTER" >> $@
 
 out/NativesNY.cs: inp/natives_ny.lua $(CODEGEN_SCRIPTS) codegen_out_cs.lua codegen_out_enum.lua
