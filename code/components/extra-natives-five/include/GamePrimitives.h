@@ -114,11 +114,11 @@ struct fwSearchVolume
 
 struct grcViewport
 {
-	float m_mat1[16];
-	float m_mat2[16];
-	float m_viewProjection[16];
+	float m_world[16];
+	float m_worldView[16];
+	float m_worldViewProj[16];
 	float m_inverseView[16];
-	char m_pad[64];
+	float m_view[16];
 	float m_projection[16];
 };
 
@@ -146,7 +146,7 @@ inline rage::Vec3V Unproject(const rage::grcViewport& viewport, const rage::Vec3
 {
 	using namespace DirectX;
 
-	auto invVP = XMMatrixInverse(NULL, XMLoadFloat4x4((const XMFLOAT4X4*)viewport.m_viewProjection));
+	auto invVP = XMMatrixInverse(NULL, XMLoadFloat4x4((const XMFLOAT4X4*)viewport.m_worldViewProj));
 	auto inVec = XMVectorSet((viewPos.x * 2.0f) - 1.0f, ((1.0 - viewPos.y) * 2.0f) - 1.0f, viewPos.z, 1.0f);
 	auto outCoord = XMVector3TransformCoord(inVec, invVP);
 
