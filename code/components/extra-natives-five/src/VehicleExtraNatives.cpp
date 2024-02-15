@@ -1375,10 +1375,15 @@ static HookFunction initFunction([]()
 
 	OnKillNetworkDone.Connect([]()
 	{
-		g_skipRepairVehicles.clear();
 		ResetFlyThroughWindscreenParams();
+
 		*g_trainsForceDoorsOpen = true;
+
+		g_skipRepairVehicles.clear();
+		g_canPedStandOnVehicles.clear();
+
 		g_overrideUseDefaultDriveByClipset = false;
+		g_overrideCanPedStandOnVehicle = false;
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_AUTO_REPAIR_DISABLED", [](fx::ScriptContext& context)
