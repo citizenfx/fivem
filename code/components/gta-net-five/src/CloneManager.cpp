@@ -13,6 +13,7 @@
 #include <netInterface.h>
 #include <netObjectMgr.h>
 #include <netSyncTree.h>
+#include <netTimeSync.h>
 
 #include <lz4hc.h>
 
@@ -89,8 +90,6 @@ std::string GetType(void* d);
 CNetGamePlayer* GetLocalPlayer();
 
 CNetGamePlayer* GetPlayerByNetId(uint16_t);
-
-bool IsWaitingForTimeSync();
 
 extern uint32_t* rage__s_NetworkTimeThisFrameStart;
 extern uint32_t* rage__s_NetworkTimeLastFrameStart;
@@ -310,7 +309,7 @@ void CloneManagerLocal::Logv(const char* format, fmt::printf_args argumentList)
 {
 	if (!m_logFile.empty())
 	{
-		m_logQueue.push(fmt::sprintf("[% 10d] ", (!IsWaitingForTimeSync()) ? rage::netInterface_queryFunctions::GetInstance()->GetTimestamp() : 0));
+		m_logQueue.push(fmt::sprintf("[% 10d] ", (!sync::IsWaitingForTimeSync()) ? rage::netInterface_queryFunctions::GetInstance()->GetTimestamp() : 0));
 		m_logQueue.push(fmt::vsprintf(format, argumentList));
 
 		m_consoleCondVar.notify_all();
