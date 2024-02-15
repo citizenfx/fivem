@@ -81,7 +81,7 @@ inline rage::Vec3V Unproject(const rage::grcViewport& viewport, const rage::Vec3
 {
 	using namespace DirectX;
 
-	auto composite = XMMatrixMultiply(XMLoadFloat4x4((const XMFLOAT4X4*)&viewport.m_view), XMLoadFloat4x4((const XMFLOAT4X4*)&viewport.m_projection));
+	auto composite = XMMatrixMultiply(XMLoadFloat4x4((const XMFLOAT4X4*)&viewport.m_worldView), XMLoadFloat4x4((const XMFLOAT4X4*)&viewport.m_projection));
 	auto invVP = XMMatrixInverse(NULL, composite);
 	auto inVec = XMVectorSet((viewPos.x * 2.0f) - 1.0f, ((1.0 - viewPos.y) * 2.0f) - 1.0f, viewPos.z, 1.0f);
 	auto outCoord = XMVector3TransformCoord(inVec, invVP);
