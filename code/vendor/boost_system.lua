@@ -3,9 +3,9 @@ return {
 		language "C++"
 		kind 'StaticLib'
 
-		files_project(os.getenv("BOOST_ROOT") .. '/libs/system/src/')
+		files_project('../vendor/boost-submodules/boost-system/src/')
 		{
-			'*.cpp'
+			'error_code.cpp'
 		}
 	end
 }
