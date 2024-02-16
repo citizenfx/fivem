@@ -96,21 +96,6 @@ EOF
 	lua5.3 codegen.lua inp/natives_global.lua rpc server > /opt/cfx-server/citizen/scripting/rpc_natives.json
 fi
 
-# download and extract boost
-cd /tmp
-
-# keeping this here as a note that boost is really dumb for using "jfrog artifactory bintray" which gives constant persistent 'Forbidden!'
-# whenever some arbitrary quota runs out, and deletes their version history on sourceforge, and has no single canonical git repo
-#curl --http1.1 -sLo /tmp/boost.tar.bz2 https://dl.bintray.com/boostorg/release/1.71.0/source/boost_1_71_0.tar.bz2
-curl --http1.1 -sLo /tmp/boost.tar.bz2 https://runtime.fivem.net/client/deps/boost_1_71_0.tar.bz2
-
-tar xf boost.tar.bz2
-rm boost.tar.bz2
-
-mv boost_* boost || true
-
-export BOOST_ROOT=/tmp/boost/
-
 # download and build premake
 curl --http1.1 -sLo /tmp/premake.zip https://github.com/premake/premake-core/releases/download/v5.0.0-beta1/premake-5.0.0-beta1-src.zip
 

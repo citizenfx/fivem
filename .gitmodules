@@ -278,8 +278,209 @@
 	path = vendor/rnnoise
 	url = https://github.com/mumble-voip/rnnoise.git
 [submodule "vendor/boost-preprocessor"]
-	path = vendor/boost-preprocessor
+	path = vendor/boost-submodules/boost-preprocessor
 	url = https://github.com/boostorg/preprocessor.git
 [submodule "vendor/msgpack-cpp"]
 	path = vendor/msgpack-cpp
 	url = https://github.com/msgpack/msgpack-c.git
+[submodule "vendor/boost-filesystem"]
+	path = vendor/boost-submodules/boost-filesystem
+	url = https://github.com/boostorg/filesystem
+[submodule "vendor/boost-locale"]
+	path = vendor/boost-submodules/boost-locale
+	url = https://github.com/boostorg/locale
+[submodule "vendor/boost-program-options"]
+	path = vendor/boost-submodules/boost-program-options
+	url = https://github.com/boostorg/program_options
+[submodule "vendor/boost-random"]
+	path = vendor/boost-submodules/boost-random
+	url = https://github.com/boostorg/random
+[submodule "vendor/boost-system"]
+	path = vendor/boost-submodules/boost-system
+	url = https://github.com/boostorg/system
+[submodule "vendor/boost-context"]
+	path = vendor/boost-submodules/boost-context
+	url = https://github.com/boostorg/context
+[submodule "vendor/boost-coroutine"]
+	path = vendor/boost-submodules/boost-coroutine
+	url = https://github.com/boostorg/coroutine
+[submodule "vendor/boost-thread"]
+	path = vendor/boost-submodules/boost-thread
+	url = https://github.com/boostorg/thread
+[submodule "vendor/boost-config"]
+	path = vendor/boost-submodules/boost-config
+	url = https://github.com/boostorg/config
+[submodule "vendor/boost-any"]
+	path = vendor/boost-submodules/boost-any
+	url = https://github.com/boostorg/any/
+[submodule "vendor/boost-assert"]
+	path = vendor/boost-submodules/boost-assert
+	url = https://github.com/boostorg/assert
+[submodule "vendor/boost-function"]
+	path = vendor/boost-submodules/boost-function
+	url = https://github.com/boostorg/function
+[submodule "vendor/boost-detail"]
+	path = vendor/boost-submodules/boost-detail
+	url = https://github.com/boostorg/detail
+[submodule "vendor/boost-smart-ptr"]
+	path = vendor/boost-submodules/boost-smart-ptr
+	url = https://github.com/boostorg/smart_ptr/
+[submodule "vendor/boost-static-assert"]
+	path = vendor/boost-submodules/boost-static-assert
+	url = https://github.com/boostorg/static_assert
+[submodule "vendor/boost-throw-exception"]
+	path = vendor/boost-submodules/boost-throw-exception
+	url = https://github.com/boostorg/throw_exception
+[submodule "vendor/boost-type-index"]
+	path = vendor/boost-submodules/boost-type-index
+	url = https://github.com/boostorg/type_index
+[submodule "vendor/boost-type-traits"]
+	path = vendor/boost-submodules/boost-type-traits
+	url = https://github.com/boostorg/type_traits
+[submodule "vendor/boost-predef"]
+	path = vendor/boost-submodules/boost-predef
+	url = https://github.com/boostorg/predef
+[submodule "vendor/boost-core"]
+	path = vendor/boost-submodules/boost-core
+	url = https://github.com/boostorg/core
+[submodule "vendor/boost-iterator"]
+	path = vendor/boost-submodules/boost-iterator
+	url = https://github.com/boostorg/iterator
+[submodule "vendor/boost-move"]
+	path = vendor/boost-submodules/boost-move
+	url = https://github.com/boostorg/move
+[submodule "vendor/boost-winapi"]
+	path = vendor/boost-submodules/boost-winapi
+	url = https://github.com/boostorg/winapi
+[submodule "vendor/boost-mpl"]
+	path = vendor/boost-submodules/boost-mpl
+	url = https://github.com/boostorg/mpl
+[submodule "vendor/boost-integer"]
+	path = vendor/boost-submodules/boost-integer
+	url = https://github.com/boostorg/integer
+[submodule "vendor/boost-container-hash"]
+	path = vendor/boost-submodules/boost-container-hash
+	url = https://github.com/boostorg/container_hash
+[submodule "vendor/boost-bind"]
+	path = vendor/boost-submodules/boost-bind
+	url = https://github.com/boostorg/bind
+[submodule "vendor/boost-unordered"]
+	path = vendor/boost-submodules/boost-unordered
+	url = https://github.com/boostorg/unordered
+[submodule "vendor/boost-lexical-cast"]
+	path = vendor/boost-submodules/boost-lexical-cast
+	url = https://github.com/boostorg/lexical_cast
+[submodule "vendor/boost-io"]
+	path = vendor/boost-submodules/boost-io
+	url = https://github.com/boostorg/io
+[submodule "vendor/boost-date-time"]
+	path = vendor/boost-submodules/boost-date-time
+	url = https://github.com/boostorg/date_time
+[submodule "vendor/boost-range"]
+	path = vendor/boost-submodules/boost-range
+	url = https://github.com/boostorg/range
+[submodule "vendor/boost-tuple"]
+	path = vendor/boost-submodules/boost-tuple
+	url = https://github.com/boostorg/tuple
+[submodule "vendor/boost-concept-check"]
+	path = vendor/boost-submodules/boost-concept-check
+	url = https://github.com/boostorg/concept_check/
+[submodule "vendor/boost-utility"]
+	path = vendor/boost-submodules/boost-utility
+	url = https://github.com/boostorg/utility
+[submodule "vendor/boost-numeric-conversion"]
+	path = vendor/boost-submodules/boost-numeric-conversion
+	url = https://github.com/boostorg/numeric_conversion
+[submodule "vendor/boost-chrono"]
+	path = vendor/boost-submodules/boost-chrono
+	url = https://github.com/boostorg/chrono
+[submodule "vendor/boost-array"]
+	path = vendor/boost-submodules/boost-array
+	url = https://github.com/boostorg/array
+[submodule "vendor/boost-ratio"]
+	path = vendor/boost-submodules/boost-ratio
+	url = https://github.com/boostorg/ratio
+[submodule "vendor/boost-container"]
+	path = vendor/boost-submodules/boost-container
+	url = https://github.com/boostorg/container
+[submodule "vendor/boost-math"]
+	path = vendor/boost-submodules/boost-math
+	url = https://github.com/boostorg/math
+[submodule "vendor/boost-property-tree"]
+	path = vendor/boost-submodules/boost-property-tree
+	url = https://github.com/boostorg/property_tree
+[submodule "vendor/boost-optional"]
+	path = vendor/boost-submodules/boost-optional
+	url = https://github.com/boostorg/optional
+[submodule "vendor/boost-fusion"]
+	path = vendor/boost-submodules/boost-fusion
+	url = https://github.com/boostorg/fusion
+[submodule "vendor/boost-function-types"]
+	path = vendor/boost-submodules/boost-function-types
+	url = https://github.com/boostorg/function_types
+[submodule "vendor/boost-circular-buffer"]
+	path = vendor/boost-submodules/boost-circular-buffer
+	url = https://github.com/boostorg/circular_buffer
+[submodule "vendor/boost-bimap"]
+	path = vendor/boost-submodules/boost-bimap
+	url = https://github.com/boostorg/bimap
+[submodule "vendor/boost-algorithm"]
+	path = vendor/boost-submodules/boost-algorithm
+	url = https://github.com/boostorg/algorithm
+[submodule "vendor/boost-variant"]
+	path = vendor/boost-submodules/boost-variant
+	url = https://github.com/boostorg/variant
+[submodule "vendor/boost-serialization"]
+	path = vendor/boost-submodules/boost-serialization
+	url = https://github.com/boostorg/serialization
+[submodule "vendor/boost-exception"]
+	path = vendor/boost-submodules/boost-exception
+	url = https://github.com/boostorg/exception
+[submodule "vendor/boost-multi-index"]
+	path = vendor/boost-submodules/boost-multi-index
+	url = https://github.com/boostorg/multi_index
+[submodule "vendor/boost-foreach"]
+	path = vendor/boost-submodules/boost-foreach
+	url = https://github.com/boostorg/foreach
+[submodule "vendor/boost-uuid"]
+	path = vendor/boost-submodules/boost-uuid
+	url = https://github.com/boostorg/uuid
+[submodule "vendor/boost-regex"]
+	path = vendor/boost-submodules/boost-regex
+	url = https://github.com/boostorg/regex
+[submodule "vendor/boost-crc"]
+	path = vendor/boost-submodules/boost-crc
+	url = https://github.com/boostorg/crc
+[submodule "vendor/boost-tti"]
+	path = vendor/boost-submodules/boost-tti
+	url = https://github.com/boostorg/tti
+[submodule "vendor/boost-submodules/boost-outcome"]
+	path = vendor/boost-submodules/boost-outcome
+	url = https://github.com/boostorg/outcome
+[submodule "vendor/boost-submodules/boost-asio"]
+	path = vendor/boost-submodules/boost-asio
+	url = https://github.com/boostorg/asio
+[submodule "vendor/boost-submodules/boost-atomic"]
+	path = vendor/boost-submodules/boost-atomic
+	url = https://github.com/boostorg/atomic
+[submodule "vendor/boost-submodules/boost-beast"]
+	path = vendor/boost-submodules/boost-beast
+	url = https://github.com/boostorg/beast
+[submodule "vendor/boost-submodules/boost-intrusive"]
+	path = vendor/boost-submodules/boost-intrusive
+	url = https://github.com/boostorg/intrusive
+[submodule "vendor/boost-submodules/boost-mp11"]
+	path = vendor/boost-submodules/boost-mp11
+	url = https://github.com/boostorg/mp11
+[submodule "vendor/boost-submodules/boost-logic"]
+	path = vendor/boost-submodules/boost-logic
+	url = https://github.com/boostorg/logic
+[submodule "vendor/boost-submodules/boost-endian"]
+	path = vendor/boost-submodules/boost-endian
+	url = https://github.com/boostorg/endian
+[submodule "vendor/boost-submodules/boost-iostreams"]
+	path = vendor/boost-submodules/boost-iostreams
+	url = https://github.com/boostorg/iostreams
+[submodule "vendor/boost-submodules/boost-tokenizer"]
+	path = vendor/boost-submodules/boost-tokenizer
+	url = https://github.com/boostorg/tokenizer

@@ -7,7 +7,7 @@ return {
 		language "C++"
 		kind 'StaticLib'
 
-		files_project(os.getenv("BOOST_ROOT") .. '/libs/filesystem/src/')
+		files_project('../vendor/boost-submodules/boost-filesystem/src/')
 		{
 			'codecvt_error_category.cpp',
 			'operations.cpp',
