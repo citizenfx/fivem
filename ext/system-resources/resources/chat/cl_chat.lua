@@ -5,6 +5,12 @@ local chatInputActivating = false
 local chatLoaded = false
 local currentResourceName = GetCurrentResourceName()
 
+local function UsePreSecurityBehavior()
+  -- use `setr sysresource_chat_disableOriginSecurityChecks true` on the server to allow non secure execution
+  -- of commands and events, `setr` will also disallow clients to change it
+  return GetConvar('sysresource_chat_disableOriginSecurityChecks', 'false') == 'true'
+end
+
 RegisterNetEvent('chatMessage')
 RegisterNetEvent('chat:addTemplate')
 RegisterNetEvent('chat:addMessage')
@@ -128,9 +134,10 @@ end)
 
 RegisterRawNuiCallback('chatResult', function(requestData, cb)
   local resource = requestData.resource
+  local securityDisabled = UsePreSecurityBehavior();
 
   -- only allow actual resources to call in here
-  if resource == nil then
+  if resource == nil and not securityDisabled then
     return
   end
   
@@ -142,7 +149,7 @@ RegisterRawNuiCallback('chatResult', function(requestData, cb)
   if not data.canceled then
     if data.message:sub(1, 1) == '/' then
       -- Only this resource's NUI page can execute commands
-      if resource == currentResourceName then
+      if resource == currentResourceName or securityDisabled then
         ExecuteCommand(data.message:sub(2))
       end
     else
