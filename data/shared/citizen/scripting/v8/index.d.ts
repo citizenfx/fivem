@@ -83,10 +83,12 @@ type CitizenImmediate = Omit<CitizenTimer, 'refresh'>;
 declare var Citizen: CitizenInterface;
 
 declare function addRawEventListener(eventName: string, callback: Function): void
+declare function setMaxRawEventListeners(max: number): void
 
 declare function addEventListener(eventName: string, callback: Function, netSafe?: boolean): void
 declare function on(eventName: string, callback: Function): void
 declare function AddEventHandler(eventName: string, callback: Function): void
+declare function setMaxEventListeners(max: number): void
 
 declare function addNetEventListener(eventName: string, callback: Function): void
 declare function onNet(eventName: string, callback: Function): void
