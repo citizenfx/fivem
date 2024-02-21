@@ -41,6 +41,9 @@
 #include <shellapi.h>
 #endif
 
+#include <utf8.h>
+#include "ScriptWarnings.h"
+
 // a set of resources that are system-managed and should not be stopped from script
 static std::set<std::string> g_managedResources = {
 	"spawnmanager",
@@ -955,6 +958,14 @@ static InitFunction initFunction2([]()
 	{
 		std::string_view jsonData = context.CheckArgument<const char*>(0);
 
+		// Late stage UTF8 input sanitization, not super pretty but we can't afford to drop traces
+		std::string revisedJsonData;
+		if (!utf8::is_valid(jsonData))
+		{
+			revisedJsonData = utf8::replace_invalid(jsonData);
+			jsonData = revisedJsonData;
+		}
+
 		try
 		{
 			auto j = nlohmann::json::parse(jsonData);
@@ -976,7 +987,7 @@ static InitFunction initFunction2([]()
 		}
 		catch (std::exception& e)
 		{
-
+			fx::scripting::Warningf("natives", "PRINT_STRUCTURED_TRACE failed: %s\n", e.what());
 		}
 	});
 
