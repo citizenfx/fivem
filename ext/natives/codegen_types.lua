@@ -114,3 +114,25 @@ type 'func'
 
 type 'object'
 	nativeType 'object'
+
+-- rdr3 specific
+type 'ItemSet'
+	nativeType 'int'
+
+type 'AnimScene'
+	nativeType 'int'
+
+type 'PersChar'
+	nativeType 'int'
+
+type 'PopZone'
+	nativeType 'int'
+
+type 'Prompt'
+	nativeType 'int'
+
+type 'PropSet'
+	nativeType 'int'
+
+type 'Volume'
+	nativeType 'int'
