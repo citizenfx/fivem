@@ -41,7 +41,7 @@ extern void AddSchemeHandlerFactories(CefRefPtr<CefRequestContext> rc);
 NUIWindow::NUIWindow(bool rawBlit, int width, int height, const std::string& windowContext)
 	: m_rawBlit(rawBlit), m_width(width), m_height(height), m_renderBuffer(nullptr), m_dirtyFlag(0), m_onClientCreated(nullptr), m_nuiTexture(nullptr), m_popupTexture(nullptr), m_swapTexture(nullptr),
 	  m_swapRtv(nullptr), m_swapSrv(nullptr), m_dereferencedNuiTexture(false), m_lastFrameTime(0), m_lastMessageTime(0), m_roundedHeight(0), m_roundedWidth(0),
-	  m_syncKey(0), m_paintType(NUIPaintTypeDummy), m_windowContext(windowContext)
+	  m_syncKey(0), m_paintType(NUIPaintTypeDummy), m_windowContext(windowContext), m_fixedWidth(1920), m_fixedHeight(1080)
 {
 	memset(&m_lastDirtyRect, 0, sizeof(m_lastDirtyRect));
 
@@ -387,6 +387,18 @@ void NUIWindow::Initialize(CefString url)
 	{
 		m_renderBuffer = new char[4 * m_roundedWidth * m_roundedHeight];
 	}
+
+	std::wstring fpath = MakeRelativeCitPath(L"CitizenFX.ini");
+	if (GetFileAttributes(fpath.c_str()) != INVALID_FILE_ATTRIBUTES)
+	{
+		m_fixedWidth = GetPrivateProfileInt(L"Game", L"FixedSizeWindowX", 1920, fpath.c_str());
+		m_fixedHeight = GetPrivateProfileInt(L"Game", L"FixedSizeWindowY", 1080, fpath.c_str());
+		if (!((640 <= m_fixedWidth && m_fixedWidth <= 7680) && (480 <= m_fixedHeight && m_fixedHeight <= 4320)))
+		{
+			m_fixedWidth = 1920;
+			m_fixedHeight = 1080;
+		}
+	}
 }
 
 void NUIWindow::InitializeRenderBacking()
@@ -562,8 +574,8 @@ void NUIWindow::UpdateFrame()
 
 		if (IsFixedSizeWindow())
 		{
-			resX = 1920;
-			resY = 1080;
+			resX = m_fixedWidth;
+			resY = m_fixedHeight;
 		}
 
 		if (m_width != resX || m_height != resY)

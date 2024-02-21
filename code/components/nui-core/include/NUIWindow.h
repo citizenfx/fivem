@@ -212,4 +212,8 @@ public:
 	void HandlePopupShow(bool show);
 
 	bool IsFixedSizeWindow() const;
+
+private:
+	int m_fixedWidth;
+	int m_fixedHeight;
 };
