@@ -277,181 +277,181 @@
 [submodule "vendor/rnnoise"]
 	path = vendor/rnnoise
 	url = https://github.com/mumble-voip/rnnoise.git
-[submodule "vendor/boost-preprocessor"]
-	path = vendor/boost-submodules/boost-preprocessor
-	url = https://github.com/boostorg/preprocessor.git
 [submodule "vendor/msgpack-cpp"]
 	path = vendor/msgpack-cpp
 	url = https://github.com/msgpack/msgpack-c.git
-[submodule "vendor/boost-filesystem"]
+[submodule "vendor/boost-submodules/boost-preprocessor"]
+	path = vendor/boost-submodules/boost-preprocessor
+	url = https://github.com/boostorg/preprocessor.git
+[submodule "vendor/boost-submodules/boost-filesystem"]
 	path = vendor/boost-submodules/boost-filesystem
 	url = https://github.com/boostorg/filesystem
-[submodule "vendor/boost-locale"]
+[submodule "vendor/boost-submodules/boost-locale"]
 	path = vendor/boost-submodules/boost-locale
 	url = https://github.com/boostorg/locale
-[submodule "vendor/boost-program-options"]
+[submodule "vendor/boost-submodules/boost-program-options"]
 	path = vendor/boost-submodules/boost-program-options
 	url = https://github.com/boostorg/program_options
-[submodule "vendor/boost-random"]
+[submodule "vendor/boost-submodules/boost-random"]
 	path = vendor/boost-submodules/boost-random
 	url = https://github.com/boostorg/random
-[submodule "vendor/boost-system"]
+[submodule "vendor/boost-submodules/boost-system"]
 	path = vendor/boost-submodules/boost-system
 	url = https://github.com/boostorg/system
-[submodule "vendor/boost-context"]
+[submodule "vendor/boost-submodules/boost-context"]
 	path = vendor/boost-submodules/boost-context
 	url = https://github.com/boostorg/context
-[submodule "vendor/boost-coroutine"]
+[submodule "vendor/boost-submodules/boost-coroutine"]
 	path = vendor/boost-submodules/boost-coroutine
 	url = https://github.com/boostorg/coroutine
-[submodule "vendor/boost-thread"]
+[submodule "vendor/boost-submodules/boost-thread"]
 	path = vendor/boost-submodules/boost-thread
 	url = https://github.com/boostorg/thread
-[submodule "vendor/boost-config"]
+[submodule "vendor/boost-submodules/boost-config"]
 	path = vendor/boost-submodules/boost-config
 	url = https://github.com/boostorg/config
-[submodule "vendor/boost-any"]
+[submodule "vendor/boost-submodules/boost-any"]
 	path = vendor/boost-submodules/boost-any
 	url = https://github.com/boostorg/any/
-[submodule "vendor/boost-assert"]
+[submodule "vendor/boost-submodules/boost-assert"]
 	path = vendor/boost-submodules/boost-assert
 	url = https://github.com/boostorg/assert
-[submodule "vendor/boost-function"]
+[submodule "vendor/boost-submodules/boost-function"]
 	path = vendor/boost-submodules/boost-function
 	url = https://github.com/boostorg/function
-[submodule "vendor/boost-detail"]
+[submodule "vendor/boost-submodules/boost-detail"]
 	path = vendor/boost-submodules/boost-detail
 	url = https://github.com/boostorg/detail
-[submodule "vendor/boost-smart-ptr"]
+[submodule "vendor/boost-submodules/boost-smart-ptr"]
 	path = vendor/boost-submodules/boost-smart-ptr
 	url = https://github.com/boostorg/smart_ptr/
-[submodule "vendor/boost-static-assert"]
+[submodule "vendor/boost-submodules/boost-static-assert"]
 	path = vendor/boost-submodules/boost-static-assert
 	url = https://github.com/boostorg/static_assert
-[submodule "vendor/boost-throw-exception"]
+[submodule "vendor/boost-submodules/boost-throw-exception"]
 	path = vendor/boost-submodules/boost-throw-exception
 	url = https://github.com/boostorg/throw_exception
-[submodule "vendor/boost-type-index"]
+[submodule "vendor/boost-submodules/boost-type-index"]
 	path = vendor/boost-submodules/boost-type-index
 	url = https://github.com/boostorg/type_index
-[submodule "vendor/boost-type-traits"]
+[submodule "vendor/boost-submodules/boost-type-traits"]
 	path = vendor/boost-submodules/boost-type-traits
 	url = https://github.com/boostorg/type_traits
-[submodule "vendor/boost-predef"]
+[submodule "vendor/boost-submodules/boost-predef"]
 	path = vendor/boost-submodules/boost-predef
 	url = https://github.com/boostorg/predef
-[submodule "vendor/boost-core"]
+[submodule "vendor/boost-submodules/boost-core"]
 	path = vendor/boost-submodules/boost-core
 	url = https://github.com/boostorg/core
-[submodule "vendor/boost-iterator"]
+[submodule "vendor/boost-submodules/boost-iterator"]
 	path = vendor/boost-submodules/boost-iterator
 	url = https://github.com/boostorg/iterator
-[submodule "vendor/boost-move"]
+[submodule "vendor/boost-submodules/boost-move"]
 	path = vendor/boost-submodules/boost-move
 	url = https://github.com/boostorg/move
-[submodule "vendor/boost-winapi"]
+[submodule "vendor/boost-submodules/boost-winapi"]
 	path = vendor/boost-submodules/boost-winapi
 	url = https://github.com/boostorg/winapi
-[submodule "vendor/boost-mpl"]
+[submodule "vendor/boost-submodules/boost-mpl"]
 	path = vendor/boost-submodules/boost-mpl
 	url = https://github.com/boostorg/mpl
-[submodule "vendor/boost-integer"]
+[submodule "vendor/boost-submodules/boost-integer"]
 	path = vendor/boost-submodules/boost-integer
 	url = https://github.com/boostorg/integer
-[submodule "vendor/boost-container-hash"]
+[submodule "vendor/boost-submodules/boost-container-hash"]
 	path = vendor/boost-submodules/boost-container-hash
 	url = https://github.com/boostorg/container_hash
-[submodule "vendor/boost-bind"]
+[submodule "vendor/boost-submodules/boost-bind"]
 	path = vendor/boost-submodules/boost-bind
 	url = https://github.com/boostorg/bind
-[submodule "vendor/boost-unordered"]
+[submodule "vendor/boost-submodules/boost-unordered"]
 	path = vendor/boost-submodules/boost-unordered
 	url = https://github.com/boostorg/unordered
-[submodule "vendor/boost-lexical-cast"]
+[submodule "vendor/boost-submodules/boost-lexical-cast"]
 	path = vendor/boost-submodules/boost-lexical-cast
 	url = https://github.com/boostorg/lexical_cast
-[submodule "vendor/boost-io"]
+[submodule "vendor/boost-submodules/boost-io"]
 	path = vendor/boost-submodules/boost-io
 	url = https://github.com/boostorg/io
-[submodule "vendor/boost-date-time"]
+[submodule "vendor/boost-submodules/boost-date-time"]
 	path = vendor/boost-submodules/boost-date-time
 	url = https://github.com/boostorg/date_time
-[submodule "vendor/boost-range"]
+[submodule "vendor/boost-submodules/boost-range"]
 	path = vendor/boost-submodules/boost-range
 	url = https://github.com/boostorg/range
-[submodule "vendor/boost-tuple"]
+[submodule "vendor/boost-submodules/boost-tuple"]
 	path = vendor/boost-submodules/boost-tuple
 	url = https://github.com/boostorg/tuple
-[submodule "vendor/boost-concept-check"]
+[submodule "vendor/boost-submodules/boost-concept-check"]
 	path = vendor/boost-submodules/boost-concept-check
 	url = https://github.com/boostorg/concept_check/
-[submodule "vendor/boost-utility"]
+[submodule "vendor/boost-submodules/boost-utility"]
 	path = vendor/boost-submodules/boost-utility
 	url = https://github.com/boostorg/utility
-[submodule "vendor/boost-numeric-conversion"]
+[submodule "vendor/boost-submodules/boost-numeric-conversion"]
 	path = vendor/boost-submodules/boost-numeric-conversion
 	url = https://github.com/boostorg/numeric_conversion
-[submodule "vendor/boost-chrono"]
+[submodule "vendor/boost-submodules/boost-chrono"]
 	path = vendor/boost-submodules/boost-chrono
 	url = https://github.com/boostorg/chrono
-[submodule "vendor/boost-array"]
+[submodule "vendor/boost-submodules/boost-array"]
 	path = vendor/boost-submodules/boost-array
 	url = https://github.com/boostorg/array
-[submodule "vendor/boost-ratio"]
+[submodule "vendor/boost-submodules/boost-ratio"]
 	path = vendor/boost-submodules/boost-ratio
 	url = https://github.com/boostorg/ratio
-[submodule "vendor/boost-container"]
+[submodule "vendor/boost-submodules/boost-container"]
 	path = vendor/boost-submodules/boost-container
 	url = https://github.com/boostorg/container
-[submodule "vendor/boost-math"]
+[submodule "vendor/boost-submodules/boost-math"]
 	path = vendor/boost-submodules/boost-math
 	url = https://github.com/boostorg/math
-[submodule "vendor/boost-property-tree"]
+[submodule "vendor/boost-submodules/boost-property-tree"]
 	path = vendor/boost-submodules/boost-property-tree
 	url = https://github.com/boostorg/property_tree
-[submodule "vendor/boost-optional"]
+[submodule "vendor/boost-submodules/boost-optional"]
 	path = vendor/boost-submodules/boost-optional
 	url = https://github.com/boostorg/optional
-[submodule "vendor/boost-fusion"]
+[submodule "vendor/boost-submodules/boost-fusion"]
 	path = vendor/boost-submodules/boost-fusion
 	url = https://github.com/boostorg/fusion
-[submodule "vendor/boost-function-types"]
+[submodule "vendor/boost-submodules/boost-function-types"]
 	path = vendor/boost-submodules/boost-function-types
 	url = https://github.com/boostorg/function_types
-[submodule "vendor/boost-circular-buffer"]
+[submodule "vendor/boost-submodules/boost-circular-buffer"]
 	path = vendor/boost-submodules/boost-circular-buffer
 	url = https://github.com/boostorg/circular_buffer
-[submodule "vendor/boost-bimap"]
+[submodule "vendor/boost-submodules/boost-bimap"]
 	path = vendor/boost-submodules/boost-bimap
 	url = https://github.com/boostorg/bimap
-[submodule "vendor/boost-algorithm"]
+[submodule "vendor/boost-submodules/boost-algorithm"]
 	path = vendor/boost-submodules/boost-algorithm
 	url = https://github.com/boostorg/algorithm
-[submodule "vendor/boost-variant"]
+[submodule "vendor/boost-submodules/boost-variant"]
 	path = vendor/boost-submodules/boost-variant
 	url = https://github.com/boostorg/variant
-[submodule "vendor/boost-serialization"]
+[submodule "vendor/boost-submodules/boost-serialization"]
 	path = vendor/boost-submodules/boost-serialization
 	url = https://github.com/boostorg/serialization
-[submodule "vendor/boost-exception"]
+[submodule "vendor/boost-submodules/boost-exception"]
 	path = vendor/boost-submodules/boost-exception
 	url = https://github.com/boostorg/exception
-[submodule "vendor/boost-multi-index"]
+[submodule "vendor/boost-submodules/boost-multi-index"]
 	path = vendor/boost-submodules/boost-multi-index
 	url = https://github.com/boostorg/multi_index
-[submodule "vendor/boost-foreach"]
+[submodule "vendor/boost-submodules/boost-foreach"]
 	path = vendor/boost-submodules/boost-foreach
 	url = https://github.com/boostorg/foreach
-[submodule "vendor/boost-uuid"]
+[submodule "vendor/boost-submodules/boost-uuid"]
 	path = vendor/boost-submodules/boost-uuid
 	url = https://github.com/boostorg/uuid
-[submodule "vendor/boost-regex"]
+[submodule "vendor/boost-submodules/boost-regex"]
 	path = vendor/boost-submodules/boost-regex
 	url = https://github.com/boostorg/regex
-[submodule "vendor/boost-crc"]
+[submodule "vendor/boost-submodules/boost-crc"]
 	path = vendor/boost-submodules/boost-crc
 	url = https://github.com/boostorg/crc
-[submodule "vendor/boost-tti"]
+[submodule "vendor/boost-submodules/boost-tti"]
 	path = vendor/boost-submodules/boost-tti
 	url = https://github.com/boostorg/tti
 [submodule "vendor/boost-submodules/boost-outcome"]
