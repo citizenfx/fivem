@@ -105,7 +105,7 @@ bool fx::NoticeLogicProcessor::ProcessNoticeRule(const nlohmann::json& ruleRef, 
 					return opNum == RuleOp::NullOrEmpty;
 				}
 
-				auto& currentValue = cvEntry->GetValue();
+				auto currentValue = cvEntry->GetValue();
 				if (opNum == RuleOp::NullOrEmpty)
 				{
 					return currentValue == "";
