@@ -3,7 +3,7 @@ return {
 		language "C++"
 		kind 'StaticLib'
 
-		files_project(os.getenv("BOOST_ROOT") .. '/libs/program_options/src/')
+		files_project('../vendor/boost-submodules/boost-program-options/src/')
 		{
 			'cmdline.cpp',
 			'config_file.cpp',
@@ -18,7 +18,7 @@ return {
 		}
 
 		filter 'system:windows'
-			files_project(os.getenv("BOOST_ROOT") .. '/libs/program_options/src/')
+			files_project('../vendor/boost-submodules/boost-program-options/src/')
 			{
 				'winmain.cpp'
 			}

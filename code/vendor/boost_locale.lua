@@ -15,7 +15,7 @@ return {
 		
 		defines { 'BOOST_LOCALE_NO_STD_BACKEND', 'BOOST_LOCALE_NO_POSIX_BACKEND' }
 
-		files_project(os.getenv("BOOST_ROOT") .. '/libs/locale/src/')
+		files_project('../vendor/boost-submodules/boost-locale/src/')
 		{
 			'encoding/codepage.cpp',
 			'shared/date_time.cpp',

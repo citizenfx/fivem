@@ -1375,35 +1375,37 @@ static HookFunction initFunction([]()
 
 	OnKillNetworkDone.Connect([]()
 	{
-		g_skipRepairVehicles.clear();
 		ResetFlyThroughWindscreenParams();
+
 		*g_trainsForceDoorsOpen = true;
+
+		g_skipRepairVehicles.clear();
+		g_canPedStandOnVehicles.clear();
+
 		g_overrideUseDefaultDriveByClipset = false;
+		g_overrideCanPedStandOnVehicle = false;
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_AUTO_REPAIR_DISABLED", [](fx::ScriptContext& context)
 	{
-		auto vehHandle = context.GetArgument<int>(0);
-		auto shouldDisable = context.GetArgument<bool>(1);
-
-		fwEntity* entity = rage::fwScriptGuid::GetBaseFromGuid(vehHandle);
-
-		if (shouldDisable)
+		if (fwEntity* entity = getAndCheckVehicle(context, "SET_VEHICLE_AUTO_REPAIR_DISABLED"))
 		{
-			g_skipRepairVehicles.insert(entity);
-		}
-		else
-		{
-			g_skipRepairVehicles.erase(entity);
+			auto shouldDisable = context.GetArgument<bool>(1);
+
+			if (shouldDisable)
+			{
+				g_skipRepairVehicles.insert(entity);
+			}
+			else
+			{
+				g_skipRepairVehicles.erase(entity);
+			}	
 		}
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("ADD_VEHICLE_DELETION_TRACE", [](fx::ScriptContext& context)
 	{
-		auto vehHandle = context.GetArgument<int>(0);
-		fwEntity* entity = rage::fwScriptGuid::GetBaseFromGuid(vehHandle);
-
-		if (entity->IsOfType<CVehicle>())
+		if (fwEntity* entity = getAndCheckVehicle(context, "ADD_VEHICLE_DELETION_TRACE"))
 		{
 			g_deletionTraces.insert(entity);
 			g_deletionTraces2.insert(entity);
@@ -1412,10 +1414,7 @@ static HookFunction initFunction([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("OVERRIDE_VEHICLE_PEDS_CAN_STAND_ON_TOP_FLAG", [](fx::ScriptContext& context)
 	{
-		auto vehHandle = context.GetArgument<int>(0);
-		fwEntity* entity = rage::fwScriptGuid::GetBaseFromGuid(vehHandle);
-
-		if (entity->IsOfType<CVehicle>())
+		if (fwEntity* entity = getAndCheckVehicle(context, "OVERRIDE_VEHICLE_PEDS_CAN_STAND_ON_TOP_FLAG"))
 		{
 			bool can = context.GetArgument<bool>(1);
 			SetCanPedStandOnVehicle(entity, can ? 1 : -1);
@@ -1424,10 +1423,7 @@ static HookFunction initFunction([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("RESET_VEHICLE_PEDS_CAN_STAND_ON_TOP_FLAG", [](fx::ScriptContext& context)
 	{
-		auto vehHandle = context.GetArgument<int>(0);
-		fwEntity* entity = rage::fwScriptGuid::GetBaseFromGuid(vehHandle);
-
-		if (entity->IsOfType<CVehicle>())
+		if (fwEntity* entity = getAndCheckVehicle(context, "RESET_VEHICLE_PEDS_CAN_STAND_ON_TOP_FLAG"))
 		{
 			SetCanPedStandOnVehicle(entity, 0);
 		}
