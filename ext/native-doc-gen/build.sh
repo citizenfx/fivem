@@ -14,7 +14,7 @@ YARN="$NODE $ROOT/yarn_cli.js"
 
 [ "$OS" == "Windows_NT" ] && curl -z node.exe -Lo node.exe https://content.cfx.re/mirrors/vendor/node/v12.22.12/node.exe --http1.1
 [ "$OS" != "Windows_NT" ] && mkdir /tmp/node && \
-	curl -Lo /tmp/node/node.tar.gz https://unofficial-builds.nodejs.org/download/release/v12.22.12/node-v12.22.12-linux-x64-musl.tar.gz && \
+	curl -Lo /tmp/node/node.tar.gz https://content.cfx.re/mirrors/vendor/node/v12.22.12/node-v12.22.12-linux-x64-musl.tar.gz && \
 	tar -C /tmp/node -xf /tmp/node/node.tar.gz && \
 	mv /tmp/node/node-* /tmp/node/node
 
