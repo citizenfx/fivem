@@ -3,6 +3,13 @@ local isRDR = not TerraingridActivate and true or false
 local chatInputActive = false
 local chatInputActivating = false
 local chatLoaded = false
+local currentResourceName = GetCurrentResourceName()
+
+local function UsePreSecurityBehavior()
+  -- use `setr sysresource_chat_disableOriginSecurityChecks true` on the server to allow non secure execution
+  -- of commands and events, `setr` will also disallow clients to change it
+  return GetConvar('sysresource_chat_disableOriginSecurityChecks', 'false') == 'true'
+end
 
 RegisterNetEvent('chatMessage')
 RegisterNetEvent('chat:addTemplate')
@@ -125,24 +132,34 @@ AddEventHandler('chat:clear', function(name)
   })
 end)
 
-RegisterNUICallback('chatResult', function(data, cb)
+RegisterRawNuiCallback('chatResult', function(requestData, cb)
+  local resource = requestData.resource
+  local securityDisabled = UsePreSecurityBehavior();
+
+  -- only allow actual resources to call in here
+  if resource == nil and not securityDisabled then
+    return
+  end
+  
   chatInputActive = false
   SetNuiFocus(false)
-
+  
+  local data = json.decode(requestData.body)
+  
   if not data.canceled then
-    local id = PlayerId()
-
-    --deprecated
-    local r, g, b = 0, 0x99, 255
-
     if data.message:sub(1, 1) == '/' then
-      ExecuteCommand(data.message:sub(2))
+      -- Only this resource's NUI page can execute commands
+      if resource == currentResourceName or securityDisabled then
+        ExecuteCommand(data.message:sub(2))
+      end
     else
+      local id = PlayerId()
+      local r, g, b = 0, 0x99, 255 --deprecated
       TriggerServerEvent('_chat:messageEntered', GetPlayerName(id), { r, g, b }, data.message, data.mode)
     end
   end
-
-  cb('ok')
+  
+  cb({ body = 'ok' })
 end)
 
 local function refreshCommands()
