@@ -22,6 +22,7 @@
 #undef interface
 #include "InstallerExtraction.h"
 #include <array>
+#include <filesystem>
 
 #if defined(LAUNCHER_PERSONALITY_MAIN) || defined(COMPILING_GLUE)
 #define CURL_STATICLIB
@@ -113,6 +114,11 @@ struct GameCacheEntry
 	bool IsPrimitiveFile() const
 	{
 		return std::string_view{ filename }.find("ros_") == 0 || std::string_view{ filename }.find("launcher/") == 0;
+	}
+
+	bool IsDownloadable() const
+	{
+		return _strnicmp(remotePath, "nope:", 5) != 0;
 	}
 
 	std::wstring GetCacheFileName(std::string_view checksum = {}) const
@@ -211,6 +217,21 @@ std::string DeltaEntry::GetFileName() const
 	};
 
 	return fmt::sprintf("%x_%x", std::hash<decltype(from)>()(from), std::hash<decltype(to)>()(to));
+}
+
+// Returns file size in bytes,
+// returns -1 if file does not exist or any other error occured
+inline std::uintmax_t GetFileSize2(const std::filesystem::path& filename)
+{
+	std::error_code error;
+	return std::filesystem::file_size(filename, error);
+}
+
+// Checks if file exists
+inline bool DoesFileExist(const std::filesystem::path& filename)
+{
+	std::error_code error;
+	return std::filesystem::exists(filename, error);
 }
 
 struct GameCacheStorageEntry
@@ -559,14 +580,23 @@ static std::vector<GameCacheEntry> CompareCacheDifferences()
 			{
 				if (std::equal(requiredHash.begin(), requiredHash.end(), storageEntry.checksum))
 				{
-					// check if the file exists
-					std::wstring cacheFileName = entry.GetCacheFileName();
-
-					if (GetFileAttributes(cacheFileName.c_str()) == INVALID_FILE_ATTRIBUTES && (GetFileAttributes(entry.GetLocalFileName().c_str()) == INVALID_FILE_ATTRIBUTES || strncmp(entry.remotePath, "nope:", 5) != 0))
+					if (entry.localSize != 0)
 					{
-						if (entry.localSize != 0)
+						bool shouldAddForCheck = false;
+
+						if (entry.IsDownloadable())
 						{
-							// as it doesn't add to the list
+							// Add entry for check if cache file does not exist or it's size doesn't match expected (remoteSize)
+							shouldAddForCheck = entry.remoteSize != GetFileSize2(entry.GetCacheFileName());
+						}
+						else
+						{
+							// Add entry for check if local file does not exist
+							shouldAddForCheck = !DoesFileExist(entry.GetLocalFileName());
+						}
+
+						if (shouldAddForCheck)
+						{
 							retval.push_back(entry);
 						}
 					}
@@ -588,19 +618,9 @@ static std::vector<GameCacheEntry> CompareCacheDifferences()
 		{
 			if (entry.IsPrimitiveFile())
 			{
-				auto fileHandle = CreateFileW(entry.GetCacheFileName().c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-
-				if (fileHandle != INVALID_HANDLE_VALUE && fileHandle != 0)
+				if (entry.localSize == GetFileSize2(entry.GetCacheFileName()))
 				{
-					LARGE_INTEGER fs;
-					GetFileSizeEx(fileHandle, &fs);
-
-					if (fs.QuadPart == entry.localSize)
-					{
-						found = true;
-					}
-
-					CloseHandle(fileHandle);
+					found = true;
 				}
 			}
 
@@ -675,7 +695,7 @@ static bool ShowDownloadNotification(const std::vector<std::pair<GameCacheEntry,
 	for (auto& entry : entries)
 	{
 		// is the file allowed?
-		if (_strnicmp(entry.first.remotePath, "nope:", 5) == 0)
+		if (!entry.first.IsDownloadable())
 		{
 			shouldAllow = false;
 			badEntries += entry.first.filename;
@@ -797,7 +817,7 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 
 	for (auto& entry : entries)
 	{
-		if (_strnicmp(entry.remotePath, "nope:", 5) != 0)
+		if (entry.IsDownloadable())
 		{
 			struct _stat64 stat;
 			if (_wstat64(entry.GetLocalFileName().c_str(), &stat) >= 0)
@@ -860,16 +880,15 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 		std::array<uint8_t, 20> outHash;
 		bool fileOutdated = false;
 		
-		if (_strnicmp(entry.remotePath, "nope:", 5) != 0)
+		if (entry.IsDownloadable())
 		{
-			// does *not* start with nope: (manual download)
 			UI_UpdateText(0, gettext(L"Verifying game content...").c_str());
 
 			fileOutdated = CheckFileOutdatedWithUI(entry.GetLocalFileName().c_str(), hashes, &fileStart, fileTotal, &outHash);
 		}
 		else
 		{
-			// 'nope:' files just get a size check, no whole hash check
+			// Non-downloadable files just get a size check, no whole hash check
 			if (GetFileAttributes(entry.GetLocalFileName().c_str()) == INVALID_FILE_ATTRIBUTES)
 			{
 				fileOutdated = true;
@@ -908,9 +927,8 @@ static bool PerformUpdate(const std::vector<GameCacheEntry>& entries)
 		if (!fileOutdated)
 		{
 			// should we 'nope' this file?
-			if (_strnicmp(entry.remotePath, "nope:", 5) == 0)
+			if (!entry.IsDownloadable())
 			{
-				// *does* start with nope:
 				if (FILE* f = _wfopen(MakeRelativeCitPath(L"data\\game-storage\\game_files.dat").c_str(), L"ab"))
 				{
 					auto hash = outHash;
