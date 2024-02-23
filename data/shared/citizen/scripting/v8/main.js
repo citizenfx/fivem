@@ -207,6 +207,9 @@ const EXT_LOCALFUNCREF = 11;
 	global.addRawEventListener = rawEmitter.on.bind(rawEmitter);
 	global.addRawEventHandler = global.addRawEventListener;
 
+	// Raw events configuration
+	global.setMaxRawEventListeners = rawEmitter.setMaxListeners.bind(rawEmitter);
+
 	// Client events
 	global.addEventListener = (name, callback, netSafe = false) => {
 		if (netSafe) {
@@ -218,6 +221,9 @@ const EXT_LOCALFUNCREF = 11;
 		emitter.on(name, callback);
 	};
 	global.on = global.addEventListener;
+
+	// Event Emitter configuration
+	global.setMaxEventListeners = emitter.setMaxListeners.bind(emitter);
 
 	// Net events
 	global.addNetEventListener = (name, callback) => global.addEventListener(name, callback, true);
