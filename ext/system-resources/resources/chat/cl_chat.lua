@@ -8,7 +8,7 @@ local currentResourceName = GetCurrentResourceName()
 local function UsePreSecurityBehavior()
   -- use `setr sysresource_chat_disableOriginSecurityChecks true` on the server to allow non secure execution
   -- of commands and events, `setr` will also disallow clients to change it
-  return GetConvar('sysresource_chat_disableOriginSecurityChecks', 'false') == 'true'
+  return GetConvar('sysresource_chat_disableOriginSecurityChecks', 'true') == 'true'
 end
 
 RegisterNetEvent('chatMessage')
