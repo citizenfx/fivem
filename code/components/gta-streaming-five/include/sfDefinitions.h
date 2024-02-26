@@ -9,6 +9,50 @@
 
 #include <StdInc.h>
 
+struct GRectF
+{
+	float left, top, right, bottom;
+};
+
+struct GMatrix2D
+{
+	float matrix[2][3];
+
+	inline GMatrix2D()
+	{
+		memset(matrix, 0, sizeof(matrix));
+		matrix[0][0] = 1.0f;
+		matrix[1][1] = 1.0f;
+	}
+
+	inline void AppendScaling(float sx, float sy)
+	{
+		matrix[0][0] *= sx;
+		matrix[0][1] *= sx;
+		matrix[0][2] *= sx;
+		matrix[1][0] *= sy;
+		matrix[1][1] *= sy;
+		matrix[1][2] *= sy;
+	}
+
+	inline void AppendTranslation(float dx, float dy)
+	{
+		matrix[0][2] += dx;
+		matrix[1][2] += dy;
+	}
+
+	inline void Prepend(const GMatrix2D& m)
+	{
+		GMatrix2D t = *this;
+		matrix[0][0] = t.matrix[0][0] * m.matrix[0][0] + t.matrix[0][1] * m.matrix[1][0];
+		matrix[1][0] = t.matrix[1][0] * m.matrix[0][0] + t.matrix[1][1] * m.matrix[1][0];
+		matrix[0][1] = t.matrix[0][0] * m.matrix[0][1] + t.matrix[0][1] * m.matrix[1][1];
+		matrix[1][1] = t.matrix[1][0] * m.matrix[0][1] + t.matrix[1][1] * m.matrix[1][1];
+		matrix[0][2] = t.matrix[0][0] * m.matrix[0][2] + t.matrix[0][1] * m.matrix[1][2] + t.matrix[0][2];
+		matrix[1][2] = t.matrix[1][0] * m.matrix[0][2] + t.matrix[1][1] * m.matrix[1][2] + t.matrix[1][2];
+	}
+};
+
 class GMemoryHeap
 {
 public:
@@ -38,12 +82,51 @@ public:
 	void operator delete(void* ptr);
 	void operator delete[](void* ptr);
 
+	inline void AddRef()
+	{
+		InterlockedIncrement(&RefCount);
+	}
+
+	inline void Release()
+	{
+		if (!InterlockedDecrement(&RefCount))
+		{
+			delete this;
+		}
+	}
+
 private:
 	volatile long RefCount;
 };
 
+class GRenderer
+{
+public:
+	struct CXform
+	{
+		float matrix[4][2];
+
+		CXform()
+		{
+			matrix[0][0] = 1.0f;
+			matrix[1][0] = 1.0f;
+			matrix[2][0] = 1.0f;
+			matrix[3][0] = 1.0f;
+			matrix[0][1] = 0.0f;
+			matrix[1][1] = 0.0f;
+			matrix[2][1] = 0.0f;
+			matrix[3][1] = 0.0f;
+		}
+	};
+};
+
 class GFxObjectInterface;
+class GFxMovieDef;
 class GFxValue;
+
+class GFxCharacter : public GRefCountBase
+{
+};
 
 class GFxFunctionHandler : public GRefCountBase
 {
@@ -63,10 +146,33 @@ public:
 	virtual void Call(const Params& params) = 0;
 };
 
-class GFxMovieRoot
+class GFxTextImageDesc : public GRefCountBase
 {
 public:
-	virtual void m_00() = 0;
+	void* imageShape;
+	GFxCharacter* spriteShape;
+	int baseLineX;
+	int baseLineY;
+	uint32_t screenWidth;
+	uint32_t screenHeight;
+	GMatrix2D matrix;
+};
+
+class GFxStyledText : public GRefCountBase
+{
+public:
+	struct HTMLImageTagInfo
+	{
+		GFxTextImageDesc* textImageDesc;
+		char pad[32];
+		uint32_t Width, Height;
+	};
+};
+
+class GFxMovieRoot : public GRefCountBase
+{
+public:
+	// virtual void m_00() = 0;
 	virtual void m_08() = 0;
 	virtual void m_10() = 0;
 	virtual void m_18() = 0;
@@ -83,6 +189,10 @@ public:
 	virtual void m_70() = 0;
 	virtual void CreateFunction(GFxValue* value, GFxFunctionHandler* pfc, void* puserData = nullptr) = 0;
 	virtual void SetVariable(const char* path, const GFxValue& value, int type) = 0;
+
+public:
+	char pad_10[0xB8];
+	GRectF VisibleFrameRect;
 };
 
 class GFxValue
@@ -201,3 +311,88 @@ private:
 	ValueType Type;
 	ValueUnion mValue;
 };
+
+class GFxSprite : public GFxCharacter
+{
+public:
+	// virtual void m0() = 0;
+	virtual void m1() = 0;
+	virtual void m2() = 0;
+	virtual void m3() = 0;
+	virtual void m4() = 0;
+	virtual void m5() = 0;
+	virtual void m6() = 0;
+	virtual void m7() = 0;
+	virtual void m8() = 0;
+	virtual void m9() = 0;
+	virtual void m10() = 0;
+	virtual void m11() = 0;
+	virtual void m12() = 0;
+	virtual void m13() = 0;
+	virtual void m14() = 0;
+	virtual void m15() = 0;
+	virtual GRectF GetRectBounds(const GMatrix2D& matrix) = 0;
+	virtual void m17() = 0;
+	virtual void m18() = 0;
+	virtual void m19() = 0;
+	virtual void m20() = 0;
+	virtual void m21() = 0;
+	virtual void m22() = 0;
+	virtual void m23() = 0;
+	virtual void m24() = 0;
+	virtual void m25() = 0;
+	virtual void m26() = 0;
+	virtual void m27() = 0;
+	virtual void m28() = 0;
+	virtual void Display(void* context) = 0;
+	virtual void Restart() = 0;
+};
+
+struct GFxDisplayContext
+{
+	GRenderer::CXform* parentCxform;
+	GMatrix2D* parentMatrix;
+};
+
+struct GFxTextFormat
+{
+	char pad[66];
+	uint16_t presentMask;
+	char pad2[12];
+};
+
+struct GFxElemDesc
+{
+	char pad[32];
+	GFxTextFormat fmt;
+	char paraFmt[24];
+};
+
+class GFxResource
+{
+public:
+	virtual void m_0() = 0;
+	virtual void m_1() = 0;
+	virtual int GetType() = 0;
+
+	inline bool IsSprite()
+	{
+		return ((GetType() >> 8) & 0xff) == 0x84;
+	}
+};
+
+class GFxSpriteDef : public GFxResource
+{
+public:
+	virtual void m_s0() = 0;
+	virtual void m_s1() = 0;
+	virtual void m_s2() = 0;
+	virtual void m_s3() = 0;
+	virtual void m_s4() = 0;
+	virtual void m_s5() = 0;
+	virtual void* CreateCharacterInstance(void* parent, uint32_t* id, void* pbindingImpl) = 0;
+};
+
+#ifdef _DEBUG
+static_assert(offsetof(GFxMovieRoot, VisibleFrameRect) == 200);
+#endif

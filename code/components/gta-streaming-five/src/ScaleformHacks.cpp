@@ -76,7 +76,7 @@ bool GFxValue::GetMember(const char* name, GFxValue* pval) const
 	return __GFxObjectInterface_GetMember(pObjectInterface, mValue.pData, name, pval, IsDisplayObject());
 }
 
-GMemoryHeap** g_gfxMemoryHeap;// = (GFxMemoryHeap**)0x142CBB3E8;
+static GMemoryHeap** g_gfxMemoryHeap;// = (GFxMemoryHeap**)0x142CBB3E8;
 
 void* GRefCountBase::operator new(size_t size)
 {
