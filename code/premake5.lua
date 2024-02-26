@@ -634,14 +634,14 @@ if _OPTIONS['game'] ~= 'launcher' then
 		
 		defines { 'MONO_V2' }
 		
-		if _OPTIONS['game'] ~= 'rdr3' then -- remove rdr3 check when its natives are fixed
+		do  -- prev. disabled on certain games
 			defines { 'NATIVE_SHARED_INCLUDE' }
 		end
 		
 		cstargets 'v2'
 	end
 	
-	if _OPTIONS['game'] ~= 'server' and  _OPTIONS['game'] ~= 'rdr3' then -- remove rdr3 check when its natives are fixed
+	if _OPTIONS['game'] ~= 'server' then
 		do csproject ("CitizenFX."..program.publicName..".NativeImpl")
 			clr 'Unsafe'
 			files { 'client/clrcore-v2/Native/'..program.cSharp.nativesFile }
@@ -658,7 +658,7 @@ if _OPTIONS['game'] ~= 'launcher' then
 		end
 	end
 	
-	if _OPTIONS['game'] ~= 'rdr3' then -- remove rdr3 check when its natives are fixed
+	do -- prev. disabled on certain games
 		do csproject ("CitizenFX."..program.publicName)
 			clr 'Unsafe'
 			files { 'client/clrcore-v2/'..program.cSharp.gameFiles, 'client/clrcore-v2/Game/Shared/*.cs' }
