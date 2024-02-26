@@ -505,9 +505,9 @@ static hook::cdecl_stub<void(void*, bool)> _kickRender([]
 	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 45 33 FF 44 38 7B 0D 74 0E"));
 });
 
-static void (*g_origCtrlInit)();
+static void (*g_origCtrlInit)(bool, bool);
 
-static void OnCtrlInit()
+static void OnCtrlInit(bool isWindowed, bool isExclusive)
 {
 	uint8_t orig1, orig2, orig3;
 
@@ -540,7 +540,7 @@ static void OnCtrlInit()
 	});
 
 	// orig
-	g_origCtrlInit();
+	g_origCtrlInit(isWindowed, isExclusive);
 }
 
 static bool (*g_origParamToInt)(void* param, int* value);
