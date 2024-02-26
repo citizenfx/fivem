@@ -69,6 +69,9 @@ public:
 	virtual void* Alloc(uint32_t size) = 0;
 	virtual void m_58() = 0;
 	virtual void Free(void* memory) = 0;
+
+	char pad_08[0xB8];
+	bool useLocks;
 };
 
 // Unification of GRefCountBase and GRefCountBaseNTS. Once the Scaleform bits
@@ -191,7 +194,9 @@ public:
 	virtual void SetVariable(const char* path, const GFxValue& value, int type) = 0;
 
 public:
-	char pad_10[0xB8];
+	char pad_10[0x28];
+	GMemoryHeap *pHeap;
+	char pad_40[0x88];
 	GRectF VisibleFrameRect;
 };
 
@@ -394,5 +399,7 @@ public:
 };
 
 #ifdef _DEBUG
+static_assert(offsetof(GFxMovieRoot, pHeap) == 56);
 static_assert(offsetof(GFxMovieRoot, VisibleFrameRect) == 200);
+static_assert(offsetof(GMemoryHeap, useLocks) == 192);
 #endif

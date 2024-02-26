@@ -200,6 +200,14 @@ static void HandleEarlyLoading(TFn&& cb)
 				g_md = (GFxMovieDef*)* movieDefRef;
 				g_movie = (GFxMovieRoot*)movieRef;
 
+				// GH-2157: HandleSprite can be called from both MainThread and
+				// RenderThread simultaneously: ensure the heap is flagged to be
+				// thread-safe.
+				GMemoryHeap* heap = g_movie->pHeap;
+				if (!heap->useLocks)
+				{
+					heap->useLocks = true;
+				}
 				cb();
 			}
 		}
@@ -257,8 +265,12 @@ static LONG SafetyFilter(PEXCEPTION_POINTERS pointers)
 	return EXCEPTION_EXECUTE_HANDLER;
 }
 
+// GH-2157: Other methods used path into GASEnvironment/GlobalEnvironment bits
+// that are not thread-safe.
+static std::mutex g_handleSprite;
 static void HandleSprite(GFxResource* resource, GFxStyledText::HTMLImageTagInfo* imgTagInfo, uint64_t document, void* md, void* character)
 {
+	std::unique_lock _(g_handleSprite);
 	auto sprite = (GFxSpriteDef*)resource;
 
 	static uint32_t id = 0x1234;
