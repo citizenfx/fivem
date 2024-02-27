@@ -260,11 +260,11 @@ local overrideReturnTypes = {
 local compatWrapperTypes = {
 	['string'] = {
 		['string'] =    { nil, '{0}', nil },
-		['ulong'] =     { nil, 'null', nil },
-		['ulong*'] =    { nil, 'null', nil }, -- prev: SEGFAULT
-		['Vector3'] =   { nil, 'null', nil }, -- shouldn't appear
-		['Vector3*'] =  { nil, 'null', nil },
-		['default'] =   { nil, 'null', nil },
+		['ulong'] =     { nil, 'null', nil, 'default' },
+		['ulong*'] =    { nil, 'null', nil, 'null' }, -- prev: SEGFAULT
+		['Vector3'] =   { nil, 'null', nil, 'default' }, -- shouldn't appear
+		['Vector3*'] =  { nil, 'null', nil, 'null' },
+		['default'] =   { nil, 'null', nil, 'default' },
 	},	
 	['ulong'] = {
 		['string'] =   { nil, '0', nil, '0' },
