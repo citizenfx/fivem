@@ -5,7 +5,7 @@ JOB_SLOTS=${2:-16}
 
 # install compile-time dependencies
 sudo apt-get -y install libstdc++6 gcc-multilib lua5.3 lua5.3-dev \
-	libcurl4-openssl-dev libssl-dev libv8-dev libc-ares-dev libclang-dev libv8-dev \
+	libcurl4-openssl-dev libssl-dev libc-ares-dev libclang-dev libnode-dev \
 	python3-venv make clang lld dotnet-sdk-6.0 \
 	build-essential unzip 
 
@@ -130,6 +130,11 @@ cd build/server/linux
 export CFLAGS="-fno-plt"
 export CXXFLAGS="-D_LIBCPP_ENABLE_CXX17_REMOVED_AUTO_PTR -Wno-deprecated-declarations -Wno-invalid-offsetof -fno-plt"
 export LDFLAGS="-Wl,--build-id -fuse-ld=lld -ldl"
+
+# Allows compilation of the node module and with it the whole solution
+# We use the includes from our v8-9.3 vendor package and use libnode-dev's .so files (apt-get)
+# Execution is not tested nor meant to work with this step, pure compilation and linkage
+export CXXFLAGS="$CXXFLAGS -I$ROOT_REPO/vendor/v8/9.3/include/"
 
 make clean
 make clean config=release verbose=1

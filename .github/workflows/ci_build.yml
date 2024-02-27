@@ -11,7 +11,7 @@ jobs:
           - [ FiveM,  five,   windows ]
           - [ RedM,   rdr3,   windows ]
           - [ Server, server, windows ]
-          #- [ Server, server, linux   ]
+          - [ Server, server, linux   ]
     name: ${{ matrix.builds[0] }}${{ matrix.builds[2] == 'linux' && ' (Linux)' || '' }}
     runs-on: ${{ matrix.builds[2] == 'windows' && 'windows-latest' || 'ubuntu-20.04' }}
     env:
