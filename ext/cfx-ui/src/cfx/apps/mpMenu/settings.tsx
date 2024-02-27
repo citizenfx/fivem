@@ -1,7 +1,7 @@
 import emojiList from 'emoji.json/emoji-compact.json';
 import { BrandIcon, Icons } from "cfx/ui/Icons";
 import { BsDisplay } from "react-icons/bs";
-import { ISetting, ISettings } from "cfx/common/services/settings/types";
+import { FixedUiScaling, ISetting, ISettings } from "cfx/common/services/settings/types";
 import { useService } from "cfx/base/servicesContainer";
 import { CurrentGameName } from "cfx/base/gameRuntime";
 import { CustomBackdropControl } from "./parts/SettingsFlyout/CustomBackdropControl/CustomBackdropControl";
@@ -220,6 +220,20 @@ const GAME_GAME_SETTINGS = new Map<string, ISetting.AnySetting>([
     description: $L('#Settings_FixedSizeNUIDesc'),
 
     ...convarAccessorsBoolean('nui_useFixedSize'),
+  }],
+  ['fixedSizeNuiMode', {
+    type: 'switch',
+
+    label: $L('#Settings_FixedSizeNUIMode'),
+
+    options: {
+      [FixedUiScaling.ScaleBy_1920x1080]: '1920x1080',
+      [FixedUiScaling.ScaleBy_2560x1440]: '2560x1440',
+    },
+
+    ...convarAccessorsString("nui_fixedSizeMode"),
+
+    visible: () => useService(IConvarService).getBoolean('nui_useFixedSize'),
   }],
   ['noiseSuppression', {
     type: 'checkbox',
