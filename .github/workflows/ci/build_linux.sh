@@ -4,6 +4,7 @@ ROOT_DEP=${1:-/tmp}
 JOB_SLOTS=${2:-16}
 
 # install compile-time dependencies
+sudo apt-get update
 sudo apt-get -y install libstdc++6 gcc-multilib lua5.3 lua5.3-dev \
 	libcurl4-openssl-dev libssl-dev libc-ares-dev libclang-dev libnode-dev \
 	python3-venv make clang lld dotnet-sdk-6.0 \
