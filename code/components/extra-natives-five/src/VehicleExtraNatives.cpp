@@ -256,6 +256,7 @@ static int StreamRenderWheelSizeOffset;
 static int DrawnWheelAngleMultOffset;
 static int TurboBoostOffset; // = 0x8D8;
 static int ClutchOffset; // = 0x8C0;
+static int VehicleGearRatioOffset;
 //static int VisualHeightGetOffset = 0x080; // There is a vanilla native for this.
 static int VisualHeightSetOffset = 0x07C;
 static int LightMultiplierGetOffset;
@@ -634,7 +635,18 @@ static HookFunction initFunction([]()
 		VehiclePitchBiasOffset = *hook::get_pattern<uint32_t>("0F 2F F7 44 0F 28 C0 F3 44 0F 58 83", 12);
 		VehicleRollBiasOffset = VehiclePitchBiasOffset - 4;
 	}
+	if (xbr::IsGameBuildOrGreater<3095>())
+	{
+		auto location = hook::get_pattern<char>("48 8D 8F ? ? ? ? 4C 8B C3 F3 0F 11 7C 24");
 
+		VehicleGearRatioOffset = *(int*)(location + 3) + 8 + 1 * sizeof(float);
+	}
+	else
+	{
+		auto location = hook::get_pattern<char>("48 8D 8F ? ? ? ? 4C 8B C3 F3 0F 11 7C 24");
+
+		VehicleGearRatioOffset = *(int*)(location + 3) + 8;
+	}
 	{
 		std::initializer_list<PatternPair> list = {
 			{ "44 38 ? ? ? ? 02 74 ? F3 0F 10 1D", 13 },
@@ -866,6 +878,24 @@ static HookFunction initFunction([]()
 		};
 	};
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_GEAR_RATIO", [](fx::ScriptContext& context)
+	{
+		unsigned char gear = context.GetArgument<int>(1);
+		if (fwEntity* vehicle = getAndCheckVehicle(context, "GET_VEHICLE_GEAR_RATIO"))
+		{
+			context.SetResult<float>(*(float*)((char*)vehicle + VehicleGearRatioOffset + gear * sizeof(float)));
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_GEAR_RATIO", [](fx::ScriptContext& context)
+	{
+		unsigned char gear = context.GetArgument<int>(1);
+		if (fwEntity* vehicle = getAndCheckVehicle(context, "SET_VEHICLE_GEAR_RATIO"))
+		{
+			*(float*)((char*)vehicle + VehicleGearRatioOffset + gear * sizeof(float)) = context.GetArgument<float>(2);
+		}
+	});	
+	
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_WHEEL_BRAKE_PRESSURE", makeWheelFunction([](fx::ScriptContext& context, fwEntity* vehicle, uintptr_t wheelAddr)
 	{
 		context.SetResult<float>(*reinterpret_cast<float*>(wheelAddr + WheelBrakePressureOffset));
