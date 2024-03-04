@@ -1,6 +1,11 @@
 #include <StdInc.h>
 #include <Hooking.h>
 
+#include <CrossBuildRuntime.h>
+
+// Constant buried in VehicleScriptGameStateDataNode
+static constexpr float kScriptedMaxSpeed = 320.0f;
+
 using OrigPtr = float(*)(void*);
 
 static OrigPtr origBase;
@@ -14,7 +19,7 @@ float GetMaxSpeed(void* self)
 
 	if (val == 150.0f)
 	{
-		val = 400.0f;
+		val = kScriptedMaxSpeed;
 	}
 
 	return val;
@@ -33,7 +38,8 @@ static HookFunction hookFunction([]()
 		hook::put(funcPtr, tgtFunc);
 	};
 
-	doPatch(&vtblBase[17], GetMaxSpeed<&origBase>, &origBase);
-	doPatch(&vtblPhys[17], GetMaxSpeed<&origPhys>, &origPhys);
-	doPatch(&vtblDamp[17], GetMaxSpeed<&origDamp>, &origDamp);
+	size_t offset = xbr::IsGameBuildOrGreater<2802>() ? 23 : 17;
+	doPatch(&vtblBase[offset], GetMaxSpeed<&origBase>, &origBase);
+	doPatch(&vtblPhys[offset], GetMaxSpeed<&origPhys>, &origPhys);
+	doPatch(&vtblDamp[offset], GetMaxSpeed<&origDamp>, &origDamp);
 });
