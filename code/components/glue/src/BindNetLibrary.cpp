@@ -20,8 +20,6 @@
 #include <CoreConsole.h>
 #include <se/Security.h>
 
-#include <ResourceManager.h>
-
 static InitFunction initFunction([] ()
 {
 	seGetCurrentContext()->AddAccessControlEntry(se::Principal{ "system.internal" }, se::Object{ "builtin" }, se::AccessType::Allow);
@@ -93,9 +91,6 @@ static InitFunction initFunction([] ()
 
 			Instance<ICoreGameInit>::Get()->ClearVariable("storyMode");
 			Instance<ICoreGameInit>::Get()->ClearVariable("localMode");
-
-			fwRefContainer<fx::ResourceManager> resman = Instance<fx::ResourceManager>::Get();
-			resman->ResetResources();
 		});
 
 		static std::vector<std::string> convarsCreatedByServer;
