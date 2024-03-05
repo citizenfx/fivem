@@ -9,6 +9,8 @@
 #include <CrossBuildRuntime.h>
 #include <Error.h>
 
+#include "netTimeSync.h"
+
 NetLibrary* g_netLibrary;
 
 // shared relay functions (from early rev. gta:net:five; do update!)
@@ -711,8 +713,6 @@ struct LoggedInt
 	int value;
 };
 
-bool IsWaitingForTimeSync();
-
 static int ReturnTrue()
 {
 	return true;
@@ -892,7 +892,7 @@ static HookFunction hookFunction([]()
 		case 5:
 			if (cgi->OneSyncEnabled)
 			{
-				if (IsWaitingForTimeSync())
+				if (sync::IsWaitingForTimeSync())
 				{
 					return;
 				}

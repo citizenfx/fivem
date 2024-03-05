@@ -16,6 +16,8 @@
 
 #include <GameInit.h>
 
+#include <netTimeSync.h>
+
 #include <scrEngine.h>
 #include <ScriptEngine.h>
 
@@ -452,8 +454,6 @@ struct HostStateHolder
 	}
 };
 
-bool IsWaitingForTimeSync();
-
 struct  
 {
 	HostStateHolder state;
@@ -480,7 +480,7 @@ struct
 
 			if (cgi->OneSyncEnabled)
 			{
-				if (IsWaitingForTimeSync())
+				if (sync::IsWaitingForTimeSync())
 				{
 					return;
 				}
