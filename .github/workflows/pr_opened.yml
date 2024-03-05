@@ -123,7 +123,7 @@ jobs:
             echo 'Titles need to:'
             echo '- Start with: fix, tweak, or feat,'
             echo '- Within parenthesis contain the area the change is applying,'
-            echo '- Colon + space, i.e: ": \",'
+            echo '- Colon + space, i.e: ": " (without quotes)'
             echo '- Description longer than 8 characters".'
             echo 
             echo 'Examples of correct commit titles:'
@@ -182,7 +182,7 @@ jobs:
   post_build:
     name: Post Build PR actions
     if: always()
-    needs: build_all
+    needs: [ build_all, input_validation ]
     runs-on: ubuntu-latest
     steps:
       - name: Mark PR as valid
