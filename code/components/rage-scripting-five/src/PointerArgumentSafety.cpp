@@ -115,6 +115,10 @@ void PointerArgumentHints::CleanNativeResult(uint64_t nativeIdentifier, ResultTy
 }
 }
 
+#if __has_include("PASPriv.h")
+#include "PASPriv.h"
+#endif
+
 #include "PASGen.h"
 
 void PointerArgumentSafety()
