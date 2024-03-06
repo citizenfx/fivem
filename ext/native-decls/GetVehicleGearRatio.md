@@ -1,12 +1,14 @@
 ---
 ns: CFX
 apiset: client
+game: gta5
 ---
 ## GET_VEHICLE_GEAR_RATIO
 
 ```c
 float GET_VEHICLE_GEAR_RATIO(Vehicle vehicle, int gear);
 ```
+
 Gets vehicles gear ratio on choosen gear.
 
 ## Parameters
@@ -14,25 +16,26 @@ Gets vehicles gear ratio on choosen gear.
 * **gear**: The vehicles gear you want to get.
 
 ## Examples
+
 ```lua
-local Vehicle = GetVehiclePedIsIn(PlayerPedId(-1))
+local vehicle = GetVehiclePedIsIn(PlayerPedId(-1))
 local currentGear = GetVehicleCurrentGear(Vehicle)
 
-print(GetVehicleGearRatio(Vehicle, currentGear)) -- will print current vehicle gear to console
+print(GetVehicleGearRatio(vehicle, currentGear)) -- will print current vehicle gear to console
 ```
 
 ```js
-const Vehicle = GetVehiclePedIsIn(PlayerPedId(-1));
+const vehicle = GetVehiclePedIsIn(PlayerPedId(-1));
 const currentGear = GetVehicleCurrentGear(Vehicle);
 
-console.log(GetVehicleGearRatio(Vehicle, currentGear)); // will print current vehicle gear to console
+console.log(GetVehicleGearRatio(vehicle, currentGear)); // will print current vehicle gear to console
 ```
 
 ```cs
 using static CitizenFX.Core.API;
 
-Vehicle veh = Game.PlayerPed.CurrentVehicle;
-int currentGear = GetVehicleCurrentGear(veh.Handle);
+Vehicle vehicle = Game.PlayerPed.CurrentVehicle;
+int currentGear = GetVehicleCurrentGear(vehicle.Handle);
 
-Debug.WriteLine($"{GetVehicleGearRatio(veh.Handle, currentGear)}");
+Debug.WriteLine($"{GetVehicleGearRatio(vehicle.Handle, currentGear)}");
 ```

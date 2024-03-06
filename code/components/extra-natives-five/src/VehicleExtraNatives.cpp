@@ -518,6 +518,8 @@ static HookFunction initFunction([]()
 
 		CurrentGearOffset = *(uint32_t*)(location + 18);
 		NextGearOffset = *(uint32_t*)(location + 11);
+
+		VehicleGearRatioOffset = CurrentGearOffset + (xbr::IsGameBuildOrGreater<3095>() ? 12 : 8);
 	}
 
 	{
@@ -635,18 +637,7 @@ static HookFunction initFunction([]()
 		VehiclePitchBiasOffset = *hook::get_pattern<uint32_t>("0F 2F F7 44 0F 28 C0 F3 44 0F 58 83", 12);
 		VehicleRollBiasOffset = VehiclePitchBiasOffset - 4;
 	}
-	if (xbr::IsGameBuildOrGreater<3095>())
-	{
-		auto location = hook::get_pattern<char>("48 8D 8F ? ? ? ? 4C 8B C3 F3 0F 11 7C 24");
 
-		VehicleGearRatioOffset = *(int*)(location + 3) + 8 + 1 * sizeof(float);
-	}
-	else
-	{
-		auto location = hook::get_pattern<char>("48 8D 8F ? ? ? ? 4C 8B C3 F3 0F 11 7C 24");
-
-		VehicleGearRatioOffset = *(int*)(location + 3) + 8;
-	}
 	{
 		std::initializer_list<PatternPair> list = {
 			{ "44 38 ? ? ? ? 02 74 ? F3 0F 10 1D", 13 },
@@ -883,7 +874,14 @@ static HookFunction initFunction([]()
 		unsigned char gear = context.GetArgument<int>(1);
 		if (fwEntity* vehicle = getAndCheckVehicle(context, "GET_VEHICLE_GEAR_RATIO"))
 		{
-			context.SetResult<float>(*(float*)((char*)vehicle + VehicleGearRatioOffset + gear * sizeof(float)));
+			if (gear <= 10)
+			{
+				context.SetResult<float>(*(float*)((char*)vehicle + VehicleGearRatioOffset + gear * sizeof(float)));
+			}
+			else
+			{
+				context.SetResult<float>(0.0f);
+			}
 		}
 	});
 
@@ -892,7 +890,10 @@ static HookFunction initFunction([]()
 		unsigned char gear = context.GetArgument<int>(1);
 		if (fwEntity* vehicle = getAndCheckVehicle(context, "SET_VEHICLE_GEAR_RATIO"))
 		{
-			*(float*)((char*)vehicle + VehicleGearRatioOffset + gear * sizeof(float)) = context.GetArgument<float>(2);
+			if (gear <= 10)
+			{
+				*(float*)((char*)vehicle + VehicleGearRatioOffset + gear * sizeof(float)) = context.GetArgument<float>(2);
+			}
 		}
 	});	
 	
