@@ -4,6 +4,7 @@
 #include <CoreConsole.h>
 
 #include <RageParser.h>
+#include <RageInput.h>
 
 #include <gameSkeleton.h>
 #include <ICoreGameInit.h>
@@ -27,17 +28,17 @@ namespace rage
 {
 	struct ioInputSource
 	{
-		uint32_t source;
+		rage::ioMapperSource source;
 		uint32_t parameter;
 		int unk;
 
 		inline ioInputSource()
-			: source(0), parameter(0), unk(-1)
+			: source(IOMS_KEYBOARD), parameter(0), unk(-1)
 		{
 
 		}
 
-		inline ioInputSource(uint32_t source, uint32_t parameter, int unk)
+		inline ioInputSource(rage::ioMapperSource source, uint32_t parameter, int unk)
 			: source(source), parameter(parameter), unk(unk)
 		{
 
@@ -92,12 +93,17 @@ namespace rage
 		//
 		// Given a source/parameter, gets the parameter to use when serializing a control.
 		//
-		static uint32_t GetParameterIndex(uint32_t source, uint32_t parameter);
+		static uint32_t GetParameterIndex(rage::ioMapperSource source, uint32_t parameter);
 
 		//
 		// Given a source/serialized parameter, gets the native parameter to use.
 		//
-		static uint32_t UngetParameterIndex(uint32_t source, uint32_t parameter);
+		static uint32_t UngetParameterIndex(rage::ioMapperSource source, uint32_t parameter);
+
+		//
+		// Ensure the <source, parameter> pairing form a valid matching.
+		//
+		static bool ValidateParameter(rage::ioMapperSource source, uint32_t parameter);
 	};
 }
 
@@ -171,12 +177,12 @@ uint32_t ControlSourceToMapperSource(uint32_t source)
 	return _controlSourceToMapperSource(source);
 }
 
-static hook::cdecl_stub<uint32_t(uint32_t, uint32_t)> _getParameterIndex([]()
+static hook::cdecl_stub<uint32_t(rage::ioMapperSource, uint32_t)> _getParameterIndex([]()
 {
 	return hook::get_pattern("83 F9 01 74 2C 0F 8E E8 00 00 00", -0xF);
 });
 
-uint32_t rage::ioMapper::GetParameterIndex(uint32_t source, uint32_t parameter)
+uint32_t rage::ioMapper::GetParameterIndex(rage::ioMapperSource source, uint32_t parameter)
 {
 	return _getParameterIndex(source, parameter);
 }
@@ -186,9 +192,61 @@ static hook::cdecl_stub<uint32_t(uint32_t, uint32_t)> _ungetParameterIndex([]()
 	return hook::get_pattern("74 28 7E 36 83 F9", -0x12);
 });
 
-uint32_t rage::ioMapper::UngetParameterIndex(uint32_t source, uint32_t parameter)
+uint32_t rage::ioMapper::UngetParameterIndex(rage::ioMapperSource source, uint32_t parameter)
 {
 	return _ungetParameterIndex(source, parameter);
+}
+
+// GH-1577: Sanitize invalid mapper/parameter pairings. In the reported case
+// IOMS_PAD_DIGITALBUTTON may cause invalid keys to overflow into being valid.
+// This function attempts to rebuild the switch statement from _getParameterIndex.
+bool rage::ioMapper::ValidateParameter(rage::ioMapperSource source, uint32_t parameter)
+{
+	switch (source)
+	{
+		case IOMS_KEYBOARD:
+			return (parameter & IOMT_KEYBOARD) == IOMT_KEYBOARD;
+		case IOMS_MOUSE_ABSOLUTEAXIS:
+			return (parameter & IOMT_MOUSE_AXIS) == IOMT_MOUSE_AXIS;
+		case IOMS_MOUSE_CENTEREDAXIS:
+		case IOMS_MOUSE_RELATIVEAXIS:
+		case IOMS_MOUSE_SCALEDAXIS:
+		case IOMS_MOUSE_NORMALIZED:
+			return (parameter & IOMT_MOUSE_AXIS) == IOMT_MOUSE_AXIS;
+		case IOMS_MOUSE_WHEEL:
+			return (parameter & IOMT_MOUSE_WHEEL) == IOMT_MOUSE_WHEEL;
+		case IOMS_MOUSE_BUTTON:
+			return (parameter & IOMT_MOUSE_BUTTON) == IOMT_MOUSE_BUTTON;
+		case IOMS_MOUSE_BUTTONANY:
+		case IOMS_PAD_DIGITALBUTTONANY:
+			return true;
+		case IOMS_PAD_DIGITALBUTTON:
+		case IOMS_PAD_DEBUGBUTTON:
+			return (parameter & IOMT_PAD_BUTTON) == IOMT_PAD_BUTTON;
+		case IOMS_PAD_ANALOGBUTTON:
+			return (parameter & IOMT_PAD_INDEX) == IOMT_PAD_INDEX;
+		case IOMS_PAD_AXIS:
+			return (parameter & IOMT_PAD_AXIS) == IOMT_PAD_AXIS;
+		case IOMS_JOYSTICK_BUTTON:
+			return (parameter & IOMT_JOYSTICK_BUTTON) == IOMT_JOYSTICK_BUTTON;
+		case IOMS_JOYSTICK_AXIS:
+		case IOMS_JOYSTICK_IAXIS:
+		case IOMS_JOYSTICK_AXIS_NEGATIVE:
+		case IOMS_JOYSTICK_AXIS_POSITIVE:
+			return (parameter & IOMT_JOYSTICK_AXIS) == IOMT_JOYSTICK_AXIS;
+		case IOMS_JOYSTICK_POV:
+		case IOMS_JOYSTICK_POV_AXIS:
+			return (parameter & IOMT_JOYSTICK_POV) == IOMT_JOYSTICK_POV;
+		case IOMS_MKB_AXIS:
+			return (parameter & IOMT_KEYBOARD) == IOMT_KEYBOARD
+				   || (parameter & IOMT_MOUSE_BUTTON) == IOMT_MOUSE_BUTTON
+				   || (parameter & IOMT_MOUSE_WHEEL) == IOMT_MOUSE_WHEEL;
+		case IOMS_TOUCHPAD_ABSOLUTE_AXIS:
+		case IOMS_TOUCHPAD_CENTERED_AXIS:
+			return (parameter & IOMT_MOUSE_AXIS) == IOMT_MOUSE_AXIS;
+		default:
+			return false;
+	}
 }
 
 class CControl
@@ -274,13 +332,13 @@ Button::Button(const std::string& name)
 
 	m_downCommand = std::make_unique<ConsoleCommand>("+" + name, [this]()
 	{
-		rage::ioInputSource source{ 0, 1, -4 }; // keyboard?
+		rage::ioInputSource source{ rage::IOMS_KEYBOARD, 1, -4 }; // keyboard?
 		UpdateIoValues(1.0f, source);
 	});
 
 	m_upCommand = std::make_unique<ConsoleCommand>("-" + name, [this]()
 	{
-		rage::ioInputSource source{ 0, 1, -4 }; // keyboard?
+		rage::ioInputSource source{ rage::IOMS_KEYBOARD, 1, -4 }; // keyboard?
 		UpdateIoValues(0.0f, source);
 	});
 }
@@ -298,7 +356,7 @@ void Button::UpdateOnControl()
 		{
 			if (copy)
 			{
-				rage::ioInputSource source{ 0, 1, -4 }; // keyboard?
+				rage::ioInputSource source{ rage::IOMS_KEYBOARD, 1, -4 };
 
 				if (!copy->IsDown(0.5f, rage::ioValue::NO_DEAD_ZONE))
 				{
@@ -350,7 +408,7 @@ public:
 
 	bool IsActive() const;
 
-	inline void SetBinding(std::tuple<int, int> binding)
+	inline void SetBinding(std::tuple<rage::ioMapperSource, int> binding)
 	{
 		m_binding = binding;
 	}
@@ -389,7 +447,7 @@ private:
 
 	std::string m_tag;
 
-	std::tuple<int, int> m_binding;
+	std::tuple<rage::ioMapperSource, int> m_binding;
 
 	std::set<rage::ioMapper*> m_mappers;
 };
@@ -577,7 +635,7 @@ public:
 
 	void Update(rage::ioMapper* mapper, uint32_t time);
 
-	std::shared_ptr<Binding> Bind(int source, int parameter, const std::string& command);
+	std::shared_ptr<Binding> Bind(rage::ioMapperSource source, int parameter, const std::string& command);
 
 	inline auto& GetBindings()
 	{
@@ -596,14 +654,14 @@ private:
 	std::unique_ptr<ConsoleCommand> m_unbindAllCommand;
 	std::unique_ptr<ConsoleCommand> m_listBindsCommand;
 
-	std::multimap<std::tuple<int, int>, std::shared_ptr<Binding>> m_bindings;
+	std::multimap<std::tuple<rage::ioMapperSource, int>, std::shared_ptr<Binding>> m_bindings;
 
 	std::list<std::unique_ptr<Button>> m_buttons;
 
 	concurrency::concurrent_queue<std::function<void()>> m_queue;
 };
 
-static std::map<std::string, int, console::IgnoreCaseLess> ioSourceMap;
+static std::map<std::string, rage::ioMapperSource, console::IgnoreCaseLess> ioSourceMap;
 static std::map<std::string, int, console::IgnoreCaseLess> ioParameterMap;
 
 void BindingManager::Initialize()
@@ -644,7 +702,7 @@ void BindingManager::Initialize()
 
 	auto bind = [=](const std::string& ioSourceName, const std::string& ioParameterName, const std::string& commandString, const std::string& tag)
 	{
-		int ioSource;
+		rage::ioMapperSource ioSource;
 
 		{
 			auto it = ioSourceMap.find(ioSourceName);
@@ -666,6 +724,11 @@ void BindingManager::Initialize()
 			if (it == ioParameterMap.end())
 			{
 				console::Printf("IO", "Invalid key name %s\n", ioParameterName.c_str());
+				return;
+			}
+			else if (!rage::ioMapper::ValidateParameter(ioSource, it->second))
+			{
+				console::Printf("IO", "Invalid I/O parameter pairing: <%s, %s>\n", ioSourceName, ioParameterName);
 				return;
 			}
 
@@ -704,7 +767,7 @@ void BindingManager::Initialize()
 
 	m_unbindCommand = std::make_unique<ConsoleCommand>("unbind", [=](const std::string& ioSourceName, const std::string& ioParameterName)
 	{
-		int ioSource;
+		rage::ioMapperSource ioSource;
 
 		{
 			auto it = ioSourceMap.find(ioSourceName);
@@ -728,6 +791,11 @@ void BindingManager::Initialize()
 				console::Printf("IO", "Invalid key name %s\n", ioParameterName.c_str());
 				return;
 			}
+			else if (!rage::ioMapper::ValidateParameter(ioSource, it->second))
+			{
+				console::Printf("IO", "Invalid I/O parameter pairing: <%s, %s>\n", ioSourceName, ioParameterName);
+				return;
+			}
 
 			ioParameter = rage::ioMapper::UngetParameterIndex(ioSource, it->second);
 		}
@@ -743,7 +811,7 @@ void BindingManager::Initialize()
 	});
 }
 
-std::shared_ptr<Binding> BindingManager::Bind(int ioSource, int ioParameter, const std::string& commandString)
+std::shared_ptr<Binding> BindingManager::Bind(rage::ioMapperSource ioSource, int ioParameter, const std::string& commandString)
 {
 	for (auto it = m_bindings.begin(); it != m_bindings.end(); )
 	{
@@ -866,7 +934,7 @@ void BindingManager::OnGameInit()
 			std::string_view thisName = *name;
 			thisName = thisName.substr(thisName.find_first_of('_') + 1);
 
-			ioSourceMap[std::string(thisName)] = field->index;
+			ioSourceMap[std::string(thisName)] = static_cast<rage::ioMapperSource>(field->index);
 
 			name++;
 		}
@@ -981,7 +1049,7 @@ namespace game
 
 		if (!ioms.empty() && !ioParam.empty())
 		{
-			int ioSource;
+			rage::ioMapperSource ioSource;
 
 			{
 				auto it = ioSourceMap.find(ioms);
@@ -1005,6 +1073,11 @@ namespace game
 					console::Printf("IO", "Invalid key name %s\n", ioParam);
 					return;
 				}
+				else if (!rage::ioMapper::ValidateParameter(ioSource, it->second))
+				{
+					console::Printf("IO", "Invalid I/O parameter pairing: <%s, %s>\n", ioms, ioParam);
+					return;
+				}
 
 				ioParameter = rage::ioMapper::UngetParameterIndex(ioSource, it->second);
 			}
@@ -1024,7 +1097,7 @@ namespace game
 	bool IsInputSourceDown(const rage::ioInputSource& controlData)
 	{
 		// mouse?
-		if (controlData.source == 7)
+		if (controlData.source == rage::IOMS_MOUSE_BUTTON)
 		{
 			return InputHook::IsMouseButtonDown(controlData.parameter);
 		}
@@ -1099,7 +1172,7 @@ static void* GetBindingForControl(void* control, rage::ioInputSource* outBinding
 	if (controlId & 0x80000000)
 	{
 		outBinding->parameter = -1;
-		outBinding->source = -1;
+		outBinding->source = rage::IOMS_UNDEFINED;
 		outBinding->unk = -1;
 
 		auto controlRef = GetRegisteredBindingByHash(controlId);
@@ -1228,19 +1301,17 @@ static void MapFuncHook(void* a1, uint32_t controlIdx, void* a3, void* a4)
 
 void UpdateButtonPlumbing()
 {
-	constexpr size_t INPUT_PUSH_TO_TALK = 249;
-
 	rage::ioInputSource controlDatas[2];
-	CControlMgr::GetPlayerControls()->GetBinding(controlDatas[0], INPUT_PUSH_TO_TALK, -1, false, false);
-	CControlMgr::GetPlayerControls()->GetBinding(controlDatas[1], INPUT_PUSH_TO_TALK, -1, true, false);
+	CControlMgr::GetPlayerControls()->GetBinding(controlDatas[0], rage::INPUT_PUSH_TO_TALK, -1, false, false);
+	CControlMgr::GetPlayerControls()->GetBinding(controlDatas[1], rage::INPUT_PUSH_TO_TALK, -1, true, false);
 
 	auto mapBypass = [](rage::ioInputSource& controlData)
 	{
 		InputHook::ControlBypass bypass = { 0 };
 
-		if (controlData.source == 0 /* IOMS_KEYBOARD */ || controlData.source == 7 /* IOMS_MOUSE_BUTTON */)
+		if (controlData.source == rage::IOMS_KEYBOARD || controlData.source == rage::IOMS_MOUSE_BUTTON)
 		{
-			bypass.isMouse = controlData.source == 7;
+			bypass.isMouse = controlData.source == rage::IOMS_MOUSE_BUTTON;
 			bypass.ctrlIdx = controlData.parameter;
 		}
 
