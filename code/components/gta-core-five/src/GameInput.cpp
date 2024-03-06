@@ -87,6 +87,17 @@ namespace rage
 		void UpdateMap(int max_k, const ioInputSource& info, ioValue& value);
 
 		void RemoveDeviceMappings(ioValue& value, int a3);
+
+	public:
+		//
+		// Given a source/parameter, gets the parameter to use when serializing a control.
+		//
+		static uint32_t GetParameterIndex(uint32_t source, uint32_t parameter);
+
+		//
+		// Given a source/serialized parameter, gets the native parameter to use.
+		//
+		static uint32_t UngetParameterIndex(uint32_t source, uint32_t parameter);
 	};
 }
 
@@ -165,10 +176,7 @@ static hook::cdecl_stub<uint32_t(uint32_t, uint32_t)> _getParameterIndex([]()
 	return hook::get_pattern("83 F9 01 74 2C 0F 8E E8 00 00 00", -0xF);
 });
 
-//
-// Given a source/parameter, gets the parameter to use when serializing a control.
-//
-uint32_t GetParameterIndex(uint32_t source, uint32_t parameter)
+uint32_t rage::ioMapper::GetParameterIndex(uint32_t source, uint32_t parameter)
 {
 	return _getParameterIndex(source, parameter);
 }
@@ -178,12 +186,60 @@ static hook::cdecl_stub<uint32_t(uint32_t, uint32_t)> _ungetParameterIndex([]()
 	return hook::get_pattern("74 28 7E 36 83 F9", -0x12);
 });
 
-//
-// Given a source/serialized parameter, gets the native parameter to use.
-//
-uint32_t UngetParameterIndex(uint32_t source, uint32_t parameter)
+uint32_t rage::ioMapper::UngetParameterIndex(uint32_t source, uint32_t parameter)
 {
 	return _ungetParameterIndex(source, parameter);
+}
+
+class CControl
+{
+public:
+	inline static size_t kInputOffset;
+	inline static size_t kMapperOffset;
+
+public:
+	inline rage::ioValue* GetValue(int keyIndex)
+	{
+		auto controlPtr = (uint8_t*)this;
+		return (rage::ioValue*)&controlPtr[kInputOffset + (keyIndex * 72)];
+	}
+
+	inline rage::ioMapper* GetInputMappers()
+	{
+		auto location = reinterpret_cast<char*>(this) + kMapperOffset;
+		return reinterpret_cast<rage::ioMapper*>(location);
+	}
+
+	rage::ioInputSource* GetBinding(rage::ioInputSource& outParam, int controlIdx, int unkN1, bool secondaryBinding, bool fallback);
+};
+
+class CControlMgr
+{
+public:
+	inline static void* Controls;
+	inline static size_t kControlSize;
+
+public:
+	static inline CControl* GetPlayerControls()
+	{
+		return reinterpret_cast<CControl*>(Controls);
+	}
+
+	static inline CControl* GetFrontendControls()
+	{
+		auto location = (static_cast<char*>(Controls)) + kControlSize;
+		return reinterpret_cast<CControl*>(location);
+	}
+};
+
+static hook::thiscall_stub<rage::ioInputSource*(CControl*, rage::ioInputSource*, int, int, bool, bool)> _control_getBinding([]()
+{
+	return hook::get_call(hook::get_pattern("40 88 6C 24 28 40 88 6C 24 20 E8 ? ? ? ? 41 8D", 10));
+});
+
+rage::ioInputSource* CControl::GetBinding(rage::ioInputSource& outParam, int controlIdx, int unkN1, bool secondaryBinding, bool fallback)
+{
+	return _control_getBinding(this, &outParam, controlIdx, unkN1, secondaryBinding, fallback);
 }
 
 class Button
@@ -195,7 +251,7 @@ public:
 
 	void UpdateOnControl();
 
-	void SetFromControl(void* control, int keyIndex);
+	void SetFromControl(CControl* control, int keyIndex);
 
 private:
 	std::string m_name;
@@ -253,11 +309,9 @@ void Button::UpdateOnControl()
 	}
 }
 
-void Button::SetFromControl(void* control, int keyIndex)
+void Button::SetFromControl(CControl* control, int keyIndex)
 {
-	auto controlPtr = (uint8_t*)control;
-
-	rage::ioValue* value = (rage::ioValue*) & controlPtr[33704 + (keyIndex * 72)];
+	rage::ioValue* value = control->GetValue(keyIndex);
 
 	for (auto& copy : m_ioValueCopies)
 	{
@@ -351,8 +405,6 @@ Binding::~Binding()
 	Unmap();
 }
 
-static void* g_control;
-static uint32_t g_mapperOffset;
 static std::multiset<std::string, std::less<>> g_downSet;
 
 static hook::cdecl_stub<bool(int)> _isMenuActive([]
@@ -363,11 +415,6 @@ static hook::cdecl_stub<bool(int)> _isMenuActive([]
 static hook::cdecl_stub<bool()> _isTextInputBoxActive([]
 {
 	return hook::get_call(hook::get_pattern("E8 ? ? ? ? 40 84 FF 74 15 E8", 10));
-});
-
-static hook::thiscall_stub<rage::ioInputSource*(void* control, rage::ioInputSource* outParam, int controlIdx, int unkN1, bool secondaryBinding, bool)> _control_getBinding([]()
-{
-	return hook::get_call(hook::get_pattern("40 88 6C 24 28 40 88 6C 24 20 E8 ? ? ? ? 41 8D", 10));
 });
 
 bool IsTagActive(const std::string& tag);
@@ -396,7 +443,7 @@ bool Binding::PreUpdate(rage::ioMapper* mapper)
 		return false;
 	}
 
-	if (Instance<ICoreGameInit>::Get()->GetGameLoaded() && mapper == (rage::ioMapper*)((char*)g_control + g_mapperOffset) && !_isMenuActive(1))
+	if (Instance<ICoreGameInit>::Get()->GetGameLoaded() && mapper == CControlMgr::GetPlayerControls()->GetInputMappers() && !_isMenuActive(1))
 	{
 		UpdateMap(mapper);
 	}
@@ -568,7 +615,7 @@ void BindingManager::Initialize()
 			rage::ioInputSource source;
 			binding.second->GetBinding(source);
 
-			auto parameterIndex = _getParameterIndex(source.source, source.parameter);
+			auto parameterIndex = rage::ioMapper::GetParameterIndex(source.source, source.parameter);
 
 			std::string ioSource = "";
 			std::string ioParameter = "";
@@ -622,7 +669,7 @@ void BindingManager::Initialize()
 				return;
 			}
 
-			ioParameter = _ungetParameterIndex(ioSource, it->second);
+			ioParameter = rage::ioMapper::UngetParameterIndex(ioSource, it->second);
 		}
 
 		for (const auto& binding : m_bindings)
@@ -682,7 +729,7 @@ void BindingManager::Initialize()
 				return;
 			}
 
-			ioParameter = _ungetParameterIndex(ioSource, it->second);
+			ioParameter = rage::ioMapper::UngetParameterIndex(ioSource, it->second);
 		}
 
 		m_bindings.erase({ ioSource, ioParameter });
@@ -843,16 +890,8 @@ void BindingManager::CreateButtons()
 			std::transform(thisNameStr.begin(), thisNameStr.end(), thisNameStr.begin(), ToLower);
 
 			auto button = std::make_unique<Button>(thisNameStr);
-			button->SetFromControl(g_control, field->index);
-
-			if (!xbr::IsGameBuildOrGreater<2060>())
-			{
-				button->SetFromControl((char*)g_control + 0x21A98, field->index); // 1604
-			}
-			else
-			{
-				button->SetFromControl((char*)g_control + 0x21B78, field->index); // 2198
-			}
+			button->SetFromControl(CControlMgr::GetPlayerControls(), field->index);
+			button->SetFromControl(CControlMgr::GetFrontendControls(), field->index);
 
 			m_buttons.push_back(std::move(button));
 
@@ -869,7 +908,6 @@ void BindingManager::UpdateButtons()
 	}
 }
 
-static size_t g_controlSize;
 static BindingManager bindingManager;
 
 static std::unordered_set<std::string> g_activeTags;
@@ -968,7 +1006,7 @@ namespace game
 					return;
 				}
 
-				ioParameter = _ungetParameterIndex(ioSource, it->second);
+				ioParameter = rage::ioMapper::UngetParameterIndex(ioSource, it->second);
 			}
 
 			for (auto& binding : bindingManager.GetBindings())
@@ -998,8 +1036,8 @@ namespace game
 	{
 		rage::ioInputSource controlData;
 		rage::ioInputSource controlDataSecondary;
-		_control_getBinding(g_control, &controlData, control, -1, false, false);
-		_control_getBinding(g_control, &controlDataSecondary, control, -4, true, false);
+		CControlMgr::GetPlayerControls()->GetBinding(controlData, control, -1, false, false);
+		CControlMgr::GetPlayerControls()->GetBinding(controlDataSecondary, control, -4, true, false);
 
 		return IsInputSourceDown(controlData) || IsInputSourceDown(controlDataSecondary);
 	}
@@ -1190,9 +1228,11 @@ static void MapFuncHook(void* a1, uint32_t controlIdx, void* a3, void* a4)
 
 void UpdateButtonPlumbing()
 {
+	constexpr size_t INPUT_PUSH_TO_TALK = 249;
+
 	rage::ioInputSource controlDatas[2];
-	_control_getBinding(g_control, &controlDatas[0], 249 /* INPUT_PUSH_TO_TALK */, -1, false, false);
-	_control_getBinding(g_control, &controlDatas[1], 249 /* INPUT_PUSH_TO_TALK */, -1, true, false);
+	CControlMgr::GetPlayerControls()->GetBinding(controlDatas[0], INPUT_PUSH_TO_TALK, -1, false, false);
+	CControlMgr::GetPlayerControls()->GetBinding(controlDatas[1], INPUT_PUSH_TO_TALK, -1, true, false);
 
 	auto mapBypass = [](rage::ioInputSource& controlData)
 	{
@@ -1232,7 +1272,7 @@ static HookFunction hookFunction([]()
 			rage::ioInputSource source;
 			binding.second->GetBinding(source);
 
-			auto parameterIndex = _getParameterIndex(source.source, source.parameter);
+			auto parameterIndex = rage::ioMapper::GetParameterIndex(source.source, source.parameter);
 
 			std::string ioSource = "";
 			std::string ioParameter = "";
@@ -1302,8 +1342,6 @@ static HookFunction hookFunction([]()
 	MH_CreateHook(hook::get_pattern("33 DB 4C 8B D1 48 89 5E 50", -0x27), HandleMappingConflicts, (void**)&g_origHandleMappingConflicts);
 	MH_EnableHook(MH_ALL_HOOKS);
 
-	g_mapperOffset = *hook::get_pattern<uint32_t>("48 63 04 B0 4C 8D 89 ? ? 00 00 B9 BF", 7);
-
 	// hacks for unknown array
 	{
 		auto location = hook::get_pattern<char>("48 8D 0D ? ? ? ? 44 38 34 08", 7);
@@ -1370,6 +1408,10 @@ static HookFunction hookFunction([]()
 	}
 
 	// control
-	g_control = hook::get_address<void*>(hook::get_pattern("74 09 48 8D 05 ? ? ? ? EB 07 48 8D 05", 5));
-	g_controlSize = *hook::get_pattern<int>("E8 ? ? ? ? 48 81 C3 ? ? ? ? 48 FF CF 75 EA", 8);
+	{
+		CControlMgr::Controls = hook::get_address<void*>(hook::get_pattern("74 09 48 8D 05 ? ? ? ? EB 07 48 8D 05", 5));
+		CControlMgr::kControlSize = *hook::get_pattern<int>("E8 ? ? ? ? 48 81 C3 ? ? ? ? 48 FF CF 75 EA", 8);
+		CControl::kMapperOffset = *hook::get_pattern<uint32_t>("48 63 04 B0 4C 8D 89 ? ? 00 00 B9 BF", 7);
+		CControl::kInputOffset = *hook::get_pattern<int>("0F 28 CA 48 8D 14 C0 4C 8D 44 24 ? C7 44 24", 0x1B);
+	}
 });
