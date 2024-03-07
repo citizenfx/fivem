@@ -493,6 +493,9 @@ ID3D11DeviceContext* GetD3D11DeviceContext()
 
 namespace rage
 {
+	static void** g_grmTechniquePointer = nullptr;
+	static grmShaderFactory** g_grmShaderFactory = nullptr;
+
 	static hook::cdecl_stub<bool(grmShaderFx*, const char*, void*, bool)> _grmShaderFx_LoadTechnique([]()
 	{
 		return hook::get_pattern("48 8B D9 BA 2E 00 00 00 48 8B CF 45 8A F1", -0x1C);
@@ -505,8 +508,7 @@ namespace rage
 
 	grmShaderFactory* grmShaderFactory::GetInstance()
 	{
-		static auto ptr = hook::get_address<grmShaderFactory**>(hook::get_pattern("84 C0 74 29 48 8B 0D ? ? ? ? 48 8B 01", 7));
-		return *ptr;
+		return *g_grmShaderFactory;
 	}
 
 	static hook::cdecl_stub<void(grmShaderDef*, int, grmShaderFx*)> _grmShaderDef_PushPass([]()
@@ -591,8 +593,7 @@ namespace rage
 
 	void grmShaderFx::PopTechnique()
 	{
-		static void** ptr = hook::get_address<void**>(hook::get_pattern("FF C9 48 C1 E1 05 49 03 09 48 89 0D", 12));
-		*ptr = nullptr;
+		*g_grmTechniquePointer = nullptr;
 	}
 }
 
@@ -707,4 +708,7 @@ static HookFunction hookFunction([] ()
 		hook::put<uint8_t>(location, 0xB8); // write to eax for later
 		hook::put<uint32_t>(location + 1, 0x4000000);
 	}
+
+	rage::g_grmShaderFactory = hook::get_address<rage::grmShaderFactory**>(hook::get_pattern("84 C0 74 29 48 8B 0D ? ? ? ? 48 8B 01", 7));
+	rage::g_grmTechniquePointer = hook::get_address<void**>(hook::get_pattern("FF C9 48 C1 E1 05 49 03 09 48 89 0D", 12));
 });

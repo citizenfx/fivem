@@ -373,16 +373,10 @@ static hook::cdecl_stub<void(int, int, int)> hostGame([] () -> void*
 	return (void*)hook::get_adjusted(0x1410494F8);
 });
 
+static void** g_networkMgrPtr = nullptr;
 static void* getNetworkManager()
 {
-	static void** networkMgrPtr = nullptr;
-
-	if (networkMgrPtr == nullptr)
-	{
-		networkMgrPtr = hook::get_address<void**>(hook::get_pattern("84 C0 74 2E 48 8B 0D ? ? ? ? 48 8D 54 24 20", 7));
-	}
-
-	return *networkMgrPtr;
+	return *g_networkMgrPtr;
 }
 
 struct OnlineAddress
@@ -1078,6 +1072,9 @@ static HookFunction initFunction([]()
 			doTickNextFrame = false;
 		}
 	});
+
+
+	g_networkMgrPtr = hook::get_address<void**>(hook::get_pattern("84 C0 74 2E 48 8B 0D ? ? ? ? 48 8D 54 24 20", 7));
 });
 
 static uint64_t* g_globalNetSecurityKey;
