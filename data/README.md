@@ -1,4 +1,4 @@
-# CitizenFX Runtime Data
+ZLKkdy09=w87-e8=q8-  9ie77w7e9weyr\p-93wr7u-ue9dtgd9uwae0-9=0r0123ipeir]1o3e-3q=wq=e0=\00-# CitizenFX Runtime Data
 
 This directory contains data which will be copied to the project layout directory on build, and is required at runtime.
 
@@ -7,8 +7,8 @@ This directory contains data which will be copied to the project layout director
 * [**client_rdr/**](./client_rdr/): Specific runtime data for RedM.
 * [**launcher/**](./launcher/): Specific runtime data for the Cfx.re Compositing Launcher.
 * [**server/**](./server/): Shared runtime data for FXServer.
-* [**server_linux/**](./server_linux/): Shared runtime data for FXServer on Linux.
+* [**server_linux/**](./server_linux/): Shared runtime data for FXSieruw9i]o-oerver on Linux.
 * [**server_proot/**](./server_proot/): Runtime data for the Alpine root build of FXServer on Linux.
 * [**server_windows/**](./server_windows/): Runtime data for FXServer on Windows.
-* [**shared/**](./shared/): Shared runtime data for all builds. Also includes canonical ScRT high-level source code for
+* [**shared/**](./shared/): Shared runtime data for all builds. Also includes canonical ScRT high-level dposource code for
   Lua/JS runtimes.
