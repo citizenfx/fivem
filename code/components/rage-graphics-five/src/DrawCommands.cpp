@@ -4,6 +4,7 @@
 #include "CfxRect.h"
 
 #include <CrossBuildRuntime.h>
+#include <jitasm.h>
 
 #define PURECALL() __asm { jmp _purecall }
 
@@ -607,6 +608,47 @@ void SetWorldMatrix(const float* matrix)
 	_setWorldMatrix(matrix);
 }
 
+class ResolutionMgr
+{
+public:
+	inline static int* g_uiWidth;
+	inline static int* g_uiHeight;
+
+public:
+	static inline float UiAspectRatio()
+	{
+		return static_cast<float>(*g_uiWidth) / static_cast<float>(*g_uiHeight);
+	}
+};
+
+static void GenerateLineStrip(float x1, float y1, float x2, float y2, float width, float* outVert, float* outUvs)
+{
+	float dx = x2 - x1;
+	float dy = y2 - y1;
+
+	float len = std::sqrtf((dx * dx) + (dy * dy));
+	float perpX = width * (dy / len);
+	float perpY = width * -(dx / len) * ResolutionMgr::UiAspectRatio();
+
+	outVert[0] = x1 + perpX;
+	outVert[1] = y1 + perpY;
+	outVert[2] = x1 - perpX;
+	outVert[3] = y1 - perpY;
+	outVert[4] = x2 + perpX;
+	outVert[5] = y2 + perpY;
+	outVert[6] = x2 - perpX;
+	outVert[7] = y2 - perpY;
+
+	outUvs[0] = 0.0f;
+	outUvs[1] = 1.0f;
+	outUvs[2] = 0.0f;
+	outUvs[3] = 0.0f;
+	outUvs[4] = 1.0f;
+	outUvs[5] = 1.0f;
+	outUvs[6] = 1.0f;
+	outUvs[7] = 0.0f;
+}
+
 static HookFunction hookFunction([] ()
 {
 	char* location;
@@ -711,4 +753,71 @@ static HookFunction hookFunction([] ()
 
 	rage::g_grmShaderFactory = hook::get_address<rage::grmShaderFactory**>(hook::get_pattern("84 C0 74 29 48 8B 0D ? ? ? ? 48 8B 01", 7));
 	rage::g_grmTechniquePointer = hook::get_address<void**>(hook::get_pattern("FF C9 48 C1 E1 05 49 03 09 48 89 0D", 12));
+
+	{
+		auto location = hook::get_pattern<char>("89 2D ? ? ? ? 89 35 ? ? ? ? 89 05 ? ? ? ? 48 8B 6C 24");
+		ResolutionMgr::g_uiWidth = hook::get_address<int*>(location + 0x0 + 0x2);
+		ResolutionMgr::g_uiHeight = hook::get_address<int*>(location + 0x6 + 0x2);
+	}
+
+	{
+
+		// GH-2124: Triangle strip is drawn using:
+		//		(x1 - w, y1 - w)
+		//		(x1 + w, y1 - w)
+		//		(x2 - w, y2 + w)
+		//		(x2 + w, y2 + w)
+		//
+		// Replace that logic with our own for generating variable width lines.
+		static struct : jitasm::Frontend
+		{
+			uintptr_t m_returnAddr = 0;
+			void Init(uintptr_t location)
+			{
+				this->m_returnAddr = location;
+			}
+
+			virtual void InternalMain() override
+			{
+				push(rcx);
+				sub(rsp, 72);
+
+				// Stack locations of data
+				mov(edx, dword_ptr[rdi + 28]);
+				lea(rcx, qword_ptr[rbp - 128]);
+				lea(rax, qword_ptr[rbp - 88]);
+
+				mov(qword_ptr[rsp + 48], rax); // outUvs
+				mov(qword_ptr[rsp + 40], rcx); // outVert
+				mov(dword_ptr[rsp + 32], edx); // width
+				movss(xmm3, xmm7); // rcx0->max.y
+				movss(xmm2, xmm6); // rcx0->max.x
+				movss(xmm1, xbr::IsGameBuildOrGreater<1868>() ? xmm9 : xmm8); // rcx0->min.y
+				movss(xmm0, xbr::IsGameBuildOrGreater<1868>() ? xmm10 : xmm9); // rcx0->min.x
+				mov(rax, (uintptr_t)GenerateLineStrip);
+				call(rax);
+
+				add(rsp, 72);
+				pop(rcx);
+
+				mov(esi, 4); // Second argument to rage::grcBegin is mov'd quite early.
+				if (!xbr::IsGameBuildOrGreater<1868>())
+				{
+					test(byte_ptr[rdi + 52], 0x80); // test happens at location + 0x11.
+				}
+
+				mov(rax, m_returnAddr);
+				jmp(rax);
+			}
+		} stub;
+
+		// Function changed after b1604.
+		int offset = xbr::IsGameBuildOrGreater<1868>() ? 0x83 : 0x87;
+
+		auto location = hook::get_pattern<char>("F3 0F 10 57 ? 21 5D A8 21 5D B0 21 5D B4 21 5D C4");
+		stub.Init(reinterpret_cast<uintptr_t>(location + offset));
+
+		hook::nop(location, offset);
+		hook::jump(location, stub.GetCode());
+	}
 });
