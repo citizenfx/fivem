@@ -177,15 +177,23 @@ namespace rage
 	class audMixerDevice
 	{
 	public:
+		static constexpr uint32_t kSubmixCount = 40;
+
+	public:
 		audMixerSubmix* CreateSubmix(const char* name, int numOutputChannels, bool a3);
 		uint8_t GetSubmixIndex(audMixerSubmix* submix);
 		void ComputeProcessingGraph();
 		void FlagThreadCommandBufferReadyToProcess(uint32_t a1 = 0);
 		void InitClientThread(const char* name, uint32_t bufferSize);
 
+		inline uint32_t GetSubmixCount()
+		{
+			return m_numSubmixes;
+		}
+
 		inline audMixerSubmix* GetSubmix(int idx)
 		{
-			if (idx < 0 || idx >= 40)
+			if (idx < 0 || idx >= m_numSubmixes)
 			{
 				return nullptr;
 			}
@@ -198,9 +206,9 @@ namespace rage
 
 		uint64_t m_8;
 #ifdef GTA_FIVE
-		uint8_t m_submixes[40][256];
+		uint8_t m_submixes[kSubmixCount][256];
 #elif IS_RDR3
-		uint8_t m_submixes[40][368];
+		uint8_t m_submixes[kSubmixCount][368];
 #endif
 		uint32_t m_numSubmixes;
 	};
@@ -244,6 +252,13 @@ namespace rage
 
 	audMixerSubmix* audMixerDevice::CreateSubmix(const char* name, int numOutputChannels, bool a3)
 	{
+		// FORUM-5083891: game-code does not sanitize the fixed number of
+		// submixes. Avoid clobbering memory.
+		if (GetSubmixCount() >= kSubmixCount)
+		{
+			trace("Exceeded maximum number of audio submixes <%d> supported by the game!\n", kSubmixCount);
+			return nullptr;
+		}
 		return _audMixerDevice_CreateSubmix(this, name, numOutputChannels, a3);
 	}
 
@@ -2582,7 +2597,7 @@ static InitFunction initFunction([]()
 	{
 		int idx = ctx.GetArgument<int>(1);
 
-		if (idx < 0 || idx > 40)
+		if (idx < 0 || idx >= rage::audMixerDevice::kSubmixCount)
 		{
 			idx = -1;
 		}
