@@ -1,6 +1,6 @@
 ---
 ns: CFX
-apiset: server
+apiset: shared
 ---
 ## GET_VEHICLE_TYPE
 
@@ -9,6 +9,8 @@ char* GET_VEHICLE_TYPE(Vehicle vehicle);
 ```
 
 Returns the type of the passed vehicle.
+
+For client scripts, reference the more detailed [GET_VEHICLE_TYPE_RAW](#_0xDE73BC10) native.
 
 ### Vehicle types
 - automobile
