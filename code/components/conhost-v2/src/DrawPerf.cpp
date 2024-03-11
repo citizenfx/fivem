@@ -74,7 +74,7 @@ static LUID GetAdapterLUID()
 	auto adapter = GetAdapter();
 
 	DXGI_ADAPTER_DESC desc;
-	if (SUCCEEDED(adapter->GetDesc(&desc)))
+	if (adapter && SUCCEEDED(adapter->GetDesc(&desc)))
 	{
 		adapterLuid = desc.AdapterLuid;
 	}
@@ -387,10 +387,10 @@ static InitFunction initFunction([]()
 	{
 		if (IsWindows10OrGreater())
 		{
-			static auto adapter = GetAdapter();
+			auto adapter = GetAdapter();
 			Microsoft::WRL::ComPtr<IDXGIAdapter3> adapter3;
 
-			if (SUCCEEDED(adapter.As(&adapter3)))
+			if (adapter && SUCCEEDED(adapter.As(&adapter3)))
 			{
 				DXGI_ADAPTER_DESC desc;
 				adapter->GetDesc(&desc);
