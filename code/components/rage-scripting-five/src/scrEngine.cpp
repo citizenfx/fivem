@@ -311,6 +311,7 @@ void scrEngine::CreateThread(GtaThread* thread)
 }
 
 uint64_t MapNative(uint64_t inNative);
+void ReviveNative(uint64_t inNative);
 
 template<typename TReg>
 bool RegisterNativeOverride(uint64_t hash, scrEngine::NativeHandler handler)
@@ -404,6 +405,18 @@ void scrEngine::RegisterNativeHandler(const char* nativeName, NativeHandler hand
 void scrEngine::RegisterNativeHandler(uint64_t nativeIdentifier, NativeHandler handler)
 {
 	g_nativeHandlers.push_back(std::make_pair(nativeIdentifier, handler));
+}
+
+void scrEngine::ReviveNativeHandler(uint64_t nativeIdentifier, NativeHandler handler)
+{
+	RegisterNativeHandler(nativeIdentifier, handler);
+	if (MapNative(nativeIdentifier) == nativeIdentifier)
+	{
+		// If two builds share the same maxVersion index, e.g., 2545 and 2612,
+		// and a script command was removed, then the native may be found in the
+		// mapping table instead of the unmapped table.
+		ReviveNative(nativeIdentifier);
+	}
 }
 
 static InitFunction initFunction([] ()
@@ -548,19 +561,22 @@ static InitFunction initFunction([]
 	if (xbr::IsGameBuildOrGreater<2612>())
 	{
 		// IS_BIT_SET is missing in b2612+, re-adding for compatibility
-		rage::scrEngine::RegisterNativeHandler(0xE2D0C323A1AE5D85 /* 2545 hash */, [](rage::scrNativeCallContext* ctx)
+		rage::scrEngine::OnScriptInit.Connect([]()
 		{
-			bool result = false;
-
-			auto value = ctx->GetArgument<uint32_t>(0);
-			auto offset = ctx->GetArgument<int>(1);
-
-			if (offset < 32)
+			rage::scrEngine::ReviveNativeHandler(0xE2D0C323A1AE5D85 /* 2545 hash */, [](rage::scrNativeCallContext* ctx)
 			{
-				result = (value & (1 << offset)) != 0;
-			}
+				bool result = false;
 
-			ctx->SetResult<int>(0, result);
+				auto value = ctx->GetArgument<uint32_t>(0);
+				auto offset = ctx->GetArgument<int>(1);
+
+				if (offset < 32)
+				{
+					result = (value & (1 << offset)) != 0;
+				}
+
+				ctx->SetResult<int>(0, result);
+			});
 		});
 	}
 });

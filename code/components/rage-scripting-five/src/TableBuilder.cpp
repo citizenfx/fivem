@@ -13,8 +13,14 @@
 
 #include <CrossBuildRuntime.h>
 
+struct CrossMappingEntry
+{
+	uint64_t entries[28];
+};
+
 static std::unordered_map<uint64_t, uint64_t> g_mappingTable;
 static std::shared_ptr<DeferredInitializer> g_mappingInitializer;
+static std::unordered_map<uint64_t, const CrossMappingEntry*> g_unmappedTable;
 
 namespace rage
 {
@@ -32,6 +38,22 @@ namespace rage
 
 		return it->second;
 	}
+
+	void ReviveNative(uint64_t inNative)
+	{
+		g_mappingInitializer->Wait();
+
+		if (auto it = g_unmappedTable.find(inNative); it != g_unmappedTable.end())
+		{
+			for (uint64_t hash : it->second->entries)
+			{
+				if (hash != 0 && hash != inNative)
+				{
+					g_mappingTable.insert({ hash, inNative });
+				}
+			}
+		}
+	}
 }
 
 extern "C" DLL_EXPORT uint64_t MapNative(uint64_t inNative)
@@ -39,10 +61,10 @@ extern "C" DLL_EXPORT uint64_t MapNative(uint64_t inNative)
 	return rage::MapNative(inNative);
 }
 
-struct CrossMappingEntry
+extern "C" DLL_EXPORT void ReviveNative(uint64_t inNative)
 {
-	uint64_t entries[28];
-};
+	rage::ReviveNative(inNative);
+}
 
 static void DoMapping()
 {
@@ -208,11 +230,21 @@ static void DoMapping()
 	{
 		for (auto& nativeEntry : crossMapping_universal)
 		{
+			bool hasNative = nativeEntry.entries[maxVersion] != 0;
 			for (int i = 0; i < maxVersion; i++)
 			{
-				if (nativeEntry.entries[i] != 0 && nativeEntry.entries[maxVersion] != 0)
+				if (uint64_t hash = nativeEntry.entries[i])
 				{
-					g_mappingTable.insert({ nativeEntry.entries[i], nativeEntry.entries[maxVersion] });
+					if (hasNative)
+					{
+						g_mappingTable.insert({ hash, nativeEntry.entries[maxVersion] });
+					}
+					else
+					{
+						// Native was removed this version: add it to a separate table
+						// so it can potentially be revived by custom implementations.
+						g_unmappedTable.insert({ hash, &nativeEntry });
+					}
 				}
 			}
 		}
