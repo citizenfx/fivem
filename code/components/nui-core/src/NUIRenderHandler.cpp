@@ -20,14 +20,26 @@ extern OsrImeHandlerWin* g_imeHandler;
 NUIRenderHandler::NUIRenderHandler(NUIClient* client)
 	: m_paintingPopup(false), m_owner(client), m_currentDragOp(DRAG_OPERATION_NONE)
 {
-	auto hWnd = CoreGetGameWindow();
-
-	m_dropTarget = DropTargetWin::Create(this, hWnd);
 }
 
 NUIRenderHandler::~NUIRenderHandler()
 {
-	m_dropTarget->CancelCallback();
+	if (m_dropTarget)
+	{
+		m_dropTarget->CancelCallback();
+	}
+}
+
+CComPtr<DropTargetWin> NUIRenderHandler::GetDropTarget()
+{
+	if (!m_dropTarget)
+	{
+		if (auto hWnd = CoreGetGameWindow())
+		{
+			m_dropTarget = DropTargetWin::Create(this, hWnd);
+		}
+	}
+	return m_dropTarget;
 }
 
 void NUIRenderHandler::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect)
@@ -269,7 +281,8 @@ bool g_isDragging;
 
 bool NUIRenderHandler::StartDragging(CefRefPtr<CefBrowser> browser, CefRefPtr<CefDragData> drag_data, CefRenderHandler::DragOperationsMask allowed_ops, int x, int y)
 {
-	if (!m_dropTarget)
+	auto dropTarget = GetDropTarget();
+	if (!dropTarget)
 	{
 		return false;
 	}
@@ -277,7 +290,7 @@ bool NUIRenderHandler::StartDragging(CefRefPtr<CefBrowser> browser, CefRefPtr<Ce
 	m_currentDragOp = DRAG_OPERATION_NONE;
 	g_isDragging = true;
 	CefBrowserHost::DragOperationsMask result =
-		m_dropTarget->StartDragging(browser, drag_data, allowed_ops, x, y);
+		dropTarget->StartDragging(browser, drag_data, allowed_ops, x, y);
 	g_isDragging = false;
 	m_currentDragOp = DRAG_OPERATION_NONE;
 	POINT pt = {};
