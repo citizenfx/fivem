@@ -43,6 +43,7 @@ namespace CitizenFX.Core
 				lock (s_nextFrame)
 				{
 					s_nextFrame.Add(coroutine);
+					ScriptInterface.RequestTickNextFrame();
 				}
 			}
 			else
@@ -72,14 +73,30 @@ namespace CitizenFX.Core
 				lock (s_queue)
 				{
 					// linear ordered insert, performance improvement might be a binary tree (i.e.: priority queue)
-					for (var it = s_queue.First; it != null; it = it.Next)
+					var it = s_queue.First;
+					if (it != null)
 					{
+						// if added to the front, we'll also need to request for a tick/call-in
 						if (time < it.Value.Item1)
 						{
-							s_queue.AddBefore(it, new Tuple<ulong, Action>(time, coroutine));
+							s_queue.AddFirst(new Tuple<ulong, Action>(time, coroutine));
+							ScriptInterface.RequestTick(time);
+
 							return;
 						}
+
+						// check next
+						for (it = it.Next; it != null; it = it.Next)
+						{
+							if (time < it.Value.Item1)
+							{
+								s_queue.AddBefore(it, new Tuple<ulong, Action>(time, coroutine));
+								return;
+							}
+						}
 					}
+					else
+						ScriptInterface.RequestTick(time);
 
 					s_queue.AddLast(new Tuple<ulong, Action>(time, coroutine));
 				}
@@ -168,7 +185,10 @@ namespace CitizenFX.Core
 						}
 					}
 					else
+					{
+						ScriptInterface.RequestTick(curIt.Value.Item1);
 						return;
+					}
 				}
 			}
 		}
