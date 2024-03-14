@@ -462,7 +462,7 @@ static HookFunction initFunction([] ()
 					((button == 0) ? MBT_LEFT : ((button == 1) ? MBT_RIGHT : MBT_MIDDLE));
 				if (!cancelPreviousClick && (btnType == lastClickButton))
 				{
-					++lastClickCount;
+					lastClickCount = std::min(3, lastClickCount + 1);
 				}
 				else
 				{
@@ -493,7 +493,7 @@ static HookFunction initFunction([] ()
 
 				auto browser = GetFocusBrowser();
 
-				if (browser)
+				if (browser && lastClickCount > 0)
 				{
 					CefMouseEvent mouse_event;
 					mouse_event.x = x;
