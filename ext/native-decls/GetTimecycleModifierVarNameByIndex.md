@@ -1,7 +1,6 @@
 ---
 ns: CFX
 apiset: client
-game: gta5
 ---
 ## GET_TIMECYCLE_MODIFIER_VAR_NAME_BY_INDEX
 
