@@ -1,6 +1,7 @@
 ---
 ns: CFX
 apiset: client
+game: gta5
 ---
 ## GET_VEHICLE_DRAWN_WHEEL_ANGLE_MULT
 

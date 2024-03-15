@@ -1,6 +1,7 @@
 ---
 ns: CFX
 apiset: client
+game: gta5
 ---
 ## HAS_MINIMAP_OVERLAY_LOADED
 

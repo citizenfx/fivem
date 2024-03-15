@@ -1,6 +1,7 @@
 ---
 ns: CFX
 apiset: client
+game: gta5
 ---
 ## SET_ROPES_CREATE_NETWORK_WORLD_STATE
 

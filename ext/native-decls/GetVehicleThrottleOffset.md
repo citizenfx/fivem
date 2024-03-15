@@ -1,6 +1,7 @@
 ---
 ns: CFX
 apiset: client
+game: gta5
 aliases: ["GET_VEHICLE_CURRENT_ACCELERATION"]
 ---
 ## GET_VEHICLE_THROTTLE_OFFSET
