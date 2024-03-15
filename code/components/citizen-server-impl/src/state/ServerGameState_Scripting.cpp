@@ -1376,6 +1376,25 @@ static void Init()
 		return int(entity->routingBucket);
 	}));
 
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_ENTITY_REJECTS_CLIENT_DELETION", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		if (!entity->serverCreated)
+		{
+			return false;
+		}
+
+		if (context.GetArgumentCount() > 1)
+		{
+			auto rejectClientDelete = context.GetArgument<bool>(1);
+
+			entity->rejectClientDeletion = rejectClientDelete;
+		}
+
+		return true;
+	}));
+
+
 	fx::ScriptEngine::RegisterNativeHandler("SET_ENTITY_ROUTING_BUCKET", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
 		if (context.GetArgumentCount() > 1)
