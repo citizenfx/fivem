@@ -1495,6 +1495,71 @@ static hook::cdecl_stub<void()> _initVehiclePaintRamps([]()
 {
 	return xbr::IsGameBuildOrGreater<2545>() ? hook::get_pattern("83 F9 FF 74 52", -0x34) : nullptr;
 });
+
+static int weaponComponentInfoBlobClassSize;
+static atArray<uint8_t*>* g_weaponComponentBlobs;
+
+static hook::cdecl_stub<void()> CWeaponComponentManager__UpdateInfoPtrs([]()
+{
+	return hook::get_pattern("44 0F B7 05 ? ? ? ? 33 DB 48 8D 3D ? ? ? ? 8B D3", -10);
+});
+
+static hook::cdecl_stub<void(void*)> CWeaponComponentInfoBlob__Reset([]()
+{
+	return hook::get_pattern("8B FD 66 3B 6B 08 73 23 48 8B 03 8B", -0x47);
+});
+
+static void(*CWeaponComponentInfoBlob__Destructor)(void* self);
+
+class CfxProxyWeaponComponentDataFileMounter : public CDataFileMountInterface
+{
+public:
+	virtual bool LoadDataFile(CDataFileMgr::DataFile* entry) override
+	{
+		bool success = CDataFileMount::sm_Interfaces[79]->LoadDataFile(entry);
+
+		if (success && g_weaponComponentBlobs->GetCount() > 0)
+		{
+			auto weaponComponentsBlob = (*g_weaponComponentBlobs)[g_weaponComponentBlobs->GetCount() - 1];
+			if (weaponComponentsBlob)
+			{
+				// Store a hash of this entry name into the 4 bytes of padding at the end of the structure
+				// This is so during unloading we can identify this structure again to remove it from the array
+				*(uint32_t*)(weaponComponentsBlob + weaponComponentInfoBlobClassSize - 4) = HashString(entry->name);
+			}
+		}
+
+		return success;
+	}
+
+	virtual void UnloadDataFile(CDataFileMgr::DataFile* entry) override
+	{
+		uint32_t entryHash = HashString(entry->name);
+
+		for (int i = 0; i < g_weaponComponentBlobs->GetCount(); i++)
+		{
+			auto weaponComponentsBlob = (*g_weaponComponentBlobs)[i];
+			if (weaponComponentsBlob)
+			{
+				uint32_t blobEntryHash = *(uint32_t*)(weaponComponentsBlob + weaponComponentInfoBlobClassSize - 4);
+				if (blobEntryHash == entryHash)
+				{
+					CWeaponComponentInfoBlob__Reset(weaponComponentsBlob);
+					CWeaponComponentInfoBlob__Destructor(weaponComponentsBlob);
+
+					rage::GetAllocator()->Free(weaponComponentsBlob);
+
+					g_weaponComponentBlobs->Remove(i);
+					CWeaponComponentManager__UpdateInfoPtrs();
+
+					break;
+				}
+			}
+		}
+	}
+};
+
+static CfxProxyWeaponComponentDataFileMounter g_proxyWeaponComponentDataFileMounter;
 #endif
 
 static CDataFileMountInterface* LookupDataFileMounter(const std::string& type)
@@ -1522,6 +1587,11 @@ static CDataFileMountInterface* LookupDataFileMounter(const std::string& type)
 	}
 
 #ifdef GTA_FIVE
+	if (fileType == 79) // WEAPONCOMPONENTSINFO_FILE
+	{
+		return &g_proxyWeaponComponentDataFileMounter;
+	}
+
 	// don't allow TEXTFILE_METAFILE entries (these don't work and will fail to unload)
 	if (fileType == 160) // TEXTFILE_METAFILE 
 	{
@@ -3301,6 +3371,24 @@ DLL_IMPORT extern fwEvent<> PreSetupLoadingScreens;
 static HookFunction hookFunction([]()
 {
 #ifdef GTA_FIVE
+	{
+		auto location = hook::get_call(hook::get_pattern<char>("E8 ? ? ? ? E8 ? ? ? ? B0 01 48 83 C4 28 C3 48 83 EC 28 8B 8A"));
+		weaponComponentInfoBlobClassSize = *(int*)(location + 19);
+		g_weaponComponentBlobs = hook::get_address<decltype(g_weaponComponentBlobs)>(location + 71);
+#if _DEBUG
+		assert(weaponComponentInfoBlobClassSize <= 0xED8); // 4 bytes of padding exists on all game builds so far (b3095 as of writing)
+#endif
+	}
+
+	// Get the structure later on as the parser is not initialised at the time of HookFunction being called
+	rage::OnInitFunctionStart.Connect([](rage::InitFunctionType type)
+	{
+		if (type == rage::INIT_CORE)
+		{
+			CWeaponComponentInfoBlob__Destructor = rage::GetStructureDefinition("CWeaponComponentInfoBlob")->m_delete;
+		}
+	});
+
 	PreSetupLoadingScreens.Connect([]()
 	{
 		FlushCustomAssets();
