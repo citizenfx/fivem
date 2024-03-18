@@ -2,10 +2,10 @@
 ns: CFX
 apiset: server
 ---
-## NETWORK_GET_ENTITY_FROM_NETWORK_ID
+## NET_TO_OBJ
 
 ```c
-Entity NETWORK_GET_ENTITY_FROM_NETWORK_ID(int netId);
+Entity NET_TO_OBJ(int netId);
 ```
 
 ## Parameters

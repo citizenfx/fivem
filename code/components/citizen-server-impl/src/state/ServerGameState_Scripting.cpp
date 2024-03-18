@@ -95,7 +95,7 @@ static void Init()
 		context.SetResult(true);
 	});
 
-	fx::ScriptEngine::RegisterNativeHandler("NETWORK_GET_ENTITY_FROM_NETWORK_ID", [](fx::ScriptContext& context)
+	auto getEntityFromNetworkId = [](fx::ScriptContext& context)
 	{
 		// get the current resource manager
 		auto resourceManager = fx::ResourceManager::GetCurrent();
@@ -124,7 +124,13 @@ static void Init()
 		}
 
 		context.SetResult(gameState->MakeScriptHandle(entity));
-	});
+	};
+
+	fx::ScriptEngine::RegisterNativeHandler("NETWORK_GET_ENTITY_FROM_NETWORK_ID", getEntityFromNetworkId);
+	fx::ScriptEngine::RegisterNativeHandler("NET_TO_VEH", getEntityFromNetworkId);
+	fx::ScriptEngine::RegisterNativeHandler("NET_TO_PED", getEntityFromNetworkId);
+	fx::ScriptEngine::RegisterNativeHandler("NET_TO_OBJ", getEntityFromNetworkId);
+	fx::ScriptEngine::RegisterNativeHandler("NET_TO_ENT", getEntityFromNetworkId);
 
 	fx::ScriptEngine::RegisterNativeHandler("NETWORK_GET_ENTITY_OWNER", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
@@ -466,10 +472,16 @@ static void Init()
 		}
 	});
 
-	fx::ScriptEngine::RegisterNativeHandler("NETWORK_GET_NETWORK_ID_FROM_ENTITY", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	auto getNetworkIdFromEntity = makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
 		return entity->handle & 0xFFFF;
-	}));
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("NETWORK_GET_NETWORK_ID_FROM_ENTITY", getNetworkIdFromEntity);
+	fx::ScriptEngine::RegisterNativeHandler("VEH_TO_NET", getNetworkIdFromEntity);
+	fx::ScriptEngine::RegisterNativeHandler("OBJ_TO_NET", getNetworkIdFromEntity);
+	fx::ScriptEngine::RegisterNativeHandler("PED_TO_NET", getNetworkIdFromEntity);
+	fx::ScriptEngine::RegisterNativeHandler("ENT_TO_NET", getNetworkIdFromEntity);
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_HASH_KEY", [](fx::ScriptContext& context)
 	{
