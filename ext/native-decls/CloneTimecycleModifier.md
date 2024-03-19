@@ -1,7 +1,6 @@
 ---
 ns: CFX
 apiset: client
-game: gta5
 ---
 ## CLONE_TIMECYCLE_MODIFIER
 

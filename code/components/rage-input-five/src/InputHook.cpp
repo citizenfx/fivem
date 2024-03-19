@@ -648,16 +648,13 @@ static void SetInputWrap(int a1, void* a2, void* a3, void* a4)
 #endif
 
 static void (*origIOPadUpdate)(void*, bool);
+static void* ioPadArray = nullptr;
 
 // This hook is used for ReverseGame Gamepad input
 static void rage__ioPad__Update(rage::ioPad* thisptr, bool onlyVibrate)
 {
 	static HostSharedData<ReverseGameData> rgd("CfxReverseGameData");
 	WaitForSingleObject(rgd->inputMutex, INFINITE);
-
-	static char* location = (char*)hook::get_pattern("48 8D 05 ? ? ? ? 48 2B C8 48 B8 AB AA AA AA AA");
-	static int offset = *(int*)(location + 3);
-	static void* ioPadArray = location + offset + 7;
 
 #if 0
 	XINPUT_STATE state;
@@ -804,6 +801,13 @@ static HookFunction hookFunction([]()
 			may = FALSE;
 		}
 	});
+
+	
+	{
+		char* location = (char*)hook::get_pattern("48 8D 05 ? ? ? ? 48 2B C8 48 B8 AB AA AA AA AA");
+		int offset = *(int*)(location + 3);
+		ioPadArray = location + offset + 7;
+	}
 });
 
 fwEvent<HWND, UINT, WPARAM, LPARAM, bool&, LRESULT&> InputHook::DeprecatedOnWndProc;

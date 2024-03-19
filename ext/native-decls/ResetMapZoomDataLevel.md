@@ -1,6 +1,7 @@
 ---
 ns: CFX
 apiset: client
+game: gta5
 ---
 ## RESET_MAP_ZOOM_DATA_LEVEL
 

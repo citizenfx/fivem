@@ -507,36 +507,34 @@ static hook::cdecl_stub<void(void*, bool)> _kickRender([]
 
 static void (*g_origCtrlInit)(bool, bool);
 
+static uint8_t* ctrlInit_location1 = nullptr;
+static uint8_t* ctrlInit_location3 = nullptr;
+static void* ctrlInit_rti = nullptr;
+
 static void OnCtrlInit(bool isWindowed, bool isExclusive)
 {
 	uint8_t orig1, orig2, orig3;
 
-	static auto location1 = hook::get_pattern<uint8_t>("E8 ? ? ? ? 84 C0 74 1F 48 8B 05 ? ? ? ? 48 8B 40", 7);
-
 	{
-		orig1 = location1[0];
-		orig2 = location1[-0x5F];
-		hook::put<uint8_t>(location1, 0xEB);
-		hook::put<uint8_t>(location1 - 0x5F, 0xEB);
+		orig1 = ctrlInit_location1[0];
+		orig2 = ctrlInit_location1[-0x5F];
+		hook::put<uint8_t>(ctrlInit_location1, 0xEB);
+		hook::put<uint8_t>(ctrlInit_location1 - 0x5F, 0xEB);
 	}
 
-	static auto location3 = hook::get_pattern<uint8_t>("33 D2 89 7C 24 44 66 C7", -0x37);
-
 	{
-		orig3 = *location3;
-		hook::return_function(location3);
+		orig3 = *ctrlInit_location3;
+		hook::return_function(ctrlInit_location3);
 	}
-
-	static auto rti = hook::get_address<void*>(hook::get_pattern("E8 ? ? ? ? 45 33 FF 44 38 7B 0D 74 0E", -6));
 
 	_setRenderDeleg();
-	_kickRender(rti, true);
+	_kickRender(ctrlInit_rti, true);
 
 	OnMainGameFrame.Connect([orig1, orig2, orig3]
 	{
-		hook::put<uint8_t>(location1, orig1);
-		hook::put<uint8_t>(location1 - 0x5F, orig2);
-		hook::put<uint8_t>(location3, orig3);
+		hook::put<uint8_t>(ctrlInit_location1, orig1);
+		hook::put<uint8_t>(ctrlInit_location1 - 0x5F, orig2);
+		hook::put<uint8_t>(ctrlInit_location3, orig3);
 	});
 
 	// orig
@@ -782,6 +780,10 @@ static HookFunction hookFunction([] ()
 
 	// kick renderer before slow dinput code
 	{
+		ctrlInit_location1 = hook::get_pattern<uint8_t>("E8 ? ? ? ? 84 C0 74 1F 48 8B 05 ? ? ? ? 48 8B 40", 7);
+		ctrlInit_location3 = hook::get_pattern<uint8_t>("33 D2 89 7C 24 44 66 C7", -0x37);
+		ctrlInit_rti = hook::get_address<void*>(hook::get_pattern("E8 ? ? ? ? 45 33 FF 44 38 7B 0D 74 0E", -6));
+
 		auto location = hook::get_pattern("74 0B E8 ? ? ? ? 8A 0D ? ? ? ? 80", 2);
 		hook::set_call(&g_origCtrlInit, location);
 		hook::call(location, OnCtrlInit);

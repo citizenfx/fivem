@@ -2,7 +2,6 @@
 ns: CFX
 apiset: client
 ---
-
 ## GET_WORLD_COORD_FROM_SCREEN_COORD
 
 ```c
