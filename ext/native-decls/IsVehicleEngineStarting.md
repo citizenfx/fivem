@@ -1,6 +1,7 @@
 ---
 ns: CFX
 apiset: shared
+game: gta5
 ---
 ## IS_VEHICLE_ENGINE_STARTING
 

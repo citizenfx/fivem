@@ -1,7 +1,6 @@
 ---
 ns: CFX
 apiset: client
-game: gta5
 ---
 ## DOES_TIMECYCLE_MODIFIER_HAS_VAR
 

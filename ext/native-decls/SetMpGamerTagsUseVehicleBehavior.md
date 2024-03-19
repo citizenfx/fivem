@@ -1,6 +1,7 @@
 ---
 ns: CFX
 apiset: client
+game: gta5
 ---
 ## SET_MP_GAMER_TAGS_USE_VEHICLE_BEHAVIOR
 

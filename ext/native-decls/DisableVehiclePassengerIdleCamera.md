@@ -1,6 +1,7 @@
 ---
 ns: CFX
 apiset: client
+game: gta5
 ---
 ## DISABLE_VEHICLE_PASSENGER_IDLE_CAMERA
 

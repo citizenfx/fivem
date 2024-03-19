@@ -1,6 +1,7 @@
 ---
 ns: CFX
 apiset: client
+game: gta5
 ---
 ## CREATE_RUNTIME_TEXTURE_FROM_DUI_HANDLE
 

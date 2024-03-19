@@ -1,6 +1,7 @@
 ---
 ns: CFX
 apiset: shared
+game: gta5
 ---
 ## IS_ENTITY_POSITION_FROZEN
 

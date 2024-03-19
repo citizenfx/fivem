@@ -1,6 +1,7 @@
 ---
 ns: CFX
 apiset: client
+game: gta5
 ---
 ## CLEAR_VEHICLE_XENON_LIGHTS_CUSTOM_COLOR
 

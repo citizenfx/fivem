@@ -1,6 +1,7 @@
 ---
 ns: CFX
 apiset: client
+#game: gta5 // commented out for compatibility reasons
 ---
 ## SET_MANUAL_SHUTDOWN_LOADING_SCREEN_NUI
 
