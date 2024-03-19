@@ -363,6 +363,10 @@ void OnConsoleFrameDraw(int width, int height, bool usedSharedD3D11)
 	{
 		return;
 	}
+	else if (g_pd3dDeviceContext == nullptr)
+	{
+		return;
+	}
 
 #ifndef IS_FXSERVER
 	static ConVar<bool> winConsoleVar("con_winconsole", ConVar_Archive | ConVar_UserPref, false, &g_winConsole);

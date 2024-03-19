@@ -1005,10 +1005,13 @@ static auto GetBackbuf()
 static auto GetInvariantD3D11Device()
 {
 	WRL::ComPtr<IDXGIDevice> realDeviceDxgi;
-	WRL::ComPtr<ID3D11Device> realDevice;
+	WRL::ComPtr<ID3D11Device> realDevice = nullptr;
 
 	GetD3D11Device()->QueryInterface(IID_PPV_ARGS(&realDeviceDxgi));
-	realDeviceDxgi.As(&realDevice);
+	if (realDeviceDxgi)
+	{
+		realDeviceDxgi.As(&realDevice);
+	}
 
 	return realDevice;
 }
@@ -1055,6 +1058,10 @@ void RenderBufferToBuffer(ID3D11RenderTargetView* rtv, int width = 0, int height
 
 		auto realDevice = GetInvariantD3D11Device();
 		auto realDeviceContext = GetInvariantD3D11DeviceContext();
+		if (!realDevice)
+		{
+			return;
+		}
 
 		auto m_width = resDesc.Width;
 		auto m_height = resDesc.Height;
@@ -1205,15 +1212,21 @@ void CaptureInternalScreenshot()
 			texDesc.CPUAccessFlags = 0;
 			texDesc.MiscFlags = 0;
 
+			WRL::ComPtr<ID3D11Device> device = GetInvariantD3D11Device();
+			if (!device)
+			{
+				return;
+			}
+
 			WRL::ComPtr<ID3D11Texture2D> d3dTex;
-			HRESULT hr = GetInvariantD3D11Device()->CreateTexture2D(&texDesc, nullptr, &d3dTex);
+			HRESULT hr = device->CreateTexture2D(&texDesc, nullptr, &d3dTex);
 			if FAILED(hr)
 			{
 				return;
 			}
 
 			D3D11_RENDER_TARGET_VIEW_DESC rtDesc = CD3D11_RENDER_TARGET_VIEW_DESC(d3dTex.Get(), D3D11_RTV_DIMENSION_TEXTURE2D);
-			GetInvariantD3D11Device()->CreateRenderTargetView(d3dTex.Get(), &rtDesc, &rtv);
+			device->CreateRenderTargetView(d3dTex.Get(), &rtDesc, &rtv);
 
 			d3dTex.CopyTo(&myTexture);
 		}
@@ -1361,15 +1374,21 @@ void CaptureBufferOutput()
 		texDesc.CPUAccessFlags = 0;
 		texDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
 
+		WRL::ComPtr<ID3D11Device> device = GetInvariantD3D11Device();
+		if (!device)
+		{
+			return;
+		}
+
 		WRL::ComPtr<ID3D11Texture2D> d3dTex;
-		HRESULT hr = GetInvariantD3D11Device()->CreateTexture2D(&texDesc, nullptr, &d3dTex);
+		HRESULT hr = device->CreateTexture2D(&texDesc, nullptr, &d3dTex);
 		if (FAILED(hr))
 		{
 			return;
 		}
 
 		D3D11_RENDER_TARGET_VIEW_DESC rtDesc = CD3D11_RENDER_TARGET_VIEW_DESC(d3dTex.Get(), D3D11_RTV_DIMENSION_TEXTURE2D);
-		GetInvariantD3D11Device()->CreateRenderTargetView(d3dTex.Get(), &rtDesc, &rtv);
+		device->CreateRenderTargetView(d3dTex.Get(), &rtDesc, &rtv);
 
 		d3dTex.CopyTo(&myTexture);
 
