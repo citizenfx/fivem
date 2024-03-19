@@ -104,11 +104,6 @@ result_t MonoScriptRuntime::Create(IScriptHost* host)
 			fx::OMPtr<IScriptHostWithManifest> manifestPtr;
 			ptr.As(&manifestPtr);
 			m_manifestHost = manifestPtr.GetRef();
-
-			fx::OMPtr<IScriptHostWithBookmarks> bookmarkPtr;
-			ptr.As(&bookmarkPtr);
-			m_bookmarkHost = bookmarkPtr.GetRef();
-			m_bookmarkHost->CreateBookmarks(this);
 		}
 
 		char* resourceName = nullptr;
@@ -134,7 +129,7 @@ result_t MonoScriptRuntime::Create(IScriptHost* host)
 		auto* thisPtr = this;
 		MonoException* exc;
 		auto initialize = Method::Find(image, "CitizenFX.Core.ScriptInterface:Initialize");
-		initialize({ mono_string_new(m_appDomain, resourceName), &thisPtr, &m_instanceId }, &exc);
+		initialize({ mono_string_new(m_appDomain, resourceName), &thisPtr, &m_instanceId, &m_sharedData }, &exc);
 
 		mono_domain_set_internal(mono_get_root_domain()); // back to root for v1
 
@@ -172,16 +167,26 @@ result_t MonoScriptRuntime::Destroy()
 
 	m_appDomain = nullptr;
 	m_scriptHost = nullptr;
-	m_bookmarkHost->RemoveBookmarks(this);
-	m_bookmarkHost = nullptr;
 
 	mono_domain_set_internal(mono_get_root_domain()); // back to root for v1
 
 	return ReturnOrError(exc);
 }
 
-result_t MonoScriptRuntime::TickBookmarks(uint64_t* bookmarks, int32_t numBookmarks)
+result_t MonoScriptRuntime::Tick()
 {
+	// Tick-less: we don't pay for runtime entry and exit costs if there's nothing to do.
+	{
+		auto nextScheduledTime = m_sharedData.m_scheduledTime.load();
+		if (GetCurrentSchedulerTime() < nextScheduledTime)
+		{
+			return FX_S_OK;
+		}
+
+		// We can ignore the time between the load above and the store below as the runtime will set this value again if there's still work to do
+		m_sharedData.m_scheduledTime.store(~uint64_t(0));
+	}
+
 	m_handler->PushRuntime(static_cast<IScriptRuntime*>(this));
 	if (m_parentObject)
 		m_parentObject->OnActivate();
@@ -190,12 +195,8 @@ result_t MonoScriptRuntime::TickBookmarks(uint64_t* bookmarks, int32_t numBookma
 
 	MONO_BOUNDARY_START
 
-	// reset scheduled time, nextTick will set the next time
-	m_scheduledTime = ~uint64_t(0);
-
 	MonoException* exc;
-	uint64_t nextTick = m_tick(GetCurrentSchedulerTime(), IsProfiling(), &exc);
-	ScheduleTick(nextTick);
+	m_tick(GetCurrentSchedulerTime(), IsProfiling(), &exc);
 
 	MONO_BOUNDARY_END
 
@@ -216,11 +217,9 @@ result_t MonoScriptRuntime::TriggerEvent(char* eventName, char* argsSerialized, 
 	MONO_BOUNDARY_START
 
 	MonoException* exc = nullptr;
-	uint64_t nextTick = m_triggerEvent(mono_string_new(m_appDomain, eventName),
+	m_triggerEvent(mono_string_new(m_appDomain, eventName),
 		argsSerialized, serializedSize, mono_string_new(m_appDomain, sourceId),
 		GetCurrentSchedulerTime(), IsProfiling(), &exc);
-
-	ScheduleTick(nextTick);
 
 	MONO_BOUNDARY_END
 
@@ -327,9 +326,7 @@ result_t MonoScriptRuntime::LoadFile(char* scriptFile)
 	bool isProfiling = IsProfiling();
 
 	MonoException* exc = nullptr;
-	MonoObject* nextTickObject = m_loadAssembly({ mono_string_new(m_appDomain, scriptFile), &currentTime, &isProfiling }, &exc);
-	uint64_t nextTick = *reinterpret_cast<uint64_t*>(mono_object_unbox(nextTickObject));
-	ScheduleTick(nextTick);
+	m_loadAssembly({ mono_string_new(m_appDomain, scriptFile), &currentTime, &isProfiling }, &exc);
 	
 	console::PrintWarning(_CFX_NAME_STRING(_CFX_COMPONENT_NAME),
 		"Assembly %s has been loaded into the mono rt2 runtime. This runtime is still in beta and shouldn't be used in production, "
@@ -348,8 +345,7 @@ result_t MonoScriptRuntime::CallRef(int32_t refIndex, char* argsSerialized, uint
 	MonoDomainScope scope(m_appDomain);
 
 	MonoException* exc = nullptr;
-	uint64_t nextTick = m_callRef(refIndex, argsSerialized, argsSize, retvalSerialized, retvalSize, GetCurrentSchedulerTime(), IsProfiling(), &exc);
-	ScheduleTick(nextTick);
+	m_callRef(refIndex, argsSerialized, argsSize, retvalSerialized, retvalSize, GetCurrentSchedulerTime(), IsProfiling(), &exc);
 
 	return ReturnOrError(exc);
 }

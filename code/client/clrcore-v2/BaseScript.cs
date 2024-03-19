@@ -278,7 +278,6 @@ namespace CitizenFX.Core
 #else
 			if (inputMapper != null && inputParameter != null)
 			{
-				Debug.WriteLine(command);
 				Native.CoreNatives.RegisterKeyMapping(command, description, inputMapper, inputParameter);
 			}
 			m_commands.Add(new KeyValuePair<int, DynFunc>(ReferenceFunctionManager.CreateCommand(command, dynFunc, false), dynFunc));
