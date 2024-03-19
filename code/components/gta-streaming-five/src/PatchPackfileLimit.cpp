@@ -65,47 +65,41 @@ static void SetStreamingInterface(char* si)
 }
 
 static void(*g_origStreamerTick)(void*, void*);
-
+static int32_t* g_CustomStreamerTickLoc = nullptr;
 static void CustomStreamerTick(void* a1, void* a2)
 {
-	static auto patternLoc = hook::get_pattern<int32_t>("4D 8B A4 C7 ? ? ? ? 4C 8D 45 58 49 8B 04 24", 4);
-
-	auto oldLoc = *patternLoc;
-	*patternLoc = (intptr_t)rage__fiCollection__sm_Collections - hook::get_adjusted(0x140000000);
+	auto oldLoc = *g_CustomStreamerTickLoc;
+	*g_CustomStreamerTickLoc = (intptr_t)rage__fiCollection__sm_Collections - hook::get_adjusted(0x140000000);
 
 	g_origStreamerTick(a1, a2);
 
-	*patternLoc = oldLoc;
+	*g_CustomStreamerTickLoc = oldLoc;
 }
 
 static void*(*g_origQueueStrTask)(uint32_t a1, void* a2, int a3, int a4, void* a5, void* a6, void* a7, uint32_t a8, void* a9, int a10);
-
+static int32_t* g_CustomQueueStrTaskLoc = nullptr;
 static void* CustomQueueStrTask(uint32_t a1, void* a2, int a3, int a4, void* a5, void* a6, void* a7, uint32_t a8, void* a9, int a10)
 {
-	static auto patternLoc = hook::get_pattern<int32_t>("4C 8B BC C1 ? ? ? ? 4D 85 FF 0F 84", 4);
-
-	auto oldLoc = *patternLoc;
-	*patternLoc = (intptr_t)rage__fiCollection__sm_Collections - hook::get_adjusted(0x140000000);
+	auto oldLoc = *g_CustomQueueStrTaskLoc;
+	*g_CustomQueueStrTaskLoc = (intptr_t)rage__fiCollection__sm_Collections - hook::get_adjusted(0x140000000);
 
 	auto rv = g_origQueueStrTask(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10);
 
-	*patternLoc = oldLoc;
+	*g_CustomQueueStrTaskLoc = oldLoc;
 
 	return rv;
 }
 
 static void*(*g_origQueueSemaTask)(uint32_t a1, void* a2, int a3, int a4, void* a5, uint32_t a6, int a7);
-
+static int32_t* g_CustomQueueSemaTaskLoc = nullptr;
 static void* CustomQueueSemaTask(uint32_t a1, void* a2, int a3, int a4, void* a5, uint32_t a6, int a7)
 {
-	static auto patternLoc = hook::get_pattern<int32_t>("4C 8B BC C1 ? ? ? ? 4D 85 FF 0F 84", 4);
-
-	auto oldLoc = *patternLoc;
-	*patternLoc = (intptr_t)rage__fiCollection__sm_Collections - hook::get_adjusted(0x140000000);
+	auto oldLoc = *g_CustomQueueSemaTaskLoc;
+	*g_CustomQueueSemaTaskLoc = (intptr_t)rage__fiCollection__sm_Collections - hook::get_adjusted(0x140000000);
 
 	auto rv = g_origQueueSemaTask(a1, a2, a3, a4, a5, a6, a7);
 
-	*patternLoc = oldLoc;
+	*g_CustomQueueSemaTaskLoc = oldLoc;
 
 	return rv;
 }
@@ -192,5 +186,9 @@ static HookFunction hookFunction([]()
 		hook::set_call(&g_origSetStreamingInterface, location);
 		hook::call(location, SetStreamingInterface);
 	}
+
+	g_CustomStreamerTickLoc = hook::get_pattern<int32_t>("4D 8B A4 C7 ? ? ? ? 4C 8D 45 58 49 8B 04 24", 4);
+	g_CustomQueueStrTaskLoc = hook::get_pattern<int32_t>("4C 8B BC C1 ? ? ? ? 4D 85 FF 0F 84", 4);
+	g_CustomQueueSemaTaskLoc = hook::get_pattern<int32_t>("4C 8B BC C1 ? ? ? ? 4D 85 FF 0F 84", 4);
 });
 #endif

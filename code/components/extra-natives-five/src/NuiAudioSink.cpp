@@ -1074,14 +1074,15 @@ namespace rage
 		static audCategoryControllerManager* GetInstance();
 	};
 
+	static audCategoryControllerManager** g_audCategoryControllerManager = nullptr;
 	audCategoryControllerManager* audCategoryControllerManager::GetInstance()
 	{
-#ifdef GTA_FIVE
-		static auto patternRef = hook::get_address<audCategoryControllerManager**>(hook::get_pattern("45 33 C0 BA 90 1C E2 44 E8", -4));
-#elif IS_RDR3
-		static auto patternRef = hook::get_address<audCategoryControllerManager**>(hook::get_pattern("48 8B 0D ? ? ? ? E8 ? ? ? ? 8B 15 ? ? ? ? 48 8D 0D ? ? ? ? E8", 3));
-#endif
-		return *patternRef;
+		if (!g_audCategoryControllerManager)
+		{
+			return nullptr;
+		}
+
+		return *g_audCategoryControllerManager;
 	}
 
 	static hook::thiscall_stub<char*(audCategoryControllerManager*, uint32_t)> _audCategoryControllerManager_CreateController([]()
@@ -1108,6 +1109,8 @@ namespace rage
 		initParamVal = hook::get_address<uint8_t*>(hook::get_pattern("BA 11 CC 23 C3 E8 ? ? ? ? 48 8D", 0x16));
 
 		audDriver::sm_Mixer = hook::get_address<audMixerDevice**>(hook::get_pattern("75 64 44 0F B7 45 06 48 8B 0D", 10));
+
+		g_audCategoryControllerManager = hook::get_address<audCategoryControllerManager**>(hook::get_pattern("45 33 C0 BA 90 1C E2 44 E8", -4));
 #elif IS_RDR3
 		g_frontendAudioEntity = hook::get_address<audEntityBase*>(hook::get_pattern("48 8D 0D ? ? ? ? E8 ? ? ? ? 45 84 E4 74 ? 39 1D"), 3, 7);
 
@@ -1116,6 +1119,8 @@ namespace rage
 		initParamVal = hook::get_address<uint8_t*>(hook::get_pattern("8A 05 ? ? ? ? 48 8B CF F3 0F 11 45 ? 88 45 66"), 2, 6);
 
 		audDriver::sm_Mixer = hook::get_address<audMixerDevice**>(hook::get_pattern("48 8B 05 ? ? ? ? 44 38 8C 01 ? ? ? ? 0F"), 3, 7);
+
+		g_audCategoryControllerManager = hook::get_address<audCategoryControllerManager**>(hook::get_pattern("48 8B 0D ? ? ? ? E8 ? ? ? ? 8B 15 ? ? ? ? 48 8D 0D ? ? ? ? E8", 3));
 #endif
 	});
 #ifdef GTA_FIVE

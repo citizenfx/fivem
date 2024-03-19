@@ -5,10 +5,10 @@
 
 namespace rage
 {
+static fiAssetManager* g_assetManager = nullptr;
 fiAssetManager* fiAssetManager::GetInstance()
 {
-	static auto instance = hook::get_address<fiAssetManager*>(hook::get_pattern("75 62 48 8D 0D ? ? ? ? 48 8B D6 E8", 5));
-	return instance;
+	return g_assetManager;
 }
 
 static hook::thiscall_stub<void(fiAssetManager*, const char*)> _pushFolder([]()
@@ -31,3 +31,8 @@ void fiAssetManager::PopFolder()
 	return _popFolder(this);
 }
 }
+
+static HookFunction hookFunction([]() 
+{
+	rage::g_assetManager = hook::get_address<rage::fiAssetManager*>(hook::get_pattern("75 62 48 8D 0D ? ? ? ? 48 8B D6 E8", 5));
+});
