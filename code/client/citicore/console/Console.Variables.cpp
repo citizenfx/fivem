@@ -148,6 +148,38 @@ ConsoleVariableManager::THandlerPtr ConsoleVariableManager::FindEntryRaw(const s
 
 int ConsoleVariableManager::Register(const std::string& name, int flags, const THandlerPtr& variable)
 {
+	Entry* oldEntry = nullptr;
+
+	// Preserve the actual variable value from this point, just in case
+	std::string oldVariableValue = variable->GetValue();
+
+	{
+		std::unique_lock<std::shared_mutex> lock(m_mutex);
+
+		auto oldVariable = m_entries.find(name);
+
+		if (oldVariable != m_entries.end())
+		{
+			oldEntry = &oldVariable->second;
+		}
+
+		// If the old entry had 'ConVar_Replicated' flags, assign them
+		if (oldEntry && oldEntry->flags & ConVar_Replicated)
+		{
+			flags = oldEntry->flags;
+			oldVariableValue = oldEntry->variable->GetValue();
+
+			// SetRawValue (called via SetValue) will complain about 'ConVar_Replicated' vars
+			// Unless we delete the old entry (the one the server sent via msgConVars)
+			m_entries.erase(name);
+		}
+	}
+
+	// Now assign any old values to the replicated variable
+	if (flags & ConVar_Replicated)
+		variable->SetValue(oldVariableValue);
+
+	// Continue as we normally would
 	std::unique_lock<std::shared_mutex> lock(m_mutex);
 
 	int token = m_curToken.fetch_add(1);
