@@ -135,13 +135,13 @@ void Mh_handle_message(client_t *client, message_t *msg)
 			break;
 		}
 
-		if (Ban_isBanned(client)) {
+		/*if (Ban_isBanned(client)) {
 			char buf[64];
 			sprintf(buf, "You were banned from the server");
 			Log_info("Client is banned. Disconnecting");
 			sendServerReject(client, buf, MumbleProto::Reject_RejectType_None);
 			goto disconnect;
-		}
+		}*/
 
 		client_itr = NULL;
 		while (Client_iterate(&client_itr) != NULL) {
@@ -475,7 +475,6 @@ void Mh_handle_message(client_t *client, message_t *msg)
 			msg->payload.userState->recording() != client->recording) {
 			client->recording = msg->payload.userState->recording();
 			char *message;
-			uint32_t *tree_id;
 
 			message = (char*)Memory_safeMalloc(1, strlen(client->username) + 32);
 			sendmsg = Msg_create(TextMessage);

@@ -279,7 +279,6 @@ static message_t *Msg_create_nopayload(messageType_t messageType)
 message_t *Msg_create(messageType_t messageType)
 {
 	message_t *msg = Msg_create_nopayload(messageType);
-	int i;
 
 	switch (messageType) {
 	case Version:
@@ -370,7 +369,6 @@ message_t *Msg_create(messageType_t messageType)
 message_t *Msg_banList_create(int n_bans)
 {
 	message_t *msg = Msg_create_nopayload(BanList);
-	int i;
 
 	msg->payload.banList = new MumbleProto::BanList();
 	return msg;
@@ -420,8 +418,6 @@ void Msg_inc_ref(message_t *msg)
 
 void Msg_free(message_t *msg)
 {
-	int i;
-
 	if (msg->refcount) msg->refcount--;
 	if (msg->refcount > 0)
 		return;

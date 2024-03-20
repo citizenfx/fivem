@@ -193,7 +193,7 @@ message_t *Ban_getBanList(void)
 	struct dlist *itr;
 	ban_t *ban;
 	message_t *msg;
-	struct tm timespec;
+	struct tm *timespec;
 	char timestr[32];
 	char hexhash[41];
 	uint8_t address[16];
@@ -201,8 +201,9 @@ message_t *Ban_getBanList(void)
 	msg = Msg_banList_create(bancount);
 	list_iterate(itr, &banlist) {
 		ban = list_get_entry(itr, ban_t, node);
-		//gmtime_r(&ban->time, &timespec);
-		strftime(timestr, 32, "%Y-%m-%dT%H:%M:%SZ", &timespec);
+		timespec = gmtime(&ban->time);
+		strftime(timestr, 32, "%Y-%m-%dT%H:%M:%SZ", timespec);
+		hexhash[0] = '\0';
 		//SSLi_hash2hex(ban->hash, hexhash);
 		memset(address, 0, 16);
 
@@ -242,7 +243,6 @@ void Ban_putBanList(message_t *msg, int n_bans)
 	uint32_t duration, mask;
 	uint8_t *address;
 	uint8_t mappedBytes[12] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff};
-	char *tz;
 
 	for (i = 0; i < n_bans; i++) {
 		Msg_banList_getEntry(msg, i, &address, &mask, &name, &hexhash, &reason, &start, &duration);
@@ -306,6 +306,7 @@ static void Ban_saveBanFile(void)
 	}
 	list_iterate(itr, &banlist) {
 		ban = list_get_entry(itr, ban_t, node);
+		hexhash[0] = '\0';
 		//SSLi_hash2hex(ban->hash, hexhash);
 
 		char *addressString = Util_addressToString(&ban->address);

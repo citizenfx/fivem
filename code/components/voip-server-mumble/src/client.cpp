@@ -123,6 +123,8 @@ bool Client_is_player_muted(int serverId)
 			return c->mute;
 		}
 	}
+
+	return false;
 }
 
 void Client_set_player_muted(int serverId, bool muted)
@@ -365,18 +367,16 @@ static int findFreeSessionId()
 
 int Client_add(fwRefContainer<net::TcpServerStream> stream, client_t** client)
 {
-	client_t* newclient;
-	message_t *sendmsg;
-	char* addressString = NULL;
+	auto peeraddress = stream->GetPeerAddress();
+	struct sockaddr_storage clientsockaddr = *(sockaddr_storage*)peeraddress.GetSocketAddress();
 
-	/*if (Ban_isBannedAddr(remote)) {
-		addressString = Util_addressToString(remote);
-		Log_info("Address %s banned. Disconnecting", addressString);
-		free(addressString);
+	if (Ban_isBannedAddr(&clientsockaddr)) {
+		auto hostIP = peeraddress.GetHost();
+		Log_info("Address %s banned. Disconnecting", hostIP);
 		return -1;
-	}*/
+	}
 
-	newclient = new client_t();
+	client_t* newclient = new client_t();
 
 	*client = newclient;
 
@@ -412,7 +412,7 @@ int Client_add(fwRefContainer<net::TcpServerStream> stream, client_t** client)
 	clientcount++;
 
 	/* Send version message to client */
-	sendmsg = Msg_create(Version);
+	message_t* sendmsg = Msg_create(Version);
 	sendmsg->payload.version->set_version(PROTOCOL_VERSION);
 	sendmsg->payload.version->set_release(UMURMUR_VERSION);
 	sendmsg->payload.version->set_os("CitizenFX Core");
@@ -714,7 +714,6 @@ client_t *Client_iterate(client_t **client_itr)
 void Client_textmessage(client_t *client, char *text)
 {
 	char *message;
-	uint32_t *tree_id;
 	message_t *sendmsg = NULL;
 
 	message = (char*)Memory_safeMalloc(1, strlen(text) + 1);
