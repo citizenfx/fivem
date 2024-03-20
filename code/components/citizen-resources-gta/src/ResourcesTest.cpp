@@ -57,6 +57,11 @@ namespace streaming
 	void RemoveDataFileFromLoadList(const std::string& type, const std::string& path);
 
 	void SetNextLevelPath(const std::string& path);
+
+#if defined(IS_RDR3)
+	void SetTrainTrackFilePath(const std::string& path);
+	void SetTrolleyCableFilePath(const std::string& path);
+#endif
 }
 #endif
 
@@ -187,6 +192,18 @@ static InitFunction initFunction([] ()
 			{
 				streaming::SetNextLevelPath(resourceRoot + meta.second);
 			}
+
+#if defined(IS_RDR3)
+			for (auto& meta : metaData->GetEntries("replace_traintrack_file"))
+			{
+				streaming::SetTrainTrackFilePath(resourceRoot + meta.second);
+			}
+
+			for (auto& meta : metaData->GetEntries("replace_trolley_cable_file"))
+			{
+				streaming::SetTrolleyCableFilePath(resourceRoot + meta.second);
+			}
+#endif
 
 			if (!RangeLengthMatches(metaData->GetEntries("data_file"), metaData->GetEntries("data_file_extra")))
 			{
