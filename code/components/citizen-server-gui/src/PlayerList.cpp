@@ -116,7 +116,7 @@ static const auto& CollectPlayers(fx::ServerInstanceBase* instance)
 		std::unique_lock lock(g_playerListDataMutex);
 		auto& entry = g_playerListData[client->GetGuid()];
 		entry.name = fmt::sprintf("[%d] %s", client->GetNetId(), client->GetName());
-		unsigned int secondsTotalOnline = std::chrono::duration_cast<std::chrono::seconds>(client->GetLastSeen() - client->GetFirstSeen()).count();
+		unsigned int secondsTotalOnline = client->GetSecondsOnline();
 		entry.secondsOnline = (secondsTotalOnline % 60);
 		entry.minutesOnline = ((secondsTotalOnline / 60) % 60);
 		entry.hoursOnline = (secondsTotalOnline / 3600);
