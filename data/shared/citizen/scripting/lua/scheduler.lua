@@ -472,7 +472,7 @@ local function doStackFormat(err)
 	local fst = FormatStackTrace()
 	
 	-- already recovering from an error
-	if not fst then
+	if not fst or not err then
 		return nil
 	end
 
