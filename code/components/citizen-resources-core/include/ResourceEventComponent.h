@@ -130,6 +130,9 @@ public:
 	//
 	fwEvent<const std::string&, const std::string&, const std::string&> OnQueueEvent;
 
+	// Arguments: eventName, eventPayloadSize, eventSource
+	fwEvent<const std::string_view&, size_t&, const std::optional<std::string_view>&> OnClientEventTriggered;
+
 	//
 	// Triggers an event immediately. Returns a value indicating whether the event was not canceled.
 	//

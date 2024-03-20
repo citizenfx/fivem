@@ -99,6 +99,7 @@ public:
 
 		m_instance->GetComponent<console::Context>()->AddToBuffer(R"(
 devgui_convar "Tools/Performance/Resource Monitor" resmon
+devgui_convar "Tools/Network/Network Event Log" netEventLog
 devgui_convar "Tools/Network/State/Network Object Viewer" netobjviewer
 devgui_convar "Tools/Network/State/Player List" svplayerlist
 )");
