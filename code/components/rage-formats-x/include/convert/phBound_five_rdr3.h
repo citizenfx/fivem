@@ -163,9 +163,9 @@ static inline void fillPolyhedronBound(rdr3::phBoundPolyhedron* out, five::phBou
 	{
 		if (inPolys[i].type == 0)
 		{
-			outPolys[i].poly.v1 = inPolys[i].poly.v1;
-			outPolys[i].poly.v2 = inPolys[i].poly.v2;
-			outPolys[i].poly.v3 = inPolys[i].poly.v3;
+			outPolys[i].poly.v1 = (inPolys[i].poly.v1 & 0x7FFF);
+			outPolys[i].poly.v2 = (inPolys[i].poly.v2 & 0x7FFF);
+			outPolys[i].poly.v3 = (inPolys[i].poly.v3 & 0x7FFF);
 			outPolys[i].poly.e1 = inPolys[i].poly.e1;
 			outPolys[i].poly.e2 = inPolys[i].poly.e2;
 			outPolys[i].poly.e3 = inPolys[i].poly.e3;
@@ -474,6 +474,36 @@ static inline void fillGeometryBound(rdr3::phBoundGeometry* out, five::phBoundGe
 	out->SetMaterials(materials.size(), &materials[0]);
 }
 
+static inline void fillBoundPolyMaterial(rdr3::phBound* out, five::phBound* in)
+{
+	five::phBoundMaterial inMaterial = in->GetMaterial();
+	rdr3::phBoundMaterial outMaterial = { 0 };
+
+	outMaterial.mat1.materialIdx = ConvertMaterialIndexrdr3(inMaterial.mat1.materialIdx);
+	outMaterial.mat1.roomId = inMaterial.mat1.roomId;
+
+	outMaterial.mat2.stairs = inMaterial.mat1.stairs;
+	outMaterial.mat2.blockClimb = inMaterial.mat1.blockClimb;
+	outMaterial.mat2.seeThrough = inMaterial.mat1.seeThrough;
+	outMaterial.mat2.shootThrough = inMaterial.mat1.shootThrough;
+	outMaterial.mat2.notCover = inMaterial.mat1.notCover;
+	outMaterial.mat2.walkablePath = inMaterial.mat1.walkablePath;
+	outMaterial.mat2.noCamCollision = inMaterial.mat1.noCamCollision;
+	outMaterial.mat2.shootThroughFx = inMaterial.mat1.shootThroughFx;
+
+	outMaterial.mat2.noDecal = inMaterial.mat2.noDecal;
+	outMaterial.mat2.noNavmesh = inMaterial.mat2.noNavmesh;
+	outMaterial.mat2.noRagdoll = inMaterial.mat2.noRagdoll;
+	outMaterial.mat2.vehicleWheel = inMaterial.mat2.vehicleWheel;
+	outMaterial.mat2.noPtfx = inMaterial.mat2.noPtfx;
+	outMaterial.mat2.tooSteepForPlayer = inMaterial.mat2.tooSteepForPlayer;
+	outMaterial.mat2.noNetworkSpawn = inMaterial.mat2.noNetworkSpawn;
+	outMaterial.mat2.noCamCollisionAllowClipping = inMaterial.mat2.noCamCollisionAllowClipping;
+	outMaterial.mat2.unknown = inMaterial.mat2.unknown;
+
+	out->SetMaterial(outMaterial);
+}
+
 template<>
 rdr3::phBoundGeometry* convert(five::phBoundGeometry* bound)
 {
@@ -523,6 +553,7 @@ rdr3::phBoundSphere* convert(five::phBoundSphere* bound)
 	auto out = new (false) rdr3::phBoundSphere;
 
 	fillBaseBound(out, bound);
+	fillBoundPolyMaterial(out, bound);
 
 	return out;
 }
@@ -533,10 +564,7 @@ rdr3::phBoundBox* convert(five::phBoundBox* bound)
 	auto out = new (false) rdr3::phBoundBox;
 
 	fillBaseBound(out, bound);
-
-	//rage::rdr3::phBoundMaterial material = { 0 };
-	//material.mat1.materialIdx = ConvertMaterialIndex(bound->GetMaterial().mat1.materialIdx);
-	//out->SetMaterial(material);
+	fillBoundPolyMaterial(out, bound);
 
 	return out;
 }
@@ -547,6 +575,7 @@ rdr3::phBoundCapsule* convert(five::phBoundCapsule* bound)
 	auto out = new (false) rdr3::phBoundCapsule;
 
 	fillBaseBound(out, bound);
+	fillBoundPolyMaterial(out, bound);
 
 	return out;
 }

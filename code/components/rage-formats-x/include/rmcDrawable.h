@@ -167,7 +167,7 @@ namespace sga
 	private:
 		void* m_texturePtr; // filled at runtime
 
-		uint8_t m_pad[56];
+		uint8_t m_pad[64];
 
 	public:
 		ShaderResourceView()
@@ -176,7 +176,7 @@ namespace sga
 				0x01, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 			};
 
 			memcpy(m_pad, f, sizeof(m_pad));
@@ -218,8 +218,7 @@ protected:
 #elif defined(RAGE_FORMATS_GAME_RDR3)
 	// sga::Texture
 	uint32_t m_blockSize;
-	uint16_t m_blockCount;
-	uint16_t m_blockPad;
+	uint32_t m_blockCount;
 	union
 	{
 		uint32_t m_flags;
@@ -234,7 +233,7 @@ protected:
 	uint8_t m_tileMode; // 0x0D?
 	uint8_t m_antiAliasType; // 0
 	uint8_t m_levels;
-	bool m_unkFlag; // format-related
+	uint8_t m_unk11; // format-related
 	uint8_t m_unk12;
 	uint8_t m_unk13;
 	// sga::imageParams end
@@ -242,6 +241,9 @@ protected:
 	pgPtr<char> m_name;
 	pgPtr<sga::ShaderResourceView> m_srv;
 	pgPtr<void> m_pixelData;
+	uint32_t m_unk18;
+	uint32_t m_unk19;
+	uint64_t m_unk20;
 #endif
 
 public:
@@ -282,11 +284,13 @@ public:
 
 		m_tileMode = 0xD;
 		m_antiAliasType = 0;
-		m_unkFlag = false;
+		m_unk11 = 0;
 		m_unk12 = 0;
 		m_unk13 = 0;
 		m_usageCount = 1;
-		m_blockPad = 0;
+		m_unk18 = 0;
+		m_unk19 = 0;
+		m_unk20 = 0;
 #endif
 	}
 
@@ -1096,8 +1100,8 @@ public:
 		memset(m_pad, 0, sizeof(m_pad));
 		memset(m_pad2, 0, sizeof(m_pad2));
 
-		m_const1 = 1;
-		m_const2 = 2;
+		m_const1 = 0;
+		m_const2 = 0;
 	}
 
 	inline char* GetName()
