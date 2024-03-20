@@ -6,6 +6,7 @@ namespace CitizenFX.Core
 {
 	public enum Relationship
 	{
+		Dead = 6,
 		Hate = 5,
 		Dislike = 4,
 		Neutral = 3,

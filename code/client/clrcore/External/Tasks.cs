@@ -31,7 +31,12 @@ namespace CitizenFX.Core
 		BurstFireHeli = 2437838959u,
 		BurstFireMicro = 1122960381u,
 		BurstFireBursts = 1122960381u,
-		BurstFireTank = 3804904049u
+		BurstFireTank = 3804904049u,
+		TampaMortar = 2452873343u,
+		HunterBarrage = 2905356422u,
+		AkulaBarrage = 1392378214u,
+		ChernoBarrage = 703122589u,
+		Pounder2Barrage = 2228901467u,
 	}
 	[Flags]
 	public enum AnimationFlags
@@ -39,18 +44,52 @@ namespace CitizenFX.Core
 		None = 0,
 		Loop = 1,
 		StayInEndFrame = 2,
+		RepositionWhenFinished = 4,
+		NotInterruptable = 8,
 		UpperBodyOnly = 16,
 		AllowRotation = 32,
+		ReorientWhenFinished = 64,
 		CancelableWithMovement = 128,
-		RagdollOnCollision = 4194304
+		Additive = 256,
+		TurnOffCollision = 512,
+		OverridePhysics = 1024,
+		IgnoreGravity = 2048,
+		ExtractInitialOffset = 4096,
+		ExitAfterInterrupted = 8192,
+		TagSyncIn = 16384,
+		TagSyncOut = 32768,
+		TagSyncContinuous = 65536,
+		ForceStart = 131072,
+		UseKinematicPhysics = 262144,
+		UseMoverExtraction = 524288,
+		HideWeapon = 1048576,
+		EndsInDeadPose = 2097152,
+		RagdollOnCollision = 4194304,
+		DontExitOnDeath = 8388608,
+		AbortOnWeaponDamage = 16777216,
+		DisableForcedPhysicsUpdate = 33554432,
+		ProcessAttachmentsOnStart = 67108864,
+		ExpandPedCapsuleFromSkeleton = 134217728,
+		UseAlternativeFirstPersonAnim = 268435456,
+		BlendOutWRTLastFrame = 536870912,
+		UseFullBlending = 1073741824,
 	}
 	[Flags]
 	public enum LeaveVehicleFlags
 	{
 		None = 0,
 		WarpOut = 16,
+		DontWaitForVehicleToStop = 64,
 		LeaveDoorOpen = 256,
-		BailOut = 4096
+		WarpIfDoorIsBlocked = 512,
+		BailOut = 4096,
+		DontDefaultWarpIfDoorBlocked = 65536,
+		FromLeftSide = 131072,
+		FromRightSide = 262144,
+		BlockSeatShuffling = 1048576,
+		WarpIfShuffleLinkIsBlocked = 4194304,
+		DontJackAnyone = 8388608,
+		WaitForEntryPointToBeClear = 16777216,
 	}
 
 	public class Tasks

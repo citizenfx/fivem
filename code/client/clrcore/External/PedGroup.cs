@@ -19,6 +19,7 @@ namespace CitizenFX.Core
 		Default,
 		Circle1,
 		Circle2,
+		LineAbreast,
 		Line
 	}
 

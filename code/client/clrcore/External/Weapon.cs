@@ -74,7 +74,9 @@ namespace CitizenFX.Core
 		Stungun = 690389602u,
 		Heavy = 2725924767u,
 		Thrown = 1548507267u,
-		PetrolCan = 1595662460u
+		PetrolCan = 1595662460u,
+		Tranquilizer = 75159441u,
+		MetalDetector = 3759491383u
 	}
 
 	public enum WeaponLivery
@@ -352,6 +354,12 @@ namespace CitizenFX.Core
 					case WeaponHash.CombatMGMk2:
 					case WeaponHash.HeavySniperMk2:
 					case WeaponHash.SMGMk2:
+					case WeaponHash.SNSPistolMk2:
+					case WeaponHash.SpecialCarbineMk2:
+					case WeaponHash.PumpShotgunMk2:
+					case WeaponHash.BullpupRifleMk2:
+					case WeaponHash.MarksmanRifleMk2:
+					case WeaponHash.RevolverMk2:
 						return true;
 					default:
 						return false;
@@ -482,6 +490,100 @@ namespace CitizenFX.Core
 					return "WT_SWBLADE";
 				case WeaponHash.Revolver:
 					return "WT_REVOLVER";
+				case WeaponHash.Unarmed:
+					return "WT_UNARMED";
+				case WeaponHash.Knife:
+					return "WT_KNIFE";
+				case WeaponHash.Nightstick:
+					return "WT_NGTSTK";
+				case WeaponHash.Hammer:
+					return "WT_HAMMER";
+				case WeaponHash.Bat:
+					return "WT_BAT";
+				case WeaponHash.GolfClub:
+					return "WT_GOLFCLUB";
+				case WeaponHash.Crowbar:
+					return "WT_CROWBAR";
+				case WeaponHash.StunGun:
+				case WeaponHash.StungunMP:
+				case WeaponHash.Tranquilizer:
+					return "WT_STUN";
+				case WeaponHash.RemoteSniper:
+					return "WT_SNIP_RMT";
+				case WeaponHash.GrenadeLauncherSmoke:
+					return "WT_GL_SMOKE";
+				case WeaponHash.Grenade:
+					return "WT_GNADE";
+				case WeaponHash.StickyBomb:
+					return "WT_GNADE_STK";
+				case WeaponHash.SmokeGrenade:
+					return "WT_GNADE_SMK";
+				case WeaponHash.BZGas:
+					return "WT_BZGAS";
+				case WeaponHash.Molotov:
+					return "WT_MOLOTOV";
+				case WeaponHash.FireExtinguisher:
+					return "WT_FIRE";
+				case WeaponHash.PetrolCan:
+					return "WT_PETROL";
+				case WeaponHash.Ball:
+					return "WT_BALL";
+				case WeaponHash.Flare:
+					return "WT_FLARE";
+				case WeaponHash.BullpupRifle:
+					return "WT_BULLRIFLE";
+				case WeaponHash.SpecialCarbine:
+					return "WT_SPCARBINE";
+				case WeaponHash.HeavyPistol:
+					return "WT_HVYPISTOL";
+				case WeaponHash.RayPistol:
+					return "WT_RAYPISTOL";
+				case WeaponHash.RayCarbine:
+					return "WT_RAYCARBINE";
+				case WeaponHash.RayMinigun:
+					return "WT_RAYMINIGUN";
+				case WeaponHash.DoubleAction:
+					return "WT_REV_DA";
+				case WeaponHash.Snowball:
+					return "WT_SNWBALL";
+				case WeaponHash.Railgun:
+					return "WT_RAILGUN";
+				case WeaponHash.Hatchet:
+					return "WT_HATCHET";
+				case WeaponHash.CeramicPistol:
+					return "WT_CERPST";
+				case WeaponHash.GadgetPistol:
+					return "WT_GDGTPST";
+				case WeaponHash.CombatShotgun:
+					return "WT_CMBSHGN";
+				case WeaponHash.MilitaryRifle:
+					return "WT_MLTRYRFL";
+				case WeaponHash.NavyRevolver:
+					return "WT_REV_NV";
+				case WeaponHash.CompactGrenadeLauncher:
+					return "WT_CMPGL";
+				case WeaponHash.BattleAxe:
+					return "WT_BATTLEAXE";
+				case WeaponHash.SweeperShotgun:
+					return "WT_AUTOSHGN";
+				case WeaponHash.Wrench:
+					return "WT_WRENCH";
+				case WeaponHash.PoolCue:
+					return "WT_POOLCUE";
+				case WeaponHash.MiniSMG:
+					return "WT_MINISMG";
+				case WeaponHash.PipeBomb:
+					return "WT_PIPEBOMB";
+				case WeaponHash.StoneHatchet:
+					return "WT_SHATCHET";
+				case WeaponHash.TacticalRifle:
+					return "WT_TACRIFLE";
+				case WeaponHash.PrecisionRifle:
+					return "WT_PRCSRIFLE";
+				case WeaponHash.HeavyRifle:
+					return "WT_HEAVYRIFLE";
+				case WeaponHash.EMPLauncher:
+					return "WT_EMPL";
 				//mpgunrunning
 				case WeaponHash.PistolMk2:
 					return "WT_PIST2";
@@ -495,6 +597,18 @@ namespace CitizenFX.Core
 					return "WT_SNIP_HVY2";
 				case WeaponHash.SMGMk2:
 					return "WT_SMG2";
+				case WeaponHash.SNSPistolMk2:
+					return "WT_SNSPISTOL2";
+				case WeaponHash.SpecialCarbineMk2:
+					return "WT_SPCARBINE2";
+				case WeaponHash.PumpShotgunMk2:
+					return "WT_SG_PMP2";
+				case WeaponHash.BullpupRifleMk2:
+					return "WT_BULLRIFLE2";
+				case WeaponHash.MarksmanRifleMk2:
+					return "WT_MKRIFLE2";
+				case WeaponHash.RevolverMk2:
+					return "WT_REVOLVER2";
 			}
 			DlcWeaponData data;
 			for (int i = 0, count = API.GetNumDlcWeapons(); i < count; i++)

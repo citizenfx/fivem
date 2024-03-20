@@ -9,7 +9,11 @@ namespace CitizenFX.Core.UI
 		ChaletLondon,
 		HouseScript,
 		Monospace,
-		ChaletComprimeCologne = 4,
-		Pricedown = 7
+		Leaderboard,
+		ChaletComprimeCologne,
+		FixedWidthNumbersStyle,
+		ChaletComprimeCologneNotGamerName,
+		Pricedown,
+		Taxi
 	}
 }

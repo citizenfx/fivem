@@ -81,7 +81,10 @@ namespace CitizenFX.Core
 		BikeWheels,
 		HighEnd,
 		BennysOriginals,
-		BennysBespoke
+		BennysBespoke,
+		OpenWheel,
+		Street,
+		Track
 	}
 
 	public sealed class VehicleModCollection
@@ -172,6 +175,12 @@ namespace CitizenFX.Core
 				{
 					return new VehicleWheelType[] { VehicleWheelType.BikeWheels };
 				}
+
+				if (_owner.ClassType == VehicleClass.OpenWheel)
+				{
+					return new VehicleWheelType[] { VehicleWheelType.OpenWheel };
+				}
+
 				if (_owner.Model.IsCar)
 				{
 					var res = new List<VehicleWheelType>()

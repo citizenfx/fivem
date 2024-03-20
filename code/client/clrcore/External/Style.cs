@@ -32,13 +32,21 @@ namespace CitizenFX.Core
 		Hats,
 		Glasses,
 		EarPieces,
-		Unknown3,
-		Unknown4,
-		Unknown5,
+		Mouth,
+		LeftHand,
+		RightHand,
 		Watches,
 		Wristbands,
-		Unknown8,
-		Unknown9,
+		LeftHip,
+		LeftFoot,
+		RightFoot,
+		LeftHand2,
+		RightHand2,
+		Unkown3 = Mouth,
+		Unknown4,
+		Unknown5,
+		Unknown8 = LeftHip,
+		Unknown9
 	}
 	public class Style
 	{
