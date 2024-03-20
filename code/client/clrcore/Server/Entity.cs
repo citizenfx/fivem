@@ -61,10 +61,24 @@ namespace CitizenFX.Core
 			}
 		}
 		/// <summary>
-		/// Gets or sets the heading of this <see cref="Entity"/>.
+		/// Represents the <see cref="Entity"/> orientation in the game world, expressed in degrees.
 		/// </summary>
+		/// <remarks>
+		/// The <see cref="Heading"/> property allows getting or setting the current orientation (direction) of the <see cref="Entity"/>.
+		/// Orientation is measured in degrees on the horizontal plane, where 0 degrees corresponds to North,
+		/// 90 degrees to East, 180 degrees to South, and 270 degrees to West.
+		/// <para>
+		/// Example Usage:
+		/// <code>
+		/// var myVehicle = new Vehicle("adder", new Vector3(0, 0, 0), 0.0f); // Example vehicle creation
+		/// float originalHeading = myVehicle.Heading; // Retrieve current heading
+		/// myVehicle.Heading = 180.0f; // Set new heading to South
+		/// Console.WriteLine($"Changed vehicle heading from {originalHeading} to {myVehicle.Heading} degrees.");
+		/// </code>
+		/// </para>
+		/// </remarks>
 		/// <value>
-		/// The heading in degrees.
+  		/// The <see cref="Heading"/> of the the <see cref="Entity"/> in degrees, as a <see cref="float"/>. Valid values range from 0.0 to 360.0.
 		/// </value>
 		public float Heading
 		{
