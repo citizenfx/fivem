@@ -1984,7 +1984,7 @@
 				<Item> <cTextId>UI_FLOW_SP_C_M</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_CREDITS</MenuUniqueId> <Contexts>*ALL*, CREDITS_ENABLED, *NONE*,Creator,LEGAL_ENABLED</Contexts> </Item>
 				<!--<Item> <cTextId>UI_FLOW_SP_CL_M</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_CREDITS_LEGAL</MenuUniqueId> <Contexts>*ALL*, CREDITS_ENABLED, LEGAL_ENABLED, *NONE*,Creator</Contexts> </Item>-->
 				<Item> <cTextId>PM_PANE_QUIT</cTextId> <MenuAction>MENU_OPTION_ACTION_LINK</MenuAction> <MenuUniqueId>MENU_UNIQUE_ID_EXIT_TO_WINDOWS</MenuUniqueId> <Contexts>*ALL*, x64</Contexts></Item>
-				<Item> <MenuAction>MENU_OPTION_ACTION_FILL_CONTENT</MenuAction> </Item>
+				<Item> <MenuAction>MENU_OPTION_ACTION_FILL_CONTENT_FROM_SCRIPT</MenuAction> </Item>
 			</MenuItems>
 
 			<ButtonList>
