@@ -556,7 +556,7 @@ public:
 
 	inline void RemoveFromScene()
 	{
-		FORWARD_FUNC(AddToSceneWrap, 0x120);
+		FORWARD_FUNC(RemoveFromScene, 0x120);
 	}
 
 	inline float GetRadius()
