@@ -46,6 +46,10 @@ public:
 	atArray<ropeData*> typeData; // 0x8
 
 	static ropeDataManager* GetInstance();
+
+	static void Init();
+
+	static void Shutdown();
 };
 static_assert(sizeof(ropeDataManager) == 0x18);
 
@@ -134,6 +138,8 @@ public:
 	LinkedList<phVerletCloth*> cloths; // 0x58
 
 	ropeInstance* FindRope(int handle);
+
+	void RemoveAllRopes();
 
 	static ropeManager* GetInstance();
 };

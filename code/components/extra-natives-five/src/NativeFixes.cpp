@@ -15,6 +15,7 @@
 #include "RageParser.h"
 #include "Resource.h"
 #include "ScriptWarnings.h"
+#include "ropeManager.h"
 
 static void FixVehicleWindowNatives()
 {
@@ -366,6 +367,36 @@ static void FixPedCombatAttributes()
 	});
 }
 
+static void FixAddRopeNative()
+{
+	constexpr const uint64_t nativeHash = 0xE832D760399EB220; // ADD_ROPE
+	auto handler = fx::ScriptEngine::GetNativeHandler(nativeHash);
+
+	if (!handler)
+	{
+		trace("Couldn't find 0x%08x handler to hook!\n", nativeHash);
+		return;
+	}
+
+	fx::ScriptEngine::RegisterNativeHandler(nativeHash, [=](fx::ScriptContext& ctx)
+	{
+		rage::ropeDataManager* manager = rage::ropeDataManager::GetInstance();
+		if (manager)
+		{
+			auto ropeIndex = ctx.GetArgument<int>(7);
+			if (ropeIndex >= 0 && ropeIndex < manager->typeData.GetCount())
+			{
+				return (*handler)(ctx);
+			}
+			else
+			{
+				fx::scripting::Warningf("natives", "ADD_ROPE: invalid rope type was passed (%d), should be from 0 to %d\n", ropeIndex, manager->typeData.GetCount() - 1);
+			}
+		}
+		ctx.SetResult(0);
+	});
+}
+
 static HookFunction hookFunction([]()
 {
 	g_fireInstances = (std::array<FireInfoEntry, 128>*)(hook::get_address<uintptr_t>(hook::get_pattern("74 47 48 8D 0D ? ? ? ? 48 8B D3", 2), 3, 7) + 0x10);
@@ -394,5 +425,8 @@ static HookFunction hookFunction([]()
 		FixStopEntityFire();
 
 		FixPedCombatAttributes();
+
+		// Passing an invalid rope type index into ADD_ROPE leads to a sudden crash.
+		FixAddRopeNative();
 	});
 });
