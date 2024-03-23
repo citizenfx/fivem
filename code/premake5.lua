@@ -681,6 +681,8 @@ end
 
 	-- TARGET: shared component
 	include "client/shared"
+	
+	include 'tests'
 
 	group "vendor"
 
