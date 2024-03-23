@@ -7,6 +7,8 @@ return {
 		language "C++"
 		kind "StaticLib"
 		
+		defines { "CATCH_AMALGAMATED_CUSTOM_MAIN" }
+		
 		includedirs { "vendor/catch2/src/", "vendor/catch2/include/" }
 
 		files {
