@@ -274,6 +274,7 @@ workspace "CitizenMP"
 		include 'client/diag'
 	else
 		include 'server/launcher'
+		include 'tests'
 	end
 	
 	if os.istarget('windows') then
@@ -681,8 +682,6 @@ end
 
 	-- TARGET: shared component
 	include "client/shared"
-	
-	include 'tests'
 
 	group "vendor"
 
