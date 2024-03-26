@@ -242,6 +242,19 @@ namespace CitizenFX.Core
 		{
 			player.TriggerEvent(eventName, args);
 		}
+		public static void TriggerClientEvent(Player[] players, string eventName, params object[] args)
+		{
+			var argsSerialized = MsgPackSerializer.Serialize(args);
+			IEnumerable<string> targetNetIds = players.Select(o => o.Handle);
+
+			unsafe
+			{
+				fixed (byte* serialized = &argsSerialized[0])
+				{
+					Function.Call(Hash.TRIGGER_CLIENT_EVENT_INTERNAL, eventName, string.Join(" ", targetNetIds), serialized, argsSerialized.Length);
+				}
+			}
+		}
 
 		/// <summary>
 		/// Broadcasts an event to all connected players.
