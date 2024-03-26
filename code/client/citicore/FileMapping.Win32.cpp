@@ -152,6 +152,24 @@ static std::wstring MapRedirectedFilename(const wchar_t* origFileName)
 		return MakeRelativeCitPath(L"nodontfuckingplaygtav.exe");
 	}
 
+#ifdef IS_RDR3
+	// RDR3 1491.50 updated FSR-related DLLs, mapping these files to ensure that we only use compatible DLLs in RedM
+	if (wcsstr(origFileName, L"ffx_fsr2_api_dx12_x64.dll") != nullptr)
+	{
+		return MakeRelativeCitPath(L"bin\\ffx_fsr2_api_dx12_x64.dll");
+	}
+
+	if (wcsstr(origFileName, L"ffx_fsr2_api_vk_x64.dll") != nullptr)
+	{
+		return MakeRelativeCitPath(L"bin\\ffx_fsr2_api_vk_x64.dll");
+	}
+
+	if (wcsstr(origFileName, L"ffx_fsr2_api_x64.dll") != nullptr)
+	{
+		return MakeRelativeCitPath(L"bin\\ffx_fsr2_api_x64.dll");
+	}
+#endif
+
 	// Program Files
 	if (wcsstr(origFileName, L"Files\\Rockstar Games\\Launcher") != nullptr || wcsstr(origFileName, g_launcherFilesRoot.c_str()) != nullptr)
 	{
@@ -329,6 +347,16 @@ static bool IsMappedFilename(const std::wstring& fileName)
 	{
 		return true;
 	}
+
+#ifdef IS_RDR3
+	// Mapping FSR-related DLLs to ensure compatibility in RedM
+	if (wcsstr(fileName.c_str(), L"ffx_fsr2_api_dx12_x64.dll") != nullptr ||
+		wcsstr(fileName.c_str(), L"ffx_fsr2_api_vk_x64.dll") != nullptr ||
+		wcsstr(fileName.c_str(), L"ffx_fsr2_api_x64"))
+	{
+		return true;
+	}
+#endif
 
 	if (wcsstr(fileName.c_str(), L"Social Club\\Profiles") != nullptr)
 	{
