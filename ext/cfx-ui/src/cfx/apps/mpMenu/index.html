@@ -6,6 +6,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>CFX UI</title>
 
+  <script type="text/javascript">
+    <%= (isProd || isWithGtm) ? require('assets/scripts/gtm.raw.js') : '' %>
+  </script>
+
   <style>
     @keyframes shineLoader {
       from {
