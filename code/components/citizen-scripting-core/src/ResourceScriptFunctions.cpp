@@ -396,4 +396,15 @@ static InitFunction initFunction([] ()
 
 		sbac->OnStateBagChange.Disconnect(size_t(cookie));
 	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_STATE_BAG_KEY_POLICY", [](fx::ScriptContext& context)
+	{
+		auto keyName = context.CheckArgument<const char*>(0);
+		auto writePolicy = context.GetArgument<bool>(1);
+
+		auto rm = fx::ResourceManager::GetCurrent();
+		auto sbac = rm->GetComponent<fx::StateBagComponent>();
+
+		sbac->SetKeyPolicy(keyName, writePolicy);
+	});
 });

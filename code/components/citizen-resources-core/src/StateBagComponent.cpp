@@ -31,6 +31,10 @@ public:
 
 	virtual std::shared_ptr<StateBag> GetStateBag(std::string_view id) override;
 
+	virtual void SetKeyPolicy(std::string_view key, bool allow = true) override;
+
+	virtual bool GetKeyPolicy(std::string_view key) override;
+
 	virtual std::shared_ptr<StateBag> RegisterStateBag(std::string_view id, bool useParentTargets = false) override;
 
 	virtual void SetGameInterface(StateBagGameInterface* gi) override;
@@ -81,6 +85,9 @@ private:
 	// TODO: evaluate transparent usage when we switch to C++20 compiler modes
 	std::unordered_map<std::string, std::weak_ptr<StateBagImpl>> m_stateBags;
 	std::shared_mutex m_mapMutex;
+
+	std::unordered_set<std::string> m_keyPolicies;
+	std::shared_mutex m_keyPolicyMutex;
 
 	// pre-created state bag stuff
 
@@ -476,6 +483,31 @@ std::shared_ptr<StateBag> StateBagComponentImpl::GetStateBag(std::string_view id
 	return (bag != m_stateBags.end()) ? bag->second.lock() : nullptr;
 }
 
+bool StateBagComponentImpl::GetKeyPolicy(std::string_view key)
+{
+#ifdef IS_FXSERVER
+	std::shared_lock lock(m_keyPolicyMutex);
+	return m_keyPolicies.find(std::string{ key }) == m_keyPolicies.end();
+#else
+	return true;
+#endif
+}
+
+void StateBagComponentImpl::SetKeyPolicy(std::string_view key, bool allow)
+{
+#ifdef IS_FXSERVER
+	std::shared_lock lock(m_keyPolicyMutex);
+	if (allow)
+	{
+		m_keyPolicies.erase(std::string(key));
+	}
+	else
+	{
+		m_keyPolicies.insert(std::string(key));
+	}
+#endif
+}
+
 void StateBagComponentImpl::RegisterTarget(int id)
 {
 	bool isNew = false;
@@ -669,17 +701,29 @@ void StateBagComponentImpl::HandlePacket(int source, std::string_view dataRaw, s
 	if (bag)
 	{
 		auto bagRef = std::static_pointer_cast<StateBagImpl>(bag);
+		auto key = std::string_view{ keyBuffer.data(), keyBuffer.size() };
+		auto writePolicy = GetKeyPolicy(key);
 
 		// TODO: rate checks, policy checks
 		auto peer = bagRef->GetOwningPeer();
-		if (!peer.has_value() || source == *peer)
+		if ((!peer.has_value() || source == *peer) && writePolicy)
 		{
 			bagRef->SetKey(
 				source,
-				std::string_view{ keyBuffer.data(), keyBuffer.size() },
+				key,
 				std::string_view{ reinterpret_cast<char*>(data.data()), data.size() },
 				m_role == StateBagRole::Server);
-		}		
+		}
+#ifdef IS_FXSERVER
+		// if we're the server, trigger resend to keep the client in sync
+		else if (!writePolicy)
+		{
+			if (auto serverBag = GetStateBag(bagName); auto serverKey = serverBag->GetKey(key))
+			{
+				bagRef->SendKeyValue(source, key, serverKey.value());
+			}
+		}
+#endif
 	}
 	else if(outBagNameName != nullptr)
 	{
