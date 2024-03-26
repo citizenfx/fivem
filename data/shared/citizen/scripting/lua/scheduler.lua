@@ -830,24 +830,21 @@ end
 local function prefixNewlines(str, prefix)
 	str = tostring(str)
 
-	local out = ''
-
-	for bit in str:gmatch('[^\r\n]*\r?\n') do
-		out = out .. prefix .. bit
+	if #str == 0 then
+		return str
 	end
 
-	if #out == 0 or out:sub(#out) ~= '\n' then
-		out = out .. '\n'
-	end
-
-	return out
+	return prefix .. str:gsub("\n(.)", "\n" .. prefix .. "%1")
 end
 
 -- Handle an export with multiple return values.
 local function exportProcessResult(resource, exportName, status, ...)
 	if not status then
 		local result = tostring(select(1, ...))
-		error(('\n^5 An error occurred while calling export `%s` in resource `%s`:\n%s^5 ---'):format(exportName, resource, prefixNewlines(result, '  ')), 2)
+		if result:len() > 2048 then
+			result = result:sub(1, 1024) .. '\n... [large output partially truncated] ...\n' .. result:sub(-1024)
+		end
+		error(('\n^5 An error occurred while calling export `%s` in resource `%s`:\n%s\n^5 ---'):format(exportName, resource, prefixNewlines(result, '  ')), 2)
 	end
 	return ...
 end
