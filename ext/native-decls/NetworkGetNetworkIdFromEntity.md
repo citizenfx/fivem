@@ -8,8 +8,8 @@ apiset: server
 int NETWORK_GET_NETWORK_ID_FROM_ENTITY(Entity entity);
 ```
 
-
 ## Parameters
-* **entity**: 
+* **entity**: the entity to get the network id of
 
 ## Return value
+The net id for the specified entity.
