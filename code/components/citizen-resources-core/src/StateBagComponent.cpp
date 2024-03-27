@@ -101,6 +101,8 @@ public:
 	virtual ~StateBagImpl() override;
 
 	virtual std::optional<std::string> GetKey(std::string_view key) override;
+	virtual bool HasKey(std::string_view key) override;
+	virtual std::vector<std::string> GetKeys() override;
 	virtual void SetKey(int source, std::string_view key, std::string_view data, bool replicated = true) override;
 	virtual void SetRoutingTargets(const std::set<int>& peers) override;
 
@@ -165,6 +167,26 @@ std::optional<std::string> StateBagImpl::GetKey(std::string_view key)
 	}
 
 	return {};
+}
+
+std::vector<std::string> StateBagImpl::GetKeys()
+{
+	std::vector<std::string> keys;
+	std::shared_lock _(m_dataMutex);
+
+	for (auto data : m_data)
+	{
+		keys.push_back(data.first);
+	}
+	
+	return keys;
+}
+
+
+bool StateBagImpl::HasKey(std::string_view key)
+{
+	std::shared_lock _(m_dataMutex);
+	return m_data.count(key) != 0;
 }
 
 void StateBagImpl::SetKey(int source, std::string_view key, std::string_view data, bool replicated /* = true */)

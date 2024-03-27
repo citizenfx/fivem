@@ -96,6 +96,16 @@ public:
 	// Gets data for a key.
 	//
 	virtual std::optional<std::string> GetKey(std::string_view key) = 0;
+
+	//
+	// Returns whether the state bag has data for this key
+	//
+	virtual bool HasKey(std::string_view key) = 0;
+
+	//
+	// Returns all the keys that the state bag has data for
+	//
+	virtual std::vector<std::string> GetKeys() = 0;
 };
 
 class CRC_EXPORT StateBagComponent : public fwRefCountable, public IAttached<ResourceManager>
