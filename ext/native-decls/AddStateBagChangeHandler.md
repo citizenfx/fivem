@@ -23,7 +23,7 @@ function StateBagChangeHandler(bagName: string, key: string, value: any, reserve
 * **reserved**: Currently unused.
 * **replicated**: Whether the set is meant to be replicated.
 
-At this time, the change handler can't opt to reject changes.
+If you want to filter certain state changes use [ADD_STATE_BAG_FILTER](?_0x305DFB)
 
 If bagName refers to an entity, use [GET_ENTITY_FROM_STATE_BAG_NAME](?_0x4BDF1868) to get the entity handle
 If bagName refers to a player, use [GET_PLAYER_FROM_STATE_BAG_NAME](?_0xA56135E0) to get the player handle
@@ -42,7 +42,7 @@ AddStateBagChangeHandler("blockTasks", null, async (bagName, key, value /* boole
     let entity = GetEntityFromStateBagName(bagName);
     // Whoops, we were don't have a valid entity!
     if (entity === 0) return;
-    // We don't want to freeze the entity position if the entity collision hasn't loaded yet
+    // We don't want to freeze the entity position if the map collisions hasn't loaded yet
     while (!HasCollisionLoadedAroundEntity(entity)) {
         // The entity went out of our scope before the collision loaded
         if (!DoesEntityExist(entity)) return;
@@ -55,11 +55,11 @@ AddStateBagChangeHandler("blockTasks", null, async (bagName, key, value /* boole
 ```
 
 ```lua
-AddStateBagChangeHandler("blockTasks", nil, function(bagName, key, value) 
+AddStateBagChangeHandler("blockTasks", nil, function(bagName, key, value)
     local entity = GetEntityFromStateBagName(bagName)
     -- Whoops, we don't have a valid entity!
-    if entity === 0 then return end
-    -- We don't want to freeze the entity position if the entity collision hasn't loaded yet
+    if entity == 0 then return end
+    -- We don't want to freeze the entity position if the map collisions hasn't loaded yet
     while not HasCollisionLoadedAroundEntity(entity) do
         -- The entity went out of our scope before the collision loaded
         if not DoesEntityExist(entity) then return end

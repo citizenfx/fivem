@@ -367,13 +367,13 @@ static InitFunction initFunction([] ()
 		auto rm = fx::ResourceManager::GetCurrent();
 		auto sbac = rm->GetComponent<fx::StateBagComponent>();
 
-		auto cookie = sbac->OnStateBagChange.Connect(make_shared_function([rm, keyNameRef, bagNameRef, cbRef = std::move(cbRef)](int source, std::string_view bagName, std::string_view key, const msgpack::object& value, bool replicated)
+		auto cookie = sbac->OnStateBagChange.Connect(make_shared_function([rm, keyNameRef, bagNameRef, cbRef = std::move(cbRef)](int slotId, std::string_view bagName, std::string_view key, const msgpack::object& value, bool replicated)
 		{
 			if (keyNameRef.empty() || key == keyNameRef)
 			{
 				if (bagNameRef.empty() || bagName == bagNameRef)
 				{
-					rm->CallReference<void>(cbRef.GetRef(), std::string{ bagName }, std::string{ key }, value, source, replicated);
+					rm->CallReference<void>(cbRef.GetRef(), std::string{ bagName }, std::string{ key }, value, slotId, replicated);
 				}
 			}
 
@@ -396,4 +396,70 @@ static InitFunction initFunction([] ()
 
 		sbac->OnStateBagChange.Disconnect(size_t(cookie));
 	});
+
+#if IS_FXSERVER
+	fx::ScriptEngine::RegisterNativeHandler("ADD_STATE_BAG_FILTER", [](fx::ScriptContext& context)
+	{
+		fx::OMPtr<IScriptRuntime> runtime;
+
+		static std::map<std::string, std::string> outerRefs;
+
+		if (!FX_SUCCEEDED(fx::GetCurrentScriptRuntime(&runtime)))
+		{
+			return;
+		}
+
+		fx::Resource* resource = reinterpret_cast<fx::Resource*>(runtime->GetParentObject());
+
+		if (!resource)
+		{
+			return;
+		}
+
+		auto keyName = context.GetArgument<const char*>(0);
+		auto bagName = context.GetArgument<const char*>(1);
+
+		std::string keyNameRef = (keyName) ? keyName : "";
+		std::string bagNameRef = (bagName) ? bagName : "";
+		auto cbRef = fx::FunctionRef{ context.CheckArgument<const char*>(2) };
+
+		auto rm = fx::ResourceManager::GetCurrent();
+		auto sbac = rm->GetComponent<fx::StateBagComponent>();
+
+		auto cookie = sbac->ShouldAllowStateBagChange.Connect(make_shared_function([rm, keyNameRef, bagNameRef, cbRef = std::move(cbRef)](std::string_view bagName, std::string_view key, const msgpack::object& value)
+		{
+			if (keyNameRef.empty() || key == keyNameRef)
+			{
+				if (bagNameRef.empty() || bagName == bagNameRef)
+				{
+					try
+					{
+						return rm->CallReference<bool>(cbRef.GetRef(), std::string{ bagName }, std::string{ key }, value);
+					} catch (...)
+					{
+						return true;
+					}
+				}
+			}
+
+			return true;
+		}));
+
+		resource->OnStop.Connect([sbac, cookie]()
+		{
+			sbac->ShouldAllowStateBagChange.Disconnect(cookie);
+		});
+
+		context.SetResult(cookie);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("REMOVE_STATE_BAG_FILTER", [](fx::ScriptContext& context)
+	{
+		auto cookie = context.GetArgument<int>(0);
+		auto rm = fx::ResourceManager::GetCurrent();
+		auto sbac = rm->GetComponent<fx::StateBagComponent>();
+
+		sbac->ShouldAllowStateBagChange.Disconnect(size_t(cookie));
+	});
+#endif
 });
