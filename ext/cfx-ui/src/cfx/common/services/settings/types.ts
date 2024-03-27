@@ -82,4 +82,9 @@ export type ICategory = {
   settings: Map<string, ISetting.AnySetting>,
 };
 
+export enum FixedUiScaling {
+  ScaleBy_1920x1080,
+  ScaleBy_2560x1440
+}
+
 export type ISettings = Map<string, ICategory>;

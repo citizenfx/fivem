@@ -30,6 +30,7 @@ extern nui::GameInterface* g_nuiGi;
 extern std::wstring GetNUIStoragePath();
 
 static bool nuiFixedSizeEnabled;
+static int nuiFixedSizeMode;
 
 namespace nui
 {
@@ -562,8 +563,17 @@ void NUIWindow::UpdateFrame()
 
 		if (IsFixedSizeWindow())
 		{
-			resX = 1920;
-			resY = 1080;
+			const int fixedSizeMode = GetFixedSizeMode();
+			if (fixedSizeMode == 0)
+			{
+				resX = 1920;
+				resY = 1080;
+			}
+			else if (fixedSizeMode == 1)
+			{
+				resX = 2560;
+				resY = 1440;
+			}
 		}
 
 		if (m_width != resX || m_height != resY)
@@ -959,7 +969,13 @@ bool NUIWindow::IsFixedSizeWindow() const
 	return nuiFixedSizeEnabled && m_name == "root";
 }
 
+int NUIWindow::GetFixedSizeMode() const
+{
+	return nuiFixedSizeMode;
+}
+
 static InitFunction initFunction([]
 {
 	static ConVar<bool> nuiFixedSize("nui_useFixedSize", ConVar_Archive | ConVar_UserPref, false, &nuiFixedSizeEnabled);
+	static ConVar<int> nuiFixedSizeMode("nui_fixedSizeMode", ConVar_Archive | ConVar_UserPref, 0, &nuiFixedSizeMode);
 });
