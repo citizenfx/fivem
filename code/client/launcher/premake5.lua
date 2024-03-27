@@ -73,11 +73,14 @@ local function isGamePersonality(name)
 	return false
 end
 
-local function launcherpersonality_inner(name, aslr)
+local function launcherpersonality_inner(name)
 	local projectName = name == 'main' and 'CitiLaunch' or ('CitiLaunch_' .. name)
+	local subprocessName = name
 
-	if aslr then
+	-- suffix '_aslr' for game processes so these match older binaries
+	if name:sub(1, 5) == 'game_' and _OPTIONS['game'] ~= 'ny' and name ~= 'game_mtl' then
 		projectName = projectName .. '_aslr'
+		subprocessName = subprocessName .. '_aslr'
 	end
 
 	if not isLauncherPersonality(name) then
@@ -227,7 +230,7 @@ local function launcherpersonality_inner(name, aslr)
 		filter {}
 			
 		if name ~= 'main' then
-			targetname("CitizenFX_SubProcess_" .. name .. (aslr and "_aslr" or ""))
+			targetname("CitizenFX_SubProcess_" .. subprocessName)
 		end
 		
 		linkoptions "/IGNORE:4254 /LARGEADDRESSAWARE" -- 4254 is the section type warning we tend to get
@@ -242,12 +245,9 @@ local function launcherpersonality_inner(name, aslr)
 			-- V8 requires a 1.5 MB stack at minimum (default is 1 MB stack space for V8 only, so 512 kB safety)
 			linkoptions "/STACK:0x180000"
 
-			if not aslr and not isLauncherPersonality(name) then
+			-- for debug builds, we will load at the default base to allow easier copy/paste of addresses from disassembly
+			filter { "configurations:Debug" }
 				linkoptions { "/SAFESEH:NO", "/DYNAMICBASE:NO" }
-			else
-				filter { "configurations:Debug" }
-					linkoptions { "/SAFESEH:NO", "/DYNAMICBASE:NO" }
-			end
 
 			-- add NOTHING below here (`filter` from `isGamePersonality` would break, otherwise)
 		end
@@ -269,11 +269,7 @@ local function launcherpersonality_inner(name, aslr)
 end
 
 local function launcherpersonality(name)
-	launcherpersonality_inner(name, false)
-
-	if name:sub(1, 5) == 'game_' and _OPTIONS['game'] ~= 'ny' and name ~= 'game_mtl' then
-		launcherpersonality_inner(name, true)
-	end
+	launcherpersonality_inner(name)
 end
 
 launcherpersonality 'main'
