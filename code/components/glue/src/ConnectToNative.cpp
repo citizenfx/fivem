@@ -1477,14 +1477,11 @@ void Component_RunPreInit()
 		{
 // #TODOLIBERTY: ?
 #ifndef GTA_NY
-			rage::OnInitFunctionStart.Connect([](rage::InitFunctionType type)
+			NetLibrary::OnNetLibraryCreate.Connect([](NetLibrary*)
 			{
-				if (type == rage::InitFunctionType::INIT_CORE)
-				{
-					ConnectTo(connectHost, false, connectParams);
-					connectHost = "";
-					connectParams = "";
-				}
+				ConnectTo(connectHost, false, connectParams);
+				connectHost = "";
+				connectParams = "";
 			}, 999999);
 #endif
 		}
