@@ -8,6 +8,9 @@
 #include <atPool.h>
 #include <DirectXMath.h>
 #include <CrossBuildRuntime.h>
+#include <GameInit.h>
+#include <CoreConsole.h>
+#include <MinHook.h>
 
 #define DECLARE_ACCESSOR(x) \
 	decltype(impl.m2060.x)& x()        \
@@ -303,8 +306,129 @@ static int GetInteriorRoomIdByHash(CMloModelInfo* arch, int searchHash)
 	return -1;
 }
 
+static float g_interiorProbeLengthOverride = 0.0;
+static bool (*g_CPortalTracker__Probe)(Vector3* pos, CInteriorInst** ppInteriorInstance, int* roomId, Vector3* traceImpactPoint, float traceLength);
+bool __fastcall CPortalTracker__Probe(Vector3* pos, CInteriorInst** ppInteriorInstance, int* roomId, Vector3* traceImpactPoint, float traceLength)
+{
+	// game code has a lot of different special case handlings in CPortalTracker::vft0x8
+	// joaat('xs_arena_interior') seems to be the case with the longest traceLength override (150.f)
+	//
+	if (g_interiorProbeLengthOverride > 0.0f && traceLength < g_interiorProbeLengthOverride)
+	{
+		traceLength = g_interiorProbeLengthOverride;
+	}
+
+	return g_CPortalTracker__Probe(pos, ppInteriorInstance, roomId, traceImpactPoint, traceLength);
+}
+
+static uint64_t** g_pedFactory;
+
+static void (*g_CPed__UpdatePortalTracker)(uint64_t thisptr);
+void __fastcall CPed__UpdatePortalTracker(uint64_t thisptr)
+{
+	// entity and portal tracker ownership check
+	//
+	if (!thisptr || *(uint8_t*)(thisptr + 0x28) != 4 || *(uint64_t*)(thisptr + 0xF0 + 0x8) != thisptr)
+	{
+		return g_CPed__UpdatePortalTracker(thisptr);
+	}
+
+	// local ped check
+	//
+	if (!*g_pedFactory || !((*g_pedFactory) + 1) || (*((*g_pedFactory) + 1) != thisptr))
+	{
+		return g_CPed__UpdatePortalTracker(thisptr);
+	}
+
+	uint64_t dynamicComponent = *(uint64_t*)(thisptr + 0x50);
+	if (!dynamicComponent)
+	{
+		return g_CPed__UpdatePortalTracker(thisptr);
+	}
+
+	uint64_t attachmentExtension = *(uint64_t*)(dynamicComponent + 0x48);
+	if (!attachmentExtension)
+	{
+		return g_CPed__UpdatePortalTracker(thisptr);
+	}
+
+	// dynamic object check
+	//
+	uint64_t attachmentParent = *(uint64_t*)(attachmentExtension);
+	if (!attachmentParent || *(uint8_t*)(attachmentParent + 0x28) < 2 || *(uint8_t*)(attachmentParent + 0x28) > 5)
+	{
+		return g_CPed__UpdatePortalTracker(thisptr);
+	}
+
+	// force a re-scan whilst attached to a physical object
+	//
+	*(uint32_t*)(thisptr + 0xF0 + 0x88) |= (1 << 3);
+
+	g_CPed__UpdatePortalTracker(thisptr);
+}
+
 static HookFunction initFunction([]()
 {
+	{
+		static float* emitterAudioEntityProbeLengthData = (float*)hook::AllocateStubMemory(sizeof(float));
+		static ConVar<float> emitterAudioEntityProbeLength("game_emitterAudioEntityProbeLength", ConVar_Replicated, 150.0, emitterAudioEntityProbeLengthData);
+
+		emitterAudioEntityProbeLength.GetHelper()->SetConstraints(20.0f, 150.0f);
+
+		auto location = hook::get_pattern<uint32_t>("33 ED 39 A9 ? ? ? ? 0F 86 ? ? ? ? F3", 18);
+		hook::put<int32_t>(location, (intptr_t)emitterAudioEntityProbeLengthData - (intptr_t)location - 4);
+
+		OnKillNetworkDone.Connect([]()
+		{
+			se::ScopedPrincipal principalScopeInternal(se::Principal{ "system.internal" });
+			emitterAudioEntityProbeLength.GetHelper()->SetRawValue(150.0f);
+		});
+	}
+
+	{
+		g_pedFactory = hook::get_address<decltype(g_pedFactory)>(hook::get_pattern("E8 ? ? ? ? 48 8B 05 ? ? ? ? 48 8B 58 08 48 8B CB E8", 8));
+
+		auto location = hook ::get_pattern<void>("0F 28 81 ? ? ? ? 45 33 F6", -0x21);
+
+		MH_Initialize();
+		MH_CreateHook(location, CPed__UpdatePortalTracker, (void**)&g_CPed__UpdatePortalTracker);
+		MH_EnableHook(MH_ALL_HOOKS);
+
+		// CPortalTracker::fnCalledFromUpdate
+		//
+		location = hook::get_pattern<void>("E8 ? ? ? ? 40 8A F8 49 ? ? E8");
+		hook::set_call(&g_CPortalTracker__Probe, location);
+
+		hook::call(location, CPortalTracker__Probe);
+
+		// GET_INTERIOR_FROM_COLLISION
+		//
+		location = hook::get_pattern<void>("E8 ? ? ? ? 48 8B 54 24 ? 48 85 D2 74 1A");
+		hook::call(location, CPortalTracker__Probe);
+
+		// IS_COLLISION_MARKED_OUTSIDE
+		//
+		location = hook::get_pattern<void>("E8 ? ? ? ? 48 39 5C 24 ? 0F 94 C0");
+		hook::call(location, CPortalTracker__Probe);
+
+		fx::ScriptEngine::RegisterNativeHandler("SET_INTERIOR_PROBE_LENGTH", [=](fx::ScriptContext& context)
+		{
+			auto length = context.GetArgument<float>(0);
+			if (std::isnan(length) || std::isinf(length))
+			{
+				return false;
+			}
+
+			g_interiorProbeLengthOverride = std::clamp(length, 0.0f, 150.0f);
+			return true;
+		});
+
+		OnKillNetworkDone.Connect([]()
+		{
+			g_interiorProbeLengthOverride = 0.0f;
+		});
+	}
+
 	{
 		auto location = hook::get_pattern<char>("BA A1 85 94 52 41 B8 01", 0x34);
 
