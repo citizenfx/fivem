@@ -600,6 +600,25 @@ private:
 	void* m_netObject;
 };
 
+class CEntity : public fwEntity
+{
+
+};
+
+class CDynamicEntity : public CEntity
+{
+
+};
+
+class CPhysical : public CDynamicEntity
+{
+public:
+	inline float GetHealth()
+	{
+		return *(float*)((char*)this + 0x280);
+	}
+};
+
 STREAMING_EXPORT class VehicleSeatManager
 {
 public:
