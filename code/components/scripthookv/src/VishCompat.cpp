@@ -15,7 +15,6 @@
 #include <InputHook.h>
 #include <IteratorView.h>
 
-#include <LaunchMode.h>
 #include <CrossBuildRuntime.h>
 
 #include <memory>
@@ -66,11 +65,8 @@ static FishScript* g_fishScript;
 
 void FishScript::Tick()
 {
-	if (!CfxIsSinglePlayer())
-	{
-		if (!Instance<ICoreGameInit>::Get()->ShAllowed) return;
-		if (!Instance<ICoreGameInit>::Get()->HasVariable("networkInited")) return;
-	}
+	if (!Instance<ICoreGameInit>::Get()->ShAllowed) return;
+	if (!Instance<ICoreGameInit>::Get()->HasVariable("networkInited")) return;
 
 	if (g_mainFiber == nullptr)
 	{
@@ -360,11 +356,8 @@ DLL_EXPORT uint64_t* nativeCall()
 
 	if (valid)
 	{
-		if (!CfxIsSinglePlayer())
-		{
-			if (!Instance<ICoreGameInit>::Get()->ShAllowed) valid = false;
-			if (!Instance<ICoreGameInit>::Get()->HasVariable("networkInited")) valid = false;
-		}
+		if (!Instance<ICoreGameInit>::Get()->ShAllowed) valid = false;
+		if (!Instance<ICoreGameInit>::Get()->HasVariable("networkInited")) valid = false;
 	}
 
 	if (fn != 0 && valid)

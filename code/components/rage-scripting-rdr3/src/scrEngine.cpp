@@ -10,8 +10,6 @@
 #include "CrossLibraryInterfaces.h"
 #include "Hooking.h"
 
-#include <LaunchMode.h>
-
 #include <sysAllocator.h>
 
 #include <MinHook.h>
@@ -598,7 +596,6 @@ static HookFunction hookFunction([] ()
 		MH_EnableHook(MH_ALL_HOOKS);
 	}
 
-	if (!CfxIsSinglePlayer())
 	{
 		MH_Initialize();
 

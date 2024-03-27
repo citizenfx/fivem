@@ -15,8 +15,6 @@
 #include <openssl/sha.h>
 #endif
 
-#include <LaunchMode.h>
-
 #include <VFSManager.h>
 #include <VFSRagePackfile7.h>
 #include <RelativeDevice.h>

@@ -6,7 +6,6 @@
 #include <sysAllocator.h>
 
 #include <CrossBuildRuntime.h>
-#include <LaunchMode.h>
 
 static int ReturnTrue()
 {
@@ -276,7 +275,6 @@ static HookFunction hookFunction([]()
 	hook::put<uint8_t>(hook::pattern("F6 05 ? ? ? ? ? 74 08 84 C0 0F 84").count(1).get(0).get<void>(0x18), 0xEB);
 #endif
 
-	if (!CfxIsSinglePlayer())
 	{
 		// passenger stuff?
 		hook::put<uint16_t>(hook::get_pattern("8B 45 30 48 8B 4F 20 41 BE FF FF 00 00", -6), 0xE990);

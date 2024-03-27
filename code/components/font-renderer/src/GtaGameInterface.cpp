@@ -11,7 +11,6 @@
 #include <grcTexture.h>
 #include <ICoreGameInit.h>
 #include <CoreConsole.h>
-#include <LaunchMode.h>
 #include <CrossBuildRuntime.h>
 #include <utf8.h>
 #include <Hooking.h>
@@ -307,7 +306,7 @@ static InitFunction initFunction([] ()
 	inGame = true;
 #endif
 
-	if (!CfxIsSinglePlayer() && !getenv("CitizenFX_ToolMode"))
+	if (!getenv("CitizenFX_ToolMode"))
 	{
 		Instance<ICoreGameInit>::Get()->OnGameRequestLoad.Connect([]()
 		{
@@ -405,7 +404,7 @@ static InitFunction initFunction([] ()
 			brandingEmoji = L"\U0001F5FD";
 #endif
 
-			if (!CfxIsSinglePlayer() && !getenv("CitizenFX_ToolMode"))
+			if (!getenv("CitizenFX_ToolMode"))
 			{
 				auto emoji = customBrandingEmoji.GetValue();
 

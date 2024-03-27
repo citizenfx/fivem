@@ -119,14 +119,7 @@ static HICON hIcon;
 
 static InitFunction iconFunction([] ()
 {
-	if (!CfxIsSinglePlayer())
-	{
-		hIcon = LoadIcon(GetModuleHandle(nullptr), MAKEINTRESOURCE(1));
-	}
-	else
-	{
-		hIcon = LoadIcon(GetModuleHandle(nullptr), MAKEINTRESOURCE(202));
-	}
+	hIcon = LoadIcon(GetModuleHandle(nullptr), MAKEINTRESOURCE(1));
 });
 
 static HICON WINAPI LoadIconStub(HINSTANCE, LPCSTR)

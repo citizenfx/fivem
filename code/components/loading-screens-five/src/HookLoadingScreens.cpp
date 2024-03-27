@@ -5,8 +5,6 @@
 
 #include <stack>
 
-#include <LaunchMode.h>
-
 #include <nutsnbolts.h>
 #include <CefOverlay.h>
 #include <DrawCommands.h>
@@ -338,10 +336,7 @@ static HookFunction hookFunction([] ()
 	InstrumentFunction<LoadScreenFuncs>(functions[4], functions);
 
 	// don't play game loading music
-	if (!CfxIsSinglePlayer())
-	{
-		hook::return_function(hook::get_pattern("41 B8 97 96 11 96", -0x9A));
-	}
+	hook::return_function(hook::get_pattern("41 B8 97 96 11 96", -0x9A));
 
 	// loading screen state 10 draws postFX every frame, which will make for a lot of unneeded GPU load below NUI
 	loadingScreenState = hook::get_address<int*>(hook::get_pattern("83 3D ? ? ? ? 05 75 ? 8B"), 2, 7);

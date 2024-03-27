@@ -132,8 +132,6 @@ void InputHook::EnableSetCursorPos(bool enabled)
 	g_enableSetCursorPos = enabled;
 }
 
-#include <LaunchMode.h>
-
 static std::map<int, std::vector<InputHook::ControlBypass>> g_controlBypasses;
 
 void InputHook::SetControlBypasses(int subsystem, std::initializer_list<ControlBypass> bypasses)

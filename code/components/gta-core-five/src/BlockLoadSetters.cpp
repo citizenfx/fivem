@@ -27,7 +27,6 @@
 
 #include <Error.h>
 
-#include <LaunchMode.h>
 #include <CrossBuildRuntime.h>
 
 static hook::cdecl_stub<void()> lookAlive([] ()
@@ -574,7 +573,6 @@ static HookFunction hookFunction([] ()
 	_wunlink(MakeRelativeCitPath(L"data\\cache\\error_out").c_str());
 
 	// fwApp 2:1 state handler (loaded game), before running init state machine
-	if (!CfxIsSinglePlayer())
 	{
 		auto loc = hook::get_pattern<char>("32 DB EB 02 B3 01 E8 ? ? ? ? 48 8B", 6);
 
@@ -605,7 +603,6 @@ static HookFunction hookFunction([] ()
 		p = hook::pattern("BA 08 00 00 00 8D 41 FC 83 F8 01").count(1).get(0).get<char>(14);
 	}
 
-	if (!CfxIsSinglePlayer())
 	{
 		// nop the right pointer
 		hook::nop(p, 6);
@@ -638,7 +635,6 @@ static HookFunction hookFunction([] ()
 		}
 	}
 
-	if (!CfxIsSinglePlayer())
 	{
 		// init function bit #1
 		static InitFunctionStub initFunctionStub;
@@ -674,7 +670,6 @@ static HookFunction hookFunction([] ()
 	// use 0.0f to uncap entirely
 	hook::put<float>(hook::get_address<float*>(hook::get_pattern("0F 2F 05 ? ? ? ? 0F 82 ? ? ? ? E8 ? ? ? ? 48 89", 3)), 4.0f);
 
-	if (!CfxIsSinglePlayer())
 	{
 		// bypass the state 20 calibration screen loop (which might be wrong; it doesn't seem to exist in my IDA dumps of 323/331 Steam)
 		auto matches = hook::pattern("E8 ? ? ? ? 8A D8 84 C0 74 0E C6 05");
@@ -694,20 +689,13 @@ static HookFunction hookFunction([] ()
 	char* loadStarter = hook::pattern("BA 02 00 00 00 E8 ? ? ? ? E8 ? ? ? ? 8B").count(1).get(0).get<char>(5);
 	hook::set_call(&g_runInitFunctions, loadStarter);
 	hook::set_call(&g_lookAlive, loadStarter + 5);
-
-	if (!CfxIsSinglePlayer())
-	{
-		hook::call(loadStarter, RunInitFunctionsWrap);
-	}
+	hook::call(loadStarter, RunInitFunctionsWrap);
 
 	// don't conditionally check player blip handle
 	hook::call(hook::get_pattern("C8 89 05 ? ? ? ? E8 ? ? ? ? 89 05", 7), BlipAsIndex);
 
-	if (!CfxIsSinglePlayer())
-	{
-		// don't load commandline.txt
-		hook::return_function(hook::get_pattern("45 33 E4 83 39 02 4C 8B FA 45 8D 6C", -0x1C));
-	}
+	// don't load commandline.txt
+	hook::return_function(hook::get_pattern("45 33 E4 83 39 02 4C 8B FA 45 8D 6C", -0x1C));
 
 	// sometimes this crashes
 	SafeRun([]()
@@ -790,7 +778,6 @@ static HookFunction hookFunction([] ()
 	}
 
 	// no showwindow early
-	if (!CfxIsSinglePlayer())
 	{
 		auto location = hook::get_pattern<char>("41 8B D4 48 8B C8 48 8B D8 FF 15", 9);
 		hook::nop(location, 6);

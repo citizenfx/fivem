@@ -16,7 +16,6 @@
 #include <gameSkeleton.h>
 
 #include <CoreConsole.h>
-#include <LaunchMode.h>
 #include <CrossBuildRuntime.h>
 
 static volatile void* g_dummyState;
@@ -657,13 +656,10 @@ static HookFunction hookFunction{[] ()
 	MH_EnableHook(MH_ALL_HOOKS);
 
 	// don't load SP games in netmode sessions
-	if (!CfxIsSinglePlayer())
-	{
-		MH_Initialize();
-		MH_CreateHook(hook::get_pattern("84 C0 75 07 BB 02 00 00 00 EB 0C", -0x22), DoReadSaveGame, (void**)&g_origDoReadSaveGame);
-		MH_EnableHook(MH_ALL_HOOKS);
-	}
-
+	MH_Initialize();
+	MH_CreateHook(hook::get_pattern("84 C0 75 07 BB 02 00 00 00 EB 0C", -0x22), DoReadSaveGame, (void**)&g_origDoReadSaveGame);
+	MH_EnableHook(MH_ALL_HOOKS);
+	
 	// disable crashing on train validity check failing
 	// (this is, oddly, a cloud tunable?!)
 	if (!Is372())
@@ -686,7 +682,7 @@ static HookFunction hookFunction{[] ()
 	// block *any* CGameWeatherEvent
 	// (hotfix)
 	// CGameWeatherEvent was removed from the game in 2372 build.
-	if (!CfxIsSinglePlayer() && !xbr::IsGameBuildOrGreater<2372>())
+	if (!xbr::IsGameBuildOrGreater<2372>())
 	{
 		hook::return_function(hook::get_pattern("45 33 C9 41 B0 01 41 8B D3 E9", -10));
 	}
@@ -712,14 +708,11 @@ static HookFunction hookFunction{[] ()
 	hook::nop(txdFixStubLoc, 6);
 	hook::call_rcx(txdFixStubLoc, txdFixStub.GetCode()); // call_rcx as the stub depends on rax being valid
 
-	if (!CfxIsSinglePlayer())
-	{
-		// unknown function doing 'something' to scrProgram entries for a particular scrThread - we of course don't have any scrProgram
-		//hook::jump(hook::pattern("8B 59 14 44 8B 79 18 8B FA 8B 51 0C").count(1).get(0).get<void>(-0x1D), ReturnInt<-1>);
-		MH_Initialize();
-		MH_CreateHook(hook::pattern("8B 59 14 44 8B 79 18 8B FA 8B 51 0C").count(1).get(0).get<void>(-0x1D), ReturnIfMp, (void**)&g_origScrProgramReturn);
-		MH_EnableHook(MH_ALL_HOOKS);
-	}
+	// unknown function doing 'something' to scrProgram entries for a particular scrThread - we of course don't have any scrProgram
+	//hook::jump(hook::pattern("8B 59 14 44 8B 79 18 8B FA 8B 51 0C").count(1).get(0).get<void>(-0x1D), ReturnInt<-1>);
+	MH_Initialize();
+	MH_CreateHook(hook::pattern("8B 59 14 44 8B 79 18 8B FA 8B 51 0C").count(1).get(0).get<void>(-0x1D), ReturnIfMp, (void**)&g_origScrProgramReturn);
+	MH_EnableHook(MH_ALL_HOOKS);
 
 	// make sure a drawfrag dc doesn't actually run if there's no frag (bypass ERR_GFX_DRAW_DATA)
 	// 505-specific, possibly
@@ -1151,19 +1144,16 @@ static HookFunction hookFunction{[] ()
 		hook::set_call(&g_origReinitRenderPhase, location);
 		hook::call(location, ReinitRenderPhaseWrap);
 
-		if (!CfxIsSinglePlayer())
+		Instance<ICoreGameInit>::Get()->OnGameFinalizeLoad.Connect([]()
 		{
-			Instance<ICoreGameInit>::Get()->OnGameFinalizeLoad.Connect([]()
+			if (g_pendingReinit)
 			{
-				if (g_pendingReinit)
-				{
-					trace("Attempted a mode change during shutdown - executing it now...\n");
+				trace("Attempted a mode change during shutdown - executing it now...\n");
 
-					g_origReinitRenderPhase(g_pendingReinit);
-					g_pendingReinit = nullptr;
-				}
-			});
-		}
+				g_origReinitRenderPhase(g_pendingReinit);
+				g_pendingReinit = nullptr;
+			}
+		});
 	}
 
 	// CScene_unk_callsBlenderM58: over 50 iterated objects (CEntity+40 == 5, CObject) will lead to a stack buffer overrun

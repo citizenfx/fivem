@@ -16,7 +16,6 @@
 #include <Error.h>
 
 #include <CrossBuildRuntime.h>
-#include <LaunchMode.h>
 #include <CL2LaunchMode.h>
 
 #include <CoreConsole.h>
@@ -1749,7 +1748,7 @@ static HWND WINAPI HookCreateWindowExW(_In_ DWORD dwExStyle, _In_opt_ LPCWSTR lp
 	static HostSharedData<CfxState> initState("CfxInitState");
 	HWND w;
 
-	auto wndName = (CfxIsSinglePlayer()) ? L"Grand Theft Auto V (FiveM SP)" : L"FiveM® by Cfx.re";
+	const auto wndName = L"FiveM® by Cfx.re";
 
 	if (initState->isReverseGame)
 	{
