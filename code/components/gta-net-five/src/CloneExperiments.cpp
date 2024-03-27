@@ -2345,7 +2345,7 @@ static HookFunction hookFunction([]()
 
 	// 32 array size for network object limiting
 	// #TODO: unwind info for these??
-	if (!Is372() && !xbr::IsGameBuildOrGreater<2060>()) // only validated for 1604 so far
+	if (!xbr::IsGameBuildOrGreater<2060>()) // only validated for 1604 so far
 	{
 		auto location = hook::get_pattern<char>("48 85 C0 0F 84 C3 06 00 00 E8", -0x4A);
 

@@ -195,11 +195,6 @@ static std::map<int, std::shared_ptr<ProfileConVar>> _profileConVars;
 
 static hook::cdecl_stub<void(int idx, int, int)> _updatePref([]()
 {
-	if (Is372())
-	{
-		return (void*)nullptr;
-	}
-
 	if (xbr::IsGameBuildOrGreater<2944>())
 	{
 		return hook::get_pattern("48 2B E0 44 8B F2 BB 8B 00 00 00 83 F9 63 0F 8F", -0x29);
@@ -212,11 +207,6 @@ void ProfileSettingsInit()
 {
 	OnGameFrame.Connect([]()
 	{
-		if (Is372())
-		{
-			return;
-		}
-
 		if (!*g_profileSettings || !**(void***)g_profileSettings)
 		{
 			return;

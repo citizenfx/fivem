@@ -1325,11 +1325,6 @@ void UpdateButtonPlumbing()
 
 static HookFunction hookFunction([]()
 {
-	if (Is372())
-	{
-		return;
-	}
-
 	console::GetDefaultContext()->OnSaveConfiguration.Connect([](const std::function<void(const std::string&)>& writeLine)
 	{
 		writeLine("unbindall");

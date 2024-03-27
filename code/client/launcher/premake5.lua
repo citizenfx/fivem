@@ -53,7 +53,7 @@ local function isGamePersonality(name)
 		return true
 	end
 
-	if name == 'game_1604' or name == 'game_2060' or name == 'game_372' or name == 'game_2189' or name == 'game_2372' or name == 'game_2545' or name == 'game_2612' or name == 'game_2699' or name == 'game_2802' or name == 'game_2944' or name == 'game_3095' then
+	if name == 'game_1604' or name == 'game_2060' or name == 'game_2189' or name == 'game_2372' or name == 'game_2545' or name == 'game_2612' or name == 'game_2699' or name == 'game_2802' or name == 'game_2944' or name == 'game_3095' then
 		return true
 	end
 	
@@ -151,7 +151,6 @@ local function launcherpersonality_inner(name, aslr)
 				if name == 'game_2372' then gameBuild = '2372_0' end
 				if name == 'game_2189' then gameBuild = '2189_0' end
 				if name == 'game_2060' then gameBuild = '2060_2' end
-				if name == 'game_372' then gameBuild = '372' end
 
 				gameDump = ("C:\\f\\GTA5_%s_dump.exe"):format(gameBuild)
 			elseif _OPTIONS['game'] == 'rdr3' then
@@ -281,7 +280,6 @@ launcherpersonality 'chrome'
 
 if _OPTIONS['game'] == 'five' then
 	launcherpersonality 'game_1604'
-	--launcherpersonality 'game_372'
 	launcherpersonality 'game_2060'
 	launcherpersonality 'game_2189'
 	launcherpersonality 'game_2372'

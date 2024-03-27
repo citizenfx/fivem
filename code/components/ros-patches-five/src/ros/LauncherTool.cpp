@@ -233,14 +233,6 @@ static DWORD WINAPI CertGetNameStringStubA(_In_ PCCERT_CONTEXT pCertContext, _In
 	{
 		newName = "Entrust Code Signing CA - OVCS1";
 	}
-	else if (xbr::IsGameBuild<372>() && certString == "Entrust Code Signing CA - OVCS1")
-	{
-		newName = "Entrust Code Signing Certification Authority - L1D";
-	}
-	else if (xbr::IsGameBuild<372>() && certString == "Rockstar Games, Inc.")
-	{
-		newName = "Take-Two Interactive Software, Inc.";
-	}
 
 	// return if no such name
 	if (newName == nullptr)
@@ -1032,21 +1024,11 @@ static InitFunction initFunctionF([]()
 	MH_EnableHook(MH_ALL_HOOKS);
 });
 
-#include <CrossBuildRuntime.h>
-
 static HookFunction hookFunction([] ()
 {
 	if (!IsWindows7SP1OrGreater())
 	{
 		FatalError("Windows 7 SP1 or higher is required to run the FiveM ros:five component.");
-	}
-
-	
-	if (xbr::IsGameBuild<372>())
-	{
-		hook::iat("crypt32.dll", CertGetNameStringStubW, "CertGetNameStringW");
-		hook::iat("crypt32.dll", CertGetNameStringStubA, "CertGetNameStringA");
-		hook::iat("wintrust.dll", WinVerifyTrustStub, "WinVerifyTrust");
 	}
 
 	// newer SC SDK will otherwise overflow in cert name

@@ -285,7 +285,6 @@ DLL_EXPORT eGameVersion getGameVersion()
 	if (xbr::IsGameBuildOrGreater<2189>()) return VER_1_0_2189_0_NOSTEAM;
 	if (xbr::IsGameBuildOrGreater<2060>()) return VER_1_0_2060_0_NOSTEAM;
 	if (xbr::IsGameBuildOrGreater<1604>()) return VER_1_0_1604_0_NOSTEAM;
-	if (xbr::IsGameBuildOrGreater<372>()) return VER_1_0_372_2_NOSTEAM;
 
 	return VER_1_0_1604_0_NOSTEAM; // Default build
 }
