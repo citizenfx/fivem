@@ -22,6 +22,7 @@ static HookFunction initFunction([]()
 
 		while (true)
 		{
+			// Iterating over 10 possible discord ipc pipe URLs according to official documentation https://github.com/discord/discord-rpc/blob/master/documentation/hard-mode.md
 			for (int i = 0; i < 10; i++)
 			{
 				hPipe = CreateFileW(va(L"\\\\.\\pipe\\discord-ipc-%d", i), GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
