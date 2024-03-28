@@ -89,6 +89,10 @@ std::shared_ptr<ConVar<fx::OneSyncState>> g_oneSyncVar;
 std::shared_ptr<ConVar<bool>> g_oneSyncPopulation;
 std::shared_ptr<ConVar<bool>> g_oneSyncARQ;
 
+// disallow client from deleting server side entities
+std::shared_ptr<ConVar<bool>> g_disallowClientDeleteVar;
+static bool g_disallowClientDelete;
+
 static std::shared_ptr<ConVar<bool>> g_networkedSoundsEnabledVar;
 static bool g_networkedSoundsEnabled;
 
@@ -2863,12 +2867,7 @@ void ServerGameState::HandleClientDrop(const fx::ClientSharedPtr& client, uint16
 
 			if (slotId != -1)
 			{
-				{
-					std::lock_guard<std::shared_mutex> _(entity->guidMutex);
-					entity->relevantTo.reset(slotId);
-					entity->deletedFor.reset(slotId);
-					entity->outOfScopeFor.reset(slotId);
-				}
+				entity->ResetStateForSlot(slotId);
 
 				{
 					std::lock_guard _(entity->frameMutex);
@@ -3077,7 +3076,7 @@ void ServerGameState::ProcessCloneRemove(const fx::ClientSharedPtr& client, rl::
 
 	auto entity = GetEntity(0, objectId);
 
-	// ack remove no matter if we accept it
+	// ack remove as the calling client will have removed this entity anyways
 	ackPacket.Write(3, 3);
 	ackPacket.Write(13, objectId);
 	ackPacket.Write(16, uniqifier);
@@ -3097,6 +3096,28 @@ void ServerGameState::ProcessCloneRemove(const fx::ClientSharedPtr& client, rl::
 		if (entity->uniqifier != uniqifier)
 		{
 			GS_LOG("%s: wrong uniqifier (%d - %d->%d)\n", __func__, objectId, uniqifier, entity->uniqifier);
+
+			return;
+		}
+
+		if (entity->rejectClientDeletion)
+		{
+			const auto clientData = GetClientDataUnlocked(this, client);
+			const auto entIdentifier = MakeHandleUniqifierPair(objectId, uniqifier);
+			if (auto syncData = clientData->syncedEntities.find(entIdentifier); syncData != clientData->syncedEntities.end())
+			{
+				GS_LOG("%s: tried to delete server spawned entity setting entity id %d to be recreated for client %d\n", __func__, objectId, client->GetNetId());
+				// Reset the created state so they will get resent the entity data on the next server tick
+				syncData->second.hasCreated = false;
+				syncData->second.hasNAckedCreate = false;
+			}
+
+			// the client no longer has the entity created for them, cleanup all relevant state
+			entity->ResetStateForSlot(client->GetSlotId());
+
+			// since the client no longer has the entity created we should move the ownership back to the server
+			// and let the server handle ownership of the entity on the next tick
+			ReassignEntity(entity->handle, {});
 
 			return;
 		}
@@ -3213,6 +3234,8 @@ auto ServerGameState::CreateEntityFromTree(sync::NetObjEntityType type, const st
 	entity->creationToken = msec().count();
 	entity->createdAt = msec();
 	entity->passedFilter = true;
+	entity->serverCreated = true;
+	entity->rejectClientDeletion = g_disallowClientDelete;
 
 	entity->syncTree = tree;
 
@@ -6949,6 +6972,7 @@ static InitFunction initFunction([]()
 
 		g_requestControlVar = instance->AddVariable<int>("sv_filterRequestControl", ConVar_None, (int)RequestControlFilterMode::NoFilter, (int*)&g_requestControlFilterState);
 		g_requestControlSettleVar = instance->AddVariable<int>("sv_filterRequestControlSettleTimer", ConVar_None, 30000, &g_requestControlSettleDelay);
+		g_disallowClientDeleteVar = instance->AddVariable<bool>("sv_disallowClientDelete", ConVar_None, false, &g_disallowClientDelete);
 
 		fx::SetOneSyncGetCallback([]()
 		{
