@@ -469,10 +469,21 @@ const EXT_LOCALFUNCREF = 11;
 				global.source = parseInt(source.substr(13));
 			}
 
-			const payload = unpack(payloadSerialized) || [];
-			const listeners = emitter.listeners(name);
+			// Running raw event listeners
+			try {
+				rawEmitter.emit(name, payloadSerialized, source);
+			} catch (e) {
+				console.error('Unhandled error during running raw event listeners', e);
+			}
 
-			if (listeners.length === 0 || !Array.isArray(payload)) {
+			const listeners = emitter.listeners(name);
+			if (listeners.length == 0) {
+				global.source = null;
+				return;
+			}
+
+			const payload = unpack(payloadSerialized) || [];
+			if(!Array.isArray(payload)) {
 				global.source = null;
 				return;
 			}
@@ -494,13 +505,6 @@ const EXT_LOCALFUNCREF = 11;
 				} catch (e) {
 					global.printError('event `' + name + '\'', e);
 				}
-			}
-
-			// Running raw event listeners
-			try {
-				rawEmitter.emit(name, payloadSerialized, source);
-			} catch (e) {
-				console.error('Unhandled error during running raw event listeners', e);
 			}
 
 			global.source = null;
