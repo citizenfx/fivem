@@ -5562,6 +5562,256 @@ struct CNetworkPtFXEvent
 
 	MSGPACK_DEFINE_MAP(effectHash, assetHash, posX, posY, posZ, offsetX, offsetY, offsetZ, rotX, rotY, rotZ, scale, axisBitset, isOnEntity, entityNetId, f109, f92, f110, f105, f106, f107, f111, f100);
 };
+
+struct CRequestNetworkSyncedSceneEvent
+{
+	uint16_t sceneId;
+
+	void Parse(rl::MessageBuffer& buffer)
+	{
+		// FIXME: Scene ID length-hack workaround, see `CStartNetworkSyncedSceneEvent`.
+		sceneId = buffer.Read<uint16_t>(8) | (buffer.Read<uint16_t>(5) << 8);
+	}
+
+	inline std::string GetName()
+	{
+		return "requestNetworkSyncedSceneEvent";
+	}
+
+	MSGPACK_DEFINE_MAP(sceneId);
+};
+
+struct CStartNetworkSyncedSceneEvent
+{
+private:
+	struct PedEntityData
+	{
+		uint16_t objectId;
+		uint32_t animPartialHash;
+		float blendIn;
+		float blendOut;
+		float moverBlendIn;
+		int flags;
+		int ragdollBlockingFlags;
+		int ikFlags;
+
+		void Parse(rl::MessageBuffer& buffer)
+		{
+			objectId = buffer.Read<uint16_t>(13);
+			animPartialHash = buffer.Read<uint32_t>(32);
+			blendIn = buffer.ReadSignedFloat(30, 1001.0f);
+			blendOut = buffer.ReadSignedFloat(30, 1001.0f);
+			moverBlendIn = buffer.ReadSignedFloat(30, 1001.0f);
+			flags = buffer.Read<int>(32);
+			ragdollBlockingFlags = buffer.Read<int>(32);
+			ikFlags = buffer.Read<int>(15);
+		}
+
+		MSGPACK_DEFINE_MAP(objectId, animPartialHash, blendIn, blendOut, moverBlendIn, flags, ragdollBlockingFlags, ikFlags);
+	};
+
+	struct NonPedEntityData
+	{
+		uint16_t objectId;
+		uint32_t animHash;
+		float blendIn;
+		float blendOut;
+		int flags;
+
+		void Parse(rl::MessageBuffer& buffer)
+		{
+			objectId = buffer.Read<uint16_t>(13);
+			animHash = buffer.Read<uint32_t>(32);
+			blendIn = buffer.ReadSignedFloat(30, 1001.0f);
+			blendOut = buffer.ReadSignedFloat(30, 1001.0f);
+			flags = buffer.Read<int>(32);
+		}
+
+		MSGPACK_DEFINE_MAP(objectId, animHash, blendIn, blendOut, flags);
+	};
+
+	struct MapEntityData
+	{
+		uint32_t nameHash;
+		float posX;
+		float posY;
+		float posZ;
+		float blendIn;
+		float blendOut;
+		int flags;
+		uint32_t animHash;
+
+		void Parse(rl::MessageBuffer& buffer)
+		{
+			nameHash = buffer.Read<uint32_t>(32);
+			posX = buffer.ReadSignedFloat(19, 27648.0f);
+			posY = buffer.ReadSignedFloat(19, 27648.0f);
+			posZ = buffer.ReadFloat(19, 4416.0f) - 1700.0f;
+			blendIn = buffer.ReadSignedFloat(30, 1001.0f);
+			blendOut = buffer.ReadSignedFloat(30, 1001.0f);
+			flags = buffer.Read<int>(32);
+			animHash = buffer.Read<uint32_t>(32);
+		}
+
+		MSGPACK_DEFINE_MAP(nameHash, posX, posY, posZ, blendIn, blendOut, flags, animHash);
+	};
+
+public:
+	uint16_t sceneId;
+	uint32_t startTime;
+
+	bool isActive;
+
+	float scenePosX;
+	float scenePosY;
+	float scenePosZ;
+
+	float sceneRotX;
+	float sceneRotY;
+	float sceneRotZ;
+	float sceneRotW;
+
+	bool hasAttachEntity;
+	uint16_t attachEntityId;
+	uint8_t attachEntityBone;
+
+	float phaseToStopScene;
+	float rate;
+
+	bool holdLastFrame;
+	bool isLooped;
+	float phase;
+
+	uint32_t cameraAnimHash;
+	uint32_t animDictHash;
+
+	std::vector<PedEntityData> pedEntities;
+	std::vector<NonPedEntityData> nonPedEntities;
+	std::vector<MapEntityData> mapEntities;
+
+	void Parse(rl::MessageBuffer& buffer)
+	{
+		// FIXME: Synced scene IDs are 13 bits in length, but since it's not an object ID, it's conflicting
+		// with our length-hack logic... We're working around this issue by reading these 13 bits in two parts.
+		sceneId = buffer.Read<uint16_t>(8) | (buffer.Read<uint16_t>(5) << 8);
+
+		startTime = buffer.Read<uint32_t>(32);
+
+		isActive = buffer.ReadBit();
+
+		scenePosX = buffer.ReadSignedFloat(26, 27648.0f);
+		scenePosY = buffer.ReadSignedFloat(26, 27648.0f);
+		scenePosZ = buffer.ReadFloat(26, 4416.0f) - 1700.0f;
+
+		sceneRotX = buffer.ReadSignedFloat(30, 1.0f);
+		sceneRotY = buffer.ReadSignedFloat(30, 1.0f);
+		sceneRotZ = buffer.ReadSignedFloat(30, 1.0f);
+		sceneRotW = buffer.ReadSignedFloat(30, 1.0f);
+
+		hasAttachEntity = buffer.ReadBit();
+		if (hasAttachEntity)
+		{
+			attachEntityId = buffer.Read<uint16_t>(13);
+			attachEntityBone = buffer.Read<uint8_t>(8);
+		}
+		else
+		{
+			attachEntityId = 0;
+			attachEntityBone = 0;
+		}
+
+		phaseToStopScene = buffer.ReadBit() ? 1.0f : buffer.ReadFloat(9, 1.0f);
+		rate = buffer.ReadBit() ? 1.0f : buffer.ReadFloat(8, 2.0f);
+
+		holdLastFrame = buffer.ReadBit();
+		isLooped = buffer.ReadBit();
+		phase = buffer.ReadFloat(9, 1.0f);
+
+		cameraAnimHash = buffer.ReadBit() ? buffer.Read<uint32_t>(32) : 0;
+		animDictHash = buffer.Read<uint32_t>(32);
+
+		for (int i = 0; i < 10; i++) // ped entities
+		{
+			if (buffer.ReadBit())
+			{
+				PedEntityData entityData;
+				entityData.Parse(buffer);
+				pedEntities.push_back(entityData);
+			}
+		}
+
+
+		const auto maxNonPedEntities = Is2189() ? 5 : Is2060() ? 4 : 3;
+		for (int i = 0; i < maxNonPedEntities; i++) // non-ped entities
+		{
+			if (buffer.ReadBit())
+			{
+				NonPedEntityData entityData;
+				entityData.Parse(buffer);
+				nonPedEntities.push_back(entityData);
+			}
+		}
+
+		if (Is2060())
+		{
+			for (int i = 0; i < 1; i++) // map entities
+			{
+				if (buffer.ReadBit())
+				{
+					MapEntityData entityData;
+					entityData.Parse(buffer);
+					mapEntities.push_back(entityData);
+				}
+			}
+		}
+	}
+
+	inline std::string GetName()
+	{
+		return "startNetworkSyncedSceneEvent";
+	}
+
+	MSGPACK_DEFINE_MAP(sceneId, startTime, isActive, scenePosX, scenePosY, scenePosZ, sceneRotX, sceneRotY, sceneRotZ, sceneRotW, hasAttachEntity, attachEntityId, attachEntityBone, phaseToStopScene, rate, holdLastFrame, isLooped, phase, cameraAnimHash, animDictHash, pedEntities, nonPedEntities, mapEntities);
+};
+
+struct CUpdateNetworkSyncedSceneEvent
+{
+	uint16_t sceneId;
+	float rate;
+
+	void Parse(rl::MessageBuffer& buffer)
+	{
+		// FIXME: Scene ID length-hack workaround, see `CStartNetworkSyncedSceneEvent`.
+		sceneId = buffer.Read<uint16_t>(8) | (buffer.Read<uint16_t>(5) << 8);
+
+		rate = (buffer.Read<uint8_t>(8) / 255.0f) * 2.0f;
+	}
+
+	inline std::string GetName()
+	{
+		return "updateNetworkSyncedSceneEvent";
+	}
+
+	MSGPACK_DEFINE_MAP(sceneId, rate);
+};
+
+struct CStopNetworkSyncedSceneEvent
+{
+	uint16_t sceneId;
+
+	void Parse(rl::MessageBuffer& buffer)
+	{
+		// FIXME: Scene ID length-hack workaround, see `CStartNetworkSyncedSceneEvent`.
+		sceneId = buffer.Read<uint16_t>(8) | (buffer.Read<uint16_t>(5) << 8);
+	}
+
+	inline std::string GetName()
+	{
+		return "stopNetworkSyncedSceneEvent";
+	}
+
+	MSGPACK_DEFINE_MAP(sceneId);
+};
 #endif
 
 #ifdef STATE_RDR3
@@ -6892,6 +7142,10 @@ std::function<bool()> fx::ServerGameState::GetGameEventHandler(const fx::ClientS
 		case START_PROJECTILE_EVENT: return GetHandler<CStartProjectileEvent>(instance, client, std::move(buffer));
 		case NETWORK_CLEAR_PED_TASKS_EVENT: return GetHandler<CClearPedTasksEvent>(instance, client, std::move(buffer));
 		case NETWORK_PTFX_EVENT: return GetHandler<CNetworkPtFXEvent>(instance, client, std::move(buffer));
+		case NETWORK_REQUEST_SYNCED_SCENE_EVENT: return GetHandler<CRequestNetworkSyncedSceneEvent>(instance, client, std::move(buffer));
+		case NETWORK_START_SYNCED_SCENE_EVENT: return GetHandler<CStartNetworkSyncedSceneEvent>(instance, client, std::move(buffer));
+		case NETWORK_UPDATE_SYNCED_SCENE_EVENT: return GetHandler<CUpdateNetworkSyncedSceneEvent>(instance, client, std::move(buffer));
+		case NETWORK_STOP_SYNCED_SCENE_EVENT: return GetHandler<CStopNetworkSyncedSceneEvent>(instance, client, std::move(buffer));
 		default:
 			break;
 	};
