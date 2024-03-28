@@ -17,6 +17,7 @@
 #include <enet/enet.h>
 
 #include <FixedBuffer.h>
+#include <net/PacketNames.h>
 
 namespace fx
 {
@@ -313,6 +314,17 @@ namespace fx
 					if (info.type == HashRageString("msgNetEvent"))
 					{
 						info.eventName = std::string{ (const char*)packet->data + 8 };
+					}
+					else
+					{
+						for (const auto hash : net::PacketNames)
+						{
+							if (hash.first == info.type)
+							{
+								info.eventName = std::string{ hash.second };
+								break;
+							}
+						}
 					}
 
 					if (auto outIt = outgoingCommandsMap.find(packet); outIt != outgoingCommandsMap.end())

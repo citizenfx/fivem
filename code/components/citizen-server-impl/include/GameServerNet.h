@@ -40,6 +40,8 @@ namespace fx
 			uint32_t type;
 			uint32_t timeAgo;
 			size_t size;
+			// if type is msgNetEvent this will be the event name
+			// if the type is a known packet it will be the packet name, i.e. msgStateBag
 			std::string eventName;
 		};
 

@@ -16,6 +16,8 @@
 
 #include <ConsoleHost.h>
 
+#include <net/PacketNames.h>
+
 #include <imgui.h>
 #include <imguivariouscontrols.h>
 
@@ -32,12 +34,11 @@ const int g_netOverlaySampleCount = 150;
 class RageHashList
 {
 public:
-	template<int Size>
-	RageHashList(const char* (&list)[Size])
+	RageHashList()
 	{
-		for (int i = 0; i < Size; i++)
+		for (const auto packet : net::PacketNames)
 		{
-			m_lookupList.insert({ HashRageString(list[i]), list[i] });
+			m_lookupList.emplace(packet);
 		}
 	}
 
@@ -57,47 +58,7 @@ private:
 	std::map<uint32_t, std::string_view> m_lookupList;
 };
 
-// rg -i '"msg' | grep -oP '"msg[A-Z].*?"' | sed 's/"$/",/g' | sort -u | clip
-static const char* g_knownPackets[]
-{
-	"msgArrayUpdate",
-	"msgCloneAcks",
-	"msgCloneRemove",
-	"msgConVars",
-	"msgConfirm",
-	"msgEnd",
-	"msgEntityCreate",
-	"msgFrame",
-	"msgHeHost",
-	"msgIHost",
-	"msgIQuit",
-	"msgNetEvent",
-	"msgNetGameEvent",
-	"msgObjectIds",
-	"msgPackedAcks",
-	"msgPackedClones",
-	"msgPaymentRequest",
-	"msgReassembledEvent",
-	"msgRequestObjectIds",
-	"msgResStart",
-	"msgResStop",
-	"msgRoute",
-	"msgRpcEntityCreation",
-	"msgRpcNative",
-	"msgServerCommand",
-	"msgServerEvent",
-	"msgStateBag",
-	"msgTimeSync",
-	"msgTimeSyncReq",
-	"msgWorldGrid",
-	"msgWorldGrid3",
-
-	// manual list that doesn't start with 'msg'
-	"gameStateAck",
-	"gameStateNAck",
-};
-
-static RageHashList g_hashes{ g_knownPackets };
+static RageHashList g_hashes;
 
 class NetOverlayMetricSink : public INetMetricSink
 {
