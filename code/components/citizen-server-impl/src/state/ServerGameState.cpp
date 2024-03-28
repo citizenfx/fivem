@@ -5241,6 +5241,24 @@ struct CRemoveAllWeaponsEvent
 	MSGPACK_DEFINE_MAP(pedId);
 };
 
+struct CRagdollRequestEvent
+{
+	void Parse(rl::MessageBuffer& buffer)
+	{
+		entityNetId = buffer.Read<uint16_t>(13);
+	}
+
+
+	inline std::string GetName()
+	{
+		return "ragdollRequestEvent";
+	}
+
+	int entityNetId;
+
+	MSGPACK_DEFINE_MAP(entityNetId);
+};
+
 /*NETEV startProjectileEvent SERVER
 /#*
  * Triggered when a projectile is created.
@@ -6881,6 +6899,7 @@ std::function<bool()> fx::ServerGameState::GetGameEventHandler(const fx::ClientS
 
 	switch(eventType)
 	{
+		case RAGDOLL_REQUEST_EVENT: return GetHandler<CRagdollRequestEvent>(instance, client, std::move(buffer));
 		case WEAPON_DAMAGE_EVENT: return GetHandler<CWeaponDamageEvent>(instance, client, std::move(buffer), targetPlayers);
 		case RESPAWN_PLAYER_PED_EVENT: return GetHandler<CRespawnPlayerPedEvent>(instance, client, std::move(buffer));
 		case GIVE_WEAPON_EVENT: return GetHandler<CGiveWeaponEvent>(instance, client, std::move(buffer));
@@ -6913,6 +6932,7 @@ std::function<bool()> fx::ServerGameState::GetGameEventHandler(const fx::ClientS
 
 	switch(eventType)
 	{
+		case RAGDOLL_REQUEST_EVENT: return GetHandler<CRagdollRequestEvent>(instance, client, std::move(buffer));
 		case WEAPON_DAMAGE_EVENT: return GetHandler<CWeaponDamageEvent>(instance, client, std::move(buffer), targetPlayers);
 		case RESPAWN_PLAYER_PED_EVENT: return GetHandler<CRespawnPlayerPedEvent>(instance, client, std::move(buffer));
 		case EXPLOSION_EVENT: return GetHandler<CExplosionEvent>(instance, client, std::move(buffer));
