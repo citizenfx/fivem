@@ -229,7 +229,6 @@ RegisterNUICallback('loaded', function(data, cb)
   refreshThemes()
 
   chatLoaded = true
-
   cb('ok')
 end)
 
@@ -244,24 +243,27 @@ local chatHideState = kvpEntry and tonumber(kvpEntry) or CHAT_HIDE_STATES.SHOW_W
 local isFirstHide = true
 
 if not isRDR then
+  -- Allow only for Fivem until RedM supports it
   if RegisterKeyMapping then
     RegisterKeyMapping('toggleChat', 'Toggle chat', 'keyboard', 'l')
   end
+end
 
-  RegisterCommand('toggleChat', function()
-    if chatHideState == CHAT_HIDE_STATES.SHOW_WHEN_ACTIVE then
-      chatHideState = CHAT_HIDE_STATES.ALWAYS_SHOW
-    elseif chatHideState == CHAT_HIDE_STATES.ALWAYS_SHOW then
-      chatHideState = CHAT_HIDE_STATES.ALWAYS_HIDE
-    elseif chatHideState == CHAT_HIDE_STATES.ALWAYS_HIDE then
-      chatHideState = CHAT_HIDE_STATES.SHOW_WHEN_ACTIVE
-    end
+  RegisterCommand('toggleChat', function(source,args,rawCommand)
+   
+        if chatHideState == CHAT_HIDE_STATES.SHOW_WHEN_ACTIVE then
+          chatHideState = CHAT_HIDE_STATES.ALWAYS_SHOW
+        elseif chatHideState == CHAT_HIDE_STATES.ALWAYS_SHOW then
+          chatHideState = CHAT_HIDE_STATES.ALWAYS_HIDE
+        elseif chatHideState == CHAT_HIDE_STATES.ALWAYS_HIDE then
+          chatHideState = CHAT_HIDE_STATES.SHOW_WHEN_ACTIVE
+        end
+       SetResourceKvp('hideState', tostring(chatHideState))
 
     isFirstHide = false
-
-    SetResourceKvp('hideState', tostring(chatHideState))
+  
   end, false)
-end
+
 
 Citizen.CreateThread(function()
   SetTextChatEnabled(false)
