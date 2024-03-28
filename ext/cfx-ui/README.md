@@ -10,4 +10,9 @@ See [ui-build](../ui-build/) for building a full version of `cfx-ui`.
 yarn serve
 ```
 
+## Developing with GTM enabled
+```
+yarn serve --env withGtm
+```
+
 Then run the game with `+set ui_url http://localhost:4200/`.
