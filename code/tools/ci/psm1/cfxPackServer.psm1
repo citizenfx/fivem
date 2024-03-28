@@ -19,7 +19,8 @@ function Invoke-PackServer {
     # copy system resources
     Copy-Item -Force -Recurse $projectRoot\ext\system-resources\data\* $packRoot\server\citizen\system_resources\
 
-    Copy-Item -Force $binRoot\*.exe $packRoot\server\
+    # excludes the unit test runner CitiTest.exe, because it doesn't need to be distributed by the ci
+    Copy-Item -Force -Exclude "CitiTest.exe" $binRoot\*.exe $packRoot\server\
     Copy-Item -Force $binRoot\*.dll $packRoot\server\
 
     Copy-Item -Force -Recurse $binRoot\citizen\* $packRoot\server\citizen\

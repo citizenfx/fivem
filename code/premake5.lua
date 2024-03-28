@@ -274,6 +274,7 @@ workspace "CitizenMP"
 		include 'client/diag'
 	else
 		include 'server/launcher'
+		include 'tests'
 	end
 	
 	if os.istarget('windows') then

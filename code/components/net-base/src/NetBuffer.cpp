@@ -100,7 +100,7 @@ bool Buffer::Read(void* buffer, size_t length)
 		// and if it really doesn't fit out of our buffer
 		if ((m_curOff + length) > m_bytes->size())
 		{
-			memset(buffer, 0xCE, sizeof(length));
+			memset(buffer, 0x00, length);
 			return false;
 		}
 	}
