@@ -903,7 +903,7 @@ static InitFunction initFunction([]()
 	static TimecycleEditor TCEditor;
 
 #ifndef _DEBUG
-	if (!launch::IsSDK() && !launch::IsSDKGuest())
+	if (launch::IsSDK() || launch::IsSDKGuest())
 #endif
 	{
 		static ConVar<bool> timecycleEditorVar("timecycleeditor", ConVar_Archive | ConVar_UserPref, false, &TCEditor.m_editorEnabled);
