@@ -4,7 +4,7 @@ $WorkDir = $env:CI_PROJECT_DIR -replace '/','\'
 $WorkRootDir = "$WorkDir\code"
 $CacheDir = "$WorkDir\caches"
 
-$TempDir = "$env:TEMP\FxUpload"
+$TempDir = "$env:TEMP\FxUpload-${env:CI_PIPELINE_ID}-${env:CI_JOB_NAME}"
 
 $OutName = "FxUpload-${env:CI_PIPELINE_ID}-${env:CI_JOB_NAME}.zip"
 $OutZip = "$TempDir\..\$OutName"
