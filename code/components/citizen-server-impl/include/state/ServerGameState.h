@@ -600,6 +600,13 @@ struct CHeliHealthNodeData
 	int tailRotorHealth;
 };
 
+struct CSubmarineGameStateNodeData
+{
+    float yawControl;
+    float pitchControl;
+    float ascentControl;
+};
+
 struct CVehicleSteeringNodeData
 {
 	float steeringAngle;
@@ -674,6 +681,8 @@ public:
 	virtual CHeliControlDataNodeData* GetHeliControl() = 0;
 
 	virtual CPlayerCameraNodeData* GetPlayerCamera() = 0;
+
+    virtual CSubmarineGameStateNodeData* GetSubmarineControl() = 0;
 
 	virtual CPlayerWantedAndLOSNodeData* GetPlayerWantedAndLOS() = 0;
 

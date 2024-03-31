@@ -1493,14 +1493,14 @@ struct CVehicleAngVelocityDataNode
 	}
 };
 
-struct CVehicleSteeringDataNode
+struct CVehicleSteeringDataNode : GenericSerializeDataNode<CVehicleSteeringDataNode>
 {
 	CVehicleSteeringNodeData data;
 
-	bool Parse(SyncParseState& state)
+	template<typename Serializer>
+    bool Serialize(Serializer& s)
 	{
-		data.steeringAngle = state.buffer.ReadSignedFloat(10, 1.0f);
-
+        s.SerializeSigned(10, 1.0f, data.steeringAngle);
 		return true;
 	}
 };
@@ -2684,13 +2684,16 @@ struct CPlaneControlDataNode
 
 struct CSubmarineGameStateDataNode { };
 
-struct CSubmarineControlDataNode
+struct CSubmarineControlDataNode : GenericSerializeDataNode<CSubmarineControlDataNode>
 {
-	bool Parse(SyncParseState& state)
+    CSubmarineGameStateNodeData data;
+
+    template<typename Serializer>
+    bool Serialize(Serializer& s)
 	{
-		float yawControl = state.buffer.ReadSignedFloat(8, 1.0f);
-		float pitchControl = state.buffer.ReadSignedFloat(8, 1.0f);
-		float ascentControl = state.buffer.ReadSignedFloat(8, 1.0f);
+        s.SerializeSigned(8, 1.0f, data.yawControl);
+        s.SerializeSigned(8, 1.0f, data.pitchControl);
+        s.SerializeSigned(8, 1.0f, data.ascentControl);
 
 		return true;
 	}
@@ -3668,6 +3671,13 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, false>
 
 		return (hasNode) ? &node->data : nullptr;
 	}
+
+    virtual CSubmarineGameStateNodeData* GetSubmarineControl() override
+    {
+        auto [hasNode, node] = this->template GetData<CSubmarineGameStateDataNode>();
+
+        return (hasNode) ? &node->data : nullptr;
+    }
 
 	virtual CPlayerCameraNodeData* GetPlayerCamera() override
 	{

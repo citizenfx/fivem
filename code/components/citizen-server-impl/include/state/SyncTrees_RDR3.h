@@ -388,15 +388,16 @@ struct CDoorCreationDataNode
 	}
 };
 
-struct CVehicleSteeringDataNode
+struct CVehicleSteeringDataNode : GenericSerializeDataNode<CVehicleSteeringDataNode>
 {
 	CVehicleSteeringNodeData data;
 
-	bool Parse(SyncParseState& state)
+	template<typename Serializer>
+    bool Serialize(Serializer& s)
 	{
-		data.steeringAngle = state.buffer.ReadSignedFloat(10, 1.0f);
+        s.SerializeSigned(10, 1.0f, data.steeringAngle);
 
-		return true;
+        return true;
 	}
 };
 
@@ -1135,6 +1136,11 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, true>
 	{
 		return nullptr;
 	}
+
+    virtual CSubmarineGameStateNodeData* GetSubmarineControl() override
+    {
+        return nullptr;
+    }
 
 	virtual CHeliControlDataNodeData* GetHeliControl() override
 	{
