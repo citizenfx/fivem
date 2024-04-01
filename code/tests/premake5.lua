@@ -8,6 +8,13 @@
 		
 		add_dependencies { 'net:base', 'vendor:catch2' }
 		
+		if os.istarget('windows') then
+			links { "psapi", "wininet", "winhttp" }
+			flags { "NoManifest", "NoImportLib" }
+		else
+			links { 'dl', 'pthread' }
+		end
+		
 		files
 		{
 			'**.cpp', '**.hpp', '**.h', '../client/common/Error.cpp'
