@@ -138,6 +138,7 @@ private:
 
 	std::shared_mutex m_dataMutex;
 	std::map<std::string, std::string, std::less<>> m_data;
+	std::unordered_set<std::string> m_replicatedKeys;
 
 	std::atomic<bool> m_replicationEnabled; //< #TODO: potentially remove this once the throttling system is in place
 	std::mutex m_replicateDataMutex;
@@ -236,6 +237,15 @@ void StateBagImpl::SetKeyInternal(int source, std::string_view key, std::string_
 	{
 		std::unique_lock _(m_dataMutex);
 
+		if (replicated)
+		{
+			m_replicatedKeys.insert(std::string(key));
+		}
+		else
+		{
+			m_replicatedKeys.erase(std::string(key));
+		}
+
 		if (auto it = m_data.find(key); it != m_data.end())
 		{
 			if (data != it->second)
@@ -308,7 +318,10 @@ void StateBagImpl::SendAll(int target)
 
 		for (auto& [ key, value ] : m_data)
 		{
-			SendKeyValue(target, key, value);
+			if (m_replicatedKeys.find(key) != m_replicatedKeys.end())
+			{
+				SendKeyValue(target, key, value);
+			}
 		}
 	}
 }
