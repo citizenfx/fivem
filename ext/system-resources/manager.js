@@ -21,11 +21,12 @@ async function main({ args, options }) {
     const [cmd] = args;
 
     const resourceName = check(options.name, 'No --name provided');
-    const resourceFile = check(options.file, 'No --file provided');
 
     switch (cmd) {
         case 'download': {
             const skipHashVerification = Boolean(options.noverify);
+
+            const resourceFile = check(options.file, 'No --file provided');
 
             // Get manifest and check that we have passed resource name in it
             const manifest = require(MANIFEST_FILE);
@@ -65,21 +66,10 @@ async function main({ args, options }) {
             break;
         }
 
-        case 'gen-sha256': {
-            if (!(await fileExists(resourceFile))) {
-                const errorMessage = `Resource file does not exist, try "node manager.js download --name=${resourceName} --file=${resourceFile} --noverify" it first`;
-
-                return exitError(errorMessage);
-            }
-
-            console.log(await getSHA256(resourceFile));
-
-            break;
-        }
-
         case 'add':
         case 'update': {
             const resourceUrl = check(options.url, 'No --url provided');
+            const resourceFile = check(options.file || `${resourceName}.zip`);
             const resourceVersion = check(options.version, 'No --version provided');
 
             const manifest = require(MANIFEST_FILE);
@@ -132,7 +122,7 @@ async function main({ args, options }) {
  */
 function check(inp, error) {
     if (typeof inp !== 'string') {
-        return exitError('Expected string value, got', typeof inp);
+        return exitError(`Expected string value, got ${typeof inp}`);
     }
 
     if (!inp) {
