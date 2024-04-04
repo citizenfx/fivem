@@ -56,12 +56,6 @@ TEST_CASE("Principal test")
 					REQUIRE(seCheckPrivilege("command.test") == true);
 				}
 			}
-			WHEN(
-				"ScopedPrincipalReset is used all principals that are not builtin.everyone are not existing inside the scope anymore")
-			{
-				se::ScopedPrincipalReset reset;
-				REQUIRE(seCheckPrivilege("command.test") == false);
-			}
 		}
 	}
 }
@@ -175,6 +169,60 @@ TEST_CASE("ScopedPrincipalReset test")
 			{
 				REQUIRE(seCheckPrivilege("command.chat") == true);
 			}
+		}
+	}
+}
+
+TEST_CASE("Object parents")
+{
+	GIVEN("A admin principal with access to the command privilege")
+	{
+		seGetCurrentContext()->AddAccessControlEntry(
+			se::Principal{"admin"},
+			se::Object{"command"},
+			se::AccessType::Allow
+		);
+		se::ScopedPrincipal adminPrincipal{
+			se::Principal{
+				"admin"
+			}
+		};
+		THEN("It also has access to any child objects from command")
+		{
+			REQUIRE(seCheckPrivilege("command.banall") == true);
+			REQUIRE(seCheckPrivilege("command.chat") == true);	
+		}
+	}
+	GIVEN("There is no limit of levels")
+	{
+		seGetCurrentContext()->AddAccessControlEntry(
+			se::Principal{"owner"},
+			se::Object{"command.admins"},
+			se::AccessType::Allow
+		);
+		seGetCurrentContext()->AddAccessControlEntry(
+			se::Principal{"mod"},
+			se::Object{"command.mods"},
+			se::AccessType::Allow
+		);
+		se::ScopedPrincipal ownerPrincipal{
+			se::Principal{
+				"owner"
+			}
+		};
+		se::ScopedPrincipal modPrincipal{
+			se::Principal{
+				"mod"
+			}
+		};
+		THEN("It also has access to any child objects from command")
+		{
+			REQUIRE(seCheckPrivilege("command.mods") == true);
+			REQUIRE(seCheckPrivilege("command.admins") == true);
+			REQUIRE(seCheckPrivilege("command.admins.ban") == true);
+			REQUIRE(seCheckPrivilege("command.mods.kick") == true);
+			REQUIRE(seCheckPrivilege("command.mods.kick.all") == true);
+			REQUIRE(seCheckPrivilege("command") == false);	
 		}
 	}
 }
