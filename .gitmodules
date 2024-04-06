@@ -167,9 +167,6 @@
 [submodule "vendor/vulkan-headers"]
 	path = vendor/vulkan-headers
 	url = https://github.com/KhronosGroup/Vulkan-Headers.git
-[submodule "vendor/librw"]
-	path = vendor/librw
-	url = https://github.com/blattersturm/librw.git
 [submodule "vendor/labsound"]
 	path = vendor/labsound
 	url = https://github.com/LabSound/LabSound
