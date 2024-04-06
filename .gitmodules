@@ -125,9 +125,6 @@
 [submodule "vendor/websocketpp"]
 	path = vendor/websocketpp
 	url = https://github.com/citizenfx/websocketpp.git
-[submodule "vendor/slikenet"]
-	path = vendor/slikenet
-	url = https://github.com/SLikeSoft/SLikeNet.git
 [submodule "vendor/replxx"]
 	path = vendor/replxx
 	url = https://github.com/blattersturm/replxx.git
