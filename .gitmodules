@@ -197,9 +197,6 @@
 [submodule "vendor/rocksdb"]
 	path = vendor/rocksdb
 	url = https://github.com/facebook/rocksdb.git
-[submodule "vendor/nghttp3"]
-	path = vendor/nghttp3
-	url = https://github.com/ngtcp2/nghttp3.git
 [submodule "vendor/lua-cmsgpack"]
 	path = vendor/lua-cmsgpack
 	url = https://github.com/citizenfx/lua-cmsgpack.git
