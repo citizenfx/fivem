@@ -107,21 +107,9 @@
 [submodule "vendor/utfcpp"]
 	path = vendor/utfcpp
 	url = https://github.com/nemtrif/utfcpp.git
-[submodule "vendor/yojimbo"]
-	path = vendor/yojimbo
-	url = https://github.com/citizenfx/yojimbo.git
-[submodule "vendor/libsodium"]
-	path = vendor/libsodium
-	url = https://github.com/jedisct1/libsodium.git
 [submodule "vendor/mbedtls"]
 	path = vendor/mbedtls
 	url = https://github.com/ARMmbed/mbedtls.git
-[submodule "vendor/netcode.io"]
-	path = vendor/netcode.io
-	url = https://github.com/citizenfx/netcode.io.git
-[submodule "vendor/reliable.io"]
-	path = vendor/reliable.io
-	url = https://github.com/citizenfx/reliable.io.git
 [submodule "vendor/websocketpp"]
 	path = vendor/websocketpp
 	url = https://github.com/citizenfx/websocketpp.git
