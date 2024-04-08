@@ -4,18 +4,18 @@
 
 #include <ComponentLoader.h>
 
-int main(int argc, char* argv[])
+int main(const int argc, char* argv[])
 {
 	ComponentLoader* loader = ComponentLoader::GetInstance();
 
 	loader->Initialize();
 
 	Catch::Session session;
-	int returnCode = session.applyCommandLine(argc, argv);
+	const int returnCode = session.applyCommandLine(argc, argv);
 	if (returnCode != 0)
 	{
 		return returnCode;
 	}
-	int numFailed = session.run();
+	const int numFailed = session.run();
 	return numFailed;
 }
