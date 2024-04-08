@@ -166,11 +166,10 @@ static void DoMapping()
 		}
 	}
 
-	if (Is372())
+	if (Is1604())
 	{
-		assert(maxVersion == 2);
+		assert(maxVersion == 19);
 	}
-	// 2060
 	else if (Is2060())
 	{
 		assert(maxVersion == 22);
@@ -194,10 +193,6 @@ static void DoMapping()
 	else if (Is2944() || Is3095())
 	{
 		assert(maxVersion == 27);
-	}
-	else if (Is1604())
-	{
-		assert(maxVersion == 19);
 	}
 	else
 	{

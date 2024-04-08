@@ -14,7 +14,6 @@
 	(2372) \
 	(2189) \
 	(2060) \
-	(372 ) \
 	(1604)
 #elif defined(IS_RDR3)
 #define GAME_BUILDS \

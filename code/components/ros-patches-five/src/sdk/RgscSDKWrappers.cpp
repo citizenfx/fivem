@@ -11,8 +11,6 @@
 #include <CoreConsole.h>
 #include <Error.h>
 
-#include <CrossBuildRuntime.h>
-
 HRESULT(__stdcall*g_origInitializeGraphics)(void*, void*, void*);
 
 static HANDLE g_uiEvent;
@@ -965,7 +963,7 @@ IRgsc* GetScSdkStub()
 	
 	if (!g_rgsc)
 	{
-		if (getenv("CitizenFX_ToolMode") || xbr::IsGameBuild<372>())
+		if (getenv("CitizenFX_ToolMode"))
 		{
 			g_rgsc = (RgscStub*)getFunc();
 		}

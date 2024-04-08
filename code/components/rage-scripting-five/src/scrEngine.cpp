@@ -12,8 +12,6 @@
 #include <CrossBuildRuntime.h>
 #include "Hooking.h"
 
-#include <LaunchMode.h>
-
 #include <sysAllocator.h>
 
 #include <MinHook.h>
@@ -45,44 +43,6 @@ static uint32_t* scrThreadCount;
 rage::scriptHandlerMgr* g_scriptHandlerMgr;
 
 static bool g_hasObfuscated;
-
-struct NativeRegistration_old
-{
-	NativeRegistration_old* nextRegistration;
-	rage::scrEngine::NativeHandler handlers[7];
-	uint32_t numEntries;
-	uint64_t hashes[7];
-
-	inline NativeRegistration_old* getNextRegistration()
-	{
-		return nextRegistration;
-	}
-
-	inline void setNextRegistration(NativeRegistration_old* registration)
-	{
-		nextRegistration = registration;
-	}
-
-	inline uint32_t getNumEntries()
-	{
-		return numEntries;
-	}
-
-	inline void setNumEntries(uint32_t entries)
-	{
-		numEntries = entries;
-	}
-
-	inline uint64_t getHash(uint32_t index)
-	{
-		return hashes[index];
-	}
-
-	inline void setHash(uint32_t index, uint64_t newHash)
-	{
-		hashes[index] = newHash;
-	}
-};
 
 // see https://github.com/ivanmeler/OpenVHook/blob/b5b4d84e76feb05a988e9d69b6b5c164458341cb/OpenVHook/Scripting/ScriptEngine.cpp#L22
 #pragma pack(push, 1)
@@ -384,14 +344,7 @@ void RegisterNativeDo(uint64_t hash, scrEngine::NativeHandler handler)
 
 void RegisterNative(uint64_t hash, scrEngine::NativeHandler handler)
 {
-	if (Is372())
-	{
-		RegisterNativeDo<NativeRegistration_old>(hash, handler);
-	}
-	else
-	{
-		RegisterNativeDo<NativeRegistration_obf>(hash, handler);
-	}
+	RegisterNativeDo<NativeRegistration_obf>(hash, handler);
 }
 
 static std::vector<std::pair<uint64_t, scrEngine::NativeHandler>> g_nativeHandlers;
@@ -468,7 +421,7 @@ scrEngine::NativeHandler GetNativeHandlerDo(uint64_t origHash, uint64_t hash)
 
 scrEngine::NativeHandler GetNativeHandlerWrap(uint64_t origHash, uint64_t hash)
 {
-	return (Is372()) ? GetNativeHandlerDo<NativeRegistration_old>(origHash, hash) : GetNativeHandlerDo<NativeRegistration_obf>(origHash, hash);
+	return GetNativeHandlerDo<NativeRegistration_obf>(origHash, hash);
 }
 
 scrEngine::NativeHandler scrEngine::GetNativeHandler(uint64_t hash)
@@ -573,16 +526,6 @@ static HookFunction hookFunction([] ()
 
 	activeThreadTlsOffset = *hook::pattern("48 8B 04 D0 4A 8B 14 00 48 8B 01 F3 44 0F 2C 42 20").count(1).get(0).get<uint32_t>(-4);
 
-	if (Is372())
-	{
-		location = hook::pattern("FF 40 5C 8B 15 ? ? ? ? 48 8B").count(1).get(0).get<char>(5);
-		scrThreadId = reinterpret_cast<decltype(scrThreadId)>(location + *(int32_t*)location + 4);
-
-		location -= 9;
-
-		scrThreadCount = reinterpret_cast<decltype(scrThreadCount)>(location + *(int32_t*)location + 4);
-	}
-	else
 	{
 		if (xbr::IsGameBuildOrGreater<2612>())
 		{
@@ -603,17 +546,8 @@ static HookFunction hookFunction([] ()
 		}
 
 		location = xbr::IsGameBuildOrGreater<2545>() ? hook::get_pattern<char>("FF 0D ? ? ? ? 48 8B D9 75", 2) : hook::get_pattern<char>("FF 0D ? ? ? ? 48 8B F9", 2);
-
 		scrThreadCount = reinterpret_cast<decltype(scrThreadCount)>(location + *(int32_t*)location + 4);
-	}
 
-	if (Is372())
-	{
-		location = hook::pattern("76 61 49 8B 7A 40 48 8D 0D").count(1).get(0).get<char>(9);
-		registrationTable<NativeRegistration_old> = reinterpret_cast<decltype(registrationTable<NativeRegistration_old>)>(location + *(int32_t*)location + 4);
-	}
-	else
-	{
 		location = hook::pattern("76 32 48 8B 53 40").count(1).get(0).get<char>(9);
 		registrationTable<NativeRegistration_obf> = reinterpret_cast<decltype(registrationTable<NativeRegistration_obf>)>(location + *(int32_t*)location + 4);
 	}
@@ -631,7 +565,6 @@ static HookFunction hookFunction([] ()
 		MH_EnableHook(MH_ALL_HOOKS);
 	}
 
-	if (!CfxIsSinglePlayer())
 	{
 		MH_Initialize();
 

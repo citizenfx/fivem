@@ -27,7 +27,6 @@
 
 #include <Error.h>
 
-#include <LaunchMode.h>
 #include <CrossBuildRuntime.h>
 
 static hook::cdecl_stub<void()> lookAlive([] ()
@@ -118,12 +117,6 @@ enum LoadingScreenContext
 
 static hook::cdecl_stub<void(LoadingScreenContext, int)> setupLoadingScreens([]()
 {
-	// trailing byte differs between 323 and 505
-	if (Is372())
-	{
-		return hook::get_call(hook::get_pattern("8D 4F 08 33 D2 E8 ? ? ? ? 40", 5));
-	}
-
 	return hook::get_call(hook::get_pattern("8D 4F 08 33 D2 E8 ? ? ? ? C6", 5));
 });
 
@@ -574,7 +567,6 @@ static HookFunction hookFunction([] ()
 	_wunlink(MakeRelativeCitPath(L"data\\cache\\error_out").c_str());
 
 	// fwApp 2:1 state handler (loaded game), before running init state machine
-	if (!CfxIsSinglePlayer())
 	{
 		auto loc = hook::get_pattern<char>("32 DB EB 02 B3 01 E8 ? ? ? ? 48 8B", 6);
 
@@ -605,7 +597,6 @@ static HookFunction hookFunction([] ()
 		p = hook::pattern("BA 08 00 00 00 8D 41 FC 83 F8 01").count(1).get(0).get<char>(14);
 	}
 
-	if (!CfxIsSinglePlayer())
 	{
 		// nop the right pointer
 		hook::nop(p, 6);
@@ -638,7 +629,6 @@ static HookFunction hookFunction([] ()
 		}
 	}
 
-	if (!CfxIsSinglePlayer())
 	{
 		// init function bit #1
 		static InitFunctionStub initFunctionStub;
@@ -674,7 +664,6 @@ static HookFunction hookFunction([] ()
 	// use 0.0f to uncap entirely
 	hook::put<float>(hook::get_address<float*>(hook::get_pattern("0F 2F 05 ? ? ? ? 0F 82 ? ? ? ? E8 ? ? ? ? 48 89", 3)), 4.0f);
 
-	if (!CfxIsSinglePlayer())
 	{
 		// bypass the state 20 calibration screen loop (which might be wrong; it doesn't seem to exist in my IDA dumps of 323/331 Steam)
 		auto matches = hook::pattern("E8 ? ? ? ? 8A D8 84 C0 74 0E C6 05");
@@ -694,20 +683,13 @@ static HookFunction hookFunction([] ()
 	char* loadStarter = hook::pattern("BA 02 00 00 00 E8 ? ? ? ? E8 ? ? ? ? 8B").count(1).get(0).get<char>(5);
 	hook::set_call(&g_runInitFunctions, loadStarter);
 	hook::set_call(&g_lookAlive, loadStarter + 5);
-
-	if (!CfxIsSinglePlayer())
-	{
-		hook::call(loadStarter, RunInitFunctionsWrap);
-	}
+	hook::call(loadStarter, RunInitFunctionsWrap);
 
 	// don't conditionally check player blip handle
 	hook::call(hook::get_pattern("C8 89 05 ? ? ? ? E8 ? ? ? ? 89 05", 7), BlipAsIndex);
 
-	if (!CfxIsSinglePlayer())
-	{
-		// don't load commandline.txt
-		hook::return_function(hook::get_pattern("45 33 E4 83 39 02 4C 8B FA 45 8D 6C", -0x1C));
-	}
+	// don't load commandline.txt
+	hook::return_function(hook::get_pattern("45 33 E4 83 39 02 4C 8B FA 45 8D 6C", -0x1C));
 
 	// sometimes this crashes
 	SafeRun([]()
@@ -719,13 +701,9 @@ static HookFunction hookFunction([] ()
 	// disable eventschedule.json refetching on failure
 	//hook::nop(hook::get_pattern("80 7F 2C 00 75 09 48 8D 4F F8 E8", 10), 5);
 	// 1493+:
-	if (!Is372())
-	{
-		hook::nop(hook::get_pattern("38 4B 2C 75 60 48 8D 4B F8 E8", 9), 5);
-	}
+	hook::nop(hook::get_pattern("38 4B 2C 75 60 48 8D 4B F8 E8", 9), 5);
 
 	// don't set pause on focus loss, force it to 0
-	if (!Is372())
 	{
 		auto location = hook::get_pattern<char>("0F 95 05 ? ? ? ? E8 ? ? ? ? 48 85 C0");
 		auto addy = hook::get_address<char*>(location + 3);
@@ -790,7 +768,6 @@ static HookFunction hookFunction([] ()
 	}
 
 	// no showwindow early
-	if (!CfxIsSinglePlayer())
 	{
 		auto location = hook::get_pattern<char>("41 8B D4 48 8B C8 48 8B D8 FF 15", 9);
 		hook::nop(location, 6);

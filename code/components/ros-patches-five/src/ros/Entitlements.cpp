@@ -795,27 +795,7 @@ mapper->AddGameService("ugc.asmx/Publish", [](const std::string& body)
 		}
 		else if (postData["branchAccessToken"].find("GTA5") != std::string::npos)
 		{
-			if (xbr::IsGameBuild<372>())
-			{
-				return fmt::sprintf(R"(
-<?xml version="1.0" encoding="utf-8"?>
-<Response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ms="0" xmlns="GetBuildManifestFull">
-  <Status>1</Status>
-  <Result BuildId="4" VersionNumber="1.0.372.2" BuildDateUtc="2019-11-05T11:39:37.0266667">
-    <FileManifest>
-		<FileDetails FileEntryId="9178" FileEntryVersionId="9648" FileSize="55559560" TimestampUtc="2019-11-05T11:39:34.8800000">
-			<RelativePath>GTA5.exe</RelativePath>
-			<SHA256Hash>7b3c0053db37eca7c6cdd0ecd268882cdd5f693f416e5a8e97fd31de66324d04</SHA256Hash>
-			<FileChunks>
-				<Chunk FileChunkId="13046" SHA256Hash="7b3c0053db37eca7c6cdd0ecd268882cdd5f693f416e5a8e97fd31de66324d04" StartByteOffset="0" Size="55559560" />
-			</FileChunks>
-		</FileDetails>
-    </FileManifest>
-    <IsPreload>false</IsPreload>
-  </Result>
-</Response>)");
-			}
-			else if (xbr::IsGameBuild<3095>())
+			if (xbr::IsGameBuild<3095>())
 			{
 				return fmt::sprintf(R"(
 <?xml version="1.0" encoding="utf-8"?>
@@ -1079,7 +1059,6 @@ mapper->AddGameService("ugc.asmx/Publish", [](const std::string& body)
 	mapper->AddGameService("app.asmx/GetApps", [](const std::string& body)
 	{
 		static std::map<int, int> fiveBuildsToVersions{
-			{ 372, 4 },
 			{ 1604, 80 },
 			{ 2060, 83 },
 			{ 2189, 88 },

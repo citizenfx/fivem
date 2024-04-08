@@ -34,11 +34,6 @@ void AddCustomText(const char* key, const char* value);
 
 static hook::cdecl_stub<void(int unk, uint32_t* titleHash, uint32_t* messageHash, uint32_t* subMessageHash, int flags, bool, int8_t, void*, void*, bool, bool)> setWarningMessage([] ()
 {
-	if (Is372())
-	{
-		return hook::get_call<void*>(hook::get_call(hook::pattern("57 41 56 41 57 48 83 EC 50 4C 63 F2").count(1).get(0).get<char>(0xAC)) + 0x6D);
-	}
-
 	if (xbr::IsGameBuildOrGreater<2699>())
 	{
 		return hook::get_pattern("44 38 ? ? ? ? ? 0F 85 C5 02 00 00 E8", -0x38);
@@ -124,23 +119,14 @@ void Void()
 static HookFunction hookFunction([]()
 {
 	MH_Initialize();
-
-	if (!Is372())
-	{
-		MH_CreateHook(hook::get_pattern("74 07 B0 01 E9 ? ? ? ? 83 65", (xbr::IsGameBuildOrGreater<2372>() ? -0x23 : -0x26)), Void, (void**)&g_origLoadMultiplayerTextChat);
-
-		g_textChat = hook::get_address<void**>(hook::get_pattern("74 04 C6 40 01 01 48 8B 0D", 9));
-	}
-
+	MH_CreateHook(hook::get_pattern("74 07 B0 01 E9 ? ? ? ? 83 65", (xbr::IsGameBuildOrGreater<2372>() ? -0x23 : -0x26)), Void, (void**)&g_origLoadMultiplayerTextChat);
 	MH_EnableHook(MH_ALL_HOOKS);
 
-	if (!Is372())
-	{
-		g_textInputBox = hook::get_address<void**>(hook::get_pattern("C7 45 D4 07 00 00 00 48", xbr::IsGameBuildOrGreater<2802>() ? 36 : 10));
+	g_textChat = hook::get_address<void**>(hook::get_pattern("74 04 C6 40 01 01 48 8B 0D", 9));
+	g_textInputBox = hook::get_address<void**>(hook::get_pattern("C7 45 D4 07 00 00 00 48", xbr::IsGameBuildOrGreater<2802>() ? 36 : 10));
 
-		// disable text input box gfx unload
-		hook::nop(hook::get_pattern("E8 ? ? ? ? 83 8B A0 04 00 00 FF"), 5);
-	}
+	// disable text input box gfx unload
+	hook::nop(hook::get_pattern("E8 ? ? ? ? 83 8B A0 04 00 00 FF"), 5);
 
 	// disable gamer info menu shutdown (testing/temp dbg for blocking loads on host/join)
 	//hook::return_function(hook::get_pattern("83 F9 08 75 46 53 48 83 EC 20 48 83", 0));
@@ -289,9 +275,8 @@ static InitFunction initFunction([] ()
 				g_origLoadMultiplayerTextChat(*g_textChat);
 			}
 
-			if (!Is372())
+			// temp hook bits to prevent *opening* the gfx
 			{
-				// temp hook bits to prevent *opening* the gfx
 				auto func = hook::get_call(hook::get_pattern<char>("38 59 59 75 05 E8", 5));
 
 				uint8_t oldCode[128];

@@ -109,7 +109,9 @@ bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::arr
 
 // game personality aliases
 #ifdef GTA_FIVE
-#ifdef LAUNCHER_PERSONALITY_GAME_2060
+#ifdef LAUNCHER_PERSONALITY_GAME_1604
+#define LAUNCHER_PERSONALITY_GAME
+#elif defined(LAUNCHER_PERSONALITY_GAME_2060)
 #define LAUNCHER_PERSONALITY_GAME
 #elif defined(LAUNCHER_PERSONALITY_GAME_2189)
 #define LAUNCHER_PERSONALITY_GAME
@@ -126,10 +128,6 @@ bool CheckFileOutdatedWithUI(const wchar_t* fileName, const std::vector<std::arr
 #elif defined(LAUNCHER_PERSONALITY_GAME_2944)
 #define LAUNCHER_PERSONALITY_GAME
 #elif defined(LAUNCHER_PERSONALITY_GAME_3095)
-#define LAUNCHER_PERSONALITY_GAME
-#elif defined(LAUNCHER_PERSONALITY_GAME_372)
-#define LAUNCHER_PERSONALITY_GAME
-#elif defined(LAUNCHER_PERSONALITY_GAME_1604)
 #define LAUNCHER_PERSONALITY_GAME
 #endif
 #elif defined(IS_RDR3)

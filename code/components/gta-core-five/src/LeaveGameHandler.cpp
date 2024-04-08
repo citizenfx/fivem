@@ -60,7 +60,6 @@ static HookFunction hookFunction([]()
 	}
 
 	// same for R* editor exit
-	if (!Is372())
 	{
 		auto location = hook::get_pattern<char>("E8 ? ? ? ? 83 3D ? ? ? ? 08 75 05 E8 ? ? ? ? 83", 0x1A);
 		hook::call(location, ReplayEditorExit);

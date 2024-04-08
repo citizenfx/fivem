@@ -2,7 +2,6 @@
 #include "fiDevice.h"
 #include "Hooking.h"
 
-#include <LaunchMode.h>
 #include <Error.h>
 
 namespace rage
@@ -137,11 +136,6 @@ static HookFunction hookFunction([] ()
 
 	rage::fiDevice::OnInitialMount.Connect([]()
 	{
-		if (CfxIsSinglePlayer())
-		{
-			return;
-		}
-
 		// check if OpenIV.asi hooks have been applied
 		void** vtbl = (void**)g_vTable_fiEncryptingDevice;
 
