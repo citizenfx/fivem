@@ -209,32 +209,32 @@ static void ReadWaterQuadFlag(fx::ScriptContext& context)
 	*context.GetArgument<bool*>(1) = value;
 }
 
-__int64(__fastcall* g_orig_unloadWaterRacecondition1)(__int64 a1, __int64 a2);
-__int64 __fastcall unloadWaterRacecondition1(__int64 a1, __int64 a2)
+static void (*g_orig_RenderWaterNearQuads)(int32_t, int32_t);
+static void RenderWaterNearQuads(int32_t effectIndex, int32_t oceanHeightIndex)
 {
 	std::lock_guard _(g_loaderLock);
-	return g_orig_unloadWaterRacecondition1(a1, a2);
+	g_orig_RenderWaterNearQuads(effectIndex, oceanHeightIndex);
 }
 
-__int64(__fastcall* g_orig_unloadWaterRacecondition2)(__int64 a1, __int64 a2);
-__int64 __fastcall unloadWaterRacecondition2(__int64 a1, __int64 a2)
+static void (*g_orig_RenderWaterTessellation)(int32_t, bool, int32_t);
+static void RenderWaterTessellation(int32_t effectIndex, bool a2, int32_t oceanHeightIndex)
 {
 	std::lock_guard _(g_loaderLock);
-	return g_orig_unloadWaterRacecondition2(a1, a2);
+	g_orig_RenderWaterTessellation(effectIndex, a2, oceanHeightIndex);
 }
 
-__int64(__fastcall* g_orig_unloadWaterRacecondition3)(__int64 a1, __int64 a2);
-__int64 __fastcall unloadWaterRacecondition3(__int64 a1, __int64 a2)
+static void (*g_orig_RenderWaterFarQuads)(int32_t, int32_t);
+static void RenderWaterFarQuads(int32_t effectIndex, int32_t oceanHeightIndex)
 {
 	std::lock_guard _(g_loaderLock);
-	return g_orig_unloadWaterRacecondition3(a1, a2);
+	g_orig_RenderWaterFarQuads(effectIndex, oceanHeightIndex);
 }
 
-__int64(__fastcall* g_orig_unloadWaterRacecondition4)();
-__int64 __fastcall unloadWaterRacecondition4()
+static void (*g_orig_RenderWaterCubemap)();
+static void RenderWaterCubemap()
 {
 	std::lock_guard _(g_loaderLock);
-	return g_orig_unloadWaterRacecondition4();
+	g_orig_RenderWaterCubemap();
 }
 
 static bool checkWaterBounds(std::array<float, 4> targetCoords, std::array<float, 4> min, std::array<float, 4> max)
@@ -326,10 +326,13 @@ static HookFunction initFunction([]()
 		g_calmingQuads = hook::get_address<atArray<CalmingQuad>*>(location + 20);
 		g_waveQuads = hook::get_address<atArray<WaveQuad>*>(location + 45);
 
-		MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? 44 8B C7 41 8A D4")), unloadWaterRacecondition1, (void**)&g_orig_unloadWaterRacecondition1);
-		MH_CreateHook(hook::get_call(hook::get_pattern("41 83 C8 FF 8D 4A 0F", 7)), unloadWaterRacecondition2, (void**)&g_orig_unloadWaterRacecondition2);
-		MH_CreateHook(hook::get_call(hook::get_pattern("E8 ? ? ? ? 8B D7 8B CE E8 ? ? ? ? 44 8B C7")), unloadWaterRacecondition3, (void**)&g_orig_unloadWaterRacecondition3);
-		MH_CreateHook(hook::get_address<void**>(hook::get_pattern("83 FB 04 74 ? 48 8D 0D", 5), 3, 7), unloadWaterRacecondition4, (void**)&g_orig_unloadWaterRacecondition4);
+		location = hook::get_pattern<char>("E8 ? ? ? ? 8B D7 8B CE E8 ? ? ? ? 44 8B C7");
+		MH_CreateHook(hook::get_call(location), RenderWaterFarQuads, (void**)&g_orig_RenderWaterFarQuads);
+		MH_CreateHook(hook::get_call(location + 0x9), RenderWaterNearQuads, (void**)&g_orig_RenderWaterNearQuads);
+		MH_CreateHook(hook::get_call(location + 0x17), RenderWaterTessellation, (void**)&g_orig_RenderWaterTessellation);
+
+		location = hook::get_pattern<char>("83 FB 04 74 ? 48 8D 0D", 5);
+		MH_CreateHook(hook::get_address<void**>(location, 3, 7), RenderWaterCubemap, (void**)&g_orig_RenderWaterCubemap);
 		MH_EnableHook(MH_ALL_HOOKS);
 	}
 
