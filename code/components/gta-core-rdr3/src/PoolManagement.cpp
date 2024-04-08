@@ -247,11 +247,7 @@ static void* PoolAllocateWrap(atPoolBase* pool, uint64_t unk)
 
 		AddCrashometry("pool_error", "%s (%d)", poolName, pool->GetSize());
 
-		std::string extraWarning = (poolName.find("0x") == std::string::npos)
-			? fmt::sprintf(" (you need to raise %s PoolSize in common/data/gameconfig.xml)", poolName)
-			: "";
-
-		FatalErrorNoExcept("%s Pool Full, Size == %d%s", poolName, pool->GetSize(), extraWarning);
+		FatalErrorNoExcept("%s Pool Full, Size == %d", poolName, pool->GetSize());
 	}
 
 	return value;
