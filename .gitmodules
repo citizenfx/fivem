@@ -22,9 +22,6 @@
 [submodule "vendor/picohttpparser"]
 	path = vendor/picohttpparser
 	url = https://github.com/h2o/picohttpparser.git
-[submodule "vendor/libssh"]
-	path = vendor/libssh
-	url = https://github.com/citizenfx/libssh.git
 [submodule "vendor/xz"]
 	path = vendor/xz
 	url = https://github.com/xz-mirror/xz.git
