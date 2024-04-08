@@ -68,9 +68,6 @@
 [submodule "vendor/cpprestsdk"]
 	path = vendor/cpprestsdk
 	url = https://github.com/Microsoft/cpprestsdk.git
-[submodule "vendor/linenoise-ng"]
-	path = vendor/linenoise-ng
-	url = https://github.com/arangodb/linenoise-ng.git
 [submodule "vendor/discord-rpc"]
 	path = vendor/discord-rpc
 	url = https://github.com/citizenfx/discord-rpc.git

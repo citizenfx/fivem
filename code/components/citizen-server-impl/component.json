@@ -15,7 +15,7 @@
 		"vendor:curl",
 		"vendor:tbb",
 		"vendor:boost_random",
-		"vendor:linenoise",
+		"vendor:replxx",
 		"vendor:nng",
 		"vendor:lz4",
 		"vendor:glm",
