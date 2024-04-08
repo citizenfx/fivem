@@ -23,6 +23,8 @@ static int* g_mouseButtons;
 static int* g_inputOffset;
 static rage::ioMouse* g_input;
 
+static bool* g_isClippedCursor;
+
 static bool g_useGlobalMouseMovement = true;
 static POINT g_mouseMovement{ 0 };
 
@@ -74,6 +76,32 @@ void DisableHostCursor()
 {
 	while (ShowCursor(FALSE) >= 0)
 		;
+}
+
+static BOOL ClipHostCursor(const RECT* lpRekt)
+{
+	static RECT lastRect;
+	static RECT* lastRectPtr;
+
+	*g_isClippedCursor = lpRekt != nullptr;
+	if ((lpRekt && !lastRectPtr) || (lastRectPtr && !lpRekt) || (lpRekt && !EqualRect(&lastRect, lpRekt)))
+	{
+		// update last rect
+		if (lpRekt)
+		{
+			lastRect = *lpRekt;
+			lastRectPtr = &lastRect;
+		}
+		else
+		{
+			memset(&lastRect, 0xCC, 0);
+			lastRectPtr = nullptr;
+		}
+
+		return ClipCursor(lpRekt);
+	}
+
+	return TRUE;
 }
 
 static INT HookShowCursor(BOOL show)
@@ -313,35 +341,14 @@ LRESULT APIENTRY grcWindowProcedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
 
 BOOL WINAPI ClipCursorWrap(const RECT* lpRekt)
 {
-	static RECT lastRect;
-	static RECT* lastRectPtr;
-
-	int may = 1;
-	InputHook::QueryMayLockCursor(may);
-
-	if (!may)
+	const RECT* lpResult = nullptr;
+	if (lpRekt != nullptr)
 	{
-		lpRekt = nullptr;
+		int may = 1;
+		InputHook::QueryMayLockCursor(may);
+		lpResult = may != 0 ? lpRekt : nullptr;
 	}
-
-	if ((lpRekt && !lastRectPtr) || (lastRectPtr && !lpRekt) || (lpRekt && !EqualRect(&lastRect, lpRekt)))
-	{
-		// update last rect
-		if (lpRekt)
-		{
-			lastRect = *lpRekt;
-			lastRectPtr = &lastRect;
-		}
-		else
-		{
-			memset(&lastRect, 0xCC, 0);
-			lastRectPtr = nullptr;
-		}
-
-		return ClipCursor(lpRekt);
-	}
-
-	return TRUE;
+	return ClipHostCursor(lpResult);
 }
 
 HKL WINAPI ActivateKeyboardLayoutWrap(IN HKL hkl, IN UINT flags)
@@ -694,7 +701,7 @@ static HookFunction hookFunction([]()
 
 		if (!may)
 		{
-			ClipCursorWrap(nullptr);
+			ClipHostCursor(nullptr);
 			*captureCount = 0;
 		}
 	});
@@ -719,6 +726,16 @@ static HookFunction hookFunction([]()
 	location = hook::pattern("BF 00 01 00 00 48 8D 1D ? ? ? ? 48 3B 05").count(1).get(0).get<char>(8);
 
 	g_gameKeyArray = (char*)(location + *(int32_t*)location + 4);
+
+	// ClipHostCursor now controls the rage::ioMouse field that signals that
+	// ClipCursor has non-null lpRect.
+	{
+		auto location = hook::get_pattern<char>("FF 15 ? ? ? ? C6 05 ? ? ? ? ? EB 18");
+		g_isClippedCursor = hook::get_address<bool*>(location + 0x6, 0x2, 0x7);
+
+		hook::nop(location + 0x6, 0x7);
+		hook::nop(location + 0x20, 0x7);
+	}
 
 	// disable directinput keyboard handling
 	// TODO: change for Five
