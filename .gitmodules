@@ -50,10 +50,6 @@
 [submodule "vendor/cpr"]
 	path = vendor/cpr
 	url = https://github.com/libcpr/cpr.git
-[submodule "vendor/enet"]
-	path = vendor/enet
-	url = https://github.com/freeminer/enet.git
-	branch = ipv6
 [submodule "vendor/imgui"]
 	path = vendor/imgui
 	url = https://github.com/citizenfx/imgui.git
