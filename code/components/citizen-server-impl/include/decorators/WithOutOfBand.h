@@ -34,8 +34,8 @@ namespace fx
 			                                   const net::PeerAddress& receivedAddress)
 			{
 				static auto interceptor = server->GetInstance()->GetComponent<fx::UdpInterceptor>();
-				static bool setCb;
-				
+				static bool setCb{false};
+
 				if (!setCb)
 				{
 					interceptor->SetSendCallback(
