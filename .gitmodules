@@ -4,6 +4,7 @@
 [submodule "vendor/msgpack-c"]
 	path = vendor/msgpack-c
 	url = https://github.com/msgpack/msgpack-c.git
+	ignore = dirty
 [submodule "vendor/zlib"]
 	path = vendor/zlib
 	url = https://github.com/madler/zlib.git
