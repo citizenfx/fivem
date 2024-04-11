@@ -6,7 +6,7 @@
 		
 		links { 'Shared', 'CitiCore' }
 		
-		add_dependencies { 'net:base', 'vendor:catch2' }
+		add_dependencies { 'net:base', 'vendor:catch2', 'citizen:server:impl' }
 		
 		if os.istarget('windows') then
 			links { "psapi", "wininet", "winhttp" }
