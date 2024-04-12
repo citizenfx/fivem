@@ -10,7 +10,7 @@ YARN=yarn
 [ "$OS" == "Windows_NT" ] && LUA53=./lua53
 [ "$OS" == "Windows_NT" ] && NODE=$ROOT/node
 [ "$OS" != "Windows_NT" ] && NODE=/tmp/node/node/bin/node
-YARN="$NODE $ROOT/yarn_cli.js"
+YARN="$NODE $ROOT/yarn_cli.js --mutex network"
 
 [ "$OS" == "Windows_NT" ] && curl -z node.exe -Lo node.exe https://content.cfx.re/mirrors/vendor/node/v12.22.12/node.exe --http1.1
 [ "$OS" != "Windows_NT" ] && mkdir /tmp/node && \
