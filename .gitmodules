@@ -94,7 +94,7 @@
 	url = https://github.com/g-truc/glm.git
 [submodule "vendor/eastl"]
 	path = vendor/eastl
-	url = https://github.com/electronicarts/EASTL.git
+	url = https://github.com/citizenfx/EASTL.git
 [submodule "vendor/utfcpp"]
 	path = vendor/utfcpp
 	url = https://github.com/nemtrif/utfcpp.git
@@ -196,7 +196,7 @@
 	url = https://github.com/ericniebler/range-v3.git
 [submodule "vendor/eabase"]
 	path = vendor/eabase
-	url = https://github.com/electronicarts/EABase.git
+	url = https://github.com/citizenfx/EABase.git
 [submodule "vendor/directxtex"]
 	path = vendor/directxtex
 	url = https://github.com/microsoft/DirectXTex.git
