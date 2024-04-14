@@ -57,20 +57,12 @@ static std::set<std::string> g_managedResources = {
 
 static void HandleServerEvent(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& buffer)
 {
-	uint16_t eventNameLength = buffer.Read<uint16_t>();
-
-	// validate input
-	if (eventNameLength <= 0 || eventNameLength > std::numeric_limits<uint16_t>::max())
-	{
-		return;
-	}
-
 	static fx::RateLimiterStore<uint32_t, false> netEventRateLimiterStore{ instance->GetComponent<console::Context>().GetRef() };
 	static auto netEventRateLimiter = netEventRateLimiterStore.GetRateLimiter("netEvent", fx::RateLimiterDefaults{ 50.f, 200.f });
 	static auto netFloodRateLimiter = netEventRateLimiterStore.GetRateLimiter("netEventFlood", fx::RateLimiterDefaults{ 75.f, 300.f });
 	static auto netEventSizeRateLimiter = netEventRateLimiterStore.GetRateLimiter("netEventSize", fx::RateLimiterDefaults{ 128 * 1024.0, 384 * 1024.0 });
 
-	uint32_t netId = client->GetNetId();
+	const uint32_t netId = client->GetNetId();
 
 	if (!netEventRateLimiter->Consume(netId))
 	{
@@ -85,15 +77,25 @@ static void HandleServerEvent(fx::ServerInstanceBase* instance, const fx::Client
 		return;
 	}
 
-	std::vector<char> eventNameBuffer(eventNameLength - 1);
-	buffer.Read(eventNameBuffer.data(), eventNameBuffer.size());
+	const uint16_t eventNameLength = buffer.Read<uint16_t>();
+
+	// validate input, eventNameLength 1 would be zero, because we remove last byte
+	if (eventNameLength <= 1)
+	{
+		return;
+	}
+
+	std::string eventName;
+	eventName.resize(eventNameLength - 1);
+	buffer.Read(eventName.data(), eventName.size());
+
+	// read 0, maybe we can drop the uint8 in the future with a new net version update
 	buffer.Read<uint8_t>();
 
-	uint32_t dataLength = buffer.GetRemainingBytes();
+	const uint32_t dataLength = static_cast<uint32_t>(buffer.GetRemainingBytes());
 
-	if (!netEventSizeRateLimiter->Consume(netId, double(dataLength)))
+	if (!netEventSizeRateLimiter->Consume(netId, static_cast<double>(eventName.size() + dataLength)))
 	{
-		std::string eventName(eventNameBuffer.begin(), eventNameBuffer.end());
 		gscomms_execute_callback_on_main_thread([client, instance, eventName]()
 		{
 			// if this happens, try increasing rateLimiter_netEventSize_rate and rateLimiter_netEventSize_burst
@@ -104,16 +106,20 @@ static void HandleServerEvent(fx::ServerInstanceBase* instance, const fx::Client
 		return;
 	}
 
-	std::vector<uint8_t> data(dataLength);
-	buffer.Read(data.data(), data.size());
+	std::string data;
+	if (dataLength)
+	{
+		data.resize(dataLength);
+		buffer.Read(data.data(), dataLength);
+	}
 
-	fwRefContainer<fx::ResourceManager> resourceManager = instance->GetComponent<fx::ResourceManager>();
-	fwRefContainer<fx::ResourceEventManagerComponent> eventManager = resourceManager->GetComponent<fx::ResourceEventManagerComponent>();
+	const fwRefContainer<fx::ResourceManager> resourceManager = instance->GetComponent<fx::ResourceManager>();
+	const fwRefContainer<fx::ResourceEventManagerComponent> eventManager = resourceManager->GetComponent<fx::ResourceEventManagerComponent>();
 
 	eventManager->QueueEvent(
-		std::string(eventNameBuffer.begin(), eventNameBuffer.end()),
-		std::string(data.begin(), data.end()),
-		fmt::sprintf("net:%d", netId)
+		eventName,
+		data,
+		"net:" + std::to_string(netId)
 	);
 }
 
