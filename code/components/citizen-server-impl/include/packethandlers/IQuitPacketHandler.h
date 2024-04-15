@@ -17,7 +17,11 @@ namespace fx
 		class IQuitPacketHandler
 		{
 		public:
-			static void Handle(ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& packet)
+			IQuitPacketHandler(fx::ServerInstanceBase* instance)
+			{
+			}
+
+			void Handle(ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& packet)
 			{
 				const std::string reason = std::string(
 					packet.Read<std::string_view>(std::min(packet.GetRemainingBytes(), static_cast<size_t>(1024))));

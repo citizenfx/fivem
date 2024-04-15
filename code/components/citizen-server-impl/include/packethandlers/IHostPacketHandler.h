@@ -16,7 +16,11 @@ namespace fx
 		class IHostPacketHandler
 		{
 		public:
-			static void Handle(ServerInstanceBase* instance, const fx::ClientSharedPtr& client,
+			IHostPacketHandler(fx::ServerInstanceBase* instance)
+			{
+			}
+
+			void Handle(ServerInstanceBase* instance, const fx::ClientSharedPtr& client,
 			                          net::Buffer& packet)
 			{
 				if (IsOneSync())

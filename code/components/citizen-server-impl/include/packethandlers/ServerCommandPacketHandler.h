@@ -6,18 +6,18 @@
 
 #include "ComponentExport.h"
 
-class ServerEventPacketHandler
+class ServerCommandPacketHandler
 {
+	std::string rawCommand;
+
 public:
-	ServerEventPacketHandler(fx::ServerInstanceBase* instance)
-	{
-	}
+	COMPONENT_EXPORT(CITIZEN_SERVER_IMPL) ServerCommandPacketHandler(fx::ServerInstanceBase* instance);
 
 	void COMPONENT_EXPORT(CITIZEN_SERVER_IMPL) Handle(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client,
-	                   net::Buffer& buffer);
+	            net::Buffer& buffer);
 
 	static constexpr const char* GetPacketId()
 	{
-		return "msgServerEvent";
+		return "msgServerCommand";
 	}
 };
