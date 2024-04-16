@@ -33,7 +33,7 @@ namespace fx
 			server->AddRawInterceptor([server](const uint8_t* receivedData, size_t receivedDataLength,
 			                                   const net::PeerAddress& receivedAddress)
 			{
-				static auto interceptor = server->GetInstance()->GetComponent<fx::UdpInterceptor>();
+				static auto interceptor = server->GetInstance()->template GetComponent<fx::UdpInterceptor>();
 				static bool setCb{false};
 
 				if (!setCb)
