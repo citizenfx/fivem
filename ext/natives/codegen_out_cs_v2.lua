@@ -244,7 +244,7 @@ local overrideReturnTypes = {
 
 -- Explanation:
 --
--- compatWrapperTypes[base_method_type][compat_method_type]
+-- compatWrapperTypes[to_type][from_type]
 -- 
 -- {
 ---    [1] = [.{0}],                   -- pre base-call code, e.g.: "var _{0} = N64.Val({0})" so we can pass {0} as a ref
@@ -265,35 +265,35 @@ local compatWrapperTypes = {
 		['Vector3'] =   { nil, 'null', nil, 'default' }, -- shouldn't appear
 		['Vector3*'] =  { nil, 'null', nil, 'null' },
 		['default'] =   { nil, 'null', nil, 'default' },
-	},	
+	},
 	['ulong'] = {
 		['string'] =   { nil, '0', nil, '0' },
 		['ulong'] =    { nil, '{0}', nil },
 		['ulong*'] =   { nil, '{0}', nil },
-		['Vector3'] =  { nil, '{0}.X', nil, '*(ulong*)&{0}' }, -- shouldn't appear
-		['Vector3*'] = { nil, '{0}.X', nil, '*(ulong*)&{0}' },
+		['Vector3'] =  { nil, 'N64.Val({0}.X)', nil, 'N64.Val({0}.X)' }, -- shouldn't appear
+		['Vector3*'] = { nil, 'N64.Val({0}.X)', nil, 'N64.Val({0}.X)' },
 		['default'] =  { nil, '0', nil },
-	},	
+	},
 	['ulong*'] = {
-		['string'] =   { 'ulong _{0}', 'ref _{0}', nil }, -- prev: SEGFAULT		
+		['string'] =   { 'ulong _{0}', 'ref _{0}', nil }, -- prev: SEGFAULT
 		['ulong'] =    { nil, 'ref {0}', nil }, -- prev: SEGFAULT
 		['ulong*'] =   { nil, 'ref {0}', nil },
-		['Vector3'] =  { nil, 'ref *(ulong*)&{0}.X', nil }, -- shouldn't appear, prev: SEGFAULT
-		['Vector3*'] = { nil, 'ref *(ulong*)&{0}.X', nil },
+		['Vector3'] =  { 'ulong _{0} = N64.Val({0}.X)', 'ref _{0}', nil },
+		['Vector3*'] = { 'ulong _{0} = N64.Val({0}.X)', 'ref _{0}', '{0}.X = N64.To_float(_{0})' },
 		['default'] =  { 'ulong _{0} = 0', 'ref _{0}', nil },
-	},	
+	},
 	['Vector3'] = {
 		['string'] =   { nil, 'new Vector3(0.0f)', nil, 'default' },
 		['ulong'] =    { nil, 'new Vector3(N64.To_float({0}))', nil, 'new Vector3(N64.To_float({0}))' },
-		['ulong*'] =   { nil, 'new Vector3({0})', nil }, -- ptr interpreted as the Vec3's float X, ref var doesn't change
+		['ulong*'] =   { nil, 'new Vector3({0})', nil, 'new Vector3(N64.To_float({0}))' }, -- ptr interpreted as the Vec3's float X, ref var doesn't change
 		['Vector3'] =  { nil, '{0}', nil },
 		['Vector3*'] = { nil, '{0}', nil },
 		['default'] =  { nil, 'default(Vector3)', nil },
 	},
 	['Vector3*'] = {
-		['string'] =   { 'Vector3 _{0};\n', 'ref _{0}', nil },
-		['ulong'] =   { 'Vector3 _{0} = new Vector3(N64.To_float({0}))', 'ref _{0}', nil },
-		['ulong*'] =   { 'Vector3 _{0} = new Vector3({0})', 'ref _{0}', '{0} = N64.Val(_{0}.X)' },
+		['string'] =   { 'Vector3 _{0};\n', 'ref _{0}', nil, '#error unsupported pointer conversion from string to non-string type' },
+		['ulong'] =    { 'Vector3 _{0} = new Vector3(N64.To_float({0}))', 'ref _{0}', nil },
+		['ulong*'] =   { 'Vector3 _{0} = new Vector3({0})', 'ref _{0}', '{0} = N64.Val(_{0}.X)', '#error unsupported pointer conversion to a smaller type' },
 		['Vector3'] =  { nil, 'ref {0}', nil },
 		['Vector3*'] = { nil, 'ref {0}', nil },
 		['default'] =  { 'Vector3 _{0} = default', 'ref _{0}', nil },
