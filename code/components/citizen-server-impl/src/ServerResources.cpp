@@ -85,17 +85,16 @@ static void HandleServerEvent(fx::ServerInstanceBase* instance, const fx::Client
 		return;
 	}
 
-	std::string eventName;
-	eventName.resize(eventNameLength - 1);
-	buffer.Read(eventName.data(), eventName.size());
+	const std::string_view eventNameView = buffer.Read<std::string_view>(eventNameLength - 1);
 
 	// read 0, maybe we can drop the uint8 in the future with a new net version update
 	buffer.Read<uint8_t>();
 
 	const uint32_t dataLength = static_cast<uint32_t>(buffer.GetRemainingBytes());
 
-	if (!netEventSizeRateLimiter->Consume(netId, static_cast<double>(eventName.size() + dataLength)))
+	if (!netEventSizeRateLimiter->Consume(netId, static_cast<double>(eventNameView.size() + dataLength)))
 	{
+		std::string eventName (eventNameView);
 		gscomms_execute_callback_on_main_thread([client, instance, eventName]()
 		{
 			// if this happens, try increasing rateLimiter_netEventSize_rate and rateLimiter_netEventSize_burst
@@ -106,19 +105,14 @@ static void HandleServerEvent(fx::ServerInstanceBase* instance, const fx::Client
 		return;
 	}
 
-	std::string data;
-	if (dataLength)
-	{
-		data.resize(dataLength);
-		buffer.Read(data.data(), dataLength);
-	}
+	const std::string_view dataView = buffer.Read<std::string_view>(dataLength);
 
 	const fwRefContainer<fx::ResourceManager> resourceManager = instance->GetComponent<fx::ResourceManager>();
 	const fwRefContainer<fx::ResourceEventManagerComponent> eventManager = resourceManager->GetComponent<fx::ResourceEventManagerComponent>();
 
 	eventManager->QueueEvent(
-		eventName,
-		data,
+		std::string(eventNameView),
+		std::string(dataView),
 		"net:" + std::to_string(netId)
 	);
 }
