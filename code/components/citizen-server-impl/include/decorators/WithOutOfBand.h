@@ -6,12 +6,6 @@ namespace fx
 {
 	namespace ServerDecorators
 	{
-		template <typename... TOOB>
-		const fwRefContainer<fx::GameServer>& WithOutOfBand(const fwRefContainer<fx::GameServer>& server)
-		{
-			return WithOutOfBand<TOOB...>(server);
-		}
-
 		template <typename ServerImpl, typename... TOOB>
 		const fwRefContainer<ServerImpl>& WithOutOfBandImpl(const fwRefContainer<ServerImpl>& server)
 		{
@@ -100,6 +94,12 @@ namespace fx
 			});
 
 			return server;
+		}
+
+		template <typename... TOOB>
+		const fwRefContainer<fx::GameServer>& WithOutOfBand(const fwRefContainer<fx::GameServer>& server)
+		{
+			return WithOutOfBandImpl<fx::GameServer, TOOB...>(server);
 		}
 	}
 }
