@@ -59,12 +59,45 @@ public:
 	bool Read(void* buffer, size_t length);
 	void Write(const void* buffer, size_t length);
 
+	bool CanRead(size_t length) const
+	{
+		return m_curOff + length <= m_bytes->size();
+	}
+
+	bool EndsAfterRead(size_t length) const
+	{
+		return m_curOff + length >= m_bytes->size();
+	}
+
 	template<typename T>
 	T Read()
 	{
 		T tempValue;
 		Read(&tempValue, sizeof(T));
 
+		return tempValue;
+	}
+
+	/// <summary>
+	/// Reads a std::string[_view] from the buffer. std::string_view is read allocation free
+	/// </summary>
+	/// <param name="length">length of the string to read in bytes</param>
+	/// <returns>when the requested length can be read, it returns a std::string[_view] containing the data of the buffer at the current read position with the requested length, otherwise an empty std::string[_view] is returned.</returns>
+	template <typename T, typename = std::enable_if_t<std::is_same_v<T, std::string> || std::is_same_v<T, std::string_view>>>
+	T Read(size_t length)
+	{
+		if (EndsAfterRead(length))
+		{
+			m_end = true;
+
+			if (!CanRead(length))
+			{
+				return T();
+			}
+		}
+
+		T tempValue = T((char*)(GetBuffer() + m_curOff), length);
+		m_curOff += length;
 		return tempValue;
 	}
 
