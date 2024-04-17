@@ -111,3 +111,42 @@ TEST_CASE("Buffer overflow")
 	REQUIRE(holder.tempValue == 0);
 	REQUIRE(holder.padding == 123); // was previously 0xCE
 }
+
+TEST_CASE("Buffer ReadTo")
+{
+	net::Buffer bufferToRead{};
+	net::Buffer bufferToWrite{};
+	bufferToRead.Write<uint8_t>(1);
+	bufferToRead.Write<uint8_t>(2);
+	bufferToRead.Reset();
+	REQUIRE(bufferToRead.ReadTo(bufferToWrite, 2) == true);
+	bufferToWrite.Reset();
+	REQUIRE(bufferToWrite.Read<uint8_t>() == 1);
+	REQUIRE(bufferToWrite.Read<uint8_t>() == 2);
+}
+
+TEST_CASE("Buffer read string and string_view")
+{
+	net::Buffer buffer{};
+	const char* str = "buffer";
+	buffer.Write(str, 6);
+	buffer.Reset();
+	std::string_view view = buffer.Read<std::string_view>(6);
+	REQUIRE(str == view);
+	buffer.Reset();
+	std::string string = buffer.Read<std::string>(6);
+	REQUIRE(str == string);
+}
+
+TEST_CASE("Buffer can read")
+{
+	net::Buffer buffer{};
+	const uint64_t writeAmountOfBytes = TestUtils::u64Random(99) + 1;
+	for (uint64_t i = writeAmountOfBytes; i--;)
+	{
+		buffer.Write<uint8_t>(1);
+	}
+	buffer.Reset();
+	REQUIRE(buffer.CanRead(writeAmountOfBytes) == true);
+	REQUIRE(buffer.CanRead(writeAmountOfBytes + 1) == false);
+}
