@@ -63,7 +63,7 @@ namespace CitizenFX.Core
 		/// <param name="coroutine">Action to execute</param>
 		/// <param name="time">Time when it should be executed, see <see cref="CurrentTime"/></param>
 		public static void Schedule(Action coroutine, TimePoint time)
-		{			
+		{
 			if (time <= CurrentTime) // e.g.: Coroutine.Wait(0u) or Coroutine.Delay(0u)
 			{
 				Schedule(coroutine);
@@ -96,7 +96,7 @@ namespace CitizenFX.Core
 						}
 					}
 					else
-						ScriptInterface.RequestTick(time);
+						ScriptInterface.RequestTick(time); // no tasks were scheduled, so this needs to request a call-in
 
 					s_queue.AddLast(new Tuple<ulong, Action>(time, coroutine));
 				}
@@ -166,27 +166,25 @@ namespace CitizenFX.Core
 				// scheduled coroutines (ordered)
 				for (var it = s_queue.First; it != null;)
 				{
-					var curIt = it;
-					it = curIt.Next;
+					var current = it.Value;
 
-					if (curIt.Value.Item1 <= timeNow)
+					if (current.Item1 <= timeNow)
 					{
+						s_queue.Remove(it); // make sure we remove this one before any subsequent scheduling can happen
+						it = s_queue.First; // next is now over here, making use of the CPU cached results to keep performance
+
 						try
 						{
-							curIt.Value.Item2();
+							current.Item2();
 						}
 						catch (Exception ex)
 						{
 							Debug.WriteLine(ex.ToString());
 						}
-						finally
-						{
-							s_queue.Remove(curIt);
-						}
 					}
 					else
 					{
-						ScriptInterface.RequestTick(curIt.Value.Item1);
+						ScriptInterface.RequestTick(current.Item1);
 						return;
 					}
 				}
