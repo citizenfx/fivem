@@ -19,6 +19,13 @@
 #include <HostSharedData.h>
 
 #include <citversion.h>
+#include <ModalWindow.h>
+
+namespace
+{
+constexpr std::wstring_view kDisplayErrorTitle = L"Error updating " PRODUCT_NAME;
+constexpr std::wstring_view kDisplayErrorBody = L"An error ({0}, {1}) occurred while checking the bootstrapper version.";
+}
 
 extern std::string GetObjectURL(std::string_view objectHash, std::string_view suffix = "");
 
@@ -109,7 +116,7 @@ bool Bootstrap_DoBootstrap()
 		{
 			if (GetFileAttributes(MakeRelativeCitPath(L"CoreRT.dll").c_str()) == INVALID_FILE_ATTRIBUTES)
 			{
-				UI_DisplayError(va(L"An error (%i, %s) occurred while checking the bootstrapper version. Check if " CONTENT_URL_WIDE L" is available in your web browser.", result, ToWide(DL_RequestURLError())));
+				fx::ModalWindow::DisplayCurlError(kDisplayErrorTitle, fmt::format(kDisplayErrorBody, result, ToWide(DL_RequestURLError())), result, CONTENT_URL_WIDE);
 				return false;
 			}
 
@@ -126,7 +133,7 @@ bool Bootstrap_DoBootstrap()
 		{
 			if (GetFileAttributes(MakeRelativeCitPath(L"CoreRT.dll").c_str()) == INVALID_FILE_ATTRIBUTES)
 			{
-				UI_DisplayError(va(L"An error (%i, %s) occurred while checking the bootstrapper version. Check if " CONTENT_URL_WIDE L" is available in your web browser.", result, ToWide(DL_RequestURLError())));
+				fx::ModalWindow::DisplayCurlError(kDisplayErrorTitle, fmt::format(kDisplayErrorBody, result, ToWide(DL_RequestURLError())), result, CONTENT_URL_WIDE);
 				return false;
 			}
 
