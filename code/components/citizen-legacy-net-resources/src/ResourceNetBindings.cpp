@@ -49,6 +49,8 @@
 
 #include <json.hpp>
 
+#include "ScriptWarnings.h"
+
 static tbb::concurrent_queue<std::function<void()>> executeNextGameFrame;
 static NetAddress g_netAddress;
 
@@ -203,6 +205,47 @@ static pplx::task<std::vector<ResultTuple>> DownloadResources(std::vector<std::s
 	}
 
 	co_return list;
+}
+
+namespace
+{
+	size_t g_eventReassemblyGameFrameCookie = -1;
+	
+	void TriggerLatentServerEventInternal(fx::ScriptContext& context)
+	{
+		std::string eventName = context.GetArgument<const char*>(0);
+		size_t payloadSize = context.GetArgument<uint32_t>(2);
+
+		std::string_view eventPayload = std::string_view(context.GetArgument<const char*>(1), payloadSize);
+
+		int bps = context.GetArgument<int>(3);
+
+		auto reassembler = Instance<fx::ResourceManager>::Get()->GetComponent<fx::EventReassemblyComponent>();
+		reassembler->TriggerEvent(0, std::string_view{ eventName.c_str(), eventName.size() + 1 }, eventPayload, bps);
+	}
+
+	void TriggerDisabledLatentServerEventInternal(fx::ScriptContext& context)
+	{
+		fx::scripting::Warningf("natives", "TRIGGER_LATENT_SERVER_EVENT_INTERNAL requires setr sv_enableNetEventReassembly  true\n");
+	}
+
+	void EnableEventReassemblyChanged(internal::ConsoleVariableEntry<bool>* variableEntry)
+	{
+		OnGameFrame.Disconnect(g_eventReassemblyGameFrameCookie);
+
+		g_eventReassemblyGameFrameCookie = -1;
+
+		if (variableEntry->GetRawValue())
+		{
+			g_eventReassemblyGameFrameCookie = OnGameFrame.Connect([]()
+			{
+				auto reassembler = Instance<fx::ResourceManager>::Get()->GetComponent<fx::EventReassemblyComponent>();
+				reassembler->NetworkTick();
+			});
+		}
+	}
+
+	ConVar g_enableEventReassembly("sv_enableNetEventReassembly", ConVar_Replicated, true, EnableEventReassemblyChanged);
 }
 
 void NetLibraryResourcesComponent::UpdateOneResource()
@@ -675,15 +718,14 @@ void NetLibraryResourcesComponent::AttachToObject(NetLibrary* netLibrary)
 		}
 	});
 
-	OnGameFrame.Connect([]()
-	{
-		auto reassembler = Instance<fx::ResourceManager>::Get()->GetComponent<fx::EventReassemblyComponent>();
-		reassembler->NetworkTick();
-	});
-
 	netLibrary->AddReliableHandler(
 	"msgReassembledEvent", [](const char* buf, size_t len)
 	{
+		if (!g_enableEventReassembly.GetValue())
+		{
+			return;
+		}
+
 		auto reassembler = Instance<fx::ResourceManager>::Get()->GetComponent<fx::EventReassemblyComponent>();
 		reassembler->HandlePacket(0, std::string_view{ buf, len });
 	},
@@ -778,6 +820,18 @@ void NetLibraryResourcesComponent::AttachToObject(NetLibrary* netLibrary)
 		}
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("TRIGGER_LATENT_SERVER_EVENT_INTERNAL", [](fx::ScriptContext& context)
+	{
+		if (g_enableEventReassembly.GetValue())
+		{
+			TriggerLatentServerEventInternal(context);
+		} 
+		else
+		{
+			TriggerDisabledLatentServerEventInternal(context);
+		}
+	});
+
 	fx::ScriptEngine::RegisterNativeHandler("TRIGGER_SERVER_EVENT_INTERNAL", [netLibrary](fx::ScriptContext& context)
 	{
 		std::string eventName = context.GetArgument<const char*>(0);
@@ -794,19 +848,6 @@ void NetLibraryResourcesComponent::AttachToObject(NetLibrary* netLibrary)
 		buffer.Write(eventPayload.c_str(), eventPayload.size());
 
 		netLibrary->SendReliableCommand("msgServerEvent", reinterpret_cast<const char*>(buffer.GetBuffer()), buffer.GetCurOffset());
-	});
-
-	fx::ScriptEngine::RegisterNativeHandler("TRIGGER_LATENT_SERVER_EVENT_INTERNAL", [netLibrary](fx::ScriptContext& context)
-	{
-		std::string eventName = context.GetArgument<const char*>(0);
-		size_t payloadSize = context.GetArgument<uint32_t>(2);
-
-		std::string_view eventPayload = std::string_view(context.GetArgument<const char*>(1), payloadSize);
-
-		int bps = context.GetArgument<int>(3);
-
-		auto reassembler = Instance<fx::ResourceManager>::Get()->GetComponent<fx::EventReassemblyComponent>();
-		reassembler->TriggerEvent(0, std::string_view{ eventName.c_str(), eventName.size() + 1 }, eventPayload, bps);
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("REQUEST_RESOURCE_FILE_SET", [this](fx::ScriptContext& context)
