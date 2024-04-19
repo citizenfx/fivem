@@ -237,6 +237,7 @@ const NON_DISPLAY_SERVER_RESOURCE_NAMES = new Set([
   '_cfx_internal',
   'hardcap',
   'sessionmanager',
+  'monitor'
 ]);
 export function shouldDisplayServerResource(resourceName: string): boolean {
   return !NON_DISPLAY_SERVER_RESOURCE_NAMES.has(resourceName);
