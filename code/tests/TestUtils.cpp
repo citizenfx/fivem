@@ -43,3 +43,14 @@ std::string fx::TestUtils::asciiRandom(const uint64_t count)
 
 	return val;
 }
+
+void fx::TestUtils::fillVectorU8Random(std::vector<uint8_t>& data)
+{
+	static std::seed_seq ssq{Catch::getSeed()};
+	static std::default_random_engine eng{ssq};
+	std::uniform_int_distribution<uint64_t> dist(0, 255);
+	for (uint64_t i = 0, length = data.size(); i < length; ++i)
+	{
+		data[i] = static_cast<uint8_t>(dist(eng));
+	}
+}
