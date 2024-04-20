@@ -1341,31 +1341,46 @@ namespace fx
 		{
 			void Process(const fwRefContainer<fx::GameServer>& server, const net::PeerAddress& from, const std::string_view& dataView) const
 			{
-				auto limiter = server->GetInstance()->GetComponent<fx::PeerAddressRateLimiterStore>()->GetRateLimiter("rcon", fx::RateLimiterDefaults{ 0.2, 5.0 });
+				const auto limiter = server->GetInstance()->GetComponent<fx::PeerAddressRateLimiterStore>()->GetRateLimiter("rcon", fx::RateLimiterDefaults{ 0.2, 5.0 });
 
 				if (!fx::IsProxyAddress(from) && !limiter->Consume(from))
 				{
 					return;
 				}
 
-				std::string data(dataView);
+				const int spacePos = dataView.find_first_of(" \n");
+				if (spacePos == 0 || spacePos == std::string::npos || spacePos + 1 >= dataView.size())
+				{
+					// ignore packets that doesn't contain a command or password
+					return;
+				}
 
-				gscomms_execute_callback_on_main_thread([=]()
+				const std::string_view passwordView = dataView.substr(0, spacePos);
+				const std::string_view commandView = dataView.substr(spacePos);
+				
+				if (server->GetRconPassword().empty())
+				{
+					static const char* response = "print The server must set rcon_password to be able to use this command.\n";
+					server->SendOutOfBand(from, response);
+					return;
+				}
+				
+				if (passwordView != server->GetRconPassword())
+				{
+					static const char* response = "print Invalid password.\n";
+					server->SendOutOfBand(from, response);
+					return;
+				}
+
+				// reset rate limit for this client, because the command is authorized
+				limiter->Reset(from);
+				
+				std::string command(commandView);
+
+				gscomms_execute_callback_on_main_thread([server, from, command = std::move(command)]()
 				{
 					try
 					{
-						int spacePos = data.find_first_of(" \n");
-
-						if (spacePos == std::string::npos)
-						{
-							return;
-						}
-
-						auto password = data.substr(0, spacePos);
-						auto command = data.substr(spacePos);
-
-						auto serverPassword = server->GetRconPassword();
-
 						std::string printString;
 
 						ScopeDestructor destructor([&]()
@@ -1373,23 +1388,8 @@ namespace fx
 							server->SendOutOfBand(from, "print " + printString);
 						});
 
-						if (serverPassword.empty())
-						{
-							printString += "The server must set rcon_password to be able to use this command.\n";
-							return;
-						}
-
-						if (password != serverPassword)
-						{
-							printString += "Invalid password.\n";
-							return;
-						}
-
 						// log rcon request
 						console::Printf("rcon", "Rcon from %s\n%s\n", from.ToString(), command);
-
-						// reset rate limit for this key
-						limiter->Reset(from);
 
 						PrintListenerContext context([&printString](std::string_view print)
 						{
@@ -1398,14 +1398,14 @@ namespace fx
 
 						fx::PrintFilterContext filterContext([](ConsoleChannel& channel, std::string_view print)
 						{
-							channel = fmt::sprintf("rcon/%s", channel);
+							channel = "rcon/" + channel;
 						});
 
 						auto ctx = server->GetInstance()->GetComponent<console::Context>();
 						ctx->ExecuteBuffer();
 
 						se::ScopedPrincipal principalScope(se::Principal{ "system.console" });
-						ctx->AddToBuffer(std::string(command));
+						ctx->AddToBuffer(command);
 						ctx->ExecuteBuffer();
 					}
 					catch (std::exception& e)
