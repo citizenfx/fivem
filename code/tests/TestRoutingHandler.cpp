@@ -17,6 +17,9 @@ class ServerInstance : public fx::ServerInstanceBase
 
 struct FarLockImpl : fx::FarLock::ImplBase
 {
+	// actual implementation uses folly's shared mutex
+	std::shared_mutex mutex;
+	
 	bool TryLock() override
 	{
 		return mutex.try_lock();
@@ -41,9 +44,6 @@ struct FarLockImpl : fx::FarLock::ImplBase
 	{
 		return mutex.unlock_shared();
 	}
-
-	// actual implementation uses folly's shared mutex
-	std::shared_mutex mutex;
 };
 
 fx::FarLock::FarLock()
@@ -107,10 +107,11 @@ struct ParseGameStatePacketData
 	}
 };
 
-std::optional<ParseGameStatePacketData> g_parseGameStatePacketDataLastCall{};
-
 class GameState : public fx::ServerGameStatePublic
 {
+public:
+	static inline std::optional<ParseGameStatePacketData> parseGameStatePacketDataLastCall{};
+
 	void SendObjectIds(const fx::ClientSharedPtr& client, int numIds) override
 	{
 	}
@@ -127,7 +128,7 @@ class GameState : public fx::ServerGameStatePublic
 
 	void ParseGameStatePacket(const fx::ClientSharedPtr& client, const std::vector<uint8_t>& packetData) override
 	{
-		g_parseGameStatePacketDataLastCall.emplace(client, packetData);
+		parseGameStatePacketDataLastCall.emplace(client, packetData);
 	}
 
 	void ForAllEntities(const std::function<void(fx::sync::Entity*)>& cb) override
@@ -139,25 +140,31 @@ class GameState : public fx::ServerGameStatePublic
 TEST_CASE("Routing handler test")
 {
 	fx::SetOneSyncGetCallback([] { return true; });
+
 	REQUIRE(RoutingPacketHandler::GetPacketId() == "msgRoute");
 	REQUIRE(HashRageString(RoutingPacketHandler::GetPacketId()) == 0xE938445B);
 	// test is only implemented for onesync
 	REQUIRE(fx::IsOneSync() == true);
+
 	ServerInstance* serverInstance = new ServerInstance();
 	serverInstance->SetComponent(new fx::ClientRegistry());
 	serverInstance->SetComponent<fx::ServerGameStatePublic>(new GameState());
-	const fx::ClientSharedPtr client = serverInstance->GetComponent<fx::ClientRegistry>()->MakeClient("test");
+
 	net::Buffer buffer;
 	buffer.Write<uint16_t>(1); // target net id
 	std::vector<uint8_t> data (1200);
 	fx::TestUtils::fillVectorU8Random(data);
 	buffer.Write<uint16_t>(data.size()); // packet length
 	buffer.Write(data.data(), data.size());
-	g_parseGameStatePacketDataLastCall.reset();
 	buffer.Reset();
+
+	GameState::parseGameStatePacketDataLastCall.reset();
+	const fx::ClientSharedPtr client = serverInstance->GetComponent<fx::ClientRegistry>()->MakeClient("test");
 	RoutingPacketHandler::Handle(serverInstance, client, buffer);
-	REQUIRE(g_parseGameStatePacketDataLastCall.has_value() == true);
-	REQUIRE(g_parseGameStatePacketDataLastCall.value().client == client);
-	REQUIRE(g_parseGameStatePacketDataLastCall.value().packetData == data);
+
+	REQUIRE(GameState::parseGameStatePacketDataLastCall.has_value() == true);
+	REQUIRE(GameState::parseGameStatePacketDataLastCall.value().client == client);
+	REQUIRE(GameState::parseGameStatePacketDataLastCall.value().packetData == data);
+
 	delete serverInstance;
 }
