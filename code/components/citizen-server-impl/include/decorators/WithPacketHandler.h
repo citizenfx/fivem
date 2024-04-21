@@ -1,5 +1,6 @@
 #pragma once
-#include "ForceConsteval.h"
+
+#include <ForceConsteval.h>
 
 namespace fx
 {
@@ -20,7 +21,7 @@ namespace fx
 				// any fast-path handlers?
 				([&]
 				{
-					if (!handled && packetId == fx::force_consteval<uint32_t, HashRageString(THandler::GetPacketId())>)
+					if (!handled && packetId == net::force_consteval<uint32_t, HashRageString(THandler::GetPacketId())>)
 					{
 						static THandler handler (server->GetInstance());
 						handler.Handle(server->GetInstance(), client, packet);
