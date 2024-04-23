@@ -285,8 +285,18 @@ int NodeScriptRuntime::GetInstanceId()
 
 int NodeScriptRuntime::HandlesFile(char* filename, IScriptHostWithResourceData* metadata)
 {
-	// use cjs extension, since .js is used by the old node module and it only supports commonjs anyway
-    return strstr(filename, ".cjs") != nullptr;
+	if(strstr(filename, ".js"))
+	{
+		char* value = nullptr;
+		metadata->GetResourceMetaData(const_cast<char*>("node_rt"), 0, &value);
+
+		if (value && strcmp(value, "node16") == 0)
+		{
+			return false;
+		}
+		return true;
+	}
+    return  false;
 }
 
 result_t NodeScriptRuntime::LoadFileInternal(OMPtr<fxIStream> stream, char* scriptFile, v8::Local<v8::Script>* outScript)
