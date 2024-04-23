@@ -173,6 +173,9 @@ namespace fx
 
 		client->SetNetId(m_curNetId);
 		incrementId();
+
+		// increment amount of connected clients
+		++m_amountConnectedClients;
 	}
 
 	void ClientRegistry::HandleConnectedClient(const fx::ClientSharedPtr& client, uint32_t oldNetID)
