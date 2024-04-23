@@ -1243,51 +1243,12 @@ namespace fx
 			}
 		};
 
-		struct GetInfoOOB
-		{
-			inline void Process(const fwRefContainer<fx::GameServer>& server, const net::PeerAddress& from, const std::string_view& data) const
-			{
-				auto limiter = server->GetInstance()->GetComponent<fx::PeerAddressRateLimiterStore>()->GetRateLimiter("getinfo", fx::RateLimiterDefaults{ 2.0, 10.0 });
-
-				if (!fx::IsProxyAddress(from) && !limiter->Consume(from))
-				{
-					return;
-				}
-
-				int numClients = 0;
-
-				server->GetInstance()->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const fx::ClientSharedPtr& client)
-				{
-					if (client->GetNetId() < 0xFFFF)
-					{
-						++numClients;
-					}
-				});
-
-				server->SendOutOfBand(from, fmt::format(
-					"infoResponse\n"
-					"\\sv_maxclients\\{6}\\clients\\{4}\\challenge\\{0}\\gamename\\CitizenFX\\protocol\\4\\hostname\\{1}\\gametype\\{2}\\mapname\\{3}\\iv\\{5}",
-					std::string(data.substr(0, data.find_first_of(" \n"))),
-					server->GetVariable("sv_hostname"),
-					server->GetVariable("gametype"),
-					server->GetVariable("mapname"),
-					numClients,
-					server->GetVariable("sv_infoVersion"),
-					server->GetVariable("sv_maxclients")
-				));
-			}
-
-			inline const char* GetName() const
-			{
-				return "getinfo";
-			}
-		};
-
 		struct GetStatusOOB
 		{
-			inline void Process(const fwRefContainer<fx::GameServer>& server, const net::PeerAddress& from, const std::string_view& data) const
+			template <typename ServerImpl>
+			static void Process(const fwRefContainer<ServerImpl>& server, const net::PeerAddress& from, const std::string_view& data)
 			{
-				auto limiter = server->GetInstance()->GetComponent<fx::PeerAddressRateLimiterStore>()->GetRateLimiter("getstatus", fx::RateLimiterDefaults{ 1.0, 5.0 });
+				const auto limiter = server->GetInstance()->template GetComponent<fx::PeerAddressRateLimiterStore>()->GetRateLimiter("getstatus", fx::RateLimiterDefaults{ 1.0, 5.0 });
 
 				if (!fx::IsProxyAddress(from) && !limiter->Consume(from))
 				{
@@ -1317,7 +1278,7 @@ namespace fx
 				addInfo("sv_maxclients", "24");
 				addInfo("clients", std::to_string(numClients));
 
-				server->GetInstance()->GetComponent<console::Context>()->GetVariableManager()->ForAllVariables([&](const std::string& name, int flags, const std::shared_ptr<internal::ConsoleVariableEntryBase>& var)
+				server->GetInstance()->template GetComponent<console::Context>()->GetVariableManager()->ForAllVariables([&](const std::string& name, int flags, const std::shared_ptr<internal::ConsoleVariableEntryBase>& var)
 				{
 					addInfo(name, var->GetValue());
 				}, ConVar_ServerInfo);
@@ -1331,7 +1292,7 @@ namespace fx
 				));
 			}
 
-			inline const char* GetName() const
+			static constexpr const char* GetName()
 			{
 				return "getstatus";
 			}
@@ -1339,9 +1300,10 @@ namespace fx
 
 		struct RconOOB
 		{
-			void Process(const fwRefContainer<fx::GameServer>& server, const net::PeerAddress& from, const std::string_view& dataView) const
+			template <typename ServerImpl>
+			static void Process(const fwRefContainer<ServerImpl>& server, const net::PeerAddress& from, const std::string_view& dataView)
 			{
-				auto limiter = server->GetInstance()->GetComponent<fx::PeerAddressRateLimiterStore>()->GetRateLimiter("rcon", fx::RateLimiterDefaults{ 0.2, 5.0 });
+				auto limiter = server->GetInstance()->template GetComponent<fx::PeerAddressRateLimiterStore>()->GetRateLimiter("rcon", fx::RateLimiterDefaults{ 0.2, 5.0 });
 
 				if (!fx::IsProxyAddress(from) && !limiter->Consume(from))
 				{
@@ -1401,7 +1363,7 @@ namespace fx
 							channel = fmt::sprintf("rcon/%s", channel);
 						});
 
-						auto ctx = server->GetInstance()->GetComponent<console::Context>();
+						auto ctx = server->GetInstance()->template GetComponent<console::Context>();
 						ctx->ExecuteBuffer();
 
 						se::ScopedPrincipal principalScope(se::Principal{ "system.console" });
@@ -1415,7 +1377,7 @@ namespace fx
 				});
 			}
 
-			inline const char* GetName() const
+			static constexpr const char* GetName()
 			{
 				return "rcon";
 			}
@@ -1633,6 +1595,8 @@ DECLARE_INSTANCE_TYPE(fx::ServerDecorators::HostVoteCount);
 #include <decorators/WithOutOfBand.h>
 #include <decorators/WithProcessTick.h>
 #include <decorators/WithPacketHandler.h>
+
+#include <oobhandlers/GetInfoOOB.h>
 
 DLL_EXPORT void gscomms_execute_callback_on_main_thread(const std::function<void()>& fn, bool force)
 {

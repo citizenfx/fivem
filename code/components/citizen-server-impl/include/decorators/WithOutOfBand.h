@@ -6,24 +6,15 @@ namespace fx
 {
 	namespace ServerDecorators
 	{
+		template<uint32_t I>
+		inline uint32_t verify_const_uint32()
+		{
+			return I;
+		}
+		
 		template <typename ServerImpl, typename... TOOB>
 		const fwRefContainer<ServerImpl>& WithOutOfBandImpl(const fwRefContainer<ServerImpl>& server)
 		{
-			// this is static because GCC seems to get really confused when things are wrapped in a lambda
-			static std::map<std::string, std::function<void(const fwRefContainer<ServerImpl>& server,
-			                                                const net::PeerAddress& from,
-			                                                const std::string_view& data)>, std::less<>> processors;
-
-			([&]()
-			{
-				auto oob = TOOB();
-				processors.insert({
-					oob.GetName(),
-					std::bind(&std::remove_reference_t<decltype(oob)>::Process, &oob, std::placeholders::_1,
-					          std::placeholders::_2, std::placeholders::_3)
-				});
-			}(), ...);
-
 			server->AddRawInterceptor([server](const uint8_t* receivedData, size_t receivedDataLength,
 			                                   const net::PeerAddress& receivedAddress)
 			{
@@ -71,17 +62,19 @@ namespace fx
 					{
 						keyEnd = len;
 					}
-					auto key = sv.substr(0, keyEnd);
+					auto key = HashRageString(sv.substr(0, keyEnd));
 
 					// we don't skip messages with no data, but we make sure we keep substr inside bounds
 					auto data = sv.substr(std::min(keyEnd + 1, len));
 
-					auto it = processors.find(key);
-
-					if (it != processors.end())
+					([&]
 					{
-						it->second(tempServer, from, data);
-					}
+						if (key == verify_const_uint32<HashRageString(TOOB::GetName())>())
+						{
+							TOOB::Process(tempServer, from, data);
+							return true;
+						}
+					}(), ...);
 
 					return true;
 				}
