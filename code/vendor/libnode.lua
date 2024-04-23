@@ -2,9 +2,10 @@ return {
 	include = function()
 		includedirs { '../vendor/libnode/' }
 		includedirs { '../vendor/libnode/node/' }
-		includedirs { '../vendor/libnode/node/uv/' }
-		includedirs { '../vendor/libnode/node/v8/' }
-		includedirs { '../vendor/libnode/node/openssl/' }
+		includedirs { '../vendor/libnode/node/src/' }
+		includedirs { '../vendor/libnode/node/deps/uv/include/' }
+		includedirs { '../vendor/libnode/node/deps/v8/include/' }
+		includedirs { '../vendor/libnode/node/deps/openssl/' }
 
         if os.istarget('windows') then
             libdirs { '../vendor/libnode/bin/' }

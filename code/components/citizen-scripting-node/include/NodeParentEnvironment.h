@@ -11,8 +11,8 @@
 
 #include <om/OMComponent.h>
 
-#include <node/node.h>
-#include <node/uv/uv.h>
+#include <node/src/node.h>
+#include <node/deps/uv/include/uv.h>
 
 namespace fx::nodejs
 {

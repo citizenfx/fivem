@@ -7,7 +7,7 @@
 
 #include "StdInc.h"
 
-#include <node/v8/v8-profiler.h>
+#include <node/deps/v8/include/v8-profiler.h>
 
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>

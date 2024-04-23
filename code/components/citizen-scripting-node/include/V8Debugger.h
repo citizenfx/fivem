@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <node/v8/v8.h>
+#include <node/deps/v8/include/v8.h>
 
 namespace fx
 {

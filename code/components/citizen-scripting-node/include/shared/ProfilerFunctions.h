@@ -7,8 +7,7 @@
 
 #pragma once
 
-#include <node/node.h>
-#include <node/v8/v8-profiler.h>
+#include <node/deps/v8/include/v8-profiler.h>
 
 #include <fstream>
 

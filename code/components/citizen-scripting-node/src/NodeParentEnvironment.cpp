@@ -10,7 +10,7 @@
 #include <NodeParentEnvironment.h>
 #include <console/Console.h>
 
-#include <node/v8/libplatform/libplatform.h>
+#include <node/deps/v8/include/libplatform/libplatform.h>
 #include "shared/RuntimeHelpers.h"
 
 namespace fx::nodejs
