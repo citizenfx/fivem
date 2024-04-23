@@ -22,6 +22,7 @@
   "citizen:scripting:mono",
   "citizen:scripting:mono-v2",
   "citizen:scripting:v8node",
+  "citizen:scripting:node",
   "voip-server:mumble",
   "http-client"
 ]
