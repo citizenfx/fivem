@@ -2461,7 +2461,24 @@ int32_t V8ScriptRuntime::HandlesFile(char* fileName, IScriptHostWithResourceData
 		return false;
 	}
 
-	return strstr(fileName, ".js") != 0;
+	const auto isJS = strstr(fileName, ".js");
+
+	if (!UseNode() && isJS)
+	{
+		return true;
+	}
+
+	if (isJS)
+	{
+		char* value = nullptr;
+		metadata->GetResourceMetaData(const_cast<char*>("node_rt"), 0, &value);
+
+		if (value && strcmp(value, "node16") == 0)
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 struct FakeScope
