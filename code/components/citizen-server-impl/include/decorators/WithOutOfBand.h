@@ -2,16 +2,12 @@
 
 #include <UdpInterceptor.h>
 
+#include "ForceConsteval.h"
+
 namespace fx
 {
 	namespace ServerDecorators
 	{
-		template<uint32_t I>
-		inline uint32_t verify_const_uint32()
-		{
-			return I;
-		}
-		
 		template <typename ServerImpl, typename... TOOB>
 		const fwRefContainer<ServerImpl>& WithOutOfBandImpl(const fwRefContainer<ServerImpl>& server)
 		{
@@ -69,7 +65,7 @@ namespace fx
 
 					([&]
 					{
-						if (key == verify_const_uint32<HashRageString(TOOB::GetName())>())
+						if (key == fx::force_consteval<uint32_t, HashRageString(TOOB::GetName())>)
 						{
 							TOOB::Process(tempServer, from, data);
 							return true;
