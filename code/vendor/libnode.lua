@@ -9,7 +9,7 @@ return {
 
         if os.istarget('windows') then
             libdirs { '../vendor/libnode/bin/' }
-            links { 'libnode.lib' }
+            links { 'libnode20.lib' }
         end
 	end,
 
@@ -29,30 +29,30 @@ return {
                 buildmessage 'Preparing libnode'
 
                 buildoutputs {
-                    '%%{cfg.targetdir}/libnode.dll',
+                    '%%{cfg.targetdir}/libnode20.dll',
                 }
 
                 buildcommands {
                     -- download files, redownload only if outdated
-                    ('curl.exe "-z%s/%s" -L "-o%s/%s" "%s/%s"'):format(nodeBinDir, 'libnode.dll', nodeBinDir, 'libnode.dll', baseURL, 'libnode.dll'),
-                    ('curl.exe "-z%s/%s" -L "-o%s/%s" "%s/%s"'):format(nodeBinDir, 'libnode.pdb', nodeBinDir, 'libnode.pdb', baseURL, 'libnode.pdb'),
-                    ('curl.exe "-z%s/%s" -L "-o%s/%s" "%s/%s"'):format(nodeBinDir, 'libnode.lib', nodeBinDir, 'libnode.lib', baseURL, 'libnode.lib'),
+                    ('curl.exe "-z%s/%s" -L "-o%s/%s" "%s/%s"'):format(nodeBinDir, 'libnode20.dll', nodeBinDir, 'libnode20.dll', baseURL, 'libnode20.dll'),
+                    ('curl.exe "-z%s/%s" -L "-o%s/%s" "%s/%s"'):format(nodeBinDir, 'libnode20.pdb', nodeBinDir, 'libnode20.pdb', baseURL, 'libnode20.pdb'),
+                    ('curl.exe "-z%s/%s" -L "-o%s/%s" "%s/%s"'):format(nodeBinDir, 'libnode20.lib', nodeBinDir, 'libnode20.lib', baseURL, 'libnode20.lib'),
 					'if %errorlevel% neq 0 (exit /b 1)',
-					('{COPY} %s/libnode.dll %%{cfg.targetdir}'):format(nodeBinDir),
+					('{COPY} %s/libnode20.dll %%{cfg.targetdir}'):format(nodeBinDir),
                     -- copy pdb manually to the server files
-					('{COPY} %s/libnode.pdb %%{cfg.targetdir}/dbg'):format(nodeBinDir),
+					('{COPY} %s/libnode20.pdb %%{cfg.targetdir}/dbg'):format(nodeBinDir),
                 }
 		else
 			filter 'files:**/tag.txt'
                 buildmessage 'Preparing libnode'
 
                 buildoutputs {
-                    '%%{cfg.targetdir}/libnode.so',
+                    '%%{cfg.targetdir}/libnode20.so',
                 }
 
                 buildcommands {
-                    ('curl "-z%s/%s" -L "-o%s/%s" "%s/%s"'):format(nodeBinDir, 'libnode.so', nodeBinDir, 'libnode.so', baseURL, 'libnode.so'),
-					('{COPY} %s/libnode.so %%{cfg.targetdir}'):format(nodeBinDir),
+                    ('curl "-z%s/%s" -L "-o%s/%s" "%s/%s"'):format(nodeBinDir, 'libnode20.so', nodeBinDir, 'libnode20.so', baseURL, 'libnode20.so'),
+					('{COPY} %s/libnode20.so %%{cfg.targetdir}'):format(nodeBinDir),
                 }
 		end
 
