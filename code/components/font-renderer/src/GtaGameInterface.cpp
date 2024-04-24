@@ -16,6 +16,7 @@
 #include <Hooking.h>
 #include <CL2LaunchMode.h>
 #include <CfxReleaseInfo.h>
+#include <CfxProductInfo.h>
 
 #include "memdbgon.h"
 
@@ -394,13 +395,10 @@ static InitFunction initFunction([] ()
 				return L"";
 			};
 
-			brandName = L"FiveM";
+			brandName = PRODUCT_NAME;
+#ifndef GTA_NY
 			brandingEmoji = getDayEmoji();
-
-#if defined(IS_RDR3)
-			brandName = L"RedM";
-#elif defined(GTA_NY)
-			brandName = L"LibertyM";
+#else
 			brandingEmoji = L"\U0001F5FD";
 #endif
 

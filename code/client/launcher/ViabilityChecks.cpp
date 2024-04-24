@@ -8,6 +8,7 @@
 #include <shellapi.h>
 #include <shlobj.h>
 
+#include <CfxProductInfo.h>
 #if defined(LAUNCHER_PERSONALITY_MAIN)
 #include <CfxLocale.h>
 #endif

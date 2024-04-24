@@ -16,6 +16,7 @@
 #include <sstream>
 
 #include <CfxState.h>
+#include <CfxProductInfo.h>
 #include <HostSharedData.h>
 
 #include <citversion.h>
@@ -83,7 +84,11 @@ bool Bootstrap_DoBootstrap()
 
 	auto fetchContent = [&contentHeaders, &bootstrapVersion](const std::string& updateChannel)
 	{
+#ifdef UPDATE_NAME
+		return DL_RequestURL(va(CONTENT_URL "/heads/" UPDATE_NAME "/%s?time=%lld", updateChannel, _time64(NULL)), bootstrapVersion, sizeof(bootstrapVersion), contentHeaders);
+#else
 		return DL_RequestURL(va(CONTENT_URL "/heads/" CONTENT_NAME "/%s?time=%lld", updateChannel, _time64(NULL)), bootstrapVersion, sizeof(bootstrapVersion), contentHeaders);
+#endif
 	};
 
 	int result = fetchContent(GetUpdateChannel());

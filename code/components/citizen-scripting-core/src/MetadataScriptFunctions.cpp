@@ -11,6 +11,7 @@
 #include <ResourceManager.h>
 #include <ResourceMetaDataComponent.h>
 
+#include <CfxProductInfo.h>
 #include <VFSManager.h>
 
 #if __has_include(<CrossBuildRuntime.h>) && defined(_WIN32)
@@ -209,21 +210,7 @@ static InitFunction initFunction([] ()
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_GAME_NAME", [](fx::ScriptContext& context)
 	{
-		const char* gameName =
-#ifdef IS_FXSERVER
-		"fxserver"
-#elif defined(GTA_FIVE)
-		"fivem"
-#elif defined(GTA_NY)
-		"libertym"
-#elif defined(IS_RDR3)
-		"redm"
-#else
-		"unknown"
-#endif
-		;
-
-		context.SetResult<const char*>(gameName);
+		context.SetResult<const char*>(CONTENT_NAME);
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_GAME_BUILD_NUMBER", [](fx::ScriptContext& context)

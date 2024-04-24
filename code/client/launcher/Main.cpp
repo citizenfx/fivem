@@ -34,6 +34,7 @@
 #include "ErrorFormat.Win32.h"
 
 #include <CfxLocale.h>
+#include <CfxProductInfo.h>
 #include <filesystem>
 
 void InitializeDummies();

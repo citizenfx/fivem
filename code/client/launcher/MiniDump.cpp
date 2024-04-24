@@ -19,6 +19,7 @@
 #include <CfxLocale.h>
 #include <CfxState.h>
 #include <CfxSubProcess.h>
+#include <CfxProductInfo.h>
 #include <HostSharedData.h>
 
 using namespace google_breakpad;

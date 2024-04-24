@@ -33,8 +33,8 @@ const wchar_t* const MonoComponentHostShared::s_platformAssemblies[] = {
 	L"System.Core.dll",
 	L"CitizenFX.Core.dll",
 	//L"CitizenFX.Core.Client.dll",
-	L"CitizenFX." PRODUCT_NAME ".dll",
-	L"CitizenFX." PRODUCT_NAME ".NativeImpl.dll",
+	L"CitizenFX." PRODUCT_NAME_NARROW ".dll",
+	L"CitizenFX." PRODUCT_NAME_NARROW ".NativeImpl.dll",
 };
 #endif
 

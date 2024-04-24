@@ -468,11 +468,11 @@ static BOOL WINAPI GetFileVersionInfoWStub(_In_ LPCWSTR lptstrFilename, _Reserve
 	{
 		if (StrStrIW(lptstrFilename, L"Social Club\\SocialClub") != NULL)
 		{
-			g_nextFileVersion = {2, 0, 9, 0};
+			g_nextFileVersion = SOCIAL_CLUB_VERSION;
 		}
 		else if (StrStrIW(lptstrFilename, L"Social Club\\libcef.dll") != NULL)
 		{
-			g_nextFileVersion = {85, 3, 9, 0};
+			g_nextFileVersion = SOCIAL_CLUB_CEF_VERSION;
 		}
 	}
 

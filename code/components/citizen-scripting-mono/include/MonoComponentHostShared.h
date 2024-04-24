@@ -15,18 +15,7 @@
 #include <CoreConsole.h>
 
 #include <EASTL/fixed_hash_map.h>
-
-#ifdef IS_FXSERVER
-#define PRODUCT_NAME "Server"
-#elif defined(GTA_FIVE)
-#define PRODUCT_NAME "FiveM"
-#elif defined(IS_RDR3)
-#define PRODUCT_NAME "RedM"
-#elif defined(GTA_NY)
-#define PRODUCT_NAME "LibertyM"
-#else
-static_assert(false, "No native wrapper dll set for this game or program, are you missing a preprocessor definition?");
-#endif
+#include <CfxProductInfo.h>
 
 #ifndef _WIN32
 #define FX_API 

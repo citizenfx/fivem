@@ -9,6 +9,7 @@
 
 #if defined(LAUNCHER_PERSONALITY_MAIN) || defined(LAUNCHER_PERSONALITY_GAME) || defined(COMPILING_GLUE)
 #include <CfxState.h>
+#include <CfxProductInfo.h>
 #include <HostSharedData.h>
 
 #if defined(LAUNCHER_PERSONALITY_MAIN) || defined(COMPILING_GLUE)

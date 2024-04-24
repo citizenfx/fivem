@@ -25,7 +25,7 @@
 #include <mono/metadata/threads.h>
 
 #define CITIZENFX_CORE "CitizenFX.Core"
-#define CITIZENFX_GAME_NATIVE "CitizenFX." PRODUCT_NAME ".Native"
+#define CITIZENFX_GAME_NATIVE "CitizenFX." PRODUCT_NAME_NARROW ".Native"
 
 namespace fx::mono
 {

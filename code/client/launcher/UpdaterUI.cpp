@@ -24,6 +24,7 @@
 #include <roapi.h>
 
 #include <CfxState.h>
+#include <CfxProductInfo.h>
 #include <HostSharedData.h>
 
 #include <boost/algorithm/string.hpp>

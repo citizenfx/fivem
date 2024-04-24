@@ -11,6 +11,7 @@
 #include "ErrorFormat.Win32.h"
 
 #include <CfxLocale.h>
+#include <CfxProductInfo.h>
 
 // the maximum number of concurrent downloads
 #define MAX_CONCURRENT_DOWNLOADS 6

@@ -13,6 +13,7 @@
 #include <CfxLocale.h>
 
 #include <HostSharedData.h>
+#include <CfxProductInfo.h>
 #include <CfxState.h>
 
 #include <wrl.h>

@@ -9,6 +9,7 @@
 
 #if defined(LAUNCHER_PERSONALITY_MAIN) || defined(COMPILING_GLUE)
 #include <CfxLocale.h>
+#include <CfxProductInfo.h>
 #include <tinyxml2.h>
 
 #include <stdint.h>

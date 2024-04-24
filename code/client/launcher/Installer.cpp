@@ -17,6 +17,7 @@
 #include <filesystem>
 
 #include <CfxLocale.h>
+#include <CfxProductInfo.h>
 
 #include "launcher.rc.h"
 
@@ -64,13 +65,7 @@ static std::wstring GetRootPath()
 
 	if (!appDataPath.empty())
 	{
-#ifdef GTA_FIVE
-		appDataPath += L"\\FiveM";
-#elif defined(IS_RDR3)
-		appDataPath += L"\\RedM";
-#else
-		appDataPath += L"\\Cfx.re";
-#endif
+		appDataPath += L"\\" PRODUCT_NAME;
 
 		CreateDirectory(appDataPath.c_str(), nullptr);
 	}

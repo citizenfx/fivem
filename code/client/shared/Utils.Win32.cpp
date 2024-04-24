@@ -11,6 +11,7 @@
 #include <direct.h>
 #include <io.h>
 
+#include <CfxProductInfo.h>
 #include <CfxState.h>
 #include <HostSharedData.h>
 
@@ -33,11 +34,8 @@ fwPlatformString GetAbsoluteCitPath()
 		{
 			if (GetFileAttributes((citizenPath + L"CoreRT.dll").c_str()) == INVALID_FILE_ATTRIBUTES)
 			{
-#ifdef IS_RDR3
-				if (!CreateDirectory((citizenPath + L"RedM.app").c_str(), nullptr))
-#else
-				if (!CreateDirectory((citizenPath + L"FiveM.app").c_str(), nullptr))
-#endif
+
+				if (!CreateDirectory((citizenPath + PRODUCT_NAME ".app").c_str(), nullptr))
 				{
 					DWORD error = GetLastError();
 
@@ -52,12 +50,7 @@ fwPlatformString GetAbsoluteCitPath()
 		// is this subdirectory-based Citizen? if so, append the subdirectory
 		if (GetFileAttributes((citizenPath + L"CoreRT.dll").c_str()) == INVALID_FILE_ATTRIBUTES)
 		{
-			std::wstring subPath = citizenPath +
-#ifdef IS_RDR3
-								   L"RedM.app";
-#else
-								   L"FiveM.app";
-#endif
+			std::wstring subPath = citizenPath + PRODUCT_NAME ".app";
 
 			if (GetFileAttributes(subPath.c_str()) != INVALID_FILE_ATTRIBUTES && (GetFileAttributes(subPath.c_str()) & FILE_ATTRIBUTE_DIRECTORY) != 0)
 			{
