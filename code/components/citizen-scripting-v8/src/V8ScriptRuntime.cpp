@@ -2470,13 +2470,9 @@ int32_t V8ScriptRuntime::HandlesFile(char* fileName, IScriptHostWithResourceData
 
 	if (isJS)
 	{
-		char* value = nullptr;
-		metadata->GetResourceMetaData(const_cast<char*>("node_rt"), 0, &value);
-
-		if (value && strcmp(value, "node16") == 0)
-		{
-			return true;
-		}
+		int isNode16 = 0;
+		metadata->GetNumResourceMetaData("node16", &isNode16);
+		return isNode16 > 0;
 	}
 	return false;
 }

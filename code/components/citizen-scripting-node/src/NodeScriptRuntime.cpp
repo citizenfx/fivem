@@ -287,14 +287,9 @@ int NodeScriptRuntime::HandlesFile(char* filename, IScriptHostWithResourceData* 
 {
 	if(strstr(filename, ".js"))
 	{
-		char* value = nullptr;
-		metadata->GetResourceMetaData(const_cast<char*>("node_rt"), 0, &value);
-
-		if (value && strcmp(value, "node16") == 0)
-		{
-			return false;
-		}
-		return true;
+		int isNode16 = 0;
+		metadata->GetNumResourceMetaData("node16", &isNode16);
+		return isNode16 == 0;
 	}
     return  false;
 }
