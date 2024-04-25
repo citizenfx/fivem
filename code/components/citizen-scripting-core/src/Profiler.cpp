@@ -949,6 +949,20 @@ static InitFunction initFunction([]()
 		ctx.SetResult<int>(profiler->IsRecording());
 	});
 
+	fx::ScriptEngine::RegisterNativeHandler("PROFILER_START_RECORDING", [](fx::ScriptContext& ctx)
+	{
+		static auto profiler = fx::ResourceManager::GetCurrent()->GetComponent<fx::ProfilerComponent>();
+		const int frames = ctx.GetArgument<int>(0);
+		const char* resource = ctx.GetArgument<char*>(1);
+		profiler->StartRecording(frames ? frames : -1, resource);
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("PROFILER_STOP_RECORDING", [](fx::ScriptContext& ctx)
+	{
+		static auto profiler = fx::ResourceManager::GetCurrent()->GetComponent<fx::ProfilerComponent>();
+		profiler->StopRecording();
+	});
+
 	fx::Resource::OnInitializeInstance.Connect([](fx::Resource* res)
 	{
 		auto resname = res->GetName();
