@@ -8,7 +8,7 @@ namespace fx
 {
 	namespace ServerDecorators
 	{
-		template <typename ServerImpl, typename... TOOB>
+		template <typename ServerImpl, typename... TOutOfBandHandler>
 		const fwRefContainer<ServerImpl>& WithOutOfBandImpl(const fwRefContainer<ServerImpl>& server)
 		{
 			server->AddRawInterceptor([server](const uint8_t* receivedData, size_t receivedDataLength,
@@ -65,9 +65,9 @@ namespace fx
 
 					([&]
 					{
-						if (key == fx::force_consteval<uint32_t, HashRageString(TOOB::GetName())>)
+						if (key == fx::force_consteval<uint32_t, HashRageString(TOutOfBandHandler::GetName())>)
 						{
-							TOOB::Process(tempServer, from, data);
+							TOutOfBandHandler::Process(tempServer, from, data);
 							return true;
 						}
 					}(), ...);
@@ -85,10 +85,10 @@ namespace fx
 			return server;
 		}
 
-		template <typename... TOOB>
+		template <typename... TOutOfBandHandler>
 		const fwRefContainer<fx::GameServer>& WithOutOfBand(const fwRefContainer<fx::GameServer>& server)
 		{
-			return WithOutOfBandImpl<fx::GameServer, TOOB...>(server);
+			return WithOutOfBandImpl<fx::GameServer, TOutOfBandHandler...>(server);
 		}
 	}
 }

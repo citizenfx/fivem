@@ -6,7 +6,7 @@
 #include "KeyedRateLimiter.h"
 #include "TcpListenManager.h"
 
-struct GetInfoOOB
+struct GetInfoOutOfBand
 {
 	template <typename ServerImpl>
 	static void Process(const fwRefContainer<ServerImpl>& server, const net::PeerAddress& from,

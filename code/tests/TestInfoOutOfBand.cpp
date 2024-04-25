@@ -3,7 +3,7 @@
 
 #include <catch_amalgamated.hpp>
 
-#include <oobhandlers/GetInfoOOB.h>
+#include <outofbandhandlers\GetInfoOutOfBand.h>
 
 #include "TestUtils.h"
 
@@ -157,7 +157,7 @@ TEST_CASE("getinfo oob test")
 	testServerContainer->GetInstance()->SetComponent(new fx::ClientRegistry());
 	testServerContainer->GetInstance()->SetComponent(new fx::PeerAddressRateLimiterStore(console::GetDefaultContext()));
 
-	REQUIRE(GetInfoOOB::GetName() == "getinfo");
+	REQUIRE(GetInfoOutOfBand::GetName() == "getinfo");
 
 	net::PeerAddress from = net::PeerAddress::FromString("127.0.0.1").get();
 	std::string challenge = fx::TestUtils::asciiRandom(50);
@@ -167,7 +167,7 @@ TEST_CASE("getinfo oob test")
 	testServerContainer->mapname = fx::TestUtils::asciiRandom(10);
 	testServerContainer->iv = fx::TestUtils::asciiRandom(10);
 
-	GetInfoOOB::Process<TestGameServer>(testServerContainer, from, challenge);
+	GetInfoOutOfBand::Process<TestGameServer>(testServerContainer, from, challenge);
 
 	const uint32_t connectedClientsCount = testServerContainer->GetInstance()->GetComponent<fx::ClientRegistry>()->
 	                                                            GetAmountOfConnectedClients();

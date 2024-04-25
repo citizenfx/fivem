@@ -1596,7 +1596,7 @@ DECLARE_INSTANCE_TYPE(fx::ServerDecorators::HostVoteCount);
 #include <decorators/WithProcessTick.h>
 #include <decorators/WithPacketHandler.h>
 
-#include <oobhandlers/GetInfoOOB.h>
+#include <outofbandhandlers/GetInfoOutOfBand.h>
 
 DLL_EXPORT void gscomms_execute_callback_on_main_thread(const std::function<void()>& fn, bool force)
 {
@@ -1660,7 +1660,7 @@ static InitFunction initFunction([]()
 		instance->SetComponent(
 			WithPacketHandler<RoutingPacketHandler, IHostPacketHandler, IQuitPacketHandler, HeHostPacketHandler>(
 				WithProcessTick<ThreadWait, GameServerTick>(
-					WithOutOfBand<GetInfoOOB, GetStatusOOB, RconOOB>(
+					WithOutOfBand<GetInfoOutOfBand, GetStatusOOB, RconOOB>(
 						WithEndPoints(
 							NewGameServer()
 						)
