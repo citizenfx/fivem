@@ -14,6 +14,7 @@
 
 #include <om/OMPtr.h>
 #include <console/Console.h>
+#include <ServerInstanceBase.h>
 
 //NOTE: these can be reused by old node and v8 runtime and will be used by future v8 runtime too
 #include "shared/BoundaryFunctions.h"
@@ -25,12 +26,15 @@
 #include "shared/RefFunctions.h"
 
 #include "JavaScriptEnvironmentCode.h"
+#include "UvLoopTimer.h"
 
 using namespace fx::v8shared;
 
 namespace fx::nodejs
 {
 static NodeParentEnvironment g_nodeEnv;
+static UvLoopTimer g_loopTimer;
+static bool g_shutdown = false;
 
 static InitFunction initFunction([]()
 {
@@ -51,12 +55,25 @@ static InitFunction initFunction([]()
 			g_nodeEnv.Tick();
 		},
 		INT32_MIN);
+
+		g_loopTimer.Initialize();
+	});
+
+	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
+	{
+		instance->OnRequestQuit.Connect([](const std::string&)
+		{
+			// shutdown our timer and pass the tick handling over to the interface one
+			g_shutdown = true;
+			g_loopTimer.Shutdown();
+		});
 	});
 });
 
 //NOTE: it still depends on preexisting files from old runtime
 static const char* g_platformScripts[] = 
 {
+	"citizen:/scripting/v8/natives_server.js",
 	"citizen:/scripting/v8/console.js",
 	"citizen:/scripting/v8/timer.js",
 	"citizen:/scripting/v8/msgpack.js",
@@ -207,15 +224,8 @@ result_t NodeScriptRuntime::Create(IScriptHost* host)
 		m_nodeEnvironment = node::CreateEnvironment(m_isolateData, context, { m_resourceName }, {}, node::EnvironmentFlags::kNoCreateInspector);
 		node::LoadEnvironment(m_nodeEnvironment, g_envCode);
 	}
-	
-	// run system scripts
-	result_t hr;
 
-	// loading natives
-	if (FX_FAILED(hr = LoadSystemFile(const_cast<char*>(va("citizen:/scripting/v8/%s", "natives_server.js")))))
-	{
-		return hr;
-	}
+	result_t hr;
 
 	// loading platform scripts
 	for (const char* platformScript : g_platformScripts)
@@ -225,6 +235,8 @@ result_t NodeScriptRuntime::Create(IScriptHost* host)
 			return hr;
 		}
 	}
+
+	g_loopTimer.AddRuntime(this);
 	return FX_S_OK;
 }
 	
@@ -236,15 +248,23 @@ result_t NodeScriptRuntime::Destroy()
 	m_deleteRefRoutine = TDeleteRefRoutine();
 	m_duplicateRefRoutine = TDuplicateRefRoutine();
 	
+	g_loopTimer.RemoveRuntime(this);
 	SharedPushEnvironment pushed(this);
-	
+
+	node::EmitProcessBeforeExit(m_nodeEnvironment);
+	node::EmitProcessExit(m_nodeEnvironment);
+	node::Stop(m_nodeEnvironment);
+	node::FreeIsolateData(m_isolateData);
 	node::FreeEnvironment(m_nodeEnvironment);
+
+	uv_loop_close(m_uvLoop);
+	delete m_uvLoop;
 
 	m_context.Reset();
 	return FX_S_OK;
 }
 
-result_t NodeScriptRuntime::Tick()
+void NodeScriptRuntime::TickFast() const
 {
 	SharedPushEnvironment pushed(this);
 	
@@ -254,6 +274,14 @@ result_t NodeScriptRuntime::Tick()
 	if (m_tickRoutine)
 	{
 		m_tickRoutine();
+	}
+}
+
+result_t NodeScriptRuntime::Tick()
+{
+	if(g_shutdown)
+	{
+		TickFast();
 	}
 	return FX_S_OK;
 }

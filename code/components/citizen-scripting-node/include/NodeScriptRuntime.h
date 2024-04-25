@@ -80,6 +80,7 @@ public:
 	result_t RunFileInternal(char* scriptName, std::function<result_t(char*, v8::Local<v8::Script>*)> loadFunction);
 	result_t LoadSystemFile(char* scriptFile);
 	const char* AssignStringValue(const v8::Local<v8::Value>& value);
+	void TickFast() const;
 
 	v8::Isolate* GetIsolate() const
 	{
