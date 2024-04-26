@@ -1,15 +1,10 @@
 #pragma once
+#include "ForceConsteval.h"
 
 namespace fx
 {
 	namespace ServerDecorators
 	{
-		template<uint32_t I>
-		inline uint32_t const_uint32()
-		{
-			return I;
-		}
-
 		template<typename... THandler>
 		const fwRefContainer<fx::GameServer>& WithPacketHandler(const fwRefContainer<fx::GameServer>& server)
 		{
@@ -25,7 +20,7 @@ namespace fx
 				// any fast-path handlers?
 				([&]
 				{
-					if (!handled && packetId == const_uint32<HashRageString(THandler::GetPacketId())>())
+					if (!handled && packetId == fx::force_consteval<uint32_t, HashRageString(THandler::GetPacketId())>)
 					{
 						THandler::Handle(server->GetInstance(), client, packet);
 						handled = true;

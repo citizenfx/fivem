@@ -366,9 +366,39 @@ static void FixPedCombatAttributes()
 	});
 }
 
+static int32_t g_maxHudColours;
+static void FixReplaceHudColour()
+{
+	constexpr uint64_t REPLACE_HUD_COLOUR = 0x1CCC708F0F850613;
+	constexpr uint64_t REPLACE_HUD_COLOUR_WITH_RGBA = 0xF314CF4F0211894E;
+
+	for (uint64_t nativeHash : { REPLACE_HUD_COLOUR, REPLACE_HUD_COLOUR_WITH_RGBA })
+	{
+		auto originalHandler = fx::ScriptEngine::GetNativeHandler(nativeHash);
+		if (!originalHandler)
+		{
+			continue;
+		}
+
+		auto handler = *originalHandler;
+		fx::ScriptEngine::RegisterNativeHandler(nativeHash, [handler](fx::ScriptContext& ctx)
+		{
+			auto hudColorIndex = ctx.GetArgument<int32_t>(0);
+			if (hudColorIndex < 0 || hudColorIndex > g_maxHudColours)
+			{
+				fx::scripting::Warningf("natives", "Invalid HUD_COLOUR index was passed (%d), should be from 0 to %d\n", hudColorIndex, g_maxHudColours);
+				return;
+			}
+
+			handler(ctx);
+		});
+	}
+}
+
 static HookFunction hookFunction([]()
 {
 	g_fireInstances = (std::array<FireInfoEntry, 128>*)(hook::get_address<uintptr_t>(hook::get_pattern("74 47 48 8D 0D ? ? ? ? 48 8B D3", 2), 3, 7) + 0x10);
+	g_maxHudColours = *hook::get_pattern<int32_t>("81 F9 ? ? ? ? 77 5A 48 89 5C 24", 2);
 
 	rage::scrEngine::OnScriptInit.Connect([]()
 	{
@@ -394,5 +424,7 @@ static HookFunction hookFunction([]()
 		FixStopEntityFire();
 
 		FixPedCombatAttributes();
+
+		FixReplaceHudColour();
 	});
 });
