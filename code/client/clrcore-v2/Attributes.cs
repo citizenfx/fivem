@@ -116,6 +116,32 @@ namespace CitizenFX.Core
 			Binding = binding;
 		}
 	}
+	
+#if !IS_FXSERVER
+	/// <summary>
+	/// Register this method to listen for the given <see cref="CallbackName"/> when this <see cref="BaseScript"/> is loaded
+	/// if <see cref="IsRawCallback"/> is specified this will use a raw NUI callback instead
+	/// </summary>
+	/// <remarks>Only works on <see cref="BaseScript"/> inherited class methods</remarks>
+#else
+	/// <summary>Does nothing on server side</summary>
+	[EditorBrowsable(EditorBrowsableState.Never)]
+#endif
+	[AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
+	public class NuiCallbackAttribute : Attribute
+	{
+		public string CallbackName { get; }
+		public bool IsRawCallback { get; }
+		public NuiCallbackAttribute(string callbackName, bool isRawCallback = false)
+		{
+			CallbackName = callbackName;
+			if (isRawCallback)
+			{
+				throw new NotImplementedException("Raw Nui Callbacks are not currently implemented");
+			}
+			IsRawCallback = isRawCallback;
+		}
+	}
 
 	/// <summary>
 	/// Register this method to listen for the given <see cref="Export"/> when this <see cref="BaseScript"/> is loaded
