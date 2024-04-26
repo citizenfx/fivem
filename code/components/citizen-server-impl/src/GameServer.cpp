@@ -1258,7 +1258,7 @@ namespace fx
 				int numClients = 0;
 				std::stringstream clientList;
 
-				server->GetInstance()->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const fx::ClientSharedPtr& client)
+				server->GetInstance()->template GetComponent<fx::ClientRegistry>()->ForAllClients([&](const fx::ClientSharedPtr& client)
 				{
 					if (client->GetNetId() < 0xFFFF)
 					{
