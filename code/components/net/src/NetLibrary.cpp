@@ -1164,8 +1164,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 					return true;
 				}
 #endif
-
-				auto bitVersion = (!node["bitVersion"].is_null() ? node["bitVersion"].get<uint64_t>() : 0);
+				
 				auto rawEndpoints = (node.find("endpoints") != node.end()) ? node["endpoints"] : json{};
 
 				auto continueAfterEndpoints = [=, capNode = node](const json& capEndpointsJson)
@@ -1250,7 +1249,6 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 						Instance<ICoreGameInit>::Get()->EnhancedHostSupport = (!node["enhancedHostSupport"].is_null() && node.value("enhancedHostSupport", false));
 						Instance<ICoreGameInit>::Get()->OneSyncEnabled = (!node["onesync"].is_null() && node["onesync"].get<bool>());
 						Instance<ICoreGameInit>::Get()->OneSyncBigIdEnabled = (!node["onesync_lh"].is_null() && node["onesync_lh"].get<bool>());
-						Instance<ICoreGameInit>::Get()->NetProtoVersion = bitVersion;
 
 						bool big1s = (!node["onesync_big"].is_null() && node["onesync_big"].get<bool>());
 
@@ -1611,40 +1609,33 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 
 					return false;
 				};
+				
+				// to not complain about 'closed connection while deferring'
+				isLegacyDeferral = true;
 
-				if (bitVersion >= 0x202004201223)
+				fwMap<fwString, fwString> epMap;
+				epMap["method"] = "getEndpoints";
+				epMap["token"] = m_token;
+
+				OnConnectionProgress("Requesting server endpoints...", 0, 100, false);
+
+				m_httpClient->DoPostRequest(fmt::sprintf("%sclient", url), m_httpClient->BuildPostString(epMap), [rawEndpoints, continueAfterEndpoints](bool success, const char* data, size_t size)
 				{
-					// to not complain about 'closed connection while deferring'
-					isLegacyDeferral = true;
-
-					fwMap<fwString, fwString> epMap;
-					epMap["method"] = "getEndpoints";
-					epMap["token"] = m_token;
-
-					OnConnectionProgress("Requesting server endpoints...", 0, 100, false);
-
-					m_httpClient->DoPostRequest(fmt::sprintf("%sclient", url), m_httpClient->BuildPostString(epMap), [rawEndpoints, continueAfterEndpoints](bool success, const char* data, size_t size)
+					if (success)
 					{
-						if (success)
+						try
 						{
-							try
-							{
-								continueAfterEndpoints(nlohmann::json::parse(data, data + size));
-								return;
-							}
-							catch (std::exception& e)
-							{
-
-							}
+							continueAfterEndpoints(nlohmann::json::parse(data, data + size));
+							return;
 						}
+						catch (std::exception& e)
+						{
 
-						continueAfterEndpoints(rawEndpoints);
-					});
-				}
-				else
-				{
+						}
+					}
+
 					continueAfterEndpoints(rawEndpoints);
-				}
+				});
 			}
 			catch (std::exception & e)
 			{

@@ -3877,56 +3877,33 @@ bool DoesLocalPlayerOwnWorldGrid(float* pos)
 
 	// #TODO1S: make server able to send current range for player (and a world grid granularity?)
 	constexpr float maxRange = (424.0f * 424.0f);
+	
+	int sectorX = std::max(pos[0] + 8192.0f, 0.0f) / 150;
+	int sectorY = std::max(pos[1] + 8192.0f, 0.0f) / 150;
 
-	if (icgi->NetProtoVersion < 0x202007021121)
+	auto playerIdx = g_netIdsByPlayer[GetLocalPlayer()];
+
+	bool does = false;
+
+	for (const auto& entry : g_worldGrid2[0].entries)
 	{
-		int sectorX = std::max(pos[0] + 8192.0f, 0.0f) / 75;
-		int sectorY = std::max(pos[1] + 8192.0f, 0.0f) / 75;
-
-		auto playerIdx = GetLocalPlayer()->physicalPlayerIndex();
-
-		bool does = false;
-
-		for (const auto& entry : g_worldGrid[playerIdx].entries)
+		if (entry.sectorX == sectorX && entry.sectorY == sectorY && entry.slotID == playerIdx)
 		{
-			if (entry.sectorX == sectorX && entry.sectorY == sectorY && entry.slotID == playerIdx)
-			{
-				does = true;
-				break;
-			}
+			does = true;
+			break;
 		}
-
-		return does;
 	}
-	else
+
+	// if the entity would be created outside of culling range, suppress it
+	if (((dX * dX) + (dY * dY)) > maxRange)
 	{
-		int sectorX = std::max(pos[0] + 8192.0f, 0.0f) / 150;
-		int sectorY = std::max(pos[1] + 8192.0f, 0.0f) / 150;
-
-		auto playerIdx = g_netIdsByPlayer[GetLocalPlayer()];
-
-		bool does = false;
-
-		for (const auto& entry : g_worldGrid2[0].entries)
+		if (does)
 		{
-			if (entry.sectorX == sectorX && entry.sectorY == sectorY && entry.slotID == playerIdx)
-			{
-				does = true;
-				break;
-			}
+			does = false;
 		}
-
-		// if the entity would be created outside of culling range, suppress it
-		if (((dX * dX) + (dY * dY)) > maxRange)
-		{
-			if (does)
-			{
-				does = false;
-			}
-		}
-
-		return does;
 	}
+
+	return does;
 }
 
 static int GetScriptParticipantIndexForPlayer(CNetGamePlayer* player)
