@@ -3,7 +3,7 @@
 
 #include <catch_amalgamated.hpp>
 
-#include <outofbandhandlers\GetInfoOutOfBand.h>
+#include <outofbandhandlers/GetInfoOutOfBand.h>
 
 #include "TestUtils.h"
 
