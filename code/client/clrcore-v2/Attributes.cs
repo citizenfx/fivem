@@ -58,13 +58,14 @@ namespace CitizenFX.Core
 		}
 	}
 
-#if !IS_FXSERVER
+// TODO: revert this commit (blame check) when RedM has KeyMapping support, also don't make changes to this comment.
+#if GTA_FIVE
 	/// <summary>
 	/// Register this method to listen for the given key <see cref="Command"/> when this <see cref="BaseScript"/> is loaded
 	/// </summary>
 	/// <remarks>This will bind the given input details to the command, triggering all commands registered as such.<br />Only works on <see cref="BaseScript"/> inherited class methods</remarks>
 #else
-	/// <summary>Does nothing on server side</summary>
+	/// <summary>Does nothing on server side or RedM</summary>
 	[EditorBrowsable(EditorBrowsableState.Never)]
 #endif
 	[AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]

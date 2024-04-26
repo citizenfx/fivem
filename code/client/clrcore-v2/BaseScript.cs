@@ -288,7 +288,7 @@ namespace CitizenFX.Core
 
 		internal void RegisterKeyMap(string command, string description, string inputMapper, string inputParameter, DynFunc dynFunc)
 		{
-#if IS_FXSERVER
+#if !GTA_FIVE
 			throw new NotImplementedException();
 #else
 			if (inputMapper != null && inputParameter != null)
