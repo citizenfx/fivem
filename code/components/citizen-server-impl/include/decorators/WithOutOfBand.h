@@ -2,28 +2,15 @@
 
 #include <UdpInterceptor.h>
 
+#include "ForceConsteval.h"
+
 namespace fx
 {
 	namespace ServerDecorators
 	{
-		template <typename ServerImpl, typename... TOOB>
+		template <typename ServerImpl, typename... TOutOfBandHandler>
 		const fwRefContainer<ServerImpl>& WithOutOfBandImpl(const fwRefContainer<ServerImpl>& server)
 		{
-			// this is static because GCC seems to get really confused when things are wrapped in a lambda
-			static std::map<std::string, std::function<void(const fwRefContainer<ServerImpl>& server,
-			                                                const net::PeerAddress& from,
-			                                                const std::string_view& data)>, std::less<>> processors;
-
-			([&]()
-			{
-				auto oob = TOOB();
-				processors.insert({
-					oob.GetName(),
-					std::bind(&std::remove_reference_t<decltype(oob)>::Process, &oob, std::placeholders::_1,
-					          std::placeholders::_2, std::placeholders::_3)
-				});
-			}(), ...);
-
 			server->AddRawInterceptor([server](const uint8_t* receivedData, size_t receivedDataLength,
 			                                   const net::PeerAddress& receivedAddress)
 			{
@@ -71,17 +58,19 @@ namespace fx
 					{
 						keyEnd = len;
 					}
-					auto key = sv.substr(0, keyEnd);
+					auto key = HashRageString(sv.substr(0, keyEnd));
 
 					// we don't skip messages with no data, but we make sure we keep substr inside bounds
 					auto data = sv.substr(std::min(keyEnd + 1, len));
 
-					auto it = processors.find(key);
-
-					if (it != processors.end())
+					([&]
 					{
-						it->second(tempServer, from, data);
-					}
+						if (key == fx::force_consteval<uint32_t, HashRageString(TOutOfBandHandler::GetName())>)
+						{
+							TOutOfBandHandler::Process(tempServer, from, data);
+							return true;
+						}
+					}(), ...);
 
 					return true;
 				}
@@ -96,10 +85,10 @@ namespace fx
 			return server;
 		}
 
-		template <typename... TOOB>
+		template <typename... TOutOfBandHandler>
 		const fwRefContainer<fx::GameServer>& WithOutOfBand(const fwRefContainer<fx::GameServer>& server)
 		{
-			return WithOutOfBandImpl<fx::GameServer, TOOB...>(server);
+			return WithOutOfBandImpl<fx::GameServer, TOutOfBandHandler...>(server);
 		}
 	}
 }

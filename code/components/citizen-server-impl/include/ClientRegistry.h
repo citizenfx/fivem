@@ -113,6 +113,12 @@ namespace fx
 
 			// unassign slot ID
 			client->SetSlotId(-1);
+
+			// decrement amount of connected clients if the client was connected
+			if (client->GetNetId() < 0xFFFF)
+			{
+				--m_amountConnectedClients;
+			}
 		}
 
 		inline fx::ClientSharedPtr GetClientByGuid(const std::string& guid)
@@ -266,6 +272,8 @@ namespace fx
 
 		fwEvent<Client*> OnConnectedClient;
 
+		uint32_t GetAmountOfConnectedClients() { return m_amountConnectedClients; }
+
 	private:
 		uint16_t m_hostNetId;
 
@@ -287,6 +295,8 @@ namespace fx
 		uint16_t m_curNetId;
 
 		ServerInstanceBase* m_instance;
+
+		std::atomic<uint32_t> m_amountConnectedClients {0};
 	};
 }
 
