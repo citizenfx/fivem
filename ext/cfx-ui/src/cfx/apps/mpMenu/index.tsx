@@ -29,7 +29,6 @@ import { MpMenuLocalhostServerService, registerMpMenuLocalhostServerService } fr
 import { IPlatformStatusService, registerPlatformStatusService } from './services/platformStatus/platformStatus.service';
 import { IActivityService, registerActivityService } from 'cfx/common/services/activity/activity.service';
 import { mpMenu } from './mpMenu';
-import { MatomoAnalyticsProvider } from 'cfx/common/services/analytics/providers/matomo';
 import { IServersService } from 'cfx/common/services/servers/servers.service';
 import { IUiService } from 'cfx/common/services/ui/ui.service';
 import { IIntlService } from 'cfx/common/services/intl/intl.service';
@@ -54,9 +53,7 @@ startBrowserApp({
       SentryLogProvider,
     ]);
 
-    registerAnalyticsService(container, [
-      MatomoAnalyticsProvider,
-    ]);
+    registerAnalyticsService(container, []);
 
     registerLegalService(container);
 
