@@ -1226,7 +1226,7 @@
 					<CMenuButton> <hButtonHash>IB_ZOOM</hButtonHash>		<ButtonInputGroup>INPUTGROUP_FRONTEND_TRIGGERS</ButtonInputGroup> <Contexts>*ALL*,MAP_CanZoom</Contexts></CMenuButton>
 					<CMenuButton> <hButtonHash>IB_POI</hButtonHash>		<ButtonInput>INPUT_FRONTEND_Y</ButtonInput> <Contexts>*ALL*,MAP_CanDropPOI, *NONE*,CORONA_BIGMAP_CLOSE, CORONA_BIGMAP_CLOSE_KM</Contexts></CMenuButton>
 				<!--	<CMenuButton> <hButtonHash>IB_CRIMINAL</hButtonHash>	<ButtonInput>INPUT_FRONTEND_CANCEL</ButtonInput> <Contexts>*ALL*,MAP_Criminal</Contexts></CMenuButton> -->
-					<CMenuButton> <hButtonHash>IB_INTEXT</hButtonHash>		<ButtonInput>INPUT_FRONTEND_SELECT</ButtonInput> <Contexts>*ALL*,MAP_Interior,*NONE*,MAP_Criminal, *NONE*,CORONA_BIGMAP_CLOSE, CORONA_BIGMAP_CLOSE_KM</Contexts></CMenuButton>
+					<CMenuButton> <hButtonHash>IB_INTEXT</hButtonHash>		<ButtonInput>INPUT_FRONTEND_SELECT</ButtonInput> <Contexts>*ALL*,MAP_Interior,*NONE*,MAP_Criminal, MAP_ScriptDisableInteriorExterior, CORONA_BIGMAP_CLOSE, CORONA_BIGMAP_CLOSE_KM</Contexts></CMenuButton>
 					<CMenuButton> <hButtonHash>IB_GOLF</hButtonHash>		<ButtonInput>INPUT_FRONTEND_SELECT</ButtonInput> <Contexts>*ALL*,MAP_Golf,*NONE*,MAP_Interior,MAP_Criminal, *NONE*,CORONA_BIGMAP_CLOSE, CORONA_BIGMAP_CLOSE_KM</Contexts></CMenuButton>
 				
 					<!--<CMenuButton> <hButtonHash>IB_NAVIGATE</hButtonHash>	<ButtonInputGroup>INPUTGROUP_FRONTEND_LSTICK_ALL</ButtonInputGroup></CMenuButton>-->
@@ -1815,7 +1815,7 @@
 			<ScrollBarFlags>Width_2 ManualUpdate InitiallyInvisible</ScrollBarFlags>
 		</Item>
 
-		<!--  ACTUAL SCREEN ID: 17 -->
+		<!--  ACTUAL SCREEN ID: 42 -->
 		<Item>
 			<MenuScreen>MENU_UNIQUE_ID_MISSION_CREATOR</MenuScreen>
 			<cGfxFilename>PAUSE_MENU_PAGES_MISSIONCREATOR</cGfxFilename>
@@ -1847,6 +1847,7 @@
 					
 					<!--<CMenuButton> <hButtonHash>FE_HLP5</hButtonHash>		<RawButtonIcon>ARROW_UPDOWN</RawButtonIcon> 	  <Contexts>*ANY*,SINGLE_SCREEN,NAVIGATING_CONTENT</Contexts></CMenuButton>-->
 					<CMenuButton> <hButtonHash>IB_SELECT</hButtonHash>		<ButtonInput>INPUT_FRONTEND_ACCEPT</ButtonInput> <Contexts>*NONE*,EditPlaylistDrop,EditPlaylistPick,SupressSelectPM</Contexts> </CMenuButton>
+					<CMenuButton> <hButtonHash>PM_PURCHCAP</hButtonHash>		<ButtonInput>INPUT_FRONTEND_ACCEPT</ButtonInput> <Contexts>*ALL*,PurchaseAvailable</Contexts> </CMenuButton>
 					<CMenuButton> <hButtonHash>IB_BACK</hButtonHash> 		<ButtonInput>INPUT_FRONTEND_CANCEL</ButtonInput> </CMenuButton>
 					
 					<CMenuButton> <hButtonHash>PM_PL_CHALANGE</hButtonHash> <ButtonInput>INPUT_FRONTEND_SELECT</ButtonInput> <Contexts>*ALL*,SetCrewChallenge</Contexts> </CMenuButton>
@@ -1881,13 +1882,16 @@
 					<CMenuButton> <hButtonHash>PM_RC_AIR</hButtonHash> <ButtonInput>INPUT_FRONTEND_LS</ButtonInput> <Contexts>*ALL*,CycleToAirRaces</Contexts> </CMenuButton>	
 					<CMenuButton> <hButtonHash>PM_RC_BOAT</hButtonHash> <ButtonInput>INPUT_FRONTEND_LS</ButtonInput> <Contexts>*ALL*,CycleToWaterRaces</Contexts> </CMenuButton>
 					<CMenuButton> <hButtonHash>PM_RC_STUNT</hButtonHash> <ButtonInput>INPUT_FRONTEND_LS</ButtonInput> <Contexts>*ALL*,CycleToStuntRaces</Contexts> </CMenuButton>
+					<CMenuButton> <hButtonHash>PM_RC_ASSUALT</hButtonHash> <ButtonInput>INPUT_FRONTEND_LS</ButtonInput> <Contexts>*ALL*,CycleToTargetAssaultRaces</Contexts> </CMenuButton>
+					<CMenuButton> <hButtonHash>PM_OWRACES</hButtonHash> <ButtonInput>INPUT_FRONTEND_LS</ButtonInput> <Contexts>*ALL*,CycleToOpenRaces</Contexts> </CMenuButton>
+					<CMenuButton> <hButtonHash>PM_HSWRACE</hButtonHash> <ButtonInput>INPUT_FRONTEND_LS</ButtonInput> <Contexts>*ALL*,CycleToHSWRaces</Contexts> </CMenuButton>
 
 					<CMenuButton> <hButtonHash>PM_CAP_ALL</hButtonHash> <ButtonInput>INPUT_FRONTEND_LS</ButtonInput> <Contexts>*ALL*,CycleToAllCaptures</Contexts> </CMenuButton>
 					<CMenuButton> <hButtonHash>PM_CAP_GTA</hButtonHash> <ButtonInput>INPUT_FRONTEND_LS</ButtonInput> <Contexts>*ALL*,CycleToGTACaptures</Contexts> </CMenuButton>
 					<CMenuButton> <hButtonHash>PM_CAP_HOLD</hButtonHash> <ButtonInput>INPUT_FRONTEND_LS</ButtonInput> <Contexts>*ALL*,CycleToHoldCaptures</Contexts> </CMenuButton>
 					<CMenuButton> <hButtonHash>PM_CAP_RAID</hButtonHash> <ButtonInput>INPUT_FRONTEND_LS</ButtonInput> <Contexts>*ALL*,CycleToRaidCaptures</Contexts> </CMenuButton>
 					<CMenuButton> <hButtonHash>PM_CAP_CONT</hButtonHash> <ButtonInput>INPUT_FRONTEND_LS</ButtonInput> <Contexts>*ALL*,CycleToContendCaptures</Contexts> </CMenuButton>	
-
+		            <CMenuButton> <hButtonHash>IB_CREDITS</hButtonHash>		<ButtonInput>INPUT_FRONTEND_Y</ButtonInput> 						<Contexts>*ALL*,CAN_PLAY_CREDITS</Contexts> 											</CMenuButton>
 				</ButtonPrompts>
 			</ButtonList>
 			
@@ -2956,6 +2960,9 @@
 					<CMenuButton> <hButtonHash>ITEM_AMMO</hButtonHash>			<ButtonInput>INPUT_FRONTEND_RIGHT</ButtonInput>			<Contexts>*ALL*, DISPLAY_CORONA_BUTTONS, TOGGLE_AMMO</Contexts> </CMenuButton>
 					<CMenuButton> <hButtonHash>HUD_INPUT100</hButtonHash>		<ButtonInput>INPUT_FRONTEND_RT</ButtonInput>			<Contexts>*ALL*, DISPLAY_CORONA_BUTTONS, CORONA_PLAYERS_R2, *NONE*, CORONA_PLAYERS_L2</Contexts> </CMenuButton>
 					<CMenuButton> <hButtonHash>HUD_INPUT100</hButtonHash>		<ButtonInput>INPUT_FRONTEND_LT</ButtonInput>			<Contexts>*ALL*, DISPLAY_CORONA_BUTTONS, CORONA_PLAYERS_L2, *NONE*, CORONA_PLAYERS_R2</Contexts> </CMenuButton>
+					
+					<CMenuButton> <hButtonHash>AW_VIEWSTAT</hButtonHash>		<ButtonInput>INPUT_FRONTEND_X</ButtonInput>			<Contexts>*ALL*, DISPLAY_CORONA_BUTTONS, CORONA_VIEW_VSTAT, *NONE*</Contexts> </CMenuButton>
+					<CMenuButton> <hButtonHash>AW_VIEWMODS</hButtonHash>		<ButtonInput>INPUT_FRONTEND_X</ButtonInput>			<Contexts>*ALL*, DISPLAY_CORONA_BUTTONS, CORONA_VIEW_VMODS, *NONE*</Contexts> </CMenuButton>
 				</ButtonPrompts>
 			</ButtonList>
 		</Item>
@@ -3108,7 +3115,7 @@
 				<ButtonPrompts>
 					<!--<CMenuButton> <hButtonHash>HUD_INPUT1C</hButtonHash>					<ButtonInputGroup>INPUTGROUP_FRONTEND_DPAD_LR</ButtonInputGroup> <Contexts>*NONE*,NAVIGATING_CONTENT</Contexts></CMenuButton>-->
 					<!--<CMenuButton IsNavigate="true"> <hButtonHash>FE_HLP5</hButtonHash>		<RawButtonIcon>ARROW_UPDOWN</RawButtonIcon> 	  <Contexts>*ANY*,SINGLE_SCREEN,NAVIGATING_CONTENT</Contexts></CMenuButton>-->
-					<CMenuButton> <hButtonHash>IB_INVITE</hButtonHash>			<ButtonInput>INPUT_FRONTEND_ACCEPT</ButtonInput> <Contexts>*NONE*,IsLocalPlayer,IsInTransition,IsInvitedToTransition,TutLock,*ALL*,HasPlayers,PlayerIsOnline</Contexts> </CMenuButton>
+					<CMenuButton> <hButtonHash>IB_INVITE</hButtonHash>			<ButtonInput>INPUT_FRONTEND_ACCEPT</ButtonInput> <Contexts>*NONE*,IsLocalPlayer,IsInTransition,IsInvitedToTransition,TutLock,*ALL*,HasPlayers,PlayerIsOnline,PlayerIsInvitable</Contexts> </CMenuButton>
 					<CMenuButton> <hButtonHash>IB_CANCLE_INVITE</hButtonHash>	<ButtonInput>INPUT_FRONTEND_X</ButtonInput> <Contexts>*NONE*,IsLocalPlayer,IsInTransition,*ALL*,IsInvitedToTransition,HasPlayers</Contexts> </CMenuButton>
 					<CMenuButton> <hButtonHash>IB_KICK</hButtonHash>			<ButtonInput>INPUT_FRONTEND_X</ButtonInput> <Contexts>*NONE*,IsLocalPlayer,IsKickForceHidden,*ALL*,IsInTransition,HasPlayers</Contexts> </CMenuButton>
 					<CMenuButton> <hButtonHash>IB_BACK</hButtonHash> 		<ButtonInput>INPUT_FRONTEND_CANCEL</ButtonInput> </CMenuButton>
@@ -3408,6 +3415,10 @@
 					<CMenuButton> <hButtonHash>HUD_HD_MASK</hButtonHash>		<ButtonInput>INPUT_FRONTEND_X</ButtonInput>			<Contexts>*ALL*, DISPLAY_CORONA_BUTTONS, CORONA_HIDE_MASK, *NONE*, CORONA_HIDE_PLANNING</Contexts> </CMenuButton>
 					<CMenuButton> <hButtonHash>HUD_SH_PLAN</hButtonHash>		<ButtonInput>INPUT_FRONTEND_RB</ButtonInput>		<Contexts>*ALL*, DISPLAY_CORONA_BUTTONS, CORONA_SHOW_PLANNING, *NONE*</Contexts> </CMenuButton>
 					<CMenuButton> <hButtonHash>HUD_HD_PLAN</hButtonHash>		<ButtonInput>INPUT_FRONTEND_RB</ButtonInput>		<Contexts>*ALL*, DISPLAY_CORONA_BUTTONS, CORONA_HIDE_PLANNING, *NONE*</Contexts> </CMenuButton>
+					<CMenuButton> <hButtonHash>IMP_VIEWTEAM</hButtonHash>		<ButtonInput>INPUT_FRONTEND_X</ButtonInput>			<Contexts>*ALL*, DISPLAY_CORONA_BUTTONS, CORONA_VIEW_TEAMMATES, *NONE*</Contexts> </CMenuButton>
+					<CMenuButton> <hButtonHash>IMP_VIEWME</hButtonHash>			<ButtonInput>INPUT_FRONTEND_X</ButtonInput>			<Contexts>*ALL*, DISPLAY_CORONA_BUTTONS, CORONA_VIEW_MYTEAM, *NONE*</Contexts> </CMenuButton>
+					<CMenuButton> <hButtonHash>AW_VIEWSTAT</hButtonHash>		<ButtonInput>INPUT_FRONTEND_X</ButtonInput>			<Contexts>*ALL*, DISPLAY_CORONA_BUTTONS, CORONA_VIEW_VSTAT, *NONE*</Contexts> </CMenuButton>
+					<CMenuButton> <hButtonHash>AW_VIEWMODS</hButtonHash>		<ButtonInput>INPUT_FRONTEND_X</ButtonInput>			<Contexts>*ALL*, DISPLAY_CORONA_BUTTONS, CORONA_VIEW_VMODS, *NONE*</Contexts> </CMenuButton>
 				</ButtonPrompts>
 			</ButtonList>
 		</Item>
@@ -3502,7 +3513,19 @@
 			</MenuItems>
 			<Flags>SF_NoClearRootColumns</Flags>
 		</Item>
-
+		<Item>
+			<MenuScreen>MENU_UNIQUE_ID_PROGRESS_HUB</MenuScreen>
+			<runtime>
+				<type>SCRIPT</type>
+				<params>
+					<data key="path">PauseMenuCareerHubLaunch</data>
+					<data key="continual">TRUE</data>
+				</params>
+			</runtime>
+			<depth>1</depth>
+			<ButtonPrompts IncludeDefaults="false" IncludeNavigate="false">	
+			</ButtonPrompts>
+		</Item>
 		<Item>
 			<MenuScreen>MENU_UNIQUE_ID_IMPORT_SAVEGAME</MenuScreen>
 			<depth>2</depth>
