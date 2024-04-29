@@ -40,7 +40,7 @@ namespace fx::v8shared
 	// Sanitization for string result types
 	// Loops through all values given by the ScRT and deny any that equals the result value which isn't of the string type
 	template<class RuntimeType, typename HashGetter>
-	void NativeStringResultSanitization(const v8::FunctionCallbackInfo<v8::Value>& inputArguments, fxNativeContext& context, decltype(context.arguments)& initialArguments)
+	void NativeStringResultSanitization(const v8::FunctionCallbackInfo<v8::Value>& args, fxNativeContext& context, decltype(context.arguments)& initialArguments)
 	{
 		RuntimeType* runtime = GetScriptRuntimeFromArgs<RuntimeType>(args);
 		const auto resultValue = context.arguments[0];
@@ -52,10 +52,10 @@ namespace fx::v8shared
 			if (initialArguments[a] == resultValue)
 			{
 				// Step 2: loop our input list for as many times as `a` was increased
-				const int inputSize = inputArguments.Length();
+				const int inputSize = args.Length();
 				for (int i = HashGetter::BaseArgs; i < inputSize; ++i)
 				{
-					const auto& v8Input = inputArguments[i];
+					const auto& v8Input = args[i];
 
 					// `a` can be reused by simply decrementing it, we'll go negative when we hit our goal as we decrement before checking (e.g.: `0 - 1 = -1` or `0 - 4 = -4`)
 					a -= v8Input->IsArray() ? std::min(v8::Local<v8::Array>::Cast(v8Input)->Length(), 4u) : 1u;

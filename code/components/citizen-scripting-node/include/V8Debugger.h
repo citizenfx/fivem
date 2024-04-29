@@ -7,7 +7,10 @@
 
 #pragma once
 
-#include <node/deps/v8/include/v8.h>
+namespace v8
+{
+	class Isolate;
+}
 
 namespace fx
 {

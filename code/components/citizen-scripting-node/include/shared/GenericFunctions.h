@@ -13,6 +13,19 @@
 namespace fx::v8shared
 {
 	template<class RuntimeType>
+	static v8::Local<v8::Value> GetStackTrace(v8::TryCatch& eh, RuntimeType* runtime)
+	{
+		auto stackTraceHandle = eh.StackTrace(runtime->GetContext());
+
+		if (stackTraceHandle.IsEmpty())
+		{
+			return v8::String::NewFromUtf8(runtime->GetIsolate(), "<empty stack trace>").ToLocalChecked();
+		}
+
+		return stackTraceHandle.ToLocalChecked();
+	}
+
+	template<class RuntimeType>
 	static void V8_SetTickFunction(const v8::FunctionCallbackInfo<v8::Value>& args)
 	{
 		RuntimeType* runtime = GetScriptRuntimeFromArgs<RuntimeType>(args);
@@ -29,16 +42,16 @@ namespace fx::v8shared
 					v8::TryCatch eh(isolate);
 
 					auto time = v8::Number::New(isolate, (double)msec().count());
-					v8::Local<v8::Value> args[] = {
-						time.As<v8::Value>()
+					v8::Local<v8::Value> fnArgs[] = {
+						time.template As<v8::Value>()
 					};
 
-					v8::MaybeLocal<v8::Value> value = tickFunction->Call(runtime->GetContext(), v8::Null(isolate), std::size(args), args);
+					v8::MaybeLocal<v8::Value> value = tickFunction->Call(runtime->GetContext(), v8::Null(isolate), std::size(fnArgs), fnArgs);
 
 					if (value.IsEmpty())
 					{
 						v8::String::Utf8Value str(isolate, eh.Exception());
-						v8::String::Utf8Value stack(isolate, GetStackTrace(eh, runtime));
+						v8::String::Utf8Value stack(isolate, GetStackTrace<RuntimeType>(eh, runtime));
 
 						ScriptTrace(runtime, "Error calling system tick function in resource %s: %s\nstack:\n%s\n", runtime->GetResourceName(), *str, *stack);
 					}
@@ -76,7 +89,7 @@ namespace fx::v8shared
 					if (eh.HasCaught())
 					{
 						v8::String::Utf8Value str(isolate, eh.Exception());
-						v8::String::Utf8Value stack(isolate, GetStackTrace(eh, runtime));
+						v8::String::Utf8Value stack(isolate, GetStackTrace<RuntimeType>(eh, runtime));
 
 						ScriptTrace(runtime, "Error calling system event handling function in resource %s: %s\nstack:\n%s\n", runtime->GetResourceName(), *str, *stack);
 					}
@@ -131,7 +144,7 @@ namespace fx::v8shared
 					if (eh.HasCaught())
 					{
 						v8::String::Utf8Value str(isolate, eh.Exception());
-						v8::String::Utf8Value stack(isolate, GetStackTrace(eh, runtime));
+						v8::String::Utf8Value stack(isolate, GetStackTrace<RuntimeType>(eh, runtime));
 
 						ScriptTrace(runtime, "Error calling system stack trace function in resource %s: %s\nstack:\n%s\n", runtime->GetResourceName(), *str, *stack);
 					}
@@ -195,7 +208,7 @@ namespace fx::v8shared
 					if (value.IsEmpty())
 					{
 						v8::String::Utf8Value str(isolate, eh.Exception());
-						v8::String::Utf8Value stack(isolate, GetStackTrace(eh, runtime));
+						v8::String::Utf8Value stack(isolate, GetStackTrace<RuntimeType>(eh, runtime));
 
 						ScriptTrace(runtime, "Unhandled error during handling of unhandled promise rejection in resource %s: %s\nstack:\n%s\n", runtime->GetResourceName(), *str, *stack);
 					}
@@ -206,19 +219,6 @@ namespace fx::v8shared
 	static void V8_GetTickCount(const v8::FunctionCallbackInfo<v8::Value>& args)
 	{
 		args.GetReturnValue().Set((double)msec().count());
-	}
-	
-	template<class RuntimeType>
-	static v8::Local<v8::Value> GetStackTrace(v8::TryCatch& eh, RuntimeType* runtime)
-	{
-		auto stackTraceHandle = eh.StackTrace(runtime->GetContext());
-
-		if (stackTraceHandle.IsEmpty())
-		{
-			return v8::String::NewFromUtf8(runtime->GetIsolate(), "<empty stack trace>").ToLocalChecked();
-		}
-
-		return stackTraceHandle.ToLocalChecked();
 	}
 
 	template<class RuntimeType, class PushType>

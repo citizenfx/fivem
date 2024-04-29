@@ -17,8 +17,12 @@
 
 #include <om/OMComponent.h>
 
+#include <node/deps/v8/include/v8config.h>
+#include <node/deps/v8/include/v8.h>
+#include <node/deps/v8/include/v8-profiler.h>
 #include <node/src/node.h>
 #include <node/deps/uv/include/uv.h>
+
 #include "shared/RuntimeHelpers.h"
 
 namespace fx::nodejs
@@ -99,7 +103,7 @@ public:
 
 	const char* GetResourceName() const
 	{
-		char* resourceName = "";
+		char* resourceName = nullptr;
 		m_resourceHost->GetResourceName(&resourceName);
 
 		return resourceName;

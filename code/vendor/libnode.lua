@@ -7,9 +7,11 @@ return {
 		includedirs { '../vendor/libnode/node/deps/v8/include/' }
 		includedirs { '../vendor/libnode/node/deps/openssl/' }
 
+        libdirs { '../vendor/libnode/bin/' }
         if os.istarget('windows') then
-            libdirs { '../vendor/libnode/bin/' }
             links { 'libnode20.lib' }
+        else
+			links { 'node20' }
         end
 	end,
 

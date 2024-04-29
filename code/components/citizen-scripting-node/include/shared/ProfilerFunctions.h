@@ -7,8 +7,6 @@
 
 #pragma once
 
-#include <node/deps/v8/include/v8-profiler.h>
-
 #include <fstream>
 
 #include <tbb/concurrent_queue.h>
