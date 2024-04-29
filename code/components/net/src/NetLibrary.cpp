@@ -1164,6 +1164,14 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 					return true;
 				}
 #endif
+
+				auto bitVersion = (!node["bitVersion"].is_null() ? node["bitVersion"].get<uint64_t>() : 0);
+				if (bitVersion != 0 && bitVersion < 0x202103292050)
+				{
+					OnConnectionError(fmt::sprintf("Server is outdated. Please update the server or contact the server owner."));
+					m_connectionState = CS_IDLE;
+					return true;
+				}
 				
 				auto rawEndpoints = (node.find("endpoints") != node.end()) ? node["endpoints"] : json{};
 
