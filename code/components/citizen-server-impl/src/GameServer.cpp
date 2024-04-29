@@ -1242,62 +1242,7 @@ namespace fx
 				server->ProcessServerFrame(frameTime);
 			}
 		};
-
-		struct GetStatusOOB
-		{
-			template <typename ServerImpl>
-			static void Process(const fwRefContainer<ServerImpl>& server, const net::PeerAddress& from, const std::string_view& data)
-			{
-				const auto limiter = server->GetInstance()->template GetComponent<fx::PeerAddressRateLimiterStore>()->GetRateLimiter("getstatus", fx::RateLimiterDefaults{ 1.0, 5.0 });
-
-				if (!fx::IsProxyAddress(from) && !limiter->Consume(from))
-				{
-					return;
-				}
-
-				int numClients = 0;
-				std::stringstream clientList;
-
-				server->GetInstance()->template GetComponent<fx::ClientRegistry>()->ForAllClients([&](const fx::ClientSharedPtr& client)
-				{
-					if (client->GetNetId() < 0xFFFF)
-					{
-						clientList << fmt::sprintf("%d %d \"%s\"\n", 0, 0, client->GetName());
-
-						++numClients;
-					}
-				});
-
-				std::stringstream infoVars;
-
-				auto addInfo = [&](const std::string& key, const std::string& value)
-				{
-					infoVars << "\\" << key << "\\" << value;
-				};
-
-				addInfo("sv_maxclients", "24");
-				addInfo("clients", std::to_string(numClients));
-
-				server->GetInstance()->template GetComponent<console::Context>()->GetVariableManager()->ForAllVariables([&](const std::string& name, int flags, const std::shared_ptr<internal::ConsoleVariableEntryBase>& var)
-				{
-					addInfo(name, var->GetValue());
-				}, ConVar_ServerInfo);
-
-				server->SendOutOfBand(from, fmt::format(
-					"statusResponse\n"
-					"{0}\n"
-					"{1}",
-					infoVars.str(),
-					clientList.str()
-				));
-			}
-
-			static constexpr const char* GetName()
-			{
-				return "getstatus";
-			}
-		};
-
+		
 		struct RconOOB
 		{
 			template <typename ServerImpl>
@@ -1552,6 +1497,7 @@ DECLARE_INSTANCE_TYPE(fx::ServerDecorators::HostVoteCount);
 #include <decorators/WithPacketHandler.h>
 
 #include <outofbandhandlers/GetInfoOutOfBand.h>
+#include <outofbandhandlers/GetStatusOutOfBand.h>
 
 #include <packethandlers/RoutingPacketHandler.h>
 
@@ -1617,7 +1563,7 @@ static InitFunction initFunction([]()
 		instance->SetComponent(
 			WithPacketHandler<RoutingPacketHandler, IHostPacketHandler, IQuitPacketHandler, HeHostPacketHandler>(
 				WithProcessTick<ThreadWait, GameServerTick>(
-					WithOutOfBand<GetInfoOutOfBand, GetStatusOOB, RconOOB>(
+					WithOutOfBand<GetInfoOutOfBand, GetStatusOutOfBand, RconOOB>(
 						WithEndPoints(
 							NewGameServer()
 						)
