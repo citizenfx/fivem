@@ -1568,11 +1568,14 @@ static CScenarioInfo* GetTaskScenarioInfo(void* task)
 	if (!scenario && *(uint64_t*)task == (uint64_t)g_taskUseScenarioVtable)
 	{
 		auto scenarioInfoMgr = *g_scenarioInfoManager;
+
+#if _DEBUG
 		auto pointId = (*(uint32_t(__fastcall**)(void*))(*(uint64_t*)task + g_pointIdGetterVtableOffset))(task);
 
 		trace("Failed to get scenario info by id %d for task (address %p, vtable %p). Loaded %d and %d scenario infos.\n",
 			pointId, (void*)hook::get_unadjusted(task), (void*)hook::get_unadjusted(*(void**)task),
 			scenarioInfoMgr->m_scenarioInfos.GetCount(), scenarioInfoMgr->m_scenarioUnks.GetCount());
+#endif
 
 		// Try to avoid crash by returning first scenario from the array.
 		return scenarioInfoMgr->m_scenarioInfos[0];
