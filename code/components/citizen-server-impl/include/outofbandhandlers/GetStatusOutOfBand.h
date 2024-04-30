@@ -6,52 +6,62 @@
 #include "KeyedRateLimiter.h"
 #include "TcpListenManager.h"
 
-struct GetStatusOutOfBand
+class GetStatusOutOfBand
 {
+	std::shared_ptr<ConVar<bool>> m_returnClientsListInGetStatus;
+
+public:
 	template <typename ServerImpl>
-	static void Process(const fwRefContainer<ServerImpl>& server, const net::PeerAddress& from, const std::string_view& data)
+	GetStatusOutOfBand(const fwRefContainer<ServerImpl>& server)
 	{
-		const auto limiter = server->GetInstance()->template GetComponent<fx::PeerAddressRateLimiterStore>()->GetRateLimiter("getstatus", fx::RateLimiterDefaults{ 1.0, 5.0 });
+		m_returnClientsListInGetStatus = server->GetInstance()->template AddVariable<bool>("sv_returnClientsListInGetStatus", ConVar_None, true);
+	}
+
+	template <typename ServerImpl>
+	void Process(const fwRefContainer<ServerImpl>& server, const net::PeerAddress& from, const std::string_view& data)
+	{
+		const auto limiter = server->GetInstance()->template GetComponent<fx::PeerAddressRateLimiterStore>()->
+		                             GetRateLimiter("getstatus", fx::RateLimiterDefaults{1.0, 5.0});
 
 		if (!fx::IsProxyAddress(from) && !limiter->Consume(from))
 		{
 			return;
 		}
 
-		const uint32_t numClients = server->GetInstance()->template GetComponent<fx::ClientRegistry>()->GetAmountOfConnectedClients();
-		// std::string is 30 times faster then stringstream
-		std::stringstream clientList;
+		const uint32_t numClients = server->GetInstance()->template GetComponent<fx::ClientRegistry>()->
+		                                    GetAmountOfConnectedClients();
 
-		server->GetInstance()->template GetComponent<fx::ClientRegistry>()->ForAllClients([&](const fx::ClientSharedPtr& client)
-		{
-			if (client->GetNetId() < 0xFFFF)
-			{
-				clientList << fmt::sprintf("%d %d \"%s\"\n", 0, 0, client->GetName());
-			}
-		});
-
-		std::stringstream infoVars;
+		std::string response = "statusResponse\n";
 
 		auto addInfo = [&](const std::string& key, const std::string& value)
 		{
-			infoVars << "\\" << key << "\\" << value;
+			response += "\\" + key + "\\" + value;
 		};
 
 		addInfo("sv_maxclients", server->GetVariable("sv_maxclients"));
 		addInfo("clients", std::to_string(numClients));
 
-		server->GetInstance()->template GetComponent<console::Context>()->GetVariableManager()->ForAllVariables([&](const std::string& name, int flags, const std::shared_ptr<internal::ConsoleVariableEntryBase>& var)
-		{
-			addInfo(name, var->GetValue());
-		}, ConVar_ServerInfo);
+		response += "\n";
 
-		server->SendOutOfBand(from, fmt::format(
-			"statusResponse\n"
-			"{0}\n"
-			"{1}",
-			infoVars.str(),
-			clientList.str()
-		));
+		if (m_returnClientsListInGetStatus->GetValue())
+		{
+			server->GetInstance()->template GetComponent<fx::ClientRegistry>()->ForAllClients(
+				[&](const fx::ClientSharedPtr& client)
+				{
+					if (client->GetNetId() < 0xFFFF)
+					{
+						response += "0 0 \"" + client->GetName() + "\"\n";
+					}
+				});
+		}
+
+		server->GetInstance()->template GetComponent<console::Context>()->GetVariableManager()->ForAllVariables(
+			[&](const std::string& name, int flags, const std::shared_ptr<internal::ConsoleVariableEntryBase>& var)
+			{
+				addInfo(name, var->GetValue());
+			}, ConVar_ServerInfo);
+
+		server->SendOutOfBand(from, std::move(response));
 	}
 
 	static constexpr const char* GetName()
