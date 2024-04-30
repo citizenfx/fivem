@@ -96,7 +96,7 @@ public:
 			}
 		}
 
-		T tempValue = T((char*)(GetBuffer() + m_curOff), length);
+		T tempValue = T((char*)(GetRemainingBytesPtr()), length);
 		m_curOff += length;
 		return tempValue;
 	}
@@ -109,17 +109,18 @@ public:
 
 	bool ReadTo(Buffer& other, size_t length);
 
-	inline void Reset()
+	void Reset()
 	{
 		m_curOff = 0;
 	}
 
-	inline const uint8_t* GetBuffer() const { return &(*m_bytes)[0]; }
-	inline size_t GetLength() const { return m_bytes->size(); }
-	inline size_t GetCurOffset() const { return m_curOff; }
-	inline size_t GetRemainingBytes() const { return GetLength() - GetCurOffset(); }
-	inline void Seek(size_t position) { if (position <= GetLength()) { m_curOff = position; } }
+	const uint8_t* GetBuffer() const { return &(*m_bytes)[0]; }
+	size_t GetLength() const { return m_bytes->size(); }
+	size_t GetCurOffset() const { return m_curOff; }
+	size_t GetRemainingBytes() const { return GetLength() - GetCurOffset(); }
+	const uint8_t* GetRemainingBytesPtr() const { return GetBuffer() + m_curOff; }
+	void Seek(size_t position) { if (position <= GetLength()) { m_curOff = position; } }
 
-	inline const std::vector<uint8_t>& GetData() const { return *m_bytes; }
+	const std::vector<uint8_t>& GetData() const { return *m_bytes; }
 };
 }

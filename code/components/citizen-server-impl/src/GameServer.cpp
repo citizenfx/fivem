@@ -1383,51 +1383,6 @@ namespace fx
 			}
 		};
 
-		struct RoutingPacketHandler
-		{
-			inline static void Handle(ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& packet)
-			{
-				uint16_t targetNetId = packet.Read<uint16_t>();
-				uint16_t packetLength = packet.Read<uint16_t>();
-
-				std::vector<uint8_t> packetData(packetLength);
-				if (packet.Read(packetData.data(), packetData.size()))
-				{
-					if (targetNetId == 0xFFFF)
-					{
-						client->SetHasRouted();
-
-						gscomms_execute_callback_on_sync_thread([instance, client, packetData]()
-						{
-							instance->GetComponent<fx::ServerGameStatePublic>()->ParseGameStatePacket(client, packetData);
-						});
-
-						return;
-					}
-
-					auto targetClient = instance->GetComponent<fx::ClientRegistry>()->GetClientByNetID(targetNetId);
-
-					if (targetClient)
-					{
-						net::Buffer outPacket;
-						outPacket.Write(0xE938445B);
-						outPacket.Write<uint16_t>(client->GetNetId());
-						outPacket.Write(packetLength);
-						outPacket.Write(packetData.data(), packetLength);
-
-						targetClient->SendPacket(1, outPacket, NetPacketType_Unreliable);
-
-						client->SetHasRouted();
-					}
-				}
-			}
-
-			inline static constexpr const char* GetPacketId()
-			{
-				return "msgRoute";
-			}
-		};
-
 		struct IHostPacketHandler
 		{
 			inline static void Handle(ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& packet)
@@ -1597,6 +1552,8 @@ DECLARE_INSTANCE_TYPE(fx::ServerDecorators::HostVoteCount);
 #include <decorators/WithPacketHandler.h>
 
 #include <outofbandhandlers/GetInfoOutOfBand.h>
+
+#include <packethandlers/RoutingPacketHandler.h>
 
 DLL_EXPORT void gscomms_execute_callback_on_main_thread(const std::function<void()>& fn, bool force)
 {
