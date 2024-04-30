@@ -10,11 +10,11 @@
 
 struct OutOfBandSendData
 {
-	const net::PeerAddress to;
-	const std::string oob;
-	const bool prefix;
+	net::PeerAddress to;
+	std::string oob;
+	bool prefix;
 
-	OutOfBandSendData(const net::PeerAddress& to, const std::string_view& oob, const bool prefix)
+	OutOfBandSendData(const net::PeerAddress& to, const std::string& oob, const bool prefix)
 		: to(to),
 		  oob(oob),
 		  prefix(prefix)
@@ -22,7 +22,7 @@ struct OutOfBandSendData
 	}
 };
 
-class TestGameServer : public fwRefCountable
+class TestInfoGameServer : public fwRefCountable
 {
 public:
 	fx::ServerInstanceBase* testServer = ServerInstance::Create();
@@ -35,12 +35,12 @@ public:
 
 	void SendOutOfBand(const net::PeerAddress& to, const std::string_view& oob, bool prefix = true)
 	{
-		outOfBandSendData.emplace(to, oob, prefix);
+		outOfBandSendData.emplace(to, std::string(oob), prefix);
 	}
 
-	~TestGameServer() override
+	~TestInfoGameServer() override
 	{
-		delete testServer;
+		outOfBandSendData.reset();
 	}
 
 	std::string GetVariable(const std::string& key)
@@ -74,7 +74,7 @@ public:
 
 TEST_CASE("getinfo oob test")
 {
-	fwRefContainer testServerContainer = {new TestGameServer()};
+	fwRefContainer testServerContainer = {new TestInfoGameServer()};
 	testServerContainer->GetInstance()->SetComponent(new fx::ClientRegistry());
 	testServerContainer->GetInstance()->SetComponent(new fx::PeerAddressRateLimiterStore(console::GetDefaultContext()));
 
@@ -88,7 +88,8 @@ TEST_CASE("getinfo oob test")
 	testServerContainer->mapname = fx::TestUtils::asciiRandom(10);
 	testServerContainer->iv = fx::TestUtils::asciiRandom(10);
 
-	GetInfoOutOfBand::Process<TestGameServer>(testServerContainer, from, challenge);
+	GetInfoOutOfBand getInfoHandler (testServerContainer);
+	getInfoHandler.Process<TestInfoGameServer>(testServerContainer, from, challenge);
 
 	const uint32_t connectedClientsCount = testServerContainer->GetInstance()->GetComponent<fx::ClientRegistry>()->
 	                                                            GetAmountOfConnectedClients();

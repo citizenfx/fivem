@@ -97,12 +97,24 @@ namespace
 	TestGameServer* g_testGameServer = CreateTestGameServer();
 }
 
-struct TestOOB
+class TestOutOfBand
 {
+public:
+	// the actual out of band handler has a instance created internally inside WithOutOfBandImpl
+	// so this one needs to be static
 	static inline std::optional<ProcessCallbackData> processCallbackLastCall{};
 	
 	template<typename ServerImpl>
-	static void Process(const fwRefContainer<ServerImpl>& server, const net::PeerAddress& from,
+	TestOutOfBand(const fwRefContainer<ServerImpl>& server)
+	{
+	}
+	
+	TestOutOfBand()
+	{
+	}
+	
+	template<typename ServerImpl>
+	void Process(const fwRefContainer<ServerImpl>& server, const net::PeerAddress& from,
 	             const std::string_view& data)
 	{
 		processCallbackLastCall.emplace(server, from, data);
@@ -113,46 +125,44 @@ struct TestOOB
 		return "test";
 	}
 
-	static void RegisterOutOfBand()
+	void RegisterOutOfBand()
 	{
-		fx::ServerDecorators::WithOutOfBandImpl<TestGameServer, TestOOB>(g_testGameServer);
+		fx::ServerDecorators::WithOutOfBandImpl<TestGameServer, TestOutOfBand>(g_testGameServer);
 	}
-};
 
-namespace
-{
 	bool SendOutOfBand(const std::string& data, const net::PeerAddress& address)
 	{
 		g_testGameServer->m_interceptCallbackLastCall.reset();
-		TestOOB::processCallbackLastCall.reset();
+		processCallbackLastCall.reset();
 		const bool result = g_testGameServer->TriggerRawInterceptor(reinterpret_cast<const uint8_t*>(data.c_str()), data.size(), address);
 		g_testGameServer->m_interceptNext = false;
 		return result;
 	}
-}
+};
 
 TEST_CASE("Out of band protocol test")
 {
+	TestOutOfBand testOutOfBand;
 	GIVEN("A out of band handler")
 	{
-		TestOOB::RegisterOutOfBand();
+		testOutOfBand.RegisterOutOfBand();
 		WHEN("Sending a out of band message")
 		{
 			std::string randomData = fx::TestUtils::asciiRandom(fx::TestUtils::u64Random(100) + 1);
 			std::string testMsg = std::string("test") + "\n" + randomData;
 			auto oobMsg = "\xFF\xFF\xFF\xFF" + std::string(testMsg);
 			auto local = net::PeerAddress::FromString("127.0.0.1").get();
-			REQUIRE(SendOutOfBand(oobMsg, local) == true);
+			REQUIRE(testOutOfBand.SendOutOfBand(oobMsg, local) == true);
 			THEN("The intercept callback won't be triggered")
 			{
 				REQUIRE(g_testGameServer->m_interceptCallbackLastCall.has_value() == false);
 			}
 			THEN("The process callback of the registered handler will be triggered")
 			{
-				REQUIRE(TestOOB::processCallbackLastCall.has_value() == true);
-				REQUIRE(TestOOB::processCallbackLastCall.value().server.GetRef() == g_testGameServer);
-				REQUIRE(TestOOB::processCallbackLastCall.value().data == randomData);
-				REQUIRE(TestOOB::processCallbackLastCall.value().from == local);
+				REQUIRE(testOutOfBand.processCallbackLastCall.has_value() == true);
+				REQUIRE(testOutOfBand.processCallbackLastCall.value().server.GetRef() == g_testGameServer);
+				REQUIRE(testOutOfBand.processCallbackLastCall.value().data == randomData);
+				REQUIRE(testOutOfBand.processCallbackLastCall.value().from == local);
 			}
 		}
 		WHEN("Sending without key")
@@ -161,14 +171,14 @@ TEST_CASE("Out of band protocol test")
 			std::string testMsg = "\n" + randomData;
 			auto oobMsg = "\xFF\xFF\xFF\xFF" + std::string(testMsg);
 			auto local = net::PeerAddress::FromString("127.0.0.1").get();
-			REQUIRE(SendOutOfBand(oobMsg, local) == true);
+			REQUIRE(testOutOfBand.SendOutOfBand(oobMsg, local) == true);
 			THEN("The intercept callback won't be triggered, because the message header was -1")
 			{
 				REQUIRE(g_testGameServer->m_interceptCallbackLastCall.has_value() == false);
 			}
 			THEN("The process callback won't be triggered")
 			{
-				REQUIRE(TestOOB::processCallbackLastCall.has_value() == false);
+				REQUIRE(testOutOfBand.processCallbackLastCall.has_value() == false);
 			}
 		}
 		WHEN("Sending without data")
@@ -176,16 +186,16 @@ TEST_CASE("Out of band protocol test")
 			std::string testMsg = std::string("test") + "\n";
 			auto oobMsg = "\xFF\xFF\xFF\xFF" + std::string(testMsg);
 			auto local = net::PeerAddress::FromString("127.0.0.1").get();
-			REQUIRE(SendOutOfBand(oobMsg, local) == true);
+			REQUIRE(testOutOfBand.SendOutOfBand(oobMsg, local) == true);
 			THEN("The intercept callback won't be triggered, because the message header was -1")
 			{
 				REQUIRE(g_testGameServer->m_interceptCallbackLastCall.has_value() == false);
 			}
 			THEN("The process callback will be triggered with empty data")
 			{
-				REQUIRE(TestOOB::processCallbackLastCall.has_value() == true);
-				REQUIRE(TestOOB::processCallbackLastCall.value().data == "");
-				REQUIRE(TestOOB::processCallbackLastCall.value().from == local);
+				REQUIRE(testOutOfBand.processCallbackLastCall.has_value() == true);
+				REQUIRE(testOutOfBand.processCallbackLastCall.value().data == "");
+				REQUIRE(testOutOfBand.processCallbackLastCall.value().from == local);
 			}
 		}
 		WHEN("Sending without seperator")
@@ -193,17 +203,17 @@ TEST_CASE("Out of band protocol test")
 			std::string testMsg = "test";
 			auto oobMsg = "\xFF\xFF\xFF\xFF" + std::string(testMsg);
 			auto local = net::PeerAddress::FromString("127.0.0.1").get();
-			REQUIRE(SendOutOfBand(oobMsg, local) == true);
+			REQUIRE(testOutOfBand.SendOutOfBand(oobMsg, local) == true);
 			THEN("The intercept callback won't be triggered, because the message header was -1")
 			{
 				REQUIRE(g_testGameServer->m_interceptCallbackLastCall.has_value() == false);
 			}
 			THEN("The process callback will be triggered without data")
 			{
-				REQUIRE(TestOOB::processCallbackLastCall.has_value() == true);
+				REQUIRE(testOutOfBand.processCallbackLastCall.has_value() == true);
 				// last data was matching the randomKey before the fix
-				REQUIRE(TestOOB::processCallbackLastCall.value().data == "");
-				REQUIRE(TestOOB::processCallbackLastCall.value().from == local);
+				REQUIRE(testOutOfBand.processCallbackLastCall.value().data == "");
+				REQUIRE(testOutOfBand.processCallbackLastCall.value().from == local);
 			}
 		}
 		WHEN("Sending with one char data")
@@ -212,16 +222,16 @@ TEST_CASE("Out of band protocol test")
 			std::string testMsg = std::string("test") + "\n" + data;
 			auto oobMsg = "\xFF\xFF\xFF\xFF" + std::string(testMsg);
 			auto local = net::PeerAddress::FromString("127.0.0.1").get();
-			REQUIRE(SendOutOfBand(oobMsg, local) == true);
+			REQUIRE(testOutOfBand.SendOutOfBand(oobMsg, local) == true);
 			THEN("The intercept callback won't be triggered, because the message header was -1")
 			{
 				REQUIRE(g_testGameServer->m_interceptCallbackLastCall.has_value() == false);
 			}
 			THEN("The process callback will be triggered and the data will match")
 			{
-				REQUIRE(TestOOB::processCallbackLastCall.has_value() == true);
-				REQUIRE(TestOOB::processCallbackLastCall.value().data == data);
-				REQUIRE(TestOOB::processCallbackLastCall.value().from == local);
+				REQUIRE(testOutOfBand.processCallbackLastCall.has_value() == true);
+				REQUIRE(testOutOfBand.processCallbackLastCall.value().data == data);
+				REQUIRE(testOutOfBand.processCallbackLastCall.value().from == local);
 			}
 		}
 		WHEN("Sending without key and data")
@@ -229,7 +239,7 @@ TEST_CASE("Out of band protocol test")
 			std::string data = fx::TestUtils::asciiRandom(1);
 			auto oobMsg = "\xFF\xFF\xFF\xFF";
 			auto local = net::PeerAddress::FromString("127.0.0.1").get();
-			REQUIRE(SendOutOfBand(oobMsg, local) == true);
+			REQUIRE(testOutOfBand.SendOutOfBand(oobMsg, local) == true);
 			THEN("The intercept callback won't be triggered, because the message header was -1")
 			{
 				REQUIRE(g_testGameServer->m_interceptCallbackLastCall.has_value() == false);
@@ -237,7 +247,7 @@ TEST_CASE("Out of band protocol test")
 			THEN("The process callback won't be called, because the key and data is empty")
 			{
 				// caused a cpp exception before checking len to be 0
-				REQUIRE(TestOOB::processCallbackLastCall.has_value() == false);
+				REQUIRE(testOutOfBand.processCallbackLastCall.has_value() == false);
 			}
 		}
 	}
@@ -245,14 +255,15 @@ TEST_CASE("Out of band protocol test")
 
 TEST_CASE("udp interceptor test")
 {
+	TestOutOfBand testOutOfBand;
 	GIVEN("A out of band handler")
 	{
-		TestOOB::RegisterOutOfBand();
+		testOutOfBand.RegisterOutOfBand();
 		WHEN("Sending a message that does not contain the out of band prefix")
 		{
 			std::string randomData = fx::TestUtils::asciiRandom(fx::TestUtils::u64Random(100) + 1);
 			auto local = net::PeerAddress::FromString("127.0.0.1").get();
-			REQUIRE(SendOutOfBand(randomData, local) == false);
+			REQUIRE(testOutOfBand.SendOutOfBand(randomData, local) == false);
 			THEN("The intercept callback will be triggered")
 			{
 				REQUIRE(g_testGameServer->m_interceptCallbackLastCall.has_value() == true);
@@ -265,7 +276,7 @@ TEST_CASE("udp interceptor test")
 			}
 			THEN("The process callback won't be triggered, because there was no -1 header")
 			{
-				REQUIRE(TestOOB::processCallbackLastCall.has_value() == false);
+				REQUIRE(testOutOfBand.processCallbackLastCall.has_value() == false);
 			}
 		}
 		WHEN("Marking the message as intercepted inside the udp interceptor")
@@ -273,7 +284,7 @@ TEST_CASE("udp interceptor test")
 			std::string randomData = fx::TestUtils::asciiRandom(fx::TestUtils::u64Random(100) + 1);
 			auto local = net::PeerAddress::FromString("127.0.0.1").get();
 			g_testGameServer->m_interceptNext = true;
-			REQUIRE(SendOutOfBand(randomData, local) == true);
+			REQUIRE(testOutOfBand.SendOutOfBand(randomData, local) == true);
 			THEN("The intercept callback will be triggered")
 			{
 				REQUIRE(g_testGameServer->m_interceptCallbackLastCall.has_value() == true);
@@ -286,7 +297,7 @@ TEST_CASE("udp interceptor test")
 			}
 			THEN("The process callback won't be triggered, because there was no -1 header")
 			{
-				REQUIRE(TestOOB::processCallbackLastCall.has_value() == false);
+				REQUIRE(testOutOfBand.processCallbackLastCall.has_value() == false);
 			}
 		}
 	}
