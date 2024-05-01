@@ -68,12 +68,12 @@ namespace fx
 
 		virtual std::string GetVariable(const std::string& key);
 
-		virtual void DropClientv(const fx::ClientSharedPtr& client, const std::string& reason, fmt::printf_args args);
+		void DropClientv(const fx::ClientSharedPtr& client, const std::string& reason);
 
 		template<typename... TArgs>
-		inline void DropClient(const fx::ClientSharedPtr& client, const std::string& reason, const TArgs&... args)
+		void DropClient(const fx::ClientSharedPtr& client, const std::string& reason, const TArgs&... args)
 		{
-			DropClientv(client, reason, fmt::make_printf_args(args...));
+			DropClientv(client, fmt::vsprintf(reason, fmt::make_printf_args(args...)));
 		}
 
 	private:

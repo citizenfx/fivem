@@ -1074,11 +1074,10 @@ namespace fx
 		OnTick();
 	}
 
-	void GameServer::DropClientv(const fx::ClientSharedPtr& client, const std::string& reason, fmt::printf_args args)
+	void GameServer::DropClientv(const fx::ClientSharedPtr& client, const std::string& reason)
 	{
-		std::string realReason = fmt::vsprintf(reason, args);
-
-		if (reason.empty())
+		std::string realReason = reason;
+		if (realReason.empty())
 		{
 			realReason = "Dropped.";
 		}
@@ -1090,7 +1089,7 @@ namespace fx
 
 		client->SetDropping();
 
-		gscomms_execute_callback_on_main_thread([this, client, realReason]()
+		gscomms_execute_callback_on_main_thread([this, client, realReason = std::move(realReason)]()
 		{
 			DropClientInternal(client, realReason);
 		});
