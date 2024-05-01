@@ -10,7 +10,6 @@
 class RoutingPacketHandler
 {
 public:
-	// check that target and sender is not the same, to prevent small dos
 	static void Handle(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& packet)
 	{
 		// TODO: in future net version remove targetNetId when the server is using onesync
@@ -37,6 +36,12 @@ public:
 				instance->GetComponent<fx::ServerGameStatePublic>()->ParseGameStatePacket(client, packetDataCopy);
 			});
 
+			return;
+		}
+
+		if (targetNetId == client->GetNetId())
+		{
+			// source can't be target
 			return;
 		}
 
