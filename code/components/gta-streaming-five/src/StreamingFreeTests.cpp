@@ -13,9 +13,12 @@
 #include <Streaming.h>
 #include "Hooking.h"
 #include <Error.h>
-#include <CoreConsole.h>
 #include <MinHook.h>
 #include <jitasm.h>
+
+#include <GameInit.h>
+#include <CoreConsole.h>
+#include <CL2LaunchMode.h>
 
 #ifdef GTA_FIVE
 #include <atPool.h>
@@ -423,8 +426,16 @@ static void ArchetypeInitHook(void* at, void* a3, fwArchetypeDef* def, void* a4)
 
 static HookFunction hookFunction([] ()
 {
+	static ConVar<bool> enableFlush("str_enableFlush", ConVar_Replicated, false);
 	static ConsoleCommand flushCommand("str_requestFlush", []()
 	{
+#ifndef _DEBUG
+		if (!launch::IsSDK() && !launch::IsSDKGuest() && !enableFlush.GetValue())
+		{
+			trace("str_requestFlush requires the 'str_enableFlush' replicated convar to be enabled");
+			return;
+		}
+#endif
 		if (*g_strStreamingInterface)
 		{
 			(*g_strStreamingInterface)->RequestFlush();
