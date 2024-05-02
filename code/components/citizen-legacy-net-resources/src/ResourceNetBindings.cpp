@@ -226,7 +226,7 @@ namespace
 
 	void TriggerDisabledLatentServerEventInternal(fx::ScriptContext& context)
 	{
-		fx::scripting::Warningf("natives", "TRIGGER_LATENT_SERVER_EVENT_INTERNAL requires setr sv_enableNetEventReassembly  true\n");
+		fx::scripting::Warningf("natives", "TRIGGER_LATENT_SERVER_EVENT_INTERNAL requires setr sv_enableNetEventReassembly true\n");
 	}
 
 	void EnableEventReassemblyChanged(internal::ConsoleVariableEntry<bool>* variableEntry)
@@ -661,8 +661,11 @@ void NetLibraryResourcesComponent::AttachToObject(NetLibrary* netLibrary)
 
 		// reinit the reassembler
 		auto reassembler = Instance<fx::ResourceManager>::Get()->GetComponent<fx::EventReassemblyComponent>();
+		// cleanup old server event reassembly target
 		reassembler->UnregisterTarget(0);
-		reassembler->RegisterTarget(0);
+		// registers the server as a target for the event reassembly
+		// 0xFF sets the maximum amount of pending events to infinite
+		reassembler->RegisterTarget(0, 0xFF);
 	});
 
 	netLibrary->OnConnectionErrorEvent.Connect([](const char* error)
@@ -717,6 +720,9 @@ void NetLibraryResourcesComponent::AttachToObject(NetLibrary* netLibrary)
 			lastDownloadTime = GetTickCount64();
 		}
 	});
+
+	// Used to enable the EventReassemblyComponent when the setr sv_enableNetEventReassembly is not inside the server config
+	EnableEventReassemblyChanged(g_enableEventReassembly.GetHelper().get());
 
 	netLibrary->AddReliableHandler(
 	"msgReassembledEvent", [](const char* buf, size_t len)

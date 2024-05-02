@@ -83,7 +83,9 @@ static void CheckResourceGlobs(fx::Resource* resource, int* numWarnings)
 
 namespace
 {
-	std::shared_ptr<ConVar<bool>> g_enableEventReassemblyConVar;
+	std::shared_ptr<ConVar<bool>> g_enableNetEventReassemblyConVar;
+	std::shared_ptr<ConVar<uint16_t>> g_netEventReassemblyMaxPendingEventsConVar;
+	std::shared_ptr<ConVar<bool>> g_netEventReassemblyUnlimitedPendingEventsConVar;
 	size_t g_eventReassemblyNetworkCookie = -1;
 	
 	std::shared_ptr<ConVar<std::string>> g_citizenDir;
@@ -109,7 +111,7 @@ namespace
 
 	void TriggerDisabledLatentClientEventInternal(fx::ScriptContext& context)
 	{
-		fx::scripting::Warningf("natives", "TRIGGER_LATENT_CLIENT_EVENT_INTERNAL requires setr sv_enableNetEventReassembly  true\n");
+		fx::scripting::Warningf("natives", "TRIGGER_LATENT_CLIENT_EVENT_INTERNAL requires setr sv_enableNetEventReassembly true\n");
 	}
 
 	void EnableEventReassemblyChanged(internal::ConsoleVariableEntry<bool>* variableEntry)
@@ -399,14 +401,20 @@ static InitFunction initFunction([]()
 		// TODO: not instanceable
 		auto rac = resman->GetComponent<fx::EventReassemblyComponent>();
 
-		g_enableEventReassemblyConVar = instance->AddVariable<bool>("sv_enableNetEventReassembly", ConVar_None, true, EnableEventReassemblyChanged);
-
+		g_enableNetEventReassemblyConVar = instance->AddVariable<bool>("sv_enableNetEventReassembly", ConVar_None, true, EnableEventReassemblyChanged);
+		g_netEventReassemblyMaxPendingEventsConVar = instance->AddVariable<uint16_t>("sv_netEventReassemblyMaxPendingEvents", ConVar_None, 100);
+		g_netEventReassemblyUnlimitedPendingEventsConVar = instance->AddVariable<bool>("sv_netEventReassemblyUnlimitedPendingEvents", ConVar_None, false);
+		if (g_netEventReassemblyMaxPendingEventsConVar->GetValue() > 254)
+		{
+			fx::scripting::Warningf("sv_netEventReassemblyMaxPendingEvents", "sv_netEventReassemblyMaxPendingEvents needs to be between [0, 254]. To allow unlimited pending events set sv_netEventReassemblyUnlimitedPendingEvents to true.\n");
+		}
+		
 		instance
 			->GetComponent<fx::GameServer>()
 			->GetComponent<fx::HandlerMapComponent>()
 			->Add(HashRageString("msgReassembledEvent"), [=](const fx::ClientSharedPtr& client, net::Buffer& buffer)
 			{
-				if (g_enableEventReassemblyConVar->GetValue())
+				if (g_enableNetEventReassemblyConVar->GetValue())
 				{
 					rac->HandlePacket(client->GetNetId(), std::string_view{ (char*)(buffer.GetBuffer() + buffer.GetCurOffset()), buffer.GetRemainingBytes() });
 				}
@@ -426,7 +434,7 @@ static InitFunction initFunction([]()
 					return;
 				}
 
-				rac->RegisterTarget(unsafeClient->GetNetId());
+				rac->RegisterTarget(unsafeClient->GetNetId(), g_netEventReassemblyUnlimitedPendingEventsConVar->GetValue() ? 0xFF : g_netEventReassemblyMaxPendingEventsConVar->GetHelper()->GetRawValue());
 	
 				unsafeClient->OnDrop.Connect([rac, unsafeClient]()
 				{

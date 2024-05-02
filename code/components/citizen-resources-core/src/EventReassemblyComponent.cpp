@@ -35,7 +35,7 @@ public:
 
 	virtual void SetSink(EventReassemblySink* sink) override;
 
-	virtual void RegisterTarget(int id) override;
+	virtual void RegisterTarget(int id, uint8_t maxPendingEvents) override;
 
 	virtual void UnregisterTarget(int id) override;
 
@@ -77,6 +77,12 @@ private:
 		std::map<uint32_t, std::tuple<size_t, std::unique_ptr<uint8_t[]>>> packetData;
 	};
 
+	struct Target
+	{
+		int id;
+		uint8_t maxPendingEvents;
+	};
+
 private:
 	void HandleReceivedPacket(int source, const std::shared_ptr<ReceiveEvent>& event);
 
@@ -85,7 +91,7 @@ private:
 
 	std::map<std::tuple<int, EventId>, std::shared_ptr<ReceiveEvent>> m_receiveList;
 
-	std::set<int> m_targets;
+	std::unordered_map<int, Target> m_targets;
 
 	std::shared_mutex m_listMutex;
 
@@ -191,11 +197,10 @@ void EventReassemblyComponentImpl::SetSink(EventReassemblySink* sink)
 	m_sink = sink;
 }
 
-void EventReassemblyComponentImpl::RegisterTarget(int id)
+void EventReassemblyComponentImpl::RegisterTarget(int id, uint8_t maxPendingEvents)
 {
 	std::unique_lock lock(m_listMutex);
-
-	m_targets.insert(id);
+	m_targets[id] = Target{id, maxPendingEvents};;
 }
 
 void EventReassemblyComponentImpl::UnregisterTarget(int id)
@@ -236,7 +241,10 @@ void EventReassemblyComponentImpl::TriggerEvent(int target, std::string_view eve
 	if (target == -1)
 	{
 		std::shared_lock _(m_listMutex);
-		targets = m_targets;
+		for(const auto& currTarget: m_targets)
+		{
+			targets.insert(currTarget.first);
+		}
 	}
 	else
 	{
@@ -285,7 +293,7 @@ void EventReassemblyComponentImpl::TriggerEvent(int target, std::string_view eve
 /// <summary>
 /// Called when a packet is fully received
 /// </summary>
-/// <param name="source">net id from where we fully received the packet</param>
+/// <param name="source">net id from where we fully received the packet, the server net id is always 0 on the client</param>
 /// <param name="event">ReceiveEvent that contains the infos about the packet to receive. It contains the map of packets to reassemble which should be complete now</param>
 void EventReassemblyComponentImpl::HandleReceivedPacket(int source, const std::shared_ptr<ReceiveEvent>& event)
 {
@@ -500,7 +508,7 @@ void EventReassemblyComponentImpl::NetworkTick()
 /// <summary>
 /// Called when a packet is received from the network endpoint
 /// </summary>
-/// <param name="source">net id from where we received this packet</param>
+/// <param name="source">net id from where we received this packet, the server net id is always 0 on the client</param>
 /// <param name="data">The packet data we received</param>
 void EventReassemblyComponentImpl::HandlePacket(int source, std::string_view data)
 {
@@ -546,6 +554,28 @@ void EventReassemblyComponentImpl::HandlePacket(int source, std::string_view dat
 
 		if (entryIt == m_receiveList.end())
 		{
+			// targets are protected by m_listMutex as well
+			auto target = m_targets.find(source);
+			if (target == m_targets.end())
+			{
+				// discard packet when its received from a none registered target
+				return;
+			}
+
+			switch (target->second.maxPendingEvents)
+			{
+			case 0:
+				// more then maxPendingEvents are not accepted at the same time
+				return;
+			case 0xFF:
+				// when maxPendingEvents is set to 255 the target has infinite amount of events
+				// used on the client side for the remote server
+				break;
+			default:
+				--target->second.maxPendingEvents;	
+				break;
+			}
+			
 			// started receiving a new event from remote
 			receiveData = std::make_shared<ReceiveEvent>();
 			// the remote defines the amount of packets that the event will be split to
@@ -579,7 +609,8 @@ void EventReassemblyComponentImpl::HandlePacket(int source, std::string_view dat
 			m_sink->SendPacket(source, std::string_view{ (char*)buf.GetBuffer().data(), buf.GetDataLength() });
 			receiveData->timeLastAck = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
 		}
-		// Still rebuilding event...
+		// Still rebuilding event...,
+		// receiveData->source == source is always true
 		else if (receiveData->source == source)
 		{
 			// check to prevent overflow of the ack bitset
@@ -629,6 +660,18 @@ void EventReassemblyComponentImpl::HandlePacket(int source, std::string_view dat
 				receiveData->completed = true;
 
 				HandleReceivedPacket(source, receiveData);
+
+				// the client handles the server as id 0 and there no limiting is required
+				if (source != 0)
+				{
+					// targets are protected by m_listMutex as well
+					const auto target = m_targets.find(source);
+					if (target != m_targets.end())
+					{
+						// count up max pending event count, because a event is fully received
+						++target->second.maxPendingEvents;
+					}
+				}
 
 				// TODO: remove at least the payload of the fully received packet from the memory to keep the meta data to discard the duplicate packets
 
