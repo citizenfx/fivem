@@ -60,15 +60,6 @@ static HookFunction hookFunction([]()
 		hook::put<int32_t>(location, (intptr_t)g_dynamicDoorCreationDisabled - (intptr_t)location - 4);
 	}
 
-	OnKillNetworkDone.Connect([]()
-	{
-		se::ScopedPrincipal principalScopeInternal(se::Principal{ "system.internal" });
-		enableFlyThroughWindscreen.GetHelper()->SetValue("false");
-		enablePlayerRagdollOnCollision.GetHelper()->SetValue("false");
-		enablePlayerJumpRagdollControl.GetHelper()->SetValue("false");
-		enableDynamicDoorCreation.GetHelper()->SetValue("false");
-	});
-
 	OnMainGameFrame.Connect([]()
 	{
 		*g_flyThroughWindscreenDisabled = *isNetworkGame && !isFlyThroughWindscreenEnabledConVar;

@@ -68,10 +68,4 @@ static HookFunction hookFunction([]()
 		hook::set_call(&g_origTattooSort, location + 0x1E);
 		hook::call(location + 0x1E, TattooSort);
 	}
-
-	OnKillNetworkDone.Connect([]()
-	{
-		se::ScopedPrincipal principalScopeInternal(se::Principal{ "system.internal" });
-		stableTattooSort.GetHelper()->SetValue("false");
-	});
 });
