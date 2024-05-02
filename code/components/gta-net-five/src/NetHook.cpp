@@ -899,19 +899,9 @@ static HookFunction initFunction([]()
 		auto idx = buffer.Read<uint32_t>();
 
 		auto icgi = Instance<ICoreGameInit>::Get();
-
-		uint8_t strictLockdown = 0;
-		uint8_t syncStyle = 0;
-
-		if (icgi->NetProtoVersion >= 0x202002271209)
-		{
-			strictLockdown = buffer.Read<uint8_t>();
-		}
-
-		if (icgi->NetProtoVersion >= 0x202011231556)
-		{
-			syncStyle = buffer.Read<uint8_t>();
-		}
+		
+		uint8_t strictLockdown = buffer.Read<uint8_t>();
+		uint8_t syncStyle = buffer.Read<uint8_t>();
 
 		static uint8_t lastStrictLockdown;
 

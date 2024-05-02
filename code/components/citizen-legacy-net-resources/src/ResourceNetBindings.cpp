@@ -76,21 +76,18 @@ static std::string CrackResourceName(const std::string& uri)
 // helper to UrlEncode for server releases that support this
 static auto UrlEncodeWrap(const std::string& base, const std::string& str)
 {
-	if (Instance<ICoreGameInit>::Get()->NetProtoVersion >= 0x201902111010)
+	auto baseUrl = skyr::make_url(base);
+
+	if (baseUrl)
 	{
-		auto baseUrl = skyr::make_url(base);
+		std::string strCopy(str);
+		boost::algorithm::replace_all(strCopy, "+", "%2B");
 
-		if (baseUrl)
+		auto url = skyr::make_url(strCopy, *baseUrl);
+
+		if (url)
 		{
-			std::string strCopy(str);
-			boost::algorithm::replace_all(strCopy, "+", "%2B");
-
-			auto url = skyr::make_url(strCopy, *baseUrl);
-
-			if (url)
-			{
-				return url->href();
-			}
+			return url->href();
 		}
 	}
 

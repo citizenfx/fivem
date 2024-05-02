@@ -239,7 +239,7 @@ static void (*g_origReadOrient)(rage::CSyncDataBase* self, float* mat, const cha
 
 static void ReadOrient(rage::CSyncDataBase* self, float* mat, const char* name)
 {
-	if (icgi->NetProtoVersion < 0x202006140932 || !icgi->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origReadOrient(self, mat, name);
 	}
@@ -265,7 +265,7 @@ static void(*g_origWriteOrient)(rage::CSyncDataBase* self, float* mat, const cha
 
 static void WriteOrient(rage::CSyncDataBase* self, float* mat, const char* name)
 {
-	if (icgi->NetProtoVersion < 0x202006140932 || !icgi->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		return g_origWriteOrient(self, mat, name);
 	}
@@ -285,7 +285,7 @@ static void WriteOrient(rage::CSyncDataBase* self, float* mat, const char* name)
 
 static void SizeOrient(char* self)
 {
-	if (icgi->NetProtoVersion < 0x202006140932 || !icgi->OneSyncEnabled)
+	if (!icgi->OneSyncEnabled)
 	{
 		*(uint32_t*)(self + 24) += 9 * 3;
 		return;

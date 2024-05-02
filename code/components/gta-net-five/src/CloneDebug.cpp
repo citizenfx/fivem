@@ -747,10 +747,6 @@ bool netSyncTree::WriteTreeCfx(int flags, int objFlags, rage::netObject* object,
 	{
 		sizeLength = 16;
 	}
-	else if (icgi->NetProtoVersion < 0x201812271741)
-	{
-		sizeLength = 11;
-	}
 
 	eastl::bitset<200> processedNodes;
 

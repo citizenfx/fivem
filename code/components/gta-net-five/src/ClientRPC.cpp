@@ -301,14 +301,7 @@ static InitFunction initFunction([]()
 
 					if (native->GetRpcType() == RpcConfiguration::RpcType::EntityCreate)
 					{
-						if (icgi->NetProtoVersion < 0x202002271209)
-						{
-							creationToken = buf->Read<uint16_t>();
-						}
-						else
-						{
-							creationToken = buf->Read<uint32_t>();
-						}
+						creationToken = buf->Read<uint32_t>();
 					}
 					else if (native->GetRpcType() == RpcConfiguration::RpcType::ObjectCreate)
 					{
@@ -333,15 +326,7 @@ static InitFunction initFunction([]()
 							{
 							case RpcConfiguration::ArgumentType::Player:
 							{
-								if (icgi->NetProtoVersion >= 0x202103030422)
-								{
-									buf->Read<uint16_t>();
-								}
-								else
-								{
-									buf->Read<uint8_t>();
-								}
-
+								buf->Read<uint16_t>();
 								break;
 							}
 							case RpcConfiguration::ArgumentType::ObjRef:
@@ -481,23 +466,15 @@ static InitFunction initFunction([]()
 								{
 								case RpcConfiguration::ArgumentType::Player:
 								{
-									if (icgi->NetProtoVersion >= 0x202103030422)
-									{
-										uint32_t netId = buf->Read<uint16_t>();
-										auto playerId = FxNativeInvoke::Invoke<uint32_t>(getByServerId, netId);
+									uint32_t netId = buf->Read<uint16_t>();
+									auto playerId = FxNativeInvoke::Invoke<uint32_t>(getByServerId, netId);
 
-										if (playerId == 0xFFFFFFFF)
-										{
-											return;
-										}
-
-										executionCtx->Push(playerId);
-									}
-									else
+									if (playerId == 0xFFFFFFFF)
 									{
-										int id = buf->Read<uint8_t>();
-										executionCtx->Push(uint32_t(id));
+										return;
 									}
+
+									executionCtx->Push(playerId);
 
 									break;
 								}
@@ -579,20 +556,8 @@ static InitFunction initFunction([]()
 											auto obj = object->GetObjectId();
 
 											g_creationTokenToObjectId[creationToken] = (1 << 16) | obj;
-
-											if (icgi->NetProtoVersion < 0x202002271209)
-											{
-												net::Buffer netBuffer;
-
-												netBuffer.Write<uint16_t>(creationToken);
-												netBuffer.Write<uint16_t>(obj); // object ID (short)
-
-												g_netLibrary->SendReliableCommand("msgEntityCreate", (const char*)netBuffer.GetData().data(), netBuffer.GetCurOffset());
-											}
-											else
-											{
-												g_objectIdToCreationToken[obj] = creationToken;
-											}
+											
+											g_objectIdToCreationToken[obj] = creationToken;
 										}
 									}
 								}
