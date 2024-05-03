@@ -4,7 +4,9 @@
 #include <Client.h>
 #include <NetBuffer.h>
 
-class ServerEventPacketHandler
+#include "ComponentExport.h"
+
+class COMPONENT_EXPORT(citizen_server_impl) ServerEventPacketHandler
 {
 public:
 	static void Handle(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client,

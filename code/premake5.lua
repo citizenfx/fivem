@@ -150,6 +150,7 @@ workspace "CitizenMP"
 		defines { "GTEST_HAS_PTHREAD=0", "BOOST_ALL_NO_LIB" }
  		defines { "BOOST_NULLPTR=nullptr" }
 		defines { "_HAS_AUTO_PTR_ETC" } -- until boost gets fixed
+		defines { "_PPLTASK_ASYNC_LOGGING=0"}
 
 	filter {}
 
