@@ -15,11 +15,13 @@ static bool* g_flyThroughWindscreenDisabled;
 static bool* g_playerRagdollOnCollisionDisabled;
 static bool* g_playerJumpRagdollControlDisabled;
 static bool* g_dynamicDoorCreationDisabled;
+static bool* g_SingleplayerScenarioConditionsDisabled;
 
 static bool isFlyThroughWindscreenEnabledConVar = false;
 static bool isPlayerRagdollOnCollisionEnabledConVar = false;
 static bool isPlayerJumpRagdollControlEnabledConVar = false;
 static bool isDynamicDoorCreationEnabledConVar = false;
+static bool isSingleplayerScenarioConditonsEnabledConVar = false;
 
 static bool* isNetworkGame;
 
@@ -31,7 +33,8 @@ static HookFunction hookFunction([]()
 	static ConVar<bool> enablePlayerRagdollOnCollision("game_enablePlayerRagdollOnCollision", ConVar_Replicated, false, &isPlayerRagdollOnCollisionEnabledConVar);
 	static ConVar<bool> enablePlayerJumpRagdollControl("game_enablePlayerJumpRagdollControl", ConVar_Replicated, false, &isPlayerJumpRagdollControlEnabledConVar);
 	static ConVar<bool> enableDynamicDoorCreation("game_enableDynamicDoorCreation", ConVar_Replicated, false, &isDynamicDoorCreationEnabledConVar);
-	
+	static ConVar<bool> enableSingleplayerScenarioConditions("game_enableSingleplayerScenarioConditions", ConVar_Replicated, false, &isSingleplayerScenarioConditonsEnabledConVar);
+
 	// replace netgame check for fly through windscreen with our variable
 	{
 		g_flyThroughWindscreenDisabled = (bool*)hook::AllocateStubMemory(1);
@@ -60,6 +63,27 @@ static HookFunction hookFunction([]()
 		hook::put<int32_t>(location, (intptr_t)g_dynamicDoorCreationDisabled - (intptr_t)location - 4);
 	}
 
+	// Replace netgame check in CScenarioConditionIsMultiplayerGame::"check"
+	// This patch was designed to make SP car jacking animations work in MP (CConditionalClipSet)
+	//
+	{
+		auto location = hook::get_pattern<uint64_t>("49 2E 5B FA", 0x23C);
+
+		auto addrCtor = *(location) + 0x2C;
+		auto scCondCtor = hook::get_address<uint64_t>(addrCtor, 3, 7);
+
+		auto scCondMultiplayerVft = hook::get_address<uint64_t>(scCondCtor + 0x13, 3, 7);
+
+		//1604-2060 = 0x18; 2189-2699 = 0x20; 2802-* = 0x38
+		auto vftOffset = xbr::IsGameBuildOrGreater<2802>() ? 0x38 : (xbr::IsGameBuildOrGreater<2189>() ? 0x20 : 0x18);
+
+		auto scCondMultiplayerCheckFunction = *(uint64_t*)(scCondMultiplayerVft + vftOffset);
+		assert(scCondMultiplayerCheckFunction  && (*(uint32_t*)scCondMultiplayerCheckFunction == 0x0538c033) /*xor eax, eax; part of the next instruction*/);
+
+		g_SingleplayerScenarioConditionsDisabled = (bool*)hook::AllocateStubMemory(1);
+		hook::put<int32_t>(scCondMultiplayerCheckFunction + 0x4, (intptr_t)g_SingleplayerScenarioConditionsDisabled - scCondMultiplayerCheckFunction - 0x8);
+	}
+
 	OnKillNetworkDone.Connect([]()
 	{
 		se::ScopedPrincipal principalScopeInternal(se::Principal{ "system.internal" });
@@ -67,6 +91,7 @@ static HookFunction hookFunction([]()
 		enablePlayerRagdollOnCollision.GetHelper()->SetValue("false");
 		enablePlayerJumpRagdollControl.GetHelper()->SetValue("false");
 		enableDynamicDoorCreation.GetHelper()->SetValue("false");
+		enableSingleplayerScenarioConditions.GetHelper()->SetValue("false");
 	});
 
 	OnMainGameFrame.Connect([]()
@@ -75,5 +100,6 @@ static HookFunction hookFunction([]()
 		*g_playerRagdollOnCollisionDisabled = *isNetworkGame && !isPlayerRagdollOnCollisionEnabledConVar;
 		*g_playerJumpRagdollControlDisabled = *isNetworkGame && !isPlayerJumpRagdollControlEnabledConVar;
 		*g_dynamicDoorCreationDisabled = *isNetworkGame && !isDynamicDoorCreationEnabledConVar;
+		*g_SingleplayerScenarioConditionsDisabled = *isNetworkGame && !isSingleplayerScenarioConditonsEnabledConVar;
 	});
 });
