@@ -805,6 +805,32 @@ static void Player31_ClearPlayerInfo(CNetGamePlayer* player)
 #endif
 }
 
+// RAII-style mechanism for ensuring player31 has the correct fields populated
+// to ensure events may properly function.
+class Player31_InfoGuard
+{
+private:
+	CNetGamePlayer* m_player;
+
+public:
+	Player31_InfoGuard(CNetGamePlayer* player)
+		: m_player(player)
+	{
+		if (m_player == g_player31)
+		{
+			Player31_ApplyPlayerInfo(m_player);
+		}
+	}
+
+	~Player31_InfoGuard()
+	{
+		if (m_player == g_player31)
+		{
+			Player31_ClearPlayerInfo(m_player);
+		}
+	}
+};
+
 #include <minhook.h>
 
 static void(*g_origPassObjectControl)(CNetGamePlayer* player, rage::netObject* netObject, int a3);
@@ -3067,6 +3093,7 @@ static void HandleNetGameEvent(const char* idata, size_t len)
 		return;
 	}
 
+	Player31_InfoGuard infoGuard{ player };
 	if (isReply)
 	{
 		auto evSetIt = g_events.find({ eventType, eventHeader });
@@ -3077,8 +3104,6 @@ static void HandleNetGameEvent(const char* idata, size_t len)
 
 			if (ev)
 			{
-				Player31_ApplyPlayerInfo(g_player31);
-
 				ev->HandleReply(&rlBuffer, player);
 
 #ifdef GTA_FIVE
@@ -3094,8 +3119,6 @@ static void HandleNetGameEvent(const char* idata, size_t len)
 
 				delete ev;
 				g_events.erase({ eventType, eventHeader });
-
-				Player31_ClearPlayerInfo(g_player31);
 			}
 		}
 	}
