@@ -46,7 +46,6 @@ public:
 
 	void ForAllEntities(const std::function<void(fx::sync::Entity*)>& cb) override
 	{
-		
 	}
 };
 
@@ -65,7 +64,7 @@ TEST_CASE("Routing handler test")
 
 	net::Buffer buffer;
 	buffer.Write<uint16_t>(1); // target net id
-	std::vector<uint8_t> data (1200);
+	std::vector<uint8_t> data(1200);
 	fx::TestUtils::fillVectorU8Random(data);
 	buffer.Write<uint16_t>(data.size()); // packet length
 	buffer.Write(data.data(), data.size());
@@ -73,7 +72,8 @@ TEST_CASE("Routing handler test")
 
 	GameState::parseGameStatePacketDataLastCall.reset();
 	const fx::ClientSharedPtr client = serverInstance->GetComponent<fx::ClientRegistry>()->MakeClient("test");
-	RoutingPacketHandler::Handle(serverInstance, client, buffer);
+	RoutingPacketHandler handler(serverInstance);
+	handler.Handle(serverInstance, client, buffer);
 
 	REQUIRE(GameState::parseGameStatePacketDataLastCall.has_value() == true);
 	REQUIRE(GameState::parseGameStatePacketDataLastCall.value().client == client);
