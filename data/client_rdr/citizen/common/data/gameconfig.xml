@@ -74,7 +74,7 @@
                 </Item>
                 <Item>
                     <PoolName>CAmbientMaskVolume</PoolName>
-                    <PoolSize value="5150"/>
+                    <PoolSize value="50000"/>
                 </Item>
 				<Item>
                     <PoolName>CAmbientMaskVolumeEntity</PoolName>
@@ -82,7 +82,7 @@
                 </Item>
 				<Item>
 				<PoolName>CAmbientMaskVolumeDoor</PoolName>
-                    <PoolSize value="925"/>
+                    <PoolSize value="50000"/>
                 </Item>
                 <Item>
                     <PoolName>CArmSolver</PoolName>
@@ -1107,7 +1107,7 @@
                 </Item>
                 <Item>
                   <PoolName>FragmentStore</PoolName>
-                  <PoolSize value="8756"/>
+                  <PoolSize value="67500"/>
                 </Item>
                 <Item>
                   <PoolName>fwScriptGuid</PoolName>
