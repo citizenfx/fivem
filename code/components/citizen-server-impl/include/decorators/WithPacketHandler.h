@@ -47,7 +47,7 @@ namespace fx
 							gscomms_execute_callback_on_main_thread(cb);
 							break;
 						case fx::ThreadIdx::Net:
-							gscomms_execute_callback_on_net_thread(cb);
+							cb();
 							break;
 						case fx::ThreadIdx::Sync:
 							gscomms_execute_callback_on_sync_thread(cb);
