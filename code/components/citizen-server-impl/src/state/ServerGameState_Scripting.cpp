@@ -1149,6 +1149,13 @@ static void Init()
 		return uint32_t(node ? node->curWeapon : 0);
 	}));
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_CURRENT_PED_WEAPON", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
+	{
+		auto node = entity->syncTree->GetPedGameState();
+
+		return uint32_t(node ? node->curWeapon : 0);
+	}));
+
 	fx::ScriptEngine::RegisterNativeHandler("IS_PED_A_PLAYER", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
 		return entity->type == fx::sync::NetObjEntityType::Player;
