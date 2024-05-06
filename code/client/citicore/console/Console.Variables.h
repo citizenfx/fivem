@@ -212,7 +212,7 @@ class ConsoleVariableEntry : public ConsoleVariableEntryBase
 {
 public:
 	ConsoleVariableEntry(ConsoleVariableManager* manager, const std::string& name, const T& defaultValue)
-		: m_manager(manager), m_name(name), m_trackingVar(nullptr), m_defaultValue(defaultValue), m_curValue(defaultValue), m_hasConstraints(false), m_onChangeCallback(nullptr)
+		: m_manager(manager), m_name(name), m_trackingVar(nullptr), m_defaultValue(defaultValue), m_curValue(defaultValue), m_offlineValue(defaultValue), m_hasConstraints(false), m_onChangeCallback(nullptr)
 	{
 		m_getCommand = std::make_unique<ConsoleCommand>(manager->GetParentContext(), name, [=] ()
 		{
