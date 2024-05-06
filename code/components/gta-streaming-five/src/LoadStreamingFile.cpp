@@ -3109,6 +3109,17 @@ static void fwMapDataStore__FinishLoadingHook(streaming::strStreamingModule* sto
 		}
 	}
 
+	// b2802 - four-april-virginia
+	// b2699 - skylark-whiskey-jig
+	CDistantLODLight& lodLights = mapData->distantLodLights;
+	if (lodLights.numStreetLights > lodLights.positions.GetCount())
+	{
+		auto name = streaming::GetStreamingNameForIndex(idx + store->baseIdx);
+		trace("Fixed CMapData DistantLODLightsSOA (numStreetLights > positions.GetCount()) in %s.\n", name);
+
+		lodLights.numStreetLights = lodLights.positions.GetCount();
+	}
+
 	return g_origfwMapDataStore__FinishLoading(store, idx, data);
 }
 #endif

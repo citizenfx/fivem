@@ -914,6 +914,16 @@ struct MapDataVec4
 	}
 };
 
+struct STREAMING_EXPORT CDistantLODLight
+{
+	virtual ~CDistantLODLight() = default;
+
+	atArray<std::array<float, 3>> positions;
+	atArray<uint32_t> rgbi;
+	uint16_t numStreetLights;
+	uint16_t category;
+};
+
 struct STREAMING_EXPORT CMapData : rage::sysUseAllocator
 {
 	CMapData();
@@ -934,7 +944,9 @@ struct STREAMING_EXPORT CMapData : rage::sysUseAllocator
 	MapDataVec4 entitiesExtentsMax; // +72
 	atArray<fwEntityDef*> entities;
 
-	char pad[512 - 104];
+	char pad_68[280];
+	CDistantLODLight distantLodLights; // +392
+	char pad_1B8[80];
 
 	// etc.
 };
