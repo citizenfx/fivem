@@ -1,18 +1,18 @@
 #include "StdInc.h"
 #include "CefOverlay.h"
+#include "CefOleHandler.h"
 #include "NUIWindowManager.h"
 #include <CL2LaunchMode.h>
 #include <HostSharedData.h>
 #include <ReverseGameData.h>
 
 extern nui::GameInterface* g_nuiGi;
+extern OsrDragHandlerWin g_dragHandler;
 
 #include "memdbgon.h"
 
 extern bool g_shouldHideCursor;
 extern POINT g_cursorPos;
-
-extern bool g_isDragging;
 
 extern fwRefContainer<nui::GITexture> g_cursorTexture;
 
@@ -166,7 +166,7 @@ static HookFunction initFunction([] ()
 				g_nuiGi->SetTexture(g_cursorTexture);
 
 				nui::ResultingRectangle rr;
-				rr.color = (g_isDragging) ? CRGBA(0xaa, 0xaa, 0xaa, 0xff) : CRGBA(0xff, 0xff, 0xff, 0xff);
+				rr.color = (g_dragHandler.IsDragging()) ? CRGBA(0xaa, 0xaa, 0xaa, 0xff) : CRGBA(0xff, 0xff, 0xff, 0xff);
 				rr.rectangle = CRect(cursorPos.x, cursorPos.y, cursorPos.x + 32.0f, cursorPos.y + 32.0f);
 
 				g_nuiGi->DrawRectangles(1, &rr);

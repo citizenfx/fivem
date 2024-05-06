@@ -10,6 +10,7 @@
 #include "CrossLibraryInterfaces.h"
 
 #include "CefImeHandler.h"
+#include "CefOleHandler.h"
 #include "NUIRenderHandler.h"
 
 #include <HostSharedData.h>
@@ -276,6 +277,7 @@ int GetCefKeyboardModifiers(WPARAM wparam, LPARAM lparam)
 }
 
 OsrImeHandlerWin* g_imeHandler;
+OsrDragHandlerWin g_dragHandler;
 
 int GetCefMouseModifiers(WPARAM wparam) {
 	int modifiers = 0;
@@ -462,7 +464,7 @@ static HookFunction initFunction([] ()
 					((button == 0) ? MBT_LEFT : ((button == 1) ? MBT_RIGHT : MBT_MIDDLE));
 				if (!cancelPreviousClick && (btnType == lastClickButton))
 				{
-					++lastClickCount;
+					lastClickCount = std::min(3, lastClickCount + 1);
 				}
 				else
 				{
@@ -493,7 +495,7 @@ static HookFunction initFunction([] ()
 
 				auto browser = GetFocusBrowser();
 
-				if (browser)
+				if (browser && lastClickCount > 0)
 				{
 					CefMouseEvent mouse_event;
 					mouse_event.x = x;
@@ -587,6 +589,12 @@ static HookFunction initFunction([] ()
 	g_nuiGi->OnWndProc.Connect([](HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, bool& pass, LRESULT& lresult)
 	{
 		if (!pass)
+		{
+			return;
+		}
+
+		// Forward the relevant subset of messages to satisfy ole32 drag/drop
+		if (g_dragHandler.OnWndProc(hWnd, msg, wParam, lParam))
 		{
 			return;
 		}
