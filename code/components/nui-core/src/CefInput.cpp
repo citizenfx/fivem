@@ -495,13 +495,13 @@ static HookFunction initFunction([] ()
 
 				auto browser = GetFocusBrowser();
 
-				if (browser && lastClickCount > 0)
+				if (browser)
 				{
 					CefMouseEvent mouse_event;
 					mouse_event.x = x;
 					mouse_event.y = y;
 					mouse_event.modifiers = GetCefMouseModifiers();
-					browser->GetHost()->SendMouseClickEvent(mouse_event, btnType, true, lastClickCount);
+					browser->GetHost()->SendMouseClickEvent(mouse_event, btnType, true, std::max(1, lastClickCount));
 				}
 			}
 		}
