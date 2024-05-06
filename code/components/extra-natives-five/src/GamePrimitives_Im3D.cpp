@@ -296,7 +296,7 @@ void gz::End()
 
 	Im3d::EndFrame();
 
-	if (!shader)
+	if (!shader || Im3d::GetDrawListCount() == 0)
 	{
 		return;
 	}
