@@ -156,12 +156,14 @@ static fwEntity* getAndCheckVehicle(fx::ScriptContext& context, std::string_view
 	if (!vehicle)
 	{
 		traceFn("No such entity\n");
+		context.SetResult<uintptr_t>(0);
 		return nullptr;
 	}
 
 	if (!vehicle->IsOfType<CVehicle>())
 	{
 		traceFn("Can not read from an entity that is not a vehicle\n");
+		context.SetResult<uintptr_t>(0);
 		return nullptr;
 	}
 
@@ -233,6 +235,7 @@ static int IsEngineStartingOffset;
 static int IsWantedOffset;
 static int DashSpeedOffset;
 static int VehicleTypeOffset;
+static ptrdiff_t GetNetObjTypeOffset;
 static int HighGearOffset;
 static int CurrentGearOffset;
 static int NextGearOffset;
@@ -468,6 +471,7 @@ static HookFunction initFunction([]()
 		GravityOffset = *hook::get_pattern<uint32_t>("0F C6 F6 00 F3 0F 59 05", -4);
 		DashSpeedOffset = *hook::get_pattern<uint32_t>("0F 84 ? ? ? ? 44 89 AE ? ? ? ? 44 84 F3", 9);
 		VehicleTypeOffset = *hook::get_pattern<uint32_t>("41 83 BF ? ? ? ? 0B 74", 3);
+		GetNetObjTypeOffset = *hook::get_pattern<int32_t>("41 83 F8 07 0F 94 C3 FF 90", 9);
 		HighGearOffset = *hook::get_pattern<uint32_t>("88 44 24 20 45 0F 28 D0", -4);
 		HandbrakeOffset = *hook::get_pattern<uint32_t>("8A C2 24 01 C0 E0 04 08 81", 19);
 		EngineTempOffset = *hook::get_pattern<uint32_t>("48 8D 8F ? ? ? ? 45 32 FF", -4);
@@ -692,6 +696,52 @@ static HookFunction initFunction([]()
 	using namespace std::placeholders;
 
 	// vehicle natives
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_TYPE_RAW", std::bind(readVehicleMemory<int32_t, &VehicleTypeOffset>, _1, "GET_VEHICLE_TYPE_RAW"));
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_TYPE", [](fx::ScriptContext& context)
+	{
+		// Parity with FXServer.
+		//
+		// #HACK: Ripped from ServerGameState_Scripting.cpp. For now everything
+		// is hard-coded instead of redefining NetObjEntityType.
+		using NetObjEntityType = int32_t;
+		auto getVehicleType = [](NetObjEntityType type) -> const char*
+		{
+			switch (type)
+			{
+				case 0: // NetObjEntityType::Automobile
+					return "automobile";
+				case 1: // NetObjEntityType::Bike
+					return "bike";
+				case 2: // NetObjEntityType::Boat
+					return "boat";
+				case 4: // NetObjEntityType::Heli
+					return "heli";
+				case 9: // NetObjEntityType::Plane
+					return "plane";
+				case 10: // NetObjEntityType::Submarine
+					return "submarine";
+				case 12: // NetObjEntityType::Trailer
+					return "trailer";
+				case 13: // NetObjEntityType::Train
+					return "train";
+				default:
+					return nullptr;
+			}
+		};
+
+		const char* result = nullptr;
+		if (fwEntity* vehicle = getAndCheckVehicle(context, "GET_VEHICLE_TYPE"))
+		{
+			using GetNetObjType = NetObjEntityType (*)(const fwEntity*);
+
+			const char* vtable = *(const char**)vehicle;
+			NetObjEntityType type = (*(GetNetObjType*)(vtable + GetNetObjTypeOffset))(vehicle);
+
+			result = getVehicleType(type);
+		}
+		context.SetResult<const char*>(result);
+	});
+
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_FUEL_LEVEL", std::bind(readVehicleMemory<float, &FuelLevelOffset>, _1, "GET_VEHICLE_FUEL_LEVEL"));
 	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_FUEL_LEVEL", std::bind(writeVehicleMemory<float, &FuelLevelOffset>, _1, "SET_VEHICLE_FUEL_LEVEL"));
 
@@ -1215,6 +1265,10 @@ static HookFunction initFunction([]()
 				if (vehicle->IsOfType<CVehicle>() && readValue<int>(vehicle, VehicleTypeOffset) == 14)
 				{
 					cb(context, vehicle);
+				}
+				else
+				{
+					context.SetResult<uintptr_t>(0);
 				}
 			}
 		};
