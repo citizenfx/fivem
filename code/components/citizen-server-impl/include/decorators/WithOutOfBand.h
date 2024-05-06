@@ -67,7 +67,8 @@ namespace fx
 					{
 						if (key == fx::force_consteval<uint32_t, HashRageString(TOutOfBandHandler::GetName())>)
 						{
-							TOutOfBandHandler::Process(tempServer, from, data);
+							static TOutOfBandHandler outOfBandHandler (tempServer);
+							outOfBandHandler.Process(tempServer, from, data);
 							return true;
 						}
 					}(), ...);

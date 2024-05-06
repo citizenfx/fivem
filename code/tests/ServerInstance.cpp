@@ -7,7 +7,7 @@
 // Implements a none abstract ServerInstanceBase instance used for tests
 class ServerInstanceBaseImpl : public fx::ServerInstanceBase
 {
-	std::string rootPath;
+	std::string rootPath = "test";
 
 public:
 	const std::string& GetRootPath() override

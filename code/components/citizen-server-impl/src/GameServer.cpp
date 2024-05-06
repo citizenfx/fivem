@@ -1243,146 +1243,6 @@ namespace fx
 			}
 		};
 
-		struct GetStatusOOB
-		{
-			template <typename ServerImpl>
-			static void Process(const fwRefContainer<ServerImpl>& server, const net::PeerAddress& from, const std::string_view& data)
-			{
-				const auto limiter = server->GetInstance()->template GetComponent<fx::PeerAddressRateLimiterStore>()->GetRateLimiter("getstatus", fx::RateLimiterDefaults{ 1.0, 5.0 });
-
-				if (!fx::IsProxyAddress(from) && !limiter->Consume(from))
-				{
-					return;
-				}
-
-				int numClients = 0;
-				std::stringstream clientList;
-
-				server->GetInstance()->template GetComponent<fx::ClientRegistry>()->ForAllClients([&](const fx::ClientSharedPtr& client)
-				{
-					if (client->GetNetId() < 0xFFFF)
-					{
-						clientList << fmt::sprintf("%d %d \"%s\"\n", 0, 0, client->GetName());
-
-						++numClients;
-					}
-				});
-
-				std::stringstream infoVars;
-
-				auto addInfo = [&](const std::string& key, const std::string& value)
-				{
-					infoVars << "\\" << key << "\\" << value;
-				};
-
-				addInfo("sv_maxclients", "24");
-				addInfo("clients", std::to_string(numClients));
-
-				server->GetInstance()->template GetComponent<console::Context>()->GetVariableManager()->ForAllVariables([&](const std::string& name, int flags, const std::shared_ptr<internal::ConsoleVariableEntryBase>& var)
-				{
-					addInfo(name, var->GetValue());
-				}, ConVar_ServerInfo);
-
-				server->SendOutOfBand(from, fmt::format(
-					"statusResponse\n"
-					"{0}\n"
-					"{1}",
-					infoVars.str(),
-					clientList.str()
-				));
-			}
-
-			static constexpr const char* GetName()
-			{
-				return "getstatus";
-			}
-		};
-
-		struct RconOOB
-		{
-			template <typename ServerImpl>
-			static void Process(const fwRefContainer<ServerImpl>& server, const net::PeerAddress& from, const std::string_view& dataView)
-			{
-				auto limiter = server->GetInstance()->template GetComponent<fx::PeerAddressRateLimiterStore>()->GetRateLimiter("rcon", fx::RateLimiterDefaults{ 0.2, 5.0 });
-
-				if (!fx::IsProxyAddress(from) && !limiter->Consume(from))
-				{
-					return;
-				}
-
-				const int spacePos = dataView.find_first_of(" \n");
-				if (spacePos == 0 || spacePos == std::string::npos || spacePos + 1 >= dataView.size())
-				{
-					// ignore packets that doesn't contain a command or password
-					return;
-				}
-
-				const std::string_view passwordView = dataView.substr(0, spacePos);
-				const std::string_view commandView = dataView.substr(spacePos);
-				
-				if (server->GetRconPassword().empty())
-				{
-					static const char* response = "print The server must set rcon_password to be able to use this command.\n";
-					server->SendOutOfBand(from, response);
-					return;
-				}
-				
-				if (passwordView != server->GetRconPassword())
-				{
-					static const char* response = "print Invalid password.\n";
-					server->SendOutOfBand(from, response);
-					return;
-				}
-
-				// reset rate limit for this client, because the command is authorized
-				limiter->Reset(from);
-				
-				std::string command(commandView);
-
-				gscomms_execute_callback_on_main_thread([server, from, command = std::move(command)]()
-				{
-					try
-					{
-						std::string printString;
-
-						ScopeDestructor destructor([&]()
-						{
-							server->SendOutOfBand(from, "print " + printString);
-						});
-
-						// log rcon request
-						console::Printf("rcon", "Rcon from %s\n%s\n", from.ToString(), command);
-
-						PrintListenerContext context([&printString](std::string_view print)
-						{
-							printString += print;
-						});
-
-						fx::PrintFilterContext filterContext([](ConsoleChannel& channel, std::string_view print)
-						{
-							channel = "rcon/" + channel;
-						});
-
-						auto ctx = server->GetInstance()->template GetComponent<console::Context>();
-						ctx->ExecuteBuffer();
-
-						se::ScopedPrincipal principalScope(se::Principal{ "system.console" });
-						ctx->AddToBuffer(command);
-						ctx->ExecuteBuffer();
-					}
-					catch (std::exception& e)
-					{
-
-					}
-				});
-			}
-
-			static constexpr const char* GetName()
-			{
-				return "rcon";
-			}
-		};
-
 		struct IHostPacketHandler
 		{
 			inline static void Handle(ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& packet)
@@ -1552,6 +1412,8 @@ DECLARE_INSTANCE_TYPE(fx::ServerDecorators::HostVoteCount);
 #include <decorators/WithPacketHandler.h>
 
 #include <outofbandhandlers/GetInfoOutOfBand.h>
+#include <outofbandhandlers/GetStatusOutOfBand.h>
+#include <outofbandhandlers/RconOutOfBand.h>
 
 #include <packethandlers/RoutingPacketHandler.h>
 
@@ -1617,7 +1479,7 @@ static InitFunction initFunction([]()
 		instance->SetComponent(
 			WithPacketHandler<RoutingPacketHandler, IHostPacketHandler, IQuitPacketHandler, HeHostPacketHandler>(
 				WithProcessTick<ThreadWait, GameServerTick>(
-					WithOutOfBand<GetInfoOutOfBand, GetStatusOOB, RconOOB>(
+					WithOutOfBand<GetInfoOutOfBand, GetStatusOutOfBand, RconOutOfBand>(
 						WithEndPoints(
 							NewGameServer()
 						)
