@@ -7092,13 +7092,14 @@ std::function<bool()> fx::ServerGameState::GetGameEventHandler(const fx::ClientS
 	{
 		eventType++;
 	}
+#endif
 
-	if (eventType == REQUEST_CONTROL_EVENT)
-	{
-		return GetRequestControlEventHandler(client, std::move(buffer));
-	}
-
-	if(eventType == NETWORK_PLAY_SOUND_EVENT)
+#if defined(STATE_FIVE) || defined(STATE_RDR3)
+#ifdef STATE_FIVE
+	if (eventType == NETWORK_PLAY_SOUND_EVENT)
+#else
+	if (eventType == NETWORK_PLAY_SCRIPT_SOUND_EVENT)
+#endif
 	{
 		return []()
 		{
@@ -7112,6 +7113,24 @@ std::function<bool()> fx::ServerGameState::GetGameEventHandler(const fx::ClientS
 		{
 			return g_networkedPhoneExplosionsEnabled;
 		};
+	}
+
+	// This event should *only* be triggered while a vehicle has a pending owner
+	// change, i.e., old owner informing new owner that the vehicle should be
+	// blown up. This does not apply to OneSync.
+	if (eventType == BLOW_UP_VEHICLE_EVENT)
+	{
+		return []()
+		{
+			return false;
+		};
+	}
+#endif
+
+#ifdef STATE_FIVE
+	if (eventType == REQUEST_CONTROL_EVENT)
+	{
+		return GetRequestControlEventHandler(client, std::move(buffer));
 	}
 
 	if (isReply)

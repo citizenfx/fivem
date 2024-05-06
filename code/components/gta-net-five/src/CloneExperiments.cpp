@@ -2406,9 +2406,75 @@ static HookFunction hookFunction([]()
 // event stuff
 static void* g_netEventMgr;
 
+static std::unordered_set<uint16_t> g_eventBlacklist;
 #ifdef IS_RDR3
-static std::map<uint16_t, const char*> g_eventNames;
+static std::unordered_map<uint16_t, const char*> g_eventNames;
 #endif
+
+#ifdef GTA_FIVE
+static hook::cdecl_stub<const char*(void*, uint16_t)> _netEventMgr_GetNameFromType([]()
+{
+	return hook::get_pattern("66 83 FA ? 73 12 0F B7 D2 48 8B 8C D1 ? ? ? ? 48 85 C9", -7);
+});
+#endif
+
+// #TODO: Once file is reorganized dump into netEventMgr as utility functions
+static uint16_t netEventMgr_GetMaxEventType()
+{
+#ifdef GTA_FIVE
+	return (xbr::IsGameBuildOrGreater<2060>() ? 0x5B : 0x5A);
+#elif IS_RDR3
+	return 0xA5;
+#endif
+}
+
+static void netEventMgr_PopulateEventBlacklist()
+{
+	std::unordered_map<std::string_view, uint16_t> eventIdents;
+	auto BlacklistEvent = [&](const char* name)
+	{
+		if (auto it = eventIdents.find(name); it != eventIdents.end())
+		{
+			g_eventBlacklist.emplace(it->second);
+		}
+	};
+
+#ifdef GTA_FIVE
+	auto eventMgr = *(char**)g_netEventMgr;
+	for (uint16_t i = 0; i < netEventMgr_GetMaxEventType(); ++i)
+	{
+		if (auto name = _netEventMgr_GetNameFromType(eventMgr, i))
+		{
+			eventIdents.insert({ name, i });
+		}
+	}
+#elif IS_RDR3
+	for (auto [type, name] : g_eventNames)
+	{
+		eventIdents.insert({ name, type });
+	}
+#endif
+
+	BlacklistEvent("GIVE_CONTROL_EVENT"); // don't give control using events!
+	BlacklistEvent("BLOW_UP_VEHICLE_EVENT"); // used only during migration
+	BlacklistEvent("KICK_VOTES_EVENT");
+	BlacklistEvent("NETWORK_CRC_HASH_CHECK_EVENT");
+	BlacklistEvent("NETWORK_CHECK_EXE_SIZE_EVENT");
+	BlacklistEvent("NETWORK_CHECK_CODE_CRCS_EVENT");
+	BlacklistEvent("NETWORK_CHECK_CATALOG_CRC");
+}
+
+/// Ignore processing events that do not apply to OneSyncEnabled.
+///
+/// If the event implements a Reply method, or is exposed via script command,
+/// ensure blacklisting it will not negatively impact the game or network state.
+static bool netEventMgr_IsBlacklistedEvent(uint16_t type)
+{
+	static std::once_flag generated;
+	std::call_once(generated, netEventMgr_PopulateEventBlacklist);
+
+	return g_eventBlacklist.find(type) != g_eventBlacklist.end();
+}
 
 namespace rage
 {
@@ -2742,8 +2808,7 @@ static void EventMgr_AddEvent(void* eventMgr, rage::netGameEvent* ev)
 		return g_origAddEvent(eventMgr, ev);
 	}
 
-	// don't give control using events!
-	if (strcmp(ev->GetName(), "GIVE_CONTROL_EVENT") == 0)
+	if (netEventMgr_IsBlacklistedEvent(ev->eventId))
 	{
 		delete ev;
 		return;
@@ -3056,13 +3121,7 @@ static void HandleNetGameEvent(const char* idata, size_t len)
 	rage::datBitBuffer rlBuffer(const_cast<uint8_t*>(data.data()), data.size());
 	rlBuffer.m_f1C = 1;
 
-#ifdef GTA_FIVE
-	static auto maxEvent = (xbr::IsGameBuildOrGreater<2060>() ? 0x5B : 0x5A);
-#elif IS_RDR3
-	static auto maxEvent = 0xA5;
-#endif
-
-	if (eventType > maxEvent)
+	if (eventType > netEventMgr_GetMaxEventType())
 	{
 		return;
 	}
@@ -3102,6 +3161,11 @@ static void HandleNetGameEvent(const char* idata, size_t len)
 	else
 	{
 		using TEventHandlerFn = void(*)(rage::datBitBuffer* buffer, CNetGamePlayer* player, CNetGamePlayer* unkConn, uint16_t, uint32_t, uint32_t);
+		if (netEventMgr_IsBlacklistedEvent(eventType))
+		{
+			//trace("Rejecting Blacklisted Event: %d\n", eventType);
+			return;
+		}
 
 		bool rejected = false;
 
