@@ -316,11 +316,11 @@ static InitFunction initFunction([]()
 	}, -500);
 });
 
-__int64(__fastcall* g_origAlterPedHeadshotTransparentPSConstants_Hook)(__m128*, __m128*);
+static void (*g_origAlterPedHeadshotTransparentPSConstants_Hook)(__m128*, __m128*);
 
 // Since b2189's shader changes `RegisterPedheadshotTransparent`'s texture colors are in the [0 .. 0.6] range, let's inverse it
 // Sets	PS constant buffer 3rd and 4th? (unchecked) float4/vec4/__m128 values, where the 3rd is referred to as `GeneralParams0`
-__int64 __fastcall AlterPedHeadshotTransparentPSConstants_Hook(__m128* a3, __m128* a4)
+static void AlterPedHeadshotTransparentPSConstants_Hook(__m128* a3, __m128* a4)
 {
 	*a3 = _mm_set1_ps(1.f / 0.6f); // *a3 is stack allocated
 	return g_origAlterPedHeadshotTransparentPSConstants_Hook(a3, a4);
@@ -336,8 +336,8 @@ static HookFunction hookFunction([]()
 
 	if (xbr::IsGameBuildOrGreater<2189>())
 	{
-		g_origAlterPedHeadshotTransparentPSConstants_Hook = hook::trampoline(
-			hook::get_pattern("48 8D 4D F7 0F 29 4D F7 0F 29 45 E7", 0xC),
-			AlterPedHeadshotTransparentPSConstants_Hook);
+		auto location = hook::get_pattern("48 8D 4D F7 0F 29 4D F7 0F 29 45 E7", 0xC);
+		hook::set_call(&g_origAlterPedHeadshotTransparentPSConstants_Hook, location);
+		hook::call(location, AlterPedHeadshotTransparentPSConstants_Hook);
 	}
 });
