@@ -2,7 +2,12 @@
 using CitizenFX.Core;
 using INativeValue = CitizenFX.Core.Native.Input.Primitive;
 
+#if IS_RDR3
+namespace CitizenFX.RedM
+#else
 namespace CitizenFX.FiveM
+#endif
+
 #else
 using CitizenFX.Core.Native;
 

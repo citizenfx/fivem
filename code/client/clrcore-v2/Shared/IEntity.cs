@@ -48,11 +48,14 @@ namespace CitizenFX.Shared
 		/// Gets or sets the velocity of this <see cref="IEntity"/>.
 		/// </summary>
 		Vector3 Velocity { get; set; }
-
+	
+		// RDR doesn't have a known native for rotation velocity.
+#if !IS_RDR3
 		/// <summary>
 		/// Gets the rotation velocity of this <see cref="IEntity"/>.
 		/// </summary>
 		Vector3 RotationVelocity { get; }
+#endif
 
 		/// <summary>
 		/// Gets the model of the this <see cref="IEntity"/>.
