@@ -32,7 +32,8 @@ if kvpHandle ~= -1 then
 		if key then
 			print(('%s: %s'):format(key, GetResourceKvpString(key)))
 		end
-	until key
+		Wait(0)
+	until not key
 
 	EndFindKvp(kvpHandle)
 end
