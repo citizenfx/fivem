@@ -477,21 +477,11 @@ json InfoHttpHandlerComponentLocals::GetDynamicJson()
 {
 	auto server = m_instance->GetComponent<fx::GameServer>();
 
-	int numClients = 0;
-
-	m_instance->GetComponent<fx::ClientRegistry>()->ForAllClients([&](const fx::ClientSharedPtr& client)
-	{
-		if (client->GetNetId() < 0xFFFF)
-		{
-			++numClients;
-		}
-	});
-
 	auto json = json::object({
 		{ "hostname", server->GetVariable("sv_hostname") },
 		{ "gametype", server->GetVariable("gametype") },
 		{ "mapname", server->GetVariable("mapname") },
-		{ "clients", numClients },
+		{ "clients", m_instance->GetComponent<fx::ClientRegistry>()->GetAmountOfConnectedClients() },
 		{ "iv", server->GetVariable("sv_infoVersion") },
 		{ "sv_maxclients", server->GetVariable("sv_maxclients") },
 	});
