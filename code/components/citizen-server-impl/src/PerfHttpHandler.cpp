@@ -43,8 +43,8 @@ static InitFunction initFunction([]()
 			auto promRegistry = instance->GetComponent<fx::ServerPerfComponent>()->GetRegistry();
 			auto metrics = promRegistry->Collect();
 
-			auto serializer = std::unique_ptr<prometheus::Serializer>{ new prometheus::TextSerializer() };
-			auto serialized = serializer->Serialize(metrics);
+			const prometheus::TextSerializer serializer {};
+			std::string serialized = serializer.Serialize(metrics);
 
 			response->SetHeader("Content-Type", "text/plain");
 			response->End(std::move(serialized));
