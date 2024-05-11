@@ -12,6 +12,8 @@
 #include <SharedFunction.h>
 #include <state/RlMessageBuffer.h>
 
+#include "ByteWriter.h"
+
 namespace fx
 {
 class StateBagImpl;
@@ -28,6 +30,8 @@ public:
 	virtual void Reset() override;
 
 	virtual void HandlePacket(int source, std::string_view data, std::string* outBagNameName = nullptr) override;
+
+	virtual void HandlePacketV2(int source, StateBagMessage& message, std::string_view* outBagNameName = nullptr) override;
 
 	virtual std::shared_ptr<StateBag> GetStateBag(std::string_view id) override;
 
@@ -66,6 +70,11 @@ public:
 	inline StateBagGameInterface* GetGameInterface() const
 	{
 		return m_gameInterface;
+	}
+
+	StateBagRole GetRole() const
+	{
+		return m_role;
 	}
 
 private:
@@ -351,26 +360,45 @@ void StateBagImpl::SendKeyValueToAllTargets(std::string_view key, std::string_vi
 
 void StateBagImpl::SendKeyValue(int target, std::string_view key, std::string_view value)
 {
-	static thread_local rl::MessageBuffer dataBuffer(131072);
-
-	if (!key.empty() && !value.empty())
+	// new server will accept this message
+	if (m_parent->GetRole() == StateBagRole::ClientV2)
 	{
-		dataBuffer.SetCurrentBit(0);
+		static thread_local std::vector<uint8_t> dataBuffer(131072);
 
-		auto writeStr = [](const auto& str)
+		if (!key.empty() && !value.empty())
 		{
-			dataBuffer.Write<uint16_t>(16, str.size() + 1);
-			dataBuffer.WriteBits(str.data(), str.size() * 8);
-			dataBuffer.Write<uint8_t>(8, 0);
-		};
+			net::ByteWriter writer (dataBuffer.data(), 131072);
+			StateBagMessage stateBagMessage (m_id, key, value);
+			stateBagMessage.Process(writer);
 
-		{
-			writeStr(m_id);
-			writeStr(key);
-			dataBuffer.WriteBits(value.data(), value.size() * 8);
+			m_parent->QueueSend(target, std::string_view{ reinterpret_cast<const char*>(dataBuffer.data()), writer.GetOffset() });
 		}
+	}
+	else
+	{
+		// client connecting to a older server need to send this one
+		// server need to send this one, because he has no way to know version of the client
+		static thread_local rl::MessageBuffer dataBuffer(131072);
 
-		m_parent->QueueSend(target, std::string_view{ reinterpret_cast<const char*>(dataBuffer.GetBuffer().data()), dataBuffer.GetCurrentBit() / 8 });
+		if (!key.empty() && !value.empty())
+		{
+			dataBuffer.SetCurrentBit(0);
+
+			auto writeStr = [](const auto& str)
+			{
+				dataBuffer.Write<uint16_t>(16, str.size() + 1);
+				dataBuffer.WriteBits(str.data(), str.size() * 8);
+				dataBuffer.Write<uint8_t>(8, 0);
+			};
+
+			{
+				writeStr(m_id);
+				writeStr(key);
+				dataBuffer.WriteBits(value.data(), value.size() * 8);
+			}
+
+			m_parent->QueueSend(target, std::string_view{ reinterpret_cast<const char*>(dataBuffer.GetBuffer().data()), dataBuffer.GetCurrentBit() / 8 });
+		}
 	}
 }
 
@@ -431,7 +459,7 @@ std::shared_ptr<StateBag> StateBagComponentImpl::RegisterStateBag(std::string_vi
 	{
 		std::unique_lock lock(m_mapMutex);
 
-		if (auto exIt = m_stateBags.find(std::string{ id }); exIt != m_stateBags.end())
+		if (auto exIt = m_stateBags.find(strId); exIt != m_stateBags.end())
 		{
 			auto bagRef = exIt->second.lock();
 
@@ -471,6 +499,9 @@ void StateBagComponentImpl::UnregisterStateBag(std::string_view id)
 std::shared_ptr<StateBag> StateBagComponentImpl::GetStateBag(std::string_view id)
 {
 	std::shared_lock lock(m_mapMutex);
+	// unfortunately this string allocation is required, because we are not using cpp20 yet
+	// see: https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0919r2.html
+	// TODO: remove std::string allocation when cpp20 is used
 	auto bag = m_stateBags.find(std::string{ id });
 
 	return (bag != m_stateBags.end()) ? bag->second.lock() : nullptr;
@@ -684,6 +715,44 @@ void StateBagComponentImpl::HandlePacket(int source, std::string_view dataRaw, s
 	else if(outBagNameName != nullptr)
 	{
 		*outBagNameName = bagName;
+	}
+}
+
+void StateBagComponentImpl::HandlePacketV2(int source, StateBagMessage& message, std::string_view* outBagNameName)
+{
+	if (message.stateBagName.GetValue().empty() || message.key.GetValue().empty() || message.data.GetValue().empty())
+	{
+		return;
+	}
+
+	auto bag = GetStateBag(message.stateBagName);
+
+	if (!bag)
+	{
+		if (const auto safeToCreate = IsSafePreCreateName(message.stateBagName); safeToCreate.first)
+		{
+			bag = PreCreateStateBag(message.stateBagName, safeToCreate.second);
+		}
+	}
+
+	if (bag)
+	{
+		const auto bagRef = std::static_pointer_cast<StateBagImpl>(bag);
+
+		// TODO: rate checks, policy checks
+		const auto peer = bagRef->GetOwningPeer();
+		if (!peer.has_value() || source == *peer)
+		{
+			bagRef->SetKey(
+				source,
+				message.key,
+				message.data,
+				m_role == StateBagRole::Server);
+		}		
+	}
+	else if (outBagNameName != nullptr)
+	{
+		*outBagNameName = message.stateBagName;
 	}
 }
 

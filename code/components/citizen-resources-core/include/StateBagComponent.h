@@ -7,6 +7,11 @@
 
 #include <msgpack.hpp>
 
+#include <SerializableComponent.h>
+
+#include <SerializableProperty.h>
+#include <SerializableStorageType.h>
+
 #ifdef COMPILING_CITIZEN_RESOURCES_CORE
 #define CRC_EXPORT DLL_EXPORT
 #else
@@ -16,6 +21,32 @@
 namespace fx
 {
 class ResourceManager;
+
+class StateBagMessage : net::SerializableComponent
+{
+public:
+	net::SerializableProperty<std::string_view, net::storageType::BytesArray> stateBagName;
+	net::SerializableProperty<std::string_view, net::storageType::BytesArray> key;
+	net::SerializableProperty<std::string_view, net::storageType::StreamTail> data;
+
+	StateBagMessage() = default;
+
+	StateBagMessage(std::string_view stateBagName, std::string_view key, std::string_view data)
+		: stateBagName(stateBagName), key(key), data(data)
+	{
+	}
+	
+	template <typename T>
+	bool Process(T& stream)
+	{
+		return ProcessPropertiesInOrder<T>(
+			stream,
+			stateBagName,
+			key,
+			data
+		);
+	}
+};
 
 class CRC_EXPORT StateBagGameInterface
 {
@@ -46,6 +77,7 @@ public:
 enum class StateBagRole
 {
 	Client,
+	ClientV2,
 	Server
 };
 
@@ -109,10 +141,16 @@ public:
 	virtual void Reset() = 0;
 
 	//
-	// Should be called when receiving a state bag control packet.
+	// Old state bag control packet handler.
 	// arg: outBagNameName; if given (!= nullptr) and if the state bag wasn't found then this string will contain the bag name, otherwise outBagNameName is unchanged.
 	//
 	virtual void HandlePacket(int source, std::string_view data, std::string* outBagNameName = nullptr) = 0;
+
+	//
+	// Should be called when receiving a state bag control packet.
+	// arg: outBagNameName; if given (!= nullptr) and if the state bag wasn't found then this string will contain the bag name, otherwise outBagNameName is unchanged.
+	//
+	virtual void HandlePacketV2(int source, StateBagMessage& message, std::string_view* outBagNameName = nullptr) = 0;
 
 	//
 	// Gets a state bag by an identifier. Returns an empty shared_ptr if not found.

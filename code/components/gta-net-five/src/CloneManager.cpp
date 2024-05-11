@@ -441,7 +441,14 @@ void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
 	icgi = Instance<ICoreGameInit>::Get();
 
 	// #TODO: shutdown session logic!!
-	auto sbac = fx::StateBagComponent::Create(fx::StateBagRole::Client);
+	fwRefContainer<fx::StateBagComponent> sbac;
+	if (Instance<ICoreGameInit>::Get()->BitVersion >= 0x202406010000)
+	{
+		sbac = fx::StateBagComponent::Create(fx::StateBagRole::ClientV2);
+	} else
+	{
+		sbac = fx::StateBagComponent::Create(fx::StateBagRole::Client);
+	}
 	m_globalBag = sbac->RegisterStateBag("global", true);
 
 	sbac->RegisterTarget(0);
