@@ -25,9 +25,9 @@ class ResourceManager;
 class StateBagMessage : net::SerializableComponent
 {
 public:
-	net::SerializableProperty<std::string_view, net::storageType::BytesArray> stateBagName;
-	net::SerializableProperty<std::string_view, net::storageType::BytesArray> key;
-	net::SerializableProperty<std::string_view, net::storageType::StreamTail> data;
+	net::SerializableProperty<std::string_view, net::storage_type::BytesArray> stateBagName;
+	net::SerializableProperty<std::string_view, net::storage_type::BytesArray> key;
+	net::SerializableProperty<std::string_view, net::storage_type::StreamTail> data;
 
 	StateBagMessage() = default;
 
@@ -182,6 +182,16 @@ public:
 	// Marks a given prefix as 'safe to pre-create'.
 	//
 	virtual void AddSafePreCreatePrefix(std::string_view idPrefix, bool useParentTargets) = 0;
+
+	//
+	// Returns the StateBagRole used for creation of the component
+	//
+	virtual StateBagRole GetRole() const = 0;
+	
+	//
+	// Set the StateBagRole, used when the StateBagRole dynamically changes depending on protocol version between the server and client
+	//
+	virtual void SetRole(StateBagRole role) = 0;
 
 	//
 	// An event handling a state bag value change.

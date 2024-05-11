@@ -45,6 +45,16 @@ public:
 
 	virtual void AddSafePreCreatePrefix(std::string_view idPrefix, bool useParentTargets) override;
 
+	virtual StateBagRole GetRole() const override
+	{
+		return m_role;
+	}
+
+	virtual void SetRole(StateBagRole role) override
+	{
+		m_role = role;
+	}
+
 	void UnregisterStateBag(std::string_view id);
 
 	// #TODO: this should eventually actually queue a send to allow for throttling
@@ -70,11 +80,6 @@ public:
 	inline StateBagGameInterface* GetGameInterface() const
 	{
 		return m_gameInterface;
-	}
-
-	StateBagRole GetRole() const
-	{
-		return m_role;
 	}
 
 private:

@@ -38,6 +38,8 @@
 
 #include <MinHook.h>
 
+#include <ByteReader.h>
+
 extern rage::netObject* g_curNetObjectSelection;
 rage::netObject* g_curNetObject;
 
@@ -338,7 +340,14 @@ void CloneManagerLocal::OnObjectDeletion(rage::netObject* netObject)
 
 void CloneManagerLocal::SendPacket(int peer, std::string_view data)
 {
-	m_netLibrary->SendReliableCommand("msgStateBag", data.data(), data.size());
+	if (m_sbac->GetRole() == fx::StateBagRole::ClientV2)
+	{
+		m_netLibrary->SendReliableCommand("msgStateBagV2", data.data(), data.size());
+	}
+	else
+	{
+		m_netLibrary->SendReliableCommand("msgStateBag", data.data(), data.size());	
+	}
 }
 
 void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
@@ -441,14 +450,8 @@ void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
 	icgi = Instance<ICoreGameInit>::Get();
 
 	// #TODO: shutdown session logic!!
-	fwRefContainer<fx::StateBagComponent> sbac;
-	if (Instance<ICoreGameInit>::Get()->BitVersion >= 0x202406010000)
-	{
-		sbac = fx::StateBagComponent::Create(fx::StateBagRole::ClientV2);
-	} else
-	{
-		sbac = fx::StateBagComponent::Create(fx::StateBagRole::Client);
-	}
+	fwRefContainer<fx::StateBagComponent> sbac = fx::StateBagComponent::Create(fx::StateBagRole::Client);
+
 	m_globalBag = sbac->RegisterStateBag("global", true);
 
 	sbac->RegisterTarget(0);
@@ -465,9 +468,31 @@ void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
 	},
 	true);
 
+	m_netLibrary->AddReliableHandler(
+	"msgStateBagV2", [this](const char* data, size_t len)
+	{
+		net::ByteReader reader (reinterpret_cast<const uint8_t*>(data), len);
+		fx::StateBagMessage stateBagMessage;
+		stateBagMessage.Process(reader);
+		m_sbac->HandlePacketV2(0, stateBagMessage);
+	},
+	true);
+
 	fx::ResourceManager::OnInitializeInstance.Connect([sbac](fx::ResourceManager* rm)
 	{
 		rm->SetComponent(sbac);
+	});
+
+	m_netLibrary->OnInitReceived.Connect([sbac](NetAddress& address)
+	{
+		if (Instance<ICoreGameInit>::Get()->BitVersion >= 0x202405010000)
+		{
+			sbac->SetRole(fx::StateBagRole::ClientV2);
+		}
+		else
+		{
+			sbac->SetRole(fx::StateBagRole::Client);
+		}
 	});
 
 	m_serverSendFrame = 0;

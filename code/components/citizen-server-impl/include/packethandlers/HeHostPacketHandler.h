@@ -118,7 +118,7 @@ namespace fx
 					clientRegistry->SetHost(newClient);
 
 					net::Buffer hostBroadcast;
-					hostBroadcast.Write(fx::force_consteval<uint32_t, HashRageString("msgIHost")>);
+					hostBroadcast.Write(net::force_consteval<uint32_t, HashRageString("msgIHost")>);
 					hostBroadcast.Write<uint16_t>(newClient->GetNetId());
 					hostBroadcast.Write(newClient->GetNetBase());
 

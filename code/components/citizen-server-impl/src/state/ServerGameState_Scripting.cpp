@@ -1270,12 +1270,10 @@ static void Init()
 			// get the current resource manager
 			auto resourceManager = fx::ResourceManager::GetCurrent();
 
-			// get the owning server instance
-			auto instance = resourceManager->GetComponent<fx::ServerInstanceBaseRef>()->Get();
+			// get the state bag component
+			auto stateBagComponent = resourceManager->GetComponent<fx::StateBagComponent>();
 
-			// get the server's game state
-			auto gameState = instance->GetComponent<fx::ServerGameState>();
-			auto stateBag = gameState->GetStateBags()->RegisterStateBag(fmt::sprintf("entity:%d", entity->handle & 0xFFFF));
+			auto stateBag = stateBagComponent->RegisterStateBag(fmt::sprintf("entity:%d", entity->handle & 0xFFFF));
 
 			std::set<int> rts{ -1 };
 
