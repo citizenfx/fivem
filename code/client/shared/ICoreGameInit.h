@@ -37,6 +37,8 @@ public:
 
 	bool SyncIsARQ = false;
 
+	uint64_t BitVersion = 0;
+
 private:
 	std::set<std::string, std::less<>> VariableList;
 
