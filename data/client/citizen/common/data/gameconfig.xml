@@ -57,7 +57,7 @@
 						</Item>
 						<Item>
 						  <PoolName>AudioHeap</PoolName>
-						  <PoolSize value="195"/>
+						  <PoolSize value="300"/>
 						</Item>
 						<Item>
 							<PoolName>BlendshapeStore</PoolName>
