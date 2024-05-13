@@ -7673,19 +7673,5 @@ static InitFunction initFunction([]()
 				}
 			}
 		});
-
-		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("msgTimeSyncReq"), { fx::ThreadIdx::Net, [=](const fx::ClientSharedPtr& client, net::Buffer& buffer)
-		{
-			auto reqTime = buffer.Read<uint32_t>();
-			auto reqSeq = buffer.Read<uint32_t>();
-
-			net::Buffer netBuffer;
-			netBuffer.Write<uint32_t>(HashRageString("msgTimeSync"));
-			netBuffer.Write<uint32_t>(reqTime);
-			netBuffer.Write<uint32_t>(reqSeq);
-			netBuffer.Write<uint32_t>((msec().count()) & 0xFFFFFFFF);
-
-			client->SendPacket(1, netBuffer, NetPacketType_Reliable);
-		} });
 	}, 999999);
 });
