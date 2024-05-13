@@ -642,6 +642,16 @@ public:
 		return m_bindings;
 	}
 
+	/// Return a guarded reference to the current map of registered mappings.
+	/// Intended for use for functions that are not called on the same thread
+	/// responsible for CControlMgr::Update (i.e., ControlMgrUpdateThread or
+	/// DoLoadsFrame).
+	inline auto GetSafeBindings()
+	{
+		return std::make_pair(std::unique_lock(m_bindingsMutex), std::ref(m_bindings));
+	}
+
+	/// Enqueue an operation to be executed after BindingManager::Update.
 	inline void QueueOnFrame(const std::function<void()>& func)
 	{
 		m_queue.push(func);
@@ -654,6 +664,7 @@ private:
 	std::unique_ptr<ConsoleCommand> m_unbindAllCommand;
 	std::unique_ptr<ConsoleCommand> m_listBindsCommand;
 
+	std::mutex m_bindingsMutex;
 	std::multimap<std::tuple<rage::ioMapperSource, int>, std::shared_ptr<Binding>> m_bindings;
 
 	std::list<std::unique_ptr<Button>> m_buttons;
@@ -668,7 +679,8 @@ void BindingManager::Initialize()
 {
 	m_listBindsCommand = std::make_unique<ConsoleCommand>("bind", [this]()
 	{
-		for (auto& binding : m_bindings)
+		auto [guard, bindings] = GetSafeBindings();
+		for (auto& binding : bindings)
 		{
 			rage::ioInputSource source;
 			binding.second->GetBinding(source);
@@ -735,24 +747,27 @@ void BindingManager::Initialize()
 			ioParameter = rage::ioMapper::UngetParameterIndex(ioSource, it->second);
 		}
 
-		for (const auto& binding : m_bindings)
+		QueueOnFrame([=]()
 		{
-			if (binding.second->GetCommand() == commandString &&
-				binding.second->GetTag() == tag &&
-				binding.first == std::make_tuple(ioSource, ioParameter))
+			for (const auto& binding : m_bindings)
 			{
-				return;
+				if (binding.second->GetCommand() == commandString &&
+					binding.second->GetTag() == tag &&
+					binding.first == std::make_tuple(ioSource, ioParameter))
+				{
+					return;
+				}
 			}
-		}
 
-		auto binding = std::make_shared<Binding>(commandString);
-		binding->SetBinding({ ioSource, ioParameter });
-		binding->SetTag(tag);
+			auto binding = std::make_shared<Binding>(commandString);
+			binding->SetBinding({ ioSource, ioParameter });
+			binding->SetTag(tag);
 
-		m_bindings.insert({ { ioSource, ioParameter }, binding });
+			m_bindings.insert({ { ioSource, ioParameter }, binding });
 
-		// TODO: implement when saving is added
-		console::GetDefaultContext()->SetVariableModifiedFlags(ConVar_Archive);
+			// TODO: implement when saving is added
+			console::GetDefaultContext()->SetVariableModifiedFlags(ConVar_Archive);
+		});
 	};
 
 	m_bindCommand = std::make_unique<ConsoleCommand>("bind", [=](const std::string& ioSourceName, const std::string& ioParameterName, const std::string& commandString)
@@ -800,14 +815,20 @@ void BindingManager::Initialize()
 			ioParameter = rage::ioMapper::UngetParameterIndex(ioSource, it->second);
 		}
 
-		m_bindings.erase({ ioSource, ioParameter });
+		QueueOnFrame([=]()
+		{
+			m_bindings.erase({ ioSource, ioParameter });
 
-		console::GetDefaultContext()->SetVariableModifiedFlags(ConVar_Archive);
+			console::GetDefaultContext()->SetVariableModifiedFlags(ConVar_Archive);
+		});
 	});
 
 	m_unbindAllCommand = std::make_unique<ConsoleCommand>("unbindall", [=]()
 	{
-		m_bindings.clear();
+		QueueOnFrame([this]()
+		{
+			m_bindings.clear();
+		});
 	});
 }
 
@@ -840,6 +861,7 @@ void BindingManager::Update(rage::ioMapper* mapper, uint32_t time)
 	// Note: 'The order of the key-value pairs whose keys compare equivalent is the order of insertion and does not change.'
 	// -> we can ensure the first entry is the canonical entry
 	std::multimap<std::tuple<int, int>, std::shared_ptr<Binding>> bindings;
+	std::lock_guard _(m_bindingsMutex);
 
 	// gather: process and store canonical entry
 	for (auto& bindingPair : m_bindings)
@@ -1082,15 +1104,18 @@ namespace game
 				ioParameter = rage::ioMapper::UngetParameterIndex(ioSource, it->second);
 			}
 
-			for (auto& binding : bindingManager.GetBindings())
+			bindingManager.QueueOnFrame([=]()
 			{
-				if (binding.second->GetCommand() == command && IsTagActive(binding.second->GetTag()))
+				for (auto& binding : bindingManager.GetBindings())
 				{
-					return;
+					if (binding.second->GetCommand() == command && IsTagActive(binding.second->GetTag()))
+					{
+						return;
+					}
 				}
-			}
 
-			bindingManager.Bind(ioSource, ioParameter, command)->SetTag(tag);
+				bindingManager.Bind(ioSource, ioParameter, command)->SetTag(tag);
+			});
 		}
 	}
 
@@ -1178,7 +1203,9 @@ static void* GetBindingForControl(void* control, rage::ioInputSource* outBinding
 		auto controlRef = GetRegisteredBindingByHash(controlId);
 		auto commandMatch = fmt::sprintf("%s%s", (subIdx == 0) ? "" : "~!", controlRef.first);
 
-		for (auto& bindingSet : bindingManager.GetBindings())
+		// Hooked TextFormatting function: requires guarding.
+		auto [guard, bindings] = bindingManager.GetSafeBindings();
+		for (auto& bindingSet : bindings)
 		{
 			if (bindingSet.second->GetCommand() == commandMatch && IsTagActive(bindingSet.second->GetTag()))
 			{
@@ -1329,7 +1356,8 @@ static HookFunction hookFunction([]()
 	{
 		writeLine("unbindall");
 
-		for (auto& binding : bindingManager.GetBindings())
+		auto [guard, bindings] = bindingManager.GetSafeBindings();
+		for (auto& binding : bindings)
 		{
 			auto commandString = binding.second->GetCommand();
 			boost::algorithm::replace_all(commandString, "\\", "\\\\");
