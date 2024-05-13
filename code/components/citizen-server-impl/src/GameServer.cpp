@@ -1074,11 +1074,10 @@ namespace fx
 		OnTick();
 	}
 
-	void GameServer::DropClientv(const fx::ClientSharedPtr& client, const std::string& reason, fmt::printf_args args)
+	void GameServer::DropClientv(const fx::ClientSharedPtr& client, const std::string& reason)
 	{
-		std::string realReason = fmt::vsprintf(reason, args);
-
-		if (reason.empty())
+		std::string realReason = reason;
+		if (realReason.empty())
 		{
 			realReason = "Dropped.";
 		}
@@ -1090,7 +1089,7 @@ namespace fx
 
 		client->SetDropping();
 
-		gscomms_execute_callback_on_main_thread([this, client, realReason]()
+		gscomms_execute_callback_on_main_thread([this, client, realReason = std::move(realReason)]()
 		{
 			DropClientInternal(client, realReason);
 		});
@@ -1242,169 +1241,8 @@ namespace fx
 				server->ProcessServerFrame(frameTime);
 			}
 		};
-
-		struct IHostPacketHandler
-		{
-			inline static void Handle(ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& packet)
-			{
-				if (IsOneSync())
-				{
-					return;
-				}
-
-				auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
-				auto gameServer = instance->GetComponent<fx::GameServer>();
-
-				auto baseNum = packet.Read<uint32_t>();
-				auto currentHost = clientRegistry->GetHost();
-
-				if (!currentHost || currentHost->IsDead())
-				{
-					client->SetNetBase(baseNum);
-					clientRegistry->SetHost(client);
-
-					net::Buffer hostBroadcast;
-					hostBroadcast.Write(0xB3EA30DE);
-					hostBroadcast.Write<uint16_t>(client->GetNetId());
-					hostBroadcast.Write(client->GetNetBase());
-
-					gameServer->Broadcast(hostBroadcast);
-					//client->SendPacket(1, hostBroadcast, NetPacketType_Reliable);
-				}
-			}
-
-			inline static constexpr const char* GetPacketId()
-			{
-				return "msgIHost";
-			}
-		};
-
-		struct HostVoteCount : public fwRefCountable
-		{
-			std::map<uint32_t, int> voteCounts;
-		};
-
-		struct HeHostPacketHandler
-		{
-			inline static void Handle(ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& packet)
-			{
-				if (IsOneSync())
-				{
-					return;
-				}
-
-				auto clientRegistry = instance->GetComponent<fx::ClientRegistry>();
-				auto gameServer = instance->GetComponent<fx::GameServer>();
-
-				auto allegedNewId = packet.Read<uint32_t>();
-				auto baseNum = packet.Read<uint32_t>();
-
-				// check if the current host is being vouched for
-				auto currentHost = clientRegistry->GetHost();
-
-				if (currentHost && currentHost->GetNetId() == allegedNewId)
-				{
-					trace("Got a late vouch for %s - they're the current arbitrator!\n", currentHost->GetName());
-					return;
-				}
-
-				// get the new client
-				auto newClient = clientRegistry->GetClientByNetID(allegedNewId);
-
-				if (!newClient)
-				{
-					trace("Got a late vouch for %d, who doesn't exist.\n", allegedNewId);
-					return;
-				}
-
-				// count the total amount of living (networked) clients
-				int numClients = 0;
-
-				clientRegistry->ForAllClients([&](const fx::ClientSharedPtr& client)
-				{
-					if (client->HasRouted())
-					{
-						++numClients;
-					}
-				});
-
-				// get a count of needed votes
-				int votesNeeded = (int)ceil(numClients * 0.6);
-
-				if (votesNeeded <= 0)
-				{
-					votesNeeded = 1;
-				}
-
-				// count votes
-				auto voteComponent = instance->GetComponent<HostVoteCount>();
-
-				auto it = voteComponent->voteCounts.find(allegedNewId);
-
-				if (it == voteComponent->voteCounts.end())
-				{
-					it = voteComponent->voteCounts.insert({ allegedNewId, 1 }).first;
-				}
-
-				++it->second;
-
-				// log
-				trace("Received a vouch for %s, they have %d vouches and need %d.\n", newClient->GetName(), it->second, votesNeeded);
-
-				// is the vote count exceeded?
-				if (it->second >= votesNeeded)
-				{
-					// make new arbitrator
-					trace("%s is the new arbitrator, with an overwhelming %d vote/s.\n", newClient->GetName(), it->second);
-
-					// clear vote list
-					voteComponent->voteCounts.clear();
-
-					// set base
-					newClient->SetNetBase(baseNum);
-
-					// set as host and tell everyone
-					clientRegistry->SetHost(newClient);
-
-					net::Buffer hostBroadcast;
-					hostBroadcast.Write(0xB3EA30DE);
-					hostBroadcast.Write<uint16_t>(newClient->GetNetId());
-					hostBroadcast.Write(newClient->GetNetBase());
-
-					gameServer->Broadcast(hostBroadcast);
-				}
-			}
-
-			inline static constexpr const char* GetPacketId()
-			{
-				return "msgHeHost";
-			}
-		};
-
-		struct IQuitPacketHandler
-		{
-			inline static void Handle(ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& packet)
-			{
-				gscomms_execute_callback_on_main_thread([=]() mutable
-				{
-					std::vector<char> reason(packet.GetRemainingBytes());
-					packet.Read(reason.data(), reason.size());
-
-					auto gameServer = instance->GetComponent<fx::GameServer>();
-
-					gameServer->DropClient(client, "%s", reason.data());
-				});
-			}
-
-			inline static constexpr const char* GetPacketId()
-			{
-				return "msgIQuit";
-			}
-		};
 	}
 }
-
-DECLARE_INSTANCE_TYPE(fx::ServerDecorators::HostVoteCount);
 
 #include <decorators/WithEndpoints.h>
 #include <decorators/WithOutOfBand.h>
@@ -1416,6 +1254,9 @@ DECLARE_INSTANCE_TYPE(fx::ServerDecorators::HostVoteCount);
 #include <outofbandhandlers/RconOutOfBand.h>
 
 #include <packethandlers/RoutingPacketHandler.h>
+#include <packethandlers/HeHostPacketHandler.h>
+#include <packethandlers/IHostPacketHandler.h>
+#include <packethandlers/IQuitPacketHandler.h>
 
 DLL_EXPORT void gscomms_execute_callback_on_main_thread(const std::function<void()>& fn, bool force)
 {
@@ -1490,7 +1331,7 @@ static InitFunction initFunction([]()
 		);
 
 		instance->SetComponent(new fx::PeerAddressRateLimiterStore(instance->GetComponent<console::Context>().GetRef()));
-		instance->SetComponent(new fx::ServerDecorators::HostVoteCount());
+		instance->SetComponent(new HostVoteCount());
 	});
 
 	fx::ServerInstanceBase::OnServerCreate.Connect([](fx::ServerInstanceBase* instance)
