@@ -64,7 +64,7 @@ TEST_CASE("getstatus oob test")
 	testServerContainer->GetInstance()->SetComponent<console::Context>(ConsoleContextInstance::Get());
 	testServerContainer->GetInstance()->SetComponent(new fx::PeerAddressRateLimiterStore(console::GetDefaultContext()));
 
-	auto variable = testServer->AddVariable<bool>("getstatus_clientslist", ConVar_None, true);
+	auto variable = testServer->AddVariable<bool>("sv_returnClientsListInGetStatus", ConVar_None, true);
 	variable->GetHelper()->SetValue(GENERATE("false", "true"));
 	
 	REQUIRE(GetStatusOutOfBand::GetName() == "getstatus");
