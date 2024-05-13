@@ -1,5 +1,5 @@
 name: Bug Report
-description: File a bug report to FiveM, RedM, FXServer, or FxDK, excluding crashes
+description: File a bug report to FiveM, RedM, FXServer, or FxDK, excluding crashes and security issues
 labels: ["bug", "triage"]
 assignees:
   - 
@@ -12,6 +12,7 @@ body:
         Only bug related issues are accepted, so please refrain from submitting any other requests (including support requests).
         
         \* Issue reports that fail to deliver the proper information may be closed without any feedback.
+        \* Security issues must be reported in accordance with [Security Policy](https://github.com/citizenfx/fivem/blob/main/SECURITY.md).
   
   - type: textarea
     id: what-happened
@@ -56,7 +57,6 @@ body:
         - Unknown
         - Slight inconvenience
         - There's a workaround
-        - Security issue
         - Crash
     validations:
       required: true
