@@ -6,6 +6,7 @@
 
 #include <outofbandhandlers/GetStatusOutOfBand.h>
 
+#include "ConsoleContextInstance.h"
 #include "ServerInstance.h"
 #include "TestUtils.h"
 
@@ -60,10 +61,7 @@ TEST_CASE("getstatus oob test")
 	testGameServer->testServer = testServer;
 	fwRefContainer testServerContainer = {testGameServer};
 	testServerContainer->GetInstance()->SetComponent(new fx::ClientRegistry());
-	fwRefContainer<console::Context> consoleContainer;
-	console::CreateContext(console::GetDefaultContext(), &consoleContainer);
-	consoleContainer->AddRef();
-	testServerContainer->GetInstance()->SetComponent<console::Context>(consoleContainer);
+	testServerContainer->GetInstance()->SetComponent<console::Context>(ConsoleContextInstance::Get());
 	testServerContainer->GetInstance()->SetComponent(new fx::PeerAddressRateLimiterStore(console::GetDefaultContext()));
 
 	auto variable = testServer->AddVariable<bool>("getstatus_clientslist", ConVar_None, true);
