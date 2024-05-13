@@ -3197,6 +3197,9 @@ void ServerGameState::FinalizeClone(const fx::ClientSharedPtr& client, const fx:
 					{
 						auto [lock, clientData] = GetClientData(this, clientRef);
 						clientData->objectIds.erase(objectId);
+
+						// erase reserved object id from client, because the object got removed
+						clientData->reservedObjectIds.erase(objectId);
 					}
 				}
 
@@ -3298,6 +3301,9 @@ bool ServerGameState::ProcessClonePacket(const fx::ClientSharedPtr& client, rl::
 		auto [lock, data] = GetClientData(this, client);
 		data->playerId = playerId;
 		timestamp = data->syncTs;
+
+		// indicate that the reserved object id was used
+		data->reservedObjectIds.erase(objectId);
 	}
 
 	std::vector<uint8_t> bitBytes(length);
@@ -3937,6 +3943,19 @@ void ServerGameState::SendObjectIds(const fx::ClientSharedPtr& client, int numId
 		auto [lock, data] = GetClientData(this, client);
 		std::unique_lock objectIdsLock(m_objectIdsMutex);
 
+		// prevent requesting in sum more than double the amount of object ids that a single request can hold
+		// this allows reserving 64 in normal mode and 12 in big mode
+		if (data->reservedObjectIds.size() >= numIds * 2)
+		{
+			// empty response is required, because client has g_requestedIds set to false
+			// and will never request new ids again until a response is received
+			net::Buffer outBuffer;
+			outBuffer.Write<uint32_t>(HashRageString("msgObjectIds"));
+			outBuffer.Write<uint16_t>(0);
+			client->SendPacket(1, outBuffer, NetPacketType_Reliable);
+			return;
+		}
+
 		int id = 1;
 
 		for (int i = 0; i < numIds; i++)
@@ -3950,6 +3969,7 @@ void ServerGameState::SendObjectIds(const fx::ClientSharedPtr& client, int numId
 					hadId = true;
 
 					data->objectIds.insert(id);
+					data->reservedObjectIds.insert(id);
 
 					ids.push_back(id);
 					m_objectIdsSent.set(id);
