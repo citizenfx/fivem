@@ -1,3 +1,4 @@
+/* eslint-disable no-var */
 /**
  * !!!!
  * Defined during compilation
@@ -12,7 +13,9 @@ declare type SetImmediateReturn = ReturnType<typeof setImmediate>;
 declare type RequestIdleCallbackReturn = ReturnType<typeof requestIdleCallback>;
 declare type RequestAnimationFrameReturn = ReturnType<typeof requestAnimationFrame>;
 
-declare type ChildrenProps = { children?: React.ReactNode };
+declare interface ChildrenProps {
+  children?: React.ReactNode;
+}
 
 declare type ChildrenfulReactFC = React.FC<ChildrenProps>;
 
@@ -21,7 +24,7 @@ declare namespace Intl {
 }
 
 declare module '*.module.scss' {
-  const classes: { readonly [key: string]: string };
+  const classes: Readonly<Record<string, string>>;
   export default classes;
 }
 declare module '*.mp3' {

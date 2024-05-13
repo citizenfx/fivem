@@ -1,9 +1,11 @@
-import { DEFAULT_SERVER_LOCALE } from "cfx/base/serverUtils";
-import { IServerView } from "../types";
-import { IAutocompleteIndex } from "./types";
+import { DEFAULT_SERVER_LOCALE } from 'cfx/base/serverUtils';
+
+import { IAutocompleteIndex } from './types';
+import { IServerView } from '../types';
 
 export class AutocompleteIndexer {
   private tags: Record<string, number> = {};
+
   private locales: Record<string, number> = {};
 
   add(server: IServerView) {

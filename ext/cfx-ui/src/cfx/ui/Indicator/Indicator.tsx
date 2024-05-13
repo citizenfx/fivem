@@ -1,5 +1,7 @@
 import React from 'react';
+
 import { clsx } from 'cfx/utils/clsx';
+
 import s from './Indicator.module.scss';
 
 const delay1 = { animationDelay: '0ms' };
@@ -8,10 +10,12 @@ const delay3 = { animationDelay: '100ms' };
 const delay4 = { animationDelay: '150ms' };
 
 export interface IndicatorProps {
-  className?: string,
+  className?: string;
 }
 
-export const Indicator = React.memo(function Indicator({ className }: IndicatorProps) {
+export const Indicator = React.memo(function Indicator({
+  className,
+}: IndicatorProps) {
   return (
     <div className={clsx(s.root, className)}>
       <div style={delay1} />

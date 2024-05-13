@@ -1,4 +1,5 @@
-export function stopPropagation<T extends { stopPropagation: Function }>(cb: (e: T) => void): (e: T) => void {
+/* eslint-disable space-before-function-paren */
+export function stopPropagation<T extends { stopPropagation: () => void }>(cb: (e: T) => void): (e: T) => void {
   return (e: T) => {
     e.stopPropagation();
 
@@ -6,7 +7,7 @@ export function stopPropagation<T extends { stopPropagation: Function }>(cb: (e:
   };
 }
 
-export function preventDefault<T extends { preventDefault: Function }>(cb: (e: T) => void): (e: T) => void {
+export function preventDefault<T extends { preventDefault: () => void }>(cb: (e: T) => void): (e: T) => void {
   return (e: T) => {
     e.preventDefault();
 

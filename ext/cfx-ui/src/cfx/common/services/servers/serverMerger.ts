@@ -1,4 +1,4 @@
-import { IServerView, ServerViewDetailsLevel } from "./types";
+import { IServerView, ServerViewDetailsLevel } from './types';
 
 export function mergeServers(from: IServerView, to: IServerView | null): IServerView {
   const fromServerIsNotLive = from.detailsLevel < ServerViewDetailsLevel.Live;

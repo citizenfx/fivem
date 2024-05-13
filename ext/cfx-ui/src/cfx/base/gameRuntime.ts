@@ -1,4 +1,4 @@
-import { GameName } from "cfx/base/game";
+import { GameName } from 'cfx/base/game';
 
 const gameBrandMap = {
   [GameName.FiveM]: 'FiveM',
@@ -9,9 +9,13 @@ function getGameBrand(gameName: GameName): string {
   return gameBrandMap[gameName] || 'CitizenFX';
 }
 
+// eslint-disable-next-line import/no-mutable-exports
 export let CurrentGameName = GameName.FiveM;
+// eslint-disable-next-line import/no-mutable-exports
 export let CurrentGameBrand = getGameBrand(CurrentGameName);
+// eslint-disable-next-line import/no-mutable-exports
 export let CurrentGameBuild = '-1';
+// eslint-disable-next-line import/no-mutable-exports
 export let CurrentGamePureLevel = '-1';
 
 export function currentGameNameIs(gameName: GameName): boolean {

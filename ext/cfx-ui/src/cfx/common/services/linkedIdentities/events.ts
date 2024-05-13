@@ -1,5 +1,5 @@
-import { ILinkedIdentity } from "./types";
+import { ILinkedIdentity } from './types';
 
 export interface IdentitiesChangeEvent {
-  linkedIdentities: ILinkedIdentity[],
+  linkedIdentities: ILinkedIdentity[];
 }

@@ -1,10 +1,12 @@
-import React from "react";
-import { clsx } from "cfx/utils/clsx";
+import React from 'react';
+
+import { clsx } from 'cfx/utils/clsx';
+
 import s from './FlexRestricter.module.scss';
 
 export interface FlexRestricterProps {
-  vertical?: boolean,
-  children?: React.ReactNode,
+  vertical?: boolean;
+  children?: React.ReactNode;
 }
 
 /**
@@ -12,7 +14,10 @@ export interface FlexRestricterProps {
  *
  * To allow scrollable strictly within flex layout, for example
  */
-export const FlexRestricter = React.forwardRef(function FlexRestricter(props: FlexRestricterProps, ref: React.Ref<HTMLDivElement>) {
+export const FlexRestricter = React.forwardRef(function FlexRestricter(
+  props: FlexRestricterProps,
+  ref: React.Ref<HTMLDivElement>,
+) {
   const {
     vertical = false,
     children,

@@ -1,7 +1,8 @@
-import { SingleEventEmitter } from "cfx/utils/singleEventEmitter";
-import { defineService, useService } from "../../../base/servicesContainer";
-import { AccountChangeEvent, SSOAuthCompleteEvent } from "./events";
-import { IAccount, ILoginResponse, IRegisterResponse, ILoginCredentials, IRegisterCredentials } from "./types";
+import { SingleEventEmitter } from 'cfx/utils/singleEventEmitter';
+
+import { AccountChangeEvent, SSOAuthCompleteEvent } from './events';
+import { IAccount, ILoginResponse, IRegisterResponse, ILoginCredentials, IRegisterCredentials } from './types';
+import { defineService, useService } from '../../../base/servicesContainer';
 
 export const IAccountService = defineService<IAccountService>('AccountService');
 export interface IAccountService {

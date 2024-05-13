@@ -1,61 +1,64 @@
-import { AdaptiveCard } from "adaptivecards";
-import { MpMenuEvents } from "cfx/apps/mpMenu/mpMenu.events";
-import { IFormattedMessage, maybeParseFormattedMessage } from "cfx/apps/mpMenu/utils/messageFormatting";
-import { RichEvent } from "cfx/utils/types";
+import { AdaptiveCard } from 'adaptivecards';
+
+import { MpMenuEvents } from 'cfx/apps/mpMenu/mpMenu.events';
+import { IFormattedMessage, maybeParseFormattedMessage } from 'cfx/apps/mpMenu/utils/messageFormatting';
+import { RichEvent } from 'cfx/utils/types';
 
 export namespace ConnectState {
   export type DataFor<T> = Omit<T, 'type'>;
 
-  export type Any =
-    | Connecting
-    | Status
-    | Failed
-    | Card
-    | BuildSwitchRequest
-    | BuildSwitchInfo
+  // eslint-disable-next-line no-inner-declarations
+  function makeCtor<T>(type: string): (data: DataFor<T>) => T {
+    return (data) => ({
+      ...data,
+      type,
+    }) as any as T;
+  }
+
+  export type Any = Connecting | Status | Failed | Card | BuildSwitchRequest | BuildSwitchInfo;
 
   export interface Connecting {
-    type: 'connecting',
-    generated: boolean,
+    type: 'connecting';
+    generated: boolean;
   }
   export interface Status {
-    type: 'status',
+    type: 'status';
 
-    message: string,
-    count: number,
-    total: number,
-    cancelable: boolean,
+    message: string;
+    count: number;
+    total: number;
+    cancelable: boolean;
   }
 
   export interface Card {
-    type: 'card',
+    type: 'card';
 
-    card: string | AdaptiveCard,
+    card: string | AdaptiveCard;
   }
 
   export interface WithFormattableMessage extends IFormattedMessage {
-    messageFormatted: boolean,
+    messageFormatted: boolean;
   }
 
   export interface Failed extends WithFormattableMessage {
-    type: 'failed',
+    type: 'failed';
 
-    extra?: RichEvent.Payload<typeof MpMenuEvents.connectFailed>['extra'],
+    extra?: RichEvent.Payload<typeof MpMenuEvents.connectFailed>['extra'];
   }
 
   export interface BuildSwitchRequest {
-    type: 'buildSwitchRequest',
+    type: 'buildSwitchRequest';
 
-    build: number,
-    pureLevel: number,
-    currentBuild: number,
-    currentPureLevel: number,
+    build: number;
+    pureLevel: number;
+    currentBuild: number;
+    currentPureLevel: number;
   }
   export interface BuildSwitchInfo {
-    type: 'buildSwitchInfo',
+    type: 'buildSwitchInfo';
 
-    title: string,
-    content: string,
+    title: string;
+    content: string;
   }
 
   // CTORS
@@ -85,8 +88,4 @@ export namespace ConnectState {
   export const card = makeCtor<Card>('card');
   export const buildSwitchRequest = makeCtor<BuildSwitchRequest>('buildSwitchRequest');
   export const buildSwitchInfo = makeCtor<BuildSwitchInfo>('buildSwitchInfo');
-
-  function makeCtor<T>(type: string): ((data: DataFor<T>) => T) {
-    return (data) => ({ ...data, type } as any as T);
-  }
 }

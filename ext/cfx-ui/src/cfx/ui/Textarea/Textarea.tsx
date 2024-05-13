@@ -1,20 +1,22 @@
-import React from "react";
-import { clsx } from "cfx/utils/clsx";
+import React from 'react';
+
+import { clsx } from 'cfx/utils/clsx';
+
 import s from './Textarea.module.scss';
 
 export interface TextareaProps {
-  value: string,
-  onChange: (value: string) => void,
+  value: string;
+  onChange: (value: string) => void;
 
-  label?: React.ReactNode,
-  placeholder?: string,
-  rows?: number,
-  disabled?: boolean,
-  resize?: 'none' | 'vertical' | 'horizontal' | 'both',
-  autofocus?: boolean,
+  label?: React.ReactNode;
+  placeholder?: string;
+  rows?: number;
+  disabled?: boolean;
+  resize?: 'none' | 'vertical' | 'horizontal' | 'both';
+  autofocus?: boolean;
 
-  className?: string,
-  backdropBlur?: boolean,
+  className?: string;
+  backdropBlur?: boolean;
 }
 
 export function Textarea(props: TextareaProps) {
@@ -33,20 +35,25 @@ export function Textarea(props: TextareaProps) {
     backdropBlur = false,
   } = props;
 
-  const handleChange = React.useCallback((event: React.ChangeEvent<HTMLTextAreaElement>) => {
-    onChange(event.target.value);
-  }, [onChange]);
+  const handleChange = React.useCallback(
+    (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+      onChange(event.target.value);
+    },
+    [onChange],
+  );
+  const controlId = React.useId();
 
   const textareaNode = (
     <textarea
       autoFocus={autofocus}
+      id={controlId}
       className={s[`resize-${resize}`]}
       rows={rows}
       value={value}
       disabled={disabled}
       onChange={handleChange}
       placeholder={placeholder}
-    ></textarea>
+    />
   );
 
   const rootClassName = clsx(s.root, className, {
@@ -56,16 +63,16 @@ export function Textarea(props: TextareaProps) {
 
   return (
     <div className={rootClassName}>
-      {
-        label
-          ? (
-            <label>
-              {label}
-              {textareaNode}
-            </label>
+      {label
+        ? (
+          <label htmlFor={controlId}>
+            {label}
+            {textareaNode}
+          </label>
           )
-          : textareaNode
-      }
+        : (
+            textareaNode
+          )}
     </div>
   );
 }

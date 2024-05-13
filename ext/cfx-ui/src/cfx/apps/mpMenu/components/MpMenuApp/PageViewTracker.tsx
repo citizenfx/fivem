@@ -1,7 +1,9 @@
-import React from "react";
-import { useLocation } from "react-router-dom";
-import { useEventHandler } from "cfx/common/services/analytics/analytics.service";
-import { EventActionNames } from "cfx/common/services/analytics/types";
+/* eslint-disable react-hooks/rules-of-hooks */
+import React from 'react';
+import { useLocation } from 'react-router-dom';
+
+import { useEventHandler } from 'cfx/common/services/analytics/analytics.service';
+import { EventActionNames } from 'cfx/common/services/analytics/types';
 
 export function NavigationTracker() {
   const location = useLocation();
@@ -13,7 +15,10 @@ export function NavigationTracker() {
         console.log('Tracking page view', location.pathname);
       }
 
-      eventHandler({ action: EventActionNames.PageViews, properties: { position: undefined } });
+      eventHandler({
+        action: EventActionNames.PageViews,
+        properties: { position: undefined },
+      });
     } catch (e) {
       // noop
     }

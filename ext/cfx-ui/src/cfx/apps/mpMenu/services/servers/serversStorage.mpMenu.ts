@@ -1,21 +1,22 @@
 import Dexie, { Table, PromiseExtended } from 'dexie';
-import { AppContribution, registerAppContribution } from "cfx/common/services/app/app.extensions";
-import { ServicesContainer } from "cfx/base/servicesContainer";
-import { IServersStorageService } from "cfx/common/services/servers/serversStorage.service";
-import { IHistoryServer } from "cfx/common/services/servers/types";
-import { inject, injectable } from "inversify";
-import { mpMenu } from "../../mpMenu";
-import { IParsedServerAddress, parseServerAddress } from "cfx/common/services/servers/serverAddressParser";
-import { makeAutoObservable, observable } from "mobx";
-import { Deferred, retry } from "cfx/utils/async";
-import { scopedLogger, ScopedLogger } from 'cfx/common/services/log/scopedLogger';
-import { IUiMessageService } from '../uiMessage/uiMessage.service';
+import { inject, injectable } from 'inversify';
+import { makeAutoObservable, observable } from 'mobx';
+
 import { CurrentGameBrand } from 'cfx/base/gameRuntime';
+import { ServicesContainer } from 'cfx/base/servicesContainer';
+import { AppContribution, registerAppContribution } from 'cfx/common/services/app/app.extensions';
+import { scopedLogger, ScopedLogger } from 'cfx/common/services/log/scopedLogger';
+import { IParsedServerAddress, parseServerAddress } from 'cfx/common/services/servers/serverAddressParser';
+import { IServersStorageService } from 'cfx/common/services/servers/serversStorage.service';
+import { IHistoryServer } from 'cfx/common/services/servers/types';
+import { Deferred, retry } from 'cfx/utils/async';
+
+import { mpMenu } from '../../mpMenu';
+import { IUiMessageService } from '../uiMessage/uiMessage.service';
 
 (Dexie as any).debug = true;
 
 const DB_NAME = 'HistoryServers';
-
 
 export function registerMpMenuServersStorageService(container: ServicesContainer) {
   container.registerImpl(IServersStorageService, MpMenuServersStorageService);
@@ -26,25 +27,41 @@ export function registerMpMenuServersStorageService(container: ServicesContainer
 @injectable()
 class MpMenuServersStorageService implements IServersStorageService, AppContribution {
   private _lastServersError: string | null = null;
-  public get lastServersError(): string | null { return this._lastServersError }
-  private set lastServersError(lastServersError: string | null) { this._lastServersError = lastServersError }
+  public get lastServersError(): string | null {
+    return this._lastServersError;
+  }
+  private set lastServersError(lastServersError: string | null) {
+    this._lastServersError = lastServersError;
+  }
 
   private lastServersDeferred = new Deferred<void>();
+
   readonly lastServersPopulated = this.lastServersDeferred.promise;
 
   private _lastServers: IHistoryServer[] = [];
-  private get lastServers(): IHistoryServer[] { return this._lastServers }
-  private set lastServers(lastServers: IHistoryServer[]) { this._lastServers = lastServers }
+  private get lastServers(): IHistoryServer[] {
+    return this._lastServers;
+  }
+  private set lastServers(lastServers: IHistoryServer[]) {
+    this._lastServers = lastServers;
+  }
 
   private favoriteServersSequenceDeferred = new Deferred<void>();
+
   readonly favoriteServersSequencePopulated = this.favoriteServersSequenceDeferred.promise;
 
   private _favoriteServersSequence: string[] = [];
-  public get favoriteServersSequence(): string[] { return this._favoriteServersSequence }
-  private set favoriteServersSequence(favoriteServersSequence: string[]) { this._favoriteServersSequence = favoriteServersSequence }
+  public get favoriteServersSequence(): string[] {
+    return this._favoriteServersSequence;
+  }
+  private set favoriteServersSequence(favoriteServersSequence: string[]) {
+    this._favoriteServersSequence = favoriteServersSequence;
+  }
 
   private db: Dexie;
+
   private dbOpen = new Deferred();
+
   private dbExisted: boolean;
 
   constructor(
@@ -67,11 +84,14 @@ class MpMenuServersStorageService implements IServersStorageService, AppContribu
   }
 
   private loadFavoriteServers() {
-    mpMenu.on('getFavorites', ({ list }: { list: string[] }) => {
+    mpMenu.on('getFavorites', ({
+      list,
+    }: { list: string[] }) => {
       this.favoriteServersSequenceDeferred.resolve();
 
       if (!Array.isArray(list)) {
         console.warn('Failed to set favorite servers list as event.data.list is not an array');
+
         return;
       }
 
@@ -95,6 +115,7 @@ class MpMenuServersStorageService implements IServersStorageService, AppContribu
 
   async addLastServer(historyServer: IHistoryServer): Promise<void> {
     const table = await this.getDbTable();
+
     if (!table) {
       return;
     }
@@ -122,11 +143,14 @@ class MpMenuServersStorageService implements IServersStorageService, AppContribu
 
     try {
       const table = await this.getDbTable();
+
       if (!table) {
         return;
       }
 
-      await wrapDexieErrors(table.bulkDelete(this.lastServers.map(({ address }) => address)));
+      await wrapDexieErrors(table.bulkDelete(this.lastServers.map(({
+        address,
+      }) => address)));
 
       this.lastServers = [];
 
@@ -150,6 +174,7 @@ class MpMenuServersStorageService implements IServersStorageService, AppContribu
     }
 
     const table = await this.getDbTable();
+
     if (!table) {
       return;
     }
@@ -158,19 +183,22 @@ class MpMenuServersStorageService implements IServersStorageService, AppContribu
     if (!this.dbExisted) {
       const seenAddresses: Record<string, true> = {};
 
-      const historyServersFromLocalStorage = DEPRECATED_getSavedHistoryServersFromLocalStorage().filter((historyServer) => {
-        if (seenAddresses[historyServer.address]) {
-          return false;
-        }
+      const historyServersFromLocalStorage = DEPRECATED_getSavedHistoryServersFromLocalStorage().filter(
+        (historyServer) => {
+          if (seenAddresses[historyServer.address]) {
+            return false;
+          }
 
-        seenAddresses[historyServer.address] = true;
+          seenAddresses[historyServer.address] = true;
 
-        return true;
-      });
+          return true;
+        },
+      );
 
       if (historyServersFromLocalStorage.length) {
         for (const historyServer of historyServersFromLocalStorage) {
           try {
+            // eslint-disable-next-line no-await-in-loop
             await table.add(historyServer);
           } catch (e) {
             this.logger.log('The following error occured when trying to migrate history server', historyServer);
@@ -185,6 +213,7 @@ class MpMenuServersStorageService implements IServersStorageService, AppContribu
 
   private async loadHistoryServersFromIndexedDB(): Promise<IHistoryServer[]> {
     const table = await this.getDbTable();
+
     if (!table) {
       return [];
     }
@@ -204,21 +233,21 @@ class MpMenuServersStorageService implements IServersStorageService, AppContribu
 
       this.db = new Dexie(DB_NAME);
 
-      {/**
-        * Migrations
-        *
-        * When adding new version DO NOT delete existing definition, define next version instead
-        * @see https://dexie.org/docs/Dexie/Dexie.version()
-        */
-
-        this.db.version(1).stores({
-          list: `&address, time`,
-        });
-      }
+      /**
+       * Migrations
+       *
+       * When adding new version DO NOT delete existing definition, define next version instead
+       * @see https://dexie.org/docs/Dexie/Dexie.version()
+       */
+      this.db.version(1).stores({
+        list: '&address, time',
+      });
 
       await wrapDexieErrors(this.db.open());
     } catch (e) {
-      console.warn(`Failed to open IndexedDB`, { action: 'Opening the database', DB_NAME, error: e });
+      console.warn('Failed to open IndexedDB', { action: 'Opening the database',
+        DB_NAME,
+        error: e });
 
       this.lastServersError = 'Failed to load history servers';
 
@@ -252,6 +281,7 @@ function reviveHistoryServers(entries: Array<Partial<IHistoryServer> | null>): I
 
   for (const entry of entries) {
     const result = reviveHistoryServer(entry);
+
     if (!result) {
       continue;
     }
@@ -270,7 +300,9 @@ function reviveHistoryServers(entries: Array<Partial<IHistoryServer> | null>): I
   return historyServers;
 }
 
-function reviveHistoryServer(rawHistoryServer: Partial<IHistoryServer> | null): [IHistoryServer, IParsedServerAddress] | null {
+function reviveHistoryServer(
+  rawHistoryServer: Partial<IHistoryServer> | null,
+): [IHistoryServer, IParsedServerAddress] | null {
   if (typeof rawHistoryServer !== 'object' || rawHistoryServer === null) {
     return null;
   }
@@ -290,6 +322,7 @@ function reviveHistoryServer(rawHistoryServer: Partial<IHistoryServer> | null): 
   }
 
   const parsedAddress = parseServerAddress(address);
+
   if (!parsedAddress) {
     return null;
   }
@@ -307,7 +340,7 @@ function reviveHistoryServer(rawHistoryServer: Partial<IHistoryServer> | null): 
     token: typeof token === 'string'
       ? token
       : '',
-    vars: (typeof vars === 'object' && vars !== null)
+    vars: typeof vars === 'object' && vars !== null
       ? vars
       : {},
   };
@@ -326,7 +359,7 @@ function parseDate(date: unknown): Date {
 
   const parsedDate = new Date(date);
 
-  if (isNaN(parsedDate.valueOf())) {
+  if (Number.isNaN(parsedDate.valueOf())) {
     return new Date('2013');
   }
 
@@ -345,7 +378,6 @@ function parseIcon(icon: unknown): string {
   return icon;
 }
 
-
 /**
  * We've migrated to the IndexedDB as a storage for last connected servers
  *
@@ -358,14 +390,17 @@ namespace DEPRECATED_LS_KEYS {
 /**
  * @deprecated MIGRATION TO IndexedDB SUPPORT CODE
  */
+// eslint-disable-next-line camelcase
 function DEPRECATED_getSavedHistoryServersFromLocalStorage(): IHistoryServer[] {
   try {
     const rawHistoryServersString = window.localStorage.getItem(DEPRECATED_LS_KEYS.HISTORY_SERVERS);
+
     if (!rawHistoryServersString) {
       return [];
     }
 
     const rawHistoryServers = JSON.parse(rawHistoryServersString);
+
     if (!Array.isArray(rawHistoryServers)) {
       return [];
     }
@@ -377,5 +412,7 @@ function DEPRECATED_getSavedHistoryServersFromLocalStorage(): IHistoryServer[] {
 }
 
 function wrapDexieErrors<T>(op: PromiseExtended<T>): PromiseExtended<T> {
-  return op.catch((e) => { throw e });
+  return op.catch((e) => {
+    throw e;
+  });
 }

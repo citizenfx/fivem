@@ -1,12 +1,15 @@
 export function unicodeCharAt(string: string, index: number): string {
-  var first = string.charCodeAt(index);
-  var second;
-  if (first >= 0xD800 && first <= 0xDBFF && string.length > index + 1) {
+  const first = string.charCodeAt(index);
+  let second;
+
+  if (first >= 0xd800 && first <= 0xdbff && string.length > index + 1) {
     second = string.charCodeAt(index + 1);
-    if (second >= 0xDC00 && second <= 0xDFFF) {
+
+    if (second >= 0xdc00 && second <= 0xdfff) {
       return string.substring(index, index + 2);
     }
   }
+
   return string[index];
 }
 
@@ -38,7 +41,7 @@ export function splitByIndices(text: string, indices: number[], unicodeIndices =
     return new Map([[0, text]]);
   }
 
-  const slices: Map<number, string> = new Map();
+  const slices = new Map<number, string>();
 
   let part = '';
 
@@ -70,9 +73,12 @@ export function splitByIndices(text: string, indices: number[], unicodeIndices =
 
   return slices;
 }
+
 try {
   (window as any).__splitByIndices = splitByIndices;
-} catch {}
+} catch {
+  // Do nothing
+}
 
 export function replaceRange(str: string, replacement: string, start: number, end: number): string {
   const before = str.substring(0, start);

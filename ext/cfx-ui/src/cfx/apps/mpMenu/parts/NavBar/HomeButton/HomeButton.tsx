@@ -1,15 +1,17 @@
-import React from "react";
-import { LinkButton } from "cfx/ui/Button/LinkButton";
-import { BrandIcon } from "cfx/ui/Icons";
-import { Title } from "cfx/ui/Title/Title";
-import { observer } from "mobx-react-lite";
-import { useLocation } from "react-router-dom";
-import { clsx } from "cfx/utils/clsx";
-import { CurrentGameName } from "cfx/base/gameRuntime";
-import { $L } from "cfx/common/services/intl/l10n";
+import { observer } from 'mobx-react-lite';
+import React from 'react';
+import { useLocation } from 'react-router-dom';
+
+import { CurrentGameName } from 'cfx/base/gameRuntime';
+import { useEventHandler } from 'cfx/common/services/analytics/analytics.service';
+import { EventActionNames, ElementPlacements } from 'cfx/common/services/analytics/types';
+import { $L } from 'cfx/common/services/intl/l10n';
+import { LinkButton } from 'cfx/ui/Button/LinkButton';
+import { BrandIcon } from 'cfx/ui/Icons';
+import { Title } from 'cfx/ui/Title/Title';
+import { clsx } from 'cfx/utils/clsx';
+
 import s from './HomeButton.module.scss';
-import { useEventHandler } from "cfx/common/services/analytics/analytics.service";
-import { EventActionNames, ElementPlacements } from "cfx/common/services/analytics/types";
 
 const titles = [
   'Home', // Unused, we're using localized version for this one
@@ -17,15 +19,15 @@ const titles = [
   'Home Home Home',
   'Can you stop?',
   'Please',
-  "This won't help",
+  'This won\'t help',
   'Seriously',
   'Home',
-  "This didn't quite work, right?",
-  "To the beginning",
-  "Home",
-  "Wait, no",
-  "Oh yea, press me more",
-  "Now for real, to the beginning",
+  'This didn\'t quite work, right?',
+  'To the beginning',
+  'Home',
+  'Wait, no',
+  'Oh yea, press me more',
+  'Now for real, to the beginning',
 ];
 
 export const HomeButton = observer(function HomeButton() {
@@ -35,16 +37,20 @@ export const HomeButton = observer(function HomeButton() {
   const resetRef = React.useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const handleGTMSiteNavEvent = React.useCallback(() => {
-    eventHandler({ action: EventActionNames.SiteNavClick, properties: {
-      text: '#BottomNav_Home',
-      link_url: '/',
-      element_placement: ElementPlacements.Nav,
-      position: 0,
-    }});
+    eventHandler({
+      action: EventActionNames.SiteNavClick,
+      properties: {
+        text: '#BottomNav_Home',
+        link_url: '/',
+        element_placement: ElementPlacements.Nav,
+        position: 0,
+      },
+    });
   }, [eventHandler]);
 
   const handleClick = React.useCallback(() => {
     let newIndex = index + 1;
+
     if (newIndex > titles.length - 1) {
       newIndex = 0;
     }

@@ -25,14 +25,14 @@ const off8 = 13710;
 const off9 = 15460;
 
 const sprite: Record<Sfx, [number, number]> = {
-  [Sfx.Click1]:  [off0, off1 - off0],
-  [Sfx.Click2]:  [off1, off2 - off1],
-  [Sfx.Click3]:  [off2, off3 - off2],
-  [Sfx.Click4]:  [off3, off4 - off3],
-  [Sfx.Woosh1]:  [off4, off5 - off4],
-  [Sfx.Woosh2]:  [off5, off6 - off5],
-  [Sfx.Woosh3]:  [off6, off7 - off6],
-  [Sfx.Woosh4]:  [off7, off8 - off7],
+  [Sfx.Click1]: [off0, off1 - off0],
+  [Sfx.Click2]: [off1, off2 - off1],
+  [Sfx.Click3]: [off2, off3 - off2],
+  [Sfx.Click4]: [off3, off4 - off3],
+  [Sfx.Woosh1]: [off4, off5 - off4],
+  [Sfx.Woosh2]: [off5, off6 - off5],
+  [Sfx.Woosh3]: [off6, off7 - off6],
+  [Sfx.Woosh4]: [off7, off8 - off7],
   [Sfx.Connect]: [off8, off9 - off8],
   [Sfx.Maybe]: [off9, 800],
 };

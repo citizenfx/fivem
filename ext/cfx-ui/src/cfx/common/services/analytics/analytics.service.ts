@@ -1,15 +1,19 @@
-import React from "react";
-import { injectable, interfaces, multiInject, optional } from "inversify";
-import { defineService, ServicesContainer, useService } from "../../../base/servicesContainer";
-import { AnalyticsProvider } from "./analytics.extensions";
-import { IAnalyticsEvent, TrackEventParams } from "./types";
+import { injectable, interfaces, multiInject, optional } from 'inversify';
+import React from 'react';
+
+import { AnalyticsProvider } from './analytics.extensions';
+import { IAnalyticsEvent, TrackEventParams } from './types';
+import { defineService, ServicesContainer, useService } from '../../../base/servicesContainer';
 
 export const IAnalyticsService = defineService<IAnalyticsService>('AnalyticsService');
 export interface IAnalyticsService {
   trackEvent(event: IAnalyticsEvent): void;
 }
 
-export function registerAnalyticsService(container: ServicesContainer, providers: interfaces.Newable<AnalyticsProvider>[] = []) {
+export function registerAnalyticsService(
+  container: ServicesContainer,
+  providers: interfaces.Newable<AnalyticsProvider>[] = [],
+) {
   container.registerImpl(IAnalyticsService, AnalyticsService);
 
   providers.forEach((provider) => {
@@ -19,7 +23,8 @@ export function registerAnalyticsService(container: ServicesContainer, providers
 
 @injectable()
 class AnalyticsService implements IAnalyticsService {
-  @multiInject(AnalyticsProvider) @optional()
+  @multiInject(AnalyticsProvider)
+  @optional()
   protected readonly providers: AnalyticsProvider[];
 
   trackEvent(event: IAnalyticsEvent) {
@@ -34,9 +39,12 @@ export function useAnalyticsService(): IAnalyticsService {
 export function useEventHandler() {
   const analyticsService = useAnalyticsService();
 
-  const EventHandler = React.useCallback((params: TrackEventParams) => {
-    analyticsService.trackEvent(params);
-  }, [analyticsService]);
+  const EventHandler = React.useCallback(
+    (params: TrackEventParams) => {
+      analyticsService.trackEvent(params);
+    },
+    [analyticsService],
+  );
 
   return EventHandler;
 }

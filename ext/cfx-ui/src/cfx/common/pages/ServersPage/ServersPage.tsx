@@ -1,25 +1,28 @@
-import React from "react";
-import { observer } from "mobx-react-lite";
-import { Page } from "cfx/ui/Layout/Page/Page";
-import { ServerListItem } from "cfx/common/parts/Server/ServerListItem/ServerListItem";
-import { Flex } from "cfx/ui/Layout/Flex/Flex";
-import { IServersList, ServersListType } from "cfx/common/services/servers/lists/types";
-import { VirtualScrollable } from "cfx/ui/Layout/Scrollable/VirtualScrollable";
-import { useServersService } from "cfx/common/services/servers/servers.service";
-import { Box } from "cfx/ui/Layout/Box/Box";
-import { Scrollable } from "cfx/ui/Layout/Scrollable/Scrollable";
-import { Island } from "cfx/ui/Island/Island";
-import { Pad } from "cfx/ui/Layout/Pad/Pad";
-import { FlexRestricter } from "cfx/ui/Layout/Flex/FlexRestricter";
-import { Text } from "cfx/ui/Text/Text";
-import { useUiService } from "cfx/common/services/ui/ui.service";
-import { useSavedScrollPositionForBackNav } from "cfx/utils/hooks";
-import { $L } from "cfx/common/services/intl/l10n";
-import { Icons } from "cfx/ui/Icons";
-import { EmptyListPlaceholder } from "./EmptyListPlaceholder/EmptyListPlaceholder";
-import { IndexedServerListItem } from "cfx/common/parts/Server/ServerListItem/IndexedServerListItem";
+import { observer } from 'mobx-react-lite';
+import React from 'react';
+
+import { IndexedServerListItem } from 'cfx/common/parts/Server/ServerListItem/IndexedServerListItem';
+import { ServerListItem } from 'cfx/common/parts/Server/ServerListItem/ServerListItem';
+import { ElementPlacements } from 'cfx/common/services/analytics/types';
+import { $L } from 'cfx/common/services/intl/l10n';
+import { IServersList, ServersListType } from 'cfx/common/services/servers/lists/types';
+import { useServersService } from 'cfx/common/services/servers/servers.service';
+import { useUiService } from 'cfx/common/services/ui/ui.service';
+import { Icons } from 'cfx/ui/Icons';
+import { Island } from 'cfx/ui/Island/Island';
+import { Box } from 'cfx/ui/Layout/Box/Box';
+import { Flex } from 'cfx/ui/Layout/Flex/Flex';
+import { FlexRestricter } from 'cfx/ui/Layout/Flex/FlexRestricter';
+import { Pad } from 'cfx/ui/Layout/Pad/Pad';
+import { Page } from 'cfx/ui/Layout/Page/Page';
+import { Scrollable } from 'cfx/ui/Layout/Scrollable/Scrollable';
+import { VirtualScrollable } from 'cfx/ui/Layout/Scrollable/VirtualScrollable';
+import { Text } from 'cfx/ui/Text/Text';
+import { useSavedScrollPositionForBackNav } from 'cfx/utils/hooks';
+
+import { EmptyListPlaceholder } from './EmptyListPlaceholder/EmptyListPlaceholder';
+
 import s from './ServersPage.module.scss';
-import { ElementPlacements } from "cfx/common/services/analytics/types";
 
 const emptyListPlaceholders = {
   [ServersListType.History]: true,
@@ -27,9 +30,9 @@ const emptyListPlaceholders = {
 };
 
 export interface ServersPageProps {
-  list: IServersList,
-  listType?: ServersListType,
-  showPinned?: boolean,
+  list: IServersList;
+  listType?: ServersListType;
+  showPinned?: boolean;
 }
 
 export const ServersPage = observer(function ServersPage(props: ServersPageProps) {
@@ -45,10 +48,7 @@ export const ServersPage = observer(function ServersPage(props: ServersPageProps
   const [initialScrollOffset, setScrollOffset] = useSavedScrollPositionForBackNav(list);
 
   const renderItem = React.useCallback((index: number) => (
-    <IndexedServerListItem
-      index={index}
-      list={list}
-    />
+    <IndexedServerListItem index={index} list={list} />
   ), [list]);
 
   const isListEmpty = list.sequence.length === 0;
@@ -69,7 +69,6 @@ export const ServersPage = observer(function ServersPage(props: ServersPageProps
           <VirtualScrollable
             onScrollUpdate={setScrollOffset}
             initialScrollOffset={initialScrollOffset}
-
             className={s.list}
             itemCount={list.sequence.length}
             itemHeight={UiService.quant * 8}
@@ -88,24 +87,23 @@ export const ServersPage = observer(function ServersPage(props: ServersPageProps
 const PinnedServers = observer(function PinnedServers() {
   const ServersService = useServersService();
 
-  const nodes = ServersService.pinnedServers.map((id) => ServersService.getServer(id)).filter(Boolean).map((server) => (
-    <Box
-      key={server!.id}
-      height={10}
-      width="100%"
-    >
-      <ServerListItem
-        standalone
-        hideTags
-        hideActions
-        hideCountryFlag
-        hidePremiumBadge
-        descriptionUnderName
-        server={server}
-        elementPlacement={ElementPlacements.ServerFeaturedList}
-      />
-    </Box>
-  ));
+  const nodes = ServersService.pinnedServers
+    .map((id) => ServersService.getServer(id))
+    .filter(Boolean)
+    .map((server) => (
+      <Box key={server!.id} height={10} width="100%">
+        <ServerListItem
+          standalone
+          hideTags
+          hideActions
+          hideCountryFlag
+          hidePremiumBadge
+          descriptionUnderName
+          server={server}
+          elementPlacement={ElementPlacements.ServerFeaturedList}
+        />
+      </Box>
+    ));
 
   return (
     <Island className={s.pinned}>

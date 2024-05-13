@@ -1,19 +1,16 @@
 import React from 'react';
+
 import { clsx } from 'cfx/utils/clsx';
+
 import s from './Badge.module.scss';
 
-export type BadeColor =
-  | 'default'
-  | 'primary'
-  | 'success'
-  | 'warning'
-  | 'error';
+export type BadeColor = 'default' | 'primary' | 'success' | 'warning' | 'error';
 
 export interface BadgeProps {
-  color?: BadeColor,
+  color?: BadeColor;
 
-  children?: React.ReactNode,
-  className?: string,
+  children?: React.ReactNode;
+  className?: string;
 }
 
 export const Badge = React.forwardRef(function Badge(props: BadgeProps, ref: React.Ref<HTMLDivElement>) {

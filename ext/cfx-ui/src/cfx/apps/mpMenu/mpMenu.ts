@@ -1,14 +1,16 @@
-import { setCurrentGameBuild, setCurrentGameName, setCurrentGamePureLevel } from 'cfx/base/gameRuntime';
+import { makeAutoObservable } from 'mobx';
+
 import { GameName } from 'cfx/base/game';
+import { setCurrentGameBuild, setCurrentGameName, setCurrentGamePureLevel } from 'cfx/base/gameRuntime';
 import { Deferred, timeout } from 'cfx/utils/async';
 import { IDisposable } from 'cfx/utils/disposable';
-import { MultiEventEmitter } from "cfx/utils/eventEmitter";
+import { MultiEventEmitter } from 'cfx/utils/eventEmitter';
 import { AwaitableValue } from 'cfx/utils/observable';
 import { RichEvent } from 'cfx/utils/types';
-import { makeAutoObservable } from 'mobx';
+
 import { IQueriedServerData } from './services/servers/source/types';
 
-const nuiWindow: (typeof window) & {
+const nuiWindow: typeof window & {
   nuiTargetGame: string;
   nuiTargetGameBuild: number;
   nuiTargetGamePureLevel: number;
@@ -20,9 +22,11 @@ const nuiWindow: (typeof window) & {
 
 // Set this as early as possible
 setCurrentGameName((nuiWindow.nuiTargetGame as GameName) || GameName.RedM);
+
 if (typeof nuiWindow.nuiTargetGameBuild === 'number') {
   setCurrentGameBuild(nuiWindow.nuiTargetGameBuild.toString());
 }
+
 if (typeof nuiWindow.nuiTargetGamePureLevel === 'number') {
   setCurrentGamePureLevel(nuiWindow.nuiTargetGamePureLevel.toString());
 }
@@ -33,7 +37,6 @@ const serverQueryRequests: Record<string, Deferred<any>> = {};
 
 class NicknameStore {
   private _nickname = window.localStorage.getItem('nickOverride') || '';
-
   get nickname(): string {
     return this._nickname;
   }
@@ -101,8 +104,12 @@ export namespace mpMenu {
   export const computerName = new AwaitableValue('');
 
   export const playerNickname = new NicknameStore();
-  export function getPlayerNickname() { return playerNickname.nickname }
-  export function setPlayerNickname(nickname: string) { playerNickname.nickname = nickname }
+  export function getPlayerNickname() {
+    return playerNickname.nickname;
+  }
+  export function setPlayerNickname(nickname: string) {
+    playerNickname.nickname = nickname;
+  }
 
   export async function selectFile(key: string): Promise<string> {
     return new Promise<string>((resolve) => {
@@ -140,11 +147,20 @@ export namespace mpMenu {
   }
 
   // Subscribe to wrapped events
-  on('setComputerName', (data: { data: string }) => computerName.value = data.data);
-  on('fileDialogResult', ({ dialogKey, result }: { dialogKey: string, result: string }) => fileSelectRequests[dialogKey]?.(result));
+  on('setComputerName', (data: { data: string }) => {
+    computerName.value = data.data;
+  });
+  on(
+    'fileDialogResult',
+    ({
+      dialogKey,
+      result,
+    }: { dialogKey: string; result: string }) => fileSelectRequests[dialogKey]?.(result),
+  );
 
   on('serverQueried', (data: any) => {
     const deferred = serverQueryRequests[data.queryCorrelation];
+
     if (!deferred) {
       return;
     }
@@ -156,6 +172,7 @@ export namespace mpMenu {
 
   on('queryFailed', (data: any) => {
     const deferred = serverQueryRequests[data.arg];
+
     if (!deferred) {
       return;
     }
@@ -166,14 +183,14 @@ export namespace mpMenu {
   });
 }
 
-
-
 window.addEventListener('message', (event: MessageEvent) => {
   if (__CFXUI_DEV__) {
     console.log('[WNDMSG]', event.data);
   }
 
-  const { data } = event;
+  const {
+    data,
+  } = event;
 
   if (typeof data !== 'object') {
     return;

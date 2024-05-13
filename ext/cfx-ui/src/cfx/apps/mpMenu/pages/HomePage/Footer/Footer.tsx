@@ -1,14 +1,16 @@
-import { AnalyticsLinkButton } from "cfx/common/parts/AnalyticsLinkButton/AnalyticsLinkButton";
-import { Box } from "cfx/ui/Layout/Box/Box";
-import { Flex } from "cfx/ui/Layout/Flex/Flex";
-import { Title } from "cfx/ui/Title/Title";
-import { ui } from "cfx/ui/ui";
-import { observer } from "mobx-react-lite";
-import { IoSparklesOutline } from "react-icons/io5";
-import { AuxiliaryGameModes } from "./AuxiliaryGameModes/AuxiliaryGameModes";
-import { ExtraLinkyTiles } from "./ExtraLinkyTiles/ExtraLinkyTiles";
-import { FeaturedServerTile, useFeaturedServer } from "./FeaturedServerTile/FeaturedServerTile";
-import { ElementPlacements } from "cfx/common/services/analytics/types";
+import { observer } from 'mobx-react-lite';
+import { IoSparklesOutline } from 'react-icons/io5';
+
+import { AnalyticsLinkButton } from 'cfx/common/parts/AnalyticsLinkButton/AnalyticsLinkButton';
+import { ElementPlacements } from 'cfx/common/services/analytics/types';
+import { Box } from 'cfx/ui/Layout/Box/Box';
+import { Flex } from 'cfx/ui/Layout/Flex/Flex';
+import { Title } from 'cfx/ui/Title/Title';
+import { ui } from 'cfx/ui/ui';
+
+import { AuxiliaryGameModes } from './AuxiliaryGameModes/AuxiliaryGameModes';
+import { ExtraLinkyTiles } from './ExtraLinkyTiles/ExtraLinkyTiles';
+import { FeaturedServerTile, useFeaturedServer } from './FeaturedServerTile/FeaturedServerTile';
 
 export const Footer = observer(function Footer() {
   const hasFeaturedServer = Boolean(useFeaturedServer());

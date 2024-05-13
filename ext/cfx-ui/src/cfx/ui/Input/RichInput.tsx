@@ -1,31 +1,37 @@
-import React from "react";
-import { clsx } from "cfx/utils/clsx";
-import { useDynamicRef } from "cfx/utils/hooks";
-import { InputSize } from "./Input";
+import React from 'react';
+
+import { clsx } from 'cfx/utils/clsx';
+import { useDynamicRef } from 'cfx/utils/hooks';
+
+import { InputSize } from './Input';
+import { Button } from '../Button/Button';
+import { Icons } from '../Icons';
+
 import s from './RichInput.module.scss';
-import { Button } from "../Button/Button";
-import { Icons } from "../Icons";
 
 export interface RichInputProps {
-  size?: InputSize,
+  size?: InputSize;
 
-  value: string,
-  onChange(value: string): void,
-  onFocus?(): void,
-  onBlur?(): void,
-  onSelect?(start: number | null, end: number | null, direction: HTMLInputElement['selectionDirection']): void,
-  onKeyDown?(event: React.KeyboardEvent<HTMLInputElement>): void,
+  value: string;
+  onChange(value: string): void;
+  onFocus?(): void;
+  onBlur?(): void;
+  onSelect?(start: number | null, end: number | null, direction: HTMLInputElement['selectionDirection']): void;
+  onKeyDown?(event: React.KeyboardEvent<HTMLInputElement>): void;
 
-  rendered: React.ReactNode,
+  rendered: React.ReactNode;
 
-  className?: string,
-  placeholder?: string,
+  className?: string;
+  placeholder?: string;
 
-  autoFocus?: boolean,
-  withClearButton?: boolean,
+  autoFocus?: boolean;
+  withClearButton?: boolean;
 }
 
-export const RichInput = React.forwardRef((props: RichInputProps, ref: React.RefObject<HTMLDivElement>) => {
+export const RichInput = React.forwardRef(function RichInput(
+  props: RichInputProps,
+  ref: React.RefObject<HTMLDivElement>,
+) {
   const {
     size = 'normal',
     value,
@@ -85,19 +91,15 @@ export const RichInput = React.forwardRef((props: RichInputProps, ref: React.Ref
     <div ref={ref} className={rootClassName}>
       <input
         ref={inputRef}
-
         autoFocus={autoFocus}
-
         type="text"
         value={value}
         onChange={handleChange}
         placeholder={placeholder}
-
         onBlur={onBlur}
         onFocus={onFocus}
         onScroll={handleScroll}
         onSelect={handleSelect}
-
         onKeyDown={onKeyDown}
       />
 
@@ -105,13 +107,9 @@ export const RichInput = React.forwardRef((props: RichInputProps, ref: React.Ref
         {rendered}
       </div>
 
-      {(withClearButton && value) && (
+      {withClearButton && value && (
         <div className={s.clear}>
-          <Button
-            size="small"
-            icon={Icons.exit}
-            onClick={handleClear}
-          />
+          <Button size="small" icon={Icons.exit} onClick={handleClear} />
         </div>
       )}
     </div>
