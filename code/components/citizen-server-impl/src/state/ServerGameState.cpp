@@ -7384,7 +7384,13 @@ static InitFunction initFunction([]()
 
 		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("msgArrayUpdate"), { fx::ThreadIdx::Sync, [=](const fx::ClientSharedPtr& client, net::Buffer& buffer)
 		{
-			instance->GetComponent<fx::ServerGameState>()->HandleArrayUpdate(client, buffer);
+			static fx::RateLimiterStore<uint32_t, false> arrayHandlerLimiterStore{ instance->GetComponent<console::Context>().GetRef() };
+			static auto arrayUpdateRateLimiter = arrayHandlerLimiterStore.GetRateLimiter("arrayUpdate", fx::RateLimiterDefaults{ 75.f, 125.f });
+
+			if (arrayUpdateRateLimiter->Consume(client->GetNetId()))
+			{
+				instance->GetComponent<fx::ServerGameState>()->HandleArrayUpdate(client, buffer);
+			}
 		} });
 
 		gameServer->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("msgRequestObjectIds"), { fx::ThreadIdx::Sync, [=](const fx::ClientSharedPtr& client, net::Buffer& buffer)
