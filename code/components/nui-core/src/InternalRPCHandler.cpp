@@ -16,7 +16,29 @@
 
 #include "memdbgon.h"
 
-class InternalRPCHandler : public CefResourceHandler, public nui::RPCHandlerManager
+/// Lazy singleton
+class InternalHandlerMap : public nui::RPCHandlerManager, public std::unordered_map<std::string, nui::RPCHandlerManager::TEndpointFn>
+{
+public:
+	virtual void RegisterEndpoint(std::string endpointName, TEndpointFn callback) override
+	{
+		emplace(std::move(endpointName), std::move(callback));
+	}
+
+private:
+	InternalHandlerMap() {};
+public:
+	InternalHandlerMap(InternalHandlerMap const&) = delete;
+	InternalHandlerMap& operator=(InternalHandlerMap const&) = delete;
+
+	static InternalHandlerMap& GetInstance()
+	{
+		static InternalHandlerMap instance;
+		return instance;
+	}
+};
+
+class InternalRPCHandler : public CefResourceHandler
 {
 private:
 	bool m_found;
@@ -25,9 +47,12 @@ private:
 
 	uint32_t m_cursor;
 
-	std::unordered_map<std::string, TEndpointFn> m_endpointHandlers;
-
 public:
+	InternalRPCHandler()
+		: m_found(false), m_result(), m_cursor(0)
+	{
+	}
+
 	virtual bool ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) override;
 
 	virtual void GetResponseHeaders(CefRefPtr<CefResponse> response, int64& response_length, CefString& redirectUrl) override;
@@ -35,9 +60,6 @@ public:
 	virtual void Cancel() override;
 
 	virtual bool ReadResponse(void* data_out, int bytes_to_read, int& bytes_read, CefRefPtr<CefCallback> callback) override;
-
-	// RPCHandlerManager implementation
-	virtual void RegisterEndpoint(std::string endpointName, TEndpointFn callback) override;
 
 	IMPLEMENT_REFCOUNTING(InternalRPCHandler);
 };
@@ -59,9 +81,10 @@ bool InternalRPCHandler::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr
 	int endpointPos = path.find_first_of('/');
 	std::string endpoint = path.substr(0, endpointPos);
 
-	auto it = m_endpointHandlers.find(endpoint);
+	auto& endpointHandlers = InternalHandlerMap::GetInstance();
+	auto it = endpointHandlers.find(endpoint);
 
-	if (it == m_endpointHandlers.end() || endpointPos == std::string::npos)
+	if (it == endpointHandlers.end() || endpointPos == std::string::npos)
 	{
 		m_found = false;
 
@@ -189,18 +212,9 @@ bool InternalRPCHandler::ReadResponse(void* data_out, int bytes_to_read, int& by
 	return false;
 }
 
-void InternalRPCHandler::RegisterEndpoint(std::string endpointName, TEndpointFn callback)
-{
-	m_endpointHandlers[endpointName] = callback;
-}
-
-static CefRefPtr<InternalRPCHandler> rpcHandler;
-
 static InitFunction prefunction([] ()
 {
-    rpcHandler = new InternalRPCHandler();
-
-    Instance<nui::RPCHandlerManager>::Set(rpcHandler.get());
+    Instance<nui::RPCHandlerManager>::Set(&InternalHandlerMap::GetInstance());
 });
 
 static HookFunction initFunction([] ()
@@ -219,7 +233,7 @@ static HookFunction initFunction([] ()
 
 				if (hostString == "nui-internal")
 				{
-					handler = rpcHandler;
+					handler = new InternalRPCHandler();
 
 					return false;
 				}
