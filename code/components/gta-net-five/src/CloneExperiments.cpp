@@ -107,6 +107,7 @@ void netPlayerMgrBase::UpdatePlayerListsForPlayer(CNetGamePlayer* player)
 }
 
 static rage::netPlayerMgrBase* g_playerMgr;
+static size_t g_CNetGamePlayerSize;
 
 void* g_tempRemotePlayer;
 
@@ -764,11 +765,9 @@ static CNetGamePlayer* AllocateNetPlayer(void* mgr)
 		return g_origAllocateNetPlayer(mgr);
 	}
 
-#ifdef GTA_FIVE
-	void* plr = malloc(xbr::IsGameBuildOrGreater<3095>() ? 816 : xbr::IsGameBuildOrGreater<2824>() ? 800 : xbr::IsGameBuildOrGreater<2372>() ? 704: xbr::IsGameBuildOrGreater<2060>() ? 688 : 672);
-#elif IS_RDR3
-	void* plr = malloc(xbr::IsGameBuildOrGreater<1436>() ? 2736 : 2784);
-#endif
+	// We assume this never fails (for now)
+	void *plr = malloc(g_CNetGamePlayerSize);
+	memset(plr, 0, g_CNetGamePlayerSize);
 
 	auto player = _netPlayerCtor(plr);
 
@@ -1760,6 +1759,15 @@ static HookFunction hookFunction([]()
 #elif IS_RDR3
 	g_playerMgr = *hook::get_address<rage::netPlayerMgrBase**>(hook::get_pattern("80 E1 07 80 F9 03 0F 84 ? ? ? ? 48 8B 0D", 15));
 #endif
+
+	// CNetGamePlayer size
+	{
+#ifdef GTA_FIVE
+		g_CNetGamePlayerSize = *hook::get_pattern<int32_t>("48 81 C7 ? ? ? ? FF CD 79 ED 33 ED", 3);
+#elif IS_RDR3
+		g_CNetGamePlayerSize = *hook::get_pattern<int32_t>("48 21 B3 ? ? ? ? 48 8B C3 48 21 B3 ? ? ? ? 48 21 B3", -10);
+#endif
+	}
 
 #ifdef GTA_FIVE
 	// use cached sector if no gameobject (weird check in IProximityMigrateableNodeDataAccessor impl)
