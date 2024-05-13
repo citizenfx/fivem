@@ -63,17 +63,19 @@ namespace fx
 					// we don't skip messages with no data, but we make sure we keep substr inside bounds
 					auto data = sv.substr(std::min(keyEnd + 1, len));
 
+					bool handled = false;
 					([&]
 					{
-						if (key == fx::force_consteval<uint32_t, HashRageString(TOutOfBandHandler::GetName())>)
+						if (!handled && key == fx::force_consteval<uint32_t, HashRageString(TOutOfBandHandler::GetName())>)
 						{
 							static TOutOfBandHandler outOfBandHandler (tempServer);
 							outOfBandHandler.Process(tempServer, from, data);
-							return true;
+							handled = true;
 						}
 					}(), ...);
 
-					return true;
+					// when false, gives a other raw udp interceptor the chance to parse it, even when we don't have such
+					return handled;
 				}
 
 				// allow external components to have a say
