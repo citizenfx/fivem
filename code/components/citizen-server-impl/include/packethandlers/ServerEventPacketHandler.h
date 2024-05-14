@@ -4,12 +4,16 @@
 #include <Client.h>
 #include <NetBuffer.h>
 
-#include "ComponentExport.h"
+#ifdef COMPILING_CITIZEN_SERVER_IMPL
+#define SERVER_IMPL_EXPORT DLL_EXPORT
+#else
+#define SERVER_IMPL_EXPORT DLL_IMPORT
+#endif
 
-class ServerEventPacketHandler
+class SERVER_IMPL_EXPORT ServerEventPacketHandler
 {
 public:
-	static COMPONENT_EXPORT(citizen_server_impl) void Handle(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client,
+	static void Handle(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client,
 	                   net::Buffer& buffer);
 
 	static constexpr const char* GetPacketId()
