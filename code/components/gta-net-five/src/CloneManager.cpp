@@ -178,11 +178,7 @@ private:
 private:
 	void HandleCloneAcks(const char* data, size_t len);
 
-	void HandleCloneAcksNew(const char* data, size_t len);
-
 	void HandleCloneSync(const char* data, size_t len);
-
-	void HandleCloneRemove(const char* data, size_t len);
 
 	bool HandleCloneCreate(const msgClone& msg);
 
@@ -348,13 +344,6 @@ void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
 
 	// add message handlers
 	m_netLibrary->AddReliableHandler(
-	"msgCloneAcks", [this](const char* data, size_t len)
-	{
-		HandleCloneAcks(data, len);
-	},
-	true);
-
-	m_netLibrary->AddReliableHandler(
 	"msgPackedClones", [this](const char* data, size_t len)
 	{
 		HandleCloneSync(data, len);
@@ -364,14 +353,7 @@ void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
 	m_netLibrary->AddReliableHandler(
 	"msgPackedAcks", [this](const char* data, size_t len)
 	{
-		HandleCloneAcksNew(data, len);
-	},
-	true);
-
-	m_netLibrary->AddReliableHandler(
-	"msgCloneRemove", [this](const char* data, size_t len)
-	{
-		HandleCloneRemove(data, len);
+		HandleCloneAcks(data, len);
 	},
 	true);
 
@@ -613,56 +595,6 @@ void CloneManagerLocal::ProcessTimestampAck(uint32_t timestamp)
 }
 
 void CloneManagerLocal::HandleCloneAcks(const char* data, size_t len)
-{
-	net::Buffer buf(reinterpret_cast<const uint8_t*>(data), len);
-
-	while (!buf.IsAtEnd())
-	{
-		auto type = buf.Read<uint8_t>();
-
-		Log("%s: read ack type %d\n", __func__, type);
-
-		switch (type)
-		{
-			// create ack?
-			case 1:
-			{
-				auto objId = buf.Read<uint16_t>();
-				ProcessCreateAck(objId);
-
-				break;
-			}
-			// sync ack?
-			case 2:
-			{
-				auto objId = buf.Read<uint16_t>();
-				ProcessSyncAck(objId);
-
-				break;
-			}
-			// timestamp ack?
-			case 5:
-			{
-				auto timestamp = buf.Read<uint32_t>();
-				ProcessTimestampAck(timestamp);
-
-				break;
-			}
-			// remove ack?
-			case 3:
-			{
-				auto objId = buf.Read<uint16_t>();
-				ProcessRemoveAck(objId);
-
-				break;
-			}
-			default:
-				return;
-		}
-	}
-}
-
-void CloneManagerLocal::HandleCloneAcksNew(const char* data, size_t len)
 {
 	net::Buffer buffer(reinterpret_cast<const uint8_t*>(data), len);
 
@@ -1733,16 +1665,6 @@ void CloneManagerLocal::HandleCloneSync(const char* data, size_t len)
 		ignoreList.clear();
 		recreateList.clear();
 	}
-}
-
-void CloneManagerLocal::HandleCloneRemove(const char* data, size_t len)
-{
-	net::Buffer netBuffer(reinterpret_cast<const uint8_t*>(data), len);
-	auto objectId = netBuffer.Read<uint16_t>();
-
-	Log("%s: deleting [obj:%d]\n", __func__, objectId);
-
-	DeleteObjectId(objectId, 0, false);
 }
 
 void CloneManagerLocal::DeleteObjectId(uint16_t objectId, uint16_t uniqifier, bool force)
