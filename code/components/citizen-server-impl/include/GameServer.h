@@ -68,7 +68,7 @@ namespace fx
 
 		virtual std::string GetVariable(const std::string& key);
 
-		void DropClientv(const fx::ClientSharedPtr& client, const std::string& reason);
+		virtual void DropClientv(const fx::ClientSharedPtr& client, const std::string& reason);
 
 		template<typename... TArgs>
 		void DropClient(const fx::ClientSharedPtr& client, const std::string& reason, const TArgs&... args)
