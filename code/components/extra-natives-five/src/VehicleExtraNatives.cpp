@@ -317,8 +317,8 @@ static int VehicleRepairMethodVtableOffset;
 static std::unordered_set<fwEntity*> g_deletionTraces;
 static std::unordered_set<void*> g_deletionTraces2;
 
-static bool IsFuelConsuptionOn = false;
-static float GlobalFuelConsumptionMultiplier = 1;
+static bool g_isFuelConsumptionOn = false;
+static float g_globalFuelConsumptionMultiplier = 1;
 
 static void(*g_origDeleteVehicle)(void* vehicle);
 
@@ -508,7 +508,7 @@ bool DoesVehicleUseFuel(fwEntity* vehicle)
 
 void ProcessFuelConsumption(void* cVehicleDamage, float timeStep)
 {
-	if (!IsFuelConsuptionOn)
+	if (!g_isFuelConsumptionOn)
 	{
 		return;
 	}
@@ -524,14 +524,14 @@ void ProcessFuelConsumption(void* cVehicleDamage, float timeStep)
 		return;
 	}
 
-	// Adjust fuel consumption rate so when GlobalFuelConsumptionMultiplier is 1 it gives reasonable fuel consumption speed.
+	// Adjust fuel consumption rate so when g_globalFuelConsumptionMultiplier is 1 it gives reasonable fuel consumption speed.
 	const float NORMALIZE_GLOBAL_CONSUMPTION_RATE = 0.01;
 	void* handling = *(void**)((uintptr_t)vehicle + VehicleHandlingOffset);
 	float vehiclePetrolConsumptionRate = *(float*)((uintptr_t)handling + VehicleHandlingPetrolConsumptionRateOffset);
 	float currentRPM = *(float*)((uintptr_t)vehicle + CurrentRPMOffset);
 
 	float* petrolTankLevel = (float*)((uintptr_t)cVehicleDamage + VehicleDamagePetrolTankLevelOffset);
-	float newPetrolTankLevel = *petrolTankLevel - (timeStep * vehiclePetrolConsumptionRate * currentRPM * GlobalFuelConsumptionMultiplier * NORMALIZE_GLOBAL_CONSUMPTION_RATE);
+	float newPetrolTankLevel = *petrolTankLevel - (timeStep * vehiclePetrolConsumptionRate * currentRPM * g_globalFuelConsumptionMultiplier * NORMALIZE_GLOBAL_CONSUMPTION_RATE);
 	*petrolTankLevel = std::max(newPetrolTankLevel, 0.f);
 
 	bool isTankEmpty = *petrolTankLevel <= 0.f;
@@ -1758,22 +1758,22 @@ static HookFunction initFunction([]()
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_FUEL_CONSUMPTION_STATE", [](fx::ScriptContext& context)
 	{
-		IsFuelConsuptionOn = context.GetArgument<bool>(0);
+		g_isFuelConsumptionOn = context.GetArgument<bool>(0);
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_FUEL_CONSUMPTION_STATE", [](fx::ScriptContext& context)
 	{
-		context.SetResult<bool>(IsFuelConsuptionOn);
+		context.SetResult<bool>(g_isFuelConsumptionOn);
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_FUEL_CONSUMPTION_RATE_MULTIPLIER", [](fx::ScriptContext& context)
 	{
-		GlobalFuelConsumptionMultiplier = std::max(0.f, context.GetArgument<float>(0));
+		g_globalFuelConsumptionMultiplier = std::max(0.f, context.GetArgument<float>(0));
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_FUEL_CONSUMPTION_RATE_MULTIPLIER", [](fx::ScriptContext& context)
 	{
-		context.SetResult<float>(GlobalFuelConsumptionMultiplier);
+		context.SetResult<float>(g_globalFuelConsumptionMultiplier);
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("DOES_VEHICLE_USE_FUEL", [](fx::ScriptContext& context)
