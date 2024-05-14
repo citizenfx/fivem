@@ -6,10 +6,10 @@
 
 #include "ComponentExport.h"
 
-class COMPONENT_EXPORT(citizen_server_impl) ServerEventPacketHandler
+class ServerEventPacketHandler
 {
 public:
-	static void Handle(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client,
+	static COMPONENT_EXPORT(citizen_server_impl) void Handle(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client,
 	                   net::Buffer& buffer);
 
 	static constexpr const char* GetPacketId()
