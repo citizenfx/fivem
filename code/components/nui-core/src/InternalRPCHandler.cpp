@@ -41,15 +41,22 @@ public:
 class InternalRPCHandler : public CefResourceHandler
 {
 private:
+	struct Response
+	{
+		std::string m_result;
+
+		uint32_t m_cursor = 0;
+
+		bool m_cancelled = false;
+	};
+
 	bool m_found;
 
-	std::string m_result;
-
-	uint32_t m_cursor;
+	std::shared_ptr<Response> m_response;
 
 public:
 	InternalRPCHandler()
-		: m_found(false), m_result(), m_cursor(0)
+		: m_found(false), m_response(std::make_shared<Response>())
 	{
 	}
 
@@ -144,11 +151,15 @@ bool InternalRPCHandler::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr
 		}
 	}
 
+	std::weak_ptr weakState(m_response);
 	handler(funcName, args, postMap, [=] (std::string callResult)
 	{
-		m_result = callResult;
+		if (auto state = weakState.lock(); state && !state->m_cancelled)
+		{
+			state->m_result = callResult;
 
-		callback->Continue();
+			callback->Continue();
+		}
 	});
 
 	m_found = true;
@@ -179,25 +190,27 @@ void InternalRPCHandler::GetResponseHeaders(CefRefPtr<CefResponse> response, int
 
 	if (m_found)
 	{
-		response_length = m_result.size();
+		response_length = m_response->m_result.size();
 	}
 	else
 	{
 		response_length = 0;
 	}
 
-	m_cursor = 0;
+	m_response->m_cursor = 0;
 }
 
 void InternalRPCHandler::Cancel()
 {
-
+	m_response->m_cancelled = true;
 }
 
 bool InternalRPCHandler::ReadResponse(void* data_out, int bytes_to_read, int& bytes_read, CefRefPtr<CefCallback> callback)
 {
 	if (m_found)
 	{
+		auto& m_result = m_response->m_result;
+		auto& m_cursor = m_response->m_cursor;
 		int toRead = fwMin(m_result.size() - m_cursor, (size_t)bytes_to_read);
 
 		memcpy(data_out, &m_result.c_str()[m_cursor], toRead);
