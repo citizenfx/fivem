@@ -41,9 +41,9 @@
 constexpr const auto kROSBlobEmailOffset = 8;
 constexpr const auto kROSBlobTicketOffset = 2800;
 constexpr const auto kROSBlobSessionTicketOffset = 3312;
-constexpr const auto kROSBlobAccountIdOffset = 3816;
-constexpr const auto kROSBlobUsernameOffset = 3743;
-constexpr const auto kROSBlobSessionKeyOffset = 4360;
+constexpr const auto kROSBlobAccountIdOffset = 3824;
+constexpr const auto kROSBlobUsernameOffset = 3751;
+constexpr const auto kROSBlobSessionKeyOffset = 4368;
 
 template<typename... Ts>
 static auto PostAutoLogin(Ts&&... args)
