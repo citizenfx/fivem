@@ -24,6 +24,9 @@
 #include <CoreConsole.h>
 #include <Resource.h>
 
+#include <ResourceEventComponent.h>
+#include <ResourceManager.h>
+
 #include <fxScripting.h>
 
 #include <MinHook.h>
@@ -277,7 +280,6 @@ static int VehiclePitchBiasOffset;
 static int VehicleRollBiasOffset;
 
 static int VehicleDamageParentOffset;
-static int VehicleDamagePetrolTankLevelOffset;
 static int VehicleHandlingOffset;
 static int VehicleHandlingPetrolTankVolumeOffset;
 static int VehicleHandlingPetrolConsumptionRateOffset;
@@ -506,6 +508,14 @@ bool DoesVehicleUseFuel(fwEntity* vehicle)
 	return true;
 }
 
+void SetVehicleFuelLevel(fwEntity* vehicle, float fuelLevel)
+{
+	writeValue<float>(vehicle, FuelLevelOffset, fuelLevel);
+
+	uint8_t* vehicleTankEmptyFlags = (uint8_t*)((uintptr_t)vehicle + VehicleTankEmptyFlagsOffset);
+	*vehicleTankEmptyFlags ^= (*vehicleTankEmptyFlags ^ (uint8_t)(fuelLevel <= 0.f)) & 1;
+}
+
 void ProcessFuelConsumption(void* cVehicleDamage, float timeStep)
 {
 	if (!g_isFuelConsumptionOn)
@@ -513,31 +523,29 @@ void ProcessFuelConsumption(void* cVehicleDamage, float timeStep)
 		return;
 	}
 
-	void* vehicle = *(void**)((uintptr_t)cVehicleDamage + VehicleDamageParentOffset);
+	fwEntity* vehicle = *(fwEntity**)((uintptr_t)cVehicleDamage + VehicleDamageParentOffset);
 	if (!isDriverAPlayer(vehicle))
 	{
 		return;
 	}
 
-	if (!DoesVehicleUseFuel((fwEntity*)vehicle))
+	if (!DoesVehicleUseFuel(vehicle))
 	{
 		return;
 	}
 
 	// Adjust fuel consumption rate so when g_globalFuelConsumptionMultiplier is 1 it gives reasonable fuel consumption speed.
-	const float NORMALIZE_GLOBAL_CONSUMPTION_RATE = 0.01;
-	void* handling = *(void**)((uintptr_t)vehicle + VehicleHandlingOffset);
+	const float NORMALIZE_GLOBAL_CONSUMPTION_RATE = 0.01f;
+	void* handling = readValue<void*>(vehicle, VehicleHandlingOffset);
 	float vehiclePetrolConsumptionRate = *(float*)((uintptr_t)handling + VehicleHandlingPetrolConsumptionRateOffset);
-	float currentRPM = *(float*)((uintptr_t)vehicle + CurrentRPMOffset);
+	float currentRPM = readValue<float>(vehicle, CurrentRPMOffset);
 
-	float* petrolTankLevel = (float*)((uintptr_t)cVehicleDamage + VehicleDamagePetrolTankLevelOffset);
-	float newPetrolTankLevel = *petrolTankLevel - (timeStep * vehiclePetrolConsumptionRate * currentRPM * g_globalFuelConsumptionMultiplier * NORMALIZE_GLOBAL_CONSUMPTION_RATE);
-	*petrolTankLevel = std::max(newPetrolTankLevel, 0.f);
+	float petrolTankLevel = readValue<float>(vehicle, FuelLevelOffset);
+	float newPetrolTankLevel = petrolTankLevel - (timeStep * vehiclePetrolConsumptionRate * currentRPM * g_globalFuelConsumptionMultiplier * NORMALIZE_GLOBAL_CONSUMPTION_RATE);
 
-	bool isTankEmpty = *petrolTankLevel <= 0.f;
-	if (isTankEmpty)
+	if (newPetrolTankLevel <= 0.f)
 	{
-		uint8_t vehicleEngineRunningFlags = *(uint8_t*)((uintptr_t)vehicle + VehicleEngineRunningFlagsOffset);
+		uint8_t vehicleEngineRunningFlags = readValue<uint8_t>(vehicle, VehicleEngineRunningFlagsOffset);
 		bool isEngineOn = vehicleEngineRunningFlags & VehicleFlagsEngineRunningFlag;
 		if (isEngineOn)
 		{
@@ -545,8 +553,23 @@ void ProcessFuelConsumption(void* cVehicleDamage, float timeStep)
 		}
 	}
 
-	uint8_t* vehicleTankEmptyFlags = (uint8_t*)((uintptr_t)vehicle + VehicleTankEmptyFlagsOffset);
-	*vehicleTankEmptyFlags ^= (*vehicleTankEmptyFlags ^ (uint8_t)isTankEmpty) & 1;
+	if (newPetrolTankLevel <= 0.f && petrolTankLevel > 0.f)
+	{
+		auto resman = Instance<fx::ResourceManager>::Get();
+		auto rec = resman->GetComponent<fx::ResourceEventManagerComponent>();
+
+		/*NETEV petrolTankEmpty CLIENT
+		/#*
+		 * An event that is triggered when *locally* all fuel in a vehicle is used.
+		 *
+		 * @param vehicle - The vehicle that run out of fuel.
+		 #/
+		declare function petrolTankEmpty(vehicle: number): void;
+		*/
+		rec->QueueEvent2("petrolTankEmpty", {}, rage::fwScriptGuid::GetGuidFromBase(vehicle));
+	}
+
+	SetVehicleFuelLevel(vehicle, std::max(newPetrolTankLevel, 0.f));
 }
 
 static HookFunction initFunction([]()
@@ -576,7 +599,6 @@ static HookFunction initFunction([]()
 	{
 		// Offsets related to fuel consumption feature.
 		VehicleDamageParentOffset = *hook::get_pattern<uint32_t>("48 8B 89 ? ? ? ? 0F 57 F6 48 8B 81", 3);
-		VehicleDamagePetrolTankLevelOffset = *hook::get_pattern<uint32_t>("F3 0F 10 BB ? ? ? ? F3 0F 5C F9", 4);
 		VehicleHandlingOffset = *hook::get_pattern<uint32_t>("48 8B 81 ? ? ? ? 0F 2E B0", 3);
 		VehicleHandlingPetrolTankVolumeOffset = *hook::get_pattern<uint32_t>("0F 2E B0 ? ? ? ? 74 ? F3 0F 59 88", 3);
 		VehicleHandlingPetrolConsumptionRateOffset = *hook::get_pattern<uint32_t>("F3 0F 59 88 ? ? ? ? F3 0F 10 BB", 4);
@@ -840,7 +862,19 @@ static HookFunction initFunction([]()
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_FUEL_LEVEL", std::bind(readVehicleMemory<float, &FuelLevelOffset>, _1, "GET_VEHICLE_FUEL_LEVEL"));
-	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_FUEL_LEVEL", std::bind(writeVehicleMemory<float, &FuelLevelOffset>, _1, "SET_VEHICLE_FUEL_LEVEL"));
+	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_FUEL_LEVEL", [](fx::ScriptContext& context)
+	{
+		if (context.GetArgumentCount() < 2)
+		{
+			trace("Insufficient arguments count, 2 expected");
+			return;
+		}
+
+		if (fwEntity* vehicle = getAndCheckVehicle(context, "SET_VEHICLE_FUEL_LEVEL"))
+		{
+			SetVehicleFuelLevel(vehicle, context.GetArgument<float>(1));
+		}
+	});
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_OIL_LEVEL", std::bind(readVehicleMemory<float, &OilLevelOffset>, _1, "GET_VEHICLE_OIL_LEVEL"));
 	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_OIL_LEVEL", std::bind(writeVehicleMemory<float, &OilLevelOffset>, _1, "SET_VEHICLE_OIL_LEVEL"));
@@ -1535,6 +1569,9 @@ static HookFunction initFunction([]()
 
 		g_overrideUseDefaultDriveByClipset = false;
 		g_overrideCanPedStandOnVehicle = false;
+
+		g_isFuelConsumptionOn = false;
+		g_globalFuelConsumptionMultiplier = 1;
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_AUTO_REPAIR_DISABLED", [](fx::ScriptContext& context)
