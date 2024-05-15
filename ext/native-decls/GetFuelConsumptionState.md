@@ -6,7 +6,7 @@ game: gta5
 ## GET_FUEL_CONSUMPTION_STATE
 
 ```c
-bool GET_FUEL_CONSUMPTION_STATE();
+BOOL GET_FUEL_CONSUMPTION_STATE();
 ```
 
 ## Return value

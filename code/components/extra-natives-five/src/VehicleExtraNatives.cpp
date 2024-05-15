@@ -209,7 +209,7 @@ static void writeVehicleMemoryBit(fx::ScriptContext& context, std::string_view n
 {
 	if (context.GetArgumentCount() < 2)
 	{
-		trace("Insufficient arguments count, 2 expected");
+		trace("Insufficient arguments count, 2 expected\n");
 		return;
 	}
 
@@ -226,7 +226,7 @@ static void writeVehicleMemory(fx::ScriptContext& context, std::string_view nn)
 {
 	if (context.GetArgumentCount() < 2)
 	{
-		trace("Insufficient arguments count, 2 expected");
+		trace("Insufficient arguments count, 2 expected\n");
 		return;
 	}
 
@@ -320,7 +320,7 @@ static std::unordered_set<fwEntity*> g_deletionTraces;
 static std::unordered_set<void*> g_deletionTraces2;
 
 static bool g_isFuelConsumptionOn = false;
-static float g_globalFuelConsumptionMultiplier = 1;
+static float g_globalFuelConsumptionMultiplier = 1.f;
 
 static void(*g_origDeleteVehicle)(void* vehicle);
 
@@ -553,22 +553,6 @@ void ProcessFuelConsumption(void* cVehicleDamage, float timeStep)
 		}
 	}
 
-	if (newPetrolTankLevel <= 0.f && petrolTankLevel > 0.f)
-	{
-		auto resman = Instance<fx::ResourceManager>::Get();
-		auto rec = resman->GetComponent<fx::ResourceEventManagerComponent>();
-
-		/*NETEV petrolTankEmpty CLIENT
-		/#*
-		 * An event that is triggered when *locally* all fuel in a vehicle is used.
-		 *
-		 * @param vehicle - The vehicle that run out of fuel.
-		 #/
-		declare function petrolTankEmpty(vehicle: number): void;
-		*/
-		rec->QueueEvent2("petrolTankEmpty", {}, rage::fwScriptGuid::GetGuidFromBase(vehicle));
-	}
-
 	SetVehicleFuelLevel(vehicle, std::max(newPetrolTankLevel, 0.f));
 }
 
@@ -598,13 +582,14 @@ static HookFunction initFunction([]()
 
 	{
 		// Offsets related to fuel consumption feature.
-		VehicleDamageParentOffset = *hook::get_pattern<uint32_t>("48 8B 89 ? ? ? ? 0F 57 F6 48 8B 81", 3);
-		VehicleHandlingOffset = *hook::get_pattern<uint32_t>("48 8B 81 ? ? ? ? 0F 2E B0", 3);
-		VehicleHandlingPetrolTankVolumeOffset = *hook::get_pattern<uint32_t>("0F 2E B0 ? ? ? ? 74 ? F3 0F 59 88", 3);
-		VehicleHandlingPetrolConsumptionRateOffset = *hook::get_pattern<uint32_t>("F3 0F 59 88 ? ? ? ? F3 0F 10 BB", 4);
-		VehicleEngineRunningFlagsOffset = *hook::get_pattern<uint32_t>("F6 81 ? ? ? ? ? 0F 28 FE", 2);
-		VehicleFlagsEngineRunningFlag = *hook::get_pattern<uint8_t>("F6 81 ? ? ? ? ? 0F 28 FE", 6);
-		VehicleTankEmptyFlagsOffset = *hook::get_pattern<uint32_t>("32 81 ? ? ? ? 24 ? 30 81 ? ? ? ? 0F 28 74 24", 2);
+		auto location = hook::get_pattern<char>("40 53 48 83 EC ? 80 3D ? ? ? ? ? 0F 29 74 24 ? 48 8B D9 0F 29 7C 24 ? 74");
+		VehicleDamageParentOffset = *(uint32_t*)(location + 31);
+		VehicleHandlingOffset = *(uint32_t*)(location + 41);
+		VehicleHandlingPetrolTankVolumeOffset = *(uint32_t*)(location + 48);
+		VehicleHandlingPetrolConsumptionRateOffset = *(uint32_t*)(location + 58);
+		VehicleEngineRunningFlagsOffset = *(uint32_t*)(location + 81);
+		VehicleFlagsEngineRunningFlag = *(uint32_t*)(location + 85);
+		VehicleTankEmptyFlagsOffset = *(uint32_t*)(location + 121);
 	}
 
 	if (xbr::IsGameBuildOrGreater<2372>())
@@ -866,7 +851,7 @@ static HookFunction initFunction([]()
 	{
 		if (context.GetArgumentCount() < 2)
 		{
-			trace("Insufficient arguments count, 2 expected");
+			trace("Insufficient arguments count, 2 expected\n");
 			return;
 		}
 
@@ -1571,7 +1556,7 @@ static HookFunction initFunction([]()
 		g_overrideCanPedStandOnVehicle = false;
 
 		g_isFuelConsumptionOn = false;
-		g_globalFuelConsumptionMultiplier = 1;
+		g_globalFuelConsumptionMultiplier = 1.f;
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_AUTO_REPAIR_DISABLED", [](fx::ScriptContext& context)
