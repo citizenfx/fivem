@@ -7,6 +7,14 @@
 #include "channel.h"
 #include "client.h"
 
+extern std::recursive_mutex g_mumbleClientMutex;
+
+// Mumble user names are expected to follow a "[%d] %s" structure
+static std::string CreateNamePrefix(int serverNetId)
+{
+	return fmt::sprintf("[%d]", serverNetId);
+}
+
 void fx::MumbleVoice::CreateChannel(const int id)
 {
 	const std::string channelName = fmt::sprintf("Game Channel %d", id);
@@ -42,6 +50,7 @@ static InitFunction initFunction([]()
 
 		if (channelId != 0)
 		{
+			std::lock_guard _(g_mumbleClientMutex);
 			fx::MumbleVoice::CreateChannel(channelId);
 		}
 	});
@@ -49,15 +58,19 @@ static InitFunction initFunction([]()
 	fx::ScriptEngine::RegisterNativeHandler("MUMBLE_IS_PLAYER_MUTED", [](fx::ScriptContext& context)
 	{
 		int serverId = context.GetArgument<int>(0);
+		auto namePrefix = CreateNamePrefix(serverId);
 
-		context.SetResult<bool>(Client_is_player_muted(serverId));
+		std::lock_guard _(g_mumbleClientMutex);
+		context.SetResult<bool>(Client_is_player_muted(namePrefix.c_str(), namePrefix.size()));
 	});
 
 	fx::ScriptEngine::RegisterNativeHandler("MUMBLE_SET_PLAYER_MUTED", [](fx::ScriptContext& context)
 	{
 		int serverId = context.GetArgument<int>(0);
 		bool toggle = context.GetArgument<bool>(1);
+		auto namePrefix = CreateNamePrefix(serverId);
 
-		Client_set_player_muted(serverId, toggle);
+		std::lock_guard _(g_mumbleClientMutex);
+		Client_set_player_muted(namePrefix.c_str(), namePrefix.size(), toggle);
 	});
 });

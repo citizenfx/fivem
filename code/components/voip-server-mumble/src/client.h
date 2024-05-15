@@ -117,8 +117,8 @@ typedef struct {
 
 void Client_init();
 int Client_getfds(struct pollfd *pollfds);
-bool Client_is_player_muted(int serverId);
-void Client_set_player_muted(int serverId, bool muted);
+bool Client_is_player_muted(const char* namePrefix, size_t len);
+void Client_set_player_muted(const char* namePrefix, size_t len, bool muted);
 void Client_janitor();
 int Client_add(fwRefContainer<net::TcpServerStream> stream, client_t** client);
 int Client_read_fd(int fd);
