@@ -6,7 +6,7 @@ game: gta5
 ## SET_FUEL_CONSUMPTION_STATE
 
 ```c
-void SET_FUEL_CONSUMPTION_STATE(bool state);
+void SET_FUEL_CONSUMPTION_STATE(BOOL state);
 ```
 
 Turns on and off fuel consumption in all vehicles operated by a player. NPC operated vehicles will not consume fuel to avoid traffic disruptions.
