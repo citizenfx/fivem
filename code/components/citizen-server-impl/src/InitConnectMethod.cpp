@@ -31,6 +31,7 @@
 
 #include <MonoThreadAttachment.h>
 #include <GameBuilds.h>
+#include <CrossBuildRuntime.h>
 
 #include <json.hpp>
 
@@ -433,7 +434,7 @@ static InitFunction initFunction([]()
 			auto name = nameIt->second;
 			auto guid = guidIt->second;
 			auto protocol = atoi(protocolIt->second.c_str());
-			auto gameBuild = (gameBuildIt != postMap.end()) ? gameBuildIt->second : "0";
+			auto gameBuildField = (gameBuildIt != postMap.end()) ? gameBuildIt->second : "0";
 			auto gameName = (gameNameIt != postMap.end()) ? gameNameIt->second : "";
 
 			if (protocol < 12)
@@ -745,18 +746,53 @@ static InitFunction initFunction([]()
 				auto svGame = instance->GetComponent<fx::GameServer>()->GetGameName();
 				bool canEnforceBuild = (svGame == fx::GameName::GTA5 || svGame == fx::GameName::RDR3);
 
-				if (canEnforceBuild && !enforceGameBuildVar->GetValue().empty() && enforceGameBuildVar->GetValue() != gameBuild)
+				if (canEnforceBuild)
 				{
-					sendError(
-						fmt::sprintf(
-							"This server requires a different game build (%s) from the one you're using (%s).%s",
-							enforceGameBuildVar->GetValue(),
-							gameBuild,
-							(svGame == fx::GameName::GTA5) ? " Tell the server owner to remove this check." : ""
-						)
-					);
+					const auto gameBuildData = xbr::ParseGameBuildFromString(gameBuildField);
 
-					return;
+					if (gameBuildData.first == 0 && gameBuildData.second == 0)
+					{
+						sendError(fmt::sprintf("Invalid game build has been passed (%s).", gameBuildField));
+						return;
+					}
+
+					const auto buildNumberStr = fmt::sprintf("%d", gameBuildData.first);
+
+					if (!enforceGameBuildVar->GetValue().empty() && enforceGameBuildVar->GetValue() != buildNumberStr)
+					{
+						sendError(
+							fmt::sprintf(
+								"This server requires a different game build (%s) from the one you're using (%s).%s",
+								enforceGameBuildVar->GetValue(),
+								buildNumberStr,
+								(svGame == fx::GameName::GTA5) ? " Tell the server owner to remove this check." : ""
+							)
+						);
+
+						return;
+					}
+
+					// Default expected revision is always "0".
+					auto expectedRevision = 0;
+
+					if (const auto uniquifier = xbr::GetGameBuildUniquifier(gameName, gameBuildData.first))
+					{
+						expectedRevision = uniquifier->m_revision;
+					}
+
+					if (expectedRevision != gameBuildData.second)
+					{
+						sendError(
+							fmt::sprintf(
+								"Client/Server game build revision mismatch: you are running game build %d revision %d, "
+								"while server expects revision %d.\n\nFor more information, please "
+								"<a href=\"https://aka.cfx.re/game-build-revision-mismatch\">click here</a>.",
+								gameBuildData.first, gameBuildData.second, expectedRevision
+							)
+						);
+
+						return;
+					}	
 				}
 
 				auto resman = instance->GetComponent<fx::ResourceManager>();

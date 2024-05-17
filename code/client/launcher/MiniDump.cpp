@@ -1197,7 +1197,9 @@ void InitializeDumpServer(int inheritedHandle, int parentPid)
 				auto crashometry = load_crashometry();
 
 				parameters[L"Product"] = PRODUCT_NAME;
-				parameters[L"GameBuild"] = fmt::sprintf(L"%d", xbr::GetGameBuild());
+
+				parameters[L"GameBuild"] = ToWide(xbr::GetCurrentGameBuildString());
+
 				parameters[L"ReleaseChannel"] = ToWide(GetUpdateChannel());
 
 				parameters[L"AdditionalData"] = GetAdditionalData();

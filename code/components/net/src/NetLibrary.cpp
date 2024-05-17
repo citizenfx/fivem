@@ -935,15 +935,30 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 	postMap["method"] = "initConnect";
 	postMap["name"] = GetPlayerName();
 	postMap["protocol"] = va("%d", NETWORK_PROTOCOL);
-	postMap["gameBuild"] = fmt::sprintf("%d", xbr::GetGameBuild());
 
 #if defined(IS_RDR3)
-	postMap["gameName"] = "rdr3";
+	std::string gameName = "rdr3";
 #elif defined(GTA_FIVE)
-	postMap["gameName"] = "gta5";
+	std::string gameName = "gta5";
 #elif defined(GTA_NY)
-	postMap["gameName"] = "gta4";
+	std::string gameName = "gta4";
+#else
+	std::string gameName = "unk";
 #endif
+
+	auto gameBuild = xbr::GetGameBuild();
+	if (const auto identifier = xbr::GetGameBuildUniquifier(gameName, gameBuild))
+	{
+		// Now we're providing major build number and our own revision number to the server.
+		postMap["gameBuild"] = fmt::sprintf("%d_%d", gameBuild, identifier->m_revision);
+	}
+	else
+	{
+		// The old way, to keep backward compatibility.
+		postMap["gameBuild"] = fmt::sprintf("%d", gameBuild);	
+	}
+
+	postMap["gameName"] = gameName;
 
 	static std::function<void()> performRequest;
 
