@@ -38,7 +38,7 @@ import { Icon } from "cfx/ui/Icon/Icon";
 import { Separator } from "cfx/ui/Separator/Separator";
 import { identity } from "cfx/utils/functional";
 import s from './ServerDetailsPage.module.scss';
-import { ServerBoostButton } from "cfx/common/parts/Server/ServerBoostButton/ServerBoostButton";
+import { ElementPlacements } from "cfx/common/services/analytics/types";
 
 const LAYOUT_SPLITS = {
   LEFT: '75%',
@@ -146,7 +146,7 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
                         <Flex gap="xlarge">
                           <Flex>
                             <div ref={scrollTrackingRef as any}>
-                              <ServerConnectButton server={server} />
+                              <ServerConnectButton server={server} elementPlacement={ElementPlacements.ServerPage} />
                             </div>
 
                             <ServerFavoriteButton size="large" server={server} />

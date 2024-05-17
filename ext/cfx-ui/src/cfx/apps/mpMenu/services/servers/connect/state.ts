@@ -16,6 +16,7 @@ export namespace ConnectState {
 
   export interface Connecting {
     type: 'connecting',
+    generated: boolean,
   }
   export interface Status {
     type: 'status',
@@ -61,6 +62,7 @@ export namespace ConnectState {
   export function connecting(): Connecting {
     return {
       type: 'connecting',
+      generated: true,
     };
   }
 

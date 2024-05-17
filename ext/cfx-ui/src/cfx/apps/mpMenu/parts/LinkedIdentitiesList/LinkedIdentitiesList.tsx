@@ -6,7 +6,7 @@ import { Flex } from "cfx/ui/Layout/Flex/Flex";
 import { Title } from "cfx/ui/Title/Title";
 import { useService } from "cfx/base/servicesContainer";
 import { IConvarService, KnownConvars } from "../../services/convars/convars.service";
-import { ILinkedIdentitiesService } from "../../services/linkedIdentities/linkedIdentities.service";
+import { ILinkedIdentitiesService } from "cfx/common/services/linkedIdentities/linkedIdentities.service";
 import { ILinkedIdentity, LinkedIdentityProvider } from "../../services/linkedIdentities/types";
 import { $L } from "cfx/common/services/intl/l10n";
 

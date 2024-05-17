@@ -8,6 +8,7 @@ import { defaultLinkReplacerx, linkifyx } from "cfx/utils/links";
 import { ServerCoreLoafs } from "../ServerCoreLoafs/ServerCoreLoafs";
 import { ui } from "cfx/ui/ui";
 import { Icons } from "cfx/ui/Icons";
+import { ElementPlacements } from "cfx/common/services/analytics/types";
 
 export const ServerExtraDetails = observer(function ServerExtraDetails({ server }: { server: IServerView }) {
   const varNodes: React.ReactNode[] = [];
@@ -28,7 +29,10 @@ export const ServerExtraDetails = observer(function ServerExtraDetails({ server 
   return (
     <Flex vertical gap="large">
       <Flex wrap>
-        <ServerCoreLoafs server={server} />
+        <ServerCoreLoafs
+          server={server}
+          elementPlacement={ElementPlacements.ServerExtraDetails}
+        />
       </Flex>
 
       {Boolean(varNodes.length) && (

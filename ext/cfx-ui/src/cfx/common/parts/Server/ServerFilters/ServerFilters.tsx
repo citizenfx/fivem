@@ -26,6 +26,8 @@ import { useIntlService } from "cfx/common/services/intl/intl.service";
 import { useUiService } from "cfx/common/services/ui/ui.service";
 import { SearchInput } from "./SearchInput/SearchInput";
 import s from './ServerFilters.module.scss';
+import { useEventHandler } from "cfx/common/services/analytics/analytics.service";
+import { EventActionNames, ElementPlacements } from "cfx/common/services/analytics/types";
 
 export interface ServerFiltersProps {
   config: ServerListConfigController,
@@ -96,12 +98,34 @@ const FiltersPopover = observer(function FiltersPopover(props: ServerFiltersProp
 
   const UiService = useUiService();
   const ServersService = useServersService();
+  const eventHandler = useEventHandler();
 
   const tagsList = ServersService.autocompleteIndex?.tag.sequence || [];
   const tags = ServersService.autocompleteIndex?.tag.items || {};
 
   const localesList = ServersService.autocompleteIndex?.locale.sequence || [];
   const locales = ServersService.autocompleteIndex?.locale.items || {};
+
+  const hideEmptyTextKey = '#ServerList_HideEmpty';
+  const hideFullTextKey = '#ServerList_HideFull';
+
+  const handleFilterEvent = React.useCallback((text: string) => {
+    eventHandler({ action: EventActionNames.FilterCTA, properties: {
+      text,
+      element_placement: ElementPlacements.Nav,
+      link_url: '/',
+    }});
+  }, [eventHandler]);
+
+  const handleHideEmptyClick = React.useCallback((value: boolean) => {
+    handleFilterEvent(hideEmptyTextKey);
+    config.setHideEmpty(value);
+  }, [handleFilterEvent, config]);
+
+  const handleHideFullClick = React.useCallback((value: boolean) => {
+    handleFilterEvent(hideFullTextKey);
+    config.setHideFull(value);
+  }, [handleFilterEvent, config]);
 
   return (
     <div className={clsx(s.popover, s['full-height'])}>
@@ -120,15 +144,15 @@ const FiltersPopover = observer(function FiltersPopover(props: ServerFiltersProp
           <Flex stretch>
             <Checkbox
               size="large"
-              label={$L('#ServerList_HideEmpty')}
+              label={$L(hideEmptyTextKey)}
               value={config.hideEmpty}
-              onChange={config.setHideEmpty}
+              onChange={handleHideEmptyClick}
             />
             <Checkbox
               size="large"
-              label={$L('#ServerList_HideFull')}
+              label={$L(hideFullTextKey)}
               value={config.hideFull}
-              onChange={config.setHideFull}
+              onChange={handleHideFullClick}
             />
           </Flex>
         </Pad>
@@ -214,27 +238,55 @@ const FiltersPopover = observer(function FiltersPopover(props: ServerFiltersProp
 
 const SortPopover = observer(function SortPopover(props: ServerFiltersProps) {
   const { config } = props;
+  const eventHandler = useEventHandler();
+
+  const byBoostTitleKey = '#Server_BoostPower_Title';
+  const byNameTitleKey = '#ServerList_Name';
+  const byPlayersTitleKey = '#ServerList_Name';
+
+  const handleFilterEvent = React.useCallback((text: string) => {
+    eventHandler({ action: EventActionNames.FilterCTA, properties: {
+      text,
+      element_placement: ElementPlacements.Nav,
+      link_url: '/',
+    }});
+  }, [eventHandler]);
+
+  const handleByBoostClick = React.useCallback(() => {
+    handleFilterEvent(byBoostTitleKey);
+    config.setSortByBoosts();
+  }, [handleFilterEvent, config]);
+
+  const handleByNameClick = React.useCallback(() => {
+    handleFilterEvent(byNameTitleKey);
+    config.setSortByName();
+  }, [handleFilterEvent, config]);
+
+  const handleByPlayersClick = React.useCallback(() => {
+    handleFilterEvent(byPlayersTitleKey);
+    config.setSortByPlayers();
+  }, [handleFilterEvent, config]);
 
   return (
     <div className={s.popover}>
       <Pad size="small" top bottom>
         <ListItem
           active={config.sortBy === ServersListSortBy.Boosts}
-          label={$L('#Server_BoostPower_Title')}
+          label={$L(byBoostTitleKey)}
           value={Icons.serverBoost}
-          onClick={config.setSortByBoosts}
+          onClick={handleByBoostClick}
         />
         <ListItem
           active={config.sortBy === ServersListSortBy.Name}
-          label={$L('#ServerList_Name')}
+          label={$L(byNameTitleKey)}
           value={iconsMap[ServersListSortBy.Name][config.sortDir]}
-          onClick={config.setSortByName}
+          onClick={handleByNameClick}
         />
         <ListItem
           active={config.sortBy === ServersListSortBy.Players}
-          label={$L('#ServerList_Players')}
+          label={$L(byPlayersTitleKey)}
           value={iconsMap[ServersListSortBy.Players][config.sortDir]}
-          onClick={config.setSortByPlayers}
+          onClick={handleByPlayersClick}
         />
       </Pad>
     </div>
@@ -265,6 +317,17 @@ const LocaleFaucet = observer(function LocaleFaucet(props: LocaleFaucetProps) {
   const { config, locale } = props;
 
   const IntlService = useIntlService();
+  const eventHandler = useEventHandler();
+
+  const handleClick = React.useCallback(() => {
+    eventHandler({ action: EventActionNames.FilterCTA, properties: {
+      text: locale.locale,
+      element_placement: ElementPlacements.Nav,
+      link_url: '/',
+    }});
+
+    config.toggleLocale(locale.locale);
+  }, [eventHandler, locale, config]);
 
   return (
     <Faucet
@@ -279,7 +342,7 @@ const LocaleFaucet = observer(function LocaleFaucet(props: LocaleFaucetProps) {
         </Flex>
       )}
       right={locale.count}
-      onClick={() => config.toggleLocale(locale.locale)}
+      onClick={handleClick}
     />
   );
 });
@@ -291,13 +354,24 @@ interface TagFaucetProps {
 }
 const TagFaucet = observer(function TagFaucet(props: TagFaucetProps) {
   const { config, tag, count } = props;
+  const eventHandler = useEventHandler();
+
+  const handleClick = React.useCallback(() => {
+    eventHandler({ action: EventActionNames.FilterCTA, properties: {
+      text: tag,
+      element_placement: ElementPlacements.Nav,
+      link_url: '/',
+    }});
+
+    config.toggleTag(tag);
+  }, [eventHandler, tag, config]);
 
   return (
     <Faucet
       active={config.getTag(tag)}
       left={tag}
       right={count}
-      onClick={() => config.toggleTag(tag)}
+      onClick={handleClick}
     />
   );
 });

@@ -18,17 +18,49 @@ import { IAccount } from "cfx/common/services/account/types";
 import { useAuthService } from "cfx/apps/mpMenu/services/auth/auth.service";
 import { Icons } from "cfx/ui/Icons";
 import { NavBarState } from "../NavBarState";
+import React from "react";
+import { useEventHandler } from "cfx/common/services/analytics/analytics.service";
+import { EventActionNames, ElementPlacements } from "cfx/common/services/analytics/types";
 
 export const UserBar = observer(function UserBar() {
   const AuthService = useAuthService();
   const AccountService = useAccountService();
   const SettingsUIService = useService(ISettingsUIService);
+  const eventHandler = useEventHandler();
 
   const buttonTheme: ButtonTheme = NavBarState.forceTransparentNav
     ? 'default'
     : 'default-blurred';
 
   const streamerMode = useStreamerMode();
+
+  const handleSettingsClick = React.useCallback((text: string) => {
+    SettingsUIService.open('account');
+    eventHandler({ action: EventActionNames.SiteNavClick, properties: {
+      text: text,
+      link_url: '/',
+      element_placement: ElementPlacements.Nav,
+      position: 0,
+    }});
+  }, [eventHandler, SettingsUIService]);
+
+  const handleAvatarClick = React.useCallback(() => {
+    handleSettingsClick('UserBar_AccountSettings');
+  }, [handleSettingsClick]);
+
+  const handleStreamerClick = React.useCallback(() => {
+    handleSettingsClick('Streamer');
+  }, [handleSettingsClick]);
+
+  const handleAuthClick = React.useCallback(() => {
+    AuthService.openUI();
+    eventHandler({ action: EventActionNames.SiteNavClick, properties: {
+      text: '#BottomNav_LinkAccount',
+      link_url: '/',
+      element_placement: ElementPlacements.Nav,
+      position: 0,
+    }});
+  }, [eventHandler, AuthService]);
 
   if (!AccountService.accountLoadComplete) {
     return (
@@ -47,7 +79,7 @@ export const UserBar = observer(function UserBar() {
           size="large"
           theme={buttonTheme}
           icon={Icons.accountLoaded}
-          onClick={() => SettingsUIService.open('account')}
+          onClick={handleStreamerClick}
         />
       );
     }
@@ -55,7 +87,7 @@ export const UserBar = observer(function UserBar() {
     return (
       <Title title={getUserAvatarTitle(AccountService.account)}>
         <Decorate decorator={getUserAvatarDecorator(AccountService.account!)}>
-          <Clickable onClick={() => SettingsUIService.open('account')}>
+          <Clickable onClick={handleAvatarClick}>
             <Avatar
               size="large"
               url={AccountService.account!.getAvatarUrl()}
@@ -98,7 +130,7 @@ export const UserBar = observer(function UserBar() {
       theme={linkAccountButtonTheme}
       size="large"
       text={$L('#BottomNav_LinkAccount')}
-      onClick={AuthService.openUI}
+      onClick={handleAuthClick}
     />
   );
 });

@@ -15,6 +15,9 @@ import { FaServer } from "react-icons/fa";
 import { Link } from "react-router-dom";
 import { LastConnectedTile, useLastHistoryServer } from "./LastConnectedTile/LastConnectedTile";
 import s from './Continuity.module.scss';
+import React from "react";
+import { useEventHandler } from "cfx/common/services/analytics/analytics.service";
+import { EventActionNames, ElementPlacements } from "cfx/common/services/analytics/types";
 
 export const Continuity = observer(function Continuity() {
   const hasLastConnectedServer = Boolean(useLastHistoryServer());
@@ -39,10 +42,52 @@ export const Continuity = observer(function Continuity() {
         </div>
       )}
 
-      <SupportersTile />
-      <FavoritesTile />
-      <HistoryTile />
+      <ListTile serversListType={ServersListType.Supporters} />
+      <ListTile serversListType={ServersListType.Favorites} />
+      <ListTile serversListType={ServersListType.History} />
     </div>
+  );
+});
+
+type ListTileProps = {
+  serversListType: ServersListType,
+};
+
+const ListTile = observer(function ListTile({ serversListType }: ListTileProps) {
+  const ServersService = useServersService();
+  const eventHandler = useEventHandler();
+
+  const list = ServersService.getList(serversListType);
+  if (!list) {
+    return null;
+  }
+
+  const descriptor = SERVER_LIST_DESCRIPTORS[serversListType];
+
+  const tileClassName = clsx(s.tile, s.tileSupporters);
+
+  const handleClick = React.useCallback(() => {
+    eventHandler({ action: EventActionNames.AccountInfoCTA, properties: {
+      element_placement: ElementPlacements.Continuity,
+      text: descriptor.titleKey,
+      link_url: descriptor.to,
+    }});
+  }, [eventHandler, descriptor]);
+
+  return (
+    <Link
+      to={descriptor.to}
+      onClick={handleClick}
+      className={tileClassName}
+    >
+      <div className={s.icon}>
+        {descriptor.icon}
+      </div>
+
+      <div className={s.title}>
+        {$L(descriptor.titleKey)}
+      </div>
+    </Link>
   );
 });
 
@@ -59,6 +104,7 @@ function formatServersCount(count: number): string {
 
 const PlayTile = observer(function PlayTile() {
   const ServersService = useServersService();
+  const eventHandler = useEventHandler();
 
   const list = ServersService.getList(ServersListType.All);
   if (!list) {
@@ -69,8 +115,20 @@ const PlayTile = observer(function PlayTile() {
 
   const tileClassName = clsx(s.tile, s.tilePlay);
 
+  const handlePlayClick = React.useCallback(() => {
+    eventHandler({ action: EventActionNames.PlayCTA, properties: {
+      element_placement: ElementPlacements.Continuity,
+      text: '#BottomNav_Play',
+      link_url: descriptor.to,
+    }});
+  }, [eventHandler]);
+
   return (
-    <Link to={descriptor.to} className={tileClassName}>
+    <Link
+      to={descriptor.to}
+      className={tileClassName}
+      onClickCapture={handlePlayClick}
+    >
       <div className={s.icon}>
         <BsPlayFill />
       </div>
@@ -86,81 +144,6 @@ const PlayTile = observer(function PlayTile() {
           {$L('#Home_AllList_Link', { count: formatServersCount(ServersService.totalServersCount) })}
         </div>
       </Flex>
-    </Link>
-  );
-});
-
-const SupportersTile = observer(function SupportersTile() {
-  const ServersService = useServersService();
-
-  const list = ServersService.getList(ServersListType.Supporters);
-  if (!list) {
-    return null;
-  }
-
-  const descriptor = SERVER_LIST_DESCRIPTORS[ServersListType.Supporters];
-
-  const tileClassName = clsx(s.tile, s.tileSupporters);
-
-  return (
-    <Link to={descriptor.to} className={tileClassName}>
-      <div className={s.icon}>
-        {descriptor.icon}
-      </div>
-
-      <div className={s.title}>
-        {$L('#ServerList_Premium')}
-      </div>
-    </Link>
-  );
-});
-
-const FavoritesTile = observer(function FavoriteTile() {
-  const ServersService = useServersService();
-
-  const list = ServersService.getList(ServersListType.Favorites);
-  if (!list) {
-    return null;
-  }
-
-  const descriptor = SERVER_LIST_DESCRIPTORS[ServersListType.Favorites];
-
-  const tileClassName = clsx(s.tile, s.tileFavorites);
-
-  return (
-    <Link to={descriptor.to} className={tileClassName}>
-      <div className={s.icon}>
-        {descriptor.icon}
-      </div>
-
-      <div className={s.title}>
-        {$L('#ServerList_Favorites')}
-      </div>
-    </Link>
-  );
-});
-
-const HistoryTile = observer(function HistoryTile() {
-  const ServersService = useServersService();
-
-  const list = ServersService.getList(ServersListType.History);
-  if (!list) {
-    return null;
-  }
-
-  const descriptor = SERVER_LIST_DESCRIPTORS[ServersListType.History];
-
-  const tileClassName = clsx(s.tile, s.tileHistory);
-
-  return (
-    <Link to={descriptor.to} className={tileClassName}>
-      <div className={s.icon}>
-        {descriptor.icon}
-      </div>
-
-      <div className={s.title}>
-        {$L('#ServerList_History')}
-      </div>
     </Link>
   );
 });

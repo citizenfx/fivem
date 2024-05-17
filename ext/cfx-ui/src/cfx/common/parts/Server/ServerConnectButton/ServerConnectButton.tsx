@@ -1,3 +1,4 @@
+import React from "react";
 import { hasConnectEndpoints, isServerEOL } from "cfx/base/serverUtils";
 import { useServiceOptional } from "cfx/base/servicesContainer";
 import { $L } from "cfx/common/services/intl/l10n";
@@ -8,16 +9,23 @@ import { playSfx, Sfx } from "cfx/apps/mpMenu/utils/sfx";
 import { observer } from "mobx-react-lite";
 import { Title } from "cfx/ui/Title/Title";
 import { Button, ButtonProps } from "cfx/ui/Button/Button";
-import { ReactNode } from "react";
 import { stopPropagation } from "cfx/utils/domEvents";
 import { isServerOffline } from "cfx/common/services/servers/helpers";
 import { CurrentGameBuild, CurrentGamePureLevel } from "cfx/base/gameRuntime";
+import { SingleEventListenerDisposer } from "cfx/utils/singleEventEmitter";
+import { timeout } from "cfx/utils/async";
+import { useEventHandler } from "cfx/common/services/analytics/analytics.service";
+import { EventActionNames, ElementPlacements, isFeaturedElementPlacement } from "cfx/common/services/analytics/types";
+
+// Random number that feels enough to wait for fail
+const CONNECTION_TIMEOUT_TIME = 2500;
 
 export interface ServerConnectButtonProps {
   server: IServerView,
 
   size?: ButtonProps['size'],
   theme?: ButtonProps['theme'],
+  elementPlacement?: ElementPlacements,
 }
 
 export const ServerConnectButton = observer(function ServerConnectButton(props: ServerConnectButtonProps) {
@@ -25,11 +33,14 @@ export const ServerConnectButton = observer(function ServerConnectButton(props: 
     server,
     size = 'large',
     theme = "primary",
+    elementPlacement = ElementPlacements.Unknown,
   } = props;
 
   const ServersConnectService = useServiceOptional(IServersConnectService);
+  const eventHandler = useEventHandler();
+  const stopConnectionListnerRef = React.useRef<SingleEventListenerDisposer | null>(null);
 
-  let title: ReactNode;
+  let title: React.ReactNode;
   let canConnect = hasConnectEndpoints(server);
 
   if (!server.historicalAddress) {
@@ -72,11 +83,50 @@ export const ServerConnectButton = observer(function ServerConnectButton(props: 
 
   const disabled = !ServersConnectService?.canConnect || !canConnect;
 
+  const handleConnectFailed = React.useCallback((text: string) => {
+    eventHandler({ action: EventActionNames.ServerJoinFailed, properties: {
+      element_placement: elementPlacement,
+      server_id: server.id,
+      server_name: server.projectName || server.hostname,
+      server_type: isFeaturedElementPlacement(elementPlacement)
+        ? 'featured'
+        : undefined,
+      text,
+      link_url: '/',
+    }});
+  }, [eventHandler, elementPlacement, server]);
+
   const handleClick = ServersConnectService
     ? () => {
       if (__CFXUI_USE_SOUNDS__) {
         playSfx(Sfx.Connect);
       }
+
+      if (stopConnectionListnerRef.current) {
+        stopConnectionListnerRef.current();
+        stopConnectionListnerRef.current = null;
+      }
+
+      eventHandler({ action: EventActionNames.ServerConnectCTA, properties: {
+        element_placement: elementPlacement,
+        server_id: server.id,
+        server_name: server.projectName || server.hostname,
+        server_type: isFeaturedElementPlacement(elementPlacement)
+          ? 'featured'
+          : undefined,
+        text: '#DirectConnect_Connect',
+        link_url: '/',
+      }});
+
+      stopConnectionListnerRef.current = ServersConnectService.connectFailed.addListener(handleConnectFailed);
+      timeout(CONNECTION_TIMEOUT_TIME).finally(() => {
+        if (stopConnectionListnerRef.current === null) {
+          return;
+        }
+
+        stopConnectionListnerRef.current();
+        stopConnectionListnerRef.current = null;
+      });
 
       ServersConnectService.connectTo(server);
     }

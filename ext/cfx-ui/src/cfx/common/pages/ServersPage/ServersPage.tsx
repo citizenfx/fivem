@@ -19,6 +19,7 @@ import { Icons } from "cfx/ui/Icons";
 import { EmptyListPlaceholder } from "./EmptyListPlaceholder/EmptyListPlaceholder";
 import { IndexedServerListItem } from "cfx/common/parts/Server/ServerListItem/IndexedServerListItem";
 import s from './ServersPage.module.scss';
+import { ElementPlacements } from "cfx/common/services/analytics/types";
 
 const emptyListPlaceholders = {
   [ServersListType.History]: true,
@@ -101,6 +102,7 @@ const PinnedServers = observer(function PinnedServers() {
         hidePremiumBadge
         descriptionUnderName
         server={server}
+        elementPlacement={ElementPlacements.ServerFeaturedList}
       />
     </Box>
   ));

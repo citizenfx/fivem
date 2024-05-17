@@ -23,6 +23,8 @@ import { ServerPower } from "../ServerPower/ServerPower";
 import { ServerBoostButton } from "../ServerBoostButton/ServerBoostButton";
 import { $L } from "cfx/common/services/intl/l10n";
 import s from './ServerListItem.module.scss';
+import { useEventHandler } from "cfx/common/services/analytics/analytics.service";
+import { EventActionNames, ElementPlacements, isFeaturedElementPlacement } from "cfx/common/services/analytics/types";
 
 export interface ServerListItemProps {
   server: IServerView | undefined,
@@ -36,6 +38,7 @@ export interface ServerListItemProps {
   hidePremiumBadge?: boolean,
 
   descriptionUnderName?: boolean,
+  elementPlacement?: ElementPlacements,
 }
 
 export const ServerListItem = observer(function ServerListItem(props: ServerListItemProps) {
@@ -48,16 +51,32 @@ export const ServerListItem = observer(function ServerListItem(props: ServerList
     hideCountryFlag = false,
     hidePremiumBadge = false,
     descriptionUnderName = false,
+    elementPlacement = ElementPlacements.Unknown,
   } = props;
 
   const navigate = useNavigate();
+  const eventHandler = useEventHandler();
+
   const handleClick = React.useCallback(() => {
     if (!server) {
       return;
     }
 
-    navigate(getServerDetailsLink(server));
-  }, [navigate, server]);
+    const serverLink = getServerDetailsLink(server);
+
+    eventHandler({ action: EventActionNames.ServerSelect, properties: {
+      element_placement: elementPlacement,
+      server_id: server.id,
+      server_name: server.projectName || server.hostname,
+      server_type: isFeaturedElementPlacement(elementPlacement)
+        ? 'featured'
+        : undefined,
+      text: 'Server list Item',
+      link_url: serverLink,
+    }});
+
+    navigate(serverLink);
+  }, [navigate, server, eventHandler, elementPlacement]);
 
   if (!server) {
     return (
