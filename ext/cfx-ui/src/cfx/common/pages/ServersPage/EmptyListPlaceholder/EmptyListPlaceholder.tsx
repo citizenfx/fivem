@@ -42,7 +42,7 @@ export const EmptyListPlaceholder = observer(function EmptyListPlaceholder(props
           <Flex>
             <LinkButton
               to={SERVER_LIST_DESCRIPTORS[ServersListType.All].to}
-              text={SERVER_LIST_DESCRIPTORS[ServersListType.All].title}
+              text={$L(SERVER_LIST_DESCRIPTORS[ServersListType.All].titleKey)}
               size="large"
               theme={possiblyEmptyDueToFilters ? 'default' : 'primary'}
             />

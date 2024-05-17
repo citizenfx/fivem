@@ -12,6 +12,8 @@ import { Page } from "cfx/ui/Layout/Page/Page";
 import { FlexRestricter } from "cfx/ui/Layout/Flex/FlexRestricter";
 import { useService } from "cfx/base/servicesContainer";
 import { ISettingsUIService } from "cfx/common/services/settings/settings.service";
+import { useEventHandler } from "cfx/common/services/analytics/analytics.service";
+import { EventActionNames, ElementPlacements } from "cfx/common/services/analytics/types";
 
 function useCloseOnLocationChange(settingsUIService: ISettingsUIService) {
   const location = useLocation();
@@ -20,11 +22,22 @@ function useCloseOnLocationChange(settingsUIService: ISettingsUIService) {
 
 export const SettingsFlyout = observer(function SettingsFlyout() {
   const SettingsUIService = useService(ISettingsUIService);
+  const eventHandler = useEventHandler();
 
   // Whenever location changes - close flyout
   useCloseOnLocationChange(SettingsUIService);
 
   const category = SettingsUIService.category!;
+
+  const handleOnActivate = React.useCallback((category: string) => {
+    SettingsUIService.selectCategory(category);
+    eventHandler({ action: EventActionNames.SiteNavClick, properties: {
+      text: category,
+      link_url: '/',
+      element_placement: ElementPlacements.Settings,
+      position: 1,
+    }});
+  }, [eventHandler, SettingsUIService]);
 
   return (
     <Flyout
@@ -44,7 +57,7 @@ export const SettingsFlyout = observer(function SettingsFlyout() {
               <Box noShrink width={50}>
                 <NavList
                   items={SettingsUIService.navListItems}
-                  onActivate={SettingsUIService.selectCategory}
+                  onActivate={handleOnActivate}
                   activeItemId={SettingsUIService.categoryID}
                 />
               </Box>

@@ -15,6 +15,8 @@ import { mpMenu } from "../../mpMenu";
 import { MpMenuEvents } from "../../mpMenu.events";
 import { IConvarService, KnownConvars } from "../convars/convars.service";
 import { ConnectState } from "./connect/state";
+import { SingleEventEmitter } from "cfx/utils/singleEventEmitter";
+import { ElementPlacements, EventActionNames } from "cfx/common/services/analytics/types";
 
 export function registerMpMenuServersConnectService(container: ServicesContainer) {
   container.registerImpl(IServersConnectService, MpMenuServersConnectService);
@@ -41,25 +43,17 @@ class MpMenuServersConnectService implements IServersConnectService {
       const server = this.server;
 
       queueMicrotask(() => {
-        switch (state.type) {
-          case 'connecting': {
-            analyticsService.trackEvent({
-              action: 'Connecting',
-              properties: {
-                category: 'Server',
-                label: `${server.hostname} (${server.id})`,
-              },
-            });
-            analyticsService.trackEvent({
-              action: 'ConnectingRaw',
-              properties: {
-                category: 'Server',
-                label: server.id,
-              },
-            });
+        if (state.type === 'connecting' && state.generated) {
+          analyticsService.trackEvent({
+            action: EventActionNames.CTAOther,
+            properties: {
+              element_placement: ElementPlacements.ServerConnect,
+              text: `Connecting ${server.hostname} (${server.id})`,
+              link_url: '',
+            },
+          });
 
-            return;
-          }
+          return;
         }
       });
     }
@@ -104,6 +98,8 @@ class MpMenuServersConnectService implements IServersConnectService {
     return false;
   }
 
+  readonly connectFailed = new SingleEventEmitter<string>();
+
   constructor(
     @inject(IServersService)
     protected readonly serversService: IServersService,
@@ -120,15 +116,22 @@ class MpMenuServersConnectService implements IServersConnectService {
     mpMenu.onRich(MpMenuEvents.backfillServerInfo, this.backfillServerInfo);
 
     mpMenu.onRich(MpMenuEvents.connectTo, (event) => this.handleConnectTo(event.hostnameStr, event.connectParams));
-    mpMenu.onRich(MpMenuEvents.connecting, () => this.state = ConnectState.connecting());
+    mpMenu.onRich(MpMenuEvents.connecting, () => {
+      this.state = ConnectState.connecting();
+    });
     mpMenu.onRich(MpMenuEvents.connectStatus, (event) => this.state = ConnectState.status(event.data));
-    mpMenu.onRich(MpMenuEvents.connectFailed, (event) => this.state = ConnectState.failed(event));
+    mpMenu.onRich(MpMenuEvents.connectFailed, (event) => this.handleConnectFailed(event));
 
     mpMenu.on('connectCard', (event: IConnectCard) => this.state = ConnectState.card(event.data));
 
     mpMenu.on('connectBuildSwitchRequest', (event: IConnectBuildSwitchRequest) => this.state = ConnectState.buildSwitchRequest(event.data));
     mpMenu.on('connectBuildSwitch', (event: IConnectBuildSwitch) => this.state = ConnectState.buildSwitchInfo(event.data));
   }
+
+  private readonly handleConnectFailed = (event: RichEvent.Payload<typeof MpMenuEvents.connectFailed>) => {
+    this.state = ConnectState.failed(event);
+    this.connectFailed.emit(event.message);
+  };
 
   private readonly handleConnectTo = (address: string, connectParams = '') => {
     if (connectParams) {
@@ -161,7 +164,7 @@ class MpMenuServersConnectService implements IServersConnectService {
 
     // Set fake connecting state so UI will appear immediately
     if (!this.state) {
-      this.state = { type: 'connecting' };
+      this.state = { type: 'connecting', generated: false };
     }
 
     this.currentConnectNonce = fastRandomId();

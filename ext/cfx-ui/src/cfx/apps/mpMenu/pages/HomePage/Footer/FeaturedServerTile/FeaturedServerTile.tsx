@@ -4,6 +4,7 @@ import { currentGameNameIs } from "cfx/base/gameRuntime";
 import { useService } from "cfx/base/servicesContainer";
 import { ServerSelectorTileItem } from "cfx/common/parts/Server/ServerSelectorTileItem/ServerSelectorTileItem";
 import { ServerTileItem } from "cfx/common/parts/Server/ServerTileItem/ServerTileItem";
+import { ElementPlacements } from "cfx/common/services/analytics/types";
 import { $L } from "cfx/common/services/intl/l10n";
 import { useServersService } from "cfx/common/services/servers/servers.service";
 import { Text } from "cfx/ui/Text/Text";
@@ -42,6 +43,7 @@ export const FeaturedServerTile = observer(function FeaturedServerTile() {
       hideBanner
       label={label}
       server={server}
+      elementPlacement={ElementPlacements.FeaturedServerTile}
     />
   );
 });

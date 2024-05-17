@@ -1,7 +1,8 @@
+import React from "react";
 import { injectable, interfaces, multiInject, optional } from "inversify";
-import { defineService, ServicesContainer } from "../../../base/servicesContainer";
+import { defineService, ServicesContainer, useService } from "../../../base/servicesContainer";
 import { AnalyticsProvider } from "./analytics.extensions";
-import { IAnalyticsEvent } from "./types";
+import { IAnalyticsEvent, TrackEventParams } from "./types";
 
 export const IAnalyticsService = defineService<IAnalyticsService>('AnalyticsService');
 export interface IAnalyticsService {
@@ -24,4 +25,18 @@ class AnalyticsService implements IAnalyticsService {
   trackEvent(event: IAnalyticsEvent) {
     this.providers.forEach((provider) => provider.trackEvent(event));
   }
+}
+
+export function useAnalyticsService(): IAnalyticsService {
+  return useService(IAnalyticsService);
+}
+
+export function useEventHandler() {
+  const analyticsService = useAnalyticsService();
+
+  const EventHandler = React.useCallback((params: TrackEventParams) => {
+    analyticsService.trackEvent(params);
+  }, [analyticsService]);
+
+  return EventHandler;
 }

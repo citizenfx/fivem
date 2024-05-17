@@ -1,6 +1,7 @@
 import { MpMenuServersService } from "cfx/apps/mpMenu/services/servers/servers.mpMenu";
 import { useService } from "cfx/base/servicesContainer";
 import { SERVER_LIST_DESCRIPTORS } from "cfx/common/pages/ServersPage/ListTypeTabs";
+import { $L } from "cfx/common/services/intl/l10n";
 import { Tabular } from "cfx/ui/Tabular/Tabular";
 import { ui } from "cfx/ui/ui";
 import { observer } from "mobx-react-lite";
@@ -23,7 +24,7 @@ export const ServersNavBar = observer(function ServersNavBar() {
           <Tabular.Item
             key={descriptor.to}
             icon={descriptor.icon}
-            label={descriptor.title}
+            label={$L(descriptor.titleKey)}
             onClick={() => navigate(descriptor.to)}
           />
         );

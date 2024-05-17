@@ -8,7 +8,7 @@ import { Flex } from "cfx/ui/Layout/Flex/Flex";
 import { Text } from "cfx/ui/Text/Text";
 import { FlexRestricter } from "cfx/ui/Layout/Flex/FlexRestricter";
 import { ServerPlayersCount } from "../ServerPlayersCount/ServerPlayersCount";
-import { isServerLiveLoading, showServerCountryFlag, showServerPowers } from "cfx/common/services/servers/helpers";
+import { getServerDetailsLink, isServerLiveLoading, showServerCountryFlag, showServerPowers } from "cfx/common/services/servers/helpers";
 import { CountryFlag } from "cfx/ui/CountryFlag/CountryFlag";
 import { ServerIcon } from "../ServerIcon/ServerIcon";
 import { Box } from "cfx/ui/Layout/Box/Box";
@@ -26,7 +26,8 @@ import { Indicator } from "cfx/ui/Indicator/Indicator";
 import { $L } from "cfx/common/services/intl/l10n";
 import s from './ServerTileItem.module.scss';
 import { Icon } from "cfx/ui/Icon/Icon";
-import { PremiumBadge } from "cfx/ui/PremiumBadge/PremiumBadge";
+import { useEventHandler } from "cfx/common/services/analytics/analytics.service";
+import { EventActionNames, ElementPlacements, isFeaturedElementPlacement } from "cfx/common/services/analytics/types";
 
 export interface ServerTileItemProps {
   server: IServerView,
@@ -41,6 +42,7 @@ export interface ServerTileItemProps {
   noIconGlow?: boolean,
 
   placeControlsBelow?: boolean,
+  elementPlacement?: ElementPlacements,
 }
 
 export const ServerTileItem = observer(function ServerTileItem(props: ServerTileItemProps) {
@@ -53,10 +55,27 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
     hideDescription = false,
     noIconGlow = false,
     placeControlsBelow = false,
+    elementPlacement = ElementPlacements.Unknown,
   } = props;
 
   const navigate = useNavigate();
-  const handleClick = () => navigate(`/servers/detail/${server.id}`);
+  const eventHandler = useEventHandler();
+
+  const handleClick = React.useCallback(() => {
+    const serverLink = getServerDetailsLink(server);
+
+    eventHandler({ action: EventActionNames.ServerSelect, properties: {
+      element_placement: elementPlacement,
+      server_id: server.id,
+      server_name: server.projectName || server.hostname,
+      server_type: isFeaturedElementPlacement(elementPlacement)
+        ? 'featured'
+        : undefined,
+      text: 'Server Tile Item',
+      link_url: serverLink,
+    }});
+    navigate(serverLink);
+  }, [eventHandler, server, elementPlacement]);
 
   const showBanner = !hideBanner && !!server.bannerDetail;
 
@@ -82,7 +101,12 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
     );
   } else {
     connectButtonNode = (
-      <ServerConnectButton size="normal" theme="transparent" server={server} />
+      <ServerConnectButton
+        size="normal"
+        theme="transparent"
+        server={server}
+        elementPlacement={elementPlacement}
+      />
     );
   }
 
@@ -169,12 +193,12 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
                 <ControlBox size="small" className={s.showOnHover}>
                   <Flex>
                     {!hideBoost && (
-                      <ServerBoostButton server={server} />
+                      <ServerBoostButton server={server} elementPlacement={elementPlacement} />
                     )}
 
                     <ServerFavoriteButton size="small" server={server} />
 
-                    <ServerConnectButton size="small" server={server} />
+                    <ServerConnectButton size="small" server={server} elementPlacement={elementPlacement} />
                   </Flex>
                 </ControlBox>
               </Flex>
@@ -212,6 +236,7 @@ export const ServerTileItem = observer(function ServerTileItem(props: ServerTile
                     server={server}
                     theme="transparent"
                     className={s.visibleOnHover}
+                    elementPlacement={elementPlacement}
                   />
                 )}
               </Flex>

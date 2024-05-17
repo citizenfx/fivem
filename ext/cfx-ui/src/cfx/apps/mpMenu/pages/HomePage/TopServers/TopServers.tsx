@@ -31,6 +31,8 @@ import { $L } from "cfx/common/services/intl/l10n";
 import { Title } from "cfx/ui/Title/Title";
 import { Icon } from "cfx/ui/Icon/Icon";
 import s from './TopServers.module.scss';
+import { useEventHandler } from "cfx/common/services/analytics/analytics.service";
+import { EventActionNames, ElementPlacements } from "cfx/common/services/analytics/types";
 
 export const TopServersBlock = observer(function TopServersBlock() {
   const IntlService = useIntlService();
@@ -123,16 +125,28 @@ const Item = observer(function Item(props: ItemProps) {
   } = props;
 
   const navigate = useNavigate();
+  const eventHandler = useEventHandler();
 
   const handleClick = React.useCallback(() => {
     if (active) {
-      navigate(getServerDetailsLink(server));
+      const serverLink = getServerDetailsLink(server);
+
+      eventHandler({ action: EventActionNames.ServerSelect, properties: {
+        element_placement: ElementPlacements.TopServers,
+        server_id: server.id,
+        server_name: server.projectName || server.hostname,
+        server_type: undefined,
+        text: 'Top servers item',
+        link_url: serverLink,
+      }});
+  
+      navigate(serverLink);
 
       return;
     }
 
     Ctrl.setActiveIndex(index);
-  }, [navigate, server, active, index]);
+  }, [navigate, server, active, index, eventHandler]);
 
   const itemClassName = clsx(s.item, {
     [s.active]: active,
@@ -177,10 +191,22 @@ const Card = observer(function Card(props: CardProps) {
 
   const navigate = useNavigate();
   const ServersService = useServersService();
+  const eventHandler = useEventHandler();
 
   const handleClick = React.useCallback(() => {
-    navigate(getServerDetailsLink(server));
-  }, [navigate, server]);
+    const serverLink = getServerDetailsLink(server);
+
+    eventHandler({ action: EventActionNames.ServerSelect, properties: {
+      element_placement: ElementPlacements.TopServers,
+      server_id: server.id,
+      server_name: server.projectName || server.hostname,
+      server_type: undefined,
+      text: 'Top servers card',
+      link_url: serverLink,
+    }});
+
+    navigate(serverLink);
+  }, [navigate, server, eventHandler]);
 
   const tagNodes = !!server.tags
     ? ServersService.getTagsForServer(server).map((tag, i) => (
@@ -258,7 +284,7 @@ const Card = observer(function Card(props: CardProps) {
 
           <Flex repell alignToEndAxis>
             <Flex>
-              <ServerConnectButton server={server} />
+              <ServerConnectButton server={server} elementPlacement={ElementPlacements.TopServers} />
               <ServerFavoriteButton theme="transparent" server={server} />
             </Flex>
 
@@ -276,7 +302,11 @@ const Card = observer(function Card(props: CardProps) {
               )}
 
               <Flex>
-                <ServerCoreLoafs hideActions server={server} />
+                <ServerCoreLoafs
+                  hideActions
+                  server={server}
+                  elementPlacement={ElementPlacements.TopServers}
+                />
               </Flex>
             </Flex>
           </Flex>

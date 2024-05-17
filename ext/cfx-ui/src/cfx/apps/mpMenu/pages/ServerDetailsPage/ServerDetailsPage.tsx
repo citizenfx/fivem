@@ -29,6 +29,7 @@ import { useStreamerMode } from "../../services/convars/convars.service";
 import { ServerReviewFormContext } from "cfx/common/parts/Server/ServerReviews/ServerReviewForm/ServerReviewForm";
 import { useForceTransparentNav } from "../../parts/NavBar/NavBarState";
 import { $L } from "cfx/common/services/intl/l10n";
+import { ElementPlacements } from "cfx/common/services/analytics/types";
 
 export const MpMenuServerDetailsPage = observer(function MpMenuServerDetailsPage() {
   const { '*': address } = useParams();
@@ -140,7 +141,7 @@ const DetailsWrapper = observer(function DetailsWrapper({ server }: { server: IS
             </Box>
 
             <Box style={{ transform: `translateY(${navBarTranslateY})` }}>
-              <ServerConnectButton server={server} />
+              <ServerConnectButton server={server} elementPlacement={ElementPlacements.ServerPage} />
             </Box>
           </Flex>
         </Box>
