@@ -441,3 +441,7 @@
 [submodule "vendor/boost-submodules/boost-tokenizer"]
 	path = vendor/boost-submodules/boost-tokenizer
 	url = https://github.com/boostorg/tokenizer
+[submodule "vendor/msgpack-cs"]
+	path = vendor/msgpack-cs
+	url = https://github.com/citizenfx/msgpack-cs.git
+	branch = production

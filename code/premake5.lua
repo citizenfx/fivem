@@ -633,6 +633,14 @@ if _OPTIONS['game'] ~= 'launcher' then
 			'client/clrcore-v2/Math/Vector4.cs',
 		}
 		
+		-- Add MsgPack source files directly, otherwise we'd get a cyclic dependency
+		files { '../vendor/msgpack-cs/MsgPack/**.cs' }
+		removefiles {
+			'../vendor/msgpack-cs/MsgPack/AssemblyInfo.cs',
+			'../vendor/msgpack-cs/MsgPack/PlatformTypes/**',
+			'../vendor/msgpack-cs/MsgPack/obj/**', -- allows working in the submodule
+		}
+		
 		defines { 'MONO_V2' }
 		
 		do  -- prev. disabled on certain games
