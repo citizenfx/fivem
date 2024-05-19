@@ -225,27 +225,21 @@ local kvpEntry = GetResourceKvpString('hideState')
 local chatHideState = kvpEntry and tonumber(kvpEntry) or CHAT_HIDE_STATES.SHOW_WHEN_ACTIVE
 local isFirstHide = true
 
-if not isRDR then
-  -- Allow only for Fivem until RedM supports it
-  if RegisterKeyMapping then
+if RegisterKeyMapping then
     RegisterKeyMapping('toggleChat', 'Toggle chat', 'keyboard', 'l')
-  end
 end
 
-  RegisterCommand('toggleChat', function(source,args,rawCommand)
-   
-        if chatHideState == CHAT_HIDE_STATES.SHOW_WHEN_ACTIVE then
-          chatHideState = CHAT_HIDE_STATES.ALWAYS_SHOW
-        elseif chatHideState == CHAT_HIDE_STATES.ALWAYS_SHOW then
-          chatHideState = CHAT_HIDE_STATES.ALWAYS_HIDE
-        elseif chatHideState == CHAT_HIDE_STATES.ALWAYS_HIDE then
-          chatHideState = CHAT_HIDE_STATES.SHOW_WHEN_ACTIVE
-        end
-       SetResourceKvp('hideState', tostring(chatHideState))
-
-    isFirstHide = false
-  
-  end, false)
+RegisterCommand('toggleChat', function(source, args, rawCommand)
+	if chatHideState == CHAT_HIDE_STATES.SHOW_WHEN_ACTIVE then
+		chatHideState = CHAT_HIDE_STATES.ALWAYS_SHOW
+	elseif chatHideState == CHAT_HIDE_STATES.ALWAYS_SHOW then
+		chatHideState = CHAT_HIDE_STATES.ALWAYS_HIDE
+	elseif chatHideState == CHAT_HIDE_STATES.ALWAYS_HIDE then
+		chatHideState = CHAT_HIDE_STATES.SHOW_WHEN_ACTIVE
+	end
+	SetResourceKvp('hideState', tostring(chatHideState))
+	isFirstHide = false
+end, false)
 
 
 Citizen.CreateThread(function()
