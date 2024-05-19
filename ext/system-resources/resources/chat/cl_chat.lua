@@ -212,7 +212,7 @@ RegisterNUICallback('loaded', function(data, cb)
   refreshThemes()
 
   chatLoaded = true
-  addSuggestion('/toggleChat', 'set Chat state from whenactive hidden or always visible', {
+  addSuggestion('/toggleChat', 'set Chat state', {
     { name = "state", help = "whenactive hidden visible" },
   })
   cb('ok')
@@ -227,34 +227,30 @@ local CHAT_HIDE_STATES = {
 local kvpEntry = GetResourceKvpString('hideState')
 local chatHideState = kvpEntry and tonumber(kvpEntry) or CHAT_HIDE_STATES.SHOW_WHEN_ACTIVE
 local isFirstHide = true
-
-if not isRDR then
-  if RegisterKeyMapping then
-    RegisterKeyMapping('toggleChat', 'Toggle chat', 'keyboard', 'l')
-  end
+if RegisterKeyMapping then
+	RegisterKeyMapping('toggleChat', 'Toggle chat', 'keyboard', 'l')
 end
 
 RegisterCommand('toggleChat', function(source, args, rawCommand)
-  if not args[1] then
-    if chatHideState == CHAT_HIDE_STATES.SHOW_WHEN_ACTIVE then
-      chatHideState = CHAT_HIDE_STATES.ALWAYS_SHOW
-    elseif chatHideState == CHAT_HIDE_STATES.ALWAYS_SHOW then
-      chatHideState = CHAT_HIDE_STATES.ALWAYS_HIDE
-    elseif chatHideState == CHAT_HIDE_STATES.ALWAYS_HIDE then
-      chatHideState = CHAT_HIDE_STATES.SHOW_WHEN_ACTIVE
-    end
-    SetResourceKvp('hideState', tostring(chatHideState))
-  else
-    if args[1] == "visible" then
-      chatHideState = CHAT_HIDE_STATES.ALWAYS_SHOW
-    elseif args[1] == "hidden" then
-      chatHideState = CHAT_HIDE_STATES.ALWAYS_HIDE
-    elseif args[1] == "whenactive" then
-      chatHideState = CHAT_HIDE_STATES.SHOW_WHEN_ACTIVE
-    end
-  end
-
-  isFirstHide = false
+	if not args[1] then
+		if chatHideState == CHAT_HIDE_STATES.SHOW_WHEN_ACTIVE then
+			chatHideState = CHAT_HIDE_STATES.ALWAYS_SHOW
+		elseif chatHideState == CHAT_HIDE_STATES.ALWAYS_SHOW then
+			chatHideState = CHAT_HIDE_STATES.ALWAYS_HIDE
+		elseif chatHideState == CHAT_HIDE_STATES.ALWAYS_HIDE then
+			chatHideState = CHAT_HIDE_STATES.SHOW_WHEN_ACTIVE
+		end
+	else
+		if args[1] == "visible" then
+			chatHideState = CHAT_HIDE_STATES.ALWAYS_SHOW
+		elseif args[1] == "hidden" then
+			chatHideState = CHAT_HIDE_STATES.ALWAYS_HIDE
+		elseif args[1] == "whenactive" then
+			chatHideState = CHAT_HIDE_STATES.SHOW_WHEN_ACTIVE
+		end
+	end
+	SetResourceKvp('hideState', tostring(chatHideState))
+	isFirstHide = false
 end, false)
 
 Citizen.CreateThread(function()
@@ -263,12 +259,13 @@ Citizen.CreateThread(function()
 
   local lastChatHideState = -1
   local origChatHideState = -1
+  local input = isRDR and `INPUT_MP_TEXT_CHAT_ALL` or 245
 
   while true do
     Wait(0)
 
     if not chatInputActive then
-      if IsControlPressed(0, isRDR and `INPUT_MP_TEXT_CHAT_ALL` or 245) --[[ INPUT_MP_TEXT_CHAT_ALL ]] then
+      if IsControlPressed(0, input) then
         chatInputActive = true
         chatInputActivating = true
 
@@ -279,7 +276,7 @@ Citizen.CreateThread(function()
     end
 
     if chatInputActivating then
-      if not IsControlPressed(0, isRDR and `INPUT_MP_TEXT_CHAT_ALL` or 245) then
+      if not IsControlPressed(0, input) then
         SetNuiFocus(true)
 
         chatInputActivating = false
