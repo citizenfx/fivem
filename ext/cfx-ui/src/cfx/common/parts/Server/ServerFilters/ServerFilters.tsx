@@ -242,7 +242,7 @@ const SortPopover = observer(function SortPopover(props: ServerFiltersProps) {
 
   const byBoostTitleKey = '#Server_BoostPower_Title';
   const byNameTitleKey = '#ServerList_Name';
-  const byPlayersTitleKey = '#ServerList_Name';
+  const byPlayersTitleKey = '#ServerList_Players';
 
   const handleFilterEvent = React.useCallback((text: string) => {
     eventHandler({ action: EventActionNames.FilterCTA, properties: {
