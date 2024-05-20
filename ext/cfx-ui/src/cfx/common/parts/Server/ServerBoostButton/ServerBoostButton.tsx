@@ -36,10 +36,6 @@ export const ServerBoostButton = observer(function ServerBoostButton(props: Serv
     return null;
   }
 
-  if (!isServerBoostable(server)) {
-    return null;
-  }
-
   const isBoostedByUser = ServersBoostService.currentBoost?.address === server.id;
 
   const title = isBoostedByUser
@@ -70,6 +66,10 @@ export const ServerBoostButton = observer(function ServerBoostButton(props: Serv
 
     ServersBoostService.boostServer(server.id);
   }, [eventHandler, isBoostedByUser, ServersBoostService, server, textKey]);
+
+  if (!isServerBoostable(server)) {
+    return null;
+  }
 
   return (
     <Title fixedOn="bottom" title={title}>
