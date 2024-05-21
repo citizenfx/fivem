@@ -947,7 +947,10 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 #endif
 
 	auto gameBuild = xbr::GetGameBuild();
-	if (const auto identifier = xbr::GetGameBuildUniquifier(gameName, gameBuild))
+	const auto identifier = xbr::GetGameBuildUniquifier(gameName, gameBuild);
+
+	// Revision "0" shouldn't be included for backward compatibility.
+	if (identifier && identifier->m_revision > 0)
 	{
 		// Now we're providing major build number and our own revision number to the server.
 		postMap["gameBuild"] = fmt::sprintf("%d_%d", gameBuild, identifier->m_revision);
