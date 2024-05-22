@@ -15,22 +15,13 @@ function Invoke-BuildUI {
         $haveNewerCommit = $Versions.UICommit -ne (Get-Content -ErrorAction Ignore $lastBuiltCommitFile)
 
         if (!$havePreviouslyBuiltArtifacts -or $haveNewerCommit) {
-            $cfxUINodeModulesCacheParams = @{
-                Context = $Context
-                CacheName = "cfx-ui-node_modules"
-                Path = $Context.getPathInProject("ext\cfx-ui\node_modules")
-            }
-
-            # restore node_modules from cache
-            Invoke-RestoreFromBuildCache @cfxUINodeModulesCacheParams
-
             cmd /c build.cmd
             Test-LastExitCode "Failed to build CfxUI"
 
             $Versions.UICommit | Out-File -Encoding ascii -NoNewline $lastBuiltCommitFile
 
-            # store node_modules in cache
-            Invoke-SaveInBuildCache @cfxUINodeModulesCacheParams
+            # delete node_modules to avoid them polluting the build cache
+            Remove-Item -Recurse -Force $Context.getPathInProject("ext\cfx-ui\node_modules")
         } else {
             Write-Output "Skipping UI build: existing artifacts are up to date"
         }

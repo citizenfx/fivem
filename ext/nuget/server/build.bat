@@ -1,4 +1,10 @@
 @echo off
+
+if "%CFX_DRY_RUN%"=="true" (
+    echo "DRY RUN: Would upload nuget package for server"
+    goto :end
+)
+
 set ROOT=%CD%
 cd %~dp0
 
@@ -19,3 +25,6 @@ copy /y %ROOT%\out\server\citizen\clr2\lib\mono\4.5\ref\CitizenFX.Core.Server.xm
 %NUGET% push CitizenFX.Core.Server.1.0.%CI_PIPELINE_ID%.nupkg -ApiKey %NUGET_TOKEN% -Source https://api.nuget.org/v3/index.json
 
 del CitizenFX.Core.Server.1.0.%CI_PIPELINE_ID%.nupkg
+
+:end
+exit /B 0

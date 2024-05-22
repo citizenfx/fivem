@@ -180,7 +180,12 @@ echo "$SSH_SYMBOLS_PRIVATE_KEY" | tr -d '\r' | ssh-add -
 mkdir -p ~/.ssh
 chmod 700 ~/.ssh
 
+if [ "$CFX_DRY_RUN" = "true" ]
+then
+echo "DRY RUN: Would upload debug symbols"
+else
 rsync -rav -e "$RSH_SYMBOLS_COMMAND" /tmp/symbols/ $SSH_SYMBOLS_TARGET || true
+fi
 
 cd ../../
 
@@ -195,5 +200,10 @@ text="Woop, building a SERVER/LINUX-PROOT build completed!"
 escapedText=$(echo $text | sed 's/"/\"/g' | sed "s/'/\'/g" )
 json="{\"text\":\"$escapedText\"}"
 
+if [ "$CFX_DRY_RUN" = "true" ]
+then
+echo "DRY RUN: Would announce build end: $text"
+else
 curl -H "Content-Type: application/json" -s -d "$json" "$TG_WEBHOOK" || true
 curl -H "Content-Type: application/json" -s -d "$json" "$DISCORD_WEBHOOK" || true
+fi

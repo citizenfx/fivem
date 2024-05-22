@@ -45,6 +45,10 @@ function Invoke-BuildCacheMeta {
         "-bootstrap-version",    $BootstrapVersion
     )
 
-    & $bcm @bcmParams
-    Test-LastExitCode "Failed to build cache meta"
+    if ($Context.IsDryRun) {
+        Write-Output "DRY RUN: Would invoke Build Cache Meta with:", $bcmParams, "`n"
+    } else {
+        & $bcm @bcmParams
+        Test-LastExitCode "Failed to build cache meta"
+    }
 }
