@@ -6,6 +6,7 @@
 
 #include <NetBuffer.h>
 #include <NetLibrary.h>
+#include <NetBitVersion.h>
 
 #include <rlNetBuffer.h>
 
@@ -485,7 +486,7 @@ void CloneManagerLocal::BindNetLibrary(NetLibrary* netLibrary)
 
 	m_netLibrary->OnInitReceived.Connect([sbac](NetAddress& address)
 	{
-		if (Instance<ICoreGameInit>::Get()->BitVersion >= 0x202405010000)
+		if (Instance<ICoreGameInit>::Get()->IsNetVersionOrHigher(net::NetBitVersion::netVersion2))
 		{
 			sbac->SetRole(fx::StateBagRole::ClientV2);
 		}

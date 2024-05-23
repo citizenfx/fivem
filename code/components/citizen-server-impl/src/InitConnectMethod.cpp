@@ -48,6 +48,8 @@
 
 #include <utf8.h>
 
+#include "NetBitVersion.h"
+
 using json = nlohmann::json;
 
 static std::forward_list<fx::ServerIdentityProviderBase*> g_serverProviders;
@@ -548,7 +550,7 @@ static InitFunction initFunction([]()
 
 			json data = json::object();
 			data["protocol"] = 5;
-			data["bitVersion"] = 0x202103292050;
+			data["bitVersion"] = net::NetBitVersion::netVersion2;
 			data["pure"] = pureVar->GetValue();
 			data["sH"] = shVar->GetValue();
 			data["enhancedHostSupport"] = ehVar->GetValue() && !fx::IsOneSync();
