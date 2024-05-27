@@ -53,7 +53,7 @@ struct GameBuildUniquifier
 static std::map<std::pair<std::string_view, int>, GameBuildUniquifier> kGameBuildUniquifiers
 {
 	// Cleanup for `GetCurrentGameBuildString`, no breaking changes.
-	{ { "rdr3", 1491 }, { 18, 0 } },
+	{ { "rdr3", 1491 }, { 50, 0 } },
 };
 
 inline const GameBuildUniquifier* GetGameBuildUniquifier(std::string_view gameName, int build)
