@@ -699,7 +699,7 @@ static InitFunction initFunction([] ()
 		doc.SetObject();
 		doc.AddMember("type", rapidjson::Value(rage::InitFunctionTypeToString(type), doc.GetAllocator()), doc.GetAllocator());
 		doc.AddMember("name", rapidjson::Value(GetName(data), doc.GetAllocator()), doc.GetAllocator());
-		doc.AddMember("idx", idx, doc.GetAllocator());
+		doc.AddMember("idx", idx + 1, doc.GetAllocator());
 
 		InvokeNUIScript("initFunctionInvoking", doc);
 
@@ -728,7 +728,7 @@ static InitFunction initFunction([] ()
 			doc.SetObject();
 			doc.AddMember("type", rapidjson::Value(rage::InitFunctionTypeToString(type), doc.GetAllocator()), doc.GetAllocator());
 			doc.AddMember("name", rapidjson::Value("FinalizeLoad", doc.GetAllocator()), doc.GetAllocator());
-			doc.AddMember("idx", lastIdx + 1, doc.GetAllocator());
+			doc.AddMember("idx", lastIdx + 2, doc.GetAllocator());
 
 			InvokeNUIScript("initFunctionInvoking", doc);
 
