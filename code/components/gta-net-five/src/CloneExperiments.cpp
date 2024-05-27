@@ -2774,7 +2774,7 @@ static void EventMgr_AddEvent(void* eventMgr, rage::netGameEvent* ev)
 		return g_origAddEvent(eventMgr, ev);
 	}
 
-	if (netEventMgr_IsBlacklistedEvent(ev->eventId))
+	if (netEventMgr_IsBlacklistedEvent(ev->eventType))
 	{
 		delete ev;
 		return;
