@@ -273,6 +273,7 @@ static int StreamRenderWheelSizeOffset;
 static int DrawnWheelAngleMultOffset;
 static int TurboBoostOffset; // = 0x8D8;
 static int ClutchOffset; // = 0x8C0;
+static int VehicleGearRatioOffset;
 //static int VisualHeightGetOffset = 0x080; // There is a vanilla native for this.
 static int VisualHeightSetOffset = 0x07C;
 static int LightMultiplierGetOffset;
@@ -625,6 +626,8 @@ static HookFunction initFunction([]()
 
 		CurrentGearOffset = *(uint32_t*)(location + 18);
 		NextGearOffset = *(uint32_t*)(location + 11);
+
+		VehicleGearRatioOffset = CurrentGearOffset + (xbr::IsGameBuildOrGreater<3095>() ? 12 : 8);
 	}
 
 	{
@@ -1032,6 +1035,34 @@ static HookFunction initFunction([]()
 		};
 	};
 
+	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_GEAR_RATIO", [](fx::ScriptContext& context)
+	{
+		unsigned char gear = context.GetArgument<int>(1);
+		if (fwEntity* vehicle = getAndCheckVehicle(context, "GET_VEHICLE_GEAR_RATIO"))
+		{
+			if (gear <= 10)
+			{
+				context.SetResult<float>(*(float*)((char*)vehicle + VehicleGearRatioOffset + gear * sizeof(float)));
+			}
+			else
+			{
+				context.SetResult<float>(0.0f);
+			}
+		}
+	});
+
+	fx::ScriptEngine::RegisterNativeHandler("SET_VEHICLE_GEAR_RATIO", [](fx::ScriptContext& context)
+	{
+		unsigned char gear = context.GetArgument<int>(1);
+		if (fwEntity* vehicle = getAndCheckVehicle(context, "SET_VEHICLE_GEAR_RATIO"))
+		{
+			if (gear <= 10)
+			{
+				*(float*)((char*)vehicle + VehicleGearRatioOffset + gear * sizeof(float)) = context.GetArgument<float>(2);
+			}
+		}
+	});	
+	
 	fx::ScriptEngine::RegisterNativeHandler("GET_VEHICLE_WHEEL_BRAKE_PRESSURE", makeWheelFunction([](fx::ScriptContext& context, fwEntity* vehicle, uintptr_t wheelAddr)
 	{
 		context.SetResult<float>(*reinterpret_cast<float*>(wheelAddr + WheelBrakePressureOffset));
