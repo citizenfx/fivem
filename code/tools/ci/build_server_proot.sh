@@ -28,6 +28,7 @@ if [ ! -d fivem-private ]; then
 	git clone $FIVEM_PRIVATE_URI -b master
 else
 	cd fivem-private
+	git remote set-url origin $FIVEM_PRIVATE_URI
 	git fetch origin
 	git reset --hard origin/master
 	cd ..
