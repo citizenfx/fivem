@@ -49,7 +49,7 @@ namespace CitizenFX.Core
 		public bool Restricted { get; set; }
 
 		/// <returns></returns>
-		/// <inheritdoc cref="Func.ConstructCommandRemapped(object, System.Reflection.MethodInfo)"/>
+		/// <inheritdoc cref="MsgPack.MsgPackDeserializer.ConstructCommandDelegateWithSource(object, System.Reflection.MethodInfo)"/>
 		public bool RemapParameters { get; set; } = false;
 		public CommandAttribute(string command, bool restricted = false)
 		{
@@ -77,7 +77,7 @@ namespace CitizenFX.Core
 		public string InputParameter { get; }
 
 		/// <returns></returns>
-		/// <inheritdoc cref="Func.ConstructCommandRemapped(object, System.Reflection.MethodInfo)"/>
+		/// <inheritdoc cref="MsgPack.MsgPackDeserializer.ConstructCommandDelegateWithSource(object, System.Reflection.MethodInfo)"/>
 		public bool RemapParameters { get; set; } = false;
 
 		/// <inheritdoc cref="KeyMapAttribute"/>
