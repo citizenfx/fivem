@@ -12,6 +12,9 @@
   <script type="text/javascript">
     <%= (isProd || isWithGtm) ? require('assets/scripts/gtm.raw.js') : '' %>
   </script>
+  <script type="text/javascript">
+    <%= (isProd || isWithGtm) ? require('assets/scripts/gtag.raw.js') : '' %>
+  </script>
 
   <style>
     @keyframes shineLoader {
