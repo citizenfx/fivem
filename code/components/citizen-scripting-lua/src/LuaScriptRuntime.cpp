@@ -926,15 +926,39 @@ bool LuaScriptRuntime::RunBookmark(uint64_t bookmark)
 			}                        
 
 			static auto formatStackTrace = fx::ScriptEngine::GetNativeHandler(HashString("FORMAT_STACK_TRACE"));
-			auto stack = FxNativeInvoke::Invoke<const char*>(formatStackTrace, nullptr, 0);
 			std::string stackData = "(nil stack trace)";
-			
-			if (stack)
+
+			try
 			{
-				stackData = stack;
+				auto stack = FxNativeInvoke::Invoke<const char*>(formatStackTrace, nullptr, 0);
+				if (stack)
+				{
+					stackData = stack;
+				}
 			}
+			catch (...)
+			{
+				// We already have stackData set so we don't need to do anything
+			}
+
 			ScriptTrace("^1SCRIPT ERROR: %s^7\n", err);
 			ScriptTrace("%s", stackData);
+#if LUA_VERSION_NUM >= 504
+			int resetStatus = lua_resetthread(thread);
+
+			std::string resetErr = "error object is not a string";
+			if (lua_type(thread, -1) == LUA_TSTRING)
+			{
+				resetErr = lua_tostring(thread, -1);
+			}
+
+			// We can't just check whether the resetStatus is OK because
+			// if there was no error lua_resetthread returns the same status it received
+			if (resetStatus != resumeValue || resetErr != err)
+			{
+				ScriptTrace("^1Error while closing to-be-closed variables: %s^7\n", resetErr);
+			}
+#endif
 		}
 
 		luaL_unref(L, LUA_REGISTRYINDEX, bookmark);
