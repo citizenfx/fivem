@@ -17,7 +17,7 @@ TEST_CASE("Server command test")
 
 	fx::ServerInstanceBase* serverInstance = ServerInstance::Create();
 	serverInstance->SetComponent(new fx::ClientRegistry());
-	serverInstance->SetComponent<console::Context>(fx::ConsoleContextInstance::Get());
+	serverInstance->SetComponent<console::Context>(ConsoleContextInstance::Get());
 	serverInstance->SetComponent(new fx::ServerEventComponent());
 	// create client with privileges
 	const fx::ClientSharedPtr client = serverInstance->GetComponent<fx::ClientRegistry>()->MakeClient("test");
@@ -30,7 +30,7 @@ TEST_CASE("Server command test")
 
 	auto principalScope = client->EnterPrincipalScope();
 
-	ConsoleCommand testCommand(fx::ConsoleContextInstance::Get().GetRef(), "testCommand",
+	ConsoleCommand testCommand(ConsoleContextInstance::Get(), "testCommand",
 	                           [=](const std::string& echo)
 	                           {
 		                           REQUIRE(echo == "test");
@@ -73,7 +73,7 @@ TEST_CASE("Server command not existing test")
 
 	fx::ServerInstanceBase* serverInstance = ServerInstance::Create();
 	serverInstance->SetComponent(new fx::ClientRegistry());
-	serverInstance->SetComponent<console::Context>(fx::ConsoleContextInstance::Get());
+	serverInstance->SetComponent<console::Context>(ConsoleContextInstance::Get());
 	serverInstance->SetComponent(new fx::ServerEventComponent());
 	// create client with privileges
 	const fx::ClientSharedPtr client = serverInstance->GetComponent<fx::ClientRegistry>()->MakeClient("test");
@@ -125,14 +125,14 @@ TEST_CASE("Server command no access test")
 
 	fx::ServerInstanceBase* serverInstance = ServerInstance::Create();
 	serverInstance->SetComponent(new fx::ClientRegistry());
-	serverInstance->SetComponent<console::Context>(fx::ConsoleContextInstance::Get());
+	serverInstance->SetComponent<console::Context>(ConsoleContextInstance::Get());
 	serverInstance->SetComponent(new fx::ServerEventComponent());
 	// create client with privileges
 	const fx::ClientSharedPtr client = serverInstance->GetComponent<fx::ClientRegistry>()->MakeClient("test");
 
 	auto principalScope = client->EnterPrincipalScope();
 
-	ConsoleCommand testCommandNoAccess(fx::ConsoleContextInstance::Get().GetRef(), "testCommandNoAccess",
+	ConsoleCommand testCommandNoAccess(ConsoleContextInstance::Get(), "testCommandNoAccess",
 	                                   [=](const std::string& echo)
 	                                   {
 	                                   });
@@ -173,7 +173,7 @@ TEST_CASE("Server command wrong argument count test")
 
 	fx::ServerInstanceBase* serverInstance = ServerInstance::Create();
 	serverInstance->SetComponent(new fx::ClientRegistry());
-	serverInstance->SetComponent<console::Context>(fx::ConsoleContextInstance::Get());
+	serverInstance->SetComponent<console::Context>(ConsoleContextInstance::Get());
 	serverInstance->SetComponent(new fx::ServerEventComponent());
 	// create client with privileges
 	const fx::ClientSharedPtr client = serverInstance->GetComponent<fx::ClientRegistry>()->MakeClient("test");
@@ -186,7 +186,7 @@ TEST_CASE("Server command wrong argument count test")
 		se::AccessType::Allow
 	);
 
-	ConsoleCommand testCommandWith2Args(fx::ConsoleContextInstance::Get().GetRef(), "testCommandWith2Args",
+	ConsoleCommand testCommandWith2Args(ConsoleContextInstance::Get(), "testCommandWith2Args",
 	                                    [=](const std::string& p1, const std::string& p2)
 	                                    {
 	                                    });

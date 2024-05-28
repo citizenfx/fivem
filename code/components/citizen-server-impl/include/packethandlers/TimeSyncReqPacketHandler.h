@@ -9,8 +9,12 @@
 class TimeSyncReqPacketHandler
 {
 public:
+	TimeSyncReqPacketHandler(fx::ServerInstanceBase*)
+	{
+	}
+
 	template<typename Client = fx::ClientSharedPtr>
-	static void Handle(fx::ServerInstanceBase* instance, const Client& client, net::Buffer& packet)
+	void Handle(fx::ServerInstanceBase* instance, const Client& client, net::Buffer& packet)
 	{
 		const uint32_t reqTime = packet.Read<uint32_t>();
 		const uint32_t reqSeq = packet.Read<uint32_t>();

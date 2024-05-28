@@ -57,7 +57,8 @@ TEST_CASE("time sync request handler test")
 
 	uint32_t before = (msec().count()) & 0xFFFFFFFF;
 	fwRefContainer client = {new fx::FakeClient()};
-	TimeSyncReqPacketHandler::Handle(serverInstance, client, requestBuffer);
+	TimeSyncReqPacketHandler handler(serverInstance);
+	handler.Handle(serverInstance, client, requestBuffer);
 	uint32_t after = (msec().count()) & 0xFFFFFFFF;
 
 	REQUIRE(fx::FakeClient::lastTimeSyncResponse.has_value() == true);
