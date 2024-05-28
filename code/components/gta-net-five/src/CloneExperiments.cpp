@@ -2442,6 +2442,27 @@ static bool netEventMgr_IsBlacklistedEvent(uint16_t type)
 	return g_eventBlacklist.find(type) != g_eventBlacklist.end();
 }
 
+/// TEMPORARY: Event ID overriding process. Should be used for RedM only for now
+static uint16_t netEventMgr_MapEventId(uint16_t type, bool isSend)
+{
+#if IS_RDR3
+	if (xbr::IsGameBuildOrGreater<1491>())
+	{
+		if (isSend && type >= 51)
+		{
+			return type + 1;
+		}
+		else if (!isSend && type >= 52)
+		{
+			return type - 1;
+		}
+	}
+#endif
+
+	return type;
+}
+
+
 namespace rage
 {
 	class netGameEvent
@@ -2780,6 +2801,9 @@ static void EventMgr_AddEvent(void* eventMgr, rage::netGameEvent* ev)
 		return;
 	}
 
+	// TEMPORARY: use event type mapping
+	ev->eventType = netEventMgr_MapEventId(ev->eventType, true);
+
 #ifdef GTA_FIVE
 	if (strcmp(ev->GetName(), "ALTER_WANTED_LEVEL_EVENT") == 0)
 	{
@@ -3073,6 +3097,9 @@ static void HandleNetGameEvent(const char* idata, size_t len)
 	auto isReply = buf.Read<uint8_t>();
 	auto eventType = buf.Read<uint16_t>();
 	auto length = buf.Read<uint16_t>();
+
+	// TEMPORARY: mapping back on receiving event from server
+	eventType = netEventMgr_MapEventId(eventType, false);
 
 	auto player = g_playersByNetId[sourcePlayerId];
 
