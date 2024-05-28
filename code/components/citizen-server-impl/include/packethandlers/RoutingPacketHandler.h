@@ -10,7 +10,11 @@
 class RoutingPacketHandler
 {
 public:
-	static void Handle(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& packet)
+	RoutingPacketHandler(fx::ServerInstanceBase* instance)
+	{
+	}
+	
+	void Handle(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& packet)
 	{
 		// TODO: in future net version remove targetNetId when the server is using onesync
 		const uint16_t targetNetId = packet.Read<uint16_t>();

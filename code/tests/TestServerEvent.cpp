@@ -77,7 +77,8 @@ namespace
 	{
 		g_serverEvent.reset();
 		g_serverEventFromResourceTick.reset();
-		ServerEventPacketHandler::Handle(g_serverInstance, client, buffer);
+		ServerEventPacketHandler handler(g_serverInstance);
+		handler.Handle(g_serverInstance, client, buffer);
 		g_serverInstance->GetComponent<fx::ResourceManager>()->Tick();
 	}
 }
