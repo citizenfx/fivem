@@ -1,25 +1,12 @@
 ﻿#pragma once
-#include "EventCore.h"
-#include "console/Console.h"
 
-namespace fx
+namespace console
 {
-	class ConsoleContextInstance
-	{
-		static fwRefContainer<console::Context> Create()
-		{
-			fwRefContainer<console::Context> newContext{};
-			console::CreateContext(console::GetDefaultContext(), &newContext);
-			// increase ref to prevent free of the context
-			newContext->AddRef();
-			return newContext;
-		}
-
-	public:
-		static fwRefContainer<console::Context> Get()
-		{
-			static fwRefContainer<console::Context> consoleContext = Create();
-			return consoleContext;
-		}
-	};
+	class Context;
 }
+
+class ConsoleContextInstance
+{
+public:
+	static console::Context* Get();
+};
