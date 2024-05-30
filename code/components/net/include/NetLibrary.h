@@ -343,7 +343,7 @@ public:
 #endif
 		fwEvent<NetLibrary*> OnNetLibraryCreate;
 
-	fwEvent<int /* build */, int /* pure level */> OnRequestBuildSwitch;
+	fwEvent<int /* build */, int /* pure level */, std::wstring /* dlc list command */> OnRequestBuildSwitch;
 
 	fwEvent<const char*> OnAttemptDisconnect;
 

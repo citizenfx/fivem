@@ -27,6 +27,7 @@
 
 #include <CrossBuildRuntime.h>
 #include <PureModeState.h>
+#include <DlcListState.h>
 #include <CoreConsole.h>
 
 #include <CfxLocale.h>
@@ -1831,7 +1832,10 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 					{
 						buildRef = std::stoi(val);
 
-						if ((buildRef != 0 && buildRef != xbr::GetGameBuild()) || (pureLevel != fx::client::GetPureLevel()))
+						auto isDlcAllowList = info["vars"].value("sv_dlcListStrategy", "") == "allowOnly";
+						auto dlcList = info["vars"].value("sv_dlcList", "");
+
+						if ((buildRef != 0 && buildRef != xbr::GetGameBuild()) || (pureLevel != fx::client::GetPureLevel()) || fx::client::DlcManager::DoesDlcListDiffer(dlcList, isDlcAllowList))
 						{
 #if defined(GTA_FIVE)
 							if (buildRef != 1604 && buildRef != 2060 && buildRef != 2189 && buildRef != 2372 && buildRef != 2545 && buildRef != 2612 && buildRef != 2699 && buildRef != 2802 && buildRef != 2944 && buildRef != 3095)
@@ -1848,7 +1852,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 								return;
 							}
 
-							OnRequestBuildSwitch(buildRef, pureLevel);
+							OnRequestBuildSwitch(buildRef, pureLevel, fx::client::DlcManager::CreateDlcListCommand(dlcList, isDlcAllowList));
 							m_connectionState = CS_IDLE;
 							return;
 						}
@@ -1857,7 +1861,7 @@ concurrency::task<void> NetLibrary::ConnectToServer(const std::string& rootUrl)
 #if defined(GTA_FIVE)
 					if (xbr::GetGameBuild() != 1604 && buildRef == 0)
 					{
-						OnRequestBuildSwitch(1604, 0);
+						OnRequestBuildSwitch(1604, 0, L"");
 						m_connectionState = CS_IDLE;
 						return;
 					}
