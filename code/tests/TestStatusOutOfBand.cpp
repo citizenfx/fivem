@@ -67,7 +67,7 @@ TEST_CASE("getstatus oob test")
 	auto variable = testServer->AddVariable<bool>("sv_returnClientsListInGetStatus", ConVar_None, true);
 	variable->GetHelper()->SetValue(GENERATE("false", "true"));
 	
-	REQUIRE(GetStatusOutOfBand::GetName() == "getstatus");
+	REQUIRE(std::string(GetStatusOutOfBand::GetName()) == "getstatus");
 
 	for (uint32_t i = 0, length = fx::TestUtils::u64Random(10); i < length; ++i)
 	{
