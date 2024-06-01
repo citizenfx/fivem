@@ -1,3 +1,4 @@
+using CitizenFX.MsgPack;
 using System;
 using System.ComponentModel;
 using System.Collections.Generic;
@@ -6,7 +7,7 @@ namespace CitizenFX.Core
 {
 	public class Exports
 	{
-		private Dictionary<string, DynFunc> m_exports => new Dictionary<string, DynFunc>();
+		private Dictionary<string, MsgPackFunc> m_exports => new Dictionary<string, MsgPackFunc>();
 
 		public static LocalExports Local { get; } = new LocalExports();
 
@@ -58,7 +59,7 @@ namespace CitizenFX.Core
 			}
 		}
 
-		public DynFunc this[string export]
+		public MsgPackFunc this[string export]
 		{
 			set => Add(export, value);
 			get => m_exports[export];
@@ -71,7 +72,7 @@ namespace CitizenFX.Core
 		}
 #endif
 
-		public void Add(string name, DynFunc method, Binding binding = Binding.Local)
+		public void Add(string name, MsgPackFunc method, Binding binding = Binding.Local)
 		{
 			if (ExportsManager.AddExportHandler(name, method, binding))
 				m_exports.Add(name, method);

@@ -741,21 +741,6 @@ static hook::cdecl_stub<CNetGamePlayer*(void*)> _netPlayerCtor([]()
 #endif
 });
 
-#ifdef GTA_FIVE
-// Offset is usually 0xA0, but can differ on ancient builds
-static int g_CNetPlayerOffset_PlayerInfo = 0;
-struct CPlayerInfo_Five;
-static hook::cdecl_stub<CPlayerInfo_Five*(void*, uint64_t, void*)> _playerInfoCtor([]() 
-{
-	return hook::get_pattern("48 83 EC 30 65 4C 8B 0C 25 ? 00 00 00 0F 29 70 C8 45 33 ED", -0x18);
-});
-// this appears to be a substruct that makes up a good chunk of the beginning of the CPlayerInfo
-static hook::cdecl_stub<void*()> _getLocalGamerInfo([]() 
-{
-	return hook::get_address<void*>(hook::get_pattern("E8 ? ? ? ? 33 D2 48 8B CB 4C 8B C0 E8 ? ? ? ? 4D 8B CE"), 1, 5);
-});
-#endif	
-
 static CNetGamePlayer*(*g_origAllocateNetPlayer)(void*);
 
 static CNetGamePlayer* AllocateNetPlayer(void* mgr)
@@ -778,57 +763,6 @@ static CNetGamePlayer* AllocateNetPlayer(void* mgr)
 
 	return player;
 }
-
-// fix: some Events expect the CPlayerInfo to be non-null in the CNetGamePlayer (It is not set in the constructor)
-static void Player31_ApplyPlayerInfo(CNetGamePlayer* player)
-{
-#ifdef GTA_FIVE
-	static void* infoMem = nullptr;
-	if (!infoMem)
-	{
-		infoMem = malloc(0x2000);
-		CPlayerInfo_Five* info = _playerInfoCtor(infoMem, 0, _getLocalGamerInfo());
-		*(CPlayerInfo_Five**)((uint64_t)player + g_CNetPlayerOffset_PlayerInfo) = info;
-	}
-	else
-	{
-		*(CPlayerInfo_Five**)((uint64_t)player + g_CNetPlayerOffset_PlayerInfo) = (CPlayerInfo_Five*)infoMem;
-	}
-#endif
-}
-// Clear the playerInfo after events
-static void Player31_ClearPlayerInfo(CNetGamePlayer* player)
-{
-#ifdef GTA_FIVE
-	*(CPlayerInfo_Five**)((uint64_t)player + g_CNetPlayerOffset_PlayerInfo) = nullptr;
-#endif
-}
-
-// RAII-style mechanism for ensuring player31 has the correct fields populated
-// to ensure events may properly function.
-class Player31_InfoGuard
-{
-private:
-	CNetGamePlayer* m_player;
-
-public:
-	Player31_InfoGuard(CNetGamePlayer* player)
-		: m_player(player)
-	{
-		if (m_player == g_player31)
-		{
-			Player31_ApplyPlayerInfo(m_player);
-		}
-	}
-
-	~Player31_InfoGuard()
-	{
-		if (m_player == g_player31)
-		{
-			Player31_ClearPlayerInfo(m_player);
-		}
-	}
-};
 
 #include <minhook.h>
 
@@ -2429,8 +2363,6 @@ static HookFunction hookFunction([]()
 		// memset in CNetworkDamageTracker::ctor
 		hook::put<uint32_t>(hook::get_pattern("48 89 11 48 8B D9 41 B8 80 00 00 00", 8), sizeof(float) * 256);
 	}
-
-	g_CNetPlayerOffset_PlayerInfo = *hook::get_pattern<int>("48 8B 81 ? 00 00 00 48 83 C0 20 C3", 3);
 #endif
 
 	MH_EnableHook(MH_ALL_HOOKS);
@@ -2509,6 +2441,27 @@ static bool netEventMgr_IsBlacklistedEvent(uint16_t type)
 
 	return g_eventBlacklist.find(type) != g_eventBlacklist.end();
 }
+
+/// TEMPORARY: Event ID overriding process. Should be used for RedM only for now
+static uint16_t netEventMgr_MapEventId(uint16_t type, bool isSend)
+{
+#if IS_RDR3
+	if (xbr::IsGameBuildOrGreater<1491>())
+	{
+		if (isSend && type >= 51)
+		{
+			return type + 1;
+		}
+		else if (!isSend && type >= 52)
+		{
+			return type - 1;
+		}
+	}
+#endif
+
+	return type;
+}
+
 
 namespace rage
 {
@@ -2842,11 +2795,14 @@ static void EventMgr_AddEvent(void* eventMgr, rage::netGameEvent* ev)
 		return g_origAddEvent(eventMgr, ev);
 	}
 
-	if (netEventMgr_IsBlacklistedEvent(ev->eventId))
+	if (netEventMgr_IsBlacklistedEvent(ev->eventType))
 	{
 		delete ev;
 		return;
 	}
+
+	// TEMPORARY: use event type mapping
+	ev->eventType = netEventMgr_MapEventId(ev->eventType, true);
 
 #ifdef GTA_FIVE
 	if (strcmp(ev->GetName(), "ALTER_WANTED_LEVEL_EVENT") == 0)
@@ -3142,6 +3098,9 @@ static void HandleNetGameEvent(const char* idata, size_t len)
 	auto eventType = buf.Read<uint16_t>();
 	auto length = buf.Read<uint16_t>();
 
+	// TEMPORARY: mapping back on receiving event from server
+	eventType = netEventMgr_MapEventId(eventType, false);
+
 	auto player = g_playersByNetId[sourcePlayerId];
 
 	if (!player)
@@ -3160,7 +3119,6 @@ static void HandleNetGameEvent(const char* idata, size_t len)
 		return;
 	}
 
-	Player31_InfoGuard infoGuard{ player };
 	if (isReply)
 	{
 		auto evSetIt = g_events.find({ eventType, eventHeader });
@@ -3360,6 +3318,11 @@ static bool SendGameEvent(void* eventMgr, void* ev)
 }
 
 #if GTA_FIVE
+static hook::cdecl_stub<void*(CNetGamePlayer*)> CNetGamePlayer_GetPlayerPed([]()
+{
+	return hook::get_pattern("48 8B 91 ? ? ? ? 33 C0 48 85 D2 74 07 48 8B 82");
+});
+
 static uint32_t(*g_origGetFireApplicability)(void* event, void* pos);
 
 static uint32_t GetFireApplicability(void* event, void* pos)
@@ -3371,6 +3334,17 @@ static uint32_t GetFireApplicability(void* event, void* pos)
 
 	// send all fires to all remote players
 	return (1 << 31);
+}
+
+/// CPlayerTauntEvent: Ensure CNetGamePlayer::GetPlayerPed returns a value Ped.
+static bool (*g_origCPlayerTauntEventDecide)(void*, CNetGamePlayer*, void*);
+static bool CPlayerTauntEvent_Decide(void* self, CNetGamePlayer* sourcePlayer, void* connUnk)
+{
+	if (!CNetGamePlayer_GetPlayerPed(sourcePlayer))
+	{
+		return true;
+	}
+	return g_origCPlayerTauntEventDecide(self, sourcePlayer, connUnk);
 }
 #elif IS_RDR3
 static uint32_t*(*g_origGetFireApplicability)(void* event, uint32_t*, void* pos);
@@ -3387,6 +3361,16 @@ static uint32_t* GetFireApplicability(void* event, uint32_t* result, void* pos)
 
 	*result = value;
 	return &value;
+}
+#endif
+
+#if defined(GTA_FIVE) || IS_RDR3
+/// ReportCashSpawnEvent: Sanitize the gamer handle pointer since player31 may
+/// not include a reference that value.
+static bool (*g_origMetricCASHIsGamerHandleValid)(void*);
+static bool MetricCASH_IsGamerHandleValid(void* pGamerHandle)
+{
+	return pGamerHandle != nullptr && g_origMetricCASHIsGamerHandleValid(pGamerHandle);
 }
 #endif
 
@@ -3547,6 +3531,25 @@ static HookFunction hookFunctionEv([]()
 		MH_CreateHook(hook::get_pattern("4C 8B 78 10 48 85 ED 74 74 66 39 55", -0x58), SendAlterWantedLevelEvent2Hook, (void**)&g_origSendAlterWantedLevelEvent2);
 	}
 #endif
+
+	// CPlayerTauntEvent may interact negatively with player31.
+#ifdef GTA_FIVE
+	{
+		auto location = hook::get_pattern("33 F6 48 39 B0 ? ? ? ? 74 7B 48 8B CB 48 C7 45", -41);
+		MH_CreateHook(location, CPlayerTauntEvent_Decide, (void**)&g_origCPlayerTauntEventDecide);
+	}
+#endif
+
+	// CReportCashSpawnEvent may interact negatively with player31.
+	{
+#ifdef GTA_FIVE
+		auto location = hook::get_pattern<char>("8B 44 24 50 48 89 5E 18 89 7E 40 89 46 44", 0x15);
+#elif IS_RDR3
+		auto location = hook::get_pattern<char>("8B 44 24 ? 89 46 44 89 7E 40 C6 46 20 00", 0xE);
+#endif
+		hook::set_call(&g_origMetricCASHIsGamerHandleValid, location);
+		hook::call(location, MetricCASH_IsGamerHandleValid);
+	}
 
 	// CheckForSpaceInPool error display
 #ifdef GTA_FIVE

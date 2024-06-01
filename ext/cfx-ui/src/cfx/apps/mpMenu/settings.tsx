@@ -10,7 +10,7 @@ import { mpMenu } from "./mpMenu";
 import { IConvarService, KnownConvars } from "./services/convars/convars.service";
 import { IConvar } from "./services/convars/types";
 import { Input } from "cfx/ui/Input/Input";
-import { ILinkedIdentitiesService } from "./services/linkedIdentities/linkedIdentities.service";
+import { ILinkedIdentitiesService } from "cfx/common/services/linkedIdentities/linkedIdentities.service";
 import { GameName, GameUpdateChannel } from 'cfx/base/game';
 import { useIntlService } from 'cfx/common/services/intl/intl.service';
 import { $L } from 'cfx/common/services/intl/l10n';

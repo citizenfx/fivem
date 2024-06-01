@@ -1,6 +1,6 @@
 import type DEFAULT_LOCALE from 'assets/languages/locale-en.json';
 
-type LocaleKey = keyof typeof DEFAULT_LOCALE;
+export type LocaleKey = keyof typeof DEFAULT_LOCALE;
 
 // @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/PluralRules/select#return_value
 export enum PluralRule {

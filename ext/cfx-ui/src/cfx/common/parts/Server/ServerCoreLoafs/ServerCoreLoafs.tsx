@@ -4,7 +4,7 @@ import { $L } from "cfx/common/services/intl/l10n";
 import { IServerView, ServerPureLevel } from "cfx/common/services/servers/types";
 import { Avatar } from "cfx/ui/Avatar/Avatar";
 import { Badge } from "cfx/ui/Badge/Badge";
-import { LinkButton } from "cfx/ui/Button/LinkButton";
+import { AnalyticsLinkButton } from "cfx/common/parts/AnalyticsLinkButton/AnalyticsLinkButton";
 import { Flex } from "cfx/ui/Layout/Flex/Flex";
 import { Symbols } from "cfx/ui/Symbols";
 import { Text } from "cfx/ui/Text/Text";
@@ -20,6 +20,7 @@ import { Loaf } from "cfx/ui/Loaf/Loaf";
 import { Button } from "cfx/ui/Button/Button";
 import { BiCopy } from "react-icons/bi";
 import s from './ServerCoreLoafs.module.scss';
+import { ElementPlacements } from "cfx/common/services/analytics/types";
 
 interface IExtraLoafDescriptor {
   key: keyof IServerView,
@@ -86,11 +87,13 @@ export interface ServerCoreLoafsProps {
   server: IServerView,
 
   hideActions?: boolean,
+  elementPlacement?: ElementPlacements,
 }
 
 export const ServerCoreLoafs = observer(function ServerCoreLoafs(props: ServerCoreLoafsProps) {
   const {
     server,
+    elementPlacement,
     hideActions = false,
   } = props;
 
@@ -116,11 +119,12 @@ export const ServerCoreLoafs = observer(function ServerCoreLoafs(props: ServerCo
 
     nodes.push(
       <Title key="owner-link" title={titleNode}>
-        <LinkButton
+        <AnalyticsLinkButton
           to={ownerProfile}
           size="small"
           icon={<AiFillCrown />}
           text={ownerName}
+          elementPlacement={elementPlacement}
         />
       </Title>
     );

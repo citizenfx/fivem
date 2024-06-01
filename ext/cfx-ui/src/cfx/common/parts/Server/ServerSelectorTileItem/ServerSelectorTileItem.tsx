@@ -1,6 +1,5 @@
 import { useServersService } from "cfx/common/services/servers/servers.service";
 import { IPinnedServersCollection, IServerView } from "cfx/common/services/servers/types";
-import { Button } from "cfx/ui/Button/Button";
 import { Icon } from "cfx/ui/Icon/Icon";
 import { Icons } from "cfx/ui/Icons";
 import { Box } from "cfx/ui/Layout/Box/Box";
@@ -18,6 +17,7 @@ import { ServerPower } from "../ServerPower/ServerPower";
 import { ServerTileItem, ServerTileItemProps } from "../ServerTileItem/ServerTileItem";
 import { ServerTitle } from "../ServerTitle/ServerTitle";
 import s from './ServerSelectorTileItem.module.scss';
+import { ElementPlacements } from "cfx/common/services/analytics/types";
 
 export type ServerSelectorTileItemProps = Omit<ServerTileItemProps, 'server'> & {
   serversCollection: IPinnedServersCollection,
@@ -145,6 +145,7 @@ const ServerSelectorModal = observer(function ServerSelectorModal(props: ServerS
         placeControlsBelow
         hideDescription
         server={server}
+        elementPlacement={ElementPlacements.ServerSelectorModal}
       />
     );
   });

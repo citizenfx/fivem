@@ -11,28 +11,38 @@ import { IServersService } from "cfx/common/services/servers/servers.service";
 import { Icons } from "cfx/ui/Icons";
 import { TextColor } from "cfx/ui/Text/Text";
 import { Tabular } from "cfx/ui/Tabular/Tabular";
+import { useEventHandler } from "cfx/common/services/analytics/analytics.service";
+import { EventActionNames, ElementPlacements } from "cfx/common/services/analytics/types";
+import { LocaleKeyOrString, LocaleKey } from "cfx/common/services/intl/types";
 
-export const SERVER_LIST_DESCRIPTORS: Record<string, { title: React.ReactNode, icon: React.ReactNode, to: string, color: TextColor }> = {
+interface ServerListDescriptor {
+  titleKey: LocaleKeyOrString<LocaleKey>,
+  icon: React.ReactNode,
+  to: string,
+  color: TextColor,
+};
+
+export const SERVER_LIST_DESCRIPTORS: Record<string, ServerListDescriptor> = {
   [ServersListType.All]: {
-    title: $L('#ServerList_Browse'),
+    titleKey: '#ServerList_Browse',
     icon: Icons.serversListAll,
     color: 'inherit',
     to: '/servers',
   },
   [ServersListType.Supporters]: {
-    title: $L('#ServerList_Premium'),
+    titleKey: '#ServerList_Premium',
     icon: Icons.serversListSupporters,
     color: 'warning',
     to: '/servers/premium',
   },
   [ServersListType.History]: {
-    title: $L('#ServerList_History'),
+    titleKey: '#ServerList_History',
     icon: Icons.serversListHistory,
     color: 'teal',
     to: '/servers/history',
   },
   [ServersListType.Favorites]: {
-    title: $L('#ServerList_Favorites'),
+    titleKey: '#ServerList_Favorites',
     icon: Icons.serversListFavorites,
     color: 'primary',
     to: '/servers/favorites',
@@ -42,8 +52,21 @@ export const SERVER_LIST_DESCRIPTORS: Record<string, { title: React.ReactNode, i
 export const ListTypeTabs = observer(function ListTypeTabs() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-
   const ServersService = useService(IServersService);
+  const eventHandler = useEventHandler();
+
+  const handleClick = React.useCallback(
+    (descriptor: ServerListDescriptor) => {
+      eventHandler({ action: EventActionNames.AccountInfoCTA, properties: {
+        element_placement: ElementPlacements.Nav,
+        text: descriptor.titleKey,
+        link_url: descriptor.to,
+      }});
+
+      navigate(descriptor.to);
+    },
+    [eventHandler, navigate],
+  );
 
   return (
     <Tabular.Root size="large">
@@ -54,11 +77,11 @@ export const ListTypeTabs = observer(function ListTypeTabs() {
         }
 
         return (
-          <Title key={descriptor.to} title={descriptor.title}>
+          <Title key={descriptor.to} title={$L(descriptor.titleKey)}>
             <Tabular.Item
               active={pathname === descriptor.to}
               icon={descriptor.icon}
-              onClick={() => navigate(descriptor.to)}
+              onClick={() => handleClick(descriptor)}
             />
           </Title>
         );
@@ -77,10 +100,10 @@ export const ListTypeTabs2 = observer(function ListTypeTabs() {
       return null;
     }
 
-    const { title, icon, to } = SERVER_LIST_DESCRIPTORS[type];
+    const { titleKey, icon, to } = SERVER_LIST_DESCRIPTORS[type];
 
     return (
-      <Title key={type} title={title}>
+      <Title key={type} title={$L(titleKey)}>
         <Button
           key={type}
           to={to}

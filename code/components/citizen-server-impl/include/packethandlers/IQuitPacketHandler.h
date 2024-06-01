@@ -17,10 +17,21 @@ namespace fx
 		class IQuitPacketHandler
 		{
 		public:
-			static void Handle(ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& packet)
+			IQuitPacketHandler(fx::ServerInstanceBase* instance)
 			{
+			}
+
+			void Handle(ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& packet)
+			{
+				const size_t remainingBytes = packet.GetRemainingBytes();
+				if (remainingBytes < 1)
+				{
+					instance->GetComponent<fx::GameServer>()->DropClientv(client, "");
+					return;
+				}
+
 				const std::string reason = std::string(
-					packet.Read<std::string_view>(std::min(packet.GetRemainingBytes(), static_cast<size_t>(1024))));
+					packet.Read<std::string_view>(std::min(remainingBytes - 1, static_cast<size_t>(1024))));
 				instance->GetComponent<fx::GameServer>()->DropClientv(client, reason);
 			}
 

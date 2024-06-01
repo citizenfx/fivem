@@ -395,10 +395,40 @@ static void FixReplaceHudColour()
 	}
 }
 
+static int32_t g_numMarkerTypes;
+static void FixDrawMarker()
+{
+	constexpr uint64_t DRAW_MARKER = 0x28477EC23D892089;
+	constexpr uint64_t DRAW_MARKER_EX = 0xE82728F0DE75D13A;
+
+	for (uint64_t nativeHash : { DRAW_MARKER, DRAW_MARKER_EX })
+	{
+		auto originalHandler = fx::ScriptEngine::GetNativeHandler(nativeHash);
+		if (!originalHandler)
+		{
+			continue;
+		}
+
+		auto handler = *originalHandler;
+		fx::ScriptEngine::RegisterNativeHandler(nativeHash, [handler](fx::ScriptContext& ctx)
+		{
+			auto markerType = ctx.GetArgument<int32_t>(0);
+			if (markerType < 0 || markerType >= g_numMarkerTypes)
+			{
+				fx::scripting::Warningf("natives", "Invalid MARKER_TYPE index was passed (%d), should be from 0 to %d\n", markerType, g_numMarkerTypes - 1);
+				return;
+			}
+
+			handler(ctx);
+		});
+	}
+}
+
 static HookFunction hookFunction([]()
 {
 	g_fireInstances = (std::array<FireInfoEntry, 128>*)(hook::get_address<uintptr_t>(hook::get_pattern("74 47 48 8D 0D ? ? ? ? 48 8B D3", 2), 3, 7) + 0x10);
 	g_maxHudColours = *hook::get_pattern<int32_t>("81 F9 ? ? ? ? 77 5A 48 89 5C 24", 2);
+	g_numMarkerTypes = *hook::get_pattern<int32_t>("BE FF FF FF DF 41 BF 00 00 FF 0F 41 BC FF FF FF BF", -4);
 
 	rage::scrEngine::OnScriptInit.Connect([]()
 	{
@@ -426,5 +456,7 @@ static HookFunction hookFunction([]()
 		FixPedCombatAttributes();
 
 		FixReplaceHudColour();
+
+		FixDrawMarker();
 	});
 });

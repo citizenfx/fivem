@@ -1,14 +1,14 @@
 import { AppContribution, registerAppContribution } from "cfx/common/services/app/app.extensions";
-import { defineService, ServicesContainer } from "cfx/base/servicesContainer";
+import { ILinkedIdentitiesService } from "cfx/common/services/linkedIdentities/linkedIdentities.service";
+import { ILinkedIdentity } from "cfx/common/services/linkedIdentities/types";
+import { ServicesContainer } from "cfx/base/servicesContainer";
 import { fetcher } from "cfx/utils/fetcher";
 import { serializeQueryString } from "cfx/utils/url";
 import { inject, injectable } from "inversify";
 import { IConvarService } from "../convars/convars.service";
-import { ILinkedIdentity } from "./types";
 import { AwaitableValue } from "cfx/utils/observable";
-
-export const ILinkedIdentitiesService = defineService<ILinkedIdentitiesService>('LinkedIdentitiesService');
-export type ILinkedIdentitiesService = LinkedIdentitiesService;
+import { SingleEventEmitter } from "cfx/utils/singleEventEmitter";
+import { IdentitiesChangeEvent } from "cfx/common/services/linkedIdentities/events";
 
 export function registerLinkedIdentitiesService(container: ServicesContainer) {
   container.registerImpl(ILinkedIdentitiesService, LinkedIdentitiesService);
@@ -17,11 +17,13 @@ export function registerLinkedIdentitiesService(container: ServicesContainer) {
 }
 
 @injectable()
-export class LinkedIdentitiesService implements AppContribution {
+export class LinkedIdentitiesService implements AppContribution, ILinkedIdentitiesService {
   @inject(IConvarService)
   protected readonly convarService: IConvarService;
 
   private hadRockstar = false;
+
+  readonly identitiesChange = new SingleEventEmitter<IdentitiesChangeEvent>();
 
   readonly linkedIdentities = new AwaitableValue<ILinkedIdentity[]>([]);
 
@@ -81,6 +83,7 @@ export class LinkedIdentitiesService implements AppContribution {
       }
 
       this.linkedIdentities.value = linkedIdentities;
+      this.identitiesChange.emit({ linkedIdentities })
     } catch (e) {
       console.warn('Failed to fetch linked identities', e);
     }

@@ -36,6 +36,7 @@ import { ISettingsService, ISettingsUIService } from 'cfx/common/services/settin
 import { IServersBoostService } from 'cfx/common/services/servers/serversBoost.service';
 import { IServersStorageService } from 'cfx/common/services/servers/serversStorage.service';
 import { IServersConnectService } from 'cfx/common/services/servers/serversConnect.service';
+import { GTMAnalyticsProvider } from 'cfx/common/services/analytics/providers/gtm';
 import { Handle404 } from './pages/404';
 import { registerHomeScreenServerList } from './services/servers/list/HomeScreenServerList.service';
 import { registerSentryService } from './services/sentry/sentry.service';
@@ -53,7 +54,9 @@ startBrowserApp({
       SentryLogProvider,
     ]);
 
-    registerAnalyticsService(container, []);
+    registerAnalyticsService(container, [
+      GTMAnalyticsProvider,
+    ]);
 
     registerLegalService(container);
 

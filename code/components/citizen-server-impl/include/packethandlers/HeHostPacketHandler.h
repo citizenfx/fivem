@@ -31,6 +31,10 @@ namespace fx
 		class HeHostPacketHandler
 		{
 		public:
+			HeHostPacketHandler(fx::ServerInstanceBase* instance)
+			{
+			}
+
 			static void Handle(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client, net::Buffer& packet)
 			{
 				if (fx::IsOneSync())

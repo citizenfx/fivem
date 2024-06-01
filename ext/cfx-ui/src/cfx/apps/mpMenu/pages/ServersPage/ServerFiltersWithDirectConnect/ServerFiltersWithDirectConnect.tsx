@@ -15,6 +15,7 @@ import { ServerTitle } from "cfx/common/parts/Server/ServerTitle/ServerTitle";
 import { ServerTileItem } from "cfx/common/parts/Server/ServerTileItem/ServerTileItem";
 import { $L } from "cfx/common/services/intl/l10n";
 import s from './ServerFiltersWithDirectConnect.module.scss';
+import { ElementPlacements } from "cfx/common/services/analytics/types";
 
 export interface ServerFiltersWithDirectConnectProps {
   config: ServerListConfigController,
@@ -105,6 +106,7 @@ const DirectConnect = observer(function DirectConnect(props: DirectConnectProps)
             <ServerTileItem
               hideBanner
               server={server}
+              elementPlacement={ElementPlacements.ServerFiltersWithDirectConnect}
             />
           )}
         </Flex>

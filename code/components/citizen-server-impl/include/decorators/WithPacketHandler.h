@@ -22,7 +22,8 @@ namespace fx
 				{
 					if (!handled && packetId == fx::force_consteval<uint32_t, HashRageString(THandler::GetPacketId())>)
 					{
-						THandler::Handle(server->GetInstance(), client, packet);
+						static THandler handler (server->GetInstance());
+						handler.Handle(server->GetInstance(), client, packet);
 						handled = true;
 					}
 				}(), ...);

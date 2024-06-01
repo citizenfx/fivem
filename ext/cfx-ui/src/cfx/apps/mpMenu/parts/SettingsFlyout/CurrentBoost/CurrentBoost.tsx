@@ -1,5 +1,6 @@
 import { ServerTileItem } from "cfx/common/parts/Server/ServerTileItem/ServerTileItem";
 import { useAccountService } from "cfx/common/services/account/account.service";
+import { ElementPlacements } from "cfx/common/services/analytics/types";
 import { $L } from "cfx/common/services/intl/l10n";
 import { useServersService } from "cfx/common/services/servers/servers.service";
 import { useServersBoostService } from "cfx/common/services/servers/serversBoost.service";
@@ -59,6 +60,7 @@ export const CurrentBoost = observer(function CurrentBoost() {
   return (
     <ServerTileItem
       server={server}
+      elementPlacement={ElementPlacements.Settings}
     />
   );
 });
