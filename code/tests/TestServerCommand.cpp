@@ -41,6 +41,7 @@ TEST_CASE("Server command test")
 	std::string command = "testCommand test";
 	buffer.Write<uint16_t>(command.size()); // command length, unused
 	buffer.Write(command.data(), command.size());
+	buffer.Write<uint32_t>(HashString(command.c_str()));
 	buffer.Reset();
 
 	ServerCommandPacketHandler handler(serverInstance);
@@ -90,6 +91,7 @@ TEST_CASE("Server command not existing test")
 	std::string command = "testCommandNotExisting";
 	buffer.Write<uint16_t>(command.size()); // command length, unused
 	buffer.Write(command.data(), command.size());
+	buffer.Write<uint32_t>(HashString(command.c_str()));
 	buffer.Reset();
 
 	ServerCommandPacketHandler handler(serverInstance);
@@ -141,6 +143,7 @@ TEST_CASE("Server command no access test")
 	std::string command = "testCommandNoAccess";
 	buffer.Write<uint16_t>(command.size()); // command length, unused
 	buffer.Write(command.data(), command.size());
+	buffer.Write<uint32_t>(HashString(command.c_str()));
 	buffer.Reset();
 
 	ServerCommandPacketHandler handler(serverInstance);
@@ -195,6 +198,7 @@ TEST_CASE("Server command wrong argument count test")
 	std::string command = "testCommandWith2Args";
 	buffer.Write<uint16_t>(command.size()); // command length, unused
 	buffer.Write(command.data(), command.size());
+	buffer.Write<uint32_t>(HashString(command.c_str()));
 	buffer.Reset();
 
 	ServerCommandPacketHandler handler(serverInstance);
