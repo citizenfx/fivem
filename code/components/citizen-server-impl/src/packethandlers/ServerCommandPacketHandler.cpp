@@ -1,4 +1,4 @@
-﻿#include "StdInc.h"
+#include "StdInc.h"
 
 #include <ServerInstanceBase.h>
 
@@ -105,6 +105,8 @@ void ServerCommandPacketHandler::Handle(fx::ServerInstanceBase* instance, const 
 
 	gscomms_execute_callback_on_main_thread([this, instance, client, commandName = std::move(commandName)]
 	{
+		auto scope = client->EnterPrincipalScope();
+
 		// save the raw command for fallback usage inside the static variable
 		rawCommand = commandName;
 
