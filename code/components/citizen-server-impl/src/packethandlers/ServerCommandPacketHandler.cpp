@@ -67,16 +67,21 @@ void ServerCommandPacketHandler::Handle(fx::ServerInstanceBase* instance, const 
 
 	// contains the command length
 	// kept for compatibility reasons, can be removed in future net version
-	buffer.Read<uint16_t>();
+	const uint16_t commandLength = buffer.Read<uint16_t>();
 
-	if (!netSizeRateLimiter->Consume(netId, static_cast<double>(buffer.GetRemainingBytes())))
+	if (commandLength > buffer.GetRemainingBytes() - 4)
 	{
-		const auto cmdLen = buffer.GetRemainingBytes();
+		// invalid length provided
+		return;
+	}
+
+	if (!netSizeRateLimiter->Consume(netId, static_cast<double>(commandLength)))
+	{
 		std::string command;
-		if (cmdLen)
+		if (commandLength)
 		{
-			command.resize(cmdLen);
-			buffer.Read(command.data(), cmdLen);
+			command.resize(commandLength);
+			buffer.Read(command.data(), commandLength);
 		}
 		// if this happens, try increasing rateLimiter_netCommandSize_rate and rateLimiter_netCommandSize_burst
 		// preferably, fix client scripts to not have this large a set of server commands with high frequency
@@ -86,15 +91,17 @@ void ServerCommandPacketHandler::Handle(fx::ServerInstanceBase* instance, const 
 		return;
 	}
 
-	const auto cmdLen = buffer.GetRemainingBytes();
-
-	if (cmdLen == 0)
+	if (commandLength == 0)
 	{
 		// skip empty commands
 		return;
 	}
 
-	std::string commandName = std::string(buffer.Read<std::string_view>(cmdLen));
+	std::string commandName = std::string(buffer.Read<std::string_view>(commandLength));
+
+	// the last 4 bytes from the command contain the command name hash
+	// can be removed with a new command endpoint
+	buffer.Read<uint32_t>();
 
 	gscomms_execute_callback_on_main_thread([this, instance, client, commandName = std::move(commandName)]
 	{
