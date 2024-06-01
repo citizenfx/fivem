@@ -1,11 +1,10 @@
-
 local json = require('dkjson')
 
 
 local function printFunctionName(native)
-	return native.name:lower():gsub('0x', 'n_0x'):gsub('_(%a)', string.upper):gsub('(%a)(.+)', function(a, b)
-		return a:upper() .. b
-	end)
+    return native.name:lower():gsub('0x', 'n_0x'):gsub('_(%a)', string.upper):gsub('(%a)(.+)', function(a, b)
+        return a:upper() .. b
+    end)
 end
 
 local function printCName(native)
@@ -13,13 +12,13 @@ local function printCName(native)
 end
 
 local function printCType(t, v)
-	local s = t.name:gsub('Ptr', '*')
+    local s = t.name:gsub('Ptr', '*')
 
-	if v and v.pointer then
-		s = s .. '*'
-	end
+    if v and v.pointer then
+        s = s .. '*'
+    end
 
-	return s
+    return s
 end
 
 local keywords = {
@@ -194,7 +193,7 @@ local function printNative(native)
 
         str = str .. ');\n```\n\n'
 
-        local d = parseDocString(native)
+        local d = parseDocString(native, true)
 
         if d and d.summary then
             d.summary = d.summary:gsub('&gt;', '>'):gsub('&lt;', '<'):gsub('&amp;', '&')
@@ -213,7 +212,7 @@ local function printNative(native)
                         firstIndent = line:match("^%s+")
                     end
 
-                    line = line:gsub(firstIndent or '', '')--:gsub('^-+', '')
+                    line = line:gsub(firstIndent or '', '') --:gsub('^-+', '')
                     str = str .. line .. "  \n"
                 end
 
@@ -231,10 +230,10 @@ local function printNative(native)
 
         if d and d.hasParams then
             for _, v in ipairs(d.params) do
-			    args[v[1]] = v[2]
+                args[v[1]] = v[2]
             end
         end
-    
+
         if #native.arguments > 0 then
             str = str .. '## Parameters\n'
 
