@@ -78,7 +78,7 @@ static InitFunction initFunction([]()
 		return;
 	}
 
-	std::wstring hintsFile = MakeRelativeCitPath(ToWide(fmt::sprintf("data\\cache\\hints_%s.dat", xbr::GetGameBuildIdentifier())));
+	std::wstring hintsFile = MakeRelativeCitPath(ToWide(fmt::sprintf("data\\cache\\hints_%s.dat", xbr::GetCurrentGameBuildString())));
 	FILE* hints = _wfopen(hintsFile.c_str(), L"rb");
 	size_t numHints = 0;
 

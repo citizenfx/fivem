@@ -81,8 +81,6 @@ bool_t bPreferAlpha;
 extern int* udpsocks;
 extern bool_t hasv4;
 
-std::recursive_mutex g_mumbleClientMutex;
-
 void Client_init()
 {
 	maxBandwidth = getIntConf(MAX_BANDWIDTH) / 8; /* From bits/s -> bytes/s */
@@ -110,30 +108,31 @@ int Client_getfds(struct pollfd *pollfds)
 	return 0;
 }
 
-bool Client_is_player_muted(int serverId)
+// #TODO: Have servers create ETW traces of the two player_muted functions being
+// used. In the worst case we are facing N calls to strncmp (previously strstr),
+// and this is incredibly inefficient.
+bool Client_is_player_muted(const char *namePrefix, size_t len)
 {
-	auto convertedServerId = fmt::sprintf("[%d]", serverId);
 	struct dlist *itr, *save;
 	list_iterate_safe(itr, save, &clients)
 	{
 		client_t* c;
 		c = list_get_entry(itr, client_t, node);
-		if (c->username && strstr(c->username, convertedServerId.c_str()))
+		if (c->username && strncmp(c->username, namePrefix, len) == 0)
 		{
 			return c->mute;
 		}
 	}
 }
 
-void Client_set_player_muted(int serverId, bool muted)
+void Client_set_player_muted(const char *namePrefix, size_t len, bool muted)
 {
-	auto convertedServerId = fmt::sprintf("[%d]", serverId);
 	struct dlist *itr, *save;
 	list_iterate_safe(itr, save, &clients)
 	{
 		client_t* c;
 		c = list_get_entry(itr, client_t, node);
-		if (c->username && strstr(c->username, convertedServerId.c_str())) {
+		if (c->username && strncmp(c->username, namePrefix, len) == 0) {
 			c->mute = muted;
 			break;
 		}
@@ -142,8 +141,6 @@ void Client_set_player_muted(int serverId, bool muted)
 
 void Client_janitor()
 {
-	std::unique_lock<std::recursive_mutex> lock(g_mumbleClientMutex);
-
 	struct dlist *itr, *save;
 	int bwTop = maxBandwidth + maxBandwidth / 4;
 	list_iterate_safe(itr, save, &clients) {
@@ -422,15 +419,11 @@ int Client_add(fwRefContainer<net::TcpServerStream> stream, client_t** client)
 	return 0;
 }
 
-extern void Server_onFree(client_t* client);
-
 void Client_free(client_t *client)
 {
 	struct dlist *itr, *save;
 	message_t *sendmsg;
 	bool_t authenticatedLeft = client->authenticated;
-
-	Server_onFree(client);
 
 	if (client->authenticated) {
 		int leave_id;

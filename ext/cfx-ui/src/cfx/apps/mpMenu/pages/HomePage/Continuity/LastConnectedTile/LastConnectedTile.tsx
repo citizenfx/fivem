@@ -6,6 +6,7 @@ import { Text } from "cfx/ui/Text/Text";
 import { useOpenFlag } from "cfx/utils/hooks";
 import { observer } from "mobx-react-lite";
 import s from './LastConnectedTile.module.scss';
+import { ElementPlacements } from "cfx/common/services/analytics/types";
 
 export const LastConnectedTile = observer(function LastConnectedTile() {
   const [warningHidden, hide] = useOpenFlag(false);
@@ -32,6 +33,7 @@ export const LastConnectedTile = observer(function LastConnectedTile() {
         hideBoost
         label={label}
         server={server}
+        elementPlacement={ElementPlacements.LastConnected}
       />
 
       {showStreamerWarning && (

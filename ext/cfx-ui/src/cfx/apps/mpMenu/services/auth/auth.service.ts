@@ -5,6 +5,7 @@ import { defineService, ServicesContainer, useService } from "cfx/base/servicesC
 import { createEnumChecker } from "cfx/utils/enum";
 import { inject, injectable, optional } from "inversify";
 import { makeAutoObservable } from "mobx";
+import { ElementPlacements, EventActionNames } from "cfx/common/services/analytics/types";
 
 export const IAuthService = defineService<IAuthService>('AuthService');
 export type IAuthService = AuthService;
@@ -121,19 +122,13 @@ export class AuthService {
       return;
     }
 
-    let action = 'Closed';
-    const properties = {
-      category: 'AuthModal',
-      label: authFormModeToAnalyticsLabel[this._authFormMode],
-    };
-
-    if (ignored) {
-      action = 'ClosedAndIgnored';
-    }
-
     this.analyticsService.trackEvent({
-      action,
-      properties,
+      action: EventActionNames.CTAOther,
+      properties: {
+        element_placement: ElementPlacements.AuthModal,
+        text: `Closed ${ignored ? 'And Ignored' : ''} ${authFormModeToAnalyticsLabel[this._authFormMode]}`,
+        link_url: '',
+      },
     });
   }
 }

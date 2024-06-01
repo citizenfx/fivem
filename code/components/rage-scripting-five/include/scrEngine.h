@@ -70,6 +70,9 @@ public:
 	// queues the registration of a custom native function handler with an identifier
 	static void RegisterNativeHandler(uint64_t nativeIdentifier, NativeHandler handler);
 	
+	// queues the registration of a custom native function handler that revives a removed identifier
+	static void ReviveNativeHandler(uint64_t nativeIdentifier, NativeHandler handler);
+
 public:
 	static fwEvent<> OnScriptInit;
 

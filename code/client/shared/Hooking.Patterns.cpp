@@ -149,7 +149,7 @@ static void Citizen_PatternSaveHint(uint64_t hash, uintptr_t hint)
 		return;
 	}
 
-	fwPlatformString hintsFile = MakeRelativeCitPath(ToWide(fmt::sprintf("data\\cache\\hints_%s.dat", xbr::GetGameBuildIdentifier())));
+	fwPlatformString hintsFile = MakeRelativeCitPath(ToWide(fmt::sprintf("data\\cache\\hints_%s.dat", xbr::GetCurrentGameBuildString())));
 	FILE* hints = _pfopen(hintsFile.c_str(), _P("ab"));
 
 	if (hints)

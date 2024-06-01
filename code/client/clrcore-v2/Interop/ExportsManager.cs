@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Security;
 using System.Runtime.CompilerServices;
 using CitizenFX.Core.Native;
+using CitizenFX.MsgPack;
 
 namespace CitizenFX.Core
 {
@@ -12,7 +13,7 @@ namespace CitizenFX.Core
 	{
 		internal static string ExportPrefix { get; private set; }
 
-		private static Dictionary<string, Tuple<DynFunc, Binding>> s_exports = new Dictionary<string, Tuple<DynFunc, Binding>>();
+		private static Dictionary<string, Tuple<MsgPackFunc, Binding>> s_exports = new Dictionary<string, Tuple<MsgPackFunc, Binding>>();
 
 		internal static void Initialize(string resourceName)
 		{
@@ -20,12 +21,11 @@ namespace CitizenFX.Core
 		}
 
 		[SecuritySafeCritical]
-		internal static unsafe bool IncomingRequest(string eventName, string sourceString, Binding origin, byte* argsSerialized, int serializedSize, ref object[] args)
+		internal static unsafe bool IncomingRequest(string eventName, string sourceString, Binding origin, byte* argsSerialized, int serializedSize)
 		{
 			if (s_exports.TryGetValue(eventName, out var export) && (export.Item2 & origin) != 0)
 			{
-				if (args == null)
-					args = MsgPackDeserializer.DeserializeArray(argsSerialized, serializedSize, origin == Binding.Remote ? sourceString : null);
+				object[] args = MsgPackDeserializer.DeserializeAsObjectArray(argsSerialized, serializedSize, origin == Binding.Remote ? sourceString : null);
 
 				if (origin == Binding.Local)
 				{
@@ -33,6 +33,7 @@ namespace CitizenFX.Core
 					if (args[0] is Callback cb)
 						cb.Invoke(export.Item1);
 				}
+#if REMOTE_FUNCTION_ENABLED
 				else // REMOTE export request
 				{
 					if (args.Length > 3
@@ -90,6 +91,7 @@ namespace CitizenFX.Core
 						}
 					}
 				}
+#endif
 
 				return true;
 			}
@@ -144,7 +146,7 @@ namespace CitizenFX.Core
 		}
 
 		[SecuritySafeCritical]
-		internal static bool AddExportHandler(string name, DynFunc method, Binding ports = Binding.Local)
+		internal static bool AddExportHandler(string name, MsgPackFunc method, Binding ports = Binding.Local)
 		{
 #if !REMOTE_FUNCTION_ENABLED
 			if (ports == Binding.Remote)
@@ -157,7 +159,7 @@ namespace CitizenFX.Core
 			string eventName = CreateCurrentResourceFullExportName(name);
 			if (!s_exports.ContainsKey(eventName))
 			{
-				s_exports.Add(eventName, new Tuple<DynFunc, Binding>(method, ports));
+				s_exports.Add(eventName, new Tuple<MsgPackFunc, Binding>(method, ports));
 				CoreNatives.RegisterResourceAsEventHandler(eventName);
 
 				return true;

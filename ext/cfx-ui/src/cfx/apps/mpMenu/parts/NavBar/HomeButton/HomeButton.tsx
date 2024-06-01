@@ -8,6 +8,8 @@ import { clsx } from "cfx/utils/clsx";
 import { CurrentGameName } from "cfx/base/gameRuntime";
 import { $L } from "cfx/common/services/intl/l10n";
 import s from './HomeButton.module.scss';
+import { useEventHandler } from "cfx/common/services/analytics/analytics.service";
+import { EventActionNames, ElementPlacements } from "cfx/common/services/analytics/types";
 
 const titles = [
   'Home', // Unused, we're using localized version for this one
@@ -28,10 +30,20 @@ const titles = [
 
 export const HomeButton = observer(function HomeButton() {
   const [index, setIndex] = React.useState(0);
+  const eventHandler = useEventHandler();
 
-  const resetRef = React.useRef(undefined);
+  const resetRef = React.useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  const handleClick = () => {
+  const handleGTMSiteNavEvent = React.useCallback(() => {
+    eventHandler({ action: EventActionNames.SiteNavClick, properties: {
+      text: '#BottomNav_Home',
+      link_url: '/',
+      element_placement: ElementPlacements.Nav,
+      position: 0,
+    }});
+  }, [eventHandler]);
+
+  const handleClick = React.useCallback(() => {
     let newIndex = index + 1;
     if (newIndex > titles.length - 1) {
       newIndex = 0;
@@ -45,8 +57,10 @@ export const HomeButton = observer(function HomeButton() {
 
     resetRef.current = setTimeout(() => {
       setIndex(0);
-    }, 2000) as any;
-  };
+    }, 2000);
+
+    handleGTMSiteNavEvent();
+  }, [index, handleGTMSiteNavEvent]);
 
   const location = useLocation();
 

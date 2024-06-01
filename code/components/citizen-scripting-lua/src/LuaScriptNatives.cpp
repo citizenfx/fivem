@@ -1484,8 +1484,10 @@ struct LuaNativeContext
 #endif
 
 #if INCLUDE_FXV2_NATIVES
-#if !defined(IS_FXSERVER) && defined(GTA_FIVE)
+#if defined(GTA_FIVE)
 #include "Natives.h"
+#elif defined(IS_RDR3)
+#include "NativesRDR.h"
 #elif defined(IS_FXSERVER)
 #include "NativesServer.h"
 #endif
@@ -1493,7 +1495,7 @@ struct LuaNativeContext
 
 LUA_SCRIPT_LINKAGE lua_CFunction Lua_GetNative(lua_State* L, const char* name)
 {
-#if INCLUDE_FXV2_NATIVES && (defined(GTA_FIVE) || defined(IS_FXSERVER))
+#if INCLUDE_FXV2_NATIVES && !defined(GTA_NY)
 	auto it = natives.find(name);
 	return (it != natives.end()) ? it->second : nullptr;
 #else

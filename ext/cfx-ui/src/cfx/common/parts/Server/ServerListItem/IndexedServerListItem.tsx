@@ -3,6 +3,7 @@ import { IServersList } from "cfx/common/services/servers/lists/types";
 import { IServersService } from "cfx/common/services/servers/servers.service";
 import { observer } from "mobx-react-lite";
 import { ServerListItem, ServerListItemProps } from "./ServerListItem";
+import { ElementPlacements } from "cfx/common/services/analytics/types";
 
 export type IndexedServerListItemProps = Omit<ServerListItemProps, 'server' | 'pinned'> & {
   list: IServersList,
@@ -33,6 +34,7 @@ export const IndexedServerListItem = observer(function IndexedServerListItem(pro
       {...rest}
       pinned={pinned}
       server={server}
+      elementPlacement={ElementPlacements.ServerList}
     />
   );
 });
