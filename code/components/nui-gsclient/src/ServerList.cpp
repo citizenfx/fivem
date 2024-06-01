@@ -88,7 +88,7 @@ void RequestInfoBlob(const std::string& server, const TFunc& cb)
 		rapidjson::Document doc;
 		doc.Parse(data, length);
 
-		if (!doc.HasParseError())
+		if (!doc.HasParseError() && doc.IsObject())
 		{
 			auto member = doc.FindMember("version");
 
@@ -140,7 +140,7 @@ void LoadInfoBlob(const std::string& server, int expectedVersion, const TFunc& c
 		rapidjson::Document doc;
 		doc.Parse(blob.data(), blob.size());
 
-		if (!doc.HasParseError())
+		if (!doc.HasParseError() && doc.IsObject())
 		{
 			auto member = doc.FindMember("version");
 
