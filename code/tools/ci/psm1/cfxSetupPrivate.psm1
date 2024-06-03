@@ -24,6 +24,9 @@ function Invoke-CfxSetupPrivate {
 
         if (Test-Path "$($Context.PrivateRoot)\.git") {
             Push-Location $Context.PrivateRoot
+                git remote set-url origin $privateUri | Out-Null
+                Test-LastExitCode "Failed to set origin url for private"
+
                 git fetch origin | Out-Null
                 Test-LastExitCode "Failed to fetch private"
 
