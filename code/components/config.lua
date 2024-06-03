@@ -72,6 +72,7 @@ else
 end
 
 component 'net-base'
+component 'net-packet'
 component 'net-tcp-server'
 component 'net-http-server'
 

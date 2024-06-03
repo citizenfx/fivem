@@ -1,5 +1,6 @@
 [
   "net:base",
+  "net:packet",
   "net:tcp-server",
   "net:http-server",
   "citizen:server:net",
