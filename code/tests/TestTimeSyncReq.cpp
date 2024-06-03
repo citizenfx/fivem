@@ -40,7 +40,7 @@ namespace fx
 
 TEST_CASE("time sync request handler test")
 {
-	REQUIRE(TimeSyncReqPacketHandler::GetPacketId() == "msgTimeSyncReq");
+	REQUIRE(std::string(TimeSyncReqPacketHandler::GetPacketId()) == "msgTimeSyncReq");
 	REQUIRE(HashRageString(TimeSyncReqPacketHandler::GetPacketId()) == 0x1c1303f8);
 
 	fx::ServerInstanceBase* serverInstance = ServerInstance::Create();
