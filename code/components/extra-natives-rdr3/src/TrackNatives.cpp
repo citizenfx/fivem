@@ -10,10 +10,10 @@
 #include <ResourceMetaDataComponent.h>
 #include <VFSManager.h>
 
-#define MAX_TRACKS 50
-#define DEFAULT_TRACK_FILE  "common:/data/levels/rdr3/traintracks.xml"
+constexpr uint8_t TRAIN_TRACK_MAX = 50;
+constexpr char DEFAULT_TRACKS_XML[] = "common:/data/levels/rdr3/traintracks.xml";
 
-struct sTrainTrack
+struct CTrainTrack
 {
 	bool bEnabled;
 	bool bOpen;
@@ -31,27 +31,29 @@ struct sTrainTrack
 	char Padding[0x1244];
 };
 
-// Pointer to the main train tracks array. Fixed-sized array of size 50.
-static sTrainTrack* g_trainTracks;
-// Pointer to the number of loaded tracks in the main tracks array.
-static int* g_trainTrackCount;
+struct CTrainTrackPool
+{
+	CTrainTrack Tracks[TRAIN_TRACK_MAX];
+	uint32_t Count;
+};
 
+static CTrainTrackPool* g_trainTracksPool;
 std::mutex g_loaderLock;
 
 // Internal function that loads the XML file at the given path into the given tracks array.
-static hook::cdecl_stub<void(const char* path, sTrainTrack* tracksArray)> _loadTracks([]()
+static hook::cdecl_stub<void(const char* path, CTrainTrackPool* tracksPool)> _loadTracks([]()
 {
 	return hook::get_call(hook::get_pattern("48 8D 15 ? ? ? ? 49 8B C9 E8 ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8D 0D", 10));
 });
 
 // Internal function that does some post-processing on the given tracks array; primarily for setting up junctions?
-static hook::cdecl_stub<void(sTrainTrack* tracksArray)> _postProcessTracks1([]()
+static hook::cdecl_stub<void(CTrainTrackPool* tracksPool)> _postProcessTracks1([]()
 {
 	return hook::get_pattern("48 89 4C 24 ? 53 55 56 57 41 54 41 55 41 56 41 57 48 63 99");
 });
 
 // Internal function that does some post-processing on the given tracks array; purpose not clear.
-static hook::cdecl_stub<void(sTrainTrack* tracksArray)> _postProcessTracks2([]()
+static hook::cdecl_stub<void(CTrainTrackPool* tracksPool)> _postProcessTracks2([]()
 {
 	return hook::get_pattern("48 89 4C 24 ? 53 55 56 57 41 54 41 55 41 56 41 57 48 83 EC ? 8B 81");
 });
@@ -68,34 +70,36 @@ static hook::cdecl_stub<void()> _unloadTracks([]()
 	);
 });
 
+// Loads tracks from the given file path. If the path is nullptr, the game's default tracks are loaded instead.
 void LoadTracks(const char* path)
 {
 	if (path != nullptr)
 	{
-		_loadTracks(path, g_trainTracks);
+		_loadTracks(path, g_trainTracksPool);
 	}
 	else
 	{
-		_loadTracks(DEFAULT_TRACK_FILE, g_trainTracks);
+		_loadTracks(DEFAULT_TRACKS_XML, g_trainTracksPool);
 	}
 
-	_postProcessTracks1(g_trainTracks);
-	_postProcessTracks2(g_trainTracks);
+	_postProcessTracks1(g_trainTracksPool);
+	_postProcessTracks2(g_trainTracksPool);
 }
 
 static HookFunction trackNativesFunc([]()
 {
-	g_trainTracks = hook::get_address<sTrainTrack*>(hook::get_pattern("48 8D 15 ? ? ? ? 49 8B C9 E8 ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8D 0D", 3));
-	g_trainTrackCount = hook::get_address<int*>(hook::get_pattern("8B 05 ? ? ? ? 89 75 ? 89 45", 2));
+	g_trainTracksPool = hook::get_address<CTrainTrackPool*>(hook::get_pattern("48 8D 15 ? ? ? ? 49 8B C9 E8 ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8D 0D", 3));
 
+	// Returns the number of loaded tracks.
 	fx::ScriptEngine::RegisterNativeHandler("GET_TRACK_COUNT", [](fx::ScriptContext& scriptContext)
 	{
-		scriptContext.SetResult<int>(*g_trainTrackCount);
+		scriptContext.SetResult<int>(g_trainTracksPool->Count);
 	});
 
+	// Returns the name hash of the track with the given index, or 0 if the index is outside the bounds of the track pool.
 	fx::ScriptEngine::RegisterNativeHandler("GET_TRACK_FROM_INDEX", [](fx::ScriptContext& scriptContext)
 	{
-		int trackCount = *g_trainTrackCount;
+		int trackCount = g_trainTracksPool->Count;
 		int targetIdx = scriptContext.GetArgument<int>(0);
 
 		if (trackCount == 0 || targetIdx >= trackCount)
@@ -104,10 +108,11 @@ static HookFunction trackNativesFunc([]()
 		}
 		else
 		{
-			scriptContext.SetResult<int>(g_trainTracks[targetIdx].NameHash);
+			scriptContext.SetResult<int>(g_trainTracksPool->Tracks[targetIdx].NameHash);
 		}
 	});
 
+	// Unloads the currently loaded tracks and replaces them with tracks loaded from a specified resource file.
 	fx::ScriptEngine::RegisterNativeHandler("LOAD_TRACKS_FROM_FILE", [](fx::ScriptContext& scriptContext)
 	{
 		fx::ResourceManager* resourceManager = fx::ResourceManager::GetCurrent();
@@ -147,6 +152,7 @@ static HookFunction trackNativesFunc([]()
 		scriptContext.SetResult(true);
 	});
 
+	// Reset tracks to default state when the client has disconnected from a server.
 	OnKillNetworkDone.Connect([]()
 	{
 		std::lock_guard _(g_loaderLock);

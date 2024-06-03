@@ -4,16 +4,11 @@
 #include "Hooking.Stubs.h"
 
 //
-// When the game loads junctions for train tracks, it will construct the junction with default values. Only later,
-// when all the tracks have been loaded, does it set up the actual connections between the junctions that
-// allow trains to utilize them. If a junction doesn't refer to an existing track, the post-processing function rightly
-// ignores it and leaves it with its default values. However, custom train tracks have revealed a flaw with this:
-// if a train attempts to interact with a junction that was ignored during post-processing, a crash occurs as the train
-// attempts to use its invalid data to determine what track it should switch to.
+// This file patches a few crashes that can occur when using the LOAD_TRACKS_FROM_FILE custom native:
 // 
-// The solution presented below intercepts the original PostProcessJunctions() function. It checks the junctions that
-// were loaded from the track files, and removes those that do not refer to a valid track. The game is then allowed
-// to proceed into the original version of the function to continue setting up the junction data.
+// * Track junctions pointing to invalid tracks will now be deleted after the tracks XML is loaded.
+// * The base-game native CREATE_MISSION_TRAIN will now fail to create a train if the client it is executed on has no tracks loaded.
+// * The base game only has dedicated space for 50 total track objects; the track loading loop will now exit once the pool reaches that maximum.
 //
 
 constexpr uint8_t NODE_FLAG_JUNCTION = 0x08;
@@ -21,7 +16,7 @@ constexpr uint8_t NODE_FLAG_0x10 = 0x10;
 constexpr uint8_t JUNCTION_MAX = 20;
 constexpr uint8_t TRAIN_TRACK_MAX = 50;
 
-struct sTrainTrackJunction
+struct CTrainTrackJunction
 {
 	char Padding[0x08];
 	uint32_t NodeIndex;
@@ -32,20 +27,20 @@ struct sTrainTrackJunction
 	char Padding4[0x1C];
 };
 
-struct sTrainTrackJunctionPool
+struct CTrainTrackJunctionPool
 {
-	sTrainTrackJunction Junctions[JUNCTION_MAX];
+	CTrainTrackJunction Junctions[JUNCTION_MAX];
 	uint32_t Count;
 };
 
-struct sTrainTrackNode
+struct CTrainTrackNode
 {
 	uint64_t VTable;
 	uint8_t Flags;
 	uint8_t Padding[0x27];
 };
 
-struct sTrainTrack
+struct CTrainTrack
 {
 	bool bEnabled;
 	bool bOpen;
@@ -62,24 +57,23 @@ struct sTrainTrack
 
 	uint32_t m001C;
 
-	sTrainTrackNode** NodePtrs;
+	CTrainTrackNode** NodePtrs;
 
 	char Padding[0x290];
-	sTrainTrackJunctionPool Junctions;
+	CTrainTrackJunctionPool Junctions;
 	char Padding2[0x960];
 };
 
-struct sTrainTrackPool
+struct CTrainTrackPool
 {
-	sTrainTrack Tracks[TRAIN_TRACK_MAX];
+	CTrainTrack Tracks[TRAIN_TRACK_MAX];
 	uint32_t Count;
 };
 
-// Pointer to the train tracks pool.
-static sTrainTrackPool* g_trainTrackPool;
+static CTrainTrackPool* g_trainTrackPool;
 
 // Pointer to the original function that sets up track junctions.
-static void (*g_origPostProcessJunctions)(sTrainTrackPool*);
+static void (*g_origPostProcessJunctions)(CTrainTrackPool*);
 // Internal function for spawning a train as a mission vehicle.
 static int64_t (*g_origCreateMissionTrain)(uint32_t, float*, bool, bool, bool, bool);
 
@@ -89,17 +83,17 @@ static hook::cdecl_stub<int8_t(uint32_t)> _getTrackIndexFromHash([]()
 	return hook::get_pattern("44 8B 0D ? ? ? ? 45 32 C0");
 });
 
-static void PostProcessJunctions(sTrainTrackPool* tracks)
+static void PostProcessJunctions(CTrainTrackPool* tracks)
 {
 	for (uint32_t trk = 0; trk < tracks->Count; trk++)
 	{
-		sTrainTrack& curTrack = tracks->Tracks[trk];
+		CTrainTrack& curTrack = tracks->Tracks[trk];
 		for (uint32_t jct = 0; jct < curTrack.Junctions.Count; jct++)
 		{
-			sTrainTrackJunction& curJunct = curTrack.Junctions.Junctions[jct];
+			CTrainTrackJunction& curJunct = curTrack.Junctions.Junctions[jct];
 			if (_getTrackIndexFromHash(curJunct.TrackNameHash) == -1)
 			{
-				trace("Removing junction %i from track %i (Unknown track name %X)\n", jct, trk, curJunct.TrackNameHash);
+				trace("Removing junction %i from track %i - unknown track name 0x%X.\n", jct, trk, curJunct.TrackNameHash);
 
 				// Clear the flags marking this node as a junction; not doing this causes the game to hang!
 				curTrack.NodePtrs[curJunct.NodeIndex]->Flags &= ~(NODE_FLAG_0x10 | NODE_FLAG_JUNCTION);
@@ -107,12 +101,13 @@ static void PostProcessJunctions(sTrainTrackPool* tracks)
 				// Move all the junctions down one slot in the array (and adjust their internal indices).
 				for (uint32_t rmv = jct; rmv < curTrack.Junctions.Count - 1; rmv++)
 				{
-					memcpy(&curTrack.Junctions.Junctions[rmv], &curTrack.Junctions.Junctions[rmv + 1], sizeof(sTrainTrackJunction));
+					memcpy(&curTrack.Junctions.Junctions[rmv], &curTrack.Junctions.Junctions[rmv + 1], sizeof(CTrainTrackJunction));
 					curTrack.Junctions.Junctions[rmv].Index--;
 				}
 
 				// Clear the now-unreferenced junction at the end of the array, just to be tidy.
-				memset(&curTrack.Junctions.Junctions[curTrack.Junctions.Count - 1], 0, sizeof(sTrainTrackJunction));
+				memset(&curTrack.Junctions.Junctions[curTrack.Junctions.Count - 1], 0, sizeof(CTrainTrackJunction));
+
 				curTrack.Junctions.Count--;
 				jct--;
 
@@ -133,7 +128,7 @@ static int64_t CreateMissionTrain(uint32_t config, float* position, bool directi
 {
 	if (g_trainTrackPool->Count == 0)
 	{
-		trace("CreateMissionTrain() failed: Track pool is empty!\n");
+		trace("CreateMissionTrain() failed - track pool is empty!\n");
 		return 0;
 	}
 
@@ -144,7 +139,7 @@ static bool IsTrackPoolFull()
 {
 	if (g_trainTrackPool->Count >= TRAIN_TRACK_MAX)
 	{
-		trace("Track pool is full, no more tracks can be loaded. (Count: %i)\n", g_trainTrackPool->Count);
+		trace("Track pool is full - no more tracks can be loaded.\n");
 		return false;
 	}
 
@@ -153,7 +148,7 @@ static bool IsTrackPoolFull()
 
 static HookFunction hookFunction([]()
 {
-	g_trainTrackPool = hook::get_address<sTrainTrackPool*>(hook::get_pattern("48 8D 15 ? ? ? ? 49 8B C9 E8 ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8D 0D", 3));
+	g_trainTrackPool = hook::get_address<CTrainTrackPool*>(hook::get_pattern("48 8D 15 ? ? ? ? 49 8B C9 E8 ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8D 0D", 3));
 
 	// Fixes crash with junctions that point to invalid tracks
 	{
@@ -207,7 +202,7 @@ static HookFunction hookFunction([]()
 
 		// Grab the offset of the body loop from jnz.
 		int32_t loopBodyPos = *(int32_t*)(location + 5);
-		// loopBodyPos is relative to the end of jnz, which is test + jnz (3 + 6 bytes).
+		// loopBodyPos is relative to the end of jnz, which is at location + test + jnz (location + 3 + 6 bytes).
 		const auto successPtr = reinterpret_cast<intptr_t>(location) + 9 + loopBodyPos;
 
 		// Skip the original test + jnz instructions.
