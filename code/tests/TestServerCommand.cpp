@@ -7,16 +7,22 @@
 #include "ServerEventComponent.h"
 #include "ServerEventComponentInstance.h"
 #include "ServerInstance.h"
+#include "ResourceEventComponent.h"
+#include "ResourceManager.h"
+#include "ResourceManagerInstance.h"
 #include "packethandlers/ServerCommandPacketHandler.h"
 
 #include "TestUtils.h"
 
 TEST_CASE("Server command test")
 {
-	REQUIRE(ServerCommandPacketHandler::GetPacketId() == "msgServerCommand");
+	REQUIRE(std::string(ServerCommandPacketHandler::GetPacketId()) == "msgServerCommand");
 
 	fx::ServerInstanceBase* serverInstance = ServerInstance::Create();
 	serverInstance->SetComponent(new fx::ClientRegistry());
+	serverInstance->SetComponent<fx::ResourceManager>(fx::ResourceManagerInstance::Create());
+	serverInstance->GetComponent<fx::ResourceManager>()->SetComponent<fx::ResourceEventManagerComponent>(
+		new fx::ResourceEventManagerComponent());
 	serverInstance->SetComponent<console::Context>(ConsoleContextInstance::Get());
 	serverInstance->SetComponent(new fx::ServerEventComponent());
 	// create client with privileges
@@ -30,7 +36,7 @@ TEST_CASE("Server command test")
 
 	auto principalScope = client->EnterPrincipalScope();
 
-	ConsoleCommand testCommand(ConsoleContextInstance::Get(), "testCommand",
+	ConsoleCommand testCommand(serverInstance->GetComponent<console::Context>().GetRef(), "testCommand",
 	                           [=](const std::string& echo)
 	                           {
 		                           REQUIRE(echo == "test");
@@ -69,10 +75,13 @@ TEST_CASE("Server command test")
 
 TEST_CASE("Server command not existing test")
 {
-	REQUIRE(ServerCommandPacketHandler::GetPacketId() == "msgServerCommand");
+	REQUIRE(std::string(ServerCommandPacketHandler::GetPacketId()) == "msgServerCommand");
 
 	fx::ServerInstanceBase* serverInstance = ServerInstance::Create();
 	serverInstance->SetComponent(new fx::ClientRegistry());
+	serverInstance->SetComponent<fx::ResourceManager>(fx::ResourceManagerInstance::Create());
+	serverInstance->GetComponent<fx::ResourceManager>()->SetComponent<fx::ResourceEventManagerComponent>(
+		new fx::ResourceEventManagerComponent());
 	serverInstance->SetComponent<console::Context>(ConsoleContextInstance::Get());
 	serverInstance->SetComponent(new fx::ServerEventComponent());
 	// create client with privileges
@@ -121,10 +130,13 @@ TEST_CASE("Server command not existing test")
 
 TEST_CASE("Server command no access test")
 {
-	REQUIRE(ServerCommandPacketHandler::GetPacketId() == "msgServerCommand");
+	REQUIRE(std::string(ServerCommandPacketHandler::GetPacketId()) == "msgServerCommand");
 
 	fx::ServerInstanceBase* serverInstance = ServerInstance::Create();
 	serverInstance->SetComponent(new fx::ClientRegistry());
+	serverInstance->SetComponent<fx::ResourceManager>(fx::ResourceManagerInstance::Create());
+	serverInstance->GetComponent<fx::ResourceManager>()->SetComponent<fx::ResourceEventManagerComponent>(
+		new fx::ResourceEventManagerComponent());
 	serverInstance->SetComponent<console::Context>(ConsoleContextInstance::Get());
 	serverInstance->SetComponent(new fx::ServerEventComponent());
 	// create client with privileges
@@ -132,7 +144,7 @@ TEST_CASE("Server command no access test")
 
 	auto principalScope = client->EnterPrincipalScope();
 
-	ConsoleCommand testCommandNoAccess(ConsoleContextInstance::Get(), "testCommandNoAccess",
+	ConsoleCommand testCommandNoAccess(serverInstance->GetComponent<console::Context>().GetRef(), "testCommandNoAccess",
 	                                   [=](const std::string& echo)
 	                                   {
 	                                   });
@@ -169,10 +181,13 @@ TEST_CASE("Server command no access test")
 
 TEST_CASE("Server command wrong argument count test")
 {
-	REQUIRE(ServerCommandPacketHandler::GetPacketId() == "msgServerCommand");
+	REQUIRE(std::string(ServerCommandPacketHandler::GetPacketId()) == "msgServerCommand");
 
 	fx::ServerInstanceBase* serverInstance = ServerInstance::Create();
 	serverInstance->SetComponent(new fx::ClientRegistry());
+	serverInstance->SetComponent<fx::ResourceManager>(fx::ResourceManagerInstance::Create());
+	serverInstance->GetComponent<fx::ResourceManager>()->SetComponent<fx::ResourceEventManagerComponent>(
+		new fx::ResourceEventManagerComponent());
 	serverInstance->SetComponent<console::Context>(ConsoleContextInstance::Get());
 	serverInstance->SetComponent(new fx::ServerEventComponent());
 	// create client with privileges
@@ -186,7 +201,7 @@ TEST_CASE("Server command wrong argument count test")
 		se::AccessType::Allow
 	);
 
-	ConsoleCommand testCommandWith2Args(ConsoleContextInstance::Get(), "testCommandWith2Args",
+	ConsoleCommand testCommandWith2Args(serverInstance->GetComponent<console::Context>().GetRef(), "testCommandWith2Args",
 	                                    [=](const std::string& p1, const std::string& p2)
 	                                    {
 	                                    });

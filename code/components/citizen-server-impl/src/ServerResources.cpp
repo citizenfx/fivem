@@ -742,21 +742,6 @@ static InitFunction initFunction([]()
 			ScanResources(instance);
 		});
 
-		instance->GetComponent<console::Context>()->GetCommandManager()->FallbackEvent.Connect([](const std::string& commandName, const ProgramArguments& arguments, const std::string& context)
-		{
-			auto resourceManager = fx::ResourceManager::GetCurrent();
-			auto eventComponent = resourceManager->GetComponent<fx::ResourceEventManagerComponent>();
-
-			// assert privilege
-			if (!seCheckPrivilege(fmt::sprintf("command.%s", commandName)))
-			{
-				return true;
-			}
-
-			// if canceled, the command was handled, so cancel the fwEvent
-			return (eventComponent->TriggerEvent2("rconCommand", {}, commandName, arguments.GetArguments()));
-		}, -100);
-
 		auto gameServer = instance->GetComponent<fx::GameServer>();
 
 		gameServer->OnTick.Connect([=]()

@@ -53,7 +53,7 @@ TEST_CASE("Routing handler test")
 {
 	fx::SetOneSyncGetCallback([] { return true; });
 
-	REQUIRE(RoutingPacketHandler::GetPacketId() == "msgRoute");
+	REQUIRE(std::string(RoutingPacketHandler::GetPacketId()) == "msgRoute");
 	REQUIRE(HashRageString(RoutingPacketHandler::GetPacketId()) == 0xE938445B);
 	// test is only implemented for onesync
 	REQUIRE(fx::IsOneSync() == true);
