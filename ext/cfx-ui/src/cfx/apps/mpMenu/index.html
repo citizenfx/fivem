@@ -7,13 +7,17 @@
   <title>CFX UI</title>
 
   <script type="text/javascript">
-    window.dataLayer = window.dataLayer || [];
-  </script>
-  <script type="text/javascript">
     <%= (isProd || isWithGtm) ? require('assets/scripts/gtm.raw.js') : '' %>
   </script>
+
   <script type="text/javascript">
-    <%= (isProd || isWithGtm) ? require('assets/scripts/gtag.raw.js') : '' %>
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({
+      event: 'appStart',
+      game: nuiTargetGame === 'gta5'
+        ? 'FiveM - prod'
+        : 'RedM - prod',
+    });
   </script>
 
   <style>
