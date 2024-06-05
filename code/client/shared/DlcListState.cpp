@@ -2,10 +2,9 @@
 
 #include <CfxState.h>
 #include <fmt/printf.h>
+#include <Utils.h>
 
 #include <cassert>
-#include <codecvt>
-#include <locale>
 #include <optional>
 #include <set>
 #include <string>
@@ -60,9 +59,7 @@ namespace fx
             size_t dlcListEndIndex = cli.find_first_of(L"\"", dlcListStartIndex + 1);
             assert(dlcListStartIndex != std::wstring_view::npos && dlcListEndIndex != std::wstring_view::npos);
 
-            std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
-            std::string dlcList = converter.to_bytes(std::wstring(cli.begin() + dlcListStartIndex + 1, cli.begin() + dlcListEndIndex));
-
+            std::string dlcList = ToNarrow(cli.substr(dlcListStartIndex + 1, dlcListEndIndex - dlcListStartIndex - 1));
             dlcSet = _ParseDlcSet(dlcList);
             return dlcSet.value();
         }
@@ -94,8 +91,7 @@ namespace fx
                 return L"";
             }
 
-            std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
-            return fmt::sprintf(L"%s \"%s\"", isAllowList ? DCL_ALLOW_LIST_FLAG : DCL_BLOCK_LIST_FLAG, converter.from_bytes(newList));
+            return fmt::sprintf(L"%s \"%s\"", isAllowList ? DCL_ALLOW_LIST_FLAG : DCL_BLOCK_LIST_FLAG, ToWide(newList));
         }
 
         bool DlcManager::IsDlcBlocked(const std::string& dlcName)
