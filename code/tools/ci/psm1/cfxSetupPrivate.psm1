@@ -38,6 +38,7 @@ function Invoke-CfxSetupPrivate {
             $cloneToPath = [IO.Path]::GetFileName($Context.PrivateRoot)
 
             Remove-Item -Force -Recurse -ErrorAction Ignore $Context.PrivateRoot | Out-Null
+            New-Item -ItemType Directory -Force $ctx.BuildCacheRoot | Out-Null
 
             Push-Location $parentPath
                 git clone -b $privateBranch $privateUri $cloneToPath | Out-Null
