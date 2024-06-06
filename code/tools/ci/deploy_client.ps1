@@ -59,34 +59,38 @@ try {
 
     # notify services as soon as possible
     Invoke-LogSection "Services notification" {
-        $oldSecurityProtocol = [Net.ServicePointManager]::SecurityProtocol
-        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-
-        $retriesLeft = 5
-        $succeeded = $false
-
-        while ($retriesLeft -ne 0) {
-            try {
-                Invoke-WebRequest -UseBasicParsing -Uri $env:REFRESH_URL -Method GET | Out-Null
-
-                $succeeded = $true
-                break
+        if ($Context.IsDryRun) {
+            Write-Output "DRY RUN: Would notify services about new deployment"
+        } else {
+            $oldSecurityProtocol = [Net.ServicePointManager]::SecurityProtocol
+            [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    
+            $retriesLeft = 5
+            $succeeded = $false
+    
+            while ($retriesLeft -ne 0) {
+                try {
+                    Invoke-WebRequest -UseBasicParsing -Uri $env:REFRESH_URL -Method GET | Out-Null
+    
+                    $succeeded = $true
+                    break
+                }
+                catch {
+                    Write-Host "Notifying services failed:" $_
+                    Write-Host "Retries left #$retriesLeft"
+    
+                    $retriesLeft -= 1
+    
+                    Start-Sleep -Milliseconds 500
+                }
             }
-            catch {
-                Write-Host "Notifying services failed:" $_
-                Write-Host "Retries left #$retriesLeft"
-
-                $retriesLeft -= 1
-
-                Start-Sleep -Milliseconds 500
+    
+            [Net.ServicePointManager]::SecurityProtocol = $oldSecurityProtocol
+    
+            if (!$succeeded) {
+                Write-Host "Failed to notify services"
+                $Context.addBuildWarning("Failed to notify services")
             }
-        }
-
-        [Net.ServicePointManager]::SecurityProtocol = $oldSecurityProtocol
-
-        if (!$succeeded) {
-            Write-Host "Failed to notify services"
-            $Context.addBuildWarning("Failed to notify services")
         }
     }.GetNewClosure()
 

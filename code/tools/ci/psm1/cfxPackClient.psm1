@@ -17,7 +17,10 @@ function Invoke-PackClient {
     $cachesRoot = $Context.CachesRoot
     $projectRoot = $Context.ProjectRoot
 
-    # Making sure folder structure is okay
+    # Ensure we always have clean packed client by removing old caches root
+    Remove-Item -Force -Recurse $cachesRoot
+
+    # Create needed caches root folder structure
     Invoke-EnsureDirExists $packRoot\bin\cef
     Invoke-EnsureDirExists $packRoot\citizen
 

@@ -117,22 +117,34 @@ function Invoke-UploadClientSymbols {
 
     # chdir to the directory to avoid converting path to what rsync would expect
     Push-Location $symUploadDir
-        # remember current PATH content
-        $oldEnvPath = $env:PATH
+        if ($Context.IsDryRun) {
+            Write-Output "DRY RUN: Would upload symbols"
 
-        # prepend PATH with MSYS2 bin dir so it can use it's own SSH
-        $msys2UsrBin = [IO.Path]::Combine($Tools.getMSYS2Root(), "usr\bin");
-        $env:PATH = "$msys2UsrBin;$env:PATH"
-
-        & $rsync -r -a -v -e $env:RSH_SYMBOLS_COMMAND ./ $env:SSH_SYMBOLS_TARGET
-        if ($LASTEXITCODE -ne 0) {
-            $Context.addBuildWarning("Failed to upload symbols, rsync failed")
-        }
-        else {
             (Get-Date).ToString() | Out-File -Encoding ascii $lastSymDateFilePath
-        }
+        } else {
+            # remember current PATH content
+            $oldEnvPath = $env:PATH
 
-        # restore PATH
-        $env:PATH = $oldEnvPath
+            # prepend PATH with MSYS2 bin dir so it can use it's own SSH
+            $msys2UsrBin = [IO.Path]::Combine($Tools.getMSYS2Root(), "usr\bin");
+            $env:PATH = "$msys2UsrBin;$env:PATH"
+
+            & $rsync -r -a -v -e $env:RSH_SYMBOLS_COMMAND ./ $env:SSH_SYMBOLS_TARGET
+            if ($LASTEXITCODE -ne 0) {
+                $Context.addBuildWarning("Failed to upload symbols, rsync failed")
+            }
+            else {
+                (Get-Date).ToString() | Out-File -Encoding ascii $lastSymDateFilePath
+            }
+
+            # restore PATH
+            $env:PATH = $oldEnvPath
+        }
     Pop-Location
+
+    if (!$Context.IsDryRun) {
+        # Cleanup
+        Remove-Item -Force -Recurse $symUploadDir
+        Remove-Item -Force -Recurse $symTmpDir
+    }
 }
