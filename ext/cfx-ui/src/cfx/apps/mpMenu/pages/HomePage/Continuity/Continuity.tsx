@@ -100,8 +100,8 @@ function formatServersCount(count: number): string {
   }
 
   // eslint-disable-next-line no-bitwise
-  const thousands = ((count / 1000) | 0) * 1000;
-  const hundreds = count - thousands;
+  const thousands = (count / 1000) | 0;
+  const hundreds = count - (thousands * 1000);
 
   return `${thousands},${hundreds.toString().padStart(3, '0')}`;
 }
