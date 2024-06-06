@@ -1,6 +1,7 @@
-import { LogProvider } from "cfx/common/services/log/logService.extensions";
-import { injectable } from "inversify";
 import * as Sentry from '@sentry/react';
+import { injectable } from 'inversify';
+
+import { LogProvider } from 'cfx/common/services/log/logService.extensions';
 
 @injectable()
 export class SentryLogProvider implements LogProvider {

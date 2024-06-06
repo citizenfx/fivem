@@ -1,10 +1,14 @@
-import { IServerView, ServerViewDetailsLevel } from "./types";
+import { IServerView, ServerViewDetailsLevel } from './types';
 
-export function showServerPremiumBadge(premium: IServerView['premium']): premium is NonNullable<IServerView['premium']> {
+export function showServerPremiumBadge(
+  premium: IServerView['premium'],
+): premium is NonNullable<IServerView['premium']> {
   return !!premium;
 }
 
-export function showServerCountryFlag(localeCountry: IServerView['localeCountry']): localeCountry is NonNullable<IServerView['localeCountry']> {
+export function showServerCountryFlag(
+  localeCountry: IServerView['localeCountry'],
+): localeCountry is NonNullable<IServerView['localeCountry']> {
   const lclocaleCountry = localeCountry.toLowerCase();
 
   return lclocaleCountry !== 'aq' && lclocaleCountry !== '001';

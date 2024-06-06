@@ -1,14 +1,15 @@
 import React from 'react';
+
 import s from './Prose.module.scss';
 
 export interface ProseProps {
-  children?: React.ReactNode,
+  children?: React.ReactNode;
 }
 
-export function Prose(props: ProseProps) {
+export function Prose({
+  children,
+}: ProseProps) {
   return (
-    <div className={s.root}>
-      {props.children}
-    </div>
+    <div className={s.root}>{children}</div>
   );
 }

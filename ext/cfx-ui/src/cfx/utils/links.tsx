@@ -1,5 +1,6 @@
 import { Autolinker } from 'autolinker';
 import React from 'react';
+
 import { splitByIndices } from './string';
 
 export function isExternalUrl(url: string): boolean {
@@ -15,13 +16,13 @@ export function isExternalUrl(url: string): boolean {
 }
 
 export interface ILinkSubstitute {
-  indices: [number, number],
-  url: string,
+  indices: [number, number];
+  url: string;
 }
 export interface ILinkMatch {
-  key: string,
-  text: string,
-  url: string,
+  key: string;
+  text: string;
+  url: string;
 }
 
 const autolinker = new Autolinker();
@@ -30,10 +31,7 @@ export function matchLinks(text: string): ILinkSubstitute[] {
   const matches = autolinker.parse(text);
 
   return matches.map((match) => ({
-    indices: [
-      match.getOffset(),
-      match.getOffset() + match.getMatchedText().length,
-    ],
+    indices: [match.getOffset(), match.getOffset() + match.getMatchedText().length],
     url: match.getAnchorHref(),
   }));
 }
@@ -62,9 +60,12 @@ export function* matchLinkNodes(text: string) {
     }
   }
 }
+
 try {
   (window as any).__matchLinks = matchLinks;
-} catch (e) {}
+} catch (e) {
+  // Do nothing
+}
 
 export function defaultLinkReplacerx(key: string, text: string, url: string): React.ReactNode {
   return (
@@ -106,14 +107,17 @@ export function linkify(text: string, replacer = defaultLinkReplacer): string {
 
   return nodes.join('');
 }
+
 try {
   (window as any).__linkifyx = linkifyx;
   (window as any).__linkify = linkify;
-} catch (e) {}
+} catch (e) {
+  // Do nothing
+}
 
 export interface LinkifyProps {
-  text: string,
-  replacer?: typeof defaultLinkReplacerx,
+  text: string;
+  replacer?: typeof defaultLinkReplacerx;
 }
 export function Linkify(props: LinkifyProps) {
   const {
@@ -124,8 +128,7 @@ export function Linkify(props: LinkifyProps) {
   const linkified = React.useMemo(() => linkifyx(text, replacer), [text, replacer]);
 
   return (
-    <>
-      {linkified}
-    </>
+    // eslint-disable-next-line react/jsx-no-useless-fragment
+    <>{linkified}</>
   );
 }

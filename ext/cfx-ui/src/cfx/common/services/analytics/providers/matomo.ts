@@ -4,18 +4,21 @@
  * @see https://github.com/angulartics/angulartics2/blob/5eeac98662b0780a5bee0b5d27e0dbe1ac49eaba/src/lib/providers/matomo/matomo.ts
  */
 
-import { IAccountService } from "cfx/common/services/account/account.service";
-import { inject, injectable, optional } from "inversify";
-import { AnalyticsProvider } from "../analytics.extensions";
-import { IAnalyticsEvent } from "../types";
-import { ASID } from "cfx/utils/asid";
+import { inject, injectable, optional } from 'inversify';
 
-declare var _paq: any;
+import { IAccountService } from 'cfx/common/services/account/account.service';
+import { ASID } from 'cfx/utils/asid';
+
+import { AnalyticsProvider } from '../analytics.extensions';
+import { IAnalyticsEvent } from '../types';
+
+declare let _paq: any;
 
 @injectable()
 export class MatomoAnalyticsProvider implements AnalyticsProvider {
   constructor(
-    @inject(IAccountService) @optional()
+    @inject(IAccountService)
+    @optional()
     protected readonly accountService: IAccountService | undefined,
   ) {
     this.initializeUserID();
@@ -41,9 +44,16 @@ export class MatomoAnalyticsProvider implements AnalyticsProvider {
   }
 
   trackEvent(event: IAnalyticsEvent): void {
-    const { action, properties }: { action: EventTrackAction, properties: EventTrackactionProperties } = event;
+    const {
+      action,
+      properties,
+    }: {
+      action: EventTrackAction;
+      properties: EventTrackactionProperties;
+    } = event;
 
     let params: [string?, ...any] = [];
+
     switch (action) {
       /**
        * @description Sets the current page view as a product or category page view. When you call
@@ -102,10 +112,7 @@ export class MatomoAnalyticsProvider implements AnalyticsProvider {
        * @property grandTotal (required) Cart amount
        */
       case 'trackEcommerceCartUpdate':
-        params = [
-          'trackEcommerceCartUpdate',
-          (properties as TrackEcommerceCartUpdateMatomoProperties).grandTotal,
-        ];
+        params = ['trackEcommerceCartUpdate', (properties as TrackEcommerceCartUpdateMatomoProperties).grandTotal];
         break;
 
       /**
@@ -204,18 +211,20 @@ export class MatomoAnalyticsProvider implements AnalyticsProvider {
         // PAQ requires that eventValue be an integer, see: http://matomo.org/docs/event-tracking
         if ((properties as TrackEventMatomoProperties).value) {
           const parsed = parseInt((properties as TrackEventMatomoProperties).value as any, 10);
-          (properties as TrackEventMatomoProperties).value = isNaN(parsed) ? 0 : parsed;
+          (properties as TrackEventMatomoProperties).value = Number.isNaN(parsed)
+            ? 0
+            : parsed;
         }
 
         params = [
           'trackEvent',
           (properties as TrackEventMatomoProperties).category,
           action,
-          (properties as TrackEventMatomoProperties).name ||
-          (properties as TrackEventMatomoProperties).label, // Changed in favour of Matomo documentation. Added fallback so it's backwards compatible.
+          (properties as TrackEventMatomoProperties).name || (properties as TrackEventMatomoProperties).label, // Changed in favour of Matomo documentation. Added fallback so it's backwards compatible.
           (properties as TrackEventMatomoProperties).value,
         ];
     }
+
     try {
       _paq.push(params);
     } catch (e) {
@@ -356,17 +365,17 @@ export type EventTrackactionProperties =
   | TrackSiteSearchMatomoProperties
   | TrackEventMatomoProperties;
 
-
 interface Profile {
-  name: string,
-  tile: string,
-  type: string,
-  identifier: number,
-  externalIdentifier: string,
-  parameters: Record<string, string>,
-  signedIn: boolean,
+  name: string;
+  tile: string;
+  type: string;
+  identifier: number;
+  externalIdentifier: string;
+  parameters: Record<string, string>;
+  signedIn: boolean;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface Profiles {
   profiles: Profile[];
 }

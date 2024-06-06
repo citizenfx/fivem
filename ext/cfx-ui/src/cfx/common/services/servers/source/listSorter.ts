@@ -1,10 +1,18 @@
-import { shouldPrioritizePinnedServers } from "cfx/base/serverUtils";
-import { IServerListConfig, ServerListSortDir, ServersListSortBy } from "../lists/types";
-import { IPinnedServersConfig } from "../types";
-import { IListableServerView } from "./types";
+import { shouldPrioritizePinnedServers } from 'cfx/base/serverUtils';
 
-export function sortList(servers: Record<string, IListableServerView>, pinConfig: IPinnedServersConfig | null, config: IServerListConfig): string[] {
-  const { sortBy, sortDir } = config;
+import { IListableServerView } from './types';
+import { IServerListConfig, ServerListSortDir, ServersListSortBy } from '../lists/types';
+import { IPinnedServersConfig } from '../types';
+
+export function sortList(
+  servers: Record<string, IListableServerView>,
+  pinConfig: IPinnedServersConfig | null,
+  config: IServerListConfig,
+): string[] {
+  const {
+    sortBy,
+    sortDir,
+  } = config;
 
   const sortByName = sortBy === ServersListSortBy.Name
     ? sortByProperty.bind(null, servers, 'sortableName', sortDir)
@@ -26,29 +34,17 @@ export function sortList(servers: Record<string, IListableServerView>, pinConfig
 
   switch (sortBy) {
     case ServersListSortBy.Name: {
-      sorters.push(
-        sortByName,
-        sortByUpvotePower,
-        sortByPlayers,
-      );
+      sorters.push(sortByName, sortByUpvotePower, sortByPlayers);
       break;
     }
     case ServersListSortBy.Players: {
-      sorters.push(
-        sortByPlayers,
-        sortByUpvotePower,
-        sortByName,
-      );
+      sorters.push(sortByPlayers, sortByUpvotePower, sortByName);
       break;
     }
 
     case ServersListSortBy.Boosts:
     default: {
-      sorters.push(
-        sortByUpvotePower,
-        sortByPlayers,
-        sortByName,
-      );
+      sorters.push(sortByUpvotePower, sortByPlayers, sortByName);
       break;
     }
   }
@@ -65,7 +61,9 @@ export function sortList(servers: Record<string, IListableServerView>, pinConfig
     // Make it stable by ID comparison
     if (a < b) {
       return -1;
-    } else if (a > b) {
+    }
+
+    if (a > b) {
       return 1;
     }
 
@@ -88,7 +86,13 @@ function sortByPinConfig(pinConfig: IPinnedServersConfig, a: string, b: string):
   return 1;
 }
 
-function sortByProperty(servers: Record<string, IListableServerView>, property: keyof IListableServerView, dir: number, a: string, b: string): number {
+function sortByProperty(
+  servers: Record<string, IListableServerView>,
+  property: keyof IListableServerView,
+  dir: number,
+  a: string,
+  b: string,
+): number {
   const aPropertyValue = servers[a][property] || 0;
   const bPropertyValue = servers[b][property] || 0;
 

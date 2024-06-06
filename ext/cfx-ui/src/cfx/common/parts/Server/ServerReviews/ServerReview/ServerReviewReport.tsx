@@ -1,23 +1,24 @@
-import React from "react";
-import { $L } from "cfx/common/services/intl/l10n";
-import { IServerReviewReport } from "cfx/common/services/servers/reviews/types";
-import { Button } from "cfx/ui/Button/Button";
-import { Flex } from "cfx/ui/Layout/Flex/Flex";
-import { Pad } from "cfx/ui/Layout/Pad/Pad";
-import { Modal } from "cfx/ui/Modal/Modal";
-import { Radio } from "cfx/ui/Radio/Radio";
-import { Textarea } from "cfx/ui/Textarea/Textarea";
-import { Title } from "cfx/ui/Title/Title";
-import { useOpenFlag } from "cfx/utils/hooks";
-import { observer } from "mobx-react-lite";
-import { BsFlag } from "react-icons/bs";
-import { InfoPanel } from "cfx/ui/InfoPanel/InfoPanel";
-import { Indicator } from "cfx/ui/Indicator/Indicator";
-import { Text } from "cfx/ui/Text/Text";
+import { observer } from 'mobx-react-lite';
+import React from 'react';
+import { BsFlag } from 'react-icons/bs';
+
+import { $L } from 'cfx/common/services/intl/l10n';
+import { IServerReviewReport } from 'cfx/common/services/servers/reviews/types';
+import { Button } from 'cfx/ui/Button/Button';
+import { Indicator } from 'cfx/ui/Indicator/Indicator';
+import { InfoPanel } from 'cfx/ui/InfoPanel/InfoPanel';
+import { Flex } from 'cfx/ui/Layout/Flex/Flex';
+import { Pad } from 'cfx/ui/Layout/Pad/Pad';
+import { Modal } from 'cfx/ui/Modal/Modal';
+import { Radio } from 'cfx/ui/Radio/Radio';
+import { Text } from 'cfx/ui/Text/Text';
+import { Textarea } from 'cfx/ui/Textarea/Textarea';
+import { Title } from 'cfx/ui/Title/Title';
+import { useOpenFlag } from 'cfx/utils/hooks';
 
 export interface ServerReviewReportProps {
-  report: IServerReviewReport,
-  className?: string,
+  report: IServerReviewReport;
+  className?: string;
 }
 
 export const ServerReviewReport = observer(function ServerReviewReport(props: ServerReviewReportProps) {
@@ -31,25 +32,14 @@ export const ServerReviewReport = observer(function ServerReviewReport(props: Se
   return (
     <>
       <Title title={$L('#Review_Flag')}>
-        <Button
-          theme="transparent"
-          size="small"
-          icon={<BsFlag />}
-          className={className}
-          onClick={openModal}
-        />
+        <Button theme="transparent" size="small" icon={<BsFlag />} className={className} onClick={openModal} />
       </Title>
 
       {isModalOpen && (
         <Modal onClose={closeModal}>
-          <Modal.Header>
-            {$L('#Review_Flag')}
-          </Modal.Header>
+          <Modal.Header>{$L('#Review_Flag')}</Modal.Header>
 
-          <ServerReviewReportModal
-            onClose={closeModal}
-            report={report}
-          />
+          <ServerReviewReportModal onClose={closeModal} report={report} />
         </Modal>
       )}
     </>
@@ -57,8 +47,8 @@ export const ServerReviewReport = observer(function ServerReviewReport(props: Se
 });
 
 interface ServerReviewReportModalProps {
-  onClose(): void,
-  report: IServerReviewReport,
+  onClose(): void;
+  report: IServerReviewReport;
 }
 const ServerReviewReportModal = observer(function ServerReviewReportModal(props: ServerReviewReportModalProps) {
   const {
@@ -77,17 +67,12 @@ const ServerReviewReportModal = observer(function ServerReviewReportModal(props:
         <Pad>
           <Flex>
             <Indicator />
-            <Text>
-              {$L('#Review_Flag_OptionsLoading')}
-            </Text>
+            <Text>{$L('#Review_Flag_OptionsLoading')}</Text>
           </Flex>
         </Pad>
 
         <Modal.Footer>
-          <Button
-            text={$L('#Review_Flag_Cancel')}
-            onClick={onClose}
-          />
+          <Button text={$L('#Review_Flag_Cancel')} onClick={onClose} />
         </Modal.Footer>
       </>
     );
@@ -97,16 +82,11 @@ const ServerReviewReportModal = observer(function ServerReviewReportModal(props:
     return (
       <>
         <Pad>
-          <InfoPanel type="error">
-            {$L('#Review_Flag_Unavailable')}
-          </InfoPanel>
+          <InfoPanel type="error">{$L('#Review_Flag_Unavailable')}</InfoPanel>
         </Pad>
 
         <Modal.Footer>
-          <Button
-            text={$L('#Review_Flag_Cancel')}
-            onClick={onClose}
-          />
+          <Button text={$L('#Review_Flag_Cancel')} onClick={onClose} />
         </Modal.Footer>
       </>
     );
@@ -118,8 +98,8 @@ const ServerReviewReportModal = observer(function ServerReviewReportModal(props:
 });
 
 interface ServerReviewReportOptionsProps {
-  onClose(): void,
-  report: IServerReviewReport,
+  onClose(): void;
+  report: IServerReviewReport;
 }
 const ServerReviewReportOptions = observer(function ServerReviewReportOptions(props: ServerReviewReportOptionsProps) {
   const {
@@ -130,21 +110,19 @@ const ServerReviewReportOptions = observer(function ServerReviewReportOptions(pr
   const [optionValue, setOptionValue] = React.useState(report.options[0].value);
   const [message, setMessage] = React.useState('');
 
-  const currentOption = React.useMemo(() => {
-    return report.options.find(({ value }) => value === optionValue)!;
-  }, [report.options, optionValue]);
+  const currentOption = React.useMemo(() => report.options
+    .find(({
+      value,
+    }) => value === optionValue)!, [report.options, optionValue]);
 
   const handleSendReport = () => {
     if (!currentOption) {
       return;
     }
 
-    report.submit(
-      currentOption,
-      currentOption.withMessage
-        ? message
-        : undefined,
-    );
+    report.submit(currentOption, currentOption.withMessage
+      ? message
+      : undefined);
 
     onClose();
   };

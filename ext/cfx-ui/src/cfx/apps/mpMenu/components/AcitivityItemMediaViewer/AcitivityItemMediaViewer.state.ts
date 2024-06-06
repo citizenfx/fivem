@@ -1,26 +1,39 @@
-import { IActivityItemMedia } from "cfx/common/services/activity/types";
-import { IActivityItemContext } from "cfx/ui/ActivityItem/ActivityItem.context";
-import { makeAutoObservable, observable } from "mobx";
+import { makeAutoObservable, observable } from 'mobx';
+
+import { IActivityItemMedia } from 'cfx/common/services/activity/types';
+import { IActivityItemContext } from 'cfx/ui/ActivityItem/ActivityItem.context';
 
 export interface IRect {
-  x: number,
-  y: number,
-  w: number,
-  h: number,
+  x: number;
+  y: number;
+  w: number;
+  h: number;
 }
 
-export const AcitivityItemMediaViewerState = new class AcitivityItemMediaViewer {
+export const AcitivityItemMediaViewerState = new (class AcitivityItemMediaViewer {
   private _active: boolean = false;
-  public get active(): boolean { return this._active }
-  private set active(active: boolean) { this._active = active }
+  public get active(): boolean {
+    return this._active;
+  }
+  private set active(active: boolean) {
+    this._active = active;
+  }
 
   private _media: IActivityItemMedia | null = null;
-  public get media(): IActivityItemMedia | null { return this._media }
-  private set media(media: IActivityItemMedia | null) { this._media = media }
+  public get media(): IActivityItemMedia | null {
+    return this._media;
+  }
+  private set media(media: IActivityItemMedia | null) {
+    this._media = media;
+  }
 
   private _fromRect: IRect | null = null;
-  public get fromRect(): IRect | null { return this._fromRect }
-  private set fromRect(fromRect: IRect | null) { this._fromRect = fromRect }
+  public get fromRect(): IRect | null {
+    return this._fromRect;
+  }
+  private set fromRect(fromRect: IRect | null) {
+    this._fromRect = fromRect;
+  }
 
   private rAF: RequestAnimationFrameReturn | null = null;
 
@@ -64,4 +77,4 @@ export const AcitivityItemMediaViewerState = new class AcitivityItemMediaViewer 
       cancelAnimationFrame(this.rAF);
     }
   }
-}();
+})();

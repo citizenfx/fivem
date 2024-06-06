@@ -1,9 +1,11 @@
-import React from "react";
-import { Title } from "cfx/ui/Title/Title";
-import { ILinkSubstitute } from "cfx/utils/links";
 import { decode } from 'html-entities';
-import { IActivityItem, IActivityItemData } from "./types";
-import { nl2brx } from "cfx/utils/nl2br";
+import React from 'react';
+
+import { Title } from 'cfx/ui/Title/Title';
+import { ILinkSubstitute } from 'cfx/utils/links';
+import { nl2brx } from 'cfx/utils/nl2br';
+
+import { IActivityItem, IActivityItemData } from './types';
 
 export function compileActivityItem(data: IActivityItemData): IActivityItem {
   return {
@@ -34,17 +36,11 @@ export function compileText(text: Map<number, string>, links: ILinkSubstitute[])
     if (linkItems[index]) {
       parts.push(
         <Title key={key} title="Opens in browser">
-          <a href={textItem}>
-            {linkItems[index]}
-          </a>
-        </Title>
+          <a href={textItem}>{linkItems[index]}</a>
+        </Title>,
       );
     } else {
-      parts.push(
-        <React.Fragment key={key}>
-          {nl2brx(decode(textItem))}
-        </React.Fragment>
-      );
+      parts.push(<React.Fragment key={key}>{nl2brx(decode(textItem))}</React.Fragment>);
     }
   }
 

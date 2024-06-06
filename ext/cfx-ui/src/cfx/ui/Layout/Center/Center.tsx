@@ -1,13 +1,15 @@
 import React from 'react';
+
 import { clsx } from 'cfx/utils/clsx';
+
 import s from './Center.module.scss';
 
 export interface CenterProps {
-  vertical?: boolean,
-  horizontal?: boolean,
+  vertical?: boolean;
+  horizontal?: boolean;
 
-  className?: string,
-  children?: React.ReactNode,
+  className?: string;
+  children?: React.ReactNode;
 }
 
 export const Center = React.forwardRef(function Center(props: CenterProps, ref: React.Ref<HTMLDivElement>) {

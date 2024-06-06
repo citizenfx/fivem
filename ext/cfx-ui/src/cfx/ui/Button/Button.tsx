@@ -1,49 +1,43 @@
 import React from 'react';
+import { useLinkClickHandler } from 'react-router-dom';
+
 import { clsx } from 'cfx/utils/clsx';
 import { noop } from 'cfx/utils/functional';
-import { useLinkClickHandler } from 'react-router-dom';
+
 import s from './Button.module.scss';
 
+export type ButtonTheme = 'default' | 'default-blurred' | 'primary' | 'transparent';
 
-export type ButtonTheme =
-  | 'default'
-  | 'default-blurred'
-  | 'primary'
-  | 'transparent';
-
-export type ButtonSize =
-  | 'normal'
-  | 'small'
-  | 'large';
+export type ButtonSize = 'normal' | 'small' | 'large';
 
 export interface ButtonProps {
   /**
    * Will turn button into link
    */
-  to?: string,
+  to?: string;
 
-  text?: React.ReactNode,
-  title?: string,
-  icon?: React.ReactNode,
-  theme?: ButtonTheme,
-  size?: ButtonSize,
-  straightCorners?: boolean,
-  disabled?: boolean,
-  autofocus?: boolean,
-  tabIndex?: number,
-  className?: string,
-  fullWidth?: boolean,
+  text?: React.ReactNode;
+  title?: string;
+  icon?: React.ReactNode;
+  theme?: ButtonTheme;
+  size?: ButtonSize;
+  straightCorners?: boolean;
+  disabled?: boolean;
+  autofocus?: boolean;
+  tabIndex?: number;
+  className?: string;
+  fullWidth?: boolean;
 
-  onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void,
-  onMouseDown?: (event: React.MouseEvent<HTMLButtonElement>) => void,
-  onMouseUp?: (event: React.MouseEvent<HTMLButtonElement>) => void,
+  onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  onMouseDown?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  onMouseUp?: (event: React.MouseEvent<HTMLButtonElement>) => void;
 
-  decorator?: React.ReactNode,
+  decorator?: React.ReactNode;
 }
 
 export const Button = React.forwardRef(function Button(props: ButtonProps, ref: React.Ref<HTMLButtonElement>) {
   const {
-    to,
+    to = '',
     text = null,
     icon = null,
     title = '',
@@ -65,14 +59,12 @@ export const Button = React.forwardRef(function Button(props: ButtonProps, ref: 
     [s.disabled]: disabled,
     [s.icon]: !!icon && (text === null || typeof text === 'undefined'),
     [s.text]: !!text,
-    [s.autofocus]: autofocus || (typeof tabIndex !== 'undefined'),
+    [s.autofocus]: autofocus || typeof tabIndex !== 'undefined',
     [s['straight-borders']]: straightCorners,
     [s.fullWidth]: fullWidth,
   });
 
-  const linkClickHandler = to
-    ? useLinkClickHandler(to)
-    : noop;
+  const linkClickHandler = useLinkClickHandler(to);
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     if (disabled) {
@@ -85,11 +77,14 @@ export const Button = React.forwardRef(function Button(props: ButtonProps, ref: 
       return;
     }
 
-    linkClickHandler(event as any);
+    if (to.length > 0) {
+      linkClickHandler(event as any);
+    }
   };
 
   return (
     <button
+      type="button"
       ref={ref as any}
       disabled={disabled}
       className={rootClassName}
@@ -107,9 +102,7 @@ export const Button = React.forwardRef(function Button(props: ButtonProps, ref: 
       {text}
 
       {!!decorator && (
-        <div className={s.decorator}>
-          {decorator}
-        </div>
+        <div className={s.decorator}>{decorator}</div>
       )}
     </button>
   );

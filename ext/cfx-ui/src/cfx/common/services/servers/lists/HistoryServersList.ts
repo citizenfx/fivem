@@ -1,24 +1,29 @@
-import { IServersList } from "./types";
-import { IHistoryServer, IServerView } from "../types";
-import { makeAutoObservable } from "mobx";
-import { historyServer2ServerView } from "../transformers";
-import { parseServerAddress } from "../serverAddressParser";
-import { IServersStorageService } from "../serversStorage.service";
-import { createServerHistoricalIconURL } from "../icon";
-import { IServersService } from "../servers.service";
+import { makeAutoObservable } from 'mobx';
+
+import { IServersList } from './types';
+import { createServerHistoricalIconURL } from '../icon';
+import { parseServerAddress } from '../serverAddressParser';
+import { IServersService } from '../servers.service';
+import { IServersStorageService } from '../serversStorage.service';
+import { historyServer2ServerView } from '../transformers';
+import { IHistoryServer, IServerView } from '../types';
 
 export class HistoryServersList implements IServersList {
-  private get historyServers(): IHistoryServer[] { return this.serversStorageService.getLastServers() }
+  private get historyServers(): IHistoryServer[] {
+    return this.serversStorageService.getLastServers();
+  }
 
   private _serversLastConnectedAt: Record<string, Date> = {};
 
   get sequence(): string[] {
-    return this.historyServers.map(({ address }) => address);
+    return this.historyServers.map(({
+      address,
+    }) => address);
   }
 
   constructor(
     protected readonly serversStorageService: IServersStorageService,
-    private readonly resolveServer: IServersService['loadServerLiveData']
+    private readonly resolveServer: IServersService['loadServerLiveData'],
   ) {
     makeAutoObservable(this);
 
@@ -65,10 +70,15 @@ export class HistoryServersList implements IServersList {
     }
   }
 
-  async serverView2HistoryServer(server: IServerView, overrides: Partial<{ icon: string, token: string, vars: Record<string, string> }> = {}): Promise<IHistoryServer> {
-    const { icon, ...restOverrides } = overrides;
+  async serverView2HistoryServer(
+    server: IServerView,
+    overrides: Partial<{ icon: string; token: string; vars: Record<string, string> }> = {},
+  ): Promise<IHistoryServer> {
+    const {
+      icon, ...restOverrides
+    } = overrides;
 
-    const thumbnail = icon || await createServerHistoricalIconURL(server);
+    const thumbnail = icon || (await createServerHistoricalIconURL(server));
 
     return {
       address: server.historicalAddress || server.joinId || server.id,
@@ -83,7 +93,5 @@ export class HistoryServersList implements IServersList {
     };
   }
 
-  refresh(): void {
-
-  }
+  refresh(): void {}
 }

@@ -1,11 +1,13 @@
-import { injectable, interfaces, multiInject, optional } from "inversify";
-import { ServicesContainer } from "../../../base/servicesContainer";
-import { LogProvider } from "./logService.extensions";
-import { ScopedLogger } from "./scopedLogger";
+import { injectable, interfaces, multiInject, optional } from 'inversify';
+
+import { LogProvider } from './logService.extensions';
+import { ScopedLogger } from './scopedLogger';
+import { ServicesContainer } from '../../../base/servicesContainer';
 
 @injectable()
 export class LogService {
-  @multiInject(LogProvider) @optional()
+  @multiInject(LogProvider)
+  @optional()
   protected readonly loggersProvider: LogProvider[];
 
   setUserId(id: string) {
@@ -30,15 +32,13 @@ export function registerLogService(container: ServicesContainer, providers: inte
 
   container.registerDynamic(ScopedLogger, (ctx: interfaces.Context) => {
     const loggerName = ctx.currentRequest.target.getNamedTag();
+
     if (loggerName === null) {
       throw new Error('ScopedLogger must be injected with @named(\'LoggerName\')');
     }
 
     const logService = ctx.container.get(LogService);
 
-    return new ScopedLogger(
-      logService,
-      loggerName.value,
-    );
+    return new ScopedLogger(logService, loggerName.value);
   });
 }

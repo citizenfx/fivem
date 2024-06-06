@@ -1,26 +1,27 @@
-import React from "react";
-import { $L } from "cfx/common/services/intl/l10n";
-import { Button } from "cfx/ui/Button/Button";
-import { ButtonBar } from "cfx/ui/Button/ButtonBar";
-import { Title } from "cfx/ui/Title/Title";
-import { observer } from "mobx-react-lite";
-import { useLocation, useNavigate } from "react-router-dom";
-import { ServersListType } from "cfx/common/services/servers/lists/types";
-import { useService } from "cfx/base/servicesContainer";
-import { IServersService } from "cfx/common/services/servers/servers.service";
-import { Icons } from "cfx/ui/Icons";
-import { TextColor } from "cfx/ui/Text/Text";
-import { Tabular } from "cfx/ui/Tabular/Tabular";
-import { useEventHandler } from "cfx/common/services/analytics/analytics.service";
-import { EventActionNames, ElementPlacements } from "cfx/common/services/analytics/types";
-import { LocaleKeyOrString, LocaleKey } from "cfx/common/services/intl/types";
+import { observer } from 'mobx-react-lite';
+import React from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+
+import { useService } from 'cfx/base/servicesContainer';
+import { useEventHandler } from 'cfx/common/services/analytics/analytics.service';
+import { EventActionNames, ElementPlacements } from 'cfx/common/services/analytics/types';
+import { $L } from 'cfx/common/services/intl/l10n';
+import { LocaleKeyOrString, LocaleKey } from 'cfx/common/services/intl/types';
+import { ServersListType } from 'cfx/common/services/servers/lists/types';
+import { IServersService } from 'cfx/common/services/servers/servers.service';
+import { Button } from 'cfx/ui/Button/Button';
+import { ButtonBar } from 'cfx/ui/Button/ButtonBar';
+import { Icons } from 'cfx/ui/Icons';
+import { Tabular } from 'cfx/ui/Tabular/Tabular';
+import { TextColor } from 'cfx/ui/Text/Text.types';
+import { Title } from 'cfx/ui/Title/Title';
 
 interface ServerListDescriptor {
-  titleKey: LocaleKeyOrString<LocaleKey>,
-  icon: React.ReactNode,
-  to: string,
-  color: TextColor,
-};
+  titleKey: LocaleKeyOrString<LocaleKey>;
+  icon: React.ReactNode;
+  to: string;
+  color: TextColor;
+}
 
 export const SERVER_LIST_DESCRIPTORS: Record<string, ServerListDescriptor> = {
   [ServersListType.All]: {
@@ -50,18 +51,23 @@ export const SERVER_LIST_DESCRIPTORS: Record<string, ServerListDescriptor> = {
 };
 
 export const ListTypeTabs = observer(function ListTypeTabs() {
-  const { pathname } = useLocation();
+  const {
+    pathname,
+  } = useLocation();
   const navigate = useNavigate();
   const ServersService = useService(IServersService);
   const eventHandler = useEventHandler();
 
   const handleClick = React.useCallback(
     (descriptor: ServerListDescriptor) => {
-      eventHandler({ action: EventActionNames.AccountInfoCTA, properties: {
-        element_placement: ElementPlacements.Nav,
-        text: descriptor.titleKey,
-        link_url: descriptor.to,
-      }});
+      eventHandler({
+        action: EventActionNames.AccountInfoCTA,
+        properties: {
+          element_placement: ElementPlacements.Nav,
+          text: descriptor.titleKey,
+          link_url: descriptor.to,
+        },
+      });
 
       navigate(descriptor.to);
     },
@@ -72,6 +78,7 @@ export const ListTypeTabs = observer(function ListTypeTabs() {
     <Tabular.Root size="large">
       {ServersService.listTypes.map((serverListType) => {
         const descriptor = SERVER_LIST_DESCRIPTORS[serverListType];
+
         if (!descriptor) {
           return null;
         }
@@ -91,7 +98,9 @@ export const ListTypeTabs = observer(function ListTypeTabs() {
 });
 
 export const ListTypeTabs2 = observer(function ListTypeTabs() {
-  const { pathname } = useLocation();
+  const {
+    pathname,
+  } = useLocation();
 
   const ServersService = useService(IServersService);
 
@@ -100,7 +109,11 @@ export const ListTypeTabs2 = observer(function ListTypeTabs() {
       return null;
     }
 
-    const { titleKey, icon, to } = SERVER_LIST_DESCRIPTORS[type];
+    const {
+      titleKey,
+      icon,
+      to,
+    } = SERVER_LIST_DESCRIPTORS[type];
 
     return (
       <Title key={type} title={$L(titleKey)}>
@@ -109,15 +122,15 @@ export const ListTypeTabs2 = observer(function ListTypeTabs() {
           to={to}
           size="large"
           icon={icon}
-          theme={pathname === to ? 'primary' : 'default'}
+          theme={pathname === to
+            ? 'primary'
+            : 'default'}
         />
       </Title>
     );
   });
 
   return (
-    <ButtonBar>
-      {nodes}
-    </ButtonBar>
+    <ButtonBar>{nodes}</ButtonBar>
   );
 });

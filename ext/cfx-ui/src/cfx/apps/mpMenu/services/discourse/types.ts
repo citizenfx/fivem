@@ -1,6 +1,6 @@
 export interface IRSAKeys {
-  public: string,
-  private: string,
+  public: string;
+  private: string;
 }
 
 export namespace IDiscourse {

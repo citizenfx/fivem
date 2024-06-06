@@ -1,10 +1,11 @@
-import { noop } from "cfx/utils/functional";
-import { useDynamicRef } from "cfx/utils/hooks";
-import React from "react";
+import React from 'react';
+
+import { noop } from 'cfx/utils/functional';
+import { useDynamicRef } from 'cfx/utils/hooks';
 
 export interface OnScreenSensorProps {
-  onEnter?(): void,
-  onLeave?(): void,
+  onEnter?(): void;
+  onLeave?(): void;
 }
 
 const style = {
@@ -30,6 +31,7 @@ export function OnScreenSensor(props: OnScreenSensorProps) {
 
     const observer = new IntersectionObserver((entries) => {
       const [el] = entries;
+
       if (!el) {
         return;
       }

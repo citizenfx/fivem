@@ -1,9 +1,10 @@
 import { clsx } from 'cfx/utils/clsx';
+
 import s from './Spacer.module.scss';
 
 export interface SpacerProps {
-  size?: 'none' | 'thin' | 'small' | 'normal' | 'large' | 'xlarge',
-  vertical?: boolean,
+  size?: 'none' | 'thin' | 'small' | 'normal' | 'large' | 'xlarge';
+  vertical?: boolean;
 }
 
 export function Spacer(props: SpacerProps) {

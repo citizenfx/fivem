@@ -1,6 +1,10 @@
 import { typeid } from 'typeid-js';
 
-module LS_KEY {
+function generateNewASID() {
+  return typeid('asid').toString();
+}
+
+namespace LS_KEY {
   export const ASID = 'anonymousStableIdentifier';
 }
 
@@ -12,6 +16,7 @@ module LS_KEY {
 export const ASID = (() => {
   try {
     const existingASID = window.localStorage.getItem(LS_KEY.ASID);
+
     if (existingASID) {
       return existingASID;
     }
@@ -32,8 +37,4 @@ export const ASID = (() => {
 
 if (__CFXUI_DEV__) {
   console.log('Current ASID:', ASID);
-}
-
-function generateNewASID() {
-  return typeid('asid').toString();
 }

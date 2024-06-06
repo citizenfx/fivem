@@ -1,11 +1,15 @@
-import { makeAutoObservable } from "mobx";
+import { makeAutoObservable } from 'mobx';
 
-export const BackdropBlurWorker = new class BackdropBlurWorker {
+export const BackdropBlurWorker = new (class BackdropBlurWorker {
   protected worker: Worker;
 
   private _url: string = '';
-  public get url(): string { return this._url }
-  private set url(url: string) { this._url = url }
+  public get url(): string {
+    return this._url;
+  }
+  private set url(url: string) {
+    this._url = url;
+  }
 
   constructor() {
     makeAutoObservable(this);
@@ -29,7 +33,9 @@ export const BackdropBlurWorker = new class BackdropBlurWorker {
     }
   }
 
-  private readonly handleMessage = ({ data }: MessageEvent) => {
+  private readonly handleMessage = ({
+    data,
+  }: MessageEvent) => {
     this.url = data || '';
   };
-}();
+})();

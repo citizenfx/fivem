@@ -1,5 +1,6 @@
-import React from "react";
-import { clamp01 } from "cfx/utils/math";
+import React from 'react';
+
+import { clamp01 } from 'cfx/utils/math';
 
 export function usePageScrollSync(trackingElementRef: React.MutableRefObject<HTMLElement | null>) {
   const [scrollTop, setScrollTop] = React.useState(0);
@@ -10,6 +11,7 @@ export function usePageScrollSync(trackingElementRef: React.MutableRefObject<HTM
       setScrollTop(event.target.scrollTop);
 
       const trackingElement = trackingElementRef.current;
+
       if (trackingElement) {
         const newOffsetTop = (trackingElement.offsetTop - event.target.scrollTop) / trackingElement.offsetHeight;
 

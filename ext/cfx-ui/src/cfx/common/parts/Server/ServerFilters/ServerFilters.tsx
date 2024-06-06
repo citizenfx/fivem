@@ -1,40 +1,51 @@
-import React from "react";
-import { ServerListConfigController } from "cfx/common/services/servers/lists/ServerListConfigController";
-import { ServerListSortDir, ServersListSortBy } from "cfx/common/services/servers/lists/types";
-import { Button } from "cfx/ui/Button/Button";
-import { Popover } from "cfx/ui/Popover/Popover";
-import { clsx } from "cfx/utils/clsx";
-import { observer } from "mobx-react-lite";
-import { BsSortAlphaDown, BsSortAlphaDownAlt, BsSortDown, BsSortDownAlt, BsSortNumericDown, BsSortNumericDownAlt } from "react-icons/bs";
+import { observer } from 'mobx-react-lite';
+import React from 'react';
+import {
+  BsSortAlphaDown,
+  BsSortAlphaDownAlt,
+  BsSortDown,
+  BsSortDownAlt,
+  BsSortNumericDown,
+  BsSortNumericDownAlt,
+} from 'react-icons/bs';
 import { FiFilter } from 'react-icons/fi';
-import { Flex } from "cfx/ui/Layout/Flex/Flex";
-import { $L } from "cfx/common/services/intl/l10n";
-import { Checkbox } from "cfx/ui/Checkbox/Checkbox";
-import { Pad } from "cfx/ui/Layout/Pad/Pad";
-import { Text } from "cfx/ui/Text/Text";
-import { Separator } from "cfx/ui/Separator/Separator";
-import { VirtualScrollable } from "cfx/ui/Layout/Scrollable/VirtualScrollable";
-import { Title } from "cfx/ui/Title/Title";
-import { ControlBox } from "cfx/ui/ControlBox/ControlBox";
-import { IAutocompleteIndexLocaleItem } from "cfx/common/services/servers/source/types";
-import { Decorate } from "cfx/ui/Decorate/Decorate";
-import { ButtonBar } from "cfx/ui/Button/ButtonBar";
-import { Dot } from "cfx/ui/Dot/Dot";
-import { Icons } from "cfx/ui/Icons";
-import { useServersService } from "cfx/common/services/servers/servers.service";
-import { useIntlService } from "cfx/common/services/intl/intl.service";
-import { useUiService } from "cfx/common/services/ui/ui.service";
-import { SearchInput } from "./SearchInput/SearchInput";
+
+import { useEventHandler } from 'cfx/common/services/analytics/analytics.service';
+import { EventActionNames, ElementPlacements } from 'cfx/common/services/analytics/types';
+import { useIntlService } from 'cfx/common/services/intl/intl.service';
+import { $L } from 'cfx/common/services/intl/l10n';
+import { ServerListConfigController } from 'cfx/common/services/servers/lists/ServerListConfigController';
+import { ServerListSortDir, ServersListSortBy } from 'cfx/common/services/servers/lists/types';
+import { useServersService } from 'cfx/common/services/servers/servers.service';
+import { IAutocompleteIndexLocaleItem } from 'cfx/common/services/servers/source/types';
+import { useUiService } from 'cfx/common/services/ui/ui.service';
+import { Button } from 'cfx/ui/Button/Button';
+import { ButtonBar } from 'cfx/ui/Button/ButtonBar';
+import { Checkbox } from 'cfx/ui/Checkbox/Checkbox';
+import { ControlBox } from 'cfx/ui/ControlBox/ControlBox';
+import { Decorate } from 'cfx/ui/Decorate/Decorate';
+import { Dot } from 'cfx/ui/Dot/Dot';
+import { Icons } from 'cfx/ui/Icons';
+import { Interactive } from 'cfx/ui/Interactive/Interactive';
+import { Flex } from 'cfx/ui/Layout/Flex/Flex';
+import { Pad } from 'cfx/ui/Layout/Pad/Pad';
+import { VirtualScrollable } from 'cfx/ui/Layout/Scrollable/VirtualScrollable';
+import { Popover } from 'cfx/ui/Popover/Popover';
+import { Separator } from 'cfx/ui/Separator/Separator';
+import { Text } from 'cfx/ui/Text/Text';
+import { Title } from 'cfx/ui/Title/Title';
+import { clsx } from 'cfx/utils/clsx';
+
+import { SearchInput } from './SearchInput/SearchInput';
+
 import s from './ServerFilters.module.scss';
-import { useEventHandler } from "cfx/common/services/analytics/analytics.service";
-import { EventActionNames, ElementPlacements } from "cfx/common/services/analytics/types";
 
 export interface ServerFiltersProps {
-  config: ServerListConfigController,
+  config: ServerListConfigController;
 
-  inputRef?: React.RefObject<HTMLElement>,
-  onInputActive?(active: boolean): void,
-  onInputKeyDown?(event: React.KeyboardEvent<HTMLInputElement>): void,
+  inputRef?: React.RefObject<HTMLElement>;
+  onInputActive?(active: boolean): void;
+  onInputKeyDown?(event: React.KeyboardEvent<HTMLInputElement>): void;
 }
 
 export const ServerFilters = observer(function ServerFilters(props: ServerFiltersProps) {
@@ -45,8 +56,10 @@ export const ServerFilters = observer(function ServerFilters(props: ServerFilter
     onInputKeyDown,
   } = props;
 
-  const filtersDecorator = (config.filteringByAnyTag || config.filteringByAnyLocale)
-    ? <Dot />
+  const filtersDecorator = config.filteringByAnyTag || config.filteringByAnyLocale
+    ? (
+      <Dot />
+      )
     : null;
 
   return (
@@ -64,13 +77,10 @@ export const ServerFilters = observer(function ServerFilters(props: ServerFilter
       <ButtonBar>
         <Popover at="top-right" popover={<FiltersPopover config={config} />}>
           {(ref, active) => (
-            <Decorate
-              ref={ref as any}
-              decorator={filtersDecorator}
-            >
+            <Decorate ref={ref as any} decorator={filtersDecorator}>
               <Button
                 size="large"
-                theme={active && 'primary' || 'default-blurred'}
+                theme={(active && 'primary') || 'default-blurred'}
                 icon={<FiFilter />}
                 text={$L('#ServerList_Filter')}
               />
@@ -82,7 +92,7 @@ export const ServerFilters = observer(function ServerFilters(props: ServerFilter
           {(ref, active) => (
             <Button
               ref={ref as any}
-              theme={active && 'primary' || 'default-blurred'}
+              theme={(active && 'primary') || 'default-blurred'}
               size="large"
               icon={iconsMap[config.sortBy][config.sortDir]}
             />
@@ -94,7 +104,9 @@ export const ServerFilters = observer(function ServerFilters(props: ServerFilter
 });
 
 const FiltersPopover = observer(function FiltersPopover(props: ServerFiltersProps) {
-  const { config } = props;
+  const {
+    config,
+  } = props;
 
   const UiService = useUiService();
   const ServersService = useServersService();
@@ -109,23 +121,35 @@ const FiltersPopover = observer(function FiltersPopover(props: ServerFiltersProp
   const hideEmptyTextKey = '#ServerList_HideEmpty';
   const hideFullTextKey = '#ServerList_HideFull';
 
-  const handleFilterEvent = React.useCallback((text: string) => {
-    eventHandler({ action: EventActionNames.FilterCTA, properties: {
-      text,
-      element_placement: ElementPlacements.Nav,
-      link_url: '/',
-    }});
-  }, [eventHandler]);
+  const handleFilterEvent = React.useCallback(
+    (text: string) => {
+      eventHandler({
+        action: EventActionNames.FilterCTA,
+        properties: {
+          text,
+          element_placement: ElementPlacements.Nav,
+          link_url: '/',
+        },
+      });
+    },
+    [eventHandler],
+  );
 
-  const handleHideEmptyClick = React.useCallback((value: boolean) => {
-    handleFilterEvent(hideEmptyTextKey);
-    config.setHideEmpty(value);
-  }, [handleFilterEvent, config]);
+  const handleHideEmptyClick = React.useCallback(
+    (value: boolean) => {
+      handleFilterEvent(hideEmptyTextKey);
+      config.setHideEmpty(value);
+    },
+    [handleFilterEvent, config],
+  );
 
-  const handleHideFullClick = React.useCallback((value: boolean) => {
-    handleFilterEvent(hideFullTextKey);
-    config.setHideFull(value);
-  }, [handleFilterEvent, config]);
+  const handleHideFullClick = React.useCallback(
+    (value: boolean) => {
+      handleFilterEvent(hideFullTextKey);
+      config.setHideFull(value);
+    },
+    [handleFilterEvent, config],
+  );
 
   return (
     <div className={clsx(s.popover, s['full-height'])}>
@@ -148,12 +172,7 @@ const FiltersPopover = observer(function FiltersPopover(props: ServerFiltersProp
               value={config.hideEmpty}
               onChange={handleHideEmptyClick}
             />
-            <Checkbox
-              size="large"
-              label={$L(hideFullTextKey)}
-              value={config.hideFull}
-              onChange={handleHideFullClick}
-            />
+            <Checkbox size="large" label={$L(hideFullTextKey)} value={config.hideFull} onChange={handleHideFullClick} />
           </Flex>
         </Pad>
 
@@ -164,19 +183,12 @@ const FiltersPopover = observer(function FiltersPopover(props: ServerFiltersProp
             <Pad>
               <Flex repell centered>
                 <ControlBox size="small">
-                  <Text opacity="50">
-                    {$L('#ServerList_Locales')}
-                  </Text>
+                  <Text opacity="50">{$L('#ServerList_Locales')}</Text>
                 </ControlBox>
 
                 {config.filteringByAnyLocale && (
                   <Title title={$L('#ServerList_Filter_Reset')}>
-                    <Button
-                      size="small"
-                      theme="transparent"
-                      icon={Icons.remove}
-                      onClick={config.clearLocalesFilter}
-                    />
+                    <Button size="small" theme="transparent" icon={Icons.remove} onClick={config.clearLocalesFilter} />
                   </Title>
                 )}
               </Flex>
@@ -186,10 +198,7 @@ const FiltersPopover = observer(function FiltersPopover(props: ServerFiltersProp
               itemCount={localesList.length}
               itemHeight={UiService.quant * 6}
               renderItem={(index) => (
-                <LocaleFaucet
-                  config={config}
-                  locale={locales[localesList[index]]}
-                />
+                <LocaleFaucet config={config} locale={locales[localesList[index]]} />
               )}
             />
           </Flex>
@@ -200,19 +209,12 @@ const FiltersPopover = observer(function FiltersPopover(props: ServerFiltersProp
             <Pad>
               <Flex repell centered>
                 <ControlBox size="small">
-                  <Text opacity="50">
-                    {$L('#ServerList_Tags')}
-                  </Text>
+                  <Text opacity="50">{$L('#ServerList_Tags')}</Text>
                 </ControlBox>
 
                 {config.filteringByAnyTag && (
                   <Title title="Reset">
-                    <Button
-                      size="small"
-                      theme="transparent"
-                      icon={Icons.remove}
-                      onClick={config.clearTagsFilter}
-                    />
+                    <Button size="small" theme="transparent" icon={Icons.remove} onClick={config.clearTagsFilter} />
                   </Title>
                 )}
               </Flex>
@@ -222,11 +224,7 @@ const FiltersPopover = observer(function FiltersPopover(props: ServerFiltersProp
               itemCount={tagsList.length}
               itemHeight={UiService.quant * 6}
               renderItem={(index) => (
-                <TagFaucet
-                  config={config}
-                  tag={tagsList[index]}
-                  count={tags[tagsList[index]].count}
-                />
+                <TagFaucet config={config} tag={tagsList[index]} count={tags[tagsList[index]].count} />
               )}
             />
           </Flex>
@@ -237,20 +235,28 @@ const FiltersPopover = observer(function FiltersPopover(props: ServerFiltersProp
 });
 
 const SortPopover = observer(function SortPopover(props: ServerFiltersProps) {
-  const { config } = props;
+  const {
+    config,
+  } = props;
   const eventHandler = useEventHandler();
 
   const byBoostTitleKey = '#Server_BoostPower_Title';
   const byNameTitleKey = '#ServerList_Name';
   const byPlayersTitleKey = '#ServerList_Players';
 
-  const handleFilterEvent = React.useCallback((text: string) => {
-    eventHandler({ action: EventActionNames.FilterCTA, properties: {
-      text,
-      element_placement: ElementPlacements.Nav,
-      link_url: '/',
-    }});
-  }, [eventHandler]);
+  const handleFilterEvent = React.useCallback(
+    (text: string) => {
+      eventHandler({
+        action: EventActionNames.FilterCTA,
+        properties: {
+          text,
+          element_placement: ElementPlacements.Nav,
+          link_url: '/',
+        },
+      });
+    },
+    [eventHandler],
+  );
 
   const handleByBoostClick = React.useCallback(() => {
     handleFilterEvent(byBoostTitleKey);
@@ -308,23 +314,28 @@ const iconsMap = {
   },
 };
 
-
 interface LocaleFaucetProps {
-  config: ServerListConfigController,
-  locale: IAutocompleteIndexLocaleItem,
+  config: ServerListConfigController;
+  locale: IAutocompleteIndexLocaleItem;
 }
 const LocaleFaucet = observer(function LocaleFaucet(props: LocaleFaucetProps) {
-  const { config, locale } = props;
+  const {
+    config,
+    locale,
+  } = props;
 
   const IntlService = useIntlService();
   const eventHandler = useEventHandler();
 
   const handleClick = React.useCallback(() => {
-    eventHandler({ action: EventActionNames.FilterCTA, properties: {
-      text: locale.locale,
-      element_placement: ElementPlacements.Nav,
-      link_url: '/',
-    }});
+    eventHandler({
+      action: EventActionNames.FilterCTA,
+      properties: {
+        text: locale.locale,
+        element_placement: ElementPlacements.Nav,
+        link_url: '/',
+      },
+    });
 
     config.toggleLocale(locale.locale);
   }, [eventHandler, locale, config]);
@@ -336,9 +347,7 @@ const LocaleFaucet = observer(function LocaleFaucet(props: LocaleFaucetProps) {
         <Flex>
           <span className={`fi fi-${locale.country.toLowerCase()}`} />
 
-          <span>
-            {IntlService.defaultDisplayNames.of(locale.locale)}
-          </span>
+          <span>{IntlService.defaultDisplayNames.of(locale.locale)}</span>
         </Flex>
       )}
       right={locale.count}
@@ -348,39 +357,41 @@ const LocaleFaucet = observer(function LocaleFaucet(props: LocaleFaucetProps) {
 });
 
 interface TagFaucetProps {
-  config: ServerListConfigController,
-  tag: string,
-  count: number,
+  config: ServerListConfigController;
+  tag: string;
+  count: number;
 }
 const TagFaucet = observer(function TagFaucet(props: TagFaucetProps) {
-  const { config, tag, count } = props;
+  const {
+    config,
+    tag,
+    count,
+  } = props;
   const eventHandler = useEventHandler();
 
   const handleClick = React.useCallback(() => {
-    eventHandler({ action: EventActionNames.FilterCTA, properties: {
-      text: tag,
-      element_placement: ElementPlacements.Nav,
-      link_url: '/',
-    }});
+    eventHandler({
+      action: EventActionNames.FilterCTA,
+      properties: {
+        text: tag,
+        element_placement: ElementPlacements.Nav,
+        link_url: '/',
+      },
+    });
 
     config.toggleTag(tag);
   }, [eventHandler, tag, config]);
 
   return (
-    <Faucet
-      active={config.getTag(tag)}
-      left={tag}
-      right={count}
-      onClick={handleClick}
-    />
+    <Faucet active={config.getTag(tag)} left={tag} right={count} onClick={handleClick} />
   );
 });
 
 interface FaucetProps {
-  active?: boolean | undefined,
-  left: React.ReactNode,
-  right: React.ReactNode,
-  onClick(): void,
+  active?: boolean | undefined;
+  left: React.ReactNode;
+  right: React.ReactNode;
+  onClick(): void;
 }
 function Faucet(props: FaucetProps) {
   const {
@@ -396,36 +407,33 @@ function Faucet(props: FaucetProps) {
   });
 
   return (
-    <div className={faucetClassName} onClick={onClick}>
-      <div className={s.left}>
-        {left}
-      </div>
-      <div className={s.right}>
-        {right}
-      </div>
-    </div>
+    <Interactive className={faucetClassName} onClick={onClick}>
+      <div className={s.left}>{left}</div>
+      <div className={s.right}>{right}</div>
+    </Interactive>
   );
 }
 
 interface ListItemProps {
-  active?: boolean,
-  label: React.ReactNode,
-  value: React.ReactNode,
-  onClick(): void,
+  active?: boolean;
+  label: React.ReactNode;
+  value: React.ReactNode;
+  onClick(): void;
 }
-function ListItem(props: ListItemProps) {
+function ListItem({
+  active,
+  onClick,
+  label,
+  value,
+}: ListItemProps) {
   const itemClassName = clsx(s.item, {
-    [s.active]: props.active,
+    [s.active]: active,
   });
 
   return (
-    <div className={itemClassName} onClick={props.onClick}>
-      <div className={s.label}>
-        {props.label}
-      </div>
-      <div className={s.value}>
-        {props.value}
-      </div>
-    </div>
+    <Interactive className={itemClassName} onClick={onClick}>
+      <div className={s.label}>{label}</div>
+      <div className={s.value}>{value}</div>
+    </Interactive>
   );
 }

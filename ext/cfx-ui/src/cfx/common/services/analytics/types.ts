@@ -1,6 +1,6 @@
 export interface IAnalyticsEvent {
-  action: string,
-  properties: any,
+  action: string;
+  properties: any;
 }
 
 export interface EventParamsBuilder<T extends string, P> extends IAnalyticsEvent {
@@ -150,4 +150,4 @@ export const isFeaturedElementPlacement = (elementPlacement: ElementPlacements):
     default:
       return false;
   }
-}
+};

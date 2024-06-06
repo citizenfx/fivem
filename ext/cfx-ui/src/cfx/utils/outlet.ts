@@ -1,4 +1,3 @@
-import React from 'react';
 import ReactDOM from 'react-dom';
 
 export function attachOutlet(id: string): ChildrenfulReactFC {
@@ -8,7 +7,9 @@ export function attachOutlet(id: string): ChildrenfulReactFC {
     throw new Error(`Tried to attach outlet to the DOM node #${id}, but there is no such`);
   }
 
-  return ({ children }) => ReactDOM.createPortal(children, outlet);
+  return ({
+    children,
+  }) => ReactDOM.createPortal(children, outlet);
 }
 
 export function createOutlet(): ChildrenfulReactFC {
@@ -16,5 +17,7 @@ export function createOutlet(): ChildrenfulReactFC {
 
   document.body.appendChild(outlet);
 
-  return ({ children }) => ReactDOM.createPortal(children, outlet);
+  return ({
+    children,
+  }) => ReactDOM.createPortal(children, outlet);
 }

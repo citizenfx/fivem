@@ -2,65 +2,68 @@
  * Adopted from MIT-licensed https://github.com/lukeed/clsx/blob/08a5a7f3f61fd05036c8599e4c4a4e5cdef43d7a/src/index.js
  */
 
-type TPrim =
-  | string
-  | number
-  | boolean
-  | void
-  | undefined
-  | null
+type TPrim = string | number | boolean | void | undefined | null;
 
-type TVal =
-  | TPrim
-  | Record<string, TPrim>
-  | Array<TPrim>
+type TVal = TPrim | Record<string, TPrim> | TPrim[];
 
 function toVal(mix: TVal): string {
-  let y: string;
-  let str = '';
+  if (typeof mix === 'string' || typeof mix === 'number') {
+    return mix.toString();
+  }
 
-	if (typeof mix === 'string' || typeof mix === 'number') {
-		str += mix;
-	} else if (typeof mix === 'object') {
-		if (Array.isArray(mix)) {
-      const length = mix.length;
+  if (!mix) {
+    return '';
+  }
 
-			for (let k=0; k < length; k++) {
-				if (mix[k]) {
-					if (y = toVal(mix[k])) {
-						str && (str += ' ');
-						str += y;
-					}
-				}
-			}
-		} else {
-			for (const k in mix) {
-				if (mix[k]) {
-					str && (str += ' ');
-					str += k;
-				}
-			}
-		}
-	}
+  if (typeof mix === 'object') {
+    if (Array.isArray(mix)) {
+      let y: string;
+      const strs: string[] = [];
 
-	return str;
+      for (const item of mix) {
+        if (item) {
+          y = toVal(item);
+
+          if (y) {
+            strs.push(y);
+          }
+        }
+      }
+
+      return strs.join(' ');
+    }
+
+    const strs: string[] = [];
+    Object.keys(mix).forEach((k) => {
+      if (mix[k]) {
+        strs.push(k);
+      }
+    });
+
+    return strs.join(' ');
+  }
+
+  return '';
 }
 
 export function clsx(...args: TVal[]): string {
   let i = 0;
   let x: string;
   let tmp: TVal;
-  let str = '';
+  const strs: string[] = [];
 
-  const length = args.length;
+  while (i < args.length) {
+    // eslint-disable-next-line prefer-rest-params
+    tmp = arguments[i++];
 
-	while (i < length) {
-		if (tmp = arguments[i++]) {
-			if (x = toVal(tmp)) {
-				str && (str += ' ');
-				str += x;
-			}
-		}
-	}
-	return str;
+    if (tmp) {
+      x = toVal(tmp);
+
+      if (x) {
+        strs.push(x);
+      }
+    }
+  }
+
+  return strs.join(' ');
 }

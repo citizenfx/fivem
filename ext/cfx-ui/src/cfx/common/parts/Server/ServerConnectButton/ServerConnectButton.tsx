@@ -1,38 +1,38 @@
-import React from "react";
-import { hasConnectEndpoints, isServerEOL } from "cfx/base/serverUtils";
-import { useServiceOptional } from "cfx/base/servicesContainer";
-import { $L } from "cfx/common/services/intl/l10n";
-import { IServersConnectService } from "cfx/common/services/servers/serversConnect.service";
-import { IServerView } from "cfx/common/services/servers/types";
-import { noop } from "cfx/utils/functional";
-import { playSfx, Sfx } from "cfx/apps/mpMenu/utils/sfx";
-import { observer } from "mobx-react-lite";
-import { Title } from "cfx/ui/Title/Title";
-import { Button, ButtonProps } from "cfx/ui/Button/Button";
-import { stopPropagation } from "cfx/utils/domEvents";
-import { isServerOffline } from "cfx/common/services/servers/helpers";
-import { CurrentGameBuild, CurrentGamePureLevel } from "cfx/base/gameRuntime";
-import { SingleEventListenerDisposer } from "cfx/utils/singleEventEmitter";
-import { timeout } from "cfx/utils/async";
-import { useEventHandler } from "cfx/common/services/analytics/analytics.service";
-import { EventActionNames, ElementPlacements, isFeaturedElementPlacement } from "cfx/common/services/analytics/types";
+import { observer } from 'mobx-react-lite';
+import React from 'react';
+
+import { playSfx, Sfx } from 'cfx/apps/mpMenu/utils/sfx';
+import { CurrentGameBuild, CurrentGamePureLevel } from 'cfx/base/gameRuntime';
+import { hasConnectEndpoints, isServerEOL } from 'cfx/base/serverUtils';
+import { useServiceOptional } from 'cfx/base/servicesContainer';
+import { useEventHandler } from 'cfx/common/services/analytics/analytics.service';
+import { EventActionNames, ElementPlacements, isFeaturedElementPlacement } from 'cfx/common/services/analytics/types';
+import { $L } from 'cfx/common/services/intl/l10n';
+import { isServerOffline } from 'cfx/common/services/servers/helpers';
+import { IServersConnectService } from 'cfx/common/services/servers/serversConnect.service';
+import { IServerView } from 'cfx/common/services/servers/types';
+import { Button, ButtonProps } from 'cfx/ui/Button/Button';
+import { Title } from 'cfx/ui/Title/Title';
+import { timeout } from 'cfx/utils/async';
+import { stopPropagation } from 'cfx/utils/domEvents';
+import { noop } from 'cfx/utils/functional';
+import { SingleEventListenerDisposer } from 'cfx/utils/singleEventEmitter';
 
 // Random number that feels enough to wait for fail
 const CONNECTION_TIMEOUT_TIME = 2500;
-
 export interface ServerConnectButtonProps {
-  server: IServerView,
+  server: IServerView;
 
-  size?: ButtonProps['size'],
-  theme?: ButtonProps['theme'],
-  elementPlacement?: ElementPlacements,
+  size?: ButtonProps['size'];
+  theme?: ButtonProps['theme'];
+  elementPlacement?: ElementPlacements;
 }
 
 export const ServerConnectButton = observer(function ServerConnectButton(props: ServerConnectButtonProps) {
   const {
     server,
     size = 'large',
-    theme = "primary",
+    theme = 'primary',
     elementPlacement = ElementPlacements.Unknown,
   } = props;
 
@@ -67,8 +67,12 @@ export const ServerConnectButton = observer(function ServerConnectButton(props: 
         const hasKnownGameBuild = CurrentGameBuild !== '-1';
         const hasKnownGamePureLevel = CurrentGamePureLevel !== '-1';
 
-        const shouldSwitchGameBuild = hasKnownGameBuild && server.enforceGameBuild && CurrentGameBuild !== server.enforceGameBuild;
-        const shouldSwitchPureLevel = hasKnownGamePureLevel && server.pureLevel && CurrentGamePureLevel !== server.pureLevel;
+        const shouldSwitchGameBuild = hasKnownGameBuild
+          && server.enforceGameBuild
+          && CurrentGameBuild !== server.enforceGameBuild;
+        const shouldSwitchPureLevel = hasKnownGamePureLevel
+          && server.pureLevel
+          && CurrentGamePureLevel !== server.pureLevel;
 
         if (shouldSwitchGameBuild && shouldSwitchPureLevel) {
           title = $L('#DirectConnect_SwitchBuildPureLevelAndConnect');
@@ -83,53 +87,62 @@ export const ServerConnectButton = observer(function ServerConnectButton(props: 
 
   const disabled = !ServersConnectService?.canConnect || !canConnect;
 
-  const handleConnectFailed = React.useCallback((text: string) => {
-    eventHandler({ action: EventActionNames.ServerJoinFailed, properties: {
-      element_placement: elementPlacement,
-      server_id: server.id,
-      server_name: server.projectName || server.hostname,
-      server_type: isFeaturedElementPlacement(elementPlacement)
-        ? 'featured'
-        : undefined,
-      text,
-      link_url: '/',
-    }});
-  }, [eventHandler, elementPlacement, server]);
+  const handleConnectFailed = React.useCallback(
+    (text: string) => {
+      eventHandler({
+        action: EventActionNames.ServerJoinFailed,
+        properties: {
+          element_placement: elementPlacement,
+          server_id: server.id,
+          server_name: server.projectName || server.hostname,
+          server_type: isFeaturedElementPlacement(elementPlacement)
+            ? 'featured'
+            : undefined,
+          text,
+          link_url: '/',
+        },
+      });
+    },
+    [eventHandler, elementPlacement, server],
+  );
 
   const handleClick = ServersConnectService
     ? () => {
-      if (__CFXUI_USE_SOUNDS__) {
-        playSfx(Sfx.Connect);
-      }
-
-      if (stopConnectionListnerRef.current) {
-        stopConnectionListnerRef.current();
-        stopConnectionListnerRef.current = null;
-      }
-
-      eventHandler({ action: EventActionNames.ServerConnectCTA, properties: {
-        element_placement: elementPlacement,
-        server_id: server.id,
-        server_name: server.projectName || server.hostname,
-        server_type: isFeaturedElementPlacement(elementPlacement)
-          ? 'featured'
-          : undefined,
-        text: '#DirectConnect_Connect',
-        link_url: '/',
-      }});
-
-      stopConnectionListnerRef.current = ServersConnectService.connectFailed.addListener(handleConnectFailed);
-      timeout(CONNECTION_TIMEOUT_TIME).finally(() => {
-        if (stopConnectionListnerRef.current === null) {
-          return;
+        if (__CFXUI_USE_SOUNDS__) {
+          playSfx(Sfx.Connect);
         }
 
-        stopConnectionListnerRef.current();
-        stopConnectionListnerRef.current = null;
-      });
+        if (stopConnectionListnerRef.current) {
+          stopConnectionListnerRef.current();
+          stopConnectionListnerRef.current = null;
+        }
 
-      ServersConnectService.connectTo(server);
-    }
+        eventHandler({
+          action: EventActionNames.ServerConnectCTA,
+          properties: {
+            element_placement: elementPlacement,
+            server_id: server.id,
+            server_name: server.projectName || server.hostname,
+            server_type: isFeaturedElementPlacement(elementPlacement)
+              ? 'featured'
+              : undefined,
+            text: '#DirectConnect_Connect',
+            link_url: '/',
+          },
+        });
+
+        stopConnectionListnerRef.current = ServersConnectService.connectFailed.addListener(handleConnectFailed);
+        timeout(CONNECTION_TIMEOUT_TIME).finally(() => {
+          if (stopConnectionListnerRef.current === null) {
+            return;
+          }
+
+          stopConnectionListnerRef.current();
+          stopConnectionListnerRef.current = null;
+        });
+
+        ServersConnectService.connectTo(server);
+      }
     : noop;
 
   return (

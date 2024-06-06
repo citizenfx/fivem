@@ -1,5 +1,5 @@
-import React, { createContext, useContext } from "react";
-import { Container, interfaces } from "inversify";
+import { Container, interfaces } from 'inversify';
+import React, { createContext, useContext } from 'react';
 
 export type ServicesContainerInitializer = (container: ServicesContainer) => void;
 
@@ -13,7 +13,8 @@ export class ServicesContainer {
   constructor(initializer: ServicesContainerInitializer) {
     initializer(this);
 
-    this.container.isCurrentBound
+    // eslint-disable-next-line no-unused-expressions
+    this.container.isCurrentBound;
   }
 
   getContainer(): interfaces.Container {
@@ -34,6 +35,7 @@ export class ServicesContainer {
 
   get<T>(id: SI<T>): T {
     const cached = this.cache.get(id);
+
     if (cached) {
       return cached;
     }
@@ -77,11 +79,12 @@ export class ServicesContainer {
 export const ServicesContainerContext = createContext<ServicesContainer | void>(undefined);
 
 export interface ServicesContainerContextProps {
-  container: ServicesContainer,
+  container: ServicesContainer;
 }
 
 function useServicesContainer(): ServicesContainer {
   const container = useContext(ServicesContainerContext);
+
   if (!container) {
     throw new Error('No ServicesContainer defined');
   }
@@ -107,7 +110,9 @@ export function useServiceOptional<T>(id: SI<T>): T | null {
   return useServicesContainer().getOptional(id);
 }
 
-export type ServiceIdentifier<T> = (string | symbol) & { __this_property_does_not_exist_and_is_only_here_to_make_types_magic__: T };
+export type ServiceIdentifier<T> = (string | symbol) & {
+  __this_property_does_not_exist_and_is_only_here_to_make_types_magic__: T;
+};
 export function defineService<T>(id: string | symbol): ServiceIdentifier<T> {
   return id as any;
 }

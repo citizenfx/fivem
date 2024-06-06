@@ -1,5 +1,6 @@
-import { interfaces } from "inversify";
-import { ServicesContainer } from "../../../base/servicesContainer";
+import { interfaces } from 'inversify';
+
+import { ServicesContainer } from '../../../base/servicesContainer';
 
 export const LogProvider = Symbol('LogProvider');
 export interface LogProvider {
@@ -12,4 +13,4 @@ export interface LogProvider {
 
 export function registerLogProvider(container: ServicesContainer, service: interfaces.Newable<LogProvider>) {
   container.registerImpl(LogProvider, service);
-};
+}

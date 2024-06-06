@@ -1,14 +1,16 @@
-import { inject, injectable, optional } from "inversify";
-import { IAccountService } from "cfx/common/services/account/account.service";
-import { ILinkedIdentitiesService } from "cfx/common/services/linkedIdentities/linkedIdentities.service";
-import { LinkedIdentityProvider } from "cfx/common/services/linkedIdentities/types";
+import { inject, injectable, optional } from 'inversify';
+
 import { CurrentGameBrand } from 'cfx/base/gameRuntime';
-import { AnalyticsProvider } from "cfx/common/services/analytics/analytics.extensions";
-import { EventActionNames, TrackEventParams } from "../types";
+import { IAccountService } from 'cfx/common/services/account/account.service';
+import { AnalyticsProvider } from 'cfx/common/services/analytics/analytics.extensions';
+import { ILinkedIdentitiesService } from 'cfx/common/services/linkedIdentities/linkedIdentities.service';
+import { LinkedIdentityProvider } from 'cfx/common/services/linkedIdentities/types';
+
+import { EventActionNames, TrackEventParams } from '../types';
 
 type GTMEvent = TrackEventParams['properties'] & {
   event: TrackEventParams['action'];
-}
+};
 
 // parameters that will be included to each event to push in to dataLayer
 interface GTMEventDefaults {
@@ -23,7 +25,7 @@ interface GTMEventDefaults {
 
 export type DataLayerType = Array<GTMEvent & GTMEventDefaults>;
 // declared in index.html by default and processing by google tag manager script
-declare var dataLayer: DataLayerType;
+declare let dataLayer: DataLayerType;
 
 // cast params in to google tag manager event type
 export const getGTMEvent = (params: TrackEventParams): GTMEvent | null => {
@@ -31,24 +33,32 @@ export const getGTMEvent = (params: TrackEventParams): GTMEvent | null => {
     return null;
   }
 
-  const { action, properties } = params;
+  const {
+    action,
+    properties,
+  } = params;
+
   return {
     event: action,
     ...properties,
-  }
+  };
 };
 
 // GTM - google tag manager
 @injectable()
 export class GTMAnalyticsProvider implements AnalyticsProvider {
   private _userId: number | undefined = undefined;
+
   private _cfxId: string | undefined = undefined;
+
   private _displayType: GTMEventDefaults['display_type'] = 'desktop';
 
   constructor(
-    @inject(IAccountService) @optional()
+    @inject(IAccountService)
+    @optional()
     protected readonly accountService: IAccountService | undefined,
-    @inject(ILinkedIdentitiesService) @optional()
+    @inject(ILinkedIdentitiesService)
+    @optional()
     protected readonly linkedIdentitiesService: ILinkedIdentitiesService | undefined,
   ) {
     this.initializeUserID();
@@ -66,22 +76,28 @@ export class GTMAnalyticsProvider implements AnalyticsProvider {
   private async initializeCFXID() {
     this.linkedIdentitiesService?.identitiesChange.addListener((event) => {
       if (event.linkedIdentities) {
-        const cfx_identity = event.linkedIdentities.find(({ provider }) => provider === LinkedIdentityProvider.Cfxre);
-        this._cfxId = cfx_identity ? cfx_identity.id : undefined;
+        const cfxIdentity = event.linkedIdentities.find(({
+          provider,
+        }) => provider === LinkedIdentityProvider.Cfxre);
+        this._cfxId = cfxIdentity
+          ? cfxIdentity.id
+          : undefined;
       }
     });
   }
 
   private getEventDefaults(): GTMEventDefaults {
     return {
-      environment: __CFXUI_DEV__ ? 'dev' : 'prod',
+      environment: __CFXUI_DEV__
+        ? 'dev'
+        : 'prod',
       user_id: this._userId,
       cfx_id: this._cfxId,
       cfx_login_state: !!this._cfxId,
       display_type: this._displayType,
       games_played: `${CurrentGameBrand} PC`,
       internal_referrer: undefined,
-    }
+    };
   }
 
   trackEvent(params: TrackEventParams): void {

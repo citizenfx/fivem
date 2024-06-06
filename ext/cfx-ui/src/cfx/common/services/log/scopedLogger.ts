@@ -1,10 +1,12 @@
-import { inject, named } from "inversify";
-import { LogService } from "./logService";
+import { inject, named } from 'inversify';
+
+import { LogService } from './logService';
 
 /**
  * !DECORATOR
  */
 export const scopedLogger = (name: string): ReturnType<typeof inject> => (...args) => {
+  // @ts-expect-error
   inject(ScopedLogger)(...args);
   named(name)(...args);
 };
@@ -12,7 +14,10 @@ export const scopedLogger = (name: string): ReturnType<typeof inject> => (...arg
 export class ScopedLogger {
   private prefix = '';
 
-  constructor(protected readonly logService: LogService, private name: string) {
+  constructor(
+    protected readonly logService: LogService,
+    private name: string,
+  ) {
     this.prefix = `[${name}]`;
   }
 
@@ -21,6 +26,7 @@ export class ScopedLogger {
   }
 
   error<T extends Error>(error: T, extra: Record<string, any> = {}) {
-    this.logService.error(error, { ...extra, loggerName: this.name });
+    this.logService.error(error, { ...extra,
+      loggerName: this.name });
   }
 }
