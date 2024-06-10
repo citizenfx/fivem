@@ -2,7 +2,7 @@
 
 #include <UdpInterceptor.h>
 
-#include "ForceConsteval.h"
+#include <ForceConsteval.h>
 
 namespace fx
 {
@@ -66,7 +66,7 @@ namespace fx
 					bool handled = false;
 					([&]
 					{
-						if (!handled && key == fx::force_consteval<uint32_t, HashRageString(TOutOfBandHandler::GetName())>)
+						if (!handled && key == net::force_consteval<uint32_t, HashRageString(TOutOfBandHandler::GetName())>)
 						{
 							static TOutOfBandHandler outOfBandHandler (tempServer);
 							outOfBandHandler.Process(tempServer, from, data);

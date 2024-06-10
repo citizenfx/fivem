@@ -48,6 +48,8 @@ public:
 };
 }
 
+class StateBag;
+
 class ServerGameStatePublic : public fwRefCountable
 {
 public:
@@ -60,6 +62,8 @@ public:
 	virtual void ParseGameStatePacket(const fx::ClientSharedPtr& client, const std::vector<uint8_t>& packetData) = 0;
 
 	virtual void ForAllEntities(const std::function<void(sync::Entity*)>& cb) = 0;
+
+	virtual bool SetEntityStateBag(uint8_t playerId, uint16_t objectId, std::function<std::shared_ptr<StateBag>()> createStateBag) = 0;
 };
 }
 

@@ -48,6 +48,8 @@
 
 #include <utf8.h>
 
+#include "NetBitVersion.h"
+
 using json = nlohmann::json;
 
 static std::forward_list<fx::ServerIdentityProviderBase*> g_serverProviders;
@@ -402,6 +404,8 @@ static InitFunction initFunction([]()
 			cb(json(nullptr));
 		});
 
+		auto experimentalStateBagsHandler = instance->AddVariable<bool>("sv_experimentalStateBagsHandler", ConVar_None, false);
+
 		instance->GetComponent<fx::ClientMethodRegistry>()->AddHandler("initConnect", [=](const std::map<std::string, std::string>& postMap, const fwRefContainer<net::HttpRequest>& request, const std::function<void(const json&)>& cb)
 		{
 			auto sendError = [=](const std::string& error)
@@ -548,7 +552,16 @@ static InitFunction initFunction([]()
 
 			json data = json::object();
 			data["protocol"] = 5;
-			data["bitVersion"] = 0x202103292050;
+
+			if (experimentalStateBagsHandler)
+			{
+				data["bitVersion"] = net::NetBitVersion::netVersion2;
+			}
+			else
+			{
+				data["bitVersion"] = net::NetBitVersion::netVersion1;
+			}
+
 			data["pure"] = pureVar->GetValue();
 			data["sH"] = shVar->GetValue();
 			data["enhancedHostSupport"] = ehVar->GetValue() && !fx::IsOneSync();

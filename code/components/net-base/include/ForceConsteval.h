@@ -1,8 +1,8 @@
 ﻿#pragma once
 
-namespace fx
+namespace net
 {
 	// TODO: replace with C++20 consteval
 	template <typename T, T value>
-	T force_consteval = value;
+	constexpr T force_consteval = value;
 }
