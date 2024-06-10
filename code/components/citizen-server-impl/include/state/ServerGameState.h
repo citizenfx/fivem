@@ -412,7 +412,7 @@ struct CVehicleGameStateNodeData
 	int lockStatus;
 	int doorsOpen;
 	int doorPositions[1 << 7];
-	bool noLongerNeeded;
+	bool isStationary;
 	bool lightsOn;
 	bool highbeamsOn;
 	bool hasBeenOwnedByPlayer;

@@ -932,14 +932,28 @@ static void Init()
 
 	fx::ScriptEngine::RegisterNativeHandler("HAS_ENTITY_BEEN_MARKED_AS_NO_LONGER_NEEDED", makeEntityFunction([](fx::ScriptContext& context, const fx::sync::SyncEntityPtr& entity)
 	{
-		auto vn = entity->syncTree->GetVehicleGameState();
+		// GH-2203:
+		// Since CScriptEntityExtension is not explicitly be synchronized, use
+		// knowledge about CScriptEntityExtension's back-to-ambient conversion
+		// as it cleans up an entities mission state. This approximation may
+		// require refinement.
+		bool result = entity->deleting;
 
-		if (vn)
+		fx::sync::ePopType popType;
+		if (entity->syncTree->GetPopulationType(&popType))
 		{
-			return vn->noLongerNeeded;
+			result |= popType == fx::sync::POPTYPE_RANDOM_AMBIENT;
 		}
 
-		return false;
+#if 0
+		// Previous implementation
+		if (auto vn = entity->syncTree->GetVehicleGameState())
+		{
+			result |= vn->isStationary;
+		}
+#endif
+
+		return result;
 	}));
 
 	fx::ScriptEngine::RegisterNativeHandler("GET_ALL_VEHICLES", [](fx::ScriptContext& context)
