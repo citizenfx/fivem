@@ -92,7 +92,6 @@ namespace net
 		template <typename T>
 		bool Process(T& stream)
 		{
-			// maybe use Size, for the bytes the string is using for its size
 			if constexpr (IsOneOf<bool, uint8_t, int8_t, uint16_t, int16_t, uint32_t, int32_t, uint64_t, int64_t>)
 			{
 				if constexpr (!std::is_same<SizeOption, void>())
@@ -164,7 +163,7 @@ namespace net
 				}
 
 				m_value.resize(size);
-				if (!stream.Field(reinterpret_cast<Type&>(*m_value.data()), sizeof(Type::value_type) * size))
+				if (!stream.Field(reinterpret_cast<Type&>(*m_value.data()), sizeof(typename Type::value_type) * size))
 				{
 					return false;
 				}
