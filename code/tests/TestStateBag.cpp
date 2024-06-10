@@ -48,13 +48,13 @@ TEST_CASE("State Bag handle")
 	testInterfaceOldData->Reset();
 	stateBagOldData->SetKey(1, testKey, testData);
 	REQUIRE(testInterfaceOldData->HasPacket());
-	auto [oldPeer, oldPacketData] = testInterfaceOldData->GetPacket();
-	REQUIRE(oldPeer == 2);
+	auto oldPacket = testInterfaceOldData->GetPacket();
+	REQUIRE(std::get<0>(oldPacket) == 2);
 	
 	auto stateBagComponentHandleOldData = fx::StateBagComponent::Create(fx::StateBagRole::Client);
 
 	BENCHMARK("stateBagHandler") {
-		stateBagComponentHandleOldData->HandlePacket(oldPeer, std::string_view(reinterpret_cast<const char*>(oldPacketData.data()), oldPacketData.size()));
+		stateBagComponentHandleOldData->HandlePacket(std::get<0>(oldPacket), std::string_view(reinterpret_cast<const char*>(std::get<1>(oldPacket).data()), std::get<1>(oldPacket).size()));
 	};
 
 	// create new data
@@ -66,15 +66,15 @@ TEST_CASE("State Bag handle")
 	testInterfaceNewData->Reset();
 	stateBagNewData->SetKey(1, testKey, testData);
 	REQUIRE(testInterfaceNewData->HasPacket());
-	auto [newPeer, newPacketData] = testInterfaceNewData->GetPacket();
-	REQUIRE(newPeer == 2);
+	auto newPacket = testInterfaceNewData->GetPacket();
+	REQUIRE(std::get<0>(newPacket) == 2);
 	
 	auto stateBagComponentHandleNewData = fx::StateBagComponent::Create(fx::StateBagRole::Server);
 
 	BENCHMARK("stateBagHandlerV2") {
 		fx::StateBagMessage message;
-		net::ByteReader reader(reinterpret_cast<const uint8_t*>(newPacketData.data()), newPacketData.size());
+		net::ByteReader reader(reinterpret_cast<const uint8_t*>(std::get<1>(newPacket).data()), std::get<1>(newPacket).size());
 		message.Process(reader);
-		stateBagComponentHandleNewData->HandlePacketV2(newPeer, message);
+		stateBagComponentHandleNewData->HandlePacketV2(std::get<0>(newPacket), message);
 	};
 }
