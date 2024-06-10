@@ -1,3 +1,10 @@
+-- This env var is originating from and must be kept in sync with cfx-build-toolkit/setupEnv.ps1
+local gameDumpsRoot = os.getenv("CFX_BUILD_TOOLKIT_GAME_DUMPS_ROOT")
+
+if not gameDumpsRoot or not os.isdir(gameDumpsRoot) then
+	gameDumpsRoot = "C:\\f"
+end
+
 local delayDLLs = {
 }
 
@@ -155,7 +162,7 @@ local function launcherpersonality_inner(name)
 				if name == 'game_2189' then gameBuild = '2189_0' end
 				if name == 'game_2060' then gameBuild = '2060_2' end
 
-				gameDump = ("C:\\f\\GTA5_%s_dump.exe"):format(gameBuild)
+				gameDump = ("%s\\GTA5_%s_dump.exe"):format(gameDumpsRoot, gameBuild)
 			elseif _OPTIONS['game'] == 'rdr3' then
 				gameBuild = '1311'
 
@@ -163,11 +170,11 @@ local function launcherpersonality_inner(name)
 				if name == 'game_1436' then gameBuild = '1436_31' end
 				if name == 'game_1491' then gameBuild = '1491_50' end
 
-				gameDump = ("C:\\f\\RDR2_%s.exe"):format(gameBuild)
+				gameDump = ("%s\\RDR2_%s.exe"):format(gameDumpsRoot, gameBuild)
 			end
 
 			if name == 'game_mtl' then
-				gameDump = "C:\\f\\Launcher.exe"
+				gameDump = ("%s\\Launcher.exe"):format(gameDumpsRoot)
 				gameBuild = 'mtl'
 			end
 

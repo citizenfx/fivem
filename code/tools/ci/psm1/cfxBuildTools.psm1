@@ -255,6 +255,17 @@ function ConvertTo-VerifiedPath {
     return ""
 }
 
+function Test-PathExists {
+    param(
+        [string] $Path,
+        [string] $ErrorMessage
+    )
+
+    if (!(Test-Path $Path)) {
+        throw $ErrorMessage
+    }
+}
+
 function Test-LastExitCode {
     param(
         [string] $ErrorMessage
