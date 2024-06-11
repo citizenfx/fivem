@@ -78,17 +78,17 @@ export class FavoriteServersList implements IServersList {
     this._config.refresh();
   }
 
-  isIn(id: string): boolean {
-    return this.serversService.getAllServerIds(id).some((id) => this._favoriteServersMap[id]);
+  isIn(serverId: string): boolean {
+    return this.serversService.getAllServerIds(serverId).some((id) => this._favoriteServersMap[id]);
   }
 
-  toggleIn(id: string) {
-    if (this._favoriteServersMap[id]) {
-      this.serversService.getAllServerIds(id).forEach((id) => {
+  toggleIn(serverId: string) {
+    if (this._favoriteServersMap[serverId]) {
+      this.serversService.getAllServerIds(serverId).forEach((id) => {
         delete this._favoriteServersMap[id];
       });
     } else {
-      this._favoriteServersMap[id] = true;
+      this._favoriteServersMap[serverId] = true;
     }
 
     this.serversStorageService.setFavoriteServers(Object.keys(this._favoriteServersMap));

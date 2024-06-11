@@ -106,10 +106,10 @@ export class LastServersDB {
 
           try {
             objectStore = createListObjectStore();
-          } catch (e) {
+          } catch (createError) {
             if (
-              e instanceof DOMException
-              && e.name === 'ConstraintError'
+              createError instanceof DOMException
+              && createError.name === 'ConstraintError'
               && database.objectStoreNames.contains(Db.STORE_NAME)
             ) {
               // Try recreating
@@ -123,7 +123,7 @@ export class LastServersDB {
                 return;
               }
             } else {
-              this.setInitError(e);
+              this.setInitError(createError);
 
               return;
             }
@@ -137,10 +137,10 @@ export class LastServersDB {
 
           try {
             createIndex();
-          } catch (e) {
+          } catch (createError) {
             if (
-              e instanceof DOMException
-              && e.name === 'ConstraintError'
+              createError instanceof DOMException
+              && createError.name === 'ConstraintError'
               && objectStore.indexNames.contains(Db.TIME_INDEX_NAME)
             ) {
               try {
@@ -150,7 +150,7 @@ export class LastServersDB {
                 this.setInitError(e);
               }
             } else {
-              this.setInitError(e);
+              this.setInitError(createError);
             }
           }
         },
