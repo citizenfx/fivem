@@ -553,7 +553,7 @@ static InitFunction initFunction([]()
 			json data = json::object();
 			data["protocol"] = 5;
 
-			if (experimentalStateBagsHandler)
+			if (experimentalStateBagsHandler->GetValue())
 			{
 				data["bitVersion"] = net::NetBitVersion::netVersion2;
 			}
