@@ -1,7 +1,7 @@
 {
   "monitor": {
-    "url": "https://github.com/tabarra/txAdmin/releases/download/v7.2.1/monitor.zip",
-    "version": "7.2.1",
-    "sha256": "1f1d7e1b3bc780c18c9ca42075d7644f12abfab6674ae9e2bfe909946c3fc86b"
+    "url": "https://github.com/tabarra/txAdmin/releases/download/v7.2.2/monitor.zip",
+    "version": "7.2.2",
+    "sha256": "0e6daef76f0a40f9d807a5caf0fff42cb15218c8d9f31d731de8980fe0f809af"
   }
 }
