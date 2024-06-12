@@ -1,19 +1,19 @@
-import { clsx } from 'cfx/utils/clsx';
 import React from 'react';
+
+import { clsx } from 'cfx/utils/clsx';
+
 import s from './Separator.module.scss';
 
 export interface SeparatorProps {
-  thin?: boolean,
-  vertical?: boolean,
+  thin?: boolean;
+  vertical?: boolean;
 
-  content?: React.ReactNode,
+  content?: React.ReactNode;
 }
 
 export function Separator(props: SeparatorProps) {
   const {
-    content,
-    thin = false,
-    vertical = false,
+    content, thin = false, vertical = false,
   } = props;
 
   const rootClassName = clsx(s.root, {
@@ -26,9 +26,7 @@ export function Separator(props: SeparatorProps) {
     return (
       <div className={rootClassName}>
         <div className={s.separator} />
-        <div className={s.content}>
-          {content}
-        </div>
+        <div className={s.content}>{content}</div>
         <div className={s.separator} />
       </div>
     );

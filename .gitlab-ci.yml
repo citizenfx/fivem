@@ -7,12 +7,14 @@ stages:
   - postdeploy
 
 variables:
+  # Dry run is for builds-only mode, no uploading/deploying/notifying, helpful when experimenting with pipelines
+  CFX_DRY_RUN: 'false'
   CFX_RELEASE_BUILD: 'false'
   CFX_CLONE_ROOT: $CI_BUILDS_DIR\$CI_PROJECT_PATH_SLUG\$CI_COMMIT_REF_SLUG
 
 workflow:
   rules:
-    - if: $CI_COMMIT_BRANCH && ($CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH == "beta" || $CI_COMMIT_BRANCH == "production")
+    - if: $CI_COMMIT_BRANCH && ($CI_COMMIT_BRANCH == 'master' || $CI_COMMIT_BRANCH == 'beta' || $CI_COMMIT_BRANCH == 'production')
       variables:
         CFX_RELEASE_BUILD: 'true'
     # never run pipelines for tags
@@ -47,8 +49,6 @@ workflow:
     # archives are heavier this way, but much faster to pack/unpack
     FF_USE_FASTZIP: "true"
     CACHE_COMPRESSION_LEVEL: "fastest"
-    # using normal CI cache here would significantly slow down the build
-    CFX_USE_INTER_BUILD_CACHE: "true"
   cache:
     key: $CI_JOB_NAME--$CI_COMMIT_REF_SLUG
 
@@ -65,11 +65,36 @@ workflow:
       - ext/native-doc-gen/natives_cfx.json
     expire_in: 1 month
   cache:
-    untracked: true
     paths:
-      - code/build
+      # Build files (bin, build, etc.)
+      - .build-cache
+      - code/tools/build/prebuild_run.txt
+      # IDL tool generated files
+      - code/tools/idl/xpidl/__pycache__
+      - code/tools/idl/xpidl/xpidllex.py
+      - code/tools/idl/xpidl/xpidlyacc.py
+      # IDL generated files to avoid large recompilations
+      - code/client/citicore/fxcore.h
+      - code/client/citicore/fxIBase.h
+      - code/components/citizen-scripting-core/include/fxScripting.h
+      # Launcher delay list
+      - code/client/launcher/DelayList.h
+      # Versioning files
       - code/shared/citversion.h
       - code/shared/launcher_version.h
+      # native-doc-gen files
+      - ext/native-doc-gen/node.exe
+      # natives files
+      - ext/natives/inp
+      - ext/natives/out
+      # ui files
+      - ext/ui-build/data/.commit
+      - ext/ui-build/data.zip
+      - ext/ui-build/data_big.zip
+      # Chromium tools precompiled python
+      - vendor/chromium/**/*.pyc
+      # V8 binaries
+      - vendor/v8/**/*.dll
 
 build_client:
   extends: [.base_build_client]
@@ -112,8 +137,14 @@ build_sdk:
 # -------------------
 # -- SERVER BUILDS --
 # -------------------
+.base_build_server:
+  rules:
+    - if: $CI_COMMIT_BRANCH && ($CI_COMMIT_BRANCH != 'beta' && $CI_COMMIT_BRANCH != 'production')
+      when: always
+    - when: never
+
 build_server_windows:
-  extends: [.base_build_windows, .only_for_master]
+  extends: [.base_build_windows, .base_build_server]
   tags:
     - release_fxserver
     - windows
@@ -132,7 +163,7 @@ build_server_windows:
     untracked: true
 
 build_proot_linux:
-  extends: [.only_for_master]
+  extends: [.base_build_server]
   stage: build
   tags:
     - linux

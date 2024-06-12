@@ -553,7 +553,7 @@ function RGSC_GET_TITLE_ID()
 function RGSC_GET_VERSION_INFO()
 {
 	return JSON.stringify({
-		Version: '2.1.6.5',
+		Version: '9.9.9.9',
 		TitleVersion: ''
 	});
 }

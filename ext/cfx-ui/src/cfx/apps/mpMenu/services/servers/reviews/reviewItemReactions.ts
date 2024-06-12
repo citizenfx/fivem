@@ -1,8 +1,10 @@
-import { IServerReviewItemReactions, ServerReviewReaction } from "cfx/common/services/servers/reviews/types";
-import { fetcher } from "cfx/utils/fetcher";
-import { makeAutoObservable, observable } from "mobx";
-import { IDiscourseService } from "../../discourse/discourse.service";
-import { IDiscourse } from "../../discourse/types";
+import { makeAutoObservable, observable } from 'mobx';
+
+import { IServerReviewItemReactions, ServerReviewReaction } from 'cfx/common/services/servers/reviews/types';
+import { fetcher } from 'cfx/utils/fetcher';
+
+import { IDiscourseService } from '../../discourse/discourse.service';
+import { IDiscourse } from '../../discourse/types';
 
 export class DiscourseServerReviewItemReactions implements IServerReviewItemReactions {
   private _count: Record<ServerReviewReaction, number> = {
@@ -10,19 +12,35 @@ export class DiscourseServerReviewItemReactions implements IServerReviewItemReac
     [ServerReviewReaction.Helpful]: 0,
     [ServerReviewReaction.Unhelpful]: 0,
   };
-  public get count(): Record<ServerReviewReaction, number> { return this._count }
-  private set count(count: Record<ServerReviewReaction, number>) { this._count = count }
+  public get count(): Record<ServerReviewReaction, number> {
+    return this._count;
+  }
+  private set count(count: Record<ServerReviewReaction, number>) {
+    this._count = count;
+  }
 
   private _reactionError: string | null = null;
-  public get reactionError(): string | null { return this._reactionError }
-  private set reactionError(reactionError: string | null) { this._reactionError = reactionError }
+  public get reactionError(): string | null {
+    return this._reactionError;
+  }
+  private set reactionError(reactionError: string | null) {
+    this._reactionError = reactionError;
+  }
 
   private _reactionInProgress: boolean = false;
-  public get reactionInProgress(): boolean { return this._reactionInProgress }
-  private set reactionInProgress(reactionInProgress: boolean) { this._reactionInProgress = reactionInProgress }
+  public get reactionInProgress(): boolean {
+    return this._reactionInProgress;
+  }
+  private set reactionInProgress(reactionInProgress: boolean) {
+    this._reactionInProgress = reactionInProgress;
+  }
 
-  private get post(): IDiscourse.Post { return this._post }
-  private set post(post: IDiscourse.Post) { this._post = post }
+  private get post(): IDiscourse.Post {
+    return this._post;
+  }
+  private set post(post: IDiscourse.Post) {
+    this._post = post;
+  }
 
   constructor(
     protected readonly discourseService: IDiscourseService,
@@ -73,7 +91,11 @@ export class DiscourseServerReviewItemReactions implements IServerReviewItemReac
       this.populateCounts();
     } catch (e) {
       if (e instanceof fetcher.HttpError) {
-        const body: { error_type: string, errors: string[], extras: Record<string, unknown> } | null = await e.readJsonBody();
+        const body: {
+          error_type: string;
+          errors: string[];
+          extras: Record<string, unknown>;
+        } | null = await e.readJsonBody();
 
         this.reactionError = body?.errors?.[0] || null;
       }

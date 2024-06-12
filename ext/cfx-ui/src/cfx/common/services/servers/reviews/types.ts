@@ -1,11 +1,12 @@
-import { TCFXID } from "cfx/base/identifiers";
-import { IServerActivityUserPlaytime } from "../activity/types";
+import { TCFXID } from 'cfx/base/identifiers';
+
+import { IServerActivityUserPlaytime } from '../activity/types';
 
 export interface IServerReviewSubmitData {
-  title: string,
-  content: string,
+  title: string;
+  content: string;
 
-  recommend: boolean,
+  recommend: boolean;
 }
 
 export interface IServerReviews {
@@ -46,28 +47,28 @@ export enum ServerReviewReactionsSentiment {
 }
 
 export interface IServerReviewItem {
-  readonly id: string,
+  readonly id: string;
 
-  loaded: boolean,
+  loaded: boolean;
 
-  readonly sentiment: ServerReviewSentiment,
+  readonly sentiment: ServerReviewSentiment;
 
-  readonly createdAt: Date,
+  readonly createdAt: Date;
 
-  readonly authorId: number,
-  readonly authorCfxId: TCFXID,
-  readonly authorName: string,
-  readonly authorAvatarURL: string,
+  readonly authorId: number;
+  readonly authorCfxId: TCFXID;
+  readonly authorName: string;
+  readonly authorAvatarURL: string;
 
-  readonly title: string,
-  readonly content: React.ReactNode,
+  readonly title: string;
+  readonly content: React.ReactNode;
 
-  readonly hidden: boolean,
+  readonly hidden: boolean;
 
-  report?: IServerReviewReport,
-  reactions?: IServerReviewItemReactions,
+  report?: IServerReviewReport;
+  reactions?: IServerReviewItemReactions;
 
-  load(): Promise<void>,
+  load(): Promise<void>;
 }
 
 export interface IServerReviewReport {

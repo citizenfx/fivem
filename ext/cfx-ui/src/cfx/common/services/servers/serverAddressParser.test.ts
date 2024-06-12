@@ -1,6 +1,14 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, test } from '@jest/globals';
+
 import { DEFAULT_SERVER_PORT_INT } from 'cfx/base/serverUtils';
-import { HostServerAddress, IParsedServerAddress, JoinOrHostServerAddress, parseServerAddress } from './serverAddressParser';
+
+import {
+  HostServerAddress,
+  IParsedServerAddress,
+  JoinOrHostServerAddress,
+  parseServerAddress,
+} from './serverAddressParser';
 
 describe('IP address', () => {
   test('IPv4 address', () => {
@@ -90,11 +98,7 @@ describe('Join ID or host address', () => {
       type: 'joinOrHost',
       address: 'testie',
       canonical: 'https://cfx.re/join/testie',
-      addressCandidates: [
-        'https://testie/',
-        'https://testie:30120/',
-        'http://testie:30120/',
-      ],
+      addressCandidates: ['https://testie/', 'https://testie:30120/', 'http://testie:30120/'],
     };
 
     expect(parse`testie`).toEqual(expected);
@@ -104,7 +108,9 @@ describe('Join ID or host address', () => {
     const joinIdOrHost = parse`test` as any as JoinOrHostServerAddress;
     const bareHost = parse`test.com` as any as HostServerAddress;
 
-    expect(joinIdOrHost.addressCandidates).toEqual(bareHost.addressCandidates?.map((address) => address.replace('.com', '')));
+    expect(joinIdOrHost.addressCandidates).toEqual(
+      bareHost.addressCandidates?.map((address) => address.replace('.com', '')),
+    );
   });
 });
 
@@ -113,11 +119,7 @@ describe('Host address', () => {
     expect(parse`test.com`).toEqual({
       type: 'host',
       address: 'https://test.com:30120/',
-      addressCandidates: [
-        'https://test.com/',
-        'https://test.com:30120/',
-        'http://test.com:30120/',
-      ],
+      addressCandidates: ['https://test.com/', 'https://test.com:30120/', 'http://test.com:30120/'],
     });
   });
 
@@ -125,10 +127,7 @@ describe('Host address', () => {
     expect(parse`test.com:30120`).toEqual({
       type: 'host',
       address: 'https://test.com:30120/',
-      addressCandidates: [
-        'https://test.com:30120/',
-        'http://test.com:30120/',
-      ],
+      addressCandidates: ['https://test.com:30120/', 'http://test.com:30120/'],
     });
   });
 
@@ -233,7 +232,7 @@ describe('Host address', () => {
         'https://xn--eckwd4c7cu47r2wf.com:30120/',
         'http://xn--eckwd4c7cu47r2wf.com:30120/',
       ],
-    })
+    });
   });
 
   test('TLD IDN host', () => {
@@ -245,7 +244,7 @@ describe('Host address', () => {
         'https://xn--eckwd4c7cu47r2wf:30120/',
         'http://xn--eckwd4c7cu47r2wf:30120/',
       ],
-    })
+    });
   });
 });
 
@@ -271,4 +270,4 @@ function parse(...[strings, ...substitutes]: Parameters<typeof String.raw>) {
   }
 
   return parseServerAddress(strings[0]);
-};
+}

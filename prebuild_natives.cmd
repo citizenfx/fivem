@@ -48,17 +48,20 @@ make -q
 
 if errorlevel 1 (
 	make -j4
-	xcopy /y out\*.lua ..\..\data\shared\citizen\scripting\lua
-	xcopy /y out\*.js ..\..\data\shared\citizen\scripting\v8
-	xcopy /y out\*.d.ts ..\..\data\shared\citizen\scripting\v8
-	xcopy /y out\rpc_natives.json ..\..\data\shared\citizen\scripting
-	xcopy /y out\*.zip ..\..\data\shared\citizen\scripting\lua
-
-	xcopy /y out\*.cs ..\..\code\client\clrcore
-	xcopy /y out\v2\*.cs ..\..\code\client\clrcore-v2\Native
-	xcopy /y out\Natives*.h ..\..\code\components\citizen-scripting-lua\src
-	xcopy /y out\PASGen.h ..\..\code\components\rage-scripting-five\src
 )
+
+:: Always copy files, they're within the build cache and it's easier to copy them and not to cache their copies in destination folders
+:: luckily xcopy preserves the file timestamps and it shouldn't normally trigger recompilation of dependant components
+xcopy /y out\*.lua ..\..\data\shared\citizen\scripting\lua
+xcopy /y out\*.js ..\..\data\shared\citizen\scripting\v8
+xcopy /y out\*.d.ts ..\..\data\shared\citizen\scripting\v8
+xcopy /y out\rpc_natives.json ..\..\data\shared\citizen\scripting
+xcopy /y out\*.zip ..\..\data\shared\citizen\scripting\lua
+
+xcopy /y out\*.cs ..\..\code\client\clrcore
+xcopy /y out\v2\*.cs ..\..\code\client\clrcore-v2\Native
+xcopy /y out\Natives*.h ..\..\code\components\citizen-scripting-lua\src
+xcopy /y out\PASGen.h ..\..\code\components\rage-scripting-five\src
 
 popd
 goto :eof

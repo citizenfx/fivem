@@ -3,9 +3,11 @@
  */
 
 import emojiRegex from 'emoji-regex';
-import { IServerListConfig, ServersListType } from "cfx/common/services/servers/lists/types";
-import { IPinnedServersConfig, IServerView } from 'cfx/common/services/servers/types';
+
+import { IServerListConfig, ServersListType } from 'cfx/common/services/servers/lists/types';
 import { IAutocompleteIndex } from 'cfx/common/services/servers/source/types';
+import { IPinnedServersConfig, IServerView } from 'cfx/common/services/servers/types';
+
 import { isAddressSearchTerm } from './searchTermsParser';
 
 export const EOL_LINK = 'aka.cfx.re/eol';
@@ -17,31 +19,40 @@ export const DEFAULT_SERVER_PORT = DEFAULT_SERVER_PORT_INT.toString(10);
 export const DEFAULT_SERVER_LOCALE = 'root-AQ';
 export const DEFAULT_SERVER_LOCALE_COUNTRY = 'AQ';
 
-const ere = '(?:' + emojiRegex().source + ')';
-const emojiPreRe = new RegExp('^' + ere, '');
+const ere = `(?:${emojiRegex().source})`;
+const emojiPreRe = new RegExp(`^${ere}`, '');
 
 // 'kush' is a quick hack to prevent non-sentence descriptions
-const SPLIT_RE = new RegExp(`((?<!\\.(?:[a-zA-Z]{2,6}))\\s?\\/+\\s?|\\||\\s[-~:x×☆ᆞ]+\\s|\\s[Il]\\s|(?:[\\s⠀ㅤ¦[]|${ere})+(?![#0-9])\\p{Emoji}|(?<=(?!^)(?![#0-9])\\p{Emoji}).+|[・·•│]|(?<=(?:\\]|\\}))[-\\s]|ㅤ|kush|(?<=[】⏌」』]).)`, 'u');
+const SPLIT_RE = new RegExp(
+  // eslint-disable-next-line @stylistic/max-len
+  `((?<!\\.(?:[a-zA-Z]{2,6}))\\s?\\/+\\s?|\\||\\s[-~:x×☆ᆞ]+\\s|\\s[Il]\\s|(?:[\\s⠀ㅤ¦[]|${ere})+(?![#0-9])\\p{Emoji}|(?<=(?!^)(?![#0-9])\\p{Emoji}).+|[・·•│]|(?<=(?:\\]|\\}))[-\\s]|ㅤ|kush|(?<=[】⏌」』]).)`,
+  'u',
+);
 const COMMA_SPLIT_RE = /(?:(?<!(?:\d+|Q))\+|,\s*|\.\s+)/u;
 
 function filterSplit(a: string) {
-  const bits = a.split(SPLIT_RE)
-    .map(b => b.trim())
-    .filter(b => b !== '');
+  const bits = a
+    .split(SPLIT_RE)
+    .map((b) => b.trim())
+    .filter((b) => b !== '');
 
-  return bits.length > 0 ? bits[0] : '';
+  return bits.length > 0
+    ? bits[0]
+    : '';
 }
 
 function filterCommas(a: string) {
-  const bits = a.split(COMMA_SPLIT_RE)
-    .map(b => b.trim())
-    .filter(b => b !== '');
+  const bits = a
+    .split(COMMA_SPLIT_RE)
+    .map((b) => b.trim())
+    .filter((b) => b !== '');
 
   return bits.slice(0, 3).join(', ');
 }
 
-function equalReplace(a: string, ...res: [any, any][]) {
+function equalReplace(aRaw: string, ...res: [any, any][]) {
   let lastA: string;
+  let a = aRaw;
 
   do {
     lastA = a;
@@ -76,7 +87,9 @@ const projectNamesReplacesExtra: [RegExp, string | Function][] = [
 /**
  * Returns normalized server name, typically from `sv_projectName` var
  */
-export function filterServerProjectName(name: string | undefined | null): string {
+export function filterServerProjectName(nameRaw: string | undefined | null): string {
+  let name = nameRaw;
+
   if (!name) {
     return '';
   }
@@ -91,11 +104,19 @@ export function filterServerProjectName(name: string | undefined | null): string
     equalReplace(
       equalReplace(
         name,
-        [/^\^[0-9]/, (regs) => { colorPrefix = regs; return ''; }],
+        [
+          /^\^[0-9]/,
+          (regs) => {
+            colorPrefix = regs;
+
+            return '';
+          },
+        ],
         ...projectNameReplaces,
       ),
       ...projectNamesReplacesExtra,
-    ));
+    ),
+  );
 
   return colorPrefix + filteredName.normalize('NFKD');
 }
@@ -103,7 +124,9 @@ export function filterServerProjectName(name: string | undefined | null): string
 /**
  * Returns normalized server description, typically from `sv_projectDesc` var
  */
-export function filterServerProjectDesc(a: string | undefined | null): string {
+export function filterServerProjectDesc(aRaw: string | undefined | null): string {
+  let a = aRaw;
+
   if (!a) {
     return '';
   }
@@ -112,13 +135,19 @@ export function filterServerProjectDesc(a: string | undefined | null): string {
     a = a.substring(0, 125);
   }
 
-  return filterCommas(filterSplit(equalReplace(
-    a,
-    [/\^[0-9]/g, ''],
-    [/^[\sㅤ]+/, ''],
-    [COUNTRY_PREFIX_RE, ''],
-    [emojiPreRe, ''], // emoji prefixes
-  ))).replace(/(\s|\u2800)+/gu, ' ').normalize('NFKD');
+  return filterCommas(
+    filterSplit(
+      equalReplace(
+        a,
+        [/\^[0-9]/g, ''],
+        [/^[\sㅤ]+/, ''],
+        [COUNTRY_PREFIX_RE, ''],
+        [emojiPreRe, ''], // emoji prefixes
+      ),
+    ),
+  )
+    .replace(/(\s|\u2800)+/gu, ' ')
+    .normalize('NFKD');
 }
 
 export function normalizeSearchString(input: string): string {
@@ -131,9 +160,11 @@ export function filterServerTag(tag: string) {
   }
 
   switch (tag) {
-    case 'default': return false;
+    case 'default':
+      return false;
 
-    default: return true;
+    default:
+      return true;
   }
 }
 
@@ -174,6 +205,7 @@ export function getListServerTags(server: IServerView, serversIndex: IAutocomple
 
   for (const serverTag of server.tags) {
     const indexedTag = tags[serverTag];
+
     if (!indexedTag) {
       continue;
     }
@@ -185,15 +217,16 @@ export function getListServerTags(server: IServerView, serversIndex: IAutocomple
     refinedServerTags.push(serverTag);
   }
 
-  return refinedServerTags
-    .sort((a, b) => tags[b].count - tags[a].count)
-    .slice(0, 4);
+  return refinedServerTags.sort((a, b) => tags[b].count - tags[a].count).slice(0, 4);
 }
 
 /**
  * Returns pinned server ids list
  */
-export function getPinnedServersList(pinnedServersConfig: IPinnedServersConfig | null, getServer: (id: string) => IServerView | undefined): string[] {
+export function getPinnedServersList(
+  pinnedServersConfig: IPinnedServersConfig | null,
+  getServer: (id: string) => IServerView | undefined,
+): string[] {
   if (!pinnedServersConfig) {
     return [];
   }
@@ -233,11 +266,7 @@ export function isServerEOS(server: IServerView): boolean {
   return server.supportStatus === 'end_of_life';
 }
 
-const NON_DISPLAY_SERVER_RESOURCE_NAMES = new Set([
-  '_cfx_internal',
-  'hardcap',
-  'sessionmanager',
-]);
+const NON_DISPLAY_SERVER_RESOURCE_NAMES = new Set(['_cfx_internal', 'hardcap', 'sessionmanager']);
 export function shouldDisplayServerResource(resourceName: string): boolean {
   return !NON_DISPLAY_SERVER_RESOURCE_NAMES.has(resourceName);
 }
@@ -257,8 +286,8 @@ export function notPrivateConnectEndpoint(endpoit: string): boolean {
 }
 
 export interface IServerConnectEndpoints {
-  manual?: string,
-  provided?: string[],
+  manual?: string;
+  provided?: string[];
 }
 
 export function getConnectEndpoits(server: IServerView): IServerConnectEndpoints {
@@ -270,6 +299,7 @@ export function getConnectEndpoits(server: IServerView): IServerConnectEndpoints
 
   if (server.connectEndPoints) {
     const provided = server.connectEndPoints.filter(notPrivateConnectEndpoint);
+
     if (provided.length) {
       eps.provided = provided;
     }

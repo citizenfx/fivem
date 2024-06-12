@@ -40,7 +40,7 @@ namespace fx
 					clientRegistry->SetHost(client);
 
 					net::Buffer hostBroadcast;
-					hostBroadcast.Write(fx::force_consteval<uint32_t, HashRageString("msgIHost")>);
+					hostBroadcast.Write(net::force_consteval<uint32_t, HashRageString("msgIHost")>);
 					hostBroadcast.Write<uint16_t>(client->GetNetId());
 					hostBroadcast.Write(client->GetNetBase());
 

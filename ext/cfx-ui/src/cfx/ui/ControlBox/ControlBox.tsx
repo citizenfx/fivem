@@ -1,19 +1,18 @@
-import React from "react";
-import { clsx } from "cfx/utils/clsx";
+import React from 'react';
+
+import { clsx } from 'cfx/utils/clsx';
+
 import s from './ControlBox.module.scss';
 
-export type ControlBoxSize =
-  | 'small'
-  | 'normal'
-  | 'large';
+export type ControlBoxSize = 'small' | 'normal' | 'large';
 
 export interface ControlBoxProps {
-  size?: ControlBoxSize,
-  className?: string,
-  children: React.ReactNode,
+  size?: ControlBoxSize;
+  className?: string;
+  children: React.ReactNode;
 }
 
-export const ControlBox = React.forwardRef((props: ControlBoxProps, ref: React.Ref<HTMLDivElement>) => {
+export const ControlBox = React.forwardRef(function ControlBox(props: ControlBoxProps, ref: React.Ref<HTMLDivElement>) {
   const {
     size = 'normal',
     className,

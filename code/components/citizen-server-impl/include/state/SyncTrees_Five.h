@@ -293,9 +293,9 @@ struct CVehicleGameStateDataNode
 
 			bool unk25 = state.buffer.ReadBit();
 			bool unk26 = state.buffer.ReadBit();
-			int noLongerNeeded = state.buffer.ReadBit();
-			data.noLongerNeeded = noLongerNeeded;
-			bool unk28 = state.buffer.ReadBit();
+			int isStationary = state.buffer.ReadBit();
+			data.isStationary = isStationary;
+			bool isParked = state.buffer.ReadBit();
 			bool unk29 = state.buffer.ReadBit();
 			bool unk30 = state.buffer.ReadBit();
 			bool unk31 = state.buffer.ReadBit();
@@ -307,7 +307,7 @@ struct CVehicleGameStateDataNode
 		}
 		else
 		{
-			data.noLongerNeeded = 0;
+			data.isStationary = 0;
 			data.defaultHeadlights = 1;
 			data.headlightsColour = 0;
 			data.sirenOn = 0;
@@ -450,7 +450,76 @@ struct CEntityScriptGameStateDataNode
 };
 
 struct CPhysicalScriptGameStateDataNode { };
-struct CVehicleScriptGameStateDataNode { };
+
+struct CVehicleScriptGameStateDataNode
+{
+	ePopType m_popType;
+
+	bool Parse(SyncParseState& state)
+	{
+		// Strings pulled from X360 TU0
+		state.buffer.ReadBit(); // Has Freebies
+		state.buffer.ReadBit(); // Can Be Visibly Damaged
+		state.buffer.ReadBit(); // Is Drowning
+		state.buffer.ReadBit(); // Part Of Convoy
+		state.buffer.ReadBit(); // Vehicle Can Be Targeted
+		state.buffer.ReadBit(); // Take Less Damage
+		// Removed: Considered by Player
+		state.buffer.ReadBit(); // Locked For Non Script Players
+		state.buffer.ReadBit(); // Respect Locks When Has Driver
+		state.buffer.ReadBit(); // Lock doors on cleanup
+		state.buffer.ReadBit(); // Should Fix If No Collision
+		state.buffer.ReadBit(); // Automatically attaches
+		state.buffer.ReadBit(); // Scans with non-player driver
+		state.buffer.ReadBit(); // Disable explode on contact
+
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		state.buffer.ReadBit();
+		if (Is2060()) // #Note: Ordering has not been verified.
+		{
+			state.buffer.ReadBit();
+		}
+		if (Is2944())
+		{
+			state.buffer.ReadBit();
+		}
+		if (Is3095())
+		{
+			state.buffer.ReadBit();
+		}
+
+		state.buffer.ReadBit(); // "Is Vehicle In Air"
+		bool isParachuting = state.buffer.ReadBit();
+		if (isParachuting)
+		{
+			state.buffer.ReadSignedFloat(8, 1.0f);
+			state.buffer.ReadSignedFloat(8, 1.0f);
+		}
+
+		uint8_t popType = state.buffer.Read<uint8_t>(4);
+		m_popType = static_cast<ePopType>(popType);
+
+		// ...
+
+		return true;
+	}
+};
 
 struct CEntityScriptInfoDataNode
 {
@@ -1673,7 +1742,49 @@ struct CVehicleGadgetDataNode
 struct CMigrationDataNode { };
 struct CPhysicalMigrationDataNode { };
 struct CPhysicalScriptMigrationDataNode { };
-struct CVehicleProximityMigrationDataNode { };
+
+struct CVehicleProximityMigrationDataNode
+{
+// The vehicles population type can change on migrate. This is not something
+// supported by FXServer at the moment, see GH-2097.
+#if 0
+	ePopType m_popType;
+
+	bool Parse(SyncParseState& state)
+	{
+		uint32_t maxOccupants = state.buffer.Read<uint32_t>(5);
+		if (maxOccupants > 16)
+		{
+			maxOccupants = 16;
+		}
+
+		for (uint32_t i = 0; i < maxOccupants; ++i)
+		{
+			bool hasOccupant = state.buffer.ReadBit();
+			if (hasOccupant)
+			{
+				state.buffer.Read<uint16_t>(13); // Occupant
+			}
+		}
+
+		bool hasPopType = state.buffer.ReadBit();
+		if (hasPopType)
+		{
+			uint8_t popType = state.buffer.Read<uint8_t>(4);
+			m_popType = static_cast<ePopType>(popType);
+		}
+		else
+		{
+			m_popType = ePopType::POPTYPE_UNKNOWN;
+		}
+
+		// ...
+
+		return true;
+	}
+#endif
+};
+
 struct CBikeGameStateDataNode { };
 
 struct CBoatGameStateDataNode
@@ -2117,7 +2228,21 @@ struct CPhysicalAngVelocityDataNode
 struct CPedScriptCreationDataNode { };
 //struct CPedGameStateDataNode { };
 struct CPedComponentReservationDataNode { };
-struct CPedScriptGameStateDataNode { };
+
+struct CPedScriptGameStateDataNode
+{
+	ePopType m_popType;
+
+	bool Parse(SyncParseState& state)
+	{
+		uint8_t popType = state.buffer.Read<uint8_t>(4);
+		m_popType = static_cast<ePopType>(popType);
+
+		// ...
+
+		return true;
+	}
+};
 
 struct CPedAttachDataNode
 {
@@ -3899,7 +4024,15 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, false>
 
 		if (hasVcn)
 		{
-			*popType = vehCreationNode->m_popType;
+			auto vehScriptNode = this->template GetNode<CVehicleScriptGameStateDataNode>();
+			if (vehScriptNode && vehScriptNode->length > 0)
+			{
+				*popType = vehScriptNode->node.m_popType;
+			}
+			else
+			{
+				*popType = vehCreationNode->m_popType;
+			}
 			return true;
 		}
 
@@ -3907,7 +4040,15 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, false>
 
 		if (hasPcn)
 		{
-			*popType = pedCreationNode->m_popType;
+			auto pedScriptNode = this->template GetNode<CPedScriptGameStateDataNode>();
+			if (pedScriptNode && pedScriptNode->length > 0)
+			{
+				*popType = pedScriptNode->node.m_popType;
+			}
+			else
+			{
+				*popType = pedCreationNode->m_popType;
+			}
 			return true;
 		}
 

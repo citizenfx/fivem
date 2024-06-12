@@ -7,5 +7,6 @@ export function randomBytes(length: number): string {
 }
 
 export function fastRandomId(): string {
+  // eslint-disable-next-line no-bitwise
   return (Math.random() * 0x7fffff | 0x100000).toString(16);
 }

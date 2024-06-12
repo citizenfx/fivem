@@ -200,7 +200,7 @@ namespace fx
 						.Help("Time spent on server ticks")
 						.Register(*m_instance->GetComponent<ServerPerfComponent>()->GetRegistry())
 						.Add({ {"name", "svMain"} }, prometheus::Histogram::BucketBoundaries{
-							.005, .01, .025, .05, .075, .1, .25, .5, .75, 1, 2.5, 5, 7.5, 10
+							0.001, 0.002, 0.004, 0.006, 0.008, 0.010, 0.015, 0.020, 0.030, 0.050, 0.070, 0.100, 0.150, 0.250
 						});
 
 					uv_timer_init(loop, &mainData->tickTimer);
@@ -330,8 +330,8 @@ namespace fx
 				.Help("Time spent on server ticks")
 				.Register(*m_instance->GetComponent<ServerPerfComponent>()->GetRegistry())
 				.Add({ {"name", "svNetwork"} }, prometheus::Histogram::BucketBoundaries{
-					.005, .01, .025, .05, .075, .1, .25, .5, .75, 1, 2.5, 5, 7.5, 10
-					});
+					0.001, 0.002, 0.004, 0.006, 0.008, 0.010, 0.015, 0.020, 0.030, 0.050, 0.070, 0.100, 0.150, 0.250
+				});
 
 			auto processSendList = [this]()
 			{
@@ -445,8 +445,8 @@ namespace fx
 				.Help("Time spent on server ticks")
 				.Register(*m_instance->GetComponent<ServerPerfComponent>()->GetRegistry())
 				.Add({ {"name", "svSync"} }, prometheus::Histogram::BucketBoundaries{
-					.005, .01, .025, .05, .075, .1, .25, .5, .75, 1, 2.5, 5, 7.5, 10
-					});
+					0.001, 0.002, 0.004, 0.006, 0.008, 0.010, 0.015, 0.020, 0.030, 0.050, 0.070, 0.100, 0.150, 0.250
+				});
 
 			uv_timer_init(loop, &netData->tickTimer);
 			uv_timer_start(&netData->tickTimer, UvPersistentCallback(&netData->tickTimer, [this, mpd](uv_timer_t*)
@@ -1260,6 +1260,7 @@ namespace fx
 #include <packethandlers/ServerEventPacketHandler.h>
 #include <packethandlers/ServerCommandPacketHandler.h>
 #include <packethandlers/TimeSyncReqPacketHandler.h>
+#include <packethandlers/StateBagPacketHandler.h>
 
 DLL_EXPORT void gscomms_execute_callback_on_main_thread(const std::function<void()>& fn, bool force)
 {
@@ -1321,7 +1322,7 @@ static InitFunction initFunction([]()
 		instance->SetComponent(new fx::UdpInterceptor());
 
 		instance->SetComponent(
-			WithPacketHandler<RoutingPacketHandler, IHostPacketHandler, IQuitPacketHandler, HeHostPacketHandler, ServerEventPacketHandler, ServerCommandPacketHandler, TimeSyncReqPacketHandler>(
+			WithPacketHandler<RoutingPacketHandler, IHostPacketHandler, IQuitPacketHandler, HeHostPacketHandler, ServerEventPacketHandler, ServerCommandPacketHandler, TimeSyncReqPacketHandler, StateBagPacketHandler, StateBagPacketHandlerV2>(
 				WithProcessTick<ThreadWait, GameServerTick>(
 					WithOutOfBand<GetInfoOutOfBand, GetStatusOutOfBand, RconOutOfBand>(
 						WithEndPoints(

@@ -37,11 +37,12 @@ export const GameLoadingState = new class GameLoadingState {
       });
     });
 
-    onGameLoadingEvent('initFunctionInvoking', ({ type, name, idx }) => {
+    onGameLoadingEvent('initFunctionInvoking', ({ type, name, idx, count }) => {
       log('initFunctionInvoking', {
         type,
         name,
         idx,
+        count,
       });
     });
 

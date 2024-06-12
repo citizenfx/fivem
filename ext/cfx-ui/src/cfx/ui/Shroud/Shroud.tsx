@@ -1,14 +1,17 @@
-import React from "react";
-import { useWindowResize } from "cfx/utils/hooks";
-import { PreTitleOutlet } from "../outlets";
-import { ui } from "../ui";
+import React from 'react';
+
+import { useWindowResize } from 'cfx/utils/hooks';
+
+import { PreTitleOutlet } from '../outlets';
+import { ui } from '../ui';
+
 import s from './Shroud.module.scss';
 
 export interface ShroudProps {
-  forRef: React.RefObject<HTMLElement>,
+  forRef: React.RefObject<HTMLElement>;
 }
 
-export const Shroud = React.forwardRef((props: ShroudProps, ref: React.RefObject<HTMLDivElement>) => {
+export const Shroud = React.forwardRef(function Shroud(props: ShroudProps, ref: React.RefObject<HTMLDivElement>) {
   const {
     forRef,
   } = props;
@@ -31,7 +34,14 @@ export const Shroud = React.forwardRef((props: ShroudProps, ref: React.RefObject
       sh: globalThis.screen.availHeight,
     };
 
-    setPosStyle(Object.fromEntries(Object.entries(vals).flatMap(([name, value]) =>   [[`--${name}`, ui.px(value)], [`--${name}-raw`, value]]   )));
+    setPosStyle(
+      Object.fromEntries(
+        Object.entries(vals).flatMap(([name, value]) => [
+          [`--${name}`, ui.px(value)],
+          [`--${name}-raw`, value],
+        ]),
+      ),
+    );
   }, []);
 
   React.useEffect(calcPos, []);

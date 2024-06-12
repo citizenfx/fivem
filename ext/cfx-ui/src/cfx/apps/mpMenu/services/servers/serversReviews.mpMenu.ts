@@ -1,17 +1,18 @@
-import { ServicesContainer } from "cfx/base/servicesContainer";
-import { IServersReviewsService } from "cfx/common/services/servers/reviews/serversReviews.service";
-import { IServerReviewReportOption, IServerReviews } from "cfx/common/services/servers/reviews/types";
-import { proxyInvariant } from "cfx/utils/invariant";
-import { ObservableAsyncValue } from "cfx/utils/observable";
-import { inject, injectable } from "inversify";
-import { IDiscourseService } from "../discourse/discourse.service";
-import { IDiscourse } from "../discourse/types";
-import { DiscourseServerReviews } from "./reviews/DiscourseServerReviews";
+import { inject, injectable } from 'inversify';
+
+import { ServicesContainer } from 'cfx/base/servicesContainer';
+import { IServersReviewsService } from 'cfx/common/services/servers/reviews/serversReviews.service';
+import { IServerReviewReportOption, IServerReviews } from 'cfx/common/services/servers/reviews/types';
+import { proxyInvariant } from 'cfx/utils/invariant';
+import { ObservableAsyncValue } from 'cfx/utils/observable';
+
+import { DiscourseServerReviews } from './reviews/DiscourseServerReviews';
+import { IDiscourseService } from '../discourse/discourse.service';
+import { IDiscourse } from '../discourse/types';
 
 export function registerMpMenuServersReviewsService(container: ServicesContainer) {
   container.registerImpl(IServersReviewsService, MpMenuServersReviewsService);
 }
-
 
 @injectable()
 export class MpMenuServersReviewsService implements IServersReviewsService {

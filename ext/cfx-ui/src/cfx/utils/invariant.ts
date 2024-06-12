@@ -6,7 +6,7 @@ export function invariant(cond: any, message: string): asserts cond {
   }
 }
 
-export function proxyInvariant<T extends any>(cond: T | Falsy, message: string): T {
+export function proxyInvariant<T>(cond: T | Falsy, message: string): T {
   invariant(cond, message);
 
   return cond as any;

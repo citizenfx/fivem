@@ -1,14 +1,15 @@
-import { ButtonBar } from "cfx/ui/Button/ButtonBar";
-import { AnalyticsLinkButton } from "cfx/common/parts/AnalyticsLinkButton/AnalyticsLinkButton";
-import { Title } from "cfx/ui/Title/Title";
-import { returnTrue } from "cfx/utils/functional";
-import { observer } from "mobx-react-lite";
-import { currentGameNameIs } from "cfx/base/gameRuntime";
-import { GameName } from "cfx/base/game";
-import { $L } from "cfx/common/services/intl/l10n";
-import { useEventHandler } from "cfx/common/services/analytics/analytics.service";
-import { EventActionNames, ElementPlacements } from "cfx/common/services/analytics/types";
-import React from "react";
+import { observer } from 'mobx-react-lite';
+import React from 'react';
+
+import { GameName } from 'cfx/base/game';
+import { currentGameNameIs } from 'cfx/base/gameRuntime';
+import { AnalyticsLinkButton } from 'cfx/common/parts/AnalyticsLinkButton/AnalyticsLinkButton';
+import { useEventHandler } from 'cfx/common/services/analytics/analytics.service';
+import { EventActionNames, ElementPlacements } from 'cfx/common/services/analytics/types';
+import { $L } from 'cfx/common/services/intl/l10n';
+import { ButtonBar } from 'cfx/ui/Button/ButtonBar';
+import { Title } from 'cfx/ui/Title/Title';
+import { returnTrue } from 'cfx/utils/functional';
 
 const enum IHomePageNavBarLinkIDs {
   FiveM,
@@ -16,13 +17,13 @@ const enum IHomePageNavBarLinkIDs {
   Forum,
   Patreon,
   Discord,
-};
+}
 
 interface IHomePageNavBarLink {
-  id: IHomePageNavBarLinkIDs,
-  href: string,
-  label: string,
-  visible(): boolean,
+  id: IHomePageNavBarLinkIDs;
+  href: string;
+  label: string;
+  visible(): boolean;
 }
 
 const homePageNavBarLinks: IHomePageNavBarLink[] = [
@@ -62,22 +63,33 @@ export const HomePageNavBarLinks = observer(function HomePageLinks() {
   const eventHandler = useEventHandler();
 
   const handleForumClick = React.useCallback(() => {
-    const forumItem = homePageNavBarLinks.find(({ id }) => id === IHomePageNavBarLinkIDs.Forum);
+    const forumItem = homePageNavBarLinks.find(({
+      id,
+    }) => id === IHomePageNavBarLinkIDs.Forum);
 
     if (!forumItem) {
       return;
     }
 
-    eventHandler({ action: EventActionNames.ForumCTA, properties: {
-      element_placement: ElementPlacements.Nav,
-      text: forumItem.label,
-      link_url: forumItem.href,
-    }});
+    eventHandler({
+      action: EventActionNames.ForumCTA,
+      properties: {
+        element_placement: ElementPlacements.Nav,
+        text: forumItem.label,
+        link_url: forumItem.href,
+      },
+    });
   }, [eventHandler]);
 
   const linkNodes = homePageNavBarLinks
-    .filter(({ visible }) => visible())
-    .map(({ href, label, id }) => (
+    .filter(({
+      visible,
+    }) => visible())
+    .map(({
+      href,
+      label,
+      id,
+    }) => (
       <Title key={id} title={$L('#Global_OpenLinkInBrowser')}>
         <AnalyticsLinkButton
           to={href}
@@ -85,14 +97,14 @@ export const HomePageNavBarLinks = observer(function HomePageLinks() {
           size="large"
           theme="transparent"
           elementPlacement={ElementPlacements.Nav}
-          onClick={id === IHomePageNavBarLinkIDs.Forum ? handleForumClick : undefined}
+          onClick={id === IHomePageNavBarLinkIDs.Forum
+            ? handleForumClick
+            : undefined}
         />
       </Title>
     ));
 
   return (
-    <ButtonBar>
-      {linkNodes}
-    </ButtonBar>
+    <ButtonBar>{linkNodes}</ButtonBar>
   );
 });

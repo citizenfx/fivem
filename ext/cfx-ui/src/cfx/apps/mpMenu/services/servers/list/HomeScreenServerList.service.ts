@@ -1,14 +1,16 @@
-import { ServicesContainer, useService } from "cfx/base/servicesContainer";
-import { isServerOffline } from "cfx/common/services/servers/helpers";
-import { IIntlService } from "cfx/common/services/intl/intl.service";
-import { reviveServerListConfig } from "cfx/common/services/servers/lists/ServerListConfigController";
-import { ServerListSortDir, ServersListSortBy, ServersListType } from "cfx/common/services/servers/lists/types";
-import { IServersStorageService } from "cfx/common/services/servers/serversStorage.service";
-import { IServerView } from "cfx/common/services/servers/types";
-import { inject, injectable } from "inversify";
-import { makeAutoObservable, observable } from "mobx";
-import { MpMenuServersService } from "../servers.mpMenu";
-import { AppContribution, registerAppContribution } from "cfx/common/services/app/app.extensions";
+import { inject, injectable } from 'inversify';
+import { makeAutoObservable, observable } from 'mobx';
+
+import { ServicesContainer, useService } from 'cfx/base/servicesContainer';
+import { AppContribution, registerAppContribution } from 'cfx/common/services/app/app.extensions';
+import { IIntlService } from 'cfx/common/services/intl/intl.service';
+import { isServerOffline } from 'cfx/common/services/servers/helpers';
+import { reviveServerListConfig } from 'cfx/common/services/servers/lists/ServerListConfigController';
+import { ServerListSortDir, ServersListSortBy, ServersListType } from 'cfx/common/services/servers/lists/types';
+import { IServersStorageService } from 'cfx/common/services/servers/serversStorage.service';
+import { IServerView } from 'cfx/common/services/servers/types';
+
+import { MpMenuServersService } from '../servers.mpMenu';
 
 export const MAX_TOP_SERVERS_COUNT = 10;
 
@@ -18,14 +20,29 @@ export function getTopRegionServerOnScreenTime(index: number): number {
   let time = 5;
 
   switch (index) {
-    case 0: { time = 30; break; }
+    case 0: {
+      time = 30;
+      break;
+    }
 
-    case 1: { time = 10; break; }
-    case 2: { time = 10; break; }
+    case 1: {
+      time = 10;
+      break;
+    }
+    case 2: {
+      time = 10;
+      break;
+    }
 
-    case 3: { time = 8; break; }
+    case 3: {
+      time = 8;
+      break;
+    }
 
-    default: { time = 5; break; }
+    default: {
+      time = 5;
+      break;
+    }
   }
 
   return time * 1000;
@@ -44,8 +61,12 @@ export function registerHomeScreenServerList(container: ServicesContainer) {
 @injectable()
 export class HomeScreenServerListService implements AppContribution {
   private _topRegionServers: IServerView[] = [];
-  public get topRegionServers(): IServerView[] { return this._topRegionServers }
-  private set topRegionServers(topServers: IServerView[]) { this._topRegionServers = topServers }
+  public get topRegionServers(): IServerView[] {
+    return this._topRegionServers;
+  }
+  private set topRegionServers(topServers: IServerView[]) {
+    this._topRegionServers = topServers;
+  }
 
   constructor(
     @inject(MpMenuServersService)
@@ -63,14 +84,16 @@ export class HomeScreenServerListService implements AppContribution {
 
   init() {
     this.serversService.listSource.onList(ServersListType.RegionalTop, this.acceptServerList);
-    this.serversService.listSource.makeList(reviveServerListConfig({
-      type: ServersListType.RegionalTop,
-      locales: {
-        [this.intlService.systemLocale]: true,
-      },
-      sortBy: ServersListSortBy.Boosts,
-      sortDir: ServerListSortDir.Desc,
-    }));
+    this.serversService.listSource.makeList(
+      reviveServerListConfig({
+        type: ServersListType.RegionalTop,
+        locales: {
+          [this.intlService.systemLocale]: true,
+        },
+        sortBy: ServersListSortBy.Boosts,
+        sortDir: ServerListSortDir.Desc,
+      }),
+    );
   }
 
   private readonly acceptServerList = (serverIds: string[]) => {
@@ -86,6 +109,7 @@ export class HomeScreenServerListService implements AppContribution {
       }
 
       const server = this.serversService.getServer(serverId);
+
       if (!server) {
         continue;
       }
@@ -106,11 +130,15 @@ export class HomeScreenServerListService implements AppContribution {
 
   get lastConnectedServer() {
     const lastServers = this.serversStorageService.getLastServers();
+
     if (!lastServers.length) {
       return;
     }
 
-    const { address } = lastServers[0];
+    const {
+      address,
+    } = lastServers[0];
+
     if (!address) {
       return;
     }

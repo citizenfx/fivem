@@ -652,6 +652,8 @@ static InitFunction initFunction([] ()
 		}
 	});
 
+	static auto totalInitFunctionsCount = 0;
+
 	rage::OnInitFunctionStartOrder.Connect([] (rage::InitFunctionType type, int order, int count)
 	{
 		if (type == rage::INIT_SESSION && order == 3)
@@ -675,6 +677,8 @@ static InitFunction initFunction([] ()
 		doc.AddMember("count", count, doc.GetAllocator());
 
 		InvokeNUIScript("startInitFunctionOrder", doc);
+
+		totalInitFunctionsCount = count;
 	});
 
 	static auto lastIdx = 0;
@@ -700,6 +704,8 @@ static InitFunction initFunction([] ()
 		doc.AddMember("type", rapidjson::Value(rage::InitFunctionTypeToString(type), doc.GetAllocator()), doc.GetAllocator());
 		doc.AddMember("name", rapidjson::Value(GetName(data), doc.GetAllocator()), doc.GetAllocator());
 		doc.AddMember("idx", idx + 1, doc.GetAllocator());
+		doc.AddMember("count", totalInitFunctionsCount, doc.GetAllocator());
+
 
 		InvokeNUIScript("initFunctionInvoking", doc);
 
@@ -729,6 +735,7 @@ static InitFunction initFunction([] ()
 			doc.AddMember("type", rapidjson::Value(rage::InitFunctionTypeToString(type), doc.GetAllocator()), doc.GetAllocator());
 			doc.AddMember("name", rapidjson::Value("FinalizeLoad", doc.GetAllocator()), doc.GetAllocator());
 			doc.AddMember("idx", lastIdx + 2, doc.GetAllocator());
+			doc.AddMember("count", totalInitFunctionsCount, doc.GetAllocator());
 
 			InvokeNUIScript("initFunctionInvoking", doc);
 

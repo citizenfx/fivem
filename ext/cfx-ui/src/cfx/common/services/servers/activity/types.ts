@@ -1,7 +1,7 @@
-import { TCFXID } from "cfx/base/identifiers";
+import { TCFXID } from 'cfx/base/identifiers';
 
 export interface IServerActivityUserPlaytime {
-  cfxId: TCFXID,
-  seconds: number,
-  formattedSeconds: string,
+  cfxId: TCFXID;
+  seconds: number;
+  formattedSeconds: string;
 }

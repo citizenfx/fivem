@@ -1,57 +1,60 @@
-import React from "react";
-import { EOL_LINK, EOS_LINK, isServerEOL, isServerEOS, shouldDisplayServerResource } from "cfx/base/serverUtils";
-import { useService } from "cfx/base/servicesContainer";
-import { IServersService } from "cfx/common/services/servers/servers.service";
-import { IServerView, IServerViewPlayer, ServerViewDetailsLevel } from "cfx/common/services/servers/types";
-import { CountryFlag } from "cfx/ui/CountryFlag/CountryFlag";
-import { Icons } from "cfx/ui/Icons";
-import { InfoPanel, InfoPanelType } from "cfx/ui/InfoPanel/InfoPanel";
-import { Island } from "cfx/ui/Island/Island";
-import { Box } from "cfx/ui/Layout/Box/Box";
-import { Flex } from "cfx/ui/Layout/Flex/Flex";
-import { Pad } from "cfx/ui/Layout/Pad/Pad";
-import { Page } from "cfx/ui/Layout/Page/Page";
-import { Scrollable } from "cfx/ui/Layout/Scrollable/Scrollable";
-import { PremiumBadge } from "cfx/ui/PremiumBadge/PremiumBadge";
-import { Text } from "cfx/ui/Text/Text";
-import { clsx } from "cfx/utils/clsx";
-import { Linkify } from "cfx/utils/links";
-import { observer } from "mobx-react-lite";
-import { BsExclamationTriangleFill, BsLayersFill, BsLockFill, BsTagsFill } from "react-icons/bs";
-import { ServerActivityFeed } from "../../parts/Server/ServerActivityFeed/ServerActivityFeed";
-import { ServerConnectButton } from "../../parts/Server/ServerConnectButton/ServerConnectButton";
-import { ServerExtraDetails } from "../../parts/Server/ServerExtraDetails/ServerExtraDetails";
-import { ServerReviews } from "../../parts/Server/ServerReviews/ServerReviews";
-import { ServerTitle } from "../../parts/Server/ServerTitle/ServerTitle";
-import { LongListSideSection } from "./LongListSideSection/LongListSideSection";
-import { ServerIcon } from "cfx/common/parts/Server/ServerIcon/ServerIcon";
-import { useIntlService } from "cfx/common/services/intl/intl.service";
-import { ALPHANUMERIC_COLLATOR } from "cfx/base/collators";
-import { useTimeoutFlag } from "cfx/utils/hooks";
-import { ServerPlayersCount } from "cfx/common/parts/Server/ServerPlayersCount/ServerPlayersCount";
-import { ServerPower } from "cfx/common/parts/Server/ServerPower/ServerPower";
-import { ServerFavoriteButton } from "cfx/common/parts/Server/ServerFavoriteButton/ServerFavoriteButton";
-import { isServerOffline } from "cfx/common/services/servers/helpers";
-import { useAccountService } from "cfx/common/services/account/account.service";
-import { $L, useL10n } from "cfx/common/services/intl/l10n";
-import { Icon } from "cfx/ui/Icon/Icon";
-import { Separator } from "cfx/ui/Separator/Separator";
-import { identity } from "cfx/utils/functional";
+import { observer } from 'mobx-react-lite';
+import React from 'react';
+import { BsExclamationTriangleFill, BsLayersFill, BsLockFill, BsTagsFill } from 'react-icons/bs';
+
+import { ALPHANUMERIC_COLLATOR } from 'cfx/base/collators';
+import { EOL_LINK, EOS_LINK, isServerEOL, isServerEOS, shouldDisplayServerResource } from 'cfx/base/serverUtils';
+import { useService } from 'cfx/base/servicesContainer';
+import { ServerFavoriteButton } from 'cfx/common/parts/Server/ServerFavoriteButton/ServerFavoriteButton';
+import { ServerIcon } from 'cfx/common/parts/Server/ServerIcon/ServerIcon';
+import { ServerPlayersCount } from 'cfx/common/parts/Server/ServerPlayersCount/ServerPlayersCount';
+import { ServerPower } from 'cfx/common/parts/Server/ServerPower/ServerPower';
+import { useAccountService } from 'cfx/common/services/account/account.service';
+import { ElementPlacements } from 'cfx/common/services/analytics/types';
+import { useIntlService } from 'cfx/common/services/intl/intl.service';
+import { $L, useL10n } from 'cfx/common/services/intl/l10n';
+import { isServerOffline } from 'cfx/common/services/servers/helpers';
+import { IServersService } from 'cfx/common/services/servers/servers.service';
+import { IServerView, IServerViewPlayer, ServerViewDetailsLevel } from 'cfx/common/services/servers/types';
+import { CountryFlag } from 'cfx/ui/CountryFlag/CountryFlag';
+import { Icon } from 'cfx/ui/Icon/Icon';
+import { Icons } from 'cfx/ui/Icons';
+import { InfoPanel, InfoPanelType } from 'cfx/ui/InfoPanel/InfoPanel';
+import { Island } from 'cfx/ui/Island/Island';
+import { Box } from 'cfx/ui/Layout/Box/Box';
+import { Flex } from 'cfx/ui/Layout/Flex/Flex';
+import { Pad } from 'cfx/ui/Layout/Pad/Pad';
+import { Page } from 'cfx/ui/Layout/Page/Page';
+import { Scrollable } from 'cfx/ui/Layout/Scrollable/Scrollable';
+import { PremiumBadge } from 'cfx/ui/PremiumBadge/PremiumBadge';
+import { Separator } from 'cfx/ui/Separator/Separator';
+import { Text } from 'cfx/ui/Text/Text';
+import { clsx } from 'cfx/utils/clsx';
+import { identity } from 'cfx/utils/functional';
+import { useTimeoutFlag } from 'cfx/utils/hooks';
+import { Linkify } from 'cfx/utils/links';
+
+import { LongListSideSection } from './LongListSideSection/LongListSideSection';
+import { ServerActivityFeed } from '../../parts/Server/ServerActivityFeed/ServerActivityFeed';
+import { ServerConnectButton } from '../../parts/Server/ServerConnectButton/ServerConnectButton';
+import { ServerExtraDetails } from '../../parts/Server/ServerExtraDetails/ServerExtraDetails';
+import { ServerReviews } from '../../parts/Server/ServerReviews/ServerReviews';
+import { ServerTitle } from '../../parts/Server/ServerTitle/ServerTitle';
+
 import s from './ServerDetailsPage.module.scss';
-import { ElementPlacements } from "cfx/common/services/analytics/types";
 
 const LAYOUT_SPLITS = {
   LEFT: '75%',
-  RIGHT: '25%'
+  RIGHT: '25%',
 };
 
 interface ServerDetailsPageProps {
-  server: IServerView,
+  server: IServerView;
 
-  forceReviewsAvailable?: boolean,
+  forceReviewsAvailable?: boolean;
 
-  onScroll?(event: WheelEvent): void,
-  scrollTrackingRef?: React.Ref<HTMLElement>,
+  onScroll?(event: WheelEvent): void;
+  scrollTrackingRef?: React.Ref<HTMLElement>;
 }
 export const ServerDetailsPage = observer(function Details(props: ServerDetailsPageProps) {
   const {
@@ -66,7 +69,8 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
   const ServersService = useService(IServersService);
 
   const shouldShowCompleteServerLoading = useTimeoutFlag(100);
-  const isCompleteServerLoading = shouldShowCompleteServerLoading && ServersService.isServerLoading(server.id, ServerViewDetailsLevel.MasterListFull);
+  const isCompleteServerLoading = shouldShowCompleteServerLoading
+    && ServersService.isServerLoading(server.id, ServerViewDetailsLevel.MasterListFull);
 
   const hasBanner = Boolean(server.bannerDetail);
 
@@ -75,9 +79,7 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
       return undefined;
     }
 
-    return server.resources
-      .filter(shouldDisplayServerResource)
-      .sort(ALPHANUMERIC_COLLATOR.compare);
+    return server.resources.filter(shouldDisplayServerResource).sort(ALPHANUMERIC_COLLATOR.compare);
   }, [server.resources]);
 
   const rootClassName = clsx(s.root, 'selectable');
@@ -99,11 +101,7 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
                 <Pad size="xlarge">
                   <Flex gap="xlarge">
                     <Flex vertical>
-                      <ServerIcon
-                        glow
-                        type="details"
-                        server={server}
-                      />
+                      <ServerIcon glow type="details" server={server} />
 
                       <Flex centered className={s.decorator}>
                         {!!server.premium && (
@@ -120,9 +118,7 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
                       </Flex>
 
                       <Flex centered>
-                        <Text opacity="75">
-                          {Icons.playersCount}
-                        </Text>
+                        <Text opacity="75">{Icons.playersCount}</Text>
                         <Text opacity="75">
                           <ServerPlayersCount server={server} />
                         </Text>
@@ -137,9 +133,7 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
                           </div>
 
                           {!!server.projectDescription && (
-                            <Text opacity="50">
-                              {server.projectDescription}
-                            </Text>
+                            <Text opacity="50">{server.projectDescription}</Text>
                           )}
                         </Flex>
 
@@ -172,7 +166,11 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
             </Box>
 
             <Box grow={false} width={LAYOUT_SPLITS.RIGHT}>
-              <Box style={{ position: 'sticky', top: 0 }}>
+              <Box style={{
+                position: 'sticky',
+                top: 0,
+              }}
+              >
                 <Pad top right bottom size="xlarge">
                   <Flex vertical gap="large">
                     <Warning server={server} />
@@ -216,7 +214,6 @@ export const ServerDetailsPage = observer(function Details(props: ServerDetailsP
                 </Pad>
               </Box>
             </Box>
-
           </Flex>
         </Scrollable>
       </Island>
@@ -231,7 +228,10 @@ function playerRenderer(player: IServerViewPlayer): React.ReactNode {
 function useEnsureCompleteServerLoaded(server: IServerView) {
   const ServersService = useService(IServersService);
 
-  const { joinId, detailsLevel } = server;
+  const {
+    joinId,
+    detailsLevel,
+  } = server;
 
   React.useEffect(() => {
     if (!joinId) {
@@ -242,7 +242,7 @@ function useEnsureCompleteServerLoaded(server: IServerView) {
       return;
     }
 
-    let to = setTimeout(() => {
+    const to = setTimeout(() => {
       ServersService.loadServerDetailedData(joinId);
     }, 16);
 
@@ -250,7 +250,11 @@ function useEnsureCompleteServerLoaded(server: IServerView) {
   }, [detailsLevel, joinId]);
 }
 
-const Warning = observer(function Warning({ server }: { server: IServerView }) {
+const Warning = observer(function Warning({
+  server,
+}: {
+  server: IServerView;
+}) {
   let message: string | null = null;
 
   const IntlService = useIntlService();
@@ -272,7 +276,7 @@ const Warning = observer(function Warning({ server }: { server: IServerView }) {
             {$L('#ServerDetail_EOLWarning2_ForOwner_2')}
           </Text>
         </Text>
-      )
+        )
       : (
         <Text typographic size="large">
           {$L('#ServerDetail_EOLWarning2_ForPlayer_1')}
@@ -280,7 +284,7 @@ const Warning = observer(function Warning({ server }: { server: IServerView }) {
           <br />
           {$L('#ServerDetail_EOLWarning2_ForPlayer_2')}
         </Text>
-      );
+        );
 
     return (
       <Flex vertical>
@@ -318,11 +322,9 @@ const Warning = observer(function Warning({ server }: { server: IServerView }) {
           {$L('#ServerDetail_SupportWarning2_ForOwner_1')}
           <br />
           <br />
-          <Text weight="bold">
-            {$L('#ServerDetail_SupportWarning2_ForOwner_2')}
-          </Text>
+          <Text weight="bold">{$L('#ServerDetail_SupportWarning2_ForOwner_2')}</Text>
         </Text>
-      )
+        )
       : (
         <Text typographic>
           {$L('#ServerDetail_SupportWarning2_ForPlayer_1')}
@@ -330,7 +332,7 @@ const Warning = observer(function Warning({ server }: { server: IServerView }) {
           <br />
           {$L('#ServerDetail_SupportWarning2_ForPlayer_2')}
         </Text>
-      );
+        );
 
     const type: InfoPanelType = currentUserIsOwner
       ? 'warning'
@@ -381,8 +383,12 @@ const Warning = observer(function Warning({ server }: { server: IServerView }) {
   }
 
   const icon = server.private
-    ? <BsLockFill />
-    : <BsExclamationTriangleFill />;
+    ? (
+      <BsLockFill />
+      )
+    : (
+      <BsExclamationTriangleFill />
+      );
 
   return (
     <InfoPanel size="large" icon={icon}>

@@ -78,7 +78,7 @@ TEST_CASE("getinfo oob test")
 	testServerContainer->GetInstance()->SetComponent(new fx::ClientRegistry());
 	testServerContainer->GetInstance()->SetComponent(new fx::PeerAddressRateLimiterStore(console::GetDefaultContext()));
 
-	REQUIRE(GetInfoOutOfBand::GetName() == "getinfo");
+	REQUIRE(std::string(GetInfoOutOfBand::GetName()) == "getinfo");
 
 	net::PeerAddress from = net::PeerAddress::FromString("127.0.0.1").get();
 	std::string challenge = fx::TestUtils::asciiRandom(50);

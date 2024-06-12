@@ -1,5 +1,6 @@
-import { defineService } from "../../../base/servicesContainer";
-import type { TSettingsService, TSettingsUIService } from "./settings.common";
+import type { TSettingsService, TSettingsUIService } from './settings.common';
+
+import { defineService } from '../../../base/servicesContainer';
 
 export const ISettingsService = defineService<ISettingsService>('SettingsService');
 export type ISettingsService = TSettingsService;

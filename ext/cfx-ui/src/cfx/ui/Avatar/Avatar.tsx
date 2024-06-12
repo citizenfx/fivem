@@ -1,14 +1,16 @@
 import React from 'react';
+
 import { clsx } from 'cfx/utils/clsx';
+
 import s from './Avatar.module.scss';
 
 const placeholder = new URL('assets/images/avatar-placeholder.jpg', import.meta.url).toString();
 
 export interface AvatarProps {
-  url?: string | undefined | null,
-  size?: 'none' | 'small' | 'normal' | 'large' | 'xxxlarge',
+  url?: string | undefined | null;
+  size?: 'none' | 'small' | 'normal' | 'large' | 'xxxlarge';
 
-  className?: string,
+  className?: string;
 }
 
 export const Avatar = React.forwardRef(function Avatar(props: AvatarProps, ref: React.Ref<HTMLDivElement>) {
@@ -25,10 +27,6 @@ export const Avatar = React.forwardRef(function Avatar(props: AvatarProps, ref: 
   };
 
   return (
-    <div
-      ref={ref}
-      style={style}
-      className={rootClassName}
-    />
+    <div ref={ref} style={style} className={rootClassName} />
   );
 });

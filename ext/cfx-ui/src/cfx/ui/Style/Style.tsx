@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 
 const StyleContext = React.createContext<React.CSSProperties>({});
 
@@ -7,22 +7,25 @@ export function useContextualStyle() {
 }
 
 export type StyleProps = React.CSSProperties & {
-  children: React.ReactNode,
+  children: React.ReactNode;
 };
 export function Style(props: StyleProps) {
-  const { children, ...style } = props;
+  const {
+    children,
+    ...style
+  } = props;
 
   return (
-    <StyleContext.Provider value={style}>
-      {children}
-    </StyleContext.Provider>
+    <StyleContext.Provider value={style}>{children}</StyleContext.Provider>
   );
 }
 
 const EMPTY = {};
 
-Style.Reset = ({ children }) => (
-  <StyleContext.Provider value={EMPTY}>
-    {children}
-  </StyleContext.Provider>
-);
+Style.Reset = function StyleReset({
+  children,
+}: { children: React.ReactNode }) {
+  return (
+    <StyleContext.Provider value={EMPTY}>{children}</StyleContext.Provider>
+  );
+};

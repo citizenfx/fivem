@@ -6,6 +6,7 @@ using module .\psm1\cfxPackClient.psm1
 using module .\psm1\cfxRunMSBuild.psm1
 using module .\psm1\cfxRunPrebuild.psm1
 using module .\psm1\cfxRunPremake.psm1
+using module .\psm1\cfxSetupBuildToolkit.psm1
 using module .\psm1\cfxSetupCEF.psm1
 using module .\psm1\cfxSetupPrivate.psm1
 using module .\psm1\cfxSetupSubmodules.psm1
@@ -29,6 +30,8 @@ try {
     Write-Host "Versions:", $versions, "`n"
 
     $ctx.startBuild()
+
+    Invoke-CfxSetupBuildToolkit -Context $ctx
 
     Invoke-LogSection "Visual Studio Environment Setup" {
         Invoke-CfxSetupVS -Context $ctx -Tools $tools

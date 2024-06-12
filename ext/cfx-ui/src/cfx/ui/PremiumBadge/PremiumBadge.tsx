@@ -1,6 +1,9 @@
-import React from "react";
-import { clsx } from "cfx/utils/clsx";
-import { Title } from "../Title/Title";
+import React from 'react';
+
+import { clsx } from 'cfx/utils/clsx';
+
+import { Title } from '../Title/Title';
+
 import s from './PremiumBadge.module.scss';
 
 const map = Object.freeze({
@@ -24,16 +27,17 @@ const map = Object.freeze({
   },
 });
 
-export type PremiumBadgeLevel =
-  | keyof typeof map
-  | string;
+export type PremiumBadgeLevel = keyof typeof map | string;
 
 export interface PremiumBadgeProps {
-  level: PremiumBadgeLevel,
-  className?: string,
+  level: PremiumBadgeLevel;
+  className?: string;
 }
 
-export const PremiumBadge = React.forwardRef((props: PremiumBadgeProps, ref: React.Ref<HTMLDivElement>) => {
+export const PremiumBadge = React.forwardRef(function PremiumBadge(
+  props: PremiumBadgeProps,
+  ref: React.Ref<HTMLDivElement>,
+) {
   const {
     level,
     className,
@@ -48,7 +52,7 @@ export const PremiumBadge = React.forwardRef((props: PremiumBadgeProps, ref: Rea
   return (
     <div ref={ref} className={rootClassName}>
       <Title title={map[level].title}>
-        <img src={map[level].imgSrc} />
+        <img src={map[level].imgSrc} alt={map[level].title} />
       </Title>
     </div>
   );

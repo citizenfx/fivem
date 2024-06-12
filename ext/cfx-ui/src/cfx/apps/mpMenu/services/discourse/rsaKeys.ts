@@ -1,4 +1,5 @@
 import * as forge from 'node-forge';
+
 import { IRSAKeys } from './types';
 
 let keys: IRSAKeys | null = null;
@@ -31,21 +32,25 @@ export async function decryptBase64(payload: string): Promise<string> {
 
 async function generateRSAKeys(): Promise<IRSAKeys> {
   const keys = await new Promise<IRSAKeys>((resolve, reject) => {
-    forge.pki.rsa.generateKeyPair({
-      bits: 2048,
-      workers: -1,
-      workerScript,
-    }, (err, keypair) => {
-      if (err) {
-        reject(err);
-        return;
-      }
+    forge.pki.rsa.generateKeyPair(
+      {
+        bits: 2048,
+        workers: -1,
+        workerScript,
+      },
+      (err, keypair) => {
+        if (err) {
+          reject(err);
 
-      resolve({
-        public: forge.pki.publicKeyToPem(keypair.publicKey),
-        private: forge.pki.privateKeyToPem(keypair.privateKey),
-      });
-    });
+          return;
+        }
+
+        resolve({
+          public: forge.pki.publicKeyToPem(keypair.publicKey),
+          private: forge.pki.privateKeyToPem(keypair.privateKey),
+        });
+      },
+    );
   });
 
   window.localStorage.setItem('rsaKeys', JSON.stringify(keys));
@@ -55,4 +60,6 @@ async function generateRSAKeys(): Promise<IRSAKeys> {
 
 try {
   (window as any).__generateRSAKeys = generateRSAKeys;
-} catch (e) {}
+} catch {
+  // Do nothing
+}

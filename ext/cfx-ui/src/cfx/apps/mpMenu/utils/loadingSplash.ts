@@ -1,4 +1,4 @@
-import { Deferred, idleCallback } from "cfx/utils/async";
+import { Deferred, idleCallback } from 'cfx/utils/async';
 
 let loadingSplashShutdownRequested = true;
 
@@ -13,11 +13,13 @@ export function shutdownLoadingSplash() {
 
   try {
     const $loader = document.getElementById('loader');
+
     if (!$loader) {
       throw new Error('No #loader found, did it get deleted from index.html?');
     }
 
     const $loaderMask = $loader.querySelector('#loader-mask');
+
     if (!$loaderMask) {
       throw new Error('No #loader-mask found, did it get deleted from index.html?');
     }

@@ -1,4 +1,4 @@
-﻿#include "StdInc.h"
+#include "StdInc.h"
 
 #include <ServerInstanceBase.h>
 
@@ -18,10 +18,10 @@
 ServerCommandPacketHandler::ServerCommandPacketHandler(fx::ServerInstanceBase* instance)
 {
 	instance->GetComponent<console::Context>()->GetCommandManager()->FallbackEvent.Connect(
-		[this](const std::string& commandName, const ProgramArguments& arguments, const std::string& context)
+		[this, instance](const std::string& commandName, const ProgramArguments& arguments, const std::string& context)
 		{
-			auto resourceManager = fx::ResourceManager::GetCurrent();
-			if (resourceManager && !context.empty())
+			auto resourceManager = instance->GetComponent<fx::ResourceManager>();
+			if (!context.empty())
 			{
 				auto eventComponent = resourceManager->GetComponent<fx::ResourceEventManagerComponent>();
 
@@ -38,6 +38,22 @@ ServerCommandPacketHandler::ServerCommandPacketHandler(fx::ServerInstanceBase* i
 
 			return true;
 		}, 99999);
+
+	instance->GetComponent<console::Context>()->GetCommandManager()->FallbackEvent.Connect(
+		[instance](const std::string& commandName, const ProgramArguments& arguments, const std::string& context)
+		{
+			auto resourceManager = instance->GetComponent<fx::ResourceManager>();
+			auto eventComponent = resourceManager->GetComponent<fx::ResourceEventManagerComponent>();
+
+			// assert privilege
+			if (!seCheckPrivilege(fmt::sprintf("command.%s", commandName)))
+			{
+				return true;
+			}
+
+			// if canceled, the command was handled, so cancel the fwEvent
+			return eventComponent->TriggerEvent2("rconCommand", {}, commandName, arguments.GetArguments());
+		}, -100);
 }
 
 void ServerCommandPacketHandler::Handle(fx::ServerInstanceBase* instance, const fx::ClientSharedPtr& client,
@@ -67,16 +83,21 @@ void ServerCommandPacketHandler::Handle(fx::ServerInstanceBase* instance, const 
 
 	// contains the command length
 	// kept for compatibility reasons, can be removed in future net version
-	buffer.Read<uint16_t>();
+	const uint16_t commandLength = buffer.Read<uint16_t>();
 
-	if (!netSizeRateLimiter->Consume(netId, static_cast<double>(buffer.GetRemainingBytes())))
+	if (commandLength > buffer.GetRemainingBytes() - 4)
 	{
-		const auto cmdLen = buffer.GetRemainingBytes();
+		// invalid length provided
+		return;
+	}
+
+	if (!netSizeRateLimiter->Consume(netId, static_cast<double>(commandLength)))
+	{
 		std::string command;
-		if (cmdLen)
+		if (commandLength)
 		{
-			command.resize(cmdLen);
-			buffer.Read(command.data(), cmdLen);
+			command.resize(commandLength);
+			buffer.Read(command.data(), commandLength);
 		}
 		// if this happens, try increasing rateLimiter_netCommandSize_rate and rateLimiter_netCommandSize_burst
 		// preferably, fix client scripts to not have this large a set of server commands with high frequency
@@ -86,18 +107,22 @@ void ServerCommandPacketHandler::Handle(fx::ServerInstanceBase* instance, const 
 		return;
 	}
 
-	const auto cmdLen = buffer.GetRemainingBytes();
-
-	if (cmdLen == 0)
+	if (commandLength == 0)
 	{
 		// skip empty commands
 		return;
 	}
 
-	std::string commandName = std::string(buffer.Read<std::string_view>(cmdLen));
+	std::string commandName = std::string(buffer.Read<std::string_view>(commandLength));
+
+	// the last 4 bytes from the command contain the command name hash
+	// can be removed with a new command endpoint
+	buffer.Read<uint32_t>();
 
 	gscomms_execute_callback_on_main_thread([this, instance, client, commandName = std::move(commandName)]
 	{
+		auto scope = client->EnterPrincipalScope();
+
 		// save the raw command for fallback usage inside the static variable
 		rawCommand = commandName;
 

@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 
 export function nl2br(text: string): string {
   return text.split('\n').join('<br>');
@@ -13,9 +13,10 @@ export function nl2brx(text: string): React.ReactNode {
     }
 
     return (
+      // eslint-disable-next-line react/no-array-index-key
       <React.Fragment key={i + line}>
         {line}
-        <br/>
+        <br />
       </React.Fragment>
     );
   });

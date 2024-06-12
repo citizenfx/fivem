@@ -47,13 +47,18 @@ public:
 	void ForAllEntities(const std::function<void(fx::sync::Entity*)>& cb) override
 	{
 	}
+	
+	bool SetEntityStateBag(uint8_t playerId, uint16_t objectId, std::function<std::shared_ptr<fx::StateBag>()> createStateBag)
+	{
+		return false;
+	}
 };
 
 TEST_CASE("Routing handler test")
 {
 	fx::SetOneSyncGetCallback([] { return true; });
 
-	REQUIRE(RoutingPacketHandler::GetPacketId() == "msgRoute");
+	REQUIRE(std::string(RoutingPacketHandler::GetPacketId()) == "msgRoute");
 	REQUIRE(HashRageString(RoutingPacketHandler::GetPacketId()) == 0xE938445B);
 	// test is only implemented for onesync
 	REQUIRE(fx::IsOneSync() == true);

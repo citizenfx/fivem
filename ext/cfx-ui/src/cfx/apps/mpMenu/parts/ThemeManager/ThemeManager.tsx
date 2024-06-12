@@ -1,10 +1,12 @@
-import React from "react";
-import { observer } from "mobx-react-lite";
-import { getCustomInGameBackdropPath } from "cfx/apps/mpMenu/parts/ThemeManager/backdrop";
-import { CurrentGameName } from "cfx/base/gameRuntime";
-import { useService } from "cfx/base/servicesContainer";
-import { IConvarService, KnownConvars } from "../../services/convars/convars.service";
-import { BackdropBlurWorker } from "./BackdropBlur";
+import { observer } from 'mobx-react-lite';
+import React from 'react';
+
+import { getCustomInGameBackdropPath } from 'cfx/apps/mpMenu/parts/ThemeManager/backdrop';
+import { CurrentGameName } from 'cfx/base/gameRuntime';
+import { useService } from 'cfx/base/servicesContainer';
+
+import { BackdropBlurWorker } from './BackdropBlur';
+import { IConvarService, KnownConvars } from '../../services/convars/convars.service';
 
 export const ThemeManager = observer(function ThemeManager() {
   const ConvarService = useService(IConvarService);
@@ -40,7 +42,11 @@ export const ThemeManager = observer(function ThemeManager() {
   const lastThemeClassNameRef = React.useRef('');
   const preferLightColorScheme = ConvarService.getBoolean(KnownConvars.preferLightColorScheme);
   React.useEffect(() => {
-    const themeClassName = `cfxui-theme-${CurrentGameName}-${preferLightColorScheme ? 'light' : 'dark'}`;
+    const themeClassName = `cfxui-theme-${CurrentGameName}-${
+      preferLightColorScheme
+        ? 'light'
+        : 'dark'
+    }`;
 
     if (lastThemeClassNameRef.current) {
       document.body.classList.remove(lastThemeClassNameRef.current);

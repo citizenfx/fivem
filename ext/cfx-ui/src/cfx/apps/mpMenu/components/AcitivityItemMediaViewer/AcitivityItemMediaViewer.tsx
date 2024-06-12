@@ -1,9 +1,13 @@
-import React from "react";
-import { createOutlet } from "cfx/utils/outlet";
-import { observer } from "mobx-react-lite";
-import { AcitivityItemMediaViewerState, IRect } from "./AcitivityItemMediaViewer.state";
-import { ui } from "cfx/ui/ui";
-import { clsx } from "cfx/utils/clsx";
+import { observer } from 'mobx-react-lite';
+import React from 'react';
+
+import { Interactive } from 'cfx/ui/Interactive/Interactive';
+import { ui } from 'cfx/ui/ui';
+import { clsx } from 'cfx/utils/clsx';
+import { createOutlet } from 'cfx/utils/outlet';
+
+import { AcitivityItemMediaViewerState, IRect } from './AcitivityItemMediaViewer.state';
+
 import s from './AcitivityItemMediaViewer.module.scss';
 
 const Outlet = createOutlet();
@@ -17,6 +21,7 @@ export const AcitivityItemMediaViewer = observer(function AcitivityItemMediaView
   React.useEffect(() => {
     if (!state.active) {
       setToRect(null);
+
       return;
     }
 
@@ -40,17 +45,19 @@ export const AcitivityItemMediaViewer = observer(function AcitivityItemMediaView
       });
     };
 
-    const fireImmediately = (ref.current instanceof HTMLImageElement && ref.current.complete) || (ref.current instanceof HTMLVideoElement);
+    const fireImmediately = (ref.current instanceof HTMLImageElement && ref.current.complete)
+      || ref.current instanceof HTMLVideoElement;
 
     if (fireImmediately) {
       onLoad();
-    } else {
-      ref.current.onload = onLoad;
 
-      return () => {
-        inactive = true;
-      };
+      return;
     }
+    ref.current.onload = onLoad;
+
+    return () => {
+      inactive = true;
+    };
   }, [state.active]);
 
   if (!state.media || !state.fromRect) {
@@ -66,27 +73,25 @@ export const AcitivityItemMediaViewer = observer(function AcitivityItemMediaView
     '--ar': state.media.fullAspectRatio,
   } as any;
 
+  // eslint-disable-next-line no-nested-ternary
   const TargetElement = state.media.type === 'video'
     ? 'video'
-    : (state.media.type === 'youtube' ? 'iframe' : 'img');
+    : state.media.type === 'youtube'
+      ? 'iframe'
+      : 'img';
 
   return (
     <Outlet>
-      <div
+      <Interactive
+        showPointer={false}
         style={style}
         className={clsx(s.root, {
           [s.active]: !!toRect,
         })}
         onClick={state.close}
       >
-        <TargetElement
-          loop
-          autoPlay
-          ref={ref as any}
-          src={state.media.fullUrl}
-          className={s.media}
-        />
-      </div>
+        <TargetElement loop autoPlay ref={ref as any} src={state.media.fullUrl} className={s.media} />
+      </Interactive>
     </Outlet>
   );
 });

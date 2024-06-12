@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigationType } from 'react-router-dom';
+
 import { dispose, IDisposableObject } from './disposable';
 
 const Uninitialized = Symbol('Uninitialized');
@@ -14,7 +15,10 @@ export function useInstance<T, Args extends any[]>(init: (...args: Args) => T, .
   return ref.current;
 }
 
-export function useDisposableInstance<T extends IDisposableObject, Args extends any[]>(init: (...args: Args) => T, ...args: Args): T {
+export function useDisposableInstance<T extends IDisposableObject, Args extends any[]>(
+  init: (...args: Args) => T,
+  ...args: Args
+): T {
   const ref = React.useRef<typeof Uninitialized | T>(Uninitialized);
 
   if (ref.current === Uninitialized) {
@@ -32,7 +36,7 @@ export function useDisposableInstance<T extends IDisposableObject, Args extends 
         ref.current = Uninitialized;
       }
     };
-  }, [])
+  }, []);
 
   return ref.current;
 }
@@ -106,7 +110,7 @@ export function useTimeoutFlag(timeoutMS: number): boolean {
   return timedout;
 }
 
-export const useOpenFlag = (defaultValue: boolean = false): [boolean, () => void, () => void, () => void] => {
+export const useOpenFlag = (defaultValue = false): [boolean, () => void, () => void, () => void] => {
   const [isOpen, setIsOpen] = React.useState(defaultValue);
 
   const open = React.useCallback(() => {
@@ -123,7 +127,7 @@ export const useOpenFlag = (defaultValue: boolean = false): [boolean, () => void
   return [isOpen, open, close, toggle];
 };
 
-export function useWindowResize<T extends Function>(callback: T) {
+export function useWindowResize<T extends () => void>(callback: T) {
   const callbackRef = useDynamicRef(callback);
 
   React.useEffect(() => {
@@ -135,7 +139,7 @@ export function useWindowResize<T extends Function>(callback: T) {
   }, []);
 }
 
-export function useElementResize<T extends HTMLElement, C extends Function>(ref: React.RefObject<T>, callback: C) {
+export function useElementResize<T extends HTMLElement, C extends () => void>(ref: React.RefObject<T>, callback: C) {
   const callbackRef = useDynamicRef(callback);
 
   React.useEffect(() => {
@@ -153,7 +157,7 @@ export function useElementResize<T extends HTMLElement, C extends Function>(ref:
   }, [ref]);
 }
 
-export const useDebouncedCallback = <T extends any[], U extends any, R = (...args: T) => any>(
+export const useDebouncedCallback = <T extends any[], U, R = (...args: T) => any>(
   cb: (...args: T) => U,
   timeout: number,
 ): R => {
@@ -174,34 +178,24 @@ export const useDebouncedCallback = <T extends any[], U extends any, R = (...arg
     }, timeout);
   };
 
-  React.useEffect(() => () => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-    }
-  }, []);
+  React.useEffect(
+    () => () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    },
+    [],
+  );
 
   return React.useCallback<any>(realCb, []);
 };
 
-export function useKeyboardClose<T extends () => void>(callback: T) {
-  const callbackRef = useDynamicRef((event: KeyboardEvent) => {
-    if (!useKeyboardClose.isCloseEvent(event)) {
-      return;
-    }
-
-    callback();
-  });
-
-  useGlobalKeyboardEvent(callbackRef);
-}
-useKeyboardClose.isCloseEvent = (event: KeyboardEvent) => {
-  return event.key === 'Escape';
-};
-
-export function useGlobalKeyboardEvent<T extends (event: KeyboardEvent) => void>(
+export function useGlobalKeyboardEvent<T extends (
+  event: KeyboardEvent) => void>(
   callbackRef: React.MutableRefObject<T>,
+  // eslint-disable-next-line default-param-last
   eventName: 'keydown' | 'keyup' | 'keypress' = 'keydown',
-  capturing?: boolean
+  capturing?: boolean,
 ) {
   React.useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -231,12 +225,26 @@ useGlobalKeyboardEvent.shouldProcessEvent = (event: KeyboardEvent) => {
       case 'TEXTAREA': {
         return false;
       }
+      default:
+        return true;
     }
   }
 
   return true;
 };
 
+export function useKeyboardClose<T extends () => void>(callback: T) {
+  const callbackRef = useDynamicRef((event: KeyboardEvent) => {
+    if (!useKeyboardClose.isCloseEvent(event)) {
+      return;
+    }
+
+    callback();
+  });
+
+  useGlobalKeyboardEvent(callbackRef);
+}
+useKeyboardClose.isCloseEvent = (event: KeyboardEvent) => event.key === 'Escape';
 
 const scrollPositionMemo = new Map<any, number>();
 export function useSavedScrollPositionForBackNav<T>(id: T): [number, (offset: number) => void] {
@@ -245,12 +253,11 @@ export function useSavedScrollPositionForBackNav<T>(id: T): [number, (offset: nu
   }, []);
 
   const scrollOffset = useNavigationType() === 'POP'
-    ? (scrollPositionMemo.get(id) || 0)
+    ? scrollPositionMemo.get(id) || 0
     : 0;
 
   return [scrollOffset, setScrollOffset];
 }
-
 
 export function useBoundingClientRect<T extends HTMLElement>(ref: React.RefObject<T>): DOMRect | null {
   const [rect, setRect] = React.useState<DOMRect | null>(null);

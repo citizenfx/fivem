@@ -1,9 +1,11 @@
-import { fetcher } from "cfx/utils/fetcher";
-import { html2react } from "cfx/utils/html2react";
-import { HTTP_STATUS_CODE_TEXT } from "cfx/utils/http";
-import { isObject } from "cfx/utils/object";
-import { makeAutoObservable, observable } from "mobx";
-import { IActivityItem, IActivityItemMedia } from "./types";
+import { makeAutoObservable, observable } from 'mobx';
+
+import { fetcher } from 'cfx/utils/fetcher';
+import { html2react } from 'cfx/utils/html2react';
+import { HTTP_STATUS_CODE_TEXT } from 'cfx/utils/http';
+import { isObject } from 'cfx/utils/object';
+
+import { IActivityItem, IActivityItemMedia } from './types';
 
 export enum ActiveActivityPubFeedState {
   ERROR,
@@ -15,26 +17,47 @@ export enum ActiveActivityPubFeedState {
 
 export class ActiveActivityPubFeed {
   private _state: ActiveActivityPubFeedState = ActiveActivityPubFeedState.UNINIT;
-  public get state(): ActiveActivityPubFeedState { return this._state }
-  private set state(state: ActiveActivityPubFeedState) { this._state = state }
+  public get state(): ActiveActivityPubFeedState {
+    return this._state;
+  }
+  private set state(state: ActiveActivityPubFeedState) {
+    this._state = state;
+  }
 
   private _initError: string = '';
-  public get initError(): string { return this._initError }
-  private set initError(initError: string) { this._initError = initError }
+  public get initError(): string {
+    return this._initError;
+  }
+  private set initError(initError: string) {
+    this._initError = initError;
+  }
 
   private _items: IActivityItem[] = [];
-  public get items(): IActivityItem[] { return this._items.slice().sort(activityItemSorter) }
-  private set items(items: IActivityItem[]) { this._items = items }
+  public get items(): IActivityItem[] {
+    return this._items.slice().sort(activityItemSorter);
+  }
+  private set items(items: IActivityItem[]) {
+    this._items = items;
+  }
 
   private _itemsTotal: number = 0;
-  public get itemsTotal(): number { return this._itemsTotal }
-  private set itemsTotal(itemsTotal: number) { this._itemsTotal = itemsTotal }
+  public get itemsTotal(): number {
+    return this._itemsTotal;
+  }
+  private set itemsTotal(itemsTotal: number) {
+    this._itemsTotal = itemsTotal;
+  }
 
   private _account: IActivityPubAccount | null = null;
-  private get account(): IActivityPubAccount | null { return this._account }
-  private set account(account: IActivityPubAccount | null) { this._account = account }
+  private get account(): IActivityPubAccount | null {
+    return this._account;
+  }
+  private set account(account: IActivityPubAccount | null) {
+    this._account = account;
+  }
 
   protected nextOrderedCollectionPageURL: string | null = null;
+
   protected loadMoreAttemptsFailed: number = 0;
 
   public get hasMoreItemsToLoad(): boolean {
@@ -94,6 +117,7 @@ export class ActiveActivityPubFeed {
 
   readonly loadAll = async () => {
     while (this.hasMoreItemsToLoad && this.loadMoreAttemptsFailed < 5) {
+      // eslint-disable-next-line no-await-in-loop
       await this.loadMore();
     }
   };
@@ -122,25 +146,31 @@ export class ActiveActivityPubFeed {
 
   private async loadAccount() {
     const [user, host] = this.id.split('@');
+
     if (!user || !host) {
       throw new Error(`Invalid activitypub identifier: ${this.id}`);
     }
 
     const webfinger = await fetcher.json(`https://${host}/.well-known/webfinger?resource=${this.id}`);
-    if (!isObject<{ links: Array<{ type: string, href: string }> }>(webfinger)) {
+
+    if (!isObject<{ links: Array<{ type: string; href: string }> }>(webfinger)) {
       throw new Error(`Invalid webfinger response for pub ${this.id}`);
     }
 
-    const accountURL = webfinger.links.find(({ type }) => type === 'application/activity+json');
+    const accountURL = webfinger.links.find(({
+      type,
+    }) => type === 'application/activity+json');
+
     if (!accountURL) {
       throw new Error(`No account link for pub ${this.id}`);
     }
 
     const account = await fetcher.json(accountURL.href, {
       headers: {
-        'Accept': 'application/activity+json',
+        Accept: 'application/activity+json',
       },
     });
+
     if (!isObject<IActivityPubAccount>(account) || account.type !== 'Person') {
       throw new Error(`Unknown or invalid account for pub ${this.id}`);
     }
@@ -154,8 +184,18 @@ export class ActiveActivityPubFeed {
 
   private async loadOrderedCollectionPage(url: string) {
     const items = await fetcher.json(url);
-    if (!isObject<{ type?: 'OrderedCollection' | 'OrderedColelctionPage' | string, orderedItems?: any[], first?: string, prev?: string, totalItems?: number }>(items)) {
+
+    if (
+      !isObject<{
+        type?: 'OrderedCollection' | 'OrderedColelctionPage' | string;
+        orderedItems?: any[];
+        first?: string;
+        prev?: string;
+        totalItems?: number;
+      }>(items)
+    ) {
       console.warn(`Invalid response for OrderedCollectionPage url: ${url} of pub ${this.id}`);
+
       return;
     }
 
@@ -169,6 +209,7 @@ export class ActiveActivityPubFeed {
 
     if (items.first) {
       await this.loadOrderedCollectionPage(items.first);
+
       return;
     }
 
@@ -183,7 +224,10 @@ export class ActiveActivityPubFeed {
         continue;
       }
 
-      const { object } = item;
+      const {
+        object,
+      } = item;
+
       if (object.type !== 'Note') {
         continue;
       }
@@ -210,19 +254,19 @@ export class ActiveActivityPubFeed {
 type nay = any;
 
 export interface IActivityPubAccount {
-  type: 'Person' | string,
+  type: 'Person' | string;
 
-  outbox: string,
+  outbox: string;
 
-  name?: string | undefined,
-  preferredUsername?: string,
+  name?: string | undefined;
+  preferredUsername?: string;
 
   icon?: {
-    url: string,
-  },
+    url: string;
+  };
 
-  first?: string,
-  prev?: string,
+  first?: string;
+  prev?: string;
 }
 
 function activityItemSorter(a: IActivityItem, b: IActivityItem) {
@@ -235,11 +279,14 @@ function populateActivityPubActivityItemMedia(activityItem: IActivityItem, objec
   }
 
   for (const attachment of object.attachment) {
-    if (!isObject<{ mediaType: string, url: string, width: number, height: number, blurhash?: string }>(attachment)) {
+    if (!isObject<{ mediaType: string; url: string; width: number; height: number; blurhash?: string }>(attachment)) {
       continue;
     }
 
-    const type: IActivityItemMedia['type'] = { image: 'photo', video: 'video' }[attachment.mediaType.split('/')[0]] as any;
+    const type: IActivityItemMedia['type'] = { image: 'photo',
+      video: 'video' }[
+      attachment.mediaType.split('/')[0]
+    ] as any;
 
     activityItem.media.push({
       id: attachment.url,

@@ -1,12 +1,14 @@
-import { clsx } from 'cfx/utils/clsx';
 import React from 'react';
+
+import { clsx } from 'cfx/utils/clsx';
+
 import s from './Page.module.scss';
 
 export interface PageProps {
-  children?: React.ReactNode,
-  className?: string,
+  children?: React.ReactNode;
+  className?: string;
 
-  showLoader?: boolean,
+  showLoader?: boolean;
 }
 
 export function Page(props: PageProps) {

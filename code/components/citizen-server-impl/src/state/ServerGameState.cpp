@@ -2690,6 +2690,22 @@ void ServerGameState::ReassignEntity(uint32_t entityHandle, const fx::ClientShar
 #endif
 }
 
+bool ServerGameState::SetEntityStateBag(uint8_t playerId, uint16_t objectId, std::function<std::shared_ptr<StateBag>()> createStateBag) 
+{
+	if (auto entity = GetEntity(0, objectId))
+	{
+		if (entity->GetStateBag())
+		{
+			trace("Creating a new state bag while there's already a state bag on this entity, please report this.\n");
+		}
+
+		entity->SetStateBag(createStateBag());
+		return true;
+	}
+
+	return false;
+}
+
 bool ServerGameState::MoveEntityToCandidate(const fx::sync::SyncEntityPtr& entity, const fx::ClientSharedPtr& client)
 {
 	// pickup placements at 0,0,0 are transient and shouldn't migrate
@@ -4251,117 +4267,6 @@ void ServerGameState::AttachToObject(fx::ServerInstanceBase* instance)
 	auto sbac = fx::StateBagComponent::Create(fx::StateBagRole::Server);
 	sbac->SetGameInterface(this);
 
-	instance->GetComponent<fx::GameServer>()->GetComponent<fx::HandlerMapComponent>()->Add(HashRageString("msgStateBag"), 
-		{ fx::ThreadIdx::Sync, [this, instance](const fx::ClientSharedPtr& client, net::Buffer& buffer)
-	{
-		static fx::RateLimiterStore<uint32_t, false> stateBagRateLimiterStore{ instance->GetComponent<console::Context>().GetRef() };
-			
-		constexpr double kStateBagRateLimit = 75.f;
-		constexpr double kStateBagRateLimitBurst = 125.f;
-		static auto stateBagRateLimiter = stateBagRateLimiterStore.GetRateLimiter("stateBag", fx::RateLimiterDefaults{ kStateBagRateLimit, kStateBagRateLimitBurst });
-			
-		constexpr double kStateBagRateFloodLimit = 150.f;
-		constexpr double kStateBagRateFloodLimitBurst = 175.f;
-		static auto stateBagRateFloodLimiter = stateBagRateLimiterStore.GetRateLimiter("stateBagFlood", fx::RateLimiterDefaults{ kStateBagRateFloodLimit, kStateBagRateFloodLimitBurst });
-
-		constexpr double kStateBagSizeLimit = 128 * 1024.0;
-		constexpr double kStateBagSizeLimitBurst = 256 * 1024.0;
-		static auto stateBagSizeRateLimiter = stateBagRateLimiterStore.GetRateLimiter("stateBagSize", fx::RateLimiterDefaults{ kStateBagSizeLimit, kStateBagSizeLimitBurst });
-
-		static fx::KeyedRateLimiter<uint32_t, true> logLimiter { 1.0, 1.0 };
-
-		const uint32_t netId = client->GetNetId();
-
-		const bool hitRateLimit = !stateBagRateLimiter->Consume(netId);
-		const bool hitFloodRateLimit = !stateBagRateFloodLimiter->Consume(netId);
-
-		if (hitRateLimit)
-		{
-			const std::string& clientName = client->GetName();
-			auto printStateWarning = [&clientName, netId](const std::string& logChannel, const std::string_view logReason, const std::string_view rateLimiter, double rateLimit, double burstRateLimit)
-			{
-				console::Printf(logChannel, logReason, clientName, netId);
-				console::Printf(logChannel, "If you believe this to be a mistake please increase your rateLimiter_%s_rate and rateLimiter_%s_burst. ", rateLimiter, rateLimiter);
-				console::Printf(logChannel, "You can do this with `set rateLimiter_%s_rate [new value]`. The default rate limit is %0.0f and burst limit is %0.0f\n", rateLimiter, rateLimit, burstRateLimit);
-				console::Printf(logChannel, "You can disable this warning with `con_addChannelFilter %s drop` if you think you have this properly set up.\n", logChannel);
-			};
-
-			if (hitFloodRateLimit)
-			{
-				if (!client->IsDropping())
-				{
-					printStateWarning("sbag-client-flood",
-						"Client %s %d got dropped for sending too many state bag value updates.\n",
-						"stateBagFlood",
-						 kStateBagRateFloodLimit, kStateBagRateFloodLimitBurst);
-				}
-
-				instance->GetComponent<fx::GameServer>()->DropClient(client, "Reliable state bag packet overflow.");
-				return;
-			}
-
-			// only log here if we didn't log before, logging should only happen once in every 15 seconds.
-			if (logLimiter.Consume(netId))
-			{
-				printStateWarning("sbag-update-dropped",
-					"Client %s %d sent too many state bag updates and had their updates dropped.\n",
-					"stateBag",
-					kStateBagRateLimit, kStateBagRateLimitBurst);
-			}
-
-			return;
-		}
-
-		uint32_t dataLength = buffer.GetRemainingBytes();
-		if (!stateBagSizeRateLimiter->Consume(netId, double(dataLength)))
-		{
-			if (!client->IsDropping())
-			{
-				const std::string& logChannel = "sbag-size-kick";
-				console::Printf(logChannel, "Client %s %d got dropped for sending too large of a state bag update.\n", client->GetName(), netId);
-				console::Printf(logChannel, "If you believe this to be a mistake please increase your rateLimiter_stateBagSize_rate. ");
-				console::Printf(logChannel, "You can do this with `set rateLimiter_stateBagSize_rate [new value]`. The default size rate limit is %0.0f.\n", kStateBagSizeLimit);
-				console::Printf(logChannel, "You can disable this warning with `con_addChannelFilter %s drop` if you think you have this properly set up.\n", logChannel);
-			}
-
-			instance->GetComponent<fx::GameServer>()->DropClient(client, "Reliable state bag packet overflow.");
-			return;
-		}
-		
-		uint32_t slotId = client->GetSlotId();
-		if (slotId != -1)
-		{
-			std::string bagNameOnFailure;
-
-			std::string_view packetData(reinterpret_cast<const char*>(buffer.GetBuffer() + buffer.GetCurOffset()), buffer.GetRemainingBytes());
-			m_sbac->HandlePacket(slotId, packetData, &bagNameOnFailure);
-
-			// state bag isn't present, apply conditions for automatic creation
-			if (!bagNameOnFailure.empty())
-			{
-				// only allow clients to create entity state bags
-				if (bagNameOnFailure.rfind("entity:", 0) == 0)
-				{
-					int entityID;
-					auto result = std::from_chars(bagNameOnFailure.data() + 7, bagNameOnFailure.data() + bagNameOnFailure.size(), entityID);
-					
-					if (result.ec == std::errc()) // success
-					{
-						if (auto entity = GetEntity(0, entityID))
-						{
-							if (entity->GetStateBag())
-							{
-								trace("Creating a new state bag while there's already a state bag on this entity, please report this.\n");
-							}
-
-							entity->SetStateBag(m_sbac->RegisterStateBag(bagNameOnFailure));
-							m_sbac->HandlePacket(slotId, packetData); // second attempt, should go through now
-						}
-					}
-				}
-			}
-		}
-	} });
 
 	instance->GetComponent<fx::ResourceManager>()->SetComponent(sbac);
 

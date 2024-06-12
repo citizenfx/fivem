@@ -4,28 +4,25 @@ export enum LoginStatus {
   TOTPRequest,
 }
 export interface ILoginCredentials {
-  email: string,
-  password: string,
-  totp?: string,
+  email: string;
+  password: string;
+  totp?: string;
 }
 export type ILoginResponse =
   | { status: LoginStatus.Success }
   | { status: LoginStatus.TOTPRequest }
-  | { status: LoginStatus.Error, error: string }
+  | { status: LoginStatus.Error; error: string };
 
 export enum RegisterStatus {
   Error,
   Success,
 }
 export interface IRegisterCredentials {
-  email: string,
-  password: string,
-  username: string,
+  email: string;
+  password: string;
+  username: string;
 }
-export type IRegisterResponse =
-  | { status: RegisterStatus.Error, error: string }
-  | { status: RegisterStatus.Success }
-
+export type IRegisterResponse = { status: RegisterStatus.Error; error: string } | { status: RegisterStatus.Success };
 
 export interface IAccount {
   readonly id: number;
