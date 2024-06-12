@@ -4024,10 +4024,10 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, false>
 
 		if (hasVcn)
 		{
-			auto[hasVSN, vehScriptNode] = this->template GetData<CVehicleScriptGameStateDataNode>();
-			if (hasVSN)
+			auto vehScriptNode = this->template GetNode<CVehicleScriptGameStateDataNode>();
+			if (vehScriptNode && vehScriptNode->length > 0)
 			{
-				*popType = vehScriptNode->m_popType;
+				*popType = vehScriptNode->node.m_popType;
 			}
 			else
 			{
@@ -4040,10 +4040,10 @@ struct SyncTree : public SyncTreeBaseImpl<TNode, false>
 
 		if (hasPcn)
 		{
-			auto[hasPSN, pedScriptNode] = this->template GetData<CPedScriptGameStateDataNode>();
-			if (hasPSN)
+			auto pedScriptNode = this->template GetNode<CPedScriptGameStateDataNode>();
+			if (pedScriptNode && pedScriptNode->length > 0)
 			{
-				*popType = pedScriptNode->m_popType;
+				*popType = pedScriptNode->node.m_popType;
 			}
 			else
 			{
