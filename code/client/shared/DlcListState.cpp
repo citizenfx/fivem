@@ -1,5 +1,6 @@
 #include <DlcListState.h>
 
+#ifndef IS_FXSERVER
 #include <CfxState.h>
 #include <fmt/printf.h>
 #include <Utils.h>
@@ -107,3 +108,4 @@ namespace fx
 
     }
 }
+#endif
