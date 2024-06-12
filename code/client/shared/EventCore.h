@@ -263,6 +263,14 @@ private:
 		{
 
 		}
+
+		~callback()
+		{
+			while (next)
+			{
+				next = std::move(next->next);
+			}
+		}
 	};
 
 	std::unique_ptr<callback> m_callbacks;
