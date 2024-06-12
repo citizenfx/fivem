@@ -1,7 +1,10 @@
 #include "StdInc.h"
 
 #include "Hooking.h"
+#include <MinHook.h>
 #include <gameSkeleton.h>
+
+#include <DlcListState.h>
 
 #include <stack>
 
@@ -290,6 +293,7 @@ int CountRelevantDataFileEntries()
 static void(*dataFileMgr__loadDefDat)(void*, const char*, bool);
 
 void (*g_updateContentArray)(void*);
+int64_t (*g_origAddContent)(void*, void*);
 
 int dlcIdx = -1;
 int extraContentWrapperIdx = std::numeric_limits<int>::max();
@@ -298,7 +302,35 @@ std::map<uint32_t, std::string> g_dlcNameMap;
 
 char g_extraContentManagerContentOffset;
 uint32_t g_mountableContentSize;
+uint32_t g_mountableContentFileNameOffset;
 uint32_t g_mountableContentFlagsOffset;
+
+std::string GetDlcName(const std::string& dlcRpfFilePath)
+{
+	size_t fileNameStart = dlcRpfFilePath.find_last_of("/");
+	size_t dlcFolderNameStart = dlcRpfFilePath.find_last_of("/", fileNameStart - 1);
+
+	if (fileNameStart == std::string::npos || dlcFolderNameStart == std::string::npos)
+	{
+		return "";
+	}
+
+	return dlcRpfFilePath.substr(dlcFolderNameStart + 1, fileNameStart - dlcFolderNameStart - 1);
+}
+
+int64_t AddContent(void* extraContentManager, void* mountableContent)
+{
+	atArray<char>* filePath = (atArray<char>*)((uintptr_t)mountableContent + g_mountableContentFileNameOffset);
+	std::string dlcName = GetDlcName(std::string(filePath->begin(), filePath->end()));
+
+	if (!dlcName.empty() && fx::client::DlcManager::IsDlcBlocked(dlcName))
+	{
+		atArray<char>* contentList = (atArray<char>*)((uintptr_t)extraContentManager + g_extraContentManagerContentOffset);
+		return contentList->GetCount() - 1;
+	}
+
+	return g_origAddContent(extraContentManager, mountableContent);
+}
 
 static void LoadDefDats(void* dataFileMgr, const char* name, bool enabled)
 {
@@ -336,13 +368,19 @@ extern bool g_doDrawBelowLoadingScreens;
 static HookFunction hookFunction([] ()
 {
 	{
+		// Section related to loading extra content.
 		g_extraContentManagerLocation = hook::get_address<void**>(hook::get_pattern("79 91 C8 BC E8 ? ? ? ? 48 8D", -0x16));
 
 		g_extraContentManagerContentOffset = *(char*)hook::get_pattern<char>("48 83 C1 ? 89 82", 3);
 		g_mountableContentSize = *(uint32_t*)hook::get_pattern<char>("48 69 C0 ? ? ? ? 48 03 43 ? F6 80", 3);
+		g_mountableContentFileNameOffset = *(uint32_t*)hook::get_pattern<char>("48 8B 93 ? ? ? ? EB ? 49 8B D6", 3);
 		g_mountableContentFlagsOffset = *(uint32_t*)hook::get_pattern<char>("8A 81 ? ? ? ? 41 BC ? ? ? ? 48 8B F9", 2);
 
 		g_updateContentArray = (void(*)(void*))hook::get_call(hook::get_pattern("E8 ? ? ? ? 44 8A C3 B2"));
+
+		MH_Initialize();
+		MH_CreateHook(hook::get_call(hook::get_pattern("80 4D ? ? 48 8D 54 24 ? 48 8B CF", 12)), AddContent, (void**)&g_origAddContent);
+		MH_EnableHook(MH_ALL_HOOKS);
 	}
 
 	hook::jump(hook::get_pattern("44 8B D8 4D 63 C8 4C 3B C8 7D 33 8B", -0x16), &CDataFileMgr::FindNextEntry);

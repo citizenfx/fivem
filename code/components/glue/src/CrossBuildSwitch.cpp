@@ -15,16 +15,16 @@ int gameCacheTargetBuild;
 extern NetLibrary* netLibrary;
 extern std::map<std::string, std::string> UpdateGameCache();
 
-extern void RestartGameToOtherBuild(int build, int pureLevel);
+extern void RestartGameToOtherBuild(int build, int pureLevel, std::wstring dlcListCommand);
 
 static std::function<void(const std::string&)> g_submitFn;
 static bool g_cancelable;
 static bool g_canceled;
 static bool g_hadError;
 
-void PerformStateSwitch(int build, int pureLevel);
+void PerformStateSwitch(int build, int pureLevel, std::wstring dlcListCommand);
 
-void InitializeBuildSwitch(int build, int pureLevel)
+void InitializeBuildSwitch(int build, int pureLevel, std::wstring dlcListCommand)
 {
 	if (nui::HasMainUI())
 	{
@@ -41,17 +41,17 @@ void InitializeBuildSwitch(int build, int pureLevel)
 
 		nui::PostFrameMessage("mpMenu", fmt::sprintf(R"({ "type": "connectBuildSwitchRequest", "data": %s })", j.dump()));
 
-		g_submitFn = [build, pureLevel](const std::string& action)
+		g_submitFn = [build, pureLevel, dlcListCommand = std::move(dlcListCommand)](const std::string& action)
 		{
 			if (action == "ok")
 			{
-				PerformStateSwitch(build, pureLevel);
+				PerformStateSwitch(build, pureLevel, std::move(dlcListCommand));
 			}
 		};
 	}
 }
 
-void PerformStateSwitch(int build, int pureLevel)
+void PerformStateSwitch(int build, int pureLevel, std::wstring dlcListCommand)
 {
 	if (gameCacheTargetBuild != 0)
 	{
@@ -60,12 +60,12 @@ void PerformStateSwitch(int build, int pureLevel)
 
 	gameCacheTargetBuild = build;
 
-	std::thread([pureLevel]()
+	std::thread([pureLevel, dlcListCommand = std::move(dlcListCommand)]()
 	{
 		// let's try to update the game cache
 		if (!UpdateGameCache().empty())
 		{
-			RestartGameToOtherBuild(gameCacheTargetBuild, pureLevel);
+			RestartGameToOtherBuild(gameCacheTargetBuild, pureLevel, dlcListCommand);
 		}
 		// display a generic error if we failed
 		else if (!g_hadError && !g_canceled)
