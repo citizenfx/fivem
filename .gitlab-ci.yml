@@ -139,7 +139,7 @@ build_sdk:
 # -------------------
 .base_build_server:
   rules:
-    - if: $CI_COMMIT_BRANCH && ($CI_COMMIT_BRANCH != 'beta' || $CI_COMMIT_BRANCH != 'production')
+    - if: $CI_COMMIT_BRANCH && ($CI_COMMIT_BRANCH != 'beta' && $CI_COMMIT_BRANCH != 'production')
       when: always
     - when: never
 
