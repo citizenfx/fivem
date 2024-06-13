@@ -54,7 +54,7 @@ public:
 			net::Buffer outPacket;
 			outPacket.Write(HashRageString("msgRoute"));
 			outPacket.Write<uint16_t>(client->GetNetId());
-			outPacket.Write(remainingBytes);
+			outPacket.Write<uint16_t>(remainingBytes);
 			outPacket.Write(packetData, remainingBytes);
 
 			targetClient->SendPacket(1, outPacket, NetPacketType_Unreliable);
