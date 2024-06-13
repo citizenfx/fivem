@@ -35,6 +35,7 @@ private:
 
 static std::unordered_map<uint32_t, atPoolBase*> g_pools;
 static std::unordered_map<atPoolBase*, uint32_t> g_inversePools;
+static std::unordered_map<std::string, atPoolBase*> g_namedPools;
 
 static const char* poolEntriesTable[] = {
 	"AnimatedBuilding",
@@ -199,7 +200,7 @@ static const char* poolEntriesTable[] = {
 
 static RageHashList poolEntries(poolEntriesTable);
 
-GTA_CORE_EXPORT atPoolBase* rage::GetPoolBase(uint32_t hash)
+atPoolBase* rage::GetPoolBase(uint32_t hash)
 {
 	auto it = g_pools.find(hash);
 
@@ -211,21 +212,16 @@ GTA_CORE_EXPORT atPoolBase* rage::GetPoolBase(uint32_t hash)
 	return it->second;
 }
 
-GTA_CORE_EXPORT std::map<std::string, atPoolBase*> rage::GetPools()
+const std::unordered_map<std::string, atPoolBase*>& rage::GetPools()
 {
-	std::map<std::string, atPoolBase*> res;
-	for (auto [hash, pool] : g_pools)
-	{
-		res[poolEntries.LookupHash(hash)] = pool;
-	}
-
-	return res;
+	return g_namedPools;
 }
 
 static atPoolBase* SetPoolFn(atPoolBase* pool, uint32_t hash)
 {
 	g_pools[hash] = pool;
 	g_inversePools.insert({ pool, hash });
+	g_namedPools[poolEntries.LookupHash(hash)] = pool;
 
 	return pool;
 }
