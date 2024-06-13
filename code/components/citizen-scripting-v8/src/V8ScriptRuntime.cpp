@@ -39,6 +39,30 @@ inline static std::chrono::milliseconds msec()
 	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
 }
 
+// This copies behavior from mono
+#ifdef WIN32
+#include <windows.h>
+// Gets scaled (max * 0.9) max memory in bytes.
+size_t GetScaledPhysicalMemorySize()
+{
+	MEMORYSTATUSEX status;
+	status.dwLength = sizeof(status);
+	GlobalMemoryStatusEx(&status);
+	return status.ullTotalPhys * 0.9;
+}
+#else 
+#include <unistd.h>
+// Gets scaled (max * 0.9) max memory in bytes.
+size_t GetScaledPhysicalMemorySize()
+{
+	long pages = sysconf(_SC_PHYS_PAGES);
+	long pageSize = sysconf(_SC_PAGE_SIZE);
+
+	return (pages * pageSize) * 0.9;
+}
+#endif
+
+
 inline bool UseNode()
 {
 #ifndef IS_FXSERVER
@@ -2889,7 +2913,6 @@ void V8ScriptGlobals::Initialize()
 
 	V8::SetFlagsFromCommandLine(&argc, (char**)argv, false);
 #endif
-
 	const char* flags = "--turbo-inline-js-wasm-calls --expose_gc --harmony-top-level-await";
 	V8::SetFlagsFromString(flags, strlen(flags));
 
@@ -2919,6 +2942,14 @@ void V8ScriptGlobals::Initialize()
 	// create an isolate
 	Isolate::CreateParams params;
 	params.array_buffer_allocator = m_arrayBufferAllocator.get();
+
+	const auto kScaledMemory = GetScaledPhysicalMemorySize();
+
+	auto constraints = ResourceConstraints{};
+
+	constraints.ConfigureDefaultsFromHeapSize(0, kScaledMemory);
+
+	params.constraints = constraints;
 
 	m_isolate = Isolate::Allocate();
 
