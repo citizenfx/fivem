@@ -39,7 +39,7 @@ export class BaseConfigurableServersList implements IServersList {
 
     this._config = new ServerListConfigController({
       config,
-      onChange: (config) => source.makeList(config),
+      onChange: (newConfig) => source.makeList(newConfig),
     });
   }
 

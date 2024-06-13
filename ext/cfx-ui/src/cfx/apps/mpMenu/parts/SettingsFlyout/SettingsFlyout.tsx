@@ -32,12 +32,12 @@ export const SettingsFlyout = observer(function SettingsFlyout() {
   const category = SettingsUIService.category!;
 
   const handleOnActivate = React.useCallback(
-    (category: string) => {
-      SettingsUIService.selectCategory(category);
+    (activateCategory: string) => {
+      SettingsUIService.selectCategory(activateCategory);
       eventHandler({
         action: EventActionNames.SiteNavClick,
         properties: {
-          text: category,
+          text: activateCategory,
           link_url: '/',
           element_placement: ElementPlacements.Settings,
           position: 1,

@@ -141,7 +141,7 @@ export class MpMenuServersBoostService implements IServersBoostService {
       if (fetcher.HttpError.is(e)) {
         try {
           this.uiError = (await e.response.json()).error;
-        } catch (e) {
+        } catch {
           // noop
         }
       }

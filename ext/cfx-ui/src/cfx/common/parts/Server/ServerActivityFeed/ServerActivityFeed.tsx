@@ -133,7 +133,7 @@ function Header({
   );
 }
 
-const ServerActivityFeedFlyout = observer(function ServerActivityFeed({
+const ServerActivityFeedFlyout = observer(function ServerActivityFeedFlyout({
   feed,
   onClose,
 }: {

@@ -34,8 +34,8 @@ export class Disposer {
   }
 }
 
-export function disposableFromFunction(dispose: () => void): IDisposableObject {
-  return { dispose };
+export function disposableFromFunction(disposeArg: () => void): IDisposableObject {
+  return { dispose: disposeArg };
 }
 
 export function dispose(disposable: IDisposable | undefined) {

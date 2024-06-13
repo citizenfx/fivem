@@ -12,8 +12,8 @@ export const BlurredBackdrop = observer(function BlurredBackdrop() {
 
   const value = ConvarService.getBoolean(KnownConvars.preferBlurredBackdrop);
 
-  const handleChange = React.useCallback((value: boolean) => {
-    ConvarService.setBoolean(KnownConvars.preferBlurredBackdrop, value);
+  const handleChange = React.useCallback((newValue: boolean) => {
+    ConvarService.setBoolean(KnownConvars.preferBlurredBackdrop, newValue);
   }, []);
 
   const label = (

@@ -94,7 +94,9 @@ export function rawTweetToActivityDataItem(rawTweet: IRawTweet): IActivityItemDa
       }
     }
 
-    const mediaIndicesFull = (actualTweet.entities.media || []).map((media) => media.indices).concat(youtubeIndices);
+    const mediaIndicesFull = (actualTweet.entities.media || [])
+      .map((tweetMedia) => tweetMedia.indices)
+      .concat(youtubeIndices);
     const mediaIndices = mediaIndicesFull.map(([x]) => x);
 
     const urlIndicesFull = (actualTweet.entities.urls || []).map((url) => url.indices);
