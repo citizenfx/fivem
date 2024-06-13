@@ -6,8 +6,8 @@
 #include <json.hpp>
 
 #include <CoreConsole.h>
-
 #include <Pool.h>
+
 #include <imgui.h>
 #include <imgui_internal.h>
 
@@ -21,6 +21,24 @@
 DLL_IMPORT ImFont* GetConsoleFontTiny();
 
 using namespace std::chrono_literals;
+
+void BytesToHumanReadable(std::string& humanSize, int totalBytes)
+{
+	humanSize = fmt::sprintf("%d B", totalBytes);
+
+	if (totalBytes > (1024 * 1024 * 1024))
+	{
+		humanSize = fmt::sprintf("%.2f GiB", totalBytes / 1024.0 / 1024.0 / 1024.0);
+	}
+	else if (totalBytes > (1024 * 1024))
+	{
+		humanSize = fmt::sprintf("%.2f MiB", totalBytes / 1024.0 / 1024.0);
+	}
+	else if (totalBytes > 1024)
+	{
+		humanSize = fmt::sprintf("%.2f KiB", totalBytes / 1024.0);
+	}
+}
 
 inline std::chrono::microseconds usec()
 {
@@ -372,8 +390,8 @@ static InitFunction initFunction([]()
 	static std::mutex mutex;
 
 	static bool taskMgrEnabled;
-
 	static bool m_enabledPools;
+
 	static ConVar<bool> taskMgrVar("resmon", ConVar_Archive | ConVar_UserPref, false, &taskMgrEnabled);
 
 	fx::ResourceManager::OnInitializeInstance.Connect([](fx::ResourceManager* manager)
@@ -704,20 +722,8 @@ static InitFunction initFunction([]()
 					}
 					else
 					{
-						std::string humanSize = fmt::sprintf("%d B", totalBytes);
-
-						if (totalBytes > (1024 * 1024 * 1024))
-						{
-							humanSize = fmt::sprintf("%.2f GiB", totalBytes / 1024.0 / 1024.0 / 1024.0);
-						}
-						else if (totalBytes > (1024 * 1024))
-						{
-							humanSize = fmt::sprintf("%.2f MiB", totalBytes / 1024.0 / 1024.0);
-						}
-						else if (totalBytes > 1024)
-						{
-							humanSize = fmt::sprintf("%.2f KiB", totalBytes / 1024.0);
-						}
+						std::string humanSize;
+						BytesToHumanReadable(humanSize, totalBytes);
 
 						ImGui::Text("%s+", humanSize.c_str());
 					}
@@ -726,20 +732,8 @@ static InitFunction initFunction([]()
 
 					if (streamingUsage > 0)
 					{
-						std::string humanSize = fmt::sprintf("%d B", streamingUsage);
-
-						if (streamingUsage > (1024 * 1024 * 1024))
-						{
-							humanSize = fmt::sprintf("%.2f GiB", streamingUsage / 1024.0 / 1024.0 / 1024.0);
-						}
-						else if (streamingUsage > (1024 * 1024))
-						{
-							humanSize = fmt::sprintf("%.2f MiB", streamingUsage / 1024.0 / 1024.0);
-						}
-						else if (streamingUsage > 1024)
-						{
-							humanSize = fmt::sprintf("%.2f KiB", streamingUsage / 1024.0);
-						}
+						std::string humanSize;
+						BytesToHumanReadable(humanSize, streamingUsage);
 
 						ImGui::Text("%s", humanSize.c_str());
 					}
@@ -756,24 +750,24 @@ static InitFunction initFunction([]()
 		}
 	});
 
-    static ConVar<bool> poolVar("net_showPools", ConVar_Archive | ConVar_UserPref, false, &m_enabledPools);
-    
-    ConHost::OnShouldDrawGui.Connect([this](bool* should)
-    {
-    	*should = *should || m_enabledPools;
-    });
-    
-    ConHost::OnDrawGui.Connect([this]()
-    {
-    	if (!m_enabledPools)
-    	{
-    		return;
-    	}
-    
-    	if (ImGui::Begin("Pool List", &m_enabledPools))
-    	{
-    		static char search[100];
-    		ImGui::InputText("Search", search, IM_ARRAYSIZE(search));
+	static ConVar<bool> poolVar("net_showPools", ConVar_Archive | ConVar_UserPref, false, &m_enabledPools);
+
+	ConHost::OnShouldDrawGui.Connect([this](bool* should)
+	{
+		*should = *should || m_enabledPools;
+	});
+
+	ConHost::OnDrawGui.Connect([this]()
+	{
+		if (!m_enabledPools)
+		{
+			return;
+		}
+
+		if (ImGui::Begin("Pool List", &m_enabledPools))
+		{
+			static char search[100];
+			ImGui::InputText("Search", search, IM_ARRAYSIZE(search));
 			int totalSizeAllocated = 0;
 			int totalSizeUsed = 0;
 			auto pools = rage::GetPools();
@@ -788,7 +782,8 @@ static InitFunction initFunction([]()
 
 				PoolInfo(const std::string& _name, size_t _itemSize, size_t _totalSize, size_t _items, size_t _maxItems, float _used)
 					: name(_name), itemSize(_itemSize), totalSize(_totalSize), items(_items), maxItems(_maxItems), used(_used)
-					{}
+				{
+				}
 			};
 			std::vector<PoolInfo> poolsInfo;
 			poolsInfo.reserve(pools.size());
@@ -827,9 +822,9 @@ static InitFunction initFunction([]()
 				}
 				trace("--- Pools memory usage report end ---\n");
 			}
-    
-    		if (ImGui::BeginTable("Pool values", 6, ImGuiTableFlags_Resizable | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Sortable))
-    		{
+
+			if (ImGui::BeginTable("Pool values", 6, ImGuiTableFlags_Resizable | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Sortable))
+			{
 				ImGui::TableSetupColumn("Pool name", ImGuiTableColumnFlags_WidthStretch);
 				ImGui::TableSetupColumn("Item size", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_PreferSortDescending, 200);
 				ImGui::TableSetupColumn("Total size", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_PreferSortDescending, 200);
@@ -867,7 +862,7 @@ static InitFunction initFunction([]()
 										delta = left.maxItems - right.maxItems;
 										break;
 									case 5:
-										delta = static_cast<int>(left.used*1000) - static_cast<int>(right.used*1000);
+										delta = static_cast<int>(left.used * 1000) - static_cast<int>(right.used * 1000);
 										break;
 								}
 								if (delta > 0)
@@ -880,9 +875,9 @@ static InitFunction initFunction([]()
 						});
 					}
 				}
-    
-    			for (const auto& poolData : poolsInfo)
-    			{
+
+				for (const auto& poolData : poolsInfo)
+				{
 					if (!poolData.name._Starts_with(search))
 					{
 						continue;
@@ -891,23 +886,23 @@ static InitFunction initFunction([]()
 					std::string humanSize;
 					BytesToHumanReadable(humanSize, poolData.totalSize);
 
-    				ImGui::TableNextRow();
-    				ImGui::TableNextColumn();
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
 					ImGui::Text("%s", poolData.name.c_str());
 					ImGui::TableNextColumn();
 					ImGui::Text("%d", poolData.itemSize);
 					ImGui::TableNextColumn();
 					ImGui::Text("%s", humanSize.c_str());
-    				ImGui::TableNextColumn();
-    				ImGui::Text("%d", poolData.items);
-    				ImGui::TableNextColumn();
-    				ImGui::Text("%d", poolData.maxItems);
+					ImGui::TableNextColumn();
+					ImGui::Text("%d", poolData.items);
+					ImGui::TableNextColumn();
+					ImGui::Text("%d", poolData.maxItems);
 					ImGui::TableNextColumn();
 					ImGui::Text("%.2f%%", poolData.used);
-    			}
-    			ImGui::EndTable();
-    		}
-    	}
-    	ImGui::End();
-    });
+				}
+				ImGui::EndTable();
+			}
+		}
+		ImGui::End();
+	});
 });
