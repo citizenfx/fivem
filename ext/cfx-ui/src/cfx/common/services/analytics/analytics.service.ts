@@ -1,5 +1,6 @@
 import { injectable, interfaces, multiInject, optional } from 'inversify';
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 
 import { AnalyticsProvider } from './analytics.extensions';
 import { IAnalyticsEvent, TrackEventParams } from './types';
@@ -36,15 +37,39 @@ export function useAnalyticsService(): IAnalyticsService {
   return useService(IAnalyticsService);
 }
 
+function getViewName(pathname: string) {
+  if (pathname === '/') {
+    return 'home';
+  }
+
+  // Remove server id from path
+  if (pathname.includes('/servers/detail/')) {
+    return 'server_detail';
+  }
+
+  return pathname.split('/').filter(Boolean).join('_');
+}
+
 export function useEventHandler() {
   const analyticsService = useAnalyticsService();
+  // the easiest way to get info aboute page is a hook useLocation
+  // thats why prefer to use useEventHandler in components
+  const location = useLocation();
 
-  const EventHandler = React.useCallback(
+  const eventHandler = React.useCallback(
     (params: TrackEventParams) => {
-      analyticsService.trackEvent(params);
+      const enhancedProperties = {
+        view_name: getViewName(location.pathname),
+        ...params.properties,
+      };
+
+      analyticsService.trackEvent({
+        action: params.action,
+        properties: enhancedProperties,
+      });
     },
-    [analyticsService],
+    [analyticsService, location],
   );
 
-  return EventHandler;
+  return eventHandler;
 }

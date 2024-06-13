@@ -1,6 +1,7 @@
 import { inject, injectable, optional } from 'inversify';
 
-import { CurrentGameBrand } from 'cfx/base/gameRuntime';
+import { GameName } from 'cfx/base/game';
+import { CurrentGameBrand, CurrentGameName } from 'cfx/base/gameRuntime';
 import { IAccountService } from 'cfx/common/services/account/account.service';
 import { AnalyticsProvider } from 'cfx/common/services/analytics/analytics.extensions';
 import { ILinkedIdentitiesService } from 'cfx/common/services/linkedIdentities/linkedIdentities.service';
@@ -12,10 +13,16 @@ type GTMEvent = TrackEventParams['properties'] & {
   event: TrackEventParams['action'];
 };
 
+type GTMEnvironment =
+  | 'FiveM - prod'
+  | 'FiveM - dev'
+  | 'RedM - prod'
+  | 'RedM - dev';
+
 // parameters that will be included to each event to push in to dataLayer
 interface GTMEventDefaults {
   internal_referrer: string | undefined; // should be the previous page referrer if possible
-  environment: 'dev' | 'prod';
+  environment: GTMEnvironment;
   user_id: number | undefined;
   cfx_id: string | undefined;
   cfx_login_state: boolean;
@@ -87,10 +94,15 @@ export class GTMAnalyticsProvider implements AnalyticsProvider {
   }
 
   private getEventDefaults(): GTMEventDefaults {
+    const baseEnvironment = CurrentGameName === GameName.FiveM
+      ? 'FiveM'
+      : 'RedM';
+    const environment: GTMEnvironment = __CFXUI_DEV__
+      ? `${baseEnvironment} - dev`
+      : `${baseEnvironment} - prod`;
+
     return {
-      environment: __CFXUI_DEV__
-        ? 'dev'
-        : 'prod',
+      environment,
       user_id: this._userId,
       cfx_id: this._cfxId,
       cfx_login_state: !!this._cfxId,
