@@ -95,6 +95,9 @@ static bool g_networkedSoundsEnabled;
 static std::shared_ptr<ConVar<bool>> g_networkedPhoneExplosionsEnabledVar;
 static bool g_networkedPhoneExplosionsEnabled;
 
+static std::shared_ptr<ConVar<bool>> g_networkedScriptEntityStatesEnabledVar;
+static bool g_networkedScriptEntityStatesEnabled;
+
 static std::shared_ptr<ConVar<int>> g_requestControlVar;
 static std::shared_ptr<ConVar<int>> g_requestControlSettleVar;
 
@@ -7030,6 +7033,14 @@ std::function<bool()> fx::ServerGameState::GetGameEventHandler(const fx::ClientS
 			return false;
 		};
 	}
+
+	if (eventType == SCRIPT_ENTITY_STATE_CHANGE_EVENT)
+	{
+		return []()
+		{
+			return g_networkedScriptEntityStatesEnabled;
+		};
+	}
 #endif
 
 #ifdef STATE_FIVE
@@ -7124,6 +7135,8 @@ static InitFunction initFunction([]()
 		g_networkedSoundsEnabledVar = instance->AddVariable<bool>("sv_enableNetworkedSounds", ConVar_None, true, &g_networkedSoundsEnabled);
 
 		g_networkedPhoneExplosionsEnabledVar = instance->AddVariable<bool>("sv_enableNetworkedPhoneExplosions", ConVar_None, false, &g_networkedPhoneExplosionsEnabled);
+
+		g_networkedScriptEntityStatesEnabledVar = instance->AddVariable<bool>("sv_enableNetworkedScriptEntityStates", ConVar_None, true, &g_networkedScriptEntityStatesEnabled);
 
 		g_requestControlVar = instance->AddVariable<int>("sv_filterRequestControl", ConVar_None, (int)RequestControlFilterMode::NoFilter, (int*)&g_requestControlFilterState);
 		g_requestControlSettleVar = instance->AddVariable<int>("sv_filterRequestControlSettleTimer", ConVar_None, 30000, &g_requestControlSettleDelay);
