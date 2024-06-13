@@ -30,11 +30,11 @@ public:
 	}
 
 private:
-	std::map<uint32_t, std::string_view> m_lookupList;
+	std::unordered_map<uint32_t, std::string_view> m_lookupList;
 };
 
-static std::map<uint32_t, atPoolBase*> g_pools;
-static std::map<atPoolBase*, uint32_t> g_inversePools;
+static std::unordered_map<uint32_t, atPoolBase*> g_pools;
+static std::unordered_map<atPoolBase*, uint32_t> g_inversePools;
 
 static const char* poolEntriesTable[] = {
 	"AnimatedBuilding",
@@ -186,6 +186,15 @@ static const char* poolEntriesTable[] = {
 	"OcclusionPathNode",
 	"OcclusionPortalInfo",
 	"Decorator",
+	"StreamPed req data",
+	"StreamPed render data",
+	"CChatHelper",
+	"Landing gear parts",
+	"PedProp render data",
+	"PedProp req data",
+	"camStickyAimHelper",
+	"Entity Alt request data",
+	"TextStore",
 };
 
 static RageHashList poolEntries(poolEntriesTable);
@@ -200,6 +209,17 @@ GTA_CORE_EXPORT atPoolBase* rage::GetPoolBase(uint32_t hash)
 	}
 
 	return it->second;
+}
+
+GTA_CORE_EXPORT std::map<std::string, atPoolBase*> rage::GetPools()
+{
+	std::map<std::string, atPoolBase*> res;
+	for (auto [hash, pool] : g_pools)
+	{
+		res[poolEntries.LookupHash(hash)] = pool;
+	}
+
+	return res;
 }
 
 static atPoolBase* SetPoolFn(atPoolBase* pool, uint32_t hash)

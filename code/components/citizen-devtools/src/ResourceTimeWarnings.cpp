@@ -7,6 +7,7 @@
 
 #include <CoreConsole.h>
 
+#include <Pool.h>
 #include <imgui.h>
 #include <imgui_internal.h>
 
@@ -372,6 +373,7 @@ static InitFunction initFunction([]()
 
 	static bool taskMgrEnabled;
 
+	static bool m_enabledPools;
 	static ConVar<bool> taskMgrVar("resmon", ConVar_Archive | ConVar_UserPref, false, &taskMgrEnabled);
 
 	fx::ResourceManager::OnInitializeInstance.Connect([](fx::ResourceManager* manager)
@@ -753,4 +755,159 @@ static InitFunction initFunction([]()
 			ImGui::End();
 		}
 	});
+
+    static ConVar<bool> poolVar("net_showPools", ConVar_Archive | ConVar_UserPref, false, &m_enabledPools);
+    
+    ConHost::OnShouldDrawGui.Connect([this](bool* should)
+    {
+    	*should = *should || m_enabledPools;
+    });
+    
+    ConHost::OnDrawGui.Connect([this]()
+    {
+    	if (!m_enabledPools)
+    	{
+    		return;
+    	}
+    
+    	if (ImGui::Begin("Pool List", &m_enabledPools))
+    	{
+    		static char search[100];
+    		ImGui::InputText("Search", search, IM_ARRAYSIZE(search));
+			int totalSizeAllocated = 0;
+			int totalSizeUsed = 0;
+			auto pools = rage::GetPools();
+			struct PoolInfo
+			{
+				std::string name;
+				size_t itemSize;
+				size_t totalSize;
+				size_t items;
+				size_t maxItems;
+				float used;
+
+				PoolInfo(const std::string& _name, size_t _itemSize, size_t _totalSize, size_t _items, size_t _maxItems, float _used)
+					: name(_name), itemSize(_itemSize), totalSize(_totalSize), items(_items), maxItems(_maxItems), used(_used)
+					{}
+			};
+			std::vector<PoolInfo> poolsInfo;
+			poolsInfo.reserve(pools.size());
+
+			for (auto [key, pool] : pools)
+			{
+				totalSizeAllocated += pool->GetSize() * pool->GetEntrySize();
+				totalSizeUsed += pool->GetCount() * pool->GetEntrySize();
+
+				float usedPercent = pool->GetSize() == 0 ? 0.f : (static_cast<float>(pool->GetCount()) / pool->GetSize() * 100.f);
+				PoolInfo poolInfo(key, pool->GetEntrySize(), pool->GetEntrySize() * pool->GetSize(), pool->GetCount(), pool->GetSize(), usedPercent);
+				poolsInfo.push_back(poolInfo);
+			}
+
+			std::string humanSizeAllocated;
+			BytesToHumanReadable(humanSizeAllocated, totalSizeAllocated);
+			ImGui::Text("Total size allocated: %s", humanSizeAllocated.c_str());
+
+			std::string humanSizeUsed;
+			BytesToHumanReadable(humanSizeUsed, totalSizeUsed);
+			ImGui::Text("Total size used: %s", humanSizeUsed.c_str());
+
+			if (ImGui::Button("Export"))
+			{
+				trace("--- Pools memory usage report ---\n");
+				trace("Allocated: %s\n", humanSizeAllocated.c_str());
+				trace("Used: %s\n", humanSizeUsed.c_str());
+				trace("Pools details:\n");
+
+				for (const auto& poolData : poolsInfo)
+				{
+					std::string humanSize;
+					BytesToHumanReadable(humanSize, poolData.totalSize);
+
+					trace(" - %s, item size = %d, total size = %s, items count = %d, pool size = %d\n", poolData.name.c_str(), poolData.itemSize, humanSize.c_str(), poolData.items, poolData.maxItems);
+				}
+				trace("--- Pools memory usage report end ---\n");
+			}
+    
+    		if (ImGui::BeginTable("Pool values", 6, ImGuiTableFlags_Resizable | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Sortable))
+    		{
+				ImGui::TableSetupColumn("Pool name", ImGuiTableColumnFlags_WidthStretch);
+				ImGui::TableSetupColumn("Item size", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_PreferSortDescending, 200);
+				ImGui::TableSetupColumn("Total size", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_PreferSortDescending, 200);
+				ImGui::TableSetupColumn("Items", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_PreferSortDescending, 200);
+				ImGui::TableSetupColumn("Max items", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_PreferSortDescending, 200);
+				ImGui::TableSetupColumn("Used", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_PreferSortDescending, 200);
+				ImGui::TableHeadersRow();
+
+				{
+					auto sortSpecs = ImGui::TableGetSortSpecs();
+
+					if (sortSpecs && sortSpecs->SpecsCount > 0)
+					{
+						std::sort(poolsInfo.begin(), poolsInfo.end(), [sortSpecs](const PoolInfo& left, const PoolInfo& right)
+						{
+							for (int n = 0; n < sortSpecs->SpecsCount; n++)
+							{
+								const ImGuiTableColumnSortSpecs* sortSpec = &sortSpecs->Specs[n];
+								int delta = 0;
+								switch (sortSpec->ColumnIndex)
+								{
+									case 0:
+										delta = strcmpi(left.name.c_str(), right.name.c_str());
+										break;
+									case 1:
+										delta = left.itemSize - right.itemSize;
+										break;
+									case 2:
+										delta = left.totalSize - right.totalSize;
+										break;
+									case 3:
+										delta = left.items - right.items;
+										break;
+									case 4:
+										delta = left.maxItems - right.maxItems;
+										break;
+									case 5:
+										delta = static_cast<int>(left.used*1000) - static_cast<int>(right.used*1000);
+										break;
+								}
+								if (delta > 0)
+									return (sortSpec->SortDirection == ImGuiSortDirection_Ascending) ? false : true;
+								if (delta < 0)
+									return (sortSpec->SortDirection == ImGuiSortDirection_Ascending) ? true : false;
+							}
+
+							return strcmpi(left.name.c_str(), right.name.c_str()) > 0;
+						});
+					}
+				}
+    
+    			for (const auto& poolData : poolsInfo)
+    			{
+					if (!poolData.name._Starts_with(search))
+					{
+						continue;
+					}
+
+					std::string humanSize;
+					BytesToHumanReadable(humanSize, poolData.totalSize);
+
+    				ImGui::TableNextRow();
+    				ImGui::TableNextColumn();
+					ImGui::Text("%s", poolData.name.c_str());
+					ImGui::TableNextColumn();
+					ImGui::Text("%d", poolData.itemSize);
+					ImGui::TableNextColumn();
+					ImGui::Text("%s", humanSize.c_str());
+    				ImGui::TableNextColumn();
+    				ImGui::Text("%d", poolData.items);
+    				ImGui::TableNextColumn();
+    				ImGui::Text("%d", poolData.maxItems);
+					ImGui::TableNextColumn();
+					ImGui::Text("%.2f%%", poolData.used);
+    			}
+    			ImGui::EndTable();
+    		}
+    	}
+    	ImGui::End();
+    });
 });
