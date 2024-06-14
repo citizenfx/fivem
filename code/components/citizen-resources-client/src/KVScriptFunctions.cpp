@@ -123,7 +123,7 @@ static void SetResourceKvp(fx::ScriptContext& context)
 
 static void SetResourceKvpRaw(fx::ScriptContext& context)
 {
-	PutResourceKvp(context, context.GetArgument<const char*>(1), context.GetArgument<size_t>(2));
+	PutResourceKvp(context, context.CheckArgument<const char*>(1), context.GetArgument<size_t>(2));
 }
 
 struct AnyType {};
