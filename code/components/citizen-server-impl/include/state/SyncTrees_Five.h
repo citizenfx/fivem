@@ -128,7 +128,29 @@ struct CAutomobileCreationDataNode
 	}
 };
 
-struct CGlobalFlagsDataNode { };
+struct CGlobalFlagsDataNode
+{
+	uint32_t globalFlags;
+	uint32_t token;
+
+	bool Parse(SyncParseState& state)
+	{
+		globalFlags = state.buffer.Read<uint32_t>(8);
+		token = state.buffer.Read<uint32_t>(5);
+
+		return true;
+	}
+
+	bool Unparse(SyncUnparseState& state)
+	{
+		rl::MessageBuffer& buffer = state.buffer;
+
+		buffer.Write<uint32_t>(8, globalFlags);
+		buffer.Write<uint32_t>(5, token);
+
+		return true;
+	}
+};
 
 struct CDynamicEntityGameStateDataNode : GenericSerializeDataNode<CDynamicEntityGameStateDataNode>
 {
